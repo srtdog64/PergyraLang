@@ -19,6 +19,15 @@ pgy_queue_raw_shape_fits(size_t capacity, size_t elem_size)
         && elem_size <= SIZE_MAX / capacity;
 }
 
+static bool
+pgy_queue_raw_is_initialized(const PgyQueueRaw *queue)
+{
+    return queue != NULL
+        && queue->capacity != 0
+        && queue->capacity <= (size_t)INT32_MAX
+        && queue->data != NULL;
+}
+
 void
 pgy_queue_new_raw_export(void *queue_ptr, int64_t elem_size)
 {
@@ -63,7 +72,7 @@ pgy_queue_push_raw_export(void *queue_ptr, void *value_ptr, int64_t elem_size)
         pgy_runtime_warn_invalid_collection("queue_push", "non-positive element size");
         return;
     }
-    if (queue->data == NULL && queue->capacity == 0) {
+    if (!pgy_queue_raw_is_initialized(queue)) {
         pgy_runtime_warn_invalid_collection("queue_push", "queue is not initialized");
         return;
     }
@@ -117,6 +126,12 @@ pgy_queue_push_string_raw_export(void *queue_ptr, const char *value)
         pgy_runtime_warn_invalid_collection("queue_push_string", "null queue");
         return;
     }
+    if (!pgy_queue_raw_is_initialized(queue)
+        || !pgy_queue_raw_shape_fits(queue->capacity, sizeof(char *))) {
+        pgy_runtime_warn_invalid_collection("queue_push_string",
+            "queue is not initialized");
+        return;
+    }
     owned = pgy_runtime_strdup_export(value != NULL ? value : "");
     if (owned == NULL) {
         pgy_runtime_warn_invalid_collection("queue_push_string", "string duplication failed");
@@ -144,6 +159,11 @@ pgy_queue_pop_raw_export(void *queue_ptr, void *out_ptr, int64_t elem_size)
     if (queue == NULL) {
         PGY_RUNTIME_PANIC(PGY_RUNTIME_PANIC_CLASS_INTERNAL_INVARIANT,
                           "queue pop on null queue");
+    }
+    if (!pgy_queue_raw_is_initialized(queue)
+        || !pgy_queue_raw_shape_fits(queue->capacity, (size_t)elem_size)) {
+        PGY_RUNTIME_PANIC(PGY_RUNTIME_PANIC_CLASS_INTERNAL_INVARIANT,
+                          "queue pop on uninitialized queue");
     }
     if (queue->count == 0) {
         PGY_RUNTIME_PANIC(PGY_RUNTIME_PANIC_CLASS_OUT_OF_BOUNDS,
@@ -177,6 +197,10 @@ pgy_queue_size_raw_export(void *queue_ptr)
         pgy_runtime_warn_invalid_collection("queue_size", "null queue");
         return 0;
     }
+    if (!pgy_queue_raw_is_initialized(queue)) {
+        pgy_runtime_warn_invalid_collection("queue_size", "queue is not initialized");
+        return 0;
+    }
     return (int32_t)queue->count;
 }
 
@@ -186,5 +210,11 @@ pgy_queue_empty_raw_export(void *queue_ptr)
     PgyQueueRaw *queue = (PgyQueueRaw *)queue_ptr;
     if (queue == NULL)
         pgy_runtime_warn_invalid_collection("queue_empty", "null queue");
-    return queue == NULL || queue->count == 0;
+    if (queue == NULL)
+        return true;
+    if (!pgy_queue_raw_is_initialized(queue)) {
+        pgy_runtime_warn_invalid_collection("queue_empty", "queue is not initialized");
+        return true;
+    }
+    return queue->count == 0;
 }

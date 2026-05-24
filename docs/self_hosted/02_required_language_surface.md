@@ -32,10 +32,16 @@ practical. It is not a request to add new syntax before beta.
 
 ## Required Before Hard Self-Host
 
+- Stable graph-heavy compiler data structures: deterministic maps, ordered
+  traversal, symbol tables, worklists, and graph diagnostics.
+- Stable collection ergonomics for compiler-scale `List`, `Set`, and
+  `HashMap` usage over strings, symbols, small records, and handles.
+- Arena-backed scratch/result/persistent allocation lanes that are pleasant
+  enough for compiler passes without Rust-style lifetime annotations.
 - Debuggable generated C and LLVM output.
 - Stable FFI boundary.
 - Runtime-none/minimal-runtime policy for compiler tools.
-- Raw escape policy for system-level interop.
+- Scoped unsafe/raw escape policy for system-level interop.
 - Deterministic codegen and stable IR dump schema.
 - Adequate standard library for filesystem, paths, JSON, process execution, and tests.
 
@@ -46,4 +52,3 @@ practical. It is not a request to add new syntax before beta.
 - HKT/Functor full FP model.
 - Native LLVM WASM backend.
 - WebGL/render APIs in core language.
-

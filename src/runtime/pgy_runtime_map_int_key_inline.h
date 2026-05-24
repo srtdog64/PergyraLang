@@ -3,7 +3,7 @@
 
 static inline int32_t pgy_map_size_int(PgyHashMap_Int *m)
 {
-    return (int32_t)m->count;
+    return pgy_map_int_is_initialized(m) ? (int32_t)m->count : 0;
 }
 
 static inline void pgy_map_set_i32_int(PgyHashMap_Int *m, int32_t key, int32_t val)

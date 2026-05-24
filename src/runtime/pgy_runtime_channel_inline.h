@@ -146,7 +146,7 @@ pgy_channel_try_send_##SuffixName(PgyChannel_##SuffixName *ch, CType value) \
 static inline PgyOption_Bool \
 pgy_channel_try_send_status_##SuffixName(PgyChannel_##SuffixName *ch, CType value) \
 { \
-    if (ch == NULL) \
+    if (ch == NULL || ch->buf == NULL || ch->cap == 0) \
         return Some_Bool(false); \
     pthread_mutex_lock(&ch->mutex); \
     if (ch->closed) { \
@@ -204,7 +204,7 @@ static inline PgyOption_Bool \
 pgy_channel_send_timeout_status_##SuffixName(PgyChannel_##SuffixName *ch, \
                                              CType value, uint64_t timeout_ns) \
 { \
-    if (ch == NULL) \
+    if (ch == NULL || ch->buf == NULL || ch->cap == 0) \
         return Some_Bool(false); \
     struct timespec deadline = pgy_timespec_after_ns(timeout_ns); \
     pthread_mutex_lock(&ch->mutex); \
@@ -340,6 +340,8 @@ pgy_channel_try_recv_##SuffixName(PgyChannel_##SuffixName *ch, CType *out) \
 static inline bool \
 pgy_channel_ready_##SuffixName(PgyChannel_##SuffixName *ch) \
 { \
+    if (ch == NULL || ch->buf == NULL || ch->cap == 0) \
+        return false; \
     if (!pgy_async_in_coroutine()) \
         (void)pgy_async_progress_one(); \
     pthread_mutex_lock(&ch->mutex); \
@@ -352,10 +354,10 @@ pgy_channel_ready_##SuffixName(PgyChannel_##SuffixName *ch) \
 static inline int32_t \
 pgy_channel_length_##SuffixName(PgyChannel_##SuffixName *ch) \
 { \
-    if (ch == NULL) \
+    if (ch == NULL || ch->buf == NULL || ch->cap == 0) \
         return 0; \
     pthread_mutex_lock(&ch->mutex); \
-    int32_t len = (int32_t)ch->count; \
+    int32_t len = (ch->count > (size_t)INT32_MAX) ? INT32_MAX : (int32_t)ch->count; \
     pthread_mutex_unlock(&ch->mutex); \
     return len; \
 } \
@@ -363,10 +365,10 @@ pgy_channel_length_##SuffixName(PgyChannel_##SuffixName *ch) \
 static inline int32_t \
 pgy_channel_capacity_##SuffixName(PgyChannel_##SuffixName *ch) \
 { \
-    if (ch == NULL) \
+    if (ch == NULL || ch->buf == NULL || ch->cap == 0) \
         return 0; \
     pthread_mutex_lock(&ch->mutex); \
-    int32_t cap = (int32_t)ch->cap; \
+    int32_t cap = (ch->cap > (size_t)INT32_MAX) ? INT32_MAX : (int32_t)ch->cap; \
     pthread_mutex_unlock(&ch->mutex); \
     return cap; \
 } \
@@ -374,7 +376,7 @@ pgy_channel_capacity_##SuffixName(PgyChannel_##SuffixName *ch) \
 static inline bool \
 pgy_channel_full_##SuffixName(PgyChannel_##SuffixName *ch) \
 { \
-    if (ch == NULL) \
+    if (ch == NULL || ch->buf == NULL || ch->cap == 0) \
         return false; \
     pthread_mutex_lock(&ch->mutex); \
     bool full = ch->count >= ch->cap; \
@@ -385,10 +387,12 @@ pgy_channel_full_##SuffixName(PgyChannel_##SuffixName *ch) \
 static inline int32_t \
 pgy_channel_space_##SuffixName(PgyChannel_##SuffixName *ch) \
 { \
-    if (ch == NULL) \
+    if (ch == NULL || ch->buf == NULL || ch->cap == 0) \
         return 0; \
     pthread_mutex_lock(&ch->mutex); \
-    int32_t space = (int32_t)(ch->cap - ch->count); \
+    size_t used = (ch->count <= ch->cap) ? ch->count : ch->cap; \
+    size_t raw_space = ch->cap - used; \
+    int32_t space = (raw_space > (size_t)INT32_MAX) ? INT32_MAX : (int32_t)raw_space; \
     pthread_mutex_unlock(&ch->mutex); \
     return space; \
 } \
@@ -396,7 +400,7 @@ pgy_channel_space_##SuffixName(PgyChannel_##SuffixName *ch) \
 static inline bool \
 pgy_channel_closed_##SuffixName(PgyChannel_##SuffixName *ch) \
 { \
-    if (ch == NULL) \
+    if (ch == NULL || ch->buf == NULL || ch->cap == 0) \
         return true; \
     pthread_mutex_lock(&ch->mutex); \
     bool closed = ch->closed; \
@@ -416,6 +420,6 @@ pgy_channel_recv_val_##SuffixName(PgyChannel_##SuffixName *ch) \
 }
 
 PGY_CHANNEL_DEFINE(Int, int32_t)
-PGY_CHANNEL_DEFINE(String, char*)
 
+#include "pgy_runtime_channel_string_inline.h"
 #include "pgy_runtime_channel_spsc_inline.h"

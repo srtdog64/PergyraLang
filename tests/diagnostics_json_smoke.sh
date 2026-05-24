@@ -64,7 +64,44 @@ check_json() {
     local expect_expr="$3"  # python expression over `data`, must be True
 
     if [[ -z "$PY_BIN" ]]; then
-        echo "[diag-json] $label: SKIP (no python)" >&2
+        local compact
+        compact="$(tr -d '\r\n\t ' < "$file")"
+        if [[ -z "$compact" || "${compact:0:1}" != "[" || "${compact: -1}" != "]" ]]; then
+            echo "[diag-json] $label: FAIL -- stderr is not a JSON array" >&2
+            sed -n '1,8p' "$file" >&2
+            exit 1
+        fi
+        if [[ "$label" == "ok-empty" && "$compact" != "[]" ]]; then
+            echo "[diag-json] $label: FAIL -- expected empty diagnostic array" >&2
+            sed -n '1,8p' "$file" >&2
+            exit 1
+        fi
+        if [[ "$label" == "llvm-channel-runtime-missing" ]]; then
+            if ! grep -Fq -- "pgy_channel_init_Bool" "$file" \
+                && ! grep -Fq -- "pgy_channel_try_recv_Bool" "$file"; then
+                echo "[diag-json] $label: FAIL -- missing expected channel helper name" >&2
+                sed -n '1,8p' "$file" >&2
+                exit 1
+            fi
+        fi
+        while IFS= read -r literal; do
+            [[ -n "$literal" ]] || continue
+            if [[ "$label" == "llvm-channel-runtime-missing" \
+                && ( "$literal" == "pgy_channel_init_Bool" \
+                     || "$literal" == "pgy_channel_try_recv_Bool" ) ]]; then
+                continue
+            fi
+            if ! grep -Fq -- "$literal" "$file"; then
+                echo "[diag-json] $label: FAIL -- missing expected JSON literal: $literal" >&2
+                sed -n '1,8p' "$file" >&2
+                exit 1
+            fi
+        done < <(
+            printf '%s\n' "$expect_expr" |
+                grep -oE '"([^"\\]|\\.)*"' |
+                sed -E 's/^"(.*)"$/\1/'
+        )
+        echo "[diag-json] $label: OK (shell fallback)"
         return 0
     fi
     "$PY_BIN" - "$file" "$label" "$expect_expr" <<'PY'

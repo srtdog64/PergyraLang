@@ -8,7 +8,8 @@ Exit criteria:
 
 - CFG/MIR body safety is the source of truth for stable body checks.
 - AIR validates abstraction boundaries with strict evidence.
-- DAG type resolution has no retired resolver or materializer fallback usage on stable paths.
+- DAG type resolution has no retired recursive resolver usage or unresolved
+  metadata dead-end on stable paths.
 - MIR declaration inventory drives C/LLVM hosted-method identity.
 - ABI ownership and Slot/Pin contracts are frozen.
 - Dogfood WebGL bridge is proven through C backend output, not core language surface.

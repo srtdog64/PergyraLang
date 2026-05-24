@@ -126,6 +126,39 @@ if [[ -n "$semantic_self_include_leaks" ]]; then
     missing=1
 fi
 
+lsp_ast_payload_leaks="$(
+    cd "$ROOT_DIR"
+    grep -RInE 'data\.program|data\.(func_decl|class_decl|ability_decl|role_decl|party_decl|roster_decl|world_decl|relation_decl|effect_decl|zone_decl|enum_decl|type_alias)\.name' src/lsp \
+        --include='*.c' --include='*.h' || true
+)"
+if [[ -n "$lsp_ast_payload_leaks" ]]; then
+    printf '%s\n' "$lsp_ast_payload_leaks" >&2
+    echo "[build-source-inventory] LSP must consume parser AST accessors for declaration inventory" >&2
+    missing=1
+fi
+
+lsp_unclamped_offsets="$(
+    cd "$ROOT_DIR"
+    grep -RInE 'off[[:space:]]*\+=[[:space:]]*\(size_t\)n|if[[:space:]]*\(n[[:space:]]*>[[:space:]]*0\)[[:space:]]*off[[:space:]]*\+=' src/lsp \
+        --include='*.c' --include='*.h' || true
+)"
+if [[ -n "$lsp_unclamped_offsets" ]]; then
+    printf '%s\n' "$lsp_unclamped_offsets" >&2
+    echo "[build-source-inventory] LSP JSON builders must clamp snprintf offsets" >&2
+    missing=1
+fi
+
+lsp_ignored_offset_status="$(
+    cd "$ROOT_DIR"
+    grep -RInE '^[[:space:]]*lsp_advance_json_offset[[:space:]]*\([^;]*\);' src/lsp \
+        --include='*.c' --include='*.h' || true
+)"
+if [[ -n "$lsp_ignored_offset_status" ]]; then
+    printf '%s\n' "$lsp_ignored_offset_status" >&2
+    echo "[build-source-inventory] LSP JSON builders must handle clamp failure" >&2
+    missing=1
+fi
+
 for header in \
     src/compiler/compiler_process.h \
     src/compiler/mir.h \

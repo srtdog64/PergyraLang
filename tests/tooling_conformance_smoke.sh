@@ -2,6 +2,8 @@
 set -euo pipefail
 
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+source "$ROOT_DIR/tests/pgy_binary_path_helpers.sh"
+
 PGY="${PGY_BIN:-$ROOT_DIR/bin/pgy}"
 PGY_LSP="${PGY_LSP_BIN:-$ROOT_DIR/bin/pgy-lsp}"
 if [[ "$PGY" != *.exe && -x "${PGY}.exe" ]]; then
@@ -10,6 +12,8 @@ fi
 if [[ "$PGY_LSP" != *.exe && -x "${PGY_LSP}.exe" ]]; then
     PGY_LSP="${PGY_LSP}.exe"
 fi
+PGY="$(pgy_path_for_bash_tool "$PGY")"
+PGY_LSP="$(pgy_path_for_bash_tool "$PGY_LSP")"
 
 TMP_BASE="${TMPDIR:-${TEMP:-/tmp}}"
 WORK_DIR="$(mktemp -d "${TMP_BASE%/}/pgy_tooling_conformance.XXXXXX")"
@@ -22,6 +26,18 @@ fi
 if [[ ! -x "$PGY_LSP" ]]; then
     echo "[tooling-conformance] SKIP executable probe; missing LSP binary: $PGY_LSP"
     exit 0
+fi
+
+if "$PGY" --help >"$WORK_DIR/pgy-help.out" 2>"$WORK_DIR/pgy-help.err"; then
+    :
+else
+    rc=$?
+    if [[ "$rc" -eq 126 || "$rc" -eq 127 ]]; then
+        echo "[tooling-conformance] SKIP executable probe; shell cannot launch compiler binary: $PGY"
+        exit 0
+    fi
+    cat "$WORK_DIR/pgy-help.err" >&2
+    exit "$rc"
 fi
 
 PYTHON_BIN="${PYTHON_BIN:-}"
@@ -69,7 +85,7 @@ import sys
 lsp_bin = sys.argv[1]
 out_path = sys.argv[2]
 
-source = "func Main() -> Void\n{\n    Log(1);\n}\n"
+source = "func Main() {\n    Log(1);\n}\n"
 invalid_source = "func Main() -> Void\n{\n    let x: Int = ;\n}\n"
 uri = "file:///tmp/pgy_tooling_conformance.pgy"
 
@@ -117,13 +133,28 @@ messages = [
     },
     {
         "jsonrpc": "2.0",
+        "id": 4,
+        "method": "textDocument/documentSymbol",
+        "params": {"textDocument": {"uri": uri}},
+    },
+    {
+        "jsonrpc": "2.0",
+        "id": 5,
+        "method": "textDocument/definition",
+        "params": {
+            "textDocument": {"uri": uri},
+            "position": {"line": 0, "character": 5},
+        },
+    },
+    {
+        "jsonrpc": "2.0",
         "method": "textDocument/didChange",
         "params": {
             "textDocument": {"uri": uri, "version": 2},
             "contentChanges": [{"text": invalid_source}],
         },
     },
-    {"jsonrpc": "2.0", "id": 4, "method": "shutdown", "params": None},
+    {"jsonrpc": "2.0", "id": 6, "method": "shutdown", "params": None},
     {"jsonrpc": "2.0", "method": "exit", "params": None},
 ]
 
@@ -164,6 +195,8 @@ required = [
     '"hoverProvider":true',
     '"completionProvider":{"resolveProvider":false}',
     '"Function declaration"',
+    '"id":4,"result":[{"name":"Main","kind":12',
+    '"id":5,"result":{"uri":"file:///tmp/pgy_tooling_conformance.pgy"',
     '"label":"subject"',
     '"method":"textDocument/publishDiagnostics"',
     '"code":"PGY_PARSE_SYNTAX"',

@@ -121,6 +121,17 @@ party_stats_array_fits(size_t count, size_t elem_size)
     return elem_size != 0 && count <= SIZE_MAX / elem_size;
 }
 
+static void
+party_stats_add_u64(uint64_t *slot, uint64_t value)
+{
+    if (slot == NULL)
+        return;
+    if (*slot > UINT64_MAX - value)
+        *slot = UINT64_MAX;
+    else
+        *slot += value;
+}
+
 static bool
 fiber_stats_rebuild_index(size_t newCapacity)
 {
@@ -311,15 +322,16 @@ UpdateFiberStats(const char* roleId, const FiberResult* result)
         stats->minTimeNs = UINT64_MAX;
     }
 
-    stats->totalExecutions++;
-    stats->totalTimeNs += result->executionTimeNs;
+    if (stats->totalExecutions != UINT64_MAX)
+        stats->totalExecutions++;
+    party_stats_add_u64(&stats->totalTimeNs, result->executionTimeNs);
     if (result->executionTimeNs < stats->minTimeNs)
         stats->minTimeNs = result->executionTimeNs;
     if (result->executionTimeNs > stats->maxTimeNs)
         stats->maxTimeNs = result->executionTimeNs;
     stats->avgTimeNs =
         stats->totalExecutions > 0 ? stats->totalTimeNs / stats->totalExecutions : 0;
-    if (!result->success)
+    if (!result->success && stats->errorCount != UINT32_MAX)
         stats->errorCount++;
 
 done:

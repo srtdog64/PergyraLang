@@ -101,6 +101,7 @@ run_literal_air_drift_smoke() {
     require_literal "src/compiler/air_boundary_evidence_policy.c" "air_boundary_requires_hir_evidence"
     require_literal "src/compiler/air_boundary_evidence_policy.c" "air_boundary_requires_rir_evidence"
     require_literal "src/compiler/air_boundary_evidence_policy.c" "air_boundary_requires_mir_pin_cleanup_evidence"
+    require_literal "src/compiler/air_verify.c" "air_boundary_requires_hir_cfg_for_program"
     require_literal "src/compiler/air_validate_evidence.c" "air_boundary_has_evidence"
     require_literal "src/compiler/air_validate_evidence.c" "air_global_evidence_fact_count"
     require_literal "src/compiler/air_validate_evidence.c" "air_global_evidence_node_count"

@@ -150,8 +150,8 @@
 - Expression resolver debt is now exposed as named TUs:
   `type_checker_expr.h` is declaration-only, the obsolete
   `type_checker_resolve.c` / `type_checker_resolve.h` compatibility owner is
-  deleted, retired compatibility counters live in
-  `type_checker_resolution_retired.c`, and assignment/constructed-wrapper
+  deleted, `type_checker_resolution_retired.c` is now only a quarantine sentinel
+  for preventing legacy resolver bodies from returning, and assignment/constructed-wrapper
   helpers live in `type_checker_type_helpers.c`. `type_checker_expr.c`,
   `type_checker_expr_call.c`, and `type_checker_expr_host.c` now split
   expression dispatch, call typing, and host lookup/call behavior below the

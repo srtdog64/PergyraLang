@@ -70,6 +70,7 @@ mandatory_targets=(
     "async-model-positioning-test-smoke"
     "memory-concurrency-model-test-smoke"
     "documentation-quality-test-smoke"
+    "self-host-preparation-test-smoke"
     "tooling-conformance-test-smoke"
     "perf-contract-test-smoke"
     "beta-readiness-checklist-test-smoke"

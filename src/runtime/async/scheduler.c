@@ -44,6 +44,18 @@ scheduler_warn(const char* op, const char* reason, Scheduler* scheduler)
         (void*)scheduler);
 }
 
+static bool
+scheduler_workers_valid(Scheduler* scheduler, const char* op)
+{
+    if (scheduler == NULL)
+        return false;
+    if (scheduler->numWorkers > 0 && scheduler->workers == NULL) {
+        scheduler_warn(op, "worker count is nonzero but worker array is null", scheduler);
+        return false;
+    }
+    return true;
+}
+
 /* Worker thread main function */
 static void* WorkerThreadMain(void* arg)
 {
@@ -283,7 +295,9 @@ void SchedulerDestroy(Scheduler* scheduler)
     SchedulerStop(scheduler);
     
     /* Destroy worker queues */
-    for (uint32_t i = 0; i < scheduler->numWorkers; i++) {
+    for (uint32_t i = 0;
+         scheduler->workers != NULL && i < scheduler->numWorkers;
+         i++) {
         ConcurrentQueueDestroy(scheduler->workers[i].localRunQueue);
     }
     
@@ -318,6 +332,11 @@ void SchedulerStart(Scheduler* scheduler)
     }
     if (atomic_load(&scheduler->isRunning)) {
         scheduler_warn("start", "scheduler is already running", scheduler);
+        return;
+    }
+    if (!scheduler_workers_valid(scheduler, "start")
+        || scheduler->globalRunQueue == NULL) {
+        scheduler_warn("start", "scheduler queues are not initialized", scheduler);
         return;
     }
     
@@ -372,6 +391,9 @@ void SchedulerStop(Scheduler* scheduler)
     }
     if (!atomic_load(&scheduler->isRunning)) {
         scheduler_warn("stop", "scheduler is not running", scheduler);
+        return;
+    }
+    if (!scheduler_workers_valid(scheduler, "stop")) {
         return;
     }
     

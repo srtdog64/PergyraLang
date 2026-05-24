@@ -59,17 +59,16 @@ if [ -e src/semantic/type_checker_resolve.c ] || [ -e src/semantic/type_checker_
   exit 1
 fi
 
-grep -q 'Retired compatibility resolver audit counters' \
+grep -q 'Retired compatibility resolver quarantine' \
   src/semantic/type_checker_resolution_retired.c || {
-  echo "[type-resolution-resolver-inventory] retired compatibility counter owner missing" >&2
+  echo "[type-resolution-resolver-inventory] retired compatibility quarantine owner missing" >&2
   exit 1
 }
 
-grep -q 'size_t g_type_resolution_compat_calls = 0;' \
-  src/semantic/type_checker_resolution_retired.c || {
-  echo "[type-resolution-resolver-inventory] retired compatibility call counter missing" >&2
+if grep -q 'g_type_resolution_compat_' src/semantic/type_checker_resolution_retired.c src/semantic/type_checker_internal.h; then
+  echo "[type-resolution-resolver-inventory] retired compatibility zero-only counters reappeared" >&2
   exit 1
-}
+fi
 
 grep -q 'require_assignable(Type \*from, Type \*to' \
   src/semantic/type_checker_type_helpers.c || {

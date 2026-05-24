@@ -68,6 +68,10 @@ CType pgy_array_get_##Suffix(PgyArray_##Suffix *arr, size_t index)              
         PGY_RUNTIME_PANIC(PGY_RUNTIME_PANIC_CLASS_OUT_OF_BOUNDS,                 \
                           PGY_RUNTIME_PANIC_REASON_ARRAY_INDEX_OUT_OF_BOUNDS);   \
     }                                                                            \
+    if (arr->data == NULL) {                                                     \
+        PGY_RUNTIME_PANIC(PGY_RUNTIME_PANIC_CLASS_INTERNAL_INVARIANT,            \
+                          "array get on array without backing storage");         \
+    }                                                                            \
     return arr->data[index];                                                     \
 }                                                                                \
                                                                                  \
@@ -80,6 +84,10 @@ void pgy_array_set_##Suffix(PgyArray_##Suffix *arr, size_t index, CType value)  
     if (index >= arr->length) {                                                  \
         PGY_RUNTIME_PANIC(PGY_RUNTIME_PANIC_CLASS_OUT_OF_BOUNDS,                 \
                           PGY_RUNTIME_PANIC_REASON_ARRAY_INDEX_OUT_OF_BOUNDS);   \
+    }                                                                            \
+    if (arr->data == NULL) {                                                     \
+        PGY_RUNTIME_PANIC(PGY_RUNTIME_PANIC_CLASS_INTERNAL_INVARIANT,            \
+                          "array set on array without backing storage");         \
     }                                                                            \
     arr->data[index] = value;                                                    \
 }                                                                                \
@@ -101,6 +109,10 @@ CType pgy_slice_get_##Suffix(PgySlice_##Suffix *slice, size_t index)            
     if (index >= slice->length) {                                                \
         PGY_RUNTIME_PANIC(PGY_RUNTIME_PANIC_CLASS_OUT_OF_BOUNDS,                 \
                           PGY_RUNTIME_PANIC_REASON_SLICE_OUT_OF_BOUNDS);         \
+    }                                                                            \
+    if (slice->data == NULL) {                                                   \
+        PGY_RUNTIME_PANIC(PGY_RUNTIME_PANIC_CLASS_INTERNAL_INVARIANT,            \
+                          "slice get on slice without backing storage");         \
     }                                                                            \
     return slice->data[index];                                                   \
 }                                                                                \

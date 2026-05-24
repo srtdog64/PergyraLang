@@ -21,6 +21,33 @@ world_roster_array_fits(size_t count, size_t elem_size)
     return elem_size != 0 && count <= SIZE_MAX / elem_size;
 }
 
+static void
+world_roster_saturating_increment_size(size_t* value)
+{
+    if (value != NULL && *value != SIZE_MAX)
+        (*value)++;
+}
+
+static bool
+world_roster_party_slots_valid(const RosterContext* roster, const char* op)
+{
+    if (roster != NULL && roster->partyCount > 0 && roster->partySlots == NULL) {
+        world_roster_warn(op, "party count is nonzero but party slot array is null");
+        return false;
+    }
+    return true;
+}
+
+static bool
+world_roster_slots_valid(const WorldContext* world, const char* op)
+{
+    if (world != NULL && world->rosterCount > 0 && world->rosters == NULL) {
+        world_roster_warn(op, "roster count is nonzero but roster array is null");
+        return false;
+    }
+    return true;
+}
+
 static char*
 world_roster_strdup(const char* text)
 {
@@ -45,6 +72,9 @@ GenerateWorldExecutionPlan(WorldContext* world)
 {
     if (world == NULL) {
         world_roster_warn("generate_world_execution_plan", "world is null");
+        return NULL;
+    }
+    if (!world_roster_slots_valid(world, "generate_world_execution_plan")) {
         return NULL;
     }
 
@@ -77,6 +107,10 @@ GenerateWorldExecutionPlan(WorldContext* world)
 
     for (size_t i = 0; i < world->rosterCount; i++) {
         RosterContext* roster = world->rosters[i].instance;
+        if (!world_roster_party_slots_valid(roster, "generate_world_execution_plan")) {
+            FreeExecutionPlan(plan);
+            return NULL;
+        }
         plan->rosters[i].rosterName = world_roster_strdup(world->rosters[i].slotName);
         if (plan->rosters[i].rosterName == NULL) {
             FreeExecutionPlan(plan);
@@ -151,9 +185,9 @@ OptimizeExecutionPlan(HierarchicalExecutionPlan* plan,
             }
             for (size_t k = 0; k < map->entryCount; k++) {
                 if (map->entries[k].schedulerTag == SCHEDULER_GPU_FIBER) {
-                    plan->estimatedGpuFibers++;
+                    world_roster_saturating_increment_size(&plan->estimatedGpuFibers);
                 } else {
-                    plan->estimatedCpuFibers++;
+                    world_roster_saturating_increment_size(&plan->estimatedCpuFibers);
                 }
             }
         }
@@ -165,6 +199,9 @@ GetWorldStatistics(WorldContext* world)
 {
     if (world == NULL) {
         world_roster_warn("get_world_statistics", "world is null");
+        return NULL;
+    }
+    if (!world_roster_slots_valid(world, "get_world_statistics")) {
         return NULL;
     }
 
@@ -189,6 +226,10 @@ GetWorldStatistics(WorldContext* world)
 
     for (size_t i = 0; i < world->rosterCount; i++) {
         RosterContext* roster = world->rosters[i].instance;
+        if (!world_roster_party_slots_valid(roster, "get_world_statistics")) {
+            FreeWorldStatistics(stats);
+            return NULL;
+        }
         stats->rosterStats[i].rosterName = world_roster_strdup(world->rosters[i].slotName);
         if (stats->rosterStats[i].rosterName == NULL) {
             FreeWorldStatistics(stats);
@@ -272,6 +313,9 @@ DumpWorldState(WorldContext* world,
         world_roster_warn("dump_world_state", "world is null");
         return;
     }
+    if (!world_roster_slots_valid(world, "dump_world_state")) {
+        return;
+    }
 
     printf("World %s frames=%llu running=%s\n",
            world->name != NULL ? world->name : "<unnamed>",
@@ -283,6 +327,9 @@ DumpWorldState(WorldContext* world,
 
     for (size_t i = 0; i < world->rosterCount; i++) {
         RosterContext* roster = world->rosters[i].instance;
+        if (!world_roster_party_slots_valid(roster, "dump_world_state")) {
+            return;
+        }
         printf("  Roster %s type=%s parties=%zu\n",
                world->rosters[i].slotName,
                world->rosters[i].rosterType,
@@ -315,6 +362,9 @@ GenerateWorldVisualization(WorldContext* world, const char* format)
 {
     if (world == NULL) {
         world_roster_warn("generate_world_visualization", "world is null");
+        return NULL;
+    }
+    if (!world_roster_slots_valid(world, "generate_world_visualization")) {
         return NULL;
     }
 
@@ -363,7 +413,7 @@ FreeRosterContext(RosterContext* roster)
     if (roster == NULL) {
         return;
     }
-    for (size_t i = 0; i < roster->partyCount; i++) {
+    for (size_t i = 0; roster->partySlots != NULL && i < roster->partyCount; i++) {
         free((void*)roster->partySlots[i].slotName);
         free((void*)roster->partySlots[i].partyType);
     }
@@ -379,7 +429,7 @@ FreeWorldContext(WorldContext* world)
     if (world == NULL) {
         return;
     }
-    for (size_t i = 0; i < world->rosterCount; i++) {
+    for (size_t i = 0; world->rosters != NULL && i < world->rosterCount; i++) {
         free((void*)world->rosters[i].slotName);
         free((void*)world->rosters[i].rosterType);
         FreeRosterContext(world->rosters[i].instance);
@@ -395,9 +445,11 @@ FreeExecutionPlan(HierarchicalExecutionPlan* plan)
     if (plan == NULL) {
         return;
     }
-    for (size_t i = 0; i < plan->rosterCount; i++) {
+    for (size_t i = 0; plan->rosters != NULL && i < plan->rosterCount; i++) {
         free((void*)plan->rosters[i].rosterName);
-        for (size_t j = 0; j < plan->rosters[i].partyCount; j++) {
+        for (size_t j = 0;
+             plan->rosters[i].parties != NULL && j < plan->rosters[i].partyCount;
+             j++) {
             free((void*)plan->rosters[i].parties[j].partyName);
         }
         free(plan->rosters[i].parties);
@@ -413,9 +465,12 @@ FreeWorldStatistics(WorldStatistics* stats)
     if (stats == NULL) {
         return;
     }
-    for (size_t i = 0; i < stats->rosterCount; i++) {
+    for (size_t i = 0; stats->rosterStats != NULL && i < stats->rosterCount; i++) {
         free((void*)stats->rosterStats[i].rosterName);
-        for (size_t j = 0; j < stats->rosterStats[i].partyCount; j++) {
+        for (size_t j = 0;
+             stats->rosterStats[i].partyStats != NULL
+                 && j < stats->rosterStats[i].partyCount;
+             j++) {
             free((void*)stats->rosterStats[i].partyStats[j].partyName);
             free(stats->rosterStats[i].partyStats[j].roleStats);
         }

@@ -110,7 +110,6 @@ semantic_maybe_print_type_resolution_stats(SemanticContext *ctx)
     size_t topo_count = 0;
     bool topo_ok;
     size_t metadata_owned_count;
-    size_t cache_total;
 
     if (ctx == NULL || stats_env == NULL || stats_env[0] == '\0'
         || stats_env[0] == '0') {
@@ -131,27 +130,6 @@ semantic_maybe_print_type_resolution_stats(SemanticContext *ctx)
             topo_ok ? 1 : 0,
             (unsigned long long)topo_count,
             (unsigned long long)graph->node_count);
-    fprintf(stderr,
-            "[type-res-stats] retired-compatibility-resolver: calls=%llu unique_nodes=%llu revisit_rate=%.1f%%\n",
-            (unsigned long long)g_type_resolution_compat_calls,
-            (unsigned long long)g_type_resolution_compat_unique_nodes,
-            g_type_resolution_compat_calls > 0
-                ? 100.0 * (double)(g_type_resolution_compat_calls
-                                    - g_type_resolution_compat_unique_nodes)
-                      / (double)g_type_resolution_compat_calls
-                : 0.0);
-    fprintf(stderr,
-            "[type-res-stats] retired-compatibility-resolver-kind: ast_type=%llu channel=%llu future=%llu event_handler=%llu other=%llu\n",
-            (unsigned long long)g_type_resolution_compat_ast_type_calls,
-            (unsigned long long)g_type_resolution_compat_channel_type_calls,
-            (unsigned long long)g_type_resolution_compat_future_type_calls,
-            (unsigned long long)g_type_resolution_compat_event_handler_type_calls,
-            (unsigned long long)g_type_resolution_compat_other_ast_calls);
-    fprintf(stderr,
-            "[type-res-stats] stage-metadata-materialize: calls=%llu failed=%llu suppressed_diagnostics=%llu\n",
-            (unsigned long long)ctx->type_resolution_stage_compat_resolve_count,
-            (unsigned long long)ctx->type_resolution_stage_compat_resolve_failed_count,
-            (unsigned long long)ctx->type_resolution_stage_compat_resolve_suppressed_diag_count);
     fprintf(stderr, "[type-res-stats] stage-graph-backed: skips=%llu\n",
             (unsigned long long)ctx->type_resolution_stage_graph_backed_skip_count);
     fprintf(stderr,
@@ -175,14 +153,6 @@ semantic_maybe_print_type_resolution_stats(SemanticContext *ctx)
             (unsigned long long)ctx->type_resolution_metadata_unresolved_named_non_class_symbol,
             (unsigned long long)ctx->type_resolution_metadata_unresolved_named_missing_symbol);
     fprintf(stderr,
-            "[type-res-stats] stage-materialize-family: generic_contract=%llu signature=%llu ability_consumer=%llu domain_contract=%llu alias=%llu other=%llu\n",
-            (unsigned long long)ctx->type_resolution_stage_compat_generic_contract_count,
-            (unsigned long long)ctx->type_resolution_stage_compat_signature_count,
-            (unsigned long long)ctx->type_resolution_stage_compat_ability_consumer_count,
-            (unsigned long long)ctx->type_resolution_stage_compat_domain_contract_count,
-            (unsigned long long)ctx->type_resolution_stage_compat_alias_count,
-            (unsigned long long)ctx->type_resolution_stage_compat_other_count);
-    fprintf(stderr,
             "[type-res-stats] dag-evidence: generic_contract=%llu ability_consumer=%llu\n",
             (unsigned long long)ctx->type_resolution_dag_generic_contract_evidence_count,
             (unsigned long long)ctx->type_resolution_dag_ability_consumer_evidence_count);
@@ -191,21 +161,9 @@ semantic_maybe_print_type_resolution_stats(SemanticContext *ctx)
             (unsigned long long)ctx->type_resolution_stage_alias_materialized_count,
             (unsigned long long)ctx->type_resolution_stage_alias_diagnostic_unresolved_count);
     fprintf(stderr,
-            "[type-res-stats] stage-alias-diagnostic: resolver_calls=%llu resolved=%llu cycle_unresolved=%llu\n",
-            (unsigned long long)ctx->type_resolution_stage_alias_diagnostic_resolver_call_count,
-            (unsigned long long)ctx->type_resolution_stage_alias_diagnostic_resolved_count,
+            "[type-res-stats] stage-alias-diagnostic: cycle_unresolved=%llu\n",
             (unsigned long long)ctx->type_resolution_stage_alias_diagnostic_cycle_count);
 
-    cache_total = g_type_resolution_compat_cache_hits
-                + g_type_resolution_compat_cache_misses;
-    fprintf(stderr,
-            "[type-res-stats] retired-compatibility-cache: hits=%llu misses=%llu hit_rate=%.1f%%\n",
-            (unsigned long long)g_type_resolution_compat_cache_hits,
-            (unsigned long long)g_type_resolution_compat_cache_misses,
-            cache_total > 0
-                ? 100.0 * (double)g_type_resolution_compat_cache_hits
-                      / (double)cache_total
-                : 0.0);
     fprintf(stderr,
             "[type-res-stats] kind: TYPE_REF=%llu BUILTIN=%llu DECL=%llu ALIAS=%llu GENERIC_PARAM=%llu LOCAL_CONTRACT=%llu PROJECTION_PATH=%llu\n",
             (unsigned long long)kind_counts[0],

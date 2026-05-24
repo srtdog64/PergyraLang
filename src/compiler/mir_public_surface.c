@@ -14,13 +14,16 @@
 void
 mir_instruction_record_surface_usage(MIRInstruction *inst)
 {
+    ASTNode *source_payload = NULL;
+
     if (inst == NULL)
         return;
-    if (inst->ast != NULL) {
+    source_payload = mir_instruction_source_payload(inst);
+    if (source_payload != NULL) {
         inst->has_source_location = true;
-        inst->source_line = inst->ast->line;
-        inst->source_column = inst->ast->column;
-        inst->source_ast_type = inst->ast->type;
+        inst->source_line = source_payload->line;
+        inst->source_column = source_payload->column;
+        inst->source_ast_type = source_payload->type;
     } else {
         inst->has_source_location = false;
         inst->source_line = 0;
@@ -29,11 +32,11 @@ mir_instruction_record_surface_usage(MIRInstruction *inst)
     }
     inst->has_surface_usage_facts = true;
     inst->uses_thread_pool_surface =
-        ast_uses_thread_pool_surface(inst->ast)
+        ast_uses_thread_pool_surface(source_payload)
         || ast_uses_thread_pool_surface(inst->expr0)
         || ast_uses_thread_pool_surface(inst->expr1);
     inst->uses_intent_observability_surface =
-        ast_uses_intent_observability_surface(inst->ast)
+        ast_uses_intent_observability_surface(source_payload)
         || ast_uses_intent_observability_surface(inst->expr0)
         || ast_uses_intent_observability_surface(inst->expr1);
 }

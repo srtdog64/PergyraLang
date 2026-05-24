@@ -133,8 +133,8 @@ represented by at least one AIR `Boundary Node`.
   evidence, so RIR evidence alone cannot discharge a body-boundary proof.
   World boundaries require source-specific RIR `Move` / `Claim` transfer
   evidence instead of accepting a generic matching RIR intent scope. Default
-  strict evidence mode turns missing HIR CFG, RIR boundary, or RIR authority
-  evidence into `PGY_SEM_INTENT_BOUNDARY_EVIDENCE_MISSING`. `src/test_air.c` covers direct
+  strict evidence mode turns missing required HIR/RIR/MIR/DAG/runtime evidence
+  into `PGY_SEM_INTENT_BOUNDARY_EVIDENCE_MISSING`. `src/test_air.c` covers direct
   AST-backed spawn and IO boundary synthesis, parsed-source IO boundary
   missing-evidence, direct world-boundary transfer evidence accept/reject, and
   parsed-source `where + transfer` zone/world boundary preservation with RIR
@@ -231,8 +231,10 @@ AIR Phase 1 is beta-complete only when all of these are true:
   `src/compiler/air_verify.c` keeps global validation/drift ownership.
 - `air_verify(...)` is the global AIR validation entry point. It validates AIR
   inventory invariants, evidence provenance invariants, and drift/evidence
-  failures before MIR lowering. `air_check_drift(...)` is only a compatibility
-  wrapper over `air_verify(...)`.
+  failures at the active compiler boundary: pre-MIR verification covers HIR/RIR
+  evidence, and post-MIR verification covers cleanup/pin/terminator evidence
+  before backend codegen. `air_check_drift(...)` is only a compatibility wrapper
+  over `air_verify(...)`.
 - AIR inventory validation rejects non-zero intent/boundary/drift counts without
   backing arrays and rejects a boundary whose `step_index` no longer matches
   the referenced intent node. These are validation failures, not drift facts.

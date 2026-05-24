@@ -294,6 +294,9 @@ for token in [
     "PGY_RUNTIME_PANIC_REASON_ALLOCATION_FAILED",
     "PGY_RUNTIME_PANIC_REASON_ARENA_OUT_OF_MEMORY",
     "PGY_RUNTIME_PANIC_REASON_POOL_OUT_OF_MEMORY",
+    "alloc->bytes_in_use > SIZE_MAX - size",
+    "alloc->allocations != SIZE_MAX",
+    "ptr != NULL && size > 0",
 ]:
     if token not in allocator_text:
         raise SystemExit(f"inline allocator runtime missing {token}")

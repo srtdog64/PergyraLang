@@ -29,7 +29,7 @@ static inline PgyList_##SuffixName pgy_list_new_##SuffixName(void) \
 \
 static inline void pgy_list_push_##SuffixName(PgyList_##SuffixName *l, CType val) \
 { \
-    if (l == NULL || (l->data == NULL && l->capacity == 0)) { \
+    if (!PGY_RUNTIME_LIST_IS_INITIALIZED(l, CType)) { \
         pgy_runtime_warn_invalid_collection("list_push_" #SuffixName, "list is not initialized"); \
         return; \
     } \
@@ -62,8 +62,8 @@ static inline void pgy_list_push_##SuffixName(PgyList_##SuffixName *l, CType val
 \
 static inline CType pgy_list_get_##SuffixName(PgyList_##SuffixName *l, int32_t index) \
 { \
-    if (l == NULL) \
-        PGY_RUNTIME_PANIC(PGY_RUNTIME_PANIC_CLASS_INTERNAL_INVARIANT, "list get on null list"); \
+    if (!PGY_RUNTIME_LIST_IS_INITIALIZED(l, CType)) \
+        PGY_RUNTIME_PANIC(PGY_RUNTIME_PANIC_CLASS_INTERNAL_INVARIANT, "list get on invalid list"); \
     if (index < 0 || (size_t)index >= l->count) \
         PGY_RUNTIME_PANIC(PGY_RUNTIME_PANIC_CLASS_OUT_OF_BOUNDS, "list index out of bounds"); \
     return l->data[index]; \
@@ -71,19 +71,20 @@ static inline CType pgy_list_get_##SuffixName(PgyList_##SuffixName *l, int32_t i
 \
 static inline void pgy_list_set_##SuffixName(PgyList_##SuffixName *l, int32_t index, CType val) \
 { \
-    if (l == NULL) \
-        PGY_RUNTIME_PANIC(PGY_RUNTIME_PANIC_CLASS_INTERNAL_INVARIANT, "list set on null list"); \
+    if (!PGY_RUNTIME_LIST_IS_INITIALIZED(l, CType)) \
+        PGY_RUNTIME_PANIC(PGY_RUNTIME_PANIC_CLASS_INTERNAL_INVARIANT, "list set on invalid list"); \
     if (index < 0 || (size_t)index >= l->count) \
         PGY_RUNTIME_PANIC(PGY_RUNTIME_PANIC_CLASS_OUT_OF_BOUNDS, "list set index out of bounds"); \
     l->data[index] = val; \
 } \
 \
-static inline int32_t pgy_list_size_##SuffixName(PgyList_##SuffixName *l) { return (int32_t)l->count; } \
+static inline int32_t pgy_list_size_##SuffixName(PgyList_##SuffixName *l) \
+{ return PGY_RUNTIME_LIST_IS_INITIALIZED(l, CType) ? (int32_t)l->count : 0; } \
 \
 static inline void pgy_list_remove_##SuffixName(PgyList_##SuffixName *l, int32_t index) \
 { \
-    if (l == NULL) \
-        PGY_RUNTIME_PANIC(PGY_RUNTIME_PANIC_CLASS_INTERNAL_INVARIANT, "list remove on null list"); \
+    if (!PGY_RUNTIME_LIST_IS_INITIALIZED(l, CType)) \
+        PGY_RUNTIME_PANIC(PGY_RUNTIME_PANIC_CLASS_INTERNAL_INVARIANT, "list remove on invalid list"); \
     if (index < 0 || (size_t)index >= l->count) \
         PGY_RUNTIME_PANIC(PGY_RUNTIME_PANIC_CLASS_OUT_OF_BOUNDS, "list remove index out of bounds"); \
     for (size_t i = (size_t)index; i < l->count - 1; i++) \

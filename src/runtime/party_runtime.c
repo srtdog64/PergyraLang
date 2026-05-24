@@ -26,11 +26,54 @@ static size_t party_context_find_role_index_by_name(const PartyContext* context,
 static size_t party_context_find_role_index_by_slot(const PartyContext* context,
                                                     uint32_t slotId);
 void* party_context_role_instance_by_slot(PartyContext* context, uint32_t slotId);
+static bool party_context_roles_valid(const PartyContext* context, const char* op);
+static bool party_context_role_abilities_valid(const PartyContext* context,
+                                               size_t roleIndex,
+                                               const char* op);
+static bool party_context_shared_fields_valid(const PartyContext* context, const char* op);
 
 static bool
 party_runtime_array_fits(size_t count, size_t elem_size)
 {
     return elem_size != 0 && count <= SIZE_MAX / elem_size;
+}
+
+static bool
+party_context_roles_valid(const PartyContext* context, const char* op)
+{
+    if (context != NULL && context->roleCount > 0 && context->roles == NULL) {
+        party_runtime_warn(op, "role count is nonzero but role array is null");
+        return false;
+    }
+    return true;
+}
+
+static bool
+party_context_role_abilities_valid(const PartyContext* context,
+                                   size_t roleIndex,
+                                   const char* op)
+{
+    if (context == NULL || roleIndex >= context->roleCount) {
+        return false;
+    }
+    if (context->roles[roleIndex].abilityCount > 0
+        && context->roles[roleIndex].abilities == NULL) {
+        party_runtime_warn(op, "ability count is nonzero but ability array is null");
+        return false;
+    }
+    return true;
+}
+
+static bool
+party_context_shared_fields_valid(const PartyContext* context, const char* op)
+{
+    if (context != NULL
+        && context->sharedFieldCount > 0
+        && context->sharedFields == NULL) {
+        party_runtime_warn(op, "shared field count is nonzero but shared field array is null");
+        return false;
+    }
+    return true;
 }
 
 void
@@ -231,6 +274,10 @@ party_context_role_instance_by_slot(PartyContext* context, uint32_t slotId)
     }
 
     pthread_mutex_lock(&context->contextLock);
+    if (!party_context_roles_valid(context, "context.role_instance_by_slot")) {
+        pthread_mutex_unlock(&context->contextLock);
+        return NULL;
+    }
     size_t index = party_context_find_role_index_by_slot(context, slotId);
     void* instance = index != SIZE_MAX ? context->roles[index].roleInstance : NULL;
     pthread_mutex_unlock(&context->contextLock);
@@ -246,12 +293,20 @@ ContextGetRole(PartyContext* context, const char* slotName, const char* required
     }
 
     pthread_mutex_lock(&context->contextLock);
+    if (!party_context_roles_valid(context, "context.get_role")) {
+        pthread_mutex_unlock(&context->contextLock);
+        return NULL;
+    }
     size_t index = party_context_find_role_index_by_name(context, slotName);
     void* result = NULL;
 
     if (index != SIZE_MAX) {
         bool hasAbility = (requiredAbility == NULL);
         if (requiredAbility != NULL) {
+            if (!party_context_role_abilities_valid(context, index, "context.get_role")) {
+                pthread_mutex_unlock(&context->contextLock);
+                return NULL;
+            }
             for (size_t j = 0; j < context->roles[index].abilityCount; j++) {
                 if (context->roles[index].abilities[j] != NULL
                     && strcmp(context->roles[index].abilities[j], requiredAbility) == 0) {
@@ -290,11 +345,18 @@ ContextFindRoles(PartyContext* context, const char* requiredAbility)
     }
 
     pthread_mutex_lock(&context->contextLock);
+    if (!party_context_roles_valid(context, "context.find_roles")) {
+        pthread_mutex_unlock(&context->contextLock);
+        return result;
+    }
 
     for (size_t i = 0; i < context->roleCount; i++) {
         bool matched = false;
 
         if (context->roles[i].roleInstance == NULL)
+            continue;
+
+        if (!party_context_role_abilities_valid(context, i, "context.find_roles"))
             continue;
 
         for (size_t j = 0; j < context->roles[i].abilityCount; j++) {
@@ -386,6 +448,10 @@ ContextGetShared(PartyContext* context, const char* fieldName)
     }
 
     pthread_mutex_lock(&context->contextLock);
+    if (!party_context_shared_fields_valid(context, "context.get_shared")) {
+        pthread_mutex_unlock(&context->contextLock);
+        return NULL;
+    }
     void* result = NULL;
     for (size_t i = 0; i < context->sharedFieldCount; i++) {
         if (context->sharedFields[i].fieldName != NULL

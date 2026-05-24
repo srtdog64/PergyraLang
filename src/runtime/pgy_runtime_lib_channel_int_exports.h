@@ -22,6 +22,18 @@ typedef struct {
     pthread_cond_t  cond_not_empty;
 } PgyChannel_Int_RT;
 
+static bool
+pgy_channel_int_is_initialized(PgyChannel_Int_RT *ch)
+{
+    return ch != NULL && ch->buffer != NULL && ch->capacity > 0;
+}
+
+static int32_t
+pgy_channel_int_size_to_i32(size_t value)
+{
+    return value > (size_t)INT32_MAX ? INT32_MAX : (int32_t)value;
+}
+
 void pgy_channel_init_Int(PgyChannel_Int_RT *ch, size_t cap)
 {
     if (ch == NULL) {
@@ -53,7 +65,7 @@ void pgy_channel_init_Int(PgyChannel_Int_RT *ch, size_t cap)
 
 void pgy_channel_destroy_Int(PgyChannel_Int_RT *ch)
 {
-    if (ch == NULL) return;
+    if (!pgy_channel_int_is_initialized(ch)) return;
     pthread_mutex_destroy(&ch->mutex);
     pthread_cond_destroy(&ch->cond_not_full);
     pthread_cond_destroy(&ch->cond_not_empty);
@@ -63,7 +75,7 @@ void pgy_channel_destroy_Int(PgyChannel_Int_RT *ch)
 
 void pgy_channel_close_Int(PgyChannel_Int_RT *ch)
 {
-    if (ch == NULL) return;
+    if (!pgy_channel_int_is_initialized(ch)) return;
     pthread_mutex_lock(&ch->mutex);
     ch->closed = true;
     pthread_cond_broadcast(&ch->cond_not_full);
@@ -198,8 +210,9 @@ bool pgy_channel_recv_Int(PgyChannel_Int_RT *ch, int32_t *out)
 
 bool pgy_channel_ready_Int(PgyChannel_Int_RT *ch)
 {
-    if (ch == NULL) {
-        pgy_runtime_warn_invalid_channel("ready_Int", "null channel");
+    if (!pgy_channel_int_is_initialized(ch)) {
+        pgy_runtime_warn_invalid_channel("ready_Int",
+            ch == NULL ? "null channel" : "channel is not initialized");
         return false;
     }
     if (!pgy_async_in_coroutine())
@@ -212,32 +225,35 @@ bool pgy_channel_ready_Int(PgyChannel_Int_RT *ch)
 
 int32_t pgy_channel_length_Int(PgyChannel_Int_RT *ch)
 {
-    if (ch == NULL) {
-        pgy_runtime_warn_invalid_channel("length_Int", "null channel");
+    if (!pgy_channel_int_is_initialized(ch)) {
+        pgy_runtime_warn_invalid_channel("length_Int",
+            ch == NULL ? "null channel" : "channel is not initialized");
         return 0;
     }
     pthread_mutex_lock(&ch->mutex);
-    int32_t len = (int32_t)ch->count;
+    int32_t len = pgy_channel_int_size_to_i32(ch->count);
     pthread_mutex_unlock(&ch->mutex);
     return len;
 }
 
 int32_t pgy_channel_capacity_Int(PgyChannel_Int_RT *ch)
 {
-    if (ch == NULL) {
-        pgy_runtime_warn_invalid_channel("capacity_Int", "null channel");
+    if (!pgy_channel_int_is_initialized(ch)) {
+        pgy_runtime_warn_invalid_channel("capacity_Int",
+            ch == NULL ? "null channel" : "channel is not initialized");
         return 0;
     }
     pthread_mutex_lock(&ch->mutex);
-    int32_t cap = (int32_t)ch->capacity;
+    int32_t cap = pgy_channel_int_size_to_i32(ch->capacity);
     pthread_mutex_unlock(&ch->mutex);
     return cap;
 }
 
 bool pgy_channel_full_Int(PgyChannel_Int_RT *ch)
 {
-    if (ch == NULL) {
-        pgy_runtime_warn_invalid_channel("full_Int", "null channel");
+    if (!pgy_channel_int_is_initialized(ch)) {
+        pgy_runtime_warn_invalid_channel("full_Int",
+            ch == NULL ? "null channel" : "channel is not initialized");
         return false;
     }
     pthread_mutex_lock(&ch->mutex);
@@ -248,20 +264,23 @@ bool pgy_channel_full_Int(PgyChannel_Int_RT *ch)
 
 int32_t pgy_channel_space_Int(PgyChannel_Int_RT *ch)
 {
-    if (ch == NULL) {
-        pgy_runtime_warn_invalid_channel("space_Int", "null channel");
+    if (!pgy_channel_int_is_initialized(ch)) {
+        pgy_runtime_warn_invalid_channel("space_Int",
+            ch == NULL ? "null channel" : "channel is not initialized");
         return 0;
     }
     pthread_mutex_lock(&ch->mutex);
-    int32_t space = (int32_t)(ch->capacity - ch->count);
+    size_t used = ch->count <= ch->capacity ? ch->count : ch->capacity;
+    int32_t space = pgy_channel_int_size_to_i32(ch->capacity - used);
     pthread_mutex_unlock(&ch->mutex);
     return space;
 }
 
 bool pgy_channel_closed_Int(PgyChannel_Int_RT *ch)
 {
-    if (ch == NULL) {
-        pgy_runtime_warn_invalid_channel("closed_Int", "null channel");
+    if (!pgy_channel_int_is_initialized(ch)) {
+        pgy_runtime_warn_invalid_channel("closed_Int",
+            ch == NULL ? "null channel" : "channel is not initialized");
         return true;
     }
     pthread_mutex_lock(&ch->mutex);

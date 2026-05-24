@@ -21,6 +21,19 @@ air_sync_conflicts(AIRSyncClass expected, AIRSyncClass actual)
     return expected != actual;
 }
 
+static bool
+air_boundary_requires_hir_cfg_for_program(const AIRProgram *air,
+                                          const AIRBoundaryNode *boundary)
+{
+    if (boundary == NULL)
+        return false;
+    if (air_boundary_requires_hir_evidence(boundary))
+        return true;
+    return air_has_hir_input(air)
+        && (boundary->kind == AIR_BOUNDARY_ZONE
+            || boundary->kind == AIR_BOUNDARY_WORLD);
+}
+
 bool
 air_verify(AIRProgram *air, char **error_message)
 {
@@ -98,7 +111,7 @@ air_verify(AIRProgram *air, char **error_message)
             }
         }
         if (air_requires_strict_evidence(air)
-            && air_boundary_requires_hir_evidence(boundary)
+            && air_boundary_requires_hir_cfg_for_program(air, boundary)
             && !air_boundary_has_evidence(air, i, AIR_EVIDENCE_HIR_CFG)) {
             if (!air_append_driftf(
                     air,

@@ -18,7 +18,8 @@ static inline PgyPool pgy_pool_create(size_t item_size, size_t capacity)
     p.item_size = item_size;
     p.capacity = capacity;
     p.count = 0;
-    if (item_size == 0 || (capacity > 0 && item_size > SIZE_MAX / capacity)
+    if (item_size == 0 || capacity > (size_t)INT32_MAX
+        || (capacity > 0 && item_size > SIZE_MAX / capacity)
         || capacity > SIZE_MAX / sizeof(uint8_t)) {
         p.data = NULL;
         p.alive = NULL;
@@ -109,6 +110,8 @@ static inline PgyFsm pgy_fsm_new(void)
 
 static inline int32_t pgy_fsm_add_state(PgyFsm *f, const char *name)
 {
+    if (f == NULL)
+        return -1;
     if (f->state_count >= PGY_FSM_MAX_STATES) return -1;
     int32_t id = (int32_t)f->state_count;
     f->state_names[id] = pgy_runtime_strdup(name ? name : "");
@@ -118,12 +121,18 @@ static inline int32_t pgy_fsm_add_state(PgyFsm *f, const char *name)
 
 static inline void pgy_fsm_add_transition(PgyFsm *f, int32_t from, int32_t input, int32_t to)
 {
+    if (f == NULL)
+        return;
     if (from >= 0 && from < PGY_FSM_MAX_STATES && input >= 0 && input < PGY_FSM_MAX_STATES)
         f->transitions[from][input] = to;
 }
 
 static inline bool pgy_fsm_step(PgyFsm *f, int32_t input)
 {
+    if (f == NULL)
+        return false;
+    if (input < 0 || input >= PGY_FSM_MAX_STATES)
+        return false;
     if (f->current < 0 || f->current >= PGY_FSM_MAX_STATES) return false;
     int32_t next = f->transitions[f->current][input];
     if (next < 0) return false;
@@ -131,10 +140,12 @@ static inline bool pgy_fsm_step(PgyFsm *f, int32_t input)
     return true;
 }
 
-static inline int32_t pgy_fsm_current(PgyFsm *f) { return f->current; }
+static inline int32_t pgy_fsm_current(PgyFsm *f) { return f != NULL ? f->current : -1; }
 
 static inline const char *pgy_fsm_current_name(PgyFsm *f)
 {
+    if (f == NULL)
+        return "";
     if (f->current < 0 || (size_t)f->current >= f->state_count) return "";
     return f->state_names[f->current] ? f->state_names[f->current] : "";
 }
@@ -162,6 +173,8 @@ static inline PgyTimer pgy_timer_new(int32_t duration)
 
 static inline void pgy_timer_tick(PgyTimer *t, int32_t delta)
 {
+    if (t == NULL)
+        return;
     if (t->done) return;
     t->remaining -= delta;
     if (t->remaining <= 0) {
@@ -170,11 +183,13 @@ static inline void pgy_timer_tick(PgyTimer *t, int32_t delta)
     }
 }
 
-static inline bool pgy_timer_done(PgyTimer *t) { return t->done; }
-static inline int32_t pgy_timer_remaining(PgyTimer *t) { return t->remaining; }
+static inline bool pgy_timer_done(PgyTimer *t) { return t == NULL || t->done; }
+static inline int32_t pgy_timer_remaining(PgyTimer *t) { return t != NULL ? t->remaining : 0; }
 
 static inline void pgy_timer_reset(PgyTimer *t)
 {
+    if (t == NULL)
+        return;
     t->remaining = t->duration;
     t->done = false;
 }
@@ -195,12 +210,16 @@ static inline PgyCooldown pgy_cooldown_new(int32_t cooldown)
 
 static inline void pgy_cooldown_tick(PgyCooldown *c, int32_t delta)
 {
+    if (c == NULL)
+        return;
     c->remaining = (c->remaining > delta) ? c->remaining - delta : 0;
 }
 
-static inline bool pgy_cooldown_ready(PgyCooldown *c) { return c->remaining <= 0; }
+static inline bool pgy_cooldown_ready(PgyCooldown *c) { return c == NULL || c->remaining <= 0; }
 
 static inline void pgy_cooldown_trigger(PgyCooldown *c)
 {
+    if (c == NULL)
+        return;
     c->remaining = c->cooldown;
 }

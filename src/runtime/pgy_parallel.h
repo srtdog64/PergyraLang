@@ -479,6 +479,10 @@ pgy_parallel_run(void (**tasks)(void), size_t count)
 {
     if (count == 0)
         return;
+    if (tasks == NULL) {
+        pgy_parallel_warn("parallel-run", "task array is null");
+        return;
+    }
 
     if (count == 1) {
         if (tasks[0] != NULL)

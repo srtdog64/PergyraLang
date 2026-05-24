@@ -31,6 +31,7 @@ and follow-up debt over older design notes.
 | [`self_hosted/02_required_language_surface.md`](self_hosted/02_required_language_surface.md) | Language surface required before self-hosting can become credible |
 | [`self_hosted/03_tool_candidates.md`](self_hosted/03_tool_candidates.md) | First self-hostable tool candidates and non-goals |
 | [`self_hosted/04_beta_exit_handoff.md`](self_hosted/04_beta_exit_handoff.md) | Exact beta-exit artifacts required before self-host migration starts |
+| [`self_hosted/05_compiler_core_gap_analysis.md`](self_hosted/05_compiler_core_gap_analysis.md) | Hard self-host gap analysis and substrate entry criteria |
 
 ## Historical Snapshots
 

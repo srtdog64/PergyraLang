@@ -47,8 +47,8 @@ artifacts:
   AST fallback judgments;
 - AIR graph contract: `pgy.air.graph.v1` is stable enough for external tools to
   validate evidence nodes and boundary drift;
-- DAG contract: stable type resolution has no retired recursive resolver or
-  materializer fallback on stable paths;
+- DAG contract: stable type resolution has no retired recursive resolver usage
+  or unresolved metadata dead-end on stable paths;
 - ABI contract: Slot/Pin/Zone-bound ownership, panic/failure classes, and C FFI
   layout are frozen for the beta subset;
 - backend oracle contract: C remains the reference, and LLVM parity gaps are
@@ -84,3 +84,5 @@ its own ecosystem.
 - `02_required_language_surface.md` - language features needed before self-hosting.
 - `03_tool_candidates.md` - first tools suitable for soft self-hosting.
 - `04_beta_exit_handoff.md` - beta exit artifacts required before migration.
+- `05_compiler_core_gap_analysis.md` - why hard self-host cannot start from the
+  compiler core yet, and what substrate gaps must close first.

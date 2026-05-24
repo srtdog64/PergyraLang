@@ -218,12 +218,8 @@ grep -Fq "semantic_result_type_resolution_metadata_dead_ends(sem)" "$ROOT_DIR/sr
 grep -Fq "air_publish_dag_evidence(" "$ROOT_DIR/src/compiler/air_evidence_dag.c"
 grep -Fq "metadata hits without metadata inventory" "$ROOT_DIR/src/compiler/air_evidence_dag.c"
 ! grep -Fq "sem->type_resolution_" "$ROOT_DIR/src/compiler/air_evidence_dag.c"
-if grep -A1 -F "result->type_resolution_dag_generic_contract_evidence_count =" \
-    "$ROOT_DIR/src/semantic/semantic.c" | \
-    grep -Fq "ctx->type_resolution_stage_compat_generic_contract_count"; then
-    echo "[perf-contract] DAG generic evidence result regressed to compat counter" >&2
-    exit 1
-fi
+! grep -Fq "type_resolution_stage_compat_generic_contract_count" "$ROOT_DIR/src/semantic/semantic.c"
+! grep -Fq "type_resolution_stage_compat_generic_contract_count" "$ROOT_DIR/src/semantic/semantic.h"
 ! grep -Fq "sem->type_resolution_stage_compat_generic_contract_count" "$ROOT_DIR/src/compiler/air_evidence_dag.c"
 ! grep -Fq "sem->type_resolution_dag_ability_evidence_count" "$ROOT_DIR/src/compiler/air_evidence_dag.c"
 ! grep -Fq "type_resolution_dag_ability_evidence_count" "$ROOT_DIR/src/semantic/semantic.h"

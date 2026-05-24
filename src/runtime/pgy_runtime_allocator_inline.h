@@ -31,8 +31,12 @@ pgy_allocator_record_alloc(PgyAllocator *alloc, size_t size)
 {
     if (alloc == NULL)
         return;
-    alloc->allocations++;
-    alloc->bytes_in_use += size;
+    if (alloc->allocations != SIZE_MAX)
+        alloc->allocations++;
+    if (alloc->bytes_in_use > SIZE_MAX - size)
+        alloc->bytes_in_use = SIZE_MAX;
+    else
+        alloc->bytes_in_use += size;
     if (alloc->bytes_in_use > alloc->peak_bytes)
         alloc->peak_bytes = alloc->bytes_in_use;
     if (alloc->trace_enabled) {
@@ -46,7 +50,8 @@ pgy_allocator_record_free(PgyAllocator *alloc, size_t size)
 {
     if (alloc == NULL)
         return;
-    alloc->deallocations++;
+    if (alloc->deallocations != SIZE_MAX)
+        alloc->deallocations++;
     if (alloc->bytes_in_use >= size)
         alloc->bytes_in_use -= size;
     else
@@ -139,7 +144,7 @@ pgy_alloc(PgyAllocator *alloc, size_t size, size_t align)
         ptr = size == 0 ? NULL : alloc->pool->buffer + offset;
         alloc->pool->offset = offset + size;
         pgy_allocator_record_alloc(alloc, size);
-        if (alloc->debug_enabled)
+        if (alloc->debug_enabled && ptr != NULL && size > 0)
             memset(ptr, 0xCD, size);
         return ptr;
     }
@@ -150,7 +155,7 @@ pgy_alloc(PgyAllocator *alloc, size_t size, size_t align)
                           PGY_RUNTIME_PANIC_REASON_ALLOCATION_FAILED);
     if (alloc != NULL) {
         pgy_allocator_record_alloc(alloc, size);
-        if (alloc->debug_enabled)
+        if (alloc->debug_enabled && ptr != NULL && size > 0)
             memset(ptr, 0xCD, size);
     }
     return ptr;

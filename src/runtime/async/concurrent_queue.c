@@ -49,6 +49,30 @@ queue_node_create(void *data)
     return node;
 }
 
+static void
+queue_size_increment(ConcurrentQueue *queue)
+{
+    size_t current;
+
+    if (queue == NULL)
+        return;
+    current = atomic_load_explicit(&queue->size, memory_order_acquire);
+    if (current != SIZE_MAX)
+        atomic_fetch_add_explicit(&queue->size, 1, memory_order_acq_rel);
+}
+
+static void
+queue_size_decrement(ConcurrentQueue *queue)
+{
+    size_t current;
+
+    if (queue == NULL)
+        return;
+    current = atomic_load_explicit(&queue->size, memory_order_acquire);
+    if (current > 0)
+        atomic_fetch_sub_explicit(&queue->size, 1, memory_order_acq_rel);
+}
+
 ConcurrentQueue *
 ConcurrentQueueCreate(void)
 {
@@ -138,9 +162,15 @@ ConcurrentQueuePush(ConcurrentQueue *queue, void *data)
     }
 
     pthread_mutex_lock(&state->mutex);
+    if (state->tail == NULL) {
+        pthread_mutex_unlock(&state->mutex);
+        free(node);
+        concurrent_queue_warn("push", "queue tail is null", queue);
+        return false;
+    }
     atomic_store_explicit(&state->tail->next, (intptr_t)node, memory_order_release);
     state->tail = node;
-    atomic_fetch_add_explicit(&queue->size, 1, memory_order_acq_rel);
+    queue_size_increment(queue);
     pthread_mutex_unlock(&state->mutex);
     return true;
 }
@@ -160,6 +190,11 @@ ConcurrentQueuePop(ConcurrentQueue *queue)
 
     pthread_mutex_lock(&state->mutex);
     sentinel = state->head;
+    if (sentinel == NULL) {
+        pthread_mutex_unlock(&state->mutex);
+        concurrent_queue_warn("pop", "queue head is null", queue);
+        return NULL;
+    }
     next = sentinel != NULL
         ? (QueueNode *)(intptr_t)atomic_load_explicit(&sentinel->next, memory_order_acquire)
         : NULL;
@@ -172,7 +207,7 @@ ConcurrentQueuePop(ConcurrentQueue *queue)
     state->head = next;
     if (state->tail == next)
         state->tail = next;
-    atomic_fetch_sub_explicit(&queue->size, 1, memory_order_acq_rel);
+    queue_size_decrement(queue);
     pthread_mutex_unlock(&state->mutex);
 
     free(sentinel);

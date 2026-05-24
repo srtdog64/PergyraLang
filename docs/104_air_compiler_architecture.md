@@ -509,6 +509,10 @@ sixth compiler core and the architecture is wrong.
   `Move`/`Claim` operation must point at the same AST. This prevents an
   unrelated transfer-like operation in the same scope from satisfying a parsed
   source handoff boundary by alias alone.
+- Strict AIR also requires HIR CFG evidence for zone/world boundaries when HIR
+  input exists. Standalone AIR unit graphs without HIR input remain valid, but
+  the full compiler pipeline cannot validate a lowered zone/world boundary with
+  RIR evidence alone.
 - AIR owns synthesized names (`intent_owner`, `step_name`, boundary
   `owner_name`, `source_name`, and authority participants). AIR diagnostics and
   tests must not depend on DIR/AST string lifetime after parser teardown.
@@ -641,7 +645,10 @@ bool air_verify(AIRProgram *air, char **error_message);
   pin execution boundary with exact source AST provenance;
 - implementation boundaries must carry matching HIR CFG evidence;
 - evidence flags must carry provenance names, not boolean-only claims;
-- strict evidence mode computes drift/evidence failures before MIR lowering.
+- strict evidence mode is split by owner layer: pre-MIR verification checks HIR
+  CFG and RIR boundary/authority/effect evidence before MIR lowering, then the
+  post-MIR verification pass checks MIR cleanup/pin/terminator evidence before
+  backend codegen.
 
 `air_check_drift(...)` remains as a compatibility wrapper over `air_verify(...)`
 for older tests and scripts, but new compiler code and docs should describe AIR

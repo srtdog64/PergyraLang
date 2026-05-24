@@ -212,6 +212,17 @@ SlotPoolAlloc(SlotPool *pool)
         slot_pool_warn("alloc", "pool is null", 0, NULL_INDEX);
         return NULL_INDEX;
     }
+    if (pool->capacity == 0 || pool->occupied == NULL ||
+        pool->freeList == NULL || pool->data == NULL) {
+        slot_pool_warn("alloc", "pool is not initialized",
+                       pool->capacity, NULL_INDEX);
+        return NULL_INDEX;
+    }
+    if (pool->freeListTop > pool->capacity) {
+        slot_pool_warn("alloc", "free list cursor out of range",
+                       pool->capacity, NULL_INDEX);
+        return NULL_INDEX;
+    }
     if (pool->freeListTop == 0) {
         slot_pool_warn("alloc", "pool exhausted", pool->capacity, NULL_INDEX);
         return NULL_INDEX;
@@ -243,12 +254,23 @@ SlotPoolFree(SlotPool *pool, PoolIndex index)
         slot_pool_warn("free", "pool is null", 0, index);
         return false;
     }
+    if (pool->capacity == 0 || pool->occupied == NULL ||
+        pool->freeList == NULL || pool->data == NULL) {
+        slot_pool_warn("free", "pool is not initialized",
+                       pool->capacity, index);
+        return false;
+    }
     if (index >= pool->capacity) {
         slot_pool_warn("free", "index out of range", pool->capacity, index);
         return false;
     }
     if (!pool->occupied[index]) {
         slot_pool_warn("free", "slot already free or never allocated",
+                       pool->capacity, index);
+        return false;
+    }
+    if (pool->freeListTop >= pool->capacity) {
+        slot_pool_warn("free", "free list cursor out of range",
                        pool->capacity, index);
         return false;
     }
@@ -281,6 +303,11 @@ SlotPoolGet(SlotPool *pool, PoolIndex index)
         slot_pool_warn("get", "pool is null", 0, index);
         return NULL;
     }
+    if (pool->capacity == 0 || pool->occupied == NULL || pool->data == NULL) {
+        slot_pool_warn("get", "pool is not initialized",
+                       pool->capacity, index);
+        return NULL;
+    }
     if (index >= pool->capacity) {
         slot_pool_warn("get", "index out of range", pool->capacity, index);
         return NULL;
@@ -299,7 +326,8 @@ SlotPoolGet(SlotPool *pool, PoolIndex index)
 bool
 SlotPoolIsValid(SlotPool *pool, PoolIndex index)
 {
-    if (pool == NULL || index >= pool->capacity)
+    if (pool == NULL || pool->capacity == 0 || pool->occupied == NULL ||
+        index >= pool->capacity)
         return false;
     
     return pool->occupied[index];
@@ -311,15 +339,19 @@ SlotPoolIsValid(SlotPool *pool, PoolIndex index)
 void
 SlotPoolPrintStats(const SlotPool *pool)
 {
+    double usage;
+
     if (pool == NULL)
         return;
+    usage = pool->capacity == 0
+        ? 0.0
+        : (double)pool->count / pool->capacity * 100.0;
     
     printf("=== SlotPool Statistics ===\n");
     printf("Capacity: %zu elements\n", pool->capacity);
     printf("Element size: %zu bytes\n", pool->elementSize);
     printf("Current usage: %zu/%zu (%.1f%%)\n", 
-           pool->count, pool->capacity, 
-           (double)pool->count / pool->capacity * 100.0);
+           pool->count, pool->capacity, usage);
     printf("Peak usage: %zu elements\n", pool->peakUsage);
     printf("Total allocations: %" PRIu64 "\n", pool->totalAllocations);
     printf("Total deallocations: %" PRIu64 "\n", pool->totalDeallocations);

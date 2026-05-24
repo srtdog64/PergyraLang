@@ -147,16 +147,6 @@ void validate_class_where_clause_specialization_ast(ASTNode *class_decl,
                                                     ASTNode *site,
                                                     SemanticContext *ctx);
 
-extern size_t g_type_resolution_compat_calls;
-extern size_t g_type_resolution_compat_unique_nodes;
-extern size_t g_type_resolution_compat_ast_type_calls;
-extern size_t g_type_resolution_compat_channel_type_calls;
-extern size_t g_type_resolution_compat_future_type_calls;
-extern size_t g_type_resolution_compat_event_handler_type_calls;
-extern size_t g_type_resolution_compat_other_ast_calls;
-extern size_t g_type_resolution_compat_cache_hits;
-extern size_t g_type_resolution_compat_cache_misses;
-
 bool consume_qubit_value(ASTNode *expr, SemanticContext *ctx,
                          const char *action);
 bool type_check_defer_body_flow(ASTNode *body, SemanticContext *ctx);

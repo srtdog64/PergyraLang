@@ -1,6 +1,6 @@
 # Type Resolution DAG Audit
 
-**Updated:** 2026-04-29
+**Updated:** 2026-05-24
 **Scope:** beta-stable type references, generic defaults, where bounds, ability
 consumers, module contracts, zone/world authority consumers, and alias-cycle
 diagnostics.
@@ -8,44 +8,39 @@ diagnostics.
 ## Current Position
 
 The type-resolution DAG is active for the frozen semantic suite. The previous
-private compatibility resolver body has been removed; only zero-call audit
-counters remain so regressions can be detected. The stats labels use
-`retired-compatibility-*` vocabulary to avoid implying an active fallback
-resolver still exists.
+private compatibility resolver body has been removed. The retired owner now
+remains only as a quarantine sentinel; zero-only resolver and stage-materializer
+telemetry was removed so the stats stream exposes active DAG facts instead of
+dead compatibility counters.
 
 Current local DAG gate output:
 
 | Metric | Value |
 | --- | ---: |
-| graph-backed stage skips | 3140 |
-| retired compatibility resolver calls | 0 |
-| retired compatibility resolver body fallbacks / cache misses | 0 |
-| metadata entries | 3363 |
-| metadata owned | 257 |
-| metadata hits | 6755 |
-| materializer fallbacks | 0 |
-| stage compatibility alias fallback | 0 |
-| stage compatibility non-alias fallback | 0 |
+| graph-backed stage skips | 2064 |
+| metadata entries | 3735 |
+| metadata owned | 261 |
+| metadata hits | 8771 |
+| metadata dead ends | 0 |
 | alias materialized | 6 |
 | alias diagnostic unresolved inventory | 78 |
-| alias diagnostic resolver calls | 0 |
 
 The 78 alias diagnostic unresolved entries are not recursive resolver calls.
 They are alias-cycle diagnostic coverage and are separately gated by
-`alias_diagnostic_resolver_calls=0`.
+`alias_diagnostic_cycle_unresolved=78`.
 
 ## What Is Closed
 
-- Stable constructed refs materialize through graph/topo metadata before any
-  retired compatibility audit counter can be incremented.
+- Stable constructed refs materialize through graph/topo metadata; retired
+  compatibility counters no longer exist as a semantic metric.
 - Semantic owners are smoke-gated to consume metadata facts plus narrow
   diagnostic helpers instead of hand-rolled direct fallback calls.
 - Signature-stage quiet resolution and stable constructed-type diagnostics now
   stay on metadata-only owner paths; the intermediate materializing type-ref
   helper has been removed from `src/semantic`.
 - The direct materializer smoke allowlist is closed at zero. The obsolete
-  `type_checker_resolve.c` owner is gone; retired zero-call audit counters live
-  in `type_checker_resolution_retired.c`.
+  `type_checker_resolve.c` owner is gone; `type_checker_resolution_retired.c`
+  remains only as a quarantine sentinel.
 - Stable constructed shell vocabulary is centralized in the metadata diagnostics
   owner. Constructed metadata materialization and fallback accounting now consume
   the same `stable shell` / `slot-like shell` helpers instead of maintaining
@@ -70,18 +65,17 @@ retired surface stays at 0 calls / 0 body fallbacks.
 
 The next cleanup target is therefore precise:
 
-1. Keep semantic-suite compatibility calls at 0.
+1. Keep the retired resolver body absent and smoke-gated.
 2. Prove every driver/backend path reaches stable type refs through DAG
    metadata or an owner-local metadata-first API.
 3. Keep broader semantic and backend gates green while the deleted body stays
    absent.
-4. Keep `stage-compat-*` counters at zero. They are compatibility audit
-   counters for the retired resolver surface, not an active recursive resolver
-   path.
-5. Keep the resolved-annotation seam allowlist explicit. The current semantic
-   suite still has 12 annotation-sensitive quiet readers for already-resolved
-   generic defaults/effective ability references; new readers must either move
-   through metadata-first APIs or be deliberately added to the inventory gate.
+4. Do not reintroduce zero-only `stage-compat-*` counters as proof of closure.
+   Active proof must come from graph/metadata/evidence inventory.
+5. Keep the retired resolved-annotation API closed at zero. Direct metadata
+   readers are allowed only inside metadata owners; new semantic owners must
+   move through metadata-first type-ref helpers instead of reopening annotation
+   lookup.
 
 Do not reintroduce a hard-crash compatibility path. Beta policy is explicit
 diagnostic plus zero-use gate, not process abort.
@@ -101,6 +95,6 @@ broader regression sweep and should be run before claiming a source-of-truth
 removal.
 
 `type-resolution-resolver-inventory-test-smoke` also gates
-`semantic_type_resolution_lookup_resolved_annotation(...)` at exactly 12
-non-metadata owner seams. This is remaining source-of-truth debt for
-annotation-sensitive readers, not recursive fallback debt.
+`semantic_type_resolution_lookup_resolved_annotation(...)` at zero. Its
+reappearance is treated as debt resurrection; annotation-sensitive readers must
+use metadata-first APIs or stay inside metadata owners.

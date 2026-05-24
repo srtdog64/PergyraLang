@@ -1,6 +1,6 @@
 # Pergyra Source-Of-Truth Spine
 
-Last updated: 2026-05-21
+Last updated: 2026-05-25
 
 This document freezes the compiler ownership spine for beta closure. It exists
 to stop A -> B -> A refactoring loops. When a future change is unclear, use this
@@ -50,6 +50,21 @@ Current beta closure snapshot:
   emission may consume `transpiler_party_slot_first_ability_tag(...)` or
   `transpiler_party_slot_method_ability_tag(...)`, but they must not reopen
   party role-slot scans locally.
+- Runtime pointer/container ownership lives in
+  `docs/128_pointer_risk_register.md` and the matching runtime owner files.
+  C inline runtime and LLVM-linkable runtime exports must share the same
+  ownership class for a stable surface. For example, `Channel<String>` is
+  `container-owned` on both paths: send copies payloads, receive transfers
+  ownership, and destroy frees pending messages.
+- Stable diagnostic literals live in `src/semantic/diag_codes.h` and are
+  mirrored by `docs/72_diagnostic_codes.md`. Driver JSON, LSP diagnostics,
+  parser/lexer routing, semantic diagnostics, and backend diagnostics consume
+  those literals; they must not invent ad-hoc `code`, `cause_ir`, or
+  `fix_source` strings.
+- Soft self-host tool output contracts live in `docs/self_hosted/`. First-stage
+  tools must emit deterministic JSON or structured diagnostics for oracle
+  comparison. Human text is a secondary view, not the comparison source of
+  truth.
 - `tests/semantic_core_shape_smoke.sh` gates these ownership boundaries. The
   test is a drift alarm; the owning `.c` files above are the source of truth.
   `tests/mir_declaration_inventory_smoke.sh` gates the backend declaration and
@@ -125,6 +140,10 @@ keep the source-level business vocabulary clean.
 | Abstraction boundary drift | AIR | Driver diagnostics, CI, LSP/JSON consumers | Backends consuming AIR for codegen |
 | Runtime pass/failure policy | Runtime policy headers | C/LLVM codegen wrappers, AIR global evidence | Duplicated pass limits or failure strings in emitters |
 | ABI surface | ABI/runtime headers | C/LLVM, tests, docs | Domain layer leaking layout changes into C FFI silently |
+| Runtime pointer/container ownership | `docs/128_pointer_risk_register.md` + runtime owner files | C inline runtime, LLVM exports, ABI smoke, generated code | C inline path and LLVM export path using different ownership classes |
+| Diagnostic code/cause/fix vocabulary | `src/semantic/diag_codes.h` + `docs/72_diagnostic_codes.md` | Driver JSON, LSP, parser/lexer, semantic, C/LLVM backend diagnostics, soft self-host diagnostic checker | Bare diagnostic routing strings or prose-only diagnostics on stable paths |
+| Diagnostic JSON shape | Driver diagnostic JSON emitter + `diagnostics-json-test-smoke` | CLI tooling, LSP bridge, soft self-host diagnostic checker | Python-only validation or regex-only prose matching as the only gate |
+| Soft self-host tool output | `docs/self_hosted/03_tool_candidates.md` + `04_beta_exit_handoff.md` | First Pergyra-written diagnostic/AIR/MIR tools, CI oracle comparison | Human-readable output as the only oracle or starting from compiler core rewrite |
 | Unsafe/raw capability scope | `docs/132_unsafe_capability_scope.md` plus semantic/AIR gates once implemented | Parser diagnostics, semantic raw escape diagnostics, ABI lowering, self-host roadmap | Plain `unsafe { ... }` granting raw/system-tier escape |
 | Build source inventory | Makefile source/object inventory | CI, local smoke targets, dependency inclusion | Shell `find` rediscovering build artifacts or source files on Windows paths |
 | Local build artifact ownership | One `BUILD_DIR`/`BIN_DIR` pair per active make process | Local gates, CI recipes, troubleshooting docs | Parallel gates sharing the same `build/` and corrupting `.o` files |
@@ -252,6 +271,12 @@ rather than recombining raw payload and source-location fields. This keeps
 "may emit source" and "may retain fallback statement" on the same source-shape
 seam.
 
+Whole-program surface-usage facts follow the same rule. Public MIR surface
+recording must seed source locations and usage booleans through
+`mir_instruction_source_payload(...)`; it must not reopen `inst->ast` directly.
+The source-shape owner is the only place allowed to decide whether an
+instruction has a compatibility AST payload.
+
 Terminator provenance is read through the same source-shape seam. Consumers
 must use `mir_instruction_source_terminator_matches(...)` and
 `mir_instruction_source_terminator_has_value(...)` when they need to validate or
@@ -360,8 +385,8 @@ Allowed:
 - metadata lookup;
 - owner-local materialization through the central metadata API;
 - explicit dead-end diagnostics;
-- compatibility mirrors that remain tied to explicit dead-end counters for old
-  stat parsers;
+- retired compatibility mirrors only as quarantine sentinels in tests; active
+  semantic/DAG evidence must use metadata and evidence fields directly;
 - metadata-first type-ref reads for stable placeholder construction.
 - metadata index acceleration, as long as the index is a private cache over the
   same metadata owner and validates its open-addressing capacity invariant.
@@ -661,7 +686,12 @@ Some seams are allowed until the owning path fully replaces them:
 - local compiler-run skips in smoke scripts when no explicit `PGY_BIN` is
   provided, while CI/Make-provided `PGY_BIN` remains strict;
 - C-era filename namespaces before post-beta self-host;
-- compatibility telemetry counters that report retired paths as zero.
+- explicit quarantine owners that prevent retired implementation bodies from
+  reappearing. Zero-only telemetry for retired paths is no longer an allowed
+  source-of-truth substitute.
+- hard self-host preparation only after the substrate gaps in
+  `docs/self_hosted/05_compiler_core_gap_analysis.md` are closed or explicitly
+  assigned to soft self-host stages.
 
 Allowed debt must be named. Unnamed fallback is not allowed.
 

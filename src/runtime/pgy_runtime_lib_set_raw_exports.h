@@ -21,7 +21,7 @@ pgy_set_has_raw_export(void *set_ptr, void *elem_ptr, int64_t elem_size)
         pgy_runtime_warn_invalid_collection("set_has", "non-positive element size");
         return false;
     }
-    if (set->capacity == 0 || set->data == NULL || set->occupied == NULL) {
+    if (!pgy_set_raw_is_initialized(set)) {
         pgy_runtime_warn_invalid_collection("set_has", "set is not initialized");
         return false;
     }
@@ -50,7 +50,7 @@ pgy_set_has_string_raw_export(void *set_ptr, const char *value)
         pgy_runtime_warn_invalid_collection("set_has_string", "null set");
         return false;
     }
-    if (set->capacity == 0 || set->data == NULL || set->occupied == NULL) {
+    if (!pgy_set_raw_is_initialized(set)) {
         pgy_runtime_warn_invalid_collection("set_has_string",
             "set is not initialized");
         return false;
@@ -86,7 +86,7 @@ pgy_set_remove_raw_export(void *set_ptr, void *elem_ptr, int64_t elem_size)
         pgy_runtime_warn_invalid_collection("set_remove", "non-positive element size");
         return;
     }
-    if (set->capacity == 0 || set->data == NULL || set->occupied == NULL) {
+    if (!pgy_set_raw_is_initialized(set)) {
         pgy_runtime_warn_invalid_collection("set_remove", "set is not initialized");
         return;
     }
@@ -119,7 +119,7 @@ pgy_set_remove_string_raw_export(void *set_ptr, const char *value)
         pgy_runtime_warn_invalid_collection("set_remove_string", "null set");
         return;
     }
-    if (set->capacity == 0 || set->data == NULL || set->occupied == NULL) {
+    if (!pgy_set_raw_is_initialized(set)) {
         pgy_runtime_warn_invalid_collection("set_remove_string", "set is not initialized");
         return;
     }
@@ -147,6 +147,10 @@ pgy_set_size_raw_export(void *set_ptr)
     PgySetRaw *set = (PgySetRaw *)set_ptr;
     if (set == NULL) {
         pgy_runtime_warn_invalid_collection("set_size", "null set");
+        return 0;
+    }
+    if (!pgy_set_raw_is_initialized(set)) {
+        pgy_runtime_warn_invalid_collection("set_size", "set is not initialized");
         return 0;
     }
     return (int32_t)set->count;

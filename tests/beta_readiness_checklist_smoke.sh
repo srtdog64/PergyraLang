@@ -49,6 +49,7 @@ required_files=(
     "docs/112_observability_trace_schema.md"
     "docs/113_memory_concurrency_model.md"
     "docs/114_async_model_positioning.md"
+    "docs/self_hosted/05_compiler_core_gap_analysis.md"
     "README.md"
     "docs/74_slot_pinning_caching.md"
     "docs/106_ownership_model_comparison.md"
@@ -100,6 +101,11 @@ Freeze unsafe as scoped capability, not a mode bit.
 docs/132_unsafe_capability_scope.md
 unsafe(raw) { ... }
 make raw-escape-contract-test-smoke
+Self-host boundary
+hard self-host does not start from the
+compiler core with the current beta stable subset
+docs/self_hosted/05_compiler_core_gap_analysis.md
+make self-host-preparation-test-smoke
 `--runtime=none`
 intent/zone/world changes must
 not break C FFI ABI
@@ -170,6 +176,9 @@ make dogfood-webgl-test-smoke
 Pergyra -> C backend --emit-c -> optional Emscripten/WebGL bridge
 not freeze WebGL APIs
 pgy.render.webgl
+soft self-host preparation
+C backend remains the
+oracle
 LSP beta-stable: initialize capability response, keyword hover, and keyword completion
 Debugger beta-stable: CLI `pgy debug <file>` parse + semantic gate and interactive quit path
 DAP, binary breakpoints, variable watch, multi-file workspace indexing
@@ -469,6 +478,7 @@ beta-test-suite-freeze-test-smoke:
 observability-schema-test-smoke:
 memory-concurrency-model-test-smoke:
 dogfood-webgl-test-smoke:
+self-host-preparation-test-smoke:
 ci-windows: LLVM toolchain detected; running LLVM smoke and backend compare
 ci-windows: LLVM toolchain not detected; skipping Windows LLVM smoke/backend compare
 EOF

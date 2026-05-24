@@ -1037,6 +1037,7 @@ for term in \
 done
 for term in \
     "pgy_host_decl_compat_types(&host_type_count)" \
+    "if (ctx->mir != NULL)" \
     "host_types[i]" \
     "llvm_find_decl_in_active_inventory("; do
     require_term "src/codegen/llvm_inventory_decl_lookup.c" "$term"

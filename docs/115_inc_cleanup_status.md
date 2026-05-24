@@ -820,9 +820,9 @@ in `src/codegen/llvm_decl_routines.c` at 106 LOC, so
   below the 600 LOC split-review threshold while the graph/resolver smoke gates
   remain green.
 - Type-resolution retired-resolver ownership is now explicit: the obsolete
-  `src/semantic/type_checker_resolve.c` owner is gone, retired compatibility
-  counters live in `src/semantic/type_checker_resolution_retired.c`, and
-  general assignability / constructed-type helpers live in
+  `src/semantic/type_checker_resolve.c` owner is gone,
+  `src/semantic/type_checker_resolution_retired.c` is only a quarantine
+  sentinel, and general assignability / constructed-type helpers live in
   `src/semantic/type_checker_type_helpers.c`. The resolver inventory and
   semantic shape smokes reject bringing the old resolver owner back.
 
@@ -1934,10 +1934,13 @@ Observed results:
   owners they use directly instead of preserving a compatibility shim.
 - Latest generated-C channel runtime cleanup moved the former
   `src/runtime/pgy_runtime_part_bb.inc` body into
-  `src/runtime/pgy_runtime_channel_inline.h`. Threaded channel and SPSC channel
-  inline macro definitions plus stable `Int`/`String` instantiations now have a
-  named owner while `pgy_runtime.h` preserves include order; the current
-  production source `.inc` inventory is 79 files / 20,752 LOC.
+  `src/runtime/pgy_runtime_channel_inline.h`. The generic threaded channel
+  macro and stable `Int` instantiation remain there, while owned-transfer
+  `Channel<String>` lives in the responsibility-named
+  `src/runtime/pgy_runtime_channel_string_inline.h`. SPSC channel definitions
+  stay in `src/runtime/pgy_runtime_channel_spsc_inline.h`; `pgy_runtime.h`
+  preserves include order through the channel facade. The current production
+  source `.inc` inventory is 79 files / 20,752 LOC.
 - Latest C backend zone declaration cleanup promoted the zone declaration body
   from `src/codegen/transpiler_zone_decl_emit.h` into the compiled owner
   `src/codegen/transpiler_zone_decl_emit.c`. Zone sync, projection

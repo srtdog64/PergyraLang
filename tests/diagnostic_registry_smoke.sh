@@ -21,6 +21,24 @@ run_literal_contract_smoke() {
     require_literal "docs/72_diagnostic_codes.md" "PGY_LEX_INVALID_TOKEN"
     require_literal "src/semantic/type_checker_diag.c" "semantic_error_with_hints"
     require_literal "src/semantic/type_checker_diag.c" "semantic_warning_with_hints"
+
+    local missing=()
+    while IFS= read -r literal; do
+        [[ -n "$literal" ]] || continue
+        if ! grep -Fq -- "$literal" "$ROOT_DIR/docs/72_diagnostic_codes.md"; then
+            missing+=("$literal")
+        fi
+    done < <(
+        sed ':join; /\\$/ { N; s/\\\n[[:space:]]*/ /; b join; }' \
+            "$ROOT_DIR/src/semantic/diag_codes.h" |
+        sed -nE \
+            's/^[[:space:]]*#define[[:space:]]+PGY_CODE_[A-Z0-9_]+[[:space:]]+"([^"]+)".*/\1/p' \
+    )
+    if (( ${#missing[@]} > 0 )); then
+        echo "[diagnostic-registry] docs/72_diagnostic_codes.md missing diagnostic code(s): ${missing[*]}" >&2
+        exit 1
+    fi
+
     echo "[diagnostic-registry] macros and docs are source-gated (literal fallback)"
 }
 
@@ -50,7 +68,11 @@ callsite_skip = {
     pathlib.Path("src/semantic/type_checker_diag.c"),
 }
 
-header_text = diag_header.read_text(encoding="utf-8")
+header_text = re.sub(
+    r"\\\r?\n[ \t]*",
+    " ",
+    diag_header.read_text(encoding="utf-8"),
+)
 doc_text = diag_doc.read_text(encoding="utf-8")
 
 defines = dict(re.findall(

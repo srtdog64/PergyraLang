@@ -212,8 +212,15 @@ if [ -e src/semantic/type_checker_resolve.c ] || [ -e src/semantic/type_checker_
     fail "obsolete type_checker_resolve compatibility owner must not reappear"
 fi
 
-grep -q 'semantic_assignment_path_heap_owner' src/semantic/type_checker_assignment_path.c \
-    || fail "assignment target path heap lane must stay explicit"
+if grep -q 'semantic_assignment_path_heap_owner' src/semantic/type_checker_assignment_path.c; then
+    fail "assignment target path heap lane must not reappear"
+fi
+
+if grep -q 'semantic_assignment_target_path(ASTNode \*expr' \
+    src/semantic/type_checker_ownership_support_internal.h \
+    src/semantic/type_checker_assignment_path.c; then
+    fail "assignment target path heap API must not reappear"
+fi
 
 grep -q 'semantic_assignment_path_scratch_owner' src/semantic/type_checker_assignment_path.c \
     || fail "assignment target path scratch lane must stay explicit"
@@ -227,11 +234,11 @@ if grep -q 'scratch && ctx' src/semantic/type_checker_assignment_path.c; then
     fail "assignment target path must not compute scratch mode from a bool seam"
 fi
 
-grep -q 'Retired compatibility resolver audit counters' src/semantic/type_checker_resolution_retired.c \
-    || fail "retired DAG compatibility counter owner lost its audit marker"
+grep -q 'Retired compatibility resolver quarantine' src/semantic/type_checker_resolution_retired.c \
+    || fail "retired DAG compatibility quarantine owner lost its audit marker"
 
 grep -q 'require_assignable(Type \*from, Type \*to' src/semantic/type_checker_type_helpers.c \
-    || fail "assignability helper must stay outside the retired resolver counter owner"
+    || fail "assignability helper must stay outside the retired resolver quarantine owner"
 
 grep -q 'semantic_role_for_type_name' src/semantic/type_checker_domain_role_lookup.c \
     || fail "semantic role target-type helper must live in domain role lookup owner"

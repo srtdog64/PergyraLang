@@ -38,6 +38,10 @@ void SchedulerSpawnWithPriority(Scheduler* scheduler, FiberStartRoutine routine,
         scheduler_ops_warn("spawn", "routine is null", scheduler);
         return;
     }
+    if (scheduler->globalRunQueue == NULL) {
+        scheduler_ops_warn("spawn", "scheduler global queue is null", scheduler);
+        return;
+    }
     
     fiber = FiberCreate(routine, arg);
     if (fiber == NULL) {
@@ -57,6 +61,10 @@ bool SchedulerEnqueueFiberWithPriority(Scheduler* scheduler, Fiber* fiber, uint3
     }
     if (fiber == NULL) {
         scheduler_ops_warn("enqueue", "fiber is null", scheduler);
+        return false;
+    }
+    if (scheduler->globalRunQueue == NULL) {
+        scheduler_ops_warn("enqueue", "scheduler global queue is null", scheduler);
         return false;
     }
     
@@ -119,6 +127,10 @@ void SchedulerUnblock(Fiber* fiber)
     /* Add to scheduler queue */
     Scheduler* scheduler = fiber->scheduler;
     if (scheduler != NULL) {
+        if (scheduler->globalRunQueue == NULL) {
+            scheduler_ops_warn("unblock", "scheduler global queue is null", scheduler);
+            return;
+        }
         ConcurrentQueuePush(scheduler->globalRunQueue, fiber);
         
         /* Wake a parked worker */
@@ -132,7 +144,15 @@ void SchedulerUnblock(Fiber* fiber)
 
 bool SchedulerStealWork(WorkerThread* thief)
 {
+    if (thief == NULL || thief->scheduler == NULL || thief->localRunQueue == NULL) {
+        scheduler_ops_warn("steal", "worker or local queue is null", NULL);
+        return false;
+    }
     Scheduler* scheduler = thief->scheduler;
+    if (scheduler->numWorkers == 0 || scheduler->workers == NULL) {
+        scheduler_ops_warn("steal", "scheduler worker array is not initialized", scheduler);
+        return false;
+    }
     uint32_t victimId = atomic_fetch_add(&scheduler->stealingVictim, 1) % scheduler->numWorkers;
     
     /* Don't steal from self */
@@ -141,6 +161,10 @@ bool SchedulerStealWork(WorkerThread* thief)
     }
     
     WorkerThread* victim = &scheduler->workers[victimId];
+    if (victim->localRunQueue == NULL) {
+        scheduler_ops_warn("steal", "victim local queue is null", scheduler);
+        return false;
+    }
     
     /* Try to steal from victim's local queue */
     void* stolen = ConcurrentQueuePop(victim->localRunQueue);

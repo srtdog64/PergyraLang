@@ -3,6 +3,10 @@
 The first self-hosted programs should be small, useful, and easy to compare
 against existing behavior.
 
+All first-stage tools must produce stable JSON or diagnostics output. Human
+readable text may be emitted as a secondary view, but the oracle comparison
+must use deterministic machine-readable output.
+
 ## 1. Diagnostic Catalog Checker
 
 Input:
@@ -94,4 +98,3 @@ Output:
 Why:
 
 - Self-hosting needs reliable module boundaries before compiler code is split into Pergyra modules.
-

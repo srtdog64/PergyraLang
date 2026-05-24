@@ -95,15 +95,34 @@ pgy_path_for_windows_tool() {
         return 0
     fi
     if [[ "$path" =~ ^/mnt/([A-Za-z])/(.*)$ ]]; then
-        local drive="${BASH_REMATCH[1]}"
+        local drive
         local rest="${BASH_REMATCH[2]//\//\\}"
-        printf '%s:\\%s\n' "${drive^^}" "$rest"
+        drive="$(printf '%s' "${BASH_REMATCH[1]}" | tr '[:lower:]' '[:upper:]')"
+        printf '%s:\\%s\n' "$drive" "$rest"
         return 0
     fi
     if [[ "$path" =~ ^/([A-Za-z])/(.*)$ ]]; then
-        local drive="${BASH_REMATCH[1]}"
+        local drive
         local rest="${BASH_REMATCH[2]//\//\\}"
-        printf '%s:\\%s\n' "${drive^^}" "$rest"
+        drive="$(printf '%s' "${BASH_REMATCH[1]}" | tr '[:lower:]' '[:upper:]')"
+        printf '%s:\\%s\n' "$drive" "$rest"
+        return 0
+    fi
+    printf '%s\n' "$path"
+}
+
+pgy_path_for_bash_tool() {
+    local path="$1"
+
+    if command -v cygpath >/dev/null 2>&1; then
+        cygpath -u "$path" 2>/dev/null || printf '%s\n' "$path"
+        return 0
+    fi
+    if [[ "$path" =~ ^([A-Za-z]):[\\/](.*)$ ]]; then
+        local drive
+        local rest="${BASH_REMATCH[2]//\\//}"
+        drive="$(printf '%s' "${BASH_REMATCH[1]}" | tr '[:upper:]' '[:lower:]')"
+        printf '/%s/%s\n' "$drive" "$rest"
         return 0
     fi
     printf '%s\n' "$path"

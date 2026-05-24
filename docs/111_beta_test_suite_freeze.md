@@ -51,6 +51,7 @@ The beta release candidate must keep these gates green:
 - `make async-model-positioning-test-smoke`
 - `make memory-concurrency-model-test-smoke`
 - `make documentation-quality-test-smoke`
+- `make self-host-preparation-test-smoke`
 - `make tooling-conformance-test-smoke`
 - `make perf-contract-test-smoke`
 - `make beta-readiness-checklist-test-smoke`

@@ -13,6 +13,21 @@
 #include "../semantic/diag_codes.h"
 #include "../semantic/semantic.h"
 
+static bool
+lsp_advance_json_offset(size_t *off, size_t buf_size, int written)
+{
+    if (off == NULL || written <= 0)
+        return false;
+    if (*off >= buf_size)
+        return false;
+    if ((size_t)written >= buf_size - *off) {
+        *off = buf_size - 1;
+        return false;
+    }
+    *off += (size_t)written;
+    return true;
+}
+
 static void
 lsp_escape_json_string(char *out, size_t out_size, const char *text)
 {
@@ -79,8 +94,10 @@ publish_diagnostics(const char *uri, const char *source_text)
             size_t emitted = 0;
             for (size_t i = 0; i < sem->diagnostic_count && emitted < 20; i++) {
                 Diagnostic *d = sem->diagnostics[i];
+                size_t before;
                 if (d == NULL) continue;
 
+                before = off;
                 if (emitted > 0 && off < sizeof(diag_buf) - 1) {
                     diag_buf[off++] = ',';
                 }
@@ -115,7 +132,10 @@ publish_diagnostics(const char *uri, const char *source_text)
                     cause_ir,
                     fix_source,
                     escaped);
-                if (n > 0) off += (size_t)n;
+                if (!lsp_advance_json_offset(&off, sizeof(diag_buf), n)) {
+                    off = before;
+                    break;
+                }
                 emitted++;
             }
         }

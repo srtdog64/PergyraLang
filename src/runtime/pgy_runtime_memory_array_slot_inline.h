@@ -46,6 +46,9 @@ pgy_box_get_##SuffixName(PgyBox_##SuffixName b) \
 static inline void \
 pgy_box_set_##SuffixName(PgyBox_##SuffixName* b, CType value) \
 { \
+    if (b == NULL) { \
+        PGY_PANIC("Box set on null Box"); \
+    } \
     if (b->ptr == NULL) { \
         PGY_PANIC("Box set after move/free"); \
     } \
@@ -55,6 +58,9 @@ pgy_box_set_##SuffixName(PgyBox_##SuffixName* b, CType value) \
 static inline void \
 pgy_box_drop_##SuffixName(PgyBox_##SuffixName* b) \
 { \
+    if (b == NULL) { \
+        return; \
+    } \
     if (b->ptr != NULL) { \
         free(b->ptr); \
         b->ptr = NULL; \
@@ -64,7 +70,7 @@ pgy_box_drop_##SuffixName(PgyBox_##SuffixName* b) \
 static inline bool \
 pgy_box_is_valid_##SuffixName(PgyBox_##SuffixName* b) \
 { \
-    return b->ptr != NULL; \
+    return b != NULL && b->ptr != NULL; \
 }
 
 /* Box move semantics (transfer ownership) */
@@ -214,6 +220,8 @@ pgy_array_new_##SuffixName(size_t capacity) \
 static inline void \
 pgy_array_drop_##SuffixName(PgyArray_##SuffixName *arr) \
 { \
+    if (arr == NULL) \
+        return; \
     if (arr->data != NULL) { \
         pgy_free(arr->allocator, arr->data, sizeof(CType) * arr->capacity); \
         arr->data = NULL; \
@@ -225,6 +233,9 @@ pgy_array_drop_##SuffixName(PgyArray_##SuffixName *arr) \
 static inline void \
 pgy_array_reserve_##SuffixName(PgyArray_##SuffixName *arr, size_t new_capacity) \
 { \
+    if (arr == NULL) \
+        PGY_RUNTIME_PANIC(PGY_RUNTIME_PANIC_CLASS_INTERNAL_INVARIANT, \
+                          "array reserve on null array"); \
     if (new_capacity <= arr->capacity) \
         return; \
     if (new_capacity > SIZE_MAX / sizeof(CType)) \
@@ -241,6 +252,9 @@ pgy_array_reserve_##SuffixName(PgyArray_##SuffixName *arr, size_t new_capacity) 
 static inline void \
 pgy_array_push_##SuffixName(PgyArray_##SuffixName *arr, CType value) \
 { \
+    if (arr == NULL) \
+        PGY_RUNTIME_PANIC(PGY_RUNTIME_PANIC_CLASS_INTERNAL_INVARIANT, \
+                          "array push on null array"); \
     if (arr->length == arr->capacity) { \
         size_t next; \
         if (arr->capacity == 0) { \
@@ -259,18 +273,30 @@ pgy_array_push_##SuffixName(PgyArray_##SuffixName *arr, CType value) \
 static inline CType \
 pgy_array_get_##SuffixName(PgyArray_##SuffixName *arr, size_t index) \
 { \
+    if (arr == NULL) \
+        PGY_RUNTIME_PANIC(PGY_RUNTIME_PANIC_CLASS_INTERNAL_INVARIANT, \
+                          "array get on null array"); \
     if (index >= arr->length) \
         PGY_RUNTIME_PANIC(PGY_RUNTIME_PANIC_CLASS_OUT_OF_BOUNDS, \
                           PGY_RUNTIME_PANIC_REASON_ARRAY_INDEX_OUT_OF_BOUNDS); \
+    if (arr->data == NULL) \
+        PGY_RUNTIME_PANIC(PGY_RUNTIME_PANIC_CLASS_INTERNAL_INVARIANT, \
+                          "array get on array without backing storage"); \
     return arr->data[index]; \
 } \
 \
 static inline void \
 pgy_array_set_##SuffixName(PgyArray_##SuffixName *arr, size_t index, CType value) \
 { \
+    if (arr == NULL) \
+        PGY_RUNTIME_PANIC(PGY_RUNTIME_PANIC_CLASS_INTERNAL_INVARIANT, \
+                          "array set on null array"); \
     if (index >= arr->length) \
         PGY_RUNTIME_PANIC(PGY_RUNTIME_PANIC_CLASS_OUT_OF_BOUNDS, \
                           PGY_RUNTIME_PANIC_REASON_ARRAY_INDEX_OUT_OF_BOUNDS); \
+    if (arr->data == NULL) \
+        PGY_RUNTIME_PANIC(PGY_RUNTIME_PANIC_CLASS_INTERNAL_INVARIANT, \
+                          "array set on array without backing storage"); \
     arr->data[index] = value; \
 } \
 \
@@ -292,6 +318,9 @@ pgy_slice_get_##SuffixName(PgySlice_##SuffixName *slice, size_t index) \
     if (index >= slice->length) \
         PGY_RUNTIME_PANIC(PGY_RUNTIME_PANIC_CLASS_OUT_OF_BOUNDS, \
                           PGY_RUNTIME_PANIC_REASON_SLICE_OUT_OF_BOUNDS); \
+    if (slice->data == NULL) \
+        PGY_RUNTIME_PANIC(PGY_RUNTIME_PANIC_CLASS_INTERNAL_INVARIANT, \
+                          "slice get on slice without backing storage"); \
     return slice->data[index]; \
 } \
 \
@@ -352,6 +381,8 @@ pgy_rc_clone_##SuffixName(PgyRc_##SuffixName rc) \
 { \
     if (rc.ctrl == NULL || !rc.ctrl->alive || rc.ctrl->strong_count == 0) \
         PGY_PANIC("RcClone on invalid Rc"); \
+    if (rc.ctrl->strong_count == UINT32_MAX) \
+        PGY_PANIC("RcClone strong count overflow"); \
     rc.ctrl->strong_count++; \
     return rc; \
 } \
@@ -359,6 +390,8 @@ pgy_rc_clone_##SuffixName(PgyRc_##SuffixName rc) \
 static inline CType * \
 pgy_rc_get_##SuffixName(PgyRc_##SuffixName *rc) \
 { \
+    if (rc == NULL) \
+        PGY_PANIC("RcGet on null Rc"); \
     if (rc->ctrl == NULL || !rc->ctrl->alive || rc->ctrl->strong_count == 0) \
         PGY_PANIC("RcGet on invalid Rc"); \
     return &rc->ctrl->value; \
@@ -370,6 +403,8 @@ pgy_rc_downgrade_##SuffixName(PgyRc_##SuffixName rc) \
     PgyWeak_##SuffixName weak; \
     if (rc.ctrl == NULL) \
         PGY_PANIC("RcDowngrade on null Rc"); \
+    if (rc.ctrl->weak_count == UINT32_MAX) \
+        PGY_PANIC("RcDowngrade weak count overflow"); \
     rc.ctrl->weak_count++; \
     weak.ctrl = rc.ctrl; \
     return weak; \
@@ -378,6 +413,8 @@ pgy_rc_downgrade_##SuffixName(PgyRc_##SuffixName rc) \
 static inline void \
 pgy_rc_drop_##SuffixName(PgyRc_##SuffixName *rc) \
 { \
+    if (rc == NULL) \
+        return; \
     if (rc->ctrl == NULL) \
         return; \
     if (rc->ctrl->strong_count == 0) \
@@ -396,6 +433,8 @@ pgy_weak_upgrade_##SuffixName(PgyWeak_##SuffixName weak) \
 { \
     if (weak.ctrl == NULL || !weak.ctrl->alive || weak.ctrl->strong_count == 0) \
         PGY_PANIC("WeakUpgrade on expired Weak"); \
+    if (weak.ctrl->strong_count == UINT32_MAX) \
+        PGY_PANIC("WeakUpgrade strong count overflow"); \
     weak.ctrl->strong_count++; \
     PgyRc_##SuffixName rc; \
     rc.ctrl = weak.ctrl; \
@@ -405,6 +444,8 @@ pgy_weak_upgrade_##SuffixName(PgyWeak_##SuffixName weak) \
 static inline void \
 pgy_weak_drop_##SuffixName(PgyWeak_##SuffixName *weak) \
 { \
+    if (weak == NULL) \
+        return; \
     if (weak->ctrl == NULL) \
         return; \
     if (weak->ctrl->weak_count == 0) \
@@ -451,6 +492,8 @@ pgy_box_array_new_##SuffixName(size_t capacity, PgyAllocator *alloc) \
 static inline PgyArray_##SuffixName * \
 pgy_box_array_get_##SuffixName(PgyBoxArray_##SuffixName *box) \
 { \
+    if (box == NULL) \
+        PGY_PANIC("BoxArray access on null BoxArray"); \
     if (box->ptr == NULL) \
         PGY_PANIC("BoxArray access after drop"); \
     return box->ptr; \
@@ -459,8 +502,13 @@ pgy_box_array_get_##SuffixName(PgyBoxArray_##SuffixName *box) \
 static inline void \
 pgy_box_array_drop_##SuffixName(PgyBoxArray_##SuffixName *box) \
 { \
+    if (box == NULL) \
+        return; \
     if (box->ptr == NULL) \
         return; \
+    if (box->ptr->capacity > (SIZE_MAX - sizeof(PgyBoxArrayStorage_##SuffixName)) / sizeof(CType)) \
+        PGY_RUNTIME_PANIC(PGY_RUNTIME_PANIC_CLASS_INTERNAL_INVARIANT, \
+                          "BoxArray capacity overflow on drop"); \
     PgyBoxArrayStorage_##SuffixName *storage = \
         (PgyBoxArrayStorage_##SuffixName*)((char*)box->ptr - offsetof(PgyBoxArrayStorage_##SuffixName, array)); \
     size_t bytes = sizeof(PgyBoxArrayStorage_##SuffixName) + sizeof(CType) * box->ptr->capacity; \

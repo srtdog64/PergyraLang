@@ -191,10 +191,16 @@ bool StringContains(const char *haystack, const char *needle)
 
 char *Substring(const char *s, int32_t start, int32_t len)
 {
+    size_t raw_len;
+    int32_t slen;
+
     if (s == NULL)
         return pgy_runtime_lib_strdup("");
 
-    int32_t slen = (int32_t)strlen(s);
+    raw_len = strlen(s);
+    if (raw_len > (size_t)INT32_MAX)
+        return pgy_runtime_lib_strdup("");
+    slen = (int32_t)raw_len;
     if (start < 0 || start >= slen || len <= 0)
         return pgy_runtime_lib_strdup("");
     if (len > slen - start)
@@ -218,7 +224,7 @@ char *StringReplace(const char *s, const char *old_str, const char *new_str)
     if (old_len == 0)
         return pgy_runtime_lib_strdup(s);
 
-    int count = 0;
+    size_t count = 0;
     const char *p = s;
     while ((p = strstr(p, old_str)) != NULL) {
         count++;
@@ -229,14 +235,14 @@ char *StringReplace(const char *s, const char *old_str, const char *new_str)
     size_t result_len;
     if (new_len > old_len) {
         size_t delta = new_len - old_len;
-        if ((size_t)count > (((size_t)-1) - source_len) / delta)
+        if (count > (((size_t)-1) - source_len) / delta)
             return pgy_runtime_lib_strdup("");
-        result_len = source_len + (size_t)count * delta;
+        result_len = source_len + count * delta;
     } else if (new_len == old_len) {
         result_len = source_len;
     } else {
         size_t delta = old_len - new_len;
-        result_len = source_len - (size_t)count * delta;
+        result_len = source_len - count * delta;
     }
     char *result = (char *)malloc(result_len + 1);
     char *dst = result;

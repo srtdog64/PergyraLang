@@ -117,6 +117,7 @@ compiler_runtime_cache_is_fresh(const char *cache_obj_path)
         PGY_RUNTIME_DIR "/pgy_runtime_pool_fsm_timer_inline.h",
         PGY_RUNTIME_DIR "/pgy_runtime_zone_result_option_inline.h",
         PGY_RUNTIME_DIR "/pgy_runtime_channel_inline.h",
+        PGY_RUNTIME_DIR "/pgy_runtime_channel_string_inline.h",
         PGY_RUNTIME_DIR "/pgy_runtime_io_qubit_inline.h",
         NULL
     };

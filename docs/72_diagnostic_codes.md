@@ -391,7 +391,11 @@ AIR verification detects that an intent step's declared abstraction contract and
 
 #### `PGY_SEM_INTENT_BOUNDARY_EVIDENCE_MISSING`
 
-AIR strict-evidence mode detected that an intent boundary has no matching RIR boundary evidence, or an authority-required boundary has no matching RIR authority evidence.
+ AIR strict-evidence mode detected that an intent boundary has no matching
+ layered evidence. The evidence may come from HIR routine/CFG facts, RIR
+ boundary/authority/effect/relation facts, MIR cleanup/pin/terminator facts,
+ runtime frontier/schema facts, or DAG generic/ability metadata, depending on
+ the boundary being verified.
 
 - **Reason**: AIR drift checks are only trustworthy when the declared boundary can be reconciled with the runtime/resource IR evidence that will explain authority and boundary behavior.
 - **Fix**: align the intent boundary with a zone/world boundary that lowers into RIR evidence (`align-intent-boundary-evidence`), or extend AIR/RIR synthesis if the boundary is valid but not yet represented.
@@ -400,7 +404,7 @@ AIR strict-evidence mode detected that an intent boundary has no matching RIR bo
 
 #### `PGY_AIR_INVARIANT_INVALID`
 
-AIR verifier detected an invalid compiler IR inventory before MIR lowering:
+ AIR verifier detected an invalid compiler IR inventory before backend codegen:
 missing backing arrays for non-zero AIR counts, inconsistent boundary-to-intent
 step indexing, malformed authority participant lists, or evidence flags without
 the required layered provenance.

@@ -94,26 +94,6 @@ grep -a -q '\[type-res-stats\] nodes=' "$log" || {
   exit 1
 }
 
-grep -a -q '\[type-res-stats\] stage-metadata-materialize:' "$log" || {
-  echo "missing stage metadata materialization inventory" >&2
-  exit 1
-}
-
-grep -a -q '\[type-res-stats\] retired-compatibility-resolver:' "$log" || {
-  echo "missing retired compatibility resolver call inventory" >&2
-  exit 1
-}
-
-grep -a -q '\[type-res-stats\] retired-compatibility-resolver-kind:' "$log" || {
-  echo "missing retired compatibility resolver AST-kind inventory" >&2
-  exit 1
-}
-
-grep -a -q '\[type-res-stats\] stage-materialize-family:' "$log" || {
-  echo "missing stage metadata materialization family inventory" >&2
-  exit 1
-}
-
 grep -a -q '\[type-res-stats\] stage-graph-backed:' "$log" || {
   echo "missing graph-backed stage skip inventory" >&2
   exit 1
@@ -121,11 +101,6 @@ grep -a -q '\[type-res-stats\] stage-graph-backed:' "$log" || {
 
 grep -a -q '\[type-res-stats\] metadata:' "$log" || {
   echo "missing graph-backed metadata inventory" >&2
-  exit 1
-}
-
-grep -a -q '\[type-res-stats\] retired-compatibility-cache:' "$log" || {
-  echo "missing retired compatibility resolver body-fallback/cache inventory" >&2
   exit 1
 }
 
@@ -148,42 +123,6 @@ graph_skips="$(
   grep -a '\[type-res-stats\] stage-graph-backed:' "$log" \
     | sed -E 's/.*skips=([0-9]+).*/\1/' \
     | awk '{ total += $1 } END { print total + 0 }'
-)"
-
-resolve_calls="$(
-  grep -a '\[type-res-stats\] retired-compatibility-resolver:' "$log" \
-    | sed -E 's/.*calls=([0-9]+).*/\1/' \
-    | awk '{ if ($1 > max) max = $1 } END { print max + 0 }'
-)"
-
-resolve_unique_nodes="$(
-  grep -a '\[type-res-stats\] retired-compatibility-resolver:' "$log" \
-    | sed -E 's/.*unique_nodes=([0-9]+).*/\1/' \
-    | awk '{ if ($1 > max) max = $1 } END { print max + 0 }'
-)"
-
-resolve_kind_sum="$(
-  grep -a '\[type-res-stats\] retired-compatibility-resolver-kind:' "$log" \
-    | sed -E 's/.*ast_type=([0-9]+).*channel=([0-9]+).*future=([0-9]+).*event_handler=([0-9]+).*other=([0-9]+).*/\1 \2 \3 \4 \5/' \
-    | awk '{ v = $1 + $2 + $3 + $4 + $5; if (v > max) max = v } END { print max + 0 }'
-)"
-
-resolve_kind_ast_type="$(
-  grep -a '\[type-res-stats\] retired-compatibility-resolver-kind:' "$log" \
-    | sed -E 's/.*ast_type=([0-9]+).*channel=([0-9]+).*future=([0-9]+).*event_handler=([0-9]+).*other=([0-9]+).*/\1 \2 \3 \4 \5/' \
-    | awk '{ if ($1 > max) max = $1 } END { print max + 0 }'
-)"
-
-resolve_kind_compound_or_other="$(
-  grep -a '\[type-res-stats\] retired-compatibility-resolver-kind:' "$log" \
-    | sed -E 's/.*ast_type=([0-9]+).*channel=([0-9]+).*future=([0-9]+).*event_handler=([0-9]+).*other=([0-9]+).*/\1 \2 \3 \4 \5/' \
-    | awk '{ v = $2 + $3 + $4 + $5; if (v > max) max = v } END { print max + 0 }'
-)"
-
-resolver_body_fallbacks="$(
-  grep -a '\[type-res-stats\] retired-compatibility-cache:' "$log" \
-    | sed -E 's/.*misses=([0-9]+).*/\1/' \
-    | awk '{ if ($1 > max) max = $1 } END { print max + 0 }'
 )"
 
 metadata_entries="$(
@@ -276,36 +215,6 @@ metadata_named_missing_symbol="$(
     | awk '{ total += $5 } END { print total + 0 }'
 )"
 
-stage_materialize_alias="$(
-  grep -a '\[type-res-stats\] stage-materialize-family:' "$log" \
-    | sed -E 's/.*alias=([0-9]+).*/\1/' \
-    | awk '{ total += $1 } END { print total + 0 }'
-)"
-
-stage_materialize_calls="$(
-  grep -a '\[type-res-stats\] stage-metadata-materialize:' "$log" \
-    | sed -E 's/.*calls=([0-9]+).*/\1/' \
-    | awk '{ total += $1 } END { print total + 0 }'
-)"
-
-stage_materialize_failed="$(
-  grep -a '\[type-res-stats\] stage-metadata-materialize:' "$log" \
-    | sed -E 's/.*failed=([0-9]+).*/\1/' \
-    | awk '{ total += $1 } END { print total + 0 }'
-)"
-
-stage_materialize_suppressed="$(
-  grep -a '\[type-res-stats\] stage-metadata-materialize:' "$log" \
-    | sed -E 's/.*suppressed_diagnostics=([0-9]+).*/\1/' \
-    | awk '{ total += $1 } END { print total + 0 }'
-)"
-
-stage_materialize_non_alias="$(
-  grep -a '\[type-res-stats\] stage-materialize-family:' "$log" \
-    | sed -E 's/.*generic_contract=([0-9]+).*signature=([0-9]+).*ability_consumer=([0-9]+).*domain_contract=([0-9]+).*other=([0-9]+).*/\1 \2 \3 \4 \5/' \
-    | awk '{ total += $1 + $2 + $3 + $4 + $5 } END { print total + 0 }'
-)"
-
 alias_materialized="$(
   grep -a '\[type-res-stats\] stage-alias:' "$log" \
     | sed -E 's/.*materialized=([0-9]+).*/\1/' \
@@ -318,21 +227,9 @@ alias_diagnostic_unresolved="$(
     | awk '{ total += $1 } END { print total + 0 }'
 )"
 
-alias_diagnostic_resolver_calls="$(
-  grep -a '\[type-res-stats\] stage-alias-diagnostic:' "$log" \
-    | sed -E 's/.*resolver_calls=([0-9]+) resolved=.*/\1/' \
-    | awk '{ total += $1 } END { print total + 0 }'
-)"
-
-alias_diagnostic_resolved="$(
-  grep -a '\[type-res-stats\] stage-alias-diagnostic:' "$log" \
-    | sed -E 's/.* resolved=([0-9]+) cycle_unresolved=.*/\1/' \
-    | awk '{ total += $1 } END { print total + 0 }'
-)"
-
 alias_diagnostic_cycle_unresolved="$(
   grep -a '\[type-res-stats\] stage-alias-diagnostic:' "$log" \
-    | sed -E 's/.* cycle_unresolved=([0-9]+).*/\1/' \
+    | sed -E 's/.*cycle_unresolved=([0-9]+).*/\1/' \
     | awk '{ total += $1 } END { print total + 0 }'
 )"
 
@@ -376,31 +273,6 @@ fi
 
 if [ "$dag_ability_consumer_evidence" -le 0 ]; then
   echo "DAG ability consumer evidence regressed to zero" >&2
-  exit 1
-fi
-
-if [ "$resolve_calls" -ne 0 ]; then
-  echo "retired compatibility resolver calls regressed above beta cap: $resolve_calls > 0" >&2
-  exit 1
-fi
-
-if [ "$resolve_kind_sum" -ne "$resolve_calls" ]; then
-  echo "retired compatibility resolver AST-kind accounting mismatch: kind_sum=$resolve_kind_sum calls=$resolve_calls" >&2
-  exit 1
-fi
-
-if [ "$resolve_kind_ast_type" -ne "$resolve_calls" ]; then
-  echo "retired compatibility resolver non-AST_TYPE calls regressed: ast_type=$resolve_kind_ast_type calls=$resolve_calls" >&2
-  exit 1
-fi
-
-if [ "$resolve_kind_compound_or_other" -ne 0 ]; then
-  echo "compound/other retired compatibility resolver calls regressed: $resolve_kind_compound_or_other > 0" >&2
-  exit 1
-fi
-
-if [ "$resolver_body_fallbacks" -ne 0 ]; then
-  echo "retired compatibility resolver body fallback regressed: $resolver_body_fallbacks > 0" >&2
   exit 1
 fi
 
@@ -485,26 +357,6 @@ if [ "$metadata_named_missing_symbol" -ne 0 ]; then
   exit 1
 fi
 
-if [ "$stage_materialize_non_alias" -ne 0 ]; then
-  echo "non-alias DAG stage metadata materialization regressed: $stage_materialize_non_alias" >&2
-  exit 1
-fi
-
-if [ "$stage_materialize_calls" -ne 0 ]; then
-  echo "DAG stage metadata materializer calls regressed above beta cap: $stage_materialize_calls > 0" >&2
-  exit 1
-fi
-
-if [ "$stage_materialize_failed" -ne 0 ] || [ "$stage_materialize_suppressed" -ne 0 ]; then
-  echo "DAG stage materializer diagnostic suppression regressed: failed=$stage_materialize_failed suppressed=$stage_materialize_suppressed" >&2
-  exit 1
-fi
-
-if [ "$stage_materialize_alias" -ne 0 ]; then
-  echo "alias DAG stage metadata materialization regressed above beta cap: $stage_materialize_alias > 0" >&2
-  exit 1
-fi
-
 if [ "$alias_materialized" -le 0 ]; then
   echo "alias stage materialization inventory regressed to zero" >&2
   exit 1
@@ -512,16 +364,6 @@ fi
 
 if [ "$alias_diagnostic_unresolved" -le 0 ]; then
   echo "alias diagnostic unresolved inventory regressed to zero" >&2
-  exit 1
-fi
-
-if [ "$alias_diagnostic_resolver_calls" -ne 0 ]; then
-  echo "alias diagnostic inventory reintroduced recursive resolver calls: $alias_diagnostic_resolver_calls" >&2
-  exit 1
-fi
-
-if [ "$alias_diagnostic_resolved" -ne 0 ]; then
-  echo "valid alias materialization leaked into diagnostic inventory: $alias_diagnostic_resolved" >&2
   exit 1
 fi
 
@@ -535,4 +377,4 @@ grep -a -q 'topo_ok=1' "$log" || {
   exit 1
 }
 
-echo "[type-resolution-dag] graph stats and metadata reuse present (graph-backed skips=$graph_skips generic_param_nodes=$generic_param_nodes dag_generic_contract_evidence=$dag_generic_contract_evidence dag_ability_consumer_evidence=$dag_ability_consumer_evidence retired_resolver_calls=$resolve_calls retired_resolver_unique_nodes=$resolve_unique_nodes retired_resolver_kind_sum=$resolve_kind_sum retired_resolver_kind_ast_type=$resolve_kind_ast_type retired_resolver_kind_compound_or_other=$resolve_kind_compound_or_other retired_resolver_body_fallbacks=$resolver_body_fallbacks metadata_entries=$metadata_entries metadata_owned=$metadata_owned metadata_hits=$metadata_hits metadata_dead_ends=$metadata_dead_ends metadata_unresolved_named=$metadata_unresolved_named metadata_unresolved_generic_named=$metadata_unresolved_generic_named metadata_unresolved_compound=$metadata_unresolved_compound metadata_unresolved_other=$metadata_unresolved_other metadata_unresolved_builtin_shell=$metadata_named_builtin_shell metadata_unresolved_generic_class=$metadata_named_generic_class metadata_unresolved_alias=$metadata_named_alias metadata_unresolved_non_class_symbol=$metadata_named_non_class_symbol metadata_unresolved_missing_symbol=$metadata_named_missing_symbol stage_materialize_calls=$stage_materialize_calls stage_materialize_failed=$stage_materialize_failed stage_materialize_suppressed=$stage_materialize_suppressed stage_materialize_alias=$stage_materialize_alias stage_materialize_non_alias=$stage_materialize_non_alias alias_materialized=$alias_materialized alias_diagnostic_unresolved=$alias_diagnostic_unresolved alias_diagnostic_resolver_calls=$alias_diagnostic_resolver_calls alias_diagnostic_resolved=$alias_diagnostic_resolved alias_diagnostic_cycle_unresolved=$alias_diagnostic_cycle_unresolved)"
+echo "[type-resolution-dag] graph stats and metadata reuse present (graph-backed skips=$graph_skips generic_param_nodes=$generic_param_nodes dag_generic_contract_evidence=$dag_generic_contract_evidence dag_ability_consumer_evidence=$dag_ability_consumer_evidence metadata_entries=$metadata_entries metadata_owned=$metadata_owned metadata_hits=$metadata_hits metadata_dead_ends=$metadata_dead_ends metadata_unresolved_named=$metadata_unresolved_named metadata_unresolved_generic_named=$metadata_unresolved_generic_named metadata_unresolved_compound=$metadata_unresolved_compound metadata_unresolved_other=$metadata_unresolved_other metadata_unresolved_builtin_shell=$metadata_named_builtin_shell metadata_unresolved_generic_class=$metadata_named_generic_class metadata_unresolved_alias=$metadata_named_alias metadata_unresolved_non_class_symbol=$metadata_named_non_class_symbol metadata_unresolved_missing_symbol=$metadata_named_missing_symbol alias_materialized=$alias_materialized alias_diagnostic_unresolved=$alias_diagnostic_unresolved alias_diagnostic_cycle_unresolved=$alias_diagnostic_cycle_unresolved)"

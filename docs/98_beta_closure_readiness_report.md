@@ -911,10 +911,10 @@ Already closed:
 - non-generic nominal class type references, known non-class scope symbols,
   generic consumer paths, and alias-cycle diagnostics are represented by
   graph-backed metadata/evidence rather than recursive resolver calls.
-- current local evidence (2026-05-19): `retired_resolver_calls=0`,
-  `retired_resolver_body_fallbacks=0`, `stage_materialize_calls=0`,
-  `metadata_dead_ends=0`, `metadata_entries=3718`, `metadata_owned=261`, and
-  `metadata_hits=8695`.
+- current local evidence (2026-05-24): retired resolver and zero-only stage
+  materializer telemetry have been removed; active DAG evidence reports
+  `metadata_dead_ends=0`, `metadata_entries=3735`, `metadata_owned=261`, and
+  `metadata_hits=8771`.
 
 Remaining work:
 

@@ -53,7 +53,7 @@ require_term "TODO.md" "Add C/LLVM parity only after AIR evidence exists"
 require_term "TODO.md" "grant raw pointer access is a beta-blocking regression"
 
 if [[ ! -x "$PGY_BIN" ]]; then
-    if [[ "$PGY_BIN_WAS_DEFAULT" -eq 1 || "${PGY_RAW_ESCAPE_ALLOW_MISSING_BIN:-0}" == "1" ]]; then
+    if [[ "$PGY_BIN_WAS_DEFAULT" -eq 1 ]]; then
         echo "[raw-escape-contract] SKIP executable probe; source contract is gated"
         exit 0
     fi

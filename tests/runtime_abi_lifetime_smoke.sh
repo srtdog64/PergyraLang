@@ -167,6 +167,7 @@ concat_runtime_text "$inline_text" \
     "src/runtime/pgy_runtime_panic_checked_inline.h" \
     "src/runtime/pgy_runtime_memory_array_slot_inline.h" \
     "src/runtime/pgy_runtime_slot_macros.h" \
+    "src/runtime/pgy_runtime_channel_inline.h" \
     "src/runtime/pgy_runtime_builtin_storage_inline.h" \
     "src/runtime/pgy_runtime_list_set_inline.h" \
     "src/runtime/pgy_runtime_pool_fsm_timer_inline.h" \
@@ -308,6 +309,22 @@ for term in \
         "$ROOT_DIR/src/runtime/pgy_runtime_lib_array_map_exports.h" ||
         fail "generic Array<String> must remain pointer-storage unless a producer explicitly copies payloads: $term"
 done
+for term in \
+    "array push on null array" \
+    "array get on array without backing storage" \
+    "slice get on slice without backing storage" \
+    "RcClone strong count overflow" \
+    "BoxArray capacity overflow on drop"; do
+    grep -Fq "$term" "$ROOT_DIR/src/runtime/pgy_runtime_memory_array_slot_inline.h" ||
+        fail "memory array/rc inline null/range guard missing: $term"
+done
+for term in \
+    "array get on array without backing storage" \
+    "array set on array without backing storage" \
+    "slice get on slice without backing storage"; do
+    grep -Fq "$term" "$ROOT_DIR/src/runtime/pgy_runtime_lib_array_map_exports.h" ||
+        fail "raw array export backing-storage guard missing: $term"
+done
 if grep -Fq "pgy_array_push_String(&result, s)" \
     "$ROOT_DIR/src/runtime/pgy_runtime_io_qubit_inline.h" \
     "$ROOT_DIR/src/runtime/pgy_runtime_lib_io_string_exports.h"; then
@@ -342,6 +359,9 @@ grep -Fq "free(resolved)" <<< "$write_file_body" ||
     fail "pgy_write_file must release resolved paths on all exits"
 
 for term in \
+    "raw_len > (size_t)INT32_MAX" \
+    "size_t count = 0" \
+    "result_len = source_len + count * delta" \
     "if (len > slen - start)" \
     "if (new_len > old_len)" \
     "result_len = source_len" \
@@ -384,9 +404,20 @@ grep -Fq "\"pgy_queue_pop_string_raw_export\"" \
 for term in \
     "pgy_channel_dup_String" \
     "pgy_channel_free_pending_String" \
+    "pgy_channel_string_is_initialized" \
+    "pgy_channel_string_size_to_i32" \
+    "channel is not initialized" \
     "ch->buffer[ch->head] = NULL"; do
     grep -Fq "$term" "$ROOT_DIR/src/runtime/pgy_runtime_lib_channel_string_exports.h" ||
         fail "LLVM Channel<String> export missing owned-transfer term: $term"
+done
+for term in \
+    "pgy_channel_int_is_initialized" \
+    "pgy_channel_int_size_to_i32" \
+    "size_t used = ch->count <= ch->capacity ? ch->count : ch->capacity"; do
+    grep -Fq "$term" "$ROOT_DIR/src/runtime/pgy_runtime_lib_channel_int_exports.h" \
+        "$ROOT_DIR/src/runtime/pgy_runtime_lib_channel_string_exports.h" ||
+        fail "exported Channel<Int/String> initialized/range guard missing: $term"
 done
 for term in \
     "pgy_map_set_string_value_raw_export" \
@@ -447,8 +478,33 @@ for term in \
         fail "LLVM tmp name helper must use a small ring buffer: $term"
 done
 for term in \
+    "role count is nonzero but role array is null" \
+    "party_context_role_abilities_valid" \
+    "ability count is nonzero but ability array is null" \
+    "shared field count is nonzero but shared field array is null" \
+    "party_stats_add_u64" \
+    "stats->totalExecutions != UINT64_MAX" \
+    "stats->errorCount != UINT32_MAX" \
+    "g_fiberStatsMutex" \
+    "fiber_stats_rebuild_index" \
+    "fiber_stats_lookup(roleId)"; do
+    grep -Fq "$term" "$ROOT_DIR/src/runtime/party_runtime.c" \
+        "$ROOT_DIR/src/runtime/party_runtime_stats.c" ||
+        fail "party runtime context/stat guards missing: $term"
+done
+for term in \
+    "atomic_bool completed" \
+    "atomic_store_explicit(&handle->completed, true, memory_order_release)" \
+    "atomic_load_explicit(&handle->completed, memory_order_acquire)"; do
+    grep -Fq "$term" "$ROOT_DIR/src/runtime/world_roster_async.c" ||
+        fail "world roster async wait handle must publish completion/result through atomics: $term"
+done
+for term in \
     "world_roster_array_fits" \
     "len > SIZE_MAX - 1U" \
+    "party count is nonzero but party slot array is null" \
+    "roster count is nonzero but roster array is null" \
+    "world_roster_increment_frame" \
     "party slot size overflow" \
     "roster slot size overflow" \
     "result allocation size overflow"; do
@@ -457,6 +513,9 @@ for term in \
 done
 for term in \
     "world_roster_array_fits" \
+    "party count is nonzero but party slot array is null" \
+    "roster count is nonzero but roster array is null" \
+    "world_roster_saturating_increment_size" \
     "roster plan size overflow" \
     "party plan size overflow" \
     "role count overflow" \
@@ -481,11 +540,39 @@ for term in \
         fail "slot manager table allocation must guard maxSlots sizing: $term"
 done
 for term in \
+    "queue_size_increment" \
+    "queue_size_decrement" \
+    "queue tail is null" \
+    "queue head is null" \
+    "current != SIZE_MAX" \
+    "current > 0"; do
+    grep -Fq "$term" "$ROOT_DIR/src/runtime/async/concurrent_queue.c" ||
+        fail "concurrent queue must guard head/tail and size counter boundaries: $term"
+done
+for term in \
     "scheduler_array_fits" \
+    "worker count is nonzero but worker array is null" \
     "worker array size overflow" \
     "scheduler->workers = (WorkerThread*)calloc(scheduler->numWorkers, sizeof(WorkerThread))"; do
     grep -Fq "$term" "$ROOT_DIR/src/runtime/async/scheduler.c" ||
         fail "async scheduler worker arrays must guard allocation sizes: $term"
+done
+for term in \
+    "scheduler global queue is null" \
+    "worker or local queue is null" \
+    "scheduler worker array is not initialized" \
+    "victim local queue is null"; do
+    grep -Fq "$term" "$ROOT_DIR/src/runtime/async/scheduler_fiber_ops.c" ||
+        fail "async scheduler fiber ops must guard queues/workers: $term"
+done
+for term in \
+    "pgy_parallel_array_fits" \
+    "\"parallel-run\", \"task array is null\"" \
+    "PgyTaskHandle *handles = (PgyTaskHandle *)calloc(count, sizeof(PgyTaskHandle))" \
+    "PgyParallelArg *args = (PgyParallelArg *)calloc(count, sizeof(PgyParallelArg))" \
+    "worker array size overflow"; do
+    grep -Fq "$term" "$ROOT_DIR/src/runtime/pgy_parallel.h" ||
+        fail "parallel runtime task/worker arrays must guard null and allocation sizes: $term"
 done
 for term in \
     "PGY_RUNTIME_ELEM_CAPACITY_FITS" \
@@ -508,11 +595,71 @@ for term in \
         fail "LLVM raw collection capacity must stay within Int size API and element allocation bounds: $term"
 done
 for term in \
+    "pgy_queue_raw_is_initialized" \
+    "\"queue_push_string\"" \
+    "\"queue pop on uninitialized queue\"" \
+    "\"queue_size\", \"queue is not initialized\"" \
+    "\"queue_empty\", \"queue is not initialized\""; do
+    grep -Fq "$term" "$ROOT_DIR/src/runtime/pgy_runtime_lib_raw_queue_exports.h" ||
+        fail "raw Queue initialized guard missing: $term"
+done
+for term in \
+    "ch == NULL || ch->buf == NULL || ch->cap == 0" \
+    "INT32_MAX" \
+    "raw_space" \
+    "used = (ch->count <= ch->cap)" \
+    "pgy_channel_try_send_status_" \
+    "pgy_channel_send_timeout_status_" \
+    "pgy_channel_ready_" \
+    "pgy_channel_space_" \
+    "pgy_channel_string_inline_dup" \
+    "pgy_channel_string_inline_free_pending" \
+    "ch->buf[ch->head] = NULL"; do
+    grep -Fq "$term" "$ROOT_DIR/src/runtime/pgy_runtime_channel_inline.h" \
+        "$ROOT_DIR/src/runtime/pgy_runtime_channel_string_inline.h" ||
+        fail "inline Channel initialized/range guard missing: $term"
+done
+for term in \
+    "q->data == NULL || q->capacity == 0" \
+    "q->capacity > (size_t)INT32_MAX" \
+    "q != NULL ? (int32_t)q->count : 0" \
+    "q == NULL || q->count == 0"; do
+    grep -Fq "$term" "$ROOT_DIR/src/runtime/pgy_runtime_queue_inline.h" ||
+        fail "inline Queue initialized/null guard missing: $term"
+done
+for term in \
     "(capacity) <= (size_t)INT32_MAX" \
     "capacity <= (size_t)INT32_MAX"; do
     grep -Fq "$term" "$ROOT_DIR/src/runtime/pgy_runtime_builtin_hashmap_inline.h" \
         "$ROOT_DIR/src/runtime/pgy_runtime_map_string_inline.h" ||
         fail "inline HashMap capacity must stay within Int size API range: $term"
+done
+for term in \
+    "pgy_map_string_is_initialized" \
+    "pgy_map_string_capacity_fits(m->capacity)" \
+    "if (!pgy_map_string_is_initialized(m))" \
+    "return pgy_map_string_is_initialized(m) ? (int32_t)m->count : 0;"; do
+    grep -Fq "$term" "$ROOT_DIR/src/runtime/pgy_runtime_map_string_inline.h" ||
+        fail "inline HashMap<String> initialized guard missing: $term"
+done
+for term in \
+    "pgy_map_int_is_initialized" \
+    "PGY_RUNTIME_HASHMAP_CAPACITY_FITS(m->capacity, int32_t)" \
+    "if (!pgy_map_int_is_initialized(m))" \
+    "\"map_set_int\", \"null key\""; do
+    grep -Fq "$term" "$ROOT_DIR/src/runtime/pgy_runtime_builtin_storage_inline.h" ||
+        fail "inline HashMap<Int> initialized/null-key guard missing: $term"
+done
+grep -Fq "return pgy_map_int_is_initialized(m) ? (int32_t)m->count : 0;" \
+    "$ROOT_DIR/src/runtime/pgy_runtime_map_int_key_inline.h" ||
+    fail "inline HashMap<Int> size must not dereference invalid map"
+for term in \
+    "PGY_RUNTIME_HASHMAP_IS_INITIALIZED" \
+    "PGY_RUNTIME_HASHMAP_CAPACITY_FITS((map)->capacity, CType)" \
+    "if (!PGY_RUNTIME_HASHMAP_IS_INITIALIZED(m, CType))" \
+    "return 0; \\"; do
+    grep -Fq "$term" "$ROOT_DIR/src/runtime/pgy_runtime_builtin_hashmap_inline.h" ||
+        fail "inline HashMap initialized guard missing: $term"
 done
 for term in \
     "pgy_set_add_string_raw_export" \
@@ -538,11 +685,18 @@ fi
 for term in \
     "pgy_set_has_string_raw_export" \
     "pgy_set_remove_string_raw_export" \
+    "\"set_size\", \"set is not initialized\"" \
     "free(*owned)" \
     "PGY_SET_RAW_DELETED"; do
     grep -Fq "$term" "$ROOT_DIR/src/runtime/pgy_runtime_lib_set_raw_exports.h" ||
         fail "raw Set<String> query/remove export missing ownership/tombstone term: $term"
 done
+grep -Fq "pgy_set_raw_is_initialized" \
+    "$ROOT_DIR/src/runtime/pgy_runtime_lib_raw_set_exports.h" ||
+    fail "raw Set initialized guard helper missing"
+grep -Fq "set->capacity <= (size_t)INT32_MAX" \
+    "$ROOT_DIR/src/runtime/pgy_runtime_lib_raw_set_exports.h" ||
+    fail "raw Set initialized guard must enforce Int-sized capacity"
 for term in \
     "\"pgy_set_add_string_raw_export\"" \
     "\"pgy_set_has_string_raw_export\"" \
@@ -553,7 +707,18 @@ done
 for term in \
     "PGY_MAP_RAW_DELETED" \
     "map->occupied[h] = PGY_MAP_RAW_DELETED" \
-    "map->occupied[h] == PGY_MAP_RAW_LIVE"; do
+    "map->occupied[h] == PGY_MAP_RAW_LIVE" \
+    "pgy_map_raw_is_initialized" \
+    "map->capacity <= (size_t)INT32_MAX" \
+    "\"map_has\", \"map is not initialized\"" \
+    "\"map_size\", \"map is not initialized\"" \
+    "\"map remove on uninitialized map\"" \
+    "\"map string remove on uninitialized map\"" \
+    "static bool" \
+    "pgy_map_grow_raw_export(PgyHashMapRaw *map" \
+    "&& !pgy_map_grow_raw_export(map, value_size)" \
+    "&& !pgy_map_grow_raw_export(map, (int64_t)sizeof(char *))" \
+    "\"map is full\""; do
     grep -Fq "$term" "$ROOT_DIR/src/runtime/pgy_runtime_lib_raw_map_exports.h" ||
         fail "raw HashMap removal must preserve probe chains with tombstones: $term"
 done
@@ -562,6 +727,10 @@ for term in \
     "pgy_list_get_string_raw_export" \
     "pgy_list_set_string_raw_export" \
     "pgy_list_remove_string_raw_export" \
+    "pgy_list_raw_is_initialized" \
+    "\"list_push_string\"" \
+    "\"list_size\", \"list is not initialized\"" \
+    "\"list remove string on uninitialized list\"" \
     "pgy_runtime_strdup_export(value != NULL ? value : \"\")" \
     "free(*slot)"; do
     grep -Fq "$term" "$ROOT_DIR/src/runtime/pgy_runtime_lib_list_raw_exports.h" ||
@@ -574,6 +743,42 @@ for term in \
     "PGY_SET_INLINE_DELETED"; do
     grep -Fq "$term" "$ROOT_DIR/src/runtime/pgy_runtime_list_set_inline.h" ||
         fail "inline List/Set string ownership or tombstone term missing: $term"
+done
+for term in \
+    "PGY_RUNTIME_LIST_IS_INITIALIZED" \
+    "PGY_RUNTIME_SET_IS_INITIALIZED" \
+    "PGY_RUNTIME_STRING_SET_IS_INITIALIZED" \
+    "list get on invalid list" \
+    "return PGY_RUNTIME_LIST_IS_INITIALIZED(l, int32_t) ? (int32_t)l->count : 0;" \
+    "return PGY_RUNTIME_STRING_SET_IS_INITIALIZED(s) ? (int32_t)s->count : 0;" \
+    "if (!PGY_RUNTIME_SET_IS_INITIALIZED(s, CType)) return;"; do
+    grep -Fq "$term" "$ROOT_DIR/src/runtime/pgy_runtime_list_set_inline.h" ||
+        fail "inline List/Set initialized guard missing: $term"
+done
+for term in \
+    "if (!PGY_RUNTIME_LIST_IS_INITIALIZED(l, CType))" \
+    "list get on invalid list" \
+    "return PGY_RUNTIME_LIST_IS_INITIALIZED(l, CType) ? (int32_t)l->count : 0;"; do
+    grep -Fq "$term" "$ROOT_DIR/src/runtime/pgy_runtime_list_generic_inline.h" ||
+        fail "generic inline List initialized guard missing: $term"
+done
+for term in \
+    "capacity > (size_t)INT32_MAX" \
+    "if (f == NULL)" \
+    "input < 0 || input >= PGY_FSM_MAX_STATES" \
+    "return f != NULL ? f->current : -1;" \
+    "return t == NULL || t->done;" \
+    "return c == NULL || c->remaining <= 0;"; do
+    grep -Fq "$term" "$ROOT_DIR/src/runtime/pgy_runtime_pool_fsm_timer_inline.h" ||
+        fail "pool/FSM/timer inline null/range guard missing: $term"
+done
+for term in \
+    "pool->capacity == 0 || pool->occupied == NULL" \
+    "pool->freeListTop > pool->capacity" \
+    "pool->freeListTop >= pool->capacity" \
+    "usage = pool->capacity == 0"; do
+    grep -Fq "$term" "$ROOT_DIR/src/runtime/slot_pool.c" ||
+        fail "slot pool initialized/cursor guard missing: $term"
 done
 for term in \
     "PGY_HASHMAP_DELETED" \

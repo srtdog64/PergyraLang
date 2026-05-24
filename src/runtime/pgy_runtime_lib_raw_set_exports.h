@@ -38,6 +38,16 @@ pgy_set_raw_shape_fits(size_t capacity, size_t elem_size)
         && elem_size <= SIZE_MAX / capacity;
 }
 
+static bool
+pgy_set_raw_is_initialized(const PgySetRaw *set)
+{
+    return set != NULL
+        && set->capacity != 0
+        && set->capacity <= (size_t)INT32_MAX
+        && set->data != NULL
+        && set->occupied != NULL;
+}
+
 static uint32_t
 pgy_hash_bytes(const void *ptr, size_t len)
 {
@@ -247,7 +257,7 @@ pgy_set_add_raw_export(void *set_ptr, void *elem_ptr, int64_t elem_size)
         pgy_runtime_warn_invalid_collection("set_add", "non-positive element size");
         return;
     }
-    if (set->capacity == 0 || set->data == NULL || set->occupied == NULL) {
+    if (!pgy_set_raw_is_initialized(set)) {
         pgy_runtime_warn_invalid_collection("set_add", "set is not initialized");
         return;
     }
@@ -266,7 +276,7 @@ pgy_set_add_raw_export(void *set_ptr, void *elem_ptr, int64_t elem_size)
     /* Resize if needed */
     if ((double)set->count / (double)set->capacity > 0.75) {
         pgy_set_raw_rehash(set, elem_size);
-        if (set->capacity == 0 || set->data == NULL || set->occupied == NULL) {
+        if (!pgy_set_raw_is_initialized(set)) {
             pgy_runtime_warn_invalid_collection("set_add", "set rehash failed");
             return;
         }
@@ -296,7 +306,7 @@ pgy_set_add_string_raw_export(void *set_ptr, const char *value)
         pgy_runtime_warn_invalid_collection("set_add_string", "null set");
         return;
     }
-    if (set->capacity == 0 || set->data == NULL || set->occupied == NULL) {
+    if (!pgy_set_raw_is_initialized(set)) {
         pgy_runtime_warn_invalid_collection("set_add_string",
             "set is not initialized");
         return;
@@ -317,8 +327,7 @@ pgy_set_add_string_raw_export(void *set_ptr, const char *value)
     }
     if ((double)set->count / (double)set->capacity > 0.75) {
         pgy_set_raw_rehash_string(set);
-        if (set->capacity == 0 || set->data == NULL
-            || set->occupied == NULL) {
+        if (!pgy_set_raw_is_initialized(set)) {
             pgy_runtime_warn_invalid_collection("set_add_string",
                 "set rehash failed");
             return;

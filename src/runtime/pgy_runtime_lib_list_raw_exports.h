@@ -24,6 +24,15 @@ pgy_list_raw_shape_fits(size_t capacity, size_t elem_size)
         && elem_size <= SIZE_MAX / capacity;
 }
 
+static bool
+pgy_list_raw_is_initialized(const PgyListRaw *list)
+{
+    return list != NULL
+        && list->capacity != 0
+        && list->capacity <= (size_t)INT32_MAX
+        && list->data != NULL;
+}
+
 void
 pgy_list_new_raw_export(void *list_ptr, int64_t elem_size)
 {
@@ -67,7 +76,7 @@ pgy_list_push_raw_export(void *list_ptr, void *value_ptr, int64_t elem_size)
         pgy_runtime_warn_invalid_collection("list_push", "non-positive element size");
         return;
     }
-    if (list->data == NULL && list->capacity == 0) {
+    if (!pgy_list_raw_is_initialized(list)) {
         pgy_runtime_warn_invalid_collection("list_push", "list is not initialized");
         return;
     }
@@ -111,6 +120,12 @@ pgy_list_push_string_raw_export(void *list_ptr, const char *value)
         pgy_runtime_warn_invalid_collection("list_push_string", "null list");
         return;
     }
+    if (!pgy_list_raw_is_initialized(list)
+        || !pgy_list_raw_shape_fits(list->capacity, sizeof(char *))) {
+        pgy_runtime_warn_invalid_collection("list_push_string",
+            "list is not initialized");
+        return;
+    }
     owned = pgy_runtime_strdup_export(value != NULL ? value : "");
     if (owned == NULL) {
         pgy_runtime_warn_invalid_collection("list_push_string", "string duplication failed");
@@ -138,6 +153,11 @@ pgy_list_get_raw_export(void *list_ptr, int32_t index, void *out_ptr, int64_t el
     if (list == NULL) {
         PGY_RUNTIME_PANIC(PGY_RUNTIME_PANIC_CLASS_INTERNAL_INVARIANT,
                           "list get on null list");
+    }
+    if (!pgy_list_raw_is_initialized(list)
+        || !pgy_list_raw_shape_fits(list->capacity, (size_t)elem_size)) {
+        PGY_RUNTIME_PANIC(PGY_RUNTIME_PANIC_CLASS_INTERNAL_INVARIANT,
+                          "list get on uninitialized list");
     }
     if (index < 0 || (size_t)index >= list->count) {
         PGY_RUNTIME_PANIC(PGY_RUNTIME_PANIC_CLASS_OUT_OF_BOUNDS,
@@ -176,6 +196,11 @@ pgy_list_set_raw_export(void *list_ptr, int32_t index, void *value_ptr, int64_t 
         PGY_RUNTIME_PANIC(PGY_RUNTIME_PANIC_CLASS_INTERNAL_INVARIANT,
                           "list set with invalid element size");
     }
+    if (!pgy_list_raw_is_initialized(list)
+        || !pgy_list_raw_shape_fits(list->capacity, (size_t)elem_size)) {
+        PGY_RUNTIME_PANIC(PGY_RUNTIME_PANIC_CLASS_INTERNAL_INVARIANT,
+                          "list set on uninitialized list");
+    }
     if (index < 0 || (size_t)index >= list->count) {
         PGY_RUNTIME_PANIC(PGY_RUNTIME_PANIC_CLASS_OUT_OF_BOUNDS,
                           "list set index out of bounds");
@@ -194,6 +219,11 @@ pgy_list_set_string_raw_export(void *list_ptr, int32_t index, const char *value)
     if (list == NULL) {
         PGY_RUNTIME_PANIC(PGY_RUNTIME_PANIC_CLASS_INTERNAL_INVARIANT,
                           "list set string on null list");
+    }
+    if (!pgy_list_raw_is_initialized(list)
+        || !pgy_list_raw_shape_fits(list->capacity, sizeof(char *))) {
+        PGY_RUNTIME_PANIC(PGY_RUNTIME_PANIC_CLASS_INTERNAL_INVARIANT,
+                          "list set string on uninitialized list");
     }
     if (index < 0 || (size_t)index >= list->count) {
         PGY_RUNTIME_PANIC(PGY_RUNTIME_PANIC_CLASS_OUT_OF_BOUNDS,
@@ -217,6 +247,10 @@ pgy_list_size_raw_export(void *list_ptr)
         pgy_runtime_warn_invalid_collection("list_size", "null list");
         return 0;
     }
+    if (!pgy_list_raw_is_initialized(list)) {
+        pgy_runtime_warn_invalid_collection("list_size", "list is not initialized");
+        return 0;
+    }
     return (int32_t)list->count;
 }
 
@@ -232,6 +266,11 @@ pgy_list_remove_raw_export(void *list_ptr, int32_t index, int64_t elem_size)
     if (elem_size <= 0) {
         PGY_RUNTIME_PANIC(PGY_RUNTIME_PANIC_CLASS_INTERNAL_INVARIANT,
                           "list remove with invalid element size");
+    }
+    if (!pgy_list_raw_is_initialized(list)
+        || !pgy_list_raw_shape_fits(list->capacity, (size_t)elem_size)) {
+        PGY_RUNTIME_PANIC(PGY_RUNTIME_PANIC_CLASS_INTERNAL_INVARIANT,
+                          "list remove on uninitialized list");
     }
     if (index < 0 || (size_t)index >= list->count) {
         PGY_RUNTIME_PANIC(PGY_RUNTIME_PANIC_CLASS_OUT_OF_BOUNDS,
@@ -256,6 +295,11 @@ pgy_list_remove_string_raw_export(void *list_ptr, int32_t index)
     if (list == NULL) {
         PGY_RUNTIME_PANIC(PGY_RUNTIME_PANIC_CLASS_INTERNAL_INVARIANT,
                           "list remove string on null list");
+    }
+    if (!pgy_list_raw_is_initialized(list)
+        || !pgy_list_raw_shape_fits(list->capacity, sizeof(char *))) {
+        PGY_RUNTIME_PANIC(PGY_RUNTIME_PANIC_CLASS_INTERNAL_INVARIANT,
+                          "list remove string on uninitialized list");
     }
     if (index < 0 || (size_t)index >= list->count) {
         PGY_RUNTIME_PANIC(PGY_RUNTIME_PANIC_CLASS_OUT_OF_BOUNDS,

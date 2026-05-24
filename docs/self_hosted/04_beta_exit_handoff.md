@@ -17,9 +17,14 @@ Self-host preparation may begin after all of these are true:
 - AIR strict evidence gates prove boundary, authority, MIR cleanup, DAG, and
   runtime schema evidence can be exported and validated.
 - DAG evidence gates prove stable type resolution does not use the retired
-  recursive resolver or metadata materializer fallback.
+  recursive resolver and does not leave unresolved metadata dead-ends on stable
+  paths.
 - Runtime ABI gates prove Slot/Pin/panic/failure contracts and C FFI layout are
   stable for the beta subset.
+- The hard-self-host gap analysis has no unacknowledged substrate blocker:
+  graph-heavy collections, file/path/string basics, scoped unsafe/raw escape,
+  runtime profile selection, and debug-info strategy are either implemented or
+  explicitly assigned to soft/partial self-host stages.
 - C backend remains the oracle, and LLVM parity gaps are documented as explicit
   unsupported paths or failing diagnostics.
 - A dogfood path exists through emitted C and at least one compiler-adjacent

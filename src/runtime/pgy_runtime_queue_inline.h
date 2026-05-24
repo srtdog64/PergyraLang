@@ -40,7 +40,8 @@ static inline PgyQueue_##SuffixName pgy_queue_new_##SuffixName(void) \
 \
 static inline void pgy_queue_push_##SuffixName(PgyQueue_##SuffixName *q, CType val) \
 { \
-    if (q == NULL || (q->data == NULL && q->capacity == 0)) { \
+    if (q == NULL || q->data == NULL || q->capacity == 0 \
+        || q->capacity > (size_t)INT32_MAX) { \
         pgy_runtime_warn_invalid_collection("queue_push_" #SuffixName, "queue is not initialized"); \
         return; \
     } \
@@ -86,7 +87,8 @@ static inline void pgy_queue_push_##SuffixName(PgyQueue_##SuffixName *q, CType v
 \
 static inline CType pgy_queue_pop_##SuffixName(PgyQueue_##SuffixName *q) \
 { \
-    if (q == NULL || q->data == NULL || q->capacity == 0) \
+    if (q == NULL || q->data == NULL || q->capacity == 0 \
+        || q->capacity > (size_t)INT32_MAX) \
         PGY_RUNTIME_PANIC(PGY_RUNTIME_PANIC_CLASS_INTERNAL_INVARIANT, "queue pop on invalid queue"); \
     if (q->count == 0) \
         PGY_RUNTIME_PANIC(PGY_RUNTIME_PANIC_CLASS_OUT_OF_BOUNDS, "queue pop from empty queue"); \
@@ -96,8 +98,8 @@ static inline CType pgy_queue_pop_##SuffixName(PgyQueue_##SuffixName *q) \
     return val; \
 } \
 \
-static inline int32_t pgy_queue_size_##SuffixName(PgyQueue_##SuffixName *q) { return (int32_t)q->count; } \
-static inline bool pgy_queue_empty_##SuffixName(PgyQueue_##SuffixName *q) { return q->count == 0; }
+static inline int32_t pgy_queue_size_##SuffixName(PgyQueue_##SuffixName *q) { return q != NULL ? (int32_t)q->count : 0; } \
+static inline bool pgy_queue_empty_##SuffixName(PgyQueue_##SuffixName *q) { return q == NULL || q->count == 0; }
 
 typedef struct
 {
@@ -129,7 +131,8 @@ static inline PgyQueue_Int pgy_queue_new_int(void)
 
 static inline void pgy_queue_push_int(PgyQueue_Int *q, int32_t val)
 {
-    if (q == NULL || (q->data == NULL && q->capacity == 0)) {
+    if (q == NULL || q->data == NULL || q->capacity == 0
+        || q->capacity > (size_t)INT32_MAX) {
         pgy_runtime_warn_invalid_collection("queue_push_int", "queue is not initialized");
         return;
     }
@@ -178,7 +181,8 @@ static inline void pgy_queue_push_int(PgyQueue_Int *q, int32_t val)
 static inline int32_t pgy_queue_pop_int(PgyQueue_Int *q)
 {
     int32_t val;
-    if (q == NULL || q->data == NULL || q->capacity == 0)
+    if (q == NULL || q->data == NULL || q->capacity == 0
+        || q->capacity > (size_t)INT32_MAX)
         PGY_RUNTIME_PANIC(PGY_RUNTIME_PANIC_CLASS_INTERNAL_INVARIANT,
                           "queue pop on invalid queue");
     if (q->count == 0)
@@ -190,8 +194,8 @@ static inline int32_t pgy_queue_pop_int(PgyQueue_Int *q)
     return val;
 }
 
-static inline int32_t pgy_queue_size_int(PgyQueue_Int *q) { return (int32_t)q->count; }
-static inline bool pgy_queue_empty_int(PgyQueue_Int *q) { return q->count == 0; }
+static inline int32_t pgy_queue_size_int(PgyQueue_Int *q) { return q != NULL ? (int32_t)q->count : 0; }
+static inline bool pgy_queue_empty_int(PgyQueue_Int *q) { return q == NULL || q->count == 0; }
 
 typedef struct
 {
@@ -223,7 +227,8 @@ static inline PgyQueue_String pgy_queue_new_string(void)
 
 static inline void pgy_queue_push_string(PgyQueue_String *q, const char *val)
 {
-    if (q == NULL || (q->data == NULL && q->capacity == 0)) {
+    if (q == NULL || q->data == NULL || q->capacity == 0
+        || q->capacity > (size_t)INT32_MAX) {
         pgy_runtime_warn_invalid_collection("queue_push_string", "queue is not initialized");
         return;
     }
@@ -276,7 +281,8 @@ static inline void pgy_queue_push_string(PgyQueue_String *q, const char *val)
 static inline char *pgy_queue_pop_string(PgyQueue_String *q)
 {
     char *out = NULL;
-    if (q == NULL || q->data == NULL || q->capacity == 0)
+    if (q == NULL || q->data == NULL || q->capacity == 0
+        || q->capacity > (size_t)INT32_MAX)
         PGY_RUNTIME_PANIC(PGY_RUNTIME_PANIC_CLASS_INTERNAL_INVARIANT,
                           "queue pop on invalid queue");
     if (q->count == 0)

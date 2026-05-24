@@ -47,6 +47,26 @@ static bool world_roster_array_fits(size_t count, size_t elem_size)
     return elem_size != 0 && count <= SIZE_MAX / elem_size;
 }
 
+static bool
+world_roster_party_slots_valid(const RosterContext* roster, const char* op)
+{
+    if (roster != NULL && roster->partyCount > 0 && roster->partySlots == NULL) {
+        world_roster_warn(op, "party count is nonzero but party slot array is null");
+        return false;
+    }
+    return true;
+}
+
+static bool
+world_roster_slots_valid(const WorldContext* world, const char* op)
+{
+    if (world != NULL && world->rosterCount > 0 && world->rosters == NULL) {
+        world_roster_warn(op, "roster count is nonzero but roster array is null");
+        return false;
+    }
+    return true;
+}
+
 uint64_t world_roster_now_ns(void)
 {
 #ifdef _WIN32
@@ -60,6 +80,14 @@ uint64_t world_roster_now_ns(void)
     clock_gettime(CLOCK_MONOTONIC, &ts);
     return (uint64_t)ts.tv_sec * 1000000000ULL + (uint64_t)ts.tv_nsec;
 #endif
+}
+
+static void
+world_roster_increment_frame(WorldContext* world)
+{
+    if (world != NULL && world->frameCount != UINT64_MAX) {
+        world->frameCount++;
+    }
 }
 
 void world_roster_sleep_ms(uint64_t timeoutMs)
@@ -219,6 +247,9 @@ ExecuteRoster(RosterContext* roster,
         world_roster_warn("execute_roster", "roster is null");
         return result;
     }
+    if (!world_roster_party_slots_valid(roster, "execute_roster")) {
+        return result;
+    }
 
     if (!world_roster_array_fits(roster->partyCount,
             sizeof(RosterPartyResult))) {
@@ -347,6 +378,9 @@ ExecuteWorldFrame(WorldContext* world, DispatcherConfig* config)
         world_roster_warn("execute_world_frame", "world is null");
         return result;
     }
+    if (!world_roster_slots_valid(world, "execute_world_frame")) {
+        return result;
+    }
 
     if (!world_roster_array_fits(world->rosterCount,
             sizeof(WorldRosterResult))) {
@@ -374,7 +408,7 @@ ExecuteWorldFrame(WorldContext* world, DispatcherConfig* config)
     }
 
     result.frameTimeNs = world_roster_now_ns() - start;
-    world->frameCount++;
+    world_roster_increment_frame(world);
     result.totalFrames = world->frameCount;
     return result;
 }

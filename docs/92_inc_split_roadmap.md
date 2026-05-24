@@ -212,8 +212,8 @@ Backend 진행:
 - `type_checker.c`는 orchestration만 담당한다.
 - `type_checker_resolution_graph_inventory.c`가 graph inventory pass를 소유한다.
 - `type_checker_resolution_stage.c`는 DAG stage source of truth로 유지하고 include shim으로 되돌리지 않는다.
-- DAG stage 안의 retired resolver compatibility surface는 숨기지 않는다. `PGY_TYPE_RES_STATS=1`의 `stage-graph-backed` / `stage-metadata-materialize` / `stage-materialize-family` / `stage-alias` 통계와 `make type-resolution-dag-test-smoke`가 남은 migration debt를 공개 지표로 고정한다.
-- 현재 stage metadata materialization surface는 alias/non-alias 모두 0으로 고정됐다. 최신 local stats는 `metadata_hits=6756 stage_materialize_alias=0 stage_materialize_non_alias=0 alias_materialized=6 alias_diagnostic_unresolved=78 alias_diagnostic_resolver_calls=0 alias_diagnostic_resolved=0 alias_diagnostic_cycle_unresolved=78`이다. 남은 78건은 recursive resolver 재진입이 아니라 alias-cycle diagnostic coverage의 unresolved inventory다.
+- DAG stage 안의 retired resolver compatibility surface는 숨기지 않는다. `PGY_TYPE_RES_STATS=1`의 `stage-graph-backed` / `metadata` / `dag-evidence` / `stage-alias` 통계와 `make type-resolution-dag-test-smoke`가 남은 migration debt를 공개 지표로 고정한다.
+- zero-only stage metadata materialization telemetry는 제거됐다. 최신 local stats는 `metadata_hits=8771 alias_materialized=6 alias_diagnostic_unresolved=78 alias_diagnostic_cycle_unresolved=78`이다. 남은 78건은 recursive resolver 재진입이 아니라 alias-cycle diagnostic coverage의 unresolved inventory다.
 - `type-resolution-resolver-inventory-test-smoke`는 이제 non-metadata `semantic_type_resolution_lookup_resolved_annotation(...)` reader를 13개로 고정한다. 이들은 generic default/effective ability reference처럼 이미 계산된 annotation을 읽어야 하는 quiet seam이며, DAG metadata로 완전히 승격되기 전까지 새로 늘어나면 실패한다.
 - Program-level symbol inventory now predeclares ability declarations, and the ability checker reuses only its own predeclare. This closes the provider-after-consumer order gap for a frozen DAG slice covering generic default/where, zone authority, and party role-slot ability consumers.
 - `type_checker_resolution_stage_lookup.c`는 stage lookup/host-label mapping을 소유하고, `type_checker_resolution_stage_stats.c`는 graph-backed skip 판정과 compatibility-family 계측을 소유한다.

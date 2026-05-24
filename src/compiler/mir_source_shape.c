@@ -28,8 +28,7 @@ bool
 mir_instruction_has_source_payload(const MIRInstruction *inst)
 {
     return inst != NULL
-        && inst->ast != NULL
-        && inst->has_source_location;
+        && inst->ast != NULL;
 }
 
 ASTNode *

@@ -25,6 +25,36 @@ English anchor for tooling/doc gates:
   the same owner concurrently, which later surfaces as `file in wrong format`.
   Parallel validation must use distinct `BUILD_DIR`/`BIN_DIR` values or run
   sequentially.
+- Self-host preparation guard: do not start hard self-host from the compiler
+  core with the current beta stable subset. The stable subset is sufficient for
+  compiler-adjacent tools, not yet for a 200K-line compiler rewrite with dense
+  graph traversal, pointer/resource boundaries, arena allocation, debug info,
+  and backend emission. Groundwork lives in
+  `docs/self_hosted/05_compiler_core_gap_analysis.md`: close graph-heavy
+  collections, file/path/string basics, scoped unsafe/raw escape,
+  runtime-none/minimal-runtime policy, debug-info strategy, and Pergyra module
+  layout before any parser/typechecker/backend self-host migration.
+- Self-host preparation gate tightening: `self-host-preparation-test-smoke`
+  now gates the staged roadmap, agent work-unit contract, and first two soft
+  self-host packages (Diagnostic Catalog Checker and AIR Graph JSON Validator).
+  `docs/self_hosted/03_tool_candidates.md` requires stable JSON or diagnostics
+  output so oracle comparison is machine-readable, not prose-only.
+- Diagnostic catalog groundwork: when Python is unavailable,
+  `diagnostic-registry-test-smoke` no longer degrades to a bare literal probe;
+  the shell fallback now checks every `PGY_CODE_*` literal in
+  `diag_codes.h` is documented in `docs/72_diagnostic_codes.md`. This keeps
+  the first soft self-host tool useful on minimal CI images.
+- Diagnostic registry extraction now normalizes C backslash-newline macros
+  before scanning, so multiline `PGY_CODE_*` definitions are checked by both
+  the Python path and the shell fallback.
+- Diagnostic JSON smoke no longer becomes a no-op on minimal environments
+  without Python. The shell fallback now verifies JSON-array shape, required
+  stable literals from each expectation, and the success-path empty `[]`
+  contract; the LLVM channel missing-runtime case preserves its explicit
+  `init`/`try_recv` alternative.
+- Beta test-suite freeze now directly lists
+  `self-host-preparation-test-smoke`, matching the CI sequence and preventing
+  the post-beta migration guard from becoming an undocumented side gate.
 - CFG seam narrowing update: ownership call consumers now include the explicit
   `slot_summary.h` compatibility surface instead of the full `slot_analyzer.h`
   analyzer API, and `cfg-body-dataflow-test-smoke` gates that the call/param
@@ -36,6 +66,17 @@ English anchor for tooling/doc gates:
   a duplicate static counter. This keeps fallback inventory validation and
   refresh on one source-of-truth primitive. Gates: `test-mir`,
   `perf-contract-test-smoke`.
+- LLVM MIR declaration lookup tightening: when a `MIRProgram` is active,
+  `llvm_find_host_decl_in_active_inventory(...)` now fails closed if the host
+  declaration has no `MIRDeclHeader` instead of falling through to the
+  compatibility active-inventory loop. The compatibility loop remains only for
+  no-MIR paths. Gates: `mir-declaration-inventory-test-smoke`,
+  `runtime-abi-lifetime-test-smoke`, `test-abi`.
+- AIR boundary evidence tightening: strict AIR now requires HIR CFG evidence
+  for zone/world boundaries when real HIR input is present, while keeping
+  no-HIR unit AIR graphs valid. This closes the gap where lowered zone/world
+  boundaries could pass with RIR-only evidence in the full compiler pipeline.
+  Gates: `test-air`, `air-drift-test-smoke`.
 - MIR public surface split: inventory/query/pass wrappers
   (`mir_find_function_decl`, `mir_active_inventory`, `mir_active_externs`,
   `mir_find_decl_header`, `mir_run_liveness_pass`, `mir_run_dce_pass`) now live
@@ -568,6 +609,12 @@ English anchor for tooling/doc gates:
   and `mir_instruction_source_payload(...)` rather than reopening payload and
   location fields separately. Gates: `test-mir`,
   `cfg-body-dataflow-test-smoke`, and `perf-contract-test-smoke`.
+- Follow-up tightening: `mir_public_surface.c` now records source location and
+  whole-program surface-usage facts through `mir_instruction_source_payload(...)`
+  instead of reading `inst->ast` directly. The source-shape owner treats
+  payload presence as independent from already-recorded source-location
+  metadata, so recorders can seed metadata without reopening the raw field.
+  Gate: `cfg-body-dataflow-test-smoke`.
 - MIR terminator provenance reads now use source-shape accessors as the
   consumer seam. `mir_source_shape.c` owns
   `mir_instruction_source_terminator_matches(...)` and
@@ -2962,6 +3009,11 @@ English anchor for tooling/doc gates:
   send duplicates the source string into channel-owned storage, receive clears
   the channel slot and transfers the owned payload, and destroy frees any
   pending unreceived payloads.
+- Generated-C inline `Channel<String>` now follows the same owned-message
+  contract instead of the generic pointer-storage channel macro. Inline send
+  duplicates the source string, recv clears the ring slot and transfers the
+  owned payload, and destroy frees pending messages. This closes the C/LLVM
+  drift where C could keep a stack/temporary `char *` in a channel.
 - `List<String>` now uses string-specific LLVM raw exports too. Push/set
   duplicate incoming string values, get returns a list-borrowed pointer, and
   remove frees the list-owned payload before shifting the tail, matching the
@@ -4132,13 +4184,13 @@ English anchor for tooling/doc gates:
   `type-ref helper refs=0 cap=0`; historical per-owner cap notes are superseded
   by the resolver-inventory smoke.
 - 2026-05-13 DAG unresolved-family naming follow-up:
-  `SemanticContext` dead-end family counters now use
+  `SemanticContext` dead-end family counters use
   `type_resolution_metadata_unresolved_*` names internally. The public stats
-  labels remain `metadata-unresolved-*`, and `materializer_fallbacks` remains
-  only as a compatibility mirror for old stat parsers. The resolver-inventory
-  smoke now rejects reintroducing `type_resolution_metadata_fallback_*` fields
-  under `src/semantic`, so DAG dead-end accounting cannot drift back into
-  fallback-era naming.
+  labels remain `metadata-unresolved-*`, and the old `materializer_fallbacks`
+  mirror has since been removed. The resolver-inventory smoke rejects
+  reintroducing `type_resolution_metadata_fallback_*` fields or fallback-era
+  mirror counters under `src/semantic`, so DAG dead-end accounting cannot drift
+  back into fallback-era naming.
 - 2026-05-13 CFG predecessor inventory shape follow-up:
   HIR and MIR validators now both reject predecessor counts that exceed their
   recorded predecessor capacity. This keeps CFG predecessor inventory as a
@@ -4239,11 +4291,11 @@ English anchor for tooling/doc gates:
   could carry a residual `return`/control AST statement without being caught by
   the source-of-truth validator. Gate used: targeted `gcc -fsyntax-only`.
 - 2026-05-10 DAG dead-end mirror naming follow-up:
-  `type_resolution_metadata_materializer_fallbacks` remains only as a
-  compatibility stats mirror for older smoke/stat parsers. The metadata
-  dead-end owner now syncs it through a named helper, and comments in the
-  semantic context make `type_resolution_metadata_dead_ends` the source of
-  truth. Gate used: `type-resolution-resolver-inventory-smoke`.
+  Historical note: this step temporarily kept
+  `type_resolution_metadata_materializer_fallbacks` as a compatibility stats
+  mirror. That mirror has since been removed; the current source of truth is
+  `type_resolution_metadata_dead_ends`, and resolver-inventory smoke rejects
+  reintroduced materializer fallback mirrors.
 - 2026-05-10 runtime owner follow-up:
   MIR resource/cleanup trace exports moved out of
   `pgy_runtime_lib_set_intent_trace_exports.c` into
@@ -4516,9 +4568,10 @@ English anchor for tooling/doc gates:
   `graph-backed skips=2064`, `generic_param_nodes=102`,
   `dag_generic_contract_evidence=165`, `dag_ability_consumer_evidence=72`,
   `metadata_entries=3735`, `metadata_owned=261`, `metadata_hits=8771`,
-  `metadata_dead_ends=0`, `materializer_unresolved=0`,
-  `retired_resolver_calls=0`, `retired_resolver_body_fallbacks=0`,
-  `stage_materialize_calls=0`, and `alias_diagnostic_resolver_calls=0`.
+  `metadata_dead_ends=0`, `metadata_entries=3735`,
+  `metadata_owned=261`, and `metadata_hits=8771`; retired resolver and
+  materializer compatibility mirrors are now quarantined or removed rather
+  than treated as zero-only proof counters.
   Remaining DAG work is owner-local consumer simplification, not numeric
   fallback cleanup. Gates used:
   `type-resolution-resolver-inventory-test-smoke` and
@@ -5365,17 +5418,14 @@ Progress log, 2026-05-08:
   `metadata_entries=3735`, `metadata_owned=261`, and
   `metadata_hits=8771`; resolver inventory remains `fallback seams=0` and
   `type-ref helper refs=0`.
-- Split DAG generic-contract evidence from compat materialization counters:
-  `SemanticResult.type_resolution_dag_generic_contract_evidence_count` now
-  comes from a DAG-named context counter recorded while staging generic
-  defaults, constraints, and where-bounds. The old
-  `type_resolution_stage_compat_generic_contract_count` remains a compatibility
-  stats/debt counter and stays `0`, so AIR can consume DAG evidence without
-  making stage-materialize fallback accounting look active. The DAG smoke now
-  prints and gates `dag_generic_contract_evidence=165` and
-  `dag_ability_consumer_evidence=71` separately from
-  `stage_materialize_non_alias=0`. Gates: `perf-contract-test-smoke`,
-  `type-resolution-dag-test-smoke`, and
+- Removed DAG generic-contract compatibility telemetry:
+  `SemanticResult.type_resolution_dag_generic_contract_evidence_count` and
+  `SemanticResult.type_resolution_dag_ability_consumer_evidence_count` now
+  carry the active DAG evidence. The retired `type_resolution_stage_compat_*`
+  semantic-result mirrors and stage-materialize stats output are removed
+  instead of kept as zero-only source-of-truth substitutes. The DAG smoke now
+  prints and gates DAG-named evidence plus metadata floors directly. Gates:
+  `perf-contract-test-smoke`, `type-resolution-dag-test-smoke`, and
   `type-resolution-resolver-inventory-test-smoke`.
 - Moved AIR boundary summary evidence-shape validation behind a dedicated owner:
   `air_validate(...)` no longer reads `AIRBoundaryNode.has_*_evidence` summary
@@ -5755,13 +5805,11 @@ Progress log, 2026-05-08:
   one user-facing diagnostic contract. Gates: `diagnostics-json-test-smoke`,
   `layered-diagnostics-contract-test-smoke`, and `perf-contract-test-smoke`.
 - Tightened DAG evidence naming at the AIR boundary:
-  `SemanticResult` now exposes
-  `type_resolution_dag_generic_contract_evidence_count` and
-  `type_resolution_dag_ability_consumer_evidence_count`; AIR consumes those
-  DAG-named fields instead of the compatibility counter names. The older
-  `type_resolution_stage_compat_*` fields remain as telemetry/stat-parser
-  compatibility mirrors, but they no longer define AIR DAG evidence. Gates:
-  `test-air`, `type-resolution-dag-test-smoke`,
+  `SemanticResult` exposes only DAG-named generic-contract and ability-consumer
+  evidence for AIR. The older `type_resolution_stage_compat_*` fields no
+  longer remain as semantic-result telemetry mirrors; the resolver inventory
+  smoke now treats their reappearance as debt resurrection. Gates: `test-air`,
+  `type-resolution-dag-test-smoke`,
   `type-resolution-resolver-inventory-test-smoke`, and
   `perf-contract-test-smoke`.
 - Tightened MIR cleanup fact ownership for AIR:
@@ -5907,11 +5955,10 @@ Progress log, 2026-05-04:
   `AIR rejects empty runtime frontier policy evidence`.
 - Tightened AIR DAG drift wording:
   strict AIR DAG drift now reports unresolved metadata dead-ends instead of the
-  retired materializer fallback wording. The regression keeps
-  `type_resolution_metadata_materializer_fallbacks=0` while
-  `type_resolution_metadata_dead_ends>0`, proving the drift is keyed to the
-  current DAG evidence field. Gates: `test-air`, `air-drift-test-smoke`, and
-  `perf-contract-test-smoke`.
+  retired materializer fallback wording. The regression is keyed to
+  `type_resolution_metadata_dead_ends`; the removed materializer fallback
+  mirror is no longer a valid proof surface. Gates: `test-air`,
+  `air-drift-test-smoke`, and `perf-contract-test-smoke`.
 - Tightened MIR-required LLVM type failure propagation:
   `llvm_mir_required_type_from_ast(...)` no longer retuns `i32` after
   diagnosing missing/unsupported required type metadata. MIR function emission
@@ -6862,7 +6909,13 @@ Progress log, 2026-05-04:
 - Split MIR declaration-header validator cases out of `test_mir_lowering_part_b.cases.h` into `test_mir_lowering_part_c.cases.h`, bringing part B back under the 990 LOC test-case header gate after the MIR fact regressions were expanded. Gates: `test-inc-size-test-smoke` and `test-mir` (`44/0`).
 - Tightened whole-program usage discovery for intent observability and thread-pool runtime requirements: normal lowered MIR now consumes validated surface-usage facts, and the legacy fallback probes only explicit expression payloads (`expr0`/`expr1`) for hand-built MIR fixtures without HIR provenance. Source statement AST scanning is smoke-rejected for both usage paths, and the old `allow_legacy_ast_probe` naming is banned to keep the seam payload-only. Gates: `test-transpile` (`717/0`) and `perf-contract-test-smoke`.
 - Renamed the LLVM MIR branch condition gate from `llvm_mir_branch_has_condition_payload(...)` to `llvm_mir_branch_has_required_condition_fact(...)` because match/select compatibility branches still require source AST while ordinary expression/range/for-in branches require MIR expression facts. This keeps the remaining compatibility seam named honestly instead of pretending every branch condition is payload-backed. Gate: `perf-contract-test-smoke`.
-- Rechecked DAG source-of-truth closure after the intent who/approval split: `type-resolution-resolver-inventory-test-smoke` keeps direct resolver and metadata fallback seam inventory at cap 0, and `type-resolution-dag-test-smoke` reports `retired_resolver_calls=0`, `retired_resolver_body_fallbacks=0`, `metadata_dead_ends=0`, and `materializer_unresolved=0` with `graph-backed skips=2064`, `metadata_entries=3735`, `metadata_owned=261`, and `metadata_hits=8771`. Remaining DAG work is no longer numeric fallback cleanup; it is richer evidence coverage and consumer migration.
+- Rechecked DAG source-of-truth closure after the intent who/approval split:
+  `type-resolution-resolver-inventory-test-smoke` keeps recursive resolver
+  compatibility quarantined and metadata fallback mirrors removed, while
+  `type-resolution-dag-test-smoke` reports `metadata_dead_ends=0` with
+  `graph-backed skips=2064`, `metadata_entries=3735`, `metadata_owned=261`,
+  and `metadata_hits=8771`. Remaining DAG work is no longer numeric fallback
+  cleanup; it is richer evidence coverage and consumer migration.
 - Refreshed the MIR declaration-inventory smoke after the MIR test-case split: declaration-header validator assertions now live in `test_mir_lowering_part_c.cases.h`, and the smoke follows that owner instead of reporting a false regression against part B. Gates: `mir-declaration-inventory-test-smoke`, `test-inc-size-test-smoke`, and `build-source-inventory-test-smoke`.
 - Revalidated AIR after the CFG/MIR/DAG seam tightening. Strict evidence still
   carries HIR/RIR boundary evidence, MIR cleanup/pin cleanup/terminator
@@ -7069,7 +7122,13 @@ Progress log, 2026-05-04:
   Gates: `perf-contract-test-smoke` and `air-drift-test-smoke`.
 - Moved AIR global verification off raw summary-counter fields as well: `air_validate_summary_counters.c` now exposes `air_evidence_summary_count(...)` and `air_evidence_required_count(...)`, so `air_verify_global.c` consumes the summary-counter owner instead of reopening MIR/RIR/DAG counter fields directly. The AIR drift smoke rejects raw counter access in global verification. Gate: `air-drift-test-smoke`.
 - Routed C function-body MIR emission and residual-statement mirrored-resource checks through `transpiler_active_has_mir(...)`, further narrowing raw MIR context probes outside the active inventory/view owner. Gates: `test-transpile` and `mir-declaration-inventory-test-smoke`.
-- Rechecked DAG source-of-truth gates after the AIR accessor cleanup: `type-resolution-dag-test-smoke` reports `retired_resolver_calls=0`, `stage_materialize_calls=0`, `metadata_dead_ends=0`, `metadata_entries=3735`, and `metadata_hits=8771`; `type-resolution-resolver-inventory-test-smoke` keeps direct resolver/fallback/annotation helper seams at zero. This keeps the remaining DAG work focused on richer evidence coverage rather than live recursive fallback removal.
+- Rechecked DAG source-of-truth gates after the AIR accessor cleanup:
+  `type-resolution-dag-test-smoke` reports `metadata_dead_ends=0`,
+  `metadata_entries=3735`, and `metadata_hits=8771`;
+  `type-resolution-resolver-inventory-test-smoke` keeps the retired recursive
+  resolver quarantined and rejects compatibility helper resurrection. This keeps
+  the remaining DAG work focused on richer evidence coverage rather than live
+  recursive fallback removal.
 - Revalidated LLVM smoke after AIR/DAG source-of-truth cleanup: `llvm-test-smoke` passes the current C/LLVM frozen subset coverage, including true PHI lowering, relation/effect/projection sync, world/zone dirty propagation, select/fairness, defer, generic spawn, maps, events, party/role binding, slots, channels, and extern functions.
 - Closed an AIR boundary evidence drift bug: duplicate boundary-scoped evidence appends are idempotent, while global evidence counters still accumulate. This preserves the invariant that each boundary evidence node carries exactly one boundary fact. Gate: `test-air` (`76/0`).
 - Closed a LLVM Slot/Pin ABI parity bug: LLVM lowering now calls out-param `pgy_pin_*_init_*` / `pgy_secure_pin_*_init_*` wrappers instead of relying on struct-by-value retuns. Gates: `abi-ownership-shape-test-smoke`, `test-abi`, `llvm-test-smoke`, `llvm-test-backend-compare` (`69/69`, ABI same-process precheck `196/196`).
@@ -8293,8 +8352,8 @@ dispatch / semantic lookup / runtime data structure 3축 결과 통합. *정확�
   inherited-action readers now use
   `semantic_type_resolution_lookup_metadata_type_ref(...)` instead of the
   materializing type-ref helper. The owner-local fallback seam inventory is now
-  gated at `0` (`fallback seams=0 cap=0`) while `retired_resolver_calls=0`,
-  `materializer_fallbacks=0`, and `stage_materialize_calls=0` remain gated.
+  gated at `0` (`fallback seams=0 cap=0`), while retired resolver and
+  materializer compatibility mirrors are blocked from reappearing.
   Remaining DAG gaps are not simple fallback replacements: action-contract
   inheritance, intent role-field derivation, host overlay authority checks,
   generic ability where-clause diagnostics, and generic default validation need
@@ -9553,7 +9612,7 @@ dispatch / semantic lookup / runtime data structure 3축 결과 통합. *정확�
   `tests/type_resolution_dag_smoke.sh` now gates alias compatibility fallback at zero.
 - The central metadata materializer no longer falls through to
   `resolve_type_node(type_node, ctx)`. Unsupported metadata shapes are recorded
-  as explicit materializer fallback and retun unresolved; the DAG smoke keeps
+  as explicit materializer fallback and return unresolved; the DAG smoke keeps
   that fallback count at zero, while resolver-inventory smoke rejects any
   recursive escape-hatch reintroduction.
 - Added semantic regression `graph-backed forward alias materializes nested
@@ -9591,9 +9650,9 @@ dispatch / semantic lookup / runtime data structure 3축 결과 통합. *정확�
   `dag_generic_contract_evidence=165`, `dag_ability_consumer_evidence=72`,
   `metadata_entries=3735`, `metadata_owned=261`, `metadata_hits=8771`,
   `retired_resolver_calls=0`, `retired_resolver_unique_nodes=0`,
-  `retired_resolver_kind_sum=0`, `retired_resolver_body_fallbacks=0`,
-  `metadata_dead_ends=0`, `materializer_unresolved=0`, all unresolved
-  materializer families at 0, and `stage_materialize_calls=0`.
+  `metadata_dead_ends=0` with unresolved metadata families at 0. Retired
+  resolver and materializer compatibility mirrors are no longer accepted as
+  active proof counters.
   Remaining DAG work is evidence/modeling completion and owner-local consumer
   simplification, not recursive fallback removal. Gates:
   `type-resolution-dag-test-smoke`, `build-source-inventory-test-smoke`, and
@@ -15035,3 +15094,50 @@ Local verification for this debt refresh:
   `mir_validate(...)`, routine inventory access, non-CFG fallback consistency,
   and emission-topology validation no longer compile through `mir.c` include
   order; the header is now declaration-only.
+- Tightened runtime collection UB boundaries: raw Queue exports now reject
+  uninitialized queues before string duplication, count reads, modulo, and
+  size/empty queries; inline Queue does the same for null/zero/oversized
+  backing storage; inline generic, `Int`, and string HashMap now share
+  explicit initialized guards before count, modulo, `strcmp`, or pointer
+  access, and reject null string keys consistently with raw exports. This
+  aligns the inline path with the raw List/Set/Map guards already covered by
+  the pointer risk register. Follow-up tightened inline `List<T>`,
+  `List<Int>`, `List<String>`, `Set<T>`, and `Set<String>` so size/get/set/
+  remove/hash probes do not read count, modulo capacity, or touch backing
+  storage unless the collection is initialized and within the `Int` API size
+  range. Pool/FSM/Timer inline helpers now reject null handles, invalid FSM
+  inputs, and oversized pool capacity before state or pointer access.
+  `PgyArray`/`PgySlice`/`PgyBoxArray`/`Rc`/`Weak` inline helpers and raw array
+  exports now reject null handles, missing backing storage, refcount overflow,
+  and BoxArray drop-size overflow before dereference or pointer arithmetic.
+  SlotPool public operations now reject uninitialized backing arrays and
+  invalid free-list cursors before indexing, and stats avoids divide-by-zero on
+  corrupted zero-capacity pools. `pgy_parallel_run(...)` now rejects null task
+  arrays before indexing and smoke-gates task/argument/worker array size guards.
+  `Substring` now rejects strings beyond the `Int` index range before narrowing
+  `strlen`, and `StringReplace` counts replacements with `size_t` before result
+  allocation in both inline and LLVM runtime helper paths. World/roster runtime
+  execution, plan/stat generation, visualization, dump, and free paths now
+  reject or safely skip nonzero counts with null backing arrays before
+  iteration. Allocator tracing counters now saturate instead of wrapping, and
+  debug allocator fill skips zero-size null allocation results before `memset`.
+  Party runtime role/shared-field lookup now rejects nonzero counts with null
+  backing arrays, fiber-stat counters saturate under the registry mutex, and
+  world/roster frame/estimate counters saturate instead of wrapping. Async
+  scheduler start/stop/destroy/steal/spawn/enqueue/unblock now reject missing
+  worker arrays or queues before dereference. The async concurrent queue now
+  rejects missing head/tail sentinels before push/pop and saturates/decrements
+  its size counter only within valid range. Inline `Channel<T>` status,
+  readiness, length/capacity/full/space/closed helpers now reject null or
+  uninitialized channels before locking and clamp public `Int` size views
+  instead of narrowing oversized `size_t` counters. Exported
+  `Channel<Int/String>` destroy/close/query helpers now follow the same
+  initialized-channel predicate and clamp public size views instead of locking
+  failed-init channels or narrowing oversized counters.
+  Async roster handles now publish `RosterExecutionResult` before a
+  release-store completion flag, and waiters acquire-load that flag before
+  reading the result, removing the prior plain-bool spin data race. Party role
+  ability lookup now also rejects nonzero ability counts with null ability
+  arrays before iterating.
+  Local verification:
+  `runtime-abi-lifetime-test-smoke`, `test-abi`, and `git diff --check`.

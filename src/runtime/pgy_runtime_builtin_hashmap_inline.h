@@ -18,6 +18,15 @@
         && (capacity) <= SIZE_MAX / sizeof(uint8_t))
 #endif
 
+#ifndef PGY_RUNTIME_HASHMAP_IS_INITIALIZED
+#define PGY_RUNTIME_HASHMAP_IS_INITIALIZED(map, CType) \
+    ((map) != NULL \
+        && PGY_RUNTIME_HASHMAP_CAPACITY_FITS((map)->capacity, CType) \
+        && (map)->keys != NULL \
+        && (map)->values != NULL \
+        && (map)->occupied != NULL)
+#endif
+
 typedef struct
 {
     char   **keys;
@@ -134,8 +143,12 @@ static inline void pgy_map_grow_##SuffixName(PgyHashMap_##SuffixName *m) \
 \
 static inline void pgy_map_set_##SuffixName(PgyHashMap_##SuffixName *m, const char *key, CType val) \
 { \
-    if (m == NULL || m->capacity == 0 || m->keys == NULL || m->values == NULL || m->occupied == NULL) { \
+    if (!PGY_RUNTIME_HASHMAP_IS_INITIALIZED(m, CType)) { \
         pgy_runtime_warn_invalid_collection("map_set_" #SuffixName, "map is not initialized"); \
+        return; \
+    } \
+    if (key == NULL) { \
+        pgy_runtime_warn_invalid_collection("map_set_" #SuffixName, "null key"); \
         return; \
     } \
     if ((double)m->count / (double)m->capacity > PGY_HASHMAP_LOAD_FACTOR) \
@@ -169,7 +182,7 @@ static inline void pgy_map_set_##SuffixName(PgyHashMap_##SuffixName *m, const ch
 \
 static inline CType pgy_map_get_##SuffixName(PgyHashMap_##SuffixName *m, const char *key) \
 { \
-    if (m == NULL || m->capacity == 0 || m->keys == NULL || m->values == NULL || m->occupied == NULL) \
+    if (!PGY_RUNTIME_HASHMAP_IS_INITIALIZED(m, CType)) \
         PGY_RUNTIME_PANIC(PGY_RUNTIME_PANIC_CLASS_INTERNAL_INVARIANT, "map get on invalid map"); \
     if (key == NULL) \
         PGY_RUNTIME_PANIC(PGY_RUNTIME_PANIC_CLASS_INTERNAL_INVARIANT, "map get with null key"); \
@@ -189,7 +202,8 @@ static inline CType pgy_map_get_##SuffixName(PgyHashMap_##SuffixName *m, const c
 \
 static inline bool pgy_map_has_##SuffixName(PgyHashMap_##SuffixName *m, const char *key) \
 { \
-    if (m == NULL || m->capacity == 0 || m->keys == NULL || m->values == NULL || m->occupied == NULL) return false; \
+    if (!PGY_RUNTIME_HASHMAP_IS_INITIALIZED(m, CType)) return false; \
+    if (key == NULL) return false; \
     if (m->count == 0) return false; \
     uint32_t h = pgy_hash_string(key) % (uint32_t)m->capacity; \
     size_t probes = 0; \
@@ -204,7 +218,7 @@ static inline bool pgy_map_has_##SuffixName(PgyHashMap_##SuffixName *m, const ch
 \
 static inline void pgy_map_remove_##SuffixName(PgyHashMap_##SuffixName *m, const char *key) \
 { \
-    if (m == NULL || m->capacity == 0 || m->keys == NULL || m->values == NULL || m->occupied == NULL) \
+    if (!PGY_RUNTIME_HASHMAP_IS_INITIALIZED(m, CType)) \
         PGY_RUNTIME_PANIC(PGY_RUNTIME_PANIC_CLASS_INTERNAL_INVARIANT, "map remove on invalid map"); \
     if (key == NULL) \
         PGY_RUNTIME_PANIC(PGY_RUNTIME_PANIC_CLASS_INTERNAL_INVARIANT, "map remove with null key"); \
@@ -229,6 +243,8 @@ static inline void pgy_map_remove_##SuffixName(PgyHashMap_##SuffixName *m, const
 \
 static inline int32_t pgy_map_size_##SuffixName(PgyHashMap_##SuffixName *m) \
 { \
+    if (!PGY_RUNTIME_HASHMAP_IS_INITIALIZED(m, CType)) \
+        return 0; \
     return (int32_t)m->count; \
 } \
 \

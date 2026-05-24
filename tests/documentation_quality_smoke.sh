@@ -81,6 +81,7 @@ required_files=(
     "docs/131_ai_coding_atomic_units.md"
     "docs/37_compiler_contracts.md"
     "docs/42_keyword_orthogonality.md"
+    "docs/self_hosted/05_compiler_core_gap_analysis.md"
     "TODO.md"
 )
 
@@ -125,10 +126,26 @@ index_terms=(
     "Current Documentation Policy"
     "120_vision_and_capability_audit.md"
     "anti-hype triad"
+    "self_hosted/05_compiler_core_gap_analysis.md"
 )
 for term in "${index_terms[@]}"; do
     require_text "docs/INDEX.md" "$term"
 done
+
+self_host_gap_terms=(
+    "Compiler Core Gap Analysis"
+    "The beta stable subset is intentionally narrow."
+    "This is enough for compiler-adjacent tools."
+    "It is not yet enough for a"
+    "compiler core rewrite"
+    "Non-Negotiable Pre-Hard-Self-Host Capabilities"
+    "Scoped unsafe/raw escape policy"
+    "Hard self-host may be considered only when all are true"
+)
+for term in "${self_host_gap_terms[@]}"; do
+    require_text "docs/self_hosted/05_compiler_core_gap_analysis.md" "$term"
+done
+require_text "TODO.md" "Self-host preparation guard"
 
 systems_identity_terms=(
     "Pergyra is a systems language with domain extensions"
@@ -399,6 +416,9 @@ source_spine_build_terms=(
     "Plain \`unsafe { ... }\` granting raw/system-tier escape"
     "Local build artifact ownership"
     "Parallel gates sharing the same \`build/\`"
+    "docs/self_hosted/05_compiler_core_gap_analysis.md"
+    "Zero-only telemetry for retired paths is no longer an allowed"
+    "retired compatibility mirrors only as quarantine sentinels"
 )
 for term in "${source_spine_build_terms[@]}"; do
     require_text "docs/125_source_of_truth_spine.md" "$term"

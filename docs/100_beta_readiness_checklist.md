@@ -6,6 +6,13 @@ host-import/frame-callback terms and optionally link through Emscripten. It does
 not freeze WebGL APIs, renderer syntax, native LLVM wasm, or `pgy.render.webgl`;
 those belong to post-beta module ecosystem work.
 
+Self-host boundary (2026-05-24): hard self-host does not start from the
+compiler core with the current beta stable subset. The beta path is
+soft self-host preparation: compiler-adjacent tools first, C backend remains the
+oracle, and substrate gaps are tracked in
+`docs/self_hosted/05_compiler_core_gap_analysis.md`. Gate:
+`make self-host-preparation-test-smoke`.
+
 External review intake (2026-05-08): beta readiness now explicitly tracks
 operational and trust risks that are not new language features:
 toolchain/preflight clarity, release/debug hygiene, memory/string bounds audit,
@@ -83,8 +90,8 @@ forward-declare policy are now on the same read-only seam.
 compiler/codegen guards rejecting direct `GenericParams` storage reopenings
 (`->params[...]`, `->default_type`, `->constraint`, and direct
 `ast_type_generic_args(...)->count/params`); `type-resolution-dag-test-smoke`
-still reports zero retired resolver calls and zero metadata dead-ends after the
-slice.
+still reports zero metadata dead-ends after the slice, and the retired resolver
+surface is now a quarantine sentinel instead of a zero-counter telemetry stream.
 
 Current DAG diagnostic-owner tightening (2026-05-21): expression member
 access, hosted-field lookup, and overlay world-zone binding now use
@@ -94,8 +101,8 @@ helpers in expression/host/overlay owners were removed, so unknown named type
 resolution remains metadata-owned and cannot drift across owner-local
 compatibility seams. Local gate: `type-resolution-resolver-inventory-test-smoke`,
 `type-resolution-dag-test-smoke`, `build-source-inventory-test-smoke`, and
-`test-semantic` (`2551/0`; DAG stats include `retired_resolver_calls=0`,
-`metadata_dead_ends=0`, `metadata_hits=8771`). The resolver inventory smoke
+`test-semantic` (`2551/0`; DAG stats include `metadata_dead_ends=0`,
+`metadata_hits=8771`). The resolver inventory smoke
 also rejects reintroducing the previous expression/host/overlay local helper
 names.
 
@@ -1062,7 +1069,7 @@ Operational mode:
   branch strings. Current gate:
   `type-resolution-resolver-inventory-test-smoke`,
   `type-resolution-dag-test-smoke`, and `pgy`
-  (`retired_resolver_calls=0`, `materializer_unresolved=0`).
+  (`materializer_unresolved=0`).
 - 2026-05-04 DAG direct named resolver closure:
   expression/world host access and overlay world-zone slot registration now use
   metadata-only named-type lookup seams. The retired `resolve_named_type(...)`
@@ -1242,8 +1249,8 @@ Operational mode:
 - 2026-05-08 DAG evidence naming at AIR boundary:
   AIR DAG evidence now consumes `SemanticResult` fields named for DAG evidence:
   `type_resolution_dag_generic_contract_evidence_count` and
-  `type_resolution_dag_ability_consumer_evidence_count`. The old
-  `type_resolution_stage_compat_*` counters remain as telemetry mirrors only,
+  `type_resolution_dag_ability_consumer_evidence_count`. The old zero-only
+  `type_resolution_stage_compat_*` semantic-result mirrors have been removed,
   reducing compatibility-seam vocabulary in strict AIR. Gate: native MinGW
   `test-air` (`87/0`), `type-resolution-dag-test-smoke`,
   `type-resolution-resolver-inventory-test-smoke`, and
@@ -1315,12 +1322,11 @@ Operational mode:
   facts as `AIR_EVIDENCE_MIR_PIN_CLEANUP` nodes for matching AIR `pin`
   execution boundaries. This keeps MIR as the cleanup source of truth while
   giving AIR a provenance-carrying audit hook for 1.0 abstraction safety.
-- 2026-04-29 DAG retired-audit label freeze:
-  `PGY_TYPE_RES_STATS=1` now reports the removed recursive resolver counters as
-  `retired-compatibility-resolver`, `retired-compatibility-resolver-kind`, and
-  `retired-compatibility-cache`. This is a wording/contract tightening: the
-  counters still gate `0` calls and `0` cache misses, but logs no longer make
-  the removed resolver look like an active compatibility implementation.
+- 2026-05-24 DAG retired-audit closure:
+  `PGY_TYPE_RES_STATS=1` no longer reports zero-only recursive resolver
+  counters. The retired resolver owner remains only as a quarantine sentinel,
+  and the resolver inventory smoke rejects reintroducing compatibility counters
+  or resolver bodies.
 - 2026-04-30/2026-05-10 DAG public seam tightening:
   annotation-sensitive metadata readers are centralized behind
   metadata-owner APIs, and contract/boundary type references now consume
@@ -1350,12 +1356,11 @@ Operational mode:
   generic ability where-clause checks must preserve bound provenance, and
   generic defaults must expose effective-argument materialization evidence
   without reintroducing recursive fallback consumers.
-- 2026-04-30 DAG stage materializer hard cap:
-  `type-resolution-dag-test-smoke` now gates `stage-metadata-materialize`
-  totals directly. `calls`, `failed`, and `suppressed_diagnostics` must remain
-  `0`, alongside the existing family-specific zero caps. This closes the gap
-  where a compatibility materializer could return successfully without showing
-  up as family debt.
+- 2026-05-24 DAG stage materializer telemetry closure:
+  `type-resolution-dag-test-smoke` no longer consumes the zero-only
+  `stage-metadata-materialize` or `stage-materialize-family` counters. The
+  stable DAG gate is now graph-backed skips, metadata inventory/reuse,
+  DAG evidence, and alias diagnostic inventory.
 - 2026-04-30 DAG writer inventory gate:
   resolved-type metadata recorders are restricted by smoke test to graph,
   stage-signature, and metadata materialization owners. This prevents ordinary
@@ -1773,16 +1778,12 @@ Operational mode:
   preserves intent `MIR_INST_STMT` semantic carriers after CFG statement
   reconstruction, so participant/zone/authority/causes metadata remains MIR
   inventory instead of being treated as disposable AST fallback emission.
-- 2026-04-29 DAG compatibility inventory update:
+- 2026-05-24 DAG compatibility inventory update:
   type-resolution DAG fallback remains closed (`metadata_dead_ends=0`,
-  alias/non-alias stage metadata materialization 0). The
-  `retired-compatibility-resolver` audit calls are now AST-kind accounted by
-  smoke, and the current semantic-suite max inventory is 0 calls after public
-  semantic regression helpers moved to metadata-only type-ref lookup. The same gate
-  reads the global retired counters as max/last inventory rather than summing
-  repeated per-context stats lines, caps retired compatibility API calls at 0,
-  and requires retired compatibility body fallbacks (`cache misses`) to remain
-  0. This makes the next DAG cleanup target explicit: the recursive resolver is
+  alias/non-alias stage metadata materialization 0). The retired recursive
+  resolver no longer exports zero-only call/cache counters; the inventory smoke
+  keeps only a quarantine owner and rejects legacy resolver bodies or counters.
+  This makes the next DAG cleanup target explicit: the recursive resolver is
   gone from the beta path, and the remaining counters are audit-only debt
   detectors. The resolver is also no longer exposed from public
   `type_checker.h`; the resolver inventory smoke rejects public header
@@ -2150,8 +2151,8 @@ Operational mode:
 - Expression resolver implementation-header debt is split:
   `type_checker_expr.h` is declaration-only, the obsolete
   `type_checker_resolve.c` / `type_checker_resolve.h` compatibility owner is
-  deleted, retired compatibility counters live in
-  `type_checker_resolution_retired.c`, and assignment/constructed-wrapper
+  deleted, `type_checker_resolution_retired.c` is only a quarantine sentinel,
+  and assignment/constructed-wrapper
   helpers live in `type_checker_type_helpers.c`.
   `type_checker_resolution_helpers.h` is also declaration-only now;
   `type_checker_resolution_helpers.c` owns
@@ -2878,6 +2879,8 @@ Diagnostic quality gate:
 
 - Every user-facing parser, lexer, semantic, backend, and runtime error must have severity, stable code, source span when available, `Reason:`, and `Fix:`.
 - `diagnostic-registry-test-smoke` verifies code registry drift, but beta also requires representative quality checks for parser/lexer/backend/runtime messages.
+- The diagnostic registry gate checks `PGY_CODE_*` documentation even on
+  minimal CI images without Python, including multiline macro definitions.
 - Parser and lexer JSON routing now preserves `stage`, `code`, `cause_ir`, and
   `fix_source` for `PGY_PARSE_SYNTAX` and `PGY_LEX_INVALID_TOKEN`; remaining
   debt is richer parser code splitting and parser multi-error accumulation.
@@ -2885,6 +2888,10 @@ Diagnostic quality gate:
   source span through parser AST nodes. `make diagnostics-json-test-smoke`
   covers `PGY_SEM_INTENT_STEP_INVALID` for `on: spawn ...` and
   `on: ch <- value` with line/column, `cause_ir`, and `fix_source`.
+- `diagnostics-json-test-smoke` is no longer Python-vacuous on Windows/Git Bash
+  fallback paths: without Python it still validates JSON-array shape, required
+  stable literals, and the success-path empty `[]` contract. This is the
+  surface the first soft self-host Diagnostic Catalog Checker must consume.
 
 Cross-platform support matrix:
 
@@ -3059,7 +3066,7 @@ Closed now:
   `src/compiler/air.c` owns DIR-based read-only synthesis, and
   `src/compiler/air_verify.c` owns global AIR validation plus sync/async drift
   and strict evidence diagnostics.
-- AIR synthesis가 HIR routine evidence와 RIR boundary/authority evidence를 read-only로 수집하고 각 `Boundary Node`에 evidence flag를 부착한다. Default strict evidence에서 missing HIR CFG, RIR boundary, or RIR authority evidence는 `PGY_SEM_INTENT_BOUNDARY_EVIDENCE_MISSING`로 hard-fail 된다.
+- AIR synthesis가 HIR routine/CFG, RIR boundary/authority/effect, MIR cleanup/pin/terminator, DAG generic/ability, runtime frontier/schema evidence를 read-only로 수집하고 각 `Boundary Node`에 evidence flag를 부착한다. Default strict evidence에서 누락된 required layered evidence는 `PGY_SEM_INTENT_BOUNDARY_EVIDENCE_MISSING`로 hard-fail 된다.
 - 2026-04-29 AIR HIR provenance split: AIR boundary evidence now records
   `has_hir_routine_evidence` separately from `has_hir_cfg_evidence`. A lowered
   intent routine summary can still prove routine provenance, but only a routine
@@ -3424,7 +3431,6 @@ Closed now:
 - Central metadata materializer fallback is dormant in the semantic suite:
   `materializer_fallbacks=0`.
 - Current local stats are `graph-backed skips=2061`,
-  `resolve_calls=0`, `resolve_unique_nodes=0`,
   `metadata_entries=3735`, `metadata_owned=261`,
   `metadata_hits=8771`, and `materializer_unresolved=0`.
 - Metadata fallback families are all zero, including named, generic-named,
@@ -3908,18 +3914,17 @@ find src -path src/tests -prune -o -name '*.inc' -print
   resolution, and domain slot/shared/named refs moved to metadata-only lookup.
   The unused materializing type-ref compatibility APIs were removed.
 - `resolve_generic_type_arg(...)` is also metadata-first, so constructed builtin and generic consumer paths reuse graph facts before recursive fallback.
-- `make type-resolution-dag-test-smoke` now gates graph-backed stage skips, retired compatibility resolver calls (`retired_resolver_calls<=0`), metadata entries, metadata owned entries, metadata hits, metadata materializer fallback count, zero stage metadata materialization, and alias-stage split accounting. Current local stats for this slice are `graph-backed skips=2064 generic_param_nodes=102 dag_generic_contract_evidence=165 dag_ability_consumer_evidence=72 retired_resolver_calls=0 retired_resolver_unique_nodes=0 retired_resolver_kind_sum=0 retired_resolver_kind_ast_type=0 retired_resolver_kind_compound_or_other=0 retired_resolver_body_fallbacks=0 metadata_entries=3735 metadata_owned=261 metadata_hits=8771 metadata_dead_ends=0 materializer_unresolved=0 metadata_unresolved_named=0 metadata_unresolved_generic_named=0 metadata_unresolved_compound=0 metadata_unresolved_other=0 metadata_unresolved_builtin_shell=0 metadata_unresolved_generic_class=0 metadata_unresolved_alias=0 metadata_unresolved_non_class_symbol=0 metadata_unresolved_missing_symbol=0 stage_materialize_calls=0 stage_materialize_failed=0 stage_materialize_suppressed=0 stage_materialize_alias=0 stage_materialize_non_alias=0 alias_materialized=6 alias_diagnostic_unresolved=78 alias_diagnostic_resolver_calls=0 alias_diagnostic_resolved=0 alias_diagnostic_cycle_unresolved=78`.
+- `make type-resolution-dag-test-smoke` now gates graph-backed stage skips, metadata entries, metadata owned entries, metadata hits, metadata materializer fallback count, and alias-stage split accounting. Current local stats for this slice are `graph-backed skips=2064 generic_param_nodes=102 dag_generic_contract_evidence=165 dag_ability_consumer_evidence=72 metadata_entries=3735 metadata_owned=261 metadata_hits=8771 metadata_dead_ends=0 materializer_unresolved=0 metadata_unresolved_named=0 metadata_unresolved_generic_named=0 metadata_unresolved_compound=0 metadata_unresolved_other=0 metadata_unresolved_builtin_shell=0 metadata_unresolved_generic_class=0 metadata_unresolved_alias=0 metadata_unresolved_non_class_symbol=0 metadata_unresolved_missing_symbol=0 alias_materialized=6 alias_diagnostic_unresolved=78 alias_diagnostic_cycle_unresolved=78`.
 - The DAG smoke now enforces beta floors for graph-backed usage and metadata materialization instead of accepting any non-zero metadata activity.
 - The central metadata materializer fallback is closed, not merely capped:
   `materializer_fallbacks==0` and every metadata unresolved audit family must stay at
   zero.
 - The remaining stage metadata materialization surface is alias-only diagnostic inventory.
   Successful alias materialization and diagnostic unresolved inventory are
-  reported separately, valid alias diagnostic resolution is gated at zero, and
-  `alias_diagnostic_resolver_calls==0` proves the diagnostic path no longer
-  re-enters the recursive resolver. The 78 unresolved entries come from
-  intentional alias-cycle diagnostic coverage, not hidden non-alias recursive
-  resolution.
+  reported separately, and the retired `resolver_calls` / `resolved` alias
+  diagnostic columns are removed instead of kept as zero-only telemetry. The
+  78 unresolved entries come from intentional alias-cycle diagnostic coverage,
+  not hidden non-alias recursive resolution.
   `type_checker_resolution_stage_alias.c` owns that diagnostic inventory so
   the top-level stage replay owner stays orchestration-only.
 - Ability declarations are now predeclared in the program-level symbol inventory, and `type_check_ability_decl(...)` reuses only its own predeclare. This closes the forward declaration-order gap for generic default/where consumers, zone authority ability consumers, and party role-slot ability consumers without weakening duplicate-ability diagnostics.
@@ -3968,7 +3973,10 @@ find src -path src/tests -prune -o -name '*.inc' -print
 - world inventory precollector는 graph world TU로 이동했다.
 - zone refresh projection field-map collector는 graph zone TU로 이동했다.
 - world/zone local-contract stage replay는 stage domain TU로 이동했다.
-- DAG stage 내부의 retired resolver compatibility surface는 `PGY_TYPE_RES_STATS=1`에서 `stage-metadata-materialize: calls/failed/suppressed_diagnostics`와 `stage-materialize-family: generic_contract/signature/ability_consumer/domain_contract/alias/other`로 노출된다.
+- DAG stage 내부의 retired resolver compatibility surface no longer exports
+  zero-only `stage-metadata-materialize` / `stage-materialize-family` telemetry.
+  `PGY_TYPE_RES_STATS=1` exposes graph-backed skips, metadata inventory/reuse,
+  DAG evidence, and alias diagnostics instead.
 - DAG edge가 이미 있는 named type-ref는 generic argument를 포함해 stage에서 다시 materialize하지 않고 graph-backed skip으로 처리한다. `stage-graph-backed: skips=N`이 이 경로의 공개 지표이며 `type-resolution-dag-test-smoke`는 skip 합계가 0으로 퇴행하면 실패한다.
 - graph precollect TU는 더 이상 stage runner를 호출하지 않는다. enum methods도 `semantic_stage_method_array(...)`가 아니라 precollect action contract 경로로 edge를 수집한다.
 - stage lookup, stage stats, signature/materialization helpers, alias
@@ -4046,9 +4054,9 @@ find src -path src/tests -prune -o -name '*.inc' -print
 - The next DAG closure target is no longer central materializer fallback; it is
   making more stage/declaration consumers use graph facts directly while
   preserving alias cycle provenance and source-order diagnostics.
-- `stage-metadata-materialize` non-alias family는 0이고 alias family는 diagnostic
-  fallback으로만 남아 있다. `stage-graph-backed` skip 수는 DAG가 실제 stage
-  source-of-truth로 옮겨간 양을 보여주는 공개 지표다.
+- zero-only `stage-metadata-materialize` family counters are removed. The
+  `stage-graph-backed` skip count is the public indicator that stage consumers
+  are using DAG facts, and `stage-alias` remains the alias diagnostic inventory.
 - frozen subset에서 declaration order에만 기대는 type dependency가 없어야 한다.
 - ability provider predeclaration is closed for the tested frozen DAG slice; remaining declaration-order debt should be narrowed to module/backend metadata reuse, not top-level ability visibility.
 - graph inventory metadata를 backend/declaration inventory와 더 잘 연결해야 한다.
@@ -4100,7 +4108,7 @@ grep -R "resolve_type_node" -n src/semantic
   `src/codegen/llvm_intent_internal.h`. `llvm_intent.c` no longer owns the
   who/authorized/participant MIR statement readers and drops to 2,118 LOC while
   backend compare remains green.
-- LLVM host method lookup now uses `llvm_find_host_decl_header_in_context(...)` / `llvm_host_decl_methods(...)` metadata-first. AST union method-array fallback remains only when a MIR declaration header is absent.
+- LLVM host method lookup now uses `llvm_find_host_decl_header_in_context(...)` / `llvm_host_decl_methods(...)` metadata-first. When MIR is active, missing host declaration metadata fails closed instead of falling through to the compatibility active-inventory loop; the AST-shaped compatibility loop remains only for no-MIR paths.
 - `MIRDeclMethod` now carries method `name`, `owner_name`, `is_action_like`, and `within_zone` metadata beside the temporary AST payload. LLVM host method lookup compares `MIRDeclMethod.name` before falling back to AST method arrays.
 - `MIRDeclMethod` also links to method body MIR through `has_routine` / `routine_index`, so LLVM method emission can consume the declaration-header method row before falling back to AST-method based routine lookup.
 - `MIRDeclMethod` now carries hosted method signature metadata (`params`, `param_count`, `return_type`). LLVM nominal/enum method prototype registration consumes this metadata through helper accessors before falling back to AST method payloads.
@@ -5067,8 +5075,7 @@ make ast-dispatch-test-smoke
   metadata owner only; `type_checker_resolve.c` remains counter-only.
 - Local gates: `make type-resolution-resolver-inventory-test-smoke
   type-resolution-dag-test-smoke test-semantic` is green with
-  `resolve_calls=0`, `resolver_body_fallbacks=0`,
-  `materializer_fallbacks=0`, and semantic suite `2359/0`.
+  `materializer_fallbacks=0` and semantic suite `2359/0`.
 
 ## Progress Log - 2026-04-29 Runtime Channel/Qubit Export Owner Split
 

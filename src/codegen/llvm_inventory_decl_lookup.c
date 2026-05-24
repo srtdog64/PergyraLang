@@ -159,6 +159,8 @@ llvm_find_host_decl_in_active_inventory(const LLVMGenCtx *ctx, const char *name)
     decl_header = llvm_find_host_decl_header_in_context(ctx, name);
     if (decl_header != NULL)
         return decl_header->source_ast;
+    if (ctx->mir != NULL)
+        return NULL;
 
     host_types = pgy_host_decl_compat_types(&host_type_count);
     for (size_t i = 0; host_types != NULL && i < host_type_count; i++) {

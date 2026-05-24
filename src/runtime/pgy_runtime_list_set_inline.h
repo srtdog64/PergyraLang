@@ -12,6 +12,13 @@
         && (capacity) <= SIZE_MAX / sizeof(CType))
 #endif
 
+#ifndef PGY_RUNTIME_LIST_IS_INITIALIZED
+#define PGY_RUNTIME_LIST_IS_INITIALIZED(list, CType) \
+    ((list) != NULL \
+        && PGY_RUNTIME_ELEM_CAPACITY_FITS((list)->capacity, CType) \
+        && (list)->data != NULL)
+#endif
+
 #define PGY_SET_INLINE_EMPTY 0u
 #define PGY_SET_INLINE_LIVE 1u
 #define PGY_SET_INLINE_DELETED 2u
@@ -19,6 +26,26 @@
 #ifndef PGY_RUNTIME_HASH_CAPACITY_FITS
 #define PGY_RUNTIME_HASH_CAPACITY_FITS(capacity) \
     ((capacity) != 0 && (capacity) <= (size_t)INT32_MAX)
+#endif
+
+#ifndef PGY_RUNTIME_SET_IS_INITIALIZED
+#define PGY_RUNTIME_SET_IS_INITIALIZED(set, CType) \
+    ((set) != NULL \
+        && PGY_RUNTIME_HASH_CAPACITY_FITS((set)->capacity) \
+        && PGY_RUNTIME_ELEM_CAPACITY_FITS((set)->capacity, CType) \
+        && (set)->capacity <= SIZE_MAX / sizeof(uint8_t) \
+        && (set)->data != NULL \
+        && (set)->occupied != NULL)
+#endif
+
+#ifndef PGY_RUNTIME_STRING_SET_IS_INITIALIZED
+#define PGY_RUNTIME_STRING_SET_IS_INITIALIZED(set) \
+    ((set) != NULL \
+        && PGY_RUNTIME_HASH_CAPACITY_FITS((set)->capacity) \
+        && PGY_RUNTIME_ELEM_CAPACITY_FITS((set)->capacity, char *) \
+        && (set)->capacity <= SIZE_MAX / sizeof(uint8_t) \
+        && (set)->keys != NULL \
+        && (set)->occupied != NULL)
 #endif
 
 #include "pgy_runtime_list_generic_inline.h"
@@ -51,7 +78,7 @@ static inline PgyList_Int pgy_list_new_int(void)
 
 static inline void pgy_list_push_int(PgyList_Int *l, int32_t val)
 {
-    if (l == NULL || (l->data == NULL && l->capacity == 0)) {
+    if (!PGY_RUNTIME_LIST_IS_INITIALIZED(l, int32_t)) {
         pgy_runtime_warn_invalid_collection("list_push_int", "list is not initialized");
         return;
     }
@@ -84,8 +111,8 @@ static inline void pgy_list_push_int(PgyList_Int *l, int32_t val)
 
 static inline int32_t pgy_list_get_int(PgyList_Int *l, int32_t index)
 {
-    if (l == NULL)
-        PGY_RUNTIME_PANIC(PGY_RUNTIME_PANIC_CLASS_INTERNAL_INVARIANT, "list get on null list");
+    if (!PGY_RUNTIME_LIST_IS_INITIALIZED(l, int32_t))
+        PGY_RUNTIME_PANIC(PGY_RUNTIME_PANIC_CLASS_INTERNAL_INVARIANT, "list get on invalid list");
     if (index < 0 || (size_t)index >= l->count)
         PGY_RUNTIME_PANIC(PGY_RUNTIME_PANIC_CLASS_OUT_OF_BOUNDS, "list index out of bounds");
     return l->data[index];
@@ -93,22 +120,25 @@ static inline int32_t pgy_list_get_int(PgyList_Int *l, int32_t index)
 
 static inline void pgy_list_set_int(PgyList_Int *l, int32_t index, int32_t val)
 {
-    if (l == NULL)
+    if (!PGY_RUNTIME_LIST_IS_INITIALIZED(l, int32_t))
         PGY_RUNTIME_PANIC(PGY_RUNTIME_PANIC_CLASS_INTERNAL_INVARIANT,
-                          "list set on null list");
+                          "list set on invalid list");
     if (index < 0 || (size_t)index >= l->count)
         PGY_RUNTIME_PANIC(PGY_RUNTIME_PANIC_CLASS_OUT_OF_BOUNDS,
                           "list set index out of bounds");
     l->data[index] = val;
 }
 
-static inline int32_t pgy_list_size_int(PgyList_Int *l) { return (int32_t)l->count; }
+static inline int32_t pgy_list_size_int(PgyList_Int *l)
+{
+    return PGY_RUNTIME_LIST_IS_INITIALIZED(l, int32_t) ? (int32_t)l->count : 0;
+}
 
 static inline void pgy_list_remove_int(PgyList_Int *l, int32_t index)
 {
-    if (l == NULL)
+    if (!PGY_RUNTIME_LIST_IS_INITIALIZED(l, int32_t))
         PGY_RUNTIME_PANIC(PGY_RUNTIME_PANIC_CLASS_INTERNAL_INVARIANT,
-                          "list remove on null list");
+                          "list remove on invalid list");
     if (index < 0 || (size_t)index >= l->count)
         PGY_RUNTIME_PANIC(PGY_RUNTIME_PANIC_CLASS_OUT_OF_BOUNDS,
                           "list remove index out of bounds");
@@ -146,7 +176,7 @@ static inline PgyList_String pgy_list_new_string(void)
 
 static inline void pgy_list_push_string(PgyList_String *l, const char *val)
 {
-    if (l == NULL || (l->data == NULL && l->capacity == 0)) {
+    if (!PGY_RUNTIME_LIST_IS_INITIALIZED(l, char *)) {
         pgy_runtime_warn_invalid_collection("list_push_string", "list is not initialized");
         return;
     }
@@ -184,8 +214,8 @@ static inline void pgy_list_push_string(PgyList_String *l, const char *val)
 
 static inline char *pgy_list_get_string(PgyList_String *l, int32_t index)
 {
-    if (l == NULL)
-        PGY_RUNTIME_PANIC(PGY_RUNTIME_PANIC_CLASS_INTERNAL_INVARIANT, "list get on null list");
+    if (!PGY_RUNTIME_LIST_IS_INITIALIZED(l, char *))
+        PGY_RUNTIME_PANIC(PGY_RUNTIME_PANIC_CLASS_INTERNAL_INVARIANT, "list get on invalid list");
     if (index < 0 || (size_t)index >= l->count)
         PGY_RUNTIME_PANIC(PGY_RUNTIME_PANIC_CLASS_OUT_OF_BOUNDS, "list index out of bounds");
     return l->data[index] ? l->data[index] : "";
@@ -195,8 +225,8 @@ static inline void pgy_list_set_string(PgyList_String *l, int32_t index, const c
 {
     char *owned;
 
-    if (l == NULL)
-        PGY_RUNTIME_PANIC(PGY_RUNTIME_PANIC_CLASS_INTERNAL_INVARIANT, "list set on null list");
+    if (!PGY_RUNTIME_LIST_IS_INITIALIZED(l, char *))
+        PGY_RUNTIME_PANIC(PGY_RUNTIME_PANIC_CLASS_INTERNAL_INVARIANT, "list set on invalid list");
     if (index < 0 || (size_t)index >= l->count)
         PGY_RUNTIME_PANIC(PGY_RUNTIME_PANIC_CLASS_OUT_OF_BOUNDS, "list set index out of bounds");
     owned = pgy_runtime_strdup(val ? val : "");
@@ -210,8 +240,8 @@ static inline void pgy_list_remove_string(PgyList_String *l, int32_t index)
 {
     size_t tail_count;
 
-    if (l == NULL)
-        PGY_RUNTIME_PANIC(PGY_RUNTIME_PANIC_CLASS_INTERNAL_INVARIANT, "list remove on null list");
+    if (!PGY_RUNTIME_LIST_IS_INITIALIZED(l, char *))
+        PGY_RUNTIME_PANIC(PGY_RUNTIME_PANIC_CLASS_INTERNAL_INVARIANT, "list remove on invalid list");
     if (index < 0 || (size_t)index >= l->count)
         PGY_RUNTIME_PANIC(PGY_RUNTIME_PANIC_CLASS_OUT_OF_BOUNDS, "list remove index out of bounds");
     free(l->data[index]);
@@ -224,7 +254,10 @@ static inline void pgy_list_remove_string(PgyList_String *l, int32_t index)
     l->count--;
 }
 
-static inline int32_t pgy_list_size_string(PgyList_String *l) { return (int32_t)l->count; }
+static inline int32_t pgy_list_size_string(PgyList_String *l)
+{
+    return PGY_RUNTIME_LIST_IS_INITIALIZED(l, char *) ? (int32_t)l->count : 0;
+}
 
 /* =================================================================
  * Set<String> — hash set (string keys)
@@ -262,7 +295,7 @@ static inline PgySet_String pgy_set_new_string(void)
 
 static inline bool pgy_set_has_string(PgySet_String *s, const char *key)
 {
-    if (s == NULL || s->capacity == 0 || s->keys == NULL || s->occupied == NULL) return false;
+    if (!PGY_RUNTIME_STRING_SET_IS_INITIALIZED(s)) return false;
     if (s->count == 0 || key == NULL) return false;
     uint32_t h = pgy_hash_string(key) % (uint32_t)s->capacity;
     size_t p = 0;
@@ -276,8 +309,12 @@ static inline bool pgy_set_has_string(PgySet_String *s, const char *key)
 
 static inline void pgy_set_add_string(PgySet_String *s, const char *key)
 {
-    if (s == NULL || s->capacity == 0 || s->keys == NULL || s->occupied == NULL) {
+    if (!PGY_RUNTIME_STRING_SET_IS_INITIALIZED(s)) {
         pgy_runtime_warn_invalid_collection("set_add_string", "set is not initialized");
+        return;
+    }
+    if (key == NULL) {
+        pgy_runtime_warn_invalid_collection("set_add_string", "null key");
         return;
     }
     if (pgy_set_has_string(s, key)) return;
@@ -335,7 +372,7 @@ static inline void pgy_set_add_string(PgySet_String *s, const char *key)
 
 static inline void pgy_set_remove_string(PgySet_String *s, const char *key)
 {
-    if (s == NULL || s->capacity == 0 || s->keys == NULL || s->occupied == NULL) return;
+    if (!PGY_RUNTIME_STRING_SET_IS_INITIALIZED(s)) return;
     if (s->count == 0 || key == NULL) return;
     uint32_t h = pgy_hash_string(key) % (uint32_t)s->capacity;
     size_t p = 0;
@@ -349,7 +386,10 @@ static inline void pgy_set_remove_string(PgySet_String *s, const char *key)
     }
 }
 
-static inline int32_t pgy_set_size_string(PgySet_String *s) { return (int32_t)s->count; }
+static inline int32_t pgy_set_size_string(PgySet_String *s)
+{
+    return PGY_RUNTIME_STRING_SET_IS_INITIALIZED(s) ? (int32_t)s->count : 0;
+}
 
 /* =================================================================
  * Set<T> — Generic hash set macro (value-based, no string conversion)
@@ -398,7 +438,7 @@ static inline PgySet_##SuffixName pgy_set_new_##SuffixName(void) \
 \
 static inline bool pgy_set_has_##SuffixName(PgySet_##SuffixName *s, CType val) \
 { \
-    if (s == NULL || s->capacity == 0 || s->data == NULL || s->occupied == NULL) return false; \
+    if (!PGY_RUNTIME_SET_IS_INITIALIZED(s, CType)) return false; \
     if (s->count == 0) return false; \
     uint32_t h = pgy_set_hash_##SuffixName(val) % (uint32_t)s->capacity; \
     size_t p = 0; \
@@ -412,7 +452,7 @@ static inline bool pgy_set_has_##SuffixName(PgySet_##SuffixName *s, CType val) \
 \
 static inline void pgy_set_add_##SuffixName(PgySet_##SuffixName *s, CType val) \
 { \
-    if (s == NULL || s->capacity == 0 || s->data == NULL || s->occupied == NULL) { \
+    if (!PGY_RUNTIME_SET_IS_INITIALIZED(s, CType)) { \
         pgy_runtime_warn_invalid_collection("set_add_" #SuffixName, "set is not initialized"); \
         return; \
     } \
@@ -464,6 +504,7 @@ static inline void pgy_set_add_##SuffixName(PgySet_##SuffixName *s, CType val) \
 \
 static inline void pgy_set_remove_##SuffixName(PgySet_##SuffixName *s, CType val) \
 { \
+    if (!PGY_RUNTIME_SET_IS_INITIALIZED(s, CType)) return; \
     if (s->count == 0) return; \
     uint32_t h = pgy_set_hash_##SuffixName(val) % (uint32_t)s->capacity; \
     size_t p = 0; \
@@ -478,7 +519,7 @@ static inline void pgy_set_remove_##SuffixName(PgySet_##SuffixName *s, CType val
 } \
 \
 static inline int32_t pgy_set_size_##SuffixName(PgySet_##SuffixName *s) \
-{ return (int32_t)s->count; }
+{ return PGY_RUNTIME_SET_IS_INITIALIZED(s, CType) ? (int32_t)s->count : 0; }
 
 /* Pre-instantiate Set<Int> (lowercase suffix to match collection_runtime_suffix) */
 PGY_SET_DEFINE(int, int32_t)

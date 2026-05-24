@@ -6,6 +6,7 @@
 #include "world_roster_internal.h"
 
 #include <pthread.h>
+#include <stdatomic.h>
 #include <stdlib.h>
 #ifdef _WIN32
 #include <windows.h>
@@ -16,7 +17,7 @@
 struct RosterHandle {
     pthread_t thread;
     bool threadStarted;
-    bool completed;
+    atomic_bool completed;
     RosterContext* roster;
     JoinStrategy defaultStrategy;
     DispatcherConfig* config;
@@ -32,7 +33,7 @@ world_roster_async_runner(void* arg)
     handle->result = ExecuteRoster(handle->roster,
                                    handle->defaultStrategy,
                                    handle->config);
-    handle->completed = true;
+    atomic_store_explicit(&handle->completed, true, memory_order_release);
     return NULL;
 }
 
@@ -56,6 +57,7 @@ ExecuteRosterAsync(RosterContext* roster,
     handle->roster = roster;
     handle->defaultStrategy = defaultStrategy;
     handle->config = config;
+    atomic_init(&handle->completed, false);
 
     if (pthread_create(&handle->thread, NULL,
                        world_roster_async_runner, handle) != 0) {
@@ -76,9 +78,9 @@ WaitForRoster(RosterHandle* handle, uint64_t timeoutMs)
         return empty;
     }
 
-    if (!handle->completed) {
+    if (!atomic_load_explicit(&handle->completed, memory_order_acquire)) {
         if (timeoutMs == 0) {
-            while (!handle->completed) {
+            while (!atomic_load_explicit(&handle->completed, memory_order_acquire)) {
 #ifdef _WIN32
                 Sleep(0);
 #else
@@ -87,7 +89,7 @@ WaitForRoster(RosterHandle* handle, uint64_t timeoutMs)
             }
         } else {
             uint64_t start = world_roster_now_ns();
-            while (!handle->completed) {
+            while (!atomic_load_explicit(&handle->completed, memory_order_acquire)) {
                 if ((world_roster_now_ns() - start) / 1000000ULL >= timeoutMs) {
                     world_roster_warn("wait_for_roster", "timeout exceeded");
                     return empty;

@@ -20,6 +20,15 @@ typedef struct
     size_t   capacity;
 } PgyHashMap_String;
 
+static inline bool pgy_map_string_is_initialized(const PgyHashMap_String *m)
+{
+    return m != NULL
+        && pgy_map_string_capacity_fits(m->capacity)
+        && m->keys != NULL
+        && m->values != NULL
+        && m->occupied != NULL;
+}
+
 static inline PgyHashMap_String pgy_map_new_string(void)
 {
     PgyHashMap_String m;
@@ -43,8 +52,12 @@ static inline PgyHashMap_String pgy_map_new_string(void)
 
 static inline void pgy_map_set_string(PgyHashMap_String *m, const char *key, const char *val)
 {
-    if (m == NULL || m->capacity == 0 || m->keys == NULL || m->values == NULL || m->occupied == NULL) {
+    if (!pgy_map_string_is_initialized(m)) {
         pgy_runtime_warn_invalid_collection("map_set_string", "map is not initialized");
+        return;
+    }
+    if (key == NULL) {
+        pgy_runtime_warn_invalid_collection("map_set_string", "null key");
         return;
     }
     if ((double)m->count / (double)m->capacity > PGY_HASHMAP_LOAD_FACTOR) {
@@ -113,7 +126,7 @@ static inline void pgy_map_set_string(PgyHashMap_String *m, const char *key, con
 
 static inline char *pgy_map_get_string(PgyHashMap_String *m, const char *key)
 {
-    if (m == NULL || m->capacity == 0 || m->keys == NULL || m->values == NULL || m->occupied == NULL)
+    if (!pgy_map_string_is_initialized(m))
         PGY_RUNTIME_PANIC(PGY_RUNTIME_PANIC_CLASS_INTERNAL_INVARIANT, "map get on invalid map");
     if (key == NULL)
         PGY_RUNTIME_PANIC(PGY_RUNTIME_PANIC_CLASS_INTERNAL_INVARIANT, "map get with null key");
@@ -131,7 +144,8 @@ static inline char *pgy_map_get_string(PgyHashMap_String *m, const char *key)
 
 static inline bool pgy_map_has_string(PgyHashMap_String *m, const char *key)
 {
-    if (m == NULL || m->capacity == 0 || m->keys == NULL || m->values == NULL || m->occupied == NULL) return false;
+    if (!pgy_map_string_is_initialized(m)) return false;
+    if (key == NULL) return false;
     if (m->count == 0) return false;
     uint32_t h = pgy_hash_string(key) % (uint32_t)m->capacity;
     size_t p = 0;
@@ -144,7 +158,7 @@ static inline bool pgy_map_has_string(PgyHashMap_String *m, const char *key)
 
 static inline void pgy_map_remove_string(PgyHashMap_String *m, const char *key)
 {
-    if (m == NULL || m->capacity == 0 || m->keys == NULL || m->values == NULL || m->occupied == NULL)
+    if (!pgy_map_string_is_initialized(m))
         PGY_RUNTIME_PANIC(PGY_RUNTIME_PANIC_CLASS_INTERNAL_INVARIANT, "map remove on invalid map");
     if (key == NULL)
         PGY_RUNTIME_PANIC(PGY_RUNTIME_PANIC_CLASS_INTERNAL_INVARIANT, "map remove with null key");
@@ -191,7 +205,7 @@ static inline void pgy_map_remove_string(PgyHashMap_String *m, const char *key)
 
 static inline int32_t pgy_map_size_string(PgyHashMap_String *m)
 {
-    return m != NULL ? (int32_t)m->count : 0;
+    return pgy_map_string_is_initialized(m) ? (int32_t)m->count : 0;
 }
 
 static inline void pgy_map_set_i32_string(PgyHashMap_String *m, int32_t key, const char *val)

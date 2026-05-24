@@ -264,8 +264,9 @@ Application points:
 - diagnostic summary counts versus evidence-node inventory.
 
 Do not let a summary counter become semantic truth. This matches the existing
-source-of-truth spine: compatibility counters may exist, but inventory/evidence
-owners remain authoritative.
+source-of-truth spine: compatibility counters are transitional only; retired
+paths should become quarantine sentinels, while inventory/evidence owners remain
+authoritative.
 
 ## 8. Exit Hooks Need State-View And Ordering Contracts
 

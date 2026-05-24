@@ -20,31 +20,6 @@ typedef struct SemanticAssignmentPathOwner {
 } SemanticAssignmentPathOwner;
 
 static char *
-semantic_assignment_path_heap_dup(SemanticAssignmentPathOwner owner,
-                                  const char *s)
-{
-    (void)owner;
-    return pergyra_strdup(s);
-}
-
-static char *
-semantic_assignment_path_heap_vfmt(SemanticAssignmentPathOwner owner,
-                                   const char *fmt,
-                                   va_list args)
-{
-    (void)owner;
-    return pergyra_strdup_vprintf(fmt, args);
-}
-
-static void
-semantic_assignment_path_heap_release(SemanticAssignmentPathOwner owner,
-                                      char *path)
-{
-    (void)owner;
-    free(path);
-}
-
-static char *
 semantic_assignment_path_scratch_dup(SemanticAssignmentPathOwner owner,
                                      const char *s)
 {
@@ -65,18 +40,6 @@ semantic_assignment_path_scratch_release(SemanticAssignmentPathOwner owner,
 {
     (void)owner;
     (void)path;
-}
-
-static SemanticAssignmentPathOwner
-semantic_assignment_path_heap_owner(void)
-{
-    SemanticAssignmentPathOwner owner = {
-        .ctx = NULL,
-        .dup = semantic_assignment_path_heap_dup,
-        .vfmt = semantic_assignment_path_heap_vfmt,
-        .release = semantic_assignment_path_heap_release,
-    };
-    return owner;
 }
 
 static SemanticAssignmentPathOwner
@@ -183,14 +146,6 @@ semantic_assignment_target_path_impl_owned(ASTNode *expr,
     default:
         return semantic_assignment_path_dup(owner, "<target>");
     }
-}
-
-char *
-semantic_assignment_target_path(ASTNode *expr)
-{
-    return semantic_assignment_target_path_impl_owned(
-        expr,
-        semantic_assignment_path_heap_owner());
 }
 
 const char *

@@ -3,9 +3,6 @@
 
 #include "type_checker_internal.h"
 
-char *
-semantic_assignment_target_path(ASTNode *expr);
-
 const char *
 semantic_assignment_target_path_scratch(ASTNode *expr, SemanticContext *ctx);
 

@@ -26,23 +26,33 @@ Any pointer not fitting one of these classes is beta debt.
 |---|---|---|
 | Intent/authority string exports | `runtime-borrowed string` | `runtime-abi-lifetime-test-smoke` |
 | String helpers | `result-owned string` | `runtime-abi-lifetime-test-smoke` |
+| `Substring` / `StringReplace` sizing | reject strings beyond the `Int` index range and count replacements with `size_t` before result allocation | `runtime-abi-lifetime-test-smoke` + `test-abi` |
 | `StringSplit` / `MapKeys` arrays | `result-owned array` with copied string payloads | `runtime-abi-lifetime-test-smoke` |
 | File descriptors | `runtime-owned handle` table, released by close | `runtime-abi-lifetime-test-smoke` |
 | Exported slices | no pointer arithmetic for zero-length slices; subtract-form range checks | `runtime-abi-lifetime-test-smoke` |
 | `Queue<String>` | `container-owned` copied payloads on C inline and LLVM raw paths | `runtime-abi-lifetime-test-smoke` |
-| LLVM `Channel<String>` | `container-owned` copied payload on send; receive transfers; destroy frees pending payloads | `runtime-abi-lifetime-test-smoke` |
+| `Channel<String>` | `container-owned` copied payload on inline C and LLVM export paths; receive transfers; destroy frees pending payloads | `runtime-abi-lifetime-test-smoke` |
+| Inline `Channel<T>` boundary | status/ready/length/capacity/full/space/closed helpers reject null or uninitialized channels before locking, and public `Int` size views clamp oversized counters | `runtime-abi-lifetime-test-smoke` + `test-abi` |
+| Exported `Channel<Int/String>` boundary | destroy/close/query helpers reject null or uninitialized exported channels before locking, and public `Int` size views clamp oversized counters | `runtime-abi-lifetime-test-smoke` + `test-abi` |
 | `List<String>` | push/set copy, get borrows, remove frees | `runtime-abi-lifetime-test-smoke` |
 | `Set<String>` | add copies, has borrows probe, remove frees and tombstones | `runtime-abi-lifetime-test-smoke` |
 | Inline `List`/`Queue` capacity | capacity growth is bounded by both element allocation size and the `Int` size API range | `runtime-abi-lifetime-test-smoke` |
+| Inline/raw `Array`/`Slice`/`Rc` handles | array, slice, box, BoxArray, Rc, and Weak helpers reject null handles, missing backing storage, refcount overflow, and BoxArray drop-size overflow before dereference or pointer arithmetic | `runtime-abi-lifetime-test-smoke` + `test-abi` |
 | Raw/inline collection size API range | raw List/Queue/HashMap/Set and inline HashMap capacity growth stays within `Int` size-return range | object compile + ABI smoke term |
+| Raw/inline collection initialization guards | raw List/Queue/HashMap/Set and inline List/Queue/Set/HashMap operations reject uninitialized or oversized backing storage and null string keys before count, modulo, `strcmp`, or pointer access | `runtime-abi-lifetime-test-smoke` + `test-abi` |
 | Raw `Set<T>` pointer-sized values | generic set hashes raw bytes; String has separate hash/equality/rehash path | `runtime-abi-lifetime-test-smoke` |
 | LLVM raw `HashMap<K,String>` | set copies values, get borrows, remove frees key/value and tombstones | `runtime-abi-lifetime-test-smoke` |
 | Raw/inline hash deletion | tombstone or backward-shift preserves probe chains | `runtime-abi-lifetime-test-smoke` |
-| Pool/arena/slice pointer arithmetic | overflow checked before deriving pointer | direct runtime probes + ABI smoke terms |
+| Pool/arena/slice pointer arithmetic | overflow checked before deriving pointer; Pool/FSM/Timer helpers reject null handles, invalid FSM inputs, and oversized pool capacity before pointer/state access; allocator tracing counters saturate instead of wrapping and debug fill skips zero-size null allocations | direct runtime probes + ABI smoke terms |
 | Generated C `Slice<T>.Slice` | subtract-form range check; zero-length slices do not derive a pointer | `runtime-abi-lifetime-test-smoke` |
 | Secure scope destroy while pinned | checked destroy returns `SLOT_ERROR_PINNED`; void destroy hard-fails | `test-security` fixture coverage |
 | Slot manager/scope allocation sizes | slot table and secure scope handle/token arrays are size-checked before allocation and token wiping | object compile + ABI smoke term |
-| Async scheduler worker arrays | worker array size is checked before scheduler `calloc` | object compile + ABI smoke term |
+| Slot pool API boundary | alloc/free/get/is-valid reject uninitialized backing arrays and invalid free-list cursors; stats avoids divide-by-zero on corrupted zero-capacity pools | `runtime-abi-lifetime-test-smoke` + `test-abi` |
+| Async scheduler worker/queue boundary | worker array size is checked before scheduler `calloc`; start/stop/destroy/steal/spawn/enqueue/unblock reject missing worker arrays or queues before dereference | object compile + ABI smoke term |
+| Async concurrent queue boundary | queue push/pop reject missing head/tail sentinels and the queue size counter saturates/decrements only within valid range | `runtime-abi-lifetime-test-smoke` + `test-abi` |
+| Parallel task array boundary | `parallel_run` rejects null task arrays and checks task/argument array sizes before `calloc`; worker arrays share the same overflow guard | `runtime-abi-lifetime-test-smoke` |
+| Party runtime context/stat boundary | nonzero role/shared-field/ability counts reject null backing arrays before lookup; fiber-stat counters saturate and all stat readers/writers use the registry mutex | `runtime-abi-lifetime-test-smoke` |
+| World/roster async completion | async roster worker publishes result before a release-store completion flag; waiters acquire-load completion before reading the result | `runtime-abi-lifetime-test-smoke` + `test-abi` |
 | LLVM argument scratch arrays | call/spawn/event/callable lowering guards `size_t` arena sizing and LLVM `unsigned` arity before building argument arrays | object compile + ABI smoke term |
 | LLVM constructed type args | LLVM type mapping and other public callers use `llvm_constructed_arg_name_copy(...)`; static scratch helper was removed | object compile + ABI/perf smoke terms |
 | LLVM Rc expected inner type | Rc lowering copies expected inner type into caller-owned storage instead of returning static scratch | object compile |
@@ -54,7 +64,7 @@ Any pointer not fitting one of these classes is beta debt.
 | C backend match enum destructuring | enum payload binding arrays are caller stack-owned, not static shared storage | `test-transpile` + perf smoke |
 | C backend MIR intent collector arrays | MIR intent metadata collector uses one checked capacity helper before scratch-array growth | object compile |
 | C backend enum constructor arguments | enum-constructor lowering guards argument pointer-array sizing and generated call-buffer growth | `test-transpile` |
-| World/roster dynamic arrays | count growth, result arrays, execution-plan/stat arrays, and visualization buffer sizing are checked before `realloc`/`calloc` | object compile + ABI smoke term |
+| World/roster dynamic arrays | count growth, result arrays, execution-plan/stat arrays, and visualization buffer sizing are checked before `realloc`/`calloc`; nonzero roster/party counts reject null backing arrays before iteration; frame and estimate counters saturate instead of wrapping | object compile + ABI smoke term |
 | World/roster copied names | copied roster/world names guard `strlen + 1` before allocation | object compile + ABI smoke term |
 
 ## 2. Beta Policies And Open Risks
