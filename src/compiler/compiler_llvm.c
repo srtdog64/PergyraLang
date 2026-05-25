@@ -196,7 +196,9 @@ compiler_build_native_llvm(const CompilerIRBundle *bundle,
     compile_runtime_argv[compile_runtime_argc++] = "-std=c11";
     compile_runtime_argv[compile_runtime_argc++] = "-Wall";
     compile_runtime_argv[compile_runtime_argc++] = opt_flag;
+#ifndef __APPLE__
     compile_runtime_argv[compile_runtime_argc++] = "-fopenmp";
+#endif
     compile_runtime_argv[compile_runtime_argc++] = intent_observability_flag;
     compile_runtime_argv[compile_runtime_argc++] = "-DPGY_LLVM_ENABLED";
     compile_runtime_argv[compile_runtime_argc++] = "-I";
@@ -274,11 +276,13 @@ compiler_build_native_llvm(const CompilerIRBundle *bundle,
             link_argv[link_argc++] = "-march=native";
             link_argv[link_argc++] = "-mtune=native";
         }
+#ifndef __APPLE__
         link_argv[link_argc++] = "-fopenmp";
         if (compiler_should_use_lld())
             link_argv[link_argc++] = "-fuse-ld=lld";
         link_argv[link_argc++] = "-no-pie";
         link_argv[link_argc++] = "-Wl,--build-id=none";
+#endif
         link_argv[link_argc++] = "-DPGY_LLVM_ENABLED";
         link_argv[link_argc++] = "-I";
         link_argv[link_argc++] = PGY_SRC_DIR;

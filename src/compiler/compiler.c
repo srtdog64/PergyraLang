@@ -156,7 +156,7 @@ compiler_build_native(const CompilerIRBundle *bundle,
         compile_argv[ci++] = PGY_CFLAGS_THREAD_FLAG;
 #endif
         compile_argv[ci++] = opt_flag;
-#ifndef _WIN32
+#if !defined(_WIN32) && !defined(__APPLE__)
         compile_argv[ci++] = "-fopenmp";
 #endif
         compile_argv[ci++] = intent_observability_flag;
@@ -208,7 +208,7 @@ compiler_build_native(const CompilerIRBundle *bundle,
 
     phase_start = compiler_now_seconds();
 #ifndef _WIN32
-    /* Linux: rebuild link_argv with extra flags (lld, build-id, fopenmp) */
+    /* POSIX: rebuild link_argv with extra flags where the host compiler supports them. */
     {
         const char *lnk[20];
         int lc = 0;
@@ -217,10 +217,12 @@ compiler_build_native(const CompilerIRBundle *bundle,
         lnk[lc++] = "-std=c11";
         lnk[lc++] = "-Wall";
         lnk[lc++] = opt_flag;
+#ifndef __APPLE__
         lnk[lc++] = "-fopenmp";
         if (compiler_should_use_lld())
             lnk[lc++] = "-fuse-ld=lld";
         lnk[lc++] = "-Wl,--build-id=none";
+#endif
         lnk[lc++] = output_obj_path;
         lnk[lc++] = "-o";
         lnk[lc++] = output_binary_path;
