@@ -148,6 +148,13 @@ compiler_build_native(const CompilerIRBundle *bundle,
         compile_argv[ci++] = "-std=c11";
         compile_argv[ci++] = "-Wall";
         compile_argv[ci++] = "-Wno-unused-function";
+#ifdef __APPLE__
+        compile_argv[ci++] = "-D_DARWIN_C_SOURCE";
+        compile_argv[ci++] = "-D_XOPEN_SOURCE=700";
+#elif !defined(_WIN32)
+        compile_argv[ci++] = "-D_POSIX_C_SOURCE=200809L";
+        compile_argv[ci++] = "-D_XOPEN_SOURCE=700";
+#endif
 #ifdef _WIN32
         compile_argv[ci++] = "-Wno-unused-value";
         compile_argv[ci++] = "-Wno-parentheses-equality";

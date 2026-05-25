@@ -195,6 +195,13 @@ compiler_build_native_llvm(const CompilerIRBundle *bundle,
         compile_runtime_argv[compile_runtime_argc++] = cc_target;
     compile_runtime_argv[compile_runtime_argc++] = "-std=c11";
     compile_runtime_argv[compile_runtime_argc++] = "-Wall";
+#ifdef __APPLE__
+    compile_runtime_argv[compile_runtime_argc++] = "-D_DARWIN_C_SOURCE";
+    compile_runtime_argv[compile_runtime_argc++] = "-D_XOPEN_SOURCE=700";
+#else
+    compile_runtime_argv[compile_runtime_argc++] = "-D_POSIX_C_SOURCE=200809L";
+    compile_runtime_argv[compile_runtime_argc++] = "-D_XOPEN_SOURCE=700";
+#endif
     compile_runtime_argv[compile_runtime_argc++] = opt_flag;
 #ifndef __APPLE__
     compile_runtime_argv[compile_runtime_argc++] = "-fopenmp";
