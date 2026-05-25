@@ -233,7 +233,9 @@ compiler_build_native(const CompilerIRBundle *bundle,
         lnk[lc++] = output_obj_path;
         lnk[lc++] = "-o";
         lnk[lc++] = output_binary_path;
+#ifndef __APPLE__
         lnk[lc++] = PGY_CFLAGS_THREAD_LIB;
+#endif
         lnk[lc++] = "-lm";
         lnk[lc] = NULL;
         rc = pgy_exec_argv(lnk, verbose);

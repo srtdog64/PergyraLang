@@ -265,7 +265,9 @@ compiler_build_native_llvm(const CompilerIRBundle *bundle,
         link_argv[link_argc++] = output_binary_path;
         link_argv[link_argc++] = output_obj_path;
         link_argv[link_argc++] = runtime_obj_path;
+#ifndef __APPLE__
         link_argv[link_argc++] = PGY_CFLAGS_THREAD_LIB;
+#endif
         link_argv[link_argc++] = "-lm";
         link_argv[link_argc] = NULL;
         rc = pgy_exec_argv(link_argv, verbose);
