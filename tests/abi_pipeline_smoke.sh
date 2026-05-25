@@ -46,10 +46,21 @@ normalize_output() {
     tr -d '\r' | awk '
         /^[0-9]+ error\(s\), [0-9]+ warning\(s\)$/ { seen_summary = 1; next }
         !seen_summary { pre[++pre_count] = $0; next }
+        /^--- output ---$/ { saw_output_marker = 1; in_output = 1; next }
+        /^--- end ---$/ { in_output = 0; next }
+        in_output && (seen || length($0) > 0) { print; seen = 1 }
+        saw_output_marker { next }
         /^pgy: compiled/ { next }
-        /^--- output ---$/ { next }
-        /^--- end ---$/ { next }
-        seen || length($0) > 0 { print; seen = 1 }
+        /^In file included from / { in_diag = 1; next }
+        /^[^[:space:]].*:[0-9]+:[0-9]+: (warning|note|error):/ {
+            in_diag = 1
+            next
+        }
+        in_diag && /^[[:space:]]*[0-9]+[[:space:]]*\|/ { next }
+        in_diag && /^[[:space:]]*\|/ { next }
+        in_diag && /^[0-9]+ warnings? generated\./ { in_diag = 0; next }
+        in_diag && /^$/ { in_diag = 0; next }
+        !in_diag && (seen || length($0) > 0) { print; seen = 1 }
         END {
             if (!seen_summary) {
                 for (i = 1; i <= pre_count; i++) {
