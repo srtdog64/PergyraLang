@@ -1310,7 +1310,7 @@ llvm:
 # -----------------------------------------------------------------
 
 define pgy_link
-$(file >$(BUILD_DIR)/$(notdir $@).rsp,$^)
+@printf '%s\n' $^ > "$(BUILD_DIR)/$(notdir $@).rsp"
 $(CC) $(CFLAGS) -o $@ @"$(BUILD_DIR)/$(notdir $@).rsp" $(1)
 @rm -f "$(BUILD_DIR)/$(notdir $@).rsp"
 endef

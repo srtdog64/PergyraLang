@@ -15,7 +15,10 @@ if [[ -z "$MAKE_BIN" ]]; then
     fi
 fi
 
-inventory="$("$MAKE_BIN" -C "$ROOT_DIR" -s __pgy_build_source_inventory_print)"
+inventory="$(
+    MAKEFLAGS= "$MAKE_BIN" --no-print-directory -C "$ROOT_DIR" -s __pgy_build_source_inventory_print \
+        | grep -Ev '^make\[[0-9]+\]: (Entering|Leaving) directory '
+)"
 missing=0
 
 duplicate_sources="$(

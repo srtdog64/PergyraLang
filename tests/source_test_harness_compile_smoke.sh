@@ -80,6 +80,10 @@ for src in "${test_sources[@]}"; do
         -Werror=implicit-int \
         -std=c11 -O2 -g \
         -D__USE_MINGW_ANSI_STDIO=1 \
+        -DPGY_PROJECT_ROOT="\"$ROOT_DIR\"" \
+        -DPGY_SRC_DIR="\"$ROOT_DIR/src\"" \
+        -DPGY_RUNTIME_DIR="\"$ROOT_DIR/src/runtime\"" \
+        -DPGY_RUNTIME_LIB_C="\"$ROOT_DIR/src/runtime/pgy_runtime_lib.c\"" \
         -I"$ROOT_DIR/src" \
         -c "$src" \
         -o "$OUT_DIR/${base}.o"
