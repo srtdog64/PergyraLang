@@ -63,9 +63,10 @@ if ! "$CC_BIN" -std=c11 -c "$probe_src" -o "$probe_obj" >/dev/null 2>&1; then
     exit 0
 fi
 
-mapfile -t test_sources < <(
-    find "$ROOT_DIR/src" -maxdepth 1 -type f -name 'test_*.c' | sort
-)
+test_sources=()
+while IFS= read -r src; do
+    test_sources+=("$src")
+done < <(find "$ROOT_DIR/src" -maxdepth 1 -type f -name 'test_*.c' | sort)
 
 if [[ "${#test_sources[@]}" -eq 0 ]]; then
     echo "[source-test-harness-compile] no src/test_*.c harnesses found" >&2
