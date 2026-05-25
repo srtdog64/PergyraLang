@@ -46,9 +46,11 @@ jobs:
 
       - name: Run macOS C-only CI target
         run: |
+          set +e
           set -o pipefail
           CC=cc make ci-macos 2>&1 | tee macos-ci.log
           status=${PIPESTATUS[0]}
+          set -e
           if [ "$status" -ne 0 ]; then
             tail -n 80 macos-ci.log > macos-ci-tail.log
             line_no=1
