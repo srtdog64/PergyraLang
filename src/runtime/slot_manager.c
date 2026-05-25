@@ -44,10 +44,10 @@ slot_now_us(void)
     return SecureTimestamp();
 }
 
-uint32_t
+uintptr_t
 current_thread_id(void)
 {
-    return (uint32_t)((uintptr_t)pthread_self() & 0xffffffffu);
+    return (uintptr_t)pthread_self();
 }
 
 SlotEntry *

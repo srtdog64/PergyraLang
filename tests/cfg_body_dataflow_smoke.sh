@@ -234,6 +234,8 @@ run_literal_doc_contract_smoke() {
     require_literal "src/compiler/mir_fact_terminator_validate.c" "source-branch emit fact is invalid"
     require_literal "src/compiler/mir_source_shape.c" "mir_instruction_branch_requires_source_emit"
     require_literal "src/compiler/mir_source_shape.c" "mir_instruction_has_source_payload"
+    require_literal "src/compiler/mir_source_shape.c" "mir_source_ast_type_name"
+    require_literal "src/compiler/mir_source_shape.c" "AST_BIND_STMT"
     require_literal "src/compiler/mir_source_shape.c" "mir_block_has_hir_source_mapping"
     require_literal "src/compiler/mir_source_shape.c" "mir_block_has_source_location"
     require_literal "src/compiler/mir_source_shape.c" "mir_instruction_source_is_intent_step"
@@ -378,6 +380,8 @@ run_literal_doc_contract_smoke() {
     require_literal "src/tests/mir/test_mir_lowering_part_e.cases.h" "pin-unpin-cleanup-edge"
     require_literal "src/tests/mir/test_mir_lowering_part_e.cases.h" "MIR validator rejects unreachable cleanup root"
     require_literal "src/tests/mir/test_mir_lowering_part_e.cases.h" "MIR validator rejects unreachable exceptional source"
+    require_literal "src/semantic/type_checker_flow.c" "type_check_bind_stmt(node, ctx);"
+    require_literal "src/semantic/type_checker_bind_stmt.c" "missing ability"
     require_literal "src/semantic/type_checker_ownership_let.c" "function-body lets must be initialized at the binding site"
     require_literal "Makefile" "cfg-body-dataflow-test-smoke"
 
@@ -1489,6 +1493,9 @@ raw_source_fields = (
     "->has_source_location",
     "->source_line",
     "->source_column",
+    "->source_terminator_kind",
+    "->has_source_terminator_kind",
+    "->source_terminator_has_value",
 )
 raw_source_allowed = {
     pathlib.Path("src/compiler/mir.c"),
@@ -1626,6 +1633,10 @@ to_native_path_for_pgy() {
 }
 
 if [[ ! -x "$PGY" ]]; then
+    if [[ "$PGY_EXPLICIT" -eq 1 ]]; then
+        echo "cfg body dataflow missing compiler binary: $PGY" >&2
+        exit 1
+    fi
     echo "cfg-body-dataflow smoke: SKIP executable probe; source/doc contract already checked"
     exit 0
 fi
@@ -1722,7 +1733,7 @@ grep -Fq "DetachInvalidation" "$MIR_OUT"
 grep -Fq "Parallel:" "$PARALLEL_SELECT_AST"
 grep -Fq "ChannelSend: ch <- 7" "$PARALLEL_SELECT_AST"
 grep -Fq "inst[01] stmt" "$PARALLEL_SELECT_MIR"
-grep -Fq "ast-type=9" "$PARALLEL_SELECT_MIR"
+grep -Fq "ast=AST_PARALLEL_BLOCK" "$PARALLEL_SELECT_MIR"
 
 claim_line="$(grep -n "PgySlot_Int s = pgy_claim_Int();" "$WITH_SLOT_ORDER_C" | head -1 | cut -d: -f1)"
 read_line="$(grep -n "pgy_read_Int(&s)" "$WITH_SLOT_ORDER_C" | head -1 | cut -d: -f1)"

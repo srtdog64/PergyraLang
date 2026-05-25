@@ -115,6 +115,47 @@ if [[ -n "$local_windows_path_helpers" ]]; then
     missing=1
 fi
 
+for smoke in \
+    tests/abi_pipeline_smoke.sh \
+    tests/air_backend_nonimpact_smoke.sh \
+    tests/air_json_schema_smoke.sh \
+    tests/cfg_body_dataflow_smoke.sh \
+    tests/codegen_determinism_smoke.sh \
+    tests/diagnostics_json_smoke.sh \
+    tests/dogfood_webgl_smoke.sh \
+    tests/example_contract_smoke.sh \
+    tests/fmt_smoke.sh \
+    tests/ir_pipeline_probe.sh \
+    tests/llvm_campaign_projection_smoke.sh \
+    tests/llvm_dnd_campaign_smoke.sh \
+    tests/llvm_smoke.sh \
+    tests/memory_concurrency_model_smoke.sh \
+    tests/module_smoke.sh \
+    tests/observability_schema_smoke.sh \
+    tests/package_module_resolver_smoke.sh \
+    tests/perf_c_baseline_smoke.sh \
+    tests/raw_escape_contract_smoke.sh \
+    tests/runtime_frontier_contract_smoke.sh \
+    tests/runtime_none_contract_smoke.sh \
+    tests/runtime_panic_codegen_smoke.sh \
+    tests/stdlib_surface_smoke.sh \
+    tests/tooling_conformance_smoke.sh \
+    tests/unicode_policy_smoke.sh
+do
+    if ! grep -Fq 'pgy_binary_path_helpers.sh' "$ROOT_DIR/$smoke"; then
+        echo "[build-source-inventory] beta executable smoke must use shared Windows path helper: $smoke" >&2
+        missing=1
+    fi
+    if ! grep -Fq 'pgy_path_for_compiler' "$ROOT_DIR/$smoke"; then
+        if grep -Fq 'tests/compare_backends.sh' "$ROOT_DIR/$smoke"; then
+            :
+        else
+            echo "[build-source-inventory] beta executable smoke must convert compiler paths: $smoke" >&2
+            missing=1
+        fi
+    fi
+done
+
 semantic_self_include_leaks="$(
     cd "$ROOT_DIR"
     grep -RIn '#include "\.\./semantic/' src/semantic \
@@ -123,6 +164,38 @@ semantic_self_include_leaks="$(
 if [[ -n "$semantic_self_include_leaks" ]]; then
     printf '%s\n' "$semantic_self_include_leaks" >&2
     echo "[build-source-inventory] semantic files must include same-directory headers directly" >&2
+    missing=1
+fi
+
+rir_program_root_export="$(
+    cd "$ROOT_DIR"
+    grep -RIn 'extern ASTNode \*g_rir_program_root' src/compiler \
+        --include='*.c' --include='*.h' || true
+)"
+if [[ -n "$rir_program_root_export" ]]; then
+    printf '%s\n' "$rir_program_root_export" >&2
+    echo "[build-source-inventory] RIR program root must stay behind rir_program_root() accessors" >&2
+    missing=1
+fi
+
+rir_program_root_users="$(
+    cd "$ROOT_DIR"
+    grep -RIn 'rir_program_root()' src/compiler \
+        --include='*.c' --include='*.h' || true
+)"
+rir_program_root_users="$(
+    printf '%s\n' "$rir_program_root_users" \
+        | grep -v 'src/compiler/rir_facts.c' \
+        | grep -v 'src/compiler/rir_builder_intent.c' || true
+)"
+if [[ -n "$rir_program_root_users" ]]; then
+    printf '%s\n' "$rir_program_root_users" >&2
+    echo "[build-source-inventory] RIR program-root compatibility access must stay in the RIR fact/intent owners" >&2
+    missing=1
+fi
+
+if ! grep -Fq 'rir_set_program_root(NULL);' "$ROOT_DIR/src/compiler/rir_builder.c"; then
+    echo "[build-source-inventory] RIR lower must clear program-root compatibility state on entry/success" >&2
     missing=1
 fi
 

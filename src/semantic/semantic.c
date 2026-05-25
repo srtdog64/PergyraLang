@@ -151,6 +151,34 @@ semantic_preload_stdlib_uses(ASTNode *ast)
     pgy_arena_destroy(&path_arena);
 }
 
+static void
+semantic_run_legacy_slot_resource_analysis(ASTNode *ast, SemanticContext *ctx)
+{
+    SlotAnalyzer *sa;
+
+    if (ctx == NULL || ctx->has_error)
+        return;
+
+    /*
+     * Compatibility seam: CFG/MIR owns beta body-safety truth. The legacy
+     * slot analyzer remains here only for conservative slot escape/leak
+     * provenance until those warnings are fully backed by CFG/MIR facts.
+     */
+    sa = slot_analyzer_create(ctx);
+    if (sa != NULL) {
+        if (!slot_analyze_program(ast, sa) && !ctx->has_error) {
+            semantic_error(ctx, ast,
+                "Slot resource-boundary analysis failed before it could "
+                "produce a specific diagnostic");
+        }
+        slot_analyzer_destroy(sa);
+        return;
+    }
+
+    semantic_error(ctx, ast,
+        "Slot resource-boundary analysis could not allocate state");
+}
+
 SemanticResult *
 semantic_analyze(ASTNode *ast)
 {
@@ -169,21 +197,7 @@ semantic_analyze(ASTNode *ast)
     /* Pass 1 + 2: Symbol collection and type checking */
     type_check_program(ast, ctx);
 
-    /* Pass 3: Slot resource-boundary analysis */
-    if (!ctx->has_error) {
-        SlotAnalyzer *sa = slot_analyzer_create(ctx);
-        if (sa != NULL) {
-            if (!slot_analyze_program(ast, sa) && !ctx->has_error) {
-                semantic_error(ctx, ast,
-                    "Slot resource-boundary analysis failed before it could "
-                    "produce a specific diagnostic");
-            }
-            slot_analyzer_destroy(sa);
-        } else {
-            semantic_error(ctx, ast,
-                "Slot resource-boundary analysis could not allocate state");
-        }
-    }
+    semantic_run_legacy_slot_resource_analysis(ast, ctx);
 
     /* Transfer diagnostics to result */
     result->success          = !ctx->has_error;

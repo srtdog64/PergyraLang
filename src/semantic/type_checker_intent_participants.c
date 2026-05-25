@@ -42,7 +42,7 @@ type_check_intent_step_participant_contract(ASTNode *intent_decl,
         }
 
         participant_type_name = intent_involves_type_name(involves);
-        if (!intent_involves_is_subject_host(ctx->program_root, involves)) {
+        if (!intent_involves_is_subject_host(involves, ctx)) {
             semantic_error_with_hints(ctx, PGY_CODE_SEM_INTENT_STEP_INVALID, PGY_CAUSE_INTENT_STEP, PGY_FIX_ALIGN_STEP_WITH_ZONE_ACTION_CONTRACTS, step,
                 "Intent step '%s' who participant '%s' must bind to a subject type",
                 ast_intent_step_name(step) != NULL ? ast_intent_step_name(step) : "<step>",
@@ -69,8 +69,7 @@ type_check_intent_step_participant_contract(ASTNode *intent_decl,
                 ast_intent_step_transfer_from_alias(step));
             Type *from_type = from_involves != NULL
                 ? intent_resolve_involves_type(from_involves, ctx) : NULL;
-            ASTNode *from_zone_decl = find_domain_decl_by_name(ctx->program_root, AST_ZONE_DECL,
-                from_type != NULL ? from_type->name : NULL);
+            ASTNode *from_zone_decl = intent_find_zone_decl_for_type(from_type, ctx);
             if (from_zone_decl != NULL) {
                 ASTNode **from_zone_slots;
                 size_t from_zone_slot_count;
@@ -110,12 +109,10 @@ type_check_intent_step_participant_contract(ASTNode *intent_decl,
             }
         }
 
-        ASTNode *subject_type = ast_intent_involves_subject_type(involves);
-        if (subject_type != NULL
-            && subject_type->type == AST_TYPE
-            && ast_type_name(subject_type) != NULL) {
-            ASTNode *subject_decl = find_subject_host_decl_by_name(ctx->program_root,
-                ast_type_name(subject_type));
+        Type *subject_type = intent_resolve_involves_type(involves, ctx);
+        if (subject_type != NULL && subject_type != TYPE_UNKNOWN) {
+            ASTNode *subject_decl = semantic_host_decl_for_type(ctx,
+                                                               subject_type);
             if (subject_decl_has_action_named(subject_decl, ast_intent_step_name(step))
                 && matched_action != NULL) {
                 *matched_action = true;

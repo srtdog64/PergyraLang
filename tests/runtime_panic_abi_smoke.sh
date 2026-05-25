@@ -20,8 +20,8 @@ esac
 
 compile_failure() {
     local name="$1"
-    if [[ "$WINDOWS_SHELL" == "1" && -z "${CI:-}" ]]; then
-        echo "[runtime-panic-abi] SKIP local Windows shell compiler failed for $name; CI must still run this gate" >&2
+    if [[ "$WINDOWS_SHELL" == "1" && -z "${CI:-}" && "${PGY_RUNTIME_PANIC_ABI_ALLOW_LOCAL_SKIP:-0}" == "1" ]]; then
+        echo "[runtime-panic-abi] SKIP local Windows shell compiler failed for $name; explicit local skip enabled" >&2
         touch "$WORK_DIR/compile_skipped"
         printf '%s\n' "$WORK_DIR/__compile_skipped__"
         return 0
@@ -431,7 +431,7 @@ int main(void) {
 ')"
 
 if [[ -f "$WORK_DIR/compile_skipped" ]]; then
-    echo "[runtime-panic-abi] SKIP local Windows shell compiler probe; CI must still run this executable gate"
+    echo "[runtime-panic-abi] SKIP local Windows shell compiler probe; explicit local skip enabled"
     exit 0
 fi
 

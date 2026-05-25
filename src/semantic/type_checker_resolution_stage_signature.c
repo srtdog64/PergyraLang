@@ -3,6 +3,7 @@
 #include <stdlib.h>
 
 #include "type_checker_internal.h"
+#include "type_checker_decls_a_helpers_internal.h"
 
 static char *
 tc_stage_signature_strdup_fmt(const char *fmt, ...)
@@ -62,31 +63,34 @@ semantic_stage_named_decl_quiet(SemanticContext *ctx,
                                 ASTNodeType decl_type,
                                 const char *provider_name)
 {
-    if (ctx == NULL || ctx->program_root == NULL
-        || provider_name == NULL || provider_name[0] == '\0') {
+    if (ctx == NULL || provider_name == NULL || provider_name[0] == '\0') {
         return NULL;
     }
 
     switch (decl_type) {
     case AST_CLASS_DECL:
-        return find_type_decl_by_name(ctx->program_root, provider_name);
+        return semantic_find_class_decl_by_name(ctx, provider_name);
     case AST_ABILITY_DECL:
-        return find_ability_decl_by_name(ctx->program_root, provider_name);
+        return semantic_find_ability_decl_by_name(ctx, provider_name);
     case AST_ROLE_DECL:
-        return semantic_find_top_level_decl_by_label(ctx->program_root,
-                                                     provider_name,
-                                                     TYPE_RES_NODE_DECL);
+        return semantic_find_role_decl_by_name(ctx, provider_name);
     case AST_PARTY_DECL:
+        return semantic_find_party_decl_by_name(ctx, provider_name);
     case AST_ROSTER_DECL:
+        return semantic_find_roster_decl_by_name(ctx, provider_name);
     case AST_WORLD_DECL:
+        return semantic_find_world_decl_by_name(ctx, provider_name);
     case AST_ZONE_DECL:
+        return semantic_find_zone_decl_by_name(ctx, provider_name);
     case AST_RELATION_DECL:
+        return semantic_find_relation_decl_by_name(ctx, provider_name);
     case AST_EFFECT_DECL:
-        return find_domain_decl_by_name(ctx->program_root, decl_type, provider_name);
+        return semantic_find_effect_decl_by_name(ctx, provider_name);
     default:
-        return semantic_find_top_level_decl_by_label(ctx->program_root,
-                                                     provider_name,
-                                                     TYPE_RES_NODE_DECL);
+        return semantic_find_top_level_decl_by_label_in_context(
+            ctx,
+            provider_name,
+            TYPE_RES_NODE_DECL);
     }
 }
 

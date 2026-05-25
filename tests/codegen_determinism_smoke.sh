@@ -2,6 +2,8 @@
 set -euo pipefail
 
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+source "$ROOT_DIR/tests/pgy_binary_path_helpers.sh"
+pgy_prepend_windows_runtime_paths
 WORK_ROOT="$ROOT_DIR/.tmp"
 mkdir -p "$WORK_ROOT"
 WORK_DIR="$(mktemp -d "$WORK_ROOT/pgy_codegen_determinism.XXXXXX")"
@@ -87,6 +89,9 @@ emit_and_compare() {
     local second_norm
     local first_log
     local second_log
+    local source_arg
+    local first_arg
+    local second_arg
 
     case_name="$(sanitize_case_name "$source_rel")"
     first="$WORK_DIR/${case_name}_${backend}_first.${ext}"
@@ -95,14 +100,17 @@ emit_and_compare() {
     second_norm="$WORK_DIR/${case_name}_${backend}_second.norm"
     first_log="$WORK_DIR/${case_name}_${backend}_first.log"
     second_log="$WORK_DIR/${case_name}_${backend}_second.log"
+    source_arg="$(pgy_path_for_compiler "$PGY_BIN" "$ROOT_DIR/$source_rel")"
+    first_arg="$(pgy_path_for_compiler "$PGY_BIN" "$first")"
+    second_arg="$(pgy_path_for_compiler "$PGY_BIN" "$second")"
 
-    if ! (cd "$ROOT_DIR" && "$PGY_BIN" "$source_rel" "$flag" -o "$first") \
+    if ! (cd "$ROOT_DIR" && "$PGY_BIN" "$source_arg" "$flag" -o "$first_arg") \
         >"$first_log" 2>&1; then
         echo "[codegen-determinism] first $backend emit failed for $source_rel" >&2
         cat "$first_log" >&2
         return 1
     fi
-    if ! (cd "$ROOT_DIR" && "$PGY_BIN" "$source_rel" "$flag" -o "$second") \
+    if ! (cd "$ROOT_DIR" && "$PGY_BIN" "$source_arg" "$flag" -o "$second_arg") \
         >"$second_log" 2>&1; then
         echo "[codegen-determinism] second $backend emit failed for $source_rel" >&2
         cat "$second_log" >&2

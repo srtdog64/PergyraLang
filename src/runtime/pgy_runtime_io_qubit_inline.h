@@ -9,9 +9,10 @@
 
 static FILE *_pgy_ftable[PGY_MAX_OPEN_FILES];
 static int   _pgy_ftable_next = 3; /* 0=stdin,1=stdout,2=stderr */
+static pthread_mutex_t _pgy_ftable_mutex = PTHREAD_MUTEX_INITIALIZER;
 
 static inline void
-_pgy_io_init(void)
+_pgy_io_init_locked(void)
 {
     _pgy_ftable[0] = stdin;
     _pgy_ftable[1] = stdout;
@@ -22,20 +23,28 @@ _pgy_io_init(void)
 static inline int32_t
 pgy_file_open(const char *path, const char *mode)
 {
-    if (_pgy_ftable[0] == NULL) _pgy_io_init();
     FILE *fp = fopen(path, mode);
-    if (fp == NULL) return -1;
     int fd = -1;
+
+    if (fp == NULL) return -1;
+    pthread_mutex_lock(&_pgy_ftable_mutex);
+    if (_pgy_ftable[0] == NULL)
+        _pgy_io_init_locked();
     for (int i = 3; i < PGY_MAX_OPEN_FILES; i++) {
         if (_pgy_ftable[i] == NULL) {
             fd = i;
             break;
         }
     }
-    if (fd < 0) { fclose(fp); return -1; }
+    if (fd < 0) {
+        pthread_mutex_unlock(&_pgy_ftable_mutex);
+        fclose(fp);
+        return -1;
+    }
     if (fd >= _pgy_ftable_next)
         _pgy_ftable_next = fd + 1;
     _pgy_ftable[fd] = fp;
+    pthread_mutex_unlock(&_pgy_ftable_mutex);
     return (int32_t)fd;
 }
 
@@ -45,10 +54,16 @@ pgy_file_read(int32_t fd)
 {
     char tmp[4096];
     tmp[0] = '\0';
-    if (fd < 0 || fd >= PGY_MAX_OPEN_FILES || _pgy_ftable[fd] == NULL)
+    pthread_mutex_lock(&_pgy_ftable_mutex);
+    if (fd < 0 || fd >= PGY_MAX_OPEN_FILES || _pgy_ftable[fd] == NULL) {
+        pthread_mutex_unlock(&_pgy_ftable_mutex);
         return pgy_runtime_strdup("");
-    if (fgets(tmp, sizeof(tmp), _pgy_ftable[fd]) == NULL)
+    }
+    if (fgets(tmp, sizeof(tmp), _pgy_ftable[fd]) == NULL) {
+        pthread_mutex_unlock(&_pgy_ftable_mutex);
         return pgy_runtime_strdup("");
+    }
+    pthread_mutex_unlock(&_pgy_ftable_mutex);
     size_t len = strlen(tmp);
     if (len > 0 && tmp[len - 1] == '\n')
         tmp[len - 1] = '\0';
@@ -59,18 +74,31 @@ pgy_file_read(int32_t fd)
 static inline void
 pgy_file_write(int32_t fd, const char *data)
 {
-    if (fd < 0 || fd >= PGY_MAX_OPEN_FILES || _pgy_ftable[fd] == NULL) return;
+    pthread_mutex_lock(&_pgy_ftable_mutex);
+    if (fd < 0 || fd >= PGY_MAX_OPEN_FILES || _pgy_ftable[fd] == NULL) {
+        pthread_mutex_unlock(&_pgy_ftable_mutex);
+        return;
+    }
     if (data != NULL)
         fwrite(data, 1, strlen(data), _pgy_ftable[fd]);
+    pthread_mutex_unlock(&_pgy_ftable_mutex);
 }
 
 /* FileClose(fd) */
 static inline void
 pgy_file_close(int32_t fd)
 {
-    if (fd < 3 || fd >= PGY_MAX_OPEN_FILES || _pgy_ftable[fd] == NULL) return;
-    fclose(_pgy_ftable[fd]);
-    _pgy_ftable[fd] = NULL;
+    FILE *fp = NULL;
+
+    pthread_mutex_lock(&_pgy_ftable_mutex);
+    if (fd >= 3 && fd < PGY_MAX_OPEN_FILES && _pgy_ftable[fd] != NULL) {
+        fp = _pgy_ftable[fd];
+        _pgy_ftable[fd] = NULL;
+    }
+    pthread_mutex_unlock(&_pgy_ftable_mutex);
+    if (fp == NULL)
+        return;
+    fclose(fp);
 }
 
 /* ReadFile(path) → entire file as heap-allocated string */
@@ -344,64 +372,30 @@ StringConcat(const char *a, const char *b)
 static inline PgyArray_String
 StringSplit(const char *s, const char *delim)
 {
-    PgyArray_String result;
-    result.data = NULL;
-    result.length = 0;
-    result.capacity = 0;
-    result.allocator = NULL;
+    PgyArray_String result = pgy_array_new_String(8);
     if (s == NULL || delim == NULL || delim[0] == '\0') {
+        if (s != NULL)
+            pgy_array_push_String(&result, pgy_runtime_strdup(s));
         return result;
     }
-    /* Count tokens first */
-    const char *tmp = s;
-    size_t count = 0;
-    while (*tmp) {
-        const char *found = strstr(tmp, delim);
+
+    size_t dlen = strlen(delim);
+    const char *p = s;
+    for (;;) {
+        const char *found = strstr(p, delim);
         if (found == NULL) {
-            if (*tmp) count++;
+            pgy_array_push_String(&result, pgy_runtime_strdup(p));
             break;
         }
-        if (found > tmp) count++;
-        tmp = found + strlen(delim);
-    }
-    if (count == 0) {
-        /* No delimiter found — return single element */
-        result.capacity = 1;
-        result.data = (char **)calloc(1, sizeof(char *));
-        if (result.data == NULL) {
-            result.capacity = 0;
-            return result;
+        size_t seg = (size_t)(found - p);
+        char *part = (char *)malloc(seg + 1);
+        if (part != NULL) {
+            memcpy(part, p, seg);
+            part[seg] = '\0';
         }
-        result.data[0] = pgy_runtime_strdup(s);
-        result.length = 1;
-        return result;
-    }
-    result.capacity = count;
-    result.data = (char **)calloc(count, sizeof(char *));
-    if (result.data == NULL) {
-        result.capacity = 0;
-        return result;
-    }
-    result.length = 0;
-    tmp = s;
-    while (*tmp && result.length < count) {
-        const char *found = strstr(tmp, delim);
-        if (found == NULL) {
-            result.data[result.length++] = pgy_runtime_strdup(tmp);
-            break;
-        }
-        size_t token_len = (size_t)(found - tmp);
-        if (token_len > 0) {
-            char *token = (char *)malloc(token_len + 1);
-            if (token == NULL) {
-                tmp = found + strlen(delim);
-                continue;
-            }
-            memcpy(token, tmp, token_len);
-            token[token_len] = '\0';
-            result.data[result.length++] = token;
-        }
-        tmp = found + strlen(delim);
+        pgy_array_push_String(&result,
+            part != NULL ? part : pgy_runtime_strdup(""));
+        p = found + dlen;
     }
     return result;
 }

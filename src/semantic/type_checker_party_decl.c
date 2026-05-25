@@ -83,20 +83,16 @@ type_check_party_decl(ASTNode *node, SemanticContext *ctx)
                     slot_name != NULL ? slot_name : "<role-slot>",
                     ab_type,
                     "party role slot ability consumer lookup");
-                if (ctx->program_root != NULL) {
-                    ASTNode *ability_decl = resolve_required_ability_decl(
-                        ab_type, rs, ctx, "party role slot",
-                        slot_name);
-                    if (ability_decl == NULL) {
-                        free(required_text);
-                        continue;
-                    }
+                ASTNode *ability_decl = resolve_required_ability_decl(
+                    ab_type, rs, ctx, "party role slot",
+                    slot_name);
+                if (ability_decl == NULL) {
+                    free(required_text);
+                    continue;
                 }
-                if (ctx->program_root != NULL
-                           && !any_subject_role_has_ability(ctx->program_root,
-                               ab_type)) {
+                if (!any_subject_role_has_ability(ctx, ab_type)) {
                     ASTNode *actual_impl = any_subject_role_find_base_ability_impl(
-                        ctx->program_root, ability_name);
+                        ctx, ability_name);
                     char *actual_text = actual_impl != NULL
                         ? ability_ref_display(actual_impl) : NULL;
                     if (actual_text != NULL) {

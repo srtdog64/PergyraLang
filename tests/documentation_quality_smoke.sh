@@ -514,6 +514,8 @@ fi
 require_text "examples/async_demo.pgy" "spawn Inc(8)"
 
 require_text "examples/party_system_demo.pgy" "Status: design sketch"
+require_text "docs/11_party_system_design.md" "role slot ability 조합은 최상위 \`A & B\` 교차만 지원한다"
+require_text "docs/11_party_system_design.md" "컨테이너 내부 교차 계약은 아직 안정 문법이 아니다"
 if [[ "$PGY_DOC_QUALITY_FULL_UTF8" == "1" ]]; then
     while IFS= read -r -d '' path; do
         rel="${path#"$ROOT_DIR/"}"
@@ -638,8 +640,8 @@ for term in "${beta_io_boundary_terms[@]}"; do
 done
 
 beta_progress_terms=(
-    "strict beta readiness is now about 70-72%"
-    "Do not call this 75% yet"
+    "strict beta readiness is now about 72-74%"
+    "Do not call this 75% or 80% yet"
     "The five closure targets are:"
     "CFG/body safety source-of-truth"
     "AIR abstraction-boundary verification"
@@ -652,6 +654,17 @@ for term in "${beta_progress_terms[@]}"; do
 done
 for term in "${beta_progress_terms[@]}"; do
     require_text "TODO.md" "$term"
+done
+for rel in \
+    "TODO.md" \
+    "docs/100_beta_readiness_checklist.md" \
+    "docs/70_beta_closure_master_board.md" \
+    "docs/README_ko.md"; do
+    forbid_text "$rel" "strict beta readiness is now about 70-72%"
+    forbid_text "$rel" 'strict beta readiness `약 70-72%`'
+    forbid_text "$rel" "strict beta readiness 약 70-72%"
+    forbid_text "$rel" "about 70-72%"
+    forbid_text "$rel" "약 70-72%"
 done
 for rel in "TODO.md" "docs/100_beta_readiness_checklist.md"; do
     forbid_text "$rel" "strict beta readiness 100%"

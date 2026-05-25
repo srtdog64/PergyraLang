@@ -8,9 +8,9 @@ ASTNode *
 semantic_stage_domain_find_zone_decl(SemanticContext *ctx,
                                      const char *zone_name)
 {
-    if (ctx == NULL || ctx->program_root == NULL || zone_name == NULL)
+    if (ctx == NULL || zone_name == NULL)
         return NULL;
-    return find_domain_decl_by_name(ctx->program_root, AST_ZONE_DECL, zone_name);
+    return semantic_find_zone_decl_by_name(ctx, zone_name);
 }
 
 ASTNode *

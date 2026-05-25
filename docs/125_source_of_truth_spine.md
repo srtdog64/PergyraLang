@@ -31,25 +31,84 @@ Current beta closure snapshot:
   `src/semantic/type_checker_assignment.c`; the header is declaration-only.
 - break/continue semantic validation lives in
   `src/semantic/type_checker_loop_control.c`.
+- `bind party.slot = Role;` semantic validation lives in
+  `src/semantic/type_checker_bind_stmt.c`. Both the top-level statement
+  dispatcher and CFG/body-flow path must call this owner. C/LLVM backends may
+  emit bind wiring from the validated fact, but they must not be the first
+  layer that discovers unknown party variables, missing role slots, unknown
+  roles, or role-slot ability mismatches. If LLVM cannot lower a semantically
+  valid bind fact because an inventory/vtable fact is missing, it must report a
+  backend diagnostic instead of silently skipping the bind. Multi-ability role
+  slots are conjunctive: a bound role must satisfy every required ability, not
+  just one matching ability.
 - type-resolution DAG worklist execution lives in
   `src/semantic/type_checker_resolution_worklist.c`.
+- type-resolution internal declarations live in
+  `src/semantic/type_checker_resolution_internal.h`. The general semantic
+  internal header may include that declaration surface, but nullable annotation
+  readers and metadata dead-end recorders remain private to metadata owners.
+  Splitting declarations is only valid when resolver-inventory smoke still
+  proves zero fallback seams and no widened annotation-sensitive reads.
+- Intent-local type/effect recovery lives in
+  `src/semantic/type_checker_intent_types.c`. Intent step `where`, derived
+  `using`, participant transfer-source checks, transfer edge consumers, and
+  step `causes` checks may consume the intent domain owner seam, but they must
+  not rediscover `AST_ZONE_DECL` or `AST_EFFECT_DECL` locally.
+- General semantic domain lookup seams live in
+  `src/semantic/type_checker_host_helpers.c`. Action contracts may consume
+  `semantic_find_zone_decl_by_name(...)` and
+  `semantic_find_effect_decl_by_name(...)`; zone relation/effect contract
+  validation may consume `semantic_find_relation_decl_by_name(...)` and
+  `semantic_find_effect_decl_by_name(...)`; world declaration, world helper,
+  and world embedding consumers may consume `semantic_find_zone_decl_by_name(...)`
+  and `semantic_find_world_decl_by_name(...)`; zone layer-slot authority
+  validation may consume the relation/effect seams. DAG stage signature and
+  graph-host lookup consumers may consume the class/party/roster/world/zone/
+  relation/effect seams, but must not reopen raw declaration lookup locally.
+  These consumers must not call `find_domain_decl_by_name(...)` locally for
+  domain declaration recovery.
+- The remaining AST slot analyzer pass is explicitly named
+  `semantic_run_legacy_slot_resource_analysis(...)` at the semantic entry point.
+  It is a compatibility seam for conservative escape/leak provenance only;
+  CFG/MIR remains the body-safety source of truth.
 - MIR lowering lives in `src/compiler/mir.c`, next to the owner-local lowering
   helpers it consumes. Public MIR query/pass wrappers live in
   `src/compiler/mir_public_surface.c`.
 - Parser, lexer, semantic, compiler, and codegen headers are declaration
   surfaces by default. The only current non-runtime implementation-header
   exception is the macro-only `src/codegen/llvm_limits_internal.h`.
+- Core AST public declarations live in `src/parser/ast_api.h`. Domain-oriented
+  AST declarations live in `src/parser/ast_domain_api.h`; `ast_api.h` includes
+  that header as a compatibility umbrella, but new domain accessors should be
+  added to the domain header first. `backend-inc-size-test-smoke` rejects
+  moving the frozen domain creation surface back into `ast_api.h`. Domain-only
+  owners should include `ast_domain_api.h` directly instead of widening through
+  the compatibility umbrella.
 - hosted declaration compatibility policy lives in
   `src/codegen/host_decl_compat.c`. C and LLVM declaration lookup, hosted
   method compatibility, pointer-self classification, projection-ready
   classification, shared-field compatibility, and domain-constructor lookup may
   consume that policy, but they must not restate local party/role/roster/
   relation/effect/zone/world switch chains.
+- C backend projection/action codegen may consume active inventory and
+  program-view seams for zone/effect/relation declaration recovery, but it must
+  not reopen direct domain declaration lookup at each projection, bind, intent,
+  or world-frontier use site. The declaration lookup owner remains the active
+  inventory view; projection/action owners consume the recovered declaration
+  only to emit already-lowered runtime synchronization code. Direct
+  `find_zone_decl`, `find_world_decl`, `find_relation_decl`, and
+  `find_effect_decl` calls are confined to the declaration lookup owner.
 - party-slot ability tag selection lives in
   `src/codegen/transpiler_role_ability.c`. Bind emission and member-call
   emission may consume `transpiler_party_slot_first_ability_tag(...)` or
   `transpiler_party_slot_method_ability_tag(...)`, but they must not reopen
   party role-slot scans locally.
+- Party / role / roster compiler facts live in the normal parser, semantic,
+  declaration-inventory, and C/LLVM hosted-method path. Standalone compiler-only
+  FiberMap extraction/generation APIs are not a beta source of truth; the old
+  unused `src/compiler/party_compiler.h` proposal header was removed. Runtime
+  FiberMap APIs remain runtime-owned and may only become compiler-owned after
+  explicit AIR/MIR evidence is introduced.
 - Runtime pointer/container ownership lives in
   `docs/128_pointer_risk_register.md` and the matching runtime owner files.
   C inline runtime and LLVM-linkable runtime exports must share the same
@@ -65,6 +124,34 @@ Current beta closure snapshot:
   tools must emit deterministic JSON or structured diagnostics for oracle
   comparison. Human text is a secondary view, not the comparison source of
   truth.
+- Python may improve local validation, but it is not the source of truth for
+  beta gates. Mandatory smokes must either provide a shell/C/compiler fallback
+  or fail when an explicitly supplied required binary/input is unavailable.
+- Windows/MSYS executable smokes must call `pgy_prepend_windows_runtime_paths`
+  before probing built `.exe` binaries. A missing DLL path is an environment
+  setup problem, not a successful skip when the binary was explicitly built.
+  Compiler input paths passed from bash to a Windows executable must go through
+  `pgy_path_for_compiler(...)`, so the gate validates the compiler behavior
+  instead of a path-translation accident.
+- CFG body-dataflow, example, tooling, observability, memory/concurrency,
+  codegen determinism, runtime panic ABI/codegen, perf baseline, and LLVM
+  campaign smokes that receive an explicit required binary/toolchain must fail
+  if that binary or toolchain is missing or cannot be launched. Source-only
+  fallback is allowed only when the target intentionally has no required
+  executable. Timing gates must have a minimal shell fallback; `/usr/bin/time`
+  and Python are not beta CI requirements.
+- Formatter, module, package-module, and stdlib surface smokes are beta surface
+  gates. They must use the shared Windows/MSYS path helper for compiler inputs
+  and outputs rather than relying on POSIX paths accidentally accepted by a
+  Windows executable.
+- IR pipeline and Unicode policy smokes are also beta trust gates. They must
+  use the same path helper and fail closed when an explicit compiler binary is
+  unavailable.
+- `tests/build_source_inventory_smoke.sh` owns the drift alarm for this path
+  helper contract. Adding a beta executable smoke without
+  `pgy_binary_path_helpers.sh` and `pgy_path_for_compiler(...)` is a source
+  inventory failure unless the smoke delegates all compiler execution to a
+  helper such as `tests/compare_backends.sh` that owns path conversion.
 - `tests/semantic_core_shape_smoke.sh` gates these ownership boundaries. The
   test is a drift alarm; the owning `.c` files above are the source of truth.
   `tests/mir_declaration_inventory_smoke.sh` gates the backend declaration and
@@ -132,12 +219,16 @@ keep the source-level business vocabulary clean.
 | MIR source shape and source-location compatibility | MIR source-shape owner | MIR validators, DCE, C/LLVM emitters, dumps | Consumers reopening raw `source_ast_type` / `source_line` fields |
 | MIR compatibility AST payload | MIR source-shape owner | C/LLVM residual source emitters, diagnostics, validators | Consumers reading `inst->ast` directly outside MIR construction/population/source-shape owners |
 | Declaration/domain inventory | DIR/RIR/MIR declaration headers | C/LLVM declaration emitters | AST-carried backend inventory as final truth |
+| Host declaration compatibility lookup | `host_decl_compat.c` type/name table | C/LLVM host method lookup, pointer-self policy, no-MIR compatibility paths | Partial class/enum-only fallback chains that omit party/role/roster/domain hosts |
 | MIR public inventory/query/pass wrappers | `mir_public_surface.c` | C/LLVM inventory views, MIR tests | Public query/DCE/liveness wrappers living in the lowering implementation header |
 | Type/declaration dependency | Type-resolution DAG metadata | Semantic owners, AIR DAG evidence | Recursive resolver fallback on frozen paths |
 | Generic/ability contract evidence | Type-resolution DAG | Semantic contract checks, AIR | Compatibility counters as semantic truth |
+| Party bind statement validity | `type_checker_bind_stmt.c` | CFG/body flow, C backend bind emit, LLVM bind emit | Backend-only bind validation or silent LLVM bind skips |
+| Intent step domain declaration recovery | `type_checker_intent_types.c` intent domain owner seam | Intent step validation, derived using, step causes checks, participant transfer-source checks, transfer contract checks | Consumers reopening `AST_ZONE_DECL` / `AST_EFFECT_DECL` lookup locally |
 | Resource/authority/effect propagation | RIR | AIR, runtime/codegen policy emitters | AIR or backend inventing authority/resource facts |
 | Cleanup/drop/pin topology | MIR cleanup facts | C/LLVM cleanup emitters, AIR | Topology-only cleanup without expected fact payload |
 | Abstraction boundary drift | AIR | Driver diagnostics, CI, LSP/JSON consumers | Backends consuming AIR for codegen |
+| AIR evidence provenance | `air_evidence_node.c` append owner | AIR validators, dumps, driver diagnostics, LSP/CI JSON consumers | Empty provider/subject or zero-fact evidence entering inventory and being repaired later |
 | Runtime pass/failure policy | Runtime policy headers | C/LLVM codegen wrappers, AIR global evidence | Duplicated pass limits or failure strings in emitters |
 | ABI surface | ABI/runtime headers | C/LLVM, tests, docs | Domain layer leaking layout changes into C FFI silently |
 | Runtime pointer/container ownership | `docs/128_pointer_risk_register.md` + runtime owner files | C inline runtime, LLVM exports, ABI smoke, generated code | C inline path and LLVM export path using different ownership classes |
@@ -145,6 +236,8 @@ keep the source-level business vocabulary clean.
 | Diagnostic JSON shape | Driver diagnostic JSON emitter + `diagnostics-json-test-smoke` | CLI tooling, LSP bridge, soft self-host diagnostic checker | Python-only validation or regex-only prose matching as the only gate |
 | Soft self-host tool output | `docs/self_hosted/03_tool_candidates.md` + `04_beta_exit_handoff.md` | First Pergyra-written diagnostic/AIR/MIR tools, CI oracle comparison | Human-readable output as the only oracle or starting from compiler core rewrite |
 | Unsafe/raw capability scope | `docs/132_unsafe_capability_scope.md` plus semantic/AIR gates once implemented | Parser diagnostics, semantic raw escape diagnostics, ABI lowering, self-host roadmap | Plain `unsafe { ... }` granting raw/system-tier escape |
+| Runtime-none surface scan | `src/compiler/runtime_none_contract.c` | Driver runtime profile diagnostics, runtime-none smoke, future no-runtime lowering | Early-success scanning of only the first array/tuple literal element |
+| Mandatory smoke portability | Owning smoke script plus Makefile target | CI, minimal Windows/Git Bash, soft self-host oracle tools | Python-only validation or explicit required binaries being skipped as success |
 | Build source inventory | Makefile source/object inventory | CI, local smoke targets, dependency inclusion | Shell `find` rediscovering build artifacts or source files on Windows paths |
 | Local build artifact ownership | One `BUILD_DIR`/`BIN_DIR` pair per active make process | Local gates, CI recipes, troubleshooting docs | Parallel gates sharing the same `build/` and corrupting `.o` files |
 
@@ -451,6 +544,10 @@ with `air_mark_*_input(...)`. This keeps verification policy from depending on
 open-coded telemetry fields. The strict-evidence policy bit follows the same
 rule through `air_requires_strict_evidence(...)`; verifiers should not reopen
 the storage flag directly.
+AIR JSON summary counters are a checked projection of the EvidenceNode
+inventory, not a second proof source. `pgy.air.graph.v1` consumers must be able
+to verify that summary counts for DAG, MIR, observability, and runtime frontier
+evidence match the emitted EvidenceNode inventory.
 
 Forbidden:
 

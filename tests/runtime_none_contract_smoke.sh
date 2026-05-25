@@ -26,9 +26,23 @@ require_term "src/pgy_driver.c" "--runtime=none"
 require_term "src/compiler/driver_app.c" "PGY_DRIVER_RUNTIME_NONE_UNSUPPORTED"
 require_term "src/compiler/driver_app.c" "freestanding backend lowering is not implemented yet"
 require_term "src/compiler/runtime_none_contract.c" "runtime-dependent surface"
+require_term "src/compiler/runtime_none_contract.c" "ast_array_literal_element(node, i), scan))"
+require_term "src/compiler/runtime_none_contract.c" "ast_tuple_literal_element(node, i), scan))"
+require_term "src/compiler/runtime_none_contract.c" 'runtime_none_record(scan, node, "pin")'
 require_term "src/compiler/driver_diag.c" "PGY_CAUSE_DRIVER_RUNTIME_NONE_UNSUPPORTED"
 require_term "src/semantic/diag_codes.h" "PGY_DRIVER_RUNTIME_NONE_UNSUPPORTED"
 require_term "src/semantic/diag_codes.h" "driver:runtime:none_unsupported"
+
+if grep -Fq "if (runtime_none_scan_node(ast_array_literal_element(node, i), scan))" \
+    "$ROOT_DIR/src/compiler/runtime_none_contract.c"; then
+    echo "[runtime-none-contract] array literal scan returns before later elements" >&2
+    exit 1
+fi
+if grep -Fq "if (runtime_none_scan_node(ast_tuple_literal_element(node, i), scan))" \
+    "$ROOT_DIR/src/compiler/runtime_none_contract.c"; then
+    echo "[runtime-none-contract] tuple literal scan returns before later elements" >&2
+    exit 1
+fi
 
 if [[ ! -x "$PGY_BIN" ]]; then
     if [[ "$PGY_BIN_WAS_DEFAULT" -eq 1 || "${PGY_RUNTIME_NONE_ALLOW_MISSING_BIN:-0}" == "1" ]]; then
@@ -79,10 +93,37 @@ run_reject() {
     done
 }
 
+cat >"$WORK_DIR/array_late_runtime_surface.pgy" <<'PGY'
+func Main() -> Void {
+    let values = [1, parallel { Log(2); }];
+    Log(0);
+}
+PGY
+
+cat >"$WORK_DIR/tuple_late_runtime_surface.pgy" <<'PGY'
+func Main() -> Void {
+    let values = (1, parallel { Log(2); });
+    Log(0);
+}
+PGY
+
+cat >"$WORK_DIR/pin_runtime_surface.pgy" <<'PGY'
+func Main() -> Void {
+    let scores: Slot<Int> = ClaimSlot<Int>();
+    pin scores as view: ReadView<Int> {
+        Log(1);
+    }
+    Release(scores);
+}
+PGY
+
 run_reject "parallel" "$ROOT_DIR/examples/concurrency_demo.pgy" "parallel"
 run_reject "channel" "$ROOT_DIR/examples/channel_test.pgy" "channel"
 run_reject "intent" "$ROOT_DIR/tests/cases/backend_compare/intent_zone_binding/main.pgy" "intent"
 run_reject "world" "$ROOT_DIR/tests/cases/backend_compare/world_zone_projection_visibility/main.pgy" "world"
+run_reject "pin-runtime-surface" "$WORK_DIR/pin_runtime_surface.pgy" "pin"
+run_reject "array-late-runtime-surface" "$WORK_DIR/array_late_runtime_surface.pgy" "parallel"
+run_reject "tuple-late-runtime-surface" "$WORK_DIR/tuple_late_runtime_surface.pgy" "parallel"
 run_reject "pure-freestanding-blocked" "$ROOT_DIR/tests/cases/backend_compare/basic/main.pgy" "freestanding backend lowering is not implemented yet"
 
 echo "[runtime-none-contract] --runtime=none rejects runtime surfaces and blocks false freestanding claims"

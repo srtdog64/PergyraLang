@@ -222,6 +222,13 @@ slot_read_common(SlotManager *manager, const SlotHandle *handle, void *buffer,
         return err;
     }
 
+    if (entry->pinCount > 0 && entry->pinMode == (uint32_t)PGY_SLOT_PIN_WRITE) {
+        pthread_mutex_unlock(manager_mutex(manager));
+        err = SLOT_ERROR_PINNED;
+        slot_manager_warn("read", handle, err);
+        return err;
+    }
+
     if (slot_is_expired_locked(entry)) {
         pthread_mutex_unlock(manager_mutex(manager));
         err = SLOT_ERROR_TTL_EXPIRED;

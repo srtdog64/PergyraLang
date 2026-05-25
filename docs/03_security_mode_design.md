@@ -273,24 +273,27 @@ func ProcessUserData(data: Slot<UserInfo, ZeroCost>) {
 
 ## Performance Optimizations
 
-### 1. Unchecked Fast-Path Abstraction
+### 1. Checked Fast-Path Lease Abstraction
 
 ```pergyra
-// Security checks are intentionally absent for the unchecked fast path.
+// Beta policy: hot paths use typed Pin/Lease views, not raw pointer escape.
 @[inline(always)]
 func Write<T>(slot: Slot<T, ZeroCost>, value: T) {
-    // Direct memory write - no security checks on this path.
-    unsafe { *slot.get_ptr() = value }
+    pin slot as view: WriteView<T> {
+        ViewWrite(view, value)
+    }
 }
 
-// Security version has full checks
+// Secure version performs token validation at lease entry and reseals at unpin.
 @[inline(never)]  // Prevent inlining for security
 func Write<T, S: Secure>(slot: Slot<T, S>, value: T, token: SecurityToken<S>) {
     validate_token(token)
     check_access_rights(slot, token)
     audit_write(slot, token)
     encrypt_if_needed(S, value)
-    unsafe { *slot.get_ptr() = value }
+    pin slot as view: WriteView<T> {
+        ViewWrite(view, value)
+    }
 }
 ```
 

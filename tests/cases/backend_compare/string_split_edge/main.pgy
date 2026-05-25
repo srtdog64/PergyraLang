@@ -1,0 +1,8 @@
+func Main() -> Void {
+    let parts: Array<String> = Split("a,,b,", ",");
+    Log(ArrayLength(parts));
+    Log(parts[0]);
+    Log(parts[1]);
+    Log(parts[2]);
+    Log(parts[3]);
+}

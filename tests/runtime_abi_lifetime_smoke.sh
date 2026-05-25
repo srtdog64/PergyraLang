@@ -330,6 +330,26 @@ if grep -Fq "pgy_array_push_String(&result, s)" \
     "$ROOT_DIR/src/runtime/pgy_runtime_lib_io_string_exports.h"; then
     fail "StringSplit must not push borrowed input strings into result-owned arrays"
 fi
+for term in \
+    "PgyArray_String result = pgy_array_new_String(8)" \
+    "pgy_array_push_String(&result, pgy_runtime_strdup(s))" \
+    "pgy_array_push_String(&result, pgy_runtime_strdup(p))"; do
+    grep -Fq "$term" "$ROOT_DIR/src/runtime/pgy_runtime_io_qubit_inline.h" ||
+        fail "inline StringSplit must match result-owned LLVM runtime contract; missing $term"
+done
+for term in \
+    "PgyArray_String result = pgy_array_new_String(8)" \
+    "pgy_array_push_String(&result, pgy_runtime_lib_strdup(s))" \
+    "pgy_array_push_String(&result, pgy_runtime_lib_strdup(p))"; do
+    grep -Fq "$term" "$ROOT_DIR/src/runtime/pgy_runtime_lib_io_string_exports.h" ||
+        fail "LLVM StringSplit must keep result-owned string tokens; missing $term"
+done
+grep -Fq '{ "Split", "stdlib string", "StringSplit", 2 }' \
+    "$ROOT_DIR/src/codegen/llvm_expr_stdlib_scalar_io_calls.c" ||
+    fail "LLVM Split alias must lower through the StringSplit runtime export"
+grep -Fq '{ "StringSplit", ctx->array_type_String,' \
+    "$ROOT_DIR/src/codegen/llvm_runtime_core_builtin_decl.c" ||
+    fail "LLVM runtime registry must declare StringSplit as Array<String>"
 grep -Fq "dup_key = pgy_runtime_strdup" \
     "$ROOT_DIR/src/runtime/pgy_runtime_map_string_inline.h" ||
     fail "inline MapKeys<String> must duplicate keys before pushing into Array<String>"
@@ -341,6 +361,7 @@ file_close_body="$(extract_function_body "$llvm_string_text" pgy_file_close)"
 for term in \
     "for (int i = 3; i < PGY_MAX_OPEN_FILES; i++)" \
     "pgy_runtime_ftable[i] == NULL" \
+    "pthread_mutex_lock(&pgy_runtime_ftable_mutex)" \
     "fd = i" \
     "pgy_runtime_ftable[fd] = fp"; do
     grep -Fq "$term" <<< "$file_open_body" ||
@@ -348,6 +369,17 @@ for term in \
 done
 grep -Fq "pgy_runtime_ftable[fd] = NULL" <<< "$file_close_body" ||
     fail "pgy_file_close must release the runtime-owned handle slot"
+grep -Fq "pthread_mutex_lock(&pgy_runtime_ftable_mutex)" <<< "$file_close_body" ||
+    fail "pgy_file_close must guard the runtime-owned handle table"
+for term in \
+    "static pthread_mutex_t pgy_runtime_ftable_mutex = PTHREAD_MUTEX_INITIALIZER" \
+    "pthread_mutex_lock(&_pgy_ftable_mutex)" \
+    "pthread_mutex_lock(&pgy_runtime_ftable_mutex)"; do
+    grep -Fq "$term" \
+        "$ROOT_DIR/src/runtime/pgy_runtime_io_qubit_inline.h" \
+        "$ROOT_DIR/src/runtime/pgy_runtime_lib_io_string_exports.h" ||
+        fail "runtime file handle table must be mutex-protected; missing $term"
+done
 
 read_file_body="$(extract_function_body "$llvm_string_text" pgy_read_file)"
 write_file_body="$(extract_function_body "$llvm_string_text" pgy_write_file)"

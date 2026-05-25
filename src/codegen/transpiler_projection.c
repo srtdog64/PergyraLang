@@ -239,7 +239,8 @@ transpiler_resolve_world_zone_decl(TranspilerCtx *ctx, ASTNode *world_decl,
     const char *zone_type = ast_world_zone_type_name(zone_slot);
     if (ctx == NULL || zone_slot == NULL || zone_type == NULL)
         return NULL;
-    return find_zone_decl(ctx, zone_type);
+    return transpiler_find_decl_in_inventory_local(ctx, AST_ZONE_DECL,
+                                                   zone_type);
 }
 
 static size_t

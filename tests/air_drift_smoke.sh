@@ -132,6 +132,8 @@ run_literal_air_drift_smoke() {
     require_literal "src/compiler/air_evidence_node.c" "air_evidence_kind_has_global_validator"
     require_literal "src/compiler/air_validate_global_evidence.c" "air_evidence_kind_has_global_validator"
     require_literal "src/compiler/air_evidence_node.c" "AIR evidence append requires a known evidence kind"
+    require_literal "src/compiler/air_evidence_node.c" "AIR evidence append requires non-empty provider and subject provenance"
+    require_literal "src/compiler/air_evidence_node.c" "AIR evidence append requires at least one fact or fallback fact"
     require_literal "src/compiler/air_evidence_node.c" "air_next_capacity(&new_capacity"
     require_literal "src/compiler/air_evidence_node.c" "node->fact_count += fact_count"
     require_literal "src/compiler/air_validate_evidence.c" "duplicates evidence node"
@@ -148,6 +150,8 @@ run_literal_air_drift_smoke() {
     require_literal "src/test_air.c" "AIR verify rejects duplicate evidence nodes"
     require_literal "src/test_air.c" "AIR append merges duplicate evidence nodes"
     require_literal "src/test_air.c" "AIR append rejects unknown evidence kind"
+    require_literal "src/test_air.c" "AIR append rejects empty evidence provenance"
+    require_literal "src/test_air.c" "AIR append rejects empty evidence counts"
     require_literal "src/test_air.c" "AIR collects MIR terminator evidence"
     require_literal "src/test_air.c" "AIR rejects MIR evidence without routine provider"
     require_literal "src/compiler/air_evidence_mir.c" "AIR MIR evidence requires routine name or owner provenance"
@@ -385,7 +389,7 @@ if missing_air:
     raise SystemExit("AIR architecture doc missing term(s): " + ", ".join(missing_air))
 
 required_checklist_terms = [
-    "strict beta readiness is now about 70-72%",
+    "strict beta readiness is now about 72-74%",
     "## 0f. AIR Abstraction Safety Closure",
     "Source of truth: `docs/104_air_compiler_architecture.md`",
     "Status: `BLOCKER`",
@@ -402,7 +406,7 @@ if missing_checklist:
     raise SystemExit("beta checklist missing AIR term(s): " + ", ".join(missing_checklist))
 
 required_todo_terms = [
-    "strict beta readiness is now about 70-72%",
+    "strict beta readiness is now about 72-74%",
     "AIR abstraction safety는 Phase 1 데이터 구조 / synthesis / drift checker baseline",
     "strict evidence는 기본값으로 승격됐다",
     "PGY_AIR_STRICT_EVIDENCE=0",

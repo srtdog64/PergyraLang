@@ -236,19 +236,20 @@ rir_lower(ASTNode *annotated_ast, char **error_message)
     RIRProgram *rir;
     if (error_message != NULL)
         *error_message = NULL;
+    rir_set_program_root(NULL);
     if (annotated_ast == NULL || annotated_ast->type != AST_PROGRAM) {
         if (error_message != NULL)
             *error_message = pergyra_strdup("RIR lowering requires AST_PROGRAM");
         return NULL;
     }
 
-    g_rir_program_root = annotated_ast;
     rir = calloc(1, sizeof(RIRProgram));
     if (rir == NULL) {
         if (error_message != NULL)
             *error_message = pergyra_strdup("out of memory");
         return NULL;
     }
+    rir_set_program_root(annotated_ast);
 
     for (size_t i = 0; i < ast_program_statement_count(annotated_ast); i++) {
         ASTNode *node = ast_program_statement(annotated_ast, i);
@@ -297,5 +298,6 @@ rir_lower(ASTNode *annotated_ast, char **error_message)
         }
     }
 
+    rir_set_program_root(NULL);
     return rir;
 }

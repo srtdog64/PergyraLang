@@ -64,7 +64,7 @@ typedef struct
     size_t   dataSize;         /* Actual payload size */
     uint32_t ttl;              /* Time-To-Live in milliseconds */
     uint32_t scopeId;          /* Optional scope owner */
-    uint32_t threadAffinity;   /* Assigned thread ID */
+    uintptr_t threadAffinity;  /* Assigned thread token */
     uint64_t allocationTime;   /* Allocation timestamp */
     
     /* Security extensions */
@@ -81,7 +81,7 @@ typedef struct
     /* Pin/lease state for hot-loop access */
     uint32_t pinCount;
     uint32_t pinMode;
-    uint32_t pinThreadAffinity;
+    uintptr_t pinThreadAffinity;
     uint32_t pinGeneration;
 } SlotEntry;
 

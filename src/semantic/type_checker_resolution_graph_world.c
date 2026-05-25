@@ -160,9 +160,8 @@ semantic_type_resolution_precollect_world_inventory(ASTNode *world_decl,
             && zone_slot_decl->type == AST_WORLD_ZONE
             && ast_world_zone_type_name(zone_slot_decl) != NULL
             && ast_world_state_detail_name(state) != NULL) {
-            ASTNode *zone_type_decl = find_domain_decl_by_name(
-                ctx->program_root,
-                AST_ZONE_DECL,
+            ASTNode *zone_type_decl = semantic_find_zone_decl_by_name(
+                ctx,
                 ast_world_zone_type_name(zone_slot_decl));
             if (zone_type_decl != NULL) {
                 if (ast_world_state_source_kind(state) == WORLD_STATE_SOURCE_PROJECTION) {

@@ -630,6 +630,18 @@ void test_slot_pin_lease_runtime()
     result = PergyraSlotUnpin(plainManager, &view);
     TEST_SECURITY_VIOLATION(result == SLOT_ERROR_INVALID_PIN,
                             "Plain slot double unpin is invalid");
+    result = PergyraSlotPin(plainManager, &plainHandle, PGY_SLOT_PIN_WRITE,
+                            NULL, &view);
+    TEST_ASSERT(result == SLOT_SUCCESS && view.valid && view.ptr != NULL,
+                "Plain slot write pin succeeds");
+    readValue = 0;
+    result = SlotRead(plainManager, &plainHandle, &readValue, sizeof(readValue),
+                      &bytesRead);
+    TEST_SECURITY_VIOLATION(result == SLOT_ERROR_PINNED,
+                            "Write-pinned plain slot rejects concurrent read");
+    result = PergyraSlotUnpin(plainManager, &view);
+    TEST_ASSERT(result == SLOT_SUCCESS && !view.valid,
+                "Plain write pin unpin succeeds");
     result = SlotRelease(plainManager, &plainHandle);
     TEST_ASSERT(result == SLOT_SUCCESS, "Plain slot release after unpin succeeds");
 

@@ -50,6 +50,36 @@ intent_resolve_step_where_type(ASTNode *step, SemanticContext *ctx)
     return intent_resolve_type_ref(type_ref, ctx);
 }
 
+ASTNode *
+intent_find_zone_decl_for_type(Type *type, SemanticContext *ctx)
+{
+    Type *zone_type = intent_normalize_type(type);
+
+    if (ctx == NULL || zone_type == TYPE_UNKNOWN || zone_type->name == NULL)
+        return NULL;
+    return semantic_find_zone_decl_by_name(ctx, zone_type->name);
+}
+
+ASTNode *
+intent_resolve_step_where_zone_decl(ASTNode *step,
+                                    SemanticContext *ctx,
+                                    Type **type_out)
+{
+    Type *zone_type = intent_resolve_step_where_type(step, ctx);
+
+    if (type_out != NULL)
+        *type_out = zone_type;
+    return intent_find_zone_decl_for_type(zone_type, ctx);
+}
+
+ASTNode *
+intent_find_effect_decl_by_name(const char *effect_name, SemanticContext *ctx)
+{
+    if (ctx == NULL || effect_name == NULL)
+        return NULL;
+    return semantic_find_effect_decl_by_name(ctx, effect_name);
+}
+
 const char *
 intent_step_where_source_label(const ASTNode *step)
 {

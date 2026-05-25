@@ -83,7 +83,7 @@ operator_method_name_matches(PgyTokenType op, const char *name)
 }
 
 static ASTNode *
-find_role_operator_method(ASTNode *role, ASTNode *program, PgyTokenType op,
+find_role_operator_method(ASTNode *role, SemanticContext *ctx, PgyTokenType op,
                           int depth)
 {
     if (role == NULL || role->type != AST_ROLE_DECL || depth > 16)
@@ -109,8 +109,8 @@ find_role_operator_method(ASTNode *role, ASTNode *program, PgyTokenType op,
         const char *role_name = ast_include_role_name(inc);
         if (role_name == NULL)
             continue;
-        ASTNode *included = semantic_find_role_decl(program, role_name);
-        ASTNode *method = find_role_operator_method(included, program, op, depth + 1);
+        ASTNode *included = semantic_find_role_decl_by_name(ctx, role_name);
+        ASTNode *method = find_role_operator_method(included, ctx, op, depth + 1);
         if (method != NULL)
             return method;
     }
@@ -122,19 +122,14 @@ static Type *
 type_check_role_operator_overload(ASTNode *expr, SemanticContext *ctx,
                                   Type *left, Type *right)
 {
-    if (ctx->program_root == NULL || left == NULL || left->name == NULL)
+    if (ctx == NULL || left == NULL || left->name == NULL)
         return NULL;
 
-    ASTNode *program = ctx->program_root;
-    for (size_t i = 0; i < ast_program_statement_count(program); i++) {
-        ASTNode *stmt = ast_program_statement(program, i);
-        const char *role_type = semantic_role_for_type_name(stmt);
-        if (role_type == NULL || strcmp(role_type, left->name) != 0) {
-            continue;
-        }
-
+    ASTNode *stmt = NULL;
+    while ((stmt = semantic_find_next_role_decl_for_type_name(
+                ctx, left->name, stmt)) != NULL) {
         ASTNode *method = find_role_operator_method(
-            stmt, ctx->program_root, ast_binary_operator(expr).type, 0);
+            stmt, ctx, ast_binary_operator(expr).type, 0);
         if (method == NULL)
             continue;
 

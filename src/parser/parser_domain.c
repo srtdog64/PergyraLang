@@ -235,13 +235,27 @@ ASTNode* parse_party_declaration(Parser* parser) {
             rs->column = slot_name.column;
             rs->data.role_slot.is_dynamic = is_dyn;
 
-            /* Parse ability types separated by & */
+            /* Parse ability intersection types separated by `&`. */
             do {
                 ASTNode* ability_type = parse_type(parser);
                 append_child_node(&rs->data.role_slot.required_abilities,
                     &rs->data.role_slot.ability_count,
                     &rs->data.role_slot.ability_capacity, ability_type);
-            } while (parser_match(parser, TOKEN_AND));
+            } while (parser_match(parser, TOKEN_AMP));
+
+            if (parser_check(parser, TOKEN_AND)) {
+                parser_error(parser,
+                    "Role slot ability intersection uses '&', not '&&'.\n"
+                    "Reason: '&&' is a boolean expression operator and must not be an ability-contract alias.\n"
+                    "Fix: write 'role slot tank: Damageable & Guardable'.");
+            }
+
+            if (parser_check(parser, TOKEN_PATTERN_OR)) {
+                parser_error(parser,
+                    "Role slot ability union '|' is reserved but not implemented.\n"
+                    "Reason: role-slot OR contracts need stable bind-time ambiguity diagnostics before they can be beta-stable.\n"
+                    "Fix: use an explicit top-level intersection with '&' or split the role slot.");
+            }
 
             append_child_node(&party->data.party_decl.role_slots,
                 &party->data.party_decl.role_count,

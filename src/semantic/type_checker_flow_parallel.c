@@ -95,7 +95,8 @@ type_check_parallel_block_flow(ASTNode *node, SemanticContext *ctx)
         restore_resource_states(&base);
         scope_enter(&ctx->scope, SCOPE_BLOCK);
         (void)type_check_statement_flow(task, ctx, NULL);
-        task_snap = snapshot_resource_states(ctx);
+        task_snap = snapshot_resource_states_from_scope(
+            ctx->scope != NULL ? ctx->scope->parent : NULL, ctx);
         if (!task_snap.valid) {
             semantic_error(ctx, task != NULL ? task : node,
                 "Resource snapshot allocation failed while checking parallel task");

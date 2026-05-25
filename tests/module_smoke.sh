@@ -2,6 +2,8 @@
 set -euo pipefail
 
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+source "$ROOT_DIR/tests/pgy_binary_path_helpers.sh"
+pgy_prepend_windows_runtime_paths
 PGY="${PGY_BIN:-$ROOT_DIR/bin/pgy}"
 if [[ "$PGY" != *.exe && -x "${PGY}.exe" ]]; then
     PGY="${PGY}.exe"
@@ -21,8 +23,10 @@ run_ok() {
     local main_file="$2"
     shift 2
     local output
+    local main_arg
 
-    output="$("$PGY" "$main_file" --run --backend=c 2>&1)"
+    main_arg="$(pgy_path_for_compiler "$PGY" "$main_file")"
+    output="$("$PGY" "$main_arg" --run --backend=c 2>&1)"
     for expected in "$@"; do
         if ! grep -Fq "$expected" <<<"$output"; then
             echo "[module-smoke] $name failed" >&2
@@ -40,8 +44,12 @@ run_fail() {
     local expected="$2"
     local main_file="$3"
     local output
+    local main_arg
+    local out_arg
 
-    if output="$("$PGY" "$main_file" --backend=c -o "$WORK_DIR/out" 2>&1)"; then
+    main_arg="$(pgy_path_for_compiler "$PGY" "$main_file")"
+    out_arg="$(pgy_path_for_compiler "$PGY" "$WORK_DIR/out")"
+    if output="$("$PGY" "$main_arg" --backend=c -o "$out_arg" 2>&1)"; then
         echo "[module-smoke] $name unexpectedly succeeded" >&2
         echo "$output" >&2
         exit 1

@@ -108,11 +108,13 @@ resolve_world_zone_decl_local(ASTNode *world, SemanticContext *ctx, const char *
     }
 
     slot = find_world_zone_slot_local(world, slot_name);
+    if (slot == NULL)
+        return NULL;
     const char *zone_type = ast_world_zone_type_name(slot);
-    if (slot == NULL || zone_type == NULL)
+    if (zone_type == NULL)
         return NULL;
 
-    return find_domain_decl_by_name(ctx->program_root, AST_ZONE_DECL, zone_type);
+    return semantic_find_zone_decl_by_name(ctx, zone_type);
 }
 
 const char *

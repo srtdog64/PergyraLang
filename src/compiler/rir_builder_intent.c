@@ -12,13 +12,15 @@
 static ASTNode *
 find_top_level_zone_named(const char *zone_name)
 {
-    if (g_rir_program_root == NULL
-        || g_rir_program_root->type != AST_PROGRAM
+    ASTNode *program = rir_program_root();
+
+    if (program == NULL
+        || program->type != AST_PROGRAM
         || zone_name == NULL) {
         return NULL;
     }
-    for (size_t i = 0; i < ast_program_statement_count(g_rir_program_root); i++) {
-        ASTNode *node = ast_program_statement(g_rir_program_root, i);
+    for (size_t i = 0; i < ast_program_statement_count(program); i++) {
+        ASTNode *node = ast_program_statement(program, i);
         if (node != NULL
             && node->type == AST_ZONE_DECL
             && ast_zone_name(node) != NULL

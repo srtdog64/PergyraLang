@@ -193,7 +193,7 @@ emit_intent_step_mark_caused_effect(CodeBuf *out, TranspilerCtx *ctx,
         return;
     }
 
-    zone_decl = find_zone_decl(ctx, zone_type);
+    zone_decl = find_zone_decl_in_program_view(ctx, zone_type);
     if (zone_decl == NULL || zone_decl->type != AST_ZONE_DECL)
         return;
 

@@ -2,6 +2,8 @@
 set -euo pipefail
 
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+source "$ROOT_DIR/tests/pgy_binary_path_helpers.sh"
+pgy_prepend_windows_runtime_paths
 PGY="${PGY_BIN:-$ROOT_DIR/bin/pgy}"
 if [[ "$PGY" != *.exe && -x "${PGY}.exe" ]]; then
     PGY="${PGY}.exe"
@@ -22,13 +24,16 @@ func Add(a:Int,b:Int)->Int{return a+b;}
 func Main()->Void{if(true){Log(Add(1,2));}}
 EOF
 
-if "$PGY" fmt "$SOURCE" --check >/dev/null 2>"$WORK_DIR/check_before.err"; then
+SOURCE_ARG="$(pgy_path_for_compiler "$PGY" "$SOURCE")"
+OUT_ARG="$(pgy_path_for_compiler "$PGY" "$WORK_DIR/fmt_case.out")"
+
+if "$PGY" fmt "$SOURCE_ARG" --check >/dev/null 2>"$WORK_DIR/check_before.err"; then
     echo "[fmt-smoke] expected --check to fail before formatting" >&2
     exit 1
 fi
 grep -Fq "needs formatting" "$WORK_DIR/check_before.err"
 
-"$PGY" fmt "$SOURCE" --write >"$WORK_DIR/write1.out"
+"$PGY" fmt "$SOURCE_ARG" --write >"$WORK_DIR/write1.out"
 grep -Fq "formatted" "$WORK_DIR/write1.out"
 grep -Fq "func Add(a: Int, b: Int) -> Int" "$SOURCE"
 grep -Fxq "{" "$SOURCE"
@@ -37,11 +42,11 @@ grep -Fq "func Main() -> Void" "$SOURCE"
 grep -Fq "if (true)" "$SOURCE"
 grep -Fq "Log(Add(1, 2));" "$SOURCE"
 
-"$PGY" fmt "$SOURCE" --check
+"$PGY" fmt "$SOURCE_ARG" --check
 
-"$PGY" fmt "$SOURCE" --write >"$WORK_DIR/write2.out"
+"$PGY" fmt "$SOURCE_ARG" --write >"$WORK_DIR/write2.out"
 grep -Fq "already formatted" "$WORK_DIR/write2.out"
 
-"$PGY" "$SOURCE" --backend=c -o "$WORK_DIR/fmt_case.out" >/dev/null 2>"$WORK_DIR/compile.err"
+"$PGY" "$SOURCE_ARG" --backend=c -o "$OUT_ARG" >/dev/null 2>"$WORK_DIR/compile.err"
 
 echo "fmt-smoke: PASS"

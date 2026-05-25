@@ -110,6 +110,10 @@ tool_terms=(
     "## 1. Diagnostic Catalog Checker"
     "## 2. AIR Graph JSON Validator"
     "stable JSON or diagnostics output"
+    "\"schema\": \"pgy.selfhost.diagnostic-catalog.v1\""
+    "\"schema\": \"pgy.selfhost.air-graph-validator.v1\""
+    "\"input_schema\": \"pgy.air.graph.v1\""
+    "\"findings\": []"
     "Why first:"
     "Why:"
 )

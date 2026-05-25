@@ -124,8 +124,8 @@ type_check_projection_field_contracts(ASTNode *target_decl,
 
         source_field_name = projection_refresh_source_field_name(site,
             target_field->name);
-        source_status = resolve_projection_source_field_path(
-            ctx->program_root, source_decl, source_field_name, ctx,
+        source_status = semantic_resolve_projection_source_field_path(
+            ctx, source_decl, source_field_name,
             &source_path, &source_field_type);
         if (source_status == 2) {
             semantic_error_with_hints(ctx, PGY_CODE_SEM_ZONE_CONTRACT_INVALID, PGY_CAUSE_ZONE_CONTRACT, PGY_FIX_ALIGN_ZONE_SLOT_OR_STATE_NAMING, site,

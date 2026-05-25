@@ -129,14 +129,14 @@ intent_involves_type_name(ASTNode *involves)
 }
 
 bool
-intent_involves_is_subject_host(ASTNode *program, ASTNode *involves)
+intent_involves_is_subject_host(ASTNode *involves, SemanticContext *ctx)
 {
-    const char *type_name = intent_involves_type_name(involves);
+    Type *type = intent_resolve_involves_type(involves, ctx);
     ASTNode *decl = NULL;
 
-    if (type_name == NULL)
+    if (type == NULL || type == TYPE_UNKNOWN || ctx == NULL)
         return false;
-    decl = find_subject_host_decl_by_name(program, type_name);
+    decl = semantic_host_decl_for_type(ctx, type);
     return decl_is_subject_host(decl);
 }
 

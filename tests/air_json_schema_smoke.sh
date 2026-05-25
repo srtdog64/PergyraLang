@@ -14,8 +14,12 @@ if [[ "$PGY" != *.exe ]] && pgy_binary_expects_windows_paths "${PGY}.exe"; then
     PGY="${PGY}.exe"
 fi
 if [[ ! -x "$PGY" ]]; then
-    echo "[air-json-schema] SKIP executable probe; missing compiler binary: $PGY"
-    exit 0
+    if [[ "$PGY_EXPLICIT" -eq 0 ]]; then
+        echo "[air-json-schema] SKIP executable probe; missing compiler binary: $PGY"
+        exit 0
+    fi
+    echo "[air-json-schema] missing compiler binary: $PGY" >&2
+    exit 1
 fi
 
 TMP_BASE="${TMPDIR:-${TEMP:-/tmp}}"
@@ -112,6 +116,7 @@ for required in \
     '"kind":"rir_boundary"' \
     '"kind":"hir_cfg"' \
     '"kind":"mir_cleanup"' \
+    '"kind":"mir_terminator"' \
     '"provider":' \
     '"subject":' \
     '"boundary_kind":' \
@@ -194,22 +199,33 @@ assert all(e["boundary_kind"] for e in data["evidence"] if e["boundary"] is not 
 assert all(e["boundary_source"] for e in data["evidence"] if e["boundary"] is not None)
 assert all("fact_count" in e and "fallback_count" in e for e in data["evidence"])
 assert all(e["fallback_count"] == 0 for e in data["evidence"])
+def count_kind(graph, kind):
+    return sum(1 for e in graph["evidence"] if e["kind"] == kind)
+
 if summary["dag_metadata_evidence_count"] > 0:
     assert any(e["kind"] == "dag_metadata" for e in data["evidence"])
 if summary["dag_generic_evidence_count"] > 0:
     assert any(e["kind"] == "dag_generic" for e in data["evidence"])
 if summary["dag_ability_evidence_count"] > 0:
     assert any(e["kind"] == "dag_ability" for e in data["evidence"])
+assert summary["dag_metadata_evidence_count"] == count_kind(data, "dag_metadata")
+assert summary["dag_generic_evidence_count"] == count_kind(data, "dag_generic")
+assert summary["dag_ability_evidence_count"] == count_kind(data, "dag_ability")
 assert any(e["kind"] == "mir_cleanup" for e in data["evidence"])
 assert summary["mir_cleanup_evidence_count"] >= 1
+assert summary["mir_cleanup_evidence_count"] == count_kind(data, "mir_cleanup")
 assert summary["mir_pin_cleanup_evidence_count"] >= 0
-assert summary["mir_terminator_evidence_count"] >= 0
+assert summary["mir_terminator_evidence_count"] >= 1
+assert summary["mir_terminator_evidence_count"] == count_kind(data, "mir_terminator")
+assert any(e["kind"] == "mir_terminator" for e in data["evidence"])
 assert summary["mir_select_receive_evidence_count"] >= 0
+assert summary["mir_select_receive_evidence_count"] == count_kind(data, "mir_select_receive")
 if summary["mir_select_receive_evidence_count"] > 0:
     assert any(e["kind"] == "mir_select_receive" for e in data["evidence"])
 select_summary = select_data["summary"]
 assert select_data["schema"] == "pgy.air.graph.v1"
 assert select_summary["mir_select_receive_evidence_count"] >= 1
+assert select_summary["mir_select_receive_evidence_count"] == count_kind(select_data, "mir_select_receive")
 assert any(
     e["kind"] == "mir_select_receive"
     and e["subject"] == "select-receive"
@@ -220,8 +236,10 @@ assert any(
 assert summary["rir_effect_propagation_evidence_count"] <= summary["rir_effect_propagation_required_count"]
 assert summary["rir_relation_propagation_evidence_count"] <= summary["rir_relation_propagation_required_count"]
 assert summary["observability_schema_evidence_count"] == 1
+assert summary["observability_schema_evidence_count"] == count_kind(data, "observability_schema")
 assert any(e["kind"] == "observability_schema" and e["provider"] == "runtime-observability-schema" for e in data["evidence"])
 assert summary["runtime_frontier_policy_evidence_count"] == 1
+assert summary["runtime_frontier_policy_evidence_count"] == count_kind(data, "runtime_frontier_policy")
 assert any(e["kind"] == "runtime_frontier_policy" and e["provider"] == "pgy.runtime.frontier-policy.v1" for e in data["evidence"])
 assert all("location" in b and b["location"]["line"] > 0 for b in data["boundaries"])
 print("[air-json-schema] parsed schema ok")

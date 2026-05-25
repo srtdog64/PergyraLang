@@ -54,8 +54,7 @@ type_check_role_decl(ASTNode *node, SemanticContext *ctx)
                 "role host-type lookup");
             bound_type = semantic_host_resolve_type_ref(for_type, ctx);
             if (bound_type != NULL && for_type_name != NULL) {
-                ASTNode *type_decl = find_type_decl_by_name(
-                    ctx->program_root, for_type_name);
+                ASTNode *type_decl = semantic_host_decl_for_type(ctx, bound_type);
                 if (type_decl != NULL && !decl_is_subject_host(type_decl)) {
                     semantic_error_with_hints(ctx, PGY_CODE_SEM_ROLE_CONTRACT_INVALID, PGY_CAUSE_ROLE_CONTRACT, PGY_FIX_ALIGN_ROLE_IMPL_WITH_ABILITY, for_type,
                         "Role '%s' must be bound to a subject or primitive domain; '%s' is not a subject",
@@ -108,7 +107,7 @@ type_check_role_decl(ASTNode *node, SemanticContext *ctx)
             continue;
         }
 
-        included_role_decl = semantic_find_role_decl(ctx->program_root, role_name);
+        included_role_decl = semantic_find_role_decl_by_name(ctx, role_name);
         if (included_role_decl != NULL) {
             GenericParams *included_generics =
                 ast_role_generic_params(included_role_decl);
@@ -207,8 +206,8 @@ type_check_role_decl(ASTNode *node, SemanticContext *ctx)
                 "role impl ability lookup");
             /* Check that the ability exists */
             if (ability_name != NULL) {
-                ASTNode *ability_decl = find_ability_decl_by_name(
-                    ctx->program_root, ability_name);
+                ASTNode *ability_decl = semantic_find_ability_decl_by_name(
+                    ctx, ability_name);
                 Symbol *ab = scope_lookup(ctx->scope,
                     ability_name);
                 if (ability_decl != NULL

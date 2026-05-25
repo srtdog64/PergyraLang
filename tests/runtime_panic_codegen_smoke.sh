@@ -2,6 +2,8 @@
 set -euo pipefail
 
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+source "$ROOT_DIR/tests/pgy_binary_path_helpers.sh"
+pgy_prepend_windows_runtime_paths
 PGY="${PGY_BIN:-$ROOT_DIR/bin/pgy}"
 if [[ "$PGY" != *.exe && -x "${PGY}.exe" ]]; then
     PGY="${PGY}.exe"
@@ -129,10 +131,15 @@ expect_codegen_panic() {
     local source="$3"
     local expected_class="${4:-divide-by-zero}"
     local output
+    local source_arg
+    local out_arg
     local rc
 
+    source_arg="$(pgy_path_for_compiler "$PGY" "$source")"
+    out_arg="$(pgy_path_for_compiler "$PGY" "$WORK_DIR/$name-$backend.out")"
+
     set +e
-    output="$("$PGY" "$source" --run --backend="$backend" -o "$WORK_DIR/$name-$backend.out" 2>&1)"
+    output="$("$PGY" "$source_arg" --run --backend="$backend" -o "$out_arg" 2>&1)"
     rc=$?
     set -e
 

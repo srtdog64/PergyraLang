@@ -21,9 +21,10 @@ pgy_runtime_lib_strdup(const char *src)
 
 static FILE *pgy_runtime_ftable[PGY_MAX_OPEN_FILES];
 static int   pgy_runtime_ftable_next = 3;
+static pthread_mutex_t pgy_runtime_ftable_mutex = PTHREAD_MUTEX_INITIALIZER;
 
 static void
-pgy_runtime_io_init(void)
+pgy_runtime_io_init_locked(void)
 {
     pgy_runtime_ftable[0] = stdin;
     pgy_runtime_ftable[1] = stdout;
@@ -32,14 +33,15 @@ pgy_runtime_io_init(void)
 
 int32_t pgy_file_open(const char *path, const char *mode)
 {
-    if (pgy_runtime_ftable[0] == NULL)
-        pgy_runtime_io_init();
+    int fd = -1;
 
     FILE *fp = fopen(path, mode);
     if (fp == NULL)
         return -1;
 
-    int fd = -1;
+    pthread_mutex_lock(&pgy_runtime_ftable_mutex);
+    if (pgy_runtime_ftable[0] == NULL)
+        pgy_runtime_io_init_locked();
     for (int i = 3; i < PGY_MAX_OPEN_FILES; i++) {
         if (pgy_runtime_ftable[i] == NULL) {
             fd = i;
@@ -47,6 +49,7 @@ int32_t pgy_file_open(const char *path, const char *mode)
         }
     }
     if (fd < 0) {
+        pthread_mutex_unlock(&pgy_runtime_ftable_mutex);
         fclose(fp);
         return -1;
     }
@@ -54,6 +57,7 @@ int32_t pgy_file_open(const char *path, const char *mode)
     if (fd >= pgy_runtime_ftable_next)
         pgy_runtime_ftable_next = fd + 1;
     pgy_runtime_ftable[fd] = fp;
+    pthread_mutex_unlock(&pgy_runtime_ftable_mutex);
     return (int32_t)fd;
 }
 
@@ -62,10 +66,16 @@ char *pgy_file_read(int32_t fd)
     char tmp[4096];
 
     tmp[0] = '\0';
-    if (fd < 0 || fd >= PGY_MAX_OPEN_FILES || pgy_runtime_ftable[fd] == NULL)
+    pthread_mutex_lock(&pgy_runtime_ftable_mutex);
+    if (fd < 0 || fd >= PGY_MAX_OPEN_FILES || pgy_runtime_ftable[fd] == NULL) {
+        pthread_mutex_unlock(&pgy_runtime_ftable_mutex);
         return pgy_runtime_lib_strdup("");
-    if (fgets(tmp, sizeof(tmp), pgy_runtime_ftable[fd]) == NULL)
+    }
+    if (fgets(tmp, sizeof(tmp), pgy_runtime_ftable[fd]) == NULL) {
+        pthread_mutex_unlock(&pgy_runtime_ftable_mutex);
         return pgy_runtime_lib_strdup("");
+    }
+    pthread_mutex_unlock(&pgy_runtime_ftable_mutex);
 
     size_t len = strlen(tmp);
     if (len > 0 && tmp[len - 1] == '\n')
@@ -75,18 +85,29 @@ char *pgy_file_read(int32_t fd)
 
 void pgy_file_write(int32_t fd, const char *data)
 {
-    if (fd < 0 || fd >= PGY_MAX_OPEN_FILES || pgy_runtime_ftable[fd] == NULL)
+    pthread_mutex_lock(&pgy_runtime_ftable_mutex);
+    if (fd < 0 || fd >= PGY_MAX_OPEN_FILES || pgy_runtime_ftable[fd] == NULL) {
+        pthread_mutex_unlock(&pgy_runtime_ftable_mutex);
         return;
+    }
     if (data != NULL)
         fwrite(data, 1, strlen(data), pgy_runtime_ftable[fd]);
+    pthread_mutex_unlock(&pgy_runtime_ftable_mutex);
 }
 
 void pgy_file_close(int32_t fd)
 {
-    if (fd < 3 || fd >= PGY_MAX_OPEN_FILES || pgy_runtime_ftable[fd] == NULL)
+    FILE *fp = NULL;
+
+    pthread_mutex_lock(&pgy_runtime_ftable_mutex);
+    if (fd >= 3 && fd < PGY_MAX_OPEN_FILES && pgy_runtime_ftable[fd] != NULL) {
+        fp = pgy_runtime_ftable[fd];
+        pgy_runtime_ftable[fd] = NULL;
+    }
+    pthread_mutex_unlock(&pgy_runtime_ftable_mutex);
+    if (fp == NULL)
         return;
-    fclose(pgy_runtime_ftable[fd]);
-    pgy_runtime_ftable[fd] = NULL;
+    fclose(fp);
 }
 
 char *pgy_read_file(const char *path)

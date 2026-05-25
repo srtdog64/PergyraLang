@@ -46,8 +46,8 @@ emit_zone_bind_relation_layer(CodeBuf *out,
     if (layer_slot == NULL)
         return;
 
-    relation_decl = find_relation_decl(ctx,
-        ast_zone_layer_slot_layer_type(layer_slot));
+    relation_decl = transpiler_find_decl_in_inventory_local(
+        ctx, AST_RELATION_DECL, ast_zone_layer_slot_layer_type(layer_slot));
     if (relation_decl == NULL)
         return;
 

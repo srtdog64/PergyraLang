@@ -70,10 +70,9 @@ type_check_let_decl(ASTNode *node, SemanticContext *ctx)
         decl_type = ownership_let_resolve_type_ref(ann, ctx);
         if (decl_type == NULL)
             decl_type = TYPE_UNKNOWN;
-        if (ctx->program_root != NULL
-            && ast_type_name(ann) != NULL) {
-            ASTNode *class_decl = find_type_decl_by_name(ctx->program_root,
-                                                         ast_type_name(ann));
+        if (ast_type_name(ann) != NULL) {
+            ASTNode *class_decl = semantic_find_class_decl_by_name(
+                ctx, ast_type_name(ann));
             if (class_decl != NULL && class_decl->type == AST_CLASS_DECL) {
                 validate_class_where_clause_specialization_ast(class_decl,
                                                                ann,

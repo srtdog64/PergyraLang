@@ -17,6 +17,7 @@ fmt_token_is_binary_operator(PgyTokenType type)
     case TOKEN_GREATER:
     case TOKEN_GREATER_EQUAL:
     case TOKEN_AND:
+    case TOKEN_AMP:
     case TOKEN_OR:
     case TOKEN_PATTERN_OR:
     case TOKEN_ARROW:

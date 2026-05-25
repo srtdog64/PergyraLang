@@ -4,7 +4,9 @@ WebGL dogfood boundary (2026-05-04): the beta dogfood path is a bridge, not
 language surface. `make dogfood-webgl-test-smoke` proves that emitted C can keep
 host-import/frame-callback terms and optionally link through Emscripten. It does
 not freeze WebGL APIs, renderer syntax, native LLVM wasm, or `pgy.render.webgl`;
-those belong to post-beta module ecosystem work.
+those belong to post-beta module ecosystem work. The smoke uses the shared
+Windows/MSYS path helper; missing `emcc` may skip only the optional wasm link,
+not the emitted-C bridge check.
 
 Self-host boundary (2026-05-24): hard self-host does not start from the
 compiler core with the current beta stable subset. The beta path is
@@ -21,16 +23,20 @@ runtime portability claims, documentation/implementation drift, and anchored
 ownership failure coverage. These items must be closed with diagnostics and
 smoke gates, not by broad marketing claims.
 
-Current status (2026-05-22): this checklist is the beta execution contract.
+Current status (2026-05-25): this checklist is the beta execution contract.
 The criterion is not feature count; it is **surface trust + structural
 sustainability + C/LLVM parity + CFG-backed body safety + AIR-backed
 abstraction safety + dogfood-first path**. Feature feel is about 70%, while
-strict beta readiness is now about 70-72%. The prior 67% anchor was held until
+strict beta readiness is now about 72-74%. The prior 67% anchor was held until
 source-of-truth closures had smoke evidence; current local gates show CFG body
-dataflow, AIR drift/schema, DAG resolver inventory, DAG metadata stats, and
-runtime frontier contracts are green. Do not call this 75% yet: the remaining
-closure is consumer-completeness across CFG/AIR plus MIR/LLVM declaration
-bootstrap and ABI/Slot/Pin freeze. Do not round this to 75% yet.
+dataflow, MIR executable tests, AIR drift/schema, DAG resolver inventory, DAG
+metadata stats, runtime frontier contracts, semantic domain-owner seams, and
+local LLVM smoke/backend-compare parity are green. Current Windows-bash gates
+also run the explicit-binary example/tooling/observability/memory-concurrency/
+LLVM campaign and raw-escape executable probes instead of skipping them.
+Do not call this 75% or 80% yet: the remaining closure is
+consumer-completeness across CFG/AIR plus MIR/LLVM declaration bootstrap and
+ABI/Slot/Pin freeze.
 
 The five closure targets are:
 
@@ -45,6 +51,54 @@ The five closure targets are:
 - ABI/Slot/Pin ownership freeze: Slot/Pin/Zone-bound handle, raw escape, and
   runtime-none policy must be documented, smoked, and backend-stable.
 
+Current DAG intent-zone owner tightening (2026-05-25): intent step `where`,
+derived `using`, participant transfer-source checks, and transfer `from`/`to`
+zone declaration recovery now consume the intent type owner seam instead of
+re-opening `AST_ZONE_DECL` lookup in each consumer. Intent step `causes` effect
+declaration recovery uses the same owner seam rather than re-opening
+`AST_EFFECT_DECL` in the step validator. `type-resolution-resolver-inventory-test-smoke`
+rejects direct `AST_ZONE_DECL` / `AST_EFFECT_DECL` recovery in those consumers,
+while
+`type-resolution-dag-test-smoke` and `intent-compression-contract-test-smoke`
+keep the DAG statistics and compressed intent provenance stable. Remaining
+DAG debt is still
+semantic-consumer coverage, especially zone authority/generic provenance and
+module/visibility fact consumption.
+
+Current domain contract lookup tightening (2026-05-25): action contract
+`within` / `causes` validation consumes the semantic domain lookup seam
+(`semantic_find_zone_decl_by_name(...)` /
+`semantic_find_effect_decl_by_name(...)`) instead of calling
+`find_domain_decl_by_name(...)` locally. Zone relation/effect contract
+validation now uses the same owner seam through
+`semantic_find_relation_decl_by_name(...)` and
+`semantic_find_effect_decl_by_name(...)`. World declaration, world helper, and
+world embedding consumers also use `semantic_find_zone_decl_by_name(...)` /
+`semantic_find_world_decl_by_name(...)` instead of direct domain lookup. Zone
+layer-slot relation/effect validation in the authority owner also consumes the
+semantic relation/effect seams. The resolver-inventory smoke rejects direct
+domain declaration lookup returning to `type_checker_func_action_contract.c`,
+`type_checker_domain_contracts.c`, the world semantic consumers, or the zone
+authority consumer.
+
+Current LLVM parity refresh (2026-05-25): after the semantic domain-owner seam
+cleanup, local MinGW/Git Bash `llvm-test-smoke` passed the LLVM smoke suite and
+`llvm-test-backend-compare` passed ABI same-process `196/0` plus backend compare
+`72/72`. `cfg-body-dataflow-test-smoke` and `test-mir` passed in the same
+refresh window, so the current evidence covers body-flow smoke, MIR executable
+shape, and C/LLVM parity together. This is strong parity evidence for the
+current frozen subset, but it does not close the remaining 80% blockers by
+itself: CFG/AIR consumer completeness, declaration bootstrap shape, and
+ABI/Slot/Pin freeze remain open.
+
+Current host declaration compatibility tightening (2026-05-25):
+party/role/roster host declarations are part of the shared host compatibility
+type set, not ad-hoc fallback cases. `llvm_find_host_decl_in_active_inventory(...)`
+iterates `pgy_host_decl_compat_types(...)`, and
+`mir-declaration-inventory-test-smoke` gates `AST_PARTY_DECL`,
+`AST_ROLE_DECL`, and `AST_ROSTER_DECL` in that set. C/LLVM host method lookup
+must not regress to a partial class/enum/domain-only chain.
+
 Current CFG body-flow tightening (2026-05-21): direct parallel slot
 `Read` / `Write` / `Release` conflicts now flow through CFG resource
 snapshots instead of the AST-only slot analyzer. Slot operations mark
@@ -57,18 +111,85 @@ DeviceSlot-release style helper paths cannot release without a CFG access fact.
 `slot_analyzer.c` remains a named
 pre-CFG compatibility seam for conservative escape/helper provenance, not the
 final body-safety source of truth. Gates: `test-semantic` (`2551/0`),
-`test-transpile` (`770/0`), `cfg-body-dataflow-test-smoke`,
+`test-transpile` (`838/0`), `cfg-body-dataflow-test-smoke`,
 `semantic-core-shape-test-smoke`, `parallel-core-contract-test-smoke`,
 `perf-contract-test-smoke`, `source-utf8-test-smoke`, and
 `build-source-inventory-test-smoke`.
 
+Current AIR evidence provenance tightening (2026-05-25): EvidenceNode creation
+now rejects empty provider/subject provenance and zero-fact evidence before an
+invalid proof fact can enter the inventory. Validation still rejects malformed
+evidence, but the creation owner now enforces the same provenance/fact invariant
+earlier. Local verification: `test-air` (`118/0`) and `air-drift-test-smoke`.
+
 Current AIR evidence-kind tightening (2026-05-21): evidence-kind metadata is
 now fail-closed. `kEvidenceKindMeta` carries an explicit `present` bit, so a
 new `AIR_EVIDENCE_*` enum member is not treated as valid unless its boundary /
-global-validator policy is deliberately initialized. This keeps AIR
-EvidenceNode inventory from accepting silent default metadata while AIR is
-being promoted to the abstraction-boundary verifier. Gate:
-`air-drift-test-smoke`.
+global-validator policy is deliberately initialized. This keeps AIR EvidenceNode
+inventory from accepting silent default metadata while AIR is being promoted to
+the abstraction-boundary verifier. Gate: `air-drift-test-smoke`.
+
+Current smoke portability tightening (2026-05-25): Python is not a beta
+runtime or CI dependency. Mandatory smokes must keep a non-Python fallback or
+fail when explicitly supplied inputs are unavailable. `diagnostics-json-test-
+smoke` and `diagnostic-registry-test-smoke` have shell fallbacks, and
+`air-json-schema-test-smoke` now fails instead of skipping when an explicit
+`PGY_BIN` is missing. CFG body-dataflow, example, tooling, observability,
+memory/concurrency, codegen determinism, runtime panic ABI/codegen, perf
+baseline, and LLVM campaign smokes now follow the same rule: if `PGY_BIN` /
+`PGY_LSP_BIN` or a required toolchain is explicit, the gate fails when the
+binary/toolchain is missing or cannot launch; source-only fallback is allowed
+only for default missing binaries. Windows-bash executable smokes must set
+runtime DLL paths and pass compiler inputs through
+`pgy_path_for_compiler(...)`, and the DnD LLVM campaign smoke writes temporary
+stdout files instead of passing large backend output through Python argv.
+Runtime-none scanning also now walks every array/tuple literal element instead
+of returning success after the first clean element, and source-level
+`pin ... as ... { ... }` is rejected as a runtime-dependent surface because it
+requires pin/unpin cleanup lowering. Gates:
+`runtime-none-contract-test-smoke`, `air-json-schema-test-smoke`,
+`cfg-body-dataflow-test-smoke`, `example-test-smoke`,
+`tooling-conformance-test-smoke`,
+`observability-schema-test-smoke`, `memory-concurrency-model-test-smoke`,
+`codegen-determinism-test-smoke`,
+`runtime-panic-abi-test-smoke`,
+`runtime-panic-codegen-test-smoke`,
+`perf-c-baseline-test-smoke`,
+`llvm-campaign-projection-test-smoke`, and `llvm-dnd-campaign-test-smoke`.
+
+Current beta surface smoke portability (2026-05-25): formatter, module,
+package-module resolver, and stdlib surface smokes now also use the shared
+Windows/MSYS path helper. Local gates validate fmt idempotence, module import
+behavior, package scaffold/error JSON, and stdlib C/LLVM parity through the same
+compiler path contract as the backend smokes.
+IR pipeline and Unicode policy smokes now follow the same contract; explicit
+compiler binaries fail closed, and the logistics IR probe plus C/LLVM UTF-8
+string policy run through converted paths.
+`build-source-inventory-test-smoke` now gates the helper requirement for these
+beta executable smoke scripts, preventing future Windows path regressions from
+landing silently. Tooling conformance also converts the debugger source path;
+smokes that only call `compare_backends.sh` are treated as delegated path
+conversion rather than raw compiler invocation.
+
+Current raw escape documentation tightening (2026-05-25): security-mode fast
+path examples no longer present `unsafe { *slot.get_ptr() = ... }` as a stable
+Slot performance model. The stable hot path is typed Pin/Lease
+(`pin slot as view: WriteView<T> { ... }`), while system-tier raw escape remains
+reserved behind future scoped unsafe capability evidence. Gate:
+`raw-escape-contract-test-smoke`.
+
+Current C backend declaration-lookup tightening (2026-05-25): intent step zone
+binding, caused-effect zone lookup, world-zone projection resolution, and world
+frontier zone lookup now consume active inventory / program-view seams instead
+of reopening direct zone declaration lookup at the use site. Gate:
+`mir-declaration-inventory-test-smoke`; sanity: `test-transpile` (`838/0`).
+The same slice now covers world embedded method-call context, overlay projection
+invalidation, zone effect bind, and zone relation bind for zone/effect/relation
+declaration recovery.
+C backend MIR SSA host recovery and function forward policy now consume active
+inventory for zone/world declaration recovery as well, keeping residual SSA
+name rendering and prototype policy on the same declaration source-of-truth
+seam.
 
 Current DAG tightening (2026-05-15): Generic parameter storage is now closed
 behind parser-owned accessors for the main semantic contract path. Generic
@@ -342,9 +463,9 @@ Beta closure asks one practical question: **can the core survive a one-year
 freeze while dogfood starts?** If AIR/CFG/runtime invariants are still
 incomplete, documentation alone does not count as closure.
 
-마지막 업데이트: 2026-05-22
+마지막 업데이트: 2026-05-25
 
-이 문서는 베타 진입 전 반드시 닫아야 하는 실행 체크리스트다. 기준은 기능 개수가 아니라 **surface trust + 구조 지속 가능성 + C/LLVM parity + CFG-backed body safety + AIR-backed abstraction safety + dogfood-first path**다. 현재 표기는 두 개로 분리한다: 기능 체감 진행도는 약 70%, strict beta readiness는 약 70-72%다. CFG/AIR consumer-completeness, MIR/LLVM declaration bootstrap, ABI/Slot/Pin freeze가 모두 닫히면 75-80% 범위로 재평가한다. 아직 75%로 올리지 않는다.
+이 문서는 베타 진입 전 반드시 닫아야 하는 실행 체크리스트다. 기준은 기능 개수가 아니라 **surface trust + 구조 지속 가능성 + C/LLVM parity + CFG-backed body safety + AIR-backed abstraction safety + dogfood-first path**다. 현재 표기는 두 개로 분리한다: 기능 체감 진행도는 약 70%, strict beta readiness는 약 72-74%다. CFG/AIR consumer-completeness, MIR/LLVM declaration bootstrap, ABI/Slot/Pin freeze가 모두 닫히면 75-80% 범위로 재평가한다. 아직 75%나 80%로 올리지 않는다.
 
 베타 진입 목표는 1년간 코어 문법과 의미론을 멈추고 생태계(`pgy.compat.*`, `pgy.kit.*`, `pgy.std.*`, `pgy.accel.spray`, `pgy.render.skia` 등)를 분리해도 되는 지점을 만드는 것이다. 따라서 beta closure는 **"이 코어가 1년 동안 자력으로 버틸 수 있는가"**를 기준으로 본다. 새 표면을 늘리는 작업은 AIR/CFG/runtime invariant가 닫힌 뒤로 미루며, 문서 합의만으로 완료된 것으로 보지 않는다.
 

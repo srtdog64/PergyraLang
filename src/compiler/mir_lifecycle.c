@@ -294,8 +294,11 @@ mir_dump(const MIRProgram *mir, FILE *out)
                         fprintf(out, "%s%s", m == 0 ? "" : ",", inst->uses[m]);
                 }
                 if (mir_instruction_has_source_location(inst)) {
-                    fprintf(out, " ast-type=%d line=%u",
-                            mir_instruction_source_ast_type_or(inst, -1),
+                    ASTNodeType ast_type = (ASTNodeType)
+                        mir_instruction_source_ast_type_or(inst, AST_PROGRAM);
+                    fprintf(out, " ast=%s ast-type=%d line=%u",
+                            mir_source_ast_type_name(ast_type),
+                            (int)ast_type,
                             mir_instruction_source_line(inst));
                 }
                 if (inst->kind == MIR_INST_BRANCH)

@@ -151,5 +151,5 @@ semantic_type_resolution_projection_source_decl(ASTNode *zone_decl,
         return NULL;
     }
 
-    return find_type_decl_by_name(ctx->program_root, ast_type_name(type_node));
+    return semantic_find_class_decl_by_name(ctx, ast_type_name(type_node));
 }

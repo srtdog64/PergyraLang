@@ -2,9 +2,12 @@
 set -euo pipefail
 
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+source "$ROOT_DIR/tests/pgy_binary_path_helpers.sh"
+pgy_prepend_windows_runtime_paths
 DEFAULT_PGY="$ROOT_DIR/bin/pgy"
 TMP_BASE="${TMPDIR:-${TEMP:-/tmp}}"
 TMP_PGY="${TMP_BASE%/}/pgy-PergyraLang-bin/pgy"
+PGY_BIN_WAS_EXPLICIT=0
 
 if [[ -x "${DEFAULT_PGY}.exe" ]]; then
     DEFAULT_PGY="${DEFAULT_PGY}.exe"
@@ -14,13 +17,21 @@ if [[ -x "${TMP_PGY}.exe" ]]; then
 fi
 if [[ -n "${PGY_BIN:-}" ]]; then
     PGY="$PGY_BIN"
+    PGY_BIN_WAS_EXPLICIT=1
 elif [[ -x "$TMP_PGY" && ( ! -x "$DEFAULT_PGY" || "$TMP_PGY" -nt "$DEFAULT_PGY" ) ]]; then
     PGY="$TMP_PGY"
 else
     PGY="$DEFAULT_PGY"
 fi
+if [[ "$PGY" != *.exe ]] && pgy_binary_expects_windows_paths "${PGY}.exe"; then
+    PGY="${PGY}.exe"
+fi
 
 if [[ ! -x "$PGY" ]]; then
+    if [[ "$PGY_BIN_WAS_EXPLICIT" -eq 1 ]]; then
+        echo "[llvm-dnd-campaign] missing explicit compiler binary: $PGY" >&2
+        exit 1
+    fi
     echo "[llvm-dnd-campaign] SKIP executable probe; missing compiler binary: $PGY"
     exit 0
 fi
@@ -37,10 +48,12 @@ fi
 tmp_dir="$(mktemp -d "${TMP_BASE%/}/pgy-dnd-campaign.XXXXXX")"
 trap 'rm -rf "$tmp_dir"' EXIT
 
-c_output="$("$PGY" "$ROOT_DIR/examples/dnd_tavern_campaign/main.pgy" \
-    --run --backend=c -o "$tmp_dir/dnd-c" 2>&1)"
-llvm_output="$("$PGY" "$ROOT_DIR/examples/dnd_tavern_campaign/main.pgy" \
-    --run --backend=llvm -o "$tmp_dir/dnd-llvm" 2>&1)"
+c_output="$("$PGY" "$(pgy_path_for_compiler "$PGY" "$ROOT_DIR/examples/dnd_tavern_campaign/main.pgy")" \
+    --run --backend=c -o "$(pgy_path_for_compiler "$PGY" "$tmp_dir/dnd-c")" 2>&1)"
+llvm_output="$("$PGY" "$(pgy_path_for_compiler "$PGY" "$ROOT_DIR/examples/dnd_tavern_campaign/main.pgy")" \
+    --run --backend=llvm -o "$(pgy_path_for_compiler "$PGY" "$tmp_dir/dnd-llvm")" 2>&1)"
+printf '%s\n' "$c_output" > "$tmp_dir/c.raw.out"
+printf '%s\n' "$llvm_output" > "$tmp_dir/llvm.raw.out"
 
 if [[ -z "$PYTHON_BIN" ]]; then
     normalize_output() {
@@ -71,12 +84,13 @@ if [[ -z "$PYTHON_BIN" ]]; then
     exit 0
 fi
 
-"$PYTHON_BIN" - "$c_output" "$llvm_output" <<'PY'
+"$PYTHON_BIN" - "$tmp_dir/c.raw.out" "$tmp_dir/llvm.raw.out" <<'PY'
 import difflib
+import pathlib
 import sys
 
-c_output = sys.argv[1]
-llvm_output = sys.argv[2]
+c_output = pathlib.Path(sys.argv[1]).read_text(encoding="utf-8", errors="replace")
+llvm_output = pathlib.Path(sys.argv[2]).read_text(encoding="utf-8", errors="replace")
 
 def normalize(text: str) -> list[str]:
     lines: list[str] = []

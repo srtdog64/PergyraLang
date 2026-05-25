@@ -52,6 +52,107 @@ mir_instruction_source_ast_type_or(const MIRInstruction *inst,
     return (int)inst->source_ast_type;
 }
 
+const char *
+mir_source_ast_type_name(ASTNodeType type)
+{
+    switch (type) {
+    case AST_PROGRAM: return "AST_PROGRAM";
+    case AST_BLOCK: return "AST_BLOCK";
+    case AST_FUNC_DECL: return "AST_FUNC_DECL";
+    case AST_CLASS_DECL: return "AST_CLASS_DECL";
+    case AST_EXTERN_BLOCK: return "AST_EXTERN_BLOCK";
+    case AST_LET_DECL: return "AST_LET_DECL";
+    case AST_LET_DESTRUCTURE: return "AST_LET_DESTRUCTURE";
+    case AST_TYPE_ALIAS: return "AST_TYPE_ALIAS";
+    case AST_WITH_STMT: return "AST_WITH_STMT";
+    case AST_PARALLEL_BLOCK: return "AST_PARALLEL_BLOCK";
+    case AST_FOR_LOOP: return "AST_FOR_LOOP";
+    case AST_WHILE_LOOP: return "AST_WHILE_LOOP";
+    case AST_IF_STMT: return "AST_IF_STMT";
+    case AST_RETURN: return "AST_RETURN";
+    case AST_BREAK: return "AST_BREAK";
+    case AST_CONTINUE: return "AST_CONTINUE";
+    case AST_ENUM_DECL: return "AST_ENUM_DECL";
+    case AST_SELECT_STMT: return "AST_SELECT_STMT";
+    case AST_MATCH_STMT: return "AST_MATCH_STMT";
+    case AST_MATCH_CASE: return "AST_MATCH_CASE";
+    case AST_BINARY: return "AST_BINARY";
+    case AST_UNARY: return "AST_UNARY";
+    case AST_CALL: return "AST_CALL";
+    case AST_MEMBER_ACCESS: return "AST_MEMBER_ACCESS";
+    case AST_ARRAY_ACCESS: return "AST_ARRAY_ACCESS";
+    case AST_ARRAY_LITERAL: return "AST_ARRAY_LITERAL";
+    case AST_TUPLE_LITERAL: return "AST_TUPLE_LITERAL";
+    case AST_ASSIGNMENT: return "AST_ASSIGNMENT";
+    case AST_AWAIT_EXPR: return "AST_AWAIT_EXPR";
+    case AST_CHANNEL_SEND: return "AST_CHANNEL_SEND";
+    case AST_CHANNEL_RECV: return "AST_CHANNEL_RECV";
+    case AST_NUMBER: return "AST_NUMBER";
+    case AST_STRING: return "AST_STRING";
+    case AST_BOOLEAN: return "AST_BOOLEAN";
+    case AST_IDENTIFIER: return "AST_IDENTIFIER";
+    case AST_TYPE: return "AST_TYPE";
+    case AST_CHANNEL_TYPE: return "AST_CHANNEL_TYPE";
+    case AST_FUTURE_TYPE: return "AST_FUTURE_TYPE";
+    case AST_ASYNC_BLOCK: return "AST_ASYNC_BLOCK";
+    case AST_SPAWN_EXPR: return "AST_SPAWN_EXPR";
+    case AST_TASK_GROUP: return "AST_TASK_GROUP";
+    case AST_ABILITY_DECL: return "AST_ABILITY_DECL";
+    case AST_ROLE_DECL: return "AST_ROLE_DECL";
+    case AST_INCLUDE_STMT: return "AST_INCLUDE_STMT";
+    case AST_REQUIRE_FIELD: return "AST_REQUIRE_FIELD";
+    case AST_IMPL_ABILITY: return "AST_IMPL_ABILITY";
+    case AST_OVERRIDE_FUNC: return "AST_OVERRIDE_FUNC";
+    case AST_PARTY_DECL: return "AST_PARTY_DECL";
+    case AST_ROLE_SLOT: return "AST_ROLE_SLOT";
+    case AST_PARTY_SHARED: return "AST_PARTY_SHARED";
+    case AST_PARTY_METHOD: return "AST_PARTY_METHOD";
+    case AST_CONTEXT_ACCESS: return "AST_CONTEXT_ACCESS";
+    case AST_PARTY_INSTANCE: return "AST_PARTY_INSTANCE";
+    case AST_ROSTER_DECL: return "AST_ROSTER_DECL";
+    case AST_SYSTEMIC_SLOT: return "AST_SYSTEMIC_SLOT";
+    case AST_WORLD_DECL: return "AST_WORLD_DECL";
+    case AST_WORLD_SYSTEMIC: return "AST_WORLD_SYSTEMIC";
+    case AST_WORLD_ZONE: return "AST_WORLD_ZONE";
+    case AST_WORLD_ACTIVATE: return "AST_WORLD_ACTIVATE";
+    case AST_WORLD_DEACTIVATE: return "AST_WORLD_DEACTIVATE";
+    case AST_WORLD_MAINTAIN: return "AST_WORLD_MAINTAIN";
+    case AST_WORLD_STATE: return "AST_WORLD_STATE";
+    case AST_INTENT_DECL: return "AST_INTENT_DECL";
+    case AST_INTENT_INVOLVES: return "AST_INTENT_INVOLVES";
+    case AST_INTENT_VALUE: return "AST_INTENT_VALUE";
+    case AST_INTENT_STEP: return "AST_INTENT_STEP";
+    case AST_RELATION_DECL: return "AST_RELATION_DECL";
+    case AST_EFFECT_DECL: return "AST_EFFECT_DECL";
+    case AST_ZONE_DECL: return "AST_ZONE_DECL";
+    case AST_DOMAIN_SLOT: return "AST_DOMAIN_SLOT";
+    case AST_ZONE_LAYER_SLOT: return "AST_ZONE_LAYER_SLOT";
+    case AST_ZONE_APPLY: return "AST_ZONE_APPLY";
+    case AST_ZONE_LINK: return "AST_ZONE_LINK";
+    case AST_ZONE_DETACH: return "AST_ZONE_DETACH";
+    case AST_ZONE_UNLINK: return "AST_ZONE_UNLINK";
+    case AST_ZONE_REFRESH: return "AST_ZONE_REFRESH";
+    case AST_ZONE_MAINTAIN_EFFECT: return "AST_ZONE_MAINTAIN_EFFECT";
+    case AST_ZONE_MAINTAIN_RELATION: return "AST_ZONE_MAINTAIN_RELATION";
+    case AST_ZONE_MAINTAIN_STATE: return "AST_ZONE_MAINTAIN_STATE";
+    case AST_ZONE_AUTHORITY: return "AST_ZONE_AUTHORITY";
+    case AST_ZONE_STATE: return "AST_ZONE_STATE";
+    case AST_EVENT_DECL: return "AST_EVENT_DECL";
+    case AST_EVENT_SUBSCRIBE: return "AST_EVENT_SUBSCRIBE";
+    case AST_EVENT_UNSUBSCRIBE: return "AST_EVENT_UNSUBSCRIBE";
+    case AST_EVENT_INVOKE: return "AST_EVENT_INVOKE";
+    case AST_EVENT_HANDLER_TYPE: return "AST_EVENT_HANDLER_TYPE";
+    case AST_LAMBDA_EXPR: return "AST_LAMBDA_EXPR";
+    case AST_IMPORT_DECL: return "AST_IMPORT_DECL";
+    case AST_USE_DECL: return "AST_USE_DECL";
+    case AST_NAMESPACE_DECL: return "AST_NAMESPACE_DECL";
+    case AST_UNSAFE_BLOCK: return "AST_UNSAFE_BLOCK";
+    case AST_DEFER_STMT: return "AST_DEFER_STMT";
+    case AST_BIND_STMT: return "AST_BIND_STMT";
+    }
+    return "AST_UNKNOWN";
+}
+
 bool
 mir_instruction_source_location_matches_node(const MIRInstruction *inst,
                                              const ASTNode *node)

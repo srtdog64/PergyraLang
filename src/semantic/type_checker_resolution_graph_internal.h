@@ -49,7 +49,11 @@ void semantic_stage_zone_decl(ASTNode *decl, SemanticContext *ctx);
 ASTNode *semantic_find_top_level_decl_by_label(ASTNode *program,
                                                const char *label,
                                                TypeResolutionNodeKind kind);
-ASTNode *semantic_find_graph_host_decl(ASTNode *program,
+ASTNode *semantic_find_top_level_decl_by_label_in_context(
+    SemanticContext *ctx,
+    const char *label,
+    TypeResolutionNodeKind kind);
+ASTNode *semantic_find_graph_host_decl(SemanticContext *ctx,
                                        const char *label);
 void semantic_stage_top_level_decl(ASTNode *decl, SemanticContext *ctx);
 void semantic_type_resolution_record_named_dependency(

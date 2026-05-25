@@ -107,7 +107,7 @@ SlotError
 SlotLock(SlotManager *manager, const SlotHandle *handle)
 {
     SlotEntry *entry;
-    uint32_t tid = current_thread_id();
+    uintptr_t tid = current_thread_id();
 
     if (manager == NULL || handle == NULL)
         return SLOT_ERROR_INVALID_HANDLE;
@@ -133,7 +133,7 @@ SlotError
 SlotUnlock(SlotManager *manager, const SlotHandle *handle)
 {
     SlotEntry *entry;
-    uint32_t tid = current_thread_id();
+    uintptr_t tid = current_thread_id();
 
     if (manager == NULL || handle == NULL)
         return SLOT_ERROR_INVALID_HANDLE;
@@ -159,7 +159,7 @@ SlotError
 SlotTryLock(SlotManager *manager, const SlotHandle *handle)
 {
     SlotEntry *entry;
-    uint32_t tid = current_thread_id();
+    uintptr_t tid = current_thread_id();
 
     if (manager == NULL || handle == NULL)
         return SLOT_ERROR_INVALID_HANDLE;

@@ -242,7 +242,9 @@ emit_assignment_projection_invalidation(TranspilerCtx *ctx, ASTNode *target)
                 && zone_slot_name != NULL
                 && zone_type_name != NULL
                 && source_slot_name != NULL) {
-                ASTNode *zone_decl = find_zone_decl(ctx, zone_type_name);
+                ASTNode *zone_decl =
+                    transpiler_find_decl_in_inventory_local(ctx, AST_ZONE_DECL,
+                                                            zone_type_name);
                 if (zone_decl != NULL)
                     transpiler_bind_current_host_decl_local(ctx, zone_decl);
                 ctx->current_overlay_receiver_expr =
@@ -318,7 +320,8 @@ emit_world_embedded_receiver_projection_sync(TranspilerCtx *ctx,
         return NULL;
     }
 
-    zone_decl = find_zone_decl(ctx, zone_type_name);
+    zone_decl = transpiler_find_decl_in_inventory_local(ctx, AST_ZONE_DECL,
+                                                        zone_type_name);
     if (zone_decl == NULL || zone_decl->type != AST_ZONE_DECL)
         return NULL;
 

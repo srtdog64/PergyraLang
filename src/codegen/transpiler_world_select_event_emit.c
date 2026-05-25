@@ -16,7 +16,8 @@
 static ASTNode *
 transpiler_frontier_lookup_zone(void *ctx, const char *zone_name)
 {
-    return find_zone_decl((TranspilerCtx *)ctx, zone_name);
+    return transpiler_find_decl_in_inventory_local((TranspilerCtx *)ctx,
+                                                   AST_ZONE_DECL, zone_name);
 }
 
 void

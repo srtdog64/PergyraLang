@@ -128,12 +128,14 @@ emit_world_embedded_action_effect_sync(TranspilerCtx *ctx,
         return NULL;
     }
 
-    zone_decl = find_zone_decl(ctx, zone_type_name);
+    zone_decl = transpiler_find_decl_in_inventory_local(ctx, AST_ZONE_DECL,
+                                                        zone_type_name);
     if (zone_decl == NULL || zone_decl->type != AST_ZONE_DECL)
         return NULL;
 
     effect_name = ast_func_causes_effect(method_decl);
-    effect_decl = find_effect_decl(ctx, effect_name);
+    effect_decl = transpiler_find_decl_in_inventory_local(ctx, AST_EFFECT_DECL,
+                                                          effect_name);
     if (effect_decl == NULL || effect_decl->type != AST_EFFECT_DECL)
         return NULL;
 

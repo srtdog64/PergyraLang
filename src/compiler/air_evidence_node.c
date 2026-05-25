@@ -153,6 +153,16 @@ air_append_evidence_node_ex(AIRProgram *air,
         air_set_error(error_message, "AIR evidence append requires a known evidence kind");
         return false;
     }
+    if (air_name_is_empty(provider_name) || air_name_is_empty(subject_name)) {
+        air_set_error(error_message,
+                      "AIR evidence append requires non-empty provider and subject provenance");
+        return false;
+    }
+    if (fact_count == 0 && fallback_count == 0) {
+        air_set_error(error_message,
+                      "AIR evidence append requires at least one fact or fallback fact");
+        return false;
+    }
     for (size_t i = 0; i < air->evidence_count; i++) {
         node = &air->evidence_nodes[i];
         if (node->kind == kind

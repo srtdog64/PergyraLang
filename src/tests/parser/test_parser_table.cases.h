@@ -431,7 +431,7 @@
         {
             "Party Declaration",
             "party DungeonTeam {\n"
-            "    role slot tank: Damageable\n"
+            "    role slot tank: Damageable & Guardable\n"
             "    role slot healer: Healing\n"
             "    shared formation: String = \"standard\"\n"
             "    func Execute() -> Void {\n"
@@ -439,6 +439,27 @@
             "    }\n"
             "}",
             1
+        },
+        {
+            "Reserved Role Slot Ability Union Is Rejected",
+            "party FlexibleTeam {\n"
+            "    role slot support: Healing | Buffing\n"
+            "}",
+            0
+        },
+        {
+            "Role Slot Boolean And Alias Is Rejected",
+            "party DungeonTeam {\n"
+            "    role slot tank: Damageable && Guardable\n"
+            "}",
+            0
+        },
+        {
+            "Reserved Container Role Slot Intersection Is Rejected",
+            "party CityDistrict {\n"
+            "    role slot citizens: Array<Living & Economic>\n"
+            "}",
+            0
         },
         {
             "Roster Declaration",

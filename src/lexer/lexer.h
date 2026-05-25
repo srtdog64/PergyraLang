@@ -145,6 +145,7 @@ typedef enum
     TOKEN_GREATER,      /* > */
     TOKEN_GREATER_EQUAL,/* >= */
     TOKEN_AND,          /* && */
+    TOKEN_AMP,          /* & (ability intersection) */
     TOKEN_OR,           /* || */
     TOKEN_PATTERN_OR,   /* | */
     TOKEN_NOT,          /* ! */

@@ -3,6 +3,8 @@ set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 ROOT_DIR="$(cd "${SCRIPT_DIR}/.." && pwd)"
+source "$ROOT_DIR/tests/pgy_binary_path_helpers.sh"
+pgy_prepend_windows_runtime_paths
 TMP_BASE="${TMPDIR:-${TEMP:-/tmp}}"
 PGY_BIN="${PGY_BIN:-${ROOT_DIR}/bin/pgy}"
 CC="${CC:-cc}"
@@ -29,11 +31,6 @@ if ! command -v awk >/dev/null 2>&1; then
   exit 1
 fi
 
-if [[ ! -x /usr/bin/time ]]; then
-  echo "[perf-c-baseline] /usr/bin/time is required" >&2
-  exit 1
-fi
-
 if (( RUNS <= WARMUP )); then
   echo "[perf-c-baseline] PGY_C_BASELINE_RUNS must be greater than PGY_C_BASELINE_WARMUP" >&2
   exit 1
@@ -47,8 +44,11 @@ C_SOURCE="${ROOT_DIR}/tests/perf/c_baseline_arith_loop.c"
 PGY_EXE="${WORK_DIR}/arith_loop_pgy"
 C_EXE="${WORK_DIR}/arith_loop_c"
 PGY_C_OUT="${WORK_DIR}/arith_loop_pgy.c"
+PGY_SOURCE_ARG="$(pgy_path_for_compiler "$PGY_BIN" "$PGY_SOURCE")"
+PGY_EXE_ARG="$(pgy_path_for_compiler "$PGY_BIN" "$PGY_EXE")"
+PGY_C_OUT_ARG="$(pgy_path_for_compiler "$PGY_BIN" "$PGY_C_OUT")"
 
-"$PGY_BIN" "$PGY_SOURCE" --backend=c --emit-c -o "$PGY_C_OUT" >/dev/null
+"$PGY_BIN" "$PGY_SOURCE_ARG" --backend=c --emit-c -o "$PGY_C_OUT_ARG" >/dev/null
 if grep -Fq "pgy_checked_mod_i32_export" "$PGY_C_OUT"; then
   echo "[perf-c-baseline] constant nonzero modulo regressed to checked helper" >&2
   exit 1
@@ -57,7 +57,7 @@ if grep -Fq "pgy_checked_div_i32_export" "$PGY_C_OUT"; then
   echo "[perf-c-baseline] constant nonzero division regressed to checked helper" >&2
   exit 1
 fi
-"$PGY_BIN" "$PGY_SOURCE" --backend=c --opt=release -o "$PGY_EXE" >/dev/null
+"$PGY_BIN" "$PGY_SOURCE_ARG" --backend=c --opt=release -o "$PGY_EXE_ARG" >/dev/null
 "$CC" -O3 -std=c11 "$C_SOURCE" -o "$C_EXE"
 
 "$PGY_EXE" >"${WORK_DIR}/pgy.out"
@@ -70,12 +70,34 @@ if ! cmp -s "${WORK_DIR}/pgy.out" "${WORK_DIR}/c.out"; then
   exit 1
 fi
 
+pgy_now_ns() {
+  local value
+  value="$(date +%s%N 2>/dev/null || true)"
+  if [[ "$value" =~ ^[0-9]+$ ]]; then
+    printf '%s\n' "$value"
+    return 0
+  fi
+  value="$(date +%s 2>/dev/null || true)"
+  if [[ "$value" =~ ^[0-9]+$ ]]; then
+    printf '%s000000000\n' "$value"
+    return 0
+  fi
+  echo "[perf-c-baseline] date command cannot provide elapsed time" >&2
+  return 1
+}
+
 measure_avg() {
   local exe="$1"
   local log="$2"
+  local start_ns
+  local end_ns
   : >"$log"
   for ((i = 0; i < RUNS; i++)); do
-    /usr/bin/time -f "%e" "$exe" >/dev/null 2>>"$log"
+    start_ns="$(pgy_now_ns)"
+    "$exe" >/dev/null
+    end_ns="$(pgy_now_ns)"
+    awk -v start="$start_ns" -v end="$end_ns" \
+      'BEGIN { printf("%.9f\n", (end - start) / 1000000000.0) }' >>"$log"
   done
   awk -v warmup="$WARMUP" '
     NR > warmup { sum += $1; count += 1 }

@@ -11,8 +11,6 @@
 #include "diag_codes.h"
 #include "parser/ast_api.h"
 
-#include <string.h>
-
 static ASTNode *
 find_nth_bindable_domain_slot(ASTNode **slots, size_t slot_count,
                               ASTNode **refreshes, size_t refresh_count,
@@ -32,25 +30,6 @@ find_nth_bindable_domain_slot(ASTNode **slots, size_t slot_count,
         if (seen == ordinal)
             return slot;
         seen++;
-    }
-
-    return NULL;
-}
-
-static ASTNode *
-find_named_class_decl_local(ASTNode *program, const char *name)
-{
-    if (program == NULL || program->type != AST_PROGRAM || name == NULL)
-        return NULL;
-
-    for (size_t i = 0; i < ast_program_statement_count(program); i++) {
-        ASTNode *stmt = ast_program_statement(program, i);
-        if (stmt == NULL || stmt->type != AST_CLASS_DECL
-            || ast_class_name(stmt) == NULL) {
-            continue;
-        }
-        if (strcmp(ast_class_name(stmt), name) == 0)
-            return stmt;
     }
 
     return NULL;
@@ -106,7 +85,7 @@ type_check_zone_effect_contract(ASTNode *zone,
 
     zone_name = ast_zone_name(zone) != NULL ? ast_zone_name(zone) : "<zone>";
 
-    effect_decl = find_domain_decl_by_name(ctx->program_root, AST_EFFECT_DECL,
+    effect_decl = semantic_find_effect_decl_by_name(ctx,
         ast_zone_layer_slot_layer_type(effect_slot));
     if (effect_decl == NULL)
         return false;
@@ -218,7 +197,7 @@ relation_slot_matches_between_kind(ASTNode *slot,
             return false;
         if (ast_domain_slot_is_tobject(slot))
             return false;  /* tobject slot uses "tobject" kind, not "object" */
-        decl = find_named_class_decl_local(ctx->program_root,
+        decl = semantic_find_class_decl_by_name(ctx,
             slot_type != NULL ? slot_type->name : NULL);
         return decl != NULL
             && ast_class_is_struct(decl)
@@ -230,7 +209,7 @@ relation_slot_matches_between_kind(ASTNode *slot,
             return false;
         if (!ast_domain_slot_is_tobject(slot))
             return false;
-        decl = find_named_class_decl_local(ctx->program_root,
+        decl = semantic_find_class_decl_by_name(ctx,
             slot_type != NULL ? slot_type->name : NULL);
         return decl != NULL
             && ast_class_is_struct(decl)
@@ -240,7 +219,7 @@ relation_slot_matches_between_kind(ASTNode *slot,
     if (kind == RELATION_ENDPOINT_CLASS) {
         if (ast_domain_slot_is_subject(slot) || ast_domain_slot_is_tobject(slot))
             return false;
-        decl = find_named_class_decl_local(ctx->program_root,
+        decl = semantic_find_class_decl_by_name(ctx,
             slot_type != NULL ? slot_type->name : NULL);
         if (decl == NULL)
             return true;
@@ -296,7 +275,7 @@ type_check_zone_relation_contract(ASTNode *zone,
 
     zone_name = ast_zone_name(zone) != NULL ? ast_zone_name(zone) : "<zone>";
 
-    relation_decl = find_domain_decl_by_name(ctx->program_root, AST_RELATION_DECL,
+    relation_decl = semantic_find_relation_decl_by_name(ctx,
         ast_zone_layer_slot_layer_type(relation_slot));
     if (relation_decl == NULL)
         return false;

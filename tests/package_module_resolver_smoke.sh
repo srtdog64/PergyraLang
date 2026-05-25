@@ -2,6 +2,8 @@
 set -euo pipefail
 
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+source "$ROOT_DIR/tests/pgy_binary_path_helpers.sh"
+pgy_prepend_windows_runtime_paths
 PGY="${PGY_BIN:-$ROOT_DIR/bin/pgy}"
 if [[ "$PGY" != *.exe && -x "${PGY}.exe" ]]; then
     PGY="${PGY}.exe"
@@ -54,7 +56,7 @@ grep -Fq 'pergyra = "1.0"' "$INIT_DIR/pgy.toml"
 grep -Fq 'entry = "main.pgy"' "$INIT_DIR/pgy.toml"
 grep -Fq '[dependencies]' "$INIT_DIR/pgy.toml"
 grep -Fq '[dev-dependencies]' "$INIT_DIR/pgy.toml"
-init_run_output="$(cd "$INIT_DIR" && "$PGY" main.pgy --backend=c --run 2>&1)"
+init_run_output="$(cd "$INIT_DIR" && "$PGY" "$(pgy_path_for_compiler "$PGY" "$INIT_DIR/main.pgy")" --backend=c --run 2>&1)"
 grep -Fq "Hello, sample-app!" <<<"$init_run_output"
 
 if install_output="$("$PGY" install example 2>&1)"; then
@@ -71,7 +73,7 @@ import "missing.pgy";
 func Main() -> Void { Log(1); }
 EOF
 missing_json="$MISSING_DIR/missing.err"
-if "$PGY" "$MISSING_DIR/main.pgy" --backend=c --error-format=json 2>"$missing_json"; then
+if "$PGY" "$(pgy_path_for_compiler "$PGY" "$MISSING_DIR/main.pgy")" --backend=c --error-format=json 2>"$missing_json"; then
     echo "[package-module] missing import unexpectedly succeeded" >&2
     exit 1
 fi
@@ -91,7 +93,7 @@ import "a.pgy";
 func Main() -> Void { Log(1); }
 EOF
 cycle_json="$CYCLE_DIR/cycle.err"
-if "$PGY" "$CYCLE_DIR/main.pgy" --backend=c --error-format=json 2>"$cycle_json"; then
+if "$PGY" "$(pgy_path_for_compiler "$PGY" "$CYCLE_DIR/main.pgy")" --backend=c --error-format=json 2>"$cycle_json"; then
     echo "[package-module] circular import unexpectedly succeeded" >&2
     exit 1
 fi

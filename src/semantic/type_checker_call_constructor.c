@@ -34,8 +34,8 @@ type_check_constructor_symbol_call(ASTNode *expr,
         || sym->kind == SYMBOL_RELATION
         || sym->kind == SYMBOL_EFFECT || sym->kind == SYMBOL_ROSTER
         || sym->kind == SYMBOL_WORLD || sym->kind == SYMBOL_ZONE) {
-        if (ctx->program_root != NULL) {
-            ASTNode *decl = constructor_decl_for_symbol_kind(ctx->program_root,
+        if (ctx != NULL) {
+            ASTNode *decl = semantic_constructor_decl_for_symbol_kind(ctx,
                 sym->kind, display_name);
             size_t field_count = 0;
             bool decl_is_generic = false;

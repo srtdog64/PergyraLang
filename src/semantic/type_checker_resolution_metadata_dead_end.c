@@ -25,9 +25,7 @@ metadata_record_named_dead_end_diagnostic(SemanticContext *ctx,
     sym = name != NULL ? scope_lookup(ctx->scope, name) : NULL;
     if (sym != NULL) {
         if (sym->kind == SYMBOL_CLASS) {
-            ASTNode *decl = ctx->program_root != NULL
-                ? find_type_decl_by_name(ctx->program_root, name)
-                : NULL;
+            ASTNode *decl = semantic_find_class_decl_by_name(ctx, name);
             GenericParams *class_generics = ast_class_generic_params(decl);
             if (decl != NULL && decl->type == AST_CLASS_DECL
                 && ast_generic_param_count(class_generics) > 0) {
@@ -40,7 +38,7 @@ metadata_record_named_dead_end_diagnostic(SemanticContext *ctx,
         }
     }
 
-    if (ctx->program_root != NULL && find_type_alias_decl(ctx->program_root, name) != NULL) {
+    if (semantic_find_type_alias_decl_by_name(ctx, name) != NULL) {
         ctx->type_resolution_metadata_unresolved_named_alias++;
         return;
     }

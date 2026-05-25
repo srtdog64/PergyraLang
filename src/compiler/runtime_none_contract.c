@@ -209,6 +209,8 @@ runtime_none_scan_node(const ASTNode *node, RuntimeNoneScan *scan)
             {
                 size_t statement_count = 0;
                 ASTNode **statements = ast_block_statements(node, &statement_count);
+                if (ast_block_is_pin_block(node))
+                    return runtime_none_record(scan, node, "pin");
                 return runtime_none_scan_list(statements, statement_count, scan);
             }
         case AST_FOR_LOOP:
@@ -255,23 +257,23 @@ runtime_none_scan_node(const ASTNode *node, RuntimeNoneScan *scan)
                     return false;
                 return runtime_none_scan_list(args, arg_count, scan);
             }
-    case AST_MEMBER_ACCESS:
+        case AST_MEMBER_ACCESS:
             return runtime_none_scan_node(ast_member_object(node), scan);
-    case AST_ARRAY_ACCESS:
+        case AST_ARRAY_ACCESS:
             return runtime_none_scan_node(ast_array_access_array(node), scan) &&
                    runtime_none_scan_node(ast_array_access_index(node), scan);
         case AST_ARRAY_LITERAL:
             for (size_t i = 0; i < ast_array_literal_count(node); i++) {
-                if (runtime_none_scan_node(ast_array_literal_element(node, i), scan))
-                    return true;
+                if (!runtime_none_scan_node(ast_array_literal_element(node, i), scan))
+                    return false;
             }
-            return false;
+            return true;
         case AST_TUPLE_LITERAL:
             for (size_t i = 0; i < ast_tuple_literal_count(node); i++) {
-                if (runtime_none_scan_node(ast_tuple_literal_element(node, i), scan))
-                    return true;
+                if (!runtime_none_scan_node(ast_tuple_literal_element(node, i), scan))
+                    return false;
             }
-            return false;
+            return true;
         case AST_ASSIGNMENT:
             return runtime_none_scan_node(ast_assignment_target(node), scan) &&
                    runtime_none_scan_node(ast_assignment_value(node), scan);

@@ -31,10 +31,8 @@ type_check_intent_step_transfer_contract(ASTNode *node,
         ? intent_resolve_involves_type(from_involves, ctx) : NULL;
     Type *to_type = to_involves != NULL
         ? intent_resolve_involves_type(to_involves, ctx) : NULL;
-    ASTNode *from_zone_decl = find_domain_decl_by_name(ctx->program_root, AST_ZONE_DECL,
-        from_type != NULL ? from_type->name : NULL);
-    ASTNode *to_zone_decl = find_domain_decl_by_name(ctx->program_root, AST_ZONE_DECL,
-        to_type != NULL ? to_type->name : NULL);
+    ASTNode *from_zone_decl = intent_find_zone_decl_for_type(from_type, ctx);
+    ASTNode *to_zone_decl = intent_find_zone_decl_for_type(to_type, ctx);
     Type *where_zone_type = intent_resolve_step_where_type(step, ctx);
 
     if (from_alias == NULL || to_alias == NULL) {

@@ -11,7 +11,7 @@ void slot_manager_record_security_violation(SlotManager *manager,
                                             uint32_t slotId,
                                             const char *details);
 uint64_t slot_now_us(void);
-uint32_t current_thread_id(void);
+uintptr_t current_thread_id(void);
 uint32_t slot_checksum_bytes(const void *ptr, size_t size);
 SlotEntry *find_slot_entry_locked(SlotManager *manager,
                                   const SlotHandle *handle);

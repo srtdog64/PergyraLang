@@ -41,7 +41,7 @@ semantic_run_type_resolution_worklist(ASTNode *program,
 
         if (node->kind == TYPE_RES_NODE_LOCAL_CONTRACT
             || node->kind == TYPE_RES_NODE_PROJECTION_PATH) {
-            host_decl = semantic_find_graph_host_decl(program, node->label);
+            host_decl = semantic_find_graph_host_decl(ctx, node->label);
             if (host_decl == NULL)
                 continue;
             if (host_decl->type == AST_WORLD_DECL)

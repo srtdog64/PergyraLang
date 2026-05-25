@@ -2,6 +2,12 @@
 
 #include <string.h>
 
+static ASTNode *
+projection_path_program(SemanticContext *ctx)
+{
+    return ctx != NULL ? ctx->program_root : NULL;
+}
+
 static const char *
 projection_path_scratch_strdup(SemanticContext *ctx, const char *text)
 {
@@ -92,14 +98,15 @@ resolve_projection_source_field_path_rec(ASTNode *program_root,
         Type *nested_type = NULL;
         const char *prefixed_path;
         int nested_status;
-        const char *field_type_name = field != NULL ? ast_type_name(field->type) : NULL;
+        Type *field_type;
 
         if (field == NULL || !field->is_vessel_field
-            || field->name == NULL || field_type_name == NULL) {
+            || field->name == NULL || field->type == NULL) {
             continue;
         }
 
-        vessel_decl = find_type_decl_by_name(program_root, field_type_name);
+        field_type = projection_resolve_type_ref(field->type, ctx);
+        vessel_decl = semantic_host_decl_for_type(ctx, field_type);
         if (vessel_decl == NULL || vessel_decl->type != AST_CLASS_DECL
             || ast_class_nominal_kind(vessel_decl) != NOMINAL_DECL_VESSEL) {
             continue;
@@ -149,5 +156,17 @@ resolve_projection_source_field_path(ASTNode *program_root,
                                      Type **field_type_out)
 {
     return resolve_projection_source_field_path_rec(program_root, source_decl,
+        field_name, 0, ctx, path_out, field_type_out);
+}
+
+int
+semantic_resolve_projection_source_field_path(SemanticContext *ctx,
+                                              ASTNode *source_decl,
+                                              const char *field_name,
+                                              const char **path_out,
+                                              Type **field_type_out)
+{
+    ASTNode *program = projection_path_program(ctx);
+    return resolve_projection_source_field_path_rec(program, source_decl,
         field_name, 0, ctx, path_out, field_type_out);
 }

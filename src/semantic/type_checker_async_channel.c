@@ -29,29 +29,6 @@ spawn_callable_param_at(ASTNode *decl, size_t index)
     return ast_func_param(decl, index);
 }
 
-static ASTNode *
-spawn_find_callable_decl(ASTNode *program, const char *name)
-{
-    if (program == NULL || program->type != AST_PROGRAM || name == NULL)
-        return NULL;
-
-    for (size_t i = 0; i < ast_program_statement_count(program); i++) {
-        ASTNode *stmt = ast_program_statement(program, i);
-        if (stmt == NULL || stmt->type != AST_FUNC_DECL)
-            continue;
-        if (stmt->is_async_decl) {
-            const char *async_name = ast_async_func_name(stmt);
-            if (async_name != NULL && strcmp(async_name, name) == 0)
-                return stmt;
-            continue;
-        }
-        const char *stmt_name = ast_declaration_name(stmt);
-        if (stmt_name != NULL && strcmp(stmt_name, name) == 0)
-            return stmt;
-    }
-    return NULL;
-}
-
 static bool
 semantic_channel_type_is_token(const Type *type);
 
@@ -91,7 +68,7 @@ semantic_validate_spawn_token_boundary(ASTNode *expr, SemanticContext *ctx)
     if (callee_name == NULL)
         return false;
 
-    decl = spawn_find_callable_decl(ctx->program_root, callee_name);
+    decl = semantic_find_callable_decl_by_name(ctx, callee_name);
     if (decl == NULL || decl->type != AST_FUNC_DECL)
         return false;
 
@@ -149,7 +126,7 @@ semantic_validate_spawn_ref_boundary(ASTNode *expr,
     if (callee_name == NULL)
         return;
 
-    decl = spawn_find_callable_decl(ctx->program_root, callee_name);
+    decl = semantic_find_callable_decl_by_name(ctx, callee_name);
     if (decl == NULL || decl->type != AST_FUNC_DECL)
         return;
 

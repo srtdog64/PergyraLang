@@ -2,9 +2,12 @@
 set -euo pipefail
 
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+source "$ROOT_DIR/tests/pgy_binary_path_helpers.sh"
+pgy_prepend_windows_runtime_paths
 DEFAULT_PGY="$ROOT_DIR/bin/pgy"
 TMP_BASE="${TMPDIR:-${TEMP:-/tmp}}"
 TMP_PGY="${TMP_BASE%/}/pgy-PergyraLang-bin/pgy"
+PGY_BIN_WAS_EXPLICIT=0
 if [[ -x "${DEFAULT_PGY}.exe" ]]; then
     DEFAULT_PGY="${DEFAULT_PGY}.exe"
 fi
@@ -13,13 +16,21 @@ if [[ -x "${TMP_PGY}.exe" ]]; then
 fi
 if [[ -n "${PGY_BIN:-}" ]]; then
     PGY="$PGY_BIN"
+    PGY_BIN_WAS_EXPLICIT=1
 elif [[ -x "$TMP_PGY" && ( ! -x "$DEFAULT_PGY" || "$TMP_PGY" -nt "$DEFAULT_PGY" ) ]]; then
     PGY="$TMP_PGY"
 else
     PGY="$DEFAULT_PGY"
 fi
+if [[ "$PGY" != *.exe ]] && pgy_binary_expects_windows_paths "${PGY}.exe"; then
+    PGY="${PGY}.exe"
+fi
 
 if [[ ! -x "$PGY" ]]; then
+    if [[ "$PGY_BIN_WAS_EXPLICIT" -eq 1 ]]; then
+        echo "[llvm-campaign-projection] missing explicit compiler binary: $PGY" >&2
+        exit 1
+    fi
     echo "[llvm-campaign-projection] SKIP executable probe; missing compiler binary: $PGY"
     exit 0
 fi
@@ -33,8 +44,8 @@ if [[ -z "$PYTHON_BIN" ]]; then
     fi
 fi
 
-output="$("$PGY" "$ROOT_DIR/examples/campaign_graph_fsm/main.pgy" \
-    --run --backend=llvm -o "${TMP_BASE%/}/pgy-campaign-projection-llvm" 2>&1)"
+output="$("$PGY" "$(pgy_path_for_compiler "$PGY" "$ROOT_DIR/examples/campaign_graph_fsm/main.pgy")" \
+    --run --backend=llvm -o "$(pgy_path_for_compiler "$PGY" "${TMP_BASE%/}/pgy-campaign-projection-llvm")" 2>&1)"
 
 if [[ -z "$PYTHON_BIN" ]]; then
     tmp_dir="$(mktemp -d "${TMP_BASE%/}/pgy-campaign-projection.XXXXXX")"

@@ -17,6 +17,56 @@ test_air_append_rejects_unknown_evidence_kind(void)
 }
 
 static bool
+test_air_append_rejects_empty_evidence_provenance(void)
+{
+    AIRProgram air = { 0 };
+    char *error = NULL;
+    bool ok = !air_append_evidence_node(&air,
+                                        AIR_EVIDENCE_HIR_ROUTINE,
+                                        0,
+                                        "",
+                                        "with",
+                                        &error)
+        && error != NULL
+        && strstr(error, "non-empty provider and subject provenance") != NULL
+        && air.evidence_count == 0;
+    free(error);
+    error = NULL;
+    ok = ok
+        && !air_append_evidence_node(&air,
+                                     AIR_EVIDENCE_HIR_ROUTINE,
+                                     0,
+                                     "run",
+                                     NULL,
+                                     &error)
+        && error != NULL
+        && strstr(error, "non-empty provider and subject provenance") != NULL
+        && air.evidence_count == 0;
+    free(error);
+    return ok;
+}
+
+static bool
+test_air_append_rejects_empty_evidence_counts(void)
+{
+    AIRProgram air = { 0 };
+    char *error = NULL;
+    bool ok = !air_append_evidence_node_ex(&air,
+                                           AIR_EVIDENCE_DAG_METADATA,
+                                           SIZE_MAX,
+                                           "type-resolution-dag",
+                                           "metadata-inventory",
+                                           0,
+                                           0,
+                                           &error)
+        && error != NULL
+        && strstr(error, "at least one fact or fallback fact") != NULL
+        && air.evidence_count == 0;
+    free(error);
+    return ok;
+}
+
+static bool
 test_air_verify_rejects_empty_boundary_evidence(void)
 {
     AIRIntentNode intents[] = {

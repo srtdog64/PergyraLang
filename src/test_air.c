@@ -177,6 +177,12 @@ main(void)
     TEST("AIR append rejects unknown evidence kind");
     EXPECT(test_air_append_rejects_unknown_evidence_kind());
 
+    TEST("AIR append rejects empty evidence provenance");
+    EXPECT(test_air_append_rejects_empty_evidence_provenance());
+
+    TEST("AIR append rejects empty evidence counts");
+    EXPECT(test_air_append_rejects_empty_evidence_counts());
+
     TEST("AIR verify rejects evidence boundary shape mismatch");
     EXPECT(test_air_verify_rejects_evidence_boundary_shape_mismatch());
 

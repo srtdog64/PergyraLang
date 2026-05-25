@@ -164,6 +164,8 @@ type_check_statement_flow(ASTNode *node, SemanticContext *ctx,
     case AST_NAMESPACE_DECL:
         return type_check_namespace_flow(node, ctx, loop_flow);
     case AST_BIND_STMT:
+        type_check_bind_stmt(node, ctx);
+        return FLOW_FALLTHROUGH;
     case AST_IMPORT_DECL:
         return FLOW_FALLTHROUGH;
     default:

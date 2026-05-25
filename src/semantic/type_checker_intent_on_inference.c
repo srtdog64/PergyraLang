@@ -45,16 +45,17 @@ intent_on_call_action(ASTNode *intent_decl,
     const char *alias = intent_on_call_receiver_alias(on_expr, &method_name);
     ASTNode *involves;
     ASTNode *subject_decl;
+    Type *subject_type;
 
     if (alias_out != NULL)
         *alias_out = NULL;
     if (intent_decl == NULL || ctx == NULL || alias == NULL || method_name == NULL)
         return NULL;
     involves = find_intent_involves_local(intent_decl, alias);
-    if (!intent_involves_is_subject_host(ctx->program_root, involves))
+    if (!intent_involves_is_subject_host(involves, ctx))
         return NULL;
-    subject_decl = find_subject_host_decl_by_name(
-        ctx->program_root, intent_involves_type_name(involves));
+    subject_type = intent_resolve_involves_type(involves, ctx);
+    subject_decl = semantic_host_decl_for_type(ctx, subject_type);
     if (alias_out != NULL)
         *alias_out = alias;
     return subject_decl_find_action_named(subject_decl, method_name);
@@ -250,11 +251,12 @@ intent_step_derive_who_from_action(ASTNode *intent_decl, ASTNode *step,
         ASTNode *involves = involves_nodes[i];
         ASTNode *subject_decl;
         ASTNode *action_decl;
+        Type *subject_type;
 
-        if (!intent_involves_is_subject_host(ctx->program_root, involves))
+        if (!intent_involves_is_subject_host(involves, ctx))
             continue;
-        subject_decl = find_subject_host_decl_by_name(
-            ctx->program_root, intent_involves_type_name(involves));
+        subject_type = intent_resolve_involves_type(involves, ctx);
+        subject_decl = semantic_host_decl_for_type(ctx, subject_type);
         action_decl = subject_decl_find_action_named(subject_decl, step_name);
         if (action_decl == NULL)
             continue;
@@ -290,7 +292,7 @@ intent_step_derive_who_from_single_participant(ASTNode *intent_decl,
         ASTNode *involves = involves_nodes[i];
         const char *alias;
 
-        if (!intent_involves_is_subject_host(ctx->program_root, involves))
+        if (!intent_involves_is_subject_host(involves, ctx))
             continue;
         alias = ast_intent_involves_alias(involves);
         if (alias == NULL)

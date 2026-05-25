@@ -8,7 +8,8 @@
 
 #include "rir.h"
 
-extern ASTNode *g_rir_program_root;
+void rir_set_program_root(ASTNode *program_root);
+ASTNode *rir_program_root(void);
 
 char *rir_strdup_fmt(const char *fmt, ...);
 ASTNode *rir_find_domain_slot_in_owner(ASTNode *owner, const char *slot_name);

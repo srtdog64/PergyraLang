@@ -5,7 +5,19 @@
 
 #include "parser/ast_api.h"
 
-ASTNode *g_rir_program_root = NULL;
+static ASTNode *g_rir_program_root = NULL;
+
+void
+rir_set_program_root(ASTNode *program_root)
+{
+    g_rir_program_root = program_root;
+}
+
+ASTNode *
+rir_program_root(void)
+{
+    return g_rir_program_root;
+}
 
 ASTNode *
 rir_find_domain_slot_in_owner(ASTNode *owner, const char *slot_name)
@@ -55,11 +67,13 @@ type_name(ASTNode *type_node)
 static RIRResourceKind
 rir_nominal_kind_from_name(const char *name)
 {
-    if (g_rir_program_root == NULL || name == NULL || g_rir_program_root->type != AST_PROGRAM)
+    ASTNode *program = rir_program_root();
+
+    if (program == NULL || name == NULL || program->type != AST_PROGRAM)
         return RIR_RESOURCE_UNKNOWN;
 
-    for (size_t i = 0; i < ast_program_statement_count(g_rir_program_root); i++) {
-        ASTNode *node = ast_program_statement(g_rir_program_root, i);
+    for (size_t i = 0; i < ast_program_statement_count(program); i++) {
+        ASTNode *node = ast_program_statement(program, i);
         if (node == NULL)
             continue;
         switch (node->type) {

@@ -10,6 +10,12 @@
 #include "diag_codes.h"
 #include "type_checker.h"
 
+static ASTNode *
+stdlib_use_program(SemanticContext *ctx)
+{
+    return ctx != NULL ? ctx->program_root : NULL;
+}
+
 static bool
 semantic_is_known_stdlib_use_module(const char *module_name)
 {
@@ -41,6 +47,8 @@ semantic_is_known_stdlib_use_module(const char *module_name)
 static void
 validate_stdlib_use_decl(ASTNode *stmt, SemanticContext *ctx)
 {
+    ASTNode *program;
+
     if (stmt == NULL || stmt->type != AST_USE_DECL || ctx == NULL
         || ast_use_module_name(stmt) == NULL) {
         return;
@@ -55,11 +63,12 @@ validate_stdlib_use_decl(ASTNode *stmt, SemanticContext *ctx)
         return;
     }
 
-    if (ctx->program_root == NULL || ctx->program_root->type != AST_PROGRAM)
+    program = stdlib_use_program(ctx);
+    if (program == NULL || program->type != AST_PROGRAM)
         return;
 
-    for (size_t i = 0; i < ast_program_statement_count(ctx->program_root); i++) {
-        ASTNode *prev = ast_program_statement(ctx->program_root, i);
+    for (size_t i = 0; i < ast_program_statement_count(program); i++) {
+        ASTNode *prev = ast_program_statement(program, i);
         if (prev == stmt)
             break;
         if (prev != NULL && prev->type == AST_USE_DECL

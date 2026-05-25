@@ -133,14 +133,14 @@ try_record_generic_class_constructed_type(SemanticContext *ctx,
     const char *name;
     Symbol *sym;
     ASTNode *class_decl;
+    GenericParams *decl_params;
     ASTNode **effective_args;
     Type **resolved_args;
     Type *result;
     size_t argc = 0;
     size_t provided_count = 0;
 
-    if (ctx == NULL || type_node == NULL || type_node->type != AST_TYPE
-        || ctx->program_root == NULL)
+    if (ctx == NULL || type_node == NULL || type_node->type != AST_TYPE)
         return;
 
     name = ast_type_name(type_node);
@@ -151,10 +151,11 @@ try_record_generic_class_constructed_type(SemanticContext *ctx,
         || sym->type == TYPE_UNKNOWN)
         return;
 
-    class_decl = find_type_decl_by_name(ctx->program_root, name);
-    GenericParams *decl_params = ast_class_generic_params(class_decl);
-    if (class_decl == NULL || class_decl->type != AST_CLASS_DECL
-        || ast_generic_param_count(decl_params) == 0)
+    class_decl = semantic_find_class_decl_by_name(ctx, name);
+    if (class_decl == NULL || class_decl->type != AST_CLASS_DECL)
+        return;
+    decl_params = ast_class_generic_params(class_decl);
+    if (ast_generic_param_count(decl_params) == 0)
         return;
 
     provided_count = ast_type_generic_args(type_node) != NULL

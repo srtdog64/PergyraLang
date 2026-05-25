@@ -44,28 +44,12 @@ match_pattern_is_named_variant(ASTNode *pat, const char **name_out,
 ASTNode *
 find_enum_decl_for_type(SemanticContext *ctx, const Type *type)
 {
-    ASTNode *prog;
-
     if (ctx == NULL || type == NULL || type->kind != TYPE_KIND_ENUM
-        || type->name == NULL || ctx->program_root == NULL) {
+        || type->name == NULL) {
         return NULL;
     }
 
-    prog = ctx->program_root;
-    if (prog->type != AST_PROGRAM)
-        return NULL;
-
-    for (size_t i = 0; i < ast_program_statement_count(prog); i++) {
-        ASTNode *stmt = ast_program_statement(prog, i);
-        if (stmt == NULL || stmt->type != AST_ENUM_DECL
-            || ast_enum_name(stmt) == NULL) {
-            continue;
-        }
-        if (strcmp(ast_enum_name(stmt), type->name) == 0)
-            return stmt;
-    }
-
-    return NULL;
+    return semantic_find_enum_decl_by_name(ctx, type->name);
 }
 
 static bool

@@ -129,11 +129,7 @@ type_check_class_decl(ASTNode *node, SemanticContext *ctx)
 
         field_type = semantic_host_resolve_type_ref(field->type, ctx);
         if (field->is_vessel_field) {
-            ASTNode *field_decl = NULL;
-            if (field_type != NULL && field_type->kind == TYPE_KIND_CLASS
-                && field_type->name != NULL) {
-                field_decl = find_type_decl_by_name(ctx->program_root, field_type->name);
-            }
+            ASTNode *field_decl = semantic_host_decl_for_type(ctx, field_type);
             if (field_decl == NULL
                 || ast_class_nominal_kind(field_decl) != NOMINAL_DECL_VESSEL) {
                 semantic_error_with_hints(ctx, PGY_CODE_SEM_TYPE_MISMATCH,

@@ -52,6 +52,8 @@ semantic_validate_action_func_contract(ASTNode *node,
         const char *subject_name = NULL;
         const char *within_zone = NULL;
         const char *causes_effect = NULL;
+        ASTNode *within_zone_decl = NULL;
+        ASTNode *causes_effect_decl = NULL;
 
         if (enclosing_nominal != NULL
             && enclosing_nominal->type == AST_CLASS_DECL
@@ -71,18 +73,22 @@ semantic_validate_action_func_contract(ASTNode *node,
 
         within_zone = ast_func_within_zone(node);
         causes_effect = ast_func_causes_effect(node);
+        if (within_zone != NULL) {
+            within_zone_decl = semantic_find_zone_decl_by_name(ctx, within_zone);
+        }
+        if (causes_effect != NULL) {
+            causes_effect_decl =
+                semantic_find_effect_decl_by_name(ctx, causes_effect);
+        }
 
-        if (within_zone != NULL
-            && find_domain_decl_by_name(ctx->program_root, AST_ZONE_DECL,
-                within_zone) == NULL) {
+        if (within_zone != NULL && within_zone_decl == NULL) {
             semantic_error_with_hints(ctx, PGY_CODE_SEM_ACTION_CONTRACT_INVALID, PGY_CAUSE_ACTION_CONTRACT, PGY_FIX_ALIGN_ACTION_SURFACE_WITH_ZONE, node,
                 "action '%s' references unknown zone '%s'",
                 name != NULL ? name : "<anonymous>",
                 within_zone);
         }
         if (within_zone != NULL) {
-            ASTNode *zone_decl = find_domain_decl_by_name(ctx->program_root, AST_ZONE_DECL,
-                within_zone);
+            ASTNode *zone_decl = within_zone_decl;
             if (zone_decl != NULL
                 && !explicit_type_reference_allowed(zone_decl, node, ctx)) {
                 semantic_error_with_hints(ctx, PGY_CODE_SEM_ACTION_CONTRACT_INVALID, PGY_CAUSE_ACTION_CONTRACT, PGY_FIX_ALIGN_ACTION_SURFACE_WITH_ZONE, node,
@@ -100,17 +106,14 @@ semantic_validate_action_func_contract(ASTNode *node,
             }
         }
 
-        if (causes_effect != NULL
-            && find_domain_decl_by_name(ctx->program_root, AST_EFFECT_DECL,
-                causes_effect) == NULL) {
+        if (causes_effect != NULL && causes_effect_decl == NULL) {
             semantic_error_with_hints(ctx, PGY_CODE_SEM_ACTION_CONTRACT_INVALID, PGY_CAUSE_ACTION_CONTRACT, PGY_FIX_ALIGN_ACTION_SURFACE_WITH_ZONE, node,
                 "action '%s' references unknown effect '%s'",
                 name != NULL ? name : "<anonymous>",
                 causes_effect);
         }
         if (causes_effect != NULL) {
-            ASTNode *effect_decl = find_domain_decl_by_name(ctx->program_root, AST_EFFECT_DECL,
-                causes_effect);
+            ASTNode *effect_decl = causes_effect_decl;
             if (effect_decl != NULL
                 && !explicit_type_reference_allowed(effect_decl, node, ctx)) {
                 semantic_error_with_hints(ctx, PGY_CODE_SEM_ACTION_CONTRACT_INVALID, PGY_CAUSE_ACTION_CONTRACT, PGY_FIX_ALIGN_ACTION_SURFACE_WITH_ZONE, node,
@@ -160,8 +163,7 @@ semantic_validate_action_func_contract(ASTNode *node,
         }
 
         if (within_zone != NULL) {
-            ASTNode *zone_decl = find_domain_decl_by_name(ctx->program_root, AST_ZONE_DECL,
-                within_zone);
+            ASTNode *zone_decl = within_zone_decl;
             ASTNode **zone_slots = NULL;
             size_t zone_slot_count = 0;
             if (zone_decl != NULL)
@@ -240,8 +242,7 @@ semantic_validate_action_func_contract(ASTNode *node,
         }
 
         if (causes_effect != NULL) {
-            ASTNode *effect_decl = find_domain_decl_by_name(ctx->program_root, AST_EFFECT_DECL,
-                causes_effect);
+            ASTNode *effect_decl = causes_effect_decl;
             if (effect_decl != NULL) {
                 ASTNode **effect_slots;
                 size_t effect_slot_count;
@@ -289,8 +290,7 @@ semantic_validate_action_func_contract(ASTNode *node,
             }
 
             if (within_zone != NULL) {
-                ASTNode *zone_decl = find_domain_decl_by_name(ctx->program_root, AST_ZONE_DECL,
-                    within_zone);
+                ASTNode *zone_decl = within_zone_decl;
                 if (zone_decl != NULL
                     && !zone_has_effect_layer_type(zone_decl, causes_effect)) {
                     semantic_error_with_hints(ctx, PGY_CODE_SEM_ACTION_CONTRACT_INVALID, PGY_CAUSE_ACTION_CONTRACT, PGY_FIX_ALIGN_ACTION_SURFACE_WITH_ZONE, node,

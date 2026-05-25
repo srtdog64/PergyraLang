@@ -73,6 +73,9 @@ Today:
   boundary traversal.
 - `SlotRawPointer(...)` rejects with `PGY_SEM_RAW_ESCAPE_UNSTABLE`.
 - Pin/Lease views remain the stable hot-path answer for repeated Slot access.
+- `PGY_PTR_*` macros are runtime-internal only. They are not parser syntax,
+  semantic builtins, compiler lowering hooks, or generated public codegen
+  surface for user raw escape.
 
 Before raw/system-tier escape is accepted, the compiler must add scoped
 capability syntax, semantic gates, AIR evidence, ABI lowering rules, backend

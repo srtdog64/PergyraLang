@@ -42,9 +42,8 @@ validate_where_clause_bounds(WhereClause *wc, SemanticContext *ctx, ASTNode *own
                     ctx->has_error = saved_err;
                     if ((bound_sym != NULL && bound_sym->kind == SYMBOL_ABILITY)
                         || (ast_type_name(tc->bounds[b]) != NULL
-                            && ctx->program_root != NULL
-                            && find_ability_decl_by_name(
-                                   ctx->program_root,
+                            && semantic_find_ability_decl_by_name(
+                                   ctx,
                                    ast_type_name(tc->bounds[b])) != NULL)) {
                         continue;
                     }

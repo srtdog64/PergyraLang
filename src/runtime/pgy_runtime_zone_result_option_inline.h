@@ -388,10 +388,11 @@ typedef struct {                                                        \
                 for (__typeof__((pool).items[0]) *item_var = &(pool).items[idx_var]; _once; _once = 0)
 
 /* =================================================================
- * Unsafe Block Marker (for FFI)
+ * Unsafe Block Marker
  *
- * In C, this is just a documentation marker. Future versions may
- * add static analysis tools to check unsafe block boundaries.
+ * In generated C, this is only a documentation marker for a source lexical
+ * boundary. It does not grant raw, FFI, layout, runtime, or concurrency
+ * capability by itself.
  * ================================================================= */
 
 #define PGY_UNSAFE_BEGIN \
@@ -399,7 +400,13 @@ typedef struct {                                                        \
 #define PGY_UNSAFE_END \
     /* END UNSAFE_BLOCK */
 
-/* Raw pointer operations (use inside unsafe blocks) */
+/*
+ * Runtime-internal raw pointer helpers.
+ *
+ * These macros are not the user-facing raw escape surface. Source-level raw
+ * access remains reserved for the future scoped unsafe capability contract
+ * (`unsafe(raw) { ... }`) and must pass through semantic/AIR/ABI gates first.
+ */
 static inline void* pgy_ptr_new_impl(size_t size, const char *file, int line)
 {
     void *p = malloc(size);
@@ -411,11 +418,22 @@ static inline void* pgy_ptr_new_impl(size_t size, const char *file, int line)
     return p;
 }
 
+static inline void*
+pgy_ptr_new_array_impl(size_t elem_size, size_t count, const char *file, int line)
+{
+    if (elem_size != 0 && count > ((size_t)-1) / elem_size) {
+        pgy_runtime_panic_emit(PGY_RUNTIME_PANIC_CLASS_OOM,
+                               PGY_RUNTIME_PANIC_REASON_ALLOCATION_FAILED,
+                               file, line);
+    }
+    return pgy_ptr_new_impl(elem_size * count, file, line);
+}
+
 #define PGY_PTR_NEW(Type) \
     ((Type*)pgy_ptr_new_impl(sizeof(Type), __FILE__, __LINE__))
 
 #define PGY_PTR_NEW_ARRAY(Type, count) \
-    ((Type*)pgy_ptr_new_impl(sizeof(Type) * (count), __FILE__, __LINE__))
+    ((Type*)pgy_ptr_new_array_impl(sizeof(Type), (count), __FILE__, __LINE__))
 
 #define PGY_PTR_FREE(ptr) \
     do { \

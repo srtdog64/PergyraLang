@@ -9,6 +9,12 @@ host_helper_resolve_type_ref(ASTNode *type_ref, SemanticContext *ctx)
     return semantic_type_resolution_lookup_metadata_type_ref(ctx, type_ref);
 }
 
+static ASTNode *
+host_helper_program(SemanticContext *ctx)
+{
+    return ctx != NULL ? ctx->program_root : NULL;
+}
+
 Type *
 semantic_host_resolve_type_ref(ASTNode *type_ref, SemanticContext *ctx)
 {
@@ -26,14 +32,6 @@ host_helper_resolve_func_param_type(FuncParam *param, SemanticContext *ctx)
     if (param == NULL || param->type == NULL)
         return TYPE_UNKNOWN;
     return host_helper_resolve_type_ref(param->type, ctx);
-}
-
-static Type *
-host_helper_resolve_domain_slot_type(ASTNode *slot, SemanticContext *ctx)
-{
-    if (slot == NULL || slot->type != AST_DOMAIN_SLOT)
-        return TYPE_UNKNOWN;
-    return host_helper_resolve_type_ref(ast_domain_slot_type(slot), ctx);
 }
 
 ASTNode *
@@ -84,10 +82,86 @@ constructor_decl_for_symbol_kind(ASTNode *program, SymbolKind kind, const char *
     }
 }
 
-static ASTNode *
-semantic_enum_decl_by_name(ASTNode *program, const char *name)
+ASTNode *
+semantic_find_zone_decl_by_name(SemanticContext *ctx, const char *name)
 {
-    if (program == NULL || program->type != AST_PROGRAM || name == NULL)
+    if (ctx == NULL || name == NULL)
+        return NULL;
+    return find_domain_decl_by_name(host_helper_program(ctx),
+                                    AST_ZONE_DECL, name);
+}
+
+ASTNode *
+semantic_find_relation_decl_by_name(SemanticContext *ctx, const char *name)
+{
+    if (ctx == NULL || name == NULL)
+        return NULL;
+    return find_domain_decl_by_name(host_helper_program(ctx),
+                                    AST_RELATION_DECL, name);
+}
+
+ASTNode *
+semantic_find_effect_decl_by_name(SemanticContext *ctx, const char *name)
+{
+    if (ctx == NULL || name == NULL)
+        return NULL;
+    return find_domain_decl_by_name(host_helper_program(ctx),
+                                    AST_EFFECT_DECL, name);
+}
+
+ASTNode *
+semantic_find_world_decl_by_name(SemanticContext *ctx, const char *name)
+{
+    if (ctx == NULL || name == NULL)
+        return NULL;
+    return find_domain_decl_by_name(host_helper_program(ctx),
+                                    AST_WORLD_DECL, name);
+}
+
+ASTNode *
+semantic_find_party_decl_by_name(SemanticContext *ctx, const char *name)
+{
+    if (ctx == NULL || name == NULL)
+        return NULL;
+    return find_domain_decl_by_name(host_helper_program(ctx),
+                                    AST_PARTY_DECL, name);
+}
+
+ASTNode *
+semantic_find_roster_decl_by_name(SemanticContext *ctx, const char *name)
+{
+    if (ctx == NULL || name == NULL)
+        return NULL;
+    return find_domain_decl_by_name(host_helper_program(ctx),
+                                    AST_ROSTER_DECL, name);
+}
+
+ASTNode *
+semantic_find_class_decl_by_name(SemanticContext *ctx, const char *name)
+{
+    if (ctx == NULL || name == NULL)
+        return NULL;
+    return find_type_decl_by_name(host_helper_program(ctx), name);
+}
+
+ASTNode *
+semantic_find_ability_decl_by_name(SemanticContext *ctx, const char *name)
+{
+    if (ctx == NULL || name == NULL)
+        return NULL;
+    return find_ability_decl_by_name(host_helper_program(ctx), name);
+}
+
+ASTNode *
+semantic_find_enum_decl_by_name(SemanticContext *ctx, const char *name)
+{
+    ASTNode *program;
+
+    if (ctx == NULL || name == NULL)
+        return NULL;
+
+    program = host_helper_program(ctx);
+    if (program == NULL || program->type != AST_PROGRAM)
         return NULL;
 
     for (size_t i = 0; i < ast_program_statement_count(program); i++) {
@@ -103,6 +177,53 @@ semantic_enum_decl_by_name(ASTNode *program, const char *name)
 }
 
 ASTNode *
+semantic_find_function_decl_by_name(SemanticContext *ctx, const char *name)
+{
+    ASTNode *program;
+
+    if (ctx == NULL || name == NULL)
+        return NULL;
+
+    program = host_helper_program(ctx);
+    if (program == NULL || program->type != AST_PROGRAM)
+        return NULL;
+
+    for (size_t i = 0; i < ast_program_statement_count(program); i++) {
+        ASTNode *stmt = ast_program_statement(program, i);
+        const char *stmt_name;
+
+        if (stmt == NULL || stmt->type != AST_FUNC_DECL)
+            continue;
+        stmt_name = stmt->is_async_decl
+            ? ast_async_func_name(stmt)
+            : ast_declaration_name(stmt);
+        if (stmt_name != NULL && strcmp(stmt_name, name) == 0)
+            return stmt;
+    }
+
+    return NULL;
+}
+
+ASTNode *
+semantic_find_callable_decl_by_name(SemanticContext *ctx, const char *name)
+{
+    if (ctx == NULL || name == NULL)
+        return NULL;
+    return find_callable_decl_by_name(host_helper_program(ctx), name);
+}
+
+ASTNode *
+semantic_constructor_decl_for_symbol_kind(SemanticContext *ctx,
+                                          SymbolKind kind,
+                                          const char *name)
+{
+    if (ctx == NULL || name == NULL)
+        return NULL;
+    return constructor_decl_for_symbol_kind(host_helper_program(ctx),
+                                            kind, name);
+}
+
+ASTNode *
 semantic_host_decl_for_type(SemanticContext *ctx, const Type *type)
 {
     ASTNode *decl;
@@ -110,35 +231,29 @@ semantic_host_decl_for_type(SemanticContext *ctx, const Type *type)
     if (ctx == NULL || type == NULL || type->name == NULL)
         return NULL;
     if (type->kind == TYPE_KIND_ENUM)
-        return semantic_enum_decl_by_name(ctx->program_root, type->name);
+        return semantic_find_enum_decl_by_name(ctx, type->name);
     if (type->kind != TYPE_KIND_CLASS)
         return NULL;
 
-    decl = find_type_decl_by_name(ctx->program_root, type->name);
+    decl = semantic_find_class_decl_by_name(ctx, type->name);
     if (decl != NULL)
         return decl;
-    decl = find_domain_decl_by_name(ctx->program_root, AST_PARTY_DECL,
-                                    type->name);
+    decl = semantic_find_party_decl_by_name(ctx, type->name);
     if (decl != NULL)
         return decl;
-    decl = find_domain_decl_by_name(ctx->program_root, AST_ROSTER_DECL,
-                                    type->name);
+    decl = semantic_find_roster_decl_by_name(ctx, type->name);
     if (decl != NULL)
         return decl;
-    decl = find_domain_decl_by_name(ctx->program_root, AST_WORLD_DECL,
-                                    type->name);
+    decl = semantic_find_world_decl_by_name(ctx, type->name);
     if (decl != NULL)
         return decl;
-    decl = find_domain_decl_by_name(ctx->program_root, AST_ZONE_DECL,
-                                    type->name);
+    decl = semantic_find_zone_decl_by_name(ctx, type->name);
     if (decl != NULL)
         return decl;
-    decl = find_domain_decl_by_name(ctx->program_root, AST_RELATION_DECL,
-                                    type->name);
+    decl = semantic_find_relation_decl_by_name(ctx, type->name);
     if (decl != NULL)
         return decl;
-    return find_domain_decl_by_name(ctx->program_root, AST_EFFECT_DECL,
-                                    type->name);
+    return semantic_find_effect_decl_by_name(ctx, type->name);
 }
 
 ASTNode **
@@ -200,7 +315,7 @@ type_is_subject_type(const Type *type, SemanticContext *ctx)
     if (type->nominal_flavor == TYPE_NOMINAL_SUBJECT)
         return true;
 
-    decl = find_subject_host_decl_by_name(ctx->program_root, type->name);
+    decl = semantic_host_decl_for_type(ctx, type);
     return decl_is_subject_host(decl);
 }
 
@@ -237,172 +352,4 @@ find_action_binding_type_name(ASTNode *func, ASTNode *enclosing_nominal,
     }
 
     return NULL;
-}
-
-bool
-domain_has_subject_slot_type(ASTNode **slots, size_t slot_count,
-                             SemanticContext *ctx, const char *type_name)
-{
-    if (slots == NULL || ctx == NULL || type_name == NULL)
-        return false;
-
-    for (size_t i = 0; i < slot_count; i++) {
-        ASTNode *slot = slots[i];
-        Type *slot_type;
-        if (slot == NULL || slot->type != AST_DOMAIN_SLOT
-            || !ast_domain_slot_is_subject(slot)
-            || ast_domain_slot_type(slot) == NULL) {
-            continue;
-        }
-        slot_type = host_helper_resolve_domain_slot_type(slot, ctx);
-        if (slot_type != NULL && slot_type->name != NULL
-            && strcmp(slot_type->name, type_name) == 0) {
-            return true;
-        }
-    }
-
-    return false;
-}
-
-bool
-zone_has_authority_for_subject_type(ASTNode *zone, SemanticContext *ctx,
-                                    const char *type_name)
-{
-    ASTNode **authorities;
-    size_t authority_count;
-
-    if (zone == NULL || zone->type != AST_ZONE_DECL || ctx == NULL
-        || type_name == NULL) {
-        return false;
-    }
-
-    authorities = ast_zone_authorities(zone, &authority_count);
-    for (size_t i = 0; i < authority_count; i++) {
-        ASTNode *authority = authorities[i];
-        const char *subject_slot = ast_zone_authority_subject_slot_name(authority);
-        ASTNode *slot;
-        Type *slot_type;
-        if (authority == NULL || subject_slot == NULL) {
-            continue;
-        }
-        slot = find_zone_domain_slot(zone, subject_slot);
-        if (slot == NULL || ast_domain_slot_type(slot) == NULL)
-            continue;
-        slot_type = host_helper_resolve_domain_slot_type(slot, ctx);
-        if (slot_type != NULL && slot_type->name != NULL
-            && strcmp(slot_type->name, type_name) == 0) {
-            return true;
-        }
-    }
-
-    return false;
-}
-
-bool
-zone_has_effect_layer_type(ASTNode *zone, const char *effect_name)
-{
-    ASTNode **layer_slots;
-    size_t layer_slot_count;
-
-    if (zone == NULL || zone->type != AST_ZONE_DECL || effect_name == NULL)
-        return false;
-
-    layer_slots = ast_zone_layer_slots(zone, &layer_slot_count);
-    for (size_t i = 0; i < layer_slot_count; i++) {
-        ASTNode *slot = layer_slots[i];
-        if (slot == NULL || slot->type != AST_ZONE_LAYER_SLOT
-            || ast_zone_layer_slot_layer_type(slot) == NULL
-            || ast_zone_layer_slot_is_relation(slot)) {
-            continue;
-        }
-        if (strcmp(ast_zone_layer_slot_layer_type(slot), effect_name) == 0)
-            return true;
-    }
-
-    return false;
-}
-
-bool
-expr_is_class_constructor_call(const ASTNode *expr, SemanticContext *ctx)
-{
-    ASTNode *callee;
-    ASTNode *decl;
-
-    if (expr == NULL || expr->type != AST_CALL || ctx == NULL)
-        return false;
-
-    callee = ast_call_callee(expr);
-    if (callee == NULL || callee->type != AST_IDENTIFIER
-        || ast_identifier_name(callee) == NULL) {
-        return false;
-    }
-
-    decl = find_type_decl_by_name(ctx->program_root, ast_identifier_name(callee));
-    if (decl != NULL)
-        return !ast_class_is_struct(decl);
-    return false;
-}
-
-bool
-expr_is_qubit_claim(const ASTNode *expr)
-{
-    ASTNode *callee = (expr != NULL && expr->type == AST_CALL)
-        ? ast_call_callee(expr)
-        : NULL;
-
-    return expr != NULL
-        && expr->type == AST_CALL
-        && callee != NULL
-        && callee->type == AST_IDENTIFIER
-        && ast_identifier_name(callee) != NULL
-        && strcmp(ast_identifier_name(callee), "ClaimQubit") == 0;
-}
-
-bool
-expr_is_device_slot_claim(const ASTNode *expr)
-{
-    ASTNode *callee = (expr != NULL && expr->type == AST_CALL)
-        ? ast_call_callee(expr)
-        : NULL;
-
-    return expr != NULL
-        && expr->type == AST_CALL
-        && callee != NULL
-        && callee->type == AST_IDENTIFIER
-        && ast_identifier_name(callee) != NULL
-        && strcmp(ast_identifier_name(callee), "ClaimDeviceSlot") == 0;
-}
-
-bool
-expr_is_movable_resource_transfer_source(const ASTNode *expr)
-{
-    if (expr == NULL)
-        return false;
-
-    switch (expr->type) {
-    case AST_IDENTIFIER:
-    case AST_CALL:
-    case AST_CHANNEL_RECV:
-    case AST_AWAIT_EXPR:
-        return true;
-    default:
-        return false;
-    }
-}
-
-bool
-slot_transfer_compatible(const Type *from, const Type *to)
-{
-    if (from == NULL || to == NULL)
-        return false;
-    if (from->kind != TYPE_KIND_SLOT || to->kind != TYPE_KIND_SLOT)
-        return false;
-    if (type_slot_access_mode(from) != SLOT_ACCESS_MOVE_TOKEN)
-        return false;
-    if (type_slot_access_mode(to) != SLOT_ACCESS_OWNED)
-        return false;
-    if (type_slot_is_secure(from) != type_slot_is_secure(to))
-        return false;
-    return type_is_assignable(type_slot_inner_type(from), type_slot_inner_type(to))
-        && type_is_assignable(type_slot_inner_type(to), type_slot_inner_type(from));
 }

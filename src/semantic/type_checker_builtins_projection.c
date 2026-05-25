@@ -55,7 +55,7 @@ type_check_projection_call(ASTNode *call,
         return TYPE_UNKNOWN;
     }
 
-    target_decl = find_named_class_decl(ctx->program_root,
+    target_decl = semantic_find_class_decl_by_name(ctx,
         ast_identifier_name(target_arg));
     if (target_decl == NULL
         || !ast_class_is_struct(target_decl)
@@ -94,7 +94,7 @@ type_check_projection_call(ASTNode *call,
         return TYPE_UNKNOWN;
     }
 
-    source_decl = find_named_class_decl(ctx->program_root, source_type->name);
+    source_decl = semantic_find_class_decl_by_name(ctx, source_type->name);
     if (!decl_is_subject_nominal(source_decl)) {
         semantic_error_with_hints(ctx, PGY_CODE_SEM_BUILTIN_ARGS_INVALID, PGY_CAUSE_BUILTIN_SIGNATURE_MISMATCH, PGY_FIX_MATCH_BUILTIN_SIGNATURE, source_arg,
             "%s source '%s' must be a subject declaration",
@@ -118,8 +118,8 @@ type_check_projection_call(ASTNode *call,
             continue;
         }
 
-        source_status = resolve_projection_source_field_type_rec(
-            ctx->program_root, source_decl, target_field->name, 0, ctx, &source_field_type);
+        source_status = semantic_resolve_projection_source_field_type(
+            ctx, source_decl, target_field->name, &source_field_type);
         if (source_status == 2) {
             semantic_error_with_hints(ctx, PGY_CODE_SEM_BUILTIN_ARGS_INVALID, PGY_CAUSE_BUILTIN_SIGNATURE_MISMATCH, PGY_FIX_MATCH_BUILTIN_SIGNATURE, call,
                 "%s target field '%s' is ambiguous in source subject '%s'.\n"

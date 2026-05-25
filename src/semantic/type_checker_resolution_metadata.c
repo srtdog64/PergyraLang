@@ -46,9 +46,7 @@ metadata_scope_named_type(SemanticContext *ctx, ASTNode *type_node)
         return NULL;
 
     if (sym->kind == SYMBOL_CLASS) {
-        ASTNode *decl = ctx->program_root != NULL
-            ? find_type_decl_by_name(ctx->program_root, name)
-            : NULL;
+        ASTNode *decl = semantic_find_class_decl_by_name(ctx, name);
         GenericParams *class_generics = ast_class_generic_params(decl);
         if (decl != NULL && decl->type == AST_CLASS_DECL
             && ast_generic_param_count(class_generics) > 0) {

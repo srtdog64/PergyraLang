@@ -461,7 +461,7 @@ Token lexer_next_token(Lexer* lexer) {
                 advance(lexer);
                 return make_token(lexer, TOKEN_AND, start, 2);
             }
-            break;
+            return make_token(lexer, TOKEN_AMP, start, 1);
 
         case '|':
             if (peek(lexer) == '|') {

@@ -116,8 +116,7 @@ intent_step_derive_zone_binding_context(ASTNode *intent_decl,
         && using_expr->type == AST_IDENTIFIER) {
         Type *using_type = intent_binding_context_resolve_binding_type(
             intent_decl, ast_identifier_name(using_expr), ctx);
-        ASTNode *zone_decl = find_domain_decl_by_name(ctx->program_root,
-            AST_ZONE_DECL, using_type != NULL ? using_type->name : NULL);
+        ASTNode *zone_decl = intent_find_zone_decl_for_type(using_type, ctx);
         if (zone_decl != NULL && using_type != NULL && using_type->name != NULL) {
             (void)intent_step_set_where_type_name(
                 step, using_type->name,

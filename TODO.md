@@ -3,10 +3,12 @@
 English anchor for tooling/doc gates:
 
 - Current beta progress: feature-surface feel remains about 70%, and
-  strict beta readiness is now about 70-72% after current CFG body-dataflow, AIR drift/schema,
-  DAG resolver-inventory/metadata, runtime-frontier, and C backend owner gates
-  pass locally. Do not call this 75% yet. Do not round this to 75% yet. The
-  remaining 75% line requires consumer-completeness across CFG/AIR plus
+  strict beta readiness is now about 72-74% after current CFG body-dataflow,
+  MIR executable tests, AIR drift/schema, DAG resolver-inventory/metadata,
+  runtime-frontier, semantic domain-owner seams, and full local LLVM parity
+  gates pass locally. Windows-bash tooling and raw-escape gates now reach
+  executable probes instead of skipping after path helper setup. Do not call this 75% or 80% yet.
+  The remaining 75% line requires consumer-completeness across CFG/AIR plus
   MIR/LLVM declaration bootstrap parity and ABI/Slot/Pin ownership freeze.
   The five closure targets are:
   CFG/body safety source-of-truth, AIR abstraction-boundary verification,
@@ -47,11 +49,368 @@ English anchor for tooling/doc gates:
 - Diagnostic registry extraction now normalizes C backslash-newline macros
   before scanning, so multiline `PGY_CODE_*` definitions are checked by both
   the Python path and the shell fallback.
+- LLVM host-declaration fallback is fixed to the shared compatibility type set:
+  `llvm_find_host_decl_in_active_inventory(...)` now routes through
+  `pgy_host_decl_compat_types(...)`, and `mir-declaration-inventory-test-smoke`
+  explicitly gates `AST_PARTY_DECL`, `AST_ROLE_DECL`, and `AST_ROSTER_DECL` in
+  that set. Hosted methods for party/role/roster must not regress to class-only
+  fallback lookup.
+- Party compiler stale-surface cleanup: the unused `src/compiler/party_compiler.h`
+  FiberMap proposal header was removed, and
+  `docs/12_party_compiler_integration.md` now records the implemented party /
+  role / roster source-of-truth path instead of a broken legacy design note.
+  Runtime FiberMap APIs remain runtime-owned; standalone compiler-only FiberMap
+  extraction/generation APIs must not return without AIR/MIR evidence and build
+  inventory ownership. Gates: `build-source-inventory-test-smoke`,
+  `documentation-quality-test-smoke`, `mir-declaration-inventory-test-smoke`,
+  `production-header-size-test-smoke`, `source-utf8-test-smoke`.
+- Party bind validation is now semantic-owned instead of backend-first:
+  `type_checker_bind_stmt.c` validates party variable type, party role-slot
+  existence, role declaration existence, and role-slot ability satisfaction.
+  Both `type_checker.c` and CFG/body flow consume this owner, and
+  `semantic-core-shape-test-smoke` rejects returning to "validated at codegen
+  level". LLVM bind lowering now fails closed with backend diagnostics when
+  inventory/vtable facts are missing instead of silently skipping the bind.
+  Multi-ability role slots are checked conjunctively during bind, so
+  `AbilityA & AbilityB` cannot degrade into "any matching ability" at the
+  dynamic binding site.
+  Follow-up seam tightening: bind validation now recovers the party declaration
+  through `semantic_find_party_decl_by_name(...)`, and the semantic core-shape
+  gate rejects direct `find_domain_decl_by_name(...)` reopening inside the bind
+  owner.
+- Ability role lookup seam tightening: semantic ability wrappers now iterate
+  roles through `semantic_find_next_role_decl_for_type_name(...)` instead of
+  delegating to raw `ctx->program_root` subject scans. The legacy
+  program-root helpers remain available for owner-internal compatibility, but
+  context-bearing semantic consumers must use the named role-for-type seam.
+- Ability where validation now relies on context-bearing semantic ability
+  lookup instead of guarding on raw `ctx->program_root`. The shape gate rejects
+  reintroducing that guard so generic ability bound validation keeps flowing
+  through the semantic owner seam.
+- Added `semantic_role_decl_has_ability(...)` so semantic consumers do not pass
+  raw `ctx->program_root` into role ability scans. The program-root version
+  remains as the legacy owner-internal primitive; context consumers must go
+  through the semantic wrapper.
+- Generic contract bound validation now follows the same context-bearing
+  ability lookup path as ability where validation; the obsolete raw
+  `ctx->program_root == NULL` guard is gated out by `semantic-core-shape`.
+- Member access and value-boundary nominal checks now trust
+  `semantic_host_decl_for_type(...)` as the null-safe owner seam instead of
+  guarding on raw program-root availability in the consumer. Shape gates lock
+  both consumers to the host-decl seam.
+- Projection source field consumers now call
+  `semantic_resolve_projection_source_field_type(...)` and
+  `semantic_resolve_projection_source_field_path(...)` instead of passing raw
+  `ctx->program_root` into recursive projection resolver primitives. The
+  program-root recursion remains owner-internal to the projection resolver.
+- The DAG zone projection graph now consumes the same context-bearing
+  projection path seam, so projection field path evidence and semantic
+  projection validation share one caller-facing source of truth.
+- Bind validation now uses `semantic_role_satisfies_party_slot(...)` so the
+  bind consumer no longer passes raw `ctx->program_root` into role-slot ability
+  satisfaction. The program-root primitive remains local to the bind owner.
+- Party declaration role-slot ability validation now relies on
+  `resolve_required_ability_decl(...)` and `any_subject_role_has_ability(ctx, ...)`
+  directly instead of guarding those consumer checks with raw program-root
+  presence. The semantic core-shape gate rejects reopening that guard.
+- DAG stage domain/host lookup wrappers now delegate to the context-bearing
+  zone/world lookup seams without raw `ctx->program_root != NULL` pre-gates in
+  the caller-facing wrappers. The root dependency remains inside the lookup
+  owner rather than leaking into stage consumers.
+- Let-binding ownership annotation where-checks now recover class declarations
+  through `semantic_find_class_decl_by_name(...)` instead of reopening
+  `find_type_decl_by_name(ctx->program_root, ...)`. The generic class
+  instantiation where regressions remain the required guard for this seam.
+- Constructed generic metadata materialization now uses the semantic class
+  lookup seam without a raw program-root pre-gate and checks the class
+  declaration before reading its generic parameters, closing a null-decl
+  dereference edge in the DAG materializer path.
+- Spawn token-boundary validation now consumes
+  `semantic_find_callable_decl_by_name(...)` instead of carrying a local
+  program-root scan. The shared callable lookup now recognizes async function
+  declarations via `ast_async_func_name(...)`, so async and sync callable
+  consumers share one owner seam. The legacy callable primitive itself is now
+  gated to recognize async names, not only the higher-level function wrapper.
+- Ability matching and bind role-slot validation now centralize their remaining
+  wrapper-local program access through `ability_match_program(...)` and
+  `bind_stmt_program(...)`. This keeps the subject/role ability scans explicit
+  as owner-local compatibility primitives while preventing caller-facing
+  semantic wrappers from reopening raw root access directly.
+- Semantic host lookup helpers now centralize their owner-local program access
+  through `host_helper_program(...)`, reducing repeated direct
+  `ctx->program_root` reads inside the lookup owner and making consumer-side
+  raw-root reopenings easier to gate.
+- Semantic role lookup helpers now mirror that owner shape with
+  `role_lookup_program(...)`; subject-bound role ability scans still own the
+  required program walk, but context consumers no longer spread direct root
+  reads across each role lookup path.
+- Type-alias resolution and DAG stage top-level lookup owners now centralize
+  context program access through `resolution_helper_program(...)` and
+  `stage_lookup_program(...)`, matching the host/role owner shape and reducing
+  repeated raw root reads to owner-local seams.
+- Call-contract escape summaries and stdlib use duplicate detection now follow
+  the same pattern through `call_contract_program(...)` and
+  `stdlib_use_program(...)`. These scans remain owner-local, but their raw root
+  access is no longer repeated at each use site.
+- Projection path resolution and domain builtin query projection resolution now
+  centralize context program access through `projection_path_program(...)` and
+  `builtin_query_domain_program(...)`, keeping projection recursion owners
+  explicit while reducing raw root scatter.
+- RIR program-root compatibility is now hidden behind
+  `rir_set_program_root(...)` / `rir_program_root(...)` instead of exporting
+  `g_rir_program_root` from `rir_internal.h`. This does not remove the
+  temporary global yet, but it makes the global private to the RIR facts owner
+  and prepares the later RIR context lift without exposing another mutable
+  source-of-truth symbol to every RIR translation unit. Follow-up tightening:
+  `rir_lower(...)` now clears the compatibility root on entry and successful
+  exit, and `build-source-inventory-test-smoke` gates that accessor use remains
+  confined to the RIR fact/intent owners.
+- Slot pin runtime safety tightened: plain `SlotRead(...)` now rejects reads
+  while a write pin is active, matching the secure-slot policy that pinned
+  payloads are not concurrently copied through the normal read path.
+  `test_security` covers the write-pin read rejection, and
+  `abi-ownership-shape-test-smoke` gates both the runtime guard and fixture.
+- Runtime file-handle table safety tightened: inline C runtime and LLVM-linkable
+  runtime exports now guard the runtime-owned file descriptor table with a
+  mutex around open/read/write/close table access. The stable ABI remains an
+  integer runtime-owned handle with closed-slot reuse, but concurrent close/read
+  and open/close table mutation are no longer unsynchronized UB. Gate:
+  `runtime-abi-lifetime-test-smoke`.
+- `StringSplit` C/LLVM runtime parity tightened: the inline C runtime now uses
+  the same result-owned `PgyArray_String` construction path as the LLVM-linkable
+  runtime export, including duplicated tokens for empty delimiters, final
+  segments, and empty segments between adjacent delimiters. This keeps
+  `Array<String>` producer ownership on Option A without backend-dependent
+  token dropping. LLVM now also declares `StringSplit` as returning
+  `Array<String>` and routes the public `Split` alias through that runtime
+  export. Gates: `runtime-abi-lifetime-test-smoke` and
+  `tests/cases/backend_compare/string_split_edge`.
+- Slot pin thread-affinity safety tightened: `current_thread_id()` now preserves
+  the full `pthread_self()` token width through `uintptr_t` instead of
+  truncating it to 32 bits. Pin/unpin and lock ownership checks still compare
+  opaque same-thread tokens, but cross-thread false matches from low-bit
+  collisions are no longer part of the runtime contract. Gate:
+  `abi-ownership-shape-test-smoke`.
+- Semantic host helper layer split: resource/slot/domain predicates moved from
+  the generic `type_checker_host_helpers.c` bucket into
+  `type_checker_host_resource.c`. This keeps helper growth as a layer-escalation
+  signal instead of allowing another oversized helper owner. Gates:
+  `test-inc-size-test-smoke`, `semantic-core-shape-test-smoke`, and
+  `test-semantic`.
+- CFG parallel body-flow snapshot safety tightened: parallel task snapshots are
+  now taken from the stable parent scope after task checking, not from the
+  task-local block scope that is immediately destroyed. This prevents joined
+  CFG resource facts from retaining task-local `Symbol *` pointers after
+  `scope_exit(...)`; `semantic-core-shape-test-smoke` gates the parent-scope
+  snapshot path.
+- Party role-slot stable surface is explicitly top-level only:
+  `role slot tank: AbilityA & AbilityB` is parser/semantic gated, while
+  `AbilityA | AbilityB` and container-internal contracts such as
+  `Array<AbilityA & AbilityB>` are reserved with explicit parser diagnostics.
+  `&&` remains a boolean operator and is rejected as a role-slot ability
+  intersection alias.
+  This keeps design-sketch examples from becoming accidental beta syntax before
+  bind-time ambiguity and element-provenance evidence exist.
 - Diagnostic JSON smoke no longer becomes a no-op on minimal environments
   without Python. The shell fallback now verifies JSON-array shape, required
   stable literals from each expectation, and the success-path empty `[]`
   contract; the LLVM channel missing-runtime case preserves its explicit
   `init`/`try_recv` alternative.
+- Python is a development convenience, not a beta CI dependency. Mandatory
+  smoke targets must either have a non-Python fallback or fail when their
+  required binary/input is explicitly provided but unavailable. `air-json-
+  schema-test-smoke` now fails instead of skipping when `PGY_BIN` is explicit
+  and missing. `tooling-conformance-test-smoke` now has a shell JSON-RPC
+  initialize fallback for the LSP schema/observability contract when Python is
+  unavailable.
+- Example smoke portability now follows the same explicit-binary rule:
+  `example-test-smoke` passes `PGY_BIN`, so `example_contract_smoke.sh` fails on
+  missing explicit binaries, prepends Windows runtime paths, and converts input
+  and output paths through `pgy_path_for_compiler(...)` before invoking the
+  compiler. Local gate: `example-test-smoke`.
+- LLVM campaign smokes now follow the same explicit-binary rule and Windows
+  path setup. `llvm_dnd_campaign_smoke.sh` no longer passes full C/LLVM stdout
+  through Python argv, which hit Windows `Argument list too long`; it writes
+  temporary output files and passes file paths instead. Local gates:
+  `llvm-campaign-projection-test-smoke`,
+  `llvm-dnd-campaign-test-smoke`.
+- Observability and memory/concurrency contract smokes now also follow the
+  explicit-binary rule and Windows path setup. `observability-schema-test-
+  smoke` validates AIR JSON plus C/LLVM observability ABI cases through
+  converted compiler paths, and `memory-concurrency-model-test-smoke` reaches
+  async/parallel plus C/LLVM backend compare instead of source-only skip when
+  `PGY_BIN` is supplied.
+- CFG body-dataflow smoke now follows the same explicit-binary rule: a missing
+  explicit `PGY_BIN` fails instead of reporting a source/doc-only skip. Default
+  missing binaries may still use the source/doc fallback because this target is
+  also a drift alarm for CFG/MIR source-of-truth terms.
+- CFG/AIR smoke tightening follow-up: `air-json-schema-test-smoke` now requires
+  actual `mir_terminator` evidence in `pgy.air.graph.v1` instead of accepting a
+  tautological non-negative counter, and the MIR lifecycle dump exposes stable
+  `ast=AST_*` source-shape names so `cfg-body-dataflow-test-smoke` no longer
+  depends on raw enum numbers such as `ast-type=9`. Gates:
+  `test-mir`, `cfg-body-dataflow-test-smoke`, `test-air`,
+  `air-drift-test-smoke`, `air-json-schema-test-smoke`.
+- DAG stage lookup tightening: graph host lookup and stage signature lookup now
+  consume semantic owner seams for class, party, roster, world, zone, relation,
+  and effect declaration recovery instead of reopening raw domain/type helpers
+  at the stage consumer. `type-resolution-resolver-inventory-test-smoke` gates
+  these calls, and `test-semantic` remains green (`2558/0`).
+- DAG internal header cleanup: type-resolution declarations moved out of the
+  broad semantic internal header into `type_checker_resolution_internal.h`.
+  The broad `type_checker_internal.h` is down to 400 LOC, while the resolver
+  declaration surface is 166 LOC. Nullable annotation readers and metadata
+  dead-end recorders stay private to metadata owners; the resolver inventory
+  smoke gates that this split does not widen DAG write/read seams.
+- AST API surface cleanup: domain-oriented AST declarations moved from the
+  broad `ast_api.h` into `ast_domain_api.h`, while `ast_api.h` remains the
+  compatibility include. This keeps existing consumers stable but separates the
+  core AST public surface from role/world/intent/zone/party accessors. Line
+  counts are now `ast_api.h=279`, `ast_domain_api.h=298`.
+  `backend-inc-size-test-smoke` now rejects moving the frozen domain creation
+  surface back into `ast_api.h`. Gates: `test-parser`,
+  `backend-inc-size-test-smoke`,
+  `build-source-inventory-test-smoke`, `source-utf8-test-smoke`.
+- AST domain API include narrowing: domain-only codegen owners now consume
+  `ast_domain_api.h` directly where they do not need core AST accessors
+  (`domain_frontier_policy.c`, `llvm_domain_decl_parts_helpers.c`). This keeps
+  the compatibility umbrella available for mixed owners without making it the
+  default source of truth for domain accessors. Gates: `pgy`,
+  `backend-inc-size-test-smoke`.
+- LLVM host declaration fallback closure: `llvm_find_host_decl_in_active_inventory`
+  now stays tied to `host_decl_compat` inventory instead of restating a local
+  class/enum/domain switch, and `backend-inc-size-test-smoke` checks that
+  party/role/roster remain in the compatibility host set.
+- Semantic domain query seam cleanup: `builtin_resolve_world_zone_decl_local`
+  now resolves embedded world zones through `semantic_find_zone_decl_by_name`
+  instead of owning a local program scan. `semantic-core-shape-test-smoke`
+  rejects reopening `find_program_domain_decl_local` in the builtin query owner.
+- Semantic projection/contract lookup cleanup: domain projection and relation
+  endpoint validation no longer own local class-declaration scans; they consume
+  `semantic_find_class_decl_by_name` so class lookup remains behind the semantic
+  host seam. `semantic-core-shape-test-smoke` rejects reopening the local scan.
+- Projection builtin lookup cleanup: `ToObject` / `ToTObject` validation now
+  consumes `semantic_find_class_decl_by_name`, and the query-domain
+  `find_named_class_decl` helper is owner-local instead of exposed through
+  semantic headers. `semantic-core-shape-test-smoke` gates this boundary.
+- AIR JSON source-of-truth tightening: `air-json-schema-test-smoke` now checks
+  summary/evidence count equality for DAG metadata/generic/ability evidence,
+  MIR cleanup/terminator/select evidence, observability schema evidence, and
+  runtime frontier policy evidence. `pgy.air.graph.v1` consumers should treat
+  the EvidenceNode array as the proof inventory and summary counters as a
+  checked projection of that inventory.
+- Codegen determinism smoke now uses the shared Windows/MSYS path helper before
+  invoking the compiler. It converts source/output paths with
+  `pgy_path_for_compiler(...)`, so the determinism gate validates C/LLVM output
+  stability rather than relying on POSIX paths accidentally accepted by a
+  Windows executable.
+- C backend declaration lookup tightening continued: intent step zone binding,
+  caused-effect zone lookup, world-zone projection resolution, and world
+  frontier zone lookup now consume active inventory / program-view seams
+  instead of reopening direct zone declaration lookup at the use site. Gate:
+  `mir-declaration-inventory-test-smoke`; sanity: `test-transpile` (`838/0`).
+- C backend projection/action context lookup tightened further: world embedded
+  method-call context, overlay projection invalidation, zone effect bind, and
+  zone relation bind now use active inventory lookup for zone/effect/relation
+  declaration recovery instead of direct local domain lookup. Gate:
+  `mir-declaration-inventory-test-smoke`; sanity: `test-transpile` (`838/0`).
+- C backend MIR SSA host recovery and function forward policy also now consume
+  active inventory for zone/world declaration recovery. This keeps residual
+  MIR SSA name rendering and top-level prototype policy on the same declaration
+  source-of-truth seam. Gate: `mir-declaration-inventory-test-smoke`; sanity:
+  `test-transpile` (`838/0`).
+- The MIR declaration inventory smoke now has a broad C backend guard: direct
+  `find_zone_decl`, `find_world_decl`, `find_relation_decl`, and
+  `find_effect_decl` calls are allowed only inside the declaration lookup owner.
+  Codegen use sites must consume active inventory or a responsibility-named
+  program-view seam.
+- ABI ownership shape smoke now also gates that `slot_release_entry_locked(...)`
+  rejects pinned slots before resetting storage. Pin keeps release/cleanup
+  ordering explicit: pinned resources must unpin before release can destroy the
+  payload.
+- Zone relation/effect contract lookup now uses the same semantic domain owner
+  seam as action contracts. `type_checker_domain_contracts.c` consumes
+  `semantic_find_relation_decl_by_name(...)` /
+  `semantic_find_effect_decl_by_name(...)`, and resolver inventory smoke rejects
+  reintroduced local `find_domain_decl_by_name(...)` calls in that consumer.
+- World declaration/embedding consumers now also use the semantic domain owner
+  seam for world/zone declaration recovery. `type_checker_world_decl.c`,
+  `type_checker_world_helpers.c`, and `type_checker_world_embedding.c` no
+  longer reopen `find_domain_decl_by_name(...)` locally, and resolver inventory
+  smoke gates this consumer family.
+- Zone layer-slot relation/effect validation in
+  `type_checker_zone_decl_authority.c` now consumes
+  `semantic_find_relation_decl_by_name(...)` /
+  `semantic_find_effect_decl_by_name(...)` instead of reopening direct domain
+  declaration lookup. This keeps zone authority/generic provenance checks on a
+  named semantic owner seam while the deeper DAG metadata slice remains open.
+- LLVM parity evidence refreshed after the semantic domain-owner seam cleanup:
+  local MinGW/Git Bash `llvm-test-smoke` passed all LLVM smoke fixtures, and
+  `llvm-test-backend-compare` passed ABI same-process `196/0` plus backend
+  compare `72/72`. `cfg-body-dataflow-test-smoke` and `test-mir` also passed
+  in the same refresh window. This strengthens the MIR/LLVM parity evidence,
+  but it does not raise the project to 80% by itself because CFG/AIR
+  consumer-completeness, declaration bootstrap shape, and ABI/Slot/Pin freeze
+  are still open.
+- Runtime panic ABI smoke no longer treats a local Windows shell compile
+  failure as a successful skip unless `PGY_RUNTIME_PANIC_ABI_ALLOW_LOCAL_SKIP=1`
+  is set explicitly. The default beta path now fails closed and the local
+  MinGW/Git Bash gate executes inline/exported panic harnesses.
+- Runtime panic codegen smoke now also uses the shared Windows/MSYS path helper
+  for generated fixture source and output paths. This repaired the local
+  MinGW/Git Bash gate so generated C/LLVM divide-by-zero, collection
+  out-of-bounds, and unwrap invariant panic classes are actually executed.
+- C performance baseline smoke no longer requires `/usr/bin/time`; it uses a
+  shell `date` timing fallback and shared compiler path conversion. Local
+  MinGW/Git Bash gate remains within the beta regression ceiling; a 2026-05-26
+  sample reported `pgy_over_c_ratio=0.779` for the arithmetic loop fixture.
+- Dogfood WebGL smoke remains a host-bridge/module-ecosystem gate, not a
+  language-surface gate. It now uses the shared Windows/MSYS path helper for
+  the emitted-C path; local MinGW/Git Bash validates the C bridge and skips only
+  the optional Emscripten link when `emcc` is unavailable.
+- Formatter, module resolver, package-module resolver, and stdlib surface
+  smokes now use the shared Windows/MSYS path helper for source/output paths.
+  Local MinGW/Git Bash gates now validate fmt idempotence, module import
+  behavior, package scaffold/errors, and stdlib C/LLVM parity through the same
+  executable path contract as the core backend smokes.
+- IR pipeline and Unicode policy smokes now use the shared Windows/MSYS path
+  helper as well. `ir-pipeline-test-smoke` validates DIR/RIR/MIR/runtime
+  logistics probe output through converted paths, and `unicode-policy-test-
+  smoke` fails closed when an explicit `PGY_BIN` is missing.
+- Build source inventory now gates the path-helper contract for beta executable
+  smokes, so formatter/module/package/stdlib/IR/unicode/perf/panic/codegen
+  smoke scripts cannot silently regress back to raw POSIX compiler paths on
+  Windows executables.
+- Tooling conformance smoke now also converts the debugger source path before
+  invoking a Windows `pgy.exe`. Smokes that delegate all compiler execution to
+  `compare_backends.sh` are classified as delegated path conversion in the
+  inventory gate rather than raw-path violations.
+- Runtime-none literal scanning now walks every array/tuple literal element.
+  The previous first-success early return could miss a runtime-dependent
+  surface in later elements once no-runtime lowering opens; the contract smoke
+  now includes executable array/tuple probes for that regression shape.
+- Runtime-none scanning now treats source-level `pin ... as ... { ... }` as a
+  runtime-dependent surface. Pin lowering needs runtime pin/unpin cleanup and
+  must not pass through `--runtime=none` as an ordinary lexical block. The
+  contract smoke includes an executable pin-block rejection probe.
+- Raw pointer helper macros remain runtime-internal only. `raw-escape-
+  contract-test-smoke` now rejects `PGY_PTR_*` usage in parser, semantic,
+  compiler, or codegen surfaces so runtime internals do not become a user raw
+  escape path before scoped unsafe capability evidence exists.
+- Runtime-internal `PGY_PTR_NEW_ARRAY` now routes through a bounded helper
+  (`pgy_ptr_new_array_impl`) that checks `elem_size * count` overflow before
+  allocation. This does not open user raw escape; it closes an internal pointer
+  safety seam behind the raw-escape contract gate.
+- Security-mode fast-path docs no longer show `unsafe { *slot.get_ptr() = ... }`
+  as the stable Slot performance answer. The documented fast path is now typed
+  Pin/Lease (`pin slot as view: WriteView<T> { ... }`), and
+  `raw-escape-contract-test-smoke` rejects `slot.get_ptr()` returning to that
+  document.
+- Action contract zone/effect lookup now consumes
+  `semantic_find_zone_decl_by_name(...)` / `semantic_find_effect_decl_by_name(...)`
+  instead of calling `find_domain_decl_by_name(...)` locally. The resolver
+  inventory smoke rejects direct domain declaration lookup reappearing in the
+  action contract owner.
 - Beta test-suite freeze now directly lists
   `self-host-preparation-test-smoke`, matching the CI sequence and preventing
   the post-beta migration guard from becoming an undocumented side gate.
@@ -367,6 +726,9 @@ English anchor for tooling/doc gates:
   owning `.c` file; promote cross-owner utilities only when the caller contract
   is explicit and smoke-gated. `test_inc_size_smoke.sh` now applies a stricter
   500 LOC helper-owner gate before the general 600 LOC production-owner gate.
+  `backend-inc-size-test-smoke` now applies the 600 LOC production-header signal
+  to every `src` header outside tests, so semantic/parser public surfaces cannot
+  quietly become implementation-header warehouses.
   This is a source-of-truth rule, not a cosmetic naming preference.
 - First helper-layer escalation slice after the rule: C backend specialization
   AST scanning moved out of `transpiler_specialization_registry.c` into
@@ -7225,7 +7587,7 @@ boundary transition을 거절하고 runtime은 generation/token/resource state�
 **확정 순서 — BDFL 결정:**
 
 1. **BETA closure** — 현재 (§0a 참조). 기능 체감 약 70% /
-   strict beta readiness 약 70-72%
+   strict beta readiness 약 72-74%
    → 100% 신뢰도까지 닫기
 2. **dogfood (compiler-adjacent first)** — §0-selfhost 의 첫 dogfood
    원칙: diagnostic catalog checker, AIR graph JSON validator, MIR dump
@@ -7330,7 +7692,7 @@ runtime-validated handles) 로 대체. 진입 비용 낮춘 자리, 자기인식
 ## 0a. Strict Beta Closure Order — 2026-05-01 재고정
 
 **현재 판정:** 기능 구현률은 약 70%로 본다. strict beta readiness는
-약 70-72%다. 차이는 기능 수가 아니라 CFG/AIR/DAG/MIR/ABI가 실제
+약 72-74%다. 차이는 기능 수가 아니라 CFG/AIR/DAG/MIR/ABI가 실제
 source-of-truth로 소비되는 깊이다. 75%는 CFG/AIR consumer-completeness,
 MIR/LLVM declaration bootstrap, ABI/Slot/Pin freeze가 모두 닫힌 뒤
 재평가한다.
@@ -7837,7 +8199,7 @@ Intent-Compress는 척추 변경이므로 "며칠 컷"으로 고정하지 않는
 
 2026-05-01 update:
 - Beta progress is tracked as two numbers: user-visible feature progress is
-  about 70%, while strict beta readiness is about 70-72%. The delta to 75% is
+  about 70%, while strict beta readiness is about 72-74%. The delta to 75% is
   CFG/AIR consumer-completeness, MIR/LLVM declaration bootstrap, and
   ABI/Slot/Pin freeze, not missing surface syntax.
 - WebGL/WASM is no longer framed as "native LLVM wasm before beta". The beta
@@ -14746,7 +15108,7 @@ Local verification for this debt refresh:
 - Rechecked the beta status anchors after the current source-of-truth gates:
   `docs/100_beta_readiness_checklist.md`,
   `docs/70_beta_closure_master_board.md`, and this TODO now use the same
-  strict beta readiness range: about 70-72%, not 75%. The remaining 75% line is
+  strict beta readiness range: about 72-74%, not 75% or 80%. The remaining 75% line is
   explicitly CFG/AIR consumer-completeness, MIR/LLVM declaration bootstrap, and
   ABI/Slot/Pin freeze. Also tightened the C call emitter receiver-type copy:
   method-style nominal calls now reject overlong receiver type names instead of
@@ -15141,3 +15503,255 @@ Local verification for this debt refresh:
   arrays before iterating.
   Local verification:
   `runtime-abi-lifetime-test-smoke`, `test-abi`, and `git diff --check`.
+- Narrowed the DAG intent/zone owner seam: intent step `where`, derived
+  `using`, participant transfer-source checks, and transfer `from`/`to` zone
+  declaration recovery now route through `intent_find_zone_decl_for_type(...)` /
+  `intent_resolve_step_where_zone_decl(...)` instead of each consumer
+  re-opening `AST_ZONE_DECL` lookup locally. Intent step `causes` effect
+  declaration recovery now routes through `intent_find_effect_decl_by_name(...)`
+  instead of re-opening `AST_EFFECT_DECL` in the step validator. This does not
+  yet make all intent semantics DAG-only, but it removes another local
+  rediscovery point and keeps the next zone-authority/generic provenance slice
+  behind one owner seam.
+  Follow-up tightening: those intent wrappers now consume
+  `semantic_find_zone_decl_by_name(...)` / `semantic_find_effect_decl_by_name(...)`
+  internally, and world state projection/layer DAG dependencies also recover
+  zone declarations through the same semantic owner seam instead of direct
+  `find_domain_decl_by_name(...)` calls.
+  Local verification: `type-resolution-resolver-inventory-test-smoke`,
+  `type-resolution-dag-test-smoke`, and
+  `intent-compression-contract-test-smoke`.
+- Tightened AIR EvidenceNode creation: `air_append_evidence_node_ex(...)` now
+  rejects empty provider/subject provenance and zero-fact evidence before
+  storing an evidence node. AIR already rejected malformed evidence during
+  validation, but creation-time fail-closed behavior prevents invalid proof
+  facts from entering the inventory in the first place. Local verification:
+  `test-air` (`118/0`) and `air-drift-test-smoke`.
+- Made the remaining AST slot analyzer compatibility pass explicit at the
+  semantic entry point: `semantic_run_legacy_slot_resource_analysis(...)` now
+  wraps allocation/failure handling and documents that CFG/MIR owns beta
+  body-safety truth while the legacy analyzer is retained for conservative
+  escape/leak provenance until those warnings move to CFG/MIR facts. The shape
+  smoke now gates this seam name.
+- Tightened tooling conformance smoke portability: the script now calls
+  `pgy_prepend_windows_runtime_paths` after sourcing the binary path helper, so
+  MinGW/LLVM DLL lookup is set up before probing `pgy.exe` / `pgy-lsp.exe`.
+  This removed the local Windows-bash executable skip and now reaches
+  `tooling-conformance-smoke: PASS` instead of treating launch failure as a
+  skipped probe.
+- Tightened raw escape smoke portability: `raw_escape_contract_smoke.sh` now
+  uses `pgy_binary_path_helpers.sh`, prepends Windows runtime paths, and passes
+  compiler input paths through `pgy_path_for_compiler(...)`. The local gate now
+  reaches the executable semantic rejection path and reports
+  `[raw-escape-contract] system-tier raw escape is explicitly rejected` instead
+  of skipping under Windows bash.
+- Reduced action contract declaration rediscovery: `type_checker_func_action_contract.c`
+  now resolves the action `within` zone and `causes` effect declarations once per
+  action contract and reuses those declaration facts for visibility, subject
+  slot, authority, and effect-layer checks. This is not a new DAG owner seam,
+  but it removes repeated local lookup inside one semantic consumer.
+  Local verification: `test-semantic` (`2551/0`).
+- Reduced intent control declaration rediscovery: authority-sensitive member
+  call detection now uses `semantic_host_decl_for_type(...)` plus
+  `semantic_host_decl_methods(...)` instead of reopening class-only
+  `find_type_decl_by_name(...)`. This keeps subject/party/zone/world hosted
+  methods on the same semantic host seam as the rest of the beta surface.
+  Local verification: `test-semantic` (`2558/0`) and
+  `type-resolution-resolver-inventory-test-smoke`.
+- Reduced domain slot declaration rediscovery: vessel slot validation now
+  recovers the slot type declaration through `semantic_host_decl_for_type(...)`
+  instead of reopening direct `find_type_decl_by_name(...)`. The shape smoke
+  gates this owner seam so subject/vessel slot checks cannot drift back to a
+  class-only lookup path.
+  Local verification: `test-semantic` (`2558/0`) and
+  `type-resolution-resolver-inventory-test-smoke`.
+- Reduced nominal host rediscovery in class/assignment validation: subject
+  vessel-field checks and object/tobject field-write rejection now consume
+  `semantic_host_decl_for_type(...)` instead of reopening class-only
+  `find_type_decl_by_name(...)`. This keeps nominal flavor checks on the same
+  semantic host seam used by intent control and domain slot validation.
+  Local verification: `test-semantic` (`2558/0`).
+- Reduced role host-type rediscovery: role declaration host validation now
+  consumes `semantic_host_decl_for_type(...)` after DAG-backed type-ref
+  resolution instead of reopening direct type lookup by the source name. The
+  shape smoke gates both the semantic role target-type helper and the host decl
+  seam.
+  Local verification: `test-semantic` (`2558/0`).
+- Reduced projection vessel-path rediscovery: nested vessel field traversal in
+  projection source-field path resolution now resolves the field type through
+  DAG-backed metadata and consumes `semantic_host_decl_for_type(...)` instead
+  of reopening direct type lookup by AST name. The shape smoke gates this
+  projection seam.
+  Local verification: `test-semantic` (`2558/0`).
+- Reduced intent role-field rediscovery: ability require-field validation for
+  role implementations now resolves both the role host type and nested subject
+  vessel fields through DAG-backed type facts plus `semantic_host_decl_for_type(...)`.
+  The shape smoke rejects direct type lookup returning to the intent role-field
+  owner.
+  Local verification: `test-semantic` (`2558/0`).
+- Reduced value-boundary nominal rediscovery: resource boundary classification
+  now resolves nominal declarations through `semantic_host_decl_for_type(...)`
+  when a `Type *` fact is already available, instead of reopening a class-only
+  lookup by name. Legacy program/name lookup helpers remain as compatibility
+  APIs until their callers receive `SemanticContext`.
+  Local verification: `test-semantic` (`2558/0`).
+- Reduced ability field visibility rediscovery: ability `fields` declarations
+  now resolve the field type once through DAG-backed metadata and feed the
+  resulting `Type *` into `semantic_host_decl_for_type(...)` for export checks,
+  instead of reopening class-only lookup by AST name. The shape smoke rejects
+  direct type lookup returning to this owner.
+  Local verification: `test-semantic` (`2558/0`).
+- Reduced constructor-call rediscovery: `expr_is_class_constructor_call(...)`
+  now routes class-constructor detection through
+  `constructor_decl_for_symbol_kind(...)` instead of owning a separate direct
+  declaration lookup at the call site. The shape smoke gates this seam so the
+  ownership-let constructor exception stays behind the shared constructor host
+  helper.
+  Local verification: `semantic-core-shape-test-smoke` and `test-semantic`
+  (`2558/0`).
+- Reduced subject-host rediscovery where a `Type *` fact is already available:
+  `type_is_subject_type(...)` and domain projection source validation now
+  consume `semantic_host_decl_for_type(...)` instead of reopening
+  `find_subject_host_decl_by_name(...)` by source name. Name-only intent
+  inference helpers remain on the compatibility helper until they carry typed
+  participant facts.
+  Local verification: `semantic-core-shape-test-smoke` and `test-semantic`
+  (`2558/0`).
+- Reduced intent participant subject-host rediscovery: the shared
+  `intent_involves_is_subject_host(...)` helper now takes `SemanticContext *`,
+  resolves the participant type through DAG metadata, and consumes
+  `semantic_host_decl_for_type(...)`. Callers no longer pass `ctx->program_root`
+  for this subject-host predicate, and the shape smoke gates the typed seam.
+  Local verification: `semantic-core-shape-test-smoke` and `test-semantic`
+  (`2558/0`).
+- Reduced intent on-inference participant declaration rediscovery: action
+  derivation and participant action checks now reuse
+  `intent_resolve_involves_type(...)` plus `semantic_host_decl_for_type(...)`
+  instead of reopening `find_subject_host_decl_by_name(...)` after the typed
+  subject predicate succeeds. The shape smoke now rejects direct subject-host
+  lookup returning to these intent owners.
+  Local verification: `semantic-core-shape-test-smoke` and `test-semantic`
+  (`2558/0`).
+- Reduced intent inherited-action rediscovery: redundant action contract
+  warnings and contract-source summaries now resolve step participants through
+  typed intent metadata and `semantic_host_decl_for_type(...)`, removing their
+  remaining direct subject-host lookup by participant type name. The shape
+  smoke gates both owners.
+  Local verification: `semantic-core-shape-test-smoke` and `test-semantic`
+  (`2558/0`).
+- Reduced subject-bound role rediscovery: `any_subject_role_has_ability(...)`
+  and `any_subject_role_find_base_ability_impl(...)` now take
+  `SemanticContext *`, resolve each role's host type through metadata, and
+  consume `semantic_host_decl_for_type(...)` instead of reopening
+  `find_subject_host_decl_by_name(...)`. Party role-slot validation now passes
+  the context seam directly.
+  Local verification: `semantic-core-shape-test-smoke` and `test-semantic`
+  (`2558/0`).
+- Reduced DAG domain-stage rediscovery: `semantic_stage_domain_find_zone_decl(...)`
+  now delegates to `semantic_find_zone_decl_by_name(...)` instead of reopening
+  `find_domain_decl_by_name(...)` locally. The resolver-inventory smoke rejects
+  direct domain lookup returning to this DAG stage owner.
+  Local verification: `type-resolution-resolver-inventory-test-smoke`,
+  `cfg-body-dataflow-test-smoke`, `semantic-core-shape-test-smoke`, and
+  `test-semantic` (`2558/0`).
+- Tightened CFG/body-flow smoke coverage for bind validation: the CFG smoke now
+  gates that body flow calls `type_check_bind_stmt(...)` and that the bind owner
+  still reports missing party-slot ability diagnostics, matching the source of
+  truth spine instead of relying only on the broader semantic shape smoke.
+  Local verification: `cfg-body-dataflow-test-smoke`,
+  `semantic-core-shape-test-smoke`, and `test-semantic` (`2558/0`).
+- Do not mechanically replace `type_checker_ownership_let.c`'s annotated
+  generic-class declaration recovery with `semantic_host_decl_for_type(...)`.
+  A trial showed that constructed generic annotations can lose the original
+  generic class declaration needed for where-bound rejection. This seam should
+  move only after DAG metadata exposes an explicit "origin generic class
+  declaration" fact. Regression evidence: the unsafe replacement dropped the
+  `generic class instantiation rejects non matching where constraint` diagnostic
+  before being reverted; `test-semantic` and `type-resolution-dag-test-smoke`
+  pass after reverting.
+- Tightened world helper null-ordering: `resolve_world_zone_decl_local(...)`
+  now checks the resolved world zone slot before reading its type accessor. The
+  accessor itself is null-safe, but the helper now documents the intended owner
+  order directly and avoids relying on accessor tolerance.
+- Tightened AIR/CFG/DAG source-of-truth gates again: AIR JSON schema smoke now
+  checks MIR summary counters against emitted EvidenceNode counts for cleanup,
+  terminator, and select receive facts; CFG body-dataflow smoke now treats MIR
+  terminator provenance raw fields as source-shape-owned; and DAG graph host
+  lookup now routes world/zone recovery through
+  `semantic_find_world_decl_by_name(...)` /
+  `semantic_find_zone_decl_by_name(...)` instead of direct domain lookup.
+  Local verification: `cfg-body-dataflow-test-smoke`,
+  `type-resolution-resolver-inventory-test-smoke`,
+  `type-resolution-dag-test-smoke`, `test-mir`, `test-air`,
+  `air-drift-test-smoke`, `air-json-schema-test-smoke`,
+  `source-utf8-test-smoke`, and `git diff --check`.
+- Reduced ability declaration rediscovery: context-bearing ability where,
+  generic contract, module contract, role impl, and DAG signature provider
+  checks now consume `semantic_find_ability_decl_by_name(...)` instead of
+  reopening `find_ability_decl_by_name(ctx->program_root, ...)`. The raw
+  program lookup remains only for program-only compatibility helpers such as
+  `ability_ref_matches(...)`, and the semantic core shape smoke gates this
+  boundary.
+- Reduced DAG metadata class-declaration rediscovery: graph core/domain and
+  metadata materialization owners now consume
+  `semantic_find_class_decl_by_name(...)` for context-bearing class lookup
+  instead of reopening `find_type_decl_by_name(ctx->program_root, ...)`.
+  `type_checker_ownership_let.c` remains an explicit generic-origin exception
+  until DAG metadata exposes the original generic class declaration fact. The
+  resolver inventory smoke gates the metadata owner boundary.
+- Reduced semantic host classification duplication: `semantic_host_decl_for_type(...)`
+  now reuses the semantic class/domain owner lookup seams for class, party,
+  roster, world, zone, relation, and effect recovery instead of duplicating raw
+  lookup calls inside the host classifier. The semantic core shape smoke gates
+  this owner-seam fanout.
+- Reduced callable/constructor declaration rediscovery: late callable checking
+  now consumes `semantic_find_callable_decl_by_name(...)`, and constructor
+  symbol-call validation plus constructor-expression detection now consume
+  `semantic_constructor_decl_for_symbol_kind(...)`. Raw program-level callable
+  and constructor lookup remains inside the owner seam; context-bearing
+  consumers are gated by the semantic core shape smoke.
+- Reduced role declaration rediscovery: bind validation and role include
+  validation now consume `semantic_find_role_decl_by_name(...)` instead of
+  passing `ctx->program_root` into the program-only role lookup helper. Recursive
+  role include/ability matching remains program-only by design; context-bearing
+  consumers are gated by the semantic core shape smoke.
+- Reduced subject ability satisfaction rediscovery: ability where, generic
+  contract, intent ability, action contract, and zone authority checks now
+  consume `semantic_subject_type_has_ability(...)` plus
+  `semantic_subject_type_find_base_ability_impl(...)` instead of passing
+  `ctx->program_root` into program-only recursive ability helpers. Recursive
+  ability matching remains program-only behind the seam; context-bearing
+  consumers are gated by the semantic core shape smoke.
+- Reduced DAG type-alias declaration rediscovery: graph core, alias
+  materialization, metadata dead-end classification, and metadata diagnostics
+  now consume `semantic_find_type_alias_decl_by_name(...)` instead of reopening
+  `find_type_alias_decl(ctx->program_root, ...)`. The raw helper remains the
+  program-only owner body; the resolver inventory smoke gates metadata
+  consumers.
+- Reduced spawn boundary callable rediscovery: the async/channel owner-local
+  callable lookup now takes `SemanticContext *`, so token/ref spawn boundary
+  validators no longer pass `ctx->program_root` into a local lookup helper. The
+  semantic core shape smoke gates this context-bearing boundary.
+- Tightened DAG signature provider lookup: role providers now resolve through
+  `semantic_find_role_decl_by_name(...)`, and the generic top-level fallback is
+  hidden behind a context-bearing wrapper instead of passing `ctx->program_root`
+  from the stage signature consumer. The resolver inventory smoke gates both
+  seams.
+- Reduced call-site function rediscovery: parameter contract lookup and generic
+  where validation now consume `semantic_find_function_decl_by_name(...)`
+  instead of scanning `ctx->program_root` locally. This keeps function-only
+  call validation distinct from broader callable lookup and is gated by
+  `semantic-core-shape-test-smoke`.
+- Centralized enum declaration recovery: expression enum projection, CFG match
+  enum analysis, and semantic host classification now consume
+  `semantic_find_enum_decl_by_name(...)` instead of owning local program scans.
+  The semantic core shape smoke gates the enum lookup seam.
+- Removed raw program-root guards from constructor and late callable consumers:
+  they now trust `semantic_constructor_decl_for_symbol_kind(...)` and
+  `semantic_find_callable_decl_by_name(...)` to own null/root compatibility.
+  The semantic core shape smoke gates against reopening those consumer guards.
+- Tightened role operator overload lookup: operator validation now walks roles
+  through `semantic_find_next_role_decl_for_type_name(...)`, and included roles
+  resolve through `semantic_find_role_decl_by_name(...)`. This preserves the
+  previous multi-role search behavior while removing raw program-root traversal
+  from the expression operator consumer.

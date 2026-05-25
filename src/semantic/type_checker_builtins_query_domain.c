@@ -4,6 +4,12 @@
 #include "type_checker_builtins_query_domain.h"
 #include "parser/ast_api.h"
 
+static ASTNode *
+builtin_query_domain_program(SemanticContext *ctx)
+{
+    return ctx != NULL ? ctx->program_root : NULL;
+}
+
 ASTNode *
 find_zone_domain_slot_local(ASTNode *zone, const char *slot_name)
 {
@@ -77,45 +83,6 @@ find_world_zone_slot_local_builtin(ASTNode *world, const char *slot_name)
     return NULL;
 }
 
-static ASTNode *
-find_program_domain_decl_local(ASTNode *program, ASTNodeType decl_type, const char *name)
-{
-    if (program == NULL || program->type != AST_PROGRAM || name == NULL)
-        return NULL;
-
-    for (size_t i = 0; i < ast_program_statement_count(program); i++) {
-        ASTNode *stmt = ast_program_statement(program, i);
-        if (stmt == NULL || stmt->type != decl_type)
-            continue;
-        switch (decl_type) {
-        case AST_ZONE_DECL:
-            if (ast_zone_name(stmt) != NULL
-                && strcmp(ast_zone_name(stmt), name) == 0)
-                return stmt;
-            break;
-        case AST_RELATION_DECL:
-            if (ast_relation_name(stmt) != NULL
-                && strcmp(ast_relation_name(stmt), name) == 0)
-                return stmt;
-            break;
-        case AST_EFFECT_DECL:
-            if (ast_effect_name(stmt) != NULL
-                && strcmp(ast_effect_name(stmt), name) == 0)
-                return stmt;
-            break;
-        case AST_WORLD_DECL:
-            if (ast_world_name(stmt) != NULL
-                && strcmp(ast_world_name(stmt), name) == 0)
-                return stmt;
-            break;
-        default:
-            break;
-        }
-    }
-
-    return NULL;
-}
-
 ASTNode *
 builtin_resolve_world_zone_decl_local(SemanticContext *ctx, ASTNode *world,
                                       const char *slot_name)
@@ -130,8 +97,7 @@ builtin_resolve_world_zone_decl_local(SemanticContext *ctx, ASTNode *world,
     if (zone_type_name == NULL)
         return NULL;
 
-    return find_program_domain_decl_local(ctx->program_root, AST_ZONE_DECL,
-        zone_type_name);
+    return semantic_find_zone_decl_by_name(ctx, zone_type_name);
 }
 
 ASTNode *
@@ -266,7 +232,7 @@ current_projection_host_decl(SemanticContext *ctx, const char **label_out,
     return NULL;
 }
 
-ASTNode *
+static ASTNode *
 find_named_class_decl(ASTNode *program, const char *name)
 {
     if (program == NULL || program->type != AST_PROGRAM || name == NULL)
@@ -389,4 +355,15 @@ resolve_projection_source_field_type_rec(ASTNode *program,
         return 1;
     }
     return match_count > 1 ? 2 : 0;
+}
+
+int
+semantic_resolve_projection_source_field_type(SemanticContext *ctx,
+                                              ASTNode *source_decl,
+                                              const char *field_name,
+                                              Type **field_type_out)
+{
+    ASTNode *program = builtin_query_domain_program(ctx);
+    return resolve_projection_source_field_type_rec(
+        program, source_decl, field_name, 0, ctx, field_type_out);
 }

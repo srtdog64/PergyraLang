@@ -66,6 +66,7 @@ fi
 
 for path in \
     src/semantic/type_checker_event.c \
+    src/semantic/type_checker_bind_stmt.c \
     src/semantic/type_checker_generic_validation.c \
     src/semantic/type_checker_qubit.c \
     src/semantic/type_checker_domain_role_lookup.c \
@@ -194,6 +195,116 @@ if grep -q '^type_check_enum_decl(ASTNode \*node,' \
     fail "type_checker.c must not own enum declaration validation"
 fi
 
+grep -q 'return type_check_bind_stmt(node, ctx);' src/semantic/type_checker.c \
+    || fail "AST_BIND_STMT must be validated by type_check_bind_stmt"
+
+grep -q 'type_check_bind_stmt(node, ctx);' src/semantic/type_checker_flow.c \
+    || fail "CFG/body flow must consume semantic bind validation"
+
+if grep -q 'validated at codegen level' src/semantic/type_checker.c; then
+    fail "semantic bind validation must not be delegated to codegen"
+fi
+
+grep -q 'missing ability' src/semantic/type_checker_bind_stmt.c \
+    || fail "bind validation must report the missing party slot ability"
+
+grep -q 'semantic_find_party_decl_by_name(ctx, party_type_name)' \
+    src/semantic/type_checker_bind_stmt.c \
+    || fail "bind validation must consume the semantic party declaration owner seam"
+
+if grep -q 'find_domain_decl_by_name' src/semantic/type_checker_bind_stmt.c; then
+    fail "bind validation must not reopen direct domain declaration lookup"
+fi
+
+grep -q 'semantic_host_decl_for_type(ctx, object_type)' \
+    src/semantic/type_checker_intent_control.c \
+    || fail "intent control member-call checks must consume semantic host decl seam"
+
+grep -q 'semantic_host_decl_methods(host_decl, &method_count)' \
+    src/semantic/type_checker_intent_control.c \
+    || fail "intent control member-call checks must consume semantic host method seam"
+
+if grep -q 'find_type_decl_by_name' src/semantic/type_checker_intent_control.c; then
+    fail "intent control must not reopen class-only direct type lookup"
+fi
+
+grep -q 'semantic_host_decl_for_type(ctx, slot_type)' \
+    src/semantic/type_checker_domain_slots.c \
+    || fail "domain slot validation must consume semantic host decl seam"
+
+if grep -q 'find_type_decl_by_name' src/semantic/type_checker_domain_slots.c; then
+    fail "domain slot validation must not reopen direct type lookup"
+fi
+
+grep -q 'semantic_host_decl_for_type(ctx, field_type)' \
+    src/semantic/type_checker_class_decl.c \
+    || fail "class vessel-field validation must consume semantic host decl seam"
+
+if grep -q 'find_type_decl_by_name' src/semantic/type_checker_class_decl.c; then
+    fail "class declaration validation must not reopen direct type lookup"
+fi
+
+grep -q 'semantic_host_decl_for_type(ctx, sym->type)' \
+    src/semantic/type_checker_assignment.c \
+    || fail "assignment projection immutability checks must consume semantic host decl seam"
+
+if grep -q 'find_type_decl_by_name' src/semantic/type_checker_assignment.c; then
+    fail "assignment validation must not reopen direct type lookup"
+fi
+
+grep -q 'semantic_host_decl_for_type(ctx, type)' \
+    src/semantic/type_checker_helpers_resources.c \
+    || fail "value boundary nominal checks must consume semantic host decl seam"
+
+if grep -q 'ctx->program_root == NULL' src/semantic/type_checker_helpers_resources.c; then
+    fail "value boundary nominal checks must not guard on raw program root"
+fi
+
+grep -q 'semantic_host_decl_for_type(ctx, object_type)' src/semantic/type_checker_expr.c \
+    || fail "member access nominal checks must consume semantic host decl seam"
+
+if grep -q 'object_type->name != NULL && ctx->program_root != NULL' src/semantic/type_checker_expr.c; then
+    fail "member access nominal checks must not guard on raw program root"
+fi
+
+grep -q 'semantic_resolve_projection_source_field_type(' \
+    src/semantic/type_checker_builtins_projection.c \
+    || fail "projection builtins must consume context-bearing projection field type seam"
+
+if grep -q 'resolve_projection_source_field_type_rec(.*ctx->program_root' \
+    src/semantic/type_checker_builtins_projection.c; then
+    fail "projection builtins must not pass raw program-root into projection resolver"
+fi
+
+grep -q 'semantic_resolve_projection_source_field_path(' \
+    src/semantic/type_checker_domain_projection_fields.c \
+    || fail "domain projection field validation must consume context-bearing projection path seam"
+
+if grep -q 'resolve_projection_source_field_path(.*ctx->program_root' \
+    src/semantic/type_checker_domain_projection_fields.c; then
+    fail "domain projection field validation must not pass raw program-root into projection resolver"
+fi
+
+grep -q 'semantic_resolve_projection_source_field_path(' \
+    src/semantic/type_checker_resolution_graph_zone.c \
+    || fail "DAG zone projection graph must consume context-bearing projection path seam"
+
+if grep -q 'resolve_projection_source_field_path(.*ctx->program_root' \
+    src/semantic/type_checker_resolution_graph_zone.c; then
+    fail "DAG zone projection graph must not pass raw program-root into projection resolver"
+fi
+
+if grep -q 'return true;' src/semantic/type_checker_bind_stmt.c \
+   && ! grep -q 'for (size_t i = 0; i < ability_count; i++)' src/semantic/type_checker_bind_stmt.c; then
+    fail "bind validation must check every party slot ability"
+fi
+
+grep -q 'LLVM bind emission cannot resolve party variable' src/codegen/llvm_stmt.c \
+    || fail "LLVM bind lowering must fail closed on missing party variable"
+
+grep -q 'LLVM bind emission cannot resolve role vtable global' src/codegen/llvm_stmt.c \
+    || fail "LLVM bind lowering must fail closed on missing role vtable global"
+
 if [ ! -f src/semantic/type_checker_resolution_worklist.c ]; then
     fail "DAG worklist execution must stay in type_checker_resolution_worklist.c"
 fi
@@ -249,12 +360,6 @@ grep -q 'semantic_find_role_decl' src/semantic/type_checker_domain_role_lookup.c
 grep -q 'ast_impl_ability_ref(impl)' src/semantic/type_checker_domain_role_lookup.c \
     || fail "semantic role lookup ability scan must consume AST impl-ability accessor"
 
-grep -q 'semantic_role_for_type_name(stmt)' src/semantic/type_checker_expr_ops.c \
-    || fail "operator overload checks must consume the semantic role target-type helper"
-
-grep -q 'semantic_find_role_decl(program' src/semantic/type_checker_expr_ops.c \
-    || fail "operator overload include traversal must consume the shared semantic role lookup helper"
-
 grep -q 'ast_include_role_name(inc)' src/semantic/type_checker_expr_ops.c \
     || fail "operator overload include traversal must consume AST include accessor"
 
@@ -264,8 +369,60 @@ grep -q 'ast_impl_ability_method(impl, j)' src/semantic/type_checker_expr_ops.c 
 grep -q 'semantic_role_for_type_name(stmt)' src/semantic/type_checker_ability_match.c \
     || fail "ability role matching must consume the semantic role target-type helper"
 
+grep -q 'semantic_find_next_role_decl_for_type_name(' src/semantic/type_checker_ability_match.c \
+    || fail "semantic ability wrappers must consume context-bearing role-for-type seam"
+
+grep -q 'semantic_role_decl_has_ability(ctx, stmt, ability_ref)' src/semantic/type_checker_ability_match.c \
+    || fail "semantic ability wrapper must consume context-bearing role ability seam"
+
+if grep -q 'return subject_type_has_ability(ctx->program_root' src/semantic/type_checker_ability_match.c; then
+    fail "semantic ability wrapper must not delegate through raw program-root subject scan"
+fi
+
+if grep -q 'return subject_type_find_base_ability_impl(ctx->program_root' src/semantic/type_checker_ability_match.c; then
+    fail "semantic base ability wrapper must not delegate through raw program-root subject scan"
+fi
+
+if grep -q 'role_decl_has_ability(stmt, ctx->program_root' src/semantic/type_checker_ability_match.c; then
+    fail "semantic ability wrapper must not pass raw program-root into role ability scan"
+fi
+
+grep -q 'ability_match_program(ctx)' src/semantic/type_checker_ability_match.c \
+    || fail "ability match owner must centralize context program access"
+
+if grep -q 'ctx->program_root == NULL' src/semantic/type_checker_ability_where.c; then
+    fail "ability where validation must rely on context-bearing semantic ability lookup"
+fi
+
+if grep -q 'ctx->program_root == NULL' src/semantic/type_checker_generic_contracts.c; then
+    fail "generic contract validation must rely on context-bearing semantic ability lookup"
+fi
+
 grep -q 'semantic_find_role_decl(program' src/semantic/type_checker_ability_match.c \
     || fail "ability include traversal must consume the shared semantic role lookup helper"
+
+grep -q 'semantic_host_decl_for_type(ctx, resolved_type)' \
+    src/semantic/type_checker_ability_fields.c \
+    || fail "ability field visibility checks must consume semantic host decl seam"
+
+if grep -q 'find_type_decl_by_name' src/semantic/type_checker_ability_fields.c; then
+    fail "ability field validation must not reopen direct type lookup"
+fi
+
+grep -q 'semantic_find_class_decl_by_name(ctx,' \
+    src/semantic/type_checker_builtins_projection.c \
+    || fail "projection builtins must consume semantic class lookup seam"
+
+if grep -q 'find_named_class_decl(ctx->program_root' \
+    src/semantic/type_checker_builtins_projection.c; then
+    fail "projection builtins must not reopen query-domain class lookup"
+fi
+
+if grep -q 'find_named_class_decl' \
+    src/semantic/type_checker_builtins_query_domain.h \
+    src/semantic/type_checker_internal.h; then
+    fail "query-domain class lookup must stay owner-local"
+fi
 
 grep -q 'ast_include_role_name(inc)' src/semantic/type_checker_ability_match.c \
     || fail "ability include traversal must consume AST include accessor"
@@ -276,11 +433,319 @@ grep -q 'ast_impl_ability_ref(impl)' src/semantic/type_checker_ability_match.c \
 grep -q 'semantic_role_for_type_name(role_decl)' src/semantic/type_checker_intent_role_fields.c \
     || fail "intent role-field validation must consume the semantic role target-type helper"
 
-grep -q 'semantic_find_role_decl(ctx->program_root, role_name)' src/semantic/type_checker_role_decl.c \
+grep -q 'semantic_host_decl_for_type(ctx, field_type)' \
+    src/semantic/type_checker_intent_role_fields.c \
+    || fail "intent role-field vessel traversal must consume semantic host decl seam"
+
+grep -q 'semantic_host_decl_for_type(ctx, bound_type)' \
+    src/semantic/type_checker_intent_role_fields.c \
+    || fail "intent role-field host validation must consume semantic host decl seam"
+
+if grep -q 'find_type_decl_by_name' src/semantic/type_checker_intent_role_fields.c; then
+    fail "intent role-field validation must not reopen direct type lookup"
+fi
+
+grep -q 'intent_involves_is_subject_host(ASTNode \*involves,' \
+    src/semantic/type_checker_intent_helpers.c \
+    || fail "intent participant subject-host checks must use typed context seam"
+
+grep -q 'semantic_host_decl_for_type(ctx, type)' \
+    src/semantic/type_checker_intent_helpers.c \
+    || fail "intent participant subject-host checks must consume semantic host decl seam"
+
+if grep -q 'find_subject_host_decl_by_name' src/semantic/type_checker_intent_helpers.c; then
+    fail "intent helper subject-host checks must not reopen direct subject-host lookup"
+fi
+
+if grep -R 'intent_involves_is_subject_host(ctx->program_root' src/semantic >/dev/null; then
+    fail "intent participant subject-host callers must pass SemanticContext to the typed seam"
+fi
+
+grep -q 'semantic_host_decl_for_type(ctx, subject_type)' \
+    src/semantic/type_checker_intent_on_inference.c \
+    || fail "intent on-inference must consume typed subject host seam"
+
+if grep -q 'find_subject_host_decl_by_name' src/semantic/type_checker_intent_on_inference.c; then
+    fail "intent on-inference must not reopen direct subject-host lookup"
+fi
+
+grep -q 'semantic_host_decl_for_type(ctx,' \
+    src/semantic/type_checker_intent_participants.c \
+    || fail "intent participant action checks must consume typed subject host seam"
+
+if grep -q 'find_subject_host_decl_by_name' src/semantic/type_checker_intent_participants.c; then
+    fail "intent participant checks must not reopen direct subject-host lookup"
+fi
+
+grep -q 'semantic_host_decl_for_type(ctx, type)' \
+    src/semantic/type_checker_intent_action_contract.c \
+    || fail "intent action contract inheritance must consume typed subject host seam"
+
+if grep -q 'find_subject_host_decl_by_name' src/semantic/type_checker_intent_action_contract.c; then
+    fail "intent action contract inheritance must not reopen direct subject-host lookup"
+fi
+
+grep -q 'semantic_host_decl_for_type(ctx, type)' \
+    src/semantic/type_checker_intent_contract_summary.c \
+    || fail "intent contract summary must consume typed subject host seam"
+
+if grep -q 'find_subject_host_decl_by_name' src/semantic/type_checker_intent_contract_summary.c; then
+    fail "intent contract summary must not reopen direct subject-host lookup"
+fi
+
+grep -q 'semantic_host_decl_for_type(ctx, field_type)' \
+    src/semantic/type_checker_projection_path.c \
+    || fail "projection vessel-field lookup must consume semantic host decl seam"
+
+if grep -q 'find_type_decl_by_name' src/semantic/type_checker_projection_path.c; then
+    fail "projection path validation must not reopen direct type lookup"
+fi
+
+grep -q 'semantic_find_class_decl_by_name(ctx, target_type->name)' \
+    src/semantic/type_checker_domain_projection.c \
+    || fail "domain projection target checks must consume semantic class lookup seam"
+
+grep -q 'semantic_find_class_decl_by_name(ctx, source_type->name)' \
+    src/semantic/type_checker_domain_projection.c \
+    || fail "domain projection source fallback must consume semantic class lookup seam"
+
+if grep -q 'find_named_class_decl_local' src/semantic/type_checker_domain_projection.c; then
+    fail "domain projection validation must not reopen local class declaration scans"
+fi
+
+grep -q 'semantic_find_class_decl_by_name(ctx,' \
+    src/semantic/type_checker_domain_contracts.c \
+    || fail "domain relation endpoint validation must consume semantic class lookup seam"
+
+if grep -q 'find_named_class_decl_local' src/semantic/type_checker_domain_contracts.c; then
+    fail "domain relation/effect contracts must not reopen local class declaration scans"
+fi
+
+grep -q 'semantic_find_ability_decl_by_name(ctx,' \
+    src/semantic/type_checker_ability_where.c \
+    || fail "ability where-clause validation must consume semantic ability lookup seam"
+
+grep -q 'semantic_find_ability_decl_by_name(ctx, bound_name)' \
+    src/semantic/type_checker_generic_contracts.c \
+    || fail "generic contract validation must consume semantic ability lookup seam"
+
+grep -q 'semantic_find_ability_decl_by_name(' \
+    src/semantic/type_checker_generic_validation.c \
+    || fail "generic validation must consume semantic ability lookup seam"
+
+grep -q 'semantic_find_ability_decl_by_name(ctx, ability)' \
+    src/semantic/type_checker_module_contract.c \
+    || fail "module ability contracts must consume semantic ability lookup seam"
+
+grep -q 'semantic_find_ability_decl_by_name(' \
+    src/semantic/type_checker_role_decl.c \
+    || fail "role impl validation must consume semantic ability lookup seam"
+
+grep -q 'semantic_find_ability_decl_by_name(ctx, provider_name)' \
+    src/semantic/type_checker_resolution_stage_signature.c \
+    || fail "DAG signature provider lookup must consume semantic ability lookup seam"
+
+if grep -q 'find_ability_decl_by_name(ctx->program_root' \
+    src/semantic/type_checker_ability_where.c \
+    src/semantic/type_checker_generic_contracts.c \
+    src/semantic/type_checker_generic_validation.c \
+    src/semantic/type_checker_module_contract.c \
+    src/semantic/type_checker_role_decl.c \
+    src/semantic/type_checker_resolution_stage_signature.c; then
+    fail "context-bearing semantic owners must not reopen raw ability declaration lookup"
+fi
+
+grep -q 'semantic_subject_type_has_ability(ctx,' \
+    src/semantic/type_checker_ability_where.c \
+    || fail "ability where-clause validation must consume semantic subject ability seam"
+
+grep -q 'semantic_subject_type_has_ability(ctx,' \
+    src/semantic/type_checker_generic_contracts.c \
+    || fail "generic contract validation must consume semantic subject ability seam"
+
+grep -q 'semantic_subject_type_has_ability(ctx,' \
+    src/semantic/type_checker_intent_ability.c \
+    || fail "intent ability validation must consume semantic subject ability seam"
+
+grep -q 'semantic_subject_type_find_base_ability_impl(' \
+    src/semantic/type_checker_intent_ability.c \
+    || fail "intent ability diagnostics must consume semantic subject ability impl seam"
+
+grep -q 'semantic_subject_type_has_ability(ctx,' \
+    src/semantic/type_checker_module_contract.c \
+    || fail "action ability contracts must consume semantic subject ability seam"
+
+grep -q 'semantic_subject_type_find_base_ability_impl(' \
+    src/semantic/type_checker_module_contract.c \
+    || fail "action ability diagnostics must consume semantic subject ability impl seam"
+
+grep -q 'semantic_subject_type_has_ability(ctx,' \
+    src/semantic/type_checker_zone_decl_authority.c \
+    || fail "zone authority ability validation must consume semantic subject ability seam"
+
+grep -q 'semantic_subject_type_find_base_ability_impl(' \
+    src/semantic/type_checker_zone_decl_authority.c \
+    || fail "zone authority ability diagnostics must consume semantic subject ability impl seam"
+
+if grep -q 'subject_type_has_ability(ctx->program_root' \
+    src/semantic/type_checker_ability_where.c \
+    src/semantic/type_checker_generic_contracts.c \
+    src/semantic/type_checker_intent_ability.c \
+    src/semantic/type_checker_module_contract.c \
+    src/semantic/type_checker_zone_decl_authority.c; then
+    fail "context-bearing ability consumers must not reopen raw subject ability lookup"
+fi
+
+if grep -q 'subject_type_find_base_ability_impl(ctx->program_root' \
+    src/semantic/type_checker_intent_ability.c \
+    src/semantic/type_checker_module_contract.c \
+    src/semantic/type_checker_zone_decl_authority.c; then
+    fail "context-bearing ability diagnostics must not reopen raw subject ability impl lookup"
+fi
+
+grep -q 'semantic_find_role_decl_by_name(ctx, role_name)' src/semantic/type_checker_role_decl.c \
     || fail "role declaration validation must consume the shared semantic role lookup helper"
+
+grep -q 'semantic_find_role_decl_by_name(ctx, role_name)' src/semantic/type_checker_bind_stmt.c \
+    || fail "bind role validation must consume context-bearing semantic role lookup seam"
+
+grep -q 'semantic_role_satisfies_party_slot(ctx, role_decl, role_slot' \
+    src/semantic/type_checker_bind_stmt.c \
+    || fail "bind role validation must consume context-bearing role-slot ability seam"
+
+if grep -q 'if (!role_satisfies_party_slot(role_decl, role_slot, ctx->program_root' \
+    src/semantic/type_checker_bind_stmt.c; then
+    fail "bind role validation must not pass raw program-root into role-slot ability seam"
+fi
+
+grep -q 'bind_stmt_program(ctx)' src/semantic/type_checker_bind_stmt.c \
+    || fail "bind role-slot owner must centralize context program access"
+
+grep -q 'semantic_find_next_role_decl_for_type_name(' src/semantic/type_checker_expr_ops.c \
+    || fail "operator overload role lookup must consume context-bearing role-for-type seam"
+
+grep -q 'snapshot_resource_states_from_scope(' src/semantic/type_checker_flow_parallel.c \
+    || fail "parallel flow must snapshot task deltas from a stable parent scope"
+
+if grep -q 'task_snap = snapshot_resource_states(ctx)' \
+    src/semantic/type_checker_flow_parallel.c; then
+    fail "parallel flow must not retain task-local symbols after scope exit"
+fi
+
+grep -q 'semantic_find_role_decl_by_name(ctx, role_name)' src/semantic/type_checker_expr_ops.c \
+    || fail "operator overload role include traversal must consume semantic role lookup seam"
+
+if grep -q 'ctx->program_root' src/semantic/type_checker_expr_ops.c; then
+    fail "operator overload validation must not consume raw program root"
+fi
+
+if grep -q 'semantic_find_role_decl(ctx->program_root' \
+    src/semantic/type_checker_bind_stmt.c \
+    src/semantic/type_checker_role_decl.c; then
+    fail "context-bearing role consumers must not reopen raw role lookup"
+fi
 
 grep -q 'semantic_role_for_type_node(node)' src/semantic/type_checker_role_decl.c \
     || fail "role declaration host-type validation must consume the semantic role target-type helper"
+
+grep -q 'semantic_host_decl_for_type(ctx, bound_type)' src/semantic/type_checker_role_decl.c \
+    || fail "role declaration host-type validation must consume semantic host decl seam"
+
+if grep -q 'find_type_decl_by_name' src/semantic/type_checker_role_decl.c; then
+    fail "role declaration validation must not reopen direct type lookup"
+fi
+
+grep -q 'semantic_constructor_decl_for_symbol_kind(ctx, SYMBOL_CLASS' \
+    src/semantic/type_checker_host_resource.c \
+    || fail "constructor-call detection must route through the constructor host seam"
+
+grep -q 'semantic_constructor_decl_for_symbol_kind(ctx,' \
+    src/semantic/type_checker_call_constructor.c \
+    || fail "constructor symbol call validation must consume semantic constructor lookup seam"
+
+if grep -q 'constructor_decl_for_symbol_kind(ctx->program_root' \
+    src/semantic/type_checker_call_constructor.c; then
+    fail "context-bearing constructor consumers must not reopen raw constructor lookup"
+fi
+
+if grep -q 'ctx->program_root' src/semantic/type_checker_call_constructor.c; then
+    fail "constructor symbol call validation must not guard on raw program root"
+fi
+
+grep -q 'semantic_find_callable_decl_by_name(ctx, display_name)' \
+    src/semantic/type_checker_helpers_late.c \
+    || fail "late callable validation must consume semantic callable lookup seam"
+
+if grep -q 'find_callable_decl_by_name(ctx->program_root' \
+    src/semantic/type_checker_helpers_late.c; then
+    fail "late callable validation must not reopen raw callable lookup"
+fi
+
+if grep -q 'ctx->program_root != NULL' \
+    src/semantic/type_checker_helpers_late.c; then
+    fail "late callable validation must not guard on raw program root"
+fi
+
+grep -q 'semantic_find_function_decl_by_name(ctx, display_name)' \
+    src/semantic/type_checker_call_contract_helpers.c \
+    || fail "call parameter contract lookup must consume semantic function lookup seam"
+
+grep -q 'semantic_find_function_decl_by_name(ctx, display_name)' \
+    src/semantic/type_checker_call_generic_where.c \
+    || fail "call generic where validation must consume semantic function lookup seam"
+
+if grep -q 'ASTNode \*prog = ctx->program_root' \
+    src/semantic/type_checker_call_contract_helpers.c; then
+    fail "call parameter contract lookup must not scan raw program root"
+fi
+
+if grep -q 'ctx->program_root' \
+    src/semantic/type_checker_call_generic_where.c; then
+    fail "call generic where validation must not scan raw program root"
+fi
+
+grep -q 'semantic_find_callable_decl_by_name(ctx, callee_name)' \
+    src/semantic/type_checker_async_channel.c \
+    || fail "spawn boundary validation must consume context-bearing callable lookup seam"
+
+if grep -q 'spawn_find_callable_decl' \
+    src/semantic/type_checker_async_channel.c; then
+    fail "spawn boundary validation must not carry a local callable lookup"
+fi
+
+grep -q 'semantic_host_decl_for_type(ctx, type)' \
+    src/semantic/type_checker_host_helpers.c \
+    || fail "subject type classification must consume semantic host decl seam"
+
+grep -q 'semantic_find_enum_decl_by_name(ctx, type->name)' \
+    src/semantic/type_checker_host_helpers.c \
+    || fail "semantic host type classification must use enum owner lookup seam"
+
+grep -q 'semantic_find_enum_decl_by_name(ctx, enum_name)' \
+    src/semantic/type_checker_expr_enum.c \
+    || fail "enum expression projection must consume semantic enum lookup seam"
+
+grep -q 'semantic_find_enum_decl_by_name(ctx, type->name)' \
+    src/semantic/type_checker_flow_match.c \
+    || fail "match enum analysis must consume semantic enum lookup seam"
+
+if grep -q 'ast_program_statement_count(ctx->program_root)' \
+    src/semantic/type_checker_expr_enum.c \
+    src/semantic/type_checker_flow_match.c; then
+    fail "enum expression/match consumers must not scan raw program root"
+fi
+
+for host_lookup_term in \
+    'semantic_find_class_decl_by_name(ctx, type->name)' \
+    'semantic_find_party_decl_by_name(ctx, type->name)' \
+    'semantic_find_roster_decl_by_name(ctx, type->name)' \
+    'semantic_find_world_decl_by_name(ctx, type->name)' \
+    'semantic_find_zone_decl_by_name(ctx, type->name)' \
+    'semantic_find_relation_decl_by_name(ctx, type->name)' \
+    'semantic_find_effect_decl_by_name(ctx, type->name)'; do
+    grep -q "$host_lookup_term" src/semantic/type_checker_host_helpers.c \
+        || fail "semantic host type classification must use owner lookup seam: $host_lookup_term"
+done
 
 grep -q 'ast_include_role_name(inc)' src/semantic/type_checker_role_decl.c \
     || fail "role declaration include validation must consume AST include accessor"
@@ -290,6 +755,87 @@ grep -q 'ast_impl_ability_ref(impl)' src/semantic/type_checker_role_decl.c \
 
 grep -q 'ast_impl_ability_method(impl, j)' src/semantic/type_checker_role_decl.c \
     || fail "role declaration impl method validation must consume AST impl-ability accessor"
+
+grep -q 'any_subject_role_has_ability(SemanticContext \*ctx' \
+    src/semantic/type_checker_domain_role_lookup.c \
+    || fail "subject-bound role lookup must consume SemanticContext"
+
+grep -q 'semantic_host_decl_for_type(ctx, resolved_type)' \
+    src/semantic/type_checker_domain_role_lookup.c \
+    || fail "subject-bound role lookup must consume semantic host decl seam"
+
+grep -q 'role_lookup_program(ctx)' src/semantic/type_checker_domain_role_lookup.c \
+    || fail "semantic role lookup owner must centralize context program access"
+
+grep -q 'resolution_helper_program(ctx)' src/semantic/type_checker_resolution_helpers.c \
+    || fail "type-alias resolution owner must centralize context program access"
+
+grep -q 'stage_lookup_program(ctx)' src/semantic/type_checker_resolution_stage_lookup.c \
+    || fail "DAG stage lookup owner must centralize context program access"
+
+grep -q 'call_contract_program(ctx)' src/semantic/type_checker_call_contract_helpers.c \
+    || fail "call contract summary owner must centralize context program access"
+
+grep -q 'stdlib_use_program(ctx)' src/semantic/type_checker_stdlib_use.c \
+    || fail "stdlib use owner must centralize context program access"
+
+grep -q 'projection_path_program(ctx)' src/semantic/type_checker_projection_path.c \
+    || fail "projection path owner must centralize context program access"
+
+grep -q 'builtin_query_domain_program(ctx)' src/semantic/type_checker_builtins_query_domain.c \
+    || fail "domain builtin query owner must centralize context program access"
+
+if grep -q 'find_subject_host_decl_by_name' src/semantic/type_checker_domain_role_lookup.c; then
+    fail "subject-bound role lookup must not reopen direct subject-host lookup"
+fi
+
+grep -q 'any_subject_role_has_ability(ctx, ab_type)' src/semantic/type_checker_party_decl.c \
+    || fail "party role-slot validation must pass SemanticContext to subject role lookup"
+
+if grep -q 'ctx->program_root != NULL' src/semantic/type_checker_party_decl.c; then
+    fail "party role-slot validation must rely on context-bearing ability seams"
+fi
+
+if grep -q 'ctx == NULL || ctx->program_root == NULL || zone_name == NULL' \
+    src/semantic/type_checker_resolution_stage_domain.c; then
+    fail "DAG domain staging must rely on context-bearing zone lookup seam"
+fi
+
+if grep -q 'ctx == NULL || ctx->program_root == NULL || label == NULL' \
+    src/semantic/type_checker_resolution_stage_lookup.c; then
+    fail "DAG graph host lookup must rely on context-bearing host lookup seams"
+fi
+
+grep -q 'semantic_find_class_decl_by_name(' \
+    src/semantic/type_checker_ownership_let.c \
+    || fail "let ownership annotation where-check must consume semantic class lookup seam"
+
+if grep -q 'find_type_decl_by_name(ctx->program_root' \
+    src/semantic/type_checker_ownership_let.c; then
+    fail "let ownership annotation where-check must not reopen raw type-decl lookup"
+fi
+
+if grep -q 'ctx->program_root == NULL' \
+    src/semantic/type_checker_resolution_metadata_constructed.c; then
+    fail "constructed metadata materialization must rely on semantic class lookup seam"
+fi
+
+grep -q 'semantic_find_callable_decl_by_name(ctx, callee_name)' \
+    src/semantic/type_checker_async_channel.c \
+    || fail "spawn token-boundary validation must consume semantic callable lookup seam"
+
+grep -q 'ast_async_func_name(stmt)' src/semantic/type_checker_host_helpers.c \
+    || fail "semantic callable lookup must include async function declarations"
+
+grep -q 'ast_async_func_name(stmt)' src/semantic/type_checker_helpers_resources.c \
+    || fail "shared callable primitive must include async function declarations"
+
+grep -q 'host_helper_program(ctx)' src/semantic/type_checker_host_helpers.c \
+    || fail "semantic host lookup owner must centralize context program access"
+
+if grep -q 'program = ctx->program_root' src/semantic/type_checker_async_channel.c; then
+    fail "spawn token-boundary validation must not reopen raw program-root scan"
+fi
 
 grep -q 'ast_include_role_name(inc)' src/semantic/type_checker_resolution_graph_decl_participants.c \
     || fail "DAG role include precollect must consume AST include accessor"
@@ -726,6 +1272,9 @@ grep -Fq "&& !slot_analyze_func_body(stmt, sa)" \
 grep -Fq "if (!slot_analyze_program(ast, sa) && !ctx->has_error)" \
     src/semantic/semantic.c \
     || fail "semantic entry must convert slot analyzer internal failure into a diagnostic"
+grep -Fq "semantic_run_legacy_slot_resource_analysis(ASTNode *ast, SemanticContext *ctx)" \
+    src/semantic/semantic.c \
+    || fail "semantic entry must keep slot analyzer behind an explicit legacy compatibility seam"
 grep -Fq "Slot resource-boundary analysis could not allocate state" \
     src/semantic/semantic.c \
     || fail "semantic entry must fail closed when slot analyzer allocation fails"
@@ -1274,12 +1823,14 @@ if grep -R "data\.\(relation_decl\|effect_decl\|zone_decl\)\.\(slots\|slot_count
 fi
 
 if grep -R "data\.\(world_decl\|relation_decl\|effect_decl\|zone_decl\)\.\(zones\|zone_count\|slots\|slot_count\|shared_fields\|shared_count\|methods\|method_count\|authorities\|authority_count\|layer_slots\|layer_slot_count\)" \
-    src/semantic/type_checker_host_helpers.c >/dev/null; then
+    src/semantic/type_checker_host_helpers.c \
+    src/semantic/type_checker_host_resource.c >/dev/null; then
     fail "semantic host overlay helpers must use AST domain child accessors"
 fi
 
 if grep -R "data\.\(class_decl\|enum_decl\)\.\(name\|methods\|method_count\|is_struct\)" \
-    src/semantic/type_checker_host_helpers.c >/dev/null; then
+    src/semantic/type_checker_host_helpers.c \
+    src/semantic/type_checker_host_resource.c >/dev/null; then
     fail "semantic host helpers must use AST nominal accessors"
 fi
 
@@ -1580,6 +2131,15 @@ if grep -R "data\.\(world_decl\|zone_decl\|relation_decl\|effect_decl\)\.\(zones
     fail "domain builtin query helpers must use AST domain child accessors"
 fi
 
+if grep -q "find_program_domain_decl_local" \
+    src/semantic/type_checker_builtins_query_domain.c; then
+    fail "domain builtin query helpers must consume semantic domain lookup seams"
+fi
+
+grep -q "semantic_find_zone_decl_by_name(ctx, zone_type_name)" \
+    src/semantic/type_checker_builtins_query_domain.c \
+    || fail "world zone builtin lookup must consume semantic zone lookup seam"
+
 if grep -R "data\.relation_decl\.\(slots\|slot_count\|refreshes\|refresh_count\|shared_fields\|shared_count\|methods\|method_count\)" \
     src/semantic/type_checker_relation_decl.c >/dev/null; then
     fail "relation declaration validator must use AST relation child accessors"
@@ -1618,6 +2178,14 @@ fi
 if grep -R "data\.zone_decl\.\(slots\|slot_count\)" \
     src/semantic/type_checker_domain_projection.c >/dev/null; then
     fail "domain projection contract checks must use AST zone child accessors"
+fi
+
+grep -q 'semantic_host_decl_for_type(ctx, source_type)' \
+    src/semantic/type_checker_domain_projection.c \
+    || fail "domain projection source checks must consume semantic host decl seam"
+
+if grep -q 'find_subject_host_decl_by_name' src/semantic/type_checker_domain_projection.c; then
+    fail "domain projection source checks must not reopen direct subject-host lookup"
 fi
 
 if grep -R "data\.\(world_decl\|relation_decl\|effect_decl\|zone_decl\)\.\(rosters\|roster_count\|zones\|zone_count\|methods\|method_count\)" \

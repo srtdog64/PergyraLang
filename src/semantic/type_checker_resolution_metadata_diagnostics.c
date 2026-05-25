@@ -275,8 +275,7 @@ semantic_type_resolution_reject_unknown_bare_named_type(SemanticContext *ctx,
         return false;
     if (scope_lookup(ctx->scope, name) != NULL)
         return false;
-    if (ctx->program_root != NULL
-        && find_type_alias_decl(ctx->program_root, name) != NULL) {
+    if (semantic_find_type_alias_decl_by_name(ctx, name) != NULL) {
         return false;
     }
 

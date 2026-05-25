@@ -16,8 +16,7 @@ mark_world_embedded_zone_arguments(ASTNode *call, SemanticContext *ctx)
     }
 
     world_name = ast_identifier_name(ast_call_callee(call));
-    world_decl = find_domain_decl_by_name(ctx->program_root, AST_WORLD_DECL,
-        world_name);
+    world_decl = semantic_find_world_decl_by_name(ctx, world_name);
     if (world_decl == NULL || world_decl->type != AST_WORLD_DECL)
         return;
 

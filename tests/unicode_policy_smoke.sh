@@ -2,6 +2,12 @@
 set -euo pipefail
 
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+source "$ROOT_DIR/tests/pgy_binary_path_helpers.sh"
+pgy_prepend_windows_runtime_paths
+PGY_WAS_EXPLICIT=0
+if [[ -n "${PGY_BIN:-}" ]]; then
+    PGY_WAS_EXPLICIT=1
+fi
 PGY="${PGY_BIN:-$ROOT_DIR/bin/pgy}"
 if [[ "$PGY" != *.exe && -x "${PGY}.exe" ]]; then
     PGY="${PGY}.exe"
@@ -30,6 +36,10 @@ for required in \
 done
 
 if [[ ! -x "$PGY" ]]; then
+    if [[ "$PGY_WAS_EXPLICIT" -eq 1 ]]; then
+        echo "[unicode-policy] missing compiler binary: $PGY" >&2
+        exit 1
+    fi
     echo "[unicode-policy] SKIP executable probe; source policy is gated"
     exit 0
 fi
@@ -57,8 +67,10 @@ EOF
 run_backend() {
     local backend="$1"
     local output
+    local source_arg
 
-    output="$("$PGY" "$WORK_DIR/utf8_strings.pgy" --backend="$backend" --run 2>&1)"
+    source_arg="$(pgy_path_for_compiler "$PGY" "$WORK_DIR/utf8_strings.pgy")"
+    output="$("$PGY" "$source_arg" --backend="$backend" --run 2>&1)"
     for expected in "안녕, Pergyra" "true" "안녕, 세계" "2"; do
         if ! grep -Fq "$expected" <<<"$output"; then
             echo "[unicode-policy] backend=$backend missing '$expected'" >&2
@@ -76,7 +88,7 @@ for backend in $BACKENDS; do
     run_backend "$backend"
 done
 
-if "$PGY" "$WORK_DIR/unicode_identifier_reject.pgy" --backend=c >/dev/null 2>"$WORK_DIR/reject.err"; then
+if "$PGY" "$(pgy_path_for_compiler "$PGY" "$WORK_DIR/unicode_identifier_reject.pgy")" --backend=c >/dev/null 2>"$WORK_DIR/reject.err"; then
     echo "[unicode-policy] unicode identifier unexpectedly accepted" >&2
     exit 1
 fi

@@ -34,7 +34,6 @@ ASTNode *current_projection_host_decl(SemanticContext *ctx,
                                       ASTNode ***slots_out,
                                       size_t *slot_count_out);
 
-ASTNode *find_named_class_decl(ASTNode *program, const char *name);
 bool decl_is_subject_nominal(ASTNode *decl);
 int resolve_projection_source_field_type_rec(ASTNode *program,
                                              ASTNode *source_decl,

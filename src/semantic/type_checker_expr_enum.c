@@ -1,4 +1,5 @@
 #include <stdio.h>
+#include <stdlib.h>
 #include <string.h>
 
 #include "type_checker_internal.h"
@@ -34,20 +35,7 @@ expr_parse_enum_payload_field_index(const char *field_name, size_t *index_out)
 static ASTNode *
 expr_find_enum_decl_by_name(SemanticContext *ctx, const char *enum_name)
 {
-    if (ctx == NULL || ctx->program_root == NULL
-        || ctx->program_root->type != AST_PROGRAM || enum_name == NULL) {
-        return NULL;
-    }
-
-    for (size_t i = 0; i < ast_program_statement_count(ctx->program_root); i++) {
-        ASTNode *stmt = ast_program_statement(ctx->program_root, i);
-        if (stmt != NULL && stmt->type == AST_ENUM_DECL
-            && ast_enum_name(stmt) != NULL
-            && strcmp(ast_enum_name(stmt), enum_name) == 0) {
-            return stmt;
-        }
-    }
-    return NULL;
+    return semantic_find_enum_decl_by_name(ctx, enum_name);
 }
 
 Type *
@@ -106,47 +94,42 @@ expr_type_for_enum_payload_field(SemanticContext *ctx, ASTNode *site,
     const char *sep = payload_name != NULL ? strchr(payload_name, '$') : NULL;
     size_t field_index = 0;
 
-    if (ctx == NULL || ctx->program_root == NULL
-        || ctx->program_root->type != AST_PROGRAM) {
-        return NULL;
-    }
     if (sep == NULL || !expr_parse_enum_payload_field_index(field_name,
             &field_index)) {
         return NULL;
     }
 
-    for (size_t i = 0; i < ast_program_statement_count(ctx->program_root); i++) {
-        ASTNode *decl = ast_program_statement(ctx->program_root, i);
-        size_t enum_len = (size_t)(sep - payload_name);
-        const char *variant_name = sep + 1;
+    size_t enum_len = (size_t)(sep - payload_name);
+    const char *variant_name = sep + 1;
+    char *enum_name = calloc(enum_len + 1, 1);
+    if (enum_name == NULL)
+        return NULL;
+    memcpy(enum_name, payload_name, enum_len);
 
-        if (decl == NULL || decl->type != AST_ENUM_DECL
-            || ast_enum_name(decl) == NULL
-            || strlen(ast_enum_name(decl)) != enum_len
-            || strncmp(ast_enum_name(decl), payload_name, enum_len) != 0) {
+    ASTNode *decl = semantic_find_enum_decl_by_name(ctx, enum_name);
+    free(enum_name);
+    if (decl == NULL)
+        return NULL;
+
+    size_t variant_count = 0;
+    char **variants = ast_enum_variants(decl, &variant_count);
+    for (size_t v = 0; v < variant_count; v++) {
+        const char *candidate = variants != NULL ? variants[v] : NULL;
+        size_t param_count = ast_enum_variant_param_count(decl, v);
+
+        if (candidate == NULL || strcmp(candidate, variant_name) != 0)
             continue;
+        if (field_index >= param_count
+            || ast_enum_variant_param(decl, v, field_index) == NULL) {
+            semantic_error_with_hints(ctx, PGY_CODE_SEM_UNDEFINED_SYMBOL,
+                PGY_CAUSE_SYMBOL_UNDEFINED,
+                PGY_FIX_MATCH_BUILTIN_SIGNATURE, site,
+                "Unknown enum payload field '%s.%s'",
+                payload_name, field_name);
+            return TYPE_UNKNOWN;
         }
-
-        size_t variant_count = 0;
-        char **variants = ast_enum_variants(decl, &variant_count);
-        for (size_t v = 0; v < variant_count; v++) {
-            const char *candidate = variants != NULL ? variants[v] : NULL;
-            size_t param_count = ast_enum_variant_param_count(decl, v);
-
-            if (candidate == NULL || strcmp(candidate, variant_name) != 0)
-                continue;
-            if (field_index >= param_count
-                || ast_enum_variant_param(decl, v, field_index) == NULL) {
-                semantic_error_with_hints(ctx, PGY_CODE_SEM_UNDEFINED_SYMBOL,
-                    PGY_CAUSE_SYMBOL_UNDEFINED,
-                    PGY_FIX_MATCH_BUILTIN_SIGNATURE, site,
-                    "Unknown enum payload field '%s.%s'",
-                    payload_name, field_name);
-                return TYPE_UNKNOWN;
-            }
-            return expr_enum_resolve_type_ref(
-                ast_enum_variant_param(decl, v, field_index), ctx);
-        }
+        return expr_enum_resolve_type_ref(
+            ast_enum_variant_param(decl, v, field_index), ctx);
     }
 
     return NULL;

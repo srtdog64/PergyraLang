@@ -64,9 +64,8 @@ intent_summary_inheritable_action(ASTNode *intent_decl, ASTNode *step,
     for (size_t i = 0; i < ast_intent_step_who_count(step); i++) {
         const char *alias = ast_intent_step_who_names(step, NULL)[i];
         ASTNode *involves = find_intent_involves_local(intent_decl, alias);
-        const char *type_name = intent_involves_type_name(involves);
-        ASTNode *subject_decl = find_subject_host_decl_by_name(ctx->program_root,
-                                                               type_name);
+        Type *type = intent_resolve_involves_type(involves, ctx);
+        ASTNode *subject_decl = semantic_host_decl_for_type(ctx, type);
         ASTNode *action_decl = intent_summary_subject_action(
             subject_decl, ast_intent_step_name(step));
 

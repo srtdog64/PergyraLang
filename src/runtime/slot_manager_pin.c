@@ -18,7 +18,7 @@ PergyraSlotPin(SlotManager *manager, const SlotHandle *handle,
 {
     SlotEntry *entry;
     SlotError result = SLOT_SUCCESS;
-    uint32_t tid = current_thread_id();
+    uintptr_t tid = current_thread_id();
 
     if (manager == NULL || handle == NULL || outView == NULL)
         return SLOT_ERROR_INVALID_HANDLE;
@@ -127,7 +127,7 @@ PergyraSlotUnpin(SlotManager *manager, PgyPinnedView *view)
 {
     SlotEntry *entry;
     SlotError result = SLOT_SUCCESS;
-    uint32_t tid = current_thread_id();
+    uintptr_t tid = current_thread_id();
 
     if (manager == NULL || view == NULL || !view->valid)
         return SLOT_ERROR_INVALID_PIN;

@@ -77,6 +77,20 @@ for term in \
 done
 
 for term in \
+    "kPgyHostDeclCompatTypes" \
+    "AST_PARTY_DECL" \
+    "AST_ROLE_DECL" \
+    "AST_ROSTER_DECL" \
+    "pgy_host_decl_compat_types" \
+    "pgy_host_decl_compat_is_type" \
+    "pgy_host_decl_compat_name" \
+    "case AST_PARTY_DECL" \
+    "case AST_ROLE_DECL" \
+    "case AST_ROSTER_DECL"; do
+    require_term "src/codegen/host_decl_compat.c" "$term"
+done
+
+for term in \
     "llvm_active_inventory" \
     "mir_find_decl_header(ctx->mir, name)" \
     "llvm_is_host_decl_type" \
@@ -579,6 +593,80 @@ fi
 if grep -Fq "find_zone_decl(ctx, ann_type_name)" \
     "$ROOT_DIR/src/codegen/transpiler_let_emit.c"; then
     fail "C annotated let constructor fallback must consume the domain-constructor lookup seam instead of repeating host chains"
+fi
+require_term "src/codegen/transpiler_intent_emit.c" \
+    "find_zone_decl_in_program_view(ctx, step_zone_name)"
+if grep -Fq "find_zone_decl(ctx, step_zone_name)" \
+    "$ROOT_DIR/src/codegen/transpiler_intent_emit.c"; then
+    fail "C intent step zone binding must consume the active inventory view instead of direct AST lookup"
+fi
+require_term "src/codegen/transpiler_block_intent_helpers.c" \
+    "find_zone_decl_in_program_view(ctx, zone_type)"
+if grep -Fq "find_zone_decl(ctx, zone_type)" \
+    "$ROOT_DIR/src/codegen/transpiler_block_intent_helpers.c"; then
+    fail "C intent block zone-effect helpers must consume the active inventory view instead of direct AST lookup"
+fi
+require_term "src/codegen/transpiler_projection.c" \
+    "transpiler_find_decl_in_inventory_local(ctx, AST_ZONE_DECL,"
+if grep -Fq "return find_zone_decl(ctx, zone_type)" \
+    "$ROOT_DIR/src/codegen/transpiler_projection.c"; then
+    fail "C world-zone projection resolution must consume active inventory instead of direct AST lookup"
+fi
+require_term "src/codegen/transpiler_world_select_event_emit.c" \
+    "transpiler_find_decl_in_inventory_local((TranspilerCtx *)ctx,"
+if grep -Fq "return find_zone_decl((TranspilerCtx *)ctx, zone_name)" \
+    "$ROOT_DIR/src/codegen/transpiler_world_select_event_emit.c"; then
+    fail "C world frontier lookup must consume active inventory instead of direct AST lookup"
+fi
+require_term "src/codegen/transpiler_mir_ssa_names.c" \
+    "transpiler_find_decl_in_inventory_local(ctx, AST_ZONE_DECL,"
+if grep -Fq "find_zone_decl(ctx, host_name)" \
+    "$ROOT_DIR/src/codegen/transpiler_mir_ssa_names.c"; then
+    fail "C MIR SSA host recovery must consume active inventory for zone lookup"
+fi
+require_term "src/codegen/transpiler_func_forward_policy.c" \
+    "transpiler_find_decl_in_inventory_local(ctx, AST_WORLD_DECL,"
+if grep -Fq "find_world_decl(ctx, name)" \
+    "$ROOT_DIR/src/codegen/transpiler_func_forward_policy.c"; then
+    fail "C function forward policy must consume active inventory for world lookup"
+fi
+for rel in \
+    "src/codegen/transpiler_projection_sync.c" \
+    "src/codegen/transpiler_overlay_projection.c" \
+    "src/codegen/transpiler_expr_call_member_emit.c"; do
+    require_term "$rel" "transpiler_find_decl_in_inventory_local("
+    if grep -Fq "find_zone_decl(ctx, zone_type_name)" "$ROOT_DIR/$rel"; then
+        fail "$rel must consume active inventory for world-zone projection/action context lookup"
+    fi
+done
+require_term "src/codegen/transpiler_projection_sync.c" \
+    "AST_EFFECT_DECL"
+if grep -Fq "find_effect_decl(ctx, effect_name)" \
+    "$ROOT_DIR/src/codegen/transpiler_projection_sync.c"; then
+    fail "C world action effect sync must consume active inventory for effect lookup"
+fi
+require_term "src/codegen/transpiler_overlay_zone_bind.c" \
+    "transpiler_find_decl_in_inventory_local("
+if grep -Fq "find_effect_decl(ctx, ast_zone_layer_slot_layer_type(layer_slot))" \
+    "$ROOT_DIR/src/codegen/transpiler_overlay_zone_bind.c"; then
+    fail "C zone effect bind must consume active inventory for effect lookup"
+fi
+require_term "src/codegen/transpiler_overlay_zone_relation_bind.c" \
+    "transpiler_find_decl_in_inventory_local("
+if grep -Fq "find_relation_decl(ctx," \
+    "$ROOT_DIR/src/codegen/transpiler_overlay_zone_relation_bind.c"; then
+    fail "C zone relation bind must consume active inventory for relation lookup"
+fi
+c_domain_lookup_hits="$(
+    grep -RInE 'find_(zone|world|relation|effect)_decl\(ctx,' \
+        "$ROOT_DIR/src/codegen" \
+        --include='transpiler*.c' --include='transpiler*.h' \
+        | grep -v 'src/codegen/transpiler_decl_lookup.c:' \
+        | grep -v 'src/codegen/transpiler_decl_lookup.h:' || true
+)"
+if [[ -n "$c_domain_lookup_hits" ]]; then
+    fail "C backend domain declaration recovery must consume active inventory seams outside decl_lookup owner:
+$c_domain_lookup_hits"
 fi
 require_term "src/codegen/transpiler_expr_type_infer.c" \
     "transpiler_has_known_nominal_type(ctx, name)"
@@ -1226,7 +1314,7 @@ require_term "src/codegen/llvm_domain_role_emit.c" \
     "ast_impl_ability_method(impl, j)"
 require_term "src/compiler/mir_decl_headers.c" \
     "ast_impl_ability_method(impl, j)"
-require_term "src/parser/ast_api.h" \
+require_term "src/parser/ast_domain_api.h" \
     "ast_role_impl_method_total_count"
 require_term "src/parser/ast_role_type_accessors.c" \
     "ast_role_impl_method_total_count"

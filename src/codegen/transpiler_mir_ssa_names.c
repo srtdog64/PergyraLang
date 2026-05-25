@@ -121,7 +121,9 @@ transpiler_is_implicit_field(TranspilerCtx *ctx, const char *base_name)
     if (transpiler_current_world_has_field(ctx, base_name))
         return true;
     if (!in_zone_context && host_name != NULL) {
-        ASTNode *zone_decl = find_zone_decl(ctx, host_name);
+        ASTNode *zone_decl =
+            transpiler_find_decl_in_inventory_local(ctx, AST_ZONE_DECL,
+                                                    host_name);
         if (zone_decl != NULL) {
             size_t slot_count = 0;
             ASTNode **slots = ast_zone_slots(zone_decl, &slot_count);

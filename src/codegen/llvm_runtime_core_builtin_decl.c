@@ -56,6 +56,8 @@ llvm_declare_runtime_core_builtins(LLVMGenCtx *ctx)
               { ctx->type_i8ptr }, 1 },
             { "StringConcat", ctx->type_i8ptr,
               { ctx->type_i8ptr, ctx->type_i8ptr }, 2 },
+            { "StringSplit", ctx->array_type_String,
+              { ctx->type_i8ptr, ctx->type_i8ptr }, 2 },
             { "pgy_string_equals", ctx->type_i1,
               { ctx->type_i8ptr, ctx->type_i8ptr }, 2 },
             { "pgy_runtime_panic_internal_invariant_export", ctx->type_void,

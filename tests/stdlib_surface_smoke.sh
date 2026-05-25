@@ -2,6 +2,8 @@
 set -euo pipefail
 
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+source "$ROOT_DIR/tests/pgy_binary_path_helpers.sh"
+pgy_prepend_windows_runtime_paths
 PGY="${PGY_BIN:-$ROOT_DIR/bin/pgy}"
 if [[ "$PGY" != *.exe && -x "${PGY}.exe" ]]; then
     PGY="${PGY}.exe"
@@ -106,8 +108,13 @@ EOF
 run_backend() {
     local backend="$1"
     local output
+    local stable_arg
+    local modules_arg
 
-    output="$(cd "$WORK_DIR" && "$PGY" "stable_stdlib.pgy" --backend="$backend" --run 2>&1)"
+    stable_arg="$(pgy_path_for_compiler "$PGY" "$WORK_DIR/stable_stdlib.pgy")"
+    modules_arg="$(pgy_path_for_compiler "$PGY" "$WORK_DIR/stable_use_modules.pgy")"
+
+    output="$(cd "$WORK_DIR" && "$PGY" "$stable_arg" --backend="$backend" --run 2>&1)"
 
     for expected in "42" "2" "3" "8" "true" "BYE there" "9"; do
         if ! grep -Fq "$expected" <<<"$output"; then
@@ -119,7 +126,7 @@ run_backend() {
         fi
     done
 
-    output="$(cd "$ROOT_DIR" && "$PGY" "$WORK_DIR/stable_use_modules.pgy" --backend="$backend" --run 2>&1)"
+    output="$(cd "$ROOT_DIR" && "$PGY" "$modules_arg" --backend="$backend" --run 2>&1)"
 
     for expected in "2026-4-26" "true" "device/sensor"; do
         if ! grep -Fq "$expected" <<<"$output"; then

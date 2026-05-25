@@ -22,6 +22,26 @@ Output:
 - missing reason/fix vocabulary,
 - docs drift report.
 
+Minimum JSON contract:
+
+```json
+{
+  "schema": "pgy.selfhost.diagnostic-catalog.v1",
+  "ok": true,
+  "source": {
+    "code_owner": "src/semantic/diag_codes.h",
+    "docs_owner": "docs/72_diagnostic_codes.md"
+  },
+  "counts": {
+    "codes": 0,
+    "documented": 0,
+    "missing": 0,
+    "duplicates": 0
+  },
+  "findings": []
+}
+```
+
 Why first:
 
 - Pure analysis.
@@ -40,6 +60,23 @@ Output:
 - missing evidence nodes,
 - boundary/evidence mismatch,
 - drift summary.
+
+Minimum JSON contract:
+
+```json
+{
+  "schema": "pgy.selfhost.air-graph-validator.v1",
+  "input_schema": "pgy.air.graph.v1",
+  "ok": true,
+  "counts": {
+    "intents": 0,
+    "boundaries": 0,
+    "evidence": 0,
+    "drifts": 0
+  },
+  "findings": []
+}
+```
 
 Why:
 

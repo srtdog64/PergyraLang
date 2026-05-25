@@ -351,7 +351,7 @@ party TradingPost {
 
 party CraftingGuild {
     role slot master: Craftable & Teaching
-    role slot apprentices: Array<Craftable & Learning>
+    role slot apprentices: Array<Craftable>  // future: Array<Craftable & Learning>
     
     shared recipes: RecipeBook
     shared materials: MaterialStorage

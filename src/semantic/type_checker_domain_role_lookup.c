@@ -3,6 +3,17 @@
 #include "type_checker_internal.h"
 #include "type_checker_ability_match_internal.h"
 
+const char *semantic_role_for_type_name(ASTNode *role_decl);
+ASTNode *semantic_find_next_role_decl_for_type_name(SemanticContext *ctx,
+                                                   const char *type_name,
+                                                   const ASTNode *after);
+
+static ASTNode *
+role_lookup_program(SemanticContext *ctx)
+{
+    return ctx != NULL ? ctx->program_root : NULL;
+}
+
 ASTNode *
 semantic_find_role_decl(ASTNode *program, const char *role_name)
 {
@@ -23,6 +34,47 @@ semantic_find_role_decl(ASTNode *program, const char *role_name)
 }
 
 ASTNode *
+semantic_find_role_decl_by_name(SemanticContext *ctx, const char *role_name)
+{
+    if (ctx == NULL || role_name == NULL)
+        return NULL;
+    return semantic_find_role_decl(role_lookup_program(ctx), role_name);
+}
+
+ASTNode *
+semantic_find_role_decl_for_type_name(SemanticContext *ctx,
+                                      const char *type_name)
+{
+    return semantic_find_next_role_decl_for_type_name(ctx, type_name, NULL);
+}
+
+ASTNode *
+semantic_find_next_role_decl_for_type_name(SemanticContext *ctx,
+                                           const char *type_name,
+                                           const ASTNode *after)
+{
+    ASTNode *program = role_lookup_program(ctx);
+    bool past_after = after == NULL;
+
+    if (program == NULL || program->type != AST_PROGRAM || type_name == NULL)
+        return NULL;
+
+    for (size_t i = 0; i < ast_program_statement_count(program); i++) {
+        ASTNode *stmt = ast_program_statement(program, i);
+        const char *role_type = semantic_role_for_type_name(stmt);
+        if (!past_after) {
+            if (stmt == after)
+                past_after = true;
+            continue;
+        }
+        if (role_type != NULL && strcmp(role_type, type_name) == 0)
+            return stmt;
+    }
+
+    return NULL;
+}
+
+ASTNode *
 semantic_role_for_type_node(ASTNode *role_decl)
 {
     return ast_role_for_type(role_decl);
@@ -37,8 +89,10 @@ semantic_role_for_type_name(ASTNode *role_decl)
 }
 
 bool
-any_subject_role_has_ability(ASTNode *program, ASTNode *ability_ref)
+any_subject_role_has_ability(SemanticContext *ctx, ASTNode *ability_ref)
 {
+    ASTNode *program = role_lookup_program(ctx);
+
     if (program == NULL || program->type != AST_PROGRAM
         || ability_ref == NULL) {
         return false;
@@ -46,13 +100,14 @@ any_subject_role_has_ability(ASTNode *program, ASTNode *ability_ref)
 
     for (size_t i = 0; i < ast_program_statement_count(program); i++) {
         ASTNode *stmt = ast_program_statement(program, i);
+        ASTNode *role_type = semantic_role_for_type_node(stmt);
+        Type *resolved_type = semantic_host_resolve_type_ref(role_type, ctx);
         ASTNode *type_decl;
-        const char *type_name = semantic_role_for_type_name(stmt);
 
-        if (type_name == NULL)
+        if (resolved_type == NULL || resolved_type == TYPE_UNKNOWN)
             continue;
 
-        type_decl = find_subject_host_decl_by_name(program, type_name);
+        type_decl = semantic_host_decl_for_type(ctx, resolved_type);
         if (!decl_is_subject_host(type_decl))
             continue;
 
@@ -64,9 +119,11 @@ any_subject_role_has_ability(ASTNode *program, ASTNode *ability_ref)
 }
 
 ASTNode *
-any_subject_role_find_base_ability_impl(ASTNode *program,
+any_subject_role_find_base_ability_impl(SemanticContext *ctx,
                                         const char *ability_name)
 {
+    ASTNode *program = role_lookup_program(ctx);
+
     if (program == NULL || program->type != AST_PROGRAM
         || ability_name == NULL) {
         return NULL;
@@ -74,13 +131,14 @@ any_subject_role_find_base_ability_impl(ASTNode *program,
 
     for (size_t i = 0; i < ast_program_statement_count(program); i++) {
         ASTNode *stmt = ast_program_statement(program, i);
+        ASTNode *role_type = semantic_role_for_type_node(stmt);
+        Type *resolved_type = semantic_host_resolve_type_ref(role_type, ctx);
         ASTNode *type_decl;
-        const char *type_name = semantic_role_for_type_name(stmt);
 
-        if (type_name == NULL)
+        if (resolved_type == NULL || resolved_type == TYPE_UNKNOWN)
             continue;
 
-        type_decl = find_subject_host_decl_by_name(program, type_name);
+        type_decl = semantic_host_decl_for_type(ctx, resolved_type);
         if (!decl_is_subject_host(type_decl))
             continue;
 

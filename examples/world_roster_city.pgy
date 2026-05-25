@@ -132,7 +132,9 @@ role ProductionFacility for Factory {
 
 party CityDistrict {
     // 구역 내 시민들
-    role slot citizens: Array<Living & Economic>
+    // future: Array<Living & Economic> once container-internal role-slot
+    // intersections are stable.
+    role slot citizens: Array<Living>
     
     // 생산 시설들
     role slot factories: Array<Productive>

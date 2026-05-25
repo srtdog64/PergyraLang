@@ -86,8 +86,7 @@ type_check_assignment(ASTNode *expr, SemanticContext *ctx)
             if (sym != NULL && sym->type != NULL
                 && sym->type->kind == TYPE_KIND_CLASS
                 && sym->type->name != NULL) {
-                ASTNode *decl = find_type_decl_by_name(ctx->program_root,
-                                                        sym->type->name);
+                ASTNode *decl = semantic_host_decl_for_type(ctx, sym->type);
                 if (decl != NULL && decl->type == AST_CLASS_DECL) {
                     NominalDeclKind nk = ast_class_nominal_kind(decl);
                     if (nk == NOMINAL_DECL_OBJECT) {

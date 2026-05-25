@@ -45,8 +45,7 @@ ability_generic_arg_satisfies_bound(Type *concrete_type, ASTNode *bound_node,
         return true;
     }
 
-    if (ctx->program_root == NULL
-        || bound_node->type != AST_TYPE
+    if (bound_node->type != AST_TYPE
         || ast_type_name(bound_node) == NULL
         || concrete_type->name == NULL) {
         return false;
@@ -54,11 +53,11 @@ ability_generic_arg_satisfies_bound(Type *concrete_type, ASTNode *bound_node,
 
     bound_sym = scope_lookup(ctx->scope, ast_type_name(bound_node));
     if ((bound_sym != NULL && bound_sym->kind == SYMBOL_ABILITY)
-        || find_ability_decl_by_name(ctx->program_root,
-                                     ast_type_name(bound_node)) != NULL) {
-        return subject_type_has_ability(ctx->program_root,
-                                        concrete_type->name,
-                                        bound_node);
+        || semantic_find_ability_decl_by_name(ctx,
+                                              ast_type_name(bound_node)) != NULL) {
+        return semantic_subject_type_has_ability(ctx,
+                                                 concrete_type->name,
+                                                 bound_node);
     }
 
     return false;

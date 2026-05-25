@@ -2,7 +2,15 @@
 set -euo pipefail
 
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
-PGY="${PGY_BIN:-$ROOT_DIR/bin/pgy}"
+source "$ROOT_DIR/tests/pgy_binary_path_helpers.sh"
+pgy_prepend_windows_runtime_paths
+PGY_BIN_WAS_EXPLICIT=0
+if [[ -n "${PGY_BIN:-}" ]]; then
+    PGY="$PGY_BIN"
+    PGY_BIN_WAS_EXPLICIT=1
+else
+    PGY="$ROOT_DIR/bin/pgy"
+fi
 if [[ "$PGY" != *.exe && -x "${PGY}.exe" ]]; then
     PGY="${PGY}.exe"
 fi
@@ -46,6 +54,10 @@ if ! grep -Fq "static _Thread_local unsigned pgy_zone_stale_warn_count" \
 fi
 
 if [[ ! -x "$PGY" ]]; then
+    if [[ "$PGY_BIN_WAS_EXPLICIT" -eq 1 ]]; then
+        echo "[memory-concurrency] missing explicit compiler binary: $PGY" >&2
+        exit 1
+    fi
     echo "[memory-concurrency] SKIP executable probe; source model is gated"
     exit 0
 fi

@@ -87,7 +87,7 @@ type_is_value_nominal_boundary_type(const Type *type, SemanticContext *ctx)
     ASTNode *decl;
     TypeNominalFlavor flavor;
 
-    if (type == NULL || ctx == NULL || ctx->program_root == NULL)
+    if (type == NULL || ctx == NULL)
         return false;
     if (type_is_subject_type(type, ctx))
         return false;
@@ -106,7 +106,7 @@ type_is_value_nominal_boundary_type(const Type *type, SemanticContext *ctx)
     if (type->name == NULL)
         return false;
 
-    decl = find_type_decl_by_name(ctx->program_root, type->name);
+    decl = semantic_host_decl_for_type(ctx, type);
     if (decl == NULL || decl->type != AST_CLASS_DECL)
         return false;
 
@@ -262,9 +262,13 @@ find_callable_decl_by_name(ASTNode *program, const char *name)
 
     for (size_t i = 0; i < ast_program_statement_count(program); i++) {
         ASTNode *stmt = ast_program_statement(program, i);
+        const char *stmt_name;
+
         if (stmt == NULL)
             continue;
-        const char *stmt_name = ast_declaration_name(stmt);
+        stmt_name = stmt->is_async_decl
+            ? ast_async_func_name(stmt)
+            : ast_declaration_name(stmt);
         if (stmt->type == AST_FUNC_DECL
             && stmt_name != NULL
             && strcmp(stmt_name, name) == 0)

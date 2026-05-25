@@ -1829,7 +1829,7 @@ grep -Fq "if (!mir->has_inventory_surface_usage_facts)" "$ROOT_DIR/src/codegen/i
 ! grep -Fq "mir->types" "$ROOT_DIR/src/codegen/intent_observability_usage.c"
 ! grep -Fq "mir->intents" "$ROOT_DIR/src/codegen/intent_observability_usage.c"
 grep -Fq "mir_instruction_has_source_location(inst)" "$ROOT_DIR/src/compiler/mir_lifecycle.c"
-grep -Fq "mir_instruction_source_ast_type_or(inst, -1)" "$ROOT_DIR/src/compiler/mir_lifecycle.c"
+grep -Fq "mir_instruction_source_ast_type_or(inst, AST_PROGRAM)" "$ROOT_DIR/src/compiler/mir_lifecycle.c"
 ! grep -Fq "inst->ast->type" "$ROOT_DIR/src/compiler/mir_lifecycle.c"
 ! grep -Fq "inst->ast->line" "$ROOT_DIR/src/compiler/mir_lifecycle.c"
 ! grep -Fq "source_terminator_condition" "$ROOT_DIR/src/compiler/mir_lifecycle.c"

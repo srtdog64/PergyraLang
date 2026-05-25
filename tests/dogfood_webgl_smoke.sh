@@ -2,6 +2,8 @@
 set -euo pipefail
 
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+source "$ROOT_DIR/tests/pgy_binary_path_helpers.sh"
+pgy_prepend_windows_runtime_paths
 PGY_BIN="${PGY_BIN:-$ROOT_DIR/bin/pgy}"
 if [[ "$PGY_BIN" != *.exe && -x "${PGY_BIN}.exe" ]]; then
     PGY_BIN="${PGY_BIN}.exe"
@@ -29,8 +31,8 @@ if [[ ! -f "$SOURCE_FILE" ]]; then
     exit 1
 fi
 
-if ! "$PGY_BIN" "$SOURCE_FILE" --emit-c \
-    -o "$WORK_DIR/dogfood_webgl.c" >"$WORK_DIR/emit.out" 2>"$WORK_DIR/emit.err"; then
+if ! "$PGY_BIN" "$(pgy_path_for_compiler "$PGY_BIN" "$SOURCE_FILE")" --emit-c \
+    -o "$(pgy_path_for_compiler "$PGY_BIN" "$WORK_DIR/dogfood_webgl.c")" >"$WORK_DIR/emit.out" 2>"$WORK_DIR/emit.err"; then
     echo "[dogfood-webgl] C emit failed" >&2
     cat "$WORK_DIR/emit.out" >&2
     cat "$WORK_DIR/emit.err" >&2

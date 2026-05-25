@@ -734,8 +734,11 @@ role IntMath for Int {
 
 ```pergyra
 party DungeonTeam {
-    role slot tank: Damageable
+    role slot tank: Damageable & Taunting
 }
+
+// Stable: top-level role slot ability intersections only.
+// Reserved: Array<Damageable & Taunting>, Damageable | Taunting.
 
 relation TrustedLink for source: Player, target: Player {
     object slot snapshot: PlayerView

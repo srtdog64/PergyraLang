@@ -2,7 +2,15 @@
 set -euo pipefail
 
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
-PGY="${PGY_BIN:-$ROOT_DIR/bin/pgy}"
+source "$ROOT_DIR/tests/pgy_binary_path_helpers.sh"
+pgy_prepend_windows_runtime_paths
+PGY_BIN_WAS_EXPLICIT=0
+if [[ -n "${PGY_BIN:-}" ]]; then
+    PGY="$PGY_BIN"
+    PGY_BIN_WAS_EXPLICIT=1
+else
+    PGY="$ROOT_DIR/bin/pgy"
+fi
 if [[ "$PGY" != *.exe && -x "${PGY}.exe" ]]; then
     PGY="${PGY}.exe"
 fi
@@ -62,6 +70,10 @@ for required in \
 done
 
 if [[ ! -x "$PGY" ]]; then
+    if [[ "$PGY_BIN_WAS_EXPLICIT" -eq 1 ]]; then
+        echo "[observability-schema] missing explicit compiler binary: $PGY" >&2
+        exit 1
+    fi
     echo "[observability-schema] SKIP executable probe; source schema is gated"
     exit 0
 fi
@@ -79,7 +91,7 @@ WORK_DIR="$(mktemp -d "${TMP_BASE%/}/pgy_observability_schema.XXXXXX")"
 trap 'rm -rf "$WORK_DIR"' EXIT
 
 AIR_JSON_OUT="$WORK_DIR/air_observability.json"
-"$PGY" --air-json "$ROOT_DIR/tests/cases/backend_compare/intent_zone_binding/main.pgy" --backend=c > "$AIR_JSON_OUT"
+"$PGY" --air-json "$(pgy_path_for_compiler "$PGY" "$ROOT_DIR/tests/cases/backend_compare/intent_zone_binding/main.pgy")" --backend=c > "$AIR_JSON_OUT"
 for required in \
     '"schema":"pgy.air.graph.v1"' \
     '"observability"' \
@@ -163,7 +175,7 @@ run_case() {
         exit 1
     fi
 
-    raw_output="$("$PGY" "$entry" --run --backend="$backend" -o "$out_bin" 2>&1)"
+    raw_output="$("$PGY" "$(pgy_path_for_compiler "$PGY" "$entry")" --run --backend="$backend" -o "$(pgy_path_for_compiler "$PGY" "$out_bin")" 2>&1)"
     if ! grep -Fq "0 error(s), 0 warning(s)" <<<"$raw_output"; then
         echo "[observability-schema] $name backend=$backend did not compile cleanly" >&2
         echo "$raw_output" >&2

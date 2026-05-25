@@ -346,6 +346,7 @@ ASTNode    *mir_instruction_source_payload(const MIRInstruction *inst);
 bool        mir_instruction_has_source_location(const MIRInstruction *inst);
 int         mir_instruction_source_ast_type_or(const MIRInstruction *inst,
                                                int fallback_type);
+const char *mir_source_ast_type_name(ASTNodeType type);
 bool        mir_instruction_source_location_matches_node(
                 const MIRInstruction *inst,
                 const ASTNode *node);

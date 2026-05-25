@@ -594,9 +594,12 @@ role PlayerDamageable for Player {
 
 ```pergyra
 party Team {
-    role slot tank: Damageable;
+    role slot tank: Damageable & Taunting;
     shared formation: String = "standard";
 }
+
+// Stable: top-level role slot ability intersections only.
+// Reserved: Array<Damageable & Taunting>, Damageable | Taunting.
 
 roster CombatSystem {
     party slot team1: Team;

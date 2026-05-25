@@ -381,9 +381,7 @@ semantic_type_resolution_record_type_ref_dependency(SemanticContext *ctx,
         return;
     }
 
-    alias_decl = (ctx->program_root != NULL)
-        ? find_type_alias_decl(ctx->program_root, provider_name)
-        : NULL;
+    alias_decl = semantic_find_type_alias_decl_by_name(ctx, provider_name);
     if (alias_decl != NULL) {
         semantic_type_resolution_record_named_dependency(
             ctx,
@@ -396,9 +394,7 @@ semantic_type_resolution_record_type_ref_dependency(SemanticContext *ctx,
         return;
     }
 
-    decl = (ctx->program_root != NULL)
-        ? find_type_decl_by_name(ctx->program_root, provider_name)
-        : NULL;
+    decl = semantic_find_class_decl_by_name(ctx, provider_name);
     if (decl != NULL) {
         semantic_type_resolution_record_named_dependency(
             ctx,

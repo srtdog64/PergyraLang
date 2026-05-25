@@ -168,9 +168,7 @@ metadata_type_from_name_with_alias_stack(SemanticContext *ctx,
     if (resolved != NULL)
         return resolved;
 
-    alias_decl = ctx->program_root != NULL
-        ? find_type_alias_decl(ctx->program_root, name)
-        : NULL;
+    alias_decl = semantic_find_type_alias_decl_by_name(ctx, name);
     if (alias_decl != NULL)
         return metadata_alias_decl_target_type(ctx,
                                                alias_decl,
@@ -181,9 +179,7 @@ metadata_type_from_name_with_alias_stack(SemanticContext *ctx,
     if (sym == NULL || sym->type == NULL || sym->type == TYPE_UNKNOWN)
         return NULL;
     if (sym->kind == SYMBOL_CLASS) {
-        ASTNode *decl = ctx->program_root != NULL
-            ? find_type_decl_by_name(ctx->program_root, name)
-            : NULL;
+        ASTNode *decl = semantic_find_class_decl_by_name(ctx, name);
         GenericParams *class_generics = ast_class_generic_params(decl);
         if (decl != NULL && decl->type == AST_CLASS_DECL
             && ast_generic_param_count(class_generics) > 0) {
@@ -252,9 +248,7 @@ metadata_type_ref_with_alias_stack(SemanticContext *ctx,
                 return resolved;
             }
 
-            alias_decl = ctx->program_root != NULL
-                ? find_type_alias_decl(ctx->program_root, name)
-                : NULL;
+            alias_decl = semantic_find_type_alias_decl_by_name(ctx, name);
             if (alias_decl != NULL) {
                 resolved = metadata_alias_decl_target_type(ctx,
                                                            alias_decl,
@@ -290,10 +284,10 @@ semantic_type_resolution_metadata_alias_type(SemanticContext *ctx,
         return NULL;
 
     name = ast_type_name(type_node);
-    if (name == NULL || ctx->program_root == NULL)
+    if (name == NULL)
         return NULL;
 
-    alias_decl = find_type_alias_decl(ctx->program_root, name);
+    alias_decl = semantic_find_type_alias_decl_by_name(ctx, name);
     if (alias_decl == NULL || ast_type_alias_target_type(alias_decl) == NULL)
         return NULL;
 

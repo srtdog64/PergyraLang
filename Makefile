@@ -359,6 +359,7 @@ SEMANTIC_SOURCES = $(SEMANTIC_DIR)/type_system.c \
                    $(SEMANTIC_DIR)/type_checker_enum_decl.c \
                    $(SEMANTIC_DIR)/type_checker_host_overlay.c \
                    $(SEMANTIC_DIR)/type_checker_host_helpers.c \
+                   $(SEMANTIC_DIR)/type_checker_host_resource.c \
                    $(SEMANTIC_DIR)/type_checker_program.c \
                    $(SEMANTIC_DIR)/type_checker_program_stats.c \
                    $(SEMANTIC_DIR)/type_checker_func_decl.c \
@@ -399,6 +400,7 @@ SEMANTIC_SOURCES = $(SEMANTIC_DIR)/type_system.c \
                    $(SEMANTIC_DIR)/type_checker_async_decl.c \
                    $(SEMANTIC_DIR)/type_checker_async_channel.c \
                    $(SEMANTIC_DIR)/type_checker_event.c \
+                   $(SEMANTIC_DIR)/type_checker_bind_stmt.c \
                    $(SEMANTIC_DIR)/type_checker_qubit.c \
                    $(SEMANTIC_DIR)/type_checker_ability_ref.c \
                    $(SEMANTIC_DIR)/type_checker_stdlib_use.c \

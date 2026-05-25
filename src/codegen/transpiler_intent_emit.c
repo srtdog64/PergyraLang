@@ -298,7 +298,8 @@ emit_intent_decl(ASTNode *node, CodeBuf *buf, TranspilerCtx *ctx)
             }
         }
         if (step_zone_name != NULL) {
-            ASTNode *step_zone_decl = find_zone_decl(ctx, step_zone_name);
+            ASTNode *step_zone_decl =
+                find_zone_decl_in_program_view(ctx, step_zone_name);
             PGY_BIND_INTENT_STEP_CONTEXT(step_zone_decl, step_zone_alias);
         } else {
             PGY_BIND_INTENT_STEP_CONTEXT(NULL, step_zone_alias);

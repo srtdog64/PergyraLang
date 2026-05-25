@@ -10,6 +10,12 @@
 
 #include <string.h>
 
+static ASTNode *
+call_contract_program(SemanticContext *ctx)
+{
+    return ctx != NULL ? ctx->program_root : NULL;
+}
+
 ASTNode *
 semantic_lookup_function_param_contract(SemanticContext *ctx,
                                         const char *display_name,
@@ -19,27 +25,16 @@ semantic_lookup_function_param_contract(SemanticContext *ctx,
     if (mode_out != NULL)
         *mode_out = PARAM_MODE_DEFAULT;
 
-    if (ctx == NULL || ctx->program_root == NULL || display_name == NULL)
+    if (ctx == NULL || display_name == NULL)
         return NULL;
 
-    ASTNode *prog = ctx->program_root;
-    for (size_t si = 0; si < ast_program_statement_count(prog); si++) {
-        ASTNode *stmt = ast_program_statement(prog, si);
-        const char *stmt_name = NULL;
-        if (stmt == NULL || stmt->type != AST_FUNC_DECL
-            || arg_index >= ast_func_param_count(stmt)) {
-            continue;
-        }
-        stmt_name = ast_declaration_name(stmt);
-        if (stmt_name == NULL || strcmp(stmt_name, display_name) != 0) {
-            continue;
-        }
-        if (mode_out != NULL && ast_func_param(stmt, arg_index) != NULL)
-            *mode_out = ast_func_param(stmt, arg_index)->mode;
-        return stmt;
-    }
+    ASTNode *stmt = semantic_find_function_decl_by_name(ctx, display_name);
+    if (stmt == NULL || arg_index >= ast_func_param_count(stmt))
+        return NULL;
 
-    return NULL;
+    if (mode_out != NULL && ast_func_param(stmt, arg_index) != NULL)
+        *mode_out = ast_func_param(stmt, arg_index)->mode;
+    return stmt;
 }
 
 unsigned
@@ -59,7 +54,7 @@ semantic_callable_param_escape_summary(ASTNode *callee_decl,
         ast_func_param(callee_decl, arg_index) != NULL
             ? ast_func_param(callee_decl, arg_index)->name
             : NULL,
-        ctx != NULL ? ctx->program_root : NULL);
+        call_contract_program(ctx));
 }
 
 bool

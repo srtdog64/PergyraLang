@@ -2,27 +2,6 @@
 #include "diag_codes.h"
 #include "parser/ast_api.h"
 
-#include <string.h>
-
-static ASTNode *
-find_named_class_decl_local(ASTNode *program, const char *name)
-{
-    if (program == NULL || program->type != AST_PROGRAM || name == NULL)
-        return NULL;
-
-    for (size_t i = 0; i < ast_program_statement_count(program); i++) {
-        ASTNode *stmt = ast_program_statement(program, i);
-        if (stmt == NULL || stmt->type != AST_CLASS_DECL
-            || ast_class_name(stmt) == NULL) {
-            continue;
-        }
-        if (strcmp(ast_class_name(stmt), name) == 0)
-            return stmt;
-    }
-
-    return NULL;
-}
-
 bool
 type_check_projection_contract(ASTNode **slots,
                                size_t slot_count,
@@ -114,7 +93,7 @@ type_check_projection_contract(ASTNode **slots,
         return true;
     }
 
-    target_decl = find_named_class_decl_local(ctx->program_root, target_type->name);
+    target_decl = semantic_find_class_decl_by_name(ctx, target_type->name);
     if (target_decl == NULL || !ast_class_is_struct(target_decl)) {
         semantic_error_with_hints(ctx, PGY_CODE_SEM_ZONE_CONTRACT_INVALID, PGY_CAUSE_ZONE_CONTRACT, PGY_FIX_ALIGN_ZONE_SLOT_OR_STATE_NAMING, site,
             "%s %s target slot '%s' does not use a projection declaration.\n"
@@ -218,9 +197,9 @@ type_check_projection_contract(ASTNode **slots,
         return true;
     }
 
-    source_decl = find_subject_host_decl_by_name(ctx->program_root, source_type->name);
+    source_decl = semantic_host_decl_for_type(ctx, source_type);
     if (!decl_is_projection_source(source_decl))
-        source_decl = find_named_class_decl_local(ctx->program_root, source_type->name);
+        source_decl = semantic_find_class_decl_by_name(ctx, source_type->name);
     if (!decl_is_projection_source(source_decl)) {
         semantic_error_with_hints(ctx, PGY_CODE_SEM_ZONE_CONTRACT_INVALID, PGY_CAUSE_ZONE_CONTRACT, PGY_FIX_ALIGN_ZONE_SLOT_OR_STATE_NAMING, site,
             "%s %s source slot '%s' is not a valid projection source.\n"

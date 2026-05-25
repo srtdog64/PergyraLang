@@ -1,7 +1,7 @@
 #ifdef PGY_LLVM_ENABLED
 
 #include "llvm_domain_decl_parts_helpers.h"
-#include "parser/ast_api.h"
+#include "parser/ast_domain_api.h"
 
 void
 llvm_domain_decl_parts(ASTNode *stmt,

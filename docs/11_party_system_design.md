@@ -48,6 +48,8 @@ bind team.tank = Warrior;
 아래 섹션은 설계 방향 설명이며, 일부 예시는 현재 문법과 다를 수 있다.
 특히 role slot의 복잡한 제약식과 advanced orchestration 예시는 장기 설계 메모로 읽는 편이 맞다.
 또한 `entity`는 party 존재론의 코어 용어가 아니며, core에서는 `subject`를 기준으로 설명한다.
+베타 안정 표면에서 role slot ability 조합은 최상위 `A & B` 교차만 지원한다.
+`A | B` OR 조합과 `Array<A & B>` 같은 컨테이너 내부 교차 계약은 아직 안정 문법이 아니다.
 
 ## Party의 핵심 요소 (Design Notes)
 
@@ -279,10 +281,10 @@ role A for StructA
 party FlexibleTeam
 {
     role slot attacker: DamageDealing
-    role slot support: Healing | Buffing  // OR 조합
+    role slot support: Healing  // future: Healing | Buffing OR 조합
     
     // 멤버 교체 메서드
-    func SwapSupport(newSupport: Healing | Buffing) -> Void
+    func SwapSupport(newSupport: Healing) -> Void
     {
         self.support = newSupport
         Log($"Support role swapped to {newSupport.GetName()}")
@@ -402,8 +404,11 @@ party MOBATeam
 ## 구현 로드맵
 
 ### Phase 1: Core Party System
-- [ ] AST에 `AST_PARTY_DECL` 노드 추가
-- [ ] `role slot` 문법 파싱
+- [x] AST에 `AST_PARTY_DECL` 노드 추가
+- [x] `role slot` 문법 파싱
+- [x] 최상위 role slot ability 교차 `A & B` 파싱 및 semantic validation
+- [ ] role slot OR 조합 `A | B`
+- [ ] 컨테이너 내부 ability 교차 `Array<A & B>`
 - [ ] Party 인스턴스 생성 검증
 
 ### Phase 2: Context System  

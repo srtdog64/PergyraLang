@@ -59,9 +59,10 @@ type_check_zone_authorities(ASTNode *zone, SemanticContext *ctx)
                 free(required_text);
                 continue;
             }
-            if (!subject_type_has_ability(ctx->program_root, slot_type->name, ability_ref)) {
-                ASTNode *actual_impl = subject_type_find_base_ability_impl(
-                    ctx->program_root, slot_type->name, ability_name);
+            if (!semantic_subject_type_has_ability(ctx, slot_type->name, ability_ref)) {
+                ASTNode *actual_impl =
+                    semantic_subject_type_find_base_ability_impl(
+                        ctx, slot_type->name, ability_name);
                 char *actual_text = actual_impl != NULL ? ability_ref_display(actual_impl) : NULL;
                 report_subject_ability_requirement_mismatch(
                     ctx, authority, "Zone authority",
@@ -234,7 +235,9 @@ type_check_zone_layer_slots(ASTNode *zone, SemanticContext *ctx)
             ? AST_RELATION_DECL
             : AST_EFFECT_DECL;
         ASTNode *decl = type_name != NULL
-            ? find_domain_decl_by_name(ctx->program_root, decl_type, type_name)
+            ? (ast_zone_layer_slot_is_relation(layer_slot)
+                ? semantic_find_relation_decl_by_name(ctx, type_name)
+                : semantic_find_effect_decl_by_name(ctx, type_name))
             : NULL;
         SymbolKind expected = ast_zone_layer_slot_is_relation(layer_slot)
             ? SYMBOL_RELATION

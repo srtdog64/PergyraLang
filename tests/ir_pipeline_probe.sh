@@ -2,6 +2,8 @@
 set -euo pipefail
 
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+source "$ROOT_DIR/tests/pgy_binary_path_helpers.sh"
+pgy_prepend_windows_runtime_paths
 DEFAULT_PGY="$ROOT_DIR/bin/pgy"
 TMP_BASE="${TMPDIR:-${TEMP:-/tmp}}"
 TMP_PGY="${TMP_BASE%/}/pgy-PergyraLang-bin/pgy"
@@ -41,10 +43,11 @@ fi
 DIR_OUT="$WORK_DIR/dir.txt"
 RIR_OUT="$WORK_DIR/rir.txt"
 MIR_OUT="$WORK_DIR/mir.txt"
+EXAMPLE_ARG="$(pgy_path_for_compiler "$PGY" "$EXAMPLE")"
 
-"$PGY" "$EXAMPLE" --dir > "$DIR_OUT"
-"$PGY" "$EXAMPLE" --rir > "$RIR_OUT"
-"$PGY" "$EXAMPLE" --mir > "$MIR_OUT"
+"$PGY" "$EXAMPLE_ARG" --dir > "$DIR_OUT"
+"$PGY" "$EXAMPLE_ARG" --rir > "$RIR_OUT"
+"$PGY" "$EXAMPLE_ARG" --mir > "$MIR_OUT"
 
 grep -Fq "role-complete" "$DIR_OUT"
 grep -Fq "intent-step-zone" "$DIR_OUT"
@@ -77,8 +80,9 @@ grep -Fq "DetachInvalidation" "$MIR_OUT"
 
 for backend in $BACKENDS; do
     OUT_BIN="$WORK_DIR/logistics_${backend}"
+    OUT_BIN_ARG="$(pgy_path_for_compiler "$PGY" "$OUT_BIN")"
     RUN_OUT="$WORK_DIR/runtime_${backend}.txt"
-    "$PGY" "$EXAMPLE" --run --backend="$backend" -o "$OUT_BIN" > "$RUN_OUT" 2>&1
+    "$PGY" "$EXAMPLE_ARG" --run --backend="$backend" -o "$OUT_BIN_ARG" > "$RUN_OUT" 2>&1
     grep -Fq "[Intent] RouteCargo ok=true" "$RUN_OUT"
     grep -Fq "[Runtime] steps=2" "$RUN_OUT"
     grep -Fq "[transfer] courier: LoadingZone.courier -> DeliveryZone.courier" "$RUN_OUT"

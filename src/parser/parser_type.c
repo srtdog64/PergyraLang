@@ -210,6 +210,15 @@ GenericParams* parse_type_arguments(Parser* parser) {
             break;
         }
 
+        if (parser_check(parser, TOKEN_AMP)
+            || parser_check(parser, TOKEN_PATTERN_OR)) {
+            parser_error(parser,
+                "Container-internal ability intersections/unions are reserved but not implemented.\n"
+                "Reason: nested ability contracts need semantic-owned element provenance before they can be beta-stable.\n"
+                "Fix: keep role slot ability intersections at the top level, e.g. 'role slot tank: Damageable & Guardable'.");
+            break;
+        }
+
         if (!parser_match(parser, TOKEN_COMMA)) break;
     }
 

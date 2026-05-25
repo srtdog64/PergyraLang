@@ -42,16 +42,17 @@ type_check_intent_step_ability_contract(ASTNode *intent_decl,
             const char *participant_type_name =
                 intent_involves_type_name(involves);
 
-            if (!intent_involves_is_subject_host(ctx->program_root, involves))
+            if (!intent_involves_is_subject_host(involves, ctx))
                 continue;
             if (participant_type_name == NULL
-                || subject_type_has_ability(ctx->program_root,
+                || semantic_subject_type_has_ability(ctx,
                     participant_type_name, ability_ref)) {
                 continue;
             }
 
-            ASTNode *actual_impl = subject_type_find_base_ability_impl(
-                ctx->program_root, participant_type_name, ability);
+            ASTNode *actual_impl =
+                semantic_subject_type_find_base_ability_impl(
+                    ctx, participant_type_name, ability);
             char *actual_text = actual_impl != NULL
                 ? ability_ref_display(actual_impl) : NULL;
             char contract_summary[512];

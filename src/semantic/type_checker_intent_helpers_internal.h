@@ -32,7 +32,8 @@ bool intent_clause_rejects_control_transfer(ASTNode *expr,
                                             const char *step_name,
                                             const char *label);
 
-bool intent_involves_is_subject_host(ASTNode *program, ASTNode *involves);
+bool intent_involves_is_subject_host(ASTNode *involves,
+                                     SemanticContext *ctx);
 
 ASTNode *subject_decl_find_action_named(ASTNode *decl, const char *action_name);
 

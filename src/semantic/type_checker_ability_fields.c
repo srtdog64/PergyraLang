@@ -47,11 +47,10 @@ validate_ability_require_fields(ASTNode *node, SemanticContext *ctx)
                 break;
             }
         }
-        ability_resolve_type_ref(req_type, ctx);
+        Type *resolved_type = ability_resolve_type_ref(req_type, ctx);
         if (req_type != NULL && req_type->type == AST_TYPE
             && ast_type_name(req_type) != NULL) {
-            ASTNode *type_decl = find_type_decl_by_name(
-                ctx->program_root, ast_type_name(req_type));
+            ASTNode *type_decl = semantic_host_decl_for_type(ctx, resolved_type);
             if (type_decl != NULL
                 && !explicit_type_reference_allowed(type_decl, node, ctx)) {
                 semantic_error_with_hints(ctx, PGY_CODE_SEM_ABILITY_CONTRACT_INVALID,

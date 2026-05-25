@@ -5,6 +5,12 @@
 #include "diag_codes.h"
 #include "../common/string_compat.h"
 
+static ASTNode *
+resolution_helper_program(SemanticContext *ctx)
+{
+    return ctx != NULL ? ctx->program_root : NULL;
+}
+
 ASTNode *
 find_type_alias_decl(ASTNode *program, const char *name)
 {
@@ -23,6 +29,14 @@ find_type_alias_decl(ASTNode *program, const char *name)
     }
 
     return NULL;
+}
+
+ASTNode *
+semantic_find_type_alias_decl_by_name(SemanticContext *ctx, const char *name)
+{
+    if (ctx == NULL || name == NULL)
+        return NULL;
+    return find_type_alias_decl(resolution_helper_program(ctx), name);
 }
 
 bool

@@ -43,7 +43,7 @@ intent_step_suggest_authorizer_from_zone(ASTNode *intent_decl,
         const char *authority_slot_name;
 
         if (alias == NULL || participant_type_name == NULL
-            || !intent_involves_is_subject_host(ctx->program_root, involves)) {
+            || !intent_involves_is_subject_host(involves, ctx)) {
             continue;
         }
 
@@ -195,7 +195,7 @@ type_check_intent_step_authority_contract(ASTNode *intent_decl,
         }
 
         if (zone_decl != NULL && participant_type_name != NULL) {
-            if (!intent_involves_is_subject_host(ctx->program_root, involves)) {
+            if (!intent_involves_is_subject_host(involves, ctx)) {
                 semantic_error_with_hints(ctx, PGY_CODE_SEM_INTENT_STEP_INVALID, PGY_CAUSE_INTENT_STEP, PGY_FIX_ALIGN_STEP_WITH_ZONE_ACTION_CONTRACTS, step,
                     "Intent step '%s' authorized participant '%s' must bind to a subject type.\n"
                     "Reason:\n"

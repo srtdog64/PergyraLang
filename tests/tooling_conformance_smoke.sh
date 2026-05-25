@@ -3,9 +3,22 @@ set -euo pipefail
 
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 source "$ROOT_DIR/tests/pgy_binary_path_helpers.sh"
+pgy_prepend_windows_runtime_paths
 
-PGY="${PGY_BIN:-$ROOT_DIR/bin/pgy}"
-PGY_LSP="${PGY_LSP_BIN:-$ROOT_DIR/bin/pgy-lsp}"
+PGY_BIN_WAS_EXPLICIT=0
+PGY_LSP_BIN_WAS_EXPLICIT=0
+if [[ -n "${PGY_BIN:-}" ]]; then
+    PGY="$PGY_BIN"
+    PGY_BIN_WAS_EXPLICIT=1
+else
+    PGY="$ROOT_DIR/bin/pgy"
+fi
+if [[ -n "${PGY_LSP_BIN:-}" ]]; then
+    PGY_LSP="$PGY_LSP_BIN"
+    PGY_LSP_BIN_WAS_EXPLICIT=1
+else
+    PGY_LSP="$ROOT_DIR/bin/pgy-lsp"
+fi
 if [[ "$PGY" != *.exe && -x "${PGY}.exe" ]]; then
     PGY="${PGY}.exe"
 fi
@@ -20,10 +33,18 @@ WORK_DIR="$(mktemp -d "${TMP_BASE%/}/pgy_tooling_conformance.XXXXXX")"
 trap 'rm -rf "$WORK_DIR"' EXIT
 
 if [[ ! -x "$PGY" ]]; then
+    if [[ "$PGY_BIN_WAS_EXPLICIT" -eq 1 ]]; then
+        echo "[tooling-conformance] missing explicit compiler binary: $PGY" >&2
+        exit 1
+    fi
     echo "[tooling-conformance] SKIP executable probe; missing compiler binary: $PGY"
     exit 0
 fi
 if [[ ! -x "$PGY_LSP" ]]; then
+    if [[ "$PGY_LSP_BIN_WAS_EXPLICIT" -eq 1 ]]; then
+        echo "[tooling-conformance] missing explicit LSP binary: $PGY_LSP" >&2
+        exit 1
+    fi
     echo "[tooling-conformance] SKIP executable probe; missing LSP binary: $PGY_LSP"
     exit 0
 fi
@@ -33,6 +54,10 @@ if "$PGY" --help >"$WORK_DIR/pgy-help.out" 2>"$WORK_DIR/pgy-help.err"; then
 else
     rc=$?
     if [[ "$rc" -eq 126 || "$rc" -eq 127 ]]; then
+        if [[ "$PGY_BIN_WAS_EXPLICIT" -eq 1 ]]; then
+            echo "[tooling-conformance] shell cannot launch explicit compiler binary: $PGY" >&2
+            exit "$rc"
+        fi
         echo "[tooling-conformance] SKIP executable probe; shell cannot launch compiler binary: $PGY"
         exit 0
     fi
@@ -54,6 +79,7 @@ fi
 PGY_BIN="$PGY" PGY_CC="${PGY_CC:-cc}" bash "$ROOT_DIR/tests/fmt_smoke.sh" >/dev/null
 
 DEBUG_SOURCE="$WORK_DIR/debug_case.pgy"
+DEBUG_SOURCE_ARG="$(pgy_path_for_compiler "$PGY" "$DEBUG_SOURCE")"
 cat > "$DEBUG_SOURCE" <<'EOF'
 func Main() -> Void
 {
@@ -61,7 +87,7 @@ func Main() -> Void
 }
 EOF
 
-printf 'q\n' | "$PGY" debug "$DEBUG_SOURCE" >"$WORK_DIR/debug.out" 2>"$WORK_DIR/debug.err"
+printf 'q\n' | "$PGY" debug "$DEBUG_SOURCE_ARG" >"$WORK_DIR/debug.out" 2>"$WORK_DIR/debug.err"
 grep -Fq "Pergyra Debugger v0.1" "$WORK_DIR/debug.out"
 grep -Fq "Commands: n(ext), c(ontinue), b <line>, l(ist), q(uit)" "$WORK_DIR/debug.out"
 grep -Fq "(pgy-debug:" "$WORK_DIR/debug.out"
@@ -73,7 +99,24 @@ if grep -Fq "pgy debug:" "$WORK_DIR/debug.err"; then
 fi
 
 if [[ -z "$PYTHON_BIN" ]]; then
-    echo "[tooling-conformance] python not found; formatter/debugger checks ok, skipping LSP JSON-RPC harness"
+    lsp_body='{"jsonrpc":"2.0","id":1,"method":"initialize","params":{"processId":null,"rootUri":null,"capabilities":{}}}'
+    shutdown_body='{"jsonrpc":"2.0","id":2,"method":"shutdown","params":null}'
+    exit_body='{"jsonrpc":"2.0","method":"exit","params":null}'
+    {
+        printf 'Content-Length: %s\r\n\r\n%s' "${#lsp_body}" "$lsp_body"
+        printf 'Content-Length: %s\r\n\r\n%s' "${#shutdown_body}" "$shutdown_body"
+        printf 'Content-Length: %s\r\n\r\n%s' "${#exit_body}" "$exit_body"
+    } | "$PGY_LSP" >"$WORK_DIR/lsp.out" 2>"$WORK_DIR/lsp.err"
+    if [[ -s "$WORK_DIR/lsp.err" ]]; then
+        echo "LSP emitted stderr during shell fallback conformance smoke:" >&2
+        cat "$WORK_DIR/lsp.err" >&2
+        exit 1
+    fi
+    grep -Fq '"serverInfo":{"name":"pgy-lsp","version":"0.1"}' "$WORK_DIR/lsp.out"
+    grep -Fq '"experimental":{"airSchema":"pgy.air.graph.v1"' "$WORK_DIR/lsp.out"
+    grep -Fq '"observabilitySchema":"pgy.intent.observability.v1"' "$WORK_DIR/lsp.out"
+    echo "[tooling-conformance] python not found; shell LSP initialize contract ok"
+    echo "tooling-conformance-smoke: PASS"
     exit 0
 fi
 

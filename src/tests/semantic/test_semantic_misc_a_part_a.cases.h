@@ -61,19 +61,116 @@ test_misc_grammar_edges(void)
         ast_destroy(defer_stmt);
     }
 
-    TEST("bind statement is accepted by semantic pass");
+    TEST("bind statement validates party slot role contract in semantic pass");
     {
-        SemanticContext *ctx = semantic_context_create();
-        scope_enter(&ctx->scope, SCOPE_GLOBAL);
+        const char *source =
+            "subject Fighter { let hp: Int; }\n"
+            "ability Combatable { func Attack() -> Int; }\n"
+            "role Warrior for Fighter {\n"
+            "    impl ability Combatable {\n"
+            "        func Attack() -> Int { return 1; }\n"
+            "    }\n"
+            "}\n"
+            "party Team {\n"
+            "    role slot fighter: Combatable\n"
+            "}\n"
+            "func Main() -> Void {\n"
+            "    let team: Team = Team();\n"
+            "    bind team.fighter = Warrior;\n"
+            "}\n";
+        Lexer *lexer = lexer_create(source);
+        Parser *parser = parser_create(lexer);
+        ASTNode *program = parser_parse_program(parser);
+        SemanticResult *result = semantic_analyze(program);
 
-        ASTNode *bind = ast_create_bind_statement("team", "fighter", "Warrior");
-        bind->line = 1; bind->column = 1;
+        EXPECT(!parser_has_error(parser));
+        EXPECT(result != NULL && result->error_count == 0);
 
-        type_check_statement(bind, ctx);
-        EXPECT(!ctx->has_error);
+        semantic_result_destroy(result);
+        ast_destroy(program);
+        parser_destroy(parser);
+        lexer_destroy(lexer);
+    }
 
-        semantic_context_destroy(ctx);
-        ast_destroy(bind);
+    TEST("bind statement rejects role that misses party slot ability");
+    {
+        const char *source =
+            "subject Fighter { let hp: Int; }\n"
+            "ability Combatable { func Attack() -> Int; }\n"
+            "ability Talkable { func Talk() -> Void; }\n"
+            "role Warrior for Fighter {\n"
+            "    impl ability Combatable {\n"
+            "        func Attack() -> Int { return 1; }\n"
+            "    }\n"
+            "}\n"
+            "role Speaker for Fighter {\n"
+            "    impl ability Talkable {\n"
+            "        func Talk() -> Void { return; }\n"
+            "    }\n"
+            "}\n"
+            "party Team {\n"
+            "    role slot fighter: Combatable\n"
+            "}\n"
+            "func Main() -> Void {\n"
+            "    let team: Team = Team();\n"
+            "    bind team.fighter = Speaker;\n"
+            "}\n";
+        Lexer *lexer = lexer_create(source);
+        Parser *parser = parser_create(lexer);
+        ASTNode *program = parser_parse_program(parser);
+        SemanticResult *result = semantic_analyze(program);
+
+        EXPECT(!parser_has_error(parser));
+        EXPECT(result != NULL && result->error_count > 0);
+        EXPECT(ctx_has_diagnostic_substring_from_result(result,
+            "does not satisfy party slot 'Team.fighter' ability contract"));
+
+        semantic_result_destroy(result);
+        ast_destroy(program);
+        parser_destroy(parser);
+        lexer_destroy(lexer);
+    }
+
+    TEST("bind statement requires every party slot ability");
+    {
+        const char *source =
+            "subject Fighter { let hp: Int; }\n"
+            "ability Combatable { func Attack() -> Int; }\n"
+            "ability Guardable { func Guard() -> Int; }\n"
+            "role Warrior for Fighter {\n"
+            "    impl ability Combatable {\n"
+            "        func Attack() -> Int { return 1; }\n"
+            "    }\n"
+            "}\n"
+            "role Guardian for Fighter {\n"
+            "    impl ability Combatable {\n"
+            "        func Attack() -> Int { return 1; }\n"
+            "    }\n"
+            "    impl ability Guardable {\n"
+            "        func Guard() -> Int { return 1; }\n"
+            "    }\n"
+            "}\n"
+            "party Team {\n"
+            "    role slot fighter: Combatable & Guardable\n"
+            "}\n"
+            "func Main() -> Void {\n"
+            "    let team: Team = Team();\n"
+            "    bind team.fighter = Warrior;\n"
+            "}\n";
+        Lexer *lexer = lexer_create(source);
+        Parser *parser = parser_create(lexer);
+        ASTNode *program = parser_parse_program(parser);
+        SemanticResult *result = semantic_analyze(program);
+
+        EXPECT(!parser_has_error(parser));
+        EXPECT(result != NULL && result->error_count > 0);
+        EXPECT(ctx_has_diagnostic_substring_from_result(result,
+            "missing ability 'Guardable'"));
+
+        semantic_result_destroy(result);
+        ast_destroy(program);
+        parser_destroy(parser);
+        lexer_destroy(lexer);
     }
 
     TEST("else if chain type-checks nested branch structure");

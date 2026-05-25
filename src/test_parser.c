@@ -222,6 +222,12 @@ main(void)
     printf("\n");
     failures += run_reserved_labeled_unsafe_diagnostic_test();
     printf("\n");
+    failures += run_reserved_role_slot_union_diagnostic_test();
+    printf("\n");
+    failures += run_reserved_role_slot_boolean_and_diagnostic_test();
+    printf("\n");
+    failures += run_reserved_container_role_slot_intersection_diagnostic_test();
+    printf("\n");
     failures += run_vessel_keyword_alias_test();
     printf("\n");
     failures += run_lexical_zone_context_test();

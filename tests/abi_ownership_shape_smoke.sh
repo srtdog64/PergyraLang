@@ -63,7 +63,18 @@ require_term "src/runtime/slot_manager_pin.c" "entry->pinThreadAffinity = tid"
 require_term "src/runtime/slot_manager_pin.c" "entry->pinGeneration = handle->generation"
 require_term "src/runtime/slot_manager_pin.c" "entry->pinThreadAffinity != tid"
 require_term "src/runtime/slot_manager_pin.c" "entry->pinGeneration != view->generation"
+require_term "src/runtime/slot_manager.c" "return (uintptr_t)pthread_self();"
+require_term "src/runtime/slot_manager_internal.h" "uintptr_t current_thread_id(void);"
+require_term "src/runtime/slot_manager.h" "uintptr_t pinThreadAffinity;"
+if grep -Fq "0xffffffffu" "$ROOT_DIR/src/runtime/slot_manager.c"; then
+    fail "slot pin thread affinity must not truncate pthread_self to 32 bits"
+fi
 require_term "src/runtime/slot_manager_pin.c" "SlotValidateToken(manager, handle, token)"
+require_term "src/runtime/slot_manager.c" "if (entry->pinCount > 0)"
+require_term "src/runtime/slot_manager.c" "return SLOT_ERROR_PINNED"
+require_term "src/runtime/slot_manager.c" "slot_reset_entry_locked(entry)"
+require_term "src/runtime/slot_manager_core_ops.c" "entry->pinMode == (uint32_t)PGY_SLOT_PIN_WRITE"
+require_term "src/tests/security/test_security_runtime.cases.h" "Write-pinned plain slot rejects concurrent read"
 
 require_term "src/runtime/pgy_runtime_plain_slot_inline.h" "PgyPinnedSlotView_##SuffixName"
 require_term "src/runtime/pgy_runtime_plain_slot_inline.h" "pgy_pin_read_##SuffixName"

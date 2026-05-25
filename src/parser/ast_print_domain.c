@@ -113,7 +113,7 @@ ast_print_domain_node(ASTNode *node, int indent)
                 printf(" requires ");
                 for (size_t i = 0; i < node->data.role_slot.ability_count; i++) {
                     if (i > 0)
-                        printf(", ");
+                        printf(" & ");
                     ast_print_inline(node->data.role_slot.required_abilities[i]);
                 }
             }

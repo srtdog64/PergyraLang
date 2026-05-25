@@ -71,9 +71,9 @@ type_check_function_symbol_call(ASTNode *expr, Symbol *sym,
             sig_buf);
         return TYPE_UNKNOWN;
     }
-    if (ctx->program_root != NULL
+    if (ctx != NULL
         && (sym->kind == SYMBOL_FUNCTION || sym->kind == SYMBOL_INTENT)) {
-        callable_decl = find_callable_decl_by_name(ctx->program_root, display_name);
+        callable_decl = semantic_find_callable_decl_by_name(ctx, display_name);
         if (callable_decl != NULL && !explicit_type_reference_allowed(callable_decl, expr, ctx)) {
             semantic_error_with_hints(ctx, PGY_CODE_SEM_VISIBILITY_BOUNDARY,
                 PGY_CAUSE_VISIBILITY_BOUNDARY_CROSS, PGY_FIX_WIDEN_VISIBILITY_OR_MOVE_CALLER,
@@ -129,9 +129,9 @@ type_check_function_symbol_call(ASTNode *expr, Symbol *sym,
             display_name != NULL ? display_name : "<call>");
         return type_function_return_type(sym->type);
     }
-    if (ctx->program_root != NULL
+    if (ctx != NULL
         && (sym->kind == SYMBOL_FUNCTION || sym->kind == SYMBOL_INTENT)) {
-        callable_decl = find_callable_decl_by_name(ctx->program_root, display_name);
+        callable_decl = semantic_find_callable_decl_by_name(ctx, display_name);
         callable_generic_params = ast_func_generic_params(callable_decl);
         callable_generic_count = ast_generic_param_count(callable_generic_params);
         if (callable_generic_count > 0) {

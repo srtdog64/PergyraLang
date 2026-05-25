@@ -123,6 +123,11 @@ if grep -RIn 'resolve_type_node(' src/semantic \
   exit 1
 fi
 
+if grep -q 'find_domain_decl_by_name' src/semantic/type_checker_resolution_stage_domain.c; then
+  echo "[type-resolution-resolver-inventory] DAG domain stage must consume semantic domain lookup seams" >&2
+  exit 1
+fi
+
 { grep -RIn 'resolve_named_type(' src/semantic || true; } \
   >"$bad_direct" || true
 
@@ -197,6 +202,7 @@ fi
 
 { grep -RIn 'semantic_type_resolution_record_\(owned_\)\?resolved_type' src/semantic || true; } \
   | grep -Ev 'src/semantic/type_checker_internal\.h' \
+  | grep -Ev 'src/semantic/type_checker_resolution_internal\.h' \
   | grep -Ev 'src/semantic/type_checker_resolution_graph_core\.c' \
   | grep -Ev 'src/semantic/type_checker_resolution_stage_signature\.c' \
   | grep -Ev 'src/semantic/type_checker_resolution_metadata(_alias|_constructed)?\.c' \
@@ -396,6 +402,33 @@ grep -q 'resolve_required_ability_decl' \
   echo "[type-resolution-resolver-inventory] zone authority validation no longer goes through required ability resolver" >&2
   exit 1
 }
+
+grep -q 'intent_find_zone_decl_for_type' \
+  src/semantic/type_checker_intent_types.c || {
+  echo "[type-resolution-resolver-inventory] intent zone declaration recovery lost its owner seam" >&2
+  exit 1
+}
+
+grep -q 'intent_find_effect_decl_by_name' \
+  src/semantic/type_checker_intent_types.c || {
+  echo "[type-resolution-resolver-inventory] intent effect declaration recovery lost its owner seam" >&2
+  exit 1
+}
+
+grep -q 'intent_resolve_step_where_zone_decl' \
+  src/semantic/type_checker_intent_decl.c || {
+  echo "[type-resolution-resolver-inventory] intent step where validation no longer consumes the zone owner seam" >&2
+  exit 1
+}
+
+if grep -n 'AST_\(ZONE\|EFFECT\)_DECL' \
+  src/semantic/type_checker_intent_decl.c \
+  src/semantic/type_checker_intent_binding_context.c \
+  src/semantic/type_checker_intent_participants.c \
+  src/semantic/type_checker_intent_transfer.c; then
+  echo "[type-resolution-resolver-inventory] intent where/using/causes/transfer consumers must use the intent domain owner seam" >&2
+  exit 1
+fi
 
 { grep -RIn 'semantic_type_resolution_lookup_type_ref_or_materialize' src/semantic || true; } \
   >"$type_ref_helper_matches" || true
@@ -738,6 +771,179 @@ grep -q 'intent_binding_context_resolve_binding_type' src/semantic/type_checker_
   echo "[type-resolution-resolver-inventory] intent using derivation must use the shared binding type resolver" >&2
   exit 1
 }
+
+grep -q 'semantic_find_zone_decl_by_name(ctx, within_zone)' \
+  src/semantic/type_checker_func_action_contract.c || {
+  echo "[type-resolution-resolver-inventory] action contract must resolve zones through the semantic domain owner seam" >&2
+  exit 1
+}
+
+grep -q 'semantic_find_effect_decl_by_name(ctx, causes_effect)' \
+  src/semantic/type_checker_func_action_contract.c || {
+  echo "[type-resolution-resolver-inventory] action contract must resolve effects through the semantic domain owner seam" >&2
+  exit 1
+}
+
+if grep -q 'find_domain_decl_by_name(' src/semantic/type_checker_func_action_contract.c; then
+  echo "[type-resolution-resolver-inventory] action contract reintroduced direct domain declaration lookup" >&2
+  exit 1
+fi
+
+grep -q 'semantic_find_effect_decl_by_name(ctx,' \
+  src/semantic/type_checker_domain_contracts.c || {
+  echo "[type-resolution-resolver-inventory] zone effect contract must resolve effects through the semantic domain owner seam" >&2
+  exit 1
+}
+
+grep -q 'semantic_find_relation_decl_by_name(ctx,' \
+  src/semantic/type_checker_domain_contracts.c || {
+  echo "[type-resolution-resolver-inventory] zone relation contract must resolve relations through the semantic domain owner seam" >&2
+  exit 1
+}
+
+if grep -q 'find_domain_decl_by_name(' src/semantic/type_checker_domain_contracts.c; then
+  echo "[type-resolution-resolver-inventory] zone contract reintroduced direct domain declaration lookup" >&2
+  exit 1
+fi
+
+grep -q 'semantic_find_zone_decl_by_name(ctx, zone_type)' \
+  src/semantic/type_checker_world_decl.c || {
+  echo "[type-resolution-resolver-inventory] world declaration must resolve zone declarations through the semantic domain owner seam" >&2
+  exit 1
+}
+
+grep -q 'semantic_find_zone_decl_by_name(ctx, zone_type)' \
+  src/semantic/type_checker_world_helpers.c || {
+  echo "[type-resolution-resolver-inventory] world helper must resolve zone declarations through the semantic domain owner seam" >&2
+  exit 1
+}
+
+grep -q 'semantic_find_world_decl_by_name(ctx, world_name)' \
+  src/semantic/type_checker_world_embedding.c || {
+  echo "[type-resolution-resolver-inventory] world embedding must resolve world declarations through the semantic domain owner seam" >&2
+  exit 1
+}
+
+for world_consumer in \
+  src/semantic/type_checker_world_decl.c \
+  src/semantic/type_checker_world_helpers.c \
+  src/semantic/type_checker_world_embedding.c; do
+  if grep -q 'find_domain_decl_by_name(' "$world_consumer"; then
+    echo "[type-resolution-resolver-inventory] world consumer reintroduced direct domain declaration lookup: $world_consumer" >&2
+    exit 1
+  fi
+done
+
+grep -q 'semantic_find_relation_decl_by_name(ctx, type_name)' \
+  src/semantic/type_checker_zone_decl_authority.c || {
+  echo "[type-resolution-resolver-inventory] zone layer slot relation lookup must use the semantic domain owner seam" >&2
+  exit 1
+}
+
+grep -q 'semantic_find_effect_decl_by_name(ctx, type_name)' \
+  src/semantic/type_checker_zone_decl_authority.c || {
+  echo "[type-resolution-resolver-inventory] zone layer slot effect lookup must use the semantic domain owner seam" >&2
+  exit 1
+}
+
+if grep -q 'find_domain_decl_by_name(' src/semantic/type_checker_zone_decl_authority.c; then
+  echo "[type-resolution-resolver-inventory] zone authority consumer reintroduced direct domain declaration lookup" >&2
+  exit 1
+fi
+
+grep -q 'semantic_find_world_decl_by_name(ctx, host_name)' \
+  src/semantic/type_checker_resolution_stage_lookup.c || {
+  echo "[type-resolution-resolver-inventory] graph host lookup must resolve worlds through the semantic domain owner seam" >&2
+  exit 1
+}
+
+grep -q 'semantic_find_zone_decl_by_name(ctx, host_name)' \
+  src/semantic/type_checker_resolution_stage_lookup.c || {
+  echo "[type-resolution-resolver-inventory] graph host lookup must resolve zones through the semantic domain owner seam" >&2
+  exit 1
+}
+
+if grep -q 'find_domain_decl_by_name(' src/semantic/type_checker_resolution_stage_lookup.c; then
+  echo "[type-resolution-resolver-inventory] graph host lookup reintroduced direct domain declaration lookup" >&2
+  exit 1
+fi
+
+for stage_signature_term in \
+  'semantic_find_class_decl_by_name(ctx, provider_name)' \
+  'semantic_find_ability_decl_by_name(ctx, provider_name)' \
+  'semantic_find_role_decl_by_name(ctx, provider_name)' \
+  'semantic_find_party_decl_by_name(ctx, provider_name)' \
+  'semantic_find_roster_decl_by_name(ctx, provider_name)' \
+  'semantic_find_world_decl_by_name(ctx, provider_name)' \
+  'semantic_find_zone_decl_by_name(ctx, provider_name)' \
+  'semantic_find_relation_decl_by_name(ctx, provider_name)' \
+  'semantic_find_effect_decl_by_name(ctx, provider_name)'; do
+  grep -q "$stage_signature_term" \
+    src/semantic/type_checker_resolution_stage_signature.c || {
+    echo "[type-resolution-resolver-inventory] stage signature domain lookup must use semantic owner seam: $stage_signature_term" >&2
+    exit 1
+  }
+done
+
+if grep -q 'find_domain_decl_by_name(' src/semantic/type_checker_resolution_stage_signature.c; then
+  echo "[type-resolution-resolver-inventory] stage signature reintroduced direct domain declaration lookup" >&2
+  exit 1
+fi
+
+if grep -q 'semantic_find_top_level_decl_by_label(ctx->program_root' \
+  src/semantic/type_checker_resolution_stage_signature.c; then
+  echo "[type-resolution-resolver-inventory] stage signature must not pass raw program root to top-level lookup" >&2
+  exit 1
+fi
+
+for metadata_class_lookup_term in \
+  'semantic_find_class_decl_by_name(ctx, provider_name)' \
+  'semantic_find_class_decl_by_name(ctx, ast_type_name(type_node))' \
+  'semantic_find_class_decl_by_name(ctx, name)'; do
+  grep -R -q "$metadata_class_lookup_term" \
+    src/semantic/type_checker_resolution_graph_core.c \
+    src/semantic/type_checker_resolution_graph_domain.c \
+    src/semantic/type_checker_resolution_metadata.c \
+    src/semantic/type_checker_resolution_metadata_alias.c \
+    src/semantic/type_checker_resolution_metadata_constructed.c \
+    src/semantic/type_checker_resolution_metadata_dead_end.c || {
+    echo "[type-resolution-resolver-inventory] metadata class lookup must use semantic owner seam: $metadata_class_lookup_term" >&2
+    exit 1
+  }
+done
+
+if grep -R -q 'find_type_decl_by_name(ctx->program_root' \
+  src/semantic/type_checker_resolution_graph_core.c \
+  src/semantic/type_checker_resolution_graph_domain.c \
+  src/semantic/type_checker_resolution_metadata.c \
+  src/semantic/type_checker_resolution_metadata_alias.c \
+  src/semantic/type_checker_resolution_metadata_constructed.c \
+  src/semantic/type_checker_resolution_metadata_dead_end.c; then
+  echo "[type-resolution-resolver-inventory] metadata owners reintroduced raw class declaration lookup" >&2
+  exit 1
+fi
+
+for metadata_alias_lookup_term in \
+  'semantic_find_type_alias_decl_by_name(ctx, provider_name)' \
+  'semantic_find_type_alias_decl_by_name(ctx, name)'; do
+  grep -R -q "$metadata_alias_lookup_term" \
+    src/semantic/type_checker_resolution_graph_core.c \
+    src/semantic/type_checker_resolution_metadata_alias.c \
+    src/semantic/type_checker_resolution_metadata_dead_end.c \
+    src/semantic/type_checker_resolution_metadata_diagnostics.c || {
+    echo "[type-resolution-resolver-inventory] metadata alias lookup must use semantic owner seam: $metadata_alias_lookup_term" >&2
+    exit 1
+  }
+done
+
+if grep -R -q 'find_type_alias_decl(ctx->program_root' \
+  src/semantic/type_checker_resolution_graph_core.c \
+  src/semantic/type_checker_resolution_metadata_alias.c \
+  src/semantic/type_checker_resolution_metadata_dead_end.c \
+  src/semantic/type_checker_resolution_metadata_diagnostics.c; then
+  echo "[type-resolution-resolver-inventory] metadata owners reintroduced raw type-alias declaration lookup" >&2
+  exit 1
+fi
 
 grep -q 'semantic_type_resolution_metadata_stable_builtin_shell_arity(' \
   src/semantic/type_checker_resolution_metadata_dead_end.c || {

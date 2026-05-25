@@ -93,8 +93,7 @@ type_check_statement(ASTNode *node, SemanticContext *ctx)
     case AST_DEFER_STMT:
         return type_check_defer_stmt(node, ctx);
     case AST_BIND_STMT:
-        /* bind party.slot = Role; validated at codegen level. */
-        return true;
+        return type_check_bind_stmt(node, ctx);
     default:
         /* Expression statement */
         type_check_expression(node, ctx);

@@ -112,9 +112,9 @@ type_check_intent_decl(ASTNode *node, SemanticContext *ctx)
                 contract_summary[0] != '\0' ? contract_summary : "",
                 contract_summary[0] != '\0' ? "\n" : "");
         } else {
-            Type *zone_type = intent_resolve_step_where_type(step, ctx);
-            zone_decl = find_domain_decl_by_name(ctx->program_root, AST_ZONE_DECL,
-                zone_type != NULL ? zone_type->name : NULL);
+            Type *zone_type = NULL;
+            zone_decl = intent_resolve_step_where_zone_decl(
+                step, ctx, &zone_type);
             if (where_type != NULL && zone_decl == NULL) {
                 char contract_summary[512];
                 intent_step_format_contract_source_summary(
@@ -324,8 +324,7 @@ type_check_intent_decl(ASTNode *node, SemanticContext *ctx)
         type_check_intent_step_ability_contract(node, step, ctx);
 
         if (causes_effect != NULL
-            && find_domain_decl_by_name(ctx->program_root, AST_EFFECT_DECL,
-                causes_effect) == NULL) {
+            && intent_find_effect_decl_by_name(causes_effect, ctx) == NULL) {
             semantic_error_with_hints(ctx, PGY_CODE_SEM_INTENT_STEP_INVALID, PGY_CAUSE_INTENT_STEP, PGY_FIX_ALIGN_STEP_WITH_ZONE_ACTION_CONTRACTS, step,
                 "Intent step '%s' causes unknown effect '%s'.\n"
                 "Reason:\n"

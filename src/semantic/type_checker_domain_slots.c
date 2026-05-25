@@ -18,11 +18,7 @@ type_check_domain_slots(ASTNode **slots,
                 kind_name,
                 ast_domain_slot_name(slot));
         } else if (ast_domain_slot_is_vessel(slot)) {
-            ASTNode *slot_decl = NULL;
-            if (slot_type != NULL && slot_type->kind == TYPE_KIND_CLASS
-                && slot_type->name != NULL) {
-                slot_decl = find_type_decl_by_name(ctx->program_root, slot_type->name);
-            }
+            ASTNode *slot_decl = semantic_host_decl_for_type(ctx, slot_type);
             if (slot_decl == NULL || slot_decl->type != AST_CLASS_DECL
                 || ast_class_nominal_kind(slot_decl) != NOMINAL_DECL_VESSEL) {
                 semantic_error_with_hints(ctx, PGY_CODE_SEM_TYPE_MISMATCH,

@@ -389,6 +389,7 @@ main() {
         "tests/cases/backend_compare/slice_inline_access"
         "tests/cases/backend_compare/dynamic_array"
         "tests/cases/backend_compare/string_io"
+        "tests/cases/backend_compare/string_split_edge"
         "tests/cases/backend_compare/module_namespace"
         "tests/cases/backend_compare/role_operator"
         "tests/cases/backend_compare/host_method_class_return"

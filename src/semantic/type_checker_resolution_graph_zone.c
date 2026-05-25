@@ -108,11 +108,10 @@ semantic_type_resolution_precollect_zone_refresh_projection_map(
                 size_t saved_diag = ctx->diagnostic_count;
                 bool saved_error = ctx->has_error;
                 Type *field_type = NULL;
-                int path_status = resolve_projection_source_field_path(
-                    ctx->program_root,
+                int path_status = semantic_resolve_projection_source_field_path(
+                    ctx,
                     source_decl,
                     source_field,
-                    ctx,
                     &resolved_source_path,
                     &field_type);
                 (void)field_type;

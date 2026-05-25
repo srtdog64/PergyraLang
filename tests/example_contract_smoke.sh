@@ -2,9 +2,12 @@
 set -euo pipefail
 
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+source "$ROOT_DIR/tests/pgy_binary_path_helpers.sh"
+pgy_prepend_windows_runtime_paths
 DEFAULT_PGY="$ROOT_DIR/bin/pgy"
 TMP_BASE="${TMPDIR:-${TEMP:-/tmp}}"
 TMP_PGY="${TMP_BASE%/}/pgy-PergyraLang-bin/pgy"
+PGY_BIN_WAS_EXPLICIT=0
 if [[ -x "${DEFAULT_PGY}.exe" ]]; then
     DEFAULT_PGY="${DEFAULT_PGY}.exe"
 fi
@@ -13,10 +16,14 @@ if [[ -x "${TMP_PGY}.exe" ]]; then
 fi
 if [[ -n "${PGY_BIN:-}" ]]; then
     PGY="$PGY_BIN"
+    PGY_BIN_WAS_EXPLICIT=1
 elif [[ -x "$TMP_PGY" && ( ! -x "$DEFAULT_PGY" || "$TMP_PGY" -nt "$DEFAULT_PGY" ) ]]; then
     PGY="$TMP_PGY"
 else
     PGY="$DEFAULT_PGY"
+fi
+if [[ "$PGY" != *.exe ]] && pgy_binary_expects_windows_paths "${PGY}.exe"; then
+    PGY="${PGY}.exe"
 fi
 WORK_BASE="$ROOT_DIR/.tmp/example-smoke"
 mkdir -p "$WORK_BASE"
@@ -24,6 +31,10 @@ WORK_DIR="$(mktemp -d "$WORK_BASE.XXXXXX")"
 trap 'rm -rf "$WORK_DIR"' EXIT
 
 if [[ ! -x "$PGY" ]]; then
+    if [[ "$PGY_BIN_WAS_EXPLICIT" -eq 1 ]]; then
+        echo "[example-smoke] missing explicit compiler binary: $PGY" >&2
+        exit 1
+    fi
     echo "[example-smoke] SKIP executable probe; missing compiler binary: $PGY"
     exit 0
 fi
@@ -171,7 +182,7 @@ run_expect_lines() {
         exit 1
     fi
 
-    output="$("$PGY" "$file" --run --backend="$backend" -o "$out_bin" 2>&1)"
+    output="$("$PGY" "$(pgy_path_for_compiler "$PGY" "$file")" --run --backend="$backend" -o "$(pgy_path_for_compiler "$PGY" "$out_bin")" 2>&1)"
     if run_exact_output_if_present "$name" "$backend" "$output"; then
         return 0
     fi
@@ -378,7 +389,7 @@ run_qubit_example() {
     local line5
     local out_bin="$WORK_DIR/beta_qubit_experimental_${backend}"
 
-    output="$("$PGY" "$ROOT_DIR/examples/beta_qubit_experimental.pgy" --run --backend="$backend" -o "$out_bin" 2>&1)"
+    output="$("$PGY" "$(pgy_path_for_compiler "$PGY" "$ROOT_DIR/examples/beta_qubit_experimental.pgy")" --run --backend="$backend" -o "$(pgy_path_for_compiler "$PGY" "$out_bin")" 2>&1)"
     mapfile -t values < <(
         printf '%s\n' "$output" \
             | tr -d '\r' \

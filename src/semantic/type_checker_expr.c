@@ -368,7 +368,7 @@ type_check_member_access(ASTNode *expr, SemanticContext *ctx)
     if (object_type != NULL
         && (object_type->kind == TYPE_KIND_CLASS
             || object_type->kind == TYPE_KIND_ENUM)
-        && object_type->name != NULL && ctx->program_root != NULL) {
+        && object_type->name != NULL) {
         const char *field_name = member_name;
         ASTNode *decl = semantic_host_decl_for_type(ctx, object_type);
 

@@ -3,6 +3,11 @@ set -euo pipefail
 
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 
+fail() {
+    echo "[backend-inc-size] $*" >&2
+    exit 1
+}
+
 mapfile -d '' inc_files < <(
     cd "$ROOT_DIR"
     find src/runtime src/codegen src/compiler -name '*.inc' -type f -print0
@@ -16,7 +21,7 @@ fi
 
 large_impl_headers="$(
     cd "$ROOT_DIR"
-    find src/runtime src/codegen src/compiler -name '*.h' -type f \
+    find src -name '*.h' -type f \
         ! -path 'src/tests/*' \
         -exec wc -l {} + \
         | awk '$2 != "total" && $1 > 600 { print }'
@@ -45,8 +50,51 @@ do
     fi
 done
 
+ast_api_header="$ROOT_DIR/src/parser/ast_api.h"
+ast_domain_api_header="$ROOT_DIR/src/parser/ast_domain_api.h"
+
+if [ ! -f "$ast_domain_api_header" ]; then
+    fail "domain AST API header is missing: src/parser/ast_domain_api.h"
+fi
+
+if ! grep -q '#include "ast_domain_api.h"' "$ast_api_header"; then
+    fail "ast_api.h must remain the compatibility umbrella for ast_domain_api.h"
+fi
+
+for domain_decl in \
+    ast_create_ability_declaration \
+    ast_create_role_declaration \
+    ast_create_roster_declaration \
+    ast_create_world_declaration \
+    ast_create_intent_declaration \
+    ast_create_relation_declaration \
+    ast_create_effect_declaration \
+    ast_create_zone_declaration \
+    ast_create_party_declaration
+do
+    if grep -q "$domain_decl" "$ast_api_header"; then
+        fail "domain AST declaration returned to ast_api.h: $domain_decl"
+    fi
+    if ! grep -q "$domain_decl" "$ast_domain_api_header"; then
+        fail "domain AST declaration missing from ast_domain_api.h: $domain_decl"
+    fi
+done
+
 task_channel_owner="$ROOT_DIR/src/codegen/llvm_expr_task_channel_calls.c"
 task_runtime_owner="$ROOT_DIR/src/codegen/llvm_expr_task_calls.c"
+llvm_inventory_lookup_owner="$ROOT_DIR/src/codegen/llvm_inventory_decl_lookup.c"
+host_decl_compat_owner="$ROOT_DIR/src/codegen/host_decl_compat.c"
+
+if ! grep -q 'pgy_host_decl_compat_types(&host_type_count)' \
+    "$llvm_inventory_lookup_owner"; then
+    fail "LLVM host declaration lookup must consume host_decl_compat type inventory"
+fi
+
+for host_decl_type in AST_PARTY_DECL AST_ROLE_DECL AST_ROSTER_DECL; do
+    if ! grep -q "$host_decl_type" "$host_decl_compat_owner"; then
+        fail "host declaration compatibility lost $host_decl_type"
+    fi
+done
 
 if grep -RIn "fallback_ty = ctx->type_i32" \
     "$task_channel_owner" >/dev/null 2>&1; then
@@ -80,4 +128,4 @@ if ! grep -q "llvm_required_task_function" "$task_runtime_owner"; then
     exit 1
 fi
 
-echo "[backend-inc-size] runtime/codegen/compiler production .inc files = 0; production implementation headers <= 600 LOC; legacy RIR implementation headers = 0; LLVM task/channel fallback = 0"
+echo "[backend-inc-size] runtime/codegen/compiler production .inc files = 0; src production headers <= 600 LOC; AST domain API split ok; LLVM host decl compat ok; legacy RIR implementation headers = 0; LLVM task/channel fallback = 0"

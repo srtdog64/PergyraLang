@@ -44,7 +44,7 @@ resolve_required_ability_decl(ASTNode *ability_ref,
         return NULL;
     }
 
-    ability_decl = find_ability_decl_by_name(ctx->program_root, ability);
+    ability_decl = semantic_find_ability_decl_by_name(ctx, ability);
     if (ability_decl == NULL) {
         semantic_error_with_hints(ctx, PGY_CODE_SEM_ABILITY_CONTRACT_INVALID, PGY_CAUSE_ABILITY_CONTRACT, PGY_FIX_ALIGN_ABILITY_GENERICS_OR_FIELDS, site,
             "%s '%s' requires unknown ability '%s'.\n"
@@ -269,9 +269,10 @@ validate_action_required_abilities(ASTNode *node,
             continue;
         }
         if (subject_name != NULL
-            && !subject_type_has_ability(ctx->program_root, subject_name, ability_ref)) {
-            ASTNode *actual_impl = subject_type_find_base_ability_impl(
-                ctx->program_root, subject_name, ability);
+            && !semantic_subject_type_has_ability(ctx, subject_name, ability_ref)) {
+            ASTNode *actual_impl =
+                semantic_subject_type_find_base_ability_impl(
+                    ctx, subject_name, ability);
             char *actual_text = actual_impl != NULL ? ability_ref_display(actual_impl) : NULL;
             report_subject_ability_requirement_mismatch(
                 ctx, node, "action", name != NULL ? name : "<anonymous>",

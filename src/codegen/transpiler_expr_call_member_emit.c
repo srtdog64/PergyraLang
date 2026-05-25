@@ -199,7 +199,9 @@ emit_call_member_style(ASTNode *call, ASTNode *callee, TranspilerCtx *ctx)
                             && zone_subject_slot_name != NULL
                             && zone_subject_type_name != NULL
                             && strcmp(zone_subject_type_name, owned_type_name) == 0) {
-                            ASTNode *zone_decl = find_zone_decl(ctx, zone_type_name);
+                            ASTNode *zone_decl =
+                                transpiler_find_decl_in_inventory_local(
+                                    ctx, AST_ZONE_DECL, zone_type_name);
                             if (zone_decl != NULL)
                                 transpiler_bind_current_host_decl_local(ctx, zone_decl);
                             ctx->current_overlay_receiver_expr =

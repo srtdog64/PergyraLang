@@ -27,17 +27,17 @@ intent_clause_invokes_authority_sensitive_call(ASTNode *expr, SemanticContext *c
         && ast_member_object(callee) != NULL
         && ast_member_name(callee) != NULL) {
         Type *object_type = type_check_expression(ast_member_object(callee), ctx);
-        ASTNode *class_decl;
+        ASTNode *host_decl;
 
         if (object_type == NULL || object_type->name == NULL)
             return false;
 
-        class_decl = find_type_decl_by_name(ctx->program_root, object_type->name);
-        if (class_decl == NULL || class_decl->type != AST_CLASS_DECL)
+        host_decl = semantic_host_decl_for_type(ctx, object_type);
+        if (host_decl == NULL)
             return false;
 
         size_t method_count = 0;
-        ASTNode **methods = ast_class_methods(class_decl, &method_count);
+        ASTNode **methods = semantic_host_decl_methods(host_decl, &method_count);
         for (size_t i = 0; i < method_count; i++) {
             ASTNode *method = methods != NULL ? methods[i] : NULL;
             const char *method_name = ast_declaration_name(method);

@@ -111,7 +111,8 @@ transpiler_can_forward_declare_type_after_zones(TranspilerCtx *ctx,
         return false;
 
     name = ast_type_name(type_node);
-    if (find_world_decl(ctx, name) != NULL)
+    if (transpiler_find_decl_in_inventory_local(ctx, AST_WORLD_DECL,
+                                                name) != NULL)
         return false;
     return transpiler_has_known_nominal_type(ctx, name);
 }

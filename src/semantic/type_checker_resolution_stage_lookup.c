@@ -4,6 +4,12 @@
 
 #include "type_checker_internal.h"
 
+static ASTNode *
+stage_lookup_program(SemanticContext *ctx)
+{
+    return ctx != NULL ? ctx->program_root : NULL;
+}
+
 static const char *
 stage_decl_label(ASTNode *stmt)
 {
@@ -78,7 +84,18 @@ semantic_find_top_level_decl_by_label(ASTNode *program,
 }
 
 ASTNode *
-semantic_find_graph_host_decl(ASTNode *program,
+semantic_find_top_level_decl_by_label_in_context(SemanticContext *ctx,
+                                                 const char *label,
+                                                 TypeResolutionNodeKind kind)
+{
+    if (ctx == NULL)
+        return NULL;
+    return semantic_find_top_level_decl_by_label(stage_lookup_program(ctx),
+                                                 label, kind);
+}
+
+ASTNode *
+semantic_find_graph_host_decl(SemanticContext *ctx,
                               const char *label)
 {
     const char *space;
@@ -87,7 +104,7 @@ semantic_find_graph_host_decl(ASTNode *program,
     char *host_name;
     ASTNode *decl = NULL;
 
-    if (program == NULL || label == NULL)
+    if (ctx == NULL || label == NULL)
         return NULL;
 
     if (strncmp(label, "world ", 6) == 0) {
@@ -102,7 +119,7 @@ semantic_find_graph_host_decl(ASTNode *program,
         if (host_name == NULL)
             return NULL;
         memcpy(host_name, space, name_len);
-        decl = find_domain_decl_by_name(program, AST_WORLD_DECL, host_name);
+        decl = semantic_find_world_decl_by_name(ctx, host_name);
         free(host_name);
         return decl;
     }
@@ -119,7 +136,7 @@ semantic_find_graph_host_decl(ASTNode *program,
         if (host_name == NULL)
             return NULL;
         memcpy(host_name, space, name_len);
-        decl = find_domain_decl_by_name(program, AST_ZONE_DECL, host_name);
+        decl = semantic_find_zone_decl_by_name(ctx, host_name);
         free(host_name);
         return decl;
     }

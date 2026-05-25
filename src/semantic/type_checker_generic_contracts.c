@@ -50,8 +50,7 @@ concrete_type_satisfies_bound(Type *concrete_type, ASTNode *bound_node,
         return true;
     }
 
-    if (ctx->program_root == NULL
-        || ast_type_name(bound_node) == NULL
+    if (ast_type_name(bound_node) == NULL
         || concrete_type->name == NULL) {
         return false;
     }
@@ -59,11 +58,10 @@ concrete_type_satisfies_bound(Type *concrete_type, ASTNode *bound_node,
     bound_name = ast_type_name(bound_node);
     bound_sym = scope_lookup(ctx->scope, bound_name);
     if ((bound_sym != NULL && bound_sym->kind == SYMBOL_ABILITY)
-        || (ctx->program_root != NULL
-            && find_ability_decl_by_name(ctx->program_root, bound_name) != NULL)) {
-        return subject_type_has_ability(ctx->program_root,
-                                        concrete_type->name,
-                                        bound_node);
+        || semantic_find_ability_decl_by_name(ctx, bound_name) != NULL) {
+        return semantic_subject_type_has_ability(ctx,
+                                                 concrete_type->name,
+                                                 bound_node);
     }
 
     return false;

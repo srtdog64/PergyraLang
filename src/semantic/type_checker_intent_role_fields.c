@@ -34,7 +34,7 @@ find_nominal_field_by_name(ASTNode *decl, const char *field_name)
 }
 
 static ClassField *
-find_subject_surface_field_by_name(ASTNode *program_root,
+find_subject_surface_field_by_name(SemanticContext *ctx,
                                    ASTNode *subject_decl,
                                    const char *field_name,
                                    const char **container_field_name_out)
@@ -42,7 +42,7 @@ find_subject_surface_field_by_name(ASTNode *program_root,
     if (container_field_name_out != NULL)
         *container_field_name_out = NULL;
 
-    if (program_root == NULL || subject_decl == NULL
+    if (ctx == NULL || subject_decl == NULL
         || subject_decl->type != AST_CLASS_DECL || field_name == NULL) {
         return NULL;
     }
@@ -59,14 +59,15 @@ find_subject_surface_field_by_name(ASTNode *program_root,
         ClassField *field = fields != NULL ? fields[i] : NULL;
         ASTNode *vessel_decl;
         ClassField *nested;
-        const char *field_type_name = field != NULL ? ast_type_name(field->type) : NULL;
+        Type *field_type;
 
         if (field == NULL || !field->is_vessel_field || field->type == NULL
-            || field_type_name == NULL) {
+            || field->name == NULL) {
             continue;
         }
 
-        vessel_decl = find_type_decl_by_name(program_root, field_type_name);
+        field_type = intent_role_resolve_field_type(field, ctx);
+        vessel_decl = semantic_host_decl_for_type(ctx, field_type);
         if (vessel_decl == NULL || vessel_decl->type != AST_CLASS_DECL
             || ast_class_nominal_kind(vessel_decl) != NOMINAL_DECL_VESSEL) {
             continue;
@@ -242,6 +243,8 @@ validate_ability_require_fields_for_role(ASTNode *role_decl,
     const char *ability_label;
     const char *role_name;
     const char *role_label;
+    ASTNode *bound_type_node;
+    Type *bound_type;
 
     if (role_decl == NULL || role_decl->type != AST_ROLE_DECL
         || ability_decl == NULL || ability_decl->type != AST_ABILITY_DECL
@@ -257,7 +260,9 @@ validate_ability_require_fields_for_role(ASTNode *role_decl,
     if (bound_type_name == NULL)
         return;
 
-    bound_decl = find_type_decl_by_name(ctx->program_root, bound_type_name);
+    bound_type_node = semantic_role_for_type_node(role_decl);
+    bound_type = semantic_host_resolve_type_ref(bound_type_node, ctx);
+    bound_decl = semantic_host_decl_for_type(ctx, bound_type);
     if (bound_decl == NULL || !decl_is_subject_host(bound_decl))
         return;
 
@@ -277,9 +282,8 @@ validate_ability_require_fields_for_role(ASTNode *role_decl,
             continue;
         }
 
-        field = find_subject_surface_field_by_name(
-            ctx->program_root, bound_decl, req_name,
-            &container_field_name);
+        field = find_subject_surface_field_by_name(ctx, bound_decl, req_name,
+                                                   &container_field_name);
         if (field == NULL) {
             semantic_error_with_hints(ctx, PGY_CODE_SEM_ROLE_CONTRACT_INVALID, PGY_CAUSE_ROLE_CONTRACT, PGY_FIX_ALIGN_ROLE_IMPL_WITH_ABILITY, role_decl,
                 "Role '%s' cannot implement ability '%s' because subject '%s' is missing required field '%s'.\n"

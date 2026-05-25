@@ -93,8 +93,7 @@ type_check_world_decl(ASTNode *node, SemanticContext *ctx)
         const char *slot_name = ast_world_zone_slot_name(wz);
         if (zone_type != NULL) {
             Symbol *zone = scope_lookup(ctx->scope, zone_type);
-            ASTNode *zone_decl = find_domain_decl_by_name(
-                ctx->program_root, AST_ZONE_DECL, zone_type);
+            ASTNode *zone_decl = semantic_find_zone_decl_by_name(ctx, zone_type);
             if ((zone == NULL || zone->kind != SYMBOL_ZONE)
                 && !(zone_decl != NULL
                      && zone_decl->type == AST_ZONE_DECL

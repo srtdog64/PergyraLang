@@ -1,5 +1,5 @@
 #include "domain_frontier_policy.h"
-#include "../parser/ast_api.h"
+#include "../parser/ast_domain_api.h"
 
 size_t
 pgy_domain_zone_frontier_pass_limit(ASTNode *zone_decl)
