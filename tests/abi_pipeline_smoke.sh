@@ -156,7 +156,17 @@ run_case() {
     entry_arg="$(pgy_path_for_compiler "$PGY" "$entry")"
     out_bin_arg="$(pgy_path_for_compiler "$PGY" "$out_bin")"
 
+    set +e
     raw_output="$($PGY "$entry_arg" --run --backend="$backend" -o "$out_bin_arg" 2>&1)"
+    local run_status=$?
+    set -e
+    if [[ "$run_status" -ne 0 ]]; then
+        echo "[abi-pipeline] $name backend=$backend compiler/run failed (exit=$run_status)" >&2
+        echo "--- output ---" >&2
+        echo "$raw_output" >&2
+        echo "--------------" >&2
+        exit "$run_status"
+    fi
 
     if ! grep -Fq "$expected_compile" <<<"$raw_output"; then
         echo "[abi-pipeline] $name backend=$backend missing compile diagnostics '$expected_compile'" >&2

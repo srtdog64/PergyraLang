@@ -1309,11 +1309,19 @@ llvm:
 # Build rules
 # -----------------------------------------------------------------
 
+ifneq ($(filter 3.%,$(MAKE_VERSION)),)
 define pgy_link
 @printf '%s\n' $^ > "$(BUILD_DIR)/$(notdir $@).rsp"
-$(CC) $(CFLAGS) -o $@ @"$(BUILD_DIR)/$(notdir $@).rsp" $(1)
+$(CC) $(CFLAGS) -o $@ @$(BUILD_DIR)/$(notdir $@).rsp $(1)
 @rm -f "$(BUILD_DIR)/$(notdir $@).rsp"
 endef
+else
+define pgy_link
+$(file >$(BUILD_DIR)/$(notdir $@).rsp,$^)
+$(CC) $(CFLAGS) -o $@ @$(BUILD_DIR)/$(notdir $@).rsp $(1)
+@rm -f "$(BUILD_DIR)/$(notdir $@).rsp"
+endef
+endif
 
 # pgy compiler driver
 $(PGY): $(FRONTEND_OBJECTS) $(DRIVER_OBJ) | $(BIN_DIR)

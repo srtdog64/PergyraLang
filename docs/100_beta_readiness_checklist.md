@@ -3904,7 +3904,7 @@ make test-semantic
 - `src/codegen`, `src/runtime`, `src/compiler` production `.inc = 0`를
   `make backend-inc-size-test-smoke`로 고정한다.
 - 신규 `.inc` 증가는 금지한다. 현재 `make inc-sentinel-test-smoke`가
-  `src/**/*.inc = 0`, `.cases.h` under `src/tests` only, `.cases.h <= 30`,
+  `src/**/*.inc = 0`, `.cases.h` under `src/tests` only, inventory cap 88,
   `.cases.h` include from dedicated test harnesses only, empty `.cases.h` test
   fragment 금지, orphan `.cases.h` fragment 금지를 함께 검사한다.
 - core semantic/DAG/backend/runtime owner boundary가 문서와 파일 구조에서 추적 가능하다.

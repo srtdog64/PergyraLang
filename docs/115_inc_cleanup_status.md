@@ -1282,7 +1282,7 @@ production .inc under src/codegen  = 0
 production .inc under src/compiler = 0
 production .inc under src/semantic = 0
 test .inc under src/tests          = 0
-test case includes under src/tests = 84 .cases.h files
+test case includes under src/tests = 88 .cases.h files
 ```
 
 Empty include sentinels are rejected:
@@ -1293,7 +1293,7 @@ make inc-sentinel-test-smoke
 
 This gate rejects any `.inc` file under `src`, rejects `.cases.h` fragments
 outside `src/tests`, rejects empty test case include fragments, and caps the
-test fragment inventory at the current 84 files unless
+test fragment inventory at the current 88 files unless
 `PGY_MAX_TEST_CASE_INCLUDES` is deliberately raised with this ledger. There is
 also a usage check: `.cases.h` can only be included by the dedicated test
 harnesses, every include must resolve under `src/tests`, and every `.cases.h`
@@ -2322,7 +2322,7 @@ Observed results:
   990 LOC.
 - `inc-sentinel-test-smoke`: no `.inc` files are allowed under `src`,
   `.cases.h` is allowed only under `src/tests`, the current `.cases.h`
-  inventory is capped at 85 files, `.cases.h` includes are allowed only from
+  inventory is capped at 88 files, `.cases.h` includes are allowed only from
   dedicated test harnesses, no empty test fragments are allowed, and no orphan
   test fragments are allowed. The sentinel is shell-only and does not require a
   Python runtime on CI.
