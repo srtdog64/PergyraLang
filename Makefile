@@ -42,6 +42,7 @@ ifneq ($(findstring darwin,$(CC_DUMP_MACHINE)),)
 OPENMP_FLAGS =
 THREAD_LINK_LIB =
 PLATFORM_CFLAGS = -D_DARWIN_C_SOURCE -D_XOPEN_SOURCE=700
+PLATFORM_CFLAGS += -Wno-deprecated-declarations
 else ifeq ($(or $(findstring mingw,$(CC_DUMP_MACHINE)),$(MSYSTEM)),)
 OPENMP_FLAGS = -fopenmp
 THREAD_LINK_LIB = -lpthread

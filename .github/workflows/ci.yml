@@ -52,7 +52,7 @@ jobs:
           status=${PIPESTATUS[0]}
           set -e
           if [ "$status" -ne 0 ]; then
-            tail -n 80 macos-ci.log > macos-ci-tail.log
+            tail -n 10 macos-ci.log > macos-ci-tail.log
             line_no=1
             while IFS= read -r line; do
               printf '::error file=macos-ci-tail.log,line=%s::%s\n' "$line_no" "$line"
