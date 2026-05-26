@@ -1383,13 +1383,11 @@ llvm_method_raw_hits="$(
     for path in "$ROOT_DIR"/src/codegen/llvm*.[ch]; do
         [[ -e "$path" ]] || continue
         rel="${path#$ROOT_DIR/}"
-        case "$rel" in
-            src/codegen/llvm_inventory_host_methods.c|\
-            src/codegen/llvm_inventory_host_methods.h|\
-            src/codegen/llvm_domain_decl_parts_helpers.h)
-                continue
-                ;;
-        esac
+        if [[ "$rel" == "src/codegen/llvm_inventory_host_methods.c" ||
+              "$rel" == "src/codegen/llvm_inventory_host_methods.h" ||
+              "$rel" == "src/codegen/llvm_domain_decl_parts_helpers.h" ]]; then
+            continue
+        fi
         llvm_method_files+=("$path")
     done
     if ((${#llvm_method_files[@]})); then
