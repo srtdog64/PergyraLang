@@ -142,8 +142,10 @@ pgy_coro_entry_win(void *raw_task)
 }
 #else
 static void
-pgy_coro_entry(uintptr_t raw_task)
+pgy_coro_entry(uint32_t raw_task_hi, uint32_t raw_task_lo)
 {
+    uintptr_t raw_task = (((uintptr_t)raw_task_hi) << 32)
+                       | (uintptr_t)raw_task_lo;
     PgyCoroTask *task = (PgyCoroTask *)raw_task;
     g_pgy_coro.current = task;
     task->result = task->fn != NULL ? task->fn(task->arg) : NULL;
@@ -168,7 +170,18 @@ pgy_coro_init_task_posix(PgyCoroTask *task)
     task->ctx.uc_stack.ss_sp = task->stack;
     task->ctx.uc_stack.ss_size = task->stack_size;
     task->ctx.uc_link = &g_pgy_coro.scheduler_ctx;
-    makecontext(&task->ctx, (void (*)(void))pgy_coro_entry, 1, (uintptr_t)task);
+    {
+        uintptr_t raw_task = (uintptr_t)task;
+        uint32_t raw_task_hi = 0;
+#if UINTPTR_MAX > UINT32_MAX
+        raw_task_hi = (uint32_t)(raw_task >> 32);
+#endif
+        makecontext(&task->ctx,
+                    (void (*)(void))pgy_coro_entry,
+                    2,
+                    raw_task_hi,
+                    (uint32_t)(raw_task & 0xffffffffu));
+    }
     return true;
 }
 #endif
