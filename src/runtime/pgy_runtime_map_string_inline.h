@@ -140,6 +140,7 @@ static inline char *pgy_map_get_string(PgyHashMap_String *m, const char *key)
         h = (h + 1) % (uint32_t)m->capacity; p++;
     }
     PGY_RUNTIME_PANIC(PGY_RUNTIME_PANIC_CLASS_OUT_OF_BOUNDS, "map key not found");
+    return "";
 }
 
 static inline bool pgy_map_has_string(PgyHashMap_String *m, const char *key)
