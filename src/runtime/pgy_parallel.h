@@ -15,9 +15,24 @@
 #include <stdatomic.h>
 #include <pthread.h>
 #include <stdio.h>
+
+#ifndef PGY_COROUTINES_AVAILABLE
+#ifdef _WIN32
+#define PGY_COROUTINES_AVAILABLE 1
+#elif defined(__APPLE__)
+#if defined(_XOPEN_SOURCE) && _XOPEN_SOURCE >= 700
+#define PGY_COROUTINES_AVAILABLE 1
+#else
+#define PGY_COROUTINES_AVAILABLE 0
+#endif
+#else
+#define PGY_COROUTINES_AVAILABLE 1
+#endif
+#endif
+
 #ifdef _WIN32
 #include <windows.h>
-#else
+#elif PGY_COROUTINES_AVAILABLE
 #include <ucontext.h>
 #endif
 

@@ -12,8 +12,14 @@
  * ================================================================= */
 
 #ifndef PGY_COROUTINES_AVAILABLE
-#ifdef __APPLE__
+#ifdef _WIN32
+#define PGY_COROUTINES_AVAILABLE 1
+#elif defined(__APPLE__)
+#if defined(_XOPEN_SOURCE) && _XOPEN_SOURCE >= 700
+#define PGY_COROUTINES_AVAILABLE 1
+#else
 #define PGY_COROUTINES_AVAILABLE 0
+#endif
 #else
 #define PGY_COROUTINES_AVAILABLE 1
 #endif
