@@ -63,14 +63,23 @@ if command -v perl >/dev/null 2>&1; then
     exit 0
 fi
 
-if ! command -v iconv >/dev/null 2>&1; then
-    fail "missing iconv"
+if command -v perl >/dev/null 2>&1; then
+    utf8_validator="perl"
+elif command -v iconv >/dev/null 2>&1; then
+    utf8_validator="iconv"
+else
+    fail "missing UTF-8 validator (perl or iconv)"
 fi
 
 while IFS= read -r -d '' path; do
     rel="${path#"$ROOT_DIR/"}"
-    iconv -f UTF-8 -t UTF-8 <"$path" >/dev/null \
-        || fail "$rel is not valid UTF-8"
+    if [[ "$utf8_validator" == "perl" ]]; then
+        perl -MEncode -0777 -ne 'Encode::decode("UTF-8", $_, Encode::FB_CROAK)' \
+            "$path" >/dev/null || fail "$rel is not valid UTF-8"
+    else
+        iconv -f UTF-8 -t UTF-8 <"$path" >/dev/null \
+            || fail "$rel is not valid UTF-8"
+    fi
     if LC_ALL=C grep -q $'\357\277\275' "$path"; then
         fail "$rel contains Unicode replacement characters"
     fi

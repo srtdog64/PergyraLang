@@ -42,7 +42,10 @@ validate_utf8_file() {
     local path="$1"
     local rel="${path#"$ROOT_DIR/"}"
 
-    if command -v iconv >/dev/null 2>&1; then
+    if command -v perl >/dev/null 2>&1; then
+        perl -MEncode -0777 -ne 'Encode::decode("UTF-8", $_, Encode::FB_CROAK)' \
+            "$path" >/dev/null || fail "$rel is not valid UTF-8"
+    elif command -v iconv >/dev/null 2>&1; then
         iconv -f UTF-8 -t UTF-8 <"$path" >/dev/null || fail "$rel is not valid UTF-8"
     fi
     if LC_ALL=C grep -q $'\357\277\275' "$path"; then
