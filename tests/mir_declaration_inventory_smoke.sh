@@ -1040,11 +1040,10 @@ c_method_raw_hits="$(
         "$ROOT_DIR"/src/codegen/transpiler*.h; do
         [[ -e "$path" ]] || continue
         rel="${path#$ROOT_DIR/}"
-        case "$rel" in
-            src/codegen/transpiler_decl_lookup.h|src/codegen/transpiler_decl_method_view.c)
-                continue
-                ;;
-        esac
+        if [[ "$rel" == "src/codegen/transpiler_decl_lookup.h" ||
+              "$rel" == "src/codegen/transpiler_decl_method_view.c" ]]; then
+            continue
+        fi
         c_method_files+=("$path")
     done
     if ((${#c_method_files[@]})); then
@@ -1063,11 +1062,14 @@ c_routine_raw_hits="$(
         "$ROOT_DIR"/src/codegen/*.h; do
         [[ -e "$path" ]] || continue
         rel="${path#$ROOT_DIR/}"
-        case "$rel" in
-            src/codegen/llvm*|src/codegen/transpiler.h|src/codegen/transpiler_inventory_view.h|src/codegen/transpiler_inventory_view.c|src/codegen/transpiler_decl_lookup.h|src/codegen/transpiler_decl_method_view.c)
-                continue
-                ;;
-        esac
+        if [[ "$rel" == src/codegen/llvm* ||
+              "$rel" == "src/codegen/transpiler.h" ||
+              "$rel" == "src/codegen/transpiler_inventory_view.h" ||
+              "$rel" == "src/codegen/transpiler_inventory_view.c" ||
+              "$rel" == "src/codegen/transpiler_decl_lookup.h" ||
+              "$rel" == "src/codegen/transpiler_decl_method_view.c" ]]; then
+            continue
+        fi
         c_routine_files+=("$path")
     done
     if ((${#c_routine_files[@]})); then
