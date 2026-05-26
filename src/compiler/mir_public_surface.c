@@ -1,5 +1,6 @@
 #include "mir_public_surface.h"
 
+#include <stdlib.h>
 #include <string.h>
 
 #include "../common/string_compat.h"
@@ -320,4 +321,43 @@ mir_validate_emission_topology(const MIRRoutine *routine,
                                           require_cleanup_source_mapping,
                                           false,
                                           error_message);
+}
+
+bool
+mir_validate_emission_contract(const MIRRoutine *routine,
+                               bool require_cleanup,
+                               bool require_cleanup_source_mapping,
+                               char **error_message)
+{
+    char *contract_error = NULL;
+
+    if (error_message != NULL)
+        *error_message = NULL;
+
+    if (!mir_validate_emission_topology(routine,
+                                        require_cleanup,
+                                        require_cleanup_source_mapping,
+                                        &contract_error)) {
+        if (error_message != NULL)
+            *error_message = contract_error != NULL
+                ? contract_error
+                : pergyra_strdup("MIR emission topology validation failed");
+        else
+            free(contract_error);
+        return false;
+    }
+    free(contract_error);
+    contract_error = NULL;
+
+    if (!mir_validate_routine_emission_facts(routine, &contract_error)) {
+        if (error_message != NULL)
+            *error_message = contract_error != NULL
+                ? contract_error
+                : pergyra_strdup("MIR emission fact validation failed");
+        else
+            free(contract_error);
+        return false;
+    }
+    free(contract_error);
+    return true;
 }

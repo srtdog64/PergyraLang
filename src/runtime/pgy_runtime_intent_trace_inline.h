@@ -20,7 +20,7 @@
 #  define PGY_RELEASE_ONLY(x) x
 #endif
 
-static inline char *
+static PGY_RUNTIME_NOINLINE char *
 pgy_runtime_strdup(const char *src)
 {
     if (src == NULL)

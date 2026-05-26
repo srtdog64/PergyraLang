@@ -118,6 +118,19 @@ emit_builtin_read_file(ASTNode *call, TranspilerCtx *ctx)
 }
 
 static char *
+emit_builtin_file_exists(ASTNode *call, TranspilerCtx *ctx)
+{
+    if (ast_call_arg_count(call) < 1)
+        return io_builtin_unsupported(ctx,
+            "C backend: FileExists requires path");
+
+    char *path = emit_expression(ast_call_argument(call, 0), ctx);
+    char *result = io_builtin_heap_fmt("pgy_file_exists(%s)", path);
+    free(path);
+    return result;
+}
+
+static char *
 emit_builtin_write_file(ASTNode *call, TranspilerCtx *ctx)
 {
     if (ast_call_arg_count(call) < 2)
@@ -173,6 +186,8 @@ char *
 emit_builtin_io(ASTNode *call, BuiltinKind bk, TranspilerCtx *ctx)
 {
     switch (bk) {
+    case BUILTIN_FILE_EXISTS:
+        return emit_builtin_file_exists(call, ctx);
     case BUILTIN_FILE_OPEN:
         return emit_builtin_file_open(call, ctx);
     case BUILTIN_FILE_READ:

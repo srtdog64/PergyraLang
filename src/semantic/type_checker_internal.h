@@ -407,12 +407,6 @@ Type *type_check_stdlib_call(ASTNode *expr, const char *name,
 bool check_call_arity(ASTNode *expr, size_t expected, const char *name,
                       SemanticContext *ctx);
 bool decl_is_subject_nominal(ASTNode *decl);
-int resolve_projection_source_field_type_rec(ASTNode *program,
-                                             ASTNode *source_decl,
-                                             const char *field_name,
-                                             unsigned depth,
-                                             SemanticContext *ctx,
-                                             Type **field_type_out);
 int semantic_resolve_projection_source_field_type(SemanticContext *ctx,
                                                   ASTNode *source_decl,
                                                   const char *field_name,

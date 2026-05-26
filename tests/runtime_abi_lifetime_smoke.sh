@@ -359,6 +359,8 @@ file_close_body="$(extract_function_body "$llvm_string_text" pgy_file_close)"
 [[ -n "$file_open_body" ]] || fail "missing pgy_file_open"
 [[ -n "$file_close_body" ]] || fail "missing pgy_file_close"
 for term in \
+    "resolved = pgy_runtime_resolve_file_path(path, for_write)" \
+    "free(resolved)" \
     "for (int i = 3; i < PGY_MAX_OPEN_FILES; i++)" \
     "pgy_runtime_ftable[i] == NULL" \
     "pthread_mutex_lock(&pgy_runtime_ftable_mutex)" \
@@ -371,6 +373,14 @@ grep -Fq "pgy_runtime_ftable[fd] = NULL" <<< "$file_close_body" ||
     fail "pgy_file_close must release the runtime-owned handle slot"
 grep -Fq "pthread_mutex_lock(&pgy_runtime_ftable_mutex)" <<< "$file_close_body" ||
     fail "pgy_file_close must guard the runtime-owned handle table"
+for term in \
+    "pgy_runtime_resolve_file_path(path, for_write)" \
+    "free(resolved)"; do
+    grep -Fq "$term" \
+        "$ROOT_DIR/src/runtime/pgy_runtime_io_qubit_inline.h" \
+        "$ROOT_DIR/src/runtime/pgy_runtime_lib_io_string_exports.h" ||
+        fail "FileOpen must share resolved path ownership on both runtime surfaces; missing $term"
+done
 for term in \
     "static pthread_mutex_t pgy_runtime_ftable_mutex = PTHREAD_MUTEX_INITIALIZER" \
     "pthread_mutex_lock(&_pgy_ftable_mutex)" \
@@ -410,6 +420,15 @@ grep -Fq "if (item_len > ((size_t)-1) - total)" \
 grep -Fq "if (sl > ((size_t)-1) - total)" \
     "$ROOT_DIR/src/runtime/pgy_runtime_io_qubit_inline.h" ||
     fail "inline StringJoin must guard result length overflow"
+grep -Fq "static PGY_RUNTIME_NOINLINE char *pgy_runtime_strdup" \
+    "$ROOT_DIR/src/runtime/pgy_runtime_platform_io_core.h" ||
+    fail "runtime string duplicate declaration must remain noinline for MinGW O3 Array<String> stability"
+grep -Fq "static PGY_RUNTIME_NOINLINE char *" \
+    "$ROOT_DIR/src/runtime/pgy_runtime_intent_trace_inline.h" ||
+    fail "runtime string duplicate definition must remain noinline for MinGW O3 Array<String> stability"
+grep -Fq "pgy_runtime_strdup(const char *src)" \
+    "$ROOT_DIR/src/runtime/pgy_runtime_intent_trace_inline.h" ||
+    fail "runtime string duplicate noinline definition must stay attached to pgy_runtime_strdup"
 grep -Fq "if (start > arr->length || len > arr->length - start)" \
     "$ROOT_DIR/src/runtime/pgy_runtime_lib_array_map_exports.h" ||
     fail "LLVM array slice export must avoid start+len overflow"

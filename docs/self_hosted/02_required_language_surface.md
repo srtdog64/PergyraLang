@@ -16,6 +16,10 @@ practical. It is not a request to add new syntax before beta.
 ## Required Before Soft Self-Host
 
 - Stable file I/O surface for tool inputs.
+- Stable file preflight surface (`FileExists(String)`) so missing inputs do not
+  collapse into empty-file payloads.
+- Stable tool-exit surface (`Exit(Int)`) so JSON `ok:false` can become a
+  process-level failure in CI.
 - Stable JSON parse/emit support or a small self-host-friendly JSON module.
 - Stable CLI argument handling.
 - Deterministic output ordering.

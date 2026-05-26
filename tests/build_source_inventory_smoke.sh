@@ -159,6 +159,33 @@ do
     fi
 done
 
+bash4_lint_dirs=(tests)
+if [[ -d "$ROOT_DIR/self_hosted/parity" ]]; then
+    bash4_lint_dirs+=(self_hosted/parity)
+fi
+
+bash4_only_smoke_terms="$(
+    cd "$ROOT_DIR"
+    grep -RInE '(^|[^A-Za-z0-9_])(mapfile|readarray)([^A-Za-z0-9_]|$)|(^|[[:space:]])(declare|typeset)[[:space:]]+-A([^A-Za-z0-9_]|$)|\$\{[^}]+(,,|\^\^)[^}]*\}' "${bash4_lint_dirs[@]}" --include='*.sh' \
+        | grep -v '^tests/build_source_inventory_smoke.sh:' || true
+)"
+if [[ -n "$bash4_only_smoke_terms" ]]; then
+    printf '%s\n' "$bash4_only_smoke_terms" >&2
+    echo "[build-source-inventory] smoke / self_hosted parity scripts must remain compatible with macOS Bash 3.2; avoid Bash 4-only mapfile/readarray, associative arrays, and case-conversion expansions" >&2
+    missing=1
+fi
+
+multiline_case_continuations="$(
+    cd "$ROOT_DIR"
+    grep -RInE '\|\\$' "${bash4_lint_dirs[@]}" --include='*.sh' \
+        | grep -v '^tests/build_source_inventory_smoke.sh:' || true
+)"
+if [[ -n "$multiline_case_continuations" ]]; then
+    printf '%s\n' "$multiline_case_continuations" >&2
+    echo "[build-source-inventory] smoke / self_hosted parity scripts must not use case-pattern line continuations; macOS Bash 3.2 parses these unreliably inside command substitution" >&2
+    missing=1
+fi
+
 semantic_self_include_leaks="$(
     cd "$ROOT_DIR"
     grep -RIn '#include "\.\./semantic/' src/semantic \

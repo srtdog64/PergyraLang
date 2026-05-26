@@ -433,8 +433,8 @@ sixth compiler core and the architecture is wrong.
   `select`, `with` / `unsafe` / `defer` / pin-block metadata, and stable
   resource IO/time calls into
   AIR `Boundary Node`s before drift checking. The current stable AIR boundary
-  set is `FileOpen`, `FileRead`, `FileWrite`, `FileClose`, `ReadFile`,
-  `WriteFile`, `Input`, `ReadLine`, `Now`, and `Sleep` for IO; `spawn` /
+  set is `FileOpen`, `FileExists`, `FileRead`, `FileWrite`, `FileClose`,
+  `ReadFile`, `WriteFile`, `Input`, `ReadLine`, `Now`, and `Sleep` for IO; `spawn` /
   `async` / `await` / `parallel` / `task-group` for parallel; `channel-send` / `channel-recv` / `select`
   for channel; and `with` / `unsafe` / `defer` / `pin` / `event-subscribe` /
   `event-unsubscribe` for execution. `Print` / `Log*` are observability output
@@ -472,9 +472,9 @@ sixth compiler core and the architecture is wrong.
   boundary. A generic intent scope named `await` or an unrelated await operation
   does not satisfy the proof.
 - IO evidence is operation-specific for the beta-stable IO builtin set.
-  RIR materializes `IO` operations for `FileOpen`, `FileRead`, `FileWrite`,
-  `FileClose`, `ReadFile`, `WriteFile`, `Input`, `ReadLine`, `Now`, and
-  `Sleep`; AIR accepts an IO boundary only when that operation matches the
+  RIR materializes `IO` operations for `FileOpen`, `FileExists`, `FileRead`,
+  `FileWrite`, `FileClose`, `ReadFile`, `WriteFile`, `Input`, `ReadLine`,
+  `Now`, and `Sleep`; AIR accepts an IO boundary only when that operation matches the
   boundary source and AST provenance. If parser source spans fall back to the
   enclosing intent step, AIR accepts only an op contained in that same step.
   Parser-produced builtin call nodes now carry call source spans, so parsed

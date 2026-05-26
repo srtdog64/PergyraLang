@@ -447,6 +447,10 @@ bool        mir_validate_emission_topology(const MIRRoutine *routine,
                                           bool require_cleanup,
                                           bool require_cleanup_source_mapping,
                                           char **error_message);
+bool        mir_validate_emission_contract(const MIRRoutine *routine,
+                                          bool require_cleanup,
+                                          bool require_cleanup_source_mapping,
+                                          char **error_message);
 void        mir_destroy(MIRProgram *mir);
 void        mir_dump(const MIRProgram *mir, FILE *out);
 

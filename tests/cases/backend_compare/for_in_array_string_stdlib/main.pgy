@@ -1,0 +1,8 @@
+func Main() -> Void {
+    let lines: Array<String> = Split("a|b", "|");
+    let total: Int = 0;
+    for line in lines {
+        total = total + StringIndexOf(line, "b");
+    }
+    Log(total);
+}

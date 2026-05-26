@@ -19,11 +19,13 @@ These are compiler/runtime builtins, not `use` modules:
 
 - Logging and console: `Log`, `LogBlock`, `LogBanner`, `LogRaw`, `Print`,
   `ReadLine`.
-- File IO: `ReadFile`, `WriteFile`.
-- Strings: `Concat`, `StringLength`, `Contains`, `Replace`, `Substring`,
-  `Trim`, `Split`, `Join`, `Upper`, `Lower`, `ToString`.
+- File IO: `FileOpen`, `FileRead`, `FileWrite`, `FileClose`, `ReadFile`,
+  `WriteFile`, `FileExists`.
+- Strings: `Concat`, `StringLength`, `Contains`, `StringIndexOf`, `Replace`,
+  `Substring`, `Trim`, `Split`, `Join`, `Upper`, `Lower`, `ToString`.
 - Numeric helpers: `Abs`, `Min`, `Max`.
 - Time helpers: `Now`, `Sleep`.
+- Process/tooling helper: `Exit`.
 - Collections frozen for beta: `Array<T>`, `List<T>`, `Set<T>`, `Queue<T>`,
   `HashMap<String, T>`, `HashMap<Int, T>`, `HashMap<Long, T>`,
   `HashMap<Bool, T>`.
@@ -92,4 +94,3 @@ without beta compatibility guarantees.
 - Run the stable `use` module probe on the C backend.
 - Run the same stable `use` module probe on the LLVM backend when requested.
 - Check this document contains the stable/experimental module taxonomy.
-

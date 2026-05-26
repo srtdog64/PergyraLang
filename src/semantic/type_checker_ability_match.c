@@ -11,12 +11,6 @@
 #include "type_checker_ability_match_internal.h"
 #include "type_checker_decls_a_helpers_internal.h"
 
-static ASTNode *
-ability_match_program(SemanticContext *ctx)
-{
-    return ctx != NULL ? ctx->program_root : NULL;
-}
-
 static bool
 ability_ref_type_arg_equal(ASTNode *lhs, ASTNode *rhs)
 {
@@ -54,8 +48,9 @@ ability_ref_type_arg_equal(ASTNode *lhs, ASTNode *rhs)
     return true;
 }
 
-bool
-ability_ref_matches(ASTNode *program, ASTNode *impl_ref, ASTNode *required_ref)
+static bool
+semantic_ability_ref_matches(SemanticContext *ctx, ASTNode *impl_ref,
+                             ASTNode *required_ref)
 {
     ASTNode *ability_decl;
     GenericParams *decl_params;
@@ -77,7 +72,7 @@ ability_ref_matches(ASTNode *program, ASTNode *impl_ref, ASTNode *required_ref)
     if (strcmp(impl_name, required_name) != 0)
         return false;
 
-    ability_decl = find_ability_decl_by_name(program, impl_name);
+    ability_decl = semantic_find_ability_decl_by_name(ctx, impl_name);
     if (ability_decl == NULL || ability_decl->type != AST_ABILITY_DECL)
         return ability_ref_type_arg_equal(impl_ref, required_ref);
 
@@ -114,9 +109,9 @@ cleanup:
     return matches;
 }
 
-bool
-role_decl_has_ability(ASTNode *role, ASTNode *program,
-                      ASTNode *ability_ref, int depth)
+static bool
+role_decl_has_ability_rec(SemanticContext *ctx, ASTNode *role,
+                          ASTNode *ability_ref, int depth)
 {
     if (role == NULL || role->type != AST_ROLE_DECL
         || ability_ref == NULL || depth > 16) {
@@ -128,7 +123,7 @@ role_decl_has_ability(ASTNode *role, ASTNode *program,
         ASTNode *impl_ability_ref = ast_impl_ability_ref(impl);
         if (impl != NULL
             && impl->type == AST_IMPL_ABILITY
-            && ability_ref_matches(program,
+            && semantic_ability_ref_matches(ctx,
                 impl_ability_ref, ability_ref)) {
             return true;
         }
@@ -140,8 +135,8 @@ role_decl_has_ability(ASTNode *role, ASTNode *program,
         ASTNode *included;
         if (role_name == NULL)
             continue;
-        included = semantic_find_role_decl(program, role_name);
-        if (role_decl_has_ability(included, program, ability_ref, depth + 1))
+        included = semantic_find_role_decl_by_name(ctx, role_name);
+        if (role_decl_has_ability_rec(ctx, included, ability_ref, depth + 1))
             return true;
     }
 
@@ -154,30 +149,7 @@ semantic_role_decl_has_ability(SemanticContext *ctx, ASTNode *role,
 {
     if (ctx == NULL)
         return false;
-    return role_decl_has_ability(role, ability_match_program(ctx),
-                                 ability_ref, 0);
-}
-
-bool
-subject_type_has_ability(ASTNode *program, const char *type_name,
-                         ASTNode *ability_ref)
-{
-    if (program == NULL || program->type != AST_PROGRAM
-        || type_name == NULL || ability_ref == NULL) {
-        return false;
-    }
-
-    for (size_t i = 0; i < ast_program_statement_count(program); i++) {
-        ASTNode *stmt = ast_program_statement(program, i);
-        const char *role_type = semantic_role_for_type_name(stmt);
-        if (role_type == NULL || strcmp(role_type, type_name) != 0) {
-            continue;
-        }
-        if (role_decl_has_ability(stmt, program, ability_ref, 0))
-            return true;
-    }
-
-    return false;
+    return role_decl_has_ability_rec(ctx, role, ability_ref, 0);
 }
 
 bool
@@ -197,37 +169,6 @@ semantic_subject_type_has_ability(SemanticContext *ctx,
     }
 
     return false;
-}
-
-ASTNode *
-subject_type_find_base_ability_impl(ASTNode *program, const char *type_name,
-                                    const char *ability_name)
-{
-    if (program == NULL || program->type != AST_PROGRAM
-        || type_name == NULL || ability_name == NULL) {
-        return NULL;
-    }
-
-    for (size_t i = 0; i < ast_program_statement_count(program); i++) {
-        ASTNode *stmt = ast_program_statement(program, i);
-        const char *role_type = semantic_role_for_type_name(stmt);
-        if (role_type == NULL || strcmp(role_type, type_name) != 0) {
-            continue;
-        }
-        for (size_t j = 0; j < ast_role_impl_count(stmt); j++) {
-            ASTNode *impl = ast_role_impl(stmt, j);
-            ASTNode *impl_ability_ref = ast_impl_ability_ref(impl);
-            const char *impl_ability_name = ast_impl_ability_name(impl);
-            if (impl != NULL
-                && impl->type == AST_IMPL_ABILITY
-                && impl_ability_name != NULL
-                && strcmp(impl_ability_name, ability_name) == 0) {
-                return impl_ability_ref;
-            }
-        }
-    }
-
-    return NULL;
 }
 
 ASTNode *

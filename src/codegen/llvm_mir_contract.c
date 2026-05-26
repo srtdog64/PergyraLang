@@ -12,7 +12,6 @@
 #include "../compiler/mir_cleanup_fact_names.h"
 #include "../compiler/mir_cfg_contract_cleanup_fact.h"
 #include "../compiler/mir_cfg_contract_pin.h"
-#include "../compiler/mir_fact_validate.h"
 
 LLVMGenResult *
 llvm_validate_mir_for_codegen(const MIRProgram *mir)
@@ -38,7 +37,7 @@ llvm_validate_mir_for_codegen(const MIRProgram *mir)
                 PGY_FIX_INSPECT_HIR_TO_MIR_LOWERING);
         }
 
-        if (!mir_validate_emission_topology(routine, false, false, &topology_error)) {
+        if (!mir_validate_emission_contract(routine, false, false, &topology_error)) {
             LLVMGenResult *res = topology_error != NULL
                 ? llvm_result_error_fmt_with_hints(
                     PGY_CODE_MIR_TOPOLOGY_INVALID,
@@ -72,30 +71,18 @@ llvm_mir_validate_cleanup_contract(const MIRRoutine *routine,
         return false;
     {
         char *topology_error = NULL;
-        if (!mir_validate_emission_topology(routine,
+        if (!mir_validate_emission_contract(routine,
                                             routine->has_cleanup_block,
                                             false,
                                             &topology_error)) {
             llvm_set_mir_topology_invalid(ctx,
                 "LLVM MIR contract invalid for %s: %s",
                 routine_name,
-                topology_error != NULL ? topology_error : "topology validation failed");
+                topology_error != NULL ? topology_error : "emission contract validation failed");
             free(topology_error);
             return false;
         }
         free(topology_error);
-    }
-    {
-        char *fact_error = NULL;
-        if (!mir_validate_routine_emission_facts(routine, &fact_error)) {
-            llvm_set_mir_topology_invalid(ctx,
-                "LLVM MIR contract invalid for %s: %s",
-                routine_name,
-                fact_error != NULL ? fact_error : "emission fact validation failed");
-            free(fact_error);
-            return false;
-        }
-        free(fact_error);
     }
     for (size_t i = 0; i < routine->block_count; i++) {
         const MIRBasicBlock *block = &routine->blocks[i];

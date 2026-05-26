@@ -323,6 +323,15 @@ type_check_intent_decl(ASTNode *node, SemanticContext *ctx)
 
         type_check_intent_step_ability_contract(node, step, ctx);
 
+        if (expect_expr != NULL) {
+            intent_clause_rejects_control_transfer(expect_expr, ctx,
+                step_name, "expect");
+            intent_condition_is_bool(expect_expr, ctx, "expect");
+            if (intent_clause_invokes_authority_sensitive_call(
+                    expect_expr, ctx))
+                step_requires_authority_flow = true;
+        }
+
         if (causes_effect != NULL
             && intent_find_effect_decl_by_name(causes_effect, ctx) == NULL) {
             semantic_error_with_hints(ctx, PGY_CODE_SEM_INTENT_STEP_INVALID, PGY_CAUSE_INTENT_STEP, PGY_FIX_ALIGN_STEP_WITH_ZONE_ACTION_CONTRACTS, step,
@@ -361,15 +370,6 @@ type_check_intent_decl(ASTNode *node, SemanticContext *ctx)
         type_check_intent_step_authority_contract(
             node, step, zone_decl, has_subintent, step_requires_authority_flow,
             ctx);
-
-        if (expect_expr != NULL) {
-            intent_clause_rejects_control_transfer(expect_expr, ctx,
-                step_name, "expect");
-            intent_condition_is_bool(expect_expr, ctx, "expect");
-            if (intent_clause_invokes_authority_sensitive_call(
-                    expect_expr, ctx))
-                step_requires_authority_flow = true;
-        }
 
         if (!matched_action && on_expr_count == 0 && intent_expr == NULL) {
             char contract_summary[512];

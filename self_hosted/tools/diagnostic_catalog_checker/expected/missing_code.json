@@ -1,0 +1,1 @@
+{"schema":"pgy.selfhost.diagnostic-catalog.v1","ok":false,"source":{"code_owner":"src/semantic/diag_codes.h","docs_owner":"docs/72_diagnostic_codes.md"},"counts":{"codes":67,"documented":66,"missing":1,"duplicates":0,"orphans":0},"findings":[{"kind":"missing","code":"PGY_FAKE_DRIFT_FOR_SELFHOST","location":"src/semantic/diag_codes.h"}]}

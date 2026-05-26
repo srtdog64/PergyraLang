@@ -88,6 +88,7 @@ emit_call_builtin_dispatch(ASTNode *call,
     case BUILTIN_ALLOCATOR_DEBUG:
     case BUILTIN_ALLOCATOR_POOL:
         return emit_builtin_allocator(call, bk, ctx);
+    case BUILTIN_FILE_EXISTS:
     case BUILTIN_FILE_OPEN:
     case BUILTIN_FILE_READ:
     case BUILTIN_FILE_WRITE:

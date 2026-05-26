@@ -167,6 +167,7 @@ speed and order-independent declarations as first-class compiler constraints.
 | --- | --- | --- | --- | --- |
 | Optional value | `T?`, `Option<T>` | `Option<T>` | `stable` | Prefer over nullable control flow. |
 | Fallible result | `Result<T,E>`, `Either`, `Try<T>` | `Result<T, E>` / current Result surface | `stable` | Recoverable failure surface. |
+| File preflight | `exists(path)`, `Path.exists()` | `FileExists(path)` before `ReadFile(path)` | `stable` | Keeps missing input distinct from empty file payload without changing `ReadFile -> String`. |
 | Error propagation | `?`, `try`, `await` failure | Result/failure contracts | `partial` | Keep recoverable vs hard-fail boundary explicit. |
 | Exception throw/catch | `throw`, `try/catch` | none | `reject` | Pergyra is Result/failure-contract first. |
 | Panic/abort | `panic!`, process abort | hard-fail runtime boundary | `stable` | Internal invariant/slot/token violations hard-fail. |

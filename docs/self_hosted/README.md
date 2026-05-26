@@ -17,6 +17,11 @@ Pergyra should not attempt a full compiler rewrite first. The practical path is:
 The current compiler remains C + LLVM/C backend until this track explicitly
 graduates.
 
+The executable soft self-host scaffolds live in the repository-root
+`self_hosted/` directory. This `docs/self_hosted/` folder is the contract and
+handoff documentation; root `self_hosted/` is where Pergyra-language tool
+stubs, expected JSON, and parity harnesses live.
+
 ## Architecture Migration Judgement
 
 The C compiler should not be reorganized into broad feature folders before

@@ -843,6 +843,15 @@ if "air_evidence_required_count(const AIRProgram *air" not in air_validate_summa
     raise SystemExit("AIR summary-counter owner must expose required evidence counting")
 if "air_increment_evidence_required_count(AIRProgram *air" not in air_validate_summary_counters_text:
     raise SystemExit("AIR summary-counter owner must expose required evidence mutation")
+for path in (root / "src" / "compiler").glob("air*.c"):
+    if path.name == "air.c":
+        continue
+    text = path.read_text(encoding="utf-8", errors="ignore")
+    if "->strict_evidence" in text or ".strict_evidence" in text:
+        raise SystemExit(
+            "AIR strict-evidence consumers must use air_requires_strict_evidence: "
+            + str(path)
+        )
 if "air_increment_evidence_summary_count(" not in air_evidence_dag_text:
     raise SystemExit("AIR DAG evidence must mutate summary counters through the summary owner")
 if "air->dag_metadata_evidence_count++" in air_evidence_dag_text:

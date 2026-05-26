@@ -33,9 +33,25 @@ pgy_runtime_io_init_locked(void)
 
 int32_t pgy_file_open(const char *path, const char *mode)
 {
+    char *resolved;
+    bool for_write = false;
     int fd = -1;
 
-    FILE *fp = fopen(path, mode);
+    if (mode == NULL)
+        return -1;
+    for (const char *p = mode; *p != '\0'; p++) {
+        if (*p == 'w' || *p == 'a' || *p == '+') {
+            for_write = true;
+            break;
+        }
+    }
+
+    resolved = pgy_runtime_resolve_file_path(path, for_write);
+    if (resolved == NULL)
+        return -1;
+
+    FILE *fp = fopen(resolved, mode);
+    free(resolved);
     if (fp == NULL)
         return -1;
 
@@ -159,6 +175,23 @@ char *pgy_read_file(const char *path)
     return buf;
 }
 
+bool pgy_file_exists(const char *path)
+{
+    char *resolved = pgy_runtime_resolve_file_path(path, false);
+    if (resolved == NULL)
+        return false;
+
+    FILE *fp = fopen(resolved, "rb");
+    if (fp == NULL) {
+        free(resolved);
+        return false;
+    }
+
+    fclose(fp);
+    free(resolved);
+    return true;
+}
+
 void pgy_write_file(const char *path, const char *data)
 {
     char *resolved = pgy_runtime_resolve_file_path(path, true);
@@ -203,11 +236,28 @@ char *pgy_input(const char *prompt)
     return result;
 }
 
+void pgy_exit(int32_t code)
+{
+    exit((int)code);
+}
+
 bool StringContains(const char *haystack, const char *needle)
 {
     if (haystack == NULL || needle == NULL)
         return false;
     return strstr(haystack, needle) != NULL;
+}
+
+int32_t StringIndexOf(const char *haystack, const char *needle)
+{
+    const char *match;
+
+    if (haystack == NULL || needle == NULL)
+        return -1;
+    match = strstr(haystack, needle);
+    if (match == NULL)
+        return -1;
+    return (int32_t)(match - haystack);
 }
 
 char *Substring(const char *s, int32_t start, int32_t len)

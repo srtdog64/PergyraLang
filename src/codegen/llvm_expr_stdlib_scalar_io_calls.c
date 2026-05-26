@@ -115,6 +115,8 @@ llvm_stdlib_string_file_runtime_call_lookup(const char *callee_name)
     static const LLVMStdlibRuntimeCallSpec kLLVMStdlibStringFileRuntimeSpecs[] = {
         { "Concat", "stdlib string", "StringConcat", 2 },
         { "Contains", "stdlib string", "StringContains", 2 },
+        { "Exit", "stdlib process", "pgy_exit", 1 },
+        { "FileExists", "stdlib io", "pgy_file_exists", 1 },
         { "Input", "stdlib io", "pgy_input", 1 },
         { "Lower", "stdlib string", "ToLower", 1 },
         { "Random", "stdlib scalar", "Random", 1 },
@@ -123,6 +125,7 @@ llvm_stdlib_string_file_runtime_call_lookup(const char *callee_name)
         { "Split", "stdlib string", "StringSplit", 2 },
         { "StringConcat", "stdlib string", "StringConcat", 2 },
         { "StringContains", "stdlib string", "StringContains", 2 },
+        { "StringIndexOf", "stdlib string", "StringIndexOf", 2 },
         { "StringReplace", "stdlib string", "StringReplace", 3 },
         { "StringSplit", "stdlib string", "StringSplit", 2 },
         { "StringTrim", "stdlib string", "StringTrim", 1 },
@@ -264,6 +267,47 @@ llvm_emit_stdlib_string_file_call(ASTNode *node, LLVMGenCtx *ctx,
         if (*out_result == NULL)
             *out_result = llvm_stdlib_error_value(node, ctx, callee_name,
                 "could not stringify value argument");
+        return true;
+    }
+
+    /*
+     * StringJoin / Join take Array<String> by *pointer* in the runtime ABI
+     * (PgyArray_String *arr), so the generic stdlib registry path -- which
+     * lowers args by value -- cannot dispatch them. Resolve the array
+     * receiver to its alloca slot and pass that pointer directly.
+     */
+    if (ast_call_arg_count(node) == 2
+        && (strcmp(callee_name, "StringJoin") == 0
+            || strcmp(callee_name, "Join") == 0)) {
+        ASTNode *receiver = ast_call_argument(node, 0);
+        if (receiver == NULL || receiver->type != AST_IDENTIFIER
+            || ast_identifier_name(receiver) == NULL) {
+            *out_result = llvm_stdlib_error_value(node, ctx, callee_name,
+                "requires an identifier Array<String> receiver");
+            return true;
+        }
+        const char *recv_name = ast_identifier_name(receiver);
+        LLVMVarEntry *arr_var = llvm_scope_lookup(ctx, recv_name);
+        if (arr_var == NULL || arr_var->alloca == NULL) {
+            *out_result = llvm_stdlib_error_value(node, ctx, callee_name,
+                "Array<String> receiver has no LLVM alloca");
+            return true;
+        }
+        LLVMValueRef sep = llvm_emit_expression(ast_call_argument(node, 1), ctx);
+        if (sep == NULL) {
+            *out_result = llvm_stdlib_error_value(node, ctx, callee_name,
+                "could not lower separator argument");
+            return true;
+        }
+        LLVMFuncEntry *fn = llvm_lookup_function(ctx, "StringJoin");
+        if (fn == NULL) {
+            *out_result = llvm_stdlib_error_value(node, ctx, callee_name,
+                "StringJoin runtime function not declared in backend registry");
+            return true;
+        }
+        LLVMValueRef args[] = { arr_var->alloca, sep };
+        *out_result = LLVMBuildCall2(ctx->builder, fn->fn_type, fn->fn,
+            args, 2, llvm_tmp_name(ctx));
         return true;
     }
 

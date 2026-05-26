@@ -62,6 +62,7 @@ typedef enum {
     TRANSPILER_SCALAR_OP_CLAMP,
     TRANSPILER_SCALAR_OP_CONCAT,
     TRANSPILER_SCALAR_OP_E,
+    TRANSPILER_SCALAR_OP_EXIT,
     TRANSPILER_SCALAR_OP_LOWER,
     TRANSPILER_SCALAR_OP_MAX,
     TRANSPILER_SCALAR_OP_MIN,
@@ -73,6 +74,7 @@ typedef enum {
     TRANSPILER_SCALAR_OP_SPLIT,
     TRANSPILER_SCALAR_OP_SQRT,
     TRANSPILER_SCALAR_OP_STRING_CONTAINS,
+    TRANSPILER_SCALAR_OP_STRING_INDEX_OF,
     TRANSPILER_SCALAR_OP_STRING_JOIN,
     TRANSPILER_SCALAR_OP_STRING_LENGTH,
     TRANSPILER_SCALAR_OP_STRING_TRIM,
@@ -95,6 +97,7 @@ static const TranspilerScalarSpec kTranspilerScalarSpecs[] = {
     {"Concat", 2, TRANSPILER_SCALAR_OP_CONCAT},
     {"Contains", 2, TRANSPILER_SCALAR_OP_STRING_CONTAINS},
     {"E", 0, TRANSPILER_SCALAR_OP_E},
+    {"Exit", 1, TRANSPILER_SCALAR_OP_EXIT},
     {"Join", 2, TRANSPILER_SCALAR_OP_STRING_JOIN},
     {"Lower", 1, TRANSPILER_SCALAR_OP_LOWER},
     {"Max", 2, TRANSPILER_SCALAR_OP_MAX},
@@ -108,6 +111,7 @@ static const TranspilerScalarSpec kTranspilerScalarSpecs[] = {
     {"Sqrt", 1, TRANSPILER_SCALAR_OP_SQRT},
     {"StringConcat", 2, TRANSPILER_SCALAR_OP_CONCAT},
     {"StringContains", 2, TRANSPILER_SCALAR_OP_STRING_CONTAINS},
+    {"StringIndexOf", 2, TRANSPILER_SCALAR_OP_STRING_INDEX_OF},
     {"StringJoin", 2, TRANSPILER_SCALAR_OP_STRING_JOIN},
     {"StringLength", 1, TRANSPILER_SCALAR_OP_STRING_LENGTH},
     {"StringReplace", 3, TRANSPILER_SCALAR_OP_REPLACE},
@@ -190,6 +194,19 @@ emit_call_stdlib_scalar_builtin(const char *fn, ASTNode *call, TranspilerCtx *ct
         char *b = emit_expression(a1, ctx);
         char *result = strdup_fmt("StringContains(%s, %s)", a, b);
         free(a); free(b);
+        return result;
+    }
+    if (op == TRANSPILER_SCALAR_OP_STRING_INDEX_OF) {
+        char *a = emit_expression(a0, ctx);
+        char *b = emit_expression(a1, ctx);
+        char *result = strdup_fmt("StringIndexOf(%s, %s)", a, b);
+        free(a); free(b);
+        return result;
+    }
+    if (op == TRANSPILER_SCALAR_OP_EXIT) {
+        char *arg = emit_expression(a0, ctx);
+        char *result = strdup_fmt("pgy_exit(%s)", arg);
+        free(arg);
         return result;
     }
     if (op == TRANSPILER_SCALAR_OP_REPLACE) {

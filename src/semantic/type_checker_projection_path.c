@@ -2,12 +2,6 @@
 
 #include <string.h>
 
-static ASTNode *
-projection_path_program(SemanticContext *ctx)
-{
-    return ctx != NULL ? ctx->program_root : NULL;
-}
-
 static const char *
 projection_path_scratch_strdup(SemanticContext *ctx, const char *text)
 {
@@ -54,8 +48,7 @@ projection_resolve_type_ref(ASTNode *type_ref, SemanticContext *ctx)
 }
 
 static int
-resolve_projection_source_field_path_rec(ASTNode *program_root,
-                                         ASTNode *source_decl,
+resolve_projection_source_field_path_rec(ASTNode *source_decl,
                                          const char *field_name,
                                          unsigned depth,
                                          SemanticContext *ctx,
@@ -72,8 +65,7 @@ resolve_projection_source_field_path_rec(ASTNode *program_root,
     if (field_type_out != NULL)
         *field_type_out = NULL;
 
-    if (program_root == NULL || source_decl == NULL || field_name == NULL
-        || ctx == NULL || depth > 8)
+    if (source_decl == NULL || field_name == NULL || ctx == NULL || depth > 8)
         return 0;
 
     field_count = projection_source_field_count(source_decl);
@@ -113,7 +105,7 @@ resolve_projection_source_field_path_rec(ASTNode *program_root,
         }
 
         nested_status = resolve_projection_source_field_path_rec(
-            program_root, vessel_decl, field_name, depth + 1, ctx,
+            vessel_decl, field_name, depth + 1, ctx,
             &nested_path, &nested_type);
         if (nested_status != 1) {
             if (nested_status == 2)
@@ -148,25 +140,12 @@ resolve_projection_source_field_path_rec(ASTNode *program_root,
 }
 
 int
-resolve_projection_source_field_path(ASTNode *program_root,
-                                     ASTNode *source_decl,
-                                     const char *field_name,
-                                     SemanticContext *ctx,
-                                     const char **path_out,
-                                     Type **field_type_out)
-{
-    return resolve_projection_source_field_path_rec(program_root, source_decl,
-        field_name, 0, ctx, path_out, field_type_out);
-}
-
-int
 semantic_resolve_projection_source_field_path(SemanticContext *ctx,
                                               ASTNode *source_decl,
                                               const char *field_name,
                                               const char **path_out,
                                               Type **field_type_out)
 {
-    ASTNode *program = projection_path_program(ctx);
-    return resolve_projection_source_field_path_rec(program, source_decl,
-        field_name, 0, ctx, path_out, field_type_out);
+    return resolve_projection_source_field_path_rec(source_decl, field_name, 0,
+        ctx, path_out, field_type_out);
 }

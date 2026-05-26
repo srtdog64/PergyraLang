@@ -28,11 +28,21 @@ extern char *realpath(const char *path, char *resolved_path);
 #include "pgy_runtime_authority_contract.h"
 #include "pgy_runtime_panic_contract.h"
 
+#ifndef PGY_RUNTIME_NOINLINE
+#if defined(_MSC_VER)
+#define PGY_RUNTIME_NOINLINE __declspec(noinline)
+#elif defined(__GNUC__) || defined(__clang__)
+#define PGY_RUNTIME_NOINLINE __attribute__((noinline))
+#else
+#define PGY_RUNTIME_NOINLINE
+#endif
+#endif
+
 #ifndef PGY_RUNTIME_MAX_FILE_BYTES
 #define PGY_RUNTIME_MAX_FILE_BYTES (64u * 1024u * 1024u)
 #endif
 
-static inline char *pgy_runtime_strdup(const char *src);
+static PGY_RUNTIME_NOINLINE char *pgy_runtime_strdup(const char *src);
 
 static _Thread_local bool pgy_zone_authority_last_ok = true;
 static _Thread_local char pgy_zone_authority_last_zone[128] = "";

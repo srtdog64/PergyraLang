@@ -6,12 +6,6 @@
 #include <string.h>
 
 static ASTNode *
-bind_stmt_program(SemanticContext *ctx)
-{
-    return ctx != NULL ? ctx->program_root : NULL;
-}
-
-static ASTNode *
 find_party_role_slot(ASTNode *party_decl, const char *slot_name)
 {
     size_t count;
@@ -34,7 +28,7 @@ find_party_role_slot(ASTNode *party_decl, const char *slot_name)
 
 static bool
 role_satisfies_party_slot(ASTNode *role_decl, ASTNode *role_slot,
-                          ASTNode *program,
+                          SemanticContext *ctx,
                           const char **missing_ability_out)
 {
     size_t ability_count;
@@ -42,13 +36,13 @@ role_satisfies_party_slot(ASTNode *role_decl, ASTNode *role_slot,
     if (missing_ability_out != NULL)
         *missing_ability_out = NULL;
 
-    if (role_decl == NULL || role_slot == NULL || program == NULL)
+    if (role_decl == NULL || role_slot == NULL || ctx == NULL)
         return false;
 
     ability_count = ast_role_slot_required_ability_count(role_slot);
     for (size_t i = 0; i < ability_count; i++) {
         ASTNode *ability_ref = ast_role_slot_required_ability(role_slot, i);
-        if (!role_decl_has_ability(role_decl, program, ability_ref, 0)) {
+        if (!semantic_role_decl_has_ability(ctx, role_decl, ability_ref)) {
             if (missing_ability_out != NULL) {
                 const char *ability_name = ability_ref != NULL
                     ? ast_type_name(ability_ref)
@@ -72,8 +66,7 @@ semantic_role_satisfies_party_slot(SemanticContext *ctx,
 {
     if (ctx == NULL)
         return false;
-    return role_satisfies_party_slot(role_decl, role_slot,
-                                    bind_stmt_program(ctx),
+    return role_satisfies_party_slot(role_decl, role_slot, ctx,
                                     missing_ability_out);
 }
 

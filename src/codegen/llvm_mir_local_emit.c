@@ -138,7 +138,7 @@ llvm_emit_mir_local_allocas(const MIRRoutine *routine, LLVMGenCtx *ctx,
                         elem_type = llvm_stmt_infer_expr_type(ctx,
                             ast_array_literal_element(value_expr, 0));
                     }
-                    llvm_register_array_var(ctx, pergyra_strdup(base_name),
+                    llvm_register_array_var(ctx, base_name,
                         elem_type, (int64_t)ast_array_literal_count(value_expr));
                 } else if (has_base_name
                     && value_expr != NULL
@@ -193,7 +193,7 @@ llvm_emit_mir_local_allocas(const MIRRoutine *routine, LLVMGenCtx *ctx,
                             }
                         }
                     }
-                    llvm_register_array_var(ctx, pergyra_strdup(base_name),
+                    llvm_register_array_var(ctx, base_name,
                         elem_type, -1);
                 }
                 var_count++;

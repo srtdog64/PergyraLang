@@ -201,7 +201,7 @@
 - `parallel`을 코어 실행 primitive로 재정의한 정책은 `docs/53_parallel_core_policy.md`에 정리한다.
 - `spawn/select/async`를 `parallel` 아래 실행 family로 재배치하는 작업 보드는 `docs/54_parallel_execution_relayout_board.md`에서 추적한다.
 - 전체 언어 키워드의 현재 완성도와 공백은 `docs/55_keyword_progress_board.md`에서 추적한다.
-- runtime 파일 I/O 보안 정책은 이제 기본적으로 `상대경로만 허용 + parent traversal 금지 + 절대경로 기본 거부`로 잠겨 있다. `PGY_IO_ROOT`가 있으면 runtime `ReadFile/WriteFile`는 해당 root 아래로 고정되고, non-Windows에서는 canonical path 검사로 symlink escape도 차단한다. `PGY_IO_ALLOW_ABSOLUTE=1`일 때만 절대경로를 허용한다.
+- runtime 파일 I/O 보안 정책은 이제 기본적으로 `상대경로만 허용 + parent traversal 금지 + 절대경로 기본 거부`로 잠겨 있다. `PGY_IO_ROOT`가 있으면 runtime `FileOpen` / `ReadFile` / `WriteFile` / `FileExists`는 해당 root 아래로 고정되고, non-Windows에서는 canonical path 검사로 symlink escape도 차단한다. `PGY_IO_ALLOW_ABSOLUTE=1`일 때만 절대경로를 허용한다.
 - whole-file read 경로는 compiler/runtime 공통으로 `64 MiB` 상한, `fseek/ftell/fread` 실패 방어, short read 거부를 가진다.
 - hardware fingerprint는 이제 probe 실패 시 즉시 붕괴하지 않고 stable fallback identity를 채운다. Linux는 `machine-id/hostname/uname/non-loopback MAC`, Windows는 `computer name` 기반 fallback을 사용한다.
 - 보안 회귀는 `make test-security`에서 runtime file I/O policy, fingerprint consistency, secure slot/token 경로와 runtime zone authority validation을 함께 검증한다.

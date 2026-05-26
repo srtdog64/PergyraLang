@@ -420,6 +420,7 @@ void test_runtime_file_io_policy()
     char rooted_path[256];
     char outside_path[256];
     char *content;
+    int32_t fd;
 
     printf("\n=== Test 10: Runtime File I/O Policy ===\n");
 
@@ -446,6 +447,9 @@ void test_runtime_file_io_policy()
     pgy_write_file(abs_path, "blocked");
     TEST_SECURITY_VIOLATION(access(abs_path, F_OK) != 0,
                             "Absolute runtime file writes are denied by default");
+    fd = pgy_file_open(abs_path, "w");
+    TEST_SECURITY_VIOLATION(fd < 0,
+                            "Absolute runtime FileOpen writes are denied by default");
 
     pgy_write_file(root_file, "rooted");
     content = pgy_read_file(root_file);
@@ -453,10 +457,22 @@ void test_runtime_file_io_policy()
                 && access(rooted_path, F_OK) == 0,
                 "Relative runtime file I/O is rooted under PGY_IO_ROOT");
     free(content);
+    fd = pgy_file_open("inside_handle.txt", "w");
+    TEST_ASSERT(fd >= 0, "Relative runtime FileOpen writes are rooted under PGY_IO_ROOT");
+    pgy_file_write(fd, "handle");
+    pgy_file_close(fd);
+    TEST_ASSERT(pgy_file_exists("inside_handle.txt"),
+                "Runtime FileExists shares PGY_IO_ROOT policy");
+    unlink("pgy_security_root/inside_handle.txt");
 
     pgy_write_file(escape_path, "blocked");
     TEST_SECURITY_VIOLATION(access(escape_path, F_OK) != 0,
                             "Parent-traversal runtime file writes are denied");
+    fd = pgy_file_open(escape_path, "w");
+    TEST_SECURITY_VIOLATION(fd < 0,
+                            "Parent-traversal runtime FileOpen writes are denied");
+    TEST_SECURITY_VIOLATION(!pgy_file_exists(escape_path),
+                            "Parent-traversal runtime FileExists is denied");
 
     content = pgy_read_file(escape_path);
     TEST_SECURITY_VIOLATION(content != NULL && content[0] == '\0',

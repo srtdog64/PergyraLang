@@ -165,8 +165,10 @@ Current evidence:
 - `runtime-abi-lifetime-test-smoke` also verifies that result-owned string and
   string-array helpers allocate/copy their payloads and do not return string
   literals, stack buffers, or source input pointers.
-- The same smoke verifies that `pgy_file_open` reuses released runtime-owned
-  handle slots and that `pgy_file_close` clears the runtime table entry.
+- The same smoke verifies that `pgy_file_open` resolves paths through the same
+  runtime path policy as `ReadFile`/`WriteFile`, releases the resolved path
+  buffer before returning, reuses released runtime-owned handle slots, and that
+  `pgy_file_close` clears the runtime table entry.
 - File/string helper error exits must preserve ownership as well as success
   exits: resolved file paths are freed on every `pgy_read_file`/`pgy_write_file`
   failure path, and string helpers guard length arithmetic before allocating

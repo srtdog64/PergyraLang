@@ -108,9 +108,9 @@ progress ledger, not a new language surface.
 - C backend I/O and time builtin lowering moved from
   `transpiler_expr_builtin_dispatch.h` into
   `src/codegen/transpiler_expr_io_builtin.c`. File/runtime call bodies for
-  `FileOpen`, `FileRead`, `FileWrite`, `FileClose`, `ReadFile`, `WriteFile`,
-  `Input`, `Print`, `ReadLine`, `Now`, and `Sleep` now share a compiled owner
-  instead of living in the central dispatch header.
+  `FileOpen`, `FileExists`, `FileRead`, `FileWrite`, `FileClose`, `ReadFile`,
+  `WriteFile`, `Input`, `Print`, `ReadLine`, `Now`, and `Sleep` now share a
+  compiled owner instead of living in the central dispatch header.
 - C backend domain constructor emission moved from
   the constructor-result call dispatcher into
   `src/codegen/transpiler_domain_constructor_emit.c`. Class compound literals,

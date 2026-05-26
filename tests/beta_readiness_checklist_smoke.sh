@@ -102,8 +102,9 @@ docs/132_unsafe_capability_scope.md
 unsafe(raw) { ... }
 make raw-escape-contract-test-smoke
 Self-host boundary
-hard self-host does not start from the
-compiler core with the current beta stable subset
+post-beta consumer of the language spine
+not a beta source-of-truth owner
+CFG/AIR/DAG/MIR/ABI language trust first
 docs/self_hosted/05_compiler_core_gap_analysis.md
 make self-host-preparation-test-smoke
 `--runtime=none`
@@ -176,9 +177,8 @@ make dogfood-webgl-test-smoke
 Pergyra -> C backend --emit-c -> optional Emscripten/WebGL bridge
 not freeze WebGL APIs
 pgy.render.webgl
-soft self-host preparation
-C backend remains the
-oracle
+post-beta consumer of the language spine
+language spine
 LSP beta-stable: initialize capability response, keyword hover, and keyword completion
 Debugger beta-stable: CLI `pgy debug <file>` parse + semantic gate and interactive quit path
 DAP, binary breakpoints, variable watch, multi-file workspace indexing
@@ -186,6 +186,10 @@ beta readiness
 strict beta readiness is now about 72-74%
 Do not call this 75% or 80% yet
 EOF
+
+require_text "TODO.md" "strict beta readiness is now about 72-74%"
+require_text "TODO.md" "Historical note: this old 60% readiness anchor is superseded"
+require_text "docs/50_language_completion_board.md" "Strict beta readiness remains about 72-74%"
 
 require_terms "docs/19_design_philosophy.md" <<'EOF'
 Pergyra is a systems language with domain extensions
@@ -231,6 +235,11 @@ Non-pin handle expiration is not claimed as a single-mechanism proof
 First-class Zone-Bound Handle typing
 conservative `BORROW_TRACKED`
 Collections Stable Subset
+FileExists(String) -> Bool
+FileOpen(String, String) -> Int
+FileRead(Int) -> String
+FileWrite(Int, String) -> Void
+FileClose(Int) -> Void
 Intent / Zone / World / AIR Stable Subset
 Backend And Tooling Contract
 Async/concurrency stable subset is decomposition-based

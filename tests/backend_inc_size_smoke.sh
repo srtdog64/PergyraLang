@@ -8,7 +8,10 @@ fail() {
     exit 1
 }
 
-mapfile -d '' inc_files < <(
+inc_files=()
+while IFS= read -r -d '' inc_file; do
+    inc_files+=("$inc_file")
+done < <(
     cd "$ROOT_DIR"
     find src/runtime src/codegen src/compiler -name '*.inc' -type f -print0
 )

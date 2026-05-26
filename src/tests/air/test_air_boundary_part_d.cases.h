@@ -912,10 +912,11 @@ static bool
 test_air_synthesizes_stable_io_boundary_builtin_set(void)
 {
     const char *io_names[] = {
+        "FileClose",
+        "FileExists",
         "FileOpen",
         "FileRead",
         "FileWrite",
-        "FileClose",
         "ReadFile",
         "WriteFile",
         "Input",

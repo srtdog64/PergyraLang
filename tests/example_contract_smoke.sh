@@ -390,7 +390,9 @@ run_qubit_example() {
     local out_bin="$WORK_DIR/beta_qubit_experimental_${backend}"
 
     output="$("$PGY" "$(pgy_path_for_compiler "$PGY" "$ROOT_DIR/examples/beta_qubit_experimental.pgy")" --run --backend="$backend" -o "$(pgy_path_for_compiler "$PGY" "$out_bin")" 2>&1)"
-    mapfile -t values < <(
+    while IFS= read -r value; do
+        values+=("$value")
+    done < <(
         printf '%s\n' "$output" \
             | tr -d '\r' \
             | sed -n 's/^[[:space:]]*\([012]\)[[:space:]]*$/\1/p'

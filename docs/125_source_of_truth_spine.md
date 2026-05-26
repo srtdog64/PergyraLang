@@ -1,6 +1,6 @@
 # Pergyra Source-Of-Truth Spine
 
-Last updated: 2026-05-25
+Last updated: 2026-05-26
 
 This document freezes the compiler ownership spine for beta closure. It exists
 to stop A -> B -> A refactoring loops. When a future change is unclear, use this
@@ -120,13 +120,20 @@ Current beta closure snapshot:
   parser/lexer routing, semantic diagnostics, and backend diagnostics consume
   those literals; they must not invent ad-hoc `code`, `cause_ir`, or
   `fix_source` strings.
-- Soft self-host tool output contracts live in `docs/self_hosted/`. First-stage
-  tools must emit deterministic JSON or structured diagnostics for oracle
-  comparison. Human text is a secondary view, not the comparison source of
-  truth.
+- Self-hosting is a post-beta consumer, not the language-completion source of
+  truth. Soft self-host tools under `docs/self_hosted/` may consume stable JSON
+  and diagnostics contracts as dogfood, but they must not reorder beta closure
+  ahead of CFG/AIR/DAG/MIR/ABI language-trust work. The diagnostic catalog
+  checker is useful evidence for tooling readiness; it is not a reason to start
+  compiler-core self-hosting before the language spine below is closed.
 - Python may improve local validation, but it is not the source of truth for
   beta gates. Mandatory smokes must either provide a shell/C/compiler fallback
   or fail when an explicitly supplied required binary/input is unavailable.
+- Beta/source-of-truth smoke scripts must remain compatible with macOS Bash
+  3.2. `tests/build_source_inventory_smoke.sh` owns the drift alarm for Bash
+  4-only `mapfile` / `readarray`, associative arrays, parameter
+  case-conversion expansions, and case-pattern continuations that end in `|\`.
+  Use explicit while-read loops or `if` checks instead.
 - Windows/MSYS executable smokes must call `pgy_prepend_windows_runtime_paths`
   before probing built `.exe` binaries. A missing DLL path is an environment
   setup problem, not a successful skip when the binary was explicitly built.
@@ -222,7 +229,9 @@ keep the source-level business vocabulary clean.
 | Host declaration compatibility lookup | `host_decl_compat.c` type/name table | C/LLVM host method lookup, pointer-self policy, no-MIR compatibility paths | Partial class/enum-only fallback chains that omit party/role/roster/domain hosts |
 | MIR public inventory/query/pass wrappers | `mir_public_surface.c` | C/LLVM inventory views, MIR tests | Public query/DCE/liveness wrappers living in the lowering implementation header |
 | Type/declaration dependency | Type-resolution DAG metadata | Semantic owners, AIR DAG evidence | Recursive resolver fallback on frozen paths |
-| Generic/ability contract evidence | Type-resolution DAG | Semantic contract checks, AIR | Compatibility counters as semantic truth |
+| Generic/ability contract evidence | Type-resolution DAG + `semantic_role_decl_has_ability(...)` | Semantic contract checks, role/party bind checks, AIR | Program-root based ability match helpers or compatibility counters as semantic truth |
+| Semantic domain declaration lookup | `semantic_find_*_decl_by_name(...)` and owner seams | Action contracts, intent where/using/causes, world embedding, zone authority | New direct `find_domain_decl_by_name(...)` consumers outside domain/host lookup owners |
+| Projection source field path | `semantic_resolve_projection_source_field_path(...)` | Projection diagnostics, zone graph metadata, DAG projection materialization | Re-exposing `resolve_projection_source_field_path(ASTNode *program_root, ...)` or local class lookup |
 | Party bind statement validity | `type_checker_bind_stmt.c` | CFG/body flow, C backend bind emit, LLVM bind emit | Backend-only bind validation or silent LLVM bind skips |
 | Intent step domain declaration recovery | `type_checker_intent_types.c` intent domain owner seam | Intent step validation, derived using, step causes checks, participant transfer-source checks, transfer contract checks | Consumers reopening `AST_ZONE_DECL` / `AST_EFFECT_DECL` lookup locally |
 | Resource/authority/effect propagation | RIR | AIR, runtime/codegen policy emitters | AIR or backend inventing authority/resource facts |
@@ -234,7 +243,7 @@ keep the source-level business vocabulary clean.
 | Runtime pointer/container ownership | `docs/128_pointer_risk_register.md` + runtime owner files | C inline runtime, LLVM exports, ABI smoke, generated code | C inline path and LLVM export path using different ownership classes |
 | Diagnostic code/cause/fix vocabulary | `src/semantic/diag_codes.h` + `docs/72_diagnostic_codes.md` | Driver JSON, LSP, parser/lexer, semantic, C/LLVM backend diagnostics, soft self-host diagnostic checker | Bare diagnostic routing strings or prose-only diagnostics on stable paths |
 | Diagnostic JSON shape | Driver diagnostic JSON emitter + `diagnostics-json-test-smoke` | CLI tooling, LSP bridge, soft self-host diagnostic checker | Python-only validation or regex-only prose matching as the only gate |
-| Soft self-host tool output | `docs/self_hosted/03_tool_candidates.md` + `04_beta_exit_handoff.md` | First Pergyra-written diagnostic/AIR/MIR tools, CI oracle comparison | Human-readable output as the only oracle or starting from compiler core rewrite |
+| Post-beta self-host tool output | Stable diagnostics/JSON contracts after language spine closure | First Pergyra-written diagnostic/AIR/MIR tools, CI oracle comparison | Treating self-hosting as a beta source-of-truth owner |
 | Unsafe/raw capability scope | `docs/132_unsafe_capability_scope.md` plus semantic/AIR gates once implemented | Parser diagnostics, semantic raw escape diagnostics, ABI lowering, self-host roadmap | Plain `unsafe { ... }` granting raw/system-tier escape |
 | Runtime-none surface scan | `src/compiler/runtime_none_contract.c` | Driver runtime profile diagnostics, runtime-none smoke, future no-runtime lowering | Early-success scanning of only the first array/tuple literal element |
 | Mandatory smoke portability | Owning smoke script plus Makefile target | CI, minimal Windows/Git Bash, soft self-host oracle tools | Python-only validation or explicit required binaries being skipped as success |
@@ -304,6 +313,13 @@ MIR answers:
 C and LLVM must consume MIR facts rather than duplicate their own body-safety
 rules. If C and LLVM disagree, fix the MIR fact or the consumer, not a backend
 heuristic.
+
+Backend emission contracts must enter through
+`mir_validate_emission_contract(...)`. That seam composes CFG topology
+validation with MIR emission-fact validation before either C or LLVM inspects
+cleanup/pin/source-shape details. Backends may still add target-specific
+diagnostic text or unsupported-instruction checks, but they must not rebuild the
+topology-plus-fact contract by calling the lower-level validators separately.
 
 Reachable pin-region emission is part of that shared contract: both C and LLVM
 must reject a pin block without a cleanup successor or without the matching

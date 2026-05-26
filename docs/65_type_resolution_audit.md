@@ -1,6 +1,6 @@
 # Type Resolution DAG Audit
 
-**Updated:** 2026-05-24
+**Updated:** 2026-05-26
 **Scope:** beta-stable type references, generic defaults, where bounds, ability
 consumers, module contracts, zone/world authority consumers, and alias-cycle
 diagnostics.
@@ -17,10 +17,13 @@ Current local DAG gate output:
 
 | Metric | Value |
 | --- | ---: |
-| graph-backed stage skips | 2064 |
-| metadata entries | 3735 |
+| graph-backed stage skips | 2087 |
+| generic parameter nodes | 102 |
+| DAG generic contract evidence | 165 |
+| DAG ability consumer evidence | 76 |
+| metadata entries | 3760 |
 | metadata owned | 261 |
-| metadata hits | 8771 |
+| metadata hits | 9380 |
 | metadata dead ends | 0 |
 | alias materialized | 6 |
 | alias diagnostic unresolved inventory | 78 |

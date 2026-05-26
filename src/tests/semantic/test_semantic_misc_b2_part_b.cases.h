@@ -791,6 +791,49 @@
         lexer_destroy(lexer);
     }
 
+    TEST("intent expect authority-sensitive call requires authorized by");
+    {
+        const char *source =
+            "subject Driver {\n"
+            "    let started: Bool;\n"
+            "    action CanStart(self) -> Bool within CockpitZone authorized by self {\n"
+            "        return true;\n"
+            "    }\n"
+            "}\n"
+            "zone CockpitZone {\n"
+            "    subject slot driver: Driver\n"
+            "    authority driver\n"
+            "}\n"
+            "intent DriveCar(cockpit: CockpitZone, driver: Driver) {\n"
+            "    step Ignite {\n"
+            "        using: cockpit;\n"
+            "        who: driver;\n"
+            "        on: true;\n"
+            "        expect: driver.CanStart();\n"
+            "    }\n"
+            "}\n";
+        Lexer *lexer = lexer_create(source);
+        Parser *parser = parser_create(lexer);
+        ASTNode *program = parser_parse_program(parser);
+        SemanticResult *result = semantic_analyze(program);
+
+        EXPECT(!parser_has_error(parser));
+        EXPECT(result != NULL && result->error_count > 0);
+        EXPECT(ctx_has_diagnostic_substring_from_result(result,
+            "cannot run in authority-bearing zone 'CockpitZone' without 'authorized by'"));
+        EXPECT(ctx_has_diagnostic_substring_from_result(result,
+            "invokes authority-sensitive helpers"));
+        EXPECT(ctx_has_diagnostic_substring_from_result(result,
+            "derived zone from using binding: CockpitZone"));
+        EXPECT(ctx_has_diagnostic_substring_from_result(result,
+            "add 'authorized by: driver;' to the step"));
+
+        semantic_result_destroy(result);
+        ast_destroy(program);
+        parser_destroy(parser);
+        lexer_destroy(lexer);
+    }
+
     TEST("intent authorized participant mismatch diagnostic includes reason and fix");
     {
         const char *source =

@@ -6,6 +6,7 @@
 
 static const char *kPgyCompilerIOBoundaryBuiltinNames[] = {
     "FileClose",
+    "FileExists",
     "FileOpen",
     "FileRead",
     "FileWrite",

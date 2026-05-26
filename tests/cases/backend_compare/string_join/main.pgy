@@ -1,0 +1,13 @@
+// Backend-parity regression for StringJoin lowering (2026-05-26).
+//
+// MinGW O3 used to corrupt the last split segment when pgy_runtime_strdup was
+// inlined through StringSplit. This fixture keeps C/LLVM StringJoin parity
+// pinned for multi-element Array<String> inputs.
+
+func Main() -> Void {
+    let parts: Array<String> = Split("alpha-beta-gamma", "-");
+    Log(StringJoin(parts, "|"));
+    Log(Join(parts, " :: "));
+    let pieces: Array<String> = Split("x|y|z|w", "|");
+    Log(StringJoin(pieces, ", "));
+}

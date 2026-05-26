@@ -1,0 +1,1 @@
+{"schema":"pgy.selfhost.diagnostic-catalog.v1","ok":false,"source":{"code_owner":"src/semantic/diag_codes.h","docs_owner":"docs/72_diagnostic_codes.md"},"counts":{"codes":0,"documented":0,"missing":0,"duplicates":0,"orphans":0},"findings":[{"kind":"input_error","code":"src/semantic/diag_codes.h","location":"src/semantic/diag_codes.h"}]}

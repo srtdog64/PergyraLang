@@ -8,12 +8,13 @@ those belong to post-beta module ecosystem work. The smoke uses the shared
 Windows/MSYS path helper; missing `emcc` may skip only the optional wasm link,
 not the emitted-C bridge check.
 
-Self-host boundary (2026-05-24): hard self-host does not start from the
-compiler core with the current beta stable subset. The beta path is
-soft self-host preparation: compiler-adjacent tools first, C backend remains the
-oracle, and substrate gaps are tracked in
-`docs/self_hosted/05_compiler_core_gap_analysis.md`. Gate:
-`make self-host-preparation-test-smoke`.
+Self-host boundary (2026-05-24, clarified 2026-05-26): hard self-host does not
+start from the compiler core with the current beta stable subset. Self-hosting
+is a post-beta consumer of the language spine, not a beta source-of-truth owner.
+Compiler-adjacent tools may remain as dogfood evidence, but beta closure order
+is CFG/AIR/DAG/MIR/ABI language trust first. Substrate gaps are tracked in
+`docs/self_hosted/05_compiler_core_gap_analysis.md`; they are handoff material,
+not the current priority. Gate: `make self-host-preparation-test-smoke`.
 
 External review intake (2026-05-08): beta readiness now explicitly tracks
 operational and trust risks that are not new language features:
@@ -274,8 +275,8 @@ helper names. Domain query builtins (`HasProjection`, `HasLayer`, `HasState`,
 through `src/codegen/transpiler_expr_domain_query_builtin.c`, leaving
 `transpiler_expr_builtin_dispatch.h` as builtin-family routing rather than a
 mixed zone/world/projection lowering body. I/O and time builtins (`FileOpen`,
-`FileRead`, `FileWrite`, `FileClose`, `ReadFile`, `WriteFile`, `Input`,
-`Print`, `ReadLine`, `Now`, and `Sleep`) now lower through
+`FileExists`, `FileRead`, `FileWrite`, `FileClose`, `ReadFile`, `WriteFile`,
+`Input`, `Print`, `ReadLine`, `Now`, and `Sleep`) now lower through
 `src/codegen/transpiler_expr_io_builtin.c` for the same reason. Domain
 constructor bodies now live in
 `src/codegen/transpiler_domain_constructor_emit.c`: class compound literals,
@@ -3213,8 +3214,8 @@ Closed now:
   `intent`, `pre`, `guard`, `post`, `invariant`, `expect`, `on`,
   `compensate`) for `spawn` / `async` / `parallel`, `channel` / `select`, and
   stable resource IO/time calls. The current stable AIR boundary set is
-  `FileOpen`, `FileRead`, `FileWrite`, `FileClose`, `ReadFile`, `WriteFile`,
-  `Input`, `ReadLine`, `Now`, and `Sleep`. `Print` / `Log*` remain
+  `FileOpen`, `FileExists`, `FileRead`, `FileWrite`, `FileClose`, `ReadFile`,
+  `WriteFile`, `Input`, `ReadLine`, `Now`, and `Sleep`. `Print` / `Log*` remain
   observability output calls, not AIR resource-boundary evidence in Phase 1.
   This is a codegen outputter-owner split, not the AIR/RIR resource-boundary inputter
   set: `Print` and `Log*` remain observability outputter artifact calls and are

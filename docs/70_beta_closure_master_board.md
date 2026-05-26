@@ -154,7 +154,9 @@ Operational beta checklist: `docs/100_beta_readiness_checklist.md`. The checklis
 - Type-resolution DAG current gate: direct recursive resolver/fallback seams
   remain capped at 0, unresolved metadata families remain 0, and the raised
   beta floors are now `metadata_entries>=3600` and `metadata_hits>=8500`
-  (`metadata_entries=3735`, `metadata_hits=8771` in the latest local gate).
+  (`metadata_entries=3760`, `metadata_hits=9380`,
+  `dag_generic_contract_evidence=165`, `dag_ability_consumer_evidence=76` in
+  the latest local gate).
   The remaining DAG gap is evidence/modeling coverage, not fallback cleanup.
 - AST 타입 디스패치 partition 규칙 문서화 완료 — `docs/95_ast_dispatch_partition.md`. 4 카테고리 (type annotation / decl sub-metadata / top-level decl / root) 로 전체 AST 타입이 disjoint 분할되고, 각 카테고리별로 case label 추가/금지/safety-net 판단 기준이 고정됨. `llvm_stmt.c` skip 리스트 + Zone/World safety-net forward 가 이 문서 기준으로 정렬됨
 - AST dispatch partition smoke 추가 — `tests/ast_dispatch_partition_smoke.sh`, `make ast-dispatch-test-smoke`. LLVM `stmt/expr`의 unknown/default path가 warning-only나 silent `0/null` fallback으로 회귀하지 못하게 Linux CI acceptance line에 연결됨

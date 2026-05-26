@@ -101,12 +101,26 @@ llvm_mir_emit_for_in_loop_condition(const MIRInstruction *inst, LLVMGenCtx *ctx)
     iterable = inst->expr0;
     if (iterable != NULL && iterable->type == AST_IDENTIFIER) {
         const char *iter_name = ast_identifier_name(iterable);
-        LLVMVarEntry *list_var = llvm_scope_lookup(ctx, iter_name);
-        LLVMFuncEntry *size_fn = llvm_mir_for_in_required_runtime(ctx, inst,
-            "pgy_list_size_raw_export");
-        if (list_var != NULL && size_fn != NULL) {
+        LLVMVarEntry *iter_var = llvm_scope_lookup(ctx, iter_name);
+        LLVMArrayVarEntry *array_entry = llvm_lookup_array_var(ctx, iter_name);
+        if (iter_var != NULL && array_entry != NULL) {
+            LLVMValueRef aggregate = LLVMBuildLoad2(ctx->builder,
+                iter_var->type, iter_var->alloca, llvm_tmp_name(ctx));
+            LLVMValueRef length64 = llvm_array_length_i64(ctx, aggregate);
+            current = LLVMBuildLoad2(ctx->builder, ctx->type_i32,
+                                     idx_var->alloca, llvm_tmp_name(ctx));
+            current = LLVMBuildSExt(ctx->builder, current, ctx->type_i64,
+                                    llvm_tmp_name(ctx));
+            return LLVMBuildICmp(ctx->builder, LLVMIntSLT, current, length64,
+                                 llvm_tmp_name(ctx));
+        }
+        if (iter_var != NULL && llvm_lookup_list_inner(ctx, iter_name) != NULL) {
+            LLVMFuncEntry *size_fn = llvm_mir_for_in_required_runtime(ctx, inst,
+                "pgy_list_size_raw_export");
+            if (size_fn == NULL)
+                return NULL;
             LLVMValueRef args[] = {
-                LLVMBuildBitCast(ctx->builder, list_var->alloca,
+                LLVMBuildBitCast(ctx->builder, iter_var->alloca,
                                  ctx->type_i8ptr, llvm_tmp_name(ctx))
             };
             size_call = LLVMBuildCall2(ctx->builder, size_fn->fn_type,
@@ -195,6 +209,7 @@ llvm_mir_emit_for_in_body_binding(const MIRRoutine *routine,
     const char *variable;
     const char *iter_name;
     const char *list_inner;
+    LLVMArrayVarEntry *array_entry;
     LLVMVarEntry *list_var;
     LLVMVarEntry *loop_var;
     LLVMVarEntry *idx_var;
@@ -215,11 +230,13 @@ llvm_mir_emit_for_in_body_binding(const MIRRoutine *routine,
 
     iter_name = ast_identifier_name(iterable);
     list_inner = llvm_lookup_list_inner(ctx, iter_name);
+    array_entry = llvm_lookup_array_var(ctx, iter_name);
     list_var = llvm_scope_lookup(ctx, iter_name);
-    if (list_inner == NULL || list_var == NULL)
+    if ((list_inner == NULL && array_entry == NULL) || list_var == NULL)
         return true;
 
-    elem_ty = pergyra_type_to_llvm(ctx, list_inner);
+    elem_ty = array_entry != NULL ? array_entry->elem_type
+                                  : pergyra_type_to_llvm(ctx, list_inner);
     if (ctx->has_error || elem_ty == NULL)
         return false;
     loop_var = llvm_scope_lookup(ctx, variable);
@@ -237,15 +254,31 @@ llvm_mir_emit_for_in_body_binding(const MIRRoutine *routine,
     }
     llvm_mir_for_in_index_name(variable, idx_name, sizeof(idx_name));
     idx_var = llvm_scope_lookup(ctx, idx_name);
-    get_fn = llvm_mir_for_in_required_runtime(ctx, branch_inst,
-        "pgy_list_get_raw_export");
     if (loop_var == NULL || loop_var->alloca == NULL
-        || idx_var == NULL || idx_var->alloca == NULL || get_fn == NULL) {
+        || idx_var == NULL || idx_var->alloca == NULL) {
         return true;
     }
 
     idx = LLVMBuildLoad2(ctx->builder, ctx->type_i32, idx_var->alloca,
                          llvm_tmp_name(ctx));
+    if (array_entry != NULL) {
+        LLVMValueRef aggregate = LLVMBuildLoad2(ctx->builder, list_var->type,
+            list_var->alloca, llvm_tmp_name(ctx));
+        LLVMValueRef data_ptr = llvm_array_data_ptr(ctx, aggregate);
+        LLVMValueRef idx64 = LLVMBuildSExt(ctx->builder, idx, ctx->type_i64,
+                                           llvm_tmp_name(ctx));
+        LLVMValueRef elem_ptr = LLVMBuildGEP2(ctx->builder, elem_ty, data_ptr,
+            &idx64, 1, llvm_tmp_name(ctx));
+        LLVMBuildStore(ctx->builder,
+            LLVMBuildLoad2(ctx->builder, elem_ty, elem_ptr, llvm_tmp_name(ctx)),
+            loop_var->alloca);
+        return true;
+    }
+
+    get_fn = llvm_mir_for_in_required_runtime(ctx, branch_inst,
+        "pgy_list_get_raw_export");
+    if (get_fn == NULL)
+        return true;
     {
         LLVMValueRef args[] = {
             LLVMBuildBitCast(ctx->builder, list_var->alloca, ctx->type_i8ptr,

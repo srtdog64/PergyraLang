@@ -17,7 +17,7 @@ Current stable contract note (2026-04-09):
 
 - `SecureSlot<T>` + token validation is the current capability-security anchor.
 - Runtime file I/O is now part of the practical security contract:
-  - `ReadFile/WriteFile` allow relative paths by default
+  - `FileOpen`, `ReadFile`, `WriteFile`, and `FileExists` allow relative paths by default
   - parent traversal (`..`) is rejected
   - absolute paths are denied unless `PGY_IO_ALLOW_ABSOLUTE=1`
   - `PGY_IO_ROOT` roots runtime file I/O under an allowed directory

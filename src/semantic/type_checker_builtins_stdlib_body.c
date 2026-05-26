@@ -223,6 +223,8 @@ type_check_resolved_stdlib_call(ASTNode *expr, const char *name,
         return TYPE_INT;
     case BUILTIN_SLEEP:
         return type_check_builtin_sleep(expr, ctx);
+    case BUILTIN_EXIT:
+        return type_check_stdlib_scalar_call(expr, name, ctx, handled_out);
     case BUILTIN_CLAIM_DEVICE_SLOT:
         return type_check_claim_device_slot(expr, ctx);
     case BUILTIN_DEVICE_READ:

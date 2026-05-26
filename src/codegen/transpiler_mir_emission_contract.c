@@ -5,7 +5,6 @@
 #include "../compiler/mir_cfg_contract_cleanup_fact.h"
 #include "../compiler/mir_cfg_contract_pin.h"
 #include "../compiler/mir_cleanup_fact_names.h"
-#include "../compiler/mir_fact_validate.h"
 #include "../parser/ast_api.h"
 #include "transpiler.h"
 #include "transpiler_context.h"
@@ -50,7 +49,7 @@ transpiler_validate_mir_emission_contract(const TranspilerCtx *ctx,
 
     {
         char *topology_error = NULL;
-        if (!mir_validate_emission_topology(routine,
+        if (!mir_validate_emission_contract(routine,
                                            require_cleanup,
                                            !require_cleanup_blocks,
                                            &topology_error)) {
@@ -59,28 +58,13 @@ transpiler_validate_mir_emission_contract(const TranspilerCtx *ctx,
                     transpiler_mir_reasonf(reason, reason_cap, "%s", topology_error);
                 else
                     transpiler_mir_reasonf(reason, reason_cap,
-                             "MIR contract invalid for %s: topology validation failed",
+                             "MIR contract invalid for %s: emission contract validation failed",
                              routine_name);
             }
             free(topology_error);
             return false;
         }
         free(topology_error);
-    }
-
-    {
-        char *fact_error = NULL;
-        if (!mir_validate_routine_emission_facts(routine, &fact_error)) {
-            if (reason != NULL && reason_cap > 0) {
-                transpiler_mir_reasonf(reason, reason_cap,
-                    "MIR contract invalid for %s: %s",
-                    routine_name,
-                    fact_error != NULL ? fact_error : "emission fact validation failed");
-            }
-            free(fact_error);
-            return false;
-        }
-        free(fact_error);
     }
 
     for (size_t i = 0; i < routine->block_count; i++) {

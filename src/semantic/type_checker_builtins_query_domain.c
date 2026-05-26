@@ -4,12 +4,6 @@
 #include "type_checker_builtins_query_domain.h"
 #include "parser/ast_api.h"
 
-static ASTNode *
-builtin_query_domain_program(SemanticContext *ctx)
-{
-    return ctx != NULL ? ctx->program_root : NULL;
-}
-
 ASTNode *
 find_zone_domain_slot_local(ASTNode *zone, const char *slot_name)
 {
@@ -232,25 +226,6 @@ current_projection_host_decl(SemanticContext *ctx, const char **label_out,
     return NULL;
 }
 
-static ASTNode *
-find_named_class_decl(ASTNode *program, const char *name)
-{
-    if (program == NULL || program->type != AST_PROGRAM || name == NULL)
-        return NULL;
-
-    for (size_t i = 0; i < ast_program_statement_count(program); i++) {
-        ASTNode *stmt = ast_program_statement(program, i);
-        if (stmt == NULL || stmt->type != AST_CLASS_DECL
-            || ast_class_name(stmt) == NULL) {
-            continue;
-        }
-        if (strcmp(ast_class_name(stmt), name) == 0)
-            return stmt;
-    }
-
-    return NULL;
-}
-
 bool
 decl_is_subject_nominal(ASTNode *decl)
 {
@@ -289,9 +264,8 @@ projection_source_field_at_local(ASTNode *decl, size_t index)
     return NULL;
 }
 
-int
-resolve_projection_source_field_type_rec(ASTNode *program,
-                                         ASTNode *source_decl,
+static int
+resolve_projection_source_field_type_rec(ASTNode *source_decl,
                                          const char *field_name,
                                          unsigned depth,
                                          SemanticContext *ctx,
@@ -303,7 +277,7 @@ resolve_projection_source_field_type_rec(ASTNode *program,
 
     if (field_type_out != NULL)
         *field_type_out = NULL;
-    if (program == NULL || source_decl == NULL || field_name == NULL || depth > 8)
+    if (ctx == NULL || source_decl == NULL || field_name == NULL || depth > 8)
         return 0;
 
     field_count = projection_source_field_count_local(source_decl);
@@ -331,12 +305,12 @@ resolve_projection_source_field_type_rec(ASTNode *program,
             continue;
         }
 
-        vessel_decl = find_named_class_decl(program, field_type_name);
+        vessel_decl = semantic_find_class_decl_by_name(ctx, field_type_name);
         if (vessel_decl == NULL || ast_class_nominal_kind(vessel_decl) != NOMINAL_DECL_VESSEL)
             continue;
 
         nested_status = resolve_projection_source_field_type_rec(
-            program, vessel_decl, field_name, depth + 1, ctx, &nested_type);
+            vessel_decl, field_name, depth + 1, ctx, &nested_type);
         if (nested_status == 1) {
             match_count++;
             if (match_count == 1)
@@ -363,7 +337,6 @@ semantic_resolve_projection_source_field_type(SemanticContext *ctx,
                                               const char *field_name,
                                               Type **field_type_out)
 {
-    ASTNode *program = builtin_query_domain_program(ctx);
     return resolve_projection_source_field_type_rec(
-        program, source_decl, field_name, 0, ctx, field_type_out);
+        source_decl, field_name, 0, ctx, field_type_out);
 }

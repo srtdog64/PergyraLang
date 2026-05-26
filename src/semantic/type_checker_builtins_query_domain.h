@@ -35,11 +35,5 @@ ASTNode *current_projection_host_decl(SemanticContext *ctx,
                                       size_t *slot_count_out);
 
 bool decl_is_subject_nominal(ASTNode *decl);
-int resolve_projection_source_field_type_rec(ASTNode *program,
-                                             ASTNode *source_decl,
-                                             const char *field_name,
-                                             unsigned depth,
-                                             SemanticContext *ctx,
-                                             Type **field_type_out);
 
 #endif /* PERGYRA_TYPE_CHECKER_BUILTINS_QUERY_DOMAIN_H */

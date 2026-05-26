@@ -23,9 +23,25 @@ _pgy_io_init_locked(void)
 static inline int32_t
 pgy_file_open(const char *path, const char *mode)
 {
-    FILE *fp = fopen(path, mode);
+    char *resolved;
+    bool for_write = false;
     int fd = -1;
 
+    if (mode == NULL)
+        return -1;
+    for (const char *p = mode; *p != '\0'; p++) {
+        if (*p == 'w' || *p == 'a' || *p == '+') {
+            for_write = true;
+            break;
+        }
+    }
+
+    resolved = pgy_runtime_resolve_file_path(path, for_write);
+    if (resolved == NULL)
+        return -1;
+
+    FILE *fp = fopen(resolved, mode);
+    free(resolved);
     if (fp == NULL) return -1;
     pthread_mutex_lock(&_pgy_ftable_mutex);
     if (_pgy_ftable[0] == NULL)
@@ -148,6 +164,24 @@ pgy_read_file(const char *path)
     return buf;
 }
 
+static inline bool
+pgy_file_exists(const char *path)
+{
+    char *resolved = pgy_runtime_resolve_file_path(path, false);
+    if (resolved == NULL)
+        return false;
+
+    FILE *fp = fopen(resolved, "rb");
+    if (fp == NULL) {
+        free(resolved);
+        return false;
+    }
+
+    fclose(fp);
+    free(resolved);
+    return true;
+}
+
 /* WriteFile(path, data) → write entire string to file */
 static inline void
 pgy_write_file(const char *path, const char *data)
@@ -222,6 +256,12 @@ pgy_sleep_ms(int32_t ms)
 #endif
 }
 
+static inline void
+pgy_exit(int32_t code)
+{
+    exit((int)code);
+}
+
 /* =================================================================
  * String Built-ins
  * ================================================================= */
@@ -232,6 +272,19 @@ StringContains(const char *haystack, const char *needle)
 {
     if (haystack == NULL || needle == NULL) return false;
     return strstr(haystack, needle) != NULL;
+}
+
+static inline int32_t
+StringIndexOf(const char *haystack, const char *needle)
+{
+    const char *match;
+
+    if (haystack == NULL || needle == NULL)
+        return -1;
+    match = strstr(haystack, needle);
+    if (match == NULL)
+        return -1;
+    return (int32_t)(match - haystack);
 }
 
 /* StringLength is already defined as pgy_string_length or similar */

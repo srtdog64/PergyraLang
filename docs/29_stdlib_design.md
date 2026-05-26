@@ -186,7 +186,7 @@ page -> http adapter -> intent -> zone/world -> tobject/object -> page
 | Math | `Min`, `Max`, `Abs`, `Sqrt`, `Pow`, `Floor`, `Ceil`, `Random` |
 | String | `StringLength`, `StringSplit`, `StringJoin`, `StringContains`, `StringReplace`, `Trim`, `Upper`, `Lower`, `Substring`, `ToString` |
 | Convert | `ToInt`, `ToFloat` |
-| I/O | `Log`, `FileOpen`, `FileRead`, `FileWrite`, `FileClose` |
+| I/O | `Log`, `FileOpen`, `FileExists`, `FileRead`, `FileWrite`, `FileClose`, `ReadFile`, `WriteFile` |
 | Array | `ArrayLength`, `ArrayPush`, `ArraySort`, `ArrayMap`, `ArrayFilter`, `ArrayReverse` |
 | Option | `Some`, `None`, `IsSome`, `IsNone` |
 | Result | `Ok`, `Err`, `IsOk`, `IsErr` |

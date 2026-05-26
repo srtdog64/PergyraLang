@@ -70,6 +70,8 @@ run_literal_doc_contract_smoke() {
     require_literal "docs/103_cfg_body_dataflow_need.md" "resource_snapshot_has_parallel_race_risk"
     require_literal "docs/103_cfg_body_dataflow_need.md" "PGY_SEM_PARALLEL_SLOT_CONFLICT"
     require_literal "docs/103_cfg_body_dataflow_need.md" "pre-CFG residual"
+    require_literal "docs/125_source_of_truth_spine.md" "mir_validate_emission_contract(...)"
+    require_literal "docs/125_source_of_truth_spine.md" "topology-plus-fact contract"
     require_literal "src/semantic/slot_summary.h" "slot_analyze_legacy_ast_param_summary_in_program"
     require_literal "src/semantic/type_checker_ownership_call.c" "semantic_param_summary_has_any_escape"
     require_literal "src/semantic/type_checker_ownership_param_summary.c" "semantic_callable_param_escape_summary"
@@ -368,13 +370,22 @@ run_literal_doc_contract_smoke() {
     require_literal "src/codegen/transpiler_mir_emission_contract.c" "mir_block_has_pin_cleanup_edge(block)"
     require_literal "src/codegen/transpiler_mir_emission_contract.c" "pin block %llu has no cleanup successor"
     require_literal "src/compiler/mir_fact_validate.c" "mir_validate_routine_emission_facts"
-    require_literal "src/codegen/transpiler_mir_emission_contract.c" "mir_validate_routine_emission_facts(routine"
+    require_literal "src/compiler/mir_public_surface.c" "mir_validate_emission_contract"
+    require_literal "src/compiler/mir_public_surface.c" "mir_validate_emission_topology(routine"
+    require_literal "src/compiler/mir_public_surface.c" "mir_validate_routine_emission_facts(routine"
+    require_literal "src/codegen/transpiler_mir_emission_contract.c" "mir_validate_emission_contract(routine"
     require_literal "src/codegen/llvm_mir_contract.c" "llvm_mir_validate_cleanup_contract"
-    require_literal "src/codegen/llvm_mir_contract.c" "mir_validate_emission_topology(routine"
+    require_literal "src/codegen/llvm_mir_contract.c" "mir_validate_emission_contract(routine"
     require_literal "src/compiler/mir_program_validate.c" "mir_validate_cfg_contract_state(routine"
-    require_literal "src/codegen/llvm_mir_contract.c" "mir_validate_routine_emission_facts(routine"
     require_literal "src/codegen/llvm_mir_contract.c" "mir_block_has_expected_cleanup_edge_fact(routine, i)"
     require_literal "src/codegen/llvm_mir_contract.c" "mir_block_has_pin_cleanup_edge(block)"
+    if grep -RIn -- 'mir_validate_emission_topology(routine\|mir_validate_routine_emission_facts(routine' \
+        "$ROOT_DIR/src/codegen" >/dev/null; then
+        echo "backend emission contracts must consume mir_validate_emission_contract(...), not rebuild topology-plus-fact validation" >&2
+        grep -RIn -- 'mir_validate_emission_topology(routine\|mir_validate_routine_emission_facts(routine' \
+            "$ROOT_DIR/src/codegen" >&2
+        exit 1
+    fi
     require_literal "src/compiler/air_evidence_mir_facts.c" "mir_block_has_expected_cleanup_edge_fact(routine, i)"
     require_literal "src/compiler/air_evidence_mir_pin.c" "mir_block_find_pin_cleanup_edge_fact(block)"
     require_literal "src/tests/mir/test_mir_lowering_part_e.cases.h" "pin-unpin-cleanup-edge"

@@ -28,6 +28,14 @@ forbid_text() {
     fi
 }
 
+forbid_mojibake_text() {
+    local rel="$1"
+
+    if grep -Eq '留|遺|援|怨|鍮|媛|洹|몄|뺤|쒕|꾩|댄' "$ROOT_DIR/$rel"; then
+        fail "$rel contains likely mojibake text"
+    fi
+}
+
 require_terms() {
     local rel="$1"
     local term
@@ -79,6 +87,7 @@ required_files=(
     "docs/grammar/02_grammar.md"
     "docs/124_syntax_pattern_matrix.md"
     "docs/125_source_of_truth_spine.md"
+    "docs/50_language_completion_board.md"
     "docs/129_tex_semantics_lessons.md"
     "docs/130_c_backend_owner_migration_map.md"
     "docs/131_ai_coding_atomic_units.md"
@@ -96,6 +105,14 @@ for rel in "${required_files[@]}"; do
     validate_utf8_file "$ROOT_DIR/$rel"
 done
 validate_utf8_file "$ROOT_DIR/TODO.md"
+
+for rel in \
+    "docs/19_design_philosophy.md" \
+    "docs/50_language_completion_board.md" \
+    "docs/17_development_status.md" \
+    "docs/70_beta_closure_master_board.md"; do
+    forbid_mojibake_text "$rel"
+done
 
 doc_number_prefixes="$(mktemp "${TMPDIR:-/tmp}/pgy-doc-prefixes.XXXXXX")"
 trap 'rm -f "$doc_number_prefixes"' EXIT
@@ -148,7 +165,8 @@ self_host_gap_terms=(
 for term in "${self_host_gap_terms[@]}"; do
     require_text "docs/self_hosted/05_compiler_core_gap_analysis.md" "$term"
 done
-require_text "TODO.md" "Self-host preparation guard"
+require_text "TODO.md" "Self-host boundary guard"
+require_text "TODO.md" "self-hosting is post-beta consumer work"
 
 systems_identity_terms=(
     "Pergyra is a systems language with domain extensions"

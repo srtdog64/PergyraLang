@@ -56,8 +56,17 @@ Stable core:
   backend lowering; they are not allowed to fall through to C/LLVM local
   equality assumptions.
 - UTF-8 string payload preservation is stable for string literals and C/LLVM
-  output. `StringLength` is byte-length, and equality/search are byte-exact and
-  normalization-blind for beta.
+  output. `StringLength` is byte-length, and equality/search helpers such as
+  `Contains` and `StringIndexOf` are byte-exact and normalization-blind for
+  beta.
+- File I/O stable subset keeps both whole-file helpers
+  (`ReadFile(String) -> String`, `WriteFile(String, String) -> Void`,
+  `FileExists(String) -> Bool`) and runtime-owned handle helpers
+  (`FileOpen(String, String) -> Int`, `FileRead(Int) -> String`,
+  `FileWrite(Int, String) -> Void`, `FileClose(Int) -> Void`). All stable file
+  path entrypoints use the same runtime path policy; `FileExists` is the
+  recoverable preflight surface for distinguishing missing inputs from empty
+  file payloads.
 - Module visibility/export contracts for the current resolver and module
   loader surface.
 - Package/module resolver stable subset is defined in

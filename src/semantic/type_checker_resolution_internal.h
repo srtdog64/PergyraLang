@@ -155,12 +155,6 @@ char *semantic_type_resolution_projection_slot_field_label(ASTNode *zone_decl,
 ASTNode *semantic_type_resolution_projection_source_decl(ASTNode *zone_decl,
                                                          const char *slot_name,
                                                          SemanticContext *ctx);
-int resolve_projection_source_field_path(ASTNode *program_root,
-                                         ASTNode *source_decl,
-                                         const char *field_name,
-                                         SemanticContext *ctx,
-                                         const char **path_out,
-                                         Type **field_type_out);
 int semantic_resolve_projection_source_field_path(SemanticContext *ctx,
                                                   ASTNode *source_decl,
                                                   const char *field_name,

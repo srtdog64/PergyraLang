@@ -11,6 +11,7 @@
 
 #include "llvm_backend.h"
 #include "llvm_internal.h"
+#include "../common/string_compat.h"
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -334,10 +335,22 @@ void
 llvm_register_array_var(LLVMGenCtx *ctx, const char *var_name,
                         LLVMTypeRef elem_type, int64_t length)
 {
+    char *owned_name;
+
+    if (var_name == NULL || var_name[0] == '\0') {
+        llvm_set_error(ctx, "LLVM Array registry requires a variable name");
+        return;
+    }
+
     PGY_DYNARR_ENSURE(ctx->array_vars, ctx->array_var_count,
                       ctx->array_var_capacity, LLVMArrayVarEntry);
 
-    ctx->array_vars[ctx->array_var_count].var_name = var_name;
+    owned_name = pergyra_strdup(var_name);
+    if (owned_name == NULL) {
+        llvm_set_error(ctx, "out of memory copying LLVM Array registry name");
+        return;
+    }
+    ctx->array_vars[ctx->array_var_count].var_name = owned_name;
     ctx->array_vars[ctx->array_var_count].elem_type = elem_type;
     ctx->array_vars[ctx->array_var_count].length = length;
     ctx->array_var_count++;

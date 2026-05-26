@@ -129,7 +129,10 @@ DEFAULT_SOURCES=(
 )
 
 if [[ "${PGY_AIR_NONIMPACT_SOURCE:-}" == "all" ]]; then
-    mapfile -t SOURCES < <(
+    SOURCES=()
+    while IFS= read -r source; do
+        SOURCES+=("$source")
+    done < <(
         cd "$ROOT_DIR"
         find tests/cases/backend_compare -mindepth 2 -maxdepth 2 -name main.pgy | LC_ALL=C sort
     )

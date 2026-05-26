@@ -17,6 +17,8 @@ fi
 
 WORK_DIR="$(mktemp -d "${TMP_BASE%/}/pgy_stdlib_smoke.XXXXXX")"
 trap 'rm -rf "$WORK_DIR"' EXIT
+IO_ROOT="$WORK_DIR/io_root"
+mkdir -p "$IO_ROOT"
 
 FREEZE_DOC="$ROOT_DIR/docs/108_stdlib_beta_freeze.md"
 if [[ ! -f "$FREEZE_DOC" ]]; then
@@ -27,6 +29,8 @@ for required in \
     "Stdlib Beta Freeze" \
     "beta-freeze-source-of-truth" \
     "Stable Builtin Stdlib Surface" \
+    "\`FileOpen\`, \`FileRead\`, \`FileWrite\`, \`FileClose\`, \`ReadFile\`" \
+    "\`WriteFile\`, \`FileExists\`" \
     "Stable \`use\` Modules" \
     "Known But Experimental Modules" \
     "\`datetime\`" \
@@ -61,10 +65,20 @@ func Main() -> Void {
     let s: String = Concat(Upper(Trim("  hi")), Lower(" THERE"));
     Log(StringLength(s));
     Log(Contains(s, "HI"));
+    Log(StringIndexOf(s, "THERE"));
 
     WriteFile("stable_io.txt", Replace(s, "HI", "BYE"));
+    Log(FileExists("stable_io.txt"));
+    Log(FileExists("missing_stable_io.txt"));
     let out: String = ReadFile("stable_io.txt");
     Log(out);
+    let writer: Int = FileOpen("stable_handle.txt", "w");
+    FileWrite(writer, "handle");
+    FileClose(writer);
+    let reader: Int = FileOpen("stable_handle.txt", "r");
+    let line: String = FileRead(reader);
+    FileClose(reader);
+    Log(line);
 
     let c: Color = Red;
     if c == Red {
@@ -105,18 +119,36 @@ func Main() -> Void {
 }
 EOF
 
+cat > "$WORK_DIR/stable_exit.pgy" <<'EOF'
+func Main() -> Void {
+    Exit(7);
+}
+EOF
+
+cat > "$WORK_DIR/stable_io_root.pgy" <<'EOF'
+func Main() -> Void {
+    let fd: Int = FileOpen("rooted.txt", "w");
+    FileWrite(fd, "rooted");
+    FileClose(fd);
+    Log(FileExists("rooted.txt"));
+    Log(ReadFile("rooted.txt"));
+}
+EOF
+
 run_backend() {
     local backend="$1"
     local output
     local stable_arg
     local modules_arg
+    local io_root_arg
 
     stable_arg="$(pgy_path_for_compiler "$PGY" "$WORK_DIR/stable_stdlib.pgy")"
     modules_arg="$(pgy_path_for_compiler "$PGY" "$WORK_DIR/stable_use_modules.pgy")"
+    io_root_arg="$(pgy_path_for_compiler "$PGY" "$WORK_DIR/stable_io_root.pgy")"
 
     output="$(cd "$WORK_DIR" && "$PGY" "$stable_arg" --backend="$backend" --run 2>&1)"
 
-    for expected in "42" "2" "3" "8" "true" "BYE there" "9"; do
+    for expected in "42" "2" "3" "8" "true" "false" "BYE there" "handle" "9"; do
         if ! grep -Fq "$expected" <<<"$output"; then
             echo "[stdlib-smoke] backend=$backend missing '$expected'" >&2
             echo "--- output ---" >&2
@@ -138,11 +170,45 @@ run_backend() {
         fi
     done
 
+    output="$(cd "$ROOT_DIR" && PGY_IO_ROOT="$IO_ROOT" "$PGY" "$io_root_arg" --backend="$backend" --run 2>&1)"
+    for expected in "true" "rooted"; do
+        if ! grep -Fq "$expected" <<<"$output"; then
+            echo "[stdlib-smoke] IO root backend=$backend missing '$expected'" >&2
+            echo "--- output ---" >&2
+            echo "$output" >&2
+            echo "--------------" >&2
+            exit 1
+        fi
+    done
+
     echo "[stdlib-smoke] backend=$backend ok"
+}
+
+run_exit_backend() {
+    local backend="$1"
+    local exit_arg
+    local output
+    local rc
+
+    exit_arg="$(pgy_path_for_compiler "$PGY" "$WORK_DIR/stable_exit.pgy")"
+
+    set +e
+    output="$(cd "$WORK_DIR" && "$PGY" "$exit_arg" --backend="$backend" --run 2>&1)"
+    rc=$?
+    set -e
+
+    if [[ "$rc" -ne 7 ]]; then
+        echo "[stdlib-smoke] Exit(Int) backend=$backend expected rc=7, got rc=$rc" >&2
+        echo "--- output ---" >&2
+        echo "$output" >&2
+        echo "--------------" >&2
+        exit 1
+    fi
 }
 
 BACKENDS="${PGY_STDLIB_BACKENDS:-c llvm}"
 
 for backend in $BACKENDS; do
     run_backend "$backend"
+    run_exit_backend "$backend"
 done

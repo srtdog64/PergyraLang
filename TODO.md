@@ -27,15 +27,19 @@ English anchor for tooling/doc gates:
   the same owner concurrently, which later surfaces as `file in wrong format`.
   Parallel validation must use distinct `BUILD_DIR`/`BIN_DIR` values or run
   sequentially.
-- Self-host preparation guard: do not start hard self-host from the compiler
-  core with the current beta stable subset. The stable subset is sufficient for
-  compiler-adjacent tools, not yet for a 200K-line compiler rewrite with dense
-  graph traversal, pointer/resource boundaries, arena allocation, debug info,
-  and backend emission. Groundwork lives in
-  `docs/self_hosted/05_compiler_core_gap_analysis.md`: close graph-heavy
-  collections, file/path/string basics, scoped unsafe/raw escape,
-  runtime-none/minimal-runtime policy, debug-info strategy, and Pergyra module
-  layout before any parser/typechecker/backend self-host migration.
+- CI smoke portability guard: beta/source-of-truth smoke scripts must remain
+  compatible with macOS Bash 3.2. `build-source-inventory-test-smoke` now
+  rejects Bash 4-only `mapfile` / `readarray`, associative arrays, parameter
+  case-conversion expansions, and case-pattern line continuations ending in
+  `|\`. The affected AIR, determinism, example, backend-inc, semantic-inc, and
+  DAG inventory smokes use while-read loops or explicit `if` checks instead.
+- Self-host boundary guard: self-hosting is post-beta consumer work, not the
+  current beta source-of-truth owner. The current priority is language trust:
+  CFG/body safety, AIR boundary evidence, DAG semantic source-of-truth,
+  MIR/LLVM declaration bootstrap, and ABI/Slot/Pin ownership freeze.
+  Compiler-adjacent self-host tools may remain as dogfood evidence, but they
+  must not reorder beta closure ahead of the language spine. Groundwork lives
+  in `docs/self_hosted/05_compiler_core_gap_analysis.md` for handoff.
 - Self-host preparation gate tightening: `self-host-preparation-test-smoke`
   now gates the staged roadmap, agent work-unit contract, and first two soft
   self-host packages (Diagnostic Catalog Checker and AIR Graph JSON Validator).
@@ -1331,9 +1335,9 @@ English anchor for tooling/doc gates:
   carrying zone/world/projection lowering bodies. Gates: `pgy`,
   `test-transpile`, and `build-source-inventory-test-smoke`.
 - C backend I/O and time builtin lowering also moved out of
-  `transpiler_expr_builtin_dispatch.h`. `FileOpen`, `FileRead`, `FileWrite`,
-  `FileClose`, `ReadFile`, `WriteFile`, `Input`, `Print`, `ReadLine`, `Now`,
-  and `Sleep` now lower through `transpiler_expr_io_builtin.c`, so the dispatch
+  `transpiler_expr_builtin_dispatch.h`. `FileOpen`, `FileExists`, `FileRead`,
+  `FileWrite`, `FileClose`, `ReadFile`, `WriteFile`, `Input`, `Print`,
+  `ReadLine`, `Now`, and `Sleep` now lower through `transpiler_expr_io_builtin.c`, so the dispatch
   header stays on family routing while the file/runtime-call bodies live in a
   compiled owner. Gates: `pgy`, `test-transpile`,
   `build-source-inventory-test-smoke`, `perf-contract-test-smoke`, and
@@ -6146,8 +6150,9 @@ Progress log, 2026-05-08:
   `cfg-body-dataflow-test-smoke`, `air-drift-test-smoke`, and
   `llvm-test-smoke`.
 - Tightened AIR/RIR stable IO boundary classification:
-  the beta-stable IO/time boundary set (`FileOpen`, `FileRead`, `FileWrite`,
-  `FileClose`, `ReadFile`, `WriteFile`, `Input`, `ReadLine`, `Now`, `Sleep`)
+  the beta-stable IO/time boundary set (`FileOpen`, `FileExists`, `FileRead`,
+  `FileWrite`, `FileClose`, `ReadFile`, `WriteFile`, `Input`, `ReadLine`,
+  `Now`, `Sleep`)
   now lives in `src/compiler/io_boundary_builtin.c` and is consumed by both
   AIR boundary synthesis and RIR lowering. This removes the duplicated
   `io_names[]` linear scans from `air_boundary.c` / `rir_builder_walk.c` and
@@ -7581,6 +7586,72 @@ business-object lifetime을 정적으로 예측하려 하지 않는다. Slot은 
 아니라 resource boundary / ownership handle이며, static verifier는 unsafe
 boundary transition을 거절하고 runtime은 generation/token/resource state를
 검증한다. 이 선택은 borrow checker 누락이 아니라 의도적인 추상화 기준이다.
+
+**Self-host origin surface (2026-05-26):** `self_hosted/` 폴더 부트스트랩. 첫
+도구 `tools/diagnostic_catalog_checker/` 가 *rung-2 minimal* (`counts.codes` /
+`counts.documented` / `counts.missing` / `counts.duplicates` /
+`counts.orphans` 실측 parity, 현재 66/66/0/0/0 일치) 까지 진입. C track 은
+`tests/diagnostic_registry_smoke.sh` parity backend. 3-rung 구조
+(clean exit-code → JSON/counter parity → C/LLVM/Pergyra 3-way) 박혀 있고,
+`self_hosted/parity/` 스크립트는 `self-host-preparation-test-smoke` 에 묶임.
+현재 parity 는 exit-code, live counters, `expected/clean.json` exact JSON shape,
+그리고 shell drift detector 의 missing/duplicate/orphan 카운터까지 검증한다.
+
+**Self-host surface lift (2026-05-26):** `StringIndexOf(String, String) -> Int`
+추가. 이유: soft self-host 도구가 텍스트를 단순 포함 검사만 하지 않고,
+header/docs literal을 추출할 수 있어야 함. C runtime export, C inline runtime,
+semantic builtin, C/LLVM lowering, backend compare fixture에 고정.
+
+**Self-host tool-exit lift (2026-05-26):** `Exit(Int) -> Void` 를 stable
+process/tooling helper 로 추가. C/LLVM lowering 과 runtime export/inline 이
+`stdlib_surface_smoke` 에서 rc=7 로 검증됨. 첫 Pergyra soft self-host 도구는
+이제 `ok:false` JSON 을 출력한 뒤 `Exit(1)` 로 실패한다. parity harness 는
+synthetic missing-code fixture 로 rc=1, `findings[]` entry, 그리고
+`expected/missing_code.json` 을 검증한다. `FileExists(String) -> Bool` preflight
+surface 도 추가되어 self-host 도구가 missing owner file 을 empty-file payload 와
+분리하고 `input_error` finding + `Exit(1)` 로 보고한다. parity harness 는
+`expected/missing_input.json` 으로 이 경로도 고정한다. 남은 gap 은 `ReadFile`
+자체를 `Result<String>` 계열로 lift 할지 여부이며, beta stable surface 를
+흔들지 않기 위해 현재는 별도 preflight 로 고정한다.
+
+**LLVM backend issue fixed (self-host dogfood 도중 발견, 2026-05-26):**
+`for x in arr { ... StdlibCall(x, ...) }` 패턴에서 iterator binding 이 stdlib
+lowering 에 노출되지 않아 "LLVM identifier is not declared in the active
+scope, host, function registry, or enum inventory" 로 실패하던 경로를 닫았다.
+LLVM MIR for-in lowering now supports `Array<T>` / `Slice<T>` body bindings,
+and the LLVM array registry owns copied variable names instead of depending on
+caller-owned buffers. Regression:
+`tests/cases/backend_compare/for_in_array_string_stdlib/main.pgy`. Gates:
+targeted C/LLVM backend compare for that fixture, `llvm-test-smoke`, and
+`self-host-preparation-test-smoke`. The soft self-host diagnostic catalog
+checker now uses `for line in lines` in its simple counter/orphan passes while
+keeping pending-state scanners on while-index loops; parity remains green.
+
+**Stable IO path-policy tightening (2026-05-26):** `FileOpen` now uses the
+same runtime path resolver policy as `ReadFile` / `WriteFile` / `FileExists`
+instead of raw `fopen(path, mode)`. The runtime derives read/write mode from
+the mode string, rejects disallowed paths before opening, and frees the
+resolved path before returning. Gate: `runtime-abi-lifetime-test-smoke` and
+`stdlib-test-smoke` across C/LLVM, including a `PGY_IO_ROOT` roundtrip fixture.
+
+**LLVM StringJoin surface lift (2026-05-26):** `StringJoin(Array<String>, String)
+-> String` (also `Join(...)`) was C-backend only — LLVM compile errored with
+"LLVM call target 'StringJoin' is not declared in the backend function
+registry". The runtime ABI is `PgyArray_String *arr` (pointer), but generic
+LLVM stdlib lowering passes args by value. Custom branch added in
+`llvm_emit_stdlib_string_file_call`: resolves the array receiver via
+`llvm_scope_lookup`, passes `arr_var->alloca` (stack pointer) directly to the
+runtime. Runtime decl in `llvm_runtime_core_builtin_decl.c` takes
+`LLVMPointerType(array_type_String, 0)` for the first param to match.
+Verified: LLVM probe `StringJoin(Split("a-b-c", "-"), "|")` → `a|b|c`.
+
+**Closed C-backend StringJoin corruption (2026-05-26):** Multi-element
+Split-then-Join in the C backend corrupted the last element under the MinGW
+native `-O3` compile path when `pgy_runtime_strdup` was inlined through
+`StringSplit`. The runtime duplicate helper is now `PGY_RUNTIME_NOINLINE`,
+and `tests/cases/backend_compare/string_join/main.pgy` pins C/LLVM parity for
+multi-element `Array<String>` joins. Gates: `runtime-abi-lifetime-test-smoke`
+and targeted `tests/compare_backends.sh tests/cases/backend_compare/string_join`.
 
 ## ★ Core Goal — 진행 시퀀스 (2026-05-02 명시, 4-step)
 
@@ -9071,8 +9142,8 @@ dispatch / semantic lookup / runtime data structure 3축 결과 통합. *정확�
   `<- ch`, and `select` lowering into those ops, not just manually assembled
   RIROp evidence.
 - RIR now has explicit IO boundary evidence for the beta-stable IO builtin set:
-  `FileOpen`, `FileRead`, `FileWrite`, `FileClose`, `ReadFile`, `WriteFile`,
-  `Input`, `ReadLine`, `Now`, and `Sleep` lower to `RIR_OP_IO`. AIR accepts IO
+  `FileOpen`, `FileExists`, `FileRead`, `FileWrite`, `FileClose`, `ReadFile`,
+  `WriteFile`, `Input`, `ReadLine`, `Now`, and `Sleep` lower to `RIR_OP_IO`. AIR accepts IO
   strict evidence only from a matching source/provenance op; the parsed
   `ReadFile` AIR test is now positive exact-evidence coverage instead of a
   deliberate missing-evidence negative.
@@ -11339,13 +11410,14 @@ dispatch / semantic lookup / runtime data structure 3축 결과 통합. *정확�
   - HIR/MIR CFG skeleton은 이미 있지만, 함수/action/intent body 안전성의 semantic source-of-truth가 아직 CFG/dataflow로 승격되지 않았다. all-path retun, use-before-init, move/borrow join, drop cleanup, zone/effect transition, parallel/channel boundary를 AST/helper traversal만으로 닫으면 strict beta 신뢰도가 부족하다
   - AIR abstraction safety는 Phase 1 데이터 구조 / synthesis / drift checker baseline과 driver semantic-validation wiring이 들어왔다. Intent ↔ implementation drift 검출은 `docs/104_air_compiler_architecture.md`와 `make air-drift-test-smoke`로 gate에 들어왔고, strict evidence는 기본값으로 승격됐다. missing HIR CFG / RIR boundary / RIR authority evidence는 `PGY_SEM_INTENT_BOUNDARY_EVIDENCE_MISSING`로 hard-fail 되며, `authorized by` participant 이름과 RIR authority fact / authorize op subject가 일치해야 한다. authority evidence 누락 진단은 `Reason:` 안에 expected authority participant list를 포함한다. AIR drift message와 synthesized intent/boundary/authority name은 owned lifetime으로 관리되고, repeated drift check가 이전 message를 안전하게 해제하는 회귀 테스트와 parsed-source AIR teardown-safe boundary source 회귀가 있다. `where + transfer`는 더 이상 zone boundary 하나로 접히지 않고 zone boundary와 world-handoff boundary를 모두 합성한다. world-handoff evidence는 이제 matching RIR intent scope만으로 통과하지 않고 boundary source alias에 대한 RIR `Move`/`Claim` transfer op를 요구한다. implementation boundary evidence는 이제 HIR CFG proof도 요구하므로 `parallel` / `channel` / IO / execution boundary는 RIR evidence만으로 통과하지 않는다. parsed-source missing-authority-evidence negative와 parsed-source IO execution-boundary missing-evidence negative는 full driver JSON path에서 step source span과 `stage/code/cause_ir/fix_source`까지 고정됐다. expression boundary evidence는 더 이상 owner-name-only RIR scope match로 통과하지 않는다. `PGY_AIR_STRICT_EVIDENCE=0`은 개발/디버그 opt-out이다. `make air-backend-nonimpact-test-smoke`는 relaxed AIR와 default strict AIR가 intent/zone, cross-world transfer, handoff frontier, world projection, relation/effect, authority-failure fixture set에서 같은 C/LLVM 텍스트를 생성하는지 비교한다. `make air-backend-nonimpact-full-test-smoke`는 full frozen backend-compare fixture sweep을 같은 방식으로 돌리고 Linux CI gate로 승격됐다. `make air-strict-backend-compare-test-smoke`는 strict evidence 상태에서 C/LLVM 실행 parity까지 검증한다. parser/lexer baseline JSON routing은 `stage`, `code`, `cause_ir`, `fix_source`까지 닫혔다. 남은 blocker는 AIR transfer/world source negative 확장, Windows native evidence, parser-specific code split / multi-error accumulation이다
   - CFG 소비자 정리: `type_checker_flow_match.c`가 match patten binding, match exhaustiveness, redundancy, total-coverage lattice를 소유한다. `type_checker_flow.c`는 branch/join, loop/defer/parallel boundary, body retun/unreachable flow orchestration에 집중하며 435 LOC로 내려갔다. `semantic-core-shape-test-smoke`는 `type_checker_flow.c`와 `type_checker_flow_match.c`가 모두 600 LOC 이하인지 검사한다.
-  - 2026-04-27 AIR IO boundary tightening: intent-step execution scan now treats the stable resource IO/time builtin set as AIR `io` boundaries, not only `ReadFile` / `WriteFile` / `ReadLine`. The gated set is `FileOpen`, `FileRead`, `FileWrite`, `FileClose`, `ReadFile`, `WriteFile`, `Input`, `ReadLine`, `Now`, and `Sleep`; `Print` / `Log*` remain observability output calls rather than AIR resource-boundary evidence in Phase 1. `src/test_air.c` keeps the set synchronized with `src/compiler/air_boundary.c`.
+  - 2026-04-27 AIR IO boundary tightening: intent-step execution scan now treats the stable resource IO/time builtin set as AIR `io` boundaries, not only `ReadFile` / `WriteFile` / `ReadLine`. The gated set is `FileOpen`, `FileExists`, `FileRead`, `FileWrite`, `FileClose`, `ReadFile`, `WriteFile`, `Input`, `ReadLine`, `Now`, and `Sleep`; `Print` / `Log*` remain observability output calls rather than AIR resource-boundary evidence in Phase 1. `src/test_air.c` keeps the set synchronized with `src/compiler/io_boundary_builtin.c`.
   - 2026-04-27 AIR owner split: dump/vocabulary functions moved out of `src/compiler/air.c`; current ownership is `src/compiler/air_dump.c` for human-readable debug output, `src/compiler/air_dump_json.c` for stable JSON graph output, and `src/compiler/air_vocabulary.c` for public AIR string vocabulary. `src/compiler/air.c` stays below the 600 LOC split-review threshold and keeps synthesis/drift ownership focused.
   - 2026-04-29 AIR await-boundary closure: `await` is now a synthesized AIR `parallel` boundary source, not just a recursive operand walk. Strict evidence accepts it only when RIR exposes the exact same-AST `AwaitRemote` operation; generic scope-name evidence such as a scope named `await` is rejected. HIR/CFG evidence is still required for implementation-boundary proof. AIR boundary AST traversal moved to `src/compiler/air_boundary_walk.c`; `src/compiler/air_boundary.c` now owns boundary taxonomy/policy only.
   - 2026-04-29 CFG-owned control classifier closure: `mir_cfg_contract_control.h` now has a real include guard and is consumed by both MIR statement population and MIR CFG validation. The duplicated CFG-owned control switch in `mir_stmt_population.h` was removed, so fallback `MIR_INST_STMT` filtering and validator rejection share one classifier.
   - Type-resolution DAG가 아직 semantic source-of-truth가 아니므로 declaration order / module contract / generic consumer path drift 위험이 남아 있다
   - 장기 모듈화 stop condition도 아직 멀다. semantic 800 LOC 초과 `.inc` 조건과 runtime/codegen/compiler 1,000 LOC 초과 `.inc` 조건은 닫혔지만, 여러 split은 아직 include-order 보존 상태라 실제 owner/TU extraction 부채가 남아 있다
-  - 따라서 공식 진행률은 “기능 표면 성숙도”가 아니라 “베타 신뢰도 readiness” 기준으로 약 60%로 본다
+  - Historical note: this old 60% readiness anchor is superseded by the current
+    top-of-file source-of-truth range, strict beta readiness about 72-74%.
 
 ## Beta taxonomy freeze: core / foundation / style
 
@@ -11790,7 +11862,7 @@ Source of truth:
     - 진행: intent observability(`last/history/active/recent`)와 authority failure snapshot의 stable runtime string exports는 `runtime-borrowed string` ABI로 고정했다. caller는 free하지 않고 다음 runtime registry/snapshot mutation 전까지만 유효하다
     - 진행: `runtime-abi-lifetime-test-smoke`가 stable intent last/history/active/recent 및 authority 문자열 export body에서 allocation/free/strdup이 발생하지 않도록 검사한다
     - 진행: stable string helper retuns는 `result-owned string`, stable string-array helper retuns는 `result-owned array` ABI로 고정했다. `runtime-abi-lifetime-test-smoke`가 helper payload가 borrowed input pointer, stack buffer, string literal을 반환하지 않고 allocation/copy된 payload를 반환하는지 검사한다
-    - 진행: stable file descriptor는 `runtime-owned handle` ABI로 고정했다. `pgy_file_open`은 닫힌 runtime table slot을 재사용하고, `pgy_file_close`는 table entry를 NULL로 비워 재사용 가능 상태로 만든다. `runtime-abi-lifetime-test-smoke`가 이 release/reuse contract를 검사한다
+    - 진행: stable file descriptor는 `runtime-owned handle` ABI로 고정했다. `pgy_file_open`은 `ReadFile` / `WriteFile` / `FileExists`와 같은 runtime path resolver를 사용하고 resolved path buffer를 해제한 뒤, 닫힌 runtime table slot을 재사용한다. `pgy_file_close`는 table entry를 NULL로 비워 재사용 가능 상태로 만든다. `runtime-abi-lifetime-test-smoke`가 이 path-policy + release/reuse contract를 검사한다
     - 남음: file descriptor 외 runtime-owned handle ownership도 같은 수준의 smoke/문서 계약으로 확장해야 한다
   - 주의: 반환 계약이 있는 expression string은 아직 arena로 옮기지 않음
   - 주의: `slot_ref_expr(...)` scratch 전환 시도는 되돌림. 반환 ownership 경계를 먼저 나눠야 함

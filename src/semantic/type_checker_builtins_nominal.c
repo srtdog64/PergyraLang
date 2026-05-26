@@ -100,6 +100,12 @@ type_check_builtin_call(ASTNode *call, BuiltinKind kind, SemanticContext *ctx)
         return type_check_has_zone_state_builtin(call, ctx);
     case BUILTIN_PARALLEL:
         return TYPE_VOID;
+    case BUILTIN_FILE_EXISTS:
+        if (check_call_arity(call, 1, "FileExists", ctx)) {
+            require_assignable(type_check_expression(ast_call_argument(call, 0), ctx),
+                TYPE_STRING, ast_call_argument(call, 0), ctx);
+        }
+        return TYPE_BOOL;
     case BUILTIN_FILE_OPEN:
         if (check_call_arity(call, 2, "FileOpen", ctx)) {
             require_assignable(type_check_expression(ast_call_argument(call, 0), ctx),

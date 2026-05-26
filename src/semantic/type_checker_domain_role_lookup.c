@@ -111,7 +111,7 @@ any_subject_role_has_ability(SemanticContext *ctx, ASTNode *ability_ref)
         if (!decl_is_subject_host(type_decl))
             continue;
 
-        if (role_decl_has_ability(stmt, program, ability_ref, 0))
+        if (semantic_role_decl_has_ability(ctx, stmt, ability_ref))
             return true;
     }
 

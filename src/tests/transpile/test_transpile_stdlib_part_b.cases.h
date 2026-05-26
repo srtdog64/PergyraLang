@@ -64,6 +64,26 @@ test_stdlib_and_enum_emit(void)
         transpiler_ctx_destroy(ctx);
     }
 
+    TEST("StringIndexOf maps to runtime helper");
+    {
+        ASTNode *args[2] = { make_string_lit("hello", 1), make_string_lit("ell", 1) };
+        ASTNode *call = make_call("StringIndexOf", args, 2, 1);
+        ASTNode *node = make_let("idx", make_type_node("Int"), call, 1);
+        const char *out = emit_stmt_to_str(node, &ctx);
+        EXPECT_STR_CONTAINS(out, "StringIndexOf(\"hello\", \"ell\")");
+        transpiler_ctx_destroy(ctx);
+    }
+
+    TEST("FileExists maps to runtime helper");
+    {
+        ASTNode *args[1] = { make_string_lit("io.txt", 1) };
+        ASTNode *call = make_call("FileExists", args, 1, 1);
+        ASTNode *node = make_let("ok", make_type_node("Bool"), call, 1);
+        const char *out = emit_stmt_to_str(node, &ctx);
+        EXPECT_STR_CONTAINS(out, "pgy_file_exists(\"io.txt\")");
+        transpiler_ctx_destroy(ctx);
+    }
+
     TEST("Set built-ins map to runtime helpers");
     {
         const char *source =

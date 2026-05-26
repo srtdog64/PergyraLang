@@ -110,6 +110,17 @@ stdlib_scalar_check_string_contains(ASTNode *expr, const char *name,
 }
 
 static Type *
+stdlib_scalar_check_string_index_of(ASTNode *expr, const char *name,
+                                    SemanticContext *ctx)
+{
+    if (!check_call_arity(expr, 2, name, ctx))
+        return TYPE_UNKNOWN;
+    stdlib_scalar_require_string_arg(expr, 0, ctx);
+    stdlib_scalar_require_string_arg(expr, 1, ctx);
+    return TYPE_INT;
+}
+
+static Type *
 stdlib_scalar_check_string_replace(ASTNode *expr, const char *name,
                                    SemanticContext *ctx)
 {
@@ -263,6 +274,16 @@ stdlib_scalar_check_seed_random(ASTNode *expr, const char *name,
     return TYPE_VOID;
 }
 
+static Type *
+stdlib_scalar_check_exit(ASTNode *expr, const char *name, SemanticContext *ctx)
+{
+    if (!check_call_arity(expr, 1, name, ctx))
+        return TYPE_UNKNOWN;
+    require_assignable(type_check_expression(ast_call_argument(expr, 0), ctx),
+        TYPE_INT, ast_call_argument(expr, 0), ctx);
+    return TYPE_VOID;
+}
+
 static const StdlibScalarSpec stdlib_scalar_specs[] = {
     { "Abs", stdlib_scalar_check_abs },
     { "Acos", stdlib_scalar_check_math_unary_float },
@@ -275,6 +296,7 @@ static const StdlibScalarSpec stdlib_scalar_specs[] = {
     { "Contains", stdlib_scalar_check_string_contains },
     { "Cos", stdlib_scalar_check_math_unary_float },
     { "E", stdlib_scalar_check_float_const },
+    { "Exit", stdlib_scalar_check_exit },
     { "Exp", stdlib_scalar_check_math_unary_float },
     { "Floor", stdlib_scalar_check_math_unary_float },
     { "Join", stdlib_scalar_check_string_join },
@@ -295,6 +317,7 @@ static const StdlibScalarSpec stdlib_scalar_specs[] = {
     { "Sqrt", stdlib_scalar_check_math_unary_float },
     { "StringConcat", stdlib_scalar_check_string_concat },
     { "StringContains", stdlib_scalar_check_string_contains },
+    { "StringIndexOf", stdlib_scalar_check_string_index_of },
     { "StringJoin", stdlib_scalar_check_string_join },
     { "StringLength", stdlib_scalar_check_string_length },
     { "StringReplace", stdlib_scalar_check_string_replace },

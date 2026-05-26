@@ -54,6 +54,53 @@ if grep -RIn --include='*.c' --include='*.h' 'domain_resolve_type_ref(' src/sema
   exit 1
 fi
 
+: >"$bad_direct"
+{ grep -RIn 'find_domain_decl_by_name(' src/semantic || true; } | while IFS=: read -r path line text; do
+  [ -n "$path" ] || continue
+  if [ "$path" = "src/semantic/type_checker_decls_domain_helpers.c" ] ||
+     [ "$path" = "src/semantic/type_checker_host_helpers.c" ] ||
+     [ "$path" = "src/semantic/type_checker_internal.h" ]; then
+    continue
+  fi
+  printf '%s:%s: %s\n' "$path" "$line" "$text" >>"$bad_direct"
+done
+
+if [ -s "$bad_direct" ]; then
+  echo "[type-resolution-resolver-inventory] broad domain declaration lookup escaped its owner seam:" >&2
+  cat "$bad_direct" >&2
+  echo "Use semantic_find_*_decl_by_name(...) or an intent/zone/world owner seam instead of reopening find_domain_decl_by_name(...)." >&2
+  exit 1
+fi
+
+if grep -q 'ASTNode \*program' src/semantic/type_checker_ability_match_internal.h; then
+  echo "[type-resolution-resolver-inventory] ability matching header re-exposed program-root based helpers" >&2
+  exit 1
+fi
+
+if grep -RIn 'role_decl_has_ability(' src/semantic \
+  | grep -v 'semantic_role_decl_has_ability' \
+  | grep -v 'role_decl_has_ability_rec' >"$bad_direct"; then
+  echo "[type-resolution-resolver-inventory] role ability matching reopened a program-root helper:" >&2
+  cat "$bad_direct" >&2
+  echo "Use semantic_role_decl_has_ability(...) so declaration lookup stays behind SemanticContext owner seams." >&2
+  exit 1
+fi
+
+if grep -RIn 'ability_ref_matches(' src/semantic \
+  | grep -v 'semantic_ability_ref_matches' >"$bad_direct"; then
+  echo "[type-resolution-resolver-inventory] ability matching reopened a raw program-root ability-ref helper:" >&2
+  cat "$bad_direct" >&2
+  echo "Use the SemanticContext-backed ability matcher owner seam instead." >&2
+  exit 1
+fi
+
+if grep -RIn 'resolve_projection_source_field_path(ASTNode' src/semantic >"$bad_direct"; then
+  echo "[type-resolution-resolver-inventory] projection path resolver re-exposed a program-root API:" >&2
+  cat "$bad_direct" >&2
+  echo "Use semantic_resolve_projection_source_field_path(...) so projection lookup stays behind SemanticContext/metadata seams." >&2
+  exit 1
+fi
+
 if [ -e src/semantic/type_checker_resolve.c ] || [ -e src/semantic/type_checker_resolve.h ]; then
   echo "[type-resolution-resolver-inventory] obsolete type_checker_resolve compatibility owner reappeared" >&2
   exit 1
@@ -91,12 +138,10 @@ grep -RIn 'semantic_type_resolution_resolve_or_fallback' src/semantic \
 
 while IFS=: read -r path line text; do
   [ -n "$path" ] || continue
-  case "$path" in
-    src/semantic/type_checker_program.c|\
-    src/semantic/type_checker_resolution_metadata.c)
-      continue
-      ;;
-  esac
+  if [ "$path" = "src/semantic/type_checker_program.c" ] ||
+     [ "$path" = "src/semantic/type_checker_resolution_metadata.c" ]; then
+    continue
+  fi
   printf '%s:%s: %s\n' "$path" "$line" "$text" >>"$bad_fallback"
 done <"$fallback_matches"
 

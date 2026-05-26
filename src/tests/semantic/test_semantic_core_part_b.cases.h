@@ -518,6 +518,15 @@ test_stdlib_and_io(void)
         semantic_context_destroy(ctx);
     }
 
+    TEST("StringIndexOf returns Int with valid args");
+    {
+        SemanticContext *ctx = semantic_context_create();
+        ASTNode *args[2] = { make_string("hello", 1), make_string("ell", 1) };
+        Type *t = type_check_expression(make_call("StringIndexOf", args, 2, 1), ctx);
+        EXPECT(!ctx->has_error && type_equals(t, TYPE_INT));
+        semantic_context_destroy(ctx);
+    }
+
     TEST("ArrayLength requires Array<T>");
     {
         SemanticContext *ctx = semantic_context_create();
@@ -533,6 +542,15 @@ test_stdlib_and_io(void)
         ASTNode *args[1] = { make_number(1, 1) };
         type_check_expression(make_call("ReadFile", args, 1, 1), ctx);
         EXPECT(ctx->has_error);
+        semantic_context_destroy(ctx);
+    }
+
+    TEST("FileExists returns Bool for String path");
+    {
+        SemanticContext *ctx = semantic_context_create();
+        ASTNode *args[1] = { make_string("input.txt", 1) };
+        Type *t = type_check_expression(make_call("FileExists", args, 1, 1), ctx);
+        EXPECT(!ctx->has_error && type_equals(t, TYPE_BOOL));
         semantic_context_destroy(ctx);
     }
 

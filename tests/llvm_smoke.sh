@@ -161,11 +161,12 @@ func Main() -> Void {
     Log(StringLength(s));
     Log(Contains(s, "HI"));
     WriteFile("io.txt", Replace(s, "HI", "BYE"));
+    Log(FileExists("io.txt"));
     let out: String = ReadFile("io.txt");
     Log(out);
 }
 EOF
-run_case "string_io" "$TMPDIR/string_io.pgy" "8" "true" "BYE there"
+run_case "string_io" "$TMPDIR/string_io.pgy" "8" "true" "true" "BYE there"
 
 cat > "$TMPDIR/math.pgy" <<'EOF'
 namespace Math {
