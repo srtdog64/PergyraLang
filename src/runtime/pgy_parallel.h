@@ -399,6 +399,7 @@ pgy_await(PgyTaskHandle handle)
     if (header == NULL)
         return NULL;
 
+#if PGY_COROUTINES_AVAILABLE
     if (header->model == PGY_TASK_MODEL_COROUTINE) {
         PgyCoroTask *task = (PgyCoroTask *)handle.task;
         if (pgy_async_in_coroutine()) {
@@ -423,6 +424,7 @@ pgy_await(PgyTaskHandle handle)
         pgy_coro_destroy(task);
         return result;
     }
+#endif
 
     PgyTask *task = (PgyTask *)handle.task;
     pthread_mutex_lock(&task->mutex);

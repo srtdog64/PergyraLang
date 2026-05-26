@@ -11,7 +11,13 @@
  * Cooperative coroutine runtime for `spawn/await/async`
  * ================================================================= */
 
+#ifndef PGY_COROUTINES_AVAILABLE
+#ifdef __APPLE__
+#define PGY_COROUTINES_AVAILABLE 0
+#else
 #define PGY_COROUTINES_AVAILABLE 1
+#endif
+#endif
 
 #if PGY_COROUTINES_AVAILABLE
 
@@ -299,6 +305,48 @@ pgy_async_task_done(void *raw)
 {
     PgyCoroTask *task = (PgyCoroTask *)raw;
     return task == NULL || task->done;
+}
+#else
+static inline PgyCancelNode *
+pgy_current_cancel_node(void)
+{
+    return g_pgy_thread_current != NULL ? g_pgy_thread_current->cancel_node : NULL;
+}
+
+static inline PgyTaskHandle
+pgy_async_spawn(void *(*fn)(void *), void *arg)
+{
+    return pgy_spawn(fn, arg);
+}
+
+static inline bool
+pgy_async_progress_one(void)
+{
+    return false;
+}
+
+static inline void
+pgy_async_progress_until(bool (*predicate)(void *), void *arg)
+{
+    (void)predicate;
+    (void)arg;
+}
+
+static inline bool
+pgy_async_in_coroutine(void)
+{
+    return false;
+}
+
+static inline void
+pgy_async_yield(void)
+{
+}
+
+static inline void
+pgy_async_detach(PgyTaskHandle handle)
+{
+    (void)handle;
 }
 #endif /* PGY_COROUTINES_AVAILABLE */
 
