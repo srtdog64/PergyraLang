@@ -105,14 +105,14 @@ check_json() {
         return 0
     fi
     "$PY_BIN" - "$file" "$label" "$expect_expr" <<'PY'
-import json, sys
+import json, re, sys
 path, label, expr = sys.argv[1], sys.argv[2], sys.argv[3]
 with open(path, "r", encoding="utf-8") as fh:
     raw = fh.read().strip()
-start = raw.find("[")
+match = re.search(r"\[\s*(?:\{|\])", raw)
 end = raw.rfind("]")
-if start > 0 and end >= start:
-    raw = raw[start:end + 1]
+if match and end >= match.start():
+    raw = raw[match.start():end + 1]
 try:
     data = json.loads(raw)
 except json.JSONDecodeError as e:
