@@ -43,7 +43,7 @@ validate_utf8_file() {
     local rel="${path#"$ROOT_DIR/"}"
 
     if command -v iconv >/dev/null 2>&1; then
-        iconv -f UTF-8 -t UTF-8 "$path" >/dev/null || fail "$rel is not valid UTF-8"
+        iconv -f UTF-8 -t UTF-8 <"$path" >/dev/null || fail "$rel is not valid UTF-8"
     fi
     if LC_ALL=C grep -q $'\357\277\275' "$path"; then
         fail "$rel contains Unicode replacement characters"

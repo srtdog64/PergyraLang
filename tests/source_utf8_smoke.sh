@@ -69,7 +69,7 @@ fi
 
 while IFS= read -r -d '' path; do
     rel="${path#"$ROOT_DIR/"}"
-    iconv -f UTF-8 -t UTF-8 "$path" >/dev/null \
+    iconv -f UTF-8 -t UTF-8 <"$path" >/dev/null \
         || fail "$rel is not valid UTF-8"
     if LC_ALL=C grep -q $'\357\277\275' "$path"; then
         fail "$rel contains Unicode replacement characters"
