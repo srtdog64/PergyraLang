@@ -109,6 +109,10 @@ import json, sys
 path, label, expr = sys.argv[1], sys.argv[2], sys.argv[3]
 with open(path, "r", encoding="utf-8") as fh:
     raw = fh.read().strip()
+start = raw.find("[")
+end = raw.rfind("]")
+if start > 0 and end >= start:
+    raw = raw[start:end + 1]
 try:
     data = json.loads(raw)
 except json.JSONDecodeError as e:
