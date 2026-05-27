@@ -12,6 +12,7 @@
 #include "transpiler_symbols.h"
 #include "transpiler_type_mapping.h"
 #include "transpiler_type_render.h"
+#include "transpiler_type_require.h"
 
 static bool
 transpiler_let_slot_constructed_type_name(char *out, size_t out_size,
@@ -269,7 +270,8 @@ transpiler_try_emit_let_slot_view_or_move(TranspilerCtx *ctx,
             *ann_type_name_io = NULL;
             return true;
         }
-        if (pergyra_type_to_c_copy(secure_name, ctype_buf, sizeof(ctype_buf)))
+        if (transpiler_require_type_name_c_type_copy(ctx, secure_name,
+                "secure slot view declaration", ctype_buf, sizeof(ctype_buf)))
             ctype = ctype_buf;
     } else {
         char slot_name_buf[128];
@@ -280,7 +282,8 @@ transpiler_try_emit_let_slot_view_or_move(TranspilerCtx *ctx,
             *ann_type_name_io = NULL;
             return true;
         }
-        if (pergyra_type_to_c_copy(slot_name_buf, ctype_buf, sizeof(ctype_buf)))
+        if (transpiler_require_type_name_c_type_copy(ctx, slot_name_buf,
+                "slot view declaration", ctype_buf, sizeof(ctype_buf)))
             ctype = ctype_buf;
     }
     if (ctype == NULL) {

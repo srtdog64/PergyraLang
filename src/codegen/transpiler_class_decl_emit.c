@@ -229,7 +229,8 @@ emit_class_decl(ASTNode *node, TranspilerCtx *ctx)
                 return;
             }
             {
-                char *ptn = (p->type != NULL) ? render_type_name(p->type) : NULL;
+                char *ptn = (p->type != NULL)
+                    ? render_type_name_in_ctx(ctx, p->type) : NULL;
                 bool subj_param = ptn != NULL
                     && is_pointer_self_host_type_name(ctx, ptn);
                 if (subj_param)

@@ -11,6 +11,7 @@
 #include "transpiler_expr_type_infer.h"
 #include "transpiler_format.h"
 #include "transpiler_type_mapping.h"
+#include "transpiler_type_require.h"
 
 static ASTNode *
 transpiler_mir_find_match_subject_for_case(ASTNode *node, ASTNode *case_node)
@@ -251,7 +252,8 @@ transpiler_mir_emit_match_payload_binding(CodeBuf *buf,
 
     {
         char payload_c_type_buf[256];
-        if (!pergyra_type_to_c_copy(payload_type, payload_c_type_buf,
+        if (!transpiler_require_type_name_c_type_copy(ctx, payload_type,
+                "MIR match payload", payload_c_type_buf,
                 sizeof(payload_c_type_buf))) {
             transpiler_set_backend_error_with_hints(ctx,
                 PGY_CODE_C_TYPE_UNSUPPORTED,

@@ -103,7 +103,9 @@ emit_intent_step_rebind_bound_zone_aliases_with_metadata(CodeBuf *out,
         }
 
         participant_c_type = NULL;
-        if (pergyra_type_to_c_copy(participant_type, participant_c_type_buf,
+        if (transpiler_require_type_name_c_type_copy(ctx, participant_type,
+                "intent step participant metadata",
+                participant_c_type_buf,
                 sizeof(participant_c_type_buf))) {
             participant_c_type = participant_c_type_buf;
         }

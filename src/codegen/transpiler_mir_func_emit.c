@@ -28,6 +28,7 @@
 #include "transpiler_mir_ssa_utils.h"
 #include "transpiler_mir_terminator_emit.h"
 #include "transpiler_specialization_registry.h"
+#include "transpiler_type_require.h"
 #include "transpiler_symbols.h"
 #include "transpiler_type_declarator.h"
 #include "transpiler_type_render.h"
@@ -73,7 +74,9 @@ emit_func_decl_from_mir_named(ASTNode *node, const MIRRoutine *mir_routine,
             owner_role_subject_name =
                 transpiler_role_subject_name_local(ctx, owner_name);
             if (owner_role_subject_name != NULL)
-                if (pergyra_type_to_c_copy(owner_role_subject_name,
+                if (transpiler_require_type_name_c_type_copy(ctx,
+                        owner_role_subject_name,
+                        "MIR role owner subject",
                         owner_role_subject_c_type_buf,
                         sizeof(owner_role_subject_c_type_buf))) {
                     owner_role_subject_c_type = owner_role_subject_c_type_buf;

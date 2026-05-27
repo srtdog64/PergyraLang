@@ -17,8 +17,9 @@
 #include "transpiler_generic_param_query.h"
 #include "transpiler_generic_specialization_emit.h"
 #include "transpiler_symbols.h"
-#include "transpiler_type_render.h"
 #include "transpiler_type_mapping.h"
+#include "transpiler_type_render.h"
+#include "transpiler_type_require.h"
 
 char *
 emit_spawn_expr(ASTNode *node, TranspilerCtx *ctx)
@@ -41,7 +42,8 @@ emit_spawn_expr(ASTNode *node, TranspilerCtx *ctx)
     GenericBindingEntry bindings[MAX_GENERIC_BINDINGS];
     size_t binding_count = 0;
 
-    if (pergyra_type_to_c_copy(return_type_name, return_c_type_buf,
+    if (transpiler_require_type_name_c_type_copy(ctx, return_type_name,
+            "spawn return metadata", return_c_type_buf,
             sizeof(return_c_type_buf))) {
         return_c_type = return_c_type_buf;
     }
@@ -107,14 +109,13 @@ emit_spawn_expr(ASTNode *node, TranspilerCtx *ctx)
                     char *bound_type =
                         transpiler_render_type_name_with_bindings(ctx,
                         param->type, bindings, binding_count);
-                    if (pergyra_type_to_c_copy(bound_type, arg_type_buf,
-                            sizeof(arg_type_buf))) {
-                        arg_type = arg_type_buf;
-                    }
                     if (bound_type == NULL || bound_type[0] == '\0'
                         || strcmp(bound_type, "Unknown") == 0
-                        || arg_type == NULL || arg_type[0] == '\0'
-                        || strcmp(arg_type, "Unknown") == 0) {
+                        || !transpiler_require_type_name_c_type_copy(ctx,
+                            bound_type,
+                            "spawn wrapper generic argument",
+                            arg_type_buf,
+                            sizeof(arg_type_buf))) {
                         transpiler_set_backend_error_with_hints(ctx,
                             PGY_CODE_C_TYPE_UNSUPPORTED,
                             PGY_CAUSE_C_TYPE_UNSUPPORTED,
@@ -125,6 +126,7 @@ emit_spawn_expr(ASTNode *node, TranspilerCtx *ctx)
                         free(bound_type);
                         return pergyra_strdup("pgy_async_spawn(NULL, NULL)");
                     }
+                    arg_type = arg_type_buf;
                     codebuf_write(ctx->decls, "    %s arg%zu;\n", arg_type, i);
                     free(bound_type);
                     continue;
@@ -138,7 +140,11 @@ emit_spawn_expr(ASTNode *node, TranspilerCtx *ctx)
             } else if (call != NULL) {
                 const char *inferred_arg_type = infer_expression_type_name(
                     ctx, ast_call_argument(call, i));
-                if (pergyra_type_to_c_copy(inferred_arg_type, arg_type_buf,
+                if (inferred_arg_type != NULL
+                    && transpiler_require_type_name_c_type_copy(ctx,
+                        inferred_arg_type,
+                        "spawn wrapper inferred argument",
+                        arg_type_buf,
                         sizeof(arg_type_buf))) {
                     arg_type = arg_type_buf;
                 }

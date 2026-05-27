@@ -9,6 +9,7 @@
 #include "transpiler_format.h"
 #include "transpiler_symbols.h"
 #include "transpiler_type_render.h"
+#include "transpiler_type_require.h"
 
 #include "../common/string_compat.h"
 #include "../parser/ast_api.h"
@@ -172,7 +173,9 @@ emit_lambda_expr(ASTNode *node, TranspilerCtx *ctx)
         const char *inferred_return_type =
             transpiler_expr_infer_type_name(ctx, lambda_body);
         if (inferred_return_type != NULL
-            && pergyra_type_to_c_copy(inferred_return_type,
+            && transpiler_require_type_name_c_type_copy(ctx,
+                inferred_return_type,
+                "lambda inferred return",
                 inferred_return_c_type_buf,
                 sizeof(inferred_return_c_type_buf))) {
             return_type = inferred_return_c_type_buf;

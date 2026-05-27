@@ -55,7 +55,7 @@ build_ability_ref_bindings(ASTNode *ability_decl,
         if (actual_type == NULL)
             continue;
 
-        rendered = render_type_name(actual_type);
+        rendered = render_type_name_in_ctx(ctx, actual_type);
         if (rendered == NULL) {
             transpiler_set_backend_error_with_hints(ctx,
                 PGY_CODE_C_TYPE_UNSUPPORTED,
@@ -134,7 +134,7 @@ render_effective_ability_ref_vtable_tag(ASTNode *ability_decl,
         rendered = pergyra_strdup(buf->data);
         codebuf_destroy(buf);
     } else {
-        rendered = render_type_name(ability_ref);
+        rendered = render_type_name_in_ctx(ctx, ability_ref);
     }
 
     if (rendered == NULL)
@@ -279,7 +279,8 @@ ensure_ability_ref_vtable_decl(ASTNode *ability_ref, TranspilerCtx *ctx)
         if (ast_func_return_type(method) != NULL) {
             ret_name = transpiler_render_type_name_with_bindings(ctx,
                 ast_func_return_type(method), bindings, binding_count);
-            if (pergyra_type_to_c_copy(ret_name, ret_type_buf,
+            if (transpiler_require_type_name_c_type_copy(ctx, ret_name,
+                    "ability vtable return", ret_type_buf,
                     sizeof(ret_type_buf))) {
                 ret_type = ret_type_buf;
             }

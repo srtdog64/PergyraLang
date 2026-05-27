@@ -26,6 +26,7 @@
 #include "transpiler_role_ability_helpers.h"
 #include "transpiler_symbols.h"
 #include "transpiler_type_mapping.h"
+#include "transpiler_type_require.h"
 #include "transpiler_type_render.h"
 
 char *
@@ -130,7 +131,7 @@ emit_call_member_style(ASTNode *call, ASTNode *callee, TranspilerCtx *ctx)
                         if (param_index < ast_func_param_count(method_decl)) {
                             FuncParam *param = ast_func_param(method_decl, param_index);
                             char *ptn = (param != NULL && param->type != NULL)
-                                ? render_type_name(param->type)
+                                ? render_type_name_in_ctx(ctx, param->type)
                                 : NULL;
                             if (ptn != NULL && is_pointer_self_host_type_name(ctx, ptn))
                                 pass_by_ptr = true;
@@ -231,7 +232,7 @@ emit_call_member_style(ASTNode *call, ASTNode *callee, TranspilerCtx *ctx)
                         const char *suffix = post_sync != NULL ? post_sync : "";
 
                         if (ast_func_return_type(method_decl) != NULL)
-                            ret_type_name = render_type_name(
+                            ret_type_name = render_type_name_in_ctx(ctx,
                                 ast_func_return_type(method_decl));
 
                         if (ret_type_name != NULL
@@ -239,7 +240,9 @@ emit_call_member_style(ASTNode *call, ASTNode *callee, TranspilerCtx *ctx)
                             char ret_c_type_buf[256];
                             const char *ret_c_type = NULL;
                             int tmp_id = ++ctx->tmp_counter;
-                            if (pergyra_type_to_c_copy(ret_type_name,
+                            if (transpiler_require_type_name_c_type_copy(
+                                    ctx, ret_type_name,
+                                    "method call post-sync return",
                                     ret_c_type_buf, sizeof(ret_c_type_buf))) {
                                 ret_c_type = ret_c_type_buf;
                             }

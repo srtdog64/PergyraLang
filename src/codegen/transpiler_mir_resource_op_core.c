@@ -10,6 +10,7 @@
 #include "transpiler_mir_ssa_map.h"
 #include "transpiler_symbols.h"
 #include "transpiler_type_mapping.h"
+#include "transpiler_type_require.h"
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -139,7 +140,8 @@ transpiler_emit_mir_resource_op(TranspilerCtx *ctx,
         }
         if (inner_name != NULL) {
             char inner_c_buf[128];
-            if (pergyra_type_to_c_copy(inner_name, inner_c_buf,
+            if (transpiler_require_type_name_c_type_copy(ctx, inner_name,
+                    "MIR resource operation payload", inner_c_buf,
                     sizeof(inner_c_buf))) {
                 inner_c = inner_c_buf;
             }

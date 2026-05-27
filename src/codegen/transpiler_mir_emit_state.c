@@ -134,7 +134,7 @@ transpiler_emit_host_method_body_local(TranspilerCtx *ctx, ASTNode *host_decl,
             || p->type == NULL)
             continue;
 
-        type_name = render_type_name(p->type);
+        type_name = render_type_name_in_ctx(ctx, p->type);
         if (type_name != NULL) {
             register_typed_var(ctx, p->name, type_name);
             if (mark_subject_ref_params

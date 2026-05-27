@@ -88,7 +88,8 @@ transpiler_generic_class_format_too_long(TranspilerCtx *ctx,
 }
 
 char *
-transpiler_generic_class_specialization_name(ASTNode *class_decl,
+transpiler_generic_class_specialization_name(TranspilerCtx *ctx,
+                                             ASTNode *class_decl,
                                              ASTNode *ann,
                                              bool *has_effective_args)
 {
@@ -119,7 +120,8 @@ transpiler_generic_class_specialization_name(ASTNode *class_decl,
         GenericParam *formal = ast_generic_param_at(gp, i);
         GenericParam *garg = ast_generic_param_at(ga, i);
         char *effective_name =
-            transpiler_generic_param_effective_arg_name(formal, garg);
+            transpiler_generic_param_effective_arg_name_in_ctx(
+                ctx, formal, garg);
         if (effective_name == NULL) {
             if (has_effective_args != NULL)
                 *has_effective_args = false;

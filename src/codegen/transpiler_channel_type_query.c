@@ -45,7 +45,7 @@ transpiler_channel_resolve_inner_type(TranspilerCtx *ctx,
             && ast_type_alias_target_type(alias_decl) != NULL) {
             ASTNode *target = resolve_type_alias_target(ctx,
                 ast_type_alias_target_type(alias_decl));
-            char *rendered = render_type_name(target);
+            char *rendered = render_type_name_in_ctx(ctx, target);
             if (rendered != NULL) {
                 bool copied = pergyra_str_copy(resolved_buf,
                     sizeof(resolved_buf), rendered);

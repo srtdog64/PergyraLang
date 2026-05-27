@@ -16,6 +16,7 @@
 #include "transpiler_mir_ssa_utils.h"
 #include "transpiler_specialization_registry.h"
 #include "transpiler_symbols.h"
+#include "transpiler_type_require.h"
 #include "transpiler_type_result_mapping_helpers.h"
 
 bool
@@ -268,8 +269,9 @@ transpiler_emit_mir_source_local_let_def_inst(
             return TRANSPILE_MIR_LOCAL_LET_FAILED;
         }
 
-        if (!pergyra_type_to_c_copy(result_type, result_c_type_buf,
-                                    sizeof(result_c_type_buf))) {
+        if (!transpiler_require_type_name_c_type_copy(ctx, result_type,
+                "MIR preserved try operand Result", result_c_type_buf,
+                sizeof(result_c_type_buf))) {
             free(lhs);
             free(local_type_name_owned);
             if (reason != NULL && reason_cap > 0) {

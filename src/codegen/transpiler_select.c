@@ -11,6 +11,7 @@
 #include "transpiler.h"
 #include "transpiler_channel_type_query.h"
 #include "transpiler_context.h"
+#include "transpiler_type_require.h"
 #include "../parser/ast_api.h"
 #include "../semantic/diag_codes.h"
 
@@ -157,7 +158,8 @@ emit_select_stmt(ASTNode *node, TranspilerCtx *ctx)
         {
             char inner_c_type_buf[256];
             const char *inner_c_type = NULL;
-            if (pergyra_type_to_c_copy(inner, inner_c_type_buf,
+            if (transpiler_require_type_name_c_type_copy(ctx, inner,
+                    "select receive payload", inner_c_type_buf,
                     sizeof(inner_c_type_buf))) {
                 inner_c_type = inner_c_type_buf;
             }
@@ -220,8 +222,9 @@ emit_select_stmt(ASTNode *node, TranspilerCtx *ctx)
                     if (bind_name != NULL) {
                         char inner_c_type_buf[256];
                         const char *inner_c_type = NULL;
-                        if (pergyra_type_to_c_copy(inner, inner_c_type_buf,
-                                sizeof(inner_c_type_buf))) {
+                        if (transpiler_require_type_name_c_type_copy(ctx,
+                                inner, "select bound receive payload",
+                                inner_c_type_buf, sizeof(inner_c_type_buf))) {
                             inner_c_type = inner_c_type_buf;
                         }
                         if (inner_c_type == NULL) {

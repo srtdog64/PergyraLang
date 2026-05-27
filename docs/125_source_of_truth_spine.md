@@ -98,6 +98,19 @@ Current beta closure snapshot:
   only to emit already-lowered runtime synchronization code. Direct
   `find_zone_decl`, `find_world_decl`, `find_relation_decl`, and
   `find_effect_decl` calls are confined to the declaration lookup owner.
+- C backend C-type lowering diagnostics live behind
+  `transpiler_require_ast_c_type_copy(...)` and
+  `transpiler_require_type_name_c_type_copy(...)` when a `TranspilerCtx` is
+  available. Backend owners may still call lower-level copy functions inside
+  type-mapping/type-render owners or deliberately local caller-owned-buffer
+  paths, but they must not silently convert an unsupported source type into an
+  `Unknown` emitted C type. Specialized diagnostics remain closer to the source
+  surface: an empty array literal without `Array<T>` annotation, for example,
+  must emit the annotation fix before the generic C-type requirement helper is
+  allowed to run. Result/tuple specialization fallback preserves user-type names
+  through `transpiler_copy_c_type_or_user_type_name(...)`, keeping that policy
+  behind the type-require owner instead of reopening raw type mapping in the
+  specialization registry.
 - party-slot ability tag selection lives in
   `src/codegen/transpiler_role_ability.c`. Bind emission and member-call
   emission may consume `transpiler_party_slot_first_ability_tag(...)` or
@@ -235,7 +248,7 @@ keep the source-level business vocabulary clean.
 | Role declaration lookup | `semantic_find_role_decl_by_name(...)` / `semantic_find_next_role_decl_for_type_name(...)` | Ability matching, bind validation, operator overload lookup, role declaration validation | Public raw `semantic_find_role_decl(ASTNode *program, ...)` |
 | Projection source field path | `semantic_resolve_projection_source_field_path(...)` | Projection diagnostics, zone graph metadata, DAG projection materialization | Re-exposing `resolve_projection_source_field_path(ASTNode *program_root, ...)` or local class lookup |
 | Stdlib use declaration validation | `SemanticContext.stdlib_use_module_*` inventory in `type_checker_stdlib_use.c` | Duplicate `use` warnings, stdlib surface validation | Re-scanning `ctx->program_root` from the stdlib-use consumer |
-| Ref-parameter escape compatibility | `semantic_callable_param_escape_summary(...)` call-contract owner seam; it may still consume legacy AST summaries internally until CFG/MIR facts replace that implementation | Ownership call checks, function param summary checks | Re-exposing `semantic_legacy_ast_callable_param_escape_summary(...)` or making ownership consumers call the slot analyzer directly |
+| Ref-parameter escape compatibility | `semantic_callable_param_escape_summary(...)` call-contract owner seam; it may still consume legacy AST summaries internally until CFG/MIR facts replace that implementation, and escaping refs must aggregate into `BODY_SUMMARY_MAY_ESCAPE_REF` | Ownership call checks, function param summary checks, transitive callee body summaries | Re-exposing `semantic_legacy_ast_callable_param_escape_summary(...)`, making ownership consumers call the slot analyzer directly, or dropping the body-summary aggregation |
 | Party bind statement validity | `type_checker_bind_stmt.c` | CFG/body flow, C backend bind emit, LLVM bind emit | Backend-only bind validation or silent LLVM bind skips |
 | Intent step domain declaration recovery | `type_checker_intent_types.c` intent domain owner seam | Intent step validation, derived using, step causes checks, participant transfer-source checks, transfer contract checks | Consumers reopening `AST_ZONE_DECL` / `AST_EFFECT_DECL` lookup locally |
 | Resource/authority/effect propagation | RIR | AIR, runtime/codegen policy emitters | AIR or backend inventing authority/resource facts |
@@ -584,10 +597,20 @@ signature policy.
 
 C backend type-name inference follows the same context rule. Expression type
 inference, MIR local type lookup, Future/RemoteFuture return inference,
-slot-let inner type extraction, MIR effective local type rendering, and MIR
-local binding discovery must use `render_type_name_in_ctx(...)` whenever a
-`TranspilerCtx` is available; the non-context `render_type_name(...)` wrapper is
-compatibility surface for immediate-use owner-local code only.
+slot-let/Box/Rc inner type extraction, annotated let registration, MIR
+effective/local state rendering, MIR local binding discovery, generic
+parameter/class specialization naming, class/subject pointer-self argument
+policy, user/member call parameter-return policy, intent
+prologue participant/value typing, ability vtable specialization, party/role
+ability-tag rendering, type-specialization registry naming, and constructed
+stdlib/channel/collection alias resolution must use
+`render_type_name_in_ctx(...)` whenever a `TranspilerCtx` is available; the
+non-context `render_type_name(...)` wrapper is compatibility surface for
+immediate-use owner-local code only. `build-source-inventory-test-smoke`
+therefore rejects non-context `render_type_name(...)` across `src/codegen`
+outside `transpiler_type_render` / declaration headers. Generic binding
+rendering is context-required and no longer falls back through the legacy
+non-context renderer.
 
 Result specialization and `let` lowering are recursive-emission boundaries too.
 If a C type name is needed after storing another rendered type or after calling
@@ -891,12 +914,13 @@ owner it strengthens, and the gate that proves drift did not occur, defer it.
 
 ## 5b. C Type Rendering Lifetime Rule
 
-`pergyra_type_to_c(...)` remains a compatibility API that may return static
-storage. New code must not keep that pointer across another type-rendering or
-generic-inner-name call. If the rendered C type is stored, passed through a
-later emission path, or reused after a `slot_inner_type_name(...)`/generic
-lookup call, the owner must copy it through `pergyra_type_to_c_copy(...)` or an
-arena-owned equivalent.
+The C type-name mapping layer is copy-first. New code must not keep any
+rendered type pointer across another type-rendering or generic-inner-name call.
+If the rendered C type is stored, passed through a later emission path, or reused
+after a `slot_inner_type_name(...)`/generic lookup call, the owner must lower it
+through `transpiler_require_type_name_c_type_copy(...)` when a `TranspilerCtx` is
+available, or through a tightly scoped caller-owned compatibility copy inside a
+wrapper/source-of-truth owner.
 
 Current closed slices:
 
@@ -913,13 +937,17 @@ Current closed slices:
 - Channel receive builtins (`TryRecv`, `RecvTimeout`) copy the rendered payload
   C type before formatting their expression templates.
 - Let lowering, inferred let bindings, Result/collection specialization, and
-  tuple literal emission use `pergyra_type_to_c_copy(...)` for rendered types
-  that outlive the immediate mapping expression.
+  tuple literal emission use caller-owned C-type buffers through the
+  `transpiler_require_type_name_c_type_copy(...)` requirement path for rendered
+  types that outlive the immediate mapping expression.
 - Match subject/payload lowering, MIR match payload lowering, select receive
   bindings, spawn wrappers, inferred lambda returns, view-like slot
-  declarations, MIR SSA local declarations, role ability vtable returns,
-  post-sync call wrappers, await lowering, MIR role-host receiver lowering,
-  intent zone participant rebinding, and tuple destructuring element
+  declarations, tuple literal layouts, Some/Ok/Err match payload bindings,
+  await Future/RemoteFuture result lowering, MIR SSA local declarations, MIR
+  role-owner subject receivers, MIR for-in element binding, MIR preserved try
+  Result operands, role ability vtable returns, post-sync call wrappers, await
+  lowering, MIR role-host receiver lowering, intent zone participant rebinding
+  and metadata rebinding, and tuple destructuring element
   declarations also consume caller-owned C type buffers.
 - Await lowering consumes `lookup_future_inner_type_copy(...)` instead of
   holding a static Future/RemoteFuture payload pointer.

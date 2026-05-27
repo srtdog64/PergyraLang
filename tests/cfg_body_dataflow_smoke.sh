@@ -75,6 +75,7 @@ run_literal_doc_contract_smoke() {
     require_literal "src/semantic/slot_summary.h" "slot_analyze_legacy_ast_param_summary_in_program"
     require_literal "src/semantic/type_checker_ownership_call.c" "semantic_param_summary_has_any_escape"
     require_literal "src/semantic/type_checker_ownership_param_summary.c" "semantic_callable_param_escape_summary"
+    require_literal "src/semantic/type_checker_ownership_param_summary.c" "semantic_record_body_summary(ctx, BODY_SUMMARY_MAY_ESCAPE_REF)"
     require_literal "src/semantic/type_checker_call_contract_helpers.c" "slot_analyze_legacy_ast_param_summary_in_program"
     if grep -Fq '#include "slot_summary.h"' "$ROOT_DIR/src/semantic/type_checker_ownership_param_summary.c" \
         || grep -Fq '#include "slot_summary.h"' "$ROOT_DIR/src/semantic/type_checker_ownership_call.c"; then

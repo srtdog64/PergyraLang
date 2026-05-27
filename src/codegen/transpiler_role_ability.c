@@ -30,7 +30,7 @@ role_has_ability(ASTNode *role, const char *ability_name)
 }
 
 char *
-render_ability_ref_vtable_tag(ASTNode *ability_ref)
+render_ability_ref_vtable_tag_in_ctx(TranspilerCtx *ctx, ASTNode *ability_ref)
 {
     char suffix[128];
     size_t len;
@@ -39,7 +39,7 @@ render_ability_ref_vtable_tag(ASTNode *ability_ref)
     if (ability_ref == NULL)
         return NULL;
 
-    rendered = render_type_name(ability_ref);
+    rendered = render_type_name_in_ctx(ctx, ability_ref);
     if (rendered == NULL)
         return NULL;
     sanitize_c_suffix(rendered, suffix, sizeof(suffix));
@@ -52,6 +52,12 @@ render_ability_ref_vtable_tag(ASTNode *ability_ref)
     }
     free(rendered);
     return pergyra_strdup(suffix);
+}
+
+char *
+render_ability_ref_vtable_tag(ASTNode *ability_ref)
+{
+    return render_ability_ref_vtable_tag_in_ctx(NULL, ability_ref);
 }
 
 bool
@@ -156,7 +162,7 @@ transpiler_party_slot_method_ability_tag(TranspilerCtx *ctx,
                 }
             }
 
-            ability_tag = render_ability_ref_vtable_tag(ability_ref);
+            ability_tag = render_ability_ref_vtable_tag_in_ctx(ctx, ability_ref);
             if (has_method) {
                 free(fallback_tag);
                 return ability_tag;

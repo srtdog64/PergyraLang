@@ -18,7 +18,8 @@ bool transpiler_generic_class_surface_desc(char *out, size_t out_size,
                                            const char *param_name);
 void transpiler_generic_class_format_too_long(TranspilerCtx *ctx,
                                               const char *surface_kind);
-char *transpiler_generic_class_specialization_name(ASTNode *class_decl,
+char *transpiler_generic_class_specialization_name(TranspilerCtx *ctx,
+                                                   ASTNode *class_decl,
                                                    ASTNode *ann,
                                                    bool *has_effective_args);
 

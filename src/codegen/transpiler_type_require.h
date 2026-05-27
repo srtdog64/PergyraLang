@@ -20,5 +20,8 @@ bool transpiler_require_type_name_c_type_copy(TranspilerCtx *ctx,
                                               const char *surface_desc,
                                               char *out,
                                               size_t out_size);
+bool transpiler_copy_c_type_or_user_type_name(const char *type_name,
+                                              char *out,
+                                              size_t out_size);
 
 #endif /* PERGYRA_TRANSPILER_TYPE_REQUIRE_H */

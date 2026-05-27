@@ -17,7 +17,7 @@ type_node_is_pointer_self_host(TranspilerCtx *ctx, ASTNode *type_node)
     if (ctx == NULL || type_node == NULL)
         return false;
 
-    type_name = render_type_name(type_node);
+    type_name = render_type_name_in_ctx(ctx, type_node);
     if (type_name != NULL)
         result = is_pointer_self_host_type_name(ctx, type_name);
     free(type_name);

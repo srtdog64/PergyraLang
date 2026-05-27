@@ -29,8 +29,9 @@ transpiler_class_has_generic_params(ASTNode *node)
 }
 
 char *
-transpiler_generic_param_effective_arg_name(GenericParam *formal,
-                                            GenericParam *arg)
+transpiler_generic_param_effective_arg_name_in_ctx(TranspilerCtx *ctx,
+                                                   GenericParam *formal,
+                                                   GenericParam *arg)
 {
     ASTNode *arg_constraint;
     ASTNode *formal_default;
@@ -38,10 +39,18 @@ transpiler_generic_param_effective_arg_name(GenericParam *formal,
     arg_constraint = ast_generic_param_constraint(arg);
     formal_default = ast_generic_param_default_type(formal);
     if (arg_constraint != NULL && arg_constraint->type == AST_TYPE)
-        return render_type_name(arg_constraint);
+        return render_type_name_in_ctx(ctx, arg_constraint);
     if (ast_generic_param_name(arg) != NULL)
         return pergyra_strdup(ast_generic_param_name(arg));
     if (formal_default != NULL && formal_default->type == AST_TYPE)
-        return render_type_name(formal_default);
+        return render_type_name_in_ctx(ctx, formal_default);
     return NULL;
+}
+
+char *
+transpiler_generic_param_effective_arg_name(GenericParam *formal,
+                                            GenericParam *arg)
+{
+    return transpiler_generic_param_effective_arg_name_in_ctx(
+        NULL, formal, arg);
 }

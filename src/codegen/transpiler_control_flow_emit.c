@@ -143,7 +143,8 @@ emit_for_loop(ASTNode *node, TranspilerCtx *ctx)
             if (slot_inner_type_name_copy(coll_type, elem_inner_buf,
                     sizeof(elem_inner_buf)))
                 elem_inner = elem_inner_buf;
-            if (pergyra_type_to_c_copy(elem_inner, elem_type_buf,
+            if (transpiler_require_type_name_c_type_copy(ctx, elem_inner,
+                    "for-in iterable element", elem_type_buf,
                     sizeof(elem_type_buf))) {
                 elem_type = elem_type_buf;
             }
@@ -152,7 +153,8 @@ emit_for_loop(ASTNode *node, TranspilerCtx *ctx)
             if (slot_inner_type_name_copy(coll_type, elem_inner_buf,
                     sizeof(elem_inner_buf)))
                 elem_inner = elem_inner_buf;
-            if (pergyra_type_to_c_copy(elem_inner, elem_type_buf,
+            if (transpiler_require_type_name_c_type_copy(ctx, elem_inner,
+                    "for-in iterable element", elem_type_buf,
                     sizeof(elem_type_buf))) {
                 elem_type = elem_type_buf;
             }

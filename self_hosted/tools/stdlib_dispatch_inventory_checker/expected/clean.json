@@ -1,0 +1,1 @@
+{"schema":"pgy.selfhost.stdlib-dispatch-inventory.v1","ok":true,"source":{"c_dispatch_owner":"src/codegen/transpiler_expr_stdlib_scalar_builtin.c","llvm_dispatch_owner":"src/codegen/llvm_expr_stdlib_scalar_io_calls.c"},"counts":{"c_entries":33,"llvm_entries":33,"drift":0},"findings":[]}

@@ -16,6 +16,7 @@
 #include "transpiler_symbols.h"
 #include "transpiler_type_declarator.h"
 #include "transpiler_type_mapping.h"
+#include "transpiler_type_require.h"
 
 static bool
 transpiler_mir_ssa_local_limit_fail(TranspilerCtx *ctx, const char *name)
@@ -133,8 +134,8 @@ transpiler_emit_mir_func_ssa_local_decls(TranspilerCtx *ctx,
             continue;
         }
         if (type_name != NULL) {
-            if (pergyra_type_to_c_copy(type_name, c_type_buf,
-                    sizeof(c_type_buf))) {
+            if (transpiler_require_type_name_c_type_copy(ctx, type_name,
+                    "MIR SSA local", c_type_buf, sizeof(c_type_buf))) {
                 c_type = c_type_buf;
             }
         }

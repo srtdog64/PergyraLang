@@ -10,6 +10,7 @@
 #include "transpiler_expr_type_infer.h"
 #include "transpiler_format.h"
 #include "transpiler_type_mapping.h"
+#include "transpiler_type_require.h"
 
 static char *
 emit_tuple_literal_expression(ASTNode *node, TranspilerCtx *ctx)
@@ -49,7 +50,8 @@ emit_tuple_literal_expression(ASTNode *node, TranspilerCtx *ctx)
     }
     char ctype_buf[256];
     const char *ctype = NULL;
-    if (pergyra_type_to_c_copy(tuple_name, ctype_buf, sizeof(ctype_buf)))
+    if (transpiler_require_type_name_c_type_copy(ctx, tuple_name,
+            "tuple literal layout", ctype_buf, sizeof(ctype_buf)))
         ctype = ctype_buf;
     if (ctype == NULL || ctype[0] == '\0'
         || strcmp(ctype, "Unknown") == 0) {

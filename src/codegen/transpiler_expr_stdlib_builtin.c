@@ -25,6 +25,7 @@
 #include "transpiler_format.h"
 #include "transpiler_type_mapping.h"
 #include "transpiler_type_render.h"
+#include "transpiler_type_require.h"
 
 static bool
 transpiler_stdlib_copy_type_name(char *out, size_t out_size,
@@ -63,7 +64,7 @@ transpiler_resolve_unary_constructed_inner(TranspilerCtx *ctx,
         if (alias_decl != NULL && ast_type_alias_target_type(alias_decl) != NULL) {
             ASTNode *target = resolve_type_alias_target(
                 ctx, ast_type_alias_target_type(alias_decl));
-            char *rendered = render_type_name(target);
+            char *rendered = render_type_name_in_ctx(ctx, target);
             if (rendered != NULL) {
                 bool copied = transpiler_stdlib_copy_type_name(
                     resolved_buf, sizeof(resolved_buf), rendered);
@@ -316,7 +317,8 @@ emit_call_stdlib_builtin(ASTNode *call, ASTNode *callee, TranspilerCtx *ctx)
                 if (slot_inner_type_name_copy(arr_type, inner_buf,
                         sizeof(inner_buf)))
                     inner = inner_buf;
-                if (pergyra_type_to_c_copy(inner, c_type_buf,
+                if (transpiler_require_type_name_c_type_copy(ctx, inner,
+                        "ArrayReverse element", c_type_buf,
                         sizeof(c_type_buf))) {
                     c_type = c_type_buf;
                 }

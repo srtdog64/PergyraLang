@@ -90,7 +90,7 @@ emit_call_user_function(ASTNode *call, ASTNode *callee, TranspilerCtx *ctx)
 
         if (param != NULL && param->type != NULL
             && (param->mode == PARAM_MODE_OWN || param->mode == PARAM_MODE_REF)) {
-            char *param_type = render_type_name(param->type);
+            char *param_type = render_type_name_in_ctx(ctx, param->type);
             bool slot_param = param_type != NULL
                 && (strncmp(param_type, "Slot<", 5) == 0
                     || strncmp(param_type, "SecureSlot<", 11) == 0);

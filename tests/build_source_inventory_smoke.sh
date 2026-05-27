@@ -154,19 +154,65 @@ if [[ -n "$legacy_c_type_copy_consumers" ]]; then
     missing=1
 fi
 
-legacy_type_inference_renderers="$(
+legacy_type_name_render_consumers="$(
     cd "$ROOT_DIR"
-    grep -nE '(^|[^_[:alnum:]])render_type_name\(' \
-        src/codegen/transpiler_expr_type_infer.c \
-        src/codegen/transpiler_mir_local_type_lookup.c \
-        src/codegen/transpiler_future_type_query.c \
-        src/codegen/transpiler_let_slot_emit.c \
-        src/codegen/transpiler_mir_effective_type.c \
-        src/codegen/transpiler_mir_local_binding.c || true
+    grep -RInE '(^|[^_[:alnum:]])render_type_name\(' \
+        src/codegen --include='*.c' --include='*.h' \
+        | grep -v '^src/codegen/transpiler_type_render\.[ch]:' || true
 )"
-if [[ -n "$legacy_type_inference_renderers" ]]; then
-    printf '%s\n' "$legacy_type_inference_renderers" >&2
-    echo "[build-source-inventory] C backend type inference owners must use ctx-aware render_type_name_in_ctx" >&2
+if [[ -n "$legacy_type_name_render_consumers" ]]; then
+    printf '%s\n' "$legacy_type_name_render_consumers" >&2
+    echo "[build-source-inventory] C backend type-name render consumers must use render_type_name_in_ctx outside wrapper owners" >&2
+    missing=1
+fi
+
+c_type_requirement_owner_violations="$(
+    cd "$ROOT_DIR"
+    grep -n 'pergyra_type_to_c_copy(' \
+        src/codegen/transpiler_block_intent_rebind_helpers.c \
+        src/codegen/transpiler_domain_role_ability_emit.c \
+        src/codegen/transpiler_control_flow_emit.c \
+        src/codegen/transpiler_destructure_emit.c \
+        src/codegen/transpiler_expr_composite_literal_emit.c \
+        src/codegen/transpiler_expr_call_member_emit.c \
+        src/codegen/transpiler_expr_dispatch_emit.c \
+        src/codegen/transpiler_expr_stdlib_builtin.c \
+        src/codegen/transpiler_expr_stdlib_channel_builtin.c \
+        src/codegen/transpiler_expr_stdlib_collection_support.c \
+        src/codegen/transpiler_lambda_emit.c \
+        src/codegen/transpiler_let_collection_emit.c \
+        src/codegen/transpiler_let_emit.c \
+        src/codegen/transpiler_let_slot_emit.c \
+        src/codegen/transpiler_match_bindings.c \
+        src/codegen/transpiler_match_emit.c \
+        src/codegen/transpiler_mir_func_emit.c \
+        src/codegen/transpiler_mir_cfg_control_emit.c \
+        src/codegen/transpiler_mir_func_ssa_locals_emit.c \
+        src/codegen/transpiler_mir_destructure_emit.c \
+        src/codegen/transpiler_mir_match_condition_emit.c \
+        src/codegen/transpiler_mir_preserved_let_emit.c \
+        src/codegen/transpiler_mir_resource_op_core.c \
+        src/codegen/transpiler_select.c \
+        src/codegen/transpiler_spawn_channel_emit.c || true
+)"
+if [[ -n "$c_type_requirement_owner_violations" ]]; then
+    printf '%s\n' "$c_type_requirement_owner_violations" >&2
+    echo "[build-source-inventory] closed C backend owners must use transpiler_require_type_name_c_type_copy for C-type lowering" >&2
+    missing=1
+fi
+
+raw_c_type_copy_consumers="$(
+    cd "$ROOT_DIR"
+    grep -RIn 'pergyra_type_to_c_copy(' \
+        src/codegen --include='*.c' --include='*.h' \
+        | grep -v '^src/codegen/transpiler\.h:' \
+        | grep -v '^src/codegen/transpiler_type_mapping\.[ch]:' \
+        | grep -v '^src/codegen/transpiler_type_render\.c:' \
+        | grep -v '^src/codegen/transpiler_type_require\.c:' || true
+)"
+if [[ -n "$raw_c_type_copy_consumers" ]]; then
+    printf '%s\n' "$raw_c_type_copy_consumers" >&2
+    echo "[build-source-inventory] C backend raw pergyra_type_to_c_copy use must stay in wrapper/type-require owners" >&2
     missing=1
 fi
 

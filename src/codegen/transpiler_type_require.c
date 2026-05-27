@@ -9,6 +9,7 @@
 
 #include <string.h>
 
+#include "../common/string_compat.h"
 #include "transpiler_context.h"
 #include "transpiler_type_render.h"
 
@@ -77,4 +78,22 @@ transpiler_require_type_name_c_type_copy(TranspilerCtx *ctx,
     }
 
     return true;
+}
+
+bool
+transpiler_copy_c_type_or_user_type_name(const char *type_name,
+                                         char *out,
+                                         size_t out_size)
+{
+    if (out == NULL || out_size == 0)
+        return false;
+    out[0] = '\0';
+
+    if (type_name == NULL)
+        return false;
+
+    if (pergyra_type_to_c_copy(type_name, out, out_size))
+        return true;
+
+    return pergyra_str_copy(out, out_size, type_name);
 }

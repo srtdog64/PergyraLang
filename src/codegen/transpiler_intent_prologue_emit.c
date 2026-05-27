@@ -137,8 +137,8 @@ transpiler_emit_intent_signature_and_entry(ASTNode *node,
                             sizeof(c_type_buf))) {
                         pt = c_type_buf;
                     }
-                    type_name = render_type_name(
-                        ast_intent_involves_subject_type(binding));
+                    type_name = render_type_name_in_ctx(
+                        ctx, ast_intent_involves_subject_type(binding));
                     pointer_param = intent_involves_uses_pointer_self(ctx, binding);
                 }
                 participant_index++;
@@ -160,7 +160,7 @@ transpiler_emit_intent_signature_and_entry(ASTNode *node,
                     pt = c_type_buf;
                 }
                 if (value_type != NULL)
-                    type_name = render_type_name(value_type);
+                    type_name = render_type_name_in_ctx(ctx, value_type);
             }
             if (pt == NULL)
                 return false;

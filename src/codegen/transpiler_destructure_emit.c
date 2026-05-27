@@ -6,6 +6,7 @@
 #include "transpiler_expr_type_infer.h"
 #include "transpiler_symbols.h"
 #include "transpiler_type_mapping.h"
+#include "transpiler_type_require.h"
 #include "../parser/ast_api.h"
 #include "../semantic/diag_codes.h"
 
@@ -27,7 +28,8 @@ emit_let_destructure_statement(ASTNode *node, TranspilerCtx *ctx)
         if (resolved != NULL)
             init_type = resolved;
     }
-    if (pergyra_type_to_c_copy(init_type, c_init_type_buf,
+    if (transpiler_require_type_name_c_type_copy(ctx, init_type,
+            "destructuring initializer", c_init_type_buf,
             sizeof(c_init_type_buf))) {
         c_init_type = c_init_type_buf;
     }
@@ -82,7 +84,8 @@ emit_let_destructure_statement(ASTNode *node, TranspilerCtx *ctx)
         for (size_t j = 0; j < arity; j++) {
             char e_ctype_buf[256];
             const char *e_ctype = NULL;
-            if (pergyra_type_to_c_copy(elem_names[j], e_ctype_buf,
+            if (transpiler_require_type_name_c_type_copy(ctx, elem_names[j],
+                    "tuple destructuring element", e_ctype_buf,
                     sizeof(e_ctype_buf))) {
                 e_ctype = e_ctype_buf;
             }
@@ -107,7 +110,8 @@ emit_let_destructure_statement(ASTNode *node, TranspilerCtx *ctx)
         if (slot_inner_type_name_copy(init_type, inner_buf,
                 sizeof(inner_buf)))
             inner = inner_buf;
-        if (pergyra_type_to_c_copy(inner, elem_c_type_buf,
+        if (transpiler_require_type_name_c_type_copy(ctx, inner,
+                "array destructuring element", elem_c_type_buf,
                 sizeof(elem_c_type_buf))) {
             elem_c_type = elem_c_type_buf;
         }

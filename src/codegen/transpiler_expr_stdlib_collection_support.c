@@ -22,6 +22,7 @@
 #include "transpiler_symbols.h"
 #include "transpiler_type_mapping.h"
 #include "transpiler_type_render.h"
+#include "transpiler_type_require.h"
 
 static bool
 transpiler_collection_copy_spec_name(char *dst, size_t dst_size,
@@ -73,7 +74,7 @@ transpiler_require_hashmap_type(TranspilerCtx *ctx, const char *map_type,
         if (alias_decl != NULL && ast_type_alias_target_type(alias_decl) != NULL) {
             ASTNode *target = resolve_type_alias_target(
                 ctx, ast_type_alias_target_type(alias_decl));
-            char *rendered = render_type_name(target);
+            char *rendered = render_type_name_in_ctx(ctx, target);
             if (rendered != NULL) {
                 bool copied = transpiler_collection_copy_type_name(
                     resolved_buf, sizeof(resolved_buf), rendered);
@@ -134,7 +135,7 @@ transpiler_require_unary_collection_type(TranspilerCtx *ctx,
         if (alias_decl != NULL && ast_type_alias_target_type(alias_decl) != NULL) {
             ASTNode *target = resolve_type_alias_target(
                 ctx, ast_type_alias_target_type(alias_decl));
-            char *rendered = render_type_name(target);
+            char *rendered = render_type_name_in_ctx(ctx, target);
             if (rendered != NULL) {
                 bool copied = transpiler_collection_copy_type_name(
                     resolved_buf, sizeof(resolved_buf), rendered);
@@ -241,7 +242,9 @@ transpiler_collection_ensure_specialization_to(TranspilerCtx *ctx, CodeBuf *dst,
 
     if (ctx->collection_spec_count >= MAX_COLLECTION_SPECIALIZATIONS)
         return;
-    if (!pergyra_type_to_c_copy(inner_type, ctype_buf, sizeof(ctype_buf)))
+    if (!transpiler_require_type_name_c_type_copy(ctx, inner_type,
+            "collection specialization element", ctype_buf,
+            sizeof(ctype_buf)))
         return;
     if (!transpiler_collection_copy_spec_name(
             ctx->collection_specs[ctx->collection_spec_count].kind,

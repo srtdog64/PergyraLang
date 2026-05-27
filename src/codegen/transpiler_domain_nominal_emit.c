@@ -366,7 +366,7 @@ emit_party_decl(ASTNode *node, TranspilerCtx *ctx)
             ASTNode *ab = ast_role_slot_required_ability(rs, j);
             if (ab != NULL && ast_type_name(ab) != NULL) {
                 char typedef_name[128];
-                char *vtable_tag = render_ability_ref_vtable_tag(ab);
+                char *vtable_tag = render_ability_ref_vtable_tag_in_ctx(ctx, ab);
                 ensure_ability_ref_vtable_decl(ab, ctx);
                 if (!ability_ref_vtable_typedef_name(ab, typedef_name,
                         sizeof(typedef_name), ctx)) {
@@ -463,7 +463,7 @@ emit_party_decl(ASTNode *node, TranspilerCtx *ctx)
             if (ab == NULL || ast_type_name(ab) == NULL)
                 continue;
             char typedef_name[128];
-            char *vtable_tag = render_ability_ref_vtable_tag(ab);
+            char *vtable_tag = render_ability_ref_vtable_tag_in_ctx(ctx, ab);
             ensure_ability_ref_vtable_decl(ab, ctx);
             if (!ability_ref_vtable_typedef_name(ab, typedef_name,
                     sizeof(typedef_name), ctx)) {

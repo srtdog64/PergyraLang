@@ -43,7 +43,7 @@ ensure_generic_class_specialization(TranspilerCtx *ctx,
         return base_class_name;
 
     char *specialization_name = transpiler_generic_class_specialization_name(
-        class_decl, ann, &has_effective_args);
+        ctx, class_decl, ann, &has_effective_args);
     size_t formal_count = ast_generic_param_count(gp);
 
     if (!has_effective_args) {
@@ -107,8 +107,8 @@ ensure_generic_class_specialization(TranspilerCtx *ctx,
             ctx->generic_binding_count = saved_binding_count;
             return NULL;
         }
-        effective_name = transpiler_generic_param_effective_arg_name(
-            formal, garg);
+        effective_name = transpiler_generic_param_effective_arg_name_in_ctx(
+            ctx, formal, garg);
 
         if (effective_name != NULL) {
             if (!transpiler_generic_class_copy_name(

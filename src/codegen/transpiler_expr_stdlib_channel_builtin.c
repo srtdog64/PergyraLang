@@ -17,6 +17,7 @@
 #include "transpiler_expr_stdlib_collection_support.h"
 #include "transpiler_format.h"
 #include "transpiler_type_mapping.h"
+#include "transpiler_type_require.h"
 
 typedef enum {
     TRANSPILER_CHANNEL_OP_NONE = 0,
@@ -191,7 +192,8 @@ emit_call_stdlib_channel_builtin(const char *fn, ASTNode *call,
             free(ch);
             return pergyra_strdup("0");
         }
-        if (pergyra_type_to_c_copy(inner, c_inner_buf, sizeof(c_inner_buf)))
+        if (transpiler_require_type_name_c_type_copy(ctx, inner,
+                "TryRecv channel payload", c_inner_buf, sizeof(c_inner_buf)))
             c_inner = c_inner_buf;
         if (c_inner == NULL) {
             free(ch);
@@ -225,7 +227,9 @@ emit_call_stdlib_channel_builtin(const char *fn, ASTNode *call,
             free(timeout);
             return pergyra_strdup("0");
         }
-        if (pergyra_type_to_c_copy(inner, c_inner_buf, sizeof(c_inner_buf)))
+        if (transpiler_require_type_name_c_type_copy(ctx, inner,
+                "RecvTimeout channel payload", c_inner_buf,
+                sizeof(c_inner_buf)))
             c_inner = c_inner_buf;
         if (c_inner == NULL) {
             free(ch);

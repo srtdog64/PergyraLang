@@ -17,6 +17,7 @@
 #include "transpiler_decl_lookup.h"
 #include "transpiler_type_mapping.h"
 #include "transpiler_type_render.h"
+#include "transpiler_type_require.h"
 
 static bool
 transpiler_specialization_copy_spec_name(char *dst, size_t dst_size,
@@ -120,13 +121,12 @@ ensure_result_specialization_to(TranspilerCtx *ctx, CodeBuf *dst,
     char err_ctype_buf[128];
     const char *ok_ctype = ok_ctype_buf;
     const char *err_ctype = err_ctype_buf;
-    if (!pergyra_type_to_c_copy(ok_type, ok_ctype_buf,
-            sizeof(ok_ctype_buf))) {
-        ok_ctype = ok_type;
-    }
-    if (!pergyra_type_to_c_copy(err_type, err_ctype_buf,
+    if (!transpiler_copy_c_type_or_user_type_name(ok_type, ok_ctype_buf,
+            sizeof(ok_ctype_buf))
+        || !transpiler_copy_c_type_or_user_type_name(err_type, err_ctype_buf,
             sizeof(err_ctype_buf))) {
-        err_ctype = err_type;
+        transpiler_specialization_spec_name_too_long(ctx, ok_type);
+        return;
     }
 
     if (!transpiler_specialization_copy_spec_name(
@@ -203,7 +203,9 @@ ensure_collection_specialization_to(TranspilerCtx *ctx, CodeBuf *dst,
     if (ctx->collection_spec_count >= MAX_COLLECTION_SPECIALIZATIONS)
         return;
 
-    if (!pergyra_type_to_c_copy(inner_type, ctype_buf, sizeof(ctype_buf)))
+    if (!transpiler_require_type_name_c_type_copy(ctx, inner_type,
+            "collection specialization element", ctype_buf,
+            sizeof(ctype_buf)))
         return;
 
     if (!transpiler_specialization_copy_spec_name(
@@ -266,7 +268,8 @@ ensure_tuple_specialization_to(TranspilerCtx *ctx, CodeBuf *dst,
     suffix[0] = '\0';
     elem_names[0] = '\0';
     for (size_t i = 0; i < n; i++) {
-        char *elem = render_type_name(ast_type_tuple_element(tuple_type, i));
+        char *elem = render_type_name_in_ctx(
+            ctx, ast_type_tuple_element(tuple_type, i));
         char sane[96];
         sanitize_c_suffix(elem, sane, sizeof(sane));
         if (i > 0) {
@@ -319,11 +322,16 @@ ensure_tuple_specialization_to(TranspilerCtx *ctx, CodeBuf *dst,
     codebuf_write(dst, "\n/* PGY_TUPLE_%s */\n", suffix);
     codebuf_write(dst, "typedef struct {\n");
     for (size_t i = 0; i < n; i++) {
-        char *elem = render_type_name(ast_type_tuple_element(tuple_type, i));
+        char *elem = render_type_name_in_ctx(
+            ctx, ast_type_tuple_element(tuple_type, i));
         char ctype_buf[128];
-        const char *ctype = NULL;
-        if (pergyra_type_to_c_copy(elem, ctype_buf, sizeof(ctype_buf)))
-            ctype = ctype_buf;
+        const char *ctype = ctype_buf;
+        if (!transpiler_copy_c_type_or_user_type_name(elem, ctype_buf,
+                sizeof(ctype_buf))) {
+            transpiler_specialization_spec_name_too_long(ctx, elem);
+            free(elem);
+            return;
+        }
         codebuf_write(dst, "    %s f%zu;\n",
             ctype != NULL ? ctype : elem, i);
         free(elem);
@@ -393,7 +401,7 @@ ensure_type_specializations_from_ast_to(TranspilerCtx *ctx, CodeBuf *dst,
 
     if (strcmp(ast_type_name(type_node), "List") == 0
         && arg0_type != NULL) {
-        char *inner = render_type_name(arg0_type);
+        char *inner = render_type_name_in_ctx(ctx, arg0_type);
         ensure_collection_specialization_to(ctx, dst, "List", inner);
         free(inner);
         return;
@@ -401,7 +409,7 @@ ensure_type_specializations_from_ast_to(TranspilerCtx *ctx, CodeBuf *dst,
 
     if (strcmp(ast_type_name(type_node), "Queue") == 0
         && arg0_type != NULL) {
-        char *inner = render_type_name(arg0_type);
+        char *inner = render_type_name_in_ctx(ctx, arg0_type);
         ensure_collection_specialization_to(ctx, dst, "Queue", inner);
         free(inner);
         return;
@@ -409,7 +417,7 @@ ensure_type_specializations_from_ast_to(TranspilerCtx *ctx, CodeBuf *dst,
 
     if (strcmp(ast_type_name(type_node), "HashMap") == 0
         && arg1_type != NULL) {
-        char *value = render_type_name(arg1_type);
+        char *value = render_type_name_in_ctx(ctx, arg1_type);
         ensure_collection_specialization_to(ctx, dst, "Map", value);
         free(value);
         return;
@@ -419,8 +427,8 @@ ensure_type_specializations_from_ast_to(TranspilerCtx *ctx, CodeBuf *dst,
         && ast_generic_param_count(generic_args) == 2
         && arg0_type != NULL
         && arg1_type != NULL) {
-        char *ok_type  = render_type_name(arg0_type);
-        char *err_type = render_type_name(arg1_type);
+        char *ok_type  = render_type_name_in_ctx(ctx, arg0_type);
+        char *err_type = render_type_name_in_ctx(ctx, arg1_type);
         ensure_result_specialization_to(ctx, ctx->out, ok_type, err_type);
         (void)dst;
         free(ok_type);

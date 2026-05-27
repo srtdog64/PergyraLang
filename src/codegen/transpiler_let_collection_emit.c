@@ -17,6 +17,7 @@
 #include "transpiler_specialization_registry.h"
 #include "transpiler_symbols.h"
 #include "transpiler_type_mapping.h"
+#include "transpiler_type_require.h"
 #include "transpiler_type_render.h"
 
 typedef enum TranspilerLetOptionCtorOp {
@@ -186,11 +187,11 @@ transpiler_try_emit_map_new_let(TranspilerCtx *ctx,
     ASTNode *value_constraint = ast_generic_param_constraint(value_param);
     char *ann_type_name = ann_type_name_io != NULL ? *ann_type_name_io : NULL;
     char *key = key_constraint != NULL
-        ? render_type_name(key_constraint)
+        ? render_type_name_in_ctx(ctx, key_constraint)
         : (ast_generic_param_name(key_param) != NULL
             ? pergyra_strdup(ast_generic_param_name(key_param)) : NULL);
     char *value = value_constraint != NULL
-        ? render_type_name(value_constraint)
+        ? render_type_name_in_ctx(ctx, value_constraint)
         : (ast_generic_param_name(value_param) != NULL
             ? pergyra_strdup(ast_generic_param_name(value_param)) : NULL);
 
@@ -211,7 +212,8 @@ transpiler_try_emit_map_new_let(TranspilerCtx *ctx,
         char map_c_type_buf[256];
         char suffix_buf[128];
         const char *map_c_type = NULL;
-        if (pergyra_type_to_c_copy(ann_type_name, map_c_type_buf,
+        if (transpiler_require_type_name_c_type_copy(ctx, ann_type_name,
+                "HashMap binding annotation", map_c_type_buf,
                 sizeof(map_c_type_buf))) {
             map_c_type = map_c_type_buf;
         }
@@ -264,7 +266,8 @@ transpiler_try_emit_list_or_queue_new_let(TranspilerCtx *ctx,
         return false;
     }
 
-    if (pergyra_type_to_c_copy(ann_type_name, c_type_buf, sizeof(c_type_buf)))
+    if (transpiler_require_type_name_c_type_copy(ctx, ann_type_name,
+            "collection binding annotation", c_type_buf, sizeof(c_type_buf)))
         c_type = c_type_buf;
     if (c_type == NULL) {
         transpiler_set_backend_error_with_hints(ctx,

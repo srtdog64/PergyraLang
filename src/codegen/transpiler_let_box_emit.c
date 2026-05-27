@@ -137,7 +137,7 @@ transpiler_try_emit_box_array_let(TranspilerCtx *ctx,
 }
 
 static char *
-transpiler_box_inner_from_annotation(ASTNode *ann)
+transpiler_box_inner_from_annotation(TranspilerCtx *ctx, ASTNode *ann)
 {
     GenericParams *generic_args = ast_type_generic_args(ann);
 
@@ -149,7 +149,7 @@ transpiler_box_inner_from_annotation(ASTNode *ann)
 
     GenericParam *param = ast_generic_param_at(generic_args, 0);
     if (ast_generic_param_constraint(param) != NULL)
-        return render_type_name(ast_generic_param_constraint(param));
+        return render_type_name_in_ctx(ctx, ast_generic_param_constraint(param));
     if (ast_generic_param_name(param) != NULL)
         return pergyra_strdup(ast_generic_param_name(param));
     return NULL;
@@ -197,7 +197,7 @@ transpiler_try_emit_box_or_rc_let(TranspilerCtx *ctx,
         return false;
     }
 
-    box_inner_owned = transpiler_box_inner_from_annotation(ann);
+    box_inner_owned = transpiler_box_inner_from_annotation(ctx, ann);
     if (box_inner_owned == NULL)
         box_inner_owned = transpiler_box_inner_from_init_arg(ctx, init);
 

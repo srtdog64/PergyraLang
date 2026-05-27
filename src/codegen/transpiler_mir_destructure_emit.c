@@ -19,6 +19,7 @@
 #include "transpiler_mir_ssa_names.h"
 #include "transpiler_symbols.h"
 #include "transpiler_type_render.h"
+#include "transpiler_type_require.h"
 
 /* C backend MIR destructuring statement emission owner. */
 static bool
@@ -186,7 +187,8 @@ transpiler_emit_mir_let_destructure_stmt(CodeBuf *buf,
         if (resolved != NULL)
             init_type_name = resolved;
     }
-    if (pergyra_type_to_c_copy(init_type_name, c_init_type_buf,
+    if (transpiler_require_type_name_c_type_copy(ctx, init_type_name,
+            "MIR destructuring initializer", c_init_type_buf,
             sizeof(c_init_type_buf))) {
         c_init_type = c_init_type_buf;
     }
@@ -285,7 +287,8 @@ transpiler_emit_mir_let_destructure_stmt(CodeBuf *buf,
         if (slot_inner_type_name_copy(init_type_name, elem_inner_buf,
                 sizeof(elem_inner_buf)))
             elem_inner = elem_inner_buf;
-        if (pergyra_type_to_c_copy(elem_inner, elem_c_type_buf,
+        if (transpiler_require_type_name_c_type_copy(ctx, elem_inner,
+                "MIR array destructuring element", elem_c_type_buf,
                 sizeof(elem_c_type_buf))) {
             elem_c_type = elem_c_type_buf;
         }

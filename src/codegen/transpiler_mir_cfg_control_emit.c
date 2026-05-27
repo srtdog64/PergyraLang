@@ -14,6 +14,7 @@
 #include "transpiler_mir_match_condition_emit.h"
 #include "transpiler_symbols.h"
 #include "transpiler_type_mapping.h"
+#include "transpiler_type_require.h"
 
 bool
 transpiler_mir_emit_for_loop_init_inst(CodeBuf *buf,
@@ -79,7 +80,8 @@ transpiler_mir_for_in_element_type(TranspilerCtx *ctx,
     if (!slot_inner_type_name_copy(collection_type, inner_type_buf,
             inner_type_buf_size))
         return false;
-    return pergyra_type_to_c_copy(inner_type_buf,
+    return transpiler_require_type_name_c_type_copy(ctx, inner_type_buf,
+        "MIR for-in element",
         element_type_buf, element_type_buf_size);
 }
 

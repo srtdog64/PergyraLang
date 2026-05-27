@@ -118,7 +118,7 @@ transpiler_render_type_name_with_bindings(TranspilerCtx *ctx,
     char *result;
 
     if (ctx == NULL)
-        return render_type_name(type_node);
+        return NULL;
 
     saved_binding_count = ctx->generic_binding_count;
     for (size_t i = 0;

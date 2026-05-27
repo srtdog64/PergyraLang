@@ -14,6 +14,7 @@
 #include "transpiler_inventory_view.h"
 #include "transpiler_type_mapping.h"
 #include "transpiler_type_render.h"
+#include "transpiler_type_require.h"
 
 bool
 transpiler_match_is_result_destructor(ASTNode *pat,
@@ -221,7 +222,8 @@ transpiler_emit_builtin_match_binding(ASTNode *pattern_node,
         }
         char inner_c_type_buf[256];
         const char *inner_c_type = NULL;
-        if (pergyra_type_to_c_copy(inner, inner_c_type_buf,
+        if (transpiler_require_type_name_c_type_copy(ctx, inner,
+                "Some match payload", inner_c_type_buf,
                 sizeof(inner_c_type_buf))) {
             inner_c_type = inner_c_type_buf;
         }
@@ -255,7 +257,8 @@ transpiler_emit_builtin_match_binding(ASTNode *pattern_node,
         }
         char ok_c_type_buf[256];
         const char *ok_c_type = NULL;
-        if (pergyra_type_to_c_copy(ok_type, ok_c_type_buf,
+        if (transpiler_require_type_name_c_type_copy(ctx, ok_type,
+                "Ok match payload", ok_c_type_buf,
                 sizeof(ok_c_type_buf))) {
             ok_c_type = ok_c_type_buf;
         }
@@ -301,7 +304,8 @@ transpiler_emit_builtin_match_binding(ASTNode *pattern_node,
         }
         char err_c_type_buf[256];
         const char *err_c_type = NULL;
-        if (pergyra_type_to_c_copy(err_type, err_c_type_buf,
+        if (transpiler_require_type_name_c_type_copy(ctx, err_type,
+                "Err match payload", err_c_type_buf,
                 sizeof(err_c_type_buf))) {
             err_c_type = err_c_type_buf;
         }

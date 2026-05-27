@@ -99,11 +99,40 @@ English anchor for tooling/doc gates:
   silently fall back to default C types.
 - C backend type-name inference is being narrowed to the same ctx-aware rule:
   expression type inference, MIR local type lookup, and Future/RemoteFuture
-  return inference, slot-let inner type extraction, MIR effective local type
-  rendering, and MIR local binding discovery now call
-  `render_type_name_in_ctx(...)` when `TranspilerCtx` is available. Remaining
-  `render_type_name(...)` consumers are compatibility debt unless they are
-  owner-local immediate-use paths.
+  return inference, slot-let/Box/Rc inner type extraction, annotated let
+  registration, MIR effective/local state rendering, MIR local binding
+  discovery, generic parameter/class specialization naming, class/subject
+  pointer-self argument policy, user/member call
+  parameter-return policy, intent prologue participant/value typing, ability
+  vtable specialization, party/role ability-tag rendering, type-specialization
+  registry naming, and constructed stdlib/channel/collection alias
+  resolution now call `render_type_name_in_ctx(...)` when `TranspilerCtx` is
+  available. `build-source-inventory-test-smoke` now rejects non-context
+  `render_type_name(...)` across `src/codegen` outside wrapper owners; generic
+  binding rendering is context-required and no longer falls back through the
+  legacy non-context renderer.
+- C backend type-name-to-C-type lowering is also moving behind diagnostic
+  requirement helpers. Let annotations, inferred let initializers, array
+  literal bindings, Set binding annotations, Result try operands, role ability
+  vtable return types, hosted method return sync, collection annotations,
+  collection specialization element types, ArrayReverse element types,
+  TryRecv/RecvTimeout payload types, lambda inferred returns, for-in iterable
+  elements, destructuring initializer/element types, view-like slot
+  declarations, tuple literal layouts, match subjects, Some/Ok/Err match
+  payloads, await Future/RemoteFuture results, intent participant rebind
+  metadata, MIR SSA locals, MIR role-owner subject receivers, MIR for-in
+  elements, select receive payloads, MIR destructuring initializer/element
+  types, MIR preserved try Result operands, MIR match payloads, MIR
+  resource-operation payloads, and spawn return/argument metadata now use
+  `transpiler_require_type_name_c_type_copy(...)` where a `TranspilerCtx` is
+  available. The important rule is ordering:
+  specialized user-facing diagnostics, such as empty-array annotation failures,
+  must run before the generic C-type requirement helper so common-source
+  tightening does not erase a better Reason/Fix surface. Gates:
+  `test-transpile`, `build-source-inventory-test-smoke`. Result/tuple
+  specialization user-type fallback now goes through
+  `transpiler_copy_c_type_or_user_type_name(...)`, so raw
+  `pergyra_type_to_c_copy(...)` use is confined to wrapper/type-require owners.
 - Runtime scheduler registry race hardening is applied: `RegisterScheduler`,
   `GetSchedulerForTag`, and `DumpFiberMaps` now use the party scheduler
   registry mutex while preserving O(1) tag lookup through `g_schedulerByTag`.
@@ -630,8 +659,10 @@ English anchor for tooling/doc gates:
   owner. Ownership call and parameter-summary consumers also treat the returned
   summary as an opaque call-contract fact through
   `semantic_param_summary_has_*` predicates instead of depending on
-  `slot_summary.h` flag bits directly. Gates: `cfg-body-dataflow-test-smoke`,
-  `test-semantic`.
+  `slot_summary.h` flag bits directly. The smoke also gates
+  `BODY_SUMMARY_MAY_ESCAPE_REF` aggregation so transitive callee summaries do
+  not silently lose borrowed-ref escape facts. Gates:
+  `cfg-body-dataflow-test-smoke`, `test-semantic`.
 - Semantic assignment-target path formatting is now scratch-only. The old heap
   `semantic_assignment_target_path(...)` API and dual `ctx + scratch` owner mode
   were removed, and channel transport diagnostics consume
@@ -3125,15 +3156,15 @@ English anchor for tooling/doc gates:
   count remains an active-state fact, but history writes remain observability
   payload. Gate: `runtime-intent-observability-contract-test-smoke`.
 - C MIR resource op emission now snapshots slot/resource inner type names before
-  passing them through `pergyra_type_to_c_copy(...)`. This matters for nested
-  payloads such as `Slot<Array<Int>>`: type mapping is copy-only, so runtime
-  helper suffixes must stay in caller-owned storage. Gates: `bin/pgy.exe`,
-  `test-transpile`, `perf-contract-test-smoke`.
+  lowering them through the ctx-aware C-type requirement path. This matters for
+  nested payloads such as `Slot<Array<Int>>`: type mapping is copy-only, so
+  runtime helper suffixes must stay in caller-owned storage. Gates:
+  `bin/pgy.exe`, `test-transpile`, `perf-contract-test-smoke`.
 - C array destructuring and array stdlib helpers follow the same inner-type
   snapshot rule. `Array<T>` / `Slice<T>` destructuring and `ArrayReverse` copy
-  `T` before lowering it through `pergyra_type_to_c_copy(...)`, so nested element
-  types do not clobber the source inner-name used for typed local registration
-  or helper naming. Gates: `bin/pgy.exe`, `test-transpile`,
+  `T` before lowering it through the ctx-aware C-type requirement path, so
+  nested element types do not clobber the source inner-name used for typed local
+  registration or helper naming. Gates: `bin/pgy.exe`, `test-transpile`,
   `perf-contract-test-smoke`.
 - MIR source-local preservation now has one shared predicate consumed by both
   CFG statement population and non-CFG compatibility population. The remaining
@@ -3182,16 +3213,17 @@ English anchor for tooling/doc gates:
   once, resolves its constraint AST first, and only then uses the simple-name
   fallback for non-constructed call type args.
 - C backend slot let/destructure helpers now render `Slot<T>` call/annotation
-  generic constraints through `render_type_name(...)` into the transpiler arena
-  instead of reading `constraint->data.type.name`. This keeps `ClaimSlot<T>` and
-  `ClaimSecureSlot<T>` MIR/C lowering aligned with the constructed-generic
-  source-of-truth rule.
+  generic constraints through `render_type_name_in_ctx(...)` into the transpiler
+  arena instead of reading `constraint->data.type.name`. This keeps
+  `ClaimSlot<T>` and `ClaimSecureSlot<T>` MIR/C lowering aligned with the
+  constructed-generic source-of-truth rule.
 - C generic class specialization keys and concrete bindings now resolve actual
-  generic arguments through the compiled `transpiler_generic_param_effective_arg_name(...)`
-  query. Constructed actuals/defaults use `render_type_name(...)`, so
-  monomorphization no longer collapses `Node<Array<Int>>`-style arguments to a
-  base-name-only specialization key, and the implementation header no longer owns
-  the effective-argument rendering policy.
+  generic arguments through the compiled
+  `transpiler_generic_param_effective_arg_name_in_ctx(...)` query. Constructed
+  actuals/defaults use `render_type_name_in_ctx(...)`, so monomorphization no
+  longer collapses `Node<Array<Int>>`-style arguments to a base-name-only
+  specialization key, and the implementation header no longer owns the
+  effective-argument rendering policy.
 - LLVM `Array<T>` / `Slice<T>` literal lowering now renders the annotated
   element type through `llvm_stmt_render_type_arg(...)` instead of reading
   `generic_args->params[0]->name` directly. This preserves nested constructed
@@ -4510,8 +4542,8 @@ English anchor for tooling/doc gates:
   `perf-contract-test-smoke`.
 - 2026-05-11 C/LLVM numeric let parity follow-up:
   C backend unannotated `let` emission now routes numeric initializer typing
-  through `infer_expression_type_name(...)` and `pergyra_type_to_c_copy(...)`
-  instead of hardcoding `AST_NUMBER` to `int32_t`. This keeps `Long` and
+  through `infer_expression_type_name(...)` and the ctx-aware C-type requirement
+  path instead of hardcoding `AST_NUMBER` to `int32_t`. This keeps `Long` and
   fractional numeric literals aligned with the LLVM inference/emission path.
   Gates: targeted `transpiler.o` build and `perf-contract-test-smoke`.
 - 2026-05-11 C/LLVM arithmetic promotion parity follow-up:
@@ -7819,6 +7851,138 @@ the pgy subprocess.
 
 These three lifts are the candidate scope when the dogfood pressure
 identifies a tool that cannot be reshaped to fit the current surface.
+
+**Self-host fourth tool (2026-05-27):** `backend_output_comparator` under
+`self_hosted/tools/`. Reads `fixture/expected.txt` and `fixture/actual.txt`,
+splits both on `\n`, parallel-iterates the two arrays, counts
+`mismatch_lines` / `extra_actual_lines` / `missing_actual_lines`, and emits
+`pgy.selfhost.backend-output-comparator.v1`. `findings[]` is capped at 8
+entries so the JSON stays bounded. Parity rung 2 asserts: clean fixture
+(`expected_lines=5 actual_lines=5 mismatch_lines=0`) yields `rc=0` with
+clean JSON byte-equal vs `expected/clean.json` AND `diff -q` agrees;
+synthetic mismatch fixture (replace one line in `actual.txt` with a drift
+value) yields `rc=1` with `ok:false` + `mismatch_lines>=1` + a
+`"kind":"mismatch"` finding; synthetic missing-input fixture (delete
+`actual.txt`) yields `rc=1` with an `input_error` finding. The scaffold
+smoke now gates 4 tools. This is the first Pergyra-origin tool that reads
+*paired* text inputs and exercises the parallel-array iterate pattern;
+shipped without any further runtime/codegen lift -- the existing surface
+(`ReadFile`, `Split`, `ArrayLength`, `[]`, `ArrayPush`, `StringJoin`,
+`==`, `!=`, `Exit`, `FileExists`) was sufficient.
+
+**Self-host fifth tool (2026-05-27):** `module_manifest_resolver` under
+`self_hosted/tools/`. Reads `docs/language_module_manifest.json`, counts
+modules (`"name":` = 17), beta_blocker entries (`"beta_blocker": true` = 3),
+stable-subset entries (`"status": "stable-subset"` = 3), and validates that
+every module has parallel `"layer":` / `"status":` / `"beta_blocker":`
+field counts via a new `CountOccurrences(content, needle)` helper. Emits
+`pgy.selfhost.module-manifest-resolver.v1`. Parity rung 2 asserts: clean
+exit, JSON byte-equal vs `expected/clean.json`, count parity vs shell
+`grep -c`, and a synthetic missing-modules-key fixture (rewrite
+`"modules":` to `"NOTMODULES":`) yields `rc=1` with a
+`"kind":"missing_modules_key"` finding. The scaffold smoke now gates 5
+tools. `CountOccurrences` is the first reusable scan helper across tools
+and is the candidate shared-library extraction once a 6th tool adopts it.
+
+**Self-host status snapshot (2026-05-27, after 5 tools):** The Pergyra
+origin surface now ships 5 compiler-adjacent tools with clean +
+negative-fixture parity green. All share the same `ReadFile + Split +
+StringContains + StringIndexOf + Substring + StringLength + ToInt +
+ToString + StringJoin + ArrayPush + FileExists + Exit + ==/!= +
+while/for/if` surface. No new LLVM/runtime lift required between tools 3,
+4, and 5 -- the surface is *stable enough* for soft self-host dogfood and
+validates the staged roadmap's required-language-surface checklist.
+
+**Self-host sixth tool (2026-05-27):** `stdlib_dispatch_inventory_checker`
+under `self_hosted/tools/`. Reads the two C-source dispatch tables that
+*must agree* in entry count when a builtin lands:
+`src/codegen/transpiler_expr_stdlib_scalar_builtin.c` (C backend dispatch)
+and `src/codegen/llvm_expr_stdlib_scalar_io_calls.c` (LLVM backend
+registry). Counts `, TRANSPILER_SCALAR_OP_` (33) and `"stdlib ` (33)
+respectively via `CountOccurrences`, asserts equality. Emits
+`pgy.selfhost.stdlib-dispatch-inventory.v1`. Parity rung 2 asserts:
+clean exit, JSON byte-equal vs `expected/clean.json`, count parity vs
+shell `grep -c`, and a synthetic drift fixture (strip one
+`"stdlib `-line from the LLVM file) yields `rc=1` with a
+`"kind":"count_drift"` finding. The scaffold smoke now gates 6 tools.
+**Direct motivation**: this tool catches the exact class of bug fixed by
+the StringJoin LLVM lift on 2026-05-26 -- C-side dispatch having an entry
+the LLVM-side registry lacks. The reusable `CountOccurrences` helper from
+tool 5 is duplicated here; with 2 consumers it now qualifies for
+extraction into `self_hosted/lib/` once tool 7 also needs it.
+
+**Self-host seventh tool (2026-05-27):** `doc_link_checker` under
+`self_hosted/tools/`. Reads `docs/INDEX.md`, extracts every `](path)`
+target via a `ExtractLinkPath` substring slice between `](` and `)`,
+filters to `.md` targets while skipping `://` URLs and `#` anchors,
+verifies each target exists under `docs/` via `FileExists`. Emits
+`pgy.selfhost.doc-link-checker.v1` with live counts: `total_links=99,
+md_links=96, missing_links=0` on the clean repo. Parity rung 2 asserts:
+clean exit, JSON byte-equal vs `expected/clean.json`, count parity vs
+shell `grep -oE` ground truth, and a synthetic dead-link fixture
+(rewrite one target to `XX_NONEXISTENT_FAKE_DRIFT.md`) yields `rc=1`
+with a `"kind":"missing_link"` finding carrying the drift path. The
+scaffold smoke now gates 7 tools. **New pattern introduced**:
+path-extraction between paired delimiters -- the same shape future
+`#include "..."` / `import "..."` scanners will reuse.
+
+**Self-host shared-lib extraction (2026-05-27, completed):** Promoted
+`CountOccurrences` from inline duplicates in tools 5 + 6 to
+`self_hosted/lib/text_scan.pgy` (single `TextScan` namespace export).
+Tools 5 and 6 now `import "../../lib/text_scan.pgy"` and call
+`TextScan.CountOccurrences(...)`. Parity scripts for both tools mirror
+the lib into `.tmp/lib/` (not `.tmp/self_hosted/lib/` -- `../..` from
+the build dir `.tmp/self_hosted/<tool>/main.pgy` resolves to `.tmp/`,
+so the lib needs to live one level shallower than the tool). All 8 tool
+parities remain green after the extraction. Future tools that need
+substring scanning are expected to extend `lib/text_scan.pgy` (e.g.
+`ExtractIntField`, `ExtractDelimitedLiteral`, `ExtractLinkPath` are
+candidates for the next consumer to lift).
+
+**Self-host eighth tool (2026-05-27):** `production_header_size_checker`
+under `self_hosted/tools/`. Reads a committed
+`fixture/headers_manifest.txt` (489 production `.h` paths produced by
+`find src/codegen src/runtime src/compiler src/semantic src/parser src/lsp
+-name '*.h' -type f | sort`), iterates each line, `ReadFile`s the header
+content, counts newlines via `Split + ArrayLength - trailing-empty`
+adjustment to mirror `wc -l`, and asserts each header is `<= 600` LOC.
+Emits `pgy.selfhost.production-header-size.v1` with
+`headers=489 violations=0 max_lines=578` on the clean repo. Parity rung 2
+asserts: clean exit, JSON byte-equal vs `expected/clean.json`,
+`headers/violations/max_lines` parity vs shell `wc -l` ground truth, and
+a synthetic over-cap fixture (701-line generated `.h` appended to a tmp
+manifest) yields `rc=1` with a `"kind":"header_over_cap"` finding
+carrying the synthetic path. The scaffold smoke now gates 8 tools.
+**New pattern**: manifest-driven per-file-I/O loop -- the 489-header
+manifest stress-tests `for line in lines` + `ReadFile` at realistic
+scale and proves the Pergyra surface scales beyond single-file tools.
+This is the first Pergyra origin tool that performs hundreds of
+`ReadFile` calls per invocation.
+
+**Self-host ninth tool (2026-05-27):** `production_c_size_checker`
+under `self_hosted/tools/`. Sister to tool 8 -- same manifest-driven
+shape, but covering production `.c` translation units against the same
+600-LOC cap. Reads `fixture/c_files_manifest.txt` (793 paths produced by
+`find src/codegen src/runtime src/compiler src/semantic src/parser src/lsp
+-name '*.c' -type f | sort`). Emits
+`pgy.selfhost.production-c-size.v1` with `c_files=793 violations=0
+max_lines=548` on the clean repo. Parity rung 2 asserts: clean exit,
+JSON byte-equal, `c_files/violations/max_lines` parity vs `wc -l` shell,
+and a synthetic 701-line over-cap fixture yields `rc=1` with a
+`"kind":"c_over_cap"` finding carrying the synthetic path. The scaffold
+smoke now gates 9 tools. `CountLines` is duplicated inline in tools 8
+and 9; the next tool that needs a `wc -l`-style line counter triggers
+the lift into `lib/text_scan.pgy`.
+
+**Self-host status snapshot (2026-05-27, after 9 tools):** The Pergyra
+origin surface ships 9 compiler-adjacent tools (catalog / section /
+JSON-like / paired-diff / manifest / dispatch parity / path-extract /
+header-size / c-size). All 9 parity scripts green. Total live scans
+per smoke pass: 1 catalog, 1 manifest, 1 AIR JSON, 1 paired diff, 1
+JSON manifest, 2 stdlib source files, 1 doc index, 489 production
+headers, 793 production C files -- 1289 file reads from a single
+`bash` invocation. The Pergyra origin surface (no `Args` / no JSON
+parser / no `ListDir` yet) has not blocked any of these 9 tools.
 
 ## ★ Core Goal — 진행 시퀀스 (2026-05-02 명시, 4-step)
 
@@ -15324,7 +15488,7 @@ Local verification for this debt refresh:
   `ensure_generic_class_specialization(...)`, not class-generic detection.
   Effective generic argument naming also moved to the same compiled query owner
   as `transpiler_generic_param_effective_arg_name(...)`, so the specialization
-  implementation header no longer owns `render_type_name(...)`-based effective
+  implementation header no longer owns local type-rendering based effective
   argument policy. Generic class specialization bounded-name/symbol/surface
   formatting and naming-length diagnostics moved to
   `transpiler_generic_class_naming.c`, leaving the specialization header focused
@@ -15445,7 +15609,7 @@ Local verification for this debt refresh:
   host subjects, and it detects already-subject-ref arguments through the typed
   symbol table. This keeps subject/who lowering policy separate from
   authorization policy and reduces the direct call emitter's ownership of
-  `render_type_name(...)` + host-self + typed-entry checks. Local verification:
+  type-rendering + host-self + typed-entry checks. Local verification:
   `mingw32-make LLVM_ENABLED=0 build/codegen/transpiler_call_subject_arg_policy.o`,
   `mingw32-make LLVM_ENABLED=0 build/codegen/transpiler_expr_call_user_emit.o`,
   and `perf-contract-test-smoke`.

@@ -30,6 +30,7 @@
 #include "transpiler_spawn_channel_emit.h"
 #include "transpiler_symbols.h"
 #include "transpiler_type_mapping.h"
+#include "transpiler_type_require.h"
 
 char *
 emit_expression(ASTNode *node, TranspilerCtx *ctx)
@@ -383,7 +384,9 @@ emit_expression(ASTNode *node, TranspilerCtx *ctx)
                 /* RemoteFuture<T> -> Result<T>: wrap in PgyResult. */
                 char inner_c_type_buf[256];
                 const char *inner_c_type = NULL;
-                if (pergyra_type_to_c_copy(inner, inner_c_type_buf,
+                if (transpiler_require_type_name_c_type_copy(ctx, inner,
+                        "RemoteFuture await result",
+                        inner_c_type_buf,
                         sizeof(inner_c_type_buf))) {
                     inner_c_type = inner_c_type_buf;
                 }
@@ -402,7 +405,9 @@ emit_expression(ASTNode *node, TranspilerCtx *ctx)
             } else {
                 char inner_c_type_buf[256];
                 const char *inner_c_type = NULL;
-                if (pergyra_type_to_c_copy(inner, inner_c_type_buf,
+                if (transpiler_require_type_name_c_type_copy(ctx, inner,
+                        "Future await result",
+                        inner_c_type_buf,
                         sizeof(inner_c_type_buf))) {
                     inner_c_type = inner_c_type_buf;
                 }

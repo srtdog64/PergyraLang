@@ -18,6 +18,7 @@
 #include "transpiler_expr_type_infer.h"
 #include "transpiler_match_bindings.h"
 #include "transpiler_type_mapping.h"
+#include "transpiler_type_require.h"
 
 void
 emit_match_stmt(ASTNode *node, TranspilerCtx *ctx)
@@ -42,7 +43,8 @@ emit_match_stmt(ASTNode *node, TranspilerCtx *ctx)
         free(subj);
         return;
     }
-    if (pergyra_type_to_c_copy(subject_type, subject_c_type_buf,
+    if (transpiler_require_type_name_c_type_copy(ctx, subject_type,
+            "match subject", subject_c_type_buf,
             sizeof(subject_c_type_buf))) {
         subject_c_type = subject_c_type_buf;
     }
