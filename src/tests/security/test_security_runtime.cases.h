@@ -1,4 +1,4 @@
-﻿void test_security_context_lifecycle()
+void test_security_context_lifecycle()
 {
     printf("\n=== Test 1: Security Context Lifecycle ===\n");
 
@@ -78,7 +78,6 @@ void test_secure_slot_manager()
     TEST_ASSERT(manager != NULL, "Secure slot manager creation");
     TEST_ASSERT(SlotManagerIsSecurityEnabled(manager), "Security enabled check");
 
-    g_pergyraSlotManager = manager; /* Set global reference */
 
     /* Test secure slot claiming */
     SlotHandle handle;
@@ -105,7 +104,6 @@ void test_secure_slot_manager()
     TEST_ASSERT(result == SLOT_SUCCESS, "Secure slot release");
 
     SlotManagerDestroySecure(manager);
-    g_pergyraSlotManager = NULL;
 }
 
 /*
@@ -117,7 +115,6 @@ void test_security_violations()
 
     SlotManager *manager = SlotManagerCreateSecure(100, 8*1024, true,
                                                   SECURITY_LEVEL_ENCRYPTED);
-    g_pergyraSlotManager = manager;
 
     SlotHandle handle;
     TokenCapability validToken, invalidToken;
@@ -165,7 +162,6 @@ void test_security_violations()
     /* Cleanup */
     SlotReleaseSecure(manager, &handle, &validToken);
     SlotManagerDestroySecure(manager);
-    g_pergyraSlotManager = NULL;
 }
 
 /*
@@ -237,7 +233,6 @@ void test_pergyra_api()
 
     SlotManager *manager = SlotManagerCreateSecure(100, 8*1024, true,
                                                   SECURITY_LEVEL_HARDWARE);
-    g_pergyraSlotManager = manager;
 
     /* Test high-level API */
     PergyraSecureSlot *slot = pergyra_claim_secure_slot(manager, "Int",
@@ -271,7 +266,6 @@ void test_pergyra_api()
     free(scopedSlot); /* Manual cleanup for test - normally handled by scope */
 
     SlotManagerDestroySecure(manager);
-    g_pergyraSlotManager = NULL;
 
     /* Print usage example */
     pergyra_security_audit_usage_example();
@@ -286,7 +280,6 @@ void test_performance()
 
     SlotManager *manager = SlotManagerCreateSecure(10000, 1024*1024, true,
                                                   SECURITY_LEVEL_BASIC);
-    g_pergyraSlotManager = manager;
 
     const int NUM_OPERATIONS = 1000;
     clock_t start, end;
@@ -339,7 +332,6 @@ void test_performance()
     }
 
     SlotManagerDestroySecure(manager);
-    g_pergyraSlotManager = NULL;
 }
 
 /*
@@ -360,7 +352,6 @@ void test_sealed_storage_and_shadow_recovery()
     printf("\n=== Test 9: Sealed Storage And Shadow Recovery ===\n");
 
     manager = SlotManagerCreateSecure(32, 4096, true, SECURITY_LEVEL_HARDWARE);
-    g_pergyraSlotManager = manager;
 
     result = SlotClaimSecure(manager, TYPE_INT, SECURITY_LEVEL_HARDWARE, &handle, &token);
     TEST_ASSERT(result == SLOT_SUCCESS, "Shadow recovery slot claim");
@@ -405,7 +396,6 @@ void test_sealed_storage_and_shadow_recovery()
 
     SlotReleaseSecure(manager, &handle, &token);
     SlotManagerDestroySecure(manager);
-    g_pergyraSlotManager = NULL;
 }
 
 void test_runtime_file_io_policy()

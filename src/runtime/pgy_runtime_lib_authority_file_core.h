@@ -37,6 +37,7 @@ extern char *realpath(const char *path, char *resolved_path);
 #include "runtime/pgy_runtime_panic_contract.h"
 
 static char *pgy_runtime_lib_strdup(const char *src);
+static pthread_mutex_t pgy_runtime_lib_rng_mutex = PTHREAD_MUTEX_INITIALIZER;
 
 _Thread_local bool pgy_zone_authority_last_ok = true;
 _Thread_local char pgy_zone_authority_last_zone[128] = "";

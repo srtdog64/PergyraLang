@@ -115,7 +115,7 @@ pgy_intent_find_active_registry_slot_export(int32_t handle)
 }
 
 static PgyIntentActiveEntry *
-pgy_intent_find_active_entry_export(int32_t handle)
+pgy_intent_find_active_entry_locked_export(int32_t handle)
 {
     int32_t active_slot = pgy_intent_find_active_registry_slot_export(handle);
 

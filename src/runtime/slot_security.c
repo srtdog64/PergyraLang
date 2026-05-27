@@ -35,11 +35,6 @@ slot_security_warn(const char *op, SecurityError err, const char *reason)
 }
 
 /*
- * Global security context (singleton pattern for performance)
- */
-static SecurityContext *g_securityContext = NULL;
-
-/*
  * Compile-time security constants
  */
 static const uint8_t SECURITY_MAGIC[] = {
@@ -157,8 +152,6 @@ SecurityContextCreate(SecurityLevel defaultLevel)
     SecureMemoryLock(context->masterKey, context->keySize);
     
     context->initialized = true;
-    g_securityContext = context;
-    
     return context;
 }
 
@@ -177,8 +170,6 @@ SecurityContextDestroy(SecurityContext *context)
     SecureMemoryWipe(context, sizeof(SecurityContext));
     free(context);
     
-    if (g_securityContext == context)
-        g_securityContext = NULL;
 }
 
 /*

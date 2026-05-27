@@ -254,6 +254,13 @@ if "return (ZeroExpr);" in macro_body:
     raise SystemExit("secure slot export macro still silently returns ZeroExpr")
 if "s != NULL && t != NULL" in macro_body:
     raise SystemExit("secure slot export macro still uses silent guard-only validation")
+for token in [
+    "atomic_uint_least64_t pgy_secure_token_counter_",
+    "atomic_fetch_add_explicit",
+    "memory_order_relaxed",
+]:
+    if token not in macro_body:
+        raise SystemExit(f"secure slot token counter is not atomic-gated: {token}")
 
 authority_text = (root / "src" / "runtime" / "pgy_runtime_lib_authority_file_core.h").read_text(encoding="utf-8")
 inline_authority_text = (root / "src" / "runtime" / "pgy_runtime_zone_result_option_inline.h").read_text(encoding="utf-8")

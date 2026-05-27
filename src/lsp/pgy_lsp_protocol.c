@@ -3,6 +3,7 @@
  */
 
 #include "pgy_lsp_internal.h"
+#include "../common/numeric_parse.h"
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -115,12 +116,18 @@ int
 json_find_int(const char *json, const char *key)
 {
     char pattern[128];
+    int parsed;
+
     snprintf(pattern, sizeof(pattern), "\"%s\"", key);
     const char *pos = strstr(json, pattern);
-    if (pos == NULL) return -1;
+    if (pos == NULL)
+        return -1;
     pos += strlen(pattern);
-    while (*pos == ' ' || *pos == ':' || *pos == '\t') pos++;
-    return atoi(pos);
+    while (*pos == ' ' || *pos == ':' || *pos == '\t')
+        pos++;
+    if (!pgy_parse_int_prefix(pos, &parsed))
+        return -1;
+    return parsed;
 }
 
 void

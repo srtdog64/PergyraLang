@@ -27,6 +27,7 @@ static char *format_source_to_string(const char *source);
 
 #include "fmt_io.h"
 #include "fmt_layout.h"
+#include "path_utils.h"
 
 static bool
 format_source_to_stream(const char *source, FILE *out)
@@ -150,7 +151,7 @@ fmt_read_stream(FILE *f)
     if (fseek(f, 0, SEEK_END) != 0)
         return NULL;
     len = ftell(f);
-    if (len < 0)
+    if (len < 0 || (unsigned long)len > (unsigned long)PGY_MAX_TEXT_FILE_BYTES)
         return NULL;
     if (fseek(f, 0, SEEK_SET) != 0)
         return NULL;
@@ -158,6 +159,10 @@ fmt_read_stream(FILE *f)
     if (buf == NULL)
         return NULL;
     read_len = fread(buf, 1, (size_t)len, f);
+    if (read_len != (size_t)len) {
+        free(buf);
+        return NULL;
+    }
     buf[read_len] = '\0';
     return buf;
 }

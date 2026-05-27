@@ -43,6 +43,7 @@ extern char *realpath(const char *path, char *resolved_path);
 #endif
 
 static PGY_RUNTIME_NOINLINE char *pgy_runtime_strdup(const char *src);
+static pthread_mutex_t pgy_runtime_rng_mutex = PTHREAD_MUTEX_INITIALIZER;
 
 static _Thread_local bool pgy_zone_authority_last_ok = true;
 static _Thread_local char pgy_zone_authority_last_zone[128] = "";

@@ -24,7 +24,7 @@ Any pointer not fitting one of these classes is beta debt.
 
 | Risk | Current contract | Gate |
 |---|---|---|
-| Intent/authority string exports | `runtime-borrowed string` | `runtime-abi-lifetime-test-smoke` |
+| Intent observability string exports | `runtime-borrowed string` copied into thread-local snapshots; consume/copy before a later borrowed string query on the same thread reuses the slot | `runtime-abi-lifetime-test-smoke` |
 | String helpers | `result-owned string` | `runtime-abi-lifetime-test-smoke` |
 | `Substring` / `StringReplace` sizing | reject strings beyond the `Int` index range and count replacements with `size_t` before result allocation | `runtime-abi-lifetime-test-smoke` + `test-abi` |
 | `StringSplit` / `MapKeys` arrays | `result-owned array` with copied string payloads | `runtime-abi-lifetime-test-smoke` |

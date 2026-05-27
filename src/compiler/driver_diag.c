@@ -5,6 +5,7 @@
 #include <string.h>
 
 #include "../common/diagnostic_layer.h"
+#include "../common/numeric_parse.h"
 #include "../semantic/diag_codes.h"
 
 typedef struct DriverDiagCodeMap {
@@ -101,19 +102,18 @@ driver_extract_line_col(const char *s, unsigned *line, unsigned *column)
     if (p == NULL)
         return false;
     p += 5;
-    char *endp = NULL;
-    unsigned long l = strtoul(p, &endp, 10);
-    if (endp == p)
+    int parsed_line = 0;
+    if (!pgy_parse_positive_int_prefix(p, &parsed_line))
         return false;
-    *line = (unsigned)l;
+    *line = (unsigned)parsed_line;
     if (column != NULL) {
         *column = 0;
-        const char *q = strstr(endp, "column ");
+        const char *q = strstr(p, "column ");
         if (q != NULL) {
             q += 7;
-            unsigned long c = strtoul(q, &endp, 10);
-            if (endp != q)
-                *column = (unsigned)c;
+            int parsed_column = 0;
+            if (pgy_parse_positive_int_prefix(q, &parsed_column))
+                *column = (unsigned)parsed_column;
         }
     }
     return true;

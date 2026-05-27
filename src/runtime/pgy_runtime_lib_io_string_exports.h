@@ -20,7 +20,6 @@ pgy_runtime_lib_strdup(const char *src)
 #define PGY_MAX_OPEN_FILES 256
 
 static FILE *pgy_runtime_ftable[PGY_MAX_OPEN_FILES];
-static int   pgy_runtime_ftable_next = 3;
 static pthread_mutex_t pgy_runtime_ftable_mutex = PTHREAD_MUTEX_INITIALIZER;
 
 static void
@@ -70,8 +69,6 @@ int32_t pgy_file_open(const char *path, const char *mode)
         return -1;
     }
 
-    if (fd >= pgy_runtime_ftable_next)
-        pgy_runtime_ftable_next = fd + 1;
     pgy_runtime_ftable[fd] = fp;
     pthread_mutex_unlock(&pgy_runtime_ftable_mutex);
     return (int32_t)fd;

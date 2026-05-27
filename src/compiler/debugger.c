@@ -15,6 +15,8 @@
  */
 
 #include "debugger.h"
+#include "path_utils.h"
+#include "../common/numeric_parse.h"
 #include "../lexer/lexer.h"
 #include "../parser/parser.h"
 #include "../parser/ast.h"
@@ -121,6 +123,12 @@ clear_breakpoint(DebugCtx *ctx, int line)
     printf("No breakpoint set at line %d\n", line);
 }
 
+static bool
+debug_parse_positive_line(const char *text, int *line_out)
+{
+    return pgy_parse_positive_int_strict(text, line_out);
+}
+
 static void
 print_backtrace(DebugCtx *ctx)
 {
@@ -206,8 +214,9 @@ debug_prompt(DebugCtx *ctx, int current_line)
         if (len > 0 && cmd[len - 1] == '\n') cmd[len - 1] = '\0';
 
         if (strncmp(cmd, "b ", 2) == 0) {
-            int line = atoi(cmd + 2);
-            if (line > 0 && ctx->bp_count < MAX_BREAKPOINTS) {
+            int line = 0;
+            if (debug_parse_positive_line(cmd + 2, &line)
+                && ctx->bp_count < MAX_BREAKPOINTS) {
                 ctx->breakpoints[ctx->bp_count++] = line;
                 printf("Breakpoint set at line %d\n", line);
             }
@@ -215,8 +224,8 @@ debug_prompt(DebugCtx *ctx, int current_line)
         }
         if (strncmp(cmd, "cl ", 3) == 0 || strncmp(cmd, "clear ", 6) == 0) {
             const char *arg = (cmd[1] == 'l') ? (cmd + 3) : (cmd + 6);
-            int line = atoi(arg);
-            if (line > 0)
+            int line = 0;
+            if (debug_parse_positive_line(arg, &line))
                 clear_breakpoint(ctx, line);
             continue;
         }
@@ -290,18 +299,7 @@ debug_walk_statements(DebugCtx *ctx, ASTNode *node)
 static char *
 read_file_for_debug(const char *path)
 {
-    FILE *f = fopen(path, "rb");
-    size_t read_len;
-    if (!f) return NULL;
-    fseek(f, 0, SEEK_END);
-    long len = ftell(f);
-    fseek(f, 0, SEEK_SET);
-    char *buf = malloc((size_t)len + 1);
-    if (!buf) { fclose(f); return NULL; }
-    read_len = fread(buf, 1, (size_t)len, f);
-    buf[read_len] = '\0';
-    fclose(f);
-    return buf;
+    return path_read_file(path);
 }
 
 int

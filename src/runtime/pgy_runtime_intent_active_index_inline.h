@@ -105,7 +105,7 @@ pgy_intent_find_active_registry_slot(int32_t handle)
 }
 
 static inline PgyIntentActiveEntry *
-pgy_intent_find_active_entry(int32_t handle)
+pgy_intent_find_active_entry_locked(int32_t handle)
 {
     int32_t active_slot = pgy_intent_find_active_registry_slot(handle);
 

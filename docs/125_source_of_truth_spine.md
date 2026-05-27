@@ -419,9 +419,9 @@ reenter the same helper. New helper APIs should choose one of the three lanes
 in their name or contract.
 
 Top-level mutable static state in compiler/codegen/semantic/LSP code is also
-closed by default. The current explicit exception is:
-
-- process-level toolchain cache storage in `compiler_toolchain.c`.
+closed by default. There are currently no explicit mutable-static exceptions in
+those owners; if a new exception is proposed, it must name the owner and the
+source-of-truth contract in this document and in `build_source_inventory_smoke`.
 
 Adding another exception requires naming the owner and the source-of-truth
 contract in this document and in `build_source_inventory_smoke`.
@@ -439,6 +439,93 @@ C backend type rendering is explicit as well. Generic bindings flow through
 `render_type_name_in_ctx(...)` and `pergyra_ast_type_to_c_copy_in_ctx(...)`;
 `transpiler_type_render.c` must not reintroduce a process-global render context
 or push/restore stack.
+
+C compiler detection is caller-owned. `pgy_select_c_compiler(...)` fills a
+`PgyCCompilerSelection` supplied by the compile/link pipeline, so `PGY_CC` /
+`CC` parsing and MinGW target fallback do not require process-global mutable
+cache storage. If no usable compiler probe succeeds, detection returns failure
+instead of silently manufacturing a `gcc` fallback; callers must surface that as
+a compile/link diagnostic.
+
+Compiler-side source-file reads are owned by `path_read_file(...)`. Debugger,
+formatter, import resolver, and driver paths must not each reimplement
+`fseek`/`ftell`/`fread` sizing, because that reopens inconsistent size caps and
+partial-read handling. If a caller needs a different policy, it must add a
+named path-utils owner function rather than embedding another local file reader.
+
+Checked numeric parsing is owned by `src/common/numeric_parse.{h,c}`. Parser,
+LSP, debugger, and MIR SSA consumers must not call `atoi`, `strtol`, or
+`strtoull` directly; they consume the common prefix/strict parse functions so
+overflow, malformed input, negative size values, and positive-only policy are
+handled consistently.
+
+Generated select round-robin state is process-local backend state, but it must
+not be a plain mutable counter. The C backend emits an `_Atomic unsigned int`
+and advances it with `atomic_fetch_add_explicit(..., memory_order_relaxed)`;
+the LLVM backend emits the same contract with `LLVMBuildAtomicRMW(...Add...)`.
+The contract is fairness rotation without introducing a data race when the
+same generated function is reached from parallel code.
+
+Runtime-owned registries may still be global when they represent process
+runtime state, but they must name their synchronization owner. The party
+scheduler registry is guarded by `g_schedulerRegistryMutex`; tag lookup remains
+an indexed `g_schedulerByTag` read under that lock, not a registry scan.
+
+Secure-slot token generation is also process runtime state, but it must not be
+a plain mutable counter. Exported secure-slot wrappers use per-type
+`atomic_uint_least64_t` counters with relaxed fetch-add: the contract is unique
+token allocation, not cross-thread memory ordering.
+
+Parallel pool lifecycle state is guarded separately from queue state. The
+runtime uses atomic active flags, explicit shutting-down flags, and lifecycle
+mutexes to keep `spawn` / enqueue from racing with `init` or `shutdown`
+destroying the pool mutexes and condition variables. Shutdown publishes the
+closing state before releasing the lifecycle mutex for worker joins; worker-local
+spawn attempts therefore fail closed instead of blocking behind a join-held
+lifecycle lock. Queue mutation remains protected by the pool's queue mutex.
+
+Qubit runtime state is also a single guarded owner. The inline C runtime and the
+LLVM export runtime both serialize claim, measure, entangle, state query, and
+release operations with a qubit-state mutex. This keeps allocation cursors,
+entanglement-pool membership, and measurement collapse from becoming hidden data
+races when qubit APIs are reached from parallel code. The underlying C
+`rand/srand` state is guarded by a separate runtime RNG mutex shared by ordinary
+`Random` / `SeedRandom` and qubit collapse, because the RNG state is process
+global rather than qubit-local.
+
+Slot security contexts are explicit owners, not hidden singletons.
+`SecurityContextCreate` returns the context that the slot manager stores, and
+`SecurityContextDestroy` tears down that object directly. A new process-global
+security context would reintroduce an ambiguous source of truth and must stay
+out of `slot_security.c`.
+
+Intent observability registry pointers are guarded by
+`pgy_intent_registry_mutex`. Lookup helpers that find active entries or return
+active/recent/history entry pointers are named `*_locked` / `*_locked_export`
+because callers must already hold the registry mutex. Public query exports lock,
+snapshot string payloads into thread-local borrowed buffers, and unlock before
+returning. Reintroducing unqualified entry lookup helpers would hide the lock
+precondition again.
+
+High-level secure slot wrappers carry their slot manager owner directly.
+`PergyraSecureSlot` records the `SlotManager *` that claimed the handle, and
+read/write/release consume that stored owner. The runtime therefore does not
+need a process-global `g_pergyraSlotManager` singleton to resolve secure slot
+operations.
+
+Intent observability borrowed-string queries return runtime-owned thread-local
+snapshots. The registry mutex protects the read and snapshot copy, and callers
+receive a pointer that is independent of the mutable active/history/recent
+registry storage. This preserves the "caller must not free" ABI while avoiding
+raw registry pointers that can be freed by a concurrent intent exit. The pointer
+is a short-lived borrowed snapshot: callers must consume or copy it before a
+later borrowed string query on the same thread can reuse that snapshot slot.
+
+Runtime file handles are allocated from the handle table itself. The table mutex
+protects open/read/write/close, and open scans for the first free descriptor
+slot. There is no separate `ftable_next` cursor source of truth because closed
+slots must be reusable and a cursor that is only written creates dead mutable
+state.
 
 The same C backend rule applies to expression type inference. Constructed names
 such as `Array<T>`, `Slice<T>`, `ReadView<T>`, `WriteView<T>`,

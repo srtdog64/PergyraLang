@@ -34,16 +34,13 @@ compiler_debug_llvm_host_stage(const char *stage)
 /* -----------------------------------------------------------------
  * C compiler detection: PGY_CC env -> clang -> gcc -> cc
  *
- * On Windows, clang may default to MSVC target which lacks pthread.h.
- * We detect this and store a --target flag for mingw if needed.
+ * On Windows, clang may default to MSVC target which lacks pthread.h. The
+ * caller owns PgyCCompilerSelection storage, so detection does not need a
+ * process-global mutable cache.
  * ----------------------------------------------------------------- */
-static const char *pgy_cc_cached = NULL;
-static const char *pgy_cc_target_flag = NULL; /* e.g. "--target=x86_64-w64-mingw32" */
-static char pgy_cc_cached_storage[512];
-static char pgy_cc_target_storage[256];
-
 static bool
-pgy_cache_compiler_command(const char *command)
+pgy_parse_compiler_command(PgyCCompilerSelection *selection,
+                           const char *command)
 {
     const char *cursor = command;
     const char *token_start;
@@ -51,7 +48,7 @@ pgy_cache_compiler_command(const char *command)
     size_t token_len;
     char quote = '\0';
 
-    if (command == NULL)
+    if (selection == NULL || command == NULL)
         return false;
 
     while (*cursor != '\0' && isspace((unsigned char)*cursor))
@@ -75,13 +72,13 @@ pgy_cache_compiler_command(const char *command)
     }
 
     token_len = (size_t)(token_end - token_start);
-    if (token_len == 0 || token_len >= sizeof(pgy_cc_cached_storage))
+    if (token_len == 0 || token_len >= sizeof(selection->cc_storage))
         return false;
 
-    memcpy(pgy_cc_cached_storage, token_start, token_len);
-    pgy_cc_cached_storage[token_len] = '\0';
-    pgy_cc_cached = pgy_cc_cached_storage;
-    pgy_cc_target_flag = NULL;
+    memcpy(selection->cc_storage, token_start, token_len);
+    selection->cc_storage[token_len] = '\0';
+    selection->cc = selection->cc_storage;
+    selection->target_flag = NULL;
 
     while (*cursor != '\0') {
         const char *flag = cursor;
@@ -101,11 +98,11 @@ pgy_cache_compiler_command(const char *command)
 
         if (flag_len > strlen("--target=")
             && strncmp(flag, "--target=", strlen("--target=")) == 0) {
-            if (flag_len >= sizeof(pgy_cc_target_storage))
+            if (flag_len >= sizeof(selection->target_storage))
                 return false;
-            memcpy(pgy_cc_target_storage, flag, flag_len);
-            pgy_cc_target_storage[flag_len] = '\0';
-            pgy_cc_target_flag = pgy_cc_target_storage;
+            memcpy(selection->target_storage, flag, flag_len);
+            selection->target_storage[flag_len] = '\0';
+            selection->target_flag = selection->target_storage;
             break;
         }
 
@@ -122,13 +119,14 @@ pgy_cache_compiler_command(const char *command)
                 flag_end++;
             flag_len = (size_t)(flag_end - value);
             if (flag_len == 0
-                || flag_len + strlen("--target=") >= sizeof(pgy_cc_target_storage)) {
+                || flag_len + strlen("--target=") >= sizeof(selection->target_storage)) {
                 return false;
             }
-            memcpy(pgy_cc_target_storage, "--target=", strlen("--target="));
-            memcpy(pgy_cc_target_storage + strlen("--target="), value, flag_len);
-            pgy_cc_target_storage[strlen("--target=") + flag_len] = '\0';
-            pgy_cc_target_flag = pgy_cc_target_storage;
+            memcpy(selection->target_storage, "--target=", strlen("--target="));
+            memcpy(selection->target_storage + strlen("--target="), value,
+                   flag_len);
+            selection->target_storage[strlen("--target=") + flag_len] = '\0';
+            selection->target_flag = selection->target_storage;
             break;
         }
 
@@ -138,22 +136,24 @@ pgy_cache_compiler_command(const char *command)
     return true;
 }
 
-const char *
-pgy_detect_c_compiler(void)
+bool
+pgy_select_c_compiler(PgyCCompilerSelection *selection)
 {
     const char *env_cc;
     const char *make_cc;
-    if (pgy_cc_cached != NULL)
-        return pgy_cc_cached;
+    if (selection == NULL)
+        return false;
+    memset(selection, 0, sizeof(*selection));
+
     env_cc = getenv("PGY_CC");
     if (env_cc != NULL && env_cc[0] != '\0') {
-        if (pgy_cache_compiler_command(env_cc))
-            return pgy_cc_cached;
+        if (pgy_parse_compiler_command(selection, env_cc))
+            return true;
     }
     make_cc = getenv("CC");
     if (make_cc != NULL && make_cc[0] != '\0') {
-        if (pgy_cache_compiler_command(make_cc))
-            return pgy_cc_cached;
+        if (pgy_parse_compiler_command(selection, make_cc))
+            return true;
     }
 #ifdef _WIN32
     /* Prefer an actual MinGW GCC driver on Windows.
@@ -170,35 +170,32 @@ pgy_detect_c_compiler(void)
     {
         const char *mingw_gcc_ver[] = { "x86_64-w64-mingw32-gcc", "--version", NULL };
         if (pgy_exec_probe_argv_silent(mingw_gcc_ver) == 0) {
-            pgy_cc_cached = "x86_64-w64-mingw32-gcc";
-            pgy_cc_target_flag = NULL;
-            return pgy_cc_cached;
+            selection->cc = "x86_64-w64-mingw32-gcc";
+            return true;
         }
     }
     {
         const char *gcc_ver[] = { "gcc", "--version", NULL };
         if (pgy_exec_probe_argv_silent(gcc_ver) == 0) {
-            pgy_cc_cached = "gcc";
-            pgy_cc_target_flag = NULL;
-            return pgy_cc_cached;
+            selection->cc = "gcc";
+            return true;
         }
     }
     /* Fallback: clang with explicit MinGW target. */
     {
         const char *clang_mingw[] = { "clang", "--target=x86_64-w64-mingw32", "--version", NULL };
         if (pgy_exec_probe_argv_silent(clang_mingw) == 0) {
-            pgy_cc_cached = "clang";
-            pgy_cc_target_flag = "--target=x86_64-w64-mingw32";
-            return pgy_cc_cached;
+            selection->cc = "clang";
+            selection->target_flag = "--target=x86_64-w64-mingw32";
+            return true;
         }
     }
     /* Last fallback: plain clang. */
     {
         const char *clang_ver[] = { "clang", "--version", NULL };
         if (pgy_exec_probe_argv_silent(clang_ver) == 0) {
-            pgy_cc_cached = "clang";
-            pgy_cc_target_flag = NULL;
-            return pgy_cc_cached;
+            selection->cc = "clang";
+            return true;
         }
     }
 #else
@@ -207,23 +204,13 @@ pgy_detect_c_compiler(void)
         for (int i = 0; candidates[i] != NULL; i++) {
             const char *test_argv[] = { candidates[i], "--version", NULL };
             if (pgy_exec_probe_argv_silent(test_argv) == 0) {
-                pgy_cc_cached = candidates[i];
-                return pgy_cc_cached;
+                selection->cc = candidates[i];
+                return true;
             }
         }
     }
 #endif
-    pgy_cc_cached = "gcc";
-    return pgy_cc_cached;
-}
-
-/* Returns extra target flag for the detected compiler, or NULL */
-const char *
-pgy_cc_extra_target_flag(void)
-{
-    if (pgy_cc_cached == NULL)
-        pgy_detect_c_compiler();
-    return pgy_cc_target_flag;
+    return false;
 }
 
 double

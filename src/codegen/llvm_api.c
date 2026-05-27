@@ -72,17 +72,11 @@ llvm_verify_module_result(LLVMGenCtx *ctx)
 static void
 llvm_init_all_targets(void)
 {
-    static bool initialized = false;
-
-    if (initialized)
-        return;
-
     LLVMInitializeAllTargetInfos();
     LLVMInitializeAllTargets();
     LLVMInitializeAllTargetMCs();
     LLVMInitializeAllAsmParsers();
     LLVMInitializeAllAsmPrinters();
-    initialized = true;
 }
 
 static LLVMTargetMachineRef

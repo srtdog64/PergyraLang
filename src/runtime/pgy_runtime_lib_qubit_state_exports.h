@@ -22,6 +22,7 @@ typedef struct {
 static PgyQubit_RT              pgy_qubits_rt[PGY_QUBIT_RT_MAX];
 static int32_t                  pgy_qubit_next_rt = 0;
 static bool                     pgy_qubit_rng_init_rt = false;
+static pthread_mutex_t          pgy_qubit_rt_mutex = PTHREAD_MUTEX_INITIALIZER;
 
 static PgyEntanglementPool_RT   pgy_qubit_pools_rt[PGY_QUBIT_RT_MAX];
 static int32_t                  pgy_qubit_pool_next_rt = 0;

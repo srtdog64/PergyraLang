@@ -145,6 +145,7 @@ typedef enum
 
 typedef struct
 {
+    SlotManager *manager;
     SlotHandle handle;
     TokenCapability token;
     TypeTag typeTag;

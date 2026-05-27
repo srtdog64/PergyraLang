@@ -17,18 +17,31 @@
  * ================================================================= */
 
 static PgyThreadPool g_pgy_blocking_pool = {0};
-static bool          g_pgy_blocking_pool_active = false;
+static atomic_bool   g_pgy_blocking_pool_active = false;
+static atomic_bool   g_pgy_blocking_pool_shutting_down = false;
+static pthread_mutex_t g_pgy_blocking_pool_lifecycle_mutex =
+    PTHREAD_MUTEX_INITIALIZER;
 
 static inline void
 pgy_blocking_pool_init(size_t worker_count)
 {
-    if (g_pgy_blocking_pool_active)
+    pthread_mutex_lock(&g_pgy_blocking_pool_lifecycle_mutex);
+    if (atomic_load_explicit(&g_pgy_blocking_pool_active,
+                             memory_order_acquire)) {
+        pthread_mutex_unlock(&g_pgy_blocking_pool_lifecycle_mutex);
         return;
+    }
+    if (atomic_load_explicit(&g_pgy_blocking_pool_shutting_down,
+                             memory_order_acquire)) {
+        pthread_mutex_unlock(&g_pgy_blocking_pool_lifecycle_mutex);
+        return;
+    }
 
     if (worker_count == 0)
         worker_count = 4;  /* sensible default for I/O-bound work */
     if (!pgy_parallel_array_fits(worker_count, sizeof(pthread_t))) {
         pgy_parallel_warn("blocking-pool-init", "worker array size overflow");
+        pthread_mutex_unlock(&g_pgy_blocking_pool_lifecycle_mutex);
         return;
     }
 
@@ -44,6 +57,7 @@ pgy_blocking_pool_init(size_t worker_count)
         pthread_mutex_destroy(&g_pgy_blocking_pool.queue_mutex);
         pthread_cond_destroy(&g_pgy_blocking_pool.queue_cond);
         memset(&g_pgy_blocking_pool, 0, sizeof(g_pgy_blocking_pool));
+        pthread_mutex_unlock(&g_pgy_blocking_pool_lifecycle_mutex);
         return;
     }
     for (size_t i = 0; i < worker_count; i++) {
@@ -58,28 +72,45 @@ pgy_blocking_pool_init(size_t worker_count)
             pthread_mutex_destroy(&g_pgy_blocking_pool.queue_mutex);
             pthread_cond_destroy(&g_pgy_blocking_pool.queue_cond);
             memset(&g_pgy_blocking_pool, 0, sizeof(g_pgy_blocking_pool));
+            pthread_mutex_unlock(&g_pgy_blocking_pool_lifecycle_mutex);
             return;
         }
     }
 
-    g_pgy_blocking_pool_active = true;
+    atomic_store_explicit(&g_pgy_blocking_pool_active, true,
+                          memory_order_release);
+    pthread_mutex_unlock(&g_pgy_blocking_pool_lifecycle_mutex);
 }
 
 static inline void
 pgy_blocking_pool_shutdown(void)
 {
-    if (!g_pgy_blocking_pool_active)
+    pthread_mutex_lock(&g_pgy_blocking_pool_lifecycle_mutex);
+    if (!atomic_load_explicit(&g_pgy_blocking_pool_active,
+                              memory_order_acquire)) {
+        pthread_mutex_unlock(&g_pgy_blocking_pool_lifecycle_mutex);
         return;
+    }
+    atomic_store_explicit(&g_pgy_blocking_pool_active, false,
+                          memory_order_release);
+    atomic_store_explicit(&g_pgy_blocking_pool_shutting_down, true,
+                          memory_order_release);
 
     pthread_mutex_lock(&g_pgy_blocking_pool.queue_mutex);
     g_pgy_blocking_pool.shutdown = true;
     pthread_cond_broadcast(&g_pgy_blocking_pool.queue_cond);
     pthread_mutex_unlock(&g_pgy_blocking_pool.queue_mutex);
 
-    for (size_t i = 0; i < g_pgy_blocking_pool.worker_count; i++)
-        pthread_join(g_pgy_blocking_pool.workers[i], NULL);
+    pthread_t *workers = g_pgy_blocking_pool.workers;
+    size_t worker_count = g_pgy_blocking_pool.worker_count;
+    pthread_mutex_unlock(&g_pgy_blocking_pool_lifecycle_mutex);
 
-    free(g_pgy_blocking_pool.workers);
+    for (size_t i = 0; i < worker_count; i++)
+        pthread_join(workers[i], NULL);
+
+    pthread_mutex_lock(&g_pgy_blocking_pool_lifecycle_mutex);
+
+    free(workers);
     pthread_mutex_destroy(&g_pgy_blocking_pool.queue_mutex);
     pthread_cond_destroy(&g_pgy_blocking_pool.queue_cond);
 
@@ -94,7 +125,9 @@ pgy_blocking_pool_shutdown(void)
     }
 
     memset(&g_pgy_blocking_pool, 0, sizeof(g_pgy_blocking_pool));
-    g_pgy_blocking_pool_active = false;
+    atomic_store_explicit(&g_pgy_blocking_pool_shutting_down, false,
+                          memory_order_release);
+    pthread_mutex_unlock(&g_pgy_blocking_pool_lifecycle_mutex);
 }
 
 /* Offload a blocking function (FFI, system call) to the blocking pool.
@@ -109,17 +142,33 @@ pgy_spawn_blocking(void *(*fn)(void *), void *arg)
         pgy_parallel_warn("spawn-blocking", "task function is null");
         return handle;
     }
+    if (atomic_load_explicit(&g_pgy_blocking_pool_shutting_down,
+                             memory_order_acquire)) {
+        pgy_parallel_warn("spawn-blocking", "blocking pool is shutting down");
+        return handle;
+    }
 
     /* Lazy-init blocking pool on first use */
-    if (!g_pgy_blocking_pool_active)
+    if (!atomic_load_explicit(&g_pgy_blocking_pool_active,
+                              memory_order_acquire))
         pgy_blocking_pool_init(0);
-    if (!g_pgy_blocking_pool_active) {
+    pthread_mutex_lock(&g_pgy_blocking_pool_lifecycle_mutex);
+    if (atomic_load_explicit(&g_pgy_blocking_pool_shutting_down,
+                             memory_order_acquire)) {
+        pthread_mutex_unlock(&g_pgy_blocking_pool_lifecycle_mutex);
+        pgy_parallel_warn("spawn-blocking", "blocking pool is shutting down");
+        return handle;
+    }
+    if (!atomic_load_explicit(&g_pgy_blocking_pool_active,
+                              memory_order_acquire)) {
+        pthread_mutex_unlock(&g_pgy_blocking_pool_lifecycle_mutex);
         pgy_parallel_warn("spawn-blocking", "blocking pool initialization failed");
         return handle;
     }
 
     PgyTask *task = (PgyTask *)calloc(1, sizeof(PgyTask));
     if (task == NULL) {
+        pthread_mutex_unlock(&g_pgy_blocking_pool_lifecycle_mutex);
         pgy_parallel_warn("spawn-blocking", "task allocation failed");
         return handle;
     }
@@ -143,6 +192,7 @@ pgy_spawn_blocking(void *(*fn)(void *), void *arg)
     g_pgy_blocking_pool.queue_tail = task;
     pthread_cond_signal(&g_pgy_blocking_pool.queue_cond);
     pthread_mutex_unlock(&g_pgy_blocking_pool.queue_mutex);
+    pthread_mutex_unlock(&g_pgy_blocking_pool_lifecycle_mutex);
 
     return handle;
 }

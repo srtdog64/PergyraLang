@@ -8,6 +8,7 @@
 
 #include "transpiler_context.h"
 #include "transpiler_mir_ssa_map.h"
+#include "../common/numeric_parse.h"
 #include "../common/string_compat.h"
 
 bool
@@ -28,8 +29,7 @@ transpiler_parse_versioned_name(const char *versioned,
         return false;
     memcpy(base, versioned, len);
     base[len] = '\0';
-    *version_out = (size_t)strtoull(dot + 1, NULL, 10);
-    return true;
+    return pgy_parse_size_strict_allow_zero(dot + 1, version_out);
 }
 
 static size_t

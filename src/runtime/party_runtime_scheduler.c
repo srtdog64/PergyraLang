@@ -16,6 +16,7 @@ static struct {
 
 static FiberScheduler* g_schedulerByTag[SCHEDULER_CUSTOM_3 + 1] = {0};
 static size_t g_schedulerCount = 0;
+static pthread_mutex_t g_schedulerRegistryMutex = PTHREAD_MUTEX_INITIALIZER;
 
 static void
 party_runtime_warn_scheduler(const char* reason, SchedulerTag tag, const char* name)
@@ -51,6 +52,8 @@ party_runtime_scheduler_strdup(const char* text)
 bool
 RegisterScheduler(SchedulerTag tag, const char* name, FiberScheduler* scheduler)
 {
+    char* ownedName = NULL;
+
     if (name == NULL || name[0] == '\0') {
         party_runtime_warn_scheduler("name is null or empty", tag, name);
         return false;
@@ -60,8 +63,11 @@ RegisterScheduler(SchedulerTag tag, const char* name, FiberScheduler* scheduler)
         return false;
     }
 
+    pthread_mutex_lock(&g_schedulerRegistryMutex);
+
     if (tag >= SCHEDULER_MAIN_THREAD && tag <= SCHEDULER_CUSTOM_3
         && g_schedulerByTag[tag] != NULL) {
+        pthread_mutex_unlock(&g_schedulerRegistryMutex);
         party_runtime_warn_scheduler("duplicate scheduler tag", tag, name);
         return false;
     }
@@ -69,18 +75,21 @@ RegisterScheduler(SchedulerTag tag, const char* name, FiberScheduler* scheduler)
     for (size_t i = 0; i < g_schedulerCount; i++) {
         if (g_schedulerRegistry[i].name != NULL
             && strcmp(g_schedulerRegistry[i].name, name) == 0) {
+            pthread_mutex_unlock(&g_schedulerRegistryMutex);
             party_runtime_warn_scheduler("duplicate scheduler name", tag, name);
             return false;
         }
     }
 
     if (g_schedulerCount >= 16) {
+        pthread_mutex_unlock(&g_schedulerRegistryMutex);
         party_runtime_warn_scheduler("registry is full", tag, name);
         return false;
     }
 
-    char* ownedName = party_runtime_scheduler_strdup(name);
+    ownedName = party_runtime_scheduler_strdup(name);
     if (ownedName == NULL) {
+        pthread_mutex_unlock(&g_schedulerRegistryMutex);
         party_runtime_warn_scheduler("name allocation failed", tag, name);
         return false;
     }
@@ -91,18 +100,24 @@ RegisterScheduler(SchedulerTag tag, const char* name, FiberScheduler* scheduler)
     if (tag >= SCHEDULER_MAIN_THREAD && tag <= SCHEDULER_CUSTOM_3)
         g_schedulerByTag[tag] = scheduler;
     g_schedulerCount++;
+    pthread_mutex_unlock(&g_schedulerRegistryMutex);
     return true;
 }
 
 FiberScheduler*
 GetSchedulerForTag(SchedulerTag tag)
 {
+    FiberScheduler* scheduler = NULL;
+
     if (tag == SCHEDULER_ANY)
         return SchedulerGetCurrent();
 
-    if (tag >= SCHEDULER_MAIN_THREAD && tag <= SCHEDULER_CUSTOM_3
-        && g_schedulerByTag[tag] != NULL) {
-        return g_schedulerByTag[tag];
+    if (tag >= SCHEDULER_MAIN_THREAD && tag <= SCHEDULER_CUSTOM_3) {
+        pthread_mutex_lock(&g_schedulerRegistryMutex);
+        scheduler = g_schedulerByTag[tag];
+        pthread_mutex_unlock(&g_schedulerRegistryMutex);
+        if (scheduler != NULL)
+            return scheduler;
     }
 
     if (tag != SCHEDULER_ANY)
@@ -114,6 +129,8 @@ void
 DumpFiberMaps(void)
 {
     printf("=== Fiber Map Dump ===\n");
+
+    pthread_mutex_lock(&g_schedulerRegistryMutex);
     printf("Registered Schedulers: %zu\n", g_schedulerCount);
 
     for (size_t i = 0; i < g_schedulerCount; i++) {
@@ -122,6 +139,7 @@ DumpFiberMaps(void)
                g_schedulerRegistry[i].name,
                (void*)g_schedulerRegistry[i].scheduler);
     }
+    pthread_mutex_unlock(&g_schedulerRegistryMutex);
 
     party_runtime_dump_fiber_stats();
 }

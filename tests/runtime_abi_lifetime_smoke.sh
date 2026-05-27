@@ -182,6 +182,7 @@ concat_runtime_text "$llvm_text" \
     "src/runtime/pgy_runtime_lib_raw_queue_exports.h" \
     "src/runtime/pgy_runtime_lib_raw_set_exports.h" \
     "src/runtime/pgy_runtime_lib_set_intent_trace_exports.h" \
+    "src/runtime/pgy_runtime_lib_set_intent_trace_exports.c" \
     "src/runtime/pgy_runtime_lib_intent_exports.h" \
     "src/runtime/pgy_runtime_lib_intent_recent_exports.h" \
     "src/runtime/pgy_runtime_lib_intent_slot_core_exports.h" \
@@ -210,16 +211,6 @@ check_borrowed_exports "inline-intent" "$inline_text" \
     pgy_intent_last_trace_export \
     pgy_intent_last_failure_export \
     pgy_intent_last_name_export \
-    pgy_intent_history_step_name_export \
-    pgy_intent_history_step_zone_export \
-    pgy_intent_history_step_phase_export \
-    pgy_intent_history_step_participant_export \
-    pgy_intent_history_step_slot_export \
-    pgy_intent_history_step_from_zone_export \
-    pgy_intent_history_step_from_slot_export \
-    pgy_intent_history_step_to_zone_export \
-    pgy_intent_history_step_to_slot_export \
-    pgy_intent_history_step_failure_export \
     pgy_intent_active_name_export \
     pgy_intent_active_trace_export \
     pgy_intent_active_failure_export \
@@ -240,16 +231,6 @@ check_borrowed_exports "llvm-intent-authority" "$llvm_text" \
     pgy_intent_last_trace_export \
     pgy_intent_last_failure_export \
     pgy_intent_last_name_export \
-    pgy_intent_history_step_name_export \
-    pgy_intent_history_step_zone_export \
-    pgy_intent_history_step_phase_export \
-    pgy_intent_history_step_participant_export \
-    pgy_intent_history_step_slot_export \
-    pgy_intent_history_step_from_zone_export \
-    pgy_intent_history_step_from_slot_export \
-    pgy_intent_history_step_to_zone_export \
-    pgy_intent_history_step_to_slot_export \
-    pgy_intent_history_step_failure_export \
     pgy_intent_active_name_export \
     pgy_intent_active_trace_export \
     pgy_intent_active_failure_export \
@@ -284,6 +265,65 @@ check_macro_borrowed_exports "llvm-intent-active-step" "$llvm_text" \
     pgy_intent_active_step_from_slot_export \
     pgy_intent_active_step_to_zone_export \
     pgy_intent_active_step_failure_export
+
+for term in \
+    "pgy_intent_borrowed_snapshot(" \
+    "static _Thread_local char *snapshots" \
+    "pgy_intent_last_trace_export" \
+    "pthread_mutex_lock(&pgy_intent_registry_mutex)" \
+    "pgy_intent_active_entry_by_index_locked_export" \
+    "pgy_intent_recent_entry_by_index_locked_export" \
+    "pgy_intent_active_step_by_index_locked_export" \
+    "pgy_intent_find_active_entry_locked(" \
+    "pgy_intent_history_step_name_export" \
+    "pgy_intent_recent_name_export"; do
+    grep -Fq "$term" "$inline_text" ||
+        fail "inline intent borrowed query snapshots must be mutex-backed: $term"
+done
+for term in \
+    "result = entry->name;" \
+    "result = entry->trace;" \
+    "result = entry->failure_reason;" \
+    "result = step->name;" \
+    "pgy_intent_active_entry_by_index_export(" \
+    "pgy_intent_recent_entry_by_index_export(" \
+    "pgy_intent_active_step_by_index_export(" \
+    "pgy_intent_find_active_entry(" \
+    "return pgy_intent_last_trace != NULL" \
+    "return pgy_intent_last_steps[index]"; do
+    if grep -Fq "$term" "$inline_text"; then
+        fail "inline intent borrowed query must not return raw registry pointers: $term"
+    fi
+done
+for term in \
+    "pgy_intent_borrowed_snapshot_export(" \
+    "static _Thread_local char *snapshots" \
+    "pgy_intent_last_trace_export" \
+    "pthread_mutex_lock(&pgy_intent_registry_mutex)" \
+    "pgy_intent_active_entry_by_index_locked_export" \
+    "pgy_intent_recent_entry_by_index_locked_export" \
+    "pgy_intent_active_step_by_index_locked_export" \
+    "pgy_intent_find_active_entry_locked_export(" \
+    "pgy_intent_history_step_name_export" \
+    "pgy_intent_recent_name_export"; do
+    grep -Fq "$term" "$llvm_text" ||
+        fail "LLVM intent borrowed query snapshots must be mutex-backed: $term"
+done
+for term in \
+    "result = entry->name;" \
+    "result = entry->trace;" \
+    "result = entry->failure_reason;" \
+    "result = step->name;" \
+    "pgy_intent_active_entry_by_index_export(" \
+    "pgy_intent_recent_entry_by_index_export(" \
+    "pgy_intent_active_step_by_index_export(" \
+    "pgy_intent_find_active_entry_export(" \
+    "return pgy_intent_last_trace != NULL" \
+    "return pgy_intent_last_steps[index]"; do
+    if grep -Fq "$term" "$llvm_text"; then
+        fail "LLVM intent borrowed query must not return raw registry pointers: $term"
+    fi
+done
 
 check_result_owned_strings "inline-string-helpers" "$inline_string_text" \
     pgy_runtime_strdup \
@@ -369,6 +409,11 @@ for term in \
     grep -Fq "$term" <<< "$file_open_body" ||
         fail "pgy_file_open must reuse closed runtime-owned handle slots; missing $term"
 done
+if grep -Fq "ftable_next" \
+    "$ROOT_DIR/src/runtime/pgy_runtime_io_qubit_inline.h" \
+    "$ROOT_DIR/src/runtime/pgy_runtime_lib_io_string_exports.h"; then
+    fail "runtime file handle allocation must not keep a dead ftable_next cursor"
+fi
 grep -Fq "pgy_runtime_ftable[fd] = NULL" <<< "$file_close_body" ||
     fail "pgy_file_close must release the runtime-owned handle slot"
 grep -Fq "pthread_mutex_lock(&pgy_runtime_ftable_mutex)" <<< "$file_close_body" ||
@@ -624,12 +669,51 @@ for term in \
 done
 for term in \
     "pgy_parallel_array_fits" \
+    "atomic_bool   g_pgy_pool_active" \
+    "atomic_bool   g_pgy_pool_shutting_down" \
+    "g_pgy_pool_lifecycle_mutex" \
+    "atomic_store_explicit(&g_pgy_pool_shutting_down, true" \
+    "pthread_t *workers = g_pgy_pool.workers" \
+    "atomic_load_explicit(&g_pgy_pool_active" \
+    "atomic_store_explicit(&g_pgy_pool_active" \
     "\"parallel-run\", \"task array is null\"" \
     "PgyTaskHandle *handles = (PgyTaskHandle *)calloc(count, sizeof(PgyTaskHandle))" \
     "PgyParallelArg *args = (PgyParallelArg *)calloc(count, sizeof(PgyParallelArg))" \
     "worker array size overflow"; do
     grep -Fq "$term" "$ROOT_DIR/src/runtime/pgy_parallel.h" ||
         fail "parallel runtime task/worker arrays must guard null and allocation sizes: $term"
+done
+for term in \
+    "atomic_bool   g_pgy_blocking_pool_active" \
+    "atomic_bool   g_pgy_blocking_pool_shutting_down" \
+    "g_pgy_blocking_pool_lifecycle_mutex" \
+    "atomic_store_explicit(&g_pgy_blocking_pool_shutting_down, true" \
+    "pthread_t *workers = g_pgy_blocking_pool.workers" \
+    "atomic_load_explicit(&g_pgy_blocking_pool_active" \
+    "atomic_store_explicit(&g_pgy_blocking_pool_active"; do
+    grep -Fq "$term" "$ROOT_DIR/src/runtime/pgy_parallel_blocking.h" ||
+        fail "blocking parallel pool lifecycle must be atomic/mutex guarded: $term"
+done
+if grep -Fq "g_securityContext" "$ROOT_DIR/src/runtime/slot_security.c"; then
+    fail "slot security context ownership must stay explicit, not process-global"
+fi
+if grep -Fq "g_pergyraSlotManager" \
+    "$ROOT_DIR/src/runtime/slot_manager_scope.c" \
+    "$ROOT_DIR/src/test_security.c" \
+    "$ROOT_DIR/src/tests/security/test_security_runtime.cases.h"; then
+    fail "secure slot wrapper ownership must stay slot-carried, not process-global"
+fi
+for term in \
+    "SlotManager *manager;" \
+    "slot->manager = manager" \
+    "slot->manager = pscope->manager" \
+    "SlotWriteSecure(slot->manager" \
+    "SlotReadSecure(slot->manager" \
+    "SlotReleaseSecure(slot->manager"; do
+    grep -Fq "$term" \
+        "$ROOT_DIR/src/runtime/slot_manager.h" \
+        "$ROOT_DIR/src/runtime/slot_manager_scope.c" ||
+        fail "secure slot wrapper must carry its manager owner: $term"
 done
 for term in \
     "PGY_RUNTIME_ELEM_CAPACITY_FITS" \
@@ -675,6 +759,42 @@ for term in \
     grep -Fq "$term" "$ROOT_DIR/src/runtime/pgy_runtime_channel_inline.h" \
         "$ROOT_DIR/src/runtime/pgy_runtime_channel_string_inline.h" ||
         fail "inline Channel initialized/range guard missing: $term"
+done
+for term in \
+    "pgy_runtime_rng_mutex" \
+    "pthread_mutex_lock(&pgy_runtime_rng_mutex)" \
+    "pthread_mutex_unlock(&pgy_runtime_rng_mutex)"; do
+    grep -Fq "$term" \
+        "$ROOT_DIR/src/runtime/pgy_runtime_platform_io_core.h" \
+        "$ROOT_DIR/src/runtime/pgy_runtime_scalar_std_inline.h" \
+        "$ROOT_DIR/src/runtime/pgy_runtime_qubit_inline.h" ||
+        fail "inline runtime RNG state must be mutex-guarded: $term"
+done
+for term in \
+    "pgy_runtime_lib_rng_mutex" \
+    "pthread_mutex_lock(&pgy_runtime_lib_rng_mutex)" \
+    "pthread_mutex_unlock(&pgy_runtime_lib_rng_mutex)"; do
+    grep -Fq "$term" \
+        "$ROOT_DIR/src/runtime/pgy_runtime_lib_authority_file_core.h" \
+        "$ROOT_DIR/src/runtime/pgy_runtime_lib_std_exports.h" \
+        "$ROOT_DIR/src/runtime/pgy_runtime_lib_quantum_exports.h" ||
+        fail "LLVM runtime RNG state must be mutex-guarded: $term"
+done
+for term in \
+    "static pthread_mutex_t _pgy_qubit_mutex = PTHREAD_MUTEX_INITIALIZER" \
+    "pthread_mutex_lock(&_pgy_qubit_mutex)" \
+    "pthread_mutex_unlock(&_pgy_qubit_mutex)"; do
+    grep -Fq "$term" "$ROOT_DIR/src/runtime/pgy_runtime_qubit_inline.h" ||
+        fail "inline Qubit state must be mutex-guarded: $term"
+done
+for term in \
+    "static pthread_mutex_t          pgy_qubit_rt_mutex = PTHREAD_MUTEX_INITIALIZER" \
+    "pthread_mutex_lock(&pgy_qubit_rt_mutex)" \
+    "pthread_mutex_unlock(&pgy_qubit_rt_mutex)"; do
+    grep -Fq "$term" \
+        "$ROOT_DIR/src/runtime/pgy_runtime_lib_qubit_state_exports.h" \
+        "$ROOT_DIR/src/runtime/pgy_runtime_lib_quantum_exports.h" ||
+        fail "LLVM Qubit state must be mutex-guarded: $term"
 done
 for term in \
     "q->data == NULL || q->capacity == 0" \
@@ -862,7 +982,9 @@ for term in \
     "caller must not free" \
     "caller owns" \
     "must eventually release" \
-    "valid until the next mutation of the corresponding runtime registry" \
+    "thread-local borrowed snapshots" \
+    "later borrowed string query on the same thread" \
+    "until the next authority validation updates that thread's snapshot" \
     "last/history/active/recent" \
     "runtime-abi-lifetime-test-smoke"; do
     require_term "docs/semantics/04_ownership_abi.md" "$term"

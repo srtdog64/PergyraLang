@@ -174,10 +174,14 @@ emit_select_stmt(ASTNode *node, TranspilerCtx *ctx)
     {
         int select_id = ctx->tmp_counter++;
         write_indent(ctx);
-        codebuf_write(ctx->out, "static unsigned int _sel_rr_%d = 0;\n", select_id);
+        codebuf_write(ctx->out,
+                      "static _Atomic unsigned int _sel_rr_%d = 0;\n",
+                      select_id);
         write_indent(ctx);
         codebuf_write(ctx->out,
-            "unsigned int _sel_start_%d = _sel_rr_%d++ %% %zu;\n",
+            "unsigned int _sel_start_%d = "
+            "atomic_fetch_add_explicit(&_sel_rr_%d, 1u, "
+            "memory_order_relaxed) %% %zu;\n",
             select_id, select_id, case_count);
         write_indent(ctx);
         codebuf_write(ctx->out, "switch (_sel_start_%d) {\n", select_id);

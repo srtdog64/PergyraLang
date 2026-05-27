@@ -1,4 +1,5 @@
 #include "fmt_io.h"
+#include "path_utils.h"
 
 #include "../lexer/lexer.h"
 #include "../parser/ast.h"
@@ -10,38 +11,7 @@
 char *
 fmt_read_file(const char *path)
 {
-    FILE *f;
-    long len;
-    size_t read_len;
-    char *buf;
-
-    if (path == NULL)
-        return NULL;
-    f = fopen(path, "rb");
-    if (f == NULL)
-        return NULL;
-    if (fseek(f, 0, SEEK_END) != 0) {
-        fclose(f);
-        return NULL;
-    }
-    len = ftell(f);
-    if (len < 0) {
-        fclose(f);
-        return NULL;
-    }
-    if (fseek(f, 0, SEEK_SET) != 0) {
-        fclose(f);
-        return NULL;
-    }
-    buf = malloc((size_t)len + 1);
-    if (buf == NULL) {
-        fclose(f);
-        return NULL;
-    }
-    read_len = fread(buf, 1, (size_t)len, f);
-    buf[read_len] = '\0';
-    fclose(f);
-    return buf;
+    return path_read_file(path);
 }
 
 bool

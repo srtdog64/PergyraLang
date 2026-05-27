@@ -222,6 +222,28 @@ pgy_intent_append_line(char **dst, const char *line)
     pgy_intent_append_line_len(dst, &ignored_len, line);
 }
 
+static inline char *
+pgy_intent_borrowed_snapshot(const char *value)
+{
+    enum { PGY_INTENT_SNAPSHOT_SLOTS = 8 };
+    static _Thread_local char *snapshots[PGY_INTENT_SNAPSHOT_SLOTS];
+    static _Thread_local size_t snapshot_caps[PGY_INTENT_SNAPSHOT_SLOTS];
+    static _Thread_local unsigned snapshot_cursor;
+    unsigned slot = snapshot_cursor++ % PGY_INTENT_SNAPSHOT_SLOTS;
+    const char *src = value != NULL ? value : "";
+    size_t len = strlen(src);
+
+    if (len + 1 > snapshot_caps[slot]) {
+        char *grown = (char *)realloc(snapshots[slot], len + 1);
+        if (grown == NULL)
+            return "";
+        snapshots[slot] = grown;
+        snapshot_caps[slot] = len + 1;
+    }
+    memcpy(snapshots[slot], src, len + 1);
+    return snapshots[slot];
+}
+
 #include "pgy_runtime_intent_active_index_inline.h"
 
 static inline int32_t
@@ -242,7 +264,7 @@ pgy_intent_handle_is_current_ancestor(int32_t handle)
 
         if (cursor == handle)
             return true;
-        entry = pgy_intent_find_active_entry(cursor);
+        entry = pgy_intent_find_active_entry_locked(cursor);
         if (entry == NULL || entry->parent_handle == cursor)
             break;
         cursor = entry->parent_handle;
@@ -354,7 +376,7 @@ pgy_intent_next_unused_handle(void)
     for (int32_t probe = 0; probe <= PGY_INTENT_ACTIVE_MAX; probe++) {
         int32_t candidate =
             pgy_intent_next_positive_counter(&pgy_intent_next_handle);
-        if (candidate > 0 && pgy_intent_find_active_entry(candidate) == NULL)
+        if (candidate > 0 && pgy_intent_find_active_entry_locked(candidate) == NULL)
             return candidate;
     }
     return 0;

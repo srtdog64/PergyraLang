@@ -59,6 +59,8 @@ test_parallel_family_emit(void)
         EXPECT(strstr(ctx->out->data, "default") != NULL);
         EXPECT(strstr(ctx->out->data, "switch (_sel_start_") != NULL);
         EXPECT(strstr(ctx->out->data, "_sel_rr_") != NULL);
+        EXPECT(strstr(ctx->out->data, "static _Atomic unsigned int _sel_rr_") != NULL);
+        EXPECT(strstr(ctx->out->data, "atomic_fetch_add_explicit(&_sel_rr_") != NULL);
 
         transpiler_ctx_destroy(ctx);
     }

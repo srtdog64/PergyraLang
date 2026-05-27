@@ -11,9 +11,15 @@
 
 #include "compiler.h"
 
+typedef struct PgyCCompilerSelection {
+    const char *cc;
+    const char *target_flag;
+    char        cc_storage[512];
+    char        target_storage[256];
+} PgyCCompilerSelection;
+
 int pgy_exec_argv(const char *const argv[], bool verbose);
-const char *pgy_detect_c_compiler(void);
-const char *pgy_cc_extra_target_flag(void);
+bool pgy_select_c_compiler(PgyCCompilerSelection *selection);
 double compiler_now_seconds(void);
 bool pgy_path_is_safe(const char *path);
 

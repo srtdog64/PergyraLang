@@ -2,8 +2,11 @@
  * Secure slot operations - extern wrappers for LLVM linker
  * ================================================================= */
 
+#include <stdatomic.h>
+
 #define PGY_DEFINE_SECURE_SLOT_EXPORTS(Suffix, CType, ZeroExpr)                \
-static uint64_t pgy_secure_token_counter_##Suffix = 0x9e3779b97f4a7c15ULL;     \
+static atomic_uint_least64_t pgy_secure_token_counter_##Suffix =               \
+    ATOMIC_VAR_INIT(0x9e3779b97f4a7c15ULL);                                    \
                                                                                \
 typedef struct {                                                               \
     CType    value;                                                            \
@@ -20,9 +23,11 @@ typedef struct {                                                               \
 PgySecureSlot_##Suffix pgy_claim_secure_##Suffix(PgyToken_##Suffix *out_token) \
 {                                                                              \
     PgySecureSlot_##Suffix s;                                                  \
-    uint64_t id = ++pgy_secure_token_counter_##Suffix;                         \
+    uint64_t id = (uint64_t)atomic_fetch_add_explicit(                         \
+        &pgy_secure_token_counter_##Suffix, 1u, memory_order_relaxed) + 1u;     \
     if (id == 0) {                                                             \
-        id = ++pgy_secure_token_counter_##Suffix;                              \
+        id = (uint64_t)atomic_fetch_add_explicit(                              \
+            &pgy_secure_token_counter_##Suffix, 1u, memory_order_relaxed) + 1u; \
     }                                                                          \
     s.value = (ZeroExpr);                                                      \
     s.occupied = true;                                                         \

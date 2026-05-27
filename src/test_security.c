@@ -1,4 +1,4 @@
-﻿/*
+/*
  * Copyright (c) 2025 Pergyra Language Project
  * All rights reserved.
  *
@@ -32,9 +32,6 @@ extern int symlink(const char *target, const char *linkpath);
 #include "runtime/slot_manager.h"
 #include "runtime/slot_security.h"
 #include "runtime/pgy_runtime.h"
-
-/* Global test manager */
-SlotManager *g_pergyraSlotManager = NULL;
 
 /* Test statistics */
 typedef struct {

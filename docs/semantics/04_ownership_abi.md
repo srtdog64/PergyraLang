@@ -151,8 +151,16 @@ Current evidence:
 
 - Arena direction is fixed as `Arena + Index reference + lane-specific arena separation`.
 - Several semantic and backend scratch/result paths have been split.
-- Stable runtime string ABI exports are documented as `runtime-borrowed string` values: the caller must not free them, and they are valid until the next mutation of the corresponding runtime registry or snapshot.
-- `runtime-abi-lifetime-test-smoke` verifies that stable intent last/history/active/recent and authority string export functions return borrowed runtime state and do not allocate or free in the export body.
+- Stable runtime string ABI exports are documented as `runtime-borrowed string`
+  values: the caller must not free them.
+- Intent observability string exports copy mutable registry values into
+  thread-local borrowed snapshots. The returned pointer does not alias registry
+  storage, but callers must consume or copy it before a later borrowed string query on the same thread can reuse that snapshot slot.
+- Authority failure strings are thread-local runtime snapshots and are valid
+  until the next authority validation updates that thread's snapshot.
+- `runtime-abi-lifetime-test-smoke` verifies that stable intent
+  last/history/active/recent and authority string export functions return
+  borrowed runtime state and do not allocate/free/strdup in the ABI return path.
 - Stable string helper returns are `result-owned string` values: the caller owns
   and must eventually release the returned pointer unless a higher-level Pergyra
   runtime owner consumes it immediately.
@@ -220,7 +228,8 @@ C and LLVM must agree on who owns every stable runtime value returned through th
 Current evidence:
 
 - ABI same-process and backend compare tests cover many current runtime paths.
-- Runtime-borrowed string exports for intent observability and authority failure snapshots now have an explicit smoke gate.
+- Runtime-borrowed string exports for intent observability and authority failure
+  snapshots now have an explicit smoke gate.
 - Result-owned string and string-array helper payloads now have an explicit
   allocation/copy smoke gate.
 - The file-descriptor runtime-owned handle table now has an explicit release and

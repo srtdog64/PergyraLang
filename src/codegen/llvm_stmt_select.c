@@ -221,11 +221,11 @@ llvm_emit_select_stmt(ASTNode *node, LLVMGenCtx *ctx)
         LLVMSetInitializer(rr_global, LLVMConstInt(ctx->type_i32, 0, 0));
         LLVMSetLinkage(rr_global, LLVMInternalLinkage);
 
-        LLVMValueRef rr_cur = LLVMBuildLoad2(ctx->builder, ctx->type_i32,
-            rr_global, llvm_tmp_name(ctx));
-        LLVMValueRef rr_next = LLVMBuildAdd(ctx->builder, rr_cur,
-            LLVMConstInt(ctx->type_i32, 1, 0), llvm_tmp_name(ctx));
-        LLVMBuildStore(ctx->builder, rr_next, rr_global);
+        LLVMValueRef rr_cur = LLVMBuildAtomicRMW(ctx->builder,
+            LLVMAtomicRMWBinOpAdd, rr_global,
+            LLVMConstInt(ctx->type_i32, 1, 0),
+            LLVMAtomicOrderingMonotonic,
+            /*singleThread=*/0);
 
         LLVMValueRef start = LLVMBuildURem(ctx->builder, rr_cur,
             LLVMConstInt(ctx->type_i32, (unsigned long long)case_count, 0),

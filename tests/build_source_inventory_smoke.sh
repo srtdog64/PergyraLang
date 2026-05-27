@@ -267,6 +267,32 @@ for lsp_json_term in \
         missing=1
     fi
 done
+if grep -RInq 'atoi(' "$ROOT_DIR/src/lsp" --include='*.c' --include='*.h'; then
+    grep -RIn 'atoi(' "$ROOT_DIR/src/lsp" --include='*.c' --include='*.h' >&2 || true
+    echo "[build-source-inventory] LSP external numeric parsing must use checked strtol-style parsing, not atoi" >&2
+    missing=1
+fi
+unchecked_atoi_uses="$(
+    cd "$ROOT_DIR"
+    grep -RIn 'atoi(' src --include='*.c' --include='*.h' || true
+)"
+if [[ -n "$unchecked_atoi_uses" ]]; then
+    printf '%s\n' "$unchecked_atoi_uses" >&2
+    echo "[build-source-inventory] production C numeric parsing must use checked strtol-style parsing, not atoi" >&2
+    missing=1
+fi
+unchecked_numeric_parse_uses="$(
+    cd "$ROOT_DIR"
+    grep -RInE 'strtol\(|strtoul\(|strtoll\(|strtoull\(' \
+        src/compiler src/parser src/lsp src/codegen src/semantic \
+        --include='*.c' --include='*.h' \
+        | grep -v '^src/common/numeric_parse.c:' || true
+)"
+if [[ -n "$unchecked_numeric_parse_uses" ]]; then
+    printf '%s\n' "$unchecked_numeric_parse_uses" >&2
+    echo "[build-source-inventory] checked numeric parsing must route through src/common/numeric_parse" >&2
+    missing=1
+fi
 
 mutable_static_char_arrays="$(
     cd "$ROOT_DIR"
@@ -277,8 +303,6 @@ mutable_static_char_arrays="$(
 unexpected_static_char_arrays="$(
     printf '%s\n' "$mutable_static_char_arrays" \
         | grep -v '^$' \
-        | grep -v '^src/compiler/compiler_toolchain.c:[0-9][0-9]*:static char pgy_cc_cached_storage\[512\];' \
-        | grep -v '^src/compiler/compiler_toolchain.c:[0-9][0-9]*:static char pgy_cc_target_storage\[256\];' \
         || true
 )"
 if [[ -n "$unexpected_static_char_arrays" ]]; then
@@ -306,8 +330,6 @@ top_level_mutable_statics="$(
 unexpected_top_level_mutable_statics="$(
     printf '%s\n' "$top_level_mutable_statics" \
         | grep -v '^$' \
-        | grep -v '^src/compiler/compiler_toolchain.c:[0-9][0-9]*:static char pgy_cc_cached_storage\[512\];' \
-        | grep -v '^src/compiler/compiler_toolchain.c:[0-9][0-9]*:static char pgy_cc_target_storage\[256\];' \
         || true
 )"
 if [[ -n "$unexpected_top_level_mutable_statics" ]]; then
@@ -315,6 +337,63 @@ if [[ -n "$unexpected_top_level_mutable_statics" ]]; then
     echo "[build-source-inventory] top-level mutable static state requires an explicit source-of-truth owner" >&2
     missing=1
 fi
+for select_atomic_term in \
+    "static _Atomic unsigned int _sel_rr_" \
+    "atomic_fetch_add_explicit(&_sel_rr_"; do
+    if ! grep -Fq "$select_atomic_term" "$ROOT_DIR/src/codegen/transpiler_select.c"; then
+        echo "[build-source-inventory] C select round-robin state must be atomic: $select_atomic_term" >&2
+        missing=1
+    fi
+done
+if grep -Fq "_sel_rr_%d++" "$ROOT_DIR/src/codegen/transpiler_select.c"; then
+    echo "[build-source-inventory] C select round-robin state regressed to non-atomic increment" >&2
+    missing=1
+fi
+for select_atomic_term in \
+    "LLVMBuildAtomicRMW(ctx->builder" \
+    "LLVMAtomicOrderingMonotonic"; do
+    if ! grep -Fq "$select_atomic_term" "$ROOT_DIR/src/codegen/llvm_stmt_select.c"; then
+        echo "[build-source-inventory] LLVM select round-robin state must be atomic: $select_atomic_term" >&2
+        missing=1
+    fi
+done
+
+if grep -Fq 'pgy_detect_c_compiler' "$ROOT_DIR/src/compiler/compiler_toolchain.h" \
+    || grep -RInq 'pgy_cc_extra_target_flag' "$ROOT_DIR/src/compiler" \
+        --include='*.c' --include='*.h'; then
+    echo "[build-source-inventory] compiler toolchain selection must use caller-owned PgyCCompilerSelection" >&2
+    missing=1
+fi
+if awk '
+    prev_endif && /selection->cc = "gcc";/ { found=1 }
+    /^#endif$/ { prev_endif=1; next }
+    /^[[:space:]]*$/ { next }
+    { prev_endif=0 }
+    END { exit(found ? 0 : 1) }
+' "$ROOT_DIR/src/compiler/compiler_toolchain.c"; then
+    echo "[build-source-inventory] compiler toolchain detection must not invent an unprobed gcc fallback" >&2
+    missing=1
+fi
+
+local_compiler_file_readers="$(
+    cd "$ROOT_DIR"
+    grep -RInE 'fseek\(|ftell\(|fread\(buf' \
+        src/compiler/debugger.c src/compiler/fmt_io.c || true
+)"
+if [[ -n "$local_compiler_file_readers" ]]; then
+    printf '%s\n' "$local_compiler_file_readers" >&2
+    echo "[build-source-inventory] debugger/fmt_io must use path_read_file instead of local source-file readers" >&2
+    missing=1
+fi
+for term in \
+    "PGY_MAX_TEXT_FILE_BYTES" \
+    "read_len != (size_t)len" \
+    "free(buf)"; do
+    if ! grep -Fq "$term" "$ROOT_DIR/src/compiler/fmt.c"; then
+        echo "[build-source-inventory] fmt stream reader must preserve size cap and partial-read failure handling: $term" >&2
+        missing=1
+    fi
+done
 
 for header in \
     src/compiler/compiler_process.h \

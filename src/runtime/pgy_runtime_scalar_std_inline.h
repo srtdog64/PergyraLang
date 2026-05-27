@@ -68,8 +68,24 @@ static inline int32_t Clamp(int32_t v, int32_t lo, int32_t hi) {
     return v < lo ? lo : (v > hi ? hi : v);
 }
 
-static inline int32_t Random(int32_t max)     { return max <= 0 ? 0 : (int32_t)(rand() % max); }
-static inline void SeedRandom(int32_t seed)   { srand((unsigned int)seed); }
+static inline int32_t
+Random(int32_t max)
+{
+    if (max <= 0)
+        return 0;
+    pthread_mutex_lock(&pgy_runtime_rng_mutex);
+    int32_t value = (int32_t)(rand() % max);
+    pthread_mutex_unlock(&pgy_runtime_rng_mutex);
+    return value;
+}
+
+static inline void
+SeedRandom(int32_t seed)
+{
+    pthread_mutex_lock(&pgy_runtime_rng_mutex);
+    srand((unsigned int)seed);
+    pthread_mutex_unlock(&pgy_runtime_rng_mutex);
+}
 
 /* =================================================================
  * Standard Library Helpers

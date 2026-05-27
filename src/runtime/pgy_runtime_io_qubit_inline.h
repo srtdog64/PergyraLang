@@ -8,7 +8,6 @@
 #define PGY_MAX_OPEN_FILES 256
 
 static FILE *_pgy_ftable[PGY_MAX_OPEN_FILES];
-static int   _pgy_ftable_next = 3; /* 0=stdin,1=stdout,2=stderr */
 static pthread_mutex_t _pgy_ftable_mutex = PTHREAD_MUTEX_INITIALIZER;
 
 static inline void
@@ -57,8 +56,6 @@ pgy_file_open(const char *path, const char *mode)
         fclose(fp);
         return -1;
     }
-    if (fd >= _pgy_ftable_next)
-        _pgy_ftable_next = fd + 1;
     _pgy_ftable[fd] = fp;
     pthread_mutex_unlock(&_pgy_ftable_mutex);
     return (int32_t)fd;

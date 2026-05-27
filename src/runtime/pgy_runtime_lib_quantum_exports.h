@@ -3,17 +3,23 @@
 
 int32_t ClaimQubit(void)
 {
+    pthread_mutex_lock(&pgy_qubit_rt_mutex);
     if (!pgy_qubit_rng_init_rt) {
+        pthread_mutex_lock(&pgy_runtime_lib_rng_mutex);
         srand((unsigned)time(NULL));
+        pthread_mutex_unlock(&pgy_runtime_lib_rng_mutex);
         pgy_qubit_rng_init_rt = true;
     }
-    if (pgy_qubit_next_rt >= PGY_QUBIT_RT_MAX)
+    if (pgy_qubit_next_rt >= PGY_QUBIT_RT_MAX) {
+        pthread_mutex_unlock(&pgy_qubit_rt_mutex);
         return -1;
+    }
 
     int32_t id = pgy_qubit_next_rt++;
     pgy_qubits_rt[id].state    = 2;
     pgy_qubits_rt[id].pool_id  = -1;
     pgy_qubits_rt[id].measured = false;
+    pthread_mutex_unlock(&pgy_qubit_rt_mutex);
     return id;
 }
 
@@ -22,12 +28,19 @@ int32_t Measure(int32_t id)
     if (id < 0 || id >= PGY_QUBIT_RT_MAX)
         return -1;
 
+    pthread_mutex_lock(&pgy_qubit_rt_mutex);
     PgyQubit_RT *q = &pgy_qubits_rt[id];
-    if (q->measured)
-        return q->state;
+    if (q->measured) {
+        int32_t state = q->state;
+        pthread_mutex_unlock(&pgy_qubit_rt_mutex);
+        return state;
+    }
 
-    if (q->state == 2)
+    if (q->state == 2) {
+        pthread_mutex_lock(&pgy_runtime_lib_rng_mutex);
         q->state = rand() % 2;
+        pthread_mutex_unlock(&pgy_runtime_lib_rng_mutex);
+    }
     q->measured = true;
 
     /* Propagate collapse to entire entanglement pool */
@@ -42,7 +55,9 @@ int32_t Measure(int32_t id)
         }
     }
 
-    return q->state;
+    int32_t state = q->state;
+    pthread_mutex_unlock(&pgy_qubit_rt_mutex);
+    return state;
 }
 
 void Entangle(int32_t a, int32_t b)
@@ -50,6 +65,7 @@ void Entangle(int32_t a, int32_t b)
     if (a < 0 || a >= PGY_QUBIT_RT_MAX || b < 0 || b >= PGY_QUBIT_RT_MAX)
         return;
 
+    pthread_mutex_lock(&pgy_qubit_rt_mutex);
     int32_t pa = pgy_qubits_rt[a].pool_id;
     int32_t pb = pgy_qubits_rt[b].pool_id;
 
@@ -67,44 +83,58 @@ void Entangle(int32_t a, int32_t b)
             rt_pool_add(new_pool, b);
         }
     }
+    pthread_mutex_unlock(&pgy_qubit_rt_mutex);
 }
 
 void H(int32_t id)
 {
     if (id < 0 || id >= PGY_QUBIT_RT_MAX) return;
+    pthread_mutex_lock(&pgy_qubit_rt_mutex);
     pgy_qubits_rt[id].state    = 2;
     pgy_qubits_rt[id].measured = false;
+    pthread_mutex_unlock(&pgy_qubit_rt_mutex);
 }
 
 bool IntoClassical(int32_t id)
 {
     if (id < 0 || id >= PGY_QUBIT_RT_MAX) return false;
-    return pgy_qubits_rt[id].state == 1;
+    pthread_mutex_lock(&pgy_qubit_rt_mutex);
+    bool result = pgy_qubits_rt[id].state == 1;
+    pthread_mutex_unlock(&pgy_qubit_rt_mutex);
+    return result;
 }
 
 int32_t QubitState(int32_t id)
 {
     if (id < 0 || id >= PGY_QUBIT_RT_MAX)
         return -1;
-    return pgy_qubits_rt[id].state;
+    pthread_mutex_lock(&pgy_qubit_rt_mutex);
+    int32_t state = pgy_qubits_rt[id].state;
+    pthread_mutex_unlock(&pgy_qubit_rt_mutex);
+    return state;
 }
 
 bool IsCollapsed(int32_t id)
 {
     if (id < 0 || id >= PGY_QUBIT_RT_MAX)
         return true;
-    return pgy_qubits_rt[id].measured;
+    pthread_mutex_lock(&pgy_qubit_rt_mutex);
+    bool measured = pgy_qubits_rt[id].measured;
+    pthread_mutex_unlock(&pgy_qubit_rt_mutex);
+    return measured;
 }
 
 void ReleaseQubit(int32_t id)
 {
     if (id < 0 || id >= PGY_QUBIT_RT_MAX)
         return;
+    pthread_mutex_lock(&pgy_qubit_rt_mutex);
     if (pgy_qubits_rt[id].pool_id >= 0)
         rt_pool_remove(pgy_qubits_rt[id].pool_id, id);
     pgy_qubits_rt[id].state    = -1;
     pgy_qubits_rt[id].pool_id  = -1;
     pgy_qubits_rt[id].measured = true;
+    pthread_mutex_unlock(&pgy_qubit_rt_mutex);
 }
 
 /* =================================================================

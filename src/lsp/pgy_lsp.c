@@ -14,6 +14,7 @@
 #include <io.h>
 #endif
 
+#include "../common/numeric_parse.h"
 #include "../common/string_compat.h"
 #include "../runtime/pgy_runtime_observability_schema.h"
 #include "pgy_lsp_internal.h"
@@ -30,26 +31,29 @@ static char *
 lsp_read_message(char *msg_buf, size_t msg_buf_size)
 {
     char header[256];
-    int content_length = -1;
+    size_t content_length = 0;
+    bool saw_content_length = false;
 
     if (msg_buf == NULL || msg_buf_size == 0)
         return NULL;
 
     while (fgets(header, sizeof(header), stdin) != NULL) {
         if (strncmp(header, "Content-Length:", 15) == 0) {
-            content_length = atoi(header + 15);
+            if (!pgy_parse_size_prefix(header + 15, &content_length))
+                return NULL;
+            saw_content_length = true;
         }
         if (strcmp(header, "\r\n") == 0 || strcmp(header, "\n") == 0)
             break;
     }
 
-    if (content_length <= 0 || (size_t)content_length >= msg_buf_size)
+    if (!saw_content_length || content_length >= msg_buf_size)
         return NULL;
 
     size_t read_total = 0;
-    while (read_total < (size_t)content_length) {
+    while (read_total < content_length) {
         size_t n = fread(msg_buf + read_total, 1,
-                         (size_t)content_length - read_total, stdin);
+                         content_length - read_total, stdin);
         if (n == 0) return NULL;
         read_total += n;
     }

@@ -4,6 +4,7 @@
 #include <stdlib.h>
 #include <string.h>
 
+#include "../common/numeric_parse.h"
 #include "../common/string_compat.h"
 #include "mir_base_helpers.h"
 
@@ -53,7 +54,8 @@ mir_parse_versioned_name_owned(const char *versioned, size_t *version_out)
     if (dot == NULL)
         return NULL;
     len = (size_t)(dot - versioned);
-    *version_out = (size_t)strtoull(dot + 1, NULL, 10);
+    if (!pgy_parse_size_strict_allow_zero(dot + 1, version_out))
+        return NULL;
     return pergyra_strndup(versioned, len);
 }
 

@@ -16,8 +16,6 @@
 
 struct SecureSlotScope;
 
-SlotManager *g_pergyraSlotManager = NULL;
-
 struct SecureSlotScope
 {
     SlotManager *manager;
@@ -185,6 +183,7 @@ pergyra_claim_secure_slot(SlotManager *manager, const char *typeName,
     }
 
     slot->typeTag = typeTag;
+    slot->manager = manager;
     slot->isValid = true;
     return slot;
 }
@@ -192,12 +191,10 @@ pergyra_claim_secure_slot(SlotManager *manager, const char *typeName,
 bool
 pergyra_slot_write_secure(PergyraSecureSlot *slot, const void *data, size_t dataSize)
 {
-    extern SlotManager *g_pergyraSlotManager;
-
-    if (slot == NULL || !slot->isValid || g_pergyraSlotManager == NULL)
+    if (slot == NULL || !slot->isValid || slot->manager == NULL)
         return false;
 
-    return SlotWriteSecure(g_pergyraSlotManager, &slot->handle, data, dataSize,
+    return SlotWriteSecure(slot->manager, &slot->handle, data, dataSize,
                            &slot->token) == SLOT_SUCCESS;
 }
 
@@ -205,25 +202,21 @@ bool
 pergyra_slot_read_secure(PergyraSecureSlot *slot, void *buffer,
                          size_t bufferSize, size_t *bytesRead)
 {
-    extern SlotManager *g_pergyraSlotManager;
-
-    if (slot == NULL || !slot->isValid || g_pergyraSlotManager == NULL)
+    if (slot == NULL || !slot->isValid || slot->manager == NULL)
         return false;
 
-    return SlotReadSecure(g_pergyraSlotManager, &slot->handle, buffer, bufferSize,
+    return SlotReadSecure(slot->manager, &slot->handle, buffer, bufferSize,
                           bytesRead, &slot->token) == SLOT_SUCCESS;
 }
 
 void
 pergyra_slot_release_secure(PergyraSecureSlot *slot)
 {
-    extern SlotManager *g_pergyraSlotManager;
-
     if (slot == NULL)
         return;
 
-    if (slot->isValid && g_pergyraSlotManager != NULL)
-        SlotReleaseSecure(g_pergyraSlotManager, &slot->handle, &slot->token);
+    if (slot->isValid && slot->manager != NULL)
+        SlotReleaseSecure(slot->manager, &slot->handle, &slot->token);
 
     SecureMemoryWipe(slot, sizeof(*slot));
     free(slot);
@@ -276,6 +269,7 @@ pergyra_scope_claim_slot(PergyraSlotScope *pscope, const char *typeName,
     slot->handle = *handle;
     slot->token = *token;
     slot->typeTag = typeTag;
+    slot->manager = pscope->manager;
     slot->isValid = true;
     return slot;
 }

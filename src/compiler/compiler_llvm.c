@@ -155,8 +155,13 @@ compiler_build_native_llvm(const CompilerIRBundle *bundle,
         uses_intent_observability
             ? "-DPGY_INTENT_OBSERVABILITY_ENABLED=1"
             : "-DPGY_INTENT_OBSERVABILITY_ENABLED=0";
-    const char *cc = pgy_detect_c_compiler();
-    const char *cc_target = pgy_cc_extra_target_flag();
+    PgyCCompilerSelection cc_selection;
+    if (!pgy_select_c_compiler(&cc_selection)) {
+        free(runtime_obj_path);
+        return compiler_error("Unable to detect C compiler");
+    }
+    const char *cc = cc_selection.cc;
+    const char *cc_target = cc_selection.target_flag;
     result = compiler_success(output_obj_path, output_binary_path);
     if (result == NULL) {
         free(runtime_obj_path);

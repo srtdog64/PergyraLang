@@ -195,7 +195,8 @@ COMMON_DIR   = $(SRC_DIR)/common
 COMMON_SOURCES   = $(COMMON_DIR)/arena.c \
                    $(COMMON_DIR)/diagnostic_layer.c \
                    $(COMMON_DIR)/env_flags.c \
-                   $(COMMON_DIR)/intent_observability_names.c
+                   $(COMMON_DIR)/intent_observability_names.c \
+                   $(COMMON_DIR)/numeric_parse.c
 LEXER_SOURCES    = $(LEXER_DIR)/lexer.c \
                    $(LEXER_DIR)/lexer_keywords.c \
                    $(LEXER_DIR)/lexer_token_debug.c

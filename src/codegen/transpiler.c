@@ -166,6 +166,7 @@ emit_program(TranspilerCtx *ctx)
         " */\n"
         "#include <stdint.h>\n"
         "#include <stdbool.h>\n"
+        "#include <stdatomic.h>\n"
         "#include <stdio.h>\n"
         "#include <stdlib.h>\n");
     codebuf_write(ctx->out,

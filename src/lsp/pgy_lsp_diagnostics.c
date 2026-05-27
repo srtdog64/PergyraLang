@@ -3,6 +3,7 @@
  */
 
 #include "pgy_lsp_internal.h"
+#include "../common/numeric_parse.h"
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -72,7 +73,11 @@ publish_diagnostics(const char *uri, const char *source_text)
     if (parse_err && parse_msg != NULL) {
         int line = 0;
         const char *at_line = strstr(parse_msg, "at line ");
-        if (at_line) line = atoi(at_line + 8) - 1;
+        if (at_line) {
+            int parsed = 0;
+            if (pgy_parse_positive_int_prefix(at_line + 8, &parsed))
+                line = parsed - 1;
+        }
         if (line < 0) line = 0;
 
         char escaped[512];

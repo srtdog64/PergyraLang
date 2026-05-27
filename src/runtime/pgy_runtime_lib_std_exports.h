@@ -61,12 +61,17 @@ float Ceil(float x)  { return ceilf(x); }
 int32_t Random(int32_t max)
 {
     if (max <= 0) return 0;
-    return (int32_t)(rand() % max);
+    pthread_mutex_lock(&pgy_runtime_lib_rng_mutex);
+    int32_t value = (int32_t)(rand() % max);
+    pthread_mutex_unlock(&pgy_runtime_lib_rng_mutex);
+    return value;
 }
 
 void SeedRandom(int32_t seed)
 {
+    pthread_mutex_lock(&pgy_runtime_lib_rng_mutex);
     srand((unsigned int)seed);
+    pthread_mutex_unlock(&pgy_runtime_lib_rng_mutex);
 }
 
 #endif /* PGY_RUNTIME_LIB_STD_EXPORTS_H */

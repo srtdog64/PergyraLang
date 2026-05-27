@@ -62,8 +62,85 @@ English anchor for tooling/doc gates:
   carries it to fact helpers. C backend type rendering no longer uses
   `g_type_render_ctx`; generic bindings flow through
   `render_type_name_in_ctx(...)` and `pergyra_ast_type_to_c_copy_in_ctx(...)`.
-  The source-inventory smoke now leaves only the process toolchain cache as an
-  explicit mutable static exception.
+  C compiler detection no longer uses process-global cache buffers; callers own
+  `PgyCCompilerSelection`, and detection failure now reaches the compile/link
+  diagnostic path instead of silently falling back to an unprobed `gcc`. The
+  LLVM target-initialization path no longer carries a hidden function-local
+  `static bool initialized` cache; LLVM target registration is treated as an
+  idempotent API call instead of another compiler-owned mutable state seam. The
+  source-inventory smoke now leaves no mutable-static exceptions in
+  compiler/codegen/semantic/LSP owners.
+- Runtime scheduler registry race hardening is applied: `RegisterScheduler`,
+  `GetSchedulerForTag`, and `DumpFiberMaps` now use the party scheduler
+  registry mutex while preserving O(1) tag lookup through `g_schedulerByTag`.
+  `perf_contract_smoke` gates both the indexed lookup and the lock boundary.
+- Secure-slot exported token counters are atomic. The per-type token generator
+  now uses `atomic_uint_least64_t` and relaxed `atomic_fetch_add_explicit`, so
+  parallel secure-slot claims cannot race while still avoiding unnecessary
+  ordering cost. `runtime_panic_contract_smoke` gates this contract.
+- Parallel thread-pool lifecycle state is now guarded. Main and blocking pools
+  use atomic active flags, explicit shutting-down flags, and lifecycle mutexes
+  so spawn/enqueue cannot race against init/shutdown destroying queue mutexes.
+  Shutdown publishes the closing state before releasing the lifecycle mutex for
+  worker joins, so worker-local spawn attempts fail closed instead of deadlocking
+  behind a join-held lifecycle lock. `runtime_abi_lifetime_smoke` gates the
+  atomic/lifecycle boundary.
+- `slot_security.c` no longer carries a dead process-global
+  `g_securityContext`; security contexts are explicit objects owned by the slot
+  manager or caller, so token/security operations do not imply a hidden
+  singleton source of truth.
+- Qubit runtime state is now guarded on both inline C and LLVM export surfaces.
+  Claim/measure/entangle/release operations serialize access to the shared
+  qubit arrays, entanglement pools, allocation cursors, and `rand/srand`
+  collapse path instead of relying on unsynchronized process-global state.
+  `runtime_abi_lifetime_smoke` gates the mutex boundary.
+- Runtime RNG state now has a shared mutex owner on both inline C and LLVM
+  export surfaces. `Random`, `SeedRandom`, and qubit measurement collapse no
+  longer call `rand/srand` through independent locks, so the process-global C
+  RNG state is guarded by one runtime boundary.
+- Secure-slot wrapper ownership is now carried by the wrapper itself instead of
+  a process-global `g_pergyraSlotManager`. `PergyraSecureSlot` stores its
+  `SlotManager *` owner at claim time, scoped claims inherit the scope manager,
+  and read/write/release use that owner directly. Security tests no longer set a
+  runtime singleton, and `runtime_abi_lifetime_smoke` rejects the old global.
+- Intent observability borrowed query exports now snapshot under the registry
+  mutex. Last/history/active/recent string exports return thread-local runtime
+  snapshots instead of raw registry pointers, so a concurrent registry mutation
+  cannot free the returned pointer while the caller is reading it.
+- Intent observability registry lookup helpers now carry their lock precondition
+  in the name (`*_locked` / `*_locked_export`). Public active/recent/history
+  query exports take `pgy_intent_registry_mutex`, call only locked-entry helpers,
+  snapshot borrowed string payloads, and release the mutex before returning. The
+  ABI lifetime smoke rejects unqualified helper names so this cannot drift back
+  to implicit unlocked access.
+- Runtime file-handle allocation no longer carries a dead `ftable_next` cursor.
+  Both inline C and LLVM export runtimes scan the mutex-protected handle table
+  for a free slot and reuse closed descriptors directly; the unused cursor state
+  is smoke-rejected.
+- Compiler-side source-file reads now route through `path_read_file(...)`.
+  Debugger and formatter I/O no longer keep local `fseek`/`ftell`/`fread`
+  readers with different size/partial-read behavior; source inventory smoke
+  rejects reopening those local readers in `debugger.c` or `fmt_io.c`.
+- Formatter tmpfile stream reads now use the same text-size cap and partial-read
+  failure semantics as `path_read_file(...)`, so `fmt --check` cannot compare
+  against a silently truncated formatted buffer.
+- LSP external numeric parsing no longer uses `atoi(...)`. JSON-RPC
+  `Content-Length`, request ids, positions, and parser diagnostic line recovery
+  use checked `strtol`-style parsing so malformed or overflowing inputs fail
+  closed instead of silently coercing to `0`. Source inventory smoke rejects
+  `atoi` in `src/lsp`.
+- Production C numeric parsing now routes through `src/common/numeric_parse`.
+  The LSP, debugger command parser, zone effect-pool capacity parser, and MIR
+  SSA version parser all consume the shared checked prefix/strict parse owner.
+  SSA version suffixes use the strict size parser so malformed `name.12x`
+  payloads cannot be accepted as version `12`.
+  `build_source_inventory_smoke` rejects direct `atoi`, `strtol`, `strtoul`,
+  `strtoll`, or `strtoull` outside that owner.
+- Generated select round-robin counters are no longer plain mutable statics.
+  The C backend emits `_Atomic unsigned int` plus relaxed
+  `atomic_fetch_add_explicit`, and the LLVM backend emits `LLVMBuildAtomicRMW`
+  with monotonic ordering. This preserves fairness rotation without making a
+  generated function's select state a data race when called from parallel code.
 - LLVM host-declaration fallback is fixed to the shared compatibility type set:
   `llvm_find_host_decl_in_active_inventory(...)` now routes through
   `pgy_host_decl_compat_types(...)`, and `mir-declaration-inventory-test-smoke`

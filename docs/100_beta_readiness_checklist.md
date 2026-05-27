@@ -4827,7 +4827,7 @@ split, and the active 1,000+ production `.c` owner queue is now AST-only:
 - semantic scratch arena, diagnostic result-owned payload seam, HIR/MIR routine scratch, LLVM scratch/result-owned lane이 들어왔다.
 - `make test-abi-perf`와 `make perf-summary`로 speed baseline도 관리한다.
 - POSIX `realpath` implicit declaration warning을 제거했다.
-- intent observability (`last/history/active/recent`) and authority failure stable string exports are `runtime-borrowed string` ABI values: callers must not free them, and values are valid until the next mutation of the corresponding runtime registry/snapshot.
+- intent observability (`last/history/active/recent`) stable string exports are `runtime-borrowed string` ABI values: callers must not free them; intent observability strings are copied into thread-local borrowed snapshots, so returned pointers do not alias mutable registry storage and remain valid until a later borrowed string query on the same thread reuses that snapshot slot.
 - `runtime-abi-lifetime-test-smoke` gates stable intent last/history/active/recent and authority string export bodies so they do not allocate/free/strdup in the ABI return path.
 - stable string helper returns are `result-owned string` ABI values and stable
   string-array helper returns are `result-owned array` ABI values; callers own

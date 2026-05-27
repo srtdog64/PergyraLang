@@ -17,7 +17,8 @@ pgy_intent_recent_handle_export(int32_t index)
 {
     int32_t result = 0;
     pthread_mutex_lock(&pgy_intent_registry_mutex);
-    PgyIntentRecentEntry *entry = pgy_intent_recent_entry_by_index_export(index);
+    PgyIntentRecentEntry *entry =
+        pgy_intent_recent_entry_by_index_locked_export(index);
     if (entry != NULL)
         result = entry->handle;
     pthread_mutex_unlock(&pgy_intent_registry_mutex);
@@ -29,7 +30,8 @@ pgy_intent_recent_trace_id_export(int32_t index)
 {
     int32_t result = 0;
     pthread_mutex_lock(&pgy_intent_registry_mutex);
-    PgyIntentRecentEntry *entry = pgy_intent_recent_entry_by_index_export(index);
+    PgyIntentRecentEntry *entry =
+        pgy_intent_recent_entry_by_index_locked_export(index);
     if (entry != NULL)
         result = entry->trace_id;
     pthread_mutex_unlock(&pgy_intent_registry_mutex);
@@ -42,9 +44,10 @@ pgy_intent_recent_name_export(int32_t index)
     char *result = "";
 
     pthread_mutex_lock(&pgy_intent_registry_mutex);
-    PgyIntentRecentEntry *entry = pgy_intent_recent_entry_by_index_export(index);
+    PgyIntentRecentEntry *entry =
+        pgy_intent_recent_entry_by_index_locked_export(index);
     if (entry != NULL && entry->name != NULL)
-        result = entry->name;
+        result = pgy_intent_borrowed_snapshot_export(entry->name);
     pthread_mutex_unlock(&pgy_intent_registry_mutex);
     return result;
 }
@@ -55,9 +58,10 @@ pgy_intent_recent_trace_export(int32_t index)
     char *result = "";
 
     pthread_mutex_lock(&pgy_intent_registry_mutex);
-    PgyIntentRecentEntry *entry = pgy_intent_recent_entry_by_index_export(index);
+    PgyIntentRecentEntry *entry =
+        pgy_intent_recent_entry_by_index_locked_export(index);
     if (entry != NULL && entry->trace != NULL)
-        result = entry->trace;
+        result = pgy_intent_borrowed_snapshot_export(entry->trace);
     pthread_mutex_unlock(&pgy_intent_registry_mutex);
     return result;
 }
@@ -68,9 +72,10 @@ pgy_intent_recent_failure_export(int32_t index)
     char *result = "";
 
     pthread_mutex_lock(&pgy_intent_registry_mutex);
-    PgyIntentRecentEntry *entry = pgy_intent_recent_entry_by_index_export(index);
+    PgyIntentRecentEntry *entry =
+        pgy_intent_recent_entry_by_index_locked_export(index);
     if (entry != NULL && entry->failure_reason != NULL)
-        result = entry->failure_reason;
+        result = pgy_intent_borrowed_snapshot_export(entry->failure_reason);
     pthread_mutex_unlock(&pgy_intent_registry_mutex);
     return result;
 }
@@ -81,7 +86,8 @@ pgy_intent_recent_step_count_export(int32_t index)
     int32_t result = 0;
 
     pthread_mutex_lock(&pgy_intent_registry_mutex);
-    PgyIntentRecentEntry *entry = pgy_intent_recent_entry_by_index_export(index);
+    PgyIntentRecentEntry *entry =
+        pgy_intent_recent_entry_by_index_locked_export(index);
     if (entry != NULL)
         result = entry->step_count;
     pthread_mutex_unlock(&pgy_intent_registry_mutex);
@@ -94,7 +100,8 @@ pgy_intent_recent_failed_export(int32_t index)
     bool result = false;
 
     pthread_mutex_lock(&pgy_intent_registry_mutex);
-    PgyIntentRecentEntry *entry = pgy_intent_recent_entry_by_index_export(index);
+    PgyIntentRecentEntry *entry =
+        pgy_intent_recent_entry_by_index_locked_export(index);
     if (entry != NULL)
         result = entry->failed;
     pthread_mutex_unlock(&pgy_intent_registry_mutex);

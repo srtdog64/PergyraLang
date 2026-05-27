@@ -134,8 +134,11 @@ compiler_build_native(const CompilerIRBundle *bundle,
             ? "-DPGY_INTENT_OBSERVABILITY_ENABLED=1"
             : "-DPGY_INTENT_OBSERVABILITY_ENABLED=0";
     CompilerResult *result = NULL;
-    const char *cc = pgy_detect_c_compiler();
-    const char *cc_target = pgy_cc_extra_target_flag();
+    PgyCCompilerSelection cc_selection;
+    if (!pgy_select_c_compiler(&cc_selection))
+        return compiler_error("Unable to detect C compiler");
+    const char *cc = cc_selection.cc;
+    const char *cc_target = cc_selection.target_flag;
     {
         const char *compile_argv[28];
         int ci = 0;

@@ -1,4 +1,17 @@
 #include "parser_domain_internal.h"
+#include "../common/numeric_parse.h"
+
+static bool
+parser_parse_positive_int_token(Parser *parser, Token token, int *out)
+{
+    if (parser == NULL || token.text == NULL || out == NULL)
+        return false;
+    if (!pgy_parse_positive_int_strict(token.text, out)) {
+        parser_error(parser, "Expected positive pool capacity within Int range");
+        return false;
+    }
+    return true;
+}
 
 static bool
 parser_zone_append_owned_name(Parser *parser, char ***items, size_t *count,
@@ -152,8 +165,13 @@ ASTNode* parse_zone_declaration(Parser* parser) {
                 }
                 Token capacity = parser_consume(parser, TOKEN_NUMBER,
                     "Expected numeric capacity after 'capacity'");
+                int pool_capacity = 0;
                 layer_slot->data.zone_layer_slot.is_pool = true;
-                layer_slot->data.zone_layer_slot.pool_capacity = atoi(capacity.text);
+                if (parser_parse_positive_int_token(parser, capacity,
+                        &pool_capacity)) {
+                    layer_slot->data.zone_layer_slot.pool_capacity =
+                        pool_capacity;
+                }
             }
             layer_slot->line = slot_name.line;
             layer_slot->column = slot_name.column;

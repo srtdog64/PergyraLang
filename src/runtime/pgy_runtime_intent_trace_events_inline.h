@@ -2,7 +2,7 @@ static inline void
 pgy_intent_trace_step_export(int32_t handle, const char *step_name, const char *zone_name)
 {
     pthread_mutex_lock(&pgy_intent_registry_mutex);
-    PgyIntentActiveEntry *entry = pgy_intent_find_active_entry(handle);
+    PgyIntentActiveEntry *entry = pgy_intent_find_active_entry_locked(handle);
     if (entry != NULL) {
         entry->step_count++;
         if (!PGY_INTENT_OBSERVABILITY_ENABLED) {
@@ -32,7 +32,7 @@ pgy_intent_trace_bind_export(int32_t handle, const char *participant_name, const
     if (!PGY_INTENT_OBSERVABILITY_ENABLED)
         return;
     pthread_mutex_lock(&pgy_intent_registry_mutex);
-    PgyIntentActiveEntry *entry = pgy_intent_find_active_entry(handle);
+    PgyIntentActiveEntry *entry = pgy_intent_find_active_entry_locked(handle);
     if (entry != NULL) {
         char line[256];
         snprintf(line, sizeof(line), "[bind] %s -> %s\n",
@@ -55,7 +55,7 @@ pgy_intent_trace_materialize_export(int32_t handle, const char *participant_name
     if (!PGY_INTENT_OBSERVABILITY_ENABLED)
         return;
     pthread_mutex_lock(&pgy_intent_registry_mutex);
-    PgyIntentActiveEntry *entry = pgy_intent_find_active_entry(handle);
+    PgyIntentActiveEntry *entry = pgy_intent_find_active_entry_locked(handle);
     if (entry != NULL) {
         char line[320];
         snprintf(line, sizeof(line), "[materialize] %s => %s.%s\n",
@@ -83,7 +83,7 @@ pgy_intent_trace_transfer_export(int32_t handle, const char *participant_name,
     if (!PGY_INTENT_OBSERVABILITY_ENABLED)
         return;
     pthread_mutex_lock(&pgy_intent_registry_mutex);
-    PgyIntentActiveEntry *entry = pgy_intent_find_active_entry(handle);
+    PgyIntentActiveEntry *entry = pgy_intent_find_active_entry_locked(handle);
     if (entry != NULL) {
         char line[384];
         snprintf(line, sizeof(line), "[transfer] %s: %s.%s -> %s.%s\n",
@@ -113,7 +113,7 @@ pgy_intent_trace_step_ok_export(int32_t handle, const char *step_name)
         return;
 
     pthread_mutex_lock(&pgy_intent_registry_mutex);
-    PgyIntentActiveEntry *entry = pgy_intent_find_active_entry(handle);
+    PgyIntentActiveEntry *entry = pgy_intent_find_active_entry_locked(handle);
     if (entry != NULL) {
         if (entry->step_count > 0 && entry->step_count <= PGY_INTENT_ACTIVE_MAX)
             entry->steps[entry->step_count - 1].ok = true;
@@ -133,7 +133,7 @@ static inline void
 pgy_intent_trace_fail_export(int32_t handle, const char *reason)
 {
     pthread_mutex_lock(&pgy_intent_registry_mutex);
-    PgyIntentActiveEntry *entry = pgy_intent_find_active_entry(handle);
+    PgyIntentActiveEntry *entry = pgy_intent_find_active_entry_locked(handle);
     if (entry != NULL) {
         entry->failed = true;
         if (!PGY_INTENT_OBSERVABILITY_ENABLED) {
@@ -165,7 +165,7 @@ pgy_mir_resource_op_export(int32_t handle,
         return;
 
     pthread_mutex_lock(&pgy_intent_registry_mutex);
-    PgyIntentActiveEntry *entry = pgy_intent_find_active_entry(handle);
+    PgyIntentActiveEntry *entry = pgy_intent_find_active_entry_locked(handle);
     if (entry != NULL) {
         char line[320];
         snprintf(line, sizeof(line), "[mir-resource] %s %s %s\n",

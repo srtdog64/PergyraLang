@@ -49,9 +49,10 @@ Stable fields:
 - step `ok`
 - step `failure`
 
-Trace strings are runtime-borrowed strings. Callers must not free them, and the
-value is valid until the next mutation of the corresponding intent registry or
-snapshot.
+Trace strings are runtime-borrowed strings. Callers must not free them. The
+runtime copies each returned value into a thread-local borrowed snapshot, so the
+pointer is independent of later registry mutation but is only stable until a
+later borrowed string query on the same thread reuses that snapshot slot.
 
 ## Stable Authority Failure Schema
 

@@ -164,7 +164,9 @@ typedef struct {
 } PgyThreadPool;
 
 static PgyThreadPool g_pgy_pool = {0};
-static bool          g_pgy_pool_active = false;
+static atomic_bool   g_pgy_pool_active = false;
+static atomic_bool   g_pgy_pool_shutting_down = false;
+static pthread_mutex_t g_pgy_pool_lifecycle_mutex = PTHREAD_MUTEX_INITIALIZER;
 static __thread PgyTask *g_pgy_thread_current = NULL;
 
 /* Forward declaration — blocking pool shutdown called from pgy_pool_shutdown */
@@ -224,13 +226,21 @@ pgy_worker_loop(void *arg)
 static inline void
 pgy_pool_init(size_t worker_count)
 {
-    if (g_pgy_pool_active)
+    pthread_mutex_lock(&g_pgy_pool_lifecycle_mutex);
+    if (atomic_load_explicit(&g_pgy_pool_active, memory_order_acquire)) {
+        pthread_mutex_unlock(&g_pgy_pool_lifecycle_mutex);
         return;
+    }
+    if (atomic_load_explicit(&g_pgy_pool_shutting_down, memory_order_acquire)) {
+        pthread_mutex_unlock(&g_pgy_pool_lifecycle_mutex);
+        return;
+    }
 
     if (worker_count == 0)
         worker_count = 4;
     if (!pgy_parallel_array_fits(worker_count, sizeof(pthread_t))) {
         pgy_parallel_warn("pool-init", "worker array size overflow");
+        pthread_mutex_unlock(&g_pgy_pool_lifecycle_mutex);
         return;
     }
 
@@ -245,6 +255,7 @@ pgy_pool_init(size_t worker_count)
         pthread_mutex_destroy(&g_pgy_pool.queue_mutex);
         pthread_cond_destroy(&g_pgy_pool.queue_cond);
         memset(&g_pgy_pool, 0, sizeof(g_pgy_pool));
+        pthread_mutex_unlock(&g_pgy_pool_lifecycle_mutex);
         return;
     }
     for (size_t i = 0; i < worker_count; i++) {
@@ -259,28 +270,41 @@ pgy_pool_init(size_t worker_count)
             pthread_mutex_destroy(&g_pgy_pool.queue_mutex);
             pthread_cond_destroy(&g_pgy_pool.queue_cond);
             memset(&g_pgy_pool, 0, sizeof(g_pgy_pool));
+            pthread_mutex_unlock(&g_pgy_pool_lifecycle_mutex);
             return;
         }
     }
 
-    g_pgy_pool_active = true;
+    atomic_store_explicit(&g_pgy_pool_active, true, memory_order_release);
+    pthread_mutex_unlock(&g_pgy_pool_lifecycle_mutex);
 }
 
 static inline void
 pgy_pool_shutdown(void)
 {
-    if (!g_pgy_pool_active)
+    pthread_mutex_lock(&g_pgy_pool_lifecycle_mutex);
+    if (!atomic_load_explicit(&g_pgy_pool_active, memory_order_acquire)) {
+        pthread_mutex_unlock(&g_pgy_pool_lifecycle_mutex);
         return;
+    }
+    atomic_store_explicit(&g_pgy_pool_active, false, memory_order_release);
+    atomic_store_explicit(&g_pgy_pool_shutting_down, true, memory_order_release);
 
     pthread_mutex_lock(&g_pgy_pool.queue_mutex);
     g_pgy_pool.shutdown = true;
     pthread_cond_broadcast(&g_pgy_pool.queue_cond);
     pthread_mutex_unlock(&g_pgy_pool.queue_mutex);
 
-    for (size_t i = 0; i < g_pgy_pool.worker_count; i++)
-        pthread_join(g_pgy_pool.workers[i], NULL);
+    pthread_t *workers = g_pgy_pool.workers;
+    size_t worker_count = g_pgy_pool.worker_count;
+    pthread_mutex_unlock(&g_pgy_pool_lifecycle_mutex);
 
-    free(g_pgy_pool.workers);
+    for (size_t i = 0; i < worker_count; i++)
+        pthread_join(workers[i], NULL);
+
+    pthread_mutex_lock(&g_pgy_pool_lifecycle_mutex);
+
+    free(workers);
     pthread_mutex_destroy(&g_pgy_pool.queue_mutex);
     pthread_cond_destroy(&g_pgy_pool.queue_cond);
 
@@ -295,7 +319,9 @@ pgy_pool_shutdown(void)
     }
 
     memset(&g_pgy_pool, 0, sizeof(g_pgy_pool));
-    g_pgy_pool_active = false;
+    atomic_store_explicit(&g_pgy_pool_shutting_down, false,
+                          memory_order_release);
+    pthread_mutex_unlock(&g_pgy_pool_lifecycle_mutex);
 
     /* Also shut down the blocking pool if it was started */
     pgy_blocking_pool_shutdown();
@@ -310,8 +336,21 @@ pgy_spawn(void *(*fn)(void *), void *arg)
         pgy_parallel_warn("spawn", "task function is null");
         return handle;
     }
+    if (atomic_load_explicit(&g_pgy_pool_shutting_down,
+                             memory_order_acquire)) {
+        pgy_parallel_warn("spawn", "pool is shutting down");
+        return handle;
+    }
 
-    if (!g_pgy_pool_active) {
+    pthread_mutex_lock(&g_pgy_pool_lifecycle_mutex);
+    if (atomic_load_explicit(&g_pgy_pool_shutting_down,
+                             memory_order_acquire)) {
+        pthread_mutex_unlock(&g_pgy_pool_lifecycle_mutex);
+        pgy_parallel_warn("spawn", "pool is shutting down");
+        return handle;
+    }
+    if (!atomic_load_explicit(&g_pgy_pool_active, memory_order_acquire)) {
+        pthread_mutex_unlock(&g_pgy_pool_lifecycle_mutex);
         PgyTask *task = (PgyTask *)calloc(1, sizeof(PgyTask));
         if (task == NULL) {
             pgy_parallel_warn("spawn", "inline task allocation failed");
@@ -335,6 +374,7 @@ pgy_spawn(void *(*fn)(void *), void *arg)
 
     PgyTask *task = (PgyTask *)calloc(1, sizeof(PgyTask));
     if (task == NULL) {
+        pthread_mutex_unlock(&g_pgy_pool_lifecycle_mutex);
         pgy_parallel_warn("spawn", "task allocation failed");
         return handle;
     }
@@ -358,6 +398,7 @@ pgy_spawn(void *(*fn)(void *), void *arg)
     g_pgy_pool.queue_tail = task;
     pthread_cond_signal(&g_pgy_pool.queue_cond);
     pthread_mutex_unlock(&g_pgy_pool.queue_mutex);
+    pthread_mutex_unlock(&g_pgy_pool_lifecycle_mutex);
 
     return handle;
 }
