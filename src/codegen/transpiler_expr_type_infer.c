@@ -188,7 +188,7 @@ infer_expression_type_name(TranspilerCtx *ctx, ASTNode *expr)
                         ClassField *f = fields != NULL ? fields[fi] : NULL;
                         if (f != NULL && f->name != NULL && f->type != NULL
                             && strcmp(f->name, ast_member_name(expr)) == 0) {
-                            char *ft = render_type_name(f->type);
+                            char *ft = render_type_name_in_ctx(ctx, f->type);
                             if (ft != NULL) {
                                 const char *copied =
                                     transpiler_infer_arena_copy_type_name(ctx, ft);
@@ -279,7 +279,8 @@ infer_expression_type_name(TranspilerCtx *ctx, ASTNode *expr)
             }
             ASTNode *method_return_type = ast_func_return_type(method_decl);
             if (method_return_type != NULL) {
-                char *resolved = render_type_name(method_return_type);
+                char *resolved = render_type_name_in_ctx(ctx,
+                    method_return_type);
                 const char *copied =
                     transpiler_infer_arena_copy_type_name(ctx, resolved);
                 free(resolved);
@@ -327,6 +328,19 @@ infer_expression_type_name(TranspilerCtx *ctx, ASTNode *expr)
                         return "Unknown";
                     return transpiler_infer_arena_format_type_name(
                         ctx, "Array", key_buf);
+                }
+                return "Unknown";
+            }
+            if (strcmp(name, "SliceCopy") == 0 && argc == 1) {
+                const char *slice_type = infer_expression_type_name(ctx,
+                    arg0);
+                if (slice_type != NULL && strncmp(slice_type, "Slice<", 6) == 0) {
+                    const char *inner = transpiler_infer_slot_inner_type_name(
+                        ctx, slice_type);
+                    if (inner == NULL || inner[0] == '\0')
+                        return "Unknown";
+                    return transpiler_infer_arena_format_type_name(
+                        ctx, "Array", inner);
                 }
                 return "Unknown";
             }
@@ -484,7 +498,8 @@ infer_expression_type_name(TranspilerCtx *ctx, ASTNode *expr)
                 ASTNode *host_method = current_host_method_decl(ctx, name);
                 ASTNode *host_return_type = ast_func_return_type(host_method);
                 if (host_return_type != NULL) {
-                    char *resolved = render_type_name(host_return_type);
+                    char *resolved = render_type_name_in_ctx(ctx,
+                        host_return_type);
                     const char *copied =
                         transpiler_infer_arena_copy_type_name(ctx, resolved);
                     free(resolved);
@@ -508,7 +523,7 @@ infer_expression_type_name(TranspilerCtx *ctx, ASTNode *expr)
                         }
                     }
                     if (resolved == NULL)
-                        resolved = render_type_name(return_type);
+                        resolved = render_type_name_in_ctx(ctx, return_type);
                     const char *copied =
                         transpiler_infer_arena_copy_type_name(ctx, resolved);
                     free(resolved);

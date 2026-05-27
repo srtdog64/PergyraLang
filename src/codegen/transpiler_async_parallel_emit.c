@@ -134,8 +134,8 @@ emit_parallel_block(ASTNode *node, TranspilerCtx *ctx)
                 memcpy(ptr_name + 1, capture_typed_names[i],
                        sizeof(capture_typed_names[i]));
                 ptr_name[sizeof(ptr_name) - 1] = '\0';
-                char *decl = pergyra_ast_typed_declarator(
-                    local_type_node, ptr_name);
+                char *decl = pergyra_ast_typed_declarator_in_ctx(
+                    ctx, local_type_node, ptr_name);
                 if (decl != NULL) {
                     codebuf_write(ctx->helpers, "    %s;\n", decl);
                     free(decl);

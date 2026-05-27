@@ -32,5 +32,5 @@ transpiler_render_effective_local_type_name(TranspilerCtx *ctx,
             }
         }
     }
-    return render_type_name(type_node);
+    return render_type_name_in_ctx(ctx, type_node);
 }

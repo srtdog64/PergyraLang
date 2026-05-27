@@ -27,6 +27,26 @@ English anchor for tooling/doc gates:
   the same owner concurrently, which later surfaces as `file in wrong format`.
   Parallel validation must use distinct `BUILD_DIR`/`BIN_DIR` values or run
   sequentially.
+- Slice borrowed-view closure: `Slice<T>` is now treated as a local borrowed
+  view, not an owner. Generated C and LLVM `Slice<T>.Slice(start, len)` both
+  use subtract-form bounds checks, reject non-empty null backing storage, return
+  null-backed empty slices, and route invalid ranges through the shared
+  `out-of-bounds` panic class. `SliceCopy(Slice<T>) -> Array<T>` is now the
+  explicit owned snapshot escape hatch for borrowed views; generated C and LLVM
+  both lower it through `pgy_slice_copy_<T>`, `Slice<String>` duplicates string
+  payloads to satisfy the result-owned string-array producer policy, and backend
+  compare gates the `slice_copy` fixture. Semantic ownership classification still treats
+  `Slice<T>` as a borrowed boundary view, so ref-spawn, blocking channel
+  send/receive, and non-blocking channel helper send/receive attempts are
+  rejected by the same CFG/body-dataflow boundary rules as other
+  `BORROW_TRACKED` values unless the programmer first materializes an owned
+  array snapshot. Rejected slice boundary diagnostics now name the value as a
+  `borrowed Slice view` and point to `SliceCopy(view)` as the stable owned
+  snapshot escape hatch. Because invalid slice transport is rejected before AIR
+  graph synthesis, AIR should only carry slice evidence for valid future
+  boundary forms; do not add slice transport across async/spawn/world
+  boundaries without an owner/provenance proof and a smoke gate. Remaining
+  design work is any future `MutSlice<T>` model.
 - CI smoke portability guard: beta/source-of-truth smoke scripts must remain
   compatible with macOS Bash 3.2. `build-source-inventory-test-smoke` now
   rejects Bash 4-only `mapfile` / `readarray`, associative arrays, parameter
@@ -70,6 +90,20 @@ English anchor for tooling/doc gates:
   idempotent API call instead of another compiler-owned mutable state seam. The
   source-inventory smoke now leaves no mutable-static exceptions in
   compiler/codegen/semantic/LSP owners.
+- C backend AST type rendering is now smoke-gated to the ctx-aware source of
+  truth. External `src/codegen` consumers may not call the non-context
+  `pergyra_ast_type_to_c_copy(...)` wrapper; lambda signatures, event
+  handlers, match bindings, type aliases, hosted method forwards, spawn
+  wrappers, and MIR signature policy now consume
+  `pergyra_ast_type_to_c_copy_in_ctx(...)` so active generic bindings do not
+  silently fall back to default C types.
+- C backend type-name inference is being narrowed to the same ctx-aware rule:
+  expression type inference, MIR local type lookup, and Future/RemoteFuture
+  return inference, slot-let inner type extraction, MIR effective local type
+  rendering, and MIR local binding discovery now call
+  `render_type_name_in_ctx(...)` when `TranspilerCtx` is available. Remaining
+  `render_type_name(...)` consumers are compatibility debt unless they are
+  owner-local immediate-use paths.
 - Runtime scheduler registry race hardening is applied: `RegisterScheduler`,
   `GetSchedulerForTag`, and `DumpFiberMaps` now use the party scheduler
   registry mutex while preserving O(1) tag lookup through `g_schedulerByTag`.

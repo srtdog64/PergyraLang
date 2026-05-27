@@ -21,7 +21,7 @@ emit_event_decl(ASTNode *node, TranspilerCtx *ctx)
         char pt_buf[256];
         const char *pt = "void*";
         if (param_type != NULL
-            && pergyra_ast_type_to_c_copy(param_type,
+            && pergyra_ast_type_to_c_copy_in_ctx(ctx, param_type,
                 pt_buf,
                 sizeof(pt_buf))) {
             pt = pt_buf;
@@ -70,7 +70,7 @@ emit_event_decl(ASTNode *node, TranspilerCtx *ctx)
         char pt_buf[256];
         const char *pt = "void*";
         if (param_type != NULL
-            && pergyra_ast_type_to_c_copy(param_type,
+            && pergyra_ast_type_to_c_copy_in_ctx(ctx, param_type,
                 pt_buf,
                 sizeof(pt_buf))) {
             pt = pt_buf;

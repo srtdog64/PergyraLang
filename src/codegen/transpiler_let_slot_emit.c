@@ -66,7 +66,7 @@ transpiler_let_slot_inner_from_annotation(TranspilerCtx *ctx, ASTNode *ann)
         ASTNode *constraint = ast_generic_param_constraint(param);
         if (constraint != NULL && constraint->type == AST_TYPE) {
             return transpiler_let_slot_keep_inner(ctx,
-                render_type_name(constraint));
+                render_type_name_in_ctx(ctx, constraint));
         }
         if (ast_generic_param_name(param) == NULL)
             return NULL;
@@ -102,7 +102,7 @@ transpiler_let_slot_inner_from_call_type_arg(TranspilerCtx *ctx, ASTNode *call)
     ASTNode *constraint = ast_generic_param_constraint(param);
     if (constraint != NULL && constraint->type == AST_TYPE) {
         return transpiler_let_slot_keep_inner(ctx,
-            render_type_name(constraint));
+            render_type_name_in_ctx(ctx, constraint));
     }
     if (ast_generic_param_name(param) == NULL)
         return NULL;

@@ -369,7 +369,7 @@
         lexer_destroy(lexer);
     }
 
-    TEST("effect pool rejects non-positive capacities");
+    TEST("effect pool parser-rejects non-positive capacities");
     {
         const char *source =
             "subject Player { let hp: Int; }\n"
@@ -383,8 +383,7 @@
         ASTNode *program = parser_parse_program(parser);
         SemanticResult *result = semantic_analyze(program);
 
-        EXPECT(!parser_has_error(parser));
-        EXPECT(result != NULL && result->error_count == 1);
+        EXPECT(parser_has_error(parser));
 
         semantic_result_destroy(result);
         ast_destroy(program);

@@ -397,8 +397,9 @@ emit_let_decl(ASTNode *node, TranspilerCtx *ctx)
     write_indent(ctx);
     if (callable_type != NULL || callable_decl != NULL) {
         char *decl = callable_type != NULL
-            ? pergyra_ast_typed_declarator(callable_type, name)
-            : pergyra_func_pointer_declarator_from_decl(callable_decl, name);
+            ? pergyra_ast_typed_declarator_in_ctx(ctx, callable_type, name)
+            : pergyra_func_pointer_declarator_from_decl_in_ctx(
+                ctx, callable_decl, name);
         if (init != NULL) {
             ctx->expected_type = ann_type_name;
             char *init_expr = emit_expression(init, ctx);

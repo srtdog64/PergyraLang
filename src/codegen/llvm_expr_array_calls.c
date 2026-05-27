@@ -15,6 +15,7 @@ typedef enum {
     LLVM_ARRAY_BUILTIN_POP,
     LLVM_ARRAY_BUILTIN_PUSH,
     LLVM_ARRAY_BUILTIN_SET,
+    LLVM_ARRAY_BUILTIN_SLICE_COPY,
 } LLVMArrayBuiltinOp;
 
 typedef struct {
@@ -28,6 +29,7 @@ static const LLVMArrayBuiltinSpec kArrayBuiltinSpecs[] = {
     {"ArrayPop", 1, LLVM_ARRAY_BUILTIN_POP},
     {"ArrayPush", 2, LLVM_ARRAY_BUILTIN_PUSH},
     {"ArraySet", 3, LLVM_ARRAY_BUILTIN_SET},
+    {"SliceCopy", 1, LLVM_ARRAY_BUILTIN_SLICE_COPY},
 };
 
 static int
@@ -138,6 +140,23 @@ llvm_array_runtime_name_error(ASTNode *node, LLVMGenCtx *ctx,
     return true;
 }
 
+static const char *
+llvm_slice_value_suffix(LLVMGenCtx *ctx, LLVMValueRef slice)
+{
+    LLVMTypeRef ty;
+
+    if (ctx == NULL || slice == NULL)
+        return NULL;
+    ty = LLVMTypeOf(slice);
+    if (ty == ctx->slice_type_Int)    return "Int";
+    if (ty == ctx->slice_type_Long)   return "Long";
+    if (ty == ctx->slice_type_Float)  return "Float";
+    if (ty == ctx->slice_type_Double) return "Double";
+    if (ty == ctx->slice_type_Bool)   return "Bool";
+    if (ty == ctx->slice_type_String) return "String";
+    return NULL;
+}
+
 bool
 llvm_emit_array_builtin_call(ASTNode *node, LLVMGenCtx *ctx,
                              const char *callee_name, LLVMValueRef *out)
@@ -163,6 +182,39 @@ llvm_emit_array_builtin_call(ASTNode *node, LLVMGenCtx *ctx,
             PGY_FIX_ANNOTATE_CONCRETE_TYPE,
             "LLVM ArrayLength requires concrete Array<T> aggregate operand");
         *out = NULL;
+        return true;
+    }
+
+    if (op == LLVM_ARRAY_BUILTIN_SLICE_COPY) {
+        LLVMValueRef slice = llvm_emit_expression(ast_call_argument(node, 0), ctx);
+        const char *suffix = llvm_slice_value_suffix(ctx, slice);
+        if (suffix == NULL) {
+            llvm_set_error_at_with_hints(ctx, node,
+                PGY_CODE_LLVM_TYPE_UNSUPPORTED,
+                PGY_CAUSE_LLVM_TYPE_UNSUPPORTED,
+                PGY_FIX_ANNOTATE_CONCRETE_TYPE,
+                "LLVM SliceCopy requires concrete Slice<T> operand");
+            *out = NULL;
+            return true;
+        }
+
+        char fn_name[64];
+        if (!llvm_array_format_runtime_name(fn_name, sizeof(fn_name),
+                "pgy_slice_copy", suffix))
+            return llvm_array_runtime_name_error(node, ctx, callee_name, out);
+        LLVMFuncEntry *fn = llvm_required_runtime_function(ctx, node,
+            "array", callee_name, fn_name);
+        if (fn == NULL) {
+            *out = NULL;
+            return true;
+        }
+
+        LLVMValueRef slice_addr = llvm_create_entry_alloca(ctx,
+            LLVMTypeOf(slice), "slice.copy.addr");
+        LLVMBuildStore(ctx->builder, slice, slice_addr);
+        LLVMValueRef args[] = { slice_addr };
+        *out = LLVMBuildCall2(ctx->builder, fn->fn_type, fn->fn,
+            args, 1, llvm_tmp_name(ctx));
         return true;
     }
 

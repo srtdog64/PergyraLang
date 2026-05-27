@@ -157,6 +157,31 @@ emit_call_stdlib_builtin(ASTNode *call, ASTNode *callee, TranspilerCtx *ctx)
             free(arg);
             return result;
         }
+        if (array_op == TRANSPILER_ARRAY_OP_SLICE_COPY) {
+            char *slice = emit_expression(arg0, ctx);
+            const char *slice_type = transpiler_expr_infer_type_name(ctx, arg0);
+            const char *inner = NULL;
+            char inner_buf[64];
+            if (!transpiler_resolve_unary_constructed_inner(ctx,
+                    slice_type, "Slice",
+                    inner_buf, sizeof(inner_buf), &inner)) {
+                transpiler_set_backend_error_with_hints(ctx,
+                    PGY_CODE_C_TYPE_UNSUPPORTED,
+                    PGY_CAUSE_C_TYPE_UNSUPPORTED,
+                    PGY_FIX_ANNOTATE_CONCRETE_TYPE,
+                    "C backend: SliceCopy requires concrete Slice<T> metadata");
+                free(slice);
+                return pergyra_strdup("0");
+            }
+            int tmp_id = ++ctx->tmp_counter;
+            char *result = strdup_fmt(
+                "({ PgySlice_%s _pgy_slice_copy_%d = %s; "
+                "pgy_slice_copy_%s(&_pgy_slice_copy_%d); })",
+                inner, tmp_id, slice,
+                inner, tmp_id);
+            free(slice);
+            return result;
+        }
         if (array_op == TRANSPILER_ARRAY_OP_PUSH) {
             if (!transpiler_require_c_addressable_storage(ctx, arg0,
                     "ArrayPush", "Array"))

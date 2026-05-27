@@ -118,6 +118,58 @@ if [[ -n "$local_windows_path_helpers" ]]; then
     missing=1
 fi
 
+portable_grep_violations="$(
+    cd "$ROOT_DIR"
+    grep -RInE 'grep[[:space:]][^;&|]*-[A-Za-z]*P' tests \
+        --include='*.sh' \
+        | grep -v '^tests/build_source_inventory_smoke.sh:' || true
+)"
+if [[ -n "$portable_grep_violations" ]]; then
+    printf '%s\n' "$portable_grep_violations" >&2
+    echo "[build-source-inventory] smoke scripts must not depend on grep -P; use portable grep -E filters instead" >&2
+    missing=1
+fi
+
+legacy_c_declarator_consumers="$(
+    cd "$ROOT_DIR"
+    grep -RInE 'pergyra_(ast_typed_declarator|func_pointer_declarator_from_decl)\(' \
+        src/codegen --include='*.c' --include='*.h' \
+        | grep -v '^src/codegen/transpiler_type_declarator\.[ch]:' || true
+)"
+if [[ -n "$legacy_c_declarator_consumers" ]]; then
+    printf '%s\n' "$legacy_c_declarator_consumers" >&2
+    echo "[build-source-inventory] C backend declarator consumers must use ctx-aware _in_ctx APIs" >&2
+    missing=1
+fi
+
+legacy_c_type_copy_consumers="$(
+    cd "$ROOT_DIR"
+    grep -RInE 'pergyra_ast_type_to_c_copy\(' \
+        src/codegen --include='*.c' --include='*.h' \
+        | grep -v '^src/codegen/transpiler_type_render\.[ch]:' || true
+)"
+if [[ -n "$legacy_c_type_copy_consumers" ]]; then
+    printf '%s\n' "$legacy_c_type_copy_consumers" >&2
+    echo "[build-source-inventory] C backend AST type consumers must use ctx-aware pergyra_ast_type_to_c_copy_in_ctx" >&2
+    missing=1
+fi
+
+legacy_type_inference_renderers="$(
+    cd "$ROOT_DIR"
+    grep -nE '(^|[^_[:alnum:]])render_type_name\(' \
+        src/codegen/transpiler_expr_type_infer.c \
+        src/codegen/transpiler_mir_local_type_lookup.c \
+        src/codegen/transpiler_future_type_query.c \
+        src/codegen/transpiler_let_slot_emit.c \
+        src/codegen/transpiler_mir_effective_type.c \
+        src/codegen/transpiler_mir_local_binding.c || true
+)"
+if [[ -n "$legacy_type_inference_renderers" ]]; then
+    printf '%s\n' "$legacy_type_inference_renderers" >&2
+    echo "[build-source-inventory] C backend type inference owners must use ctx-aware render_type_name_in_ctx" >&2
+    missing=1
+fi
+
 for smoke in \
     tests/abi_pipeline_smoke.sh \
     tests/air_backend_nonimpact_smoke.sh \
@@ -323,9 +375,10 @@ if [[ -n "$mutable_static_char_pointers" ]]; then
 fi
 top_level_mutable_statics="$(
     cd "$ROOT_DIR"
-    grep -RInP '^static\s+(?!const)(?!inline)[A-Za-z_][A-Za-z0-9_\s]*\*?\s*[A-Za-z_][A-Za-z0-9_]*(\[[^]]+\])?\s*(=|;)' \
+    grep -RInE '^static[[:space:]]+[A-Za-z_][A-Za-z0-9_[:space:]]*\*?[[:space:]]*[A-Za-z_][A-Za-z0-9_]*(\[[^]]+\])?[[:space:]]*(=|;)' \
         src/codegen src/semantic src/compiler src/lsp \
-        --include='*.c' --include='*.h' || true
+        --include='*.c' --include='*.h' \
+        | grep -Ev '^([^:]+:){2}static[[:space:]]+(const|inline)([[:space:]]|$)' || true
 )"
 unexpected_top_level_mutable_statics="$(
     printf '%s\n' "$top_level_mutable_statics" \

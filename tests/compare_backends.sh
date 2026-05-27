@@ -386,6 +386,7 @@ main() {
         "tests/cases/backend_compare/destructure_array"
         "tests/cases/backend_compare/destructure_tuple_return"
         "tests/cases/backend_compare/slice_surface"
+        "tests/cases/backend_compare/slice_copy"
         "tests/cases/backend_compare/slice_inline_access"
         "tests/cases/backend_compare/dynamic_array"
         "tests/cases/backend_compare/string_io"

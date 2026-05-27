@@ -1,0 +1,25 @@
+func Words() -> Array<Int> {
+    return [10, 20, 30];
+}
+
+func Labels() -> Array<String> {
+    return ["red", "blue", "green"];
+}
+
+func Main() -> Void {
+    let view = Words().Slice(1, 2);
+    let owned = SliceCopy(view);
+    Log(ArrayLength(owned));
+    Log(owned[0]);
+    Log(owned[1]);
+
+    let labelView = Labels().Slice(0, 2);
+    let labelOwned = SliceCopy(labelView);
+    Log(ArrayLength(labelOwned));
+    Log(labelOwned[0]);
+    Log(labelOwned[1]);
+
+    let emptyView = Words().Slice(2, 0);
+    let emptyOwned = SliceCopy(emptyView);
+    Log(ArrayLength(emptyOwned));
+}

@@ -182,6 +182,14 @@ pgy_arena_reset(PgyArena* arena)
  * ================================================================= */
 
 
+#define PGY_ARRAY_COPY_VALUE_Int(value)    (value)
+#define PGY_ARRAY_COPY_VALUE_Long(value)   (value)
+#define PGY_ARRAY_COPY_VALUE_Float(value)  (value)
+#define PGY_ARRAY_COPY_VALUE_Double(value) (value)
+#define PGY_ARRAY_COPY_VALUE_Bool(value)   (value)
+#define PGY_ARRAY_COPY_VALUE_String(value) \
+    pgy_runtime_strdup((value) != NULL ? (value) : "")
+
 #define PGY_ARRAY_DEFINE(SuffixName, CType) \
 typedef struct { \
     CType        *data; \
@@ -340,6 +348,23 @@ pgy_array_slice_##SuffixName(PgyArray_##SuffixName *arr, size_t start, size_t le
     slice.data = len == 0 ? NULL : arr->data + start; \
     slice.length = len; \
     return slice; \
+} \
+\
+static inline PgyArray_##SuffixName \
+pgy_slice_copy_##SuffixName(PgySlice_##SuffixName *slice) \
+{ \
+    PgyArray_##SuffixName out; \
+    if (slice == NULL) \
+        PGY_RUNTIME_PANIC(PGY_RUNTIME_PANIC_CLASS_INTERNAL_INVARIANT, \
+                          "slice copy on null slice"); \
+    if (slice->length > 0 && slice->data == NULL) \
+        PGY_RUNTIME_PANIC(PGY_RUNTIME_PANIC_CLASS_INTERNAL_INVARIANT, \
+                          "slice copy on slice without backing storage"); \
+    out = pgy_array_new_##SuffixName(slice->length); \
+    for (size_t i = 0; i < slice->length; i++) \
+        pgy_array_push_##SuffixName(&out, \
+            PGY_ARRAY_COPY_VALUE_##SuffixName(slice->data[i])); \
+    return out; \
 }
 
 /* =================================================================

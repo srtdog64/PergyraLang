@@ -38,9 +38,9 @@ semantic_lookup_function_param_contract(SemanticContext *ctx,
 }
 
 unsigned
-semantic_legacy_ast_callable_param_escape_summary(ASTNode *callee_decl,
-                                                  size_t arg_index,
-                                                  SemanticContext *ctx)
+semantic_callable_param_escape_summary(ASTNode *callee_decl,
+                                       size_t arg_index,
+                                       SemanticContext *ctx)
 {
     if (callee_decl == NULL
         || callee_decl->type != AST_FUNC_DECL

@@ -16,6 +16,7 @@ Keywords and surfaces: `own`, `ref`, anchored slot handles, slot boundaries, run
 - Ownership diagnostics for destructure/member/container/return/channel/helper-chain paths.
 - Arena discipline: scratch/result/persistent/runtime lanes.
 - SecureSlot and authority token invariants for the stable anchored boundary subset.
+- `Slice<T>` as a local borrowed view over an existing owner.
 
 Out of beta:
 
@@ -189,6 +190,10 @@ Current evidence:
   slices and must use subtract-form range checks (`start > length || len >
   length - start`) so overflow cannot turn an invalid slice into an apparently
   valid pointer range.
+- Generated C/LLVM `Slice<T>.Slice(start, len)` follows the same borrowed-view
+  rule: it does not own or clone backing storage, it checks range with the
+  subtract-form condition, it rejects non-empty null backing storage, and it
+  returns a null-backed empty slice instead of deriving a pointer for length 0.
 - `Queue<String>` stores result-owned string payloads, not borrowed input
   pointers. Generated-C inline queue push duplicates the string, and LLVM raw
   queue lowering routes `Queue<String>` through string-specific raw exports
@@ -220,6 +225,61 @@ Remaining proof obligation:
 
 - Extend the same lifetime gate to additional runtime-owned handles as they
   become beta-stable.
+
+## Theorem: Slice Borrowed View Safety
+
+`Slice<T>` is a borrowed contiguous view, not an owner. It may carry a raw
+pointer in C/LLVM ABI lowering, but source-level ownership remains attached to
+the backing owner (`Array<T>`, a pinned Slot view, or a host buffer with an
+explicit ABI contract).
+
+Required invariants:
+
+- Creating a slice must not free, clone, or transfer the backing owner.
+- `Array<T>.Slice(start, len)` and `Slice<T>.Slice(start, len)` must use
+  subtract-form bounds checks: `start > length || len > length - start`.
+- Empty slices must be null-backed so backends do not materialize pointer
+  arithmetic for a zero-length view.
+- `Slice<T>[index]` must go through checked runtime helpers in generated C and
+  LLVM for the stable surface.
+- `SliceCopy(Slice<T>) -> Array<T>` is the explicit stable escape hatch from
+  a borrowed local view to an owned array snapshot. The copy is element-wise
+  and follows the existing `Array<T>` runtime element ownership convention.
+  For `Slice<String>`, the stable producer duplicates string payloads so the
+  returned `Array<String>` follows the result-owned string-array policy.
+- A slice cannot cross async/spawn/world boundaries as an owned value unless a
+  later transport contract explicitly copies or pins the backing owner.
+
+Current evidence:
+
+- Inline and LLVM-linkable runtime surfaces define `PgySlice_<T>` as
+  `{ data, length }` beside the owning `PgyArray_<T>` layout.
+- C generated `Slice<T>.Slice(start, len)` uses subtract-form checks and the
+  shared `out-of-bounds` panic class.
+- LLVM member-call `Slice()` lowering emits the same subtract-form check,
+  null-backing guard for non-empty views, and null-backed empty slice result
+  before constructing the returned slice value.
+- Runtime, generated C, and LLVM expose `pgy_slice_copy_<T>` for
+  `SliceCopy`, and the backend-compare `slice_copy` fixture gates C/LLVM
+  parity for materializing a borrowed view as an owned `Array<T>`. The
+  runtime ABI lifetime smoke gate also locks the String specialization to a
+  duplicate-on-copy path.
+- Semantic ownership classification treats `Slice<T>` as `BORROW_TRACKED`, so
+  ref-spawn, blocking channel send/receive, and non-blocking channel helper
+  send/receive attempts are rejected until an owner/provenance proof is
+  available. Rejected spawn/escape diagnostics name the value as a
+  `borrowed Slice view`, name the backing-owner provenance, and point to
+  `SliceCopy(view)` as the owned-snapshot escape hatch.
+- `runtime-abi-lifetime-test-smoke`, `runtime-panic-contract-test-smoke`,
+  `runtime-panic-codegen-test-smoke`, `perf-contract-smoke`, `test-semantic`,
+  and `cfg-body-dataflow-test-smoke` gate those terms.
+
+Remaining proof obligation:
+
+- Promote valid slice boundary forms into AIR/CFG evidence only after a concrete
+  owner/provenance contract exists. Invalid slice transport is intentionally
+  rejected before AIR graph synthesis, so AIR is not the evidence owner for the
+  current rejected-source surface.
 
 ## Theorem: ABI Ownership Parity
 

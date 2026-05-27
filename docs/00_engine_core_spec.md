@@ -163,6 +163,18 @@ for i in 0..view.Length {
 - `Slice<T>`는 복사 비용이 낮아야 한다
 - `Slice<T>`는 포인터 + 길이와 동등한 모델이어야 한다
 - 컨테이너와 뷰의 소유권을 혼동하지 않게 타입을 분리한다
+- `Slice<T>`는 소유자가 아니다. `Array<T>` / Slot pin / host buffer 같은
+  backing owner의 생존 구간 안에서만 유효한 borrowed view다.
+- `Slice<T>.Slice(start, len)`은 새 소유권을 만들지 않고 같은 backing
+  owner를 더 좁힌다. `start > length || len > length - start`는
+  `out-of-bounds` panic이며, 길이 0 slice는 backend가 포인터 산술을 하지
+  않고 null-backed empty view로 낮춘다.
+- `Slice<T>`는 `BORROW_TRACKED` boundary value다. `spawn`, blocking
+  `channel` send/receive, non-blocking channel helper send/receive, `world`
+  handoff 같은 실행 경계로 넘기는 것은 AIR/CFG owner evidence가 생기기
+  전까지 reject한다.
+- `MutSlice<T>` / cross-world slice transport / async escape는 별도 소유권
+  증거가 붙기 전까지 beta-stable surface가 아니다.
 
 ## 7. 명시적 메모리 모델
 

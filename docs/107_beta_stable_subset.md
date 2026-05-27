@@ -188,7 +188,8 @@ Explicit reject:
 Stable:
 
 - `Array<T>` through array literals and the documented array builtin family.
-- `Slice<T>` where current semantic/runtime/backend parity exists.
+- `Slice<T>` where current semantic/runtime/backend parity exists, including
+  `SliceCopy(Slice<T>) -> Array<T>` as the explicit owned snapshot escape hatch.
 - `List<T>`.
 - `Set<T>`.
 - `HashMap<String, T>`, `HashMap<Int, T>`, `HashMap<Long, T>`,

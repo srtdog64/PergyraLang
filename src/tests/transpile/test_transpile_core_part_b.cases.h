@@ -517,6 +517,40 @@ test_statement_emit(void)
         ast_destroy(program);
     }
 
+    TEST("SliceCopy materializes borrowed Slice<T> as owned Array<T>");
+    {
+        const char *source =
+            "func Words() -> Array<Int> {\n"
+            "    return [10, 20, 30];\n"
+            "}\n"
+            "func Main() -> Void {\n"
+            "    let view = Words().Slice(1, 2);\n"
+            "    let owned = SliceCopy(view);\n"
+            "    Log(ArrayLength(owned));\n"
+            "    Log(owned[0]);\n"
+            "}\n";
+        ASTNode *program = NULL;
+        HIRProgram *hir = NULL;
+        RIRProgram *rir = NULL;
+        MIRProgram *mir = NULL;
+        bool ok = lower_pipeline_from_source(source, &program, &hir, &rir, &mir);
+        ctx = transpiler_ctx_create();
+        ctx->mir = mir;
+
+        EXPECT(ok);
+        emit_program(ctx);
+
+        EXPECT(ctx->backend_error == NULL);
+        EXPECT_STR_CONTAINS(ctx->out->data, "pgy_slice_copy_Int");
+        EXPECT_STR_CONTAINS(ctx->out->data, "PgyArray_Int");
+
+        transpiler_ctx_destroy(ctx);
+        mir_destroy(mir);
+        rir_destroy(rir);
+        hir_destroy(hir);
+        ast_destroy(program);
+    }
+
     TEST("let dst: Slot<Int> = mt materializes moved slot");
     {
         ctx = transpiler_ctx_create();

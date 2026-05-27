@@ -56,7 +56,7 @@ transpiler_mir_ast_type_supported(TranspilerCtx *ctx, const ASTNode *type_node)
     if (transpiler_mir_type_supported(type_name))
         return true;
 
-    if (!pergyra_ast_type_to_c_copy((ASTNode *)type_node,
+    if (!pergyra_ast_type_to_c_copy_in_ctx(ctx, (ASTNode *)type_node,
             c_type,
             sizeof(c_type))
         || c_type[0] == '\0') {

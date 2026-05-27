@@ -411,11 +411,11 @@ emit_call_member_style(ASTNode *call, ASTNode *callee, TranspilerCtx *ctx)
                 } else {
                     char *obj_expr = emit_expression(obj, ctx);
                     result = strdup_fmt(
-                        "({ PgySlice_%s _pgy_slice_%d = %s; size_t _pgy_start_%d = (size_t)(%s); size_t _pgy_len_%d = (size_t)(%s); if (_pgy_start_%d > _pgy_slice_%d.length || _pgy_len_%d > _pgy_slice_%d.length - _pgy_start_%d) PGY_PANIC(\"Slice out of bounds\"); (PgySlice_%s){ _pgy_len_%d == 0 ? NULL : _pgy_slice_%d.data + _pgy_start_%d, _pgy_len_%d }; })",
+                        "({ PgySlice_%s _pgy_slice_%d = %s; size_t _pgy_start_%d = (size_t)(%s); size_t _pgy_len_%d = (size_t)(%s); if (_pgy_start_%d > _pgy_slice_%d.length || _pgy_len_%d > _pgy_slice_%d.length - _pgy_start_%d || (_pgy_len_%d > 0 && _pgy_slice_%d.data == NULL)) PGY_RUNTIME_PANIC(PGY_RUNTIME_PANIC_CLASS_OUT_OF_BOUNDS, PGY_RUNTIME_PANIC_REASON_SLICE_OUT_OF_BOUNDS); (PgySlice_%s){ _pgy_len_%d == 0 ? NULL : _pgy_slice_%d.data + _pgy_start_%d, _pgy_len_%d }; })",
                         inner, tmp_id, obj_expr,
                         tmp_id, start_expr,
                         tmp_id, len_expr,
-                        tmp_id, tmp_id, tmp_id, tmp_id, tmp_id,
+                        tmp_id, tmp_id, tmp_id, tmp_id, tmp_id, tmp_id, tmp_id,
                         inner, tmp_id, tmp_id, tmp_id, tmp_id);
                     free(obj_expr);
                 }

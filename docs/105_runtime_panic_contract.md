@@ -52,6 +52,9 @@ the C and LLVM paths.
   and temporary `Words()[index]` / `Words().Slice(...)[index]`) and `ArraySet`
   lower through checked runtime helpers instead of direct `.data[index]`
   access for the stable `Array<T>` / `Slice<T>` surface.
+- Generated C and LLVM `Slice<T>.Slice(start, len)` use the same subtract-form
+  bounds check and the shared `out-of-bounds` panic class. Empty slice results
+  are null-backed instead of deriving a pointer from the backing storage.
 - Stable value-demanding collection APIs hard-fail instead of silently returning
   defaults: `ListGet` out-of-range, `QueuePop` on an empty queue, and `MapGet`
   on a missing key all use the shared `out-of-bounds` class. Query before use

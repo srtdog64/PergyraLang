@@ -31,6 +31,7 @@ for required in \
     "Stable Builtin Stdlib Surface" \
     "\`FileOpen\`, \`FileRead\`, \`FileWrite\`, \`FileClose\`, \`ReadFile\`" \
     "\`WriteFile\`, \`FileExists\`" \
+    "\`SliceCopy(Slice<T>) -> Array<T>\`" \
     "Stable \`use\` Modules" \
     "Known But Experimental Modules" \
     "\`datetime\`" \
@@ -61,6 +62,18 @@ func Main() -> Void {
     let values: Array<Int> = [1, 2, 3];
     Log(values[1]);
     Log(ArrayLength(values));
+    let view: Slice<Int> = values.Slice(1, 2);
+    let owned: Array<Int> = SliceCopy(view);
+    Log(ArrayLength(owned));
+    Log(owned[0]);
+    Log(owned[1]);
+
+    let words: Array<String> = ["red", "blue", "green"];
+    let wordView: Slice<String> = words.Slice(0, 2);
+    let wordOwned: Array<String> = SliceCopy(wordView);
+    Log(ArrayLength(wordOwned));
+    Log(wordOwned[0]);
+    Log(wordOwned[1]);
 
     let s: String = Concat(Upper(Trim("  hi")), Lower(" THERE"));
     Log(StringLength(s));
@@ -148,7 +161,7 @@ run_backend() {
 
     output="$(cd "$WORK_DIR" && "$PGY" "$stable_arg" --backend="$backend" --run 2>&1)"
 
-    for expected in "42" "2" "3" "8" "true" "false" "BYE there" "handle" "9"; do
+    for expected in "42" "2" "3" "blue" "red" "8" "true" "false" "BYE there" "handle" "9"; do
         if ! grep -Fq "$expected" <<<"$output"; then
             echo "[stdlib-smoke] backend=$backend missing '$expected'" >&2
             echo "--- output ---" >&2

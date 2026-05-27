@@ -50,6 +50,18 @@ channel_builtin_recv_result(Type *element_type, const char *name,
             "receive a plain value instead");
         return TYPE_UNKNOWN;
     }
+    if (type_is_constructed_named(element_type, "Slice")) {
+        char message[256];
+        snprintf(message, sizeof(message),
+            "%s cannot yield borrowed Slice values yet", name);
+        semantic_report_channel_transport_policy(
+            site, ctx, message,
+            "receive would materialize a borrowed view without closed backing-owner provenance\n"
+            "- beta slice transport needs explicit owner/copy/pin evidence before it can be trusted",
+            "receive an owning Array<T> copy or projection/value result instead\n"
+            "- keep Slice<T> use local to the producing synchronous boundary");
+        return TYPE_UNKNOWN;
+    }
     OwnershipTypeClass element_ownership =
         semantic_classify_ownership_type(element_type, ctx);
 
@@ -118,6 +130,22 @@ type_check_channel_send_builtin(ASTNode *expr, const char *name,
             "authority-bearing token state must stay local to the authorized flow at this channel surface",
             "keep the token local to the authorized flow\n"
             "- or send a plain projection/value instead");
+        return detailed_status ? wrap_constructed(TYPE_OPTION, TYPE_BOOL)
+                               : TYPE_BOOL;
+    }
+
+    if (type_is_constructed_named(element_type, "Slice")
+        || type_is_constructed_named(value_type, "Slice")) {
+        char message[256];
+        snprintf(message, sizeof(message),
+            "%s does not support borrowed Slice transport yet", name);
+        semantic_report_channel_transport_policy(
+            ast_call_argument(expr, 1), ctx, message,
+            "Slice<T> is a borrowed view over another owner\n"
+            "- non-blocking channel send may outlive or reorder the backing owner provenance\n"
+            "- beta slice transport needs explicit owner/copy/pin evidence before it can be trusted",
+            "send an owning Array<T> copy or projection/value result instead\n"
+            "- keep Slice<T> use local to the current synchronous boundary");
         return detailed_status ? wrap_constructed(TYPE_OPTION, TYPE_BOOL)
                                : TYPE_BOOL;
     }

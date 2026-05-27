@@ -136,6 +136,9 @@ semantic_validate_spawn_ref_boundary(ASTNode *expr,
         Type *param_type;
         OwnershipTypeClass ownership_class;
         const char *arg_label;
+        const char *value_label;
+        const char *provenance_label;
+        const char *snapshot_label;
 
         if (arg == NULL || param == NULL || param->mode != PARAM_MODE_REF)
             continue;
@@ -148,6 +151,14 @@ semantic_validate_spawn_ref_boundary(ASTNode *expr,
         arg_label = "<argument>";
         if (arg->type == AST_IDENTIFIER && ast_identifier_name(arg) != NULL)
             arg_label = ast_identifier_name(arg);
+        value_label = semantic_ownership_value_label(ownership_class);
+        provenance_label = semantic_ownership_provenance_label(ownership_class);
+        snapshot_label = "a copy/projection/value snapshot";
+        if (type_is_constructed_named(param_type, "Slice")) {
+            value_label = "borrowed Slice view";
+            provenance_label = "slice backing-owner provenance";
+            snapshot_label = "SliceCopy(view) or another owned Array snapshot";
+        }
 
         semantic_error_with_hints(ctx,
             PGY_CODE_SEM_BORROW_ESCAPE,
@@ -161,12 +172,13 @@ semantic_validate_spawn_ref_boundary(ASTNode *expr,
             "- beta-stable task boundaries allow copy-only refs, or explicit ownership transfer\n"
             "Fix:\n"
             "- change parameter %llu of '%s' to 'own' and move the value into spawn\n"
-            "- or pass a copy/projection/value snapshot instead of a borrowed boundary value",
-            semantic_ownership_value_label(ownership_class),
+            "- or pass %s instead of a borrowed boundary value",
+            value_label,
             arg_label,
-            semantic_ownership_provenance_label(ownership_class),
+            provenance_label,
             (unsigned long long)(i + 1),
-            callee_name);
+            callee_name,
+            snapshot_label);
     }
 }
 
@@ -283,6 +295,19 @@ type_check_channel_send(ASTNode *expr, SemanticContext *ctx)
             "- authority-bearing token state must remain local for now",
             "keep the token local to the authorized flow\n"
             "- or send a plain projection/value instead");
+        return TYPE_VOID;
+    }
+
+    if (type_is_constructed_named(element_type, "Slice")
+        || type_is_constructed_named(value_type, "Slice")) {
+        semantic_report_channel_transport_policy(
+            value, ctx,
+            "Channel send does not support borrowed Slice transport yet",
+            "Slice<T> is a borrowed view over another owner\n"
+            "- channel send may outlive or reorder the backing owner provenance\n"
+            "- beta slice transport needs explicit owner/copy/pin evidence before it can be trusted",
+            "send an owning Array<T> copy or projection/value result instead\n"
+            "- keep Slice<T> use local to the current synchronous boundary");
         return TYPE_VOID;
     }
 
@@ -412,6 +437,16 @@ type_check_channel_recv(ASTNode *expr, SemanticContext *ctx)
             "- authority-bearing token state remains local-only at channel boundaries under the current authority contract",
             "receive a plain value instead\n"
             "- or keep the token local");
+        return TYPE_UNKNOWN;
+    }
+    if (type_is_constructed_named(element_type, "Slice")) {
+        semantic_report_channel_transport_policy(
+            channel, ctx,
+            "Channels cannot yield borrowed Slice values yet",
+            "receive would materialize a borrowed view without closed backing-owner provenance\n"
+            "- beta slice transport needs explicit owner/copy/pin evidence before it can be trusted",
+            "receive an owning Array<T> copy or projection/value result instead\n"
+            "- keep Slice<T> use local to the producing synchronous boundary");
         return TYPE_UNKNOWN;
     }
 

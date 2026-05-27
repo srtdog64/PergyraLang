@@ -92,7 +92,8 @@ transpiler_infer_local_type_name_from_expr(TranspilerCtx *ctx,
                         ClassField *f = fields != NULL ? fields[fi] : NULL;
                         if (f != NULL && f->name != NULL && f->type != NULL
                             && strcmp(f->name, ast_member_name(expr)) == 0) {
-                            char *rendered = render_type_name(f->type);
+                            char *rendered = render_type_name_in_ctx(ctx,
+                                f->type);
                             const char *copied =
                                 transpiler_mir_arena_copy_type_name(ctx, rendered);
                             free(rendered);
@@ -152,7 +153,8 @@ transpiler_infer_local_type_name_from_expr(TranspilerCtx *ctx,
                 method_decl = find_nominal_host_method_decl(ctx, receiver_type, method_name);
             ASTNode *method_return_type = ast_func_return_type(method_decl);
             if (method_return_type != NULL) {
-                char *rendered = render_type_name(method_return_type);
+                char *rendered = render_type_name_in_ctx(ctx,
+                    method_return_type);
                 const char *copied =
                     transpiler_mir_arena_copy_type_name(ctx, rendered);
                 free(rendered);
@@ -166,7 +168,8 @@ transpiler_infer_local_type_name_from_expr(TranspilerCtx *ctx,
             ASTNode *callee_decl = find_function_decl(ctx, callee_name);
             ASTNode *callee_return_type = ast_func_return_type(callee_decl);
             if (callee_return_type != NULL) {
-                char *rendered = render_type_name(callee_return_type);
+                char *rendered = render_type_name_in_ctx(ctx,
+                    callee_return_type);
                 const char *copied =
                     transpiler_mir_arena_copy_type_name(ctx, rendered);
                 free(rendered);
@@ -333,7 +336,8 @@ transpiler_find_local_type_name_in_block(TranspilerCtx *ctx,
     if (body->type == AST_WITH_STMT) {
         if (ast_with_alias(body) != NULL
             && strcmp(ast_with_alias(body), base_name) == 0) {
-            char *inner = render_type_name(ast_with_slot_type(body));
+            char *inner = render_type_name_in_ctx(ctx,
+                ast_with_slot_type(body));
             const char *rendered_slot;
             if (inner == NULL || inner[0] == '\0')
                 return NULL;

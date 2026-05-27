@@ -118,6 +118,111 @@
         ast_destroy(program);
     }
 
+    TEST("CFG spawn rejects borrowed Slice boundary crossing");
+    {
+        const char *source =
+            "func Inspect(ref view: Slice<Int>) -> Void {\n"
+            "    Log(ArrayLength(view));\n"
+            "}\n"
+            "func Words() -> Array<Int> {\n"
+            "    return [1, 2, 3];\n"
+            "}\n"
+            "func Main() -> Void with effects remote {\n"
+            "    let view: Slice<Int> = Words().Slice(0, 2);\n"
+            "    let pending: Future<Void> = spawn Inspect(view);\n"
+            "}\n";
+        Lexer *lexer = lexer_create(source);
+        Parser *parser = parser_create(lexer);
+        ASTNode *program = parser_parse_program(parser);
+        SemanticResult *result = semantic_analyze(program);
+
+        EXPECT(!parser_has_error(parser));
+        EXPECT(result != NULL && result->error_count > 0);
+        EXPECT(ctx_has_diagnostic_substring_from_result(result,
+            "cannot cross spawn boundary"));
+        EXPECT(ctx_has_diagnostic_substring_from_result(result,
+            "borrowed Slice view"));
+        EXPECT(ctx_has_diagnostic_substring_from_result(result,
+            "SliceCopy(view)"));
+
+        semantic_result_destroy(result);
+        ast_destroy(program);
+        parser_destroy(parser);
+        lexer_destroy(lexer);
+    }
+
+    TEST("SliceCopy accepts borrowed Slice and returns owned Array");
+    {
+        const char *source =
+            "func Words() -> Array<Int> {\n"
+            "    return [1, 2, 3];\n"
+            "}\n"
+            "func Main() -> Void {\n"
+            "    let view: Slice<Int> = Words().Slice(0, 2);\n"
+            "    let owned: Array<Int> = SliceCopy(view);\n"
+            "    Log(ArrayLength(owned));\n"
+            "}\n";
+        Lexer *lexer = lexer_create(source);
+        Parser *parser = parser_create(lexer);
+        ASTNode *program = parser_parse_program(parser);
+        SemanticResult *result = semantic_analyze(program);
+
+        EXPECT(!parser_has_error(parser));
+        EXPECT(result != NULL && result->error_count == 0);
+
+        semantic_result_destroy(result);
+        ast_destroy(program);
+        parser_destroy(parser);
+        lexer_destroy(lexer);
+    }
+
+    TEST("SliceCopy rejects owned Array input");
+    {
+        const char *source =
+            "func Main() -> Void {\n"
+            "    let values: Array<Int> = [1, 2, 3];\n"
+            "    let owned = SliceCopy(values);\n"
+            "}\n";
+        Lexer *lexer = lexer_create(source);
+        Parser *parser = parser_create(lexer);
+        ASTNode *program = parser_parse_program(parser);
+        SemanticResult *result = semantic_analyze(program);
+
+        EXPECT(!parser_has_error(parser));
+        EXPECT(result != NULL && result->error_count > 0);
+        EXPECT(ctx_has_diagnostic_substring_from_result(result,
+            "SliceCopy requires Slice<T>"));
+
+        semantic_result_destroy(result);
+        ast_destroy(program);
+        parser_destroy(parser);
+        lexer_destroy(lexer);
+    }
+
+    TEST("ref Slice return escape suggests SliceCopy snapshot");
+    {
+        const char *source =
+            "func Leak(ref view: Slice<Int>) -> Slice<Int> {\n"
+            "    return view;\n"
+            "}\n";
+        Lexer *lexer = lexer_create(source);
+        Parser *parser = parser_create(lexer);
+        ASTNode *program = parser_parse_program(parser);
+        SemanticResult *result = semantic_analyze(program);
+
+        EXPECT(!parser_has_error(parser));
+        EXPECT(result != NULL && result->error_count > 0);
+        EXPECT(ctx_has_diagnostic_substring_from_result(result,
+            "borrowed Slice view"));
+        EXPECT(ctx_has_diagnostic_substring_from_result(result,
+            "SliceCopy(view)"));
+
+        semantic_result_destroy(result);
+        ast_destroy(program);
+        parser_destroy(parser);
+        lexer_destroy(lexer);
+    }
+
     TEST("generic own/ref parameter requires ownership classifier fact");
     {
         const char *source =

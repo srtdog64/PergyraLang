@@ -43,7 +43,7 @@ emit_hosted_method_forward_decl_from_metadata(const char *host_name,
         return;
     ensure_type_specializations_from_ast(ctx, return_type);
     if (return_type != NULL
-        && pergyra_ast_type_to_c_copy(return_type,
+        && pergyra_ast_type_to_c_copy_in_ctx(ctx, return_type,
             ret_type_buf,
             sizeof(ret_type_buf))) {
         ret_type = ret_type_buf;

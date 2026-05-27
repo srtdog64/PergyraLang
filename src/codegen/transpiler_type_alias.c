@@ -23,7 +23,7 @@ emit_type_alias_decl(ASTNode *node, TranspilerCtx *ctx)
 
     alias_name = ast_type_alias_name(node);
     ensure_type_specializations_from_ast(ctx, ast_type_alias_target_type(node));
-    if (!pergyra_ast_type_to_c_copy(ast_type_alias_target_type(node),
+    if (!pergyra_ast_type_to_c_copy_in_ctx(ctx, ast_type_alias_target_type(node),
             target_c_type,
             sizeof(target_c_type))) {
         target_c_type[0] = 'U';

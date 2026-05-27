@@ -235,7 +235,7 @@ keep the source-level business vocabulary clean.
 | Role declaration lookup | `semantic_find_role_decl_by_name(...)` / `semantic_find_next_role_decl_for_type_name(...)` | Ability matching, bind validation, operator overload lookup, role declaration validation | Public raw `semantic_find_role_decl(ASTNode *program, ...)` |
 | Projection source field path | `semantic_resolve_projection_source_field_path(...)` | Projection diagnostics, zone graph metadata, DAG projection materialization | Re-exposing `resolve_projection_source_field_path(ASTNode *program_root, ...)` or local class lookup |
 | Stdlib use declaration validation | `SemanticContext.stdlib_use_module_*` inventory in `type_checker_stdlib_use.c` | Duplicate `use` warnings, stdlib surface validation | Re-scanning `ctx->program_root` from the stdlib-use consumer |
-| Ref-parameter escape compatibility | `semantic_legacy_ast_callable_param_escape_summary(...)` until CFG/MIR facts replace it | Ownership call checks, function param summary checks | Generic `semantic_callable_param_escape_summary(...)` naming that hides the legacy AST walker |
+| Ref-parameter escape compatibility | `semantic_callable_param_escape_summary(...)` call-contract owner seam; it may still consume legacy AST summaries internally until CFG/MIR facts replace that implementation | Ownership call checks, function param summary checks | Re-exposing `semantic_legacy_ast_callable_param_escape_summary(...)` or making ownership consumers call the slot analyzer directly |
 | Party bind statement validity | `type_checker_bind_stmt.c` | CFG/body flow, C backend bind emit, LLVM bind emit | Backend-only bind validation or silent LLVM bind skips |
 | Intent step domain declaration recovery | `type_checker_intent_types.c` intent domain owner seam | Intent step validation, derived using, step causes checks, participant transfer-source checks, transfer contract checks | Consumers reopening `AST_ZONE_DECL` / `AST_EFFECT_DECL` lookup locally |
 | Resource/authority/effect propagation | RIR | AIR, runtime/codegen policy emitters | AIR or backend inventing authority/resource facts |
@@ -544,6 +544,13 @@ derives an element name from `Array<T>` or `Slice<T>` and then lowers that name
 through `pergyra_type_to_c(...)`, it must copy `T` first if the original element
 name is later used for local type registration or helper naming.
 
+`SliceCopy(Slice<T>) -> Array<T>` is the runtime/ABI source-of-truth boundary
+between a borrowed view and an owned snapshot. Semantic ownership keeps
+`Slice<T>` as `BORROW_TRACKED`; invalid async/spawn/channel transport is
+rejected before AIR graph synthesis. Backends may lower valid `SliceCopy` calls
+only through `pgy_slice_copy_<T>` so String payload duplication and array result
+ownership stay centralized in the runtime helper.
+
 LLVM backend constructed-type argument parsing has the same rule. A helper that
 returns a static scratch pointer is a parser convenience only; recursive type
 lowering must copy `List<T>`, `Queue<T>`, `HashMap<K,V>`, and `Option<T>`
@@ -559,6 +566,28 @@ C backend lambda emission follows the same rendered-type lifetime rule. A
 lambda helper signature uses the rendered return C type before and after
 parameter type rendering, so it must snapshot the return type into
 caller-owned storage before emitting helper prototypes or helper bodies.
+
+C backend declarator emission must also stay context-aware. Function signatures,
+function-typed locals, event-handler parameters, async capture structs, and MIR
+SSA callable locals must call the `_in_ctx` declarator APIs so alias-aware type
+rendering flows through the same `TranspilerCtx` source of truth. The legacy
+non-context wrappers exist only for compatibility inside the declarator owner;
+external codegen consumers are smoke-gated away from them.
+
+The same rule applies to AST type-to-C rendering. C backend consumers must call
+`pergyra_ast_type_to_c_copy_in_ctx(...)` when a `TranspilerCtx` exists; the
+non-context wrapper is an owner-local compatibility API only. This prevents
+generic bindings such as active `T -> Long` specializations from silently
+falling back to unbound/default C types inside lambda signatures, event
+handlers, match bindings, hosted method forwards, spawn wrappers, and MIR
+signature policy.
+
+C backend type-name inference follows the same context rule. Expression type
+inference, MIR local type lookup, Future/RemoteFuture return inference,
+slot-let inner type extraction, MIR effective local type rendering, and MIR
+local binding discovery must use `render_type_name_in_ctx(...)` whenever a
+`TranspilerCtx` is available; the non-context `render_type_name(...)` wrapper is
+compatibility surface for immediate-use owner-local code only.
 
 Result specialization and `let` lowering are recursive-emission boundaries too.
 If a C type name is needed after storing another rendered type or after calling

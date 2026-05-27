@@ -37,7 +37,7 @@ infer_spawn_return_type_name_owned(TranspilerCtx *ctx, ASTNode *spawn_expr)
         function_name = ast_identifier_name(target);
     } else if (target->type == AST_FUNC_DECL) {
         if (ast_func_return_type(target) != NULL)
-            return render_type_name(ast_func_return_type(target));
+            return render_type_name_in_ctx(ctx, ast_func_return_type(target));
         return pergyra_strdup("Void");
     }
 
@@ -55,7 +55,7 @@ infer_spawn_return_type_name_owned(TranspilerCtx *ctx, ASTNode *spawn_expr)
                     ast_func_return_type(decl), bindings, binding_count);
             }
         }
-        return render_type_name(ast_func_return_type(decl));
+        return render_type_name_in_ctx(ctx, ast_func_return_type(decl));
     }
 
     return pergyra_strdup("Void");

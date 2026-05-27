@@ -125,6 +125,7 @@ pgy_builtin_entries(size_t *count)
         { "Replace", "String", PGY_BUILTIN_FLAG_NONE },
         { "SendTimeout", "Bool", PGY_BUILTIN_FLAG_NONE },
         { "SetNew", "Set", PGY_BUILTIN_FLAG_NONE },
+        { "SliceCopy", "Array", PGY_BUILTIN_FLAG_NONE },
         { "Split", "Array<String>", PGY_BUILTIN_FLAG_NONE },
         { "Sqrt", "Float", PGY_BUILTIN_FLAG_NONE },
         { "StringConcat", "String", PGY_BUILTIN_FLAG_NONE },

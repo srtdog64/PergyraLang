@@ -78,7 +78,7 @@ emit_included_role_method_wrapper(const char *role_name,
 
     method_name = ast_declaration_name(method);
     if (ast_func_return_type(method) != NULL) {
-        if (pergyra_ast_type_to_c_copy(ast_func_return_type(method),
+        if (pergyra_ast_type_to_c_copy_in_ctx(ctx, ast_func_return_type(method),
                 ret_type_storage, sizeof(ret_type_storage))) {
             ret_type = ret_type_storage;
         }
@@ -109,7 +109,7 @@ emit_included_role_method_wrapper(const char *role_name,
             return;
         }
         if (param->type != NULL)
-            param_type_name = render_type_name(param->type);
+            param_type_name = render_type_name_in_ctx(ctx, param->type);
         pointer_param = param_type_name != NULL
             && is_pointer_self_host_type_name(ctx, param_type_name);
         codebuf_write(ctx->out, ", %s%s %s",
@@ -205,7 +205,7 @@ emit_ability_decl(ASTNode *node, TranspilerCtx *ctx)
         char ret_type_buf[256];
         const char *ret_type = "void";
         if (ast_func_return_type(method) != NULL
-            && pergyra_ast_type_to_c_copy(ast_func_return_type(method),
+            && pergyra_ast_type_to_c_copy_in_ctx(ctx, ast_func_return_type(method),
                 ret_type_buf, sizeof(ret_type_buf))) {
             ret_type = ret_type_buf;
         }
@@ -237,7 +237,7 @@ emit_ability_decl(ASTNode *node, TranspilerCtx *ctx)
                 return;
             }
             if (p != NULL && p->type != NULL)
-                param_name = render_type_name(p->type);
+                param_name = render_type_name_in_ctx(ctx, p->type);
             pointer_param = param_name != NULL
                 && is_pointer_self_host_type_name(ctx, param_name);
             codebuf_write(ctx->out, ", %s%s %s", pt,
@@ -289,7 +289,7 @@ emit_role_decl(ASTNode *node, TranspilerCtx *ctx)
             char ret_type_buf[256];
             const char *ret_type = "void";
             if (ast_func_return_type(func) != NULL
-                && pergyra_ast_type_to_c_copy(ast_func_return_type(func),
+                && pergyra_ast_type_to_c_copy_in_ctx(ctx, ast_func_return_type(func),
                     ret_type_buf, sizeof(ret_type_buf))) {
                 ret_type = ret_type_buf;
             }

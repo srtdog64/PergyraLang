@@ -2785,7 +2785,10 @@ Stable subset that must be frozen:
 - Core execution: `func`, `let`, `if`, `match`, `for`, `while`, `return`, `parallel`, stable channel/task baseline.
 - Generic contracts: exact type parameters, ability bounds, multi-bound `where T: A + B`, implemented default type argument resolution.
 - Ownership: anchored slot-handle boundary subset, boundary-visible aggregate provenance, copy-value trivial `own/ref`, explicit reject for `Token<T>` transport.
-- Collections: `List<T>`, `Set<T>`, `HashMap<String, T>`, `HashMap<Int, T>`, plus any currently implemented additional key families only if docs/tests/backend parity list them explicitly.
+- Collections: `Array<T>`, local borrowed `Slice<T>` with `SliceCopy`, `List<T>`,
+  `Set<T>`, `HashMap<String, T>`, `HashMap<Int, T>`, plus any currently
+  implemented additional key families only if docs/tests/backend parity list
+  them explicitly.
 - Observability: `last`, `history`, `active`, `recent` baseline.
 - Option C ownership lift decision: a generic param ownership classifier is a
   beta blocker if ownership-sensitive generic code is accepted. Without that

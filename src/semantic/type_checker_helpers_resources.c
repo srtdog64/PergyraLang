@@ -78,6 +78,12 @@ type_is_movable_resource_handle(const Type *type)
     return type_is_qubit(type);
 }
 
+static bool
+type_is_borrowed_slice_view(const Type *type)
+{
+    return type_is_constructed_named(type, "Slice");
+}
+
 bool
 type_is_subject_type(const Type *type, SemanticContext *ctx);
 
@@ -129,7 +135,11 @@ type_is_general_boundary_type(const Type *type, SemanticContext *ctx)
 bool
 type_requires_boundary_borrow_tracking(const Type *type, SemanticContext *ctx)
 {
-    if (type == NULL || !type_is_general_boundary_type(type, ctx))
+    if (type == NULL)
+        return false;
+    if (type_is_borrowed_slice_view(type))
+        return true;
+    if (!type_is_general_boundary_type(type, ctx))
         return false;
     if (type_is_subject_type(type, ctx) || type_is_movable_resource_handle(type))
         return false;

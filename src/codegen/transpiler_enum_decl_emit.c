@@ -166,7 +166,7 @@ emit_enum_decl_stmt(ASTNode *node, TranspilerCtx *ctx)
         char ret_type_buf[256];
         const char *ret_type = "void";
         if (ast_func_return_type(method) != NULL
-            && pergyra_ast_type_to_c_copy(ast_func_return_type(method),
+            && pergyra_ast_type_to_c_copy_in_ctx(ctx, ast_func_return_type(method),
                 ret_type_buf, sizeof(ret_type_buf))) {
             ret_type = ret_type_buf;
         }

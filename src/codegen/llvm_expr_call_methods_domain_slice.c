@@ -50,6 +50,86 @@ llvm_domain_slot_runtime_name_error(ASTNode *node, LLVMGenCtx *ctx,
     return NULL;
 }
 
+static bool
+llvm_emit_slice_bounds_check(LLVMGenCtx *ctx, ASTNode *node,
+                             LLVMValueRef data_ptr,
+                             LLVMValueRef start64,
+                             LLVMValueRef len64,
+                             LLVMValueRef length64)
+{
+    LLVMValueRef current_fn;
+    LLVMFuncEntry *panic_fn;
+    LLVMValueRef start_oob;
+    LLVMValueRef remaining;
+    LLVMValueRef len_oob;
+    LLVMValueRef len_nonzero;
+    LLVMValueRef data_null;
+    LLVMValueRef null_oob;
+    LLVMValueRef bounds_oob;
+    LLVMValueRef reason_arg;
+    LLVMBasicBlockRef ok_bb;
+    LLVMBasicBlockRef fail_bb;
+
+    if (ctx == NULL || data_ptr == NULL || start64 == NULL
+        || len64 == NULL || length64 == NULL) {
+        return false;
+    }
+
+    current_fn = LLVMGetBasicBlockParent(LLVMGetInsertBlock(ctx->builder));
+    if (current_fn == NULL) {
+        llvm_set_error_at_with_hints(ctx, node,
+            PGY_CODE_LLVM_TYPE_UNSUPPORTED,
+            PGY_CAUSE_LLVM_TYPE_UNSUPPORTED,
+            PGY_FIX_INSPECT_MIR_INVENTORY,
+            "LLVM Slice() bounds check requires an active function insertion block");
+        return false;
+    }
+
+    panic_fn = llvm_lookup_function(ctx,
+        "pgy_runtime_panic_out_of_bounds_export");
+    if (panic_fn == NULL) {
+        llvm_set_error_at_with_hints(ctx, node,
+            PGY_CODE_LLVM_TYPE_UNSUPPORTED,
+            PGY_CAUSE_LLVM_TYPE_UNSUPPORTED,
+            PGY_FIX_INSPECT_MIR_INVENTORY,
+            "LLVM Slice() bounds check requires registered runtime function '%s'",
+            "pgy_runtime_panic_out_of_bounds_export");
+        return false;
+    }
+
+    start_oob = LLVMBuildICmp(ctx->builder, LLVMIntUGT, start64,
+        length64, llvm_tmp_name(ctx));
+    remaining = LLVMBuildSub(ctx->builder, length64, start64,
+        llvm_tmp_name(ctx));
+    len_oob = LLVMBuildICmp(ctx->builder, LLVMIntUGT, len64,
+        remaining, llvm_tmp_name(ctx));
+    len_nonzero = LLVMBuildICmp(ctx->builder, LLVMIntNE, len64,
+        LLVMConstInt(ctx->type_i64, 0, 0), llvm_tmp_name(ctx));
+    data_null = LLVMBuildICmp(ctx->builder, LLVMIntEQ, data_ptr,
+        LLVMConstNull(LLVMTypeOf(data_ptr)), llvm_tmp_name(ctx));
+    null_oob = LLVMBuildAnd(ctx->builder, len_nonzero, data_null,
+        llvm_tmp_name(ctx));
+    bounds_oob = LLVMBuildOr(ctx->builder,
+        LLVMBuildOr(ctx->builder, start_oob, len_oob, llvm_tmp_name(ctx)),
+        null_oob, llvm_tmp_name(ctx));
+
+    fail_bb = LLVMAppendBasicBlockInContext(ctx->context, current_fn,
+        "slice.bounds.panic");
+    ok_bb = LLVMAppendBasicBlockInContext(ctx->context, current_fn,
+        "slice.bounds.ok");
+    LLVMBuildCondBr(ctx->builder, bounds_oob, fail_bb, ok_bb);
+
+    LLVMPositionBuilderAtEnd(ctx->builder, fail_bb);
+    reason_arg = LLVMBuildGlobalStringPtr(ctx->builder,
+        "slice out of bounds", llvm_tmp_name(ctx));
+    LLVMBuildCall2(ctx->builder, panic_fn->fn_type, panic_fn->fn,
+        &reason_arg, 1, "");
+    LLVMBuildUnreachable(ctx->builder);
+
+    LLVMPositionBuilderAtEnd(ctx->builder, ok_bb);
+    return true;
+}
+
 LLVMValueRef
 llvm_emit_member_call_slot_method(ASTNode *node, LLVMGenCtx *ctx,
                                   ASTNode *obj_node,
@@ -259,10 +339,13 @@ llvm_emit_member_call_slice(ASTNode *node, LLVMGenCtx *ctx,
         LLVMTypeRef elem_type = NULL;
         LLVMTypeRef slice_type = NULL;
         LLVMValueRef data_ptr;
+        LLVMValueRef receiver_length;
         LLVMValueRef start64;
         LLVMValueRef len64;
         LLVMValueRef offset_ptr;
+        LLVMValueRef slice_data_ptr;
         LLVMValueRef result;
+        LLVMValueRef len_is_zero;
         unsigned field_count = 0;
 
         if (llvm_debug_detail_enabled())
@@ -290,6 +373,10 @@ llvm_emit_member_call_slice(ASTNode *node, LLVMGenCtx *ctx,
         if (data_ptr == NULL)
             return llvm_domain_slice_error(node, ctx,
                 "LLVM Slice() receiver did not expose array data storage");
+        receiver_length = llvm_array_length_i64(ctx, receiver);
+        if (receiver_length == NULL)
+            return llvm_domain_slice_error(node, ctx,
+                "LLVM Slice() receiver did not expose collection length");
         if (LLVMGetTypeKind(LLVMTypeOf(data_ptr)) != LLVMPointerTypeKind) {
             llvm_set_error_at_with_hints(ctx, node,
                 PGY_CODE_LLVM_TYPE_UNSUPPORTED,
@@ -329,12 +416,22 @@ llvm_emit_member_call_slice(ASTNode *node, LLVMGenCtx *ctx,
             ? len
             : LLVMBuildSExt(ctx->builder, len, ctx->type_i64, llvm_tmp_name(ctx));
 
+        if (!llvm_emit_slice_bounds_check(ctx, node, data_ptr, start64,
+                len64, receiver_length)) {
+            return NULL;
+        }
+
         offset_ptr = LLVMBuildGEP2(ctx->builder, elem_type, data_ptr, &start64, 1,
+            llvm_tmp_name(ctx));
+        len_is_zero = LLVMBuildICmp(ctx->builder, LLVMIntEQ, len64,
+            LLVMConstInt(ctx->type_i64, 0, 0), llvm_tmp_name(ctx));
+        slice_data_ptr = LLVMBuildSelect(ctx->builder, len_is_zero,
+            LLVMConstNull(LLVMTypeOf(data_ptr)), offset_ptr,
             llvm_tmp_name(ctx));
         if (llvm_debug_detail_enabled())
             fprintf(stderr, "[llvm slice] phase=manual-emit\n");
         result = LLVMGetUndef(slice_type);
-        result = LLVMBuildInsertValue(ctx->builder, result, offset_ptr, 0, llvm_tmp_name(ctx));
+        result = LLVMBuildInsertValue(ctx->builder, result, slice_data_ptr, 0, llvm_tmp_name(ctx));
         result = LLVMBuildInsertValue(ctx->builder, result, len64, 1, llvm_tmp_name(ctx));
         return result;
     }

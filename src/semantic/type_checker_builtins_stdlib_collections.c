@@ -30,7 +30,8 @@ typedef enum StdlibCollectionBuiltinKind {
     STDLIB_COLLECTION_ARRAY_SORT,
     STDLIB_COLLECTION_ARRAY_REVERSE,
     STDLIB_COLLECTION_ARRAY_MAP,
-    STDLIB_COLLECTION_ARRAY_FILTER
+    STDLIB_COLLECTION_ARRAY_FILTER,
+    STDLIB_COLLECTION_SLICE_COPY
 } StdlibCollectionBuiltinKind;
 
 typedef struct StdlibCollectionBuiltinSpec {
@@ -81,7 +82,8 @@ stdlib_collection_builtin_kind(const char *name)
         { "SetHas", STDLIB_COLLECTION_SET_HAS },
         { "SetNew", STDLIB_COLLECTION_SET_NEW },
         { "SetRemove", STDLIB_COLLECTION_SET_REMOVE },
-        { "SetSize", STDLIB_COLLECTION_SET_SIZE }
+        { "SetSize", STDLIB_COLLECTION_SET_SIZE },
+        { "SliceCopy", STDLIB_COLLECTION_SLICE_COPY }
     };
     const StdlibCollectionBuiltinSpec *match;
 
@@ -485,6 +487,32 @@ type_check_stdlib_collection_call(ASTNode *expr,
                 name, type_name_or_unknown(arr));
         type_check_expression(arg1, ctx);
         return arr;
+    }
+    if (kind == STDLIB_COLLECTION_SLICE_COPY) {
+        Type *slice;
+        if (!check_call_arity(expr, 1, name, ctx))
+            return TYPE_UNKNOWN;
+        slice = stdlib_collection_normalize_type(
+            type_check_expression(arg0, ctx));
+        if (!type_is_constructed_named(slice, "Slice")) {
+            semantic_error_with_hints(ctx, PGY_CODE_SEM_BUILTIN_ARGS_INVALID,
+                PGY_CAUSE_BUILTIN_SIGNATURE_MISMATCH,
+                PGY_FIX_MATCH_BUILTIN_SIGNATURE, arg0,
+                "SliceCopy requires Slice<T>, got '%s'",
+                type_name_or_unknown(slice));
+            return TYPE_UNKNOWN;
+        }
+        Type *inner = type_get_constructed_arg(slice, 0);
+        if (inner == NULL) {
+            semantic_error_with_hints(ctx, PGY_CODE_SEM_BUILTIN_ARGS_INVALID,
+                PGY_CAUSE_BUILTIN_SIGNATURE_MISMATCH,
+                PGY_FIX_ANNOTATE_CONCRETE_TYPE, arg0,
+                "SliceCopy requires concrete Slice<T>, got '%s'",
+                type_name_or_unknown(slice));
+            return TYPE_UNKNOWN;
+        }
+        Type *args[1] = { inner };
+        return type_create_constructed(TYPE_ARRAY, args, 1);
     }
 
     return NULL;

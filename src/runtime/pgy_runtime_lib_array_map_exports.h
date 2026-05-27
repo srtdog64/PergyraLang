@@ -2,6 +2,14 @@
  * Array operations - extern wrappers for LLVM linker
  * ================================================================= */
 
+#define PGY_ARRAY_EXPORT_COPY_VALUE_Int(value)    (value)
+#define PGY_ARRAY_EXPORT_COPY_VALUE_Long(value)   (value)
+#define PGY_ARRAY_EXPORT_COPY_VALUE_Float(value)  (value)
+#define PGY_ARRAY_EXPORT_COPY_VALUE_Double(value) (value)
+#define PGY_ARRAY_EXPORT_COPY_VALUE_Bool(value)   (value)
+#define PGY_ARRAY_EXPORT_COPY_VALUE_String(value) \
+    pgy_runtime_strdup_export((value) != NULL ? (value) : "")
+
 #define PGY_DEFINE_ARRAY_EXPORTS(Suffix, CType)                                  \
 typedef struct {                                                                 \
     CType  *data;                                                                \
@@ -140,6 +148,24 @@ PgySlice_##Suffix pgy_array_slice_##Suffix(PgyArray_##Suffix *arr,              
     slice.data = arr->data + start;                                              \
     slice.length = len;                                                          \
     return slice;                                                                \
+}                                                                                \
+                                                                                 \
+PgyArray_##Suffix pgy_slice_copy_##Suffix(PgySlice_##Suffix *slice)              \
+{                                                                                \
+    PgyArray_##Suffix out;                                                       \
+    if (slice == NULL) {                                                         \
+        PGY_RUNTIME_PANIC(PGY_RUNTIME_PANIC_CLASS_INTERNAL_INVARIANT,            \
+                          "slice copy on null slice");                           \
+    }                                                                            \
+    if (slice->length > 0 && slice->data == NULL) {                              \
+        PGY_RUNTIME_PANIC(PGY_RUNTIME_PANIC_CLASS_INTERNAL_INVARIANT,            \
+                          "slice copy on slice without backing storage");        \
+    }                                                                            \
+    out = pgy_array_new_##Suffix(slice->length);                                 \
+    for (size_t i = 0; i < slice->length; i++)                                   \
+        pgy_array_push_##Suffix(&out,                                            \
+            PGY_ARRAY_EXPORT_COPY_VALUE_##Suffix(slice->data[i]));               \
+    return out;                                                                  \
 }
 
 PGY_DEFINE_ARRAY_EXPORTS(Int, int32_t)

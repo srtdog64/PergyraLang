@@ -243,7 +243,7 @@ transpiler_register_explicit_local_bindings_in_block(TranspilerCtx *ctx,
             continue;
         }
         if (stmt->type == AST_WITH_STMT && ast_with_alias(stmt) != NULL) {
-            char *inner = render_type_name(ast_with_slot_type(stmt));
+            char *inner = render_type_name_in_ctx(ctx, ast_with_slot_type(stmt));
             if (inner == NULL || inner[0] == '\0'
                 || strcmp(inner, "Unknown") == 0) {
                 if (ctx->backend_error == NULL) {

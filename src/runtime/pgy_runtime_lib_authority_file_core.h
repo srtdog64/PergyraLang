@@ -219,6 +219,14 @@ pgy_runtime_panic_internal_invariant_export(const char *reason)
                       reason != NULL ? reason : "runtime invariant failed");
 }
 
+void
+pgy_runtime_panic_out_of_bounds_export(const char *reason)
+{
+    PGY_RUNTIME_PANIC(PGY_RUNTIME_PANIC_CLASS_OUT_OF_BOUNDS,
+                      reason != NULL ? reason
+                          : PGY_RUNTIME_PANIC_REASON_ARRAY_INDEX_OUT_OF_BOUNDS);
+}
+
 int32_t
 pgy_checked_div_i32_export(int32_t lhs, int32_t rhs)
 {

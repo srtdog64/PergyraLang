@@ -27,6 +27,9 @@ semantic_validate_borrowed_escape(ASTNode *site,
     const char *borrowed_name;
     const char *value_label;
     const char *provenance_label;
+    const char *replacement_label;
+    const char *effective_local_fix_label;
+    bool is_slice_view;
 
     if (ctx == NULL || value_type == NULL)
         return false;
@@ -43,6 +46,16 @@ semantic_validate_borrowed_escape(ASTNode *site,
 
     value_label = semantic_ownership_value_label(klass);
     provenance_label = semantic_ownership_provenance_label(klass);
+    replacement_label = semantic_ownership_replacement_label(klass);
+    effective_local_fix_label = local_fix_label;
+    is_slice_view = type_is_constructed_named(value_type, "Slice");
+    if (is_slice_view) {
+        value_label = "borrowed Slice view";
+        provenance_label = "slice backing-owner provenance";
+        replacement_label = "SliceCopy(view) or another owned Array snapshot";
+        if (effective_local_fix_label == NULL)
+            effective_local_fix_label = "SliceCopy(view)";
+    }
 
     switch (consumer_kind) {
     case OWNERSHIP_CONSUMER_NEW_BINDING:
@@ -79,7 +92,7 @@ semantic_validate_borrowed_escape(ASTNode *site,
             provenance_label,
             dest_name != NULL ? dest_name : "container",
             secondary_name != NULL ? secondary_name : "<container store>",
-            semantic_ownership_replacement_label(klass),
+            replacement_label,
             "transfer");
         return true;
     case OWNERSHIP_CONSUMER_RETURN:
@@ -95,7 +108,7 @@ semantic_validate_borrowed_escape(ASTNode *site,
         }
         semantic_report_borrowed_return_escape(
             site, source_expr, ctx, borrowed_name, value_label,
-            provenance_label, semantic_ownership_replacement_label(klass),
+            provenance_label, replacement_label,
             site != NULL && site->type == AST_FUNC_DECL);
         return true;
     case OWNERSHIP_CONSUMER_CHANNEL_SEND:
@@ -111,7 +124,7 @@ semantic_validate_borrowed_escape(ASTNode *site,
         }
         semantic_report_borrowed_channel_send_escape(
             site, source_expr, ctx, borrowed_name, value_label,
-            provenance_label, semantic_ownership_replacement_label(klass),
+            provenance_label, replacement_label,
             site != NULL && site->type == AST_FUNC_DECL);
         return true;
     case OWNERSHIP_CONSUMER_HELPER_CALL:
@@ -128,7 +141,7 @@ semantic_validate_borrowed_escape(ASTNode *site,
         semantic_report_borrowed_helper_call_escape(
             site, source_expr, ctx, borrowed_name, value_label,
             provenance_label, dest_name, transitive_call, mode_label,
-            local_fix_label);
+            effective_local_fix_label);
         return true;
     case OWNERSHIP_CONSUMER_CONSTRUCTOR_FIELD_STORE:
         semantic_report_borrowed_constructor_field_escape(
@@ -136,7 +149,7 @@ semantic_validate_borrowed_escape(ASTNode *site,
             provenance_label,
             dest_name != NULL ? dest_name : "<constructor>",
             secondary_name != NULL ? secondary_name : "<field>",
-            semantic_ownership_replacement_label(klass),
+            replacement_label,
             klass == OWNERSHIP_TYPE_SUBJECT_IDENTITY);
         return true;
     default:

@@ -34,7 +34,7 @@ semantic_check_param_summary_escapes(ASTNode *node,
         if (ownership_class == OWNERSHIP_TYPE_COPY_ONLY)
             continue;
 
-        summary_mask = semantic_legacy_ast_callable_param_escape_summary(
+        summary_mask = semantic_callable_param_escape_summary(
             node, i, ctx);
         if (semantic_param_summary_has_any_escape(summary_mask)) {
             semantic_record_body_summary(ctx, BODY_SUMMARY_MAY_ESCAPE_REF);

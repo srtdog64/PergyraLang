@@ -123,7 +123,7 @@ transpiler_emit_mir_func_ssa_local_decls(TranspilerCtx *ctx,
         type_ast = transpiler_find_local_type_ast(ctx, node, base);
         if (type_ast != NULL && type_ast->type == AST_EVENT_HANDLER_TYPE) {
             c_name = transpiler_render_ssa_name(ctx, versioned_name);
-            decl = pergyra_ast_typed_declarator(type_ast, c_name);
+            decl = pergyra_ast_typed_declarator_in_ctx(ctx, type_ast, c_name);
             write_indent(ctx);
             codebuf_write(ctx->out, "%s = 0;\n", decl);
             write_indent(ctx);

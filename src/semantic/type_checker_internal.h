@@ -34,7 +34,7 @@ ASTNode *semantic_lookup_function_param_contract(SemanticContext *ctx,
                                                  const char *display_name,
                                                  size_t arg_index,
                                                  ParamMode *mode_out);
-unsigned semantic_legacy_ast_callable_param_escape_summary(
+unsigned semantic_callable_param_escape_summary(
     ASTNode *callee_decl,
     size_t arg_index,
     SemanticContext *ctx);

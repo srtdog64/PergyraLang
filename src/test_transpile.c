@@ -15,6 +15,7 @@
 #include "common/string_compat.h"
 #include "codegen/transpiler.h"
 #include "codegen/transpiler_symbols.h"
+#include "codegen/transpiler_type_declarator.h"
 #include "lexer/lexer.h"
 #include "parser/parser.h"
 #include "semantic/semantic.h"

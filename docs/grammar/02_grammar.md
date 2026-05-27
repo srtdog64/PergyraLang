@@ -699,7 +699,7 @@ Grammar-level classification for common patterns:
 | Parameters | typed function/async/lambda parameters, generic default type parameters | value default arguments in parameter lists |
 | Lambdas | `=>` expression/block bodies without outer local/resource capture | full closure environments and captured resource state |
 | Strings | normal strings, raw multiline strings, simple interpolation | nested interpolation protocol and format specifiers |
-| Collections | array literals and indexed access | list/set/map literals, slicing, spread/rest `...` |
+| Collections | array literals, indexed access, `.Slice(start, len)`, `SliceCopy(view)` | list/set/map literals, range-slicing syntax, spread/rest `...` |
 | Destructuring | positional `let (a, b) = value;` | named field destructuring |
 | Matching | match, guards, or-patterns | broad structural/list patterns |
 | Conversion | explicit helper calls | broad expression `as`/`is` conversion/type-test syntax |

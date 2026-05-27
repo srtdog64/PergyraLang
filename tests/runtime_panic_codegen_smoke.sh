@@ -69,6 +69,18 @@ func Main() -> Void {
 }
 PGY
 
+cat > "$WORK_DIR/slice_reslice_oob.pgy" <<'PGY'
+func Words() -> Array<Int> {
+    return [1];
+}
+
+func Main() -> Void {
+    let view = Words().Slice(0, 1);
+    let bad = view.Slice(1, 1);
+    Log(bad[0]);
+}
+PGY
+
 cat > "$WORK_DIR/list_get_oob.pgy" <<'PGY'
 func Main() -> Void {
     let items: List<Int> = ListNew();
@@ -185,6 +197,7 @@ expect_codegen_panic_backends "array_index_oob" "$WORK_DIR/array_index_oob.pgy" 
 expect_codegen_panic_backends "array_set_oob" "$WORK_DIR/array_set_oob.pgy" "out-of-bounds"
 expect_codegen_panic_backends "array_inline_index_oob" "$WORK_DIR/array_inline_index_oob.pgy" "out-of-bounds"
 expect_codegen_panic_backends "slice_inline_index_oob" "$WORK_DIR/slice_inline_index_oob.pgy" "out-of-bounds"
+expect_codegen_panic_backends "slice_reslice_oob" "$WORK_DIR/slice_reslice_oob.pgy" "out-of-bounds"
 expect_codegen_panic_backends "list_get_oob" "$WORK_DIR/list_get_oob.pgy" "out-of-bounds"
 expect_codegen_panic_backends "queue_pop_empty" "$WORK_DIR/queue_pop_empty.pgy" "out-of-bounds"
 expect_codegen_panic_backends "map_get_missing" "$WORK_DIR/map_get_missing.pgy" "out-of-bounds"

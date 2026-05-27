@@ -787,7 +787,7 @@ world GameWorld {
 - 파일명: `snake_case.pgy`
 
 대표 내장 API:
-`ClaimSlot`, `ClaimSecureSlot`, `Write`, `Read`, `Release`, `ViewRead`, `ViewWrite`, `Move`, `Log`, `Split`, `Join`, `StringLength`, `Contains`, `StringIndexOf`, `Replace`, `Substring`, `ReadFile`, `WriteFile`, `FileExists`, `ToInt`, `ToFloat`, `Sqrt`, `Pow`, `Floor`, `Ceil`, `Random`, `Exit`, `ArraySort`, `ArrayMap`, `ArrayFilter`, `ArrayReverse`, `ArrayLength`, `ArrayPush`, `ArrayPop`, `ArraySet`, `Some`, `None`, `IsSome`, `IsNone`, `UnwrapOption`, `ChannelSpace`, `ChannelFull`, `ChannelClosed`, `ChannelLength`, `ChannelCapacity`, `ChannelReady`, `TryRecv`, `TrySend`, `Cancel`, `IsCancelled`, `SpawnBlocking`, `ToObject`, `ToTObject`, `HasState`, `HasZone`
+`ClaimSlot`, `ClaimSecureSlot`, `Write`, `Read`, `Release`, `ViewRead`, `ViewWrite`, `Move`, `Log`, `Split`, `Join`, `StringLength`, `Contains`, `StringIndexOf`, `Replace`, `Substring`, `ReadFile`, `WriteFile`, `FileExists`, `ToInt`, `ToFloat`, `Sqrt`, `Pow`, `Floor`, `Ceil`, `Random`, `Exit`, `ArraySort`, `ArrayMap`, `ArrayFilter`, `ArrayReverse`, `ArrayLength`, `ArrayPush`, `ArrayPop`, `ArraySet`, `SliceCopy`, `Some`, `None`, `IsSome`, `IsNone`, `UnwrapOption`, `ChannelSpace`, `ChannelFull`, `ChannelClosed`, `ChannelLength`, `ChannelCapacity`, `ChannelReady`, `TryRecv`, `TrySend`, `Cancel`, `IsCancelled`, `SpawnBlocking`, `ToObject`, `ToTObject`, `HasState`, `HasZone`
 
 ## 10. 문서 사용법
 
@@ -810,6 +810,7 @@ Current grammar contract:
 | Intent compact step | active partial | `on:`-based inference is allowed for common receiver/action cases; explicit clauses remain valid. |
 | String interpolation | active partial | `"${expr}"` and `f"{expr}"` are parsed/lowered; escaping and backend parity remain the promotion gate. |
 | Array literal | stable | `[a, b, c]` is the collection literal baseline for beta. |
+| Slice view | stable | `values.Slice(start, len)` creates a local borrowed `Slice<T>` view; `SliceCopy(view)` materializes an owned `Array<T>` snapshot. |
 | List/Set/HashMap literal | reserved/out-of-beta | Use collection APIs; `{ ... }` object/map literal syntax is explicitly rejected. |
 | Lambda literal | partial | `=>` callables are allowed, but outer local/resource capture is rejected until closure environments exist. |
 | Named arguments | reserved/rejected | `Call(name: value)` is preserved in parser/AST where accepted, then semantically rejected before dispatch. |
@@ -820,7 +821,7 @@ Current grammar contract:
 | Optional chaining/coalescing | partial | `??` is active for `Option<T> ?? T -> T`; `?.` remains reserved with explicit parser diagnostics. |
 | Cast/type test | reserved/rejected | Broad expression `as`/`is` conversion syntax is not beta grammar. |
 | Object initializer | rejected | `Type { ... }` is not beta construction syntax. |
-| Slicing/spread/rest | reserved/rejected | `xs[a..b]`, `xs[..]`, and `...` spread/rest are explicit parser rejects; requires collection/call ABI, failure, and ownership policy first. |
+| Range slicing/spread/rest | reserved/rejected | `xs[a..b]`, `xs[..]`, and `...` spread/rest are explicit parser rejects; use stable `values.Slice(start, len)` plus `SliceCopy(view)` when an owned snapshot is required. |
 | Match guard/or-pattern | active partial | Guard/or-pattern syntax is parser-supported; promotion depends on CFG/backend parity gates. |
 | Block expression | not beta grammar | Blocks are statements unless a local grammar section says otherwise. |
 | Unsafe/raw | partial | `unsafe { ... }` is a boundary marker, not permission to bypass Slot/authority contracts. Raw escape requires a future scoped capability contract such as `unsafe(raw) { ... }`. |

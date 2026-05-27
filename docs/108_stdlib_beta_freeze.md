@@ -26,9 +26,10 @@ These are compiler/runtime builtins, not `use` modules:
 - Numeric helpers: `Abs`, `Min`, `Max`.
 - Time helpers: `Now`, `Sleep`.
 - Process/tooling helper: `Exit`.
-- Collections frozen for beta: `Array<T>`, `List<T>`, `Set<T>`, `Queue<T>`,
-  `HashMap<String, T>`, `HashMap<Int, T>`, `HashMap<Long, T>`,
-  `HashMap<Bool, T>`.
+- Collections frozen for beta: `Array<T>`, `Slice<T>`, `List<T>`, `Set<T>`,
+  `Queue<T>`, `HashMap<String, T>`, `HashMap<Int, T>`, `HashMap<Long, T>`,
+  `HashMap<Bool, T>`. `SliceCopy(Slice<T>) -> Array<T>` is the stable
+  borrowed-view to owned-snapshot escape hatch.
 - Result/Option baseline: `Ok`, `Err`, `IsOk`, `IsErr`, `Unwrap`, `UnwrapOr`,
   `Some`, `None`, `IsSome`, `IsNone`, `UnwrapOption`.
 

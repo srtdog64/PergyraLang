@@ -352,7 +352,7 @@ transpiler_emit_enum_match_bindings(ASTNode *pattern_node,
         char bt_buf[256];
         const char *bt_c_type = "int32_t";
         if (bt2 != NULL && bt2[b] != NULL
-            && pergyra_ast_type_to_c_copy(bt2[b],
+            && pergyra_ast_type_to_c_copy_in_ctx(ctx, bt2[b],
                 bt_buf, sizeof(bt_buf))) {
             bt_c_type = bt_buf;
         }

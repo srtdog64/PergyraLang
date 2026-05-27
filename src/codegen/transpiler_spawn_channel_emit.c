@@ -129,7 +129,7 @@ emit_spawn_expr(ASTNode *node, TranspilerCtx *ctx)
                     free(bound_type);
                     continue;
                 }
-                if (pergyra_ast_type_to_c_copy(
+                if (pergyra_ast_type_to_c_copy_in_ctx(ctx,
                         param->type,
                         arg_type_buf,
                         sizeof(arg_type_buf))) {

@@ -205,7 +205,7 @@ emit_role_operator_aliases(ASTNode *role, TranspilerCtx *ctx)
         char surface_desc[256];
 
         if (ast_func_return_type(method) != NULL) {
-            if (pergyra_ast_type_to_c_copy(ast_func_return_type(method),
+            if (pergyra_ast_type_to_c_copy_in_ctx(ctx, ast_func_return_type(method),
                     ret_type_storage,
                     sizeof(ret_type_storage))) {
                 ret_type = ret_type_storage;

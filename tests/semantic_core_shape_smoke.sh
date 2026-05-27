@@ -802,12 +802,12 @@ grep -q 'legacy_ast_param_summary_program(ctx)' \
     src/semantic/type_checker_call_contract_helpers.c \
     || fail "legacy AST param-summary owner must name its program-root seam explicitly"
 
-grep -q 'semantic_legacy_ast_callable_param_escape_summary' \
+grep -q 'semantic_callable_param_escape_summary' \
     src/semantic/type_checker_call_contract_helpers.c \
-    || fail "call contract summary owner must name the legacy AST escape-summary seam explicitly"
+    || fail "call contract summary owner must expose the canonical escape-summary seam"
 
-if grep -RIn 'semantic_callable_param_escape_summary' src/semantic >/dev/null; then
-    fail "call contract escape summary must use explicit legacy_ast naming until CFG/MIR facts replace it"
+if grep -RIn 'semantic_legacy_ast_callable_param_escape_summary' src/semantic >/dev/null; then
+    fail "call contract escape summary must not reintroduce the legacy AST public seam name"
 fi
 
 if grep -q 'constructor_decl_for_symbol_kind(ASTNode \*program' \

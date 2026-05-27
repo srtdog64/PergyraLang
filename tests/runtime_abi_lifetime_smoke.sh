@@ -477,9 +477,35 @@ grep -Fq "pgy_runtime_strdup(const char *src)" \
 grep -Fq "if (start > arr->length || len > arr->length - start)" \
     "$ROOT_DIR/src/runtime/pgy_runtime_lib_array_map_exports.h" ||
     fail "LLVM array slice export must avoid start+len overflow"
+grep -Fq "slice.data = NULL;" \
+    "$ROOT_DIR/src/runtime/pgy_runtime_lib_array_map_exports.h" ||
+    fail "LLVM array slice export must initialize zero-length slices as null-backed"
+grep -Fq "if (len == 0)" \
+    "$ROOT_DIR/src/runtime/pgy_runtime_lib_array_map_exports.h" ||
+    fail "LLVM array slice export must return before deriving backing pointers for empty slices"
+grep -Fq "slice.data = len == 0 ? NULL : arr->data + start" \
+    "$ROOT_DIR/src/runtime/pgy_runtime_memory_array_slot_inline.h" ||
+    fail "inline array slice helper must keep empty slices null-backed"
+grep -Fq "pgy_slice_copy_##Suffix" \
+    "$ROOT_DIR/src/runtime/pgy_runtime_lib_array_map_exports.h" ||
+    fail "LLVM slice copy export must remain available for SliceCopy"
+grep -Fq "pgy_slice_copy_##SuffixName" \
+    "$ROOT_DIR/src/runtime/pgy_runtime_memory_array_slot_inline.h" ||
+    fail "inline slice copy helper must remain available for SliceCopy"
+grep -Fq "PGY_ARRAY_COPY_VALUE_String(value)" \
+    "$ROOT_DIR/src/runtime/pgy_runtime_memory_array_slot_inline.h" ||
+    fail "inline SliceCopy(String) must duplicate string payloads"
+grep -Fq "PGY_ARRAY_EXPORT_COPY_VALUE_String(value)" \
+    "$ROOT_DIR/src/runtime/pgy_runtime_lib_array_map_exports.h" ||
+    fail "LLVM SliceCopy(String) export must duplicate string payloads"
+grep -Fq "\"slice_copy\"" "$ROOT_DIR/src/codegen/llvm_runtime.c" ||
+    fail "LLVM runtime declarations must register pgy_slice_copy_<T>"
 grep -Fq "_pgy_start_%d > _pgy_slice_%d.length || _pgy_len_%d > _pgy_slice_%d.length - _pgy_start_%d" \
     "$ROOT_DIR/src/codegen/transpiler_expr_call_member_emit.c" ||
     fail "C backend generated Slice<T>.Slice code must avoid start+len overflow"
+grep -Fq "PGY_RUNTIME_PANIC(PGY_RUNTIME_PANIC_CLASS_OUT_OF_BOUNDS, PGY_RUNTIME_PANIC_REASON_SLICE_OUT_OF_BOUNDS)" \
+    "$ROOT_DIR/src/codegen/transpiler_expr_call_member_emit.c" ||
+    fail "C backend generated Slice<T>.Slice code must use out-of-bounds panic class"
 if grep -Fq "_pgy_start_%d + _pgy_len_%d > _pgy_slice_%d.length" \
     "$ROOT_DIR/src/codegen/transpiler_expr_call_member_emit.c"; then
     fail "C backend generated Slice<T>.Slice code reintroduced start+len overflow"

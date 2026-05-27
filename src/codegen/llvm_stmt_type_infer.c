@@ -277,6 +277,25 @@ llvm_stmt_infer_expr_type(LLVMGenCtx *ctx, ASTNode *expr)
             && ast_call_callee(expr)->type == AST_IDENTIFIER
             && ast_identifier_name(ast_call_callee(expr)) != NULL) {
             const char *callee = ast_identifier_name(ast_call_callee(expr));
+            if (strcmp(callee, "SliceCopy") == 0
+                && ast_call_arg_count(expr) == 1) {
+                LLVMTypeRef slice_ty = llvm_stmt_infer_expr_type(ctx,
+                    ast_call_argument(expr, 0));
+                if (slice_ty == ctx->slice_type_Int)
+                    return ctx->array_type_Int;
+                if (slice_ty == ctx->slice_type_Long)
+                    return ctx->array_type_Long;
+                if (slice_ty == ctx->slice_type_Float)
+                    return ctx->array_type_Float;
+                if (slice_ty == ctx->slice_type_Double)
+                    return ctx->array_type_Double;
+                if (slice_ty == ctx->slice_type_Bool)
+                    return ctx->array_type_Bool;
+                if (slice_ty == ctx->slice_type_String)
+                    return ctx->array_type_String;
+                return llvm_stmt_unknown_expr_type(ctx, expr,
+                    "SliceCopy requires concrete Slice<T> operand");
+            }
             if (llvm_stmt_call_is_slot_builtin(callee)
                 && ast_call_arg_count(expr) >= 1
                 && ast_call_argument(expr, 0) != NULL

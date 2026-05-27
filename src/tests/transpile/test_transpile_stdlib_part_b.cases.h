@@ -345,6 +345,39 @@ test_stdlib_and_enum_emit(void)
         lexer_destroy(lexer);
     }
 
+    TEST("generic function pointer declarators use concrete ctx bindings");
+    {
+        ASTNode *handler_type = ast_create_event_handler_type();
+        char *ctx_decl = NULL;
+        char *legacy_decl = NULL;
+        ctx = transpiler_ctx_create();
+
+        handler_type->data.event_handler_type.param_types =
+            calloc(1, sizeof(ASTNode *));
+        handler_type->data.event_handler_type.param_count = 1;
+        handler_type->data.event_handler_type.param_capacity = 1;
+        handler_type->data.event_handler_type.param_types[0] =
+            make_type_node("T");
+        handler_type->data.event_handler_type.return_type =
+            make_type_node("T");
+
+        strcpy(ctx->generic_bindings[0].name, "T");
+        strcpy(ctx->generic_bindings[0].concrete_type, "Long");
+        ctx->generic_binding_count = 1;
+
+        ctx_decl = pergyra_ast_typed_declarator_in_ctx(ctx, handler_type, "f");
+        legacy_decl = pergyra_ast_typed_declarator(handler_type, "f");
+
+        EXPECT(strcmp(ctx_decl, "int64_t (*f)(int64_t)") == 0);
+        EXPECT(strstr(ctx_decl, "T") == NULL);
+        EXPECT(strcmp(ctx_decl, legacy_decl) != 0);
+
+        free(ctx_decl);
+        free(legacy_decl);
+        transpiler_ctx_destroy(ctx);
+        ast_destroy(handler_type);
+    }
+
     TEST("function typed locals and returns lower as function pointers");
     {
         const char *source =

@@ -360,6 +360,7 @@ done
 
 readme_anti_hype_terms=(
     "Beta subset candidate being frozen"
+    "local borrowed \`Slice<T>\` plus \`SliceCopy\`"
     "not a whole-language stability claim"
     "Do not describe Pergyra as production-ready"
     "beta core candidate"
@@ -449,6 +450,7 @@ stable_subset_slot_terms=(
     "Non-pin handle expiration is not claimed as a single-mechanism proof"
     "First-class Zone-Bound Handle typing"
     "conservative \`BORROW_TRACKED\`"
+    "\`SliceCopy(Slice<T>) -> Array<T>\`"
 )
 for term in "${stable_subset_slot_terms[@]}"; do
     require_text "docs/107_beta_stable_subset.md" "$term"
@@ -552,6 +554,7 @@ fi
 grammar_terms=(
     "named \`spawn Worker(args...)\`"
     "capture-bearing detached \`async { ... }\`"
+    "\`SliceCopy(view)\`"
 )
 for term in "${grammar_terms[@]}"; do
     require_text "docs/grammar/01_syntax.md" "$term"
@@ -575,7 +578,7 @@ common_syntax_terms=(
     "Generic shorthand / type argument elision"
     "Cast/type-test syntax"
     "Object initializer syntax"
-    "Slicing/spread/rest"
+    "Range slicing/spread/rest"
     "explicit reject"
     "out-of-beta"
 )

@@ -95,6 +95,7 @@ run_literal_contract_smoke() {
     require_literal "src/codegen/transpiler_expr_core_emit.c" "pgy_checked_div_i32_export"
     require_literal "src/codegen/llvm_expr_scalar_core.c" "pgy_checked_mod_i32_export"
     require_literal "src/codegen/llvm_runtime_core_builtin_decl.c" "pgy_runtime_panic_internal_invariant_export"
+    require_literal "src/codegen/llvm_runtime_core_builtin_decl.c" "pgy_runtime_panic_out_of_bounds_export"
     require_literal "docs/100_beta_readiness_checklist.md" "Runtime Panic Parity"
     require_literal "docs/105_runtime_panic_contract.md" "invalid-secure-token"
     require_literal "docs/semantics/06_backend_parity.md" "released-slot"
@@ -409,6 +410,7 @@ unwrap_lowering_paths = {
     ],
     root / "src" / "codegen" / "llvm_runtime_core_builtin_decl.c": [
         "pgy_runtime_panic_internal_invariant_export",
+        "pgy_runtime_panic_out_of_bounds_export",
     ],
 }
 for path, tokens in unwrap_lowering_paths.items():
@@ -421,6 +423,11 @@ array_lowering_paths = {
     root / "src" / "codegen" / "transpiler_expr_stdlib_builtin.c": ["pgy_array_set_"],
     root / "src" / "codegen" / "transpiler_expr_array_access_emit.c": ["pgy_array_get_", "pgy_slice_get_"],
     root / "src" / "codegen" / "llvm_expr_aggregate.c": ["pgy_array_get_", "pgy_slice_get_", "llvm_emit_checked_collection_get"],
+    root / "src" / "codegen" / "llvm_expr_call_methods_domain_slice.c": [
+        "pgy_runtime_panic_out_of_bounds_export",
+        "LLVMIntUGT",
+        "remaining = LLVMBuildSub",
+    ],
     root / "src" / "codegen" / "llvm_expr_array_calls.c": ["pgy_array_set_"],
     root / "src" / "codegen" / "llvm_runtime.c": ["array_get", "array_set", "slice_get"],
 }

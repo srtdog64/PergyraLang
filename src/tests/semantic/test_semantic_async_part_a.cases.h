@@ -575,6 +575,37 @@ test_parallel_execution_semantics(void)
         ast_destroy(program);
     }
 
+    TEST("channel send rejects borrowed Slice payload");
+    {
+        SemanticContext *ctx = semantic_context_create();
+        ASTNode *program = ast_create_program();
+        scope_enter(&ctx->scope, SCOPE_GLOBAL);
+        ctx->program_root = program;
+
+        Type *slice_args[1] = { TYPE_INT };
+        Type *slice_type = type_create_constructed(TYPE_SLICE, slice_args, 1);
+        Type *channel_args[1] = { slice_type };
+        Type *channel_type = type_create_constructed(TYPE_CHANNEL, channel_args, 1);
+        scope_declare(ctx->scope,
+            symbol_create_variable("ch", channel_type, 1, 1));
+        scope_declare(ctx->scope,
+            symbol_create_variable("view", slice_type, 1, 1));
+
+        ASTNode *send = ast_create_channel_send(
+            make_identifier("ch", 1), make_identifier("view", 1));
+        send->line = 1; send->column = 1;
+
+        Type *t = type_check_expression(send, ctx);
+        EXPECT(ctx->has_error);
+        EXPECT(type_equals(t, TYPE_VOID));
+        EXPECT(ctx_has_diagnostic_substring(ctx,
+            "Channel send does not support borrowed Slice transport yet"));
+
+        semantic_context_destroy(ctx);
+        ast_destroy(send);
+        ast_destroy(program);
+    }
+
     TEST("TryRecv rejects authority Token channel payloads");
     {
         SemanticContext *ctx = semantic_context_create();
@@ -599,3 +630,53 @@ test_parallel_execution_semantics(void)
         ast_destroy(call);
     }
 
+    TEST("TryRecv rejects borrowed Slice channel payloads");
+    {
+        SemanticContext *ctx = semantic_context_create();
+        scope_enter(&ctx->scope, SCOPE_GLOBAL);
+
+        Type *slice_args[1] = { TYPE_INT };
+        Type *slice_type = type_create_constructed(TYPE_SLICE, slice_args, 1);
+        Type *channel_args[1] = { slice_type };
+        Type *channel_type = type_create_constructed(TYPE_CHANNEL, channel_args, 1);
+        scope_declare(ctx->scope,
+            symbol_create_variable("ch", channel_type, 1, 1));
+
+        ASTNode *call_args[1] = { make_identifier("ch", 1) };
+        ASTNode *call = make_call("TryRecv", call_args, 1, 1);
+        Type *t = type_check_expression(call, ctx);
+        EXPECT(ctx->has_error);
+        EXPECT(t == TYPE_UNKNOWN);
+        EXPECT(ctx_has_diagnostic_substring(ctx,
+            "TryRecv cannot yield borrowed Slice values yet"));
+
+        semantic_context_destroy(ctx);
+        ast_destroy(call);
+    }
+
+    TEST("RecvTimeout rejects borrowed Slice channel payloads");
+    {
+        SemanticContext *ctx = semantic_context_create();
+        scope_enter(&ctx->scope, SCOPE_GLOBAL);
+
+        Type *slice_args[1] = { TYPE_INT };
+        Type *slice_type = type_create_constructed(TYPE_SLICE, slice_args, 1);
+        Type *channel_args[1] = { slice_type };
+        Type *channel_type = type_create_constructed(TYPE_CHANNEL, channel_args, 1);
+        scope_declare(ctx->scope,
+            symbol_create_variable("ch", channel_type, 1, 1));
+
+        ASTNode *call_args[2] = {
+            make_identifier("ch", 1),
+            make_number(1000, 1),
+        };
+        ASTNode *call = make_call("RecvTimeout", call_args, 2, 1);
+        Type *t = type_check_expression(call, ctx);
+        EXPECT(ctx->has_error);
+        EXPECT(t == TYPE_UNKNOWN);
+        EXPECT(ctx_has_diagnostic_substring(ctx,
+            "RecvTimeout cannot yield borrowed Slice values yet"));
+
+        semantic_context_destroy(ctx);
+        ast_destroy(call);
+    }
