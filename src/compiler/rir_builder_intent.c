@@ -10,10 +10,8 @@
 #define rollback_policy_name rir_rollback_policy_name
 
 static ASTNode *
-find_top_level_zone_named(const char *zone_name)
+find_top_level_zone_named(ASTNode *program, const char *zone_name)
 {
-    ASTNode *program = rir_program_root();
-
     if (program == NULL
         || program->type != AST_PROGRAM
         || zone_name == NULL) {
@@ -32,9 +30,11 @@ find_top_level_zone_named(const char *zone_name)
 }
 
 static const char *
-unique_effect_slot_for_type(const char *zone_name, const char *effect_type_name)
+unique_effect_slot_for_type(ASTNode *program_root,
+                            const char *zone_name,
+                            const char *effect_type_name)
 {
-    ASTNode *zone = find_top_level_zone_named(zone_name);
+    ASTNode *zone = find_top_level_zone_named(program_root, zone_name);
     const char *slot_name = NULL;
     if (zone == NULL || effect_type_name == NULL)
         return NULL;
@@ -75,6 +75,7 @@ rir_collect_intent_scope(RIRProgram *rir, ASTNode *node)
     scope.kind = RIR_SCOPE_INTENT;
     scope.name = intent_name;
     scope.ast = node;
+    scope.program_root = rir->program_root;
 
     if (!add_intent_policy_fact(&scope,
                                 "concurrency",
@@ -143,7 +144,9 @@ rir_collect_intent_scope(RIRProgram *rir, ASTNode *node)
             const char *where_name = ast_intent_step_where_type(step) != NULL
                 ? type_name(ast_intent_step_where_type(step)) : NULL;
             const char *effect_slot_name =
-                unique_effect_slot_for_type(where_name, ast_intent_step_causes_effect(step));
+                unique_effect_slot_for_type(rir->program_root,
+                                            where_name,
+                                            ast_intent_step_causes_effect(step));
             const char *effect_anchor = effect_slot_name != NULL
                 ? effect_slot_name : ast_intent_step_causes_effect(step);
             if (!add_named_resource_fact(&scope,

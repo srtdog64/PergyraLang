@@ -148,6 +148,8 @@ struct DIRProgram
     char         **owned_names;
     size_t         owned_name_count;
     size_t         owned_name_capacity;
+    /* Lowering-owned diagnostic storage; transferred out through dir_lower(). */
+    char          *error_message;
 };
 
 DIRProgram *dir_lower(ASTNode *annotated_ast, char **error_message);

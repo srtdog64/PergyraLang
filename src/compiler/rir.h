@@ -193,6 +193,7 @@ typedef struct
     size_t           state_summary_capacity;
     bool             has_state_errors;
     unsigned int     conservative_semantics;
+    ASTNode         *program_root;
     RIRFlowBlock    *flow_blocks;
     size_t           flow_block_count;
     bool             has_flow_sensitive_merge;
@@ -203,6 +204,7 @@ struct RIRProgram
     RIRScope *scopes;
     size_t    scope_count;
     size_t    scope_capacity;
+    ASTNode  *program_root;
 };
 
 RIRProgram *rir_lower(ASTNode *annotated_ast, char **error_message);

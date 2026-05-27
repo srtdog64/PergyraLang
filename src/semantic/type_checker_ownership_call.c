@@ -50,7 +50,7 @@ semantic_check_movable_call_argument(ASTNode *arg_expr,
         && ast_func_body(callee_decl) != NULL) {
         unsigned callee_mask;
         borrowed_name = semantic_borrowed_boundary_root_name(arg_expr, ctx);
-        callee_mask = semantic_callable_param_escape_summary(
+        callee_mask = semantic_legacy_ast_callable_param_escape_summary(
             callee_decl, arg_index, ctx);
         if (borrowed_name != NULL
             && semantic_param_summary_has_any_escape(callee_mask)) {
@@ -462,8 +462,9 @@ semantic_validate_borrowed_boundary_call_argument(ASTNode *arg_expr,
 
     borrowed_name = semantic_borrowed_boundary_root_name(arg_expr, ctx);
     if (pmode == PARAM_MODE_REF && track_borrow_provenance) {
-        unsigned callee_mask = semantic_callable_param_escape_summary(
-            callee_decl, arg_index, ctx);
+        unsigned callee_mask =
+            semantic_legacy_ast_callable_param_escape_summary(
+                callee_decl, arg_index, ctx);
         if (semantic_param_summary_has_any_escape(callee_mask)
             && borrowed_name != NULL) {
             semantic_validate_borrowed_escape(

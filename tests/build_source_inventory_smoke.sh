@@ -197,35 +197,24 @@ if [[ -n "$semantic_self_include_leaks" ]]; then
     missing=1
 fi
 
-rir_program_root_export="$(
+rir_program_root_bridge="$(
     cd "$ROOT_DIR"
-    grep -RIn 'extern ASTNode \*g_rir_program_root' src/compiler \
+    grep -RInE 'g_rir_program_root|rir_set_program_root|rir_program_root\(\)' src/compiler \
         --include='*.c' --include='*.h' || true
 )"
-if [[ -n "$rir_program_root_export" ]]; then
-    printf '%s\n' "$rir_program_root_export" >&2
-    echo "[build-source-inventory] RIR program root must stay behind rir_program_root() accessors" >&2
+if [[ -n "$rir_program_root_bridge" ]]; then
+    printf '%s\n' "$rir_program_root_bridge" >&2
+    echo "[build-source-inventory] RIR program root must be owned by RIRProgram/RIRScope, not a global bridge" >&2
     missing=1
 fi
 
-rir_program_root_users="$(
-    cd "$ROOT_DIR"
-    grep -RIn 'rir_program_root()' src/compiler \
-        --include='*.c' --include='*.h' || true
-)"
-rir_program_root_users="$(
-    printf '%s\n' "$rir_program_root_users" \
-        | grep -v 'src/compiler/rir_facts.c' \
-        | grep -v 'src/compiler/rir_builder_intent.c' || true
-)"
-if [[ -n "$rir_program_root_users" ]]; then
-    printf '%s\n' "$rir_program_root_users" >&2
-    echo "[build-source-inventory] RIR program-root compatibility access must stay in the RIR fact/intent owners" >&2
+if ! grep -Fq 'ASTNode  *program_root;' "$ROOT_DIR/src/compiler/rir.h"; then
+    echo "[build-source-inventory] RIRProgram must carry program_root explicitly" >&2
     missing=1
 fi
 
-if ! grep -Fq 'rir_set_program_root(NULL);' "$ROOT_DIR/src/compiler/rir_builder.c"; then
-    echo "[build-source-inventory] RIR lower must clear program-root compatibility state on entry/success" >&2
+if ! grep -Fq 'ASTNode         *program_root;' "$ROOT_DIR/src/compiler/rir.h"; then
+    echo "[build-source-inventory] RIRScope must carry program_root explicitly for fact helpers" >&2
     missing=1
 fi
 
@@ -259,6 +248,71 @@ lsp_ignored_offset_status="$(
 if [[ -n "$lsp_ignored_offset_status" ]]; then
     printf '%s\n' "$lsp_ignored_offset_status" >&2
     echo "[build-source-inventory] LSP JSON builders must handle clamp failure" >&2
+    missing=1
+fi
+
+if grep -RInq 'json_find_string(' "$ROOT_DIR/src/lsp" \
+    --include='*.c' --include='*.h'; then
+    grep -RIn 'json_find_string(' "$ROOT_DIR/src/lsp" \
+        --include='*.c' --include='*.h' >&2 || true
+    echo "[build-source-inventory] LSP string extraction must use copy/dup ownership lanes" >&2
+    missing=1
+fi
+for lsp_json_term in \
+    "json_find_string_copy" \
+    "json_find_string_dup"; do
+    if ! grep -RInq "$lsp_json_term" "$ROOT_DIR/src/lsp" \
+        --include='*.c' --include='*.h'; then
+        echo "[build-source-inventory] LSP missing JSON string ownership lane: $lsp_json_term" >&2
+        missing=1
+    fi
+done
+
+mutable_static_char_arrays="$(
+    cd "$ROOT_DIR"
+    grep -RInE 'static[[:space:]]+char[[:space:]]+[A-Za-z0-9_]+[[:space:]]*\[[^]]+\]' \
+        src/codegen src/semantic src/compiler src/lsp \
+        --include='*.c' --include='*.h' || true
+)"
+unexpected_static_char_arrays="$(
+    printf '%s\n' "$mutable_static_char_arrays" \
+        | grep -v '^$' \
+        | grep -v '^src/compiler/compiler_toolchain.c:[0-9][0-9]*:static char pgy_cc_cached_storage\[512\];' \
+        | grep -v '^src/compiler/compiler_toolchain.c:[0-9][0-9]*:static char pgy_cc_target_storage\[256\];' \
+        || true
+)"
+if [[ -n "$unexpected_static_char_arrays" ]]; then
+    printf '%s\n' "$unexpected_static_char_arrays" >&2
+    echo "[build-source-inventory] mutable static char arrays are forbidden outside explicit process caches" >&2
+    missing=1
+fi
+mutable_static_char_pointers="$(
+    cd "$ROOT_DIR"
+    grep -RInE 'static[[:space:]]+char[[:space:]]+\*[[:space:]]*[A-Za-z0-9_]+[[:space:]]*(=|;)' \
+        src/codegen src/semantic src/compiler src/lsp \
+        --include='*.c' --include='*.h' || true
+)"
+if [[ -n "$mutable_static_char_pointers" ]]; then
+    printf '%s\n' "$mutable_static_char_pointers" >&2
+    echo "[build-source-inventory] mutable static char pointers are forbidden in compiler helpers" >&2
+    missing=1
+fi
+top_level_mutable_statics="$(
+    cd "$ROOT_DIR"
+    grep -RInP '^static\s+(?!const)(?!inline)[A-Za-z_][A-Za-z0-9_\s]*\*?\s*[A-Za-z_][A-Za-z0-9_]*(\[[^]]+\])?\s*(=|;)' \
+        src/codegen src/semantic src/compiler src/lsp \
+        --include='*.c' --include='*.h' || true
+)"
+unexpected_top_level_mutable_statics="$(
+    printf '%s\n' "$top_level_mutable_statics" \
+        | grep -v '^$' \
+        | grep -v '^src/compiler/compiler_toolchain.c:[0-9][0-9]*:static char pgy_cc_cached_storage\[512\];' \
+        | grep -v '^src/compiler/compiler_toolchain.c:[0-9][0-9]*:static char pgy_cc_target_storage\[256\];' \
+        || true
+)"
+if [[ -n "$unexpected_top_level_mutable_statics" ]]; then
+    printf '%s\n' "$unexpected_top_level_mutable_statics" >&2
+    echo "[build-source-inventory] top-level mutable static state requires an explicit source-of-truth owner" >&2
     missing=1
 fi
 

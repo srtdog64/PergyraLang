@@ -99,7 +99,7 @@ llvm_registry_render_required_type_name(LLVMGenCtx *ctx,
                                         ASTNode *type_node,
                                         const char *container_name)
 {
-    char *name = llvm_render_type_name(type_node);
+    char *name = llvm_render_type_name_in_ctx(ctx, type_node);
     if (name != NULL && name[0] != '\0'
         && strcmp(name, "Unknown") != 0)
         return name;
@@ -153,8 +153,8 @@ llvm_register_typed_var(LLVMGenCtx *ctx, const char *var_name,
     if ((type_kind == LLVM_REGISTRY_TYPE_ARRAY
          || type_kind == LLVM_REGISTRY_TYPE_SLICE)
         && arg0_type != NULL) {
-        char *elem_name = llvm_render_type_name_scratch(
-            arg0_type, &ctx->scratch);
+        char *elem_name = llvm_render_type_name_scratch_in_ctx(
+            ctx, arg0_type, &ctx->scratch);
         if (elem_name == NULL || elem_name[0] == '\0') {
             llvm_set_error_at_with_hints(ctx, type_node,
                 PGY_CODE_LLVM_TYPE_UNSUPPORTED,

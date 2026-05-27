@@ -170,44 +170,6 @@ resource_handle_display_name(const Type *type)
     return type->name != NULL ? type->name : "resource";
 }
 
-ASTNode *
-find_type_decl_by_name(ASTNode *program, const char *type_name)
-{
-    if (program == NULL || program->type != AST_PROGRAM || type_name == NULL)
-        return NULL;
-
-    for (size_t i = 0; i < ast_program_statement_count(program); i++) {
-        ASTNode *stmt = ast_program_statement(program, i);
-        if (stmt == NULL || stmt->type != AST_CLASS_DECL)
-            continue;
-        if (ast_class_name(stmt) != NULL
-            && strcmp(ast_class_name(stmt), type_name) == 0) {
-            return stmt;
-        }
-    }
-
-    return NULL;
-}
-
-ASTNode *
-find_ability_decl_by_name(ASTNode *program, const char *name)
-{
-    if (program == NULL || program->type != AST_PROGRAM || name == NULL)
-        return NULL;
-
-    for (size_t i = 0; i < ast_program_statement_count(program); i++) {
-        ASTNode *stmt = ast_program_statement(program, i);
-        const char *ability_name = ast_ability_name(stmt);
-        if (stmt == NULL || stmt->type != AST_ABILITY_DECL
-            || ability_name == NULL)
-            continue;
-        if (strcmp(ability_name, name) == 0)
-            return stmt;
-    }
-
-    return NULL;
-}
-
 TypeNominalFlavor
 nominal_flavor_from_decl(const ASTNode *decl)
 {
@@ -243,47 +205,6 @@ bool
 decl_is_subject_host(const ASTNode *decl)
 {
     return decl_is_subject_type(decl);
-}
-
-ASTNode *
-find_subject_host_decl_by_name(ASTNode *program, const char *type_name)
-{
-    ASTNode *decl = find_type_decl_by_name(program, type_name);
-    if (decl_is_subject_host(decl))
-        return decl;
-    return NULL;
-}
-
-ASTNode *
-find_callable_decl_by_name(ASTNode *program, const char *name)
-{
-    if (program == NULL || program->type != AST_PROGRAM || name == NULL)
-        return NULL;
-
-    for (size_t i = 0; i < ast_program_statement_count(program); i++) {
-        ASTNode *stmt = ast_program_statement(program, i);
-        const char *stmt_name;
-
-        if (stmt == NULL)
-            continue;
-        stmt_name = stmt->is_async_decl
-            ? ast_async_func_name(stmt)
-            : ast_declaration_name(stmt);
-        if (stmt->type == AST_FUNC_DECL
-            && stmt_name != NULL
-            && strcmp(stmt_name, name) == 0)
-            return stmt;
-        if (stmt->type == AST_EVENT_DECL
-            && ast_event_name(stmt) != NULL
-            && strcmp(ast_event_name(stmt), name) == 0)
-            return stmt;
-        if (stmt->type == AST_INTENT_DECL
-            && ast_intent_decl_name(stmt) != NULL
-            && strcmp(ast_intent_decl_name(stmt), name) == 0)
-            return stmt;
-    }
-
-    return NULL;
 }
 
 bool

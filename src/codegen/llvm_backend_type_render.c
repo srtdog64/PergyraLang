@@ -11,21 +11,6 @@
 
 #include <string.h>
 
-static LLVMGenCtx *g_llvm_type_render_ctx = NULL;
-
-void
-llvm_set_type_render_ctx(LLVMGenCtx *ctx)
-{
-    g_llvm_type_render_ctx = ctx;
-}
-
-void
-llvm_clear_type_render_ctx_if(LLVMGenCtx *ctx)
-{
-    if (g_llvm_type_render_ctx == ctx)
-        g_llvm_type_render_ctx = NULL;
-}
-
 const char *
 llvm_keep_rendered_persistent(LLVMGenCtx *ctx, char *rendered,
                               const char *oom_context)
@@ -122,11 +107,17 @@ llvm_constructed_arg_name_copy(const char *type_name, int arg_index,
 char *
 llvm_render_type_name(ASTNode *type_node)
 {
+    return llvm_render_type_name_in_ctx(NULL, type_node);
+}
+
+char *
+llvm_render_type_name_in_ctx(LLVMGenCtx *ctx, ASTNode *type_node)
+{
     PgyArena arena;
     char *result;
 
     pgy_arena_init(&arena, 0);
-    result = llvm_render_type_name_scratch(type_node, &arena);
+    result = llvm_render_type_name_scratch_in_ctx(ctx, type_node, &arena);
     result = result != NULL ? pergyra_strdup(result) : NULL;
     pgy_arena_destroy(&arena);
     return result;
@@ -134,6 +125,13 @@ llvm_render_type_name(ASTNode *type_node)
 
 char *
 llvm_render_type_name_scratch(ASTNode *type_node, PgyArena *arena)
+{
+    return llvm_render_type_name_scratch_in_ctx(NULL, type_node, arena);
+}
+
+char *
+llvm_render_type_name_scratch_in_ctx(LLVMGenCtx *ctx, ASTNode *type_node,
+                                     PgyArena *arena)
 {
     ASTNode *alias_decl = NULL;
 
@@ -146,9 +144,8 @@ llvm_render_type_name_scratch(ASTNode *type_node, PgyArena *arena)
     if (generic_count == 0) {
         ASTNode **types = NULL;
         size_t type_count = 0;
-        if (g_llvm_type_render_ctx != NULL) {
-            llvm_active_inventory(g_llvm_type_render_ctx, AST_TYPE_ALIAS, &types,
-                                  &type_count);
+        if (ctx != NULL) {
+            llvm_active_inventory(ctx, AST_TYPE_ALIAS, &types, &type_count);
         }
         if (types != NULL) {
             for (size_t i = 0; i < type_count; i++) {
@@ -162,7 +159,8 @@ llvm_render_type_name_scratch(ASTNode *type_node, PgyArena *arena)
             }
         }
         if (alias_decl != NULL && ast_type_alias_target_type(alias_decl) != NULL)
-            return llvm_render_type_name_scratch(ast_type_alias_target_type(alias_decl), arena);
+            return llvm_render_type_name_scratch_in_ctx(
+                ctx, ast_type_alias_target_type(alias_decl), arena);
         return pgy_arena_strdup(arena, ast_type_name(type_node));
     }
 
@@ -178,8 +176,8 @@ llvm_render_type_name_scratch(ASTNode *type_node, PgyArena *arena)
         if (gp == NULL)
             return NULL;
         if (ast_generic_param_constraint(gp) != NULL)
-            arg_name = llvm_render_type_name_scratch(
-                ast_generic_param_constraint(gp), arena);
+            arg_name = llvm_render_type_name_scratch_in_ctx(
+                ctx, ast_generic_param_constraint(gp), arena);
         else if (ast_generic_param_name(gp) != NULL)
             arg_name = pgy_arena_strdup(arena, ast_generic_param_name(gp));
         else

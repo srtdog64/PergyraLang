@@ -522,11 +522,17 @@ for term in \
         fail "LLVM event/callable lowering must guard arena sizing and unsigned ABI arity: $term"
 done
 for term in \
-    "static char bufs[8][32]" \
-    "slot++ %" \
+    "pgy_arena_fmt(&ctx->scratch" \
     "ctx->tmp_counter++"; do
     grep -Fq "$term" "$ROOT_DIR/src/codegen/llvm_backend_generic.c" ||
-        fail "LLVM tmp name helper must use a small ring buffer: $term"
+        fail "LLVM tmp name helper must use the context scratch arena: $term"
+done
+for term in \
+    "static char bufs[8][32]" \
+    "slot++ %"; do
+    if grep -Fq "$term" "$ROOT_DIR/src/codegen/llvm_backend_generic.c"; then
+        fail "LLVM tmp name helper regressed to mutable static ring storage: $term"
+    fi
 done
 for term in \
     "role count is nonzero but role array is null" \

@@ -9,8 +9,10 @@ fail() {
     exit 1
 }
 
+program_root_uses="$(mktemp "${TMPDIR:-/tmp}/pgy-program-root-uses.XXXXXX")"
 shape_scan_cache=""
 cleanup_shape_scan_cache() {
+    rm -f "$program_root_uses"
     if [ -n "$shape_scan_cache" ]; then
         rm -f "$shape_scan_cache"
     fi
@@ -26,6 +28,21 @@ ensure_shape_scan_cache() {
             > "$shape_scan_cache" || true
     fi
 }
+
+{ grep -RIn 'ctx->program_root' src/semantic || true; } \
+    >"$program_root_uses"
+while IFS=: read -r path line text; do
+    [ -n "$path" ] || continue
+    if [ "$path" = "src/semantic/type_checker_call_contract_helpers.c" ] ||
+       [ "$path" = "src/semantic/type_checker_domain_role_lookup.c" ] ||
+       [ "$path" = "src/semantic/type_checker_host_helpers.c" ] ||
+       [ "$path" = "src/semantic/type_checker_program.c" ] ||
+       [ "$path" = "src/semantic/type_checker_resolution_helpers.c" ] ||
+       [ "$path" = "src/semantic/type_checker_resolution_stage_lookup.c" ]; then
+        continue
+    fi
+    fail "unexpected semantic program-root consumer: $path:$line: $text"
+done <"$program_root_uses"
 
 grep() {
     if [ "${1:-}" = "-R" ] && [ "$#" -ge 3 ]; then
@@ -354,8 +371,13 @@ grep -q 'require_assignable(Type \*from, Type \*to' src/semantic/type_checker_ty
 grep -q 'semantic_role_for_type_name' src/semantic/type_checker_domain_role_lookup.c \
     || fail "semantic role target-type helper must live in domain role lookup owner"
 
-grep -q 'semantic_find_role_decl' src/semantic/type_checker_domain_role_lookup.c \
-    || fail "semantic role declaration lookup helper must live in domain role lookup owner"
+grep -q 'role_lookup_find_decl_by_name' src/semantic/type_checker_domain_role_lookup.c \
+    || fail "private role declaration lookup helper must live in domain role lookup owner"
+
+if grep -q 'semantic_find_role_decl(ASTNode \*program' \
+    src/semantic/type_checker_decls_a_helpers_internal.h; then
+    fail "role declaration lookup must expose only SemanticContext-backed wrappers"
+fi
 
 grep -q 'ast_impl_ability_ref(impl)' src/semantic/type_checker_domain_role_lookup.c \
     || fail "semantic role lookup ability scan must consume AST impl-ability accessor"
@@ -366,14 +388,12 @@ grep -q 'ast_include_role_name(inc)' src/semantic/type_checker_expr_ops.c \
 grep -q 'ast_impl_ability_method(impl, j)' src/semantic/type_checker_expr_ops.c \
     || fail "operator overload method traversal must consume AST impl-ability accessor"
 
-grep -q 'semantic_role_for_type_name(stmt)' src/semantic/type_checker_ability_match.c \
-    || fail "ability role matching must consume the semantic role target-type helper"
-
 grep -q 'semantic_find_next_role_decl_for_type_name(' src/semantic/type_checker_ability_match.c \
     || fail "semantic ability wrappers must consume context-bearing role-for-type seam"
 
-grep -q 'semantic_role_decl_has_ability(ctx, stmt, ability_ref)' src/semantic/type_checker_ability_match.c \
-    || fail "semantic ability wrapper must consume context-bearing role ability seam"
+grep -q 'semantic_role_decl_has_ability(ctx, stmt, ability_ref)' \
+    src/semantic/type_checker_ability_match.c \
+    || fail "subject ability matching must consume SemanticContext-backed role ability seam"
 
 if grep -q 'return subject_type_has_ability(ctx->program_root' src/semantic/type_checker_ability_match.c; then
     fail "semantic ability wrapper must not delegate through raw program-root subject scan"
@@ -387,8 +407,10 @@ if grep -q 'role_decl_has_ability(stmt, ctx->program_root' src/semantic/type_che
     fail "semantic ability wrapper must not pass raw program-root into role ability scan"
 fi
 
-grep -q 'ability_match_program(ctx)' src/semantic/type_checker_ability_match.c \
-    || fail "ability match owner must centralize context program access"
+if grep -q 'ability_match_program(ctx)\|ctx->program_root' \
+    src/semantic/type_checker_ability_match.c; then
+    fail "ability match owner must consume SemanticContext lookup seams, not program-root scans"
+fi
 
 if grep -q 'ctx->program_root == NULL' src/semantic/type_checker_ability_where.c; then
     fail "ability where validation must rely on context-bearing semantic ability lookup"
@@ -398,8 +420,9 @@ if grep -q 'ctx->program_root == NULL' src/semantic/type_checker_generic_contrac
     fail "generic contract validation must rely on context-bearing semantic ability lookup"
 fi
 
-grep -q 'semantic_find_role_decl(program' src/semantic/type_checker_ability_match.c \
-    || fail "ability include traversal must consume the shared semantic role lookup helper"
+grep -q 'semantic_find_role_decl_by_name(ctx, role_name)' \
+    src/semantic/type_checker_ability_match.c \
+    || fail "ability include traversal must consume the SemanticContext role lookup helper"
 
 grep -q 'semantic_host_decl_for_type(ctx, resolved_type)' \
     src/semantic/type_checker_ability_fields.c \
@@ -618,8 +641,10 @@ if grep -q 'if (!role_satisfies_party_slot(role_decl, role_slot, ctx->program_ro
     fail "bind role validation must not pass raw program-root into role-slot ability seam"
 fi
 
-grep -q 'bind_stmt_program(ctx)' src/semantic/type_checker_bind_stmt.c \
-    || fail "bind role-slot owner must centralize context program access"
+if grep -q 'bind_stmt_program(ctx)\|ctx->program_root' \
+    src/semantic/type_checker_bind_stmt.c; then
+    fail "bind role-slot owner must consume SemanticContext ability seams, not program-root scans"
+fi
 
 grep -q 'semantic_find_next_role_decl_for_type_name(' src/semantic/type_checker_expr_ops.c \
     || fail "operator overload role lookup must consume context-bearing role-for-type seam"
@@ -773,17 +798,69 @@ grep -q 'resolution_helper_program(ctx)' src/semantic/type_checker_resolution_he
 grep -q 'stage_lookup_program(ctx)' src/semantic/type_checker_resolution_stage_lookup.c \
     || fail "DAG stage lookup owner must centralize context program access"
 
-grep -q 'call_contract_program(ctx)' src/semantic/type_checker_call_contract_helpers.c \
-    || fail "call contract summary owner must centralize context program access"
+grep -q 'legacy_ast_param_summary_program(ctx)' \
+    src/semantic/type_checker_call_contract_helpers.c \
+    || fail "legacy AST param-summary owner must name its program-root seam explicitly"
 
-grep -q 'stdlib_use_program(ctx)' src/semantic/type_checker_stdlib_use.c \
-    || fail "stdlib use owner must centralize context program access"
+grep -q 'semantic_legacy_ast_callable_param_escape_summary' \
+    src/semantic/type_checker_call_contract_helpers.c \
+    || fail "call contract summary owner must name the legacy AST escape-summary seam explicitly"
 
-grep -q 'projection_path_program(ctx)' src/semantic/type_checker_projection_path.c \
-    || fail "projection path owner must centralize context program access"
+if grep -RIn 'semantic_callable_param_escape_summary' src/semantic >/dev/null; then
+    fail "call contract escape summary must use explicit legacy_ast naming until CFG/MIR facts replace it"
+fi
 
-grep -q 'builtin_query_domain_program(ctx)' src/semantic/type_checker_builtins_query_domain.c \
-    || fail "domain builtin query owner must centralize context program access"
+if grep -q 'constructor_decl_for_symbol_kind(ASTNode \*program' \
+    src/semantic/type_checker_internal.h; then
+    fail "constructor declaration lookup must expose only the SemanticContext-backed host seam"
+fi
+
+if grep -q 'ASTNode \*.*(ASTNode \*program' \
+    src/semantic/type_checker_internal.h; then
+    fail "semantic internal header must not expose raw program-root lookup helpers"
+fi
+
+if grep -RInE '(^|[^A-Za-z0-9_])(find_type_decl_by_name|find_ability_decl_by_name|find_callable_decl_by_name)\(' \
+    src/semantic >/dev/null; then
+    fail "raw class/ability/callable program-root lookup helpers must stay private to host helper owner names"
+fi
+
+if grep -RInE '(^|[^A-Za-z0-9_])find_domain_decl_by_name\(' src/semantic >/dev/null; then
+    fail "raw domain declaration lookup helper must stay private to host helper owner names"
+fi
+
+if grep -q 'find_type_alias_decl(ASTNode \*program' \
+    src/semantic/type_checker_internal.h; then
+    fail "type-alias declaration lookup must expose only the SemanticContext-backed resolver seam"
+fi
+
+for host_lookup in \
+    host_find_type_decl_by_name \
+    host_find_ability_decl_by_name \
+    host_find_callable_decl_by_name \
+    host_find_enum_decl_by_name \
+    host_find_function_decl_by_name; do
+    grep -q "$host_lookup" src/semantic/type_checker_host_helpers.c \
+        || fail "host helper owner missing private lookup seam: $host_lookup"
+done
+
+if grep -RIn 'find_subject_host_decl_by_name' src/semantic >/dev/null; then
+    fail "dead raw subject-host declaration lookup helper must not reappear"
+fi
+
+if grep -q 'stdlib_use_program(ctx)\|ctx->program_root' \
+    src/semantic/type_checker_stdlib_use.c; then
+    fail "stdlib use validation must use context-local use inventory, not program-root scans"
+fi
+
+grep -q 'semantic_resolve_projection_source_field_path(SemanticContext \*ctx' \
+    src/semantic/type_checker_projection_path.c \
+    || fail "projection path owner must expose only the SemanticContext-backed seam"
+
+if grep -q 'builtin_query_domain_program(ctx)\|ctx->program_root' \
+    src/semantic/type_checker_builtins_query_domain.c; then
+    fail "domain builtin query owner must consume SemanticContext lookup seams, not program-root scans"
+fi
 
 if grep -q 'find_subject_host_decl_by_name' src/semantic/type_checker_domain_role_lookup.c; then
     fail "subject-bound role lookup must not reopen direct subject-host lookup"
@@ -826,9 +903,6 @@ grep -q 'semantic_find_callable_decl_by_name(ctx, callee_name)' \
 
 grep -q 'ast_async_func_name(stmt)' src/semantic/type_checker_host_helpers.c \
     || fail "semantic callable lookup must include async function declarations"
-
-grep -q 'ast_async_func_name(stmt)' src/semantic/type_checker_helpers_resources.c \
-    || fail "shared callable primitive must include async function declarations"
 
 grep -q 'host_helper_program(ctx)' src/semantic/type_checker_host_helpers.c \
     || fail "semantic host lookup owner must centralize context program access"

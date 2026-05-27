@@ -18,7 +18,7 @@
 #include "../runtime/pgy_runtime_observability_schema.h"
 #include "pgy_lsp_internal.h"
 
-static char msg_buf[262144]; /* 256KB for messages */
+#define PGY_LSP_MESSAGE_BUFFER_SIZE 262144u /* 256KB for messages */
 
 static void
 lsp_copy_string(char *dst, size_t dst_size, const char *src)
@@ -27,10 +27,13 @@ lsp_copy_string(char *dst, size_t dst_size, const char *src)
 }
 
 static char *
-lsp_read_message(void)
+lsp_read_message(char *msg_buf, size_t msg_buf_size)
 {
     char header[256];
     int content_length = -1;
+
+    if (msg_buf == NULL || msg_buf_size == 0)
+        return NULL;
 
     while (fgets(header, sizeof(header), stdin) != NULL) {
         if (strncmp(header, "Content-Length:", 15) == 0) {
@@ -40,7 +43,7 @@ lsp_read_message(void)
             break;
     }
 
-    if (content_length <= 0 || (size_t)content_length >= sizeof(msg_buf))
+    if (content_length <= 0 || (size_t)content_length >= msg_buf_size)
         return NULL;
 
     size_t read_total = 0;
@@ -117,8 +120,11 @@ dispatch_text_position_request(const char *method, int id, const char *msg,
     } else if (strcmp(method, "textDocument/references") == 0) {
         respond_references(id, doc_uri, doc_content, line, character);
     } else {
-        const char *new_name = json_find_string(msg, "newName");
-        respond_rename(id, doc_uri, doc_content, line, character, new_name);
+        char new_name[512];
+        bool has_new_name =
+            json_find_string_copy(msg, "newName", new_name, sizeof(new_name));
+        respond_rename(id, doc_uri, doc_content, line, character,
+                       has_new_name ? new_name : NULL);
     }
 }
 
@@ -127,6 +133,10 @@ main(void)
 {
     char doc_uri[2048] = "";
     char *doc_content = NULL;
+    char *msg_buf = malloc(PGY_LSP_MESSAGE_BUFFER_SIZE);
+
+    if (msg_buf == NULL)
+        return 1;
 
 #ifdef _WIN32
     _setmode(_fileno(stdin), _O_BINARY);
@@ -136,14 +146,16 @@ main(void)
     setvbuf(stdin, NULL, _IONBF, 0);
 
     while (1) {
-        char *msg = lsp_read_message();
+        char *msg = lsp_read_message(msg_buf, PGY_LSP_MESSAGE_BUFFER_SIZE);
         if (msg == NULL)
             break;
 
-        const char *method = json_find_string(msg, "method");
+        char method[128];
+        bool has_method =
+            json_find_string_copy(msg, "method", method, sizeof(method));
         int id = json_find_int(msg, "id");
 
-        if (method == NULL)
+        if (!has_method)
             continue;
 
         if (strcmp(method, "initialize") == 0) {
@@ -155,17 +167,18 @@ main(void)
         } else if (strcmp(method, "exit") == 0) {
             break;
         } else if (strcmp(method, "textDocument/didOpen") == 0) {
-            const char *uri = json_find_string(msg, "uri");
             char uri_copy[2048];
+            char *text = json_find_string_dup(msg, "text");
             uri_copy[0] = '\0';
-            if (uri != NULL)
-                lsp_copy_string(uri_copy, sizeof(uri_copy), uri);
+            json_find_string_copy(msg, "uri", uri_copy, sizeof(uri_copy));
             store_document_text(doc_uri, sizeof(doc_uri), &doc_content,
-                                uri_copy[0] ? uri_copy : uri,
-                                json_find_string(msg, "text"));
+                                uri_copy[0] ? uri_copy : NULL, text);
+            free(text);
         } else if (strcmp(method, "textDocument/didChange") == 0) {
+            char *text = json_find_string_dup(msg, "text");
             store_document_text(doc_uri, sizeof(doc_uri), &doc_content,
-                                NULL, json_find_string(msg, "text"));
+                                NULL, text);
+            free(text);
         } else if (strcmp(method, "textDocument/completion") == 0) {
             lsp_respond(id, lsp_completion_items);
         } else if (strcmp(method, "textDocument/documentSymbol") == 0) {
@@ -183,6 +196,7 @@ main(void)
         }
     }
 
+    free(msg_buf);
     free(doc_content);
     return 0;
 }

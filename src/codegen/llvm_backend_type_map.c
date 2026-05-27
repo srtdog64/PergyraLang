@@ -171,9 +171,11 @@ llvm_find_generic_default_in_inventory(LLVMGenCtx *ctx, const char *type_name)
             }
             {
                 char *candidate_name =
-                    llvm_render_type_name_scratch(candidate, &ctx->scratch);
+                    llvm_render_type_name_scratch_in_ctx(
+                        ctx, candidate, &ctx->scratch);
                 char *resolved_name =
-                    llvm_render_type_name_scratch(resolved, &ctx->scratch);
+                    llvm_render_type_name_scratch_in_ctx(
+                        ctx, resolved, &ctx->scratch);
                 if (candidate_name == NULL || resolved_name == NULL
                     || strcmp(candidate_name, resolved_name) != 0)
                     return NULL;

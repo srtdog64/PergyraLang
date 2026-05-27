@@ -7,24 +7,24 @@
 #include "../common/string_compat.h"
 #include "../parser/ast_api.h"
 
-static char *dir_last_error_message = NULL;
-
 static void
-dir_clear_error_message(void)
+dir_clear_error_message(DIRProgram *dir)
 {
-    free(dir_last_error_message);
-    dir_last_error_message = NULL;
+    if (dir == NULL)
+        return;
+    free(dir->error_message);
+    dir->error_message = NULL;
 }
 
 bool
-dir_failf(const char *fmt, ...)
+dir_failf(DIRProgram *dir, const char *fmt, ...)
 {
     va_list args;
     va_list copy;
     int length;
     char *message;
 
-    if (dir_last_error_message != NULL)
+    if (dir == NULL || dir->error_message != NULL)
         return false;
 
     va_start(args, fmt);
@@ -44,7 +44,7 @@ dir_failf(const char *fmt, ...)
 
     vsnprintf(message, (size_t)length + 1, fmt, args);
     va_end(args);
-    dir_last_error_message = message;
+    dir->error_message = message;
     return false;
 }
 
@@ -188,13 +188,11 @@ dir_lower(ASTNode *annotated_ast, char **error_message)
     if (error_message != NULL)
         *error_message = NULL;
     if (annotated_ast == NULL || annotated_ast->type != AST_PROGRAM) {
-        dir_clear_error_message();
         if (error_message != NULL)
             *error_message = pergyra_strdup("DIR lowering requires AST_PROGRAM root");
         return NULL;
     }
 
-    dir_clear_error_message();
     dir = calloc(1, sizeof(DIRProgram));
     if (dir == NULL) {
         if (error_message != NULL)
@@ -204,19 +202,19 @@ dir_lower(ASTNode *annotated_ast, char **error_message)
 
     if (!dir_collect_nodes(dir, annotated_ast) || !dir_collect_edges_and_intents(dir, annotated_ast)) {
         if (error_message != NULL) {
-            if (dir_last_error_message != NULL) {
-                *error_message = dir_last_error_message;
-                dir_last_error_message = NULL;
+            if (dir->error_message != NULL) {
+                *error_message = dir->error_message;
+                dir->error_message = NULL;
             } else {
                 *error_message = pergyra_strdup("Out of memory");
             }
         }
-        dir_clear_error_message();
+        dir_clear_error_message(dir);
         dir_destroy(dir);
         return NULL;
     }
 
-    dir_clear_error_message();
+    dir_clear_error_message(dir);
     return dir;
 }
 
@@ -244,5 +242,6 @@ dir_destroy(DIRProgram *dir)
     free(dir->edges);
     free(dir->intents);
     free(dir->owned_names);
+    free(dir->error_message);
     free(dir);
 }

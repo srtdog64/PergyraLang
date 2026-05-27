@@ -14,8 +14,8 @@ role_lookup_program(SemanticContext *ctx)
     return ctx != NULL ? ctx->program_root : NULL;
 }
 
-ASTNode *
-semantic_find_role_decl(ASTNode *program, const char *role_name)
+static ASTNode *
+role_lookup_find_decl_by_name(ASTNode *program, const char *role_name)
 {
     if (program == NULL || program->type != AST_PROGRAM || role_name == NULL)
         return NULL;
@@ -38,7 +38,7 @@ semantic_find_role_decl_by_name(SemanticContext *ctx, const char *role_name)
 {
     if (ctx == NULL || role_name == NULL)
         return NULL;
-    return semantic_find_role_decl(role_lookup_program(ctx), role_name);
+    return role_lookup_find_decl_by_name(role_lookup_program(ctx), role_name);
 }
 
 ASTNode *
@@ -88,15 +88,15 @@ semantic_role_for_type_name(ASTNode *role_decl)
     return ast_type_name(for_type);
 }
 
-bool
-any_subject_role_has_ability(SemanticContext *ctx, ASTNode *ability_ref)
+static ASTNode *
+semantic_find_next_subject_role_decl(SemanticContext *ctx,
+                                     const ASTNode *after)
 {
     ASTNode *program = role_lookup_program(ctx);
+    bool past_after = after == NULL;
 
-    if (program == NULL || program->type != AST_PROGRAM
-        || ability_ref == NULL) {
-        return false;
-    }
+    if (program == NULL || program->type != AST_PROGRAM)
+        return NULL;
 
     for (size_t i = 0; i < ast_program_statement_count(program); i++) {
         ASTNode *stmt = ast_program_statement(program, i);
@@ -104,13 +104,32 @@ any_subject_role_has_ability(SemanticContext *ctx, ASTNode *ability_ref)
         Type *resolved_type = semantic_host_resolve_type_ref(role_type, ctx);
         ASTNode *type_decl;
 
+        if (!past_after) {
+            if (stmt == after)
+                past_after = true;
+            continue;
+        }
+
         if (resolved_type == NULL || resolved_type == TYPE_UNKNOWN)
             continue;
 
         type_decl = semantic_host_decl_for_type(ctx, resolved_type);
-        if (!decl_is_subject_host(type_decl))
-            continue;
+        if (decl_is_subject_host(type_decl))
+            return stmt;
+    }
 
+    return NULL;
+}
+
+bool
+any_subject_role_has_ability(SemanticContext *ctx, ASTNode *ability_ref)
+{
+    ASTNode *stmt = NULL;
+
+    if (ctx == NULL || ability_ref == NULL)
+        return false;
+
+    while ((stmt = semantic_find_next_subject_role_decl(ctx, stmt)) != NULL) {
         if (semantic_role_decl_has_ability(ctx, stmt, ability_ref))
             return true;
     }
@@ -122,26 +141,12 @@ ASTNode *
 any_subject_role_find_base_ability_impl(SemanticContext *ctx,
                                         const char *ability_name)
 {
-    ASTNode *program = role_lookup_program(ctx);
+    ASTNode *stmt = NULL;
 
-    if (program == NULL || program->type != AST_PROGRAM
-        || ability_name == NULL) {
+    if (ctx == NULL || ability_name == NULL)
         return NULL;
-    }
 
-    for (size_t i = 0; i < ast_program_statement_count(program); i++) {
-        ASTNode *stmt = ast_program_statement(program, i);
-        ASTNode *role_type = semantic_role_for_type_node(stmt);
-        Type *resolved_type = semantic_host_resolve_type_ref(role_type, ctx);
-        ASTNode *type_decl;
-
-        if (resolved_type == NULL || resolved_type == TYPE_UNKNOWN)
-            continue;
-
-        type_decl = semantic_host_decl_for_type(ctx, resolved_type);
-        if (!decl_is_subject_host(type_decl))
-            continue;
-
+    while ((stmt = semantic_find_next_subject_role_decl(ctx, stmt)) != NULL) {
         for (size_t j = 0; j < ast_role_impl_count(stmt); j++) {
             ASTNode *impl = ast_role_impl(stmt, j);
             ASTNode *ability_ref;

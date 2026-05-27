@@ -6,6 +6,7 @@
 #include "repl.h"
 
 #include <stdbool.h>
+#include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -34,9 +35,9 @@ repl_tmp_path(char *out, size_t out_size, const char *ext)
     if (tmpdir == NULL) tmpdir = "/tmp";
 #endif
 
-    static unsigned repl_salt = 0;
-    if (repl_salt == 0)
-        repl_salt = (unsigned)time(NULL) ^ (unsigned)getpid();
+    uintptr_t stack_mix = (uintptr_t)&tmpdir;
+    unsigned repl_salt =
+        (unsigned)time(NULL) ^ (unsigned)getpid() ^ (unsigned)stack_mix;
 
     snprintf(out, out_size, "%s/pgy_repl_%u_%x%s",
              tmpdir, (unsigned)getpid(), repl_salt, ext);

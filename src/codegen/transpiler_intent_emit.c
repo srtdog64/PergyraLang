@@ -57,7 +57,6 @@ emit_intent_decl(ASTNode *node, CodeBuf *buf, TranspilerCtx *ctx)
 
     transpiler_capture_mir_emit_state_local(ctx, &saved_emit_state);
     ctx->out = buf;
-    transpiler_type_render_ctx_bind(ctx);
     mir_only_intent = transpiler_active_has_mir(ctx);
     transpiler_set_current_return_type_local(ctx, "Bool");
     emit_cleanup_from_mir =

@@ -286,8 +286,6 @@ llvm_ctx_destroy(LLVMGenCtx *ctx)
     if (ctx == NULL)
         return;
 
-    llvm_clear_type_render_ctx_if(ctx);
-
     if (ctx->builder != NULL)
         LLVMDisposeBuilder(ctx->builder);
     if (ctx->module != NULL)

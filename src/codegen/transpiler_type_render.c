@@ -8,8 +8,6 @@
 #include "../common/string_compat.h"
 #include "transpiler_type_mapping.h"
 
-static TranspilerCtx *g_type_render_ctx = NULL;
-
 static const char *
 transpiler_type_render_lookup_generic_binding(TranspilerCtx *ctx,
                                               const char *name)
@@ -48,35 +46,8 @@ transpiler_type_render_strdup_fmt(const char *fmt, ...)
     return s;
 }
 
-TranspilerCtx *
-transpiler_type_render_ctx_current(void)
-{
-    return g_type_render_ctx;
-}
-
-void
-transpiler_type_render_ctx_bind(TranspilerCtx *ctx)
-{
-    if (ctx != NULL)
-        g_type_render_ctx = ctx;
-}
-
-TranspilerCtx *
-transpiler_type_render_ctx_push(TranspilerCtx *ctx)
-{
-    TranspilerCtx *saved_render_ctx = g_type_render_ctx;
-    transpiler_type_render_ctx_bind(ctx);
-    return saved_render_ctx;
-}
-
-void
-transpiler_type_render_ctx_restore(TranspilerCtx *saved)
-{
-    g_type_render_ctx = saved;
-}
-
 static void
-append_type_name(CodeBuf *buf, ASTNode *type_node)
+append_type_name_in_ctx(TranspilerCtx *ctx, CodeBuf *buf, ASTNode *type_node)
 {
     if (type_node == NULL
         || type_node->type != AST_TYPE
@@ -91,7 +62,8 @@ append_type_name(CodeBuf *buf, ASTNode *type_node)
         for (size_t i = 0; i < element_count; i++) {
             if (i > 0)
                 codebuf_write(buf, ", ");
-            append_type_name(buf, ast_type_tuple_element(type_node, i));
+            append_type_name_in_ctx(ctx, buf,
+                                    ast_type_tuple_element(type_node, i));
         }
         codebuf_write(buf, ")");
         return;
@@ -99,10 +71,9 @@ append_type_name(CodeBuf *buf, ASTNode *type_node)
 
     {
         const char *bound = NULL;
-        TranspilerCtx *render_ctx = transpiler_type_render_ctx_current();
-        if (render_ctx != NULL) {
+        if (ctx != NULL) {
             bound = transpiler_type_render_lookup_generic_binding(
-                render_ctx, ast_type_name(type_node));
+                ctx, ast_type_name(type_node));
         }
         codebuf_write(buf, "%s",
                       bound != NULL ? bound : ast_type_name(type_node));
@@ -120,7 +91,8 @@ append_type_name(CodeBuf *buf, ASTNode *type_node)
             if (i > 0)
                 codebuf_write(buf, ", ");
             if (ast_generic_param_constraint(param) != NULL) {
-                append_type_name(buf, ast_generic_param_constraint(param));
+                append_type_name_in_ctx(ctx, buf,
+                                        ast_generic_param_constraint(param));
             } else if (ast_generic_param_name(param) != NULL) {
                 codebuf_write(buf, "%s", ast_generic_param_name(param));
             } else {
@@ -134,18 +106,26 @@ append_type_name(CodeBuf *buf, ASTNode *type_node)
 char *
 render_type_name(ASTNode *type_node)
 {
+    return render_type_name_in_ctx(NULL, type_node);
+}
+
+char *
+render_type_name_in_ctx(TranspilerCtx *ctx, ASTNode *type_node)
+{
     if (type_node == NULL)
         return pergyra_strdup("Int");
 
     if (type_node->type == AST_CHANNEL_TYPE) {
-        char *inner = render_type_name(ast_channel_type_element_type(type_node));
+        char *inner = render_type_name_in_ctx(
+            ctx, ast_channel_type_element_type(type_node));
         char *result = transpiler_type_render_strdup_fmt("Channel<%s>", inner);
         free(inner);
         return result;
     }
 
     if (type_node->type == AST_FUTURE_TYPE) {
-        char *inner = render_type_name(ast_future_type_value_type(type_node));
+        char *inner = render_type_name_in_ctx(
+            ctx, ast_future_type_value_type(type_node));
         char *result = transpiler_type_render_strdup_fmt("Future<%s>", inner);
         free(inner);
         return result;
@@ -154,19 +134,9 @@ render_type_name(ASTNode *type_node)
     CodeBuf *buf = codebuf_create();
     if (buf == NULL)
         return pergyra_strdup("Int");
-    append_type_name(buf, type_node);
+    append_type_name_in_ctx(ctx, buf, type_node);
     char *result = pergyra_strdup(buf->data);
     codebuf_destroy(buf);
-    return result;
-}
-
-char *
-render_type_name_in_ctx(TranspilerCtx *ctx, ASTNode *type_node)
-{
-    TranspilerCtx *saved_render_ctx =
-        transpiler_type_render_ctx_push(ctx);
-    char *result = render_type_name(type_node);
-    transpiler_type_render_ctx_restore(saved_render_ctx);
     return result;
 }
 
@@ -188,6 +158,15 @@ transpiler_render_type_name_local(TranspilerCtx *ctx, ASTNode *type_node)
 bool
 pergyra_ast_type_to_c_copy(ASTNode *type_node, char *out, size_t out_size)
 {
+    return pergyra_ast_type_to_c_copy_in_ctx(NULL, type_node, out, out_size);
+}
+
+bool
+pergyra_ast_type_to_c_copy_in_ctx(TranspilerCtx *ctx,
+                                  ASTNode *type_node,
+                                  char *out,
+                                  size_t out_size)
+{
     char *type_name;
     bool ok;
 
@@ -201,7 +180,7 @@ pergyra_ast_type_to_c_copy(ASTNode *type_node, char *out, size_t out_size)
     if (type_node->type == AST_EVENT_HANDLER_TYPE)
         return pergyra_str_copy(out, out_size, "void *");
 
-    type_name = render_type_name(type_node);
+    type_name = render_type_name_in_ctx(ctx, type_node);
     ok = pergyra_type_to_c_copy(type_name, out, out_size);
     free(type_name);
     if (!ok)

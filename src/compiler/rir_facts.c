@@ -5,20 +5,6 @@
 
 #include "parser/ast_api.h"
 
-static ASTNode *g_rir_program_root = NULL;
-
-void
-rir_set_program_root(ASTNode *program_root)
-{
-    g_rir_program_root = program_root;
-}
-
-ASTNode *
-rir_program_root(void)
-{
-    return g_rir_program_root;
-}
-
 ASTNode *
 rir_find_domain_slot_in_owner(ASTNode *owner, const char *slot_name)
 {
@@ -65,10 +51,8 @@ type_name(ASTNode *type_node)
 }
 
 static RIRResourceKind
-rir_nominal_kind_from_name(const char *name)
+rir_nominal_kind_from_name(ASTNode *program, const char *name)
 {
-    ASTNode *program = rir_program_root();
-
     if (program == NULL || name == NULL || program->type != AST_PROGRAM)
         return RIR_RESOURCE_UNKNOWN;
 
@@ -149,7 +133,7 @@ rir_call_name(ASTNode *call)
 }
 
 static RIRResourceKind
-resource_kind_from_type(ASTNode *type_node)
+resource_kind_from_type(ASTNode *program_root, ASTNode *type_node)
 {
     const char *name = type_name(type_node);
     if (name == NULL)
@@ -164,7 +148,7 @@ resource_kind_from_type(ASTNode *type_node)
         return RIR_RESOURCE_QUBIT_HANDLE;
     if (strcmp(name, "RemoteFuture") == 0)
         return RIR_RESOURCE_REMOTE_FUTURE_HANDLE;
-    return rir_nominal_kind_from_name(name);
+    return rir_nominal_kind_from_name(program_root, name);
 }
 
 static RIRResourceState
@@ -215,7 +199,8 @@ add_resource_fact(RIRScope *scope,
                   RIRResourceState state,
                   ASTNode *ast)
 {
-    RIRResourceKind kind = resource_kind_from_type(type_node);
+    RIRResourceKind kind = resource_kind_from_type(scope->program_root,
+                                                   type_node);
     if (kind == RIR_RESOURCE_UNKNOWN)
         return true;
 
@@ -234,7 +219,8 @@ add_resource_fact(RIRScope *scope,
 bool
 add_param_resource_fact(RIRScope *scope, const char *name, ASTNode *type_node, ASTNode *ast)
 {
-    RIRResourceKind kind = resource_kind_from_type(type_node);
+    RIRResourceKind kind = resource_kind_from_type(scope->program_root,
+                                                   type_node);
     if (kind == RIR_RESOURCE_UNKNOWN)
         return true;
     return add_named_resource_fact(scope,

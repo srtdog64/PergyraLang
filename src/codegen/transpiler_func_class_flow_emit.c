@@ -58,10 +58,10 @@ emit_func_decl_named(ASTNode *node, const char *emitted_name,
     char *header_decl = NULL;
     transpiler_capture_mir_emit_state_local(ctx, &saved_emit_state);
     ctx->out = buf;
-    transpiler_type_render_ctx_bind(ctx);
     if (ast_func_return_type(node) != NULL) {
         {
-            char *rendered = render_type_name(ast_func_return_type(node));
+            char *rendered = render_type_name_in_ctx(
+                ctx, ast_func_return_type(node));
             if (rendered == NULL
                 || !transpiler_func_copy_current_return_type(ctx, rendered)) {
                 free(rendered);
@@ -103,7 +103,7 @@ emit_func_decl_named(ASTNode *node, const char *emitted_name,
             goto emit_func_decl_named_fail;
         if (i > 0) codebuf_write(params_sig, ", ");
         if (p->type != NULL)
-            type_name = render_type_name(p->type);
+            type_name = render_type_name_in_ctx(ctx, p->type);
         boundary_slot = type_name != NULL
             && (strncmp(type_name, "Slot<", 5) == 0
                 || strncmp(type_name, "SecureSlot<", 11) == 0)
@@ -151,7 +151,7 @@ emit_func_decl_named(ASTNode *node, const char *emitted_name,
         FuncParam *p = ast_func_param(node, i);
         if (p == NULL || p->name == NULL || p->type == NULL)
             continue;
-        char *type_name = render_type_name(p->type);
+        char *type_name = render_type_name_in_ctx(ctx, p->type);
         if (type_name != NULL) {
             bool boundary_slot = (strncmp(type_name, "Slot<", 5) == 0
                                || strncmp(type_name, "SecureSlot<", 11) == 0)

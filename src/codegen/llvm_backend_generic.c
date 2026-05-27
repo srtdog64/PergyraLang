@@ -12,15 +12,10 @@
 const char *
 llvm_tmp_name(LLVMGenCtx *ctx)
 {
-    static char bufs[8][32];
-    static unsigned slot = 0;
-    char *buf;
-
     if (ctx == NULL)
         return "t";
-    buf = bufs[slot++ % (sizeof(bufs) / sizeof(bufs[0]))];
-    snprintf(buf, 32, "t%d", ctx->tmp_counter++);
-    return buf;
+    char *name = pgy_arena_fmt(&ctx->scratch, "t%d", ctx->tmp_counter++);
+    return name != NULL ? name : "t";
 }
 
 ASTNode *

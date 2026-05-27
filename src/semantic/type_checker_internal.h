@@ -34,9 +34,10 @@ ASTNode *semantic_lookup_function_param_contract(SemanticContext *ctx,
                                                  const char *display_name,
                                                  size_t arg_index,
                                                  ParamMode *mode_out);
-unsigned semantic_callable_param_escape_summary(ASTNode *callee_decl,
-                                                size_t arg_index,
-                                                SemanticContext *ctx);
+unsigned semantic_legacy_ast_callable_param_escape_summary(
+    ASTNode *callee_decl,
+    size_t arg_index,
+    SemanticContext *ctx);
 bool semantic_param_summary_has_any_escape(unsigned summary_mask);
 bool semantic_param_summary_has_return_escape(unsigned summary_mask);
 bool semantic_param_summary_has_channel_escape(unsigned summary_mask);
@@ -170,15 +171,8 @@ bool identifier_is_borrowed_boundary_param(ASTNode *expr, SemanticContext *ctx);
  * declaration for `ctx`.  Visibility/access helpers use this through an
  * explicit owner seam rather than include-order coupling. */
 ASTNode *current_host_decl(SemanticContext *ctx);
-ASTNode *find_type_alias_decl(ASTNode *program, const char *name);
 ASTNode *semantic_find_type_alias_decl_by_name(SemanticContext *ctx,
                                                const char *name);
-ASTNode *find_type_decl_by_name(ASTNode *program, const char *type_name);
-ASTNode *find_ability_decl_by_name(ASTNode *program, const char *name);
-ASTNode *find_callable_decl_by_name(ASTNode *program, const char *name);
-ASTNode *find_domain_decl_by_name(ASTNode *program,
-                                  ASTNodeType decl_type,
-                                  const char *name);
 ASTNode *semantic_find_zone_decl_by_name(SemanticContext *ctx,
                                          const char *name);
 ASTNode *semantic_find_relation_decl_by_name(SemanticContext *ctx,
@@ -201,14 +195,9 @@ ASTNode *semantic_find_function_decl_by_name(SemanticContext *ctx,
                                              const char *name);
 ASTNode *semantic_find_callable_decl_by_name(SemanticContext *ctx,
                                              const char *name);
-ASTNode *constructor_decl_for_symbol_kind(ASTNode *program,
-                                          SymbolKind kind,
-                                          const char *name);
 ASTNode *semantic_constructor_decl_for_symbol_kind(SemanticContext *ctx,
                                                   SymbolKind kind,
                                                   const char *name);
-ASTNode *find_subject_host_decl_by_name(ASTNode *program,
-                                        const char *type_name);
 ASTNode *find_zone_domain_slot(ASTNode *zone, const char *slot_name);
 ASTNode *find_zone_authority(ASTNode *zone, const char *slot_name);
 ASTNode *resolve_zone_subject_slot_for_participant(ASTNode *zone,

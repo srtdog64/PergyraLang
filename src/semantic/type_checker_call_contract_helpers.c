@@ -11,7 +11,7 @@
 #include <string.h>
 
 static ASTNode *
-call_contract_program(SemanticContext *ctx)
+legacy_ast_param_summary_program(SemanticContext *ctx)
 {
     return ctx != NULL ? ctx->program_root : NULL;
 }
@@ -38,9 +38,9 @@ semantic_lookup_function_param_contract(SemanticContext *ctx,
 }
 
 unsigned
-semantic_callable_param_escape_summary(ASTNode *callee_decl,
-                                       size_t arg_index,
-                                       SemanticContext *ctx)
+semantic_legacy_ast_callable_param_escape_summary(ASTNode *callee_decl,
+                                                  size_t arg_index,
+                                                  SemanticContext *ctx)
 {
     if (callee_decl == NULL
         || callee_decl->type != AST_FUNC_DECL
@@ -54,7 +54,7 @@ semantic_callable_param_escape_summary(ASTNode *callee_decl,
         ast_func_param(callee_decl, arg_index) != NULL
             ? ast_func_param(callee_decl, arg_index)->name
             : NULL,
-        call_contract_program(ctx));
+        legacy_ast_param_summary_program(ctx));
 }
 
 bool

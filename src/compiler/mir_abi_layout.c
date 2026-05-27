@@ -18,35 +18,205 @@
  * struct layouts.
  * ================================================================= */
 
-/* Static ABI type table populated at MIR lower time. */
-static MIRTypeLayout g_abi_type_table[64];
-static size_t g_abi_type_count = 0;
+#define ABI_FIELD_STRUCT(field_label, struct_type, member) \
+    { (field_label), offsetof(struct_type, member), \
+      sizeof(((struct_type *)0)->member), _Alignof(((struct_type *)0)->member) }
 
-static MIRTypeLayout *
+#define ABI_FIELD_SCALAR(field_label, scalar_type) \
+    { (field_label), 0, sizeof(scalar_type), _Alignof(scalar_type) }
+
+#define ABI_TYPE(name, size, align, fn, inner, count, ...) \
+    { (name), (size), (align), (count), { __VA_ARGS__ }, (fn), (inner) }
+
+static const MIRTypeLayout k_abi_type_table[] = {
+    /* Slot<T>: debug mode. */
+    ABI_TYPE("Slot<Int>", 8, 4, "pgy_claim_Int", "int32_t", 2,
+             ABI_FIELD_STRUCT("value", pgy_abi_slot_int_dbg, value),
+             ABI_FIELD_STRUCT("occupied", pgy_abi_slot_int_dbg, occupied)),
+    ABI_TYPE("Slot<Long>", 16, 8, "pgy_claim_Long", "int64_t", 2,
+             ABI_FIELD_STRUCT("value", pgy_abi_slot_long_dbg, value),
+             ABI_FIELD_STRUCT("occupied", pgy_abi_slot_long_dbg, occupied)),
+    ABI_TYPE("Slot<Float>", 8, 4, "pgy_claim_Float", "float", 2,
+             ABI_FIELD_STRUCT("value", pgy_abi_slot_float_dbg, value),
+             ABI_FIELD_STRUCT("occupied", pgy_abi_slot_float_dbg, occupied)),
+    ABI_TYPE("Slot<Double>", 16, 8, "pgy_claim_Double", "double", 2,
+             ABI_FIELD_STRUCT("value", pgy_abi_slot_double_dbg, value),
+             ABI_FIELD_STRUCT("occupied", pgy_abi_slot_double_dbg, occupied)),
+    ABI_TYPE("Slot<Bool>", 2, 1, "pgy_claim_Bool", "bool", 2,
+             ABI_FIELD_STRUCT("value", pgy_abi_slot_bool_dbg, value),
+             ABI_FIELD_STRUCT("occupied", pgy_abi_slot_bool_dbg, occupied)),
+    ABI_TYPE("Slot<String>", 16, 8, "pgy_claim_String", "char*", 2,
+             ABI_FIELD_STRUCT("value", pgy_abi_slot_string_dbg, value),
+             ABI_FIELD_STRUCT("occupied", pgy_abi_slot_string_dbg, occupied)),
+
+    /* Slot<T>: release mode. */
+    ABI_TYPE("Slot<Int>_rel", 4, 4, "pgy_claim_Int", "int32_t", 1,
+             ABI_FIELD_STRUCT("value", pgy_abi_slot_int_rel, value)),
+    ABI_TYPE("Slot<Long>_rel", 8, 8, "pgy_claim_Long", "int64_t", 1,
+             ABI_FIELD_STRUCT("value", pgy_abi_slot_long_rel, value)),
+    ABI_TYPE("Slot<Float>_rel", 4, 4, "pgy_claim_Float", "float", 1,
+             ABI_FIELD_STRUCT("value", pgy_abi_slot_float_rel, value)),
+    ABI_TYPE("Slot<Double>_rel", 8, 8, "pgy_claim_Double", "double", 1,
+             ABI_FIELD_STRUCT("value", pgy_abi_slot_double_rel, value)),
+    ABI_TYPE("Slot<Bool>_rel", 1, 1, "pgy_claim_Bool", "bool", 1,
+             ABI_FIELD_STRUCT("value", pgy_abi_slot_bool_rel, value)),
+    ABI_TYPE("Slot<String>_rel", 8, 8, "pgy_claim_String", "char*", 1,
+             ABI_FIELD_STRUCT("value", pgy_abi_slot_string_rel, value)),
+
+    /* SecureSlot<T> */
+    ABI_TYPE("SecureSlot<Int>", 16, 8, "pgy_claim_secure_Int", "int32_t", 3,
+             ABI_FIELD_STRUCT("value", pgy_abi_secure_slot_int_dbg, value),
+             ABI_FIELD_STRUCT("occupied", pgy_abi_secure_slot_int_dbg, occupied),
+             ABI_FIELD_STRUCT("token", pgy_abi_secure_slot_int_dbg, token)),
+    ABI_TYPE("SecureSlot<String>", 24, 8, "pgy_claim_secure_String", "char*", 3,
+             ABI_FIELD_STRUCT("value", pgy_abi_secure_slot_string_dbg, value),
+             ABI_FIELD_STRUCT("occupied", pgy_abi_secure_slot_string_dbg, occupied),
+             ABI_FIELD_STRUCT("token", pgy_abi_secure_slot_string_dbg, token)),
+
+    /* Pin/lease views */
+    ABI_TYPE("PinnedSlotView<Int>",
+             sizeof(pgy_abi_pinned_slot_view_int),
+             _Alignof(pgy_abi_pinned_slot_view_int),
+             "pgy_pin_read_Int", "int32_t", 3,
+             ABI_FIELD_STRUCT("slot", pgy_abi_pinned_slot_view_int, slot),
+             ABI_FIELD_STRUCT("active", pgy_abi_pinned_slot_view_int, active),
+             ABI_FIELD_STRUCT("can_write", pgy_abi_pinned_slot_view_int, can_write)),
+    ABI_TYPE("PinnedSecureSlotView<Int>",
+             sizeof(pgy_abi_pinned_secure_slot_view_int),
+             _Alignof(pgy_abi_pinned_secure_slot_view_int),
+             "pgy_secure_pin_read_Int", "int32_t", 4,
+             ABI_FIELD_STRUCT("slot", pgy_abi_pinned_secure_slot_view_int, slot),
+             ABI_FIELD_STRUCT("token", pgy_abi_pinned_secure_slot_view_int, token),
+             ABI_FIELD_STRUCT("active", pgy_abi_pinned_secure_slot_view_int, active),
+             ABI_FIELD_STRUCT("can_write", pgy_abi_pinned_secure_slot_view_int, can_write)),
+
+    /* DeviceSlot<T> */
+    ABI_TYPE("DeviceSlot<Int>", 8, 4, "pgy_claim_device_Int", "int32_t", 2,
+             ABI_FIELD_STRUCT("value", pgy_abi_device_slot_int, value),
+             ABI_FIELD_STRUCT("claimed", pgy_abi_device_slot_int, claimed)),
+    ABI_TYPE("DeviceSlot<String>", 16, 8, "pgy_claim_device_String", "char*", 2,
+             ABI_FIELD_STRUCT("value", pgy_abi_device_slot_string, value),
+             ABI_FIELD_STRUCT("claimed", pgy_abi_device_slot_string, claimed)),
+
+    /* Option<T> */
+    ABI_TYPE("Option<Int>", 8, 4, "pgy_option_some_Int", "int32_t", 2,
+             ABI_FIELD_STRUCT("tag", pgy_abi_option_int, tag),
+             ABI_FIELD_STRUCT("value", pgy_abi_option_int, value)),
+    ABI_TYPE("Option<Long>", 16, 8, "pgy_option_some_Long", "int64_t", 2,
+             ABI_FIELD_STRUCT("tag", pgy_abi_option_long, tag),
+             ABI_FIELD_STRUCT("value", pgy_abi_option_long, value)),
+    ABI_TYPE("Option<Bool>", 8, 4, "pgy_option_some_Bool", "bool", 2,
+             ABI_FIELD_STRUCT("tag", pgy_abi_option_bool, tag),
+             ABI_FIELD_STRUCT("value", pgy_abi_option_bool, value)),
+    ABI_TYPE("Option<String>", 16, 8, "pgy_option_some_String", "char*", 2,
+             ABI_FIELD_STRUCT("tag", pgy_abi_option_string, tag),
+             ABI_FIELD_STRUCT("value", pgy_abi_option_string, value)),
+
+    /* Result<T, E> */
+    ABI_TYPE("Result<Int>", 16, 8, "pgy_result_ok_Int", "int32_t", 3,
+             ABI_FIELD_STRUCT("tag", pgy_abi_result_int, tag),
+             ABI_FIELD_STRUCT("ok", pgy_abi_result_int, ok),
+             ABI_FIELD_STRUCT("err", pgy_abi_result_int, err)),
+    ABI_TYPE("Result<Bool>", 16, 8, "pgy_result_ok_Bool", "bool", 3,
+             ABI_FIELD_STRUCT("tag", pgy_abi_result_bool, tag),
+             ABI_FIELD_STRUCT("ok", pgy_abi_result_bool, ok),
+             ABI_FIELD_STRUCT("err", pgy_abi_result_bool, err)),
+    ABI_TYPE("Result<String>", 16, 8, "pgy_result_ok_String", "char*", 3,
+             ABI_FIELD_STRUCT("tag", pgy_abi_result_string, tag),
+             ABI_FIELD_STRUCT("ok", pgy_abi_result_string, ok),
+             ABI_FIELD_STRUCT("err", pgy_abi_result_string, err)),
+
+    /* Channel opaque handles. */
+    ABI_TYPE("ZoneChannel<Int>", 4, 4, "pgy_zone_channel_create_Int", "int32_t", 1,
+             ABI_FIELD_SCALAR("handle", pgy_abi_zone_channel_handle)),
+    ABI_TYPE("WorldChannel<Int>", 4, 4, "pgy_world_channel_create_Int", "int32_t", 1,
+             ABI_FIELD_SCALAR("handle", pgy_abi_world_channel_handle)),
+    ABI_TYPE("ZoneChannel<String>", 4, 4, "pgy_zone_channel_create_String", "char*", 1,
+             ABI_FIELD_SCALAR("handle", pgy_abi_zone_channel_handle)),
+
+    /* Box<T> */
+    ABI_TYPE("Box<Int>", 8, 8, "pgy_box_new_Int", "int32_t", 1,
+             ABI_FIELD_STRUCT("ptr", pgy_abi_box_int, ptr)),
+    ABI_TYPE("Box<String>", 8, 8, "pgy_box_new_String", "char*", 1,
+             ABI_FIELD_STRUCT("ptr", pgy_abi_box_string, ptr)),
+
+    /* Array<T> */
+    ABI_TYPE("Array<Int>", 24, 8, "pgy_array_new_Int", "int32_t", 3,
+             ABI_FIELD_STRUCT("data", pgy_abi_array_int, data),
+             ABI_FIELD_STRUCT("len", pgy_abi_array_int, len),
+             ABI_FIELD_STRUCT("cap", pgy_abi_array_int, cap)),
+    ABI_TYPE("Array<String>", 24, 8, "pgy_array_new_String", "char*", 3,
+             ABI_FIELD_STRUCT("data", pgy_abi_array_string, data),
+             ABI_FIELD_STRUCT("len", pgy_abi_array_string, len),
+             ABI_FIELD_STRUCT("cap", pgy_abi_array_string, cap)),
+
+    /* Auxiliary */
+    ABI_TYPE("Future", 8, 4, "pgy_spawn", "int32_t", 2,
+             ABI_FIELD_STRUCT("handle", pgy_abi_future, handle),
+             ABI_FIELD_STRUCT("ready", pgy_abi_future, ready)),
+    ABI_TYPE("RemoteFuture", 24, 8, "pgy_spawn", "int32_t", 4,
+             ABI_FIELD_STRUCT("handle", pgy_abi_remote_future, handle),
+             ABI_FIELD_STRUCT("ready", pgy_abi_remote_future, ready),
+             ABI_FIELD_STRUCT("trace_id", pgy_abi_remote_future, trace_id),
+             ABI_FIELD_STRUCT("trace_data", pgy_abi_remote_future, trace_data)),
+    ABI_TYPE("Qubit", 12, 4, "ClaimQubit", "int32_t", 3,
+             ABI_FIELD_STRUCT("state", pgy_abi_qubit, state),
+             ABI_FIELD_STRUCT("pool_id", pgy_abi_qubit, pool_id),
+             ABI_FIELD_STRUCT("measured", pgy_abi_qubit, measured)),
+    ABI_TYPE("TaskHandle", 8, 4, NULL, "int32_t", 2,
+             ABI_FIELD_STRUCT("id", pgy_abi_task_handle, id),
+             ABI_FIELD_STRUCT("valid", pgy_abi_task_handle, valid)),
+    ABI_TYPE("Timer", 12, 4, NULL, "int32_t", 3,
+             ABI_FIELD_STRUCT("duration", pgy_abi_timer, duration),
+             ABI_FIELD_STRUCT("remaining", pgy_abi_timer, remaining),
+             ABI_FIELD_STRUCT("done", pgy_abi_timer, done)),
+    ABI_TYPE("Arena", 24, 8, NULL, "char*", 3,
+             ABI_FIELD_STRUCT("buffer", pgy_abi_arena, buffer),
+             ABI_FIELD_STRUCT("capacity", pgy_abi_arena, capacity),
+             ABI_FIELD_STRUCT("offset", pgy_abi_arena, offset)),
+    ABI_TYPE("Allocator", 48, 8, NULL, "void*", 8,
+             ABI_FIELD_STRUCT("kind", pgy_abi_allocator, kind),
+             ABI_FIELD_STRUCT("trace_enabled", pgy_abi_allocator, trace_enabled),
+             ABI_FIELD_STRUCT("debug_enabled", pgy_abi_allocator, debug_enabled),
+             ABI_FIELD_STRUCT("allocations", pgy_abi_allocator, allocations),
+             ABI_FIELD_STRUCT("deallocations", pgy_abi_allocator, deallocations),
+             ABI_FIELD_STRUCT("bytes_in_use", pgy_abi_allocator, bytes_in_use),
+             ABI_FIELD_STRUCT("peak_bytes", pgy_abi_allocator, peak_bytes),
+             ABI_FIELD_STRUCT("pool", pgy_abi_allocator, pool)),
+};
+
+#define PGY_ABI_TYPE_COUNT \
+    (sizeof(k_abi_type_table) / sizeof(k_abi_type_table[0]))
+
+#undef ABI_TYPE
+#undef ABI_FIELD_STRUCT
+#undef ABI_FIELD_SCALAR
+
+static const MIRTypeLayout *
 abi_type_lookup_by_name(const char *pergyra_type_name)
 {
     if (pergyra_type_name == NULL)
         return NULL;
 
-    for (size_t i = 0; i < g_abi_type_count; i++) {
-        if (g_abi_type_table[i].abi_type_name != NULL
-            && strcmp(g_abi_type_table[i].abi_type_name, pergyra_type_name) == 0) {
-            return &g_abi_type_table[i];
+    for (size_t i = 0; i < PGY_ABI_TYPE_COUNT; i++) {
+        if (k_abi_type_table[i].abi_type_name != NULL
+            && strcmp(k_abi_type_table[i].abi_type_name, pergyra_type_name) == 0) {
+            return &k_abi_type_table[i];
         }
     }
     return NULL;
 }
 
-static MIRTypeLayout *
+static const MIRTypeLayout *
 abi_type_lookup_by_runtime_fn(const char *runtime_fn)
 {
     if (runtime_fn == NULL)
         return NULL;
 
-    for (size_t i = 0; i < g_abi_type_count; i++) {
-        if (g_abi_type_table[i].runtime_fn != NULL
-            && strcmp(g_abi_type_table[i].runtime_fn, runtime_fn) == 0) {
-            return &g_abi_type_table[i];
+    for (size_t i = 0; i < PGY_ABI_TYPE_COUNT; i++) {
+        if (k_abi_type_table[i].runtime_fn != NULL
+            && strcmp(k_abi_type_table[i].runtime_fn, runtime_fn) == 0) {
+            return &k_abi_type_table[i];
         }
     }
     return NULL;
@@ -87,10 +257,10 @@ mir_abi_format_owned(const char *fmt, ...)
     return result;
 }
 
-static MIRTypeLayout *
+static const MIRTypeLayout *
 mir_abi_lookup_runtime_fmt(const char *fmt, const char *suffix)
 {
-    MIRTypeLayout *layout;
+    const MIRTypeLayout *layout;
     char *runtime_name;
 
     runtime_name = mir_abi_format_owned(fmt, suffix);
@@ -99,205 +269,6 @@ mir_abi_lookup_runtime_fmt(const char *fmt, const char *suffix)
     layout = abi_type_lookup_by_runtime_fn(runtime_name);
     free(runtime_name);
     return layout;
-}
-
-static void
-abi_type_table_init(void)
-{
-    g_abi_type_count = 0;
-
-    /* Helper macro to add a type layout */
-#define ADD_TYPE(out, name, abi, size, align, fn, inner) \
-    do { \
-        (out) = &g_abi_type_table[g_abi_type_count++]; \
-        memset((out), 0, sizeof(*(out))); \
-        (out)->abi_type_name = (name); \
-        (out)->size_bytes = (size); \
-        (out)->align_bytes = (align); \
-        (out)->runtime_fn = (fn); \
-        (out)->inner_c_type = (inner); \
-    } while (0)
-
-#define ADD_FIELD_STRUCT(out, field_label, struct_type, member) \
-    do { \
-        if ((out)->field_count < MIR_MAX_TYPE_FIELDS) { \
-            MIRFieldLayout *f = &(out)->fields[(out)->field_count++]; \
-            f->field_name = (field_label); \
-            f->offset = offsetof(struct_type, member); \
-            f->field_size = sizeof(((struct_type *)0)->member); \
-            f->field_align = _Alignof(((struct_type *)0)->member); \
-        } \
-    } while (0)
-
-#define ADD_FIELD_SCALAR(out, field_label, scalar_type) \
-    do { \
-        if ((out)->field_count < MIR_MAX_TYPE_FIELDS) { \
-            MIRFieldLayout *f = &(out)->fields[(out)->field_count++]; \
-            f->field_name = (field_label); \
-            f->offset = 0; \
-            f->field_size = sizeof(scalar_type); \
-            f->field_align = _Alignof(scalar_type); \
-        } \
-    } while (0)
-
-    MIRTypeLayout *t = NULL;
-
-    /* Slot<T>: debug mode. */
-    ADD_TYPE(t, "Slot<Int>",    "pgy_abi_slot_int_dbg",     8,  4, "pgy_claim_Int",     "int32_t");
-    ADD_FIELD_STRUCT(t, "value", pgy_abi_slot_int_dbg, value);
-    ADD_FIELD_STRUCT(t, "occupied", pgy_abi_slot_int_dbg, occupied);
-    ADD_TYPE(t, "Slot<Long>",   "pgy_abi_slot_long_dbg",   16,  8, "pgy_claim_Long",    "int64_t");
-    ADD_FIELD_STRUCT(t, "value", pgy_abi_slot_long_dbg, value);
-    ADD_FIELD_STRUCT(t, "occupied", pgy_abi_slot_long_dbg, occupied);
-    ADD_TYPE(t, "Slot<Float>",  "pgy_abi_slot_float_dbg",   8,  4, "pgy_claim_Float",   "float");
-    ADD_FIELD_STRUCT(t, "value", pgy_abi_slot_float_dbg, value);
-    ADD_FIELD_STRUCT(t, "occupied", pgy_abi_slot_float_dbg, occupied);
-    ADD_TYPE(t, "Slot<Double>", "pgy_abi_slot_double_dbg", 16,  8, "pgy_claim_Double",  "double");
-    ADD_FIELD_STRUCT(t, "value", pgy_abi_slot_double_dbg, value);
-    ADD_FIELD_STRUCT(t, "occupied", pgy_abi_slot_double_dbg, occupied);
-    ADD_TYPE(t, "Slot<Bool>",   "pgy_abi_slot_bool_dbg",    2,  1, "pgy_claim_Bool",    "bool");
-    ADD_FIELD_STRUCT(t, "value", pgy_abi_slot_bool_dbg, value);
-    ADD_FIELD_STRUCT(t, "occupied", pgy_abi_slot_bool_dbg, occupied);
-    ADD_TYPE(t, "Slot<String>", "pgy_abi_slot_string_dbg", 16,  8, "pgy_claim_String",  "char*");
-    ADD_FIELD_STRUCT(t, "value", pgy_abi_slot_string_dbg, value);
-    ADD_FIELD_STRUCT(t, "occupied", pgy_abi_slot_string_dbg, occupied);
-
-    /* Slot<T>: release mode (sizes differ, but fn names are same). */
-    ADD_TYPE(t, "Slot<Int>_rel",    "pgy_abi_slot_int_rel",    4, 4, "pgy_claim_Int",    "int32_t");
-    ADD_FIELD_STRUCT(t, "value", pgy_abi_slot_int_rel, value);
-    ADD_TYPE(t, "Slot<Long>_rel",   "pgy_abi_slot_long_rel",   8, 8, "pgy_claim_Long",   "int64_t");
-    ADD_FIELD_STRUCT(t, "value", pgy_abi_slot_long_rel, value);
-    ADD_TYPE(t, "Slot<Float>_rel",  "pgy_abi_slot_float_rel",  4, 4, "pgy_claim_Float",  "float");
-    ADD_FIELD_STRUCT(t, "value", pgy_abi_slot_float_rel, value);
-    ADD_TYPE(t, "Slot<Double>_rel", "pgy_abi_slot_double_rel", 8, 8, "pgy_claim_Double", "double");
-    ADD_FIELD_STRUCT(t, "value", pgy_abi_slot_double_rel, value);
-    ADD_TYPE(t, "Slot<Bool>_rel",   "pgy_abi_slot_bool_rel",   1, 1, "pgy_claim_Bool",   "bool");
-    ADD_FIELD_STRUCT(t, "value", pgy_abi_slot_bool_rel, value);
-    ADD_TYPE(t, "Slot<String>_rel", "pgy_abi_slot_string_rel", 8, 8, "pgy_claim_String", "char*");
-    ADD_FIELD_STRUCT(t, "value", pgy_abi_slot_string_rel, value);
-
-    /* SecureSlot<T> */
-    ADD_TYPE(t, "SecureSlot<Int>",    "pgy_abi_secure_slot_int_dbg", 16, 8, "pgy_claim_secure_Int",    "int32_t");
-    ADD_FIELD_STRUCT(t, "value", pgy_abi_secure_slot_int_dbg, value);
-    ADD_FIELD_STRUCT(t, "occupied", pgy_abi_secure_slot_int_dbg, occupied);
-    ADD_FIELD_STRUCT(t, "token", pgy_abi_secure_slot_int_dbg, token);
-    ADD_TYPE(t, "SecureSlot<String>", "pgy_abi_secure_slot_string_dbg", 24, 8, "pgy_claim_secure_String", "char*");
-    ADD_FIELD_STRUCT(t, "value", pgy_abi_secure_slot_string_dbg, value);
-    ADD_FIELD_STRUCT(t, "occupied", pgy_abi_secure_slot_string_dbg, occupied);
-    ADD_FIELD_STRUCT(t, "token", pgy_abi_secure_slot_string_dbg, token);
-
-    /* Pin/lease views */
-    ADD_TYPE(t, "PinnedSlotView<Int>", "pgy_abi_pinned_slot_view_int",
-             sizeof(pgy_abi_pinned_slot_view_int), _Alignof(pgy_abi_pinned_slot_view_int),
-             "pgy_pin_read_Int", "int32_t");
-    ADD_FIELD_STRUCT(t, "slot", pgy_abi_pinned_slot_view_int, slot);
-    ADD_FIELD_STRUCT(t, "active", pgy_abi_pinned_slot_view_int, active);
-    ADD_FIELD_STRUCT(t, "can_write", pgy_abi_pinned_slot_view_int, can_write);
-    ADD_TYPE(t, "PinnedSecureSlotView<Int>", "pgy_abi_pinned_secure_slot_view_int",
-             sizeof(pgy_abi_pinned_secure_slot_view_int), _Alignof(pgy_abi_pinned_secure_slot_view_int),
-             "pgy_secure_pin_read_Int", "int32_t");
-    ADD_FIELD_STRUCT(t, "slot", pgy_abi_pinned_secure_slot_view_int, slot);
-    ADD_FIELD_STRUCT(t, "token", pgy_abi_pinned_secure_slot_view_int, token);
-    ADD_FIELD_STRUCT(t, "active", pgy_abi_pinned_secure_slot_view_int, active);
-    ADD_FIELD_STRUCT(t, "can_write", pgy_abi_pinned_secure_slot_view_int, can_write);
-
-    /* DeviceSlot<T> */
-    ADD_TYPE(t, "DeviceSlot<Int>",    "pgy_abi_device_slot_int",    8,  4, "pgy_claim_device_Int",    "int32_t");
-    ADD_FIELD_STRUCT(t, "value", pgy_abi_device_slot_int, value);
-    ADD_FIELD_STRUCT(t, "claimed", pgy_abi_device_slot_int, claimed);
-    ADD_TYPE(t, "DeviceSlot<String>", "pgy_abi_device_slot_string", 16, 8, "pgy_claim_device_String", "char*");
-    ADD_FIELD_STRUCT(t, "value", pgy_abi_device_slot_string, value);
-    ADD_FIELD_STRUCT(t, "claimed", pgy_abi_device_slot_string, claimed);
-
-    /* Option<T> */
-    ADD_TYPE(t, "Option<Int>",    "pgy_abi_option_int",     8,  4, "pgy_option_some_Int",    "int32_t");
-    ADD_FIELD_STRUCT(t, "tag", pgy_abi_option_int, tag);
-    ADD_FIELD_STRUCT(t, "value", pgy_abi_option_int, value);
-    ADD_TYPE(t, "Option<Long>",   "pgy_abi_option_long",   16,  8, "pgy_option_some_Long",   "int64_t");
-    ADD_FIELD_STRUCT(t, "tag", pgy_abi_option_long, tag);
-    ADD_FIELD_STRUCT(t, "value", pgy_abi_option_long, value);
-    ADD_TYPE(t, "Option<Bool>",   "pgy_abi_option_bool",    8,  4, "pgy_option_some_Bool",   "bool");
-    ADD_FIELD_STRUCT(t, "tag", pgy_abi_option_bool, tag);
-    ADD_FIELD_STRUCT(t, "value", pgy_abi_option_bool, value);
-    ADD_TYPE(t, "Option<String>", "pgy_abi_option_string", 16,  8, "pgy_option_some_String", "char*");
-    ADD_FIELD_STRUCT(t, "tag", pgy_abi_option_string, tag);
-    ADD_FIELD_STRUCT(t, "value", pgy_abi_option_string, value);
-
-    /* Result<T, E> */
-    ADD_TYPE(t, "Result<Int>",    "pgy_abi_result_int",    16, 8, "pgy_result_ok_Int",    "int32_t");
-    ADD_FIELD_STRUCT(t, "tag", pgy_abi_result_int, tag);
-    ADD_FIELD_STRUCT(t, "ok", pgy_abi_result_int, ok);
-    ADD_FIELD_STRUCT(t, "err", pgy_abi_result_int, err);
-    ADD_TYPE(t, "Result<Bool>",   "pgy_abi_result_bool",   16, 8, "pgy_result_ok_Bool",   "bool");
-    ADD_FIELD_STRUCT(t, "tag", pgy_abi_result_bool, tag);
-    ADD_FIELD_STRUCT(t, "ok", pgy_abi_result_bool, ok);
-    ADD_FIELD_STRUCT(t, "err", pgy_abi_result_bool, err);
-    ADD_TYPE(t, "Result<String>", "pgy_abi_result_string", 16, 8, "pgy_result_ok_String", "char*");
-    ADD_FIELD_STRUCT(t, "tag", pgy_abi_result_string, tag);
-    ADD_FIELD_STRUCT(t, "ok", pgy_abi_result_string, ok);
-    ADD_FIELD_STRUCT(t, "err", pgy_abi_result_string, err);
-
-    /* Channel opaque handles. */
-    ADD_TYPE(t, "ZoneChannel<Int>",    "pgy_abi_zone_channel_handle",    4, 4, "pgy_zone_channel_create_Int",    "int32_t");
-    ADD_FIELD_SCALAR(t, "handle", pgy_abi_zone_channel_handle);
-    ADD_TYPE(t, "WorldChannel<Int>",   "pgy_abi_world_channel_handle",   4, 4, "pgy_world_channel_create_Int",   "int32_t");
-    ADD_FIELD_SCALAR(t, "handle", pgy_abi_world_channel_handle);
-    ADD_TYPE(t, "ZoneChannel<String>", "pgy_abi_zone_channel_handle",    4, 4, "pgy_zone_channel_create_String", "char*");
-    ADD_FIELD_SCALAR(t, "handle", pgy_abi_zone_channel_handle);
-
-    /* Box<T> */
-    ADD_TYPE(t, "Box<Int>",    "pgy_abi_box_int",    8, 8, "pgy_box_new_Int",    "int32_t");
-    ADD_FIELD_STRUCT(t, "ptr", pgy_abi_box_int, ptr);
-    ADD_TYPE(t, "Box<String>", "pgy_abi_box_string", 8, 8, "pgy_box_new_String", "char*");
-    ADD_FIELD_STRUCT(t, "ptr", pgy_abi_box_string, ptr);
-
-    /* Array<T> */
-    ADD_TYPE(t, "Array<Int>",    "pgy_abi_array_int", 24, 8, "pgy_array_new_Int",    "int32_t");
-    ADD_FIELD_STRUCT(t, "data", pgy_abi_array_int, data);
-    ADD_FIELD_STRUCT(t, "len", pgy_abi_array_int, len);
-    ADD_FIELD_STRUCT(t, "cap", pgy_abi_array_int, cap);
-    ADD_TYPE(t, "Array<String>", "pgy_abi_array_string", 24, 8, "pgy_array_new_String", "char*");
-    ADD_FIELD_STRUCT(t, "data", pgy_abi_array_string, data);
-    ADD_FIELD_STRUCT(t, "len", pgy_abi_array_string, len);
-    ADD_FIELD_STRUCT(t, "cap", pgy_abi_array_string, cap);
-
-    /* Auxiliary */
-    ADD_TYPE(t, "Future",           "pgy_abi_future",          8, 4, "pgy_spawn",            "int32_t");
-    ADD_FIELD_STRUCT(t, "handle", pgy_abi_future, handle);
-    ADD_FIELD_STRUCT(t, "ready", pgy_abi_future, ready);
-    ADD_TYPE(t, "RemoteFuture",     "pgy_abi_remote_future",  24, 8, "pgy_spawn",            "int32_t");
-    ADD_FIELD_STRUCT(t, "handle", pgy_abi_remote_future, handle);
-    ADD_FIELD_STRUCT(t, "ready", pgy_abi_remote_future, ready);
-    ADD_FIELD_STRUCT(t, "trace_id", pgy_abi_remote_future, trace_id);
-    ADD_FIELD_STRUCT(t, "trace_data", pgy_abi_remote_future, trace_data);
-    ADD_TYPE(t, "Qubit",            "pgy_abi_qubit",          12, 4, "ClaimQubit",           "int32_t");
-    ADD_FIELD_STRUCT(t, "state", pgy_abi_qubit, state);
-    ADD_FIELD_STRUCT(t, "pool_id", pgy_abi_qubit, pool_id);
-    ADD_FIELD_STRUCT(t, "measured", pgy_abi_qubit, measured);
-    ADD_TYPE(t, "TaskHandle",       "pgy_abi_task_handle",     8, 4, NULL,                   "int32_t");
-    ADD_FIELD_STRUCT(t, "id", pgy_abi_task_handle, id);
-    ADD_FIELD_STRUCT(t, "valid", pgy_abi_task_handle, valid);
-    ADD_TYPE(t, "Timer",            "pgy_abi_timer",          12, 4, NULL,                   "int32_t");
-    ADD_FIELD_STRUCT(t, "duration", pgy_abi_timer, duration);
-    ADD_FIELD_STRUCT(t, "remaining", pgy_abi_timer, remaining);
-    ADD_FIELD_STRUCT(t, "done", pgy_abi_timer, done);
-    ADD_TYPE(t, "Arena",            "pgy_abi_arena",          24, 8, NULL,                   "char*");
-    ADD_FIELD_STRUCT(t, "buffer", pgy_abi_arena, buffer);
-    ADD_FIELD_STRUCT(t, "capacity", pgy_abi_arena, capacity);
-    ADD_FIELD_STRUCT(t, "offset", pgy_abi_arena, offset);
-    ADD_TYPE(t, "Allocator",        "pgy_abi_allocator",      48, 8, NULL,                   "void*");
-    ADD_FIELD_STRUCT(t, "kind", pgy_abi_allocator, kind);
-    ADD_FIELD_STRUCT(t, "trace_enabled", pgy_abi_allocator, trace_enabled);
-    ADD_FIELD_STRUCT(t, "debug_enabled", pgy_abi_allocator, debug_enabled);
-    ADD_FIELD_STRUCT(t, "allocations", pgy_abi_allocator, allocations);
-    ADD_FIELD_STRUCT(t, "deallocations", pgy_abi_allocator, deallocations);
-    ADD_FIELD_STRUCT(t, "bytes_in_use", pgy_abi_allocator, bytes_in_use);
-    ADD_FIELD_STRUCT(t, "peak_bytes", pgy_abi_allocator, peak_bytes);
-    ADD_FIELD_STRUCT(t, "pool", pgy_abi_allocator, pool);
-
-#undef ADD_TYPE
-#undef ADD_FIELD_STRUCT
-#undef ADD_FIELD_SCALAR
 }
 
 /* Extract inner type from "Slot<Int>" -> "Int". */
@@ -344,7 +315,7 @@ mir_abi_lookup(const char *pergyra_type_name)
         return NULL;
 
     /* Step 1: Exact match (debug mode names and non-generic types) */
-    MIRTypeLayout *t = abi_type_lookup_by_name(pergyra_type_name);
+    const MIRTypeLayout *t = abi_type_lookup_by_name(pergyra_type_name);
     if (t != NULL)
         return t;
 
@@ -431,5 +402,6 @@ mir_abi_lookup(const char *pergyra_type_name)
 void
 mir_abi_table_init(void)
 {
-    abi_type_table_init();
+    /* ABI layouts are immutable compile-time data. Keep this compatibility
+     * entrypoint so existing MIR lowering call sites do not own table setup. */
 }

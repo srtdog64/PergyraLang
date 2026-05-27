@@ -17,7 +17,6 @@ emit_func_forward_decl_named(ASTNode *node, const char *emitted_name,
                              CodeBuf *buf, TranspilerCtx *ctx)
 {
     const char *name = emitted_name != NULL ? emitted_name : ast_declaration_name(node);
-    TranspilerCtx *saved_render_ctx = transpiler_type_render_ctx_push(ctx);
     CodeBuf *params_sig = codebuf_create();
     char *header_decl = NULL;
     ASTNode *return_type = ast_func_return_type(node);
@@ -50,13 +49,12 @@ emit_func_forward_decl_named(ASTNode *node, const char *emitted_name,
             if (params_sig != NULL)
                 codebuf_destroy(params_sig);
             free(header_decl);
-            transpiler_type_render_ctx_restore(saved_render_ctx);
             return;
         }
         if (i > 0)
             codebuf_write(params_sig, ", ");
         if (p->type != NULL)
-            type_name = render_type_name(p->type);
+            type_name = render_type_name_in_ctx(ctx, p->type);
         boundary_slot = type_name != NULL
             && (strncmp(type_name, "Slot<", 5) == 0
                 || strncmp(type_name, "SecureSlot<", 11) == 0)
@@ -78,7 +76,6 @@ emit_func_forward_decl_named(ASTNode *node, const char *emitted_name,
                 if (params_sig != NULL)
                     codebuf_destroy(params_sig);
                 free(header_decl);
-                transpiler_type_render_ctx_restore(saved_render_ctx);
                 return;
             }
             codebuf_write(params_sig, "%s *%s", pt, p->name);
@@ -102,7 +99,6 @@ emit_func_forward_decl_named(ASTNode *node, const char *emitted_name,
     codebuf_write(buf, "%s;\n", header_decl);
     free(header_decl);
     codebuf_destroy(params_sig);
-    transpiler_type_render_ctx_restore(saved_render_ctx);
 }
 
 void

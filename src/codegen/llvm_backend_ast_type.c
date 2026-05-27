@@ -82,7 +82,8 @@ ast_type_to_llvm(LLVMGenCtx *ctx, ASTNode *type_node)
     }
 
     if (ast_type_name(type_node) != NULL) {
-        char *full_name = llvm_render_type_name_scratch(type_node, &ctx->scratch);
+        char *full_name = llvm_render_type_name_scratch_in_ctx(
+            ctx, type_node, &ctx->scratch);
         if (full_name == NULL || full_name[0] == '\0') {
             llvm_set_error_at_with_hints(ctx, type_node,
                 PGY_CODE_LLVM_TYPE_UNSUPPORTED,

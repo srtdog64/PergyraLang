@@ -12,8 +12,6 @@
 
 bool any_subject_role_has_ability(SemanticContext *ctx, ASTNode *ability_ref);
 
-ASTNode *semantic_find_role_decl(ASTNode *program, const char *role_name);
-
 ASTNode *semantic_find_role_decl_by_name(SemanticContext *ctx,
                                          const char *role_name);
 

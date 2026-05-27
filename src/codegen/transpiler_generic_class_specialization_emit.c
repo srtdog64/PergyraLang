@@ -144,8 +144,6 @@ ensure_generic_class_specialization(TranspilerCtx *ctx,
     }
     entry->binding_count = formal_count;
 
-    TranspilerCtx *saved_render_ctx = transpiler_type_render_ctx_push(ctx);
-
     codebuf_write(ctx->helpers, "\ntypedef struct %s\n{\n", spec_name);
     size_t field_count = 0;
     ClassField **fields = ast_class_fields(class_decl, &field_count);
@@ -161,7 +159,6 @@ ensure_generic_class_specialization(TranspilerCtx *ctx,
                 NULL)) {
             transpiler_generic_class_format_too_long(
                 ctx, "generic class field diagnostic surface");
-            transpiler_type_render_ctx_restore(saved_render_ctx);
             ctx->generic_binding_count = saved_binding_count;
             return NULL;
         }
@@ -170,7 +167,6 @@ ensure_generic_class_specialization(TranspilerCtx *ctx,
                 surface_desc,
                 ft,
                 sizeof(ft))) {
-            transpiler_type_render_ctx_restore(saved_render_ctx);
             ctx->generic_binding_count = saved_binding_count;
             return NULL;
         }
@@ -198,7 +194,6 @@ ensure_generic_class_specialization(TranspilerCtx *ctx,
             "MIR-only C path missing method declaration metadata for generic class '%s' specialization '%s'",
             base_class_name != NULL ? base_class_name : "(anonymous-class)",
             spec_name != NULL ? spec_name : "(anonymous-specialization)");
-        transpiler_type_render_ctx_restore(saved_render_ctx);
         ctx->generic_binding_count = saved_binding_count;
         return NULL;
     }
@@ -240,7 +235,6 @@ ensure_generic_class_specialization(TranspilerCtx *ctx,
                     : "(anonymous-class)",
                 method_name != NULL ? method_name : "(anonymous)",
                 spec_name != NULL ? spec_name : "(anonymous-specialization)");
-            transpiler_type_render_ctx_restore(saved_render_ctx);
             ctx->generic_binding_count = saved_binding_count;
             return NULL;
         }
@@ -258,7 +252,6 @@ ensure_generic_class_specialization(TranspilerCtx *ctx,
                     "C backend: generic class method symbol is too long for '%s.%s'",
                     spec_name != NULL ? spec_name : "(anonymous)",
                     method_name != NULL ? method_name : "(anonymous)");
-                transpiler_type_render_ctx_restore(saved_render_ctx);
                 ctx->generic_binding_count = saved_binding_count;
                 return NULL;
             }
@@ -270,7 +263,8 @@ ensure_generic_class_specialization(TranspilerCtx *ctx,
         char ret_type_buf[256];
         const char *ret_type = "void";
         if (ast_func_return_type(method) != NULL
-            && pergyra_ast_type_to_c_copy(ast_func_return_type(method),
+            && pergyra_ast_type_to_c_copy_in_ctx(ctx,
+                ast_func_return_type(method),
                 ret_type_buf,
                 sizeof(ret_type_buf))) {
             ret_type = ret_type_buf;
@@ -300,7 +294,6 @@ ensure_generic_class_specialization(TranspilerCtx *ctx,
                     p != NULL && p->name != NULL ? p->name : "(anonymous)")) {
                 transpiler_generic_class_format_too_long(
                     ctx, "generic class method parameter diagnostic surface");
-                transpiler_type_render_ctx_restore(saved_render_ctx);
                 ctx->generic_binding_count = saved_binding_count;
                 return NULL;
             }
@@ -309,7 +302,6 @@ ensure_generic_class_specialization(TranspilerCtx *ctx,
                     surface_desc,
                     pt,
                     sizeof(pt))) {
-                transpiler_type_render_ctx_restore(saved_render_ctx);
                 ctx->generic_binding_count = saved_binding_count;
                 return NULL;
             }
@@ -323,7 +315,6 @@ ensure_generic_class_specialization(TranspilerCtx *ctx,
         codebuf_write(ctx->helpers, "}\n");
     }
 
-    transpiler_type_render_ctx_restore(saved_render_ctx);
     ctx->generic_binding_count = saved_binding_count;
 
     return spec_name;

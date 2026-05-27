@@ -8,7 +8,6 @@ typedef struct TranspilerMirEmitState {
     int typed_count;
     ASTNode *host_decl;
     CodeBuf *out;
-    TranspilerCtx *render_ctx;
     const ASTNode *func_decl;
     char return_type[128];
 } TranspilerMirEmitState;

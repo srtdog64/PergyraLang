@@ -30,7 +30,7 @@ transpiler_require_ast_c_type_copy(TranspilerCtx *ctx,
         return false;
     }
 
-    if (!pergyra_ast_type_to_c_copy(type_ast, out, out_size)) {
+    if (!pergyra_ast_type_to_c_copy_in_ctx(ctx, type_ast, out, out_size)) {
         transpiler_set_backend_error(ctx,
             "cannot lower %s to a bounded C type buffer",
             surface_desc != NULL ? surface_desc : "declaration");

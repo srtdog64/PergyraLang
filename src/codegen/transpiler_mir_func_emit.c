@@ -103,14 +103,13 @@ emit_func_decl_from_mir_named(ASTNode *node, const MIRRoutine *mir_routine,
 
     transpiler_capture_mir_emit_state_local(ctx, &saved_emit_state);
     ctx->out = buf;
-    transpiler_type_render_ctx_bind(ctx);
     transpiler_bind_function_emit_host_local(ctx, resolved_host_decl, node);
 
     ensure_collection_specializations_from_stmt_to(ctx, ctx->decls, node);
 
     ASTNode *return_type = ast_func_return_type(node);
     if (return_type != NULL) {
-        char *rendered = render_type_name(return_type);
+        char *rendered = render_type_name_in_ctx(ctx, return_type);
         transpiler_set_current_return_type_local(ctx, rendered);
         free(rendered);
     } else {
@@ -170,7 +169,7 @@ emit_func_decl_from_mir_named(ASTNode *node, const MIRRoutine *mir_routine,
         if (params_sig->len > 0)
             codebuf_write(params_sig, ", ");
         if (p->type != NULL && type_name == NULL)
-            type_name = render_type_name(p->type);
+            type_name = render_type_name_in_ctx(ctx, p->type);
         boundary_slot = type_name != NULL
             && (strncmp(type_name, "Slot<", 5) == 0
                 || strncmp(type_name, "SecureSlot<", 11) == 0)
@@ -296,7 +295,7 @@ emit_func_decl_from_mir_named(ASTNode *node, const MIRRoutine *mir_routine,
         if (is_method && strcmp(p->name, "self") == 0 && p->type == NULL)
             continue;
         if (p->type != NULL)
-            type_name = render_type_name(p->type);
+            type_name = render_type_name_in_ctx(ctx, p->type);
         if (p->type == NULL
             && strcmp(p->name, "self") == 0
             && mir_routine != NULL

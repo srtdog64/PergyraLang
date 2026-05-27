@@ -11,8 +11,8 @@ resolution_helper_program(SemanticContext *ctx)
     return ctx != NULL ? ctx->program_root : NULL;
 }
 
-ASTNode *
-find_type_alias_decl(ASTNode *program, const char *name)
+static ASTNode *
+resolution_find_type_alias_decl(ASTNode *program, const char *name)
 {
     if (program == NULL || program->type != AST_PROGRAM || name == NULL)
         return NULL;
@@ -36,7 +36,8 @@ semantic_find_type_alias_decl_by_name(SemanticContext *ctx, const char *name)
 {
     if (ctx == NULL || name == NULL)
         return NULL;
-    return find_type_alias_decl(resolution_helper_program(ctx), name);
+    return resolution_find_type_alias_decl(resolution_helper_program(ctx),
+                                           name);
 }
 
 bool

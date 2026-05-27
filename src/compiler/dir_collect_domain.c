@@ -23,6 +23,7 @@ dir_add_projection_contract_edges(DIRProgram *dir,
                                             ast_zone_refresh_object_slot_name(refresh));
     if (projection_slot_id < 0)
         return dir_failf(
+            dir,
             "DIR projection contract for '%s' is missing target projection slot '%s'.\n"
             "Reason:\n"
             "- refresh/publish/bind declared a projection target that was not materialized as a DIR projection slot\n"
@@ -47,6 +48,7 @@ dir_add_projection_contract_edges(DIRProgram *dir,
     }
     if (source_slot_id < 0)
         return dir_failf(
+            dir,
             "DIR projection contract for '%s' is missing source slot '%s'.\n"
             "Reason:\n"
             "- refresh/publish/bind declared a source that was not materialized as a DIR zone/projection slot\n"

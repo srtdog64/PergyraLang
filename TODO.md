@@ -53,6 +53,17 @@ English anchor for tooling/doc gates:
 - Diagnostic registry extraction now normalizes C backslash-newline macros
   before scanning, so multiline `PGY_CODE_*` definitions are checked by both
   the Python path and the shell fallback.
+- Compiler static-state tightening: `mir_abi_layout.c` no longer owns a mutable
+  ABI registry; the ABI layout catalog is immutable `static const` data derived
+  from `pgy_abi_spec.h`, and `mir_abi_table_init()` is compatibility-only.
+  LLVM type rendering no longer uses a global render context; LLVM callers pass
+  `LLVMGenCtx *` into the render path explicitly. RIR program-root lookup is
+  no longer a process-global bridge: `RIRProgram` owns the root and `RIRScope`
+  carries it to fact helpers. C backend type rendering no longer uses
+  `g_type_render_ctx`; generic bindings flow through
+  `render_type_name_in_ctx(...)` and `pergyra_ast_type_to_c_copy_in_ctx(...)`.
+  The source-inventory smoke now leaves only the process toolchain cache as an
+  explicit mutable static exception.
 - LLVM host-declaration fallback is fixed to the shared compatibility type set:
   `llvm_find_host_decl_in_active_inventory(...)` now routes through
   `pgy_host_decl_compat_types(...)`, and `mir-declaration-inventory-test-smoke`
@@ -160,15 +171,10 @@ English anchor for tooling/doc gates:
   centralize context program access through `projection_path_program(...)` and
   `builtin_query_domain_program(...)`, keeping projection recursion owners
   explicit while reducing raw root scatter.
-- RIR program-root compatibility is now hidden behind
-  `rir_set_program_root(...)` / `rir_program_root(...)` instead of exporting
-  `g_rir_program_root` from `rir_internal.h`. This does not remove the
-  temporary global yet, but it makes the global private to the RIR facts owner
-  and prepares the later RIR context lift without exposing another mutable
-  source-of-truth symbol to every RIR translation unit. Follow-up tightening:
-  `rir_lower(...)` now clears the compatibility root on entry and successful
-  exit, and `build-source-inventory-test-smoke` gates that accessor use remains
-  confined to the RIR fact/intent owners.
+- RIR program-root compatibility bridge is removed. `RIRProgram` now owns the
+  root AST for the lowering run, `RIRScope` carries that root to fact helpers,
+  and `build-source-inventory-test-smoke` rejects `g_rir_program_root`,
+  `rir_set_program_root(...)`, or `rir_program_root()` reintroduction.
 - Slot pin runtime safety tightened: plain `SlotRead(...)` now rejects reads
   while a write pin is active, matching the secure-slot policy that pinned
   payloads are not concurrently copied through the normal read path.
@@ -7652,6 +7658,56 @@ native `-O3` compile path when `pgy_runtime_strdup` was inlined through
 and `tests/cases/backend_compare/string_join/main.pgy` pins C/LLVM parity for
 multi-element `Array<String>` joins. Gates: `runtime-abi-lifetime-test-smoke`
 and targeted `tests/compare_backends.sh tests/cases/backend_compare/string_join`.
+
+**Self-host second tool (2026-05-27):** `stable_subset_section_checker`
+under `self_hosted/tools/`. Reads `docs/107_beta_stable_subset.md`,
+line-scans for `^## ` headings, validates a canonical anchor list, emits
+schema `pgy.selfhost.stable-subset-section.v1`. Live counts on the clean
+repo: `sections=6 expected=6 missing=0`. Parity rung 2 asserts: clean
+exit-code, clean JSON byte-equal against `expected/clean.json`, and a
+synthetic missing-section fixture (strip canonical anchor, expect `rc=1`
++ `ok:false` + stripped anchor in `findings[]`). The scaffold smoke now
+gates 2 tools. This tool exercises the freshly-lifted `StringJoin` LLVM
+surface across 4 call sites using `Array<String>` literals and `ArrayPush`,
+and ships without any further runtime/codegen lift -- the prior
+`StringIndexOf` + `Exit` + `FileExists` + `StringJoin` lifts are the
+right shape for compiler-adjacent dogfood tools.
+
+**Self-host third tool (2026-05-27):** `air_graph_json_validator` under
+`self_hosted/tools/`. Reads a committed AIR-graph JSON fixture
+(`fixture/sample.json`, regenerated from
+`tests/cases/backend_compare/intent_zone_binding/main.pgy` via
+`pgy --air-json`), validates the schema field `"schema":"pgy.air.graph.v1"`,
+checks 6 required top-level keys (`schema`/`summary`/`intents`/`boundaries`/
+`evidence`/`drifts`), and extracts `intent_count`/`boundary_count`/
+`evidence_count`/`drift_count` from the summary block via a substring +
+bracket-balance scanner (no JSON parser). Emits
+`pgy.selfhost.air-graph-validator.v1` with `counts.intents=1
+boundaries=1 evidence=12 drifts=0 missing_keys=0` on the clean fixture.
+Parity rung 2 asserts: clean exit, JSON byte-equal vs `expected/clean.json`,
+count parity vs `grep -oE`, synthetic missing-key fixture (strip
+`"summary":{...}`, expect `rc=1` + `ok:false` + `missing_keys=1`), and a
+live-drift guard that re-runs `pgy --air-json` and compares against the
+committed fixture after `tr -d '\r\n'` normalization (CRLF on Windows).
+The drift guard is *graceful-skip* when the sandboxed shell cannot launch
+the pgy subprocess.
+
+**Surface gaps still open after third tool (2026-05-27):**
+
+- *Native JSON parser*: the third tool used a substring-anchored
+  scanner with the `ExtractIntField` helper. This works for flat
+  `"key":<int>` patterns but does not generalize to nested arrays of
+  objects, escape sequences, or unicode in strings. A full JSON parser
+  is the next-bigger surface lift if a tool needs to walk
+  `intents[]` / `boundaries[]` / `evidence[]` element bodies.
+- *Directory traversal*: no `ListDir` / `GlobFiles` surface yet, so
+  any tool that scans a directory must commit a manifest as input.
+- *CLI argument parsing*: tools accept input paths only by hard-coded
+  string today. Adding `Args() -> Array<String>` would let tools
+  share a single binary across multiple fixtures.
+
+These three lifts are the candidate scope when the dogfood pressure
+identifies a tool that cannot be reshaped to fit the current surface.
 
 ## ★ Core Goal — 진행 시퀀스 (2026-05-02 명시, 4-step)
 

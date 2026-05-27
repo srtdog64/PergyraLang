@@ -141,40 +141,6 @@ find_zone_domain_slot(ASTNode *zone, const char *slot_name)
 }
 
 ASTNode *
-find_domain_decl_by_name(ASTNode *program,
-                         ASTNodeType decl_type,
-                         const char *name)
-{
-    if (program == NULL || program->type != AST_PROGRAM || name == NULL)
-        return NULL;
-
-    for (size_t i = 0; i < ast_program_statement_count(program); i++) {
-        ASTNode *stmt = ast_program_statement(program, i);
-        if (stmt == NULL || stmt->type != decl_type)
-            continue;
-
-        const char *decl_name = NULL;
-        if (decl_type == AST_RELATION_DECL)
-            decl_name = ast_relation_name(stmt);
-        else if (decl_type == AST_EFFECT_DECL)
-            decl_name = ast_effect_name(stmt);
-        else if (decl_type == AST_ZONE_DECL)
-            decl_name = ast_zone_name(stmt);
-        else if (decl_type == AST_WORLD_DECL)
-            decl_name = ast_world_name(stmt);
-        else if (decl_type == AST_PARTY_DECL)
-            decl_name = ast_party_name(stmt);
-        else if (decl_type == AST_ROSTER_DECL)
-            decl_name = ast_roster_name(stmt);
-
-        if (decl_name != NULL && strcmp(decl_name, name) == 0)
-            return stmt;
-    }
-
-    return NULL;
-}
-
-ASTNode *
 find_zone_effect_slot(ASTNode *zone, const char *slot_name)
 {
     ASTNode **layer_slots;

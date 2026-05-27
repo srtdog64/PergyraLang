@@ -5,7 +5,7 @@
 
 #include <sys/types.h>
 
-bool dir_failf(const char *fmt, ...);
+bool dir_failf(DIRProgram *dir, const char *fmt, ...);
 bool dir_track_owned_name(DIRProgram *dir, char *name);
 
 ssize_t dir_find_node_by_name_kind(const DIRProgram *dir, const char *name, DIRNodeKind kind);

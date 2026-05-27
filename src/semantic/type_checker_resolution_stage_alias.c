@@ -3,19 +3,14 @@
 #include <stdlib.h>
 #include <string.h>
 
+#include "../common/env_flags.h"
 #include "../common/string_compat.h"
 #include "type_checker_internal.h"
 
 static bool
 stage_alias_trace_enabled(void)
 {
-    static int cached = -1;
-
-    if (cached < 0) {
-        const char *value = getenv("PGY_TYPE_RES_ALIAS_TRACE");
-        cached = value != NULL && value[0] != '\0' && strcmp(value, "0") != 0;
-    }
-    return cached != 0;
+    return pgy_env_value_is_truthy(getenv("PGY_TYPE_RES_ALIAS_TRACE"));
 }
 
 static void

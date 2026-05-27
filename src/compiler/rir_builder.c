@@ -20,6 +20,7 @@ rir_collect_func_scope(RIRProgram *rir,
     scope.owner_name = owner_name;
     scope.name = ast_declaration_name(func);
     scope.ast = func;
+    scope.program_root = rir->program_root;
     for (size_t i = 0; i < ast_func_param_count(func); i++) {
         FuncParam *param = ast_func_param(func, i);
         if (param == NULL)
@@ -52,6 +53,7 @@ rir_collect_zone_like_scope(RIRProgram *rir, ASTNode *node, RIRScopeKind kind, c
     scope.kind = kind;
     scope.name = name;
     scope.ast = node;
+    scope.program_root = rir->program_root;
 
     ASTNode **refreshes = NULL;
     size_t refresh_count = 0;
@@ -236,7 +238,6 @@ rir_lower(ASTNode *annotated_ast, char **error_message)
     RIRProgram *rir;
     if (error_message != NULL)
         *error_message = NULL;
-    rir_set_program_root(NULL);
     if (annotated_ast == NULL || annotated_ast->type != AST_PROGRAM) {
         if (error_message != NULL)
             *error_message = pergyra_strdup("RIR lowering requires AST_PROGRAM");
@@ -249,7 +250,7 @@ rir_lower(ASTNode *annotated_ast, char **error_message)
             *error_message = pergyra_strdup("out of memory");
         return NULL;
     }
-    rir_set_program_root(annotated_ast);
+    rir->program_root = annotated_ast;
 
     for (size_t i = 0; i < ast_program_statement_count(annotated_ast); i++) {
         ASTNode *node = ast_program_statement(annotated_ast, i);
@@ -298,6 +299,5 @@ rir_lower(ASTNode *annotated_ast, char **error_message)
         }
     }
 
-    rir_set_program_root(NULL);
     return rir;
 }

@@ -72,6 +72,12 @@ if [ -s "$bad_direct" ]; then
   exit 1
 fi
 
+if grep -RInE '(^|[^A-Za-z0-9_])find_domain_decl_by_name\(' src/semantic >/dev/null; then
+  echo "[type-resolution-resolver-inventory] raw domain declaration lookup helper reappeared" >&2
+  echo "Keep domain declaration lookup private to SemanticContext-backed host/domain owner seams." >&2
+  exit 1
+fi
+
 if grep -q 'ASTNode \*program' src/semantic/type_checker_ability_match_internal.h; then
   echo "[type-resolution-resolver-inventory] ability matching header re-exposed program-root based helpers" >&2
   exit 1

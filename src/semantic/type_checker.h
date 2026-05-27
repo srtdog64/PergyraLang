@@ -107,6 +107,10 @@ struct SemanticContext
     size_t       embedded_world_zone_count;
     size_t       embedded_world_zone_capacity;
 
+    char**       stdlib_use_module_names;
+    size_t       stdlib_use_module_count;
+    size_t       stdlib_use_module_capacity;
+
     TypeResolutionGraph type_resolution_graph;
     size_t type_resolution_stage_graph_backed_skip_count;
     size_t type_resolution_dag_generic_contract_evidence_count;

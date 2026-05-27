@@ -41,10 +41,9 @@ const char *lsp_completion_items =
     "{\"label\":\"let\",\"kind\":14,\"detail\":\"Variable declaration\"}"
     "]";
 
-const char *
-json_find_string(const char *json, const char *key)
+static const char *
+json_find_string_start(const char *json, const char *key)
 {
-    static char value[4096];
     char pattern[128];
     snprintf(pattern, sizeof(pattern), "\"%s\"", key);
     const char *pos = strstr(json, pattern);
@@ -52,28 +51,64 @@ json_find_string(const char *json, const char *key)
 
     pos += strlen(pattern);
     while (*pos == ' ' || *pos == ':' || *pos == '\t') pos++;
-    if (*pos == '"') {
-        pos++;
-        size_t i = 0;
-        while (*pos && *pos != '"' && i < sizeof(value) - 1) {
-            if (*pos == '\\' && *(pos + 1)) {
-                pos++;
-                switch (*pos) {
-                    case 'n': value[i++] = '\n'; break;
-                    case 't': value[i++] = '\t'; break;
-                    case '\\': value[i++] = '\\'; break;
-                    case '"': value[i++] = '"'; break;
-                    default: value[i++] = *pos; break;
-                }
-            } else {
-                value[i++] = *pos;
-            }
+    return *pos == '"' ? pos + 1 : NULL;
+}
+
+static size_t
+json_copy_string_payload(const char *pos, char *out, size_t out_size)
+{
+    size_t i = 0;
+    if (out != NULL && out_size > 0)
+        out[0] = '\0';
+    if (pos == NULL)
+        return 0;
+
+    while (*pos && *pos != '"') {
+        char ch = *pos;
+        if (ch == '\\' && *(pos + 1)) {
             pos++;
+            switch (*pos) {
+                case 'n': ch = '\n'; break;
+                case 't': ch = '\t'; break;
+                case '\\': ch = '\\'; break;
+                case '"': ch = '"'; break;
+                default: ch = *pos; break;
+            }
         }
-        value[i] = '\0';
-        return value;
+        if (out != NULL && out_size > 0 && i + 1 < out_size)
+            out[i] = ch;
+        i++;
+        pos++;
     }
-    return NULL;
+    if (out != NULL && out_size > 0)
+        out[i < out_size ? i : out_size - 1] = '\0';
+    return i;
+}
+
+bool
+json_find_string_copy(const char *json, const char *key,
+                      char *out, size_t out_size)
+{
+    const char *pos = json_find_string_start(json, key);
+    if (pos == NULL)
+        return false;
+    json_copy_string_payload(pos, out, out_size);
+    return true;
+}
+
+char *
+json_find_string_dup(const char *json, const char *key)
+{
+    const char *pos = json_find_string_start(json, key);
+    if (pos == NULL)
+        return NULL;
+
+    size_t len = json_copy_string_payload(pos, NULL, 0);
+    char *value = malloc(len + 1);
+    if (value == NULL)
+        return NULL;
+    json_copy_string_payload(pos, value, len + 1);
+    return value;
 }
 
 int

@@ -230,8 +230,12 @@ keep the source-level business vocabulary clean.
 | MIR public inventory/query/pass wrappers | `mir_public_surface.c` | C/LLVM inventory views, MIR tests | Public query/DCE/liveness wrappers living in the lowering implementation header |
 | Type/declaration dependency | Type-resolution DAG metadata | Semantic owners, AIR DAG evidence | Recursive resolver fallback on frozen paths |
 | Generic/ability contract evidence | Type-resolution DAG + `semantic_role_decl_has_ability(...)` | Semantic contract checks, role/party bind checks, AIR | Program-root based ability match helpers or compatibility counters as semantic truth |
-| Semantic domain declaration lookup | `semantic_find_*_decl_by_name(...)` and owner seams | Action contracts, intent where/using/causes, world embedding, zone authority | New direct `find_domain_decl_by_name(...)` consumers outside domain/host lookup owners |
+| Semantic host declaration lookup | `semantic_find_*_decl_by_name(...)` in `type_checker_host_helpers.c` | Constructor lookup, callable lookup, class/ability/enum/function lookup, ownership consumers | Public raw `find_type_decl_by_name`, `find_ability_decl_by_name`, `find_callable_decl_by_name`, or `find_type_alias_decl` program-root helpers |
+| Semantic domain declaration lookup | `semantic_find_*_decl_by_name(...)` in `type_checker_host_helpers.c` | Action contracts, intent where/using/causes, world embedding, zone authority | Public raw `find_domain_decl_by_name(...)` or any new semantic `ASTNode *program` lookup declaration |
+| Role declaration lookup | `semantic_find_role_decl_by_name(...)` / `semantic_find_next_role_decl_for_type_name(...)` | Ability matching, bind validation, operator overload lookup, role declaration validation | Public raw `semantic_find_role_decl(ASTNode *program, ...)` |
 | Projection source field path | `semantic_resolve_projection_source_field_path(...)` | Projection diagnostics, zone graph metadata, DAG projection materialization | Re-exposing `resolve_projection_source_field_path(ASTNode *program_root, ...)` or local class lookup |
+| Stdlib use declaration validation | `SemanticContext.stdlib_use_module_*` inventory in `type_checker_stdlib_use.c` | Duplicate `use` warnings, stdlib surface validation | Re-scanning `ctx->program_root` from the stdlib-use consumer |
+| Ref-parameter escape compatibility | `semantic_legacy_ast_callable_param_escape_summary(...)` until CFG/MIR facts replace it | Ownership call checks, function param summary checks | Generic `semantic_callable_param_escape_summary(...)` naming that hides the legacy AST walker |
 | Party bind statement validity | `type_checker_bind_stmt.c` | CFG/body flow, C backend bind emit, LLVM bind emit | Backend-only bind validation or silent LLVM bind skips |
 | Intent step domain declaration recovery | `type_checker_intent_types.c` intent domain owner seam | Intent step validation, derived using, step causes checks, participant transfer-source checks, transfer contract checks | Consumers reopening `AST_ZONE_DECL` / `AST_EFFECT_DECL` lookup locally |
 | Resource/authority/effect propagation | RIR | AIR, runtime/codegen policy emitters | AIR or backend inventing authority/resource facts |
@@ -399,6 +403,42 @@ immediate formatting, but they must not return mutable `static char *` or
 must survive a nested lookup or recursive expression emission, copy it into the
 active `TranspilerCtx.arena`. Rendered names are temporary; the typed-var
 inventory or MIR type metadata is the durable fact.
+
+Compiler helper string ownership has the same three-lane rule across C backend,
+LLVM backend, LSP/tooling, and semantic diagnostics:
+
+- pass-local names and transient rendered facts live in the owner scratch arena;
+- immediate formatting output may use caller-owned stack buffers;
+- values that survive the current dispatch call or message must be explicitly
+  result-owned and released by the caller.
+
+Mutable `static` buffers are not a source of truth for compiler helper results.
+Static tables of immutable names are allowed, but static returned strings are a
+compatibility smell unless the caller consumes them immediately and cannot
+reenter the same helper. New helper APIs should choose one of the three lanes
+in their name or contract.
+
+Top-level mutable static state in compiler/codegen/semantic/LSP code is also
+closed by default. The current explicit exception is:
+
+- process-level toolchain cache storage in `compiler_toolchain.c`.
+
+Adding another exception requires naming the owner and the source-of-truth
+contract in this document and in `build_source_inventory_smoke`.
+
+The MIR ABI layout catalog is intentionally `static const`: it is immutable
+data derived from `pgy_abi_spec.h`, not a lowering-time registry. Backends may
+look up entries by canonical surface type name, but they must not mutate or
+repopulate the catalog.
+
+RIR program-root facts are also explicit now. `RIRProgram` owns the root AST for
+the lowering run, and each `RIRScope` snapshots that pointer for fact helpers.
+`rir_facts.c` must not reintroduce a process-global program-root bridge.
+
+C backend type rendering is explicit as well. Generic bindings flow through
+`render_type_name_in_ctx(...)` and `pergyra_ast_type_to_c_copy_in_ctx(...)`;
+`transpiler_type_render.c` must not reintroduce a process-global render context
+or push/restore stack.
 
 The same C backend rule applies to expression type inference. Constructed names
 such as `Array<T>`, `Slice<T>`, `ReadView<T>`, `WriteView<T>`,

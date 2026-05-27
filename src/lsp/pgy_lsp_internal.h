@@ -14,7 +14,9 @@
 extern char lsp_response_buf[65536];
 extern const char *lsp_completion_items;
 
-const char *json_find_string(const char *json, const char *key);
+bool json_find_string_copy(const char *json, const char *key,
+                           char *out, size_t out_size);
+char *json_find_string_dup(const char *json, const char *key);
 int json_find_int(const char *json, const char *key);
 void json_escape_copy(char *dst, size_t dst_size, const char *src);
 

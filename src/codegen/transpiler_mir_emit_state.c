@@ -46,7 +46,6 @@ transpiler_restore_mir_emit_state_local(TranspilerCtx *ctx,
                                         const char *saved_return_type,
                                         const ASTNode *saved_func_decl,
                                         ASTNode *saved_host_decl,
-                                        TranspilerCtx *saved_render_ctx,
                                         CodeBuf *saved_out)
 {
     if (ctx == NULL)
@@ -63,7 +62,6 @@ transpiler_restore_mir_emit_state_local(TranspilerCtx *ctx,
     }
     ctx->current_func_decl = saved_func_decl;
     transpiler_bind_current_host_decl_local(ctx, saved_host_decl);
-    transpiler_type_render_ctx_restore(saved_render_ctx);
     ctx->out = saved_out;
 }
 
@@ -78,7 +76,6 @@ transpiler_capture_mir_emit_state_local(TranspilerCtx *ctx,
     state->typed_count = ctx->typed_var_count;
     state->host_decl = transpiler_current_host_decl_local(ctx);
     state->out = ctx->out;
-    state->render_ctx = transpiler_type_render_ctx_current();
     state->func_decl = ctx->current_func_decl;
     if (!transpiler_mir_emit_copy_return_type(state->return_type,
             sizeof(state->return_type), ctx->current_return_type)) {
@@ -96,7 +93,7 @@ transpiler_restore_mir_emit_state_from_snapshot_local(
 
     transpiler_restore_mir_emit_state_local(
         ctx, state->slot_count, state->typed_count, state->return_type,
-        state->func_decl, state->host_decl, state->render_ctx, state->out);
+        state->func_decl, state->host_decl, state->out);
 }
 
 void
