@@ -1,0 +1,171 @@
+#!/usr/bin/env bash
+# Rung 1 parity for the minimal Pergyra-origin parser (2026-05-28).
+# Each source pair is committed under fixture/<source>.pgy +
+# fixture/<source>_ast.txt. The Pergyra binary reads `fixture/source.txt`
+# (one-line repo-relative path) to pick which source to parse.
+# See src/self_hosted/parity/README.md.
+
+set -euo pipefail
+
+ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/../../.." && pwd)"
+source "$ROOT_DIR/tests/pgy_binary_path_helpers.sh"
+pgy_prepend_windows_runtime_paths
+
+PGY="${PGY_BIN:-$ROOT_DIR/bin/pgy}"
+if [[ "$PGY" != *.exe ]] && pgy_binary_expects_windows_paths "${PGY}.exe"; then
+    PGY="${PGY}.exe"
+fi
+PGY_EXPLICIT=0
+[[ -n "${PGY_BIN:-}" ]] && PGY_EXPLICIT=1
+
+if [[ ! -x "$PGY" ]]; then
+    if [[ "$PGY_EXPLICIT" -eq 0 ]]; then
+        echo "[self-host-parity:parser] SKIP missing compiler binary: $PGY"
+        exit 0
+    fi
+    echo "[self-host-parity:parser] missing compiler binary: $PGY" >&2
+    exit 1
+fi
+
+PERGYRA_TOOL_SOURCE="$ROOT_DIR/src/self_hosted/parser/main.pgy"
+PERGYRA_TOOL_BUILD_DIR="${PGY_SELFHOST_BUILD_DIR:-$ROOT_DIR/.tmp/self_hosted/parser}"
+PERGYRA_TOOL="$PERGYRA_TOOL_BUILD_DIR/main.pgy"
+FIXTURE_DIR="$ROOT_DIR/src/self_hosted/parser/fixture"
+SOURCE_OVERRIDE="$FIXTURE_DIR/source.txt"
+EXPECTED_FILE="$ROOT_DIR/src/self_hosted/parser/expected/clean.txt"
+
+if [[ ! -f "$PERGYRA_TOOL_SOURCE" ]]; then
+    echo "[self-host-parity:parser] missing Pergyra tool: $PERGYRA_TOOL_SOURCE" >&2
+    exit 1
+fi
+if [[ ! -f "$EXPECTED_FILE" ]]; then
+    echo "[self-host-parity:parser] missing expected: $EXPECTED_FILE" >&2
+    exit 1
+fi
+
+mkdir -p "$PERGYRA_TOOL_BUILD_DIR"
+cp "$PERGYRA_TOOL_SOURCE" "$PERGYRA_TOOL"
+
+# Sources: each pair is "<source.pgy path relative to repo root>:<fixture base>"
+# where fixture base resolves to fixture/<base>_ast.txt.
+SOURCE_PAIRS=(
+    "examples/hello.pgy:hello"
+    "src/self_hosted/parser/fixture/multi_log.pgy:multi_log"
+    "src/self_hosted/parser/fixture/with_param.pgy:with_param"
+    "src/self_hosted/parser/fixture/no_arg.pgy:no_arg"
+    "src/self_hosted/parser/fixture/with_let.pgy:with_let"
+    "src/self_hosted/parser/fixture/let_mixed.pgy:let_mixed"
+    "src/self_hosted/parser/fixture/multi_func.pgy:multi_func"
+    "src/self_hosted/parser/fixture/with_return.pgy:with_return"
+    "src/self_hosted/parser/fixture/return_void.pgy:return_void"
+    "src/self_hosted/parser/fixture/arith_let.pgy:arith_let"
+    "src/self_hosted/parser/fixture/arith_complex.pgy:arith_complex"
+    "src/self_hosted/parser/fixture/arith_parens.pgy:arith_parens"
+    "src/self_hosted/parser/fixture/arith_return.pgy:arith_return"
+    "src/self_hosted/parser/fixture/cmp.pgy:cmp"
+    "src/self_hosted/parser/fixture/if_stmt.pgy:if_stmt"
+    "src/self_hosted/parser/fixture/if_else.pgy:if_else"
+    "src/self_hosted/parser/fixture/while_stmt.pgy:while_stmt"
+    "src/self_hosted/parser/fixture/if_nested.pgy:if_nested"
+    "src/self_hosted/parser/fixture/logic.pgy:logic"
+    "src/self_hosted/parser/fixture/for_loop.pgy:for_loop"
+    "src/self_hosted/parser/fixture/for_arith.pgy:for_arith"
+    "src/self_hosted/parser/fixture/call_expr.pgy:call_expr"
+    "src/self_hosted/parser/fixture/call_args_arith.pgy:call_args_arith"
+    "src/self_hosted/parser/fixture/not.pgy:not"
+    "src/self_hosted/parser/fixture/assign.pgy:assign"
+    "src/self_hosted/parser/fixture/export_func.pgy:export_func"
+    "src/self_hosted/parser/fixture/subject_decl.pgy:subject_decl"
+    "src/self_hosted/parser/fixture/subject_empty.pgy:subject_empty"
+    "src/self_hosted/parser/fixture/class_decl.pgy:class_decl"
+    "src/self_hosted/parser/fixture/enum_decl.pgy:enum_decl"
+    "src/self_hosted/parser/fixture/enum_single.pgy:enum_single"
+    "src/self_hosted/parser/fixture/namespace_decl.pgy:namespace_decl"
+    "src/self_hosted/parser/fixture/namespace_subject.pgy:namespace_subject"
+    "src/self_hosted/parser/fixture/namespace_nested.pgy:namespace_nested"
+    "src/self_hosted/parser/fixture/subject_method.pgy:subject_method"
+    "src/self_hosted/parser/fixture/class_method.pgy:class_method"
+    "src/self_hosted/parser/fixture/class_only_method.pgy:class_only_method"
+    "src/self_hosted/parser/fixture/class_method_param.pgy:class_method_param"
+    "src/self_hosted/parser/fixture/break_continue.pgy:break_continue"
+    "src/self_hosted/parser/fixture/match_case.pgy:match_case"
+    "src/self_hosted/parser/fixture/match_expr.pgy:match_expr"
+    "src/self_hosted/parser/fixture/unary_neg.pgy:unary_neg"
+    "src/self_hosted/parser/fixture/arr_literal.pgy:arr_literal"
+    "src/self_hosted/parser/fixture/generic_type.pgy:generic_type"
+    "src/self_hosted/parser/fixture/let_inferred.pgy:let_inferred"
+    "src/self_hosted/parser/fixture/member_access.pgy:member_access"
+    "src/self_hosted/parser/fixture/toplevel_stmt.pgy:toplevel_stmt"
+    "src/self_hosted/parser/fixture/vessel_decl.pgy:vessel_decl"
+    "src/self_hosted/parser/fixture/struct_decl.pgy:struct_decl"
+    "src/self_hosted/parser/fixture/mod_op.pgy:mod_op"
+    "src/self_hosted/parser/fixture/else_if.pgy:else_if"
+    "src/self_hosted/parser/fixture/for_in_arr.pgy:for_in_arr"
+    "src/self_hosted/parser/fixture/member_assign.pgy:member_assign"
+    "src/self_hosted/parser/fixture/event_decl.pgy:event_decl"
+    "src/self_hosted/parser/fixture/defer_stmt.pgy:defer_stmt"
+    "src/self_hosted/parser/fixture/turbofish.pgy:turbofish"
+    "src/self_hosted/parser/fixture/func_generic_ret.pgy:func_generic_ret"
+    "src/self_hosted/parser/fixture/event_subscribe.pgy:event_subscribe"
+)
+
+cleanup_source_override() {
+    rm -f "$SOURCE_OVERRIDE"
+}
+trap cleanup_source_override EXIT
+
+ANY_DRIFT_GUARD_RAN="no"
+
+for pair in "${SOURCE_PAIRS[@]}"; do
+    src="${pair%%:*}"
+    base="${pair##*:}"
+    expected_fixture="$FIXTURE_DIR/${base}_ast.txt"
+
+    if [[ ! -f "$ROOT_DIR/$src" ]]; then
+        echo "[self-host-parity:parser] missing source: $src" >&2
+        exit 1
+    fi
+    if [[ ! -f "$expected_fixture" ]]; then
+        echo "[self-host-parity:parser] missing AST fixture: $expected_fixture" >&2
+        exit 1
+    fi
+
+    printf '%s' "$src" > "$SOURCE_OVERRIDE"
+
+    set +e
+    PERGYRA_OUT="$(cd "$ROOT_DIR" && "$PGY" "$PERGYRA_TOOL" --run 2>/dev/null \
+        | tr -d '\r' \
+        | sed '/^pgy: compiled /d')"
+    P_RC=$?
+    set -e
+
+    if [[ "$P_RC" -ne 0 ]]; then
+        echo "[self-host-parity:parser] $src: exit-code FAIL (pergyra=$P_RC)" >&2
+        printf '%s\n' "$PERGYRA_OUT" >&2
+        exit 1
+    fi
+
+    EXPECTED_NORM="$(tr -d '\r' < "$expected_fixture")"
+    if [[ "$PERGYRA_OUT" != "$EXPECTED_NORM" ]]; then
+        echo "[self-host-parity:parser] $src: BYTE-DRIFT vs $expected_fixture" >&2
+        diff <(printf '%s\n' "$EXPECTED_NORM") <(printf '%s\n' "$PERGYRA_OUT") | head -30 >&2
+        exit 1
+    fi
+
+    # Live drift guard for this source pair.
+    set +e
+    LIVE_OUT="$(cd "$ROOT_DIR" && "$PGY" --ast "$src" 2>/dev/null)"
+    LIVE_RC=$?
+    set -e
+    if [[ "$LIVE_RC" -eq 0 && -n "$LIVE_OUT" ]]; then
+        LIVE_NORM="$(printf '%s' "$LIVE_OUT" | tr -d '\r')"
+        if [[ "$LIVE_NORM" != "$EXPECTED_NORM" ]]; then
+            echo "[self-host-parity:parser] $src: committed AST fixture drifted from live pgy --ast" >&2
+            echo "regenerate: pgy --ast $src > $expected_fixture" >&2
+            exit 1
+        fi
+        ANY_DRIFT_GUARD_RAN="yes"
+    fi
+done
+
+echo "[self-host-parity:parser] rung-1 parity ok (${#SOURCE_PAIRS[@]} sources byte-equal; live-drift=$ANY_DRIFT_GUARD_RAN)"

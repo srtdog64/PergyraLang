@@ -1,0 +1,10 @@
+Program:
+  Function: Main
+    Parameters:
+    Returns: Void
+    Body:
+      Block:
+        Let: a : Int = (-5)
+        Let: b : Int = (-x)
+        Let: c : Int = (-(1 + 2))
+

@@ -1,0 +1,3 @@
+func Bye() -> Void {
+    return;
+}

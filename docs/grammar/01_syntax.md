@@ -686,6 +686,9 @@ select {
 - `ch <- value`
 - `let v = <- ch`
 - `select { case ... default ... }`
+- C/LLVM parity is gated for bound and unbound ready receive cases by
+  `select_single_ready` and `select_unbound_ready`; fairness/timeout/backpressure
+  remain evolving policy.
 
 ## 8. 도메인 문법
 
@@ -713,6 +716,11 @@ func Apply(base: Int,
 - lambda는 `(x: Int) => expr` 또는 `(x: Int) => { ... }`
 - callable parameter type은 `func(T1, T2) -> TResult`
 - 현재 안정 경로는 `func(...) -> ...` 파라미터 주입이다
+
+Event C/LLVM parity gates:
+- `event_named_handler`
+- `event_unsubscribe`
+- `event_lambda_handler`
 
 ### 8.2 ability / role
 
@@ -815,7 +823,7 @@ Current grammar contract:
 | Lambda literal | partial | `=>` callables are allowed, but outer local/resource capture is rejected until closure environments exist. |
 | Named arguments | reserved/rejected | `Call(name: value)` is preserved in parser/AST where accepted, then semantically rejected before dispatch. |
 | Default value arguments | rejected | `=` in function/async/lambda parameter lists is a parser error; generic default type arguments are separate. |
-| Tuple literal/type | partial | Existing tuple surface is not a blanket beta promise until ABI/parity diagnostics are closed. |
+| Tuple literal/type | partial | Return and local-literal/destructure C/LLVM parity are gated; richer ABI and diagnostics remain partial. |
 | Positional destructuring | partial | `let (a, b) = value;` exists and remains CFG/dataflow-owned. |
 | Named destructuring | rejected | `let {x} = value;` is not beta grammar. |
 | Optional chaining/coalescing | partial | `??` is active for `Option<T> ?? T -> T`; `?.` remains reserved with explicit parser diagnostics. |

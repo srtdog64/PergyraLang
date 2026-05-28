@@ -56,7 +56,9 @@ transpiler_infer_local_type_name_from_expr(TranspilerCtx *ctx,
         return NULL;
     switch (expr->type) {
     case AST_NUMBER:
-        return ast_number_is_long(expr) ? "Long" : "Int";
+        if (ast_number_is_long(expr))
+            return "Long";
+        return ast_number_is_float(expr) ? "Float" : "Int";
     case AST_STRING:
         return "String";
     case AST_BOOLEAN:

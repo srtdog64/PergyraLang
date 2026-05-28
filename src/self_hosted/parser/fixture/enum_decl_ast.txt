@@ -1,0 +1,9 @@
+Program:
+  Enum: Color { Red, Green, Blue }
+  Function: Main
+    Parameters:
+    Returns: Void
+    Body:
+      Block:
+        Log("ok")
+

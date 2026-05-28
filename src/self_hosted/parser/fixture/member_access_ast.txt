@@ -1,0 +1,11 @@
+Program:
+  Function: Main
+    Parameters:
+    Returns: Void
+    Body:
+      Block:
+        Let: a = obj.field
+        Let: b = obj.method()
+        Let: c = obj.nested.field
+        obj.Greet()
+

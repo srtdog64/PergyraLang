@@ -1,0 +1,12 @@
+Program:
+  Function: Main
+    Parameters:
+    Returns: Void
+    Body:
+      Block:
+        Log("a")
+        Defer:
+          Block:
+            Log("b")
+        Log("c")
+

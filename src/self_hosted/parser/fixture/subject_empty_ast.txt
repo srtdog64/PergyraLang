@@ -1,0 +1,9 @@
+Program:
+  Subject: Marker
+  Function: Main
+    Parameters:
+    Returns: Void
+    Body:
+      Block:
+        Log("ok")
+

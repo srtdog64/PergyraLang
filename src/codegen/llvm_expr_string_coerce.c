@@ -32,11 +32,24 @@ llvm_coerce_value_to_string(LLVMValueRef value, LLVMGenCtx *ctx)
                 ctx->builder, "false", llvm_tmp_name(ctx));
             return LLVMBuildSelect(ctx->builder, value, true_str, false_str,
                 llvm_tmp_name(ctx));
+        } else if (width > 32) {
+            fn = llvm_lookup_function(ctx, "pgy_long_to_string");
+            if (fn == NULL) {
+                if (ctx != NULL && !ctx->has_error) {
+                    llvm_set_error_at_with_hints(ctx, NULL,
+                        PGY_CODE_LLVM_TYPE_UNSUPPORTED,
+                        PGY_CAUSE_LLVM_TYPE_UNSUPPORTED,
+                        PGY_FIX_INSPECT_MIR_INVENTORY,
+                        "LLVM string coercion requires registered runtime function '%s'",
+                        "pgy_long_to_string");
+                }
+                return NULL;
+            }
+            args[0] = value;
+            return LLVMBuildCall2(ctx->builder, fn->fn_type, fn->fn, args, 1,
+                llvm_tmp_name(ctx));
         } else if (width < 32) {
             value = LLVMBuildSExt(ctx->builder, value, ctx->type_i32,
-                llvm_tmp_name(ctx));
-        } else if (width > 32) {
-            value = LLVMBuildTrunc(ctx->builder, value, ctx->type_i32,
                 llvm_tmp_name(ctx));
         }
 
@@ -59,7 +72,20 @@ llvm_coerce_value_to_string(LLVMValueRef value, LLVMGenCtx *ctx)
 
     if (value_type == ctx->type_f32 || value_type == ctx->type_f64) {
         if (value_type == ctx->type_f64) {
-            value = LLVMBuildFPTrunc(ctx->builder, value, ctx->type_f32,
+            fn = llvm_lookup_function(ctx, "pgy_double_to_string");
+            if (fn == NULL) {
+                if (ctx != NULL && !ctx->has_error) {
+                    llvm_set_error_at_with_hints(ctx, NULL,
+                        PGY_CODE_LLVM_TYPE_UNSUPPORTED,
+                        PGY_CAUSE_LLVM_TYPE_UNSUPPORTED,
+                        PGY_FIX_INSPECT_MIR_INVENTORY,
+                        "LLVM string coercion requires registered runtime function '%s'",
+                        "pgy_double_to_string");
+                }
+                return NULL;
+            }
+            args[0] = value;
+            return LLVMBuildCall2(ctx->builder, fn->fn_type, fn->fn, args, 1,
                 llvm_tmp_name(ctx));
         }
         fn = llvm_lookup_function(ctx, "pgy_float_to_string");

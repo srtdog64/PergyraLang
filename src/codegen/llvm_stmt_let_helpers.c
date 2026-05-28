@@ -135,7 +135,10 @@ llvm_simple_expr_type_name(LLVMGenCtx *ctx, ASTNode *expr)
         return NULL;
 
     switch (expr->type) {
-    case AST_NUMBER: return "Int";
+    case AST_NUMBER:
+        if (ast_number_is_long(expr))
+            return "Long";
+        return ast_number_is_float(expr) ? "Float" : "Int";
     case AST_STRING: return "String";
     case AST_BOOLEAN: return "Bool";
     case AST_IDENTIFIER: {

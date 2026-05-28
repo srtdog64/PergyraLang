@@ -1,0 +1,10 @@
+Program:
+  Function: SafeDiv
+    Parameters:
+      a: Int
+      b: Int
+    Returns: Result<Int: Int>
+    Body:
+      Block:
+        Return: Ok((a / b))
+

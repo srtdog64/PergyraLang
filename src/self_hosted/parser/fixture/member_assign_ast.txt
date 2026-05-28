@@ -1,0 +1,9 @@
+Program:
+  Function: Main
+    Parameters:
+    Returns: Void
+    Body:
+      Block:
+        Assign: p.x = 10
+        Assign: p.y = 32
+

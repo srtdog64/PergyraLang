@@ -1,0 +1,11 @@
+Program:
+  Function: Main
+    Parameters:
+    Returns: Void
+    Body:
+      Block:
+        Let: nums : Array<Int: Int> = [10, 20, 30]
+        For: n in (null)..(null)
+          Block:
+            Log(n)
+

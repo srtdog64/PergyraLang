@@ -1,0 +1,19 @@
+Program:
+  Class: Counter
+    Fields:
+      value: Int
+    Methods:
+      Function: Add
+        Parameters:
+          delta: Int
+        Returns: Int
+        Body:
+          Block:
+            Return: (value + delta)
+  Function: Main
+    Parameters:
+    Returns: Void
+    Body:
+      Block:
+        Log("ok")
+

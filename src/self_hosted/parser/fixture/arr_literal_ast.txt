@@ -1,0 +1,11 @@
+Program:
+  Function: Main
+    Parameters:
+    Returns: Void
+    Body:
+      Block:
+        Let: primes = [2, 3, 5, 7, 11]
+        Log(primes[0])
+        Log(primes[2])
+        Log(primes[4])
+

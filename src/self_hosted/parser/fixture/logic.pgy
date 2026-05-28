@@ -1,0 +1,5 @@
+func Main() -> Void {
+    let a: Bool = 1 < 2 && 3 < 4;
+    let b: Bool = 1 < 2 || 3 < 4;
+    let c: Bool = 1 < 2 && 3 < 4 || 5 < 6;
+}

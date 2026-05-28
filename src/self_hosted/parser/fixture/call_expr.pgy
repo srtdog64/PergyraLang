@@ -1,0 +1,7 @@
+func Add(a: Int, b: Int) -> Int {
+    return a + b;
+}
+
+func Main() -> Void {
+    let r: Int = Add(1, 2);
+}

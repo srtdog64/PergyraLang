@@ -1,0 +1,19 @@
+Program:
+  Function: Main
+    Parameters:
+    Returns: Void
+    Body:
+      Block:
+        If: (1 < 2)
+          Then:
+            Block:
+              Log("a")
+          Else:
+            If: (3 < 4)
+              Then:
+                Block:
+                  Log("b")
+              Else:
+                Block:
+                  Log("c")
+

@@ -1,0 +1,4 @@
+func Main() -> Void {
+    Add(1 + 2, 3);
+    let r: Int = Add(1 + 2, 3);
+}

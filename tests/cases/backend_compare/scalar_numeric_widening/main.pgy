@@ -1,0 +1,13 @@
+func Main() -> Void {
+    let longValue: Long = 10000000000L;
+    let longSum: Long = longValue + 23L;
+    let floatValue: Float = 1.5;
+    let floatSum: Float = floatValue + 2.25;
+    let doubleValue: Double = 2.5;
+    let doubleScale: Double = 4.25;
+    let doubleSum: Double = doubleValue * doubleScale;
+
+    Log(ToString(longSum));
+    Log(ToString(floatSum));
+    Log(ToString(doubleSum));
+}

@@ -130,6 +130,7 @@ ASTNode* ast_assignment_target(const ASTNode* node);
 ASTNode* ast_assignment_value(const ASTNode* node);
 double ast_number_value(const ASTNode* node);
 bool ast_number_is_long(const ASTNode* node);
+bool ast_number_is_float(const ASTNode* node);
 const char* ast_string_value(const ASTNode* node);
 bool ast_boolean_value(const ASTNode* node);
 ASTNode* ast_await_expression(const ASTNode* node);

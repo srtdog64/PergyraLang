@@ -1,0 +1,5 @@
+func Main() -> Void {
+    Print("prefix:");
+    Print("body\n");
+    LogBanner("banner");
+}

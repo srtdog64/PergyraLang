@@ -1,0 +1,11 @@
+func Main() -> Void {
+    let path: String = "backend_compare_file_handle_io.txt";
+    let fd: Int = FileOpen(path, "w");
+    FileWrite(fd, "alpha\n");
+    FileWrite(fd, "beta\n");
+    FileClose(fd);
+
+    let rd: Int = FileOpen(path, "r");
+    Log(FileRead(rd));
+    FileClose(rd);
+}

@@ -1,0 +1,11 @@
+Program:
+  Function: Main
+    Parameters:
+    Returns: Void
+    Body:
+      Block:
+        Let: n : Int = 42
+        Let: f : Float = 3.14
+        Let: b : Bool = true
+        Let: s : String = "x"
+

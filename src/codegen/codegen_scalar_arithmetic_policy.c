@@ -17,6 +17,8 @@ pgy_codegen_ast_number_is_nonzero_i32_literal(const ASTNode *node)
 {
     if (node == NULL || node->type != AST_NUMBER || ast_number_is_long(node))
         return false;
+    if (ast_number_is_float(node))
+        return false;
 
     double value = ast_number_value(node);
     int64_t as_int = (int64_t)value;

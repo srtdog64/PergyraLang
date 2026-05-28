@@ -1,0 +1,11 @@
+subject Counter {
+    let value: Int;
+
+    func Increment() -> Void {
+        Log("inc");
+    }
+}
+
+func Main() -> Void {
+    Log("ok");
+}

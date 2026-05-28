@@ -1,0 +1,5 @@
+func Main() -> Void {
+    let x = 5;
+    let y = x + 1;
+    let s = "hi";
+}

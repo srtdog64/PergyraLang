@@ -1,0 +1,9 @@
+Program:
+  Function: Main
+    Parameters:
+    Returns: Void
+    Body:
+      Block:
+        Let: a : Array<Int: Int> = [1, 2, 3]
+        Let: b : Map<String: String, Int: Int> = [1]
+

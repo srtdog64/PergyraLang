@@ -1,0 +1,8 @@
+subject Player {
+    let name: String;
+    let level: Int;
+}
+
+func Main() -> Void {
+    Log("ok");
+}

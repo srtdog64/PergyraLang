@@ -1,0 +1,5 @@
+func Main() -> Void {
+    Log("First");
+    Log("Second");
+    Log("Third");
+}

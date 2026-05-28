@@ -1752,7 +1752,8 @@ self-host-preparation-test-smoke: $(PGY)
 	"$(BASH)" src/self_hosted/parity/diagnostic_catalog_checker_parity.sh
 	"$(BASH)" src/self_hosted/parity/doc_link_checker_parity.sh
 	"$(BASH)" src/self_hosted/parity/examples_inventory_checker_parity.sh
-	"$(BASH)" src/self_hosted/parity/lex_minimal_parity.sh
+	"$(BASH)" src/self_hosted/parity/lexer_parity.sh
+	"$(BASH)" src/self_hosted/parity/parser_parity.sh
 	"$(BASH)" src/self_hosted/parity/module_manifest_resolver_parity.sh
 	"$(BASH)" src/self_hosted/parity/production_c_size_checker_parity.sh
 	"$(BASH)" src/self_hosted/parity/production_header_size_checker_parity.sh
@@ -1762,8 +1763,13 @@ self-host-preparation-test-smoke: $(PGY)
 self-host-diagnostic-catalog-parity-test-smoke: $(PGY)
 	"$(BASH)" src/self_hosted/parity/diagnostic_catalog_checker_parity.sh
 
-self-host-lex-minimal-parity-test-smoke: $(PGY)
-	"$(BASH)" src/self_hosted/parity/lex_minimal_parity.sh
+self-host-lexer-parity-test-smoke: $(PGY)
+	"$(BASH)" src/self_hosted/parity/lexer_parity.sh
+
+self-host-lex-minimal-parity-test-smoke: self-host-lexer-parity-test-smoke
+
+self-host-parser-parity-test-smoke: $(PGY)
+	"$(BASH)" src/self_hosted/parity/parser_parity.sh
 
 debug-hygiene-test-smoke:
 	"$(BASH)" tests/debug_hygiene_smoke.sh

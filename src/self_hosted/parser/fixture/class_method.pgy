@@ -1,0 +1,15 @@
+class Counter {
+    let value: Int;
+
+    func Increment() -> Void {
+        Log("inc");
+    }
+
+    func Get() -> Int {
+        return value;
+    }
+}
+
+func Main() -> Void {
+    Log("ok");
+}

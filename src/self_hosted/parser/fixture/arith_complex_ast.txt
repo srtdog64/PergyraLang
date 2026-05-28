@@ -1,0 +1,10 @@
+Program:
+  Function: Main
+    Parameters:
+    Returns: Void
+    Body:
+      Block:
+        Let: a : Int = (1 + (2 * 3))
+        Let: b : Int = (4 - 5)
+        Let: c : Int = (6 / 7)
+

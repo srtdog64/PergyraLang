@@ -93,6 +93,8 @@ llvm_stmt_infer_expr_type(LLVMGenCtx *ctx, ASTNode *expr)
         double val = ast_number_value(expr);
         if (ast_number_is_long(expr))
             return ctx->type_i64;
+        if (ast_number_is_float(expr))
+            return ctx->type_f32;
         if (val == (int64_t)val
             && val >= -2147483648.0
             && val <= 2147483647.0) {

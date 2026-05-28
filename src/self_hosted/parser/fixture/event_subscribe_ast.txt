@@ -1,0 +1,18 @@
+Program:
+  Event: OnHit
+    Parameters:
+      Let: damage : Int = (null)
+  Function: handle
+    Parameters:
+      damage: Int
+    Returns: Void
+    Body:
+      Block:
+        Log(damage)
+  Function: Main
+    Parameters:
+    Returns: Void
+    Body:
+      Block:
+        EventSubscribe: OnHit += handle
+

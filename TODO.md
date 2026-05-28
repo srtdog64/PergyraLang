@@ -2746,6 +2746,14 @@ English anchor for tooling/doc gates:
   arguments, and file/input/print/sleep operands.
 - Self-host work begins after BETA closure and final dogfood.
 - Self-host handoff docs live in `docs/self_hosted/README.md`; future agents should start there only after reading the beta source-of-truth docs.
+- Self-host compiler-stage substitutes live as siblings of `src/self_hosted/`
+  (`lexer/`, `parser/`, `semantic/`, `codegen/`, `air/`, `hir/`, `mir/`,
+  `compiler/`, `runtime/`, `lsp/`), mirroring the C-side `src/<component>/`
+  layout exactly. The earlier `compiler/<stage>/<stage>_minimal/` nesting was
+  flattened on 2026-05-28. Only `lexer/` and `parser/` are populated; the
+  rest are parking placeholders until the C/LLVM beta feature surface is
+  closed.
+  Do not expand self-host implementation ahead of C/LLVM parity closure.
 - Exact beta-exit handoff criteria live in `docs/self_hosted/04_beta_exit_handoff.md`.
 - Compiler architecture source-of-truth spine lives in
   `docs/125_source_of_truth_spine.md`. Read it before changing CFG/MIR, AIR,
@@ -4163,6 +4171,78 @@ English anchor for tooling/doc gates:
 - `else if` now has a direct C/LLVM parity fixture:
   `tests/cases/backend_compare/else_if_chain`. Keep all-path return,
   cleanup, and branch-join ownership facts CFG-owned.
+- Lowercase `func main() -> Void` now has a direct C/LLVM parity fixture:
+  `tests/cases/backend_compare/entry_lowercase_main`. Keep richer entry
+  return/args policy partial; the current gate only freezes no-arg Void entry.
+- Unary minus over decimal literals and parenthesized arithmetic now has a
+  direct C/LLVM parity fixture:
+  `tests/cases/backend_compare/numeric_unary_minus`. Keep literal-negative
+  parser shorthand policy partial; the stable path is unary lowering.
+- Annotated scalar numeric widening now has a direct C/LLVM parity fixture:
+  `tests/cases/backend_compare/scalar_numeric_widening`. LLVM scalar binary
+  lowering must coerce mixed float/double literal operands to the expression
+  target type, `ToString(Double)` must use the double runtime export instead of
+  truncating through Float, and LLVM runtime cache freshness must track
+  `pgy_runtime_lib_core_exports.h` so new scalar string conversion exports
+  cannot be hidden by stale runtime objects. `runtime-abi-lifetime-test-smoke`
+  now also gates inline and LLVM scalar `ToString` helpers as result-owned
+  string producers.
+- Scalar math runtime calls now have a direct C/LLVM parity fixture:
+  `tests/cases/backend_compare/scalar_math_runtime`. `Sqrt`, `Pow`, `Floor`,
+  and `Ceil` are wired through the LLVM runtime registry instead of remaining
+  C-inline-only evidence.
+- Trig/log scalar runtime calls now have a direct C/LLVM parity fixture:
+  `tests/cases/backend_compare/scalar_trig_log_runtime`. `Sin`, `Cos`, `Tan`,
+  `Asin`, `Acos`, `Atan`, `Atan2`, `Round`, `Exp`, `MathLog`, `Log10`, and
+  `Log2` are exported for LLVM-linkable runtime use and compared on
+  deterministic inputs.
+- Scalar parse conversion now has a direct C/LLVM parity fixture:
+  `tests/cases/backend_compare/scalar_parse_conversion`. This gates `ToInt`
+  and `ToFloat` through both the C inline stdlib path and LLVM-linkable runtime
+  registry path.
+- Console no-newline/banner output now has a direct C/LLVM parity fixture:
+  `tests/cases/backend_compare/io_print_banner`. Keep `Print` as no-newline
+  output and `LogBanner` on the ordinary runtime log/banner newline path.
+- Handle-based file I/O now has a direct C/LLVM parity fixture:
+  `tests/cases/backend_compare/file_handle_io`. Keep `FileOpen`,
+  `FileWrite`, `FileRead`, and `FileClose` aligned with the whole-file helper
+  surface already exercised by `string_io`.
+- Runtime time/sleep calls now have a direct C/LLVM parity fixture:
+  `tests/cases/backend_compare/runtime_time_sleep`. Keep this deterministic:
+  the gate checks `Now() >= 0` and `Sleep(0)` call-path behavior, not exact
+  wall-clock values.
+- Seeded runtime random now has a direct C/LLVM parity fixture:
+  `tests/cases/backend_compare/runtime_seeded_random`. Keep this as runtime
+  path parity only: the gate validates seed replay and `Random(0)` behavior
+  inside the same toolchain/runtime family, not a portable libc random sequence
+  across platforms.
+- Basic `async func` + `spawn` + `await Future<T>` now has a direct C/LLVM
+  parity fixture: `tests/cases/backend_compare/async_spawn_await`. Keep
+  cancellation, RemoteFuture, and pin/borrow boundary edge cases on their
+  existing contract smokes.
+- `select` single-ready receive/default now has a direct C/LLVM parity fixture:
+  `tests/cases/backend_compare/select_single_ready` and
+  `tests/cases/backend_compare/select_unbound_ready`. C backend channel send/recv
+  endpoint rendering must keep the channel storage lvalue, not the MIR SSA value
+  copy, so select and channel runtime calls observe the same queue state as
+  LLVM.
+- Plain lexical `unsafe { ... }` body passthrough now has a direct C/LLVM parity
+  fixture: `tests/cases/backend_compare/unsafe_lexical_boundary`. This does not
+  open raw pointer escape; scoped `unsafe(raw)` remains a separate systems-tier
+  contract.
+- Condition-based `while` now has a direct C/LLVM parity fixture:
+  `tests/cases/backend_compare/while_condition_basic`. Keep while reachability,
+  loop cleanup, and break/continue facts CFG-owned.
+- Top-level public/private declaration visibility now has a direct C/LLVM parity
+  fixture: `tests/cases/backend_compare/top_level_visibility_decl`. Keep
+  cross-module visibility rejection DAG-owned; this fixture only freezes
+  same-module declaration lowering parity.
+- Event subscribe/invoke parity now has direct C/LLVM fixtures:
+  `tests/cases/backend_compare/event_named_handler`,
+  `tests/cases/backend_compare/event_unsubscribe`, and
+  `tests/cases/backend_compare/event_lambda_handler`. Keep capture-bearing
+  closure environments partial/rejected until CFG/AIR boundary evidence owns
+  them.
 - `...` is now a reserved spread/rest token with explicit parser rejection in
   expression positions. Public spread/rest remains post-beta until call ABI,
   collection ABI, and destructuring ownership policy are frozen.
@@ -8048,13 +8128,15 @@ candidate scope for upcoming ticks; new peripheral tools should only
 land when an existing substitution is blocked on a missing tool.
 
 **First compiler-internal substitution candidate (2026-05-28):**
-`src/self_hosted/tools/lex_minimal` is rung-1, not a full lexer. It reads
-`examples/hello.pgy` and `examples/array_literal.pgy`, emits the same
-token-list text as `pgy --tokens <source>`, and is gated by
-`src/self_hosted/parity/lex_minimal_parity.sh`. This is the first
+`src/self_hosted/lexer/` is rung-1, not a full lexer. It emits the same
+token-list text as `pgy --tokens <source>` and is gated by
+`src/self_hosted/parity/lexer_parity.sh`. This is the first
 Pergyra-origin tool that substitutes a compiler-internal component
-rather than only auditing repository text. Scope is intentionally tiny:
-only token families present in those two committed fixtures are supported.
+rather than only auditing repository text. Six committed fixtures cover
+the common token families; 191/195 example sources are byte-equal at
+the time of writing. The earlier `compiler/lexer/lex_minimal/` nesting
+was flattened on 2026-05-28 to mirror C-side `src/lexer/` exactly;
+`src/self_hosted/parser/` follows the same convention.
 The value is the side-by-side substitution loop (C lexer stays authoritative,
 Pergyra lexer candidate must be byte-equal), not production lexer replacement.
 

@@ -1,0 +1,11 @@
+class Counter {
+    let value: Int;
+
+    func Add(delta: Int) -> Int {
+        return value + delta;
+    }
+}
+
+func Main() -> Void {
+    Log("ok");
+}

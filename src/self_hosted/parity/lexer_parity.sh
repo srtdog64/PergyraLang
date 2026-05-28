@@ -19,21 +19,21 @@ PGY_EXPLICIT=0
 
 if [[ ! -x "$PGY" ]]; then
     if [[ "$PGY_EXPLICIT" -eq 0 ]]; then
-        echo "[self-host-parity:lex-minimal] SKIP missing compiler binary: $PGY"
+        echo "[self-host-parity:lexer] SKIP missing compiler binary: $PGY"
         exit 0
     fi
-    echo "[self-host-parity:lex-minimal] missing compiler binary: $PGY" >&2
+    echo "[self-host-parity:lexer] missing compiler binary: $PGY" >&2
     exit 1
 fi
 
-PERGYRA_TOOL_SOURCE="$ROOT_DIR/src/self_hosted/tools/lex_minimal/main.pgy"
-PERGYRA_TOOL_BUILD_DIR="${PGY_SELFHOST_BUILD_DIR:-$ROOT_DIR/.tmp/self_hosted/lex_minimal}"
+PERGYRA_TOOL_SOURCE="$ROOT_DIR/src/self_hosted/lexer/main.pgy"
+PERGYRA_TOOL_BUILD_DIR="${PGY_SELFHOST_BUILD_DIR:-$ROOT_DIR/.tmp/self_hosted/lexer}"
 PERGYRA_TOOL="$PERGYRA_TOOL_BUILD_DIR/main.pgy"
-FIXTURE_DIR="$ROOT_DIR/src/self_hosted/tools/lex_minimal/fixture"
+FIXTURE_DIR="$ROOT_DIR/src/self_hosted/lexer/fixture"
 SOURCE_OVERRIDE="$FIXTURE_DIR/source.txt"
 
 if [[ ! -f "$PERGYRA_TOOL_SOURCE" ]]; then
-    echo "[self-host-parity:lex-minimal] missing Pergyra tool: $PERGYRA_TOOL_SOURCE" >&2
+    echo "[self-host-parity:lexer] missing Pergyra tool: $PERGYRA_TOOL_SOURCE" >&2
     exit 1
 fi
 
@@ -68,11 +68,11 @@ for pair in "${SOURCE_PAIRS[@]}"; do
     expected_file="$FIXTURE_DIR/$fix"
 
     if [[ ! -f "$ROOT_DIR/$src" ]]; then
-        echo "[self-host-parity:lex-minimal] missing source: $src" >&2
+        echo "[self-host-parity:lexer] missing source: $src" >&2
         exit 1
     fi
     if [[ ! -f "$expected_file" ]]; then
-        echo "[self-host-parity:lex-minimal] missing fixture: $expected_file" >&2
+        echo "[self-host-parity:lexer] missing fixture: $expected_file" >&2
         exit 1
     fi
 
@@ -86,14 +86,14 @@ for pair in "${SOURCE_PAIRS[@]}"; do
     P_RC=$?
     set -e
     if [[ "$P_RC" -ne 0 ]]; then
-        echo "[self-host-parity:lex-minimal] $src: clean exit-code FAIL (pergyra=$P_RC)" >&2
+        echo "[self-host-parity:lexer] $src: clean exit-code FAIL (pergyra=$P_RC)" >&2
         printf '%s\n' "$PERGYRA_OUT" >&2
         exit 1
     fi
 
     EXPECTED_OUT="$(tr -d '\r' < "$expected_file")"
     if [[ "$PERGYRA_OUT" != "$EXPECTED_OUT" ]]; then
-        echo "[self-host-parity:lex-minimal] $src: fixture byte-drift" >&2
+        echo "[self-host-parity:lexer] $src: fixture byte-drift" >&2
         diff <(printf '%s\n' "$EXPECTED_OUT") <(printf '%s\n' "$PERGYRA_OUT") | head -20 >&2
         exit 1
     fi
@@ -106,11 +106,11 @@ for pair in "${SOURCE_PAIRS[@]}"; do
     if [[ "$LIVE_RC" -eq 0 && -n "$LIVE_OUT" ]]; then
         LIVE_NORM="$(printf '%s' "$LIVE_OUT" | tr -d '\r')"
         if [[ "$LIVE_NORM" != "$EXPECTED_OUT" ]]; then
-            echo "[self-host-parity:lex-minimal] $src: committed fixture drifted from live pgy --tokens" >&2
+            echo "[self-host-parity:lexer] $src: committed fixture drifted from live pgy --tokens" >&2
             exit 1
         fi
         ANY_DRIFT_GUARD_RAN="yes"
     fi
 done
 
-echo "[self-host-parity:lex-minimal] rung-1 parity ok (${#SOURCE_PAIRS[@]} sources byte-equal; live-drift=$ANY_DRIFT_GUARD_RAN)"
+echo "[self-host-parity:lexer] rung-1 parity ok (${#SOURCE_PAIRS[@]} sources byte-equal; live-drift=$ANY_DRIFT_GUARD_RAN)"

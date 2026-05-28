@@ -1,4 +1,4 @@
-# Lex Minimal -- Intent / Contract
+# Lexer -- Intent / Contract
 
 **Status:** *rung-1 minimal* (2026-05-27). First Pergyra-origin tool that
 **substitutes a compiler-internal component** (the C-side

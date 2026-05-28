@@ -1,0 +1,10 @@
+Program:
+  Function: Main
+    Parameters:
+    Returns: Void
+    Body:
+      Block:
+        While: (1 < 2)
+          Block:
+            Log("loop")
+

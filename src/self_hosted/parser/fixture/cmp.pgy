@@ -1,0 +1,6 @@
+func Main() -> Void {
+    let a: Bool = 1 < 2;
+    let b: Bool = 3 == 4;
+    let c: Bool = 5 >= 6;
+    let d: Bool = 7 != 8;
+}

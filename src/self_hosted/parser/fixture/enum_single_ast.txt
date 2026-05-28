@@ -1,0 +1,9 @@
+Program:
+  Enum: Mark { Only }
+  Function: Main
+    Parameters:
+    Returns: Void
+    Body:
+      Block:
+        Log("ok")
+

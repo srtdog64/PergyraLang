@@ -1,0 +1,17 @@
+func Main() -> Void {
+    let ch: Channel<Int> = Channel(2);
+    ch <- 17;
+
+    select {
+        case <- ch:
+            Log("ready");
+        default:
+            Log("default");
+    }
+
+    if ChannelReady(ch) {
+        Log("not-drained");
+    } else {
+        Log("drained");
+    }
+}

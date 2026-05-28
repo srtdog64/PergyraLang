@@ -1,0 +1,6 @@
+subject Marker {
+}
+
+func Main() -> Void {
+    Log("ok");
+}

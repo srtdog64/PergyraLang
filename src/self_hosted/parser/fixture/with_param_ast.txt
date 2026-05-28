@@ -1,0 +1,9 @@
+Program:
+  Function: Greet
+    Parameters:
+      name: String
+    Returns: Void
+    Body:
+      Block:
+        Log(name)
+

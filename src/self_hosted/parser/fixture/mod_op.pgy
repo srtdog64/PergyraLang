@@ -1,0 +1,4 @@
+func Main() -> Void {
+    let a = 10 % 3;
+    let b = i % 15 == 0;
+}

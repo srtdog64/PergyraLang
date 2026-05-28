@@ -1,0 +1,4 @@
+func Main() -> Void {
+    p.x = 10;
+    p.y = 32;
+}

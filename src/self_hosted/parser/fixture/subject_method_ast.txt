@@ -1,0 +1,18 @@
+Program:
+  Subject: Counter
+    Fields:
+      value: Int
+    Methods:
+      Function: Increment
+        Parameters:
+        Returns: Void
+        Body:
+          Block:
+            Log("inc")
+  Function: Main
+    Parameters:
+    Returns: Void
+    Body:
+      Block:
+        Log("ok")
+

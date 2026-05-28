@@ -21,6 +21,22 @@
 #include "transpiler_type_render.h"
 #include "transpiler_type_require.h"
 
+static char *
+emit_channel_endpoint_lvalue(ASTNode *channel, TranspilerCtx *ctx)
+{
+    const void *saved_active_ssa_map = NULL;
+    char *result = NULL;
+
+    if (ctx == NULL)
+        return emit_expression(channel, ctx);
+
+    saved_active_ssa_map = ctx->active_ssa_map;
+    ctx->active_ssa_map = NULL;
+    result = emit_expression(channel, ctx);
+    ctx->active_ssa_map = saved_active_ssa_map;
+    return result;
+}
+
 char *
 emit_spawn_expr(ASTNode *node, TranspilerCtx *ctx)
 {
@@ -253,7 +269,7 @@ emit_channel_send(ASTNode *node, TranspilerCtx *ctx)
         return pergyra_strdup("0");
     }
 
-    char *ch  = emit_expression(channel, ctx);
+    char *ch  = emit_channel_endpoint_lvalue(channel, ctx);
     char *val = emit_expression(value, ctx);
     char inner_buf[128];
     const char *inner = transpiler_require_channel_inner_type(
@@ -280,7 +296,7 @@ emit_channel_recv(ASTNode *node, TranspilerCtx *ctx)
         return pergyra_strdup("0");
     }
 
-    char *ch = emit_expression(channel, ctx);
+    char *ch = emit_channel_endpoint_lvalue(channel, ctx);
     char inner_buf[128];
     const char *inner = transpiler_require_channel_inner_type(
         ctx, channel, "channel receive", inner_buf, sizeof(inner_buf));

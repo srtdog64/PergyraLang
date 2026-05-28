@@ -391,9 +391,9 @@ emit_call_stdlib_builtin(ASTNode *call, ASTNode *callee, TranspilerCtx *ctx)
             } else if (to_string_kind == TRANSPILER_TO_STRING_KIND_FLOAT) {
                 result = strdup_fmt("pgy_float_to_string(%s)", arg);
             } else if (to_string_kind == TRANSPILER_TO_STRING_KIND_DOUBLE) {
-                result = strdup_fmt("pgy_float_to_string((float)(%s))", arg);
+                result = strdup_fmt("pgy_double_to_string(%s)", arg);
             } else if (to_string_kind == TRANSPILER_TO_STRING_KIND_LONG) {
-                result = strdup_fmt("pgy_int_to_string((int32_t)(%s))", arg);
+                result = strdup_fmt("pgy_long_to_string(%s)", arg);
             } else {
                 result = strdup_fmt("pgy_int_to_string(%s)", arg);
             }

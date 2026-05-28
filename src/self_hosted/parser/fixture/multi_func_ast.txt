@@ -1,0 +1,14 @@
+Program:
+  Function: Helper
+    Parameters:
+    Returns: Void
+    Body:
+      Block:
+        Log("aux")
+  Function: Main
+    Parameters:
+    Returns: Void
+    Body:
+      Block:
+        Helper()
+

@@ -1,0 +1,11 @@
+Program:
+  Class: Counter
+    Fields:
+      value: Int
+  Function: Main
+    Parameters:
+    Returns: Void
+    Body:
+      Block:
+        Log("ok")
+

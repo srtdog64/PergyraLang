@@ -1,0 +1,22 @@
+func Main() -> Void {
+    let zero: Float = 0.0;
+    let one: Float = 1.0;
+    let two: Float = 2.0;
+    let three: Float = 3.0;
+    let eight: Float = 8.0;
+    let hundred: Float = 100.0;
+
+    Log(ToString(Sin(zero)));
+    Log(ToString(Cos(zero)));
+    Log(ToString(Tan(zero)));
+    Log(ToString(Asin(zero)));
+    Log(ToString(Acos(one)));
+    Log(ToString(Atan(zero)));
+    Log(ToString(Atan2(zero, one)));
+    Log(ToString(Round(ToFloat("2.6"))));
+    Log(ToString(Exp(zero)));
+    Log(ToString(MathLog(one)));
+    Log(ToString(Log10(hundred)));
+    Log(ToString(Log2(eight)));
+    Log(ToString(Pow(two, three)));
+}

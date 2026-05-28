@@ -1,0 +1,8 @@
+vessel HP {
+    current: Int;
+    max: Int;
+}
+
+func Main() -> Void {
+    Log("ok");
+}

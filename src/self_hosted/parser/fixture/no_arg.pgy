@@ -1,0 +1,4 @@
+func Main() -> Void {
+    Setup();
+    Teardown();
+}

@@ -1,0 +1,4 @@
+func Main() -> Void {
+    let a: Array<Int> = [1, 2, 3];
+    let b: Map<String, Int> = [1];
+}

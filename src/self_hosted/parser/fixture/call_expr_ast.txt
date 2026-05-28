@@ -1,0 +1,16 @@
+Program:
+  Function: Add
+    Parameters:
+      a: Int
+      b: Int
+    Returns: Int
+    Body:
+      Block:
+        Return: (a + b)
+  Function: Main
+    Parameters:
+    Returns: Void
+    Body:
+      Block:
+        Let: r : Int = Add(1, 2)
+

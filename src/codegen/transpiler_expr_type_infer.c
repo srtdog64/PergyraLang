@@ -99,6 +99,8 @@ infer_expression_type_name(TranspilerCtx *ctx, ASTNode *expr)
     case AST_NUMBER:
         if (ast_number_is_long(expr))
             return "Long";
+        if (ast_number_is_float(expr))
+            return "Float";
         return ast_number_value(expr) == (int64_t)ast_number_value(expr)
             ? "Int"
             : "Float";

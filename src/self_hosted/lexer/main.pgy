@@ -1,4 +1,4 @@
-// src/self_hosted/tools/lex_minimal/main.pgy
+// src/self_hosted/lexer/main.pgy
 //
 // Status: rung-1 expanding (2026-05-28). Pergyra-written lexer that
 // substitutes a subset of src/lexer/lexer.c. Currently handles:
@@ -158,9 +158,8 @@ func KeywordType(text: String) -> String {
     if text == "intent" {
         return "INTENT";
     }
-    if text == "projection" {
-        return "PROJECTION";
-    }
+    // NOTE: `projection` is NOT a keyword -- C lexer emits IDENTIFIER
+    // (verified on handoff_world_state_frontier).
     // NOTE: `authority` and `handoff` are NOT keywords -- C lexer emits
     // IDENTIFIER for both (verified vs `pgy --tokens` on multiple files).
     if text == "spawn" {
@@ -234,6 +233,18 @@ func KeywordType(text: String) -> String {
     if text == "remote" {
         return "REMOTE";
     }
+    if text == "extern" {
+        return "EXTERN";
+    }
+    if text == "include" {
+        return "INCLUDE";
+    }
+    if text == "ref" {
+        return "UNKNOWN";
+    }
+    if text == "own" {
+        return "UNKNOWN";
+    }
     return "IDENTIFIER";
 }
 
@@ -269,7 +280,7 @@ func TokenLine(idx: Int, ttype: String, text: String, line: Int, col: Int) -> St
 }
 
 func Main() -> Void {
-    let override_path: String = "src/self_hosted/tools/lex_minimal/fixture/source.txt";
+    let override_path: String = "src/self_hosted/lexer/fixture/source.txt";
     let source_path: String = "examples/hello.pgy";
     if FileExists(override_path) {
         let raw: String = ReadFile(override_path);
@@ -379,6 +390,11 @@ func Main() -> Void {
                     col = col + 1;
                 }
             }
+            // Long literal suffix: `L` appended to digits.
+            if CharAt(content, i) == "L" {
+                i = i + 1;
+                col = col + 1;
+            }
             let text: String = Substring(content, start, i - start);
             token_count = token_count + 1;
             ArrayPush(output_lines, TokenLine(token_count, "NUMBER", text, line, start_col));
@@ -476,6 +492,14 @@ func Main() -> Void {
         if c == ":" && n2 == "=" {
             token_count = token_count + 1;
             ArrayPush(output_lines, TokenLine(token_count, ":=", ":=", line, col));
+            i = i + 2;
+            col = col + 2;
+            continue;
+        }
+        // ?? null-coalesce
+        if c == "?" && n2 == "?" {
+            token_count = token_count + 1;
+            ArrayPush(output_lines, TokenLine(token_count, "??", "??", line, col));
             i = i + 2;
             col = col + 2;
             continue;

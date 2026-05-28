@@ -23,6 +23,8 @@ emit_literal_expression(ASTNode *node)
         if (ast_number_is_long(node))
             return strdup_fmt("%lldLL",
                 (long long)(int64_t)ast_number_value(node));
+        if (ast_number_is_float(node))
+            return strdup_fmt("((float)%g)", ast_number_value(node));
         if (ast_number_value(node) == (int64_t)ast_number_value(node))
             return strdup_fmt("%lld",
                 (long long)(int64_t)ast_number_value(node));

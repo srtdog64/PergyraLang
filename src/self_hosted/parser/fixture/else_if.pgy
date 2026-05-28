@@ -1,0 +1,9 @@
+func Main() -> Void {
+    if 1 < 2 {
+        Log("a");
+    } else if 3 < 4 {
+        Log("b");
+    } else {
+        Log("c");
+    }
+}

@@ -1,0 +1,11 @@
+func Main() -> Void {
+    let ch: Channel<Int> = Channel(2);
+    ch <- 42;
+
+    select {
+        case v = <- ch:
+            Log(v);
+        default:
+            Log(0);
+    }
+}

@@ -1,0 +1,13 @@
+namespace Game {
+    subject Player {
+        let name: String;
+    }
+
+    func MakeP() -> Void {
+        Log("p");
+    }
+}
+
+func Main() -> Void {
+    Log("ok");
+}

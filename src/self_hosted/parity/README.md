@@ -1,6 +1,6 @@
 # Soft Self-Host Parity Harness
 
-Status: ten rung-2 parity harnesses plus one compiler-internal rung-1 harness active.
+Status: ten rung-2 parity harnesses plus two compiler-internal rung-1 harnesses active.
 
 This folder holds oracle comparisons for soft self-host tools. The C compiler
 and existing shell/C smokes remain the source of truth until a tool can run in
@@ -18,7 +18,8 @@ The parity set currently covers:
 - `production_header_size_checker`
 - `production_c_size_checker`
 - `examples_inventory_checker`
-- `lex_minimal` (rung-1 compiler-internal substitution)
+- `lexer` (rung-1 compiler-internal lexer substitution)
+- `parser` (rung-1 compiler-internal parser substitution)
 
 `make self-host-preparation-test-smoke` runs the full set. Individual parity
 targets may still be used for focused work, but a tool is not considered

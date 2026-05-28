@@ -1,0 +1,10 @@
+Program:
+  Function: Main
+    Parameters:
+    Returns: Void
+    Body:
+      Block:
+        Let: x : Int = 0
+        Assign: x = 5
+        Assign: x = (x + 1)
+

@@ -1,0 +1,4 @@
+func Main() -> Void {
+    let n: Int = 1 + 2;
+    let m: Int = n * 3;
+}

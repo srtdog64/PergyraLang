@@ -1,0 +1,6 @@
+func Main() -> Void {
+    unsafe {
+        Log("unsafe-boundary");
+        Log(ToString(1 + 2));
+    }
+}

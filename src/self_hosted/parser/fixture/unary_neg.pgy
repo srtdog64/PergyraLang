@@ -1,0 +1,5 @@
+func Main() -> Void {
+    let a: Int = -5;
+    let b: Int = -x;
+    let c: Int = -(1 + 2);
+}

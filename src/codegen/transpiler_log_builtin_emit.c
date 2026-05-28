@@ -5,6 +5,7 @@
 
 #include "transpiler.h"
 #include "transpiler_context.h"
+#include "transpiler_expr_type_infer.h"
 #include "transpiler_format.h"
 #include "transpiler_log_normalize.h"
 
@@ -14,6 +15,19 @@
 
 #include <stdlib.h>
 #include <string.h>
+
+static char *
+emit_c_log_call_for_expr(ASTNode *arg_node, char *arg, TranspilerCtx *ctx)
+{
+    const char *type_name;
+
+    if (arg == NULL)
+        return pergyra_strdup("0");
+    type_name = transpiler_expr_infer_type_name(ctx, arg_node);
+    if (type_name != NULL && strcmp(type_name, "Bool") == 0)
+        return strdup_fmt("pgy_log_bool((bool)(%s))", arg);
+    return strdup_fmt("pgy_log(%s)", arg);
+}
 
 char *
 emit_builtin_log(ASTNode *call, TranspilerCtx *ctx)
@@ -49,7 +63,7 @@ emit_builtin_log(ASTNode *call, TranspilerCtx *ctx)
             return pergyra_strdup("/* Log: failed to escape string */");
         }
         char *arg = emit_expression(ast_call_argument(call, 0), ctx);
-        char *result = strdup_fmt("pgy_log(%s)", arg);
+        char *result = emit_c_log_call_for_expr(arg_node, arg, ctx);
         free(arg);
         return result;
     }
@@ -57,8 +71,12 @@ emit_builtin_log(ASTNode *call, TranspilerCtx *ctx)
     CodeBuf *buf = codebuf_create();
     codebuf_write(buf, "do { ");
     for (size_t i = 0; i < ast_call_arg_count(call); i++) {
-        char *arg = emit_expression(ast_call_argument(call, i), ctx);
-        codebuf_write(buf, "pgy_log(%s); ", arg);
+        ASTNode *arg_node = ast_call_argument(call, i);
+        char *arg = emit_expression(arg_node, ctx);
+        char *log_call = emit_c_log_call_for_expr(arg_node, arg, ctx);
+        codebuf_write(buf, log_call);
+        codebuf_write(buf, "; ");
+        free(log_call);
         free(arg);
     }
     codebuf_write(buf, "} while(0)");

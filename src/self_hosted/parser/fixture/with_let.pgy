@@ -1,0 +1,4 @@
+func Main() -> Void {
+    let msg: String = "hello";
+    Log(msg);
+}

@@ -152,10 +152,14 @@ rung-2 tools with parity scripts:
 - `production_c_size_checker`
 - `examples_inventory_checker`
 
-As of 2026-05-28, `lex_minimal` adds the first compiler-internal rung-1
-substitution candidate: it reimplements the `examples/hello.pgy` token stream
-in Pergyra and compares byte-for-byte against `pgy --tokens`. It is deliberately
-not a full lexer.
+As of 2026-05-28, compiler-internal rung-1 substitutes mirror C-side
+`src/<component>/` as siblings of `src/self_hosted/`:
+
+- `src/self_hosted/lexer/` compares byte-for-byte against `pgy --tokens`.
+- `src/self_hosted/parser/` compares a growing text-tree subset
+  byte-for-byte against `pgy --ast`.
+
+They are deliberately not full compiler stages.
 
 The full parity set is gated by `make self-host-preparation-test-smoke`. These
 tools are still **soft self-host evidence**, not compiler-core migration.

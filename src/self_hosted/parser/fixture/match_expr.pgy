@@ -1,0 +1,7 @@
+func Main() -> Void {
+    let x: Int = 1;
+    match x {
+        case 1 + 2: Log("three");
+        default: Log("nope");
+    }
+}

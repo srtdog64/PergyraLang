@@ -1,0 +1,8 @@
+Program:
+  Function: Bye
+    Parameters:
+    Returns: Void
+    Body:
+      Block:
+        Return
+

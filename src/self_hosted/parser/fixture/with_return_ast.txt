@@ -1,0 +1,9 @@
+Program:
+  Function: Identity
+    Parameters:
+      n: Int
+    Returns: Int
+    Body:
+      Block:
+        Return: n
+

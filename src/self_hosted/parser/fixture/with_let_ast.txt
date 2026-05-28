@@ -1,0 +1,9 @@
+Program:
+  Function: Main
+    Parameters:
+    Returns: Void
+    Body:
+      Block:
+        Let: msg : String = "hello"
+        Log(msg)
+

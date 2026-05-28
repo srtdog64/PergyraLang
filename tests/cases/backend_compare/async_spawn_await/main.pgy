@@ -1,0 +1,9 @@
+async func Inc(x: Int) -> Int {
+    return x + 1;
+}
+
+async func Main() -> Void {
+    let task: Future<Int> = spawn Inc(4);
+    let value: Int = await task;
+    Log(value);
+}

@@ -1,0 +1,4 @@
+func Main() -> Void {
+    let a: Bool = !b;
+    let c: Bool = !(1 < 2);
+}

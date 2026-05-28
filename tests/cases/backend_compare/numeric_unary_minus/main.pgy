@@ -1,0 +1,10 @@
+func Main() -> Void {
+    let a: Int = -1;
+    let b: Int = 4;
+    let c: Int = -(b + 3);
+    let d: Int = b * -2;
+
+    Log(ToString(a));
+    Log(ToString(c));
+    Log(ToString(d));
+}

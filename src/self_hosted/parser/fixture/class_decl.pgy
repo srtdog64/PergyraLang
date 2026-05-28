@@ -1,0 +1,7 @@
+class Counter {
+    let value: Int;
+}
+
+func Main() -> Void {
+    Log("ok");
+}

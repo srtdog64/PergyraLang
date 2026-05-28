@@ -1,0 +1,5 @@
+func Main() -> Void {
+    while 1 < 2 {
+        Log("loop");
+    }
+}

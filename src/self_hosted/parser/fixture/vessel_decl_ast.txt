@@ -1,0 +1,12 @@
+Program:
+  Vessel: HP
+    Fields:
+      current: Int
+      max: Int
+  Function: Main
+    Parameters:
+    Returns: Void
+    Body:
+      Block:
+        Log("ok")
+

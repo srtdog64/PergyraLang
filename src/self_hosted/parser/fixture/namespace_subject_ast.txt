@@ -1,0 +1,17 @@
+Program:
+  Subject: Game_Player
+    Fields:
+      name: String
+  Function: Game_MakeP
+    Parameters:
+    Returns: Void
+    Body:
+      Block:
+        Log("p")
+  Function: Main
+    Parameters:
+    Returns: Void
+    Body:
+      Block:
+        Log("ok")
+

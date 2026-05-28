@@ -1,0 +1,6 @@
+func Main() -> Void {
+    let n: Int = 42;
+    let f: Float = 3.14;
+    let b: Bool = true;
+    let s: String = "x";
+}

@@ -1,0 +1,9 @@
+event OnHit(damage: Int);
+
+func handle(damage: Int) -> Void {
+    Log(damage);
+}
+
+func Main() -> Void {
+    OnHit += handle;
+}

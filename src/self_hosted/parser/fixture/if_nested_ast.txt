@@ -1,0 +1,14 @@
+Program:
+  Function: Main
+    Parameters:
+    Returns: Void
+    Body:
+      Block:
+        If: (1 < 2)
+          Then:
+            Block:
+              If: (3 < 4)
+                Then:
+                  Block:
+                    Log("deep")
+

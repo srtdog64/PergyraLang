@@ -1,0 +1,18 @@
+Program:
+  Function: Main
+    Parameters:
+    Returns: Void
+    Body:
+      Block:
+        Let: x : Int = 1
+        Match: x
+          Case: 1
+            Block:
+              Log("one")
+          Case: 2
+            Block:
+              Log("two")
+          Default:
+            Block:
+              Log("other")
+

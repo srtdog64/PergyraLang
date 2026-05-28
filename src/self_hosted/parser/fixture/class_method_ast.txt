@@ -1,0 +1,24 @@
+Program:
+  Class: Counter
+    Fields:
+      value: Int
+    Methods:
+      Function: Increment
+        Parameters:
+        Returns: Void
+        Body:
+          Block:
+            Log("inc")
+      Function: Get
+        Parameters:
+        Returns: Int
+        Body:
+          Block:
+            Return: value
+  Function: Main
+    Parameters:
+    Returns: Void
+    Body:
+      Block:
+        Log("ok")
+

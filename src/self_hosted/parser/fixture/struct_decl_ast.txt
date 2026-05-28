@@ -1,0 +1,13 @@
+Program:
+  Struct: Point
+    Fields:
+      x: Int
+      y: Int
+  Function: Main
+    Parameters:
+    Returns: Void
+    Body:
+      Block:
+        Let: p : Point = Point()
+        Log(ToString(p.x))
+

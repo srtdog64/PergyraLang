@@ -1,0 +1,10 @@
+func Main() -> Void {
+    SeedRandom(12345);
+    let first: Int = Random(1000);
+    let second: Int = Random(1000);
+
+    SeedRandom(12345);
+    Log(first == Random(1000));
+    Log(second == Random(1000));
+    Log(Random(0));
+}

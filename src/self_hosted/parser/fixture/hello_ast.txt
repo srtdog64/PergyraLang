@@ -1,0 +1,7 @@
+Program:
+  Function: Main
+    Parameters:
+    Returns: Void
+    Body:
+      Block:
+        Log("Hello, Pergyra!")

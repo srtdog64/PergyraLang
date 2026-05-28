@@ -66,6 +66,45 @@ llvm_function_signature_from_event_type(LLVMGenCtx *ctx, ASTNode *type_node)
     return fn_type;
 }
 
+static LLVMTypeRef
+llvm_binary_float_target_type(LLVMGenCtx *ctx, LLVMTypeRef left_type,
+                              LLVMTypeRef right_type, ASTNode *left_expr,
+                              ASTNode *right_expr)
+{
+    if (left_type == ctx->type_f32 && right_type == ctx->type_f64
+        && right_expr != NULL && right_expr->type == AST_NUMBER)
+        return ctx->type_f32;
+    if (right_type == ctx->type_f32 && left_type == ctx->type_f64
+        && left_expr != NULL && left_expr->type == AST_NUMBER)
+        return ctx->type_f32;
+    if (left_type == ctx->type_f64 || right_type == ctx->type_f64)
+        return ctx->type_f64;
+    return ctx->type_f32;
+}
+
+static LLVMValueRef
+llvm_coerce_numeric_to_fp(LLVMGenCtx *ctx, LLVMValueRef value,
+                          LLVMTypeRef target_type)
+{
+    LLVMTypeRef source_type;
+
+    if (ctx == NULL || value == NULL || target_type == NULL)
+        return value;
+    source_type = LLVMTypeOf(value);
+    if (source_type == target_type)
+        return value;
+    if (source_type == ctx->type_i32 || source_type == ctx->type_i64)
+        return LLVMBuildSIToFP(ctx->builder, value, target_type,
+                               llvm_tmp_name(ctx));
+    if (source_type == ctx->type_f32 && target_type == ctx->type_f64)
+        return LLVMBuildFPExt(ctx->builder, value, target_type,
+                              llvm_tmp_name(ctx));
+    if (source_type == ctx->type_f64 && target_type == ctx->type_f32)
+        return LLVMBuildFPTrunc(ctx->builder, value, target_type,
+                                llvm_tmp_name(ctx));
+    return value;
+}
+
 LLVMTypeRef
 llvm_function_signature_from_callable_entry(LLVMGenCtx *ctx,
                                             const LLVMCallableVarEntry *entry)
@@ -378,12 +417,15 @@ llvm_emit_binary(ASTNode *node, LLVMGenCtx *ctx)
                   || right_type == ctx->type_f64 || right_type == ctx->type_f32);
 
     if (is_float) {
-        if (left_type == ctx->type_i32)
-            left = LLVMBuildSIToFP(ctx->builder, left, ctx->type_f64,
-                                    llvm_tmp_name(ctx));
-        if (right_type == ctx->type_i32)
-            right = LLVMBuildSIToFP(ctx->builder, right, ctx->type_f64,
-                                     llvm_tmp_name(ctx));
+        LLVMTypeRef target_type = llvm_binary_float_target_type(
+            ctx, left_type, right_type, left_expr, right_expr);
+        left = llvm_coerce_numeric_to_fp(ctx, left, target_type);
+        right = llvm_coerce_numeric_to_fp(ctx, right, target_type);
+        left_type = LLVMTypeOf(left);
+        right_type = LLVMTypeOf(right);
+        if (left_type != target_type || right_type != target_type)
+            return llvm_scalar_expr_error(ctx, node,
+                "LLVM floating binary expression could not align operand types");
     }
 
     if (!is_float && (op_type == TOKEN_SLASH

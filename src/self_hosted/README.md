@@ -23,17 +23,32 @@ its `intent.md`.
 
 ## Layout
 
+Compiler-stage directories mirror C-side `src/` siblings (one per
+compiler component, no umbrella).
+
 ```
 src/self_hosted/
   README.md                       -- this file
   PROGRESS.md                     -- honest substitution percentage
-  tools/                          -- Stage 1 soft self-host tools
+  lexer/                          -- mirrors C-side src/lexer/
+    main.pgy + fixture/ + expected/ + intent.md
+  parser/                         -- mirrors C-side src/parser/
+    main.pgy + fixture/ + expected/ + intent.md
+  semantic/                       -- mirrors C-side src/semantic/ (placeholder)
+  codegen/                        -- mirrors C-side src/codegen/ (placeholder)
+  air/  hir/  mir/                -- IR-stage placeholders
+  compiler/                       -- driver placeholder, mirrors src/compiler/
+  runtime/                        -- stays C; placeholder for layout parity
+  lsp/                            -- mirrors C-side src/lsp/ (placeholder)
+  lib/                            -- shared Pergyra helpers (e.g. text_scan)
+  tools/                          -- peripheral audit tools (NOT counted toward substitution)
     <tool_name>/
       intent.md                   -- input/output contract + oracle
-      main.pgy                    -- Pergyra implementation or scaffold
-      expected/                   -- baseline outputs the C oracle agrees with
+      main.pgy
+      expected/
   parity/                         -- C / LLVM / Pergyra comparison harness
     README.md
+    lexer_parity.sh + parser_parity.sh + <tool>_parity.sh
 ```
 
 ## Current Status
@@ -56,11 +71,15 @@ src/self_hosted/
   `lib/text_scan.pgy` owns reusable scan helpers used by multiple tools.
   `make self-host-preparation-test-smoke` now runs every parity script, not just
   the scaffold check. This is dogfood evidence only; the compiler core remains C.
-- **2026-05-28** -- first compiler-internal substitution candidate:
-  `tools/lex_minimal/` reimplements the token output for `examples/hello.pgy`
-  and `examples/array_literal.pgy` in Pergyra and gates byte-equality against
-  `pgy --tokens`. This is rung-1 only: it proves the side-by-side substitution
-  loop, not full lexer parity.
+- **2026-05-28** -- first compiler-internal substitution candidates land as
+  C-side-mirroring siblings: `lexer/` gates byte-equality against
+  `pgy --tokens` (6 fixtures), and `parser/` gates a growing text-tree
+  subset against `pgy --ast` (9 fixtures: hello, multi-statement,
+  parameters, no-arg / ident-arg calls, let with mixed literals, multi-
+  function, return). The earlier `compiler/lexer/lex_minimal/` and
+  `compiler/parser/parse_minimal/` nesting was flattened to mirror
+  C-side `src/<component>/` exactly. This is rung-1 only: it proves the
+  side-by-side substitution loop, not full compiler parity.
 
 ## Non-Negotiable Rules
 

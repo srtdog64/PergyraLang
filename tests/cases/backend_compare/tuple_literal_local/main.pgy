@@ -1,0 +1,12 @@
+func Main() -> Void {
+    let pair: (Int, String) = (7, "seven");
+    let triple: (Int, Int, Bool) = (3, 4, true);
+
+    let (n, label) = pair;
+    let (a, b, flag) = triple;
+
+    Log(ToString(n));
+    Log(label);
+    Log(ToString(a + b));
+    Log(ToString(flag));
+}

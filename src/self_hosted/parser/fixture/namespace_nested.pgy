@@ -1,0 +1,11 @@
+namespace Outer {
+    namespace Inner {
+        func Hi() -> Void {
+            Log("x");
+        }
+    }
+}
+
+func Main() -> Void {
+    Log("ok");
+}

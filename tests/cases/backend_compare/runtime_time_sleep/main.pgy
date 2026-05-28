@@ -1,0 +1,6 @@
+func Main() -> Void {
+    let t: Int = Now();
+    Log(t >= 0);
+    Sleep(0);
+    Log("timer-ok");
+}

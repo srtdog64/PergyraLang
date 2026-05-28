@@ -1,0 +1,7 @@
+func Helper() -> Void {
+    Log("aux");
+}
+
+func Main() -> Void {
+    Helper();
+}

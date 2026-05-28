@@ -1,0 +1,9 @@
+Program:
+  Function: Main
+    Parameters:
+    Returns: Void
+    Body:
+      Block:
+        Let: a : Bool = (!b)
+        Let: c : Bool = (!(1 < 2))
+

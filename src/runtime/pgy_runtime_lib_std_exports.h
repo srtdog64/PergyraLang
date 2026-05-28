@@ -57,6 +57,18 @@ float Sqrt(float x)  { return sqrtf(x); }
 float Pow(float x, float y) { return powf(x, y); }
 float Floor(float x) { return floorf(x); }
 float Ceil(float x)  { return ceilf(x); }
+float Round(float x) { return roundf(x); }
+float Sin(float x)   { return sinf(x); }
+float Cos(float x)   { return cosf(x); }
+float Tan(float x)   { return tanf(x); }
+float Asin(float x)  { return asinf(x); }
+float Acos(float x)  { return acosf(x); }
+float Atan(float x)  { return atanf(x); }
+float Atan2(float y, float x) { return atan2f(y, x); }
+float Exp(float x)   { return expf(x); }
+float MathLog(float x) { return logf(x); }
+float Log10(float x) { return log10f(x); }
+float Log2(float x)  { return log2f(x); }
 
 int32_t Random(int32_t max)
 {

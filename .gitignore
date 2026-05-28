@@ -55,12 +55,18 @@ examples/**/expected_results.llvm.txt
 src/self_hosted/tools/**/probe.pgy
 src/self_hosted/tools/**/probe_*.pgy
 # Lexer fixture source override is parity-script-managed; never tracked.
-src/self_hosted/tools/lex_minimal/fixture/source.txt
+src/self_hosted/lexer/fixture/source.txt
+# Parser fixture source override is parity-script-managed; never tracked.
+src/self_hosted/parser/fixture/source.txt
 # Pergyra-emitted artifacts when a self-host tool is run directly via
 # `pgy --emit-c` / `--emit-llvm`. The build dir under `.tmp/` is already
 # ignored; these are for ad-hoc in-place runs.
 src/self_hosted/tools/**/main.c
 src/self_hosted/tools/**/main.ll
+src/self_hosted/lexer/main.c
+src/self_hosted/lexer/main.ll
+src/self_hosted/parser/main.c
+src/self_hosted/parser/main.ll
 src/self_hosted/lib/*.c
 src/self_hosted/lib/*.ll
 

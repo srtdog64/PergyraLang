@@ -1,0 +1,14 @@
+Program:
+  Function: Outer_Inner_Hi
+    Parameters:
+    Returns: Void
+    Body:
+      Block:
+        Log("x")
+  Function: Main
+    Parameters:
+    Returns: Void
+    Body:
+      Block:
+        Log("ok")
+

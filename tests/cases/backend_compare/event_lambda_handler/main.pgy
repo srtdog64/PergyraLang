@@ -1,0 +1,8 @@
+event OnHit(damage: Int);
+
+func Main() -> Void {
+    OnHit += (d: Int) => {
+        Log("hit=" + ToString(d));
+    };
+    OnHit(5);
+}

@@ -128,6 +128,16 @@ static inline char* pgy_float_to_string(float val) {
     return buf;
 }
 
+static inline char* pgy_double_to_string(double val) {
+    char *buf = pergyra_strdup_printf("%g", val);
+    if (buf == NULL) {
+        char *fallback = (char *)malloc(4);
+        if (fallback != NULL) { fallback[0] = '0'; fallback[1] = '.'; fallback[2] = '0'; fallback[3] = '\0'; }
+        return fallback;
+    }
+    return buf;
+}
+
 static inline char* pgy_bool_to_string(bool val) {
     const char *s = val ? "true" : "false";
     size_t len = strlen(s);

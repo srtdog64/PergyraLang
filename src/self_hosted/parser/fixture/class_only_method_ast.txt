@@ -1,0 +1,16 @@
+Program:
+  Class: Thing
+    Methods:
+      Function: Do
+        Parameters:
+        Returns: Void
+        Body:
+          Block:
+            Log("x")
+  Function: Main
+    Parameters:
+    Returns: Void
+    Body:
+      Block:
+        Log("ok")
+

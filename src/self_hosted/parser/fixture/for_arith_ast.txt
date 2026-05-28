@@ -1,0 +1,10 @@
+Program:
+  Function: Main
+    Parameters:
+    Returns: Void
+    Body:
+      Block:
+        For: i in a..(b + 1)
+          Block:
+            Log("x")
+

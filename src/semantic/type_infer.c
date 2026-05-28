@@ -23,6 +23,8 @@ type_infer_expression(const ASTNode *expr, TypeEnv *env)
     case AST_NUMBER:
         if (ast_number_is_long(expr))
             return TYPE_LONG;
+        if (ast_number_is_float(expr))
+            return TYPE_FLOAT;
         return ast_number_value(expr) == (int64_t)ast_number_value(expr)
             ? TYPE_INT
             : TYPE_FLOAT;

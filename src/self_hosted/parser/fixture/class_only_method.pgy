@@ -1,0 +1,9 @@
+class Thing {
+    func Do() -> Void {
+        Log("x");
+    }
+}
+
+func Main() -> Void {
+    Log("ok");
+}

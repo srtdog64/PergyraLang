@@ -1,0 +1,10 @@
+Program:
+  Function: Main
+    Parameters:
+    Returns: Void
+    Body:
+      Block:
+        Let: a : Bool = ((1 < 2) && (3 < 4))
+        Let: b : Bool = ((1 < 2) || (3 < 4))
+        Let: c : Bool = (((1 < 2) && (3 < 4)) || (5 < 6))
+

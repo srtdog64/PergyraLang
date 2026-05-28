@@ -1,0 +1,6 @@
+func Main() -> Void {
+    let a = obj.field;
+    let b = obj.method();
+    let c = obj.nested.field;
+    obj.Greet();
+}

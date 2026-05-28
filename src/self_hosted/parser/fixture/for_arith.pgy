@@ -1,0 +1,5 @@
+func Main() -> Void {
+    for i in a..b + 1 {
+        Log("x");
+    }
+}

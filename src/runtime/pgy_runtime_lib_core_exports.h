@@ -74,4 +74,53 @@ pgy_int_to_string(int32_t v)
     return buf;
 }
 
+char *
+pgy_long_to_string(int64_t v)
+{
+    char *buf = pergyra_strdup_printf("%lld", (long long)v);
+    if (buf == NULL) {
+        char *fallback = (char *)malloc(2);
+        if (fallback != NULL) {
+            fallback[0] = '0';
+            fallback[1] = '\0';
+        }
+        return fallback;
+    }
+    return buf;
+}
+
+char *
+pgy_float_to_string(float v)
+{
+    char *buf = pergyra_strdup_printf("%g", (double)v);
+    if (buf == NULL) {
+        char *fallback = (char *)malloc(4);
+        if (fallback != NULL) {
+            fallback[0] = '0';
+            fallback[1] = '.';
+            fallback[2] = '0';
+            fallback[3] = '\0';
+        }
+        return fallback;
+    }
+    return buf;
+}
+
+char *
+pgy_double_to_string(double v)
+{
+    char *buf = pergyra_strdup_printf("%g", v);
+    if (buf == NULL) {
+        char *fallback = (char *)malloc(4);
+        if (fallback != NULL) {
+            fallback[0] = '0';
+            fallback[1] = '.';
+            fallback[2] = '0';
+            fallback[3] = '\0';
+        }
+        return fallback;
+    }
+    return buf;
+}
+
 #endif /* PGY_RUNTIME_LIB_CORE_EXPORTS_H */

@@ -271,6 +271,9 @@ llvm_emit_number(ASTNode *node, LLVMGenCtx *ctx)
         return LLVMConstInt(ctx->type_i64, (unsigned long long)(int64_t)val, 1);
     }
 
+    if (ast_number_is_float(node))
+        return LLVMConstReal(ctx->type_f32, val);
+
     if (val == (int64_t)val && val >= -2147483648.0 && val <= 2147483647.0)
         return LLVMConstInt(ctx->type_i32, (unsigned long long)(int32_t)val, 1);
 

@@ -127,6 +127,13 @@ ast_number_is_long(const ASTNode* node)
         && node->data.number.is_long;
 }
 
+bool
+ast_number_is_float(const ASTNode* node)
+{
+    return node != NULL && node->type == AST_NUMBER
+        && node->data.number.is_float;
+}
+
 const char*
 ast_string_value(const ASTNode* node)
 {

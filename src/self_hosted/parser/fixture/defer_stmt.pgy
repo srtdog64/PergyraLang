@@ -1,0 +1,5 @@
+func Main() -> Void {
+    Log("a");
+    defer { Log("b"); };
+    Log("c");
+}

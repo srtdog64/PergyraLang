@@ -1,0 +1,9 @@
+Program:
+  Function: Main
+    Parameters:
+    Returns: Void
+    Body:
+      Block:
+        Let: n : Int = (1 + 2)
+        Let: m : Int = (n * 3)
+

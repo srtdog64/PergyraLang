@@ -1,0 +1,6 @@
+func Main() -> Void {
+    let nums: Array<Int> = [10, 20, 30];
+    for n in nums {
+        Log(n);
+    }
+}

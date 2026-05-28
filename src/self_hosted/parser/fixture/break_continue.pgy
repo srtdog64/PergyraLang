@@ -1,0 +1,8 @@
+func Main() -> Void {
+    while 1 < 2 {
+        break;
+    }
+    while 1 < 2 {
+        continue;
+    }
+}

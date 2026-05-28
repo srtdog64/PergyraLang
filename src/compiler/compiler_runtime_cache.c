@@ -70,6 +70,8 @@ compiler_runtime_cache_is_fresh(const char *cache_obj_path)
         PGY_RUNTIME_LIB_C,
         PGY_SRC_DIR "/common/string_compat.h",
         PGY_RUNTIME_DIR "/pgy_runtime.h",
+        PGY_RUNTIME_DIR "/pgy_runtime_lib_core_exports.h",
+        PGY_RUNTIME_DIR "/pgy_runtime_lib_std_exports.h",
         PGY_RUNTIME_DIR "/pgy_runtime_lib_authority_file_core.h",
         PGY_RUNTIME_DIR "/pgy_runtime_lib_file_path_core.h",
         PGY_RUNTIME_DIR "/pgy_runtime_lib_raw_collection_exports.h",

@@ -1,0 +1,3 @@
+func Greet(name: String) -> Void {
+    Log(name);
+}

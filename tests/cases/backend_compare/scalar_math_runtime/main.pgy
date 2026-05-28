@@ -1,0 +1,12 @@
+func Main() -> Void {
+    let nine: Float = 9.0;
+    let two: Float = 2.0;
+    let three: Float = 3.0;
+    let low: Float = ToFloat("3.25");
+    let high: Float = ToFloat("3.75");
+
+    Log(ToString(Sqrt(nine)));
+    Log(ToString(Pow(two, three)));
+    Log(ToString(Floor(high)));
+    Log(ToString(Ceil(low)));
+}

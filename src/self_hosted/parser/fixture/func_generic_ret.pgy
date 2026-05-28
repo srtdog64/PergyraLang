@@ -1,0 +1,3 @@
+func SafeDiv(a: Int, b: Int) -> Result<Int> {
+    return Ok(a / b);
+}

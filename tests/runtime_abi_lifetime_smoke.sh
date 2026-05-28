@@ -168,6 +168,7 @@ concat_runtime_text "$inline_text" \
     "src/runtime/pgy_runtime_memory_array_slot_inline.h" \
     "src/runtime/pgy_runtime_slot_macros.h" \
     "src/runtime/pgy_runtime_channel_inline.h" \
+    "src/runtime/pgy_runtime_scalar_std_inline.h" \
     "src/runtime/pgy_runtime_builtin_storage_inline.h" \
     "src/runtime/pgy_runtime_list_set_inline.h" \
     "src/runtime/pgy_runtime_pool_fsm_timer_inline.h" \
@@ -333,6 +334,14 @@ check_result_owned_strings "llvm-string-helpers" "$llvm_string_text" \
     pgy_runtime_lib_strdup \
     pgy_file_read pgy_read_file pgy_input Substring StringReplace StringTrim \
     ToUpper ToLower StringConcat StringJoin
+
+check_result_owned_strings "inline-scalar-string-helpers" "$inline_text" \
+    pergyra_strdup_printf \
+    pgy_int_to_string pgy_long_to_string pgy_float_to_string pgy_double_to_string
+
+check_result_owned_strings "llvm-scalar-string-helpers" "$llvm_text" \
+    pergyra_strdup_printf \
+    pgy_int_to_string pgy_long_to_string pgy_float_to_string pgy_double_to_string
 
 check_result_owned_arrays "inline-string-array-helpers" "$inline_string_text" \
     pgy_runtime_strdup StringSplit
