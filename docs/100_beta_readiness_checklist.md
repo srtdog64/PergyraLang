@@ -83,9 +83,10 @@ domain declaration lookup returning to `type_checker_func_action_contract.c`,
 authority consumer.
 
 Current backend parity refresh (2026-05-29): local MinGW/Git Bash
-`tests/compare_backends.sh` passed the frozen backend-compare suite at `180/180`
-after promoting `select_fairness`, registering `if_else_chain`, and adding the
-`device_slot_remote` C/LLVM path. The follow-up runtime-panic slice rechecked
+`tests/compare_backends.sh` passed the frozen backend-compare suite at `181/181`
+after promoting `select_fairness`, registering `if_else_chain`, adding the
+`device_slot_remote` C/LLVM path, and registering loop-defer `continue`
+cleanup parity. The follow-up runtime-panic slice rechecked
 `device_slot_remote`, `select_fairness`, and `try_operator_result` at `3/3`, and
 `runtime-panic-codegen-test-smoke` now covers `?` on Err in a non-Result-returning
 function for both C and LLVM. `backend-compare-llvm-coverage-test-smoke` keeps

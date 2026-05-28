@@ -445,6 +445,7 @@ main() {
         "tests/cases/backend_compare/branch_defer_skipped"
         "tests/cases/backend_compare/defer_scope_exit"
         "tests/cases/backend_compare/loop_defer_break_current"
+        "tests/cases/backend_compare/loop_defer_continue_current"
         "tests/cases/backend_compare/boilerplate_reduction"
         "tests/cases/backend_compare/intent_decl_overlay"
         "tests/cases/backend_compare/intent_conflict_runtime"

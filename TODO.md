@@ -93,7 +93,8 @@ English anchor for tooling/doc gates:
   (`RemoteFuture<T> -> Result<T>`) and allows non-Result-returning unwrap sites
   to hard-fail on Err; LLVM `?` now calls the same internal-invariant runtime
   panic export instead of lowering that edge to a bare `unreachable`. Full
-  backend compare target is now `180/180`, and
+  backend compare target is now `181/181` after adding the loop-defer
+  `continue` cleanup parity fixture, and
   `runtime-panic-codegen-test-smoke` covers the `?` Err-in-`Void` path for both
   C and LLVM. Remaining LLVM-only surface is intentionally narrow:
   `qubit_slot` remains experimental / out-of-beta. New gate:
@@ -580,7 +581,7 @@ English anchor for tooling/doc gates:
   named semantic owner seam while the deeper DAG metadata slice remains open.
 - LLVM parity evidence refreshed after the semantic domain-owner seam cleanup
   was later superseded by the 2026-05-29 backend parity refresh:
-  `compare_backends.sh` is now `180/180`, the non-experimental LLVM smoke
+  `compare_backends.sh` is now `181/181`, the non-experimental LLVM smoke
   surface is guarded by `backend-compare-llvm-coverage-test-smoke`, and the
   only allowlisted LLVM-only fixture is `qubit_slot` (out of beta). This
   strengthens the MIR/LLVM parity evidence, but it does not raise the project
