@@ -1,0 +1,6 @@
+func Add(a: Int, b: Int) -> Int { return a + b; }
+func Mul(a: Int, b: Int) -> Int { return a * b; }
+
+func Main() -> Void {
+    Log(Add(Mul(2, 3), Mul(4, 5)));
+}

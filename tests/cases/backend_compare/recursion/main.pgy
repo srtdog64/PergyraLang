@@ -1,0 +1,10 @@
+func Factorial(n: Int) -> Int {
+    if n <= 1 { return 1; }
+    return n * Factorial(n - 1);
+}
+
+func Main() -> Void {
+    Log(Factorial(5));
+    Log(Factorial(1));
+    Log(Factorial(0));
+}

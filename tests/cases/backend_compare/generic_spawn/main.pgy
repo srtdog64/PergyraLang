@@ -1,0 +1,9 @@
+func Identity<T>(x: T) -> T {
+    return x;
+}
+
+async func Main() -> Void {
+    let task = spawn Identity(42);
+    let value: Int = await task;
+    Log(value);
+}

@@ -35,7 +35,7 @@ English anchor for tooling/doc gates:
   returns, and nested range loops are now promoted from LLVM-only smoke as well.
   Subject projection, subject-vs-class method dispatch, and object layer
   binding are now promoted from LLVM-only smoke as well. Local MinGW/Git Bash
-  gate: `tests/compare_backends.sh` (`142/142`).
+  gate: `tests/compare_backends.sh` (`142/142` at that checkpoint).
 - Slot/SecureSlot ownership parity now includes exact LLVM-smoke coverage for
   secure pin read/write views, `Slot<subject>` and `SecureSlot<subject>` cell
   storage, `ref Slot<subject>` boundary passing, and `own SecureSlot<subject>`
@@ -71,6 +71,14 @@ English anchor for tooling/doc gates:
   boundary forms; do not add slice transport across async/spawn/world
   boundaries without an owner/provenance proof and a smoke gate. Remaining
   design work is any future `MutSlice<T>` model.
+- C/LLVM backend-compare default parity now also promotes broader LLVM-smoke
+  coverage for dynamic array operations, collection mutation/query families
+  (`list_ops`, `queue_ops`, `map_ops`, `map_ops_long_bool`, `set_ops`),
+  direct recursion/nested-call variants, if/else chains, cancellation
+  contracts, generic/string spawn, channel pressure, intent failure result,
+  relation/effect projection sync, and zone runtime layer/effect/projection
+  paths. Local targeted MinGW/Git Bash gate passed for the 21 new fixtures;
+  full backend compare target is now `173/173`.
 - CI smoke portability guard: beta/source-of-truth smoke scripts must remain
   compatible with macOS Bash 3.2. `build-source-inventory-test-smoke` now
   rejects Bash 4-only `mapfile` / `readarray`, associative arrays, parameter

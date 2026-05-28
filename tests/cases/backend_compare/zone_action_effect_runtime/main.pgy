@@ -1,0 +1,36 @@
+subject Player {
+    let hp: Int;
+
+    action Attack(self) -> Void
+        within BattleZone
+        causes Poisoned
+        authorized by self {
+        hp = hp - 1;
+    }
+}
+
+object PlayerView {
+    hp: Int;
+}
+
+effect Poisoned for bearer: Player {
+    object slot view: PlayerView
+    refresh view from bearer
+}
+
+zone BattleZone {
+    subject slot player: Player
+    effect slot poison: Poisoned
+    authority player
+
+    func Tick(self) -> Void {
+        self.player.Attack();
+        Log(HasLayer(poison));
+        Log(self.poison.view.hp);
+    }
+}
+
+func Main() -> Void {
+    let battle = BattleZone(Player(7));
+    battle.Tick();
+}

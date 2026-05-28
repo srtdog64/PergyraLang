@@ -129,7 +129,7 @@ speed and order-independent declarations as first-class compiler constraints.
 
 | Pattern | Common shape | Pergyra mapping | Status | Notes |
 | --- | --- | --- | --- | --- |
-| Free function | `fn`, `def`, `function` | `func f(...) -> T` | `stable` | Baseline function; ordinary recursion and nested-call C/LLVM parity are gated by `free_function_recursion` and `nested_function_calls`. |
+| Free function | `fn`, `def`, `function` | `func f(...) -> T` | `stable` | Baseline function; ordinary recursion and nested-call C/LLVM parity are gated by `free_function_recursion`, `recursion`, `nested_function_calls`, and `nested_calls`. |
 | Hosted method | `this`/`self` method | hosted `func` with `self` context | `stable` | Declaration inventory must be MIR/DIR/RIR-owned. |
 | Domain behavior | method with preconditions/effects | `action ... requires / within / causes` | `stable` | Action contracts stay explicit in IR. |
 | Member access / method chaining | `x.y`, `x.f()` | `AST_MEMBER_ACCESS` + call chaining | `stable` | Must stay ordinary expression lowering; do not overload into authority semantics. |
@@ -147,7 +147,7 @@ speed and order-independent declarations as first-class compiler constraints.
 | Pattern | Common shape | Pergyra mapping | Status | Notes |
 | --- | --- | --- | --- | --- |
 | Conditional | `if / else` | `if / else` | `stable` | CFG must own body safety. |
-| Else-if shorthand | `else if` | nested `if` / accepted surface where present | `partial` | Basic C/LLVM parity is gated by `else_if_chain`; all-path return and cleanup facts remain CFG-owned. |
+| Else-if shorthand | `else if` | nested `if` / accepted surface where present | `partial` | Basic C/LLVM parity is gated by `else_if_chain` and `if_else_chain`; all-path return and cleanup facts remain CFG-owned. |
 | While loop | `while` | `while` | `stable` | Basic loop accumulation is gated by `while_loop`, condition-focused parity by `while_condition_basic`; CFG reachability and cleanup facts remain required. |
 | For range | `for i in 0..n` | `for` over ranges | `stable` | Keep simple; nested range-loop parity is gated by `nested_loops`. |
 | For collection | `foreach`, `for v in xs` | `for` over collections | `stable` | Frozen collection subset only. |
@@ -180,11 +180,11 @@ speed and order-independent declarations as first-class compiler constraints.
 | --- | --- | --- | --- | --- |
 | Async function | `async fn`, `async Task<T>` | `async func` | `stable` | Stable subset only; async function declaration parity is gated by `async_func_decl`, and basic C/LLVM spawn/await parity is gated by `async_spawn_await`. |
 | Await | `.await`, `await task` | `await` | `stable` | Pin/borrow boundaries must reject unsafe crossing; basic C/LLVM parity is gated by `async_spawn_await`. |
-| Spawn task | `tokio::spawn`, `Task.Run`, goroutine | `spawn` | `stable` | Token/authority transport rules apply; basic C/LLVM parity is gated by `async_spawn_await`, and lexical async block send/recv by `async_block_runtime`. |
+| Spawn task | `tokio::spawn`, `Task.Run`, goroutine | `spawn` | `stable` | Token/authority transport rules apply; basic C/LLVM parity is gated by `async_spawn_await`, lexical async block send/recv by `async_block_runtime`, and generic/string spawn by `generic_spawn`, `generic_spawn_multi`, and `string_spawn`. |
 | Parallel block | Rayon/Parallel.For/scope | `parallel` / `parallel on` | `stable` | Layered resource/concurrency/domain model. |
-| Channel | Go channel / mpsc | `Channel<T>`, send/recv | `stable` | Cross-world transfer stays channel-only; direct send/recv parity is gated by `channel_basic`, and capacity/length/space/full/closed state queries are C/LLVM parity-gated by `channel_pressure_state`. |
+| Channel | Go channel / mpsc | `Channel<T>`, send/recv | `stable` | Cross-world transfer stays channel-only; direct send/recv parity is gated by `channel_basic`, and capacity/length/space/full/closed state queries are C/LLVM parity-gated by `channel_pressure_state` and `channel_pressure`. |
 | Select | Go `select`, Tokio select | `select` | `partial` | Single-ready bound/unbound receive/default C/LLVM parity is gated by `select_single_ready` and `select_unbound_ready`; fairness, timeout, cancellation, and backpressure policy remain narrow. |
-| Cancellation | token/abort/cancel scope | cancel/failure contracts | `partial` | Explicit `Future<T>` annotation on spawned work is parity-gated by `future_annotation`; narrow `Cancel(Future<T>)` result parity is gated by `future_cancel_state`, and parent/child propagation by `future_cancel_propagation`; richer diagnostics and payload policy still need tightening. |
+| Cancellation | token/abort/cancel scope | cancel/failure contracts | `partial` | Explicit `Future<T>` annotation on spawned work is parity-gated by `future_annotation`; narrow `Cancel(Future<T>)` result parity is gated by `future_cancel_state` and `cancel_future`, and parent/child propagation by `future_cancel_propagation` and `cancel_propagation`; richer diagnostics and payload policy still need tightening. |
 | Atomic | `AtomicI32`, `Interlocked` | runtime/internal only | `out-of-beta` | User-facing atomics are not beta core. |
 
 ## 10. Domain-Orchestration Patterns
@@ -192,10 +192,10 @@ speed and order-independent declarations as first-class compiler constraints.
 | Pattern | Common shape | Pergyra mapping | Status | Notes |
 | --- | --- | --- | --- | --- |
 | Saga/workflow | Camunda/Temporal/Saga lib | `intent` | `stable` | Spine of orchestration. |
-| State machine | explicit state enum + transitions | `intent` + `zone` + `effect` | `native-different` | Lifecycle propagation must stay explicit; world derived/composed state parity is gated by `world_derived_states` and `world_composed_states`. |
+| State machine | explicit state enum + transitions | `intent` + `zone` + `effect` | `native-different` | Lifecycle propagation must stay explicit; world derived/composed state parity is gated by `world_derived_states`, `world_composed_states`, `zone_has_layer`, `zone_action_effect_runtime`, and `zone_effect_pool_runtime`. |
 | DDD aggregate boundary | aggregate root class | `subject` + `zone` | `native-different` | Avoid forcing tree-shaped ownership. |
 | Authorization guard | middleware/filter/attribute | `authority`, `authorized by`, zone policy | `stable` | Layered authority, not one universal owner. |
-| Read model projection | DTO/read model/mapper | `projection`, `object`, `tobject` | `partial` | Freshness/provenance closure remains important; world-zone cross-query and mutation refresh parity are gated by `world_zone_cross_queries`, `world_zone_mutation_dirty`, and `world_nested_member_assign`. |
+| Read model projection | DTO/read model/mapper | `projection`, `object`, `tobject` | `partial` | Freshness/provenance closure remains important; world-zone cross-query, mutation refresh, and relation/effect projection sync parity are gated by `world_zone_cross_queries`, `world_zone_mutation_dirty`, `world_nested_member_assign`, `zone_layer_projection_runtime`, and `relation_effect_projection_sync`. |
 | Event signal | C# event / signal-slot | `event`, `+=`, `-=`, invocation | `partial` | Named handler, unsubscribe, combined subscribe/invoke/unsubscribe, and lambda handler C/LLVM parity are gated by `event_named_handler`, `event_unsubscribe`, `event_system`, and `event_lambda_handler`; richer closure capture stays rejected/partial. |
 | Relationship table | ORM relationship / association | `relation` | `stable` | Authority-resource-effect ordering must stay coherent. |
 | Effect attachment | mixin/decorator/state extension | `effect` | `stable` | Domain policy, not full Koka-style effect calculus. |
@@ -241,13 +241,13 @@ speed and order-independent declarations as first-class compiler constraints.
 | Seeded random runtime | `seed`, `rand(max)` | `SeedRandom`, `Random` | `stable` | Seed replay and non-positive bounds are C/LLVM parity-gated by `runtime_seeded_random`; this is runtime-path parity, not a cross-libc random-sequence promise. |
 | String interpolation | `$"x={x}"`, f-string | active lexer/parser lowering for `"${expr}"` and `f"{expr}"` | `partial` | C/LLVM parity is gated for basic fragments; escaping, nested interpolation, and format specifiers remain promotion gates. |
 | String utility aliases | `trim`, `replace`, `substring`, casing | `Concat`, `StringTrim`, `StringReplace`, `Substring`, `ToUpper`, `ToLower`, `StringConcat` | `stable` | Direct `Concat`/length parity is gated by `string_concat`; explicit string utility names are gated by `string_utility_aliases`; short aliases remain covered by `string_io`, and negative lookup paths by `io_string_negative_paths`. |
-| Array literal | `[1, 2, 3]` | array literal | `stable` | Type inference must avoid poison defaults. |
+| Array literal | `[1, 2, 3]` | array literal | `stable` | Type inference must avoid poison defaults; dynamic array operations are C/LLVM parity-gated by `dynamic_array_ops`. |
 | Indexing | `xs[i]` | `AST_ARRAY_ACCESS` | `stable` | Index type and target indexability diagnostics are already first-class. |
 | Slicing | `xs[a..b]`, `xs[..]` | `xs[a..b]` desugars to `.Slice(a, b - a)`; `.Slice(start, len)` and `SliceCopy(view)` remain explicit forms | `partial` | Bounded range slicing is active for borrowed views; open-ended `xs[..]` stays reserved until whole-slice length and ownership policy are frozen. |
-| HashMap API | dictionary insert/get/has/remove/keys | `MapNew`, `MapSet`, `MapGet`, `MapHas`, `MapRemove`, `MapSize`, `MapKeys` | `stable` | String-key get/has/remove/size, key snapshot, and Long/Bool key variants are C/LLVM parity-gated by `map_get_string`, `map_presence_ops`, `map_keys`, and `map_key_variants`. |
-| List API | growable sequence | `ListNew`, `ListPush`, `ListGet`, `ListSet`, `ListRemove`, `ListSize` | `stable` | String get and Int mutation/size paths are C/LLVM parity-gated by `list_get_string`, `list_mutation_ops`, and `for_in_list_int`. |
-| Queue API | FIFO queue | `QueueNew`, `QueuePush`, `QueuePop`, `QueueSize`, `QueueEmpty` | `stable` | String pop and Int size/empty paths are C/LLVM parity-gated by `queue_pop_string` and `queue_state_ops`. |
-| Set API | membership collection | `SetNew`, `SetAdd`, `SetHas`, `SetRemove`, `SetSize` | `stable` | Int membership/add/remove/size paths are C/LLVM parity-gated by `set_membership_ops`. |
+| HashMap API | dictionary insert/get/has/remove/keys | `MapNew`, `MapSet`, `MapGet`, `MapHas`, `MapRemove`, `MapSize`, `MapKeys` | `stable` | String-key get/has/remove/size, key snapshot, Long/Bool key variants, and broader map operations are C/LLVM parity-gated by `map_get_string`, `map_presence_ops`, `map_keys`, `map_key_variants`, `map_ops`, and `map_ops_long_bool`. |
+| List API | growable sequence | `ListNew`, `ListPush`, `ListGet`, `ListSet`, `ListRemove`, `ListSize` | `stable` | String get and Int mutation/size paths are C/LLVM parity-gated by `list_get_string`, `list_mutation_ops`, `list_ops`, and `for_in_list_int`. |
+| Queue API | FIFO queue | `QueueNew`, `QueuePush`, `QueuePop`, `QueueSize`, `QueueEmpty` | `stable` | String pop and Int size/empty paths are C/LLVM parity-gated by `queue_pop_string`, `queue_state_ops`, and `queue_ops`. |
+| Set API | membership collection | `SetNew`, `SetAdd`, `SetHas`, `SetRemove`, `SetSize` | `stable` | Int membership/add/remove/size paths are C/LLVM parity-gated by `set_membership_ops` and `set_ops`. |
 | List literal | `vec![...]`, `[]`, collection initializer | array literal only; collection literal sugar out-of-beta | `out-of-beta` | Add typed collection literals only after collection ABI/map policy is frozen. |
 | Map/set literal | dict/hashmap/set literal | `{ ... }` object/map literal syntax rejects explicitly | `out-of-beta` | Same as collection literal; use collection APIs for beta. |
 | Spread/rest | `...xs`, `*args`, destructure rest | none | `out-of-beta` | Useful with collections/calls later; not beta core. |

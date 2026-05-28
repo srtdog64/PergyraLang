@@ -1,0 +1,20 @@
+func Child() -> Int {
+    if (IsCancelled()) {
+        return 9;
+    }
+    return 0;
+}
+
+async func Parent() -> Int {
+    let child: Future<Int> = spawn Child();
+    let value: Int = await child;
+    return value;
+}
+
+async func Main() -> Void {
+    let parent: Future<Int> = spawn Parent();
+    let cancelled: Bool = Cancel(parent);
+    Log(cancelled);
+    let value: Int = await parent;
+    Log(value);
+}

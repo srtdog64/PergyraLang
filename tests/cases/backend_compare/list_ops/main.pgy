@@ -1,0 +1,14 @@
+func Main() -> Void {
+    let items: List<Int> = ListNew();
+    ListPush(items, 10);
+    ListPush(items, 20);
+    ListPush(items, 30);
+    Log(ListSize(items));
+    Log(ListGet(items, 0));
+    Log(ListGet(items, 2));
+    ListSet(items, 1, 99);
+    Log(ListGet(items, 1));
+    ListRemove(items, 0);
+    Log(ListSize(items));
+    Log(ListGet(items, 0));
+}

@@ -1,0 +1,43 @@
+subject Player {
+    let hp: Int;
+}
+
+object PlayerView {
+    hp: Int;
+}
+
+tobject PlayerDto {
+    hp: Int;
+}
+
+effect Poisoned for bearer: Player { }
+relation TrustedLink for source: Player, target: Player { }
+
+zone BattleZone {
+    subject slot player: Player
+    subject slot enemy: Player
+    object slot playerView: PlayerView
+    tobject slot snapshot: PlayerDto
+    effect slot poison: Poisoned
+    relation slot trust: TrustedLink
+    state poisoned: effect poison on player
+    state allied: relation trust between player, enemy
+    refresh playerView from player
+    publish snapshot from player
+    maintain poisoned
+    maintain allied
+
+    func Show() -> Void {
+        Log(HasProjection(playerView));
+        Log(HasProjection(snapshot));
+        Log(HasLayer(poison));
+        Log(HasLayer("trust"));
+        Log(HasState(poisoned));
+        Log(HasState(allied));
+    }
+}
+
+func Main() -> Void {
+    let battle = BattleZone(Player(7), Player(9));
+    battle.Show();
+}

@@ -1,0 +1,48 @@
+subject Player {
+    let hp: Int;
+    let name: String;
+}
+
+object PlayerView {
+    hp: Int;
+}
+
+tobject PlayerDto {
+    hp: Int;
+    name: String;
+}
+
+relation TrustedLink for source: Player, target: Player {
+    object slot snapshot: PlayerView
+    tobject slot packet: PlayerDto
+    refresh snapshot from source
+    publish packet from target
+
+    func Show(self) -> Void {
+        Log(HasProjection(snapshot));
+        Log(HasProjection(packet));
+        Log(self.snapshot.hp);
+        Log(self.packet.name);
+    }
+}
+
+effect Poisoned for bearer: Player {
+    object slot view: PlayerView
+    tobject slot packet: PlayerDto
+    refresh view from bearer
+    publish packet from bearer
+
+    func Show(self) -> Void {
+        Log(HasProjection(view));
+        Log(HasProjection(packet));
+        Log(self.view.hp);
+        Log(self.packet.name);
+    }
+}
+
+func Main() -> Void {
+    let trust = TrustedLink(Player(7, "src"), Player(9, "dst"));
+    let poison = Poisoned(Player(5, "bear"));
+    trust.Show();
+    poison.Show();
+}

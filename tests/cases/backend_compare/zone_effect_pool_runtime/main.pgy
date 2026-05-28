@@ -1,0 +1,20 @@
+subject Player {
+    let hp: Int;
+}
+
+effect DamageEffect for bearer: Player { }
+
+zone BattleZone {
+    subject slot player: Player
+    effect pool damage: DamageEffect capacity 4
+    apply damage to player
+
+    func Show() -> Void {
+        Log(HasLayer(damage));
+    }
+}
+
+func Main() -> Void {
+    let battle = BattleZone(Player(7));
+    battle.Show();
+}

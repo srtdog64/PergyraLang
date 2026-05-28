@@ -1,0 +1,15 @@
+func Classify(x: Int) -> String {
+    if x < 0 {
+        return "negative";
+    } else if x == 0 {
+        return "zero";
+    } else {
+        return "positive";
+    }
+}
+
+func Main() -> Void {
+    Log(Classify(-3));
+    Log(Classify(0));
+    Log(Classify(7));
+}

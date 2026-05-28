@@ -1,0 +1,6 @@
+func Echo<T>(x: T) -> T { return x; }
+async func Main() -> Void {
+    let task = spawn Echo("hi");
+    let value: String = await task;
+    Log(value);
+}
