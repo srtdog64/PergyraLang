@@ -4,9 +4,61 @@
 #include <stdlib.h>
 #include <string.h>
 
+#include "../common/string_compat.h"
 #include "parser/ast_api.h"
+#include "../semantic/diag_codes.h"
+#include "transpiler_context.h"
 #include "transpiler_format.h"
 #include "transpiler_projection.h"
+#include "transpiler_type_render.h"
+
+static bool
+transpiler_ctor_arg_is_channel_ctor(ASTNode *arg)
+{
+    ASTNode *callee;
+
+    if (arg == NULL || arg->type != AST_CALL)
+        return false;
+    callee = ast_call_callee(arg);
+    return callee != NULL
+        && callee->type == AST_IDENTIFIER
+        && strcmp(ast_identifier_name(callee), "Channel") == 0;
+}
+
+static char *
+transpiler_emit_ctor_arg_with_expected_type(TranspilerCtx *ctx,
+                                            ASTNode *field_type,
+                                            const char *field_name,
+                                            ASTNode *arg)
+{
+    char *expected_type;
+    const char *saved_expected_type;
+    char *result;
+
+    if (field_type == NULL)
+        return emit_expression(arg, ctx);
+
+    expected_type = render_type_name_in_ctx(ctx, field_type);
+    if (expected_type != NULL
+        && strncmp(expected_type, "Channel<", 8) == 0
+        && transpiler_ctor_arg_is_channel_ctor(arg)) {
+        transpiler_set_backend_error_with_hints(ctx,
+            PGY_CODE_C_TYPE_UNSUPPORTED,
+            PGY_CAUSE_C_TYPE_UNSUPPORTED,
+            PGY_FIX_BIND_TO_NAMED_VARIABLE_BEFORE_MOVE,
+            "C backend: Channel field '%s' requires a named let binding before aggregate construction",
+            field_name != NULL ? field_name : "<field>");
+        free(expected_type);
+        return pergyra_strdup("0");
+    }
+
+    saved_expected_type = ctx->expected_type;
+    ctx->expected_type = expected_type;
+    result = emit_expression(arg, ctx);
+    ctx->expected_type = saved_expected_type;
+    free(expected_type);
+    return result;
+}
 
 char *
 transpiler_emit_class_constructor_with_type(ASTNode *call,
@@ -28,7 +80,10 @@ transpiler_emit_class_constructor_with_type(ASTNode *call,
     fields_list = ast_class_fields(class_decl, &field_count);
     for (size_t i = 0; i < argc && i < field_count; i++) {
         ClassField *field = fields_list != NULL ? fields_list[i] : NULL;
-        char *arg = emit_expression(ast_call_argument(call, i), ctx);
+        char *arg = transpiler_emit_ctor_arg_with_expected_type(ctx,
+            field != NULL ? field->type : NULL,
+            field != NULL ? field->name : NULL,
+            ast_call_argument(call, i));
         if (i > 0)
             codebuf_write(fields, ", ");
         codebuf_write(fields, ".%s = %s",
@@ -58,7 +113,10 @@ transpiler_emit_party_constructor(ASTNode *call,
     for (size_t i = 0; i < argc && i < shared_count; i++) {
         ASTNode *shared = ast_party_shared(party_decl, i);
         const char *field_name = ast_party_shared_name(shared);
-        char *arg = emit_expression(ast_call_argument(call, i), ctx);
+        char *arg = transpiler_emit_ctor_arg_with_expected_type(ctx,
+            shared != NULL ? ast_party_shared_type(shared) : NULL,
+            field_name,
+            ast_call_argument(call, i));
         if (i > 0)
             codebuf_write(fields, ", ");
         codebuf_write(fields, ".%s = %s",
@@ -77,7 +135,10 @@ transpiler_emit_party_constructor(ASTNode *call,
         if (shared == NULL || ast_party_shared_initializer(shared) == NULL)
             continue;
         field_name = ast_party_shared_name(shared);
-        init_expr = emit_expression(ast_party_shared_initializer(shared), ctx);
+        init_expr = transpiler_emit_ctor_arg_with_expected_type(ctx,
+            ast_party_shared_type(shared),
+            field_name,
+            ast_party_shared_initializer(shared));
         if (fields->len > 0)
             codebuf_write(fields, ", ");
         codebuf_write(fields, ".%s = %s",
@@ -108,16 +169,23 @@ transpiler_emit_roster_constructor(ASTNode *call,
 
     for (size_t i = 0; i < argc && i < exposed; i++) {
         const char *field_name = NULL;
-        char *arg = emit_expression(ast_call_argument(call, i), ctx);
+        ASTNode *field_type = NULL;
+        ASTNode *slot = NULL;
+        ASTNode *shared = NULL;
         if (i < roster_party_count) {
-            ASTNode *slot = ast_roster_party(roster_decl, i);
+            slot = ast_roster_party(roster_decl, i);
             field_name = ast_roster_slot_name(slot) != NULL
                 ? ast_roster_slot_name(slot) : "field";
         } else {
-            ASTNode *shared = ast_roster_shared(roster_decl,
+            shared = ast_roster_shared(roster_decl,
                 i - roster_party_count);
             field_name = ast_party_shared_name(shared);
+            field_type = ast_party_shared_type(shared);
         }
+        char *arg = transpiler_emit_ctor_arg_with_expected_type(ctx,
+            field_type,
+            field_name,
+            ast_call_argument(call, i));
         if (i > 0)
             codebuf_write(fields, ", ");
         codebuf_write(fields, ".%s = %s",
@@ -137,7 +205,10 @@ transpiler_emit_roster_constructor(ASTNode *call,
         if (shared == NULL || ast_party_shared_initializer(shared) == NULL)
             continue;
         field_name = ast_party_shared_name(shared);
-        init_expr = emit_expression(ast_party_shared_initializer(shared), ctx);
+        init_expr = transpiler_emit_ctor_arg_with_expected_type(ctx,
+            ast_party_shared_type(shared),
+            field_name,
+            ast_party_shared_initializer(shared));
         if (fields->len > 0)
             codebuf_write(fields, ", ");
         codebuf_write(fields, ".%s = %s",
@@ -178,14 +249,22 @@ transpiler_emit_relation_effect_constructor(ASTNode *call,
 
     for (size_t i = 0; i < argc && i < slot_count + shared_count; i++) {
         const char *field_name = NULL;
-        char *arg = emit_expression(ast_call_argument(call, i), ctx);
+        ASTNode *field_type = NULL;
+        ASTNode *slot = NULL;
+        ASTNode *shared = NULL;
         if (i < slot_count) {
-            ASTNode *slot = slots[i];
+            slot = slots[i];
             field_name = ast_domain_slot_name(slot);
+            field_type = ast_domain_slot_type(slot);
         } else {
-            ASTNode *shared = shared_fields[i - slot_count];
+            shared = shared_fields[i - slot_count];
             field_name = ast_party_shared_name(shared);
+            field_type = ast_party_shared_type(shared);
         }
+        char *arg = transpiler_emit_ctor_arg_with_expected_type(ctx,
+            field_type,
+            field_name,
+            ast_call_argument(call, i));
         if (i > 0)
             codebuf_write(fields, ", ");
         codebuf_write(fields, ".%s = %s",
@@ -205,7 +284,10 @@ transpiler_emit_relation_effect_constructor(ASTNode *call,
         if (shared == NULL || ast_party_shared_initializer(shared) == NULL)
             continue;
         field_name = ast_party_shared_name(shared);
-        init_expr = emit_expression(ast_party_shared_initializer(shared), ctx);
+        init_expr = transpiler_emit_ctor_arg_with_expected_type(ctx,
+            ast_party_shared_type(shared),
+            field_name,
+            ast_party_shared_initializer(shared));
         if (fields->len > 0)
             codebuf_write(fields, ", ");
         codebuf_write(fields, ".%s = %s",
@@ -254,14 +336,22 @@ transpiler_emit_zone_constructor(ASTNode *call,
 
     for (size_t i = 0; i < argc && i < slot_count + shared_count; i++) {
         const char *field_name = NULL;
-        char *arg = emit_expression(ast_call_argument(call, i), ctx);
+        ASTNode *field_type = NULL;
+        ASTNode *slot = NULL;
+        ASTNode *shared = NULL;
         if (i < slot_count) {
-            ASTNode *slot = slots[i];
+            slot = slots[i];
             field_name = ast_domain_slot_name(slot);
+            field_type = ast_domain_slot_type(slot);
         } else {
-            ASTNode *shared = shared_fields[i - slot_count];
+            shared = shared_fields[i - slot_count];
             field_name = ast_party_shared_name(shared);
+            field_type = ast_party_shared_type(shared);
         }
+        char *arg = transpiler_emit_ctor_arg_with_expected_type(ctx,
+            field_type,
+            field_name,
+            ast_call_argument(call, i));
         if (i > 0)
             codebuf_write(fields, ", ");
         codebuf_write(fields, ".%s = %s",
@@ -281,7 +371,10 @@ transpiler_emit_zone_constructor(ASTNode *call,
         if (shared == NULL || ast_party_shared_initializer(shared) == NULL)
             continue;
         field_name = ast_party_shared_name(shared);
-        init_expr = emit_expression(ast_party_shared_initializer(shared), ctx);
+        init_expr = transpiler_emit_ctor_arg_with_expected_type(ctx,
+            ast_party_shared_type(shared),
+            field_name,
+            ast_party_shared_initializer(shared));
         if (fields->len > 0)
             codebuf_write(fields, ", ");
         codebuf_write(fields, ".%s = %s",
@@ -331,17 +424,24 @@ transpiler_emit_world_constructor(ASTNode *call,
 
     for (size_t i = 0; i < argc && i < exposed; i++) {
         const char *field_name = NULL;
-        char *arg = emit_expression(ast_call_argument(call, i), ctx);
+        ASTNode *field_type = NULL;
+        ASTNode *slot = NULL;
+        ASTNode *shared = NULL;
         if (i < roster_count) {
-            ASTNode *slot = rosters[i];
+            slot = rosters[i];
             field_name = ast_world_roster_slot_name(slot);
         } else if (i < roster_count + zone_count) {
-            ASTNode *slot = zones[i - roster_count];
+            slot = zones[i - roster_count];
             field_name = ast_world_zone_slot_name(slot);
         } else {
-            ASTNode *shared = shared_fields[i - roster_count - zone_count];
+            shared = shared_fields[i - roster_count - zone_count];
             field_name = ast_party_shared_name(shared);
+            field_type = ast_party_shared_type(shared);
         }
+        char *arg = transpiler_emit_ctor_arg_with_expected_type(ctx,
+            field_type,
+            field_name,
+            ast_call_argument(call, i));
         if (i > 0)
             codebuf_write(fields, ", ");
         codebuf_write(fields, ".%s = %s",
@@ -361,7 +461,10 @@ transpiler_emit_world_constructor(ASTNode *call,
         if (shared == NULL || ast_party_shared_initializer(shared) == NULL)
             continue;
         field_name = ast_party_shared_name(shared);
-        init_expr = emit_expression(ast_party_shared_initializer(shared), ctx);
+        init_expr = transpiler_emit_ctor_arg_with_expected_type(ctx,
+            ast_party_shared_type(shared),
+            field_name,
+            ast_party_shared_initializer(shared));
         if (fields->len > 0)
             codebuf_write(fields, ", ");
         codebuf_write(fields, ".%s = %s",

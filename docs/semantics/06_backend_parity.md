@@ -123,6 +123,11 @@ Current evidence:
 
 - LLVM stmt/expr fallback is no longer treated as harmless warning-only behavior.
 - AST dispatch partition smoke checks unsafe fallback categories.
+- C and LLVM aggregate constructor lowering fail-close `Channel<T>` field
+  initialization from inline `Channel(...)`, because channel initialization is
+  statement-level runtime setup and cannot be embedded as a stable aggregate
+  expression. The stable path is a named channel binding before aggregate
+  construction.
 
 Remaining proof obligation:
 

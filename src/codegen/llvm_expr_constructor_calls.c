@@ -8,9 +8,11 @@
 #include "llvm_expr_constructor_calls.h"
 
 #include <stdio.h>
+#include <stdlib.h>
 #include <string.h>
 
 #include "host_decl_compat.h"
+#include "llvm_backend_type_map_internal.h"
 #include "llvm_internal_api.h"
 #include "parser/ast_api.h"
 
@@ -27,6 +29,76 @@ llvm_constructor_error(ASTNode *node, LLVMGenCtx *ctx, const char *message)
                 : "LLVM constructor call could not be lowered");
     }
     return NULL;
+}
+
+static bool
+llvm_ctor_arg_is_channel_ctor(ASTNode *arg)
+{
+    ASTNode *callee;
+
+    if (arg == NULL || arg->type != AST_CALL)
+        return false;
+    callee = ast_call_callee(arg);
+    return callee != NULL
+        && callee->type == AST_IDENTIFIER
+        && strcmp(ast_identifier_name(callee), "Channel") == 0;
+}
+
+static ASTNode *
+llvm_class_constructor_field_type_at(LLVMGenCtx *ctx,
+                                     const char *callee_name,
+                                     size_t index)
+{
+    ASTNode *class_decl;
+    ClassField **fields;
+    size_t field_count = 0;
+
+    if (ctx == NULL || callee_name == NULL)
+        return NULL;
+    class_decl = llvm_find_decl_in_active_inventory(
+        ctx, AST_CLASS_DECL, callee_name);
+    if (class_decl == NULL)
+        return NULL;
+    fields = ast_class_fields(class_decl, &field_count);
+    if (fields == NULL || index >= field_count || fields[index] == NULL)
+        return NULL;
+    return fields[index]->type;
+}
+
+static LLVMValueRef
+llvm_emit_constructor_field_arg(ASTNode *node,
+                                LLVMGenCtx *ctx,
+                                ASTNode *field_type,
+                                const char *field_name,
+                                ASTNode *arg)
+{
+    char *expected_type;
+    const char *saved_expected_type_name;
+    LLVMValueRef value;
+
+    if (field_type == NULL)
+        return llvm_emit_expression(arg, ctx);
+
+    expected_type = llvm_render_type_name_in_ctx(ctx, field_type);
+    if (expected_type != NULL
+        && strncmp(expected_type, "Channel<", 8) == 0
+        && llvm_ctor_arg_is_channel_ctor(arg)) {
+        llvm_set_error_at_with_hints(ctx, node,
+            PGY_CODE_LLVM_TYPE_UNSUPPORTED,
+            PGY_CAUSE_LLVM_TYPE_UNSUPPORTED,
+            PGY_FIX_BIND_TO_NAMED_VARIABLE_BEFORE_MOVE,
+            "LLVM backend: Channel field '%s' requires a named let binding before aggregate construction",
+            field_name != NULL ? field_name : "<field>");
+        free(expected_type);
+        return NULL;
+    }
+
+    saved_expected_type_name = ctx->expected_type_name;
+    ctx->expected_type_name = expected_type;
+    value = llvm_emit_expression(arg, ctx);
+    ctx->expected_type_name = saved_expected_type_name;
+    free(expected_type);
+    return value;
 }
 
 static LLVMValueRef
@@ -234,7 +306,11 @@ llvm_emit_class_constructor(ASTNode *node, LLVMGenCtx *ctx, const char *callee_n
     LLVMValueRef object = LLVMConstNull(cls->struct_type);
     for (size_t i = 0; i < ast_call_arg_count(node)
         && i < (size_t)cls->field_count; i++) {
-        LLVMValueRef arg = llvm_emit_expression(ast_call_argument(node, i), ctx);
+        ASTNode *field_type = llvm_class_constructor_field_type_at(
+            ctx, callee_name, i);
+        const char *field_name = cls->fields[i].field_name;
+        LLVMValueRef arg = llvm_emit_constructor_field_arg(node, ctx,
+            field_type, field_name, ast_call_argument(node, i));
         if (arg == NULL)
             return llvm_constructor_error(node, ctx,
                 "LLVM class constructor could not lower field argument");

@@ -115,13 +115,17 @@ English anchor for tooling/doc gates:
   fails with a MIR inventory-missing error instead of emitting a partial
   executable wrapper. `perf-contract-test-smoke` gates this shape and still
   leaves generated C `main` / LLVM `main` wrapper creation as explicit wrapper
-  paths. C emitter regression coverage is green at `test-transpile` `855/0`;
+  paths. C emitter regression coverage is green at `test-transpile` `858/0`;
   the affected world/zone Bool-log expectations now match the typed
   `pgy_log_bool((bool)(...))` ABI. MIR select readiness now renders identifier
   channels through the normal expression emitter with SSA disabled, so implicit
   field/captured channel lvalues remain `self.ch` / `self->ch` / capture-safe
   forms instead of regressing to raw `&ch` while still avoiding SSA-shadow
-  readiness checks.
+  readiness checks. Constructor argument lowering now also fails closed in C
+  and LLVM when a `Channel<T>` field is initialized with inline `Channel(...)`
+  inside an aggregate constructor; channel initialization is statement-level
+  runtime setup, so the stable path is `let ch: Channel<T> = Channel(n)`
+  followed by passing `ch`.
 - CI smoke portability guard: beta/source-of-truth smoke scripts must remain
   compatible with macOS Bash 3.2. `build-source-inventory-test-smoke` now
   rejects Bash 4-only `mapfile` / `readarray`, associative arrays, parameter

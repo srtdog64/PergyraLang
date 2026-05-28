@@ -107,7 +107,10 @@ The same pass tightened C MIR select readiness rendering: identifier channels
 are rendered through the regular expression path with SSA disabled, so
 implicit field and captured channel lvalues keep their correct C shape while
 select readiness avoids reading an uninitialized SSA shadow. `test-transpile`
-now covers this with `855/0`.
+now covers this with `858/0`. The same C/LLVM constructor path now fail-closes
+inline `Channel(...)` initialization inside aggregate constructors:
+`Channel<T>` init is statement-level runtime setup, so constructor fields must
+receive a named channel binding rather than raw `Channel(n)` expression text.
 
 Current host declaration compatibility tightening (2026-05-25):
 party/role/roster host declarations are part of the shared host compatibility
