@@ -73,6 +73,7 @@ src/self_hosted/lib/*.ll
 # Temporary compiler artifacts
 *.o.tmp
 *.tmp
+/.tmp_*.ast
 
 # Editor / OS
 *.backup

@@ -22,6 +22,36 @@ llvm_unary_expr_error(LLVMGenCtx *ctx, ASTNode *node, const char *message)
     return NULL;
 }
 
+static bool
+llvm_emit_try_operator_unwrap_panic(LLVMGenCtx *ctx, ASTNode *node)
+{
+    LLVMFuncEntry *panic_fn;
+
+    if (ctx == NULL)
+        return false;
+
+    panic_fn = llvm_lookup_function(ctx,
+        "pgy_runtime_panic_internal_invariant_export");
+    if (panic_fn == NULL) {
+        llvm_set_error_at_with_hints(ctx, node,
+            PGY_CODE_LLVM_TYPE_UNSUPPORTED,
+            PGY_CAUSE_LLVM_TYPE_UNSUPPORTED,
+            PGY_FIX_INSPECT_MIR_INVENTORY,
+            "LLVM try operator requires registered runtime function '%s'",
+            "pgy_runtime_panic_internal_invariant_export");
+        LLVMBuildUnreachable(ctx->builder);
+        return false;
+    }
+    if (panic_fn != NULL) {
+        LLVMValueRef reason = LLVMBuildGlobalStringPtr(ctx->builder,
+            "Result unwrap on Err value", llvm_tmp_name(ctx));
+        LLVMBuildCall2(ctx->builder, panic_fn->fn_type, panic_fn->fn,
+            &reason, 1, "");
+    }
+    LLVMBuildUnreachable(ctx->builder);
+    return true;
+}
+
 LLVMValueRef
 llvm_emit_unary(ASTNode *node, LLVMGenCtx *ctx)
 {
@@ -121,7 +151,10 @@ llvm_emit_unary(ASTNode *node, LLVMGenCtx *ctx)
                 err_val, 2, llvm_tmp_name(ctx));
             LLVMBuildRet(ctx->builder, rebuilt);
         } else {
-            LLVMBuildUnreachable(ctx->builder);
+            if (!llvm_emit_try_operator_unwrap_panic(ctx, node)) {
+                LLVMPositionBuilderAtEnd(ctx->builder, cont_bb);
+                return NULL;
+            }
         }
 
         LLVMPositionBuilderAtEnd(ctx->builder, cont_bb);

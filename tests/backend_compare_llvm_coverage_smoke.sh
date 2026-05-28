@@ -1,0 +1,44 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+export LC_ALL=C
+LLVM_CASES="$(mktemp)"
+COMPARE_CASES="$(mktemp)"
+MISSING_CASES="$(mktemp)"
+trap 'rm -f "$LLVM_CASES" "$COMPARE_CASES" "$MISSING_CASES"' EXIT
+
+sed -n 's/^run_case "\([^"]*\)".*/\1/p' \
+    "$ROOT_DIR/tests/llvm_smoke.sh" \
+    | sort -u > "$LLVM_CASES"
+
+find "$ROOT_DIR/tests/cases/backend_compare" \
+    -mindepth 1 -maxdepth 1 -type d \
+    | sed 's#.*/##' \
+    | sort -u > "$COMPARE_CASES"
+
+comm -23 "$LLVM_CASES" "$COMPARE_CASES" > "$MISSING_CASES"
+
+unexpected=0
+while IFS= read -r case_name; do
+    [ -n "$case_name" ] || continue
+    case "$case_name" in
+        qubit_slot)
+            ;;
+        *)
+            echo "backend-compare-llvm-coverage: LLVM smoke case '$case_name' is missing backend-compare coverage" >&2
+            unexpected=1
+            ;;
+    esac
+done < "$MISSING_CASES"
+
+if [ "$unexpected" -ne 0 ]; then
+    echo "backend-compare-llvm-coverage: add the case under tests/cases/backend_compare or explicitly classify it out-of-beta" >&2
+    exit 1
+fi
+
+if grep -qx 'qubit_slot' "$MISSING_CASES"; then
+    echo "[backend-compare-llvm-coverage] LLVM-only allowlist ok: qubit_slot"
+else
+    echo "[backend-compare-llvm-coverage] all LLVM smoke cases have backend-compare coverage"
+fi

@@ -6,8 +6,10 @@
 #include "../common/string_compat.h"
 #include "../parser/ast_api.h"
 #include "../semantic/diag_codes.h"
+#include "transpiler_channel_type_query.h"
 #include "transpiler_context.h"
 #include "transpiler_format.h"
+#include "transpiler_mir_block_emit_helpers.h"
 #include "transpiler_mir_local_type_ast_lookup.h"
 #include "transpiler_mir_local_type_lookup.h"
 #include "transpiler_mir_ssa_map.h"
@@ -29,6 +31,104 @@ transpiler_mir_ssa_local_limit_fail(TranspilerCtx *ctx, const char *name)
         "too many MIR SSA locals while emitting function '%s'",
         name != NULL ? name : "<function>");
     return false;
+}
+
+static void
+transpiler_trim_type_annotation_suffix(char *type_name)
+{
+    char *colon;
+
+    if (type_name == NULL)
+        return;
+    colon = strchr(type_name, ':');
+    if (colon == NULL)
+        return;
+    while (colon > type_name
+           && (colon[-1] == ' ' || colon[-1] == '\t')) {
+        colon--;
+    }
+    *colon = '\0';
+}
+
+static ASTNode *
+transpiler_mir_receive_expr_from_def(const MIRInstruction *inst)
+{
+    ASTNode *stmt;
+    ASTNode *value;
+
+    if (inst == NULL)
+        return NULL;
+    stmt = transpiler_mir_find_stmt_for_inst(inst);
+    if (stmt == NULL)
+        stmt = inst->expr0 != NULL ? inst->expr0 : inst->ast;
+    if (stmt == NULL)
+        return NULL;
+    if (stmt->type == AST_CHANNEL_RECV)
+        return stmt;
+    if (stmt->type != AST_ASSIGNMENT)
+        return NULL;
+    value = ast_assignment_value(stmt);
+    return value != NULL && value->type == AST_CHANNEL_RECV ? value : NULL;
+}
+
+static const char *
+transpiler_mir_find_receive_payload_type_name(TranspilerCtx *ctx,
+                                             ASTNode *func_decl,
+                                             const MIRRoutine *routine,
+                                             const char *base_name)
+{
+    char payload_buf[128];
+
+    if (ctx == NULL || routine == NULL || base_name == NULL)
+        return NULL;
+    for (size_t i = 0; i < routine->block_count; i++) {
+        const MIRBasicBlock *block = &routine->blocks[i];
+        if (!block->is_reachable || block->is_cleanup)
+            continue;
+        for (size_t j = 0; j < block->instruction_count; j++) {
+            const MIRInstruction *inst = &block->instructions[j];
+            char def_base[128];
+            size_t def_version = 0;
+            ASTNode *recv_expr;
+            ASTNode *channel;
+            const char *channel_type;
+            if (inst->kind != MIR_INST_DEF
+                || inst->result_name == NULL
+                || !mir_instruction_uses_channel_receive_statement_emit(inst)) {
+                continue;
+            }
+            if (!transpiler_parse_versioned_name(inst->result_name,
+                    def_base, sizeof(def_base), &def_version)
+                || strcmp(def_base, base_name) != 0) {
+                continue;
+            }
+            (void)def_version;
+            recv_expr = transpiler_mir_receive_expr_from_def(inst);
+            if (recv_expr == NULL)
+                continue;
+            channel = ast_channel_recv_channel(recv_expr);
+            if (channel_inner_type_name_copy(ctx, channel, payload_buf,
+                    sizeof(payload_buf))
+                && payload_buf[0] != '\0'
+                && strcmp(payload_buf, "Unknown") != 0) {
+                transpiler_trim_type_annotation_suffix(payload_buf);
+                return transpiler_mir_arena_copy_type_name(ctx, payload_buf);
+            }
+            if (channel == NULL || channel->type != AST_IDENTIFIER)
+                continue;
+            channel_type = transpiler_find_local_type_name(ctx, func_decl,
+                ast_identifier_name(channel));
+            if (!slot_inner_type_name_copy(channel_type, payload_buf,
+                    sizeof(payload_buf))
+                || payload_buf[0] == '\0'
+                || strcmp(payload_buf, "Unknown") == 0) {
+                continue;
+            }
+            transpiler_trim_type_annotation_suffix(payload_buf);
+            return transpiler_mir_arena_copy_type_name(ctx, payload_buf);
+        }
+    }
+    return NULL;
 }
 
 bool
@@ -102,6 +202,7 @@ transpiler_emit_mir_func_ssa_local_decls(TranspilerCtx *ctx,
         char base[128];
         size_t version = 0;
         const char *type_name = NULL;
+        char normalized_type_buf[128];
         char c_type_buf[256];
         const char *c_type = NULL;
         ASTNode *type_ast = NULL;
@@ -119,6 +220,20 @@ transpiler_emit_mir_func_ssa_local_decls(TranspilerCtx *ctx,
         if (transpiler_is_implicit_field(ctx, base))
             continue;
         type_name = transpiler_find_local_type_name(ctx, node, base);
+        if (type_name == NULL || strcmp(type_name, "Unknown") == 0) {
+            type_name = transpiler_mir_find_receive_payload_type_name(
+                ctx, node, mir_routine, base);
+        }
+        if (type_name != NULL
+            && strchr(type_name, ':') != NULL
+            && strchr(type_name, '<') == NULL) {
+            if (pergyra_str_copy(normalized_type_buf,
+                    sizeof(normalized_type_buf), type_name)) {
+                transpiler_trim_type_annotation_suffix(normalized_type_buf);
+                if (normalized_type_buf[0] != '\0')
+                    type_name = normalized_type_buf;
+            }
+        }
         if (transpiler_type_name_is_claim_shape(type_name))
             continue;
         type_ast = transpiler_find_local_type_ast(ctx, node, base);

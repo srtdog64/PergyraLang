@@ -130,6 +130,17 @@ func Main() -> Void {
 }
 PGY
 
+cat > "$WORK_DIR/result_try_err_void.pgy" <<'PGY'
+func Fail() -> Result<Int> {
+    return Err("boom");
+}
+
+func Main() -> Void {
+    let value: Int = Fail()?;
+    Log(value);
+}
+PGY
+
 cat > "$WORK_DIR/option_unwrap_none.pgy" <<'PGY'
 func Main() -> Void {
     let missing: Option<Int> = None();
@@ -205,6 +216,7 @@ expect_codegen_panic_backends "list_set_oob" "$WORK_DIR/list_set_oob.pgy" "out-o
 expect_codegen_panic_backends "list_remove_oob" "$WORK_DIR/list_remove_oob.pgy" "out-of-bounds"
 expect_codegen_panic_backends "map_remove_missing" "$WORK_DIR/map_remove_missing.pgy" "out-of-bounds"
 expect_codegen_panic_backends "result_unwrap_err" "$WORK_DIR/result_unwrap_err.pgy" "internal-invariant"
+expect_codegen_panic_backends "result_try_err_void" "$WORK_DIR/result_try_err_void.pgy" "internal-invariant"
 expect_codegen_panic_backends "option_unwrap_none" "$WORK_DIR/option_unwrap_none.pgy" "internal-invariant"
 
-echo "[runtime-panic-codegen] generated $BACKENDS divide-by-zero, collection out-of-bounds, and unwrap invariant panic classes are executable"
+echo "[runtime-panic-codegen] generated $BACKENDS divide-by-zero, collection out-of-bounds, unwrap, and try invariant panic classes are executable"

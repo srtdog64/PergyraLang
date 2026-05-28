@@ -18,6 +18,7 @@ The beta release candidate must keep these gates green:
 - `make test-abi`
 - `make llvm-test-smoke`
 - `make llvm-test-abi-same-process`
+- `make backend-compare-llvm-coverage-test-smoke`
 - `make llvm-test-backend-compare`
 - `make llvm-campaign-projection-test-smoke`
 - `make llvm-dnd-campaign-test-smoke`

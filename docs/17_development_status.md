@@ -242,7 +242,9 @@
 - world derived-state chain은 이제 C/LLVM 양쪽에서 bounded recompute loop를 통해 계산되어, derived alias recompute가 순수 single-pass replay에만 묶이지 않는다.
 - zone lifecycle sync도 이제 C/LLVM 양쪽에서 bounded frontier loop를 가지며, layer/state lifecycle replay가 single-batch에만 묶이지 않는다.
 - relation/effect/zone projection chain도 이제 bounded transitive recompute loop를 통해 계산되어, projection refresh order가 선언 순서에 묶이지 않는다.
-- bounded recompute pass-limit overflow는 C의 `PGY_PANIC`과 LLVM의 `abort()` 경로로 hard-fail되도록 고정됐다.
+- bounded recompute pass-limit overflow는 C의 `PGY_PANIC`과 LLVM의
+  `pgy_runtime_panic_internal_invariant_export` 경로로 hard-fail되도록
+  고정됐다. Raw LLVM `abort()` emission is no longer the contract.
 - LLVM backend는 `__projection_dirty_*` struct layout 누락, host-field assignment 이후 projection invalidation 누락, intent rebound-zone projection stale drift를 닫았다.
 - runtime zone authority invariant guard는 이제 hard-fail 이전에 `last_ok / zone / participant / code / reason` snapshot을 남긴다. generated C의 inline validator와 LLVM runtime export가 같은 vocabulary를 공유한다. Intent emitter도 MIR `IntentAuthorizedBy`를 읽어 step-local approval을 recoverable intent failure boundary에서 검증하고, 성공 시 같은 runtime authority snapshot을 갱신한다.
 - `world_fixpoint_abi`, `projection_chain_abi`, `zone_frontier_abi`, `intent_authority_snapshot_abi`, `handoff_projection_frontier_abi`, `handoff_world_state_frontier_abi`, `handoff_layer_state_frontier_abi`, `world_embedded_projection_abi`, `world_embedded_method_projection_abi`, `world_embedded_branch_projection_abi`, `world_embedded_action_frontier_abi`, `world_embedded_action_pool_frontier_abi`가 이제 C/LLVM ABI smoke에 함께 들어가며, `make test-abi`와 `make llvm-test-backend-compare`에서 다시 검증된다.

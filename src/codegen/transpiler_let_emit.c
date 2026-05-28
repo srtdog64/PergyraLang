@@ -281,6 +281,7 @@ emit_let_decl(ASTNode *node, TranspilerCtx *ctx)
         const char *result_c_type;
         char *operand_expr;
         int try_id;
+        int current_returns_result;
 
         if (result_type == NULL || strncmp(result_type, "Result<", 7) != 0) {
             transpiler_set_backend_error_with_hints(ctx,
@@ -292,17 +293,8 @@ emit_let_decl(ASTNode *node, TranspilerCtx *ctx)
             free(ann_type_name);
             return;
         }
-        if (ctx->current_return_type[0] == '\0'
-            || strncmp(ctx->current_return_type, "Result<", 7) != 0) {
-            transpiler_set_backend_error_with_hints(ctx,
-                PGY_CODE_C_TYPE_UNSUPPORTED,
-                PGY_CAUSE_C_TYPE_UNSUPPORTED,
-                PGY_FIX_USE_LLVM_BACKEND_OR_EXTEND_TRANSPILER,
-                "C try lowering for let binding '%s' requires an enclosing Result-returning function",
-                name != NULL ? name : "<binding>");
-            free(ann_type_name);
-            return;
-        }
+        current_returns_result = ctx->current_return_type[0] != '\0'
+            && strncmp(ctx->current_return_type, "Result<", 7) == 0;
 
         char result_c_type_buf[256];
         char c_type_buf[256];
@@ -326,9 +318,15 @@ emit_let_decl(ASTNode *node, TranspilerCtx *ctx)
         codebuf_write(ctx->out, "%s __try_%d = %s;\n",
                       result_c_type, try_id, operand_expr);
         write_indent(ctx);
-        codebuf_write(ctx->out,
-            "if (__try_%d.tag != PgyResultOk) return __try_%d;\n",
-            try_id, try_id);
+        if (current_returns_result) {
+            codebuf_write(ctx->out,
+                "if (__try_%d.tag != PgyResultOk) return __try_%d;\n",
+                try_id, try_id);
+        } else {
+            codebuf_write(ctx->out,
+                "if (__try_%d.tag != PgyResultOk) PGY_RUNTIME_PANIC(PGY_RUNTIME_PANIC_CLASS_INTERNAL_INVARIANT, PGY_RUNTIME_PANIC_REASON_RESULT_UNWRAP_ERR);\n",
+                try_id);
+        }
         write_indent(ctx);
         codebuf_write(ctx->out, "%s %s = __try_%d.ok;\n",
                       c_type, name, try_id);

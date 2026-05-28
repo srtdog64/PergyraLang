@@ -128,16 +128,27 @@ llvm_emit_main_wrapper(LLVMGenCtx *ctx)
     if (ctx == NULL || !llvm_active_has_mir(ctx))
         return;
 
-    LLVMFuncEntry *main_user =
-        llvm_lookup_or_declare_function(ctx, "Main", NULL, NULL);
+    LLVMFuncEntry *main_user = NULL;
     synthetic_executable_func = llvm_active_synthetic_executable_func(ctx);
     has_top_level_exec = llvm_active_has_top_level_exec(ctx);
     has_main_function = llvm_active_has_main_function(ctx);
     needs_thread_pool = llvm_main_requires_thread_pool(ctx);
 
+    if (has_main_function)
+        main_user = llvm_lookup_function(ctx, "Main");
+    if (has_main_function && main_user == NULL) {
+        llvm_set_mir_inventory_missing(ctx,
+            "MIR-only LLVM path missing registered executable function 'Main'");
+        return;
+    }
+    if (has_top_level_exec && synthetic_executable_func == NULL) {
+        llvm_set_mir_inventory_missing(ctx,
+            "MIR-only LLVM path missing synthetic top-level executable function '__pgy_top_level_exec'");
+        return;
+    }
+
     bool has_top_level = has_top_level_exec
-        || has_main_function
-        || (main_user != NULL);
+        || has_main_function;
     if (!has_top_level)
         return;
 
@@ -165,7 +176,8 @@ llvm_emit_main_wrapper(LLVMGenCtx *ctx)
         llvm_scope_pop(ctx);
         return;
     }
-    llvm_main_emit_user_main(ctx, main_user);
+    if (has_main_function)
+        llvm_main_emit_user_main(ctx, main_user);
     if (!llvm_main_emit_top_level_exec(ctx, synthetic_executable_func)) {
         llvm_scope_pop(ctx);
         return;

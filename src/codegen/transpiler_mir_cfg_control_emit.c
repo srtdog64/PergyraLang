@@ -258,7 +258,11 @@ transpiler_mir_render_channel_ready_condition(
         "MIR select dispatch", inner_buf, sizeof(inner_buf));
     if (inner == NULL)
         return NULL;
-    channel_expr = emit_expression_with_ssa_map(channel, ctx, ssa_map);
+    if (channel->type == AST_IDENTIFIER && ast_identifier_name(channel) != NULL) {
+        channel_expr = emit_expression_with_ssa_map(channel, ctx, NULL);
+    } else {
+        channel_expr = emit_expression_with_ssa_map(channel, ctx, ssa_map);
+    }
     if (channel_expr == NULL)
         return NULL;
     result = strdup_fmt("pgy_channel_ready_%s(&%s)", inner, channel_expr);

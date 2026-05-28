@@ -388,6 +388,9 @@ fi
 if grep -Fq 'llvm_lookup_or_create_function(ctx, "abort"' "$llvm_domain_contract"; then
     fail "LLVM frontier emitter must use runtime panic export, not raw abort"
 fi
+if grep -Fq 'lookup_or_declare_function(ctx,' "$llvm_domain_contract"; then
+    fail "LLVM frontier emitter must consume registered runtime panic exports, not synthesize declarations"
+fi
 if grep -Fq 'llvm_lookup_or_create_function(ctx, "abort"' "$llvm_projection_contract"; then
     fail "LLVM projection frontier emitter must use runtime panic export, not raw abort"
 fi

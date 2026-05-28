@@ -40,6 +40,7 @@ mandatory_targets=(
     "test-abi"
     "llvm-test-smoke"
     "llvm-test-abi-same-process"
+    "backend-compare-llvm-coverage-test-smoke"
     "llvm-test-backend-compare"
     "llvm-campaign-projection-test-smoke"
     "llvm-dnd-campaign-test-smoke"

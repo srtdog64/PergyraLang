@@ -83,11 +83,45 @@ English anchor for tooling/doc gates:
   remaining stable LLVM-smoke cases: direct select readiness (`select_ready`),
   secure subject slot construction (`secure_slot_subject_bot`), baseline
   operator overload, and role operator overload. Local targeted MinGW/Git Bash
-  gate passed for these 4 fixtures; full backend compare target is now
-  `177/177`. Remaining LLVM-only surfaces are intentionally narrow:
-  `select_fairness` needs loop-PHI receive binding type closure in the C
-  backend, while `device_slot_remote` and `qubit_slot` remain experimental /
-  out-of-beta surfaces.
+  gate passed for these 4 fixtures; full backend compare target was
+  `177/177` at that checkpoint. Follow-up C backend MIR closure now resolves
+  loop-PHI select receive bindings and keeps select readiness on the source
+  Channel lvalue instead of an uninitialized SSA shadow value; `select_fairness`
+  is also promoted into the default suite, and the tracked `if_else_chain`
+  fixture is registered in the default backend inventory. Follow-up DeviceSlot
+  closure aligns C `await RemoteFuture<T>` inference with semantic/LLVM
+  (`RemoteFuture<T> -> Result<T>`) and allows non-Result-returning unwrap sites
+  to hard-fail on Err; LLVM `?` now calls the same internal-invariant runtime
+  panic export instead of lowering that edge to a bare `unreachable`. Full
+  backend compare target is now `180/180`, and
+  `runtime-panic-codegen-test-smoke` covers the `?` Err-in-`Void` path for both
+  C and LLVM. Remaining LLVM-only surface is intentionally narrow:
+  `qubit_slot` remains experimental / out-of-beta. New gate:
+  `backend-compare-llvm-coverage-test-smoke` compares `llvm_smoke.sh`
+  `run_case` names against `tests/cases/backend_compare/` and fails if any
+  non-allowlisted LLVM-only surface reappears. Runtime frontier overflow
+  lowering now follows the same registered-export rule: LLVM consumes the
+  existing internal-invariant panic export instead of synthesizing a runtime
+  declaration, and `runtime-frontier-contract-test-smoke` gates against
+  reintroducing declaration synthesis on that path.
+- C/LLVM executable wrapper lookup is tightened as a declaration bootstrap seam:
+  LLVM resolves user `Main` with `llvm_lookup_function(...)` instead of
+  `lookup_or_declare_function(ctx, "Main", ...)`, so the backend no longer
+  synthesizes a source function while deciding whether an executable entry
+  exists, and LLVM no longer creates an executable wrapper merely because a
+  registry entry named `Main` exists without the MIR `has_main_function` flag.
+  If MIR says user `Main` or `__pgy_top_level_exec` exists but the matching
+  C/LLVM registration/source wrapper cannot be found, wrapper emission now
+  fails with a MIR inventory-missing error instead of emitting a partial
+  executable wrapper. `perf-contract-test-smoke` gates this shape and still
+  leaves generated C `main` / LLVM `main` wrapper creation as explicit wrapper
+  paths. C emitter regression coverage is green at `test-transpile` `855/0`;
+  the affected world/zone Bool-log expectations now match the typed
+  `pgy_log_bool((bool)(...))` ABI. MIR select readiness now renders identifier
+  channels through the normal expression emitter with SSA disabled, so implicit
+  field/captured channel lvalues remain `self.ch` / `self->ch` / capture-safe
+  forms instead of regressing to raw `&ch` while still avoiding SSA-shadow
+  readiness checks.
 - CI smoke portability guard: beta/source-of-truth smoke scripts must remain
   compatible with macOS Bash 3.2. `build-source-inventory-test-smoke` now
   rejects Bash 4-only `mapfile` / `readarray`, associative arrays, parameter
@@ -535,14 +569,14 @@ English anchor for tooling/doc gates:
   `semantic_find_effect_decl_by_name(...)` instead of reopening direct domain
   declaration lookup. This keeps zone authority/generic provenance checks on a
   named semantic owner seam while the deeper DAG metadata slice remains open.
-- LLVM parity evidence refreshed after the semantic domain-owner seam cleanup:
-  local MinGW/Git Bash `llvm-test-smoke` passed all LLVM smoke fixtures, and
-  `llvm-test-backend-compare` passed ABI same-process `196/0` plus backend
-  compare `72/72`. `cfg-body-dataflow-test-smoke` and `test-mir` also passed
-  in the same refresh window. This strengthens the MIR/LLVM parity evidence,
-  but it does not raise the project to 80% by itself because CFG/AIR
-  consumer-completeness, declaration bootstrap shape, and ABI/Slot/Pin freeze
-  are still open.
+- LLVM parity evidence refreshed after the semantic domain-owner seam cleanup
+  was later superseded by the 2026-05-29 backend parity refresh:
+  `compare_backends.sh` is now `180/180`, the non-experimental LLVM smoke
+  surface is guarded by `backend-compare-llvm-coverage-test-smoke`, and the
+  only allowlisted LLVM-only fixture is `qubit_slot` (out of beta). This
+  strengthens the MIR/LLVM parity evidence, but it does not raise the project
+  to 80% by itself because CFG/AIR consumer-completeness, declaration
+  bootstrap shape, and ABI/Slot/Pin freeze are still open.
 - Runtime panic ABI smoke no longer treats a local Windows shell compile
   failure as a successful skip unless `PGY_RUNTIME_PANIC_ABI_ALLOW_LOCAL_SKIP=1`
   is set explicitly. The default beta path now fails closed and the local
@@ -12544,7 +12578,7 @@ Source of truth:
   - 결과: `relation_effect_propagation_abi`, `intent_zone_binding`, `intent_cross_world_transfer`, `intent_rich_history_identity` backend compare drift 제거
   - 새 회귀: transpile domain async/world tests가 provenance hidden field와 stamp write까지 직접 확인
   - 새 진행: `world` derived-state recompute가 C/LLVM 양쪽에서 bounded pass loop를 가지도록 올라왔고, single-pass declaration-order replay에만 의존하지 않게 됨
-  - 새 진행: bounded recompute pass-limit overflow는 C의 `PGY_PANIC`과 LLVM의 `abort()` 경로로 hard-fail되도록 고정됨
+  - 새 진행: bounded recompute pass-limit overflow는 C의 `PGY_PANIC`과 LLVM의 `pgy_runtime_panic_internal_invariant_export` 경로로 hard-fail되도록 고정됨. Raw LLVM `abort()` emission is not the contract.
 - 새 회귀: transpile world-derived chain test + `world_fixpoint_abi` smoke가 C/LLVM 양쪽에서 녹색
 - 현재 해석: runtime propagation provenance baseline(`dirty/ready + epoch/cause`)은 이제 beta 계약의 일부로 간주하고 다시 약화시키지 않음
 - 추가 closure: zone lifecycle sync도 이제 C/LLVM 양쪽에서 bounded frontier loop를 가지며, state/layer replay가 single-batch에만 묶이지 않는다

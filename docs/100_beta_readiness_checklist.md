@@ -82,15 +82,32 @@ domain declaration lookup returning to `type_checker_func_action_contract.c`,
 `type_checker_domain_contracts.c`, the world semantic consumers, or the zone
 authority consumer.
 
-Current LLVM parity refresh (2026-05-25): after the semantic domain-owner seam
-cleanup, local MinGW/Git Bash `llvm-test-smoke` passed the LLVM smoke suite and
-`llvm-test-backend-compare` passed ABI same-process `196/0` plus backend compare
-`72/72`. `cfg-body-dataflow-test-smoke` and `test-mir` passed in the same
-refresh window, so the current evidence covers body-flow smoke, MIR executable
-shape, and C/LLVM parity together. This is strong parity evidence for the
-current frozen subset, but it does not close the remaining 80% blockers by
-itself: CFG/AIR consumer completeness, declaration bootstrap shape, and
-ABI/Slot/Pin freeze remain open.
+Current backend parity refresh (2026-05-29): local MinGW/Git Bash
+`tests/compare_backends.sh` passed the frozen backend-compare suite at `180/180`
+after promoting `select_fairness`, registering `if_else_chain`, and adding the
+`device_slot_remote` C/LLVM path. The follow-up runtime-panic slice rechecked
+`device_slot_remote`, `select_fairness`, and `try_operator_result` at `3/3`, and
+`runtime-panic-codegen-test-smoke` now covers `?` on Err in a non-Result-returning
+function for both C and LLVM. `backend-compare-llvm-coverage-test-smoke` keeps
+non-experimental `llvm_smoke.sh` cases from staying LLVM-only; the only current
+allowlisted LLVM-only surface is `qubit_slot`, which remains out-of-beta. This
+is strong parity evidence for the current frozen subset, but it does not close
+the remaining 80% blockers by itself: CFG/AIR consumer completeness, declaration
+bootstrap shape, and ABI/Slot/Pin freeze remain open. As part of the declaration
+bootstrap tightening, the executable wrappers fail closed when MIR entrypoint
+inventory and emitted declarations disagree. LLVM resolves user `Main` through
+`llvm_lookup_function(...)` and must not synthesize it with
+`lookup_or_declare_function(ctx, "Main", ...)`; C and LLVM both now reject a
+MIR claim for user `Main` or `__pgy_top_level_exec` when the matching registered
+function/source wrapper is missing. LLVM also no longer treats a registered
+`Main` symbol as sufficient to create an executable wrapper unless MIR set
+`has_main_function`. `perf-contract-test-smoke` gates this shape while keeping
+generated C `main` / LLVM `main` wrapper creation explicit.
+The same pass tightened C MIR select readiness rendering: identifier channels
+are rendered through the regular expression path with SSA disabled, so
+implicit field and captured channel lvalues keep their correct C shape while
+select readiness avoids reading an uninitialized SSA shadow. `test-transpile`
+now covers this with `855/0`.
 
 Current host declaration compatibility tightening (2026-05-25):
 party/role/roster host declarations are part of the shared host compatibility
@@ -2402,7 +2419,7 @@ Remaining:
   zone lifetime. If it is out of beta, document conservative rejection as the
   stable subset and forbid docs from implying non-pin handles have Rust-style
   lifetime proof.
-- Keep C/LLVM panic-class regressions green for divide-by-zero, out-of-bounds, released slot, double release, invalid secure-slot token, OOM, authority token mismatch, and internal-invariant unwrap misuse.
+- Keep C/LLVM panic-class regressions green for divide-by-zero, out-of-bounds, released slot, double release, invalid secure-slot token, OOM, authority token mismatch, direct unwrap misuse, and `?` Err-in-non-Result misuse.
 - **[NEW]** Add state-machine proofs for the Intent system's rollback and cleanup closure.
 
 Evidence command:
@@ -2949,8 +2966,9 @@ Implementation progress:
 - Stable mutation collection APIs no longer silently no-op on invalid targets:
   `ListSet`, `ListRemove`, and `MapRemove` invalid access panic with
   `out-of-bounds` in generated C and LLVM.
-- Stable unwrap misuse no longer drifts between backends: `Unwrap(Err)` and
-  `UnwrapOption(None)` panic with `internal-invariant` in generated C and LLVM.
+- Stable unwrap misuse no longer drifts between backends: `Unwrap(Err)`,
+  `Fail()?` in a `Void` function, and `UnwrapOption(None)` panic with
+  `internal-invariant` in generated C and LLVM.
 - `docs/105_runtime_panic_contract.md` records the runtime panic contract and
   the stable collection access/mutation hard-fail split.
 - `runtime-panic-abi-test-smoke` executes inline and exported runtime hanesses
@@ -2989,6 +3007,7 @@ make runtime-panic-contract-test-smoke
 make runtime-panic-abi-test-smoke
 make runtime-panic-codegen-test-smoke
 make runtime-abi-lifetime-test-smoke
+make backend-compare-llvm-coverage-test-smoke
 make llvm-test-backend-compare
 ```
 

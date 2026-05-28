@@ -144,6 +144,11 @@ emit_program(TranspilerCtx *ctx)
     synthetic_executable_func = transpiler_active_synthetic_executable_func(ctx);
     has_main_function = transpiler_active_has_main_function(ctx);
     has_top_level_exec = transpiler_active_has_top_level_exec(ctx);
+    if (has_top_level_exec && synthetic_executable_func == NULL) {
+        transpiler_set_mir_inventory_missing(ctx,
+            "MIR-only C path missing synthetic top-level executable function '__pgy_top_level_exec'");
+        return;
+    }
     transpiler_active_inventory(ctx, AST_ABILITY_DECL, &abilities, &ability_count);
     transpiler_active_inventory(ctx, AST_CLASS_DECL, &types, &type_count);
     transpiler_active_externs(ctx, &externs, &exten_count);
@@ -157,6 +162,12 @@ emit_program(TranspilerCtx *ctx)
     transpiler_active_inventory(ctx, AST_ZONE_DECL, &zones, &zone_count);
     transpiler_active_inventory(ctx, AST_WORLD_DECL, &worlds, &world_count);
     transpiler_active_inventory(ctx, AST_EVENT_DECL, &events, &event_count);
+    if (has_main_function
+        && transpiler_find_named_decl_local(ctx, AST_FUNC_DECL, "Main") == NULL) {
+        transpiler_set_mir_inventory_missing(ctx,
+            "MIR-only C path missing registered executable function 'Main'");
+        return;
+    }
 
     /* File header */
     codebuf_write(ctx->out,

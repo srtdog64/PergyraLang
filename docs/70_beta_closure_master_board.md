@@ -144,7 +144,7 @@ Operational beta checklist: `docs/100_beta_readiness_checklist.md`. The checklis
 - world-derived chain은 C/LLVM bounded recompute loop로 올라왔다
 - zone lifecycle sync도 C/LLVM bounded frontier loop로 올라왔다
 - relation/effect/zone projection chain도 C/LLVM bounded transitive recompute loop로 올라와 declaration-order drift를 줄였다
-  - bounded recompute pass-limit overflow는 C의 `PGY_PANIC`과 LLVM의 `abort()` 경로로 hard-fail된다
+  - bounded recompute pass-limit overflow는 C의 `PGY_PANIC`과 LLVM의 `pgy_runtime_panic_internal_invariant_export` 경로로 hard-fail된다. Raw LLVM `abort()` emission is not the contract.
   - `world_fixpoint_abi`, `projection_chain_abi`, `zone_frontier_abi`, `handoff_projection_frontier_abi`, `handoff_world_state_frontier_abi`, `handoff_layer_state_frontier_abi`, `world_embedded_projection_abi`, `world_embedded_method_projection_abi`, `world_embedded_branch_projection_abi`, `world_embedded_action_frontier_abi`, `world_embedded_action_pool_frontier_abi`가 `make test-abi`의 C/LLVM smoke에 올라왔다
 - 현재 propagation blocker는 helper flag 부재가 아니라 이미 들어간 bounded frontier loop와 embedded assignment/method/branch-driven recompute 및 v1 handoff projection/layer/state slice를 authority/failure와 더 넓은 world-zone path까지 일반화하는 `bounded fixpoint / transitive frontier scheduler`다
 - `docs/100_beta_readiness_checklist.md` is the live beta-readiness source of

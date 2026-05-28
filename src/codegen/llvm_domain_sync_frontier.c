@@ -41,16 +41,23 @@ llvm_emit_sync_generation_increment(LLVMGenCtx *ctx,
 void
 llvm_emit_frontier_overflow_abort(LLVMGenCtx *ctx, const char *reason)
 {
-    LLVMTypeRef panic_ft;
     LLVMFuncEntry *panic_fn;
 
     if (ctx == NULL)
         return;
 
-    panic_ft = LLVMFunctionType(ctx->type_void, &ctx->type_i8ptr, 1, 0);
-    panic_fn = llvm_lookup_or_declare_function(ctx,
-        "pgy_runtime_panic_internal_invariant_export",
-        panic_ft, ctx->type_void);
+    panic_fn = llvm_lookup_function(ctx,
+        "pgy_runtime_panic_internal_invariant_export");
+    if (panic_fn == NULL) {
+        llvm_set_error_at_with_hints(ctx, NULL,
+            PGY_CODE_LLVM_TYPE_UNSUPPORTED,
+            PGY_CAUSE_LLVM_TYPE_UNSUPPORTED,
+            PGY_FIX_INSPECT_MIR_INVENTORY,
+            "LLVM frontier overflow requires registered runtime function '%s'",
+            "pgy_runtime_panic_internal_invariant_export");
+        LLVMBuildUnreachable(ctx->builder);
+        return;
+    }
     if (panic_fn != NULL) {
         LLVMValueRef reason_arg = LLVMBuildGlobalStringPtr(ctx->builder,
             reason != NULL ? reason : PGY_FRONTIER_REASON_GENERIC_OVERFLOW,

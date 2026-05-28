@@ -2569,7 +2569,9 @@ Observed results:
   private Windows runtime-PATH implementation. LLVM smoke and ABI pipeline
   smoke also consume the helper for MinGW/LLVM launch-path setup, and backend
   compare now uses the same helper for initial LLVM/MinGW runtime path setup.
-  Gates: `test-abi`, `llvm-test-smoke`, `llvm-test-backend-compare` (`72/72`).
+  Historical gates: `test-abi`, `llvm-test-smoke`,
+  `llvm-test-backend-compare` (`72/72` at this checkpoint; current parity is
+  tracked in `docs/100_beta_readiness_checklist.md`).
   The native PowerShell PATH prefix used by AIR non-impact, runtime frontier,
   type-resolution DAG, and backend compare fallback now comes from the same
   helper rather than repeated script-local string literals. Gates:

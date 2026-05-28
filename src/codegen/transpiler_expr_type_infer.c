@@ -182,6 +182,24 @@ infer_expression_type_name(TranspilerCtx *ctx, ASTNode *expr)
             return "Unknown";
         return transpiler_infer_arena_format_type_name(ctx, "Future", inner);
     }
+    case AST_AWAIT_EXPR: {
+        ASTNode *awaited = ast_await_expression(expr);
+        char inner_buf[128];
+        const char *inner;
+
+        if (ctx == NULL)
+            return "Unknown";
+        if (!lookup_future_inner_type_copy(ctx, awaited, inner_buf,
+                sizeof(inner_buf))
+            || inner_buf[0] == '\0'
+            || strcmp(inner_buf, "Unknown") == 0) {
+            return "Unknown";
+        }
+        inner = transpiler_infer_arena_copy_type_name(ctx, inner_buf);
+        if (is_remote_future_expr(ctx, awaited))
+            return transpiler_infer_arena_format_type_name(ctx, "Result", inner);
+        return inner;
+    }
     case AST_MEMBER_ACCESS: {
         const char *resolved = transpiler_resolve_nominal_host_expr_type_name(ctx, expr);
         if (resolved != NULL)

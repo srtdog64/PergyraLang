@@ -374,9 +374,9 @@ test_roster_world_emit(void)
 
         emit_program(ctx);
 
-        EXPECT_STR_CONTAINS(ctx->out->data, "pgy_log(self->battle.__projection_ready_playerView);");
-        EXPECT_STR_CONTAINS(ctx->out->data, "pgy_log(self->battle.__layer_active_poison);");
-        EXPECT_STR_CONTAINS(ctx->out->data, "pgy_log(self->battle.__state_poisoned);");
+        EXPECT_STR_CONTAINS(ctx->out->data, "pgy_log_bool((bool)(self->battle.__projection_ready_playerView));");
+        EXPECT_STR_CONTAINS(ctx->out->data, "pgy_log_bool((bool)(self->battle.__layer_active_poison));");
+        EXPECT_STR_CONTAINS(ctx->out->data, "pgy_log_bool((bool)(self->battle.__state_poisoned));");
 
         transpiler_ctx_destroy(ctx);
         mir_destroy(mir);
@@ -464,7 +464,7 @@ test_roster_world_emit(void)
         EXPECT_STR_CONTAINS(ctx->out->data, "self->poison.__projection_dirty_view = true;");
         EXPECT_STR_CONTAINS(ctx->out->data, "self->poison.__projection_ready_view = false;");
         EXPECT_STR_CONTAINS(ctx->out->data,
-            "pgy_log(BattleZone_has_layer_poison(self, __pgy_zone_gen));");
+            "pgy_log_bool((bool)(BattleZone_has_layer_poison(self, __pgy_zone_gen)));");
 
         transpiler_ctx_destroy(ctx);
         mir_destroy(mir);
@@ -515,9 +515,9 @@ test_roster_world_emit(void)
         EXPECT_STR_CONTAINS(ctx->out->data, "self->__zone_state_battleProjected = (self->__zone_active_battle && self->battle.__projection_ready_playerView);");
         EXPECT_STR_CONTAINS(ctx->out->data, "self->__zone_state_battleLayered = (self->__zone_active_battle && self->battle.__layer_active_poison);");
         EXPECT_STR_CONTAINS(ctx->out->data, "self->__zone_state_battlePoisoned = (self->__zone_active_battle && self->battle.__state_poisoned);");
-        EXPECT_STR_CONTAINS(ctx->out->data, "pgy_log(self->__zone_state_battleProjected);");
-        EXPECT_STR_CONTAINS(ctx->out->data, "pgy_log(self->__zone_state_battleLayered);");
-        EXPECT_STR_CONTAINS(ctx->out->data, "pgy_log(self->__zone_state_battlePoisoned);");
+        EXPECT_STR_CONTAINS(ctx->out->data, "pgy_log_bool((bool)(self->__zone_state_battleProjected));");
+        EXPECT_STR_CONTAINS(ctx->out->data, "pgy_log_bool((bool)(self->__zone_state_battleLayered));");
+        EXPECT_STR_CONTAINS(ctx->out->data, "pgy_log_bool((bool)(self->__zone_state_battlePoisoned));");
 
         transpiler_ctx_destroy(ctx);
         mir_destroy(mir);
@@ -559,8 +559,8 @@ test_roster_world_emit(void)
 
         EXPECT_STR_CONTAINS(ctx->out->data, "self->__zone_state_allLive = (self->__zone_state_battleLive && self->__zone_state_campLive);");
         EXPECT_STR_CONTAINS(ctx->out->data, "self->__zone_state_anyLive = (self->__zone_state_allLive || self->__zone_state_campLive);");
-        EXPECT_STR_CONTAINS(ctx->out->data, "pgy_log(self->__zone_state_allLive);");
-        EXPECT_STR_CONTAINS(ctx->out->data, "pgy_log(self->__zone_state_anyLive);");
+        EXPECT_STR_CONTAINS(ctx->out->data, "pgy_log_bool((bool)(self->__zone_state_allLive));");
+        EXPECT_STR_CONTAINS(ctx->out->data, "pgy_log_bool((bool)(self->__zone_state_anyLive));");
 
         transpiler_ctx_destroy(ctx);
         mir_destroy(mir);

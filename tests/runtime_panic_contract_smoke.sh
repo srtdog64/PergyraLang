@@ -408,6 +408,12 @@ unwrap_lowering_paths = {
         "Result unwrap on Err value",
         "Option unwrap on None value",
     ],
+    root / "src" / "codegen" / "llvm_expr_unary_core.c": [
+        "llvm_emit_try_operator_unwrap_panic",
+        "llvm_lookup_function",
+        "pgy_runtime_panic_internal_invariant_export",
+        "Result unwrap on Err value",
+    ],
     root / "src" / "codegen" / "llvm_runtime_core_builtin_decl.c": [
         "pgy_runtime_panic_internal_invariant_export",
         "pgy_runtime_panic_out_of_bounds_export",

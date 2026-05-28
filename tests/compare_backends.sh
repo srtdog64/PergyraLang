@@ -390,6 +390,7 @@ main() {
         "tests/cases/backend_compare/secure_slot_subject_boundary_forward_own"
         "tests/cases/backend_compare/break_continue"
         "tests/cases/backend_compare/else_if_chain"
+        "tests/cases/backend_compare/if_else_chain"
         "tests/cases/backend_compare/while_loop"
         "tests/cases/backend_compare/while_condition_basic"
         "tests/cases/backend_compare/array_enum"
@@ -417,6 +418,7 @@ main() {
         "tests/cases/backend_compare/io_print_banner"
         "tests/cases/backend_compare/file_handle_io"
         "tests/cases/backend_compare/runtime_time_sleep"
+        "tests/cases/backend_compare/device_slot_remote"
         "tests/cases/backend_compare/runtime_seeded_random"
         "tests/cases/backend_compare/string_io"
         "tests/cases/backend_compare/io_string_negative_paths"
@@ -552,6 +554,7 @@ main() {
         "tests/cases/backend_compare/select_single_ready"
         "tests/cases/backend_compare/select_unbound_ready"
         "tests/cases/backend_compare/select_ready"
+        "tests/cases/backend_compare/select_fairness"
         "tests/cases/backend_compare/try_operator_result"
         "tests/cases/backend_compare/triple_paradigm"
     )

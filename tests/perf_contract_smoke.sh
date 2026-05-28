@@ -1895,14 +1895,24 @@ grep -Fq "pgy_mir_program_uses_intent_observability(ctx->mir)" "$ROOT_DIR/src/co
 grep -Fq "llvm_active_uses_intent_observability(ctx)" "$ROOT_DIR/src/codegen/llvm_api.c"
 grep -Fq "pgy_mir_program_uses_thread_pool(ctx->mir)" "$ROOT_DIR/src/codegen/llvm_inventory_internal.c"
 grep -Fq "llvm_active_uses_thread_pool(ctx)" "$ROOT_DIR/src/codegen/llvm_main_wrapper.c"
+grep -Fq 'llvm_lookup_function(ctx, "Main")' "$ROOT_DIR/src/codegen/llvm_main_wrapper.c"
+! grep -Fq 'lookup_or_declare_function(ctx, "Main"' "$ROOT_DIR/src/codegen/llvm_main_wrapper.c"
+! grep -Fq '|| (main_user != NULL)' "$ROOT_DIR/src/codegen/llvm_main_wrapper.c"
+grep -Fq "MIR-only LLVM path missing registered executable function 'Main'" "$ROOT_DIR/src/codegen/llvm_main_wrapper.c"
+grep -Fq "MIR-only LLVM path missing synthetic top-level executable function '__pgy_top_level_exec'" "$ROOT_DIR/src/codegen/llvm_main_wrapper.c"
+grep -Fq "MIR-only C path missing registered executable function 'Main'" "$ROOT_DIR/src/codegen/transpiler.c"
+grep -Fq "MIR-only C path missing synthetic top-level executable function '__pgy_top_level_exec'" "$ROOT_DIR/src/codegen/transpiler.c"
 grep -Fq "branch_shape == MIR_BRANCH_FOR_IN" "$ROOT_DIR/src/codegen/transpiler_mir_cfg_control_emit.c"
 grep -Fq "branch_shape == MIR_BRANCH_FOR_RANGE" "$ROOT_DIR/src/codegen/transpiler_mir_cfg_control_emit.c"
 grep -Fq "mir_instruction_has_required_branch_condition_fact(inst)" "$ROOT_DIR/src/codegen/transpiler_mir_cfg_control_emit.c"
 ! grep -Fq "mir_instruction_source_branch_payload_matches_shape(inst)" "$ROOT_DIR/src/codegen/transpiler_mir_cfg_control_emit.c"
 grep -Fq "transpiler_mir_render_select_case_condition" "$ROOT_DIR/src/codegen/transpiler_mir_cfg_control_emit.c"
+grep -Fq "emit_expression_with_ssa_map(channel, ctx, NULL)" "$ROOT_DIR/src/codegen/transpiler_mir_cfg_control_emit.c"
 grep -Fq "pgy_channel_ready_%s(&%s)" "$ROOT_DIR/src/codegen/transpiler_mir_cfg_control_emit.c"
 grep -Fq "MIR select dispatch emits channel readiness in C backend" "$ROOT_DIR/src/tests/transpile/test_transpile_mir_part_b.cases.h"
 grep -Fq "MIR select dispatch materializes bound receive local type" "$ROOT_DIR/src/tests/transpile/test_transpile_mir_part_b.cases.h"
+grep -Fq "MIR select dispatch preserves implicit field channel lvalue" "$ROOT_DIR/src/tests/transpile/test_transpile_mir_part_b.cases.h"
+grep -Fq "pgy_channel_ready_Int(&self.ch)" "$ROOT_DIR/src/tests/transpile/test_transpile_mir_part_b.cases.h"
 grep -Fq "transpiler_select_case_has_receive_binding" "$ROOT_DIR/src/codegen/transpiler_mir_local_binding.c"
 grep -Fq "ASTNode *value = ast_assignment_value(node)" "$ROOT_DIR/src/codegen/transpiler_mir_local_binding.c"
 grep -Fq "value->type == AST_CHANNEL_RECV" "$ROOT_DIR/src/codegen/transpiler_mir_local_binding.c"
@@ -3344,9 +3354,9 @@ grep -Fq '{ "StringConcat", "String", PGY_BUILTIN_FLAG_NONE }' "$ROOT_DIR/src/co
 ! grep -Fq 'strcmp(callee, "Input")' "$ROOT_DIR/src/codegen/llvm_stmt_type_infer.c"
 ! grep -Fq 'strcmp(callee, "Concat")' "$ROOT_DIR/src/codegen/llvm_stmt_type_infer.c"
 ! grep -Fq 'strcmp(callee, "StringConcat")' "$ROOT_DIR/src/codegen/llvm_stmt_type_infer.c"
-grep -A14 -F "case AST_NUMBER" "$ROOT_DIR/src/codegen/llvm_stmt_type_infer.c" | \
+grep -A24 -F "case AST_NUMBER" "$ROOT_DIR/src/codegen/llvm_stmt_type_infer.c" | \
     grep -Fq "ast_number_is_long(expr)"
-grep -A14 -F "case AST_NUMBER" "$ROOT_DIR/src/codegen/llvm_stmt_type_infer.c" | \
+grep -A24 -F "case AST_NUMBER" "$ROOT_DIR/src/codegen/llvm_stmt_type_infer.c" | \
     grep -Fq "return ctx->type_f64"
 grep -A6 -F "if (init->type == AST_NUMBER)" "$ROOT_DIR/src/codegen/transpiler_let_emit.c" | \
     grep -Fq "infer_expression_type_name(ctx, init)"

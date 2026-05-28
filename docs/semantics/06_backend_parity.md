@@ -1,6 +1,6 @@
 # 06. Backend Parity Proof Obligations
 
-Last updated: 2026-04-25
+Last updated: 2026-05-29
 
 Status: `IN PROGRESS / BLOCKER`
 
@@ -64,6 +64,15 @@ Observed behavior includes:
 Current evidence:
 
 - Linux `llvm-test-backend-compare`, `llvm-test-smoke`, and ABI same-process tests are green for the current frozen suite.
+- `backend-compare-llvm-coverage-test-smoke` prevents non-experimental
+  `llvm_smoke.sh` cases from staying LLVM-only; the only current allowlisted
+  LLVM-only surface is `qubit_slot`, which remains out-of-beta.
+- `runtime-panic-codegen-test-smoke` executes C and LLVM panic boundaries for
+  divide-by-zero, collection/slice out-of-bounds, direct unwrap failure, and
+  `?` failure in a non-Result-returning function.
+- `runtime-frontier-contract-test-smoke` keeps LLVM frontier overflow on the
+  registered internal-invariant panic export instead of synthesizing an
+  undeclared runtime function or falling back to raw abort.
 
 Remaining proof obligation:
 
@@ -98,8 +107,9 @@ Current evidence:
 - `runtime-panic-contract-test-smoke` gates the shared panic class/reason vocabulary and prevents released-slot, secure-slot, device-slot, authority, OOM, out-of-bounds, and checked-arithmetic paths from drifting back to silent fallback.
 - `runtime-panic-abi-test-smoke` executes inline-runtime and exported-runtime harnesses for released slot use, invalid secure-slot token, double release, device slot release violations, authority mismatch, OOM, out-of-bounds, and divide-by-zero.
 - `runtime-panic-codegen-test-smoke` verifies generated C and LLVM programs lower integer divide/modulo by zero to the same `divide-by-zero` panic class and stable `Array<T>`/`Slice<T>` indexing, including temporary function-return access, plus `ArraySet`, `ListGet`, `QueuePop`, `MapGet`, `ListSet`, `ListRemove`, and `MapRemove` invalid access to the same `out-of-bounds` panic class.
-- The same generated-code smoke verifies `Unwrap(Err)` and `UnwrapOption(None)`
-  panic with the same `internal-invariant` class in C and LLVM.
+- The same generated-code smoke verifies `Unwrap(Err)`, `Fail()?` in a `Void`
+  function, and `UnwrapOption(None)` panic with the same
+  `internal-invariant` class in C and LLVM.
 
 Remaining proof obligation:
 

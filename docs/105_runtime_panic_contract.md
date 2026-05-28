@@ -62,14 +62,16 @@ the C and LLVM paths.
 - Stable mutation APIs also hard-fail instead of silently no-oping:
   `ListSet`, `ListRemove`, and `MapRemove` invalid access all use the shared
   `out-of-bounds` class.
-- `Unwrap(result)` on `Err` and `UnwrapOption(option)` on `None` are sharp
-  hard-fail boundaries. Generated C uses the inline runtime unwrap helpers, and
-  generated LLVM now emits an explicit tag guard that calls the shared
-  `internal-invariant` panic export instead of extracting the value field.
+- `Unwrap(result)` on `Err`, `?` on `Err` in a non-Result-returning function,
+  and `UnwrapOption(option)` on `None` are sharp hard-fail boundaries.
+  Generated C uses the inline runtime unwrap helpers or `PGY_RUNTIME_PANIC`,
+  and generated LLVM now emits explicit tag guards that call the shared
+  `internal-invariant` panic export instead of extracting the value field or
+  lowering the edge to a bare `unreachable`.
 - `runtime-panic-codegen-test-smoke` compiles and runs generated Pergyra
   programs through both C and LLVM to verify integer divide/modulo by zero and
-  stable collection out-of-bounds plus unwrap invariant misuse reach the shared
-  panic classes.
+  stable collection out-of-bounds plus unwrap/try invariant misuse reach the
+  shared panic classes.
 
 ## Deliberately Not Panic By Default
 
@@ -92,8 +94,8 @@ the C and LLVM paths.
   checked integer divide/modulo helper paths, generated C/LLVM
   `Array<T>`/`Slice<T>` indexing plus `ArraySet` out-of-bounds, and stable
   `ListGet`/`QueuePop`/`MapGet`/`ListSet`/`ListRemove`/`MapRemove` invalid
-  access plus `Unwrap(Err)` / `UnwrapOption(None)` internal-invariant misuse
-  have executable smoke coverage.
+  access plus `Unwrap(Err)` / `Fail()?` in `Void` / `UnwrapOption(None)`
+  internal-invariant misuse have executable smoke coverage.
 - Keep generated-program negative smoke coverage in CI for every panic class
   whose failure is reachable through stable language syntax.
 - Audit generated authority hard-fail call sites to ensure they all lower to

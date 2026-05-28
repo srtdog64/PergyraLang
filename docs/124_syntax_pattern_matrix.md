@@ -168,7 +168,7 @@ speed and order-independent declarations as first-class compiler constraints.
 | Optional value | `T?`, `Option<T>` | `Option<T>` | `stable` | Prefer over nullable control flow. |
 | Fallible result | `Result<T,E>`, `Either`, `Try<T>` | `Result<T, E>` / current Result surface | `stable` | Recoverable failure surface. |
 | File preflight | `exists(path)`, `Path.exists()` | `FileExists(path)` before `ReadFile(path)` | `stable` | Keeps missing input distinct from empty file payload without changing `ReadFile -> String`; missing-path C/LLVM parity is gated by `io_string_negative_paths`. |
-| Error propagation | `?`, `try`, `await` failure | Result/failure contracts | `partial` | Keep recoverable vs hard-fail boundary explicit. |
+| Error propagation | `?`, `try`, `await` failure | Result/failure contracts | `partial` | Keep recoverable vs hard-fail boundary explicit; C/LLVM now both hard-fail `?` on Err in non-Result-returning functions through the shared internal-invariant panic class. |
 | Exception throw/catch | `throw`, `try/catch` | none | `reject` | Pergyra is Result/failure-contract first. |
 | Panic/abort | `panic!`, process abort | hard-fail runtime boundary | `stable` | Internal invariant/slot/token violations hard-fail. |
 | Finally | `finally`, RAII cleanup | `defer` / MIR cleanup facts | `native-different` | MIR cleanup is source of truth. |
@@ -179,11 +179,11 @@ speed and order-independent declarations as first-class compiler constraints.
 | Pattern | Common shape | Pergyra mapping | Status | Notes |
 | --- | --- | --- | --- | --- |
 | Async function | `async fn`, `async Task<T>` | `async func` | `stable` | Stable subset only; async function declaration parity is gated by `async_func_decl`, and basic C/LLVM spawn/await parity is gated by `async_spawn_await`. |
-| Await | `.await`, `await task` | `await` | `stable` | Pin/borrow boundaries must reject unsafe crossing; basic C/LLVM parity is gated by `async_spawn_await`. |
+| Await | `.await`, `await task` | `await` | `stable` | Pin/borrow boundaries must reject unsafe crossing; basic C/LLVM parity is gated by `async_spawn_await`, and remote device await/unwrap parity is gated by `device_slot_remote`. |
 | Spawn task | `tokio::spawn`, `Task.Run`, goroutine | `spawn` | `stable` | Token/authority transport rules apply; basic C/LLVM parity is gated by `async_spawn_await`, lexical async block send/recv by `async_block_runtime`, and generic/string spawn by `generic_spawn`, `generic_spawn_multi`, and `string_spawn`. |
 | Parallel block | Rayon/Parallel.For/scope | `parallel` / `parallel on` | `stable` | Layered resource/concurrency/domain model. |
 | Channel | Go channel / mpsc | `Channel<T>`, send/recv | `stable` | Cross-world transfer stays channel-only; direct send/recv parity is gated by `channel_basic`, and capacity/length/space/full/closed state queries are C/LLVM parity-gated by `channel_pressure_state` and `channel_pressure`. |
-| Select | Go `select`, Tokio select | `select` | `partial` | Single-ready bound/unbound receive/default C/LLVM parity is gated by `select_single_ready`, `select_unbound_ready`, and `select_ready`; fairness, timeout, cancellation, and backpressure policy remain narrow. |
+| Select | Go `select`, Tokio select | `select` | `partial` | Single-ready bound/unbound receive/default and narrow fairness C/LLVM parity are gated by `select_single_ready`, `select_unbound_ready`, `select_ready`, and `select_fairness`; timeout, cancellation, and broader backpressure policy remain narrow. |
 | Cancellation | token/abort/cancel scope | cancel/failure contracts | `partial` | Explicit `Future<T>` annotation on spawned work is parity-gated by `future_annotation`; narrow `Cancel(Future<T>)` result parity is gated by `future_cancel_state` and `cancel_future`, and parent/child propagation by `future_cancel_propagation` and `cancel_propagation`; richer diagnostics and payload policy still need tightening. |
 | Atomic | `AtomicI32`, `Interlocked` | runtime/internal only | `out-of-beta` | User-facing atomics are not beta core. |
 

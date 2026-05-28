@@ -1,0 +1,19 @@
+func Main() -> Void {
+    let a: Channel<Int> = Channel(4);
+    let b: Channel<Int> = Channel(4);
+    a <- 1;
+    a <- 3;
+    b <- 2;
+    b <- 4;
+
+    for i in 0..4 {
+        select {
+            case v = <-a:
+                Log(v);
+            case v = <-b:
+                Log(v);
+            default:
+                Log(0);
+        }
+    }
+}

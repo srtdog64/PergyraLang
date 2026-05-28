@@ -143,6 +143,12 @@ MIR가 backend 유일 입력이 되려면 아래를 다 표현해야 한다.
 - top-level wrapper AST는 `MIRProgram`에 별도 저장하지 않고, 필요 시 MIR function inventory에서 `__pgy_top_level_exec`를 다시 찾는다
 - MIR backend main-wrapper path는 top-level statement list를 직접 순회하지 않고 `__pgy_top_level_exec`를 top-level execution source of truth로 사용한다
 - LLVM/C main-wrapper와 thread-pool 판단의 MIR path도 raw `executables` list를 직접 소비하지 않는다
+- C/LLVM main-wrapper emission fails with a MIR inventory-missing diagnostic if
+  MIR claims `Main` or `__pgy_top_level_exec` exists but the matching registered
+  function/source wrapper is absent. Partial executable wrappers are not a
+  valid fallback.
+- LLVM executable wrapper creation is gated by MIR entrypoint flags, not by a
+  stray `Main` registry entry.
 - C declaration emit의 role/party include 및 ability-vtable naming 경로에서도 `UnknownAbility`/주석 fallback 대신 backend error로 실패시키기 시작했다
 - C let/MIR-local 선언 경로도 이제 타입을 모를 때 `int32_t`로 조용히 대체하지 않고 backend error로 실패한다
 - MIR resource-op dumb emitter helper도 unknown op를 주석으로 흘려보내지 않고 실패 신호를 반환한다

@@ -241,6 +241,7 @@ transpiler_emit_mir_source_local_let_def_inst(
         const char *result_c_type = NULL;
         char *operand_expr = NULL;
         int try_id;
+        bool current_returns_result;
 
         ctx->active_type_hint = saved_type_hint;
         free(rendered_type_hint);
@@ -256,18 +257,8 @@ transpiler_emit_mir_source_local_let_def_inst(
             }
             return TRANSPILE_MIR_LOCAL_LET_FAILED;
         }
-        if (ctx->current_return_type[0] == '\0'
-            || strncmp(ctx->current_return_type, "Result<", 7) != 0) {
-            free(lhs);
-            free(local_type_name_owned);
-            if (reason != NULL && reason_cap > 0) {
-                transpiler_mir_reasonf(reason, reason_cap,
-                    "MIR block %llu emission failed: '?' let binding '%s' requires a Result-returning function",
-                    (unsigned long long) block->id,
-                    let_name != NULL ? let_name : "<binding>");
-            }
-            return TRANSPILE_MIR_LOCAL_LET_FAILED;
-        }
+        current_returns_result = ctx->current_return_type[0] != '\0'
+            && strncmp(ctx->current_return_type, "Result<", 7) == 0;
 
         if (!transpiler_require_type_name_c_type_copy(ctx, result_type,
                 "MIR preserved try operand Result", result_c_type_buf,
@@ -299,9 +290,15 @@ transpiler_emit_mir_source_local_let_def_inst(
         codebuf_write(buf, "%s __try_%d = %s;\n",
                       result_c_type, try_id, operand_expr);
         write_indent_to(buf, ctx->indent);
-        codebuf_write(buf,
-                      "if (__try_%d.tag != PgyResultOk) return __try_%d;\n",
-                      try_id, try_id);
+        if (current_returns_result) {
+            codebuf_write(buf,
+                          "if (__try_%d.tag != PgyResultOk) return __try_%d;\n",
+                          try_id, try_id);
+        } else {
+            codebuf_write(buf,
+                          "if (__try_%d.tag != PgyResultOk) PGY_RUNTIME_PANIC(PGY_RUNTIME_PANIC_CLASS_INTERNAL_INVARIANT, PGY_RUNTIME_PANIC_REASON_RESULT_UNWRAP_ERR);\n",
+                          try_id);
+        }
         write_indent_to(buf, ctx->indent);
         codebuf_write(buf, "%s = __try_%d.ok;\n", lhs, try_id);
         free(operand_expr);
