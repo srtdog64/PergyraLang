@@ -899,6 +899,7 @@ ifneq ($(LLVM_ENABLED),0)
                         $(CODEGEN_DIR)/llvm_expr_call_methods_vtable_dispatch.c \
                         $(CODEGEN_DIR)/llvm_expr_call_methods_world_effect_sync.c \
                         $(CODEGEN_DIR)/llvm_expr_call_projection_sync.c \
+                        $(CODEGEN_DIR)/llvm_channel_target.c \
                         $(CODEGEN_DIR)/llvm_expr_channel.c \
                         $(CODEGEN_DIR)/llvm_expr_collection_base_calls.c \
                         $(CODEGEN_DIR)/llvm_expr_constructor_calls.c \

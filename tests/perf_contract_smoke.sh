@@ -2812,8 +2812,12 @@ grep -Fq '"pgy_array_new_",' "$ROOT_DIR/src/codegen/llvm_stmt_let_collections.c"
 grep -Fq "array literal expression" "$ROOT_DIR/src/codegen/llvm_expr_aggregate.c"
 grep -Fq "channel send expression" "$ROOT_DIR/src/codegen/llvm_expr_channel.c"
 grep -Fq "channel receive expression" "$ROOT_DIR/src/codegen/llvm_expr_channel.c"
-grep -Fq "llvm_channel_required_binding" "$ROOT_DIR/src/codegen/llvm_expr_channel.c"
-grep -Fq "requires registered Channel<T> local" "$ROOT_DIR/src/codegen/llvm_expr_channel.c"
+grep -Fq "llvm_resolve_channel_target" "$ROOT_DIR/src/codegen/llvm_expr_channel.c"
+grep -Fq "LLVMChannelTarget" "$ROOT_DIR/src/codegen/llvm_channel_target.c"
+grep -Fq "requires registered Channel<T> local storage" "$ROOT_DIR/src/codegen/llvm_channel_target.c"
+grep -Fq 'current-host' "$ROOT_DIR/docs/semantics/06_backend_parity.md"
+grep -Fq '`Channel<T>` fields through the same `LLVMChannelTarget`' \
+    "$ROOT_DIR/docs/semantics/06_backend_parity.md"
 grep -Fq "llvm_channel_expr_error" "$ROOT_DIR/src/codegen/llvm_expr_channel.c"
 ! grep -A16 -F "llvm_channel_expr_error(LLVMGenCtx *ctx" \
     "$ROOT_DIR/src/codegen/llvm_expr_channel.c" | \

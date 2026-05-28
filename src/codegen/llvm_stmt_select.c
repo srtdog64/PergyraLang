@@ -51,7 +51,7 @@ typedef struct {
     const char   *bind_name;
     const char   *channel_name;
     const char   *inner;
-    LLVMVarEntry *channel_var;
+    LLVMValueRef  channel_ptr;
     bool          valid;
 } LLVMSelectCaseInfo;
 
@@ -69,16 +69,27 @@ llvm_select_case_info(ASTNode *case_node, LLVMGenCtx *ctx,
         return true;
     }
 
-    out->channel_name = ast_identifier_name(out->channel);
-    out->inner = llvm_lookup_channel_inner(ctx, out->channel_name);
-    out->channel_var = llvm_scope_lookup(ctx, out->channel_name);
-    if (out->inner == NULL || out->inner[0] == '\0') {
-        llvm_set_error_at_with_hints(ctx, out->channel,
-            PGY_CODE_LLVM_TYPE_UNSUPPORTED,
-            PGY_CAUSE_LLVM_SLOT_INNER_TYPE_MISSING,
-            PGY_FIX_ANNOTATE_CONCRETE_TYPE,
-            "LLVM select channel '%s' requires concrete Channel<T> metadata",
-            out->channel_name != NULL ? out->channel_name : "<channel>");
+    {
+        LLVMChannelTarget target;
+        if (!llvm_resolve_channel_target(ctx, case_node, out->channel,
+                "select channel", &target)) {
+            out->channel_name = ast_identifier_name(out->channel);
+            if (!ctx->has_error) {
+                llvm_set_error_at_with_hints(ctx, out->channel,
+                    PGY_CODE_LLVM_TYPE_UNSUPPORTED,
+                    PGY_CAUSE_LLVM_SLOT_INNER_TYPE_MISSING,
+                    PGY_FIX_ANNOTATE_CONCRETE_TYPE,
+                    "LLVM select channel '%s' requires concrete Channel<T> metadata",
+                    out->channel_name != NULL ? out->channel_name : "<channel>");
+            }
+            return false;
+        }
+        out->channel_name = target.name;
+        out->inner = target.inner;
+        out->channel_ptr = target.ptr;
+    }
+    if (out->inner == NULL || out->inner[0] == '\0'
+        || out->channel_ptr == NULL) {
         return false;
     }
     return true;
@@ -127,7 +138,7 @@ llvm_select_emit_bound_receive_case(const LLVMSelectCaseInfo *info,
     if (try_fn == NULL)
         return false;
 
-    LLVMValueRef args[] = { info->channel_var->alloca, tmp };
+    LLVMValueRef args[] = { info->channel_ptr, tmp };
     LLVMValueRef ok = LLVMBuildCall2(ctx->builder, try_fn->fn_type,
         try_fn->fn, args, 2, llvm_tmp_name(ctx));
     LLVMBuildCondBr(ctx->builder, ok, case_bb, fail_bb);
@@ -167,7 +178,7 @@ llvm_select_emit_ready_consume_case(const LLVMSelectCaseInfo *info,
     if (ready_fn == NULL)
         return false;
 
-    LLVMValueRef args[] = { info->channel_var->alloca };
+    LLVMValueRef args[] = { info->channel_ptr };
     LLVMValueRef ready = LLVMBuildCall2(ctx->builder, ready_fn->fn_type,
         ready_fn->fn, args, 1, llvm_tmp_name(ctx));
     LLVMBuildCondBr(ctx->builder, ready, case_bb, fail_bb);
@@ -182,7 +193,7 @@ llvm_select_emit_ready_consume_case(const LLVMSelectCaseInfo *info,
             ctx, info->channel, "consume", recv_name);
         if (recv_fn == NULL)
             return false;
-        LLVMValueRef recv_args[] = { info->channel_var->alloca };
+        LLVMValueRef recv_args[] = { info->channel_ptr };
         (void)LLVMBuildCall2(ctx->builder, recv_fn->fn_type,
             recv_fn->fn, recv_args, 1, "");
     }
@@ -268,7 +279,7 @@ llvm_emit_select_stmt(ASTNode *node, LLVMGenCtx *ctx)
 
                 if (info.valid && info.channel != NULL
                     && info.channel->type == AST_IDENTIFIER
-                    && info.channel_var != NULL) {
+                    && info.channel_ptr != NULL) {
                     bool emitted = info.bind_name != NULL
                         ? llvm_select_emit_bound_receive_case(
                             &info, case_bb, fail_bb, merge_bb, ctx)

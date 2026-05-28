@@ -125,7 +125,12 @@ English anchor for tooling/doc gates:
   and LLVM when a `Channel<T>` field is initialized with inline `Channel(...)`
   inside an aggregate constructor; channel initialization is statement-level
   runtime setup, so the stable path is `let ch: Channel<T> = Channel(n)`
-  followed by passing `ch`.
+  followed by passing `ch`. LLVM channel send/receive/select lowering now
+  consumes a shared `LLVMChannelTarget` owner, so registered local channels and
+  current-host `Channel<T>` fields resolve through the same pointer + inner-type
+  fact instead of the old local-only lookup. `llvm_smoke.sh` gates the IR shape
+  for implicit field channel send and select readiness/consume, while C
+  `test-transpile` continues to gate the generated `self.ch` lvalue shape.
 - CI smoke portability guard: beta/source-of-truth smoke scripts must remain
   compatible with macOS Bash 3.2. `build-source-inventory-test-smoke` now
   rejects Bash 4-only `mapfile` / `readarray`, associative arrays, parameter

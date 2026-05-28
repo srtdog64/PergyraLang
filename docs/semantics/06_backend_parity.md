@@ -128,6 +128,11 @@ Current evidence:
   statement-level runtime setup and cannot be embedded as a stable aggregate
   expression. The stable path is a named channel binding before aggregate
   construction.
+- LLVM channel send/receive/select resolves local channels and current-host
+  `Channel<T>` fields through the same `LLVMChannelTarget` pointer +
+  inner-type fact. This keeps implicit field-channel operations aligned with
+  the C backend's `self.ch` lvalue path instead of reopening local-only channel
+  lookup in each consumer.
 
 Remaining proof obligation:
 

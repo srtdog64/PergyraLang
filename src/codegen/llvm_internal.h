@@ -139,6 +139,13 @@ typedef struct
 
 typedef struct
 {
+    const char   *name;
+    const char   *inner;
+    LLVMValueRef  ptr;
+} LLVMChannelTarget;
+
+typedef struct
+{
     const char *var_name;
     const char *inner_type;
 } LLVMRcVarEntry;

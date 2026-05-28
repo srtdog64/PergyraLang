@@ -109,6 +109,25 @@ func Main() -> Void {
 EOF
 run_case "array_enum" "$TMPDIR/array_enum.pgy" "2" "9"
 
+cat > "$TMPDIR/field_channel.pgy" <<'EOF'
+class SelectBox {
+    let ch: Channel<Int>;
+
+    func Pull(self) -> Int {
+        ch <- 9;
+        select {
+            case v = <-ch:
+                return v;
+            default:
+                return 0;
+        }
+        return 0;
+    }
+}
+EOF
+run_ir_contains_case "field_channel_send" "$TMPDIR/field_channel.pgy" "pgy_channel_send_Int"
+run_ir_contains_case "field_channel_select" "$TMPDIR/field_channel.pgy" "pgy_channel_ready_Int"
+
 cat > "$TMPDIR/tagged_union.pgy" <<'EOF'
 enum Shape {
     Circle(Int),

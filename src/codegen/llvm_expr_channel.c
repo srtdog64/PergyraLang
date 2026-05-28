@@ -63,54 +63,18 @@ llvm_channel_format_runtime_name(char *out, size_t out_size,
     return written >= 0 && (size_t)written < out_size;
 }
 
-static LLVMVarEntry *
-llvm_channel_required_binding(LLVMGenCtx *ctx, ASTNode *node,
-                              ASTNode *channel, const char *operation_name,
-                              const char **suffix_out)
-{
-    if (suffix_out != NULL)
-        *suffix_out = NULL;
-    if (channel == NULL || channel->type != AST_IDENTIFIER
-        || ast_identifier_name(channel) == NULL) {
-        llvm_expr_set_missing_type_error(ctx, node, operation_name);
-        return NULL;
-    }
-
-    const char *name = ast_identifier_name(channel);
-    LLVMVarEntry *ch_var = llvm_scope_lookup(ctx, name);
-    const char *inner = llvm_lookup_channel_inner(ctx, name);
-    if (inner == NULL || inner[0] == '\0') {
-        llvm_expr_set_missing_type_error(ctx, node, operation_name);
-        return NULL;
-    }
-    if (ch_var == NULL) {
-        llvm_set_error_at_with_hints(ctx, channel,
-            PGY_CODE_LLVM_TYPE_UNSUPPORTED,
-            PGY_CAUSE_LLVM_TYPE_UNSUPPORTED,
-            PGY_FIX_INSPECT_MIR_INVENTORY,
-            "LLVM %s requires registered Channel<T> local '%s'",
-            operation_name, name);
-        return NULL;
-    }
-
-    if (suffix_out != NULL)
-        *suffix_out = inner;
-    return ch_var;
-}
-
 LLVMValueRef
 llvm_emit_channel_send_expr(ASTNode *node, LLVMGenCtx *ctx)
 {
-    const char *suffix = NULL;
-    LLVMVarEntry *ch_var = llvm_channel_required_binding(ctx, node,
-        ast_channel_send_channel(node), "channel send expression", &suffix);
-    if (ch_var == NULL)
+    LLVMChannelTarget target;
+    if (!llvm_resolve_channel_target(ctx, node, ast_channel_send_channel(node),
+            "channel send expression", &target))
         return NULL;
 
     LLVMValueRef val = llvm_emit_expression(ast_channel_send_value(node), ctx);
     char fname[128];
     if (!llvm_channel_format_runtime_name(fname, sizeof(fname),
-            "pgy_channel_send", suffix)) {
+            "pgy_channel_send", target.inner)) {
         return llvm_channel_expr_error(ctx, node,
             "LLVM channel send expression runtime function name is too long");
     }
@@ -121,7 +85,7 @@ llvm_emit_channel_send_expr(ASTNode *node, LLVMGenCtx *ctx)
         return NULL;
     }
     if (val != NULL) {
-        LLVMValueRef args[] = { ch_var->alloca, val };
+        LLVMValueRef args[] = { target.ptr, val };
         return LLVMBuildCall2(ctx->builder, fn->fn_type,
             fn->fn, args, 2, llvm_tmp_name(ctx));
     }
@@ -132,15 +96,14 @@ llvm_emit_channel_send_expr(ASTNode *node, LLVMGenCtx *ctx)
 LLVMValueRef
 llvm_emit_channel_recv_expr(ASTNode *node, LLVMGenCtx *ctx)
 {
-    const char *suffix = NULL;
-    LLVMVarEntry *ch_var = llvm_channel_required_binding(ctx, node,
-        ast_channel_recv_channel(node), "channel receive expression", &suffix);
-    if (ch_var == NULL)
+    LLVMChannelTarget target;
+    if (!llvm_resolve_channel_target(ctx, node, ast_channel_recv_channel(node),
+            "channel receive expression", &target))
         return NULL;
 
     char fname[128];
     if (!llvm_channel_format_runtime_name(fname, sizeof(fname),
-            "pgy_channel_recv_val", suffix)) {
+            "pgy_channel_recv_val", target.inner)) {
         return llvm_channel_expr_error(ctx, node,
             "LLVM channel receive expression runtime function name is too long");
     }
@@ -150,7 +113,7 @@ llvm_emit_channel_recv_expr(ASTNode *node, LLVMGenCtx *ctx)
             "channel receive expression", "ChannelRecv", fname);
         return NULL;
     }
-    LLVMValueRef args[] = { ch_var->alloca };
+    LLVMValueRef args[] = { target.ptr };
     return LLVMBuildCall2(ctx->builder, fn->fn_type,
         fn->fn, args, 1, llvm_tmp_name(ctx));
 }

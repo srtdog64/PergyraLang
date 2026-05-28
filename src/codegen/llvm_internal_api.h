@@ -110,6 +110,10 @@ bool          llvm_lookup_future_is_remote(LLVMGenCtx *ctx,
 void          llvm_register_channel_var(LLVMGenCtx *ctx, const char *var_name,
                                         const char *inner_type);
 const char   *llvm_lookup_channel_inner(LLVMGenCtx *ctx, const char *var_name);
+bool          llvm_resolve_channel_target(LLVMGenCtx *ctx, ASTNode *node,
+                                          ASTNode *channel,
+                                          const char *operation_name,
+                                          LLVMChannelTarget *out);
 void          llvm_register_rc_var(LLVMGenCtx *ctx, const char *var_name,
                                    const char *inner_type);
 const char   *llvm_lookup_rc_inner(LLVMGenCtx *ctx, const char *var_name);

@@ -111,6 +111,10 @@ now covers this with `858/0`. The same C/LLVM constructor path now fail-closes
 inline `Channel(...)` initialization inside aggregate constructors:
 `Channel<T>` init is statement-level runtime setup, so constructor fields must
 receive a named channel binding rather than raw `Channel(n)` expression text.
+LLVM channel send/receive/select now resolves both registered local channels
+and current-host `Channel<T>` fields through the shared `LLVMChannelTarget`
+owner. `llvm_smoke.sh` includes field-channel send and select IR probes, so the
+LLVM side no longer has a local-only Channel lookup seam for this shape.
 
 Current host declaration compatibility tightening (2026-05-25):
 party/role/roster host declarations are part of the shared host compatibility
