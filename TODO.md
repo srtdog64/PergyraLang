@@ -79,6 +79,15 @@ English anchor for tooling/doc gates:
   relation/effect projection sync, and zone runtime layer/effect/projection
   paths. Local targeted MinGW/Git Bash gate passed for the 21 new fixtures;
   full backend compare target is now `173/173`.
+- C/LLVM backend-compare default parity now additionally promotes selected
+  remaining stable LLVM-smoke cases: direct select readiness (`select_ready`),
+  secure subject slot construction (`secure_slot_subject_bot`), baseline
+  operator overload, and role operator overload. Local targeted MinGW/Git Bash
+  gate passed for these 4 fixtures; full backend compare target is now
+  `177/177`. Remaining LLVM-only surfaces are intentionally narrow:
+  `select_fairness` needs loop-PHI receive binding type closure in the C
+  backend, while `device_slot_remote` and `qubit_slot` remain experimental /
+  out-of-beta surfaces.
 - CI smoke portability guard: beta/source-of-truth smoke scripts must remain
   compatible with macOS Bash 3.2. `build-source-inventory-test-smoke` now
   rejects Bash 4-only `mapfile` / `readarray`, associative arrays, parameter

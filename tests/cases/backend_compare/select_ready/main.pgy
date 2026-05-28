@@ -1,0 +1,12 @@
+func Main() -> Void {
+    let ch: Channel<Int> = Channel(4);
+    parallel {
+        ch <- 7;
+    }
+    select {
+        case v = <-ch:
+            Log(v);
+        default:
+            Log(0);
+    }
+}

@@ -121,7 +121,7 @@ speed and order-independent declarations as first-class compiler constraints.
 | Reference / borrow | `&T`, `ref T`, pointer/ref | `ref` over supported boundaries; slot handles | `native-different` | Pergyra is not a Rust lifetime language; `ref Slot<subject>` boundary parity is gated by `slot_subject_boundary_ref`. |
 | Move/ownership transfer | move-only value, `unique_ptr` | `own`, `MoveToken<T>`, anchored slot boundaries | `partial` | Stable only for anchored subset; `own SecureSlot<subject>` and forwarding parity are gated by `secure_slot_subject_boundary_own` and `secure_slot_subject_boundary_forward_own`. |
 | RAII/drop/finally | Rust `Drop`, C# `using`, `finally` | `defer`, MIR cleanup, pin cleanup | `partial` | Cleanup source of truth must be MIR facts; straight-line scope exit is C/LLVM parity-gated by `defer_scope_exit`. |
-| Managed object reference | GC reference / handle | `Slot<T>` / registry / handle | `native-different` | Runtime-validated handle plus static boundary verifier. Direct claim/write/read/release parity is gated by `slot_basic`; subject-cell storage by `slot_subject_cell` / `secure_slot_subject_cell`; slot sugar remains gated by `slot_sugar`. |
+| Managed object reference | GC reference / handle | `Slot<T>` / registry / handle | `native-different` | Runtime-validated handle plus static boundary verifier. Direct claim/write/read/release parity is gated by `slot_basic`; subject-cell storage by `slot_subject_cell` / `secure_slot_subject_cell` / `secure_slot_subject_bot`; slot sugar remains gated by `slot_sugar`. |
 | Raw pointer escape | `unsafe`, `*T`, `void*` | explicit unsafe/raw escape policy | `out-of-beta` | Systems baseline item, not default surface. |
 | Lock/mutex | `lock`, `Mutex<T>` | Slot pin/view/resource boundaries | `native-different` | Do not import lock syntax as core by default. |
 
@@ -183,7 +183,7 @@ speed and order-independent declarations as first-class compiler constraints.
 | Spawn task | `tokio::spawn`, `Task.Run`, goroutine | `spawn` | `stable` | Token/authority transport rules apply; basic C/LLVM parity is gated by `async_spawn_await`, lexical async block send/recv by `async_block_runtime`, and generic/string spawn by `generic_spawn`, `generic_spawn_multi`, and `string_spawn`. |
 | Parallel block | Rayon/Parallel.For/scope | `parallel` / `parallel on` | `stable` | Layered resource/concurrency/domain model. |
 | Channel | Go channel / mpsc | `Channel<T>`, send/recv | `stable` | Cross-world transfer stays channel-only; direct send/recv parity is gated by `channel_basic`, and capacity/length/space/full/closed state queries are C/LLVM parity-gated by `channel_pressure_state` and `channel_pressure`. |
-| Select | Go `select`, Tokio select | `select` | `partial` | Single-ready bound/unbound receive/default C/LLVM parity is gated by `select_single_ready` and `select_unbound_ready`; fairness, timeout, cancellation, and backpressure policy remain narrow. |
+| Select | Go `select`, Tokio select | `select` | `partial` | Single-ready bound/unbound receive/default C/LLVM parity is gated by `select_single_ready`, `select_unbound_ready`, and `select_ready`; fairness, timeout, cancellation, and backpressure policy remain narrow. |
 | Cancellation | token/abort/cancel scope | cancel/failure contracts | `partial` | Explicit `Future<T>` annotation on spawned work is parity-gated by `future_annotation`; narrow `Cancel(Future<T>)` result parity is gated by `future_cancel_state` and `cancel_future`, and parent/child propagation by `future_cancel_propagation` and `cancel_propagation`; richer diagnostics and payload policy still need tightening. |
 | Atomic | `AtomicI32`, `Interlocked` | runtime/internal only | `out-of-beta` | User-facing atomics are not beta core. |
 
@@ -252,7 +252,7 @@ speed and order-independent declarations as first-class compiler constraints.
 | Map/set literal | dict/hashmap/set literal | `{ ... }` object/map literal syntax rejects explicitly | `out-of-beta` | Same as collection literal; use collection APIs for beta. |
 | Spread/rest | `...xs`, `*args`, destructure rest | none | `out-of-beta` | Useful with collections/calls later; not beta core. |
 | Range | `0..n` | range in loops | `stable` | Keep simple. |
-| Arithmetic/comparison/logical operators | `+`, `<`, `&&` | same | `stable` | Arithmetic, comparison, logical, modulo, and unary-minus baseline parity is gated by `operators`; unary-minus-specific parsing is also gated by `numeric_unary_minus`. |
+| Arithmetic/comparison/logical operators | `+`, `<`, `&&` | same | `stable` | Arithmetic, comparison, logical, modulo, unary-minus, and baseline operator-overload parity is gated by `operators`, `operator_overload`, and `role_operator_overload`; unary-minus-specific parsing is also gated by `numeric_unary_minus`. |
 | Compound assignment / inc-dec | `+=`, `-=`, `++`, `--` | event subscribe/unsubscribe uses `+=`/`-=`; general compound assignment absent | `out-of-beta` | Do not overload event syntax into general mutation before CFG cleanup facts own it. |
 | Operator overload | C# overload, Rust `Add` | none | `out-of-beta` | Avoid before generic/ability model is settled. |
 | Custom operator | Scala-like operator surface | none | `reject` | Surface trust risk. |

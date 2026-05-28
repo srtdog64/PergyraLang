@@ -1,0 +1,15 @@
+struct Vec2 {
+    x: Int;
+    y: Int;
+}
+
+func operator_add_Vec2(a: Vec2, b: Vec2) -> Vec2 {
+    return a;
+}
+
+func Main() -> Void {
+    let a: Vec2 = Vec2(1, 2);
+    let b: Vec2 = Vec2(3, 4);
+    let c: Vec2 = a + b;
+    Log(c.x);
+}

@@ -1,0 +1,10 @@
+subject Bot {
+    let hp: Int;
+}
+
+func Main() -> Void {
+    let s: SecureSlot<Bot> = Bot(7);
+    Write(s, Bot(9), s_token);
+    Release(s, s_token);
+    Log(1);
+}
