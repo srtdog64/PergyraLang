@@ -808,9 +808,9 @@ Current grammar contract:
 | Pattern | Grammar status | Beta contract |
 |---|---|---|
 | Intent compact step | active partial | `on:`-based inference is allowed for common receiver/action cases; explicit clauses remain valid. |
-| String interpolation | active partial | `"${expr}"` and `f"{expr}"` are parsed/lowered; escaping and backend parity remain the promotion gate. |
+| String interpolation | active partial | `"${expr}"` and `f"{expr}"` are parsed/lowered and basic fragments are C/LLVM parity-gated; escaping, nesting, and format specifiers remain the promotion gate. |
 | Array literal | stable | `[a, b, c]` is the collection literal baseline for beta. |
-| Slice view | stable | `values.Slice(start, len)` creates a local borrowed `Slice<T>` view; `SliceCopy(view)` materializes an owned `Array<T>` snapshot. |
+| Slice view | stable | `values.Slice(start, len)` creates a local borrowed `Slice<T>` view; `values[a..b]` desugars to `values.Slice(a, b - a)`; `SliceCopy(view)` materializes an owned `Array<T>` snapshot. |
 | List/Set/HashMap literal | reserved/out-of-beta | Use collection APIs; `{ ... }` object/map literal syntax is explicitly rejected. |
 | Lambda literal | partial | `=>` callables are allowed, but outer local/resource capture is rejected until closure environments exist. |
 | Named arguments | reserved/rejected | `Call(name: value)` is preserved in parser/AST where accepted, then semantically rejected before dispatch. |
@@ -821,7 +821,7 @@ Current grammar contract:
 | Optional chaining/coalescing | partial | `??` is active for `Option<T> ?? T -> T`; `?.` remains reserved with explicit parser diagnostics. |
 | Cast/type test | reserved/rejected | Broad expression `as`/`is` conversion syntax is not beta grammar. |
 | Object initializer | rejected | `Type { ... }` is not beta construction syntax. |
-| Range slicing/spread/rest | reserved/rejected | `xs[a..b]`, `xs[..]`, and `...` spread/rest are explicit parser rejects; use stable `values.Slice(start, len)` plus `SliceCopy(view)` when an owned snapshot is required. |
+| Open-ended slicing/spread/rest | reserved/rejected | `xs[..]` and `...` spread/rest are explicit parser rejects; use `values[a..b]` or `values.Slice(start, len)` plus `SliceCopy(view)` when an owned snapshot is required. |
 | Match guard/or-pattern | active partial | Guard/or-pattern syntax is parser-supported; promotion depends on CFG/backend parity gates. |
 | Block expression | not beta grammar | Blocks are statements unless a local grammar section says otherwise. |
 | Unsafe/raw | partial | `unsafe { ... }` is a boundary marker, not permission to bypass Slot/authority contracts. Raw escape requires a future scoped capability contract such as `unsafe(raw) { ... }`. |

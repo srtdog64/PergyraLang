@@ -1,0 +1,149 @@
+// src/self_hosted/tools/backend_output_comparator/main.pgy
+//
+// Status: rung-2 minimal (2026-05-27). Reads expected.txt and actual.txt
+// from fixture/ relative to cwd, compares line-by-line, emits the schema
+// `pgy.selfhost.backend-output-comparator.v1`, exits 1 on any mismatch.
+//
+// Cwd contract: the parity harness cd's into the repo root (or a tmp clone)
+// before running.
+//
+// Pattern: parallel-array iteration over two Split results. First Pergyra
+// origin tool that reads paired text inputs and emits a structured diff
+// verdict. Cap on `findings[]` is 8 entries so the JSON stays bounded.
+//
+// Contract: see intent.md in the same directory.
+
+func MismatchFinding(kind: String, line_index: Int, location: String) -> String {
+    let parts: Array<String> = [
+        "{\"kind\":\"",
+        kind,
+        "\",\"line\":",
+        ToString(line_index),
+        ",\"location\":\"",
+        location,
+        "\"}"
+    ];
+    return StringJoin(parts, "");
+}
+
+func InputErrorJson(path: String) -> String {
+    let parts: Array<String> = [
+        "{\"schema\":\"pgy.selfhost.backend-output-comparator.v1\",\"ok\":false,",
+        "\"source\":{\"expected_owner\":\"src/self_hosted/tools/backend_output_comparator/fixture/expected.txt\",",
+        "\"actual_owner\":\"src/self_hosted/tools/backend_output_comparator/fixture/actual.txt\"},",
+        "\"counts\":{\"expected_lines\":0,\"actual_lines\":0,\"mismatch_lines\":0,",
+        "\"extra_actual_lines\":0,\"missing_actual_lines\":0},",
+        "\"findings\":[{\"kind\":\"input_error\",\"line\":0,\"location\":\"",
+        path,
+        "\"}]}"
+    ];
+    return StringJoin(parts, "");
+}
+
+func Main() -> Void {
+    let expected_path: String = "src/self_hosted/tools/backend_output_comparator/fixture/expected.txt";
+    let actual_path: String = "src/self_hosted/tools/backend_output_comparator/fixture/actual.txt";
+
+    if !FileExists(expected_path) {
+        Log(InputErrorJson(expected_path));
+        Exit(1);
+    }
+    if !FileExists(actual_path) {
+        Log(InputErrorJson(actual_path));
+        Exit(1);
+    }
+
+    let expected: String = ReadFile(expected_path);
+    let actual: String = ReadFile(actual_path);
+
+    let exp_lines: Array<String> = Split(expected, "\n");
+    let act_lines: Array<String> = Split(actual, "\n");
+    let exp_n: Int = ArrayLength(exp_lines);
+    let act_n: Int = ArrayLength(act_lines);
+
+    let common: Int = exp_n;
+    if act_n < common {
+        common = act_n;
+    }
+
+    let max_n: Int = exp_n;
+    if act_n > max_n {
+        max_n = act_n;
+    }
+
+    let mismatch_count: Int = 0;
+    let extra_actual: Int = 0;
+    let missing_actual: Int = 0;
+    let findings: Array<String> = [];
+    let findings_cap: Int = 8;
+
+    let i: Int = 0;
+    while i < max_n {
+        let in_expected: Bool = i < exp_n;
+        let in_actual: Bool = i < act_n;
+        if in_expected && in_actual {
+            let e: String = exp_lines[i];
+            let a: String = act_lines[i];
+            if e != a {
+                mismatch_count = mismatch_count + 1;
+                if ArrayLength(findings) < findings_cap {
+                    ArrayPush(findings,
+                        MismatchFinding("mismatch", i,
+                            "src/self_hosted/tools/backend_output_comparator/fixture/actual.txt"));
+                }
+            }
+        } else {
+            if in_actual {
+                extra_actual = extra_actual + 1;
+                if ArrayLength(findings) < findings_cap {
+                    ArrayPush(findings,
+                        MismatchFinding("extra", i,
+                            "src/self_hosted/tools/backend_output_comparator/fixture/actual.txt"));
+                }
+            } else {
+                missing_actual = missing_actual + 1;
+                if ArrayLength(findings) < findings_cap {
+                    ArrayPush(findings,
+                        MismatchFinding("missing", i,
+                            "src/self_hosted/tools/backend_output_comparator/fixture/expected.txt"));
+                }
+            }
+        }
+        i = i + 1;
+    }
+
+    let ok: Bool = (mismatch_count == 0) && (extra_actual == 0) && (missing_actual == 0);
+    let ok_text: String = "true";
+    if !ok {
+        ok_text = "false";
+    }
+
+    let findings_str: String = StringJoin(findings, ",");
+
+    let json_parts: Array<String> = [
+        "{\"schema\":\"pgy.selfhost.backend-output-comparator.v1\",\"ok\":",
+        ok_text,
+        ",\"source\":{\"expected_owner\":\"",
+        expected_path,
+        "\",\"actual_owner\":\"",
+        actual_path,
+        "\"},\"counts\":{\"expected_lines\":",
+        ToString(exp_n),
+        ",\"actual_lines\":",
+        ToString(act_n),
+        ",\"mismatch_lines\":",
+        ToString(mismatch_count),
+        ",\"extra_actual_lines\":",
+        ToString(extra_actual),
+        ",\"missing_actual_lines\":",
+        ToString(missing_actual),
+        "},\"findings\":[",
+        findings_str,
+        "]}"
+    ];
+    Log(StringJoin(json_parts, ""));
+
+    if !ok {
+        Exit(1);
+    }
+}

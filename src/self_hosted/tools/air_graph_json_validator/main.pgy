@@ -1,0 +1,180 @@
+// src/self_hosted/tools/air_graph_json_validator/main.pgy
+//
+// Status: rung-2 minimal (2026-05-27). Reads
+// src/self_hosted/tools/air_graph_json_validator/fixture/sample.json relative to
+// cwd, validates the AIR-graph schema field, checks required top-level keys,
+// extracts summary counts, emits a verdict JSON. No JSON parser -- substring
+// scan only.
+//
+// Cwd contract: the parity harness cd's into the repo root before running.
+//
+// LLVM lift dependency: uses StringJoin (2026-05-26) for JSON build.
+//
+// Contract: see intent.md in the same directory.
+
+func ExtractIntField(content: String, field: String) -> Int {
+    let key: String = Concat(Concat("\"", field), "\":");
+    let key_idx: Int = StringIndexOf(content, key);
+    if key_idx < 0 {
+        return -1;
+    }
+    let value_start: Int = key_idx + StringLength(key);
+    let rest_len: Int = StringLength(content) - value_start;
+    if rest_len <= 0 {
+        return -1;
+    }
+    let rest: String = Substring(content, value_start, rest_len);
+    let comma_idx: Int = StringIndexOf(rest, ",");
+    let brace_idx: Int = StringIndexOf(rest, "}");
+    let stop: Int = -1;
+    if comma_idx >= 0 {
+        stop = comma_idx;
+    }
+    if brace_idx >= 0 {
+        if stop < 0 || brace_idx < stop {
+            stop = brace_idx;
+        }
+    }
+    if stop <= 0 {
+        return -1;
+    }
+    let num_str: String = Substring(rest, 0, stop);
+    return ToInt(num_str);
+}
+
+func RequiredKeys() -> Array<String> {
+    let keys: Array<String> = [
+        "\"schema\":",
+        "\"summary\":",
+        "\"intents\":",
+        "\"boundaries\":",
+        "\"evidence\":",
+        "\"drifts\":"
+    ];
+    return keys;
+}
+
+func CountMissingKeys(content: String, keys: Array<String>) -> Int {
+    let missing: Int = 0;
+    let i: Int = 0;
+    let n: Int = ArrayLength(keys);
+    while i < n {
+        let key: String = keys[i];
+        if !StringContains(content, key) {
+            missing = missing + 1;
+        }
+        i = i + 1;
+    }
+    return missing;
+}
+
+func MissingKeyFinding(key: String) -> String {
+    let parts: Array<String> = [
+        "{\"kind\":\"missing_key\",\"key\":\"",
+        key,
+        "\",\"location\":\"src/self_hosted/tools/air_graph_json_validator/fixture/sample.json\"}"
+    ];
+    return StringJoin(parts, "");
+}
+
+func SchemaMismatchFinding(actual: String) -> String {
+    let parts: Array<String> = [
+        "{\"kind\":\"schema_mismatch\",\"key\":\"",
+        actual,
+        "\",\"location\":\"src/self_hosted/tools/air_graph_json_validator/fixture/sample.json\"}"
+    ];
+    return StringJoin(parts, "");
+}
+
+func BuildMissingKeyFindings(content: String, keys: Array<String>) -> String {
+    let pieces: Array<String> = [];
+    let i: Int = 0;
+    let n: Int = ArrayLength(keys);
+    while i < n {
+        let key: String = keys[i];
+        if !StringContains(content, key) {
+            ArrayPush(pieces, MissingKeyFinding(key));
+        }
+        i = i + 1;
+    }
+    return StringJoin(pieces, ",");
+}
+
+func HasExpectedSchema(content: String) -> Bool {
+    return StringContains(content, "\"schema\":\"pgy.air.graph.v1\"");
+}
+
+func InputErrorJson(path: String) -> String {
+    let parts: Array<String> = [
+        "{\"schema\":\"pgy.selfhost.air-graph-validator.v1\",\"ok\":false,",
+        "\"source\":{\"input_schema\":\"pgy.air.graph.v1\",\"fixture_owner\":\"",
+        path,
+        "\"},\"counts\":{\"intents\":0,\"boundaries\":0,\"evidence\":0,",
+        "\"drifts\":0,\"missing_keys\":0},",
+        "\"findings\":[{\"kind\":\"input_error\",\"key\":\"",
+        path,
+        "\",\"location\":\"",
+        path,
+        "\"}]}"
+    ];
+    return StringJoin(parts, "");
+}
+
+func Main() -> Void {
+    let fixture_path: String = "src/self_hosted/tools/air_graph_json_validator/fixture/sample.json";
+    if !FileExists(fixture_path) {
+        Log(InputErrorJson(fixture_path));
+        Exit(1);
+    }
+
+    let content: String = ReadFile(fixture_path);
+    let keys: Array<String> = RequiredKeys();
+    let missing_keys: Int = CountMissingKeys(content, keys);
+    let missing_findings: String = BuildMissingKeyFindings(content, keys);
+
+    let schema_ok: Bool = HasExpectedSchema(content);
+    let intents: Int = ExtractIntField(content, "intent_count");
+    let boundaries: Int = ExtractIntField(content, "boundary_count");
+    let evidence: Int = ExtractIntField(content, "evidence_count");
+    let drifts: Int = ExtractIntField(content, "drift_count");
+
+    let findings: String = missing_findings;
+    if !schema_ok {
+        let entry: String = SchemaMismatchFinding("schema-field-absent-or-wrong");
+        if StringLength(findings) == 0 {
+            findings = entry;
+        } else {
+            findings = Concat(Concat(findings, ","), entry);
+        }
+    }
+
+    let ok_text: String = "true";
+    if missing_keys > 0 || !schema_ok {
+        ok_text = "false";
+    }
+
+    let json_parts: Array<String> = [
+        "{\"schema\":\"pgy.selfhost.air-graph-validator.v1\",\"ok\":",
+        ok_text,
+        ",\"source\":{\"input_schema\":\"pgy.air.graph.v1\",\"fixture_owner\":\"",
+        fixture_path,
+        "\"},\"counts\":{\"intents\":",
+        ToString(intents),
+        ",\"boundaries\":",
+        ToString(boundaries),
+        ",\"evidence\":",
+        ToString(evidence),
+        ",\"drifts\":",
+        ToString(drifts),
+        ",\"missing_keys\":",
+        ToString(missing_keys),
+        "},\"findings\":[",
+        findings,
+        "]}"
+    ];
+    Log(StringJoin(json_parts, ""));
+
+    if missing_keys > 0 || !schema_ok {
+        Exit(1);
+    }
+}

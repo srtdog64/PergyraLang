@@ -1,0 +1,559 @@
+// src/self_hosted/tools/lex_minimal/main.pgy
+//
+// Status: rung-1 expanding (2026-05-28). Pergyra-written lexer that
+// substitutes a subset of src/lexer/lexer.c. Currently handles:
+//   - identifiers + the keyword set:
+//       func, let, if, else, while, for, return, break, continue,
+//       true, false, import, export, namespace
+//   - NUMBER literals (digit run; no decimal/hex)
+//   - STRING literals "..." (no escapes)
+//   - Punctuation: ( ) { } [ ] ; , : .
+//   - Operators: -> = == != < > <= >= + - * / ! && ||
+//   - // line comments
+//   - whitespace (space/tab/CR/LF)
+//   - EOF
+//
+// Outputs the same text `pgy --tokens` does, byte-for-byte (with LF line
+// endings; the parity script normalizes CRLF on Windows).
+//
+// Each tool invocation lexes the file at the path given by
+// `fixture/source.txt` (one line, relative path) when present, else
+// defaults to `examples/hello.pgy`. The parity script writes
+// `fixture/source.txt` into a tmp scratch dir before each run, so the
+// same Pergyra binary can lex multiple sources without `Args()`.
+//
+// Contract: see intent.md in the same directory.
+
+func CharAt(s: String, i: Int) -> String {
+    let n: Int = StringLength(s);
+    if i < 0 {
+        return "";
+    }
+    if i >= n {
+        return "";
+    }
+    return Substring(s, i, 1);
+}
+
+func IsAlpha(c: String) -> Bool {
+    if StringLength(c) != 1 {
+        return false;
+    }
+    let chars: String = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ_";
+    return StringIndexOf(chars, c) >= 0;
+}
+
+func IsDigit(c: String) -> Bool {
+    if StringLength(c) != 1 {
+        return false;
+    }
+    let chars: String = "0123456789";
+    return StringIndexOf(chars, c) >= 0;
+}
+
+func IsAlphaNum(c: String) -> Bool {
+    return IsAlpha(c) || IsDigit(c);
+}
+
+func KeywordType(text: String) -> String {
+    if text == "func" {
+        return "FUNC";
+    }
+    if text == "let" {
+        return "LET";
+    }
+    if text == "if" {
+        return "IF";
+    }
+    if text == "else" {
+        return "ELSE";
+    }
+    if text == "while" {
+        return "WHILE";
+    }
+    if text == "for" {
+        return "FOR";
+    }
+    if text == "in" {
+        return "IN";
+    }
+    if text == "return" {
+        return "RETURN";
+    }
+    if text == "break" {
+        return "BREAK";
+    }
+    if text == "continue" {
+        return "CONTINUE";
+    }
+    if text == "true" {
+        return "TRUE";
+    }
+    if text == "false" {
+        return "FALSE";
+    }
+    if text == "import" {
+        return "IMPORT";
+    }
+    if text == "export" {
+        return "EXPORT";
+    }
+    if text == "namespace" {
+        return "NAMESPACE";
+    }
+    if text == "ability" {
+        return "ABILITY";
+    }
+    if text == "async" {
+        return "ASYNC";
+    }
+    if text == "vessel" {
+        return "VESSEL";
+    }
+    if text == "subject" {
+        return "SUBJECT";
+    }
+    if text == "object" {
+        return "OBJECT";
+    }
+    if text == "tobject" {
+        return "TOBJECT";
+    }
+    if text == "event" {
+        return "EVENT";
+    }
+    if text == "parallel" {
+        return "PARALLEL";
+    }
+    if text == "class" {
+        return "CLASS";
+    }
+    if text == "struct" {
+        return "STRUCT";
+    }
+    if text == "enum" {
+        return "ENUM";
+    }
+    if text == "role" {
+        return "ROLE";
+    }
+    if text == "party" {
+        return "PARTY";
+    }
+    if text == "roster" {
+        return "ROSTER";
+    }
+    if text == "world" {
+        return "WORLD";
+    }
+    if text == "zone" {
+        return "ZONE";
+    }
+    if text == "relation" {
+        return "RELATION";
+    }
+    if text == "effect" {
+        return "EFFECT";
+    }
+    if text == "intent" {
+        return "INTENT";
+    }
+    if text == "projection" {
+        return "PROJECTION";
+    }
+    // NOTE: `authority` and `handoff` are NOT keywords -- C lexer emits
+    // IDENTIFIER for both (verified vs `pgy --tokens` on multiple files).
+    if text == "spawn" {
+        return "SPAWN";
+    }
+    if text == "await" {
+        return "AWAIT";
+    }
+    if text == "channel" {
+        return "CHANNEL";
+    }
+    if text == "select" {
+        return "SELECT";
+    }
+    if text == "defer" {
+        return "DEFER";
+    }
+    if text == "unsafe" {
+        return "UNSAFE";
+    }
+    if text == "use" {
+        return "USE";
+    }
+    if text == "slot" {
+        return "SLOT";
+    }
+    if text == "match" {
+        return "MATCH";
+    }
+    if text == "impl" {
+        // C lexer reports `impl` as UNKNOWN (reserved-but-not-yet-keyword
+        // identifier). Verified against pgy --tokens.
+        return "UNKNOWN";
+    }
+    if text == "dyn" {
+        return "DYN";
+    }
+    if text == "where" {
+        return "WHERE";
+    }
+    if text == "shared" {
+        return "SHARED";
+    }
+    if text == "case" {
+        return "CASE";
+    }
+    if text == "bind" {
+        return "BIND";
+    }
+    if text == "with" {
+        return "WITH";
+    }
+    if text == "default" {
+        return "DEFAULT";
+    }
+    if text == "type" {
+        return "UNKNOWN";
+    }
+    if text == "secure" {
+        return "SECURE";
+    }
+    if text == "as" {
+        return "AS";
+    }
+    if text == "private" {
+        return "PRIVATE";
+    }
+    if text == "public" {
+        return "PUBLIC";
+    }
+    if text == "remote" {
+        return "REMOTE";
+    }
+    return "IDENTIFIER";
+}
+
+func PadLeft(s: String, width: Int) -> String {
+    let n: Int = StringLength(s);
+    if n >= width {
+        return s;
+    }
+    let padding: Int = width - n;
+    let result: String = "";
+    let i: Int = 0;
+    while i < padding {
+        result = Concat(result, " ");
+        i = i + 1;
+    }
+    return Concat(result, s);
+}
+
+func TokenLine(idx: Int, ttype: String, text: String, line: Int, col: Int) -> String {
+    let parts: Array<String> = [
+        PadLeft(ToString(idx), 4),
+        "  Token{type: ",
+        ttype,
+        ", text: \"",
+        text,
+        "\", line: ",
+        ToString(line),
+        ", col: ",
+        ToString(col),
+        "}"
+    ];
+    return StringJoin(parts, "");
+}
+
+func Main() -> Void {
+    let override_path: String = "src/self_hosted/tools/lex_minimal/fixture/source.txt";
+    let source_path: String = "examples/hello.pgy";
+    if FileExists(override_path) {
+        let raw: String = ReadFile(override_path);
+        let trimmed: String = StringTrim(raw);
+        if StringLength(trimmed) > 0 {
+            source_path = trimmed;
+        }
+    }
+
+    if !FileExists(source_path) {
+        Exit(1);
+    }
+    let content: String = ReadFile(source_path);
+    let n: Int = StringLength(content);
+
+    let output_lines: Array<String> = [];
+    ArrayPush(output_lines, Concat(Concat("=== tokens: ", source_path), " ==="));
+
+    let i: Int = 0;
+    let line: Int = 1;
+    let col: Int = 1;
+    let token_count: Int = 0;
+
+    while i < n {
+        let c: String = CharAt(content, i);
+
+        if c == " " {
+            i = i + 1;
+            col = col + 1;
+            continue;
+        }
+        if c == "\t" {
+            i = i + 1;
+            col = col + 1;
+            continue;
+        }
+        if c == "\n" {
+            i = i + 1;
+            line = line + 1;
+            col = 1;
+            continue;
+        }
+        if c == "\r" {
+            i = i + 1;
+            continue;
+        }
+
+        if c == "/" && CharAt(content, i + 1) == "/" {
+            while i < n && CharAt(content, i) != "\n" {
+                i = i + 1;
+                col = col + 1;
+            }
+            continue;
+        }
+
+        // /* ... */ block comment (may span multiple lines)
+        if c == "/" && CharAt(content, i + 1) == "*" {
+            i = i + 2;
+            col = col + 2;
+            while i < n {
+                let cc: String = CharAt(content, i);
+                if cc == "*" && CharAt(content, i + 1) == "/" {
+                    i = i + 2;
+                    col = col + 2;
+                    break;
+                }
+                if cc == "\n" {
+                    i = i + 1;
+                    line = line + 1;
+                    col = 1;
+                } else {
+                    i = i + 1;
+                    col = col + 1;
+                }
+            }
+            continue;
+        }
+
+        if IsAlpha(c) {
+            let start: Int = i;
+            let start_col: Int = col;
+            while IsAlphaNum(CharAt(content, i)) {
+                i = i + 1;
+                col = col + 1;
+            }
+            let text: String = Substring(content, start, i - start);
+            let ttype: String = KeywordType(text);
+            token_count = token_count + 1;
+            ArrayPush(output_lines, TokenLine(token_count, ttype, text, line, start_col));
+            continue;
+        }
+
+        if IsDigit(c) {
+            let start: Int = i;
+            let start_col: Int = col;
+            while IsDigit(CharAt(content, i)) {
+                i = i + 1;
+                col = col + 1;
+            }
+            // Float literal: digits . digits. We must NOT consume `..` here
+            // (that's the range operator), only a single `.` followed by a digit.
+            if CharAt(content, i) == "." && IsDigit(CharAt(content, i + 1)) {
+                i = i + 1;
+                col = col + 1;
+                while IsDigit(CharAt(content, i)) {
+                    i = i + 1;
+                    col = col + 1;
+                }
+            }
+            let text: String = Substring(content, start, i - start);
+            token_count = token_count + 1;
+            ArrayPush(output_lines, TokenLine(token_count, "NUMBER", text, line, start_col));
+            continue;
+        }
+
+        if c == "\"" {
+            let start: Int = i;
+            let start_col: Int = col;
+            i = i + 1;
+            col = col + 1;
+            while i < n && CharAt(content, i) != "\"" {
+                i = i + 1;
+                col = col + 1;
+            }
+            if i < n {
+                i = i + 1;
+                col = col + 1;
+            }
+            let text: String = Substring(content, start, i - start);
+            token_count = token_count + 1;
+            ArrayPush(output_lines, TokenLine(token_count, "STRING", text, line, start_col));
+            continue;
+        }
+
+        let n2: String = CharAt(content, i + 1);
+        if c == "-" && n2 == ">" {
+            token_count = token_count + 1;
+            ArrayPush(output_lines, TokenLine(token_count, "->", "->", line, col));
+            i = i + 2;
+            col = col + 2;
+            continue;
+        }
+        if c == "<" && n2 == "-" {
+            token_count = token_count + 1;
+            ArrayPush(output_lines, TokenLine(token_count, "<-", "<-", line, col));
+            i = i + 2;
+            col = col + 2;
+            continue;
+        }
+        // Compound assignment operators
+        if c == "+" && n2 == "=" {
+            token_count = token_count + 1;
+            ArrayPush(output_lines, TokenLine(token_count, "+=", "+=", line, col));
+            i = i + 2;
+            col = col + 2;
+            continue;
+        }
+        if c == "-" && n2 == "=" {
+            token_count = token_count + 1;
+            ArrayPush(output_lines, TokenLine(token_count, "-=", "-=", line, col));
+            i = i + 2;
+            col = col + 2;
+            continue;
+        }
+        if c == "*" && n2 == "=" {
+            token_count = token_count + 1;
+            ArrayPush(output_lines, TokenLine(token_count, "*=", "*=", line, col));
+            i = i + 2;
+            col = col + 2;
+            continue;
+        }
+        if c == "/" && n2 == "=" {
+            token_count = token_count + 1;
+            ArrayPush(output_lines, TokenLine(token_count, "/=", "/=", line, col));
+            i = i + 2;
+            col = col + 2;
+            continue;
+        }
+        // :: scope resolution
+        if c == ":" && n2 == ":" {
+            token_count = token_count + 1;
+            ArrayPush(output_lines, TokenLine(token_count, "::", "::", line, col));
+            i = i + 2;
+            col = col + 2;
+            continue;
+        }
+        // => lambda arrow
+        if c == "=" && n2 == ">" {
+            token_count = token_count + 1;
+            ArrayPush(output_lines, TokenLine(token_count, "=>", "=>", line, col));
+            i = i + 2;
+            col = col + 2;
+            continue;
+        }
+        // |> pipe
+        if c == "|" && n2 == ">" {
+            token_count = token_count + 1;
+            ArrayPush(output_lines, TokenLine(token_count, "|>", "|>", line, col));
+            i = i + 2;
+            col = col + 2;
+            continue;
+        }
+        // := walrus
+        if c == ":" && n2 == "=" {
+            token_count = token_count + 1;
+            ArrayPush(output_lines, TokenLine(token_count, ":=", ":=", line, col));
+            i = i + 2;
+            col = col + 2;
+            continue;
+        }
+        if c == "=" && n2 == "=" {
+            token_count = token_count + 1;
+            ArrayPush(output_lines, TokenLine(token_count, "==", "==", line, col));
+            i = i + 2;
+            col = col + 2;
+            continue;
+        }
+        if c == "!" && n2 == "=" {
+            token_count = token_count + 1;
+            ArrayPush(output_lines, TokenLine(token_count, "!=", "!=", line, col));
+            i = i + 2;
+            col = col + 2;
+            continue;
+        }
+        if c == "<" && n2 == "=" {
+            token_count = token_count + 1;
+            ArrayPush(output_lines, TokenLine(token_count, "<=", "<=", line, col));
+            i = i + 2;
+            col = col + 2;
+            continue;
+        }
+        if c == ">" && n2 == "=" {
+            token_count = token_count + 1;
+            ArrayPush(output_lines, TokenLine(token_count, ">=", ">=", line, col));
+            i = i + 2;
+            col = col + 2;
+            continue;
+        }
+        if c == "&" && n2 == "&" {
+            token_count = token_count + 1;
+            ArrayPush(output_lines, TokenLine(token_count, "&&", "&&", line, col));
+            i = i + 2;
+            col = col + 2;
+            continue;
+        }
+        if c == "|" && n2 == "|" {
+            token_count = token_count + 1;
+            ArrayPush(output_lines, TokenLine(token_count, "||", "||", line, col));
+            i = i + 2;
+            col = col + 2;
+            continue;
+        }
+        if c == "." && n2 == "." {
+            // C lexer reports the range operator with type="." (single dot)
+            // and text=".." (two dots). Verified against pgy --tokens on
+            // examples/break_continue.pgy's `for i in 0..100` loop.
+            token_count = token_count + 1;
+            ArrayPush(output_lines, TokenLine(token_count, ".", "..", line, col));
+            i = i + 2;
+            col = col + 2;
+            continue;
+        }
+
+        let punct: String = "(){}[];,:.=+-*/!<>%&|?@";
+        if StringIndexOf(punct, c) >= 0 {
+            token_count = token_count + 1;
+            ArrayPush(output_lines, TokenLine(token_count, c, c, line, col));
+            i = i + 1;
+            col = col + 1;
+            continue;
+        }
+
+        i = i + 1;
+        col = col + 1;
+    }
+
+    token_count = token_count + 1;
+    ArrayPush(output_lines, TokenLine(token_count, "EOF", "", line, col));
+
+    // Footer: C lexer prefixes the count with a fixed 2-space lead
+    // (NOT the width-4 padding used for token-index column). Verified
+    // against `pgy --tokens` for 2-digit and 3-digit token counts.
+    let footer: String = Concat("  ", Concat(ToString(token_count), " tokens total"));
+    ArrayPush(output_lines, footer);
+
+    Log(StringJoin(output_lines, "\n"));
+}

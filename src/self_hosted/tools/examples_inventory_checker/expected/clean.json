@@ -1,0 +1,1 @@
+{"schema":"pgy.selfhost.examples-inventory.v1","ok":true,"source":{"manifest_owner":"src/self_hosted/tools/examples_inventory_checker/fixture/examples_manifest.txt"},"counts":{"examples":117,"missing":0,"empty":0,"max_lines":544},"findings":[]}

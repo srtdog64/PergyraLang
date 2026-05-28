@@ -9,6 +9,57 @@ parser_token_is_range_separator(Token token)
         && strncmp(token.text, "..", 2) == 0;
 }
 
+static Token
+parser_synthetic_minus_token(ASTNode *anchor)
+{
+    Token token;
+
+    memset(&token, 0, sizeof(token));
+    token.type = TOKEN_MINUS;
+    token.text = pergyra_strdup("-");
+    token.length = 1;
+    if (anchor != NULL) {
+        token.line = anchor->line;
+        token.column = anchor->column;
+    }
+    return token;
+}
+
+static ASTNode *
+parser_desugar_slice_call(Parser *parser, ASTNode *receiver,
+                          ASTNode *start, ASTNode *end)
+{
+    ASTNode *start_for_len = ast_clone(start);
+    ASTNode *callee;
+    ASTNode *call;
+    ASTNode *len;
+
+    if (start_for_len == NULL) {
+        parser_error(parser, "Out of memory while parsing slice expression");
+        ast_destroy(receiver);
+        ast_destroy(start);
+        ast_destroy(end);
+        return NULL;
+    }
+
+    len = ast_create_binary(end, parser_synthetic_minus_token(start), start_for_len);
+    callee = ast_create_member_access(receiver, "Slice");
+    call = ast_create_call(callee);
+    if (call == NULL || len == NULL || callee == NULL
+        || !parser_append_call_argument(parser, call, NULL, start)
+        || !parser_append_call_argument(parser, call, NULL, len)) {
+        parser_error(parser, "Out of memory while parsing slice expression");
+        ast_destroy(call);
+        if (call == NULL) {
+            ast_destroy(callee);
+            ast_destroy(start);
+            ast_destroy(len);
+        }
+        return NULL;
+    }
+    return call;
+}
+
 ASTNode *
 parser_parse_call(Parser *parser)
 {
@@ -49,16 +100,12 @@ parser_parse_call(Parser *parser)
             }
             index = parser_parse_expression(parser);
             if (parser_token_is_range_separator(parser->current_token)) {
-                parser_error(parser,
-                    "Slicing 'xs[a..b]' is reserved but not implemented.\n"
-                    "Reason: public slice ABI and ownership policy are not frozen for beta.\n"
-                    "Fix: use explicit slice helper functions.");
+                ASTNode *end;
                 parser_advance(parser);
-                if (!parser_check(parser, TOKEN_RBRACKET))
-                    (void)parser_parse_expression(parser);
+                end = parser_parse_expression(parser);
                 parser_consume(parser, TOKEN_RBRACKET,
                     "Expected ']' after slice expression");
-                ast_destroy(index);
+                expr = parser_desugar_slice_call(parser, expr, index, end);
                 continue;
             }
             parser_consume(parser, TOKEN_RBRACKET,

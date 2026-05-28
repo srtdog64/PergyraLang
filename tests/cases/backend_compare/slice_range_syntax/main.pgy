@@ -1,0 +1,9 @@
+func Words() -> Array<String> {
+    return ["hello", "world", "foo", "bar"];
+}
+
+func Main() -> Void {
+    let view = Words()[1..3];
+    Log(view[0]);
+    Log(view[1]);
+}

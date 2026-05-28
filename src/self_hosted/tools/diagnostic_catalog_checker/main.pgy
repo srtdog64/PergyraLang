@@ -1,0 +1,282 @@
+// src/self_hosted/tools/diagnostic_catalog_checker/main.pgy
+//
+// Status: rung-2 (2026-05-26). Reads src/semantic/diag_codes.h relative to
+// cwd, scans PGY_CODE_ macros, reads docs/72_diagnostic_codes.md, and emits
+// counts for codes / documented / missing / duplicates / orphans against the
+// schema.
+//
+// Cwd contract: the parity harness cd's into the repo root before running.
+//
+// LLVM backend note: Array<String> for-in iterator bindings now flow into
+// stdlib call lowering. Regression:
+// tests/cases/backend_compare/for_in_array_string_stdlib/main.pgy.
+// This tool keeps while + index loops only where pending-state parsing needs
+// explicit control.
+//
+// Duplicate detection: Pergyra surface has no direct StringEquals today, so
+// duplicate detection uses a delimited "seen" buffer -- each literal is
+// wrapped in '|' delimiters and appended; a duplicate is detected when its
+// |literal| marker is already present in the buffer. Linear in total literal
+// length but adequate for 66 entries.
+//
+// Contract: see intent.md in the same directory.
+
+func CountCodeMacros(content: String) -> Int {
+    let lines: Array<String> = Split(content, "\n");
+    let count: Int = 0;
+    for line in lines {
+        if StringContains(line, "#define PGY_CODE_") {
+            count = count + 1;
+        }
+    }
+    return count;
+}
+
+func CountDocumentedCodes(content: String) -> Int {
+    let lines: Array<String> = Split(content, "\n");
+    let count: Int = 0;
+    for line in lines {
+        if StringContains(line, "#### `PGY_") {
+            count = count + 1;
+        }
+    }
+    return count;
+}
+
+func ExtractDelimitedLiteral(line: String, delimiter: String) -> String {
+    let first: Int = StringIndexOf(line, delimiter);
+    if first < 0 {
+        return "";
+    }
+    let tail_len: Int = StringLength(line) - first - 1;
+    let tail: String = Substring(line, first + 1, tail_len);
+    let second: Int = StringIndexOf(tail, delimiter);
+    if second <= 0 {
+        return "";
+    }
+    return Substring(tail, 0, second);
+}
+
+func CountMissingCodes(header: String, docs: String) -> Int {
+    let lines: Array<String> = Split(header, "\n");
+    let missing: Int = 0;
+    let pending: Bool = false;
+    let i: Int = 0;
+    let n: Int = ArrayLength(lines);
+    while i < n {
+        let line: String = lines[i];
+        let should_scan: Bool = pending || StringContains(line, "#define PGY_CODE_");
+        if should_scan {
+            let literal: String = ExtractDelimitedLiteral(line, "\"");
+            if StringLength(literal) > 0 {
+                if !StringContains(docs, literal) {
+                    missing = missing + 1;
+                }
+                pending = false;
+            } else {
+                pending = true;
+            }
+        }
+        i = i + 1;
+    }
+    return missing;
+}
+
+func CountDuplicateLiterals(content: String) -> Int {
+    let lines: Array<String> = Split(content, "\n");
+    let seen: String = "";
+    let duplicates: Int = 0;
+    let pending: Bool = false;
+    let i: Int = 0;
+    let n: Int = ArrayLength(lines);
+    while i < n {
+        let line: String = lines[i];
+        let should_scan: Bool = pending || StringContains(line, "#define PGY_CODE_");
+        if should_scan {
+            let literal: String = ExtractDelimitedLiteral(line, "\"");
+            if StringLength(literal) > 0 {
+                let marker: String = Concat(Concat("|", literal), "|");
+                if StringContains(seen, marker) {
+                    duplicates = duplicates + 1;
+                } else {
+                    seen = Concat(seen, marker);
+                }
+                pending = false;
+            } else {
+                pending = true;
+            }
+        }
+        i = i + 1;
+    }
+    return duplicates;
+}
+
+func CountOrphanDocs(docs: String, header: String) -> Int {
+    let lines: Array<String> = Split(docs, "\n");
+    let orphans: Int = 0;
+    for line in lines {
+        if StringContains(line, "#### `PGY_") {
+            let literal: String = ExtractDelimitedLiteral(line, "`");
+            if StringLength(literal) > 0 {
+                let quoted: String = Concat(Concat("\"", literal), "\"");
+                if !StringContains(header, quoted) {
+                    orphans = orphans + 1;
+                }
+            }
+        }
+    }
+    return orphans;
+}
+
+func FindingJson(kind: String, code: String, location: String) -> String {
+    let s0: String = Concat("{\"kind\":\"", kind);
+    let s1: String = Concat(Concat(s0, "\",\"code\":\""), code);
+    let s2: String = Concat(Concat(s1, "\",\"location\":\""), location);
+    return Concat(s2, "\"}");
+}
+
+func AppendFinding(findings: String, entry: String) -> String {
+    if StringLength(findings) == 0 {
+        return entry;
+    }
+    return Concat(Concat(findings, ","), entry);
+}
+
+func BuildMissingFindings(header: String, docs: String) -> String {
+    let lines: Array<String> = Split(header, "\n");
+    let findings: String = "";
+    let pending: Bool = false;
+    let i: Int = 0;
+    let n: Int = ArrayLength(lines);
+    while i < n {
+        let line: String = lines[i];
+        let should_scan: Bool = pending || StringContains(line, "#define PGY_CODE_");
+        if should_scan {
+            let literal: String = ExtractDelimitedLiteral(line, "\"");
+            if StringLength(literal) > 0 {
+                if !StringContains(docs, literal) {
+                    let entry: String = FindingJson("missing", literal, "src/semantic/diag_codes.h");
+                    findings = AppendFinding(findings, entry);
+                }
+                pending = false;
+            } else {
+                pending = true;
+            }
+        }
+        i = i + 1;
+    }
+    return findings;
+}
+
+func BuildDuplicateFindings(header: String) -> String {
+    let lines: Array<String> = Split(header, "\n");
+    let seen: String = "";
+    let findings: String = "";
+    let pending: Bool = false;
+    let i: Int = 0;
+    let n: Int = ArrayLength(lines);
+    while i < n {
+        let line: String = lines[i];
+        let should_scan: Bool = pending || StringContains(line, "#define PGY_CODE_");
+        if should_scan {
+            let literal: String = ExtractDelimitedLiteral(line, "\"");
+            if StringLength(literal) > 0 {
+                let marker: String = Concat(Concat("|", literal), "|");
+                if StringContains(seen, marker) {
+                    let entry: String = FindingJson("duplicate", literal, "src/semantic/diag_codes.h");
+                    findings = AppendFinding(findings, entry);
+                } else {
+                    seen = Concat(seen, marker);
+                }
+                pending = false;
+            } else {
+                pending = true;
+            }
+        }
+        i = i + 1;
+    }
+    return findings;
+}
+
+func BuildOrphanFindings(docs: String, header: String) -> String {
+    let lines: Array<String> = Split(docs, "\n");
+    let findings: String = "";
+    for line in lines {
+        if StringContains(line, "#### `PGY_") {
+            let literal: String = ExtractDelimitedLiteral(line, "`");
+            if StringLength(literal) > 0 {
+                let quoted: String = Concat(Concat("\"", literal), "\"");
+                if !StringContains(header, quoted) {
+                    let entry: String = FindingJson("orphan", literal, "docs/72_diagnostic_codes.md");
+                    findings = AppendFinding(findings, entry);
+                }
+            }
+        }
+    }
+    return findings;
+}
+
+func BuildFindings(header: String, docs: String) -> String {
+    let findings: String = BuildMissingFindings(header, docs);
+    let duplicates: String = BuildDuplicateFindings(header);
+    let orphans: String = BuildOrphanFindings(docs, header);
+    if StringLength(duplicates) > 0 {
+        findings = AppendFinding(findings, duplicates);
+    }
+    if StringLength(orphans) > 0 {
+        findings = AppendFinding(findings, orphans);
+    }
+    return findings;
+}
+
+func InputErrorJson(path: String) -> String {
+    let prefix: String = "{\"schema\":\"pgy.selfhost.diagnostic-catalog.v1\",\"ok\":false,\"source\":{\"code_owner\":\"src/semantic/diag_codes.h\",\"docs_owner\":\"docs/72_diagnostic_codes.md\"},\"counts\":{\"codes\":0,\"documented\":0,\"missing\":0,\"duplicates\":0,\"orphans\":0},\"findings\":[{\"kind\":\"input_error\",\"code\":\"";
+    let middle: String = "\",\"location\":\"";
+    let suffix: String = "\"}]}";
+    return Concat(Concat(Concat(Concat(prefix, path), middle), path), suffix);
+}
+
+func Main() -> Void {
+    let header_path: String = "src/semantic/diag_codes.h";
+    let docs_path: String = "docs/72_diagnostic_codes.md";
+    if !FileExists(header_path) {
+        Log(InputErrorJson(header_path));
+        Exit(1);
+    }
+    if !FileExists(docs_path) {
+        Log(InputErrorJson(docs_path));
+        Exit(1);
+    }
+    let header: String = ReadFile("src/semantic/diag_codes.h");
+    let docs: String = ReadFile("docs/72_diagnostic_codes.md");
+    let codes: Int = CountCodeMacros(header);
+    let documented: Int = CountDocumentedCodes(docs);
+    let missing: Int = CountMissingCodes(header, docs);
+    let duplicates: Int = CountDuplicateLiterals(header);
+    let orphans: Int = CountOrphanDocs(docs, header);
+    let findings: String = BuildFindings(header, docs);
+    let ok_text: String = "true";
+    if missing > 0 || duplicates > 0 || orphans > 0 {
+        ok_text = "false";
+    }
+
+    let prefix: String = "{\"schema\":\"pgy.selfhost.diagnostic-catalog.v1\",\"ok\":";
+    let source_prefix: String = ",\"source\":{\"code_owner\":\"src/semantic/diag_codes.h\",\"docs_owner\":\"docs/72_diagnostic_codes.md\"},\"counts\":{\"codes\":";
+    let mid_doc: String = ",\"documented\":";
+    let mid_missing: String = ",\"missing\":";
+    let mid_dup: String = ",\"duplicates\":";
+    let mid_orphan: String = ",\"orphans\":";
+    let findings_prefix: String = "},\"findings\":[";
+    let suffix: String = "]}";
+
+    let s0: String = Concat(Concat(prefix, ok_text), source_prefix);
+    let s1: String = Concat(s0, ToString(codes));
+    let s2: String = Concat(Concat(s1, mid_doc), ToString(documented));
+    let s3: String = Concat(Concat(s2, mid_missing), ToString(missing));
+    let s4: String = Concat(Concat(s3, mid_dup), ToString(duplicates));
+    let s5: String = Concat(Concat(s4, mid_orphan), ToString(orphans));
+    Log(Concat(Concat(Concat(s5, findings_prefix), findings), suffix));
+    if missing > 0 || duplicates > 0 || orphans > 0 {
+        Exit(1);
+    }
+}

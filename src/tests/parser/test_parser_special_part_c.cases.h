@@ -44,11 +44,10 @@ run_reserved_slice_expression_diagnostic_test(void)
     ASTNode *ast = parser != NULL ? parser_parse_program(parser) : NULL;
     const char *error = parser != NULL ? parser_get_error(parser) : NULL;
 
-    printf("\n=== Test: Reserved Slice Expression Diagnostic ===\n");
+    printf("\n=== Test: Slice Range Expression Parses ===\n");
 
-    if (parser == NULL || !parser_has_error(parser)
-        || error == NULL || strstr(error, "Slicing 'xs[a..b]' is reserved") == NULL) {
-        printf("[FAIL] expected reserved slicing diagnostic, got: %s\n",
+    if (parser == NULL || parser_has_error(parser)) {
+        printf("[FAIL] expected slice range expression to parse, got: %s\n",
             error != NULL ? error : "<none>");
         failed = 1;
     }

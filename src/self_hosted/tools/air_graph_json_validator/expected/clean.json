@@ -1,0 +1,1 @@
+{"schema":"pgy.selfhost.air-graph-validator.v1","ok":true,"source":{"input_schema":"pgy.air.graph.v1","fixture_owner":"src/self_hosted/tools/air_graph_json_validator/fixture/sample.json"},"counts":{"intents":1,"boundaries":1,"evidence":12,"drifts":0,"missing_keys":0},"findings":[]}

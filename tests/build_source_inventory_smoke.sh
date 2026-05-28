@@ -258,8 +258,8 @@ do
 done
 
 bash4_lint_dirs=(tests)
-if [[ -d "$ROOT_DIR/self_hosted/parity" ]]; then
-    bash4_lint_dirs+=(self_hosted/parity)
+if [[ -d "$ROOT_DIR/src/self_hosted/parity" ]]; then
+    bash4_lint_dirs+=(src/self_hosted/parity)
 fi
 
 bash4_only_smoke_terms="$(

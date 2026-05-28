@@ -1,0 +1,10 @@
+func Apply(x: Int, f: func(Int) -> Int) -> Int {
+    return f(x);
+}
+
+func Main() -> Void {
+    let inc: func(Int) -> Int = (x: Int) -> Int => {
+        return x + 1;
+    };
+    Log(Apply(4, inc));
+}

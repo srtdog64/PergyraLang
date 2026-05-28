@@ -31,7 +31,7 @@ run_literal_contract_smoke() {
     require_literal "src/compiler/driver_diag.c" "driver_diag_fix_from_code"
     require_literal "src/parser/parser_expr_postfix.c" "Optional chaining '?.' is reserved but not implemented."
     require_literal "src/parser/parser_expr_postfix.c" "optional member provenance is not frozen"
-    require_literal "src/parser/parser_expr_postfix.c" "Slicing 'xs[a..b]' is reserved but not implemented."
+    require_literal "src/parser/parser_expr_postfix.c" "Slicing 'xs[..]' is reserved but not implemented."
     require_literal "src/parser/parser_expr_postfix.c" "public slice ABI and ownership policy are not frozen"
     require_literal "src/parser/parser_expr.c" "Object/map literal syntax '{ ... }' is reserved but not implemented."
     require_literal "src/parser/parser_expr.c" "object/map literal ABI, field ownership, and collection key policy"
@@ -131,7 +131,7 @@ parser_lambda = (root / "src" / "parser" / "parser_expr_lambda.c").read_text(enc
 reserved_expr_terms = (
     "Optional chaining '?.' is reserved but not implemented.",
     "optional member provenance is not frozen",
-    "Slicing 'xs[a..b]' is reserved but not implemented.",
+    "Slicing 'xs[..]' is reserved but not implemented.",
     "public slice ABI and ownership policy are not frozen",
     "Object/map literal syntax '{ ... }' is reserved but not implemented.",
     "object/map literal ABI, field ownership, and collection key policy",

@@ -30,7 +30,8 @@ parser_is_lambda_start(Parser *parser)
             paren_depth--;
             if (paren_depth == 0) {
                 Token next = lexer_next_token(&lookahead);
-                bool is_lambda = next.type == TOKEN_LAMBDA;
+                bool is_lambda = next.type == TOKEN_LAMBDA
+                    || next.type == TOKEN_ARROW;
                 free(next.text);
                 free_lookahead_token(&token, token_owned);
                 return is_lambda;
@@ -87,6 +88,8 @@ parse_lambda_expression(Parser* parser)
     }
 
     parser_consume(parser, TOKEN_RPAREN, "Expected ')' after lambda parameters");
+    if (parser_match(parser, TOKEN_ARROW))
+        lambda->data.lambda_expr.return_type = parse_type(parser);
     parser_consume(parser, TOKEN_LAMBDA, "Expected '=>' in lambda expression");
 
     if (parser_check(parser, TOKEN_LBRACE)) {

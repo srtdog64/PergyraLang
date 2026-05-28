@@ -1,0 +1,16 @@
+=== tokens: examples/hello.pgy ===
+   1  Token{type: FUNC, text: "func", line: 7, col: 1}
+   2  Token{type: IDENTIFIER, text: "Main", line: 7, col: 6}
+   3  Token{type: (, text: "(", line: 7, col: 10}
+   4  Token{type: ), text: ")", line: 7, col: 11}
+   5  Token{type: ->, text: "->", line: 7, col: 13}
+   6  Token{type: IDENTIFIER, text: "Void", line: 7, col: 16}
+   7  Token{type: {, text: "{", line: 7, col: 21}
+   8  Token{type: IDENTIFIER, text: "Log", line: 8, col: 5}
+   9  Token{type: (, text: "(", line: 8, col: 8}
+  10  Token{type: STRING, text: ""Hello, Pergyra!"", line: 8, col: 9}
+  11  Token{type: ), text: ")", line: 8, col: 26}
+  12  Token{type: ;, text: ";", line: 8, col: 27}
+  13  Token{type: }, text: "}", line: 9, col: 1}
+  14  Token{type: EOF, text: "", line: 10, col: 1}
+  14 tokens total

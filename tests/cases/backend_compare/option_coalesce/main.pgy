@@ -1,0 +1,16 @@
+func MaybeScore(flag: Bool) -> Option<Int> {
+    if flag {
+        return Some(42);
+    }
+    return None();
+}
+
+func Main() -> Void {
+    let hit: Option<Int> = MaybeScore(true);
+    let miss: Option<Int> = MaybeScore(false);
+    let direct: Option<Int> = Some(7);
+
+    Log(ToString(hit ?? 10));
+    Log(ToString(miss ?? 10));
+    Log(ToString(direct ?? 99));
+}

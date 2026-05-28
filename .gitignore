@@ -1,4 +1,4 @@
-﻿# Build artifacts
+# Build artifacts
 build/
 build*/
 bin/
@@ -6,6 +6,15 @@ bin/
 *.o
 *.d
 *.exe
+*.obj
+*.ll
+*.lib
+*.a
+*.dll
+*.so
+*.dylib
+*.pdb
+*.ilk
 
 # Generated C files from transpiler
 examples/*.c
@@ -37,6 +46,23 @@ examples/**/expected_results.llvm.txt
 #   examples/**/expected_stdout.txt   canonical expected output
 #   examples/**/expected_results.txt  canonical expected results
 #   examples/raid_graph_fsm/results.txt representative generated report
+
+# Self-host scaffold byproducts. Build artifacts under src/self_hosted/
+# (*.exe / *.o) are already caught by the global patterns above, but
+# probe files used during ad-hoc testing live next to main.pgy and
+# need explicit exclusion so `git status` stays quiet during
+# self-host work.
+src/self_hosted/tools/**/probe.pgy
+src/self_hosted/tools/**/probe_*.pgy
+# Lexer fixture source override is parity-script-managed; never tracked.
+src/self_hosted/tools/lex_minimal/fixture/source.txt
+# Pergyra-emitted artifacts when a self-host tool is run directly via
+# `pgy --emit-c` / `--emit-llvm`. The build dir under `.tmp/` is already
+# ignored; these are for ad-hoc in-place runs.
+src/self_hosted/tools/**/main.c
+src/self_hosted/tools/**/main.ll
+src/self_hosted/lib/*.c
+src/self_hosted/lib/*.ll
 
 # Temporary compiler artifacts
 *.o.tmp

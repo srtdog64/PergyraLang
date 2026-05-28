@@ -7,6 +7,43 @@
 #include "../common/string_compat.h"
 
 #include <stdlib.h>
+
+static Token
+ast_clone_token(Token token)
+{
+    Token clone = token;
+
+    clone.text = token.text != NULL ? pergyra_strdup(token.text) : NULL;
+    return clone;
+}
+
+static ASTNode*
+ast_clone_literal_node(ASTNode* node)
+{
+    ASTNode* clone = calloc(1, sizeof(ASTNode));
+
+    if (clone == NULL)
+        return NULL;
+    clone->type = node->type;
+    switch (node->type) {
+        case AST_NUMBER:
+            clone->data.number = node->data.number;
+            break;
+        case AST_STRING:
+            clone->data.string.value = node->data.string.value != NULL
+                ? pergyra_strdup(node->data.string.value)
+                : NULL;
+            break;
+        case AST_BOOLEAN:
+            clone->data.boolean = node->data.boolean;
+            break;
+        default:
+            free(clone);
+            return NULL;
+    }
+    return clone;
+}
+
 static GenericParams*
 ast_clone_generic_params(GenericParams* params)
 {
@@ -62,6 +99,28 @@ ast_clone(ASTNode* node)
     switch (node->type) {
         case AST_IDENTIFIER:
             clone = ast_create_identifier(node->data.identifier.name);
+            break;
+        case AST_NUMBER:
+        case AST_STRING:
+        case AST_BOOLEAN:
+            clone = ast_clone_literal_node(node);
+            break;
+        case AST_BINARY:
+            clone = ast_create_binary(ast_clone(node->data.binary.left),
+                ast_clone_token(node->data.binary.op),
+                ast_clone(node->data.binary.right));
+            break;
+        case AST_UNARY:
+            clone = ast_create_unary(ast_clone_token(node->data.unary.op),
+                ast_clone(node->data.unary.operand));
+            break;
+        case AST_MEMBER_ACCESS:
+            clone = ast_create_member_access(ast_clone(node->data.member.object),
+                node->data.member.name);
+            break;
+        case AST_ARRAY_ACCESS:
+            clone = ast_create_array_access(ast_clone(node->data.array_access.array),
+                ast_clone(node->data.array_access.index));
             break;
         case AST_TYPE:
             clone = ast_create_type(node->data.type.name);

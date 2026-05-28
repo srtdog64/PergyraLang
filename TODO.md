@@ -60,9 +60,9 @@ English anchor for tooling/doc gates:
   Compiler-adjacent self-host tools may remain as dogfood evidence, but they
   must not reorder beta closure ahead of the language spine. Groundwork lives
   in `docs/self_hosted/05_compiler_core_gap_analysis.md` for handoff.
-- Self-host preparation gate tightening: `self-host-preparation-test-smoke`
-  now gates the staged roadmap, agent work-unit contract, and first two soft
-  self-host packages (Diagnostic Catalog Checker and AIR Graph JSON Validator).
+- Self-host preparation guard: `self-host-preparation-test-smoke` now gates the
+  staged roadmap, agent work-unit contract, scaffold shape, and every soft
+  self-host parity script currently present under `src/self_hosted/parity/`.
   `docs/self_hosted/03_tool_candidates.md` requires stable JSON or diagnostics
   output so oracle comparison is machine-readable, not prose-only.
 - Diagnostic catalog groundwork: when Python is unavailable,
@@ -4143,9 +4143,15 @@ English anchor for tooling/doc gates:
   `Option<T> ?? T -> T` parses, type-checks, and lowers through C/LLVM scalar
   expression paths. `?.` and `@` remain grammar-reserved tokens with explicit
   parser rejection rather than accidental lexer gaps.
-- `xs[a..b]` and `xs[..]` are now explicit parser rejects rather than generic
-  array-index parse failures. Public slicing remains post-beta until collection
-  ABI, failure policy, and ownership semantics are frozen.
+- Simple string interpolation is now backend-parity gated:
+  `"${expr}"` and `f"{expr}"` lower through `ToString(expr)` and C/LLVM output
+  is pinned by `tests/cases/backend_compare/string_interpolation`. Nested
+  interpolation, format specifiers, and multiline interpolation remain
+  out-of-beta.
+- `xs[a..b]` is now active and desugars to the existing borrowed-slice ABI
+  (`xs.Slice(a, b - a)`) with C/LLVM backend compare coverage. `xs[..]` remains
+  an explicit parser reject until whole-slice length and ownership policy are
+  frozen.
 - `...` is now a reserved spread/rest token with explicit parser rejection in
   expression positions. Public spread/rest remains post-beta until call ABI,
   collection ABI, and destructuring ownership policy are frozen.
@@ -7742,7 +7748,7 @@ boundary transition을 거절하고 runtime은 generation/token/resource state�
 `counts.orphans` 실측 parity, 현재 66/66/0/0/0 일치) 까지 진입. C track 은
 `tests/diagnostic_registry_smoke.sh` parity backend. 3-rung 구조
 (clean exit-code → JSON/counter parity → C/LLVM/Pergyra 3-way) 박혀 있고,
-`self_hosted/parity/` 스크립트는 `self-host-preparation-test-smoke` 에 묶임.
+`src/self_hosted/parity/` 스크립트는 `self-host-preparation-test-smoke` 에 묶임.
 현재 parity 는 exit-code, live counters, `expected/clean.json` exact JSON shape,
 그리고 shell drift detector 의 missing/duplicate/orphan 카운터까지 검증한다.
 
@@ -7803,7 +7809,7 @@ multi-element `Array<String>` joins. Gates: `runtime-abi-lifetime-test-smoke`
 and targeted `tests/compare_backends.sh tests/cases/backend_compare/string_join`.
 
 **Self-host second tool (2026-05-27):** `stable_subset_section_checker`
-under `self_hosted/tools/`. Reads `docs/107_beta_stable_subset.md`,
+under `src/self_hosted/tools/`. Reads `docs/107_beta_stable_subset.md`,
 line-scans for `^## ` headings, validates a canonical anchor list, emits
 schema `pgy.selfhost.stable-subset-section.v1`. Live counts on the clean
 repo: `sections=6 expected=6 missing=0`. Parity rung 2 asserts: clean
@@ -7817,7 +7823,7 @@ and ships without any further runtime/codegen lift -- the prior
 right shape for compiler-adjacent dogfood tools.
 
 **Self-host third tool (2026-05-27):** `air_graph_json_validator` under
-`self_hosted/tools/`. Reads a committed AIR-graph JSON fixture
+`src/self_hosted/tools/`. Reads a committed AIR-graph JSON fixture
 (`fixture/sample.json`, regenerated from
 `tests/cases/backend_compare/intent_zone_binding/main.pgy` via
 `pgy --air-json`), validates the schema field `"schema":"pgy.air.graph.v1"`,
@@ -7853,7 +7859,7 @@ These three lifts are the candidate scope when the dogfood pressure
 identifies a tool that cannot be reshaped to fit the current surface.
 
 **Self-host fourth tool (2026-05-27):** `backend_output_comparator` under
-`self_hosted/tools/`. Reads `fixture/expected.txt` and `fixture/actual.txt`,
+`src/self_hosted/tools/`. Reads `fixture/expected.txt` and `fixture/actual.txt`,
 splits both on `\n`, parallel-iterates the two arrays, counts
 `mismatch_lines` / `extra_actual_lines` / `missing_actual_lines`, and emits
 `pgy.selfhost.backend-output-comparator.v1`. `findings[]` is capped at 8
@@ -7871,7 +7877,7 @@ shipped without any further runtime/codegen lift -- the existing surface
 `==`, `!=`, `Exit`, `FileExists`) was sufficient.
 
 **Self-host fifth tool (2026-05-27):** `module_manifest_resolver` under
-`self_hosted/tools/`. Reads `docs/language_module_manifest.json`, counts
+`src/self_hosted/tools/`. Reads `docs/language_module_manifest.json`, counts
 modules (`"name":` = 17), beta_blocker entries (`"beta_blocker": true` = 3),
 stable-subset entries (`"status": "stable-subset"` = 3), and validates that
 every module has parallel `"layer":` / `"status":` / `"beta_blocker":`
@@ -7894,7 +7900,7 @@ while/for/if` surface. No new LLVM/runtime lift required between tools 3,
 validates the staged roadmap's required-language-surface checklist.
 
 **Self-host sixth tool (2026-05-27):** `stdlib_dispatch_inventory_checker`
-under `self_hosted/tools/`. Reads the two C-source dispatch tables that
+under `src/self_hosted/tools/`. Reads the two C-source dispatch tables that
 *must agree* in entry count when a builtin lands:
 `src/codegen/transpiler_expr_stdlib_scalar_builtin.c` (C backend dispatch)
 and `src/codegen/llvm_expr_stdlib_scalar_io_calls.c` (LLVM backend
@@ -7909,10 +7915,10 @@ shell `grep -c`, and a synthetic drift fixture (strip one
 the StringJoin LLVM lift on 2026-05-26 -- C-side dispatch having an entry
 the LLVM-side registry lacks. The reusable `CountOccurrences` helper from
 tool 5 is duplicated here; with 2 consumers it now qualifies for
-extraction into `self_hosted/lib/` once tool 7 also needs it.
+extraction into `src/self_hosted/lib/` once tool 7 also needs it.
 
 **Self-host seventh tool (2026-05-27):** `doc_link_checker` under
-`self_hosted/tools/`. Reads `docs/INDEX.md`, extracts every `](path)`
+`src/self_hosted/tools/`. Reads `docs/INDEX.md`, extracts every `](path)`
 target via a `ExtractLinkPath` substring slice between `](` and `)`,
 filters to `.md` targets while skipping `://` URLs and `#` anchors,
 verifies each target exists under `docs/` via `FileExists`. Emits
@@ -7928,7 +7934,7 @@ path-extraction between paired delimiters -- the same shape future
 
 **Self-host shared-lib extraction (2026-05-27, completed):** Promoted
 `CountOccurrences` from inline duplicates in tools 5 + 6 to
-`self_hosted/lib/text_scan.pgy` (single `TextScan` namespace export).
+`src/self_hosted/lib/text_scan.pgy` (single `TextScan` namespace export).
 Tools 5 and 6 now `import "../../lib/text_scan.pgy"` and call
 `TextScan.CountOccurrences(...)`. Parity scripts for both tools mirror
 the lib into `.tmp/lib/` (not `.tmp/self_hosted/lib/` -- `../..` from
@@ -7940,7 +7946,7 @@ substring scanning are expected to extend `lib/text_scan.pgy` (e.g.
 candidates for the next consumer to lift).
 
 **Self-host eighth tool (2026-05-27):** `production_header_size_checker`
-under `self_hosted/tools/`. Reads a committed
+under `src/self_hosted/tools/`. Reads a committed
 `fixture/headers_manifest.txt` (489 production `.h` paths produced by
 `find src/codegen src/runtime src/compiler src/semantic src/parser src/lsp
 -name '*.h' -type f | sort`), iterates each line, `ReadFile`s the header
@@ -7960,7 +7966,7 @@ This is the first Pergyra origin tool that performs hundreds of
 `ReadFile` calls per invocation.
 
 **Self-host ninth tool (2026-05-27):** `production_c_size_checker`
-under `self_hosted/tools/`. Sister to tool 8 -- same manifest-driven
+under `src/self_hosted/tools/`. Sister to tool 8 -- same manifest-driven
 shape, but covering production `.c` translation units against the same
 600-LOC cap. Reads `fixture/c_files_manifest.txt` (793 paths produced by
 `find src/codegen src/runtime src/compiler src/semantic src/parser src/lsp
@@ -7969,20 +7975,125 @@ shape, but covering production `.c` translation units against the same
 max_lines=548` on the clean repo. Parity rung 2 asserts: clean exit,
 JSON byte-equal, `c_files/violations/max_lines` parity vs `wc -l` shell,
 and a synthetic 701-line over-cap fixture yields `rc=1` with a
-`"kind":"c_over_cap"` finding carrying the synthetic path. The scaffold
-smoke now gates 9 tools. `CountLines` is duplicated inline in tools 8
-and 9; the next tool that needs a `wc -l`-style line counter triggers
-the lift into `lib/text_scan.pgy`.
+`"kind":"c_over_cap"` finding carrying the synthetic path. This was the
+ninth tool; the tenth tool later lifted the duplicated `CountLines` helper
+from tools 8 and 9 into `lib/text_scan.pgy`.
 
 **Self-host status snapshot (2026-05-27, after 9 tools):** The Pergyra
-origin surface ships 9 compiler-adjacent tools (catalog / section /
+origin surface shipped 9 compiler-adjacent tools (catalog / section /
 JSON-like / paired-diff / manifest / dispatch parity / path-extract /
 header-size / c-size). All 9 parity scripts green. Total live scans
 per smoke pass: 1 catalog, 1 manifest, 1 AIR JSON, 1 paired diff, 1
 JSON manifest, 2 stdlib source files, 1 doc index, 489 production
-headers, 793 production C files -- 1289 file reads from a single
-`bash` invocation. The Pergyra origin surface (no `Args` / no JSON
-parser / no `ListDir` yet) has not blocked any of these 9 tools.
+headers, 793 production C files -- 1289 file reads from the full
+self-host preparation gate. This snapshot is superseded by the 10-tool snapshot
+below, but records the point where production C-size checking landed.
+
+**Self-host tenth tool + CountLines lib lift (2026-05-27):**
+`examples_inventory_checker` under `src/self_hosted/tools/`. Reads
+`fixture/examples_manifest.txt` (117 paths from
+`find examples -maxdepth 1 -name '*.pgy' -type f | sort`), iterates
+each, asserts `FileExists` + `TextScan.CountLines(content) > 0`.
+Emits `pgy.selfhost.examples-inventory.v1` with
+`examples=117 missing=0 empty=0 max_lines=544` on the clean repo.
+**Third consumer of `TextScan.CountLines`**, which triggered the lift
+of `CountLines` from inline duplicates in tools 8 and 9 into
+`src/self_hosted/lib/text_scan.pgy`. Tools 8 and 9 now `import
+"../../lib/text_scan.pgy"` and their parity scripts mirror the lib
+into `.tmp/lib/`. All 10 parity scripts green; scaffold gates 10
+tools. Total live scans per smoke pass: 1 catalog, 1 manifest, 1
+AIR JSON, 1 paired diff, 1 JSON manifest, 2 stdlib source files, 1
+doc index, 489 production headers, 793 production C files, 117
+examples -- 1406 file reads from the full self-host preparation gate.
+
+**Self-host Make-gate substitution (2026-05-27, BDFL direction shift):**
+The BDFL course-corrected the loop's focus from "build more peripheral
+tools" to "substitute what's currently in C/shell with Pergyra where
+possible while making the language self-hosted". First substitutions
+landed as Make-target wiring:
+
+1. `production-header-size-test-smoke` now runs *both* the legacy shell
+   smoke AND the Pergyra parity (co-equal gate). Drift between the two
+   fails the build.
+2. `production-c-size-test-smoke` is a *new* Make target: no existing
+   C-side smoke owns the .c file cap. The Pergyra tool is the primary
+   gate -- the C/shell side never had one.
+3. `examples-inventory-test-smoke` is also new: examples drift had no
+   C-side gate; the Pergyra tool is the only gate.
+
+All three are wired into the `ci-linux` BETA gate chain and the global
+`.PHONY` listing. This is the genuine *Pergyra-replaces-C/shell* move,
+not "Pergyra mirrors C/shell": targets 2 and 3 only exist because the
+Pergyra origin exists.
+
+**Substitution next steps (deferred):** Wider C/LLVM substitution would
+need: (a) `Args()` surface lift so a single Pergyra tool binary can
+accept multiple fixture paths (currently each tool has a hardcoded
+input); (b) byte-equal subprocess parity for the in-bash drift guard
+(currently `graceful-skip` when bash can't launch pgy); (c) routing the
+shell-side `tests/diagnostic_registry_smoke.sh` Python path through the
+Pergyra tool (would let CI drop its Python dependency). These are the
+candidate scope for upcoming ticks; new peripheral tools should only
+land when an existing substitution is blocked on a missing tool.
+
+**First compiler-internal substitution candidate (2026-05-28):**
+`src/self_hosted/tools/lex_minimal` is rung-1, not a full lexer. It reads
+`examples/hello.pgy` and `examples/array_literal.pgy`, emits the same
+token-list text as `pgy --tokens <source>`, and is gated by
+`src/self_hosted/parity/lex_minimal_parity.sh`. This is the first
+Pergyra-origin tool that substitutes a compiler-internal component
+rather than only auditing repository text. Scope is intentionally tiny:
+only token families present in those two committed fixtures are supported.
+The value is the side-by-side substitution loop (C lexer stays authoritative,
+Pergyra lexer candidate must be byte-equal), not production lexer replacement.
+
+**Self-host directory move (2026-05-27, BDFL direction):** The
+`self_hosted/` root directory moved into `src/self_hosted/` per BDFL
+direction ("self-hosted code belongs in `src/` alongside the C compiler
+it eventually replaces"). All 11 parity scripts updated:
+- `ROOT_DIR` resolution now climbs `../../..` from
+  `src/self_hosted/parity/<script>.sh` (one extra level).
+- Source/expected/fixture paths now under `src/self_hosted/...`.
+- The lib mirror still lands at `.tmp/lib/` (the build dir does not
+  mirror the `src/` prefix because the tool's `import "../../lib/..."`
+  resolves from `.tmp/self_hosted/<tool>/main.pgy` -> `.tmp/lib/`).
+Makefile target paths updated. `tests/self_hosted_scaffold_smoke.sh`
+and `tests/build_source_inventory_smoke.sh` updated to scan the new
+location. The `*.pgy` files survived the move with UTF-8 BOM injected by
+the file-system editor; stripped via `sed -i '1s/^\xef\xbb\xbf//'` on
+all 12 source/fixture files so Pergyra's parser accepts them. After the
+move, 11 parities + scaffold + inventory all green.
+
+**Self-host gitignore for byproducts (2026-05-27):** Build artifacts
+under `src/self_hosted/` (`*.exe`, `*.o`, `*.obj`) are already covered
+by the global patterns in `.gitignore`. Added explicit entries for
+`src/self_hosted/tools/**/probe.pgy` and `probe_*.pgy` so ad-hoc test
+probes do not pollute `git status` during self-host work. `.tmp/` is
+already globally ignored; the lib mirror under `.tmp/lib/` and tool
+build dirs under `.tmp/self_hosted/` are covered by that. Extended
+global patterns to cover `*.ll`, `*.obj`, `*.lib`, `*.a`, `*.dll`,
+`*.so`, `*.dylib`, `*.pdb`, `*.ilk` and explicit
+`src/self_hosted/tools/**/main.c` / `main.ll` for ad-hoc `--emit-c` /
+`--emit-llvm` byproducts. This is intentionally narrow so future
+`fixture/*.c` or `expected/*.c` parity assets remain trackable.
+
+**Self-host PROGRESS tracker (2026-05-28, BDFL direction):**
+Per BDFL ("셀프 호스티드 할때 핵심은 프로그레스로 원본대비 어느정도인지
+적어놔야함" -- *when self-hosting the key is to record progress vs the
+original*), added `src/self_hosted/PROGRESS.md` as the *canonical*
+self-host coverage tracker. Headline number: ~0.1% of the C compiler
+substituted (205 Pergyra LOC vs 211,294 C LOC across the seven C
+compiler directories). Per-component table tracks
+`lexer / parser / semantic / codegen / runtime / compiler / lsp`
+coverage. Peripheral audit tools (1518 LOC across 10 tools) are
+explicitly *not counted* in the substitution percentage -- they
+observe the C compiler from outside, they don't replace it. The
+roadmap section lays out the honest order: lexer expansion -> lexer
+at scale -> parser bootstrap -> semantic subset -> C-emit codegen ->
+bootstrap loop. Surface lifts required for steps 3+ are documented:
+`Args()`, struct-over-arbitrary-types, raw pointer / FFI, subprocess
+execution. The scaffold smoke now gates `PROGRESS.md` existence and
+section anchors so the tracker cannot silently rot.
 
 ## ★ Core Goal — 진행 시퀀스 (2026-05-02 명시, 4-step)
 

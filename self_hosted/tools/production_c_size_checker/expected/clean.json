@@ -1,1 +1,0 @@
-{"schema":"pgy.selfhost.production-c-size.v1","ok":true,"source":{"manifest_owner":"self_hosted/tools/production_c_size_checker/fixture/c_files_manifest.txt","cap_lines":600},"counts":{"c_files":793,"violations":0,"max_lines":548},"findings":[]}

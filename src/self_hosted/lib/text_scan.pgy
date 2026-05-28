@@ -1,0 +1,47 @@
+// src/self_hosted/lib/text_scan.pgy
+//
+// Shared text-scan helpers for self-host tools. Promoted from inline
+// duplicates once two tools (module_manifest_resolver and
+// stdlib_dispatch_inventory_checker) needed the same `CountOccurrences`
+// helper. Future tools that scan structured text are expected to extend
+// this namespace rather than re-inline the helpers.
+//
+// Consumption contract: tools `import "../../lib/text_scan.pgy"` from
+// `src/self_hosted/tools/<tool>/main.pgy`. Parity scripts mirror the lib
+// subtree alongside the copied tool source so the relative path keeps
+// resolving from the build dir.
+
+namespace TextScan {
+    // Count non-overlapping occurrences of `needle` in `content`.
+    // Returns 0 when needle is empty.
+    export func CountOccurrences(content: String, needle: String) -> Int {
+        let count: Int = 0;
+        let remaining: String = content;
+        let needle_len: Int = StringLength(needle);
+        if needle_len == 0 {
+            return 0;
+        }
+        while StringLength(remaining) > 0 {
+            let idx: Int = StringIndexOf(remaining, needle);
+            if idx < 0 {
+                return count;
+            }
+            count = count + 1;
+            let advance: Int = idx + needle_len;
+            let rest_len: Int = StringLength(remaining) - advance;
+            if rest_len <= 0 {
+                return count;
+            }
+            remaining = Substring(remaining, advance, rest_len);
+        }
+        return count;
+    }
+
+    // Count newline-terminated lines, mirroring `wc -l` semantics.
+    // A non-empty file without a final newline still has zero complete lines.
+    // Promoted from tools 8 and 9 once tool 10 became the third
+    // consumer (2026-05-27).
+    export func CountLines(content: String) -> Int {
+        return CountOccurrences(content, "\n");
+    }
+}

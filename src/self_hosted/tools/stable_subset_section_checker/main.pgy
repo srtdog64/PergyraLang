@@ -1,0 +1,133 @@
+// src/self_hosted/tools/stable_subset_section_checker/main.pgy
+//
+// Status: rung-2 minimal (2026-05-27). Reads docs/107_beta_stable_subset.md
+// relative to cwd, counts `^## ` headings, and verifies a canonical anchor
+// list against the document. Emits the schema document and exits 1 on
+// any missing anchor.
+//
+// Cwd contract: the parity harness cd's into the repo root before running.
+// LLVM lift dependency: uses StringJoin (lifted 2026-05-26) for JSON build
+// instead of nested Concat chains.
+//
+// Contract: see intent.md in the same directory.
+
+func IsSectionLine(line: String) -> Bool {
+    if !StringContains(line, "## ") {
+        return false;
+    }
+    let prefix: String = Substring(line, 0, 3);
+    return prefix == "## ";
+}
+
+func CountSectionLines(content: String) -> Int {
+    let lines: Array<String> = Split(content, "\n");
+    let count: Int = 0;
+    for line in lines {
+        if IsSectionLine(line) {
+            count = count + 1;
+        }
+    }
+    return count;
+}
+
+func CanonicalAnchors() -> Array<String> {
+    let anchors: Array<String> = [
+        "## 1. Core Stable Surface",
+        "## 2. Generic Contract Stable Subset",
+        "## 3. Ownership Stable Subset",
+        "## 4. Collections Stable Subset",
+        "## 5. Intent / Zone / World / AIR Stable Subset",
+        "## 6. Backend And Tooling Contract"
+    ];
+    return anchors;
+}
+
+func CountMissingAnchors(content: String, anchors: Array<String>) -> Int {
+    let missing: Int = 0;
+    let i: Int = 0;
+    let n: Int = ArrayLength(anchors);
+    while i < n {
+        let anchor: String = anchors[i];
+        if !StringContains(content, anchor) {
+            missing = missing + 1;
+        }
+        i = i + 1;
+    }
+    return missing;
+}
+
+func MissingFinding(title: String) -> String {
+    let parts: Array<String> = [
+        "{\"kind\":\"missing_section\",\"title\":\"",
+        title,
+        "\",\"location\":\"docs/107_beta_stable_subset.md\"}"
+    ];
+    return StringJoin(parts, "");
+}
+
+func BuildMissingFindings(content: String, anchors: Array<String>) -> String {
+    let pieces: Array<String> = [];
+    let i: Int = 0;
+    let n: Int = ArrayLength(anchors);
+    while i < n {
+        let anchor: String = anchors[i];
+        if !StringContains(content, anchor) {
+            ArrayPush(pieces, MissingFinding(anchor));
+        }
+        i = i + 1;
+    }
+    return StringJoin(pieces, ",");
+}
+
+func InputErrorJson(path: String) -> String {
+    let parts: Array<String> = [
+        "{\"schema\":\"pgy.selfhost.stable-subset-section.v1\",\"ok\":false,",
+        "\"source\":{\"manifest_owner\":\"docs/107_beta_stable_subset.md\"},",
+        "\"counts\":{\"sections\":0,\"expected\":6,\"missing\":0},",
+        "\"findings\":[{\"kind\":\"input_error\",\"title\":\"",
+        path,
+        "\",\"location\":\"",
+        path,
+        "\"}]}"
+    ];
+    return StringJoin(parts, "");
+}
+
+func Main() -> Void {
+    let manifest_path: String = "docs/107_beta_stable_subset.md";
+    if !FileExists(manifest_path) {
+        Log(InputErrorJson(manifest_path));
+        Exit(1);
+    }
+
+    let content: String = ReadFile(manifest_path);
+    let anchors: Array<String> = CanonicalAnchors();
+    let sections: Int = CountSectionLines(content);
+    let expected: Int = ArrayLength(anchors);
+    let missing: Int = CountMissingAnchors(content, anchors);
+    let findings: String = BuildMissingFindings(content, anchors);
+    let ok_text: String = "true";
+    if missing > 0 {
+        ok_text = "false";
+    }
+
+    let json_parts: Array<String> = [
+        "{\"schema\":\"pgy.selfhost.stable-subset-section.v1\",\"ok\":",
+        ok_text,
+        ",\"source\":{\"manifest_owner\":\"docs/107_beta_stable_subset.md\"},",
+        "\"counts\":{\"sections\":",
+        ToString(sections),
+        ",\"expected\":",
+        ToString(expected),
+        ",\"missing\":",
+        ToString(missing),
+        "},\"findings\":[",
+        findings,
+        "]}"
+    ];
+    Log(StringJoin(json_parts, ""));
+
+    if missing > 0 {
+        Exit(1);
+    }
+}

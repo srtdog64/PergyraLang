@@ -1,4 +1,4 @@
-﻿# `.inc` Split Roadmap
+# `.inc` Split Roadmap
 
 마지막 업데이트: 2026-04-30
 

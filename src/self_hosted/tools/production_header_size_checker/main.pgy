@@ -1,0 +1,133 @@
+// src/self_hosted/tools/production_header_size_checker/main.pgy
+//
+// Status: rung-2 minimal (2026-05-27). Reads
+// fixture/headers_manifest.txt relative to cwd, iterates each line as a
+// repo-relative `.h` path, ReadFile's the content, counts newlines, asserts
+// <= 600 LOC. Reports any over-cap headers in findings[].
+//
+// Cwd contract: the parity harness cd's into the repo root before running.
+//
+// New pattern: manifest input + per-line file I/O loop -- the 489-header
+// manifest exercises Pergyra `for line in lines` plus `ReadFile` at scale.
+//
+// CountLines moved to src/self_hosted/lib/text_scan.pgy (2026-05-27, lifted
+// once a third consumer adopted it).
+//
+// Contract: see intent.md in the same directory.
+
+import "../../lib/text_scan.pgy";
+
+func OverCapFinding(path: String, lines: Int) -> String {
+    let parts: Array<String> = [
+        "{\"kind\":\"header_over_cap\",\"path\":\"",
+        path,
+        "\",\"lines\":",
+        ToString(lines),
+        ",\"location\":\"",
+        path,
+        "\"}"
+    ];
+    return StringJoin(parts, "");
+}
+
+func MissingHeaderFinding(path: String) -> String {
+    let parts: Array<String> = [
+        "{\"kind\":\"input_error\",\"path\":\"",
+        path,
+        "\",\"lines\":0,\"location\":\"",
+        path,
+        "\"}"
+    ];
+    return StringJoin(parts, "");
+}
+
+func MissingManifestJson(path: String) -> String {
+    let parts: Array<String> = [
+        "{\"schema\":\"pgy.selfhost.production-header-size.v1\",\"ok\":false,",
+        "\"source\":{\"manifest_owner\":\"",
+        path,
+        "\",\"cap_lines\":600},",
+        "\"counts\":{\"headers\":0,\"violations\":0,\"max_lines\":0},",
+        "\"findings\":[{\"kind\":\"missing_manifest\",\"path\":\"",
+        path,
+        "\",\"lines\":0,\"location\":\"",
+        path,
+        "\"}]}"
+    ];
+    return StringJoin(parts, "");
+}
+
+func Main() -> Void {
+    let manifest_path: String = "src/self_hosted/tools/production_header_size_checker/fixture/headers_manifest.txt";
+    let cap: Int = 600;
+
+    if !FileExists(manifest_path) {
+        Log(MissingManifestJson(manifest_path));
+        Exit(1);
+    }
+
+    let manifest: String = ReadFile(manifest_path);
+    let entries: Array<String> = Split(manifest, "\n");
+
+    let headers: Int = 0;
+    let violations: Int = 0;
+    let max_lines: Int = 0;
+    let findings: Array<String> = [];
+    let findings_cap: Int = 8;
+
+    let i: Int = 0;
+    let n: Int = ArrayLength(entries);
+    while i < n {
+        let path: String = entries[i];
+        if StringLength(path) > 0 {
+            if !FileExists(path) {
+                if ArrayLength(findings) < findings_cap {
+                    ArrayPush(findings, MissingHeaderFinding(path));
+                }
+                violations = violations + 1;
+            } else {
+                headers = headers + 1;
+                let content: String = ReadFile(path);
+                let lines: Int = TextScan.CountLines(content);
+                if lines > max_lines {
+                    max_lines = lines;
+                }
+                if lines > cap {
+                    violations = violations + 1;
+                    if ArrayLength(findings) < findings_cap {
+                        ArrayPush(findings, OverCapFinding(path, lines));
+                    }
+                }
+            }
+        }
+        i = i + 1;
+    }
+
+    let ok_text: String = "true";
+    if violations > 0 {
+        ok_text = "false";
+    }
+
+    let json_parts: Array<String> = [
+        "{\"schema\":\"pgy.selfhost.production-header-size.v1\",\"ok\":",
+        ok_text,
+        ",\"source\":{\"manifest_owner\":\"",
+        manifest_path,
+        "\",\"cap_lines\":",
+        ToString(cap),
+        "},\"counts\":{\"headers\":",
+        ToString(headers),
+        ",\"violations\":",
+        ToString(violations),
+        ",\"max_lines\":",
+        ToString(max_lines),
+        "},\"findings\":[",
+        StringJoin(findings, ","),
+        "]}"
+    ];
+    Log(StringJoin(json_parts, ""));
+
+    if violations > 0 {
+        Exit(1);
+    }
+}

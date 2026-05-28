@@ -135,3 +135,27 @@ Output:
 Why:
 
 - Self-hosting needs reliable module boundaries before compiler code is split into Pergyra modules.
+
+## Implemented Rung-2 Soft Tools
+
+As of 2026-05-27, the `src/self_hosted/tools/` track has ten
+rung-2 tools with parity scripts:
+
+- `diagnostic_catalog_checker`
+- `stable_subset_section_checker`
+- `air_graph_json_validator`
+- `backend_output_comparator`
+- `module_manifest_resolver`
+- `stdlib_dispatch_inventory_checker`
+- `doc_link_checker`
+- `production_header_size_checker`
+- `production_c_size_checker`
+- `examples_inventory_checker`
+
+As of 2026-05-28, `lex_minimal` adds the first compiler-internal rung-1
+substitution candidate: it reimplements the `examples/hello.pgy` token stream
+in Pergyra and compares byte-for-byte against `pgy --tokens`. It is deliberately
+not a full lexer.
+
+The full parity set is gated by `make self-host-preparation-test-smoke`. These
+tools are still **soft self-host evidence**, not compiler-core migration.

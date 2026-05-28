@@ -1,0 +1,6 @@
+func Main() -> Void {
+    let name: String = "Pergyra";
+    let score: Int = 7;
+    Log("hello ${name}");
+    Log(f"score={score}");
+}
