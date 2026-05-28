@@ -1,0 +1,17 @@
+func Label(value: Int) -> String {
+    if value == 0 {
+        return "zero";
+    } else if value == 1 {
+        return "one";
+    } else if value == 2 {
+        return "two";
+    } else {
+        return "other";
+    }
+}
+
+func Main() -> Void {
+    Log(Label(0));
+    Log(Label(1));
+    Log(Label(3));
+}

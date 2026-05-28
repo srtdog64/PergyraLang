@@ -380,6 +380,7 @@ main() {
         "tests/cases/backend_compare/basic"
         "tests/cases/backend_compare/slot_sugar"
         "tests/cases/backend_compare/break_continue"
+        "tests/cases/backend_compare/else_if_chain"
         "tests/cases/backend_compare/array_enum"
         "tests/cases/backend_compare/array_builtins"
         "tests/cases/backend_compare/array_inline_access"

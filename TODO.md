@@ -4160,6 +4160,9 @@ English anchor for tooling/doc gates:
   `tests/cases/backend_compare/pipeline_composition`. Keep diagnostics and
   richer callable/generic inference partial; the stable contract is still
   explicit lowering to ordinary function calls.
+- `else if` now has a direct C/LLVM parity fixture:
+  `tests/cases/backend_compare/else_if_chain`. Keep all-path return,
+  cleanup, and branch-join ownership facts CFG-owned.
 - `...` is now a reserved spread/rest token with explicit parser rejection in
   expression positions. Public spread/rest remains post-beta until call ABI,
   collection ABI, and destructuring ownership policy are frozen.

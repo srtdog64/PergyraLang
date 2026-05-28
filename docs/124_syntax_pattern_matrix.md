@@ -147,7 +147,7 @@ speed and order-independent declarations as first-class compiler constraints.
 | Pattern | Common shape | Pergyra mapping | Status | Notes |
 | --- | --- | --- | --- | --- |
 | Conditional | `if / else` | `if / else` | `stable` | CFG must own body safety. |
-| Else-if shorthand | `else if` | nested `if` / accepted surface where present | `partial` | Do not expand syntax until parser contract is checked. |
+| Else-if shorthand | `else if` | nested `if` / accepted surface where present | `partial` | Basic C/LLVM parity is gated by `else_if_chain`; all-path return and cleanup facts remain CFG-owned. |
 | While loop | `while` | `while` | `stable` | CFG reachability and cleanup facts required. |
 | For range | `for i in 0..n` | `for` over ranges | `stable` | Keep simple. |
 | For collection | `foreach`, `for v in xs` | `for` over collections | `stable` | Frozen collection subset only. |
