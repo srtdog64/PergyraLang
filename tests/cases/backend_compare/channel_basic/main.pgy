@@ -1,0 +1,9 @@
+func Main() -> Void {
+    let ch: Channel<String> = Channel(2);
+    ch <- "ping";
+    ch <- "pong";
+    let a: String = <-ch;
+    let b: String = <-ch;
+    Log(a);
+    Log(b);
+}

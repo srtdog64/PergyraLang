@@ -1,0 +1,26 @@
+subject ActiveCounter {
+    let count: Int;
+
+    action Tick(self, delta: Int) -> Int {
+        count = count + delta;
+        return count;
+    }
+}
+
+class PassiveCounter {
+    let count: Int;
+
+    func Tick(self, delta: Int) -> Int {
+        count = count + delta;
+        return count;
+    }
+}
+
+func Main() -> Void {
+    let active: ActiveCounter = ActiveCounter(1);
+    let passive: PassiveCounter = PassiveCounter(1);
+    Log(active.Tick(2));
+    Log(active.count);
+    Log(passive.Tick(2));
+    Log(passive.count);
+}

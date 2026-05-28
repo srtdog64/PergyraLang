@@ -87,7 +87,7 @@ speed and order-independent declarations as first-class compiler constraints.
 | Program entry | `main`, `static void Main`, `fn main` | `func Main()` and lowercase `func main()` driver entry paths | `partial` | Lowercase entry C/LLVM parity is gated by `entry_lowercase_main`; richer return/args policy remains partial. |
 | Top-level function | `fn`, `def`, `function`, method | `func name(args) -> T` | `stable` | Baseline behavior. |
 | Namespace/module block | `namespace`, `mod`, ES module | `namespace name { ... }` | `stable` | Namespaces are stable; package resolver is separate. |
-| File import | `import`, `use`, `using` | `import "path.pgy";` | `stable` | Resolver subset is stable enough for beta examples. |
+| File import | `import`, `use`, `using` | `import "path.pgy";` | `stable` | Resolver subset is stable enough for beta examples; namespace export/import C/LLVM parity is gated by `namespace_export_import`. |
 | Export public API | `public`, `pub`, `export` | `export func`, exported declarations | `stable` | Visibility propagation must remain DAG-owned; top-level public/private declaration C/LLVM parity is gated by `top_level_visibility_decl`. |
 | Internal/protected visibility | `internal`, `protected`, `pub(crate)` | none | `out-of-beta` | Do not widen before module contract is frozen. |
 | Import alias/specific import | `using X = Y`, `use a::{b}` | none | `out-of-beta` | Module ergonomics, not beta blocker. |
@@ -98,12 +98,12 @@ speed and order-independent declarations as first-class compiler constraints.
 | Pattern | Common shape | Pergyra mapping | Status | Notes |
 | --- | --- | --- | --- | --- |
 | Plain record/value object | `struct`, `record`, dataclass | `struct` | `stable` | Data-first shape. |
-| Passive utility class | `class` | `class` | `stable` | Avoid using `class` for domain authority. |
-| Active domain aggregate | C# class + DDD aggregate root | `subject` | `native-different` | Pergyra splits active domain identity from passive classes. |
+| Passive utility class | `class` | `class` | `stable` | Avoid using `class` for domain authority; class-vs-subject method dispatch parity is gated by `subject_class_dispatch`. |
+| Active domain aggregate | C# class + DDD aggregate root | `subject` | `native-different` | Pergyra splits active domain identity from passive classes; subject projection parity is gated by `subject_projection`. |
 | Internal state container | private state holder | `vessel` | `partial` | Keep out of broad claims until examples are closed. |
-| Read projection DTO | DTO/read model | `object` | `stable` | Projection target surface. |
-| Transfer DTO | transport DTO / serialized shape | `tobject` | `stable` | Transport-boundary shape. |
-| Enum / ADT | `enum`, Rust enum, tagged union | `enum` | `stable` | Frozen subset only. |
+| Read projection DTO | DTO/read model | `object` | `stable` | Projection target surface; subject-to-object parity is gated by `subject_projection`, and object layer binding by `object_layer_binding`. |
+| Transfer DTO | transport DTO / serialized shape | `tobject` | `stable` | Transport-boundary shape; subject-to-tobject parity is gated by `subject_projection`. |
+| Enum / ADT | `enum`, Rust enum, tagged union | `enum` | `stable` | Frozen subset only; tagged payload member access parity is gated by `tagged_union`. |
 | Type alias | `using`, `type` | `type Name = T` | `partial` | DAG ownership must remain source of truth. |
 | Interface / trait | C# interface, Rust trait | `ability` | `stable` | Exact and multi-bound baseline. |
 | Trait implementation | `impl Trait for T` | `role Name for Subject` | `native-different` | Domain role, not a Rust trait clone. |
@@ -118,10 +118,10 @@ speed and order-independent declarations as first-class compiler constraints.
 | Immutable local | `let`, `const`, `val` | `let x = ...;` | `stable` | Normal local binding. |
 | Mutable local | `var`, `let mut`, `ref` mutation | assignment / subject state updates | `partial` | No broad public `mut` baseline. |
 | Destructuring | tuple/object destructure | `let (a, b) = ...;` | `partial` | Keep CFG/dataflow-owned. |
-| Reference / borrow | `&T`, `ref T`, pointer/ref | `ref` over supported boundaries; slot handles | `native-different` | Pergyra is not a Rust lifetime language. |
-| Move/ownership transfer | move-only value, `unique_ptr` | `own`, `MoveToken<T>`, anchored slot boundaries | `partial` | Stable only for anchored subset. |
-| RAII/drop/finally | Rust `Drop`, C# `using`, `finally` | `defer`, MIR cleanup, pin cleanup | `partial` | Cleanup source of truth must be MIR facts. |
-| Managed object reference | GC reference / handle | `Slot<T>` / registry / handle | `native-different` | Runtime-validated handle plus static boundary verifier. |
+| Reference / borrow | `&T`, `ref T`, pointer/ref | `ref` over supported boundaries; slot handles | `native-different` | Pergyra is not a Rust lifetime language; `ref Slot<subject>` boundary parity is gated by `slot_subject_boundary_ref`. |
+| Move/ownership transfer | move-only value, `unique_ptr` | `own`, `MoveToken<T>`, anchored slot boundaries | `partial` | Stable only for anchored subset; `own SecureSlot<subject>` and forwarding parity are gated by `secure_slot_subject_boundary_own` and `secure_slot_subject_boundary_forward_own`. |
+| RAII/drop/finally | Rust `Drop`, C# `using`, `finally` | `defer`, MIR cleanup, pin cleanup | `partial` | Cleanup source of truth must be MIR facts; straight-line scope exit is C/LLVM parity-gated by `defer_scope_exit`. |
+| Managed object reference | GC reference / handle | `Slot<T>` / registry / handle | `native-different` | Runtime-validated handle plus static boundary verifier. Direct claim/write/read/release parity is gated by `slot_basic`; subject-cell storage by `slot_subject_cell` / `secure_slot_subject_cell`; slot sugar remains gated by `slot_sugar`. |
 | Raw pointer escape | `unsafe`, `*T`, `void*` | explicit unsafe/raw escape policy | `out-of-beta` | Systems baseline item, not default surface. |
 | Lock/mutex | `lock`, `Mutex<T>` | Slot pin/view/resource boundaries | `native-different` | Do not import lock syntax as core by default. |
 
@@ -129,14 +129,14 @@ speed and order-independent declarations as first-class compiler constraints.
 
 | Pattern | Common shape | Pergyra mapping | Status | Notes |
 | --- | --- | --- | --- | --- |
-| Free function | `fn`, `def`, `function` | `func f(...) -> T` | `stable` | Baseline function. |
+| Free function | `fn`, `def`, `function` | `func f(...) -> T` | `stable` | Baseline function; ordinary recursion and nested-call C/LLVM parity are gated by `free_function_recursion` and `nested_function_calls`. |
 | Hosted method | `this`/`self` method | hosted `func` with `self` context | `stable` | Declaration inventory must be MIR/DIR/RIR-owned. |
 | Domain behavior | method with preconditions/effects | `action ... requires / within / causes` | `stable` | Action contracts stay explicit in IR. |
 | Member access / method chaining | `x.y`, `x.f()` | `AST_MEMBER_ACCESS` + call chaining | `stable` | Must stay ordinary expression lowering; do not overload into authority semantics. |
 | Pipeline composition | `x |> f` | pipe operator parser surface | `partial` | Basic unary and call-with-extra-args C/LLVM parity is gated by `pipeline_composition`; keep type inference and diagnostics explicit. |
-| Lambda / closure literal | `x => x + 1`, `|x| x+1` | `=>` lambda AST/parser surface | `partial` | Standalone lambda callables are active. Lambda-local `let`/destructure/for bindings are not captures; outer local/resource capture is semantically rejected until closure environments and boundary lifetime facts are frozen. |
+| Lambda / closure literal | `x => x + 1`, `|x| x+1` | `=>` lambda AST/parser surface | `partial` | Standalone lambda callables are active and expression-lambda parity is gated by `lambda_expr`; block-return lambda parity is gated by `lambda_block_return`. Lambda-local `let`/destructure/for bindings are not captures; outer local/resource capture is semantically rejected until closure environments and boundary lifetime facts are frozen. |
 | Function reference | method group / function pointer | function name as value | `partial` | Enough for narrow callbacks. |
-| Higher-order function | `Func<T,R>`, `Fn` | callable parameters | `partial` | No HKT/functor hierarchy. |
+| Higher-order function | `Func<T,R>`, `Fn` | callable parameters | `partial` | No HKT/functor hierarchy. Direct generic call parity is gated by `generic_call`; generic spawn/await monomorphization parity is gated by `generic_future_spawn_int`, `generic_future_spawn_multi_arg`, `generic_future_spawn_string`, and same-unit mixed specialization in `generic_future_spawn_mixed`. |
 | Named arguments | `f(x: 1)` | parser/AST reserved; semantic reject | `partial` | Source spelling and AST print are reserved; call ABI/dispatch is not implemented. |
 | Default arguments | `f(x = 1)` | parser-rejected reserved surface | `out-of-beta` | Value defaults are explicit parser rejects until ABI/call dispatch policy exists. |
 | Variadic function | `params`, varargs | none | `out-of-beta` | Not beta closure. |
@@ -148,12 +148,12 @@ speed and order-independent declarations as first-class compiler constraints.
 | --- | --- | --- | --- | --- |
 | Conditional | `if / else` | `if / else` | `stable` | CFG must own body safety. |
 | Else-if shorthand | `else if` | nested `if` / accepted surface where present | `partial` | Basic C/LLVM parity is gated by `else_if_chain`; all-path return and cleanup facts remain CFG-owned. |
-| While loop | `while` | `while` | `stable` | Condition-based C/LLVM parity is gated by `while_condition_basic`; CFG reachability and cleanup facts remain required. |
-| For range | `for i in 0..n` | `for` over ranges | `stable` | Keep simple. |
+| While loop | `while` | `while` | `stable` | Basic loop accumulation is gated by `while_loop`, condition-focused parity by `while_condition_basic`; CFG reachability and cleanup facts remain required. |
+| For range | `for i in 0..n` | `for` over ranges | `stable` | Keep simple; nested range-loop parity is gated by `nested_loops`. |
 | For collection | `foreach`, `for v in xs` | `for` over collections | `stable` | Frozen collection subset only. |
 | Break / continue | `break`, `continue` | `break`, `continue` | `stable` | Cleanup edges must be validated. |
 | Infinite loop | `loop`, `while true` | `loop` or equivalent | `partial` | Verify against all-path return. |
-| Match expression | Rust `match`, C# switch expression | `match` | `stable` | Frozen subject/enum subset only. |
+| Match expression | Rust `match`, C# switch expression | `match` | `stable` | Simple scalar return match parity is gated by `match_stmt`; guarded/or-pattern parity by `match_guard_or_pattern`. |
 | Enum / Result / Option destructure | `Ok(v)`, `Some(v)` | `case .Ok(v)`, `case .Some(v)` | `stable` | Diagnostics must stay explicit. |
 | Struct/list patterns | `Struct { x }`, `[a, b]` | none | `out-of-beta` | Useful later, not beta blocker. |
 | Guarded match case | `case p if cond` | active match-guard surface | `partial` | Basic scalar C/LLVM parity is gated by `match_guard_or_pattern`; broader exhaustiveness remains CFG-owned. |
@@ -167,7 +167,7 @@ speed and order-independent declarations as first-class compiler constraints.
 | --- | --- | --- | --- | --- |
 | Optional value | `T?`, `Option<T>` | `Option<T>` | `stable` | Prefer over nullable control flow. |
 | Fallible result | `Result<T,E>`, `Either`, `Try<T>` | `Result<T, E>` / current Result surface | `stable` | Recoverable failure surface. |
-| File preflight | `exists(path)`, `Path.exists()` | `FileExists(path)` before `ReadFile(path)` | `stable` | Keeps missing input distinct from empty file payload without changing `ReadFile -> String`. |
+| File preflight | `exists(path)`, `Path.exists()` | `FileExists(path)` before `ReadFile(path)` | `stable` | Keeps missing input distinct from empty file payload without changing `ReadFile -> String`; missing-path C/LLVM parity is gated by `io_string_negative_paths`. |
 | Error propagation | `?`, `try`, `await` failure | Result/failure contracts | `partial` | Keep recoverable vs hard-fail boundary explicit. |
 | Exception throw/catch | `throw`, `try/catch` | none | `reject` | Pergyra is Result/failure-contract first. |
 | Panic/abort | `panic!`, process abort | hard-fail runtime boundary | `stable` | Internal invariant/slot/token violations hard-fail. |
@@ -178,13 +178,13 @@ speed and order-independent declarations as first-class compiler constraints.
 
 | Pattern | Common shape | Pergyra mapping | Status | Notes |
 | --- | --- | --- | --- | --- |
-| Async function | `async fn`, `async Task<T>` | `async func` | `stable` | Stable subset only; basic C/LLVM spawn/await parity is gated by `async_spawn_await`. |
+| Async function | `async fn`, `async Task<T>` | `async func` | `stable` | Stable subset only; async function declaration parity is gated by `async_func_decl`, and basic C/LLVM spawn/await parity is gated by `async_spawn_await`. |
 | Await | `.await`, `await task` | `await` | `stable` | Pin/borrow boundaries must reject unsafe crossing; basic C/LLVM parity is gated by `async_spawn_await`. |
-| Spawn task | `tokio::spawn`, `Task.Run`, goroutine | `spawn` | `stable` | Token/authority transport rules apply; basic C/LLVM parity is gated by `async_spawn_await`. |
+| Spawn task | `tokio::spawn`, `Task.Run`, goroutine | `spawn` | `stable` | Token/authority transport rules apply; basic C/LLVM parity is gated by `async_spawn_await`, and lexical async block send/recv by `async_block_runtime`. |
 | Parallel block | Rayon/Parallel.For/scope | `parallel` / `parallel on` | `stable` | Layered resource/concurrency/domain model. |
-| Channel | Go channel / mpsc | `Channel<T>`, send/recv | `stable` | Cross-world transfer stays channel-only. |
+| Channel | Go channel / mpsc | `Channel<T>`, send/recv | `stable` | Cross-world transfer stays channel-only; direct send/recv parity is gated by `channel_basic`, and capacity/length/space/full/closed state queries are C/LLVM parity-gated by `channel_pressure_state`. |
 | Select | Go `select`, Tokio select | `select` | `partial` | Single-ready bound/unbound receive/default C/LLVM parity is gated by `select_single_ready` and `select_unbound_ready`; fairness, timeout, cancellation, and backpressure policy remain narrow. |
-| Cancellation | token/abort/cancel scope | cancel/failure contracts | `partial` | Runtime state and diagnostics need tightening. |
+| Cancellation | token/abort/cancel scope | cancel/failure contracts | `partial` | Explicit `Future<T>` annotation on spawned work is parity-gated by `future_annotation`; narrow `Cancel(Future<T>)` result parity is gated by `future_cancel_state`, and parent/child propagation by `future_cancel_propagation`; richer diagnostics and payload policy still need tightening. |
 | Atomic | `AtomicI32`, `Interlocked` | runtime/internal only | `out-of-beta` | User-facing atomics are not beta core. |
 
 ## 10. Domain-Orchestration Patterns
@@ -192,11 +192,11 @@ speed and order-independent declarations as first-class compiler constraints.
 | Pattern | Common shape | Pergyra mapping | Status | Notes |
 | --- | --- | --- | --- | --- |
 | Saga/workflow | Camunda/Temporal/Saga lib | `intent` | `stable` | Spine of orchestration. |
-| State machine | explicit state enum + transitions | `intent` + `zone` + `effect` | `native-different` | Lifecycle propagation must stay explicit. |
+| State machine | explicit state enum + transitions | `intent` + `zone` + `effect` | `native-different` | Lifecycle propagation must stay explicit; world derived/composed state parity is gated by `world_derived_states` and `world_composed_states`. |
 | DDD aggregate boundary | aggregate root class | `subject` + `zone` | `native-different` | Avoid forcing tree-shaped ownership. |
 | Authorization guard | middleware/filter/attribute | `authority`, `authorized by`, zone policy | `stable` | Layered authority, not one universal owner. |
-| Read model projection | DTO/read model/mapper | `projection`, `object`, `tobject` | `partial` | Freshness/provenance closure remains important. |
-| Event signal | C# event / signal-slot | `event`, `+=`, `-=`, invocation | `partial` | Named handler, unsubscribe, and lambda handler C/LLVM parity are gated by `event_named_handler`, `event_unsubscribe`, and `event_lambda_handler`; richer closure capture stays rejected/partial. |
+| Read model projection | DTO/read model/mapper | `projection`, `object`, `tobject` | `partial` | Freshness/provenance closure remains important; world-zone cross-query and mutation refresh parity are gated by `world_zone_cross_queries`, `world_zone_mutation_dirty`, and `world_nested_member_assign`. |
+| Event signal | C# event / signal-slot | `event`, `+=`, `-=`, invocation | `partial` | Named handler, unsubscribe, combined subscribe/invoke/unsubscribe, and lambda handler C/LLVM parity are gated by `event_named_handler`, `event_unsubscribe`, `event_system`, and `event_lambda_handler`; richer closure capture stays rejected/partial. |
 | Relationship table | ORM relationship / association | `relation` | `stable` | Authority-resource-effect ordering must stay coherent. |
 | Effect attachment | mixin/decorator/state extension | `effect` | `stable` | Domain policy, not full Koka-style effect calculus. |
 | Transaction rollback | transaction/saga compensation | `compensate`, rollback, `Result` | `partial` | Intent failure model must remain queryable. |
@@ -224,11 +224,12 @@ speed and order-independent declarations as first-class compiler constraints.
 
 | Pattern | Common shape | Pergyra mapping | Status | Notes |
 | --- | --- | --- | --- | --- |
-| Integer / long / float | `1`, `1L`, `1.0` | numeric literals | `stable` | Backend parity required. |
+| Integer / long / float | `1`, `1L`, `1.0` | numeric literals | `stable` | Backend parity required; mixed Int/Bool/String return logging is gated by `multi_types`. |
 | Numeric widening in scalar operations | `Long + Long`, `Float + literal`, `Double * literal` | explicit annotated scalar variables plus backend coercion | `stable` | C/LLVM parity is gated by `scalar_numeric_widening`; runtime export cache must include scalar string conversion exports, and `Double` string coercion must stay on the double runtime path. |
 | Scalar math runtime | `sqrt`, `pow`, `floor`, `ceil` | `Sqrt`, `Pow`, `Floor`, `Ceil` | `stable` | C inline and LLVM-linkable runtime paths are parity-gated by `scalar_math_runtime`. |
 | Trig/log scalar runtime | `sin`, `cos`, `log`, `round` | `Sin`, `Cos`, `Tan`, `Asin`, `Acos`, `Atan`, `Atan2`, `Round`, `Exp`, `MathLog`, `Log10`, `Log2` | `stable` | C inline and LLVM-linkable runtime paths are parity-gated by `scalar_trig_log_runtime` over deterministic inputs. |
 | Scalar parse conversion | `parseInt`, `parseFloat` | `ToInt`, `ToFloat` | `stable` | C inline and LLVM-linkable runtime conversion paths are parity-gated by `scalar_parse_conversion`. |
+| Scalar utility builtins | `abs`, `min`, `max`, `clamp`, constants | `Abs`, `Min`, `Max`, `Clamp`, `PI`, `E` | `stable` | Integer utility lowering and float constants are C/LLVM parity-gated by `scalar_utility_builtins`. |
 | Hex / binary / octal literal | `0x1F`, `0b1010`, `0o17` | decimal integer literal only | `out-of-beta` | Useful for bit-twiddling code; reserve grammar before parser ambiguity emerges. |
 | Negative literal vs unary minus | `-1` parsed as literal vs unary | unary minus over decimal literal | `partial` | Unary-minus C/LLVM parity is gated by `numeric_unary_minus`; literal-negative shorthand remains a later parser choice. |
 | Character literal | `'a'`, `'\n'` | none — single-character `String` only | `out-of-beta` | Decide whether `Char` is a primitive or a `String` alias before stdlib freeze; current path treats characters as 1-length strings. |
@@ -239,14 +240,19 @@ speed and order-independent declarations as first-class compiler constraints.
 | Time/sleep runtime | clock/sleep helpers | `Now`, `Sleep` | `stable` | Deterministic C/LLVM call-path parity is gated by `runtime_time_sleep`; exact clock values are not compared. |
 | Seeded random runtime | `seed`, `rand(max)` | `SeedRandom`, `Random` | `stable` | Seed replay and non-positive bounds are C/LLVM parity-gated by `runtime_seeded_random`; this is runtime-path parity, not a cross-libc random-sequence promise. |
 | String interpolation | `$"x={x}"`, f-string | active lexer/parser lowering for `"${expr}"` and `f"{expr}"` | `partial` | C/LLVM parity is gated for basic fragments; escaping, nested interpolation, and format specifiers remain promotion gates. |
+| String utility aliases | `trim`, `replace`, `substring`, casing | `Concat`, `StringTrim`, `StringReplace`, `Substring`, `ToUpper`, `ToLower`, `StringConcat` | `stable` | Direct `Concat`/length parity is gated by `string_concat`; explicit string utility names are gated by `string_utility_aliases`; short aliases remain covered by `string_io`, and negative lookup paths by `io_string_negative_paths`. |
 | Array literal | `[1, 2, 3]` | array literal | `stable` | Type inference must avoid poison defaults. |
 | Indexing | `xs[i]` | `AST_ARRAY_ACCESS` | `stable` | Index type and target indexability diagnostics are already first-class. |
 | Slicing | `xs[a..b]`, `xs[..]` | `xs[a..b]` desugars to `.Slice(a, b - a)`; `.Slice(start, len)` and `SliceCopy(view)` remain explicit forms | `partial` | Bounded range slicing is active for borrowed views; open-ended `xs[..]` stays reserved until whole-slice length and ownership policy are frozen. |
+| HashMap API | dictionary insert/get/has/remove/keys | `MapNew`, `MapSet`, `MapGet`, `MapHas`, `MapRemove`, `MapSize`, `MapKeys` | `stable` | String-key get/has/remove/size, key snapshot, and Long/Bool key variants are C/LLVM parity-gated by `map_get_string`, `map_presence_ops`, `map_keys`, and `map_key_variants`. |
+| List API | growable sequence | `ListNew`, `ListPush`, `ListGet`, `ListSet`, `ListRemove`, `ListSize` | `stable` | String get and Int mutation/size paths are C/LLVM parity-gated by `list_get_string`, `list_mutation_ops`, and `for_in_list_int`. |
+| Queue API | FIFO queue | `QueueNew`, `QueuePush`, `QueuePop`, `QueueSize`, `QueueEmpty` | `stable` | String pop and Int size/empty paths are C/LLVM parity-gated by `queue_pop_string` and `queue_state_ops`. |
+| Set API | membership collection | `SetNew`, `SetAdd`, `SetHas`, `SetRemove`, `SetSize` | `stable` | Int membership/add/remove/size paths are C/LLVM parity-gated by `set_membership_ops`. |
 | List literal | `vec![...]`, `[]`, collection initializer | array literal only; collection literal sugar out-of-beta | `out-of-beta` | Add typed collection literals only after collection ABI/map policy is frozen. |
 | Map/set literal | dict/hashmap/set literal | `{ ... }` object/map literal syntax rejects explicitly | `out-of-beta` | Same as collection literal; use collection APIs for beta. |
 | Spread/rest | `...xs`, `*args`, destructure rest | none | `out-of-beta` | Useful with collections/calls later; not beta core. |
 | Range | `0..n` | range in loops | `stable` | Keep simple. |
-| Arithmetic/comparison/logical operators | `+`, `<`, `&&` | same | `stable` | Backend parity required. |
+| Arithmetic/comparison/logical operators | `+`, `<`, `&&` | same | `stable` | Arithmetic, comparison, logical, modulo, and unary-minus baseline parity is gated by `operators`; unary-minus-specific parsing is also gated by `numeric_unary_minus`. |
 | Compound assignment / inc-dec | `+=`, `-=`, `++`, `--` | event subscribe/unsubscribe uses `+=`/`-=`; general compound assignment absent | `out-of-beta` | Do not overload event syntax into general mutation before CFG cleanup facts own it. |
 | Operator overload | C# overload, Rust `Add` | none | `out-of-beta` | Avoid before generic/ability model is settled. |
 | Custom operator | Scala-like operator surface | none | `reject` | Surface trust risk. |
@@ -270,7 +276,7 @@ speed and order-independent declarations as first-class compiler constraints.
 
 | Pattern | Common shape | Pergyra mapping | Status | Notes |
 | --- | --- | --- | --- | --- |
-| C FFI | `extern "C"` / PInvoke | `extern` / ABI spec | `partial` | ABI non-leakage contract must remain enforced. |
+| C FFI | `extern "C"` / PInvoke | `extern` / ABI spec | `partial` | ABI non-leakage contract must remain enforced. Minimal extern-block parse/codegen parity is gated by `extern_fn`. |
 | No-runtime mode | `no_std`, freestanding | runtime-none profile | `partial` | Needed for systems identity, but not full beta blocker. |
 | Manual allocation | malloc/new/custom arena | runtime/slot APIs | `partial` | Do not expose broad raw memory by default. |
 | Inline assembly | `asm`, `unsafe asm` | none | `out-of-beta` | Systems-tier feature, not dogfood blocker. |
@@ -293,7 +299,7 @@ speed and order-independent declarations as first-class compiler constraints.
 | `effect` | State attachment / lifecycle influence. | Mixin/decorator pattern, but semantic. |
 | `intent` | Observable orchestration spine. | Saga/workflow/state machine library. |
 | `Slot<T>` | Runtime-validated resource handle. | Generational handle + capability model. |
-| `pin` / `ReadView<T>` / `WriteView<T>` | Scoped typed view and amortized access. | Rust borrow/pin ideas, but no lifetime annotation model. |
+| `pin` / `ReadView<T>` / `WriteView<T>` | Scoped typed view and amortized access. | Rust borrow/pin ideas, but no lifetime annotation model; secure read/write view parity is gated by `secure_slot_view` plus the pin-specific fixtures. |
 
 ## 16. Essential Common Patterns To Track
 

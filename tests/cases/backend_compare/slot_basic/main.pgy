@@ -1,0 +1,9 @@
+func Main() -> Void {
+    let s: Slot<Int> = ClaimSlot();
+    Write(s, 42);
+    let v: Int = Read(s);
+    Log(v);
+    Write(s, 99);
+    Log(Read(s));
+    Release(s);
+}

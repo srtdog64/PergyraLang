@@ -1,0 +1,12 @@
+func Main() -> Void {
+    let m: HashMap<String, Int> = MapNew();
+    MapSet(m, "a", 1);
+    MapSet(m, "b", 2);
+    Log(MapSize(m));
+    Log(MapHas(m, "a"));
+    Log(MapHas(m, "c"));
+    Log(MapGet(m, "b"));
+    MapRemove(m, "a");
+    Log(MapSize(m));
+    Log(MapHas(m, "a"));
+}

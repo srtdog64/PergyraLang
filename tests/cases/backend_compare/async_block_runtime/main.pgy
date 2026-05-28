@@ -1,0 +1,8 @@
+func Main() -> Void {
+    let ch: Channel<Int> = Channel(4);
+    async {
+        ch <- 11;
+    }
+    let value: Int = <-ch;
+    Log(value);
+}

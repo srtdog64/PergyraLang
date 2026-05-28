@@ -1,0 +1,15 @@
+enum Shape {
+    Circle(Int),
+    Rect(Int, Int),
+    None
+}
+
+func Main() -> Void {
+    let c: Shape = Circle(10);
+    let r: Shape = Rect(4, 5);
+    Log(c.Circle._0);
+    Log(r.Rect._0);
+    Log(r.Rect._1);
+    let x: Shape = Circle(7);
+    Log(x.Circle._0);
+}

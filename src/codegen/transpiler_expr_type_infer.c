@@ -17,6 +17,7 @@
 #include "transpiler_enum.h"
 #include "transpiler_generic_binding_query.h"
 #include "transpiler_expr_type_infer_call_policy.h"
+#include "transpiler_future_type_query.h"
 #include "transpiler_generic_param_query.h"
 #include "transpiler_nominal.h"
 #include "transpiler_symbols.h"
@@ -174,6 +175,13 @@ infer_expression_type_name(TranspilerCtx *ctx, ASTNode *expr)
         }
         return "Unknown";
     }
+    case AST_SPAWN_EXPR: {
+        const char *inner = infer_spawn_return_type_name_scratch(ctx, expr);
+        if (inner == NULL || inner[0] == '\0'
+            || strcmp(inner, "Unknown") == 0)
+            return "Unknown";
+        return transpiler_infer_arena_format_type_name(ctx, "Future", inner);
+    }
     case AST_MEMBER_ACCESS: {
         const char *resolved = transpiler_resolve_nominal_host_expr_type_name(ctx, expr);
         if (resolved != NULL)
@@ -297,6 +305,8 @@ infer_expression_type_name(TranspilerCtx *ctx, ASTNode *expr)
             ASTNode *arg0 = ast_call_argument(expr, 0);
             const char *simple_type = NULL;
             TranspilerInferCallOp op = transpiler_infer_call_lookup(name);
+            if (transpiler_infer_call_returns_float_constant(op))
+                return "Float";
             if (transpiler_infer_call_is_numeric_passthrough(op)) {
                 if (argc >= 1) {
                     const char *arg_type = infer_expression_type_name(ctx,

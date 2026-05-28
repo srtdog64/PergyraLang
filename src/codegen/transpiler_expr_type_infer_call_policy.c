@@ -24,8 +24,10 @@ transpiler_infer_call_lookup(const char *name)
 {
     static const TranspilerInferCallSpec kTranspilerInferCallSpecs[] = {
         { "Abs", TRANS_INFER_CALL_ABS },
+        { "Clamp", TRANS_INFER_CALL_CLAMP },
         { "Clone", TRANS_INFER_CALL_CLONE },
         { "DeviceRead", TRANS_INFER_CALL_DEVICE_READ },
+        { "E", TRANS_INFER_CALL_E },
         { "IsNone", TRANS_INFER_CALL_IS_NONE },
         { "IsSome", TRANS_INFER_CALL_IS_SOME },
         { "ListGet", TRANS_INFER_CALL_LIST_GET },
@@ -35,6 +37,7 @@ transpiler_infer_call_lookup(const char *name)
         { "Measure", TRANS_INFER_CALL_MEASURE },
         { "Min", TRANS_INFER_CALL_MIN },
         { "None", TRANS_INFER_CALL_NONE_CTOR },
+        { "PI", TRANS_INFER_CALL_PI },
         { "QubitState", TRANS_INFER_CALL_QUBIT_STATE },
         { "RecvTimeout", TRANS_INFER_CALL_RECV_TIMEOUT },
         { "SendTimeoutStatus", TRANS_INFER_CALL_SEND_TIMEOUT_STATUS },
@@ -66,9 +69,17 @@ bool
 transpiler_infer_call_is_numeric_passthrough(TranspilerInferCallOp op)
 {
     return op == TRANS_INFER_CALL_ABS
+        || op == TRANS_INFER_CALL_CLAMP
         || op == TRANS_INFER_CALL_CLONE
         || op == TRANS_INFER_CALL_MAX
         || op == TRANS_INFER_CALL_MIN;
+}
+
+bool
+transpiler_infer_call_returns_float_constant(TranspilerInferCallOp op)
+{
+    return op == TRANS_INFER_CALL_E
+        || op == TRANS_INFER_CALL_PI;
 }
 
 bool

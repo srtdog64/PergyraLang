@@ -1,0 +1,9 @@
+func PickSecond<T>(left: T, right: T) -> T {
+    return right;
+}
+
+async func Main() -> Void {
+    let task = spawn PickSecond(10, 77);
+    let value: Int = await task;
+    Log(value);
+}

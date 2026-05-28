@@ -1,0 +1,9 @@
+func GetInt() -> Int { return 42; }
+func GetBool() -> Bool { return true; }
+func GetString() -> String { return "ok"; }
+
+func Main() -> Void {
+    Log(GetInt());
+    Log(GetBool());
+    Log(GetString());
+}

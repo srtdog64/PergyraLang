@@ -22,6 +22,30 @@ English anchor for tooling/doc gates:
   `host_decl_compat.c`, C/LLVM domain-constructor lookup, and party-slot ability
   selection helpers. The remaining targets must be closed by moving source-of-
   truth ownership, not by rewording the percentage.
+- C/LLVM backend-compare default parity now includes exact LLVM-smoke surface
+  coverage for minimal extern blocks, direct `Slot<T>` claim/write/read/release,
+  direct `Channel<T>` send/receive, and explicit `Future<T>` spawn annotation.
+  Direct `async func` declaration and non-spawn generic call coverage are also
+  promoted from LLVM-only smoke into the shared backend source-of-truth suite.
+  Tagged union payload access, baseline arithmetic/comparison/logical operators,
+  mixed primitive return/logging, and namespace export/import are now promoted
+  as well. Direct string concatenation/length, expression-lambda callables,
+  combined event subscribe/invoke/unsubscribe, and party role-bind construction
+  are now promoted too. Basic while-loop accumulation, simple scalar match
+  returns, and nested range loops are now promoted from LLVM-only smoke as well.
+  Subject projection, subject-vs-class method dispatch, and object layer
+  binding are now promoted from LLVM-only smoke as well. Local MinGW/Git Bash
+  gate: `tests/compare_backends.sh` (`142/142`).
+- Slot/SecureSlot ownership parity now includes exact LLVM-smoke coverage for
+  secure pin read/write views, `Slot<subject>` and `SecureSlot<subject>` cell
+  storage, `ref Slot<subject>` boundary passing, and `own SecureSlot<subject>`
+  plus forwarded ownership. Local targeted MinGW/Git Bash gate passed for all
+  six fixtures; full backend compare target is now `148/148`.
+- World/zone propagation parity now includes exact LLVM-smoke coverage for
+  world derived states, composed `all`/`any` states, cross-zone projection/
+  layer/state queries, zone replacement dirty refresh, and nested member
+  mutation refresh. Local targeted MinGW/Git Bash gate passed for all five
+  fixtures; full backend compare target is now `153/153`.
 - Build gate guard: do not run two `make` targets that share the same `build/`
   directory in parallel. MinGW can corrupt a shared `.o` when two gates compile
   the same owner concurrently, which later surfaces as `file in wrong format`.
@@ -4200,6 +4224,43 @@ English anchor for tooling/doc gates:
   `tests/cases/backend_compare/scalar_parse_conversion`. This gates `ToInt`
   and `ToFloat` through both the C inline stdlib path and LLVM-linkable runtime
   registry path.
+- Scalar utility builtins now have a direct C/LLVM parity fixture:
+  `tests/cases/backend_compare/scalar_utility_builtins`. `Abs`, `Min`, `Max`,
+  `Clamp`, `PI`, and `E` are covered directly; keep `Clamp` integer-only until
+  a float clamp ABI is explicitly introduced.
+- Explicit string utility aliases now have a direct C/LLVM parity fixture:
+  `tests/cases/backend_compare/string_utility_aliases`. This keeps
+  `StringTrim`, `StringReplace`, `Substring`, `ToUpper`, `ToLower`, and
+  `StringConcat` from drifting from the shorter `string_io` alias path.
+- IO/string negative paths now have a direct C/LLVM parity fixture:
+  `tests/cases/backend_compare/io_string_negative_paths`. This keeps
+  `FileExists(false)`, `StringContains(false)`, and missing-substring
+  `StringIndexOf` behavior aligned without executing an expected-failing
+  `ReadFile` path.
+- Channel pressure/state queries now have a direct C/LLVM parity fixture:
+  `tests/cases/backend_compare/channel_pressure_state`. This keeps
+  `ChannelCapacity`, `ChannelLength`, `ChannelSpace`, `ChannelFull`, and
+  `ChannelClosed` aligned outside the broader async/select smoke tests.
+- Future cancellation state now has a direct C/LLVM parity fixture:
+  `tests/cases/backend_compare/future_cancel_state`. This keeps the narrow
+  `IsCancelled() -> Bool` and `Cancel(Future<T>) -> Bool` paths aligned without
+  claiming full cancellation propagation closure.
+- Future parent/child cancellation propagation now has a direct C/LLVM parity
+  fixture: `tests/cases/backend_compare/future_cancel_propagation`. This keeps
+  propagated `IsCancelled()` observation aligned, while cancellation diagnostics
+  and payload transport policy remain on the separate CFG/AIR contract track.
+- HashMap presence/remove/size now has a direct C/LLVM parity fixture:
+  `tests/cases/backend_compare/map_presence_ops`. This keeps `MapHas`,
+  `MapRemove`, and `MapSize` aligned with the existing `MapGet` and `MapKeys`
+  fixture coverage.
+- List and Queue mutation/query coverage now have direct C/LLVM parity
+  fixtures: `tests/cases/backend_compare/list_mutation_ops` and
+  `tests/cases/backend_compare/queue_state_ops`. This lifts ListSet/ListRemove/
+  ListSize and QueueSize/QueueEmpty out of LLVM-only smoke coverage.
+- Set membership and non-String HashMap key variants now have direct C/LLVM
+  parity fixtures: `tests/cases/backend_compare/set_membership_ops` and
+  `tests/cases/backend_compare/map_key_variants`. This lifts SetAdd/SetHas/
+  SetRemove/SetSize and Long/Bool Map key paths out of LLVM-only smoke coverage.
 - Console no-newline/banner output now has a direct C/LLVM parity fixture:
   `tests/cases/backend_compare/io_print_banner`. Keep `Print` as no-newline
   output and `LogBanner` on the ordinary runtime log/banner newline path.
@@ -4220,6 +4281,29 @@ English anchor for tooling/doc gates:
   parity fixture: `tests/cases/backend_compare/async_spawn_await`. Keep
   cancellation, RemoteFuture, and pin/borrow boundary edge cases on their
   existing contract smokes.
+- Lexical async block channel execution now has a direct C/LLVM parity fixture:
+  `tests/cases/backend_compare/async_block_runtime`. This keeps block-local
+  async lowering aligned with the narrower `spawn`/`await` fixture without
+  widening the cancellation or RemoteFuture contract.
+- Straight-line `defer` scope exit now has a direct C/LLVM parity fixture:
+  `tests/cases/backend_compare/defer_scope_exit`. This keeps the simplest
+  cleanup-order baseline aligned before branch/loop/pin cleanup fixtures add
+  control-flow complexity.
+- Free-function recursion and nested calls now have direct C/LLVM parity
+  fixtures: `tests/cases/backend_compare/free_function_recursion` and
+  `tests/cases/backend_compare/nested_function_calls`. This keeps ordinary
+  function-call lowering aligned outside hosted-method recursion fixtures.
+- Generic function `spawn`/`await` now has direct C/LLVM parity fixtures:
+  `tests/cases/backend_compare/generic_future_spawn_int`,
+  `tests/cases/backend_compare/generic_future_spawn_multi_arg`, and
+  `tests/cases/backend_compare/generic_future_spawn_string`, plus same-unit
+  mixed specialization in
+  `tests/cases/backend_compare/generic_future_spawn_mixed`. This keeps inferred
+  Int, multi-argument Int, string-valued, and mixed generic future paths aligned
+  with the generic monomorphization surface. The closure depended on two backend
+  fixes: C now infers `AST_SPAWN_EXPR` as `Future<T>`, and LLVM function registry
+  entries copy generated specialization names into persistent storage instead
+  of keeping stack-backed mangled-name pointers.
 - `select` single-ready receive/default now has a direct C/LLVM parity fixture:
   `tests/cases/backend_compare/select_single_ready` and
   `tests/cases/backend_compare/select_unbound_ready`. C backend channel send/recv

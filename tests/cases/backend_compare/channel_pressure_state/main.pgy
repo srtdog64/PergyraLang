@@ -1,0 +1,21 @@
+func Main() -> Void {
+    let ch: Channel<Int> = Channel(2);
+    Log(ChannelCapacity(ch));
+    Log(ChannelLength(ch));
+    Log(ChannelSpace(ch));
+    Log(ChannelFull(ch));
+    Log(ChannelClosed(ch));
+
+    ch <- 7;
+    Log(ChannelLength(ch));
+    Log(ChannelSpace(ch));
+    Log(ChannelFull(ch));
+
+    ch <- 8;
+    Log(ChannelLength(ch));
+    Log(ChannelSpace(ch));
+    Log(ChannelFull(ch));
+
+    ChannelClose(ch);
+    Log(ChannelClosed(ch));
+}

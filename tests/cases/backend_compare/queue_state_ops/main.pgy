@@ -1,0 +1,12 @@
+func Main() -> Void {
+    let q: Queue<Int> = QueueNew();
+    Log(QueueEmpty(q));
+    QueuePush(q, 1);
+    QueuePush(q, 2);
+    QueuePush(q, 3);
+    Log(QueueSize(q));
+    Log(QueueEmpty(q));
+    let first: Int = QueuePop(q);
+    Log(first);
+    Log(QueueSize(q));
+}

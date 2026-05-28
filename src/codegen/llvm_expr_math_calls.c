@@ -15,8 +15,11 @@
 typedef enum LLVMMathOp {
     LLVM_MATH_OP_NONE = 0,
     LLVM_MATH_OP_ABS,
+    LLVM_MATH_OP_CLAMP,
+    LLVM_MATH_OP_E,
     LLVM_MATH_OP_MAX,
     LLVM_MATH_OP_MIN,
+    LLVM_MATH_OP_PI,
 } LLVMMathOp;
 
 typedef struct LLVMMathSpec {
@@ -39,8 +42,11 @@ llvm_math_lookup(const char *callee_name, size_t argc)
 {
     static const LLVMMathSpec kLLVMMathSpecs[] = {
         { "Abs", 1, LLVM_MATH_OP_ABS },
+        { "Clamp", 3, LLVM_MATH_OP_CLAMP },
+        { "E", 0, LLVM_MATH_OP_E },
         { "Max", 2, LLVM_MATH_OP_MAX },
         { "Min", 2, LLVM_MATH_OP_MIN },
+        { "PI", 0, LLVM_MATH_OP_PI },
     };
     const LLVMMathSpec *match;
 
@@ -120,6 +126,34 @@ llvm_emit_scalar_math_call(ASTNode *node, LLVMGenCtx *ctx,
         LLVMValueRef cmp = LLVMBuildICmp(ctx->builder, LLVMIntSGT, a, b,
                                           llvm_tmp_name(ctx));
         *out = LLVMBuildSelect(ctx->builder, cmp, a, b, llvm_tmp_name(ctx));
+        return true;
+    }
+
+    if (op == LLVM_MATH_OP_CLAMP) {
+        LLVMValueRef val = llvm_emit_expression(ast_call_argument(node, 0), ctx);
+        LLVMValueRef lo = llvm_emit_expression(ast_call_argument(node, 1), ctx);
+        LLVMValueRef hi = llvm_emit_expression(ast_call_argument(node, 2), ctx);
+        if (val == NULL || lo == NULL || hi == NULL)
+            return llvm_math_error_out(ctx, node, out,
+                "LLVM Clamp could not lower operand expression");
+        LLVMValueRef below = LLVMBuildICmp(ctx->builder, LLVMIntSLT, val, lo,
+                                           llvm_tmp_name(ctx));
+        LLVMValueRef above = LLVMBuildICmp(ctx->builder, LLVMIntSGT, val, hi,
+                                           llvm_tmp_name(ctx));
+        LLVMValueRef bounded_hi = LLVMBuildSelect(ctx->builder, above, hi, val,
+                                                  llvm_tmp_name(ctx));
+        *out = LLVMBuildSelect(ctx->builder, below, lo, bounded_hi,
+                               llvm_tmp_name(ctx));
+        return true;
+    }
+
+    if (op == LLVM_MATH_OP_PI) {
+        *out = LLVMConstReal(ctx->type_f32, 3.14159265358979323846);
+        return true;
+    }
+
+    if (op == LLVM_MATH_OP_E) {
+        *out = LLVMConstReal(ctx->type_f32, 2.71828182845904523536);
         return true;
     }
 

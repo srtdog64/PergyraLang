@@ -1,0 +1,11 @@
+subject Vec2 {
+    let x: Int;
+    let y: Int;
+}
+
+func Main() -> Void {
+    let s: Slot<Vec2> = Vec2(3, 7);
+    Write(s, Vec2(1, 2));
+    Release(s);
+    Log(1);
+}

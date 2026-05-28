@@ -1,0 +1,6 @@
+func Main() -> Void {
+    let missing: String = "backend_compare_missing_io_string_negative_paths.txt";
+    Log(FileExists(missing));
+    Log(StringContains("alpha beta", "gamma"));
+    Log(StringIndexOf("alpha beta", "gamma"));
+}

@@ -1,0 +1,8 @@
+func Main() -> Void {
+    let raw: String = "  Hello Pergyra  ";
+    let trimmed: String = StringTrim(raw);
+    let replaced: String = StringReplace(trimmed, "Pergyra", "World");
+    Log(ToUpper(Substring(replaced, 0, 5)));
+    Log(ToLower(Substring(replaced, 6, 5)));
+    Log(StringConcat("ok:", replaced));
+}

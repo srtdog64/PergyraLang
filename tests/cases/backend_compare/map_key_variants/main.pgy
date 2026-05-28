@@ -1,0 +1,15 @@
+func Main() -> Void {
+    let longMap: HashMap<Long, Long> = MapNew();
+    MapSet(longMap, 7L, 70L);
+    MapSet(longMap, 9L, 90L);
+    Log(MapGet(longMap, 7L));
+    Log(MapHas(longMap, 9L));
+    Log(ArrayLength(MapKeys(longMap)));
+
+    let boolMap: HashMap<Bool, Int> = MapNew();
+    MapSet(boolMap, true, 11);
+    MapSet(boolMap, false, 22);
+    Log(MapGet(boolMap, true));
+    Log(MapHas(boolMap, false));
+    Log(ArrayLength(MapKeys(boolMap)));
+}

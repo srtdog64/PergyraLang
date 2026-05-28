@@ -1,0 +1,15 @@
+subject Vec2 {
+    let x: Int;
+    let y: Int;
+}
+
+func Consume(own s: SecureSlot<Vec2>) -> Void {
+    Write(s, Vec2(1, 2), s_token);
+    Release(s, s_token);
+}
+
+func Main() -> Void {
+    let s: SecureSlot<Vec2> = Vec2(3, 7);
+    Consume(s);
+    Log(1);
+}

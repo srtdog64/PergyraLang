@@ -1,0 +1,30 @@
+subject Player { let hp: Int; }
+object PlayerView { hp: Int; }
+
+zone BattleZone {
+    subject slot player: Player
+    object slot playerView: PlayerView
+    refresh playerView from player
+}
+
+world GameWorld {
+    zone battle: BattleZone
+    state battleProjected: zone battle projection playerView
+    activate battle
+
+    func Mutate(self, hp: Int) -> Void {
+        self.battle = BattleZone(Player(hp));
+    }
+
+    func Show(self) -> Void {
+        Log(HasZone(battleProjected));
+        Log(self.battle.playerView.hp);
+    }
+}
+
+func Main() -> Void {
+    let gameWorld = GameWorld(BattleZone(Player(7)));
+    gameWorld.Show();
+    gameWorld.Mutate(9);
+    gameWorld.Show();
+}

@@ -22,6 +22,9 @@ llvm_emit_spawn_expr(ASTNode *node, LLVMGenCtx *ctx)
     size_t argc = 0;
     LLVMValueRef *args = NULL;
     LLVMFuncEntry *callee_entry = NULL;
+    LLVMValueRef callee_fn = NULL;
+    LLVMTypeRef callee_fn_type = NULL;
+    LLVMTypeRef callee_ret_type = NULL;
     LLVMFuncEntry *spawn_fn = NULL;
     LLVMFuncEntry *malloc_fn = NULL;
     LLVMFuncEntry *free_fn = NULL;
@@ -115,6 +118,9 @@ llvm_emit_spawn_expr(ASTNode *node, LLVMGenCtx *ctx)
             callee_name);
         return NULL;
     }
+    callee_fn = callee_entry->fn;
+    callee_fn_type = callee_entry->fn_type;
+    callee_ret_type = callee_entry->ret_type;
 
     {
         LLVMValueRef saved_fn = ctx->current_function;
@@ -194,8 +200,8 @@ llvm_emit_spawn_expr(ASTNode *node, LLVMGenCtx *ctx)
             }
         }
 
-        if (callee_entry->ret_type == ctx->type_void) {
-            LLVMBuildCall2(ctx->builder, callee_entry->fn_type, callee_entry->fn,
+        if (callee_ret_type == ctx->type_void) {
+            LLVMBuildCall2(ctx->builder, callee_fn_type, callee_fn,
                 loaded_args, (unsigned)argc, "");
             LLVMBuildRet(ctx->builder, LLVMConstNull(ctx->type_i8ptr));
         } else {
@@ -205,16 +211,16 @@ llvm_emit_spawn_expr(ASTNode *node, LLVMGenCtx *ctx)
             LLVMValueRef raw_result;
             LLVMValueRef typed_result;
 
-            call_result = LLVMBuildCall2(ctx->builder, callee_entry->fn_type,
-                callee_entry->fn, loaded_args, (unsigned)argc,
+            call_result = LLVMBuildCall2(ctx->builder, callee_fn_type,
+                callee_fn, loaded_args, (unsigned)argc,
                 llvm_tmp_name(ctx));
             td = LLVMGetModuleDataLayout(ctx->module);
-            size = LLVMABISizeOfType(td, callee_entry->ret_type);
+            size = LLVMABISizeOfType(td, callee_ret_type);
             malloc_args[0] = LLVMConstInt(ctx->type_i64, size, 0);
             raw_result = LLVMBuildCall2(ctx->builder, malloc_fn->fn_type,
                 malloc_fn->fn, malloc_args, 1, llvm_tmp_name(ctx));
             typed_result = LLVMBuildBitCast(ctx->builder, raw_result,
-                LLVMPointerType(callee_entry->ret_type, 0), llvm_tmp_name(ctx));
+                LLVMPointerType(callee_ret_type, 0), llvm_tmp_name(ctx));
             LLVMBuildStore(ctx->builder, call_result, typed_result);
             LLVMBuildRet(ctx->builder, raw_result);
         }

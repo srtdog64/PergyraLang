@@ -1,0 +1,9 @@
+func Main() -> Void {
+    let i: Int = 0;
+    let sum: Int = 0;
+    while i < 5 {
+        sum = sum + i;
+        i = i + 1;
+    }
+    Log(sum);
+}

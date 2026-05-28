@@ -1,0 +1,35 @@
+object Door { hp: Int; }
+object DoorView { hp: Int; }
+object Key { id: Int; }
+object KeyView { id: Int; }
+
+effect Highlighted for object target: Door {
+    object slot view: DoorView
+    refresh view from target
+}
+
+relation KeyBinding for object door: Door, object key: Key {
+    object slot snapshot: KeyView
+    refresh snapshot from key
+}
+
+zone LockZone {
+    object slot door: Door
+    object slot key: Key
+    effect slot glow: Highlighted
+    relation slot binding: KeyBinding
+    apply glow to door
+    link binding between door, key
+
+    func Show(self) -> Void {
+        Log(HasLayer(glow));
+        Log(HasLayer(binding));
+        Log(self.glow.view.hp);
+        Log(self.binding.snapshot.id);
+    }
+}
+
+func Main() -> Void {
+    let lock: LockZone = LockZone(Door(5), Key(9));
+    lock.Show();
+}

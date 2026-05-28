@@ -1,0 +1,32 @@
+subject Player { let hp: Int; }
+object PlayerView { hp: Int; }
+effect Poisoned for bearer: Player { }
+
+zone BattleZone {
+    subject slot player: Player
+    object slot playerView: PlayerView
+    effect slot poison: Poisoned
+    state poisoned: effect poison on player
+    refresh playerView from player
+    maintain poisoned
+}
+
+world GameWorld {
+    zone battle: BattleZone
+    state battleProjected: zone battle projection playerView
+    state battleLayered: zone battle layer poison
+    state battlePoisoned: zone battle state poisoned
+    activate battle
+
+    func Show(self) -> Void {
+        Log(HasZone(battleProjected));
+        Log(HasZone(battleLayered));
+        Log(HasZone(battlePoisoned));
+    }
+}
+
+func Main() -> Void {
+    let battle = BattleZone(Player(7));
+    let gameWorld = GameWorld(Clone(battle));
+    gameWorld.Show();
+}

@@ -1,0 +1,12 @@
+event OnDamage(amount: Int);
+
+func HandleDamage(amount: Int) -> Void {
+    Log(amount);
+}
+
+func Main() -> Void {
+    OnDamage += HandleDamage;
+    OnDamage(25);
+    OnDamage -= HandleDamage;
+    OnDamage(99);
+}

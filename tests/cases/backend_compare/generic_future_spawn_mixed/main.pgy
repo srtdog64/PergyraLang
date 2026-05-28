@@ -1,0 +1,17 @@
+func Identity<T>(x: T) -> T {
+    return x;
+}
+
+func PickSecond<T>(left: T, right: T) -> T {
+    return right;
+}
+
+async func Main() -> Void {
+    let first = spawn Identity(42);
+    let second: Future<Int> = spawn PickSecond(10, 77);
+    let text = spawn Identity("hi");
+
+    Log(await first);
+    Log(await second);
+    Log(await text);
+}

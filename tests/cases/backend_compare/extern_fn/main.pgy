@@ -1,0 +1,7 @@
+extern "c" {
+    func pgy_external_probe(s: String) -> Int;
+}
+
+func Main() -> Void {
+    Log(1);
+}

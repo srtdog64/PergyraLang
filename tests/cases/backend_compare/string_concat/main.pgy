@@ -1,0 +1,7 @@
+func Main() -> Void {
+    let a: String = "hello";
+    let b: String = " world";
+    let c: String = Concat(a, b);
+    Log(c);
+    Log(StringLength(c));
+}

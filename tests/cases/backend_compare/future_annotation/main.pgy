@@ -1,0 +1,7 @@
+func PairInt(x: Int, y: Int) -> Int { return y; }
+
+async func Main() -> Void {
+    let task: Future<Int> = spawn PairInt(10, 77);
+    let value: Int = await task;
+    Log(value);
+}

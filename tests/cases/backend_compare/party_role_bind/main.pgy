@@ -1,0 +1,25 @@
+ability Speakable {
+    func Greet() -> String;
+}
+
+subject Host {
+    let name: String;
+}
+
+role Greeter for Host {
+    impl ability Speakable {
+        func Greet() -> String {
+            return "hello";
+        }
+    }
+}
+
+party Speaker {
+    role slot speaker: Speakable
+    shared round: Int = 1
+}
+
+func Main() -> Void {
+    let s: Speaker = Speaker();
+    Log(s.round);
+}

@@ -1,0 +1,8 @@
+func Identity<T>(x: T) -> T {
+    return x;
+}
+
+func Main() -> Void {
+    let a: Int = Identity(42);
+    Log(a);
+}

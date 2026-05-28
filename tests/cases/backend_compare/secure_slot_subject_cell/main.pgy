@@ -1,0 +1,11 @@
+subject Vec2 {
+    let x: Int;
+    let y: Int;
+}
+
+func Main() -> Void {
+    let s: SecureSlot<Vec2> = Vec2(3, 7);
+    Write(s, Vec2(1, 2), s_token);
+    Release(s, s_token);
+    Log(1);
+}

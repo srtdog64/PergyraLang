@@ -1,0 +1,21 @@
+func Main() -> Void {
+    let a: Int = 10;
+    let b: Int = 3;
+    Log(a + b);
+    Log(a - b);
+    Log(a * b);
+    Log(a / b);
+    Log(a % b);
+    Log(a > b);
+    Log(a < b);
+    Log(a == b);
+    Log(a != b);
+    Log(a >= 10);
+    Log(b <= 3);
+    let t: Bool = true;
+    let f: Bool = false;
+    Log(t && f);
+    Log(t || f);
+    Log(!f);
+    Log(-5);
+}

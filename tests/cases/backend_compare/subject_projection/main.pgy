@@ -1,0 +1,22 @@
+subject Player {
+    let hp: Int;
+    let name: String;
+}
+
+tobject PlayerDto {
+    hp: Int;
+    name: String;
+}
+
+object PlayerView {
+    hp: Int;
+}
+
+func Main() -> Void {
+    let player: Player = Player(42, "neo");
+    let snapshot: PlayerDto = ToTObject(PlayerDto, player);
+    let view: PlayerView = ToObject(PlayerView, player);
+    Log(snapshot.hp);
+    Log(view.hp);
+    Log(snapshot.name);
+}

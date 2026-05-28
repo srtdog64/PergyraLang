@@ -1,0 +1,22 @@
+zone BattleZone { }
+
+world GameWorld {
+    zone battle: BattleZone
+    zone camp: BattleZone
+    state battleLive: zone battle
+    state campLive: zone camp
+    state allLive: all battleLive, campLive
+    state anyLive: any allLive, campLive
+    activate battle
+    maintain camp
+
+    func Show(self) -> Void {
+        Log(HasZone(allLive));
+        Log(HasZone(anyLive));
+    }
+}
+
+func Main() -> Void {
+    let gameWorld = GameWorld(BattleZone(), BattleZone());
+    gameWorld.Show();
+}

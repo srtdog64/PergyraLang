@@ -271,8 +271,9 @@ transpiler_collection_ensure_specialization_to(TranspilerCtx *ctx, CodeBuf *dst,
     } else if (strcmp(kind, "Map") == 0) {
         codebuf_write(dst,
             "\n/* PGY_COLLECTION_MAP_%s */\n"
-            "PGY_HASHMAP_DEFINE(%s, %s)\n",
-            suffix, suffix, ctype_buf);
+            "PGY_HASHMAP_DEFINE(%s, %s)\n"
+            "PGY_DEFINE_MAP_KEYS_EXPORTS(%s, %s)\n",
+            suffix, suffix, ctype_buf, suffix, suffix);
     } else if (strcmp(kind, "Set") == 0) {
         codebuf_write(dst,
             "\n/* PGY_COLLECTION_SET_%s */\n"

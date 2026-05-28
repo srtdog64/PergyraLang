@@ -88,10 +88,29 @@ llvm_register_function(LLVMGenCtx *ctx, const char *name,
                        LLVMValueRef fn, LLVMTypeRef fn_type,
                        LLVMTypeRef ret_type)
 {
+    const char *stable_name = name;
+
+    if (ctx == NULL)
+        return;
+
+    if (name != NULL) {
+        char *copied_name = pgy_arena_strdup(&ctx->persistent, name);
+        if (copied_name == NULL) {
+            llvm_set_error_with_hints(ctx,
+                PGY_CODE_LLVM_OOM,
+                PGY_CAUSE_LLVM_MEMORY_EXHAUSTED,
+                PGY_FIX_REDUCE_UNIT_SIZE_OR_RAISE_LIMIT,
+                "out of memory copying LLVM function registry name '%s'",
+                name);
+            return;
+        }
+        stable_name = copied_name;
+    }
+
     PGY_DYNARR_ENSURE(ctx->functions, ctx->func_count,
                       ctx->func_capacity, LLVMFuncEntry);
 
-    ctx->functions[ctx->func_count].name     = name;
+    ctx->functions[ctx->func_count].name     = stable_name;
     ctx->functions[ctx->func_count].fn       = fn;
     ctx->functions[ctx->func_count].fn_type  = fn_type;
     ctx->functions[ctx->func_count].ret_type = ret_type;

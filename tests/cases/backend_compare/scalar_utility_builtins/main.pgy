@@ -1,0 +1,8 @@
+func Main() -> Void {
+    Log(Abs(-7));
+    Log(Min(4, 9));
+    Log(Max(4, 9));
+    Log(Clamp(12, 0, 10));
+    Log(ToString(PI()));
+    Log(ToString(E()));
+}

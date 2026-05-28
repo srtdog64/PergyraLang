@@ -1,0 +1,15 @@
+subject Vec2 {
+    let x: Int;
+    let y: Int;
+}
+
+func Touch(ref s: Slot<Vec2>) -> Void {
+    Write(s, Vec2(1, 2));
+}
+
+func Main() -> Void {
+    let s: Slot<Vec2> = Vec2(3, 7);
+    Touch(s);
+    Release(s);
+    Log(1);
+}
