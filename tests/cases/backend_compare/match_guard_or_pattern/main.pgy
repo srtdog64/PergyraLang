@@ -1,0 +1,16 @@
+func Classify(n: Int) -> Void {
+    match n {
+        case 0 | 1:
+            Log("small");
+        case 2 if n > 0:
+            Log("two-positive");
+        default:
+            Log("other");
+    }
+}
+
+func Main() -> Void {
+    Classify(0);
+    Classify(2);
+    Classify(7);
+}

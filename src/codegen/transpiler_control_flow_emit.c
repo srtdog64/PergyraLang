@@ -29,11 +29,42 @@ static bool
 transpiler_condition_is_already_parenthesized(const char *expr)
 {
     size_t len;
+    int depth = 0;
+    bool in_string = false;
+    bool escaped = false;
 
     if (expr == NULL)
         return false;
     len = strlen(expr);
-    return len >= 2 && expr[0] == '(' && expr[len - 1] == ')';
+    if (len < 2 || expr[0] != '(' || expr[len - 1] != ')')
+        return false;
+
+    for (size_t i = 0; i < len; i++) {
+        if (in_string) {
+            if (escaped) {
+                escaped = false;
+            } else if (expr[i] == '\\') {
+                escaped = true;
+            } else if (expr[i] == '"') {
+                in_string = false;
+            }
+            continue;
+        }
+
+        if (expr[i] == '"') {
+            in_string = true;
+        } else if (expr[i] == '(') {
+            depth++;
+        } else if (expr[i] == ')') {
+            depth--;
+            if (depth == 0 && i != len - 1)
+                return false;
+            if (depth < 0)
+                return false;
+        }
+    }
+
+    return depth == 0;
 }
 
 void

@@ -822,7 +822,7 @@ Current grammar contract:
 | Cast/type test | reserved/rejected | Broad expression `as`/`is` conversion syntax is not beta grammar. |
 | Object initializer | rejected | `Type { ... }` is not beta construction syntax. |
 | Open-ended slicing/spread/rest | reserved/rejected | `xs[..]` and `...` spread/rest are explicit parser rejects; use `values[a..b]` or `values.Slice(start, len)` plus `SliceCopy(view)` when an owned snapshot is required. |
-| Match guard/or-pattern | active partial | Guard/or-pattern syntax is parser-supported; promotion depends on CFG/backend parity gates. |
+| Match guard/or-pattern | active partial | Basic scalar guard/or-pattern C/LLVM parity is gated by `match_guard_or_pattern`; promotion still depends on broader CFG/exhaustiveness coverage. |
 | Block expression | not beta grammar | Blocks are statements unless a local grammar section says otherwise. |
 | Unsafe/raw | partial | `unsafe { ... }` is a boundary marker, not permission to bypass Slot/authority contracts. Raw escape requires a future scoped capability contract such as `unsafe(raw) { ... }`. |
 | Attribute annotation | reserved/rejected | `@` is reserved; structured comments remain the stable metadata path. |

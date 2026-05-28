@@ -168,6 +168,14 @@ llvm_emit_match_stmt(ASTNode *node, LLVMGenCtx *ctx)
                                 llvm_tmp_name(ctx));
         }
 
+        if (ast_match_case_guard(mc) != NULL) {
+            LLVMValueRef guard = llvm_emit_expression(ast_match_case_guard(mc),
+                                                      ctx);
+            if (guard == NULL)
+                continue;
+            cmp = LLVMBuildAnd(ctx->builder, cmp, guard, llvm_tmp_name(ctx));
+        }
+
         LLVMBasicBlockRef case_bb = LLVMAppendBasicBlockInContext(
             ctx->context, fn, "match.case");
         LLVMBasicBlockRef next_bb = LLVMAppendBasicBlockInContext(

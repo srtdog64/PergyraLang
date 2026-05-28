@@ -133,7 +133,7 @@ speed and order-independent declarations as first-class compiler constraints.
 | Hosted method | `this`/`self` method | hosted `func` with `self` context | `stable` | Declaration inventory must be MIR/DIR/RIR-owned. |
 | Domain behavior | method with preconditions/effects | `action ... requires / within / causes` | `stable` | Action contracts stay explicit in IR. |
 | Member access / method chaining | `x.y`, `x.f()` | `AST_MEMBER_ACCESS` + call chaining | `stable` | Must stay ordinary expression lowering; do not overload into authority semantics. |
-| Pipeline composition | `x |> f` | pipe operator parser surface | `partial` | Useful for readable transforms; keep type inference and diagnostics explicit. |
+| Pipeline composition | `x |> f` | pipe operator parser surface | `partial` | Basic unary and call-with-extra-args C/LLVM parity is gated by `pipeline_composition`; keep type inference and diagnostics explicit. |
 | Lambda / closure literal | `x => x + 1`, `|x| x+1` | `=>` lambda AST/parser surface | `partial` | Standalone lambda callables are active. Lambda-local `let`/destructure/for bindings are not captures; outer local/resource capture is semantically rejected until closure environments and boundary lifetime facts are frozen. |
 | Function reference | method group / function pointer | function name as value | `partial` | Enough for narrow callbacks. |
 | Higher-order function | `Func<T,R>`, `Fn` | callable parameters | `partial` | No HKT/functor hierarchy. |
@@ -156,8 +156,8 @@ speed and order-independent declarations as first-class compiler constraints.
 | Match expression | Rust `match`, C# switch expression | `match` | `stable` | Frozen subject/enum subset only. |
 | Enum / Result / Option destructure | `Ok(v)`, `Some(v)` | `case .Ok(v)`, `case .Some(v)` | `stable` | Diagnostics must stay explicit. |
 | Struct/list patterns | `Struct { x }`, `[a, b]` | none | `out-of-beta` | Useful later, not beta blocker. |
-| Guarded match case | `case p if cond` | active match-guard surface | `partial` | Keep CFG-owned; do not let guards bypass exhaustiveness diagnostics. |
-| Or-pattern | `case A | B` | active pattern-or surface | `partial` | Backend parity and diagnostics decide promotion. |
+| Guarded match case | `case p if cond` | active match-guard surface | `partial` | Basic scalar C/LLVM parity is gated by `match_guard_or_pattern`; broader exhaustiveness remains CFG-owned. |
+| Or-pattern | `case A | B` | active pattern-or surface | `partial` | Basic scalar C/LLVM parity is gated by `match_guard_or_pattern`; richer payload/enum diagnostics remain partial. |
 | Goto | `goto` | none | `reject` | Not compatible with CFG safety contract. |
 | Switch fallthrough | C/C# fallthrough style | none | `reject` | Use explicit match/branching. |
 
@@ -353,7 +353,7 @@ surface compatibility or force awkward sugar around the wrong AST shape.
 | Object initializer syntax | No C#/TS-style object initializer baseline; `Type { ... }` rejects explicitly in statement-expression contexts. | Prefer constructors/factory functions; revisit after partial-construction ownership policy exists. |
 | Range slicing/spread/rest | `xs[a..b]` is active and lowers to borrowed `Slice<T>`; `xs[..]` and `...` spread/rest are reserved with explicit parser diagnostics. | Keep bounded slicing on the existing slice ABI; keep open-ended slice/spread/rest out of beta until ownership and call ABI are closed. |
 | Optional chaining / coalescing | Postfix `?` propagation exists; `??` is active for `Option<T> ?? T -> T`; `?.` remains a reserved lexer/parser token with explicit parser diagnostics. | Keep optional chaining out of beta until Option/member provenance diagnostics are strong. |
-| Match guards and or-patterns | Active parser/AST/semantic/codegen support exists for `case ... if cond:` and `case a | b:`. | Reclassify as stable/partial based on backend parity gates, not as missing syntax. |
+| Match guards and or-patterns | Active parser/AST/semantic/codegen support exists for `case ... if cond:` and `case a | b:`. | Basic scalar C/LLVM parity is gated by `tests/cases/backend_compare/match_guard_or_pattern`; keep broader enum/result exhaustiveness and CFG facts partial. |
 | Block expression policy | Blocks are statements; expression-position `{ ... }` rejects explicitly as reserved object/map literal syntax. | Keep statement-only for beta; expression blocks require CFG/type-inference/cleanup ownership before any future promotion. |
 | Visibility modifiers beyond export | `public` and `private` tokens/parser paths exist in declaration owners. | Freeze whether `export` remains the public API contract or whether `public/private` become stable source syntax. |
 | Unsafe/raw block | Active `unsafe { ... }` AST/HIR/MIR/AIR boundary exists. Raw escape remains mostly rejected/reserved. | Treat `unsafe` as a boundary marker, not permission to bypass Slot/authority. Raw pointer escape needs a scoped capability contract such as `unsafe(raw) { ... }`, not a universal unsafe mode. |

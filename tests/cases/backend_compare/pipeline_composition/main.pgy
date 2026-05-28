@@ -1,0 +1,14 @@
+func Inc(value: Int) -> Int {
+    return value + 1;
+}
+
+func Add(left: Int, right: Int) -> Int {
+    return left + right;
+}
+
+func Main() -> Void {
+    let direct = 1 |> Inc;
+    let chained = 1 |> Inc |> Add(4);
+    Log(ToString(direct));
+    Log(ToString(chained));
+}

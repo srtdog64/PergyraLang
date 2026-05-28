@@ -4152,6 +4152,14 @@ English anchor for tooling/doc gates:
   (`xs.Slice(a, b - a)`) with C/LLVM backend compare coverage. `xs[..]` remains
   an explicit parser reject until whole-slice length and ownership policy are
   frozen.
+- Match guards and or-patterns now have a direct scalar C/LLVM parity fixture:
+  `tests/cases/backend_compare/match_guard_or_pattern`. Keep broader
+  enum/result exhaustiveness, payload binding, and CFG-owned match facts
+  partial until body-safety source-of-truth consumes them.
+- Pipeline composition now has a direct C/LLVM parity fixture:
+  `tests/cases/backend_compare/pipeline_composition`. Keep diagnostics and
+  richer callable/generic inference partial; the stable contract is still
+  explicit lowering to ordinary function calls.
 - `...` is now a reserved spread/rest token with explicit parser rejection in
   expression positions. Public spread/rest remains post-beta until call ABI,
   collection ABI, and destructuring ownership policy are frozen.
