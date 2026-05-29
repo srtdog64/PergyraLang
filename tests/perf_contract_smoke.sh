@@ -2813,10 +2813,40 @@ grep -Fq "array literal expression" "$ROOT_DIR/src/codegen/llvm_expr_aggregate.c
 grep -Fq "channel send expression" "$ROOT_DIR/src/codegen/llvm_expr_channel.c"
 grep -Fq "channel receive expression" "$ROOT_DIR/src/codegen/llvm_expr_channel.c"
 grep -Fq "llvm_resolve_channel_target" "$ROOT_DIR/src/codegen/llvm_expr_channel.c"
+grep -Fq "llvm_resolve_channel_target" "$ROOT_DIR/src/codegen/llvm_expr_task_channel_calls.c"
+grep -Fq "LLVMChannelTarget target" "$ROOT_DIR/src/codegen/llvm_expr_task_channel_calls.c"
+grep -Fq "llvm_resolve_channel_target_inner" "$ROOT_DIR/src/codegen/llvm_stmt_type_infer.c"
+grep -Fq "llvm_resolve_channel_target_inner" "$ROOT_DIR/src/codegen/llvm_channel_target.c"
+! grep -Fq "llvm_lookup_channel_inner(ctx, name)" "$ROOT_DIR/src/codegen/llvm_stmt_type_infer.c"
+! grep -Fq "llvm_lookup_channel_inner(ctx, name)" "$ROOT_DIR/src/codegen/llvm_expr_task_channel_calls.c"
 grep -Fq "LLVMChannelTarget" "$ROOT_DIR/src/codegen/llvm_channel_target.c"
 grep -Fq "requires registered Channel<T> local storage" "$ROOT_DIR/src/codegen/llvm_channel_target.c"
+grep -Fq "cannot aggregate-construct or default-initialize Channel<T> field" \
+    "$ROOT_DIR/src/semantic/type_checker_call_constructor.c"
+grep -Fq "default-zeroing that storage would bypass channel runtime initialization" \
+    "$ROOT_DIR/src/semantic/type_checker_call_constructor.c"
+grep -Fq "class constructor rejects Channel field storage in expression position" \
+    "$ROOT_DIR/src/tests/semantic/test_semantic_effects_part_a.cases.h"
+grep -Fq "PGY_CODE_SEM_CHANNEL_TRANSPORT_INVALID" \
+    "$ROOT_DIR/src/semantic/type_checker_call_constructor.c"
+grep -Fq "cannot be aggregate-constructed or default-initialized until movable channel-handle lowering is available" \
+    "$ROOT_DIR/src/codegen/llvm_expr_constructor_calls.c"
+grep -Fq "cannot be aggregate-constructed or default-initialized until movable channel-handle lowering is available" \
+    "$ROOT_DIR/src/codegen/transpiler_domain_constructor_emit.c"
+grep -Fq "cannot be aggregate-constructed or default-initialized until movable channel-handle lowering is available" \
+    "$ROOT_DIR/src/codegen/transpiler_let_emit.c"
+grep -Fq "PGY_FIX_PROVIDE_MOVABLE_HANDLE" \
+    "$ROOT_DIR/src/codegen/llvm_expr_constructor_calls.c"
+grep -Fq "PGY_FIX_PROVIDE_MOVABLE_HANDLE" \
+    "$ROOT_DIR/src/codegen/transpiler_domain_constructor_emit.c"
+grep -Fq "PGY_FIX_PROVIDE_MOVABLE_HANDLE" \
+    "$ROOT_DIR/src/codegen/transpiler_let_emit.c"
 grep -Fq 'current-host' "$ROOT_DIR/docs/semantics/06_backend_parity.md"
 grep -Fq '`Channel<T>` fields through the same `LLVMChannelTarget`' \
+    "$ROOT_DIR/docs/semantics/06_backend_parity.md"
+grep -Fq "must not copy" \
+    "$ROOT_DIR/docs/semantics/06_backend_parity.md"
+grep -Fq "channel storage by value" \
     "$ROOT_DIR/docs/semantics/06_backend_parity.md"
 grep -Fq "llvm_channel_expr_error" "$ROOT_DIR/src/codegen/llvm_expr_channel.c"
 ! grep -A16 -F "llvm_channel_expr_error(LLVMGenCtx *ctx" \

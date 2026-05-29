@@ -1,0 +1,7 @@
+func Identity<T>(x: T) -> T {
+    return x;
+}
+
+func Pair<T, U>(a: T, b: U) -> T {
+    return a;
+}

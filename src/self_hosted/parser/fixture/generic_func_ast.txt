@@ -1,0 +1,19 @@
+Program:
+  Function: Identity
+    Generic params: <T>
+    Parameters:
+      x: T
+    Returns: T
+    Body:
+      Block:
+        Return: x
+  Function: Pair
+    Generic params: <T, U>
+    Parameters:
+      a: T
+      b: U
+    Returns: T
+    Body:
+      Block:
+        Return: a
+

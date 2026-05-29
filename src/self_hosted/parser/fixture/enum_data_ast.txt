@@ -1,0 +1,9 @@
+Program:
+  Enum: Shape { Circle, Rect, None }
+  Function: Main
+    Parameters:
+    Returns: Void
+    Body:
+      Block:
+        Log("ok")
+

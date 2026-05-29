@@ -1,0 +1,9 @@
+class Pair<T> {
+    let first: T;
+}
+
+subject Box<U> {
+    let val: U;
+}
+
+func Main() -> Void { Log("ok"); }

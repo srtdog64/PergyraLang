@@ -1,0 +1,16 @@
+Program:
+  Class: Pair
+    Generic params: <T>
+    Fields:
+      first: T
+  Subject: Box
+    Generic params: <U>
+    Fields:
+      val: U
+  Function: Main
+    Parameters:
+    Returns: Void
+    Body:
+      Block:
+        Log("ok")
+

@@ -46,6 +46,9 @@ fi
 mkdir -p "$PERGYRA_TOOL_BUILD_DIR"
 cp "$PERGYRA_TOOL_SOURCE" "$PERGYRA_TOOL"
 
+echo "[self-host-parity:parser] compiling parser..."
+(cd "$ROOT_DIR" && "$PGY" "$(pgy_path_for_compiler "$PGY" "$PERGYRA_TOOL")" -o "$(pgy_path_for_compiler "$PGY" "$PERGYRA_TOOL_BUILD_DIR/main.exe")" >/dev/null)
+
 # Sources: each pair is "<source.pgy path relative to repo root>:<fixture base>"
 # where fixture base resolves to fixture/<base>_ast.txt.
 SOURCE_PAIRS=(
@@ -107,6 +110,31 @@ SOURCE_PAIRS=(
     "src/self_hosted/parser/fixture/turbofish.pgy:turbofish"
     "src/self_hosted/parser/fixture/func_generic_ret.pgy:func_generic_ret"
     "src/self_hosted/parser/fixture/event_subscribe.pgy:event_subscribe"
+    "src/self_hosted/parser/fixture/event_unsubscribe.pgy:event_unsubscribe"
+    "src/self_hosted/parser/fixture/generic_func.pgy:generic_func"
+    "src/self_hosted/parser/fixture/lambda_simple.pgy:lambda_simple"
+    "src/self_hosted/parser/fixture/self_param.pgy:self_param"
+    "src/self_hosted/parser/fixture/action_method.pgy:action_method"
+    "src/self_hosted/parser/fixture/ability_decl.pgy:ability_decl"
+    "src/self_hosted/parser/fixture/role_impl.pgy:role_impl"
+    "src/self_hosted/parser/fixture/async_func.pgy:async_func"
+    "src/self_hosted/parser/fixture/channel_ops.pgy:channel_ops"
+    "src/self_hosted/parser/fixture/spawn_await.pgy:spawn_await"
+    "src/self_hosted/parser/fixture/zone_decl.pgy:zone_decl"
+    "src/self_hosted/parser/fixture/parallel_stmt.pgy:parallel_stmt"
+    "src/self_hosted/parser/fixture/object_decl.pgy:object_decl"
+    "src/self_hosted/parser/fixture/generic_class.pgy:generic_class"
+    "src/self_hosted/parser/fixture/vessel_field.pgy:vessel_field"
+    "src/self_hosted/parser/fixture/pipe_op.pgy:pipe_op"
+    "src/self_hosted/parser/fixture/try_op.pgy:try_op"
+    "src/self_hosted/parser/fixture/destructure_let.pgy:destructure_let"
+    "src/self_hosted/parser/fixture/with_slot.pgy:with_slot"
+    "src/self_hosted/parser/fixture/tobject_decl.pgy:tobject_decl"
+    "src/self_hosted/parser/fixture/spawn_blocking.pgy:spawn_blocking"
+    "src/self_hosted/parser/fixture/import_simple.pgy:import_simple"
+    "src/self_hosted/parser/fixture/walrus_op.pgy:walrus_op"
+    "src/self_hosted/parser/fixture/enum_data.pgy:enum_data"
+    "src/self_hosted/parser/fixture/intent_basic.pgy:intent_basic"
 )
 
 cleanup_source_override() {
@@ -132,10 +160,8 @@ for pair in "${SOURCE_PAIRS[@]}"; do
 
     printf '%s' "$src" > "$SOURCE_OVERRIDE"
 
-    set +e
-    PERGYRA_OUT="$(cd "$ROOT_DIR" && "$PGY" "$PERGYRA_TOOL" --run 2>/dev/null \
-        | tr -d '\r' \
-        | sed '/^pgy: compiled /d')"
+    PERGYRA_OUT="$(cd "$ROOT_DIR" && "$PERGYRA_TOOL_BUILD_DIR/main.exe" 2>/dev/null \
+        | tr -d '\r')"
     P_RC=$?
     set -e
 

@@ -161,9 +161,11 @@ llvm_stmt_infer_expr_type(LLVMGenCtx *ctx, ASTNode *expr)
     case AST_CHANNEL_RECV:
         if (ast_channel_recv_channel(expr) != NULL
             && ast_channel_recv_channel(expr)->type == AST_IDENTIFIER) {
+            ASTNode *channel = ast_channel_recv_channel(expr);
             const char *name =
-                ast_identifier_name(ast_channel_recv_channel(expr));
-            const char *inner = llvm_lookup_channel_inner(ctx, name);
+                ast_identifier_name(channel);
+            const char *inner = llvm_resolve_channel_target_inner(ctx, expr,
+                channel, "channel receive expression");
             if (inner != NULL)
                 return pergyra_type_to_llvm(ctx, inner);
             if (name != NULL && llvm_scope_lookup(ctx, name) != NULL) {

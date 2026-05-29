@@ -1,0 +1,6 @@
+func Double(x: Int) -> Int { return x * 2; }
+
+func Main() -> Void {
+    let r: Int = 5 |> Double;
+    let s: Int = 1 |> Double |> Double;
+}

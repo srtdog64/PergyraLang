@@ -114,6 +114,10 @@ bool          llvm_resolve_channel_target(LLVMGenCtx *ctx, ASTNode *node,
                                           ASTNode *channel,
                                           const char *operation_name,
                                           LLVMChannelTarget *out);
+const char   *llvm_resolve_channel_target_inner(LLVMGenCtx *ctx,
+                                                 ASTNode *node,
+                                                 ASTNode *channel,
+                                                 const char *operation_name);
 void          llvm_register_rc_var(LLVMGenCtx *ctx, const char *var_name,
                                    const char *inner_type);
 const char   *llvm_lookup_rc_inner(LLVMGenCtx *ctx, const char *var_name);

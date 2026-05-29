@@ -1,0 +1,18 @@
+Program:
+  Event: OnHit
+    Parameters:
+      Let: d : Int = (null)
+  Function: handle
+    Parameters:
+      d: Int
+    Returns: Void
+    Body:
+      Block:
+        Log(d)
+  Function: Main
+    Parameters:
+    Returns: Void
+    Body:
+      Block:
+        EventUnsubscribe: OnHit -= handle
+

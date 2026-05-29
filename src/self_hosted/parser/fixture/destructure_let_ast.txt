@@ -1,0 +1,10 @@
+Program:
+  Function: Main
+    Parameters:
+    Returns: Void
+    Body:
+      Block:
+        Let: parts : Array<String: String> = ["a", "b", "c"]
+        AST node type 6
+        Log(x)
+

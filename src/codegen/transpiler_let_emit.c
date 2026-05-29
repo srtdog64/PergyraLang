@@ -27,6 +27,46 @@
 #include "transpiler_type_render.h"
 #include "transpiler_type_require.h"
 
+static bool
+transpiler_let_field_is_channel(TranspilerCtx *ctx, ASTNode *field_type)
+{
+    char *type_name;
+    bool is_channel;
+
+    type_name = render_type_name_in_ctx(ctx, field_type);
+    is_channel = type_name != NULL && strncmp(type_name, "Channel<", 8) == 0;
+    free(type_name);
+    return is_channel;
+}
+
+static bool
+transpiler_let_reject_channel_field_constructor(TranspilerCtx *ctx,
+                                                const char *field_name)
+{
+    transpiler_set_backend_error_with_hints(ctx,
+        PGY_CODE_C_TYPE_UNSUPPORTED,
+        PGY_CAUSE_C_TYPE_UNSUPPORTED,
+        PGY_FIX_PROVIDE_MOVABLE_HANDLE,
+        "C backend: Channel field '%s' cannot be aggregate-constructed or default-initialized until movable channel-handle lowering is available",
+        field_name != NULL ? field_name : "<field>");
+    return false;
+}
+
+static const char *
+transpiler_let_find_channel_field(TranspilerCtx *ctx,
+                                  ClassField **fields,
+                                  size_t field_count)
+{
+    for (size_t i = 0; i < field_count; i++) {
+        ClassField *field = fields != NULL ? fields[i] : NULL;
+        if (field != NULL
+            && transpiler_let_field_is_channel(ctx, field->type)) {
+            return field->name;
+        }
+    }
+    return NULL;
+}
+
 void
 emit_let_decl(ASTNode *node, TranspilerCtx *ctx)
 {
@@ -364,6 +404,16 @@ emit_let_decl(ASTNode *node, TranspilerCtx *ctx)
             class_decl = find_class_decl(ctx, ann_node_type_name);
         size_t field_count = 0;
         ClassField **fields = ast_class_fields(class_decl, &field_count);
+        const char *channel_field = class_decl != NULL
+            && class_decl->type == AST_CLASS_DECL
+            ? transpiler_let_find_channel_field(ctx, fields, field_count)
+            : NULL;
+        if (channel_field != NULL) {
+            transpiler_let_reject_channel_field_constructor(ctx,
+                channel_field);
+            free(ann_type_name);
+            return;
+        }
         write_indent(ctx);
         if (class_decl != NULL
             && class_decl->type == AST_CLASS_DECL

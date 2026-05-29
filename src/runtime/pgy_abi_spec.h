@@ -209,7 +209,7 @@ typedef struct {
 } pgy_abi_result_string;
 
 /* ================================================================
- * 6. Channel<T> — Thread-Safe Bounded Ring Buffer
+ * 6. ZoneChannel<T> / WorldChannel<T> — Opaque Channel Handles
  *
  * ⚠️  DESIGN DECISION: Opaque Handle (NOT a full struct)
  *
@@ -251,8 +251,11 @@ typedef uint32_t pgy_abi_world_channel_handle;
  *   void  pgy_world_channel_close_int(pgy_abi_world_channel_handle h);
  *   void  pgy_world_channel_destroy_int(pgy_abi_world_channel_handle h);
  *
- * PgyChannel_Int (legacy runtime type) is kept for backward compat only;
- * new MIR lowering uses opaque handles exclusively.
+ * Ordinary Channel<T> lowering in the current beta implementation still uses
+ * the legacy local PgyChannel_* runtime storage. It must not be copied into or
+ * default-zeroed inside aggregate fields. Opaque channel handles are the
+ * ZoneChannel/WorldChannel ABI target and the future path for movable
+ * channel-handle lowering.
  */
 
 /* ================================================================

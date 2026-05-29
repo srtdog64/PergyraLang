@@ -1,0 +1,25 @@
+Program:
+  [export] Function: Add
+    Parameters:
+      a: Int
+      b: Int
+    Returns: Int
+    Body:
+      Block:
+        Return: (a + b)
+  [export] Function: Mul
+    Parameters:
+      a: Int
+      b: Int
+    Returns: Int
+    Body:
+      Block:
+        Return: (a * b)
+  Function: Main
+    Parameters:
+    Returns: Void
+    Body:
+      Block:
+        Let: result : Int = Add(3, Mul(4, 5))
+        Log(result)
+

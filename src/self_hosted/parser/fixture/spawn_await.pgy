@@ -1,0 +1,8 @@
+async func Add(a: Int, b: Int) -> Int {
+    return a + b;
+}
+
+async func Main() -> Void {
+    let f: Future<Int> = spawn Add(1, 2);
+    let r: Int = await f;
+}

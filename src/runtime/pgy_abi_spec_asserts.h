@@ -162,7 +162,7 @@ ABI_STATIC_ASSERT(sizeof(pgy_abi_result_bool) >= 16,
                   result_bool_min_size_16);
 
 /* =================================================================
- * STATIC ASSERTIONS — Channel<T> (opaque handles — platform-independent)
+ * STATIC ASSERTIONS — ZoneChannel<T> / WorldChannel<T> opaque handles
  * ================================================================= */
 
 ABI_STATIC_ASSERT(sizeof(pgy_abi_zone_channel_handle) == 4,

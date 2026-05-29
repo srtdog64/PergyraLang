@@ -123,16 +123,24 @@ Current evidence:
 
 - LLVM stmt/expr fallback is no longer treated as harmless warning-only behavior.
 - AST dispatch partition smoke checks unsafe fallback categories.
-- C and LLVM aggregate constructor lowering fail-close `Channel<T>` field
-  initialization from inline `Channel(...)`, because channel initialization is
-  statement-level runtime setup and cannot be embedded as a stable aggregate
-  expression. The stable path is a named channel binding before aggregate
-  construction.
+- Semantic constructor validation and C/LLVM aggregate constructor lowering
+  fail-close `Channel<T>` field initialization. Channel runtime storage
+  currently carries mutex/condvar state, so aggregate construction must not copy
+  channel storage by value or default-zero runtime storage; this path stays
+  closed until movable channel-handle lowering exists.
 - LLVM channel send/receive/select resolves local channels and current-host
   `Channel<T>` fields through the same `LLVMChannelTarget` pointer +
   inner-type fact. This keeps implicit field-channel operations aligned with
   the C backend's `self.ch` lvalue path instead of reopening local-only channel
   lookup in each consumer.
+- LLVM task/channel builtins (`TrySend`, `TryRecv`, `ChannelReady`,
+  `ChannelLength`, `ChannelClose`, and related query/status calls) consume the
+  same `LLVMChannelTarget` fact. Field-channel builtin lowering is therefore
+  gated with the same pointer source-of-truth as send/receive/select, not with a
+  separate local-binding lookup.
+- LLVM receive expression type inference asks the channel target owner for the
+  `Channel<T>` inner type, so field-channel receives without an explicit local
+  annotation do not fall back to poison `i32` allocation.
 
 Remaining proof obligation:
 

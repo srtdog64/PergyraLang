@@ -1,0 +1,25 @@
+Program:
+  Subject: Fighter
+    Fields:
+      power: Int
+  [export] Ability: Combatable
+    Function: Attack
+      Parameters:
+        self
+      Returns: Int
+  Role: Warrior for Fighter
+    Impl ability: Combatable
+      Function: Attack
+        Parameters:
+          self
+        Returns: Int
+        Body:
+          Block:
+            Return: power
+  Function: Main
+    Parameters:
+    Returns: Void
+    Body:
+      Block:
+        Log("ok")
+

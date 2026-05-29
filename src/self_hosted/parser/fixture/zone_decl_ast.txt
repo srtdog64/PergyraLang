@@ -1,0 +1,17 @@
+Program:
+  Subject: A
+    Fields:
+      x: Int
+  Subject: B
+    Fields:
+      y: Int
+  Zone: Z
+    SubjectSlot: a: A
+    SubjectSlot: b: B
+  Function: Main
+    Parameters:
+    Returns: Void
+    Body:
+      Block:
+        Log("ok")
+

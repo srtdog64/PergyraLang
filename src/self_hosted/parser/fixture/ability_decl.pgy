@@ -1,0 +1,6 @@
+ability Combatable {
+    func Attack(self) -> Int;
+    func Defend(self, dmg: Int) -> Int;
+}
+
+func Main() -> Void { Log("ok"); }

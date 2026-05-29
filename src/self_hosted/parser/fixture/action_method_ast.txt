@@ -1,0 +1,19 @@
+Program:
+  Subject: Player
+    Fields:
+      hp: Int
+    Methods:
+      Action: Greet
+        Parameters:
+          self
+        Returns: Void
+        Body:
+          Block:
+            Log("hi")
+  Function: Main
+    Parameters:
+    Returns: Void
+    Body:
+      Block:
+        Log("ok")
+

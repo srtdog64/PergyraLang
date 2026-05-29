@@ -1,0 +1,8 @@
+func DemoWith() -> Void {
+    with slot<Int> as counter {
+        Write(counter, 100);
+        Log(Read(counter));
+    }
+}
+
+func Main() -> Void { Log("ok"); }

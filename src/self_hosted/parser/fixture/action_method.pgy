@@ -1,0 +1,8 @@
+subject Player {
+    let hp: Int;
+    action Greet(self) -> Void {
+        Log("hi");
+    }
+}
+
+func Main() -> Void { Log("ok"); }

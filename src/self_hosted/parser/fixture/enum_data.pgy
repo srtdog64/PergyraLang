@@ -1,0 +1,7 @@
+enum Shape {
+    Circle(Int),
+    Rect(Int, Int),
+    None
+}
+
+func Main() -> Void { Log("ok"); }

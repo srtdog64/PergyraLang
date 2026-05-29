@@ -1,0 +1,5 @@
+event OnHit(d: Int);
+
+func Main() -> Void {
+    OnHit += (d: Int) => { Log(d); };
+}

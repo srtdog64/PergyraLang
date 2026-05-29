@@ -1,0 +1,9 @@
+subject A { let x: Int; }
+subject B { let y: Int; }
+
+zone Z {
+    subject slot a: A
+    subject slot b: B
+}
+
+func Main() -> Void { Log("ok"); }

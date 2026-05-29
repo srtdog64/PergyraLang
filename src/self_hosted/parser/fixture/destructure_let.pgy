@@ -1,0 +1,5 @@
+func Main() -> Void {
+    let parts: Array<String> = ["a", "b", "c"];
+    let (x, y, z) = parts;
+    Log(x);
+}

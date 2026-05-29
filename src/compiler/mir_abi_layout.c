@@ -126,7 +126,8 @@ static const MIRTypeLayout k_abi_type_table[] = {
              ABI_FIELD_STRUCT("ok", pgy_abi_result_string, ok),
              ABI_FIELD_STRUCT("err", pgy_abi_result_string, err)),
 
-    /* Channel opaque handles. */
+    /* Zone/World channel opaque handles. Ordinary Channel<T> is still
+     * beta-local runtime storage until movable handle lowering lands. */
     ABI_TYPE("ZoneChannel<Int>", 4, 4, "pgy_zone_channel_create_Int", "int32_t", 1,
              ABI_FIELD_SCALAR("handle", pgy_abi_zone_channel_handle)),
     ABI_TYPE("WorldChannel<Int>", 4, 4, "pgy_world_channel_create_Int", "int32_t", 1,

@@ -13,16 +13,16 @@
 #include "transpiler_type_render.h"
 
 static bool
-transpiler_ctor_arg_is_channel_ctor(ASTNode *arg)
+transpiler_ctor_field_is_channel(TranspilerCtx *ctx, ASTNode *field_type)
 {
-    ASTNode *callee;
+    char *expected_type;
+    bool is_channel;
 
-    if (arg == NULL || arg->type != AST_CALL)
-        return false;
-    callee = ast_call_callee(arg);
-    return callee != NULL
-        && callee->type == AST_IDENTIFIER
-        && strcmp(ast_identifier_name(callee), "Channel") == 0;
+    expected_type = render_type_name_in_ctx(ctx, field_type);
+    is_channel = expected_type != NULL
+        && strncmp(expected_type, "Channel<", 8) == 0;
+    free(expected_type);
+    return is_channel;
 }
 
 static char *
@@ -38,20 +38,17 @@ transpiler_emit_ctor_arg_with_expected_type(TranspilerCtx *ctx,
     if (field_type == NULL)
         return emit_expression(arg, ctx);
 
-    expected_type = render_type_name_in_ctx(ctx, field_type);
-    if (expected_type != NULL
-        && strncmp(expected_type, "Channel<", 8) == 0
-        && transpiler_ctor_arg_is_channel_ctor(arg)) {
+    if (transpiler_ctor_field_is_channel(ctx, field_type)) {
         transpiler_set_backend_error_with_hints(ctx,
             PGY_CODE_C_TYPE_UNSUPPORTED,
             PGY_CAUSE_C_TYPE_UNSUPPORTED,
-            PGY_FIX_BIND_TO_NAMED_VARIABLE_BEFORE_MOVE,
-            "C backend: Channel field '%s' requires a named let binding before aggregate construction",
+            PGY_FIX_PROVIDE_MOVABLE_HANDLE,
+            "C backend: Channel field '%s' cannot be aggregate-constructed or default-initialized until movable channel-handle lowering is available",
             field_name != NULL ? field_name : "<field>");
-        free(expected_type);
         return pergyra_strdup("0");
     }
 
+    expected_type = render_type_name_in_ctx(ctx, field_type);
     saved_expected_type = ctx->expected_type;
     ctx->expected_type = expected_type;
     result = emit_expression(arg, ctx);

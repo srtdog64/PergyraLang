@@ -1,0 +1,18 @@
+Program:
+  [export] Ability: Combatable
+    Function: Attack
+      Parameters:
+        self
+      Returns: Int
+    Function: Defend
+      Parameters:
+        self
+        dmg: Int
+      Returns: Int
+  Function: Main
+    Parameters:
+    Returns: Void
+    Body:
+      Block:
+        Log("ok")
+

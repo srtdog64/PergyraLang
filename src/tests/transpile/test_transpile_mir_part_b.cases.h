@@ -228,7 +228,7 @@ test_mir_select_dispatch_emit(void)
         lexer_destroy(lexer);
     }
 
-    TEST("C constructor rejects inline channel field initialization");
+    TEST("semantic pipeline rejects inline channel field initialization");
     {
         const char *source =
             "class SelectBox {\n"
@@ -243,25 +243,64 @@ test_mir_select_dispatch_emit(void)
         HIRProgram *hir = NULL;
         RIRProgram *rir = NULL;
         MIRProgram *mir = NULL;
-        TranspileResult *res = NULL;
-        char path_buf[512];
-        bool ok = lower_pipeline_from_source(
+        bool ok = lower_pipeline_from_source_quiet(
             source, &program, &hir, &rir, &mir);
 
-        make_tmp_path(path_buf, sizeof(path_buf),
-            "pgy_test_ctor_inline_channel_reject.c");
-        if (ok)
-            res = transpile_with_mir(hir, mir, path_buf);
+        EXPECT(!ok);
 
-        EXPECT(ok && res != NULL && !res->success);
-        if (res != NULL && !res->success) {
-            EXPECT_STR_CONTAINS(res->error_message,
-                "Channel field 'ch' requires a named let binding");
-            EXPECT_STR_CONTAINS(res->error_fix_source,
-                "bind-to-named-variable-before-move");
-        }
+        mir_destroy(mir);
+        rir_destroy(rir);
+        hir_destroy(hir);
+        ast_destroy(program);
+    }
 
-        transpile_result_destroy(res);
+    TEST("semantic pipeline rejects named channel field move until handles exist");
+    {
+        const char *source =
+            "class SelectBox {\n"
+            "    let ch: Channel<Int>;\n"
+            "}\n"
+            "\n"
+            "func Main() -> Int {\n"
+            "    let ch: Channel<Int> = Channel(2);\n"
+            "    let box: SelectBox = SelectBox(ch);\n"
+            "    return 0;\n"
+            "}\n";
+        ASTNode *program = NULL;
+        HIRProgram *hir = NULL;
+        RIRProgram *rir = NULL;
+        MIRProgram *mir = NULL;
+        bool ok = lower_pipeline_from_source_quiet(
+            source, &program, &hir, &rir, &mir);
+
+        EXPECT(!ok);
+
+        mir_destroy(mir);
+        rir_destroy(rir);
+        hir_destroy(hir);
+        ast_destroy(program);
+    }
+
+    TEST("semantic pipeline rejects default channel field construction");
+    {
+        const char *source =
+            "class SelectBox {\n"
+            "    let ch: Channel<Int>;\n"
+            "}\n"
+            "\n"
+            "func Main() -> Int {\n"
+            "    let box: SelectBox = SelectBox();\n"
+            "    return 0;\n"
+            "}\n";
+        ASTNode *program = NULL;
+        HIRProgram *hir = NULL;
+        RIRProgram *rir = NULL;
+        MIRProgram *mir = NULL;
+        bool ok = lower_pipeline_from_source_quiet(
+            source, &program, &hir, &rir, &mir);
+
+        EXPECT(!ok);
+
         mir_destroy(mir);
         rir_destroy(rir);
         hir_destroy(hir);

@@ -1,0 +1,17 @@
+Program:
+  Function: Add
+    Parameters:
+      a: Int
+      b: Int
+    Returns: Int
+    Body:
+      Block:
+        Return: (a + b)
+  Function: Main
+    Parameters:
+    Returns: Void
+    Body:
+      Block:
+        Let: f : Future<Int: Int> = spawn Add(1, 2)
+        Let: r : Int = await f
+

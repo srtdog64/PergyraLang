@@ -1,0 +1,9 @@
+event OnHit(d: Int);
+
+func handle(d: Int) -> Void {
+    Log(d);
+}
+
+func Main() -> Void {
+    OnHit -= handle;
+}

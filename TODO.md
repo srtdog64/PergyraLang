@@ -123,15 +123,26 @@ English anchor for tooling/doc gates:
   field/captured channel lvalues remain `self.ch` / `self->ch` / capture-safe
   forms instead of regressing to raw `&ch` while still avoiding SSA-shadow
   readiness checks. Constructor argument lowering now also fails closed in C
-  and LLVM when a `Channel<T>` field is initialized with inline `Channel(...)`
-  inside an aggregate constructor; channel initialization is statement-level
-  runtime setup, so the stable path is `let ch: Channel<T> = Channel(n)`
-  followed by passing `ch`. LLVM channel send/receive/select lowering now
+  and LLVM when a `Channel<T>` field is copied or default-initialized inside an
+  aggregate constructor. Channel runtime storage currently carries
+  mutex/condvar state, so aggregate field construction stays closed until
+  movable channel-handle lowering exists. LLVM channel send/receive/select lowering now
   consumes a shared `LLVMChannelTarget` owner, so registered local channels and
   current-host `Channel<T>` fields resolve through the same pointer + inner-type
-  fact instead of the old local-only lookup. `llvm_smoke.sh` gates the IR shape
-  for implicit field channel send and select readiness/consume, while C
-  `test-transpile` continues to gate the generated `self.ch` lvalue shape.
+  fact instead of the old local-only lookup. The same seam now covers
+  task/channel builtins (`TrySend`, `TryRecv`, `ChannelReady`,
+  `ChannelLength`, `ChannelClose`, and related queries), so builtin lowering no
+  longer reopens a local-only path after send/receive/select parity. Field
+  channel receive type inference also asks the same target owner for the
+  `Channel<T>` inner type, avoiding the previous poison `i32` fallback when
+  `let value = <-ch` omitted the local variable type.
+  `llvm_smoke.sh` gates the IR shape for implicit field channel send, select
+  readiness/consume, builtin query, `TrySend`, `ChannelClose`, and inferred
+  field receive typing, while C `test-transpile` continues to gate the
+  generated `self.ch` lvalue shape. Semantic constructor validation now owns the
+  first rejection for `Channel<T>` aggregate field stores and default-zeroed
+  channel fields, so C/LLVM constructor lowering remains a backend guard rather
+  than the only source of truth.
 - CI smoke portability guard: beta/source-of-truth smoke scripts must remain
   compatible with macOS Bash 3.2. `build-source-inventory-test-smoke` now
   rejects Bash 4-only `mapfile` / `readarray`, associative arrays, parameter

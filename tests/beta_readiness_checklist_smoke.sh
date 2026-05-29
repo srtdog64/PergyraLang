@@ -456,6 +456,9 @@ beta-stable shared ownership subset
 uint32_t strong_count;
 uint32_t weak_count;
 bool     alive;
+Ordinary Channel<T> lowering in the current beta implementation still uses
+default-zeroed inside aggregate fields
+ZoneChannel/WorldChannel ABI target
 EOF
 
 require_terms "src/runtime/pgy_abi_spec_asserts.h" <<'EOF'

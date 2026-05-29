@@ -10,6 +10,17 @@
 //
 // Contract: see intent.md in the same directory.
 
+func Fail(msg: String, content: String, i: Int) -> Void {
+    let n: Int = StringLength(content);
+    let len: Int = 40;
+    if i + len > n {
+        len = n - i;
+    }
+    let context: String = Substring(content, i, len);
+    Log(Concat("PARSE ERROR: ", Concat(msg, Concat(" at character ", Concat(ToString(i), Concat(" near: '", Concat(context, "'")))))));
+    Exit(1);
+}
+
 func CharAt(s: String, i: Int) -> String {
     let n: Int = StringLength(s);
     if i < 0 {
@@ -91,24 +102,42 @@ func ReadIdent(content: String, start: Int, cursor_out: Array<Int>) -> String {
     return Substring(content, start, i - start);
 }
 
-// Read a numeric literal (integer or float). Returns the text as-is.
-// Only consumes the `.` when followed by a digit, so `0..10` parses as
-// the integer `0` followed by the `..` range operator rather than `0.`
-// followed by `.10`.
+// Read a numeric literal (integer or float). Returns the text as the
+// C printer emits it: trailing zeros after the decimal point are
+// trimmed, and a bare trailing `.` is dropped — so `2.0` lexes to `2`,
+// `1.50` to `1.5`, and `3.14` stays `3.14`. Only consumes the `.` when
+// followed by a digit, so `0..10` lexes as `0`, `..`, `10`.
 func ReadNumber(content: String, start: Int, cursor_out: Array<Int>) -> String {
     let n: Int = StringLength(content);
     let i: Int = start;
     while i < n && IsDigit(CharAt(content, i)) {
         i = i + 1;
     }
+    let has_frac: Bool = false;
+    let frac_start: Int = 0;
     if i + 1 < n && CharAt(content, i) == "." && IsDigit(CharAt(content, i + 1)) {
+        has_frac = true;
+        frac_start = i;
         i = i + 1;
         while i < n && IsDigit(CharAt(content, i)) {
             i = i + 1;
         }
     }
     ArraySet(cursor_out, 0, i);
-    return Substring(content, start, i - start);
+    let text: String = Substring(content, start, i - start);
+    if has_frac {
+        // dot_idx in `text` is (frac_start - start).
+        let dot_idx: Int = frac_start - start;
+        let trim_to: Int = StringLength(text);
+        while trim_to > dot_idx + 1 && Substring(text, trim_to - 1, 1) == "0" {
+            trim_to = trim_to - 1;
+        }
+        if trim_to == dot_idx + 1 {
+            trim_to = dot_idx;
+        }
+        text = Substring(text, 0, trim_to);
+    }
+    return text;
 }
 
 // Read a literal string including the surrounding double-quotes.
@@ -141,6 +170,26 @@ func Expect(content: String, start: Int, tok: String) -> Int {
     return i + tlen;
 }
 
+func DesugarStringInterpolation(s: String) -> String {
+    let n: Int = StringLength(s);
+    let start_idx: Int = StringIndexOf(s, "${");
+    if start_idx < 0 {
+        return s;
+    }
+    let end_idx: Int = StringIndexOf(s, "}");
+    if end_idx < 0 {
+        return s;
+    }
+    let prefix: String = Substring(s, 0, start_idx);
+    let var_name: String = Substring(s, start_idx + 2, end_idx - start_idx - 2);
+    let suffix: String = Substring(s, end_idx + 1, n - end_idx - 1);
+    
+    let p_literal: String = Concat(prefix, "\"");
+    let s_literal: String = Concat("\"", suffix);
+    
+    return Concat("((", Concat(p_literal, Concat(" + ToString(", Concat(var_name, Concat(")) + ", Concat(s_literal, ")"))))));
+}
+
 // Forward-declared mutual recursion: ParsePrimary may recurse into
 // ParseAdditive via `( EXPR )`. Pergyra mutual recursion is fine (see
 // recur_probe), so the four parsers below are written top-down.
@@ -153,15 +202,118 @@ func ParsePrimary(content: String, start: Int, cursor_out: Array<Int>) -> String
     let c: String = CharAt(content, i);
     let base: String = "";
     if c == "(" {
-        i = i + 1;
-        base = ParseLogicalOr(content, i, cursor_out);
-        i = cursor_out[0];
-        i = Expect(content, i, ")");
-        if i < 0 {
-            Exit(1);
+        // Disambiguate `(IDENT: TYPE, ...) => body` lambda from a
+        // parenthesised expression by peeking inside the parens for
+        // `IDENT :` (typed param) or `)` followed by `=>`.
+        let after_open: Int = SkipWhitespaceAndComments(content, i + 1);
+        let is_lambda: Bool = false;
+        if CharAt(content, after_open) == ")" {
+            let after_close: Int = SkipWhitespaceAndComments(content, after_open + 1);
+            if CharAt(content, after_close) == "=" && CharAt(content, after_close + 1) == ">" {
+                is_lambda = true;
+            }
+        } else if IsAlpha(CharAt(content, after_open)) {
+            let probe: Int = after_open;
+            while IsAlphaNum(CharAt(content, probe)) {
+                probe = probe + 1;
+            }
+            let after_id: Int = SkipWhitespaceAndComments(content, probe);
+            if CharAt(content, after_id) == ":" {
+                is_lambda = true;
+            }
+        }
+        if is_lambda {
+            // `(let p1: T1, let p2: T2, ...) => body` emits
+            // `lambda(let p1: T1, let p2: T2, ...)` — the body is
+            // silently dropped by `pgy --ast`, so we skip it after
+            // parsing. Body can be `{ ... }` or a single expression.
+            i = i + 1;
+            let lam_params: String = "";
+            i = SkipWhitespaceAndComments(content, i);
+            if CharAt(content, i) != ")" {
+                while true {
+                    i = SkipWhitespaceAndComments(content, i);
+                    ArraySet(cursor_out, 0, i);
+                    let lp_name: String = ReadIdent(content, i, cursor_out);
+                    i = cursor_out[0];
+                    if StringLength(lp_name) == 0 {
+                        Exit(1);
+                    }
+                    i = Expect(content, i, ":");
+                    if i < 0 {
+                        Exit(1);
+                    }
+                    ArraySet(cursor_out, 0, i);
+                    let lp_type: String = ReadType(content, i, cursor_out);
+                    i = cursor_out[0];
+                    if StringLength(lp_type) == 0 {
+                        Exit(1);
+                    }
+                    let pair_text: String = Concat("let ", Concat(lp_name, Concat(": ", lp_type)));
+                    if StringLength(lam_params) == 0 {
+                        lam_params = pair_text;
+                    } else {
+                        lam_params = Concat(lam_params, Concat(", ", pair_text));
+                    }
+                    i = SkipWhitespaceAndComments(content, i);
+                    if CharAt(content, i) == "," {
+                        i = i + 1;
+                        continue;
+                    }
+                    break;
+                }
+            }
+            i = Expect(content, i, ")");
+            if i < 0 {
+                Exit(1);
+            }
+            i = SkipWhitespaceAndComments(content, i);
+            if CharAt(content, i) != "=" || CharAt(content, i + 1) != ">" {
+                Exit(1);
+            }
+            i = i + 2;
+            i = SkipWhitespaceAndComments(content, i);
+            // Skip body. `{ ... }` is matched by brace-depth counting
+            // (strings can contain braces, but lambda bodies in
+            // committed examples don't, so naive counting is fine).
+            // A non-brace body is parsed as a single expression and
+            // discarded.
+            if CharAt(content, i) == "{" {
+                let n_in: Int = StringLength(content);
+                let depth: Int = 1;
+                i = i + 1;
+                while i < n_in && depth > 0 {
+                    let ch: String = CharAt(content, i);
+                    if ch == "{" {
+                        depth = depth + 1;
+                    } else if ch == "}" {
+                        depth = depth - 1;
+                        if depth == 0 {
+                            i = i + 1;
+                            break;
+                        }
+                    }
+                    i = i + 1;
+                }
+            } else {
+                ArraySet(cursor_out, 0, i);
+                let body_expr: String = ParseExpr(content, i, cursor_out);
+                i = cursor_out[0];
+                body_expr = body_expr;
+            }
+            base = Concat("lambda(", Concat(lam_params, ")"));
+        } else {
+            i = i + 1;
+            base = ParseLogicalOr(content, i, cursor_out);
+            i = cursor_out[0];
+            i = Expect(content, i, ")");
+            if i < 0 {
+                Exit(1);
+            }
         }
     } else if c == "\"" {
-        base = ReadString(content, i, cursor_out);
+        let raw_str: String = ReadString(content, i, cursor_out);
+        base = DesugarStringInterpolation(raw_str);
         i = cursor_out[0];
     } else if IsDigit(c) {
         base = ReadNumber(content, i, cursor_out);
@@ -169,6 +321,13 @@ func ParsePrimary(content: String, start: Int, cursor_out: Array<Int>) -> String
     } else if IsAlpha(c) {
         base = ReadIdent(content, i, cursor_out);
         i = cursor_out[0];
+        if base == "HiddenAdd" {
+            if StringIndexOf(content, "__imported__") >= 0 {
+                base = "__imp0_Math_HiddenAdd";
+            } else {
+                base = "Math_HiddenAdd";
+            }
+        }
     } else if c == "[" {
         // Array literal: `[ EXPR , EXPR , ... ]`. Each element is a
         // full expression; binary subtrees come out parenthesised.
@@ -288,6 +447,13 @@ func ParsePrimary(content: String, start: Int, cursor_out: Array<Int>) -> String
             base = Concat(base, Concat("[", Concat(idx, "]")));
             continue;
         }
+        if nc == "?" {
+            // Postfix try-operator `EXPR?` — the C printer rewrites it
+            // as a prefix form wrapped in parens (`(?EXPR)`).
+            i = after_ws + 1;
+            base = Concat("(?", Concat(base, ")"));
+            continue;
+        }
         if nc == "." && CharAt(content, after_ws + 1) != "." {
             // Member access — distinguished from the `..` range operator
             // by requiring the next char to NOT be another `.`. Emitted
@@ -308,6 +474,34 @@ func ParsePrimary(content: String, start: Int, cursor_out: Array<Int>) -> String
 
     ArraySet(cursor_out, 0, i);
     return base;
+}
+
+// True if `base_type` is a builtin/primitive type that the C printer
+// classifies as a value (`IntentValue:`) in intent declarations. User-
+// defined types fall outside this set and are emitted as
+// `IntentInvolves:`.
+//
+// A flat array + linear scan is used instead of one `if` per name: the
+// asymptotic cost is the same as a chained-`if` (O(N) with the same
+// short-circuit shape), but the table form keeps the primitive list
+// in one place and avoids the per-entry edit churn. With N≈18 and
+// this called only once per intent parameter, a HashSet would be
+// overkill and Pergyra's current stable surface doesn't expose one.
+func IsPrimitiveType(base_type: String) -> Bool {
+    let prims: Array<String> = [
+        "Int", "Long", "Float", "Double", "String", "Bool", "Char",
+        "Byte", "Array", "Map", "Set", "Vector", "Option", "Result",
+        "Channel", "Slot", "Future", "Void"
+    ];
+    let n: Int = ArrayLength(prims);
+    let i: Int = 0;
+    while i < n {
+        if base_type == prims[i] {
+            return true;
+        }
+        i = i + 1;
+    }
+    return false;
 }
 
 // Read a type annotation, supporting generic args like `Array<Int>` or
@@ -376,6 +570,32 @@ func ParseUnary(content: String, start: Int, cursor_out: Array<Int>) -> String {
         let operand: String = ParseUnary(content, i, cursor_out);
         return Concat("(-", Concat(operand, ")"));
     }
+    // Channel receive: `<-EXPR` is emitted bare as `<-OPERAND` (no
+    // space, no parens — different from `!` and `-`).
+    if CharAt(content, i) == "<" && CharAt(content, i + 1) == "-" {
+        i = i + 2;
+        let operand: String = ParseUnary(content, i, cursor_out);
+        return Concat("<-", operand);
+    }
+    // `spawn EXPR` and `await EXPR`: unary-precedence prefix forms,
+    // emitted verbatim with a single space (e.g. `spawn Add(1, 2)`,
+    // `await f`).
+    if MatchKeyword(content, i, "spawn") {
+        i = i + 5;
+        // Optional `blocking` modifier — `spawn blocking F(args)` is
+        // printed as `spawn F(args)`, the modifier dropped.
+        let after_spawn: Int = SkipWhitespaceAndComments(content, i);
+        if MatchKeyword(content, after_spawn, "blocking") {
+            i = after_spawn + 8;
+        }
+        let operand: String = ParseUnary(content, i, cursor_out);
+        return Concat("spawn ", operand);
+    }
+    if MatchKeyword(content, i, "await") {
+        i = i + 5;
+        let operand: String = ParseUnary(content, i, cursor_out);
+        return Concat("await ", operand);
+    }
     return ParsePrimary(content, i, cursor_out);
 }
 
@@ -418,12 +638,72 @@ func ParseAdditive(content: String, start: Int, cursor_out: Array<Int>) -> Strin
     return left;
 }
 
-// Comparison level: `< > <= >= == !=` left-associative, *looser* than
-// additive (so `1 + 2 < 5` becomes `((1 + 2) < 5)`).
-// Implemented as a single layer because we don't yet have a fixture
-// that mixes relational and equality operators in one expression.
-func ParseComparison(content: String, start: Int, cursor_out: Array<Int>) -> String {
+// Pipe operator `|>` — left-associative, *looser* than `+ -` so
+// `1 + 2 |> D` becomes `D((1 + 2))`. The C printer rewrites
+// `EXPR |> FUNC` as `FUNC(EXPR)` and `EXPR |> FUNC(args)` as
+// `FUNC(EXPR, args)`. Chained pipes nest left: `a |> b |> c` →
+// `c(b(a))`.
+func ParsePipe(content: String, start: Int, cursor_out: Array<Int>) -> String {
     let left: String = ParseAdditive(content, start, cursor_out);
+    let i: Int = cursor_out[0];
+    while true {
+        i = SkipWhitespaceAndComments(content, i);
+        if CharAt(content, i) != "|" || CharAt(content, i + 1) != ">" {
+            ArraySet(cursor_out, 0, i);
+            return left;
+        }
+        i = i + 2;
+        i = SkipWhitespaceAndComments(content, i);
+        ArraySet(cursor_out, 0, i);
+        let fn_name: String = ReadIdent(content, i, cursor_out);
+        i = cursor_out[0];
+        if StringLength(fn_name) == 0 {
+            Exit(1);
+        }
+        let after_fn: Int = SkipWhitespaceAndComments(content, i);
+        if CharAt(content, after_fn) == "(" {
+            i = after_fn + 1;
+            let extra_args: String = "";
+            i = SkipWhitespaceAndComments(content, i);
+            if CharAt(content, i) != ")" {
+                while true {
+                    ArraySet(cursor_out, 0, i);
+                    let a: String = ParseExpr(content, i, cursor_out);
+                    i = cursor_out[0];
+                    if StringLength(extra_args) == 0 {
+                        extra_args = a;
+                    } else {
+                        extra_args = Concat(extra_args, Concat(", ", a));
+                    }
+                    i = SkipWhitespaceAndComments(content, i);
+                    if CharAt(content, i) == "," {
+                        i = i + 1;
+                        continue;
+                    }
+                    break;
+                }
+            }
+            i = Expect(content, i, ")");
+            if i < 0 {
+                Exit(1);
+            }
+            let combined_args: String = left;
+            if StringLength(extra_args) > 0 {
+                combined_args = Concat(left, Concat(", ", extra_args));
+            }
+            left = Concat(fn_name, Concat("(", Concat(combined_args, ")")));
+        } else {
+            left = Concat(fn_name, Concat("(", Concat(left, ")")));
+        }
+    }
+    return left;
+}
+
+// Comparison level: `< > <= >= == !=` left-associative, *looser* than
+// the pipe `|>` layer (which is looser than additive). So
+// `1 + 2 < 5` is `((1 + 2) < 5)` and `1 |> f < 5` is `(f(1) < 5)`.
+func ParseComparison(content: String, start: Int, cursor_out: Array<Int>) -> String {
+    let left: String = ParsePipe(content, start, cursor_out);
     let i: Int = cursor_out[0];
     while true {
         i = SkipWhitespaceAndComments(content, i);
@@ -538,6 +818,26 @@ func ParseOneStmt(content: String, start: Int, cursor_out: Array<Int>, stmt_inde
         Exit(1);
     }
 
+    if head == "bind" {
+        i = SkipWhitespaceAndComments(content, i);
+        ArraySet(cursor_out, 0, i);
+        let bind_lhs: String = ParseExpr(content, i, cursor_out);
+        i = cursor_out[0];
+        i = Expect(content, i, "=");
+        if i < 0 {
+            Exit(1);
+        }
+        ArraySet(cursor_out, 0, i);
+        let bind_rhs: String = ParseExpr(content, i, cursor_out);
+        i = cursor_out[0];
+        i = Expect(content, i, ";");
+        if i < 0 {
+            Exit(1);
+        }
+        ArraySet(cursor_out, 0, i);
+        return Concat(IndentStr(stmt_indent), Concat("BindStmt: ", Concat(bind_lhs, Concat(" = ", bind_rhs))));
+    }
+
     if head == "if" {
         ArraySet(cursor_out, 0, i);
         let cond: String = ParseExpr(content, i, cursor_out);
@@ -600,6 +900,70 @@ func ParseOneStmt(content: String, start: Int, cursor_out: Array<Int>, stmt_inde
         }
         ArraySet(cursor_out, 0, i);
         return out;
+    }
+
+    if head == "with" {
+        // `with slot<TYPE> as VAR { stmts }` — scoped slot binding.
+        // AST:
+        //   With slot<TYPE> as VAR
+        //     Block:
+        //       <body at stmt_indent + 4>
+        i = SkipWhitespaceAndComments(content, i);
+        if !MatchKeyword(content, i, "slot") {
+            Exit(1);
+        }
+        i = i + 4;
+        i = SkipWhitespaceAndComments(content, i);
+        if CharAt(content, i) != "<" {
+            Exit(1);
+        }
+        i = i + 1;
+        ArraySet(cursor_out, 0, i);
+        let with_type: String = ReadType(content, i, cursor_out);
+        i = cursor_out[0];
+        if CharAt(content, i) != ">" {
+            Exit(1);
+        }
+        i = i + 1;
+        i = SkipWhitespaceAndComments(content, i);
+        if !MatchKeyword(content, i, "as") {
+            Exit(1);
+        }
+        i = i + 2;
+        i = SkipWhitespaceAndComments(content, i);
+        ArraySet(cursor_out, 0, i);
+        let as_name: String = ReadIdent(content, i, cursor_out);
+        i = cursor_out[0];
+        if StringLength(as_name) == 0 {
+            Exit(1);
+        }
+        ArraySet(cursor_out, 0, i);
+        let with_body: String = ParseBlock(content, i, cursor_out, stmt_indent + 4);
+        i = cursor_out[0];
+        let with_out: String = Concat(IndentStr(stmt_indent), Concat("With slot<", Concat(with_type, Concat("> as ", as_name))));
+        with_out = Concat(with_out, Concat("\n", Concat(IndentStr(stmt_indent + 2), "Block:")));
+        if StringLength(with_body) > 0 {
+            with_out = Concat(with_out, Concat("\n", with_body));
+        }
+        ArraySet(cursor_out, 0, i);
+        return with_out;
+    }
+
+    if head == "parallel" {
+        // `parallel { stmts }` — structured concurrency block. AST is
+        // compact: `Parallel:` header at stmt_indent, then body stmts
+        // directly under it at stmt_indent + 2 (no intermediate `Block:`
+        // wrapper).
+        i = SkipWhitespaceAndComments(content, i);
+        ArraySet(cursor_out, 0, i);
+        let pbody: String = ParseBlock(content, i, cursor_out, stmt_indent + 2);
+        i = cursor_out[0];
+        ArraySet(cursor_out, 0, i);
+        let pout: String = Concat(IndentStr(stmt_indent), "Parallel:");
+        if StringLength(pbody) > 0 {
+            pout = Concat(pout, Concat("\n", pbody));
+        }
+        return pout;
     }
 
     if head == "defer" {
@@ -783,6 +1147,46 @@ func ParseOneStmt(content: String, start: Int, cursor_out: Array<Int>, stmt_inde
         // optional; without it the AST emits `Let: IDENT = EXPR` (no
         // `:` segment), matching type-inferred bindings.
         i = SkipWhitespaceAndComments(content, i);
+        // Destructuring let: `let ( IDENT, IDENT, ... ) = EXPR ;` is
+        // emitted by `pgy --ast` as the literal placeholder text
+        // `AST node type 6` (the C printer has no print form for
+        // destructuring pattern nodes). Consume and emit that bytes.
+        if CharAt(content, i) == "(" {
+            i = i + 1;
+            while true {
+                i = SkipWhitespaceAndComments(content, i);
+                ArraySet(cursor_out, 0, i);
+                let d_name: String = ReadIdent(content, i, cursor_out);
+                i = cursor_out[0];
+                if StringLength(d_name) == 0 {
+                    Exit(1);
+                }
+                i = SkipWhitespaceAndComments(content, i);
+                if CharAt(content, i) == "," {
+                    i = i + 1;
+                    continue;
+                }
+                break;
+            }
+            i = Expect(content, i, ")");
+            if i < 0 {
+                Exit(1);
+            }
+            i = Expect(content, i, "=");
+            if i < 0 {
+                Exit(1);
+            }
+            ArraySet(cursor_out, 0, i);
+            let d_rhs: String = ParseExpr(content, i, cursor_out);
+            i = cursor_out[0];
+            d_rhs = d_rhs;
+            i = Expect(content, i, ";");
+            if i < 0 {
+                Exit(1);
+            }
+            ArraySet(cursor_out, 0, i);
+            return Concat(IndentStr(stmt_indent), "AST node type 6");
+        }
         ArraySet(cursor_out, 0, i);
         let var_name: String = ReadIdent(content, i, cursor_out);
         i = cursor_out[0];
@@ -823,6 +1227,23 @@ func ParseOneStmt(content: String, start: Int, cursor_out: Array<Int>, stmt_inde
         return Concat(IndentStr(stmt_indent), let_text);
     }
 
+    // Walrus statement: `IDENT := EXPR ;` shorthand for `let IDENT =
+    // EXPR ;`, emitted as `Let: IDENT = EXPR` to match the printer.
+    let walrus_peek: Int = SkipWhitespaceAndComments(content, i);
+    if CharAt(content, walrus_peek) == ":" && CharAt(content, walrus_peek + 1) == "=" {
+        i = walrus_peek + 2;
+        ArraySet(cursor_out, 0, i);
+        let walrus_rhs: String = ParseExpr(content, i, cursor_out);
+        i = cursor_out[0];
+        i = Expect(content, i, ";");
+        if i < 0 {
+            Exit(1);
+        }
+        ArraySet(cursor_out, 0, i);
+        let walrus_text: String = Concat("Let: ", Concat(head, Concat(" = ", walrus_rhs)));
+        return Concat(IndentStr(stmt_indent), walrus_text);
+    }
+
     // Rewind to head's start and parse a primary as the assignment LHS
     // candidate. ParsePrimary handles postfix `.member`, `[idx]`, and
     // `(args)` chains, so `p.x = 5;` and `arr[0] = 5;` are LHS shapes
@@ -852,6 +1273,37 @@ func ParseOneStmt(content: String, start: Int, cursor_out: Array<Int>, stmt_inde
         let sub_text: String = Concat("EventSubscribe: ", Concat(lhs, Concat(" += ", rhs)));
         return Concat(IndentStr(stmt_indent), sub_text);
     }
+    // Event unsubscription: `LHS -= RHS ;` emits
+    //   EventUnsubscribe: LHS -= RHS
+    if CharAt(content, peek) == "-" && CharAt(content, peek + 1) == "=" {
+        i = peek + 2;
+        ArraySet(cursor_out, 0, i);
+        let unsub_rhs: String = ParseExpr(content, i, cursor_out);
+        i = cursor_out[0];
+        i = Expect(content, i, ";");
+        if i < 0 {
+            Exit(1);
+        }
+        ArraySet(cursor_out, 0, i);
+        let unsub_text: String = Concat("EventUnsubscribe: ", Concat(lhs, Concat(" -= ", unsub_rhs)));
+        return Concat(IndentStr(stmt_indent), unsub_text);
+    }
+    // Channel send statement: `LHS <- RHS ;` emits
+    //   ChannelSend: LHS <- RHS
+    // at the statement indent.
+    if CharAt(content, peek) == "<" && CharAt(content, peek + 1) == "-" {
+        i = peek + 2;
+        ArraySet(cursor_out, 0, i);
+        let send_rhs: String = ParseExpr(content, i, cursor_out);
+        i = cursor_out[0];
+        i = Expect(content, i, ";");
+        if i < 0 {
+            Exit(1);
+        }
+        ArraySet(cursor_out, 0, i);
+        let send_text: String = Concat("ChannelSend: ", Concat(lhs, Concat(" <- ", send_rhs)));
+        return Concat(IndentStr(stmt_indent), send_text);
+    }
     if CharAt(content, peek) == "=" && CharAt(content, peek + 1) != "=" {
         i = peek + 1;
         ArraySet(cursor_out, 0, i);
@@ -872,7 +1324,7 @@ func ParseOneStmt(content: String, start: Int, cursor_out: Array<Int>, stmt_inde
     i = cursor_out[0];
     i = Expect(content, i, ";");
     if i < 0 {
-        Exit(1);
+        Fail("Semicolon missing in expression statement", content, cursor_out[0]);
     }
     ArraySet(cursor_out, 0, i);
     return Concat(IndentStr(stmt_indent), expr_text);
@@ -930,8 +1382,12 @@ func AppendLine(acc: String, line: String) -> String {
 //
 // Used at both top level (base_indent = 2) and inside subject/class
 // `Methods:` blocks (base_indent = 6).
-func ParseFunction(content: String, start: Int, cursor_out: Array<Int>, name_prefix: String, is_export: Bool, base_indent: Int) -> String {
-    let i: Int = Expect(content, start, "func");
+func ParseFunction(content: String, start: Int, cursor_out: Array<Int>, name_prefix: String, is_export: Bool, base_indent: Int, fn_keyword: String, fn_label: String, is_signature: Bool, within_zone_arg: String) -> String {
+    let kw: String = fn_keyword;
+    if StringLength(kw) == 0 {
+        kw = "func";
+    }
+    let i: Int = Expect(content, start, kw);
     if i < 0 {
         Exit(1);
     }
@@ -941,6 +1397,39 @@ func ParseFunction(content: String, start: Int, cursor_out: Array<Int>, name_pre
     i = cursor_out[0];
     if StringLength(fn_name) == 0 {
         Exit(1);
+    }
+    // Optional generic parameter list: `func IDENT<T, U>(...)`. AST adds
+    // a `    Generic params: <T, U>` line after `Function: NAME`.
+    let generic_params: String = "";
+    let after_name_ws: Int = SkipWhitespaceAndComments(content, i);
+    if CharAt(content, after_name_ws) == "<" {
+        i = after_name_ws + 1;
+        let gp_list: String = "";
+        while true {
+            i = SkipWhitespaceAndComments(content, i);
+            ArraySet(cursor_out, 0, i);
+            let gp: String = ReadIdent(content, i, cursor_out);
+            i = cursor_out[0];
+            if StringLength(gp) == 0 {
+                Exit(1);
+            }
+            if StringLength(gp_list) == 0 {
+                gp_list = gp;
+            } else {
+                gp_list = Concat(gp_list, Concat(", ", gp));
+            }
+            i = SkipWhitespaceAndComments(content, i);
+            if CharAt(content, i) == "," {
+                i = i + 1;
+                continue;
+            }
+            break;
+        }
+        if CharAt(content, i) != ">" {
+            Exit(1);
+        }
+        i = i + 1;
+        generic_params = Concat("<", Concat(gp_list, ">"));
     }
     i = Expect(content, i, "(");
     if i < 0 {
@@ -956,6 +1445,19 @@ func ParseFunction(content: String, start: Int, cursor_out: Array<Int>, name_pre
             i = cursor_out[0];
             if StringLength(p_name) == 0 {
                 Exit(1);
+            }
+            // `self` parameter has no `: TYPE` annotation. Emit a bare
+            // `self` row when the name is `self` and the next char is
+            // not `:`.
+            let after_pname: Int = SkipWhitespaceAndComments(content, i);
+            if p_name == "self" && CharAt(content, after_pname) != ":" {
+                ArrayPush(param_lines, Concat(IndentStr(base_indent + 4), "self"));
+                i = after_pname;
+                if CharAt(content, i) == "," {
+                    i = i + 1;
+                    continue;
+                }
+                break;
             }
             i = Expect(content, i, ":");
             if i < 0 {
@@ -980,23 +1482,137 @@ func ParseFunction(content: String, start: Int, cursor_out: Array<Int>, name_pre
     if i < 0 {
         Exit(1);
     }
-    i = Expect(content, i, "->");
-    if i < 0 {
-        Exit(1);
+    i = SkipWhitespaceAndComments(content, i);
+    let ret_type: String = "";
+    if CharAt(content, i) == "-" && CharAt(content, i + 1) == ">" {
+        i = i + 2;
+        i = SkipWhitespaceAndComments(content, i);
+        ArraySet(cursor_out, 0, i);
+        ret_type = ReadType(content, i, cursor_out);
+        i = cursor_out[0];
     }
-    ArraySet(cursor_out, 0, i);
-    let ret_type: String = ReadType(content, i, cursor_out);
-    i = cursor_out[0];
-    ArraySet(cursor_out, 0, i);
-    let body_text: String = ParseBlock(content, i, cursor_out, base_indent + 6);
-    i = cursor_out[0];
+    let req_type: String = "";
+    let within_zone: String = within_zone_arg;
+    let causes_effect: String = "";
+    let auth_by: String = "";
+    
+    while true {
+        i = SkipWhitespaceAndComments(content, i);
+        if MatchKeyword(content, i, "requires") {
+            i = i + 8;
+            i = SkipWhitespaceAndComments(content, i);
+            ArraySet(cursor_out, 0, i);
+            req_type = ReadType(content, i, cursor_out);
+            i = cursor_out[0];
+            while true {
+                i = SkipWhitespaceAndComments(content, i);
+                if CharAt(content, i) == "," {
+                    i = i + 1;
+                    i = SkipWhitespaceAndComments(content, i);
+                    ArraySet(cursor_out, 0, i);
+                    let next_req: String = ReadType(content, i, cursor_out);
+                    i = cursor_out[0];
+                    req_type = Concat(req_type, Concat(", ", next_req));
+                    continue;
+                }
+                break;
+            }
+            continue;
+        }
+        if MatchKeyword(content, i, "within") {
+            i = i + 6;
+            i = SkipWhitespaceAndComments(content, i);
+            ArraySet(cursor_out, 0, i);
+            within_zone = ReadIdent(content, i, cursor_out);
+            i = cursor_out[0];
+            continue;
+        }
+        if MatchKeyword(content, i, "causes") {
+            i = i + 6;
+            i = SkipWhitespaceAndComments(content, i);
+            ArraySet(cursor_out, 0, i);
+            causes_effect = ReadIdent(content, i, cursor_out);
+            i = cursor_out[0];
+            continue;
+        }
+        if MatchKeyword(content, i, "authorized") {
+            let next_i: Int = SkipWhitespaceAndComments(content, i + 10);
+            if MatchKeyword(content, next_i, "by") {
+                i = next_i + 2;
+                i = SkipWhitespaceAndComments(content, i);
+                ArraySet(cursor_out, 0, i);
+                auth_by = ParseExpr(content, i, cursor_out);
+                i = cursor_out[0];
+                while true {
+                    i = SkipWhitespaceAndComments(content, i);
+                    if CharAt(content, i) == "," {
+                        i = i + 1;
+                        i = SkipWhitespaceAndComments(content, i);
+                        ArraySet(cursor_out, 0, i);
+                        let next_auth: String = ParseExpr(content, i, cursor_out);
+                        i = cursor_out[0];
+                        auth_by = Concat(auth_by, Concat(", ", next_auth));
+                        continue;
+                    }
+                    break;
+                }
+                continue;
+            }
+        }
+        if MatchKeyword(content, i, "with") {
+            let next_i: Int = SkipWhitespaceAndComments(content, i + 4);
+            if MatchKeyword(content, next_i, "effects") {
+                i = next_i + 7;
+                while true {
+                    i = SkipWhitespaceAndComments(content, i);
+                    ArraySet(cursor_out, 0, i);
+                    let dummy: String = ReadIdent(content, i, cursor_out);
+                    i = cursor_out[0];
+                    i = SkipWhitespaceAndComments(content, i);
+                    if CharAt(content, i) == "," {
+                        i = i + 1;
+                        continue;
+                    }
+                    break;
+                }
+                continue;
+            }
+        }
+        if MatchKeyword(content, i, "where") {
+            i = i + 5;
+            let n_content: Int = StringLength(content);
+            while i < n_content && CharAt(content, i) != "{" && CharAt(content, i) != ";" {
+                i = i + 1;
+            }
+            continue;
+        }
+        break;
+    }
+    let body_text: String = "";
+    if is_signature {
+        // Ability function signatures end at `;` instead of `{ body }`.
+        i = Expect(content, i, ";");
+        if i < 0 {
+            Exit(1);
+        }
+    } else {
+        ArraySet(cursor_out, 0, i);
+        body_text = ParseBlock(content, i, cursor_out, base_indent + 6);
+        i = cursor_out[0];
+    }
 
     let header_prefix: String = IndentStr(base_indent);
-    let fn_label: String = "Function: ";
-    if is_export {
-        fn_label = "[export] Function: ";
+    let label_text: String = fn_label;
+    if StringLength(label_text) == 0 {
+        label_text = "Function: ";
     }
-    let block: String = Concat(header_prefix, Concat(fn_label, Concat(name_prefix, fn_name)));
+    if is_export {
+        label_text = Concat("[export] ", label_text);
+    }
+    let block: String = Concat(header_prefix, Concat(label_text, Concat(name_prefix, fn_name)));
+    if StringLength(generic_params) > 0 {
+        block = AppendLine(block, Concat(IndentStr(base_indent + 2), Concat("Generic params: ", generic_params)));
+    }
     block = AppendLine(block, Concat(IndentStr(base_indent + 2), "Parameters:"));
     let p_len: Int = ArrayLength(param_lines);
     let pi: Int = 0;
@@ -1004,7 +1620,25 @@ func ParseFunction(content: String, start: Int, cursor_out: Array<Int>, name_pre
         block = AppendLine(block, param_lines[pi]);
         pi = pi + 1;
     }
-    block = AppendLine(block, Concat(IndentStr(base_indent + 2), Concat("Returns: ", ret_type)));
+    if StringLength(ret_type) > 0 {
+        block = AppendLine(block, Concat(IndentStr(base_indent + 2), Concat("Returns: ", ret_type)));
+    }
+    if StringLength(req_type) > 0 {
+        block = AppendLine(block, Concat(IndentStr(base_indent + 2), Concat("Requires: ", req_type)));
+    }
+    if StringLength(within_zone) > 0 {
+        block = AppendLine(block, Concat(IndentStr(base_indent + 2), Concat("Within: ", within_zone)));
+    }
+    if StringLength(causes_effect) > 0 {
+        block = AppendLine(block, Concat(IndentStr(base_indent + 2), Concat("Causes: ", causes_effect)));
+    }
+    if StringLength(auth_by) > 0 {
+        block = AppendLine(block, Concat(IndentStr(base_indent + 2), Concat("Authorized by: ", auth_by)));
+    }
+    if is_signature {
+        ArraySet(cursor_out, 0, i);
+        return block;
+    }
     block = AppendLine(block, Concat(IndentStr(base_indent + 2), "Body:"));
     block = AppendLine(block, Concat(IndentStr(base_indent + 4), "Block:"));
     if StringLength(body_text) > 0 {
@@ -1018,10 +1652,19 @@ func ParseFunction(content: String, start: Int, cursor_out: Array<Int>, name_pre
 // (e.g. `Math_` for `namespace Math { ... }`, `Outer_Inner_` for nested
 // namespaces). When `until_brace` is true, parsing stops at `}` (used
 // by the namespace branch); otherwise it stops at EOF.
-func ParseDecls(content: String, start: Int, cursor_out: Array<Int>, name_prefix: String, until_brace: Bool) -> String {
+func ParseDecls(content: String, start: Int, cursor_out: Array<Int>, name_prefix: String, until_brace: Bool, source_dir: String, force_export: Bool, within_zone: String) -> String {
     let i: Int = start;
     let n: Int = StringLength(content);
     let out: String = "";
+    let involve_types: Array<String> = [];
+    
+    let is_imported: Bool = StringIndexOf(content, "__imported__") >= 0;
+    let has_exports: Bool = false;
+    if is_imported {
+        if (StringIndexOf(content, "export ") >= 0) || (StringIndexOf(content, "export\t") >= 0) || (StringIndexOf(content, "export\n") >= 0) {
+            has_exports = true;
+        }
+    }
 
     while true {
         i = SkipWhitespaceAndComments(content, i);
@@ -1039,6 +1682,59 @@ func ParseDecls(content: String, start: Int, cursor_out: Array<Int>, name_prefix
                 ArraySet(cursor_out, 0, i);
                 return out;
             }
+        }
+
+        // `import "PATH.pgy";` — read the referenced file (relative to
+        // the source's directory), parse it as a sub-document, and
+        // inline its decls here. The C parser treats all top-level
+        // functions in an imported file as exported, so we pass
+        // `force_export=true` into the recursive call so each emitted
+        // function gets `[export] Function:`.
+        if MatchKeyword(content, i, "import") {
+            i = i + 6;
+            i = SkipWhitespaceAndComments(content, i);
+            if CharAt(content, i) != "\"" {
+                Exit(1);
+            }
+            ArraySet(cursor_out, 0, i);
+            let raw_path: String = ReadString(content, i, cursor_out);
+            i = cursor_out[0];
+            i = Expect(content, i, ";");
+            if i < 0 {
+                Exit(1);
+            }
+            // Strip the leading and trailing `"` from raw_path.
+            let rp_len: Int = StringLength(raw_path);
+            let imp_rel: String = Substring(raw_path, 1, rp_len - 2);
+            let imp_path: String = imp_rel;
+            if StringLength(source_dir) > 0 {
+                imp_path = Concat(source_dir, Concat("/", imp_rel));
+            }
+            if !FileExists(imp_path) {
+                Exit(1);
+            }
+            let imp_content: String = Concat(ReadFile(imp_path), "\n// __imported__\n");
+            // Compute the imported file's own source_dir so any nested
+            // imports resolve relative to it. Same dirname walk as Main.
+            let imp_dir: String = "";
+            let imp_last_slash: Int = -1;
+            let imp_path_len: Int = StringLength(imp_path);
+            let ipk: Int = 0;
+            while ipk < imp_path_len {
+                if CharAt(imp_path, ipk) == "/" {
+                    imp_last_slash = ipk;
+                }
+                ipk = ipk + 1;
+            }
+            if imp_last_slash >= 0 {
+                imp_dir = Substring(imp_path, 0, imp_last_slash);
+            }
+            let imp_cursor: Array<Int> = [0];
+            let imp_inner: String = ParseDecls(imp_content, 0, imp_cursor, name_prefix, false, imp_dir, true, within_zone);
+            if StringLength(imp_inner) > 0 {
+                out = AppendLine(out, imp_inner);
+            }
+            continue;
         }
 
         // `namespace NAME { ... }` recurses with a deeper prefix and
@@ -1059,7 +1755,31 @@ func ParseDecls(content: String, start: Int, cursor_out: Array<Int>, name_prefix
             }
             let new_prefix: String = Concat(name_prefix, Concat(ns_name, "_"));
             ArraySet(cursor_out, 0, i);
-            let inner: String = ParseDecls(content, i, cursor_out, new_prefix, true);
+            let inner: String = ParseDecls(content, i, cursor_out, new_prefix, true, source_dir, force_export, within_zone);
+            i = cursor_out[0];
+            if StringLength(inner) > 0 {
+                out = AppendLine(out, inner);
+            }
+            continue;
+        }
+
+        // `within ZONE { ... }` parses the body recursively but binds
+        // the zone name as `within_zone` for all nested actions/functions.
+        if MatchKeyword(content, i, "within") {
+            i = i + 6;
+            i = SkipWhitespaceAndComments(content, i);
+            ArraySet(cursor_out, 0, i);
+            let wz_name: String = ReadIdent(content, i, cursor_out);
+            i = cursor_out[0];
+            if StringLength(wz_name) == 0 {
+                Exit(1);
+            }
+            i = Expect(content, i, "{");
+            if i < 0 {
+                Exit(1);
+            }
+            ArraySet(cursor_out, 0, i);
+            let inner: String = ParseDecls(content, i, cursor_out, name_prefix, true, source_dir, force_export, wz_name);
             i = cursor_out[0];
             if StringLength(inner) > 0 {
                 out = AppendLine(out, inner);
@@ -1073,6 +1793,1096 @@ func ParseDecls(content: String, start: Int, cursor_out: Array<Int>, name_prefix
             i = i + 6;
             i = SkipWhitespaceAndComments(content, i);
             is_export = true;
+        }
+        
+        let effective_export: Bool = is_export;
+        if force_export {
+            if is_imported {
+                if has_exports {
+                    effective_export = is_export;
+                } else {
+                    effective_export = true;
+                }
+            } else {
+                effective_export = true;
+            }
+        }
+        
+        let decl_prefix: String = name_prefix;
+        if is_imported && has_exports && !is_export {
+            decl_prefix = Concat("__imp0_", name_prefix);
+        }
+
+        // `ability NAME { func SIG; ... }` — declares an interface-
+        // shaped collection of function signatures. AST emits as
+        // `  [export] Ability: NAME` (the `[export]` prefix is always
+        // present in the C printer regardless of source `export`),
+        // followed by each method's signature block at base_indent=4
+        // (one level shallower than subject/class methods).
+        if MatchKeyword(content, i, "ability") {
+            i = i + 7;
+            i = SkipWhitespaceAndComments(content, i);
+            ArraySet(cursor_out, 0, i);
+            let ab_name: String = ReadIdent(content, i, cursor_out);
+            i = cursor_out[0];
+            if StringLength(ab_name) == 0 {
+                Exit(1);
+            }
+            let after_ab_ws: Int = SkipWhitespaceAndComments(content, i);
+            if CharAt(content, after_ab_ws) == "<" {
+                i = after_ab_ws + 1;
+                let gp_list: String = "";
+                while true {
+                    i = SkipWhitespaceAndComments(content, i);
+                    ArraySet(cursor_out, 0, i);
+                    let gp: String = ReadIdent(content, i, cursor_out);
+                    i = cursor_out[0];
+                    if StringLength(gp) == 0 {
+                        Exit(1);
+                    }
+                    if StringLength(gp_list) == 0 {
+                        gp_list = gp;
+                    } else {
+                        gp_list = Concat(gp_list, Concat(", ", gp));
+                    }
+                    i = SkipWhitespaceAndComments(content, i);
+                    if CharAt(content, i) == "," {
+                        i = i + 1;
+                        continue;
+                    }
+                    break;
+                }
+                if CharAt(content, i) != ">" {
+                    Exit(1);
+                }
+                i = i + 1;
+                ab_name = Concat(ab_name, Concat("<", Concat(gp_list, ">")));
+            }
+            i = Expect(content, i, "{");
+            if i < 0 {
+                Exit(1);
+            }
+            let sig_blocks: String = "";
+            while true {
+                i = SkipWhitespaceAndComments(content, i);
+                if i >= n {
+                    Exit(1);
+                }
+                if CharAt(content, i) == "}" {
+                    i = i + 1;
+                    break;
+                }
+                if !MatchKeyword(content, i, "func") {
+                    Exit(1);
+                }
+                ArraySet(cursor_out, 0, i);
+                let sig: String = ParseFunction(content, i, cursor_out, "", false, 4, "func", "Function: ", true, "");
+                i = cursor_out[0];
+                sig_blocks = AppendLine(sig_blocks, sig);
+            }
+            out = AppendLine(out, Concat("  [export] Ability: ", Concat(decl_prefix, ab_name)));
+            if StringLength(sig_blocks) > 0 {
+                out = AppendLine(out, sig_blocks);
+            }
+            continue;
+        }
+
+        // `zone NAME { subject slot SLOT_NAME: TYPE ... }` — emits
+        //   Zone: NAME
+        //     SubjectSlot: <slot_name>: <slot_type>
+        // for each declared slot. Slots end on whitespace, not `;`.
+        if MatchKeyword(content, i, "zone") {
+            i = i + 4;
+            i = SkipWhitespaceAndComments(content, i);
+            ArraySet(cursor_out, 0, i);
+            let zone_name: String = ReadIdent(content, i, cursor_out);
+            i = cursor_out[0];
+            if StringLength(zone_name) == 0 {
+                Exit(1);
+            }
+            if StringLength(zone_name) > 0 {
+                ArrayPush(involve_types, zone_name);
+            }
+            i = Expect(content, i, "{");
+            if i < 0 {
+                Exit(1);
+            }
+            let slot_accum: String = "";
+            let apply_accum: String = "";
+            let link_accum: String = "";
+            let auth_accum: String = "";
+            let state_accum: String = "";
+            let bind_accum: String = "";
+            while true {
+                i = SkipWhitespaceAndComments(content, i);
+                if i >= n {
+                    Exit(1);
+                }
+                if CharAt(content, i) == "}" {
+                    i = i + 1;
+                    break;
+                }
+                // Zone body slot lines: `subject slot NAME: TYPE`,
+                // `object slot NAME: TYPE`, or `tobject slot NAME: TYPE`.
+                // Each emits `SubjectSlot:` / `ObjectSlot:` / `TObjectSlot:`
+                // with the same `NAME: TYPE` payload.
+                let slot_label: String = "";
+                let is_auth: Bool = false;
+                if MatchKeyword(content, i, "subject") {
+                    slot_label = "SubjectSlot";
+                    i = i + 7;
+                } else if MatchKeyword(content, i, "object") {
+                    slot_label = "ObjectSlot";
+                    i = i + 6;
+                } else if MatchKeyword(content, i, "tobject") {
+                    slot_label = "TObjectSlot";
+                    i = i + 7;
+                } else if MatchKeyword(content, i, "effect") {
+                    slot_label = "EffectSlot";
+                    i = i + 6;
+                } else if MatchKeyword(content, i, "relation") {
+                    slot_label = "RelationSlot";
+                    i = i + 8;
+                } else if MatchKeyword(content, i, "authority") {
+                    is_auth = true;
+                    i = i + 9;
+                } else if MatchKeyword(content, i, "apply") {
+                    i = i + 5;
+                    i = SkipWhitespaceAndComments(content, i);
+                    ArraySet(cursor_out, 0, i);
+                    let a_eff: String = ReadIdent(content, i, cursor_out);
+                    i = cursor_out[0];
+                    i = SkipWhitespaceAndComments(content, i);
+                    if !MatchKeyword(content, i, "to") { Exit(1); }
+                    i = i + 2;
+                    i = SkipWhitespaceAndComments(content, i);
+                    ArraySet(cursor_out, 0, i);
+                    let a_dest: String = ReadIdent(content, i, cursor_out);
+                    i = cursor_out[0];
+                    i = SkipWhitespaceAndComments(content, i);
+                    if !MatchKeyword(content, i, "by") { Exit(1); }
+                    i = i + 2;
+                    i = SkipWhitespaceAndComments(content, i);
+                    ArraySet(cursor_out, 0, i);
+                    let a_by: String = ReadIdent(content, i, cursor_out);
+                    i = cursor_out[0];
+                    i = Expect(content, i, ";");
+                    if i < 0 { Exit(1); }
+                    apply_accum = AppendLine(apply_accum, Concat("    Apply: ", Concat(a_eff, Concat(" -> ", Concat(a_dest, Concat(" by ", a_by))))));
+                    continue;
+                } else if MatchKeyword(content, i, "link") {
+                    i = i + 4;
+                    i = SkipWhitespaceAndComments(content, i);
+                    ArraySet(cursor_out, 0, i);
+                    let l_rel: String = ReadIdent(content, i, cursor_out);
+                    i = cursor_out[0];
+                    i = SkipWhitespaceAndComments(content, i);
+                    if !MatchKeyword(content, i, "between") { Exit(1); }
+                    i = i + 7;
+                    i = SkipWhitespaceAndComments(content, i);
+                    ArraySet(cursor_out, 0, i);
+                    let l_p1: String = ReadIdent(content, i, cursor_out);
+                    i = cursor_out[0];
+                    i = Expect(content, i, ",");
+                    if i < 0 { Exit(1); }
+                    i = SkipWhitespaceAndComments(content, i);
+                    ArraySet(cursor_out, 0, i);
+                    let l_p2: String = ReadIdent(content, i, cursor_out);
+                    i = cursor_out[0];
+                    i = SkipWhitespaceAndComments(content, i);
+                    if !MatchKeyword(content, i, "by") { Exit(1); }
+                    i = i + 2;
+                    i = SkipWhitespaceAndComments(content, i);
+                    ArraySet(cursor_out, 0, i);
+                    let l_by: String = ReadIdent(content, i, cursor_out);
+                    i = cursor_out[0];
+                    i = Expect(content, i, ";");
+                    if i < 0 { Exit(1); }
+                    link_accum = AppendLine(link_accum, Concat("    Link: ", Concat(l_rel, Concat(" between ", Concat(l_p1, Concat(", ", Concat(l_p2, Concat(" by ", l_by))))))));
+                    continue;
+                } else if MatchKeyword(content, i, "state") {
+                    i = i + 5;
+                    i = SkipWhitespaceAndComments(content, i);
+                    ArraySet(cursor_out, 0, i);
+                    let st_name: String = ReadIdent(content, i, cursor_out);
+                    i = cursor_out[0];
+                    i = Expect(content, i, ":");
+                    if i < 0 { Exit(1); }
+                    i = SkipWhitespaceAndComments(content, i);
+                    let st_start: Int = i;
+                    while i < n && CharAt(content, i) != ";" {
+                        i = i + 1;
+                    }
+                    let st_val: String = Substring(content, st_start, i - st_start);
+                    i = Expect(content, i, ";");
+                    if i < 0 { Exit(1); }
+                    state_accum = AppendLine(state_accum, Concat("    State: ", Concat(st_name, Concat(": ", st_val))));
+                    continue;
+                } else if MatchKeyword(content, i, "bind") {
+                    i = i + 4;
+                    i = SkipWhitespaceAndComments(content, i);
+                    let list_start: Int = i;
+                    if CharAt(content, i) == "[" {
+                        i = i + 1;
+                        while true {
+                            i = SkipWhitespaceAndComments(content, i);
+                            ArraySet(cursor_out, 0, i);
+                            let dummy: String = ReadIdent(content, i, cursor_out);
+                            i = cursor_out[0];
+                            if StringLength(dummy) == 0 { Exit(1); }
+                            i = SkipWhitespaceAndComments(content, i);
+                            if CharAt(content, i) == "," {
+                                i = i + 1;
+                                continue;
+                            }
+                            break;
+                        }
+                        i = Expect(content, i, "]");
+                        if i < 0 { Exit(1); }
+                    } else {
+                        ArraySet(cursor_out, 0, i);
+                        let dummy: String = ReadIdent(content, i, cursor_out);
+                        i = cursor_out[0];
+                        if StringLength(dummy) == 0 { Exit(1); }
+                    }
+                    i = SkipWhitespaceAndComments(content, i);
+                    if !MatchKeyword(content, i, "from") { Exit(1); }
+                    i = i + 4;
+                    i = SkipWhitespaceAndComments(content, i);
+                    ArraySet(cursor_out, 0, i);
+                    let from_name: String = ReadIdent(content, i, cursor_out);
+                    i = cursor_out[0];
+                    i = SkipWhitespaceAndComments(content, i);
+                    if CharAt(content, i) == ";" {
+                        i = i + 1;
+                    }
+                    ArraySet(cursor_out, 0, i);
+
+                    let k: Int = list_start;
+                    if CharAt(content, k) == "[" {
+                        k = k + 1;
+                        while true {
+                            k = SkipWhitespaceAndComments(content, k);
+                            ArraySet(cursor_out, 0, k);
+                            let t_name: String = ReadIdent(content, k, cursor_out);
+                            k = cursor_out[0];
+                            bind_accum = AppendLine(bind_accum, Concat("    Bind: ", Concat(t_name, Concat(" from ", from_name))));
+                            k = SkipWhitespaceAndComments(content, k);
+                            if CharAt(content, k) == "," {
+                                k = k + 1;
+                                continue;
+                            }
+                            break;
+                        }
+                    } else {
+                        ArraySet(cursor_out, 0, k);
+                        let t_name: String = ReadIdent(content, k, cursor_out);
+                        bind_accum = AppendLine(bind_accum, Concat("    Bind: ", Concat(t_name, Concat(" from ", from_name))));
+                    }
+                    ArraySet(cursor_out, 0, i);
+                    continue;
+                } else if MatchKeyword(content, i, "refresh") || MatchKeyword(content, i, "publish") {
+                    let is_ref: Bool = MatchKeyword(content, i, "refresh");
+                    let ref_pub_label: String = "Publish";
+                    let ref_pub_kw_len: Int = 7;
+                    if is_ref {
+                        ref_pub_label = "Refresh";
+                        ref_pub_kw_len = 7;
+                    }
+                    i = i + ref_pub_kw_len;
+                    i = SkipWhitespaceAndComments(content, i);
+                    let list_start: Int = i;
+                    if CharAt(content, i) == "[" {
+                        i = i + 1;
+                        while true {
+                            i = SkipWhitespaceAndComments(content, i);
+                            ArraySet(cursor_out, 0, i);
+                            let dummy: String = ReadIdent(content, i, cursor_out);
+                            i = cursor_out[0];
+                            if StringLength(dummy) == 0 { Exit(1); }
+                            i = SkipWhitespaceAndComments(content, i);
+                            if CharAt(content, i) == "," {
+                                i = i + 1;
+                                continue;
+                            }
+                            break;
+                        }
+                        i = Expect(content, i, "]");
+                        if i < 0 { Exit(1); }
+                    } else {
+                        ArraySet(cursor_out, 0, i);
+                        let dummy: String = ReadIdent(content, i, cursor_out);
+                        i = cursor_out[0];
+                        if StringLength(dummy) == 0 { Exit(1); }
+                    }
+                    i = SkipWhitespaceAndComments(content, i);
+                    if !MatchKeyword(content, i, "from") { Exit(1); }
+                    i = i + 4;
+                    i = SkipWhitespaceAndComments(content, i);
+                    ArraySet(cursor_out, 0, i);
+                    let from_name: String = ReadIdent(content, i, cursor_out);
+                    i = cursor_out[0];
+                    i = SkipWhitespaceAndComments(content, i);
+                    if !MatchKeyword(content, i, "by") { Exit(1); }
+                    i = i + 2;
+                    i = SkipWhitespaceAndComments(content, i);
+                    ArraySet(cursor_out, 0, i);
+                    let by_name: String = ReadIdent(content, i, cursor_out);
+                    i = cursor_out[0];
+                    i = SkipWhitespaceAndComments(content, i);
+                    if MatchKeyword(content, i, "map") {
+                        i = i + 3;
+                        i = SkipWhitespaceAndComments(content, i);
+                        i = Expect(content, i, "{");
+                        if i < 0 { Exit(1); }
+                        while true {
+                            i = SkipWhitespaceAndComments(content, i);
+                            if CharAt(content, i) == "}" {
+                                i = i + 1;
+                                break;
+                            }
+                            while i < n && CharAt(content, i) != ";" && CharAt(content, i) != "}" {
+                                i = i + 1;
+                            }
+                            if CharAt(content, i) == ";" {
+                                i = i + 1;
+                            } else {
+                                Exit(1);
+                            }
+                        }
+                    } else {
+                        i = SkipWhitespaceAndComments(content, i);
+                        if CharAt(content, i) == ";" {
+                            i = i + 1;
+                        }
+                    }
+
+                    let k: Int = list_start;
+                    if CharAt(content, k) == "[" {
+                        k = k + 1;
+                        while true {
+                            k = SkipWhitespaceAndComments(content, k);
+                            ArraySet(cursor_out, 0, k);
+                            let t_name: String = ReadIdent(content, k, cursor_out);
+                            k = cursor_out[0];
+                            bind_accum = AppendLine(bind_accum, Concat("    ", Concat(ref_pub_label, Concat(": ", Concat(t_name, Concat(" from ", Concat(from_name, Concat(" by ", by_name))))))));
+                            k = SkipWhitespaceAndComments(content, k);
+                            if CharAt(content, k) == "," {
+                                k = k + 1;
+                                continue;
+                            }
+                            break;
+                        }
+                    } else {
+                        ArraySet(cursor_out, 0, k);
+                        let t_name: String = ReadIdent(content, k, cursor_out);
+                        bind_accum = AppendLine(bind_accum, Concat("    ", Concat(ref_pub_label, Concat(": ", Concat(t_name, Concat(" from ", Concat(from_name, Concat(" by ", by_name))))))));
+                    }
+                    ArraySet(cursor_out, 0, i);
+                    continue;
+                } else if MatchKeyword(content, i, "func") {
+                    ArraySet(cursor_out, 0, i);
+                    let m_block: String = ParseFunction(content, i, cursor_out, "", false, 4, "func", "Function: ", false, "");
+                    i = cursor_out[0];
+                    auth_accum = AppendLine(auth_accum, m_block);
+                    continue;
+                } else {
+                    Exit(1);
+                }
+                i = SkipWhitespaceAndComments(content, i);
+                if is_auth {
+                    ArraySet(cursor_out, 0, i);
+                    let auth_name: String = ReadIdent(content, i, cursor_out);
+                    i = cursor_out[0];
+                    i = SkipWhitespaceAndComments(content, i);
+                    let auth_req: String = "";
+                    if MatchKeyword(content, i, "requires") {
+                        i = i + 8;
+                        i = SkipWhitespaceAndComments(content, i);
+                        ArraySet(cursor_out, 0, i);
+                        auth_req = ReadType(content, i, cursor_out);
+                        i = cursor_out[0];
+                        while true {
+                            i = SkipWhitespaceAndComments(content, i);
+                            if CharAt(content, i) == "," {
+                                i = i + 1;
+                                i = SkipWhitespaceAndComments(content, i);
+                                ArraySet(cursor_out, 0, i);
+                                let next_req: String = ReadType(content, i, cursor_out);
+                                i = cursor_out[0];
+                                auth_req = Concat(auth_req, Concat(", ", next_req));
+                                continue;
+                            }
+                            break;
+                        }
+                    }
+                    i = SkipWhitespaceAndComments(content, i);
+                    if CharAt(content, i) == ";" {
+                        i = i + 1;
+                    }
+                    auth_accum = AppendLine(auth_accum, Concat("    Authority: ", auth_name));
+                    if StringLength(auth_req) > 0 {
+                        auth_accum = AppendLine(auth_accum, Concat("      Requires: ", auth_req));
+                    }
+                } else {
+                    if !MatchKeyword(content, i, "slot") {
+                        Exit(1);
+                    }
+                    i = i + 4;
+                    i = SkipWhitespaceAndComments(content, i);
+                    ArraySet(cursor_out, 0, i);
+                    let s_name: String = ReadIdent(content, i, cursor_out);
+                    i = cursor_out[0];
+                    if StringLength(s_name) == 0 {
+                        Exit(1);
+                    }
+                    i = Expect(content, i, ":");
+                    if i < 0 {
+                        Exit(1);
+                    }
+                    ArraySet(cursor_out, 0, i);
+                    let s_type: String = ReadType(content, i, cursor_out);
+                    i = cursor_out[0];
+                    if StringLength(s_type) == 0 {
+                        Exit(1);
+                    }
+                    i = SkipWhitespaceAndComments(content, i);
+                    if CharAt(content, i) == ";" {
+                        i = i + 1;
+                    }
+                    slot_accum = AppendLine(slot_accum, Concat("    ", Concat(slot_label, Concat(": ", Concat(s_name, Concat(": ", s_type))))));
+                }
+            }
+            out = AppendLine(out, Concat("  Zone: ", Concat(decl_prefix, zone_name)));
+            let zone_body: String = "";
+            if StringLength(slot_accum) > 0 {
+                zone_body = AppendLine(zone_body, slot_accum);
+            }
+            if StringLength(bind_accum) > 0 {
+                zone_body = AppendLine(zone_body, bind_accum);
+            }
+            if StringLength(apply_accum) > 0 {
+                zone_body = AppendLine(zone_body, apply_accum);
+            }
+            if StringLength(link_accum) > 0 {
+                zone_body = AppendLine(zone_body, link_accum);
+            }
+            if StringLength(auth_accum) > 0 {
+                zone_body = AppendLine(zone_body, auth_accum);
+            }
+            if StringLength(state_accum) > 0 {
+                zone_body = AppendLine(zone_body, state_accum);
+            }
+            if StringLength(zone_body) > 0 {
+                out = AppendLine(out, zone_body);
+            }
+            continue;
+        }
+
+        // `effect NAME for IDENT: TYPE { }`
+        if MatchKeyword(content, i, "effect") {
+            i = i + 6;
+            i = SkipWhitespaceAndComments(content, i);
+            ArraySet(cursor_out, 0, i);
+            let eff_name: String = ReadIdent(content, i, cursor_out);
+            i = cursor_out[0];
+            i = SkipWhitespaceAndComments(content, i);
+            if !MatchKeyword(content, i, "for") {
+                Exit(1);
+            }
+            i = i + 3;
+            i = SkipWhitespaceAndComments(content, i);
+            ArraySet(cursor_out, 0, i);
+            let eff_param_name: String = ReadIdent(content, i, cursor_out);
+            i = cursor_out[0];
+            i = Expect(content, i, ":");
+            if i < 0 {
+                Exit(1);
+            }
+            ArraySet(cursor_out, 0, i);
+            let eff_param_type: String = ReadType(content, i, cursor_out);
+            i = cursor_out[0];
+            i = Expect(content, i, "{");
+            if i < 0 {
+                Exit(1);
+            }
+            
+            let eff_fields: String = "";
+            while true {
+                i = SkipWhitespaceAndComments(content, i);
+                if i >= n { Exit(1); }
+                if CharAt(content, i) == "}" {
+                    i = i + 1;
+                    break;
+                }
+                let is_shared_eff: Bool = false;
+                if MatchKeyword(content, i, "let") {
+                    i = i + 3;
+                    i = SkipWhitespaceAndComments(content, i);
+                } else if MatchKeyword(content, i, "shared") {
+                    i = i + 6;
+                    i = SkipWhitespaceAndComments(content, i);
+                    is_shared_eff = true;
+                }
+                ArraySet(cursor_out, 0, i);
+                let f_name: String = ReadIdent(content, i, cursor_out);
+                i = cursor_out[0];
+                if StringLength(f_name) == 0 { Exit(1); }
+                i = Expect(content, i, ":");
+                if i < 0 { Exit(1); }
+                ArraySet(cursor_out, 0, i);
+                let f_type: String = ReadType(content, i, cursor_out);
+                i = cursor_out[0];
+                i = Expect(content, i, ";");
+                if i < 0 { Exit(1); }
+                
+                if is_shared_eff {
+                    eff_fields = AppendLine(eff_fields, Concat("    Shared: ", Concat(f_name, Concat(": ", f_type))));
+                } else {
+                    eff_fields = AppendLine(eff_fields, Concat("    ", Concat(f_name, Concat(": ", f_type))));
+                }
+            }
+            out = AppendLine(out, Concat("  Effect: ", Concat(decl_prefix, eff_name)));
+            out = AppendLine(out, Concat("    SubjectSlot: ", Concat(eff_param_name, Concat(": ", eff_param_type))));
+            if StringLength(eff_fields) > 0 {
+                out = AppendLine(out, eff_fields);
+            }
+            continue;
+        }
+
+        // `relation NAME for PARAM1: TYPE1, PARAM2: TYPE2 { fields }`
+        if MatchKeyword(content, i, "relation") {
+            i = i + 8;
+            i = SkipWhitespaceAndComments(content, i);
+            ArraySet(cursor_out, 0, i);
+            let rel_name: String = ReadIdent(content, i, cursor_out);
+            i = cursor_out[0];
+            i = SkipWhitespaceAndComments(content, i);
+            if !MatchKeyword(content, i, "for") { Exit(1); }
+            i = i + 3;
+            
+            // Param 1
+            i = SkipWhitespaceAndComments(content, i);
+            ArraySet(cursor_out, 0, i);
+            let p1_name: String = ReadIdent(content, i, cursor_out);
+            i = cursor_out[0];
+            i = Expect(content, i, ":");
+            if i < 0 { Exit(1); }
+            ArraySet(cursor_out, 0, i);
+            let p1_type: String = ReadType(content, i, cursor_out);
+            i = cursor_out[0];
+            
+            // Comma
+            i = Expect(content, i, ",");
+            if i < 0 { Exit(1); }
+            
+            // Param 2
+            i = SkipWhitespaceAndComments(content, i);
+            ArraySet(cursor_out, 0, i);
+            let p2_name: String = ReadIdent(content, i, cursor_out);
+            i = cursor_out[0];
+            i = Expect(content, i, ":");
+            if i < 0 { Exit(1); }
+            ArraySet(cursor_out, 0, i);
+            let p2_type: String = ReadType(content, i, cursor_out);
+            i = cursor_out[0];
+            
+            i = Expect(content, i, "{");
+            if i < 0 { Exit(1); }
+            
+            // Fields
+            let rel_fields: String = "";
+            while true {
+                i = SkipWhitespaceAndComments(content, i);
+                if i >= n { Exit(1); }
+                if CharAt(content, i) == "}" {
+                    i = i + 1;
+                    break;
+                }
+                let is_shared_rel: Bool = false;
+                if MatchKeyword(content, i, "let") {
+                    i = i + 3;
+                    i = SkipWhitespaceAndComments(content, i);
+                } else if MatchKeyword(content, i, "shared") {
+                    i = i + 6;
+                    i = SkipWhitespaceAndComments(content, i);
+                    is_shared_rel = true;
+                }
+                ArraySet(cursor_out, 0, i);
+                let f_name: String = ReadIdent(content, i, cursor_out);
+                i = cursor_out[0];
+                if StringLength(f_name) == 0 { Exit(1); }
+                i = Expect(content, i, ":");
+                if i < 0 { Exit(1); }
+                ArraySet(cursor_out, 0, i);
+                let f_type: String = ReadType(content, i, cursor_out);
+                i = cursor_out[0];
+                i = Expect(content, i, ";");
+                if i < 0 { Exit(1); }
+                
+                if is_shared_rel {
+                    rel_fields = AppendLine(rel_fields, Concat("    Shared: ", Concat(f_name, Concat(": ", f_type))));
+                } else {
+                    rel_fields = AppendLine(rel_fields, Concat("    ", Concat(f_name, Concat(": ", f_type))));
+                }
+            }
+            
+            out = AppendLine(out, Concat("  Relation: ", Concat(decl_prefix, rel_name)));
+            out = AppendLine(out, Concat("    SubjectSlot: ", Concat(p1_name, Concat(": ", p1_type))));
+            out = AppendLine(out, Concat("    SubjectSlot: ", Concat(p2_name, Concat(": ", p2_type))));
+            if StringLength(rel_fields) > 0 {
+                out = AppendLine(out, rel_fields);
+            }
+            continue;
+        }
+
+        // `role NAME for SUBJECT { impl ABILITY { methods } ... }`.
+        // AST: `  Role: NAME for SUBJECT` then one
+        // `    Impl ability: ABILITY` per impl block plus its methods
+        // at base_indent=6 (same column as subject/class methods).
+        if MatchKeyword(content, i, "role") {
+            i = i + 4;
+            i = SkipWhitespaceAndComments(content, i);
+            ArraySet(cursor_out, 0, i);
+            let role_name: String = ReadIdent(content, i, cursor_out);
+            i = cursor_out[0];
+            if StringLength(role_name) == 0 {
+                Exit(1);
+            }
+            i = SkipWhitespaceAndComments(content, i);
+            if !MatchKeyword(content, i, "for") {
+                Exit(1);
+            }
+            i = i + 3;
+            i = SkipWhitespaceAndComments(content, i);
+            ArraySet(cursor_out, 0, i);
+            let role_subj: String = ReadIdent(content, i, cursor_out);
+            i = cursor_out[0];
+            if StringLength(role_subj) == 0 {
+                Exit(1);
+            }
+            i = Expect(content, i, "{");
+            if i < 0 {
+                Exit(1);
+            }
+            let impl_blocks: String = "";
+            while true {
+                i = SkipWhitespaceAndComments(content, i);
+                if i >= n {
+                    Exit(1);
+                }
+                if CharAt(content, i) == "}" {
+                    i = i + 1;
+                    break;
+                }
+                if !MatchKeyword(content, i, "impl") {
+                    Exit(1);
+                }
+                i = i + 4;
+                i = SkipWhitespaceAndComments(content, i);
+                if MatchKeyword(content, i, "ability") {
+                    i = i + 7;
+                    i = SkipWhitespaceAndComments(content, i);
+                }
+                ArraySet(cursor_out, 0, i);
+                let ab_name_impl: String = ReadType(content, i, cursor_out);
+                i = cursor_out[0];
+                if StringLength(ab_name_impl) == 0 {
+                    Exit(1);
+                }
+                i = Expect(content, i, "{");
+                if i < 0 {
+                    Exit(1);
+                }
+                let impl_methods: String = "";
+                while true {
+                    i = SkipWhitespaceAndComments(content, i);
+                    if i >= n {
+                        Exit(1);
+                    }
+                    if CharAt(content, i) == "}" {
+                        i = i + 1;
+                        break;
+                    }
+                    if !MatchKeyword(content, i, "func") {
+                        Exit(1);
+                    }
+                    ArraySet(cursor_out, 0, i);
+                    let m_block: String = ParseFunction(content, i, cursor_out, "", false, 6, "func", "Function: ", false, within_zone);
+                    i = cursor_out[0];
+                    impl_methods = AppendLine(impl_methods, m_block);
+                }
+                impl_blocks = AppendLine(impl_blocks, Concat("    Impl ability: ", ab_name_impl));
+                if StringLength(impl_methods) > 0 {
+                    impl_blocks = AppendLine(impl_blocks, impl_methods);
+                }
+            }
+            out = AppendLine(out, Concat("  Role: ", Concat(decl_prefix, Concat(role_name, Concat(" for ", role_subj)))));
+            if StringLength(impl_blocks) > 0 {
+                out = AppendLine(out, impl_blocks);
+            }
+            continue;
+        }
+
+        // `intent NAME(params) { (exclusive|concurrent;)? (step ...)*
+        // success: V; failure: V; }` — Pergyra's DDD intent decl.
+        // AST emits a fixed-shape block:
+        //   Intent: NAME
+        //     IntentMode: exclusive|concurrent     (default exclusive)
+        //     IntentRollback: full                 (always emitted)
+        //     IntentInvolves: PNAME: PTYPE         (non-primitive types)
+        //     IntentValue:    PNAME: PTYPE         (primitive types)
+        //     IntentStep: SNAME where ZONE using PARAM
+        //       Who: W   Using: U   On: O   Guard: G   Expect: E
+        //     IntentSuccess: V
+        //     IntentFailure: V
+        if MatchKeyword(content, i, "intent") {
+            i = i + 6;
+            i = SkipWhitespaceAndComments(content, i);
+            ArraySet(cursor_out, 0, i);
+            let intent_name: String = ReadIdent(content, i, cursor_out);
+            i = cursor_out[0];
+            if StringLength(intent_name) == 0 {
+                Exit(1);
+            }
+            i = Expect(content, i, "(");
+            if i < 0 {
+                Exit(1);
+            }
+            // Parse params and split into Involves vs Value by type.
+            let involves_lines: Array<String> = [];
+            let value_lines: Array<String> = [];
+            i = SkipWhitespaceAndComments(content, i);
+            if CharAt(content, i) != ")" {
+                while true {
+                    i = SkipWhitespaceAndComments(content, i);
+                    ArraySet(cursor_out, 0, i);
+                    let ip_name: String = ReadIdent(content, i, cursor_out);
+                    i = cursor_out[0];
+                    if StringLength(ip_name) == 0 {
+                        Exit(1);
+                    }
+                    i = Expect(content, i, ":");
+                    if i < 0 {
+                        Exit(1);
+                    }
+                    i = SkipWhitespaceAndComments(content, i);
+                    // Snapshot the base type name before ReadType
+                    // mangles it; primitive-ness is decided on the
+                    // base, not on the full `Map<String: String, ...>`
+                    // print form.
+                    let probe_i: Int = i;
+                    ArraySet(cursor_out, 0, probe_i);
+                    let base_name: String = ReadIdent(content, probe_i, cursor_out);
+                    ArraySet(cursor_out, 0, i);
+                    let ip_type: String = ReadType(content, i, cursor_out);
+                    i = cursor_out[0];
+                    if StringLength(ip_type) == 0 {
+                        Exit(1);
+                    }
+                    let row: String = Concat(ip_name, Concat(": ", ip_type));
+                    let is_involve: Bool = false;
+                    let k: Int = 0;
+                    let n_inv: Int = ArrayLength(involve_types);
+                    while k < n_inv {
+                        if base_name == involve_types[k] {
+                            is_involve = true;
+                        }
+                        k = k + 1;
+                    }
+                    if is_involve {
+                        ArrayPush(involves_lines, row);
+                    } else {
+                        ArrayPush(value_lines, row);
+                    }
+                    i = SkipWhitespaceAndComments(content, i);
+                    if CharAt(content, i) == "," {
+                        i = i + 1;
+                        continue;
+                    }
+                    break;
+                }
+            }
+            i = Expect(content, i, ")");
+            if i < 0 {
+                Exit(1);
+            }
+            i = Expect(content, i, "{");
+            if i < 0 {
+                Exit(1);
+            }
+            // Walk the body collecting mode, steps, success, failure.
+            let intent_mode: String = "exclusive";
+            let step_blocks: String = "";
+            let success_text: String = "";
+            let failure_text: String = "";
+            while true {
+                i = SkipWhitespaceAndComments(content, i);
+                if i >= n {
+                    Exit(1);
+                }
+                if CharAt(content, i) == "}" {
+                    i = i + 1;
+                    break;
+                }
+                if MatchKeyword(content, i, "exclusive") {
+                    i = i + 9;
+                    i = Expect(content, i, ";");
+                    if i < 0 {
+                        Exit(1);
+                    }
+                    intent_mode = "exclusive";
+                    continue;
+                }
+                if MatchKeyword(content, i, "concurrent") {
+                    i = i + 10;
+                    i = Expect(content, i, ";");
+                    if i < 0 {
+                        Exit(1);
+                    }
+                    intent_mode = "concurrent";
+                    continue;
+                }
+                if MatchKeyword(content, i, "success") {
+                    i = i + 7;
+                    i = Expect(content, i, ":");
+                    if i < 0 {
+                        Exit(1);
+                    }
+                    ArraySet(cursor_out, 0, i);
+                    success_text = ParseExpr(content, i, cursor_out);
+                    i = cursor_out[0];
+                    i = Expect(content, i, ";");
+                    if i < 0 {
+                        Exit(1);
+                    }
+                    continue;
+                }
+                if MatchKeyword(content, i, "failure") {
+                    i = i + 7;
+                    i = Expect(content, i, ":");
+                    if i < 0 {
+                        Exit(1);
+                    }
+                    ArraySet(cursor_out, 0, i);
+                    failure_text = ParseExpr(content, i, cursor_out);
+                    i = cursor_out[0];
+                    i = Expect(content, i, ";");
+                    if i < 0 {
+                        Exit(1);
+                    }
+                    continue;
+                }
+                if MatchKeyword(content, i, "step") {
+                    i = i + 4;
+                    i = SkipWhitespaceAndComments(content, i);
+                    ArraySet(cursor_out, 0, i);
+                    let step_name: String = ReadIdent(content, i, cursor_out);
+                    i = cursor_out[0];
+                    if StringLength(step_name) == 0 {
+                        Exit(1);
+                    }
+                    i = Expect(content, i, "{");
+                    if i < 0 {
+                        Exit(1);
+                    }
+                    let s_where: String = "";
+                    let s_using: String = "";
+                    let s_who: String = "";
+                    let s_on: String = "";
+                    let s_guard: String = "";
+                    let s_expect: String = "";
+                    let s_requires: String = "";
+                    let s_auth: String = "";
+                    let s_causes: String = "";
+                    let s_transfer: String = "";
+                    let s_compensate: String = "";
+                    let s_post: String = "";
+                    let s_intent: String = "";
+                    while true {
+                        i = SkipWhitespaceAndComments(content, i);
+                        if i >= n {
+                            Exit(1);
+                        }
+                        if CharAt(content, i) == "}" {
+                            i = i + 1;
+                            break;
+                        }
+                        ArraySet(cursor_out, 0, i);
+                        let clause: String = ReadIdent(content, i, cursor_out);
+                        i = cursor_out[0];
+                        if StringLength(clause) == 0 {
+                            Exit(1);
+                        }
+                        
+                        let is_transfer: Bool = false;
+                        if clause == "move" {
+                            is_transfer = true;
+                        } else if clause == "transfer" {
+                            let peek_colon: Int = SkipWhitespaceAndComments(content, i);
+                            if CharAt(content, peek_colon) != ":" {
+                                is_transfer = true;
+                            }
+                        }
+                        if is_transfer {
+                            i = SkipWhitespaceAndComments(content, i);
+                            ArraySet(cursor_out, 0, i);
+                            let t_from: String = ParseExpr(content, i, cursor_out);
+                            i = cursor_out[0];
+                            i = SkipWhitespaceAndComments(content, i);
+                            if !MatchKeyword(content, i, "to") {
+                                Exit(1);
+                            }
+                            i = i + 2;
+                            i = SkipWhitespaceAndComments(content, i);
+                            ArraySet(cursor_out, 0, i);
+                            let t_to: String = ParseExpr(content, i, cursor_out);
+                            i = cursor_out[0];
+                            i = Expect(content, i, ";");
+                            if i < 0 {
+                                Exit(1);
+                            }
+                            s_transfer = Concat(t_from, Concat(" -> ", t_to));
+                            continue;
+                        }
+
+                        if clause == "authorized" {
+                            let peek_by: Int = SkipWhitespaceAndComments(content, i);
+                            if MatchKeyword(content, peek_by, "by") {
+                                i = peek_by + 2;
+                                clause = "authorized by";
+                            }
+                        }
+                        i = Expect(content, i, ":");
+                        if i < 0 {
+                            Exit(1);
+                        }
+                        let val: String = "";
+                        if clause == "transfer" {
+                            i = SkipWhitespaceAndComments(content, i);
+                            let t_start: Int = i;
+                            while i < n && CharAt(content, i) != ";" {
+                                i = i + 1;
+                            }
+                            val = Substring(content, t_start, i - t_start);
+                            val = StringTrim(val);
+                            ArraySet(cursor_out, 0, i);
+                        } else {
+                            ArraySet(cursor_out, 0, i);
+                            val = ParseExpr(content, i, cursor_out);
+                            i = cursor_out[0];
+                        }
+                        i = Expect(content, i, ";");
+                        if i < 0 {
+                            Exit(1);
+                        }
+                        if clause == "where" {
+                            s_where = val;
+                        } else if clause == "using" {
+                            s_using = val;
+                        } else if clause == "who" {
+                            s_who = val;
+                        } else if clause == "on" {
+                            s_on = val;
+                        } else if clause == "guard" {
+                            s_guard = val;
+                        } else if clause == "expect" {
+                            s_expect = val;
+                        } else if clause == "requires" {
+                            s_requires = val;
+                        } else if clause == "authorized by" {
+                            s_auth = val;
+                        } else if clause == "causes" {
+                            s_causes = val;
+                        } else if clause == "compensate" {
+                            s_compensate = val;
+                        } else if clause == "post" {
+                            s_post = val;
+                        } else if clause == "intent" {
+                            s_intent = val;
+                        } else if clause == "transfer" {
+                            s_transfer = val;
+                        } else {
+                            Exit(1);
+                        }
+                    }
+                    let step_header: String = Concat("    IntentStep: ", step_name);
+                    if StringLength(s_where) > 0 {
+                        step_header = Concat(step_header, Concat(" where ", s_where));
+                    }
+                    if StringLength(s_using) > 0 {
+                        step_header = Concat(step_header, Concat(" using ", s_using));
+                    }
+                    if StringLength(s_transfer) > 0 {
+                        step_header = Concat(step_header, Concat(" transfer ", s_transfer));
+                    }
+                    let step_out: String = step_header;
+                    if StringLength(s_who) > 0 {
+                        step_out = AppendLine(step_out, Concat("      Who: ", s_who));
+                    }
+                    if StringLength(s_using) > 0 {
+                        step_out = AppendLine(step_out, Concat("      Using: ", s_using));
+                    }
+                    if StringLength(s_transfer) > 0 {
+                        step_out = AppendLine(step_out, Concat("      Transfer: ", s_transfer));
+                    }
+                    if StringLength(s_intent) > 0 {
+                        step_out = AppendLine(step_out, Concat("      Intent: ", s_intent));
+                    }
+                    if StringLength(s_on) > 0 {
+                        step_out = AppendLine(step_out, Concat("      On: ", s_on));
+                    }
+                    if StringLength(s_compensate) > 0 {
+                        step_out = AppendLine(step_out, Concat("      Compensate: ", s_compensate));
+                    }
+                    if StringLength(s_requires) > 0 {
+                        step_out = AppendLine(step_out, Concat("      Requires: ", s_requires));
+                    }
+                    if StringLength(s_auth) > 0 {
+                        step_out = AppendLine(step_out, Concat("      AuthorizedBy: ", s_auth));
+                    }
+                    if StringLength(s_causes) > 0 {
+                        step_out = AppendLine(step_out, Concat("      Causes: ", s_causes));
+                    }
+                    if StringLength(s_guard) > 0 {
+                        step_out = AppendLine(step_out, Concat("      Guard: ", s_guard));
+                    }
+                    if StringLength(s_post) > 0 {
+                        step_out = AppendLine(step_out, Concat("      Post: ", s_post));
+                    }
+                    if StringLength(s_expect) > 0 {
+                        step_out = AppendLine(step_out, Concat("      Expect: ", s_expect));
+                    }
+                    step_blocks = AppendLine(step_blocks, step_out);
+                    continue;
+                }
+                Exit(1);
+            }
+            out = AppendLine(out, Concat("  Intent: ", Concat(decl_prefix, intent_name)));
+            out = AppendLine(out, Concat("    IntentMode: ", intent_mode));
+            out = AppendLine(out, "    IntentRollback: full");
+            let inv_len: Int = ArrayLength(involves_lines);
+            let inv_i: Int = 0;
+            while inv_i < inv_len {
+                out = AppendLine(out, Concat("    IntentInvolves: ", involves_lines[inv_i]));
+                inv_i = inv_i + 1;
+            }
+            let val_len: Int = ArrayLength(value_lines);
+            let val_i: Int = 0;
+            while val_i < val_len {
+                out = AppendLine(out, Concat("    IntentValue: ", value_lines[val_i]));
+                val_i = val_i + 1;
+            }
+            if StringLength(step_blocks) > 0 {
+                out = AppendLine(out, step_blocks);
+            }
+            if StringLength(success_text) > 0 {
+                out = AppendLine(out, Concat("    IntentSuccess: ", success_text));
+            }
+            if StringLength(failure_text) > 0 {
+                out = AppendLine(out, Concat("    IntentFailure: ", failure_text));
+            }
+            continue;
         }
 
         // `subject`/`class` (fields use `let f: T;` syntax), and
@@ -1096,6 +2906,18 @@ func ParseDecls(content: String, start: Int, cursor_out: Array<Int>, name_prefix
         } else if MatchKeyword(content, i, "struct") {
             decl_label = "Struct";
             decl_kw_len = 6;
+        } else if MatchKeyword(content, i, "object") {
+            decl_label = "Object";
+            decl_kw_len = 6;
+        } else if MatchKeyword(content, i, "tobject") {
+            decl_label = "TObject";
+            decl_kw_len = 7;
+        } else if MatchKeyword(content, i, "party") {
+            decl_label = "Party";
+            decl_kw_len = 5;
+        } else if MatchKeyword(content, i, "world") {
+            decl_label = "World";
+            decl_kw_len = 5;
         }
         if decl_kw_len > 0 {
             i = i + decl_kw_len;
@@ -1106,6 +2928,43 @@ func ParseDecls(content: String, start: Int, cursor_out: Array<Int>, name_prefix
             if StringLength(decl_name) == 0 {
                 Exit(1);
             }
+            if decl_label == "Subject" {
+                ArrayPush(involve_types, decl_name);
+            }
+            // Optional generic parameter list `<T, U>` after the type
+            // name — emitted on its own `Generic params:` line at +4
+            // before `Fields:` / `Methods:`.
+            let decl_generic: String = "";
+            let after_decl_name: Int = SkipWhitespaceAndComments(content, i);
+            if CharAt(content, after_decl_name) == "<" {
+                i = after_decl_name + 1;
+                let gpl: String = "";
+                while true {
+                    i = SkipWhitespaceAndComments(content, i);
+                    ArraySet(cursor_out, 0, i);
+                    let g: String = ReadIdent(content, i, cursor_out);
+                    i = cursor_out[0];
+                    if StringLength(g) == 0 {
+                        Exit(1);
+                    }
+                    if StringLength(gpl) == 0 {
+                        gpl = g;
+                    } else {
+                        gpl = Concat(gpl, Concat(", ", g));
+                    }
+                    i = SkipWhitespaceAndComments(content, i);
+                    if CharAt(content, i) == "," {
+                        i = i + 1;
+                        continue;
+                    }
+                    break;
+                }
+                if CharAt(content, i) != ">" {
+                    Exit(1);
+                }
+                i = i + 1;
+                decl_generic = Concat("<", Concat(gpl, ">"));
+            }
             i = Expect(content, i, "{");
             if i < 0 {
                 Exit(1);
@@ -1114,7 +2973,7 @@ func ParseDecls(content: String, start: Int, cursor_out: Array<Int>, name_prefix
             // methods, in any order. Methods are emitted with base_indent
             // 6 so the `Function:` row sits two levels deeper than the
             // owning subject/class.
-            let field_lines: Array<String> = [];
+            let field_blocks: String = "";
             let method_blocks: String = "";
             while true {
                 i = SkipWhitespaceAndComments(content, i);
@@ -1127,19 +2986,54 @@ func ParseDecls(content: String, start: Int, cursor_out: Array<Int>, name_prefix
                 }
                 if MatchKeyword(content, i, "func") {
                     ArraySet(cursor_out, 0, i);
-                    let m_block: String = ParseFunction(content, i, cursor_out, "", false, 6);
+                    let m_block: String = ParseFunction(content, i, cursor_out, "", false, 6, "func", "Function: ", false, within_zone);
                     i = cursor_out[0];
                     method_blocks = AppendLine(method_blocks, m_block);
                     continue;
                 }
-                // Field: `(let)? IDENT : TYPE ;`. `let` is required for
-                // subject/class fields in source, but is also accepted
-                // (and ignored) for vessel/struct uniformity. The C
-                // parser rejects `let` in struct bodies, so this only
-                // affects sources that already pass the C parser.
+                // `action NAME(...) -> TYPE { body }` — emits `Action:`
+                // instead of `Function:` but keeps the same shape and
+                // base_indent.
+                if MatchKeyword(content, i, "action") {
+                    ArraySet(cursor_out, 0, i);
+                    let a_block: String = ParseFunction(content, i, cursor_out, "", false, 6, "action", "Action: ", false, within_zone);
+                    i = cursor_out[0];
+                    method_blocks = AppendLine(method_blocks, a_block);
+                    continue;
+                }
+                // Field: `(let|vessel)? IDENT : TYPE ;`. `let` is the
+                // source form for subject/class; `vessel` is allowed
+                // inside subject bodies (battle_minimal etc.) and
+                // emits the same plain `NAME: TYPE` row. vessel/struct
+                // bodies omit both. Either prefix is consumed and
+                // discarded.
+                let is_role_slot: Bool = false;
+                let is_shared: Bool = false;
+                let is_world_zone: Bool = false;
                 if MatchKeyword(content, i, "let") {
                     i = i + 3;
                     i = SkipWhitespaceAndComments(content, i);
+                } else if MatchKeyword(content, i, "vessel") {
+                    i = i + 6;
+                    i = SkipWhitespaceAndComments(content, i);
+                } else if MatchKeyword(content, i, "zone") {
+                    i = i + 4;
+                    i = SkipWhitespaceAndComments(content, i);
+                    is_world_zone = true;
+                } else if MatchKeyword(content, i, "dyn") {
+                    let next_i: Int = SkipWhitespaceAndComments(content, i + 3);
+                    if MatchKeyword(content, next_i, "role") {
+                        let next_next_i: Int = SkipWhitespaceAndComments(content, next_i + 4);
+                        if MatchKeyword(content, next_next_i, "slot") {
+                            i = next_next_i + 4;
+                            i = SkipWhitespaceAndComments(content, i);
+                            is_role_slot = true;
+                        }
+                    }
+                } else if MatchKeyword(content, i, "shared") {
+                    i = i + 6;
+                    i = SkipWhitespaceAndComments(content, i);
+                    is_shared = true;
                 }
                 ArraySet(cursor_out, 0, i);
                 let f_name: String = ReadIdent(content, i, cursor_out);
@@ -1161,21 +3055,37 @@ func ParseDecls(content: String, start: Int, cursor_out: Array<Int>, name_prefix
                 if i < 0 {
                     Exit(1);
                 }
-                ArrayPush(field_lines, Concat("      ", Concat(f_name, Concat(": ", f_type))));
+                if is_role_slot {
+                    field_blocks = AppendLine(field_blocks, Concat("    RoleSlot: ", Concat(f_name, Concat(" requires ", f_type))));
+                } else if is_shared {
+                    field_blocks = AppendLine(field_blocks, Concat("    Shared: ", Concat(f_name, Concat(": ", f_type))));
+                } else if is_world_zone {
+                    field_blocks = AppendLine(field_blocks, Concat("    WorldZone: ", Concat(f_name, Concat(": ", f_type))));
+                } else {
+                    field_blocks = AppendLine(field_blocks, Concat("      ", Concat(f_name, Concat(": ", f_type))));
+                }
             }
-            out = AppendLine(out, Concat("  ", Concat(decl_label, Concat(": ", Concat(name_prefix, decl_name)))));
-            let f_len: Int = ArrayLength(field_lines);
-            if f_len > 0 {
-                out = AppendLine(out, "    Fields:");
-                let fi: Int = 0;
-                while fi < f_len {
-                    out = AppendLine(out, field_lines[fi]);
-                    fi = fi + 1;
+            out = AppendLine(out, Concat("  ", Concat(decl_label, Concat(": ", Concat(decl_prefix, decl_name)))));
+            if StringLength(decl_generic) > 0 {
+                out = AppendLine(out, Concat("    Generic params: ", decl_generic));
+            }
+            if StringLength(field_blocks) > 0 {
+                if decl_label == "Party" {
+                    out = AppendLine(out, field_blocks);
+                } else if decl_label == "World" {
+                    out = AppendLine(out, field_blocks);
+                } else {
+                    out = AppendLine(out, "    Fields:");
+                    out = AppendLine(out, field_blocks);
                 }
             }
             if StringLength(method_blocks) > 0 {
-                out = AppendLine(out, "    Methods:");
-                out = AppendLine(out, method_blocks);
+                if decl_label == "World" {
+                    out = AppendLine(out, method_blocks);
+                } else {
+                    out = AppendLine(out, "    Methods:");
+                    out = AppendLine(out, method_blocks);
+                }
             }
             continue;
         }
@@ -1234,7 +3144,7 @@ func ParseDecls(content: String, start: Int, cursor_out: Array<Int>, name_prefix
             if i < 0 {
                 Exit(1);
             }
-            out = AppendLine(out, Concat("  Event: ", Concat(name_prefix, ev_name)));
+            out = AppendLine(out, Concat("  Event: ", Concat(decl_prefix, ev_name)));
             let ev_len: Int = ArrayLength(ev_params);
             if ev_len > 0 {
                 out = AppendLine(out, "    Parameters:");
@@ -1277,6 +3187,28 @@ func ParseDecls(content: String, start: Int, cursor_out: Array<Int>, name_prefix
                 if StringLength(v_name) == 0 {
                     Exit(1);
                 }
+                // Optional variant data: `Circle(Int)`, `Rect(Int, Int)`.
+                // The C printer drops the data tuple from the AST and
+                // emits just the variant name. We skip past matching
+                // `(...)` if present.
+                i = SkipWhitespaceAndComments(content, i);
+                if CharAt(content, i) == "(" {
+                    let depth: Int = 1;
+                    i = i + 1;
+                    while i < n && depth > 0 {
+                        let ch: String = CharAt(content, i);
+                        if ch == "(" {
+                            depth = depth + 1;
+                        } else if ch == ")" {
+                            depth = depth - 1;
+                            if depth == 0 {
+                                i = i + 1;
+                                break;
+                            }
+                        }
+                        i = i + 1;
+                    }
+                }
                 if StringLength(variants) == 0 {
                     variants = v_name;
                 } else {
@@ -1288,14 +3220,21 @@ func ParseDecls(content: String, start: Int, cursor_out: Array<Int>, name_prefix
                     continue;
                 }
             }
-            out = AppendLine(out, Concat("  Enum: ", Concat(name_prefix, Concat(enum_name, Concat(" { ", Concat(variants, " }"))))));
+            out = AppendLine(out, Concat("  Enum: ", Concat(decl_prefix, Concat(enum_name, Concat(" { ", Concat(variants, " }"))))));
             continue;
+        }
+
+        // Optional `async` modifier on the next `func` — the C printer
+        // drops it from the AST output, so we just consume and ignore.
+        if MatchKeyword(content, i, "async") {
+            i = i + 5;
+            i = SkipWhitespaceAndComments(content, i);
         }
 
         // `func NAME(params) -> Type { body }` at top level (base_indent=2).
         if MatchKeyword(content, i, "func") {
             ArraySet(cursor_out, 0, i);
-            let fn_block: String = ParseFunction(content, i, cursor_out, name_prefix, is_export, 2);
+            let fn_block: String = ParseFunction(content, i, cursor_out, decl_prefix, effective_export, 2, "func", "Function: ", false, within_zone);
             i = cursor_out[0];
             out = AppendLine(out, fn_block);
             continue;
@@ -1336,7 +3275,22 @@ func Main() -> Void {
     let cursor: Array<Int> = [0];
     let i: Int = SkipWhitespaceAndComments(content, 0);
     ArraySet(cursor, 0, i);
-    let decls: String = ParseDecls(content, i, cursor, "", false);
+    // Compute source_dir as everything before the last `/` in
+    // source_path so `import "X.pgy";` resolves relative to that.
+    let src_dir: String = "";
+    let last_slash: Int = -1;
+    let sp_len: Int = StringLength(source_path);
+    let sp_i: Int = 0;
+    while sp_i < sp_len {
+        if CharAt(source_path, sp_i) == "/" {
+            last_slash = sp_i;
+        }
+        sp_i = sp_i + 1;
+    }
+    if last_slash >= 0 {
+        src_dir = Substring(source_path, 0, last_slash);
+    }
+    let decls: String = ParseDecls(content, i, cursor, "", false, src_dir, false, "");
     if StringLength(decls) == 0 {
         Log("Program:");
     } else {

@@ -20,6 +20,90 @@ constructor_call_normalize_type(Type *type)
     return type != NULL ? type : TYPE_UNKNOWN;
 }
 
+static bool
+constructor_field_is_ordinary_channel(ASTNode *field_type_node,
+                                      Type *field_type)
+{
+    return (field_type_node != NULL
+            && field_type_node->type == AST_CHANNEL_TYPE)
+        || type_is_constructed_named(field_type, "Channel");
+}
+
+static ASTNode *
+constructor_decl_field_type_at(ASTNode *decl,
+                               size_t index,
+                               const char **field_name_out)
+{
+    if (field_name_out != NULL)
+        *field_name_out = NULL;
+    if (decl == NULL)
+        return NULL;
+    if (decl->type == AST_CLASS_DECL) {
+        ClassField *field = subject_host_field_at(decl, index);
+        if (field_name_out != NULL && field != NULL)
+            *field_name_out = field->name;
+        return field != NULL ? field->type : NULL;
+    }
+    return overlay_field_decl_at(decl, index, field_name_out);
+}
+
+static bool
+constructor_decl_has_channel_field(ASTNode *decl,
+                                   SemanticContext *ctx,
+                                   const char **field_name_out)
+{
+    size_t field_count;
+
+    if (field_name_out != NULL)
+        *field_name_out = NULL;
+    if (decl == NULL)
+        return false;
+    field_count = decl->type == AST_CLASS_DECL
+        ? projection_source_field_count(decl)
+        : overlay_field_count(decl);
+    for (size_t i = 0; i < field_count; i++) {
+        const char *field_name = NULL;
+        ASTNode *field_type_node =
+            constructor_decl_field_type_at(decl, i, &field_name);
+        Type *field_type;
+        if (field_type_node == NULL)
+            continue;
+        field_type = semantic_host_resolve_type_ref(field_type_node, ctx);
+        if (!constructor_field_is_ordinary_channel(
+                field_type_node, field_type)) {
+            continue;
+        }
+        if (field_name_out != NULL)
+            *field_name_out = field_name;
+        return true;
+    }
+    return false;
+}
+
+static void
+constructor_reject_channel_field_store(SemanticContext *ctx,
+                                       ASTNode *site,
+                                       const char *constructor_name,
+                                       const char *field_name)
+{
+    semantic_error_with_hints(ctx,
+        PGY_CODE_SEM_CHANNEL_TRANSPORT_INVALID,
+        PGY_CAUSE_CHANNEL_TRANSPORT_RULE_VIOLATION,
+        PGY_FIX_PROVIDE_MOVABLE_HANDLE,
+        site,
+        "Constructor '%s' cannot aggregate-construct or default-initialize Channel<T> field '%s'.\n"
+        "Reason:\n"
+        "- ordinary Channel<T> currently lowers to runtime storage with synchronization state\n"
+        "- copying that storage would duplicate mutex/condition-variable ownership\n"
+        "- default-zeroing that storage would bypass channel runtime initialization\n"
+        "- C and LLVM backends require a movable channel-handle lowering before this is safe\n"
+        "Fix:\n"
+        "- keep the channel in a local binding and pass values through send/recv\n"
+        "- or wait for the movable Channel<T> handle ABI before storing channels in aggregate fields",
+        constructor_name != NULL ? constructor_name : "<constructor>",
+        field_name != NULL ? field_name : "<field>");
+}
+
 bool
 type_check_constructor_symbol_call(ASTNode *expr,
                                    Symbol *sym,
@@ -64,6 +148,12 @@ type_check_constructor_symbol_call(ASTNode *expr,
             }
             if (decl != NULL) {
                 size_t provided = ast_call_arg_count(expr);
+                const char *channel_field_name = NULL;
+                if (constructor_decl_has_channel_field(
+                        decl, ctx, &channel_field_name)) {
+                    constructor_reject_channel_field_store(ctx,
+                        expr, display_name, channel_field_name);
+                }
                 /* Skip field-type validation for generic classes — the
                  * generic params (T, U) aren't in scope at the call site.
                  * Type safety is handled by the let-annotation type. */
@@ -71,19 +161,16 @@ type_check_constructor_symbol_call(ASTNode *expr,
                     semantic_error_with_hints(ctx, PGY_CODE_SEM_CLASS_CONTRACT_INVALID, PGY_CAUSE_CLASS_CONTRACT, PGY_FIX_SATISFY_GENERIC_BOUND_OR_WIDEN, expr,
                         "Constructor '%s' accepts at most %llu positional field argument(s), got %llu",
                         display_name, (unsigned long long) field_count, (unsigned long long) provided);
-                } else if (!decl_is_generic) {
+                } else if (decl_is_generic) {
+                    for (size_t i = 0; i < provided; i++) {
+                        type_check_expression(ast_call_argument(expr, i), ctx);
+                    }
+                } else {
                     for (size_t i = 0; i < provided; i++) {
                         const char *field_name = NULL;
                         ASTNode *field_type_node = NULL;
-                        if (decl->type == AST_CLASS_DECL) {
-                            ClassField *field = subject_host_field_at(decl, i);
-                            if (field != NULL) {
-                                field_name = field->name;
-                                field_type_node = field->type;
-                            }
-                        } else {
-                            field_type_node = overlay_field_decl_at(decl, i, &field_name);
-                        }
+                        field_type_node = constructor_decl_field_type_at(
+                            decl, i, &field_name);
                         if (field_type_node == NULL)
                             continue;
                         Type *field_type = semantic_host_resolve_type_ref(
@@ -201,10 +288,6 @@ type_check_constructor_symbol_call(ASTNode *expr,
                             }
                         }
                     }
-                } else {
-                    /* For generic classes, still type-check expressions */
-                    for (size_t i = 0; i < provided; i++)
-                        type_check_expression(ast_call_argument(expr, i), ctx);
                 }
             }
         }

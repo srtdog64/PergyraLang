@@ -9,14 +9,18 @@ Last updated: 2026-05-28
 
 ## Headline Number
 
-**Compiler-internal substitution: ~0.91%** (1,928 Pergyra LOC vs 211,294
+**Compiler-internal substitution: ~1.42%** (3,001 Pergyra LOC vs 211,294
 C LOC across `src/lexer/`, `src/parser/`, `src/semantic/`, `src/codegen/`,
-`src/runtime/`, `src/compiler/`, `src/lsp/`).
+`src/runtime/`, `src/compiler/`, `src/lsp/`). The combined parser+lexer
+substitute crossed **3,000 LOC**.
 
-**Parser at scale (2026-05-28):** the Pergyra-origin parser produces
-byte-equal output vs `pgy --ast` on **48 of 117** committed
-`examples/*.pgy` files (41.0%; up from 46 → 43 → 37 → 25 → 11 earlier
-in the day). Refresh:
+**Parser at scale (2026-05-29):** the Pergyra-origin parser produces
+byte-equal output vs `pgy --ast` on **86 of 117** committed
+`examples/*.pgy` files (73.5%). Four files byte-drift on deferred
+semantic rewrites (intra-namespace call mangling, string interpolation,
+plus one new intent edge case). Previous: 83 → 80 → 79 → 77 → 72 →
+72 → 63 → 59 → 58 → 57 → 53 → 48 → 46 → 43 → 37 → 25 → 11.
+Refresh:
 `bash src/self_hosted/parity/parser_scale_probe.sh`. 7 of the 117
 examples fail under `pgy --ast` itself (C-skip).
 
@@ -42,13 +46,13 @@ only observe text artifacts the C compiler produces. Their LOC is
 | Component       | C LOC   | Pergyra LOC | Coverage | Status            |
 |-----------------|---------|-------------|----------|-------------------|
 | `src/lexer/`    |     996 |         583 | **~97%** | **191 of 195 sources byte-equal** (115 examples + 80 backend_compare). Remaining 4 use string interpolation (`$"...{var}..."`) or `/** doc */` comments. 6 representative sources committed as parity fixtures. |
-| `src/parser/`   |   19024 |        1345 | ~32%     | `src/self_hosted/parser/` parses 58 fixtures byte-equal `pgy --ast` and **48 of 117** `examples/*.pgy` byte-equal at scale (41.0%). Top-level: `[export] func`, `subject`/`class`/`vessel`/`struct`, `enum`, `namespace`, `event NAME(params);`, top-level stmts. Stmt: `let`, assign, `LHS += RHS;` (EventSubscribe), `return`, `if`/`else if`/`else`, `while`, `for`, `break`, `continue`, `defer`, `match`, expression stmt. Function param types and return type go through ReadType so generic types `Result<Int>`, `Future<T>` work in signatures. `expr`: unary `! -` > `*/% > +- > cmp > && > \|\|`. Primaries: STRING/NUMBER/IDENT/`( )`/`[ ]`/postfix `(args)` / `[idx]` / `.member` / `<TYPE,...>` turbofish. |
+| `src/parser/`   |   19024 |        2101 | ~52%     | `src/self_hosted/parser/` parses 80 fixtures byte-equal `pgy --ast` and **80 of 117** `examples/*.pgy` byte-equal at scale (68.4%). Top-level: `[async]? [export]? func<T,U>`, `subject`/`class`/`vessel`/`struct`/`object`/`tobject` with `<T,U>` and `func`/`action` methods, `enum`, `namespace`, `event`, `ability`, `role`/`impl`, `zone` (subject/object/tobject slots), `import "PATH.pgy";` (reads file relative to source dir, recursively parses, force-exports its funcs). Stmt: `let IDENT/(IDENTS)`, assign, `+=`/`-=`/`<-`, `return`, `if`/`else if`/`else`, `while`, `for`, `break`, `continue`, `defer`, `match`, `parallel`, `with slot<TYPE> as VAR { stmts }`. `expr`: `! - <- spawn[blocking] await` > `*/% > +- > \|> > cmp > && > \|\|`. Primaries: STRING/NUMBER/IDENT/`( )`/`[ ]`/lambda, postfix `(args)` / `[idx]` / `.member` / `?` / turbofish. |
 | `src/semantic/` |   45595 |           0 | 0%       | not started       |
 | `src/codegen/`  |   81815 |           0 | 0%       | not started       |
 | `src/runtime/`  |   28510 |           0 | 0%       | runtime stays C (target language hosts runtime) |
 | `src/compiler/` |   34282 |           0 | 0%       | not started       |
 | `src/lsp/`      |    1072 |           0 | 0%       | not started       |
-| **Total**       | **211294** |  **1928**  | **~0.91%** | parser scale 46→48; generic ret + += |
+| **Total**       | **211294** |  **3001**  | **~1.42%** | parser scale 83→86; minimal intent decl |
 
 Notes:
 

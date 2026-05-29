@@ -1,0 +1,6 @@
+subject Player {
+    let name: String;
+    vessel health: HealthState;
+}
+
+func Main() -> Void { Log("ok"); }

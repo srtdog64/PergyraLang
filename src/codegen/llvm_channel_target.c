@@ -80,6 +80,41 @@ llvm_channel_field_inner_type(LLVMGenCtx *ctx, ASTNode *node,
         "out of memory copying LLVM Channel<T> field inner type");
 }
 
+const char *
+llvm_resolve_channel_target_inner(LLVMGenCtx *ctx, ASTNode *node,
+                                  ASTNode *channel,
+                                  const char *operation_name)
+{
+    const char *name;
+    const char *inner;
+
+    if (ctx == NULL || channel == NULL || channel->type != AST_IDENTIFIER)
+        return NULL;
+
+    name = ast_identifier_name(channel);
+    if (name == NULL)
+        return NULL;
+
+    inner = llvm_lookup_channel_inner(ctx, name);
+    if (inner != NULL && inner[0] != '\0')
+        return inner;
+    if (llvm_scope_lookup(ctx, name) != NULL)
+        return NULL;
+
+    {
+        const char *host_name = llvm_current_host_class_name(ctx);
+        LLVMClassTypeEntry *host_cls = host_name != NULL
+            ? llvm_lookup_class(ctx, host_name) : NULL;
+        ClassField *field = llvm_channel_current_host_field(ctx, name);
+        int field_idx = host_cls != NULL
+            ? llvm_class_field_index(host_cls, name) : -1;
+
+        if (host_cls == NULL || field == NULL || field_idx < 0)
+            return NULL;
+        return llvm_channel_field_inner_type(ctx, node, field, operation_name);
+    }
+}
+
 bool
 llvm_resolve_channel_target(LLVMGenCtx *ctx, ASTNode *node,
                             ASTNode *channel,

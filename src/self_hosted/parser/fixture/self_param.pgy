@@ -1,0 +1,11 @@
+class Foo {
+    let x: Int;
+    func GetX(self) -> Int {
+        return self.x;
+    }
+    func Inc(self, n: Int) -> Int {
+        return self.x + n;
+    }
+}
+
+func Main() -> Void { Log("ok"); }

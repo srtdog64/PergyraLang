@@ -1,0 +1,5 @@
+func Main() -> Void {
+    let ch: Channel<Int> = Channel(4);
+    ch <- 99;
+    let val: Int = <- ch;
+}

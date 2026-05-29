@@ -1,0 +1,16 @@
+Program:
+  Function: Double
+    Parameters:
+      x: Int
+    Returns: Int
+    Body:
+      Block:
+        Return: (x * 2)
+  Function: Main
+    Parameters:
+    Returns: Void
+    Body:
+      Block:
+        Let: r : Int = Double(5)
+        Let: s : Int = Double(Double(1))
+

@@ -108,14 +108,21 @@ The same pass tightened C MIR select readiness rendering: identifier channels
 are rendered through the regular expression path with SSA disabled, so
 implicit field and captured channel lvalues keep their correct C shape while
 select readiness avoids reading an uninitialized SSA shadow. `test-transpile`
-now covers this with `858/0`. The same C/LLVM constructor path now fail-closes
-inline `Channel(...)` initialization inside aggregate constructors:
-`Channel<T>` init is statement-level runtime setup, so constructor fields must
-receive a named channel binding rather than raw `Channel(n)` expression text.
+now covers this with `858/0`. Semantic constructor validation plus the C/LLVM
+constructor guards now fail-close `Channel<T>` field initialization inside
+aggregate constructors: channel runtime storage currently carries mutex/condvar
+state, so constructor fields must wait for movable channel-handle lowering
+instead of copying channel storage by value or default-zeroing channel runtime
+state.
 LLVM channel send/receive/select now resolves both registered local channels
 and current-host `Channel<T>` fields through the shared `LLVMChannelTarget`
-owner. `llvm_smoke.sh` includes field-channel send and select IR probes, so the
-LLVM side no longer has a local-only Channel lookup seam for this shape.
+owner. Task/channel builtins now consume the same target seam for `TrySend`,
+`TryRecv`, `ChannelReady`, `ChannelLength`, `ChannelClose`, and related query
+calls, so the LLVM side no longer has a local-only Channel lookup seam for this
+shape. Field-channel receive type inference also consumes the target owner for
+the `Channel<T>` inner type, so `let value = <-ch` does not fall back to poison
+`i32` when `ch` is a current-host field. `llvm_smoke.sh` includes field-channel
+send, select, builtin query, `TrySend`, close, and receive-inference IR probes.
 
 Current host declaration compatibility tightening (2026-05-25):
 party/role/roster host declarations are part of the shared host compatibility

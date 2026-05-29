@@ -1,0 +1,14 @@
+Program:
+  TObject: Report
+    Fields:
+      summary: String
+  Zone: Z
+    ObjectSlot: view: Report
+    TObjectSlot: tv: Report
+  Function: Main
+    Parameters:
+    Returns: Void
+    Body:
+      Block:
+        Log("ok")
+

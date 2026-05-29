@@ -1,0 +1,15 @@
+Program:
+  Function: Compute
+    Parameters:
+      x: Int
+    Returns: Int
+    Body:
+      Block:
+        Return: (x + 1)
+  Function: Main
+    Parameters:
+    Returns: Void
+    Body:
+      Block:
+        Log("ok")
+

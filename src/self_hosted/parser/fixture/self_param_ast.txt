@@ -1,0 +1,27 @@
+Program:
+  Class: Foo
+    Fields:
+      x: Int
+    Methods:
+      Function: GetX
+        Parameters:
+          self
+        Returns: Int
+        Body:
+          Block:
+            Return: self.x
+      Function: Inc
+        Parameters:
+          self
+          n: Int
+        Returns: Int
+        Body:
+          Block:
+            Return: (self.x + n)
+  Function: Main
+    Parameters:
+    Returns: Void
+    Body:
+      Block:
+        Log("ok")
+

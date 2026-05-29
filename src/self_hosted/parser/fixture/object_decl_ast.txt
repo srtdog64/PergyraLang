@@ -1,0 +1,11 @@
+Program:
+  Object: SchemaView
+    Fields:
+      columns: Int
+  Function: Main
+    Parameters:
+    Returns: Void
+    Body:
+      Block:
+        Log("ok")
+

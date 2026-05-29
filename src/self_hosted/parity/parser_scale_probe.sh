@@ -28,6 +28,9 @@ SOURCE_OVERRIDE="$ROOT_DIR/src/self_hosted/parser/fixture/source.txt"
 mkdir -p "$PERGYRA_TOOL_BUILD_DIR"
 cp "$PERGYRA_TOOL_SOURCE" "$PERGYRA_TOOL"
 
+echo "[scale-probe] compiling parser..."
+(cd "$ROOT_DIR" && "$PGY" "$(pgy_path_for_compiler "$PGY" "$PERGYRA_TOOL")" -o "$(pgy_path_for_compiler "$PGY" "$PERGYRA_TOOL_BUILD_DIR/main.exe")" >/dev/null)
+
 cleanup() { rm -f "$SOURCE_OVERRIDE"; }
 trap cleanup EXIT
 
@@ -53,9 +56,8 @@ for src in "$ROOT_DIR"/examples/*.pgy; do
         continue
     fi
 
-    PERGYRA="$(cd "$ROOT_DIR" && "$PGY" "$PERGYRA_TOOL" --run 2>/dev/null \
-        | tr -d '\r' \
-        | sed '/^pgy: compiled /d')"
+    PERGYRA="$(cd "$ROOT_DIR" && "$PERGYRA_TOOL_BUILD_DIR/main.exe" 2>/dev/null \
+        | tr -d '\r')"
     P_RC=$?
     if [[ "$P_RC" -ne 0 ]]; then
         P_FAIL=$((P_FAIL + 1))

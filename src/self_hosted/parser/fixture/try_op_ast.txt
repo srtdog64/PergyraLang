@@ -1,0 +1,10 @@
+Program:
+  Function: F
+    Parameters:
+      x: Int
+    Returns: Int
+    Body:
+      Block:
+        Let: v : Int = (?x)
+        Return: v
+

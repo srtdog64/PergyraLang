@@ -31,19 +31,6 @@ llvm_constructor_error(ASTNode *node, LLVMGenCtx *ctx, const char *message)
     return NULL;
 }
 
-static bool
-llvm_ctor_arg_is_channel_ctor(ASTNode *arg)
-{
-    ASTNode *callee;
-
-    if (arg == NULL || arg->type != AST_CALL)
-        return false;
-    callee = ast_call_callee(arg);
-    return callee != NULL
-        && callee->type == AST_IDENTIFIER
-        && strcmp(ast_identifier_name(callee), "Channel") == 0;
-}
-
 static ASTNode *
 llvm_class_constructor_field_type_at(LLVMGenCtx *ctx,
                                      const char *callee_name,
@@ -65,6 +52,44 @@ llvm_class_constructor_field_type_at(LLVMGenCtx *ctx,
     return fields[index]->type;
 }
 
+static bool
+llvm_constructor_field_is_channel(LLVMGenCtx *ctx, ASTNode *field_type)
+{
+    char *expected_type;
+    bool is_channel;
+
+    expected_type = llvm_render_type_name_in_ctx(ctx, field_type);
+    is_channel = expected_type != NULL
+        && strncmp(expected_type, "Channel<", 8) == 0;
+    free(expected_type);
+    return is_channel;
+}
+
+static const char *
+llvm_class_constructor_find_channel_field(LLVMGenCtx *ctx,
+                                          const char *callee_name)
+{
+    ASTNode *class_decl;
+    ClassField **fields;
+    size_t field_count = 0;
+
+    if (ctx == NULL || callee_name == NULL)
+        return NULL;
+    class_decl = llvm_find_decl_in_active_inventory(
+        ctx, AST_CLASS_DECL, callee_name);
+    if (class_decl == NULL)
+        return NULL;
+    fields = ast_class_fields(class_decl, &field_count);
+    for (size_t i = 0; i < field_count; i++) {
+        ClassField *field = fields != NULL ? fields[i] : NULL;
+        if (field != NULL
+            && llvm_constructor_field_is_channel(ctx, field->type)) {
+            return field->name;
+        }
+    }
+    return NULL;
+}
+
 static LLVMValueRef
 llvm_emit_constructor_field_arg(ASTNode *node,
                                 LLVMGenCtx *ctx,
@@ -81,13 +106,12 @@ llvm_emit_constructor_field_arg(ASTNode *node,
 
     expected_type = llvm_render_type_name_in_ctx(ctx, field_type);
     if (expected_type != NULL
-        && strncmp(expected_type, "Channel<", 8) == 0
-        && llvm_ctor_arg_is_channel_ctor(arg)) {
+        && strncmp(expected_type, "Channel<", 8) == 0) {
         llvm_set_error_at_with_hints(ctx, node,
             PGY_CODE_LLVM_TYPE_UNSUPPORTED,
             PGY_CAUSE_LLVM_TYPE_UNSUPPORTED,
-            PGY_FIX_BIND_TO_NAMED_VARIABLE_BEFORE_MOVE,
-            "LLVM backend: Channel field '%s' requires a named let binding before aggregate construction",
+            PGY_FIX_PROVIDE_MOVABLE_HANDLE,
+            "LLVM backend: Channel field '%s' cannot be aggregate-constructed or default-initialized until movable channel-handle lowering is available",
             field_name != NULL ? field_name : "<field>");
         free(expected_type);
         return NULL;
@@ -303,6 +327,20 @@ llvm_emit_class_constructor(ASTNode *node, LLVMGenCtx *ctx, const char *callee_n
     if (cls == NULL)
         return NULL;
 
+    {
+        const char *channel_field =
+            llvm_class_constructor_find_channel_field(ctx, callee_name);
+        if (channel_field != NULL) {
+            llvm_set_error_at_with_hints(ctx, node,
+                PGY_CODE_LLVM_TYPE_UNSUPPORTED,
+                PGY_CAUSE_LLVM_TYPE_UNSUPPORTED,
+                PGY_FIX_PROVIDE_MOVABLE_HANDLE,
+                "LLVM backend: Channel field '%s' cannot be aggregate-constructed or default-initialized until movable channel-handle lowering is available",
+                channel_field);
+            return NULL;
+        }
+    }
+
     LLVMValueRef object = LLVMConstNull(cls->struct_type);
     for (size_t i = 0; i < ast_call_arg_count(node)
         && i < (size_t)cls->field_count; i++) {
@@ -314,6 +352,30 @@ llvm_emit_class_constructor(ASTNode *node, LLVMGenCtx *ctx, const char *callee_n
         if (arg == NULL)
             return llvm_constructor_error(node, ctx,
                 "LLVM class constructor could not lower field argument");
+        {
+            LLVMTypeRef expected_ty = cls->fields[i].field_type;
+            LLVMTypeRef actual_ty = LLVMTypeOf(arg);
+            if (expected_ty != actual_ty) {
+                if ((expected_ty == ctx->type_i32 || expected_ty == ctx->type_i64)
+                    && (actual_ty == ctx->type_i32 || actual_ty == ctx->type_i64)) {
+                    arg = (LLVMGetIntTypeWidth(expected_ty)
+                        > LLVMGetIntTypeWidth(actual_ty))
+                        ? LLVMBuildSExt(ctx->builder, arg, expected_ty,
+                            llvm_tmp_name(ctx))
+                        : LLVMBuildTrunc(ctx->builder, arg, expected_ty,
+                            llvm_tmp_name(ctx));
+                } else {
+                    llvm_set_error_at_with_hints(ctx, node,
+                        PGY_CODE_LLVM_TYPE_UNSUPPORTED,
+                        PGY_CAUSE_LLVM_TYPE_UNSUPPORTED,
+                        PGY_FIX_PROVIDE_MOVABLE_HANDLE,
+                        "LLVM backend: class '%s' field '%s' aggregate construction type mismatch; runtime-bound types (e.g. Channel) require movable handle lowering instead of inline storage",
+                        callee_name,
+                        field_name != NULL ? field_name : "<field>");
+                    return NULL;
+                }
+            }
+        }
         object = LLVMBuildInsertValue(ctx->builder, object, arg,
             (unsigned)cls->fields[i].index, llvm_tmp_name(ctx));
     }

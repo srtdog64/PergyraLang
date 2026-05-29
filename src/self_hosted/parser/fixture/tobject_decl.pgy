@@ -1,0 +1,10 @@
+tobject Report {
+    let summary: String;
+}
+
+zone Z {
+    object slot view: Report
+    tobject slot tv: Report
+}
+
+func Main() -> Void { Log("ok"); }

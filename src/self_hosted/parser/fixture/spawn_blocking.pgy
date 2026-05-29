@@ -1,0 +1,5 @@
+func F(x: Int) -> Int { return x; }
+
+func Main() -> Void {
+    let r: Int = spawn blocking F(5);
+}

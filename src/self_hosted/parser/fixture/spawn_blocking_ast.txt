@@ -1,0 +1,15 @@
+Program:
+  Function: F
+    Parameters:
+      x: Int
+    Returns: Int
+    Body:
+      Block:
+        Return: x
+  Function: Main
+    Parameters:
+    Returns: Void
+    Body:
+      Block:
+        Let: r : Int = spawn F(5)
+

@@ -277,9 +277,9 @@ int main(void) {
              sizeof(PgyResult_Int) == sizeof(pgy_abi_result_int));
 
     /* ================================================================
-     * 7. Channel<T> — Opaque Handles (NOT full structs)
+     * 7. ZoneChannel<T> / WorldChannel<T> — Opaque Handles
      * ================================================================ */
-    printf("\n[Channel<T>] (opaque handles — platform-independent)\n");
+    printf("\n[ZoneChannel<T> / WorldChannel<T>] (opaque handles, platform-independent)\n");
 
     PRINT_LAYOUT(pgy_abi_zone_channel_handle);
     PRINT_LAYOUT(pgy_abi_world_channel_handle);
@@ -292,8 +292,8 @@ int main(void) {
     ABI_TEST("ZoneChannelHandle: same as uint32_t",
              sizeof(pgy_abi_zone_channel_handle) == sizeof(uint32_t));
 
-    /* Legacy PgyChannel_Int still exists but is no longer the ABI target */
-    printf("  (Legacy PgyChannel_Int sizeof=%zu — kept for backward compat)\n",
+    /* Ordinary Channel<T> still uses legacy local storage in the beta backend. */
+    printf("  (Ordinary Channel<Int> legacy storage sizeof=%zu; not aggregate-copy ABI)\n",
            sizeof(PgyChannel_Int));
 
     /* ================================================================

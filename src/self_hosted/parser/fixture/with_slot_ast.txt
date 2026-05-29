@@ -1,0 +1,17 @@
+Program:
+  Function: DemoWith
+    Parameters:
+    Returns: Void
+    Body:
+      Block:
+        With slot<Int> as counter
+          Block:
+            Write(counter, 100)
+            Log(Read(counter))
+  Function: Main
+    Parameters:
+    Returns: Void
+    Body:
+      Block:
+        Log("ok")
+

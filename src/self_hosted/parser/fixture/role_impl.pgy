@@ -1,0 +1,17 @@
+subject Fighter {
+    let power: Int;
+}
+
+ability Combatable {
+    func Attack(self) -> Int;
+}
+
+role Warrior for Fighter {
+    impl Combatable {
+        func Attack(self) -> Int {
+            return power;
+        }
+    }
+}
+
+func Main() -> Void { Log("ok"); }

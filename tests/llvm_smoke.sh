@@ -68,6 +68,63 @@ run_ir_contains_case() {
     echo "[llvm-smoke] $name ok"
 }
 
+run_ir_not_contains_case() {
+    local name="$1"
+    local file="$2"
+    local needle="$3"
+    local ll="$TMPDIR/${name}.ll"
+    local file_arg
+    local ll_arg
+    local output
+
+    file_arg="$(pgy_path_for_compiler "$PGY" "$file")"
+    ll_arg="$(pgy_path_for_compiler "$PGY" "$ll")"
+    output="$(
+        cd "$(dirname "$file")"
+        "$PGY" "$file_arg" --emit-llvm -o "$ll_arg" 2>&1
+    )"
+    if [[ ! -f "$ll" ]] || grep -Fq -- "$needle" "$ll"; then
+        echo "[llvm-smoke] $name failed" >&2
+        echo "--- output ---" >&2
+        echo "$output" >&2
+        echo "--- llvm ir ---" >&2
+        [[ -f "$ll" ]] && sed -n '1,220p' "$ll" >&2
+        echo "--------------" >&2
+        exit 1
+    fi
+    echo "[llvm-smoke] $name ok"
+}
+
+run_compile_fails_case() {
+    local name="$1"
+    local file="$2"
+    shift 2
+    local out="$TMPDIR/${name}.out"
+    local file_arg
+    local out_arg
+    local output
+
+    file_arg="$(pgy_path_for_compiler "$PGY" "$file")"
+    out_arg="$(pgy_path_for_compiler "$PGY" "$out")"
+    if output="$(
+        cd "$(dirname "$file")"
+        "$PGY" "$file_arg" --backend=llvm -o "$out_arg" 2>&1
+    )"; then
+        echo "[llvm-smoke] $name unexpectedly succeeded" >&2
+        exit 1
+    fi
+    for expected in "$@"; do
+        if ! grep -Fq -- "$expected" <<<"$output"; then
+            echo "[llvm-smoke] $name failed" >&2
+            echo "--- output ---" >&2
+            echo "$output" >&2
+            echo "--------------" >&2
+            exit 1
+        fi
+    done
+    echo "[llvm-smoke] $name ok"
+}
+
 cat > "$TMPDIR/phi_lowering.pgy" <<'EOF'
 func Choose(flag: Bool) -> Int {
     let x: Int = 0;
@@ -127,6 +184,40 @@ class SelectBox {
 EOF
 run_ir_contains_case "field_channel_send" "$TMPDIR/field_channel.pgy" "pgy_channel_send_Int"
 run_ir_contains_case "field_channel_select" "$TMPDIR/field_channel.pgy" "pgy_channel_ready_Int"
+
+cat > "$TMPDIR/field_channel_builtins.pgy" <<'EOF'
+class BuiltinBox {
+    let ch: Channel<Int>;
+
+    func Probe(self) -> Int {
+        let sent: Bool = TrySend(ch, 1);
+        if sent {
+            Log(ChannelLength(ch));
+        }
+        ChannelClose(ch);
+        if ChannelClosed(ch) {
+            return ChannelCapacity(ch);
+        }
+        return ChannelSpace(ch);
+    }
+}
+EOF
+run_ir_contains_case "field_channel_try_send" "$TMPDIR/field_channel_builtins.pgy" "pgy_channel_try_send_Int"
+run_ir_contains_case "field_channel_builtin_query" "$TMPDIR/field_channel_builtins.pgy" "pgy_channel_length_Int"
+run_ir_contains_case "field_channel_close" "$TMPDIR/field_channel_builtins.pgy" "pgy_channel_close_Int"
+
+cat > "$TMPDIR/field_channel_recv_infer.pgy" <<'EOF'
+class StringBox {
+    let ch: Channel<String>;
+
+    func Pull(self) -> Void {
+        let value = <-ch;
+        Log(value);
+    }
+}
+EOF
+run_ir_contains_case "field_channel_recv_infer" "$TMPDIR/field_channel_recv_infer.pgy" "pgy_channel_recv_val_String"
+run_ir_not_contains_case "field_channel_recv_not_i32" "$TMPDIR/field_channel_recv_infer.pgy" "alloca i32"
 
 cat > "$TMPDIR/tagged_union.pgy" <<'EOF'
 enum Shape {
@@ -1495,6 +1586,33 @@ func Main() -> Void {
 }
 EOF
 run_case "channel_basic" "$TMPDIR/channel_basic.pgy" "ping" "pong"
+
+cat > "$TMPDIR/channel_field_constructor_reject.pgy" <<'EOF'
+class ChannelBox {
+    let ch: Channel<Int>;
+}
+
+func Main() -> Void {
+    let ch: Channel<Int> = Channel(2);
+    let box: ChannelBox = ChannelBox(ch);
+}
+EOF
+run_compile_fails_case "channel_field_constructor_reject" \
+    "$TMPDIR/channel_field_constructor_reject.pgy" \
+    "cannot aggregate-construct or default-initialize Channel<T> field 'ch'"
+
+cat > "$TMPDIR/channel_field_default_constructor_reject.pgy" <<'EOF'
+class ChannelBox {
+    let ch: Channel<Int>;
+}
+
+func Main() -> Void {
+    let box: ChannelBox = ChannelBox();
+}
+EOF
+run_compile_fails_case "channel_field_default_constructor_reject" \
+    "$TMPDIR/channel_field_default_constructor_reject.pgy" \
+    "default-initialize Channel<T> field 'ch'"
 
 # ---------------------------------------------------------------------------
 # Extern function

@@ -1,0 +1,10 @@
+Program:
+  Function: Main
+    Parameters:
+    Returns: Void
+    Body:
+      Block:
+        Let: ch : Channel<Int: Int> = Channel(4)
+        ChannelSend: ch <- 99
+        Let: val : Int = <-ch
+

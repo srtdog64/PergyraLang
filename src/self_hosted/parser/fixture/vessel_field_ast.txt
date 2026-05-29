@@ -1,0 +1,12 @@
+Program:
+  Subject: Player
+    Fields:
+      name: String
+      health: HealthState
+  Function: Main
+    Parameters:
+    Returns: Void
+    Body:
+      Block:
+        Log("ok")
+
