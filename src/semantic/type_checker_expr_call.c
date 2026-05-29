@@ -399,8 +399,6 @@ type_check_call(ASTNode *expr, SemanticContext *ctx)
                             || candidate_name == NULL)
                             continue;
                         if (strcmp(candidate_name, method_name) == 0) {
-                            uint32_t method_effects =
-                                declared_effects_from_function_node(method, ctx, NULL);
                             if (!explicit_member_access_allowed(host_decl,
                                     object_type,
                                     ast_func_access(method),
@@ -412,21 +410,8 @@ type_check_call(ASTNode *expr, SemanticContext *ctx)
                                     method_name);
                                 return TYPE_UNKNOWN;
                             }
-                            semantic_record_effect(ctx, method_effects);
-                            semantic_record_callable_decl_summary(
-                                ctx, method, method_effects);
-                            if (ctx->in_parallel
-                                && type_effect_mask_has(method_effects, EFFECT_SECURE)) {
-                                semantic_error_with_hints(ctx, PGY_CODE_SEM_PARALLEL_SECURE_FORBIDDEN, PGY_CAUSE_PARALLEL_SECURE_IN_TASK, PGY_FIX_SERIALIZE_OUTSIDE_PARALLEL, expr,
-                                    "Parallel context does not permit calling secure-effect method '%s.%s'; serialize authority-bearing operations outside the parallel block",
-                                    object_type->name,
-                                    method_name);
-                                return TYPE_UNKNOWN;
-                            }
-                            if (ast_func_return_type(method) != NULL)
-                                return type_check_func_resolve_return_type(
-                                    method, ctx);
-                            return TYPE_VOID;
+                            return expr_type_check_host_method_call_on_host(
+                                expr, host_decl, method, ctx);
                         }
                     }
                     expr_call_report_unknown_member(ctx, expr, object_type,

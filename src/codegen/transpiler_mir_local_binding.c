@@ -296,7 +296,12 @@ transpiler_register_explicit_local_bindings_in_block(TranspilerCtx *ctx,
         }
         if (stmt->type == AST_FOR_LOOP) {
             if (ast_for_variable(stmt) != NULL) {
-                register_typed_var(ctx, ast_for_variable(stmt), "Int");
+                const char *loop_type =
+                    transpiler_mir_for_loop_variable_type_name(
+                        ctx, func_decl, stmt);
+                if (loop_type != NULL)
+                    register_typed_var(ctx, ast_for_variable(stmt),
+                                       loop_type);
             }
             transpiler_register_explicit_local_bindings_in_block(ctx, func_decl,
                 ast_for_body(stmt));

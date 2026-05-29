@@ -118,6 +118,13 @@ Type *expr_current_host_field_type(SemanticContext *ctx,
                                    const char *field_name);
 ASTNode *expr_current_host_method_decl(SemanticContext *ctx,
                                        const char *method_name);
+Type *expr_host_method_function_type(SemanticContext *ctx,
+                                     ASTNode *host_decl,
+                                     const char *method_name);
+Type *expr_type_check_host_method_call_on_host(ASTNode *expr,
+                                               ASTNode *host_decl,
+                                               ASTNode *method,
+                                               SemanticContext *ctx);
 Type *expr_type_check_host_method_call(ASTNode *expr,
                                        ASTNode *method,
                                        SemanticContext *ctx);
@@ -295,11 +302,6 @@ ASTNode *find_domain_slot_local(ASTNode **slots,
                                 size_t slot_count,
                                 const char *slot_name);
 bool zone_has_effect_layer_type(ASTNode *zone, const char *effect_name);
-bool decl_is_projection_source(const ASTNode *decl);
-const char *projection_refresh_source_field_name(ASTNode *refresh,
-                                                 const char *target_field_name);
-bool projection_target_decl_has_field(ASTNode *target_decl,
-                                      const char *field_name);
 size_t generic_params_required_count(GenericParams *params);
 void validate_where_clause_bounds(WhereClause *wc,
                                   SemanticContext *ctx,

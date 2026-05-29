@@ -7,6 +7,7 @@
 #include "../parser/ast_api.h"
 #include "../semantic/diag_codes.h"
 
+#include "host_decl_compat.h"
 #include "transpiler_context.h"
 #include "transpiler_collection_runtime_suffix.h"
 #include "transpiler_constructor_channel_guard.h"
@@ -363,8 +364,10 @@ emit_let_decl(ASTNode *node, TranspilerCtx *ctx)
         if (class_decl == NULL && generic_class_spec_name != NULL
             && ann_node_type_name != NULL)
             class_decl = find_class_decl(ctx, ann_node_type_name);
-        size_t field_count = 0;
-        ClassField **fields = ast_class_fields(class_decl, &field_count);
+        PgyHostClassFieldsCompatView field_view =
+            pgy_host_class_fields_compat_view_from_decl(class_decl);
+        size_t field_count = field_view.count;
+        ClassField **fields = field_view.fields;
         const char *channel_field = class_decl != NULL
             && class_decl->type == AST_CLASS_DECL
             ? transpiler_constructor_find_channel_field(ctx, class_decl)

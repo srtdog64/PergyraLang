@@ -1,0 +1,10 @@
+func Main() -> Void {
+    let a: Long = 1000L;
+    let neg_a: Long = 0L - a;
+    Log(ToString(neg_a));
+
+    let big: Long = 9999999999L;
+    let half: Long = big / 2L;
+    Log(ToString(half));
+    Log(ToString(half * 2L + 1L));
+}

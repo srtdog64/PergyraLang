@@ -1,0 +1,16 @@
+class Player {
+    let name: String;
+    let level: Int;
+    let hp: Int;
+}
+
+func MakePlayer(n: String, l: Int) -> Player {
+    return Player(n, l, l * 10);
+}
+
+func Main() -> Void {
+    let p1: Player = MakePlayer("Knight", 5);
+    let p2: Player = Player("Mage", 1, 25);
+    Log(p1.name + " L" + ToString(p1.level) + " hp=" + ToString(p1.hp));
+    Log(p2.name + " L" + ToString(p2.level) + " hp=" + ToString(p2.hp));
+}

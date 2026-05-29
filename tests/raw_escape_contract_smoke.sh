@@ -3,6 +3,7 @@ set -euo pipefail
 
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 source "$ROOT_DIR/tests/pgy_binary_path_helpers.sh"
+source "$ROOT_DIR/tests/beta_checklist_shards.sh"
 pgy_prepend_windows_runtime_paths
 PGY_BIN_WAS_DEFAULT=0
 if [[ -z "${PGY_BIN:-}" ]]; then
@@ -18,6 +19,11 @@ trap 'rm -rf "$WORK_DIR"' EXIT
 require_term() {
     local rel="$1"
     local term="$2"
+    if [[ "$rel" == "docs/100_beta_readiness_checklist.md" ]]; then
+        pgy_beta_checklist_contains "$term" ||
+            { echo "[raw-escape-contract] $rel shards missing term: $term" >&2; exit 1; }
+        return 0
+    fi
     grep -Fq -- "$term" "$ROOT_DIR/$rel" ||
         { echo "[raw-escape-contract] $rel missing term: $term" >&2; exit 1; }
 }

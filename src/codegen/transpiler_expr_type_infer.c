@@ -25,6 +25,7 @@
 #include "transpiler_type_render.h"
 
 #include "codegen_slot_type_policy.h"
+#include "host_decl_compat.h"
 #include "../parser/ast_api.h"
 
 const char *transpiler_contextual_option_type_name(TranspilerCtx *ctx);
@@ -210,19 +211,15 @@ infer_expression_type_name(TranspilerCtx *ctx, ASTNode *expr)
 
                 ASTNode *obj_decl = find_class_decl(ctx, obj_type);
                 if (obj_decl != NULL) {
-                    size_t field_count = 0;
-                    ClassField **fields = ast_class_fields(obj_decl, &field_count);
-                    for (size_t fi = 0; fi < field_count; fi++) {
-                        ClassField *f = fields != NULL ? fields[fi] : NULL;
-                        if (f != NULL && f->name != NULL && f->type != NULL
-                            && strcmp(f->name, ast_member_name(expr)) == 0) {
-                            char *ft = render_type_name_in_ctx(ctx, f->type);
-                            if (ft != NULL) {
-                                const char *copied =
-                                    transpiler_infer_arena_copy_type_name(ctx, ft);
-                                free(ft);
-                                return copied != NULL ? copied : "Unknown";
-                            }
+                    ClassField *field = pgy_host_class_field_compat_find(
+                        obj_decl, ast_member_name(expr));
+                    if (field != NULL && field->type != NULL) {
+                        char *ft = render_type_name_in_ctx(ctx, field->type);
+                        if (ft != NULL) {
+                            const char *copied =
+                                transpiler_infer_arena_copy_type_name(ctx, ft);
+                            free(ft);
+                            return copied != NULL ? copied : "Unknown";
                         }
                     }
                 }

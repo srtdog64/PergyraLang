@@ -1,0 +1,11 @@
+func Main() -> Void {
+    let names: Array<String> = ["Alice", "Bob", "Carol", "Dave"];
+    let i: Int = 0;
+    let total_chars: Int = 0;
+    while i < ArrayLength(names) {
+        Log(names[i]);
+        total_chars = total_chars + StringLength(names[i]);
+        i = i + 1;
+    }
+    Log("total=" + ToString(total_chars));
+}

@@ -420,7 +420,13 @@ import sys
 root = pathlib.Path(sys.argv[1])
 doc_path = root / "docs" / "103_cfg_body_dataflow_need.md"
 slot_proof_path = root / "docs" / "semantics" / "08_slot_capability_calculus.md"
-checklist_path = root / "docs" / "100_beta_readiness_checklist.md"
+checklist_paths = [
+    root / "docs" / "100_beta_readiness_checklist.md",
+    root / "docs" / "100a_beta_active_status.md",
+    root / "docs" / "100b_beta_p0_semantics_systems_air.md",
+    root / "docs" / "100c_beta_dag_mir_abi_runtime.md",
+    root / "docs" / "100d_beta_execution_log.md",
+]
 todo_path = root / "TODO.md"
 makefile_path = root / "Makefile"
 board_path = root / "docs" / "70_beta_closure_master_board.md"
@@ -515,7 +521,7 @@ semantic_parallel_context_tests_path = root / "src" / "tests" / "semantic" / "te
 for path in (
     doc_path,
     slot_proof_path,
-    checklist_path,
+    *checklist_paths,
     todo_path,
     makefile_path,
     board_path,
@@ -606,7 +612,8 @@ for path in (
 
 doc = doc_path.read_text(encoding="utf-8")
 slot_proof = slot_proof_path.read_text(encoding="utf-8")
-checklist = checklist_path.read_text(encoding="utf-8")
+checklist = "\n".join(path.read_text(encoding="utf-8")
+                      for path in checklist_paths)
 todo = todo_path.read_text(encoding="utf-8")
 makefile = makefile_path.read_text(encoding="utf-8")
 board = board_path.read_text(encoding="utf-8")

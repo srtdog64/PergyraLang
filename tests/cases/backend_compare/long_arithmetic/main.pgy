@@ -1,0 +1,11 @@
+func Main() -> Void {
+    let a: Long = 1000000L;
+    let b: Long = 2500L;
+    Log(ToString(a + b));
+    Log(ToString(a - b));
+    Log(ToString(a * 3L));
+    Log(ToString(a / 4L));
+    Log(ToString(a % 7L));
+    Log(ToString(a > b));
+    Log(ToString(a == 1000000L));
+}

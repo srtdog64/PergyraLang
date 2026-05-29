@@ -103,12 +103,10 @@ type_check_projection_call(ASTNode *call,
         return TYPE_UNKNOWN;
     }
 
-    size_t target_field_count = 0;
-    ClassField **target_fields =
-        ast_class_fields(target_decl, &target_field_count);
+    size_t target_field_count = projection_source_field_count(target_decl);
     for (size_t i = 0; i < target_field_count; i++) {
         ClassField *target_field =
-            target_fields != NULL ? target_fields[i] : NULL;
+            projection_source_field_at(target_decl, i);
         Type *target_field_type;
         Type *source_field_type;
         int source_status;

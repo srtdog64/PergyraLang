@@ -2,12 +2,20 @@
 set -euo pipefail
 
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+source "$ROOT_DIR/tests/beta_checklist_shards.sh"
 PYTHON_BIN="${PYTHON_BIN:-}"
 CONTRACT_CHECK_DONE=0
 
 require_literal() {
     local rel="$1"
     local term="$2"
+    if [[ "$rel" == "docs/100_beta_readiness_checklist.md" ]]; then
+        pgy_beta_checklist_contains "$term" || {
+            echo "[runtime-panic-contract] $rel shards missing term: $term" >&2
+            exit 1
+        }
+        return 0
+    fi
     grep -Fq -- "$term" "$ROOT_DIR/$rel" || {
         echo "[runtime-panic-contract] $rel missing term: $term" >&2
         exit 1
@@ -137,6 +145,10 @@ device_slot_export = root / "src" / "runtime" / "pgy_runtime_lib_device_slot_exp
 secure_slot_export = root / "src" / "runtime" / "pgy_runtime_lib_secure_slot_exports.h"
 docs = [
     root / "docs" / "100_beta_readiness_checklist.md",
+    root / "docs" / "100a_beta_active_status.md",
+    root / "docs" / "100b_beta_p0_semantics_systems_air.md",
+    root / "docs" / "100c_beta_dag_mir_abi_runtime.md",
+    root / "docs" / "100d_beta_execution_log.md",
     root / "docs" / "semantics" / "06_backend_parity.md",
     root / "docs" / "105_runtime_panic_contract.md",
 ]
@@ -458,22 +470,21 @@ for token in [
     if token not in compiler_text:
         raise SystemExit(f"LLVM runtime cache freshness missing split runtime dependency {token}")
 
-for path in docs:
-    text = path.read_text(encoding="utf-8")
-    missing = [
-        term for term in [
-            "Runtime Panic Parity",
-            "invalid-secure-token",
-            "authority-mismatch",
-            "released-slot",
-        ]
-        if term not in text
+docs_text = "\n".join(path.read_text(encoding="utf-8") for path in docs)
+missing = [
+    term for term in [
+        "Runtime Panic Parity",
+        "invalid-secure-token",
+        "authority-mismatch",
+        "released-slot",
     ]
-    if missing:
-        raise SystemExit(
-            f"{path.relative_to(root)} missing panic contract term(s): "
-            + ", ".join(missing)
-        )
+    if term not in docs_text
+]
+if missing:
+    raise SystemExit(
+        "runtime panic contract docs missing term(s): "
+        + ", ".join(missing)
+    )
 
 print("[runtime-panic-contract] hard-fail panic surface is contract-backed")
 PY

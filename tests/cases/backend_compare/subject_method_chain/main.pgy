@@ -1,0 +1,25 @@
+subject Counter {
+    let value: Int;
+
+    action Inc(self) -> Void {
+        value = value + 1;
+        return;
+    }
+
+    action AddPair(self) -> Void {
+        Inc();
+        Inc();
+        return;
+    }
+
+    action Snapshot(self) -> Int {
+        return value;
+    }
+}
+
+func Main() -> Void {
+    let c: Counter = Counter(10);
+    c.Inc();
+    c.AddPair();
+    Log(c.Snapshot());
+}

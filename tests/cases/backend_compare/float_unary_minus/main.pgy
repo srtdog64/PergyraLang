@@ -1,0 +1,10 @@
+func Main() -> Void {
+    let a: Float = -3.5;
+    let b: Float = 2.0;
+    let c: Float = -(b * 1.5);
+    let d: Float = b * -2.25;
+
+    Log(ToString(a));
+    Log(ToString(c));
+    Log(ToString(d));
+}

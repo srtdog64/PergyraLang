@@ -6,6 +6,7 @@
 #include <string.h>
 
 #include "../parser/ast_api.h"
+#include "host_decl_compat.h"
 #include "transpiler_decl_lookup.h"
 #include "transpiler_projection_field_path.h"
 
@@ -65,17 +66,11 @@ host_projection_relevant_field_exists(TranspilerCtx *ctx,
     if (host_decl == NULL || host_decl->type != AST_CLASS_DECL)
         return false;
 
-    size_t field_count = 0;
-    ClassField **fields = ast_class_fields(host_decl, &field_count);
-    for (size_t i = 0; i < field_count; i++) {
-        ClassField *field = fields != NULL ? fields[i] : NULL;
-        if (field != NULL && field->name != NULL
-            && strcmp(field->name, field_name) == 0) {
-            return !field->is_vessel_field;
-        }
+    {
+        ClassField *field =
+            pgy_host_class_field_compat_find(host_decl, field_name);
+        return field != NULL && !field->is_vessel_field;
     }
-
-    return false;
 }
 
 ClassField *
@@ -86,17 +81,7 @@ find_host_field_by_name_local(ASTNode *host_decl, const char *field_name)
         return NULL;
     }
 
-    size_t field_count = 0;
-    ClassField **fields = ast_class_fields(host_decl, &field_count);
-    for (size_t i = 0; i < field_count; i++) {
-        ClassField *field = fields != NULL ? fields[i] : NULL;
-        if (field != NULL && field->name != NULL
-            && strcmp(field->name, field_name) == 0) {
-            return field;
-        }
-    }
-
-    return NULL;
+    return pgy_host_class_field_compat_find(host_decl, field_name);
 }
 
 const char *

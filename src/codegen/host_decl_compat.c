@@ -7,6 +7,8 @@
 
 #include "../parser/ast_api.h"
 
+#include <string.h>
+
 static const ASTNodeType kPgyHostDeclCompatTypes[] = {
     AST_CLASS_DECL,
     AST_ENUM_DECL,
@@ -249,4 +251,40 @@ pgy_host_class_fields_compat_view_from_decl(ASTNode *decl)
 
     view.fields = ast_class_fields(decl, &view.count);
     return view;
+}
+
+ClassField *
+pgy_host_class_field_compat_find(ASTNode *decl, const char *field_name)
+{
+    PgyHostClassFieldsCompatView view;
+
+    if (field_name == NULL)
+        return NULL;
+
+    view = pgy_host_class_fields_compat_view_from_decl(decl);
+    for (size_t i = 0; view.fields != NULL && i < view.count; i++) {
+        ClassField *field = view.fields[i];
+        if (field != NULL && field->name != NULL
+            && strcmp(field->name, field_name) == 0)
+            return field;
+    }
+    return NULL;
+}
+
+ASTNode *
+pgy_host_shared_field_compat_find(ASTNode *decl, const char *field_name)
+{
+    PgyHostSharedFieldsCompatView view;
+
+    if (field_name == NULL)
+        return NULL;
+
+    view = pgy_host_shared_fields_compat_view_from_decl(decl);
+    for (size_t i = 0; view.fields != NULL && i < view.count; i++) {
+        ASTNode *field = view.fields[i];
+        const char *name = field != NULL ? ast_party_shared_name(field) : NULL;
+        if (field != NULL && name != NULL && strcmp(name, field_name) == 0)
+            return field;
+    }
+    return NULL;
 }

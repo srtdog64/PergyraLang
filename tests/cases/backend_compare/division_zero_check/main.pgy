@@ -1,0 +1,14 @@
+func SafeDiv(a: Int, b: Int) -> Int {
+    if b == 0 {
+        return -1;
+    }
+    return a / b;
+}
+
+func Main() -> Void {
+    Log(SafeDiv(10, 2));
+    Log(SafeDiv(10, 0));
+    Log(SafeDiv(15, 4));
+    Log(SafeDiv(-20, 5));
+    Log(SafeDiv(0, 1));
+}

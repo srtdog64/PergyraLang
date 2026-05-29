@@ -8,6 +8,7 @@
 #include <string.h>
 
 #include "../parser/ast_api.h"
+#include "host_decl_compat.h"
 #include "transpiler_decl_lookup.h"
 #include "transpiler_host_self_policy.h"
 
@@ -35,22 +36,6 @@ zone_layer_slot_list_has_field(ASTNode **slots, size_t slot_count,
         ASTNode *slot = slots[i];
         if (slot != NULL && ast_zone_layer_slot_name(slot) != NULL
             && strcmp(ast_zone_layer_slot_name(slot), field_name) == 0) {
-            return true;
-        }
-    }
-
-    return false;
-}
-
-static bool
-party_shared_list_has_field(ASTNode **fields, size_t field_count,
-                            const char *field_name)
-{
-    for (size_t i = 0; i < field_count; i++) {
-        ASTNode *shared = fields[i];
-        const char *shared_name = ast_party_shared_name(shared);
-        if (shared != NULL && shared_name != NULL
-            && strcmp(shared_name, field_name) == 0) {
             return true;
         }
     }
@@ -106,17 +91,7 @@ current_class_has_field(TranspilerCtx *ctx, const char *field_name)
     if (decl == NULL)
         return false;
 
-    size_t field_count = 0;
-    ClassField **fields = ast_class_fields(decl, &field_count);
-    for (size_t i = 0; i < field_count; i++) {
-        ClassField *field = fields != NULL ? fields[i] : NULL;
-        if (field != NULL && field->name != NULL
-            && strcmp(field->name, field_name) == 0) {
-            return true;
-        }
-    }
-
-    return false;
+    return pgy_host_class_field_compat_find(decl, field_name) != NULL;
 }
 
 bool
@@ -143,9 +118,7 @@ current_zone_has_field(TranspilerCtx *ctx, const char *field_name)
             layer_slots, layer_slot_count, field_name)) {
         return true;
     }
-    size_t shared_count = 0;
-    ASTNode **shared_fields = ast_zone_shared_fields(decl, &shared_count);
-    if (party_shared_list_has_field(shared_fields, shared_count, field_name))
+    if (pgy_host_shared_field_compat_find(decl, field_name) != NULL)
         return true;
 
     return false;
@@ -155,9 +128,6 @@ bool
 current_party_has_field(TranspilerCtx *ctx, const char *field_name)
 {
     ASTNode *decl;
-    size_t shared_count = 0;
-    ASTNode **shared_fields;
-
     if (ctx == NULL || field_name == NULL)
         return false;
 
@@ -167,8 +137,7 @@ current_party_has_field(TranspilerCtx *ctx, const char *field_name)
     if (decl == NULL)
         return false;
 
-    shared_fields = ast_party_shared_fields(decl, &shared_count);
-    if (party_shared_list_has_field(shared_fields, shared_count, field_name))
+    if (pgy_host_shared_field_compat_find(decl, field_name) != NULL)
         return true;
 
     return false;
@@ -178,9 +147,6 @@ bool
 current_roster_has_field(TranspilerCtx *ctx, const char *field_name)
 {
     ASTNode *decl;
-    size_t shared_count = 0;
-    ASTNode **shared_fields;
-
     if (ctx == NULL || field_name == NULL)
         return false;
 
@@ -193,8 +159,7 @@ current_roster_has_field(TranspilerCtx *ctx, const char *field_name)
     if (roster_slot_list_has_field(decl, field_name))
         return true;
 
-    shared_fields = ast_roster_shared_fields(decl, &shared_count);
-    if (party_shared_list_has_field(shared_fields, shared_count, field_name))
+    if (pgy_host_shared_field_compat_find(decl, field_name) != NULL)
         return true;
 
     return false;
@@ -218,9 +183,7 @@ current_relation_has_field(TranspilerCtx *ctx, const char *field_name)
     ASTNode **slots = ast_relation_slots(decl, &slot_count);
     if (domain_slot_list_has_field(slots, slot_count, field_name))
         return true;
-    size_t shared_count = 0;
-    ASTNode **shared_fields = ast_relation_shared_fields(decl, &shared_count);
-    if (party_shared_list_has_field(shared_fields, shared_count, field_name))
+    if (pgy_host_shared_field_compat_find(decl, field_name) != NULL)
         return true;
 
     return false;
@@ -244,9 +207,7 @@ current_effect_has_field(TranspilerCtx *ctx, const char *field_name)
     ASTNode **slots = ast_effect_slots(decl, &slot_count);
     if (domain_slot_list_has_field(slots, slot_count, field_name))
         return true;
-    size_t shared_count = 0;
-    ASTNode **shared_fields = ast_effect_shared_fields(decl, &shared_count);
-    if (party_shared_list_has_field(shared_fields, shared_count, field_name))
+    if (pgy_host_shared_field_compat_find(decl, field_name) != NULL)
         return true;
 
     return false;

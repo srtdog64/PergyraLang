@@ -1,0 +1,6 @@
+func Main() -> Void {
+    Log("tab:\there");
+    Log("nl:1\nnl:2");
+    Log("quote:\"here\"");
+    Log("backslash:\\path");
+}

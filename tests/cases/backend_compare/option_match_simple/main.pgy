@@ -1,0 +1,15 @@
+func TryHalf(n: Int) -> Option<Int> {
+    if n % 2 == 0 {
+        return Some(n / 2);
+    }
+    return None();
+}
+
+func Main() -> Void {
+    let a: Option<Int> = TryHalf(10);
+    let b: Option<Int> = TryHalf(7);
+    Log(IsSome(a));
+    Log(IsNone(b));
+    Log(a ?? -1);
+    Log(b ?? -1);
+}

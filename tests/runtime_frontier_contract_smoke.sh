@@ -3,6 +3,7 @@ set -euo pipefail
 
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 source "$ROOT_DIR/tests/pgy_binary_path_helpers.sh"
+source "$ROOT_DIR/tests/beta_checklist_shards.sh"
 pgy_prepend_windows_runtime_paths
 PGY_WINDOWS_PS_PATH_PREFIX="$(pgy_windows_powershell_path_prefix)"
 DEFAULT_PGY="$ROOT_DIR/bin/pgy"
@@ -37,6 +38,12 @@ require_term() {
     local term="$3"
     local normalized_term
     local normalized_path
+
+    if [[ "$path" == "$ROOT_DIR/docs/100_beta_readiness_checklist.md" ]]; then
+        pgy_beta_checklist_contains "$term" ||
+            fail "$label missing frontier contract term in checklist shards: $term"
+        return 0
+    fi
 
     if grep -Fq -- "$term" "$path"; then
         return 0

@@ -10,6 +10,7 @@
 
 #include "../common/string_compat.h"
 #include "../parser/ast_api.h"
+#include "host_decl_compat.h"
 #include "transpiler_context.h"
 #include "transpiler_decl_lookup.h"
 #include "transpiler_domain_receiver_query.h"
@@ -69,8 +70,10 @@ projection_target_mentions_source_field(TranspilerCtx *ctx,
     if (target_decl == NULL || target_decl->type != AST_CLASS_DECL)
         return true;
 
-    size_t field_count = 0;
-    ClassField **fields = ast_class_fields(target_decl, &field_count);
+    PgyHostClassFieldsCompatView field_view =
+        pgy_host_class_fields_compat_view_from_decl(target_decl);
+    size_t field_count = field_view.count;
+    ClassField **fields = field_view.fields;
     for (size_t i = 0; i < field_count; i++) {
         ClassField *field = fields != NULL ? fields[i] : NULL;
         const char *mapped_source_name = field != NULL ? field->name : NULL;

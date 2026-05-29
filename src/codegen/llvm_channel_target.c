@@ -5,6 +5,7 @@
 
 #ifdef PGY_LLVM_ENABLED
 
+#include "host_decl_compat.h"
 #include "llvm_backend_type_map_internal.h"
 #include "llvm_internal.h"
 #include "llvm_inventory_decl_lookup.h"
@@ -32,21 +33,12 @@ static ClassField *
 llvm_channel_current_host_field(LLVMGenCtx *ctx, const char *field_name)
 {
     ASTNode *host_decl = llvm_current_host_decl(ctx);
-    size_t field_count = 0;
-    ClassField **fields;
 
     if (host_decl == NULL || host_decl->type != AST_CLASS_DECL
         || field_name == NULL)
         return NULL;
 
-    fields = ast_class_fields(host_decl, &field_count);
-    for (size_t i = 0; fields != NULL && i < field_count; i++) {
-        ClassField *field = fields[i];
-        if (field != NULL && field->name != NULL
-            && strcmp(field->name, field_name) == 0)
-            return field;
-    }
-    return NULL;
+    return pgy_host_class_field_compat_find(host_decl, field_name);
 }
 
 static const char *

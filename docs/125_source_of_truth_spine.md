@@ -244,6 +244,7 @@ keep the source-level business vocabulary clean.
 | Type/declaration dependency | Type-resolution DAG metadata | Semantic owners, AIR DAG evidence | Recursive resolver fallback on frozen paths |
 | Generic/ability contract evidence | Type-resolution DAG + `semantic_role_decl_has_ability(...)` | Semantic contract checks, role/party bind checks, AIR | Program-root based ability match helpers or compatibility counters as semantic truth |
 | Semantic host declaration lookup | `semantic_find_*_decl_by_name(...)` in `type_checker_host_helpers.c` | Constructor lookup, callable lookup, class/ability/enum/function lookup, ownership consumers | Public raw `find_type_decl_by_name`, `find_ability_decl_by_name`, `find_callable_decl_by_name`, or `find_type_alias_decl` program-root helpers |
+| Hosted method body summary | The checked `Host_Method` function symbol type, reached through `expr_host_method_function_type(...)` | Current-host method calls, instance method calls, intent authority-sensitive call detection, effect/body-summary propagation, parallel secure-call checks | Recomputing hosted method effects from AST-only declarations, dropping `semantic_record_callee_body_summary(...)` for instance calls, or treating AST method arrays as the body-summary source of truth |
 | Semantic domain declaration lookup | `semantic_find_*_decl_by_name(...)` in `type_checker_host_helpers.c` | Action contracts, intent where/using/causes, world embedding, zone authority | Public raw `find_domain_decl_by_name(...)` or any new semantic `ASTNode *program` lookup declaration |
 | Role declaration lookup | `semantic_find_role_decl_by_name(...)` / `semantic_find_next_role_decl_for_type_name(...)` | Ability matching, bind validation, operator overload lookup, role declaration validation | Public raw `semantic_find_role_decl(ASTNode *program, ...)` |
 | Projection source field path | `semantic_resolve_projection_source_field_path(...)` | Projection diagnostics, zone graph metadata, DAG projection materialization | Re-exposing `resolve_projection_source_field_path(ASTNode *program_root, ...)` or local class lookup |
@@ -280,9 +281,16 @@ to reduce a fallback counter or move code behind a helper.
 | Hosted method signature | AST method param/return reads in LLVM/C prototype emitters | `MIRDeclMethod.params`, `param_count`, and `return_type` | MIR validator rejects signature metadata drift; smoke rejects direct method param/return reads in guarded consumers | Closed for frozen hosted-method prototypes |
 | Hosted method routine link | AST/name-based routine search or unchecked routine index reuse | `MIRDeclMethod.has_routine` / `routine_index` plus routine owner/name validation | MIR linker requires method owner/name equality; MIR validator rejects routine index overflow and routine link metadata drift; smoke rejects local routine search helpers | Closed for hosted method body selection |
 | Role implementation methods | Role impl methods omitted from declaration headers | `mir_decl_header_set_role_impl_methods(...)` | Smoke requires role impl metadata recording and rejects role method-count exceptions | Closed for role method inventory count and body link |
-| Host field compatibility view | Class fields and domain shared fields reopened through separate backend switches | `host_decl_compat.c` class/shared-field compatibility views | Smoke requires C/LLVM constructor channel guards to consume `pgy_host_*_fields_compat_view_from_decl(...)` | Partial: constructor channel guard row closed for C/LLVM, broader field metadata still open |
+| Host field compatibility view | Class fields and domain shared fields reopened through separate backend switches | `host_decl_compat.c` class/shared-field compatibility views and name lookup helpers | Smoke requires C/LLVM constructor channel, class/domain constructor lowering, generic class specialization emission, LLVM domain-parts splitting, MIR SSA zone-field lookup, nominal/current-field, member/local type inference, overlay projection, and projection-path helpers to consume `pgy_host_*_field_compat_find(...)` or the field views | Partial: common backend field lookup row closed for constructor/channel/type-inference/nominal/projection helpers, dedicated declaration-field metadata still open |
 | Source/provenance payload | Treating `source_ast` as semantic inventory truth | Explicit `*_source_ast` compatibility accessors | Smoke rejects generic fallback naming and old AST method-array state | Allowed temporary compatibility seam |
 | Dedicated declaration IR | `MIRProgram` still carries AST-shaped declaration payloads | Future declaration metadata model beyond compatibility payloads | No full closure gate yet | Open beta blocker row |
+
+The field compatibility smoke has a global codegen whitelist. Direct
+`ast_class_fields(...)` or domain shared-field array access is allowed only in
+`host_decl_compat.c` and declaration/register emit owners until dedicated
+declaration-field metadata exists. New codegen consumers must use
+`pgy_host_*_field_compat_find(...)` or the class/shared-field compatibility
+views.
 
 Runtime frontier AIR evidence must count the complete frozen runtime policy
 surface: pass-limit arithmetic facts plus bounded-overflow reason facts. A
@@ -294,6 +302,15 @@ policy header owns the arithmetic vocabulary, but C/LLVM emitters must not call
 the runtime `pgy_frontier_*_pass_limit(...)` helpers directly. The wrapper is
 the backend-facing seam that keeps AST/domain declaration lookup and runtime
 frontier arithmetic from mixing in emitter-local code.
+
+Semantic projection-field lookup has the same source-of-truth rule. Frozen
+projection, intent-role, and constructor validators consume
+`projection_source_field_count(...)` / `projection_source_field_at(...)` from
+`type_checker_projection_path.c`; they must not reopen `ast_class_fields(...)`
+locally to rediscover class-field arrays. The remaining direct semantic
+`ast_class_fields(...)` use is limited to declaration validation, graph
+collection, and the projection field owner itself until dedicated declaration
+field metadata replaces AST-carried class fields.
 
 ## 2. Layer Contracts
 
@@ -373,6 +390,14 @@ destructuring may produce a `Read(slot, token)` let whose value must still be
 materialized in C. The backend may emit the assignment, but only because MIR
 kept the source-local emit fact; it must not rediscover the missing value by
 walking AST call syntax.
+
+MIR loop-local type recovery must consume one local-type owner seam. Range-loop
+variables are `Int` because the current MIR/C lowering emits an `int32_t`
+counter. For-in variables derive their surface type from the lowered iterable
+type (`List<T>`, `Array<T>`, or `Slice<T>`) through
+`transpiler_mir_for_loop_variable_type_name(...)`; backend consumers must not
+register all loop variables as `Int` and then rely on later expression
+rediscovery to repair subject or collection element types.
 
 The source-local preservation decision is shared across CFG and non-CFG
 population. `Read`/`ViewRead`/`ViewWrite`/`Move` lets are classified by the MIR

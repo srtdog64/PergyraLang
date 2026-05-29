@@ -272,16 +272,13 @@ llvm_current_field_class_name(LLVMGenCtx *ctx, const char *field_name)
     if (host_decl == NULL || host_decl->type != AST_CLASS_DECL)
         return NULL;
 
-    size_t field_count = 0;
-    ClassField **fields = ast_class_fields(host_decl, &field_count);
-    for (size_t i = 0; i < field_count; i++) {
-        ClassField *field = fields != NULL ? fields[i] : NULL;
-        const char *field_type_name = field != NULL ? ast_type_name(field->type) : NULL;
-        if (field == NULL || field->name == NULL
-            || strcmp(field->name, field_name) != 0
-            || field_type_name == NULL)
-            continue;
-        if (llvm_lookup_class(ctx, field_type_name) != NULL)
+    {
+        ClassField *field =
+            pgy_host_class_field_compat_find(host_decl, field_name);
+        const char *field_type_name =
+            field != NULL ? ast_type_name(field->type) : NULL;
+        if (field_type_name != NULL
+            && llvm_lookup_class(ctx, field_type_name) != NULL)
             return field_type_name;
     }
 

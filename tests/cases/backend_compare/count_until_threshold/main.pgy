@@ -1,0 +1,13 @@
+func Main() -> Void {
+    let i: Int = 1;
+    let count: Int = 0;
+    while true {
+        if i * i > 100 {
+            break;
+        }
+        count = count + 1;
+        i = i + 1;
+    }
+    Log(count);
+    Log(i);
+}

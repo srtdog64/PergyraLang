@@ -8,6 +8,7 @@
 #include "../parser/ast_api.h"
 
 #include "codegen_slot_type_policy.h"
+#include "host_decl_compat.h"
 #include "transpiler_decl_lookup.h"
 #include "transpiler_expr_type_infer.h"
 #include "transpiler_let_slot_emit.h"
@@ -89,19 +90,15 @@ transpiler_infer_local_type_name_from_expr(TranspilerCtx *ctx,
             if (obj_type != NULL) {
                 ASTNode *obj_decl = find_class_decl(ctx, obj_type);
                 if (obj_decl != NULL) {
-                    size_t field_count = 0;
-                    ClassField **fields = ast_class_fields(obj_decl, &field_count);
-                    for (size_t fi = 0; fi < field_count; fi++) {
-                        ClassField *f = fields != NULL ? fields[fi] : NULL;
-                        if (f != NULL && f->name != NULL && f->type != NULL
-                            && strcmp(f->name, ast_member_name(expr)) == 0) {
-                            char *rendered = render_type_name_in_ctx(ctx,
-                                f->type);
-                            const char *copied =
-                                transpiler_mir_arena_copy_type_name(ctx, rendered);
-                            free(rendered);
-                            return copied;
-                        }
+                    ClassField *field = pgy_host_class_field_compat_find(
+                        obj_decl, ast_member_name(expr));
+                    if (field != NULL && field->type != NULL) {
+                        char *rendered = render_type_name_in_ctx(ctx,
+                            field->type);
+                        const char *copied =
+                            transpiler_mir_arena_copy_type_name(ctx, rendered);
+                        free(rendered);
+                        return copied;
                     }
                 }
             }
@@ -189,6 +186,39 @@ transpiler_infer_local_type_name_from_expr(TranspilerCtx *ctx,
     default:
         return NULL;
     }
+}
+
+const char *
+transpiler_mir_for_loop_variable_type_name(TranspilerCtx *ctx,
+                                           const ASTNode *func_decl,
+                                           ASTNode *for_loop)
+{
+    ASTNode *iterable;
+    const char *iterable_type;
+    char inner_buf[128];
+
+    if (for_loop == NULL || for_loop->type != AST_FOR_LOOP
+        || ast_for_variable(for_loop) == NULL) {
+        return NULL;
+    }
+
+    iterable = ast_for_iterable(for_loop);
+    if (iterable == NULL)
+        return "Int";
+
+    iterable_type = transpiler_infer_local_type_name_from_expr(
+        ctx, func_decl, iterable);
+    if (!transpiler_type_name_is_array_or_slice(iterable_type)
+        && !transpiler_type_name_is_list(iterable_type)) {
+        return NULL;
+    }
+    if (!slot_inner_type_name_copy(iterable_type, inner_buf,
+            sizeof(inner_buf))
+        || inner_buf[0] == '\0'
+        || strcmp(inner_buf, "Unknown") == 0) {
+        return NULL;
+    }
+    return transpiler_mir_arena_copy_type_name(ctx, inner_buf);
 }
 
 static const char *
@@ -362,6 +392,15 @@ transpiler_find_local_type_name_in_block(TranspilerCtx *ctx,
     if (body->type == AST_WHILE_LOOP) {
         return transpiler_find_local_type_name_in_block(
             ctx, func_decl, ast_while_body(body), base_name);
+    }
+    if (body->type == AST_FOR_LOOP) {
+        if (ast_for_variable(body) != NULL
+            && strcmp(ast_for_variable(body), base_name) == 0) {
+            return transpiler_mir_for_loop_variable_type_name(ctx,
+                func_decl, body);
+        }
+        return transpiler_find_local_type_name_in_block(
+            ctx, func_decl, ast_for_body(body), base_name);
     }
     if (body->type == AST_SELECT_STMT) {
         for (size_t i = 0; i < ast_select_case_count(body); i++) {

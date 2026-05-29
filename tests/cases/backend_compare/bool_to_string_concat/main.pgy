@@ -1,0 +1,17 @@
+func IsPositive(n: Int) -> Bool {
+    return n > 0;
+}
+
+func Main() -> Void {
+    Log(ToString(true));
+    Log(ToString(false));
+    Log("pos=" + ToString(IsPositive(5)));
+    Log("neg=" + ToString(IsPositive(-3)));
+    Log("zero=" + ToString(IsPositive(0)));
+    let flags: Array<Bool> = [true, false, true];
+    let i: Int = 0;
+    while i < 3 {
+        Log("flag[" + ToString(i) + "]=" + ToString(flags[i]));
+        i = i + 1;
+    }
+}

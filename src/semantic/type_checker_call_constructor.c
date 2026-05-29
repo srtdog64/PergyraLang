@@ -134,7 +134,7 @@ type_check_constructor_symbol_call(ASTNode *expr,
             }
             if (decl != NULL && decl->type == AST_CLASS_DECL) {
                 GenericParams *class_generics = ast_class_generic_params(decl);
-                (void) ast_class_fields(decl, &field_count);
+                field_count = projection_source_field_count(decl);
                 decl_is_generic =
                     (ast_generic_param_count(class_generics) > 0);
             } else if (decl != NULL

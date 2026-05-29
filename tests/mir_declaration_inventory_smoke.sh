@@ -4,6 +4,7 @@
 set -euo pipefail
 
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+source "$ROOT_DIR/tests/beta_checklist_shards.sh"
 
 fail() {
     echo "[mir-decl-inventory] FAIL" >&2
@@ -20,6 +21,12 @@ require_term() {
     local rel="$1"
     local term="$2"
     local text
+
+    if [[ "$rel" == "docs/100_beta_readiness_checklist.md" ]]; then
+        pgy_beta_checklist_contains "$term" ||
+            fail "$rel shards missing term: $term"
+        return 0
+    fi
 
     text="$(<"$ROOT_DIR/$rel")"
     [[ "$text" == *"$term"* ]] ||
@@ -92,11 +99,17 @@ done
 for term in \
     "PgyHostClassFieldsCompatView" \
     "pgy_host_class_fields_compat_view_from_decl" \
-    "pgy_host_shared_fields_compat_view_from_decl"; do
+    "pgy_host_shared_fields_compat_view_from_decl" \
+    "pgy_host_class_field_compat_find" \
+    "pgy_host_shared_field_compat_find"; do
     require_term "src/codegen/host_decl_compat.h" "$term"
 done
 require_term "src/codegen/host_decl_compat.c" \
     "pgy_host_class_fields_compat_view_from_decl"
+require_term "src/codegen/host_decl_compat.c" \
+    "pgy_host_class_field_compat_find"
+require_term "src/codegen/host_decl_compat.c" \
+    "pgy_host_shared_field_compat_find"
 require_term "src/codegen/host_decl_compat.c" \
     "ast_class_fields(decl, &view.count)"
 require_term "src/codegen/transpiler_constructor_channel_guard.c" \
@@ -107,6 +120,81 @@ require_term "src/codegen/llvm_expr_constructor_calls.c" \
     "pgy_host_class_fields_compat_view_from_decl(class_decl)"
 require_term "src/codegen/llvm_expr_constructor_calls.c" \
     "pgy_host_shared_fields_compat_view_from_decl(decl)"
+for rel in \
+    "src/codegen/llvm_channel_target.c" \
+    "src/codegen/llvm_domain_lookup.c" \
+    "src/codegen/transpiler_expr_type_infer.c" \
+    "src/codegen/transpiler_mir_local_type_lookup.c" \
+    "src/codegen/transpiler_nominal.c" \
+    "src/codegen/transpiler_overlay_host_fields.c" \
+    "src/codegen/transpiler_projection_field_path.c"; do
+    require_term "$rel" "pgy_host_class_field_compat_find"
+done
+for rel in \
+    "src/codegen/transpiler_nominal.c" \
+    "src/codegen/transpiler_overlay_host_fields.c" \
+    "src/codegen/transpiler_projection.c"; do
+    require_term "$rel" "pgy_host_shared_field_compat_find"
+done
+for rel in \
+    "src/codegen/llvm_domain_projection_value_helpers.c" \
+    "src/codegen/llvm_expr_projection_path_helpers.c" \
+    "src/codegen/transpiler_domain_constructor_emit.c" \
+    "src/codegen/transpiler_generic_class_specialization_emit.c" \
+    "src/codegen/transpiler_let_emit.c" \
+    "src/codegen/transpiler_overlay_projection.c" \
+    "src/codegen/transpiler_projection.c"; do
+    require_term "$rel" "pgy_host_class_fields_compat_view_from_decl"
+done
+for rel in \
+    "src/codegen/llvm_domain_decl_parts_helpers.c" \
+    "src/codegen/transpiler_mir_ssa_names.c"; do
+    require_term "$rel" "pgy_host_shared_fields_compat_view_from_decl"
+done
+for rel in \
+    "src/codegen/llvm_channel_target.c" \
+    "src/codegen/llvm_domain_decl_parts_helpers.c" \
+    "src/codegen/llvm_domain_lookup.c" \
+    "src/codegen/llvm_domain_projection_value_helpers.c" \
+    "src/codegen/llvm_expr_constructor_calls.c" \
+    "src/codegen/llvm_expr_projection_path_helpers.c" \
+    "src/codegen/transpiler_domain_constructor_emit.c" \
+    "src/codegen/transpiler_expr_type_infer.c" \
+    "src/codegen/transpiler_generic_class_specialization_emit.c" \
+    "src/codegen/transpiler_let_emit.c" \
+    "src/codegen/transpiler_mir_local_type_lookup.c" \
+    "src/codegen/transpiler_mir_ssa_names.c" \
+    "src/codegen/transpiler_nominal.c" \
+    "src/codegen/transpiler_overlay_host_fields.c" \
+    "src/codegen/transpiler_overlay_projection.c" \
+    "src/codegen/transpiler_projection.c" \
+    "src/codegen/transpiler_projection_field_path.c"; do
+    if grep -Eq 'ast_class_fields|ast_(party|roster|relation|effect|zone|world)_shared_fields' \
+            "$ROOT_DIR/$rel"; then
+        fail "$rel must consume host_decl_compat field lookup helpers instead of reopening class/shared field arrays"
+    fi
+done
+while IFS= read -r hit; do
+    rel="${hit%%:*}"
+    rel="${rel#"$ROOT_DIR/"}"
+    case "$rel" in
+        src/codegen/host_decl_compat.c|\
+        src/codegen/llvm_domain_struct_register.c|\
+        src/codegen/llvm_domain_struct_register_fields.c|\
+        src/codegen/llvm_register.c|\
+        src/codegen/transpiler_class_decl_emit.c|\
+        src/codegen/transpiler_relation_effect_emit.c|\
+        src/codegen/transpiler_world_select_event_emit.c|\
+        src/codegen/transpiler_zone_decl_emit.c|\
+        src/codegen/transpiler_zone_struct_emit.c)
+            ;;
+        *)
+            fail "$rel reopens declaration field arrays outside approved declaration/register owners"
+            ;;
+    esac
+done < <(grep -RInE 'ast_class_fields|ast_(party|roster|relation|effect|zone|world)_shared_fields' \
+    "$ROOT_DIR/src/codegen" \
+    --include='*.c' --include='*.h' || true)
 
 for term in \
     "llvm_active_inventory" \

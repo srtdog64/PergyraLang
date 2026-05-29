@@ -31,11 +31,19 @@ English anchor for tooling/doc gates:
   table in `docs/125_source_of_truth_spine.md`. This closes the hosted-method
   body selection row while leaving the dedicated declaration IR row open.
 - Host field compatibility progress: `host_decl_compat.c` now also owns class
-  field compatibility views beside domain shared-field views. The C constructor
-  and LLVM constructor Channel guards consume those owner seams instead of
-  reopening separate class/domain shared-field switches for that path, and the
-  declaration smoke gates the proof-table row. Broader field metadata is still
-  open until dedicated declaration-field metadata exists.
+  field compatibility views, domain shared-field views, and name-based field
+  lookup helpers. The C constructor and LLVM constructor Channel guards, LLVM
+  current-host Channel target resolution, LLVM current field-class lookup, and C
+  nominal/overlay current-field helpers, C member/local type inference,
+  class/domain constructor lowering, generic class specialization emission,
+  MIR SSA implicit zone-field lookup, LLVM domain-parts splitting, overlay
+  projection invalidation, and C/LLVM
+  projection-path helpers consume those owner seams instead of reopening
+  separate class/domain shared-field switches for those paths. Broader field
+  metadata is still open until dedicated declaration-field metadata exists.
+  `mir-declaration-inventory-test-smoke` now also runs a global codegen
+  whitelist: direct `ast_class_fields(...)` / domain shared-field array access
+  is allowed only in `host_decl_compat.c` and declaration/register emit owners.
 - C/LLVM backend-compare default parity now includes exact LLVM-smoke surface
   coverage for minimal extern blocks, direct `Slot<T>` claim/write/read/release,
   direct `Channel<T>` send/receive, and explicit `Future<T>` spawn annotation.

@@ -1,0 +1,16 @@
+func FormatScore(name: String, score: Int, active: Bool) -> String {
+    if active {
+        return name + ":" + ToString(score) + "(active)";
+    }
+    return name + ":" + ToString(score);
+}
+
+func Sum3(a: Int, b: Long, c: Float) -> Float {
+    return ToFloat(ToString(a)) + ToFloat(ToString(b)) + c;
+}
+
+func Main() -> Void {
+    Log(FormatScore("Alice", 100, true));
+    Log(FormatScore("Bob", 75, false));
+    Log(ToString(Sum3(1, 2L, 3.5)));
+}

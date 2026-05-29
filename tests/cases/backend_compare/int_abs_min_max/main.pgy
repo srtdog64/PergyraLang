@@ -1,0 +1,8 @@
+func Main() -> Void {
+    Log(Abs(-7));
+    Log(Abs(13));
+    Log(Min(3, 8));
+    Log(Min(15, 4));
+    Log(Max(5, 9));
+    Log(Max(2, -3));
+}

@@ -220,6 +220,10 @@
         method->data.func_decl.params[0] =
             make_func_param("token", ast_create_type("Int"));
         method->data.func_decl.params[0]->mode = PARAM_MODE_REF;
+        ASTNode *pending = ast_create_let_declaration("pending");
+        pending->data.let_decl.initializer =
+            ast_create_spawn_expression(make_number(42, 4));
+        ast_add_statement(method->data.func_decl.body, pending);
 
         vault->data.class_decl.methods = calloc(1, sizeof(ASTNode *));
         vault->data.class_decl.methods[0] = method;
@@ -249,7 +253,8 @@
         EXPECT(!ctx->has_error
             && (body_summary & BODY_SUMMARY_EFFECTS) != 0
             && (body_summary & BODY_SUMMARY_REQUIRES_ZONE) != 0
-            && (body_summary & BODY_SUMMARY_BORROWS_PARAM) != 0);
+            && (body_summary & BODY_SUMMARY_BORROWS_PARAM) != 0
+            && (body_summary & BODY_SUMMARY_SPAWNS_TASK) != 0);
 
         semantic_context_destroy(ctx);
         ast_destroy(func);

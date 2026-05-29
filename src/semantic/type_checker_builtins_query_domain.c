@@ -235,35 +235,6 @@ decl_is_subject_nominal(ASTNode *decl)
             && ast_class_nominal_kind(decl) == NOMINAL_DECL_SUBJECT);
 }
 
-static size_t
-projection_source_field_count_local(ASTNode *decl)
-{
-    size_t field_count = 0;
-
-    if (decl == NULL)
-        return 0;
-    if (decl->type == AST_CLASS_DECL) {
-        (void) ast_class_fields(decl, &field_count);
-        return field_count;
-    }
-    return 0;
-}
-
-static ClassField *
-projection_source_field_at_local(ASTNode *decl, size_t index)
-{
-    if (decl == NULL)
-        return NULL;
-    if (decl->type == AST_CLASS_DECL) {
-        size_t field_count = 0;
-        ClassField **fields = ast_class_fields(decl, &field_count);
-        if (index < field_count && fields != NULL)
-            return fields[index];
-        return NULL;
-    }
-    return NULL;
-}
-
 static int
 resolve_projection_source_field_type_rec(ASTNode *source_decl,
                                          const char *field_name,
@@ -280,9 +251,9 @@ resolve_projection_source_field_type_rec(ASTNode *source_decl,
     if (ctx == NULL || source_decl == NULL || field_name == NULL || depth > 8)
         return 0;
 
-    field_count = projection_source_field_count_local(source_decl);
+    field_count = projection_source_field_count(source_decl);
     for (size_t i = 0; i < field_count; i++) {
-        ClassField *field = projection_source_field_at_local(source_decl, i);
+        ClassField *field = projection_source_field_at(source_decl, i);
         if (field != NULL && field->name != NULL
             && strcmp(field->name, field_name) == 0) {
             if (field_type_out != NULL)
@@ -294,7 +265,7 @@ resolve_projection_source_field_type_rec(ASTNode *source_decl,
     }
 
     for (size_t i = 0; i < field_count; i++) {
-        ClassField *field = projection_source_field_at_local(source_decl, i);
+        ClassField *field = projection_source_field_at(source_decl, i);
         ASTNode *vessel_decl;
         Type *nested_type = NULL;
         int nested_status;

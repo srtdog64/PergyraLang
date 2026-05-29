@@ -46,8 +46,12 @@ intent_clause_invokes_authority_sensitive_call(ASTNode *expr, SemanticContext *c
                 continue;
             }
             if (strcmp(method_name, ast_member_name(callee)) == 0) {
+                Type *method_type =
+                    expr_host_method_function_type(ctx, host_decl, method_name);
                 uint32_t method_effects =
-                    declared_effects_from_function_node(method, ctx, NULL);
+                    method_type != NULL
+                        ? type_function_effects(method_type)
+                        : declared_effects_from_function_node(method, ctx, NULL);
                 if (type_effect_mask_requires_authority(method_effects))
                     return true;
                 if (ast_func_is_action(method)

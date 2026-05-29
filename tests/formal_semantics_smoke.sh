@@ -2,6 +2,7 @@
 set -euo pipefail
 
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+source "$ROOT_DIR/tests/beta_checklist_shards.sh"
 
 require_file() {
     local path="$1"
@@ -17,6 +18,14 @@ require_term() {
     local path="$1"
     local label="$2"
     local term="$3"
+
+    if [[ "$path" == "$CHECKLIST_PATH" ]]; then
+        if ! pgy_beta_checklist_contains "$term"; then
+            echo "$label shards missing required term: $term" >&2
+            exit 1
+        fi
+        return 0
+    fi
 
     if ! grep -Fq -- "$term" "$path"; then
         echo "$label missing required term: $term" >&2
@@ -369,24 +378,39 @@ for path in "$README_PATH" "$TODO_PATH"; do
     forbid_term "$path" "$path" "WriteView<T> exclusive is not enforced"
 done
 
+global_forbid_terms="$(mktemp)"
+global_forbid_files="$(mktemp)"
+global_forbid_matches="$(mktemp)"
+cat >"$global_forbid_terms" <<'TERMS'
+Slot Lifetime Analyzer
+slot???
+Slot is Pergyra's borrow checker
+Slot proves borrow safety
+Slot proves Rust-style borrow checking
+Pergyra provides Rust-level memory safety
+Pergyra guarantees Rust-level memory safety
+pin blocks reject crossing await
+pin blocks statically reject crossing await
+WriteView<T> exclusive is not enforced
+WriteView<T> is not enforced
+TERMS
+
 while IFS= read -r -d '' path; do
     case "$path" in
         "$CHECKLIST_PATH"|"$RIGOR_AUDIT_PATH"|"$PROOF_DIR/08_slot_capability_calculus.md"|"$PROOF_DIR/README.md")
             continue
             ;;
     esac
-    forbid_term "$path" "$path" "Slot Lifetime Analyzer"
-    forbid_term "$path" "$path" "slot???"
-    forbid_term "$path" "$path" "Slot is Pergyra's borrow checker"
-    forbid_term "$path" "$path" "Slot proves borrow safety"
-    forbid_term "$path" "$path" "Slot proves Rust-style borrow checking"
-    forbid_term "$path" "$path" "Pergyra provides Rust-level memory safety"
-    forbid_term "$path" "$path" "Pergyra guarantees Rust-level memory safety"
-    forbid_term "$path" "$path" "pin blocks reject crossing await"
-    forbid_term "$path" "$path" "pin blocks statically reject crossing await"
-    forbid_term "$path" "$path" "WriteView<T> exclusive is not enforced"
-    forbid_term "$path" "$path" "WriteView<T> is not enforced"
+    printf '%s\0' "$path" >>"$global_forbid_files"
 done < <(find "$ROOT_DIR/docs" -name '*.md' -print0)
+
+if [[ -s "$global_forbid_files" ]] &&
+    xargs -0 grep -nF -f "$global_forbid_terms" -- \
+        <"$global_forbid_files" >"$global_forbid_matches"; then
+    cat "$global_forbid_matches" >&2
+    echo "docs contain forbidden Slot safety claim(s)" >&2
+    exit 1
+fi
 
 require_terms "$CI_PATH" ".github/workflows/ci.yml" <<'TERMS'
 sudo apt-get install -y gcc make llvm-dev llvm coq
@@ -396,7 +420,12 @@ TERMS
 echo "formal semantics smoke: ok"
 
 if command -v coqc >/dev/null 2>&1; then
-    (cd "$ROOT_DIR" && coqc docs/semantics/proofs/SlotCalculus.v)
+    coq_timeout="${PGY_COQ_SMOKE_TIMEOUT_SECONDS:-60}"
+    if command -v timeout >/dev/null 2>&1; then
+        (cd "$ROOT_DIR" && timeout "$coq_timeout" coqc docs/semantics/proofs/SlotCalculus.v)
+    else
+        (cd "$ROOT_DIR" && coqc docs/semantics/proofs/SlotCalculus.v)
+    fi
     echo "formal semantics Coq smoke: ok"
 else
     echo "formal semantics Coq smoke: skipped (coqc not found)"

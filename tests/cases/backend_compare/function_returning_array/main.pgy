@@ -1,0 +1,18 @@
+func MakeRange(n: Int) -> Array<Int> {
+    let acc: Array<Int> = [];
+    let i: Int = 0;
+    while i < n {
+        ArrayPush(acc, i);
+        i = i + 1;
+    }
+    return acc;
+}
+
+func Main() -> Void {
+    let zeros: Array<Int> = MakeRange(0);
+    let small: Array<Int> = MakeRange(3);
+    Log(ArrayLength(zeros));
+    Log(ArrayLength(small));
+    Log(small[0]);
+    Log(small[2]);
+}

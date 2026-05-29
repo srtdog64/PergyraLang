@@ -1,0 +1,15 @@
+enum Status { Idle, Running, Done }
+
+func Code(s: Status) -> Int {
+    match s {
+        case Idle: return 0;
+        case Running: return 1;
+        case Done: return 2;
+    }
+}
+
+func Main() -> Void {
+    Log(Code(Idle));
+    Log(Code(Running));
+    Log(Code(Done));
+}

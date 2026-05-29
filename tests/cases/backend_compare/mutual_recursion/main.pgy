@@ -1,0 +1,16 @@
+func IsEven(n: Int) -> Bool {
+    if n == 0 { return true; }
+    return IsOdd(n - 1);
+}
+
+func IsOdd(n: Int) -> Bool {
+    if n == 0 { return false; }
+    return IsEven(n - 1);
+}
+
+func Main() -> Void {
+    Log(IsEven(4));
+    Log(IsOdd(7));
+    Log(IsEven(0));
+    Log(IsOdd(0));
+}

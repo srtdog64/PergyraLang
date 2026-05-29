@@ -2,6 +2,7 @@
 set -euo pipefail
 
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+source "$ROOT_DIR/tests/beta_checklist_shards.sh"
 
 fail() {
     echo "[abi-ownership-shape] $*" >&2
@@ -17,6 +18,11 @@ require_term() {
     local rel="$1"
     local term="$2"
     local path="$ROOT_DIR/$rel"
+    if [[ "$rel" == "docs/100_beta_readiness_checklist.md" ]]; then
+        pgy_beta_checklist_contains "$term" ||
+            fail "$rel shards missing term: $term"
+        return 0
+    fi
     grep -Fq "$term" "$path" || fail "$rel missing term: $term"
 }
 

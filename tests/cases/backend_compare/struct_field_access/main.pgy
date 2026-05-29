@@ -1,0 +1,25 @@
+struct Point {
+    let x: Int;
+    let y: Int;
+}
+
+struct Line {
+    let start: Point;
+    let end: Point;
+}
+
+func ManhattanDist(line: Line) -> Int {
+    let dx: Int = line.end.x - line.start.x;
+    let dy: Int = line.end.y - line.start.y;
+    return Abs(dx) + Abs(dy);
+}
+
+func Main() -> Void {
+    let p1: Point = Point(1, 2);
+    let p2: Point = Point(4, 6);
+    let line: Line = Line(p1, p2);
+    Log(ManhattanDist(line));
+
+    let nested: Line = Line(Point(0, 0), Point(-3, -4));
+    Log(ManhattanDist(nested));
+}

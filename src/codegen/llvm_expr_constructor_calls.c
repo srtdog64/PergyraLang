@@ -37,8 +37,7 @@ llvm_class_constructor_field_type_at(LLVMGenCtx *ctx,
                                      size_t index)
 {
     ASTNode *class_decl;
-    ClassField **fields;
-    size_t field_count = 0;
+    PgyHostClassFieldsCompatView field_view;
 
     if (ctx == NULL || callee_name == NULL)
         return NULL;
@@ -46,10 +45,11 @@ llvm_class_constructor_field_type_at(LLVMGenCtx *ctx,
         ctx, AST_CLASS_DECL, callee_name);
     if (class_decl == NULL)
         return NULL;
-    fields = ast_class_fields(class_decl, &field_count);
-    if (fields == NULL || index >= field_count || fields[index] == NULL)
+    field_view = pgy_host_class_fields_compat_view_from_decl(class_decl);
+    if (field_view.fields == NULL || index >= field_view.count
+        || field_view.fields[index] == NULL)
         return NULL;
-    return fields[index]->type;
+    return field_view.fields[index]->type;
 }
 
 static bool

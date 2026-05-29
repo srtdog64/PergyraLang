@@ -12,6 +12,7 @@
 
 #include "../common/string_compat.h"
 #include "../parser/ast_api.h"
+#include "host_decl_compat.h"
 #include "transpiler_decl_lookup.h"
 #include "transpiler_mir_local_binding.h"
 #include "transpiler_mir_ssa_map.h"
@@ -145,9 +146,10 @@ transpiler_is_implicit_field(TranspilerCtx *ctx, const char *base_name)
                     return true;
                 }
             }
-            size_t shared_count = 0;
-            ASTNode **shared_fields = ast_zone_shared_fields(zone_decl,
-                &shared_count);
+            PgyHostSharedFieldsCompatView shared_view =
+                pgy_host_shared_fields_compat_view_from_decl(zone_decl);
+            size_t shared_count = shared_view.count;
+            ASTNode **shared_fields = shared_view.fields;
             for (size_t i = 0; i < shared_count; i++) {
                 ASTNode *shared = shared_fields[i];
                 const char *shared_name = ast_party_shared_name(shared);

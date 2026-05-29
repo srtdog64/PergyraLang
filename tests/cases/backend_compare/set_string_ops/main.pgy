@@ -1,0 +1,14 @@
+func Main() -> Void {
+    let tags: Set<String> = SetNew();
+    SetAdd(tags, "alpha");
+    SetAdd(tags, "beta");
+    SetAdd(tags, "gamma");
+
+    Log(SetHas(tags, "beta"));
+    Log(SetHas(tags, "delta"));
+    Log(SetSize(tags));
+
+    SetRemove(tags, "alpha");
+    Log(SetHas(tags, "alpha"));
+    Log(SetSize(tags));
+}

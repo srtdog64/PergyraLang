@@ -1,6 +1,6 @@
 # PergyraLang Documentation Index
 
-Last updated: 2026-05-20
+Last updated: 2026-05-29
 
 Anti-hype update: 2026-04-29
 
@@ -12,8 +12,13 @@ and follow-up debt over older design notes.
 
 | Document | Purpose |
 |---|---|
-| [`100_beta_readiness_checklist.md`](100_beta_readiness_checklist.md) | Main beta readiness checklist and remaining blocker map |
+| [`100_beta_readiness_checklist.md`](100_beta_readiness_checklist.md) | Lightweight index for the split beta readiness checklist |
+| [`100a_beta_active_status.md`](100a_beta_active_status.md) | Active status, current blockers, and recent closure context |
+| [`100b_beta_p0_semantics_systems_air.md`](100b_beta_p0_semantics_systems_air.md) | P0 formal semantics, systems baseline, CFG, AIR, and compiler quality gates |
+| [`100c_beta_dag_mir_abi_runtime.md`](100c_beta_dag_mir_abi_runtime.md) | DAG, MIR, ABI/runtime, parallel, and pain-point closure gates |
+| [`100d_beta_execution_log.md`](100d_beta_execution_log.md) | Immediate execution order and historical progress log |
 | [`125_source_of_truth_spine.md`](125_source_of_truth_spine.md) | Compiler source-of-truth ownership spine to stop A -> B -> A refactoring loops |
+| [`133_beta_completed_closure_archive.md`](133_beta_completed_closure_archive.md) | Completed beta-closure evidence moved out of the active checklist |
 | [`19_design_philosophy.md`](19_design_philosophy.md) | Systems-language identity and non-negotiable substrate baseline |
 | [`107_beta_stable_subset.md`](107_beta_stable_subset.md) | Single freeze point for the beta-stable language subset |
 | [`111_beta_test_suite_freeze.md`](111_beta_test_suite_freeze.md) | Mandatory pre-beta gate inventory |

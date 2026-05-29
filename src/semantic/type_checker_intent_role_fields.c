@@ -20,10 +20,9 @@ find_nominal_field_by_name(ASTNode *decl, const char *field_name)
     if (decl == NULL || decl->type != AST_CLASS_DECL || field_name == NULL)
         return NULL;
 
-    size_t field_count = 0;
-    ClassField **fields = ast_class_fields(decl, &field_count);
+    size_t field_count = projection_source_field_count(decl);
     for (size_t i = 0; i < field_count; i++) {
-        ClassField *field = fields != NULL ? fields[i] : NULL;
+        ClassField *field = projection_source_field_at(decl, i);
         if (field != NULL && field->name != NULL
             && strcmp(field->name, field_name) == 0) {
             return field;
@@ -53,10 +52,9 @@ find_subject_surface_field_by_name(SemanticContext *ctx,
             return direct;
     }
 
-    size_t field_count = 0;
-    ClassField **fields = ast_class_fields(subject_decl, &field_count);
+    size_t field_count = projection_source_field_count(subject_decl);
     for (size_t i = 0; i < field_count; i++) {
-        ClassField *field = fields != NULL ? fields[i] : NULL;
+        ClassField *field = projection_source_field_at(subject_decl, i);
         ASTNode *vessel_decl;
         ClassField *nested;
         Type *field_type;

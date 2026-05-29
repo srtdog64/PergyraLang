@@ -45,5 +45,9 @@ PgyHostSharedFieldsCompatView pgy_host_shared_fields_compat_view_from_decl(
     ASTNode *decl);
 PgyHostClassFieldsCompatView pgy_host_class_fields_compat_view_from_decl(
     ASTNode *decl);
+ClassField *pgy_host_class_field_compat_find(ASTNode *decl,
+                                             const char *field_name);
+ASTNode *pgy_host_shared_field_compat_find(ASTNode *decl,
+                                           const char *field_name);
 
 #endif /* PGY_HOST_DECL_COMPAT_H */

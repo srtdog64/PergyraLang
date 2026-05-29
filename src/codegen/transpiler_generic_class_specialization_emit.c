@@ -6,6 +6,7 @@
 #include "../parser/ast_api.h"
 #include "../semantic/diag_codes.h"
 
+#include "host_decl_compat.h"
 #include "transpiler_context.h"
 #include "transpiler_decl_lookup.h"
 #include "transpiler_func_forward_metadata.h"
@@ -145,9 +146,10 @@ ensure_generic_class_specialization(TranspilerCtx *ctx,
     entry->binding_count = formal_count;
 
     codebuf_write(ctx->helpers, "\ntypedef struct %s\n{\n", spec_name);
-    size_t field_count = 0;
-    ClassField **fields = ast_class_fields(class_decl, &field_count);
-    for (size_t i = 0; i < field_count; i++) {
+    PgyHostClassFieldsCompatView field_view =
+        pgy_host_class_fields_compat_view_from_decl(class_decl);
+    ClassField **fields = field_view.fields;
+    for (size_t i = 0; i < field_view.count; i++) {
         ClassField *f = fields != NULL ? fields[i] : NULL;
         char ft[256];
         char surface_desc[256];

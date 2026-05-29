@@ -1,0 +1,20 @@
+func Greet(name: String, formal: Bool) -> String {
+    if formal {
+        return "Hello, " + name;
+    }
+    return "Hi " + name + "!";
+}
+
+func ChooseName(use_real: Bool) -> String {
+    if use_real {
+        return "Alice";
+    }
+    return "guest";
+}
+
+func Main() -> Void {
+    Log(Greet("Bob", true));
+    Log(Greet("Carol", false));
+    Log(Greet(ChooseName(true), true));
+    Log(Greet(ChooseName(false), false));
+}

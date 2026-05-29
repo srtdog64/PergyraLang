@@ -1,0 +1,17 @@
+enum ParseError { Empty, BadDigit }
+
+func ParseInt(raw: String) -> Result<Int, ParseError> {
+    if StringLength(raw) == 0 {
+        return Err(ParseError.Empty);
+    }
+    return Ok(ToInt(raw));
+}
+
+func Main() -> Void {
+    let a: Result<Int, ParseError> = ParseInt("21");
+
+    match a {
+        case Ok(v): Log("ok=" + ToString(v));
+        case Err(e): Log("err");
+    }
+}

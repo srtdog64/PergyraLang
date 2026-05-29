@@ -10,6 +10,7 @@
 #include <stdio.h>
 #include <string.h>
 
+#include "host_decl_compat.h"
 #include "llvm_internal_api.h"
 #include "llvm_inventory_decl_lookup.h"
 #include "../common/string_compat.h"
@@ -25,13 +26,12 @@ llvm_find_domain_projection_nominal_decl(LLVMGenCtx *ctx, const char *name)
 static size_t
 llvm_domain_projection_field_count(ASTNode *decl)
 {
-    size_t field_count = 0;
-
     if (decl == NULL)
         return 0;
     if (decl->type == AST_CLASS_DECL) {
-        (void) ast_class_fields(decl, &field_count);
-        return field_count;
+        PgyHostClassFieldsCompatView view =
+            pgy_host_class_fields_compat_view_from_decl(decl);
+        return view.count;
     }
     return 0;
 }
@@ -42,10 +42,10 @@ llvm_domain_projection_field_at(ASTNode *decl, size_t index)
     if (decl == NULL)
         return NULL;
     if (decl->type == AST_CLASS_DECL) {
-        size_t field_count = 0;
-        ClassField **fields = ast_class_fields(decl, &field_count);
-        if (index < field_count && fields != NULL)
-            return fields[index];
+        PgyHostClassFieldsCompatView view =
+            pgy_host_class_fields_compat_view_from_decl(decl);
+        if (index < view.count && view.fields != NULL)
+            return view.fields[index];
         return NULL;
     }
     return NULL;

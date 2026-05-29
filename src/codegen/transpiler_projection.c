@@ -7,6 +7,7 @@
 
 #include <string.h>
 
+#include "host_decl_compat.h"
 #include "transpiler_context.h"
 #include "transpiler_decl_lookup.h"
 #include "transpiler_projection.h"
@@ -134,16 +135,8 @@ transpiler_current_world_has_field(TranspilerCtx *ctx, const char *field_name)
             return true;
         }
     }
-    size_t shared_count = 0;
-    ASTNode **shared_fields = ast_world_shared_fields(decl, &shared_count);
-    for (size_t i = 0; i < shared_count; i++) {
-        ASTNode *shared = shared_fields[i];
-        const char *shared_name = ast_party_shared_name(shared);
-        if (shared != NULL && shared_name != NULL
-            && strcmp(shared_name, field_name) == 0) {
-            return true;
-        }
-    }
+    if (pgy_host_shared_field_compat_find(decl, field_name) != NULL)
+        return true;
 
     return false;
 }
@@ -246,13 +239,12 @@ transpiler_resolve_world_zone_decl(TranspilerCtx *ctx, ASTNode *world_decl,
 static size_t
 projection_source_field_count(ASTNode *decl)
 {
-    size_t field_count = 0;
-
     if (decl == NULL)
         return 0;
     if (decl->type == AST_CLASS_DECL) {
-        (void) ast_class_fields(decl, &field_count);
-        return field_count;
+        PgyHostClassFieldsCompatView view =
+            pgy_host_class_fields_compat_view_from_decl(decl);
+        return view.count;
     }
     return 0;
 }
@@ -263,10 +255,10 @@ projection_source_field_at(ASTNode *decl, size_t index)
     if (decl == NULL)
         return NULL;
     if (decl->type == AST_CLASS_DECL) {
-        size_t field_count = 0;
-        ClassField **fields = ast_class_fields(decl, &field_count);
-        if (index < field_count && fields != NULL)
-            return fields[index];
+        PgyHostClassFieldsCompatView view =
+            pgy_host_class_fields_compat_view_from_decl(decl);
+        if (index < view.count && view.fields != NULL)
+            return view.fields[index];
         return NULL;
     }
     return NULL;
@@ -365,12 +357,11 @@ emit_projection_literal(TranspilerCtx *ctx, ASTNode *target_decl, ASTNode *sourc
     buf = codebuf_create();
     codebuf_write(buf, "(%s){ ", target_type_name);
 
-    size_t target_field_count = 0;
-    ClassField **target_fields =
-        ast_class_fields(target_decl, &target_field_count);
-    for (size_t i = 0; i < target_field_count; i++) {
+    PgyHostClassFieldsCompatView target_fields =
+        pgy_host_class_fields_compat_view_from_decl(target_decl);
+    for (size_t i = 0; i < target_fields.count; i++) {
         ClassField *target_field =
-            target_fields != NULL ? target_fields[i] : NULL;
+            target_fields.fields != NULL ? target_fields.fields[i] : NULL;
         const char *source_field_name = NULL;
         char *source_path = NULL;
         int source_status;

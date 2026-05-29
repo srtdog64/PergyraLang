@@ -1,0 +1,9 @@
+func Identity<T>(x: T) -> T {
+    return x;
+}
+
+func Main() -> Void {
+    Log(ToString(Identity(42)));
+    Log(Identity("hello"));
+    Log(ToString(Identity(true)));
+}

@@ -12,6 +12,9 @@ const char *transpiler_mir_arena_render_type_name(TranspilerCtx *ctx,
 const char *transpiler_infer_local_type_name_from_expr(TranspilerCtx *ctx,
                                                        const ASTNode *func_decl,
                                                        ASTNode *expr);
+const char *transpiler_mir_for_loop_variable_type_name(TranspilerCtx *ctx,
+                                                       const ASTNode *func_decl,
+                                                       ASTNode *for_loop);
 const char *transpiler_find_local_type_name(TranspilerCtx *ctx,
                                             const ASTNode *func_decl,
                                             const char *base_name);

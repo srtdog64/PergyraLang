@@ -1,0 +1,13 @@
+func Main() -> Void {
+    let sum_even: Int = 0;
+    let i: Int = 0;
+    while i < 10 {
+        if i % 2 == 1 {
+            i = i + 1;
+            continue;
+        }
+        sum_even = sum_even + i;
+        i = i + 1;
+    }
+    Log(sum_even);
+}

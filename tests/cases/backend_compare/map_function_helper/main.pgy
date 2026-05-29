@@ -1,0 +1,17 @@
+func Increment(counts: HashMap<String, Int>, key: String) -> Void {
+    let current: Int = MapGet(counts, key);
+    MapSet(counts, key, current + 1);
+}
+
+func Main() -> Void {
+    let counts: HashMap<String, Int> = MapNew();
+    MapSet(counts, "a", 0);
+    MapSet(counts, "b", 0);
+
+    Increment(counts, "a");
+    Increment(counts, "a");
+    Increment(counts, "b");
+
+    Log(MapGet(counts, "a"));
+    Log(MapGet(counts, "b"));
+}

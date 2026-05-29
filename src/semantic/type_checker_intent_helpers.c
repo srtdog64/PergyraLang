@@ -197,10 +197,9 @@ projection_target_decl_has_field(ASTNode *target_decl, const char *field_name)
         || field_name == NULL) {
         return false;
     }
-    size_t field_count = 0;
-    ClassField **fields = ast_class_fields(target_decl, &field_count);
+    size_t field_count = projection_source_field_count(target_decl);
     for (size_t i = 0; i < field_count; i++) {
-        ClassField *field = fields != NULL ? fields[i] : NULL;
+        ClassField *field = projection_source_field_at(target_decl, i);
         if (field != NULL && field->name != NULL
             && strcmp(field->name, field_name) == 0) {
             return true;

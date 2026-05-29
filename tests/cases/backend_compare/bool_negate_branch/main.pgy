@@ -1,0 +1,14 @@
+func Choose(active: Bool) -> Int {
+    if !active {
+        return 1;
+    }
+    return 2;
+}
+
+func Main() -> Void {
+    Log(Choose(false));
+    Log(Choose(true));
+    Log(!true);
+    Log(!false);
+    Log(!(1 > 2));
+}

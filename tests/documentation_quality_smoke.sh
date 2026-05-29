@@ -17,6 +17,22 @@ require_file() {
 require_text() {
     local rel="$1"
     local term="$2"
+    local candidate
+
+    if [[ "$rel" == "docs/100_beta_readiness_checklist.md" ]]; then
+        for candidate in \
+            "docs/100_beta_readiness_checklist.md" \
+            "docs/100a_beta_active_status.md" \
+            "docs/100b_beta_p0_semantics_systems_air.md" \
+            "docs/100c_beta_dag_mir_abi_runtime.md" \
+            "docs/100d_beta_execution_log.md"; do
+            if grep -Fq -- "$term" "$ROOT_DIR/$candidate"; then
+                return 0
+            fi
+        done
+        fail "$rel shards missing term: $term"
+    fi
+
     grep -Fq -- "$term" "$ROOT_DIR/$rel" || fail "$rel missing term: $term"
 }
 
@@ -86,6 +102,11 @@ required_files=(
     "docs/grammar/01_syntax.md"
     "docs/grammar/02_grammar.md"
     "docs/124_syntax_pattern_matrix.md"
+    "docs/100_beta_readiness_checklist.md"
+    "docs/100a_beta_active_status.md"
+    "docs/100b_beta_p0_semantics_systems_air.md"
+    "docs/100c_beta_dag_mir_abi_runtime.md"
+    "docs/100d_beta_execution_log.md"
     "docs/125_source_of_truth_spine.md"
     "docs/50_language_completion_board.md"
     "docs/129_tex_semantics_lessons.md"

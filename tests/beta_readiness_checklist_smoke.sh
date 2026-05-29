@@ -13,9 +13,35 @@ require_file() {
     [[ -f "$ROOT_DIR/$rel" ]] || fail "missing $rel"
 }
 
+require_max_lines() {
+    local rel="$1"
+    local max_lines="$2"
+    local line_count
+
+    line_count="$(wc -l < "$ROOT_DIR/$rel")"
+    [[ "$line_count" -le "$max_lines" ]] ||
+        fail "$rel has $line_count lines; expected <= $max_lines"
+}
+
 require_text() {
     local rel="$1"
     local term="$2"
+    local candidate
+
+    if [[ "$rel" == "docs/100_beta_readiness_checklist.md" ]]; then
+        for candidate in \
+            "docs/100_beta_readiness_checklist.md" \
+            "docs/100a_beta_active_status.md" \
+            "docs/100b_beta_p0_semantics_systems_air.md" \
+            "docs/100c_beta_dag_mir_abi_runtime.md" \
+            "docs/100d_beta_execution_log.md"; do
+            if grep -Fq -- "$term" "$ROOT_DIR/$candidate"; then
+                return 0
+            fi
+        done
+        fail "$rel shards missing term: $term"
+    fi
+
     grep -Fq -- "$term" "$ROOT_DIR/$rel" ||
         fail "$rel missing term: $term"
 }
@@ -40,6 +66,10 @@ require_terms() {
 
 required_files=(
     "docs/100_beta_readiness_checklist.md"
+    "docs/100a_beta_active_status.md"
+    "docs/100b_beta_p0_semantics_systems_air.md"
+    "docs/100c_beta_dag_mir_abi_runtime.md"
+    "docs/100d_beta_execution_log.md"
     "docs/19_design_philosophy.md"
     "docs/107_beta_stable_subset.md"
     "docs/108_stdlib_beta_freeze.md"
@@ -65,6 +95,15 @@ required_files=(
 
 for rel in "${required_files[@]}"; do
     require_file "$rel"
+done
+
+require_max_lines "docs/100_beta_readiness_checklist.md" 120
+for rel in \
+    "docs/100a_beta_active_status.md" \
+    "docs/100b_beta_p0_semantics_systems_air.md" \
+    "docs/100c_beta_dag_mir_abi_runtime.md" \
+    "docs/100d_beta_execution_log.md"; do
+    require_max_lines "$rel" 2600
 done
 
 require_terms "docs/100_beta_readiness_checklist.md" <<'EOF'

@@ -1,4 +1,6 @@
+#include <stdlib.h>
 #include <string.h>
+#include <stdio.h>
 
 #include "type_checker_internal.h"
 #include "type_checker_visibility.h"
@@ -136,9 +138,39 @@ expr_current_host_method_decl(SemanticContext *ctx, const char *method_name)
 }
 
 Type *
-expr_type_check_host_method_call(ASTNode *expr,
-                                 ASTNode *method,
-                                 SemanticContext *ctx)
+expr_host_method_function_type(SemanticContext *ctx,
+                               ASTNode *host_decl,
+                               const char *method_name)
+{
+    const char *host_name;
+    char *mangled;
+    Symbol *sym;
+
+    if (ctx == NULL || host_decl == NULL || method_name == NULL)
+        return NULL;
+
+    host_name = ast_declaration_name(host_decl);
+    if (host_name == NULL)
+        return NULL;
+
+    mangled = tc_strdup_fmt("%s_%s", host_name, method_name);
+    if (mangled == NULL)
+        return NULL;
+
+    sym = scope_lookup(ctx->scope, mangled);
+    free(mangled);
+    if (sym == NULL || sym->kind != SYMBOL_FUNCTION)
+        return NULL;
+    if (sym->type == NULL || sym->type->kind != TYPE_KIND_FUNCTION)
+        return NULL;
+    return sym->type;
+}
+
+Type *
+expr_type_check_host_method_call_on_host(ASTNode *expr,
+                                         ASTNode *host_decl,
+                                         ASTNode *method,
+                                         SemanticContext *ctx)
 {
     size_t implicit_self = 0;
     size_t param_count;
@@ -146,20 +178,40 @@ expr_type_check_host_method_call(ASTNode *expr,
     size_t provided;
     FuncParam *first_param;
     uint32_t declared_effects;
+    uint32_t method_effects;
+    Type *method_func_type;
+    const char *method_name;
+    const char *method_display;
+    char method_display_buf[256];
 
     if (expr == NULL || method == NULL || method->type != AST_FUNC_DECL)
         return TYPE_UNKNOWN;
 
+    method_name = ast_declaration_name(method);
+    method_display = method_name != NULL ? method_name : "<method>";
+    if (host_decl != NULL && host_decl != current_host_decl(ctx)) {
+        const char *host_name = ast_declaration_name(host_decl);
+        if (host_name != NULL && method_name != NULL) {
+            snprintf(method_display_buf, sizeof(method_display_buf),
+                     "%s.%s", host_name, method_name);
+            method_display = method_display_buf;
+        }
+    }
+    method_func_type =
+        expr_host_method_function_type(ctx, host_decl, method_name);
     declared_effects = declared_effects_from_function_node(method, ctx, NULL);
-    semantic_record_effect(ctx, declared_effects);
-    semantic_record_callable_decl_summary(ctx, method, declared_effects);
-    if (ctx->in_parallel && type_effect_mask_has(declared_effects, EFFECT_SECURE)) {
+    method_effects = method_func_type != NULL
+        ? type_function_effects(method_func_type)
+        : declared_effects;
+    semantic_record_effect(ctx, method_effects);
+    semantic_record_callee_body_summary(ctx, method_func_type);
+    semantic_record_callable_decl_summary(ctx, method, method_effects);
+    if (ctx->in_parallel && type_effect_mask_has(method_effects, EFFECT_SECURE)) {
         semantic_error_with_hints(ctx, PGY_CODE_SEM_PARALLEL_SECURE_FORBIDDEN,
             PGY_CAUSE_PARALLEL_SECURE_IN_TASK,
             PGY_FIX_SERIALIZE_OUTSIDE_PARALLEL, expr,
             "Parallel context does not permit calling secure-effect method '%s'; serialize authority-bearing operations outside the parallel block",
-            ast_declaration_name(method) != NULL
-                ? ast_declaration_name(method) : "<method>");
+            method_display);
         return expr_host_resolve_func_return_type(method, ctx);
     }
 
@@ -208,6 +260,15 @@ expr_type_check_host_method_call(ASTNode *expr,
     }
 
     return expr_host_resolve_func_return_type(method, ctx);
+}
+
+Type *
+expr_type_check_host_method_call(ASTNode *expr,
+                                 ASTNode *method,
+                                 SemanticContext *ctx)
+{
+    return expr_type_check_host_method_call_on_host(
+        expr, current_host_decl(ctx), method, ctx);
 }
 
 bool

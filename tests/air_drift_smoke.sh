@@ -2,12 +2,20 @@
 set -euo pipefail
 
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+source "$ROOT_DIR/tests/beta_checklist_shards.sh"
 PYTHON_BIN="${PYTHON_BIN:-}"
 AIR_CHECK_DONE=0
 
 require_literal() {
     local rel="$1"
     local term="$2"
+    if [[ "$rel" == "docs/100_beta_readiness_checklist.md" ]]; then
+        pgy_beta_checklist_contains "$term" || {
+            echo "AIR drift literal fallback missing term in $rel shards: $term" >&2
+            exit 1
+        }
+        return 0
+    fi
     grep -Fq -- "$term" "$ROOT_DIR/$rel" || {
         echo "AIR drift literal fallback missing term in $rel: $term" >&2
         exit 1
@@ -189,7 +197,13 @@ import sys
 
 root = pathlib.Path(sys.argv[1])
 air_path = root / "docs" / "104_air_compiler_architecture.md"
-checklist_path = root / "docs" / "100_beta_readiness_checklist.md"
+checklist_paths = [
+    root / "docs" / "100_beta_readiness_checklist.md",
+    root / "docs" / "100a_beta_active_status.md",
+    root / "docs" / "100b_beta_p0_semantics_systems_air.md",
+    root / "docs" / "100c_beta_dag_mir_abi_runtime.md",
+    root / "docs" / "100d_beta_execution_log.md",
+]
 todo_path = root / "TODO.md"
 makefile_path = root / "Makefile"
 air_semantics_path = root / "docs" / "semantics" / "07_air_abstraction_safety.md"
@@ -261,12 +275,13 @@ diag_docs_path = root / "docs" / "72_diagnostic_codes.md"
 air_backend_nonimpact_path = root / "tests" / "air_backend_nonimpact_smoke.sh"
 diagnostics_json_path = root / "tests" / "diagnostics_json_smoke.sh"
 
-for path in (air_path, checklist_path, todo_path, makefile_path, air_semantics_path, io_boundary_builtin_path, compiler_header_path, driver_path, driver_diag_path, pgy_driver_path, parser_intent_path, parser_intent_step_path, dir_header_path, dir_impl_path, dir_collect_path, dir_collect_intent_path, air_header_path, air_impl_path, air_drift_path, air_boundary_path, air_boundary_walk_path, air_dump_path, air_dump_json_path, air_vocabulary_path, air_boundary_evidence_policy_path, air_evidence_node_path, air_evidence_path, air_evidence_mir_facts_path, air_evidence_mir_pin_path, air_evidence_dag_path, air_evidence_ast_path, air_evidence_rir_path, air_evidence_rir_match_path, air_evidence_rir_propagation_path, air_evidence_rir_boundary_path, air_evidence_runtime_path, env_flags_path, mir_cleanup_fact_names_path, air_internal_path, air_validate_path, air_validate_boundary_evidence_path, air_validate_evidence_path, air_validate_boundary_summary_path, air_validate_global_evidence_path, air_verify_provenance_path, air_verify_global_path, air_verify_path, air_test_path, *air_test_case_paths, rir_test_path, *rir_test_case_paths, diag_docs_path, air_backend_nonimpact_path, diagnostics_json_path):
+for path in (air_path, *checklist_paths, todo_path, makefile_path, air_semantics_path, io_boundary_builtin_path, compiler_header_path, driver_path, driver_diag_path, pgy_driver_path, parser_intent_path, parser_intent_step_path, dir_header_path, dir_impl_path, dir_collect_path, dir_collect_intent_path, air_header_path, air_impl_path, air_drift_path, air_boundary_path, air_boundary_walk_path, air_dump_path, air_dump_json_path, air_vocabulary_path, air_boundary_evidence_policy_path, air_evidence_node_path, air_evidence_path, air_evidence_mir_facts_path, air_evidence_mir_pin_path, air_evidence_dag_path, air_evidence_ast_path, air_evidence_rir_path, air_evidence_rir_match_path, air_evidence_rir_propagation_path, air_evidence_rir_boundary_path, air_evidence_runtime_path, env_flags_path, mir_cleanup_fact_names_path, air_internal_path, air_validate_path, air_validate_boundary_evidence_path, air_validate_evidence_path, air_validate_boundary_summary_path, air_validate_global_evidence_path, air_verify_provenance_path, air_verify_global_path, air_verify_path, air_test_path, *air_test_case_paths, rir_test_path, *rir_test_case_paths, diag_docs_path, air_backend_nonimpact_path, diagnostics_json_path):
     if not path.exists():
         raise SystemExit(f"missing AIR gate input: {path.relative_to(root)}")
 
 air = air_path.read_text(encoding="utf-8")
-checklist = checklist_path.read_text(encoding="utf-8")
+checklist = "\n".join(path.read_text(encoding="utf-8")
+                      for path in checklist_paths)
 todo = todo_path.read_text(encoding="utf-8")
 makefile = makefile_path.read_text(encoding="utf-8")
 air_semantics = air_semantics_path.read_text(encoding="utf-8")

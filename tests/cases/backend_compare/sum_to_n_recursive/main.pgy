@@ -1,0 +1,13 @@
+func Sum(n: Int) -> Int {
+    if n <= 0 {
+        return 0;
+    }
+    return n + Sum(n - 1);
+}
+
+func Main() -> Void {
+    Log(Sum(0));
+    Log(Sum(1));
+    Log(Sum(10));
+    Log(Sum(100));
+}

@@ -8,6 +8,7 @@
 #include <string.h>
 
 #include "../parser/ast_api.h"
+#include "host_decl_compat.h"
 #include "transpiler_decl_lookup.h"
 #include "transpiler_nominal.h"
 #include "transpiler_projection.h"
@@ -40,21 +41,15 @@ transpiler_domain_slot_member_type_name(TranspilerCtx *ctx,
 }
 
 static const char *
-transpiler_shared_member_type_name(TranspilerCtx *ctx,
-                                   ASTNode **shared_fields,
-                                   size_t shared_count,
-                                   const char *field_name)
+transpiler_host_shared_member_type_name(TranspilerCtx *ctx,
+                                        ASTNode *decl,
+                                        const char *field_name)
 {
-    for (size_t i = 0; i < shared_count; i++) {
-        ASTNode *shared = shared_fields[i];
-        const char *shared_name = ast_party_shared_name(shared);
-        if (shared != NULL && shared_name != NULL
-            && strcmp(shared_name, field_name) == 0) {
-            return render_nominal_member_type_name(ctx,
-                ast_party_shared_type(shared));
-        }
-    }
-    return NULL;
+    ASTNode *shared =
+        pgy_host_shared_field_compat_find(decl, field_name);
+    return shared != NULL
+        ? render_nominal_member_type_name(ctx, ast_party_shared_type(shared))
+        : NULL;
 }
 
 static const char *
@@ -80,10 +75,7 @@ transpiler_zone_member_type_name(TranspilerCtx *ctx,
         }
     }
 
-    size_t shared_count = 0;
-    ASTNode **shared_fields = ast_zone_shared_fields(decl, &shared_count);
-    return transpiler_shared_member_type_name(
-        ctx, shared_fields, shared_count, field_name);
+    return transpiler_host_shared_member_type_name(ctx, decl, field_name);
 }
 
 static const char *
@@ -113,10 +105,7 @@ transpiler_world_member_type_name(TranspilerCtx *ctx,
         }
     }
 
-    size_t shared_count = 0;
-    ASTNode **shared_fields = ast_world_shared_fields(decl, &shared_count);
-    return transpiler_shared_member_type_name(
-        ctx, shared_fields, shared_count, field_name);
+    return transpiler_host_shared_member_type_name(ctx, decl, field_name);
 }
 
 static const char *
@@ -126,9 +115,7 @@ transpiler_domain_host_member_type_name(TranspilerCtx *ctx,
                                         bool include_overlay_shared)
 {
     size_t slot_count = 0;
-    size_t shared_count = 0;
     ASTNode **slots = NULL;
-    ASTNode **shared_fields = NULL;
     const char *slot_type = NULL;
 
     if (decl == NULL)
@@ -145,18 +132,16 @@ transpiler_domain_host_member_type_name(TranspilerCtx *ctx,
             ctx, slots, slot_count, field_name);
         if (slot_type != NULL || !include_overlay_shared)
             return slot_type;
-        shared_fields = ast_relation_shared_fields(decl, &shared_count);
-        return transpiler_shared_member_type_name(
-            ctx, shared_fields, shared_count, field_name);
+        return transpiler_host_shared_member_type_name(
+            ctx, decl, field_name);
     case AST_EFFECT_DECL:
         slots = ast_effect_slots(decl, &slot_count);
         slot_type = transpiler_domain_slot_member_type_name(
             ctx, slots, slot_count, field_name);
         if (slot_type != NULL || !include_overlay_shared)
             return slot_type;
-        shared_fields = ast_effect_shared_fields(decl, &shared_count);
-        return transpiler_shared_member_type_name(
-            ctx, shared_fields, shared_count, field_name);
+        return transpiler_host_shared_member_type_name(
+            ctx, decl, field_name);
     default:
         return NULL;
     }
@@ -176,15 +161,10 @@ transpiler_current_field_type_name(TranspilerCtx *ctx, const char *field_name)
 
     switch (decl->type) {
     case AST_CLASS_DECL: {
-        size_t field_count = 0;
-        ClassField **fields = ast_class_fields(decl, &field_count);
-        for (size_t i = 0; i < field_count; i++) {
-            ClassField *field = fields != NULL ? fields[i] : NULL;
-            if (field != NULL && field->name != NULL
-                && strcmp(field->name, field_name) == 0) {
-                return render_nominal_member_type_name(ctx, field->type);
-            }
-        }
+        ClassField *field =
+            pgy_host_class_field_compat_find(decl, field_name);
+        if (field != NULL)
+            return render_nominal_member_type_name(ctx, field->type);
         break;
     }
     case AST_ZONE_DECL: {
@@ -217,15 +197,10 @@ transpiler_lookup_nominal_host_member_type_name(TranspilerCtx *ctx,
 
     switch (decl->type) {
     case AST_CLASS_DECL: {
-        size_t field_count = 0;
-        ClassField **fields = ast_class_fields(decl, &field_count);
-        for (size_t i = 0; i < field_count; i++) {
-            ClassField *field = fields != NULL ? fields[i] : NULL;
-            if (field != NULL && field->name != NULL
-                && strcmp(field->name, member_name) == 0) {
-                return render_nominal_member_type_name(ctx, field->type);
-            }
-        }
+        ClassField *field =
+            pgy_host_class_field_compat_find(decl, member_name);
+        if (field != NULL)
+            return render_nominal_member_type_name(ctx, field->type);
         break;
     }
     case AST_ZONE_DECL: {

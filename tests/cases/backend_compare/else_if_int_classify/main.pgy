@@ -1,0 +1,22 @@
+func Grade(score: Int) -> String {
+    if score >= 90 {
+        return "A";
+    } else if score >= 80 {
+        return "B";
+    } else if score >= 70 {
+        return "C";
+    } else if score >= 60 {
+        return "D";
+    }
+    return "F";
+}
+
+func Main() -> Void {
+    Log(Grade(95));
+    Log(Grade(85));
+    Log(Grade(75));
+    Log(Grade(65));
+    Log(Grade(50));
+    Log(Grade(100));
+    Log(Grade(0));
+}

@@ -2,6 +2,7 @@
 set -euo pipefail
 
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+source "$ROOT_DIR/tests/beta_checklist_shards.sh"
 TMPDIR="${TMPDIR:-/tmp}"
 WORK_DIR="$(mktemp -d "$TMPDIR/pgy_perf_contract.XXXXXX")"
 trap 'rm -rf "$WORK_DIR"' EXIT
@@ -24,10 +25,10 @@ grep -Fq "backend cases compile_avg_s compile_max_s compile_max_case run_avg_s r
 grep -Fq "c 2 1.125 1.750 intent_authority_snapshot_abi 0.003 0.004 intent_authority_snapshot_abi" "$SUMMARY"
 grep -Fq "llvm 1 0.250 0.250 projection_abi 0.003 0.003 projection_abi" "$SUMMARY"
 
-grep -Fq "test-abi-perf" "$ROOT_DIR/docs/100_beta_readiness_checklist.md"
-grep -Fq "perf-summary" "$ROOT_DIR/docs/100_beta_readiness_checklist.md"
-grep -Fq "perf-c-baseline-test-smoke" "$ROOT_DIR/docs/100_beta_readiness_checklist.md"
-grep -Fq "pgy_over_c_ratio" "$ROOT_DIR/docs/100_beta_readiness_checklist.md"
+pgy_beta_checklist_contains "test-abi-perf"
+pgy_beta_checklist_contains "perf-summary"
+pgy_beta_checklist_contains "perf-c-baseline-test-smoke"
+pgy_beta_checklist_contains "pgy_over_c_ratio"
 grep -Fq "perf-c-baseline-test-smoke" "$ROOT_DIR/TODO.md"
 grep -Fq "pgy_over_c_ratio" "$ROOT_DIR/TODO.md"
 grep -Fq "perf-c-baseline-test-smoke" "$ROOT_DIR/Makefile"

@@ -1,0 +1,15 @@
+func Main() -> Void {
+    let empty: Array<Int> = [];
+    Log(ArrayLength(empty));
+
+    let one: Array<String> = ["only"];
+    Log(ArrayLength(one));
+    Log(one[0]);
+
+    let nums: Array<Int> = [10];
+    ArrayPush(nums, 20);
+    ArrayPush(nums, 30);
+    Log(ArrayLength(nums));
+    Log(nums[0]);
+    Log(nums[2]);
+}

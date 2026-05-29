@@ -1,0 +1,23 @@
+func Classify(x: Int, y: Int) -> Int {
+    if x > 0 {
+        if y > 0 {
+            return 1;
+        }
+        if y == 0 {
+            return 2;
+        }
+        return 3;
+    }
+    if x == 0 {
+        return 4;
+    }
+    return 5;
+}
+
+func Main() -> Void {
+    Log(Classify(5, 3));
+    Log(Classify(5, 0));
+    Log(Classify(5, -1));
+    Log(Classify(0, 0));
+    Log(Classify(-2, 7));
+}

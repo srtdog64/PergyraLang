@@ -6,6 +6,7 @@
 
 #include "../common/string_compat.h"
 #include "parser/ast_api.h"
+#include "host_decl_compat.h"
 #include "transpiler_context.h"
 #include "transpiler_constructor_channel_guard.h"
 #include "transpiler_format.h"
@@ -46,7 +47,7 @@ transpiler_emit_class_constructor_with_type(ASTNode *call,
                                             TranspilerCtx *ctx)
 {
     size_t argc;
-    size_t field_count = 0;
+    PgyHostClassFieldsCompatView field_view;
     ClassField **fields_list;
     CodeBuf *fields;
     char *result;
@@ -56,8 +57,9 @@ transpiler_emit_class_constructor_with_type(ASTNode *call,
 
     argc = ast_call_arg_count(call);
     fields = codebuf_create();
-    fields_list = ast_class_fields(class_decl, &field_count);
-    for (size_t i = 0; i < argc && i < field_count; i++) {
+    field_view = pgy_host_class_fields_compat_view_from_decl(class_decl);
+    fields_list = field_view.fields;
+    for (size_t i = 0; i < argc && i < field_view.count; i++) {
         ClassField *field = fields_list != NULL ? fields_list[i] : NULL;
         char *arg = transpiler_emit_ctor_arg_with_expected_type(ctx,
             field != NULL ? field->type : NULL,
@@ -213,14 +215,14 @@ transpiler_emit_relation_effect_constructor(ASTNode *call,
 {
     size_t argc = ast_call_arg_count(call);
     size_t slot_count = 0;
-    size_t shared_count = 0;
+    PgyHostSharedFieldsCompatView shared_view =
+        pgy_host_shared_fields_compat_view_from_decl(decl);
+    size_t shared_count = shared_view.count;
     size_t refresh_count = 0;
     ASTNode **slots = decl->type == AST_RELATION_DECL
         ? ast_relation_slots(decl, &slot_count)
         : ast_effect_slots(decl, &slot_count);
-    ASTNode **shared_fields = decl->type == AST_RELATION_DECL
-        ? ast_relation_shared_fields(decl, &shared_count)
-        : ast_effect_shared_fields(decl, &shared_count);
+    ASTNode **shared_fields = shared_view.fields;
     ASTNode **refreshes = decl->type == AST_RELATION_DECL
         ? ast_relation_refreshes(decl, &refresh_count)
         : ast_effect_refreshes(decl, &refresh_count);
@@ -307,8 +309,10 @@ transpiler_emit_zone_constructor(ASTNode *call,
     size_t argc = ast_call_arg_count(call);
     size_t slot_count = 0;
     ASTNode **slots = ast_zone_slots(zone_decl, &slot_count);
-    size_t shared_count = 0;
-    ASTNode **shared_fields = ast_zone_shared_fields(zone_decl, &shared_count);
+    PgyHostSharedFieldsCompatView shared_view =
+        pgy_host_shared_fields_compat_view_from_decl(zone_decl);
+    size_t shared_count = shared_view.count;
+    ASTNode **shared_fields = shared_view.fields;
     size_t refresh_count = 0;
     ASTNode **refreshes = ast_zone_refreshes(zone_decl, &refresh_count);
     CodeBuf *fields = codebuf_create();
@@ -397,8 +401,10 @@ transpiler_emit_world_constructor(ASTNode *call,
     ASTNode **rosters = ast_world_rosters(world_decl, &roster_count);
     size_t zone_count = 0;
     ASTNode **zones = ast_world_zones(world_decl, &zone_count);
-    size_t shared_count = 0;
-    ASTNode **shared_fields = ast_world_shared_fields(world_decl, &shared_count);
+    PgyHostSharedFieldsCompatView shared_view =
+        pgy_host_shared_fields_compat_view_from_decl(world_decl);
+    size_t shared_count = shared_view.count;
+    ASTNode **shared_fields = shared_view.fields;
     size_t exposed = roster_count + zone_count + shared_count;
 
     for (size_t i = 0; i < argc && i < exposed; i++) {

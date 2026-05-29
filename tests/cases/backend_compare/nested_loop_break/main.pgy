@@ -1,0 +1,16 @@
+func Main() -> Void {
+    let total: Int = 0;
+    let i: Int = 0;
+    while i < 5 {
+        let j: Int = 0;
+        while j < 5 {
+            if i + j > 5 {
+                break;
+            }
+            total = total + 1;
+            j = j + 1;
+        }
+        i = i + 1;
+    }
+    Log(total);
+}

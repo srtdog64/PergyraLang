@@ -1,0 +1,7 @@
+func Main() -> Void {
+    Log(ToString(-7));
+    Log(ToString(0));
+    Log(ToString(42));
+    Log(ToString(12345L));
+    Log("n=" + ToString(-1) + ",p=" + ToString(1));
+}
