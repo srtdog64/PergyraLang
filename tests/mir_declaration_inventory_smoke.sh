@@ -89,6 +89,24 @@ for term in \
     "case AST_ROSTER_DECL"; do
     require_term "src/codegen/host_decl_compat.c" "$term"
 done
+for term in \
+    "PgyHostClassFieldsCompatView" \
+    "pgy_host_class_fields_compat_view_from_decl" \
+    "pgy_host_shared_fields_compat_view_from_decl"; do
+    require_term "src/codegen/host_decl_compat.h" "$term"
+done
+require_term "src/codegen/host_decl_compat.c" \
+    "pgy_host_class_fields_compat_view_from_decl"
+require_term "src/codegen/host_decl_compat.c" \
+    "ast_class_fields(decl, &view.count)"
+require_term "src/codegen/transpiler_constructor_channel_guard.c" \
+    "pgy_host_class_fields_compat_view_from_decl(decl)"
+require_term "src/codegen/transpiler_constructor_channel_guard.c" \
+    "pgy_host_shared_fields_compat_view_from_decl(decl)"
+require_term "src/codegen/llvm_expr_constructor_calls.c" \
+    "pgy_host_class_fields_compat_view_from_decl(class_decl)"
+require_term "src/codegen/llvm_expr_constructor_calls.c" \
+    "pgy_host_shared_fields_compat_view_from_decl(decl)"
 
 for term in \
     "llvm_active_inventory" \
@@ -1140,6 +1158,7 @@ if grep -Fq "routine->ast == method->source_ast" \
 fi
 for term in \
     "mir_decl_next_capacity" \
+    "mir_decl_method_matches_routine" \
     "mir_decl_header_set_role_impl_methods" \
     "ast_role_impl_method_total_count" \
     "SIZE_MAX / sizeof(MIRDeclMethod)" \
@@ -1447,7 +1466,8 @@ for term in \
     "pointer-self ABI metadata drift" \
     "method metadata count" \
     "signature metadata drift" \
-    "routine index"; do
+    "routine index" \
+    "routine link metadata drift"; do
     require_term "src/compiler/mir_decl_header_validate.c" "$term"
 done
 if grep -Fq "header->ast_type != AST_ROLE_DECL" \
@@ -1458,6 +1478,10 @@ require_term "src/compiler/mir_program_validate.c" \
     "mir_validate_decl_header_metadata(mir, error_message)"
 require_term "src/tests/mir/test_mir_lowering_part_c.cases.h" \
     "MIR validator rejects hosted method signature metadata drift"
+require_term "src/tests/mir/test_mir_lowering_part_c.cases.h" \
+    "MIR validator rejects hosted method routine link metadata drift"
+require_term "src/tests/mir/test_mir_lowering_part_c.cases.h" \
+    "MIR method routine linker requires owner metadata"
 require_term "src/tests/mir/test_mir_lowering_part_c.cases.h" \
     "MIR validator rejects declaration header name metadata drift"
 require_term "src/tests/mir/test_mir_lowering_part_c.cases.h" \
@@ -1479,6 +1503,15 @@ for term in \
     "dedicated declaration metadata view" \
     "make mir-declaration-inventory-test-smoke"; do
     require_term "docs/100_beta_readiness_checklist.md" "$term"
+done
+for term in \
+    "MIR/LLVM Declaration Bootstrap Proof Rows" \
+    "Hosted method routine link" \
+    "routine link metadata drift" \
+    "Host field compatibility view" \
+    "Dedicated declaration IR" \
+    "Open beta blocker row"; do
+    require_term "docs/125_source_of_truth_spine.md" "$term"
 done
 
 require_term "TODO.md" "declaration-side MIR-only debt"

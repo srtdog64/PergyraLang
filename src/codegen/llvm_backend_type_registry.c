@@ -57,12 +57,15 @@ llvm_registry_type_kind(const char *type_name)
         { "Weak", LLVM_REGISTRY_TYPE_WEAK },
     };
     const LLVMRegistryTypeSpec *spec;
+    PgyTypeKind pgy_kind;
 
     if (type_name == NULL)
         return LLVM_REGISTRY_TYPE_UNKNOWN;
-    if (strncmp(type_name, "Rc<", 3) == 0)
+
+    pgy_kind = pgy_classify_type(type_name);
+    if (pgy_kind == PGY_TK_RC)
         return LLVM_REGISTRY_TYPE_RC;
-    if (strncmp(type_name, "Weak<", 5) == 0)
+    if (pgy_kind == PGY_TK_WEAK)
         return LLVM_REGISTRY_TYPE_WEAK;
 
     spec = (const LLVMRegistryTypeSpec *)bsearch(&type_name,

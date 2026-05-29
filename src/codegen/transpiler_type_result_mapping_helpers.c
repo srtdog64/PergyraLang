@@ -51,7 +51,7 @@ transpiler_result_suffix_from_type_name(const char *type_name,
     }
 
     out[0] = '\0';
-    if (type_name == NULL || strncmp(type_name, "Result<", 7) != 0) {
+    if (!transpiler_type_name_is_result(type_name)) {
         return false;
     }
 
@@ -111,8 +111,8 @@ void
 ensure_result_specialization_from_type_name_to(TranspilerCtx *ctx, CodeBuf *dst,
                                                const char *type_name)
 {
-    if (ctx == NULL || dst == NULL || type_name == NULL
-        || strncmp(type_name, "Result<", 7) != 0) {
+    if (ctx == NULL || dst == NULL
+        || !transpiler_type_name_is_result(type_name)) {
         return;
     }
 

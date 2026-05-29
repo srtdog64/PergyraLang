@@ -196,19 +196,19 @@ transpiler_mir_match_payload_type_name(TranspilerCtx *ctx,
         pgy_codegen_match_variant_lookup(kind);
 
     if (variant == PGY_MATCH_VARIANT_SOME) {
-        if (strncmp(subject_type, "Option<", 7) != 0)
+        if (!transpiler_type_name_is_option(subject_type))
             return false;
         return slot_inner_type_name_copy(subject_type, buf, buf_size)
             && buf[0] != '\0';
     }
     if (variant == PGY_MATCH_VARIANT_OK) {
-        if (strncmp(subject_type, "Result<", 7) != 0)
+        if (!transpiler_type_name_is_result(subject_type))
             return false;
         copy_constructed_arg_name_at(subject_type, 0, buf, buf_size);
         return buf[0] != '\0' && strcmp(buf, "Unknown") != 0;
     }
     if (variant == PGY_MATCH_VARIANT_ERR) {
-        if (strncmp(subject_type, "Result<", 7) != 0)
+        if (!transpiler_type_name_is_result(subject_type))
             return false;
         copy_constructed_arg_name_at(subject_type, 1, buf, buf_size);
         return buf[0] != '\0' && strcmp(buf, "Unknown") != 0;

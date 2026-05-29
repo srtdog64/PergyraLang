@@ -110,10 +110,21 @@ implicit field and captured channel lvalues keep their correct C shape while
 select readiness avoids reading an uninitialized SSA shadow. `test-transpile`
 now covers this with `858/0`. Semantic constructor validation plus the C/LLVM
 constructor guards now fail-close `Channel<T>` field initialization inside
-aggregate constructors: channel runtime storage currently carries mutex/condvar
-state, so constructor fields must wait for movable channel-handle lowering
-instead of copying channel storage by value or default-zeroing channel runtime
-state.
+class and domain-host aggregate constructors: channel runtime storage currently
+carries mutex/condvar state, so constructor fields must wait for movable
+channel-handle lowering instead of copying channel storage by value or
+default-zeroing channel runtime state. C constructor lowering consumes the
+shared `transpiler_constructor_channel_guard` owner so class/domain emitters do
+not drift into separate channel-field policies. C channel-kind checks now route
+through `transpiler_type_name_is_channel(...)`, while LLVM constructor and
+receive inference use `pgy_classify_type(...) == PGY_TK_CHANNEL`, keeping
+backend channel policy in the type classifiers instead of ad-hoc prefix checks.
+The same C classifier seam now covers Future/RemoteFuture, Result/Option, and
+common collection spelling for match destructuring, try-let lowering, Option
+context, array access, for-in lowering, MIR for-in/destructuring type lookup,
+BoxArray let lowering, channel type queries, and collection builtin inference.
+`perf-contract-test-smoke` rejects new C `transpiler_*.c` direct type-family
+prefix checks outside the classifier owner.
 LLVM channel send/receive/select now resolves both registered local channels
 and current-host `Channel<T>` fields through the shared `LLVMChannelTarget`
 owner. Task/channel builtins now consume the same target seam for `TrySend`,
@@ -4602,9 +4613,21 @@ drift: declaration header name/type/method-list compatibility, method metadata
 count, row AST payload compatibility, owner/name/signature compatibility, and
 linked routine indexes are checked before codegen consumes the declaration
 inventory.
+2026-05-29 follow-up: linked hosted-method routines are now validated as
+metadata links, not only as in-range indexes. A `MIRDeclMethod.has_routine`
+row must point to a `MIR_SCOPE_METHOD` routine with the same owner/name, and
+`mir_link_decl_method_routines(...)` uses the same owner/name predicate before
+forming a link. The MIR declaration inventory smoke gates the linker negative
+test, the validator negative test, and the row-level proof table in
+`docs/125_source_of_truth_spine.md`.
 MIR declaration headers also preserve pointer-self ABI shape for subject/vessel
 and domain hosts, and roster hosted methods are now recorded in declaration
 metadata instead of being omitted from `MIRDeclHeader`.
+The next row is field metadata: `host_decl_compat.c` now owns class-field and
+domain shared-field compatibility views, and the C/LLVM constructor Channel
+guards consume those views for their closed path. This is not a full
+declaration-field metadata model yet; it only removes one duplicated backend
+field traversal family and keeps the remaining field row explicit.
 Duplicate declaration header names are rejected by `mir_validate(...)`, keeping
 `mir_find_decl_header(...)` from resolving ambiguous declaration inventory rows.
 

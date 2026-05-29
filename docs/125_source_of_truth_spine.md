@@ -267,6 +267,23 @@ keep the source-level business vocabulary clean.
 | Build source inventory | Makefile source/object inventory | CI, local smoke targets, dependency inclusion | Shell `find` rediscovering build artifacts or source files on Windows paths |
 | Local build artifact ownership | One `BUILD_DIR`/`BIN_DIR` pair per active make process | Local gates, CI recipes, troubleshooting docs | Parallel gates sharing the same `build/` and corrupting `.o` files |
 
+### MIR/LLVM Declaration Bootstrap Proof Rows
+
+The declaration bootstrap blocker is measured row-by-row. A row is closed only
+when the owner, consumers, and smoke gate are named together. It is not enough
+to reduce a fallback counter or move code behind a helper.
+
+| Row | Old fallback / drift risk | Source-of-truth owner | Gate | Status |
+|---|---|---|---|---|
+| Host declaration type set | Partial class/enum/domain chains that miss party/role/roster | `host_decl_compat.c` host type/name tables | `mir-declaration-inventory-test-smoke` rejects partial hard-coded host chains | Closed for C/LLVM lookup compatibility |
+| Hosted method identity | AST method-array name lookup when MIR metadata exists | `MIRDeclMethod.name` through C/LLVM hosted method views | `mir-declaration-inventory-test-smoke` rejects AST method-array lookup helpers and old `*_method_ast` names | Closed for lookup-visible identity |
+| Hosted method signature | AST method param/return reads in LLVM/C prototype emitters | `MIRDeclMethod.params`, `param_count`, and `return_type` | MIR validator rejects signature metadata drift; smoke rejects direct method param/return reads in guarded consumers | Closed for frozen hosted-method prototypes |
+| Hosted method routine link | AST/name-based routine search or unchecked routine index reuse | `MIRDeclMethod.has_routine` / `routine_index` plus routine owner/name validation | MIR linker requires method owner/name equality; MIR validator rejects routine index overflow and routine link metadata drift; smoke rejects local routine search helpers | Closed for hosted method body selection |
+| Role implementation methods | Role impl methods omitted from declaration headers | `mir_decl_header_set_role_impl_methods(...)` | Smoke requires role impl metadata recording and rejects role method-count exceptions | Closed for role method inventory count and body link |
+| Host field compatibility view | Class fields and domain shared fields reopened through separate backend switches | `host_decl_compat.c` class/shared-field compatibility views | Smoke requires C/LLVM constructor channel guards to consume `pgy_host_*_fields_compat_view_from_decl(...)` | Partial: constructor channel guard row closed for C/LLVM, broader field metadata still open |
+| Source/provenance payload | Treating `source_ast` as semantic inventory truth | Explicit `*_source_ast` compatibility accessors | Smoke rejects generic fallback naming and old AST method-array state | Allowed temporary compatibility seam |
+| Dedicated declaration IR | `MIRProgram` still carries AST-shaped declaration payloads | Future declaration metadata model beyond compatibility payloads | No full closure gate yet | Open beta blocker row |
+
 Runtime frontier AIR evidence must count the complete frozen runtime policy
 surface: pass-limit arithmetic facts plus bounded-overflow reason facts. A
 backend may emit those strings, but it may not own or rename them.
@@ -611,6 +628,33 @@ therefore rejects non-context `render_type_name(...)` across `src/codegen`
 outside `transpiler_type_render` / declaration headers. Generic binding
 rendering is context-required and no longer falls back through the legacy
 non-context renderer.
+
+Rendered type-name classification has a separate source-of-truth rule. C
+backend consumers that need to know whether a rendered type is `Channel<T>` must
+call `transpiler_type_name_is_channel(...)` from `transpiler_type_mapping`
+instead of reopening local prefix checks. LLVM consumers must use
+`pgy_classify_type(...)` and compare against `PGY_TK_CHANNEL`. Constructor
+guards, channel-let lowering, MIR SSA/preserved-let skip policy, and LLVM
+constructor/receive inference all follow this classifier path.
+
+The same classifier rule covers C `Future<T>` / `RemoteFuture<T>` spelling.
+Await/spawn type queries and type-to-C lowering must use
+`transpiler_type_name_is_future(...)`,
+`transpiler_type_name_is_remote_future(...)`, or
+`transpiler_type_name_is_any_future(...)` rather than reopening local prefix
+checks.
+
+Result/Option and common C collection spelling follows the same rule.
+`transpiler_type_mapping` owns `transpiler_type_name_is_result(...)`,
+`transpiler_type_name_is_option(...)`,
+`transpiler_type_name_is_array_or_slice(...)`, `..._list`, `..._queue`,
+`..._set`, `..._hashmap`, `..._box`, `..._box_array`, `..._rc`, and
+`..._weak`. Match destructuring, try-let lowering, Option contextual lowering,
+array access, for-in lowering, MIR for-in/destructuring type lookup, BoxArray
+let lowering, channel type queries, and collection builtin inference consume
+those classifiers instead of local `strncmp(...)` checks. The perf contract
+smoke rejects new C `transpiler_*.c` direct type-family prefix checks outside
+`transpiler_type_mapping.c`.
 
 Result specialization and `let` lowering are recursive-emission boundaries too.
 If a C type name is needed after storing another rendered type or after calling

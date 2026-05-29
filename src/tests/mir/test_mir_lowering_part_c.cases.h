@@ -771,6 +771,73 @@ test_mir_lowering_part_c(void)
         hir_destroy(hir);
     }
 
+    TEST("MIR validator rejects hosted method routine link metadata drift");
+    {
+        const char *src =
+            "class Item {\n"
+            "    func Code(self) -> Int { return 7; }\n"
+            "}\n";
+        HIRProgram *hir = NULL;
+        RIRProgram *rir = NULL;
+        MIRProgram *mir = NULL;
+        char *mir_error = NULL;
+        bool mutated = false;
+        bool rejected = false;
+        bool ok = lower_mir_from_source(src, &hir, &rir, &mir);
+        if (ok && mir != NULL) {
+            for (size_t i = 0; i < mir->decl_header_count; i++) {
+                MIRDeclHeader *header = &mir->decl_headers[i];
+                if (header->name == NULL
+                    || strcmp(header->name, "Item") != 0
+                    || header->method_metadata_count == 0) {
+                    continue;
+                }
+                MIRDeclMethod *method = &header->method_metadata[0];
+                if (method->has_routine
+                    && method->routine_index < mir->routine_count) {
+                    mir->routines[method->routine_index].name = "OtherCode";
+                    mutated = true;
+                    break;
+                }
+            }
+        }
+        rejected = ok
+                   && mutated
+                   && !mir_validate(mir, &mir_error)
+                   && mir_error != NULL
+                   && strstr(mir_error, "routine link metadata drift") != NULL;
+        EXPECT(rejected);
+        free(mir_error);
+        mir_destroy(mir);
+        rir_destroy(rir);
+        hir_destroy(hir);
+    }
+
+    TEST("MIR method routine linker requires owner metadata");
+    {
+        MIRDeclMethod method = { 0 };
+        MIRDeclHeader header = { 0 };
+        MIRRoutine routine = { 0 };
+        MIRProgram mir = { 0 };
+
+        method.name = "Code";
+        method.owner_name = "Item";
+        header.name = "Item";
+        header.method_count = 1;
+        header.method_metadata = &method;
+        header.method_metadata_count = 1;
+        routine.name = "Code";
+        routine.owner_name = NULL;
+        routine.kind = MIR_SCOPE_METHOD;
+        mir.decl_headers = &header;
+        mir.decl_header_count = 1;
+        mir.routines = &routine;
+        mir.routine_count = 1;
+
+        mir_link_decl_method_routines(&mir);
+        EXPECT(!method.has_routine);
+    }
+
     TEST("MIR validator rejects declaration header name metadata drift");
     {
         const char *src =

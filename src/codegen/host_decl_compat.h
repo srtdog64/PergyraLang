@@ -23,6 +23,12 @@ typedef struct
     size_t   count;
 } PgyHostSharedFieldsCompatView;
 
+typedef struct
+{
+    ClassField **fields;
+    size_t       count;
+} PgyHostClassFieldsCompatView;
+
 const ASTNodeType *pgy_host_decl_compat_types(size_t *count_out);
 const ASTNodeType *pgy_host_decl_compat_nominal_lookup_types(
     size_t *count_out);
@@ -36,6 +42,8 @@ PgyHostMethodCompatView pgy_host_method_compat_view_from_decl(
     ASTNode *decl,
     bool require_role_method_total);
 PgyHostSharedFieldsCompatView pgy_host_shared_fields_compat_view_from_decl(
+    ASTNode *decl);
+PgyHostClassFieldsCompatView pgy_host_class_fields_compat_view_from_decl(
     ASTNode *decl);
 
 #endif /* PGY_HOST_DECL_COMPAT_H */

@@ -30,8 +30,7 @@ emit_match_stmt(ASTNode *node, TranspilerCtx *ctx)
         subject_node);
     char subject_c_type_buf[256];
     const char *subject_c_type = NULL;
-    bool subject_is_option = subject_type != NULL
-        && strncmp(subject_type, "Option<", 7) == 0;
+    bool subject_is_option = transpiler_type_name_is_option(subject_type);
 
     if (subject_type == NULL || subject_type[0] == '\0'
         || strcmp(subject_type, "Unknown") == 0) {

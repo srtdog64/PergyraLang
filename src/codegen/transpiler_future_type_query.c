@@ -96,7 +96,7 @@ is_remote_future_expr(TranspilerCtx *ctx, ASTNode *expr)
         return false;
     if (expr->type == AST_IDENTIFIER) {
         const char *type_name = lookup_typed_var(ctx, ast_identifier_name(expr));
-        return type_name != NULL && strncmp(type_name, "RemoteFuture<", 13) == 0;
+        return transpiler_type_name_is_remote_future(type_name);
     }
     return false;
 }
@@ -116,8 +116,7 @@ lookup_future_inner_type_copy(TranspilerCtx *ctx, ASTNode *expr,
         const char *type_name = lookup_typed_var(ctx,
             ast_identifier_name(expr));
         if (type_name != NULL
-            && (strncmp(type_name, "Future<", 7) == 0
-                || strncmp(type_name, "RemoteFuture<", 13) == 0)) {
+            && transpiler_type_name_is_any_future(type_name)) {
             return slot_inner_type_name_copy(type_name, out, out_size);
         }
     }

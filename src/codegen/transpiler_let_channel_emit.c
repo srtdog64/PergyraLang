@@ -1,7 +1,6 @@
 #include "transpiler_let_channel_emit.h"
 
 #include <stdlib.h>
-#include <string.h>
 
 #include "../common/string_compat.h"
 #include "../semantic/diag_codes.h"
@@ -16,7 +15,7 @@ transpiler_try_emit_channel_let(TranspilerCtx *ctx, const char *name,
                                 ASTNode *init, char **ann_type_name_io)
 {
     char *ann_type_name = ann_type_name_io != NULL ? *ann_type_name_io : NULL;
-    if (ann_type_name == NULL || strncmp(ann_type_name, "Channel<", 8) != 0)
+    if (!transpiler_type_name_is_channel(ann_type_name))
         return false;
 
     char inner_buf[128];

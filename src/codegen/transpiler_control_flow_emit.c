@@ -168,9 +168,7 @@ emit_for_loop(ASTNode *node, TranspilerCtx *ctx)
         const char *elem_inner = NULL;
         const char *elem_type = NULL;
         const char *length_field = "count";
-        if (coll_type != NULL
-            && (strncmp(coll_type, "Array<", 6) == 0
-                || strncmp(coll_type, "Slice<", 6) == 0)) {
+        if (transpiler_type_name_is_array_or_slice(coll_type)) {
             if (slot_inner_type_name_copy(coll_type, elem_inner_buf,
                     sizeof(elem_inner_buf)))
                 elem_inner = elem_inner_buf;
@@ -180,7 +178,7 @@ emit_for_loop(ASTNode *node, TranspilerCtx *ctx)
                 elem_type = elem_type_buf;
             }
             length_field = "length";
-        } else if (coll_type != NULL && strncmp(coll_type, "List<", 5) == 0) {
+        } else if (transpiler_type_name_is_list(coll_type)) {
             if (slot_inner_type_name_copy(coll_type, elem_inner_buf,
                     sizeof(elem_inner_buf)))
                 elem_inner = elem_inner_buf;

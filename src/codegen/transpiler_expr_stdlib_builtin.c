@@ -313,7 +313,7 @@ emit_call_stdlib_builtin(ASTNode *call, ASTNode *callee, TranspilerCtx *ctx)
             const char *c_type = NULL;
             char inner_buf[128];
             char c_type_buf[128];
-            if (arr_type != NULL && strncmp(arr_type, "Array<", 6) == 0) {
+            if (transpiler_type_name_is_array(arr_type)) {
                 if (slot_inner_type_name_copy(arr_type, inner_buf,
                         sizeof(inner_buf)))
                     inner = inner_buf;

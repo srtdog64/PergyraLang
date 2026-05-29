@@ -79,7 +79,7 @@ llvm_rc_expected_inner_copy(LLVMGenCtx *ctx, char *out, size_t out_size)
     if (ctx == NULL || ctx->expected_type_name == NULL)
         return true;
     type_name = ctx->expected_type_name;
-    if (strncmp(type_name, "Rc<", 3) != 0)
+    if (pgy_classify_type(type_name) != PGY_TK_RC)
         return true;
     open = strchr(type_name, '<');
     close = strrchr(type_name, '>');

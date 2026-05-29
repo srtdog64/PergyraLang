@@ -15,6 +15,7 @@
 #include "transpiler_mir_ssa_names.h"
 #include "transpiler_mir_ssa_utils.h"
 #include "transpiler_symbols.h"
+#include "transpiler_type_mapping.h"
 
 typedef struct TranspilerMirPendingBinding {
     ASTNode *initializer;
@@ -128,7 +129,7 @@ transpiler_materialize_pending_inst_uses(CodeBuf *buf,
         if (existing_type != NULL
             && (transpiler_type_name_is_slot_like(existing_type)
                 || transpiler_type_name_is_claim_shape(existing_type)
-                || strncmp(existing_type, "Channel<", 8) == 0)) {
+                || transpiler_type_name_is_channel(existing_type))) {
             continue;
         }
         binding_type_ast = transpiler_find_local_type_ast(ctx, func_decl, base);
@@ -138,7 +139,7 @@ transpiler_materialize_pending_inst_uses(CodeBuf *buf,
             if (binding_type_name != NULL
                 && (transpiler_type_name_is_slot_like(binding_type_name)
                     || transpiler_type_name_is_claim_shape(binding_type_name)
-                    || strncmp(binding_type_name, "Channel<", 8) == 0)) {
+                    || transpiler_type_name_is_channel(binding_type_name))) {
                 free(binding_type_name);
                 continue;
             }

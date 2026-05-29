@@ -104,9 +104,7 @@ emit_let_destructure_statement(ASTNode *node, TranspilerCtx *ctx)
     const char *inner = NULL;
     char inner_buf[128];
     char elem_c_type_buf[128];
-    if (init_type != NULL
-        && (strncmp(init_type, "Array<", 6) == 0
-            || strncmp(init_type, "Slice<", 6) == 0)) {
+    if (transpiler_type_name_is_array_or_slice(init_type)) {
         if (slot_inner_type_name_copy(init_type, inner_buf,
                 sizeof(inner_buf)))
             inner = inner_buf;

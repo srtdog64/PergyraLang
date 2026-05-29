@@ -312,7 +312,7 @@ emit_return_stmt(ASTNode *node, TranspilerCtx *ctx)
     write_indent(ctx);
     if (value != NULL) {
         if (ctx->current_return_type[0] != '\0'
-            && strncmp(ctx->current_return_type, "Option<", 7) == 0) {
+            && transpiler_type_name_is_option(ctx->current_return_type)) {
             char inner_buf[128];
             const char *inner = inner_buf;
             if (!slot_inner_type_name_copy(ctx->current_return_type, inner_buf,

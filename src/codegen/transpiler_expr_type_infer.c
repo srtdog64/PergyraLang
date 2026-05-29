@@ -115,7 +115,7 @@ infer_expression_type_name(TranspilerCtx *ctx, ASTNode *expr)
             inner = infer_expression_type_name(ctx, ast_array_literal_element(expr, 0));
         } else if (ctx != NULL
                    && ctx->expected_type != NULL
-                   && strncmp(ctx->expected_type, "Array<", 6) == 0) {
+                   && transpiler_type_name_is_array(ctx->expected_type)) {
             inner = transpiler_infer_slot_inner_type_name(ctx,
                 ctx->expected_type);
         }
@@ -125,7 +125,7 @@ infer_expression_type_name(TranspilerCtx *ctx, ASTNode *expr)
     }
     case AST_ARRAY_ACCESS: {
         const char *array_type = infer_expression_type_name(ctx, ast_array_access_array(expr));
-        if (strncmp(array_type, "Array<", 6) == 0 || strncmp(array_type, "Slice<", 6) == 0)
+        if (transpiler_type_name_is_array_or_slice(array_type))
             return transpiler_infer_slot_inner_type_name(ctx, array_type);
         return "Unknown";
     }
@@ -288,8 +288,7 @@ infer_expression_type_name(TranspilerCtx *ctx, ASTNode *expr)
                         || pgy_codegen_call_name_is_release(method_name))) {
                     return "Void";
                 }
-                if ((strncmp(receiver_type, "Array<", 6) == 0
-                    || strncmp(receiver_type, "Slice<", 6) == 0)
+                if (transpiler_type_name_is_array_or_slice(receiver_type)
                     && strcmp(method_name, "Slice") == 0) {
                     const char *inner = transpiler_infer_slot_inner_type_name(
                         ctx, receiver_type);
@@ -337,7 +336,7 @@ infer_expression_type_name(TranspilerCtx *ctx, ASTNode *expr)
             if (op == TRANS_INFER_CALL_MAP_GET && argc >= 1) {
                 const char *map_type = infer_expression_type_name(ctx,
                     arg0);
-                if (map_type != NULL && strncmp(map_type, "HashMap<", 8) == 0) {
+                if (transpiler_type_name_is_hashmap(map_type)) {
                     char value_buf[64];
                     copy_constructed_arg_name_at(map_type, 1,
                         value_buf, sizeof(value_buf));
@@ -350,7 +349,7 @@ infer_expression_type_name(TranspilerCtx *ctx, ASTNode *expr)
             if (op == TRANS_INFER_CALL_MAP_KEYS && argc >= 1) {
                 const char *map_type = infer_expression_type_name(ctx,
                     arg0);
-                if (map_type != NULL && strncmp(map_type, "HashMap<", 8) == 0) {
+                if (transpiler_type_name_is_hashmap(map_type)) {
                     char key_buf[64];
                     copy_constructed_arg_name_at(map_type, 0,
                         key_buf, sizeof(key_buf));
@@ -364,7 +363,7 @@ infer_expression_type_name(TranspilerCtx *ctx, ASTNode *expr)
             if (strcmp(name, "SliceCopy") == 0 && argc == 1) {
                 const char *slice_type = infer_expression_type_name(ctx,
                     arg0);
-                if (slice_type != NULL && strncmp(slice_type, "Slice<", 6) == 0) {
+                if (transpiler_type_name_is_slice(slice_type)) {
                     const char *inner = transpiler_infer_slot_inner_type_name(
                         ctx, slice_type);
                     if (inner == NULL || inner[0] == '\0')
@@ -377,7 +376,7 @@ infer_expression_type_name(TranspilerCtx *ctx, ASTNode *expr)
             if (op == TRANS_INFER_CALL_LIST_GET && argc >= 1) {
                 const char *list_type = infer_expression_type_name(ctx,
                     arg0);
-                if (list_type != NULL && strncmp(list_type, "List<", 5) == 0)
+                if (transpiler_type_name_is_list(list_type))
                     return transpiler_infer_slot_inner_type_name(ctx,
                         list_type);
                 return "Unknown";
@@ -497,7 +496,7 @@ infer_expression_type_name(TranspilerCtx *ctx, ASTNode *expr)
                 return simple_type;
             if (op == TRANS_INFER_CALL_UNWRAP_OPTION && argc == 1) {
                 const char *opt_type = infer_expression_type_name(ctx, arg0);
-                if (strncmp(opt_type, "Option<", 7) == 0) {
+                if (transpiler_type_name_is_option(opt_type)) {
                     char inner_buf[128];
                     if (slot_inner_type_name_copy(opt_type, inner_buf,
                             sizeof(inner_buf))) {

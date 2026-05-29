@@ -236,3 +236,17 @@ pgy_host_shared_fields_compat_view_from_decl(ASTNode *decl)
 
     return view;
 }
+
+PgyHostClassFieldsCompatView
+pgy_host_class_fields_compat_view_from_decl(ASTNode *decl)
+{
+    PgyHostClassFieldsCompatView view;
+
+    view.fields = NULL;
+    view.count = 0;
+    if (decl == NULL || decl->type != AST_CLASS_DECL)
+        return view;
+
+    view.fields = ast_class_fields(decl, &view.count);
+    return view;
+}

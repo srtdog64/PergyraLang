@@ -14,6 +14,7 @@
 #include "transpiler_mir_effective_type.h"
 #include "transpiler_nominal.h"
 #include "transpiler_symbols.h"
+#include "transpiler_type_mapping.h"
 #include "transpiler_type_render.h"
 
 /* Consumed from transpiler_mir_ssa_names.h. Keep slot claim vocabulary in the
@@ -141,8 +142,7 @@ transpiler_infer_local_type_name_from_expr(TranspilerCtx *ctx,
             if (receiver_type != NULL
                 && method_name != NULL
                 && strcmp(method_name, "Slice") == 0
-                && (strncmp(receiver_type, "Array<", 6) == 0
-                    || strncmp(receiver_type, "Slice<", 6) == 0)) {
+                && transpiler_type_name_is_array_or_slice(receiver_type)) {
                 char inner_buf[128];
                 if (!slot_inner_type_name_copy(receiver_type, inner_buf,
                         sizeof(inner_buf))
@@ -289,9 +289,7 @@ transpiler_find_local_type_name_in_block(TranspilerCtx *ctx,
                 if (resolved != NULL)
                     init_type = resolved;
             }
-            if (init_type != NULL
-                && (strncmp(init_type, "Array<", 6) == 0
-                    || strncmp(init_type, "Slice<", 6) == 0)) {
+            if (transpiler_type_name_is_array_or_slice(init_type)) {
                 char inner_buf[128];
                 if (slot_inner_type_name_copy(init_type, inner_buf,
                         sizeof(inner_buf))) {

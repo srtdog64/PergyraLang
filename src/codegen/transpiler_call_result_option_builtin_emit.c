@@ -84,7 +84,7 @@ transpiler_option_type_has_concrete_inner(const char *opt_type)
 {
     const char *inner = NULL;
     char inner_buf[128];
-    if (opt_type == NULL || strncmp(opt_type, "Option<", 7) != 0)
+    if (!transpiler_type_name_is_option(opt_type))
         return false;
     if (!slot_inner_type_name_copy(opt_type, inner_buf, sizeof(inner_buf)))
         return false;

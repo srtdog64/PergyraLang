@@ -124,10 +124,13 @@ Current evidence:
 - LLVM stmt/expr fallback is no longer treated as harmless warning-only behavior.
 - AST dispatch partition smoke checks unsafe fallback categories.
 - Semantic constructor validation and C/LLVM aggregate constructor lowering
-  fail-close `Channel<T>` field initialization. Channel runtime storage
-  currently carries mutex/condvar state, so aggregate construction must not copy
-  channel storage by value or default-zero runtime storage; this path stays
-  closed until movable channel-handle lowering exists.
+  fail-close `Channel<T>` field initialization for class and domain-host
+  fields. Channel runtime storage currently carries mutex/condvar state, so
+  aggregate construction must not copy channel storage by value or default-zero
+  runtime storage; this path stays closed until movable channel-handle lowering
+  exists. The C backend consumes the shared
+  `transpiler_constructor_channel_guard` owner instead of duplicating class-only
+  checks in each constructor emitter.
 - LLVM channel send/receive/select resolves local channels and current-host
   `Channel<T>` fields through the same `LLVMChannelTarget` pointer +
   inner-type fact. This keeps implicit field-channel operations aligned with

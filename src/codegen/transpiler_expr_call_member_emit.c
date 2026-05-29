@@ -23,6 +23,7 @@
 #include "transpiler_projection_field_path.h"
 #include "transpiler_projection_method_invalidation.h"
 #include "transpiler_projection_sync.h"
+#include "transpiler_type_mapping.h"
 #include "transpiler_role_ability_helpers.h"
 #include "transpiler_symbols.h"
 #include "transpiler_type_mapping.h"
@@ -384,8 +385,7 @@ emit_call_member_style(ASTNode *call, ASTNode *callee, TranspilerCtx *ctx)
             if (method != NULL
                 && strcmp(method, "Slice") == 0
                 && receiver_type != NULL
-                && (strncmp(receiver_type, "Array<", 6) == 0
-                    || strncmp(receiver_type, "Slice<", 6) == 0)
+                && transpiler_type_name_is_array_or_slice(receiver_type)
                 && ast_call_arg_count(call) == 2) {
                 char inner_buf[128];
                 const char *inner = NULL;
@@ -405,7 +405,7 @@ emit_call_member_style(ASTNode *call, ASTNode *callee, TranspilerCtx *ctx)
                     return pergyra_strdup("0");
                 }
 
-                if (strncmp(receiver_type, "Array<", 6) == 0) {
+                if (transpiler_type_name_is_array(receiver_type)) {
                     char *obj_expr = emit_expression(obj, ctx);
                     result = strdup_fmt(
                         "({ PgyArray_%s _pgy_arr_%d = %s; pgy_array_slice_%s(&_pgy_arr_%d, (size_t)(%s), (size_t)(%s)); })",

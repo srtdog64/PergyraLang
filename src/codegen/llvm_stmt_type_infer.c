@@ -26,9 +26,13 @@ llvm_stmt_expected_array_elem_type(LLVMGenCtx *ctx)
 
     if (ctx == NULL || ctx->expected_type_name == NULL)
         return NULL;
-    if (strncmp(ctx->expected_type_name, "Array<", 6) != 0
-        && strncmp(ctx->expected_type_name, "Slice<", 6) != 0)
+    switch (pgy_classify_type(ctx->expected_type_name)) {
+    case PGY_TK_ARRAY:
+    case PGY_TK_SLICE:
+        break;
+    default:
         return NULL;
+    }
     if (!llvm_constructed_arg_name_copy(ctx->expected_type_name, 0,
             inner_buf, sizeof(inner_buf))) {
         return NULL;
@@ -120,7 +124,8 @@ llvm_stmt_infer_expr_type(LLVMGenCtx *ctx, ASTNode *expr)
                 return llvm_stmt_unknown_expr_type(ctx, expr,
                     "array literal element type is unresolved");
         } else if (ctx->expected_type_name != NULL
-                   && strncmp(ctx->expected_type_name, "Array<", 6) == 0) {
+                   && pgy_classify_type(ctx->expected_type_name)
+                        == PGY_TK_ARRAY) {
             if (llvm_constructed_arg_name_copy(ctx->expected_type_name, 0,
                     suffix_buf, sizeof(suffix_buf))) {
                 suffix = suffix_buf;
@@ -184,7 +189,7 @@ llvm_stmt_infer_expr_type(LLVMGenCtx *ctx, ASTNode *expr)
          * supplied a concrete expected value type, use that instead of
          * inventing poison i32. */
         if (ctx->expected_type_name != NULL
-            && strncmp(ctx->expected_type_name, "Channel<", 8) != 0) {
+            && pgy_classify_type(ctx->expected_type_name) != PGY_TK_CHANNEL) {
             LLVMTypeRef expected = pergyra_type_to_llvm(
                 ctx, ctx->expected_type_name);
             if (expected != NULL)

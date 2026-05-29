@@ -238,8 +238,8 @@ llvm_emit_let_decl(ASTNode *node, LLVMGenCtx *ctx)
             free(value_name);
         } else if (strcmp(ann_name, "Rc") == 0
             || strcmp(ann_name, "Weak") == 0
-            || strncmp(ann_name, "Rc<", 3) == 0
-            || strncmp(ann_name, "Weak<", 5) == 0) {
+            || pgy_classify_type(ann_name) == PGY_TK_RC
+            || pgy_classify_type(ann_name) == PGY_TK_WEAK) {
             llvm_register_typed_var(ctx, name, type_ann);
         }
     }

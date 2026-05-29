@@ -502,6 +502,7 @@ CODEGEN_SOURCES  = $(CODEGEN_DIR)/transpiler_allocator_builtin_emit.c \
                    $(CODEGEN_DIR)/transpiler_call_constructor_result_emit.c \
                    $(CODEGEN_DIR)/transpiler_call_subject_arg_policy.c \
                    $(CODEGEN_DIR)/transpiler_call_result_option_builtin_emit.c \
+                   $(CODEGEN_DIR)/transpiler_constructor_channel_guard.c \
                    $(CODEGEN_DIR)/transpiler_context.c \
                    $(CODEGEN_DIR)/codegen_hashmap_key_policy.c \
                    $(CODEGEN_DIR)/codegen_match_variant_policy.c \

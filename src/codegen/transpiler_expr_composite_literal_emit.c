@@ -85,7 +85,7 @@ emit_array_literal_expression(ASTNode *node, TranspilerCtx *ctx)
     const char *inner = NULL;
     if (slot_inner_type_name_copy(array_type, inner_buf, sizeof(inner_buf)))
         inner = inner_buf;
-    if (array_type == NULL || strncmp(array_type, "Array<", 6) != 0
+    if (!transpiler_type_name_is_array(array_type)
         || inner == NULL || inner[0] == '\0'
         || strcmp(inner, "Unknown") == 0) {
         transpiler_set_backend_error_with_hints(ctx,

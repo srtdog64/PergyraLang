@@ -18,6 +18,7 @@
 #include "transpiler_mir_reason.h"
 #include "transpiler_mir_ssa_names.h"
 #include "transpiler_symbols.h"
+#include "transpiler_type_mapping.h"
 #include "transpiler_type_render.h"
 #include "transpiler_type_require.h"
 
@@ -281,9 +282,7 @@ transpiler_emit_mir_let_destructure_stmt(CodeBuf *buf,
         return true;
     }
 
-    if (init_type_name != NULL
-        && (strncmp(init_type_name, "Array<", 6) == 0
-            || strncmp(init_type_name, "Slice<", 6) == 0)) {
+    if (transpiler_type_name_is_array_or_slice(init_type_name)) {
         if (slot_inner_type_name_copy(init_type_name, elem_inner_buf,
                 sizeof(elem_inner_buf)))
             elem_inner = elem_inner_buf;

@@ -137,6 +137,21 @@ mir_decl_header_set_role_impl_methods(MIRDeclHeader *header, ASTNode *role_decl)
     return true;
 }
 
+static bool
+mir_decl_method_matches_routine(const MIRDeclMethod *method,
+                                const MIRRoutine *routine)
+{
+    if (method == NULL || routine == NULL)
+        return false;
+    if (method->name == NULL || routine->name == NULL)
+        return false;
+    if (method->owner_name == NULL || routine->owner_name == NULL)
+        return false;
+    return routine->kind == MIR_SCOPE_METHOD
+        && strcmp(routine->name, method->name) == 0
+        && strcmp(routine->owner_name, method->owner_name) == 0;
+}
+
 bool
 mir_record_decl_header(MIRProgram *mir, ASTNode *decl)
 {
@@ -239,17 +254,8 @@ mir_link_decl_method_routines(MIRProgram *mir)
 
             for (size_t ri = 0; ri < mir->routine_count; ri++) {
                 const MIRRoutine *routine = &mir->routines[ri];
-                if (routine->kind != MIR_SCOPE_METHOD)
+                if (!mir_decl_method_matches_routine(method, routine))
                     continue;
-                if (routine->name == NULL
-                    || strcmp(routine->name, method->name) != 0) {
-                    continue;
-                }
-                if (method->owner_name != NULL
-                    && routine->owner_name != NULL
-                    && strcmp(routine->owner_name, method->owner_name) != 0) {
-                    continue;
-                }
                 method->has_routine = true;
                 method->routine_index = ri;
                 break;

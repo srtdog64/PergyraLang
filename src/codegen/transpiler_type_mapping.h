@@ -17,5 +17,22 @@ void copy_constructed_arg_name_at(const char *type_name, int arg_index,
 bool generic_args_to_c_suffix_copy(const char *inner_body,
                                    char *out,
                                    size_t out_size);
+bool transpiler_type_name_is_channel(const char *type_name);
+bool transpiler_type_name_is_future(const char *type_name);
+bool transpiler_type_name_is_remote_future(const char *type_name);
+bool transpiler_type_name_is_any_future(const char *type_name);
+bool transpiler_type_name_is_result(const char *type_name);
+bool transpiler_type_name_is_option(const char *type_name);
+bool transpiler_type_name_is_array(const char *type_name);
+bool transpiler_type_name_is_slice(const char *type_name);
+bool transpiler_type_name_is_array_or_slice(const char *type_name);
+bool transpiler_type_name_is_list(const char *type_name);
+bool transpiler_type_name_is_queue(const char *type_name);
+bool transpiler_type_name_is_set(const char *type_name);
+bool transpiler_type_name_is_hashmap(const char *type_name);
+bool transpiler_type_name_is_box(const char *type_name);
+bool transpiler_type_name_is_box_array(const char *type_name);
+bool transpiler_type_name_is_rc(const char *type_name);
+bool transpiler_type_name_is_weak(const char *type_name);
 
 #endif /* PERGYRA_TRANSPILER_TYPE_MAPPING_H */

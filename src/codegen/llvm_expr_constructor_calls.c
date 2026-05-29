@@ -58,36 +58,125 @@ llvm_constructor_field_is_channel(LLVMGenCtx *ctx, ASTNode *field_type)
     char *expected_type;
     bool is_channel;
 
+    if (field_type == NULL)
+        return false;
+    if (field_type->type == AST_CHANNEL_TYPE)
+        return true;
     expected_type = llvm_render_type_name_in_ctx(ctx, field_type);
-    is_channel = expected_type != NULL
-        && strncmp(expected_type, "Channel<", 8) == 0;
+    is_channel = pgy_classify_type(expected_type) == PGY_TK_CHANNEL;
     free(expected_type);
     return is_channel;
 }
 
 static const char *
-llvm_class_constructor_find_channel_field(LLVMGenCtx *ctx,
-                                          const char *callee_name)
+llvm_class_constructor_find_channel_field(LLVMGenCtx *ctx, ASTNode *class_decl)
 {
-    ASTNode *class_decl;
-    ClassField **fields;
-    size_t field_count = 0;
+    PgyHostClassFieldsCompatView class_fields;
 
-    if (ctx == NULL || callee_name == NULL)
+    if (ctx == NULL || class_decl == NULL)
         return NULL;
-    class_decl = llvm_find_decl_in_active_inventory(
-        ctx, AST_CLASS_DECL, callee_name);
-    if (class_decl == NULL)
-        return NULL;
-    fields = ast_class_fields(class_decl, &field_count);
-    for (size_t i = 0; i < field_count; i++) {
-        ClassField *field = fields != NULL ? fields[i] : NULL;
+    class_fields = pgy_host_class_fields_compat_view_from_decl(class_decl);
+    for (size_t i = 0;
+         class_fields.fields != NULL && i < class_fields.count; i++) {
+        ClassField *field = class_fields.fields[i];
         if (field != NULL
             && llvm_constructor_field_is_channel(ctx, field->type)) {
             return field->name;
         }
     }
     return NULL;
+}
+
+static const char *
+llvm_constructor_find_shared_channel_field(LLVMGenCtx *ctx,
+                                           ASTNode **fields,
+                                           size_t count)
+{
+    for (size_t i = 0; fields != NULL && i < count; i++) {
+        ASTNode *field = fields[i];
+        if (field != NULL
+            && llvm_constructor_field_is_channel(
+                ctx, ast_party_shared_type(field))) {
+            return ast_party_shared_name(field);
+        }
+    }
+    return NULL;
+}
+
+static const char *
+llvm_constructor_find_slot_channel_field(LLVMGenCtx *ctx,
+                                         ASTNode **slots,
+                                         size_t count)
+{
+    for (size_t i = 0; slots != NULL && i < count; i++) {
+        ASTNode *slot = slots[i];
+        if (slot != NULL
+            && llvm_constructor_field_is_channel(
+                ctx, ast_domain_slot_type(slot))) {
+            return ast_domain_slot_name(slot);
+        }
+    }
+    return NULL;
+}
+
+static const char *
+llvm_constructor_find_host_channel_field(LLVMGenCtx *ctx, ASTNode *decl)
+{
+    PgyHostSharedFieldsCompatView shared;
+    ASTNode **nodes = NULL;
+    size_t count = 0;
+
+    if (ctx == NULL || decl == NULL)
+        return NULL;
+    if (decl->type == AST_CLASS_DECL)
+        return llvm_class_constructor_find_channel_field(ctx, decl);
+
+    switch (decl->type) {
+    case AST_PARTY_DECL:
+    case AST_ROSTER_DECL:
+        shared = pgy_host_shared_fields_compat_view_from_decl(decl);
+        return llvm_constructor_find_shared_channel_field(
+            ctx, shared.fields, shared.count);
+    case AST_RELATION_DECL:
+        nodes = ast_relation_slots(decl, &count);
+        {
+            const char *slot =
+                llvm_constructor_find_slot_channel_field(ctx, nodes, count);
+            if (slot != NULL)
+                return slot;
+        }
+        shared = pgy_host_shared_fields_compat_view_from_decl(decl);
+        return llvm_constructor_find_shared_channel_field(
+            ctx, shared.fields, shared.count);
+    case AST_EFFECT_DECL:
+        nodes = ast_effect_slots(decl, &count);
+        {
+            const char *slot =
+                llvm_constructor_find_slot_channel_field(ctx, nodes, count);
+            if (slot != NULL)
+                return slot;
+        }
+        shared = pgy_host_shared_fields_compat_view_from_decl(decl);
+        return llvm_constructor_find_shared_channel_field(
+            ctx, shared.fields, shared.count);
+    case AST_ZONE_DECL:
+        nodes = ast_zone_slots(decl, &count);
+        {
+            const char *slot =
+                llvm_constructor_find_slot_channel_field(ctx, nodes, count);
+            if (slot != NULL)
+                return slot;
+        }
+        shared = pgy_host_shared_fields_compat_view_from_decl(decl);
+        return llvm_constructor_find_shared_channel_field(
+            ctx, shared.fields, shared.count);
+    case AST_WORLD_DECL:
+        shared = pgy_host_shared_fields_compat_view_from_decl(decl);
+        return llvm_constructor_find_shared_channel_field(
+            ctx, shared.fields, shared.count);
+    default:
+        return NULL;
+    }
 }
 
 static LLVMValueRef
@@ -105,8 +194,7 @@ llvm_emit_constructor_field_arg(ASTNode *node,
         return llvm_emit_expression(arg, ctx);
 
     expected_type = llvm_render_type_name_in_ctx(ctx, field_type);
-    if (expected_type != NULL
-        && strncmp(expected_type, "Channel<", 8) == 0) {
+    if (pgy_classify_type(expected_type) == PGY_TK_CHANNEL) {
         llvm_set_error_at_with_hints(ctx, node,
             PGY_CODE_LLVM_TYPE_UNSUPPORTED,
             PGY_CAUSE_LLVM_TYPE_UNSUPPORTED,
@@ -324,12 +412,16 @@ static LLVMValueRef
 llvm_emit_class_constructor(ASTNode *node, LLVMGenCtx *ctx, const char *callee_name)
 {
     LLVMClassTypeEntry *cls = llvm_lookup_class(ctx, callee_name);
+    ASTNode *host_decl = llvm_find_domain_constructor_decl(ctx, callee_name);
     if (cls == NULL)
         return NULL;
 
     {
         const char *channel_field =
-            llvm_class_constructor_find_channel_field(ctx, callee_name);
+            llvm_constructor_find_host_channel_field(ctx,
+                host_decl != NULL ? host_decl
+                    : llvm_find_decl_in_active_inventory(
+                        ctx, AST_CLASS_DECL, callee_name));
         if (channel_field != NULL) {
             llvm_set_error_at_with_hints(ctx, node,
                 PGY_CODE_LLVM_TYPE_UNSUPPORTED,
@@ -380,7 +472,6 @@ llvm_emit_class_constructor(ASTNode *node, LLVMGenCtx *ctx, const char *callee_n
             (unsigned)cls->fields[i].index, llvm_tmp_name(ctx));
     }
 
-    ASTNode *host_decl = llvm_find_domain_constructor_decl(ctx, callee_name);
     ASTNode *relation_decl = host_decl != NULL
         && host_decl->type == AST_RELATION_DECL ? host_decl : NULL;
     ASTNode *effect_decl = host_decl != NULL

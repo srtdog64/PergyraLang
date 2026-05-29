@@ -22,6 +22,20 @@ English anchor for tooling/doc gates:
   `host_decl_compat.c`, C/LLVM domain-constructor lookup, and party-slot ability
   selection helpers. The remaining targets must be closed by moving source-of-
   truth ownership, not by rewording the percentage.
+- MIR declaration bootstrap progress: hosted method routine selection is now a
+  validated metadata link, not only an in-range index. `mir_validate(...)`
+  rejects `MIRDeclMethod.has_routine` rows whose linked routine is not a method
+  with the same owner/name, and `mir_link_decl_method_routines(...)` now uses
+  the same owner/name predicate before forming the link. The declaration smoke
+  gates the linker negative test, validator negative test, and row-level proof
+  table in `docs/125_source_of_truth_spine.md`. This closes the hosted-method
+  body selection row while leaving the dedicated declaration IR row open.
+- Host field compatibility progress: `host_decl_compat.c` now also owns class
+  field compatibility views beside domain shared-field views. The C constructor
+  and LLVM constructor Channel guards consume those owner seams instead of
+  reopening separate class/domain shared-field switches for that path, and the
+  declaration smoke gates the proof-table row. Broader field metadata is still
+  open until dedicated declaration-field metadata exists.
 - C/LLVM backend-compare default parity now includes exact LLVM-smoke surface
   coverage for minimal extern blocks, direct `Slot<T>` claim/write/read/release,
   direct `Channel<T>` send/receive, and explicit `Future<T>` spawn annotation.
@@ -123,10 +137,12 @@ English anchor for tooling/doc gates:
   field/captured channel lvalues remain `self.ch` / `self->ch` / capture-safe
   forms instead of regressing to raw `&ch` while still avoiding SSA-shadow
   readiness checks. Constructor argument lowering now also fails closed in C
-  and LLVM when a `Channel<T>` field is copied or default-initialized inside an
-  aggregate constructor. Channel runtime storage currently carries
-  mutex/condvar state, so aggregate field construction stays closed until
-  movable channel-handle lowering exists. LLVM channel send/receive/select lowering now
+  and LLVM when a class or domain-host `Channel<T>` field is copied or
+  default-initialized inside an aggregate constructor. Channel runtime storage
+  currently carries mutex/condvar state, so aggregate field construction stays
+  closed until movable channel-handle lowering exists. The C backend now uses
+  `transpiler_constructor_channel_guard` as the shared owner instead of
+  repeating class-only checks in each constructor emitter. LLVM channel send/receive/select lowering now
   consumes a shared `LLVMChannelTarget` owner, so registered local channels and
   current-host `Channel<T>` fields resolve through the same pointer + inner-type
   fact instead of the old local-only lookup. The same seam now covers
@@ -141,8 +157,8 @@ English anchor for tooling/doc gates:
   field receive typing, while C `test-transpile` continues to gate the
   generated `self.ch` lvalue shape. Semantic constructor validation now owns the
   first rejection for `Channel<T>` aggregate field stores and default-zeroed
-  channel fields, so C/LLVM constructor lowering remains a backend guard rather
-  than the only source of truth.
+  channel fields, including zone/shared host fields, so C/LLVM constructor
+  lowering remains a backend guard rather than the only source of truth.
 - CI smoke portability guard: beta/source-of-truth smoke scripts must remain
   compatible with macOS Bash 3.2. `build-source-inventory-test-smoke` now
   rejects Bash 4-only `mapfile` / `readarray`, associative arrays, parameter
@@ -206,7 +222,27 @@ English anchor for tooling/doc gates:
   available. `build-source-inventory-test-smoke` now rejects non-context
   `render_type_name(...)` across `src/codegen` outside wrapper owners; generic
   binding rendering is context-required and no longer falls back through the
-  legacy non-context renderer.
+  legacy non-context renderer. C backend `Channel<T>` kind checks now consume
+  `transpiler_type_name_is_channel(...)` from `transpiler_type_mapping` instead
+  of reopening ad-hoc `strncmp("Channel<")` checks in constructor guards,
+  channel-let lowering, and MIR SSA/preserved-let skip policy. LLVM constructor
+  and receive inference paths consume `pgy_classify_type(...)` for the same
+  check, so backend channel-kind policy is centralized in the existing type
+  classifiers. C Future/RemoteFuture string classification now follows the same
+  rule through `transpiler_type_name_is_future(...)`,
+  `transpiler_type_name_is_remote_future(...)`, and
+  `transpiler_type_name_is_any_future(...)`; await/spawn type queries and
+  type-to-C lowering consume that classifier instead of repeating local prefix
+  checks. Result/Option and common C collection lowering now follow the same
+  classifier seam (`transpiler_type_name_is_result(...)`,
+  `transpiler_type_name_is_option(...)`,
+  `transpiler_type_name_is_array_or_slice(...)`, `..._list`, `..._set`,
+  `..._hashmap`, `..._box_array`, `..._rc`, and `..._weak`) for match
+  destructuring, try-let lowering, Option context, array access, for-in
+  lowering, MIR for-in/destructuring type lookup, BoxArray let lowering,
+  channel type queries, and collection builtin inference. The perf contract
+  now rejects new C `transpiler_*.c` direct type-family prefix checks outside
+  `transpiler_type_mapping.c`.
 - C backend type-name-to-C-type lowering is also moving behind diagnostic
   requirement helpers. Let annotations, inferred let initializers, array
   literal bindings, Set binding annotations, Result try operands, role ability

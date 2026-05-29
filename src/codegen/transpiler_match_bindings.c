@@ -241,7 +241,7 @@ transpiler_emit_builtin_match_binding(ASTNode *pattern_node,
     } else if (match_variant == PGY_MATCH_VARIANT_OK) {
         char ok_type_buf[128];
         const char *ok_type = NULL;
-        if (strncmp(subject_type, "Result<", 7) == 0) {
+        if (transpiler_type_name_is_result(subject_type)) {
             copy_constructed_arg_name_at(subject_type, 0,
                 ok_type_buf, sizeof(ok_type_buf));
             ok_type = ok_type_buf[0] != '\0' ? ok_type_buf : NULL;
@@ -277,7 +277,7 @@ transpiler_emit_builtin_match_binding(ASTNode *pattern_node,
         char err_type_buf[128];
         char result_inner_buf[128];
         const char *err_type = "PgyError";
-        if (strncmp(subject_type, "Result<", 7) != 0) {
+        if (!transpiler_type_name_is_result(subject_type)) {
             transpiler_set_backend_error_with_hints(ctx,
                 PGY_CODE_C_TYPE_UNSUPPORTED,
                 PGY_CAUSE_C_TYPE_UNSUPPORTED,

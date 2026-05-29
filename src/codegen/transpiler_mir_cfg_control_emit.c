@@ -72,9 +72,8 @@ transpiler_mir_for_in_element_type(TranspilerCtx *ctx,
         *collection_type_out = collection_type;
     if (collection_type == NULL)
         return false;
-    if (strncmp(collection_type, "Array<", 6) != 0
-        && strncmp(collection_type, "Slice<", 6) != 0
-        && strncmp(collection_type, "List<", 5) != 0) {
+    if (!transpiler_type_name_is_array_or_slice(collection_type)
+        && !transpiler_type_name_is_list(collection_type)) {
         return false;
     }
     if (!slot_inner_type_name_copy(collection_type, inner_type_buf,

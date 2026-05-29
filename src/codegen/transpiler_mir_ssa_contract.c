@@ -13,6 +13,7 @@
 #include "transpiler_mir_ssa_lookup.h"
 #include "transpiler_mir_ssa_utils.h"
 #include "transpiler_symbols.h"
+#include "transpiler_type_mapping.h"
 #include "../parser/ast_api.h"
 
 bool
@@ -127,7 +128,7 @@ transpiler_expr_identifiers_mapped(const TranspilerCtx *ctx,
             if (existing_type != NULL
                 && (transpiler_type_name_is_slot_like(existing_type)
                     || transpiler_type_name_is_claim_shape(existing_type)
-                    || strncmp(existing_type, "Channel<", 8) == 0)) {
+                    || transpiler_type_name_is_channel(existing_type))) {
                 return true;
             }
         }

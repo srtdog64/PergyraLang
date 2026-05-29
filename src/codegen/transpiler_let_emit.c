@@ -9,6 +9,7 @@
 
 #include "transpiler_context.h"
 #include "transpiler_collection_runtime_suffix.h"
+#include "transpiler_constructor_channel_guard.h"
 #include "transpiler_decl_lookup.h"
 #include "transpiler_expr_type_infer.h"
 #include "transpiler_format.h"
@@ -26,46 +27,6 @@
 #include "transpiler_type_mapping.h"
 #include "transpiler_type_render.h"
 #include "transpiler_type_require.h"
-
-static bool
-transpiler_let_field_is_channel(TranspilerCtx *ctx, ASTNode *field_type)
-{
-    char *type_name;
-    bool is_channel;
-
-    type_name = render_type_name_in_ctx(ctx, field_type);
-    is_channel = type_name != NULL && strncmp(type_name, "Channel<", 8) == 0;
-    free(type_name);
-    return is_channel;
-}
-
-static bool
-transpiler_let_reject_channel_field_constructor(TranspilerCtx *ctx,
-                                                const char *field_name)
-{
-    transpiler_set_backend_error_with_hints(ctx,
-        PGY_CODE_C_TYPE_UNSUPPORTED,
-        PGY_CAUSE_C_TYPE_UNSUPPORTED,
-        PGY_FIX_PROVIDE_MOVABLE_HANDLE,
-        "C backend: Channel field '%s' cannot be aggregate-constructed or default-initialized until movable channel-handle lowering is available",
-        field_name != NULL ? field_name : "<field>");
-    return false;
-}
-
-static const char *
-transpiler_let_find_channel_field(TranspilerCtx *ctx,
-                                  ClassField **fields,
-                                  size_t field_count)
-{
-    for (size_t i = 0; i < field_count; i++) {
-        ClassField *field = fields != NULL ? fields[i] : NULL;
-        if (field != NULL
-            && transpiler_let_field_is_channel(ctx, field->type)) {
-            return field->name;
-        }
-    }
-    return NULL;
-}
 
 void
 emit_let_decl(ASTNode *node, TranspilerCtx *ctx)
@@ -286,7 +247,7 @@ emit_let_decl(ASTNode *node, TranspilerCtx *ctx)
         && ast_call_callee(init)->type == AST_IDENTIFIER
         && ann_type_name != NULL
         && strcmp(ast_identifier_name(ast_call_callee(init)), "SetNew") == 0
-        && strncmp(ann_type_name, "Set<", 4) == 0) {
+        && transpiler_type_name_is_set(ann_type_name)) {
         char inner_buf[128];
         const char *inner = inner_buf;
         char suffix_buf[128];
@@ -323,7 +284,7 @@ emit_let_decl(ASTNode *node, TranspilerCtx *ctx)
         int try_id;
         int current_returns_result;
 
-        if (result_type == NULL || strncmp(result_type, "Result<", 7) != 0) {
+        if (!transpiler_type_name_is_result(result_type)) {
             transpiler_set_backend_error_with_hints(ctx,
                 PGY_CODE_C_TYPE_UNSUPPORTED,
                 PGY_CAUSE_C_TYPE_UNSUPPORTED,
@@ -334,7 +295,7 @@ emit_let_decl(ASTNode *node, TranspilerCtx *ctx)
             return;
         }
         current_returns_result = ctx->current_return_type[0] != '\0'
-            && strncmp(ctx->current_return_type, "Result<", 7) == 0;
+            && transpiler_type_name_is_result(ctx->current_return_type);
 
         char result_c_type_buf[256];
         char c_type_buf[256];
@@ -406,10 +367,10 @@ emit_let_decl(ASTNode *node, TranspilerCtx *ctx)
         ClassField **fields = ast_class_fields(class_decl, &field_count);
         const char *channel_field = class_decl != NULL
             && class_decl->type == AST_CLASS_DECL
-            ? transpiler_let_find_channel_field(ctx, fields, field_count)
+            ? transpiler_constructor_find_channel_field(ctx, class_decl)
             : NULL;
         if (channel_field != NULL) {
-            transpiler_let_reject_channel_field_constructor(ctx,
+            transpiler_constructor_reject_channel_field(ctx,
                 channel_field);
             free(ann_type_name);
             return;

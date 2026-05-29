@@ -6,24 +6,11 @@
 
 #include "../common/string_compat.h"
 #include "parser/ast_api.h"
-#include "../semantic/diag_codes.h"
 #include "transpiler_context.h"
+#include "transpiler_constructor_channel_guard.h"
 #include "transpiler_format.h"
 #include "transpiler_projection.h"
 #include "transpiler_type_render.h"
-
-static bool
-transpiler_ctor_field_is_channel(TranspilerCtx *ctx, ASTNode *field_type)
-{
-    char *expected_type;
-    bool is_channel;
-
-    expected_type = render_type_name_in_ctx(ctx, field_type);
-    is_channel = expected_type != NULL
-        && strncmp(expected_type, "Channel<", 8) == 0;
-    free(expected_type);
-    return is_channel;
-}
 
 static char *
 transpiler_emit_ctor_arg_with_expected_type(TranspilerCtx *ctx,
@@ -38,13 +25,8 @@ transpiler_emit_ctor_arg_with_expected_type(TranspilerCtx *ctx,
     if (field_type == NULL)
         return emit_expression(arg, ctx);
 
-    if (transpiler_ctor_field_is_channel(ctx, field_type)) {
-        transpiler_set_backend_error_with_hints(ctx,
-            PGY_CODE_C_TYPE_UNSUPPORTED,
-            PGY_CAUSE_C_TYPE_UNSUPPORTED,
-            PGY_FIX_PROVIDE_MOVABLE_HANDLE,
-            "C backend: Channel field '%s' cannot be aggregate-constructed or default-initialized until movable channel-handle lowering is available",
-            field_name != NULL ? field_name : "<field>");
+    if (transpiler_constructor_field_is_channel(ctx, field_type)) {
+        transpiler_constructor_reject_channel_field(ctx, field_name);
         return pergyra_strdup("0");
     }
 
@@ -500,6 +482,14 @@ transpiler_emit_domain_constructor_for_decl(ASTNode *call,
 {
     if (call == NULL || decl == NULL || type_name == NULL)
         return NULL;
+    {
+        const char *channel_field =
+            transpiler_constructor_find_channel_field(ctx, decl);
+        if (channel_field != NULL) {
+            transpiler_constructor_reject_channel_field(ctx, channel_field);
+            return pergyra_strdup("0");
+        }
+    }
 
     switch (decl->type) {
     case AST_PARTY_DECL:

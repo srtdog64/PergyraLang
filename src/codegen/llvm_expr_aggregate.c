@@ -66,7 +66,8 @@ llvm_emit_array_literal_expr(ASTNode *node, LLVMGenCtx *ctx)
         if (suffix != NULL && strcmp(suffix, "Unknown") != 0)
             inner_name = suffix;
     } else if (ctx->expected_type_name != NULL
-               && strncmp(ctx->expected_type_name, "Array<", 6) == 0) {
+               && pgy_classify_type(ctx->expected_type_name)
+                    == PGY_TK_ARRAY) {
         if (llvm_constructed_arg_name_copy(ctx->expected_type_name, 0,
                 inner_name_buf, sizeof(inner_name_buf))) {
             inner_name = inner_name_buf;

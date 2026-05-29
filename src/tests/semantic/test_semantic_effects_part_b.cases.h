@@ -1,3 +1,54 @@
+    TEST("class constructor rejects Channel field storage in expression position");
+    {
+        const char *source =
+            "class ChannelBox {\n"
+            "    let ch: Channel<Int>;\n"
+            "}\n"
+            "func Take(box: ChannelBox) -> Void {}\n"
+            "func Main() -> Void {\n"
+            "    Take(ChannelBox());\n"
+            "}\n";
+        Lexer *lexer = lexer_create(source);
+        Parser *parser = parser_create(lexer);
+        ASTNode *program = parser_parse_program(parser);
+        SemanticResult *result = semantic_analyze(program);
+
+        EXPECT(!parser_has_error(parser));
+        EXPECT(result != NULL && result->error_count > 0);
+        EXPECT(ctx_has_diagnostic_substring_from_result(result,
+            "default-initialize Channel<T> field 'ch'"));
+
+        semantic_result_destroy(result);
+        ast_destroy(program);
+        parser_destroy(parser);
+        lexer_destroy(lexer);
+    }
+
+    TEST("zone constructor rejects default Channel shared field storage");
+    {
+        const char *source =
+            "zone WorkZone {\n"
+            "    shared ch: Channel<Int>\n"
+            "}\n"
+            "func Main() -> Void {\n"
+            "    let work: WorkZone = WorkZone();\n"
+            "}\n";
+        Lexer *lexer = lexer_create(source);
+        Parser *parser = parser_create(lexer);
+        ASTNode *program = parser_parse_program(parser);
+        SemanticResult *result = semantic_analyze(program);
+
+        EXPECT(!parser_has_error(parser));
+        EXPECT(result != NULL && result->error_count > 0);
+        EXPECT(ctx_has_diagnostic_substring_from_result(result,
+            "default-initialize Channel<T> field 'ch'"));
+
+        semantic_result_destroy(result);
+        ast_destroy(program);
+        parser_destroy(parser);
+        lexer_destroy(lexer);
+    }
+
     TEST("spawn and channel send infer remote effect on function");
     {
         SemanticContext *ctx = semantic_context_create();

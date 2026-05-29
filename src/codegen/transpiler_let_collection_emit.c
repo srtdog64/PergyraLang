@@ -121,7 +121,7 @@ transpiler_try_emit_option_let(TranspilerCtx *ctx,
     const char *inner = NULL;
     char *ann_type_name = ann_type_name_io != NULL ? *ann_type_name_io : NULL;
 
-    if (ann_type_name == NULL || strncmp(ann_type_name, "Option<", 7) != 0)
+    if (!transpiler_type_name_is_option(ann_type_name))
         return false;
 
     if (slot_inner_type_name_copy(ann_type_name, inner_buf, sizeof(inner_buf)))

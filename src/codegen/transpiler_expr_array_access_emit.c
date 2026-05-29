@@ -21,7 +21,7 @@ emit_array_access_expression(ASTNode *node, TranspilerCtx *ctx)
     const char *array_type = infer_expression_type_name(ctx, array_node);
     char *result;
 
-    if (array_type != NULL && strncmp(array_type, "Array<", 6) == 0) {
+    if (transpiler_type_name_is_array(array_type)) {
         char inner_buf[128];
         const char *inner = NULL;
         if (slot_inner_type_name_copy(array_type, inner_buf,
@@ -44,7 +44,7 @@ emit_array_access_expression(ASTNode *node, TranspilerCtx *ctx)
             "({ PgyArray_%s _pgy_arr_get_%d = %s; "
             "pgy_array_get_%s(&_pgy_arr_get_%d, %s); })",
             inner, tmp_id, array, inner, tmp_id, index);
-    } else if (array_type != NULL && strncmp(array_type, "Slice<", 6) == 0) {
+    } else if (transpiler_type_name_is_slice(array_type)) {
         char inner_buf[128];
         const char *inner = NULL;
         if (slot_inner_type_name_copy(array_type, inner_buf,

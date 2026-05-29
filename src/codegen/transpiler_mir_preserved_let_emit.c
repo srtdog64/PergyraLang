@@ -16,6 +16,7 @@
 #include "transpiler_mir_ssa_utils.h"
 #include "transpiler_specialization_registry.h"
 #include "transpiler_symbols.h"
+#include "transpiler_type_mapping.h"
 #include "transpiler_type_require.h"
 #include "transpiler_type_result_mapping_helpers.h"
 
@@ -103,11 +104,11 @@ transpiler_emit_mir_preserved_let_stmt(CodeBuf *buf,
                 || (binding_type_name != NULL
                     && (transpiler_type_name_is_slot_like(binding_type_name)
                         || transpiler_type_name_is_claim_shape(binding_type_name)
-                        || strncmp(binding_type_name, "Channel<", 8) == 0))
+                        || transpiler_type_name_is_channel(binding_type_name)))
                 || (value_type != NULL
                     && (transpiler_type_name_is_slot_like(value_type)
                         || transpiler_type_name_is_claim_shape(value_type)
-                        || strncmp(value_type, "Channel<", 8) == 0))) {
+                        || transpiler_type_name_is_channel(value_type)))) {
                 free(binding_type_name);
                 free(lhs);
                 free(rhs);
@@ -216,7 +217,7 @@ transpiler_emit_mir_source_local_let_def_inst(
         return TRANSPILE_MIR_LOCAL_LET_HANDLED;
     }
     if (local_type_name_owned != NULL
-        && strncmp(local_type_name_owned, "Channel<", 8) == 0) {
+        && transpiler_type_name_is_channel(local_type_name_owned)) {
         emit_statement(stmt, ctx);
         ctx->active_type_hint = saved_type_hint;
         free(rendered_type_hint);
@@ -246,7 +247,7 @@ transpiler_emit_mir_source_local_let_def_inst(
         ctx->active_type_hint = saved_type_hint;
         free(rendered_type_hint);
         if (lhs == NULL || result_type == NULL
-            || strncmp(result_type, "Result<", 7) != 0) {
+            || !transpiler_type_name_is_result(result_type)) {
             free(lhs);
             free(local_type_name_owned);
             if (reason != NULL && reason_cap > 0) {
@@ -258,7 +259,7 @@ transpiler_emit_mir_source_local_let_def_inst(
             return TRANSPILE_MIR_LOCAL_LET_FAILED;
         }
         current_returns_result = ctx->current_return_type[0] != '\0'
-            && strncmp(ctx->current_return_type, "Result<", 7) == 0;
+            && transpiler_type_name_is_result(ctx->current_return_type);
 
         if (!transpiler_require_type_name_c_type_copy(ctx, result_type,
                 "MIR preserved try operand Result", result_c_type_buf,

@@ -280,7 +280,7 @@ emit_builtin_box(ASTNode *call, BuiltinKind kind, TranspilerCtx *ctx)
             const char *arr_type =
                 transpiler_expr_infer_type_name(ctx,
                     ast_call_argument(call, 0));
-            if (arr_type != NULL && strncmp(arr_type, "Array<", 6) == 0)
+            if (transpiler_type_name_is_array(arr_type))
                 inner = arr_type;
             if (inner == NULL || inner[0] == '\0') {
                 transpiler_set_backend_error_with_hints(ctx,

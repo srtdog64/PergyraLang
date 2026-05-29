@@ -121,6 +121,110 @@ constructed_single_arg_is_unknown(const char *type_name)
 }
 
 bool
+transpiler_type_name_is_channel(const char *type_name)
+{
+    return type_name != NULL && strncmp(type_name, "Channel<", 8) == 0;
+}
+
+bool
+transpiler_type_name_is_future(const char *type_name)
+{
+    return type_name != NULL && strncmp(type_name, "Future<", 7) == 0;
+}
+
+bool
+transpiler_type_name_is_remote_future(const char *type_name)
+{
+    return type_name != NULL && strncmp(type_name, "RemoteFuture<", 13) == 0;
+}
+
+bool
+transpiler_type_name_is_any_future(const char *type_name)
+{
+    return transpiler_type_name_is_future(type_name)
+        || transpiler_type_name_is_remote_future(type_name);
+}
+
+bool
+transpiler_type_name_is_result(const char *type_name)
+{
+    return type_name != NULL && strncmp(type_name, "Result<", 7) == 0;
+}
+
+bool
+transpiler_type_name_is_option(const char *type_name)
+{
+    return type_name != NULL && strncmp(type_name, "Option<", 7) == 0;
+}
+
+bool
+transpiler_type_name_is_array(const char *type_name)
+{
+    return type_name != NULL && strncmp(type_name, "Array<", 6) == 0;
+}
+
+bool
+transpiler_type_name_is_slice(const char *type_name)
+{
+    return type_name != NULL && strncmp(type_name, "Slice<", 6) == 0;
+}
+
+bool
+transpiler_type_name_is_array_or_slice(const char *type_name)
+{
+    return transpiler_type_name_is_array(type_name)
+        || transpiler_type_name_is_slice(type_name);
+}
+
+bool
+transpiler_type_name_is_list(const char *type_name)
+{
+    return type_name != NULL && strncmp(type_name, "List<", 5) == 0;
+}
+
+bool
+transpiler_type_name_is_queue(const char *type_name)
+{
+    return type_name != NULL && strncmp(type_name, "Queue<", 6) == 0;
+}
+
+bool
+transpiler_type_name_is_set(const char *type_name)
+{
+    return type_name != NULL && strncmp(type_name, "Set<", 4) == 0;
+}
+
+bool
+transpiler_type_name_is_hashmap(const char *type_name)
+{
+    return type_name != NULL && strncmp(type_name, "HashMap<", 8) == 0;
+}
+
+bool
+transpiler_type_name_is_box(const char *type_name)
+{
+    return type_name != NULL && strncmp(type_name, "Box<", 4) == 0;
+}
+
+bool
+transpiler_type_name_is_box_array(const char *type_name)
+{
+    return type_name != NULL && strncmp(type_name, "Box<Array<", 10) == 0;
+}
+
+bool
+transpiler_type_name_is_rc(const char *type_name)
+{
+    return type_name != NULL && strncmp(type_name, "Rc<", 3) == 0;
+}
+
+bool
+transpiler_type_name_is_weak(const char *type_name)
+{
+    return type_name != NULL && strncmp(type_name, "Weak<", 5) == 0;
+}
+
+bool
 pergyra_type_to_c_copy(const char *name, char *out, size_t out_size)
 {
     static const TranspilerTypeNameMap builtin_alias_maps[] = {
@@ -155,14 +259,14 @@ pergyra_type_to_c_copy(const char *name, char *out, size_t out_size)
         copy_capped_string(out, out_size, mapped);
         return out[0] != '\0';
     }
-    if (strncmp(name, "List<", 5) == 0) {
+    if (transpiler_type_name_is_list(name)) {
         if (constructed_single_arg_is_unknown(name))
             return false;
         slot_inner_type_name_copy(name, inner, sizeof(inner));
         sanitize_c_suffix(inner, suffix, sizeof(suffix));
         return transpiler_type_name_join(out, out_size, "PgyList_", suffix);
     }
-    if (strncmp(name, "HashMap<", 8) == 0) {
+    if (transpiler_type_name_is_hashmap(name)) {
         if (constructed_arg_name_is_unknown(name, 0)
             || constructed_arg_name_is_unknown(name, 1))
             return false;
@@ -170,14 +274,14 @@ pergyra_type_to_c_copy(const char *name, char *out, size_t out_size)
         sanitize_c_suffix(value, suffix, sizeof(suffix));
         return transpiler_type_name_join(out, out_size, "PgyHashMap_", suffix);
     }
-    if (strncmp(name, "Queue<", 6) == 0) {
+    if (transpiler_type_name_is_queue(name)) {
         if (constructed_single_arg_is_unknown(name))
             return false;
         slot_inner_type_name_copy(name, inner, sizeof(inner));
         sanitize_c_suffix(inner, suffix, sizeof(suffix));
         return transpiler_type_name_join(out, out_size, "PgyQueue_", suffix);
     }
-    if (strncmp(name, "Set<", 4) == 0) {
+    if (transpiler_type_name_is_set(name)) {
         slot_inner_type_name_copy(name, inner, sizeof(inner));
         if (type_arg_name_is_unknown(inner))
             return false;
@@ -192,30 +296,29 @@ pergyra_type_to_c_copy(const char *name, char *out, size_t out_size)
         sanitize_c_suffix(inner, suffix, sizeof(suffix));
         return transpiler_type_name_join(out, out_size, "PgySet_", suffix);
     }
-    if (strncmp(name, "RemoteFuture<", 13) == 0
-        || strncmp(name, "Future<", 7) == 0) {
+    if (transpiler_type_name_is_any_future(name)) {
         copy_capped_string(out, out_size, "PgyTaskHandle");
         return out[0] != '\0';
     }
-    if (strncmp(name, "Channel<", 8) == 0) {
+    if (transpiler_type_name_is_channel(name)) {
         slot_inner_type_name_copy(name, inner, sizeof(inner));
         if (type_arg_name_is_unknown(inner))
             return false;
         return transpiler_type_name_join(out, out_size, "PgyChannel_", inner);
     }
-    if (strncmp(name, "Weak<", 5) == 0) {
+    if (transpiler_type_name_is_weak(name)) {
         slot_inner_type_name_copy(name, inner, sizeof(inner));
         if (type_arg_name_is_unknown(inner))
             return false;
         return transpiler_type_name_join(out, out_size, "PgyWeak_", inner);
     }
-    if (strncmp(name, "Rc<", 3) == 0) {
+    if (transpiler_type_name_is_rc(name)) {
         slot_inner_type_name_copy(name, inner, sizeof(inner));
         if (type_arg_name_is_unknown(inner))
             return false;
         return transpiler_type_name_join(out, out_size, "PgyRc_", inner);
     }
-    if (strncmp(name, "Box<Array<", 10) == 0) {
+    if (transpiler_type_name_is_box_array(name)) {
         const char *body = name + 10;
         const char *close = strstr(body, ">>");
         size_t len = close != NULL ? (size_t)(close - body) : strlen(body);
@@ -227,19 +330,19 @@ pergyra_type_to_c_copy(const char *name, char *out, size_t out_size)
             return false;
         return transpiler_type_name_join(out, out_size, "PgyBoxArray_", inner);
     }
-    if (strncmp(name, "Box<", 4) == 0) {
+    if (transpiler_type_name_is_box(name)) {
         slot_inner_type_name_copy(name, inner, sizeof(inner));
         if (type_arg_name_is_unknown(inner))
             return false;
         return transpiler_type_name_join(out, out_size, "PgyBox_", inner);
     }
-    if (strncmp(name, "Slice<", 6) == 0) {
+    if (transpiler_type_name_is_slice(name)) {
         slot_inner_type_name_copy(name, inner, sizeof(inner));
         if (type_arg_name_is_unknown(inner))
             return false;
         return transpiler_type_name_join(out, out_size, "PgySlice_", inner);
     }
-    if (strncmp(name, "Array<", 6) == 0) {
+    if (transpiler_type_name_is_array(name)) {
         slot_inner_type_name_copy(name, inner, sizeof(inner));
         if (type_arg_name_is_unknown(inner))
             return false;
@@ -270,7 +373,7 @@ pergyra_type_to_c_copy(const char *name, char *out, size_t out_size)
             return false;
         return transpiler_type_name_join(out, out_size, "PgySlot_", inner);
     }
-    if (strncmp(name, "Result<", 7) == 0) {
+    if (transpiler_type_name_is_result(name)) {
         size_t prefix_len = strlen("PgyResult_");
         slot_inner_type_name_copy(name, inner, sizeof(inner));
         if (strchr(inner, ',') == NULL) {
@@ -291,7 +394,7 @@ pergyra_type_to_c_copy(const char *name, char *out, size_t out_size)
         }
         return true;
     }
-    if (strncmp(name, "Option<", 7) == 0) {
+    if (transpiler_type_name_is_option(name)) {
         slot_inner_type_name_copy(name, inner, sizeof(inner));
         if (type_arg_name_is_unknown(inner))
             return false;

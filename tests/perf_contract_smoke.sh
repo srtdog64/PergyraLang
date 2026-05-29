@@ -147,6 +147,13 @@ grep -Fq "bsearch(" "$ROOT_DIR/src/compiler/driver_scaffold.c"
 grep -Fq "TranspilerTypeNameMap" "$ROOT_DIR/src/codegen/transpiler_type_mapping.c"
 grep -Fq "transpiler_lookup_type_name_map" "$ROOT_DIR/src/codegen/transpiler_type_mapping.c"
 grep -Fq "bsearch(" "$ROOT_DIR/src/codegen/transpiler_type_mapping.c"
+grep -Fq "transpiler_type_name_is_box_array" "$ROOT_DIR/src/codegen/transpiler_type_mapping.c"
+if grep -R -n -E --include='transpiler_*.c' \
+    'strncmp\([^"]*"(Channel|Future|RemoteFuture|Result|Option|Array|Slice|List|Queue|Set|HashMap|Box|Rc|Weak)(<|")' \
+    "$ROOT_DIR/src/codegen" | grep -v "transpiler_type_mapping.c"; then
+    echo "[perf-contract] C backend type-family classification bypassed transpiler_type_mapping" >&2
+    exit 1
+fi
 grep -Fq "transpiler_forward_type_name_is_allowed" "$ROOT_DIR/src/codegen/transpiler_func_forward_policy.c"
 grep -Fq "transpiler_forward_allowed_type_compare" "$ROOT_DIR/src/codegen/transpiler_func_forward_policy.c"
 grep -Fq "bsearch(&name" "$ROOT_DIR/src/codegen/transpiler_func_forward_policy.c"
@@ -2553,6 +2560,15 @@ grep -Fq "transpiler_require_type_name_c_type_copy(ctx, participant_type" "$ROOT
 grep -Fq "transpiler_require_type_name_c_type_copy(ctx, elem_names[j]" "$ROOT_DIR/src/codegen/transpiler_destructure_emit.c"
 ! grep -Fq "static char mapped[128]" "$ROOT_DIR/src/codegen/transpiler_func_forward_helpers.h"
 grep -Fq "lookup_future_inner_type_copy" "$ROOT_DIR/src/codegen/transpiler_future_type_query.c"
+grep -Fq "transpiler_type_name_is_any_future" "$ROOT_DIR/src/codegen/transpiler_future_type_query.c"
+grep -Fq "transpiler_type_name_is_remote_future" "$ROOT_DIR/src/codegen/transpiler_future_type_query.c"
+grep -Fq "transpiler_type_name_is_any_future" "$ROOT_DIR/src/codegen/transpiler_type_mapping.c"
+grep -Fq "transpiler_type_name_is_result" "$ROOT_DIR/src/codegen/transpiler_type_mapping.c"
+grep -Fq "transpiler_type_name_is_option" "$ROOT_DIR/src/codegen/transpiler_type_mapping.c"
+grep -Fq "transpiler_type_name_is_array_or_slice" "$ROOT_DIR/src/codegen/transpiler_type_mapping.c"
+grep -Fq "transpiler_type_name_is_hashmap" "$ROOT_DIR/src/codegen/transpiler_expr_type_infer.c"
+grep -Fq "transpiler_type_name_is_result(result_type)" "$ROOT_DIR/src/codegen/transpiler_let_emit.c"
+grep -Fq "transpiler_type_name_is_option(subject_type)" "$ROOT_DIR/src/codegen/transpiler_match_emit.c"
 grep -Fq "lookup_future_inner_type_copy(ctx" "$ROOT_DIR/src/codegen/transpiler_expr_dispatch_emit.c"
 grep -Fq "transpiler_require_type_name_c_type_copy" "$ROOT_DIR/src/codegen/transpiler_type_require.c"
 grep -Fq "transpiler_require_ast_c_type_copy" "$ROOT_DIR/src/codegen/transpiler_type_require.c"
@@ -2826,21 +2842,29 @@ grep -Fq "cannot aggregate-construct or default-initialize Channel<T> field" \
 grep -Fq "default-zeroing that storage would bypass channel runtime initialization" \
     "$ROOT_DIR/src/semantic/type_checker_call_constructor.c"
 grep -Fq "class constructor rejects Channel field storage in expression position" \
-    "$ROOT_DIR/src/tests/semantic/test_semantic_effects_part_a.cases.h"
+    "$ROOT_DIR/src/tests/semantic/test_semantic_effects_part_b.cases.h"
+grep -Fq "zone constructor rejects default Channel shared field storage" \
+    "$ROOT_DIR/src/tests/semantic/test_semantic_effects_part_b.cases.h"
 grep -Fq "PGY_CODE_SEM_CHANNEL_TRANSPORT_INVALID" \
     "$ROOT_DIR/src/semantic/type_checker_call_constructor.c"
 grep -Fq "cannot be aggregate-constructed or default-initialized until movable channel-handle lowering is available" \
     "$ROOT_DIR/src/codegen/llvm_expr_constructor_calls.c"
 grep -Fq "cannot be aggregate-constructed or default-initialized until movable channel-handle lowering is available" \
-    "$ROOT_DIR/src/codegen/transpiler_domain_constructor_emit.c"
+    "$ROOT_DIR/src/codegen/transpiler_constructor_channel_guard.c"
 grep -Fq "cannot be aggregate-constructed or default-initialized until movable channel-handle lowering is available" \
-    "$ROOT_DIR/src/codegen/transpiler_let_emit.c"
+    "$ROOT_DIR/src/codegen/transpiler_constructor_channel_guard.c"
 grep -Fq "PGY_FIX_PROVIDE_MOVABLE_HANDLE" \
     "$ROOT_DIR/src/codegen/llvm_expr_constructor_calls.c"
 grep -Fq "PGY_FIX_PROVIDE_MOVABLE_HANDLE" \
-    "$ROOT_DIR/src/codegen/transpiler_domain_constructor_emit.c"
+    "$ROOT_DIR/src/codegen/transpiler_constructor_channel_guard.c"
 grep -Fq "PGY_FIX_PROVIDE_MOVABLE_HANDLE" \
-    "$ROOT_DIR/src/codegen/transpiler_let_emit.c"
+    "$ROOT_DIR/src/codegen/transpiler_constructor_channel_guard.c"
+grep -Fq "transpiler_type_name_is_channel" \
+    "$ROOT_DIR/src/codegen/transpiler_type_mapping.c"
+grep -Fq "transpiler_type_name_is_channel" \
+    "$ROOT_DIR/src/codegen/transpiler_constructor_channel_guard.c"
+grep -Fq "pgy_classify_type(expected_type) == PGY_TK_CHANNEL" \
+    "$ROOT_DIR/src/codegen/llvm_expr_constructor_calls.c"
 grep -Fq 'current-host' "$ROOT_DIR/docs/semantics/06_backend_parity.md"
 grep -Fq '`Channel<T>` fields through the same `LLVMChannelTarget`' \
     "$ROOT_DIR/docs/semantics/06_backend_parity.md"
@@ -3381,7 +3405,7 @@ grep -Fq "channel receive '%s' has no registered Channel<T> metadata" "$ROOT_DIR
 grep -A34 -F "case AST_CHANNEL_RECV" "$ROOT_DIR/src/codegen/llvm_stmt_type_infer.c" | \
     grep -Fq "ctx->expected_type_name"
 grep -A34 -F "case AST_CHANNEL_RECV" "$ROOT_DIR/src/codegen/llvm_stmt_type_infer.c" | \
-    grep -Fq 'strncmp(ctx->expected_type_name, "Channel<", 8) != 0'
+    grep -Fq "pgy_classify_type(ctx->expected_type_name) != PGY_TK_CHANNEL"
 grep -Fq '{ "Input", "String", PGY_BUILTIN_FLAG_NONE }' "$ROOT_DIR/src/codegen/transpiler_builtin_type_table.c"
 grep -Fq '{ "Concat", "String", PGY_BUILTIN_FLAG_NONE }' "$ROOT_DIR/src/codegen/transpiler_builtin_type_table.c"
 grep -Fq '{ "StringConcat", "String", PGY_BUILTIN_FLAG_NONE }' "$ROOT_DIR/src/codegen/transpiler_builtin_type_table.c"

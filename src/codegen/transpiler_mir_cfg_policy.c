@@ -5,14 +5,12 @@
 
 #include "transpiler_mir_cfg_policy.h"
 
-#include <string.h>
+#include "transpiler_type_mapping.h"
 
 const char *
 transpiler_mir_for_in_length_field(const char *collection_type)
 {
-    if (collection_type != NULL
-        && (strncmp(collection_type, "Array<", 6) == 0
-            || strncmp(collection_type, "Slice<", 6) == 0)) {
+    if (transpiler_type_name_is_array_or_slice(collection_type)) {
         return "length";
     }
     return "count";

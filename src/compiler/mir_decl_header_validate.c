@@ -303,6 +303,32 @@ mir_validate_decl_method_metadata(const MIRProgram *mir,
             return false;
         }
 
+        if (method->has_routine) {
+            if (mir->routines == NULL) {
+                if (error_message != NULL) {
+                    *error_message = mir_strdup_fmt(
+                        "MIR declaration header[%zu] method[%zu] routine link metadata drift",
+                        header_index, i);
+                }
+                return false;
+            }
+            const MIRRoutine *routine = &mir->routines[method->routine_index];
+            if (routine->kind != MIR_SCOPE_METHOD
+                || method->name == NULL
+                || routine->name == NULL
+                || strcmp(method->name, routine->name) != 0
+                || method->owner_name == NULL
+                || routine->owner_name == NULL
+                || strcmp(method->owner_name, routine->owner_name) != 0) {
+                if (error_message != NULL) {
+                    *error_message = mir_strdup_fmt(
+                        "MIR declaration header[%zu] method[%zu] routine link metadata drift",
+                        header_index, i);
+                }
+                return false;
+            }
+        }
+
         if (ast == NULL || ast->type != AST_FUNC_DECL)
             continue;
         const char *ast_name = ast_declaration_name(ast);

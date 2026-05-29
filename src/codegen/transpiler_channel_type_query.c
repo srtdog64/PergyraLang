@@ -29,7 +29,6 @@ transpiler_channel_resolve_inner_type(TranspilerCtx *ctx,
 {
     const char *resolved_type = type_name;
     char resolved_buf[128];
-    const size_t family_len = strlen("Channel");
 
     if (is_channel_out != NULL)
         *is_channel_out = false;
@@ -37,8 +36,7 @@ transpiler_channel_resolve_inner_type(TranspilerCtx *ctx,
         *unknown_payload_out = false;
 
     if (resolved_type != NULL
-        && !(strncmp(resolved_type, "Channel", family_len) == 0
-             && resolved_type[family_len] == '<')) {
+        && !transpiler_type_name_is_channel(resolved_type)) {
         ASTNode *alias_decl = transpiler_find_type_alias_decl(ctx,
             resolved_type);
         if (alias_decl != NULL
@@ -64,8 +62,7 @@ transpiler_channel_resolve_inner_type(TranspilerCtx *ctx,
     }
 
     if (resolved_type != NULL
-        && strncmp(resolved_type, "Channel", family_len) == 0
-        && resolved_type[family_len] == '<') {
+        && transpiler_type_name_is_channel(resolved_type)) {
         if (is_channel_out != NULL)
             *is_channel_out = true;
         if (!slot_inner_type_name_copy(resolved_type, inner_buf,

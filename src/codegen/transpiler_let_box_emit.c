@@ -16,6 +16,7 @@
 #include "transpiler_expr_type_infer.h"
 #include "transpiler_format.h"
 #include "transpiler_symbols.h"
+#include "transpiler_type_mapping.h"
 #include "transpiler_type_render.h"
 
 typedef enum TranspilerBoxLetOp {
@@ -86,7 +87,7 @@ transpiler_try_emit_box_array_let(TranspilerCtx *ctx,
         return false;
     }
 
-    if (ann_type_name != NULL && strncmp(ann_type_name, "Box<Array<", 10) == 0) {
+    if (transpiler_type_name_is_box_array(ann_type_name)) {
         const char *close;
         size_t len;
 

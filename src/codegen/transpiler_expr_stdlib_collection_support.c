@@ -69,7 +69,8 @@ transpiler_require_hashmap_type(TranspilerCtx *ctx, const char *map_type,
     const char *resolved_type = map_type;
     char resolved_buf[128];
 
-    if (resolved_type != NULL && strncmp(resolved_type, "HashMap<", 8) != 0) {
+    if (resolved_type != NULL
+        && !transpiler_type_name_is_hashmap(resolved_type)) {
         ASTNode *alias_decl = transpiler_find_type_alias_decl(ctx, resolved_type);
         if (alias_decl != NULL && ast_type_alias_target_type(alias_decl) != NULL) {
             ASTNode *target = resolve_type_alias_target(
@@ -93,7 +94,7 @@ transpiler_require_hashmap_type(TranspilerCtx *ctx, const char *map_type,
         }
     }
 
-    if (resolved_type != NULL && strncmp(resolved_type, "HashMap<", 8) == 0) {
+    if (transpiler_type_name_is_hashmap(resolved_type)) {
         copy_constructed_arg_name_at(resolved_type, 0, key_buf, key_buf_size);
         copy_constructed_arg_name_at(resolved_type, 1, value_buf, value_buf_size);
         if (key_buf[0] != '\0' && value_buf[0] != '\0') {
