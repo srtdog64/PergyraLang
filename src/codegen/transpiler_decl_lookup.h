@@ -63,14 +63,12 @@ ASTNode *find_party_decl(TranspilerCtx *ctx, const char *party_name);
 ASTNode *find_roster_decl(TranspilerCtx *ctx, const char *roster_name);
 ASTNode *find_enum_decl(TranspilerCtx *ctx, const char *enum_name);
 ASTNode *find_class_decl(TranspilerCtx *ctx, const char *class_name);
+ASTNode *transpiler_find_projection_nominal_decl_local(TranspilerCtx *ctx,
+                                                       const char *name);
 ASTNode *transpiler_find_type_alias_decl(TranspilerCtx *ctx,
                                          const char *alias_name);
 ASTNode *resolve_type_alias_target(TranspilerCtx *ctx, ASTNode *type_node);
 ASTNode *find_subject_host_decl(TranspilerCtx *ctx, const char *subject_name);
-ASTNode *find_zone_decl(TranspilerCtx *ctx, const char *zone_name);
-ASTNode *find_world_decl(TranspilerCtx *ctx, const char *world_name);
-ASTNode *find_relation_decl(TranspilerCtx *ctx, const char *relation_name);
-ASTNode *find_effect_decl(TranspilerCtx *ctx, const char *effect_name);
 ASTNode *find_ability_decl(TranspilerCtx *ctx, const char *ability_name);
 ASTNode *find_event_decl(TranspilerCtx *ctx, const char *event_name);
 bool transpiler_has_known_nominal_type(TranspilerCtx *ctx, const char *name);

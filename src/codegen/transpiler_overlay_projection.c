@@ -66,7 +66,8 @@ projection_target_mentions_source_field(TranspilerCtx *ctx,
     }
 
     target_type_name = ast_type_name(slot_type);
-    target_decl = find_class_decl(ctx, target_type_name);
+    target_decl = transpiler_find_projection_nominal_decl_local(
+        ctx, target_type_name);
     if (target_decl == NULL || target_decl->type != AST_CLASS_DECL)
         return true;
 
@@ -245,9 +246,8 @@ emit_assignment_projection_invalidation(TranspilerCtx *ctx, ASTNode *target)
                 && zone_slot_name != NULL
                 && zone_type_name != NULL
                 && source_slot_name != NULL) {
-                ASTNode *zone_decl =
-                    transpiler_find_decl_in_inventory_local(ctx, AST_ZONE_DECL,
-                                                            zone_type_name);
+                ASTNode *zone_decl = transpiler_resolve_world_zone_decl(
+                    ctx, saved_host_decl, zone_slot_name);
                 if (zone_decl != NULL)
                     transpiler_bind_current_host_decl_local(ctx, zone_decl);
                 ctx->current_overlay_receiver_expr =
@@ -307,12 +307,16 @@ emit_world_embedded_receiver_projection_sync(TranspilerCtx *ctx,
     const char *zone_type_name = NULL;
     const char *source_slot_name = NULL;
     const char *source_type_name = NULL;
+    const char *world_name;
 
     if (ctx == NULL || receiver == NULL)
         return NULL;
 
     host_decl = transpiler_current_host_decl_local(ctx);
     if (host_decl == NULL || host_decl->type != AST_WORLD_DECL)
+        return NULL;
+    world_name = transpiler_decl_name_local(host_decl);
+    if (world_name == NULL)
         return NULL;
 
     if (!transpiler_resolve_world_zone_subject_receiver(ctx, receiver,
@@ -323,8 +327,8 @@ emit_world_embedded_receiver_projection_sync(TranspilerCtx *ctx,
         return NULL;
     }
 
-    zone_decl = transpiler_find_decl_in_inventory_local(ctx, AST_ZONE_DECL,
-                                                        zone_type_name);
+    zone_decl = transpiler_resolve_world_zone_decl(ctx, host_decl,
+                                                   zone_slot_name);
     if (zone_decl == NULL || zone_decl->type != AST_ZONE_DECL)
         return NULL;
 
@@ -353,8 +357,7 @@ emit_world_embedded_receiver_projection_sync(TranspilerCtx *ctx,
         "%s_sync(self); ",
         zone_type_name, zone_slot_name,
         zone_slot_name,
-        ast_world_name(host_decl) != NULL
-            ? ast_world_name(host_decl) : "World");
+        world_name);
 
     {
         char *result = pergyra_strdup(buf->data);

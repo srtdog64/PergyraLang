@@ -9,6 +9,7 @@
 #include <string.h>
 
 #include "transpiler_context.h"
+#include "transpiler_decl_lookup.h"
 #include "transpiler_generic_param_query.h"
 #include "transpiler_mangled_name.h"
 
@@ -107,7 +108,7 @@ transpiler_generic_class_specialization_name(TranspilerCtx *ctx,
 
     gp = ast_class_generic_params(class_decl);
     ga = ast_type_generic_args(ann);
-    base_class_name = ast_class_name(class_decl);
+    base_class_name = transpiler_decl_name_local(class_decl);
     if (gp == NULL || base_class_name == NULL)
         return NULL;
 

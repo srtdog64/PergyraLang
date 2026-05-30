@@ -1,0 +1,10 @@
+func Main() -> Void {
+    let xs: Array<Int> = [-3, 5, -1, 8, 0, -4, 2];
+    let sum: Int = 0;
+    let i: Int = 0;
+    while i < ArrayLength(xs) {
+        if xs[i] > 0 { sum = sum + xs[i]; }
+        i = i + 1;
+    }
+    Log(sum);
+}

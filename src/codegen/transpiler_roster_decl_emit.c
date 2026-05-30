@@ -3,6 +3,7 @@
 #include <stddef.h>
 
 #include "../parser/ast_api.h"
+#include "host_decl_compat.h"
 #include "transpiler_decl_lookup.h"
 #include "transpiler_domain_nominal_emit.h"
 #include "transpiler_func_forward_metadata.h"
@@ -12,10 +13,13 @@
 void
 emit_roster_decl(ASTNode *node, TranspilerCtx *ctx)
 {
-    const char *name = ast_roster_name(node);
-    ASTNode *inventory_decl = transpiler_find_decl_in_inventory_local(
-        ctx, AST_ROSTER_DECL, name);
+    const char *name = transpiler_decl_name_local(node);
+    ASTNode *inventory_decl;
 
+    if (name == NULL)
+        return;
+    inventory_decl = transpiler_find_decl_in_inventory_local(
+        ctx, AST_ROSTER_DECL, name);
     if (inventory_decl != NULL)
         node = inventory_decl;
 

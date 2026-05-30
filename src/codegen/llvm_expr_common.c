@@ -237,29 +237,9 @@ llvm_lookup_class_by_type(LLVMGenCtx *ctx, LLVMTypeRef ty)
 ASTNode *
 llvm_find_enum_decl(LLVMGenCtx *ctx, const char *enum_name)
 {
-    ASTNode **types = NULL;
-    size_t type_count = 0;
-    ASTNode *decl;
-
     if (ctx == NULL || enum_name == NULL)
         return NULL;
-    decl = llvm_find_decl_in_active_inventory(ctx, AST_ENUM_DECL, enum_name);
-    if (decl != NULL)
-        return decl;
-    llvm_active_inventory(ctx, AST_ENUM_DECL, &types, &type_count);
-    if (types == NULL) {
-        return NULL;
-    }
-
-    for (size_t i = 0; i < type_count; i++) {
-        ASTNode *stmt = types[i];
-        if (stmt != NULL && stmt->type == AST_ENUM_DECL
-            && ast_enum_name(stmt) != NULL
-            && strcmp(ast_enum_name(stmt), enum_name) == 0) {
-            return stmt;
-        }
-    }
-    return NULL;
+    return llvm_find_decl_in_active_inventory(ctx, AST_ENUM_DECL, enum_name);
 }
 
 LLVMValueRef

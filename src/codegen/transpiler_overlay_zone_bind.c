@@ -45,6 +45,7 @@ emit_zone_bind_effect_layer(CodeBuf *out, ASTNode *zone,
     ASTNode *layer_slot;
     ASTNode *effect_decl;
     ASTNode *target_slot;
+    const char *effect_name;
 
     if (out == NULL || zone == NULL || layer_slot_name == NULL
         || target_slot_name == NULL || ctx == NULL) {
@@ -71,6 +72,9 @@ emit_zone_bind_effect_layer(CodeBuf *out, ASTNode *zone,
         ctx, AST_EFFECT_DECL, ast_zone_layer_slot_layer_type(layer_slot));
     if (effect_decl == NULL)
         return;
+    effect_name = transpiler_decl_name_local(effect_decl);
+    if (effect_name == NULL)
+        return;
 
     size_t effect_slot_count = 0;
     ASTNode **effect_slots = ast_effect_slots(effect_decl, &effect_slot_count);
@@ -91,9 +95,9 @@ emit_zone_bind_effect_layer(CodeBuf *out, ASTNode *zone,
         ctx->indent++;
         write_indent(ctx);
         codebuf_write(out, "%s _pgy_%s_instance = (%s){0};\n",
-            ast_effect_name(effect_decl),
+            effect_name,
             layer_slot_name,
-            ast_effect_name(effect_decl));
+            effect_name);
         write_indent(ctx);
         codebuf_write(out, "_pgy_%s_instance.%s = self->%s;\n",
             layer_slot_name,
@@ -123,7 +127,7 @@ emit_zone_bind_effect_layer(CodeBuf *out, ASTNode *zone,
         }
         write_indent(ctx);
         codebuf_write(out, "%s_sync(&_pgy_%s_instance);\n",
-            ast_effect_name(effect_decl),
+            effect_name,
             layer_slot_name);
         write_indent(ctx);
         codebuf_write(out, "PGY_EFFECT_POOL_APPLY(self->%s, _pgy_%s_instance);\n",
@@ -168,6 +172,6 @@ emit_zone_bind_effect_layer(CodeBuf *out, ASTNode *zone,
     }
     write_indent(ctx);
     codebuf_write(out, "%s_sync(&self->%s);\n",
-        ast_effect_name(effect_decl),
+        effect_name,
         layer_slot_name);
 }

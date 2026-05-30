@@ -1,0 +1,17 @@
+func Main() -> Void {
+    let work: Queue<Int> = QueueNew();
+    QueuePush(work, 10);
+    QueuePush(work, 20);
+    QueuePush(work, 30);
+
+    let processed: Int = 0;
+    while !QueueEmpty(work) {
+        let item: Int = QueuePop(work);
+        processed = processed + item;
+        if item == 20 {
+            QueuePush(work, 5);
+        }
+    }
+    Log(processed);
+    Log(QueueSize(work));
+}

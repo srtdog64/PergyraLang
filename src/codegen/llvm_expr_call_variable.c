@@ -4,7 +4,6 @@
 
 #include <string.h>
 
-#include "llvm_expr_boundary_projection_helpers.h"
 #include "llvm_expr_call_dispatch.h"
 #include "llvm_expr_member_lvalue.h"
 #include "llvm_expr_scalar_core.h"
@@ -49,9 +48,7 @@ llvm_emit_callable_variable_call(ASTNode *node,
 
     if ((fn_type == NULL || LLVMGetTypeKind(fn_type) != LLVMFunctionTypeKind)
         && ctx->current_function != NULL) {
-        const char *current_name = LLVMGetValueName(ctx->current_function);
-        ASTNode *current_decl = current_name != NULL
-            ? llvm_find_function_decl(ctx, current_name) : NULL;
+        ASTNode *current_decl = ctx->current_func_decl;
         if (current_decl != NULL && current_decl->type == AST_FUNC_DECL) {
             for (size_t i = 0; i < ast_func_param_count(current_decl); i++) {
                 FuncParam *p = ast_func_param(current_decl, i);

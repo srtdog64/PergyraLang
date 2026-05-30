@@ -26,16 +26,7 @@ llvm_call_find_domain_decl(LLVMGenCtx *ctx, ASTNodeType decl_type, const char *n
         const char *item_name = NULL;
         if (item == NULL || item->type != decl_type)
             continue;
-        switch (decl_type) {
-        case AST_EFFECT_DECL:
-            item_name = ast_effect_name(item);
-            break;
-        case AST_ZONE_DECL:
-            item_name = ast_zone_name(item);
-            break;
-        default:
-            break;
-        }
+        item_name = llvm_decl_node_name(item);
         if (item_name != NULL && strcmp(item_name, name) == 0)
             return item;
     }
@@ -109,6 +100,8 @@ llvm_emit_world_embedded_action_effect_sync(LLVMGenCtx *ctx,
     LLVMValueRef world_ptr;
     LLVMValueRef zone_ptr;
     const char *effect_name;
+    const char *world_name;
+    const char *zone_name;
 
     if (ctx == NULL || receiver == NULL || method_decl == NULL
         || method_decl->type != AST_FUNC_DECL
@@ -126,9 +119,9 @@ llvm_emit_world_embedded_action_effect_sync(LLVMGenCtx *ctx,
     if (!llvm_world_embedded_projection_source_from_assignment(ctx, receiver,
             &zone_slot_name, &zone_decl, &source_slot_name, NULL)
         || zone_slot_name == NULL || zone_decl == NULL || source_slot_name == NULL
-        || ast_zone_name(zone_decl) == NULL
+        || (zone_name = llvm_decl_node_name(zone_decl)) == NULL
         || strcmp(ast_func_within_zone(method_decl),
-                  ast_zone_name(zone_decl)) != 0) {
+                  zone_name) != 0) {
         return;
     }
 
@@ -136,8 +129,11 @@ llvm_emit_world_embedded_action_effect_sync(LLVMGenCtx *ctx,
     effect_decl = llvm_call_find_domain_decl(ctx, AST_EFFECT_DECL, effect_name);
     target_slot = llvm_call_find_first_effect_subject_slot(effect_decl);
     const char *target_slot_name = ast_domain_slot_name(target_slot);
-    world_cls = llvm_lookup_class(ctx, ast_world_name(host_decl));
-    zone_cls = llvm_lookup_class(ctx, ast_zone_name(zone_decl));
+    world_name = llvm_decl_node_name(host_decl);
+    if (world_name == NULL)
+        return;
+    world_cls = llvm_lookup_class(ctx, world_name);
+    zone_cls = llvm_lookup_class(ctx, zone_name);
     effect_cls = llvm_lookup_class(ctx, effect_name);
     self_var = llvm_scope_lookup(ctx, "self");
     if (effect_decl == NULL || target_slot == NULL || target_slot_name == NULL || world_cls == NULL

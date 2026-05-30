@@ -8,6 +8,7 @@
 
 #include "transpiler.h"
 
+bool transpiler_host_decl_uses_pointer_self(ASTNode *decl);
 bool is_pointer_self_host_type_name(TranspilerCtx *ctx,
                                     const char *type_name);
 

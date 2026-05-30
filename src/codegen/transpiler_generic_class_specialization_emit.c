@@ -38,7 +38,7 @@ ensure_generic_class_specialization(TranspilerCtx *ctx,
     GenericParams *gp = ast_class_generic_params(class_decl);
     GenericParams *ga = ast_type_generic_args(ann);
     bool has_effective_args = false;
-    const char *base_class_name = ast_class_name(class_decl);
+    const char *base_class_name = transpiler_decl_name_local(class_decl);
 
     if (gp == NULL)
         return base_class_name;

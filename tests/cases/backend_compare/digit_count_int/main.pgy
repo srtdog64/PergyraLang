@@ -1,0 +1,20 @@
+func DigitCount(n: Int) -> Int {
+    if n == 0 { return 1; }
+    let count: Int = 0;
+    let v: Int = n;
+    if v < 0 { v = 0 - v; }
+    while v > 0 {
+        count = count + 1;
+        v = v / 10;
+    }
+    return count;
+}
+
+func Main() -> Void {
+    Log(DigitCount(0));
+    Log(DigitCount(7));
+    Log(DigitCount(42));
+    Log(DigitCount(1000));
+    Log(DigitCount(-99));
+    Log(DigitCount(999999));
+}

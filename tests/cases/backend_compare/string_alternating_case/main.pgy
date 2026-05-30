@@ -1,0 +1,24 @@
+func AlternatingCase(s: String) -> String {
+    let result: String = "";
+    let i: Int = 0;
+    let n: Int = StringLength(s);
+    while i < n {
+        let ch: String = Substring(s, i, 1);
+        if i % 2 == 0 {
+            result = Concat(result, ToUpper(ch));
+        }
+        if i % 2 != 0 {
+            result = Concat(result, ToLower(ch));
+        }
+        i = i + 1;
+    }
+    return result;
+}
+
+func Main() -> Void {
+    Log(AlternatingCase("hello"));
+    Log(AlternatingCase("WORLD"));
+    Log(AlternatingCase("a"));
+    Log(AlternatingCase(""));
+    Log(AlternatingCase("aBcDeF"));
+}

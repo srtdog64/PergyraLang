@@ -7,13 +7,9 @@
 
 #include "llvm_expr_boundary_projection_helpers.h"
 
-#include <string.h>
-
 #include "llvm_boundary_slot_param.h"
 #include "llvm_expr_member_lvalue.h"
 #include "llvm_internal_api.h"
-#include "llvm_inventory_decl_lookup.h"
-#include "llvm_inventory_host_methods.h"
 
 static LLVMValueRef
 llvm_boundary_slot_runtime_arg(LLVMGenCtx *ctx, LLVMVarEntry *slot_var)
@@ -26,27 +22,6 @@ llvm_boundary_slot_runtime_arg(LLVMGenCtx *ctx, LLVMVarEntry *slot_var)
                               llvm_tmp_name(ctx));
     }
     return slot_var->alloca;
-}
-
-ASTNode *
-llvm_find_function_decl(LLVMGenCtx *ctx, const char *name)
-{
-    ASTNode *decl;
-
-    if (ctx == NULL || name == NULL)
-        return NULL;
-    decl = llvm_find_decl_in_active_inventory(ctx, AST_FUNC_DECL, name);
-    if (decl != NULL)
-        return decl;
-    return llvm_lookup_generic_template(ctx, name);
-}
-
-ASTNode *
-llvm_find_intent_decl(LLVMGenCtx *ctx, const char *name)
-{
-    if (ctx == NULL || name == NULL)
-        return NULL;
-    return llvm_find_decl_in_active_inventory(ctx, AST_INTENT_DECL, name);
 }
 
 static bool
@@ -175,27 +150,6 @@ llvm_build_boundary_call_args(LLVMGenCtx *ctx, ASTNode *decl,
     if (out_count != NULL)
         *out_count = emitted_idx;
     return args;
-}
-
-void
-llvm_append_mangled_suffix(char *buf, size_t buf_size, const char *suffix)
-{
-    if (buf == NULL || buf_size == 0 || suffix == NULL)
-        return;
-
-    size_t len = strlen(buf);
-    if (len >= buf_size - 1)
-        return;
-
-    buf[len++] = '_';
-
-    size_t remaining = buf_size - len - 1;
-    size_t suffix_len = strlen(suffix);
-    if (suffix_len > remaining)
-        suffix_len = remaining;
-
-    memcpy(buf + len, suffix, suffix_len);
-    buf[len + suffix_len] = '\0';
 }
 
 #endif

@@ -7,7 +7,6 @@
 #include "../parser/ast_api.h"
 #include "../semantic/diag_codes.h"
 
-#include "host_decl_compat.h"
 #include "transpiler_context.h"
 #include "transpiler_decl_lookup.h"
 #include "transpiler_enum.h"
@@ -19,6 +18,7 @@
 #include "transpiler_expr_party_instance_emit.h"
 #include "transpiler_format.h"
 #include "transpiler_future_type_query.h"
+#include "transpiler_host_self_policy.h"
 #include "transpiler_mir_ssa_map.h"
 #include "transpiler_mir_ssa_names.h"
 #include "transpiler_mir_ssa_utils.h"
@@ -194,9 +194,10 @@ emit_expression(ASTNode *node, TranspilerCtx *ctx)
         }
         if (projection_entry != NULL && projection_entry->is_projection_borrow) {
             const char *source_type = lookup_typed_var(ctx, projection_entry->source_slot);
-            ASTNode *target_decl = find_class_decl(ctx, projection_entry->type_name);
+            ASTNode *target_decl = transpiler_find_projection_nominal_decl_local(
+                ctx, projection_entry->type_name);
             ASTNode *source_decl = source_type != NULL
-                ? find_class_decl(ctx, source_type)
+                ? transpiler_find_projection_nominal_decl_local(ctx, source_type)
                 : NULL;
             if (target_decl != NULL && source_decl != NULL) {
                 return emit_projection_literal(ctx, target_decl, source_decl,
@@ -226,7 +227,7 @@ emit_expression(ASTNode *node, TranspilerCtx *ctx)
             if (entry != NULL && entry->is_projection_borrow) {
                 const char *source_type = lookup_typed_var(ctx, entry->source_slot);
                 ASTNode *source_decl = source_type != NULL
-                    ? find_class_decl(ctx, source_type)
+                    ? transpiler_find_projection_nominal_decl_local(ctx, source_type)
                     : NULL;
                 char *source_path = NULL;
                 int source_status = 0;
@@ -259,7 +260,7 @@ emit_expression(ASTNode *node, TranspilerCtx *ctx)
             && strcmp(ast_identifier_name(member_object), "self") == 0) {
             ASTNode *host_decl = transpiler_current_host_decl_local(ctx);
             bool self_is_pointer = current_class_uses_self_cell(ctx)
-                || pgy_host_decl_compat_uses_pointer_self(host_decl);
+                || transpiler_host_decl_uses_pointer_self(host_decl);
             char *result = strdup_fmt(self_is_pointer
                 ? "%s->%s"
                 : "%s.%s", obj, member_name);

@@ -42,11 +42,14 @@ emit_call_user_function(ASTNode *call, ASTNode *callee, TranspilerCtx *ctx)
         }
     }
 
+    ASTNode *decl = (callee->type == AST_IDENTIFIER)
+        ? find_callable_decl(ctx, callee_name) : NULL;
     char *callee_str = NULL;
     if (callee->type == AST_IDENTIFIER) {
-        ASTNode *decl = find_function_decl(ctx, callee_name);
-        if (transpiler_func_has_generic_params(decl)) {
-            const char *specialized_name = ensure_generic_specialization(ctx, decl, call);
+        if (decl != NULL && decl->type == AST_FUNC_DECL
+            && transpiler_func_has_generic_params(decl)) {
+            const char *specialized_name =
+                ensure_generic_specialization(ctx, decl, call);
             if (specialized_name != NULL)
                 callee_str = pergyra_strdup(specialized_name);
         }
@@ -55,8 +58,6 @@ emit_call_user_function(ASTNode *call, ASTNode *callee, TranspilerCtx *ctx)
         callee_str = emit_expression(callee, ctx);
 
     CodeBuf *args_buf = codebuf_create();
-    ASTNode *decl = (callee->type == AST_IDENTIFIER)
-        ? find_callable_decl(ctx, callee_name) : NULL;
     for (size_t i = 0; i < ast_call_arg_count(call); i++) {
         FuncParam *param = (decl != NULL && decl->type == AST_FUNC_DECL
                             && i < ast_func_param_count(decl))

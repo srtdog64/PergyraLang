@@ -8,6 +8,8 @@
 #ifdef PGY_LLVM_ENABLED
 
 #include "llvm_internal.h"
+#include "host_decl_compat.h"
+#include "llvm_inventory_decl_lookup.h"
 #include "llvm_inventory_host_methods.h"
 
 static bool
@@ -78,7 +80,7 @@ llvm_register_enum_decl(LLVMGenCtx *ctx, ASTNode *stmt)
     if (ctx == NULL || stmt == NULL || stmt->type != AST_ENUM_DECL)
         return;
 
-    const char *enum_name = ast_enum_name(stmt);
+    const char *enum_name = llvm_decl_node_name(stmt);
     size_t variant_count = 0;
     char **variants = ast_enum_variants(stmt, &variant_count);
     if (enum_name == NULL)
@@ -252,11 +254,13 @@ llvm_register_nominal_decl(LLVMGenCtx *ctx, ASTNode *stmt)
     if (stmt->type != AST_CLASS_DECL)
         return;
 
-    const char *cls_name = ast_class_name(stmt);
+    const char *cls_name = llvm_decl_node_name(stmt);
     if (cls_name == NULL || llvm_lookup_class(ctx, cls_name) != NULL)
         return;
-    size_t fc = 0;
-    ClassField **fields = ast_class_fields(stmt, &fc);
+    PgyHostClassFieldsCompatView field_view =
+        pgy_host_class_fields_compat_view_from_decl(stmt);
+    ClassField **fields = field_view.fields;
+    size_t fc = field_view.count;
     /* Field-type buffer: consumed by LLVMStructSetBody (copies) and read
      * once for llvm_class_add_field below; never retained. */
     LLVMTypeRef *field_types = pgy_arena_calloc(&ctx->scratch,

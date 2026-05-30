@@ -271,6 +271,8 @@ llvm_emit_host_projection_invalidations(LLVMGenCtx *ctx, ASTNode *target)
         ASTNode **zone_refreshes;
         size_t zone_refresh_count;
         int zone_field_idx;
+        const char *world_name;
+        const char *zone_name;
 
         if (!llvm_world_embedded_projection_source_from_assignment(ctx, target,
                 &zone_slot, &zone_decl, &source_slot, &source_field)
@@ -280,12 +282,14 @@ llvm_emit_host_projection_invalidations(LLVMGenCtx *ctx, ASTNode *target)
             return;
         }
 
-        world_cls = llvm_lookup_class(ctx, ast_world_name(host_decl));
+        world_name = llvm_decl_node_name(host_decl);
+        zone_name = llvm_decl_node_name(zone_decl);
+        world_cls = llvm_lookup_class(ctx, world_name);
         self_var = llvm_scope_lookup(ctx, "self");
         if (world_cls == NULL || self_var == NULL)
             return;
 
-        host_cls = llvm_lookup_class(ctx, ast_zone_name(zone_decl));
+        host_cls = llvm_lookup_class(ctx, zone_name);
         zone_refreshes = ast_zone_refreshes(zone_decl, &zone_refresh_count);
         if (host_cls == NULL || zone_refreshes == NULL || zone_refresh_count == 0)
             return;
@@ -348,6 +352,8 @@ llvm_emit_world_embedded_assignment_sync(LLVMGenCtx *ctx, ASTNode *target)
     LLVMValueRef zone_ptr;
     LLVMFuncEntry *sync_entry;
     int zone_field_idx;
+    const char *world_name;
+    const char *zone_name;
 
     if (ctx == NULL || target == NULL)
         return;
@@ -364,8 +370,10 @@ llvm_emit_world_embedded_assignment_sync(LLVMGenCtx *ctx, ASTNode *target)
     if (world_decl == NULL || world_decl->type != AST_WORLD_DECL)
         return;
 
-    world_cls = llvm_lookup_class(ctx, ast_world_name(world_decl));
-    zone_cls = llvm_lookup_class(ctx, ast_zone_name(zone_decl));
+    world_name = llvm_decl_node_name(world_decl);
+    zone_name = llvm_decl_node_name(zone_decl);
+    world_cls = llvm_lookup_class(ctx, world_name);
+    zone_cls = llvm_lookup_class(ctx, zone_name);
     self_var = llvm_scope_lookup(ctx, "self");
     if (world_cls == NULL || zone_cls == NULL || self_var == NULL
         || zone_cls->sync_function_name == NULL) {

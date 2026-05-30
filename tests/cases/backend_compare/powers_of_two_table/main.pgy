@@ -1,0 +1,18 @@
+func PowerOfTwo(n: Int) -> Int {
+    let result: Int = 1;
+    let i: Int = 0;
+    while i < n {
+        result = result * 2;
+        i = i + 1;
+    }
+    return result;
+}
+
+func Main() -> Void {
+    Log(PowerOfTwo(0));
+    Log(PowerOfTwo(1));
+    Log(PowerOfTwo(5));
+    Log(PowerOfTwo(10));
+    Log(PowerOfTwo(20));
+    Log(PowerOfTwo(30));
+}

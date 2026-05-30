@@ -1,0 +1,14 @@
+func Main() -> Void {
+    let csv: String = "alpha,beta,gamma,delta,epsilon";
+    let parts: Array<String> = StringSplit(csv, ",");
+    Log(ArrayLength(parts));
+    let i: Int = 0;
+    let total_len: Int = 0;
+    while i < ArrayLength(parts) {
+        total_len = total_len + StringLength(parts[i]);
+        i = i + 1;
+    }
+    Log(total_len);
+    Log(parts[0]);
+    Log(parts[ArrayLength(parts) - 1]);
+}

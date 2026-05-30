@@ -1,0 +1,17 @@
+func Main() -> Void {
+    let xs: Array<Int> = [3, 7, 2, 5, 8, 4, 6, 1, 9];
+    let target: Int = 15;
+    let sum: Int = 0;
+    let used: Int = 0;
+    let i: Int = 0;
+    while i < ArrayLength(xs) {
+        if sum + xs[i] <= target {
+            sum = sum + xs[i];
+            used = used + 1;
+        }
+        i = i + 1;
+    }
+    Log(sum);
+    Log(used);
+    Log(target - sum);
+}

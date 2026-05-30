@@ -11,7 +11,7 @@ llvm_stmt_find_function_decl_by_name(LLVMGenCtx *ctx, const char *name)
 {
     if (ctx == NULL || name == NULL)
         return NULL;
-    return llvm_find_decl_in_active_inventory(ctx, AST_FUNC_DECL, name);
+    return llvm_find_function_decl(ctx, name);
 }
 
 static int

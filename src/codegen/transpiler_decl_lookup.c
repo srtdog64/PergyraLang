@@ -69,59 +69,45 @@ find_extern_function_decl(TranspilerCtx *ctx, const char *function_name)
     return NULL;
 }
 
+const char *
+transpiler_decl_name_local(ASTNode *decl)
+{
+    const char *host_name;
+
+    if (decl == NULL)
+        return NULL;
+
+    host_name = pgy_host_decl_compat_name(decl);
+    if (host_name != NULL)
+        return host_name;
+
+    switch (decl->type) {
+    case AST_FUNC_DECL:
+        return ast_declaration_name(decl);
+    case AST_INTENT_DECL:
+        return ast_intent_decl_name(decl);
+    case AST_TYPE_ALIAS:
+        return ast_type_alias_name(decl);
+    case AST_ABILITY_DECL:
+        return ast_ability_name(decl);
+    case AST_EVENT_DECL:
+        return ast_event_name(decl);
+    default:
+        return NULL;
+    }
+}
+
 static bool
 transpiler_named_decl_matches(ASTNode *stmt, ASTNodeType decl_type,
                               const char *name)
 {
+    const char *stmt_name;
+
     if (stmt == NULL || name == NULL || stmt->type != decl_type)
         return false;
 
-    switch (decl_type) {
-    case AST_PARTY_DECL:
-        return ast_party_name(stmt) != NULL
-            && strcmp(ast_party_name(stmt), name) == 0;
-    case AST_ROSTER_DECL:
-        return ast_roster_name(stmt) != NULL
-            && strcmp(ast_roster_name(stmt), name) == 0;
-    case AST_ENUM_DECL:
-        return ast_enum_name(stmt) != NULL
-            && strcmp(ast_enum_name(stmt), name) == 0;
-    case AST_ROLE_DECL:
-        return ast_role_name(stmt) != NULL
-            && strcmp(ast_role_name(stmt), name) == 0;
-    case AST_CLASS_DECL:
-        return ast_class_name(stmt) != NULL
-            && strcmp(ast_class_name(stmt), name) == 0;
-    case AST_FUNC_DECL:
-        return ast_declaration_name(stmt) != NULL
-            && strcmp(ast_declaration_name(stmt), name) == 0;
-    case AST_INTENT_DECL:
-        return ast_intent_decl_name(stmt) != NULL
-            && strcmp(ast_intent_decl_name(stmt), name) == 0;
-    case AST_TYPE_ALIAS:
-        return ast_type_alias_name(stmt) != NULL
-            && strcmp(ast_type_alias_name(stmt), name) == 0;
-    case AST_ABILITY_DECL:
-        return ast_ability_name(stmt) != NULL
-            && strcmp(ast_ability_name(stmt), name) == 0;
-    case AST_EVENT_DECL:
-        return ast_event_name(stmt) != NULL
-            && strcmp(ast_event_name(stmt), name) == 0;
-    case AST_ZONE_DECL:
-        return ast_zone_name(stmt) != NULL
-            && strcmp(ast_zone_name(stmt), name) == 0;
-    case AST_WORLD_DECL:
-        return ast_world_name(stmt) != NULL
-            && strcmp(ast_world_name(stmt), name) == 0;
-    case AST_RELATION_DECL:
-        return ast_relation_name(stmt) != NULL
-            && strcmp(ast_relation_name(stmt), name) == 0;
-    case AST_EFFECT_DECL:
-        return ast_effect_name(stmt) != NULL
-            && strcmp(ast_effect_name(stmt), name) == 0;
-    default:
-        return false;
-    }
+    stmt_name = transpiler_decl_name_local(stmt);
+    return stmt_name != NULL && strcmp(stmt_name, name) == 0;
 }
 
 ASTNode *
@@ -207,6 +193,13 @@ find_class_decl(TranspilerCtx *ctx, const char *class_name)
 }
 
 ASTNode *
+transpiler_find_projection_nominal_decl_local(TranspilerCtx *ctx,
+                                              const char *name)
+{
+    return transpiler_find_decl_in_inventory_local(ctx, AST_CLASS_DECL, name);
+}
+
+ASTNode *
 transpiler_find_type_alias_decl(TranspilerCtx *ctx, const char *alias_name)
 {
     return transpiler_find_named_decl_local(ctx, AST_TYPE_ALIAS, alias_name);
@@ -235,37 +228,13 @@ resolve_type_alias_target(TranspilerCtx *ctx, ASTNode *type_node)
 ASTNode *
 find_subject_host_decl(TranspilerCtx *ctx, const char *subject_name)
 {
-    ASTNode *decl = find_class_decl(ctx, subject_name);
+    ASTNode *decl = transpiler_find_projection_nominal_decl_local(
+        ctx, subject_name);
     if (decl != NULL && decl->type == AST_CLASS_DECL
         && ast_class_nominal_kind(decl) == NOMINAL_DECL_SUBJECT) {
         return decl;
     }
     return NULL;
-}
-
-ASTNode *
-find_zone_decl(TranspilerCtx *ctx, const char *zone_name)
-{
-    return transpiler_find_named_decl_local(ctx, AST_ZONE_DECL, zone_name);
-}
-
-ASTNode *
-find_world_decl(TranspilerCtx *ctx, const char *world_name)
-{
-    return transpiler_find_named_decl_local(ctx, AST_WORLD_DECL, world_name);
-}
-
-ASTNode *
-find_relation_decl(TranspilerCtx *ctx, const char *relation_name)
-{
-    return transpiler_find_named_decl_local(ctx, AST_RELATION_DECL,
-                                            relation_name);
-}
-
-ASTNode *
-find_effect_decl(TranspilerCtx *ctx, const char *effect_name)
-{
-    return transpiler_find_named_decl_local(ctx, AST_EFFECT_DECL, effect_name);
 }
 
 ASTNode *
@@ -323,12 +292,6 @@ transpiler_find_domain_constructor_decl_local(TranspilerCtx *ctx,
             return decl;
     }
     return NULL;
-}
-
-const char *
-transpiler_decl_name_local(ASTNode *decl)
-{
-    return pgy_host_decl_compat_name(decl);
 }
 
 bool

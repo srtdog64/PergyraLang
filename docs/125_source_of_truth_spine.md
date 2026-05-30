@@ -143,14 +143,55 @@ Current beta closure snapshot:
   classification, shared-field compatibility, and domain-constructor lookup may
   consume that policy, but they must not restate local party/role/roster/
   relation/effect/zone/world switch chains.
+- Backend declaration name recovery is also centralized: LLVM consumes
+  `llvm_decl_node_name(...)`, and C consumes `transpiler_decl_name_local(...)`.
+  Lookup predicates must call those owners rather than restating per-declaration
+  name accessor switches.
 - C backend projection/action codegen may consume active inventory and
   program-view seams for zone/effect/relation declaration recovery, but it must
   not reopen direct domain declaration lookup at each projection, bind, intent,
   or world-frontier use site. The declaration lookup owner remains the active
   inventory view; projection/action owners consume the recovered declaration
-  only to emit already-lowered runtime synchronization code. Direct
+  only to emit already-lowered runtime synchronization code. The old
   `find_zone_decl`, `find_world_decl`, `find_relation_decl`, and
-  `find_effect_decl` calls are confined to the declaration lookup owner.
+  `find_effect_decl` C backend shortcut wrappers are retired; world-embedded
+  zone recovery must consume `transpiler_resolve_world_zone_decl(...)`, and new
+  direct shortcut wrappers are not allowed.
+- LLVM projection nominal lookup lives in `src/codegen/llvm_domain_lookup.c`
+  behind `llvm_find_projection_nominal_decl(...)`. Domain projection value,
+  projection path, member access, spawn literal, and projection sync consumers
+  may ask that owner for the nominal declaration, but they must not reopen a
+  local class-inventory search or keep projection-specific compatibility
+  wrappers.
+- LLVM callable declaration lookup also lives in
+  `src/codegen/llvm_domain_lookup.c` behind `llvm_find_function_decl(...)`,
+  `llvm_find_intent_decl(...)`, and `llvm_find_callable_decl(...)`. Call
+  dispatch consumes the callable owner once and then branches on the returned
+  declaration kind; it must not rediscover function and intent declarations
+  separately. Boundary projection helpers may lower boundary call arguments,
+  but they must not own function/intent declaration recovery.
+- C callable declaration lookup lives behind `find_callable_decl(...)`.
+  User-call emission, expression type inference, and MIR local call-type
+  inference consume that owner once and then branch on the returned declaration
+  kind. They must not reopen separate function/intent lookup chains.
+- LLVM current-function declaration context lives in `LLVMGenCtx.current_func_decl`.
+  Helpers that need the declaration of the function currently being emitted
+  consume that field; they must not recover it by reading
+  `LLVMGetValueName(ctx->current_function)` and looking the name up again.
+- LLVM spawn generated-name policy lives in
+  `src/codegen/llvm_expr_spawn_names.c`. Generic spawn specialization may append
+  mangled type suffixes through that owner, but boundary projection helpers must
+  not carry spawn naming utilities.
+- C backend subject and projection host declaration checks consume
+  `find_subject_host_decl(...)` or
+  `transpiler_find_projection_nominal_decl_local(...)`.
+  Projection field-path, method-invalidation, projection literal, overlay, and
+  provenance owners must not reopen direct `find_class_decl(...)` probes for
+  projection source/target host recovery.
+- C backend nominal member type lookup lives in `src/codegen/transpiler_nominal.c`
+  behind `transpiler_lookup_nominal_host_member_type_name(...)`. Expression
+  type inference and MIR local type inference consume that owner for fallback
+  member access typing; they must not reopen class-field compatibility directly.
 - C backend C-type lowering diagnostics live behind
   `transpiler_require_ast_c_type_copy(...)` and
   `transpiler_require_type_name_c_type_copy(...)` when a `TranspilerCtx` is
@@ -339,21 +380,20 @@ to reduce a fallback counter or move code behind a helper.
 
 | Row | Old fallback / drift risk | Source-of-truth owner | Gate | Status |
 |---|---|---|---|---|
-| Host declaration type set | Partial class/enum/domain chains that miss party/role/roster | `host_decl_compat.c` host type/name tables | `mir-declaration-inventory-test-smoke` rejects partial hard-coded host chains | Closed for C/LLVM lookup compatibility |
+| Host declaration type set | Partial class/enum/domain chains that miss party/role/roster | `host_decl_compat.c` host type/name tables | `mir-declaration-inventory-test-smoke` rejects partial hard-coded host chains, local C owner/lookup tables, backend-local host-name switches, direct host-name reads in lookup paths, direct host-name reads in shared field/type lookup consumers, generic-class naming, declaration emit owners, authority checks, and projection/effect/bind/domain-query sync host-name reads | Closed for C/LLVM lookup compatibility; direct AST host-name reads are confined to `host_decl_compat.c` |
 | Hosted method identity | AST method-array name lookup when MIR metadata exists | `MIRDeclMethod.name` through C/LLVM hosted method views | `mir-declaration-inventory-test-smoke` rejects AST method-array lookup helpers and old `*_method_ast` names | Closed for lookup-visible identity |
 | Hosted method signature | AST method param/return reads in LLVM/C prototype emitters | `MIRDeclMethod.params`, `param_count`, and `return_type` | MIR validator rejects signature metadata drift; smoke rejects direct method param/return reads in guarded consumers | Closed for frozen hosted-method prototypes |
 | Hosted method routine link | AST/name-based routine search or unchecked routine index reuse | `MIRDeclMethod.has_routine` / `routine_index` plus routine owner/name validation | MIR linker requires method owner/name equality; MIR validator rejects routine index overflow and routine link metadata drift; smoke rejects local routine search helpers | Closed for hosted method body selection |
 | Role implementation methods | Role impl methods omitted from declaration headers | `mir_decl_header_set_role_impl_methods(...)` | Smoke requires role impl metadata recording and rejects role method-count exceptions | Closed for role method inventory count and body link |
-| Host field compatibility view | Class fields and domain shared fields reopened through separate backend switches | `host_decl_compat.c` class/shared-field compatibility views and name lookup helpers | Smoke requires C/LLVM constructor channel, class/domain constructor lowering, generic class specialization emission, LLVM domain-parts splitting, MIR SSA zone-field lookup, nominal/current-field, member/local type inference, overlay projection, and projection-path helpers to consume `pgy_host_*_field_compat_find(...)` or the field views | Partial: common backend field lookup row closed for constructor/channel/type-inference/nominal/projection helpers, dedicated declaration-field metadata still open |
+| Host field compatibility view | Class fields and domain shared fields reopened through separate backend switches | `host_decl_compat.c` class/shared-field compatibility views and name lookup helpers | Smoke requires C/LLVM constructor channel, class/domain constructor lowering, generic class specialization emission, LLVM domain-parts splitting, MIR SSA zone-field lookup, nominal/current-field, member/local type inference, overlay projection, projection-path helpers, and declaration/register emitters to consume `pgy_host_*_field_compat_find(...)` or the field views | Closed for backend compatibility; direct codegen field-array access is confined to `host_decl_compat.c`. Dedicated declaration-field metadata still belongs to the later declaration IR row |
 | Source/provenance payload | Treating `source_ast` as semantic inventory truth | Explicit `*_source_ast` compatibility accessors | Smoke rejects generic fallback naming and old AST method-array state | Allowed temporary compatibility seam |
 | Dedicated declaration IR | `MIRProgram` still carries AST-shaped declaration payloads | Future declaration metadata model beyond compatibility payloads | No full closure gate yet | Open beta blocker row |
 
 The field compatibility smoke has a global codegen whitelist. Direct
 `ast_class_fields(...)` or domain shared-field array access is allowed only in
-`host_decl_compat.c` and declaration/register emit owners until dedicated
-declaration-field metadata exists. New codegen consumers must use
-`pgy_host_*_field_compat_find(...)` or the class/shared-field compatibility
-views.
+`host_decl_compat.c` until dedicated declaration-field metadata exists. New
+codegen consumers must use `pgy_host_*_field_compat_find(...)` or the
+class/shared-field compatibility views.
 
 Runtime frontier AIR evidence must count the complete frozen runtime policy
 surface: pass-limit arithmetic facts plus bounded-overflow reason facts. A

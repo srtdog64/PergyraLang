@@ -12,6 +12,7 @@
 #include <stdio.h>
 
 #include "../parser/ast_api.h"
+#include "host_decl_compat.h"
 #include "llvm_domain_struct_fields.h"
 
 static bool
@@ -93,8 +94,10 @@ llvm_domain_struct_register_zone_fields(LLVMGenCtx *ctx,
     int field_index = 0;
     size_t slot_count = 0;
     ASTNode **slots = ast_zone_slots(stmt, &slot_count);
-    size_t shared_count = 0;
-    ASTNode **shared_fields = ast_zone_shared_fields(stmt, &shared_count);
+    PgyHostSharedFieldsCompatView shared_view =
+        pgy_host_shared_fields_compat_view_from_decl(stmt);
+    ASTNode **shared_fields = shared_view.fields;
+    size_t shared_count = shared_view.count;
     size_t layer_slot_count = 0;
     ASTNode **layer_slots = ast_zone_layer_slots(stmt, &layer_slot_count);
     size_t state_count = 0;
@@ -199,8 +202,10 @@ llvm_domain_struct_register_world_fields(LLVMGenCtx *ctx,
     ASTNode **rosters = ast_world_rosters(stmt, &roster_count);
     size_t zone_count = 0;
     ASTNode **zones = ast_world_zones(stmt, &zone_count);
-    size_t shared_count = 0;
-    ASTNode **shared_fields = ast_world_shared_fields(stmt, &shared_count);
+    PgyHostSharedFieldsCompatView shared_view =
+        pgy_host_shared_fields_compat_view_from_decl(stmt);
+    ASTNode **shared_fields = shared_view.fields;
+    size_t shared_count = shared_view.count;
     size_t state_count = 0;
     ASTNode **states = ast_world_states(stmt, &state_count);
 

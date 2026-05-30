@@ -13,7 +13,6 @@ LLVMValueRef llvm_emit_expression(ASTNode *node, LLVMGenCtx *ctx);
 #include "llvm_expr_emit_support.h"
 #include "llvm_expr_aggregate.h"
 #include "llvm_expr_member_lvalue.h"
-#include "llvm_expr_boundary_projection_helpers.h"
 #include "llvm_expr_host_spawn_literal_helpers.h"
 #include "llvm_expr_spawn_call_helpers.h"
 #include "llvm_expr_banner_string_helpers.h"

@@ -39,13 +39,14 @@ emit_builtin_to_dto(ASTNode *call, TranspilerCtx *ctx)
     if (source_arg == NULL || source_arg->type != AST_IDENTIFIER)
         return pergyra_strdup("/* ToTObject: need named subject source */");
 
-    target_decl = find_class_decl(ctx, target_name);
+    target_decl = transpiler_find_projection_nominal_decl_local(ctx, target_name);
     if (target_decl == NULL || !ast_class_is_struct(target_decl))
         return pergyra_strdup("/* ToTObject: target must be tobject/struct */");
 
     source_type_name = transpiler_expr_infer_type_name(
         ctx, source_arg);
-    source_decl = find_class_decl(ctx, source_type_name);
+    source_decl = transpiler_find_projection_nominal_decl_local(
+        ctx, source_type_name);
     if (source_decl == NULL)
         return pergyra_strdup("/* ToTObject: source subject type not found */");
 

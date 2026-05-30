@@ -222,8 +222,11 @@ llvm_emit_call(ASTNode *node, LLVMGenCtx *ctx)
             return hosted_call;
     }
 
-    ASTNode *decl = llvm_find_function_decl(ctx, callee_name);
-    ASTNode *intent_decl = decl == NULL ? llvm_find_intent_decl(ctx, callee_name) : NULL;
+    ASTNode *callable_decl = llvm_find_callable_decl(ctx, callee_name);
+    ASTNode *decl = callable_decl != NULL
+        && callable_decl->type == AST_FUNC_DECL ? callable_decl : NULL;
+    ASTNode *intent_decl = callable_decl != NULL
+        && callable_decl->type == AST_INTENT_DECL ? callable_decl : NULL;
     unsigned emitted_argc = 0;
     LLVMValueRef *args = NULL;
 

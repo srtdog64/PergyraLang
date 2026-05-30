@@ -21,9 +21,10 @@ llvm_find_zone_decl_by_name(LLVMGenCtx *ctx, const char *zone_type_name)
     llvm_active_inventory(ctx, AST_ZONE_DECL, &zones, &zone_count);
     for (size_t i = 0; i < zone_count; i++) {
         ASTNode *zone = zones[i];
+        const char *zone_name;
         if (zone != NULL && zone->type == AST_ZONE_DECL
-            && ast_zone_name(zone) != NULL
-            && strcmp(ast_zone_name(zone), zone_type_name) == 0) {
+            && (zone_name = llvm_decl_node_name(zone)) != NULL
+            && strcmp(zone_name, zone_type_name) == 0) {
             return zone;
         }
     }

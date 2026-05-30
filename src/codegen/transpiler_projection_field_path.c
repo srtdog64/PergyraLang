@@ -62,7 +62,8 @@ host_projection_relevant_field_exists(TranspilerCtx *ctx,
     if (ctx == NULL || host_type_name == NULL || field_name == NULL)
         return false;
 
-    host_decl = find_class_decl(ctx, host_type_name);
+    host_decl = transpiler_find_projection_nominal_decl_local(
+        ctx, host_type_name);
     if (host_decl == NULL || host_decl->type != AST_CLASS_DECL)
         return false;
 
@@ -95,7 +96,8 @@ method_assignment_projection_field_name(TranspilerCtx *ctx,
     if (ctx == NULL || host_type_name == NULL || target == NULL)
         return NULL;
 
-    host_decl = find_class_decl(ctx, host_type_name);
+    host_decl = transpiler_find_projection_nominal_decl_local(
+        ctx, host_type_name);
     if (host_decl == NULL || host_decl->type != AST_CLASS_DECL)
         return NULL;
 

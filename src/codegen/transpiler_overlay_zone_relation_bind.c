@@ -24,6 +24,7 @@ emit_zone_bind_relation_layer(CodeBuf *out,
     ASTNode *relation_decl;
     ASTNode *left_target;
     ASTNode *right_target;
+    const char *relation_name;
 
     if (out == NULL || zone == NULL || layer_slot_name == NULL
         || left_slot_name == NULL || right_slot_name == NULL || ctx == NULL) {
@@ -49,6 +50,9 @@ emit_zone_bind_relation_layer(CodeBuf *out,
     relation_decl = transpiler_find_decl_in_inventory_local(
         ctx, AST_RELATION_DECL, ast_zone_layer_slot_layer_type(layer_slot));
     if (relation_decl == NULL)
+        return;
+    relation_name = transpiler_decl_name_local(relation_decl);
+    if (relation_name == NULL)
         return;
 
     size_t relation_slot_count = 0;
@@ -101,6 +105,6 @@ emit_zone_bind_relation_layer(CodeBuf *out,
     }
     write_indent(ctx);
     codebuf_write(out, "%s_sync(&self->%s);\n",
-        ast_relation_name(relation_decl),
+        relation_name,
         layer_slot_name);
 }

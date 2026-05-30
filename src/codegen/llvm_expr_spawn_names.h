@@ -21,5 +21,8 @@ bool llvm_spawn_wrapper_name(LLVMGenCtx *ctx,
                              char *out,
                              size_t out_size,
                              int wrapper_id);
+void llvm_spawn_append_mangled_suffix(char *buf,
+                                      size_t buf_size,
+                                      const char *suffix);
 
 #endif

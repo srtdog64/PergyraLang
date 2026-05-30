@@ -41,6 +41,36 @@ llvm_find_domain_constructor_decl(LLVMGenCtx *ctx, const char *name)
 }
 
 ASTNode *
+llvm_find_function_decl(LLVMGenCtx *ctx, const char *name)
+{
+    ASTNode *decl;
+
+    if (ctx == NULL || name == NULL)
+        return NULL;
+    decl = llvm_find_decl_in_active_inventory(ctx, AST_FUNC_DECL, name);
+    if (decl != NULL)
+        return decl;
+    return llvm_lookup_generic_template(ctx, name);
+}
+
+ASTNode *
+llvm_find_intent_decl(LLVMGenCtx *ctx, const char *name)
+{
+    if (ctx == NULL || name == NULL)
+        return NULL;
+    return llvm_find_decl_in_active_inventory(ctx, AST_INTENT_DECL, name);
+}
+
+ASTNode *
+llvm_find_callable_decl(LLVMGenCtx *ctx, const char *name)
+{
+    ASTNode *decl = llvm_find_function_decl(ctx, name);
+    if (decl != NULL)
+        return decl;
+    return llvm_find_intent_decl(ctx, name);
+}
+
+ASTNode *
 llvm_find_nominal_host_method_decl(LLVMGenCtx *ctx, const char *host_type_name,
                                    const char *method_name)
 {
@@ -187,8 +217,8 @@ llvm_current_host_class_name(LLVMGenCtx *ctx)
         : NULL;
 }
 
-static ASTNode *
-llvm_find_projection_class_decl(LLVMGenCtx *ctx, const char *name)
+ASTNode *
+llvm_find_projection_nominal_decl(LLVMGenCtx *ctx, const char *name)
 {
     if (ctx == NULL || name == NULL)
         return NULL;
@@ -225,7 +255,7 @@ llvm_type_name_uses_pointer_self(LLVMGenCtx *ctx, const char *type_name)
         return llvm_host_decl_uses_pointer_self(host_decl);
 
     {
-        ASTNode *stmt = llvm_find_projection_class_decl(ctx, type_name);
+        ASTNode *stmt = llvm_find_projection_nominal_decl(ctx, type_name);
         return stmt != NULL && stmt->type == AST_CLASS_DECL
             && ast_class_nominal_kind(stmt) == NOMINAL_DECL_VESSEL;
     }
@@ -268,7 +298,7 @@ llvm_current_field_class_name(LLVMGenCtx *ctx, const char *field_name)
     if (field_cls != NULL)
         return field_cls->class_name;
 
-    host_decl = llvm_find_projection_class_decl(ctx, host_name);
+    host_decl = llvm_find_projection_nominal_decl(ctx, host_name);
     if (host_decl == NULL || host_decl->type != AST_CLASS_DECL)
         return NULL;
 

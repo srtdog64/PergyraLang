@@ -8,6 +8,7 @@
 
 #include "../parser/ast_api.h"
 #include "../semantic/diag_codes.h"
+#include "host_decl_compat.h"
 #include "transpiler_decl_lookup.h"
 #include "transpiler_domain_role_ability_emit.h"
 #include "transpiler_domain_role_methods_emit.h"
@@ -137,6 +138,8 @@ emit_included_role_method_wrapper(const char *role_name,
 static void
 emit_included_role_impls(ASTNode *role, TranspilerCtx *ctx)
 {
+    const char *owner_role_name = transpiler_decl_name_local(role);
+
     for (size_t i = 0; i < ast_role_include_count(role); i++) {
         ASTNode *include_stmt = ast_role_include(role, i);
         const char *role_name = ast_include_role_name(include_stmt);
@@ -154,7 +157,7 @@ emit_included_role_impls(ASTNode *role, TranspilerCtx *ctx)
                 PGY_FIX_USE_LLVM_BACKEND_OR_EXTEND_TRANSPILER,
                 "cannot resolve included role '%s' while emitting role '%s'",
                 role_name,
-                ast_role_name(role) != NULL ? ast_role_name(role) : "<role>");
+                owner_role_name != NULL ? owner_role_name : "<role>");
             return;
         }
 
@@ -173,15 +176,15 @@ emit_included_role_impls(ASTNode *role, TranspilerCtx *ctx)
                 if (role_has_method(role, ast_declaration_name(method)))
                     continue;
                 emit_included_role_method_wrapper(
-                    ast_role_name(role),
-                    ast_role_name(included_role),
+                    owner_role_name,
+                    transpiler_decl_name_local(included_role),
                     method,
                     ctx);
                 if (ctx != NULL && ctx->backend_error != NULL)
                     return;
             }
 
-            emit_role_vtable_instance(ast_role_name(role), impl, ctx);
+            emit_role_vtable_instance(owner_role_name, impl, ctx);
             if (ctx != NULL && ctx->backend_error != NULL)
                 return;
         }
@@ -253,7 +256,7 @@ emit_ability_decl(ASTNode *node, TranspilerCtx *ctx)
 void
 emit_role_decl(ASTNode *node, TranspilerCtx *ctx)
 {
-    const char *name = ast_role_name(node);
+    const char *name = transpiler_decl_name_local(node);
 
     codebuf_write(ctx->out, "\n/* Role: %s */\n", name);
     emit_included_role_impls(node, ctx);
@@ -339,10 +342,13 @@ emit_role_decl(ASTNode *node, TranspilerCtx *ctx)
 void
 emit_party_decl(ASTNode *node, TranspilerCtx *ctx)
 {
-    const char *name = ast_party_name(node);
-    ASTNode *inventory_decl = transpiler_find_decl_in_inventory_local(
-        ctx, AST_PARTY_DECL, name);
+    const char *name = transpiler_decl_name_local(node);
+    ASTNode *inventory_decl;
 
+    if (name == NULL)
+        return;
+    inventory_decl = transpiler_find_decl_in_inventory_local(
+        ctx, AST_PARTY_DECL, name);
     if (inventory_decl != NULL)
         node = inventory_decl;
 

@@ -84,20 +84,27 @@ emit_c_nominal_forward_decls(TranspilerCtx *ctx,
     for (size_t i = 0; i < type_count; i++) {
         ASTNode *type_decl = types[i];
         if (type_decl != NULL && type_decl->type == AST_CLASS_DECL)
-            emit_c_nominal_forward_typedef(out, ast_class_name(type_decl));
+            emit_c_nominal_forward_typedef(
+                out, transpiler_decl_name_local(type_decl));
     }
     for (size_t i = 0; i < party_count; i++)
-        emit_c_nominal_forward_typedef(out, ast_party_name(parties[i]));
+        emit_c_nominal_forward_typedef(
+            out, transpiler_decl_name_local(parties[i]));
     for (size_t i = 0; i < roster_count; i++)
-        emit_c_nominal_forward_typedef(out, ast_roster_name(rosters[i]));
+        emit_c_nominal_forward_typedef(
+            out, transpiler_decl_name_local(rosters[i]));
     for (size_t i = 0; i < relation_count; i++)
-        emit_c_nominal_forward_typedef(out, ast_relation_name(relations[i]));
+        emit_c_nominal_forward_typedef(
+            out, transpiler_decl_name_local(relations[i]));
     for (size_t i = 0; i < effect_count; i++)
-        emit_c_nominal_forward_typedef(out, ast_effect_name(effects[i]));
+        emit_c_nominal_forward_typedef(
+            out, transpiler_decl_name_local(effects[i]));
     for (size_t i = 0; i < zone_count; i++)
-        emit_c_nominal_forward_typedef(out, ast_zone_name(zones[i]));
+        emit_c_nominal_forward_typedef(
+            out, transpiler_decl_name_local(zones[i]));
     for (size_t i = 0; i < world_count; i++)
-        emit_c_nominal_forward_typedef(out, ast_world_name(worlds[i]));
+        emit_c_nominal_forward_typedef(
+            out, transpiler_decl_name_local(worlds[i]));
     codebuf_write(out, "\n");
 }
 

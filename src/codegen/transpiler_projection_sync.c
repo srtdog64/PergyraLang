@@ -13,6 +13,7 @@
 #include "transpiler_decl_lookup.h"
 #include "transpiler_domain_receiver_query.h"
 #include "transpiler_overlay_zone_bind.h"
+#include "transpiler_projection.h"
 
 void
 emit_zone_action_effect_runtime(ASTNode *call, TranspilerCtx *ctx)
@@ -36,7 +37,9 @@ emit_zone_action_effect_runtime(ASTNode *call, TranspilerCtx *ctx)
     host_decl = transpiler_current_host_decl_local(ctx);
     if (host_decl == NULL || host_decl->type != AST_ZONE_DECL)
         return;
-    active_zone_name = ast_zone_name(host_decl);
+    active_zone_name = transpiler_decl_name_local(host_decl);
+    if (active_zone_name == NULL)
+        return;
 
     callee = ast_call_callee(call);
     if (callee == NULL || callee->type != AST_MEMBER_ACCESS)
@@ -105,6 +108,7 @@ emit_world_embedded_action_effect_sync(TranspilerCtx *ctx,
     const char *source_slot_name = NULL;
     const char *source_type_name = NULL;
     const char *effect_name;
+    const char *effect_type_name;
 
     if (ctx == NULL || receiver == NULL || method_decl == NULL
         || method_decl->type != AST_FUNC_DECL
@@ -128,8 +132,8 @@ emit_world_embedded_action_effect_sync(TranspilerCtx *ctx,
         return NULL;
     }
 
-    zone_decl = transpiler_find_decl_in_inventory_local(ctx, AST_ZONE_DECL,
-                                                        zone_type_name);
+    zone_decl = transpiler_resolve_world_zone_decl(ctx, world_decl,
+                                                   zone_slot_name);
     if (zone_decl == NULL || zone_decl->type != AST_ZONE_DECL)
         return NULL;
 
@@ -137,6 +141,9 @@ emit_world_embedded_action_effect_sync(TranspilerCtx *ctx,
     effect_decl = transpiler_find_decl_in_inventory_local(ctx, AST_EFFECT_DECL,
                                                           effect_name);
     if (effect_decl == NULL || effect_decl->type != AST_EFFECT_DECL)
+        return NULL;
+    effect_type_name = transpiler_decl_name_local(effect_decl);
+    if (effect_type_name == NULL)
         return NULL;
 
     buf = codebuf_create();
@@ -200,8 +207,8 @@ emit_world_embedded_action_effect_sync(TranspilerCtx *ctx,
             codebuf_write(buf,
                 "{ %s _pgy_world_effect_%d = (%s){0}; "
                 "_pgy_world_effect_%d.%s = self->%s.%s; ",
-                ast_effect_name(effect_decl), tmp_id,
-                ast_effect_name(effect_decl),
+                effect_type_name, tmp_id,
+                effect_type_name,
                 tmp_id, target_slot_name,
                 zone_slot_name, source_slot_name);
             for (size_t ri = 0; ri < effect_refresh_count; ri++) {
@@ -226,7 +233,7 @@ emit_world_embedded_action_effect_sync(TranspilerCtx *ctx,
                 "%s_sync(&_pgy_world_effect_%d); "
                 "PGY_EFFECT_POOL_APPLY(self->%s.%s, _pgy_world_effect_%d); "
                 "self->%s.__layer_active_%s = PGY_EFFECT_POOL_ACTIVE_COUNT(self->%s.%s) > 0; } ",
-                ast_effect_name(effect_decl), tmp_id,
+                effect_type_name, tmp_id,
                 zone_slot_name, layer_name, tmp_id,
                 zone_slot_name, layer_name,
                 zone_slot_name, layer_name);
@@ -258,7 +265,7 @@ emit_world_embedded_action_effect_sync(TranspilerCtx *ctx,
                 zone_slot_name, layer_name, projection_name);
         }
         codebuf_write(buf, "%s_sync(&self->%s.%s); ",
-            ast_effect_name(effect_decl),
+            effect_type_name,
             zone_slot_name,
             layer_name);
     }

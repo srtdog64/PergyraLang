@@ -162,8 +162,10 @@ emit_domain_projection_sync_loop(TranspilerCtx *ctx,
 
         target_type_name = ast_type_name(target_slot_type);
         source_type_name = ast_type_name(source_slot_type);
-        target_decl = find_class_decl(ctx, target_type_name);
-        source_decl = find_class_decl(ctx, source_type_name);
+        target_decl = transpiler_find_projection_nominal_decl_local(
+            ctx, target_type_name);
+        source_decl = transpiler_find_projection_nominal_decl_local(
+            ctx, source_type_name);
         {
             const char *source_expr = transpiler_scratch_fmt(ctx, "self->%s",
                 ast_zone_refresh_source_slot_name(refresh));

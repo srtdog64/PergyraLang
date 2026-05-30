@@ -11,6 +11,7 @@
 #include "../semantic/diag_codes.h"
 #include "codegen_match_variant_policy.h"
 #include "transpiler_context.h"
+#include "transpiler_decl_lookup.h"
 #include "transpiler_inventory_view.h"
 #include "transpiler_type_mapping.h"
 #include "transpiler_type_render.h"
@@ -165,8 +166,11 @@ transpiler_match_is_enum_variant_destructor(
         for (size_t j = 0; j < variant_count; j++) {
             const char *variant = variants != NULL ? variants[j] : NULL;
             if (variant != NULL && strcmp(variant, name) == 0) {
+                const char *enum_name = transpiler_decl_name_local(stmt);
+                if (enum_name == NULL)
+                    return false;
                 *variant_name_out = name;
-                *enum_name_out = ast_enum_name(stmt);
+                *enum_name_out = enum_name;
                 *binding_count_out = 0;
                 for (size_t k = 0; k < argc && k < binding_cap; k++) {
                     ASTNode *arg = ast_call_argument(pat, k);

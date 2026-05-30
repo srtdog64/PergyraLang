@@ -1,0 +1,18 @@
+func Main() -> Void {
+    let xs: Array<Int> = [1, 2, 3, 5, 7, 8, 9, 10, 12, 13];
+    let max_seq: Int = 1;
+    let cur: Int = 1;
+    let i: Int = 1;
+    while i < ArrayLength(xs) {
+        if xs[i] == xs[i - 1] + 1 {
+            cur = cur + 1;
+            if cur > max_seq { max_seq = cur; }
+        }
+        if xs[i] != xs[i - 1] + 1 {
+            cur = 1;
+        }
+        i = i + 1;
+    }
+    Log(max_seq);
+    Log(ArrayLength(xs));
+}

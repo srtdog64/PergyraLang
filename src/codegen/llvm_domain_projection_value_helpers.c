@@ -15,14 +15,6 @@
 #include "llvm_inventory_decl_lookup.h"
 #include "../common/string_compat.h"
 
-ASTNode *
-llvm_find_domain_projection_nominal_decl(LLVMGenCtx *ctx, const char *name)
-{
-    if (ctx == NULL || name == NULL)
-        return NULL;
-    return llvm_find_decl_in_active_inventory(ctx, AST_CLASS_DECL, name);
-}
-
 static size_t
 llvm_domain_projection_field_count(ASTNode *decl)
 {
@@ -136,7 +128,7 @@ llvm_resolve_domain_projection_source_path_rec(LLVMGenCtx *ctx,
             continue;
         }
 
-        vessel_decl = llvm_find_domain_projection_nominal_decl(
+        vessel_decl = llvm_find_projection_nominal_decl(
             ctx, field_type_name);
         if (vessel_decl == NULL || vessel_decl->type != AST_CLASS_DECL
             || ast_class_nominal_kind(vessel_decl) != NOMINAL_DECL_VESSEL) {
@@ -243,7 +235,7 @@ llvm_load_domain_projection_path_value(LLVMGenCtx *ctx,
                 || field_type_name == NULL) {
                 continue;
             }
-            current_decl = llvm_find_domain_projection_nominal_decl(
+            current_decl = llvm_find_projection_nominal_decl(
                 ctx, field_type_name);
             current_cls = llvm_lookup_class(ctx, field_type_name);
             current_ptr = field_ptr;

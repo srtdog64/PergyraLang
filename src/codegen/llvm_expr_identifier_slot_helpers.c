@@ -10,7 +10,6 @@
 #include <string.h>
 
 #include "codegen_slot_type_policy.h"
-#include "llvm_expr_boundary_projection_helpers.h"
 #include "llvm_expr_host_spawn_literal_helpers.h"
 #include "llvm_internal_api.h"
 #include "parser/ast_api.h"
@@ -40,7 +39,6 @@ llvm_derive_slot_inner_from_current_decl(LLVMGenCtx *ctx,
                                          const char *source_name,
                                          bool *secure_out)
 {
-    const char *current_name;
     ASTNode *current_decl;
 
     if (secure_out != NULL)
@@ -48,9 +46,7 @@ llvm_derive_slot_inner_from_current_decl(LLVMGenCtx *ctx,
     if (ctx == NULL || source_name == NULL || ctx->current_function == NULL)
         return NULL;
 
-    current_name = LLVMGetValueName(ctx->current_function);
-    current_decl = current_name != NULL
-        ? llvm_find_function_decl(ctx, current_name) : NULL;
+    current_decl = ctx->current_func_decl;
     if (current_decl == NULL || current_decl->type != AST_FUNC_DECL)
         return NULL;
 

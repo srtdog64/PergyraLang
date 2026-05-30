@@ -1,0 +1,22 @@
+func Main() -> Void {
+    let q: Queue<Int> = QueueNew();
+    QueuePush(q, 1);
+    let depth: Int = 0;
+    let visited: Int = 0;
+    while !QueueEmpty(q) {
+        let level_size: Int = QueueSize(q);
+        let i: Int = 0;
+        while i < level_size {
+            let node: Int = QueuePop(q);
+            visited = visited + 1;
+            if node < 8 {
+                QueuePush(q, node * 2);
+                QueuePush(q, node * 2 + 1);
+            }
+            i = i + 1;
+        }
+        depth = depth + 1;
+    }
+    Log(depth);
+    Log(visited);
+}

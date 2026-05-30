@@ -41,7 +41,7 @@ transpiler_find_subject_host_method_decl(TranspilerCtx *ctx,
     if (ctx == NULL || type_name == NULL || method_name == NULL)
         return NULL;
 
-    decl = find_class_decl(ctx, type_name);
+    decl = find_subject_host_decl(ctx, type_name);
     if (decl == NULL || decl->type != AST_CLASS_DECL)
         return NULL;
 
@@ -169,7 +169,7 @@ transpiler_resolve_world_zone_subject_receiver(
     if (zone_decl == NULL)
         return false;
 
-    zone_type_name = ast_zone_name(zone_decl);
+    zone_type_name = transpiler_decl_name_local(zone_decl);
     type_name = transpiler_zone_subject_slot_type_name(zone_decl,
         slot_name);
     if (zone_type_name == NULL || type_name == NULL)

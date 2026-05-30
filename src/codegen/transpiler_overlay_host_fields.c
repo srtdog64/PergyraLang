@@ -72,7 +72,7 @@ current_class_uses_self_cell(TranspilerCtx *ctx)
         return false;
     host_decl = transpiler_current_host_decl_local(ctx);
     if (host_decl != NULL && host_decl->type == AST_CLASS_DECL)
-        class_name = ast_class_name(host_decl);
+        class_name = transpiler_decl_name_local(host_decl);
     return class_name != NULL
         && is_pointer_self_host_type_name(ctx, class_name);
 }

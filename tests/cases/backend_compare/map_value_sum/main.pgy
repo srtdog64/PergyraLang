@@ -1,0 +1,18 @@
+func Main() -> Void {
+    let counts: HashMap<String, Int> = MapNew();
+    MapSet(counts, "apple", 3);
+    MapSet(counts, "banana", 5);
+    MapSet(counts, "cherry", 2);
+    MapSet(counts, "date", 8);
+
+    let total: Int = 0;
+    if MapHas(counts, "apple") { total = total + MapGet(counts, "apple"); }
+    if MapHas(counts, "banana") { total = total + MapGet(counts, "banana"); }
+    if MapHas(counts, "cherry") { total = total + MapGet(counts, "cherry"); }
+    if MapHas(counts, "date") { total = total + MapGet(counts, "date"); }
+    if MapHas(counts, "missing") { total = total + MapGet(counts, "missing"); }
+
+    Log(total);
+    Log(MapHas(counts, "apple"));
+    Log(MapHas(counts, "missing"));
+}

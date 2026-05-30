@@ -10,6 +10,7 @@
 #include "llvm_internal.h"
 
 #include "../parser/ast_api.h"
+#include "host_decl_compat.h"
 #include "llvm_domain_decl_parts_helpers.h"
 #include "llvm_domain_forward.h"
 #include "llvm_domain_method_emit.h"
@@ -165,9 +166,10 @@ llvm_register_domain_structs(LLVMGenCtx *ctx,
                 ASTNode **rosters = ast_world_rosters(stmt, &roster_count);
                 size_t zone_count = 0;
                 ASTNode **world_zones = ast_world_zones(stmt, &zone_count);
-                size_t world_shared_count = 0;
-                ASTNode **world_shared_fields = ast_world_shared_fields(
-                    stmt, &world_shared_count);
+                PgyHostSharedFieldsCompatView world_shared_view =
+                    pgy_host_shared_fields_compat_view_from_decl(stmt);
+                ASTNode **world_shared_fields = world_shared_view.fields;
+                size_t world_shared_count = world_shared_view.count;
                 size_t state_count = 0;
                 (void) ast_world_states(stmt, &state_count);
                 fc = roster_count

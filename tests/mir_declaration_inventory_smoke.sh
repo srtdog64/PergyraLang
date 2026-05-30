@@ -122,14 +122,32 @@ require_term "src/codegen/llvm_expr_constructor_calls.c" \
 require_term "src/codegen/llvm_expr_constructor_calls.c" \
     "pgy_host_shared_fields_compat_view_from_decl(decl)"
 for rel in \
+    "src/codegen/transpiler_relation_effect_emit.c" \
+    "src/codegen/transpiler_world_select_event_emit.c" \
+    "src/codegen/transpiler_zone_decl_emit.c" \
+    "src/codegen/transpiler_zone_struct_emit.c"; do
+    require_term "$rel" "pgy_host_shared_fields_compat_view_from_decl(node)"
+done
+for rel in \
+    "src/codegen/llvm_domain_struct_register.c" \
+    "src/codegen/llvm_domain_struct_register_fields.c"; do
+    require_term "$rel" "pgy_host_shared_fields_compat_view_from_decl(stmt)"
+done
+for rel in \
     "src/codegen/llvm_channel_target.c" \
     "src/codegen/llvm_domain_lookup.c" \
-    "src/codegen/transpiler_expr_type_infer.c" \
-    "src/codegen/transpiler_mir_local_type_lookup.c" \
     "src/codegen/transpiler_nominal.c" \
     "src/codegen/transpiler_overlay_host_fields.c" \
     "src/codegen/transpiler_projection_field_path.c"; do
     require_term "$rel" "pgy_host_class_field_compat_find"
+done
+for rel in \
+    "src/codegen/transpiler_expr_type_infer.c" \
+    "src/codegen/transpiler_mir_local_type_lookup.c"; do
+    require_term "$rel" "transpiler_lookup_nominal_host_member_type_name("
+    if grep -Fq "pgy_host_class_field_compat_find" "$ROOT_DIR/$rel"; then
+        fail "$rel must consume nominal host member type lookup instead of reopening class fields"
+    fi
 done
 for rel in \
     "src/codegen/transpiler_nominal.c" \
@@ -152,6 +170,86 @@ for rel in \
     "src/codegen/transpiler_mir_ssa_names.c"; do
     require_term "$rel" "pgy_host_shared_fields_compat_view_from_decl"
 done
+require_term "src/codegen/llvm_domain_decl_parts_helpers.c" \
+    "llvm_decl_node_name(stmt)"
+require_term "src/codegen/transpiler_mir_local_type_lookup.c" \
+    "transpiler_decl_name_local(host_decl)"
+require_term "src/codegen/transpiler_overlay_host_fields.c" \
+    "transpiler_decl_name_local(host_decl)"
+require_term "src/codegen/llvm_domain_zone_bind_helpers.c" \
+    "effect_name = llvm_decl_node_name(effect_decl)"
+require_term "src/codegen/llvm_domain_zone_bind_helpers.c" \
+    "relation_name = llvm_decl_node_name(relation_decl)"
+require_term "src/codegen/llvm_decl_authority.c" \
+    "zone_name = llvm_decl_node_name(zone_decl)"
+require_term "src/codegen/llvm_register.c" \
+    "enum_name = llvm_decl_node_name(stmt)"
+require_term "src/codegen/llvm_register.c" \
+    "cls_name = llvm_decl_node_name(stmt)"
+require_term "src/codegen/llvm_register.c" \
+    "pgy_host_class_fields_compat_view_from_decl(stmt)"
+require_term "src/codegen/transpiler_class_decl_emit.c" \
+    "pgy_host_class_fields_compat_view_from_decl(node)"
+require_term "src/codegen/llvm_domain_forward_role.c" \
+    "role_name = llvm_decl_node_name(stmt)"
+require_term "src/codegen/llvm_domain_role_emit.c" \
+    "const char *role_name = llvm_decl_node_name(stmt)"
+require_term "src/codegen/llvm_registry.c" \
+    "if (ctx == NULL || class_name == NULL)"
+require_term "src/codegen/llvm_expr_assignment_projection.c" \
+    "world_name = llvm_decl_node_name(host_decl)"
+require_term "src/codegen/llvm_expr_assignment_projection.c" \
+    "zone_name = llvm_decl_node_name(zone_decl)"
+require_term "src/codegen/llvm_stmt_zone_action.c" \
+    "zone_name = llvm_decl_node_name(zone_decl)"
+require_term "src/codegen/transpiler_domain_receiver_query.c" \
+    "zone_type_name = transpiler_decl_name_local(zone_decl)"
+require_term "src/codegen/transpiler_domain_nominal_emit.c" \
+    "const char *name = transpiler_decl_name_local(node)"
+require_term "src/codegen/transpiler_domain_role_methods_emit.c" \
+    "role_name = transpiler_decl_name_local(role)"
+require_term "src/codegen/transpiler_domain_role_methods_emit.c" \
+    "find_callable_decl(ctx, fn_name)"
+if grep -Fq "find_function_decl(ctx, fn_name)" \
+        "$ROOT_DIR/src/codegen/transpiler_domain_role_methods_emit.c"; then
+    fail "C role operator alias collision checks must consume find_callable_decl"
+fi
+require_term "src/codegen/transpiler_overlay_projection.c" \
+    "world_name = transpiler_decl_name_local(host_decl)"
+require_term "src/codegen/transpiler_overlay_projection.c" \
+    "transpiler_resolve_world_zone_decl(ctx, host_decl"
+require_term "src/codegen/transpiler_overlay_zone_bind.c" \
+    "effect_name = transpiler_decl_name_local(effect_decl)"
+require_term "src/codegen/transpiler_overlay_zone_relation_bind.c" \
+    "relation_name = transpiler_decl_name_local(relation_decl)"
+require_term "src/codegen/transpiler_projection_sync.c" \
+    "active_zone_name = transpiler_decl_name_local(host_decl)"
+require_term "src/codegen/transpiler_projection_sync.c" \
+    "transpiler_resolve_world_zone_decl(ctx, world_decl"
+require_term "src/codegen/transpiler_generic_class_naming.c" \
+    "base_class_name = transpiler_decl_name_local(class_decl)"
+require_term "src/codegen/transpiler_generic_class_specialization_emit.c" \
+    "base_class_name = transpiler_decl_name_local(class_decl)"
+for rel in \
+    "src/codegen/transpiler_class_decl_emit.c" \
+    "src/codegen/transpiler_domain_nominal_emit.c" \
+    "src/codegen/transpiler_enum_decl_emit.c" \
+    "src/codegen/transpiler_relation_effect_emit.c" \
+    "src/codegen/transpiler_roster_decl_emit.c" \
+    "src/codegen/transpiler_world_select_event_emit.c" \
+    "src/codegen/transpiler_zone_decl_emit.c"; do
+    require_term "$rel" "transpiler_decl_name_local(node)"
+done
+host_name_hits="$(
+    grep -RInE 'ast_(class|enum|party|role|roster|relation|effect|zone|world)_name\(' \
+        "$ROOT_DIR/src/codegen" \
+        --include='*.c' --include='*.h' |
+        grep -v 'src/codegen/host_decl_compat.c:' || true
+)"
+if [[ -n "$host_name_hits" ]]; then
+    fail "backend host declaration names must flow through host_decl_compat.c:
+$host_name_hits"
+fi
 for rel in \
     "src/codegen/llvm_channel_target.c" \
     "src/codegen/llvm_domain_decl_parts_helpers.c" \
@@ -175,18 +273,43 @@ for rel in \
         fail "$rel must consume host_decl_compat field lookup helpers instead of reopening class/shared field arrays"
     fi
 done
+for rel in \
+    "src/codegen/llvm_register.c" \
+    "src/codegen/llvm_decl_authority.c" \
+    "src/codegen/llvm_domain_zone_bind_helpers.c" \
+    "src/codegen/llvm_expr_assignment_projection.c" \
+    "src/codegen/llvm_stmt_zone_action.c" \
+    "src/codegen/transpiler_domain_receiver_query.c" \
+    "src/codegen/transpiler_overlay_projection.c" \
+    "src/codegen/transpiler_overlay_zone_bind.c" \
+    "src/codegen/transpiler_overlay_zone_relation_bind.c" \
+    "src/codegen/transpiler_projection_sync.c"; do
+    if grep -Eq 'ast_(world|zone|effect|relation)_name\((host_decl|world_decl|zone_decl|effect_decl|relation_decl)\)' \
+            "$ROOT_DIR/$rel"; then
+        fail "$rel must consume backend declaration-name owners in sync/query paths"
+    fi
+done
+for rel in \
+    "src/codegen/transpiler_overlay_projection.c" \
+    "src/codegen/transpiler_projection_sync.c"; do
+    if grep -Fq "transpiler_find_decl_in_inventory_local(ctx, AST_ZONE_DECL" \
+            "$ROOT_DIR/$rel"; then
+        fail "$rel must resolve world-embedded zones through transpiler_resolve_world_zone_decl"
+    fi
+done
+for rel in \
+    "src/codegen/llvm_domain_decl_parts_helpers.c" \
+    "src/codegen/transpiler_mir_local_type_lookup.c" \
+    "src/codegen/transpiler_overlay_host_fields.c"; do
+    if grep -Eq 'ast_(class|enum|party|role|roster|relation|effect|zone|world)_name\((stmt|host_decl)\)' \
+            "$ROOT_DIR/$rel"; then
+        fail "$rel must consume the host declaration name owner"
+    fi
+done
 
 is_approved_decl_field_array_owner() {
     case "$1" in
         src/codegen/host_decl_compat.c) return 0 ;;
-        src/codegen/llvm_domain_struct_register.c) return 0 ;;
-        src/codegen/llvm_domain_struct_register_fields.c) return 0 ;;
-        src/codegen/llvm_register.c) return 0 ;;
-        src/codegen/transpiler_class_decl_emit.c) return 0 ;;
-        src/codegen/transpiler_relation_effect_emit.c) return 0 ;;
-        src/codegen/transpiler_world_select_event_emit.c) return 0 ;;
-        src/codegen/transpiler_zone_decl_emit.c) return 0 ;;
-        src/codegen/transpiler_zone_struct_emit.c) return 0 ;;
     esac
     return 1
 }
@@ -749,10 +872,19 @@ for term in \
     "transpiler_active_has_top_level_exec(ctx)"; do
     require_term "src/codegen/transpiler.c" "$term"
 done
+if sed -n '/emit_c_nominal_forward_decls/,/Program emitter/p' \
+    "$ROOT_DIR/src/codegen/transpiler.c" \
+    | grep -Eq 'ast_(class|party|roster|relation|effect|zone|world)_name\('; then
+    fail "C nominal forward declarations must consume the host declaration name owner"
+fi
+require_term "src/codegen/transpiler.c" \
+    "transpiler_decl_name_local(type_decl)"
 for term in \
-    "return pgy_host_decl_compat_name(decl)" \
+    "host_name = pgy_host_decl_compat_name(decl)" \
+    "stmt_name = transpiler_decl_name_local(stmt)" \
     "transpiler_is_host_decl_type" \
     "return pgy_host_decl_compat_is_type(decl_type)" \
+    "pgy_host_decl_compat_is_type(decl_type)" \
     "pgy_host_decl_compat_nominal_lookup_types(&host_lookup_type_count)" \
     "host_lookup_types[i]" \
     "transpiler_find_domain_constructor_decl_local" \
@@ -761,6 +893,106 @@ for term in \
     "constructor_types[i]"; do
     require_term "src/codegen/transpiler_decl_lookup.c" "$term"
 done
+if grep -RInE 'ASTNode \*find_(zone|world|relation|effect)_decl\(' \
+        "$ROOT_DIR/src/codegen/transpiler_decl_lookup.c" \
+        "$ROOT_DIR/src/codegen/transpiler_decl_lookup.h"; then
+    fail "C backend domain declaration shortcut wrappers were removed; use active inventory seams instead"
+fi
+require_term "src/codegen/llvm_stmt_zone_action.c" \
+    "llvm_find_named_domain_decl(ctx, AST_EFFECT_DECL, effect_name)"
+if grep -Fq "llvm_stmt_find_effect_decl" \
+        "$ROOT_DIR/src/codegen/llvm_stmt_zone_action.c"; then
+    fail "LLVM zone action effect lookup must consume llvm_find_named_domain_decl instead of a local wrapper"
+fi
+require_term "src/codegen/llvm_domain_zone_bind_helpers.c" \
+    "effect_decl = llvm_find_named_domain_decl(ctx, AST_EFFECT_DECL,"
+require_term "src/codegen/llvm_domain_zone_bind_helpers.c" \
+    "relation_decl = llvm_find_named_domain_decl(ctx, AST_RELATION_DECL,"
+if grep -Fq "llvm_find_named_domain_decl_local" \
+        "$ROOT_DIR/src/codegen/llvm_domain_zone_bind_helpers.c"; then
+    fail "LLVM zone bind helpers must consume llvm_find_named_domain_decl instead of a local wrapper"
+fi
+require_term "src/codegen/llvm_domain_lookup.c" \
+    "llvm_find_projection_nominal_decl(LLVMGenCtx *ctx"
+require_term "src/codegen/llvm_domain_lookup.c" \
+    "llvm_find_function_decl(LLVMGenCtx *ctx"
+require_term "src/codegen/llvm_domain_lookup.c" \
+    "llvm_find_intent_decl(LLVMGenCtx *ctx"
+require_term "src/codegen/llvm_domain_lookup.c" \
+    "llvm_find_callable_decl(LLVMGenCtx *ctx"
+require_term "src/codegen/llvm_stmt.c" \
+    "return llvm_find_function_decl(ctx, name)"
+if grep -Fq "return llvm_find_decl_in_active_inventory(ctx, AST_FUNC_DECL, name)" \
+        "$ROOT_DIR/src/codegen/llvm_stmt.c"; then
+    fail "LLVM statement function lookup must consume llvm_find_function_decl"
+fi
+for rel in \
+    "src/codegen/llvm_expr_call_variable.c" \
+    "src/codegen/llvm_expr_identifier_slot_helpers.c"; do
+    require_term "$rel" "current_decl = ctx->current_func_decl"
+    if grep -Fq "LLVMGetValueName(ctx->current_function)" "$ROOT_DIR/$rel"; then
+        fail "$rel must consume ctx->current_func_decl instead of rediscovering the current function declaration by name"
+    fi
+done
+if grep -Eq 'llvm_find_(function|intent)_decl\(LLVMGenCtx \*ctx' \
+        "$ROOT_DIR/src/codegen/llvm_expr_boundary_projection_helpers.c" \
+        "$ROOT_DIR/src/codegen/llvm_expr_boundary_projection_helpers.h"; then
+    fail "LLVM function/intent declaration lookup must not be owned by boundary projection helpers"
+fi
+require_term "src/codegen/llvm_expr_call_dispatch.c" \
+    "ASTNode *callable_decl = llvm_find_callable_decl(ctx, callee_name)"
+if grep -Eq 'llvm_find_(function|intent)_decl\(ctx, callee_name\)' \
+        "$ROOT_DIR/src/codegen/llvm_expr_call_dispatch.c"; then
+    fail "LLVM call dispatch must consume llvm_find_callable_decl instead of reopening callable lookup"
+fi
+require_term "src/codegen/transpiler_expr_type_infer.c" \
+    "ASTNode *decl = find_callable_decl(ctx, name)"
+if grep -Eq 'find_(intent|function)_decl\(ctx, name\)' \
+        "$ROOT_DIR/src/codegen/transpiler_expr_type_infer.c"; then
+    fail "C call type inference must consume find_callable_decl instead of reopening callable lookup"
+fi
+require_term "src/codegen/transpiler_expr_call_user_emit.c" \
+    "ASTNode *decl = (callee->type == AST_IDENTIFIER)"
+require_term "src/codegen/transpiler_expr_call_user_emit.c" \
+    "? find_callable_decl(ctx, callee_name) : NULL"
+if grep -Fq "find_function_decl(ctx, callee_name)" \
+        "$ROOT_DIR/src/codegen/transpiler_expr_call_user_emit.c"; then
+    fail "C user-call emission must consume find_callable_decl instead of reopening function lookup"
+fi
+require_term "src/codegen/transpiler_mir_local_type_lookup.c" \
+    "ASTNode *callee_decl = find_callable_decl(ctx, callee_name)"
+if grep -Fq "find_function_decl(ctx, callee_name)" \
+        "$ROOT_DIR/src/codegen/transpiler_mir_local_type_lookup.c"; then
+    fail "C MIR local call-type inference must consume find_callable_decl"
+fi
+require_term "src/codegen/llvm_expr_spawn_names.c" \
+    "llvm_spawn_append_mangled_suffix"
+require_term "src/codegen/llvm_expr_spawn_generic.c" \
+    "llvm_spawn_append_mangled_suffix(mangled, sizeof(mangled), suf)"
+if grep -Fq "llvm_append_mangled_suffix" \
+        "$ROOT_DIR/src/codegen/llvm_expr_boundary_projection_helpers.c" \
+        "$ROOT_DIR/src/codegen/llvm_expr_boundary_projection_helpers.h"; then
+    fail "LLVM boundary projection helpers must not own spawn mangled-name utilities"
+fi
+if grep -Eq 'llvm_(boundary_slot_param|expr_projection_path_helpers)\.h' \
+        "$ROOT_DIR/src/codegen/llvm_expr_boundary_projection_helpers.h"; then
+    fail "LLVM boundary projection helper header must not re-export unrelated owner headers"
+fi
+require_term "src/codegen/llvm_domain_projection_sync_body_helpers.c" \
+    "llvm_find_projection_nominal_decl(ctx, source_type_name)"
+for rel in \
+    "src/codegen/llvm_domain_projection_value_helpers.c" \
+    "src/codegen/llvm_expr_projection_path_helpers.c"; do
+    if grep -Fq "llvm_find_decl_in_active_inventory(ctx, AST_CLASS_DECL, name)" \
+            "$ROOT_DIR/$rel"; then
+        fail "$rel must consume llvm_find_projection_nominal_decl for projection nominal lookup"
+    fi
+done
+if grep -RInE 'llvm_find_(domain_projection_nominal_decl|projection_class_decl)' \
+        "$ROOT_DIR/src/codegen" \
+        --include='*.c' --include='*.h'; then
+    fail "LLVM projection nominal lookup must be owned by llvm_find_projection_nominal_decl"
+fi
 require_term "src/codegen/transpiler_call_constructor_result_emit.c" \
     "transpiler_find_domain_constructor_decl_local(ctx, fn)"
 require_term "src/codegen/transpiler_mir_local_type_lookup.c" \
@@ -817,7 +1049,6 @@ if grep -Fq "find_world_decl(ctx, name)" \
 fi
 for rel in \
     "src/codegen/transpiler_projection_sync.c" \
-    "src/codegen/transpiler_overlay_projection.c" \
     "src/codegen/transpiler_expr_call_member_emit.c"; do
     require_term "$rel" "transpiler_find_decl_in_inventory_local("
     if grep -Fq "find_zone_decl(ctx, zone_type_name)" "$ROOT_DIR/$rel"; then
@@ -871,7 +1102,7 @@ for term in \
     require_term "src/codegen/transpiler_host_self_policy.c" "$term"
 done
 require_term "src/codegen/transpiler_expr_dispatch_emit.c" \
-    "pgy_host_decl_compat_uses_pointer_self(host_decl)"
+    "transpiler_host_decl_uses_pointer_self(host_decl)"
 if grep -Fq "host_decl->type == AST_PARTY_DECL" \
     "$ROOT_DIR/src/codegen/transpiler_expr_dispatch_emit.c"; then
     fail "C self-member dispatch must consume host pointer-self policy instead of repeating domain host chains"
@@ -881,19 +1112,25 @@ for term in \
     "transpiler_decl_header_is_nominal_host(header)" \
     "transpiler_active_decl_header(ctx, host_type_name)" \
     "transpiler_active_mir_identity(ctx)" \
-    "static const TranspilerHostOwnerLookup kTranspilerHostOwnerLookups[]" \
-    "lookup->lookup_type" \
+    "pgy_host_decl_compat_is_type(owner_ast_type)" \
+    "owner_ast_type, owner_name" \
     "pgy_host_decl_compat_nominal_lookup_types(&host_lookup_type_count)" \
     "host_lookup_types[i]" \
-    "AST_PARTY_DECL" \
     "AST_ROLE_DECL" \
-    "AST_ROSTER_DECL" \
     "transpiler_hosted_method_view_from_decl(ctx, host_type_name, decl)" \
     "header->method_metadata_count" \
     "method->name" \
     "method->source_ast"; do
     require_term "src/codegen/transpiler_decl_host_lookup.c" "$term"
 done
+if grep -Fq "static const TranspilerHostOwnerLookup kTranspilerHostOwnerLookups[]" \
+    "$ROOT_DIR/src/codegen/transpiler_decl_host_lookup.c"; then
+    fail "C host-owner lookup must consume host_decl_compat.c instead of reopening a local host-type table"
+fi
+if grep -Fq "lookup->lookup_type" \
+    "$ROOT_DIR/src/codegen/transpiler_decl_host_lookup.c"; then
+    fail "C host-owner lookup must not route through a local owner/lookup table"
+fi
 if grep -Fq "ctx->mir" "$ROOT_DIR/src/codegen/transpiler_decl_host_lookup.c"; then
     fail "C host-decl lookup cache must use active MIR identity helpers, not direct ctx->mir probes"
 fi
@@ -1005,12 +1242,102 @@ if grep -Fq "kTranspilerNominalHostLookupTypes" \
     "$ROOT_DIR/src/codegen/transpiler_decl_host_lookup.c"; then
     fail "C nominal host lookup must consume host_decl_compat.c lookup order"
 fi
+if grep -RIn "pgy_host_decl_compat_name(" "$ROOT_DIR/src/codegen" \
+    --include='*.c' --include='*.h' |
+    grep -Ev 'src/codegen/(host_decl_compat\.[ch]|llvm_inventory_decl_lookup\.c|transpiler_decl_lookup\.c):'; then
+    fail "backend consumers must use llvm_decl_node_name/transpiler_decl_name_local instead of direct host name compatibility"
+fi
 for term in \
+    "ast_class_name(stmt)" \
+    "ast_enum_name(stmt)" \
     "return ast_role_name(decl)" \
+    "ast_role_name(stmt)" \
     "return ast_party_name(decl)" \
-    "return ast_roster_name(decl)"; do
+    "ast_party_name(stmt)" \
+    "return ast_roster_name(decl)" \
+    "ast_roster_name(stmt)" \
+    "ast_relation_name(stmt)" \
+    "ast_effect_name(stmt)" \
+    "ast_zone_name(stmt)" \
+    "ast_world_name(stmt)"; do
     if grep -Fq "$term" "$ROOT_DIR/src/codegen/transpiler_decl_lookup.c"; then
         fail "C host declaration names must delegate to host_decl_compat.c"
+    fi
+done
+for rel in \
+    "src/codegen/transpiler_enum.c" \
+    "src/codegen/transpiler_match_bindings.c"; do
+    require_term "$rel" "transpiler_decl_name_local(stmt)"
+    if grep -Fq "ast_enum_name(stmt)" "$ROOT_DIR/$rel"; then
+        fail "$rel must consume transpiler_decl_name_local for enum host names"
+    fi
+done
+if grep -Fq "ast_enum_name(stmt)" "$ROOT_DIR/src/codegen/llvm_expr_common.c"; then
+    fail "LLVM enum declaration lookup must consume llvm_decl_node_name"
+fi
+if grep -Fq "llvm_active_inventory(ctx, AST_ENUM_DECL" \
+        "$ROOT_DIR/src/codegen/llvm_expr_common.c"; then
+    fail "LLVM enum lookup must not rescan active inventory after owner lookup"
+fi
+require_term "src/codegen/llvm_expr_common.c" \
+    "return llvm_find_decl_in_active_inventory(ctx, AST_ENUM_DECL, enum_name)"
+require_term "src/codegen/llvm_intent_effect.c" "llvm_decl_node_name(zone)"
+if grep -Fq "ast_zone_name(zone)" "$ROOT_DIR/src/codegen/llvm_intent_effect.c"; then
+    fail "LLVM intent effect zone lookup must consume llvm_decl_node_name"
+fi
+require_term "src/codegen/llvm_expr_call_methods_world_effect_sync.c" \
+    "llvm_decl_node_name(item)"
+require_term "src/codegen/llvm_expr_call_methods_world_effect_sync.c" \
+    "llvm_decl_node_name(host_decl)"
+require_term "src/codegen/llvm_expr_call_projection_sync.c" \
+    "llvm_decl_node_name(host_decl)"
+require_term "src/codegen/llvm_expr_call_projection_sync.c" \
+    "llvm_decl_node_name(zone_decl)"
+require_term "src/codegen/llvm_expr_domain_query_calls.c" \
+    "llvm_decl_node_name(zone_decl)"
+require_term "src/codegen/transpiler_expr_domain_query_builtin.c" \
+    "transpiler_decl_name_local(zone_decl)"
+require_term "src/codegen/transpiler_decl_lookup.c" \
+    "transpiler_find_projection_nominal_decl_local(TranspilerCtx *ctx"
+require_term "src/codegen/transpiler_decl_lookup.c" \
+    "ASTNode *decl = transpiler_find_projection_nominal_decl_local("
+require_term "src/codegen/transpiler_domain_receiver_query.c" \
+    "decl = find_subject_host_decl(ctx, type_name)"
+require_term "src/codegen/transpiler_projection.c" \
+    "ASTNode *decl = find_subject_host_decl(ctx, type_name)"
+require_term "src/codegen/transpiler_projection.c" \
+    "vessel_decl = transpiler_find_projection_nominal_decl_local("
+require_term "src/codegen/transpiler_projection_field_path.c" \
+    "transpiler_find_projection_nominal_decl_local("
+require_term "src/codegen/transpiler_projection_method_invalidation.c" \
+    "transpiler_find_projection_nominal_decl_local("
+require_term "src/codegen/transpiler_expr_projection_builtin.c" \
+    "target_decl = transpiler_find_projection_nominal_decl_local(ctx, target_name)"
+require_term "src/codegen/transpiler_overlay_projection.c" \
+    "target_decl = transpiler_find_projection_nominal_decl_local("
+require_term "src/codegen/transpiler_domain_provenance_emit.c" \
+    "target_decl = transpiler_find_projection_nominal_decl_local("
+for rel in \
+    "src/codegen/transpiler_domain_provenance_emit.c" \
+    "src/codegen/transpiler_expr_dispatch_emit.c" \
+    "src/codegen/transpiler_expr_projection_builtin.c" \
+    "src/codegen/transpiler_overlay_projection.c" \
+    "src/codegen/transpiler_projection.c" \
+    "src/codegen/transpiler_projection_field_path.c" \
+    "src/codegen/transpiler_projection_method_invalidation.c"; do
+    if grep -Eq 'find_class_decl\(ctx, (host_type_name|target_type_name|source_type_name|source_type|target_name|type_name|ast_type_name\(field->type\))\)' \
+            "$ROOT_DIR/$rel"; then
+        fail "$rel must consume nominal-host lookup instead of direct class lookup"
+    fi
+done
+for rel in \
+    "src/codegen/llvm_expr_call_methods_world_effect_sync.c" \
+    "src/codegen/llvm_expr_call_projection_sync.c" \
+    "src/codegen/llvm_expr_domain_query_calls.c" \
+    "src/codegen/transpiler_expr_domain_query_builtin.c"; do
+    if grep -Eq 'ast_(effect|zone|world)_name\((item|host_decl|zone_decl)\)' \
+            "$ROOT_DIR/$rel"; then
+        fail "$rel must consume the host declaration name owner"
     fi
 done
 for term in \
@@ -1704,9 +2031,7 @@ domain_array_pattern="$(
     printf '%s' "${domain_arrays[*]}"
 )"
 raw_scan_files=()
-for path in "$ROOT_DIR"/src/codegen/llvm*.[ch] \
-    "$ROOT_DIR/src/codegen/transpiler.c" \
-    "$ROOT_DIR/src/codegen/transpiler.h"; do
+for path in "$ROOT_DIR"/src/codegen/*.[ch]; do
     [[ -e "$path" ]] || continue
     rel="${path#$ROOT_DIR/}"
     allowed=false

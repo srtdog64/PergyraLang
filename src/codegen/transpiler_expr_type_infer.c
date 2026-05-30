@@ -25,7 +25,6 @@
 #include "transpiler_type_render.h"
 
 #include "codegen_slot_type_policy.h"
-#include "host_decl_compat.h"
 #include "../parser/ast_api.h"
 
 const char *transpiler_contextual_option_type_name(TranspilerCtx *ctx);
@@ -208,21 +207,11 @@ infer_expression_type_name(TranspilerCtx *ctx, ASTNode *expr)
         if (ast_member_object(expr) != NULL && ast_member_name(expr) != NULL) {
             const char *obj_type = infer_expression_type_name(ctx, ast_member_object(expr));
             if (obj_type != NULL) {
-
-                ASTNode *obj_decl = find_class_decl(ctx, obj_type);
-                if (obj_decl != NULL) {
-                    ClassField *field = pgy_host_class_field_compat_find(
-                        obj_decl, ast_member_name(expr));
-                    if (field != NULL && field->type != NULL) {
-                        char *ft = render_type_name_in_ctx(ctx, field->type);
-                        if (ft != NULL) {
-                            const char *copied =
-                                transpiler_infer_arena_copy_type_name(ctx, ft);
-                            free(ft);
-                            return copied != NULL ? copied : "Unknown";
-                        }
-                    }
-                }
+                const char *member_type =
+                    transpiler_lookup_nominal_host_member_type_name(
+                        ctx, obj_type, ast_member_name(expr));
+                if (member_type != NULL)
+                    return member_type;
             }
         }
         return "Unknown";
@@ -517,43 +506,49 @@ infer_expression_type_name(TranspilerCtx *ctx, ASTNode *expr)
             if (transpiler_has_known_nominal_type(ctx, name)) {
                 return name;
             }
-            if (find_intent_decl(ctx, name) != NULL)
-                return "Bool";
-
             {
-                ASTNode *host_method = current_host_method_decl(ctx, name);
-                ASTNode *host_return_type = ast_func_return_type(host_method);
-                if (host_return_type != NULL) {
-                    char *resolved = render_type_name_in_ctx(ctx,
-                        host_return_type);
-                    const char *copied =
-                        transpiler_infer_arena_copy_type_name(ctx, resolved);
-                    free(resolved);
-                    return copied != NULL ? copied : "Unknown";
-                }
-            }
-
-            {
-                ASTNode *decl = find_function_decl(ctx, name);
-                ASTNode *return_type = ast_func_return_type(decl);
-                if (return_type != NULL) {
-                    char *resolved = NULL;
-                    if (transpiler_func_has_generic_params(decl)) {
-                        GenericBindingEntry bindings[MAX_GENERIC_BINDINGS];
-                        size_t binding_count = 0;
-                        if (transpiler_infer_generic_call_bindings(ctx, decl,
-                                expr, bindings, &binding_count)) {
-                            resolved =
-                                transpiler_render_type_name_with_bindings(ctx,
-                                return_type, bindings, binding_count);
-                        }
+                ASTNode *decl = find_callable_decl(ctx, name);
+                {
+                    ASTNode *host_method = current_host_method_decl(ctx, name);
+                    ASTNode *host_return_type = ast_func_return_type(host_method);
+                    if (host_return_type != NULL) {
+                        char *resolved = render_type_name_in_ctx(ctx,
+                            host_return_type);
+                        const char *copied =
+                            transpiler_infer_arena_copy_type_name(ctx, resolved);
+                        free(resolved);
+                        return copied != NULL ? copied : "Unknown";
                     }
-                    if (resolved == NULL)
-                        resolved = render_type_name_in_ctx(ctx, return_type);
-                    const char *copied =
-                        transpiler_infer_arena_copy_type_name(ctx, resolved);
-                    free(resolved);
-                    return copied != NULL ? copied : "Unknown";
+                }
+
+                if (decl != NULL && decl->type == AST_INTENT_DECL)
+                    return "Bool";
+                if (decl == NULL || decl->type != AST_FUNC_DECL)
+                    return "Unknown";
+                {
+                    ASTNode *return_type = ast_func_return_type(decl);
+                    if (return_type != NULL) {
+                        char *resolved = NULL;
+                        if (transpiler_func_has_generic_params(decl)) {
+                            GenericBindingEntry bindings[MAX_GENERIC_BINDINGS];
+                            size_t binding_count = 0;
+                            if (transpiler_infer_generic_call_bindings(ctx,
+                                    decl, expr, bindings, &binding_count)) {
+                                resolved =
+                                    transpiler_render_type_name_with_bindings(
+                                        ctx, return_type, bindings,
+                                        binding_count);
+                            }
+                        }
+                        if (resolved == NULL)
+                            resolved = render_type_name_in_ctx(ctx,
+                                return_type);
+                        const char *copied =
+                            transpiler_infer_arena_copy_type_name(ctx,
+                                resolved);
+                        free(resolved);
+                        return copied != NULL ? copied : "Unknown";
+                    }
                 }
             }
         }

@@ -138,12 +138,14 @@ emit_role_operator_aliases(ASTNode *role, TranspilerCtx *ctx)
 
     if (ctx != NULL && ctx->backend_error != NULL)
         return;
-    if (role == NULL || role->type != AST_ROLE_DECL
-        || ast_role_name(role) == NULL) {
+    if (role == NULL || role->type != AST_ROLE_DECL) {
         return;
     }
 
-    role_name = ast_role_name(role);
+    role_name = transpiler_decl_name_local(role);
+    if (role_name == NULL)
+        return;
+
     for_type = transpiler_role_subject_type_name_local(role);
     if (for_type == NULL)
         return;
@@ -170,7 +172,7 @@ emit_role_operator_aliases(ASTNode *role, TranspilerCtx *ctx)
                 role_name != NULL ? role_name : "(anonymous)");
             return;
         }
-        if (find_function_decl(ctx, fn_name) != NULL)
+        if (find_callable_decl(ctx, fn_name) != NULL)
             continue;
 
         FuncParam *rhs_param = NULL;

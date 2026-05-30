@@ -1,0 +1,17 @@
+func FactorialIter(n: Int) -> Int {
+    let result: Int = 1;
+    let i: Int = 1;
+    while i <= n {
+        result = result * i;
+        i = i + 1;
+    }
+    return result;
+}
+
+func Main() -> Void {
+    Log(FactorialIter(0));
+    Log(FactorialIter(1));
+    Log(FactorialIter(5));
+    Log(FactorialIter(8));
+    Log(FactorialIter(10));
+}

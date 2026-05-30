@@ -7,6 +7,7 @@
 #include "../compiler/mir.h"
 #include "../parser/ast_api.h"
 #include "../semantic/diag_codes.h"
+#include "host_decl_compat.h"
 #include "transpiler_context.h"
 #include "transpiler_decl_lookup.h"
 #include "transpiler_enum_method_names.h"
@@ -19,9 +20,11 @@
 void
 emit_enum_decl_stmt(ASTNode *node, TranspilerCtx *ctx)
 {
-    const char *ename = ast_enum_name(node);
+    const char *ename = transpiler_decl_name_local(node);
     size_t variant_count = 0;
     char **variants = ast_enum_variants(node, &variant_count);
+    if (ename == NULL)
+        return;
     TranspilerHostedMethodView method_view =
         transpiler_hosted_method_view_from_decl(ctx, ename, node);
     if (transpiler_hosted_method_view_missing_mir_metadata(&method_view)) {

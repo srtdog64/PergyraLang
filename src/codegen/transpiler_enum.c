@@ -8,6 +8,7 @@
 #include <stdio.h>
 #include <string.h>
 
+#include "transpiler_decl_lookup.h"
 #include "transpiler_enum.h"
 
 bool
@@ -39,8 +40,11 @@ lookup_enum_variant_qualified_name_copy(TranspilerCtx *ctx,
         for (size_t j = 0; j < variant_count; j++) {
             const char *candidate = variants != NULL ? variants[j] : NULL;
             if (candidate != NULL && strcmp(candidate, variant_name) == 0) {
+                const char *enum_name = transpiler_decl_name_local(stmt);
+                if (enum_name == NULL)
+                    return false;
                 int written = snprintf(out, out_size, "%s_%s",
-                    ast_enum_name(stmt), candidate);
+                    enum_name, candidate);
                 if (written < 0 || (size_t)written >= out_size) {
                     out[0] = '\0';
                     return false;

@@ -233,7 +233,7 @@ llvm_emit_domain_projection_sync_body(ASTNode *stmt,
                     }
 
                     projected = llvm_build_domain_projection_value(ctx, target_cls,
-                        source_cls, llvm_find_domain_projection_nominal_decl(ctx, source_type_name),
+                        source_cls, llvm_find_projection_nominal_decl(ctx, source_type_name),
                         refresh, source_ptr);
                     if (projected == NULL || ctx->has_error)
                         return;

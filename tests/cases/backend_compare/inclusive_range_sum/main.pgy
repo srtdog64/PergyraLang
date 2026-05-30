@@ -1,0 +1,17 @@
+func SumRange(lo: Int, hi: Int) -> Int {
+    let total: Int = 0;
+    let i: Int = lo;
+    while i <= hi {
+        total = total + i;
+        i = i + 1;
+    }
+    return total;
+}
+
+func Main() -> Void {
+    Log(SumRange(1, 10));
+    Log(SumRange(5, 5));
+    Log(SumRange(10, 1));
+    Log(SumRange(-3, 3));
+    Log(SumRange(100, 110));
+}

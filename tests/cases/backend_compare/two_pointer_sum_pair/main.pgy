@@ -1,0 +1,20 @@
+func FindPairSum(sorted: Array<Int>, target: Int) -> Bool {
+    let lo: Int = 0;
+    let hi: Int = ArrayLength(sorted) - 1;
+    while lo < hi {
+        let s: Int = sorted[lo] + sorted[hi];
+        if s == target { return true; }
+        if s < target { lo = lo + 1; }
+        if s > target { hi = hi - 1; }
+    }
+    return false;
+}
+
+func Main() -> Void {
+    let xs: Array<Int> = [1, 3, 5, 7, 9, 11, 13];
+    Log(ToString(FindPairSum(xs, 12)));
+    Log(ToString(FindPairSum(xs, 24)));
+    Log(ToString(FindPairSum(xs, 4)));
+    Log(ToString(FindPairSum(xs, 100)));
+    Log(ToString(FindPairSum(xs, 2)));
+}

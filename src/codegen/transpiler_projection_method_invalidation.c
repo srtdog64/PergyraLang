@@ -105,7 +105,9 @@ append_overlay_method_projection_invalidations(CodeBuf *buf,
             && ast_member_object(ast_call_callee(node))->type == AST_IDENTIFIER
             && ast_identifier_name(ast_member_object(ast_call_callee(node))) != NULL
             && ast_member_name(ast_call_callee(node)) != NULL) {
-            ASTNode *host_decl = find_class_decl(ctx, host_type_name);
+            ASTNode *host_decl =
+                transpiler_find_projection_nominal_decl_local(
+                    ctx, host_type_name);
             ClassField *field = NULL;
 
             if (host_decl != NULL && host_decl->type == AST_CLASS_DECL) {

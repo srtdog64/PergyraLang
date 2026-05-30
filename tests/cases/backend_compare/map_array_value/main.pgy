@@ -1,0 +1,15 @@
+func Main() -> Void {
+    let xs: Array<Int> = [1, 2, 3, 4, 5];
+    let mapped: Array<Int> = [];
+    let i: Int = 0;
+    while i < ArrayLength(xs) {
+        ArrayPush(mapped, xs[i] * xs[i] + 1);
+        i = i + 1;
+    }
+    let j: Int = 0;
+    while j < ArrayLength(mapped) {
+        Log(mapped[j]);
+        j = j + 1;
+    }
+    Log(ArrayLength(mapped));
+}

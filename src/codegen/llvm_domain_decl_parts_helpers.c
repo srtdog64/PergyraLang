@@ -2,6 +2,7 @@
 
 #include "llvm_domain_decl_parts_helpers.h"
 #include "host_decl_compat.h"
+#include "llvm_inventory_decl_lookup.h"
 #include "parser/ast_domain_api.h"
 
 void
@@ -25,9 +26,10 @@ llvm_domain_decl_parts(ASTNode *stmt,
     if (stmt == NULL)
         return;
 
+    *decl_name = llvm_decl_node_name(stmt);
+
     switch (stmt->type) {
     case AST_PARTY_DECL:
-        *decl_name = ast_party_name(stmt);
         {
             PgyHostSharedFieldsCompatView shared =
                 pgy_host_shared_fields_compat_view_from_decl(stmt);
@@ -36,7 +38,6 @@ llvm_domain_decl_parts(ASTNode *stmt,
         }
         break;
     case AST_ROSTER_DECL:
-        *decl_name = ast_roster_name(stmt);
         {
             PgyHostSharedFieldsCompatView shared =
                 pgy_host_shared_fields_compat_view_from_decl(stmt);
@@ -45,7 +46,6 @@ llvm_domain_decl_parts(ASTNode *stmt,
         }
         break;
     case AST_WORLD_DECL:
-        *decl_name = ast_world_name(stmt);
         {
             PgyHostSharedFieldsCompatView shared =
                 pgy_host_shared_fields_compat_view_from_decl(stmt);
@@ -54,7 +54,6 @@ llvm_domain_decl_parts(ASTNode *stmt,
         }
         break;
     case AST_RELATION_DECL:
-        *decl_name = ast_relation_name(stmt);
         *slots = ast_relation_slots(stmt, slot_count);
         {
             PgyHostSharedFieldsCompatView shared =
@@ -65,7 +64,6 @@ llvm_domain_decl_parts(ASTNode *stmt,
         *refreshes = ast_relation_refreshes(stmt, refresh_count);
         break;
     case AST_EFFECT_DECL:
-        *decl_name = ast_effect_name(stmt);
         *slots = ast_effect_slots(stmt, slot_count);
         {
             PgyHostSharedFieldsCompatView shared =
@@ -76,7 +74,6 @@ llvm_domain_decl_parts(ASTNode *stmt,
         *refreshes = ast_effect_refreshes(stmt, refresh_count);
         break;
     case AST_ZONE_DECL:
-        *decl_name = ast_zone_name(stmt);
         *slots = ast_zone_slots(stmt, slot_count);
         {
             PgyHostSharedFieldsCompatView shared =

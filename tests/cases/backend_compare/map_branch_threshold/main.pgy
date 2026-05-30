@@ -1,0 +1,22 @@
+func Classify(score: Int) -> String {
+    if score >= 90 { return "A"; }
+    if score >= 80 { return "B"; }
+    if score >= 70 { return "C"; }
+    if score >= 60 { return "D"; }
+    return "F";
+}
+
+func Main() -> Void {
+    let scores: HashMap<String, Int> = MapNew();
+    MapSet(scores, "alice", 95);
+    MapSet(scores, "bob", 72);
+    MapSet(scores, "carol", 58);
+    MapSet(scores, "dave", 81);
+    MapSet(scores, "eve", 65);
+
+    Log(Classify(MapGet(scores, "alice")));
+    Log(Classify(MapGet(scores, "bob")));
+    Log(Classify(MapGet(scores, "carol")));
+    Log(Classify(MapGet(scores, "dave")));
+    Log(Classify(MapGet(scores, "eve")));
+}

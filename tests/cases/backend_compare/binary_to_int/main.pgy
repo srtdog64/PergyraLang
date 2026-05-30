@@ -1,0 +1,21 @@
+func BinaryToInt(bits: String) -> Int {
+    let value: Int = 0;
+    let i: Int = 0;
+    let n: Int = StringLength(bits);
+    while i < n {
+        value = value * 2;
+        let ch: String = Substring(bits, i, 1);
+        if ch == "1" { value = value + 1; }
+        i = i + 1;
+    }
+    return value;
+}
+
+func Main() -> Void {
+    Log(BinaryToInt("0"));
+    Log(BinaryToInt("1"));
+    Log(BinaryToInt("10"));
+    Log(BinaryToInt("11"));
+    Log(BinaryToInt("1011"));
+    Log(BinaryToInt("11111111"));
+}

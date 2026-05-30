@@ -268,6 +268,8 @@ llvm_class_add_field_ex(LLVMClassTypeEntry *entry, const char *field_name,
 LLVMClassTypeEntry *
 llvm_lookup_class(LLVMGenCtx *ctx, const char *class_name)
 {
+    if (ctx == NULL || class_name == NULL)
+        return NULL;
     for (int i = 0; i < ctx->class_type_count; i++) {
         if (strcmp(ctx->class_types[i].class_name, class_name) == 0)
             return &ctx->class_types[i];

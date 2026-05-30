@@ -6,6 +6,7 @@
 
 #include "../parser/ast_api.h"
 #include "domain_frontier_policy.h"
+#include "host_decl_compat.h"
 #include "transpiler_decl_lookup.h"
 #include "transpiler_domain_provenance_emit.h"
 #include "transpiler_func_forward_metadata.h"
@@ -23,19 +24,24 @@ transpiler_frontier_lookup_zone(void *ctx, const char *zone_name)
 void
 emit_world_decl(ASTNode *node, TranspilerCtx *ctx)
 {
-    const char *name = ast_world_name(node);
-    ASTNode *inventory_decl = transpiler_find_decl_in_inventory_local(
-        ctx, AST_WORLD_DECL, name);
+    const char *name = transpiler_decl_name_local(node);
+    ASTNode *inventory_decl;
     size_t embedded_frontier_count;
 
+    if (name == NULL)
+        return;
+    inventory_decl = transpiler_find_decl_in_inventory_local(
+        ctx, AST_WORLD_DECL, name);
     if (inventory_decl != NULL)
         node = inventory_decl;
     size_t roster_count = 0;
     ASTNode **rosters = ast_world_rosters(node, &roster_count);
     size_t zone_count = 0;
     ASTNode **zones = ast_world_zones(node, &zone_count);
-    size_t shared_count = 0;
-    ASTNode **shared_fields = ast_world_shared_fields(node, &shared_count);
+    PgyHostSharedFieldsCompatView shared_view =
+        pgy_host_shared_fields_compat_view_from_decl(node);
+    size_t shared_count = shared_view.count;
+    ASTNode **shared_fields = shared_view.fields;
     size_t state_count = 0;
     ASTNode **states = ast_world_states(node, &state_count);
     size_t activate_count = 0;

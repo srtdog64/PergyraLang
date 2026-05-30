@@ -302,8 +302,10 @@ resolve_projection_source_path_rec(TranspilerCtx *ctx, ASTNode *source_decl,
             continue;
         }
 
-        vessel_decl = find_class_decl(ctx, ast_type_name(field->type));
+        vessel_decl = transpiler_find_projection_nominal_decl_local(
+            ctx, ast_type_name(field->type));
         if (vessel_decl == NULL
+            || vessel_decl->type != AST_CLASS_DECL
             || ast_class_nominal_kind(vessel_decl) != NOMINAL_DECL_VESSEL) {
             continue;
         }
@@ -407,7 +409,7 @@ emit_projection_literal(TranspilerCtx *ctx, ASTNode *target_decl, ASTNode *sourc
 bool
 is_subject_type_name(TranspilerCtx *ctx, const char *type_name)
 {
-    ASTNode *decl = find_class_decl(ctx, type_name);
+    ASTNode *decl = find_subject_host_decl(ctx, type_name);
     if (decl != NULL && !ast_class_is_struct(decl))
         return ast_class_nominal_kind(decl) == NOMINAL_DECL_SUBJECT;
     for (int i = 0; ctx != NULL && i < ctx->generic_class_spec_count; i++) {

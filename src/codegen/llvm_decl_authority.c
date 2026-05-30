@@ -1,6 +1,7 @@
 #ifdef PGY_LLVM_ENABLED
 #include "llvm_decl_authority.h"
 #include "llvm_internal.h"
+#include "llvm_inventory_decl_lookup.h"
 
 static ASTNode *
 llvm_decl_find_current_host_decl(LLVMGenCtx *ctx)
@@ -74,7 +75,7 @@ llvm_decl_emit_zone_authority_check(LLVMGenCtx *ctx)
     }
 
     authority = authorities[0];
-    zone_name = ast_zone_name(zone_decl);
+    zone_name = llvm_decl_node_name(zone_decl);
     const char *subject_slot =
         ast_zone_authority_subject_slot_name(authority);
     if (authority->type != AST_ZONE_AUTHORITY

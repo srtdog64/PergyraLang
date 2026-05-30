@@ -105,8 +105,12 @@ emit_builtin_has_layer(ASTNode *call, TranspilerCtx *ctx)
     if (zone_decl != NULL
         && ast_call_arg_count(call) == 1
         && layer_name != NULL) {
+        const char *zone_name = transpiler_decl_name_local(zone_decl);
+        if (zone_name == NULL)
+            return domain_query_unsupported(ctx,
+                "C backend: HasLayer requires active zone context");
         return domain_query_heap_fmt("%s_has_layer_%s(self, __pgy_zone_gen)",
-            ast_zone_name(zone_decl), layer_name);
+            zone_name, layer_name);
     }
 
     return domain_query_unsupported(ctx,

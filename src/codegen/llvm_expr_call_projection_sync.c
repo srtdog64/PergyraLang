@@ -54,6 +54,8 @@ llvm_emit_world_embedded_receiver_projection_sync(LLVMGenCtx *ctx,
     LLVMValueRef zone_ptr;
     LLVMFuncEntry *sync_entry;
     int zone_field_idx;
+    const char *world_name;
+    const char *zone_name;
 
     if (ctx == NULL || receiver == NULL)
         return;
@@ -68,8 +70,12 @@ llvm_emit_world_embedded_receiver_projection_sync(LLVMGenCtx *ctx,
         return;
     }
 
-    world_cls = llvm_lookup_class(ctx, ast_world_name(host_decl));
-    zone_cls = llvm_lookup_class(ctx, ast_zone_name(zone_decl));
+    world_name = llvm_decl_node_name(host_decl);
+    zone_name = llvm_decl_node_name(zone_decl);
+    if (world_name == NULL || zone_name == NULL)
+        return;
+    world_cls = llvm_lookup_class(ctx, world_name);
+    zone_cls = llvm_lookup_class(ctx, zone_name);
     self_var = llvm_scope_lookup(ctx, "self");
     if (world_cls == NULL || zone_cls == NULL || self_var == NULL
         || zone_cls->sync_function_name == NULL) {
@@ -169,8 +175,7 @@ llvm_emit_world_embedded_receiver_projection_sync(LLVMGenCtx *ctx,
         }
         if (!llvm_projection_sync_call_function_name(world_sync_name,
                 sizeof(world_sync_name),
-                ast_world_name(host_decl) != NULL
-                    ? ast_world_name(host_decl) : "World")) {
+                world_name != NULL ? world_name : "World")) {
             llvm_set_error(ctx, "world sync function name is too long");
             return;
         }
@@ -201,7 +206,7 @@ llvm_emit_current_zone_subject_projection_sync(LLVMGenCtx *ctx, ASTNode *receive
         return;
 
     source_slot_name = ast_identifier_name(receiver);
-    host_name = ast_zone_name(host_decl);
+    host_name = llvm_decl_node_name(host_decl);
     if (source_slot_name == NULL || host_name == NULL)
         return;
 

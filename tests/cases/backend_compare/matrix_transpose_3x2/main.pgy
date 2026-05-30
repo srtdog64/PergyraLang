@@ -1,0 +1,20 @@
+func TransposeRow(src1: Array<Int>, src2: Array<Int>, src3: Array<Int>, col: Int) -> Array<Int> {
+    let out: Array<Int> = [src1[col], src2[col], src3[col]];
+    return out;
+}
+
+func Main() -> Void {
+    let r1: Array<Int> = [1, 2];
+    let r2: Array<Int> = [3, 4];
+    let r3: Array<Int> = [5, 6];
+
+    let col0: Array<Int> = TransposeRow(r1, r2, r3, 0);
+    let col1: Array<Int> = TransposeRow(r1, r2, r3, 1);
+
+    Log(col0[0]);
+    Log(col0[1]);
+    Log(col0[2]);
+    Log(col1[0]);
+    Log(col1[1]);
+    Log(col1[2]);
+}

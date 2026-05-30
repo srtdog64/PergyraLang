@@ -8,7 +8,6 @@
 #include "../parser/ast_api.h"
 
 #include "codegen_slot_type_policy.h"
-#include "host_decl_compat.h"
 #include "transpiler_decl_lookup.h"
 #include "transpiler_expr_type_infer.h"
 #include "transpiler_let_slot_emit.h"
@@ -88,19 +87,11 @@ transpiler_infer_local_type_name_from_expr(TranspilerCtx *ctx,
             const char *obj_type = transpiler_infer_local_type_name_from_expr(
                 ctx, func_decl, ast_member_object(expr));
             if (obj_type != NULL) {
-                ASTNode *obj_decl = find_class_decl(ctx, obj_type);
-                if (obj_decl != NULL) {
-                    ClassField *field = pgy_host_class_field_compat_find(
-                        obj_decl, ast_member_name(expr));
-                    if (field != NULL && field->type != NULL) {
-                        char *rendered = render_type_name_in_ctx(ctx,
-                            field->type);
-                        const char *copied =
-                            transpiler_mir_arena_copy_type_name(ctx, rendered);
-                        free(rendered);
-                        return copied;
-                    }
-                }
+                const char *member_type =
+                    transpiler_lookup_nominal_host_member_type_name(
+                        ctx, obj_type, ast_member_name(expr));
+                if (member_type != NULL)
+                    return member_type;
             }
         }
         return semantic_type != NULL && semantic_type[0] != '\0'
@@ -164,8 +155,14 @@ transpiler_infer_local_type_name_from_expr(TranspilerCtx *ctx,
             && ast_call_callee(expr)->type == AST_IDENTIFIER
             && ast_identifier_name(ast_call_callee(expr)) != NULL) {
             const char *callee_name = ast_identifier_name(ast_call_callee(expr));
-            ASTNode *callee_decl = find_function_decl(ctx, callee_name);
-            ASTNode *callee_return_type = ast_func_return_type(callee_decl);
+            ASTNode *callee_decl = find_callable_decl(ctx, callee_name);
+            ASTNode *callee_return_type;
+            if (callee_decl != NULL && callee_decl->type == AST_INTENT_DECL)
+                return "Bool";
+            callee_return_type = callee_decl != NULL
+                && callee_decl->type == AST_FUNC_DECL
+                    ? ast_func_return_type(callee_decl)
+                    : NULL;
             if (callee_return_type != NULL) {
                 char *rendered = render_type_name_in_ctx(ctx,
                     callee_return_type);
@@ -430,19 +427,11 @@ transpiler_lookup_current_owner_member_type_name(TranspilerCtx *ctx,
     if (host_decl != NULL) {
         switch (host_decl->type) {
         case AST_CLASS_DECL:
-            host_name = ast_class_name(host_decl);
-            break;
         case AST_RELATION_DECL:
-            host_name = ast_relation_name(host_decl);
-            break;
         case AST_EFFECT_DECL:
-            host_name = ast_effect_name(host_decl);
-            break;
         case AST_ZONE_DECL:
-            host_name = ast_zone_name(host_decl);
-            break;
         case AST_WORLD_DECL:
-            host_name = ast_world_name(host_decl);
+            host_name = transpiler_decl_name_local(host_decl);
             break;
         default:
             break;

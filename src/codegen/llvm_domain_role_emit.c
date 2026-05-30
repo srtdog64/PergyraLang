@@ -8,6 +8,7 @@
 #include "llvm_domain_role_emit.h"
 
 #include "llvm_domain_role_helpers.h"
+#include "llvm_inventory_decl_lookup.h"
 #include "llvm_inventory_host_methods.h"
 
 static const char *
@@ -94,7 +95,7 @@ llvm_emit_domain_role_method_bodies(LLVMGenCtx *ctx,
         if (stmt == NULL || stmt->type != AST_ROLE_DECL)
             continue;
 
-        const char *role_name = ast_role_name(stmt);
+        const char *role_name = llvm_decl_node_name(stmt);
         LLVMHostedMethodView method_view =
             llvm_hosted_method_view_from_decl(ctx, role_name, stmt);
         if (llvm_hosted_method_view_missing_mir_metadata(&method_view)) {

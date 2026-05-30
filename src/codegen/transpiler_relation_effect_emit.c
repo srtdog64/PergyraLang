@@ -6,6 +6,7 @@
 
 #include "../parser/ast_api.h"
 #include "../semantic/diag_codes.h"
+#include "host_decl_compat.h"
 #include "transpiler_decl_lookup.h"
 #include "transpiler_domain_provenance_emit.h"
 #include "transpiler_func_forward_metadata.h"
@@ -46,10 +47,13 @@ transpiler_relation_effect_surface_desc_too_long(TranspilerCtx *ctx,
 void
 emit_relation_decl(ASTNode *node, TranspilerCtx *ctx)
 {
-    const char *name = ast_relation_name(node);
-    ASTNode *inventory_decl = transpiler_find_decl_in_inventory_local(
-        ctx, AST_RELATION_DECL, name);
+    const char *name = transpiler_decl_name_local(node);
+    ASTNode *inventory_decl;
 
+    if (name == NULL)
+        return;
+    inventory_decl = transpiler_find_decl_in_inventory_local(
+        ctx, AST_RELATION_DECL, name);
     if (inventory_decl != NULL)
         node = inventory_decl;
 
@@ -89,8 +93,10 @@ emit_relation_decl(ASTNode *node, TranspilerCtx *ctx)
         }
     }
 
-    size_t shared_count = 0;
-    ASTNode **shared_fields = ast_relation_shared_fields(node, &shared_count);
+    PgyHostSharedFieldsCompatView shared_view =
+        pgy_host_shared_fields_compat_view_from_decl(node);
+    size_t shared_count = shared_view.count;
+    ASTNode **shared_fields = shared_view.fields;
     for (size_t i = 0; i < shared_count; i++) {
         ASTNode *shared = shared_fields[i];
         char ft[256];
@@ -159,10 +165,13 @@ emit_relation_decl(ASTNode *node, TranspilerCtx *ctx)
 void
 emit_effect_decl(ASTNode *node, TranspilerCtx *ctx)
 {
-    const char *name = ast_effect_name(node);
-    ASTNode *inventory_decl = transpiler_find_decl_in_inventory_local(
-        ctx, AST_EFFECT_DECL, name);
+    const char *name = transpiler_decl_name_local(node);
+    ASTNode *inventory_decl;
 
+    if (name == NULL)
+        return;
+    inventory_decl = transpiler_find_decl_in_inventory_local(
+        ctx, AST_EFFECT_DECL, name);
     if (inventory_decl != NULL)
         node = inventory_decl;
 
@@ -202,8 +211,10 @@ emit_effect_decl(ASTNode *node, TranspilerCtx *ctx)
         }
     }
 
-    size_t shared_count = 0;
-    ASTNode **shared_fields = ast_effect_shared_fields(node, &shared_count);
+    PgyHostSharedFieldsCompatView shared_view =
+        pgy_host_shared_fields_compat_view_from_decl(node);
+    size_t shared_count = shared_view.count;
+    ASTNode **shared_fields = shared_view.fields;
     for (size_t i = 0; i < shared_count; i++) {
         ASTNode *shared = shared_fields[i];
         char ft[256];

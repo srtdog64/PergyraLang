@@ -1,0 +1,21 @@
+func Main() -> Void {
+    let xs: Array<Int> = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10];
+    let evens: Array<Int> = [];
+    let i: Int = 0;
+    while i < ArrayLength(xs) {
+        if xs[i] % 2 == 0 {
+            ArrayPush(evens, xs[i]);
+        }
+        i = i + 1;
+    }
+    Log(ArrayLength(evens));
+    let j: Int = 0;
+    let sum: Int = 0;
+    while j < ArrayLength(evens) {
+        sum = sum + evens[j];
+        j = j + 1;
+    }
+    Log(sum);
+    Log(evens[0]);
+    Log(evens[ArrayLength(evens) - 1]);
+}

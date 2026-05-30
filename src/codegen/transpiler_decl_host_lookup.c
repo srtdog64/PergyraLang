@@ -11,30 +11,6 @@
 #include "host_decl_compat.h"
 #include "transpiler_decl_lookup.h"
 
-typedef struct
-{
-    ASTNodeType owner_type;
-    ASTNodeType lookup_type;
-} TranspilerHostOwnerLookup;
-
-static const TranspilerHostOwnerLookup kTranspilerHostOwnerLookups[] = {
-    { AST_ZONE_DECL, AST_ZONE_DECL },
-    { AST_RELATION_DECL, AST_RELATION_DECL },
-    { AST_EFFECT_DECL, AST_EFFECT_DECL },
-    { AST_WORLD_DECL, AST_WORLD_DECL },
-    { AST_PARTY_DECL, AST_PARTY_DECL },
-    { AST_ROSTER_DECL, AST_ROSTER_DECL },
-    { AST_ENUM_DECL, AST_ENUM_DECL },
-    { AST_CLASS_DECL, AST_CLASS_DECL },
-};
-
-static size_t
-transpiler_host_owner_lookup_count(void)
-{
-    return sizeof(kTranspilerHostOwnerLookups)
-        / sizeof(kTranspilerHostOwnerLookups[0]);
-}
-
 static bool
 transpiler_decl_header_is_nominal_host(const MIRDeclHeader *header)
 {
@@ -145,13 +121,9 @@ transpiler_find_host_decl_from_owner_local(TranspilerCtx *ctx,
         return NULL;
     }
 
-    for (size_t i = 0; i < transpiler_host_owner_lookup_count(); i++) {
-        const TranspilerHostOwnerLookup *lookup =
-            &kTranspilerHostOwnerLookups[i];
-        if (lookup->owner_type == owner_ast_type) {
-            return transpiler_find_decl_in_active_inventory_only_local(
-                ctx, lookup->lookup_type, owner_name);
-        }
+    if (pgy_host_decl_compat_is_type(owner_ast_type)) {
+        return transpiler_find_decl_in_active_inventory_only_local(
+            ctx, owner_ast_type, owner_name);
     }
 
     return transpiler_find_decl_in_active_inventory_only_local(

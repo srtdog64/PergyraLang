@@ -94,4 +94,30 @@ llvm_spawn_wrapper_name(LLVMGenCtx *ctx, ASTNode *node,
     return false;
 }
 
+void
+llvm_spawn_append_mangled_suffix(char *buf, size_t buf_size,
+                                 const char *suffix)
+{
+    size_t len;
+    size_t remaining;
+    size_t suffix_len;
+
+    if (buf == NULL || buf_size == 0 || suffix == NULL)
+        return;
+
+    len = strlen(buf);
+    if (len >= buf_size - 1)
+        return;
+
+    buf[len++] = '_';
+
+    remaining = buf_size - len - 1;
+    suffix_len = strlen(suffix);
+    if (suffix_len > remaining)
+        suffix_len = remaining;
+
+    memcpy(buf + len, suffix, suffix_len);
+    buf[len + suffix_len] = '\0';
+}
+
 #endif

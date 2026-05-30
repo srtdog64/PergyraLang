@@ -1,0 +1,18 @@
+func Main() -> Void {
+    let words: Array<String> = ["red", "blue", "red", "green", "blue", "yellow", "red"];
+    let distinct: Set<String> = SetNew();
+    let i: Int = 0;
+    while i < ArrayLength(words) {
+        SetAdd(distinct, words[i]);
+        i = i + 1;
+    }
+    Log(SetSize(distinct));
+    let has_red: Bool = SetHas(distinct, "red");
+    let has_blue: Bool = SetHas(distinct, "blue");
+    let has_green: Bool = SetHas(distinct, "green");
+    let has_purple: Bool = SetHas(distinct, "purple");
+    Log(ToString(has_red));
+    Log(ToString(has_blue));
+    Log(ToString(has_green));
+    Log(ToString(has_purple));
+}

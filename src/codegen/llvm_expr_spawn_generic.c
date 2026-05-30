@@ -10,9 +10,7 @@
 #include <string.h>
 
 #include "llvm_boundary_slot_param.h"
-#include "llvm_expr_boundary_projection_helpers.h"
 #include "llvm_internal_api.h"
-#include "llvm_inventory_decl_lookup.h"
 #include "../common/string_compat.h"
 #include "../parser/ast_api.h"
 
@@ -88,7 +86,7 @@ llvm_resolve_callee_entry(LLVMGenCtx *ctx, const char *callee_name,
             callee_name, args != NULL ? args[i] : NULL, i);
         if (suf == NULL)
             return NULL;
-        llvm_append_mangled_suffix(mangled, sizeof(mangled), suf);
+        llvm_spawn_append_mangled_suffix(mangled, sizeof(mangled), suf);
     }
 
     if (!llvm_mono_already_emitted(ctx, mangled)) {

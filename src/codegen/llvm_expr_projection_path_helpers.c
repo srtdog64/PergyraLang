@@ -61,14 +61,6 @@ llvm_expr_projection_join_path(LLVMGenCtx *ctx,
     return path;
 }
 
-ASTNode *
-llvm_find_projection_nominal_decl(LLVMGenCtx *ctx, const char *name)
-{
-    if (ctx == NULL || name == NULL)
-        return NULL;
-    return llvm_find_decl_in_active_inventory(ctx, AST_CLASS_DECL, name);
-}
-
 static size_t
 llvm_projection_field_count(ASTNode *decl)
 {

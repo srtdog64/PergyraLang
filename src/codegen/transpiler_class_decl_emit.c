@@ -9,6 +9,7 @@
 #include "../compiler/mir.h"
 #include "../parser/ast_api.h"
 #include "../semantic/diag_codes.h"
+#include "host_decl_compat.h"
 #include "transpiler_context.h"
 #include "transpiler_decl_lookup.h"
 #include "transpiler_func_forward_metadata.h"
@@ -82,9 +83,15 @@ emit_class_decl(ASTNode *node, TranspilerCtx *ctx)
     if (transpiler_class_has_generic_params(node))
         return;
 
-    const char *name = ast_class_name(node);
-    size_t field_count = 0;
-    ClassField **fields = ast_class_fields(node, &field_count);
+    const char *name = transpiler_decl_name_local(node);
+    PgyHostClassFieldsCompatView field_view;
+    ClassField **fields;
+    size_t field_count;
+    if (name == NULL)
+        return;
+    field_view = pgy_host_class_fields_compat_view_from_decl(node);
+    fields = field_view.fields;
+    field_count = field_view.count;
     TranspilerHostedMethodView method_view =
         transpiler_hosted_method_view_from_decl(ctx, name, node);
     if (transpiler_hosted_method_view_missing_mir_metadata(&method_view)) {

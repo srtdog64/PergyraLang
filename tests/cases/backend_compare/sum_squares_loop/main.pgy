@@ -1,0 +1,17 @@
+func SumSquares(n: Int) -> Int {
+    let total: Int = 0;
+    let i: Int = 1;
+    while i <= n {
+        total = total + i * i;
+        i = i + 1;
+    }
+    return total;
+}
+
+func Main() -> Void {
+    Log(SumSquares(1));
+    Log(SumSquares(3));
+    Log(SumSquares(5));
+    Log(SumSquares(10));
+    Log(SumSquares(0));
+}

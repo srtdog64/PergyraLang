@@ -1,5 +1,6 @@
 #ifdef PGY_LLVM_ENABLED
 #include "llvm_internal.h"
+#include "llvm_inventory_decl_lookup.h"
 #include "parser/ast_api.h"
 
 static bool
@@ -40,14 +41,6 @@ llvm_zone_action_sync_name(LLVMGenCtx *ctx, char *out, size_t out_size,
         "LLVM zone action sync function name is too long for effect '%s'",
         effect_name);
     return false;
-}
-
-static ASTNode *
-llvm_stmt_find_effect_decl(LLVMGenCtx *ctx, const char *effect_name)
-{
-    if (ctx == NULL || effect_name == NULL)
-        return NULL;
-    return llvm_find_decl_in_active_inventory(ctx, AST_EFFECT_DECL, effect_name);
 }
 
 static ASTNode *
@@ -162,6 +155,7 @@ llvm_stmt_emit_zone_action_effect_runtime(ASTNode *call, LLVMGenCtx *ctx)
     const char *receiver_slot_name = NULL;
     const char *receiver_type_name = NULL;
     const char *effect_name;
+    const char *zone_name;
 
     if (ctx == NULL || call == NULL
         || call->type != AST_CALL) {
@@ -170,6 +164,9 @@ llvm_stmt_emit_zone_action_effect_runtime(ASTNode *call, LLVMGenCtx *ctx)
 
     zone_decl = llvm_current_host_decl(ctx);
     if (zone_decl == NULL || zone_decl->type != AST_ZONE_DECL)
+        return;
+    zone_name = llvm_decl_node_name(zone_decl);
+    if (zone_name == NULL)
         return;
 
     callee = ast_call_callee(call);
@@ -193,14 +190,13 @@ llvm_stmt_emit_zone_action_effect_runtime(ASTNode *call, LLVMGenCtx *ctx)
         || !ast_func_is_action(method_decl)
         || ast_func_within_zone(method_decl) == NULL
         || ast_func_causes_effect(method_decl) == NULL
-        || strcmp(ast_func_within_zone(method_decl),
-                  ast_zone_name(zone_decl)) != 0) {
+        || strcmp(ast_func_within_zone(method_decl), zone_name) != 0) {
         return;
     }
 
     effect_name = ast_func_causes_effect(method_decl);
-    effect_decl = llvm_stmt_find_effect_decl(ctx, effect_name);
-    zone_cls = llvm_lookup_class(ctx, ast_zone_name(zone_decl));
+    effect_decl = llvm_find_named_domain_decl(ctx, AST_EFFECT_DECL, effect_name);
+    zone_cls = llvm_lookup_class(ctx, zone_name);
     effect_cls = llvm_lookup_class(ctx, effect_name);
     self_var = llvm_scope_lookup(ctx, "self");
     if (effect_decl == NULL || zone_cls == NULL || effect_cls == NULL || self_var == NULL)

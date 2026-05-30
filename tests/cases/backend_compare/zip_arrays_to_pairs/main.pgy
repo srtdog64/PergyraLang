@@ -1,0 +1,17 @@
+func Main() -> Void {
+    let keys: Array<String> = ["a", "b", "c", "d"];
+    let values: Array<Int> = [10, 20, 30, 40];
+    let pairs: HashMap<String, Int> = MapNew();
+    let n: Int = ArrayLength(keys);
+    if ArrayLength(values) < n { n = ArrayLength(values); }
+    let i: Int = 0;
+    while i < n {
+        MapSet(pairs, keys[i], values[i]);
+        i = i + 1;
+    }
+    Log(MapGet(pairs, "a"));
+    Log(MapGet(pairs, "b"));
+    Log(MapGet(pairs, "c"));
+    Log(MapGet(pairs, "d"));
+    Log(MapHas(pairs, "e"));
+}

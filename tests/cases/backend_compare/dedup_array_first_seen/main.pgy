@@ -1,0 +1,21 @@
+func Main() -> Void {
+    let xs: Array<Int> = [3, 1, 4, 1, 5, 9, 2, 6, 5, 3, 5];
+    let seen: Set<Int> = SetNew();
+    let unique: Array<Int> = [];
+    let i: Int = 0;
+    while i < ArrayLength(xs) {
+        let v: Int = xs[i];
+        if !SetHas(seen, v) {
+            SetAdd(seen, v);
+            ArrayPush(unique, v);
+        }
+        i = i + 1;
+    }
+    Log(ArrayLength(unique));
+    Log(SetSize(seen));
+    let j: Int = 0;
+    while j < ArrayLength(unique) {
+        Log(unique[j]);
+        j = j + 1;
+    }
+}

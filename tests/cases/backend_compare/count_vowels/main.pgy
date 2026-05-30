@@ -1,0 +1,29 @@
+func IsVowel(c: String) -> Bool {
+    if c == "a" { return true; }
+    if c == "e" { return true; }
+    if c == "i" { return true; }
+    if c == "o" { return true; }
+    if c == "u" { return true; }
+    return false;
+}
+
+func CountVowels(s: String) -> Int {
+    let count: Int = 0;
+    let i: Int = 0;
+    let n: Int = StringLength(s);
+    while i < n {
+        if IsVowel(Substring(s, i, 1)) {
+            count = count + 1;
+        }
+        i = i + 1;
+    }
+    return count;
+}
+
+func Main() -> Void {
+    Log(CountVowels("hello"));
+    Log(CountVowels("rhythm"));
+    Log(CountVowels("aeiou"));
+    Log(CountVowels(""));
+    Log(CountVowels("programming"));
+}

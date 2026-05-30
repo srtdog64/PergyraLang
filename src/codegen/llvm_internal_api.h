@@ -373,6 +373,11 @@ ASTNode *llvm_find_named_domain_decl(LLVMGenCtx *ctx, ASTNodeType decl_type,
                                      const char *name);
 ASTNode *llvm_find_domain_constructor_decl(LLVMGenCtx *ctx,
                                            const char *name);
+ASTNode *llvm_find_function_decl(LLVMGenCtx *ctx, const char *name);
+ASTNode *llvm_find_intent_decl(LLVMGenCtx *ctx, const char *name);
+ASTNode *llvm_find_callable_decl(LLVMGenCtx *ctx, const char *name);
+ASTNode *llvm_find_projection_nominal_decl(LLVMGenCtx *ctx,
+                                           const char *name);
 ASTNode *llvm_find_nominal_host_method_decl(LLVMGenCtx *ctx,
                                             const char *host_type_name,
                                             const char *method_name);

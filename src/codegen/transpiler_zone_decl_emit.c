@@ -4,6 +4,7 @@
 #include <string.h>
 
 #include "domain_frontier_policy.h"
+#include "host_decl_compat.h"
 #include "parser/ast_api.h"
 #include "transpiler_context.h"
 #include "transpiler_decl_lookup.h"
@@ -18,10 +19,13 @@
 void
 emit_zone_decl(ASTNode *node, TranspilerCtx *ctx)
 {
-    const char *name = ast_zone_name(node);
-    ASTNode *inventory_decl = transpiler_find_decl_in_inventory_local(
-        ctx, AST_ZONE_DECL, name);
+    const char *name = transpiler_decl_name_local(node);
+    ASTNode *inventory_decl;
 
+    if (name == NULL)
+        return;
+    inventory_decl = transpiler_find_decl_in_inventory_local(
+        ctx, AST_ZONE_DECL, name);
     if (inventory_decl != NULL)
         node = inventory_decl;
 
@@ -37,8 +41,10 @@ emit_zone_decl(ASTNode *node, TranspilerCtx *ctx)
 
     size_t slot_count = 0;
     ASTNode **slots = ast_zone_slots(node, &slot_count);
-    size_t shared_count = 0;
-    ASTNode **shared_fields = ast_zone_shared_fields(node, &shared_count);
+    PgyHostSharedFieldsCompatView shared_view =
+        pgy_host_shared_fields_compat_view_from_decl(node);
+    size_t shared_count = shared_view.count;
+    ASTNode **shared_fields = shared_view.fields;
     size_t state_count = 0;
     ASTNode **states = ast_zone_states(node, &state_count);
     size_t layer_slot_count = 0;

@@ -9,6 +9,7 @@
 
 #include "llvm_domain_forward_internal.h"
 #include "llvm_domain_role_helpers.h"
+#include "llvm_inventory_decl_lookup.h"
 #include "llvm_inventory_host_methods.h"
 
 static void
@@ -186,7 +187,7 @@ llvm_emit_domain_role_forward_decls(LLVMGenCtx *ctx,
         if (stmt == NULL || stmt->type != AST_ROLE_DECL)
             continue;
 
-        role_name = ast_role_name(stmt);
+        role_name = llvm_decl_node_name(stmt);
         {
             LLVMHostedMethodView method_view =
                 llvm_hosted_method_view_from_decl(ctx, role_name, stmt);

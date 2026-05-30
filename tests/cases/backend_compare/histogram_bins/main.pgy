@@ -1,0 +1,23 @@
+func BinFor(value: Int) -> Int {
+    if value < 10 { return 0; }
+    if value < 20 { return 1; }
+    if value < 30 { return 2; }
+    if value < 40 { return 3; }
+    return 4;
+}
+
+func Main() -> Void {
+    let xs: Array<Int> = [3, 25, 12, 18, 33, 41, 7, 22, 39, 5];
+    let bins: Array<Int> = [0, 0, 0, 0, 0];
+    let i: Int = 0;
+    while i < ArrayLength(xs) {
+        let b: Int = BinFor(xs[i]);
+        ArraySet(bins, b, bins[b] + 1);
+        i = i + 1;
+    }
+    let j: Int = 0;
+    while j < ArrayLength(bins) {
+        Log(bins[j]);
+        j = j + 1;
+    }
+}

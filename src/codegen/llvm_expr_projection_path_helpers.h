@@ -3,8 +3,6 @@
 
 #include "llvm_internal.h"
 
-ASTNode *llvm_find_projection_nominal_decl(LLVMGenCtx *ctx, const char *name);
-
 LLVMValueRef llvm_load_projection_path_value(LLVMGenCtx *ctx,
                                              ASTNode *source_decl,
                                              LLVMClassTypeEntry *source_cls,
