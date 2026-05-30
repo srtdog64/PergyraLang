@@ -148,10 +148,10 @@ if grep -E 'rir->(scope_count|scopes)\b' \
         src/compiler/mir_base_helpers.c >/dev/null; then
     fail "MIR RIR-scope matching must not reopen raw RIR scope arrays"
 fi
-if grep -R -E 'rir_scope->(facts|fact_count|ops|op_count)\b' \
+if grep -R -E 'rir_scope->(facts|fact_count|ops|op_count|flow_blocks|flow_block_count|conservative_semantics)\b|flow->(facts|fact_count|entry_semantics|exit_semantics)\b' \
         src/compiler/mir_cleanup.c \
         src/compiler/mir_lower_population.c >/dev/null; then
-    fail "MIR RIR-scope consumers must consume RIR fact/op accessors"
+    fail "MIR RIR-scope consumers must consume RIR fact/op/flow-block semantic accessors"
 fi
 if ! grep -q "rir_scope_inventory_from_program(rir, &inventory)" \
         src/compiler/rir_validation.c; then
@@ -166,20 +166,64 @@ if grep -E 'rir->(scope_count|scopes)\b' \
         src/compiler/rir_validation_dir.c >/dev/null; then
     fail "RIR validation must not reopen raw RIR scope arrays"
 fi
-if grep -R -E 'scope->(facts|fact_count|ops|op_count|state_summaries|state_summary_count)\b' \
+if grep -R -E 'scope->(kind|name|owner_name|has_state_errors|facts|fact_count|ops|op_count|state_summaries|state_summary_count)\b' \
         src/compiler/rir_validation.c \
         src/compiler/rir_validation_dir.c >/dev/null; then
-    fail "RIR validation must consume RIR scope item accessors"
+    fail "RIR validation must consume RIR scope metadata/item accessors"
 fi
+for term in \
+    "rir_scope_kind(scope)" \
+    "rir_scope_display_name(scope)"; do
+    if ! grep -q "$term" src/compiler/rir_validation.c; then
+        fail "RIR validation must consume RIR scope metadata accessor term: $term"
+    fi
+done
+for term in \
+    "rir_scope_kind(scope)" \
+    "rir_scope_name(scope)" \
+    "rir_scope_display_name(scope)"; do
+    if ! grep -q "$term" src/compiler/rir_validation_dir.c; then
+        fail "RIR/DIR validation must consume RIR scope metadata accessor term: $term"
+    fi
+done
+if grep -E 'scope->(flow_blocks|flow_block_count)\b|block->(block_id|is_reachable|is_join|facts|fact_count)\b' \
+        src/compiler/rir_validation.c >/dev/null; then
+    fail "RIR validation must consume RIR flow-block item accessors"
+fi
+for term in \
+    "rir_scope_flow_block_count(scope)" \
+    "rir_scope_flow_block_at(scope, j)" \
+    "rir_flow_block_id(block)" \
+    "rir_flow_block_fact_count(block)" \
+    "rir_flow_block_fact_at(block, k)"; do
+    if ! grep -q "$term" src/compiler/rir_validation.c; then
+        fail "RIR validation must consume RIR flow-block accessor term: $term"
+    fi
+done
 for term in \
     "rir_scope_inventory_from_program(rir, &inventory)" \
     "rir_scope_inventory_get(&inventory, i)" \
+    "rir_scope_kind(scope)" \
+    "rir_scope_name(scope)" \
+    "rir_scope_owner_name(scope)" \
+    "rir_scope_display_name(scope)" \
+    "rir_scope_has_state_errors(scope)" \
     "rir_scope_fact_count(scope)" \
     "rir_scope_fact_at(scope, j)" \
     "rir_scope_op_count(scope)" \
     "rir_scope_op_at(scope, j)" \
     "rir_scope_state_summary_count(scope)" \
-    "rir_scope_state_summary_at(scope, j)"; do
+    "rir_scope_state_summary_at(scope, j)" \
+    "rir_scope_conservative_semantics(scope)" \
+    "rir_scope_flow_block_count(scope)" \
+    "rir_scope_flow_block_at(scope, j)" \
+    "rir_flow_block_id(block)" \
+    "rir_flow_block_is_reachable(block)" \
+    "rir_flow_block_is_join(block)" \
+    "rir_flow_block_entry_semantics(block)" \
+    "rir_flow_block_exit_semantics(block)" \
+    "rir_flow_block_fact_count(block)" \
+    "rir_flow_block_fact_at(block, k)"; do
     if ! grep -q "$term" src/compiler/rir_public_surface.c; then
         fail "RIR public dump surface must consume accessor term: $term"
     fi

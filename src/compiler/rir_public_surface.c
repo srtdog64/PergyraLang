@@ -111,6 +111,37 @@ rir_mutable_scope_inventory_get(
     return &inventory->scopes[index];
 }
 
+RIRScopeKind
+rir_scope_kind(const RIRScope *scope)
+{
+    return scope != NULL ? scope->kind : RIR_SCOPE_FUNCTION;
+}
+
+const char *
+rir_scope_name(const RIRScope *scope)
+{
+    return scope != NULL ? scope->name : NULL;
+}
+
+const char *
+rir_scope_owner_name(const RIRScope *scope)
+{
+    return scope != NULL ? scope->owner_name : NULL;
+}
+
+const char *
+rir_scope_display_name(const RIRScope *scope)
+{
+    const char *name = rir_scope_name(scope);
+    return name != NULL ? name : "(anonymous)";
+}
+
+bool
+rir_scope_has_state_errors(const RIRScope *scope)
+{
+    return scope != NULL && scope->has_state_errors;
+}
+
 size_t
 rir_scope_fact_count(const RIRScope *scope)
 {
@@ -153,6 +184,72 @@ rir_scope_state_summary_at(const RIRScope *scope, size_t index)
         return NULL;
     }
     return &scope->state_summaries[index];
+}
+
+unsigned int
+rir_scope_conservative_semantics(const RIRScope *scope)
+{
+    return scope != NULL ? scope->conservative_semantics : RIR_FLOW_NONE;
+}
+
+size_t
+rir_scope_flow_block_count(const RIRScope *scope)
+{
+    return scope != NULL ? scope->flow_block_count : 0;
+}
+
+const RIRFlowBlock *
+rir_scope_flow_block_at(const RIRScope *scope, size_t index)
+{
+    if (scope == NULL || scope->flow_blocks == NULL
+        || index >= scope->flow_block_count) {
+        return NULL;
+    }
+    return &scope->flow_blocks[index];
+}
+
+size_t
+rir_flow_block_id(const RIRFlowBlock *block)
+{
+    return block != NULL ? block->block_id : 0;
+}
+
+bool
+rir_flow_block_is_reachable(const RIRFlowBlock *block)
+{
+    return block != NULL && block->is_reachable;
+}
+
+bool
+rir_flow_block_is_join(const RIRFlowBlock *block)
+{
+    return block != NULL && block->is_join;
+}
+
+unsigned int
+rir_flow_block_entry_semantics(const RIRFlowBlock *block)
+{
+    return block != NULL ? block->entry_semantics : RIR_FLOW_NONE;
+}
+
+unsigned int
+rir_flow_block_exit_semantics(const RIRFlowBlock *block)
+{
+    return block != NULL ? block->exit_semantics : RIR_FLOW_NONE;
+}
+
+size_t
+rir_flow_block_fact_count(const RIRFlowBlock *block)
+{
+    return block != NULL ? block->fact_count : 0;
+}
+
+const RIRFlowFact *
+rir_flow_block_fact_at(const RIRFlowBlock *block, size_t index)
+{
+    if (block == NULL || block->facts == NULL || index >= block->fact_count)
+        return NULL;
+    return &block->facts[index];
 }
 
 static void
@@ -263,11 +360,11 @@ rir_dump_json(const RIRProgram *rir, FILE *out)
             "      \"index\": %zu,\n"
             "      \"kind\": \"%s\",\n"
             "      \"name\": ",
-            i, rir_scope_kind_name(scope->kind));
-        json_write_str(out, scope->name);
+            i, rir_scope_kind_name(rir_scope_kind(scope)));
+        json_write_str(out, rir_scope_name(scope));
         fprintf(out, ",\n"
                      "      \"owner\": ");
-        json_write_str(out, scope->owner_name);
+        json_write_str(out, rir_scope_owner_name(scope));
         fprintf(out, ",\n"
                      "      \"fact_count\": %zu,\n"
                      "      \"op_count\": %zu,\n"
@@ -311,7 +408,7 @@ rir_dump_json(const RIRProgram *rir, FILE *out)
         fprintf(out, "\n      ],\n"
                      "      \"has_state_errors\": %s\n"
                      "    }",
-                scope->has_state_errors ? "true" : "false");
+                rir_scope_has_state_errors(scope) ? "true" : "false");
     }
 
     fputs("\n  ]\n}\n", out);
@@ -344,16 +441,16 @@ rir_dump(const RIRProgram *rir, FILE *out)
         summary_count = rir_scope_state_summary_count(scope);
         fprintf(out, "  scope[%02zu] %-8s %s%s%s facts=%zu ops=%zu\n",
                 i,
-                rir_scope_kind_name(scope->kind),
-                scope->owner_name != NULL ? scope->owner_name : "",
-                scope->owner_name != NULL ? "." : "",
-                scope->name != NULL ? scope->name : "(anonymous)",
+                rir_scope_kind_name(rir_scope_kind(scope)),
+                rir_scope_owner_name(scope) != NULL ? rir_scope_owner_name(scope) : "",
+                rir_scope_owner_name(scope) != NULL ? "." : "",
+                rir_scope_display_name(scope),
                 fact_count,
                 op_count);
         fprintf(out, "    normalize summaries=%zu state-errors=%s semantics=",
                 summary_count,
-                scope->has_state_errors ? "yes" : "no");
-        rir_dump_flow_semantics(out, scope->conservative_semantics);
+                rir_scope_has_state_errors(scope) ? "yes" : "no");
+        rir_dump_flow_semantics(out, rir_scope_conservative_semantics(scope));
         fputc('\n', out);
         for (size_t j = 0; j < fact_count; j++) {
             const RIRFact *fact = rir_scope_fact_at(scope, j);
@@ -404,20 +501,26 @@ rir_dump(const RIRProgram *rir, FILE *out)
                     summary->last_op_name != NULL ? summary->last_op_name : "-",
                     summary->has_transition_error ? "yes" : "no");
         }
-        for (size_t j = 0; j < scope->flow_block_count; j++) {
-            const RIRFlowBlock *block = &scope->flow_blocks[j];
+        for (size_t j = 0; j < rir_scope_flow_block_count(scope); j++) {
+            const RIRFlowBlock *block = rir_scope_flow_block_at(scope, j);
+            size_t fact_count;
+            if (block == NULL)
+                continue;
+            fact_count = rir_flow_block_fact_count(block);
             fprintf(out,
                     "    flow-block[%02zu] reachable=%s join=%s facts=%zu sem-entry=",
-                    block->block_id,
-                    block->is_reachable ? "yes" : "no",
-                    block->is_join ? "yes" : "no",
-                    block->fact_count);
-            rir_dump_flow_semantics(out, block->entry_semantics);
+                    rir_flow_block_id(block),
+                    rir_flow_block_is_reachable(block) ? "yes" : "no",
+                    rir_flow_block_is_join(block) ? "yes" : "no",
+                    fact_count);
+            rir_dump_flow_semantics(out, rir_flow_block_entry_semantics(block));
             fputs(" sem-exit=", out);
-            rir_dump_flow_semantics(out, block->exit_semantics);
+            rir_dump_flow_semantics(out, rir_flow_block_exit_semantics(block));
             fputc('\n', out);
-            for (size_t k = 0; k < block->fact_count; k++) {
-                const RIRFlowFact *fact = &block->facts[k];
+            for (size_t k = 0; k < fact_count; k++) {
+                const RIRFlowFact *fact = rir_flow_block_fact_at(block, k);
+                if (fact == NULL)
+                    continue;
                 fprintf(out,
                         "      flow[%02zu] name=%s slot=%s entry=%s exit=%s join=%s widened=%s entry-conflict=%s exit-conflict=%s\n",
                         k,

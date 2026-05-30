@@ -175,19 +175,26 @@ mir_rir_scope_requires_invalidation(const RIRScope *rir_scope)
     if (rir_scope == NULL)
         return false;
 
-    if ((rir_scope->conservative_semantics
+    if ((rir_scope_conservative_semantics(rir_scope)
          & (RIR_FLOW_INVALIDATION | RIR_FLOW_WORLD_HANDOFF | RIR_FLOW_PROJECTION_INVALIDATION)) != 0U) {
         return true;
     }
-    for (size_t i = 0; i < rir_scope->flow_block_count; i++) {
-        const RIRFlowBlock *flow = &rir_scope->flow_blocks[i];
-        unsigned int semantics = flow->entry_semantics | flow->exit_semantics;
+    for (size_t i = 0; i < rir_scope_flow_block_count(rir_scope); i++) {
+        const RIRFlowBlock *flow = rir_scope_flow_block_at(rir_scope, i);
+        size_t flow_fact_count;
+        if (flow == NULL)
+            continue;
+        flow_fact_count = rir_flow_block_fact_count(flow);
+        unsigned int semantics =
+            rir_flow_block_entry_semantics(flow) | rir_flow_block_exit_semantics(flow);
         if ((semantics
              & (RIR_FLOW_INVALIDATION | RIR_FLOW_WORLD_HANDOFF | RIR_FLOW_PROJECTION_INVALIDATION)) != 0U) {
             return true;
         }
-        for (size_t j = 0; j < flow->fact_count; j++) {
-            const RIRFlowFact *fact = &flow->facts[j];
+        for (size_t j = 0; j < flow_fact_count; j++) {
+            const RIRFlowFact *fact = rir_flow_block_fact_at(flow, j);
+            if (fact == NULL)
+                continue;
             if (fact->entry_conflict || fact->has_merge_conflict)
                 return true;
             if (fact->entry_state == RIR_STATE_DIRTY

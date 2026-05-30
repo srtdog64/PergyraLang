@@ -238,6 +238,11 @@ void        rir_mutable_scope_inventory_from_program(
 RIRScope   *rir_mutable_scope_inventory_get(
                 const RIRMutableScopeInventory *inventory,
                 size_t index);
+RIRScopeKind rir_scope_kind(const RIRScope *scope);
+const char *rir_scope_name(const RIRScope *scope);
+const char *rir_scope_owner_name(const RIRScope *scope);
+const char *rir_scope_display_name(const RIRScope *scope);
+bool        rir_scope_has_state_errors(const RIRScope *scope);
 size_t      rir_scope_fact_count(const RIRScope *scope);
 const RIRFact *rir_scope_fact_at(const RIRScope *scope, size_t index);
 size_t      rir_scope_op_count(const RIRScope *scope);
@@ -245,6 +250,18 @@ const RIROp *rir_scope_op_at(const RIRScope *scope, size_t index);
 size_t      rir_scope_state_summary_count(const RIRScope *scope);
 const RIRStateSummary *rir_scope_state_summary_at(const RIRScope *scope,
                                                   size_t index);
+unsigned int rir_scope_conservative_semantics(const RIRScope *scope);
+size_t      rir_scope_flow_block_count(const RIRScope *scope);
+const RIRFlowBlock *rir_scope_flow_block_at(const RIRScope *scope,
+                                            size_t index);
+size_t      rir_flow_block_id(const RIRFlowBlock *block);
+bool        rir_flow_block_is_reachable(const RIRFlowBlock *block);
+bool        rir_flow_block_is_join(const RIRFlowBlock *block);
+unsigned int rir_flow_block_entry_semantics(const RIRFlowBlock *block);
+unsigned int rir_flow_block_exit_semantics(const RIRFlowBlock *block);
+size_t      rir_flow_block_fact_count(const RIRFlowBlock *block);
+const RIRFlowFact *rir_flow_block_fact_at(const RIRFlowBlock *block,
+                                          size_t index);
 
 const char *rir_scope_kind_name(RIRScopeKind kind);
 const char *rir_fact_kind_name(RIRFactKind kind);

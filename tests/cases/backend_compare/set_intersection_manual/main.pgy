@@ -1,0 +1,22 @@
+func Main() -> Void {
+    let a: Set<Int> = SetNew();
+    SetAdd(a, 1);
+    SetAdd(a, 2);
+    SetAdd(a, 3);
+    SetAdd(a, 4);
+
+    let b: Set<Int> = SetNew();
+    SetAdd(b, 2);
+    SetAdd(b, 4);
+    SetAdd(b, 6);
+
+    let common: Int = 0;
+    if SetHas(a, 2) { if SetHas(b, 2) { common = common + 1; } }
+    if SetHas(a, 4) { if SetHas(b, 4) { common = common + 1; } }
+    if SetHas(a, 6) { if SetHas(b, 6) { common = common + 1; } }
+    if SetHas(a, 1) { if SetHas(b, 1) { common = common + 1; } }
+
+    Log(common);
+    Log(SetSize(a));
+    Log(SetSize(b));
+}

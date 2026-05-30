@@ -1,0 +1,16 @@
+func Main() -> Void {
+    let prices: HashMap<String, Long> = MapNew();
+    MapSet(prices, "apple", 250L);
+    MapSet(prices, "bread", 3500L);
+    MapSet(prices, "milk", 7800L);
+
+    Log(ToString(MapGet(prices, "apple")));
+    Log(ToString(MapGet(prices, "bread")));
+    Log(ToString(MapGet(prices, "milk")));
+
+    let total: Long = 0L;
+    if MapHas(prices, "apple") { total = total + MapGet(prices, "apple"); }
+    if MapHas(prices, "bread") { total = total + MapGet(prices, "bread"); }
+    if MapHas(prices, "milk") { total = total + MapGet(prices, "milk"); }
+    Log(ToString(total));
+}

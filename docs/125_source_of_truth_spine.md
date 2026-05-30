@@ -91,6 +91,22 @@ Current beta closure snapshot:
   matching must still use `rir_mutable_scope_inventory_from_program(...)`.
   Direct `rir->scopes` / `rir->scope_count` access is confined to RIR
   construction, destruction, and scope-storage/public-surface owners.
+  Read-only fact/op/state-summary access inside the flow owner must use the
+  RIR scope item accessors; only owner-local state-summary reset/rebuild writes
+  may touch the raw summary storage directly.
+  Validation and dump consumers must also read flow-block facts through
+  `rir_scope_flow_block_*` and `rir_flow_block_fact_*`; reopening
+  `scope->flow_blocks` / `block->facts` is limited to storage/build/enrichment
+  owners. MIR cleanup invalidation checks are consumers of those facts and must
+  use the same accessors. Flow semantic bits have the same rule:
+  consumers use `rir_scope_conservative_semantics(...)`,
+  `rir_flow_block_entry_semantics(...)`, and
+  `rir_flow_block_exit_semantics(...)` instead of reading raw fields. Flow-block
+  identity reads use `rir_flow_block_id(...)`,
+  `rir_flow_block_is_reachable(...)`, and `rir_flow_block_is_join(...)`.
+  Validation and dump consumers read scope metadata through
+  `rir_scope_kind/name/owner_name/display_name/has_state_errors`; direct field
+  reads are limited to RIR public-surface/storage/build owners.
 - MIR declaration method routine links consume the MIR routine inventory
   accessors from `src/compiler/mir_program_inventory.c`. Declaration header
   linking and validation may compare owner/name metadata, but they must not

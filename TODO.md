@@ -69,8 +69,21 @@ English anchor for tooling/doc gates:
   enrichment now consume HIR routine inventory through `hir_public.c` accessors,
   and RIR flow scope matching consumes the mutable RIR scope inventory. MIR
   RIR-scope matching, cleanup, and lower-population consume RIR scope
-  inventory/fact/op accessors. `semantic-core-shape-test-smoke` rejects
-  reopening those raw arrays in these consumers.
+  inventory/fact/op accessors. RIR flow enrichment also reads fact/op/summary
+  data through RIR scope item accessors, leaving only owner-local summary reset
+  mutation in that file. RIR validation/public dump flow-block fact consumers
+  now use `rir_scope_flow_block_*` and `rir_flow_block_fact_*` accessors instead
+  of reopening `scope->flow_blocks` / `block->facts`; flow-block identity
+  reads also go through `rir_flow_block_id(...)`,
+  `rir_flow_block_is_reachable(...)`, and `rir_flow_block_is_join(...)`.
+  RIR validation and dump scope metadata reads now go through
+  `rir_scope_kind/name/owner_name/display_name/has_state_errors` instead of
+  reopening scope fields directly.
+  MIR cleanup invalidation checks consume the same flow-block accessors plus
+  RIR semantic-bit accessors
+  instead of reading `conservative_semantics` / block entry-exit bits directly.
+  `semantic-core-shape-test-smoke` rejects reopening those raw arrays in these
+  consumers.
 - RIR validation seam tightening: `rir_validate(...)` and
   `rir_validate_against_dir(...)` now consume RIR scope inventory and scope item
   accessors rather than reopening raw scope/fact/op arrays. The same

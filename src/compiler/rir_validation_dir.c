@@ -43,11 +43,12 @@ rir_scope_name_matches(const RIRScope *scope,
                        const char *owner_name,
                        size_t owner_len)
 {
+    const char *scope_name = rir_scope_name(scope);
     return scope != NULL
-        && scope->name != NULL
+        && scope_name != NULL
         && owner_name != NULL
-        && strlen(scope->name) == owner_len
-        && strncmp(scope->name, owner_name, owner_len) == 0;
+        && strlen(scope_name) == owner_len
+        && strncmp(scope_name, owner_name, owner_len) == 0;
 }
 
 static const RIRFact *
@@ -105,9 +106,9 @@ rir_find_domain_scope_for_owner(const RIRProgram *rir,
         const RIRScope *scope = rir_scope_inventory_get(&inventory, i);
         if (scope == NULL)
             continue;
-        if ((scope->kind == RIR_SCOPE_ZONE
-             || scope->kind == RIR_SCOPE_RELATION
-             || scope->kind == RIR_SCOPE_EFFECT)
+        if ((rir_scope_kind(scope) == RIR_SCOPE_ZONE
+             || rir_scope_kind(scope) == RIR_SCOPE_RELATION
+             || rir_scope_kind(scope) == RIR_SCOPE_EFFECT)
             && rir_scope_name_matches(scope, owner_name, owner_len)) {
             return scope;
         }
@@ -167,6 +168,7 @@ rir_validate_against_dir(const RIRProgram *rir,
         }
 
         if (node->kind == DIR_NODE_AUTHORITY_SLOT) {
+            const char *scope_name = rir_scope_display_name(scope);
             fact = rir_scope_find_fact_by_name_kind(scope,
                                                     RIR_FACT_AUTHORITY,
                                                     local_name);
@@ -174,7 +176,7 @@ rir_validate_against_dir(const RIRProgram *rir,
                 if (error_message != NULL) {
                     *error_message = rir_strdup_fmt(
                         "RIR scope '%s' is missing authority fact for DIR authority-slot '%s'",
-                        scope->name != NULL ? scope->name : "(anonymous)",
+                        scope_name,
                         node->name != NULL ? node->name : "(unnamed)");
                 }
                 return false;
@@ -193,7 +195,7 @@ rir_validate_against_dir(const RIRProgram *rir,
                     if (error_message != NULL) {
                         *error_message = rir_strdup_fmt(
                             "RIR scope '%s' is missing capability fact '%s' for DIR authority-slot '%s'",
-                            scope->name != NULL ? scope->name : "(anonymous)",
+                            scope_name,
                             edge->target_name,
                             node->name != NULL ? node->name : "(unnamed)");
                     }
@@ -223,7 +225,7 @@ rir_validate_against_dir(const RIRProgram *rir,
             if (error_message != NULL) {
                 *error_message = rir_strdup_fmt(
                     "RIR scope '%s' is missing resource fact/state for DIR slot-contract '%s'",
-                    scope->name != NULL ? scope->name : "(anonymous)",
+                    rir_scope_display_name(scope),
                     node->name != NULL ? node->name : "(unnamed)");
             }
             return false;
@@ -235,7 +237,7 @@ rir_validate_against_dir(const RIRProgram *rir,
             if (error_message != NULL) {
                 *error_message = rir_strdup_fmt(
                     "RIR scope '%s' kind mismatch for DIR slot-contract '%s'",
-                    scope->name != NULL ? scope->name : "(anonymous)",
+                    rir_scope_display_name(scope),
                     node->name != NULL ? node->name : "(unnamed)");
             }
             return false;
@@ -263,7 +265,7 @@ rir_validate_against_dir(const RIRProgram *rir,
                         "Fix:\n"
                         "- lower DIR projection-slot contracts into RIR facts before validation\n"
                         "- or remove the stale DIR projection edge",
-                        scope->name != NULL ? scope->name : "(anonymous)",
+                        rir_scope_display_name(scope),
                         node->name != NULL ? node->name : "(unnamed)",
                         node->name != NULL ? node->name : "(unnamed)");
                 }

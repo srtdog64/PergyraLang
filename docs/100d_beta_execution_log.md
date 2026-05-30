@@ -105,6 +105,42 @@
   behind the public RIR surface. Verified with
   `mingw32-make build/compiler/rir_public_surface.o build/compiler/rir_flow.o`,
   `mingw32-make semantic-core-shape-test-smoke`, and `mingw32-make test-rir`.
+- RIR flow enrichment read paths now consume `rir_scope_fact_at(...)`,
+  `rir_scope_op_at(...)`, and `rir_scope_state_summary_at(...)`. The remaining
+  raw state-summary writes in `rir_flow.c` are the owner-local summary reset
+  before rebuilding flow facts. Verified with `mingw32-make build/compiler/rir_flow.o`,
+  `mingw32-make test-rir`, and a longer-timeout rerun of
+  `mingw32-make semantic-core-shape-test-smoke`.
+- RIR validation and public dump flow-block fact reads now consume
+  `rir_scope_flow_block_*` and `rir_flow_block_fact_*` accessors instead of
+  reopening `scope->flow_blocks` / `block->facts`. Verified with
+  `mingw32-make build/compiler/rir_public_surface.o build/compiler/rir_validation.o`,
+  `mingw32-make semantic-core-shape-test-smoke`, and `mingw32-make test-rir`.
+- MIR cleanup invalidation checks now consume the same RIR flow-block accessors
+  instead of reopening `rir_scope->flow_blocks` / `flow->facts`. Verified with
+  `mingw32-make build/compiler/mir_cleanup.o`,
+  `mingw32-make semantic-core-shape-test-smoke`, and `mingw32-make test-mir`.
+- RIR flow semantic-bit reads are now public-surface owned too:
+  `rir_scope_conservative_semantics(...)`,
+  `rir_flow_block_entry_semantics(...)`, and
+  `rir_flow_block_exit_semantics(...)` are the consumer-facing API for dump and
+  MIR cleanup invalidation checks. Verified with
+  `mingw32-make build/compiler/rir_public_surface.o build/compiler/mir_cleanup.o`
+  and `mingw32-make semantic-core-shape-test-smoke`.
+- RIR flow-block identity reads now use
+  `rir_flow_block_id(...)`, `rir_flow_block_is_reachable(...)`, and
+  `rir_flow_block_is_join(...)` in validation/public dump consumers. Verified
+  with `mingw32-make build/compiler/rir_public_surface.o build/compiler/rir_validation.o`
+  and `mingw32-make semantic-core-shape-test-smoke`.
+- RIR validation/public dump scope metadata reads now use
+  `rir_scope_kind(...)`, `rir_scope_name(...)`, `rir_scope_owner_name(...)`,
+  `rir_scope_display_name(...)`, and `rir_scope_has_state_errors(...)`.
+  Verified with
+  `mingw32-make build/compiler/rir_public_surface.o build/compiler/rir_validation.o build/compiler/rir_validation_dir.o`,
+  `mingw32-make semantic-core-shape-test-smoke`, and `mingw32-make test-rir`.
+- Backend compare collection parity was widened with
+  `list_push_get_loop`, `map_long_values`, and `set_intersection_manual`.
+  Each fixture passed a targeted C/LLVM compare with `bin-llvm/pgy.exe`.
 - Rechecked the systems-baseline evidence commands after the P0 shard split:
   `mingw32-make codegen-determinism-test-smoke`,
   `mingw32-make runtime-none-contract-test-smoke`, and

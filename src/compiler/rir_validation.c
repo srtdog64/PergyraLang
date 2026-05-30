@@ -77,13 +77,14 @@ rir_validate(const RIRProgram *rir, char **error_message)
             return false;
         }
         for (size_t j = 0; j < rir_scope_state_summary_count(scope); j++) {
+            const char *scope_name = rir_scope_display_name(scope);
             const RIRStateSummary *summary =
                 rir_scope_state_summary_at(scope, j);
             if (summary == NULL) {
                 if (error_message != NULL) {
                     *error_message = rir_strdup_fmt(
                         "RIR scope '%s' has invalid state summary[%llu]",
-                        scope->name != NULL ? scope->name : "(anonymous)",
+                        scope_name,
                         (unsigned long long) j);
                 }
                 return false;
@@ -92,7 +93,7 @@ rir_validate(const RIRProgram *rir, char **error_message)
                 if (error_message != NULL) {
                     *error_message = rir_strdup_fmt(
                         "RIR scope '%s' has incomplete state summary[%llu]",
-                        scope->name != NULL ? scope->name : "(anonymous)",
+                        scope_name,
                         (unsigned long long) j);
                 }
                 return false;
@@ -101,7 +102,7 @@ rir_validate(const RIRProgram *rir, char **error_message)
                 if (error_message != NULL) {
                     *error_message = rir_strdup_fmt(
                         "RIR scope '%s' state summary '%s' is missing slot anchor",
-                        scope->name != NULL ? scope->name : "(anonymous)",
+                        scope_name,
                         summary->name != NULL ? summary->name : "(unnamed)");
                 }
                 return false;
@@ -109,12 +110,13 @@ rir_validate(const RIRProgram *rir, char **error_message)
         }
 
         for (size_t j = 0; j < rir_scope_fact_count(scope); j++) {
+            const char *scope_name = rir_scope_display_name(scope);
             const RIRFact *fact = rir_scope_fact_at(scope, j);
             if (fact == NULL) {
                 if (error_message != NULL) {
                     *error_message = rir_strdup_fmt(
                         "RIR scope '%s' has invalid fact[%llu]",
-                        scope->name != NULL ? scope->name : "(anonymous)",
+                        scope_name,
                         (unsigned long long) j);
                 }
                 return false;
@@ -123,7 +125,7 @@ rir_validate(const RIRProgram *rir, char **error_message)
                 if (error_message != NULL) {
                     *error_message = rir_strdup_fmt(
                         "RIR scope '%s' fact '%s' is missing slot anchor",
-                        scope->name != NULL ? scope->name : "(anonymous)",
+                        scope_name,
                         fact->name != NULL ? fact->name : "(unnamed)");
                 }
                 return false;
@@ -140,7 +142,7 @@ rir_validate(const RIRProgram *rir, char **error_message)
                             "Fix:\n"
                             "- keep '%s' in refresh/bind flow\n"
                             "- or change it to a tobject projection before publish",
-                            scope->name != NULL ? scope->name : "(anonymous)",
+                            scope_name,
                             fact->name != NULL ? fact->name : "(unnamed)",
                             fact->name != NULL ? fact->name : "(unnamed)");
                     }
@@ -157,7 +159,7 @@ rir_validate(const RIRProgram *rir, char **error_message)
                             "Fix:\n"
                             "- use publish for '%s'\n"
                             "- or switch the target declaration to object",
-                            scope->name != NULL ? scope->name : "(anonymous)",
+                            scope_name,
                             fact->name != NULL ? fact->name : "(unnamed)",
                             fact->name != NULL ? fact->name : "(unnamed)");
                     }
@@ -167,12 +169,13 @@ rir_validate(const RIRProgram *rir, char **error_message)
         }
 
         for (size_t j = 0; j < rir_scope_op_count(scope); j++) {
+            const char *scope_name = rir_scope_display_name(scope);
             const RIROp *op = rir_scope_op_at(scope, j);
             if (op == NULL) {
                 if (error_message != NULL) {
                     *error_message = rir_strdup_fmt(
                         "RIR scope '%s' has invalid op[%llu]",
-                        scope->name != NULL ? scope->name : "(anonymous)",
+                        scope_name,
                         (unsigned long long) j);
                 }
                 return false;
@@ -181,7 +184,7 @@ rir_validate(const RIRProgram *rir, char **error_message)
                 if (error_message != NULL) {
                     *error_message = rir_strdup_fmt(
                         "RIR scope '%s' op '%s' is missing slot anchor",
-                        scope->name != NULL ? scope->name : "(anonymous)",
+                        scope_name,
                         rir_op_kind_name(op->kind));
                 }
                 return false;
@@ -209,7 +212,7 @@ rir_validate(const RIRProgram *rir, char **error_message)
                             "Fix:\n"
                             "- materialize projection facts before validation\n"
                             "- or ensure DIR projection-slot edges are lowered into RIR summaries",
-                            scope->name != NULL ? scope->name : "(anonymous)",
+                            scope_name,
                             op->kind == RIR_OP_PROJECT_PUBLISH ? "ProjectPublish" : "ProjectRefresh",
                             op->slot_anchor);
                     }
@@ -228,7 +231,7 @@ rir_validate(const RIRProgram *rir, char **error_message)
                             "Fix:\n"
                             "- target a tobject projection slot\n"
                             "- or use ProjectRefresh for local object projection sync",
-                            scope->name != NULL ? scope->name : "(anonymous)",
+                            scope_name,
                             op->slot_anchor);
                     }
                     return false;
@@ -245,7 +248,7 @@ rir_validate(const RIRProgram *rir, char **error_message)
                             "Fix:\n"
                             "- target an object projection slot\n"
                             "- or switch this op to ProjectPublish for tobject flow",
-                            scope->name != NULL ? scope->name : "(anonymous)",
+                            scope_name,
                             op->slot_anchor);
                     }
                     return false;
@@ -253,41 +256,49 @@ rir_validate(const RIRProgram *rir, char **error_message)
             }
         }
 
-        for (size_t j = 0; j < scope->flow_block_count; j++) {
-            const RIRFlowBlock *block = &scope->flow_blocks[j];
-            if (block->fact_count > 0 && block->facts == NULL) {
+        for (size_t j = 0; j < rir_scope_flow_block_count(scope); j++) {
+            const char *scope_name = rir_scope_display_name(scope);
+            const RIRFlowBlock *block = rir_scope_flow_block_at(scope, j);
+            size_t flow_fact_count;
+            if (block == NULL)
+                continue;
+            flow_fact_count = rir_flow_block_fact_count(block);
+            if (flow_fact_count > 0 && rir_flow_block_fact_at(block, 0) == NULL) {
                 if (error_message != NULL) {
                     *error_message = rir_strdup_fmt(
                         "RIR scope '%s' flow-block[%llu] has missing fact storage",
-                        scope->name != NULL ? scope->name : "(anonymous)",
-                        (unsigned long long) block->block_id);
+                        scope_name,
+                        (unsigned long long) rir_flow_block_id(block));
                 }
                 return false;
             }
-            for (size_t k = 0; k < block->fact_count; k++) {
-                if (block->facts[k].name == NULL) {
+            for (size_t k = 0; k < flow_fact_count; k++) {
+                const RIRFlowFact *fact = rir_flow_block_fact_at(block, k);
+                if (fact == NULL)
+                    continue;
+                if (fact->name == NULL) {
                     if (error_message != NULL) {
                         *error_message = rir_strdup_fmt(
                             "RIR scope '%s' flow-block[%llu] has unnamed fact",
-                            scope->name != NULL ? scope->name : "(anonymous)",
-                            (unsigned long long) block->block_id);
+                            scope_name,
+                            (unsigned long long) rir_flow_block_id(block));
                     }
                     return false;
                 }
-                if (block->facts[k].slot_anchor == NULL) {
+                if (fact->slot_anchor == NULL) {
                     if (error_message != NULL) {
                         *error_message = rir_strdup_fmt(
                             "RIR scope '%s' flow-block[%llu] fact '%s' is missing slot anchor",
-                            scope->name != NULL ? scope->name : "(anonymous)",
-                            (unsigned long long) block->block_id,
-                            block->facts[k].name != NULL ? block->facts[k].name : "(unnamed)");
+                            scope_name,
+                            (unsigned long long) rir_flow_block_id(block),
+                            fact->name != NULL ? fact->name : "(unnamed)");
                     }
                     return false;
                 }
             }
         }
 
-        if (scope->kind == RIR_SCOPE_INTENT) {
+        if (rir_scope_kind(scope) == RIR_SCOPE_INTENT) {
             bool has_commit = false;
             bool has_abort = false;
             for (size_t j = 0; j < rir_scope_op_count(scope); j++) {
@@ -301,7 +312,7 @@ rir_validate(const RIRProgram *rir, char **error_message)
                 if (error_message != NULL) {
                     *error_message = rir_strdup_fmt(
                         "RIR intent scope '%s' is missing commit/abort structure",
-                        scope->name != NULL ? scope->name : "(anonymous)");
+                        rir_scope_display_name(scope));
                 }
                 return false;
             }
