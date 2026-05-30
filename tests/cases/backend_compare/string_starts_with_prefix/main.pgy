@@ -1,0 +1,14 @@
+func StartsWithSlash(s: String) -> Bool {
+    if StringLength(s) == 0 {
+        return false;
+    }
+    return Substring(s, 0, 1) == "/";
+}
+
+func Main() -> Void {
+    Log(ToString(StartsWithSlash("/admin")));
+    Log(ToString(StartsWithSlash("user")));
+    Log(ToString(StartsWithSlash("")));
+    Log(ToString(StartsWithSlash("/")));
+    Log(ToString(StartsWithSlash("a/b")));
+}

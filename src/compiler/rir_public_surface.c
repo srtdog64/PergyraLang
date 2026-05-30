@@ -2,6 +2,7 @@
 #include "rir_internal.h"
 
 #include <stdlib.h>
+#include <string.h>
 
 static void
 rir_dump_flow_semantics(FILE *out, unsigned int flags)
@@ -184,6 +185,71 @@ rir_scope_state_summary_at(const RIRScope *scope, size_t index)
         return NULL;
     }
     return &scope->state_summaries[index];
+}
+
+const RIRStateSummary *
+rir_scope_find_state_summary(const RIRScope *scope, const char *name)
+{
+    if (scope == NULL || name == NULL)
+        return NULL;
+    for (size_t i = 0; i < rir_scope_state_summary_count(scope); i++) {
+        const RIRStateSummary *summary =
+            rir_scope_state_summary_at(scope, i);
+        if (summary != NULL
+            && summary->name != NULL
+            && strcmp(summary->name, name) == 0) {
+            return summary;
+        }
+    }
+    return NULL;
+}
+
+const RIRFact *
+rir_scope_find_fact_by_name_kind(const RIRScope *scope,
+                                 RIRFactKind kind,
+                                 const char *name)
+{
+    if (scope == NULL || name == NULL)
+        return NULL;
+    for (size_t i = 0; i < rir_scope_fact_count(scope); i++) {
+        const RIRFact *fact = rir_scope_fact_at(scope, i);
+        if (fact != NULL
+            && fact->kind == kind
+            && fact->name != NULL
+            && strcmp(fact->name, name) == 0) {
+            return fact;
+        }
+    }
+    return NULL;
+}
+
+const RIRFact *
+rir_scope_find_projection_fact(const RIRScope *scope, const char *name)
+{
+    return rir_scope_find_fact_by_name_kind(scope,
+                                            RIR_FACT_PROJECTION,
+                                            name);
+}
+
+bool
+rir_scope_has_capability_fact(const RIRScope *scope,
+                              const char *participant,
+                              const char *ability)
+{
+    if (scope == NULL || participant == NULL || ability == NULL)
+        return false;
+    for (size_t i = 0; i < rir_scope_fact_count(scope); i++) {
+        const RIRFact *fact = rir_scope_fact_at(scope, i);
+        if (fact != NULL
+            && fact->kind == RIR_FACT_CAPABILITY
+            && fact->name != NULL
+            && strcmp(fact->name, participant) == 0
+            && fact->arg0 != NULL
+            && strcmp(fact->arg0, ability) == 0) {
+            return true;
+        }
+    }
+    return false;
 }
 
 unsigned int

@@ -1,0 +1,22 @@
+func IsPalindrome(s: String) -> Bool {
+    let n: Int = StringLength(s);
+    let i: Int = 0;
+    while i < n / 2 {
+        let left: String = Substring(s, i, 1);
+        let right: String = Substring(s, n - 1 - i, 1);
+        if left != right {
+            return false;
+        }
+        i = i + 1;
+    }
+    return true;
+}
+
+func Main() -> Void {
+    Log(ToString(IsPalindrome("level")));
+    Log(ToString(IsPalindrome("hello")));
+    Log(ToString(IsPalindrome("a")));
+    Log(ToString(IsPalindrome("")));
+    Log(ToString(IsPalindrome("racecar")));
+    Log(ToString(IsPalindrome("abba")));
+}

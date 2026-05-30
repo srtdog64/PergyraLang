@@ -1,0 +1,19 @@
+func Main() -> Void {
+    let words: Array<String> = ["one", "two", "three", "four", "five", "six"];
+    let buckets: HashMap<Int, Int> = MapNew();
+    let i: Int = 0;
+    while i < ArrayLength(words) {
+        let key: Int = StringLength(words[i]);
+        if MapHas(buckets, key) {
+            MapSet(buckets, key, MapGet(buckets, key) + 1);
+        }
+        if !MapHas(buckets, key) {
+            MapSet(buckets, key, 1);
+        }
+        i = i + 1;
+    }
+    Log(MapGet(buckets, 3));
+    Log(MapGet(buckets, 4));
+    Log(MapGet(buckets, 5));
+    Log(MapHas(buckets, 6));
+}

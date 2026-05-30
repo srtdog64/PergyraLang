@@ -1,0 +1,16 @@
+func Main() -> Void {
+    let i: Int = 1;
+    while i <= 15 {
+        if i % 15 == 0 { Log("FizzBuzz"); }
+        if i % 3 == 0 {
+            if i % 15 != 0 { Log("Fizz"); }
+        }
+        if i % 5 == 0 {
+            if i % 15 != 0 { Log("Buzz"); }
+        }
+        if i % 3 != 0 {
+            if i % 5 != 0 { Log(i); }
+        }
+        i = i + 1;
+    }
+}

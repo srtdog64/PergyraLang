@@ -51,50 +51,6 @@ rir_scope_name_matches(const RIRScope *scope,
         && strncmp(scope_name, owner_name, owner_len) == 0;
 }
 
-static const RIRFact *
-rir_scope_find_fact_by_name_kind(const RIRScope *scope,
-                                 RIRFactKind kind,
-                                 const char *name)
-{
-    if (scope == NULL || name == NULL)
-        return NULL;
-
-    for (size_t i = 0; i < rir_scope_fact_count(scope); i++) {
-        const RIRFact *fact = rir_scope_fact_at(scope, i);
-        if (fact != NULL
-            && fact->kind == kind
-            && fact->name != NULL
-            && strcmp(fact->name, name) == 0) {
-            return fact;
-        }
-    }
-
-    return NULL;
-}
-
-static bool
-rir_scope_has_capability_fact(const RIRScope *scope,
-                              const char *participant,
-                              const char *ability)
-{
-    if (scope == NULL || participant == NULL || ability == NULL)
-        return false;
-
-    for (size_t i = 0; i < rir_scope_fact_count(scope); i++) {
-        const RIRFact *fact = rir_scope_fact_at(scope, i);
-        if (fact != NULL
-            && fact->kind == RIR_FACT_CAPABILITY
-            && fact->name != NULL
-            && strcmp(fact->name, participant) == 0
-            && fact->arg0 != NULL
-            && strcmp(fact->arg0, ability) == 0) {
-            return true;
-        }
-    }
-
-    return false;
-}
-
 static const RIRScope *
 rir_find_domain_scope_for_owner(const RIRProgram *rir,
                                 const char *owner_name,
@@ -208,7 +164,7 @@ rir_validate_against_dir(const RIRProgram *rir,
         fact = rir_scope_find_fact_by_name_kind(scope,
                                                 RIR_FACT_RESOURCE,
                                                 local_name);
-        summary = scope_find_state_summary((RIRScope *)scope, local_name);
+        summary = rir_scope_find_state_summary(scope, local_name);
 
         if (node->ast != NULL && node->ast->type == AST_DOMAIN_SLOT) {
             if (ast_domain_slot_is_subject(node->ast))

@@ -138,9 +138,29 @@
   Verified with
   `mingw32-make build/compiler/rir_public_surface.o build/compiler/rir_validation.o build/compiler/rir_validation_dir.o`,
   `mingw32-make semantic-core-shape-test-smoke`, and `mingw32-make test-rir`.
+- RIR validation lookup ownership tightened: const state-summary lookup and
+  projection-fact lookup now live in `rir_public_surface.c`. The validators
+  consume `rir_scope_find_state_summary(...)` /
+  `rir_scope_find_projection_fact(...)`, and the shape smoke rejects mutable
+  `RIRScope` casts or local projection lookup reintroduction. Verified with
+  `mingw32-make semantic-core-shape-test-smoke` and `mingw32-make test-rir`.
+- RIR/DIR validation fact lookup ownership tightened further:
+  `rir_scope_find_fact_by_name_kind(...)` and
+  `rir_scope_has_capability_fact(...)` now live in `rir_public_surface.c`, so
+  authority/resource/capability checks no longer own local fact scans. Verified
+  with `mingw32-make build/compiler/rir_public_surface.o build/compiler/rir_validation_dir.o`,
+  `mingw32-make semantic-core-shape-test-smoke`, and `mingw32-make test-rir`.
 - Backend compare collection parity was widened with
   `list_push_get_loop`, `map_long_values`, and `set_intersection_manual`.
   Each fixture passed a targeted C/LLVM compare with `bin-llvm/pgy.exe`.
+- Backend compare algorithmic parity was widened with 16 small fixtures:
+  `string_starts_with_prefix`, `loop_collect_max`, `sort_three_ints`,
+  `count_letters_in_word`, `binary_search_int`, `gcd_recursive`,
+  `reverse_array_in_place`, `palindrome_check`, `bubble_sort_small`,
+  `fizzbuzz_loop`, `multi_array_find`, `bool_state_toggle`, `primes_below_n`,
+  `string_repeat_pattern`, `linear_search_first_match`, and
+  `map_word_grouping`. Targeted `tests/compare_backends.sh` passed 15/15, plus
+  a targeted `map_word_grouping` run, with `bin-llvm/pgy.exe`.
 - Rechecked the systems-baseline evidence commands after the P0 shard split:
   `mingw32-make codegen-determinism-test-smoke`,
   `mingw32-make runtime-none-contract-test-smoke`, and

@@ -1,0 +1,16 @@
+func Main() -> Void {
+    let xs: Array<Int> = [3, 11, 7, 18, 2, 14, 9];
+    let max: Int = xs[0];
+    let max_idx: Int = 0;
+    let i: Int = 1;
+    while i < ArrayLength(xs) {
+        if xs[i] > max {
+            max = xs[i];
+            max_idx = i;
+        }
+        i = i + 1;
+    }
+    Log(max);
+    Log(max_idx);
+    Log(ArrayLength(xs));
+}

@@ -171,6 +171,21 @@ if grep -R -E 'scope->(kind|name|owner_name|has_state_errors|facts|fact_count|op
         src/compiler/rir_validation_dir.c >/dev/null; then
     fail "RIR validation must consume RIR scope metadata/item accessors"
 fi
+if grep -R -E '(^|[^[:alnum:]_])scope_find_state_summary\(|\(RIRScope \*\)scope' \
+        src/compiler/rir_validation.c \
+        src/compiler/rir_validation_dir.c >/dev/null; then
+    fail "RIR validation must consume const RIR state-summary lookup through the public surface"
+fi
+if grep -q '^rir_scope_find_projection_fact' src/compiler/rir_validation.c; then
+    fail "RIR projection lookup implementation must live in the public surface owner"
+fi
+if grep -q '^rir_scope_find_fact_by_name_kind' src/compiler/rir_validation_dir.c ||
+   grep -q '^rir_scope_has_capability_fact' src/compiler/rir_validation_dir.c; then
+    fail "RIR/DIR validation fact lookup implementations must live in the public surface owner"
+fi
+if grep -E 'rir_scope_fact_(count|at)\(scope' src/compiler/rir_validation_dir.c >/dev/null; then
+    fail "RIR/DIR validation must consume public RIR fact lookup helpers, not local fact scans"
+fi
 for term in \
     "rir_scope_kind(scope)" \
     "rir_scope_display_name(scope)"; do
@@ -208,6 +223,10 @@ for term in \
     "rir_scope_owner_name(scope)" \
     "rir_scope_display_name(scope)" \
     "rir_scope_has_state_errors(scope)" \
+    "rir_scope_find_state_summary(const RIRScope" \
+    "rir_scope_find_fact_by_name_kind(const RIRScope" \
+    "rir_scope_find_projection_fact(const RIRScope" \
+    "rir_scope_has_capability_fact(const RIRScope" \
     "rir_scope_fact_count(scope)" \
     "rir_scope_fact_at(scope, j)" \
     "rir_scope_op_count(scope)" \

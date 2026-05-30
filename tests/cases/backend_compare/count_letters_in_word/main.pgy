@@ -1,0 +1,16 @@
+func Main() -> Void {
+    let word: String = "balloon";
+    let len: Int = StringLength(word);
+    let i: Int = 0;
+    let o_count: Int = 0;
+    let l_count: Int = 0;
+    while i < len {
+        let ch: String = Substring(word, i, 1);
+        if ch == "o" { o_count = o_count + 1; }
+        if ch == "l" { l_count = l_count + 1; }
+        i = i + 1;
+    }
+    Log(len);
+    Log(o_count);
+    Log(l_count);
+}

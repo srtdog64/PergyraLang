@@ -1,0 +1,17 @@
+func GCD(a: Int, b: Int) -> Int {
+    if b == 0 { return a; }
+    return GCD(b, a % b);
+}
+
+func LCM(a: Int, b: Int) -> Int {
+    return (a * b) / GCD(a, b);
+}
+
+func Main() -> Void {
+    Log(GCD(48, 18));
+    Log(GCD(7, 13));
+    Log(GCD(100, 25));
+    Log(LCM(4, 6));
+    Log(LCM(7, 13));
+    Log(LCM(12, 18));
+}

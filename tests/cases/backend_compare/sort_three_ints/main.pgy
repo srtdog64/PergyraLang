@@ -1,0 +1,21 @@
+func MinInt(a: Int, b: Int) -> Int {
+    if a < b { return a; }
+    return b;
+}
+
+func MaxInt(a: Int, b: Int) -> Int {
+    if a > b { return a; }
+    return b;
+}
+
+func Median(a: Int, b: Int, c: Int) -> Int {
+    return MaxInt(MinInt(a, b), MinInt(MaxInt(a, b), c));
+}
+
+func Main() -> Void {
+    Log(Median(1, 2, 3));
+    Log(Median(3, 1, 2));
+    Log(Median(5, 5, 5));
+    Log(Median(10, -3, 7));
+    Log(Median(-1, -5, -3));
+}

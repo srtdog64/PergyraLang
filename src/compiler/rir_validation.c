@@ -7,25 +7,6 @@
 #include "parser/ast_api.h"
 #include "../common/string_compat.h"
 
-const RIRFact *
-rir_scope_find_projection_fact(const RIRScope *scope, const char *name)
-{
-    if (scope == NULL || name == NULL)
-        return NULL;
-
-    for (size_t i = 0; i < rir_scope_fact_count(scope); i++) {
-        const RIRFact *fact = rir_scope_fact_at(scope, i);
-        if (fact != NULL
-            && fact->kind == RIR_FACT_PROJECTION
-            && fact->name != NULL
-            && strcmp(fact->name, name) == 0) {
-            return fact;
-        }
-    }
-
-    return NULL;
-}
-
 static RIRResourceKind
 rir_direct_projection_kind_from_ast(const ASTNode *ast)
 {
@@ -191,8 +172,8 @@ rir_validate(const RIRProgram *rir, char **error_message)
             }
             if (op->kind == RIR_OP_PROJECT_PUBLISH || op->kind == RIR_OP_PROJECT_REFRESH) {
                 const RIRFact *projection = rir_scope_find_projection_fact(scope, op->slot_anchor);
-                const RIRStateSummary *summary = scope_find_state_summary(
-                    (RIRScope *)scope, op->slot_anchor);
+                const RIRStateSummary *summary =
+                    rir_scope_find_state_summary(scope, op->slot_anchor);
                 RIRResourceKind kind = RIR_RESOURCE_UNKNOWN;
 
                 if (projection != NULL)

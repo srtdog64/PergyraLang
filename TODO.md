@@ -87,7 +87,12 @@ English anchor for tooling/doc gates:
 - RIR validation seam tightening: `rir_validate(...)` and
   `rir_validate_against_dir(...)` now consume RIR scope inventory and scope item
   accessors rather than reopening raw scope/fact/op arrays. The same
-  semantic-core-shape gate rejects regressions in validation owners.
+  semantic-core-shape gate rejects regressions in validation owners. Const
+  state-summary and projection lookup also live in `rir_public_surface.c`, so
+  validators no longer cast `const RIRScope *` back to mutable storage or own a
+  local projection lookup implementation. RIR/DIR authority/resource/capability
+  fact lookup now follows the same public-surface seam instead of local
+  validation-owned fact scans.
 - RIR public dump seam tightening: `rir_dump(...)` and `rir_dump_json(...)`
   now consume RIR scope inventory plus fact/op/state-summary accessors instead
   of walking raw scope arrays directly. The semantic core-shape smoke pins the
@@ -140,7 +145,7 @@ English anchor for tooling/doc gates:
   Parallel validation must use distinct `BUILD_DIR`/`BIN_DIR` values or run
   sequentially.
 - Backend compare inventory note: the default C/LLVM registry currently lists
-  239 cases. The latest promoted fixtures (`for_in_array_int`,
+  258 cases. The latest promoted fixtures (`for_in_array_int`,
   `nested_array_subarray`, `float_to_string_precision`,
   `map_key_lookup_branch`, `phi_branch_value`, `queue_string_ops`,
   `list_int_loop`, `compose_two_functions`, `negative_index_check`,
@@ -148,8 +153,14 @@ English anchor for tooling/doc gates:
   `map_count_unique`, plus `for_range_explicit`, `if_short_circuit_pure`,
   `nested_match_int`, `option_param_pass`, `result_via_unwrap`,
   `string_compare_branch`, `string_split_simple`, `subject_class_pair`,
-  `substring_extract`, and `sum_filter_loop`) passed as targeted MinGW/Git Bash
-  runs; do not claim a full 239/239 gate until the whole default suite is run.
+  `substring_extract`, `sum_filter_loop`, `string_starts_with_prefix`,
+  `loop_collect_max`, `sort_three_ints`, `count_letters_in_word`,
+  `binary_search_int`, `gcd_recursive`, `reverse_array_in_place`,
+  `palindrome_check`, `bubble_sort_small`, `fizzbuzz_loop`,
+  `multi_array_find`, `bool_state_toggle`, `primes_below_n`, and
+  `string_repeat_pattern`, plus `linear_search_first_match` and
+  `map_word_grouping`) passed as targeted MinGW/Git Bash runs; do not claim a
+  full 258/258 gate until the whole default suite is run.
   Field-channel storage
   remains an intentional reject
   until movable `Channel<T>` handle ABI exists, so LLVM IR-only field-channel

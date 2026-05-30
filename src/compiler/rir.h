@@ -250,6 +250,16 @@ const RIROp *rir_scope_op_at(const RIRScope *scope, size_t index);
 size_t      rir_scope_state_summary_count(const RIRScope *scope);
 const RIRStateSummary *rir_scope_state_summary_at(const RIRScope *scope,
                                                   size_t index);
+const RIRStateSummary *rir_scope_find_state_summary(const RIRScope *scope,
+                                                    const char *name);
+const RIRFact *rir_scope_find_fact_by_name_kind(const RIRScope *scope,
+                                                RIRFactKind kind,
+                                                const char *name);
+const RIRFact *rir_scope_find_projection_fact(const RIRScope *scope,
+                                              const char *name);
+bool rir_scope_has_capability_fact(const RIRScope *scope,
+                                   const char *participant,
+                                   const char *ability);
 unsigned int rir_scope_conservative_semantics(const RIRScope *scope);
 size_t      rir_scope_flow_block_count(const RIRScope *scope);
 const RIRFlowBlock *rir_scope_flow_block_at(const RIRScope *scope,

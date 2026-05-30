@@ -1,0 +1,17 @@
+func RepeatChar(c: String, n: Int) -> String {
+    let result: String = "";
+    let i: Int = 0;
+    while i < n {
+        result = Concat(result, c);
+        i = i + 1;
+    }
+    return result;
+}
+
+func Main() -> Void {
+    Log(RepeatChar("a", 5));
+    Log(RepeatChar("-", 10));
+    Log(RepeatChar("x", 0));
+    Log(RepeatChar("ab", 3));
+    Log(StringLength(RepeatChar("z", 8)));
+}

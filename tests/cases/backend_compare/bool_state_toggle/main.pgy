@@ -1,0 +1,15 @@
+func Main() -> Void {
+    let flag: Bool = true;
+    let i: Int = 0;
+    let count_true: Int = 0;
+    let count_false: Int = 0;
+    while i < 8 {
+        if flag { count_true = count_true + 1; }
+        if !flag { count_false = count_false + 1; }
+        flag = !flag;
+        i = i + 1;
+    }
+    Log(count_true);
+    Log(count_false);
+    Log(ToString(flag));
+}

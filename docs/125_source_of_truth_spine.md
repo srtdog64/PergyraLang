@@ -87,6 +87,13 @@ Current beta closure snapshot:
   inventory. They must use `rir_scope_inventory_get(...)` plus
   `rir_scope_fact_at(...)`, `rir_scope_op_at(...)`, and
   `rir_scope_state_summary_at(...)` instead of walking raw scope arrays.
+- RIR read-only lookup helpers are public-surface APIs. Consumers that need a
+  named state summary or projection fact must call
+  `rir_scope_find_state_summary(...)` or `rir_scope_find_projection_fact(...)`
+  instead of casting away `const` scope ownership or reimplementing local lookup.
+  Authority/resource lookup by fact kind and capability presence checks follow
+  the same rule through `rir_scope_find_fact_by_name_kind(...)` and
+  `rir_scope_has_capability_fact(...)`.
 - RIR flow enrichment is the mutable flow owner, but program-level scope
   matching must still use `rir_mutable_scope_inventory_from_program(...)`.
   Direct `rir->scopes` / `rir->scope_count` access is confined to RIR
