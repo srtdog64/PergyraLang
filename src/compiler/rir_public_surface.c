@@ -62,6 +62,99 @@ rir_destroy(RIRProgram *rir)
     free(rir);
 }
 
+void
+rir_scope_inventory_from_program(const RIRProgram *rir,
+                                 RIRScopeInventory *inventory)
+{
+    if (inventory == NULL)
+        return;
+    inventory->scopes = NULL;
+    inventory->count = 0;
+    if (rir != NULL && rir->scopes != NULL) {
+        inventory->scopes = rir->scopes;
+        inventory->count = rir->scope_count;
+    }
+}
+
+const RIRScope *
+rir_scope_inventory_get(const RIRScopeInventory *inventory, size_t index)
+{
+    if (inventory == NULL || inventory->scopes == NULL
+        || index >= inventory->count)
+        return NULL;
+    return &inventory->scopes[index];
+}
+
+void
+rir_mutable_scope_inventory_from_program(
+        RIRProgram *rir,
+        RIRMutableScopeInventory *inventory)
+{
+    if (inventory == NULL)
+        return;
+    inventory->scopes = NULL;
+    inventory->count = 0;
+    if (rir != NULL && rir->scopes != NULL) {
+        inventory->scopes = rir->scopes;
+        inventory->count = rir->scope_count;
+    }
+}
+
+RIRScope *
+rir_mutable_scope_inventory_get(
+        const RIRMutableScopeInventory *inventory,
+        size_t index)
+{
+    if (inventory == NULL || inventory->scopes == NULL
+        || index >= inventory->count)
+        return NULL;
+    return &inventory->scopes[index];
+}
+
+size_t
+rir_scope_fact_count(const RIRScope *scope)
+{
+    return scope != NULL ? scope->fact_count : 0;
+}
+
+const RIRFact *
+rir_scope_fact_at(const RIRScope *scope, size_t index)
+{
+    if (scope == NULL || scope->facts == NULL || index >= scope->fact_count)
+        return NULL;
+    return &scope->facts[index];
+}
+
+size_t
+rir_scope_op_count(const RIRScope *scope)
+{
+    return scope != NULL ? scope->op_count : 0;
+}
+
+const RIROp *
+rir_scope_op_at(const RIRScope *scope, size_t index)
+{
+    if (scope == NULL || scope->ops == NULL || index >= scope->op_count)
+        return NULL;
+    return &scope->ops[index];
+}
+
+size_t
+rir_scope_state_summary_count(const RIRScope *scope)
+{
+    return scope != NULL ? scope->state_summary_count : 0;
+}
+
+const RIRStateSummary *
+rir_scope_state_summary_at(const RIRScope *scope, size_t index)
+{
+    if (scope == NULL || scope->state_summaries == NULL
+        || index >= scope->state_summary_count) {
+        return NULL;
+    }
+    return &scope->state_summaries[index];
+}
+
 static void
 json_write_str(FILE *out, const char *s)
 {
@@ -138,6 +231,8 @@ rir_dump_json_summary(FILE *out, const RIRStateSummary *s)
 void
 rir_dump_json(const RIRProgram *rir, FILE *out)
 {
+    RIRScopeInventory inventory;
+
     if (out == NULL)
         out = stdout;
     if (rir == NULL) {
@@ -145,12 +240,22 @@ rir_dump_json(const RIRProgram *rir, FILE *out)
         return;
     }
 
+    rir_scope_inventory_from_program(rir, &inventory);
     fputs("{\n  \"rir_version\": 1,\n", out);
-    fprintf(out, "  \"scope_count\": %zu,\n", rir->scope_count);
+    fprintf(out, "  \"scope_count\": %zu,\n", inventory.count);
     fputs("  \"scopes\": [\n", out);
 
-    for (size_t i = 0; i < rir->scope_count; i++) {
-        const RIRScope *scope = &rir->scopes[i];
+    for (size_t i = 0; i < inventory.count; i++) {
+        const RIRScope *scope = rir_scope_inventory_get(&inventory, i);
+        size_t fact_count;
+        size_t op_count;
+        size_t summary_count;
+
+        if (scope == NULL)
+            continue;
+        fact_count = rir_scope_fact_count(scope);
+        op_count = rir_scope_op_count(scope);
+        summary_count = rir_scope_state_summary_count(scope);
         if (i > 0) fputs(",\n", out);
 
         fprintf(out,
@@ -167,27 +272,40 @@ rir_dump_json(const RIRProgram *rir, FILE *out)
                      "      \"fact_count\": %zu,\n"
                      "      \"op_count\": %zu,\n"
                      "      \"facts\": [\n",
-                scope->fact_count, scope->op_count);
+                fact_count, op_count);
 
-        for (size_t j = 0; j < scope->fact_count; j++) {
+        for (size_t j = 0; j < fact_count; j++) {
+            const RIRFact *fact = rir_scope_fact_at(scope, j);
             if (j > 0) fputs(",\n", out);
-            rir_dump_json_fact(out, &scope->facts[j]);
+            if (fact != NULL)
+                rir_dump_json_fact(out, fact);
+            else
+                fputs("null", out);
         }
 
         fprintf(out, "\n      ],\n"
                      "      \"ops\": [\n");
 
-        for (size_t j = 0; j < scope->op_count; j++) {
+        for (size_t j = 0; j < op_count; j++) {
+            const RIROp *op = rir_scope_op_at(scope, j);
             if (j > 0) fputs(",\n", out);
-            rir_dump_json_op(out, &scope->ops[j]);
+            if (op != NULL)
+                rir_dump_json_op(out, op);
+            else
+                fputs("null", out);
         }
 
         fprintf(out, "\n      ],\n"
                      "      \"summaries\": [\n");
 
-        for (size_t j = 0; j < scope->state_summary_count; j++) {
+        for (size_t j = 0; j < summary_count; j++) {
+            const RIRStateSummary *summary =
+                rir_scope_state_summary_at(scope, j);
             if (j > 0) fputs(",\n", out);
-            rir_dump_json_summary(out, &scope->state_summaries[j]);
+            if (summary != NULL)
+                rir_dump_json_summary(out, summary);
+            else
+                fputs("null", out);
         }
 
         fprintf(out, "\n      ],\n"
@@ -202,6 +320,8 @@ rir_dump_json(const RIRProgram *rir, FILE *out)
 void
 rir_dump(const RIRProgram *rir, FILE *out)
 {
+    RIRScopeInventory inventory;
+
     if (out == NULL)
         out = stdout;
     if (rir == NULL) {
@@ -209,24 +329,38 @@ rir_dump(const RIRProgram *rir, FILE *out)
         return;
     }
 
-    fprintf(out, "RIR Program\n  scopes: %zu\n", rir->scope_count);
-    for (size_t i = 0; i < rir->scope_count; i++) {
-        const RIRScope *scope = &rir->scopes[i];
+    rir_scope_inventory_from_program(rir, &inventory);
+    fprintf(out, "RIR Program\n  scopes: %zu\n", inventory.count);
+    for (size_t i = 0; i < inventory.count; i++) {
+        const RIRScope *scope = rir_scope_inventory_get(&inventory, i);
+        size_t fact_count;
+        size_t op_count;
+        size_t summary_count;
+
+        if (scope == NULL)
+            continue;
+        fact_count = rir_scope_fact_count(scope);
+        op_count = rir_scope_op_count(scope);
+        summary_count = rir_scope_state_summary_count(scope);
         fprintf(out, "  scope[%02zu] %-8s %s%s%s facts=%zu ops=%zu\n",
                 i,
                 rir_scope_kind_name(scope->kind),
                 scope->owner_name != NULL ? scope->owner_name : "",
                 scope->owner_name != NULL ? "." : "",
                 scope->name != NULL ? scope->name : "(anonymous)",
-                scope->fact_count,
-                scope->op_count);
+                fact_count,
+                op_count);
         fprintf(out, "    normalize summaries=%zu state-errors=%s semantics=",
-                scope->state_summary_count,
+                summary_count,
                 scope->has_state_errors ? "yes" : "no");
         rir_dump_flow_semantics(out, scope->conservative_semantics);
         fputc('\n', out);
-        for (size_t j = 0; j < scope->fact_count; j++) {
-            const RIRFact *fact = &scope->facts[j];
+        for (size_t j = 0; j < fact_count; j++) {
+            const RIRFact *fact = rir_scope_fact_at(scope, j);
+            if (fact == NULL) {
+                fprintf(out, "    fact[%02zu] <invalid>\n", j);
+                continue;
+            }
             fprintf(out, "    fact[%02zu] %-13s name=%s slot=%s arg0=%s arg1=%s kind=%s state=%s\n",
                     j,
                     rir_fact_kind_name(fact->kind),
@@ -237,8 +371,12 @@ rir_dump(const RIRProgram *rir, FILE *out)
                     rir_resource_kind_name(fact->resource_kind),
                     rir_resource_state_name(fact->state));
         }
-        for (size_t j = 0; j < scope->op_count; j++) {
-            const RIROp *op = &scope->ops[j];
+        for (size_t j = 0; j < op_count; j++) {
+            const RIROp *op = rir_scope_op_at(scope, j);
+            if (op == NULL) {
+                fprintf(out, "    op[%02zu] <invalid>\n", j);
+                continue;
+            }
             fprintf(out, "    op[%02zu] %-20s subject=%s slot=%s arg0=%s arg1=%s\n",
                     j,
                     rir_op_kind_name(op->kind),
@@ -247,8 +385,13 @@ rir_dump(const RIRProgram *rir, FILE *out)
                     op->arg0 != NULL ? op->arg0 : "-",
                     op->arg1 != NULL ? op->arg1 : "-");
         }
-        for (size_t j = 0; j < scope->state_summary_count; j++) {
-            const RIRStateSummary *summary = &scope->state_summaries[j];
+        for (size_t j = 0; j < summary_count; j++) {
+            const RIRStateSummary *summary =
+                rir_scope_state_summary_at(scope, j);
+            if (summary == NULL) {
+                fprintf(out, "    state[%02zu] <invalid>\n", j);
+                continue;
+            }
             fprintf(out,
                     "    state[%02zu] %-13s name=%s slot=%s kind=%s init=%s final=%s last-op=%s error=%s\n",
                     j,

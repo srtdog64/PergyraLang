@@ -12,8 +12,9 @@ air_count_rir_authority_summaries(AIRProgram *air,
 {
     if (air == NULL || scope == NULL)
         return true;
-    for (size_t i = 0; i < scope->fact_count; i++) {
-        if (scope->facts[i].kind != RIR_FACT_AUTHORITY)
+    for (size_t i = 0; i < rir_scope_fact_count(scope); i++) {
+        const RIRFact *fact = rir_scope_fact_at(scope, i);
+        if (fact == NULL || fact->kind != RIR_FACT_AUTHORITY)
             continue;
         if (!air_increment_evidence_summary_count(
                 air,
@@ -23,8 +24,9 @@ air_count_rir_authority_summaries(AIRProgram *air,
             return false;
         }
     }
-    for (size_t i = 0; i < scope->op_count; i++) {
-        if (scope->ops[i].kind != RIR_OP_AUTHORIZE)
+    for (size_t i = 0; i < rir_scope_op_count(scope); i++) {
+        const RIROp *op = rir_scope_op_at(scope, i);
+        if (op == NULL || op->kind != RIR_OP_AUTHORIZE)
             continue;
         if (!air_increment_evidence_summary_count(
                 air,
@@ -46,8 +48,11 @@ air_collect_rir_evidence(AIRProgram *air,
         return true;
 
     air_mark_rir_input(air);
-    for (size_t i = 0; i < rir->scope_count; i++) {
-        const RIRScope *scope = &rir->scopes[i];
+    RIRScopeInventory inventory;
+    rir_scope_inventory_from_program(rir, &inventory);
+
+    for (size_t i = 0; i < inventory.count; i++) {
+        const RIRScope *scope = rir_scope_inventory_get(&inventory, i);
 
         if (!air_count_rir_authority_summaries(air,
                                                scope,

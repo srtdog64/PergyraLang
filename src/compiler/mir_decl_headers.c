@@ -240,8 +240,10 @@ mir_record_decl_header(MIRProgram *mir, ASTNode *decl)
 void
 mir_link_decl_method_routines(MIRProgram *mir)
 {
+    MIRRoutineInventory inventory;
     if (mir == NULL)
         return;
+    mir_routine_inventory_from_program(mir, &inventory);
 
     for (size_t hi = 0; hi < mir->decl_header_count; hi++) {
         MIRDeclHeader *header = &mir->decl_headers[hi];
@@ -252,8 +254,9 @@ mir_link_decl_method_routines(MIRProgram *mir)
             if (method->name == NULL)
                 continue;
 
-            for (size_t ri = 0; ri < mir->routine_count; ri++) {
-                const MIRRoutine *routine = &mir->routines[ri];
+            for (size_t ri = 0; ri < inventory.count; ri++) {
+                const MIRRoutine *routine =
+                    mir_routine_inventory_get(&inventory, ri);
                 if (!mir_decl_method_matches_routine(method, routine))
                     continue;
                 method->has_routine = true;

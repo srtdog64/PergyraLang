@@ -1,0 +1,14 @@
+func Main() -> Void {
+    let row1: Array<Int> = [1, 2, 3];
+    let row2: Array<Int> = [10, 20, 30];
+    let row3: Array<Int> = [100, 200, 300];
+
+    let total: Int = 0;
+    let i: Int = 0;
+    while i < 3 {
+        total = total + row1[i] + row2[i] + row3[i];
+        i = i + 1;
+    }
+    Log(total);
+    Log(row1[0] + row2[1] + row3[2]);
+}

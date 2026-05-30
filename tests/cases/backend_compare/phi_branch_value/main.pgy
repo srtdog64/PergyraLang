@@ -1,0 +1,14 @@
+func Choose(flag: Bool) -> Int {
+    let x: Int = 0;
+    if flag {
+        x = 10;
+    } else {
+        x = 20;
+    }
+    return x;
+}
+
+func Main() -> Void {
+    Log(Choose(true));
+    Log(Choose(false));
+}

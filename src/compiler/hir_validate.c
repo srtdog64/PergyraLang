@@ -128,8 +128,16 @@ hir_validate(const HIRProgram *hir, char **error_message)
         return false;
     }
 
-    for (size_t i = 0; i < hir->routine_count; i++) {
-        const HIRRoutine *routine = &hir->routines[i];
+    HIRRoutineInventory inventory;
+    hir_routine_inventory_from_program(hir, &inventory);
+
+    for (size_t i = 0; i < inventory.count; i++) {
+        const HIRRoutine *routine = hir_routine_inventory_get(&inventory, i);
+        if (routine == NULL) {
+            if (error_message != NULL)
+                *error_message = pergyra_strdup("HIR validation has invalid routine inventory");
+            return false;
+        }
         if (!routine->has_cfg) {
             if (routine->cfg.blocks != NULL || routine->cfg.block_count != 0) {
                 if (error_message != NULL) {

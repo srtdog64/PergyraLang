@@ -109,8 +109,8 @@ endif
 ifeq ($(strip $(SHELL)),)
 SHELL := $(BASH)
 endif
-pgy_mkdir_p = $(BASH) -lc "mkdir -p $(1)"
-pgy_touch_ref = $(BASH) -lc "touch -c -r $(1) $(2)"
+pgy_mkdir_p = $(BASH) -c "mkdir -p $(1)"
+pgy_touch_ref = $(BASH) -c "touch -c -r $(1) $(2)"
 LLVM_CONFIG := $(shell command -v llvm-config 2>/dev/null || command -v llvm-config-20 2>/dev/null || command -v llvm-config-19 2>/dev/null || command -v llvm-config-18 2>/dev/null || command -v llvm-config-17 2>/dev/null || command -v llvm-config-16 2>/dev/null || command -v llvm-config-15 2>/dev/null)
 WINDOWS_LLVM_READY := $(shell if [ -n "$(LLVM_CONFIG)" ] && "$(LLVM_CONFIG)" --libs core >/dev/null 2>&1; then echo 1; else echo 0; fi)
 LLD := $(shell command -v ld.lld 2>/dev/null || command -v lld 2>/dev/null)
@@ -748,6 +748,7 @@ COMPILER_SOURCES = $(COMPILER_DIR)/compiler.c \
                    $(COMPILER_DIR)/mir_names.c \
                    $(COMPILER_DIR)/mir_lifecycle.c \
                    $(COMPILER_DIR)/mir_base_helpers.c \
+                   $(COMPILER_DIR)/mir_program_inventory.c \
                    $(COMPILER_DIR)/mir_public_surface.c \
                    $(COMPILER_DIR)/mir_lower_population.c \
                    $(COMPILER_DIR)/mir_program_validate.c \
@@ -1167,6 +1168,7 @@ AIR_CORE_OBJECTS = $(BUILD_DIR)/compiler/air_names.o \
                    $(BUILD_DIR)/compiler/air_evidence_mir_pin.o \
                    $(BUILD_DIR)/compiler/air_evidence_runtime.o \
                    $(BUILD_DIR)/compiler/air_evidence_dag.o \
+                   $(BUILD_DIR)/compiler/mir_program_inventory.o \
                    $(BUILD_DIR)/compiler/mir_source_shape.o \
                    $(BUILD_DIR)/compiler/mir_intent_fact.o \
                    $(BUILD_DIR)/compiler/mir_stmt_source.o \
@@ -1193,6 +1195,7 @@ MIR_CORE_OBJECTS = $(BUILD_DIR)/compiler/mir.o \
                    $(BUILD_DIR)/compiler/mir_names.o \
                    $(BUILD_DIR)/compiler/mir_lifecycle.o \
                    $(BUILD_DIR)/compiler/mir_base_helpers.o \
+                   $(BUILD_DIR)/compiler/mir_program_inventory.o \
                    $(BUILD_DIR)/compiler/mir_public_surface.o \
                    $(BUILD_DIR)/compiler/mir_lower_population.o \
                    $(BUILD_DIR)/compiler/mir_program_validate.o \

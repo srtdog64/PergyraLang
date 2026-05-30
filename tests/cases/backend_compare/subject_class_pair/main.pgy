@@ -1,0 +1,22 @@
+class Stats {
+    let strength: Int;
+    let agility: Int;
+
+    func Total(self) -> Int {
+        return strength + agility;
+    }
+}
+
+func BuildStats(s: Int, a: Int) -> Stats {
+    return Stats(s, a);
+}
+
+func Main() -> Void {
+    let warrior: Stats = BuildStats(10, 3);
+    let rogue: Stats = BuildStats(4, 12);
+    Log(warrior.strength);
+    Log(rogue.agility);
+    Log(warrior.Total());
+    Log(rogue.Total());
+    Log(warrior.Total() + rogue.Total());
+}

@@ -7,6 +7,7 @@
 
 #include "thread_pool_usage.h"
 
+#include "../compiler/mir_surface_usage.h"
 #include "../parser/ast_analysis.h"
 
 #include <stddef.h>
@@ -71,8 +72,8 @@ pgy_mir_program_uses_thread_pool(const MIRProgram *mir)
     if (mir == NULL)
         return false;
 
-    if (mir->has_inventory_surface_usage_facts)
-        return mir->inventory_uses_thread_pool_surface;
+    if (mir_program_has_inventory_surface_usage_facts(mir))
+        return mir_program_recorded_inventory_uses_thread_pool_surface(mir);
 
     mir_routine_inventory_from_program(mir, &inventory);
     for (size_t i = 0; i < inventory.count; i++) {

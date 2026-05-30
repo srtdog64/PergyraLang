@@ -1,0 +1,12 @@
+func Main() -> Void {
+    let csv: String = "alpha,bravo,charlie";
+    let parts: Array<String> = StringSplit(csv, ",");
+    Log(ArrayLength(parts));
+    Log(parts[0]);
+    Log(parts[1]);
+    Log(parts[2]);
+
+    let single: Array<String> = StringSplit("only", ",");
+    Log(ArrayLength(single));
+    Log(single[0]);
+}

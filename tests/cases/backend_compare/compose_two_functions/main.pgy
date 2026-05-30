@@ -1,0 +1,17 @@
+func Plus3(x: Int) -> Int {
+    return x + 3;
+}
+
+func Times2(x: Int) -> Int {
+    return x * 2;
+}
+
+func ApplyTwo(a: func(Int) -> Int, b: func(Int) -> Int, value: Int) -> Int {
+    return b(a(value));
+}
+
+func Main() -> Void {
+    Log(ApplyTwo(Plus3, Times2, 5));
+    Log(ApplyTwo(Times2, Plus3, 5));
+    Log(ApplyTwo(Plus3, Plus3, 0));
+}

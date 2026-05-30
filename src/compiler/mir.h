@@ -265,6 +265,12 @@ typedef struct
 
 typedef struct
 {
+    MIRRoutine *routines;
+    size_t      count;
+} MIRMutableRoutineInventory;
+
+typedef struct
+{
     /* Source compatibility/provenance only; declaration inventory lives below. */
     ASTNode    *source_ast;
     const char *owner_name;
@@ -437,8 +443,16 @@ void        mir_routine_inventory_from_program(
 const MIRRoutine *mir_routine_inventory_get(
                 const MIRRoutineInventory *inventory,
                 size_t index);
+void        mir_mutable_routine_inventory_from_program(
+                MIRProgram *mir,
+                MIRMutableRoutineInventory *inventory);
+MIRRoutine *mir_mutable_routine_inventory_get(
+                const MIRMutableRoutineInventory *inventory,
+                size_t index);
 ASTNode     *mir_find_function_decl(const MIRProgram *mir, const char *name);
 const MIRDeclHeader *mir_find_decl_header(const MIRProgram *mir, const char *name);
+bool        mir_program_has_main_function(const MIRProgram *mir);
+bool        mir_program_has_top_level_exec(const MIRProgram *mir);
 bool        mir_run_liveness_pass(MIRProgram *mir, char **error_message);
 bool        mir_run_dce_pass(MIRProgram *mir, char **error_message);
 void        mir_refresh_non_cfg_body_fallback_inventory(MIRProgram *mir);

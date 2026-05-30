@@ -66,6 +66,7 @@ for rel in \
     "src/codegen/transpiler_mir_ssa_names.h" \
     "src/compiler/mir.h" \
     "src/compiler/mir_lower_public_api.h" \
+    "src/compiler/mir_program_inventory.c" \
     "src/compiler/mir_public_surface.c" \
     "src/compiler/mir_decl_headers.c" \
     "src/compiler/mir_decl_headers.h" \
@@ -174,24 +175,28 @@ for rel in \
         fail "$rel must consume host_decl_compat field lookup helpers instead of reopening class/shared field arrays"
     fi
 done
+
+is_approved_decl_field_array_owner() {
+    case "$1" in
+        src/codegen/host_decl_compat.c) return 0 ;;
+        src/codegen/llvm_domain_struct_register.c) return 0 ;;
+        src/codegen/llvm_domain_struct_register_fields.c) return 0 ;;
+        src/codegen/llvm_register.c) return 0 ;;
+        src/codegen/transpiler_class_decl_emit.c) return 0 ;;
+        src/codegen/transpiler_relation_effect_emit.c) return 0 ;;
+        src/codegen/transpiler_world_select_event_emit.c) return 0 ;;
+        src/codegen/transpiler_zone_decl_emit.c) return 0 ;;
+        src/codegen/transpiler_zone_struct_emit.c) return 0 ;;
+    esac
+    return 1
+}
+
 while IFS= read -r hit; do
     rel="${hit%%:*}"
     rel="${rel#"$ROOT_DIR/"}"
-    case "$rel" in
-        src/codegen/host_decl_compat.c|\
-        src/codegen/llvm_domain_struct_register.c|\
-        src/codegen/llvm_domain_struct_register_fields.c|\
-        src/codegen/llvm_register.c|\
-        src/codegen/transpiler_class_decl_emit.c|\
-        src/codegen/transpiler_relation_effect_emit.c|\
-        src/codegen/transpiler_world_select_event_emit.c|\
-        src/codegen/transpiler_zone_decl_emit.c|\
-        src/codegen/transpiler_zone_struct_emit.c)
-            ;;
-        *)
-            fail "$rel reopens declaration field arrays outside approved declaration/register owners"
-            ;;
-    esac
+    if ! is_approved_decl_field_array_owner "$rel"; then
+        fail "$rel reopens declaration field arrays outside approved declaration/register owners"
+    fi
 done < <(grep -RInE 'ast_class_fields|ast_(party|roster|relation|effect|zone|world)_shared_fields' \
     "$ROOT_DIR/src/codegen" \
     --include='*.c' --include='*.h' || true)
@@ -295,11 +300,61 @@ for term in \
     "return routine != NULL ? routine->ast : NULL"; do
     require_term "src/codegen/llvm_inventory_internal.c" "$term"
 done
+for rel in \
+    "src/codegen/llvm_decl_routines.c" \
+    "src/codegen/llvm_intent.c" \
+    "src/codegen/llvm_intent_forward.c"; do
+    require_term "$rel" "llvm_routine_inventory_get(inventory, i)"
+    if grep -Eq '(inventory|routine_inventory)->routines\[[^]]+\]' "$ROOT_DIR/$rel"; then
+        fail "$rel must consume LLVM MIR routine inventory through llvm_routine_inventory_get"
+    fi
+done
+for rel in \
+    "src/codegen/llvm_intent_flow.c" \
+    "src/codegen/llvm_mir_contract.c"; do
+    require_term "$rel" "llvm_routine_inventory_get(&routine_inventory, i)"
+    if grep -Eq '(inventory|routine_inventory)->routines\[[^]]+\]' "$ROOT_DIR/$rel"; then
+        fail "$rel must consume LLVM MIR routine inventory through llvm_routine_inventory_get"
+    fi
+done
 
 for term in "mir_active_inventory" "mir_active_externs"; do
     require_term "src/compiler/mir.h" "$term"
     require_term "src/compiler/mir_public_surface.c" "$term"
 done
+for term in \
+    "mir_routine_inventory_from_program" \
+    "mir_routine_inventory_get" \
+    "mir_mutable_routine_inventory_from_program" \
+    "mir_mutable_routine_inventory_get" \
+    "mir_program_has_main_function" \
+    "mir_program_has_top_level_exec"; do
+    require_term "src/compiler/mir.h" "$term"
+    require_term "src/compiler/mir_program_inventory.c" "$term"
+done
+require_term "src/compiler/mir_public_surface.c" \
+    "mir_routine_inventory_from_program(mir, &inventory)"
+require_term "src/compiler/mir_public_surface.c" \
+    "mir_mutable_routine_inventory_from_program(mir, &inventory)"
+require_term "src/compiler/mir_decl_headers.c" \
+    "mir_routine_inventory_from_program(mir, &inventory)"
+require_term "src/compiler/mir_decl_header_validate.c" \
+    "mir_routine_inventory_from_program(mir, &inventory)"
+require_term "src/compiler/mir_program_validate.c" \
+    "mir_routine_inventory_from_program(mir, &inventory)"
+for rel in \
+    "src/compiler/mir_decl_headers.c" \
+    "src/compiler/mir_decl_header_validate.c" \
+    "src/compiler/mir_program_validate.c"; do
+    if grep -Eq '\bmir->routine_count\b|\bmir->routines\b' \
+        "$ROOT_DIR/$rel"; then
+        fail "$rel must consume MIR routine inventory accessors instead of raw MIRProgram routine fields"
+    fi
+done
+if grep -Eq '\bmir->routine_count\b|\bmir->routines\b' \
+    "$ROOT_DIR/src/compiler/mir_public_surface.c"; then
+    fail "MIR public surface must consume routine inventory accessors instead of raw MIRProgram routine fields"
+fi
 for term in \
     "mir_find_function_decl" \
     "mir_active_inventory" \
@@ -373,6 +428,24 @@ require_term "src/codegen/llvm_inventory_internal.h" \
     "llvm_active_uses_thread_pool"
 require_term "src/codegen/llvm_inventory_internal.c" \
     "pgy_mir_program_uses_thread_pool(ctx->mir)"
+require_term "src/codegen/llvm_inventory_internal.c" \
+    "mir_routine_inventory_from_program(mir, &mir_inventory)"
+require_term "src/codegen/llvm_inventory_internal.c" \
+    "mir_program_has_main_function(ctx->mir)"
+require_term "src/codegen/llvm_inventory_internal.c" \
+    "mir_program_has_top_level_exec(ctx->mir)"
+require_term "src/compiler/mir.h" \
+    "mir_program_has_main_function"
+require_term "src/compiler/mir.h" \
+    "mir_program_has_top_level_exec"
+for rel in \
+    "src/codegen/llvm_inventory_internal.c" \
+    "src/codegen/transpiler_inventory_view.c"; do
+    if grep -Eq 'ctx->mir->has_(main_function|top_level_exec)|ctx->mir->routine(s|_count)|mir->routine(s|_count)' \
+        "$ROOT_DIR/$rel"; then
+        fail "$rel must consume MIR routine/main/top-level accessors instead of raw MIRProgram fields"
+    fi
+done
 for term in \
     "llvm_register_generic_template_decl(LLVMGenCtx *ctx, ASTNode *func_decl)" \
     "ctx->generic_templates[ctx->generic_template_count].name = name" \
@@ -629,6 +702,12 @@ require_term "src/codegen/transpiler_inventory_view.c" \
     "transpiler_active_mir_identity(const TranspilerCtx *ctx)"
 require_term "src/codegen/transpiler_inventory_view.c" \
     "transpiler_active_decl_header(const TranspilerCtx *ctx, const char *name)"
+require_term "src/codegen/transpiler_inventory_view.c" \
+    "mir_routine_inventory_from_program(mir, &mir_inventory)"
+require_term "src/codegen/transpiler_inventory_view.c" \
+    "mir_program_has_main_function(ctx->mir)"
+require_term "src/codegen/transpiler_inventory_view.c" \
+    "mir_program_has_top_level_exec(ctx->mir)"
 require_term "src/codegen/transpiler_inventory_view.c" \
     "pgy_mir_program_uses_intent_observability(ctx->mir)"
 require_term "src/codegen/transpiler_entry.c" \

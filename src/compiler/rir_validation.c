@@ -13,9 +13,10 @@ rir_scope_find_projection_fact(const RIRScope *scope, const char *name)
     if (scope == NULL || name == NULL)
         return NULL;
 
-    for (size_t i = 0; i < scope->fact_count; i++) {
-        const RIRFact *fact = &scope->facts[i];
-        if (fact->kind == RIR_FACT_PROJECTION
+    for (size_t i = 0; i < rir_scope_fact_count(scope); i++) {
+        const RIRFact *fact = rir_scope_fact_at(scope, i);
+        if (fact != NULL
+            && fact->kind == RIR_FACT_PROJECTION
             && fact->name != NULL
             && strcmp(fact->name, name) == 0) {
             return fact;
@@ -56,6 +57,7 @@ rir_merge_state_for_kind(RIRResourceKind kind,
 bool
 rir_validate(const RIRProgram *rir, char **error_message)
 {
+    RIRScopeInventory inventory;
     if (error_message != NULL)
         *error_message = NULL;
     if (rir == NULL) {
@@ -64,10 +66,28 @@ rir_validate(const RIRProgram *rir, char **error_message)
         return false;
     }
 
-    for (size_t i = 0; i < rir->scope_count; i++) {
-        const RIRScope *scope = &rir->scopes[i];
-        for (size_t j = 0; j < scope->state_summary_count; j++) {
-            const RIRStateSummary *summary = &scope->state_summaries[j];
+    rir_scope_inventory_from_program(rir, &inventory);
+    for (size_t i = 0; i < inventory.count; i++) {
+        const RIRScope *scope = rir_scope_inventory_get(&inventory, i);
+        if (scope == NULL) {
+            if (error_message != NULL)
+                *error_message =
+                    rir_strdup_fmt("RIR scope inventory row[%llu] is invalid",
+                                   (unsigned long long)i);
+            return false;
+        }
+        for (size_t j = 0; j < rir_scope_state_summary_count(scope); j++) {
+            const RIRStateSummary *summary =
+                rir_scope_state_summary_at(scope, j);
+            if (summary == NULL) {
+                if (error_message != NULL) {
+                    *error_message = rir_strdup_fmt(
+                        "RIR scope '%s' has invalid state summary[%llu]",
+                        scope->name != NULL ? scope->name : "(anonymous)",
+                        (unsigned long long) j);
+                }
+                return false;
+            }
             if (summary->name == NULL || summary->resource_kind == RIR_RESOURCE_UNKNOWN) {
                 if (error_message != NULL) {
                     *error_message = rir_strdup_fmt(
@@ -88,8 +108,17 @@ rir_validate(const RIRProgram *rir, char **error_message)
             }
         }
 
-        for (size_t j = 0; j < scope->fact_count; j++) {
-            const RIRFact *fact = &scope->facts[j];
+        for (size_t j = 0; j < rir_scope_fact_count(scope); j++) {
+            const RIRFact *fact = rir_scope_fact_at(scope, j);
+            if (fact == NULL) {
+                if (error_message != NULL) {
+                    *error_message = rir_strdup_fmt(
+                        "RIR scope '%s' has invalid fact[%llu]",
+                        scope->name != NULL ? scope->name : "(anonymous)",
+                        (unsigned long long) j);
+                }
+                return false;
+            }
             if (fact->kind != RIR_FACT_INTENT_POLICY && fact->slot_anchor == NULL) {
                 if (error_message != NULL) {
                     *error_message = rir_strdup_fmt(
@@ -137,8 +166,17 @@ rir_validate(const RIRProgram *rir, char **error_message)
             }
         }
 
-        for (size_t j = 0; j < scope->op_count; j++) {
-            const RIROp *op = &scope->ops[j];
+        for (size_t j = 0; j < rir_scope_op_count(scope); j++) {
+            const RIROp *op = rir_scope_op_at(scope, j);
+            if (op == NULL) {
+                if (error_message != NULL) {
+                    *error_message = rir_strdup_fmt(
+                        "RIR scope '%s' has invalid op[%llu]",
+                        scope->name != NULL ? scope->name : "(anonymous)",
+                        (unsigned long long) j);
+                }
+                return false;
+            }
             if (op->slot_anchor == NULL) {
                 if (error_message != NULL) {
                     *error_message = rir_strdup_fmt(
@@ -252,9 +290,12 @@ rir_validate(const RIRProgram *rir, char **error_message)
         if (scope->kind == RIR_SCOPE_INTENT) {
             bool has_commit = false;
             bool has_abort = false;
-            for (size_t j = 0; j < scope->op_count; j++) {
-                has_commit = has_commit || scope->ops[j].kind == RIR_OP_COMMIT_INTENT;
-                has_abort = has_abort || scope->ops[j].kind == RIR_OP_ABORT_INTENT;
+            for (size_t j = 0; j < rir_scope_op_count(scope); j++) {
+                const RIROp *op = rir_scope_op_at(scope, j);
+                if (op == NULL)
+                    continue;
+                has_commit = has_commit || op->kind == RIR_OP_COMMIT_INTENT;
+                has_abort = has_abort || op->kind == RIR_OP_ABORT_INTENT;
             }
             if (!has_commit || !has_abort) {
                 if (error_message != NULL) {

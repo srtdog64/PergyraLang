@@ -1,0 +1,16 @@
+func Main() -> Void {
+    let xs: List<Int> = ListNew();
+    ListPush(xs, 5);
+    ListPush(xs, 10);
+    ListPush(xs, 15);
+    ListPush(xs, 20);
+    Log(ListSize(xs));
+
+    let total: Int = 0;
+    let i: Int = 0;
+    while i < ListSize(xs) {
+        total = total + ListGet(xs, i);
+        i = i + 1;
+    }
+    Log(total);
+}

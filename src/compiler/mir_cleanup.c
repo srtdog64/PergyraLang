@@ -124,9 +124,11 @@ mir_add_rollback_invalidation(MIRRoutine *routine, MIRBasicBlock *cleanup, const
 {
     if (routine == NULL || cleanup == NULL || rir_scope == NULL)
         return false;
-    for (size_t i = 0; i < rir_scope->fact_count; i++) {
-        const RIRFact *fact = &rir_scope->facts[i];
+    for (size_t i = 0; i < rir_scope_fact_count(rir_scope); i++) {
+        const RIRFact *fact = rir_scope_fact_at(rir_scope, i);
         MIRInstruction inst;
+        if (fact == NULL)
+            continue;
         if (fact->kind != RIR_FACT_INTENT_POLICY || fact->name == NULL || strcmp(fact->name, "rollback") != 0)
             continue;
         memset(&inst, 0, sizeof(inst));
@@ -145,14 +147,19 @@ mir_rir_scope_requires_rollback(const RIRScope *rir_scope)
 {
     if (rir_scope == NULL)
         return false;
-    for (size_t i = 0; i < rir_scope->op_count; i++) {
-        if (rir_scope->ops[i].kind == RIR_OP_ABORT_INTENT
-            || rir_scope->ops[i].kind == RIR_OP_COMPENSATE_INTENT_STEP) {
+    for (size_t i = 0; i < rir_scope_op_count(rir_scope); i++) {
+        const RIROp *op = rir_scope_op_at(rir_scope, i);
+        if (op == NULL)
+            continue;
+        if (op->kind == RIR_OP_ABORT_INTENT
+            || op->kind == RIR_OP_COMPENSATE_INTENT_STEP) {
             return true;
         }
     }
-    for (size_t i = 0; i < rir_scope->fact_count; i++) {
-        const RIRFact *fact = &rir_scope->facts[i];
+    for (size_t i = 0; i < rir_scope_fact_count(rir_scope); i++) {
+        const RIRFact *fact = rir_scope_fact_at(rir_scope, i);
+        if (fact == NULL)
+            continue;
         if (fact->kind == RIR_FACT_INTENT_POLICY
             && fact->name != NULL
             && strcmp(fact->name, "rollback") == 0) {
@@ -199,8 +206,10 @@ mir_rir_scope_requires_invalidation(const RIRScope *rir_scope)
             }
         }
     }
-    for (size_t i = 0; i < rir_scope->fact_count; i++) {
-        const RIRFact *fact = &rir_scope->facts[i];
+    for (size_t i = 0; i < rir_scope_fact_count(rir_scope); i++) {
+        const RIRFact *fact = rir_scope_fact_at(rir_scope, i);
+        if (fact == NULL)
+            continue;
         if (fact->kind == RIR_FACT_PROJECTION
             || fact->resource_kind == RIR_RESOURCE_EFFECT_INSTANCE
             || fact->resource_kind == RIR_RESOURCE_RELATION_INSTANCE

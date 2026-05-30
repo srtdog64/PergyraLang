@@ -1,6 +1,6 @@
 # Pergyra Source-Of-Truth Spine
 
-Last updated: 2026-05-26
+Last updated: 2026-05-30
 
 This document freezes the compiler ownership spine for beta closure. It exists
 to stop A -> B -> A refactoring loops. When a future change is unclear, use this
@@ -73,7 +73,37 @@ Current beta closure snapshot:
   CFG/MIR remains the body-safety source of truth.
 - MIR lowering lives in `src/compiler/mir.c`, next to the owner-local lowering
   helpers it consumes. Public MIR query/pass wrappers live in
-  `src/compiler/mir_public_surface.c`.
+  `src/compiler/mir_public_surface.c`. MIR lowering is a consumer of HIR/RIR
+  shape, not the owner of those inventories: routine iteration must use
+  `hir_routine_inventory_from_program(...)`, and RIR scope matching/cleanup/
+  population must consume `rir_scope_inventory_*` and `rir_scope_*_at(...)`
+  accessors instead of reopening raw HIR/RIR arrays.
+- HIR routine consumers must use `hir_routine_inventory_from_program(...)`.
+  Mutable HIR pass owners, currently the callgraph pass, must use
+  `hir_mutable_routine_inventory_from_program(...)`. Raw `hir->routines` /
+  `hir->routine_count` access is confined to HIR construction, destruction, and
+  public-surface owners.
+- RIR dump and JSON dump output are public-surface consumers of the RIR scope
+  inventory. They must use `rir_scope_inventory_get(...)` plus
+  `rir_scope_fact_at(...)`, `rir_scope_op_at(...)`, and
+  `rir_scope_state_summary_at(...)` instead of walking raw scope arrays.
+- RIR flow enrichment is the mutable flow owner, but program-level scope
+  matching must still use `rir_mutable_scope_inventory_from_program(...)`.
+  Direct `rir->scopes` / `rir->scope_count` access is confined to RIR
+  construction, destruction, and scope-storage/public-surface owners.
+- MIR declaration method routine links consume the MIR routine inventory
+  accessors from `src/compiler/mir_program_inventory.c`. Declaration header
+  linking and validation may compare owner/name metadata, but they must not
+  reopen `mir->routines` or `mir->routine_count` directly. MIR program
+  validation must use the same inventory view for routine-shape checks.
+- Public MIR pass wrappers must consume the const/mutable MIR routine inventory
+  views. Raw `mir->routines` / `mir->routine_count` access is confined to MIR
+  construction, lifecycle, and program-inventory owners.
+- C/LLVM backend routine-inventory wrappers are the only backend owners allowed
+  to dereference their wrapped routine arrays. Backend declaration, intent, and
+  MIR-contract consumers must call the wrapper accessor (`llvm_routine_inventory_get`
+  or `transpiler_routine_inventory_get`) instead of indexing `inventory->routines`
+  directly.
 - Parser, lexer, semantic, compiler, and codegen headers are declaration
   surfaces by default. The only current non-runtime implementation-header
   exception is the macro-only `src/codegen/llvm_limits_internal.h`.
@@ -147,6 +177,11 @@ Current beta closure snapshot:
   4-only `mapfile` / `readarray`, associative arrays, parameter
   case-conversion expansions, and case-pattern continuations that end in `|\`.
   Use explicit while-read loops or `if` checks instead.
+- Makefile shell helpers are part of the beta tooling source of truth.
+  `pgy_mkdir_p` and `pgy_touch_ref` must not invoke nested login-shell bash in
+  local MinGW/Git Bash builds; `tests/build_source_inventory_smoke.sh` owns
+  the drift alarm for this because a stalled helper prevents compiler gates
+  from running at all.
 - Windows/MSYS executable smokes must call `pgy_prepend_windows_runtime_paths`
   before probing built `.exe` binaries. A missing DLL path is an environment
   setup problem, not a successful skip when the binary was explicitly built.
@@ -235,12 +270,17 @@ keep the source-level business vocabulary clean.
 |---|---|---|---|
 | Parsed syntax and source spans | AST | Diagnostics, lowering provenance | Backend semantic rediscovery by walking AST |
 | Body control flow | HIR CFG | MIR lowering, semantic body facts, AIR evidence | AST helper deciding reachability or all-path return |
+| HIR routine inventory | `hir_public.c` const/mutable routine inventory accessors | AIR HIR evidence, HIR validation, HIR callgraph, MIR lowering, RIR flow enrichment, future HIR consumers | Consumers reopening `hir->routines` or `hir->routine_count` directly outside HIR construction/destruction/public owners |
+| RIR scope inventory and scope item views | `rir_public_surface.c` const/mutable scope inventory, fact, op, and state-summary accessors | AIR RIR evidence, RIR validation, RIR/DIR validation, RIR dump/JSON output, RIR flow enrichment, MIR cleanup/lowering, future RIR consumers | Consumers reopening `rir->scopes`, `rir->scope_count`, `scope->facts`, `scope->ops`, or `scope->state_summaries` directly outside RIR owners |
 | Body safety facts | MIR CFG/dataflow | C backend, LLVM backend, AIR evidence | Backend-local cleanup/drop/pin rules |
 | MIR source shape and source-location compatibility | MIR source-shape owner | MIR validators, DCE, C/LLVM emitters, dumps | Consumers reopening raw `source_ast_type` / `source_line` fields |
 | MIR compatibility AST payload | MIR source-shape owner | C/LLVM residual source emitters, diagnostics, validators | Consumers reading `inst->ast` directly outside MIR construction/population/source-shape owners |
 | Declaration/domain inventory | DIR/RIR/MIR declaration headers | C/LLVM declaration emitters | AST-carried backend inventory as final truth |
 | Host declaration compatibility lookup | `host_decl_compat.c` type/name table | C/LLVM host method lookup, pointer-self policy, no-MIR compatibility paths | Partial class/enum-only fallback chains that omit party/role/roster/domain hosts |
-| MIR public inventory/query/pass wrappers | `mir_public_surface.c` | C/LLVM inventory views, MIR tests | Public query/DCE/liveness wrappers living in the lowering implementation header |
+| MIR public inventory/query/pass wrappers | `mir_public_surface.c` consuming `mir_program_inventory.c` const/mutable routine views | C/LLVM inventory views, MIR tests, public liveness/DCE/fallback-summary pass wrappers | Public query/DCE/liveness wrappers living in the lowering implementation header or reopening raw MIR routine arrays |
+| MIR routine/program structure facts | `mir_program_inventory.c` routine inventory and program-shape accessors | AIR MIR evidence, C/LLVM inventory views, MIR public pass wrappers, main-wrapper selection | Consumers reopening `mir->routines`, `mir->routine_count`, `mir->has_main_function`, or `mir->has_top_level_exec` directly |
+| Backend routine inventory wrappers | `llvm_inventory_internal.c` and `transpiler_inventory_view.c` | C/LLVM declaration emitters, intent emitters, MIR contract validation, hosted method views | Backend consumers indexing `inventory->routines[...]` instead of the wrapper accessor |
+| MIR inventory surface usage | `mir_surface_usage.c` summary and recorded-fact accessors | MIR validators, C/LLVM runtime-dependency selection for thread-pool and intent observability | Consumers reading `mir->has_inventory_surface_usage_facts` or `mir->inventory_uses_*_surface` directly |
 | Type/declaration dependency | Type-resolution DAG metadata | Semantic owners, AIR DAG evidence | Recursive resolver fallback on frozen paths |
 | Generic/ability contract evidence | Type-resolution DAG + `semantic_role_decl_has_ability(...)` | Semantic contract checks, role/party bind checks, AIR | Program-root based ability match helpers or compatibility counters as semantic truth |
 | Semantic host declaration lookup | `semantic_find_*_decl_by_name(...)` in `type_checker_host_helpers.c` | Constructor lookup, callable lookup, class/ability/enum/function lookup, ownership consumers | Public raw `find_type_decl_by_name`, `find_ability_decl_by_name`, `find_callable_decl_by_name`, or `find_type_alias_decl` program-root helpers |
@@ -249,7 +289,7 @@ keep the source-level business vocabulary clean.
 | Role declaration lookup | `semantic_find_role_decl_by_name(...)` / `semantic_find_next_role_decl_for_type_name(...)` | Ability matching, bind validation, operator overload lookup, role declaration validation | Public raw `semantic_find_role_decl(ASTNode *program, ...)` |
 | Projection source field path | `semantic_resolve_projection_source_field_path(...)` | Projection diagnostics, zone graph metadata, DAG projection materialization | Re-exposing `resolve_projection_source_field_path(ASTNode *program_root, ...)` or local class lookup |
 | Stdlib use declaration validation | `SemanticContext.stdlib_use_module_*` inventory in `type_checker_stdlib_use.c` | Duplicate `use` warnings, stdlib surface validation | Re-scanning `ctx->program_root` from the stdlib-use consumer |
-| Ref-parameter escape compatibility | `semantic_callable_param_escape_summary(...)` call-contract owner seam; it may still consume legacy AST summaries internally until CFG/MIR facts replace that implementation, and escaping refs must aggregate into `BODY_SUMMARY_MAY_ESCAPE_REF` | Ownership call checks, function param summary checks, transitive callee body summaries | Re-exposing `semantic_legacy_ast_callable_param_escape_summary(...)`, making ownership consumers call the slot analyzer directly, or dropping the body-summary aggregation |
+| Ref-parameter escape compatibility | `semantic_callable_param_escape_summary(...)` call-contract owner seam; checked function types that already prove no `BODY_SUMMARY_MAY_ESCAPE_REF` bypass the legacy AST analyzer, including checked empty summaries, and escaping refs must aggregate into `BODY_SUMMARY_MAY_ESCAPE_REF` | Ownership call checks, function param summary checks, transitive callee body summaries | Re-exposing `semantic_legacy_ast_callable_param_escape_summary(...)`, making ownership consumers call the slot analyzer directly, forcing legacy AST analysis when typed body-summary facts are already decisive, or dropping the body-summary aggregation |
 | Party bind statement validity | `type_checker_bind_stmt.c` | CFG/body flow, C backend bind emit, LLVM bind emit | Backend-only bind validation or silent LLVM bind skips |
 | Intent step domain declaration recovery | `type_checker_intent_types.c` intent domain owner seam | Intent step validation, derived using, step causes checks, participant transfer-source checks, transfer contract checks | Consumers reopening `AST_ZONE_DECL` / `AST_EFFECT_DECL` lookup locally |
 | Resource/authority/effect propagation | RIR | AIR, runtime/codegen policy emitters | AIR or backend inventing authority/resource facts |
@@ -801,6 +841,9 @@ drift and evidence provenance, but it must do so through the AIR graph accessors
 and EvidenceNode accessors. Direct reads of `air->drift_count`, `air->drifts`,
 `air->intent_count`, `air->intents`, `air->boundary_count`, or
 `air->boundaries` outside AIR graph owners are source-of-truth drift.
+`semantic-core-shape-test-smoke` enforces this for graph storage, input flags,
+the strict-evidence flag, and EvidenceNode storage; new raw consumers must
+first name an AIR owner seam and update this source-of-truth contract.
 AIR input-presence flags are also graph metadata. Consumers should read them
 through `air_has_hir_input(...)`, `air_has_rir_input(...)`, and
 `air_has_mir_input(...)`; evidence collectors should mark late-attached inputs

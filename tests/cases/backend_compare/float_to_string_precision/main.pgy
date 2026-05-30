@@ -1,0 +1,8 @@
+func Main() -> Void {
+    Log(ToString(3.14));
+    Log(ToString(0.5));
+    Log(ToString(100.0));
+    Log(ToString(0.0));
+    Log(ToString(1.0 / 3.0));
+    Log(ToString(2.0 * 3.0));
+}

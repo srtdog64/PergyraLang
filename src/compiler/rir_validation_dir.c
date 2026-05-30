@@ -58,11 +58,13 @@ rir_scope_find_fact_by_name_kind(const RIRScope *scope,
     if (scope == NULL || name == NULL)
         return NULL;
 
-    for (size_t i = 0; i < scope->fact_count; i++) {
-        if (scope->facts[i].kind == kind
-            && scope->facts[i].name != NULL
-            && strcmp(scope->facts[i].name, name) == 0) {
-            return &scope->facts[i];
+    for (size_t i = 0; i < rir_scope_fact_count(scope); i++) {
+        const RIRFact *fact = rir_scope_fact_at(scope, i);
+        if (fact != NULL
+            && fact->kind == kind
+            && fact->name != NULL
+            && strcmp(fact->name, name) == 0) {
+            return fact;
         }
     }
 
@@ -77,9 +79,10 @@ rir_scope_has_capability_fact(const RIRScope *scope,
     if (scope == NULL || participant == NULL || ability == NULL)
         return false;
 
-    for (size_t i = 0; i < scope->fact_count; i++) {
-        const RIRFact *fact = &scope->facts[i];
-        if (fact->kind == RIR_FACT_CAPABILITY
+    for (size_t i = 0; i < rir_scope_fact_count(scope); i++) {
+        const RIRFact *fact = rir_scope_fact_at(scope, i);
+        if (fact != NULL
+            && fact->kind == RIR_FACT_CAPABILITY
             && fact->name != NULL
             && strcmp(fact->name, participant) == 0
             && fact->arg0 != NULL
@@ -96,8 +99,12 @@ rir_find_domain_scope_for_owner(const RIRProgram *rir,
                                 const char *owner_name,
                                 size_t owner_len)
 {
-    for (size_t i = 0; i < rir->scope_count; i++) {
-        const RIRScope *scope = &rir->scopes[i];
+    RIRScopeInventory inventory;
+    rir_scope_inventory_from_program(rir, &inventory);
+    for (size_t i = 0; i < inventory.count; i++) {
+        const RIRScope *scope = rir_scope_inventory_get(&inventory, i);
+        if (scope == NULL)
+            continue;
         if ((scope->kind == RIR_SCOPE_ZONE
              || scope->kind == RIR_SCOPE_RELATION
              || scope->kind == RIR_SCOPE_EFFECT)

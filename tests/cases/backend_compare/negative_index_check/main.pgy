@@ -1,0 +1,17 @@
+func SafeAt(arr: Array<Int>, idx: Int) -> Int {
+    if idx < 0 {
+        return -1;
+    }
+    if idx >= ArrayLength(arr) {
+        return -2;
+    }
+    return arr[idx];
+}
+
+func Main() -> Void {
+    let nums: Array<Int> = [10, 20, 30];
+    Log(SafeAt(nums, 0));
+    Log(SafeAt(nums, 2));
+    Log(SafeAt(nums, -1));
+    Log(SafeAt(nums, 5));
+}

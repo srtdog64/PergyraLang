@@ -40,7 +40,9 @@ llvm_forward_declare_function_routines_from_inventory(
         return false;
 
     for (size_t i = 0; i < inventory->count; i++) {
-        const MIRRoutine *routine = &inventory->routines[i];
+        const MIRRoutine *routine = llvm_routine_inventory_get(inventory, i);
+        if (routine == NULL)
+            return false;
         ASTNode *func_decl = llvm_decl_function_from_routine(routine);
         if (func_decl == NULL)
             continue;
@@ -66,7 +68,9 @@ llvm_emit_function_routines_from_inventory(
         return false;
 
     for (size_t i = 0; i < inventory->count; i++) {
-        const MIRRoutine *routine = &inventory->routines[i];
+        const MIRRoutine *routine = llvm_routine_inventory_get(inventory, i);
+        if (routine == NULL)
+            return false;
         ASTNode *func_decl = llvm_decl_function_from_routine(routine);
         if (func_decl == NULL || llvm_decl_function_is_generic(func_decl))
             continue;
@@ -87,7 +91,9 @@ llvm_validate_function_routine_bodies_from_inventory(
         return false;
 
     for (size_t i = 0; i < inventory->count; i++) {
-        const MIRRoutine *routine = &inventory->routines[i];
+        const MIRRoutine *routine = llvm_routine_inventory_get(inventory, i);
+        if (routine == NULL)
+            return false;
         ASTNode *func_decl = llvm_decl_function_from_routine(routine);
         if (func_decl == NULL || llvm_decl_function_is_generic(func_decl))
             continue;

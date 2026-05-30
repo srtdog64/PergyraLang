@@ -1,0 +1,8 @@
+func Main() -> Void {
+    let s: String = "PergyraLanguage";
+    Log(Substring(s, 0, 7));
+    Log(Substring(s, 7, 8));
+    Log(StringLength(s));
+    Log(Substring(s, 0, 1));
+    Log(Substring(s, 14, 1));
+}

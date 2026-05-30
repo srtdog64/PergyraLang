@@ -21,6 +21,25 @@ inventory="$(
 )"
 missing=0
 
+if ! grep -Fq 'pgy_mkdir_p = $(BASH) -c "mkdir -p $(1)"' \
+    "$ROOT_DIR/Makefile"; then
+    echo "[build-source-inventory] pgy_mkdir_p must avoid nested login-shell bash" >&2
+    missing=1
+fi
+if grep -Fq 'pgy_mkdir_p = $(BASH) -lc' "$ROOT_DIR/Makefile"; then
+    echo "[build-source-inventory] pgy_mkdir_p regressed to nested login-shell bash" >&2
+    missing=1
+fi
+if ! grep -Fq 'pgy_touch_ref = $(BASH) -c "touch -c -r $(1) $(2)"' \
+    "$ROOT_DIR/Makefile"; then
+    echo "[build-source-inventory] pgy_touch_ref must avoid nested login-shell bash" >&2
+    missing=1
+fi
+if grep -Fq 'pgy_touch_ref = $(BASH) -lc' "$ROOT_DIR/Makefile"; then
+    echo "[build-source-inventory] pgy_touch_ref regressed to nested login-shell bash" >&2
+    missing=1
+fi
+
 duplicate_sources="$(
     printf '%s\n' "$inventory" \
         | sed '/^$/d' \

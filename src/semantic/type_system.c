@@ -375,6 +375,7 @@ type_create_function(Type **params, size_t param_count, Type *return_type)
     t->data.function.param_count  = param_count;
     t->data.function.effect_mask  = EFFECT_NONE;
     t->data.function.body_summary_mask = BODY_SUMMARY_NONE;
+    t->data.function.has_body_summary_facts = false;
     t->data.function.param_types  = (param_count > 0)
         ? calloc(param_count, sizeof(Type *))
         : NULL;
@@ -430,4 +431,5 @@ type_function_set_body_summary(Type *type, uint32_t body_summary_mask)
     if (type == NULL || type->kind != TYPE_KIND_FUNCTION)
         return;
     type->data.function.body_summary_mask = body_summary_mask;
+    type->data.function.has_body_summary_facts = true;
 }

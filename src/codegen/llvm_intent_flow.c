@@ -47,7 +47,10 @@ llvm_find_mir_intent_routine(const LLVMGenCtx *ctx, ASTNode *intent_decl)
 
     llvm_active_routine_inventory(ctx, &routine_inventory);
     for (size_t i = 0; i < routine_inventory.count; i++) {
-        const MIRRoutine *routine = &routine_inventory.routines[i];
+        const MIRRoutine *routine =
+            llvm_routine_inventory_get(&routine_inventory, i);
+        if (routine == NULL)
+            continue;
         if (routine->kind != MIR_SCOPE_INTENT || routine->name == NULL)
             continue;
         if (strcmp(routine->name, intent_name) == 0)

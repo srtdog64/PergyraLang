@@ -71,15 +71,22 @@ mir_inventory_surface_usage_summary(const MIRProgram *mir)
 }
 
 bool
-mir_inventory_uses_thread_pool_surface(const MIRProgram *mir)
+mir_program_has_inventory_surface_usage_facts(const MIRProgram *mir)
 {
-    return mir_inventory_surface_usage_summary(mir).uses_thread_pool;
+    return mir != NULL && mir->has_inventory_surface_usage_facts;
 }
 
 bool
-mir_inventory_uses_intent_observability_surface(const MIRProgram *mir)
+mir_program_recorded_inventory_uses_thread_pool_surface(const MIRProgram *mir)
 {
-    return mir_inventory_surface_usage_summary(mir).uses_intent_observability;
+    return mir != NULL && mir->inventory_uses_thread_pool_surface;
+}
+
+bool
+mir_program_recorded_inventory_uses_intent_observability_surface(
+    const MIRProgram *mir)
+{
+    return mir != NULL && mir->inventory_uses_intent_observability_surface;
 }
 
 void

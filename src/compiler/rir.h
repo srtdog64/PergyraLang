@@ -207,6 +207,18 @@ struct RIRProgram
     ASTNode  *program_root;
 };
 
+typedef struct
+{
+    const RIRScope *scopes;
+    size_t          count;
+} RIRScopeInventory;
+
+typedef struct
+{
+    RIRScope *scopes;
+    size_t    count;
+} RIRMutableScopeInventory;
+
 RIRProgram *rir_lower(ASTNode *annotated_ast, char **error_message);
 bool        rir_enrich_with_hir_flow(RIRProgram *rir, const HIRProgram *hir, char **error_message);
 bool        rir_validate(const RIRProgram *rir, char **error_message);
@@ -214,6 +226,25 @@ bool        rir_validate_against_dir(const RIRProgram *rir, const DIRProgram *di
 void        rir_destroy(RIRProgram *rir);
 void        rir_dump(const RIRProgram *rir, FILE *out);
 void        rir_dump_json(const RIRProgram *rir, FILE *out);
+void        rir_scope_inventory_from_program(
+                const RIRProgram *rir,
+                RIRScopeInventory *inventory);
+const RIRScope *rir_scope_inventory_get(
+                const RIRScopeInventory *inventory,
+                size_t index);
+void        rir_mutable_scope_inventory_from_program(
+                RIRProgram *rir,
+                RIRMutableScopeInventory *inventory);
+RIRScope   *rir_mutable_scope_inventory_get(
+                const RIRMutableScopeInventory *inventory,
+                size_t index);
+size_t      rir_scope_fact_count(const RIRScope *scope);
+const RIRFact *rir_scope_fact_at(const RIRScope *scope, size_t index);
+size_t      rir_scope_op_count(const RIRScope *scope);
+const RIROp *rir_scope_op_at(const RIRScope *scope, size_t index);
+size_t      rir_scope_state_summary_count(const RIRScope *scope);
+const RIRStateSummary *rir_scope_state_summary_at(const RIRScope *scope,
+                                                  size_t index);
 
 const char *rir_scope_kind_name(RIRScopeKind kind);
 const char *rir_fact_kind_name(RIRFactKind kind);

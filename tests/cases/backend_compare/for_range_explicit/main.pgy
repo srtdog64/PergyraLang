@@ -1,0 +1,19 @@
+func Main() -> Void {
+    let total: Int = 0;
+    for i in 0..10 {
+        total = total + i;
+    }
+    Log(total);
+
+    let product: Int = 1;
+    for j in 1..6 {
+        product = product * j;
+    }
+    Log(product);
+
+    let count: Int = 0;
+    for k in 5..15 {
+        count = count + 1;
+    }
+    Log(count);
+}

@@ -51,6 +51,60 @@
 - Known test-debt note: `perf-contract-test-smoke` remains too large/slow on
   local Windows Git Bash and timed out; it is P10 and should be split or
   batched separately rather than blocking this P0 semantic owner slice.
+- MIR inventory surface-usage consumption is now accessor-gated:
+  thread-pool and intent-observability runtime-selection code reads recorded
+  inventory facts through `mir_surface_usage.c` instead of raw `MIRProgram`
+  inventory booleans in codegen. The perf contract rejects raw
+  `mir->has_inventory_surface_usage_facts` / `mir->inventory_uses_*` reads
+  under `src/codegen`.
+- MIR routine/program structure consumption is now accessor-gated:
+  C/LLVM inventory views read routine inventory and `main`/top-level executable
+  flags through `mir_program_inventory.c`, and AIR MIR evidence now consumes the
+  same public routine inventory instead of reopening `mir->routines` directly.
+  `mir-declaration-inventory-test-smoke` gates the C/LLVM side; the semantic
+  core-shape smoke gates the AIR evidence side.
+- HIR routine inventory consumption is now accessor-gated for AIR:
+  `air_evidence_hir.c` consumes `hir_public.c` routine inventory accessors
+  rather than reopening `hir->routines` / `hir->routine_count`. The semantic
+  core-shape smoke rejects regressions.
+- HIR routine inventory consumption is now accessor-gated for validation and
+  mutable callgraph pass owners as well: `hir_validate.c` consumes the const
+  routine inventory view, and `hir_callgraph.c` consumes the mutable routine
+  inventory view. This leaves raw HIR routine arrays to HIR construction,
+  destruction, and public-surface owners. Verified with
+  `mingw32-make test-hir`, `mingw32-make semantic-core-shape-test-smoke`, and
+  `mingw32-make perf-contract-test-smoke`.
+- MIR public pass wrappers now consume routine inventory views:
+  `mir_count_non_cfg_body_fallback_inventory(...)` uses the const routine
+  inventory view, while liveness/DCE pass wrappers use the mutable routine
+  inventory view. `mir-declaration-inventory-test-smoke` rejects raw
+  `mir->routines` / `mir->routine_count` reads in `mir_public_surface.c`.
+  Verified with `mingw32-make mir-declaration-inventory-test-smoke` and
+  `mingw32-make test-mir`.
+- LLVM routine inventory consumers now consume the LLVM routine-inventory
+  accessor instead of indexing the wrapped array directly. The covered owners
+  are function declaration emission, intent forward/emission paths, intent
+  routine lookup, and MIR emission contract validation. Verified with targeted
+  codegen TU builds and `mingw32-make mir-declaration-inventory-test-smoke`.
+- RIR scope inventory consumption is now accessor-gated for AIR:
+  `air_evidence_rir.c` consumes `rir_public_surface.c` scope inventory
+  accessors rather than reopening `rir->scopes` / `rir->scope_count`. The
+  semantic core-shape smoke rejects regressions.
+- RIR scope item consumption is now accessor-gated for AIR:
+  `air_evidence_rir*.c` consumes `rir_public_surface.c` fact/op/state-summary
+  accessors rather than reopening `scope->facts`, `scope->ops`, or
+  `scope->state_summaries`. The semantic core-shape smoke rejects regressions.
+- RIR public dump output now consumes the same RIR scope inventory and
+  fact/op/state-summary accessors as validators and evidence consumers.
+  `rir_dump(...)` and `rir_dump_json(...)` no longer walk raw scope/fact/op
+  arrays directly. Verified with `mingw32-make build/compiler/rir_public_surface.o`,
+  `mingw32-make semantic-core-shape-test-smoke`, and `mingw32-make test-rir`.
+- RIR flow enrichment now consumes the mutable RIR scope inventory for scope
+  matching instead of reopening `rir->scopes` / `rir->scope_count`. This keeps
+  mutation local to the flow owner while putting program-level scope iteration
+  behind the public RIR surface. Verified with
+  `mingw32-make build/compiler/rir_public_surface.o build/compiler/rir_flow.o`,
+  `mingw32-make semantic-core-shape-test-smoke`, and `mingw32-make test-rir`.
 - Rechecked the systems-baseline evidence commands after the P0 shard split:
   `mingw32-make codegen-determinism-test-smoke`,
   `mingw32-make runtime-none-contract-test-smoke`, and
@@ -72,9 +126,96 @@
   method effect source, so body-derived secure method effects are not lost when
   an intent `expect:` clause calls `receiver.Method()`. The parallel semantic
   regression also covers a body-derived secure method call.
+- Narrowed the ref-parameter escape compatibility seam: when a checked
+  function type already has a body summary fact without
+  `BODY_SUMMARY_MAY_ESCAPE_REF`, `semantic_callable_param_escape_summary(...)`
+  returns no escape without invoking the legacy AST param analyzer. The legacy
+  analyzer remains only for unresolved/undecisive compatibility paths.
+  The typed-summary fast path now first verifies that the callable declaration
+  owner seam returns the same AST declaration as the checked function symbol, so
+  name/scope drift cannot incorrectly bypass the legacy analyzer.
+  `semantic-core-shape-test-smoke` now gates that typed body-summary facts are
+  checked before legacy AST analysis.
 - Verified with direct MinGW TU compiles and `mingw32-make test-semantic`
   (`2615/0`). A stale Git Bash/make child process briefly blocked the first
   clean-shell run, but the rerun completed after the process cleared.
+- Added an explicit `has_body_summary_facts` bit to function types, so a checked
+  empty summary is still decisive evidence and no longer falls back through the
+  legacy AST param analyzer. `semantic-core-shape-test-smoke` now gates this
+  distinction.
+- Closed a CFG smoke violation in C MIR SSA-local emission:
+  `transpiler_mir_func_ssa_locals_emit.c` no longer falls back to raw
+  `inst->ast`; receive payload recovery now goes through
+  `mir_instruction_source_payload(...)`. Verified with
+  `mingw32-make cfg-body-dataflow-test-smoke`.
+- Promoted twenty-three parity fixtures into the default backend-compare inventory:
+  `for_in_array_int`, `nested_array_subarray`, `float_to_string_precision`, and
+  `map_key_lookup_branch` from the array/string/map slice, plus
+  `phi_branch_value` from the LLVM PHI smoke surface, `queue_string_ops` /
+  `list_int_loop` from the collection-runtime parity slice, and
+  `compose_two_functions` / `negative_index_check` from the callable and array
+  guard surfaces, plus `multi_return_paths` / `bool_expr_chain` from the
+  control-flow/expression parity surface, plus `fibonacci_iterative` /
+  `map_count_unique` from the loop/map parity surface, plus
+  `for_range_explicit`, `if_short_circuit_pure`, `nested_match_int`,
+  `option_param_pass`, `result_via_unwrap`, `string_compare_branch`,
+  `string_split_simple`, `subject_class_pair`, `substring_extract`, and
+  `sum_filter_loop` from the common syntax/control-flow parity surface. The
+  targeted MinGW/Git Bash runs passed for these fixtures (`5/5`, `2/2`, `2/2`,
+  `2/2`, `2/2`, then `10/10`). The full default registry now contains 239 cases,
+  but this slice did not run the whole backend-compare suite. Field-channel
+  storage was checked and kept out of backend-compare
+  because `Channel<T>` aggregate fields are an intentional C/LLVM stable-surface
+  reject until movable channel-handle ABI exists.
+- Repaired `mir_declaration_inventory_smoke.sh` for the build-source inventory
+  portability gate: the declaration-field whitelist no longer uses macOS Bash
+  3.2-hostile `case` pattern line continuations. Verified with
+  `mingw32-make build-source-inventory-test-smoke` and
+  `mingw32-make mir-declaration-inventory-test-smoke`.
+- Repaired the perf/source-of-truth contract smoke after the general call
+  return-type owner moved: the gate now checks
+  `type_checker_helpers_late.c` for `type_function_return_type(sym->type)`
+  instead of expecting `type_checker_expr_call.c` to own the function signature
+  return path. Verified with `mingw32-make perf-contract-test-smoke`.
+- Tightened the AIR source-of-truth regression gate in
+  `semantic_core_shape_smoke.sh`: raw AIR graph fields
+  (`intent_count`/`intents`, `boundary_count`/`boundaries`,
+  `drift_count`/`drifts`, input flags, strict-evidence flag, and evidence-node
+  storage) are only allowed in their AIR owner TUs. Consumers must use the
+  public AIR graph/EvidenceNode accessors. Verified with
+  `mingw32-make semantic-core-shape-test-smoke`.
+- Tightened the no-Python CFG/body smoke fallback for MIR source-shape
+  ownership: raw `inst->source_ast_type`, `inst->source_line`,
+  `inst->source_column`, and matching block source fields are allowed only in
+  MIR construction/public-surface/source-shape owners. Consumers must use the
+  MIR source-shape accessors. Verified with
+  `mingw32-make cfg-body-dataflow-test-smoke`.
+- Tightened HIR/RIR inventory consumption in the lowering path: MIR lowering
+  and RIR flow enrichment now consume HIR routines through
+  `hir_routine_inventory_from_program(...)`, and MIR cleanup/lowering consumes
+  RIR scopes/facts/ops through `rir_public_surface.c` accessors instead of
+  reopening raw `hir->routines`, `rir->scopes`, `scope->facts`, or
+  `scope->ops`. Verified with targeted TU builds,
+  `mingw32-make semantic-core-shape-test-smoke`, `mingw32-make test-mir`, and
+  `mingw32-make cfg-body-dataflow-test-smoke`.
+- Tightened MIR declaration method routine linking/validation: the declaration
+  header linker and validator now consume routines through
+  `mir_routine_inventory_from_program(...)` / `mir_routine_inventory_get(...)`
+  rather than raw MIR routine arrays. The MIR program validator now uses the
+  same inventory view for routine inventory-shape checks. Verified with targeted
+  TU builds, `mingw32-make mir-declaration-inventory-test-smoke`, and
+  `mingw32-make test-mir`.
+- Tightened RIR validation source-of-truth consumption: `rir_validate(...)` and
+  `rir_validate_against_dir(...)` now consume RIR scope inventory plus
+  fact/op/state-summary accessors rather than raw `rir->scopes` or
+  `scope->facts` / `scope->ops` arrays. Verified with targeted TU builds,
+  `mingw32-make semantic-core-shape-test-smoke`, and `mingw32-make test-rir`.
+- Fixed a local Windows build-system trap where `pgy_mkdir_p` used a nested
+  login-shell bash invocation while `SHELL` was already Git Bash. The owner
+  now invokes bash with `-c` for `mkdir`/`touch`, and
+  `build-source-inventory-test-smoke` rejects regressing to `-lc`. Verified
+  with `mingw32-make bin/pgy.exe` and
+  `mingw32-make build-source-inventory-test-smoke`.
 
 ## Progress Log — 2026-04-28 AST Owner Split
 

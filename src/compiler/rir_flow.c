@@ -14,17 +14,21 @@ rir_scope_resource_kind(const RIRScope *scope, const char *name)
     if (scope == NULL || name == NULL)
         return RIR_RESOURCE_UNKNOWN;
 
-    for (size_t i = 0; i < scope->state_summary_count; i++) {
-        if (scope->state_summaries[i].name != NULL
-            && strcmp(scope->state_summaries[i].name, name) == 0) {
-            return scope->state_summaries[i].resource_kind;
+    for (size_t i = 0; i < rir_scope_state_summary_count(scope); i++) {
+        const RIRStateSummary *summary = rir_scope_state_summary_at(scope, i);
+        if (summary != NULL
+            && summary->name != NULL
+            && strcmp(summary->name, name) == 0) {
+            return summary->resource_kind;
         }
     }
 
-    for (size_t i = 0; i < scope->fact_count; i++) {
-        if (scope->facts[i].name != NULL
-            && strcmp(scope->facts[i].name, name) == 0) {
-            return scope->facts[i].resource_kind;
+    for (size_t i = 0; i < rir_scope_fact_count(scope); i++) {
+        const RIRFact *fact = rir_scope_fact_at(scope, i);
+        if (fact != NULL
+            && fact->name != NULL
+            && strcmp(fact->name, name) == 0) {
+            return fact->resource_kind;
         }
     }
 
@@ -54,15 +58,19 @@ rir_flow_semantics_for_scope(const RIRScope *scope)
     if (scope == NULL)
         return flags;
 
-    for (size_t i = 0; i < scope->fact_count; i++) {
-        if (scope->facts[i].kind == RIR_FACT_AUTHORITY
-            || scope->facts[i].kind == RIR_FACT_CAPABILITY) {
+    for (size_t i = 0; i < rir_scope_fact_count(scope); i++) {
+        const RIRFact *fact = rir_scope_fact_at(scope, i);
+        if (fact != NULL
+            && (fact->kind == RIR_FACT_AUTHORITY
+                || fact->kind == RIR_FACT_CAPABILITY)) {
             flags |= RIR_FLOW_AUTHORITY;
         }
     }
 
-    for (size_t i = 0; i < scope->op_count; i++) {
-        const RIROp *op = &scope->ops[i];
+    for (size_t i = 0; i < rir_scope_op_count(scope); i++) {
+        const RIROp *op = rir_scope_op_at(scope, i);
+        if (op == NULL)
+            continue;
         switch (op->kind) {
             case RIR_OP_AUTHORIZE:
                 flags |= RIR_FLOW_AUTHORITY;
@@ -157,13 +165,16 @@ rir_normalize_scope(RIRScope *scope)
     scope->has_state_errors = false;
     scope->conservative_semantics = RIR_FLOW_NONE;
 
-    for (size_t i = 0; i < scope->fact_count; i++) {
-        if (!scope_ensure_state_summary(scope, &scope->facts[i]))
+    for (size_t i = 0; i < rir_scope_fact_count(scope); i++) {
+        const RIRFact *fact = rir_scope_fact_at(scope, i);
+        if (fact == NULL || !scope_ensure_state_summary(scope, fact))
             return false;
     }
 
-    for (size_t i = 0; i < scope->op_count; i++) {
-        RIROp *op = &scope->ops[i];
+    for (size_t i = 0; i < rir_scope_op_count(scope); i++) {
+        const RIROp *op = rir_scope_op_at(scope, i);
+        if (op == NULL)
+            continue;
         RIRStateSummary *summary = scope_find_state_summary(scope, op->subject);
         if (summary == NULL)
             continue;
@@ -194,14 +205,17 @@ rir_scope_kind_from_hir(const HIRRoutine *routine)
 }
 
 static RIRScope *
-rir_find_matching_scope(RIRProgram *rir, const HIRRoutine *routine)
+rir_find_matching_scope(const RIRMutableScopeInventory *inventory,
+                        const HIRRoutine *routine)
 {
     RIRScopeKind wanted_kind;
-    if (rir == NULL || routine == NULL || routine->name == NULL)
+    if (inventory == NULL || routine == NULL || routine->name == NULL)
         return NULL;
     wanted_kind = rir_scope_kind_from_hir(routine);
-    for (size_t i = 0; i < rir->scope_count; i++) {
-        RIRScope *scope = &rir->scopes[i];
+    for (size_t i = 0; i < inventory->count; i++) {
+        RIRScope *scope = rir_mutable_scope_inventory_get(inventory, i);
+        if (scope == NULL)
+            continue;
         if (scope->kind == wanted_kind
             && scope->name != NULL
             && strcmp(scope->name, routine->name) == 0) {
@@ -241,8 +255,11 @@ rir_collect_block_ops(const HIRBasicBlock *block, RIROp **ops_out, size_t *op_co
 static bool
 rir_prepare_flow_blocks(RIRScope *scope, const HIRRoutine *hir_routine)
 {
+    size_t summary_count;
+
     if (scope == NULL || hir_routine == NULL || !hir_routine->has_cfg)
         return true;
+    summary_count = rir_scope_state_summary_count(scope);
     rir_free_flow_blocks(scope);
     scope->flow_blocks = calloc(hir_routine->cfg.block_count, sizeof(RIRFlowBlock));
     if (scope->flow_blocks == NULL)
@@ -256,15 +273,19 @@ rir_prepare_flow_blocks(RIRScope *scope, const HIRRoutine *hir_routine)
         flow->is_join = hir_block->predecessor_count > 1;
         flow->entry_semantics = RIR_FLOW_NONE;
         flow->exit_semantics = RIR_FLOW_NONE;
-        flow->fact_count = scope->state_summary_count;
+        flow->fact_count = summary_count;
         if (flow->fact_count == 0)
             continue;
         flow->facts = calloc(flow->fact_count, sizeof(RIRFlowFact));
         if (flow->facts == NULL)
             return false;
         for (size_t j = 0; j < flow->fact_count; j++) {
-            flow->facts[j].name = scope->state_summaries[j].name;
-            flow->facts[j].slot_anchor = scope->state_summaries[j].slot_anchor;
+            const RIRStateSummary *summary =
+                rir_scope_state_summary_at(scope, j);
+            if (summary == NULL)
+                return false;
+            flow->facts[j].name = summary->name;
+            flow->facts[j].slot_anchor = summary->slot_anchor;
             flow->facts[j].entry_state = RIR_STATE_UNINIT;
             flow->facts[j].exit_state = RIR_STATE_UNINIT;
             flow->facts[j].merged_from_join = false;
@@ -283,12 +304,14 @@ rir_enrich_scope_with_hir_flow(RIRScope *scope, const HIRRoutine *hir_routine)
     size_t *block_op_counts = NULL;
     bool changed;
     size_t limit;
+    size_t summary_count;
     unsigned int baseline_semantics;
 
     if (scope == NULL || hir_routine == NULL || !hir_routine->has_cfg)
         return true;
     if (!rir_prepare_flow_blocks(scope, hir_routine))
         return false;
+    summary_count = rir_scope_state_summary_count(scope);
     baseline_semantics = rir_refine_flow_semantics(scope->conservative_semantics);
 
     block_ops = calloc(hir_routine->cfg.block_count, sizeof(RIROp *));
@@ -350,26 +373,30 @@ rir_enrich_scope_with_hir_flow(RIRScope *scope, const HIRRoutine *hir_routine)
             if (flow->facts == NULL)
                 continue;
 
-            for (size_t fact_i = 0; fact_i < scope->state_summary_count; fact_i++) {
+            for (size_t fact_i = 0; fact_i < summary_count; fact_i++) {
+                const RIRStateSummary *summary =
+                    rir_scope_state_summary_at(scope, fact_i);
                 RIRResourceState merged = RIR_STATE_UNINIT;
                 bool merge_conflict = false;
                 bool reachable_pred = false;
 
+                if (summary == NULL)
+                    goto oom;
                 if (block_id == hir_routine->cfg.entry_block) {
-                    merged = scope->state_summaries[fact_i].initial_state;
+                    merged = summary->initial_state;
                 } else {
                     for (size_t p = 0; p < hir_block->predecessor_count; p++) {
                         size_t pred = hir_block->predecessors[p];
                         if (pred >= scope->flow_block_count || !scope->flow_blocks[pred].is_reachable)
                             continue;
-                        merged = rir_merge_states_for_kind(scope->state_summaries[fact_i].resource_kind,
+                        merged = rir_merge_states_for_kind(summary->resource_kind,
                                                            merged,
                                                            scope->flow_blocks[pred].facts[fact_i].exit_state,
                                                            &merge_conflict);
                         reachable_pred = true;
                     }
                     if (!reachable_pred)
-                        merged = scope->state_summaries[fact_i].initial_state;
+                        merged = summary->initial_state;
                 }
 
                 if (flow->facts[fact_i].entry_state != merged
@@ -395,9 +422,10 @@ rir_enrich_scope_with_hir_flow(RIRScope *scope, const HIRRoutine *hir_routine)
                     for (size_t op_i = 0; op_i < block_op_counts[block_id]; op_i++) {
                         const RIROp *op = &block_ops[block_id][op_i];
                         if (op->subject == NULL
-                            || strcmp(op->subject, scope->state_summaries[fact_i].name) != 0)
+                            || summary->name == NULL
+                            || strcmp(op->subject, summary->name) != 0)
                             continue;
-                        rir_apply_op_to_state(scope->state_summaries[fact_i].resource_kind,
+                        rir_apply_op_to_state(summary->resource_kind,
                                               &exit_state,
                                               &had_error,
                                               op->kind);
@@ -441,9 +469,21 @@ rir_enrich_with_hir_flow(RIRProgram *rir, const HIRProgram *hir, char **error_me
     if (rir == NULL || hir == NULL)
         return true;
 
-    for (size_t i = 0; i < hir->routine_count; i++) {
-        const HIRRoutine *hir_routine = &hir->routines[i];
-        RIRScope *scope = rir_find_matching_scope(rir, hir_routine);
+    HIRRoutineInventory hir_inventory;
+    RIRMutableScopeInventory rir_inventory;
+    hir_routine_inventory_from_program(hir, &hir_inventory);
+    rir_mutable_scope_inventory_from_program(rir, &rir_inventory);
+    for (size_t i = 0; i < hir_inventory.count; i++) {
+        const HIRRoutine *hir_routine =
+            hir_routine_inventory_get(&hir_inventory, i);
+        RIRScope *scope;
+        if (hir_routine == NULL) {
+            if (error_message != NULL)
+                *error_message =
+                    pergyra_strdup("invalid HIR routine inventory");
+            return false;
+        }
+        scope = rir_find_matching_scope(&rir_inventory, hir_routine);
         if (scope == NULL)
             continue;
         if (!rir_enrich_scope_with_hir_flow(scope, hir_routine)) {

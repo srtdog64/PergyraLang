@@ -111,6 +111,7 @@ struct Type
             Type* return_type;
             uint32_t effect_mask;
             uint32_t body_summary_mask;
+            bool has_body_summary_facts;
         } function;
         
         /* Slot type */
@@ -188,6 +189,7 @@ void type_function_set_effects(Type* type, uint32_t effect_mask);
 void type_function_set_body_summary(Type* type, uint32_t body_summary_mask);
 uint32_t type_function_effects(const Type* type);
 uint32_t type_function_body_summary(const Type* type);
+bool type_function_has_body_summary(const Type* type);
 uint32_t type_effect_mask_closure(uint32_t mask);
 uint32_t type_effect_mask_join(uint32_t left, uint32_t right);
 uint32_t type_effect_mask_meet(uint32_t left, uint32_t right);

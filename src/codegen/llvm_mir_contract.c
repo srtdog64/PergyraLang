@@ -27,9 +27,16 @@ llvm_validate_mir_for_codegen(const MIRProgram *mir)
 
     llvm_mir_routine_inventory_from_program(mir, &routine_inventory);
     for (size_t i = 0; i < routine_inventory.count; i++) {
-        const MIRRoutine *routine = &routine_inventory.routines[i];
+        const MIRRoutine *routine =
+            llvm_routine_inventory_get(&routine_inventory, i);
         char *topology_error = NULL;
 
+        if (routine == NULL) {
+            return llvm_result_error_with_hints("MIR routine inventory is invalid",
+                PGY_CODE_MIR_TOPOLOGY_INVALID,
+                PGY_CAUSE_MIR_TOPOLOGY_INVALID,
+                PGY_FIX_INSPECT_HIR_TO_MIR_LOWERING);
+        }
         if (routine->name == NULL) {
             return llvm_result_error_with_hints("MIR routine is missing name",
                 PGY_CODE_MIR_TOPOLOGY_INVALID,

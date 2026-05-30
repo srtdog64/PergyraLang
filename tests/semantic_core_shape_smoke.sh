@@ -10,9 +10,10 @@ fail() {
 }
 
 program_root_uses="$(mktemp "${TMPDIR:-/tmp}/pgy-program-root-uses.XXXXXX")"
+air_raw_uses="$(mktemp "${TMPDIR:-/tmp}/pgy-air-raw-uses.XXXXXX")"
 shape_scan_cache=""
 cleanup_shape_scan_cache() {
-    rm -f "$program_root_uses"
+    rm -f "$program_root_uses" "$air_raw_uses"
     if [ -n "$shape_scan_cache" ]; then
         rm -f "$shape_scan_cache"
     fi
@@ -43,6 +44,146 @@ while IFS=: read -r path line text; do
     fi
     fail "unexpected semantic program-root consumer: $path:$line: $text"
 done <"$program_root_uses"
+
+{ grep -RInE 'air->(intent_count|intents|boundary_count|boundaries|drift_count|drifts|has_hir_input|has_rir_input|has_mir_input|strict_evidence|evidence_count|evidence_nodes)\b' src/compiler || true; } \
+    >"$air_raw_uses"
+while IFS=: read -r path line text; do
+    [ -n "$path" ] || continue
+    if [ "$path" = "src/compiler/air.c" ] ||
+       [ "$path" = "src/compiler/air_drift.c" ] ||
+       [ "$path" = "src/compiler/air_evidence_node.c" ]; then
+        continue
+    fi
+    fail "unexpected AIR raw graph-field consumer: $path:$line: $text"
+done <"$air_raw_uses"
+
+if ! grep -q "mir_routine_inventory_from_program(mir, &inventory)" \
+        src/compiler/air_evidence_mir.c; then
+    fail "AIR MIR evidence must consume MIR routine inventory through the public surface"
+fi
+if grep -Eq 'mir->(routine_count|routines)\b' \
+        src/compiler/air_evidence_mir.c; then
+    fail "AIR MIR evidence must not reopen raw MIR routine arrays"
+fi
+if ! grep -q "hir_routine_inventory_from_program(hir, &inventory)" \
+        src/compiler/air_evidence_hir.c; then
+    fail "AIR HIR evidence must consume HIR routine inventory through the public surface"
+fi
+if grep -Eq 'hir->(routine_count|routines)\b' \
+        src/compiler/air_evidence_hir.c; then
+    fail "AIR HIR evidence must not reopen raw HIR routine arrays"
+fi
+if ! grep -q "hir_routine_inventory_from_program(hir, &hir_inventory)" \
+        src/compiler/mir.c; then
+    fail "MIR lowering must consume HIR routine inventory through the public surface"
+fi
+if ! grep -q "hir_routine_inventory_from_program(hir, &hir_inventory)" \
+        src/compiler/rir_flow.c; then
+    fail "RIR flow enrichment must consume HIR routine inventory through the public surface"
+fi
+if ! grep -q "rir_mutable_scope_inventory_from_program(rir, &rir_inventory)" \
+        src/compiler/rir_flow.c; then
+    fail "RIR flow enrichment must consume mutable RIR scope inventory through the public surface"
+fi
+if grep -Eq 'hir->(routine_count|routines)\b' \
+        src/compiler/mir.c src/compiler/rir_flow.c; then
+    fail "HIR routine consumers must not reopen raw HIR routine arrays"
+fi
+if grep -Eq 'rir->(scope_count|scopes)\b' \
+        src/compiler/rir_flow.c; then
+    fail "RIR flow enrichment must not reopen raw RIR scope arrays"
+fi
+for term in \
+    "rir_scope_fact_count(scope)" \
+    "rir_scope_fact_at(scope, i)" \
+    "rir_scope_op_count(scope)" \
+    "rir_scope_op_at(scope, i)" \
+    "rir_scope_state_summary_count(scope)" \
+    "rir_scope_state_summary_at(scope, fact_i)"; do
+    if ! grep -q "$term" src/compiler/rir_flow.c; then
+        fail "RIR flow enrichment must consume RIR scope item accessor term: $term"
+    fi
+done
+if grep -Eq 'scope->(facts|fact_count|ops|op_count)\b' \
+        src/compiler/rir_flow.c; then
+    fail "RIR flow enrichment must consume RIR fact/op item accessors"
+fi
+if ! grep -q "hir_routine_inventory_from_program(hir, &inventory)" \
+        src/compiler/hir_validate.c; then
+    fail "HIR validation must consume HIR routine inventory through the public surface"
+fi
+if grep -Eq 'hir->(routine_count|routines)\b' \
+        src/compiler/hir_validate.c; then
+    fail "HIR validation must not reopen raw HIR routine arrays"
+fi
+if ! grep -q "hir_mutable_routine_inventory_from_program(hir, &inventory)" \
+        src/compiler/hir_callgraph.c; then
+    fail "HIR call graph must consume mutable HIR routine inventory through the public surface"
+fi
+if grep -Eq 'hir->(routine_count|routines)\b' \
+        src/compiler/hir_callgraph.c; then
+    fail "HIR call graph must not reopen raw HIR routine arrays"
+fi
+if ! grep -q "rir_scope_inventory_from_program(rir, &inventory)" \
+        src/compiler/air_evidence_rir.c; then
+    fail "AIR RIR evidence must consume RIR scope inventory through the public surface"
+fi
+if grep -Eq 'rir->(scope_count|scopes)\b' \
+        src/compiler/air_evidence_rir.c; then
+    fail "AIR RIR evidence must not reopen raw RIR scope arrays"
+fi
+if ! grep -q "rir_scope_op_at(scope, i)" \
+        src/compiler/air_evidence_rir_match.c; then
+    fail "AIR RIR matching must consume RIR scope ops through public accessors"
+fi
+if grep -R -E 'scope->(facts|fact_count|ops|op_count|state_summaries|state_summary_count)\b' \
+        src/compiler/air_evidence_rir*.c >/dev/null; then
+    fail "AIR RIR evidence must not reopen raw RIR fact/op/summary arrays"
+fi
+if ! grep -q "rir_scope_inventory_from_program(rir, &inventory)" \
+        src/compiler/mir_base_helpers.c; then
+    fail "MIR RIR-scope matching must consume RIR scope inventory through the public surface"
+fi
+if grep -E 'rir->(scope_count|scopes)\b' \
+        src/compiler/mir_base_helpers.c >/dev/null; then
+    fail "MIR RIR-scope matching must not reopen raw RIR scope arrays"
+fi
+if grep -R -E 'rir_scope->(facts|fact_count|ops|op_count)\b' \
+        src/compiler/mir_cleanup.c \
+        src/compiler/mir_lower_population.c >/dev/null; then
+    fail "MIR RIR-scope consumers must consume RIR fact/op accessors"
+fi
+if ! grep -q "rir_scope_inventory_from_program(rir, &inventory)" \
+        src/compiler/rir_validation.c; then
+    fail "RIR validation must consume RIR scope inventory through the public surface"
+fi
+if ! grep -q "rir_scope_inventory_from_program(rir, &inventory)" \
+        src/compiler/rir_validation_dir.c; then
+    fail "RIR/DIR validation must consume RIR scope inventory through the public surface"
+fi
+if grep -E 'rir->(scope_count|scopes)\b' \
+        src/compiler/rir_validation.c \
+        src/compiler/rir_validation_dir.c >/dev/null; then
+    fail "RIR validation must not reopen raw RIR scope arrays"
+fi
+if grep -R -E 'scope->(facts|fact_count|ops|op_count|state_summaries|state_summary_count)\b' \
+        src/compiler/rir_validation.c \
+        src/compiler/rir_validation_dir.c >/dev/null; then
+    fail "RIR validation must consume RIR scope item accessors"
+fi
+for term in \
+    "rir_scope_inventory_from_program(rir, &inventory)" \
+    "rir_scope_inventory_get(&inventory, i)" \
+    "rir_scope_fact_count(scope)" \
+    "rir_scope_fact_at(scope, j)" \
+    "rir_scope_op_count(scope)" \
+    "rir_scope_op_at(scope, j)" \
+    "rir_scope_state_summary_count(scope)" \
+    "rir_scope_state_summary_at(scope, j)"; do
+    if ! grep -q "$term" src/compiler/rir_public_surface.c; then
+        fail "RIR public dump surface must consume accessor term: $term"
+    fi
+done
 
 grep() {
     if [ "${1:-}" = "-R" ] && [ "$#" -ge 3 ]; then
@@ -805,6 +946,22 @@ grep -q 'legacy_ast_param_summary_program(ctx)' \
 grep -q 'semantic_callable_param_escape_summary' \
     src/semantic/type_checker_call_contract_helpers.c \
     || fail "call contract summary owner must expose the canonical escape-summary seam"
+
+grep -q 'semantic_callable_summary_proves_no_ref_escape' \
+    src/semantic/type_checker_call_contract_helpers.c \
+    || fail "call contract summary owner must check typed body-summary facts before legacy AST analysis"
+
+grep -q 'type_function_body_summary' \
+    src/semantic/type_checker_call_contract_helpers.c \
+    || fail "call contract summary owner must consume checked function body summaries"
+
+grep -q 'type_function_has_body_summary' \
+    src/semantic/type_checker_call_contract_helpers.c \
+    || fail "call contract summary owner must distinguish absent summary facts from checked empty summaries"
+
+grep -q 'BODY_SUMMARY_MAY_ESCAPE_REF' \
+    src/semantic/type_checker_call_contract_helpers.c \
+    || fail "call contract summary owner must preserve the ref-escape body-summary bit"
 
 if grep -RIn 'semantic_legacy_ast_callable_param_escape_summary' src/semantic >/dev/null; then
     fail "call contract escape summary must not reintroduce the legacy AST public seam name"

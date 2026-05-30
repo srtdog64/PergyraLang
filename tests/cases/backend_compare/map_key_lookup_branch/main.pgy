@@ -1,0 +1,16 @@
+func Greet(roles: HashMap<String, Int>, name: String) -> String {
+    if MapHas(roles, name) {
+        return name + ":" + ToString(MapGet(roles, name));
+    }
+    return name + ":missing";
+}
+
+func Main() -> Void {
+    let roles: HashMap<String, Int> = MapNew();
+    MapSet(roles, "alice", 1);
+    MapSet(roles, "bob", 2);
+
+    Log(Greet(roles, "alice"));
+    Log(Greet(roles, "bob"));
+    Log(Greet(roles, "carol"));
+}

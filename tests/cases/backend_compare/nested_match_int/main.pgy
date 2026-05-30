@@ -1,0 +1,18 @@
+func GradeDescription(score: Int) -> String {
+    let band: Int = score / 10;
+    match band {
+        case 10: return "perfect";
+        case 9: return "excellent";
+        case 8: return "good";
+        case 7: return "ok";
+        default: return "needs work";
+    }
+}
+
+func Main() -> Void {
+    Log(GradeDescription(100));
+    Log(GradeDescription(95));
+    Log(GradeDescription(82));
+    Log(GradeDescription(71));
+    Log(GradeDescription(50));
+}

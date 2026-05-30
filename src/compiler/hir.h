@@ -100,6 +100,18 @@ typedef struct
     PgyArena         scratch;
 } HIRRoutine;
 
+typedef struct
+{
+    const HIRRoutine *routines;
+    size_t            count;
+} HIRRoutineInventory;
+
+typedef struct
+{
+    HIRRoutine *routines;
+    size_t      count;
+} HIRMutableRoutineInventory;
+
 typedef enum
 {
     HIR_BLOCK_FALLTHROUGH,
@@ -295,6 +307,18 @@ const HIRDecl *hir_find_decl(const HIRProgram *hir,
 const HIRRoutine *hir_find_routine(const HIRProgram *hir,
                                    const char *name,
                                    HIRTopLevelKind kind);
+void hir_routine_inventory_from_program(
+        const HIRProgram *hir,
+        HIRRoutineInventory *inventory);
+const HIRRoutine *hir_routine_inventory_get(
+        const HIRRoutineInventory *inventory,
+        size_t index);
+void hir_mutable_routine_inventory_from_program(
+        HIRProgram *hir,
+        HIRMutableRoutineInventory *inventory);
+HIRRoutine *hir_mutable_routine_inventory_get(
+        const HIRMutableRoutineInventory *inventory,
+        size_t index);
 bool hir_run_routine_pass(HIRProgram *hir,
                           HIRRoutinePass *pass,
                           char **error_message);

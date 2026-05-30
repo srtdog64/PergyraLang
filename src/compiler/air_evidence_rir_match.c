@@ -129,8 +129,9 @@ air_rir_scope_provides_boundary_evidence(const RIRScope *scope,
         && boundary->kind == AIR_BOUNDARY_PARALLEL) {
         if (boundary->ast == NULL)
             return false;
-        for (size_t i = 0; i < scope->op_count; i++) {
-            if (air_rir_parallel_op_matches_boundary(&scope->ops[i], boundary))
+        for (size_t i = 0; i < rir_scope_op_count(scope); i++) {
+            const RIROp *op = rir_scope_op_at(scope, i);
+            if (air_rir_parallel_op_matches_boundary(op, boundary))
                 return true;
         }
         return false;
@@ -140,8 +141,9 @@ air_rir_scope_provides_boundary_evidence(const RIRScope *scope,
         && boundary->kind == AIR_BOUNDARY_IO) {
         if (boundary->ast == NULL)
             return false;
-        for (size_t i = 0; i < scope->op_count; i++) {
-            if (air_rir_io_op_matches_boundary(&scope->ops[i], boundary))
+        for (size_t i = 0; i < rir_scope_op_count(scope); i++) {
+            const RIROp *op = rir_scope_op_at(scope, i);
+            if (air_rir_io_op_matches_boundary(op, boundary))
                 return true;
         }
         return false;
@@ -151,8 +153,9 @@ air_rir_scope_provides_boundary_evidence(const RIRScope *scope,
         && boundary->kind == AIR_BOUNDARY_CHANNEL) {
         if (boundary->ast == NULL)
             return false;
-        for (size_t i = 0; i < scope->op_count; i++) {
-            if (air_rir_channel_op_matches_boundary(&scope->ops[i], boundary))
+        for (size_t i = 0; i < rir_scope_op_count(scope); i++) {
+            const RIROp *op = rir_scope_op_at(scope, i);
+            if (air_rir_channel_op_matches_boundary(op, boundary))
                 return true;
         }
         return false;
@@ -163,8 +166,10 @@ air_rir_scope_provides_boundary_evidence(const RIRScope *scope,
     if (boundary->kind != AIR_BOUNDARY_WORLD)
         return true;
 
-    for (size_t i = 0; i < scope->op_count; i++) {
-        const RIROp *op = &scope->ops[i];
+    for (size_t i = 0; i < rir_scope_op_count(scope); i++) {
+        const RIROp *op = rir_scope_op_at(scope, i);
+        if (op == NULL)
+            continue;
         if (op->kind == RIR_OP_CLAIM
             && air_name_matches(op->subject, boundary->source_name)
             && air_rir_op_matches_boundary_ast(op, boundary)) {

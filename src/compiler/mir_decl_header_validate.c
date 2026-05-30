@@ -239,6 +239,7 @@ mir_validate_decl_method_metadata(const MIRProgram *mir,
                                   size_t header_index,
                                   char **error_message)
 {
+    MIRRoutineInventory inventory;
     if (mir == NULL || header == NULL)
         return false;
 
@@ -279,6 +280,8 @@ mir_validate_decl_method_metadata(const MIRProgram *mir,
         return false;
     }
 
+    mir_routine_inventory_from_program(mir, &inventory);
+
     for (size_t i = 0; i < header->method_metadata_count; i++) {
         const MIRDeclMethod *method = &header->method_metadata[i];
         ASTNode *ast = method->source_ast;
@@ -294,17 +297,19 @@ mir_validate_decl_method_metadata(const MIRProgram *mir,
             return false;
         }
 
-        if (method->has_routine && method->routine_index >= mir->routine_count) {
+        if (method->has_routine && method->routine_index >= inventory.count) {
             if (error_message != NULL) {
                 *error_message = mir_strdup_fmt(
                     "MIR declaration header[%zu] method[%zu] routine index %zu exceeds routine count %zu",
-                    header_index, i, method->routine_index, mir->routine_count);
+                    header_index, i, method->routine_index, inventory.count);
             }
             return false;
         }
 
         if (method->has_routine) {
-            if (mir->routines == NULL) {
+            const MIRRoutine *routine =
+                mir_routine_inventory_get(&inventory, method->routine_index);
+            if (routine == NULL) {
                 if (error_message != NULL) {
                     *error_message = mir_strdup_fmt(
                         "MIR declaration header[%zu] method[%zu] routine link metadata drift",
@@ -312,7 +317,6 @@ mir_validate_decl_method_metadata(const MIRProgram *mir,
                 }
                 return false;
             }
-            const MIRRoutine *routine = &mir->routines[method->routine_index];
             if (routine->kind != MIR_SCOPE_METHOD
                 || method->name == NULL
                 || routine->name == NULL

@@ -360,8 +360,12 @@ mir_find_matching_rir_scope(const RIRProgram *rir, const HIRRoutine *routine)
         wanted_kind = RIR_SCOPE_FUNCTION;
     }
 
-    for (size_t i = 0; i < rir->scope_count; i++) {
-        const RIRScope *scope = &rir->scopes[i];
+    RIRScopeInventory inventory;
+    rir_scope_inventory_from_program(rir, &inventory);
+    for (size_t i = 0; i < inventory.count; i++) {
+        const RIRScope *scope = rir_scope_inventory_get(&inventory, i);
+        if (scope == NULL)
+            continue;
         if (scope->kind == wanted_kind
             && scope->name != NULL
             && strcmp(scope->name, routine->name) == 0) {

@@ -151,7 +151,9 @@ llvm_forward_declare_intent_routines_from_inventory(
         return;
 
     for (size_t i = 0; i < inventory->count; i++) {
-        const MIRRoutine *routine = &inventory->routines[i];
+        const MIRRoutine *routine = llvm_routine_inventory_get(inventory, i);
+        if (routine == NULL)
+            continue;
         ASTNode *intent_decl = llvm_mir_routine_source_ast_of_type(
             routine, MIR_SCOPE_INTENT, AST_INTENT_DECL);
         if (intent_decl == NULL)

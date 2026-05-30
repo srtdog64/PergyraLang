@@ -60,7 +60,9 @@ transpiler_mir_receive_expr_from_def(const MIRInstruction *inst)
         return NULL;
     stmt = transpiler_mir_find_stmt_for_inst(inst);
     if (stmt == NULL)
-        stmt = inst->expr0 != NULL ? inst->expr0 : inst->ast;
+        stmt = inst->expr0 != NULL
+            ? inst->expr0
+            : mir_instruction_source_payload(inst);
     if (stmt == NULL)
         return NULL;
     if (stmt->type == AST_CHANNEL_RECV)

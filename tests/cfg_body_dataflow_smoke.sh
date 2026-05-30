@@ -339,6 +339,20 @@ run_literal_doc_contract_smoke() {
         printf '%s\n' "$raw_payload_hits" >&2
         exit 1
     fi
+    local raw_source_shape_hits
+    raw_source_shape_hits="$(
+        grep -RInE -- '(inst|block)->(source_ast_type|source_line|source_column|has_source_location)\b' \
+            "$ROOT_DIR/src/compiler" "$ROOT_DIR/src/codegen" \
+        | grep -v 'src/compiler/mir.c:' \
+        | grep -v 'src/compiler/mir_public_surface.c:' \
+        | grep -v 'src/compiler/mir_source_shape.c:' \
+        || true
+    )"
+    if [ -n "$raw_source_shape_hits" ]; then
+        echo "MIR consumers reopened raw source-shape fields; use MIR source-shape accessors" >&2
+        printf '%s\n' "$raw_source_shape_hits" >&2
+        exit 1
+    fi
     require_literal "src/semantic/type_checker_flow.c" "type_check_while_loop_flow(node, ctx)"
     require_literal "src/semantic/type_checker_flow.c" "type_check_for_loop_flow(node, ctx)"
     require_literal "src/semantic/type_checker_flow.c" "type_check_loop_control_flow(node, ctx, loop_flow, true)"

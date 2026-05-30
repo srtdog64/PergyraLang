@@ -12,8 +12,11 @@ typedef struct MIRSurfaceUsageSummary {
 
 MIRSurfaceUsageSummary mir_inventory_surface_usage_summary(
     const MIRProgram *mir);
-bool mir_inventory_uses_thread_pool_surface(const MIRProgram *mir);
-bool mir_inventory_uses_intent_observability_surface(const MIRProgram *mir);
+bool mir_program_has_inventory_surface_usage_facts(const MIRProgram *mir);
+bool mir_program_recorded_inventory_uses_thread_pool_surface(
+    const MIRProgram *mir);
+bool mir_program_recorded_inventory_uses_intent_observability_surface(
+    const MIRProgram *mir);
 void mir_program_record_inventory_surface_usage(MIRProgram *mir);
 
 #endif /* PERGYRA_MIR_SURFACE_USAGE_H */

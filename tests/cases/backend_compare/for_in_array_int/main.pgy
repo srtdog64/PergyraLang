@@ -1,0 +1,13 @@
+func Main() -> Void {
+    let nums: Array<Int> = [3, 7, 11, 5, 2];
+    let total: Int = 0;
+    let max_val: Int = 0;
+    for n in nums {
+        total = total + n;
+        if n > max_val {
+            max_val = n;
+        }
+    }
+    Log(total);
+    Log(max_val);
+}

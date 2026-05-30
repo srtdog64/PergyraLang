@@ -1,0 +1,19 @@
+func Greet(name: String) -> String {
+    if name == "admin" {
+        return "welcome admin";
+    }
+    if name == "guest" {
+        return "hi guest";
+    }
+    if name == "" {
+        return "no role";
+    }
+    return "unknown: " + name;
+}
+
+func Main() -> Void {
+    Log(Greet("admin"));
+    Log(Greet("guest"));
+    Log(Greet(""));
+    Log(Greet("user"));
+}

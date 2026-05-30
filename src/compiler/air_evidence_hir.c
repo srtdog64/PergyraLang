@@ -49,8 +49,11 @@ air_collect_hir_evidence(AIRProgram *air, const HIRProgram *hir,
 {
     if (air == NULL || hir == NULL)
         return true;
-    for (size_t i = 0; i < hir->routine_count; i++) {
-        const HIRRoutine *routine = &hir->routines[i];
+    HIRRoutineInventory inventory;
+    hir_routine_inventory_from_program(hir, &inventory);
+
+    for (size_t i = 0; i < inventory.count; i++) {
+        const HIRRoutine *routine = hir_routine_inventory_get(&inventory, i);
         for (size_t j = 0; j < air_boundary_node_count(air); j++) {
             AIRBoundaryNode *boundary = air_boundary_node_mut_at(air, j);
             const AIRIntentNode *intent;

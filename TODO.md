@@ -22,14 +22,67 @@ English anchor for tooling/doc gates:
   `host_decl_compat.c`, C/LLVM domain-constructor lookup, and party-slot ability
   selection helpers. The remaining targets must be closed by moving source-of-
   truth ownership, not by rewording the percentage.
+- Ref-parameter escape seam tightening: function types now distinguish "checked
+  body summary with zero facts" from "no body-summary fact yet". The
+  `semantic_callable_param_escape_summary(...)` owner can therefore skip the
+  legacy AST param analyzer whenever a checked callee body summary has no
+  `BODY_SUMMARY_MAY_ESCAPE_REF` bit, including empty summaries.
 - MIR declaration bootstrap progress: hosted method routine selection is now a
   validated metadata link, not only an in-range index. `mir_validate(...)`
   rejects `MIRDeclMethod.has_routine` rows whose linked routine is not a method
   with the same owner/name, and `mir_link_decl_method_routines(...)` now uses
   the same owner/name predicate before forming the link. The declaration smoke
   gates the linker negative test, validator negative test, and row-level proof
-  table in `docs/125_source_of_truth_spine.md`. This closes the hosted-method
+  table in `docs/125_source_of_truth_spine.md`. The linker and validator now
+  also consume MIR routines through `mir_program_inventory.c` accessors instead
+  of raw `mir->routines` / `mir->routine_count`, and the program validator uses
+  the same inventory view for routine-shape checks. This closes the hosted-method
   body selection row while leaving the dedicated declaration IR row open.
+- MIR routine/program structure seam tightening: C/LLVM inventory views and AIR
+  MIR evidence now consume routines and `main`/top-level flags through
+  `mir_program_inventory.c` inventory/program-shape accessors. The smoke gates
+  reject codegen raw reads of `mir->routines`, `mir->routine_count`,
+  `mir->has_main_function`, and `mir->has_top_level_exec`, and AIR evidence is
+  pinned to `mir_routine_inventory_from_program(...)`. The public MIR
+  liveness/DCE/fallback-summary surface now also consumes routine inventories,
+  including the mutable routine inventory accessor for pass owners, so public
+  pass wrappers no longer reopen `mir->routines` / `mir->routine_count`. LLVM
+  declaration/intent/contract consumers also use `llvm_routine_inventory_get(...)`
+  rather than indexing the wrapped inventory array directly.
+- HIR routine inventory seam tightening: AIR HIR evidence, MIR lowering, RIR
+  flow enrichment, HIR validation, and HIR callgraph now consume HIR routines
+  through `hir_public.c` inventory accessors instead of reopening
+  `hir->routines` / `hir->routine_count`. Mutable HIR pass owners use the
+  explicit mutable routine inventory view. The semantic core-shape smoke pins
+  this because AIR/MIR/RIR consumers must remain verification/lowering
+  consumers, not structural owners.
+- RIR scope inventory seam tightening: AIR RIR evidence now consumes RIR scopes
+  through `rir_public_surface.c` inventory accessors instead of reopening
+  `rir->scopes` / `rir->scope_count`. The semantic core-shape smoke pins the
+  RIR evidence consumer to the public surface.
+- RIR scope item seam tightening: AIR RIR evidence now consumes scope facts,
+  ops, and state summaries through `rir_public_surface.c` accessors instead of
+  reopening `scope->facts`, `scope->ops`, or `scope->state_summaries`. The
+  semantic core-shape smoke rejects raw RIR scope item access in AIR evidence
+  owners.
+- HIR/RIR lowering-consumer seam tightening: MIR lowering and RIR flow
+  enrichment now consume HIR routine inventory through `hir_public.c` accessors,
+  and RIR flow scope matching consumes the mutable RIR scope inventory. MIR
+  RIR-scope matching, cleanup, and lower-population consume RIR scope
+  inventory/fact/op accessors. `semantic-core-shape-test-smoke` rejects
+  reopening those raw arrays in these consumers.
+- RIR validation seam tightening: `rir_validate(...)` and
+  `rir_validate_against_dir(...)` now consume RIR scope inventory and scope item
+  accessors rather than reopening raw scope/fact/op arrays. The same
+  semantic-core-shape gate rejects regressions in validation owners.
+- RIR public dump seam tightening: `rir_dump(...)` and `rir_dump_json(...)`
+  now consume RIR scope inventory plus fact/op/state-summary accessors instead
+  of walking raw scope arrays directly. The semantic core-shape smoke pins the
+  output surface to the same accessors used by validators and AIR/MIR consumers.
+- Windows build-tooling seam tightening: `pgy_mkdir_p` / `pgy_touch_ref` avoid
+  nested login-shell bash under local MinGW/Git Bash, and
+  `build-source-inventory-test-smoke` rejects returning to the `$(BASH) -lc`
+  shape that can stall the build before compiler tests run.
 - Host field compatibility progress: `host_decl_compat.c` now also owns class
   field compatibility views, domain shared-field views, and name-based field
   lookup helpers. The C constructor and LLVM constructor Channel guards, LLVM
@@ -73,6 +126,21 @@ English anchor for tooling/doc gates:
   the same owner concurrently, which later surfaces as `file in wrong format`.
   Parallel validation must use distinct `BUILD_DIR`/`BIN_DIR` values or run
   sequentially.
+- Backend compare inventory note: the default C/LLVM registry currently lists
+  239 cases. The latest promoted fixtures (`for_in_array_int`,
+  `nested_array_subarray`, `float_to_string_precision`,
+  `map_key_lookup_branch`, `phi_branch_value`, `queue_string_ops`,
+  `list_int_loop`, `compose_two_functions`, `negative_index_check`,
+  `multi_return_paths`, `bool_expr_chain`, `fibonacci_iterative`, and
+  `map_count_unique`, plus `for_range_explicit`, `if_short_circuit_pure`,
+  `nested_match_int`, `option_param_pass`, `result_via_unwrap`,
+  `string_compare_branch`, `string_split_simple`, `subject_class_pair`,
+  `substring_extract`, and `sum_filter_loop`) passed as targeted MinGW/Git Bash
+  runs; do not claim a full 239/239 gate until the whole default suite is run.
+  Field-channel storage
+  remains an intentional reject
+  until movable `Channel<T>` handle ABI exists, so LLVM IR-only field-channel
+  probes are not backend-compare fixtures.
 - Slice borrowed-view closure: `Slice<T>` is now treated as a local borrowed
   view, not an owner. Generated C and LLVM `Slice<T>.Slice(start, len)` both
   use subtract-form bounds checks, reject non-empty null backing storage, return
@@ -2155,7 +2223,11 @@ English anchor for tooling/doc gates:
   facts as terminal true/false decisions. Intent-observability and thread-pool
   codegen only scan routine payloads when the program-level MIR fact is absent,
   preserving legacy hand-built MIR fixtures without letting normal lowered MIR
-  rediscover surface usage from AST payloads. Gate: `perf-contract-test-smoke`.
+  rediscover surface usage from AST payloads. Recorded fact reads now go
+  through `mir_program_has_inventory_surface_usage_facts(...)` and
+  `mir_program_recorded_inventory_uses_*_surface(...)`, so codegen no longer
+  opens the raw `MIRProgram` inventory booleans directly. Gate:
+  `perf-contract-test-smoke`.
 - MIR declaration-header method metadata now has a single initializer helper:
   hosted methods and role impl-ability methods both populate `MIRDeclMethod`
   through `mir_decl_method_metadata_init(...)`, removing the duplicated

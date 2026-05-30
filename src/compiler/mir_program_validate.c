@@ -50,18 +50,27 @@ static bool
 mir_validate_program_inventory_shape(const MIRProgram *mir,
                                      char **error_message)
 {
+    MIRRoutineInventory inventory;
     if (mir == NULL)
         return true;
-    if (mir->routine_count > 0 && mir->routines == NULL) {
+    mir_routine_inventory_from_program(mir, &inventory);
+    if (inventory.count > 0 && inventory.routines == NULL) {
         if (error_message != NULL) {
             *error_message = mir_strdup_fmt(
                 "MIR program records %zu routine(s) without routine inventory",
-                mir->routine_count);
+                inventory.count);
         }
         return false;
     }
-    for (size_t i = 0; i < mir->routine_count; i++) {
-        const MIRRoutine *routine = &mir->routines[i];
+    for (size_t i = 0; i < inventory.count; i++) {
+        const MIRRoutine *routine = mir_routine_inventory_get(&inventory, i);
+        if (routine == NULL) {
+            if (error_message != NULL) {
+                *error_message = mir_strdup_fmt(
+                    "MIR program routine inventory row[%zu] is invalid", i);
+            }
+            return false;
+        }
         if (routine->block_count > 0 && routine->blocks == NULL) {
             if (error_message != NULL) {
                 *error_message = mir_strdup_fmt(
@@ -118,6 +127,7 @@ mir_validate_non_cfg_fallback_inventory(const MIRProgram *mir,
 bool
 mir_validate(const MIRProgram *mir, char **error_message)
 {
+    MIRRoutineInventory inventory;
     if (error_message != NULL)
         *error_message = NULL;
     if (mir == NULL) {
@@ -133,8 +143,16 @@ mir_validate(const MIRProgram *mir, char **error_message)
     if (!mir_validate_inventory_surface_usage(mir, error_message))
         return false;
 
-    for (size_t i = 0; i < mir->routine_count; i++) {
-        const MIRRoutine *routine = &mir->routines[i];
+    mir_routine_inventory_from_program(mir, &inventory);
+    for (size_t i = 0; i < inventory.count; i++) {
+        const MIRRoutine *routine = mir_routine_inventory_get(&inventory, i);
+        if (routine == NULL) {
+            if (error_message != NULL) {
+                *error_message = mir_strdup_fmt(
+                    "MIR program routine inventory row[%zu] is invalid", i);
+            }
+            return false;
+        }
 
         if (!mir_validate_non_cfg_fallback_state(routine, error_message))
             return false;

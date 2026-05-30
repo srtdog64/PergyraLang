@@ -1,0 +1,13 @@
+func MaybeAdd(x: Int, opt: Option<Int>) -> Int {
+    return x + (opt ?? 0);
+}
+
+func Main() -> Void {
+    let some_val: Option<Int> = Some(5);
+    let no_val: Option<Int> = None();
+    let extra: Option<Int> = Some(8);
+    Log(MaybeAdd(10, some_val));
+    Log(MaybeAdd(10, no_val));
+    Log(MaybeAdd(-3, extra));
+    Log(MaybeAdd(0, no_val));
+}

@@ -7,6 +7,7 @@
 #include "transpiler_builtin_type_table.h"
 
 #include "../compiler/mir.h"
+#include "../compiler/mir_surface_usage.h"
 #include "../parser/ast_analysis.h"
 
 static bool
@@ -127,11 +128,13 @@ pgy_mir_inventory_intent_observability_usage_is_known(const MIRProgram *mir,
      * validator rejects missing or stale facts. Codegen must consume that fact
      * instead of rediscovering declaration usage from AST inventory arrays.
      */
-    if (!mir->has_inventory_surface_usage_facts)
+    if (!mir_program_has_inventory_surface_usage_facts(mir))
         return false;
 
     if (uses_surface != NULL)
-        *uses_surface = mir->inventory_uses_intent_observability_surface;
+        *uses_surface =
+            mir_program_recorded_inventory_uses_intent_observability_surface(
+                mir);
     return true;
 }
 

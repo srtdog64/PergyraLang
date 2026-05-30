@@ -70,17 +70,19 @@ mir_count_non_cfg_body_fallback_inventory(const MIRProgram *mir,
                                           size_t *fallback_total,
                                           size_t *fallback_routines)
 {
+    MIRRoutineInventory inventory;
     size_t total = 0;
     size_t routines = 0;
 
-    if (mir != NULL && mir->routines != NULL) {
-        for (size_t i = 0; i < mir->routine_count; i++) {
-            const MIRRoutine *routine = &mir->routines[i];
-            total += routine->non_cfg_body_fallback_count;
-            if (routine->used_non_cfg_body_fallback
-                || routine->non_cfg_body_fallback_count > 0) {
-                routines++;
-            }
+    mir_routine_inventory_from_program(mir, &inventory);
+    for (size_t i = 0; i < inventory.count; i++) {
+        const MIRRoutine *routine = mir_routine_inventory_get(&inventory, i);
+        if (routine == NULL)
+            continue;
+        total += routine->non_cfg_body_fallback_count;
+        if (routine->used_non_cfg_body_fallback
+            || routine->non_cfg_body_fallback_count > 0) {
+            routines++;
         }
     }
 
@@ -210,6 +212,8 @@ mir_find_decl_header(const MIRProgram *mir, const char *name)
 bool
 mir_run_liveness_pass(MIRProgram *mir, char **error_message)
 {
+    MIRMutableRoutineInventory inventory;
+
     if (error_message != NULL)
         *error_message = NULL;
     if (mir == NULL) {
@@ -217,13 +221,20 @@ mir_run_liveness_pass(MIRProgram *mir, char **error_message)
             *error_message = pergyra_strdup("MIR program is null");
         return false;
     }
-    for (size_t i = 0; i < mir->routine_count; i++) {
-        if (!mir_recompute_analysis(&mir->routines[i])) {
+    mir_mutable_routine_inventory_from_program(mir, &inventory);
+    for (size_t i = 0; i < inventory.count; i++) {
+        MIRRoutine *routine = mir_mutable_routine_inventory_get(&inventory, i);
+        if (routine == NULL) {
+            if (error_message != NULL)
+                *error_message = pergyra_strdup("MIR liveness pass has invalid routine inventory");
+            return false;
+        }
+        if (!mir_recompute_analysis(routine)) {
             if (error_message != NULL) {
                 *error_message = mir_strdup_fmt(
                     "failed to compute liveness for MIR routine '%s'",
-                    mir->routines[i].name != NULL
-                        ? mir->routines[i].name
+                    routine->name != NULL
+                        ? routine->name
                         : "(anonymous)");
             }
             return false;
@@ -235,6 +246,8 @@ mir_run_liveness_pass(MIRProgram *mir, char **error_message)
 bool
 mir_run_dce_pass(MIRProgram *mir, char **error_message)
 {
+    MIRMutableRoutineInventory inventory;
+
     if (error_message != NULL)
         *error_message = NULL;
     if (mir == NULL) {
@@ -243,9 +256,16 @@ mir_run_dce_pass(MIRProgram *mir, char **error_message)
         return false;
     }
 
-    for (size_t i = 0; i < mir->routine_count; i++) {
-        MIRRoutine *routine = &mir->routines[i];
+    mir_mutable_routine_inventory_from_program(mir, &inventory);
+    for (size_t i = 0; i < inventory.count; i++) {
+        MIRRoutine *routine = mir_mutable_routine_inventory_get(&inventory, i);
         bool changed = false;
+
+        if (routine == NULL) {
+            if (error_message != NULL)
+                *error_message = pergyra_strdup("MIR DCE pass has invalid routine inventory");
+            return false;
+        }
 
         routine->dce_removed_count = 0;
         routine->has_dce = false;
@@ -282,30 +302,6 @@ mir_run_dce_pass(MIRProgram *mir, char **error_message)
     }
 
     return true;
-}
-
-void
-mir_routine_inventory_from_program(const MIRProgram *mir,
-                                   MIRRoutineInventory *inventory)
-{
-    if (inventory == NULL)
-        return;
-    inventory->routines = NULL;
-    inventory->count = 0;
-    if (mir != NULL) {
-        inventory->routines = mir->routines;
-        inventory->count = mir->routine_count;
-    }
-}
-
-const MIRRoutine *
-mir_routine_inventory_get(const MIRRoutineInventory *inventory, size_t index)
-{
-    if (inventory == NULL || inventory->routines == NULL
-        || index >= inventory->count) {
-        return NULL;
-    }
-    return &inventory->routines[index];
 }
 
 bool

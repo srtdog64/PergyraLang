@@ -1,0 +1,23 @@
+func Fib(n: Int) -> Int {
+    if n <= 1 {
+        return n;
+    }
+    let prev: Int = 0;
+    let curr: Int = 1;
+    let i: Int = 2;
+    while i <= n {
+        let next: Int = prev + curr;
+        prev = curr;
+        curr = next;
+        i = i + 1;
+    }
+    return curr;
+}
+
+func Main() -> Void {
+    Log(Fib(0));
+    Log(Fib(1));
+    Log(Fib(5));
+    Log(Fib(10));
+    Log(Fib(20));
+}

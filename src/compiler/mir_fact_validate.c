@@ -92,7 +92,7 @@ mir_validate_inventory_surface_usage(const MIRProgram *mir, char **error_message
     if (!mir_has_inventory_payload(mir))
         return true;
 
-    if (!mir->has_inventory_surface_usage_facts) {
+    if (!mir_program_has_inventory_surface_usage_facts(mir)) {
         if (error_message != NULL) {
             *error_message =
                 mir_strdup_fmt("MIR program is missing inventory surface usage facts");
@@ -101,7 +101,8 @@ mir_validate_inventory_surface_usage(const MIRProgram *mir, char **error_message
     }
 
     summary = mir_inventory_surface_usage_summary(mir);
-    if (mir->inventory_uses_thread_pool_surface != summary.uses_thread_pool) {
+    if (mir_program_recorded_inventory_uses_thread_pool_surface(mir)
+        != summary.uses_thread_pool) {
         if (error_message != NULL) {
             *error_message =
                 mir_strdup_fmt("MIR program has stale thread-pool inventory surface usage fact");
@@ -109,7 +110,7 @@ mir_validate_inventory_surface_usage(const MIRProgram *mir, char **error_message
         return false;
     }
 
-    if (mir->inventory_uses_intent_observability_surface
+    if (mir_program_recorded_inventory_uses_intent_observability_surface(mir)
         != summary.uses_intent_observability) {
         if (error_message != NULL) {
             *error_message =

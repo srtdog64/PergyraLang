@@ -23,8 +23,11 @@ air_collect_mir_evidence(AIRProgram *air,
 
     air_mark_mir_input(air);
 
-    for (size_t i = 0; i < mir->routine_count; i++) {
-        const MIRRoutine *routine = &mir->routines[i];
+    MIRRoutineInventory inventory;
+    mir_routine_inventory_from_program(mir, &inventory);
+
+    for (size_t i = 0; i < inventory.count; i++) {
+        const MIRRoutine *routine = mir_routine_inventory_get(&inventory, i);
         const char *routine_name = air_mir_routine_provider_name(routine);
         size_t cleanup_fact_count = air_mir_routine_cleanup_fact_count(routine);
         size_t terminator_fact_count =
@@ -125,8 +128,8 @@ air_collect_mir_evidence(AIRProgram *air,
         }
     }
 
-    for (size_t i = 0; i < mir->routine_count; i++) {
-        const MIRRoutine *routine = &mir->routines[i];
+    for (size_t i = 0; i < inventory.count; i++) {
+        const MIRRoutine *routine = mir_routine_inventory_get(&inventory, i);
         const char *routine_name = air_mir_routine_provider_name(routine);
         for (size_t j = 0; j < routine->block_count; j++) {
             if (!air_collect_mir_pin_block_evidence(air, routine,

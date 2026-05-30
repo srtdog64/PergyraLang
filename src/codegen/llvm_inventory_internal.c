@@ -17,10 +17,8 @@ llvm_active_nominal_inventory(const LLVMGenCtx *ctx,
     ASTNode **nodes = NULL;
     size_t count = 0;
 
-    if (ctx != NULL && ctx->mir != NULL) {
-        nodes = ctx->mir->types;
-        count = ctx->mir->type_count;
-    }
+    if (ctx != NULL && ctx->mir != NULL)
+        mir_active_inventory(ctx->mir, AST_CLASS_DECL, &nodes, &count);
 
     if (nodes_out != NULL)
         *nodes_out = nodes;
@@ -40,14 +38,15 @@ llvm_active_routine_inventory(const LLVMGenCtx *ctx,
     if (ctx == NULL || ctx->mir == NULL)
         return;
 
-    inventory->routines = ctx->mir->routines;
-    inventory->count = ctx->mir->routine_count;
+    llvm_mir_routine_inventory_from_program(ctx->mir, inventory);
 }
 
 void
 llvm_mir_routine_inventory_from_program(const MIRProgram *mir,
                                         LLVMMIRRoutineInventory *inventory)
 {
+    MIRRoutineInventory mir_inventory;
+
     if (inventory == NULL)
         return;
     inventory->routines = NULL;
@@ -56,8 +55,9 @@ llvm_mir_routine_inventory_from_program(const MIRProgram *mir,
     if (mir == NULL)
         return;
 
-    inventory->routines = mir->routines;
-    inventory->count = mir->routine_count;
+    mir_routine_inventory_from_program(mir, &mir_inventory);
+    inventory->routines = mir_inventory.routines;
+    inventory->count = mir_inventory.count;
 }
 
 const MIRRoutine *
@@ -169,17 +169,13 @@ llvm_active_has_mir(const LLVMGenCtx *ctx)
 bool
 llvm_active_has_main_function(const LLVMGenCtx *ctx)
 {
-    if (ctx != NULL && ctx->mir != NULL)
-        return ctx->mir->has_main_function;
-    return false;
+    return ctx != NULL && mir_program_has_main_function(ctx->mir);
 }
 
 bool
 llvm_active_has_top_level_exec(const LLVMGenCtx *ctx)
 {
-    if (ctx != NULL && ctx->mir != NULL)
-        return ctx->mir->has_top_level_exec;
-    return false;
+    return ctx != NULL && mir_program_has_top_level_exec(ctx->mir);
 }
 
 bool

@@ -15,10 +15,8 @@ transpiler_active_routine_inventory(const TranspilerCtx *ctx,
         return;
     inventory->routines = NULL;
     inventory->count = 0;
-    if (ctx != NULL && ctx->mir != NULL) {
-        inventory->routines = ctx->mir->routines;
-        inventory->count = ctx->mir->routine_count;
-    }
+    if (ctx != NULL && ctx->mir != NULL)
+        transpiler_mir_routine_inventory_from_program(ctx->mir, inventory);
 }
 
 void
@@ -26,14 +24,17 @@ transpiler_mir_routine_inventory_from_program(
     const MIRProgram *mir,
     TranspilerMIRRoutineInventory *inventory)
 {
+    MIRRoutineInventory mir_inventory;
+
     if (inventory == NULL)
         return;
     inventory->routines = NULL;
     inventory->count = 0;
-    if (mir != NULL) {
-        inventory->routines = mir->routines;
-        inventory->count = mir->routine_count;
-    }
+    if (mir == NULL)
+        return;
+    mir_routine_inventory_from_program(mir, &mir_inventory);
+    inventory->routines = mir_inventory.routines;
+    inventory->count = mir_inventory.count;
 }
 
 const MIRRoutine *
@@ -160,17 +161,13 @@ transpiler_active_mir_identity(const TranspilerCtx *ctx)
 bool
 transpiler_active_has_main_function(const TranspilerCtx *ctx)
 {
-    if (ctx != NULL && ctx->mir != NULL)
-        return ctx->mir->has_main_function;
-    return false;
+    return ctx != NULL && mir_program_has_main_function(ctx->mir);
 }
 
 bool
 transpiler_active_has_top_level_exec(const TranspilerCtx *ctx)
 {
-    if (ctx != NULL && ctx->mir != NULL)
-        return ctx->mir->has_top_level_exec;
-    return false;
+    return ctx != NULL && mir_program_has_top_level_exec(ctx->mir);
 }
 
 bool

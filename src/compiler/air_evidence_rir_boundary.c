@@ -81,9 +81,9 @@ air_collect_rir_scope_fact_authority(AIRProgram *air,
                                      const char *scope_name,
                                      char **error_message)
 {
-    for (size_t i = 0; i < scope->fact_count; i++) {
-        const RIRFact *fact = &scope->facts[i];
-        if (fact->kind != RIR_FACT_AUTHORITY)
+    for (size_t i = 0; i < rir_scope_fact_count(scope); i++) {
+        const RIRFact *fact = rir_scope_fact_at(scope, i);
+        if (fact == NULL || fact->kind != RIR_FACT_AUTHORITY)
             continue;
         if (!air_boundary_declares_authority_name(boundary, fact->name))
             continue;
@@ -107,9 +107,9 @@ air_collect_rir_scope_op_authority(AIRProgram *air,
                                    const char *scope_name,
                                    char **error_message)
 {
-    for (size_t i = 0; i < scope->op_count; i++) {
-        const RIROp *op = &scope->ops[i];
-        if (op->kind != RIR_OP_AUTHORIZE)
+    for (size_t i = 0; i < rir_scope_op_count(scope); i++) {
+        const RIROp *op = rir_scope_op_at(scope, i);
+        if (op == NULL || op->kind != RIR_OP_AUTHORIZE)
             continue;
         if (!air_boundary_declares_authority_name(boundary, op->subject))
             continue;

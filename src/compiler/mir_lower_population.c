@@ -93,8 +93,10 @@ mir_populate_instructions(MIRRoutine *routine)
     if (rir_scope == NULL)
         return true;
 
-    for (size_t i = 0; i < rir_scope->op_count; i++) {
-        const RIROp *op = &rir_scope->ops[i];
+    for (size_t i = 0; i < rir_scope_op_count(rir_scope); i++) {
+        const RIROp *op = rir_scope_op_at(rir_scope, i);
+        if (op == NULL)
+            continue;
         switch (op->kind) {
         case RIR_OP_ABORT_INTENT:
         case RIR_OP_COMPENSATE_INTENT_STEP:
@@ -112,9 +114,11 @@ mir_populate_instructions(MIRRoutine *routine)
     }
 
     if (invalidation != NULL) {
-        for (size_t i = 0; i < rir_scope->fact_count; i++) {
-            const RIRFact *fact = &rir_scope->facts[i];
+        for (size_t i = 0; i < rir_scope_fact_count(rir_scope); i++) {
+            const RIRFact *fact = rir_scope_fact_at(rir_scope, i);
             MIRInstruction inst;
+            if (fact == NULL)
+                continue;
             if (fact->kind != RIR_FACT_PROJECTION
                 && fact->resource_kind != RIR_RESOURCE_EFFECT_INSTANCE
                 && fact->resource_kind != RIR_RESOURCE_RELATION_INSTANCE

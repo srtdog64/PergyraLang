@@ -426,11 +426,21 @@ mir_lower(const HIRProgram *hir, const RIRProgram *rir, char **error_message)
         }
     }
 
-    for (size_t i = 0; i < hir->routine_count; i++) {
-        const HIRRoutine *hir_routine = &hir->routines[i];
+    HIRRoutineInventory hir_inventory;
+    hir_routine_inventory_from_program(hir, &hir_inventory);
+    for (size_t i = 0; i < hir_inventory.count; i++) {
+        const HIRRoutine *hir_routine =
+            hir_routine_inventory_get(&hir_inventory, i);
         MIRRoutine routine;
         const HIRBasicBlock *cfg_blocks_before = NULL;
         size_t cfg_block_count_before = 0;
+        if (hir_routine == NULL) {
+            if (error_message != NULL)
+                *error_message =
+                    pergyra_strdup("invalid HIR routine inventory");
+            mir_destroy(mir);
+            return NULL;
+        }
         memset(&routine, 0, sizeof(routine));
         pgy_arena_init(&routine.scratch, 0);
         routine.id = mir->routine_count;

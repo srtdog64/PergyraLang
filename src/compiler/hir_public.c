@@ -263,6 +263,55 @@ hir_find_routine(const HIRProgram *hir, const char *name, HIRTopLevelKind kind)
     return NULL;
 }
 
+void
+hir_routine_inventory_from_program(const HIRProgram *hir,
+                                   HIRRoutineInventory *inventory)
+{
+    if (inventory == NULL)
+        return;
+    inventory->routines = NULL;
+    inventory->count = 0;
+    if (hir != NULL && hir->routines != NULL) {
+        inventory->routines = hir->routines;
+        inventory->count = hir->routine_count;
+    }
+}
+
+const HIRRoutine *
+hir_routine_inventory_get(const HIRRoutineInventory *inventory, size_t index)
+{
+    if (inventory == NULL || inventory->routines == NULL
+        || index >= inventory->count)
+        return NULL;
+    return &inventory->routines[index];
+}
+
+void
+hir_mutable_routine_inventory_from_program(
+        HIRProgram *hir,
+        HIRMutableRoutineInventory *inventory)
+{
+    if (inventory == NULL)
+        return;
+    inventory->routines = NULL;
+    inventory->count = 0;
+    if (hir != NULL && hir->routines != NULL) {
+        inventory->routines = hir->routines;
+        inventory->count = hir->routine_count;
+    }
+}
+
+HIRRoutine *
+hir_mutable_routine_inventory_get(
+        const HIRMutableRoutineInventory *inventory,
+        size_t index)
+{
+    if (inventory == NULL || inventory->routines == NULL
+        || index >= inventory->count)
+        return NULL;
+    return &inventory->routines[index];
+}
+
 bool
 hir_run_routine_pass(HIRProgram *hir, HIRRoutinePass *pass, char **error_message)
 {

@@ -1,0 +1,19 @@
+enum CalcError { Overflow, DivZero }
+
+func DivSafe(a: Int, b: Int) -> Result<Int, CalcError> {
+    if b == 0 {
+        return Err(CalcError.DivZero);
+    }
+    return Ok(a / b);
+}
+
+func Main() -> Void {
+    let dr: Result<Int, CalcError> = DivSafe(20, 4);
+    let ok_flag: Bool = IsOk(dr);
+    Log("ok=" + ToString(ok_flag));
+    Log(Unwrap(dr));
+
+    let dz: Result<Int, CalcError> = DivSafe(10, 0);
+    let err_flag: Bool = IsErr(dz);
+    Log("err=" + ToString(err_flag));
+}

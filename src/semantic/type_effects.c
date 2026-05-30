@@ -23,6 +23,14 @@ type_function_body_summary(const Type *type)
     return type->data.function.body_summary_mask;
 }
 
+bool
+type_function_has_body_summary(const Type *type)
+{
+    return type != NULL
+        && type->kind == TYPE_KIND_FUNCTION
+        && type->data.function.has_body_summary_facts;
+}
+
 uint32_t
 type_effect_mask_closure(uint32_t mask)
 {
@@ -103,4 +111,3 @@ type_effect_mask_compare(uint32_t left, uint32_t right)
         return EFFECT_REL_SUBSET;
     return EFFECT_REL_INCOMPARABLE;
 }
-

@@ -16,6 +16,46 @@ legacy_ast_param_summary_program(SemanticContext *ctx)
     return ctx != NULL ? ctx->program_root : NULL;
 }
 
+static Type *
+semantic_callable_decl_function_type(SemanticContext *ctx,
+                                     ASTNode *callee_decl)
+{
+    const char *name;
+    ASTNode *lookup_decl;
+    Symbol *sym;
+
+    if (ctx == NULL || callee_decl == NULL
+        || callee_decl->type != AST_FUNC_DECL) {
+        return NULL;
+    }
+
+    name = ast_declaration_name(callee_decl);
+    if (name == NULL)
+        return NULL;
+
+    lookup_decl = semantic_find_callable_decl_by_name(ctx, name);
+    if (lookup_decl != callee_decl)
+        return NULL;
+
+    sym = scope_lookup(ctx->scope, name);
+    if (sym == NULL || sym->kind != SYMBOL_FUNCTION)
+        return NULL;
+    if (sym->type == NULL || sym->type->kind != TYPE_KIND_FUNCTION)
+        return NULL;
+    return sym->type;
+}
+
+static bool
+semantic_callable_summary_proves_no_ref_escape(SemanticContext *ctx,
+                                               ASTNode *callee_decl)
+{
+    Type *function_type = semantic_callable_decl_function_type(ctx, callee_decl);
+    uint32_t summary = type_function_body_summary(function_type);
+
+    return type_function_has_body_summary(function_type)
+        && (summary & BODY_SUMMARY_MAY_ESCAPE_REF) == 0;
+}
+
 ASTNode *
 semantic_lookup_function_param_contract(SemanticContext *ctx,
                                         const char *display_name,
@@ -48,6 +88,9 @@ semantic_callable_param_escape_summary(ASTNode *callee_decl,
         || arg_index >= ast_func_param_count(callee_decl)) {
         return 0u;
     }
+
+    if (semantic_callable_summary_proves_no_ref_escape(ctx, callee_decl))
+        return 0u;
 
     return slot_analyze_legacy_ast_param_summary_in_program(
         ast_func_body(callee_decl),

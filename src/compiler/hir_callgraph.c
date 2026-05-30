@@ -74,7 +74,8 @@ hir_routine_name_index_compare(const void *lhs, const void *rhs)
 }
 
 static HIRRoutineNameIndex *
-hir_build_routine_name_index(const HIRProgram *hir, size_t *out_count)
+hir_build_routine_name_index(const HIRMutableRoutineInventory *inventory,
+                             size_t *out_count)
 {
     HIRRoutineNameIndex *index;
     size_t count = 0;
@@ -82,19 +83,20 @@ hir_build_routine_name_index(const HIRProgram *hir, size_t *out_count)
     if (out_count == NULL)
         return NULL;
     *out_count = 0;
-    if (hir == NULL || hir->routine_count == 0)
+    if (inventory == NULL || inventory->count == 0)
         return NULL;
-    if (hir->routine_count > SIZE_MAX / sizeof(HIRRoutineNameIndex))
+    if (inventory->count > SIZE_MAX / sizeof(HIRRoutineNameIndex))
         return NULL;
 
-    index = calloc(hir->routine_count, sizeof(HIRRoutineNameIndex));
+    index = calloc(inventory->count, sizeof(HIRRoutineNameIndex));
     if (index == NULL)
         return NULL;
 
-    for (size_t i = 0; i < hir->routine_count; i++) {
-        if (hir->routines[i].name == NULL)
+    for (size_t i = 0; i < inventory->count; i++) {
+        HIRRoutine *routine = hir_mutable_routine_inventory_get(inventory, i);
+        if (routine == NULL || routine->name == NULL)
             continue;
-        index[count].name = hir->routines[i].name;
+        index[count].name = routine->name;
         index[count].index = i;
         count++;
     }
@@ -141,14 +143,18 @@ static bool
 hir_materialize_direct_call_edges(HIRProgram *hir, char **error_message)
 {
     size_t routine_index_count = 0;
+    HIRMutableRoutineInventory inventory;
+    hir_mutable_routine_inventory_from_program(hir, &inventory);
     HIRRoutineNameIndex *routine_index =
-        hir_build_routine_name_index(hir, &routine_index_count);
+        hir_build_routine_name_index(&inventory, &routine_index_count);
 
-    if (hir->routine_count > 0 && routine_index == NULL)
+    if (inventory.count > 0 && routine_index == NULL)
         goto oom;
 
-    for (size_t i = 0; i < hir->routine_count; i++) {
-        HIRRoutine *routine = &hir->routines[i];
+    for (size_t i = 0; i < inventory.count; i++) {
+        HIRRoutine *routine = hir_mutable_routine_inventory_get(&inventory, i);
+        if (routine == NULL)
+            goto oom;
         for (size_t j = 0; j < routine->direct_call_count; j++) {
             ssize_t callee = hir_lookup_routine_index_by_name(
                 routine_index, routine_index_count, routine->direct_calls[j]);
@@ -186,12 +192,16 @@ hir_routine_is_entry_root(const HIRRoutine *routine)
 static void
 hir_propagate_entry_reachability(HIRProgram *hir)
 {
+    HIRMutableRoutineInventory inventory;
     bool changed = true;
 
+    hir_mutable_routine_inventory_from_program(hir, &inventory);
     while (changed) {
         changed = false;
-        for (size_t i = 0; i < hir->routine_count; i++) {
-            HIRRoutine *routine = &hir->routines[i];
+        for (size_t i = 0; i < inventory.count; i++) {
+            HIRRoutine *routine = hir_mutable_routine_inventory_get(&inventory, i);
+            if (routine == NULL)
+                continue;
             if (!routine->is_entry_reachable
                 && hir_routine_is_entry_root(routine)) {
                 routine->is_entry_reachable = true;
@@ -201,11 +211,12 @@ hir_propagate_entry_reachability(HIRProgram *hir)
                 continue;
             for (size_t j = 0; j < routine->callee_routine_count; j++) {
                 size_t callee = routine->callee_routine_ids[j];
-                if (callee >= hir->routine_count
-                    || hir->routines[callee].is_entry_reachable) {
+                HIRRoutine *callee_routine =
+                    hir_mutable_routine_inventory_get(&inventory, callee);
+                if (callee_routine == NULL || callee_routine->is_entry_reachable) {
                     continue;
                 }
-                hir->routines[callee].is_entry_reachable = true;
+                callee_routine->is_entry_reachable = true;
                 changed = true;
             }
         }

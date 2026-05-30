@@ -1,0 +1,14 @@
+func Main() -> Void {
+    let q: Queue<String> = QueueNew();
+    QueuePush(q, "first");
+    QueuePush(q, "second");
+    QueuePush(q, "third");
+    Log(QueueSize(q));
+
+    let s1: String = QueuePop(q);
+    Log(s1);
+    let s2: String = QueuePop(q);
+    Log(s2);
+    Log(QueueSize(q));
+    Log(QueueEmpty(q));
+}

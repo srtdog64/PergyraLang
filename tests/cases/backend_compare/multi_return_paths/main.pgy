@@ -1,0 +1,31 @@
+func Sign(n: Int) -> Int {
+    if n > 0 {
+        return 1;
+    }
+    if n < 0 {
+        return -1;
+    }
+    return 0;
+}
+
+func MaxOfThree(a: Int, b: Int, c: Int) -> Int {
+    if a >= b {
+        if a >= c {
+            return a;
+        }
+        return c;
+    }
+    if b >= c {
+        return b;
+    }
+    return c;
+}
+
+func Main() -> Void {
+    Log(Sign(5));
+    Log(Sign(-2));
+    Log(Sign(0));
+    Log(MaxOfThree(1, 2, 3));
+    Log(MaxOfThree(10, 5, 3));
+    Log(MaxOfThree(4, 8, 6));
+}
