@@ -70,6 +70,7 @@ type_check_expression(ASTNode *expr, SemanticContext *ctx)
         ASTNode *lambda_return_type = ast_lambda_return_type(expr);
         Type **param_types = calloc(param_count > 0 ? param_count : 1, sizeof(Type *));
         Type *return_type = TYPE_VOID;
+        Type *expected_lambda_type = ctx->expected_lambda_type;
         uint32_t saved_effects = ctx->current_function_effects;
         uint32_t saved_body_summary = ctx->current_function_body_summary;
         bool saved_tracking = ctx->tracking_function_effects;
@@ -93,6 +94,16 @@ type_check_expression(ASTNode *expr, SemanticContext *ctx)
                         ast_let_type(param), ctx);
             } else if (param != NULL && param->type == AST_IDENTIFIER) {
                 param_name = ast_identifier_name(param);
+            }
+            if (param_type == TYPE_UNKNOWN
+                && expected_lambda_type != NULL
+                && expected_lambda_type->kind == TYPE_KIND_FUNCTION
+                && type_function_param_count(expected_lambda_type)
+                    == param_count) {
+                Type *expected_param =
+                    type_function_param_type(expected_lambda_type, i);
+                if (expected_param != NULL)
+                    param_type = expected_param;
             }
 
             if (param_name != NULL) {
@@ -121,6 +132,12 @@ type_check_expression(ASTNode *expr, SemanticContext *ctx)
         if (lambda_return_type != NULL) {
             return_type = expr_resolve_type_ref(
                 lambda_return_type, ctx);
+        } else if (expected_lambda_type != NULL
+                   && expected_lambda_type->kind == TYPE_KIND_FUNCTION
+                   && type_function_param_count(expected_lambda_type)
+                        == param_count
+                   && type_function_return_type(expected_lambda_type) != NULL) {
+            return_type = type_function_return_type(expected_lambda_type);
         } else if (lambda_body != NULL && lambda_body->type != AST_BLOCK) {
             return_type = expr_normalize_type(
                 type_check_expression(lambda_body, ctx));

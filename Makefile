@@ -27,7 +27,7 @@
 # ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
 
-ifeq ($(OS),Windows_NT)
+ifneq ($(or $(filter Windows_NT,$(OS)),$(MSYSTEM)),)
 # Prefer the Git Bash launcher wrapper (bin/bash.exe) because it sets up
 # PATH for coreutils before running shell scripts. The 8.3 short path is
 # still space-free, so SHELL can use it directly without quoting. Without

@@ -15,6 +15,43 @@
 #include "../parser/ast_api.h"
 #include "../semantic/diag_codes.h"
 
+static ASTNode *
+transpiler_lambda_expected_return_type(TranspilerCtx *ctx, ASTNode *lambda)
+{
+    ASTNode *expected;
+
+    if (ctx == NULL || lambda == NULL)
+        return NULL;
+    expected = ctx->expected_callable_type;
+    if (expected == NULL || expected->type != AST_EVENT_HANDLER_TYPE)
+        return NULL;
+    if (ast_event_handler_param_count(expected)
+        != ast_lambda_param_count(lambda)) {
+        return NULL;
+    }
+    return ast_event_handler_return_type(expected);
+}
+
+static ASTNode *
+transpiler_lambda_expected_param_type_at(TranspilerCtx *ctx, ASTNode *lambda,
+                                         size_t param_index)
+{
+    ASTNode *expected;
+    size_t param_count;
+
+    if (ctx == NULL || lambda == NULL)
+        return NULL;
+    expected = ctx->expected_callable_type;
+    if (expected == NULL || expected->type != AST_EVENT_HANDLER_TYPE)
+        return NULL;
+    param_count = ast_lambda_param_count(lambda);
+    if (ast_event_handler_param_count(expected) != param_count)
+        return NULL;
+    if (param_index >= param_count)
+        return NULL;
+    return ast_event_handler_param_type(expected, param_index);
+}
+
 static bool
 transpiler_infer_lambda_param_c_type_copy(TranspilerCtx *ctx,
                                           ASTNode *lambda_node,
@@ -64,7 +101,7 @@ transpiler_infer_lambda_param_c_type_copy(TranspilerCtx *ctx,
 
 static bool
 transpiler_lambda_param_c_type_copy(TranspilerCtx *ctx, ASTNode *lambda_node,
-                                    ASTNode *param,
+                                    ASTNode *param, size_t param_index,
                                     char *out, size_t out_size,
                                     const char **param_name_out)
 {
@@ -85,10 +122,26 @@ transpiler_lambda_param_c_type_copy(TranspilerCtx *ctx, ASTNode *lambda_node,
                 out,
                 out_size)) {
             param_type = out;
+        } else {
+            ASTNode *expected_param_type =
+                transpiler_lambda_expected_param_type_at(ctx, lambda_node,
+                    param_index);
+            if (expected_param_type != NULL
+                && pergyra_ast_type_to_c_copy_in_ctx(ctx, expected_param_type,
+                    out, out_size)) {
+                param_type = out;
+            }
         }
     } else {
+        ASTNode *expected_param_type =
+            transpiler_lambda_expected_param_type_at(ctx, lambda_node,
+                param_index);
         param_name = ast_identifier_name(param);
-        if (transpiler_infer_lambda_param_c_type_copy(ctx, lambda_node,
+        if (expected_param_type != NULL
+            && pergyra_ast_type_to_c_copy_in_ctx(ctx, expected_param_type,
+                out, out_size)) {
+            param_type = out;
+        } else if (transpiler_infer_lambda_param_c_type_copy(ctx, lambda_node,
                 param,
                 out,
                 out_size)) {
@@ -114,6 +167,7 @@ transpiler_emit_lambda_signature(ASTNode *node, TranspilerCtx *ctx,
         if (i > 0)
             codebuf_write(out, ", ");
         if (!transpiler_lambda_param_c_type_copy(ctx, node, param,
+                i,
                 param_type_buf, sizeof(param_type_buf), &param_name)) {
             transpiler_set_backend_error_with_hints(ctx,
                 PGY_CODE_C_TYPE_UNSUPPORTED,
@@ -154,7 +208,12 @@ emit_lambda_expr(ASTNode *node, TranspilerCtx *ctx)
                 param_type_name = render_type_name_in_ctx(
                     ctx, ast_let_type(param));
         } else if (param->type == AST_IDENTIFIER) {
+            ASTNode *expected_param_type =
+                transpiler_lambda_expected_param_type_at(ctx, node, i);
             param_name = ast_identifier_name(param);
+            if (expected_param_type != NULL)
+                param_type_name = render_type_name_in_ctx(
+                    ctx, expected_param_type);
         }
         if (param_name != NULL && param_type_name != NULL)
             register_typed_var(ctx, param_name, param_type_name);
@@ -167,9 +226,21 @@ emit_lambda_expr(ASTNode *node, TranspilerCtx *ctx)
                 sizeof(inferred_return_c_type_buf))) {
             return_type = inferred_return_c_type_buf;
         }
-    } else if (lambda_body != NULL && lambda_body->type == AST_BLOCK) {
+    } else {
+        ASTNode *expected_return_type =
+            transpiler_lambda_expected_return_type(ctx, node);
+        if (expected_return_type != NULL
+            && pergyra_ast_type_to_c_copy_in_ctx(ctx,
+                expected_return_type,
+                inferred_return_c_type_buf,
+                sizeof(inferred_return_c_type_buf))) {
+            return_type = inferred_return_c_type_buf;
+        }
+    }
+    if (return_type == NULL && lambda_body != NULL
+        && lambda_body->type == AST_BLOCK) {
         return_type = "void";
-    } else if (lambda_body != NULL) {
+    } else if (return_type == NULL && lambda_body != NULL) {
         const char *inferred_return_type =
             transpiler_expr_infer_type_name(ctx, lambda_body);
         if (inferred_return_type != NULL

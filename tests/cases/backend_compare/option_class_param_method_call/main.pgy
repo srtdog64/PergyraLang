@@ -1,0 +1,32 @@
+class Probe {
+    let n: Int;
+
+    func Try(self) -> Option<Int> {
+        if n < 0 { return None; }
+        return Some(n * n);
+    }
+}
+
+func TryEach(p1: Probe, p2: Probe, p3: Probe) -> Int {
+    let sum: Int = 0;
+    match p1.Try() {
+        case Some(va): sum = sum + va;
+        case None: sum = sum - 1;
+    }
+    match p2.Try() {
+        case Some(vb): sum = sum + vb;
+        case None: sum = sum - 1;
+    }
+    match p3.Try() {
+        case Some(vc): sum = sum + vc;
+        case None: sum = sum - 1;
+    }
+    return sum;
+}
+
+func Main() -> Void {
+    Log(TryEach(Probe(3), Probe(4), Probe(5)));
+    Log(TryEach(Probe(-1), Probe(2), Probe(-3)));
+    Log(TryEach(Probe(0), Probe(0), Probe(0)));
+    Log(TryEach(Probe(10), Probe(-1), Probe(20)));
+}

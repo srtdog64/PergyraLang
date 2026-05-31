@@ -40,14 +40,18 @@ llvm_emit_return_stmt(ASTNode *node, LLVMGenCtx *ctx)
 
     if (value != NULL) {
         const char *saved_expected_type_name = ctx->expected_type_name;
+        ASTNode *saved_expected_callable_type = ctx->expected_callable_type;
         LLVMValueRef val;
         if (ctx->current_func_decl != NULL
             && ctx->current_func_decl->type == AST_FUNC_DECL
             && ast_func_return_type(ctx->current_func_decl) != NULL) {
             ctx->expected_type_name = llvm_stmt_render_type_annotation_copy(ctx,
                 ast_func_return_type(ctx->current_func_decl));
+            ctx->expected_callable_type =
+                llvm_stmt_current_return_callable_type(ctx);
         }
         val = llvm_emit_expression(value, ctx);
+        ctx->expected_callable_type = saved_expected_callable_type;
         ctx->expected_type_name = saved_expected_type_name;
         if (val != NULL) {
             /* Coerce to expected return type */

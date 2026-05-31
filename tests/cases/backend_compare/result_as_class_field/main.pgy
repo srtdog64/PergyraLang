@@ -1,0 +1,21 @@
+enum CardErr { Empty, Damaged }
+
+class Wallet {
+    let balance: Result<Int, CardErr>;
+
+    func GetOr(self, def: Int) -> Int {
+        match balance {
+            case Ok(v): return v;
+            case Err(e): return def;
+        }
+    }
+}
+
+func Main() -> Void {
+    let w1: Wallet = Wallet(Ok(100));
+    Log(w1.GetOr(-1));
+    let w2: Wallet = Wallet(Err(Empty));
+    Log(w2.GetOr(99));
+    let w3: Wallet = Wallet(Err(Damaged));
+    Log(w3.GetOr(99));
+}

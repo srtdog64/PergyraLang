@@ -37,9 +37,18 @@ type_check_return_stmt(ASTNode *node, SemanticContext *ctx)
 
     semantic_record_body_summary(ctx, BODY_SUMMARY_MAY_RETURN);
 
-    if (value != NULL)
+    if (value != NULL && value->type == AST_LAMBDA_EXPR
+        && ctx->current_return != NULL
+        && ctx->current_return->kind == TYPE_KIND_FUNCTION) {
+        Type *saved_expected_lambda = ctx->expected_lambda_type;
+        ctx->expected_lambda_type = ctx->current_return;
         ret_type = ownership_return_normalize_type(
             type_check_expression(value, ctx));
+        ctx->expected_lambda_type = saved_expected_lambda;
+    } else if (value != NULL) {
+        ret_type = ownership_return_normalize_type(
+            type_check_expression(value, ctx));
+    }
     ret_type = ownership_return_apply_context(value, ret_type,
                                               ctx->current_return);
 

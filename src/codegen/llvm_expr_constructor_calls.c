@@ -555,8 +555,14 @@ llvm_emit_class_constructor(ASTNode *node, LLVMGenCtx *ctx, const char *callee_n
             return llvm_constructor_error(node, ctx,
                 "LLVM class constructor field metadata is incomplete");
         }
-        LLVMValueRef arg = llvm_emit_constructor_field_arg(node, ctx,
-            field_type, field_name, ast_call_argument(node, i));
+        LLVMValueRef arg;
+        {
+            LLVMTypeRef saved_ret = ctx->current_ret_type;
+            ctx->current_ret_type = expected_ty;
+            arg = llvm_emit_constructor_field_arg(node, ctx,
+                field_type, field_name, ast_call_argument(node, i));
+            ctx->current_ret_type = saved_ret;
+        }
         if (arg == NULL)
             return llvm_constructor_error(node, ctx,
                 "LLVM class constructor could not lower field argument");

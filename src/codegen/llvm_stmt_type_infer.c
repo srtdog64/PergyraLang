@@ -62,7 +62,7 @@ llvm_stmt_unknown_expr_type(LLVMGenCtx *ctx, ASTNode *expr, const char *reason)
             "LLVM expression type inference requires a concrete type: %s",
             reason != NULL ? reason : "unknown expression");
     }
-    return ctx->type_i32;
+    return NULL;
 }
 
 LLVMTypeRef
@@ -255,6 +255,23 @@ llvm_stmt_infer_expr_type(LLVMGenCtx *ctx, ASTNode *expr)
                         return llvm_slice_struct_type(ctx, suffix);
                 }
             }
+            if (receiver_name != NULL) {
+                const char *class_name = llvm_lookup_var_class(ctx, receiver_name);
+                if (class_name != NULL) {
+                    ASTNode *method_decl = llvm_find_nominal_host_method_decl(
+                        ctx, class_name, method_name);
+                    if (method_decl != NULL
+                        && method_decl->type == AST_FUNC_DECL) {
+                        ASTNode *ret_ty = ast_func_return_type(method_decl);
+                        if (ret_ty != NULL) {
+                            LLVMTypeRef llvm_ret = ast_type_to_llvm(ctx, ret_ty);
+                            if (llvm_ret != NULL && !ctx->has_error)
+                                return llvm_ret;
+                            ctx->has_error = false;
+                        }
+                    }
+                }
+            }
             if (strcmp(method_name, "Slice") == 0
                 && receiver->type == AST_CALL
                 && ast_call_callee(receiver) != NULL
@@ -351,6 +368,11 @@ llvm_stmt_infer_expr_type(LLVMGenCtx *ctx, ASTNode *expr)
                 return ctx->type_i1;
             if (llvm_stmt_call_returns_domain_bool(callee))
                 return ctx->type_i1;
+            {
+                LLVMClassTypeEntry *cls = llvm_lookup_class(ctx, callee);
+                if (cls != NULL && cls->struct_type != NULL)
+                    return cls->struct_type;
+            }
         }
         /* Domain helper calls can be emitted before their final lowered helper
          * entry is visible in the LLVM function inventory. Prefer the

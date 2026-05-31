@@ -543,6 +543,7 @@ typedef struct LLVMGenCtx
      * llvm_emit_let_decl. Consulted first by Result<T,E> suffix resolution
      * before falling back to the enclosing function's return type. */
     const char         *expected_type_name;
+    ASTNode            *expected_callable_type;
 
     /* Slot sugar: suppress auto-Read when emitting slot handle arguments */
     bool            suppress_slot_auto_read;

@@ -353,13 +353,17 @@ emit_return_stmt(ASTNode *node, TranspilerCtx *ctx)
             }
         }
         const char *saved_expected_type = ctx->expected_type;
+        ASTNode *saved_expected_callable_type = ctx->expected_callable_type;
         char *val;
         if (ctx->current_return_type[0] != '\0'
             && strcmp(ctx->current_return_type, "Void") != 0
             && strcmp(ctx->current_return_type, "void") != 0) {
             ctx->expected_type = ctx->current_return_type;
+            ctx->expected_callable_type =
+                transpiler_func_current_return_callable_type(ctx);
         }
         val = emit_expression(value, ctx);
+        ctx->expected_callable_type = saved_expected_callable_type;
         ctx->expected_type = saved_expected_type;
         codebuf_write(ctx->out, "return %s;\n", val);
         free(val);

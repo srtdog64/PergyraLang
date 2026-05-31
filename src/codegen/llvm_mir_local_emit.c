@@ -15,6 +15,49 @@
 #include "../common/string_compat.h"
 
 static LLVMTypeRef
+llvm_mir_local_elem_type_from_layout(LLVMGenCtx *ctx,
+                                     const MIRTypeLayout *layout)
+{
+    char inner_name[256];
+
+    if (ctx == NULL || layout == NULL || layout->abi_type_name == NULL)
+        return NULL;
+    switch (pgy_classify_type(layout->abi_type_name)) {
+    case PGY_TK_ARRAY:
+    case PGY_TK_SLICE:
+        break;
+    default:
+        return NULL;
+    }
+    if (!llvm_constructed_arg_name_copy(layout->abi_type_name, 0,
+            inner_name, sizeof(inner_name))) {
+        return NULL;
+    }
+    if (inner_name[0] == '\0' || strcmp(inner_name, "Unknown") == 0)
+        return NULL;
+    return pergyra_type_to_llvm(ctx, inner_name);
+}
+
+static bool
+llvm_mir_local_require_elem_type(LLVMGenCtx *ctx, ASTNode *site,
+                                 LLVMTypeRef elem_type,
+                                 const char *surface)
+{
+    if (ctx != NULL && elem_type != NULL && !ctx->has_error)
+        return true;
+    if (ctx != NULL && !ctx->has_error) {
+        llvm_set_error_at_with_hints(ctx,
+            site,
+            PGY_CODE_LLVM_TYPE_UNSUPPORTED,
+            PGY_CAUSE_LLVM_TYPE_UNSUPPORTED,
+            PGY_FIX_INSPECT_MIR_INVENTORY,
+            "LLVM MIR local '%s' requires concrete Array<T>/Slice<T> element metadata",
+            surface != NULL ? surface : "<local>");
+    }
+    return false;
+}
+
+static LLVMTypeRef
 llvm_mir_local_type_from_vars(LLVMMirVar *vars, size_t var_count,
                               const char *name)
 {
@@ -254,12 +297,18 @@ llvm_emit_mir_local_allocas(const MIRRoutine *routine, LLVMGenCtx *ctx,
                 if (has_base_name
                     && value_expr != NULL
                     && value_expr->type == AST_ARRAY_LITERAL) {
-                    LLVMTypeRef elem_type = ctx->type_i32;
+                    LLVMTypeRef elem_type = NULL;
                     if (ast_array_literal_count(value_expr) > 0
                         && ast_array_literal_element(value_expr, 0) != NULL) {
                         elem_type = llvm_stmt_infer_expr_type(ctx,
                             ast_array_literal_element(value_expr, 0));
+                    } else {
+                        elem_type = llvm_mir_local_elem_type_from_layout(
+                            ctx, inst->type_layout);
                     }
+                    if (!llvm_mir_local_require_elem_type(ctx, value_expr,
+                            elem_type, base_name))
+                        return;
                     llvm_register_array_var(ctx, base_name,
                         elem_type, (int64_t)ast_array_literal_count(value_expr));
                 } else if (has_base_name
@@ -272,7 +321,7 @@ llvm_emit_mir_local_allocas(const MIRRoutine *routine, LLVMGenCtx *ctx,
                         "Slice") == 0) {
                     ASTNode *receiver =
                         ast_member_object(ast_call_callee(value_expr));
-                    LLVMTypeRef elem_type = ctx->type_i32;
+                    LLVMTypeRef elem_type = NULL;
                     const char *receiver_name = ast_identifier_name(receiver);
                     if (receiver_name != NULL) {
                         LLVMArrayVarEntry *entry = llvm_lookup_array_var(
@@ -315,6 +364,12 @@ llvm_emit_mir_local_allocas(const MIRRoutine *routine, LLVMGenCtx *ctx,
                             }
                         }
                     }
+                    if (elem_type == NULL)
+                        elem_type = llvm_mir_local_elem_type_from_layout(
+                            ctx, inst->type_layout);
+                    if (!llvm_mir_local_require_elem_type(ctx, value_expr,
+                            elem_type, base_name))
+                        return;
                     llvm_register_array_var(ctx, base_name,
                         elem_type, -1);
                 }

@@ -38,6 +38,7 @@ type_check_let_decl(ASTNode *node, SemanticContext *ctx)
     bool handled_slot_claim = false;
     Type *init_type;
     Type *decl_type;
+    Type *lambda_expected_type = NULL;
 
     /* Check for duplicate in current scope */
     if (scope_lookup_current(ctx->scope, name) != NULL) {
@@ -58,16 +59,33 @@ type_check_let_decl(ASTNode *node, SemanticContext *ctx)
         return true;
 
     /* Normal variable declaration with type inference */
-    init_type = (init != NULL)
-        ? ownership_let_normalize_type(type_check_expression(init, ctx))
-        : TYPE_VOID;
+    if (init != NULL && init->type == AST_LAMBDA_EXPR && ann != NULL) {
+        lambda_expected_type = ownership_let_resolve_type_ref(ann, ctx);
+        if (lambda_expected_type != NULL
+            && lambda_expected_type->kind == TYPE_KIND_FUNCTION) {
+            Type *saved_expected_lambda = ctx->expected_lambda_type;
+            ctx->expected_lambda_type = lambda_expected_type;
+            init_type = ownership_let_normalize_type(
+                type_check_expression(init, ctx));
+            ctx->expected_lambda_type = saved_expected_lambda;
+        } else {
+            init_type = ownership_let_normalize_type(
+                type_check_expression(init, ctx));
+        }
+    } else {
+        init_type = (init != NULL)
+            ? ownership_let_normalize_type(type_check_expression(init, ctx))
+            : TYPE_VOID;
+    }
     if (init != NULL)
         mark_world_embedded_zone_arguments(init, ctx);
 
     /* Type inference: if no annotation, infer from initializer */
     if (ann != NULL) {
         /* Explicit type annotation */
-        decl_type = ownership_let_resolve_type_ref(ann, ctx);
+        decl_type = lambda_expected_type != NULL
+            ? lambda_expected_type
+            : ownership_let_resolve_type_ref(ann, ctx);
         if (decl_type == NULL)
             decl_type = TYPE_UNKNOWN;
         if (ast_type_name(ann) != NULL) {

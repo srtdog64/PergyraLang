@@ -200,6 +200,8 @@ llvm_emit_mir_block_with_exprs(const MIRBasicBlock *mir_block,
             if (inst->expr0 != NULL) {
                 ASTNode *return_expr = inst->expr0;
                 const char *saved_expected_type_name = ctx->expected_type_name;
+                ASTNode *saved_expected_callable_type =
+                    ctx->expected_callable_type;
                 LLVMValueRef val;
                 if (ctx->current_func_decl != NULL
                     && ctx->current_func_decl->type == AST_FUNC_DECL
@@ -207,8 +209,11 @@ llvm_emit_mir_block_with_exprs(const MIRBasicBlock *mir_block,
                     ctx->expected_type_name =
                         llvm_stmt_render_type_annotation_copy(ctx,
                             ast_func_return_type(ctx->current_func_decl));
+                    ctx->expected_callable_type =
+                        llvm_stmt_current_return_callable_type(ctx);
                 }
                 val = llvm_emit_expression(return_expr, ctx);
+                ctx->expected_callable_type = saved_expected_callable_type;
                 ctx->expected_type_name = saved_expected_type_name;
                 if (val != NULL) {
                     if (!llvm_mir_emit_pin_exit(mir_block, ctx))

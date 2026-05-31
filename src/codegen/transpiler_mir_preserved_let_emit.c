@@ -69,9 +69,15 @@ transpiler_emit_mir_preserved_let_stmt(CodeBuf *buf,
 
     {
         char *lhs = transpiler_render_ssa_name(ctx, versioned_local);
-        char *rhs = emit_expression_with_ssa_map(let_init, ctx, ssa_map_out);
+        ASTNode *saved_expected_callable_type = ctx->expected_callable_type;
+        char *rhs;
         char *rendered_type = NULL;
         const char *value_type = NULL;
+
+        if (let_type != NULL && let_type->type == AST_EVENT_HANDLER_TYPE)
+            ctx->expected_callable_type = let_type;
+        rhs = emit_expression_with_ssa_map(let_init, ctx, ssa_map_out);
+        ctx->expected_callable_type = saved_expected_callable_type;
 
         if (let_type != NULL) {
             rendered_type = transpiler_render_effective_local_type_name(
@@ -321,8 +327,12 @@ transpiler_emit_mir_source_local_let_def_inst(
 
     {
         const char *saved_expected_type = ctx->expected_type;
+        ASTNode *saved_expected_callable_type = ctx->expected_callable_type;
         ctx->expected_type = local_type_name_owned;
+        if (let_type != NULL && let_type->type == AST_EVENT_HANDLER_TYPE)
+            ctx->expected_callable_type = let_type;
         rhs = emit_expression_with_ssa_map(let_init, ctx, ssa_map_out);
+        ctx->expected_callable_type = saved_expected_callable_type;
         ctx->expected_type = saved_expected_type;
     }
     ctx->active_type_hint = saved_type_hint;

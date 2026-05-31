@@ -43,8 +43,8 @@ llvm_emit_let_decl(ASTNode *node, LLVMGenCtx *ctx)
         }
     }
 
-    /* Determine type from annotation or initializer */
-    LLVMTypeRef var_type = ctx->type_i32; /* default */
+    /* Determine type from annotation or initializer. */
+    LLVMTypeRef var_type = NULL;
     if (type_ann != NULL) {
         var_type = ast_type_to_llvm(ctx, type_ann);
         if (ctx->has_error || var_type == NULL)
@@ -58,11 +58,24 @@ llvm_emit_let_decl(ASTNode *node, LLVMGenCtx *ctx)
             return;
     }
     if (init != NULL && init->type == AST_LAMBDA_EXPR) {
+        ASTNode *saved_expected_callable_type = ctx->expected_callable_type;
+        if (type_ann != NULL && type_ann->type == AST_EVENT_HANDLER_TYPE)
+            ctx->expected_callable_type = type_ann;
         LLVMTypeRef lambda_type = llvm_stmt_lambda_signature_type(ctx, init);
+        ctx->expected_callable_type = saved_expected_callable_type;
         if (ctx->has_error || lambda_type == NULL)
             return;
         if (lambda_type != NULL)
             var_type = lambda_type;
+    }
+    if (var_type == NULL) {
+        llvm_set_error_at_with_hints(ctx, node,
+            PGY_CODE_LLVM_TYPE_UNSUPPORTED,
+            PGY_CAUSE_LLVM_TYPE_UNSUPPORTED,
+            PGY_FIX_ANNOTATE_CONCRETE_TYPE,
+            "LLVM let binding '%s' requires an explicit type annotation or initializer; implicit Int fallback is disabled",
+            name != NULL ? name : "<binding>");
+        return;
     }
 
     /* Create alloca at function entry */
@@ -79,14 +92,18 @@ llvm_emit_let_decl(ASTNode *node, LLVMGenCtx *ctx)
          * construction inside the initializer can recover T/E from the
          * let binding context (parity with C backend's expected_type). */
         const char *saved_expected_name = ctx->expected_type_name;
+        ASTNode *saved_expected_callable_type = ctx->expected_callable_type;
         if (type_ann != NULL && type_ann->type == AST_TYPE
             && ast_type_name(type_ann) != NULL)
             ctx->expected_type_name =
                 llvm_stmt_render_type_annotation_copy(ctx, type_ann);
+        if (type_ann != NULL && type_ann->type == AST_EVENT_HANDLER_TYPE)
+            ctx->expected_callable_type = type_ann;
         LLVMValueRef val = llvm_emit_expression(init, ctx);
         if (llvm_debug_detail_enabled())
             fprintf(stderr, "[llvm let] name=%s phase=after-init val=%p\n",
                 name != NULL ? name : "-", (void *)val);
+        ctx->expected_callable_type = saved_expected_callable_type;
         ctx->expected_type_name = saved_expected_name;
         ctx->current_ret_type = saved_expected_type;
         if (val != NULL) {

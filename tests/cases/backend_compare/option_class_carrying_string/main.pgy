@@ -1,0 +1,34 @@
+class Tag {
+    let name: String;
+    let weight: Int;
+
+    func IsBig(self) -> Bool {
+        return weight > 100;
+    }
+}
+
+func PickTag(seed: Int) -> Option<Tag> {
+    if seed == 0 { return None; }
+    if seed == 1 { return Some(Tag("alpha", 50)); }
+    if seed == 2 { return Some(Tag("beta", 200)); }
+    return Some(Tag("gamma", 150));
+}
+
+func Score(o: Option<Tag>) -> Int {
+    match o {
+        case Some(t):
+            if t.IsBig() {
+                return t.weight * 2;
+            }
+            return t.weight;
+        case None: return -1;
+    }
+}
+
+func Main() -> Void {
+    Log(Score(PickTag(1)));
+    Log(Score(PickTag(2)));
+    Log(Score(PickTag(3)));
+    Log(Score(PickTag(0)));
+    Log(Score(PickTag(99)));
+}

@@ -1,0 +1,25 @@
+class Inner {
+    let v: Int;
+
+    func Double(self) -> Int {
+        return v * 2;
+    }
+}
+
+class Outer {
+    let inner: Inner;
+    let bonus: Int;
+
+    func Total(self) -> Int {
+        return inner.Double() + bonus;
+    }
+}
+
+func Main() -> Void {
+    let i: Inner = Inner(5);
+    let o: Outer = Outer(i, 100);
+    Log(o.Total());
+    let i2: Inner = Inner(50);
+    let o2: Outer = Outer(i2, 1000);
+    Log(o2.Total());
+}

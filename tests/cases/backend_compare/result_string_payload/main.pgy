@@ -1,0 +1,26 @@
+enum NameErr { TooShort, TooLong }
+
+func Validate(s: String, n: Int) -> Result<Int, NameErr> {
+    if n < 3 { return Err(TooShort); }
+    if n > 50 { return Err(TooLong); }
+    return Ok(n * 10);
+}
+
+func Process(s: String, n: Int, def: Int) -> Int {
+    match Validate(s, n) {
+        case Ok(v): return v;
+        case Err(e):
+            match e {
+                case TooShort: return def + 100;
+                case TooLong: return def + 200;
+            }
+    }
+}
+
+func Main() -> Void {
+    Log(Process("hello", 10, 0));
+    Log(Process("ab", 2, 0));
+    Log(Process("longname", 999, 0));
+    Log(Process("", 0, 0));
+    Log(Process("ok", 7, -1));
+}

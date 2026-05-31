@@ -141,6 +141,8 @@ LLVMTypeRef
 llvm_stmt_promote_numeric_type(LLVMGenCtx *ctx, LLVMTypeRef left_ty,
                                LLVMTypeRef right_ty)
 {
+    if (ctx == NULL || ctx->has_error || left_ty == NULL || right_ty == NULL)
+        return NULL;
     if (left_ty == ctx->type_f64 || right_ty == ctx->type_f64)
         return ctx->type_f64;
     if (left_ty == ctx->type_f32 || right_ty == ctx->type_f32)

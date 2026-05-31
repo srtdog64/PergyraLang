@@ -256,6 +256,7 @@ typedef struct
      * Set when emitting a let initializer so that `None` can resolve
      * to the correct type-specific constructor (e.g. None_String vs None_Int). */
     const char *expected_type;
+    ASTNode *expected_callable_type;
 
     char *backend_error;
     /* Stable diagnostic code attached to backend_error. non-owning; must

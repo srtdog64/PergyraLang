@@ -6,6 +6,7 @@
 #include "transpiler_context.h"
 #include "transpiler_control_flow_emit.h"
 #include "transpiler_defer_emit.h"
+#include "transpiler_func_flow_policy.h"
 #include "transpiler_mir_cfg_control_emit.h"
 #include "transpiler_mir_phi_emit.h"
 #include "transpiler_mir_pin_emit.h"
@@ -90,12 +91,16 @@ transpiler_emit_mir_return_terminator(const MIRBasicBlock *block,
     transpiler_emit_defers_from(ctx, 0);
     if (inst->expr0 != NULL) {
         const char *saved_expected_type = ctx->expected_type;
+        ASTNode *saved_expected_callable_type = ctx->expected_callable_type;
         if (ctx->current_return_type[0] != '\0'
             && strcmp(ctx->current_return_type, "Void") != 0
             && strcmp(ctx->current_return_type, "void") != 0) {
             ctx->expected_type = ctx->current_return_type;
+            ctx->expected_callable_type =
+                transpiler_func_current_return_callable_type(ctx);
         }
         ret_expr = emit_expression_with_ssa_map(inst->expr0, ctx, block_ssa_map);
+        ctx->expected_callable_type = saved_expected_callable_type;
         ctx->expected_type = saved_expected_type;
     }
     if (!transpiler_emit_mir_pin_exit_local(ctx->out, ctx, block,

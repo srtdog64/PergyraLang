@@ -1,0 +1,8 @@
+func MakeDouble() -> func(Int) -> Int {
+    return (x) => x * 2;
+}
+
+func Main() -> Void {
+    let double: func(Int) -> Int = MakeDouble();
+    Log(double(21));
+}

@@ -1,0 +1,31 @@
+enum ParseErr { Empty, Invalid }
+
+class Entry {
+    let label: String;
+    let id: Int;
+}
+
+func TryParse(s: String, i: Int) -> Result<Entry, ParseErr> {
+    if i < 0 { return Err(Empty); }
+    if i > 1000 { return Err(Invalid); }
+    return Ok(Entry(s, i));
+}
+
+func Score(r: Result<Entry, ParseErr>) -> Int {
+    match r {
+        case Ok(e): return e.id * 10;
+        case Err(p):
+            match p {
+                case Empty: return -1;
+                case Invalid: return -2;
+            }
+    }
+}
+
+func Main() -> Void {
+    Log(Score(TryParse("a", 5)));
+    Log(Score(TryParse("b", -1)));
+    Log(Score(TryParse("c", 2000)));
+    Log(Score(TryParse("d", 0)));
+    Log(Score(TryParse("e", 99)));
+}

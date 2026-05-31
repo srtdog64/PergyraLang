@@ -1,0 +1,49 @@
+enum LookupErr { Missing, Stale }
+
+class User {
+    let id: Int;
+    let lvl: Int;
+}
+
+class Permission {
+    let bits: Int;
+}
+
+func FetchUser(id: Int) -> Result<User, LookupErr> {
+    if id < 0 { return Err(Missing); }
+    if id == 99 { return Err(Stale); }
+    return Ok(User(id, id % 10));
+}
+
+func FetchPerm(uid: Int) -> Result<Permission, LookupErr> {
+    if uid < 0 { return Err(Missing); }
+    if uid == 50 { return Err(Stale); }
+    return Ok(Permission(uid * 7));
+}
+
+func Authorize(id: Int) -> Int {
+    match FetchUser(id) {
+        case Ok(u):
+            match FetchPerm(u.id) {
+                case Ok(p): return u.lvl * 100 + p.bits;
+                case Err(ep):
+                    match ep {
+                        case Missing: return -10;
+                        case Stale: return -20;
+                    }
+            }
+        case Err(eu):
+            match eu {
+                case Missing: return -30;
+                case Stale: return -40;
+            }
+    }
+}
+
+func Main() -> Void {
+    Log(Authorize(5));
+    Log(Authorize(-1));
+    Log(Authorize(99));
+    Log(Authorize(50));
+    Log(Authorize(7));
+}

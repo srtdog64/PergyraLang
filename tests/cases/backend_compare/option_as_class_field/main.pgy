@@ -1,0 +1,17 @@
+class Holder {
+    let val: Option<Int>;
+
+    func GetOr(self, def: Int) -> Int {
+        match val {
+            case Some(n): return n;
+            case None: return def;
+        }
+    }
+}
+
+func Main() -> Void {
+    let h: Holder = Holder(Some(42));
+    Log(h.GetOr(-1));
+    let h2: Holder = Holder(None);
+    Log(h2.GetOr(99));
+}

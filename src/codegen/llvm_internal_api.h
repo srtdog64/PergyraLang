@@ -440,6 +440,10 @@ bool llvm_stmt_register_callable_let_binding(ASTNode *node, LLVMGenCtx *ctx);
 void llvm_emit_with_stmt(ASTNode *node, LLVMGenCtx *ctx);
 const char *llvm_stmt_render_type_annotation_copy(LLVMGenCtx *ctx,
                                                   ASTNode *type_ann);
+ASTNode *llvm_stmt_current_return_callable_type(LLVMGenCtx *ctx);
+LLVMTypeRef llvm_stmt_lambda_return_type(LLVMGenCtx *ctx, ASTNode *expr);
+LLVMTypeRef llvm_stmt_lambda_param_type(LLVMGenCtx *ctx, ASTNode *lambda,
+                                        ASTNode *param, size_t param_index);
 LLVMTypeRef llvm_stmt_lambda_signature_type(LLVMGenCtx *ctx, ASTNode *expr);
 const char *llvm_infer_spawn_future_inner(LLVMGenCtx *ctx, ASTNode *spawn_expr);
 LLVMValueRef llvm_stmt_create_slot_alloca(LLVMGenCtx *ctx, LLVMTypeRef type,

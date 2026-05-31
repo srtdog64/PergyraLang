@@ -1,0 +1,29 @@
+class Cell {
+    let label: String;
+    let count: Int;
+}
+
+class Store {
+    let initial: Int;
+
+    func MakeCell(self, lbl: String, c: Int) -> Option<Cell> {
+        if c < 0 { return None; }
+        return Some(Cell(lbl, c + initial));
+    }
+}
+
+func Run(s: Store, lbl: String, c: Int) -> Int {
+    match s.MakeCell(lbl, c) {
+        case Some(cell): return cell.count * 2;
+        case None: return -1;
+    }
+}
+
+func Main() -> Void {
+    let s: Store = Store(100);
+    Log(Run(s, "alpha", 5));
+    Log(Run(s, "beta", 0));
+    Log(Run(s, "gamma", -1));
+    Log(Run(s, "delta", 50));
+    Log(Run(s, "epsilon", 100));
+}

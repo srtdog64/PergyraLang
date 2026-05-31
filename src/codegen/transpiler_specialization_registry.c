@@ -278,6 +278,15 @@ ensure_collection_specialization_to(TranspilerCtx *ctx, CodeBuf *dst,
             || strcmp(inner_type, "String") == 0)) {
         return;
     }
+    if (strcmp(kind, "Array") == 0
+        && (strcmp(inner_type, "Int") == 0
+            || strcmp(inner_type, "Long") == 0
+            || strcmp(inner_type, "Float") == 0
+            || strcmp(inner_type, "Double") == 0
+            || strcmp(inner_type, "Bool") == 0
+            || strcmp(inner_type, "String") == 0)) {
+        return;
+    }
 
     sanitize_c_suffix(inner_type, suffix, sizeof(suffix));
     for (int i = 0; i < ctx->collection_spec_count; i++) {
@@ -329,6 +338,19 @@ ensure_collection_specialization_to(TranspilerCtx *ctx, CodeBuf *dst,
             "\n/* PGY_COLLECTION_SET_%s */\n"
             "PGY_SET_DEFINE(%s, %s)\n",
             suffix, suffix, ctype);
+    } else if (strcmp(kind, "Array") == 0) {
+        codebuf_write(dst,
+            "\n/* PGY_COLLECTION_ARRAY_%s */\n"
+            "#ifndef PGY_ARRAY_COPY_VALUE_%s\n"
+            "#define PGY_ARRAY_COPY_VALUE_%s(value) (value)\n"
+            "#endif\n"
+            "#pragma GCC diagnostic push\n"
+            "#pragma GCC diagnostic ignored \"-Wunused-function\"\n"
+            "PGY_ARRAY_DEFINE(%s, %s)\n"
+            "#pragma GCC diagnostic pop\n",
+            suffix,
+            suffix, suffix,
+            suffix, ctype);
     }
 }
 
@@ -529,6 +551,16 @@ ensure_type_specializations_from_ast_to(TranspilerCtx *ctx, CodeBuf *dst,
         && arg0_type != NULL) {
         char *inner_type = render_type_name_in_ctx(ctx, arg0_type);
         ensure_option_specialization_to(ctx, ctx->out, inner_type);
+        (void)dst;
+        free(inner_type);
+        return;
+    }
+
+    if (strcmp(ast_type_name(type_node), "Array") == 0
+        && ast_generic_param_count(generic_args) == 1
+        && arg0_type != NULL) {
+        char *inner_type = render_type_name_in_ctx(ctx, arg0_type);
+        ensure_collection_specialization_to(ctx, ctx->out, "Array", inner_type);
         (void)dst;
         free(inner_type);
         return;

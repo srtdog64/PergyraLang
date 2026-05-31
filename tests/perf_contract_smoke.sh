@@ -2400,10 +2400,25 @@ if [[ "$llvm_stmt_collection_get_names" != "$llvm_stmt_collection_get_names_sort
     exit 1
 fi
 grep -Fq "return pergyra_type_to_llvm(ctx, inner_buf)" "$ROOT_DIR/src/codegen/llvm_stmt_type_infer.c"
+! grep -A18 -F "llvm_stmt_unknown_expr_type" \
+    "$ROOT_DIR/src/codegen/llvm_stmt_type_infer.c" | \
+    grep -Fq "return ctx->type_i32"
+grep -Fq "left_ty == NULL || right_ty == NULL" \
+    "$ROOT_DIR/src/codegen/llvm_stmt_type_infer_helpers.c"
 grep -Fq "inner_name = inner_name_buf" "$ROOT_DIR/src/codegen/llvm_expr_collection_base_calls.c"
 grep -Fq "return_type_owned = pergyra_strdup(return_type)" "$ROOT_DIR/src/codegen/transpiler_lambda_emit.c"
 grep -Fq "transpiler_require_type_name_c_type_copy(ctx" "$ROOT_DIR/src/codegen/transpiler_lambda_emit.c"
 grep -Fq "transpiler_infer_lambda_param_c_type_copy" "$ROOT_DIR/src/codegen/transpiler_lambda_emit.c"
+grep -Fq "transpiler_lambda_expected_return_type" "$ROOT_DIR/src/codegen/transpiler_lambda_emit.c"
+grep -Fq "transpiler_lambda_expected_param_type" "$ROOT_DIR/src/codegen/transpiler_lambda_emit.c"
+grep -Fq "transpiler_func_current_return_callable_type" "$ROOT_DIR/src/codegen/transpiler_func_flow_policy.c"
+grep -Fq "transpiler_func_current_return_callable_type(ctx);" "$ROOT_DIR/src/codegen/transpiler_func_class_flow_emit.c"
+grep -Fq "transpiler_func_current_return_callable_type(ctx);" "$ROOT_DIR/src/codegen/transpiler_mir_terminator_emit.c"
+grep -Fq "ctx->expected_callable_type = callable_type" "$ROOT_DIR/src/codegen/transpiler_let_emit.c"
+grep -Fq "ctx->expected_callable_type = let_type" "$ROOT_DIR/src/codegen/transpiler_mir_preserved_let_emit.c"
+grep -Fq "ctx->expected_lambda_type = lambda_expected_type" "$ROOT_DIR/src/semantic/type_checker_ownership_let.c"
+grep -Fq "ctx->expected_lambda_type = ctx->current_return" "$ROOT_DIR/src/semantic/type_checker_ownership_return.c"
+grep -Fq "Type *expected_lambda_type = ctx->expected_lambda_type" "$ROOT_DIR/src/semantic/type_checker_expr.c"
 grep -Fq "pergyra_ast_type_to_c_copy_in_ctx(ctx, lambda_return_type" "$ROOT_DIR/src/codegen/transpiler_lambda_emit.c"
 grep -Fq "pergyra_ast_type_to_c_copy_in_ctx(ctx, param_type_ast" "$ROOT_DIR/src/codegen/transpiler_lambda_emit.c"
 grep -Fq "char ok_ctype_buf[128]" "$ROOT_DIR/src/codegen/transpiler_specialization_registry.c"
@@ -2422,8 +2437,10 @@ grep -Fq "transpiler_require_type_name_c_type_copy(ctx, ann_type_name" "$ROOT_DI
 grep -Fq "transpiler_require_type_name_c_type_copy(ctx, ann_type_name" "$ROOT_DIR/src/codegen/transpiler_let_collection_emit.c"
 grep -Fq "transpiler_try_emit_list_or_queue_new_let" "$ROOT_DIR/src/codegen/transpiler_let_collection_emit.c"
 grep -Fq "transpiler_require_type_name_c_type_copy(ctx, ann_type_name" "$ROOT_DIR/src/codegen/transpiler_let_collection_emit.c"
-grep -Fq "kTranspilerLetOptionCtorSpecs" "$ROOT_DIR/src/codegen/transpiler_let_collection_emit.c"
 grep -Fq "transpiler_let_option_ctor_lookup" "$ROOT_DIR/src/codegen/transpiler_let_collection_emit.c"
+grep -Fq "pgy_codegen_match_variant_lookup(callee_name)" "$ROOT_DIR/src/codegen/transpiler_let_collection_emit.c"
+grep -Fq "PGY_MATCH_VARIANT_SOME" "$ROOT_DIR/src/codegen/transpiler_let_collection_emit.c"
+grep -Fq "PGY_MATCH_VARIANT_NONE_CTOR" "$ROOT_DIR/src/codegen/transpiler_let_collection_emit.c"
 grep -Fq "kTranspilerLetCollectionCtorSpecs" "$ROOT_DIR/src/codegen/transpiler_let_collection_emit.c"
 grep -Fq "transpiler_let_collection_ctor_lookup" "$ROOT_DIR/src/codegen/transpiler_let_collection_emit.c"
 grep -Fq "bsearch(" "$ROOT_DIR/src/codegen/transpiler_let_collection_emit.c"
@@ -2432,22 +2449,6 @@ grep -Fq "bsearch(" "$ROOT_DIR/src/codegen/transpiler_let_collection_emit.c"
 ! grep -Fq 'strcmp(callee_name, "ListNew")' "$ROOT_DIR/src/codegen/transpiler_let_collection_emit.c"
 ! grep -Fq 'strcmp(callee_name, "QueueNew")' "$ROOT_DIR/src/codegen/transpiler_let_collection_emit.c"
 ! grep -Fq 'strcmp(callee_name, "MapNew")' "$ROOT_DIR/src/codegen/transpiler_let_collection_emit.c"
-transpiler_let_option_ctor_names="$(
-    sed -n '/static const TranspilerLetOptionCtorSpec kTranspilerLetOptionCtorSpecs\[\]/,/^    };/p' \
-        "$ROOT_DIR/src/codegen/transpiler_let_collection_emit.c" \
-        | grep -Eo '\{[[:space:]]*"[A-Za-z0-9_]*"' \
-        | grep -o '"[A-Za-z0-9_]*"' \
-        | tr -d '"'
-)"
-transpiler_let_option_ctor_names_sorted="$(
-    printf '%s\n' "$transpiler_let_option_ctor_names" | sort
-)"
-if [[ "$transpiler_let_option_ctor_names" != "$transpiler_let_option_ctor_names_sorted" ]]; then
-    echo "C backend let Option ctor names must stay sorted for bsearch" >&2
-    diff -u <(printf '%s\n' "$transpiler_let_option_ctor_names_sorted") \
-        <(printf '%s\n' "$transpiler_let_option_ctor_names") >&2 || true
-    exit 1
-fi
 transpiler_let_collection_ctor_names="$(
     sed -n '/kTranspilerLetCollectionCtorSpecs\[\]/,/^        };/p' \
         "$ROOT_DIR/src/codegen/transpiler_let_collection_emit.c" \
@@ -2762,6 +2763,33 @@ grep -Fq "LLVM tuple literal could not lower element %zu" "$ROOT_DIR/src/codegen
 grep -Fq "LLVM lambda expression could not lower return type" "$ROOT_DIR/src/codegen/llvm_expr.c"
 grep -Fq "LLVM lambda expression could not lower parameter type" "$ROOT_DIR/src/codegen/llvm_expr.c"
 grep -Fq "LLVM lambda expression could not lower body expression" "$ROOT_DIR/src/codegen/llvm_expr.c"
+grep -Fq "llvm_stmt_lambda_return_type(ctx, node)" "$ROOT_DIR/src/codegen/llvm_expr.c"
+grep -Fq "llvm_stmt_lambda_param_type(ctx, node, p, (size_t)j)" "$ROOT_DIR/src/codegen/llvm_expr.c"
+grep -Fq "llvm_scope_declare(ctx, param_names[i], NULL, param_types[i])" \
+    "$ROOT_DIR/src/codegen/llvm_stmt_let_helpers.c"
+grep -Fq "llvm_stmt_lambda_expected_return_type" \
+    "$ROOT_DIR/src/codegen/llvm_stmt_let_helpers.c"
+grep -Fq "llvm_stmt_lambda_expected_param_type" \
+    "$ROOT_DIR/src/codegen/llvm_stmt_let_helpers.c"
+grep -Fq "llvm_stmt_current_return_callable_type" \
+    "$ROOT_DIR/src/codegen/llvm_stmt_let_helpers.c"
+grep -Fq "llvm_stmt_current_return_callable_type(ctx);" \
+    "$ROOT_DIR/src/codegen/llvm_stmt.c"
+grep -Fq "llvm_stmt_current_return_callable_type(ctx);" \
+    "$ROOT_DIR/src/codegen/llvm_mir_block_emit.c"
+grep -Fq "ctx->expected_callable_type = type_ann" \
+    "$ROOT_DIR/src/codegen/llvm_stmt_let_with.c"
+grep -Fq "LLVM lambda return type requires an explicit annotation or inferable expression body" \
+    "$ROOT_DIR/src/codegen/llvm_stmt_let_helpers.c"
+grep -Fq "requires an explicit type annotation" \
+    "$ROOT_DIR/src/codegen/llvm_stmt_let_helpers.c"
+! grep -Fq "LLVMTypeRef ret_type = ctx->type_i32" \
+    "$ROOT_DIR/src/codegen/llvm_stmt_let_helpers.c"
+! grep -Fq "params[i] = ctx->type_i32" \
+    "$ROOT_DIR/src/codegen/llvm_stmt_let_helpers.c"
+! grep -Fq "LLVMTypeRef ret_type = ctx->type_i32" \
+    "$ROOT_DIR/src/codegen/llvm_expr.c"
+! grep -Fq "lparams[j] = ctx->type_i32" "$ROOT_DIR/src/codegen/llvm_expr.c"
 grep -Fq "LLVM context access requires a registered self parameter" "$ROOT_DIR/src/codegen/llvm_expr.c"
 grep -Fq "LLVM party instance requires registered class metadata" "$ROOT_DIR/src/codegen/llvm_expr.c"
 grep -Fq "LLVM party instance field '%s' is not present in class metadata" "$ROOT_DIR/src/codegen/llvm_expr.c"
@@ -2953,6 +2981,17 @@ grep -Fq "LLVM spawn expression requires a target expression" "$ROOT_DIR/src/cod
 ! grep -A12 -F "llvm_mir_type_from_ast(LLVMGenCtx *ctx" \
     "$ROOT_DIR/src/codegen/llvm_mir_type_helpers.c" | \
     grep -Fq "return ctx->type_i32"
+! grep -Fq "strstr(layout_name" "$ROOT_DIR/src/codegen/llvm_mir_type_helpers.c"
+! grep -Fq 'strncmp(runtime_fn, "pgy_claim_' "$ROOT_DIR/src/codegen/llvm_mir_type_helpers.c"
+grep -Fq 'strcmp(type_name, "Future") == 0' "$ROOT_DIR/src/codegen/llvm_type.c"
+grep -Fq 'strcmp(type_name, "RemoteFuture") == 0' "$ROOT_DIR/src/codegen/llvm_type.c"
+grep -Fq "LLVMTypeRef var_type = NULL" "$ROOT_DIR/src/codegen/llvm_stmt_let_with.c"
+grep -Fq "implicit Int fallback is disabled" "$ROOT_DIR/src/codegen/llvm_stmt_let_with.c"
+! grep -Fq "LLVMTypeRef var_type = ctx->type_i32" "$ROOT_DIR/src/codegen/llvm_stmt_let_with.c"
+grep -Fq "llvm_mir_local_elem_type_from_layout" "$ROOT_DIR/src/codegen/llvm_mir_local_emit.c"
+grep -Fq "LLVMTypeRef elem_type = NULL" "$ROOT_DIR/src/codegen/llvm_mir_local_emit.c"
+grep -Fq "llvm_mir_local_require_elem_type" "$ROOT_DIR/src/codegen/llvm_mir_local_emit.c"
+! grep -Fq "LLVMTypeRef elem_type = ctx->type_i32" "$ROOT_DIR/src/codegen/llvm_mir_local_emit.c"
 grep -Fq "if (ctx->has_error || alloca_type == NULL)" \
     "$ROOT_DIR/src/codegen/llvm_mir_local_emit.c"
 grep -Fq "llvm_mir_local_type_from_value_fact" \

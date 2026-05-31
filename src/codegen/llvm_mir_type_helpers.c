@@ -15,13 +15,11 @@ LLVMTypeRef
 llvm_mir_type_from_abi_layout(LLVMGenCtx *ctx, const MIRTypeLayout *layout)
 {
     const char *layout_name;
-    const char *runtime_fn;
 
     if (ctx == NULL || layout == NULL)
         return NULL;
 
     layout_name = layout->abi_type_name;
-    runtime_fn = layout->runtime_fn;
 
     if (layout_name != NULL) {
         if (strncmp(layout_name, "Slot<", 5) == 0
@@ -37,67 +35,16 @@ llvm_mir_type_from_abi_layout(LLVMGenCtx *ctx, const MIRTypeLayout *layout)
             || strncmp(layout_name, "HashMap<", 8) == 0
             || strncmp(layout_name, "Box<", 4) == 0
             || strcmp(layout_name, "Future") == 0
-            || strcmp(layout_name, "RemoteFuture") == 0
-            || strcmp(layout_name, "TaskHandle") == 0) {
+            || strcmp(layout_name, "RemoteFuture") == 0) {
             return pergyra_type_to_llvm(ctx, layout_name);
         }
+        if (strcmp(layout_name, "TaskHandle") == 0)
+            return ctx->type_task_handle;
 
         if (strcmp(layout_name, "PinnedSlotView<Int>") == 0)
             return llvm_pinned_slot_struct_type(ctx, "Int");
         if (strcmp(layout_name, "PinnedSecureSlotView<Int>") == 0)
             return llvm_pinned_secure_slot_struct_type(ctx, "Int");
-
-        if (strstr(layout_name, "secure_slot_int") != NULL)
-            return llvm_secure_slot_struct_type(ctx, "Int");
-        if (strstr(layout_name, "secure_slot_long") != NULL)
-            return llvm_secure_slot_struct_type(ctx, "Long");
-        if (strstr(layout_name, "secure_slot_float") != NULL)
-            return llvm_secure_slot_struct_type(ctx, "Float");
-        if (strstr(layout_name, "secure_slot_double") != NULL)
-            return llvm_secure_slot_struct_type(ctx, "Double");
-        if (strstr(layout_name, "secure_slot_bool") != NULL)
-            return llvm_secure_slot_struct_type(ctx, "Bool");
-        if (strstr(layout_name, "secure_slot_string") != NULL)
-            return llvm_secure_slot_struct_type(ctx, "String");
-        if (strstr(layout_name, "device_slot_int") != NULL)
-            return llvm_slot_struct_type(ctx, "Int");
-        if (strstr(layout_name, "device_slot_string") != NULL)
-            return llvm_slot_struct_type(ctx, "String");
-        if (strstr(layout_name, "slot_int") != NULL)
-            return llvm_slot_struct_type(ctx, "Int");
-        if (strstr(layout_name, "slot_long") != NULL)
-            return llvm_slot_struct_type(ctx, "Long");
-        if (strstr(layout_name, "slot_float") != NULL)
-            return llvm_slot_struct_type(ctx, "Float");
-        if (strstr(layout_name, "slot_double") != NULL)
-            return llvm_slot_struct_type(ctx, "Double");
-        if (strstr(layout_name, "slot_bool") != NULL)
-            return llvm_slot_struct_type(ctx, "Bool");
-        if (strstr(layout_name, "slot_string") != NULL)
-            return llvm_slot_struct_type(ctx, "String");
-        if (strstr(layout_name, "option_int") != NULL)
-            return pergyra_type_to_llvm(ctx, "Option<Int>");
-        if (strstr(layout_name, "option_long") != NULL)
-            return pergyra_type_to_llvm(ctx, "Option<Long>");
-        if (strstr(layout_name, "option_bool") != NULL)
-            return pergyra_type_to_llvm(ctx, "Option<Bool>");
-        if (strstr(layout_name, "option_string") != NULL)
-            return pergyra_type_to_llvm(ctx, "Option<String>");
-        if (strstr(layout_name, "result_int") != NULL)
-            return pergyra_type_to_llvm(ctx, "Result<Int>");
-        if (strstr(layout_name, "result_bool") != NULL)
-            return pergyra_type_to_llvm(ctx, "Result<Bool>");
-        if (strstr(layout_name, "result_string") != NULL)
-            return pergyra_type_to_llvm(ctx, "Result<String>");
-    }
-
-    if (runtime_fn != NULL) {
-        if (strncmp(runtime_fn, "pgy_claim_secure_", 17) == 0)
-            return llvm_secure_slot_struct_type(ctx, runtime_fn + 17);
-        if (strncmp(runtime_fn, "pgy_claim_device_", 17) == 0)
-            return llvm_slot_struct_type(ctx, runtime_fn + 17);
-        if (strncmp(runtime_fn, "pgy_claim_", 10) == 0)
-            return llvm_slot_struct_type(ctx, runtime_fn + 10);
     }
 
     if (layout->inner_c_type != NULL) {

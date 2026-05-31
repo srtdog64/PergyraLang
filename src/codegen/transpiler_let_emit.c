@@ -401,10 +401,15 @@ emit_let_decl(ASTNode *node, TranspilerCtx *ctx)
             : pergyra_func_pointer_declarator_from_decl_in_ctx(
                 ctx, callable_decl, name);
         if (init != NULL) {
+            const char *saved_expected_type = ctx->expected_type;
+            ASTNode *saved_expected_callable_type = ctx->expected_callable_type;
             ctx->expected_type = ann_type_name;
+            if (callable_type != NULL)
+                ctx->expected_callable_type = callable_type;
             char *init_expr = emit_expression(init, ctx);
 
-            ctx->expected_type = NULL;
+            ctx->expected_callable_type = saved_expected_callable_type;
+            ctx->expected_type = saved_expected_type;
             codebuf_write(ctx->out, "%s = %s;\n", decl, init_expr);
             free(init_expr);
         } else {

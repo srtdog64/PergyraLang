@@ -87,6 +87,7 @@ struct SemanticContext
     ASTNode*     current_world;  /* Enclosing world decl when any  */
     ASTNode*     current_function_decl; /* Enclosing function/action decl */
     Type*        current_return; /* Expected return type of func   */
+    Type*        expected_lambda_type; /* Contextual func type for lambda */
     uint32_t     current_function_effects; /* Inferred effect mask    */
     uint32_t     current_function_body_summary; /* Interprocedural body facts */
     bool         tracking_function_effects; /* Only inside function body */

@@ -18,6 +18,8 @@ transpiler_return_option_ctor_lookup(const char *callee_name);
 bool transpiler_func_copy_current_return_type(TranspilerCtx *ctx,
                                               const char *type_name);
 
+ASTNode *transpiler_func_current_return_callable_type(TranspilerCtx *ctx);
+
 bool transpiler_func_parameter_surface_desc(char *out, size_t out_size,
                                             const char *param_name,
                                             const char *func_name);

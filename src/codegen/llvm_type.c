@@ -33,6 +33,7 @@ pgy_classify_type(const char *type_name)
     case 'L': if (strcmp(type_name, "Long") == 0)       return PGY_TK_LONG;       break;
     case 'F':
         if (strcmp(type_name, "Float") == 0)            return PGY_TK_FLOAT;
+        if (strcmp(type_name, "Future") == 0)           return PGY_TK_FUTURE;
         if (strncmp(type_name, "Future<", 7) == 0)      return PGY_TK_FUTURE;
         break;
     case 'D':
@@ -54,6 +55,7 @@ pgy_classify_type(const char *type_name)
     case 'Q': if (strcmp(type_name, "QubitSlot") == 0)  return PGY_TK_QUBIT_SLOT; break;
     case 'R':
         if (pgy_codegen_type_name_is_read_view(type_name)) return PGY_TK_SLOT;
+        if (strcmp(type_name, "RemoteFuture") == 0) return PGY_TK_REMOTE_FUTURE;
         if (strncmp(type_name, "RemoteFuture<", 13) == 0) return PGY_TK_REMOTE_FUTURE;
         if (strncmp(type_name, "Result<", 7) == 0)      return PGY_TK_RESULT;
         if (strncmp(type_name, "Rc<", 3) == 0)          return PGY_TK_RC;
@@ -89,6 +91,7 @@ pgy_kind_to_llvm(LLVMGenCtx *ctx, PgyTypeKind kind)
     case PGY_TK_STRING:        return ctx->type_i8ptr;
     case PGY_TK_QUBIT_SLOT:    return ctx->type_i32;
     case PGY_TK_REMOTE_FUTURE: return ctx->type_task_handle;
+    case PGY_TK_FUTURE:        return ctx->type_task_handle;
     case PGY_TK_VOID:          return ctx->type_void;
     default:                   return NULL;
     }

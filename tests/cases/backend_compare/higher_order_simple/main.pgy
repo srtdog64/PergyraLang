@@ -8,8 +8,8 @@ func Apply(f: func(Int) -> Int, x: Int) -> Int {
 }
 
 func Main() -> Void {
-    let double: func(Int) -> Int = (x: Int) => x * 2;
-    let inc: func(Int) -> Int = (x: Int) => x + 1;
+    let double: func(Int) -> Int = (x) => x * 2;
+    let inc: func(Int) -> Int = (x) => x + 1;
 
     Log(Apply(double, 21));
     Log(Apply(inc, 41));

@@ -1,0 +1,35 @@
+func Parse(s: String) -> Option<Int> {
+    if s == "one" { return Some(1); }
+    if s == "two" { return Some(2); }
+    if s == "three" { return Some(3); }
+    return None;
+}
+
+func Double(o: Option<Int>) -> Option<Int> {
+    match o {
+        case Some(n): return Some(n * 2);
+        case None: return None;
+    }
+}
+
+func Triple(o: Option<Int>) -> Option<Int> {
+    match o {
+        case Some(n): return Some(n * 3);
+        case None: return None;
+    }
+}
+
+func DefaultTo(o: Option<Int>, def: Int) -> Int {
+    match o {
+        case Some(n): return n;
+        case None: return def;
+    }
+}
+
+func Main() -> Void {
+    Log(DefaultTo(Double(Parse("one")), -1));
+    Log(DefaultTo(Triple(Parse("two")), -1));
+    Log(DefaultTo(Double(Triple(Parse("three"))), -1));
+    Log(DefaultTo(Double(Parse("unknown")), 999));
+    Log(DefaultTo(Triple(Triple(Parse("one"))), -1));
+}

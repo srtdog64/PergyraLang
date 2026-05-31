@@ -188,6 +188,46 @@ English anchor for tooling/doc gates:
   explicit `Future<Void>` shape; missing targets or missing function
   declarations now surface as unknown metadata and fail through the existing
   spawn/await diagnostics. Gate: `test-transpile`.
+- LLVM MIR ABI layout lowering no longer guesses slot/option/result types from
+  ABI typedef substrings or runtime function name prefixes. The lowering now
+  consumes canonical `MIRTypeLayout.abi_type_name` / `inner_c_type` facts, with
+  exact `Future` and `RemoteFuture` classification routed through
+  `pgy_classify_type(...)`. Gates: `perf-contract-test-smoke`,
+  `llvm-test-smoke`.
+- LLVM ordinary `let` lowering no longer defaults annotation-less,
+  initializer-less bindings to `Int`. The backend now fails closed with a
+  concrete diagnostic if neither a type annotation nor an initializer provides
+  the local storage type. Gate: `perf-contract-test-smoke`.
+- LLVM MIR local Array/Slice metadata no longer registers element type as
+  `Int` when the literal is empty or a Slice receiver lacks a prior array-var
+  entry. Local metadata now consumes `MIRTypeLayout.abi_type_name` to recover
+  `Array<T>` / `Slice<T>` element type and fails closed if the MIR inventory
+  does not carry a concrete `T`. Gate: `perf-contract-test-smoke`.
+- LLVM expression type inference no longer returns `i32` after recording an
+  unsupported-type diagnostic. Unknown expression types now propagate `NULL`,
+  and numeric promotion refuses to synthesize an `Int` result when either side
+  is unresolved. Gate: `perf-contract-test-smoke`.
+- Lambda lowering no longer uses `Int` as the default return or parameter type
+  across semantic, C backend, or LLVM backend paths. Return type must come from
+  an explicit lambda return annotation, an enclosing `func(...) -> ...`
+  expected type, a block-body `Void` shape, or typed expression-body inference;
+  parameters must be explicitly typed unless an enclosing callable type or the
+  existing identity-return shorthand proves the parameter type. Expression-body
+  return inference first registers lambda parameter type facts in a temporary
+  backend scope, so `(x: Int) => x * 2` consumes local metadata instead of
+  falling back to `Int`. When the enclosing `let` has a `func(...) -> ...`
+  annotation, semantic checking, C emission, and LLVM emission all consume that
+  callable type as expected parameter/return evidence. C MIR-preserved local
+  let emission now forwards the same callable AST context to expression
+  lowering instead of carrying only the rendered type string, so context-typed
+  lambdas no longer require repeated parameter annotations or backend guesses.
+  Function `return` boundaries now consume the same source-of-truth: semantic
+  return checking passes the current function's callable return type into lambda
+  checking, and both ordinary C/LLVM return emission plus MIR-preserved C/LLVM
+  return emission forward the callable AST context before lowering the returned
+  lambda expression. The return-context fixture verifies `return (x) => x * 2`
+  without repeating `x: Int`.
+  Gates: `perf-contract-test-smoke`, `llvm-test-smoke`.
 - C role method body source-of-truth tightening: role impl methods now emit
   through `TranspilerHostedMethodView -> MIRDeclMethod -> MIRRoutine` like
   other hosted methods. The retired `transpiler_find_role_impl_mir_method(...)`

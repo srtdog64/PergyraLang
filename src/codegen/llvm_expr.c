@@ -155,20 +155,14 @@ llvm_emit_expression(ASTNode *node, LLVMGenCtx *ctx)
         int lid = ctx->lambda_counter++;
         int pc = (int)ast_lambda_param_count(node);
         ASTNode *lambda_body = ast_lambda_body(node);
-        ASTNode *lambda_return_type = ast_lambda_return_type(node);
         if (pc > 8)
             return llvm_expression_error(ctx, node,
                 "LLVM lambda expression supports at most 8 parameters");
 
-        LLVMTypeRef ret_type = ctx->type_i32;
-        if (lambda_return_type != NULL) {
-            ret_type = ast_type_to_llvm(ctx, lambda_return_type);
-            if (ctx->has_error || ret_type == NULL)
-                return llvm_expression_error(ctx, node,
-                    "LLVM lambda expression could not lower return type");
-        } else if (lambda_body != NULL && lambda_body->type == AST_BLOCK) {
-            ret_type = ctx->type_void;
-        }
+        LLVMTypeRef ret_type = llvm_stmt_lambda_return_type(ctx, node);
+        if (ctx->has_error || ret_type == NULL)
+            return llvm_expression_error(ctx, node,
+                "LLVM lambda expression could not lower return type");
 
         LLVMTypeRef lparams[8];
         for (int j = 0; j < pc && j < 8; j++) {
@@ -176,14 +170,10 @@ llvm_emit_expression(ASTNode *node, LLVMGenCtx *ctx)
             if (p == NULL)
                 return llvm_expression_error(ctx, node,
                     "LLVM lambda expression has a missing parameter");
-            if (p->type == AST_LET_DECL && ast_let_type(p) != NULL) {
-                lparams[j] = ast_type_to_llvm(ctx, ast_let_type(p));
-                if (ctx->has_error || lparams[j] == NULL)
-                    return llvm_expression_error(ctx, node,
-                        "LLVM lambda expression could not lower parameter type");
-            } else {
-                lparams[j] = ctx->type_i32;
-            }
+            lparams[j] = llvm_stmt_lambda_param_type(ctx, node, p, (size_t)j);
+            if (ctx->has_error || lparams[j] == NULL)
+                return llvm_expression_error(ctx, node,
+                    "LLVM lambda expression could not lower parameter type");
         }
 
         char lname[128];
