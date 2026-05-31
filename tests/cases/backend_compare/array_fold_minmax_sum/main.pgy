@@ -1,0 +1,26 @@
+func FoldStats(arr: Array<Int>, n: Int) -> Int {
+    if n == 0 { return 0; }
+    let mn: Int = arr[0];
+    let mx: Int = arr[0];
+    let sum: Int = arr[0];
+    let i: Int = 1;
+    while i < n {
+        let v: Int = arr[i];
+        if v < mn { mn = v; }
+        if v > mx { mx = v; }
+        sum = sum + v;
+        i = i + 1;
+    }
+    return mn * 1000000 + mx * 1000 + sum;
+}
+
+func Main() -> Void {
+    let a: Array<Int> = [3, 1, 4, 1, 5, 9, 2, 6, 5];
+    Log(FoldStats(a, 9));
+    let b: Array<Int> = [7];
+    Log(FoldStats(b, 1));
+    let c: Array<Int> = [-5, 0, 5];
+    Log(FoldStats(c, 3));
+    let d: Array<Int> = [];
+    Log(FoldStats(d, 0));
+}

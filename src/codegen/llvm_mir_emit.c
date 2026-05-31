@@ -43,18 +43,21 @@ llvm_mir_mark_owner_dirty_for_exit(LLVMGenCtx *ctx,
         self_entry->alloca, llvm_tmp_name(ctx));
 
     if (owner_cls->domain_kind == LLVM_DOMAIN_WORLD) {
-        for (int i = 0; i < owner_cls->field_count; i++) {
-            const char *field_name = owner_cls->fields[i].field_name;
+        int field_count = llvm_class_field_count(owner_cls);
+        for (int i = 0; i < field_count; i++) {
+            const char *field_name = llvm_class_field_name_at(owner_cls, i);
+            int field_index = llvm_class_field_struct_index_at(owner_cls, i);
             LLVMValueRef dirty_ptr;
 
             if (field_name == NULL
+                || field_index < 0
                 || strncmp(field_name, "__zone_dirty_", 13) != 0) {
                 continue;
             }
 
             dirty_ptr = LLVMBuildStructGEP2(ctx->builder,
                 owner_cls->struct_type, self_ptr,
-                (unsigned)owner_cls->fields[i].index,
+                (unsigned)field_index,
                 llvm_tmp_name(ctx));
             LLVMBuildStore(ctx->builder, LLVMConstInt(ctx->type_i1, 1, 0),
                 dirty_ptr);

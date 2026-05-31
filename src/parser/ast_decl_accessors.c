@@ -55,6 +55,30 @@ ast_declaration_name(const ASTNode* node)
     return slot != NULL ? *slot : NULL;
 }
 
+GenericParams*
+ast_declaration_generic_params(const ASTNode* node)
+{
+    if (node == NULL)
+        return NULL;
+
+    switch (node->type) {
+    case AST_FUNC_DECL:
+        return node->data.func_decl.generic_params;
+    case AST_CLASS_DECL:
+        return node->data.class_decl.generic_params;
+    case AST_ABILITY_DECL:
+        return node->data.ability_decl.generic_params;
+    case AST_ROLE_DECL:
+        return node->data.role_decl.generic_params;
+    case AST_PARTY_DECL:
+        return node->data.party_decl.generic_params;
+    case AST_ROSTER_DECL:
+        return node->data.roster_decl.generic_params;
+    default:
+        return NULL;
+    }
+}
+
 bool
 ast_replace_declaration_name_copy(ASTNode* node, const char* name)
 {

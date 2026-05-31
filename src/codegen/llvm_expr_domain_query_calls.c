@@ -242,7 +242,7 @@ llvm_emit_has_zone_query(ASTNode *node, LLVMGenCtx *ctx, LLVMValueRef *out)
                 if (input_name == NULL)
                     continue;
                 if (!llvm_domain_query_field_name(ctx, field_name, sizeof(field_name),
-                        llvm_world_has_zone_slot(world_decl, input_name)
+                        llvm_world_has_zone_slot(ctx, world_decl, input_name)
                             ? "__zone_active_" : "__zone_state_",
                         input_name, "world zone query field name")) {
                     *out = NULL;
@@ -272,7 +272,7 @@ llvm_emit_has_zone_query(ASTNode *node, LLVMGenCtx *ctx, LLVMValueRef *out)
             }
             field_idx = llvm_class_field_index(cls, field_name);
         }
-    } else if (llvm_world_has_zone_slot(world_decl, name)) {
+    } else if (llvm_world_has_zone_slot(ctx, world_decl, name)) {
         char field_name[256];
         if (!llvm_domain_query_field_name(ctx, field_name, sizeof(field_name),
                 "__zone_active_", name, "world zone query field name")) {

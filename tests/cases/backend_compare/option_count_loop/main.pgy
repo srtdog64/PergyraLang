@@ -1,0 +1,24 @@
+func MaybeIncr(n: Int, cap: Int) -> Option<Int> {
+    if n >= cap { return None(); }
+    return Some(n + 1);
+}
+
+func CountSteps(start: Int, cap: Int) -> Int {
+    let cur: Int = start;
+    let steps: Int = 0;
+    while steps < 1000 {
+        let next: Option<Int> = MaybeIncr(cur, cap);
+        let unwrapped: Int = next ?? -1;
+        if unwrapped < 0 { return steps; }
+        cur = unwrapped;
+        steps = steps + 1;
+    }
+    return -1;
+}
+
+func Main() -> Void {
+    Log(CountSteps(0, 5));
+    Log(CountSteps(0, 1));
+    Log(CountSteps(5, 5));
+    Log(CountSteps(-3, 10));
+}

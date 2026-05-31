@@ -124,20 +124,58 @@ llvm_find_world_state_decl(LLVMGenCtx *ctx, ASTNode *world_decl,
 }
 
 static ASTNode *
-llvm_find_world_zone_slot_decl(ASTNode *world_decl, const char *slot_name)
+llvm_find_world_zone_slot_decl(LLVMGenCtx *ctx, ASTNode *world_decl,
+                               const char *slot_name)
 {
-    size_t zone_count = 0;
-    ASTNode **zones;
+    const char *world_name;
+    LLVMHostedWorldZoneSlotView zone_view;
 
     if (world_decl == NULL || world_decl->type != AST_WORLD_DECL
         || slot_name == NULL)
         return NULL;
-    zones = ast_world_zones(world_decl, &zone_count);
-    for (size_t i = 0; i < zone_count; i++) {
-        ASTNode *zone = zones[i];
-        const char *zone_slot_name = ast_world_zone_slot_name(zone);
+    world_name = llvm_decl_node_name(world_decl);
+    zone_view = llvm_hosted_world_zone_slot_view_from_decl(ctx, world_name,
+        world_decl);
+    if (llvm_hosted_world_zone_slot_view_missing_mir_metadata(&zone_view)) {
+        llvm_set_mir_inventory_missing(ctx,
+            "MIR-only LLVM path missing world zone-slot metadata for '%s'",
+            world_name != NULL ? world_name : "<anonymous>");
+        return NULL;
+    }
+    for (size_t i = 0; i < zone_view.count; i++) {
+        const char *zone_slot_name =
+            llvm_hosted_world_zone_slot_view_name(&zone_view, i);
         if (zone_slot_name != NULL && strcmp(zone_slot_name, slot_name) == 0)
-            return zone;
+            return llvm_hosted_world_zone_slot_view_source_ast(&zone_view, i);
+    }
+    return NULL;
+}
+
+static const char *
+llvm_world_zone_slot_type_name(LLVMGenCtx *ctx, ASTNode *world_decl,
+                               const char *slot_name)
+{
+    const char *world_name;
+    LLVMHostedWorldZoneSlotView zone_view;
+
+    if (world_decl == NULL || world_decl->type != AST_WORLD_DECL
+        || slot_name == NULL)
+        return NULL;
+    world_name = llvm_decl_node_name(world_decl);
+    zone_view = llvm_hosted_world_zone_slot_view_from_decl(ctx, world_name,
+        world_decl);
+    if (llvm_hosted_world_zone_slot_view_missing_mir_metadata(&zone_view)) {
+        llvm_set_mir_inventory_missing(ctx,
+            "MIR-only LLVM path missing world zone-slot type metadata for '%s'",
+            world_name != NULL ? world_name : "<anonymous>");
+        return NULL;
+    }
+    for (size_t i = 0; i < zone_view.count; i++) {
+        const char *zone_slot_name =
+            llvm_hosted_world_zone_slot_view_name(&zone_view, i);
+        if (zone_slot_name != NULL && strcmp(zone_slot_name, slot_name) == 0) {
+            return llvm_hosted_world_zone_slot_view_type_name(&zone_view, i);
+        }
     }
     return NULL;
 }
@@ -146,8 +184,8 @@ ASTNode *
 llvm_resolve_world_zone_decl(LLVMGenCtx *ctx, ASTNode *world_decl,
                              const char *slot_name)
 {
-    ASTNode *zone_slot = llvm_find_world_zone_slot_decl(world_decl, slot_name);
-    const char *zone_type_name = ast_world_zone_type_name(zone_slot);
+    const char *zone_type_name = llvm_world_zone_slot_type_name(ctx, world_decl,
+        slot_name);
     if (ctx == NULL || zone_type_name == NULL)
         return NULL;
     return llvm_find_named_domain_decl(ctx, AST_ZONE_DECL,
@@ -190,8 +228,8 @@ llvm_find_zone_layer_slot_decl(LLVMGenCtx *ctx, ASTNode *zone_decl,
     layer_view =
         llvm_hosted_zone_layer_slot_view_from_decl(ctx, zone_name, zone_decl);
     if (llvm_hosted_zone_layer_slot_view_missing_mir_metadata(&layer_view)) {
-        llvm_set_error(ctx,
-            "LLVM zone '%s' layer slots missing MIR declaration metadata",
+        llvm_set_mir_inventory_missing(ctx,
+            "MIR-only LLVM path missing zone layer-slot metadata for '%s'",
             zone_name != NULL ? zone_name : "<anonymous>");
         return NULL;
     }
@@ -207,9 +245,10 @@ llvm_find_zone_layer_slot_decl(LLVMGenCtx *ctx, ASTNode *zone_decl,
 }
 
 bool
-llvm_world_has_zone_slot(ASTNode *world_decl, const char *slot_name)
+llvm_world_has_zone_slot(LLVMGenCtx *ctx, ASTNode *world_decl,
+                         const char *slot_name)
 {
-    return llvm_find_world_zone_slot_decl(world_decl, slot_name) != NULL;
+    return llvm_find_world_zone_slot_decl(ctx, world_decl, slot_name) != NULL;
 }
 
 const char *
@@ -307,7 +346,7 @@ llvm_current_field_class_name(LLVMGenCtx *ctx, const char *field_name)
         return NULL;
 
     field_cls = llvm_lookup_class_by_type(ctx,
-        parent_cls->fields[field_idx].field_type);
+        llvm_class_field_type_at_index(parent_cls, field_idx));
     if (field_cls != NULL)
         return field_cls->class_name;
 

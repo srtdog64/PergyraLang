@@ -22,6 +22,36 @@ English anchor for tooling/doc gates:
   `host_decl_compat.c`, C/LLVM domain-constructor lookup, and party-slot ability
   selection helpers. The remaining targets must be closed by moving source-of-
   truth ownership, not by rewording the percentage.
+- Red-team security closure target: treat Slot/authority availability as a
+  beta-facing safety axis, not as marketing language. Four tracked defenses are
+  required before claiming a stronger security posture: (1) recoverable I/O,
+  FFI, network, and host-boundary failures must cross as structured `Result`
+  data rather than process-wide panic where recovery is contractually possible;
+  hard panic remains reserved for internal invariant breach, invalid runtime
+  state, and explicit sharp tools. (2) Slot ID/generation exhaustion must be
+  modelled as an availability risk: either widen the stable handle space or
+  prove closed-slot recycling plus generation/tombstone policy cannot revalidate
+  stale handles, then gate the ABI shape. (3) Zone-bound handle policy must move
+  from conservative rejection toward typed boundary evidence so safe `handle in
+  zone` flows do not push users toward raw FFI escape hatches. (4) Formal
+  claims must stay at the current evidence level until executable Coq/Lean or
+  equivalent small-step proofs actually gate anchored ownership, authority
+  soundness, and AIR boundary preservation. Do not call this Rust-level static
+  memory safety or mathematically proven security until those gates exist.
+  First closed slice: Slot failure vocabulary and structured failure payloads
+  are now owned by `SlotErrorName(...)` / `SlotFailureFromError(...)` in the
+  runtime API instead of a private warning-only static function, so future
+  recoverable `Result` wrappers have a stable error seam to consume. Gates:
+  `security-portability-contract-test-smoke`, direct
+  `build/runtime/slot_manager_core_ops.o` compile.
+- Red-team recoverable boundary slice: primitive slot panic exports remain the
+  sharp default ABI, but `PgyRuntimeSlotStatus` and `pgy_try_read_*` /
+  `pgy_try_write_*` / `pgy_try_release_*` now exist for inline C runtime slots
+  and LLVM-linkable primitive slot exports. This gives host/FFI/service
+  wrappers a stable non-panicking seam to translate released-slot/null-slot
+  failures into `Result` data without changing existing panic semantics.
+  Gates: `runtime-panic-abi-test-smoke`,
+  `security-portability-contract-test-smoke`.
 - Ref-parameter escape seam tightening: function types now distinguish "checked
   body summary with zero facts" from "no body-summary fact yet". The
   `semantic_callable_param_escape_summary(...)` owner can therefore skip the
@@ -38,6 +68,16 @@ English anchor for tooling/doc gates:
   of raw `mir->routines` / `mir->routine_count`, and the program validator uses
   the same inventory view for routine-shape checks. This closes the hosted-method
   body selection row while leaving the dedicated declaration IR row open.
+- LLVM MIR declaration metadata diagnostics now route through the same
+  `llvm_set_mir_inventory_missing(...)` source-of-truth seam for domain
+  shared fields, party role slots, roster/world shared fields, world zone
+  slots, zone layer slots, world frontier/sync, constructor world slots,
+  zone bind/frontier/effect/action consumers, and zone action-cause layer
+  slots. The legacy plain `"missing MIR declaration metadata"` and `"MIR
+  declaration inventory missing"` LLVM diagnostics are smoke-rejected, so
+  missing declaration facts carry `PGY_CODE_LLVM_MIR_ROUTINE_MISSING` plus
+  inventory cause/fix hints instead of becoming anonymous backend errors. Gates:
+  `mir-declaration-inventory-test-smoke`, `llvm-test-smoke`.
 - C role method body source-of-truth tightening: role impl methods now emit
   through `TranspilerHostedMethodView -> MIRDeclMethod -> MIRRoutine` like
   other hosted methods. The retired `transpiler_find_role_impl_mir_method(...)`
@@ -3264,19 +3304,17 @@ English anchor for tooling/doc gates:
   `transpiler_expr_stdlib_queue_builtin.h`). This keeps responsibility splits
   from becoming dead untracked headers while avoiding generic `_helpers`
   naming for new owners.
-- LLVM world frontier/sync/directive owners now consume
-  `ast_world_zone_slot_name(...)` / `ast_world_zone_type_name(...)` for embedded
-  world-zone slot lookup, dirty/active field naming, zone sync function lookup,
-  and transitive frontier continuation checks. This keeps the LLVM runtime
-  propagation path on the same world-zone accessor seam as the runtime frontier
-  policy wrapper. Gates: targeted LLVM owner compiles,
-  `runtime_frontier_contract_smoke`, `air_backend_nonimpact_smoke`.
-- C world declaration/sync emission now consumes the same embedded
-  world-roster/world-zone accessors for struct fields, active/dirty state,
-  generation tracking, and zone sync calls. The C and LLVM world frontier paths
-  now share the same read-only accessor seam for embedded world slot/type facts.
-  Gates: targeted `transpiler.o` compile, `runtime_frontier_contract_smoke`,
-  `air_backend_nonimpact_smoke`.
+- C/LLVM world zone-slot backend consumers now consume
+  `MIR_DECL_FIELD_WORLD_ZONE_SLOT` through
+  `LLVMHostedWorldZoneSlotView` / `TranspilerHostedWorldZoneSlotView`.
+  C world declaration/projection/query paths, LLVM struct registration,
+  constructor dirty init, domain query lookup, world sync directives, frontier
+  pass-limit, frontier zone-sync, and pending-dirty continuation no longer pass
+  `ast_world_zones(...)` child arrays across backend consumer boundaries.
+  Remaining `ast_world_zones(...)` codegen hits are declaration-inventory
+  fallback owners and `domain_frontier_policy.c` compatibility wrappers. Gates:
+  `mir-declaration-inventory-test-smoke`, `runtime-frontier-contract-test-smoke`,
+  `runtime-frontier-policy-test-smoke`, and targeted C/LLVM backend compares.
 - Domain frontier policy now consumes world/zone child counts through AST domain
   accessors (`ast_world_zones`, `ast_world_states`, `ast_zone_states`,
   `ast_zone_layer_slots`) instead of reading raw declaration child arrays. Gates:
@@ -8622,6 +8660,116 @@ runtime-validated handles) 로 대체. 진입 비용 낮춘 자리, 자기인식
 가능*. Rust가 self-host 시 lifetime annotation으로 부닥친 자리를 우리는
 회피.
 
+## ★ Red-team 4가지 방어 마스터플랜 (2026-05-31 추가)
+
+레드팀 관점 취약점 4개 (Slot DoS, ID 고갈, 핸들 유출, 정형 증명 부재)
+에 대응하는 구체적 방어 트랙. §1 line 25 의 추상 진술을 *실행 가능한
+sprint plan* 으로 풀어둠. 우선순위는 §0a 닫고 §0c 직전.
+
+### 대책 1 — Result-First 경계 wrapping (FFI/I/O/network DoS 차단)
+
+- **문제**: 슬롯 권한 위반, FFI 실패, 파일 I/O 오류가 프로세스 단위
+  panic 으로 터지면 단일 잘못된 요청이 전체 instance 를 죽임 (DoS).
+- **닫는 자리**:
+  1. `pgy.io.boundary` namespace 신설. 모든 외부 경계 호출 (`read_file`,
+     `socket_recv`, `ffi_invoke`, `slot_handle_deref` boundary form) 은
+     `Result<T, AppError>` 반환만 허용. 직접 panic surface 금지.
+  2. `AppError = { code: ErrorCode, stage: Stage, retryable: Bool,
+     cause: Option<RuntimeCause>, meta: Map<String, String> }` literal
+     union 으로 surface. (현재 `SlotErrorName(...)` 자리 확장)
+  3. `safeAsync(stage, fn, mapError)` helper 를 runtime stdlib 에 등록.
+     기존 throwing FFI 호출은 self-host 시 모두 이걸 통과.
+  4. 내부 invariant breach 만 panic 유지 — 명시적 `unsafe { ... }`
+     scope + `cfg(allow_panic_internal)` 빌드 플래그.
+- **smoke 게이트**: `result-first-boundary-test-smoke` (없음, 신설).
+  매 PR 마다 boundary 호출이 raw panic 으로 lower 되지 않음을 검증.
+- **연결**: docs/200 (신설) — Pergyra Result-First 계약. CLAUDE.md
+  §1.2-1.3 의 universal rule 을 Pergyra surface 로 정식화.
+
+### 대책 2 — 64-bit handle + slot pool recycling (ID 고갈 차단)
+
+- **문제**: 현재 32-bit slot ID + 8-bit generation. 40 억 슬롯
+  생성/해제로 ID 공간 고갈 → 새 slot 발급 거부 → 가용성 마비.
+- **닫는 자리**:
+  1. `SlotHandle` ABI 확장: 32-bit id → 64-bit id + 64-bit generation
+     (총 128-bit). MIR/LLVM/C 모든 backend 동시 ABI freeze 필요.
+  2. `slot_pool` runtime 모듈: 무효화된 slot id 를 영구 tombstone 하지
+     않고 free list 로 재배포. generation 만 +1.
+  3. wrap-around 정책: generation 도 64-bit 라 우주 종말까지 안전하지만
+     명시적 `slot_pool_audit(...)` 진단을 통해 stale handle revalidate
+     를 sandbox 환경에서 false positive 없이 검출.
+  4. ABI 동결: post-BETA+ self-host *직전*. (BETA 내 작업 ❌ — ABI
+     변경은 dogfood 회귀 영향이 큼)
+- **smoke 게이트**: `slot-id-exhaustion-fuzz-test-smoke` (없음, 신설).
+  40 억+ slot 생성/해제 사이클을 fuzz 로 돌려 ID 고갈 거부 없는지 확인.
+- **연결**: docs/100c §4 ABI/Slot/Pin 동결 작업의 *content* 부분.
+  단순 freeze 가 아니라 *128-bit handle freeze* 가 closure 조건.
+
+### 대책 3 — Zone-Bound Handle 정적 모델 (typed region ownership)
+
+- **문제**: spawn/parallel/channel 로 slot handle 이 zone 경계를 넘어가면
+  컴파일러가 *과잉 보수적으로 거부* (false positive) → 사용자가 raw
+  pointer escape hatch 로 우회 → 정적 안전성 무효화.
+- **닫는 자리**:
+  1. 타입 추론기에 region annotation: `SlotHandle<T> in Zone Z` 또는
+     `handle@zone` short form. AST 레벨 surface 추가.
+  2. CFG 검증기에 region-flow analysis: zone Z 안에서 만들어진 핸들은
+     zone Z 외부 escape 시 컴파일 에러. 단 `handoff(handle, target_zone)`
+     명시적 transfer 는 허용.
+  3. `transfer` semantic: `handoff` 후 source zone 에서 handle 사용은
+     "moved" 상태로 마킹 → 사용 시 컴파일 에러.
+  4. spawn/channel/parallel API 가 region-aware 한 signature 로 변경:
+     `Channel<SlotHandle<T> in Z>` 자리 자체에서 region 검증.
+- **smoke 게이트**: `zone-bound-handle-region-test-smoke` (없음, 신설).
+  - positive: 정상 zone 내부 사용 ✓
+  - negative-1: zone 경계 무단 escape → 컴파일 에러 expected
+  - negative-2: handoff 후 source 사용 → "moved" 에러 expected
+  - positive-2: handoff 후 target zone 사용 ✓
+- **연결**: docs/19 §0 systems language identity 의 *7+4 baseline*
+  강화. docs/118 §6 negative-space 의 region typing 자리 명시화.
+
+### 대책 4 — Coq/Lean 정형 증명 게이트 (Anchored Ownership Safety)
+
+- **문제**: "수학적으로 안전" 이라는 표현이 현재 *aspirational marketing*
+  수준. 실제 게이트는 smoke test 뿐 → CLAUDE.md §16 위반 위험.
+- **닫는 자리**:
+  1. `docs/proofs/` 폴더 신설. `lean/` 또는 `coq/` 한 backend 선택.
+     BDFL 추천: Lean 4 (syntax 가까움 + recent tooling 강함).
+  2. small-step semantics 모델: Pergyra subset (slot, zone, handle,
+     intent) 을 Lean 에서 mathlib 없이 표현. AST + reduction rules.
+  3. 정리 (theorems):
+     - **Anchored Ownership Safety**: 모든 step 에서 active slot
+       handle 의 zone membership 이 보존됨.
+     - **Authority Soundness**: intent 의 `authorized by` clause 가
+       authority check 를 통과하지 않으면 reduction 막힘.
+     - **AIR Boundary Preservation**: AIR evidence node 가 schema-valid
+       하지 않은 boundary cross 는 reject.
+  4. CI 통합: `lean --run docs/proofs/anchored.lean` 가 PR 마다 실행.
+     실패 시 PR merge 차단.
+  5. Pergyra surface 와 Lean model 간 *drift detector*: surface 가
+     변하면 Lean model 도 같이 갱신해야 PR merge 허용 (대책 1-3 까지
+     full level. partial 도 가능하지만 partial 임을 docs 에 명시).
+- **smoke 게이트**: `formal-proof-mechanization-test-smoke` (없음, 신설).
+  Lean toolchain 부재 시 SKIP (현재 cross-platform 부재 환경에서).
+- **연결**: docs/120 §4.4 self-host commitment 와 동급의 *post-BETA
+  committed* 자리. 마케팅 언어 (`feedback_marketing_language_drift`,
+  `feedback_capability_overclaim_audit`) 를 *실제 evidence* 로 옷입힘.
+
+### 진행 시퀀스 — 대책 1-4 우선순위
+
+| 대책 | 우선순위 | sprint 시점 | 비용 견적 |
+|---|---|---|---|
+| 1. Result-First boundary | high | §0a 닫고 직후 | 중간 (stdlib + smoke 신설) |
+| 2. 64-bit handle | med | §0c Intent-Compress *전* | 큰 (ABI freeze 동반) |
+| 3. Zone-bound region | med | §0c 직후 (self-host 직전) | 큰 (type inference 확장) |
+| 4. Coq/Lean 정형 증명 | low-but-committed | BETA+ self-host *후* | 매우 큰 (Lean expertise 필요) |
+
+**중요**: 대책 1-3 은 *Pergyra 1.0 closure 자리*, 대책 4 는 *post-1.0
+trust upgrade* 자리. 대책 4 없이 1.0 출하는 가능하지만 *"수학적으로
+안전" 표현은 4 게이트 ON 후에만 허용*. 그 전까지는 "Vale-style
+generational handle + zone-bound region typing + runtime
+result-first" 으로만 표현 (capability overclaim 차단).
+
 ## 0. 코어 규칙 — 600 LOC split-review threshold
 
 **모든 production `.c` / `.h` owner는 600 LOC 이하로 유지한다.**
@@ -11629,6 +11777,43 @@ dispatch / semantic lookup / runtime data structure 3축 결과 통합. *정확�
 - This keeps the beta proof line honest: theorem statements and regression
   evidence are required now; completed machine-checked proof remains a separate
   hardening gate until CI type-checks it.
+
+## Red-Team Security Hardening Queue - 2026-05-31
+
+These items record adversarial feedback without overstating the current
+implementation. They are source-of-truth constraints for future security work,
+not marketing claims.
+
+- [ ] **Runtime panic DoS boundary policy.** Runtime fail-safe panic is valid
+  for internal invariants, invalid slot/token state, OOB, OOM, divide-by-zero,
+  and authority hard-fail checks, but public I/O / FFI / network / host-service
+  boundaries must expose recoverable `Result<T, E>` or queryable validation
+  APIs where recovery is part of the contract. Do not convert all panics to
+  `Result`: keep hard-fail classes hard-fail, and add explicit safe boundary
+  wrappers for service-facing paths that must not let attacker-controlled input
+  terminate the whole process.
+- [ ] **Slot id exhaustion availability audit.** The current beta ABI is
+  explicitly **not** a 128-bit handle. It is a 32-bit `slotId` plus 32-bit
+  `generation`, with zero-id / wrap tombstone rejection before ABA reuse.
+  Keep this contract gated, and add a red-team availability test plan for
+  tombstone flooding. A 64-bit id + 64-bit generation handle is an
+  ABI-breaking post-beta hardening candidate, not a beta implementation claim.
+- [ ] **Zone-Bound Handle first-class decision.** If `SlotHandle<T> in Zone`
+  or `handle@zone` enters beta, CFG/AIR must reject zone-escape, async/spawn
+  escape, channel/world handoff without an explicit handoff boundary, and
+  release/drop mismatches using source-span diagnostics. If it does not enter
+  beta, document the conservative `BORROW_TRACKED` reject boundary as the
+  honest stable behavior.
+- [ ] **Mechanized proof honesty gate.** Do not claim "mathematically proven"
+  whole-language safety. Current beta line is theorem statements + regression
+  evidence + optional/CI Coq checking for the checked-in small model. Full
+  Coq/Lean mechanization of anchored ownership, slot generation/token
+  unforgeability, and AIR evidence preservation remains post-beta hardening
+  until executable proof artifacts cover those statements.
+- [x] **Security audit docs follow-up.** Mirror this queue into
+  `docs/security/01_audit_targets.md` as concrete audit contracts:
+  panic-DoS boundary behavior, slot-id exhaustion availability, zone-bound
+  handle escape, and proof/marketing drift.
 
 ## UTF-8 Progress Note - 2026-04-26 - DAG Metadata Materialization Tightening
 

@@ -233,7 +233,7 @@ llvm_load_domain_projection_path_value(LLVMGenCtx *ctx,
         char *dot = strchr(cursor, '.');
         char *segment = cursor;
         int field_index;
-        LLVMClassFieldInfo *field_info = NULL;
+        LLVMTypeRef field_type;
         LLVMValueRef field_ptr;
 
         if (dot != NULL)
@@ -243,21 +243,16 @@ llvm_load_domain_projection_path_value(LLVMGenCtx *ctx,
         if (field_index < 0)
             return llvm_domain_projection_value_error(ctx,
                 "LLVM domain projection path segment is missing from metadata");
-        for (int i = 0; i < current_cls->field_count; i++) {
-            if (current_cls->fields[i].index == field_index) {
-                field_info = &current_cls->fields[i];
-                break;
-            }
-        }
-        if (field_info == NULL || field_info->field_type == NULL)
+        field_type = llvm_class_field_type_at_index(current_cls, field_index);
+        if (field_type == NULL)
             return llvm_domain_projection_value_error(ctx,
                 "LLVM domain projection field metadata is incomplete");
 
         field_ptr = LLVMBuildStructGEP2(ctx->builder, current_cls->struct_type,
             current_ptr, (unsigned)field_index, llvm_tmp_name(ctx));
         if (dot == NULL) {
-            return LLVMBuildLoad2(ctx->builder, field_info->field_type,
-                field_ptr, llvm_tmp_name(ctx));
+            return LLVMBuildLoad2(ctx->builder, field_type, field_ptr,
+                llvm_tmp_name(ctx));
         }
 
         for (size_t i = 0;
@@ -306,12 +301,15 @@ llvm_build_domain_projection_value(LLVMGenCtx *ctx,
             "LLVM domain projection requires target/source metadata and source storage");
 
     projected = LLVMConstNull(target_cls->struct_type);
-    for (int i = 0; i < target_cls->field_count; i++) {
-        LLVMClassFieldInfo *target_field = &target_cls->fields[i];
-        const char *source_field_name = target_field->field_name;
+    for (int i = 0; i < llvm_class_field_count(target_cls); i++) {
+        const char *target_field_name =
+            llvm_class_field_name_at(target_cls, i);
+        int target_field_index =
+            llvm_class_field_struct_index_at(target_cls, i);
+        const char *source_field_name = target_field_name;
         LLVMValueRef field_value;
 
-        if (target_field->field_name == NULL)
+        if (target_field_name == NULL || target_field_index < 0)
             continue;
 
         if (refresh != NULL && refresh->type == AST_ZONE_REFRESH) {
@@ -321,7 +319,7 @@ llvm_build_domain_projection_value(LLVMGenCtx *ctx,
                 const char *mapped_source =
                     ast_zone_refresh_mapped_source_field(refresh, j);
                 if (mapped_target != NULL && mapped_source != NULL
-                    && strcmp(mapped_target, target_field->field_name) == 0) {
+                    && strcmp(mapped_target, target_field_name) == 0) {
                     source_field_name = mapped_source;
                     break;
                 }
@@ -333,7 +331,7 @@ llvm_build_domain_projection_value(LLVMGenCtx *ctx,
         if (field_value == NULL)
             return NULL;
         projected = LLVMBuildInsertValue(ctx->builder, projected, field_value,
-            (unsigned)target_field->index, llvm_tmp_name(ctx));
+            (unsigned)target_field_index, llvm_tmp_name(ctx));
     }
 
     return projected;

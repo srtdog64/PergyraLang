@@ -1,0 +1,16 @@
+func Hypot(a: Float, b: Float) -> Float {
+    return a * a + b * b;
+}
+
+func WeightedAvg(a: Float, b: Float, c: Float) -> Float {
+    return (a * 1.0 + b * 2.0 + c * 3.0) / 6.0;
+}
+
+func Main() -> Void {
+    Log(Hypot(3.0, 4.0));
+    Log(Hypot(0.0, 0.0));
+    Log(Hypot(1.5, 2.5));
+    Log(WeightedAvg(1.0, 2.0, 3.0));
+    Log(WeightedAvg(0.0, 0.0, 0.0));
+    Log(WeightedAvg(10.0, 20.0, 30.0));
+}

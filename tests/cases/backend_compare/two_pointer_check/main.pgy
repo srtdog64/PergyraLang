@@ -1,0 +1,25 @@
+func HasPairSum(arr: Array<Int>, n: Int, target: Int) -> Bool {
+    let lo: Int = 0;
+    let hi: Int = n - 1;
+    while lo < hi {
+        let s: Int = arr[lo] + arr[hi];
+        if s == target { return true; }
+        if s < target {
+            lo = lo + 1;
+        } else {
+            hi = hi - 1;
+        }
+    }
+    return false;
+}
+
+func Main() -> Void {
+    let sorted: Array<Int> = [1, 3, 5, 7, 9, 11, 14];
+    Log(HasPairSum(sorted, 7, 10));
+    Log(HasPairSum(sorted, 7, 17));
+    Log(HasPairSum(sorted, 7, 100));
+    Log(HasPairSum(sorted, 7, 2));
+    Log(HasPairSum(sorted, 7, 18));
+    Log(HasPairSum(sorted, 0, 5));
+    Log(HasPairSum(sorted, 1, 1));
+}

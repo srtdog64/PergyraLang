@@ -242,7 +242,7 @@ llvm_load_projection_path_value(LLVMGenCtx *ctx,
         char *dot = strchr(cursor, '.');
         char *segment = cursor;
         int field_index;
-        LLVMClassFieldInfo *field_info = NULL;
+        LLVMTypeRef field_type;
         LLVMValueRef field_ptr;
 
         if (dot != NULL)
@@ -252,21 +252,16 @@ llvm_load_projection_path_value(LLVMGenCtx *ctx,
         if (field_index < 0)
             return llvm_projection_error_recovery(ctx, current_decl,
                 "LLVM projection path segment is not present in class metadata");
-        for (int i = 0; i < current_cls->field_count; i++) {
-            if (current_cls->fields[i].index == field_index) {
-                field_info = &current_cls->fields[i];
-                break;
-            }
-        }
-        if (field_info == NULL || field_info->field_type == NULL)
+        field_type = llvm_class_field_type_at_index(current_cls, field_index);
+        if (field_type == NULL)
             return llvm_projection_error_recovery(ctx, current_decl,
                 "LLVM projection path segment requires field type metadata");
 
         field_ptr = LLVMBuildStructGEP2(ctx->builder, current_cls->struct_type,
             current_ptr, (unsigned)field_index, llvm_tmp_name(ctx));
         if (dot == NULL) {
-            return LLVMBuildLoad2(ctx->builder, field_info->field_type,
-                field_ptr, llvm_tmp_name(ctx));
+            return LLVMBuildLoad2(ctx->builder, field_type, field_ptr,
+                llvm_tmp_name(ctx));
         }
 
         for (size_t i = 0;
@@ -347,19 +342,22 @@ llvm_emit_subject_projection(ASTNode *node, LLVMGenCtx *ctx)
     }
 
     projected = LLVMConstNull(target_cls->struct_type);
-    for (int i = 0; i < target_cls->field_count; i++) {
-        LLVMClassFieldInfo *target_field = &target_cls->fields[i];
+    for (int i = 0; i < llvm_class_field_count(target_cls); i++) {
+        const char *target_field_name =
+            llvm_class_field_name_at(target_cls, i);
+        int target_field_index =
+            llvm_class_field_struct_index_at(target_cls, i);
         LLVMValueRef field_value;
 
-        if (target_field->field_name == NULL)
+        if (target_field_name == NULL || target_field_index < 0)
             continue;
 
         field_value = llvm_load_projection_path_value(ctx, source_decl, source_cls,
-            source_base, target_field->field_name);
+            source_base, target_field_name);
         if (ctx->has_error || field_value == NULL)
             return NULL;
         projected = LLVMBuildInsertValue(ctx->builder, projected, field_value,
-            (unsigned)target_field->index, llvm_tmp_name(ctx));
+            (unsigned)target_field_index, llvm_tmp_name(ctx));
     }
 
     return projected;

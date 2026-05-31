@@ -379,12 +379,8 @@ llvm_resolve_source_type(LLVMGenCtx *ctx, const char *type_name)
     if (cls != NULL && cls->struct_type != NULL)
         return cls->struct_type;
 
-    /* Enum: name appears in enum_variants as enum_name. */
-    for (int i = 0; i < ctx->enum_variant_count; i++) {
-        if (ctx->enum_variants[i].enum_name != NULL
-            && strcmp(ctx->enum_variants[i].enum_name, type_name) == 0)
-            return ctx->type_i32;
-    }
+    if (llvm_enum_type_exists(ctx, type_name))
+        return ctx->type_i32;
 
     return NULL;
 }

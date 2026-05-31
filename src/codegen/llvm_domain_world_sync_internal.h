@@ -7,7 +7,9 @@
 
 ASTNode *llvm_world_sync_find_state_decl(ASTNode *world_decl,
                                          const char *state_name);
-bool llvm_world_sync_has_zone_slot(ASTNode *world_decl, const char *slot_name);
+bool llvm_world_sync_has_zone_slot(LLVMGenCtx *ctx,
+                                   ASTNode *world_decl,
+                                   const char *slot_name);
 void llvm_world_sync_emit_directives(ASTNode *stmt,
                                      LLVMClassTypeEntry *decl_cls,
                                      LLVMValueRef sync_fn,

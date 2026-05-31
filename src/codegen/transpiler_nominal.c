@@ -85,8 +85,7 @@ transpiler_domain_slot_member_type_name(TranspilerCtx *ctx,
     for (size_t i = 0; i < slot_count; i++) {
         ASTNode *slot = slots[i];
         const char *slot_name = ast_domain_slot_name(slot);
-        if (slot != NULL && slot_name != NULL
-            && strcmp(slot_name, field_name) == 0) {
+        if (slot_name != NULL && strcmp(slot_name, field_name) == 0) {
             return render_nominal_member_type_name(ctx, ast_domain_slot_type(slot));
         }
     }
@@ -179,20 +178,24 @@ transpiler_world_member_type_name(TranspilerCtx *ctx,
     for (size_t i = 0; i < roster_count; i++) {
         ASTNode *slot = rosters[i];
         const char *slot_name = ast_world_roster_slot_name(slot);
-        if (slot != NULL && slot_name != NULL
-            && strcmp(slot_name, field_name) == 0) {
+        if (slot_name != NULL && strcmp(slot_name, field_name) == 0) {
             return ast_world_roster_type_name(slot);
         }
     }
 
-    size_t zone_count = 0;
-    ASTNode **zones = ast_world_zones(decl, &zone_count);
-    for (size_t i = 0; i < zone_count; i++) {
-        ASTNode *slot = zones[i];
-        const char *slot_name = ast_world_zone_slot_name(slot);
-        if (slot != NULL && slot_name != NULL
-            && strcmp(slot_name, field_name) == 0) {
-            return ast_world_zone_type_name(slot);
+    const char *world_name = transpiler_decl_name_local(decl);
+    TranspilerHostedWorldZoneSlotView zone_view =
+        transpiler_hosted_world_zone_slot_view_from_decl(ctx, world_name, decl);
+    if (transpiler_hosted_world_zone_slot_view_missing_mir_metadata(
+            &zone_view)) {
+        return NULL;
+    }
+    for (size_t i = 0; i < zone_view.count; i++) {
+        const char *slot_name =
+            transpiler_hosted_world_zone_slot_view_name(&zone_view, i);
+        if (slot_name != NULL && strcmp(slot_name, field_name) == 0) {
+            return transpiler_hosted_world_zone_slot_view_type_name(
+                &zone_view, i);
         }
     }
 

@@ -179,6 +179,20 @@ typedef enum
     SLOT_ERROR_INVALID_PIN
 } SlotError;
 
+typedef struct
+{
+    SlotError error;
+    const char *name;
+    const char *operation;
+    uint32_t slotId;
+    uint32_t typeTag;
+    uint32_t generation;
+} SlotFailure;
+
+const char *SlotErrorName(SlotError err);
+SlotFailure SlotFailureFromError(SlotError err, const char *operation,
+                                 const SlotHandle *handle);
+
 /*
  * Slot manager lifecycle functions
  */

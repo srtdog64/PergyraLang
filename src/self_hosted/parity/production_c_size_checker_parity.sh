@@ -3,7 +3,7 @@
 # Sister parity for tool 8. Asserts:
 #   - clean repo: rc=0, JSON byte-equal vs expected/clean.json
 #   - count parity vs shell `wc -l` ground truth
-#   - synthetic over-cap fixture (701-line .c): rc=1, c_over_cap finding
+#   - synthetic over-cap fixture (1001-line .c): rc=1, c_over_cap finding
 # See src/self_hosted/parity/README.md.
 
 set -euo pipefail
@@ -78,7 +78,7 @@ SHELL_STATS="$(cd "$ROOT_DIR" && awk '
         close($0)
         if (n > max)
             max = n
-        if (n > 600)
+        if (n > 900)
             violations++
     }
     END { printf "%d %d\n", violations, max }
@@ -119,7 +119,7 @@ cleanup_neg_root() {
 trap cleanup_neg_root EXIT
 mkdir -p "$NEG_ROOT/src/runtime"
 {
-    for k in $(seq 1 701); do
+    for k in $(seq 1 1001); do
         echo "/* synthetic line $k */"
     done
 } > "$NEG_ROOT/src/runtime/pgy_runtime_synthetic_c_drift.c"

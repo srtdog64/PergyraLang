@@ -12,11 +12,27 @@
 LLVMEventTypeEntry *
 llvm_lookup_event(LLVMGenCtx *ctx, const char *name)
 {
+    if (ctx == NULL || name == NULL)
+        return NULL;
     for (int i = 0; i < ctx->event_type_count; i++) {
         if (strcmp(ctx->event_types[i].event_name, name) == 0)
             return &ctx->event_types[i];
     }
     return NULL;
+}
+
+int
+llvm_event_type_count(const LLVMGenCtx *ctx)
+{
+    return ctx != NULL ? ctx->event_type_count : 0;
+}
+
+LLVMEventTypeEntry *
+llvm_event_type_at(LLVMGenCtx *ctx, int index)
+{
+    if (ctx == NULL || index < 0 || index >= ctx->event_type_count)
+        return NULL;
+    return &ctx->event_types[index];
 }
 
 LLVMEventTypeEntry *

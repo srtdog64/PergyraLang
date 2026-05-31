@@ -1,0 +1,36 @@
+func FirstOddIndex(arr: Array<Int>, n: Int) -> Int {
+    let i: Int = 0;
+    let found: Int = -1;
+    while i < n {
+        if arr[i] % 2 == 0 { i = i + 1; continue; }
+        found = i;
+        break;
+    }
+    return found;
+}
+
+func SumUntilNeg(arr: Array<Int>, n: Int) -> Int {
+    let sum: Int = 0;
+    let i: Int = 0;
+    while i < n {
+        if arr[i] < 0 { break; }
+        sum = sum + arr[i];
+        i = i + 1;
+    }
+    return sum;
+}
+
+func Main() -> Void {
+    let a: Array<Int> = [2, 4, 7, 8, 9];
+    Log(FirstOddIndex(a, 5));
+    let b: Array<Int> = [2, 4, 6];
+    Log(FirstOddIndex(b, 3));
+    let c: Array<Int> = [3, 5, 7];
+    Log(FirstOddIndex(c, 3));
+    let d: Array<Int> = [1, 2, 3, -1, 100];
+    Log(SumUntilNeg(d, 5));
+    let e: Array<Int> = [10, 20, 30];
+    Log(SumUntilNeg(e, 3));
+    let f: Array<Int> = [-5, 10];
+    Log(SumUntilNeg(f, 2));
+}

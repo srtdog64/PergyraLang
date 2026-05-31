@@ -1,0 +1,20 @@
+enum Op { Add(Int), Sub(Int), Mul(Int) }
+
+func ApplyOnce(state: Int, op: Op) -> Int {
+    match op {
+        case Add(addv): return state + addv;
+        case Sub(subv): return state - subv;
+        case Mul(mulv): return state * mulv;
+    }
+}
+
+func RunSeq(s0: Int, a: Op, b: Op, c: Op) -> Int {
+    return ApplyOnce(ApplyOnce(ApplyOnce(s0, a), b), c);
+}
+
+func Main() -> Void {
+    Log(RunSeq(0, Add(5), Mul(3), Sub(2)));
+    Log(RunSeq(10, Mul(2), Add(7), Sub(5)));
+    Log(RunSeq(1, Add(0), Add(0), Add(0)));
+    Log(RunSeq(100, Sub(50), Sub(25), Mul(2)));
+}

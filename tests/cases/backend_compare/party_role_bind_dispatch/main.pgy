@@ -1,0 +1,36 @@
+subject Fighter {
+    let power: Int;
+}
+
+ability Combatable {
+    func Score(self) -> Int;
+}
+
+ability Talkable {
+    func Speak(self) -> Int;
+}
+
+role Warrior for Fighter {
+    impl ability Combatable {
+        func Score(self) -> Int {
+            return 10;
+        }
+    }
+    impl ability Talkable {
+        func Speak(self) -> Int {
+            return 20;
+        }
+    }
+}
+
+party Team {
+    dyn role slot fighter: Talkable;
+    shared hp: Int;
+}
+
+func Main() -> Void {
+    let team: Team = Team();
+
+    bind team.fighter = Warrior;
+    Log(7);
+}

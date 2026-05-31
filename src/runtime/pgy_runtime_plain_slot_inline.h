@@ -65,6 +65,44 @@ pgy_release_##SuffixName(PgySlot_##SuffixName* s) \
     s->occupied = false; \
 } \
 \
+static inline PgyRuntimeSlotStatus \
+__attribute__((unused)) \
+pgy_try_write_##SuffixName(PgySlot_##SuffixName* s, CType v) \
+{ \
+    if (s == NULL) \
+        return PGY_RUNTIME_SLOT_STATUS_NULL_SLOT; \
+    if (!s->occupied) \
+        return PGY_RUNTIME_SLOT_STATUS_RELEASED_SLOT; \
+    s->value = v; \
+    return PGY_RUNTIME_SLOT_STATUS_OK; \
+} \
+\
+static inline PgyRuntimeSlotStatus \
+__attribute__((unused)) \
+pgy_try_read_##SuffixName(PgySlot_##SuffixName* s, CType* out) \
+{ \
+    if (out == NULL) \
+        return PGY_RUNTIME_SLOT_STATUS_NULL_OUTPUT; \
+    if (s == NULL) \
+        return PGY_RUNTIME_SLOT_STATUS_NULL_SLOT; \
+    if (!s->occupied) \
+        return PGY_RUNTIME_SLOT_STATUS_RELEASED_SLOT; \
+    *out = s->value; \
+    return PGY_RUNTIME_SLOT_STATUS_OK; \
+} \
+\
+static inline PgyRuntimeSlotStatus \
+__attribute__((unused)) \
+pgy_try_release_##SuffixName(PgySlot_##SuffixName* s) \
+{ \
+    if (s == NULL) \
+        return PGY_RUNTIME_SLOT_STATUS_NULL_SLOT; \
+    if (!s->occupied) \
+        return PGY_RUNTIME_SLOT_STATUS_DOUBLE_RELEASE; \
+    s->occupied = false; \
+    return PGY_RUNTIME_SLOT_STATUS_OK; \
+} \
+\
 typedef struct { \
     PgySlot_##SuffixName *slot; \
     bool                 active; \
@@ -162,6 +200,38 @@ __attribute__((unused)) \
 pgy_release_##SuffixName(PgySlot_##SuffixName* s) \
 { \
     (void)s; /* no-op in release mode */ \
+} \
+\
+static inline PgyRuntimeSlotStatus \
+__attribute__((unused)) \
+pgy_try_write_##SuffixName(PgySlot_##SuffixName* s, CType v) \
+{ \
+    if (s == NULL) \
+        return PGY_RUNTIME_SLOT_STATUS_NULL_SLOT; \
+    s->value = v; \
+    return PGY_RUNTIME_SLOT_STATUS_OK; \
+} \
+\
+static inline PgyRuntimeSlotStatus \
+__attribute__((unused)) \
+pgy_try_read_##SuffixName(PgySlot_##SuffixName* s, CType* out) \
+{ \
+    if (out == NULL) \
+        return PGY_RUNTIME_SLOT_STATUS_NULL_OUTPUT; \
+    if (s == NULL) \
+        return PGY_RUNTIME_SLOT_STATUS_NULL_SLOT; \
+    *out = s->value; \
+    return PGY_RUNTIME_SLOT_STATUS_OK; \
+} \
+\
+static inline PgyRuntimeSlotStatus \
+__attribute__((unused)) \
+pgy_try_release_##SuffixName(PgySlot_##SuffixName* s) \
+{ \
+    if (s == NULL) \
+        return PGY_RUNTIME_SLOT_STATUS_NULL_SLOT; \
+    pgy_release_##SuffixName(s); \
+    return PGY_RUNTIME_SLOT_STATUS_OK; \
 } \
 \
 typedef struct { \

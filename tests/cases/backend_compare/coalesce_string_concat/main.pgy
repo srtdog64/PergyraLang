@@ -1,0 +1,18 @@
+func NameFor(n: Int) -> Option<String> {
+    if n == 1 { return Some("one"); }
+    if n == 2 { return Some("two"); }
+    if n == 3 { return Some("three"); }
+    return None();
+}
+
+func Label(n: Int) -> String {
+    return "<" + (NameFor(n) ?? "?") + ">";
+}
+
+func Main() -> Void {
+    Log(Label(1));
+    Log(Label(2));
+    Log(Label(3));
+    Log(Label(99));
+    Log(Label(0));
+}

@@ -1,0 +1,28 @@
+func FibIter(n: Int) -> Int {
+    if n <= 0 { return 0; }
+    if n == 1 { return 1; }
+    let a: Int = 0;
+    let b: Int = 1;
+    let i: Int = 2;
+    while i <= n {
+        let tmp: Int = a + b;
+        a = b;
+        b = tmp;
+        i = i + 1;
+    }
+    return b;
+}
+
+func FibChain(n: Int, k: Int) -> Int {
+    return FibIter(n) + FibIter(k) * 1000;
+}
+
+func Main() -> Void {
+    Log(FibIter(0));
+    Log(FibIter(1));
+    Log(FibIter(10));
+    Log(FibIter(20));
+    Log(FibChain(5, 8));
+    Log(FibChain(0, 1));
+    Log(FibChain(15, 3));
+}

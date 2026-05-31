@@ -132,6 +132,8 @@ pgy_runtime_deadline_after_ns(uint64_t timeout_ns)
     return ts;
 }
 
+#include "pgy_runtime_slot_status.h"
+
 /* =================================================================
  * Slot types (must match pgy_runtime.h layout)
  * ================================================================= */
@@ -165,6 +167,49 @@ typedef struct {
     char   *value;
     bool    claimed;
 } PgySlot_String;
+
+#define PGY_SLOT_TRY_EXPORT_DEFINE(SuffixName, CType, ZeroValue) \
+PgyRuntimeSlotStatus pgy_try_write_##SuffixName(PgySlot_##SuffixName *s, CType v) \
+{ \
+    if (s == NULL) \
+        return PGY_RUNTIME_SLOT_STATUS_NULL_SLOT; \
+    if (!s->claimed) \
+        return PGY_RUNTIME_SLOT_STATUS_RELEASED_SLOT; \
+    s->value = v; \
+    return PGY_RUNTIME_SLOT_STATUS_OK; \
+} \
+\
+PgyRuntimeSlotStatus pgy_try_read_##SuffixName(PgySlot_##SuffixName *s, CType *out) \
+{ \
+    if (out == NULL) \
+        return PGY_RUNTIME_SLOT_STATUS_NULL_OUTPUT; \
+    if (s == NULL) \
+        return PGY_RUNTIME_SLOT_STATUS_NULL_SLOT; \
+    if (!s->claimed) \
+        return PGY_RUNTIME_SLOT_STATUS_RELEASED_SLOT; \
+    *out = s->value; \
+    return PGY_RUNTIME_SLOT_STATUS_OK; \
+} \
+\
+PgyRuntimeSlotStatus pgy_try_release_##SuffixName(PgySlot_##SuffixName *s) \
+{ \
+    if (s == NULL) \
+        return PGY_RUNTIME_SLOT_STATUS_NULL_SLOT; \
+    if (!s->claimed) \
+        return PGY_RUNTIME_SLOT_STATUS_DOUBLE_RELEASE; \
+    s->value = (ZeroValue); \
+    s->claimed = false; \
+    return PGY_RUNTIME_SLOT_STATUS_OK; \
+}
+
+PGY_SLOT_TRY_EXPORT_DEFINE(Int, int32_t, 0)
+PGY_SLOT_TRY_EXPORT_DEFINE(Long, int64_t, 0)
+PGY_SLOT_TRY_EXPORT_DEFINE(Float, float, 0.0f)
+PGY_SLOT_TRY_EXPORT_DEFINE(Double, double, 0.0)
+PGY_SLOT_TRY_EXPORT_DEFINE(Bool, bool, false)
+PGY_SLOT_TRY_EXPORT_DEFINE(String, char *, NULL)
+
+#undef PGY_SLOT_TRY_EXPORT_DEFINE
 
 #define PGY_INLINE_PIN_EXPORT_DEFINE(SuffixName) \
 typedef struct { \

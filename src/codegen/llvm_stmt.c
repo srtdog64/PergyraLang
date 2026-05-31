@@ -1,5 +1,6 @@
 #ifdef PGY_LLVM_ENABLED
 #include "llvm_internal.h"
+#include "llvm_domain_role_helpers.h"
 #include "llvm_stmt_emit_support.h"
 
 /* =================================================================
@@ -402,13 +403,7 @@ llvm_emit_statement(ASTNode *node, LLVMGenCtx *ctx)
         if (!llvm_stmt_format_bind_name(ctx, node, vt_field,
                 sizeof(vt_field), slot_name, "_vtable", "vtable field"))
             break;
-        int field_idx = -1;
-        for (int fi = 0; fi < cls->field_count; fi++) {
-            if (strcmp(cls->fields[fi].field_name, vt_field) == 0) {
-                field_idx = cls->fields[fi].index;
-                break;
-            }
-        }
+        int field_idx = llvm_class_field_index(cls, vt_field);
         if (field_idx < 0) {
             llvm_set_error_at_with_hints(ctx, node,
                 PGY_CODE_LLVM_TYPE_UNSUPPORTED,
@@ -419,31 +414,27 @@ llvm_emit_statement(ASTNode *node, LLVMGenCtx *ctx)
             break;
         }
 
-        /* Find the Role's vtable global.
-         * Convention: RoleName_AbilityName_vtable_instance */
-        char global_prefix[256];
-        if (!llvm_stmt_format_bind_name(ctx, node, global_prefix,
-                sizeof(global_prefix), role_name, "_", "vtable global prefix"))
+        const char *ability_name = llvm_party_slot_first_ability_name(
+            ctx, party_class_name, slot_name);
+        if (ability_name == NULL) {
+            llvm_set_error_at_with_hints(ctx, node,
+                PGY_CODE_LLVM_TYPE_UNSUPPORTED,
+                PGY_CAUSE_LLVM_TYPE_UNSUPPORTED,
+                PGY_FIX_ALIGN_ROLE_IMPL_WITH_ABILITY,
+                "LLVM bind emission cannot resolve required ability for party slot '%s.%s'",
+                party_class_name, slot_name);
             break;
-        LLVMValueRef vt_global = NULL;
-        LLVMValueRef g = LLVMGetFirstGlobal(ctx->module);
-        while (g != NULL) {
-            const char *gname = LLVMGetValueName(g);
-            if (gname != NULL
-                && strncmp(gname, global_prefix, strlen(global_prefix)) == 0
-                && strstr(gname, "_vtable_instance") != NULL) {
-                vt_global = g;
-                break;
-            }
-            g = LLVMGetNextGlobal(g);
         }
+
+        LLVMValueRef vt_global = llvm_lookup_role_vtable_global(
+            ctx, role_name, ability_name);
         if (vt_global == NULL) {
             llvm_set_error_at_with_hints(ctx, node,
                 PGY_CODE_LLVM_TYPE_UNSUPPORTED,
                 PGY_CAUSE_LLVM_TYPE_UNSUPPORTED,
                 PGY_FIX_ALIGN_ROLE_IMPL_WITH_ABILITY,
-                "LLVM bind emission cannot resolve role vtable global for '%s'",
-                role_name);
+                "LLVM bind emission cannot resolve role vtable global for '%s.%s'",
+                role_name, ability_name);
             break;
         }
 

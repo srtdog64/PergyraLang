@@ -50,6 +50,26 @@ typedef struct
     bool               requires_mir_metadata;
 } TranspilerHostedZoneLayerSlotView;
 
+typedef struct
+{
+    const MIRDeclHeader *decl_header;
+    ASTNode           **ast_compat_slots;
+    size_t             ast_compat_count;
+    size_t             count;
+    bool               uses_mir_metadata;
+    bool               requires_mir_metadata;
+} TranspilerHostedWorldZoneSlotView;
+
+typedef struct
+{
+    const MIRDeclHeader *decl_header;
+    ASTNode            *ast_compat_decl;
+    size_t              ast_compat_count;
+    size_t              count;
+    bool                uses_mir_metadata;
+    bool                requires_mir_metadata;
+} TranspilerHostedRoleSlotView;
+
 TranspilerHostedMethodView transpiler_hosted_method_view(
     const TranspilerCtx *ctx,
     const char *host_name,
@@ -142,6 +162,49 @@ ASTNode *transpiler_hosted_zone_layer_slot_view_type(
 const char *transpiler_hosted_zone_layer_slot_view_type_name(
     const TranspilerHostedZoneLayerSlotView *view,
     size_t index);
+TranspilerHostedWorldZoneSlotView
+transpiler_hosted_world_zone_slot_view_from_decl(const TranspilerCtx *ctx,
+                                                 const char *host_name,
+                                                 ASTNode *decl);
+bool transpiler_hosted_world_zone_slot_view_missing_mir_metadata(
+    const TranspilerHostedWorldZoneSlotView *view);
+const MIRDeclField *transpiler_hosted_world_zone_slot_view_metadata(
+    const TranspilerHostedWorldZoneSlotView *view,
+    size_t index);
+ASTNode *transpiler_hosted_world_zone_slot_view_source_ast(
+    const TranspilerHostedWorldZoneSlotView *view,
+    size_t index);
+const char *transpiler_hosted_world_zone_slot_view_name(
+    const TranspilerHostedWorldZoneSlotView *view,
+    size_t index);
+const char *transpiler_hosted_world_zone_slot_view_type_name(
+    const TranspilerHostedWorldZoneSlotView *view,
+    size_t index);
+TranspilerHostedRoleSlotView transpiler_hosted_role_slot_view_from_decl(
+    const TranspilerCtx *ctx,
+    const char *host_name,
+    ASTNode *decl);
+bool transpiler_hosted_role_slot_view_missing_mir_metadata(
+    const TranspilerHostedRoleSlotView *view);
+const MIRDeclField *transpiler_hosted_role_slot_view_metadata(
+    const TranspilerHostedRoleSlotView *view,
+    size_t index);
+ASTNode *transpiler_hosted_role_slot_view_source_ast(
+    const TranspilerHostedRoleSlotView *view,
+    size_t index);
+const char *transpiler_hosted_role_slot_view_name(
+    const TranspilerHostedRoleSlotView *view,
+    size_t index);
+bool transpiler_hosted_role_slot_view_is_dynamic(
+    const TranspilerHostedRoleSlotView *view,
+    size_t index);
+size_t transpiler_hosted_role_slot_view_required_ability_count(
+    const TranspilerHostedRoleSlotView *view,
+    size_t index);
+ASTNode *transpiler_hosted_role_slot_view_required_ability(
+    const TranspilerHostedRoleSlotView *view,
+    size_t index,
+    size_t ability_index);
 const MIRDeclField *transpiler_find_decl_field_metadata(
     const TranspilerCtx *ctx,
     const char *host_name,

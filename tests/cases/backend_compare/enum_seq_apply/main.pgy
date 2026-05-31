@@ -1,0 +1,23 @@
+enum Op { Inc, Dec, Halve, Triple }
+
+func Apply(o: Op, x: Int) -> Int {
+    match o {
+        case Inc: return x + 1;
+        case Dec: return x - 1;
+        case Halve: return x / 2;
+        case Triple: return x * 3;
+    }
+}
+
+func Chain4(a: Op, b: Op, c: Op, d: Op, start: Int) -> Int {
+    return Apply(d, Apply(c, Apply(b, Apply(a, start))));
+}
+
+func Main() -> Void {
+    Log(Chain4(Inc, Inc, Triple, Halve, 4));
+    Log(Chain4(Triple, Halve, Inc, Dec, 6));
+    Log(Chain4(Dec, Dec, Dec, Dec, 10));
+    Log(Chain4(Inc, Triple, Inc, Halve, 0));
+    Log(Apply(Inc, 5));
+    Log(Apply(Triple, 7));
+}

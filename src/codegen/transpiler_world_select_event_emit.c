@@ -21,6 +21,14 @@ transpiler_frontier_lookup_zone(void *ctx, const char *zone_name)
                                                    AST_ZONE_DECL, zone_name);
 }
 
+static const char *
+transpiler_frontier_world_zone_type_name(void *ctx, size_t index)
+{
+    return transpiler_hosted_world_zone_slot_view_type_name(
+        (const TranspilerHostedWorldZoneSlotView *)ctx,
+        index);
+}
+
 void
 emit_world_decl(ASTNode *node, TranspilerCtx *ctx)
 {
@@ -36,14 +44,23 @@ emit_world_decl(ASTNode *node, TranspilerCtx *ctx)
         node = inventory_decl;
     size_t roster_count = 0;
     ASTNode **rosters = ast_world_rosters(node, &roster_count);
-    size_t zone_count = 0;
-    ASTNode **zones = ast_world_zones(node, &zone_count);
+    TranspilerHostedWorldZoneSlotView zone_view =
+        transpiler_hosted_world_zone_slot_view_from_decl(ctx, name, node);
+    size_t zone_count = zone_view.count;
     TranspilerHostedSharedFieldView shared_view =
         transpiler_hosted_shared_field_view_from_decl(ctx, name, node);
     if (transpiler_hosted_shared_field_view_missing_mir_metadata(&shared_view)) {
         transpiler_set_mir_inventory_missing(
             ctx,
             "MIR-only C path missing shared field metadata for world '%s'",
+            name != NULL ? name : "(anonymous-world)");
+        return;
+    }
+    if (transpiler_hosted_world_zone_slot_view_missing_mir_metadata(
+            &zone_view)) {
+        transpiler_set_mir_inventory_missing(
+            ctx,
+            "MIR-only C path missing zone-slot declaration metadata for world '%s'",
             name != NULL ? name : "(anonymous-world)");
         return;
     }
@@ -57,8 +74,13 @@ emit_world_decl(ASTNode *node, TranspilerCtx *ctx)
     size_t deactivate_count = 0;
     ASTNode **deactivations = ast_world_deactivations(node, &deactivate_count);
 
-    embedded_frontier_count = pgy_domain_world_embedded_frontier_count(
-        node, transpiler_frontier_lookup_zone, ctx);
+    embedded_frontier_count =
+        pgy_domain_world_embedded_frontier_count_from_zone_types(
+            zone_view.count,
+            transpiler_frontier_world_zone_type_name,
+            &zone_view,
+            transpiler_frontier_lookup_zone,
+            ctx);
 
     codebuf_write(ctx->out, "\n/* World: %s */\n", name);
     codebuf_write(ctx->out, "typedef struct %s\n{\n", name);
@@ -73,9 +95,10 @@ emit_world_decl(ASTNode *node, TranspilerCtx *ctx)
     }
 
     for (size_t i = 0; i < zone_count; i++) {
-        ASTNode *wz = zones[i];
-        const char *zone_type = ast_world_zone_type_name(wz);
-        const char *slot_name = ast_world_zone_slot_name(wz);
+        const char *zone_type =
+            transpiler_hosted_world_zone_slot_view_type_name(&zone_view, i);
+        const char *slot_name =
+            transpiler_hosted_world_zone_slot_view_name(&zone_view, i);
         if (zone_type == NULL || slot_name == NULL)
             continue;
         codebuf_write(ctx->out, "    %s %s;\n", zone_type, slot_name);
@@ -136,8 +159,8 @@ emit_world_decl(ASTNode *node, TranspilerCtx *ctx)
     write_indent(ctx);
     codebuf_write(ctx->out, "/* world command pass: reset */\n");
     for (size_t i = 0; i < zone_count; i++) {
-        ASTNode *wz = zones[i];
-        const char *slot_name = ast_world_zone_slot_name(wz);
+        const char *slot_name =
+            transpiler_hosted_world_zone_slot_view_name(&zone_view, i);
         if (slot_name == NULL)
             continue;
         write_indent(ctx);
@@ -159,7 +182,7 @@ emit_world_decl(ASTNode *node, TranspilerCtx *ctx)
             if (state != NULL)
                 slot_name = ast_world_state_zone_slot_name(state);
             else if (transpiler_world_has_zone_slot(
-                         node, ast_world_directive_state_name(act))) {
+                         ctx, node, ast_world_directive_state_name(act))) {
                 slot_name = ast_world_directive_state_name(act);
             }
         }
@@ -180,7 +203,7 @@ emit_world_decl(ASTNode *node, TranspilerCtx *ctx)
             if (state != NULL)
                 slot_name = ast_world_state_zone_slot_name(state);
             else if (transpiler_world_has_zone_slot(
-                         node, ast_world_directive_state_name(mnt))) {
+                         ctx, node, ast_world_directive_state_name(mnt))) {
                 slot_name = ast_world_directive_state_name(mnt);
             }
         }
@@ -201,7 +224,7 @@ emit_world_decl(ASTNode *node, TranspilerCtx *ctx)
             if (state != NULL)
                 slot_name = ast_world_state_zone_slot_name(state);
             else if (transpiler_world_has_zone_slot(
-                         node, ast_world_directive_state_name(act))) {
+                         ctx, node, ast_world_directive_state_name(act))) {
                 slot_name = ast_world_directive_state_name(act);
             }
         }
@@ -214,8 +237,8 @@ emit_world_decl(ASTNode *node, TranspilerCtx *ctx)
         }
     }
     for (size_t i = 0; i < zone_count; i++) {
-        ASTNode *wz = zones[i];
-        const char *slot_name = ast_world_zone_slot_name(wz);
+        const char *slot_name =
+            transpiler_hosted_world_zone_slot_view_name(&zone_view, i);
         if (slot_name == NULL)
             continue;
         write_indent(ctx);
@@ -235,8 +258,8 @@ emit_world_decl(ASTNode *node, TranspilerCtx *ctx)
     codebuf_write(ctx->out, "size_t _pgy_world_frontier_pass = 0;\n");
     write_indent(ctx);
     codebuf_write(ctx->out, "size_t _pgy_world_frontier_pass_limit = %zu;\n",
-        pgy_domain_world_transitive_frontier_pass_limit(
-            node, embedded_frontier_count));
+        pgy_domain_world_transitive_frontier_pass_limit_from_counts(
+            zone_count, state_count, embedded_frontier_count));
     write_indent(ctx);
     codebuf_write(ctx->out, "bool _pgy_world_frontier_continue = true;\n");
     write_indent(ctx);
@@ -256,9 +279,10 @@ emit_world_decl(ASTNode *node, TranspilerCtx *ctx)
     write_indent(ctx);
     codebuf_write(ctx->out, "/* world zone sync pass */\n");
     for (size_t i = 0; i < zone_count; i++) {
-        ASTNode *wz = zones[i];
-        const char *slot_name = ast_world_zone_slot_name(wz);
-        const char *zone_type = ast_world_zone_type_name(wz);
+        const char *slot_name =
+            transpiler_hosted_world_zone_slot_view_name(&zone_view, i);
+        const char *zone_type =
+            transpiler_hosted_world_zone_slot_view_type_name(&zone_view, i);
         if (slot_name == NULL || zone_type == NULL)
             continue;
         write_indent(ctx);
@@ -299,7 +323,7 @@ emit_world_decl(ASTNode *node, TranspilerCtx *ctx)
     codebuf_write(ctx->out, "size_t _pgy_world_pass = 0;\n");
     write_indent(ctx);
     codebuf_write(ctx->out, "size_t _pgy_world_pass_limit = %zu;\n",
-        pgy_domain_world_derived_frontier_pass_limit(node));
+        pgy_domain_world_derived_frontier_pass_limit_from_count(state_count));
     write_indent(ctx);
     codebuf_write(ctx->out, "bool _pgy_world_continue = true;\n");
     write_indent(ctx);
@@ -338,7 +362,7 @@ emit_world_decl(ASTNode *node, TranspilerCtx *ctx)
                         ast_world_state_source_kind(state) == WORLD_STATE_SOURCE_ALL
                             ? " && " : " || ");
                 }
-                if (transpiler_world_has_zone_slot(node, input_name))
+                if (transpiler_world_has_zone_slot(ctx, node, input_name))
                     codebuf_write(ctx->out, "self->__zone_active_%s", input_name);
                 else
                     codebuf_write(ctx->out, "self->__zone_state_%s", input_name);
@@ -426,8 +450,8 @@ emit_world_decl(ASTNode *node, TranspilerCtx *ctx)
     codebuf_write(ctx->out,
         "if (_pgy_world_derived_changed_any || self->__world_derived_dirty");
     for (size_t i = 0; i < zone_count; i++) {
-        ASTNode *wz = zones[i];
-        const char *slot_name = ast_world_zone_slot_name(wz);
+        const char *slot_name =
+            transpiler_hosted_world_zone_slot_view_name(&zone_view, i);
         if (slot_name == NULL)
             continue;
         codebuf_write(ctx->out, " || self->__zone_dirty_%s", slot_name);

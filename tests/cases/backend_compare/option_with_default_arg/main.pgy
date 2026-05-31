@@ -1,0 +1,23 @@
+func MaybeParse(s: String) -> Option<Int> {
+    if StringLength(s) == 0 { return None(); }
+    if s == "five" { return Some(5); }
+    if s == "ten" { return Some(10); }
+    return None();
+}
+
+func GetOrDefault(s: String, def: Int) -> Int {
+    return MaybeParse(s) ?? def;
+}
+
+func Sum3(a: String, b: String, c: String) -> Int {
+    return GetOrDefault(a, 0) + GetOrDefault(b, 0) + GetOrDefault(c, 0);
+}
+
+func Main() -> Void {
+    Log(GetOrDefault("five", -1));
+    Log(GetOrDefault("nope", -1));
+    Log(GetOrDefault("", 99));
+    Log(Sum3("five", "ten", "x"));
+    Log(Sum3("", "ten", "five"));
+    Log(Sum3("", "", ""));
+}

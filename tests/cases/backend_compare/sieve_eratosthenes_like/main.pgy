@@ -1,0 +1,31 @@
+func IsPrime(n: Int) -> Bool {
+    if n < 2 { return false; }
+    if n < 4 { return true; }
+    if n % 2 == 0 { return false; }
+    let i: Int = 3;
+    while i * i <= n {
+        if n % i == 0 { return false; }
+        i = i + 2;
+    }
+    return true;
+}
+
+func CountPrimes(upto: Int) -> Int {
+    let count: Int = 0;
+    let i: Int = 2;
+    while i <= upto {
+        if IsPrime(i) { count = count + 1; }
+        i = i + 1;
+    }
+    return count;
+}
+
+func Main() -> Void {
+    Log(CountPrimes(10));
+    Log(CountPrimes(20));
+    Log(CountPrimes(30));
+    Log(CountPrimes(0));
+    Log(CountPrimes(1));
+    Log(IsPrime(7));
+    Log(IsPrime(15));
+}

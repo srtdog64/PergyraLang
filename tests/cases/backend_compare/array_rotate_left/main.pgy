@@ -1,0 +1,40 @@
+func RotateLeftOnce(arr: Array<Int>, n: Int) -> Int {
+    if n <= 1 { return 0; }
+    let first: Int = arr[0];
+    let i: Int = 0;
+    while i < n - 1 {
+        arr[i] = arr[i + 1];
+        i = i + 1;
+    }
+    arr[n - 1] = first;
+    let sum: Int = 0;
+    let k: Int = 0;
+    while k < n {
+        sum = sum + arr[k] * (k + 1);
+        k = k + 1;
+    }
+    return sum;
+}
+
+func RotateLeft(arr: Array<Int>, n: Int, k: Int) -> Int {
+    let i: Int = 0;
+    let kk: Int = k;
+    if n > 0 { kk = k % n; }
+    let result: Int = 0;
+    while i < kk {
+        result = RotateLeftOnce(arr, n);
+        i = i + 1;
+    }
+    return result;
+}
+
+func Main() -> Void {
+    let a: Array<Int> = [1, 2, 3, 4, 5];
+    Log(RotateLeft(a, 5, 1));
+    let b: Array<Int> = [1, 2, 3, 4, 5];
+    Log(RotateLeft(b, 5, 2));
+    let c: Array<Int> = [1, 2, 3, 4, 5];
+    Log(RotateLeft(c, 5, 5));
+    let d: Array<Int> = [7];
+    Log(RotateLeft(d, 1, 3));
+}

@@ -1,0 +1,29 @@
+func ShiftChar(ch: String) -> String {
+    if ch == "a" { return "b"; }
+    if ch == "b" { return "c"; }
+    if ch == "c" { return "d"; }
+    if ch == "d" { return "e"; }
+    if ch == "e" { return "f"; }
+    return ch;
+}
+
+func ShiftString(s: String) -> String {
+    let n: Int = StringLength(s);
+    let result: String = "";
+    let i: Int = 0;
+    while i < n {
+        let ch: String = Substring(s, i, i + 1);
+        result = result + ShiftChar(ch);
+        i = i + 1;
+    }
+    return result;
+}
+
+func Main() -> Void {
+    Log(ShiftString("abc"));
+    Log(ShiftString("eba"));
+    Log(ShiftString(""));
+    Log(ShiftString("xyz"));
+    Log(ShiftString("abcdef"));
+    Log(ShiftString("aaa"));
+}

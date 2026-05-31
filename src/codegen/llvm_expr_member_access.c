@@ -94,7 +94,10 @@ llvm_emit_member_access(ASTNode *node, LLVMGenCtx *ctx)
                     LLVMValueRef gep = LLVMBuildStructGEP2(ctx->builder,
                         cls->struct_type, base_ptr, (unsigned)field_idx,
                         llvm_tmp_name(ctx));
-                    LLVMTypeRef field_type = cls->fields[field_idx].field_type;
+                    LLVMTypeRef field_type =
+                        llvm_class_field_type_at_index(cls, field_idx);
+                    if (field_type == NULL)
+                        return NULL;
                     return LLVMBuildLoad2(ctx->builder, field_type, gep,
                         llvm_tmp_name(ctx));
                 }
@@ -111,7 +114,10 @@ llvm_emit_member_access(ASTNode *node, LLVMGenCtx *ctx)
                 LLVMValueRef gep = LLVMBuildStructGEP2(ctx->builder,
                     cls->struct_type, obj_val, (unsigned)field_idx,
                     llvm_tmp_name(ctx));
-                LLVMTypeRef field_type = cls->fields[field_idx].field_type;
+                LLVMTypeRef field_type =
+                    llvm_class_field_type_at_index(cls, field_idx);
+                if (field_type == NULL)
+                    return NULL;
                 return LLVMBuildLoad2(ctx->builder, field_type, gep,
                     llvm_tmp_name(ctx));
             }

@@ -78,6 +78,19 @@ transpiler_find_local_type_ast_in_block(TranspilerCtx *ctx,
     if (body->type == AST_FOR_LOOP)
         return transpiler_find_local_type_ast_in_block(
             ctx, ast_for_body(body), base_name);
+    if (body->type == AST_MATCH_STMT) {
+        for (size_t i = 0; i < ast_match_case_count(body); i++) {
+            ASTNode *mc = ast_match_case_at(body, i);
+            if (mc == NULL)
+                continue;
+            ASTNode *found = transpiler_find_local_type_ast_in_block(
+                ctx, ast_match_case_body(mc), base_name);
+            if (found != NULL)
+                return found;
+        }
+        return transpiler_find_local_type_ast_in_block(
+            ctx, ast_match_default_body(body), base_name);
+    }
     return NULL;
 }
 

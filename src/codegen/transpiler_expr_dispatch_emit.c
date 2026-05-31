@@ -11,6 +11,7 @@
 #include "transpiler_decl_lookup.h"
 #include "transpiler_enum.h"
 #include "transpiler_expr_array_access_emit.h"
+#include "transpiler_expr_type_infer.h"
 #include "transpiler_expr_call_spawn_emit.h"
 #include "transpiler_expr_composite_literal_emit.h"
 #include "transpiler_expr_core_emit.h"
@@ -293,6 +294,42 @@ emit_expression(ASTNode *node, TranspilerCtx *ctx)
     case AST_ASSIGNMENT: {
         ASTNode *target_node = ast_assignment_target(node);
         ASTNode *value_node = ast_assignment_value(node);
+        /*
+         * Array element assignment sugar: arr[i] = val -> pgy_array_set_T(&arr, i, val).
+         * The default emit path renders arr[i] as a compound `({ ... pgy_array_get_T(...); })`
+         * expression which is not a valid C lvalue. The set helper accepts the
+         * array by pointer and performs the bounds-checked write.
+         */
+        if (target_node != NULL && target_node->type == AST_ARRAY_ACCESS) {
+            ASTNode *array_node = ast_array_access_array(target_node);
+            ASTNode *index_node = ast_array_access_index(target_node);
+            const char *array_type =
+                array_node != NULL
+                    ? infer_expression_type_name(ctx, array_node)
+                    : NULL;
+            if (array_type != NULL
+                && transpiler_type_name_is_array(array_type)) {
+                char inner_buf[128];
+                const char *inner = NULL;
+                if (slot_inner_type_name_copy(array_type, inner_buf,
+                        sizeof(inner_buf))) {
+                    inner = inner_buf;
+                }
+                if (inner != NULL && inner[0] != '\0'
+                    && strcmp(inner, "Unknown") != 0) {
+                    char *array = emit_expression(array_node, ctx);
+                    char *index = emit_expression(index_node, ctx);
+                    char *value = emit_expression(value_node, ctx);
+                    char *result = strdup_fmt(
+                        "pgy_array_set_%s(&%s, (size_t)(%s), %s)",
+                        inner, array, index, value);
+                    free(array);
+                    free(index);
+                    free(value);
+                    return result;
+                }
+            }
+        }
         /* Slot sugar: x = 5 -> pgy_write_T(&x, 5). */
         if (target_node != NULL && target_node->type == AST_IDENTIFIER) {
             const char *tgt_name = ast_identifier_name(target_node);

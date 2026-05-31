@@ -111,28 +111,8 @@ llvm_generic_default_from_decl(ASTNode *decl, const char *type_name)
     if (decl == NULL || type_name == NULL)
         return NULL;
 
-    switch (decl->type) {
-    case AST_FUNC_DECL:
-        return llvm_generic_default_from_params(
-            ast_func_generic_params(decl), type_name);
-    case AST_CLASS_DECL:
-        return llvm_generic_default_from_params(
-            ast_class_generic_params(decl), type_name);
-    case AST_ABILITY_DECL:
-        return llvm_generic_default_from_params(
-            ast_ability_generic_params(decl), type_name);
-    case AST_ROLE_DECL:
-        return llvm_generic_default_from_params(
-            ast_role_generic_params(decl), type_name);
-    case AST_PARTY_DECL:
-        return llvm_generic_default_from_params(
-            ast_party_generic_params(decl), type_name);
-    case AST_ROSTER_DECL:
-        return llvm_generic_default_from_params(
-            ast_roster_generic_params(decl), type_name);
-    default:
-        return NULL;
-    }
+    return llvm_generic_default_from_params(
+        ast_declaration_generic_params(decl), type_name);
 }
 
 static ASTNode *

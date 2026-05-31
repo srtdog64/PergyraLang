@@ -1,0 +1,18 @@
+func IntPow(base: Int, exp: Int) -> Int {
+    if exp <= 0 { return 1; }
+    if exp == 1 { return base; }
+    let half: Int = IntPow(base, exp / 2);
+    let sq: Int = half * half;
+    if exp % 2 == 0 { return sq; }
+    return sq * base;
+}
+
+func Main() -> Void {
+    Log(IntPow(2, 0));
+    Log(IntPow(2, 1));
+    Log(IntPow(2, 10));
+    Log(IntPow(3, 4));
+    Log(IntPow(5, 3));
+    Log(IntPow(-2, 5));
+    Log(IntPow(10, 6));
+}

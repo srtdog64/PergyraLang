@@ -159,7 +159,7 @@ emit_builtin_has_zone(ASTNode *call, TranspilerCtx *ctx)
         && name != NULL) {
         if (state_decl != NULL)
             return domain_query_heap_fmt("self->__zone_state_%s", name);
-        if (transpiler_world_has_zone_slot(world_decl, name))
+        if (transpiler_world_has_zone_slot(ctx, world_decl, name))
             return domain_query_heap_fmt("self->__zone_active_%s", name);
     }
 

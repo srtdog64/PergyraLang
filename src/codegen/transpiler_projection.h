@@ -26,9 +26,11 @@ ASTNode *transpiler_find_world_state_decl(ASTNode *world_decl,
 ASTNode *transpiler_find_zone_layer_slot(TranspilerCtx *ctx,
                                          ASTNode *zone_decl,
                                          const char *slot_name);
-ASTNode *transpiler_find_world_zone_slot_decl(ASTNode *world_decl,
+ASTNode *transpiler_find_world_zone_slot_decl(TranspilerCtx *ctx,
+                                              ASTNode *world_decl,
                                               const char *slot_name);
-bool transpiler_world_has_zone_slot(ASTNode *world_decl,
+bool transpiler_world_has_zone_slot(TranspilerCtx *ctx,
+                                    ASTNode *world_decl,
                                     const char *slot_name);
 ASTNode *transpiler_resolve_world_zone_decl(TranspilerCtx *ctx,
                                             ASTNode *world_decl,

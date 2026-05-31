@@ -142,10 +142,25 @@ void                llvm_class_add_field_ex(LLVMClassTypeEntry *entry,
 LLVMClassTypeEntry *llvm_lookup_class(LLVMGenCtx *ctx, const char *class_name);
 LLVMClassTypeEntry *llvm_lookup_class_by_struct_type(LLVMGenCtx *ctx,
                                                      LLVMTypeRef struct_type);
+LLVMClassTypeEntry *llvm_lookup_vtable_class_with_method(LLVMGenCtx *ctx,
+                                                         const char *method_name,
+                                                         int *out_method_index);
 int                 llvm_class_field_index(LLVMClassTypeEntry *entry,
                                             const char *field_name);
+LLVMTypeRef         llvm_class_field_type_at_index(LLVMClassTypeEntry *entry,
+                                                    int struct_index);
+int                 llvm_class_field_count(LLVMClassTypeEntry *entry);
+const char         *llvm_class_field_name_at(LLVMClassTypeEntry *entry,
+                                             int ordinal);
+LLVMTypeRef         llvm_class_field_type_at(LLVMClassTypeEntry *entry,
+                                             int ordinal);
+int                 llvm_class_field_struct_index_at(LLVMClassTypeEntry *entry,
+                                                     int ordinal);
+bool                llvm_class_field_is_subject_slot_at(
+                        LLVMClassTypeEntry *entry,
+                        int ordinal);
 void                llvm_register_var_class(LLVMGenCtx *ctx, const char *var_name,
-                                             const char *class_name);
+                                            const char *class_name);
 const char         *llvm_lookup_var_class(LLVMGenCtx *ctx, const char *var_name);
 void                llvm_register_projection_borrow(LLVMGenCtx *ctx,
                                                     const char *var_name,
@@ -160,6 +175,8 @@ void                llvm_register_enum_variant(LLVMGenCtx *ctx,
                                                 const char *enum_name,
                                                 const char *variant_name,
                                                 int value);
+bool                llvm_enum_type_exists(LLVMGenCtx *ctx,
+                                          const char *enum_name);
 LLVMEnumVariantEntry *llvm_lookup_enum_variant(LLVMGenCtx *ctx,
                                                 const char *variant_name);
 LLVMEnumVariantEntry *llvm_lookup_enum_variant_qualified(LLVMGenCtx *ctx,
@@ -173,6 +190,8 @@ LLVMEventTypeEntry *llvm_lookup_event(LLVMGenCtx *ctx, const char *name);
 LLVMEventTypeEntry *llvm_register_event(LLVMGenCtx *ctx, const char *name,
                                           LLVMTypeRef struct_type,
                                           int param_count, LLVMTypeRef *param_types);
+int llvm_event_type_count(const LLVMGenCtx *ctx);
+LLVMEventTypeEntry *llvm_event_type_at(LLVMGenCtx *ctx, int index);
 
 /* =================================================================
  * Type helpers (llvm_backend.c)
@@ -392,7 +411,8 @@ ASTNode *llvm_find_zone_domain_slot_decl(ASTNode *zone_decl,
 ASTNode *llvm_find_zone_layer_slot_decl(LLVMGenCtx *ctx,
                                         ASTNode *zone_decl,
                                         const char *slot_name);
-bool llvm_world_has_zone_slot(ASTNode *world_decl, const char *slot_name);
+bool llvm_world_has_zone_slot(LLVMGenCtx *ctx, ASTNode *world_decl,
+                              const char *slot_name);
 const char *llvm_call_name_or_string_arg(ASTNode *node, size_t index);
 LLVMValueRef llvm_domain_query_false(LLVMGenCtx *ctx);
 const char *llvm_current_host_class_name(LLVMGenCtx *ctx);

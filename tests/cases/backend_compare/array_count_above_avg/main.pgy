@@ -1,0 +1,30 @@
+func CountAboveAvg(arr: Array<Int>, n: Int) -> Int {
+    if n == 0 { return 0; }
+    let sum: Int = 0;
+    let i: Int = 0;
+    while i < n {
+        sum = sum + arr[i];
+        i = i + 1;
+    }
+    let avg_floor: Int = sum / n;
+    let count: Int = 0;
+    let j: Int = 0;
+    while j < n {
+        if arr[j] > avg_floor { count = count + 1; }
+        j = j + 1;
+    }
+    return count;
+}
+
+func Main() -> Void {
+    let a: Array<Int> = [1, 2, 3, 4, 5, 6, 7, 8, 9];
+    Log(CountAboveAvg(a, 9));
+    let b: Array<Int> = [5, 5, 5, 5];
+    Log(CountAboveAvg(b, 4));
+    let c: Array<Int> = [10, 1, 1, 1];
+    Log(CountAboveAvg(c, 4));
+    let d: Array<Int> = [];
+    Log(CountAboveAvg(d, 0));
+    let e: Array<Int> = [-5, -3, -1, 1, 3, 5];
+    Log(CountAboveAvg(e, 6));
+}

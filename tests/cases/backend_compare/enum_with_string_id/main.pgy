@@ -1,0 +1,17 @@
+enum Tag { Tag1(String), Tag2(String, Int), Mark }
+
+func Summary(t: Tag) -> Int {
+    match t {
+        case Tag1(s): return StringLength(s);
+        case Tag2(name, code): return StringLength(name) * 10 + code;
+        case Mark: return -1;
+    }
+}
+
+func Main() -> Void {
+    Log(Summary(Tag1("hello")));
+    Log(Summary(Tag1("")));
+    Log(Summary(Tag2("foo", 3)));
+    Log(Summary(Tag2("longer", 7)));
+    Log(Summary(Mark));
+}

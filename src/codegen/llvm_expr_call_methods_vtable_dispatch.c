@@ -3,7 +3,6 @@
 #include "llvm_expr_call_methods_vtable_dispatch.h"
 
 #include <stdio.h>
-#include <string.h>
 
 #include "llvm_internal_api.h"
 
@@ -43,34 +42,15 @@ llvm_emit_member_call_vtable_dispatch(ASTNode *node, LLVMGenCtx *ctx,
 
             if (cls != NULL) {
                 char vt_field[256];
-                int vt_idx = -1;
+                int vt_idx;
                 snprintf(vt_field, sizeof(vt_field), "%s_vtable", slot_name);
-                for (int fi = 0; fi < cls->field_count; fi++) {
-                    if (strcmp(cls->fields[fi].field_name, vt_field) == 0) {
-                        vt_idx = cls->fields[fi].index;
-                        break;
-                    }
-                }
+                vt_idx = llvm_class_field_index(cls, vt_field);
 
                 if (vt_idx >= 0) {
                     int method_idx = -1;
-                    LLVMClassTypeEntry *vt_cls = NULL;
-
-                    for (int ci = 0; ci < ctx->class_type_count; ci++) {
-                        const char *cn = ctx->class_types[ci].class_name;
-                        if (cn != NULL && strstr(cn, "_vtable") != NULL) {
-                            for (int fi = 0; fi < ctx->class_types[ci].field_count; fi++) {
-                                if (strcmp(ctx->class_types[ci].fields[fi].field_name,
-                                           method_name) == 0) {
-                                    vt_cls = &ctx->class_types[ci];
-                                    method_idx = ctx->class_types[ci].fields[fi].index;
-                                    break;
-                                }
-                            }
-                            if (method_idx >= 0)
-                                break;
-                        }
-                    }
+                    LLVMClassTypeEntry *vt_cls =
+                        llvm_lookup_vtable_class_with_method(ctx, method_name,
+                            &method_idx);
 
                     if (vt_cls != NULL && method_idx >= 0) {
                         LLVMVarEntry *pvar = llvm_scope_lookup(ctx, party_var);
@@ -92,7 +72,8 @@ llvm_emit_member_call_vtable_dispatch(ASTNode *node, LLVMGenCtx *ctx,
                                 method_name,
                                 "requires a registered receiver variable");
                         }
-                        fn_ptr_ty = vt_cls->fields[method_idx].field_type;
+                        fn_ptr_ty =
+                            llvm_class_field_type_at_index(vt_cls, method_idx);
                         if (fn_ptr_ty == NULL) {
                             return llvm_vtable_dispatch_error(node, ctx,
                                 method_name,

@@ -1,0 +1,29 @@
+func CanSplitEqualSum(arr: Array<Int>, n: Int) -> Int {
+    let total: Int = 0;
+    let i: Int = 0;
+    while i < n {
+        total = total + arr[i];
+        i = i + 1;
+    }
+    let left: Int = 0;
+    let j: Int = 0;
+    while j < n - 1 {
+        left = left + arr[j];
+        if left * 2 == total { return j + 1; }
+        j = j + 1;
+    }
+    return -1;
+}
+
+func Main() -> Void {
+    let a: Array<Int> = [1, 2, 3, 4, 10];
+    Log(CanSplitEqualSum(a, 5));
+    let b: Array<Int> = [1, 2, 3, 6];
+    Log(CanSplitEqualSum(b, 4));
+    let c: Array<Int> = [5, 5];
+    Log(CanSplitEqualSum(c, 2));
+    let d: Array<Int> = [1, 1, 1, 1];
+    Log(CanSplitEqualSum(d, 4));
+    let e: Array<Int> = [];
+    Log(CanSplitEqualSum(e, 0));
+}

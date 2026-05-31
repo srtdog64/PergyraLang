@@ -1,0 +1,28 @@
+enum Sig { Lo, Med, Hi }
+
+func Threshold(s: Sig) -> Int {
+    match s {
+        case Lo: return 1;
+        case Med: return 50;
+        case Hi: return 99;
+    }
+}
+
+func ClampToSig(score: Int) -> Sig {
+    if score < 33 { return Lo; }
+    if score < 66 { return Med; }
+    return Hi;
+}
+
+func Pipeline(score: Int) -> Int {
+    return Threshold(ClampToSig(score)) + score;
+}
+
+func Main() -> Void {
+    Log(Pipeline(0));
+    Log(Pipeline(33));
+    Log(Pipeline(66));
+    Log(Pipeline(99));
+    Log(Pipeline(-10));
+    Log(Pipeline(150));
+}

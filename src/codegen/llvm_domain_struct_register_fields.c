@@ -136,14 +136,14 @@ llvm_domain_struct_register_zone_fields(LLVMGenCtx *ctx,
 
     entry->domain_kind = LLVM_DOMAIN_ZONE;
     if (llvm_hosted_shared_field_view_missing_mir_metadata(&shared_view)) {
-        llvm_set_error(ctx,
-            "LLVM zone '%s' shared fields missing MIR declaration metadata",
+        llvm_set_mir_inventory_missing(ctx,
+            "MIR-only LLVM path missing zone shared-field metadata for '%s'",
             decl_name != NULL ? decl_name : "<anonymous>");
         return false;
     }
     if (llvm_hosted_zone_layer_slot_view_missing_mir_metadata(&layer_view)) {
-        llvm_set_error(ctx,
-            "LLVM zone '%s' layer slots missing MIR declaration metadata",
+        llvm_set_mir_inventory_missing(ctx,
+            "MIR-only LLVM path missing zone layer-slot metadata for '%s'",
             decl_name != NULL ? decl_name : "<anonymous>");
         return false;
     }
@@ -256,8 +256,8 @@ llvm_domain_struct_register_roster_fields(LLVMGenCtx *ctx,
 
     entry->domain_kind = LLVM_DOMAIN_SYSTEMIC;
     if (llvm_hosted_shared_field_view_missing_mir_metadata(&shared_view)) {
-        llvm_set_error(ctx,
-            "LLVM roster '%s' shared fields missing MIR declaration metadata",
+        llvm_set_mir_inventory_missing(ctx,
+            "MIR-only LLVM path missing roster shared-field metadata for '%s'",
             decl_name != NULL ? decl_name : "<anonymous>");
         return;
     }
@@ -280,8 +280,9 @@ llvm_domain_struct_register_world_fields(LLVMGenCtx *ctx,
     int field_index = 0;
     size_t roster_count = 0;
     ASTNode **rosters = ast_world_rosters(stmt, &roster_count);
-    size_t zone_count = 0;
-    ASTNode **zones = ast_world_zones(stmt, &zone_count);
+    LLVMHostedWorldZoneSlotView zone_view =
+        llvm_hosted_world_zone_slot_view_from_decl(ctx, decl_name, stmt);
+    size_t zone_count = zone_view.count;
     LLVMHostedSharedFieldView shared_view =
         llvm_hosted_shared_field_view_from_decl(ctx, decl_name, stmt);
     size_t state_count = 0;
@@ -289,8 +290,14 @@ llvm_domain_struct_register_world_fields(LLVMGenCtx *ctx,
 
     entry->domain_kind = LLVM_DOMAIN_WORLD;
     if (llvm_hosted_shared_field_view_missing_mir_metadata(&shared_view)) {
-        llvm_set_error(ctx,
-            "LLVM world '%s' shared fields missing MIR declaration metadata",
+        llvm_set_mir_inventory_missing(ctx,
+            "MIR-only LLVM path missing world shared-field metadata for '%s'",
+            decl_name != NULL ? decl_name : "<anonymous>");
+        return false;
+    }
+    if (llvm_hosted_world_zone_slot_view_missing_mir_metadata(&zone_view)) {
+        llvm_set_mir_inventory_missing(ctx,
+            "MIR-only LLVM path missing world zone-slot metadata for '%s'",
             decl_name != NULL ? decl_name : "<anonymous>");
         return false;
     }
@@ -300,33 +307,37 @@ llvm_domain_struct_register_world_fields(LLVMGenCtx *ctx,
             ftypes[field_index], field_index);
     }
     for (size_t j = 0; j < zone_count; j++, field_index++) {
-        ASTNode *wz = zones[j];
-        llvm_class_add_field(entry, ast_world_zone_slot_name(wz),
-            ftypes[field_index], field_index);
+        const char *slot_name =
+            llvm_hosted_world_zone_slot_view_name(&zone_view, j);
+        llvm_class_add_field(entry, slot_name, ftypes[field_index],
+            field_index);
     }
     if (!llvm_domain_struct_register_shared_field_names(ctx, entry, ftypes,
             &field_index, &shared_view, "world")) {
         return false;
     }
     for (size_t j = 0; j < zone_count; j++, field_index++) {
-        ASTNode *wz = zones[j];
+        const char *slot_name =
+            llvm_hosted_world_zone_slot_view_name(&zone_view, j);
         if (!llvm_domain_struct_add_generated_field(ctx, entry,
                 ftypes[field_index], field_index, "zone_active",
-                ast_world_zone_slot_name(wz)))
+                slot_name))
             return false;
     }
     for (size_t j = 0; j < zone_count; j++, field_index++) {
-        ASTNode *wz = zones[j];
+        const char *slot_name =
+            llvm_hosted_world_zone_slot_view_name(&zone_view, j);
         if (!llvm_domain_struct_add_generated_field(ctx, entry,
                 ftypes[field_index], field_index, "zone_dirty",
-                ast_world_zone_slot_name(wz)))
+                slot_name))
             return false;
     }
     for (size_t j = 0; j < zone_count; j++, field_index++) {
-        ASTNode *wz = zones[j];
+        const char *slot_name =
+            llvm_hosted_world_zone_slot_view_name(&zone_view, j);
         if (!llvm_domain_struct_add_generated_field(ctx, entry,
                 ftypes[field_index], field_index, "zone_seen_generation",
-                ast_world_zone_slot_name(wz)))
+                slot_name))
             return false;
     }
     for (size_t j = 0; j < state_count; j++, field_index++) {
@@ -337,17 +348,19 @@ llvm_domain_struct_register_world_fields(LLVMGenCtx *ctx,
             return false;
     }
     for (size_t j = 0; j < zone_count; j++, field_index++) {
-        ASTNode *wz = zones[j];
+        const char *slot_name =
+            llvm_hosted_world_zone_slot_view_name(&zone_view, j);
         if (!llvm_domain_struct_add_generated_field(ctx, entry,
                 ftypes[field_index], field_index, "zone_epoch",
-                ast_world_zone_slot_name(wz)))
+                slot_name))
             return false;
     }
     for (size_t j = 0; j < zone_count; j++, field_index++) {
-        ASTNode *wz = zones[j];
+        const char *slot_name =
+            llvm_hosted_world_zone_slot_view_name(&zone_view, j);
         if (!llvm_domain_struct_add_generated_field(ctx, entry,
                 ftypes[field_index], field_index, "zone_cause",
-                ast_world_zone_slot_name(wz)))
+                slot_name))
             return false;
     }
     for (size_t j = 0; j < state_count; j++, field_index++) {
@@ -382,13 +395,21 @@ llvm_domain_struct_register_default_fields(LLVMGenCtx *ctx,
     const char *decl_name = llvm_decl_node_name(stmt);
     LLVMHostedSharedFieldView shared_view =
         llvm_hosted_shared_field_view_from_decl(ctx, decl_name, stmt);
+    LLVMHostedRoleSlotView role_view =
+        llvm_hosted_role_slot_view_from_decl(ctx, decl_name, stmt);
     int field_index = 0;
 
     if (stmt->type == AST_RELATION_DECL || stmt->type == AST_EFFECT_DECL)
         entry->domain_kind = LLVM_DOMAIN_PROJECTION;
     if (llvm_hosted_shared_field_view_missing_mir_metadata(&shared_view)) {
-        llvm_set_error(ctx,
-            "LLVM domain '%s' shared fields missing MIR declaration metadata",
+        llvm_set_mir_inventory_missing(ctx,
+            "MIR-only LLVM path missing domain shared-field metadata for '%s'",
+            decl_name != NULL ? decl_name : "<anonymous>");
+        return false;
+    }
+    if (llvm_hosted_role_slot_view_missing_mir_metadata(&role_view)) {
+        llvm_set_mir_inventory_missing(ctx,
+            "MIR-only LLVM path missing party role-slot metadata for '%s'",
             decl_name != NULL ? decl_name : "<anonymous>");
         return false;
     }
@@ -401,13 +422,13 @@ llvm_domain_struct_register_default_fields(LLVMGenCtx *ctx,
             &field_index, &shared_view, "domain")) {
         return false;
     }
-    for (size_t j = 0; j < ast_party_role_count(stmt); j++) {
-        ASTNode *rs = ast_party_role(stmt, j);
-        if (rs == NULL || rs->type != AST_ROLE_SLOT
-            || !ast_role_slot_is_dynamic(rs))
+    for (size_t j = 0; j < role_view.count; j++) {
+        const char *slot_name;
+        if (!llvm_hosted_role_slot_view_is_dynamic(&role_view, j))
             continue;
+        slot_name = llvm_hosted_role_slot_view_name(&role_view, j);
         if (!llvm_domain_struct_add_suffixed_field(ctx, entry, ctx->type_i8ptr,
-                field_index, ast_role_slot_name(rs), "vtable"))
+                field_index, slot_name, "vtable"))
             return false;
         field_index++;
     }

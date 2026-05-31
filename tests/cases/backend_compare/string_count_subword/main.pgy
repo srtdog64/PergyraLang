@@ -1,0 +1,27 @@
+func StartsAt(s: String, needle: String, pos: Int) -> Bool {
+    let nl: Int = StringLength(needle);
+    if pos + nl > StringLength(s) { return false; }
+    return Substring(s, pos, pos + nl) == needle;
+}
+
+func Count(s: String, needle: String) -> Int {
+    let n: Int = StringLength(s);
+    let count: Int = 0;
+    let i: Int = 0;
+    while i < n {
+        if StartsAt(s, needle, i) {
+            count = count + 1;
+        }
+        i = i + 1;
+    }
+    return count;
+}
+
+func Main() -> Void {
+    Log(Count("hello world", "o"));
+    Log(Count("banana", "an"));
+    Log(Count("aaaa", "aa"));
+    Log(Count("abc", "d"));
+    Log(Count("", "x"));
+    Log(Count("xyz", ""));
+}

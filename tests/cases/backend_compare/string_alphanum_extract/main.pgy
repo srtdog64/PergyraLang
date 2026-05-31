@@ -1,0 +1,36 @@
+func IsDigit(ch: String) -> Bool {
+    return ch == "0" || ch == "1" || ch == "2" || ch == "3" || ch == "4"
+        || ch == "5" || ch == "6" || ch == "7" || ch == "8" || ch == "9";
+}
+
+func IsLower(ch: String) -> Bool {
+    return ch == "a" || ch == "b" || ch == "c" || ch == "d" || ch == "e"
+        || ch == "f" || ch == "g" || ch == "h" || ch == "i" || ch == "j";
+}
+
+func DigitsOnly(s: String) -> String {
+    let n: Int = StringLength(s);
+    let result: String = "";
+    let i: Int = 0;
+    while i < n {
+        let ch: String = Substring(s, i, i + 1);
+        if IsDigit(ch) { result = result + ch; }
+        i = i + 1;
+    }
+    return result;
+}
+
+func ClassifyChar(ch: String) -> Int {
+    if IsDigit(ch) { return 0; }
+    if IsLower(ch) { return 1; }
+    return -1;
+}
+
+func Main() -> Void {
+    Log(DigitsOnly("abc123def456"));
+    Log(DigitsOnly(""));
+    Log(DigitsOnly("noNumbers"));
+    Log(ClassifyChar("5"));
+    Log(ClassifyChar("c"));
+    Log(ClassifyChar("Z"));
+}

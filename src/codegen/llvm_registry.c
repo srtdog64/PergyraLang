@@ -289,6 +289,33 @@ llvm_lookup_class_by_struct_type(LLVMGenCtx *ctx, LLVMTypeRef struct_type)
     return NULL;
 }
 
+LLVMClassTypeEntry *
+llvm_lookup_vtable_class_with_method(LLVMGenCtx *ctx,
+                                     const char *method_name,
+                                     int *out_method_index)
+{
+    if (out_method_index != NULL)
+        *out_method_index = -1;
+    if (ctx == NULL || method_name == NULL)
+        return NULL;
+
+    for (int i = 0; i < ctx->class_type_count; i++) {
+        const char *class_name = ctx->class_types[i].class_name;
+        int method_index;
+
+        if (class_name == NULL || strstr(class_name, "_vtable") == NULL)
+            continue;
+        method_index = llvm_class_field_index(&ctx->class_types[i], method_name);
+        if (method_index < 0)
+            continue;
+        if (out_method_index != NULL)
+            *out_method_index = method_index;
+        return &ctx->class_types[i];
+    }
+
+    return NULL;
+}
+
 int
 llvm_class_field_index(LLVMClassTypeEntry *entry, const char *field_name)
 {
@@ -300,6 +327,56 @@ llvm_class_field_index(LLVMClassTypeEntry *entry, const char *field_name)
             return entry->fields[i].index;
     }
     return -1;
+}
+
+LLVMTypeRef
+llvm_class_field_type_at_index(LLVMClassTypeEntry *entry, int struct_index)
+{
+    if (entry == NULL)
+        return NULL;
+    for (int i = 0; i < entry->field_count; i++) {
+        if (entry->fields[i].index == struct_index)
+            return entry->fields[i].field_type;
+    }
+    return NULL;
+}
+
+int
+llvm_class_field_count(LLVMClassTypeEntry *entry)
+{
+    return entry != NULL ? entry->field_count : 0;
+}
+
+const char *
+llvm_class_field_name_at(LLVMClassTypeEntry *entry, int ordinal)
+{
+    if (entry == NULL || ordinal < 0 || ordinal >= entry->field_count)
+        return NULL;
+    return entry->fields[ordinal].field_name;
+}
+
+LLVMTypeRef
+llvm_class_field_type_at(LLVMClassTypeEntry *entry, int ordinal)
+{
+    if (entry == NULL || ordinal < 0 || ordinal >= entry->field_count)
+        return NULL;
+    return entry->fields[ordinal].field_type;
+}
+
+int
+llvm_class_field_struct_index_at(LLVMClassTypeEntry *entry, int ordinal)
+{
+    if (entry == NULL || ordinal < 0 || ordinal >= entry->field_count)
+        return -1;
+    return entry->fields[ordinal].index;
+}
+
+bool
+llvm_class_field_is_subject_slot_at(LLVMClassTypeEntry *entry, int ordinal)
+{
+    if (entry == NULL || ordinal < 0 || ordinal >= entry->field_count)
+        return false;
+    return entry->fields[ordinal].is_subject_slot;
 }
 
 void
@@ -471,6 +548,20 @@ llvm_register_enum_variant(LLVMGenCtx *ctx, const char *enum_name,
     ctx->enum_variants[ctx->enum_variant_count].variant_name = variant_name;
     ctx->enum_variants[ctx->enum_variant_count].value = value;
     ctx->enum_variant_count++;
+}
+
+bool
+llvm_enum_type_exists(LLVMGenCtx *ctx, const char *enum_name)
+{
+    if (ctx == NULL || enum_name == NULL)
+        return false;
+    for (int i = ctx->enum_variant_count - 1; i >= 0; i--) {
+        if (ctx->enum_variants[i].enum_name != NULL
+            && strcmp(ctx->enum_variants[i].enum_name, enum_name) == 0) {
+            return true;
+        }
+    }
+    return false;
 }
 
 LLVMEnumVariantEntry *

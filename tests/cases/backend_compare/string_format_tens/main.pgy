@@ -1,0 +1,19 @@
+func TwoDigits(n: Int) -> String {
+    if n < 10 { return "0" + ToString(n); }
+    if n > 99 { return "99"; }
+    return ToString(n);
+}
+
+func Timestamp(h: Int, m: Int, s: Int) -> String {
+    return TwoDigits(h) + ":" + TwoDigits(m) + ":" + TwoDigits(s);
+}
+
+func Main() -> Void {
+    Log(TwoDigits(5));
+    Log(TwoDigits(42));
+    Log(TwoDigits(100));
+    Log(Timestamp(9, 5, 30));
+    Log(Timestamp(0, 0, 0));
+    Log(Timestamp(23, 59, 59));
+    Log(Timestamp(7, 12, 4));
+}

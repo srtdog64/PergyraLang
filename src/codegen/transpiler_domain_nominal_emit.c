@@ -365,24 +365,36 @@ emit_party_decl(ASTNode *node, TranspilerCtx *ctx)
     if (inventory_decl != NULL)
         node = inventory_decl;
 
+    TranspilerHostedRoleSlotView role_view =
+        transpiler_hosted_role_slot_view_from_decl(ctx, name, node);
+    if (transpiler_hosted_role_slot_view_missing_mir_metadata(&role_view)) {
+        transpiler_set_mir_inventory_missing(
+            ctx,
+            "MIR-only C path missing role-slot declaration metadata for party '%s'",
+            name != NULL ? name : "(anonymous-party)");
+        return;
+    }
+
     codebuf_write(ctx->out, "\n/* Party: %s */\n", name);
     codebuf_write(ctx->out, "typedef struct %s\n{\n", name);
 
-    for (size_t i = 0; i < ast_party_role_count(node); i++) {
-        ASTNode *rs = ast_party_role(node, i);
+    for (size_t i = 0; i < role_view.count; i++) {
         const char *slot_name;
         size_t ability_count;
         bool is_dyn;
-        if (rs == NULL || rs->type != AST_ROLE_SLOT)
-            continue;
-        slot_name = ast_role_slot_name(rs);
+        slot_name = transpiler_hosted_role_slot_view_name(&role_view, i);
         if (slot_name == NULL)
             continue;
-        ability_count = ast_role_slot_required_ability_count(rs);
-        is_dyn = ast_role_slot_is_dynamic(rs);
+        ability_count =
+            transpiler_hosted_role_slot_view_required_ability_count(
+                &role_view, i);
+        is_dyn =
+            transpiler_hosted_role_slot_view_is_dynamic(&role_view, i);
         codebuf_write(ctx->out, "    void *%s;\n", slot_name);
         for (size_t j = 0; j < ability_count; j++) {
-            ASTNode *ab = ast_role_slot_required_ability(rs, j);
+            ASTNode *ab =
+                transpiler_hosted_role_slot_view_required_ability(
+                    &role_view, i, j);
             if (ab != NULL && ast_type_name(ab) != NULL) {
                 char typedef_name[128];
                 char *vtable_tag = render_ability_ref_vtable_tag_in_ctx(ctx, ab);
@@ -416,27 +428,39 @@ emit_party_decl(ASTNode *node, TranspilerCtx *ctx)
         }
     }
 
-    for (size_t i = 0; i < ast_party_shared_count(node); i++) {
-        ASTNode *shared = ast_party_shared(node, i);
+    TranspilerHostedSharedFieldView shared_view =
+        transpiler_hosted_shared_field_view_from_decl(ctx, name, node);
+    if (transpiler_hosted_shared_field_view_missing_mir_metadata(
+            &shared_view)) {
+        transpiler_set_mir_inventory_missing(
+            ctx,
+            "MIR-only C path missing shared-field declaration metadata for party '%s'",
+            name != NULL ? name : "(anonymous-party)");
+        return;
+    }
+
+    for (size_t i = 0; i < shared_view.count; i++) {
+        const char *shared_name =
+            transpiler_hosted_shared_field_view_name(&shared_view, i);
         char ft[256];
         char surface_desc[256];
         if (!transpiler_domain_nominal_surface_desc(surface_desc,
                 sizeof(surface_desc), "party shared field", name,
-                ast_party_shared_name(shared), NULL)) {
+                shared_name, NULL)) {
             transpiler_domain_nominal_surface_desc_too_long(
                 ctx, "party shared field");
             return;
         }
         if (!transpiler_require_ast_c_type_copy(
                 ctx,
-                ast_party_shared_type(shared),
+                transpiler_hosted_shared_field_view_type(&shared_view, i),
                 surface_desc,
                 ft,
                 sizeof(ft))) {
             return;
         }
         codebuf_write(ctx->out, "    %s %s;\n", ft,
-            ast_party_shared_name(shared));
+            shared_name != NULL ? shared_name : "field");
     }
 
     codebuf_write(ctx->out, "} %s;\n", name);
@@ -467,20 +491,21 @@ emit_party_decl(ASTNode *node, TranspilerCtx *ctx)
     transpiler_emit_hosted_methods_from_mir_or_error(name, "(anonymous-party)",
         "party", &method_view, ctx);
 
-    for (size_t i = 0; i < ast_party_role_count(node); i++) {
-        ASTNode *rs = ast_party_role(node, i);
+    for (size_t i = 0; i < role_view.count; i++) {
         size_t ability_count;
         const char *slot_name;
-        if (rs == NULL || rs->type != AST_ROLE_SLOT)
+        if (!transpiler_hosted_role_slot_view_is_dynamic(&role_view, i))
             continue;
-        if (!ast_role_slot_is_dynamic(rs))
-            continue;
-        slot_name = ast_role_slot_name(rs);
+        slot_name = transpiler_hosted_role_slot_view_name(&role_view, i);
         if (slot_name == NULL)
             continue;
-        ability_count = ast_role_slot_required_ability_count(rs);
+        ability_count =
+            transpiler_hosted_role_slot_view_required_ability_count(
+                &role_view, i);
         for (size_t j = 0; j < ability_count; j++) {
-            ASTNode *ab = ast_role_slot_required_ability(rs, j);
+            ASTNode *ab =
+                transpiler_hosted_role_slot_view_required_ability(
+                    &role_view, i, j);
             if (ab == NULL || ast_type_name(ab) == NULL)
                 continue;
             char typedef_name[128];

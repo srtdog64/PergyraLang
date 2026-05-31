@@ -47,22 +47,23 @@ llvm_register_domain_structs(LLVMGenCtx *ctx,
                 llvm_hosted_shared_field_view_from_decl(ctx, decl_name, stmt);
             if (llvm_hosted_shared_field_view_missing_mir_metadata(
                     &shared_view)) {
-                llvm_set_error(ctx,
-                    "LLVM domain '%s' shared fields missing MIR declaration metadata",
+                llvm_set_mir_inventory_missing(ctx,
+                    "MIR-only LLVM path missing domain shared-field metadata for '%s'",
                     decl_name);
                 return;
             }
 
             size_t dyn_slot_count = 0;
-            size_t role_count = 0;
-            if (stmt->type == AST_PARTY_DECL) {
-                role_count = ast_party_role_count(stmt);
+            LLVMHostedRoleSlotView role_view =
+                llvm_hosted_role_slot_view_from_decl(ctx, decl_name, stmt);
+            if (llvm_hosted_role_slot_view_missing_mir_metadata(&role_view)) {
+                llvm_set_mir_inventory_missing(ctx,
+                    "MIR-only LLVM path missing party role-slot metadata for '%s'",
+                    decl_name);
+                return;
             }
-            for (size_t j = 0; j < role_count; j++) {
-                ASTNode *role_slot = ast_party_role(stmt, j);
-                if (role_slot != NULL
-                    && role_slot->type == AST_ROLE_SLOT
-                    && ast_role_slot_is_dynamic(role_slot))
+            for (size_t j = 0; j < role_view.count; j++) {
+                if (llvm_hosted_role_slot_view_is_dynamic(&role_view, j))
                     dyn_slot_count++;
             }
 
@@ -81,8 +82,8 @@ llvm_register_domain_structs(LLVMGenCtx *ctx,
                         refresh_count);
                 if (llvm_hosted_zone_layer_slot_view_missing_mir_metadata(
                         &layer_view)) {
-                    llvm_set_error(ctx,
-                        "LLVM zone '%s' layer slots missing MIR declaration metadata",
+                    llvm_set_mir_inventory_missing(ctx,
+                        "MIR-only LLVM path missing zone layer-slot metadata for '%s'",
                         decl_name);
                     return;
                 }
@@ -187,10 +188,19 @@ llvm_register_domain_structs(LLVMGenCtx *ctx,
             } else if (stmt->type == AST_WORLD_DECL) {
                 size_t roster_count = 0;
                 ASTNode **rosters = ast_world_rosters(stmt, &roster_count);
-                size_t zone_count = 0;
-                ASTNode **world_zones = ast_world_zones(stmt, &zone_count);
+                LLVMHostedWorldZoneSlotView zone_view =
+                    llvm_hosted_world_zone_slot_view_from_decl(ctx, decl_name,
+                        stmt);
+                size_t zone_count = zone_view.count;
                 size_t state_count = 0;
                 (void) ast_world_states(stmt, &state_count);
+                if (llvm_hosted_world_zone_slot_view_missing_mir_metadata(
+                        &zone_view)) {
+                    llvm_set_mir_inventory_missing(ctx,
+                        "MIR-only LLVM path missing world zone-slot metadata for '%s'",
+                        decl_name != NULL ? decl_name : "<anonymous>");
+                    return;
+                }
                 fc = roster_count
                     + zone_count
                     + shared_view.count
@@ -213,8 +223,12 @@ llvm_register_domain_structs(LLVMGenCtx *ctx,
                         return;
                 }
                 for (size_t j = 0; j < zone_count; j++, idx++) {
-                    ASTNode *wz = world_zones[j];
-                    const char *zone_type = ast_world_zone_type_name(wz);
+                    ASTNode *wz =
+                        llvm_hosted_world_zone_slot_view_source_ast(
+                            &zone_view, j);
+                    const char *zone_type =
+                        llvm_hosted_world_zone_slot_view_type_name(
+                            &zone_view, j);
                     ftypes[idx] = llvm_domain_required_class_struct_type(ctx,
                         wz, zone_type, "world zone slot");
                     if (ctx->has_error || ftypes[idx] == NULL)

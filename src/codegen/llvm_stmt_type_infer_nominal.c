@@ -38,7 +38,7 @@ llvm_stmt_infer_nominal_name_from_init(LLVMGenCtx *ctx, ASTNode *init)
                 int field_idx = llvm_class_field_index(host_cls, name);
                 if (field_idx >= 0) {
                     LLVMClassTypeEntry *field_cls = llvm_stmt_lookup_class_by_type(
-                        ctx, host_cls->fields[field_idx].field_type);
+                        ctx, llvm_class_field_type_at_index(host_cls, field_idx));
                     if (field_cls != NULL)
                         return field_cls->class_name;
                 }
@@ -87,7 +87,7 @@ llvm_stmt_infer_nominal_name_from_init(LLVMGenCtx *ctx, ASTNode *init)
             int field_idx = llvm_class_field_index(base_cls, ast_member_name(init));
             if (field_idx >= 0) {
                 LLVMClassTypeEntry *field_cls = llvm_stmt_lookup_class_by_type(
-                    ctx, base_cls->fields[field_idx].field_type);
+                    ctx, llvm_class_field_type_at_index(base_cls, field_idx));
                 if (field_cls != NULL)
                     return field_cls->class_name;
             }

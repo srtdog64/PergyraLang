@@ -161,8 +161,8 @@ llvm_emit_world_embedded_action_effect_sync(LLVMGenCtx *ctx,
 
     layer_view = llvm_hosted_zone_layer_slot_view_from_decl(ctx, zone_name, zone_decl);
     if (llvm_hosted_zone_layer_slot_view_missing_mir_metadata(&layer_view)) {
-        llvm_set_error(ctx,
-            "MIR declaration inventory missing zone layer-slot metadata for world effect sync");
+        llvm_set_mir_inventory_missing(ctx,
+            "MIR-only LLVM path missing zone layer-slot metadata for world effect sync");
         return;
     }
     states = ast_zone_states(zone_decl, &state_count);
@@ -300,8 +300,12 @@ llvm_emit_world_embedded_action_effect_sync(LLVMGenCtx *ctx,
             zone_ptr, (unsigned)layer_idx, llvm_tmp_name(ctx));
         source_ptr = LLVMBuildStructGEP2(ctx->builder, zone_cls->struct_type,
             zone_ptr, (unsigned)source_idx, llvm_tmp_name(ctx));
+        LLVMTypeRef source_ty =
+            llvm_class_field_type_at_index(zone_cls, source_idx);
+        if (source_ty == NULL)
+            return;
         source_value = LLVMBuildLoad2(ctx->builder,
-            zone_cls->fields[source_idx].field_type, source_ptr, llvm_tmp_name(ctx));
+            source_ty, source_ptr, llvm_tmp_name(ctx));
 
         if (ast_zone_layer_slot_is_pool(layer_slot)) {
             LLVMValueRef tmp_effect = llvm_create_entry_alloca(ctx,
@@ -310,7 +314,8 @@ llvm_emit_world_embedded_action_effect_sync(LLVMGenCtx *ctx,
             char sync_name[256];
             LLVMFuncEntry *sync_entry;
             LLVMValueRef effect_value;
-            LLVMTypeRef pool_ty = zone_cls->fields[layer_idx].field_type;
+            LLVMTypeRef pool_ty =
+                llvm_class_field_type_at_index(zone_cls, layer_idx);
             LLVMValueRef count_ptr;
             LLVMValueRef count_val;
             LLVMValueRef has_space;
@@ -318,6 +323,9 @@ llvm_emit_world_embedded_action_effect_sync(LLVMGenCtx *ctx,
             LLVMBasicBlockRef insert_bb;
             LLVMBasicBlockRef skip_bb;
             LLVMBasicBlockRef cont_bb;
+
+            if (pool_ty == NULL)
+                return;
 
             LLVMBuildStore(ctx->builder, LLVMConstNull(effect_cls->struct_type), tmp_effect);
             subject_ptr = LLVMBuildStructGEP2(ctx->builder, effect_cls->struct_type,

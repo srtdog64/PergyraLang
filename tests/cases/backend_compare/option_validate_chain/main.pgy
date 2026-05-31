@@ -1,0 +1,25 @@
+func NonEmpty(s: String) -> Option<String> {
+    if StringLength(s) == 0 { return None(); }
+    return Some(s);
+}
+
+func ShortEnough(s: String, max: Int) -> Option<String> {
+    if StringLength(s) > max { return None(); }
+    return Some(s);
+}
+
+func ValidatedLen(s: String, max: Int) -> Int {
+    let first: String = NonEmpty(s) ?? "";
+    if StringLength(first) == 0 { return -1; }
+    let final: String = ShortEnough(first, max) ?? "";
+    if StringLength(final) == 0 { return -2; }
+    return StringLength(final);
+}
+
+func Main() -> Void {
+    Log(ValidatedLen("", 10));
+    Log(ValidatedLen("hi", 10));
+    Log(ValidatedLen("verylongname", 5));
+    Log(ValidatedLen("hello", 5));
+    Log(ValidatedLen("a", 1));
+}

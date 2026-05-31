@@ -51,8 +51,8 @@ llvm_zone_sync_alloc_previous_state(ASTNode *stmt, LLVMGenCtx *ctx,
         (layer_view.count > 0 ? layer_view.count : 1) * sizeof(LLVMValueRef));
 
     if (llvm_hosted_zone_layer_slot_view_missing_mir_metadata(&layer_view)) {
-        llvm_set_error(ctx,
-            "MIR declaration inventory missing zone layer-slot metadata for zone frontier state");
+        llvm_set_mir_inventory_missing(ctx,
+            "MIR-only LLVM path missing zone layer-slot metadata for zone frontier state");
         if (prev_state_addrs_out != NULL)
             *prev_state_addrs_out = prev_state_addrs;
         if (prev_layer_addrs_out != NULL)
@@ -109,8 +109,8 @@ llvm_zone_sync_snapshot_previous_state(ASTNode *stmt,
         llvm_hosted_zone_layer_slot_view_from_decl(ctx, zone_name, stmt);
 
     if (llvm_hosted_zone_layer_slot_view_missing_mir_metadata(&layer_view)) {
-        llvm_set_error(ctx,
-            "MIR declaration inventory missing zone layer-slot metadata for zone frontier snapshot");
+        llvm_set_mir_inventory_missing(ctx,
+            "MIR-only LLVM path missing zone layer-slot metadata for zone frontier snapshot");
         return;
     }
 
@@ -185,8 +185,8 @@ llvm_zone_sync_reset_state_and_layers(ASTNode *stmt,
         llvm_hosted_zone_layer_slot_view_from_decl(ctx, zone_name, stmt);
 
     if (llvm_hosted_zone_layer_slot_view_missing_mir_metadata(&layer_view)) {
-        llvm_set_error(ctx,
-            "MIR declaration inventory missing zone layer-slot metadata for zone frontier reset");
+        llvm_set_mir_inventory_missing(ctx,
+            "MIR-only LLVM path missing zone layer-slot metadata for zone frontier reset");
         return;
     }
 
@@ -243,7 +243,9 @@ llvm_zone_sync_reset_state_and_layers(ASTNode *stmt,
         self_ptr = LLVMGetParam(sync_fn, 0);
         pool_ptr = LLVMBuildStructGEP2(ctx->builder, decl_cls->struct_type,
             self_ptr, (unsigned)field_idx, llvm_tmp_name(ctx));
-        pool_ty = decl_cls->fields[field_idx].field_type;
+        pool_ty = llvm_class_field_type_at_index(decl_cls, field_idx);
+        if (pool_ty == NULL)
+            return;
         i8_ty = LLVMInt8TypeInContext(ctx->context);
 
         items_ptr = LLVMBuildStructGEP2(ctx->builder, pool_ty, pool_ptr, 0, llvm_tmp_name(ctx));
@@ -308,8 +310,8 @@ llvm_zone_sync_update_frontier_continue(ASTNode *stmt,
         llvm_hosted_zone_layer_slot_view_from_decl(ctx, zone_name, stmt);
 
     if (llvm_hosted_zone_layer_slot_view_missing_mir_metadata(&layer_view)) {
-        llvm_set_error(ctx,
-            "MIR declaration inventory missing zone layer-slot metadata for zone frontier continuation");
+        llvm_set_mir_inventory_missing(ctx,
+            "MIR-only LLVM path missing zone layer-slot metadata for zone frontier continuation");
         return;
     }
 

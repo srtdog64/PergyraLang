@@ -87,24 +87,33 @@ role_has_method(ASTNode *role, const char *method_name)
 }
 
 char *
-transpiler_party_slot_first_ability_tag(ASTNode *party_decl,
+transpiler_party_slot_first_ability_tag(TranspilerCtx *ctx,
+                                        ASTNode *party_decl,
                                         const char *slot_name)
 {
-    if (party_decl == NULL || party_decl->type != AST_PARTY_DECL
+    const char *party_name;
+    TranspilerHostedRoleSlotView role_view;
+
+    if (ctx == NULL || party_decl == NULL || party_decl->type != AST_PARTY_DECL
         || slot_name == NULL) {
         return NULL;
     }
 
-    for (size_t i = 0; i < ast_party_role_count(party_decl); i++) {
-        ASTNode *role_slot = ast_party_role(party_decl, i);
-        const char *role_slot_name = role_slot != NULL
-            ? ast_role_slot_name(role_slot)
-            : NULL;
+    party_name = transpiler_decl_name_local(party_decl);
+    role_view =
+        transpiler_hosted_role_slot_view_from_decl(ctx, party_name, party_decl);
+    if (transpiler_hosted_role_slot_view_missing_mir_metadata(&role_view))
+        return NULL;
+
+    for (size_t i = 0; i < role_view.count; i++) {
+        const char *role_slot_name =
+            transpiler_hosted_role_slot_view_name(&role_view, i);
         if (role_slot_name == NULL
             || strcmp(role_slot_name, slot_name) != 0) {
             continue;
         }
-        ASTNode *first_ability = ast_role_slot_required_ability(role_slot, 0);
+        ASTNode *first_ability =
+            transpiler_hosted_role_slot_view_required_ability(&role_view, i, 0);
         if (first_ability == NULL)
             return NULL;
         return render_ability_ref_vtable_tag(first_ability);
@@ -120,27 +129,36 @@ transpiler_party_slot_method_ability_tag(TranspilerCtx *ctx,
                                          const char *method_name)
 {
     char *fallback_tag = NULL;
+    const char *party_name;
+    TranspilerHostedRoleSlotView role_view;
 
     if (ctx == NULL || party_decl == NULL || party_decl->type != AST_PARTY_DECL
         || slot_name == NULL || method_name == NULL) {
         return NULL;
     }
 
-    for (size_t i = 0; i < ast_party_role_count(party_decl); i++) {
-        ASTNode *role_slot = ast_party_role(party_decl, i);
-        const char *role_slot_name = role_slot != NULL
-            ? ast_role_slot_name(role_slot)
-            : NULL;
+    party_name = transpiler_decl_name_local(party_decl);
+    role_view =
+        transpiler_hosted_role_slot_view_from_decl(ctx, party_name, party_decl);
+    if (transpiler_hosted_role_slot_view_missing_mir_metadata(&role_view))
+        return NULL;
+
+    for (size_t i = 0; i < role_view.count; i++) {
+        const char *role_slot_name =
+            transpiler_hosted_role_slot_view_name(&role_view, i);
         size_t ability_count;
-        if (role_slot == NULL
-            || role_slot_name == NULL
+        if (role_slot_name == NULL
             || strcmp(role_slot_name, slot_name) != 0) {
             continue;
         }
-        ability_count = ast_role_slot_required_ability_count(role_slot);
+        ability_count =
+            transpiler_hosted_role_slot_view_required_ability_count(
+                &role_view, i);
 
         for (size_t j = 0; j < ability_count; j++) {
-            ASTNode *ability_ref = ast_role_slot_required_ability(role_slot, j);
+            ASTNode *ability_ref =
+                transpiler_hosted_role_slot_view_required_ability(
+                    &role_view, i, j);
             ASTNode *ability_decl;
             bool has_method = false;
             char *ability_tag;

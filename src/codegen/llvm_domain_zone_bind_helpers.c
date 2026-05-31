@@ -83,8 +83,8 @@ llvm_find_zone_layer_slot(LLVMGenCtx *ctx,
     layer_view =
         llvm_hosted_zone_layer_slot_view_from_decl(ctx, zone_name, zone_decl);
     if (llvm_hosted_zone_layer_slot_view_missing_mir_metadata(&layer_view)) {
-        llvm_set_error(ctx,
-            "MIR declaration inventory missing zone layer-slot metadata for zone bind emission");
+        llvm_set_mir_inventory_missing(ctx,
+            "MIR-only LLVM path missing zone layer-slot metadata for zone bind emission");
         return NULL;
     }
 
@@ -122,6 +122,7 @@ llvm_zone_bind_effect_layer(ASTNode *zone_decl, LLVMClassTypeEntry *zone_cls,
     LLVMValueRef layer_ptr;
     LLVMValueRef target_ptr;
     LLVMValueRef target_value;
+    LLVMTypeRef target_ty;
     bool is_pool = false;
 
     if (zone_decl == NULL || zone_cls == NULL || sync_fn == NULL || ctx == NULL
@@ -163,9 +164,11 @@ llvm_zone_bind_effect_layer(ASTNode *zone_decl, LLVMClassTypeEntry *zone_cls,
         self_ptr, (unsigned)layer_idx, llvm_tmp_name(ctx));
     target_ptr = LLVMBuildStructGEP2(ctx->builder, zone_cls->struct_type,
         self_ptr, (unsigned)target_idx, llvm_tmp_name(ctx));
+    target_ty = llvm_class_field_type_at_index(zone_cls, target_idx);
+    if (target_ty == NULL)
+        return;
     target_value = LLVMBuildLoad2(ctx->builder,
-        zone_cls->fields[target_idx].field_type, target_ptr,
-        llvm_tmp_name(ctx));
+        target_ty, target_ptr, llvm_tmp_name(ctx));
     if (is_pool) {
         LLVMValueRef tmp_effect = llvm_create_entry_alloca(ctx,
             effect_cls->struct_type, "effect.pool.tmp");
@@ -174,13 +177,17 @@ llvm_zone_bind_effect_layer(ASTNode *zone_decl, LLVMClassTypeEntry *zone_cls,
         LLVMFuncEntry *sync_entry;
         LLVMValueRef sync_args[1];
         LLVMValueRef effect_value;
-        LLVMTypeRef pool_ty = zone_cls->fields[layer_idx].field_type;
+        LLVMTypeRef pool_ty =
+            llvm_class_field_type_at_index(zone_cls, layer_idx);
         LLVMValueRef count_ptr;
         LLVMValueRef count_val;
         LLVMValueRef has_space;
         LLVMBasicBlockRef insert_bb;
         LLVMBasicBlockRef skip_bb;
         LLVMBasicBlockRef cont_bb;
+
+        if (pool_ty == NULL)
+            return;
 
         LLVMBuildStore(ctx->builder, LLVMConstNull(effect_cls->struct_type),
             tmp_effect);
@@ -358,6 +365,8 @@ llvm_zone_bind_relation_layer(ASTNode *zone_decl, LLVMClassTypeEntry *zone_cls,
     LLVMValueRef right_ptr;
     LLVMValueRef left_value;
     LLVMValueRef right_value;
+    LLVMTypeRef left_ty;
+    LLVMTypeRef right_ty;
 
     if (zone_decl == NULL || zone_cls == NULL || sync_fn == NULL || ctx == NULL
         || layer_slot_name == NULL || left_slot_name == NULL
@@ -408,10 +417,14 @@ llvm_zone_bind_relation_layer(ASTNode *zone_decl, LLVMClassTypeEntry *zone_cls,
         self_ptr, (unsigned)left_idx, llvm_tmp_name(ctx));
     right_ptr = LLVMBuildStructGEP2(ctx->builder, zone_cls->struct_type,
         self_ptr, (unsigned)right_idx, llvm_tmp_name(ctx));
+    left_ty = llvm_class_field_type_at_index(zone_cls, left_idx);
+    right_ty = llvm_class_field_type_at_index(zone_cls, right_idx);
+    if (left_ty == NULL || right_ty == NULL)
+        return;
     left_value = LLVMBuildLoad2(ctx->builder,
-        zone_cls->fields[left_idx].field_type, left_ptr, llvm_tmp_name(ctx));
+        left_ty, left_ptr, llvm_tmp_name(ctx));
     right_value = LLVMBuildLoad2(ctx->builder,
-        zone_cls->fields[right_idx].field_type, right_ptr, llvm_tmp_name(ctx));
+        right_ty, right_ptr, llvm_tmp_name(ctx));
     {
         LLVMValueRef subject_ptr = LLVMBuildStructGEP2(ctx->builder,
             relation_cls->struct_type, layer_ptr, (unsigned)left_subject_idx,

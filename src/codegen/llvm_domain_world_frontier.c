@@ -40,6 +40,14 @@ llvm_world_frontier_lookup_zone(void *ctx, const char *zone_name)
         (LLVMGenCtx *)ctx, AST_ZONE_DECL, zone_name);
 }
 
+static const char *
+llvm_world_frontier_zone_type_name(void *ctx, size_t index)
+{
+    return llvm_hosted_world_zone_slot_view_type_name(
+        (const LLVMHostedWorldZoneSlotView *)ctx,
+        index);
+}
+
 void
 llvm_world_sync_emit_frontier(ASTNode *stmt, LLVMClassTypeEntry *decl_cls,
                               LLVMValueRef sync_fn,
@@ -68,17 +76,35 @@ llvm_world_sync_emit_frontier(ASTNode *stmt, LLVMClassTypeEntry *decl_cls,
     LLVMBasicBlockRef done_bb;
     LLVMBasicBlockRef derived_exit_bb;
     size_t zone_count = 0;
-    ASTNode **zones;
     size_t state_count = 0;
     ASTNode **states;
+    size_t embedded_frontier_count;
+    LLVMHostedWorldZoneSlotView zone_view;
+    const char *world_name;
 
     if (stmt == NULL || stmt->type != AST_WORLD_DECL || decl_cls == NULL
         || sync_fn == NULL || derived_dirty_addr == NULL
         || needs_derived_addr == NULL || ctx == NULL)
         return;
 
-    zones = ast_world_zones(stmt, &zone_count);
+    world_name = llvm_decl_node_name(stmt);
+    zone_view = llvm_hosted_world_zone_slot_view_from_decl(ctx,
+        world_name, stmt);
+    if (llvm_hosted_world_zone_slot_view_missing_mir_metadata(&zone_view)) {
+        llvm_set_mir_inventory_missing(ctx,
+            "MIR-only LLVM path missing world zone-slot metadata for '%s'",
+            world_name != NULL ? world_name : "<anonymous>");
+        return;
+    }
+    zone_count = zone_view.count;
     states = ast_world_states(stmt, &state_count);
+    embedded_frontier_count =
+        pgy_domain_world_embedded_frontier_count_from_zone_types(
+            zone_view.count,
+            llvm_world_frontier_zone_type_name,
+            &zone_view,
+            llvm_world_frontier_lookup_zone,
+            ctx);
     frontier_pass_addr = llvm_create_entry_alloca(ctx, ctx->type_i32,
         "world.frontier.pass.addr");
     frontier_continue_addr = llvm_create_entry_alloca(ctx, ctx->type_i1,
@@ -90,11 +116,14 @@ llvm_world_sync_emit_frontier(ASTNode *stmt, LLVMClassTypeEntry *decl_cls,
     changed_any_addr = llvm_create_entry_alloca(ctx, ctx->type_i1,
         "world.derived.changed_any.addr");
     frontier_limit_val = LLVMConstInt(ctx->type_i32,
-        (unsigned long long)pgy_domain_world_transitive_frontier_pass_limit(
-            stmt, pgy_domain_world_embedded_frontier_count(
-                stmt, llvm_world_frontier_lookup_zone, ctx)), 0);
+        (unsigned long long)
+            pgy_domain_world_transitive_frontier_pass_limit_from_counts(
+                zone_count, state_count, embedded_frontier_count),
+        0);
     limit_val = LLVMConstInt(ctx->type_i32,
-        (unsigned long long)pgy_domain_world_derived_frontier_pass_limit(stmt), 0);
+        (unsigned long long)
+            pgy_domain_world_derived_frontier_pass_limit_from_count(state_count),
+        0);
     frontier_check_bb = LLVMAppendBasicBlockInContext(ctx->context, sync_fn,
         "world.frontier.check");
     frontier_body_bb = LLVMAppendBasicBlockInContext(ctx->context, sync_fn,
@@ -160,7 +189,7 @@ llvm_world_sync_emit_frontier(ASTNode *stmt, LLVMClassTypeEntry *decl_cls,
     }
 
     llvm_world_frontier_emit_zone_sync_pass(stmt, decl_cls, sync_fn,
-        needs_derived_addr, derived_ptr, zones, zone_count, ctx);
+        needs_derived_addr, derived_ptr, &zone_view, ctx);
 
     LLVMBuildStore(ctx->builder, LLVMConstInt(ctx->type_i32, 0, 0), pass_addr);
     LLVMBuildStore(ctx->builder, LLVMConstInt(ctx->type_i1, 0, 0), continue_addr);
@@ -220,7 +249,7 @@ llvm_world_sync_emit_frontier(ASTNode *stmt, LLVMClassTypeEntry *decl_cls,
     LLVMPositionBuilderAtEnd(ctx->builder, derived_exit_bb);
     llvm_world_frontier_emit_pending_zone_dirty(decl_cls, sync_fn,
         derived_dirty_addr, derived_ptr, frontier_continue_addr,
-        changed_any_addr, zones, zone_count, ctx);
+        changed_any_addr, &zone_view, ctx);
     LLVMBuildBr(ctx->builder, frontier_check_bb);
 
     LLVMPositionBuilderAtEnd(ctx->builder, frontier_done_bb);

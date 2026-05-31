@@ -1,0 +1,42 @@
+enum Phase { Start, Build, Test, Deploy, Done }
+
+func Advance(p: Phase) -> Phase {
+    match p {
+        case Start: return Build;
+        case Build: return Test;
+        case Test: return Deploy;
+        case Deploy: return Done;
+        case Done: return Done;
+    }
+}
+
+func PhaseCode(p: Phase) -> Int {
+    match p {
+        case Start: return 0;
+        case Build: return 1;
+        case Test: return 2;
+        case Deploy: return 3;
+        case Done: return 99;
+    }
+}
+
+func Sequence(start: Phase, steps: Int) -> Int {
+    let p: Phase = start;
+    let i: Int = 0;
+    while i < steps {
+        p = Advance(p);
+        i = i + 1;
+    }
+    return PhaseCode(p);
+}
+
+func Main() -> Void {
+    Log(Sequence(Start, 0));
+    Log(Sequence(Start, 1));
+    Log(Sequence(Start, 2));
+    Log(Sequence(Start, 3));
+    Log(Sequence(Start, 4));
+    Log(Sequence(Start, 5));
+    Log(Sequence(Build, 2));
+    Log(Sequence(Done, 100));
+}

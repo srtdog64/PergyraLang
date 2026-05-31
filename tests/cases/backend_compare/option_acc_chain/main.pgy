@@ -1,0 +1,24 @@
+func Cap(n: Int) -> Option<Int> {
+    if n > 100 { return Some(100); }
+    if n < 0 { return None(); }
+    return Some(n);
+}
+
+func ChainTotal(arr: Array<Int>, n: Int) -> Int {
+    let total: Int = 0;
+    let i: Int = 0;
+    while i < n {
+        let v: Int = Cap(arr[i]) ?? -1;
+        if v >= 0 { total = total + v; }
+        i = i + 1;
+    }
+    return total;
+}
+
+func Main() -> Void {
+    let nums: Array<Int> = [50, 200, -5, 0, 99, -1, 150];
+    Log(ChainTotal(nums, 7));
+    Log(ChainTotal(nums, 4));
+    Log(ChainTotal(nums, 1));
+    Log(ChainTotal(nums, 0));
+}

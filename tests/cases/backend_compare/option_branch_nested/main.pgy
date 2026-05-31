@@ -1,0 +1,26 @@
+func Parse(s: String) -> Option<Int> {
+    if s == "zero" { return Some(0); }
+    if s == "one" { return Some(1); }
+    if s == "two" { return Some(2); }
+    return None();
+}
+
+func Validate(v: Int) -> Option<Int> {
+    if v < 0 { return None(); }
+    if v > 100 { return None(); }
+    return Some(v * 10);
+}
+
+func ParseAndValidate(s: String) -> Int {
+    let raw: Int = Parse(s) ?? -1;
+    if raw < 0 { return -100; }
+    return Validate(raw) ?? -50;
+}
+
+func Main() -> Void {
+    Log(ParseAndValidate("zero"));
+    Log(ParseAndValidate("one"));
+    Log(ParseAndValidate("two"));
+    Log(ParseAndValidate("five"));
+    Log(ParseAndValidate(""));
+}

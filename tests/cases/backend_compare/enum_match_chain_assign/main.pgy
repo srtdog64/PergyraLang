@@ -1,0 +1,20 @@
+enum Level { Low, Mid(Int), High(Int, Int) }
+
+func Scale(l: Level, factor: Int) -> Int {
+    let v: Int = 0;
+    match l {
+        case Low: v = 1;
+        case Mid(x): v = x * 2;
+        case High(a, b): v = a + b;
+    }
+    return v * factor;
+}
+
+func Main() -> Void {
+    Log(Scale(Low, 10));
+    Log(Scale(Low, 0));
+    Log(Scale(Mid(5), 3));
+    Log(Scale(Mid(0), 10));
+    Log(Scale(High(3, 7), 2));
+    Log(Scale(High(-1, 1), 100));
+}

@@ -1,0 +1,27 @@
+func PartitionAround(arr: Array<Int>, n: Int, pivot: Int) -> Int {
+    let lo: Int = 0;
+    let hi: Int = n - 1;
+    while lo <= hi {
+        while lo <= hi && arr[lo] < pivot { lo = lo + 1; }
+        while lo <= hi && arr[hi] >= pivot { hi = hi - 1; }
+        if lo < hi {
+            let tmp: Int = arr[lo];
+            arr[lo] = arr[hi];
+            arr[hi] = tmp;
+            lo = lo + 1;
+            hi = hi - 1;
+        }
+    }
+    return lo;
+}
+
+func Main() -> Void {
+    let a: Array<Int> = [3, 8, 1, 9, 4, 7, 2];
+    Log(PartitionAround(a, 7, 5));
+    let b: Array<Int> = [1, 2, 3, 4, 5];
+    Log(PartitionAround(b, 5, 3));
+    let c: Array<Int> = [5, 4, 3, 2, 1];
+    Log(PartitionAround(c, 5, 3));
+    let d: Array<Int> = [10, 10, 10];
+    Log(PartitionAround(d, 3, 10));
+}

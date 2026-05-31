@@ -1,0 +1,34 @@
+func RemoveAll(arr: Array<Int>, n: Int, val: Int) -> Int {
+    let write: Int = 0;
+    let i: Int = 0;
+    while i < n {
+        if arr[i] != val {
+            arr[write] = arr[i];
+            write = write + 1;
+        }
+        i = i + 1;
+    }
+    return write;
+}
+
+func SumAfter(arr: Array<Int>, n: Int, val: Int) -> Int {
+    let m: Int = RemoveAll(arr, n, val);
+    let s: Int = 0;
+    let i: Int = 0;
+    while i < m {
+        s = s + arr[i];
+        i = i + 1;
+    }
+    return s * 100 + m;
+}
+
+func Main() -> Void {
+    let a: Array<Int> = [1, 2, 3, 2, 4, 2, 5];
+    Log(SumAfter(a, 7, 2));
+    let b: Array<Int> = [1, 1, 1];
+    Log(SumAfter(b, 3, 1));
+    let c: Array<Int> = [5, 5, 5, 5];
+    Log(SumAfter(c, 4, 9));
+    let d: Array<Int> = [];
+    Log(SumAfter(d, 0, 1));
+}

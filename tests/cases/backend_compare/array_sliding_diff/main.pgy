@@ -1,0 +1,35 @@
+func MaxDiff(arr: Array<Int>, n: Int) -> Int {
+    if n < 2 { return 0; }
+    let best: Int = arr[1] - arr[0];
+    let cur_min: Int = arr[0];
+    let i: Int = 1;
+    while i < n {
+        if arr[i] - cur_min > best { best = arr[i] - cur_min; }
+        if arr[i] < cur_min { cur_min = arr[i]; }
+        i = i + 1;
+    }
+    return best;
+}
+
+func SumOfDiffs(arr: Array<Int>, n: Int) -> Int {
+    if n < 2 { return 0; }
+    let s: Int = 0;
+    let i: Int = 1;
+    while i < n {
+        s = s + (arr[i] - arr[i - 1]);
+        i = i + 1;
+    }
+    return s;
+}
+
+func Main() -> Void {
+    let a: Array<Int> = [10, 7, 5, 8, 11, 9];
+    Log(MaxDiff(a, 6));
+    Log(SumOfDiffs(a, 6));
+    let b: Array<Int> = [9, 4, 1];
+    Log(MaxDiff(b, 3));
+    Log(SumOfDiffs(b, 3));
+    let c: Array<Int> = [1];
+    Log(MaxDiff(c, 1));
+    Log(SumOfDiffs(c, 1));
+}

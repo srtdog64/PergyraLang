@@ -1,0 +1,24 @@
+func BinarySearch(arr: Array<Int>, n: Int, target: Int) -> Int {
+    let lo: Int = 0;
+    let hi: Int = n - 1;
+    while lo <= hi {
+        let mid: Int = (lo + hi) / 2;
+        if arr[mid] == target { return mid; }
+        if arr[mid] < target {
+            lo = mid + 1;
+        } else {
+            hi = mid - 1;
+        }
+    }
+    return -1;
+}
+
+func Main() -> Void {
+    let s: Array<Int> = [1, 3, 5, 7, 9, 11, 14, 17];
+    Log(BinarySearch(s, 8, 7));
+    Log(BinarySearch(s, 8, 1));
+    Log(BinarySearch(s, 8, 17));
+    Log(BinarySearch(s, 8, 6));
+    Log(BinarySearch(s, 8, 100));
+    Log(BinarySearch(s, 0, 5));
+}

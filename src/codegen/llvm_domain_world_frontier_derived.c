@@ -67,7 +67,7 @@ llvm_world_frontier_emit_derived_state_pass(ASTNode *stmt,
                 LLVMValueRef input_val;
                 if (input_name == NULL)
                     continue;
-                if (llvm_world_sync_has_zone_slot(stmt, input_name)) {
+                if (llvm_world_sync_has_zone_slot(ctx, stmt, input_name)) {
                     char input_field[256];
                     if (!llvm_world_frontier_field_name(input_field,
                             sizeof(input_field), "zone_active", input_name))
@@ -102,7 +102,8 @@ llvm_world_frontier_emit_derived_state_pass(ASTNode *stmt,
             int zone_idx = llvm_class_field_index(decl_cls, slot_name);
             LLVMClassTypeEntry *zone_cls = NULL;
             if (zone_idx >= 0) {
-                LLVMTypeRef zone_field_ty = decl_cls->fields[zone_idx].field_type;
+                LLVMTypeRef zone_field_ty =
+                    llvm_class_field_type_at_index(decl_cls, zone_idx);
                 zone_cls = llvm_lookup_class_by_struct_type(ctx, zone_field_ty);
             }
             if (zone_cls != NULL && zone_idx >= 0) {

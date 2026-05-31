@@ -1,0 +1,31 @@
+func ReverseInPlace(arr: Array<Int>, n: Int) -> Int {
+    let lo: Int = 0;
+    let hi: Int = n - 1;
+    while lo < hi {
+        let tmp: Int = arr[lo];
+        arr[lo] = arr[hi];
+        arr[hi] = tmp;
+        lo = lo + 1;
+        hi = hi - 1;
+    }
+    let sum: Int = 0;
+    let i: Int = 0;
+    while i < n {
+        sum = sum + arr[i] * (i + 1);
+        i = i + 1;
+    }
+    return sum;
+}
+
+func Main() -> Void {
+    let a: Array<Int> = [1, 2, 3, 4, 5];
+    Log(ReverseInPlace(a, 5));
+    let b: Array<Int> = [10, 20];
+    Log(ReverseInPlace(b, 2));
+    let c: Array<Int> = [7];
+    Log(ReverseInPlace(c, 1));
+    let d: Array<Int> = [];
+    Log(ReverseInPlace(d, 0));
+    let e: Array<Int> = [1, 2, 3];
+    Log(ReverseInPlace(e, 3));
+}

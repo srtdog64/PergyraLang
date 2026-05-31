@@ -1,0 +1,29 @@
+func MaxWindowSum(arr: Array<Int>, n: Int, k: Int) -> Int {
+    if n < k || k == 0 { return 0; }
+    let cur: Int = 0;
+    let i: Int = 0;
+    while i < k {
+        cur = cur + arr[i];
+        i = i + 1;
+    }
+    let best: Int = cur;
+    let j: Int = k;
+    while j < n {
+        cur = cur + arr[j] - arr[j - k];
+        if cur > best { best = cur; }
+        j = j + 1;
+    }
+    return best;
+}
+
+func Main() -> Void {
+    let a: Array<Int> = [1, 5, 2, 8, 3, 9, 4];
+    Log(MaxWindowSum(a, 7, 3));
+    Log(MaxWindowSum(a, 7, 1));
+    Log(MaxWindowSum(a, 7, 7));
+    Log(MaxWindowSum(a, 7, 8));
+    let b: Array<Int> = [10, 10, 10];
+    Log(MaxWindowSum(b, 3, 2));
+    let c: Array<Int> = [-5, -3, -1];
+    Log(MaxWindowSum(c, 3, 2));
+}

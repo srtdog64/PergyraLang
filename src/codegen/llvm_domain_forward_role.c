@@ -80,7 +80,7 @@ llvm_emit_role_method_forward_decls_metadata_first(
         }
 
         ft = LLVMFunctionType(ret, ptypes, (unsigned)(user_pc + 1), 0);
-        if (!llvm_domain_forward_join_name(fname, sizeof(fname), role_name,
+        if (!llvm_role_method_symbol_name(fname, sizeof(fname), role_name,
                 mname)) {
             llvm_set_error(ctx,
                 "LLVM role method routine name is too long for '%s.%s'",
@@ -117,7 +117,7 @@ llvm_emit_role_operator_forward_decl(LLVMGenCtx *ctx,
         || llvm_domain_method_name_metadata_first(NULL, method) == NULL)
         return true;
 
-    if (!llvm_domain_forward_operator_name(opname, sizeof(opname),
+    if (!llvm_role_operator_symbol_name(opname, sizeof(opname),
             suffix, for_type_name)) {
         llvm_set_error(ctx,
             "LLVM role operator routine name is too long for '%s'",

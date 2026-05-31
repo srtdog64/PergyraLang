@@ -46,14 +46,7 @@ llvm_stmt_expected_array_elem_type(LLVMGenCtx *ctx)
 LLVMClassTypeEntry *
 llvm_stmt_lookup_class_by_type(LLVMGenCtx *ctx, LLVMTypeRef type)
 {
-    if (ctx == NULL || type == NULL)
-        return NULL;
-
-    for (int i = 0; i < ctx->class_type_count; i++) {
-        if (ctx->class_types[i].struct_type == type)
-            return &ctx->class_types[i];
-    }
-    return NULL;
+    return llvm_lookup_class_by_struct_type(ctx, type);
 }
 
 static LLVMTypeRef
@@ -204,7 +197,7 @@ llvm_stmt_infer_expr_type(LLVMGenCtx *ctx, ASTNode *expr)
         if (base_cls != NULL) {
             int field_idx = llvm_class_field_index(base_cls, ast_member_name(expr));
             if (field_idx >= 0)
-                return base_cls->fields[field_idx].field_type;
+                return llvm_class_field_type_at_index(base_cls, field_idx);
         }
         {
             char reason[256];

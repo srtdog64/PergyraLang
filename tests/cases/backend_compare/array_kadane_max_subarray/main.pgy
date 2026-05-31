@@ -1,0 +1,29 @@
+func MaxSubarraySum(arr: Array<Int>, n: Int) -> Int {
+    if n == 0 { return 0; }
+    let cur_max: Int = arr[0];
+    let best: Int = arr[0];
+    let i: Int = 1;
+    while i < n {
+        if arr[i] > cur_max + arr[i] {
+            cur_max = arr[i];
+        } else {
+            cur_max = cur_max + arr[i];
+        }
+        if cur_max > best { best = cur_max; }
+        i = i + 1;
+    }
+    return best;
+}
+
+func Main() -> Void {
+    let a: Array<Int> = [-2, 1, -3, 4, -1, 2, 1, -5, 4];
+    Log(MaxSubarraySum(a, 9));
+    let b: Array<Int> = [-1, -2, -3];
+    Log(MaxSubarraySum(b, 3));
+    let c: Array<Int> = [5, 4, 3, 2, 1];
+    Log(MaxSubarraySum(c, 5));
+    let d: Array<Int> = [];
+    Log(MaxSubarraySum(d, 0));
+    let e: Array<Int> = [7];
+    Log(MaxSubarraySum(e, 1));
+}

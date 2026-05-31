@@ -1,0 +1,21 @@
+func IsValidTriangle(a: Int, b: Int, c: Int) -> Bool {
+    if a <= 0 || b <= 0 || c <= 0 { return false; }
+    return a + b > c && b + c > a && a + c > b;
+}
+
+func TriangleType(a: Int, b: Int, c: Int) -> Int {
+    if !IsValidTriangle(a, b, c) { return -1; }
+    if a == b && b == c { return 0; }
+    if a == b || b == c || a == c { return 1; }
+    return 2;
+}
+
+func Main() -> Void {
+    Log(IsValidTriangle(3, 4, 5));
+    Log(IsValidTriangle(1, 1, 5));
+    Log(TriangleType(5, 5, 5));
+    Log(TriangleType(3, 3, 4));
+    Log(TriangleType(3, 4, 5));
+    Log(TriangleType(1, 1, 1));
+    Log(TriangleType(0, 4, 5));
+}

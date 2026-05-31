@@ -21,6 +21,7 @@ bool ast_program_replace_statements(ASTNode* node,
                                     size_t count,
                                     size_t capacity);
 const char* ast_declaration_name(const ASTNode* node);
+GenericParams* ast_declaration_generic_params(const ASTNode* node);
 bool ast_replace_declaration_name_copy(ASTNode* node, const char* name);
 ASTNode* ast_create_function(const char* name);
 size_t ast_func_param_count(const ASTNode* node);

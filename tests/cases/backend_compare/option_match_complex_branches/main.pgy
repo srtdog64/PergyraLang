@@ -1,0 +1,36 @@
+func Validate(n: Int) -> Option<Int> {
+    if n < 0 { return None(); }
+    if n > 100 { return None(); }
+    return Some(n);
+}
+
+func ProcessChain(a: Int, b: Int) -> Int {
+    let oa: Option<Int> = Validate(a);
+    let ob: Option<Int> = Validate(b);
+    let total: Int = 0;
+    match oa {
+        case Some(x):
+            let scaled: Int = x * 10;
+            total = total + scaled;
+        case None:
+            let penalty: Int = -50;
+            total = total + penalty;
+    }
+    match ob {
+        case Some(y):
+            let added: Int = y + 1;
+            total = total + added;
+        case None:
+            let bonus: Int = 1000;
+            total = total + bonus;
+    }
+    return total;
+}
+
+func Main() -> Void {
+    Log(ProcessChain(5, 8));
+    Log(ProcessChain(-1, 10));
+    Log(ProcessChain(10, 200));
+    Log(ProcessChain(-3, -5));
+    Log(ProcessChain(0, 100));
+}

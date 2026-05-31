@@ -217,10 +217,11 @@ require_terms "C zone frontier emitter" "$c_zone_contract" \
 
 require_terms "C world frontier emitter" "$ROOT_DIR/src/codegen/transpiler_world_select_event_emit.c" \
     "transpiler_frontier_lookup_zone" \
-    "pgy_domain_world_embedded_frontier_count" \
+    "transpiler_frontier_world_zone_type_name" \
+    "pgy_domain_world_embedded_frontier_count_from_zone_types" \
     "embedded_frontier_count" \
-    "pgy_domain_world_transitive_frontier_pass_limit" \
-    "pgy_domain_world_derived_frontier_pass_limit" \
+    "pgy_domain_world_transitive_frontier_pass_limit_from_counts" \
+    "pgy_domain_world_derived_frontier_pass_limit_from_count" \
     "_pgy_world_frontier_pass_limit" \
     "_pgy_world_derived_changed_any" \
     "while (_pgy_world_frontier_continue && _pgy_world_frontier_pass < _pgy_world_frontier_pass_limit)" \
@@ -240,10 +241,11 @@ require_terms "C projection frontier emitter" "$ROOT_DIR/src/codegen/transpiler_
 
 require_terms "LLVM world/zone frontier emitter" "$llvm_domain_contract" \
     "llvm_world_frontier_lookup_zone" \
-    "pgy_domain_world_embedded_frontier_count" \
+    "llvm_world_frontier_zone_type_name" \
+    "pgy_domain_world_embedded_frontier_count_from_zone_types" \
     "pgy_domain_zone_frontier_pass_limit_from_counts" \
-    "pgy_domain_world_transitive_frontier_pass_limit" \
-    "pgy_domain_world_derived_frontier_pass_limit" \
+    "pgy_domain_world_transitive_frontier_pass_limit_from_counts" \
+    "pgy_domain_world_derived_frontier_pass_limit_from_count" \
     "zone.frontier.pass.addr" \
     "zone.frontier.continue.addr" \
     "zone.frontier.overflow" \
@@ -285,11 +287,15 @@ require_terms "frontier policy source of truth" "$ROOT_DIR/src/runtime/pgy_front
 require_terms "codegen frontier policy compatibility wrapper declarations" "$ROOT_DIR/src/codegen/domain_frontier_policy.h" \
     "../runtime/pgy_frontier_policy.h" \
     "PgyDomainZoneLookupFn" \
+    "PgyDomainWorldZoneTypeNameFn" \
     "pgy_domain_zone_frontier_pass_limit_from_counts" \
     "pgy_domain_zone_frontier_pass_limit" \
     "pgy_domain_projection_frontier_pass_limit" \
+    "pgy_domain_world_derived_frontier_pass_limit_from_count" \
     "pgy_domain_world_derived_frontier_pass_limit" \
     "pgy_domain_world_embedded_frontier_count" \
+    "pgy_domain_world_embedded_frontier_count_from_zone_types" \
+    "pgy_domain_world_transitive_frontier_pass_limit_from_counts" \
     "pgy_domain_world_transitive_frontier_pass_limit"
 
 require_terms "codegen frontier policy compatibility wrapper implementation" "$ROOT_DIR/src/codegen/domain_frontier_policy.c" \
@@ -298,6 +304,7 @@ require_terms "codegen frontier policy compatibility wrapper implementation" "$R
     "pgy_frontier_projection_pass_limit" \
     "pgy_frontier_world_derived_pass_limit" \
     "pgy_frontier_world_transitive_pass_limit" \
+    "pgy_domain_world_embedded_frontier_count_from_zone_types" \
     "ast_zone_states(zone_decl, &state_count)" \
     "ast_zone_layer_slots(zone_decl, &layer_slot_count)" \
     "ast_world_zones(world_decl, &zone_count)" \
@@ -313,7 +320,10 @@ require_terms "frontier runtime policy smoke" "$ROOT_DIR/tests/runtime_frontier_
     "pgy_frontier_world_transitive_pass_limit" \
     "pgy_domain_zone_frontier_pass_limit" \
     "pgy_domain_projection_frontier_pass_limit" \
+    "pgy_domain_world_derived_frontier_pass_limit_from_count" \
+    "pgy_domain_world_embedded_frontier_count_from_zone_types" \
     "pgy_domain_world_transitive_frontier_pass_limit" \
+    "pgy_domain_world_transitive_frontier_pass_limit_from_counts" \
     "src/parser/ast_domain_accessors_world.c" \
     "world-transitive-embedded-limit" \
     "UINT32_MAX"

@@ -1,0 +1,27 @@
+func SwapPairs(arr: Array<Int>, n: Int) -> Int {
+    let i: Int = 0;
+    while i + 1 < n {
+        let tmp: Int = arr[i];
+        arr[i] = arr[i + 1];
+        arr[i + 1] = tmp;
+        i = i + 2;
+    }
+    let sum: Int = 0;
+    let k: Int = 0;
+    while k < n {
+        sum = sum + arr[k] * (k + 1);
+        k = k + 1;
+    }
+    return sum;
+}
+
+func Main() -> Void {
+    let a: Array<Int> = [1, 2, 3, 4, 5, 6];
+    Log(SwapPairs(a, 6));
+    let b: Array<Int> = [1, 2, 3];
+    Log(SwapPairs(b, 3));
+    let c: Array<Int> = [10, 20];
+    Log(SwapPairs(c, 2));
+    let d: Array<Int> = [99];
+    Log(SwapPairs(d, 1));
+}

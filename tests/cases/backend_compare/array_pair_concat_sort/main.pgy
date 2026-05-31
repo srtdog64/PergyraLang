@@ -1,0 +1,47 @@
+func MergeSorted(a: Array<Int>, na: Int, b: Array<Int>, nb: Int, out: Array<Int>) -> Int {
+    let i: Int = 0;
+    let j: Int = 0;
+    let k: Int = 0;
+    while i < na && j < nb {
+        if a[i] <= b[j] {
+            out[k] = a[i];
+            i = i + 1;
+        } else {
+            out[k] = b[j];
+            j = j + 1;
+        }
+        k = k + 1;
+    }
+    while i < na {
+        out[k] = a[i];
+        i = i + 1;
+        k = k + 1;
+    }
+    while j < nb {
+        out[k] = b[j];
+        j = j + 1;
+        k = k + 1;
+    }
+    let sum: Int = 0;
+    let m: Int = 0;
+    while m < k {
+        sum = sum + out[m] * (m + 1);
+        m = m + 1;
+    }
+    return sum;
+}
+
+func Main() -> Void {
+    let a: Array<Int> = [1, 3, 5];
+    let b: Array<Int> = [2, 4, 6];
+    let o: Array<Int> = [0, 0, 0, 0, 0, 0];
+    Log(MergeSorted(a, 3, b, 3, o));
+    let a2: Array<Int> = [1, 2];
+    let b2: Array<Int> = [3, 4, 5];
+    let o2: Array<Int> = [0, 0, 0, 0, 0];
+    Log(MergeSorted(a2, 2, b2, 3, o2));
+    let e: Array<Int> = [];
+    let nx: Array<Int> = [10, 20];
+    let o3: Array<Int> = [0, 0];
+    Log(MergeSorted(e, 0, nx, 2, o3));
+}

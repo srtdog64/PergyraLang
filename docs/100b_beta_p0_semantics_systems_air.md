@@ -540,9 +540,11 @@ Runtime frontier scheduler closure:
   only the outer world shape as its bounded-fixpoint budget. The frontier
   contract smoke now emits the existing embedded-world action fixture and
   rejects the old outer-only generated limit. The embedded budget loop itself
-  now lives in `pgy_domain_world_embedded_frontier_count(...)` under the shared
-  codegen frontier policy wrapper; C and LLVM only provide backend-local zone
-  lookup callbacks.
+  now lives in
+  `pgy_domain_world_embedded_frontier_count_from_zone_types(...)` under the
+  shared codegen frontier policy wrapper; C and LLVM provide backend-local
+  zone-slot type streams and zone lookup callbacks. The older AST wrapper
+  remains only as a compatibility entry point for tests/null-boundary probes.
 - 2026-05-04 update: zone, projection, world-transitive, and world-derived
   pass-limit selection now goes through the named `pgy_domain_*_frontier_*`
   wrappers in `src/codegen/domain_frontier_policy.h`. C and LLVM backend

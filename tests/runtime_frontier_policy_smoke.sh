@@ -39,10 +39,18 @@ expect_nonempty_string(const char *name, const char *value)
     return value != NULL && value[0] != '\0' ? 0 : 1;
 }
 
+static const char *
+test_zone_type_name_at(void *ctx, size_t index)
+{
+    const char **names = (const char **)ctx;
+    return names[index];
+}
+
 int
 main(void)
 {
     size_t cap = (size_t)UINT32_MAX;
+    const char *zone_names[] = {"DemoZone"};
     int failures = 0;
 
     failures += expect_size("cap", pgy_frontier_pass_limit_cap(), cap);
@@ -71,8 +79,14 @@ main(void)
     failures += expect_size("domain-zone-counted", pgy_domain_zone_frontier_pass_limit_from_counts(2, 3), 6);
     failures += expect_size("domain-projection", pgy_domain_projection_frontier_pass_limit(3), 4);
     failures += expect_size("domain-world-derived-null", pgy_domain_world_derived_frontier_pass_limit(NULL), 1);
+    failures += expect_size("domain-world-derived-counted", pgy_domain_world_derived_frontier_pass_limit_from_count(4), 5);
     failures += expect_size("domain-world-embedded-null", pgy_domain_world_embedded_frontier_count(NULL, NULL, NULL), 0);
+    failures += expect_size("domain-world-embedded-types-null",
+                            pgy_domain_world_embedded_frontier_count_from_zone_types(
+                                1, test_zone_type_name_at, zone_names, NULL, NULL),
+                            0);
     failures += expect_size("domain-world-transitive-null", pgy_domain_world_transitive_frontier_pass_limit(NULL, 3), 4);
+    failures += expect_size("domain-world-transitive-counted", pgy_domain_world_transitive_frontier_pass_limit_from_counts(2, 4, 3), 10);
     failures += expect_size("pass-limit-fact-count", PGY_FRONTIER_PASS_LIMIT_FACT_COUNT, 9);
     failures += expect_size("overflow-reason-fact-count", PGY_FRONTIER_OVERFLOW_REASON_FACT_COUNT, 5);
     failures += expect_size("policy-fact-count", PGY_FRONTIER_POLICY_FACT_COUNT, 14);

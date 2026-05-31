@@ -7,6 +7,73 @@
 
 #include "llvm_internal.h"
 #include "llvm_domain_role_helpers.h"
+#include "llvm_inventory_decl_lookup.h"
+
+bool
+llvm_role_method_symbol_name(char *out,
+                             size_t out_size,
+                             const char *role_name,
+                             const char *method_name)
+{
+    int written;
+
+    if (out == NULL || out_size == 0 || role_name == NULL
+        || method_name == NULL) {
+        return false;
+    }
+
+    written = snprintf(out, out_size, "%s_%s", role_name, method_name);
+    return written >= 0 && (size_t)written < out_size;
+}
+
+bool
+llvm_role_operator_symbol_name(char *out,
+                               size_t out_size,
+                               const char *suffix,
+                               const char *for_type_name)
+{
+    int written;
+
+    if (out == NULL || out_size == 0 || suffix == NULL
+        || for_type_name == NULL) {
+        return false;
+    }
+
+    written = snprintf(out, out_size, "operator_%s_%s", suffix, for_type_name);
+    return written >= 0 && (size_t)written < out_size;
+}
+
+bool
+llvm_role_vtable_type_name(char *out,
+                           size_t out_size,
+                           const char *ability_name)
+{
+    int written;
+
+    if (out == NULL || out_size == 0 || ability_name == NULL)
+        return false;
+
+    written = snprintf(out, out_size, "%s_vtable", ability_name);
+    return written >= 0 && (size_t)written < out_size;
+}
+
+bool
+llvm_role_vtable_global_name(char *out,
+                             size_t out_size,
+                             const char *role_name,
+                             const char *ability_name)
+{
+    int written;
+
+    if (out == NULL || out_size == 0 || role_name == NULL
+        || ability_name == NULL) {
+        return false;
+    }
+
+    written = snprintf(out, out_size, "%s_%s_vtable_instance",
+        role_name, ability_name);
+    return written >= 0 && (size_t)written < out_size;
+}
 
 ASTNode *
 llvm_find_role_decl(LLVMGenCtx *ctx, const char *role_name)
@@ -67,6 +134,64 @@ llvm_find_role_operator_method(LLVMGenCtx *ctx, ASTNode *role,
     }
 
     return NULL;
+}
+
+const char *
+llvm_party_slot_first_ability_name(LLVMGenCtx *ctx,
+                                   const char *party_type_name,
+                                   const char *slot_name)
+{
+    ASTNode *party_decl;
+    LLVMHostedRoleSlotView role_view;
+
+    if (ctx == NULL || party_type_name == NULL || slot_name == NULL)
+        return NULL;
+
+    party_decl = llvm_find_named_domain_decl(ctx, AST_PARTY_DECL,
+        party_type_name);
+    if (party_decl == NULL || party_decl->type != AST_PARTY_DECL)
+        return NULL;
+
+    role_view = llvm_hosted_role_slot_view_from_decl(
+        ctx, party_type_name, party_decl);
+    if (llvm_hosted_role_slot_view_missing_mir_metadata(&role_view))
+        return NULL;
+
+    for (size_t i = 0; i < role_view.count; i++) {
+        const char *role_slot_name =
+            llvm_hosted_role_slot_view_name(&role_view, i);
+        ASTNode *ability_ref;
+        const char *ability_name;
+
+        if (role_slot_name == NULL
+            || strcmp(role_slot_name, slot_name) != 0) {
+            continue;
+        }
+
+        ability_ref =
+            llvm_hosted_role_slot_view_required_ability(&role_view, i, 0);
+        ability_name = ast_type_name(ability_ref);
+        return ability_name;
+    }
+
+    return NULL;
+}
+
+LLVMValueRef
+llvm_lookup_role_vtable_global(LLVMGenCtx *ctx,
+                               const char *role_name,
+                               const char *ability_name)
+{
+    char global_name[256];
+
+    if (ctx == NULL || role_name == NULL || ability_name == NULL)
+        return NULL;
+    if (!llvm_role_vtable_global_name(global_name, sizeof(global_name),
+            role_name, ability_name)) {
+        return NULL;
+    }
+
+    return LLVMGetNamedGlobal(ctx->module, global_name);
 }
 
 #endif /* PGY_LLVM_ENABLED */

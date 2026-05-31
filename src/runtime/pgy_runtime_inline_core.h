@@ -7,6 +7,7 @@
 #include "pgy_runtime_intent_query_inline.h"
 #include "pgy_runtime_panic_checked_inline.h"
 #include "pgy_runtime_memory_array_slot_inline.h"
+#include "pgy_runtime_slot_status.h"
 #include "pgy_runtime_plain_slot_inline.h"
 #include "pgy_runtime_slot_macros.h"
 #include "pgy_runtime_array_sort_inline.h"

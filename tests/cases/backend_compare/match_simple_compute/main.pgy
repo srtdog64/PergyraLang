@@ -1,0 +1,23 @@
+enum Mode { Sum, Product, Diff }
+
+func Compute(a: Int, b: Int, m: Mode) -> Int {
+    match m {
+        case Sum:
+            let r: Int = a + b;
+            return r * 10;
+        case Product:
+            let r: Int = a * b;
+            return r + 100;
+        case Diff:
+            let r: Int = a - b;
+            return r - 1000;
+    }
+}
+
+func Main() -> Void {
+    Log(Compute(3, 4, Sum));
+    Log(Compute(3, 4, Product));
+    Log(Compute(3, 4, Diff));
+    Log(Compute(10, 5, Sum));
+    Log(Compute(0, 0, Product));
+}

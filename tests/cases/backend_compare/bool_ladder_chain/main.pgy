@@ -1,0 +1,26 @@
+func Grade(score: Int, max: Int) -> Int {
+    let ratio: Int = 0;
+    if max > 0 { ratio = score * 100 / max; }
+    if ratio < 0 { return -1; }
+    if ratio >= 90 { return 5; }
+    if ratio >= 80 { return 4; }
+    if ratio >= 70 { return 3; }
+    if ratio >= 60 { return 2; }
+    if ratio >= 50 { return 1; }
+    return 0;
+}
+
+func IsPass(score: Int, max: Int) -> Bool {
+    return Grade(score, max) >= 2;
+}
+
+func Main() -> Void {
+    Log(Grade(95, 100));
+    Log(Grade(85, 100));
+    Log(Grade(72, 100));
+    Log(Grade(50, 100));
+    Log(Grade(35, 100));
+    Log(IsPass(70, 100));
+    Log(IsPass(45, 100));
+    Log(Grade(50, 0));
+}

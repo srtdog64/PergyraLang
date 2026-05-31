@@ -145,11 +145,12 @@ llvm_expr_custom_type_name(ASTNode *node, LLVMGenCtx *ctx)
             if (host_cls != NULL) {
                 int field_idx = llvm_class_field_index(host_cls, name);
                 if (field_idx >= 0) {
-                    LLVMTypeRef field_ty = host_cls->fields[field_idx].field_type;
-                    for (int i = 0; i < ctx->class_type_count; i++) {
-                        if (ctx->class_types[i].struct_type == field_ty)
-                            return ctx->class_types[i].class_name;
-                    }
+                    LLVMTypeRef field_ty =
+                        llvm_class_field_type_at_index(host_cls, field_idx);
+                    LLVMClassTypeEntry *field_cls =
+                        llvm_lookup_class_by_type(ctx, field_ty);
+                    if (field_cls != NULL)
+                        return field_cls->class_name;
                 }
             }
         }
@@ -180,11 +181,12 @@ llvm_expr_custom_type_name(ASTNode *node, LLVMGenCtx *ctx)
                 int field_idx = llvm_class_field_index(base_cls,
                     ast_member_name(node));
                 if (field_idx >= 0) {
-                    LLVMTypeRef field_ty = base_cls->fields[field_idx].field_type;
-                    for (int i = 0; i < ctx->class_type_count; i++) {
-                        if (ctx->class_types[i].struct_type == field_ty)
-                            return ctx->class_types[i].class_name;
-                    }
+                    LLVMTypeRef field_ty =
+                        llvm_class_field_type_at_index(base_cls, field_idx);
+                    LLVMClassTypeEntry *field_cls =
+                        llvm_lookup_class_by_type(ctx, field_ty);
+                    if (field_cls != NULL)
+                        return field_cls->class_name;
                 }
             }
         }
@@ -211,10 +213,10 @@ llvm_expr_custom_type_name(ASTNode *node, LLVMGenCtx *ctx)
                     fn = llvm_lookup_function(ctx, full_name);
                 }
                 if (fn != NULL) {
-                    for (int i = 0; i < ctx->class_type_count; i++) {
-                        if (ctx->class_types[i].struct_type == fn->ret_type)
-                            return ctx->class_types[i].class_name;
-                    }
+                    LLVMClassTypeEntry *ret_cls =
+                        llvm_lookup_class_by_type(ctx, fn->ret_type);
+                    if (ret_cls != NULL)
+                        return ret_cls->class_name;
                 }
             }
         }
@@ -227,11 +229,7 @@ llvm_expr_custom_type_name(ASTNode *node, LLVMGenCtx *ctx)
 LLVMClassTypeEntry *
 llvm_lookup_class_by_type(LLVMGenCtx *ctx, LLVMTypeRef ty)
 {
-    for (int i = 0; i < ctx->class_type_count; i++) {
-        if (ctx->class_types[i].struct_type == ty)
-            return &ctx->class_types[i];
-    }
-    return NULL;
+    return llvm_lookup_class_by_struct_type(ctx, ty);
 }
 
 ASTNode *

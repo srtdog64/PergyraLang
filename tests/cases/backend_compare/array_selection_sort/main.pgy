@@ -1,0 +1,33 @@
+func SelectionSort(arr: Array<Int>, n: Int) -> Int {
+    let i: Int = 0;
+    while i < n - 1 {
+        let mi: Int = i;
+        let j: Int = i + 1;
+        while j < n {
+            if arr[j] < arr[mi] { mi = j; }
+            j = j + 1;
+        }
+        if mi != i {
+            let tmp: Int = arr[i];
+            arr[i] = arr[mi];
+            arr[mi] = tmp;
+        }
+        i = i + 1;
+    }
+    let sum: Int = 0;
+    let k: Int = 0;
+    while k < n {
+        sum = sum + arr[k] * (k + 1);
+        k = k + 1;
+    }
+    return sum;
+}
+
+func Main() -> Void {
+    let a: Array<Int> = [9, 3, 7, 1, 8, 5];
+    Log(SelectionSort(a, 6));
+    let b: Array<Int> = [5, 5, 5, 5];
+    Log(SelectionSort(b, 4));
+    let c: Array<Int> = [-3, -1, -5, -2];
+    Log(SelectionSort(c, 4));
+}

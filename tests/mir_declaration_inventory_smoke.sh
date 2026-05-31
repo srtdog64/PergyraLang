@@ -35,6 +35,7 @@ require_term() {
 
 for rel in \
     "src/codegen/llvm_internal.h" \
+    "src/codegen/llvm_internal_api.h" \
     "src/codegen/llvm_inventory_internal.c" \
     "src/codegen/llvm_inventory_internal.h" \
     "src/codegen/llvm_inventory_decl_lookup.c" \
@@ -49,6 +50,8 @@ for rel in \
     "src/codegen/llvm_domain_method_emit.c" \
     "src/codegen/llvm_domain_forward.c" \
     "src/codegen/llvm_domain_forward.h" \
+    "src/codegen/llvm_backend_type_map.c" \
+    "src/codegen/llvm_registry.c" \
     "src/codegen/llvm_decl_authority.c" \
     "src/codegen/llvm_decl_authority.h" \
     "src/codegen/llvm_decl_routines.c" \
@@ -69,6 +72,8 @@ for rel in \
     "src/compiler/mir_public_surface.c" \
     "src/compiler/mir_decl_headers.c" \
     "src/compiler/mir_decl_headers.h" \
+    "src/parser/ast_api.h" \
+    "src/parser/ast_decl_accessors.c" \
     "docs/100_beta_readiness_checklist.md" \
     "TODO.md"; do
     require_file "$rel"
@@ -96,6 +101,134 @@ for term in \
     "case AST_ROSTER_DECL"; do
     require_term "src/codegen/host_decl_compat.c" "$term"
 done
+for term in \
+    "ast_declaration_generic_params" \
+    "case AST_FUNC_DECL" \
+    "case AST_CLASS_DECL" \
+    "case AST_ABILITY_DECL" \
+    "case AST_ROLE_DECL" \
+    "case AST_PARTY_DECL" \
+    "case AST_ROSTER_DECL"; do
+    require_term "src/parser/ast_decl_accessors.c" "$term"
+done
+require_term "src/parser/ast_api.h" \
+    "GenericParams* ast_declaration_generic_params"
+require_term "src/codegen/llvm_backend_type_map.c" \
+    "ast_declaration_generic_params(decl)"
+if grep -Eq 'ast_(func|class|ability|role|party|roster)_generic_params\(decl\)' \
+    "$ROOT_DIR/src/codegen/llvm_backend_type_map.c"; then
+    fail "LLVM generic default lookup must consume ast_declaration_generic_params"
+fi
+for rel in \
+    "src/codegen/llvm_expr_constructor_calls.c" \
+    "src/codegen/llvm_domain_projection_value_helpers.c" \
+    "src/codegen/llvm_expr_projection_path_helpers.c"; do
+    require_term "$rel" "llvm_class_field_type_at_index("
+    if grep -Eq 'fields\[[^]]+\]\.index == field_index' "$ROOT_DIR/$rel"; then
+        fail "$rel must consume llvm_class_field_type_at_index for index-to-type recovery"
+    fi
+done
+require_term "src/codegen/llvm_internal_api.h" \
+    "LLVMTypeRef         llvm_class_field_type_at_index"
+for term in \
+    "llvm_class_field_count" \
+    "llvm_class_field_name_at" \
+    "llvm_class_field_type_at" \
+    "llvm_class_field_struct_index_at" \
+    "llvm_class_field_is_subject_slot_at"; do
+    require_term "src/codegen/llvm_internal_api.h" "$term"
+    require_term "src/codegen/llvm_registry.c" "$term"
+done
+require_term "src/codegen/llvm_registry.c" \
+    "llvm_class_field_type_at_index(LLVMClassTypeEntry *entry, int struct_index)"
+for rel in \
+    "src/codegen/llvm_expr_constructor_calls.c" \
+    "src/codegen/llvm_domain_projection_value_helpers.c" \
+    "src/codegen/llvm_expr_projection_path_helpers.c" \
+    "src/codegen/llvm_mir_emit.c" \
+    "src/codegen/llvm_intent_zone.c" \
+    "src/codegen/llvm_expr_host_spawn_literal_helpers.c"; do
+    require_term "$rel" "llvm_class_field_count("
+    require_term "$rel" "llvm_class_field_name_at("
+    require_term "$rel" "llvm_class_field_struct_index_at("
+    if grep -Fq -- "->fields[" "$ROOT_DIR/$rel"; then
+        fail "$rel must consume LLVM class-field registry accessors instead of raw fields[]"
+    fi
+done
+require_term "src/codegen/llvm_intent_zone.c" \
+    "llvm_class_field_is_subject_slot_at("
+require_term "src/codegen/llvm_intent_zone.c" \
+    "llvm_class_field_type_at("
+raw_llvm_class_field_hits="$(
+    grep -R --include='llvm*.c' --include='llvm*.h' -F -- "->fields[" \
+        "$ROOT_DIR/src/codegen" |
+        grep -Fv "/src/codegen/llvm_registry.c:" |
+        sed "s#^$ROOT_DIR/##" ||
+        true
+)"
+if [[ -n "$raw_llvm_class_field_hits" ]]; then
+    fail "LLVM class-field storage must stay behind llvm_registry.c:
+$raw_llvm_class_field_hits"
+fi
+require_term "src/codegen/llvm_internal_api.h" \
+    "bool                llvm_enum_type_exists"
+require_term "src/codegen/llvm_registry.c" \
+    "llvm_enum_type_exists(LLVMGenCtx *ctx, const char *enum_name)"
+require_term "src/codegen/llvm_type.c" \
+    "llvm_enum_type_exists(ctx, type_name)"
+if grep -Eq 'ctx->enum_variant_count|ctx->enum_variants\[' \
+    "$ROOT_DIR/src/codegen/llvm_type.c"; then
+    fail "LLVM source type resolution must consume enum registry APIs instead of raw enum variant arrays"
+fi
+require_term "src/codegen/llvm_expr_common.c" \
+    "return llvm_lookup_class_by_struct_type(ctx, ty)"
+require_term "src/codegen/llvm_stmt_type_infer.c" \
+    "return llvm_lookup_class_by_struct_type(ctx, type)"
+require_term "src/codegen/llvm_internal_api.h" \
+    "LLVMClassTypeEntry *llvm_lookup_vtable_class_with_method"
+require_term "src/codegen/llvm_registry.c" \
+    "llvm_lookup_vtable_class_with_method(LLVMGenCtx *ctx,"
+require_term "src/codegen/llvm_expr_call_methods_vtable_dispatch.c" \
+    "llvm_lookup_vtable_class_with_method(ctx, method_name"
+require_term "src/codegen/llvm_internal_api.h" \
+    "int llvm_event_type_count"
+require_term "src/codegen/llvm_internal_api.h" \
+    "LLVMEventTypeEntry *llvm_event_type_at"
+require_term "src/codegen/llvm_event.c" \
+    "llvm_event_type_at(LLVMGenCtx *ctx, int index)"
+require_term "src/codegen/llvm_main_wrapper.c" \
+    "llvm_event_type_count(ctx)"
+require_term "src/codegen/llvm_main_wrapper.c" \
+    "llvm_event_type_at(ctx, i)"
+if grep -Fq "ctx->class_type_count" \
+    "$ROOT_DIR/src/codegen/llvm_expr_call_methods_vtable_dispatch.c"; then
+    fail "LLVM vtable dispatch must consume registry vtable lookup"
+fi
+if grep -Eq 'ctx->event_type_count|ctx->event_types\[' \
+    "$ROOT_DIR/src/codegen/llvm_main_wrapper.c"; then
+    fail "LLVM main wrapper must consume event registry accessors instead of raw event arrays"
+fi
+if grep -R --include='llvm*.c' -n 'LLVMAppendBasicBlock(' \
+    "$ROOT_DIR/src/codegen" >/dev/null; then
+    fail "LLVM backend must use LLVMAppendBasicBlockInContext, not deprecated global-context block append"
+fi
+for rel in \
+    "src/codegen/llvm_expr.c" \
+    "src/codegen/llvm_stmt.c"; do
+    require_term "$rel" "llvm_class_field_index("
+    if grep -Eq 'strcmp\([^,]*fields\[[^]]+\]\.field_name' "$ROOT_DIR/$rel"; then
+        fail "$rel must consume llvm_class_field_index for class field lookup"
+    fi
+done
+raw_llvm_field_type_hits="$(
+    grep -R --include='llvm*.c' -EHIn \
+        'fields\[[A-Za-z_][A-Za-z0-9_]*(idx|_idx|index)\]\.field_type' \
+        "$ROOT_DIR/src/codegen" | sed "s#^$ROOT_DIR/##" || true
+)"
+if [[ -n "$raw_llvm_field_type_hits" ]]; then
+    fail "LLVM consumers must not index fields[] with struct field indexes for type lookup:
+$raw_llvm_field_type_hits"
+fi
 for term in \
     "PgyHostClassFieldsCompatView" \
     "pgy_host_class_fields_compat_view_from_decl" \
@@ -397,6 +530,10 @@ fi
 require_term "src/codegen/transpiler_domain_constructor_emit.c" \
     "transpiler_hosted_shared_field_view_from_decl(ctx, decl_name, decl)"
 require_term "src/codegen/transpiler_domain_constructor_emit.c" \
+    "transpiler_hosted_shared_field_view_from_decl(ctx, decl_name, party_decl)"
+require_term "src/codegen/transpiler_domain_constructor_emit.c" \
+    "transpiler_hosted_shared_field_view_from_decl(ctx, decl_name, roster_decl)"
+require_term "src/codegen/transpiler_domain_constructor_emit.c" \
     "transpiler_hosted_shared_field_view_from_decl(ctx, decl_name, zone_decl)"
 require_term "src/codegen/transpiler_domain_constructor_emit.c" \
     "transpiler_hosted_shared_field_view_from_decl(ctx, decl_name, world_decl)"
@@ -409,6 +546,10 @@ require_term "src/codegen/transpiler_domain_constructor_emit.c" \
 if grep -Fq "pgy_host_shared_fields_compat_view_from_decl" \
     "$ROOT_DIR/src/codegen/transpiler_domain_constructor_emit.c"; then
     fail "C domain constructor emission must consume TranspilerHostedSharedFieldView"
+fi
+if grep -Eq 'ast_(party|roster)_shared_count|ast_(party|roster)_shared\(|ast_party_shared_(name|type)\(' \
+    "$ROOT_DIR/src/codegen/transpiler_domain_constructor_emit.c"; then
+    fail "C party/roster constructors must consume TranspilerHostedSharedFieldView for shared-field name/type/count"
 fi
 require_term "src/codegen/transpiler_mir_ssa_names.c" \
     "transpiler_hosted_shared_field_view_from_decl("
@@ -471,6 +612,37 @@ if grep -Fq "ast_zone_layer_slots" \
     "$ROOT_DIR/src/codegen/llvm_domain_struct_register_fields.c"; then
     fail "LLVM zone struct field registration must consume LLVMHostedZoneLayerSlotView"
 fi
+require_term "src/codegen/llvm_inventory_decl_lookup.h" \
+    "LLVMHostedWorldZoneSlotView"
+require_term "src/codegen/llvm_inventory_decl_lookup.h" \
+    "llvm_hosted_world_zone_slot_view_from_decl"
+require_term "src/codegen/llvm_inventory_decl_lookup.h" \
+    "llvm_hosted_world_zone_slot_view_type_name"
+require_term "src/codegen/llvm_domain_struct_register.c" \
+    "LLVMHostedWorldZoneSlotView zone_view"
+require_term "src/codegen/llvm_domain_struct_register.c" \
+    "llvm_hosted_world_zone_slot_view_from_decl(ctx, decl_name"
+require_term "src/codegen/llvm_domain_struct_register.c" \
+    "llvm_hosted_world_zone_slot_view_missing_mir_metadata("
+require_term "src/codegen/llvm_domain_struct_register.c" \
+    "llvm_hosted_world_zone_slot_view_type_name("
+require_term "src/codegen/llvm_domain_struct_register_fields.c" \
+    "LLVMHostedWorldZoneSlotView zone_view"
+require_term "src/codegen/llvm_domain_struct_register_fields.c" \
+    "llvm_hosted_world_zone_slot_view_from_decl(ctx, decl_name, stmt)"
+require_term "src/codegen/llvm_domain_struct_register_fields.c" \
+    "llvm_hosted_world_zone_slot_view_missing_mir_metadata(&zone_view)"
+require_term "src/codegen/llvm_domain_struct_register_fields.c" \
+    "llvm_hosted_world_zone_slot_view_name(&zone_view, j)"
+llvm_world_zone_consumer_hits="$(
+    grep -RInE 'ast_world_zones|ast_world_zone_(slot_name|type_name)' \
+        "$ROOT_DIR/src/codegen/llvm_domain_struct_register.c" \
+        "$ROOT_DIR/src/codegen/llvm_domain_struct_register_fields.c" || true
+)"
+if [[ -n "$llvm_world_zone_consumer_hits" ]]; then
+    fail "LLVM world zone-slot struct registration must consume LLVMHostedWorldZoneSlotView:
+$llvm_world_zone_consumer_hits"
+fi
 require_term "src/codegen/transpiler_mir_local_type_lookup.c" \
     "transpiler_decl_name_local(host_decl)"
 require_term "src/codegen/transpiler_nominal.c" \
@@ -486,6 +658,124 @@ require_term "src/codegen/transpiler_nominal.c" \
 if grep -Fq "ast_zone_layer_slots" \
     "$ROOT_DIR/src/codegen/transpiler_nominal.c"; then
     fail "C nominal zone member lookup must consume TranspilerHostedZoneLayerSlotView"
+fi
+require_term "src/codegen/transpiler_decl_lookup.h" \
+    "TranspilerHostedWorldZoneSlotView"
+require_term "src/codegen/transpiler_decl_lookup.h" \
+    "transpiler_hosted_world_zone_slot_view_from_decl"
+require_term "src/codegen/transpiler_decl_lookup.h" \
+    "transpiler_hosted_world_zone_slot_view_type_name"
+require_term "src/codegen/transpiler_nominal.c" \
+    "TranspilerHostedWorldZoneSlotView zone_view"
+require_term "src/codegen/transpiler_nominal.c" \
+    "transpiler_hosted_world_zone_slot_view_from_decl(ctx, world_name, decl)"
+require_term "src/codegen/transpiler_domain_constructor_emit.c" \
+    "TranspilerHostedWorldZoneSlotView zone_view"
+require_term "src/codegen/transpiler_domain_constructor_emit.c" \
+    "transpiler_hosted_world_zone_slot_view_missing_mir_metadata("
+require_term "src/codegen/transpiler_world_select_event_emit.c" \
+    "TranspilerHostedWorldZoneSlotView zone_view"
+require_term "src/codegen/transpiler_world_select_event_emit.c" \
+    "transpiler_hosted_world_zone_slot_view_type_name(&zone_view, i)"
+require_term "src/codegen/transpiler_world_select_event_emit.c" \
+    "pgy_domain_world_embedded_frontier_count_from_zone_types("
+if grep -Fq "pgy_domain_world_embedded_frontier_count(" \
+    "$ROOT_DIR/src/codegen/transpiler_world_select_event_emit.c"; then
+    fail "C world frontier pass-limit selection must consume zone-slot metadata, not the AST world-zone wrapper"
+fi
+require_term "src/codegen/transpiler_projection.c" \
+    "TranspilerHostedWorldZoneSlotView zone_view"
+require_term "src/codegen/transpiler_projection.c" \
+    "transpiler_world_zone_slot_type_name"
+require_term "src/codegen/transpiler_projection.c" \
+    "transpiler_hosted_world_zone_slot_view_name(&zone_view, i)"
+require_term "src/codegen/transpiler_projection.c" \
+    "transpiler_hosted_world_zone_slot_view_type_name("
+if grep -Eq 'ast_world_zones|ast_world_zone_(slot_name|type_name)' \
+    "$ROOT_DIR/src/codegen/transpiler_projection.c"; then
+    fail "C world zone-slot projection lookup must consume TranspilerHostedWorldZoneSlotView"
+fi
+require_term "src/codegen/llvm_domain_world_frontier.c" \
+    "LLVMHostedWorldZoneSlotView zone_view"
+require_term "src/codegen/llvm_domain_world_frontier.c" \
+    "llvm_hosted_world_zone_slot_view_from_decl(ctx,"
+require_term "src/codegen/llvm_domain_world_frontier.c" \
+    "pgy_domain_world_embedded_frontier_count_from_zone_types("
+if grep -Fq "pgy_domain_world_embedded_frontier_count(" \
+    "$ROOT_DIR/src/codegen/llvm_domain_world_frontier.c"; then
+    fail "LLVM world frontier pass-limit selection must consume zone-slot metadata, not the AST world-zone wrapper"
+fi
+require_term "src/codegen/llvm_domain_lookup.c" \
+    "LLVMHostedWorldZoneSlotView zone_view"
+require_term "src/codegen/llvm_domain_lookup.c" \
+    "llvm_hosted_world_zone_slot_view_from_decl(ctx, world_name"
+require_term "src/codegen/llvm_domain_lookup.c" \
+    "llvm_hosted_world_zone_slot_view_name(&zone_view, i)"
+require_term "src/codegen/llvm_domain_lookup.c" \
+    "llvm_hosted_world_zone_slot_view_type_name(&zone_view, i)"
+require_term "src/codegen/llvm_domain_lookup.c" \
+    "MIR-only LLVM path missing world zone-slot metadata for"
+require_term "src/codegen/llvm_domain_lookup.c" \
+    "MIR-only LLVM path missing world zone-slot type metadata for"
+if grep -Eq 'ast_world_zones|ast_world_zone_(slot_name|type_name)' \
+    "$ROOT_DIR/src/codegen/llvm_domain_lookup.c"; then
+    fail "LLVM world zone-slot lookup must consume LLVMHostedWorldZoneSlotView"
+fi
+require_term "src/codegen/llvm_expr_constructor_calls.c" \
+    "LLVMHostedWorldZoneSlotView zone_view"
+require_term "src/codegen/llvm_expr_constructor_calls.c" \
+    "llvm_hosted_world_zone_slot_view_from_decl(ctx, world_name"
+require_term "src/codegen/llvm_expr_constructor_calls.c" \
+    "llvm_hosted_world_zone_slot_view_name(&zone_view, i)"
+if grep -Eq 'ast_world_zones|ast_world_zone_(slot_name|type_name)' \
+    "$ROOT_DIR/src/codegen/llvm_expr_constructor_calls.c"; then
+    fail "LLVM world constructor dirty initialization must consume LLVMHostedWorldZoneSlotView"
+fi
+require_term "src/codegen/llvm_domain_world_sync.c" \
+    "LLVMHostedWorldZoneSlotView zone_view"
+require_term "src/codegen/llvm_domain_world_sync.c" \
+    "llvm_hosted_world_zone_slot_view_from_decl(ctx, world_name, stmt)"
+require_term "src/codegen/llvm_domain_world_sync.c" \
+    "llvm_hosted_world_zone_slot_view_name(&zone_view, i)"
+require_term "src/codegen/llvm_domain_world_sync_directives.c" \
+    "LLVMHostedWorldZoneSlotView zone_view"
+require_term "src/codegen/llvm_domain_world_sync_directives.c" \
+    "llvm_hosted_world_zone_slot_view_from_decl(ctx, world_name"
+require_term "src/codegen/llvm_domain_world_frontier_derived.c" \
+    "llvm_world_sync_has_zone_slot(ctx, stmt, input_name)"
+for rel in \
+    "src/codegen/llvm_domain_world_sync.c" \
+    "src/codegen/llvm_domain_world_sync_directives.c"; do
+    if grep -Eq 'ast_world_zones|ast_world_zone_(slot_name|type_name)' \
+        "$ROOT_DIR/$rel"; then
+        fail "$rel must consume LLVMHostedWorldZoneSlotView for world zone-slot lookup"
+    fi
+done
+require_term "src/codegen/llvm_domain_world_frontier_internal.h" \
+    "const LLVMHostedWorldZoneSlotView *zone_view"
+require_term "src/codegen/llvm_domain_world_frontier_zones.c" \
+    "const LLVMHostedWorldZoneSlotView *zone_view"
+require_term "src/codegen/llvm_domain_world_frontier_zones.c" \
+    "llvm_hosted_world_zone_slot_view_name(zone_view, i)"
+require_term "src/codegen/llvm_domain_world_frontier_zones.c" \
+    "llvm_hosted_world_zone_slot_view_type_name(zone_view, i)"
+for rel in \
+    "src/codegen/llvm_domain_world_frontier.c" \
+    "src/codegen/llvm_domain_world_frontier_zones.c"; do
+    if grep -Eq 'ast_world_zones|ast_world_zone_(slot_name|type_name)' \
+        "$ROOT_DIR/$rel"; then
+        fail "$rel must consume LLVMHostedWorldZoneSlotView for world frontier zone-slot emission"
+    fi
+done
+c_world_zone_consumer_hits="$(
+    grep -RInE 'ast_world_zones|ast_world_zone_(slot_name|type_name)' \
+        "$ROOT_DIR/src/codegen/transpiler_nominal.c" \
+        "$ROOT_DIR/src/codegen/transpiler_domain_constructor_emit.c" \
+        "$ROOT_DIR/src/codegen/transpiler_world_select_event_emit.c" || true
+)"
+if [[ -n "$c_world_zone_consumer_hits" ]]; then
+    fail "C world zone-slot consumers must consume TranspilerHostedWorldZoneSlotView:
+$c_world_zone_consumer_hits"
 fi
 require_term "src/codegen/transpiler_overlay_host_fields.c" \
     "transpiler_decl_name_local(host_decl)"
@@ -547,6 +837,8 @@ require_term "src/codegen/llvm_domain_lookup.c" \
     "llvm_hosted_zone_layer_slot_view_missing_mir_metadata(&layer_view)"
 require_term "src/codegen/llvm_domain_lookup.c" \
     "llvm_hosted_zone_layer_slot_view_name(&layer_view, i)"
+require_term "src/codegen/llvm_domain_lookup.c" \
+    "MIR-only LLVM path missing zone layer-slot metadata for"
 if grep -Fq "ast_zone_layer_slots" \
     "$ROOT_DIR/src/codegen/llvm_domain_lookup.c"; then
     fail "LLVM domain lookup must consume LLVMHostedZoneLayerSlotView for zone layer lookup"
@@ -739,6 +1031,18 @@ for rel in \
     "src/codegen/transpiler_world_select_event_emit.c" \
     "src/codegen/transpiler_zone_decl_emit.c"; do
     require_term "$rel" "transpiler_decl_name_local(node)"
+done
+for rel in \
+    "src/codegen/transpiler_domain_nominal_emit.c" \
+    "src/codegen/transpiler_roster_decl_emit.c"; do
+    require_term "$rel" "transpiler_hosted_shared_field_view_from_decl(ctx, name, node)"
+    require_term "$rel" "transpiler_hosted_shared_field_view_missing_mir_metadata("
+    require_term "$rel" "transpiler_hosted_shared_field_view_name(&shared_view, i)"
+    require_term "$rel" "transpiler_hosted_shared_field_view_type(&shared_view, i)"
+    if grep -Eq 'ast_(party|roster)_shared_count|ast_(party|roster)_shared\(|ast_party_shared_(name|type)\(' \
+        "$ROOT_DIR/$rel"; then
+        fail "$rel must consume TranspilerHostedSharedFieldView for shared-field declaration name/type/count"
+    fi
 done
 host_name_hits="$(
     grep -RInE 'ast_(class|enum|party|role|roster|relation|effect|zone|world)_name\(' \
@@ -1460,6 +1764,24 @@ require_term "src/codegen/llvm_error.c" "PGY_CODE_MIR_INTENT_CARRIER_MISSING"
 require_term "src/codegen/llvm_error.c" "PGY_FIX_INSPECT_MIR_INVENTORY"
 require_term "src/codegen/llvm_error.c" "PGY_FIX_INSPECT_HIR_TO_MIR_LOWERING"
 require_term "src/codegen/llvm_error.c" "PGY_FIX_CHECK_INTENT_STEP_LOWERING"
+legacy_mir_metadata_errors="$(
+    grep -RIn --include='llvm_*.c' --include='llvm_*.h' \
+        "missing MIR declaration metadata" \
+        "$ROOT_DIR/src/codegen" || true
+)"
+if [[ -n "$legacy_mir_metadata_errors" ]]; then
+    fail "LLVM MIR metadata diagnostics must use llvm_set_mir_inventory_missing:
+$legacy_mir_metadata_errors"
+fi
+legacy_mir_inventory_errors="$(
+    grep -RIn --include='llvm_*.c' --include='llvm_*.h' \
+        "MIR declaration inventory missing" \
+        "$ROOT_DIR/src/codegen" || true
+)"
+if [[ -n "$legacy_mir_inventory_errors" ]]; then
+    fail "LLVM declaration-inventory diagnostics must use llvm_set_mir_inventory_missing:
+$legacy_mir_inventory_errors"
+fi
 if grep -RIn "PGY_CAUSE_LLVM_MIR_ROUTINE_MISSING" "$ROOT_DIR/src/codegen" \
     | grep -v "src/codegen/llvm_error.c"; then
     fail "LLVM MIR-missing diagnostics must route through llvm_set_mir_inventory_missing"
@@ -1983,8 +2305,26 @@ for term in \
     require_term "src/codegen/transpiler_role_ability_helpers.h" "$term"
     require_term "src/codegen/transpiler_role_ability.c" "$term"
 done
+require_term "src/codegen/transpiler_decl_lookup.h" \
+    "TranspilerHostedRoleSlotView"
+require_term "src/codegen/transpiler_decl_lookup.h" \
+    "transpiler_hosted_role_slot_view_from_decl"
+require_term "src/codegen/transpiler_decl_lookup.h" \
+    "transpiler_hosted_role_slot_view_required_ability"
+require_term "src/codegen/transpiler_domain_nominal_emit.c" \
+    "transpiler_hosted_role_slot_view_from_decl(ctx, name, node)"
+require_term "src/codegen/transpiler_domain_nominal_emit.c" \
+    "transpiler_hosted_role_slot_view_missing_mir_metadata(&role_view)"
+require_term "src/codegen/transpiler_domain_nominal_emit.c" \
+    "transpiler_hosted_role_slot_view_required_ability("
+require_term "src/codegen/transpiler_role_ability.c" \
+    "transpiler_hosted_role_slot_view_from_decl(ctx, party_name, party_decl)"
+require_term "src/codegen/transpiler_role_ability.c" \
+    "transpiler_hosted_role_slot_view_missing_mir_metadata(&role_view)"
+require_term "src/codegen/transpiler_role_ability.c" \
+    "transpiler_hosted_role_slot_view_required_ability("
 require_term "src/codegen/transpiler_statement_dispatch.c" \
-    "transpiler_party_slot_first_ability_tag("
+    "transpiler_party_slot_first_ability_tag(ctx,"
 require_term "src/codegen/transpiler_expr_call_member_emit.c" \
     "transpiler_party_slot_method_ability_tag("
 for rel in \
@@ -1994,6 +2334,15 @@ for rel in \
         fail "$rel must consume party-slot ability helpers instead of repeating role-slot scans"
     fi
 done
+c_role_slot_consumer_hits="$(
+    grep -RInE 'ast_party_role_count|ast_party_role\(|ast_role_slot_(name|is_dynamic|required_ability)' \
+        "$ROOT_DIR/src/codegen/transpiler_domain_nominal_emit.c" \
+        "$ROOT_DIR/src/codegen/transpiler_role_ability.c" || true
+)"
+if [[ -n "$c_role_slot_consumer_hits" ]]; then
+    fail "C party role-slot emission must consume TranspilerHostedRoleSlotView:
+$c_role_slot_consumer_hits"
+fi
 for rel in \
     "src/codegen/llvm_expr_domain_query_calls.c" \
     "src/codegen/transpiler_expr_domain_query_builtin.c"; do
@@ -2650,6 +2999,48 @@ require_term "src/codegen/llvm_domain_role_emit.c" \
     "ast_impl_ability_name(impl)"
 require_term "src/codegen/llvm_domain_role_emit.c" \
     "ast_impl_ability_method(impl, j)"
+require_term "src/codegen/llvm_domain_role_helpers.h" \
+    "llvm_party_slot_first_ability_name"
+require_term "src/codegen/llvm_domain_role_helpers.h" \
+    "llvm_lookup_role_vtable_global"
+require_term "src/codegen/llvm_inventory_decl_lookup.h" \
+    "LLVMHostedRoleSlotView"
+require_term "src/codegen/llvm_inventory_decl_lookup.h" \
+    "llvm_hosted_role_slot_view_from_decl"
+require_term "src/codegen/llvm_inventory_decl_lookup.h" \
+    "llvm_hosted_role_slot_view_is_dynamic"
+require_term "src/codegen/llvm_inventory_decl_lookup.h" \
+    "llvm_hosted_role_slot_view_required_ability"
+require_term "src/codegen/llvm_domain_struct_register.c" \
+    "llvm_hosted_role_slot_view_from_decl(ctx, decl_name, stmt)"
+require_term "src/codegen/llvm_domain_struct_register.c" \
+    "llvm_hosted_role_slot_view_missing_mir_metadata(&role_view)"
+require_term "src/codegen/llvm_domain_struct_register.c" \
+    "llvm_hosted_role_slot_view_is_dynamic(&role_view, j)"
+require_term "src/codegen/llvm_domain_struct_register_fields.c" \
+    "llvm_hosted_role_slot_view_from_decl(ctx, decl_name, stmt)"
+require_term "src/codegen/llvm_domain_struct_register_fields.c" \
+    "llvm_hosted_role_slot_view_missing_mir_metadata(&role_view)"
+require_term "src/codegen/llvm_domain_struct_register_fields.c" \
+    "llvm_hosted_role_slot_view_name(&role_view, j)"
+require_term "src/codegen/llvm_domain_struct_register_fields.c" \
+    "llvm_hosted_role_slot_view_is_dynamic(&role_view, j)"
+require_term "src/codegen/llvm_domain_role_lookup.c" \
+    "llvm_role_vtable_global_name"
+require_term "src/codegen/llvm_domain_role_lookup.c" \
+    "llvm_hosted_role_slot_view_from_decl("
+require_term "src/codegen/llvm_domain_role_lookup.c" \
+    "llvm_hosted_role_slot_view_required_ability("
+require_term "src/codegen/llvm_stmt.c" \
+    "llvm_party_slot_first_ability_name("
+require_term "src/codegen/llvm_stmt.c" \
+    "llvm_lookup_role_vtable_global("
+require_term "src/codegen/transpiler_statement_dispatch.c" \
+    "lookup_typed_var(ctx, pvar)"
+require_term "src/codegen/transpiler_statement_dispatch.c" \
+    "transpiler_resolve_active_ssa_name(ctx, pvar)"
+require_term "src/codegen/transpiler_statement_dispatch.c" \
+    "transpiler_make_c_ssa_name(ctx, pvar_ssa)"
 require_term "src/compiler/mir_decl_headers.c" \
     "ast_impl_ability_method(impl, j)"
 require_term "src/parser/ast_domain_api.h" \
@@ -2686,6 +3077,43 @@ if grep -R "data\.impl_ability" \
     "$ROOT_DIR/src/codegen/llvm_domain_role_lookup.c" \
     "$ROOT_DIR/src/codegen/llvm_domain_role_emit.c" >/dev/null; then
     fail "C/LLVM role emission compatibility paths must use AST impl-ability accessors"
+fi
+if grep -Fq "LLVMGetFirstGlobal(ctx->module)" \
+    "$ROOT_DIR/src/codegen/llvm_stmt.c"; then
+    fail "LLVM bind lowering must resolve role vtable globals by party-slot ability, not module-prefix scans"
+fi
+if grep -Fq "strstr(gname, \"_vtable_instance\")" \
+    "$ROOT_DIR/src/codegen/llvm_stmt.c"; then
+    fail "LLVM bind lowering must not recover role vtable ability from global-name substring scans"
+fi
+if grep -Eq 'ast_party_role_count|ast_party_role\(|ast_role_slot_(name|required_ability)' \
+    "$ROOT_DIR/src/codegen/llvm_stmt.c"; then
+    fail "LLVM bind lowering must consume llvm_party_slot_first_ability_name instead of scanning party role slots"
+fi
+role_slot_consumer_hits="$(
+    grep -RInE 'ast_party_role_count|ast_party_role\(|ast_role_slot_(name|is_dynamic)' \
+        "$ROOT_DIR/src/codegen/llvm_domain_struct_register.c" \
+        "$ROOT_DIR/src/codegen/llvm_domain_struct_register_fields.c" || true
+)"
+if [[ -n "$role_slot_consumer_hits" ]]; then
+    fail "LLVM party role-slot struct registration must consume LLVMHostedRoleSlotView:
+$role_slot_consumer_hits"
+fi
+llvm_role_slot_lookup_hits="$(
+    grep -RInE 'ast_party_role_count|ast_party_role\(|ast_role_slot_(name|required_ability)' \
+        "$ROOT_DIR/src/codegen/llvm_domain_role_lookup.c" || true
+)"
+if [[ -n "$llvm_role_slot_lookup_hits" ]]; then
+    fail "LLVM party role-slot ability lookup must consume LLVMHostedRoleSlotView:
+$llvm_role_slot_lookup_hits"
+fi
+if grep -Fq "llvm_role_vtable_global_name(" \
+    "$ROOT_DIR/src/codegen/llvm_stmt.c"; then
+    fail "LLVM bind lowering must consume llvm_lookup_role_vtable_global instead of constructing role vtable globals locally"
+fi
+if grep -Eq 'ctx->typed_vars\[[^]]+\]\.(name|type_name)' \
+    "$ROOT_DIR/src/codegen/transpiler_statement_dispatch.c"; then
+    fail "C bind lowering must consume typed-var and SSA name seams instead of scanning ctx->typed_vars locally"
 fi
 require_term "src/codegen/transpiler_domain_role_methods_emit.c" \
     "ctx != NULL && ctx->backend_error != NULL"

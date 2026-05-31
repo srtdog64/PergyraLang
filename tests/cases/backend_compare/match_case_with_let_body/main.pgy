@@ -1,0 +1,23 @@
+enum Op { Add, Sub, Mul }
+
+func Run(op: Op, a: Int, b: Int) -> Int {
+    match op {
+        case Add:
+            let sum: Int = a + b;
+            return sum;
+        case Sub:
+            let diff: Int = a - b;
+            return diff;
+        case Mul:
+            let prod: Int = a * b;
+            return prod;
+    }
+}
+
+func Main() -> Void {
+    Log(Run(Add, 3, 4));
+    Log(Run(Sub, 10, 7));
+    Log(Run(Mul, 6, 5));
+    Log(Run(Add, 0, 0));
+    Log(Run(Sub, -2, -5));
+}

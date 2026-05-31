@@ -1,0 +1,46 @@
+func MinMaxScore(arr: Array<Int>, n: Int) -> Int {
+    if n == 0 { return 0; }
+    let mn: Int = arr[0];
+    let mx: Int = arr[0];
+    let i: Int = 1;
+    while i < n {
+        if arr[i] < mn { mn = arr[i]; }
+        if arr[i] > mx { mx = arr[i]; }
+        i = i + 1;
+    }
+    return mx * 1000 + mn;
+}
+
+func SecondLargest(arr: Array<Int>, n: Int) -> Int {
+    if n < 2 { return -1; }
+    let first: Int = arr[0];
+    let second: Int = arr[1];
+    if first < second {
+        let tmp: Int = first;
+        first = second;
+        second = tmp;
+    }
+    let i: Int = 2;
+    while i < n {
+        if arr[i] > first {
+            second = first;
+            first = arr[i];
+        } else if arr[i] > second && arr[i] != first {
+            second = arr[i];
+        }
+        i = i + 1;
+    }
+    return second;
+}
+
+func Main() -> Void {
+    let a: Array<Int> = [3, 1, 4, 1, 5, 9, 2, 6, 5, 3, 5];
+    Log(MinMaxScore(a, 11));
+    Log(SecondLargest(a, 11));
+    let b: Array<Int> = [7, 7, 7];
+    Log(MinMaxScore(b, 3));
+    Log(SecondLargest(b, 3));
+    let c: Array<Int> = [10];
+    Log(MinMaxScore(c, 1));
+    Log(SecondLargest(c, 1));
+}

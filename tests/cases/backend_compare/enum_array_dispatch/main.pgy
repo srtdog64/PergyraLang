@@ -1,0 +1,42 @@
+enum Cmd { Set, Sum, Multiply }
+
+func DoSet(arr: Array<Int>, n: Int, idx: Int, val: Int) -> Int {
+    if idx < 0 || idx >= n { return -1; }
+    arr[idx] = val;
+    return 0;
+}
+
+func DoSum(arr: Array<Int>, n: Int) -> Int {
+    let s: Int = 0;
+    let i: Int = 0;
+    while i < n {
+        s = s + arr[i];
+        i = i + 1;
+    }
+    return s;
+}
+
+func DoMultiply(arr: Array<Int>, n: Int, factor: Int) -> Int {
+    let i: Int = 0;
+    while i < n {
+        arr[i] = arr[i] * factor;
+        i = i + 1;
+    }
+    return DoSum(arr, n);
+}
+
+func Dispatch(c: Cmd, arr: Array<Int>, n: Int, a: Int, b: Int) -> Int {
+    match c {
+        case Set: return DoSet(arr, n, a, b);
+        case Sum: return DoSum(arr, n);
+        case Multiply: return DoMultiply(arr, n, a);
+    }
+}
+
+func Main() -> Void {
+    let arr: Array<Int> = [1, 2, 3, 4, 5];
+    Log(Dispatch(Sum, arr, 5, 0, 0));
+    Log(Dispatch(Set, arr, 5, 2, 99));
+    Log(Dispatch(Sum, arr, 5, 0, 0));
+    Log(Dispatch(Multiply, arr, 5, 2, 0));
+}

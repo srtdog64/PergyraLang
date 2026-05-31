@@ -41,13 +41,17 @@ llvm_main_emit_thread_pool_init(LLVMGenCtx *ctx, bool needs_thread_pool)
 static bool
 llvm_main_emit_event_initializers(LLVMGenCtx *ctx)
 {
-    for (int i = 0; i < ctx->event_type_count; i++) {
-        LLVMEventTypeEntry *evt = &ctx->event_types[i];
+    int event_count = llvm_event_type_count(ctx);
+
+    for (int i = 0; i < event_count; i++) {
+        LLVMEventTypeEntry *evt = llvm_event_type_at(ctx, i);
         char fname[256];
         LLVMValueRef args[1];
         LLVMFuncEntry *init_fn;
         LLVMValueRef gv;
 
+        if (evt == NULL)
+            continue;
         snprintf(fname, sizeof(fname), "%s_INIT", evt->event_name);
         init_fn = llvm_lookup_function(ctx, fname);
         gv = LLVMGetNamedGlobal(ctx->module, evt->event_name);

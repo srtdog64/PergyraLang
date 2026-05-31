@@ -116,6 +116,39 @@ expect_panic() {
     fi
 }
 
+expect_success_stdout_contains() {
+    local name="$1"
+    local bin="$2"
+    local expected="$3"
+    local stderr_path="$WORK_DIR/$name.stderr"
+    local stdout_path="$WORK_DIR/$name.stdout"
+
+    "$bin" >"$stdout_path" 2>"$stderr_path"
+    if ! grep -Fq "$expected" "$stdout_path"; then
+        echo "runtime-panic-abi: $name missing stdout term $expected" >&2
+        cat "$stdout_path" >&2
+        cat "$stderr_path" >&2
+        exit 1
+    fi
+}
+
+inline_try_slot_bin="$(compile_case inline_try_slot_status '
+#define PGY_SAFE_SLOTS 1
+#include <stdio.h>
+#include "runtime/pgy_runtime.h"
+int main(void) {
+    PgySlot_Int slot = pgy_claim_Int();
+    int32_t out = 0;
+    if (!pgy_runtime_slot_status_ok(pgy_try_read_Int(&slot, &out)))
+        return 1;
+    if (pgy_try_release_Int(&slot) != PGY_RUNTIME_SLOT_STATUS_OK)
+        return 2;
+    PgyRuntimeSlotStatus status = pgy_try_read_Int(&slot, &out);
+    printf("%s\n", pgy_runtime_slot_status_name(status));
+    return status == PGY_RUNTIME_SLOT_STATUS_RELEASED_SLOT ? 0 : 3;
+}
+')"
+
 inline_released_bin="$(compile_case inline_released_slot '
 #define PGY_SAFE_SLOTS 1
 #include "runtime/pgy_runtime.h"
@@ -430,10 +463,30 @@ int main(void) {
 }
 ')"
 
+exported_try_slot_bin="$(compile_case exported_try_slot_status '
+#define PGY_LLVM_ENABLED 1
+#include <stdio.h>
+#include "runtime/pgy_runtime_lib.c"
+int main(void) {
+    PgySlot_Int slot = pgy_claim_Int();
+    int32_t out = 0;
+    if (!pgy_runtime_slot_status_ok(pgy_try_read_Int(&slot, &out)))
+        return 1;
+    if (pgy_try_release_Int(&slot) != PGY_RUNTIME_SLOT_STATUS_OK)
+        return 2;
+    PgyRuntimeSlotStatus status = pgy_try_read_Int(&slot, &out);
+    printf("%s\n", pgy_runtime_slot_status_name(status));
+    return status == PGY_RUNTIME_SLOT_STATUS_RELEASED_SLOT ? 0 : 3;
+}
+')"
+
 if [[ -f "$WORK_DIR/compile_skipped" ]]; then
     echo "[runtime-panic-abi] SKIP local Windows shell compiler probe; explicit local skip enabled"
     exit 0
 fi
+
+expect_success_stdout_contains inline_try_slot_status "$inline_try_slot_bin" "released-slot"
+expect_success_stdout_contains exported_try_slot_status "$exported_try_slot_bin" "released-slot"
 
 expect_panic inline_released_slot "$inline_released_bin" "released-slot"
 expect_panic inline_invalid_secure_token "$inline_invalid_token_bin" "invalid-secure-token"

@@ -1,0 +1,23 @@
+func StripPrefix(s: String, prefix: String) -> String {
+    let pl: Int = StringLength(prefix);
+    if StringLength(s) < pl { return s; }
+    if Substring(s, 0, pl) == prefix { return Substring(s, pl, StringLength(s)); }
+    return s;
+}
+
+func StripSuffix(s: String, suffix: String) -> String {
+    let sl: Int = StringLength(s);
+    let xl: Int = StringLength(suffix);
+    if sl < xl { return s; }
+    if Substring(s, sl - xl, sl) == suffix { return Substring(s, 0, sl - xl); }
+    return s;
+}
+
+func Main() -> Void {
+    Log(StripPrefix("hello world", "hello "));
+    Log(StripPrefix("test", "x"));
+    Log(StripPrefix("", "x"));
+    Log(StripSuffix("foo.txt", ".txt"));
+    Log(StripSuffix("foo", "bar"));
+    Log(StripPrefix(StripSuffix("/path/to/file.log", ".log"), "/path/"));
+}

@@ -33,13 +33,25 @@ emit_roster_decl(ASTNode *node, TranspilerCtx *ctx)
             ast_roster_slot_name(slot));
     }
 
-    for (size_t i = 0; i < ast_roster_shared_count(node); i++) {
-        ASTNode *shared = ast_roster_shared(node, i);
+    TranspilerHostedSharedFieldView shared_view =
+        transpiler_hosted_shared_field_view_from_decl(ctx, name, node);
+    if (transpiler_hosted_shared_field_view_missing_mir_metadata(
+            &shared_view)) {
+        transpiler_set_mir_inventory_missing(
+            ctx,
+            "MIR-only C path missing shared-field declaration metadata for roster '%s'",
+            name != NULL ? name : "(anonymous-roster)");
+        return;
+    }
+
+    for (size_t i = 0; i < shared_view.count; i++) {
+        const char *shared_name =
+            transpiler_hosted_shared_field_view_name(&shared_view, i);
         char field_type[256];
         char surface_desc[256];
         if (!transpiler_domain_nominal_surface_desc(surface_desc,
                 sizeof(surface_desc), "roster shared field", name,
-                ast_party_shared_name(shared),
+                shared_name,
                 NULL)) {
             transpiler_domain_nominal_surface_desc_too_long(
                 ctx, "roster shared field");
@@ -47,14 +59,14 @@ emit_roster_decl(ASTNode *node, TranspilerCtx *ctx)
         }
         if (!transpiler_require_ast_c_type_copy(
                 ctx,
-                ast_party_shared_type(shared),
+                transpiler_hosted_shared_field_view_type(&shared_view, i),
                 surface_desc,
                 field_type,
                 sizeof(field_type))) {
             return;
         }
         codebuf_write(ctx->out, "    %s %s;\n",
-            field_type, ast_party_shared_name(shared));
+            field_type, shared_name != NULL ? shared_name : "field");
     }
 
     codebuf_write(ctx->out, "} %s;\n", name);

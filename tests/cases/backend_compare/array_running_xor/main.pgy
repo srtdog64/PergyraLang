@@ -1,0 +1,36 @@
+func XorImpl(a: Int, b: Int) -> Int {
+    let result: Int = 0;
+    let bit: Int = 1;
+    let ax: Int = a;
+    let bx: Int = b;
+    while ax > 0 || bx > 0 {
+        let ab: Int = ax % 2;
+        let bb: Int = bx % 2;
+        if ab != bb { result = result + bit; }
+        bit = bit * 2;
+        ax = ax / 2;
+        bx = bx / 2;
+    }
+    return result;
+}
+
+func RunningXor(arr: Array<Int>, n: Int) -> Int {
+    let acc: Int = 0;
+    let i: Int = 0;
+    while i < n {
+        acc = XorImpl(acc, arr[i]);
+        i = i + 1;
+    }
+    return acc;
+}
+
+func Main() -> Void {
+    Log(XorImpl(0, 0));
+    Log(XorImpl(5, 3));
+    Log(XorImpl(255, 0));
+    Log(XorImpl(7, 7));
+    let a: Array<Int> = [1, 2, 3, 4];
+    Log(RunningXor(a, 4));
+    let b: Array<Int> = [5, 5, 5, 5];
+    Log(RunningXor(b, 4));
+}

@@ -155,6 +155,20 @@ if [[ "$PGY_DOC_QUALITY_FULL_UTF8" == "1" ]]; then
 fi
 
 require_text "TODO.md" "Pergyra TODO"
+red_team_security_terms=(
+    "Red-team security closure target"
+    "Slot/authority availability"
+    "recoverable I/O"
+    "structured \`Result\`"
+    "Slot ID/generation exhaustion"
+    "Zone-bound handle policy"
+    "Do not call this Rust-level static"
+    "SlotErrorName(...)"
+    "SlotFailureFromError(...)"
+)
+for term in "${red_team_security_terms[@]}"; do
+    require_text "TODO.md" "$term"
+done
 
 index_terms=(
     "PergyraLang Documentation Index"

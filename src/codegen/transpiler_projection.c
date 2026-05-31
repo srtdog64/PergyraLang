@@ -122,22 +122,27 @@ transpiler_current_world_has_field(TranspilerCtx *ctx, const char *field_name)
     for (size_t i = 0; i < roster_count; i++) {
         ASTNode *slot = rosters[i];
         const char *slot_name = ast_world_roster_slot_name(slot);
-        if (slot != NULL && slot_name != NULL
-            && strcmp(slot_name, field_name) == 0) {
-            return true;
-        }
-    }
-    size_t zone_count = 0;
-    ASTNode **zones = ast_world_zones(decl, &zone_count);
-    for (size_t i = 0; i < zone_count; i++) {
-        ASTNode *slot = zones[i];
-        const char *slot_name = ast_world_zone_slot_name(slot);
-        if (slot != NULL && slot_name != NULL
-            && strcmp(slot_name, field_name) == 0) {
+        if (slot_name != NULL && strcmp(slot_name, field_name) == 0) {
             return true;
         }
     }
     decl_name = transpiler_decl_name_local(decl);
+    TranspilerHostedWorldZoneSlotView zone_view =
+        transpiler_hosted_world_zone_slot_view_from_decl(ctx, decl_name, decl);
+    if (transpiler_hosted_world_zone_slot_view_missing_mir_metadata(
+            &zone_view)) {
+        transpiler_set_mir_inventory_missing(ctx,
+            "MIR-only C path missing world zone-slot metadata for '%s'",
+            decl_name != NULL ? decl_name : "(anonymous-world)");
+        return false;
+    }
+    for (size_t i = 0; i < zone_view.count; i++) {
+        const char *slot_name =
+            transpiler_hosted_world_zone_slot_view_name(&zone_view, i);
+        if (slot_name != NULL && strcmp(slot_name, field_name) == 0) {
+            return true;
+        }
+    }
     shared_view =
         transpiler_hosted_shared_field_view_from_decl(ctx, decl_name, decl);
     if (transpiler_hosted_shared_field_view_missing_mir_metadata(
@@ -231,19 +236,32 @@ transpiler_find_zone_layer_slot(TranspilerCtx *ctx,
 }
 
 ASTNode *
-transpiler_find_world_zone_slot_decl(ASTNode *world_decl, const char *slot_name)
+transpiler_find_world_zone_slot_decl(TranspilerCtx *ctx,
+                                     ASTNode *world_decl,
+                                     const char *slot_name)
 {
+    const char *world_name;
+    TranspilerHostedWorldZoneSlotView zone_view;
+
     if (world_decl == NULL || world_decl->type != AST_WORLD_DECL || slot_name == NULL)
         return NULL;
 
-    size_t zone_count = 0;
-    ASTNode **zones = ast_world_zones(world_decl, &zone_count);
-    for (size_t i = 0; i < zone_count; i++) {
-        ASTNode *zone = zones[i];
-        if (zone != NULL && zone->type == AST_WORLD_ZONE
-            && ast_world_zone_slot_name(zone) != NULL
-            && strcmp(ast_world_zone_slot_name(zone), slot_name) == 0) {
-            return zone;
+    world_name = transpiler_decl_name_local(world_decl);
+    zone_view = transpiler_hosted_world_zone_slot_view_from_decl(
+        ctx, world_name, world_decl);
+    if (transpiler_hosted_world_zone_slot_view_missing_mir_metadata(
+            &zone_view)) {
+        transpiler_set_mir_inventory_missing(ctx,
+            "MIR-only C path missing world zone-slot lookup metadata for '%s'",
+            world_name != NULL ? world_name : "(anonymous-world)");
+        return NULL;
+    }
+    for (size_t i = 0; i < zone_view.count; i++) {
+        const char *candidate_name =
+            transpiler_hosted_world_zone_slot_view_name(&zone_view, i);
+        if (candidate_name != NULL && strcmp(candidate_name, slot_name) == 0) {
+            return transpiler_hosted_world_zone_slot_view_source_ast(
+                &zone_view, i);
         }
     }
 
@@ -251,18 +269,54 @@ transpiler_find_world_zone_slot_decl(ASTNode *world_decl, const char *slot_name)
 }
 
 bool
-transpiler_world_has_zone_slot(ASTNode *world_decl, const char *slot_name)
+transpiler_world_has_zone_slot(TranspilerCtx *ctx,
+                               ASTNode *world_decl,
+                               const char *slot_name)
 {
-    return transpiler_find_world_zone_slot_decl(world_decl, slot_name) != NULL;
+    return transpiler_find_world_zone_slot_decl(ctx, world_decl, slot_name)
+        != NULL;
+}
+
+static const char *
+transpiler_world_zone_slot_type_name(TranspilerCtx *ctx,
+                                     ASTNode *world_decl,
+                                     const char *slot_name)
+{
+    const char *world_name;
+    TranspilerHostedWorldZoneSlotView zone_view;
+
+    if (world_decl == NULL || world_decl->type != AST_WORLD_DECL
+        || slot_name == NULL)
+        return NULL;
+
+    world_name = transpiler_decl_name_local(world_decl);
+    zone_view = transpiler_hosted_world_zone_slot_view_from_decl(
+        ctx, world_name, world_decl);
+    if (transpiler_hosted_world_zone_slot_view_missing_mir_metadata(
+            &zone_view)) {
+        transpiler_set_mir_inventory_missing(ctx,
+            "MIR-only C path missing world zone-slot lookup metadata for '%s'",
+            world_name != NULL ? world_name : "(anonymous-world)");
+        return NULL;
+    }
+    for (size_t i = 0; i < zone_view.count; i++) {
+        const char *candidate_name =
+            transpiler_hosted_world_zone_slot_view_name(&zone_view, i);
+        if (candidate_name != NULL && strcmp(candidate_name, slot_name) == 0) {
+            return transpiler_hosted_world_zone_slot_view_type_name(
+                &zone_view, i);
+        }
+    }
+    return NULL;
 }
 
 ASTNode *
 transpiler_resolve_world_zone_decl(TranspilerCtx *ctx, ASTNode *world_decl,
                                    const char *slot_name)
 {
-    ASTNode *zone_slot = transpiler_find_world_zone_slot_decl(world_decl, slot_name);
-    const char *zone_type = ast_world_zone_type_name(zone_slot);
-    if (ctx == NULL || zone_slot == NULL || zone_type == NULL)
+    const char *zone_type = transpiler_world_zone_slot_type_name(ctx,
+        world_decl, slot_name);
+    if (ctx == NULL || zone_type == NULL)
         return NULL;
     return transpiler_find_decl_in_inventory_local(ctx, AST_ZONE_DECL,
                                                    zone_type);

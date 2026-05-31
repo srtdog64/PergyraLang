@@ -195,11 +195,14 @@ run_windows_abi_pipeline_precheck_fallback() {
         "\$env:PATH='${PGY_WINDOWS_PS_PATH_PREFIX}' + \$env:PATH; \$env:PGY_ABI_PIPELINE_SAME_PROCESS='1'; \$env:PGY_ABI_PIPELINE_BACKEND='llvm'; & '${abi_native}'; exit \$LASTEXITCODE"
 }
 
-if [[ ! -x "$PGY_BIN" ]]; then
+if [[ "${PGY_BACKEND_COMPARE_INVENTORY_ONLY:-0}" == "0"
+    && ! -x "$PGY_BIN" ]]; then
     echo "backend-compare: missing compiler binary: $PGY_BIN" >&2
     exit 1
 fi
-PGY_BIN="$(normalize_executable_path "$PGY_BIN")"
+if [[ -x "$PGY_BIN" ]]; then
+    PGY_BIN="$(normalize_executable_path "$PGY_BIN")"
+fi
 export PGY_BIN
 
 setup_windows_launch_path "$PGY_BIN"
@@ -414,6 +417,7 @@ main() {
         "tests/cases/backend_compare/float_unary_minus"
         "tests/cases/backend_compare/int_abs_min_max"
         "tests/cases/backend_compare/int_mod_div_signed"
+        "tests/cases/backend_compare/mod_branch_arith"
         "tests/cases/backend_compare/bool_negate_branch"
         "tests/cases/backend_compare/nested_if_returns"
         "tests/cases/backend_compare/to_string_signed_numbers"
@@ -427,6 +431,10 @@ main() {
         "tests/cases/backend_compare/generic_identity_multi"
         "tests/cases/backend_compare/set_string_ops"
         "tests/cases/backend_compare/class_method_self_access"
+        "tests/cases/backend_compare/class_chain_methods"
+        "tests/cases/backend_compare/class_method_coalesce_call"
+        "tests/cases/backend_compare/class_method_short_circuit"
+        "tests/cases/backend_compare/class_compose_helper"
         "tests/cases/backend_compare/nested_loop_break"
         "tests/cases/backend_compare/function_returning_array"
         "tests/cases/backend_compare/if_expression_in_let"
@@ -436,22 +444,36 @@ main() {
         "tests/cases/backend_compare/option_match_simple"
         "tests/cases/backend_compare/continue_skip_odd"
         "tests/cases/backend_compare/sum_to_n_recursive"
+        "tests/cases/backend_compare/recursive_funcs"
+        "tests/cases/backend_compare/recursive_int_pow"
         "tests/cases/backend_compare/count_until_threshold"
         "tests/cases/backend_compare/string_arg_branch_call"
         "tests/cases/backend_compare/division_zero_check"
         "tests/cases/backend_compare/class_field_init_order"
         "tests/cases/backend_compare/for_in_array_int"
+        "tests/cases/backend_compare/for_in_array_with_branches"
         "tests/cases/backend_compare/nested_array_subarray"
         "tests/cases/backend_compare/float_to_string_precision"
         "tests/cases/backend_compare/map_key_lookup_branch"
         "tests/cases/backend_compare/queue_string_ops"
         "tests/cases/backend_compare/list_int_loop"
+        "tests/cases/backend_compare/array_min_max_combined"
+        "tests/cases/backend_compare/array_running_max"
+        "tests/cases/backend_compare/array_prefix_sum"
+        "tests/cases/backend_compare/array_element_assign"
+        "tests/cases/backend_compare/array_reverse_in_place"
+        "tests/cases/backend_compare/array_set_in_place_memo"
+        "tests/cases/backend_compare/array_selection_sort"
         "tests/cases/backend_compare/compose_two_functions"
         "tests/cases/backend_compare/negative_index_check"
         "tests/cases/backend_compare/multi_return_paths"
         "tests/cases/backend_compare/bool_expr_chain"
+        "tests/cases/backend_compare/and_or_mix_chain_branches"
+        "tests/cases/backend_compare/bool_short_circuit_chain"
+        "tests/cases/backend_compare/bool_compound_predicates"
         "tests/cases/backend_compare/fibonacci_iterative"
         "tests/cases/backend_compare/fib_iterative"
+        "tests/cases/backend_compare/fib_memo_pair"
         "tests/cases/backend_compare/map_count_unique"
         "tests/cases/backend_compare/result_via_unwrap"
         "tests/cases/backend_compare/string_compare_branch"
@@ -480,6 +502,8 @@ main() {
         "tests/cases/backend_compare/multi_array_find"
         "tests/cases/backend_compare/bool_state_toggle"
         "tests/cases/backend_compare/primes_below_n"
+        "tests/cases/backend_compare/sieve_eratosthenes_like"
+        "tests/cases/backend_compare/grid_sum_2d_emulated"
         "tests/cases/backend_compare/string_repeat_pattern"
         "tests/cases/backend_compare/linear_search_first_match"
         "tests/cases/backend_compare/map_word_grouping"
@@ -497,15 +521,20 @@ main() {
         "tests/cases/backend_compare/histogram_bins"
         "tests/cases/backend_compare/map_value_sum"
         "tests/cases/backend_compare/two_pointer_sum_pair"
+        "tests/cases/backend_compare/two_pointer_check"
         "tests/cases/backend_compare/count_negatives_loop"
+        "tests/cases/backend_compare/loop_count_negative_zero"
+        "tests/cases/backend_compare/loop_accumulate_int"
         "tests/cases/backend_compare/string_alternating_case"
         "tests/cases/backend_compare/digit_count_int"
+        "tests/cases/backend_compare/digit_sum_recursive"
         "tests/cases/backend_compare/zip_arrays_to_pairs"
         "tests/cases/backend_compare/find_min_in_array"
         "tests/cases/backend_compare/count_vowels"
         "tests/cases/backend_compare/factorial_iterative"
         "tests/cases/backend_compare/sum_squares_loop"
         "tests/cases/backend_compare/sum_positive_array"
+        "tests/cases/backend_compare/array_sum_filtered"
         "tests/cases/backend_compare/set_member_pipeline"
         "tests/cases/backend_compare/map_branch_threshold"
         "tests/cases/backend_compare/sum_until_target"
@@ -517,8 +546,10 @@ main() {
         "tests/cases/backend_compare/loop_collect_distinct_set"
         "tests/cases/backend_compare/count_consecutive_sequence"
         "tests/cases/backend_compare/loop_running_avg"
+        "tests/cases/backend_compare/triangle_number_sum"
         "tests/cases/backend_compare/matrix_diag_sum"
         "tests/cases/backend_compare/sort_descending_loop"
+        "tests/cases/backend_compare/bubble_sort_inline"
         "tests/cases/backend_compare/compound_interest_loop"
         "tests/cases/backend_compare/frequency_dominant"
         "tests/cases/backend_compare/count_pairs_sum_equal"
@@ -532,9 +563,33 @@ main() {
         "tests/cases/backend_compare/caesar_shift_decode"
         "tests/cases/backend_compare/float_min_max_clamp"
         "tests/cases/backend_compare/bool_short_circuit_calls"
+        "tests/cases/backend_compare/nested_short_circuit_loop"
+        "tests/cases/backend_compare/short_circuit_guard_chain"
+        "tests/cases/backend_compare/short_circuit_inside_loop_join"
         "tests/cases/backend_compare/long_unary_minus"
         "tests/cases/backend_compare/substring_equality_inline"
+        "tests/cases/backend_compare/arith_grand_total"
+        "tests/cases/backend_compare/int_clamp_with_offset"
+        "tests/cases/backend_compare/string_count_chars"
+        "tests/cases/backend_compare/string_count_subword"
+        "tests/cases/backend_compare/string_format_tens"
+        "tests/cases/backend_compare/string_capitalize_via_concat"
         "tests/cases/backend_compare/enum_match_destructure"
+        "tests/cases/backend_compare/enum_construct_in_loop_match"
+        "tests/cases/backend_compare/enum_in_array_loop"
+        "tests/cases/backend_compare/enum_match_case_inner_or"
+        "tests/cases/backend_compare/enum_match_in_loop_with_short_circuit"
+        "tests/cases/backend_compare/enum_match_chain_assign"
+        "tests/cases/backend_compare/enum_match_with_string_payload"
+        "tests/cases/backend_compare/enum_no_payload_first_then_payload"
+        "tests/cases/backend_compare/enum_payload_first_then_no_payload"
+        "tests/cases/backend_compare/enum_payload_sandwich"
+        "tests/cases/backend_compare/enum_signal_with_idle_first"
+        "tests/cases/backend_compare/enum_state_transition_chain"
+        "tests/cases/backend_compare/enum_wildcard_discard_match"
+        "tests/cases/backend_compare/enum_seq_apply"
+        "tests/cases/backend_compare/enum_in_function_arg_chain"
+        "tests/cases/backend_compare/enum_with_string_id"
         "tests/cases/backend_compare/enum_with_multi_arity"
         "tests/cases/backend_compare/enum_option_payload"
         "tests/cases/backend_compare/enum_no_payload_variant"
@@ -551,6 +606,9 @@ main() {
         "tests/cases/backend_compare/generic_box_int"
         "tests/cases/backend_compare/arithmetic_overflow_check"
         "tests/cases/backend_compare/nested_match_state"
+        "tests/cases/backend_compare/nested_enum_chain"
+        "tests/cases/backend_compare/match_with_inner_short_circuit"
+        "tests/cases/backend_compare/nested_if_else_chain_int"
         "tests/cases/backend_compare/option_chain_compute"
         "tests/cases/backend_compare/phi_branch_value"
         "tests/cases/backend_compare/subject_method_chain"
@@ -558,6 +616,7 @@ main() {
         "tests/cases/backend_compare/operators"
         "tests/cases/backend_compare/scalar_numeric_widening"
         "tests/cases/backend_compare/float_compare_branches"
+        "tests/cases/backend_compare/float_arith_chain"
         "tests/cases/backend_compare/scalar_math_runtime"
         "tests/cases/backend_compare/scalar_parse_conversion"
         "tests/cases/backend_compare/scalar_trig_log_runtime"
@@ -573,7 +632,9 @@ main() {
         "tests/cases/backend_compare/string_utility_aliases"
         "tests/cases/backend_compare/string_concat"
         "tests/cases/backend_compare/string_join"
+        "tests/cases/backend_compare/string_split_count"
         "tests/cases/backend_compare/string_split_edge"
+        "tests/cases/backend_compare/string_starts_ends_predicate"
         "tests/cases/backend_compare/multi_types"
         "tests/cases/backend_compare/module_namespace"
         "tests/cases/backend_compare/namespace_export_import"
@@ -627,9 +688,23 @@ main() {
         "tests/cases/backend_compare/forward_ability_order"
         "tests/cases/backend_compare/role_include_methods"
         "tests/cases/backend_compare/party_role_bind"
+        "tests/cases/backend_compare/party_role_bind_dispatch"
         "tests/cases/backend_compare/party_roster_host_methods"
         "tests/cases/backend_compare/result_custom_error"
         "tests/cases/backend_compare/option_coalesce"
+        "tests/cases/backend_compare/coalesce_accumulate_loop"
+        "tests/cases/backend_compare/coalesce_in_if_condition"
+        "tests/cases/backend_compare/nested_coalesce_chain"
+        "tests/cases/backend_compare/option_chain_in_loop_cond"
+        "tests/cases/backend_compare/option_chain_with_coalesce_chain"
+        "tests/cases/backend_compare/option_acc_chain"
+        "tests/cases/backend_compare/option_branch_nested"
+        "tests/cases/backend_compare/option_validate_chain"
+        "tests/cases/backend_compare/option_coalesce_in_arith"
+        "tests/cases/backend_compare/option_in_loop_branch"
+        "tests/cases/backend_compare/option_in_while_cond"
+        "tests/cases/backend_compare/option_swap_pattern"
+        "tests/cases/backend_compare/coalesce_string_concat"
         "tests/cases/backend_compare/intent_header_interleaved"
         "tests/cases/backend_compare/map_keys"
         "tests/cases/backend_compare/map_key_variants"
@@ -706,14 +781,49 @@ main() {
         "tests/cases/backend_compare/select_fairness"
         "tests/cases/backend_compare/try_operator_result"
         "tests/cases/backend_compare/triple_paradigm"
+        "tests/cases/backend_compare/array_binary_search"
+        "tests/cases/backend_compare/array_count_inversions"
+        "tests/cases/backend_compare/array_count_occurrences"
+        "tests/cases/backend_compare/array_count_ones_bits"
+        "tests/cases/backend_compare/array_count_pairs_sum"
+        "tests/cases/backend_compare/array_dedup_inplace"
+        "tests/cases/backend_compare/array_first_missing_positive"
+        "tests/cases/backend_compare/array_insertion_sort"
+        "tests/cases/backend_compare/array_kadane_max_subarray"
+        "tests/cases/backend_compare/array_minmax_pair"
+        "tests/cases/backend_compare/array_pair_concat_sort"
+        "tests/cases/backend_compare/array_partition_pivot"
+        "tests/cases/backend_compare/array_remove_value"
+        "tests/cases/backend_compare/array_rotate_left"
+        "tests/cases/backend_compare/array_running_avg_int"
+        "tests/cases/backend_compare/array_running_avg_window"
+        "tests/cases/backend_compare/array_running_distinct_count"
+        "tests/cases/backend_compare/array_swap_pairs"
+        "tests/cases/backend_compare/array_zero_out_evens"
+        "tests/cases/backend_compare/enum_array_dispatch"
+        "tests/cases/backend_compare/enum_match_complex_body"
+        "tests/cases/backend_compare/match_basic_arithmetic_chain"
+        "tests/cases/backend_compare/match_case_with_let_body"
+        "tests/cases/backend_compare/match_let_string"
+        "tests/cases/backend_compare/match_simple_compute"
+        "tests/cases/backend_compare/option_count_loop"
+        "tests/cases/backend_compare/option_match_complex_branches"
+        "tests/cases/backend_compare/option_match_let_chain"
+        "tests/cases/backend_compare/string_alphanum_extract"
+        "tests/cases/backend_compare/string_reverse_words"
+        "tests/cases/backend_compare/string_runlength_encode"
+        "tests/cases/backend_compare/string_split_first"
+        "tests/cases/backend_compare/triangle_check"
+        "tests/cases/backend_compare/triple_func_compose"
     )
 
     if [[ "$#" -eq 0 ]]; then
         local -a missing_cases=()
+        local -a missing_registered_cases=()
         local discovered
+        local registered
+        local source_rel
         while IFS= read -r discovered; do
-            local source_rel
-            local registered
             local found=0
             source_rel="$(dirname "$discovered")"
             for registered in "${cases[@]}"; do
@@ -727,12 +837,27 @@ main() {
             fi
         done < <(find tests/cases/backend_compare -mindepth 2 -maxdepth 2 -name main.pgy | LC_ALL=C sort)
 
-        if (( ${#missing_cases[@]} > 0 )); then
-            echo "backend-compare: case inventory is missing registered entries:" >&2
-            for discovered in "${missing_cases[@]}"; do
-                echo "  - $discovered" >&2
-            done
-            echo "Add each case to the default cases array, or pass explicit case arguments for a targeted run." >&2
+        for registered in "${cases[@]}"; do
+            if [[ ! -f "$registered/main.pgy" ]]; then
+                missing_registered_cases+=("$registered")
+            fi
+        done
+
+        if (( ${#missing_cases[@]} > 0 || ${#missing_registered_cases[@]} > 0 )); then
+            if (( ${#missing_cases[@]} > 0 )); then
+                echo "backend-compare: case inventory is missing registered entries:" >&2
+                for discovered in "${missing_cases[@]}"; do
+                    echo "  - $discovered" >&2
+                done
+                echo "Add each case to the default cases array, or pass explicit case arguments for a targeted run." >&2
+            fi
+            if (( ${#missing_registered_cases[@]} > 0 )); then
+                echo "backend-compare: default cases array references missing cases:" >&2
+                for registered in "${missing_registered_cases[@]}"; do
+                    echo "  - $registered" >&2
+                done
+                echo "Add the missing fixture, or remove the stale registered entry." >&2
+            fi
             return 1
         fi
 

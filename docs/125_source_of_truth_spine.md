@@ -40,7 +40,15 @@ Current beta closure snapshot:
   valid bind fact because an inventory/vtable fact is missing, it must report a
   backend diagnostic instead of silently skipping the bind. Multi-ability role
   slots are conjunctive: a bound role must satisfy every required ability, not
-  just one matching ability.
+  just one matching ability. Backend vtable emission must still resolve the
+  concrete dispatch table from the party-slot ability fact. LLVM bind lowering
+  consumes `llvm_party_slot_first_ability_name(...)` and
+  `llvm_lookup_role_vtable_global(...)`; it must not recover the ability by
+  scanning module globals with a role-name prefix. C bind lowering consumes
+  `lookup_typed_var(...)` for the party type and
+  `transpiler_resolve_active_ssa_name(...)` for the emitted local name; it must
+  not scan `ctx->typed_vars` locally or emit the source binding name when MIR
+  SSA has already renamed it.
 - type-resolution DAG worklist execution lives in
   `src/semantic/type_checker_resolution_worklist.c`.
 - type-resolution internal declarations live in
@@ -147,6 +155,42 @@ Current beta closure snapshot:
   `llvm_decl_node_name(...)`, and C consumes `transpiler_decl_name_local(...)`.
   Lookup predicates must call those owners rather than restating per-declaration
   name accessor switches.
+- Backend declaration generic-parameter recovery is centralized in
+  `ast_declaration_generic_params(...)`. LLVM type lowering may scan active
+  declaration inventories for generic defaults, but it must not restate a local
+  function/class/ability/role/party/roster generic-payload switch.
+- LLVM class field index/type recovery is centralized in the LLVM registry.
+  Consumers that already resolved a struct field index may ask
+  `llvm_class_field_type_at_index(...)` for the field type, but they must not
+  iterate `LLVMClassTypeEntry.fields[]` locally or index
+  `fields[field_idx]` / `fields[*_idx]` just to map a struct index back to a
+  field type. LLVM struct-type-to-class lookup follows the same rule through
+  `llvm_lookup_class_by_struct_type(...)`; compatibility wrappers may remain
+  only if they delegate to the registry owner. Vtable class lookup by method is
+  also registry-owned through `llvm_lookup_vtable_class_with_method(...)`;
+  member-call emitters must not scan `ctx->class_types` to rediscover vtable
+  method placement. Party-instance and bind emitters use
+  `llvm_class_field_index(...)` for class field placement; they must not scan
+  `LLVMClassTypeEntry.fields[]` by field name at the emission site.
+  When an LLVM consumer must iterate registered class fields for dirty-flag,
+  projection, or zone-slot emission, it consumes
+  `llvm_class_field_count(...)`, `llvm_class_field_name_at(...)`,
+  `llvm_class_field_type_at(...)`,
+  `llvm_class_field_struct_index_at(...)`, and
+  `llvm_class_field_is_subject_slot_at(...)`; it must not reopen the raw
+  `fields[]` array outside the registry owner.
+- LLVM enum variant storage is registry-owned. Expression and match emitters
+  consume `llvm_lookup_enum_variant(...)` / qualified lookup, and source type
+  resolution consumes `llvm_enum_type_exists(...)`; consumers must not scan
+  `ctx->enum_variants[]` or `ctx->enum_variant_count` directly.
+- LLVM event type storage is owned by `src/codegen/llvm_event.c`. Main-wrapper
+  emission may initialize registered events, but it must consume
+  `llvm_event_type_count(...)` and `llvm_event_type_at(...)`; it must not read
+  `ctx->event_type_count` or `ctx->event_types[]` directly.
+- LLVM block creation must be context-explicit. Backend code uses
+  `LLVMAppendBasicBlockInContext(ctx->context, ...)`; the deprecated
+  global-context `LLVMAppendBasicBlock(...)` form is not allowed in production
+  LLVM emitters.
 - C backend projection/action codegen may consume active inventory and
   program-view seams for zone/effect/relation declaration recovery, but it must
   not reopen direct domain declaration lookup at each projection, bind, intent,
@@ -271,6 +315,12 @@ Current beta closure snapshot:
   `pgy_binary_path_helpers.sh` and `pgy_path_for_compiler(...)` is a source
   inventory failure unless the smoke delegates all compiler execution to a
   helper such as `tests/compare_backends.sh` that owns path conversion.
+- `tests/compare_backends.sh` owns C/LLVM backend-compare case inventory. A
+  fixture under `tests/cases/backend_compare/**/main.pgy` must either be in
+  the default case array or be run through an explicit targeted command; the
+  inventory-only smoke also rejects stale default entries whose fixture
+  directory was removed. This closes the drift where passing backend parity
+  cases existed on disk but were not part of the frozen parity suite.
 - `tests/semantic_core_shape_smoke.sh` gates these ownership boundaries. The
   test is a drift alarm; the owning `.c` files above are the source of truth.
   `tests/mir_declaration_inventory_smoke.sh` gates the backend declaration and
@@ -387,13 +437,30 @@ to reduce a fallback counter or move code behind a helper.
 | Role implementation methods | Role impl methods omitted from declaration headers or re-found through owner/name body lookup | `mir_decl_header_set_role_impl_methods(...)`, consumed through `TranspilerHostedMethodView` / `LLVMHostedMethodView` | Smoke requires role impl metadata recording, rejects role method-count exceptions, and rejects the retired C owner/name role routine lookup helper | Closed for role method inventory count and C/LLVM body link |
 | Host field compatibility view | Class fields and domain shared fields reopened through separate backend switches | `host_decl_compat.c` class/shared-field compatibility views and C/LLVM declaration-inventory hosted field views | Smoke requires C/LLVM constructor channel, class/domain constructor lowering, generic class specialization emission, LLVM domain-parts splitting, MIR SSA zone-field lookup, nominal/current-field, member/local type inference, overlay projection, projection-path helpers, and declaration/register emitters to consume hosted field views or field lookup owner seams | Closed for backend compatibility; direct codegen field-array access is confined to `host_decl_compat.c`, direct class/shared compatibility-view calls are confined to `host_decl_compat.c`, `transpiler_decl_lookup.c`, and `llvm_inventory_decl_lookup.c`, and direct class-field compatibility lookup is confined to `host_decl_compat.c`. Backend consumers still need to migrate to MIR declaration-field metadata |
 | Source/provenance payload | Treating `source_ast` as semantic inventory truth | `mir_decl_header_source_ast(...)`, `mir_decl_method_source_ast(...)`, `mir_routine_source_ast(...)`, plus backend `*_source_ast` compatibility accessors | Smoke rejects generic fallback naming, old AST method-array state, backend raw `decl_header->source_ast` / `method->source_ast` reads, backend raw routine `ast` reads, and C hosted-method forward/body paths that require source AST when MIR metadata/routine source is available | Named compatibility seam; still not dedicated declaration IR |
-| Declaration field metadata | Field/slot/member shape was available only through AST compatibility views | `MIRDeclField` rows populated by `mir_decl_headers.c` and validated by `mir_decl_header_validate.c` | `mir-declaration-inventory-test-smoke` requires `MIRDeclField`/`MIRDeclFieldKind`, field metadata storage, class/shared/role/roster/world/domain/zone-layer field kinds, compiler accessors, field drift diagnostics, C nominal lookup consumption, C class constructor field emission through `TranspilerHostedFieldView`, C annotated-let class constructor delegation to the same constructor owner, C class/generic-class field emission, C projection literal field iteration, C projection invalidation target-field matching, C projection field-path relevance/vessel checks, C relation/effect/world/zone struct shared-field declaration emission, C nominal zone member lookup, overlay zone-field presence checks, overlay zone effect/relation bind lookup, and zone struct layer-slot emission through `TranspilerHostedZoneLayerSlotView`, C relation/effect/zone/world constructor shared-field argument/default emission, C constructor Channel shared-field scanning, C projection literal/source-path and overlay-projection invalidation class-field iteration through `TranspilerHostedFieldView`, C MIR SSA implicit zone layer/shared-field recovery through `TranspilerHostedZoneLayerSlotView` and `TranspilerHostedSharedFieldView`, C projection zone-layer lookup, projection sync layer iteration, intent block caused-effect layer marking, and zone sync/frontier layer iteration through `TranspilerHostedZoneLayerSlotView`, C counted zone frontier pass-limit emission, C zone specialization emission through `TranspilerHostedSharedFieldView`, C overlay/world shared-field presence checks through `TranspilerHostedSharedFieldView`, LLVM constructor class-field expected-type/channel checks through `LLVMHostedFieldView`, LLVM projection/domain-projection source-path field iteration through `LLVMHostedFieldView`, LLVM nominal struct field registration through `LLVMHostedFieldView`, LLVM constructor Channel/default shared-field scanning through `LLVMHostedSharedFieldView`, LLVM domain struct shared-field type/layout registration, LLVM zone struct layer-slot type registration, layer-slot field registration, zone bind layer-slot lookup, zone-layer query lookup, zone frontier previous-state/reset/continue tracking, zone sync action-cause layer iteration, zone action effect-layer emission, world embedded effect sync layer iteration, and intent effect caused-layer emission through `LLVMHostedZoneLayerSlotView`, LLVM domain declaration-parts cleanup, C/LLVM constructor Channel guard consumption, and LLVM field-class lookup consumption | Closed for metadata creation, validation, and current C/LLVM field consumers; remaining declaration/projection emitter migration remains |
+| Declaration field metadata | Field/slot/member shape was available only through AST compatibility views | `MIRDeclField` rows populated by `mir_decl_headers.c` and validated by `mir_decl_header_validate.c` | `mir-declaration-inventory-test-smoke` requires `MIRDeclField`/`MIRDeclFieldKind`, field metadata storage, class/shared/role/roster/world/domain/zone-layer field kinds, compiler accessors, field drift diagnostics, C nominal lookup consumption, C class constructor field emission through `TranspilerHostedFieldView`, C annotated-let class constructor delegation to the same constructor owner, C class/generic-class field emission, C party/roster shared-field declaration emission, C projection literal field iteration, C projection invalidation target-field matching, C projection field-path relevance/vessel checks, C relation/effect/world/zone struct shared-field declaration emission, C nominal zone member lookup, overlay zone-field presence checks, overlay zone effect/relation bind lookup, and zone struct layer-slot emission through `TranspilerHostedZoneLayerSlotView`, C party/roster/relation/effect/zone/world constructor shared-field argument/default emission, C constructor Channel shared-field scanning, C projection literal/source-path and overlay-projection invalidation class-field iteration through `TranspilerHostedFieldView`, C MIR SSA implicit zone layer/shared-field recovery through `TranspilerHostedZoneLayerSlotView` and `TranspilerHostedSharedFieldView`, C projection zone-layer lookup, projection sync layer iteration, intent block caused-effect layer marking, and zone sync/frontier layer iteration through `TranspilerHostedZoneLayerSlotView`, C counted zone frontier pass-limit emission, C zone specialization emission through `TranspilerHostedSharedFieldView`, C overlay/world shared-field presence checks through `TranspilerHostedSharedFieldView`, C party role-slot struct/vtable emission and bind dispatch through `TranspilerHostedRoleSlotView`, C world member type lookup/constructor/declaration emission through `TranspilerHostedWorldZoneSlotView`, LLVM constructor class-field expected-type/channel checks through `LLVMHostedFieldView`, LLVM projection/domain-projection source-path field iteration through `LLVMHostedFieldView`, LLVM nominal struct field registration through `LLVMHostedFieldView`, LLVM constructor Channel/default shared-field scanning through `LLVMHostedSharedFieldView`, LLVM domain struct shared-field type/layout registration, LLVM zone struct layer-slot type registration, layer-slot field registration, LLVM world zone-slot struct type/field registration through `LLVMHostedWorldZoneSlotView`, zone bind layer-slot lookup, zone-layer query lookup, zone frontier previous-state/reset/continue tracking, zone sync action-cause layer iteration, zone action effect-layer emission, world embedded effect sync layer iteration, and intent effect caused-layer emission through `LLVMHostedZoneLayerSlotView`, LLVM domain declaration-parts cleanup, C/LLVM constructor Channel guard consumption, LLVM field-class lookup consumption, and LLVM party role-slot struct/type/ability lookup through `LLVMHostedRoleSlotView` | Closed for metadata creation, validation, and current C/LLVM field consumers; remaining declaration/projection emitter migration remains |
 | Dedicated declaration IR | `MIRProgram` still carries AST-shaped declaration payloads and some backend consumers still use compatibility field views | `MIRDeclHeader` / `MIRDeclMethod` / `MIRDeclField` metadata model, consumed through compiler accessors | Partial gate exists for methods and fields; full closure requires projection/declaration emitters to stop reopening compatibility views when MIR field facts exist | Open beta blocker row |
 
 Note: the declaration-field metadata row's counted zone frontier pass-limit
 consumer is now C/LLVM, not C-only; LLVM zone sync must consume
 `LLVMHostedZoneLayerSlotView` counts and call
 `pgy_domain_zone_frontier_pass_limit_from_counts(...)`.
+World frontier pass-limit selection follows the same counted-fact rule. C and
+LLVM world emitters count world zones/states and embedded zone frontier members
+once through their owner views, then consume
+`pgy_domain_world_embedded_frontier_count_from_zone_types(...)`,
+`pgy_domain_world_transitive_frontier_pass_limit_from_counts(...)` and
+`pgy_domain_world_derived_frontier_pass_limit_from_count(...)`; they must not
+ask the AST wrapper to rediscover those counts at the emission site. LLVM world
+zone-slot query lookup follows the same row owner through
+`LLVMHostedWorldZoneSlotView`; it must not reopen `ast_world_zones(...)`.
+C world-field and zone-slot projection/query lookup follows the same row owner
+through `TranspilerHostedWorldZoneSlotView`.
+LLVM world constructor dirty-flag initialization also consumes
+`LLVMHostedWorldZoneSlotView` instead of scanning world zone AST children.
+LLVM world sync reset/change detection and directive zone-slot resolution also
+consume `LLVMHostedWorldZoneSlotView`. LLVM world frontier zone-sync and
+pending-dirty body emission take the same view directly, so this backend family
+does not pass world zone AST child arrays across owner boundaries.
 
 The field compatibility smoke has global codegen whitelists. Direct
 `ast_class_fields(...)` or domain shared-field array access is allowed only in
@@ -407,6 +474,13 @@ host-compat owner and the C/LLVM declaration-inventory lookup owners. Direct
 `host_decl_compat.c`. New codegen consumers must use hosted field views or
 compiler MIR field accessors; they must not add new local AST field switches or
 new direct compatibility-view callers.
+
+LLVM declaration-field metadata failures use the same owner boundary. Missing
+hosted field/slot/member facts must route through
+`llvm_set_mir_inventory_missing(...)` so they carry the MIR inventory diagnostic
+code, cause, and fix-source hints. The declaration-inventory smoke rejects the
+old plain `"missing MIR declaration metadata"` / `"MIR declaration inventory
+missing"` messages in LLVM codegen files.
 
 Runtime frontier AIR evidence must count the complete frozen runtime policy
 surface: pass-limit arithmetic facts plus bounded-overflow reason facts. A
@@ -847,6 +921,27 @@ method are rendered as `Player *`, so the C backend emits nominal forward
 typedefs before ability vtables. The ABI source of truth remains the host
 self-cell classification policy; ability emission must not fall back to raw
 type strings that bypass that policy.
+
+Role vtable binding is also a named owner seam. LLVM bind lowering must ask
+`llvm_party_slot_first_ability_name(...)` for the party-slot ability and
+`llvm_lookup_role_vtable_global(...)` for the vtable global. It must not scan
+party role-slot AST arrays in `llvm_stmt.c`, walk module globals, or reconstruct
+`*_vtable_instance` names at the bind site.
+
+Party role-slot dynamic/vtable field registration is declaration-field
+metadata. LLVM struct type and field registration consume
+`LLVMHostedRoleSlotView` over `MIR_DECL_FIELD_ROLE_SLOT` rows, not party
+role-slot AST arrays.
+C party role-slot struct/vtable emission and bind dispatch consume
+`TranspilerHostedRoleSlotView` for the same metadata seam.
+LLVM party-slot ability lookup consumes `LLVMHostedRoleSlotView` before bind
+lowering asks for the vtable global.
+
+World zone-slot struct registration is also declaration-field metadata. LLVM
+struct type and field registration consume `LLVMHostedWorldZoneSlotView` over
+`MIR_DECL_FIELD_WORLD_ZONE_SLOT` rows, not `ast_world_zones(...)` scans.
+C world member type lookup, world constructor lowering, and world declaration
+emission consume `TranspilerHostedWorldZoneSlotView` for the same row kind.
 
 ### Type-Resolution DAG
 

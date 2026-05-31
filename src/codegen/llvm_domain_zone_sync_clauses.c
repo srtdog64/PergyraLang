@@ -34,8 +34,8 @@ llvm_zone_sync_emit_action_causes(ASTNode *stmt,
     ASTNode **states = ast_zone_states(stmt, &state_count);
 
     if (llvm_hosted_zone_layer_slot_view_missing_mir_metadata(&layer_view)) {
-        llvm_set_error(ctx,
-            "LLVM zone '%s' action-cause layer slots missing MIR declaration metadata",
+        llvm_set_mir_inventory_missing(ctx,
+            "MIR-only LLVM path missing zone action-cause layer-slot metadata for '%s'",
             zone_name != NULL ? zone_name : "<anonymous>");
         return;
     }

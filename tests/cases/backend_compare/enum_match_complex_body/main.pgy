@@ -1,0 +1,26 @@
+enum Shape { Circle(Int), Square(Int), Rect(Int, Int) }
+
+func ShapeMetric(s: Shape) -> Int {
+    match s {
+        case Circle(r):
+            let area: Int = r * r * 3;
+            let circ: Int = r * 2 * 3;
+            return area + circ;
+        case Square(side):
+            let area: Int = side * side;
+            let peri: Int = side * 4;
+            return area + peri;
+        case Rect(w, h):
+            let area: Int = w * h;
+            let peri: Int = 2 * (w + h);
+            return area + peri;
+    }
+}
+
+func Main() -> Void {
+    Log(ShapeMetric(Circle(5)));
+    Log(ShapeMetric(Square(4)));
+    Log(ShapeMetric(Rect(3, 7)));
+    Log(ShapeMetric(Circle(1)));
+    Log(ShapeMetric(Square(0)));
+}

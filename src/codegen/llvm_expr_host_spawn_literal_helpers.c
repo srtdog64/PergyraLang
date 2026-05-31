@@ -62,14 +62,18 @@ llvm_emit_projection_from_binding(ASTNode *node, LLVMGenCtx *ctx,
     }
 
     projected = LLVMGetUndef(target_cls->struct_type);
-    for (int i = 0; i < target_cls->field_count; i++) {
-        LLVMClassFieldInfo *field = &target_cls->fields[i];
+    for (int i = 0; i < llvm_class_field_count(target_cls); i++) {
+        const char *field_name = llvm_class_field_name_at(target_cls, i);
+        int field_index = llvm_class_field_struct_index_at(target_cls, i);
+        if (field_name == NULL || field_index < 0)
+            return llvm_projection_binding_error(node, ctx,
+                "LLVM projection binding target field metadata is incomplete");
         LLVMValueRef field_val = llvm_load_projection_path_value(ctx,
-            source_decl, source_cls, source_base, field->field_name);
+            source_decl, source_cls, source_base, field_name);
         if (ctx->has_error || field_val == NULL)
             return NULL;
         projected = LLVMBuildInsertValue(ctx->builder, projected, field_val,
-            (unsigned)field->index, llvm_tmp_name(ctx));
+            (unsigned)field_index, llvm_tmp_name(ctx));
     }
     return projected;
 }

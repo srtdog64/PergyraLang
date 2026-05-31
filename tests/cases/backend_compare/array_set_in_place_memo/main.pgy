@@ -1,0 +1,21 @@
+func FibMemo(n: Int) -> Int {
+    if n <= 0 { return 0; }
+    if n == 1 { return 1; }
+    let memo: Array<Int> = [0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0];
+    let i: Int = 2;
+    while i <= n && i < 21 {
+        memo[i] = memo[i - 1] + memo[i - 2];
+        i = i + 1;
+    }
+    if n >= 21 { return -1; }
+    return memo[n];
+}
+
+func Main() -> Void {
+    Log(FibMemo(0));
+    Log(FibMemo(1));
+    Log(FibMemo(5));
+    Log(FibMemo(10));
+    Log(FibMemo(20));
+    Log(FibMemo(21));
+}

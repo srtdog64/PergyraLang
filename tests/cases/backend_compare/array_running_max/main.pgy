@@ -1,0 +1,24 @@
+func RunningMax(arr: Array<Int>, n: Int) -> Int {
+    if n == 0 { return 0; }
+    let cur_max: Int = arr[0];
+    let sum_of_max: Int = arr[0];
+    let i: Int = 1;
+    while i < n {
+        if arr[i] > cur_max { cur_max = arr[i]; }
+        sum_of_max = sum_of_max + cur_max;
+        i = i + 1;
+    }
+    return sum_of_max;
+}
+
+func Main() -> Void {
+    let a: Array<Int> = [3, 1, 4, 1, 5, 9, 2, 6];
+    Log(RunningMax(a, 8));
+    Log(RunningMax(a, 3));
+    Log(RunningMax(a, 1));
+    Log(RunningMax(a, 0));
+    let b: Array<Int> = [10, 9, 8, 7];
+    Log(RunningMax(b, 4));
+    let c: Array<Int> = [-3, -1, -4];
+    Log(RunningMax(c, 3));
+}

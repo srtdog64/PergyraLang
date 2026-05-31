@@ -1,0 +1,23 @@
+func DoubleEach(arr: Array<Int>, n: Int) -> Int {
+    let i: Int = 0;
+    while i < n {
+        arr[i] = arr[i] * 2;
+        i = i + 1;
+    }
+    let sum: Int = 0;
+    let k: Int = 0;
+    while k < n {
+        sum = sum + arr[k];
+        k = k + 1;
+    }
+    return sum;
+}
+
+func Main() -> Void {
+    let a: Array<Int> = [1, 2, 3, 4, 5];
+    Log(DoubleEach(a, 5));
+    let b: Array<Int> = [10, 20, 30];
+    Log(DoubleEach(b, 3));
+    let c: Array<Int> = [-1, 0, 1];
+    Log(DoubleEach(c, 3));
+}

@@ -1,0 +1,23 @@
+func CountPairsWithSum(arr: Array<Int>, n: Int, target: Int) -> Int {
+    let count: Int = 0;
+    let i: Int = 0;
+    while i < n {
+        let j: Int = i + 1;
+        while j < n {
+            if arr[i] + arr[j] == target { count = count + 1; }
+            j = j + 1;
+        }
+        i = i + 1;
+    }
+    return count;
+}
+
+func Main() -> Void {
+    let a: Array<Int> = [1, 2, 3, 4, 5];
+    Log(CountPairsWithSum(a, 5, 6));
+    Log(CountPairsWithSum(a, 5, 100));
+    let b: Array<Int> = [1, 5, 5, 1];
+    Log(CountPairsWithSum(b, 4, 6));
+    let c: Array<Int> = [0, 0, 0];
+    Log(CountPairsWithSum(c, 3, 0));
+}

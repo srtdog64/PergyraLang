@@ -1,0 +1,24 @@
+func ClassifyDiv3(n: Int) -> Int {
+    let r: Int = n % 3;
+    if r < 0 { r = r + 3; }
+    if r == 0 { return 100; }
+    if r == 1 { return 10; }
+    return 1;
+}
+
+func PowOfTwo(n: Int) -> Bool {
+    return n > 0 && (n % 2 == 0 || n == 1);
+}
+
+func Main() -> Void {
+    Log(ClassifyDiv3(0));
+    Log(ClassifyDiv3(1));
+    Log(ClassifyDiv3(2));
+    Log(ClassifyDiv3(9));
+    Log(ClassifyDiv3(-1));
+    Log(ClassifyDiv3(-4));
+    Log(PowOfTwo(1));
+    Log(PowOfTwo(8));
+    Log(PowOfTwo(7));
+    Log(PowOfTwo(0));
+}

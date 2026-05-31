@@ -1,6 +1,7 @@
 #ifdef PGY_LLVM_ENABLED
 #include "llvm_internal.h"
 #include "llvm_domain_world_sync_internal.h"
+#include "llvm_inventory_decl_lookup.h"
 
 static bool
 llvm_world_sync_field_name(char *out,
@@ -62,13 +63,26 @@ llvm_emit_world_sync(ASTNode *stmt, const char *decl_name,
         int derived_idx = llvm_class_field_index(decl_cls, "__world_derived_dirty");
         LLVMValueRef derived_ptr = NULL;
         LLVMValueRef derived_val = LLVMConstInt(ctx->type_i1, 0, 0);
-        size_t zone_count = 0;
-        ASTNode **zones = ast_world_zones(stmt, &zone_count);
+        const char *world_name = llvm_decl_node_name(stmt);
+        LLVMHostedWorldZoneSlotView zone_view =
+            llvm_hosted_world_zone_slot_view_from_decl(ctx, world_name, stmt);
+        size_t zone_count = zone_view.count;
         /* Per-zone "previously active" pointer cache populated during
          * world sync emission and consumed once before this function
          * returns.  Never escapes. */
         LLVMValueRef *prev_active_addrs = pgy_arena_calloc(&ctx->scratch,
             (zone_count > 0 ? zone_count : 1) * sizeof(LLVMValueRef));
+
+        if (llvm_hosted_world_zone_slot_view_missing_mir_metadata(&zone_view)) {
+            llvm_set_mir_inventory_missing(ctx,
+                "MIR-only LLVM path missing world zone-slot metadata for '%s'",
+                world_name != NULL ? world_name : "<anonymous>");
+            llvm_scope_pop(ctx);
+            ctx->current_function = saved_fn;
+            ctx->current_ret_type = saved_ret;
+            llvm_restore_current_host_decl(ctx, saved_host_decl);
+            return;
+        }
 
         LLVMBuildStore(ctx->builder, LLVMGetParam(sync_fn, 0), sa);
         llvm_scope_declare(ctx, "self", sa, self_ptr_t);
@@ -85,15 +99,15 @@ llvm_emit_world_sync(ASTNode *stmt, const char *decl_name,
 
         /* world command pass: reset */
         for (size_t i = 0; i < zone_count; i++) {
-            ASTNode *zone = zones[i];
             char active_field[256];
             char prev_name[256];
             int active_idx;
             LLVMValueRef self_ptr;
-        LLVMValueRef active_ptr;
-        LLVMValueRef prev_addr;
-        LLVMValueRef prev_val;
-            const char *slot_name = ast_world_zone_slot_name(zone);
+            LLVMValueRef active_ptr;
+            LLVMValueRef prev_addr;
+            LLVMValueRef prev_val;
+            const char *slot_name =
+                llvm_hosted_world_zone_slot_view_name(&zone_view, i);
             if (slot_name == NULL)
                 continue;
             if (!llvm_world_sync_field_name(active_field, sizeof(active_field),
@@ -120,7 +134,6 @@ llvm_emit_world_sync(ASTNode *stmt, const char *decl_name,
         llvm_world_sync_emit_directives(stmt, decl_cls, sync_fn, ctx);
 
         for (size_t i = 0; i < zone_count; i++) {
-            ASTNode *zone = zones[i];
             const char *slot_name;
             char active_field[256];
             char dirty_field[256];
@@ -132,7 +145,7 @@ llvm_emit_world_sync(ASTNode *stmt, const char *decl_name,
             LLVMValueRef active_val;
             LLVMValueRef prev_val;
             LLVMValueRef changed_val;
-            slot_name = ast_world_zone_slot_name(zone);
+            slot_name = llvm_hosted_world_zone_slot_view_name(&zone_view, i);
             if (slot_name == NULL || prev_active_addrs[i] == NULL)
                 continue;
             if (!llvm_world_sync_field_name(active_field, sizeof(active_field),

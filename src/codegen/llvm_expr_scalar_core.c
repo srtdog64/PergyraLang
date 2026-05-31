@@ -325,10 +325,10 @@ llvm_emit_binary(ASTNode *node, LLVMGenCtx *ctx)
                 "LLVM logical operator could not lower left operand");
         LLVMBasicBlockRef entry_bb = LLVMGetInsertBlock(ctx->builder);
         LLVMValueRef parent_fn = LLVMGetBasicBlockParent(entry_bb);
-        LLVMBasicBlockRef rhs_bb = LLVMAppendBasicBlock(parent_fn,
-            llvm_tmp_name(ctx));
-        LLVMBasicBlockRef merge_bb = LLVMAppendBasicBlock(parent_fn,
-            llvm_tmp_name(ctx));
+        LLVMBasicBlockRef rhs_bb = LLVMAppendBasicBlockInContext(
+            ctx->context, parent_fn, llvm_tmp_name(ctx));
+        LLVMBasicBlockRef merge_bb = LLVMAppendBasicBlockInContext(
+            ctx->context, parent_fn, llvm_tmp_name(ctx));
         if (op_type == TOKEN_AND) {
             LLVMBuildCondBr(ctx->builder, left, rhs_bb, merge_bb);
         } else {

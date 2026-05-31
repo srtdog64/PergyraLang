@@ -8,14 +8,15 @@ llvm_world_frontier_emit_zone_sync_pass(ASTNode *stmt,
                                         LLVMValueRef sync_fn,
                                         LLVMValueRef needs_derived_addr,
                                         LLVMValueRef derived_ptr,
-                                        ASTNode **zones,
-                                        size_t zone_count,
+                                        const LLVMHostedWorldZoneSlotView *zone_view,
                                         LLVMGenCtx *ctx)
 {
     (void)stmt;
 
-    for (size_t i = 0; i < zone_count; i++) {
-        ASTNode *zone = zones[i];
+    if (zone_view == NULL)
+        return;
+
+    for (size_t i = 0; i < zone_view->count; i++) {
         int zone_idx;
         int dirty_idx;
         int seen_idx;
@@ -26,8 +27,10 @@ llvm_world_frontier_emit_zone_sync_pass(ASTNode *stmt,
         LLVMValueRef dirty_val;
         LLVMBasicBlockRef sync_bb;
         LLVMBasicBlockRef cont_bb;
-        const char *slot_name = ast_world_zone_slot_name(zone);
-        const char *zone_type_name = ast_world_zone_type_name(zone);
+        const char *slot_name =
+            llvm_hosted_world_zone_slot_view_name(zone_view, i);
+        const char *zone_type_name =
+            llvm_hosted_world_zone_slot_view_type_name(zone_view, i);
         if (slot_name == NULL)
             continue;
         zone_idx = llvm_class_field_index(decl_cls, slot_name);
@@ -145,8 +148,7 @@ llvm_world_frontier_emit_pending_zone_dirty(LLVMClassTypeEntry *decl_cls,
                                            LLVMValueRef derived_ptr,
                                            LLVMValueRef frontier_continue_addr,
                                            LLVMValueRef changed_any_addr,
-                                           ASTNode **zones,
-                                           size_t zone_count,
+                                           const LLVMHostedWorldZoneSlotView *zone_view,
                                            LLVMGenCtx *ctx)
 {
     LLVMValueRef pending_val = LLVMBuildLoad2(ctx->builder, ctx->type_i1,
@@ -157,14 +159,19 @@ llvm_world_frontier_emit_pending_zone_dirty(LLVMClassTypeEntry *decl_cls,
             llvm_tmp_name(ctx));
     pending_val = LLVMBuildOr(ctx->builder, pending_val, dirty_pending,
         llvm_tmp_name(ctx));
-    for (size_t i = 0; i < zone_count; i++) {
-        ASTNode *zone = zones[i];
+    if (zone_view == NULL) {
+        LLVMBuildStore(ctx->builder, pending_val, frontier_continue_addr);
+        return;
+    }
+
+    for (size_t i = 0; i < zone_view->count; i++) {
         char dirty_field[256];
         int dirty_idx;
         LLVMValueRef self_ptr;
         LLVMValueRef dirty_ptr;
         LLVMValueRef dirty_val;
-        const char *slot_name = ast_world_zone_slot_name(zone);
+        const char *slot_name =
+            llvm_hosted_world_zone_slot_view_name(zone_view, i);
         if (slot_name == NULL)
             continue;
         if (!llvm_world_frontier_field_name(dirty_field,

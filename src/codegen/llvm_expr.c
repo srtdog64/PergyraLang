@@ -79,24 +79,9 @@ llvm_emit_expression(ASTNode *node, LLVMGenCtx *ctx)
                 ast_party_instance_assignment_slot_name(node, i);
             ASTNode *val_node =
                 ast_party_instance_assignment_value(node, i);
-            bool found_field = false;
+            int field_index = llvm_class_field_index(cls, slot_name);
 
-            for (int f = 0; f < cls->field_count; f++) {
-                if (strcmp(cls->fields[f].field_name, slot_name) == 0) {
-                    found_field = true;
-                    LLVMValueRef field_ptr = LLVMBuildStructGEP2(
-                        ctx->builder, cls->struct_type, alloca,
-                        (unsigned)cls->fields[f].index,
-                        llvm_tmp_name(ctx));
-                    LLVMValueRef val = llvm_emit_expression(val_node, ctx);
-                    if (val == NULL)
-                        return llvm_expression_error(ctx, node,
-                            "LLVM party instance could not lower assigned value");
-                    LLVMBuildStore(ctx->builder, val, field_ptr);
-                    break;
-                }
-            }
-            if (!found_field) {
+            if (field_index < 0) {
                 llvm_set_error_at_with_hints(ctx, node,
                     PGY_CODE_LLVM_TYPE_UNSUPPORTED,
                     PGY_CAUSE_LLVM_TYPE_UNSUPPORTED,
@@ -105,6 +90,14 @@ llvm_emit_expression(ASTNode *node, LLVMGenCtx *ctx)
                     slot_name != NULL ? slot_name : "<unnamed>");
                 return NULL;
             }
+            LLVMValueRef field_ptr = LLVMBuildStructGEP2(
+                ctx->builder, cls->struct_type, alloca,
+                (unsigned)field_index, llvm_tmp_name(ctx));
+            LLVMValueRef val = llvm_emit_expression(val_node, ctx);
+            if (val == NULL)
+                return llvm_expression_error(ctx, node,
+                    "LLVM party instance could not lower assigned value");
+            LLVMBuildStore(ctx->builder, val, field_ptr);
         }
 
         return LLVMBuildLoad2(ctx->builder, cls->struct_type,

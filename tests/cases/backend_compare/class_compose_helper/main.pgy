@@ -1,0 +1,39 @@
+class Rect {
+    let w: Int;
+    let h: Int;
+
+    func Area(self) -> Int {
+        return w * h;
+    }
+
+    func Perimeter(self) -> Int {
+        return 2 * (w + h);
+    }
+
+    func IsSquare(self) -> Bool {
+        return w == h;
+    }
+}
+
+func TotalArea(r1: Rect, r2: Rect, r3: Rect) -> Int {
+    return r1.Area() + r2.Area() + r3.Area();
+}
+
+func CountSquares(r1: Rect, r2: Rect, r3: Rect) -> Int {
+    let n: Int = 0;
+    if r1.IsSquare() { n = n + 1; }
+    if r2.IsSquare() { n = n + 1; }
+    if r3.IsSquare() { n = n + 1; }
+    return n;
+}
+
+func Main() -> Void {
+    let a = Rect(3, 4);
+    let b = Rect(5, 5);
+    let c = Rect(2, 8);
+    Log(TotalArea(a, b, c));
+    Log(CountSquares(a, b, c));
+    Log(a.Area() + a.Perimeter());
+    Log(b.Area() + b.Perimeter());
+    Log(c.Area() + c.Perimeter());
+}

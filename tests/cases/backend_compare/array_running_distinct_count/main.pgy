@@ -1,0 +1,26 @@
+func DistinctCount(arr: Array<Int>, n: Int) -> Int {
+    let count: Int = 0;
+    let i: Int = 0;
+    while i < n {
+        let already: Bool = false;
+        let j: Int = 0;
+        while j < i {
+            if arr[j] == arr[i] { already = true; }
+            j = j + 1;
+        }
+        if !already { count = count + 1; }
+        i = i + 1;
+    }
+    return count;
+}
+
+func Main() -> Void {
+    let a: Array<Int> = [1, 2, 2, 3, 1, 4];
+    Log(DistinctCount(a, 6));
+    let b: Array<Int> = [5, 5, 5, 5];
+    Log(DistinctCount(b, 4));
+    let c: Array<Int> = [1, 2, 3, 4, 5];
+    Log(DistinctCount(c, 5));
+    let d: Array<Int> = [];
+    Log(DistinctCount(d, 0));
+}

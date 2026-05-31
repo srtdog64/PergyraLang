@@ -1,0 +1,22 @@
+enum Tag { A, B, C }
+
+func Describe(t: Tag, n: Int) -> String {
+    match t {
+        case A:
+            let prefix: String = "a:";
+            return prefix + ToString(n);
+        case B:
+            let prefix: String = "b:";
+            return prefix + ToString(n + 100);
+        case C:
+            let prefix: String = "c:";
+            return prefix + ToString(n - 1);
+    }
+}
+
+func Main() -> Void {
+    Log(Describe(A, 5));
+    Log(Describe(B, 5));
+    Log(Describe(C, 5));
+    Log(Describe(A, 0));
+}

@@ -1,0 +1,37 @@
+func CountOccur(arr: Array<Int>, n: Int, target: Int) -> Int {
+    let count: Int = 0;
+    let i: Int = 0;
+    while i < n {
+        if arr[i] == target { count = count + 1; }
+        i = i + 1;
+    }
+    return count;
+}
+
+func DominantValue(arr: Array<Int>, n: Int) -> Int {
+    if n == 0 { return -1; }
+    let best: Int = arr[0];
+    let best_count: Int = CountOccur(arr, n, best);
+    let i: Int = 1;
+    while i < n {
+        let c: Int = CountOccur(arr, n, arr[i]);
+        if c > best_count {
+            best_count = c;
+            best = arr[i];
+        }
+        i = i + 1;
+    }
+    return best * 1000 + best_count;
+}
+
+func Main() -> Void {
+    let a: Array<Int> = [1, 2, 3, 2, 1, 2, 4];
+    Log(CountOccur(a, 7, 2));
+    Log(DominantValue(a, 7));
+    let b: Array<Int> = [5, 5, 5, 5];
+    Log(DominantValue(b, 4));
+    let c: Array<Int> = [];
+    Log(DominantValue(c, 0));
+    let d: Array<Int> = [1, 2, 3];
+    Log(DominantValue(d, 3));
+}

@@ -12,8 +12,8 @@
 #include <stdio.h>
 #include <string.h>
 
-static const char *
-slot_error_name(SlotError err)
+const char *
+SlotErrorName(SlotError err)
 {
     switch (err) {
     case SLOT_SUCCESS: return "success";
@@ -30,16 +30,33 @@ slot_error_name(SlotError err)
     }
 }
 
+SlotFailure
+SlotFailureFromError(SlotError err, const char *operation,
+                     const SlotHandle *handle)
+{
+    SlotFailure failure;
+
+    failure.error = err;
+    failure.name = SlotErrorName(err);
+    failure.operation = operation != NULL ? operation : "<op>";
+    failure.slotId = handle != NULL ? handle->slotId : 0u;
+    failure.typeTag = handle != NULL ? handle->typeTag : 0u;
+    failure.generation = handle != NULL ? handle->generation : 0u;
+    return failure;
+}
+
 static void
 slot_manager_warn(const char *op, const SlotHandle *handle, SlotError err)
 {
+    SlotFailure failure = SlotFailureFromError(err, op, handle);
+
     fprintf(stderr,
             "[pgy][slot] %s failed: %s (slot=%u type=%u gen=%u)\n",
-            op != NULL ? op : "<op>",
-            slot_error_name(err),
-            handle != NULL ? handle->slotId : 0u,
-            handle != NULL ? handle->typeTag : 0u,
-            handle != NULL ? handle->generation : 0u);
+            failure.operation,
+            failure.name,
+            failure.slotId,
+            failure.typeTag,
+            failure.generation);
 }
 
 static SlotEntry *

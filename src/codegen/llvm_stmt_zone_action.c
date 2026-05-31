@@ -213,8 +213,8 @@ llvm_stmt_emit_zone_action_effect_runtime(ASTNode *call, LLVMGenCtx *ctx)
 
     layer_view = llvm_hosted_zone_layer_slot_view_from_decl(ctx, zone_name, zone_decl);
     if (llvm_hosted_zone_layer_slot_view_missing_mir_metadata(&layer_view)) {
-        llvm_set_error(ctx,
-            "MIR declaration inventory missing zone layer-slot metadata for zone action emission");
+        llvm_set_mir_inventory_missing(ctx,
+            "MIR-only LLVM path missing zone layer-slot metadata for zone action emission");
         return;
     }
     effect_slots = ast_effect_slots(effect_decl, &effect_slot_count);
@@ -276,8 +276,12 @@ llvm_stmt_emit_zone_action_effect_runtime(ASTNode *call, LLVMGenCtx *ctx)
             self_ptr, (unsigned)layer_idx, llvm_tmp_name(ctx));
         target_ptr = LLVMBuildStructGEP2(ctx->builder, zone_cls->struct_type,
             self_ptr, (unsigned)target_idx, llvm_tmp_name(ctx));
+        LLVMTypeRef target_ty =
+            llvm_class_field_type_at_index(zone_cls, target_idx);
+        if (target_ty == NULL)
+            return;
         target_value = LLVMBuildLoad2(ctx->builder,
-            zone_cls->fields[target_idx].field_type, target_ptr, llvm_tmp_name(ctx));
+            target_ty, target_ptr, llvm_tmp_name(ctx));
         {
             LLVMValueRef subject_ptr = LLVMBuildStructGEP2(ctx->builder, effect_cls->struct_type,
                 layer_ptr, (unsigned)subject_idx, llvm_tmp_name(ctx));

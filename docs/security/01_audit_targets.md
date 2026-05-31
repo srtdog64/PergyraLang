@@ -27,6 +27,7 @@ to a 1-year freeze without adversarial coverage.
 | P0-3 | Authority transfer single-owner | `src/runtime/pgy_authority_runtime.c` (or equivalent) | (TBD) |
 | P0-4 | TTL cleanup vs pin-state interaction | `src/runtime/slot_manager.c` | (TBD) |
 | P0-5 | Release-while-pinned rejection | `src/runtime/slot_manager.c` | (TBD) |
+| P0-6 | Slot id exhaustion availability / tombstone flooding | `src/runtime/slot_manager.c`, `src/runtime/slot_manager.h`, `docs/74_slot_pinning_caching.md` | (TBD) |
 
 Existing regression: `make test-security` 142/142 + `make runtime-panic-abi-test-smoke`. Audit covers
 *unenumerated* edge cases beyond those 142.
@@ -43,6 +44,8 @@ panics, so silent-wrong-result risk is lower.
 | P1-3 | Runtime panic class consistency (C vs LLVM parity) | `src/runtime/pgy_runtime_panic_contract.c` | (TBD) |
 | P1-4 | OOM / divide-by-zero / OOB consistency | runtime panic | (TBD) |
 | P1-5 | AIR drift detection completeness for declared kinds | `src/compiler/air.c`, `air_boundary.c` | (TBD) |
+| P1-6 | Runtime panic DoS boundary policy: hard-fail vs recoverable service boundary | `src/runtime/pgy_runtime_panic_contract.c`, `docs/105_runtime_panic_contract.md` | (TBD) |
+| P1-7 | Zone-bound handle escape decision and diagnostics | `src/semantic/`, `src/compiler/air.c`, `src/compiler/mir_*` | (TBD) |
 
 ## P2 — Audit During 1-Year Freeze
 
@@ -72,6 +75,23 @@ Currently filled:
 - ✅ P0-1 — `contracts/secure_slot_token_unforgeability.md`
 - 🟡 P0-2 through P0-5 — TBD before first audit run
 - 🟡 P1, P2, P3 — TBD progressively
+
+Status correction: P0-2 through P0-6 are TBD before the first audit run.
+
+Red-team drift guard:
+
+- Do not claim a 128-bit Slot handle while the beta ABI remains 32-bit
+  `slotId` plus 32-bit `generation`.
+- Do not claim whole-language Coq/Lean mechanized safety until executable proof
+  artifacts cover the theorem being advertised.
+- Do not describe every runtime panic as recoverable. Recovery is a boundary
+  contract; hard-fail classes remain hard-fail unless a named safe wrapper owns
+  the conversion to `Result`.
+- Primitive Slot panic functions remain the default sharp runtime ABI, but
+  `PgyRuntimeSlotStatus` plus `pgy_try_read_*` / `pgy_try_write_*` /
+  `pgy_try_release_*` provide the recoverable boundary seam for host, FFI, and
+  service wrappers that need to convert slot failure into data instead of
+  aborting the process.
 
 Adding a new audit target: copy `templates/contract_template.md` (TBD,
 will be created on first need), fill the invariant statement, source

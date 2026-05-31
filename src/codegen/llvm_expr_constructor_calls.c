@@ -330,20 +330,8 @@ llvm_emit_enum_variant_constructor(ASTNode *node, LLVMGenCtx *ctx,
     if (param_count > 0) {
         int field_idx = llvm_class_field_index(enum_cls, callee_name);
         if (field_idx > 0) {
-            /*
-             * `field_idx` is the LLVM struct field position (e.g. 2 for the
-             * second variant when a no-payload variant precedes it).
-             * `enum_cls->fields[]` is a parallel array of LLVMClassField
-             * entries with its own array index. Read the payload type by
-             * iterating until we find the entry whose .index matches.
-             */
-            LLVMTypeRef payload_ty = NULL;
-            for (int fi = 0; fi < enum_cls->field_count; fi++) {
-                if (enum_cls->fields[fi].index == field_idx) {
-                    payload_ty = enum_cls->fields[fi].field_type;
-                    break;
-                }
-            }
+            LLVMTypeRef payload_ty =
+                llvm_class_field_type_at_index(enum_cls, field_idx);
             if (payload_ty == NULL) {
                 return llvm_constructor_error(node, ctx,
                     "LLVM enum variant payload type metadata not found for field index");
@@ -359,18 +347,20 @@ llvm_emit_enum_variant_constructor(ASTNode *node, LLVMGenCtx *ctx,
                     return llvm_constructor_error(node, ctx,
                         "LLVM enum variant constructor could not lower payload argument");
                 if (payload_cls != NULL
-                    && i < (size_t)payload_cls->field_count
-                    && payload_cls->fields[i].field_type != LLVMTypeOf(arg)) {
-                    LLVMTypeRef target_ty = payload_cls->fields[i].field_type;
-                    if ((target_ty == ctx->type_i32 || target_ty == ctx->type_i64)
-                        && (LLVMTypeOf(arg) == ctx->type_i32
-                            || LLVMTypeOf(arg) == ctx->type_i64)) {
-                        arg = (LLVMGetIntTypeWidth(target_ty)
-                            > LLVMGetIntTypeWidth(LLVMTypeOf(arg)))
-                            ? LLVMBuildSExt(ctx->builder, arg, target_ty,
-                                llvm_tmp_name(ctx))
-                            : LLVMBuildTrunc(ctx->builder, arg, target_ty,
-                                llvm_tmp_name(ctx));
+                    && i < (size_t)llvm_class_field_count(payload_cls)) {
+                    LLVMTypeRef target_ty =
+                        llvm_class_field_type_at(payload_cls, (int)i);
+                    if (target_ty != NULL && target_ty != LLVMTypeOf(arg)) {
+                        if ((target_ty == ctx->type_i32 || target_ty == ctx->type_i64)
+                            && (LLVMTypeOf(arg) == ctx->type_i32
+                                || LLVMTypeOf(arg) == ctx->type_i64)) {
+                            arg = (LLVMGetIntTypeWidth(target_ty)
+                                > LLVMGetIntTypeWidth(LLVMTypeOf(arg)))
+                                ? LLVMBuildSExt(ctx->builder, arg, target_ty,
+                                    llvm_tmp_name(ctx))
+                                : LLVMBuildTrunc(ctx->builder, arg, target_ty,
+                                    llvm_tmp_name(ctx));
+                        }
                     }
                 }
                 payload = LLVMBuildInsertValue(ctx->builder, payload, arg,
@@ -500,13 +490,21 @@ llvm_emit_class_constructor_world_dirty(LLVMGenCtx *ctx,
             (unsigned)derived_idx, llvm_tmp_name(ctx));
     }
 
-    size_t zone_count = 0;
-    ASTNode **zones = ast_world_zones(world_decl, &zone_count);
-    for (size_t i = 0; i < zone_count; i++) {
-        ASTNode *zone = zones[i];
+    const char *world_name = llvm_decl_node_name(world_decl);
+    LLVMHostedWorldZoneSlotView zone_view =
+        llvm_hosted_world_zone_slot_view_from_decl(ctx, world_name,
+            world_decl);
+    if (llvm_hosted_world_zone_slot_view_missing_mir_metadata(&zone_view)) {
+        llvm_set_mir_inventory_missing(ctx,
+            "MIR-only LLVM path missing world zone-slot metadata for '%s'",
+            world_name != NULL ? world_name : "<anonymous>");
+        return;
+    }
+    for (size_t i = 0; i < zone_view.count; i++) {
         char dirty_field[256];
         int dirty_idx;
-        const char *slot_name = ast_world_zone_slot_name(zone);
+        const char *slot_name =
+            llvm_hosted_world_zone_slot_view_name(&zone_view, i);
         if (slot_name == NULL)
             continue;
         snprintf(dirty_field, sizeof(dirty_field), "__zone_dirty_%s", slot_name);
@@ -545,18 +543,24 @@ llvm_emit_class_constructor(ASTNode *node, LLVMGenCtx *ctx, const char *callee_n
     }
 
     LLVMValueRef object = LLVMConstNull(cls->struct_type);
+    int field_count = llvm_class_field_count(cls);
     for (size_t i = 0; i < ast_call_arg_count(node)
-        && i < (size_t)cls->field_count; i++) {
+        && i < (size_t)field_count; i++) {
         ASTNode *field_type = llvm_class_constructor_field_type_at(
             ctx, callee_name, i);
-        const char *field_name = cls->fields[i].field_name;
+        const char *field_name = llvm_class_field_name_at(cls, (int)i);
+        LLVMTypeRef expected_ty = llvm_class_field_type_at(cls, (int)i);
+        int field_index = llvm_class_field_struct_index_at(cls, (int)i);
+        if (field_name == NULL || expected_ty == NULL || field_index < 0) {
+            return llvm_constructor_error(node, ctx,
+                "LLVM class constructor field metadata is incomplete");
+        }
         LLVMValueRef arg = llvm_emit_constructor_field_arg(node, ctx,
             field_type, field_name, ast_call_argument(node, i));
         if (arg == NULL)
             return llvm_constructor_error(node, ctx,
                 "LLVM class constructor could not lower field argument");
         {
-            LLVMTypeRef expected_ty = cls->fields[i].field_type;
             LLVMTypeRef actual_ty = LLVMTypeOf(arg);
             if (expected_ty != actual_ty) {
                 if ((expected_ty == ctx->type_i32 || expected_ty == ctx->type_i64)
@@ -580,7 +584,7 @@ llvm_emit_class_constructor(ASTNode *node, LLVMGenCtx *ctx, const char *callee_n
             }
         }
         object = LLVMBuildInsertValue(ctx->builder, object, arg,
-            (unsigned)cls->fields[i].index, llvm_tmp_name(ctx));
+            (unsigned)field_index, llvm_tmp_name(ctx));
     }
 
     ASTNode *relation_decl = host_decl != NULL

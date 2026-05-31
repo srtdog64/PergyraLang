@@ -1,0 +1,27 @@
+func ParseOpt(s: String) -> Option<Int> {
+    if StringLength(s) == 0 { return None(); }
+    if s == "neg" { return None(); }
+    let v: Int = ToInt(s);
+    if v < 0 { return None(); }
+    return Some(v);
+}
+
+func ProcessOpt(s: String) -> Int {
+    let parsed: Option<Int> = ParseOpt(s);
+    match parsed {
+        case Some(n):
+            let doubled: Int = n * 2;
+            return doubled + 10;
+        case None:
+            let fallback: Int = -1;
+            return fallback;
+    }
+}
+
+func Main() -> Void {
+    Log(ProcessOpt("5"));
+    Log(ProcessOpt("100"));
+    Log(ProcessOpt(""));
+    Log(ProcessOpt("neg"));
+    Log(ProcessOpt("0"));
+}

@@ -55,21 +55,23 @@ llvm_resolve_intent_zone_slot_name_for_zone(LLVMGenCtx *ctx, ASTNode *intent,
     if (zone_cls == NULL)
         return "<unbound>";
 
-    for (int i = 0; i < zone_cls->field_count; i++) {
-        LLVMClassFieldInfo *field = &zone_cls->fields[i];
-        if (!field->is_subject_slot || field->field_name == NULL) {
+    for (int i = 0; i < llvm_class_field_count(zone_cls); i++) {
+        const char *field_name = llvm_class_field_name_at(zone_cls, i);
+        LLVMTypeRef field_type = llvm_class_field_type_at(zone_cls, i);
+        if (!llvm_class_field_is_subject_slot_at(zone_cls, i)
+            || field_name == NULL) {
             continue;
         }
-        if (strcmp(field->field_name, alias) == 0) {
-            named_match = field->field_name;
+        if (strcmp(field_name, alias) == 0) {
+            named_match = field_name;
             break;
         }
         if (participant_type != NULL && participant_llvm_type != NULL
-            && field->field_type == participant_llvm_type) {
+            && field_type == participant_llvm_type) {
             if (typed_match != NULL)
                 typed_ambiguous = true;
             else
-                typed_match = field->field_name;
+                typed_match = field_name;
         }
     }
 
@@ -162,18 +164,19 @@ llvm_emit_intent_step_dirty_zone_projections(LLVMGenCtx *ctx,
     zone_ptr = LLVMBuildLoad2(ctx->builder, zone_var->type,
         zone_var->alloca, llvm_tmp_name(ctx));
 
-    for (int i = 0; i < zone_cls->field_count; i++) {
-        const char *field_name = zone_cls->fields[i].field_name;
-        if (field_name == NULL)
+    for (int i = 0; i < llvm_class_field_count(zone_cls); i++) {
+        const char *field_name = llvm_class_field_name_at(zone_cls, i);
+        int field_index = llvm_class_field_struct_index_at(zone_cls, i);
+        if (field_name == NULL || field_index < 0)
             continue;
         if (strncmp(field_name, "__projection_dirty_", 19) == 0) {
             LLVMValueRef field_ptr = LLVMBuildStructGEP2(ctx->builder,
-                zone_cls->struct_type, zone_ptr, (unsigned)zone_cls->fields[i].index,
+                zone_cls->struct_type, zone_ptr, (unsigned)field_index,
                 llvm_tmp_name(ctx));
             LLVMBuildStore(ctx->builder, LLVMConstInt(ctx->type_i1, 1, 0), field_ptr);
         } else if (strncmp(field_name, "__projection_ready_", 19) == 0) {
             LLVMValueRef field_ptr = LLVMBuildStructGEP2(ctx->builder,
-                zone_cls->struct_type, zone_ptr, (unsigned)zone_cls->fields[i].index,
+                zone_cls->struct_type, zone_ptr, (unsigned)field_index,
                 llvm_tmp_name(ctx));
             LLVMBuildStore(ctx->builder, LLVMConstInt(ctx->type_i1, 0, 0), field_ptr);
         }

@@ -1,0 +1,22 @@
+func Factorial(n: Int) -> Int {
+    if n <= 1 { return 1; }
+    return n * Factorial(n - 1);
+}
+
+func Ackermann(m: Int, n: Int) -> Int {
+    if m == 0 { return n + 1; }
+    if m > 3 { return -1; }
+    if n == 0 { return Ackermann(m - 1, 1); }
+    return Ackermann(m - 1, Ackermann(m, n - 1));
+}
+
+func Main() -> Void {
+    Log(Factorial(0));
+    Log(Factorial(1));
+    Log(Factorial(5));
+    Log(Factorial(7));
+    Log(Ackermann(0, 0));
+    Log(Ackermann(1, 1));
+    Log(Ackermann(2, 2));
+    Log(Ackermann(3, 3));
+}

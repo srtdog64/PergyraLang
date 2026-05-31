@@ -55,8 +55,11 @@ llvm_emit_member_lvalue_ptr(ASTNode *node, LLVMGenCtx *ctx,
     if (field_idx < 0)
         return NULL;
 
-    if (out_field_type != NULL)
-        *out_field_type = cls->fields[field_idx].field_type;
+    if (out_field_type != NULL) {
+        *out_field_type = llvm_class_field_type_at_index(cls, field_idx);
+        if (*out_field_type == NULL)
+            return NULL;
+    }
     return LLVMBuildStructGEP2(ctx->builder, cls->struct_type, base_ptr,
         (unsigned)field_idx, llvm_tmp_name(ctx));
 }

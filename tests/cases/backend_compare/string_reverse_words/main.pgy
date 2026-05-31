@@ -1,0 +1,30 @@
+func ReverseWords(s: String) -> String {
+    let n: Int = StringLength(s);
+    let result: String = "";
+    let end: Int = n;
+    let i: Int = n - 1;
+    while i >= 0 {
+        let ch: String = Substring(s, i, i + 1);
+        if ch == " " {
+            if i + 1 < end {
+                if StringLength(result) > 0 { result = result + " "; }
+                result = result + Substring(s, i + 1, end);
+            }
+            end = i;
+        }
+        i = i - 1;
+    }
+    if 0 < end {
+        if StringLength(result) > 0 { result = result + " "; }
+        result = result + Substring(s, 0, end);
+    }
+    return result;
+}
+
+func Main() -> Void {
+    Log(ReverseWords("hello world"));
+    Log(ReverseWords("one two three"));
+    Log(ReverseWords("solo"));
+    Log(ReverseWords(""));
+    Log(ReverseWords("a b c d"));
+}

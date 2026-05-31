@@ -1,7 +1,6 @@
 #include "transpiler_statement_dispatch.h"
 
 #include <stdlib.h>
-#include <string.h>
 
 #include "../parser/ast_api.h"
 #include "../semantic/diag_codes.h"
@@ -14,9 +13,11 @@
 #include "transpiler_enum_decl_emit.h"
 #include "transpiler_event_emit.h"
 #include "transpiler_match_emit.h"
+#include "transpiler_mir_ssa_names.h"
 #include "transpiler_projection_sync.h"
 #include "transpiler_relation_effect_emit.h"
 #include "transpiler_role_ability_helpers.h"
+#include "transpiler_symbols.h"
 #include "transpiler_type_alias.h"
 #include "transpiler_zone_decl_emit.h"
 
@@ -77,18 +78,20 @@ emit_statement(ASTNode *node, TranspilerCtx *ctx)
         const char *pvar = ast_bind_statement_party_var(node);
         const char *slot = ast_bind_statement_slot_name(node);
         const char *role = ast_bind_statement_role_name(node);
-        const char *party_type = NULL;
-        for (int ti = 0; ti < ctx->typed_var_count; ti++) {
-            if (strcmp(ctx->typed_vars[ti].name, pvar) == 0) {
-                party_type = ctx->typed_vars[ti].type_name;
-                break;
-            }
-        }
+        const char *party_type = lookup_typed_var(ctx, pvar);
+        const char *pvar_ssa = transpiler_resolve_active_ssa_name(ctx, pvar);
+        char *pvar_c_owned = pvar_ssa != NULL
+            ? transpiler_make_c_ssa_name(ctx, pvar_ssa)
+            : NULL;
+        const char *pvar_c = pvar_c_owned != NULL ? pvar_c_owned : pvar;
+        if (pvar_c == NULL)
+            pvar_c = pvar;
         if (party_type == NULL) {
             transpiler_set_backend_error_with_hints(ctx, PGY_CODE_C_TYPE_UNSUPPORTED, PGY_CAUSE_C_TYPE_UNSUPPORTED, PGY_FIX_USE_LLVM_BACKEND_OR_EXTEND_TRANSPILER, "cannot resolve party type for bind statement '%s.%s = %s'",
                 pvar != NULL ? pvar : "<party>",
                 slot != NULL ? slot : "<slot>",
                 role != NULL ? role : "<role>");
+            free(pvar_c_owned);
             break;
         }
 
@@ -106,9 +109,10 @@ emit_statement(ASTNode *node, TranspilerCtx *ctx)
                     pvar != NULL ? pvar : "<party>",
                     slot != NULL ? slot : "<slot>",
                     role != NULL ? role : "<role>");
+                free(pvar_c_owned);
                 break;
             }
-            ability_tag = transpiler_party_slot_first_ability_tag(it, slot);
+            ability_tag = transpiler_party_slot_first_ability_tag(ctx, it, slot);
             ability_name = ability_tag;
         }
         if (ability_name == NULL) {
@@ -116,14 +120,16 @@ emit_statement(ASTNode *node, TranspilerCtx *ctx)
                 party_type,
                 slot != NULL ? slot : "<slot>");
             free(ability_tag);
+            free(pvar_c_owned);
             break;
         }
         write_indent(ctx);
         codebuf_write(ctx->out,
             "%s_bind_%s(&%s, NULL, &%s_%s_vtable_instance);\n",
-            party_type, slot, pvar,
+            party_type, slot, pvar_c,
             role, ability_name);
         free(ability_tag);
+        free(pvar_c_owned);
         break;
     }
     case AST_ABILITY_DECL:

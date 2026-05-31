@@ -1,0 +1,30 @@
+func InTriangle(a: Int, b: Int, c: Int) -> Bool {
+    return a + b > c && b + c > a && a + c > b;
+}
+
+func IsDigit(s: String) -> Bool {
+    return s == "0" || s == "1" || s == "2" || s == "3" || s == "4"
+        || s == "5" || s == "6" || s == "7" || s == "8" || s == "9";
+}
+
+func AllDigits(s: String) -> Bool {
+    let n: Int = StringLength(s);
+    if n == 0 { return false; }
+    let i: Int = 0;
+    while i < n {
+        if !IsDigit(Substring(s, i, i + 1)) { return false; }
+        i = i + 1;
+    }
+    return true;
+}
+
+func Main() -> Void {
+    Log(InTriangle(3, 4, 5));
+    Log(InTriangle(1, 1, 5));
+    Log(InTriangle(10, 10, 10));
+    Log(IsDigit("5"));
+    Log(IsDigit("a"));
+    Log(AllDigits("12345"));
+    Log(AllDigits("12a5"));
+    Log(AllDigits(""));
+}

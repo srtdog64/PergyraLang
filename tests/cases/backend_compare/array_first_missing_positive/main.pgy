@@ -1,0 +1,27 @@
+func FirstMissing(arr: Array<Int>, n: Int) -> Int {
+    let target: Int = 1;
+    while target <= n + 1 {
+        let found: Bool = false;
+        let i: Int = 0;
+        while i < n {
+            if arr[i] == target { found = true; }
+            i = i + 1;
+        }
+        if !found { return target; }
+        target = target + 1;
+    }
+    return -1;
+}
+
+func Main() -> Void {
+    let a: Array<Int> = [1, 2, 0];
+    Log(FirstMissing(a, 3));
+    let b: Array<Int> = [3, 4, -1, 1];
+    Log(FirstMissing(b, 4));
+    let c: Array<Int> = [7, 8, 9, 11, 12];
+    Log(FirstMissing(c, 5));
+    let d: Array<Int> = [];
+    Log(FirstMissing(d, 0));
+    let e: Array<Int> = [1, 2, 3, 4, 5];
+    Log(FirstMissing(e, 5));
+}

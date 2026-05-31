@@ -1,0 +1,23 @@
+func StartsWith(s: String, prefix: String) -> Bool {
+    let pl: Int = StringLength(prefix);
+    if StringLength(s) < pl { return false; }
+    return Substring(s, 0, pl) == prefix;
+}
+
+func EndsWith(s: String, suffix: String) -> Bool {
+    let sl: Int = StringLength(s);
+    let xl: Int = StringLength(suffix);
+    if sl < xl { return false; }
+    return Substring(s, sl - xl, sl) == suffix;
+}
+
+func Main() -> Void {
+    Log(StartsWith("hello", "he"));
+    Log(StartsWith("hello", "lo"));
+    Log(StartsWith("", "a"));
+    Log(StartsWith("ab", "abcd"));
+    Log(EndsWith("hello", "lo"));
+    Log(EndsWith("hello", "he"));
+    Log(EndsWith("foo.txt", ".txt"));
+    Log(EndsWith("foo", ".txt"));
+}

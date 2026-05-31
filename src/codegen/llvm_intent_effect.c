@@ -81,8 +81,8 @@ llvm_emit_intent_step_mark_caused_effect(LLVMGenCtx *ctx,
 
     layer_view = llvm_hosted_zone_layer_slot_view_from_decl(ctx, zone_name, zone_decl);
     if (llvm_hosted_zone_layer_slot_view_missing_mir_metadata(&layer_view)) {
-        llvm_set_error(ctx,
-            "MIR declaration inventory missing zone layer-slot metadata for intent effect emission");
+        llvm_set_mir_inventory_missing(ctx,
+            "MIR-only LLVM path missing zone layer-slot metadata for intent effect emission");
         return;
     }
     states = ast_zone_states(zone_decl, &state_count);

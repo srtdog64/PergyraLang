@@ -1,0 +1,15 @@
+func Capitalize(s: String) -> String {
+    if StringLength(s) == 0 { return s; }
+    let first: String = Substring(s, 0, 1);
+    let rest: String = Substring(s, 1, StringLength(s));
+    return Upper(first) + Lower(rest);
+}
+
+func Main() -> Void {
+    Log(Capitalize("hello"));
+    Log(Capitalize("WORLD"));
+    Log(Capitalize("mIxEd"));
+    Log(Capitalize(""));
+    Log(Capitalize("a"));
+    Log(Capitalize("Z"));
+}
