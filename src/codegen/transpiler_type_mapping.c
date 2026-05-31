@@ -5,6 +5,7 @@
 
 #include "../common/string_compat.h"
 
+#include "codegen_channel_runtime_abi.h"
 #include "codegen_slot_type_policy.h"
 #include "transpiler.h"
 #include "transpiler_type_mapping.h"
@@ -102,12 +103,36 @@ type_arg_name_is_unknown(const char *name)
 }
 
 static bool
+type_arg_name_is_void(const char *name)
+{
+    size_t len;
+
+    while (name != NULL && (*name == ' ' || *name == '\t'))
+        name++;
+    if (name == NULL)
+        return false;
+    len = strlen(name);
+    while (len > 0 && (name[len - 1] == ' ' || name[len - 1] == '\t'))
+        len--;
+    return len == 4 && strncmp(name, "Void", 4) == 0;
+}
+
+static bool
 constructed_arg_name_is_unknown(const char *type_name, int arg_index)
 {
     char arg[128];
 
     copy_constructed_arg_name_at(type_name, arg_index, arg, sizeof(arg));
     return type_arg_name_is_unknown(arg);
+}
+
+static bool
+constructed_arg_name_is_void(const char *type_name, int arg_index)
+{
+    char arg[128];
+
+    copy_constructed_arg_name_at(type_name, arg_index, arg, sizeof(arg));
+    return type_arg_name_is_void(arg);
 }
 
 static bool
@@ -301,10 +326,16 @@ pergyra_type_to_c_copy(const char *name, char *out, size_t out_size)
         return out[0] != '\0';
     }
     if (transpiler_type_name_is_channel(name)) {
+        const PgyChannelRuntimePayloadAbi *abi;
+
         slot_inner_type_name_copy(name, inner, sizeof(inner));
         if (type_arg_name_is_unknown(inner))
             return false;
-        return transpiler_type_name_join(out, out_size, "PgyChannel_", inner);
+        abi = pgy_channel_runtime_payload_abi_lookup(inner);
+        if (abi == NULL)
+            return false;
+        return transpiler_type_name_join(out, out_size, "PgyChannel_",
+            abi->suffix);
     }
     if (transpiler_type_name_is_weak(name)) {
         slot_inner_type_name_copy(name, inner, sizeof(inner));
@@ -377,10 +408,13 @@ pergyra_type_to_c_copy(const char *name, char *out, size_t out_size)
         size_t prefix_len = strlen("PgyResult_");
         slot_inner_type_name_copy(name, inner, sizeof(inner));
         if (strchr(inner, ',') == NULL) {
-            if (type_arg_name_is_unknown(inner))
+            if (type_arg_name_is_unknown(inner)
+                || type_arg_name_is_void(inner))
                 return false;
             return transpiler_type_name_join(out, out_size, "PgyResult_", inner);
         }
+        if (constructed_arg_name_is_void(name, 0))
+            return false;
         if (constructed_arg_name_is_unknown(name, 0)
             || constructed_arg_name_is_unknown(name, 1)
             || prefix_len >= out_size)
@@ -396,7 +430,8 @@ pergyra_type_to_c_copy(const char *name, char *out, size_t out_size)
     }
     if (transpiler_type_name_is_option(name)) {
         slot_inner_type_name_copy(name, inner, sizeof(inner));
-        if (type_arg_name_is_unknown(inner))
+        if (type_arg_name_is_unknown(inner)
+            || type_arg_name_is_void(inner))
             return false;
         return transpiler_type_name_join(out, out_size, "PgyOption_", inner);
     }

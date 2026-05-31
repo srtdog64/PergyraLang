@@ -26,7 +26,7 @@ infer_spawn_return_type_name_owned(TranspilerCtx *ctx, ASTNode *spawn_expr)
     ASTNode *call = NULL;
 
     if (target == NULL)
-        return pergyra_strdup("Void");
+        return pergyra_strdup("Unknown");
 
     if (target->type == AST_CALL
         && ast_call_callee(target) != NULL
@@ -42,23 +42,27 @@ infer_spawn_return_type_name_owned(TranspilerCtx *ctx, ASTNode *spawn_expr)
     }
 
     if (function_name == NULL)
-        return pergyra_strdup("Void");
+        return pergyra_strdup("Unknown");
 
     ASTNode *decl = find_function_decl(ctx, function_name);
-    if (decl != NULL && ast_func_return_type(decl) != NULL) {
-        if (call != NULL && transpiler_func_has_generic_params(decl)) {
-            GenericBindingEntry bindings[MAX_GENERIC_BINDINGS];
-            size_t binding_count = 0;
-            if (transpiler_infer_generic_call_bindings(ctx, decl, call,
-                    bindings, &binding_count)) {
-                return transpiler_render_type_name_with_bindings(ctx,
-                    ast_func_return_type(decl), bindings, binding_count);
+    if (decl != NULL) {
+        ASTNode *return_type = ast_func_return_type(decl);
+        if (return_type != NULL) {
+            if (call != NULL && transpiler_func_has_generic_params(decl)) {
+                GenericBindingEntry bindings[MAX_GENERIC_BINDINGS];
+                size_t binding_count = 0;
+                if (transpiler_infer_generic_call_bindings(ctx, decl, call,
+                        bindings, &binding_count)) {
+                    return transpiler_render_type_name_with_bindings(ctx,
+                        return_type, bindings, binding_count);
+                }
             }
+            return render_type_name_in_ctx(ctx, return_type);
         }
-        return render_type_name_in_ctx(ctx, ast_func_return_type(decl));
+        return pergyra_strdup("Void");
     }
 
-    return pergyra_strdup("Void");
+    return pergyra_strdup("Unknown");
 }
 
 const char *
@@ -70,7 +74,7 @@ infer_spawn_return_type_name_scratch(TranspilerCtx *ctx, ASTNode *spawn_expr)
         : NULL;
 
     free(owned);
-    return result != NULL ? result : "Void";
+    return result != NULL ? result : "Unknown";
 }
 
 bool
@@ -110,7 +114,7 @@ lookup_future_inner_type_copy(TranspilerCtx *ctx, ASTNode *expr,
     out[0] = '\0';
 
     if (expr == NULL)
-        return pergyra_str_copy(out, out_size, "Void");
+        return false;
 
     if (expr->type == AST_IDENTIFIER) {
         const char *type_name = lookup_typed_var(ctx,
@@ -122,8 +126,10 @@ lookup_future_inner_type_copy(TranspilerCtx *ctx, ASTNode *expr,
     }
 
     if (expr != NULL && expr->type == AST_SPAWN_EXPR) {
-        return infer_spawn_return_type_name_copy(ctx, expr, out, out_size);
+        if (!infer_spawn_return_type_name_copy(ctx, expr, out, out_size))
+            return false;
+        return out[0] != '\0' && strcmp(out, "Unknown") != 0;
     }
 
-    return pergyra_str_copy(out, out_size, "Void");
+    return false;
 }

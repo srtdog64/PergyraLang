@@ -1,4 +1,5 @@
 #include <pthread.h>
+#include "pgy_runtime_channel_status.h"
 
 typedef struct {
     char **buffer;
@@ -161,6 +162,44 @@ bool pgy_channel_try_send_String(PgyChannel_String_RT *ch, char *v)
     return true;
 }
 
+PgyOption_Bool pgy_channel_try_send_status_String(PgyChannel_String_RT *ch,
+                                                  char *v)
+{
+    char *owned = NULL;
+
+    if (!pgy_channel_string_is_initialized(ch))
+        return Some_Bool(false);
+    pthread_mutex_lock(&ch->mutex);
+    if (ch->closed) {
+        pthread_mutex_unlock(&ch->mutex);
+        return Some_Bool(false);
+    }
+    if (ch->count >= ch->capacity) {
+        pthread_mutex_unlock(&ch->mutex);
+        return None_Bool();
+    }
+    owned = pgy_channel_dup_String(v);
+    if (owned == NULL) {
+        pthread_mutex_unlock(&ch->mutex);
+        return Some_Bool(false);
+    }
+    ch->buffer[ch->tail] = owned;
+    ch->tail = (ch->tail + 1) % ch->capacity;
+    ch->count++;
+    pthread_cond_signal(&ch->cond_not_empty);
+    pthread_mutex_unlock(&ch->mutex);
+    return Some_Bool(true);
+}
+
+int32_t pgy_channel_try_send_status_code_String(PgyChannel_String_RT *ch,
+                                                char *v)
+{
+    PgyOption_Bool status = pgy_channel_try_send_status_String(ch, v);
+    if (status.tag != 0)
+        return -1;
+    return status.value ? 1 : 0;
+}
+
 bool pgy_channel_send_timeout_String(PgyChannel_String_RT *ch, char *v,
                                      uint64_t timeout_ns)
 {
@@ -200,6 +239,53 @@ bool pgy_channel_send_timeout_String(PgyChannel_String_RT *ch, char *v,
     pthread_cond_signal(&ch->cond_not_empty);
     pthread_mutex_unlock(&ch->mutex);
     return true;
+}
+
+PgyOption_Bool pgy_channel_send_timeout_status_String(
+    PgyChannel_String_RT *ch,
+    char *v,
+    uint64_t timeout_ns)
+{
+    char *owned = NULL;
+
+    if (!pgy_channel_string_is_initialized(ch))
+        return Some_Bool(false);
+    struct timespec deadline = pgy_runtime_deadline_after_ns(timeout_ns);
+    pthread_mutex_lock(&ch->mutex);
+    while (ch->count >= ch->capacity && !ch->closed) {
+        if (pthread_cond_timedwait(&ch->cond_not_full, &ch->mutex, &deadline)
+            == ETIMEDOUT && ch->count >= ch->capacity && !ch->closed) {
+            pthread_mutex_unlock(&ch->mutex);
+            return None_Bool();
+        }
+    }
+    if (ch->closed) {
+        pthread_mutex_unlock(&ch->mutex);
+        return Some_Bool(false);
+    }
+    owned = pgy_channel_dup_String(v);
+    if (owned == NULL) {
+        pthread_mutex_unlock(&ch->mutex);
+        return Some_Bool(false);
+    }
+    ch->buffer[ch->tail] = owned;
+    ch->tail = (ch->tail + 1) % ch->capacity;
+    ch->count++;
+    pthread_cond_signal(&ch->cond_not_empty);
+    pthread_mutex_unlock(&ch->mutex);
+    return Some_Bool(true);
+}
+
+int32_t pgy_channel_send_timeout_status_code_String(
+    PgyChannel_String_RT *ch,
+    char *v,
+    uint64_t timeout_ns)
+{
+    PgyOption_Bool status =
+        pgy_channel_send_timeout_status_String(ch, v, timeout_ns);
+    if (status.tag != 0)
+        return -1;
+    return status.value ? 1 : 0;
 }
 
 bool pgy_channel_recv_String(PgyChannel_String_RT *ch, char **out)
@@ -322,6 +408,102 @@ bool pgy_channel_try_recv_String(PgyChannel_String_RT *ch, char **out)
     return true;
 }
 
+bool pgy_channel_closed_String(PgyChannel_String_RT *ch);
+
+PgyRuntimeChannelStringResult
+pgy_channel_recv_result_String(PgyChannel_String_RT *ch)
+{
+    PgyRuntimeChannelStringResult result;
+    char *out = NULL;
+
+    if (ch == NULL) {
+        result.tag = PGY_RUNTIME_CHANNEL_RESULT_ERR;
+        result.err = pgy_runtime_channel_failure_from_status(
+            PGY_RUNTIME_CHANNEL_STATUS_NULL_CHANNEL, "recv_String");
+        return result;
+    }
+    if (ch->buffer == NULL || ch->capacity == 0) {
+        result.tag = PGY_RUNTIME_CHANNEL_RESULT_ERR;
+        result.err = pgy_runtime_channel_failure_from_status(
+            PGY_RUNTIME_CHANNEL_STATUS_UNINITIALIZED, "recv_String");
+        return result;
+    }
+    if (!pgy_channel_recv_String(ch, &out)) {
+        result.tag = PGY_RUNTIME_CHANNEL_RESULT_ERR;
+        result.err = pgy_runtime_channel_failure_from_status(
+            PGY_RUNTIME_CHANNEL_STATUS_CLOSED_EMPTY, "recv_String");
+        return result;
+    }
+    result.tag = PGY_RUNTIME_CHANNEL_RESULT_OK;
+    result.ok = out;
+    return result;
+}
+
+PgyRuntimeChannelStringResult
+pgy_channel_try_recv_result_String(PgyChannel_String_RT *ch)
+{
+    PgyRuntimeChannelStringResult result;
+    char *out = NULL;
+
+    if (ch == NULL) {
+        result.tag = PGY_RUNTIME_CHANNEL_RESULT_ERR;
+        result.err = pgy_runtime_channel_failure_from_status(
+            PGY_RUNTIME_CHANNEL_STATUS_NULL_CHANNEL, "try_recv_String");
+        return result;
+    }
+    if (ch->buffer == NULL || ch->capacity == 0) {
+        result.tag = PGY_RUNTIME_CHANNEL_RESULT_ERR;
+        result.err = pgy_runtime_channel_failure_from_status(
+            PGY_RUNTIME_CHANNEL_STATUS_UNINITIALIZED, "try_recv_String");
+        return result;
+    }
+    if (!pgy_channel_try_recv_String(ch, &out)) {
+        result.tag = PGY_RUNTIME_CHANNEL_RESULT_ERR;
+        result.err = pgy_runtime_channel_failure_from_status(
+            pgy_channel_closed_String(ch)
+                ? PGY_RUNTIME_CHANNEL_STATUS_CLOSED_EMPTY
+                : PGY_RUNTIME_CHANNEL_STATUS_EMPTY,
+            "try_recv_String");
+        return result;
+    }
+    result.tag = PGY_RUNTIME_CHANNEL_RESULT_OK;
+    result.ok = out;
+    return result;
+}
+
+PgyRuntimeChannelStringResult
+pgy_channel_recv_timeout_result_String(PgyChannel_String_RT *ch,
+                                       uint64_t timeout_ns)
+{
+    PgyRuntimeChannelStringResult result;
+    char *out = NULL;
+
+    if (ch == NULL) {
+        result.tag = PGY_RUNTIME_CHANNEL_RESULT_ERR;
+        result.err = pgy_runtime_channel_failure_from_status(
+            PGY_RUNTIME_CHANNEL_STATUS_NULL_CHANNEL, "recv_timeout_String");
+        return result;
+    }
+    if (ch->buffer == NULL || ch->capacity == 0) {
+        result.tag = PGY_RUNTIME_CHANNEL_RESULT_ERR;
+        result.err = pgy_runtime_channel_failure_from_status(
+            PGY_RUNTIME_CHANNEL_STATUS_UNINITIALIZED, "recv_timeout_String");
+        return result;
+    }
+    if (!pgy_channel_recv_timeout_String(ch, &out, timeout_ns)) {
+        result.tag = PGY_RUNTIME_CHANNEL_RESULT_ERR;
+        result.err = pgy_runtime_channel_failure_from_status(
+            pgy_channel_closed_String(ch)
+                ? PGY_RUNTIME_CHANNEL_STATUS_CLOSED_EMPTY
+                : PGY_RUNTIME_CHANNEL_STATUS_TIMEOUT,
+            "recv_timeout_String");
+        return result;
+    }
+    result.tag = PGY_RUNTIME_CHANNEL_RESULT_OK;
+    result.ok = out;
+    return result;
+}
+
 bool pgy_channel_ready_String(PgyChannel_String_RT *ch)
 {
     if (!pgy_channel_string_is_initialized(ch)) {
@@ -405,7 +587,7 @@ bool pgy_channel_closed_String(PgyChannel_String_RT *ch)
 
 char *pgy_channel_recv_val_String(PgyChannel_String_RT *ch)
 {
-    char *out = NULL;
-    pgy_channel_recv_String(ch, &out);
-    return out;
+    PgyRuntimeChannelStringResult result =
+        pgy_channel_recv_result_String(ch);
+    return result.tag == PGY_RUNTIME_CHANNEL_RESULT_OK ? result.ok : NULL;
 }

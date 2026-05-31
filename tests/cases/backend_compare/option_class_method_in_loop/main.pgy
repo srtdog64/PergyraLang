@@ -1,0 +1,36 @@
+class Counter {
+    let n: Int;
+
+    func Double(self) -> Int {
+        return n * 2;
+    }
+}
+
+func MakeC(seed: Int) -> Option<Counter> {
+    if seed < 0 { return None; }
+    return Some(Counter(seed));
+}
+
+func ScoreLoop(seeds: Array<Int>, count: Int) -> Int {
+    let total: Int = 0;
+    let i: Int = 0;
+    while i < count {
+        match MakeC(seeds[i]) {
+            case Some(c): total = total + c.Double();
+            case None: total = total - 1;
+        }
+        i = i + 1;
+    }
+    return total;
+}
+
+func Main() -> Void {
+    let s1: Array<Int> = [1, 2, 3, 4, 5];
+    Log(ScoreLoop(s1, 5));
+    let s2: Array<Int> = [-1, -2, 10];
+    Log(ScoreLoop(s2, 3));
+    let s3: Array<Int> = [0, 0, 0, 0];
+    Log(ScoreLoop(s3, 4));
+    let s4: Array<Int> = [100];
+    Log(ScoreLoop(s4, 1));
+}

@@ -200,6 +200,55 @@ require_term "src/codegen/llvm_main_wrapper.c" \
     "llvm_event_type_count(ctx)"
 require_term "src/codegen/llvm_main_wrapper.c" \
     "llvm_event_type_at(ctx, i)"
+require_term "src/codegen/llvm_mir_emit.c" \
+    "llvm_lookup_function(ctx, fn_name)"
+if grep -Fq "llvm_lookup_or_declare_function(ctx, fn_name" \
+    "$ROOT_DIR/src/codegen/llvm_mir_emit.c"; then
+    fail "LLVM MIR routine emission must consume registered inventory functions instead of synthesizing declarations"
+fi
+require_term "src/codegen/llvm_expr_call_dispatch.c" \
+    "MIR-only LLVM path missing registered intent call target"
+require_term "src/codegen/llvm_expr_call_dispatch.c" \
+    "MIR-only LLVM path missing registered function call target"
+require_term "src/codegen/llvm_expr_call_dispatch.c" \
+    "llvm_active_has_mir(ctx)"
+require_term "src/codegen/llvm_intent_forward.c" \
+    "MIR-only LLVM path missing intent participant type metadata"
+require_term "src/codegen/llvm_intent_forward.c" \
+    "MIR-only LLVM path missing intent value type metadata"
+require_term "src/codegen/llvm_mir_local_emit.c" \
+    "MIR-only LLVM path missing local type metadata"
+require_term "src/codegen/llvm_mir_local_emit.c" \
+    "llvm_mir_find_result_instruction"
+require_term "src/codegen/llvm_mir_local_emit.c" \
+    "inst->phi_incomings[i].value_name"
+require_term "src/codegen/llvm_stmt_type_infer.c" \
+    "channel receive requires registered Channel<T> metadata"
+require_term "src/codegen/llvm_stmt_type_infer.c" \
+    "call result requires registered function or expected type metadata"
+require_term "src/codegen/llvm_stmt_type_infer.c" \
+    "identifier requires registered LLVM local metadata"
+require_term "src/codegen/llvm_stmt_type_infer.c" \
+    "llvm_current_host_class_name(ctx)"
+require_term "src/codegen/llvm_stmt_type_infer.c" \
+    "expression requires typed MIR result facts"
+require_term "src/codegen/llvm_stmt_type_infer.c" \
+    "array or slice element type requires registered Array<T>/Slice<T> metadata"
+if grep -Fq "elem_type = ctx->type_i32;" \
+    "$ROOT_DIR/src/codegen/llvm_stmt_type_infer.c"; then
+    fail "LLVM array/slice element inference must not default missing metadata to Int"
+fi
+require_term "src/codegen/llvm_expr.c" \
+    "LLVM await expression requires registered Future<T> result metadata"
+require_term "src/codegen/llvm_expr_await_task.c" \
+    "LLVM await expression requires registered Future<T> result metadata"
+if grep -Fq "return llvm_emit_expression(inner_expr);" \
+    "$ROOT_DIR/src/codegen/llvm_expr.c"; then
+    fail "LLVM await expression must fail closed when Future<T> metadata is missing"
+fi
+if grep -Fq "poison i32" "$ROOT_DIR/src/codegen/llvm_stmt_type_infer.c"; then
+    fail "LLVM expression type inference must not keep silent poison i32 fallbacks"
+fi
 if grep -Fq "ctx->class_type_count" \
     "$ROOT_DIR/src/codegen/llvm_expr_call_methods_vtable_dispatch.c"; then
     fail "LLVM vtable dispatch must consume registry vtable lookup"
@@ -1673,6 +1722,28 @@ for rel in \
 done
 require_term "src/codegen/llvm_mir_emit.c" \
     "llvm_mir_routine_source_ast(routine)"
+for rel in \
+    "src/codegen/llvm_decl_routines.c" \
+    "src/codegen/llvm_domain_method_emit.c" \
+    "src/codegen/llvm_domain_role_emit.c"; do
+    awk '
+        /llvm_emit_func_from_mir\(/ { guard = 4; next }
+        guard > 0 {
+            if ($0 ~ /ctx->has_error/) {
+                guard = 0
+            } else {
+                guard--
+                if (guard == 0)
+                    exit 1
+            }
+        }
+        END {
+            if (guard > 0)
+                exit 1
+        }
+    ' "$ROOT_DIR/$rel" ||
+        fail "$rel must check ctx->has_error after llvm_emit_func_from_mir"
+done
 if grep -Fq "MIR-only LLVM path missing routine for function" \
     "$ROOT_DIR/src/codegen/llvm_pipeline.c"; then
     fail "LLVM pipeline function residual diagnostics must stay in the decl owner"

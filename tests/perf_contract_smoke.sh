@@ -461,8 +461,9 @@ grep -Fq "pgy_hashmap_key_spec_compare" "$ROOT_DIR/src/codegen/codegen_hashmap_k
 grep -Fq "bsearch(effective_name" "$ROOT_DIR/src/codegen/codegen_hashmap_key_policy.c"
 grep -Fq "codegen_match_variant_policy.c" "$ROOT_DIR/Makefile"
 grep -Fq "pgy_codegen_match_variant_lookup" "$ROOT_DIR/src/codegen/codegen_match_variant_policy.c"
-grep -Fq "pgy_codegen_match_variant_compare" "$ROOT_DIR/src/codegen/codegen_match_variant_policy.c"
-grep -Fq "bsearch(&name" "$ROOT_DIR/src/codegen/codegen_match_variant_policy.c"
+grep -Fq "pgy_match_variant_lookup(name)" "$ROOT_DIR/src/codegen/codegen_match_variant_policy.c"
+grep -Fq "pgy_match_variant_compare" "$ROOT_DIR/src/common/match_variant_policy.c"
+grep -Fq "bsearch(&name" "$ROOT_DIR/src/common/match_variant_policy.c"
 for match_variant_owner in \
     "$ROOT_DIR/src/codegen/transpiler_match_emit.c" \
     "$ROOT_DIR/src/codegen/transpiler_mir_match_condition_emit.c" \
@@ -476,8 +477,8 @@ for match_variant_owner in \
     fi
 done
 match_variant_names="$(
-    sed -n '/static const PgyCodegenMatchVariantSpec specs\[\]/,/^    };/p' \
-        "$ROOT_DIR/src/codegen/codegen_match_variant_policy.c" \
+    sed -n '/static const PgyMatchVariantSpec specs\[\]/,/^    };/p' \
+        "$ROOT_DIR/src/common/match_variant_policy.c" \
         | grep -Eo '\{[[:space:]]*"[A-Za-z0-9_]*"' \
         | grep -o '"[A-Za-z0-9_]*"' \
         | tr -d '"'
@@ -551,9 +552,10 @@ if [[ "$mir_resource_op_names" != "$mir_resource_op_names_sorted" ]]; then
 fi
 grep -Fq "slot_builtin_type_compare" "$ROOT_DIR/src/runtime/slot_type_utils.c"
 grep -Fq "bsearch(" "$ROOT_DIR/src/runtime/slot_type_utils.c"
-grep -B10 -A2 -F "entry = find_free_entry_locked(manager);" \
-    "$ROOT_DIR/src/runtime/slot_manager_core_ops.c" | \
-    grep -Fq "manager->activeSlots >= manager->tableSize"
+grep -Fq "entry = find_free_entry_locked(manager," \
+    "$ROOT_DIR/src/runtime/slot_manager_core_ops.c"
+grep -Fq "manager->activeSlots >= manager->tableSize" \
+    "$ROOT_DIR/src/runtime/slot_manager_core_ops.c"
 grep -A18 -F "RosterAddParty(RosterContext* roster" \
     "$ROOT_DIR/src/runtime/world_roster.c" | \
     grep -Fq "ownedSlotName = world_roster_strdup(slotName)"
@@ -1520,27 +1522,14 @@ grep -Fq "slot_inner_type_name_copy(type_name, inner_buf" "$ROOT_DIR/src/codegen
 grep -Fq "slot_inner_type_name_copy(type_name, inner_buf" "$ROOT_DIR/src/codegen/transpiler_mir_func_emit.c"
 ! grep -Fq "register_slot_var(ctx, p->name, slot_inner_type_name" "$ROOT_DIR/src/codegen/transpiler_func_class_flow_emit.c"
 ! grep -Fq "register_slot_var(ctx, p->name, slot_inner_type_name" "$ROOT_DIR/src/codegen/transpiler_mir_func_emit.c"
-grep -Fq "kTranspilerReturnOptionCtorSpecs" "$ROOT_DIR/src/codegen/transpiler_func_flow_policy.c"
 grep -Fq "transpiler_return_option_ctor_lookup" "$ROOT_DIR/src/codegen/transpiler_func_flow_policy.c"
-grep -Fq "bsearch(" "$ROOT_DIR/src/codegen/transpiler_func_flow_policy.c"
+grep -Fq "pgy_codegen_match_variant_lookup(callee_name)" "$ROOT_DIR/src/codegen/transpiler_func_flow_policy.c"
+grep -Fq "PGY_MATCH_VARIANT_SOME" "$ROOT_DIR/src/codegen/transpiler_func_flow_policy.c"
+grep -Fq "PGY_MATCH_VARIANT_NONE_CTOR" "$ROOT_DIR/src/codegen/transpiler_func_flow_policy.c"
+! grep -Fq 'strcmp(callee_name, "Some")' "$ROOT_DIR/src/codegen/transpiler_func_flow_policy.c"
+! grep -Fq 'strcmp(callee_name, "None")' "$ROOT_DIR/src/codegen/transpiler_func_flow_policy.c"
 ! grep -Fq 'strcmp(callee_name, "Some")' "$ROOT_DIR/src/codegen/transpiler_func_class_flow_emit.c"
 ! grep -Fq 'strcmp(callee_name, "None")' "$ROOT_DIR/src/codegen/transpiler_func_class_flow_emit.c"
-transpiler_return_option_ctor_names="$(
-    sed -n '/kTranspilerReturnOptionCtorSpecs\[\]/,/^        };/p' \
-        "$ROOT_DIR/src/codegen/transpiler_func_flow_policy.c" \
-        | grep -Eo '\{[[:space:]]*"[A-Za-z0-9_]*"' \
-        | grep -o '"[A-Za-z0-9_]*"' \
-        | tr -d '"'
-)"
-transpiler_return_option_ctor_names_sorted="$(
-    printf '%s\n' "$transpiler_return_option_ctor_names" | sort
-)"
-if [[ "$transpiler_return_option_ctor_names" != "$transpiler_return_option_ctor_names_sorted" ]]; then
-    echo "C backend return Option ctor names must stay sorted for bsearch" >&2
-    diff -u <(printf '%s\n' "$transpiler_return_option_ctor_names_sorted") \
-        <(printf '%s\n' "$transpiler_return_option_ctor_names") >&2 || true
-    exit 1
-fi
 grep -Fq "transpiler_infer_slot_inner_type_name" "$ROOT_DIR/src/codegen/transpiler_expr_type_infer.c"
 grep -Fq "pgy_codegen_call_name_is_read(method_name)" "$ROOT_DIR/src/codegen/transpiler_expr_type_infer.c"
 grep -Fq "pgy_codegen_call_name_is_write(method_name)" "$ROOT_DIR/src/codegen/transpiler_expr_type_infer.c"
@@ -1658,7 +1647,8 @@ grep -Fq "slot_inner_type_name_copy(arr_type, inner_buf" \
     "$ROOT_DIR/src/codegen/transpiler_expr_stdlib_builtin.c"
 grep -Fq "transpiler_require_type_name_c_type_copy(ctx, inner" "$ROOT_DIR/src/codegen/transpiler_expr_stdlib_builtin.c"
 channel_builtin_owner="$ROOT_DIR/src/codegen/transpiler_expr_stdlib_channel_builtin.c"
-grep -Fq "transpiler_require_type_name_c_type_copy(ctx, inner" "$channel_builtin_owner"
+grep -Fq "transpiler_channel_require_inner_type(ctx" "$channel_builtin_owner"
+grep -Fq "pgy_channel_runtime_payload_has_abi(inner)" "$ROOT_DIR/src/codegen/transpiler_channel_type_query.c"
 grep -Fq "PGY_INTENT_ACTIVE_INDEX_MAX" "$ROOT_DIR/src/runtime/pgy_runtime_intent_trace_inline.h"
 grep -Fq "pgy_intent_active_index_find_slot" "$ROOT_DIR/src/runtime/pgy_runtime_intent_active_index_inline.h"
 grep -Fq "pgy_intent_active_index_set(handle, i)" "$ROOT_DIR/src/runtime/pgy_runtime_intent_active_index_inline.h"
@@ -2543,6 +2533,9 @@ grep -Fq "transpiler_require_type_name_c_type_copy(ctx, elem_names[j]" "$ROOT_DI
 grep -Fq "lookup_future_inner_type_copy" "$ROOT_DIR/src/codegen/transpiler_future_type_query.c"
 grep -Fq "transpiler_type_name_is_any_future" "$ROOT_DIR/src/codegen/transpiler_future_type_query.c"
 grep -Fq "transpiler_type_name_is_remote_future" "$ROOT_DIR/src/codegen/transpiler_future_type_query.c"
+grep -Fq 'return pergyra_strdup("Unknown");' "$ROOT_DIR/src/codegen/transpiler_future_type_query.c"
+grep -Fq 'return out[0] != '\''\0'\'' && strcmp(out, "Unknown") != 0;' "$ROOT_DIR/src/codegen/transpiler_future_type_query.c"
+! grep -Fq 'return pergyra_str_copy(out, out_size, "Void")' "$ROOT_DIR/src/codegen/transpiler_future_type_query.c"
 grep -Fq "transpiler_type_name_is_any_future" "$ROOT_DIR/src/codegen/transpiler_type_mapping.c"
 grep -Fq "transpiler_type_name_is_result" "$ROOT_DIR/src/codegen/transpiler_type_mapping.c"
 grep -Fq "transpiler_type_name_is_option" "$ROOT_DIR/src/codegen/transpiler_type_mapping.c"

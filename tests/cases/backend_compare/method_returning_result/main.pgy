@@ -1,0 +1,32 @@
+enum ResvErr { Full, BadInput }
+
+class Booking {
+    let cap: Int;
+    let used: Int;
+
+    func Try(self, n: Int) -> Result<Int, ResvErr> {
+        if n <= 0 { return Err(BadInput); }
+        if used + n > cap { return Err(Full); }
+        return Ok(used + n);
+    }
+}
+
+func Probe(cap: Int, init: Int, want: Int) -> Int {
+    let b: Booking = Booking(cap, init);
+    match b.Try(want) {
+        case Ok(n): return n;
+        case Err(e):
+            match e {
+                case Full: return -1;
+                case BadInput: return -2;
+            }
+    }
+}
+
+func Main() -> Void {
+    Log(Probe(100, 30, 50));
+    Log(Probe(100, 30, 80));
+    Log(Probe(100, 100, 1));
+    Log(Probe(50, 10, -5));
+    Log(Probe(50, 10, 0));
+}

@@ -99,6 +99,19 @@ transpiler_has_local_binding_in_block(ASTNode *body, const char *base_name)
         return transpiler_has_local_binding_in_block(
             ast_select_default_case(body), base_name);
     }
+    if (body->type == AST_MATCH_STMT) {
+        for (size_t i = 0; i < ast_match_case_count(body); i++) {
+            ASTNode *mc = ast_match_case_at(body, i);
+            if (mc == NULL)
+                continue;
+            if (transpiler_has_local_binding_in_block(
+                    ast_match_case_body(mc), base_name)) {
+                return true;
+            }
+        }
+        return transpiler_has_local_binding_in_block(
+            ast_match_default_body(body), base_name);
+    }
     return false;
 }
 
@@ -329,6 +342,28 @@ transpiler_register_explicit_local_bindings_in_block(TranspilerCtx *ctx,
             }
             transpiler_register_explicit_local_bindings_in_block(ctx, func_decl,
                 ast_for_body(stmt));
+            continue;
+        }
+        if (stmt->type == AST_SELECT_STMT) {
+            for (size_t c = 0; c < ast_select_case_count(stmt); c++) {
+                transpiler_register_explicit_local_bindings_in_block(ctx,
+                    func_decl, ast_select_case(stmt, c));
+            }
+            transpiler_register_explicit_local_bindings_in_block(ctx,
+                func_decl, ast_select_default_case(stmt));
+            continue;
+        }
+        if (stmt->type == AST_MATCH_STMT) {
+            for (size_t c = 0; c < ast_match_case_count(stmt); c++) {
+                ASTNode *mc = ast_match_case_at(stmt, c);
+                if (mc == NULL)
+                    continue;
+                transpiler_register_explicit_local_bindings_in_block(ctx,
+                    func_decl, ast_match_case_body(mc));
+            }
+            transpiler_register_explicit_local_bindings_in_block(ctx,
+                func_decl, ast_match_default_body(stmt));
+            continue;
         }
     }
 }

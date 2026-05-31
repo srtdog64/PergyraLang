@@ -1,0 +1,43 @@
+class Triple {
+    let a: Int;
+    let b: Int;
+    let c: Int;
+
+    func Sum(self) -> Int {
+        return a + b + c;
+    }
+
+    func Max(self) -> Int {
+        let m: Int = a;
+        if b > m { m = b; }
+        if c > m { m = c; }
+        return m;
+    }
+
+    func Min(self) -> Int {
+        let m: Int = a;
+        if b < m { m = b; }
+        if c < m { m = c; }
+        return m;
+    }
+}
+
+func Make(seed: Int) -> Option<Triple> {
+    if seed < 0 { return None; }
+    return Some(Triple(seed, seed * 2, seed * 3));
+}
+
+func ScoreOrZero(o: Option<Triple>) -> Int {
+    match o {
+        case Some(t): return t.Sum() * 100 + t.Max() * 10 + t.Min();
+        case None: return -1;
+    }
+}
+
+func Main() -> Void {
+    Log(ScoreOrZero(Make(1)));
+    Log(ScoreOrZero(Make(5)));
+    Log(ScoreOrZero(Make(0)));
+    Log(ScoreOrZero(Make(-1)));
+    Log(ScoreOrZero(Make(10)));
+}

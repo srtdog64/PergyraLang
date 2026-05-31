@@ -1,0 +1,44 @@
+enum PipeErr { Empty, BadVal }
+
+class Pipe {
+    let cap: Int;
+
+    func In(self, n: Int) -> Result<Int, PipeErr> {
+        if n <= 0 { return Err(BadVal); }
+        if n > cap { return Err(Empty); }
+        return Ok(n + cap);
+    }
+
+    func Out(self, n: Int) -> Result<Int, PipeErr> {
+        if n < cap { return Err(Empty); }
+        return Ok(n - cap);
+    }
+}
+
+func Roundtrip(cap: Int, x: Int) -> Int {
+    let p: Pipe = Pipe(cap);
+    match p.In(x) {
+        case Ok(mid):
+            match p.Out(mid) {
+                case Ok(final): return final;
+                case Err(e2):
+                    match e2 {
+                        case Empty: return -10;
+                        case BadVal: return -11;
+                    }
+            }
+        case Err(e1):
+            match e1 {
+                case Empty: return -20;
+                case BadVal: return -21;
+            }
+    }
+}
+
+func Main() -> Void {
+    Log(Roundtrip(10, 3));
+    Log(Roundtrip(10, 0));
+    Log(Roundtrip(10, 20));
+    Log(Roundtrip(5, 4));
+    Log(Roundtrip(100, 50));
+}

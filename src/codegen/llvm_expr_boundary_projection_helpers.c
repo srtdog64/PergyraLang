@@ -7,6 +7,8 @@
 
 #include "llvm_expr_boundary_projection_helpers.h"
 
+#include <string.h>
+
 #include "llvm_boundary_slot_param.h"
 #include "llvm_expr_member_lvalue.h"
 #include "llvm_internal_api.h"
@@ -38,6 +40,56 @@ llvm_boundary_arg_can_take_subject_address(ASTNode *arg_node)
     return arg_node->type == AST_IDENTIFIER
         || arg_node->type == AST_MEMBER_ACCESS
         || arg_node->type == AST_ARRAY_ACCESS;
+}
+
+static bool
+llvm_boundary_name_is_generic_param(ASTNode *decl, const char *type_name)
+{
+    GenericParams *params;
+
+    if (decl == NULL || type_name == NULL)
+        return false;
+    params = ast_declaration_generic_params(decl);
+    for (size_t i = 0; i < ast_generic_param_count(params); i++) {
+        GenericParam *param = ast_generic_param_at(params, i);
+        const char *param_name = ast_generic_param_name(param);
+        if (param_name != NULL && strcmp(param_name, type_name) == 0)
+            return true;
+    }
+    return false;
+}
+
+static bool
+llvm_boundary_type_mentions_generic_param(ASTNode *decl, ASTNode *type_node)
+{
+    GenericParams *args;
+
+    if (type_node == NULL)
+        return false;
+    if (type_node->type == AST_TYPE
+        && llvm_boundary_name_is_generic_param(decl,
+            ast_type_name(type_node))) {
+        return true;
+    }
+    if (type_node->type != AST_TYPE)
+        return false;
+    args = ast_type_generic_args(type_node);
+    for (size_t i = 0; i < ast_generic_param_count(args); i++) {
+        GenericParam *arg = ast_generic_param_at(args, i);
+        if (llvm_boundary_name_is_generic_param(decl,
+                ast_generic_param_name(arg))) {
+            return true;
+        }
+        if (llvm_boundary_type_mentions_generic_param(decl,
+                ast_generic_param_constraint(arg))) {
+            return true;
+        }
+        if (llvm_boundary_type_mentions_generic_param(decl,
+                ast_generic_param_default_type(arg))) {
+            return true;
+        }
+    }
+    return false;
 }
 
 static LLVMValueRef *
@@ -141,7 +193,22 @@ llvm_build_boundary_call_args(LLVMGenCtx *ctx, ASTNode *decl,
             }
         }
 
-        args[emitted_idx++] = llvm_emit_expression(arg_node, ctx);
+        {
+            LLVMTypeRef saved_ret = ctx->current_ret_type;
+            LLVMTypeRef expected_ty = p != NULL && p->type != NULL
+                && !llvm_boundary_type_mentions_generic_param(decl, p->type)
+                ? ast_type_to_llvm(ctx, p->type)
+                : NULL;
+            if (ctx->has_error) {
+                ctx->current_ret_type = saved_ret;
+                return llvm_boundary_args_error(ctx, arg_node,
+                    "LLVM boundary call parameter type could not be lowered");
+            }
+            if (expected_ty != NULL)
+                ctx->current_ret_type = expected_ty;
+            args[emitted_idx++] = llvm_emit_expression(arg_node, ctx);
+            ctx->current_ret_type = saved_ret;
+        }
         if (args[emitted_idx - 1] == NULL)
             return llvm_boundary_args_error(ctx, arg_node,
                 "LLVM boundary call argument could not be lowered");

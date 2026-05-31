@@ -1,0 +1,31 @@
+func Main() -> Void {
+    let ch: Channel<Int> = Channel(1);
+
+    let sent: Option<Bool> = TrySendStatus(ch, 1);
+    if sent ?? false {
+        Log(100);
+    } else {
+        Log(-100);
+    }
+    let got: Option<Int> = TryRecv(ch);
+    Log(got ?? -1);
+
+    let sent2: Option<Bool> = TrySendStatus(ch, 2);
+    let full: Option<Bool> = TrySendStatus(ch, 3);
+    let got2: Option<Int> = TryRecv(ch);
+    Log(got2 ?? -1);
+
+    let timed: Option<Bool> = SendTimeoutStatus(ch, 4, 1000000);
+    let got3: Option<Int> = TryRecv(ch);
+    Log(got3 ?? -1);
+
+    ChannelClose(ch);
+
+    let closed: Option<Bool> = TrySendStatus(ch, 5);
+    let got4: Option<Int> = TryRecv(ch);
+    Log(got4 ?? -1);
+
+    let closed_timeout: Option<Bool> = SendTimeoutStatus(ch, 6, 0);
+    let got5: Option<Int> = TryRecv(ch);
+    Log(got5 ?? -1);
+}

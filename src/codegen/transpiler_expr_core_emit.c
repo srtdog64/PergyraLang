@@ -3,6 +3,7 @@
 #include <stdlib.h>
 #include <string.h>
 
+#include "codegen_match_variant_policy.h"
 #include "codegen_scalar_arithmetic_policy.h"
 #include "parser/ast_api.h"
 #include "transpiler_expr_type_infer.h"
@@ -128,10 +129,12 @@ emit_binary(ASTNode *expr, TranspilerCtx *ctx)
     if (op_type == TOKEN_COALESCE) {
         char *left = emit_expression(left_expr, ctx);
         char *right = emit_expression(right_expr, ctx);
+        const char *some_tag =
+            pgy_codegen_match_variant_c_option_tag(PGY_MATCH_VARIANT_SOME);
         char *result = strdup_fmt(
             "(({ __auto_type _pgy_coalesce = %s; "
-            "_pgy_coalesce.tag == PgyOptionSome ? _pgy_coalesce.value : (%s); }))",
-            left, right);
+            "_pgy_coalesce.tag == %s ? _pgy_coalesce.value : (%s); }))",
+            left, some_tag, right);
         free(left);
         free(right);
         return result;

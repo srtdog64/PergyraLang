@@ -5,6 +5,7 @@
 
 #ifdef PGY_LLVM_ENABLED
 
+#include "codegen_channel_runtime_abi.h"
 #include "llvm_backend.h"
 #include "llvm_backend_type_map_internal.h"
 #include "llvm_internal.h"
@@ -71,6 +72,14 @@ llvm_resolve_inner_type(LLVMGenCtx *ctx, const char *type_name)
 
     if (!llvm_required_constructed_arg_name_copy(ctx, type_name, 0,
             "Option<T>", inner_buf, sizeof(inner_buf))) {
+        return NULL;
+    }
+    if (strcmp(inner_buf, "Void") == 0) {
+        llvm_set_error_with_hints(ctx,
+            PGY_CODE_LLVM_TYPE_UNSUPPORTED,
+            PGY_CAUSE_LLVM_TYPE_UNSUPPORTED,
+            PGY_FIX_ANNOTATE_CONCRETE_TYPE,
+            "Option<Void> does not lower until the Option<Void> ABI is frozen");
         return NULL;
     }
     resolved = pergyra_type_to_llvm(ctx, inner_buf);
@@ -282,6 +291,15 @@ pergyra_type_to_llvm(LLVMGenCtx *ctx, const char *type_name)
          * Two-arg Result<T, E> routes through the named-struct cache so
          * Ok/Err builders and match destructuring share one layout. */
         if (ok_name != NULL && err_name != NULL) {
+            if (strcmp(ok_name, "Void") == 0) {
+                llvm_set_error_with_hints(ctx,
+                    PGY_CODE_LLVM_TYPE_UNSUPPORTED,
+                    PGY_CAUSE_LLVM_TYPE_UNSUPPORTED,
+                    PGY_FIX_ANNOTATE_CONCRETE_TYPE,
+                    "Result<Void, %s> does not lower until the Result<Void> ABI is frozen",
+                    err_name);
+                return NULL;
+            }
             LLVMResultSpecEntry *spec =
                 llvm_ensure_result_type(ctx, ok_name, err_name);
             if (spec != NULL && spec->struct_ty != NULL)
@@ -304,6 +322,14 @@ pergyra_type_to_llvm(LLVMGenCtx *ctx, const char *type_name)
                     PGY_FIX_ANNOTATE_CONCRETE_TYPE,
                     "Result<T>: concrete Ok type metadata is required");
             }
+            return NULL;
+        }
+        if (strcmp(ok_name, "Void") == 0) {
+            llvm_set_error_with_hints(ctx,
+                PGY_CODE_LLVM_TYPE_UNSUPPORTED,
+                PGY_CAUSE_LLVM_TYPE_UNSUPPORTED,
+                PGY_FIX_ANNOTATE_CONCRETE_TYPE,
+                "Result<Void> does not lower until the Result<Void> ABI is frozen");
             return NULL;
         }
         LLVMTypeRef ok_ty  = pergyra_type_to_llvm(ctx, ok_name);
@@ -367,7 +393,25 @@ pergyra_type_to_llvm(LLVMGenCtx *ctx, const char *type_name)
         }
         return llvm_slice_struct_type(ctx, inner_buf);
     }
-    case PGY_TK_CHANNEL:
+    case PGY_TK_CHANNEL: {
+        char inner_buf[256];
+        if (!llvm_required_constructed_arg_name_copy(ctx, type_name, 0,
+                "Channel<T>", inner_buf, sizeof(inner_buf))) {
+            return NULL;
+        }
+        if (!pgy_channel_runtime_payload_has_abi(inner_buf)) {
+            llvm_set_error_with_hints(ctx,
+                PGY_CODE_LLVM_TYPE_UNSUPPORTED,
+                PGY_CAUSE_LLVM_TYPE_UNSUPPORTED,
+                PGY_FIX_ANNOTATE_CONCRETE_TYPE,
+                "LLVM type '%s' has no runtime Channel<%s> ABI; beta runtime supports %s",
+                type_name,
+                inner_buf,
+                pgy_channel_runtime_payload_supported_list());
+            return NULL;
+        }
+        return ctx->type_i8ptr;
+    }
     case PGY_TK_BOX:
     case PGY_TK_RC:
     case PGY_TK_WEAK:

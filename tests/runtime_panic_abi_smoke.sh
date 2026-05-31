@@ -143,9 +143,143 @@ int main(void) {
         return 1;
     if (pgy_try_release_Int(&slot) != PGY_RUNTIME_SLOT_STATUS_OK)
         return 2;
-    PgyRuntimeSlotStatus status = pgy_try_read_Int(&slot, &out);
+    PgyRuntimeSlotResult_Int result = pgy_try_read_result_Int(&slot);
+    if (result.tag != PGY_RUNTIME_SLOT_RESULT_ERR)
+        return 3;
+    printf("%s:%s:%s\n", result.err.stage, result.err.operation, result.err.name);
+    return result.err.status == PGY_RUNTIME_SLOT_STATUS_RELEASED_SLOT ? 0 : 4;
+}
+')"
+
+inline_try_device_slot_bin="$(compile_case inline_try_device_slot_status '
+#include <stdio.h>
+#include "runtime/pgy_runtime.h"
+int main(void) {
+    PgyDeviceSlot_Int slot = pgy_claim_device_Int();
+    int32_t out = 0;
+    if (!pgy_runtime_slot_status_ok(pgy_try_device_read_Int(&slot, &out)))
+        return 1;
+    if (pgy_try_release_device_Int(&slot) != PGY_RUNTIME_SLOT_STATUS_OK)
+        return 2;
+    PgyRuntimeSlotResult_Int result = pgy_try_device_read_result_Int(&slot);
+    if (result.tag != PGY_RUNTIME_SLOT_RESULT_ERR)
+        return 3;
+    printf("%s:%s:%s\n", result.err.stage, result.err.operation, result.err.name);
+    return result.err.status == PGY_RUNTIME_SLOT_STATUS_RELEASED_SLOT ? 0 : 4;
+}
+')"
+
+inline_remote_released_device_result_bin="$(compile_case inline_remote_released_device_result '
+#include <stdio.h>
+#include "runtime/pgy_runtime.h"
+int main(void) {
+    PgyDeviceSlot_Int slot = pgy_claim_device_Int();
+    pgy_release_device_Int(&slot);
+    PgyTaskHandle pending = pgy_submit_device_read_Int(&slot);
+    PgyResult_Int result = pgy_await_result_take(pending, Int, int32_t);
+    if (result.tag != PgyResultErr)
+        return 1;
+    printf("%s\n", result.err);
+    return 0;
+}
+')"
+
+inline_try_secure_slot_bin="$(compile_case inline_try_secure_slot_status '
+#include <stdio.h>
+#include "runtime/pgy_runtime.h"
+int main(void) {
+    PgyToken_Int token;
+    PgySecureSlot_Int slot = pgy_claim_secure_Int(&token);
+    int32_t out = 0;
+    if (!pgy_runtime_slot_status_ok(pgy_try_secure_read_Int(&slot, &token, &out)))
+        return 1;
+    PgyToken_Int bad = token;
+    bad.id ^= 1u;
+    PgyRuntimeSlotResult_Int read_result = pgy_try_secure_read_result_Int(&slot, &bad);
+    if (read_result.tag != PGY_RUNTIME_SLOT_RESULT_ERR ||
+        read_result.err.status != PGY_RUNTIME_SLOT_STATUS_INVALID_TOKEN)
+        return 2;
+    PgyToken_Int no_read = token;
+    no_read.can_read = false;
+    read_result = pgy_try_secure_read_result_Int(&slot, &no_read);
+    if (read_result.tag != PGY_RUNTIME_SLOT_RESULT_ERR ||
+        read_result.err.status != PGY_RUNTIME_SLOT_STATUS_TOKEN_DENIES_READ)
+        return 3;
+    PgyToken_Int no_write = token;
+    no_write.can_write = false;
+    PgyRuntimeSlotStatus status = pgy_try_secure_write_Int(&slot, 9, &no_write);
+    printf("%s:%s:%s\n", read_result.err.stage, read_result.err.operation, read_result.err.name);
     printf("%s\n", pgy_runtime_slot_status_name(status));
-    return status == PGY_RUNTIME_SLOT_STATUS_RELEASED_SLOT ? 0 : 3;
+    return status == PGY_RUNTIME_SLOT_STATUS_TOKEN_DENIES_WRITE ? 0 : 4;
+}
+')"
+
+inline_try_io_result_bin="$(compile_case inline_try_io_result '
+#include <stdio.h>
+#include "runtime/pgy_runtime.h"
+int main(void) {
+    PgyRuntimeIoIntResult open_result =
+        pgy_try_file_open_result("missing-dir/nope.txt", "r");
+    if (open_result.tag != PGY_RUNTIME_IO_RESULT_ERR)
+        return 1;
+    printf("%s:%s:%s\n", open_result.err.stage,
+           open_result.err.operation, open_result.err.name);
+
+    PgyRuntimeIoStringResult read_result =
+        pgy_try_read_file_result("missing-dir/nope.txt");
+    if (read_result.tag != PGY_RUNTIME_IO_RESULT_ERR)
+        return 2;
+    printf("%s:%s:%s\n", read_result.err.stage,
+           read_result.err.operation, read_result.err.name);
+
+    read_result = pgy_try_file_read_result(-77);
+    if (read_result.tag != PGY_RUNTIME_IO_RESULT_ERR)
+        return 3;
+    printf("%s:%s:%s\n", read_result.err.stage,
+           read_result.err.operation, read_result.err.name);
+
+    PgyRuntimeIoVoidResult write_result =
+        pgy_try_file_write_result(-77, "x");
+    if (write_result.tag != PGY_RUNTIME_IO_RESULT_ERR)
+        return 4;
+    printf("%s:%s:%s\n", write_result.err.stage,
+           write_result.err.operation, write_result.err.name);
+
+    write_result = pgy_try_write_file_result("missing-dir/nope.txt", "x");
+    if (write_result.tag != PGY_RUNTIME_IO_RESULT_ERR)
+        return 5;
+    printf("%s:%s:%s\n", write_result.err.stage,
+           write_result.err.operation, write_result.err.name);
+    return write_result.err.status == PGY_RUNTIME_IO_STATUS_OPEN_FAILED
+        ? 0 : 6;
+}
+')"
+
+inline_channel_result_bin="$(compile_case inline_channel_result '
+#include <stdio.h>
+#include "runtime/pgy_runtime.h"
+int main(void) {
+    PgyChannel_Int ch;
+    pgy_channel_init_Int(&ch, 1);
+    PgyRuntimeChannelIntResult empty =
+        pgy_channel_try_recv_result_Int(&ch);
+    if (empty.tag != PGY_RUNTIME_CHANNEL_RESULT_ERR ||
+        empty.err.status != PGY_RUNTIME_CHANNEL_STATUS_EMPTY)
+        return 1;
+    if (!pgy_channel_send_Int(&ch, 42))
+        return 2;
+    PgyRuntimeChannelIntResult value =
+        pgy_channel_recv_result_Int(&ch);
+    if (value.tag != PGY_RUNTIME_CHANNEL_RESULT_OK || value.ok != 42)
+        return 3;
+    pgy_channel_close_Int(&ch);
+    PgyRuntimeChannelIntResult closed =
+        pgy_channel_recv_result_Int(&ch);
+    printf("%s:%s:%s\n", closed.err.stage,
+           closed.err.operation, closed.err.name);
+    pgy_channel_destroy_Int(&ch);
+    return closed.tag == PGY_RUNTIME_CHANNEL_RESULT_ERR &&
+        closed.err.status == PGY_RUNTIME_CHANNEL_STATUS_CLOSED_EMPTY ? 0 : 4;
 }
 ')"
 
@@ -474,9 +608,153 @@ int main(void) {
         return 1;
     if (pgy_try_release_Int(&slot) != PGY_RUNTIME_SLOT_STATUS_OK)
         return 2;
-    PgyRuntimeSlotStatus status = pgy_try_read_Int(&slot, &out);
+    PgyRuntimeSlotResult_Int result = pgy_try_read_result_Int(&slot);
+    if (result.tag != PGY_RUNTIME_SLOT_RESULT_ERR)
+        return 3;
+    printf("%s:%s:%s\n", result.err.stage, result.err.operation, result.err.name);
+    return result.err.status == PGY_RUNTIME_SLOT_STATUS_RELEASED_SLOT ? 0 : 4;
+}
+')"
+
+exported_try_device_slot_bin="$(compile_case exported_try_device_slot_status '
+#define PGY_LLVM_ENABLED 1
+#include <stdio.h>
+#include "runtime/pgy_runtime_lib.c"
+int main(void) {
+    PgyDeviceSlot_Int slot = pgy_claim_device_Int();
+    int32_t out = 0;
+    if (!pgy_runtime_slot_status_ok(pgy_try_device_read_Int(&slot, &out)))
+        return 1;
+    if (pgy_try_release_device_Int(&slot) != PGY_RUNTIME_SLOT_STATUS_OK)
+        return 2;
+    PgyRuntimeSlotResult_Int result = pgy_try_device_read_result_Int(&slot);
+    if (result.tag != PGY_RUNTIME_SLOT_RESULT_ERR)
+        return 3;
+    printf("%s:%s:%s\n", result.err.stage, result.err.operation, result.err.name);
+    return result.err.status == PGY_RUNTIME_SLOT_STATUS_RELEASED_SLOT ? 0 : 4;
+}
+')"
+
+exported_remote_released_device_result_bin="$(compile_case exported_remote_released_device_result '
+#define PGY_LLVM_ENABLED 1
+#include <stdio.h>
+#include "runtime/pgy_runtime_lib.c"
+int main(void) {
+    PgyDeviceSlot_Int slot = pgy_claim_device_Int();
+    pgy_release_device_Int(&slot);
+    PgyTaskHandle pending = pgy_submit_device_read_Int(&slot);
+    void *raw = pgy_await(pending);
+    if (raw != NULL) {
+        free(raw);
+        return 1;
+    }
+    printf("%s\n", "remote operation failed");
+    return 0;
+}
+')"
+
+exported_try_secure_slot_bin="$(compile_case exported_try_secure_slot_status '
+#define PGY_LLVM_ENABLED 1
+#include <stdio.h>
+#include "runtime/pgy_runtime_lib.c"
+int main(void) {
+    PgyToken_Int token;
+    PgySecureSlot_Int slot = pgy_claim_secure_Int(&token);
+    int32_t out = 0;
+    if (!pgy_runtime_slot_status_ok(pgy_try_secure_read_Int(&slot, &token, &out)))
+        return 1;
+    PgyToken_Int bad = token;
+    bad.id ^= 1u;
+    PgyRuntimeSlotResult_Int read_result = pgy_try_secure_read_result_Int(&slot, &bad);
+    if (read_result.tag != PGY_RUNTIME_SLOT_RESULT_ERR ||
+        read_result.err.status != PGY_RUNTIME_SLOT_STATUS_INVALID_TOKEN)
+        return 2;
+    PgyToken_Int no_read = token;
+    no_read.can_read = false;
+    read_result = pgy_try_secure_read_result_Int(&slot, &no_read);
+    if (read_result.tag != PGY_RUNTIME_SLOT_RESULT_ERR ||
+        read_result.err.status != PGY_RUNTIME_SLOT_STATUS_TOKEN_DENIES_READ)
+        return 3;
+    PgyToken_Int no_write = token;
+    no_write.can_write = false;
+    PgyRuntimeSlotStatus status = pgy_try_secure_write_Int(&slot, 9, &no_write);
+    printf("%s:%s:%s\n", read_result.err.stage, read_result.err.operation, read_result.err.name);
     printf("%s\n", pgy_runtime_slot_status_name(status));
-    return status == PGY_RUNTIME_SLOT_STATUS_RELEASED_SLOT ? 0 : 3;
+    return status == PGY_RUNTIME_SLOT_STATUS_TOKEN_DENIES_WRITE ? 0 : 4;
+}
+')"
+
+exported_try_io_result_bin="$(compile_case exported_try_io_result '
+#define PGY_LLVM_ENABLED 1
+#include <stdio.h>
+#include "runtime/pgy_runtime_lib.c"
+int main(void) {
+    PgyRuntimeIoIntResult open_result =
+        pgy_try_file_open_result("missing-dir/nope.txt", "r");
+    if (open_result.tag != PGY_RUNTIME_IO_RESULT_ERR)
+        return 1;
+    printf("%s:%s:%s\n", open_result.err.stage,
+           open_result.err.operation, open_result.err.name);
+
+    PgyRuntimeIoStringResult read_result =
+        pgy_try_read_file_result("missing-dir/nope.txt");
+    if (read_result.tag != PGY_RUNTIME_IO_RESULT_ERR)
+        return 2;
+    printf("%s:%s:%s\n", read_result.err.stage,
+           read_result.err.operation, read_result.err.name);
+
+    read_result = pgy_try_file_read_result(-77);
+    if (read_result.tag != PGY_RUNTIME_IO_RESULT_ERR)
+        return 3;
+    printf("%s:%s:%s\n", read_result.err.stage,
+           read_result.err.operation, read_result.err.name);
+
+    PgyRuntimeIoVoidResult write_result =
+        pgy_try_file_write_result(-77, "x");
+    if (write_result.tag != PGY_RUNTIME_IO_RESULT_ERR)
+        return 4;
+    printf("%s:%s:%s\n", write_result.err.stage,
+           write_result.err.operation, write_result.err.name);
+
+    write_result = pgy_try_write_file_result("missing-dir/nope.txt", "x");
+    if (write_result.tag != PGY_RUNTIME_IO_RESULT_ERR)
+        return 5;
+    printf("%s:%s:%s\n", write_result.err.stage,
+           write_result.err.operation, write_result.err.name);
+    return write_result.err.status == PGY_RUNTIME_IO_STATUS_OPEN_FAILED
+        ? 0 : 6;
+}
+')"
+
+exported_channel_result_bin="$(compile_case exported_channel_result '
+#define PGY_LLVM_ENABLED 1
+#include <stdio.h>
+#include <string.h>
+#include "runtime/pgy_runtime_lib.c"
+int main(void) {
+    PgyChannel_String_RT ch;
+    pgy_channel_init_String(&ch, 1);
+    PgyRuntimeChannelStringResult empty =
+        pgy_channel_try_recv_result_String(&ch);
+    if (empty.tag != PGY_RUNTIME_CHANNEL_RESULT_ERR ||
+        empty.err.status != PGY_RUNTIME_CHANNEL_STATUS_EMPTY)
+        return 1;
+    if (!pgy_channel_send_String(&ch, "ok"))
+        return 2;
+    PgyRuntimeChannelStringResult value =
+        pgy_channel_recv_result_String(&ch);
+    if (value.tag != PGY_RUNTIME_CHANNEL_RESULT_OK ||
+        strcmp(value.ok, "ok") != 0)
+        return 3;
+    free(value.ok);
+    pgy_channel_close_String(&ch);
+    PgyRuntimeChannelStringResult closed =
+        pgy_channel_recv_result_String(&ch);
+    printf("%s:%s:%s\n", closed.err.stage,
+           closed.err.operation, closed.err.name);
+    pgy_channel_destroy_String(&ch);
+    return closed.tag == PGY_RUNTIME_CHANNEL_RESULT_ERR &&
+        closed.err.status == PGY_RUNTIME_CHANNEL_STATUS_CLOSED_EMPTY ? 0 : 4;
 }
 ')"
 
@@ -486,7 +764,17 @@ if [[ -f "$WORK_DIR/compile_skipped" ]]; then
 fi
 
 expect_success_stdout_contains inline_try_slot_status "$inline_try_slot_bin" "released-slot"
+expect_success_stdout_contains inline_try_device_slot_status "$inline_try_device_slot_bin" "released-slot"
+expect_success_stdout_contains inline_remote_released_device_result "$inline_remote_released_device_result_bin" "remote operation failed"
+expect_success_stdout_contains inline_try_secure_slot_status "$inline_try_secure_slot_bin" "token-denies-write"
+expect_success_stdout_contains inline_try_io_result "$inline_try_io_result_bin" "io-boundary:file-read:invalid-handle"
+expect_success_stdout_contains inline_channel_result "$inline_channel_result_bin" "channel-boundary:recv_Int:closed-empty"
 expect_success_stdout_contains exported_try_slot_status "$exported_try_slot_bin" "released-slot"
+expect_success_stdout_contains exported_try_device_slot_status "$exported_try_device_slot_bin" "released-slot"
+expect_success_stdout_contains exported_remote_released_device_result "$exported_remote_released_device_result_bin" "remote operation failed"
+expect_success_stdout_contains exported_try_secure_slot_status "$exported_try_secure_slot_bin" "token-denies-write"
+expect_success_stdout_contains exported_try_io_result "$exported_try_io_result_bin" "io-boundary:file-read:invalid-handle"
+expect_success_stdout_contains exported_channel_result "$exported_channel_result_bin" "channel-boundary:recv_String:closed-empty"
 
 expect_panic inline_released_slot "$inline_released_bin" "released-slot"
 expect_panic inline_invalid_secure_token "$inline_invalid_token_bin" "invalid-secure-token"

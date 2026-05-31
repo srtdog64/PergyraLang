@@ -54,6 +54,12 @@ bool semantic_type_resolution_reject_invalid_stable_shell_arity(
 bool semantic_type_resolution_reject_invalid_stable_constructed_type(
     SemanticContext *ctx,
     ASTNode *type_node);
+bool semantic_type_resolution_reject_unsupported_stable_constructed_args(
+    SemanticContext *ctx,
+    ASTNode *type_node,
+    const char *name,
+    Type *const *args,
+    size_t argc);
 bool semantic_type_resolution_reject_unknown_bare_named_type(
     SemanticContext *ctx,
     ASTNode *type_node);

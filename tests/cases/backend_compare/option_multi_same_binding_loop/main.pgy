@@ -1,0 +1,35 @@
+func Try(n: Int) -> Option<Int> {
+    if n < 0 { return None; }
+    return Some(n * 2);
+}
+
+func Try2(n: Int) -> Option<Int> {
+    if n == 0 { return None; }
+    return Some(n + 100);
+}
+
+func RunBoth(seeds: Array<Int>, count: Int) -> Int {
+    let total: Int = 0;
+    let i: Int = 0;
+    while i < count {
+        match Try(seeds[i]) {
+            case Some(v1): total = total + v1;
+            case None: total = total - 1;
+        }
+        match Try2(seeds[i]) {
+            case Some(v2): total = total + v2;
+            case None: total = total - 2;
+        }
+        i = i + 1;
+    }
+    return total;
+}
+
+func Main() -> Void {
+    let s1: Array<Int> = [1, 2, 3];
+    Log(RunBoth(s1, 3));
+    let s2: Array<Int> = [0, -1, 5];
+    Log(RunBoth(s2, 3));
+    let s3: Array<Int> = [10];
+    Log(RunBoth(s3, 1));
+}

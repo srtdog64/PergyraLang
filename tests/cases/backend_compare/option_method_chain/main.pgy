@@ -1,0 +1,30 @@
+func PositiveOrZero(n: Int) -> Option<Int> {
+    if n > 0 { return Some(n); }
+    return None();
+}
+
+func PreserveAt(arr: Array<Int>, n: Int, idx: Int) -> Option<Int> {
+    if idx < 0 || idx >= n { return None(); }
+    return PositiveOrZero(arr[idx]);
+}
+
+func SumFromIdx(arr: Array<Int>, n: Int, idx: Int) -> Int {
+    let acc: Int = 0;
+    let i: Int = idx;
+    while i < n {
+        acc = acc + (PositiveOrZero(arr[i]) ?? 0);
+        i = i + 1;
+    }
+    return acc;
+}
+
+func Main() -> Void {
+    let a: Array<Int> = [3, -1, 5, -2, 7, 0];
+    Log(SumFromIdx(a, 6, 0));
+    Log(SumFromIdx(a, 6, 2));
+    Log(SumFromIdx(a, 6, 5));
+    Log(SumFromIdx(a, 6, 6));
+    Log(PreserveAt(a, 6, 0) ?? -1);
+    Log(PreserveAt(a, 6, 1) ?? -1);
+    Log(PreserveAt(a, 6, 10) ?? -1);
+}

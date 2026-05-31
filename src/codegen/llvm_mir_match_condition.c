@@ -12,57 +12,6 @@
 
 #include <string.h>
 
-static ASTNode *
-llvm_mir_find_match_subject_for_case(ASTNode *node, ASTNode *case_node)
-{
-    if (node == NULL || case_node == NULL)
-        return NULL;
-
-    if (node->type == AST_MATCH_STMT) {
-        for (size_t i = 0; i < ast_match_case_count(node); i++) {
-            if (ast_match_case_at(node, i) == case_node)
-                return ast_match_subject(node);
-        }
-        if (ast_match_default_body(node) != NULL) {
-            ASTNode *found = llvm_mir_find_match_subject_for_case(
-                ast_match_default_body(node), case_node);
-            if (found != NULL)
-                return found;
-        }
-    }
-
-    switch (node->type) {
-    case AST_BLOCK:
-        for (size_t i = 0; i < ast_block_statement_count(node); i++) {
-            ASTNode *found = llvm_mir_find_match_subject_for_case(
-                ast_block_statement(node, i), case_node);
-            if (found != NULL)
-                return found;
-        }
-        break;
-    case AST_IF_STMT: {
-        ASTNode *found = llvm_mir_find_match_subject_for_case(
-            ast_if_then_branch(node), case_node);
-        if (found != NULL)
-            return found;
-        return llvm_mir_find_match_subject_for_case(
-            ast_if_else_branch(node), case_node);
-    }
-    case AST_FOR_LOOP:
-        return llvm_mir_find_match_subject_for_case(
-            ast_for_body(node), case_node);
-    case AST_WHILE_LOOP:
-        return llvm_mir_find_match_subject_for_case(
-            ast_while_body(node), case_node);
-    case AST_WITH_STMT:
-        return llvm_mir_find_match_subject_for_case(
-            ast_with_body(node), case_node);
-    default:
-        break;
-    }
-    return NULL;
-}
-
 static bool
 llvm_mir_is_option_destructor(ASTNode *pat, const char **kind,
                               const char **binding)
@@ -183,8 +132,7 @@ llvm_mir_emit_match_case_condition(ASTNode *func_decl, ASTNode *case_node,
     }
 
     subject_node = func_decl->type == AST_FUNC_DECL
-        ? llvm_mir_find_match_subject_for_case(ast_func_body(func_decl),
-              case_node)
+        ? ast_find_match_subject_for_case(ast_func_body(func_decl), case_node)
         : NULL;
     if (subject_node == NULL)
         return NULL;
@@ -231,6 +179,13 @@ llvm_mir_emit_match_case_condition(ASTNode *func_decl, ASTNode *case_node,
                 LLVMBuildStore(ctx->builder, payload, payload_alloca);
                 llvm_scope_declare(ctx, pergyra_strdup(binding),
                     payload_alloca, payload_ty);
+                {
+                    LLVMClassTypeEntry *payload_cls =
+                        llvm_lookup_class_by_type(ctx, payload_ty);
+                    if (payload_cls != NULL)
+                        llvm_register_var_class(ctx, binding,
+                            payload_cls->class_name);
+                }
             }
             return LLVMBuildICmp(ctx->builder, LLVMIntEQ, tag,
                 LLVMConstInt(ctx->type_i32,
@@ -254,6 +209,13 @@ llvm_mir_emit_match_case_condition(ASTNode *func_decl, ASTNode *case_node,
                 LLVMBuildStore(ctx->builder, payload, payload_alloca);
                 llvm_scope_declare(ctx, pergyra_strdup(binding),
                     payload_alloca, payload_ty);
+                {
+                    LLVMClassTypeEntry *payload_cls =
+                        llvm_lookup_class_by_type(ctx, payload_ty);
+                    if (payload_cls != NULL)
+                        llvm_register_var_class(ctx, binding,
+                            payload_cls->class_name);
+                }
             }
             return LLVMBuildICmp(ctx->builder, LLVMIntEQ, tag,
                 LLVMConstInt(ctx->type_i32,

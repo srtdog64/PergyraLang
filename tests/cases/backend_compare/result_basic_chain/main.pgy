@@ -1,0 +1,34 @@
+enum DivErr { DivByZero, Overflow }
+
+func SafeDiv(a: Int, b: Int) -> Result<Int, DivErr> {
+    if b == 0 {
+        return Err(DivByZero);
+    }
+    return Ok(a / b);
+}
+
+func ChainDiv(a: Int, b: Int, c: Int) -> Result<Int, DivErr> {
+    match SafeDiv(a, b) {
+        case Ok(x): return SafeDiv(x, c);
+        case Err(e): return Err(e);
+    }
+}
+
+func ResultOrTag(r: Result<Int, DivErr>) -> Int {
+    match r {
+        case Ok(v): return v;
+        case Err(e):
+            match e {
+                case DivByZero: return -1;
+                case Overflow: return -2;
+            }
+    }
+}
+
+func Main() -> Void {
+    Log(ResultOrTag(ChainDiv(100, 5, 2)));
+    Log(ResultOrTag(ChainDiv(100, 0, 2)));
+    Log(ResultOrTag(ChainDiv(100, 5, 0)));
+    Log(ResultOrTag(SafeDiv(50, 7)));
+    Log(ResultOrTag(SafeDiv(50, 0)));
+}

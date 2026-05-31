@@ -111,6 +111,12 @@ test_type_mapping(void)
     TEST("Queue<Vertex> -> PgyQueue_Vertex");
     EXPECT(expect_type_to_c_copy("Queue<Vertex>", "PgyQueue_Vertex"));
 
+    TEST("Channel<Int> -> PgyChannel_Int");
+    EXPECT(expect_type_to_c_copy("Channel<Int>", "PgyChannel_Int"));
+
+    TEST("Channel<String> -> PgyChannel_String");
+    EXPECT(expect_type_to_c_copy("Channel<String>", "PgyChannel_String"));
+
     TEST("Rc<Int> -> PgyRc_Int");
     EXPECT(expect_type_to_c_copy("Rc<Int>", "PgyRc_Int"));
 
@@ -153,6 +159,15 @@ test_type_mapping(void)
 
     TEST("HashMap<String, Unknown> fails closed");
     EXPECT(expect_type_to_c_rejects("HashMap<String, Unknown>"));
+
+    TEST("Channel<Bool> fails closed without runtime ABI");
+    EXPECT(expect_type_to_c_rejects("Channel<Bool>"));
+
+    TEST("Option<Void> fails closed");
+    EXPECT(expect_type_to_c_rejects("Option<Void>"));
+
+    TEST("Result<Void> fails closed");
+    EXPECT(expect_type_to_c_rejects("Result<Void>"));
 
     TEST("Box<Array<Unknown>> fails closed");
     EXPECT(expect_type_to_c_rejects("Box<Array<Unknown>>"));

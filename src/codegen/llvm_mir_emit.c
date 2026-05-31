@@ -273,7 +273,19 @@ llvm_emit_func_from_mir(const MIRRoutine *routine, LLVMGenCtx *ctx)
         snprintf(qualified_name, sizeof(qualified_name), "%s_%s", owner_name, routine->name);
         fn_name = qualified_name;
     }
-    LLVMFuncEntry *entry = llvm_lookup_or_declare_function(ctx, fn_name, func_type, ret_type);
+    LLVMFuncEntry *entry = llvm_lookup_function(ctx, fn_name);
+    if (entry == NULL) {
+        llvm_set_mir_inventory_missing(ctx,
+            "MIR-only LLVM path missing registered function for MIR routine '%s'",
+            fn_name != NULL ? fn_name : "(anonymous)");
+        return NULL;
+    }
+    if (entry->fn_type != func_type) {
+        llvm_set_mir_inventory_missing(ctx,
+            "MIR-only LLVM path registered function type drift for MIR routine '%s'",
+            fn_name != NULL ? fn_name : "(anonymous)");
+        return NULL;
+    }
     LLVMValueRef fn = entry != NULL ? entry->fn : NULL;
     if (fn == NULL)
         return NULL;

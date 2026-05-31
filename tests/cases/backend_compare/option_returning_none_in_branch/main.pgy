@@ -1,0 +1,31 @@
+func FirstNonzero(a: Int, b: Int, c: Int) -> Option<Int> {
+    if a != 0 {
+        return Some(a);
+    }
+    if b != 0 {
+        return Some(b);
+    }
+    if c != 0 {
+        return Some(c);
+    }
+    return None;
+}
+
+func TagValue(o: Option<Int>) -> Int {
+    match o {
+        case Some(n):
+            if n > 10 {
+                return 100;
+            }
+            return n;
+        case None: return -999;
+    }
+}
+
+func Main() -> Void {
+    Log(TagValue(FirstNonzero(5, 0, 0)));
+    Log(TagValue(FirstNonzero(0, 7, 0)));
+    Log(TagValue(FirstNonzero(0, 0, 20)));
+    Log(TagValue(FirstNonzero(0, 0, 0)));
+    Log(TagValue(FirstNonzero(15, 0, 0)));
+}

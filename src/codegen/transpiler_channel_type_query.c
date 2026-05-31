@@ -12,6 +12,7 @@
 #include "../common/string_compat.h"
 #include "../parser/ast_api.h"
 #include "../semantic/diag_codes.h"
+#include "codegen_channel_runtime_abi.h"
 #include "transpiler_context.h"
 #include "transpiler_decl_lookup.h"
 #include "transpiler_expr_type_infer.h"
@@ -106,6 +107,22 @@ transpiler_channel_expr_is_c_lvalue(ASTNode *channel)
     return channel != NULL && channel->type == AST_IDENTIFIER;
 }
 
+char *
+transpiler_emit_channel_lvalue_expr(TranspilerCtx *ctx, ASTNode *channel)
+{
+    const void *saved_active_ssa_map;
+    char *result;
+
+    if (ctx == NULL)
+        return emit_expression(channel, ctx);
+
+    saved_active_ssa_map = ctx->active_ssa_map;
+    ctx->active_ssa_map = NULL;
+    result = emit_expression(channel, ctx);
+    ctx->active_ssa_map = saved_active_ssa_map;
+    return result;
+}
+
 void
 transpiler_set_channel_lvalue_error(TranspilerCtx *ctx,
                                     const char *operation)
@@ -131,6 +148,17 @@ transpiler_require_channel_inner_type(TranspilerCtx *ctx, ASTNode *expr,
 
     if (transpiler_channel_resolve_inner_type(ctx, type_name, inner_buf,
             inner_buf_size, &inner, &is_channel, &unknown_payload)) {
+        if (!pgy_channel_runtime_payload_has_abi(inner)) {
+            transpiler_set_backend_error_with_hints(ctx,
+                PGY_CODE_C_TYPE_UNSUPPORTED,
+                PGY_CAUSE_C_TYPE_UNSUPPORTED,
+                PGY_FIX_ANNOTATE_CONCRETE_TYPE,
+                "C backend: %s has no runtime Channel<%s> ABI; beta runtime supports %s",
+                operation != NULL ? operation : "Channel operation",
+                inner,
+                pgy_channel_runtime_payload_supported_list());
+            return NULL;
+        }
         return inner;
     }
 

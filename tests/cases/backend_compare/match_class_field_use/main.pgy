@@ -1,0 +1,29 @@
+class Span {
+    let lo: Int;
+    let hi: Int;
+
+    func Mid(self) -> Int {
+        return (lo + hi) / 2;
+    }
+}
+
+enum Pick { Low, Middle, High }
+
+func PickValue(b: Span, p: Pick) -> Int {
+    match p {
+        case Low: return b.lo;
+        case Middle: return b.Mid();
+        case High: return b.hi;
+    }
+}
+
+func Main() -> Void {
+    let b = Span(10, 30);
+    Log(PickValue(b, Low));
+    Log(PickValue(b, Middle));
+    Log(PickValue(b, High));
+    let b2 = Span(-5, 5);
+    Log(PickValue(b2, Low));
+    Log(PickValue(b2, Middle));
+    Log(PickValue(b2, High));
+}

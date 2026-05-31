@@ -1,0 +1,24 @@
+class Stock {
+    let avail: Int;
+
+    func TryTake(self, amt: Int) -> Option<Int> {
+        if amt > avail { return None; }
+        return Some(avail - amt);
+    }
+}
+
+func Apply(s: Stock, amt: Int, fallback: Int) -> Int {
+    match s.TryTake(amt) {
+        case Some(left): return left;
+        case None: return fallback;
+    }
+}
+
+func Main() -> Void {
+    let inv: Stock = Stock(100);
+    Log(Apply(inv, 30, -1));
+    Log(Apply(inv, 200, -1));
+    Log(Apply(inv, 100, -1));
+    Log(Apply(inv, 0, -1));
+    Log(Apply(inv, 101, 999));
+}

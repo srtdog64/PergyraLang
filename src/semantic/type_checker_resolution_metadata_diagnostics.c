@@ -209,6 +209,42 @@ metadata_resolve_generic_arg_for_diagnostic(SemanticContext *ctx,
 }
 
 bool
+semantic_type_resolution_reject_unsupported_stable_constructed_args(
+    SemanticContext *ctx,
+    ASTNode *type_node,
+    const char *name,
+    Type *const *args,
+    size_t argc)
+{
+    if (ctx == NULL || type_node == NULL || name == NULL || args == NULL)
+        return false;
+
+    if (strcmp(name, "Result") == 0 && argc >= 1 && args[0] == TYPE_VOID) {
+        semantic_error_with_hints(ctx,
+            PGY_CODE_SEM_BUILTIN_ARGS_INVALID,
+            PGY_CAUSE_BUILTIN_SIGNATURE_MISMATCH,
+            PGY_FIX_MATCH_BUILTIN_SIGNATURE,
+            type_node,
+            "Result<Void> is not in the stable subset until the "
+            "Result<Void> ABI is frozen");
+        return true;
+    }
+
+    if (strcmp(name, "Option") == 0 && argc >= 1 && args[0] == TYPE_VOID) {
+        semantic_error_with_hints(ctx,
+            PGY_CODE_SEM_BUILTIN_ARGS_INVALID,
+            PGY_CAUSE_BUILTIN_SIGNATURE_MISMATCH,
+            PGY_FIX_MATCH_BUILTIN_SIGNATURE,
+            type_node,
+            "Option<Void> is not in the stable subset until the "
+            "Option<Void> ABI is frozen");
+        return true;
+    }
+
+    return false;
+}
+
+bool
 semantic_type_resolution_reject_invalid_stable_constructed_type(
     SemanticContext *ctx,
     ASTNode *type_node)
@@ -240,6 +276,11 @@ semantic_type_resolution_reject_invalid_stable_constructed_type(
             return true;
         if (args[i] == NULL)
             return false;
+    }
+
+    if (semantic_type_resolution_reject_unsupported_stable_constructed_args(
+            ctx, type_node, name, args, argc)) {
+        return true;
     }
 
     if (strcmp(name, "HashMap") == 0

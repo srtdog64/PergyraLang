@@ -7,6 +7,7 @@
 
 #include <string.h>
 
+#include "codegen_match_variant_policy.h"
 #include "transpiler_decl_lookup.h"
 #include "transpiler_enum.h"
 #include "transpiler_mir_reason.h"
@@ -120,6 +121,9 @@ transpiler_expr_identifiers_mapped(const TranspilerCtx *ctx,
         if (transpiler_resolve_ssa_name(ssa_map, name) != NULL)
             return true;
         if (transpiler_name_is_token_local(name))
+            return true;
+        if (pgy_codegen_match_variant_lookup(name)
+                == PGY_MATCH_VARIANT_NONE_CTOR)
             return true;
         if (ctx != NULL) {
             existing_type = lookup_typed_var((TranspilerCtx *)ctx, name);

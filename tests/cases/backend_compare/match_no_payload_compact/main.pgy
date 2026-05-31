@@ -1,0 +1,24 @@
+enum Color { Red, Green, Blue, Yellow, Magenta, Cyan }
+
+func ColorCode(c: Color) -> Int {
+    match c {
+        case Red: return 1;
+        case Green: return 2;
+        case Blue: return 4;
+        case Yellow: return 3;
+        case Magenta: return 5;
+        case Cyan: return 6;
+    }
+}
+
+func ColorSet(c1: Color, c2: Color, c3: Color) -> Int {
+    return ColorCode(c1) * 100 + ColorCode(c2) * 10 + ColorCode(c3);
+}
+
+func Main() -> Void {
+    Log(ColorCode(Red));
+    Log(ColorCode(Cyan));
+    Log(ColorSet(Red, Green, Blue));
+    Log(ColorSet(Cyan, Magenta, Yellow));
+    Log(ColorSet(Red, Red, Red));
+}

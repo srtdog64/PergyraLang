@@ -1,0 +1,24 @@
+func RepeatN(s: String, n: Int) -> String {
+    if n <= 0 { return ""; }
+    let result: String = "";
+    let i: Int = 0;
+    while i < n {
+        result = result + s;
+        i = i + 1;
+    }
+    return result;
+}
+
+func IsPalindromeRepeat(s: String, n: Int) -> Bool {
+    return RepeatN(s, n) == RepeatN(s, n);
+}
+
+func Main() -> Void {
+    Log(RepeatN("ab", 3));
+    Log(RepeatN("x", 5));
+    Log(RepeatN("", 4));
+    Log(RepeatN("abc", 0));
+    Log(RepeatN("abc", -1));
+    Log(IsPalindromeRepeat("aa", 3));
+    Log(StringLength(RepeatN("hi", 10)));
+}

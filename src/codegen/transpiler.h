@@ -223,6 +223,12 @@ typedef struct
     char   result_specs_err_ctype[32][128]; /* e.g. "NetError" */
     int    result_spec_count;
 
+    /* Option<T> specializations for user-defined inner types beyond the
+     * runtime-predefined Int/Bool/String. Same pattern as Result. */
+    char   option_specs_suffix[32][128];     /* e.g. "Status" */
+    char   option_specs_inner_ctype[32][128];/* e.g. "Status" */
+    int    option_spec_count;
+
     /* Tuple type specializations. Each entry is a unique set of
      * pergyra-element-type-names (strings), emitted as a C struct:
      *   typedef struct { T0 f0; T1 f1; ... } PgyTuple_<suffix>_t;

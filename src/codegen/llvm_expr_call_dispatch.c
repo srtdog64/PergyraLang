@@ -229,6 +229,7 @@ llvm_emit_call(ASTNode *node, LLVMGenCtx *ctx)
         && callable_decl->type == AST_INTENT_DECL ? callable_decl : NULL;
     unsigned emitted_argc = 0;
     LLVMValueRef *args = NULL;
+    LLVMFuncEntry *predeclared_func = NULL;
 
     if (decl != NULL)
         args = llvm_build_boundary_call_args(ctx, decl, call_args,
@@ -315,6 +316,8 @@ llvm_emit_call(ASTNode *node, LLVMGenCtx *ctx)
             emitted_argc = (unsigned)argc;
         }
     }
+    if (args == NULL && decl == NULL && intent_decl == NULL)
+        predeclared_func = llvm_lookup_function(ctx, callee_name);
     if (args == NULL) {
         args = pgy_arena_calloc(&ctx->scratch,
             (argc > 0 ? argc : 1) * sizeof(LLVMValueRef));
@@ -322,7 +325,19 @@ llvm_emit_call(ASTNode *node, LLVMGenCtx *ctx)
             return llvm_call_error_recovery(ctx, node,
                 "LLVM call argument allocation failed");
         for (size_t i = 0; i < argc; i++) {
+            LLVMTypeRef saved_ret = ctx->current_ret_type;
+            LLVMTypeRef expected_ty = NULL;
+            if (predeclared_func != NULL
+                && i < LLVMCountParams(predeclared_func->fn)) {
+                expected_ty = LLVMTypeOf(
+                    LLVMGetParam(predeclared_func->fn, (unsigned)i));
+            }
+            if (expected_ty != NULL
+                && LLVMGetTypeKind(expected_ty) == LLVMStructTypeKind) {
+                ctx->current_ret_type = expected_ty;
+            }
             args[i] = llvm_emit_expression(ast_call_argument(node, i), ctx);
+            ctx->current_ret_type = saved_ret;
             if (args[i] == NULL)
                 return llvm_call_arg_error_recovery(ctx, node,
                     callee_name, i);
@@ -332,10 +347,23 @@ llvm_emit_call(ASTNode *node, LLVMGenCtx *ctx)
 
     LLVMFuncEntry *func = llvm_resolve_callee_entry(ctx, callee_name, args, argc);
     if (func == NULL && decl != NULL && decl->type == AST_FUNC_DECL) {
+        if (llvm_active_has_mir(ctx) && ast_func_body(decl) != NULL) {
+            llvm_set_mir_inventory_missing(ctx,
+                "MIR-only LLVM path missing registered function call target '%s'",
+                callee_name != NULL ? callee_name : "(anonymous-function)");
+            return NULL;
+        }
         llvm_forward_declare_func(decl, ctx);
         func = llvm_lookup_function(ctx, callee_name);
     }
     if (func == NULL && intent_decl != NULL) {
+        if (llvm_active_has_mir(ctx)) {
+            llvm_set_mir_inventory_missing(ctx,
+                "MIR-only LLVM path missing registered intent call target '%s'",
+                callee_name != NULL ? callee_name : "(anonymous-intent)");
+            return NULL;
+        }
+
         LLVMTypeRef *param_types = NULL;
         LLVMTypeRef fn_type;
         LLVMValueRef fn;

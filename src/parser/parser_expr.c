@@ -1,4 +1,5 @@
 #include "parser_internal.h"
+#include "../common/match_variant_policy.h"
 
 ASTNode* parse_pipe(Parser* parser);
 static int
@@ -223,7 +224,8 @@ ASTNode* parser_parse_primary(Parser* parser) {
         parser_advance(parser);
         Token variant = consume_member_name_token(parser,
             "Expected variant name after '.'");
-        if (strcmp(variant.text, "None") == 0) {
+        if (pgy_match_variant_lookup(variant.text)
+                == PGY_MATCH_VARIANT_NONE_CTOR) {
             ASTNode *callee = ast_create_identifier(variant.text);
             return ast_create_call(callee);
         }

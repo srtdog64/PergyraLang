@@ -1,0 +1,45 @@
+enum NetErr { Timeout, Refused, Dns, Reset }
+
+func Step1(n: Int) -> Result<Int, NetErr> {
+    if n < 0 { return Err(Timeout); }
+    if n > 1000 { return Err(Refused); }
+    return Ok(n + 1);
+}
+
+func Step2(n: Int) -> Result<Int, NetErr> {
+    if n == 42 { return Err(Dns); }
+    if n == 13 { return Err(Reset); }
+    return Ok(n * 2);
+}
+
+func Pipeline(seed: Int) -> Result<Int, NetErr> {
+    match Step1(seed) {
+        case Ok(v1):
+            match Step2(v1) {
+                case Ok(v2): return Ok(v2 + seed);
+                case Err(e2): return Err(e2);
+            }
+        case Err(e1): return Err(e1);
+    }
+}
+
+func Tag(r: Result<Int, NetErr>) -> Int {
+    match r {
+        case Ok(v): return v;
+        case Err(e):
+            match e {
+                case Timeout: return -1;
+                case Refused: return -2;
+                case Dns: return -3;
+                case Reset: return -4;
+            }
+    }
+}
+
+func Main() -> Void {
+    Log(Tag(Pipeline(10)));
+    Log(Tag(Pipeline(-1)));
+    Log(Tag(Pipeline(41)));
+    Log(Tag(Pipeline(12)));
+    Log(Tag(Pipeline(2000)));
+}

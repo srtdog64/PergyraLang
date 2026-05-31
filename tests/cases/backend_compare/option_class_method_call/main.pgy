@@ -1,0 +1,32 @@
+class Pair {
+    let a: Int;
+    let b: Int;
+
+    func Sum(self) -> Int {
+        return a + b;
+    }
+
+    func Product(self) -> Int {
+        return a * b;
+    }
+}
+
+func Make(x: Int, y: Int) -> Option<Pair> {
+    if x < 0 { return None; }
+    return Some(Pair(x, y));
+}
+
+func ScoreOrZero(o: Option<Pair>) -> Int {
+    match o {
+        case Some(p): return p.Sum() + p.Product();
+        case None: return 0;
+    }
+}
+
+func Main() -> Void {
+    Log(ScoreOrZero(Make(3, 5)));
+    Log(ScoreOrZero(Make(-1, 5)));
+    Log(ScoreOrZero(Make(0, 0)));
+    Log(ScoreOrZero(Make(10, 2)));
+    Log(ScoreOrZero(Make(7, 7)));
+}

@@ -33,6 +33,7 @@
 #include <stdint.h>
 #include <stdbool.h>
 #include <stddef.h>
+#include "pgy_runtime_slot_status.h"
 #include "slot_security.h"
 
 /*
@@ -176,20 +177,25 @@ typedef enum
     SLOT_ERROR_TTL_EXPIRED,
     SLOT_ERROR_THREAD_VIOLATION,
     SLOT_ERROR_PINNED,
-    SLOT_ERROR_INVALID_PIN
+    SLOT_ERROR_INVALID_PIN,
+    SLOT_ERROR_ID_EXHAUSTED
 } SlotError;
 
 typedef struct
 {
     SlotError error;
+    PgyRuntimeSlotStatus runtimeStatus;
     const char *name;
     const char *operation;
+    bool recoverable;
     uint32_t slotId;
     uint32_t typeTag;
     uint32_t generation;
 } SlotFailure;
 
 const char *SlotErrorName(SlotError err);
+PgyRuntimeSlotStatus SlotRuntimeStatusFromError(SlotError err);
+bool SlotErrorBoundaryRecoverable(SlotError err);
 SlotFailure SlotFailureFromError(SlotError err, const char *operation,
                                  const SlotHandle *handle);
 

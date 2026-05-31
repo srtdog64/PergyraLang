@@ -51,6 +51,9 @@ Stable core:
 - Primitive values, `func`, `let`, control flow, basic callable values,
   `Option<T>`, `Result<T, E>`, and the collection implementations required by
   the core contract language.
+- `Option<Void>` and `Result<Void>` are not beta-stable until their
+  unit-payload ABI is frozen. Semantic analysis must reject them, and C/LLVM
+  type lowering must fail closed if an unchecked AST reaches a backend.
 - `match` is beta-stable only for `Int`, `Long`, `Bool`, enum, `Option<T>`,
   and `Result<T, E>` subjects. Other subject types must be rejected before
   backend lowering; they are not allowed to fall through to C/LLVM local

@@ -70,6 +70,111 @@ llvm_mir_local_type_from_value_fact(const MIRInstruction *inst,
     return NULL;
 }
 
+static const MIRInstruction *
+llvm_mir_find_result_instruction(const MIRRoutine *routine,
+                                 const char *result_name)
+{
+    if (routine == NULL || result_name == NULL)
+        return NULL;
+    for (size_t b = 0; b < routine->block_count; b++) {
+        const MIRBasicBlock *block = &routine->blocks[b];
+        for (size_t i = 0; i < block->instruction_count; i++) {
+            const MIRInstruction *inst = &block->instructions[i];
+            if (inst->result_name != NULL
+                && strcmp(inst->result_name, result_name) == 0) {
+                return inst;
+            }
+        }
+    }
+    return NULL;
+}
+
+static LLVMTypeRef
+llvm_mir_local_type_from_instruction_fact(const MIRRoutine *routine,
+                                          LLVMGenCtx *ctx,
+                                          const MIRInstruction *inst,
+                                          LLVMMirVar *vars,
+                                          size_t var_count,
+                                          unsigned depth);
+
+static LLVMTypeRef
+llvm_mir_local_type_from_named_result(const MIRRoutine *routine,
+                                      LLVMGenCtx *ctx,
+                                      const char *result_name,
+                                      LLVMMirVar *vars,
+                                      size_t var_count,
+                                      unsigned depth)
+{
+    const MIRInstruction *source;
+    LLVMTypeRef type;
+
+    if (result_name == NULL || depth > 16)
+        return NULL;
+
+    type = llvm_mir_local_type_from_vars(vars, var_count, result_name);
+    if (type != NULL)
+        return type;
+
+    source = llvm_mir_find_result_instruction(routine, result_name);
+    if (source == NULL)
+        return NULL;
+    return llvm_mir_local_type_from_instruction_fact(routine, ctx, source,
+        vars, var_count, depth + 1);
+}
+
+static LLVMTypeRef
+llvm_mir_local_type_from_instruction_fact(const MIRRoutine *routine,
+                                          LLVMGenCtx *ctx,
+                                          const MIRInstruction *inst,
+                                          LLVMMirVar *vars,
+                                          size_t var_count,
+                                          unsigned depth)
+{
+    LLVMTypeRef type;
+
+    if (inst == NULL || ctx == NULL || depth > 16)
+        return NULL;
+
+    type = llvm_mir_type_from_abi_layout(ctx, inst->type_layout);
+    if (type != NULL)
+        return type;
+
+    if (inst->expr1 != NULL) {
+        type = llvm_mir_type_from_ast(ctx, inst->expr1);
+        if (ctx->has_error || type != NULL)
+            return type;
+    }
+
+    type = llvm_mir_local_type_from_value_fact(inst, vars, var_count);
+    if (type != NULL)
+        return type;
+
+    if (inst->kind == MIR_INST_PHI) {
+        for (size_t i = 0; i < inst->phi_incoming_count; i++) {
+            type = llvm_mir_local_type_from_named_result(routine, ctx,
+                inst->phi_incomings[i].value_name, vars, var_count,
+                depth + 1);
+            if (ctx->has_error || type != NULL)
+                return type;
+        }
+        for (size_t i = 0; i < inst->use_count; i++) {
+            type = llvm_mir_local_type_from_named_result(routine, ctx,
+                inst->uses[i], vars, var_count, depth + 1);
+            if (ctx->has_error || type != NULL)
+                return type;
+        }
+        return NULL;
+    }
+
+    if (inst->expr0 != NULL) {
+        type = llvm_stmt_infer_expr_type(ctx, inst->expr0);
+        if (ctx->has_error || type != NULL)
+            return type;
+    }
+
+    return NULL;
+}
+
 void
 llvm_emit_mir_local_allocas(const MIRRoutine *routine, LLVMGenCtx *ctx,
                             LLVMMirVar **vars_ptr, size_t *var_capacity_ptr,
@@ -89,7 +194,7 @@ llvm_emit_mir_local_allocas(const MIRRoutine *routine, LLVMGenCtx *ctx,
             const MIRInstruction *inst = &mir_block->instructions[j];
             if ((inst->kind == MIR_INST_DEF || inst->kind == MIR_INST_PHI)
                 && inst->result_name != NULL) {
-                LLVMTypeRef alloca_type = ctx->type_i32;
+                LLVMTypeRef alloca_type = NULL;
                 LLVMTypeRef layout_type = llvm_mir_type_from_abi_layout(
                     ctx, inst->type_layout);
                 ASTNode *value_expr = inst->expr0;
@@ -113,6 +218,23 @@ llvm_emit_mir_local_allocas(const MIRRoutine *routine, LLVMGenCtx *ctx,
                         alloca_type = llvm_stmt_infer_expr_type(ctx, value_expr);
                     if (ctx->has_error || alloca_type == NULL)
                         return;
+                } else if (has_base_name) {
+                    alloca_type = llvm_mir_local_type_from_vars(
+                        vars, var_count, base_name);
+                }
+                if (alloca_type == NULL) {
+                    alloca_type = llvm_mir_local_type_from_instruction_fact(
+                        routine, ctx, inst, vars, var_count, 0);
+                    if (ctx->has_error)
+                        return;
+                }
+                if (alloca_type == NULL) {
+                    llvm_set_mir_inventory_missing(ctx,
+                        "MIR-only LLVM path missing local type metadata for '%s'",
+                        inst->result_name != NULL
+                            ? inst->result_name
+                            : "(anonymous-local)");
+                    return;
                 }
                 if (var_count >= var_capacity) {
                     size_t new_capacity = var_capacity > 0 ? var_capacity * 2 : 64;

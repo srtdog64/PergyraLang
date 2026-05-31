@@ -1,0 +1,22 @@
+enum Verdict { Pass, Fail, Skip }
+
+func MaybeRunImpl(verdict: Verdict, score: Int, threshold: Int) -> Int {
+    match verdict {
+        case Pass:
+            if score >= threshold { return score; }
+            return -1;
+        case Fail:
+            if score < threshold { return -score; }
+            return 0;
+        case Skip:
+            return -999;
+    }
+}
+
+func Main() -> Void {
+    Log(MaybeRunImpl(Pass, 90, 80));
+    Log(MaybeRunImpl(Pass, 70, 80));
+    Log(MaybeRunImpl(Fail, 50, 80));
+    Log(MaybeRunImpl(Fail, 90, 80));
+    Log(MaybeRunImpl(Skip, 100, 50));
+}

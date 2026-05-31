@@ -871,6 +871,20 @@ those classifiers instead of local `strncmp(...)` checks. The perf contract
 smoke rejects new C `transpiler_*.c` direct type-family prefix checks outside
 `transpiler_type_mapping.c`.
 
+Result/Option constructor vocabulary is owned by
+`src/common/match_variant_policy.c`. Parser shorthand, semantic match
+validation, semantic exhaustiveness, C lowering, LLVM lowering, and SSA
+contracts that need to classify `Some`, `None`, `Ok`, or `Err` as constructors
+or match destructors must call the shared policy and consume
+`PgyMatchVariantKind`/`PgyCodegenMatchVariantKind`. Direct
+`strcmp(..., "None")` style rediscovery in parser/semantic/backend consumers is
+source-of-truth drift.
+Generated C tag spelling for Option/Result variants is owned by
+`src/codegen/codegen_match_variant_policy.c`; C emission paths consume
+`pgy_codegen_match_variant_c_option_tag(...)` and
+`pgy_codegen_match_variant_c_result_tag(...)` rather than retyping the tag
+symbols locally.
+
 Result specialization and `let` lowering are recursive-emission boundaries too.
 If a C type name is needed after storing another rendered type or after calling
 `emit_expression(...)`, copy it into caller-owned storage first. This covers

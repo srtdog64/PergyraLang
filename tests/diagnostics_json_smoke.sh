@@ -76,21 +76,8 @@ check_json() {
             sed -n '1,8p' "$file" >&2
             exit 1
         fi
-        if [[ "$label" == "llvm-channel-runtime-missing" ]]; then
-            if ! grep -Fq -- "pgy_channel_init_Bool" "$file" \
-                && ! grep -Fq -- "pgy_channel_try_recv_Bool" "$file"; then
-                echo "[diag-json] $label: FAIL -- missing expected channel helper name" >&2
-                sed -n '1,8p' "$file" >&2
-                exit 1
-            fi
-        fi
         while IFS= read -r literal; do
             [[ -n "$literal" ]] || continue
-            if [[ "$label" == "llvm-channel-runtime-missing" \
-                && ( "$literal" == "pgy_channel_init_Bool" \
-                     || "$literal" == "pgy_channel_try_recv_Bool" ) ]]; then
-                continue
-            fi
             if ! grep -Fq -- "$literal" "$file"; then
                 echo "[diag-json] $label: FAIL -- missing expected JSON literal: $literal" >&2
                 sed -n '1,8p' "$file" >&2
@@ -918,11 +905,10 @@ else
       'isinstance(data, list) and any(d.get("cause_ir") == "llvm:result_spec:capacity_exceeded" and d.get("fix_source") == "reuse-shared-error-enum" for d in data)'
 fi
 
-# --- case 2c.1: LLVM channel runtime lookup has no silent fallback ---
+# --- case 2c.1: LLVM channel runtime ABI has no silent fallback ---
 # Channel<Bool> is allowed through the frontend here, but the beta LLVM
-# runtime only declares concrete channel helpers for Int/String. LLVM codegen
-# must reject the missing runtime helper with a structured diagnostic instead
-# of silently lowering to i32/false/None.
+# runtime only declares concrete channel storage for Int/String. LLVM codegen
+# must reject the payload ABI before synthesizing runtime helper names.
 LLVM_CHANNEL_SRC="$WORK_DIR/llvm_channel_runtime_missing.pgy"
 cat > "$LLVM_CHANNEL_SRC" <<'EOF'
 func Main() -> Void {
@@ -940,7 +926,29 @@ elif grep -Fq "compiled without LLVM backend support" "$LLVM_CHANNEL_ERR"; then
     echo "[diag-json] llvm-channel-runtime-missing: SKIP (compiler built without LLVM backend support)"
 else
     check_json "llvm-channel-runtime-missing" "$LLVM_CHANNEL_ERR" \
-      'isinstance(data, list) and any(d.get("stage") == "llvm_codegen" and d.get("code") == "PGY_LLVM_TYPE_UNSUPPORTED" and d.get("cause_ir") == "llvm:type:unsupported_or_unknown" and d.get("fix_source") == "inspect-mir-inventory" and ("pgy_channel_init_Bool" in d.get("message", "") or "pgy_channel_try_recv_Bool" in d.get("message", "")) for d in data)'
+      'isinstance(data, list) and any(d.get("stage") == "llvm_codegen" and d.get("code") == "PGY_LLVM_TYPE_UNSUPPORTED" and d.get("cause_ir") == "llvm:type:unsupported_or_unknown" and d.get("fix_source") == "annotate-concrete-type" and "runtime Channel<Bool> ABI" in d.get("message", "") for d in data)'
+fi
+
+# --- case 2c.2: C channel runtime ABI has no silent fallback ---
+# The frontend may keep Channel<T> abstract, but the beta C runtime only
+# exposes concrete channel storage for Int/String. C codegen must fail closed
+# instead of synthesizing a nonexistent PgyChannel_Bool ABI.
+C_CHANNEL_SRC="$WORK_DIR/c_channel_runtime_missing.pgy"
+cat > "$C_CHANNEL_SRC" <<'EOF'
+func Main() -> Void {
+    let ch: Channel<Bool> = Channel(1);
+    let got: Option<Bool> = TryRecv(ch);
+}
+EOF
+C_CHANNEL_ERR="$WORK_DIR/c_channel_runtime_missing.err"
+C_CHANNEL_OBJ="$WORK_DIR/c_channel_runtime_missing_obj"
+if pgy_run "$C_CHANNEL_SRC" --backend=c --error-format=json -o "$C_CHANNEL_OBJ" \
+        >/dev/null 2>"$C_CHANNEL_ERR"; then
+    echo "[diag-json] c-channel-runtime-missing: FAIL -- expected missing runtime ABI" >&2
+    exit 1
+else
+    check_json "c-channel-runtime-missing" "$C_CHANNEL_ERR" \
+      'isinstance(data, list) and any(d.get("stage") == "c_codegen" and d.get("code") == "PGY_C_TYPE_UNSUPPORTED" and d.get("cause_ir") == "c_codegen:type:unsupported" and d.get("fix_source") == "annotate-concrete-type" and "runtime Channel<Bool> ABI" in d.get("message", "") for d in data)'
 fi
 
 # --- case 3: success path emits [] ---

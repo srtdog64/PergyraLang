@@ -8,6 +8,8 @@
 bool channel_inner_type_name_copy(TranspilerCtx *ctx, ASTNode *expr,
                                   char *out, size_t out_size);
 bool transpiler_channel_expr_is_c_lvalue(ASTNode *channel);
+char *transpiler_emit_channel_lvalue_expr(TranspilerCtx *ctx,
+                                          ASTNode *channel);
 void transpiler_set_channel_lvalue_error(TranspilerCtx *ctx,
                                          const char *operation);
 const char *transpiler_require_channel_inner_type(TranspilerCtx *ctx,

@@ -1,0 +1,30 @@
+class Builder {
+    let val: Int;
+    let limit: Int;
+
+    func Inc(self) -> Builder {
+        if val + 1 > limit { return Builder(limit, limit); }
+        return Builder(val + 1, limit);
+    }
+
+    func Double(self) -> Builder {
+        if val * 2 > limit { return Builder(limit, limit); }
+        return Builder(val * 2, limit);
+    }
+}
+
+func Pipeline(start: Int, limit: Int) -> Int {
+    let b: Builder = Builder(start, limit);
+    let b2: Builder = b.Inc();
+    let b3: Builder = b2.Double();
+    let b4: Builder = b3.Inc();
+    return b4.val;
+}
+
+func Main() -> Void {
+    Log(Pipeline(0, 100));
+    Log(Pipeline(5, 100));
+    Log(Pipeline(45, 100));
+    Log(Pipeline(50, 100));
+    Log(Pipeline(99, 100));
+}

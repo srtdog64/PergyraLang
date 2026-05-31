@@ -1,0 +1,41 @@
+enum CompErr { Overflow, Underflow }
+
+class Acc {
+    let val: Int;
+    let cap: Int;
+
+    func Add(self, n: Int) -> Result<Int, CompErr> {
+        if val + n > cap { return Err(Overflow); }
+        if val + n < 0 { return Err(Underflow); }
+        return Ok(val + n);
+    }
+
+    func ChainAdd(self, a: Int, b: Int) -> Result<Int, CompErr> {
+        match self.Add(a) {
+            case Ok(mid):
+                let m: Acc = Acc(mid, cap);
+                return m.Add(b);
+            case Err(e): return Err(e);
+        }
+    }
+}
+
+func TagOr(r: Result<Int, CompErr>, def: Int) -> Int {
+    match r {
+        case Ok(v): return v;
+        case Err(e):
+            match e {
+                case Overflow: return def + 1;
+                case Underflow: return def + 2;
+            }
+    }
+}
+
+func Main() -> Void {
+    let a: Acc = Acc(10, 100);
+    Log(TagOr(a.ChainAdd(5, 10), 1000));
+    Log(TagOr(a.ChainAdd(50, 50), 1000));
+    Log(TagOr(a.ChainAdd(-20, 0), 1000));
+    Log(TagOr(a.ChainAdd(80, 5), 1000));
+    Log(TagOr(a.ChainAdd(0, 0), 1000));
+}

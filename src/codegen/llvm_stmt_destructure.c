@@ -50,6 +50,8 @@ llvm_emit_let_destructure_stmt(ASTNode *node, LLVMGenCtx *ctx)
         rhs_val, 0, llvm_tmp_name(ctx));
     LLVMTypeRef elem_type = llvm_stmt_resolve_array_elem_type(
         ctx, init, data_ptr);
+    if (elem_type == NULL)
+        return;
     for (size_t i = 0; i < ast_let_destructure_name_count(node); i++) {
         const char *bname = ast_let_destructure_name(node, i);
         if (bname == NULL)

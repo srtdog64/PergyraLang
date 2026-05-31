@@ -1,0 +1,28 @@
+func Decay(n: Int) -> Option<Int> {
+    if n <= 0 { return None(); }
+    return Some(n - 1);
+}
+
+enum Mode { Step, Halt, Reset(Int) }
+
+func RunOnce(state: Int, m: Mode) -> Int {
+    match m {
+        case Step:
+            let next: Option<Int> = Decay(state);
+            return next ?? 0;
+        case Halt:
+            return state;
+        case Reset(rv):
+            let decayed: Option<Int> = Decay(rv);
+            return decayed ?? rv;
+    }
+}
+
+func Main() -> Void {
+    Log(RunOnce(5, Step));
+    Log(RunOnce(1, Step));
+    Log(RunOnce(0, Step));
+    Log(RunOnce(100, Halt));
+    Log(RunOnce(50, Reset(10)));
+    Log(RunOnce(50, Reset(0)));
+}

@@ -1,0 +1,29 @@
+class Tag {
+    let kind: Int;
+    let weight: Int;
+}
+
+func PickTag(seed: Int) -> Option<Tag> {
+    if seed < 0 { return None; }
+    if seed >= 100 { return None; }
+    return Some(Tag(seed % 4, seed));
+}
+
+func ScoreTag(t: Tag) -> Int {
+    return t.kind * 1000 + t.weight;
+}
+
+func ScoreOrDefault(o: Option<Tag>, def: Int) -> Int {
+    match o {
+        case Some(t): return ScoreTag(t);
+        case None: return def;
+    }
+}
+
+func Main() -> Void {
+    Log(ScoreOrDefault(PickTag(7), -1));
+    Log(ScoreOrDefault(PickTag(-1), 999));
+    Log(ScoreOrDefault(PickTag(200), 999));
+    Log(ScoreOrDefault(PickTag(0), 0));
+    Log(ScoreOrDefault(PickTag(33), -1));
+}

@@ -372,6 +372,29 @@
         ast_destroy(await_expr);
     }
 
+    TEST("await on RemoteFuture<Void> is rejected until Result<Void> ABI freezes");
+    {
+        SemanticContext *ctx = semantic_context_create();
+        scope_enter(&ctx->scope, SCOPE_GLOBAL);
+        ctx->in_async_func = true;
+
+        Type *args[1] = { TYPE_VOID };
+        Type *future_type = type_create_constructed(TYPE_REMOTE_FUTURE, args, 1);
+        scope_declare(ctx->scope,
+            symbol_create_variable("remote_void", future_type, 1, 1));
+
+        ASTNode *await_expr =
+            ast_create_await_expression(make_identifier("remote_void", 1));
+        Type *t = type_check_expression(await_expr, ctx);
+        EXPECT(ctx->has_error);
+        EXPECT(t == TYPE_UNKNOWN);
+        EXPECT(ctx_has_diagnostic_substring(ctx,
+            "RemoteFuture<Void> await is not in the stable subset"));
+
+        semantic_context_destroy(ctx);
+        ast_destroy(await_expr);
+    }
+
     TEST("Read on RemoteFuture is rejected with helpful error");
     {
         SemanticContext *ctx = semantic_context_create();
@@ -445,6 +468,20 @@
         EXPECT(t != NULL
             && t->data.constructed.arg_count >= 1
             && t->data.constructed.args[0] == TYPE_INT);
+        semantic_context_destroy(ctx);
+        ast_destroy(opt);
+    }
+
+    TEST("Option<Void> annotation is rejected until ABI freezes");
+    {
+        SemanticContext *ctx = semantic_context_create();
+        scope_enter(&ctx->scope, SCOPE_GLOBAL);
+        ASTNode *opt = make_generic_type("Option", "Void");
+        Type *t = semantic_type_resolution_lookup_metadata_type_ref(ctx, opt);
+        EXPECT(ctx->has_error);
+        EXPECT(t == NULL);
+        EXPECT(ctx_has_diagnostic_substring(ctx,
+            "Option<Void> is not in the stable subset"));
         semantic_context_destroy(ctx);
         ast_destroy(opt);
     }

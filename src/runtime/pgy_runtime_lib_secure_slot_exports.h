@@ -4,6 +4,8 @@
 
 #include <stdatomic.h>
 
+#include "pgy_runtime_slot_status.h"
+
 #define PGY_DEFINE_SECURE_SLOT_EXPORTS(Suffix, CType, ZeroExpr)                \
 static atomic_uint_least64_t pgy_secure_token_counter_##Suffix =               \
     ATOMIC_VAR_INIT(0x9e3779b97f4a7c15ULL);                                    \
@@ -58,6 +60,24 @@ void pgy_secure_write_##Suffix(PgySecureSlot_##Suffix *s, CType v,             \
     s->value = v;                                                              \
 }                                                                              \
                                                                                \
+PgyRuntimeSlotStatus pgy_try_secure_write_##Suffix(PgySecureSlot_##Suffix *s,  \
+                                                   CType v,                    \
+                                                   const PgyToken_##Suffix *t) \
+{                                                                              \
+    if (s == NULL)                                                             \
+        return PGY_RUNTIME_SLOT_STATUS_NULL_SLOT;                              \
+    if (t == NULL)                                                             \
+        return PGY_RUNTIME_SLOT_STATUS_NULL_TOKEN;                             \
+    if (!s->occupied)                                                          \
+        return PGY_RUNTIME_SLOT_STATUS_RELEASED_SLOT;                          \
+    if (s->token != t->id)                                                     \
+        return PGY_RUNTIME_SLOT_STATUS_INVALID_TOKEN;                          \
+    if (!t->can_write)                                                         \
+        return PGY_RUNTIME_SLOT_STATUS_TOKEN_DENIES_WRITE;                     \
+    s->value = v;                                                              \
+    return PGY_RUNTIME_SLOT_STATUS_OK;                                         \
+}                                                                              \
+                                                                               \
 CType pgy_secure_read_##Suffix(PgySecureSlot_##Suffix *s,                      \
                                const PgyToken_##Suffix *t)                     \
 {                                                                              \
@@ -76,6 +96,41 @@ CType pgy_secure_read_##Suffix(PgySecureSlot_##Suffix *s,                      \
     return s->value;                                                           \
 }                                                                              \
                                                                                \
+PgyRuntimeSlotStatus pgy_try_secure_read_##Suffix(PgySecureSlot_##Suffix *s,   \
+                                                  const PgyToken_##Suffix *t,  \
+                                                  CType *out)                  \
+{                                                                              \
+    if (out == NULL)                                                           \
+        return PGY_RUNTIME_SLOT_STATUS_NULL_OUTPUT;                            \
+    if (s == NULL)                                                             \
+        return PGY_RUNTIME_SLOT_STATUS_NULL_SLOT;                              \
+    if (t == NULL)                                                             \
+        return PGY_RUNTIME_SLOT_STATUS_NULL_TOKEN;                             \
+    if (!s->occupied)                                                          \
+        return PGY_RUNTIME_SLOT_STATUS_RELEASED_SLOT;                          \
+    if (s->token != t->id)                                                     \
+        return PGY_RUNTIME_SLOT_STATUS_INVALID_TOKEN;                          \
+    if (!t->can_read)                                                          \
+        return PGY_RUNTIME_SLOT_STATUS_TOKEN_DENIES_READ;                      \
+    *out = s->value;                                                           \
+    return PGY_RUNTIME_SLOT_STATUS_OK;                                         \
+}                                                                              \
+                                                                               \
+PgyRuntimeSlotResult_##Suffix                                                  \
+pgy_try_secure_read_result_##Suffix(PgySecureSlot_##Suffix *s,                 \
+                                    const PgyToken_##Suffix *t)                \
+{                                                                              \
+    CType value;                                                               \
+    PgyRuntimeSlotStatus status;                                               \
+    memset(&value, 0, sizeof(value));                                          \
+    status = pgy_try_secure_read_##Suffix(s, t, &value);                       \
+    if (status == PGY_RUNTIME_SLOT_STATUS_OK)                                  \
+        return pgy_runtime_slot_result_ok_##Suffix(value);                     \
+    return pgy_runtime_slot_result_err_##Suffix(                               \
+        pgy_runtime_slot_failure_from_status(status,                           \
+                                            "secure-slot-boundary", "read")); \
+}                                                                              \
+                                                                               \
 void pgy_secure_release_##Suffix(PgySecureSlot_##Suffix *s,                    \
                                  const PgyToken_##Suffix *t)                   \
 {                                                                              \
@@ -90,6 +145,22 @@ void pgy_secure_release_##Suffix(PgySecureSlot_##Suffix *s,                    \
                           PGY_RUNTIME_PANIC_REASON_INVALID_SECURE_TOKEN_RELEASE); \
     s->occupied = false;                                                       \
     s->token = 0;                                                              \
+}                                                                              \
+                                                                               \
+PgyRuntimeSlotStatus pgy_try_secure_release_##Suffix(PgySecureSlot_##Suffix *s,\
+                                                     const PgyToken_##Suffix *t)\
+{                                                                              \
+    if (s == NULL)                                                             \
+        return PGY_RUNTIME_SLOT_STATUS_NULL_SLOT;                              \
+    if (t == NULL)                                                             \
+        return PGY_RUNTIME_SLOT_STATUS_NULL_TOKEN;                             \
+    if (!s->occupied)                                                          \
+        return PGY_RUNTIME_SLOT_STATUS_DOUBLE_RELEASE;                         \
+    if (s->token != t->id)                                                     \
+        return PGY_RUNTIME_SLOT_STATUS_INVALID_TOKEN;                          \
+    s->occupied = false;                                                       \
+    s->token = 0;                                                              \
+    return PGY_RUNTIME_SLOT_STATUS_OK;                                         \
 }                                                                              \
                                                                                \
 typedef struct {                                                               \

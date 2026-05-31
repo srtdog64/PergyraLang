@@ -69,7 +69,13 @@ llvm_stmt_infer_await_expr_type(LLVMGenCtx *ctx, ASTNode *expr)
     if (strcmp(inner, "Void") == 0) {
         if (!llvm_lookup_future_is_remote(ctx, future_name))
             return ctx->type_i32;
-        return llvm_stmt_remote_await_result_type(ctx, ctx->type_i32);
+        llvm_set_error_at_with_hints(ctx, expr,
+            PGY_CODE_LLVM_TYPE_UNSUPPORTED,
+            PGY_CAUSE_LLVM_TYPE_UNSUPPORTED,
+            PGY_FIX_ANNOTATE_CONCRETE_TYPE,
+            "LLVM await expression does not infer RemoteFuture<Void>; "
+            "semantic analysis must reject it until Result<Void> ABI is frozen");
+        return NULL;
     }
 
     inner_ty = pergyra_type_to_llvm(ctx, inner);

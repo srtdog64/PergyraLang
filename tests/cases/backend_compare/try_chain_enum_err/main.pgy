@@ -1,0 +1,34 @@
+enum AppErr { Invalid, NotFound, Forbidden }
+
+func Validate(n: Int) -> Result<Int, AppErr> {
+    if n < 0 { return Err(Invalid); }
+    if n > 100 { return Err(NotFound); }
+    if n == 42 { return Err(Forbidden); }
+    return Ok(n);
+}
+
+func Process(seed: Int) -> Result<Int, AppErr> {
+    let a: Int = Validate(seed)?;
+    let b: Int = Validate(a * 2)?;
+    return Ok(b + 1);
+}
+
+func TagOr(r: Result<Int, AppErr>, def: Int) -> Int {
+    match r {
+        case Ok(v): return v;
+        case Err(e):
+            match e {
+                case Invalid: return def + 1;
+                case NotFound: return def + 2;
+                case Forbidden: return def + 3;
+            }
+    }
+}
+
+func Main() -> Void {
+    Log(TagOr(Process(5), 1000));
+    Log(TagOr(Process(60), 1000));
+    Log(TagOr(Process(-1), 1000));
+    Log(TagOr(Process(21), 1000));
+    Log(TagOr(Process(0), 1000));
+}

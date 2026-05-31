@@ -11,6 +11,7 @@
 #include "../common/string_compat.h"
 #include "../parser/ast_api.h"
 #include "../semantic/diag_codes.h"
+#include "codegen_match_variant_policy.h"
 #include "transpiler_collection_runtime_suffix.h"
 #include "transpiler_context.h"
 #include "transpiler_format.h"
@@ -26,40 +27,17 @@ typedef enum TranspilerLetOptionCtorOp {
     TRANS_LET_OPTION_CTOR_SOME,
 } TranspilerLetOptionCtorOp;
 
-typedef struct TranspilerLetOptionCtorSpec {
-    const char *name;
-    TranspilerLetOptionCtorOp op;
-} TranspilerLetOptionCtorSpec;
-
-static int
-transpiler_let_option_ctor_compare(const void *key, const void *entry)
-{
-    const char *name = *(const char * const *)key;
-    const TranspilerLetOptionCtorSpec *spec =
-        (const TranspilerLetOptionCtorSpec *)entry;
-
-    return strcmp(name, spec->name);
-}
-
 static TranspilerLetOptionCtorOp
 transpiler_let_option_ctor_lookup(const char *callee_name)
 {
-    static const TranspilerLetOptionCtorSpec kTranspilerLetOptionCtorSpecs[] = {
-        { "None", TRANS_LET_OPTION_CTOR_NONE_VALUE },
-        { "Some", TRANS_LET_OPTION_CTOR_SOME },
-    };
-    const TranspilerLetOptionCtorSpec *match;
-
-    if (callee_name == NULL)
+    switch (pgy_codegen_match_variant_lookup(callee_name)) {
+    case PGY_MATCH_VARIANT_NONE_CTOR:
+        return TRANS_LET_OPTION_CTOR_NONE_VALUE;
+    case PGY_MATCH_VARIANT_SOME:
+        return TRANS_LET_OPTION_CTOR_SOME;
+    default:
         return TRANS_LET_OPTION_CTOR_NONE;
-
-    match = (const TranspilerLetOptionCtorSpec *)bsearch(&callee_name,
-        kTranspilerLetOptionCtorSpecs,
-        sizeof(kTranspilerLetOptionCtorSpecs)
-            / sizeof(kTranspilerLetOptionCtorSpecs[0]),
-        sizeof(kTranspilerLetOptionCtorSpecs[0]),
-        transpiler_let_option_ctor_compare);
-    return match != NULL ? match->op : TRANS_LET_OPTION_CTOR_NONE;
+    }
 }
 
 typedef enum TranspilerLetCollectionCtorOp {

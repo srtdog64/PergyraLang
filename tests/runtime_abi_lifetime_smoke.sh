@@ -403,9 +403,9 @@ grep -Fq "dup_key = pgy_runtime_strdup" \
     "$ROOT_DIR/src/runtime/pgy_runtime_map_string_inline.h" ||
     fail "inline MapKeys<String> must duplicate keys before pushing into Array<String>"
 
-file_open_body="$(extract_function_body "$llvm_string_text" pgy_file_open)"
+file_open_body="$(extract_function_body "$llvm_string_text" pgy_try_file_open_result)"
 file_close_body="$(extract_function_body "$llvm_string_text" pgy_file_close)"
-[[ -n "$file_open_body" ]] || fail "missing pgy_file_open"
+[[ -n "$file_open_body" ]] || fail "missing pgy_try_file_open_result"
 [[ -n "$file_close_body" ]] || fail "missing pgy_file_close"
 for term in \
     "resolved = pgy_runtime_resolve_file_path(path, for_write)" \
@@ -445,14 +445,14 @@ for term in \
         fail "runtime file handle table must be mutex-protected; missing $term"
 done
 
-read_file_body="$(extract_function_body "$llvm_string_text" pgy_read_file)"
-write_file_body="$(extract_function_body "$llvm_string_text" pgy_write_file)"
-[[ -n "$read_file_body" ]] || fail "missing pgy_read_file"
-[[ -n "$write_file_body" ]] || fail "missing pgy_write_file"
+read_file_body="$(extract_function_body "$llvm_string_text" pgy_try_read_file_result)"
+write_file_body="$(extract_function_body "$llvm_string_text" pgy_try_write_file_result)"
+[[ -n "$read_file_body" ]] || fail "missing pgy_try_read_file_result"
+[[ -n "$write_file_body" ]] || fail "missing pgy_try_write_file_result"
 grep -Fq "free(resolved)" <<< "$read_file_body" ||
-    fail "pgy_read_file must release resolved paths on all result-owned exits"
+    fail "pgy_try_read_file_result must release resolved paths on all result-owned exits"
 grep -Fq "free(resolved)" <<< "$write_file_body" ||
-    fail "pgy_write_file must release resolved paths on all exits"
+    fail "pgy_try_write_file_result must release resolved paths on all exits"
 
 for term in \
     "raw_len > (size_t)INT32_MAX" \
@@ -786,6 +786,9 @@ for term in \
     "used = (ch->count <= ch->cap)" \
     "pgy_channel_try_send_status_" \
     "pgy_channel_send_timeout_status_" \
+    "pgy_channel_recv_result_" \
+    "pgy_channel_try_recv_result_" \
+    "pgy_channel_recv_timeout_result_" \
     "pgy_channel_ready_" \
     "pgy_channel_space_" \
     "pgy_channel_string_inline_dup" \

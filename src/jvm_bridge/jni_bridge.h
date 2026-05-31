@@ -122,7 +122,11 @@ bool       extract_java_value(JNIEnv *env, jobject java_obj, void *buffer,
  * Error handling functions
  */
 void throw_pergyra_exception(JNIEnv *env, SlotError error, const char *message);
-jint slot_error_to_jni(SlotError error);
+static inline jint
+slot_error_to_jni(SlotError error)
+{
+    return (jint)SlotRuntimeStatusFromError(error);
+}
 
 /*
  * Cache management functions

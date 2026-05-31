@@ -7,6 +7,7 @@
 #include "../parser/ast_api.h"
 #include "../semantic/diag_codes.h"
 
+#include "codegen_match_variant_policy.h"
 #include "transpiler_context.h"
 #include "transpiler_collection_runtime_suffix.h"
 #include "transpiler_decl_lookup.h"
@@ -315,18 +316,20 @@ emit_let_decl(ASTNode *node, TranspilerCtx *ctx)
         }
         operand_expr = emit_expression(operand, ctx);
         try_id = ctx->tmp_counter++;
+        const char *ok_tag =
+            pgy_codegen_match_variant_c_result_tag(PGY_MATCH_VARIANT_OK);
         write_indent(ctx);
         codebuf_write(ctx->out, "%s __try_%d = %s;\n",
                       result_c_type, try_id, operand_expr);
         write_indent(ctx);
         if (current_returns_result) {
             codebuf_write(ctx->out,
-                "if (__try_%d.tag != PgyResultOk) return __try_%d;\n",
-                try_id, try_id);
+                "if (__try_%d.tag != %s) return __try_%d;\n",
+                try_id, ok_tag, try_id);
         } else {
             codebuf_write(ctx->out,
-                "if (__try_%d.tag != PgyResultOk) PGY_RUNTIME_PANIC(PGY_RUNTIME_PANIC_CLASS_INTERNAL_INVARIANT, PGY_RUNTIME_PANIC_REASON_RESULT_UNWRAP_ERR);\n",
-                try_id);
+                "if (__try_%d.tag != %s) PGY_RUNTIME_PANIC(PGY_RUNTIME_PANIC_CLASS_INTERNAL_INVARIANT, PGY_RUNTIME_PANIC_REASON_RESULT_UNWRAP_ERR);\n",
+                try_id, ok_tag);
         }
         write_indent(ctx);
         codebuf_write(ctx->out, "%s %s = __try_%d.ok;\n",

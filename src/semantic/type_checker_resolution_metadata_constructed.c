@@ -363,6 +363,15 @@ semantic_type_resolution_try_record_stable_constructed_type(SemanticContext *ctx
             return;
     }
 
+    if (semantic_type_resolution_reject_unsupported_stable_constructed_args(
+            ctx,
+            type_node,
+            ast_type_name(type_node),
+            args,
+            ast_generic_param_count(args_node))) {
+        return;
+    }
+
     if (constructor == TYPE_HASHMAP
         && !type_checker_hashmap_key_supported(args[0])) {
         return;

@@ -75,6 +75,8 @@ llvm_emit_domain_role_method_bodies(LLVMGenCtx *ctx,
             mir_method = llvm_mir_decl_method_routine(ctx, method_meta);
             if (mir_method != NULL) {
                 llvm_emit_func_from_mir(mir_method, ctx);
+                if (ctx->has_error)
+                    return false;
                 continue;
             }
             llvm_set_mir_inventory_missing(ctx,

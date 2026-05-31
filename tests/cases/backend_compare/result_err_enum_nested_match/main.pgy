@@ -1,0 +1,30 @@
+enum HttpError { NotFound, Forbidden, ServerError, Timeout }
+
+func Fetch(code: Int) -> Result<Int, HttpError> {
+    if code == 200 { return Ok(42); }
+    if code == 404 { return Err(NotFound); }
+    if code == 403 { return Err(Forbidden); }
+    if code == 500 { return Err(ServerError); }
+    return Err(Timeout);
+}
+
+func Classify(r: Result<Int, HttpError>) -> Int {
+    match r {
+        case Ok(v): return v;
+        case Err(e):
+            match e {
+                case NotFound: return -404;
+                case Forbidden: return -403;
+                case ServerError: return -500;
+                case Timeout: return -1;
+            }
+    }
+}
+
+func Main() -> Void {
+    Log(Classify(Fetch(200)));
+    Log(Classify(Fetch(404)));
+    Log(Classify(Fetch(403)));
+    Log(Classify(Fetch(500)));
+    Log(Classify(Fetch(999)));
+}

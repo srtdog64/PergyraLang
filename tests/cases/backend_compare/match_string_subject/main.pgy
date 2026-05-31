@@ -1,0 +1,18 @@
+func Decode(s: String) -> Int {
+    if s == "alpha" { return 1; }
+    if s == "beta" { return 2; }
+    if s == "gamma" { return 3; }
+    return 0;
+}
+
+func ApplyPair(a: String, b: String) -> Int {
+    return Decode(a) * 100 + Decode(b);
+}
+
+func Main() -> Void {
+    Log(ApplyPair("alpha", "beta"));
+    Log(ApplyPair("gamma", "alpha"));
+    Log(ApplyPair("delta", "gamma"));
+    Log(ApplyPair("alpha", "alpha"));
+    Log(ApplyPair("beta", "beta"));
+}

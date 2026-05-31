@@ -449,6 +449,5 @@ type_check_channel_recv(ASTNode *expr, SemanticContext *ctx)
             "- keep Slice<T> use local to the producing synchronous boundary");
         return TYPE_UNKNOWN;
     }
-
     return element_type;
 }

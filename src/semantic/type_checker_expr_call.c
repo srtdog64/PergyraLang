@@ -5,6 +5,7 @@
 #include "type_checker_internal.h"
 #include "type_checker_visibility.h"
 #include "diag_codes.h"
+#include "../common/match_variant_policy.h"
 
 static Type *
 expr_call_normalize_type(Type *type)
@@ -97,7 +98,7 @@ type_check_call(ASTNode *expr, SemanticContext *ctx)
         if (strcmp(name, "Channel") == 0)
             return TYPE_UNKNOWN;
 
-        if (strcmp(name, "Ok") == 0 || strcmp(name, "Err") == 0)
+        if (pgy_match_variant_is_result(pgy_match_variant_lookup(name)))
             return TYPE_UNKNOWN;
 
         {

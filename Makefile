@@ -99,6 +99,7 @@ CFLAGS  = -Wall -Wextra -Werror=implicit-function-declaration -Werror=implicit-i
 DEPFLAGS = -MMD -MP -MT $@
 ASMFLAGS = -f elf64
 NASM    := $(shell command -v nasm 2>/dev/null)
+ENABLE_ASM_FASTPATH ?= 0
 CI_LINUX_CC := $(or $(shell command -v cc 2>/dev/null),$(shell command -v gcc 2>/dev/null),gcc)
 CI_WINDOWS_CROSS_CC := $(shell command -v x86_64-w64-mingw32-gcc 2>/dev/null)
 CI_WINDOWS_CC := $(if $(MSYSTEM),$(CC),$(or $(CI_WINDOWS_CROSS_CC),$(CC)))
@@ -207,6 +208,7 @@ COMMON_SOURCES   = $(COMMON_DIR)/arena.c \
                    $(COMMON_DIR)/diagnostic_layer.c \
                    $(COMMON_DIR)/env_flags.c \
                    $(COMMON_DIR)/intent_observability_names.c \
+                   $(COMMON_DIR)/match_variant_policy.c \
                    $(COMMON_DIR)/numeric_parse.c
 LEXER_SOURCES    = $(LEXER_DIR)/lexer.c \
                    $(LEXER_DIR)/lexer_keywords.c \
@@ -515,6 +517,7 @@ CODEGEN_SOURCES  = $(CODEGEN_DIR)/transpiler_allocator_builtin_emit.c \
                    $(CODEGEN_DIR)/transpiler_call_result_option_builtin_emit.c \
                    $(CODEGEN_DIR)/transpiler_constructor_channel_guard.c \
                    $(CODEGEN_DIR)/transpiler_context.c \
+                   $(CODEGEN_DIR)/codegen_channel_runtime_abi.c \
                    $(CODEGEN_DIR)/codegen_hashmap_key_policy.c \
                    $(CODEGEN_DIR)/codegen_match_variant_policy.c \
                    $(CODEGEN_DIR)/codegen_scalar_arithmetic_policy.c \
@@ -1039,7 +1042,9 @@ COMMON_OBJECTS   = $(COMMON_SOURCES:$(SRC_DIR)/%.c=$(BUILD_DIR)/%.o)
 LEXER_OBJECTS    = $(LEXER_SOURCES:$(SRC_DIR)/%.c=$(BUILD_DIR)/%.o)
 PARSER_OBJECTS   = $(PARSER_SOURCES:$(SRC_DIR)/%.c=$(BUILD_DIR)/%.o)
 RUNTIME_OBJECTS  = $(RUNTIME_SOURCES:$(SRC_DIR)/%.c=$(BUILD_DIR)/%.o)
-ifeq ($(NASM),)
+ifneq ($(ENABLE_ASM_FASTPATH),1)
+RUNTIME_ASM_OBJECTS =
+else ifeq ($(NASM),)
 RUNTIME_ASM_OBJECTS =
 else
 RUNTIME_ASM_OBJECTS = $(RUNTIME_ASM_SOURCES:$(SRC_DIR)/%.s=$(BUILD_DIR)/%.o)
@@ -2054,7 +2059,9 @@ check-build-tools:
 		echo "hint: install llvm-config/libLLVM, or run with LLVM_ENABLED=0 for the C backend." >&2; \
 		exit 1; \
 	fi
-	@if [ -z "$(NASM)" ]; then \
+	@if [ "$(ENABLE_ASM_FASTPATH)" != "1" ]; then \
+		echo "build preflight: assembly runtime objects are disabled by default; set ENABLE_ASM_FASTPATH=1 to opt in." >&2; \
+	elif [ -z "$(NASM)" ]; then \
 		echo "build preflight: nasm not found; assembly runtime objects are disabled." >&2; \
 	fi
 

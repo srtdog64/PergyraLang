@@ -5,42 +5,19 @@
 #include <string.h>
 
 #include "../semantic/diag_codes.h"
-
-typedef struct TranspilerReturnOptionCtorSpec {
-    const char *name;
-    TranspilerReturnOptionCtorOp op;
-} TranspilerReturnOptionCtorSpec;
-
-static int
-transpiler_return_option_ctor_compare(const void *key, const void *entry)
-{
-    const char *name = *(const char * const *)key;
-    const TranspilerReturnOptionCtorSpec *spec =
-        (const TranspilerReturnOptionCtorSpec *)entry;
-
-    return strcmp(name, spec->name);
-}
+#include "codegen_match_variant_policy.h"
 
 TranspilerReturnOptionCtorOp
 transpiler_return_option_ctor_lookup(const char *callee_name)
 {
-    static const TranspilerReturnOptionCtorSpec
-        kTranspilerReturnOptionCtorSpecs[] = {
-            { "None", TRANS_RETURN_OPTION_CTOR_NONE_VALUE },
-            { "Some", TRANS_RETURN_OPTION_CTOR_SOME },
-        };
-    const TranspilerReturnOptionCtorSpec *match;
-
-    if (callee_name == NULL)
+    switch (pgy_codegen_match_variant_lookup(callee_name)) {
+    case PGY_MATCH_VARIANT_NONE_CTOR:
+        return TRANS_RETURN_OPTION_CTOR_NONE_VALUE;
+    case PGY_MATCH_VARIANT_SOME:
+        return TRANS_RETURN_OPTION_CTOR_SOME;
+    default:
         return TRANS_RETURN_OPTION_CTOR_NONE;
-
-    match = (const TranspilerReturnOptionCtorSpec *)bsearch(&callee_name,
-        kTranspilerReturnOptionCtorSpecs,
-        sizeof(kTranspilerReturnOptionCtorSpecs)
-            / sizeof(kTranspilerReturnOptionCtorSpecs[0]),
-        sizeof(kTranspilerReturnOptionCtorSpecs[0]),
-        transpiler_return_option_ctor_compare);
-    return match != NULL ? match->op : TRANS_RETURN_OPTION_CTOR_NONE;
+    }
 }
 
 bool

@@ -1,0 +1,43 @@
+enum Suit { Spade, Heart, Diamond, Club }
+
+func ToSuit(n: Int) -> Option<Suit> {
+    if n == 0 { return Some(Spade); }
+    if n == 1 { return Some(Heart); }
+    if n == 2 { return Some(Diamond); }
+    if n == 3 { return Some(Club); }
+    return None;
+}
+
+func IsRed(o: Option<Suit>) -> Int {
+    match o {
+        case Some(s):
+            match s {
+                case Spade: return 0;
+                case Heart: return 1;
+                case Diamond: return 1;
+                case Club: return 0;
+            }
+        case None: return -1;
+    }
+}
+
+func CountReds(arr: Array<Int>, n: Int) -> Int {
+    let total: Int = 0;
+    let i: Int = 0;
+    while i < n {
+        total = total + IsRed(ToSuit(arr[i]));
+        i = i + 1;
+    }
+    return total;
+}
+
+func Main() -> Void {
+    let cards: Array<Int> = [0, 1, 2, 3, 0, 1, 2, 3];
+    Log(CountReds(cards, 8));
+    let pure_reds: Array<Int> = [1, 2, 1, 2];
+    Log(CountReds(pure_reds, 4));
+    let pure_blacks: Array<Int> = [0, 3, 0, 3];
+    Log(CountReds(pure_blacks, 4));
+    let mixed: Array<Int> = [5, 0, 7, 1, 9];
+    Log(CountReds(mixed, 5));
+}

@@ -4,6 +4,7 @@
 #include "diag_codes.h"
 #include "type_checker_flow_match_internal.h"
 #include "../common/string_compat.h"
+#include "../common/match_variant_policy.h"
 
 static bool
 match_case_has_or_patterns(ASTNode *mc)
@@ -29,16 +30,17 @@ pattern_covers_variant(ASTNode *pat, const Type *subj_type,
     }
 
     if (type_is_constructed_named(subj_type, "Option")) {
-        if (strcmp(variant_name, "Some") == 0)
+        PgyMatchVariantKind kind = pgy_match_variant_lookup(variant_name);
+        if (kind == PGY_MATCH_VARIANT_SOME)
             return arg_count == 1;
-        if (strcmp(variant_name, "None") == 0)
+        if (kind == PGY_MATCH_VARIANT_NONE_CTOR)
             return arg_count == 0;
         return false;
     }
 
     if (type_is_constructed_named(subj_type, "Result")) {
-        if (strcmp(variant_name, "Ok") == 0
-            || strcmp(variant_name, "Err") == 0) {
+        if (pgy_match_variant_is_result(
+                pgy_match_variant_lookup(variant_name))) {
             return arg_count == 1;
         }
         return false;
@@ -102,11 +104,8 @@ append_missing_variant(char *buf,
 static size_t
 collect_match_variant_space(const Type *subj_type,
                             SemanticContext *ctx,
-                            const char ***variants_out)
+                            const char * const **variants_out)
 {
-    static const char *option_variants[] = { "Some", "None" };
-    static const char *result_variants[] = { "Ok", "Err" };
-
     if (variants_out == NULL)
         return 0;
     *variants_out = NULL;
@@ -114,19 +113,22 @@ collect_match_variant_space(const Type *subj_type,
     if (subj_type == NULL)
         return 0;
     if (type_is_constructed_named(subj_type, "Option")) {
-        *variants_out = option_variants;
-        return 2;
+        size_t count = 0;
+        *variants_out = pgy_match_variant_option_names(&count);
+        return count;
     }
     if (type_is_constructed_named(subj_type, "Result")) {
-        *variants_out = result_variants;
-        return 2;
+        size_t count = 0;
+        *variants_out = pgy_match_variant_result_names(&count);
+        return count;
     }
     if (subj_type->kind == TYPE_KIND_ENUM) {
         ASTNode *enum_decl = find_enum_decl_for_type(ctx, subj_type);
         if (enum_decl == NULL)
             return 0;
         size_t variant_count = 0;
-        *variants_out = (const char **)ast_enum_variants(enum_decl, &variant_count);
+        *variants_out =
+            (const char * const *)ast_enum_variants(enum_decl, &variant_count);
         return variant_count;
     }
 
@@ -136,7 +138,7 @@ collect_match_variant_space(const Type *subj_type,
 void
 check_match_redundancy(ASTNode *node, Type *subj_type, SemanticContext *ctx)
 {
-    const char **variants = NULL;
+    const char * const *variants = NULL;
     size_t variant_count = collect_match_variant_space(subj_type, ctx, &variants);
     bool *seen;
     size_t covered = 0;
@@ -193,7 +195,7 @@ check_match_exhaustiveness(ASTNode *node, Type *subj_type, SemanticContext *ctx)
     char missing[256] = {0};
     bool first = true;
     bool found_missing = false;
-    const char **variants = NULL;
+    const char * const *variants = NULL;
     size_t variant_count = collect_match_variant_space(subj_type, ctx, &variants);
 
     if (node == NULL || subj_type == NULL || ctx == NULL)
@@ -227,7 +229,7 @@ bool
 match_stmt_has_total_case_coverage(ASTNode *node, Type *subj_type,
                                    SemanticContext *ctx)
 {
-    const char **variants = NULL;
+    const char * const *variants = NULL;
     size_t variant_count;
 
     if (node == NULL || subj_type == NULL)

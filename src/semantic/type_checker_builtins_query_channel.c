@@ -292,7 +292,6 @@ type_check_channel_close_builtin(ASTNode *expr, SemanticContext *ctx)
             "drain the channel with blocking '<-' into named bindings first");
         return TYPE_UNKNOWN;
     }
-
     return TYPE_VOID;
 }
 

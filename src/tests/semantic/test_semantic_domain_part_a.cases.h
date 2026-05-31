@@ -241,6 +241,26 @@ test_match_stmt(void)
         lexer_destroy(lexer);
     }
 
+    TEST("Result<Void> annotation is rejected until ABI freezes");
+    {
+        const char *source =
+            "func Echo(result: Result<Void>) -> Void { }\n";
+        Lexer *lexer = lexer_create(source);
+        Parser *parser = parser_create(lexer);
+        ASTNode *program = parser_parse_program(parser);
+        SemanticResult *result = semantic_analyze(program);
+
+        EXPECT(!parser_has_error(parser));
+        EXPECT(result != NULL && result->error_count > 0);
+        EXPECT(ctx_has_diagnostic_substring_from_result(result,
+            "Result<Void> is not in the stable subset"));
+
+        semantic_result_destroy(result);
+        ast_destroy(program);
+        parser_destroy(parser);
+        lexer_destroy(lexer);
+    }
+
     TEST("Result<T, E> with enum error type accepts Ok/Err and match destructuring");
     {
         const char *source =

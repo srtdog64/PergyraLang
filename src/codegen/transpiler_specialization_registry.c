@@ -68,12 +68,99 @@ transpiler_specialization_spec_name_too_long(TranspilerCtx *ctx,
         surface != NULL ? surface : "collection specialization");
 }
 
+static void
+ensure_option_specialization_to(TranspilerCtx *ctx, CodeBuf *dst,
+                                const char *inner_type)
+{
+    if (ctx == NULL || dst == NULL || inner_type == NULL)
+        return;
+
+    if (strcmp(inner_type, "Void") == 0) {
+        transpiler_set_backend_error_with_hints(
+            ctx,
+            PGY_CODE_C_TYPE_UNSUPPORTED,
+            PGY_CAUSE_C_TYPE_UNSUPPORTED,
+            PGY_FIX_USE_LLVM_BACKEND_OR_EXTEND_TRANSPILER,
+            "Option<Void> does not lower until the Option<Void> ABI is frozen");
+        return;
+    }
+
+    if (strcmp(inner_type, "Int") == 0
+        || strcmp(inner_type, "Bool") == 0
+        || strcmp(inner_type, "String") == 0) {
+        return;
+    }
+
+    char suffix[128];
+    sanitize_c_suffix(inner_type, suffix, sizeof(suffix));
+
+    for (int i = 0; i < ctx->option_spec_count; i++) {
+        if (strcmp(ctx->option_specs_suffix[i], suffix) == 0)
+            return;
+    }
+    if (ctx->option_spec_count >= 32) {
+        transpiler_set_backend_error(
+            ctx,
+            "too many Option<T> specializations in one translation unit; limit is %d while lowering Option<%s>",
+            32, inner_type);
+        return;
+    }
+
+    char ctype_buf[128];
+    if (!transpiler_copy_c_type_or_user_type_name(inner_type, ctype_buf,
+            sizeof(ctype_buf))) {
+        transpiler_specialization_spec_name_too_long(ctx, inner_type);
+        return;
+    }
+
+    if (!transpiler_specialization_copy_spec_name(
+            ctx->option_specs_suffix[ctx->option_spec_count],
+            sizeof(ctx->option_specs_suffix[0]), suffix)
+        || !transpiler_specialization_copy_spec_name(
+            ctx->option_specs_inner_ctype[ctx->option_spec_count],
+            sizeof(ctx->option_specs_inner_ctype[0]), ctype_buf)) {
+        transpiler_specialization_spec_name_too_long(ctx, inner_type);
+        return;
+    }
+    ctx->option_spec_count++;
+
+    codebuf_write(dst,
+        "\n/* PGY_OPTION_%s */\n"
+        "#pragma GCC diagnostic push\n"
+        "#pragma GCC diagnostic ignored \"-Wunused-function\"\n"
+        "PGY_OPTION_DEFINE(%s, %s)\n"
+        "#define Some_%s(...)           pgy_option_some_%s(__VA_ARGS__)\n"
+        "#define None_%s()              pgy_option_none_%s()\n"
+        "#define IsSome_%s(o)           ((o).tag == PgyOptionSome)\n"
+        "#define IsNone_%s(o)           ((o).tag == PgyOptionNone)\n"
+        "#define UnwrapOption_%s(o)     pgy_option_unwrap_%s(&(PgyOption_%s){(o).tag, (o).value})\n"
+        "#pragma GCC diagnostic pop\n",
+        suffix,
+        suffix, ctype_buf,
+        suffix, suffix,
+        suffix, suffix,
+        suffix,
+        suffix,
+        suffix, suffix, suffix);
+}
+
 void
 ensure_result_specialization_to(TranspilerCtx *ctx, CodeBuf *dst,
                                 const char *ok_type, const char *err_type)
 {
     if (ctx == NULL || dst == NULL || ok_type == NULL || err_type == NULL)
         return;
+
+    if (strcmp(ok_type, "Void") == 0) {
+        transpiler_set_backend_error_with_hints(
+            ctx,
+            PGY_CODE_C_TYPE_UNSUPPORTED,
+            PGY_CAUSE_C_TYPE_UNSUPPORTED,
+            PGY_FIX_USE_LLVM_BACKEND_OR_EXTEND_TRANSPILER,
+            "Result<Void, %s> does not lower until the Result<Void> ABI is frozen",
+            err_type);
+        return;
+    }
 
     if (strcmp(err_type, "PgyError") == 0 || strcmp(err_type, "String") == 0) {
         if (strcmp(ok_type, "Int") == 0
@@ -148,8 +235,8 @@ ensure_result_specialization_to(TranspilerCtx *ctx, CodeBuf *dst,
         "#pragma GCC diagnostic push\n"
         "#pragma GCC diagnostic ignored \"-Wunused-function\"\n"
         "PGY_RESULT_DEFINE(%s, %s, %s)\n"
-        "#define Ok_%s(v)          pgy_result_ok_%s(v)\n"
-        "#define Err_%s(m)         pgy_result_err_%s(m)\n"
+        "#define Ok_%s(...)        pgy_result_ok_%s(__VA_ARGS__)\n"
+        "#define Err_%s(...)       pgy_result_err_%s(__VA_ARGS__)\n"
         "#define IsOk_%s(r)        ((r).tag == PgyResultOk)\n"
         "#define IsErr_%s(r)       ((r).tag == PgyResultErr)\n"
         "#define Unwrap_%s(r)      pgy_result_unwrap_%s(&(PgyResult_%s){(r).tag, {.ok=(r).ok}})\n"
@@ -434,6 +521,16 @@ ensure_type_specializations_from_ast_to(TranspilerCtx *ctx, CodeBuf *dst,
         (void)dst;
         free(ok_type);
         free(err_type);
+        return;
+    }
+
+    if (strcmp(ast_type_name(type_node), "Option") == 0
+        && ast_generic_param_count(generic_args) == 1
+        && arg0_type != NULL) {
+        char *inner_type = render_type_name_in_ctx(ctx, arg0_type);
+        ensure_option_specialization_to(ctx, ctx->out, inner_type);
+        (void)dst;
+        free(inner_type);
         return;
     }
 }

@@ -1,0 +1,27 @@
+enum K { Foo, Bar, Baz }
+
+func MakeOpt(seed: Int) -> Option<K> {
+    if seed == 0 { return Some(Foo); }
+    if seed == 1 { return Some(Bar); }
+    if seed == 2 { return Some(Baz); }
+    return None;
+}
+
+func Decode(o: Option<K>) -> Int {
+    match o {
+        case Some(k):
+            match k {
+                case Foo: return 10;
+                case Bar: return 20;
+                case Baz: return 30;
+            }
+        case None: return -1;
+    }
+}
+
+func Main() -> Void {
+    Log(Decode(MakeOpt(0)));
+    Log(Decode(MakeOpt(1)));
+    Log(Decode(MakeOpt(2)));
+    Log(Decode(MakeOpt(7)));
+}

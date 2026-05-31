@@ -1,0 +1,29 @@
+class Cache {
+    let limit: Int;
+    let used: Int;
+
+    func Available(self) -> Int {
+        return limit - used;
+    }
+
+    func TryReserve(self, need: Int) -> Option<Int> {
+        if need > limit - used { return None; }
+        return Some(used + need);
+    }
+}
+
+func Probe(lim: Int, init: Int, need: Int) -> Int {
+    let c: Cache = Cache(lim, init);
+    match c.TryReserve(need) {
+        case Some(n): return n;
+        case None: return -1;
+    }
+}
+
+func Main() -> Void {
+    Log(Probe(100, 30, 50));
+    Log(Probe(100, 30, 80));
+    Log(Probe(100, 100, 1));
+    Log(Probe(50, 10, 40));
+    Log(Probe(10, 0, 5));
+}

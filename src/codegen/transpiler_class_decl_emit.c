@@ -111,18 +111,6 @@ emit_class_decl(ASTNode *node, TranspilerCtx *ctx)
         if (field_type != NULL)
             ensure_type_specializations_from_ast_to(ctx, ctx->out, field_type);
     }
-    for (size_t i = 0; i < method_view.count; i++) {
-        ASTNode *method =
-            transpiler_hosted_method_view_source_ast(&method_view, i);
-        if (method == NULL) {
-            const MIRRoutine *mir_method =
-                transpiler_hosted_method_view_routine(ctx, &method_view, i);
-            method = transpiler_mir_routine_source_ast_of_type(
-                mir_method, MIR_SCOPE_METHOD, AST_FUNC_DECL);
-        }
-        ensure_collection_specializations_from_stmt_to(ctx, ctx->out,
-            method);
-    }
 
     codebuf_write(ctx->out, "\ntypedef struct %s\n{\n", name);
 
@@ -173,6 +161,19 @@ emit_class_decl(ASTNode *node, TranspilerCtx *ctx)
         name, name,
         name, name,
         name, name);
+
+    for (size_t i = 0; i < method_view.count; i++) {
+        ASTNode *method =
+            transpiler_hosted_method_view_source_ast(&method_view, i);
+        if (method == NULL) {
+            const MIRRoutine *mir_method =
+                transpiler_hosted_method_view_routine(ctx, &method_view, i);
+            method = transpiler_mir_routine_source_ast_of_type(
+                mir_method, MIR_SCOPE_METHOD, AST_FUNC_DECL);
+        }
+        ensure_collection_specializations_from_stmt_to(ctx, ctx->out,
+            method);
+    }
 
     for (size_t i = 0; i < method_view.count; i++) {
         const MIRDeclMethod *method_meta =

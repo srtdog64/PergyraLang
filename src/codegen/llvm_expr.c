@@ -120,19 +120,33 @@ llvm_emit_expression(ASTNode *node, LLVMGenCtx *ctx)
     case AST_AWAIT_EXPR:
         if (ast_await_expression(node) != NULL) {
             ASTNode *inner_expr = ast_await_expression(node);
+            const char *future_name = NULL;
             const char *inner = NULL;
             bool is_remote = false;
-            if (inner_expr->type == AST_IDENTIFIER)
-                inner = llvm_lookup_future_inner(ctx,
-                    ast_identifier_name(inner_expr));
-            if (inner_expr->type == AST_IDENTIFIER)
-                is_remote = llvm_lookup_future_is_remote(ctx,
-                    ast_identifier_name(inner_expr));
-            if (inner != NULL) {
+
+            if (inner_expr->type != AST_IDENTIFIER) {
+                llvm_set_error_at_with_hints(ctx, node,
+                    PGY_CODE_LLVM_TYPE_UNSUPPORTED,
+                    PGY_CAUSE_LLVM_TYPE_UNSUPPORTED,
+                    PGY_FIX_ANNOTATE_CONCRETE_TYPE,
+                    "LLVM await expression requires a named Future<T> operand");
+                return NULL;
+            }
+            future_name = ast_identifier_name(inner_expr);
+            inner = llvm_lookup_future_inner(ctx, future_name);
+            if (inner == NULL || inner[0] == '\0') {
+                llvm_set_error_at_with_hints(ctx, node,
+                    PGY_CODE_LLVM_TYPE_UNSUPPORTED,
+                    PGY_CAUSE_LLVM_TYPE_UNSUPPORTED,
+                    PGY_FIX_ANNOTATE_CONCRETE_TYPE,
+                    "LLVM await expression requires registered Future<T> result metadata");
+                return NULL;
+            }
+            is_remote = llvm_lookup_future_is_remote(ctx, future_name);
+            {
                 LLVMValueRef task = llvm_emit_expression(inner_expr, ctx);
                 return llvm_await_task_handle(ctx, node, task, inner, is_remote);
             }
-            return llvm_emit_expression(inner_expr, ctx);
         }
         return llvm_expression_error(ctx, node,
             "LLVM await expression requires an operand expression");

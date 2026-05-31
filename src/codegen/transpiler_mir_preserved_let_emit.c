@@ -5,6 +5,7 @@
 
 #include "../common/string_compat.h"
 #include "../parser/ast_api.h"
+#include "codegen_match_variant_policy.h"
 #include "transpiler_context.h"
 #include "transpiler_expr_type_infer.h"
 #include "transpiler_mir_block_emit_helpers.h"
@@ -287,18 +288,20 @@ transpiler_emit_mir_source_local_let_def_inst(
             return TRANSPILE_MIR_LOCAL_LET_FAILED;
         }
         try_id = ctx->tmp_counter++;
+        const char *ok_tag =
+            pgy_codegen_match_variant_c_result_tag(PGY_MATCH_VARIANT_OK);
         write_indent_to(buf, ctx->indent);
         codebuf_write(buf, "%s __try_%d = %s;\n",
                       result_c_type, try_id, operand_expr);
         write_indent_to(buf, ctx->indent);
         if (current_returns_result) {
             codebuf_write(buf,
-                          "if (__try_%d.tag != PgyResultOk) return __try_%d;\n",
-                          try_id, try_id);
+                          "if (__try_%d.tag != %s) return __try_%d;\n",
+                          try_id, ok_tag, try_id);
         } else {
             codebuf_write(buf,
-                          "if (__try_%d.tag != PgyResultOk) PGY_RUNTIME_PANIC(PGY_RUNTIME_PANIC_CLASS_INTERNAL_INVARIANT, PGY_RUNTIME_PANIC_REASON_RESULT_UNWRAP_ERR);\n",
-                          try_id);
+                          "if (__try_%d.tag != %s) PGY_RUNTIME_PANIC(PGY_RUNTIME_PANIC_CLASS_INTERNAL_INVARIANT, PGY_RUNTIME_PANIC_REASON_RESULT_UNWRAP_ERR);\n",
+                          try_id, ok_tag);
         }
         write_indent_to(buf, ctx->indent);
         codebuf_write(buf, "%s = __try_%d.ok;\n", lhs, try_id);

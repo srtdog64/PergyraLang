@@ -169,6 +169,8 @@ typedef struct {
 } PgySlot_String;
 
 #define PGY_SLOT_TRY_EXPORT_DEFINE(SuffixName, CType, ZeroValue) \
+PGY_RUNTIME_SLOT_RESULT_DEFINE(SuffixName, CType) \
+\
 PgyRuntimeSlotStatus pgy_try_write_##SuffixName(PgySlot_##SuffixName *s, CType v) \
 { \
     if (s == NULL) \
@@ -189,6 +191,18 @@ PgyRuntimeSlotStatus pgy_try_read_##SuffixName(PgySlot_##SuffixName *s, CType *o
         return PGY_RUNTIME_SLOT_STATUS_RELEASED_SLOT; \
     *out = s->value; \
     return PGY_RUNTIME_SLOT_STATUS_OK; \
+} \
+\
+PgyRuntimeSlotResult_##SuffixName pgy_try_read_result_##SuffixName(PgySlot_##SuffixName *s) \
+{ \
+    CType value; \
+    PgyRuntimeSlotStatus status; \
+    memset(&value, 0, sizeof(value)); \
+    status = pgy_try_read_##SuffixName(s, &value); \
+    if (status == PGY_RUNTIME_SLOT_STATUS_OK) \
+        return pgy_runtime_slot_result_ok_##SuffixName(value); \
+    return pgy_runtime_slot_result_err_##SuffixName( \
+        pgy_runtime_slot_failure_from_status(status, "slot-boundary", "read")); \
 } \
 \
 PgyRuntimeSlotStatus pgy_try_release_##SuffixName(PgySlot_##SuffixName *s) \

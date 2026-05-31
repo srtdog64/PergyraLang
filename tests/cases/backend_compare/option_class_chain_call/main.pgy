@@ -1,0 +1,35 @@
+class Carton {
+    let weight: Int;
+    let cost: Int;
+}
+
+func Density(b: Carton) -> Int {
+    return b.weight + b.cost * 2;
+}
+
+func ChainStep(n: Int) -> Option<Carton> {
+    if n == 0 { return None; }
+    return Some(Carton(n, n * 3));
+}
+
+func ScoreOrZero(o: Option<Carton>) -> Int {
+    match o {
+        case Some(b): return Density(b);
+        case None: return 0;
+    }
+}
+
+func RunChain(n: Int) -> Int {
+    let a: Option<Carton> = ChainStep(n);
+    let b: Option<Carton> = ChainStep(n + 1);
+    let c: Option<Carton> = ChainStep(n + 2);
+    return ScoreOrZero(a) + ScoreOrZero(b) + ScoreOrZero(c);
+}
+
+func Main() -> Void {
+    Log(RunChain(1));
+    Log(RunChain(0));
+    Log(RunChain(10));
+    Log(RunChain(-2));
+    Log(RunChain(100));
+}

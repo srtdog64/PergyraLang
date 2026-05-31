@@ -123,8 +123,20 @@ emit_call_user_function(ASTNode *call, ASTNode *callee, TranspilerCtx *ctx)
             free(param_type);
         }
 
-        if (!handled)
+        char *param_type_for_ctx = NULL;
+        if (param != NULL && param->type != NULL)
+            param_type_for_ctx = render_type_name_in_ctx(ctx, param->type);
+        else if (intent_param_type != NULL)
+            param_type_for_ctx = render_type_name_in_ctx(ctx, intent_param_type);
+
+        if (!handled) {
+            const char *saved_expected_type = ctx->expected_type;
+            if (param_type_for_ctx != NULL)
+                ctx->expected_type = param_type_for_ctx;
             arg = emit_expression(ast_call_argument(call, i), ctx);
+            ctx->expected_type = saved_expected_type;
+        }
+        free(param_type_for_ctx);
         if (!handled && i > 0)
             codebuf_write(args_buf, ", ");
         if (!handled) {

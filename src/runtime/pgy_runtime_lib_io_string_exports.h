@@ -13,6 +13,8 @@ pgy_runtime_lib_strdup(const char *src)
     return copy;
 }
 
+#include "pgy_runtime_io_status.h"
+
 /* =================================================================
  * File I/O and string helpers needed by LLVM backend
  * ================================================================= */
@@ -30,14 +32,16 @@ pgy_runtime_io_init_locked(void)
     pgy_runtime_ftable[2] = stderr;
 }
 
-int32_t pgy_file_open(const char *path, const char *mode)
+PgyRuntimeIoIntResult pgy_try_file_open_result(const char *path,
+                                               const char *mode)
 {
     char *resolved;
     bool for_write = false;
     int fd = -1;
 
     if (mode == NULL)
-        return -1;
+        return pgy_runtime_io_int_err(pgy_runtime_io_failure_from_status(
+            PGY_RUNTIME_IO_STATUS_NULL_MODE, "io-boundary", "file-open"));
     for (const char *p = mode; *p != '\0'; p++) {
         if (*p == 'w' || *p == 'a' || *p == '+') {
             for_write = true;
@@ -47,12 +51,14 @@ int32_t pgy_file_open(const char *path, const char *mode)
 
     resolved = pgy_runtime_resolve_file_path(path, for_write);
     if (resolved == NULL)
-        return -1;
+        return pgy_runtime_io_int_err(pgy_runtime_io_failure_from_status(
+            PGY_RUNTIME_IO_STATUS_RESOLVE_FAILED, "io-boundary", "file-open"));
 
     FILE *fp = fopen(resolved, mode);
     free(resolved);
     if (fp == NULL)
-        return -1;
+        return pgy_runtime_io_int_err(pgy_runtime_io_failure_from_status(
+            PGY_RUNTIME_IO_STATUS_OPEN_FAILED, "io-boundary", "file-open"));
 
     pthread_mutex_lock(&pgy_runtime_ftable_mutex);
     if (pgy_runtime_ftable[0] == NULL)
@@ -66,15 +72,23 @@ int32_t pgy_file_open(const char *path, const char *mode)
     if (fd < 0) {
         pthread_mutex_unlock(&pgy_runtime_ftable_mutex);
         fclose(fp);
-        return -1;
+        return pgy_runtime_io_int_err(pgy_runtime_io_failure_from_status(
+            PGY_RUNTIME_IO_STATUS_NO_FREE_HANDLE,
+            "io-boundary", "file-open"));
     }
 
     pgy_runtime_ftable[fd] = fp;
     pthread_mutex_unlock(&pgy_runtime_ftable_mutex);
-    return (int32_t)fd;
+    return pgy_runtime_io_int_ok((int32_t)fd);
 }
 
-char *pgy_file_read(int32_t fd)
+int32_t pgy_file_open(const char *path, const char *mode)
+{
+    PgyRuntimeIoIntResult result = pgy_try_file_open_result(path, mode);
+    return result.tag == PGY_RUNTIME_IO_RESULT_OK ? result.ok : -1;
+}
+
+PgyRuntimeIoStringResult pgy_try_file_read_result(int32_t fd)
 {
     char tmp[4096];
 
@@ -82,30 +96,64 @@ char *pgy_file_read(int32_t fd)
     pthread_mutex_lock(&pgy_runtime_ftable_mutex);
     if (fd < 0 || fd >= PGY_MAX_OPEN_FILES || pgy_runtime_ftable[fd] == NULL) {
         pthread_mutex_unlock(&pgy_runtime_ftable_mutex);
-        return pgy_runtime_lib_strdup("");
+        return pgy_runtime_io_string_err(pgy_runtime_io_failure_from_status(
+            PGY_RUNTIME_IO_STATUS_INVALID_HANDLE,
+            "io-boundary", "file-read"));
     }
     if (fgets(tmp, sizeof(tmp), pgy_runtime_ftable[fd]) == NULL) {
         pthread_mutex_unlock(&pgy_runtime_ftable_mutex);
-        return pgy_runtime_lib_strdup("");
+        return pgy_runtime_io_string_err(pgy_runtime_io_failure_from_status(
+            PGY_RUNTIME_IO_STATUS_EOF, "io-boundary", "file-read"));
     }
     pthread_mutex_unlock(&pgy_runtime_ftable_mutex);
 
     size_t len = strlen(tmp);
     if (len > 0 && tmp[len - 1] == '\n')
         tmp[len - 1] = '\0';
-    return pgy_runtime_lib_strdup(tmp);
+    char *copy = pgy_runtime_lib_strdup(tmp);
+    if (copy == NULL)
+        return pgy_runtime_io_string_err(pgy_runtime_io_failure_from_status(
+            PGY_RUNTIME_IO_STATUS_ALLOC_FAILED, "io-boundary", "file-read"));
+    return pgy_runtime_io_string_ok(copy);
+}
+
+char *pgy_file_read(int32_t fd)
+{
+    PgyRuntimeIoStringResult result = pgy_try_file_read_result(fd);
+    return result.tag == PGY_RUNTIME_IO_RESULT_OK
+        ? result.ok
+        : pgy_runtime_lib_strdup("");
+}
+
+PgyRuntimeIoVoidResult pgy_try_file_write_result(int32_t fd, const char *data)
+{
+    size_t len;
+    size_t written;
+
+    pthread_mutex_lock(&pgy_runtime_ftable_mutex);
+    if (fd < 0 || fd >= PGY_MAX_OPEN_FILES || pgy_runtime_ftable[fd] == NULL) {
+        pthread_mutex_unlock(&pgy_runtime_ftable_mutex);
+        return pgy_runtime_io_void_err(pgy_runtime_io_failure_from_status(
+            PGY_RUNTIME_IO_STATUS_INVALID_HANDLE,
+            "io-boundary", "file-write"));
+    }
+    if (data == NULL) {
+        pthread_mutex_unlock(&pgy_runtime_ftable_mutex);
+        return pgy_runtime_io_void_ok();
+    }
+    len = strlen(data);
+    written = fwrite(data, 1, len, pgy_runtime_ftable[fd]);
+    pthread_mutex_unlock(&pgy_runtime_ftable_mutex);
+    if (written != len)
+        return pgy_runtime_io_void_err(pgy_runtime_io_failure_from_status(
+            PGY_RUNTIME_IO_STATUS_WRITE_FAILED,
+            "io-boundary", "file-write"));
+    return pgy_runtime_io_void_ok();
 }
 
 void pgy_file_write(int32_t fd, const char *data)
 {
-    pthread_mutex_lock(&pgy_runtime_ftable_mutex);
-    if (fd < 0 || fd >= PGY_MAX_OPEN_FILES || pgy_runtime_ftable[fd] == NULL) {
-        pthread_mutex_unlock(&pgy_runtime_ftable_mutex);
-        return;
-    }
-    if (data != NULL)
-        fwrite(data, 1, strlen(data), pgy_runtime_ftable[fd]);
-    pthread_mutex_unlock(&pgy_runtime_ftable_mutex);
+    (void)pgy_try_file_write_result(fd, data);
 }
 
 void pgy_file_close(int32_t fd)
@@ -123,40 +171,48 @@ void pgy_file_close(int32_t fd)
     fclose(fp);
 }
 
-char *pgy_read_file(const char *path)
+PgyRuntimeIoStringResult pgy_try_read_file_result(const char *path)
 {
     char *resolved = pgy_runtime_resolve_file_path(path, false);
     if (resolved == NULL)
-        return pgy_runtime_lib_strdup("");
+        return pgy_runtime_io_string_err(pgy_runtime_io_failure_from_status(
+            PGY_RUNTIME_IO_STATUS_RESOLVE_FAILED, "io-boundary", "read-file"));
 
     FILE *fp = fopen(resolved, "rb");
     if (fp == NULL) {
         free(resolved);
-        return pgy_runtime_lib_strdup("");
+        return pgy_runtime_io_string_err(pgy_runtime_io_failure_from_status(
+            PGY_RUNTIME_IO_STATUS_OPEN_FAILED, "io-boundary", "read-file"));
     }
 
     if (fseek(fp, 0, SEEK_END) != 0) {
         fclose(fp);
         free(resolved);
-        return pgy_runtime_lib_strdup("");
+        return pgy_runtime_io_string_err(pgy_runtime_io_failure_from_status(
+            PGY_RUNTIME_IO_STATUS_SEEK_FAILED, "io-boundary", "read-file"));
     }
     long len = ftell(fp);
     if (len < 0 || (unsigned long)len > (unsigned long)PGY_RUNTIME_MAX_FILE_BYTES) {
         fclose(fp);
         free(resolved);
-        return pgy_runtime_lib_strdup("");
+        return pgy_runtime_io_string_err(pgy_runtime_io_failure_from_status(
+            len < 0 ? PGY_RUNTIME_IO_STATUS_TELL_FAILED
+                    : PGY_RUNTIME_IO_STATUS_TOO_LARGE,
+            "io-boundary", "read-file"));
     }
     if (fseek(fp, 0, SEEK_SET) != 0) {
         fclose(fp);
         free(resolved);
-        return pgy_runtime_lib_strdup("");
+        return pgy_runtime_io_string_err(pgy_runtime_io_failure_from_status(
+            PGY_RUNTIME_IO_STATUS_SEEK_FAILED, "io-boundary", "read-file"));
     }
 
     char *buf = (char *)malloc((size_t)len + 1);
     if (buf == NULL) {
         fclose(fp);
         free(resolved);
-        return pgy_runtime_lib_strdup("");
+        return pgy_runtime_io_string_err(pgy_runtime_io_failure_from_status(
+            PGY_RUNTIME_IO_STATUS_ALLOC_FAILED, "io-boundary", "read-file"));
     }
 
     size_t read_len = fread(buf, 1, (size_t)len, fp);
@@ -164,73 +220,115 @@ char *pgy_read_file(const char *path)
         fclose(fp);
         free(resolved);
         free(buf);
-        return pgy_runtime_lib_strdup("");
+        return pgy_runtime_io_string_err(pgy_runtime_io_failure_from_status(
+            PGY_RUNTIME_IO_STATUS_READ_FAILED, "io-boundary", "read-file"));
     }
     buf[read_len] = '\0';
     fclose(fp);
     free(resolved);
-    return buf;
+    return pgy_runtime_io_string_ok(buf);
 }
 
-bool pgy_file_exists(const char *path)
+char *pgy_read_file(const char *path)
+{
+    PgyRuntimeIoStringResult result = pgy_try_read_file_result(path);
+    return result.tag == PGY_RUNTIME_IO_RESULT_OK
+        ? result.ok
+        : pgy_runtime_lib_strdup("");
+}
+
+PgyRuntimeIoIntResult pgy_try_file_exists_result(const char *path)
 {
     char *resolved = pgy_runtime_resolve_file_path(path, false);
     if (resolved == NULL)
-        return false;
+        return pgy_runtime_io_int_err(pgy_runtime_io_failure_from_status(
+            PGY_RUNTIME_IO_STATUS_RESOLVE_FAILED,
+            "io-boundary", "file-exists"));
 
     FILE *fp = fopen(resolved, "rb");
     if (fp == NULL) {
         free(resolved);
-        return false;
+        return pgy_runtime_io_int_ok(0);
     }
 
     fclose(fp);
     free(resolved);
-    return true;
+    return pgy_runtime_io_int_ok(1);
+}
+
+bool pgy_file_exists(const char *path)
+{
+    PgyRuntimeIoIntResult result = pgy_try_file_exists_result(path);
+    return result.tag == PGY_RUNTIME_IO_RESULT_OK && result.ok != 0;
+}
+
+PgyRuntimeIoVoidResult pgy_try_write_file_result(const char *path,
+                                                 const char *data)
+{
+    char *resolved = pgy_runtime_resolve_file_path(path, true);
+    if (resolved == NULL)
+        return pgy_runtime_io_void_err(pgy_runtime_io_failure_from_status(
+            PGY_RUNTIME_IO_STATUS_RESOLVE_FAILED, "io-boundary", "write-file"));
+    FILE *fp = fopen(resolved, "wb");
+    if (fp == NULL) {
+        free(resolved);
+        return pgy_runtime_io_void_err(pgy_runtime_io_failure_from_status(
+            PGY_RUNTIME_IO_STATUS_OPEN_FAILED, "io-boundary", "write-file"));
+    }
+    if (data != NULL) {
+        size_t len = strlen(data);
+        size_t written = fwrite(data, 1, len, fp);
+        if (written != len) {
+            fclose(fp);
+            free(resolved);
+            return pgy_runtime_io_void_err(pgy_runtime_io_failure_from_status(
+                PGY_RUNTIME_IO_STATUS_WRITE_FAILED,
+                "io-boundary", "write-file"));
+        }
+    }
+    fclose(fp);
+    free(resolved);
+    return pgy_runtime_io_void_ok();
 }
 
 void pgy_write_file(const char *path, const char *data)
 {
-    char *resolved = pgy_runtime_resolve_file_path(path, true);
-    if (resolved == NULL)
-        return;
-    FILE *fp = fopen(resolved, "wb");
-    if (fp == NULL) {
-        free(resolved);
-        return;
-    }
-    if (data != NULL) {
-        size_t len = strlen(data);
-        (void)fwrite(data, 1, len, fp);
-    }
-    fclose(fp);
-    free(resolved);
+    (void)pgy_try_write_file_result(path, data);
 }
 
-char *pgy_input(const char *prompt)
+PgyRuntimeIoStringResult pgy_try_input_result(const char *prompt)
 {
     char tmp[4096];
+    char *result;
 
     if (prompt != NULL && prompt[0] != '\0')
         printf("%s", prompt);
     fflush(stdout);
 
     tmp[0] = '\0';
-    if (fgets(tmp, sizeof(tmp), stdin) == NULL) {
-        char *empty = (char *)malloc(1);
-        if (empty != NULL) empty[0] = '\0';
-        return empty;
-    }
+    if (fgets(tmp, sizeof(tmp), stdin) == NULL)
+        return pgy_runtime_io_string_err(pgy_runtime_io_failure_from_status(
+            PGY_RUNTIME_IO_STATUS_EOF, "io-boundary", "input"));
 
     size_t len = strlen(tmp);
     if (len > 0 && tmp[len - 1] == '\n')
         tmp[len - 1] = '\0';
 
     len = strlen(tmp);
-    char *result = (char *)malloc(len + 1);
-    if (result != NULL)
-        memcpy(result, tmp, len + 1);
-    return result;
+    result = (char *)malloc(len + 1);
+    if (result == NULL)
+        return pgy_runtime_io_string_err(pgy_runtime_io_failure_from_status(
+            PGY_RUNTIME_IO_STATUS_ALLOC_FAILED, "io-boundary", "input"));
+    memcpy(result, tmp, len + 1);
+    return pgy_runtime_io_string_ok(result);
+}
+
+char *pgy_input(const char *prompt)
+{
+    PgyRuntimeIoStringResult result = pgy_try_input_result(prompt);
+    return result.tag == PGY_RUNTIME_IO_RESULT_OK
+        ? result.ok
+        : pgy_runtime_lib_strdup("");
 }
 
 void pgy_exit(int32_t code)

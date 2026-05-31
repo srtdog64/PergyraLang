@@ -1,0 +1,37 @@
+class Layer {
+    let v: Int;
+
+    func TryAt(self, n: Int) -> Option<Int> {
+        if n < 0 { return None; }
+        return Some(v + n);
+    }
+}
+
+class Stack {
+    let base: Int;
+
+    func TryGet(self, n: Int) -> Option<Layer> {
+        if n < 0 { return None; }
+        return Some(Layer(base + n));
+    }
+}
+
+func TwoLevel(seed: Int, idx: Int) -> Int {
+    let s: Stack = Stack(seed);
+    match s.TryGet(idx) {
+        case Some(layer):
+            match layer.TryAt(idx) {
+                case Some(val): return val;
+                case None: return -1;
+            }
+        case None: return -2;
+    }
+}
+
+func Main() -> Void {
+    Log(TwoLevel(100, 5));
+    Log(TwoLevel(0, 0));
+    Log(TwoLevel(50, -1));
+    Log(TwoLevel(10, 3));
+    Log(TwoLevel(1000, 7));
+}

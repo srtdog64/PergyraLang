@@ -1,0 +1,45 @@
+enum AppErr { NotFound, Forbidden }
+
+func F1(seed: Int) -> Result<Int, AppErr> {
+    if seed < 0 { return Err(NotFound); }
+    if seed > 100 { return Err(Forbidden); }
+    return Ok(seed * 2);
+}
+
+func F2(seed: Int) -> Result<Int, AppErr> {
+    if seed < 0 { return Err(Forbidden); }
+    if seed > 100 { return Err(NotFound); }
+    return Ok(seed + 1000);
+}
+
+func Apply(op: Int, seed: Int) -> Int {
+    if op == 0 {
+        match F1(seed) {
+            case Ok(v): return v;
+            case Err(e):
+                match e {
+                    case NotFound: return -1;
+                    case Forbidden: return -2;
+                }
+        }
+    }
+    if op == 1 {
+        match F2(seed) {
+            case Ok(v): return v;
+            case Err(e):
+                match e {
+                    case NotFound: return -3;
+                    case Forbidden: return -4;
+                }
+        }
+    }
+    return 0;
+}
+
+func Main() -> Void {
+    Log(Apply(0, 5));
+    Log(Apply(1, 5));
+    Log(Apply(0, -1));
+    Log(Apply(1, 200));
+    Log(Apply(0, 200));
+}

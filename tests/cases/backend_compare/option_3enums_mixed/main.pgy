@@ -1,0 +1,68 @@
+enum Color { Red, Green, Blue }
+enum Shape { Square, Circle, Triangle }
+enum Size { Small, Big }
+
+func PickColor(n: Int) -> Option<Color> {
+    if n == 0 { return Some(Red); }
+    if n == 1 { return Some(Green); }
+    if n == 2 { return Some(Blue); }
+    return None;
+}
+
+func PickShape(n: Int) -> Option<Shape> {
+    if n == 0 { return Some(Square); }
+    if n == 1 { return Some(Circle); }
+    if n == 2 { return Some(Triangle); }
+    return None;
+}
+
+func PickSize(n: Int) -> Option<Size> {
+    if n > 0 { return Some(Big); }
+    return Some(Small);
+}
+
+func ScoreColor(c: Option<Color>) -> Int {
+    match c {
+        case Some(v):
+            match v {
+                case Red: return 100;
+                case Green: return 200;
+                case Blue: return 300;
+            }
+        case None: return -1;
+    }
+}
+
+func ScoreShape(s: Option<Shape>) -> Int {
+    match s {
+        case Some(v):
+            match v {
+                case Square: return 4;
+                case Circle: return 6;
+                case Triangle: return 3;
+            }
+        case None: return -1;
+    }
+}
+
+func ScoreSize(z: Option<Size>) -> Int {
+    match z {
+        case Some(v):
+            match v {
+                case Small: return 1;
+                case Big: return 10;
+            }
+        case None: return -1;
+    }
+}
+
+func Compose(a: Int, b: Int, c: Int) -> Int {
+    return ScoreColor(PickColor(a)) + ScoreShape(PickShape(b)) + ScoreSize(PickSize(c));
+}
+
+func Main() -> Void {
+    Log(Compose(0, 1, 1));
+    Log(Compose(2, 2, 0));
+    Log(Compose(1, 0, 1));
+    Log(Compose(5, 7, 1));
+}

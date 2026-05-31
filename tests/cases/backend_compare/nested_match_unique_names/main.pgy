@@ -1,0 +1,25 @@
+enum Outer { A, B(Int) }
+enum Inner { X, Y(Int) }
+
+func DoubleMatch(o: Outer, inn: Inner) -> Int {
+    match o {
+        case A:
+            match inn {
+                case X: return 1;
+                case Y(ap): return ap + 1;
+            }
+        case B(n):
+            match inn {
+                case X: return n * 10;
+                case Y(bp): return n + bp;
+            }
+    }
+}
+
+func Main() -> Void {
+    Log(DoubleMatch(A, X));
+    Log(DoubleMatch(A, Y(7)));
+    Log(DoubleMatch(B(5), X));
+    Log(DoubleMatch(B(5), Y(3)));
+    Log(DoubleMatch(B(0), Y(10)));
+}

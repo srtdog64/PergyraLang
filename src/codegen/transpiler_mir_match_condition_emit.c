@@ -11,60 +11,10 @@
 #include "transpiler_expr_type_infer.h"
 #include "transpiler_format.h"
 #include "transpiler_match_bindings.h"
+#include "transpiler_symbols.h"
 #include "transpiler_type_mapping.h"
 #include "transpiler_type_render.h"
 #include "transpiler_type_require.h"
-
-static ASTNode *
-transpiler_mir_find_match_subject_for_case(ASTNode *node, ASTNode *case_node)
-{
-    if (node == NULL || case_node == NULL)
-        return NULL;
-
-    if (node->type == AST_MATCH_STMT) {
-        for (size_t i = 0; i < ast_match_case_count(node); i++) {
-            if (ast_match_case_at(node, i) == case_node)
-                return ast_match_subject(node);
-        }
-        if (ast_match_default_body(node) != NULL) {
-            ASTNode *found = transpiler_mir_find_match_subject_for_case(
-                ast_match_default_body(node), case_node);
-            if (found != NULL)
-                return found;
-        }
-    }
-
-    switch (node->type) {
-    case AST_BLOCK:
-        for (size_t i = 0; i < ast_block_statement_count(node); i++) {
-            ASTNode *found = transpiler_mir_find_match_subject_for_case(
-                ast_block_statement(node, i), case_node);
-            if (found != NULL)
-                return found;
-        }
-        break;
-    case AST_IF_STMT: {
-        ASTNode *found = transpiler_mir_find_match_subject_for_case(
-            ast_if_then_branch(node), case_node);
-        if (found != NULL)
-            return found;
-        return transpiler_mir_find_match_subject_for_case(
-            ast_if_else_branch(node), case_node);
-    }
-    case AST_FOR_LOOP:
-        return transpiler_mir_find_match_subject_for_case(
-            ast_for_body(node), case_node);
-    case AST_WHILE_LOOP:
-        return transpiler_mir_find_match_subject_for_case(
-            ast_while_body(node), case_node);
-    case AST_WITH_STMT:
-        return transpiler_mir_find_match_subject_for_case(
-            ast_with_body(node), case_node);
-    default:
-        break;
-    }
-    return NULL;
-}
 
 static bool
 transpiler_mir_is_option_destructor(ASTNode *pat,
@@ -272,6 +222,7 @@ transpiler_mir_emit_match_payload_binding(CodeBuf *buf,
         write_indent_to(buf, ctx->indent);
         codebuf_write(buf, "%s %s = (%s).%s;\n",
                       payload_c_type, binding, subject, field);
+        register_typed_var(ctx, binding, payload_type);
     }
 }
 
@@ -291,8 +242,8 @@ transpiler_mir_render_match_case_condition(ASTNode *func_decl,
         return NULL;
     }
 
-    subject_node = transpiler_mir_find_match_subject_for_case(
-        ast_func_body(func_decl), case_node);
+    subject_node = ast_find_match_subject_for_case(ast_func_body(func_decl),
+                                                   case_node);
     if (subject_node == NULL)
         return NULL;
 

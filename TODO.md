@@ -31,7 +31,13 @@ English anchor for tooling/doc gates:
   state, and explicit sharp tools. (2) Slot ID/generation exhaustion must be
   modelled as an availability risk: either widen the stable handle space or
   prove closed-slot recycling plus generation/tombstone policy cannot revalidate
-  stale handles, then gate the ABI shape. (3) Zone-bound handle policy must move
+  stale handles, then gate the ABI shape. Current beta policy is the 32-bit ABI
+  with released-slot recycling: `SlotClaim` reuses a released `slotId` only after
+  advancing `generation`, while fresh zero/max id claims still return
+  `SLOT_ERROR_ID_EXHAUSTED`; generation-exhausted recycled entries report the
+  same status rather than allocator OOM. `security-portability-contract-test-smoke`
+  gates that this has not silently turned into a false 128-bit claim.
+  (3) Zone-bound handle policy must move
   from conservative rejection toward typed boundary evidence so safe `handle in
   zone` flows do not push users toward raw FFI escape hatches. (4) Formal
   claims must stay at the current evidence level until executable Coq/Lean or
@@ -44,12 +50,45 @@ English anchor for tooling/doc gates:
   recoverable `Result` wrappers have a stable error seam to consume. Gates:
   `security-portability-contract-test-smoke`, direct
   `build/runtime/slot_manager_core_ops.o` compile.
-- Red-team recoverable boundary slice: primitive slot panic exports remain the
-  sharp default ABI, but `PgyRuntimeSlotStatus` and `pgy_try_read_*` /
-  `pgy_try_write_*` / `pgy_try_release_*` now exist for inline C runtime slots
-  and LLVM-linkable primitive slot exports. This gives host/FFI/service
-  wrappers a stable non-panicking seam to translate released-slot/null-slot
-  failures into `Result` data without changing existing panic semantics.
+- Red-team recoverable boundary slice: primitive Slot, `DeviceSlot`, and
+  `SecureSlot` panic exports remain the sharp default ABI, but
+  `PgyRuntimeSlotStatus`, `PgyRuntimeSlotFailure`, and typed `try_*`
+  read/write/release functions now exist for inline C runtime slots and
+  LLVM-linkable slot exports. Read boundaries also expose typed
+  `PgyRuntimeSlotResult_*` wrappers (`pgy_try_read_result_*`,
+  `pgy_try_device_read_result_*`, and `pgy_try_secure_read_result_*`) so
+  host/FFI/service code can consume slot failure as data without locally
+  reconstructing `stage`, `operation`, recoverability, or status names. This
+  gives boundary wrappers a stable non-panicking seam to translate
+  released-slot/null-slot/invalid-token failures into `Result` data without
+  changing existing panic semantics. File I/O now has the same first-stage
+  boundary shape through `PgyRuntimeIoFailure` plus
+  `pgy_try_file_open_result`, `pgy_try_file_exists_result`,
+  `pgy_try_file_read_result`, `pgy_try_file_write_result`,
+  `pgy_try_read_file_result`, and `pgy_try_write_file_result`; `Input` also
+  exposes `pgy_try_input_result`. The existing `FileOpen`, `FileExists`,
+  `FileRead`, `FileWrite`, `ReadFile`, `WriteFile`, and `Input` compatibility
+  surface remains unchanged while host/service wrappers can consume structured
+  I/O failure data. Channel receive convenience wrappers are also no longer the
+  only failure surface: `PgyRuntimeChannelFailure` plus
+  `pgy_channel_recv_result_*`, `pgy_channel_try_recv_result_*`, and
+  `pgy_channel_recv_timeout_result_*` expose closed/empty/timeout states as
+  data while `pgy_channel_recv_val_*` stays as the legacy sentinel wrapper.
+  Channel send-status lowering now avoids backend-local reconstruction:
+  C consumes the `PgyOption_Bool` runtime surface, while LLVM consumes explicit
+  `*_status_code_*` exports to avoid small-struct ABI drift. C channel runtime
+  calls also render channel lvalues through one channel owner seam with MIR SSA
+  mapping disabled, preventing branch-join SSA copies from being addressed as
+  the live channel.
+  The failure payload also
+  distinguishes boundary-recoverable states from wrapper bugs such as null
+  output pointers.
+  `RemoteFuture<Void>` remains outside the stable subset until a real
+  `Result<Void>` ABI is frozen; semantic analysis rejects it, and both C and
+  LLVM await lowering fail closed if an unchecked AST reaches codegen.
+  `Result<Void>` and `Option<Void>` annotations are likewise rejected until
+  their unit-payload ABI is frozen, and C/LLVM type lowering fail closed if
+  semantic checks are bypassed.
   Gates: `runtime-panic-abi-test-smoke`,
   `security-portability-contract-test-smoke`.
 - Ref-parameter escape seam tightening: function types now distinguish "checked
@@ -78,6 +117,77 @@ English anchor for tooling/doc gates:
   missing declaration facts carry `PGY_CODE_LLVM_MIR_ROUTINE_MISSING` plus
   inventory cause/fix hints instead of becoming anonymous backend errors. Gates:
   `mir-declaration-inventory-test-smoke`, `llvm-test-smoke`.
+- LLVM MIR routine emission now consumes only functions registered by the
+  declaration/routine inventory pass. `llvm_emit_func_from_mir(...)` no longer
+  calls `llvm_lookup_or_declare_function(ctx, fn_name, ...)` for user routines;
+  a missing function registry entry is reported as MIR inventory drift. This
+  keeps function/method/intent body emission from synthesizing declarations
+  while claiming to be MIR-only. Gates: `mir-declaration-inventory-test-smoke`,
+  targeted backend compare for free functions, class methods, role methods, and
+  intent zone binding.
+- LLVM intent call dispatch now follows the same rule: when MIR inventory is
+  active, an unregistered intent callee is reported as missing MIR inventory
+  instead of locally reconstructing the intent signature and calling
+  `LLVMAddFunction(...)` from expression lowering. The old synthesis branch is
+  kept only for non-MIR compatibility. Gates:
+  `mir-declaration-inventory-test-smoke`, targeted backend compare for intent
+  failure/observability/zone-binding fixtures.
+- LLVM ordinary function call dispatch now also refuses to synthesize a missing
+  registered callee for body-bearing `func` declarations while MIR inventory is
+  active. Extern/bodyless declarations can still be forward-declared at the call
+  site, but user function bodies must be registered by the inventory
+  declaration pass. Gates: `mir-declaration-inventory-test-smoke`, targeted
+  backend compare for nested/free/recursive functions and extern calls.
+- LLVM intent forward declaration no longer defaults unresolved MIR-active
+  participant/value parameters to `i32`. Missing participant, value, or binding
+  type metadata is now reported through the MIR inventory diagnostic seam; the
+  legacy `i32` default survives only for non-MIR compatibility. Gates:
+  `mir-declaration-inventory-test-smoke`, targeted backend compare for intent
+  failure/authority/zone-binding fixtures.
+- LLVM MIR local alloca typing no longer uses a blind `i32` default for
+  untyped local/PHI slots. Local storage is typed from ABI layout, explicit AST
+  type facts, expression facts, prior SSA vars, or PHI incoming result facts;
+  missing metadata now fails through the MIR inventory seam. This closes the
+  `select_fairness` shape where a loop PHI appears before the select-case
+  receive defs (`v.1 -> v.2 -> v.3/v.4`) in block order. Gates:
+  `mir-declaration-inventory-test-smoke`, `llvm-test-smoke`.
+- LLVM channel receive type inference no longer treats missing `Channel<T>`
+  metadata as `Int`. A receive without registered channel metadata now reports
+  a concrete type-inference diagnostic unless an enclosing expected value type
+  is already explicit. Gates: `mir-declaration-inventory-test-smoke`,
+  `llvm-test-smoke`.
+- LLVM call result type inference no longer treats unresolved calls as `Int`
+  when no enclosing expected type exists. Visible function registry, declared
+  return type, scalar builtin policy, collection policy, or an explicit
+  expected type must provide the result type; otherwise the LLVM path reports a
+  concrete type-inference diagnostic. Gates:
+  `mir-declaration-inventory-test-smoke`, `llvm-test-smoke`.
+- LLVM identifier type inference no longer treats unknown locals as `Int`.
+  Identifier types must come from the LLVM scope registry or, for unqualified
+  subject/world/zone/action fields, the current-host class field metadata. This
+  closes the subject/action `hp = hp + 1` shape that previously relied on a
+  poison local fallback. Gates: `mir-declaration-inventory-test-smoke`,
+  `llvm-test-smoke`.
+- LLVM expression type inference no longer has a final default `Int` branch.
+  Statement-shaped AST nodes with no value type return `Void`, and every other
+  unhandled expression kind must provide typed MIR result facts or fail with a
+  concrete diagnostic. Gates: `mir-declaration-inventory-test-smoke`,
+  `llvm-test-smoke`.
+- LLVM await lowering now fails closed when a `Future<T>` operand has no
+  registered result metadata. The expression emitter no longer treats
+  `await x` as plain `x` when future metadata is missing, and the task-handle
+  lowering no longer treats a missing inner type as `Void`. Gates:
+  `mir-declaration-inventory-test-smoke`, `llvm-test-smoke`.
+- LLVM Array/Slice element inference no longer defaults missing element
+  metadata to `Int`. Element type must come from expected `Array<T>` context,
+  registered array variable metadata, a non-empty literal element, or a
+  declared Array/Slice return type; destructuring now stops if that metadata is
+  absent. Gates: `mir-declaration-inventory-test-smoke`, `llvm-test-smoke`.
+- C Future metadata queries no longer report unknown spawn/await operands as
+  `Void`. Void remains valid only for a declared void-returning function or an
+  explicit `Future<Void>` shape; missing targets or missing function
+  declarations now surface as unknown metadata and fail through the existing
+  spawn/await diagnostics. Gate: `test-transpile`.
 - C role method body source-of-truth tightening: role impl methods now emit
   through `TranspilerHostedMethodView -> MIRDeclMethod -> MIRRoutine` like
   other hosted methods. The retired `transpiler_find_role_impl_mir_method(...)`
@@ -6551,11 +6661,12 @@ Progress log, 2026-05-08:
 - Added a CI-oriented build preflight:
   `check-build-tools` now verifies a runnable `bash`, a working `CC`, and an
   LLVM installation when `LLVM_ENABLED` is active before CI enters the long
-  build/test sequence. `nasm` remains optional and reports a non-fatal
-  fast-path-disabled note. The Linux/macOS/Windows CI targets call this
-  preflight with their platform compiler settings, making missing toolchain
-  failures explicit instead of surfacing as partial compile/link errors. Gates:
-  `check-build-tools LLVM_ENABLED=0`, `check-windows-toolchain`.
+  build/test sequence. Assembly runtime objects are disabled by default because
+  the C SlotManager is the current source of truth; `nasm` is only consumed when
+  `ENABLE_ASM_FASTPATH=1` is explicitly set. The Linux/macOS/Windows CI targets
+  call this preflight with their platform compiler settings, making missing
+  toolchain failures explicit instead of surfacing as partial compile/link
+  errors. Gates: `check-build-tools LLVM_ENABLED=0`, `check-windows-toolchain`.
 - Added release/debug hygiene smoke coverage:
   `debug-hygiene-test-smoke` rejects production sources or build flags that
   default `PGY_DEBUG` / developer trace env vars on, while preserving explicit
@@ -8660,115 +8771,77 @@ runtime-validated handles) 로 대체. 진입 비용 낮춘 자리, 자기인식
 가능*. Rust가 self-host 시 lifetime annotation으로 부닥친 자리를 우리는
 회피.
 
-## ★ Red-team 4가지 방어 마스터플랜 (2026-05-31 추가)
+## Red-team security closure plan (2026-05-31 refreshed)
 
-레드팀 관점 취약점 4개 (Slot DoS, ID 고갈, 핸들 유출, 정형 증명 부재)
-에 대응하는 구체적 방어 트랙. §1 line 25 의 추상 진술을 *실행 가능한
-sprint plan* 으로 풀어둠. 우선순위는 §0a 닫고 §0c 직전.
+This section records the security red-team work without overstating the current
+implementation. The top-of-file beta policy is the source of truth; this block
+is the longer execution plan.
 
-### 대책 1 — Result-First 경계 wrapping (FFI/I/O/network DoS 차단)
+### Defense 1 — Result-first boundary wrapping
 
-- **문제**: 슬롯 권한 위반, FFI 실패, 파일 I/O 오류가 프로세스 단위
-  panic 으로 터지면 단일 잘못된 요청이 전체 instance 를 죽임 (DoS).
-- **닫는 자리**:
-  1. `pgy.io.boundary` namespace 신설. 모든 외부 경계 호출 (`read_file`,
-     `socket_recv`, `ffi_invoke`, `slot_handle_deref` boundary form) 은
-     `Result<T, AppError>` 반환만 허용. 직접 panic surface 금지.
-  2. `AppError = { code: ErrorCode, stage: Stage, retryable: Bool,
-     cause: Option<RuntimeCause>, meta: Map<String, String> }` literal
-     union 으로 surface. (현재 `SlotErrorName(...)` 자리 확장)
-  3. `safeAsync(stage, fn, mapError)` helper 를 runtime stdlib 에 등록.
-     기존 throwing FFI 호출은 self-host 시 모두 이걸 통과.
-  4. 내부 invariant breach 만 panic 유지 — 명시적 `unsafe { ... }`
-     scope + `cfg(allow_panic_internal)` 빌드 플래그.
-- **smoke 게이트**: `result-first-boundary-test-smoke` (없음, 신설).
-  매 PR 마다 boundary 호출이 raw panic 으로 lower 되지 않음을 검증.
-- **연결**: docs/200 (신설) — Pergyra Result-First 계약. CLAUDE.md
-  §1.2-1.3 의 universal rule 을 Pergyra surface 로 정식화.
+- **Risk**: a stale handle, invalid token, bad FFI call, or I/O failure that
+  reaches a process-wide panic can become a denial-of-service trigger.
+- **Current beta contract**: direct runtime slot APIs may still hard-fail for
+  invariant violations. Recoverable host/service boundaries must consume a
+  structured status or failure payload instead of assuming every panic can be
+  recovered.
+- **Closed slice**: primitive `Slot`, `DeviceSlot`, and `SecureSlot` now expose
+  typed `try_*` read/write/release status APIs plus
+  `PgyRuntimeSlotFailure` payloads while preserving the sharp panic exports for
+  direct runtime calls.
+- **Remaining work**: add host-facing `Result<T, E>` wrappers for file, FFI,
+  network, and runtime-slot boundary calls. Gate that these wrappers do not
+  lower to raw panic surfaces.
+- **Gates**: `runtime-panic-abi-test-smoke`,
+  `security-portability-contract-test-smoke`.
 
-### 대책 2 — 64-bit handle + slot pool recycling (ID 고갈 차단)
+### Defense 2 — Slot id exhaustion availability
 
-- **문제**: 현재 32-bit slot ID + 8-bit generation. 40 억 슬롯
-  생성/해제로 ID 공간 고갈 → 새 slot 발급 거부 → 가용성 마비.
-- **닫는 자리**:
-  1. `SlotHandle` ABI 확장: 32-bit id → 64-bit id + 64-bit generation
-     (총 128-bit). MIR/LLVM/C 모든 backend 동시 ABI freeze 필요.
-  2. `slot_pool` runtime 모듈: 무효화된 slot id 를 영구 tombstone 하지
-     않고 free list 로 재배포. generation 만 +1.
-  3. wrap-around 정책: generation 도 64-bit 라 우주 종말까지 안전하지만
-     명시적 `slot_pool_audit(...)` 진단을 통해 stale handle revalidate
-     를 sandbox 환경에서 false positive 없이 검출.
-  4. ABI 동결: post-BETA+ self-host *직전*. (BETA 내 작업 ❌ — ABI
-     변경은 dogfood 회귀 영향이 큼)
-- **smoke 게이트**: `slot-id-exhaustion-fuzz-test-smoke` (없음, 신설).
-  40 억+ slot 생성/해제 사이클을 fuzz 로 돌려 ID 고갈 거부 없는지 확인.
-- **연결**: docs/100c §4 ABI/Slot/Pin 동결 작업의 *content* 부분.
-  단순 freeze 가 아니라 *128-bit handle freeze* 가 closure 조건.
+- **Risk**: a finite slot id space can become an availability target if an
+  attacker forces enough create/release cycles.
+- **Current beta contract**: do **not** claim 128-bit handles. The beta ABI is
+  still 32-bit `slotId` plus 32-bit `generation`. Released slot ids are recycled
+  only with generation advance; fresh zero-id and max-id claims still reject
+  before wrap.
+- **Closed slice**: `test-security` covers zero-id/max-id rejection and stale
+  generation rejection after released-slot recycle, and the portability smoke
+  forbids accidental documentation drift toward false 128-bit claims.
+- **Future option A**: widen to 64-bit id plus 64-bit generation as an explicit
+  ABI-breaking post-beta decision.
+- **Future option B**: keep the visible ABI shape and expand the released-slot
+  recycling proof/gates beyond the current runtime fixture.
+- **Gates**: `make test-security`, `security-portability-contract-test-smoke`.
 
-### 대책 3 — Zone-Bound Handle 정적 모델 (typed region ownership)
+### Defense 3 — Zone-bound handle typing
 
-- **문제**: spawn/parallel/channel 로 slot handle 이 zone 경계를 넘어가면
-  컴파일러가 *과잉 보수적으로 거부* (false positive) → 사용자가 raw
-  pointer escape hatch 로 우회 → 정적 안전성 무효화.
-- **닫는 자리**:
-  1. 타입 추론기에 region annotation: `SlotHandle<T> in Zone Z` 또는
-     `handle@zone` short form. AST 레벨 surface 추가.
-  2. CFG 검증기에 region-flow analysis: zone Z 안에서 만들어진 핸들은
-     zone Z 외부 escape 시 컴파일 에러. 단 `handoff(handle, target_zone)`
-     명시적 transfer 는 허용.
-  3. `transfer` semantic: `handoff` 후 source zone 에서 handle 사용은
-     "moved" 상태로 마킹 → 사용 시 컴파일 에러.
-  4. spawn/channel/parallel API 가 region-aware 한 signature 로 변경:
-     `Channel<SlotHandle<T> in Z>` 자리 자체에서 region 검증.
-- **smoke 게이트**: `zone-bound-handle-region-test-smoke` (없음, 신설).
-  - positive: 정상 zone 내부 사용 ✓
-  - negative-1: zone 경계 무단 escape → 컴파일 에러 expected
-  - negative-2: handoff 후 source 사용 → "moved" 에러 expected
-  - positive-2: handoff 후 target zone 사용 ✓
-- **연결**: docs/19 §0 systems language identity 의 *7+4 baseline*
-  강화. docs/118 §6 negative-space 의 region typing 자리 명시화.
+- **Risk**: if safe zone-local handle flows are only rejected conservatively,
+  users may be pushed toward raw FFI or cast-based escape hatches.
+- **Current beta contract**: unsafe handle escape remains rejected or hard-fails;
+  first-class `SlotHandle<T> in Zone` / `handle@zone` is not yet implemented.
+- **Remaining work**: make zone-bound handle evidence a typed CFG/AIR fact, then
+  allow explicit `handoff` while rejecting source-zone use-after-handoff and
+  unapproved spawn/channel/parallel escapes.
+- **Gate to add**: `zone-bound-handle-region-test-smoke`.
 
-### 대책 4 — Coq/Lean 정형 증명 게이트 (Anchored Ownership Safety)
+### Defense 4 — Formal proof and marketing drift
 
-- **문제**: "수학적으로 안전" 이라는 표현이 현재 *aspirational marketing*
-  수준. 실제 게이트는 smoke test 뿐 → CLAUDE.md §16 위반 위험.
-- **닫는 자리**:
-  1. `docs/proofs/` 폴더 신설. `lean/` 또는 `coq/` 한 backend 선택.
-     BDFL 추천: Lean 4 (syntax 가까움 + recent tooling 강함).
-  2. small-step semantics 모델: Pergyra subset (slot, zone, handle,
-     intent) 을 Lean 에서 mathlib 없이 표현. AST + reduction rules.
-  3. 정리 (theorems):
-     - **Anchored Ownership Safety**: 모든 step 에서 active slot
-       handle 의 zone membership 이 보존됨.
-     - **Authority Soundness**: intent 의 `authorized by` clause 가
-       authority check 를 통과하지 않으면 reduction 막힘.
-     - **AIR Boundary Preservation**: AIR evidence node 가 schema-valid
-       하지 않은 boundary cross 는 reject.
-  4. CI 통합: `lean --run docs/proofs/anchored.lean` 가 PR 마다 실행.
-     실패 시 PR merge 차단.
-  5. Pergyra surface 와 Lean model 간 *drift detector*: surface 가
-     변하면 Lean model 도 같이 갱신해야 PR merge 허용 (대책 1-3 까지
-     full level. partial 도 가능하지만 partial 임을 docs 에 명시).
-- **smoke 게이트**: `formal-proof-mechanization-test-smoke` (없음, 신설).
-  Lean toolchain 부재 시 SKIP (현재 cross-platform 부재 환경에서).
-- **연결**: docs/120 §4.4 self-host commitment 와 동급의 *post-BETA
-  committed* 자리. 마케팅 언어 (`feedback_marketing_language_drift`,
-  `feedback_capability_overclaim_audit`) 를 *실제 evidence* 로 옷입힘.
+- **Risk**: "mathematically proven" language is currently stronger than the
+  checked evidence.
+- **Current beta contract**: claims stay at smoke-gated evidence plus documented
+  proof obligations. Whole-language Rust-level static memory safety and full
+  Coq/Lean mechanization are not claimed.
+- **Remaining work**: keep the existing small proof models honest, then add a
+  focused executable proof gate for anchored ownership, authority soundness, and
+  AIR boundary preservation after the beta source-of-truth seams are closed.
+- **Gate to add**: `formal-proof-mechanization-test-smoke` with explicit
+  optional-toolchain semantics until the proof toolchain is part of CI.
 
-### 진행 시퀀스 — 대책 1-4 우선순위
+### Priority
 
-| 대책 | 우선순위 | sprint 시점 | 비용 견적 |
-|---|---|---|---|
-| 1. Result-First boundary | high | §0a 닫고 직후 | 중간 (stdlib + smoke 신설) |
-| 2. 64-bit handle | med | §0c Intent-Compress *전* | 큰 (ABI freeze 동반) |
-| 3. Zone-bound region | med | §0c 직후 (self-host 직전) | 큰 (type inference 확장) |
-| 4. Coq/Lean 정형 증명 | low-but-committed | BETA+ self-host *후* | 매우 큰 (Lean expertise 필요) |
-
-**중요**: 대책 1-3 은 *Pergyra 1.0 closure 자리*, 대책 4 는 *post-1.0
-trust upgrade* 자리. 대책 4 없이 1.0 출하는 가능하지만 *"수학적으로
-안전" 표현은 4 게이트 ON 후에만 허용*. 그 전까지는 "Vale-style
-generational handle + zone-bound region typing + runtime
-result-first" 으로만 표현 (capability overclaim 차단).
+1. Result-first recoverable host/service boundaries.
+2. Zone-bound handle typed evidence.
+3. Slot id exhaustion policy decision after dogfood evidence.
+4. Mechanized proof upgrade after the core semantics stop moving.
 
 ## 0. 코어 규칙 — 600 LOC split-review threshold
 
@@ -11714,13 +11787,17 @@ dispatch / semantic lookup / runtime data structure 3축 결과 통합. *정확�
 
 - Slot pin audit found a concrete wording/implementation seam: the runtime ABI
   is not a 64-bit generation handle. It currently uses a 32-bit `slotId` plus a
-  32-bit generation field, with fresh `slotId` assignment on each claim.
-- To prevent ABA id reuse at the current ABI width, `SlotClaim` now tombstones
-  the zero-id sentinel and the manager before `slotId` wrap, retuning
-  `SLOT_ERROR_OUT_OF_MEMORY` rather than reusing an old id.
-- `make test-security` now covers the zero-id guard, wrap guard, tampered-view
-  generation unpin rejection, and double-unpin rejection as part of the Slot
-  pin/lease runtime test. `docs/74_slot_pinning_caching.md`,
+  32-bit generation field. Released slots recycle their `slotId` only after
+  advancing `generation`.
+- To prevent ABA id reuse at the current ABI width, `SlotClaim` still tombstones
+  the zero-id sentinel, fresh max-id claims, and generation-exhausted recycle
+  attempts before wrap, returning `SLOT_ERROR_ID_EXHAUSTED` rather than
+  allocating an ambiguous id.
+- `make test-security` now covers the zero-id guard, wrap guard, released-slot
+  id recycle with generation advance, stale recycled-handle rejection,
+  generation-exhausted recycle rejection, tampered-view generation unpin
+  rejection, and double-unpin rejection as part of the Slot pin/lease runtime
+  test. `docs/74_slot_pinning_caching.md`,
   `docs/semantics/08_slot_capability_calculus.md`, and
   `docs/118_slot_model_rigor_audit.md` now state this honestly instead of
   implying a 64-bit/tombstone ABI that was not implemented.
@@ -11795,6 +11872,8 @@ not marketing claims.
 - [ ] **Slot id exhaustion availability audit.** The current beta ABI is
   explicitly **not** a 128-bit handle. It is a 32-bit `slotId` plus 32-bit
   `generation`, with zero-id / wrap tombstone rejection before ABA reuse.
+  The current runtime separates this from memory OOM as
+  `SLOT_ERROR_ID_EXHAUSTED` / `PGY_RUNTIME_SLOT_STATUS_ID_EXHAUSTED`.
   Keep this contract gated, and add a red-team availability test plan for
   tombstone flooding. A 64-bit id + 64-bit generation handle is an
   ABI-breaking post-beta hardening candidate, not a beta implementation claim.

@@ -3,6 +3,8 @@
 #include <stdlib.h>
 #include <string.h>
 
+#include "codegen_match_variant_policy.h"
+
 typedef struct TranspilerInferCallSpec
 {
     const char *name;
@@ -38,13 +40,11 @@ transpiler_infer_call_lookup(const char *name)
         { "Max", TRANS_INFER_CALL_MAX },
         { "Measure", TRANS_INFER_CALL_MEASURE },
         { "Min", TRANS_INFER_CALL_MIN },
-        { "None", TRANS_INFER_CALL_NONE_CTOR },
         { "PI", TRANS_INFER_CALL_PI },
         { "QubitState", TRANS_INFER_CALL_QUBIT_STATE },
         { "RecvTimeout", TRANS_INFER_CALL_RECV_TIMEOUT },
         { "Replace", TRANS_INFER_CALL_RETURNS_STRING },
         { "SendTimeoutStatus", TRANS_INFER_CALL_SEND_TIMEOUT_STATUS },
-        { "Some", TRANS_INFER_CALL_SOME },
         { "StringReplace", TRANS_INFER_CALL_RETURNS_STRING },
         { "StringTrim", TRANS_INFER_CALL_RETURNS_STRING },
         { "SubmitDeviceRead", TRANS_INFER_CALL_SUBMIT_DEVICE_READ },
@@ -63,9 +63,15 @@ transpiler_infer_call_lookup(const char *name)
         { "ViewWrite", TRANS_INFER_CALL_VIEW_WRITE },
     };
     const TranspilerInferCallSpec *match;
+    PgyCodegenMatchVariantKind variant_kind;
 
     if (name == NULL)
         return TRANS_INFER_CALL_NONE;
+    variant_kind = pgy_codegen_match_variant_lookup(name);
+    if (variant_kind == PGY_MATCH_VARIANT_SOME)
+        return TRANS_INFER_CALL_SOME;
+    if (variant_kind == PGY_MATCH_VARIANT_NONE_CTOR)
+        return TRANS_INFER_CALL_NONE_CTOR;
 
     match = (const TranspilerInferCallSpec *)bsearch(&name,
         kTranspilerInferCallSpecs,

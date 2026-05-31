@@ -1,0 +1,32 @@
+subject Player {
+    let name: String;
+    let hp: Int;
+    let level: Int;
+
+    action Heal(self, amount: Int) -> Int {
+        hp = hp + amount;
+        return hp;
+    }
+
+    action Damage(self, amount: Int) -> Int {
+        hp = hp - amount;
+        if hp < 0 { hp = 0; }
+        return hp;
+    }
+
+    action LevelUp(self) -> Int {
+        level = level + 1;
+        hp = hp + 10;
+        return level * 100 + hp;
+    }
+}
+
+func Main() -> Void {
+    let p = Player("hero", 100, 1);
+    Log(p.Heal(20));
+    Log(p.Damage(30));
+    Log(p.Damage(200));
+    Log(p.Heal(50));
+    Log(p.LevelUp());
+    Log(p.LevelUp());
+}

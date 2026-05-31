@@ -1,0 +1,37 @@
+class Coord {
+    let row: Int;
+    let col: Int;
+}
+
+enum CoordErr { OutOfBounds, Negative }
+
+func TryAt(r: Int, c: Int) -> Result<Coord, CoordErr> {
+    if r < 0 { return Err(Negative); }
+    if c < 0 { return Err(Negative); }
+    if r >= 100 { return Err(OutOfBounds); }
+    if c >= 100 { return Err(OutOfBounds); }
+    return Ok(Coord(r, c));
+}
+
+func CellId(co: Coord) -> Int {
+    return co.row * 100 + co.col;
+}
+
+func Decode(r: Result<Coord, CoordErr>) -> Int {
+    match r {
+        case Ok(c): return CellId(c);
+        case Err(e):
+            match e {
+                case OutOfBounds: return -100;
+                case Negative: return -200;
+            }
+    }
+}
+
+func Main() -> Void {
+    Log(Decode(TryAt(5, 7)));
+    Log(Decode(TryAt(-1, 5)));
+    Log(Decode(TryAt(50, -3)));
+    Log(Decode(TryAt(100, 99)));
+    Log(Decode(TryAt(0, 0)));
+}

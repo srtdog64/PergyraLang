@@ -1,0 +1,32 @@
+enum E { A, B, C }
+
+func Source(seed: Int) -> Result<Int, E> {
+    if seed == 1 { return Err(A); }
+    if seed == 2 { return Err(B); }
+    if seed == 3 { return Err(C); }
+    return Ok(seed * 10);
+}
+
+func Forward(seed: Int) -> Result<Int, E> {
+    return Source(seed);
+}
+
+func TagOrSum(r: Result<Int, E>, base: Int) -> Int {
+    match r {
+        case Ok(v): return base + v;
+        case Err(e):
+            match e {
+                case A: return base - 1;
+                case B: return base - 2;
+                case C: return base - 3;
+            }
+    }
+}
+
+func Main() -> Void {
+    Log(TagOrSum(Forward(5), 0));
+    Log(TagOrSum(Forward(1), 100));
+    Log(TagOrSum(Forward(2), 100));
+    Log(TagOrSum(Forward(3), 100));
+    Log(TagOrSum(Forward(0), 50));
+}

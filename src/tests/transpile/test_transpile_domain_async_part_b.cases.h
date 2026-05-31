@@ -286,8 +286,10 @@ test_parallel_execution_emit(void)
         char *result = emit_expression(make_call("TryRecv", args, 1, 2), ctx);
 
         EXPECT(result != NULL);
-        EXPECT(strstr(result, "pgy_channel_try_recv_Int(&ch, &_pgy_recv_tmp)") != NULL);
-        EXPECT(strstr(result, "Some_Int(_pgy_recv_tmp)") != NULL);
+        EXPECT(strstr(result, "PgyRuntimeChannelIntResult _pgy_recv_result") != NULL);
+        EXPECT(strstr(result, "pgy_channel_try_recv_result_Int(&ch)") != NULL);
+        EXPECT(strstr(result, "PGY_RUNTIME_CHANNEL_RESULT_OK") != NULL);
+        EXPECT(strstr(result, "Some_Int(_pgy_recv_result.ok)") != NULL);
         EXPECT(strstr(result, "None_Int()") != NULL);
 
         free(result);
@@ -307,8 +309,10 @@ test_parallel_execution_emit(void)
         char *result = emit_expression(make_call("RecvTimeout", args, 2, 2), ctx);
 
         EXPECT(result != NULL);
-        EXPECT(strstr(result, "pgy_channel_recv_timeout_Int(&ch, &_pgy_recv_tmp, (uint64_t)(1000))") != NULL);
-        EXPECT(strstr(result, "Some_Int(_pgy_recv_tmp)") != NULL);
+        EXPECT(strstr(result, "PgyRuntimeChannelIntResult _pgy_recv_result") != NULL);
+        EXPECT(strstr(result, "pgy_channel_recv_timeout_result_Int(&ch, (uint64_t)(1000))") != NULL);
+        EXPECT(strstr(result, "PGY_RUNTIME_CHANNEL_RESULT_OK") != NULL);
+        EXPECT(strstr(result, "Some_Int(_pgy_recv_result.ok)") != NULL);
         EXPECT(strstr(result, "None_Int()") != NULL);
 
         free(result);

@@ -1,0 +1,35 @@
+class Item {
+    let id: Int;
+    let qty: Int;
+}
+
+enum InvErr { NotFound, OutOfStock }
+
+func Lookup(id: Int) -> Result<Item, InvErr> {
+    if id == 0 { return Err(NotFound); }
+    if id == 99 { return Err(OutOfStock); }
+    return Ok(Item(id, id * 2));
+}
+
+func Forward(id: Int) -> Result<Item, InvErr> {
+    return Lookup(id);
+}
+
+func Score(r: Result<Item, InvErr>) -> Int {
+    match r {
+        case Ok(it): return it.id * 100 + it.qty;
+        case Err(e):
+            match e {
+                case NotFound: return -1;
+                case OutOfStock: return -2;
+            }
+    }
+}
+
+func Main() -> Void {
+    Log(Score(Forward(3)));
+    Log(Score(Forward(0)));
+    Log(Score(Forward(99)));
+    Log(Score(Forward(10)));
+    Log(Score(Forward(50)));
+}

@@ -1,15 +1,9 @@
 #ifndef PERGYRA_CODEGEN_MATCH_VARIANT_POLICY_H
 #define PERGYRA_CODEGEN_MATCH_VARIANT_POLICY_H
 
-#include <stdbool.h>
+#include "../common/match_variant_policy.h"
 
-typedef enum PgyCodegenMatchVariantKind {
-    PGY_MATCH_VARIANT_NONE = 0,
-    PGY_MATCH_VARIANT_ERR,
-    PGY_MATCH_VARIANT_NONE_CTOR,
-    PGY_MATCH_VARIANT_OK,
-    PGY_MATCH_VARIANT_SOME,
-} PgyCodegenMatchVariantKind;
+typedef PgyMatchVariantKind PgyCodegenMatchVariantKind;
 
 PgyCodegenMatchVariantKind pgy_codegen_match_variant_lookup(const char *name);
 const char *pgy_codegen_match_variant_name(PgyCodegenMatchVariantKind kind);

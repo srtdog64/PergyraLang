@@ -1,0 +1,29 @@
+class Reason {
+    let kind: Int;
+    let detail: Int;
+
+    func Code(self) -> Int {
+        return kind * 1000 + detail;
+    }
+}
+
+func ValidateLen(n: Int) -> Result<Int, Reason> {
+    if n < 0 { return Err(Reason(1, 100)); }
+    if n > 1000 { return Err(Reason(2, 999)); }
+    return Ok(n);
+}
+
+func Decode(r: Result<Int, Reason>) -> Int {
+    match r {
+        case Ok(v): return v;
+        case Err(reason): return -reason.Code();
+    }
+}
+
+func Main() -> Void {
+    Log(Decode(ValidateLen(50)));
+    Log(Decode(ValidateLen(-5)));
+    Log(Decode(ValidateLen(2000)));
+    Log(Decode(ValidateLen(0)));
+    Log(Decode(ValidateLen(1)));
+}

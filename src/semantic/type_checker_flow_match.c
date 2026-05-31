@@ -2,6 +2,7 @@
 
 #include "diag_codes.h"
 #include "type_checker_flow_match_internal.h"
+#include "../common/match_variant_policy.h"
 
 bool
 match_pattern_is_named_variant(ASTNode *pat, const char **name_out,
@@ -105,6 +106,7 @@ type_check_special_match_pattern(ASTNode *pat, Type *subj_type,
     const char *variant = NULL;
     ASTNode **args = NULL;
     size_t arg_count = 0;
+    PgyMatchVariantKind variant_kind;
 
     *handled = false;
 
@@ -112,11 +114,12 @@ type_check_special_match_pattern(ASTNode *pat, Type *subj_type,
         || variant == NULL || subj_type == NULL) {
         return true;
     }
+    variant_kind = pgy_match_variant_lookup(variant);
 
     if (type_is_constructed_named(subj_type, "Option")) {
         Type *inner = type_get_constructed_arg(subj_type, 0);
         *handled = true;
-        if (strcmp(variant, "Some") == 0) {
+        if (variant_kind == PGY_MATCH_VARIANT_SOME) {
             if (arg_count != 1) {
                 semantic_error_with_hints(ctx,
                     PGY_CODE_SEM_MATCH_PATTERN_INVALID,
@@ -128,7 +131,7 @@ type_check_special_match_pattern(ASTNode *pat, Type *subj_type,
             }
             return declare_match_binding(ctx, args[0], inner);
         }
-        if (strcmp(variant, "None") == 0) {
+        if (variant_kind == PGY_MATCH_VARIANT_NONE_CTOR) {
             if (arg_count != 0) {
                 semantic_error_with_hints(ctx,
                     PGY_CODE_SEM_MATCH_PATTERN_INVALID,
@@ -152,7 +155,7 @@ type_check_special_match_pattern(ASTNode *pat, Type *subj_type,
 
     if (type_is_constructed_named(subj_type, "Result")) {
         *handled = true;
-        if (strcmp(variant, "Ok") == 0) {
+        if (variant_kind == PGY_MATCH_VARIANT_OK) {
             if (arg_count != 1) {
                 semantic_error_with_hints(ctx,
                     PGY_CODE_SEM_MATCH_PATTERN_INVALID,
@@ -165,7 +168,7 @@ type_check_special_match_pattern(ASTNode *pat, Type *subj_type,
             return declare_match_binding(ctx, args[0],
                 type_get_constructed_arg(subj_type, 0));
         }
-        if (strcmp(variant, "Err") == 0) {
+        if (variant_kind == PGY_MATCH_VARIANT_ERR) {
             if (arg_count != 1) {
                 semantic_error_with_hints(ctx,
                     PGY_CODE_SEM_MATCH_PATTERN_INVALID,
@@ -175,7 +178,11 @@ type_check_special_match_pattern(ASTNode *pat, Type *subj_type,
                     "Err pattern requires exactly one binding");
                 return false;
             }
-            return declare_match_binding(ctx, args[0], TYPE_STRING);
+            {
+                Type *err_type = type_get_constructed_arg(subj_type, 1);
+                return declare_match_binding(ctx, args[0],
+                    err_type != NULL ? err_type : TYPE_STRING);
+            }
         }
 
         semantic_error_with_hints(ctx,

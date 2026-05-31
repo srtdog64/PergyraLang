@@ -1,0 +1,30 @@
+class Point {
+    let x: Int;
+    let y: Int;
+}
+
+func Distance(p: Point) -> Int {
+    return p.x * p.x + p.y * p.y;
+}
+
+func PickFar(seed: Int) -> Option<Point> {
+    if seed == 0 { return None; }
+    if seed < 0 { return None; }
+    let pt: Point = Point(seed, seed + 1);
+    return Some(pt);
+}
+
+func Eval(o: Option<Point>) -> Int {
+    match o {
+        case Some(pt): return Distance(pt);
+        case None: return -1;
+    }
+}
+
+func Main() -> Void {
+    Log(Eval(PickFar(3)));
+    Log(Eval(PickFar(5)));
+    Log(Eval(PickFar(0)));
+    Log(Eval(PickFar(-2)));
+    Log(Eval(PickFar(10)));
+}

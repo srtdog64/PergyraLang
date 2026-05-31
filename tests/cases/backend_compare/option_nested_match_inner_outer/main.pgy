@@ -1,0 +1,39 @@
+func InnerCheck(o: Option<Int>) -> Int {
+    match o {
+        case Some(n):
+            if n > 100 {
+                return n * 10;
+            }
+            return n;
+        case None: return -1;
+    }
+}
+
+func ResolveBoth(a: Option<Int>, b: Option<Int>) -> Int {
+    match a {
+        case Some(x):
+            match b {
+                case Some(yhas): 
+                    let sum: Option<Int> = Some(x + yhas);
+                    return InnerCheck(sum);
+                case None:
+                    let only_x: Option<Int> = Some(x);
+                    return InnerCheck(only_x);
+            }
+        case None:
+            match b {
+                case Some(ynone):
+                    let only_y: Option<Int> = Some(ynone);
+                    return InnerCheck(only_y);
+                case None: return -999;
+            }
+    }
+}
+
+func Main() -> Void {
+    Log(ResolveBoth(Some(50), Some(30)));
+    Log(ResolveBoth(Some(80), Some(40)));
+    Log(ResolveBoth(Some(7), None));
+    Log(ResolveBoth(None, Some(200)));
+    Log(ResolveBoth(None, None));
+}

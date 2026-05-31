@@ -12,6 +12,7 @@
 #include "../common/string_compat.h"
 #include "../parser/ast_api.h"
 #include "../semantic/diag_codes.h"
+#include "codegen_match_variant_policy.h"
 #include "transpiler_context.h"
 #include "transpiler_expr_type_infer.h"
 #include "transpiler_format.h"
@@ -53,22 +54,32 @@ static TranspilerResultOptionOp
 transpiler_result_option_lookup(const char *fn)
 {
     static const TranspilerResultOptionSpec kTranspilerResultOptionSpecs[] = {
-        { "Err", TRANS_RESULT_OPTION_OP_ERR },
         { "IsErr", TRANS_RESULT_OPTION_OP_IS_ERR },
         { "IsNone", TRANS_RESULT_OPTION_OP_IS_NONE },
         { "IsOk", TRANS_RESULT_OPTION_OP_IS_OK },
         { "IsSome", TRANS_RESULT_OPTION_OP_IS_SOME },
-        { "None", TRANS_RESULT_OPTION_OP_NONE_VALUE },
-        { "Ok", TRANS_RESULT_OPTION_OP_OK },
-        { "Some", TRANS_RESULT_OPTION_OP_SOME },
         { "Unwrap", TRANS_RESULT_OPTION_OP_UNWRAP },
         { "UnwrapOption", TRANS_RESULT_OPTION_OP_UNWRAP_OPTION },
         { "UnwrapOr", TRANS_RESULT_OPTION_OP_UNWRAP_OR },
     };
     const TranspilerResultOptionSpec *match;
+    PgyCodegenMatchVariantKind variant_kind;
 
     if (fn == NULL)
         return TRANS_RESULT_OPTION_OP_NONE;
+    variant_kind = pgy_codegen_match_variant_lookup(fn);
+    switch (variant_kind) {
+    case PGY_MATCH_VARIANT_ERR:
+        return TRANS_RESULT_OPTION_OP_ERR;
+    case PGY_MATCH_VARIANT_NONE_CTOR:
+        return TRANS_RESULT_OPTION_OP_NONE_VALUE;
+    case PGY_MATCH_VARIANT_OK:
+        return TRANS_RESULT_OPTION_OP_OK;
+    case PGY_MATCH_VARIANT_SOME:
+        return TRANS_RESULT_OPTION_OP_SOME;
+    default:
+        break;
+    }
 
     match = (const TranspilerResultOptionSpec *)bsearch(&fn,
         kTranspilerResultOptionSpecs,

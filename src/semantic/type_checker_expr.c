@@ -4,6 +4,7 @@
 #include "type_checker_internal.h"
 #include "type_checker_visibility.h"
 #include "diag_codes.h"
+#include "../common/match_variant_policy.h"
 
 static Type *
 expr_resolve_type_ref(ASTNode *type_ref, SemanticContext *ctx)
@@ -155,7 +156,8 @@ type_check_expression(ASTNode *expr, SemanticContext *ctx)
     case AST_IDENTIFIER: {
         const char *expr_name = ast_identifier_name(expr);
         /* Special handling for Option value constructors used without parens */
-        if (strcmp(expr_name, "None") == 0) {
+        if (pgy_match_variant_lookup(expr_name)
+                == PGY_MATCH_VARIANT_NONE_CTOR) {
             return wrap_constructed(TYPE_OPTION, TYPE_UNKNOWN);
         }
         Symbol *sym = scope_lookup(ctx->scope, expr_name);
@@ -290,6 +292,18 @@ type_check_expression(ASTNode *expr, SemanticContext *ctx)
                  * (network partition, timeout, etc.) so the result must be
                  * explicitly handled. Local Future<T> -> T as before. */
                 if (type_equals(type_constructed_constructor(future_type), TYPE_REMOTE_FUTURE)) {
+                    if (type_equals(inner, TYPE_VOID)) {
+                        semantic_error_with_hints(ctx,
+                            PGY_CODE_SEM_REMOTE_FUTURE_MISUSE,
+                            PGY_CAUSE_REMOTE_FUTURE_DIRECT_ACCESS,
+                            PGY_FIX_AWAIT_FUTURE_TYPE,
+                            expr,
+                            "RemoteFuture<Void> await is not in the stable "
+                            "subset; return a value payload or model the "
+                            "remote completion as Result<Int> until "
+                            "Result<Void> ABI is frozen");
+                        return TYPE_UNKNOWN;
+                    }
                     Type *result_args[1] = { inner };
                     return type_create_constructed(TYPE_RESULT, result_args, 1);
                 }

@@ -265,7 +265,7 @@ Runtime invariants:
 - The current table-backed runtime ABI uses 32-bit `slotId` / `generation`.
   It therefore must reject the zero-id sentinel and tombstone the manager before
   `slotId` wrap instead of silently reusing an old id. `SlotClaim` now hard-fails
-  with `SLOT_ERROR_OUT_OF_MEMORY` when the id space is exhausted.
+  with `SLOT_ERROR_ID_EXHAUSTED` when the id space is exhausted.
 - Unpin must match the issued view generation, mode, thread affinity, and
   pointer identity. A tampered view cannot clear the runtime pin state.
 - Secure write pin opens sealed payload into a lease buffer and reseals on

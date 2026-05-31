@@ -1,0 +1,24 @@
+func PickPositive(a: Int, b: Int) -> Option<Int> {
+    if a > 0 {
+        return Some(a);
+    }
+    if b > 0 {
+        return Some(b);
+    }
+    return None;
+}
+
+func DoubleOrDefault(o: Option<Int>, def: Int) -> Int {
+    match o {
+        case Some(n): return n + n;
+        case None: return def;
+    }
+}
+
+func Main() -> Void {
+    Log(DoubleOrDefault(PickPositive(5, 8), 99));
+    Log(DoubleOrDefault(PickPositive(-1, 8), 99));
+    Log(DoubleOrDefault(PickPositive(-1, -2), 99));
+    Log(DoubleOrDefault(PickPositive(0, 7), 99));
+    Log(DoubleOrDefault(None, 42));
+}

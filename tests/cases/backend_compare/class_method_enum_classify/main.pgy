@@ -1,0 +1,34 @@
+class Counter {
+    let value: Int;
+
+    func IsZero(self) -> Bool { return value == 0; }
+    func IsPos(self) -> Bool { return value > 0; }
+    func IsBig(self) -> Bool { return value > 100; }
+}
+
+enum Verdict { Zero, Small, Big, Negative }
+
+func Classify(c: Counter) -> Verdict {
+    if c.IsZero() { return Zero; }
+    if c.IsBig() { return Big; }
+    if c.IsPos() { return Small; }
+    return Negative;
+}
+
+func Process(c: Counter) -> Int {
+    match Classify(c) {
+        case Zero: return 0;
+        case Small: return c.value;
+        case Big: return c.value * 10;
+        case Negative: return -c.value;
+    }
+}
+
+func Main() -> Void {
+    Log(Process(Counter(0)));
+    Log(Process(Counter(5)));
+    Log(Process(Counter(150)));
+    Log(Process(Counter(-3)));
+    Log(Process(Counter(99)));
+    Log(Process(Counter(101)));
+}

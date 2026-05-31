@@ -16,6 +16,8 @@ typedef struct { \
     bool    occupied; \
 } PgySlot_##SuffixName; \
 \
+PGY_RUNTIME_SLOT_RESULT_DEFINE(SuffixName, CType) \
+\
 static inline PgySlot_##SuffixName \
 __attribute__((unused)) \
 pgy_claim_##SuffixName(void) \
@@ -89,6 +91,20 @@ pgy_try_read_##SuffixName(PgySlot_##SuffixName* s, CType* out) \
         return PGY_RUNTIME_SLOT_STATUS_RELEASED_SLOT; \
     *out = s->value; \
     return PGY_RUNTIME_SLOT_STATUS_OK; \
+} \
+\
+static inline PgyRuntimeSlotResult_##SuffixName \
+__attribute__((unused)) \
+pgy_try_read_result_##SuffixName(PgySlot_##SuffixName* s) \
+{ \
+    CType value; \
+    PgyRuntimeSlotStatus status; \
+    memset(&value, 0, sizeof(value)); \
+    status = pgy_try_read_##SuffixName(s, &value); \
+    if (status == PGY_RUNTIME_SLOT_STATUS_OK) \
+        return pgy_runtime_slot_result_ok_##SuffixName(value); \
+    return pgy_runtime_slot_result_err_##SuffixName( \
+        pgy_runtime_slot_failure_from_status(status, "slot-boundary", "read")); \
 } \
 \
 static inline PgyRuntimeSlotStatus \
@@ -172,6 +188,8 @@ typedef struct { \
     CType   value; \
 } PgySlot_##SuffixName; \
 \
+PGY_RUNTIME_SLOT_RESULT_DEFINE(SuffixName, CType) \
+\
 static inline PgySlot_##SuffixName \
 __attribute__((unused)) \
 pgy_claim_##SuffixName(void) \
@@ -222,6 +240,20 @@ pgy_try_read_##SuffixName(PgySlot_##SuffixName* s, CType* out) \
         return PGY_RUNTIME_SLOT_STATUS_NULL_SLOT; \
     *out = s->value; \
     return PGY_RUNTIME_SLOT_STATUS_OK; \
+} \
+\
+static inline PgyRuntimeSlotResult_##SuffixName \
+__attribute__((unused)) \
+pgy_try_read_result_##SuffixName(PgySlot_##SuffixName* s) \
+{ \
+    CType value; \
+    PgyRuntimeSlotStatus status; \
+    memset(&value, 0, sizeof(value)); \
+    status = pgy_try_read_##SuffixName(s, &value); \
+    if (status == PGY_RUNTIME_SLOT_STATUS_OK) \
+        return pgy_runtime_slot_result_ok_##SuffixName(value); \
+    return pgy_runtime_slot_result_err_##SuffixName( \
+        pgy_runtime_slot_failure_from_status(status, "slot-boundary", "read")); \
 } \
 \
 static inline PgyRuntimeSlotStatus \

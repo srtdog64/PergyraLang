@@ -1,0 +1,20 @@
+enum Tree { Leaf(Int), Node(Int, Int) }
+
+func Score(t: Tree) -> Int {
+    match t {
+        case Leaf(v): return v;
+        case Node(left, right): return left + right + 1;
+    }
+}
+
+func DoubleScore(t1: Tree, t2: Tree) -> Int {
+    return Score(t1) * 100 + Score(t2);
+}
+
+func Main() -> Void {
+    Log(Score(Leaf(5)));
+    Log(Score(Node(3, 4)));
+    Log(DoubleScore(Leaf(2), Leaf(7)));
+    Log(DoubleScore(Node(1, 2), Leaf(9)));
+    Log(DoubleScore(Node(0, 0), Node(5, 5)));
+}

@@ -199,6 +199,67 @@ ast_match_case_body(const ASTNode* node)
     return node->data.match_case.body;
 }
 
+ASTNode*
+ast_find_match_subject_for_case(const ASTNode* root, const ASTNode* case_node)
+{
+    if (root == NULL || case_node == NULL)
+        return NULL;
+
+    if (root->type == AST_MATCH_STMT) {
+        for (size_t i = 0; i < ast_match_case_count(root); i++) {
+            ASTNode* match_case = ast_match_case_at(root, i);
+            if (match_case == case_node)
+                return ast_match_subject(root);
+            ASTNode* found = ast_find_match_subject_for_case(
+                ast_match_case_body(match_case), case_node);
+            if (found != NULL)
+                return found;
+        }
+        ASTNode* found = ast_find_match_subject_for_case(
+            ast_match_default_body(root), case_node);
+        if (found != NULL)
+            return found;
+    }
+
+    switch (root->type) {
+    case AST_BLOCK:
+        for (size_t i = 0; i < ast_block_statement_count(root); i++) {
+            ASTNode* found = ast_find_match_subject_for_case(
+                ast_block_statement(root, i), case_node);
+            if (found != NULL)
+                return found;
+        }
+        break;
+    case AST_IF_STMT: {
+        ASTNode* found = ast_find_match_subject_for_case(
+            ast_if_then_branch(root), case_node);
+        if (found != NULL)
+            return found;
+        return ast_find_match_subject_for_case(
+            ast_if_else_branch(root), case_node);
+    }
+    case AST_FOR_LOOP:
+        return ast_find_match_subject_for_case(ast_for_body(root), case_node);
+    case AST_WHILE_LOOP:
+        return ast_find_match_subject_for_case(ast_while_body(root), case_node);
+    case AST_WITH_STMT:
+        return ast_find_match_subject_for_case(ast_with_body(root), case_node);
+    case AST_SELECT_STMT:
+        for (size_t i = 0; i < ast_select_case_count(root); i++) {
+            ASTNode* found = ast_find_match_subject_for_case(
+                ast_select_case(root, i), case_node);
+            if (found != NULL)
+                return found;
+        }
+        return ast_find_match_subject_for_case(
+            ast_select_default_case(root), case_node);
+    default:
+        break;
+    }
+
+    return NULL;
+}
+
 size_t
 ast_event_param_count(const ASTNode* node)
 {

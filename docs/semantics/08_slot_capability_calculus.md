@@ -258,13 +258,16 @@ panic class.
 Current evidence:
 
 - Runtime slot manager stores generation counters and rejects stale handles.
-- `make test-security` (142/142 passed locally) covers stale-generation
-  read/write/pin/release rejection and `SlotIsValid` false for
-  stale-generation handles.
+- `make test-security` (160/160 passed locally) covers stale-generation
+  read/write/pin/release rejection, released-slot id recycle with generation
+  advance, and `SlotIsValid` false for stale-generation handles.
 - The current C ABI is a 32-bit `slotId` / `generation` handle, so ABA safety
   also depends on never using the zero-id sentinel or wrapping the id space.
-  `SlotClaim` tombstones those states by returning `SLOT_ERROR_OUT_OF_MEMORY`
-  instead of reusing an old id; `make test-security` covers these guards.
+  `SlotClaim` tombstones those fresh-id states by returning
+  `SLOT_ERROR_ID_EXHAUSTED`; released slots recycle only after advancing
+  `generation`, and generation-exhausted recycle attempts are reported as
+  `SLOT_ERROR_ID_EXHAUSTED` rather than allocator OOM. `make test-security`
+  covers these guards.
 - `make test-security` also covers tampered pinned-view generation rejection and
   double-unpin rejection, so unpin cannot silently clear a pin without matching
   the issued view.

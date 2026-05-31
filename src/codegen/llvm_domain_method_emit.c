@@ -54,6 +54,8 @@ llvm_emit_domain_sync_and_method_bodies(LLVMGenCtx *ctx,
                     else
                         llvm_emit_domain_projection_sync(stmt, decl_name, cls,
                             sync_entry->fn, ctx);
+                    if (ctx->has_error)
+                        return false;
                 }
             }
 
@@ -83,6 +85,8 @@ llvm_emit_domain_sync_and_method_bodies(LLVMGenCtx *ctx,
                 mir_method = llvm_mir_decl_method_routine(ctx, method_meta);
                 if (mir_method != NULL) {
                     llvm_emit_func_from_mir(mir_method, ctx);
+                    if (ctx->has_error)
+                        return false;
                     continue;
                 }
                 llvm_set_mir_inventory_missing(ctx,

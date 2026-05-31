@@ -470,7 +470,8 @@ void test_runtime_file_io_policy()
     free(content);
 
 #ifndef _WIN32
-    symlink("../pgy_security_outside", escape_link);
+    TEST_ASSERT(symlink("../pgy_security_outside", escape_link) == 0,
+                "Symlink escape test fixture can be created");
     pgy_write_file("escape/blocked.txt", "blocked");
     TEST_SECURITY_VIOLATION(access(outside_path, F_OK) != 0,
                             "Symlink escape outside PGY_IO_ROOT is denied");
@@ -579,8 +580,10 @@ void test_runtime_zone_authority_validation()
 void test_slot_pin_lease_runtime()
 {
     SlotManager *plainManager;
+    SlotManager *exhaustManager;
     SlotManager *secureManager;
     SlotHandle plainHandle;
+    SlotHandle exhaustHandle;
     SlotHandle staleHandle;
     SlotHandle secureHandle;
     SlotHandle revokedHandle;
@@ -601,13 +604,27 @@ void test_slot_pin_lease_runtime()
     TEST_ASSERT(plainManager != NULL, "Plain slot manager for pin tests");
     plainManager->nextSlotId = 0;
     result = SlotClaim(plainManager, TYPE_INT, &plainHandle);
-    TEST_SECURITY_VIOLATION(result == SLOT_ERROR_OUT_OF_MEMORY,
+    TEST_SECURITY_VIOLATION(result == SLOT_ERROR_ID_EXHAUSTED,
                             "Zero slot id sentinel is tombstoned before claim");
     plainManager->nextSlotId = UINT32_MAX;
     result = SlotClaim(plainManager, TYPE_INT, &plainHandle);
-    TEST_SECURITY_VIOLATION(result == SLOT_ERROR_OUT_OF_MEMORY,
+    TEST_SECURITY_VIOLATION(result == SLOT_ERROR_ID_EXHAUSTED,
                             "Slot id wrap is tombstoned before reuse");
     plainManager->nextSlotId = 1;
+
+    exhaustManager = SlotManagerCreate(1, 1024);
+    TEST_ASSERT(exhaustManager != NULL,
+                "Generation exhaustion slot manager is created");
+    result = SlotClaim(exhaustManager, TYPE_INT, &exhaustHandle);
+    TEST_ASSERT(result == SLOT_SUCCESS, "Generation exhaustion slot claim");
+    result = SlotRelease(exhaustManager, &exhaustHandle);
+    TEST_ASSERT(result == SLOT_SUCCESS, "Generation exhaustion slot release");
+    exhaustManager->slotTable[0].generation = UINT32_MAX;
+    result = SlotClaim(exhaustManager, TYPE_INT, &exhaustHandle);
+    TEST_SECURITY_VIOLATION(result == SLOT_ERROR_ID_EXHAUSTED,
+                            "Generation-exhausted recycled slot is not OOM");
+    SlotManagerDestroy(exhaustManager);
+
     result = SlotClaim(plainManager, TYPE_INT, &plainHandle);
     TEST_ASSERT(result == SLOT_SUCCESS, "Plain slot claim for pin");
     value = 42;
@@ -651,8 +668,16 @@ void test_slot_pin_lease_runtime()
     result = SlotRelease(plainManager, &plainHandle);
     TEST_ASSERT(result == SLOT_SUCCESS, "Plain slot release after unpin succeeds");
 
+    staleHandle = plainHandle;
     result = SlotClaim(plainManager, TYPE_INT, &plainHandle);
     TEST_ASSERT(result == SLOT_SUCCESS, "Generation guard slot claim");
+    TEST_ASSERT(plainHandle.slotId == staleHandle.slotId
+                    && plainHandle.generation == staleHandle.generation + 1u,
+                "Released slot id is recycled with advanced generation");
+    result = SlotRead(plainManager, &staleHandle, &readValue, sizeof(readValue),
+                      &bytesRead);
+    TEST_SECURITY_VIOLATION(result == SLOT_ERROR_SLOT_NOT_FOUND,
+                            "Recycled stale generation handle cannot read");
     value = 77;
     result = SlotWrite(plainManager, &plainHandle, &value, sizeof(value));
     TEST_ASSERT(result == SLOT_SUCCESS, "Generation guard slot write");

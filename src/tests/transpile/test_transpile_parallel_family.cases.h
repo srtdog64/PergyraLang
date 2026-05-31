@@ -5,26 +5,42 @@ test_parallel_family_emit(void)
 
     TEST("parallel-family: spawn emits wrapper-based task launch");
     {
-        ASTNode id_node; memset(&id_node, 0, sizeof(id_node));
-        id_node.type = AST_IDENTIFIER;
-        id_node.data.identifier.name = "DoWork";
+        ASTNode *worker = calloc(1, sizeof(ASTNode));
+        worker->type = AST_FUNC_DECL;
+        worker->data.func_decl.name = pergyra_strdup("DoWork");
+        worker->data.func_decl.return_type = make_type_node("Void");
+        worker->data.func_decl.body = ast_create_block();
 
-        ASTNode spawn_node; memset(&spawn_node, 0, sizeof(spawn_node));
-        spawn_node.type = AST_SPAWN_EXPR;
-        spawn_node.data.spawn_expr.function = &id_node;
-        spawn_node.data.spawn_expr.arguments = NULL;
-        spawn_node.data.spawn_expr.arg_count = 0;
+        ASTNode *spawn_node = calloc(1, sizeof(ASTNode));
+        spawn_node->type = AST_SPAWN_EXPR;
+        spawn_node->data.spawn_expr.function = make_identifier("DoWork", 1);
 
+        ASTNode *main_body = ast_create_block();
+        ast_add_statement(main_body, spawn_node);
+        ASTNode *main_fn = calloc(1, sizeof(ASTNode));
+        main_fn->type = AST_FUNC_DECL;
+        main_fn->data.func_decl.name = pergyra_strdup("Main");
+        main_fn->data.func_decl.return_type = make_type_node("Void");
+        main_fn->data.func_decl.body = main_body;
+
+        ASTNode *stmts[2] = { worker, main_fn };
+        ASTNode *program = make_program(stmts, 2);
+        HIRProgram *hir = NULL;
+        RIRProgram *rir = NULL;
+        MIRProgram *mir = lower_program_to_mir(program, &hir, &rir);
         TranspilerCtx *ctx = transpiler_ctx_create();
-        char *result = emit_expression(&spawn_node, ctx);
+        emit_program(ctx);
 
-        EXPECT(result != NULL);
-        EXPECT(strstr(result, "spawn") != NULL);
-        EXPECT(strstr(result, "pgy_spawn_wrapper") != NULL);
+        EXPECT(ctx->out->data != NULL);
+        EXPECT(strstr(ctx->out->data, "spawn") != NULL);
+        EXPECT(strstr(ctx->out->data, "pgy_spawn_wrapper") != NULL);
         EXPECT(strstr(ctx->helpers->data, "DoWork") != NULL);
 
-        free(result);
         transpiler_ctx_destroy(ctx);
+        mir_destroy(mir);
+        rir_destroy(rir);
+        hir_destroy(hir);
+        ast_destroy(program);
     }
 
     TEST("select-readiness: select emits round-robin switch");

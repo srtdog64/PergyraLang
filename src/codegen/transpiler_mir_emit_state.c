@@ -43,6 +43,7 @@ static void
 transpiler_restore_mir_emit_state_local(TranspilerCtx *ctx,
                                         int saved_slot_count,
                                         int saved_typed_count,
+                                        int saved_indent,
                                         const char *saved_return_type,
                                         const ASTNode *saved_func_decl,
                                         ASTNode *saved_host_decl,
@@ -53,6 +54,7 @@ transpiler_restore_mir_emit_state_local(TranspilerCtx *ctx,
 
     transpiler_restore_local_binding_counts_local(ctx, saved_slot_count,
                                                   saved_typed_count, -1);
+    ctx->indent = saved_indent;
     if (saved_return_type != NULL) {
         if (!transpiler_mir_emit_copy_return_type(ctx->current_return_type,
                 sizeof(ctx->current_return_type), saved_return_type)) {
@@ -74,6 +76,7 @@ transpiler_capture_mir_emit_state_local(TranspilerCtx *ctx,
 
     state->slot_count = ctx->slot_var_count;
     state->typed_count = ctx->typed_var_count;
+    state->indent = ctx->indent;
     state->host_decl = transpiler_current_host_decl_local(ctx);
     state->out = ctx->out;
     state->func_decl = ctx->current_func_decl;
@@ -92,7 +95,8 @@ transpiler_restore_mir_emit_state_from_snapshot_local(
         return;
 
     transpiler_restore_mir_emit_state_local(
-        ctx, state->slot_count, state->typed_count, state->return_type,
+        ctx, state->slot_count, state->typed_count, state->indent,
+        state->return_type,
         state->func_decl, state->host_decl, state->out);
 }
 

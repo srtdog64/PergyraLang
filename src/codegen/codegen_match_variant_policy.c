@@ -1,85 +1,38 @@
 /*
  * Copyright (c) 2026 Pergyra Language Project
- * Match destructor vocabulary shared by C, LLVM, and MIR lowering.
+ * Codegen tags for the shared Option/Result variant vocabulary.
  */
 
 #include "codegen_match_variant_policy.h"
 
-#include <stdlib.h>
-#include <string.h>
-
-typedef struct PgyCodegenMatchVariantSpec {
-    const char *name;
-    PgyCodegenMatchVariantKind kind;
-} PgyCodegenMatchVariantSpec;
-
-static int
-pgy_codegen_match_variant_compare(const void *key, const void *entry)
-{
-    const char *name = *(const char * const *)key;
-    const PgyCodegenMatchVariantSpec *spec =
-        (const PgyCodegenMatchVariantSpec *)entry;
-
-    return strcmp(name, spec->name);
-}
-
 PgyCodegenMatchVariantKind
 pgy_codegen_match_variant_lookup(const char *name)
 {
-    static const PgyCodegenMatchVariantSpec specs[] = {
-        { "Err", PGY_MATCH_VARIANT_ERR },
-        { "None", PGY_MATCH_VARIANT_NONE_CTOR },
-        { "Ok", PGY_MATCH_VARIANT_OK },
-        { "Some", PGY_MATCH_VARIANT_SOME },
-    };
-    const PgyCodegenMatchVariantSpec *spec;
-
-    if (name == NULL)
-        return PGY_MATCH_VARIANT_NONE;
-    spec = (const PgyCodegenMatchVariantSpec *)bsearch(&name,
-        specs,
-        sizeof(specs) / sizeof(specs[0]),
-        sizeof(specs[0]),
-        pgy_codegen_match_variant_compare);
-    return spec != NULL ? spec->kind : PGY_MATCH_VARIANT_NONE;
+    return pgy_match_variant_lookup(name);
 }
 
 const char *
 pgy_codegen_match_variant_name(PgyCodegenMatchVariantKind kind)
 {
-    switch (kind) {
-    case PGY_MATCH_VARIANT_ERR:
-        return "Err";
-    case PGY_MATCH_VARIANT_NONE_CTOR:
-        return "None";
-    case PGY_MATCH_VARIANT_OK:
-        return "Ok";
-    case PGY_MATCH_VARIANT_SOME:
-        return "Some";
-    default:
-        return NULL;
-    }
+    return pgy_match_variant_name(kind);
 }
 
 bool
 pgy_codegen_match_variant_is_option(PgyCodegenMatchVariantKind kind)
 {
-    return kind == PGY_MATCH_VARIANT_NONE_CTOR
-        || kind == PGY_MATCH_VARIANT_SOME;
+    return pgy_match_variant_is_option(kind);
 }
 
 bool
 pgy_codegen_match_variant_is_result(PgyCodegenMatchVariantKind kind)
 {
-    return kind == PGY_MATCH_VARIANT_ERR
-        || kind == PGY_MATCH_VARIANT_OK;
+    return pgy_match_variant_is_result(kind);
 }
 
 bool
 pgy_codegen_match_variant_is_builtin(PgyCodegenMatchVariantKind kind)
 {
-    return pgy_codegen_match_variant_is_option(kind)
-        || pgy_codegen_match_variant_is_result(kind);
+    return pgy_match_variant_is_builtin(kind);
 }
 
 const char *

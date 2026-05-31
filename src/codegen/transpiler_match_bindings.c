@@ -13,6 +13,7 @@
 #include "transpiler_context.h"
 #include "transpiler_decl_lookup.h"
 #include "transpiler_inventory_view.h"
+#include "transpiler_symbols.h"
 #include "transpiler_type_mapping.h"
 #include "transpiler_type_render.h"
 #include "transpiler_type_require.h"
@@ -242,6 +243,7 @@ transpiler_emit_builtin_match_binding(ASTNode *pattern_node,
         }
         codebuf_write(ctx->out, "%s %s = __match_%d.value;\n",
             inner_c_type, binding, tmp_id);
+        register_typed_var(ctx, binding, inner);
     } else if (match_variant == PGY_MATCH_VARIANT_OK) {
         char ok_type_buf[128];
         const char *ok_type = NULL;
@@ -277,6 +279,7 @@ transpiler_emit_builtin_match_binding(ASTNode *pattern_node,
         }
         codebuf_write(ctx->out, "%s %s = __match_%d.ok;\n",
             ok_c_type, binding, tmp_id);
+        register_typed_var(ctx, binding, ok_type);
     } else if (match_variant == PGY_MATCH_VARIANT_ERR) {
         char err_type_buf[128];
         char result_inner_buf[128];
@@ -324,6 +327,7 @@ transpiler_emit_builtin_match_binding(ASTNode *pattern_node,
         }
         codebuf_write(ctx->out, "%s %s = __match_%d.err;\n",
             err_c_type, binding, tmp_id);
+        register_typed_var(ctx, binding, err_type);
     }
 
     (void)pattern_node;

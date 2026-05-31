@@ -1,0 +1,39 @@
+class Node {
+    let v: Int;
+    let next: Int;
+
+    func Step(self) -> Int {
+        return v + next;
+    }
+}
+
+func Build(seed: Int) -> Option<Node> {
+    if seed < 0 { return None; }
+    return Some(Node(seed * 10, seed + 1));
+}
+
+func RunChain(seeds: Array<Int>, n: Int) -> Int {
+    let acc: Int = 0;
+    let i: Int = 0;
+    while i < n {
+        match Build(seeds[i]) {
+            case Some(nd):
+                acc = acc + nd.v * nd.next + nd.Step();
+            case None:
+                acc = acc - 100;
+        }
+        i = i + 1;
+    }
+    return acc;
+}
+
+func Main() -> Void {
+    let s1: Array<Int> = [1, 2, 3];
+    Log(RunChain(s1, 3));
+    let s2: Array<Int> = [-1, 5, -2];
+    Log(RunChain(s2, 3));
+    let s3: Array<Int> = [0, 0, 0];
+    Log(RunChain(s3, 3));
+    let s4: Array<Int> = [10];
+    Log(RunChain(s4, 1));
+}

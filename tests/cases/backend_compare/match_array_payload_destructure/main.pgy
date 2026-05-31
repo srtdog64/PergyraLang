@@ -1,0 +1,33 @@
+enum Mode { CountAll, CountAbove(Int), SumAbove(Int) }
+
+func Process(arr: Array<Int>, n: Int, m: Mode) -> Int {
+    match m {
+        case CountAll: return n;
+        case CountAbove(t1):
+            let cnt: Int = 0;
+            let i: Int = 0;
+            while i < n {
+                if arr[i] > t1 { cnt = cnt + 1; }
+                i = i + 1;
+            }
+            return cnt;
+        case SumAbove(t2):
+            let sumv: Int = 0;
+            let j: Int = 0;
+            while j < n {
+                if arr[j] > t2 { sumv = sumv + arr[j]; }
+                j = j + 1;
+            }
+            return sumv;
+    }
+}
+
+func Main() -> Void {
+    let a: Array<Int> = [1, 5, 3, 8, 2, 7, 4];
+    Log(Process(a, 7, CountAll));
+    Log(Process(a, 7, CountAbove(4)));
+    Log(Process(a, 7, CountAbove(0)));
+    Log(Process(a, 7, SumAbove(4)));
+    Log(Process(a, 7, SumAbove(0)));
+    Log(Process(a, 7, SumAbove(100)));
+}

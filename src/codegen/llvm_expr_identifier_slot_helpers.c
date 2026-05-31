@@ -9,6 +9,7 @@
 #include <stdio.h>
 #include <string.h>
 
+#include "codegen_match_variant_policy.h"
 #include "codegen_slot_type_policy.h"
 #include "llvm_expr_host_spawn_literal_helpers.h"
 #include "llvm_internal_api.h"
@@ -307,6 +308,22 @@ llvm_emit_identifier(ASTNode *node, LLVMGenCtx *ctx)
             }
             return LLVMConstInt(ctx->type_i32,
                 (unsigned long long)variant->value, 0);
+        }
+    }
+
+    if (pgy_codegen_match_variant_lookup(name) == PGY_MATCH_VARIANT_NONE_CTOR) {
+        LLVMTypeRef ctx_ty = ctx->current_ret_type;
+        if (ctx_ty != NULL
+            && LLVMGetTypeKind(ctx_ty) == LLVMStructTypeKind
+            && LLVMCountStructElementTypes(ctx_ty) == 2
+            && LLVMStructGetTypeAtIndex(ctx_ty, 0) == ctx->type_i32) {
+            LLVMTypeRef value_ty = LLVMStructGetTypeAtIndex(ctx_ty, 1);
+            LLVMValueRef o = LLVMGetUndef(ctx_ty);
+            o = LLVMBuildInsertValue(ctx->builder, o,
+                LLVMConstInt(ctx->type_i32, 1, 0), 0, llvm_tmp_name(ctx));
+            o = LLVMBuildInsertValue(ctx->builder, o,
+                LLVMConstNull(value_ty), 1, llvm_tmp_name(ctx));
+            return o;
         }
     }
 

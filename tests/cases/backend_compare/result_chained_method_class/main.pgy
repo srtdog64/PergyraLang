@@ -1,0 +1,45 @@
+enum PipeErr { TooLow, TooHigh }
+
+class Builder {
+    let val: Int;
+    let lo: Int;
+    let hi: Int;
+
+    func Step(self, delta: Int) -> Result<Builder, PipeErr> {
+        let nv: Int = val + delta;
+        if nv < lo { return Err(TooLow); }
+        if nv > hi { return Err(TooHigh); }
+        return Ok(Builder(nv, lo, hi));
+    }
+}
+
+func Pipeline(start: Int, lo: Int, hi: Int, d1: Int, d2: Int) -> Result<Int, PipeErr> {
+    let b0: Builder = Builder(start, lo, hi);
+    match b0.Step(d1) {
+        case Ok(b1):
+            match b1.Step(d2) {
+                case Ok(b2): return Ok(b2.val);
+                case Err(e2): return Err(e2);
+            }
+        case Err(e1): return Err(e1);
+    }
+}
+
+func Tag(r: Result<Int, PipeErr>, def: Int) -> Int {
+    match r {
+        case Ok(v): return v;
+        case Err(e):
+            match e {
+                case TooLow: return def + 1;
+                case TooHigh: return def + 2;
+            }
+    }
+}
+
+func Main() -> Void {
+    Log(Tag(Pipeline(0, -100, 100, 50, 30), -1000));
+    Log(Tag(Pipeline(0, -100, 100, -200, 0), -1000));
+    Log(Tag(Pipeline(0, -100, 100, 0, 200), -1000));
+    Log(Tag(Pipeline(50, 0, 100, 10, 20), -1000));
+    Log(Tag(Pipeline(99, 0, 100, 5, -200), -1000));
+}

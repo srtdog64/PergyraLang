@@ -1,0 +1,28 @@
+enum Status { Idle, Active(Int), Failed(String) }
+
+func StatusFromCode(code: Int) -> Status {
+    if code == 0 { return Idle; }
+    if code > 0 { return Active(code); }
+    return Failed("negative");
+}
+
+func Severity(s: Status) -> Int {
+    match s {
+        case Idle: return 0;
+        case Active(level): return level * 10;
+        case Failed(msg): return -StringLength(msg);
+    }
+}
+
+func PipeRound(code: Int) -> Int {
+    let s: Status = StatusFromCode(code);
+    return Severity(s) + code;
+}
+
+func Main() -> Void {
+    Log(PipeRound(0));
+    Log(PipeRound(5));
+    Log(PipeRound(100));
+    Log(PipeRound(-3));
+    Log(PipeRound(-100));
+}

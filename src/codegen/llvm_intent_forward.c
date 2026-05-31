@@ -89,7 +89,7 @@ llvm_forward_declare_intent(ASTNode *node, LLVMGenCtx *ctx)
         param_types = pgy_arena_calloc(&ctx->scratch,
             param_count * sizeof(LLVMTypeRef));
         for (size_t i = 0; i < param_count; i++) {
-            LLVMTypeRef pt = ctx->type_i32;
+            LLVMTypeRef pt = NULL;
             ASTNode *binding = binding_count > 0
                 ? (i < binding_count ? bindings[i] : NULL)
                 : (i < involve_count
@@ -120,6 +120,12 @@ llvm_forward_declare_intent(ASTNode *node, LLVMGenCtx *ctx)
                             pt = LLVMPointerType(pt, 0);
                     }
                 }
+                if (pt == NULL && mir_only_intent) {
+                    llvm_set_mir_inventory_missing(ctx,
+                        "MIR-only LLVM path missing intent participant type metadata for '%s'",
+                        name != NULL ? name : "(anonymous)");
+                    return;
+                }
                 participant_index++;
             } else if (binding != NULL && binding->type == AST_INTENT_VALUE) {
                 ASTNode *value_type = ast_intent_value_type(binding);
@@ -128,7 +134,20 @@ llvm_forward_declare_intent(ASTNode *node, LLVMGenCtx *ctx)
                     if (ctx->has_error || pt == NULL)
                         return;
                 }
+                if (pt == NULL && mir_only_intent) {
+                    llvm_set_mir_inventory_missing(ctx,
+                        "MIR-only LLVM path missing intent value type metadata for '%s'",
+                        name != NULL ? name : "(anonymous)");
+                    return;
+                }
+            } else if (mir_only_intent) {
+                llvm_set_mir_inventory_missing(ctx,
+                    "MIR-only LLVM path missing intent parameter metadata for '%s'",
+                    name != NULL ? name : "(anonymous)");
+                return;
             }
+            if (pt == NULL)
+                pt = ctx->type_i32;
             param_types[i] = pt;
         }
     }

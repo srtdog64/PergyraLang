@@ -46,6 +46,17 @@ pgy_device_write_##SuffixName(PgyDeviceSlot_##SuffixName *s, CType v) \
     s->value = v; \
 } \
 \
+static inline PgyRuntimeSlotStatus \
+pgy_try_device_write_##SuffixName(PgyDeviceSlot_##SuffixName *s, CType v) \
+{ \
+    if (s == NULL) \
+        return PGY_RUNTIME_SLOT_STATUS_NULL_SLOT; \
+    if (!s->claimed) \
+        return PGY_RUNTIME_SLOT_STATUS_RELEASED_SLOT; \
+    s->value = v; \
+    return PGY_RUNTIME_SLOT_STATUS_OK; \
+} \
+\
 static inline CType \
 pgy_device_read_##SuffixName(PgyDeviceSlot_##SuffixName *s) \
 { \
@@ -53,6 +64,33 @@ pgy_device_read_##SuffixName(PgyDeviceSlot_##SuffixName *s) \
         PGY_RUNTIME_PANIC(PGY_RUNTIME_PANIC_CLASS_RELEASED_SLOT, \
                           PGY_RUNTIME_PANIC_REASON_RELEASED_DEVICE_SLOT_READ); \
     return s->value; \
+} \
+\
+static inline PgyRuntimeSlotStatus \
+pgy_try_device_read_##SuffixName(PgyDeviceSlot_##SuffixName *s, CType *out) \
+{ \
+    if (out == NULL) \
+        return PGY_RUNTIME_SLOT_STATUS_NULL_OUTPUT; \
+    if (s == NULL) \
+        return PGY_RUNTIME_SLOT_STATUS_NULL_SLOT; \
+    if (!s->claimed) \
+        return PGY_RUNTIME_SLOT_STATUS_RELEASED_SLOT; \
+    *out = s->value; \
+    return PGY_RUNTIME_SLOT_STATUS_OK; \
+} \
+\
+static inline PgyRuntimeSlotResult_##SuffixName \
+pgy_try_device_read_result_##SuffixName(PgyDeviceSlot_##SuffixName *s) \
+{ \
+    CType value; \
+    PgyRuntimeSlotStatus status; \
+    memset(&value, 0, sizeof(value)); \
+    status = pgy_try_device_read_##SuffixName(s, &value); \
+    if (status == PGY_RUNTIME_SLOT_STATUS_OK) \
+        return pgy_runtime_slot_result_ok_##SuffixName(value); \
+    return pgy_runtime_slot_result_err_##SuffixName( \
+        pgy_runtime_slot_failure_from_status(status, \
+                                            "device-slot-boundary", "read")); \
 } \
 \
 static inline void \
@@ -68,18 +106,38 @@ pgy_release_device_##SuffixName(PgyDeviceSlot_##SuffixName *s) \
     s->claimed = false; \
 } \
 \
+static inline PgyRuntimeSlotStatus \
+pgy_try_release_device_##SuffixName(PgyDeviceSlot_##SuffixName *s) \
+{ \
+    if (s == NULL) \
+        return PGY_RUNTIME_SLOT_STATUS_NULL_SLOT; \
+    if (!s->claimed) \
+        return PGY_RUNTIME_SLOT_STATUS_DOUBLE_RELEASE; \
+    memset(&s->value, 0, sizeof(s->value)); \
+    s->claimed = false; \
+    return PGY_RUNTIME_SLOT_STATUS_OK; \
+} \
+\
 static inline void * \
 pgy_device_read_task_##SuffixName(void *raw) \
 { \
     PgyDeviceReadTaskArg_##SuffixName *arg = (PgyDeviceReadTaskArg_##SuffixName *)raw; \
-    CType *result = (CType *)malloc(sizeof(CType)); \
-    if (result == NULL) { \
+    PgyRuntimeSlotResult_##SuffixName read_result; \
+    if (arg == NULL) \
+        return NULL; \
+    read_result = pgy_try_device_read_result_##SuffixName(arg->slot); \
+    if (read_result.tag != PGY_RUNTIME_SLOT_RESULT_OK) { \
         free(arg); \
         return NULL; \
     } \
-    *result = pgy_device_read_##SuffixName(arg->slot); \
+    CType *payload = (CType *)malloc(sizeof(CType)); \
+    if (payload == NULL) { \
+        free(arg); \
+        return NULL; \
+    } \
+    *payload = read_result.ok; \
     free(arg); \
-    return result; \
+    return payload; \
 } \
 \
 static inline PgyTaskHandle \
@@ -137,6 +195,25 @@ pgy_claim_secure_##SuffixName(PgyToken_##SuffixName* out_token) \
     return s; \
 } \
 \
+static inline PgyRuntimeSlotStatus \
+pgy_try_secure_write_##SuffixName(PgySecureSlot_##SuffixName* s, \
+                                  CType v, \
+                                  const PgyToken_##SuffixName* t) \
+{ \
+    if (s == NULL) \
+        return PGY_RUNTIME_SLOT_STATUS_NULL_SLOT; \
+    if (t == NULL) \
+        return PGY_RUNTIME_SLOT_STATUS_NULL_TOKEN; \
+    if (!s->occupied) \
+        return PGY_RUNTIME_SLOT_STATUS_RELEASED_SLOT; \
+    if (s->token != t->id) \
+        return PGY_RUNTIME_SLOT_STATUS_INVALID_TOKEN; \
+    if (!t->can_write) \
+        return PGY_RUNTIME_SLOT_STATUS_TOKEN_DENIES_WRITE; \
+    s->value = v; \
+    return PGY_RUNTIME_SLOT_STATUS_OK; \
+} \
+\
 static inline void \
 pgy_secure_write_##SuffixName(PgySecureSlot_##SuffixName* s, \
                                CType v, \
@@ -176,6 +253,42 @@ pgy_secure_read_##SuffixName(PgySecureSlot_##SuffixName* s, \
     return s->value; \
 } \
 \
+static inline PgyRuntimeSlotStatus \
+pgy_try_secure_read_##SuffixName(PgySecureSlot_##SuffixName* s, \
+                                 const PgyToken_##SuffixName* t, \
+                                 CType *out) \
+{ \
+    if (out == NULL) \
+        return PGY_RUNTIME_SLOT_STATUS_NULL_OUTPUT; \
+    if (s == NULL) \
+        return PGY_RUNTIME_SLOT_STATUS_NULL_SLOT; \
+    if (t == NULL) \
+        return PGY_RUNTIME_SLOT_STATUS_NULL_TOKEN; \
+    if (!s->occupied) \
+        return PGY_RUNTIME_SLOT_STATUS_RELEASED_SLOT; \
+    if (s->token != t->id) \
+        return PGY_RUNTIME_SLOT_STATUS_INVALID_TOKEN; \
+    if (!t->can_read) \
+        return PGY_RUNTIME_SLOT_STATUS_TOKEN_DENIES_READ; \
+    *out = s->value; \
+    return PGY_RUNTIME_SLOT_STATUS_OK; \
+} \
+\
+static inline PgyRuntimeSlotResult_##SuffixName \
+pgy_try_secure_read_result_##SuffixName(PgySecureSlot_##SuffixName* s, \
+                                        const PgyToken_##SuffixName* t) \
+{ \
+    CType value; \
+    PgyRuntimeSlotStatus status; \
+    memset(&value, 0, sizeof(value)); \
+    status = pgy_try_secure_read_##SuffixName(s, t, &value); \
+    if (status == PGY_RUNTIME_SLOT_STATUS_OK) \
+        return pgy_runtime_slot_result_ok_##SuffixName(value); \
+    return pgy_runtime_slot_result_err_##SuffixName( \
+        pgy_runtime_slot_failure_from_status(status, \
+                                            "secure-slot-boundary", "read")); \
+} \
+\
 static inline void \
 pgy_secure_release_##SuffixName(PgySecureSlot_##SuffixName* s, \
                                  const PgyToken_##SuffixName* t) \
@@ -191,6 +304,23 @@ pgy_secure_release_##SuffixName(PgySecureSlot_##SuffixName* s, \
                           PGY_RUNTIME_PANIC_REASON_INVALID_SECURE_TOKEN_RELEASE); \
     s->occupied = false; \
     s->token    = 0; \
+} \
+\
+static inline PgyRuntimeSlotStatus \
+pgy_try_secure_release_##SuffixName(PgySecureSlot_##SuffixName* s, \
+                                    const PgyToken_##SuffixName* t) \
+{ \
+    if (s == NULL) \
+        return PGY_RUNTIME_SLOT_STATUS_NULL_SLOT; \
+    if (t == NULL) \
+        return PGY_RUNTIME_SLOT_STATUS_NULL_TOKEN; \
+    if (!s->occupied) \
+        return PGY_RUNTIME_SLOT_STATUS_DOUBLE_RELEASE; \
+    if (s->token != t->id) \
+        return PGY_RUNTIME_SLOT_STATUS_INVALID_TOKEN; \
+    s->occupied = false; \
+    s->token = 0; \
+    return PGY_RUNTIME_SLOT_STATUS_OK; \
 } \
 \
 typedef struct { \

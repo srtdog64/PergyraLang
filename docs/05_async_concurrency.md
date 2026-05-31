@@ -91,6 +91,9 @@ Local and remote futures have different join results:
 
 - `Future<T> -> await -> T`
 - `RemoteFuture<T> -> await -> Result<T>`
+- `RemoteFuture<Void>` is not beta-stable. It is rejected until the
+  `Result<Void>` ABI is frozen across semantic typing, C lowering, LLVM
+  lowering, and runtime helper layout.
 
 ```pergyra
 func FetchDevice() -> Void {
@@ -108,6 +111,10 @@ func FetchDevice() -> Void {
 
 Remote completion is fallible by contract. The failure is data, not an
 implicit exception path hidden inside `await`.
+
+For DeviceSlot-backed remote reads, `SubmitDeviceRead(...)` must preserve this
+boundary. The worker uses the DeviceSlot `try` read path; a released/null device
+slot completes as `Result.Err` instead of aborting from the worker thread.
 
 ## 5. `select` And `Channel<T>`
 

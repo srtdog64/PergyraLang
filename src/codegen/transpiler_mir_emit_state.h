@@ -6,6 +6,7 @@
 typedef struct TranspilerMirEmitState {
     int slot_count;
     int typed_count;
+    int indent;
     ASTNode *host_decl;
     CodeBuf *out;
     const ASTNode *func_decl;

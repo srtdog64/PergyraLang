@@ -1,0 +1,30 @@
+class Bag {
+    let n: Int;
+
+    func Half(self) -> Option<Bag> {
+        if n <= 1 { return None; }
+        return Some(Bag(n / 2));
+    }
+}
+
+func DescendCount(start: Int) -> Int {
+    let b: Bag = Bag(start);
+    let steps: Int = 0;
+    let cur: Option<Bag> = b.Half();
+    while IsSome(cur) {
+        steps = steps + 1;
+        match cur {
+            case Some(nb): cur = nb.Half();
+            case None: steps = steps;
+        }
+    }
+    return steps;
+}
+
+func Main() -> Void {
+    Log(DescendCount(100));
+    Log(DescendCount(8));
+    Log(DescendCount(1));
+    Log(DescendCount(0));
+    Log(DescendCount(1024));
+}

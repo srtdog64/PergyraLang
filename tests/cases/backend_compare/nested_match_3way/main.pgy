@@ -1,0 +1,31 @@
+enum Outer { Top, Mid(Int), Bottom(Int, Int) }
+enum Inner { Lo, Hi(Int) }
+
+func Both(o: Outer, i: Inner) -> Int {
+    match o {
+        case Top:
+            match i {
+                case Lo: return 0;
+                case Hi(tv): return tv * 100;
+            }
+        case Mid(mn):
+            match i {
+                case Lo: return mn;
+                case Hi(mv): return mn + mv;
+            }
+        case Bottom(ba, bb):
+            match i {
+                case Lo: return ba + bb;
+                case Hi(bv): return ba * bb + bv;
+            }
+    }
+}
+
+func Main() -> Void {
+    Log(Both(Top, Lo));
+    Log(Both(Top, Hi(5)));
+    Log(Both(Mid(7), Lo));
+    Log(Both(Mid(7), Hi(3)));
+    Log(Both(Bottom(3, 4), Lo));
+    Log(Both(Bottom(3, 4), Hi(10)));
+}

@@ -391,6 +391,15 @@ llvm_ensure_result_type(LLVMGenCtx *ctx,
 {
     if (ctx == NULL || ok_name == NULL || err_name == NULL)
         return NULL;
+    if (strcmp(ok_name, "Void") == 0) {
+        llvm_set_error_with_hints(ctx,
+            PGY_CODE_LLVM_TYPE_UNSUPPORTED,
+            PGY_CAUSE_LLVM_TYPE_UNSUPPORTED,
+            PGY_FIX_ANNOTATE_CONCRETE_TYPE,
+            "Result<Void, %s> does not lower until the Result<Void> ABI is frozen",
+            err_name);
+        return NULL;
+    }
     if (pgy_result_type_arg_has_unknown(ok_name)
         || pgy_result_type_arg_has_unknown(err_name)) {
         llvm_set_error_with_hints(ctx,

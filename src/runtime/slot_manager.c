@@ -89,9 +89,16 @@ slot_is_expired_locked(const SlotEntry *entry)
 static void
 slot_reset_entry_locked(SlotEntry *entry)
 {
+    uint32_t slotId;
+    uint32_t generation;
+
+    slotId = entry->slotId;
+    generation = entry->generation;
     slot_free_buffers(entry);
     SecureMemoryWipe(&entry->writeToken, sizeof(entry->writeToken));
     memset(entry, 0, sizeof(*entry));
+    entry->slotId = slotId;
+    entry->generation = generation;
 }
 
 SlotError

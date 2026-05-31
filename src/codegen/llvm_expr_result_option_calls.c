@@ -1,4 +1,5 @@
 #include "llvm_internal.h"
+#include "codegen_match_variant_policy.h"
 
 #include <stdlib.h>
 #include <string.h>
@@ -37,22 +38,32 @@ static LLVMResultOptionOp
 llvm_result_option_lookup(const char *callee_name, size_t argc)
 {
     static const LLVMResultOptionSpec kLLVMResultOptionSpecs[] = {
-        { "Err", 1, LLVM_RESULT_OPTION_OP_ERR },
         { "IsErr", 1, LLVM_RESULT_OPTION_OP_IS_ERR },
         { "IsNone", 1, LLVM_RESULT_OPTION_OP_IS_NONE },
         { "IsOk", 1, LLVM_RESULT_OPTION_OP_IS_OK },
         { "IsSome", 1, LLVM_RESULT_OPTION_OP_IS_SOME },
-        { "None", 0, LLVM_RESULT_OPTION_OP_NONE_VALUE },
-        { "Ok", 1, LLVM_RESULT_OPTION_OP_OK },
-        { "Some", 1, LLVM_RESULT_OPTION_OP_SOME },
         { "Unwrap", 1, LLVM_RESULT_OPTION_OP_UNWRAP },
         { "UnwrapOption", 1, LLVM_RESULT_OPTION_OP_UNWRAP_OPTION },
         { "UnwrapOr", 2, LLVM_RESULT_OPTION_OP_UNWRAP_OR },
     };
     const LLVMResultOptionSpec *match;
+    PgyCodegenMatchVariantKind variant_kind;
 
     if (callee_name == NULL)
         return LLVM_RESULT_OPTION_OP_NONE;
+    variant_kind = pgy_codegen_match_variant_lookup(callee_name);
+    if (variant_kind == PGY_MATCH_VARIANT_SOME)
+        return argc == 1 ? LLVM_RESULT_OPTION_OP_SOME
+                         : LLVM_RESULT_OPTION_OP_NONE;
+    if (variant_kind == PGY_MATCH_VARIANT_NONE_CTOR)
+        return argc == 0 ? LLVM_RESULT_OPTION_OP_NONE_VALUE
+                         : LLVM_RESULT_OPTION_OP_NONE;
+    if (variant_kind == PGY_MATCH_VARIANT_OK)
+        return argc == 1 ? LLVM_RESULT_OPTION_OP_OK
+                         : LLVM_RESULT_OPTION_OP_NONE;
+    if (variant_kind == PGY_MATCH_VARIANT_ERR)
+        return argc == 1 ? LLVM_RESULT_OPTION_OP_ERR
+                         : LLVM_RESULT_OPTION_OP_NONE;
 
     match = (const LLVMResultOptionSpec *)bsearch(&callee_name,
         kLLVMResultOptionSpecs,
@@ -374,7 +385,7 @@ llvm_emit_result_option_call(ASTNode *node, LLVMGenCtx *ctx, const char *callee_
         return LLVMBuildSelect(ctx->builder, ok, val, def, llvm_tmp_name(ctx));
     }
 
-    /* Built-in: Some(value) creates { .tag=PgyOptionSome, .value=value }. */
+    /* Built-in: Some(value) creates the active Option<T> some-tag payload. */
     if (op == LLVM_RESULT_OPTION_OP_SOME) {
         LLVMValueRef val;
         LLVMTypeRef option_ty = NULL;
@@ -401,7 +412,7 @@ llvm_emit_result_option_call(ASTNode *node, LLVMGenCtx *ctx, const char *callee_
         return o;
     }
 
-    /* Built-in: None() creates { .tag=PgyOptionNone, .value=zero }. */
+    /* Built-in: None() creates the active Option<T> none-tag payload. */
     if (op == LLVM_RESULT_OPTION_OP_NONE_VALUE) {
         LLVMTypeRef fields[2];
         if (!llvm_result_option_context_struct(ctx, 2, fields)

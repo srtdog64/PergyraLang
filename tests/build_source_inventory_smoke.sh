@@ -39,6 +39,14 @@ if grep -Fq 'pgy_touch_ref = $(BASH) -lc' "$ROOT_DIR/Makefile"; then
     echo "[build-source-inventory] pgy_touch_ref regressed to nested login-shell bash" >&2
     missing=1
 fi
+if ! grep -Fq 'ENABLE_ASM_FASTPATH ?= 0' "$ROOT_DIR/Makefile"; then
+    echo "[build-source-inventory] assembly fast path must be explicit opt-in" >&2
+    missing=1
+fi
+if ! grep -Fq 'ifneq ($(ENABLE_ASM_FASTPATH),1)' "$ROOT_DIR/Makefile"; then
+    echo "[build-source-inventory] runtime asm objects must stay disabled by default" >&2
+    missing=1
+fi
 
 duplicate_sources="$(
     printf '%s\n' "$inventory" \
@@ -232,6 +240,36 @@ raw_c_type_copy_consumers="$(
 if [[ -n "$raw_c_type_copy_consumers" ]]; then
     printf '%s\n' "$raw_c_type_copy_consumers" >&2
     echo "[build-source-inventory] C backend raw pergyra_type_to_c_copy use must stay in wrapper/type-require owners" >&2
+    missing=1
+fi
+
+direct_option_result_vocabulary="$(
+    cd "$ROOT_DIR"
+    {
+        grep -RIn 'strcmp(' src/parser src/semantic src/codegen \
+            --include='*.c' --include='*.h' \
+            | grep -E '"(Some|None|Ok|Err)"' || true
+        grep -RInE '\{[[:space:]]*"(Some|None|Ok|Err)"' \
+            src/parser src/semantic src/codegen \
+            --include='*.c' --include='*.h' || true
+    } | grep -v '^src/common/match_variant_policy\.[ch]:' \
+        | grep -v '^src/codegen/codegen_match_variant_policy\.[ch]:' || true
+)"
+if [[ -n "$direct_option_result_vocabulary" ]]; then
+    printf '%s\n' "$direct_option_result_vocabulary" >&2
+    echo "[build-source-inventory] Result/Option constructor vocabulary must use match_variant_policy" >&2
+    missing=1
+fi
+direct_option_result_tag_spelling="$(
+    cd "$ROOT_DIR"
+    grep -RInE 'Pgy(Option(Some|None)|Result(Ok|Err))' src/codegen \
+        --include='*.c' --include='*.h' \
+        | grep -v '^src/codegen/codegen_match_variant_policy\.[ch]:' \
+        | grep -v '^src/codegen/transpiler_specialization_registry\.c:' || true
+)"
+if [[ -n "$direct_option_result_tag_spelling" ]]; then
+    printf '%s\n' "$direct_option_result_tag_spelling" >&2
+    echo "[build-source-inventory] generated Option/Result tag spelling must use codegen_match_variant_policy" >&2
     missing=1
 fi
 
@@ -453,6 +491,28 @@ unexpected_top_level_mutable_statics="$(
 if [[ -n "$unexpected_top_level_mutable_statics" ]]; then
     printf '%s\n' "$unexpected_top_level_mutable_statics" >&2
     echo "[build-source-inventory] top-level mutable static state requires an explicit source-of-truth owner" >&2
+    missing=1
+fi
+backend_local_match_subject_lookup="$(
+    cd "$ROOT_DIR"
+    grep -RInE '(llvm|transpiler).*find.*match.*subject.*case|match.*subject.*for.*case' \
+        src/codegen \
+        --include='*.c' --include='*.h' \
+        | grep -v 'ast_find_match_subject_for_case' || true
+)"
+if [[ -n "$backend_local_match_subject_lookup" ]]; then
+    printf '%s\n' "$backend_local_match_subject_lookup" >&2
+    echo "[build-source-inventory] match subject lookup must use parser AST accessor source-of-truth" >&2
+    missing=1
+fi
+if ! grep -Fq 'ast_find_match_subject_for_case(ast_func_body(func_decl)' \
+    "$ROOT_DIR/src/codegen/llvm_mir_match_condition.c"; then
+    echo "[build-source-inventory] LLVM MIR match condition must consume ast_find_match_subject_for_case" >&2
+    missing=1
+fi
+if ! grep -Fq 'ast_find_match_subject_for_case(ast_func_body(func_decl)' \
+    "$ROOT_DIR/src/codegen/transpiler_mir_match_condition_emit.c"; then
+    echo "[build-source-inventory] C MIR match condition must consume ast_find_match_subject_for_case" >&2
     missing=1
 fi
 for select_atomic_term in \

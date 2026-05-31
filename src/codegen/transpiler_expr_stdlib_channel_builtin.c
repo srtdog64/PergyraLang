@@ -17,7 +17,6 @@
 #include "transpiler_expr_stdlib_collection_support.h"
 #include "transpiler_format.h"
 #include "transpiler_type_mapping.h"
-#include "transpiler_type_require.h"
 
 typedef enum {
     TRANSPILER_CHANNEL_OP_NONE = 0,
@@ -146,7 +145,7 @@ emit_call_stdlib_channel_query_builtin(const char *fn, ASTNode *call,
     channel_arg = ast_call_argument(call, 0);
     if (!transpiler_channel_require_lvalue(ctx, channel_arg, spec->name))
         return pergyra_strdup("0");
-    ch = emit_expression(channel_arg, ctx);
+    ch = transpiler_emit_channel_lvalue_expr(ctx, channel_arg);
     inner = transpiler_channel_require_inner_type(ctx,
         channel_arg, spec->name, inner_buf,
         sizeof(inner_buf));
@@ -179,31 +178,23 @@ emit_call_stdlib_channel_builtin(const char *fn, ASTNode *call,
         ASTNode *channel_arg = ast_call_argument(call, 0);
         if (!transpiler_channel_require_lvalue(ctx, channel_arg, "TryRecv"))
             return pergyra_strdup("0");
-        char *ch = emit_expression(channel_arg, ctx);
+        char *ch = transpiler_emit_channel_lvalue_expr(ctx, channel_arg);
         char inner_buf[64];
         const char *inner = transpiler_channel_require_inner_type(ctx,
             channel_arg, "TryRecv",
             inner_buf, sizeof(inner_buf));
-        char c_inner_buf[128];
-        const char *c_inner = NULL;
         char *result;
 
         if (inner == NULL) {
             free(ch);
             return pergyra_strdup("0");
         }
-        if (transpiler_require_type_name_c_type_copy(ctx, inner,
-                "TryRecv channel payload", c_inner_buf, sizeof(c_inner_buf)))
-            c_inner = c_inner_buf;
-        if (c_inner == NULL) {
-            free(ch);
-            return pergyra_strdup("0");
-        }
         result = strdup_fmt(
-            "({ %s _pgy_recv_tmp; "
-            "pgy_channel_try_recv_%s(&%s, &_pgy_recv_tmp) "
-            "? Some_%s(_pgy_recv_tmp) : None_%s(); })",
-            c_inner, inner, ch, inner, inner);
+            "({ PgyRuntimeChannel%sResult _pgy_recv_result = "
+            "pgy_channel_try_recv_result_%s(&%s); "
+            "_pgy_recv_result.tag == PGY_RUNTIME_CHANNEL_RESULT_OK "
+            "? Some_%s(_pgy_recv_result.ok) : None_%s(); })",
+            inner, inner, ch, inner, inner);
         free(ch);
         return result;
     }
@@ -212,14 +203,12 @@ emit_call_stdlib_channel_builtin(const char *fn, ASTNode *call,
         if (!transpiler_channel_require_lvalue(ctx, channel_arg,
                 "RecvTimeout"))
             return pergyra_strdup("0");
-        char *ch = emit_expression(channel_arg, ctx);
+        char *ch = transpiler_emit_channel_lvalue_expr(ctx, channel_arg);
         char *timeout = emit_expression(ast_call_argument(call, 1), ctx);
         char inner_buf[64];
         const char *inner = transpiler_channel_require_inner_type(ctx,
             channel_arg, "RecvTimeout",
             inner_buf, sizeof(inner_buf));
-        char c_inner_buf[128];
-        const char *c_inner = NULL;
         char *result;
 
         if (inner == NULL) {
@@ -227,20 +216,12 @@ emit_call_stdlib_channel_builtin(const char *fn, ASTNode *call,
             free(timeout);
             return pergyra_strdup("0");
         }
-        if (transpiler_require_type_name_c_type_copy(ctx, inner,
-                "RecvTimeout channel payload", c_inner_buf,
-                sizeof(c_inner_buf)))
-            c_inner = c_inner_buf;
-        if (c_inner == NULL) {
-            free(ch);
-            free(timeout);
-            return pergyra_strdup("0");
-        }
         result = strdup_fmt(
-            "({ %s _pgy_recv_tmp; "
-            "pgy_channel_recv_timeout_%s(&%s, &_pgy_recv_tmp, (uint64_t)(%s)) "
-            "? Some_%s(_pgy_recv_tmp) : None_%s(); })",
-            c_inner, inner, ch, timeout, inner, inner);
+            "({ PgyRuntimeChannel%sResult _pgy_recv_result = "
+            "pgy_channel_recv_timeout_result_%s(&%s, (uint64_t)(%s)); "
+            "_pgy_recv_result.tag == PGY_RUNTIME_CHANNEL_RESULT_OK "
+            "? Some_%s(_pgy_recv_result.ok) : None_%s(); })",
+            inner, inner, ch, timeout, inner, inner);
         free(ch);
         free(timeout);
         return result;
@@ -249,7 +230,7 @@ emit_call_stdlib_channel_builtin(const char *fn, ASTNode *call,
         ASTNode *channel_arg = ast_call_argument(call, 0);
         if (!transpiler_channel_require_lvalue(ctx, channel_arg, "TrySend"))
             return pergyra_strdup("0");
-        char *ch = emit_expression(channel_arg, ctx);
+        char *ch = transpiler_emit_channel_lvalue_expr(ctx, channel_arg);
         char *val = emit_expression(ast_call_argument(call, 1), ctx);
         char inner_buf[64];
         const char *inner = transpiler_channel_require_inner_type(ctx,
@@ -273,7 +254,7 @@ emit_call_stdlib_channel_builtin(const char *fn, ASTNode *call,
         if (!transpiler_channel_require_lvalue(ctx, channel_arg,
                 "TrySendStatus"))
             return pergyra_strdup("0");
-        char *ch = emit_expression(channel_arg, ctx);
+        char *ch = transpiler_emit_channel_lvalue_expr(ctx, channel_arg);
         char *val = emit_expression(ast_call_argument(call, 1), ctx);
         char inner_buf[64];
         const char *inner = transpiler_channel_require_inner_type(ctx,
@@ -303,7 +284,7 @@ emit_call_stdlib_channel_builtin(const char *fn, ASTNode *call,
             : "send_timeout_status";
         if (!transpiler_channel_require_lvalue(ctx, channel_arg, label))
             return pergyra_strdup("0");
-        char *ch = emit_expression(channel_arg, ctx);
+        char *ch = transpiler_emit_channel_lvalue_expr(ctx, channel_arg);
         char *val = emit_expression(ast_call_argument(call, 1), ctx);
         char *timeout = emit_expression(ast_call_argument(call, 2), ctx);
         char inner_buf[64];
@@ -337,7 +318,7 @@ emit_call_stdlib_channel_builtin(const char *fn, ASTNode *call,
         if (!transpiler_channel_require_lvalue(ctx, channel_arg,
                 "ChannelClose"))
             return pergyra_strdup("0");
-        char *ch = emit_expression(channel_arg, ctx);
+        char *ch = transpiler_emit_channel_lvalue_expr(ctx, channel_arg);
         char inner_buf[64];
         const char *inner = transpiler_channel_require_inner_type(ctx,
             channel_arg, "ChannelClose", inner_buf, sizeof(inner_buf));

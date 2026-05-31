@@ -1,0 +1,29 @@
+enum Cell { Empty, Number(Int), Marker(Int) }
+
+func GetCell(idx: Int) -> Option<Cell> {
+    if idx < 0 { return None; }
+    if idx == 0 { return Some(Empty); }
+    if idx == 1 { return Some(Number(42)); }
+    if idx == 2 { return Some(Marker(7)); }
+    return None;
+}
+
+func Score(o: Option<Cell>) -> Int {
+    match o {
+        case Some(c):
+            match c {
+                case Empty: return 0;
+                case Number(n): return n * 10;
+                case Marker(m): return m + 1000;
+            }
+        case None: return -1;
+    }
+}
+
+func Main() -> Void {
+    Log(Score(GetCell(0)));
+    Log(Score(GetCell(1)));
+    Log(Score(GetCell(2)));
+    Log(Score(GetCell(-1)));
+    Log(Score(GetCell(99)));
+}

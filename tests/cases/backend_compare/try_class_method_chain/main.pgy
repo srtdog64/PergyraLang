@@ -1,0 +1,38 @@
+enum FlowErr { Stop, Skip }
+
+class Flow {
+    let cap: Int;
+
+    func Step(self, n: Int) -> Result<Int, FlowErr> {
+        if n < 0 { return Err(Stop); }
+        if n > cap { return Err(Skip); }
+        return Ok(n + 1);
+    }
+
+    func Run(self, n: Int) -> Result<Int, FlowErr> {
+        let a: Int = self.Step(n)?;
+        let b: Int = self.Step(a)?;
+        let c: Int = self.Step(b)?;
+        return Ok(c);
+    }
+}
+
+func Tag(r: Result<Int, FlowErr>) -> Int {
+    match r {
+        case Ok(v): return v;
+        case Err(e):
+            match e {
+                case Stop: return -1;
+                case Skip: return -2;
+            }
+    }
+}
+
+func Main() -> Void {
+    let f: Flow = Flow(100);
+    Log(Tag(f.Run(5)));
+    Log(Tag(f.Run(98)));
+    Log(Tag(f.Run(-1)));
+    Log(Tag(f.Run(50)));
+    Log(Tag(f.Run(0)));
+}

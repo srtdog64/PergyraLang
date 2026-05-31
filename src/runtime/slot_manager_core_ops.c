@@ -26,8 +26,47 @@ SlotErrorName(SlotError err)
     case SLOT_ERROR_THREAD_VIOLATION: return "thread-violation";
     case SLOT_ERROR_PINNED: return "pinned";
     case SLOT_ERROR_INVALID_PIN: return "invalid-pin";
+    case SLOT_ERROR_ID_EXHAUSTED: return "id-exhausted";
     default: return "unknown";
     }
+}
+
+PgyRuntimeSlotStatus
+SlotRuntimeStatusFromError(SlotError err)
+{
+    switch (err) {
+    case SLOT_SUCCESS:
+        return PGY_RUNTIME_SLOT_STATUS_OK;
+    case SLOT_ERROR_OUT_OF_MEMORY:
+        return PGY_RUNTIME_SLOT_STATUS_OUT_OF_MEMORY;
+    case SLOT_ERROR_INVALID_HANDLE:
+        return PGY_RUNTIME_SLOT_STATUS_INVALID_HANDLE;
+    case SLOT_ERROR_TYPE_MISMATCH:
+        return PGY_RUNTIME_SLOT_STATUS_TYPE_MISMATCH;
+    case SLOT_ERROR_SLOT_NOT_FOUND:
+        return PGY_RUNTIME_SLOT_STATUS_SLOT_NOT_FOUND;
+    case SLOT_ERROR_PERMISSION_DENIED:
+        return PGY_RUNTIME_SLOT_STATUS_PERMISSION_DENIED;
+    case SLOT_ERROR_TTL_EXPIRED:
+        return PGY_RUNTIME_SLOT_STATUS_TTL_EXPIRED;
+    case SLOT_ERROR_THREAD_VIOLATION:
+        return PGY_RUNTIME_SLOT_STATUS_THREAD_VIOLATION;
+    case SLOT_ERROR_PINNED:
+        return PGY_RUNTIME_SLOT_STATUS_PINNED;
+    case SLOT_ERROR_INVALID_PIN:
+        return PGY_RUNTIME_SLOT_STATUS_INVALID_PIN;
+    case SLOT_ERROR_ID_EXHAUSTED:
+        return PGY_RUNTIME_SLOT_STATUS_ID_EXHAUSTED;
+    default:
+        return PGY_RUNTIME_SLOT_STATUS_INVALID_HANDLE;
+    }
+}
+
+bool
+SlotErrorBoundaryRecoverable(SlotError err)
+{
+    return pgy_runtime_slot_status_boundary_recoverable(
+        SlotRuntimeStatusFromError(err));
 }
 
 SlotFailure
@@ -37,8 +76,10 @@ SlotFailureFromError(SlotError err, const char *operation,
     SlotFailure failure;
 
     failure.error = err;
+    failure.runtimeStatus = SlotRuntimeStatusFromError(err);
     failure.name = SlotErrorName(err);
     failure.operation = operation != NULL ? operation : "<op>";
+    failure.recoverable = SlotErrorBoundaryRecoverable(err);
     failure.slotId = handle != NULL ? handle->slotId : 0u;
     failure.typeTag = handle != NULL ? handle->typeTag : 0u;
     failure.generation = handle != NULL ? handle->generation : 0u;
@@ -60,13 +101,21 @@ slot_manager_warn(const char *op, const SlotHandle *handle, SlotError err)
 }
 
 static SlotEntry *
-find_free_entry_locked(SlotManager *manager)
+find_free_entry_locked(SlotManager *manager, bool *sawGenerationExhausted)
 {
     size_t i;
 
+    if (sawGenerationExhausted != NULL)
+        *sawGenerationExhausted = false;
+
     for (i = 0; i < manager->tableSize; i++) {
-        if (!manager->slotTable[i].occupied)
-            return &manager->slotTable[i];
+        SlotEntry *entry = &manager->slotTable[i];
+        if (entry->occupied)
+            continue;
+        if (entry->slotId == 0 || entry->generation < UINT32_MAX)
+            return entry;
+        if (sawGenerationExhausted != NULL)
+            *sawGenerationExhausted = true;
     }
 
     return NULL;
@@ -78,6 +127,7 @@ slot_claim_common(SlotManager *manager, TypeTag type, uint32_t scopeId,
 {
     SlotEntry *entry;
     SlotError err;
+    bool sawGenerationExhausted;
 
     if (manager == NULL || handle == NULL) {
         err = SLOT_ERROR_INVALID_HANDLE;
@@ -87,10 +137,21 @@ slot_claim_common(SlotManager *manager, TypeTag type, uint32_t scopeId,
 
     pthread_mutex_lock(manager_mutex(manager));
 
-    if (manager->nextSlotId == 0 || manager->nextSlotId == UINT32_MAX) {
+    entry = find_free_entry_locked(manager, &sawGenerationExhausted);
+    if (entry == NULL) {
         memset(handle, 0, sizeof(*handle));
         pthread_mutex_unlock(manager_mutex(manager));
-        err = SLOT_ERROR_OUT_OF_MEMORY;
+        err = sawGenerationExhausted ? SLOT_ERROR_ID_EXHAUSTED
+                                     : SLOT_ERROR_OUT_OF_MEMORY;
+        slot_manager_warn("claim", handle, err);
+        return err;
+    }
+
+    if (entry->slotId == 0
+        && (manager->nextSlotId == 0 || manager->nextSlotId == UINT32_MAX)) {
+        memset(handle, 0, sizeof(*handle));
+        pthread_mutex_unlock(manager_mutex(manager));
+        err = SLOT_ERROR_ID_EXHAUSTED;
         slot_manager_warn("claim", handle, err);
         return err;
     }
@@ -103,18 +164,20 @@ slot_claim_common(SlotManager *manager, TypeTag type, uint32_t scopeId,
         return err;
     }
 
-    entry = find_free_entry_locked(manager);
-    if (entry == NULL) {
-        pthread_mutex_unlock(manager_mutex(manager));
-        err = SLOT_ERROR_OUT_OF_MEMORY;
-        slot_manager_warn("claim", handle, err);
-        return err;
-    }
+    {
+        uint32_t recycledSlotId = entry->slotId;
+        uint32_t recycledGeneration = entry->generation;
 
-    memset(entry, 0, sizeof(*entry));
+        memset(entry, 0, sizeof(*entry));
+        if (recycledSlotId != 0) {
+            entry->slotId = recycledSlotId;
+            entry->generation = recycledGeneration + 1u;
+        } else {
+            entry->slotId = manager->nextSlotId++;
+            entry->generation = 1;
+        }
+    }
     entry->occupied = true;
-    entry->slotId = manager->nextSlotId++;
-    entry->generation = 1;
     entry->typeTag = (uint32_t)type;
     entry->scopeId = scopeId;
     entry->threadAffinity = 0;

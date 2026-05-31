@@ -1,0 +1,35 @@
+enum Op { Sum, Product, MaxV }
+
+func Compute(arr: Array<Int>, n: Int, op: Op) -> Int {
+    match op {
+        case Sum:
+            let suma: Int = 0;
+            for va in arr {
+                suma = suma + va;
+            }
+            return suma;
+        case Product:
+            let prodv: Int = 1;
+            for vb in arr {
+                prodv = prodv * vb;
+            }
+            return prodv;
+        case MaxV:
+            if n == 0 { return 0; }
+            let best: Int = arr[0];
+            for vc in arr {
+                if vc > best { best = vc; }
+            }
+            return best;
+    }
+}
+
+func Main() -> Void {
+    let a: Array<Int> = [3, 1, 4, 1, 5, 9, 2];
+    Log(Compute(a, 7, Sum));
+    Log(Compute(a, 7, Product));
+    Log(Compute(a, 7, MaxV));
+    let b: Array<Int> = [10];
+    Log(Compute(b, 1, Sum));
+    Log(Compute(b, 1, MaxV));
+}

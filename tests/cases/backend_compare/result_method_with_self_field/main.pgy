@@ -1,0 +1,49 @@
+enum SlotErr { Full, Empty }
+
+class Bucket {
+    let used: Int;
+    let cap: Int;
+
+    func Push(self, amt: Int) -> Result<Int, SlotErr> {
+        if used + amt > cap { return Err(Full); }
+        return Ok(used + amt);
+    }
+
+    func Pop(self) -> Result<Int, SlotErr> {
+        if used == 0 { return Err(Empty); }
+        return Ok(used - 1);
+    }
+}
+
+func Apply(cap: Int, init: Int, op: Int, n: Int) -> Int {
+    let s: Bucket = Bucket(init, cap);
+    if op == 0 {
+        match s.Push(n) {
+            case Ok(vp): return vp + 100;
+            case Err(ep):
+                match ep {
+                    case Full: return -1;
+                    case Empty: return -2;
+                }
+        }
+    }
+    if op == 1 {
+        match s.Pop() {
+            case Ok(vq): return vq + 200;
+            case Err(eq):
+                match eq {
+                    case Full: return -3;
+                    case Empty: return -4;
+                }
+        }
+    }
+    return 0;
+}
+
+func Main() -> Void {
+    Log(Apply(10, 5, 0, 3));
+    Log(Apply(10, 8, 0, 5));
+    Log(Apply(10, 5, 1, 0));
+    Log(Apply(10, 0, 1, 0));
+    Log(Apply(10, 0, 0, 5));
+}

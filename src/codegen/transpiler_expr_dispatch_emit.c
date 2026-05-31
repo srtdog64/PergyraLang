@@ -7,6 +7,7 @@
 #include "../parser/ast_api.h"
 #include "../semantic/diag_codes.h"
 
+#include "codegen_match_variant_policy.h"
 #include "transpiler_context.h"
 #include "transpiler_decl_lookup.h"
 #include "transpiler_enum.h"
@@ -51,7 +52,8 @@ emit_expression(ASTNode *node, TranspilerCtx *ctx)
             return pergyra_strdup("0");
         /* None is target-typed; without contextual Option<T> semantic should
          * already reject it, and the backend keeps a hard guard. */
-        if (strcmp(id_name, "None") == 0) {
+        if (pgy_codegen_match_variant_lookup(id_name)
+                == PGY_MATCH_VARIANT_NONE_CTOR) {
             return transpiler_emit_none_with_context(ctx, node);
         }
         /* Inside parallel wrapper: captured outer variables are accessed
@@ -413,6 +415,17 @@ emit_expression(ASTNode *node, TranspilerCtx *ctx)
                     PGY_CAUSE_C_TYPE_UNSUPPORTED,
                     PGY_FIX_ANNOTATE_CONCRETE_TYPE,
                     "C await expression requires concrete Future<T> result metadata");
+                free(expr);
+                return pergyra_strdup("0");
+            }
+            if (is_remote && strcmp(inner, "Void") == 0) {
+                transpiler_set_backend_error_with_hints(ctx,
+                    PGY_CODE_C_TYPE_UNSUPPORTED,
+                    PGY_CAUSE_C_TYPE_UNSUPPORTED,
+                    PGY_FIX_ANNOTATE_CONCRETE_TYPE,
+                    "C await expression does not lower RemoteFuture<Void>; "
+                    "semantic analysis must reject it until Result<Void> ABI "
+                    "is frozen");
                 free(expr);
                 return pergyra_strdup("0");
             }

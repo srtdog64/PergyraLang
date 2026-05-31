@@ -1,0 +1,24 @@
+func Validate(n: Int, lo: Int, hi: Int) -> Option<Int> {
+    if n < lo { return None(); }
+    if n > hi { return None(); }
+    return Some(n);
+}
+
+func SafeMap(arr: Array<Int>, n: Int, lo: Int, hi: Int) -> Int {
+    let total: Int = 0;
+    let i: Int = 0;
+    while i < n {
+        let v: Int = Validate(arr[i], lo, hi) ?? 0;
+        total = total + v * 2;
+        i = i + 1;
+    }
+    return total;
+}
+
+func Main() -> Void {
+    let a: Array<Int> = [1, 5, -3, 10, 100, 50];
+    Log(SafeMap(a, 6, 0, 60));
+    Log(SafeMap(a, 6, -10, 200));
+    Log(SafeMap(a, 6, 100, 100));
+    Log(SafeMap(a, 0, 0, 100));
+}

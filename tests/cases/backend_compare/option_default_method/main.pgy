@@ -1,0 +1,31 @@
+class Config {
+    let val: Int;
+
+    func GetOr(self, def: Int) -> Int {
+        if val < 0 {
+            return def;
+        }
+        return val;
+    }
+
+    func TryParse(self) -> Option<Int> {
+        if val <= 0 { return None; }
+        return Some(val * 2);
+    }
+}
+
+func Process(c: Config) -> Int {
+    let direct: Int = c.GetOr(99);
+    match c.TryParse() {
+        case Some(parsed): return direct + parsed;
+        case None: return direct;
+    }
+}
+
+func Main() -> Void {
+    Log(Process(Config(5)));
+    Log(Process(Config(-1)));
+    Log(Process(Config(0)));
+    Log(Process(Config(100)));
+    Log(Process(Config(50)));
+}

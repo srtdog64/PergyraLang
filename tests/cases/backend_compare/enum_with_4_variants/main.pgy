@@ -1,0 +1,31 @@
+enum Action { Noop, Once, Twice, Thrice }
+
+func Effect(a: Action, base: Int) -> Int {
+    match a {
+        case Noop: return base;
+        case Once: return base + 1;
+        case Twice: return base + 2;
+        case Thrice: return base + 3;
+    }
+}
+
+func Repeat(a: Action, n: Int) -> Int {
+    let acc: Int = 0;
+    let i: Int = 0;
+    while i < n {
+        acc = Effect(a, acc);
+        i = i + 1;
+    }
+    return acc;
+}
+
+func Main() -> Void {
+    Log(Effect(Noop, 10));
+    Log(Effect(Once, 10));
+    Log(Effect(Twice, 10));
+    Log(Effect(Thrice, 10));
+    Log(Repeat(Once, 5));
+    Log(Repeat(Twice, 3));
+    Log(Repeat(Noop, 100));
+    Log(Repeat(Thrice, 0));
+}

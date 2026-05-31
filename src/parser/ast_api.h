@@ -115,6 +115,8 @@ size_t ast_match_case_pattern_count(const ASTNode* node);
 ASTNode* ast_match_case_pattern_at(const ASTNode* node, size_t index);
 ASTNode* ast_match_case_guard(const ASTNode* node);
 ASTNode* ast_match_case_body(const ASTNode* node);
+ASTNode* ast_find_match_subject_for_case(const ASTNode* root,
+                                         const ASTNode* case_node);
 ASTNode* ast_create_if_statement(void);
 ASTNode* ast_create_return_statement(void);
 ASTNode* ast_create_binary(ASTNode* left, Token op, ASTNode* right);

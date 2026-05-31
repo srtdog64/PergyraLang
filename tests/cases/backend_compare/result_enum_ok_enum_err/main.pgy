@@ -1,0 +1,34 @@
+enum Reply { Ack, Nack, Stale }
+enum Failure { Timeout, Reset }
+
+func Send(seed: Int) -> Result<Reply, Failure> {
+    if seed < 0 { return Err(Timeout); }
+    if seed == 0 { return Err(Reset); }
+    if seed == 1 { return Ok(Ack); }
+    if seed == 2 { return Ok(Nack); }
+    return Ok(Stale);
+}
+
+func Diagnose(r: Result<Reply, Failure>) -> Int {
+    match r {
+        case Ok(reply):
+            match reply {
+                case Ack: return 1;
+                case Nack: return 2;
+                case Stale: return 3;
+            }
+        case Err(f):
+            match f {
+                case Timeout: return -1;
+                case Reset: return -2;
+            }
+    }
+}
+
+func Main() -> Void {
+    Log(Diagnose(Send(1)));
+    Log(Diagnose(Send(2)));
+    Log(Diagnose(Send(99)));
+    Log(Diagnose(Send(0)));
+    Log(Diagnose(Send(-5)));
+}

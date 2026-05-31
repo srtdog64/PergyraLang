@@ -1,0 +1,29 @@
+class Probe {
+    let n: Int;
+
+    func IsPos(self) -> Bool {
+        return n > 0;
+    }
+
+    func IsBig(self) -> Bool {
+        return n > 100;
+    }
+}
+
+func Eval(p: Probe) -> Int {
+    if p.IsPos() && p.IsBig() {
+        return 1000;
+    }
+    if p.IsPos() {
+        return 100;
+    }
+    return -1;
+}
+
+func Main() -> Void {
+    Log(Eval(Probe(5)));
+    Log(Eval(Probe(200)));
+    Log(Eval(Probe(0)));
+    Log(Eval(Probe(-5)));
+    Log(Eval(Probe(101)));
+}

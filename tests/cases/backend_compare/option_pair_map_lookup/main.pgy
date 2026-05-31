@@ -1,0 +1,21 @@
+func LookupCode(name: String) -> Option<Int> {
+    if name == "a" { return Some(1); }
+    if name == "b" { return Some(2); }
+    if name == "c" { return Some(3); }
+    return None;
+}
+
+func ScoreOrDefault(name: String, def: Int) -> Int {
+    match LookupCode(name) {
+        case Some(v): return v * 10;
+        case None: return def;
+    }
+}
+
+func Main() -> Void {
+    Log(ScoreOrDefault("a", -1));
+    Log(ScoreOrDefault("c", -1));
+    Log(ScoreOrDefault("x", 99));
+    Log(ScoreOrDefault("b", -1));
+    Log(ScoreOrDefault("z", 0));
+}

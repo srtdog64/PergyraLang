@@ -1,0 +1,48 @@
+enum BankErr { NoFunds, BadAccount }
+
+class Account {
+    let id: Int;
+    let balance: Int;
+
+    func Withdraw(self, amt: Int) -> Result<Int, BankErr> {
+        if amt > balance { return Err(NoFunds); }
+        return Ok(balance - amt);
+    }
+}
+
+class Bank {
+    let interestRate: Int;
+
+    func Lookup(self, id: Int, bal: Int) -> Result<Account, BankErr> {
+        if id < 0 { return Err(BadAccount); }
+        return Ok(Account(id, bal + interestRate));
+    }
+}
+
+func TryDebit(rate: Int, id: Int, bal: Int, amt: Int) -> Int {
+    let b: Bank = Bank(rate);
+    match b.Lookup(id, bal) {
+        case Ok(acc):
+            match acc.Withdraw(amt) {
+                case Ok(newBal): return newBal;
+                case Err(e):
+                    match e {
+                        case NoFunds: return -10;
+                        case BadAccount: return -20;
+                    }
+            }
+        case Err(eh):
+            match eh {
+                case NoFunds: return -30;
+                case BadAccount: return -40;
+            }
+    }
+}
+
+func Main() -> Void {
+    Log(TryDebit(5, 1, 100, 30));
+    Log(TryDebit(5, 1, 100, 200));
+    Log(TryDebit(2, -1, 100, 30));
+    Log(TryDebit(0, 5, 50, 50));
+    Log(TryDebit(10, 7, 100, 1));
+}

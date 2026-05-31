@@ -1,0 +1,24 @@
+enum Op { A(Int), B(Int), C }
+
+func Clamp100(x: Int) -> Int {
+    if x > 100 { return 100; }
+    if x < 0 { return 0; }
+    return x;
+}
+
+func Process(o: Op) -> Int {
+    match o {
+        case A(av): return Clamp100(av) + 1;
+        case B(bv): return Clamp100(bv) * 2;
+        case C: return -1;
+    }
+}
+
+func Main() -> Void {
+    Log(Process(A(50)));
+    Log(Process(A(150)));
+    Log(Process(A(-3)));
+    Log(Process(B(50)));
+    Log(Process(B(200)));
+    Log(Process(C));
+}

@@ -1,0 +1,28 @@
+enum Status { Active, Idle, Done }
+
+func StatusFor(seed: Int) -> Result<Status, String> {
+    if seed < 0 { return Err("negative"); }
+    if seed == 0 { return Ok(Idle); }
+    if seed < 100 { return Ok(Active); }
+    return Ok(Done);
+}
+
+func Score(r: Result<Status, String>) -> Int {
+    match r {
+        case Ok(s):
+            match s {
+                case Active: return 1;
+                case Idle: return 0;
+                case Done: return 100;
+            }
+        case Err(e): return -1;
+    }
+}
+
+func Main() -> Void {
+    Log(Score(StatusFor(50)));
+    Log(Score(StatusFor(0)));
+    Log(Score(StatusFor(500)));
+    Log(Score(StatusFor(-1)));
+    Log(Score(StatusFor(-99)));
+}

@@ -1,0 +1,24 @@
+func Half(n: Int) -> Option<Int> {
+    if n % 2 != 0 { return None(); }
+    return Some(n / 2);
+}
+
+func Triple(n: Int) -> Option<Int> {
+    if n > 1000 { return None(); }
+    return Some(n * 3);
+}
+
+func Combine(a: Int, b: Int) -> Int {
+    let halfA: Int = Half(a) ?? -1;
+    let tripleB: Int = Triple(b) ?? -2;
+    if halfA < 0 || tripleB < 0 { return -1000; }
+    return halfA + tripleB;
+}
+
+func Main() -> Void {
+    Log(Combine(8, 5));
+    Log(Combine(7, 5));
+    Log(Combine(10, 2000));
+    Log(Combine(8, 2000));
+    Log(Combine(0, 0));
+}

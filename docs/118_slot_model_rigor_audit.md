@@ -328,9 +328,9 @@ These checks fire at runtime and produce panics or returned errors.
 | Check | Failure mode | Evidence |
 |---|---|---|
 | Slot generation mismatch | runtime reject | `make test-security` |
-| Zero slot id / slot id wrap ABA exhaustion | runtime tombstone as `SLOT_ERROR_OUT_OF_MEMORY` | `make test-security` |
+| Zero/max slot id exhaustion plus released-slot recycle | fresh id exhaustion rejects; released ids recycle with generation advance | `make test-security` |
 | Tampered pinned-view generation / double unpin | runtime reject as invalid pin | `make test-security` |
-| Secure slot token forgery | runtime reject | `make test-security` (142/142) |
+| Secure slot token forgery | runtime reject | `make test-security` |
 | Authority token mismatch | runtime reject | `make runtime-authority-contract-test-smoke` |
 | TTL cleanup of stale slot | runtime cleanup | `make test-security` |
 | Secure scope destroy while pinned | `SLOT_ERROR_PINNED` via checked destroy; void destroy panics | `make test-security` fixture coverage; local object compile when OpenSSL is unavailable |
@@ -338,6 +338,9 @@ These checks fire at runtime and produce panics or returned errors.
 | Result-owned file/string helper lifetime | resolved paths are freed on error exits; string length arithmetic is checked before allocation | `make runtime-abi-lifetime-test-smoke` |
 | Inline/export input ABI parity | `pgy_input` returns result-owned strings on both C inline and LLVM-linkable surfaces | `make runtime-abi-lifetime-test-smoke` |
 | Exported array slice pointer derivation | zero-length slices return before pointer arithmetic; range checks use subtract form | `make runtime-abi-lifetime-test-smoke` |
+| Slot boundary read `Result` wrappers | inline and LLVM-linkable Slot / DeviceSlot / SecureSlot read failures return typed `PgyRuntimeSlotResult_*` data at host/service boundaries | `make runtime-panic-abi-test-smoke`, `make security-portability-contract-test-smoke` |
+| File I/O boundary `Result` wrappers | inline and LLVM-linkable `FileOpen` / `FileExists` / `FileRead` / `FileWrite` / `ReadFile` / `WriteFile` / `Input` compatibility paths have typed `PgyRuntimeIoFailure` result owners for host/service boundaries | `make runtime-panic-abi-test-smoke`, `make runtime-abi-lifetime-test-smoke`, `make security-portability-contract-test-smoke` |
+| Channel receive boundary `Result` wrappers | inline and LLVM-linkable channel receive failures return typed `PgyRuntimeChannelFailure` data for closed/empty/timeout states while legacy value wrappers keep sentinel behavior | `make runtime-panic-abi-test-smoke`, `make runtime-abi-lifetime-test-smoke`, `make security-portability-contract-test-smoke` |
 | `List<String>` payload ownership | raw list push/set duplicate strings; get returns list-borrowed pointer; remove frees owned payloads | `make runtime-abi-lifetime-test-smoke` |
 | `Queue<String>` payload ownership | queue push duplicates strings; LLVM uses string-specific raw queue exports instead of pointer memcpy | `make runtime-abi-lifetime-test-smoke` |
 | LLVM `Channel<String>` payload ownership | send duplicates strings into channel-owned storage; receive clears the slot and transfers the owned payload; destroy frees pending payloads | `make runtime-abi-lifetime-test-smoke` |
@@ -361,15 +364,17 @@ shortcut. Saying "Slot is runtime-validated" is honest; saying "Slot is a
 borrow checker" is not.
 
 Current implementation note: the table-backed C ABI is not a 64-bit generation
-handle yet. It uses a 32-bit `slotId` plus a 32-bit generation field, allocates a
-fresh `slotId` for each claim, rejects the zero-id sentinel, and refuses further
-claims before `slotId` wrap. That is a conservative tombstone policy: it
-sacrifices availability at id-space exhaustion instead of allowing ABA reuse.
-Unpin also requires the issued view generation/mode/thread/pointer to match, so
-tampered views and double-unpin attempts cannot clear a live pin. A future
-64-bit handle ABI can relax the exhaustion point, but beta documentation must
-not claim that ABI until the headers, runtime, C backend, LLVM backend, and ABI
-spec all carry it.
+handle yet. It uses a 32-bit `slotId` plus a 32-bit generation field. Released
+slot ids are recycled only by advancing `generation`, so a stale handle with the
+old generation cannot revalidate. Fresh claims still reject the zero-id sentinel
+and max-id wrap as `SLOT_ERROR_ID_EXHAUSTED`; a released entry whose generation
+is already exhausted also returns `SLOT_ERROR_ID_EXHAUSTED` instead of allocator
+OOM. This keeps id-space exhaustion separate from allocator OOM without claiming
+a widened ABI. Unpin also requires the issued view generation/mode/thread/
+pointer to match, so tampered views and double-unpin attempts cannot clear a
+live pin. A future 64-bit handle ABI can relax the exhaustion point further, but
+beta documentation must not claim that ABI until the headers, runtime, C
+backend, LLVM backend, and ABI spec all carry it.
 
 ## 5. Dijkstra Application — What Was Actually Borrowed
 

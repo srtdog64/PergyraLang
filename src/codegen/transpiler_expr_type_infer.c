@@ -11,6 +11,7 @@
 #include <stdlib.h>
 #include <string.h>
 
+#include "codegen_match_variant_policy.h"
 #include "transpiler_builtin_type_table.h"
 #include "transpiler_channel_type_query.h"
 #include "transpiler_decl_lookup.h"
@@ -133,7 +134,8 @@ infer_expression_type_name(TranspilerCtx *ctx, ASTNode *expr)
         const char *identifier_name = ast_identifier_name(expr);
         if (identifier_name == NULL)
             return "Unknown";
-        if (strcmp(identifier_name, "None") == 0) {
+        if (pgy_codegen_match_variant_lookup(identifier_name)
+                == PGY_MATCH_VARIANT_NONE_CTOR) {
             const char *context_type = transpiler_contextual_option_type_name(ctx);
             return context_type != NULL ? context_type : "Option<Unknown>";
         }

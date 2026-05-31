@@ -1,0 +1,24 @@
+enum Outer { Plain, Wrap(Int) }
+enum Inner { Off, On(Int) }
+
+func DispatchInner(i: Inner, fallback: Int) -> Int {
+    match i {
+        case Off: return fallback;
+        case On(io): return io;
+    }
+}
+
+func DispatchOuter(o: Outer, i: Inner) -> Int {
+    match o {
+        case Plain: return DispatchInner(i, 0);
+        case Wrap(wv): return DispatchInner(i, wv) + wv;
+    }
+}
+
+func Main() -> Void {
+    Log(DispatchOuter(Plain, Off));
+    Log(DispatchOuter(Plain, On(5)));
+    Log(DispatchOuter(Wrap(10), Off));
+    Log(DispatchOuter(Wrap(10), On(3)));
+    Log(DispatchOuter(Wrap(7), On(99)));
+}

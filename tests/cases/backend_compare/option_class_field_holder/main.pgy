@@ -1,0 +1,42 @@
+class Cell {
+    let v: Int;
+    let w: Int;
+
+    func Score(self) -> Int {
+        return v * w;
+    }
+}
+
+class Holder {
+    let bias: Int;
+
+    func Pick(self, n: Int) -> Option<Cell> {
+        if n < 0 { return None; }
+        return Some(Cell(n, n + bias));
+    }
+}
+
+func TotalScore(bias: Int, seeds: Array<Int>, count: Int) -> Int {
+    let h: Holder = Holder(bias);
+    let total: Int = 0;
+    let i: Int = 0;
+    while i < count {
+        match h.Pick(seeds[i]) {
+            case Some(c): total = total + c.Score();
+            case None: total = total - 1;
+        }
+        i = i + 1;
+    }
+    return total;
+}
+
+func Main() -> Void {
+    let s1: Array<Int> = [1, 2, 3, 4];
+    Log(TotalScore(5, s1, 4));
+    let s2: Array<Int> = [-1, 0, 5];
+    Log(TotalScore(2, s2, 3));
+    let s3: Array<Int> = [-1, -1, -1];
+    Log(TotalScore(0, s3, 3));
+    let s4: Array<Int> = [10];
+    Log(TotalScore(1, s4, 1));
+}

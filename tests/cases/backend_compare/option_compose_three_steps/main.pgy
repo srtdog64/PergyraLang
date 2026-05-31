@@ -1,0 +1,32 @@
+func Step1(n: Int) -> Option<Int> {
+    if n < 0 { return None(); }
+    return Some(n + 10);
+}
+
+func Step2(n: Int) -> Option<Int> {
+    if n > 100 { return None(); }
+    return Some(n * 2);
+}
+
+func Step3(n: Int) -> Option<Int> {
+    if n == 0 { return None(); }
+    return Some(n - 1);
+}
+
+func RunPipeline(start: Int) -> Int {
+    let after1: Int = Step1(start) ?? -1;
+    if after1 < 0 { return -101; }
+    let after2: Int = Step2(after1) ?? -1;
+    if after2 < 0 { return -102; }
+    let after3: Int = Step3(after2) ?? -1;
+    if after3 < 0 { return -103; }
+    return after3;
+}
+
+func Main() -> Void {
+    Log(RunPipeline(5));
+    Log(RunPipeline(0));
+    Log(RunPipeline(-3));
+    Log(RunPipeline(50));
+    Log(RunPipeline(95));
+}

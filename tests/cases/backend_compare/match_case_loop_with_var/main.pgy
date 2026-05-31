@@ -1,0 +1,43 @@
+enum Mode { Sum, Product, Diff }
+
+func Apply(arr: Array<Int>, n: Int, mode: Mode) -> Int {
+    match mode {
+        case Sum:
+            let acc: Int = 0;
+            let i: Int = 0;
+            while i < n {
+                acc = acc + arr[i];
+                i = i + 1;
+            }
+            return acc;
+        case Product:
+            let acc: Int = 1;
+            let i: Int = 0;
+            while i < n {
+                acc = acc * arr[i];
+                i = i + 1;
+            }
+            return acc;
+        case Diff:
+            if n == 0 { return 0; }
+            let acc: Int = arr[0];
+            let i: Int = 1;
+            while i < n {
+                acc = acc - arr[i];
+                i = i + 1;
+            }
+            return acc;
+    }
+}
+
+func Main() -> Void {
+    let a: Array<Int> = [1, 2, 3, 4, 5];
+    Log(Apply(a, 5, Sum));
+    Log(Apply(a, 5, Product));
+    Log(Apply(a, 5, Diff));
+    let b: Array<Int> = [10, 5];
+    Log(Apply(b, 2, Sum));
+    Log(Apply(b, 2, Diff));
+    let c: Array<Int> = [];
+    Log(Apply(c, 0, Sum));
+}

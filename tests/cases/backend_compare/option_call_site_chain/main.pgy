@@ -1,0 +1,32 @@
+func Wrap(n: Int) -> Option<Int> {
+    if n < 0 {
+        return None;
+    }
+    return Some(n);
+}
+
+func Combine(a: Option<Int>, b: Option<Int>) -> Option<Int> {
+    match a {
+        case Some(x):
+            match b {
+                case Some(y): return Some(x + y);
+                case None: return None;
+            }
+        case None: return None;
+    }
+}
+
+func DefaultTo(o: Option<Int>, def: Int) -> Int {
+    match o {
+        case Some(n): return n;
+        case None: return def;
+    }
+}
+
+func Main() -> Void {
+    Log(DefaultTo(Combine(Wrap(5), Wrap(7)), -1));
+    Log(DefaultTo(Combine(Wrap(-1), Wrap(7)), -1));
+    Log(DefaultTo(Combine(Wrap(5), Wrap(-2)), -1));
+    Log(DefaultTo(Combine(Wrap(-3), Wrap(-4)), -1));
+    Log(DefaultTo(Combine(Wrap(100), Wrap(200)), 0));
+}

@@ -1,0 +1,17 @@
+func Main() -> Void {
+    let ch: Channel<Int> = Channel(2);
+
+    let before: Option<Int> = TryRecv(ch);
+    Log(before ?? -1);
+
+    ch <- 7;
+    let got: Option<Int> = TryRecv(ch);
+    Log(got ?? -1);
+
+    let timed_empty: Option<Int> = RecvTimeout(ch, 0);
+    Log(timed_empty ?? -1);
+
+    ch <- 11;
+    let timed: Option<Int> = RecvTimeout(ch, 1000000);
+    Log(timed ?? -1);
+}

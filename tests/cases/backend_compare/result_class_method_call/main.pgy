@@ -1,0 +1,39 @@
+class Order {
+    let id: Int;
+    let amt: Int;
+
+    func Total(self) -> Int {
+        return amt + 5;
+    }
+
+    func IdScale(self) -> Int {
+        return id * 100;
+    }
+}
+
+enum OrdErr { Invalid, Cancelled }
+
+func Lookup(id: Int, amt: Int) -> Result<Order, OrdErr> {
+    if id < 0 { return Err(Invalid); }
+    if amt < 0 { return Err(Cancelled); }
+    return Ok(Order(id, amt));
+}
+
+func Score(r: Result<Order, OrdErr>) -> Int {
+    match r {
+        case Ok(o): return o.Total() + o.IdScale();
+        case Err(e):
+            match e {
+                case Invalid: return -1;
+                case Cancelled: return -2;
+            }
+    }
+}
+
+func Main() -> Void {
+    Log(Score(Lookup(3, 10)));
+    Log(Score(Lookup(-1, 10)));
+    Log(Score(Lookup(5, -1)));
+    Log(Score(Lookup(7, 100)));
+    Log(Score(Lookup(0, 0)));
+}

@@ -1,0 +1,33 @@
+class Counter {
+    let v: Int;
+    let max: Int;
+
+    func Step(self) -> Int {
+        if v + 1 > max { return -1; }
+        return v + 1;
+    }
+}
+
+func Iterate(start: Int, max: Int, rounds: Int) -> Int {
+    let c: Counter = Counter(start, max);
+    let cur: Int = c.v;
+    let i: Int = 0;
+    while i < rounds {
+        let nxt: Counter = Counter(cur, max);
+        let probe: Int = nxt.Step();
+        if probe < 0 {
+            return cur;
+        }
+        cur = probe;
+        i = i + 1;
+    }
+    return cur;
+}
+
+func Main() -> Void {
+    Log(Iterate(0, 10, 5));
+    Log(Iterate(0, 100, 50));
+    Log(Iterate(7, 10, 100));
+    Log(Iterate(0, 1, 5));
+    Log(Iterate(50, 50, 10));
+}

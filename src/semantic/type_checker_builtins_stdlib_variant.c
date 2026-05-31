@@ -11,6 +11,7 @@
 #include "type_checker_internal.h"
 #include "type_checker_builtins_internal.h"
 #include "diag_codes.h"
+#include "../common/match_variant_policy.h"
 
 typedef enum StdlibVariantBuiltinKind {
     STDLIB_VARIANT_UNKNOWN = 0,
@@ -54,16 +55,20 @@ stdlib_variant_builtin_kind(const char *name)
         { "IsNone", STDLIB_VARIANT_IS_NONE },
         { "IsOk", STDLIB_VARIANT_IS_OK },
         { "IsSome", STDLIB_VARIANT_IS_SOME },
-        { "None", STDLIB_VARIANT_NONE },
-        { "Some", STDLIB_VARIANT_SOME },
         { "Unwrap", STDLIB_VARIANT_UNWRAP },
         { "UnwrapOption", STDLIB_VARIANT_UNWRAP_OPTION },
         { "UnwrapOr", STDLIB_VARIANT_UNWRAP_OR }
     };
     const StdlibVariantBuiltinSpec *match;
+    PgyMatchVariantKind variant_kind;
 
     if (name == NULL)
         return STDLIB_VARIANT_UNKNOWN;
+    variant_kind = pgy_match_variant_lookup(name);
+    if (variant_kind == PGY_MATCH_VARIANT_SOME)
+        return STDLIB_VARIANT_SOME;
+    if (variant_kind == PGY_MATCH_VARIANT_NONE_CTOR)
+        return STDLIB_VARIANT_NONE;
     match = (const StdlibVariantBuiltinSpec *)bsearch(
         &name, specs, sizeof(specs) / sizeof(specs[0]), sizeof(specs[0]),
         stdlib_variant_builtin_compare);

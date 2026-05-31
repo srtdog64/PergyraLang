@@ -1,0 +1,24 @@
+func Build(n: Int) -> Option<Int> {
+    if n >= 0 {
+        return Some(n * 2);
+    }
+    return None;
+}
+
+func Process(seed: Int) -> Int {
+    let opt: Option<Int> = Build(seed);
+    let val: Int = -1;
+    match opt {
+        case Some(v): val = v + 1;
+        case None: val = 999;
+    }
+    return val;
+}
+
+func Main() -> Void {
+    Log(Process(10));
+    Log(Process(0));
+    Log(Process(-5));
+    Log(Process(100));
+    Log(Process(-100));
+}

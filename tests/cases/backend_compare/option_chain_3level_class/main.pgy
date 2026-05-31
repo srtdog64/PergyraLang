@@ -1,0 +1,45 @@
+class A {
+    let n: Int;
+
+    func Pick(self) -> Int {
+        return n * 10;
+    }
+}
+
+class B {
+    let weight: Int;
+
+    func MakeA(self, x: Int) -> Option<A> {
+        if x < 0 { return None; }
+        return Some(A(x + weight));
+    }
+}
+
+class C {
+    let bias: Int;
+
+    func MakeB(self, scale: Int) -> Option<B> {
+        if scale == 0 { return None; }
+        return Some(B(scale + bias));
+    }
+}
+
+func ThreeLevel(seedC: Int, scale: Int, x: Int) -> Int {
+    let c: C = C(seedC);
+    match c.MakeB(scale) {
+        case Some(b):
+            match b.MakeA(x) {
+                case Some(a): return a.Pick();
+                case None: return -1;
+            }
+        case None: return -2;
+    }
+}
+
+func Main() -> Void {
+    Log(ThreeLevel(5, 3, 7));
+    Log(ThreeLevel(0, 0, 5));
+    Log(ThreeLevel(2, 4, -1));
+    Log(ThreeLevel(10, 1, 0));
+    Log(ThreeLevel(100, 50, 100));
+}

@@ -1,0 +1,40 @@
+class Spec {
+    let threshold: Int;
+
+    func Accepts(self, n: Int) -> Bool {
+        return n >= threshold;
+    }
+}
+
+func CountAccepted(s: Spec, arr: Array<Int>, n: Int) -> Int {
+    let count: Int = 0;
+    let i: Int = 0;
+    while i < n {
+        if s.Accepts(arr[i]) {
+            count = count + 1;
+        }
+        i = i + 1;
+    }
+    return count;
+}
+
+func SumAccepted(s: Spec, arr: Array<Int>, n: Int) -> Int {
+    let sum: Int = 0;
+    let i: Int = 0;
+    while i < n {
+        if s.Accepts(arr[i]) {
+            sum = sum + arr[i];
+        }
+        i = i + 1;
+    }
+    return sum;
+}
+
+func Main() -> Void {
+    let arr: Array<Int> = [1, 5, 10, 15, 20, 50, 100];
+    Log(CountAccepted(Spec(10), arr, 7));
+    Log(SumAccepted(Spec(10), arr, 7));
+    Log(CountAccepted(Spec(50), arr, 7));
+    Log(SumAccepted(Spec(0), arr, 7));
+    Log(CountAccepted(Spec(101), arr, 7));
+}

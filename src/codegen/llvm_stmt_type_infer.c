@@ -136,13 +136,22 @@ llvm_stmt_infer_expr_type(LLVMGenCtx *ctx, ASTNode *expr)
         return llvm_array_struct_type(ctx, suffix);
     }
     case AST_IDENTIFIER: {
-        LLVMVarEntry *var = llvm_scope_lookup(ctx, ast_identifier_name(expr));
+        const char *name = ast_identifier_name(expr);
+        LLVMVarEntry *var = llvm_scope_lookup(ctx, name);
         if (var != NULL)
             return var->type;
-        /* MIR local allocation can ask for loop induction variables before
-         * the value inventory has registered them. Keep this as poison i32
-         * until loop locals are typed directly from MIR facts. */
-        return ctx->type_i32;
+        if (name != NULL && strcmp(name, "self") != 0
+            && llvm_current_host_class_name(ctx) != NULL) {
+            LLVMClassTypeEntry *host_cls = llvm_lookup_class(
+                ctx, llvm_current_host_class_name(ctx));
+            int field_idx = host_cls != NULL
+                ? llvm_class_field_index(host_cls, name)
+                : -1;
+            if (field_idx >= 0)
+                return llvm_class_field_type_at_index(host_cls, field_idx);
+        }
+        return llvm_stmt_unknown_expr_type(ctx, expr,
+            "identifier requires registered LLVM local metadata");
     }
     case AST_ASSIGNMENT:
         if (ast_assignment_target(expr) != NULL
@@ -177,10 +186,9 @@ llvm_stmt_infer_expr_type(LLVMGenCtx *ctx, ASTNode *expr)
                 return llvm_stmt_unknown_expr_type(ctx, expr, reason);
             }
         }
-        /* Select lowering can allocate receive temporaries before channel
-         * inner metadata is registered. If the enclosing let/return already
-         * supplied a concrete expected value type, use that instead of
-         * inventing poison i32. */
+        /* If the enclosing let/return already supplied a concrete expected
+         * value type, consume it. Otherwise a Channel<T> receive without
+         * channel metadata is a source-of-truth gap, not an implicit Int. */
         if (ctx->expected_type_name != NULL
             && pgy_classify_type(ctx->expected_type_name) != PGY_TK_CHANNEL) {
             LLVMTypeRef expected = pergyra_type_to_llvm(
@@ -188,7 +196,8 @@ llvm_stmt_infer_expr_type(LLVMGenCtx *ctx, ASTNode *expr)
             if (expected != NULL)
                 return expected;
         }
-        return ctx->type_i32;
+        return llvm_stmt_unknown_expr_type(ctx, expr,
+            "channel receive requires registered Channel<T> metadata");
     case AST_MEMBER_ACCESS: {
         const char *base_name = llvm_stmt_infer_nominal_name_from_init(
             ctx, ast_member_object(expr));
@@ -345,15 +354,16 @@ llvm_stmt_infer_expr_type(LLVMGenCtx *ctx, ASTNode *expr)
         }
         /* Domain helper calls can be emitted before their final lowered helper
          * entry is visible in the LLVM function inventory. Prefer the
-         * enclosing concrete let/return context when it exists; otherwise keep
-         * poison i32 until call result facts are carried directly by MIR. */
+         * enclosing concrete let/return context when it exists; otherwise fail
+         * through the typed inference seam instead of inventing Int. */
         if (ctx->expected_type_name != NULL) {
             LLVMTypeRef expected = pergyra_type_to_llvm(
                 ctx, ctx->expected_type_name);
             if (expected != NULL)
                 return expected;
         }
-        return ctx->type_i32;
+        return llvm_stmt_unknown_expr_type(ctx, expr,
+            "call result requires registered function or expected type metadata");
     case AST_BINARY: {
         PgyTokenType op = ast_binary_operator(expr).type;
         LLVMTypeRef left_ty = NULL;
@@ -401,10 +411,8 @@ llvm_stmt_infer_expr_type(LLVMGenCtx *ctx, ASTNode *expr)
     case AST_DEFER_STMT:
         return ctx->type_void;
     default:
-        /* MIR local allocation still reaches a few statement-shaped AST nodes
-         * before typed MIR result facts are complete. Keep poison i32 here;
-         * concrete expression gaps above should use llvm_stmt_unknown_expr_type. */
-        return ctx->type_i32;
+        return llvm_stmt_unknown_expr_type(ctx, expr,
+            "expression requires typed MIR result facts");
     }
 }
 
@@ -415,11 +423,10 @@ llvm_stmt_resolve_array_elem_type(LLVMGenCtx *ctx, ASTNode *expr,
     LLVMTypeRef elem_type = llvm_stmt_expected_array_elem_type(ctx);
     (void)data_ptr;
 
-    if (elem_type == NULL)
-        elem_type = ctx->type_i32;
-
     if (expr == NULL)
-        return elem_type;
+        return elem_type != NULL ? elem_type
+            : llvm_stmt_unknown_expr_type(ctx, expr,
+                "array element type requires expected Array<T> metadata");
 
     if (expr->type == AST_IDENTIFIER && ast_identifier_name(expr) != NULL) {
         LLVMArrayVarEntry *entry = llvm_lookup_array_var(
@@ -513,7 +520,10 @@ llvm_stmt_resolve_array_elem_type(LLVMGenCtx *ctx, ASTNode *expr,
         }
     }
 
-    return elem_type;
+    if (elem_type != NULL)
+        return elem_type;
+    return llvm_stmt_unknown_expr_type(ctx, expr,
+        "array or slice element type requires registered Array<T>/Slice<T> metadata");
 }
 
 
