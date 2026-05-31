@@ -284,6 +284,32 @@ typedef struct
     size_t      routine_index;
 } MIRDeclMethod;
 
+typedef enum
+{
+    MIR_DECL_FIELD_UNKNOWN,
+    MIR_DECL_FIELD_CLASS,
+    MIR_DECL_FIELD_SHARED,
+    MIR_DECL_FIELD_ROLE_SLOT,
+    MIR_DECL_FIELD_ROSTER_SLOT,
+    MIR_DECL_FIELD_WORLD_ROSTER_SLOT,
+    MIR_DECL_FIELD_WORLD_ZONE_SLOT,
+    MIR_DECL_FIELD_DOMAIN_SLOT,
+    MIR_DECL_FIELD_ZONE_LAYER_SLOT
+} MIRDeclFieldKind;
+
+typedef struct
+{
+    /* Source compatibility/provenance only; consumers must use the metadata. */
+    ASTNode         *source_ast;
+    const char      *owner_name;
+    const char      *name;
+    ASTNode         *type;
+    const char      *type_name;
+    MIRDeclFieldKind kind;
+    bool             is_dynamic;
+    bool             is_subject_like;
+} MIRDeclField;
+
 typedef struct
 {
     /* Source compatibility/provenance only; declaration inventory lives below. */
@@ -293,6 +319,9 @@ typedef struct
     size_t       method_count;
     MIRDeclMethod *method_metadata;
     size_t       method_metadata_count;
+    size_t       field_count;
+    MIRDeclField *field_metadata;
+    size_t       field_metadata_count;
     bool         uses_pointer_self;
 } MIRDeclHeader;
 
@@ -443,6 +472,7 @@ void        mir_routine_inventory_from_program(
 const MIRRoutine *mir_routine_inventory_get(
                 const MIRRoutineInventory *inventory,
                 size_t index);
+ASTNode    *mir_routine_source_ast(const MIRRoutine *routine);
 void        mir_mutable_routine_inventory_from_program(
                 MIRProgram *mir,
                 MIRMutableRoutineInventory *inventory);

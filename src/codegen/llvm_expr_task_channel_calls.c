@@ -96,8 +96,10 @@ llvm_task_channel_format_op_runtime_name(char *out, size_t out_size,
 }
 
 static bool
-llvm_channel_arg(LLVMGenCtx *ctx, ASTNode *node, const char *callee_name,
-                 ASTNode **out_channel, LLVMChannelTarget *out_target)
+llvm_required_channel_var(LLVMGenCtx *ctx, ASTNode *node,
+                          const char *callee_name,
+                          ASTNode **out_channel,
+                          LLVMChannelTarget *out_target)
 {
     ASTNode *channel;
     LLVMChannelTarget target;
@@ -137,7 +139,8 @@ llvm_emit_task_channel_call(ASTNode *node, LLVMGenCtx *ctx, const char *callee_n
         char fname[128];
         LLVMFuncEntry *fn;
 
-        if (!llvm_channel_arg(ctx, node, callee_name, &channel, &target))
+        if (!llvm_required_channel_var(ctx, node, callee_name,
+                &channel, &target))
             return NULL;
         if (!llvm_task_channel_format_runtime_name(fname, sizeof(fname),
                 "pgy_channel_close", target.inner)) {
@@ -159,7 +162,8 @@ llvm_emit_task_channel_call(ASTNode *node, LLVMGenCtx *ctx, const char *callee_n
         LLVMValueRef val;
         LLVMFuncEntry *fn;
 
-        if (!llvm_channel_arg(ctx, node, callee_name, &channel, &target))
+        if (!llvm_required_channel_var(ctx, node, callee_name,
+                &channel, &target))
             return NULL;
         val = llvm_emit_expression(ast_call_argument(node, 1), ctx);
         if (val == NULL)
@@ -188,7 +192,8 @@ llvm_emit_task_channel_call(ASTNode *node, LLVMGenCtx *ctx, const char *callee_n
         LLVMFuncEntry *closed_fn;
         LLVMFuncEntry *send_fn;
 
-        if (!llvm_channel_arg(ctx, node, callee_name, &channel, &target))
+        if (!llvm_required_channel_var(ctx, node, callee_name,
+                &channel, &target))
             return NULL;
         val = llvm_emit_expression(ast_call_argument(node, 1), ctx);
         if (val == NULL)
@@ -225,7 +230,8 @@ llvm_emit_task_channel_call(ASTNode *node, LLVMGenCtx *ctx, const char *callee_n
         LLVMValueRef timeout;
         LLVMFuncEntry *fn;
 
-        if (!llvm_channel_arg(ctx, node, callee_name, &channel, &target))
+        if (!llvm_required_channel_var(ctx, node, callee_name,
+                &channel, &target))
             return NULL;
         val = llvm_emit_expression(ast_call_argument(node, 1), ctx);
         timeout = llvm_emit_expression(ast_call_argument(node, 2), ctx);
@@ -263,7 +269,8 @@ llvm_emit_task_channel_call(ASTNode *node, LLVMGenCtx *ctx, const char *callee_n
         LLVMFuncEntry *closed_fn;
         LLVMFuncEntry *send_fn;
 
-        if (!llvm_channel_arg(ctx, node, callee_name, &channel, &target))
+        if (!llvm_required_channel_var(ctx, node, callee_name,
+                &channel, &target))
             return NULL;
         val = llvm_emit_expression(ast_call_argument(node, 1), ctx);
         timeout = llvm_emit_expression(ast_call_argument(node, 2), ctx);
@@ -316,7 +323,8 @@ llvm_emit_task_channel_call(ASTNode *node, LLVMGenCtx *ctx, const char *callee_n
         char fname[128];
         LLVMFuncEntry *fn;
 
-        if (!llvm_channel_arg(ctx, node, callee_name, &channel, &target))
+        if (!llvm_required_channel_var(ctx, node, callee_name,
+                &channel, &target))
             return NULL;
         value_ty = pergyra_type_to_llvm(ctx, target.inner);
         if (value_ty == NULL)
@@ -379,7 +387,7 @@ llvm_emit_task_channel_call(ASTNode *node, LLVMGenCtx *ctx, const char *callee_n
             char fname[128];
             LLVMFuncEntry *fn;
 
-            if (!llvm_channel_arg(ctx, node, callee_name,
+            if (!llvm_required_channel_var(ctx, node, callee_name,
                     &channel, &target))
                 return NULL;
             if (!llvm_task_channel_format_op_runtime_name(fname, sizeof(fname),

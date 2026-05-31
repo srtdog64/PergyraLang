@@ -97,11 +97,21 @@ llvm_emit_scalar_math_call(ASTNode *node, LLVMGenCtx *ctx,
         if (x == NULL)
             return llvm_math_error_out(ctx, node, out,
                 "LLVM Abs could not lower operand expression");
-        LLVMValueRef zero = LLVMConstInt(ctx->type_i32, 0, 0);
-        LLVMValueRef neg = LLVMBuildNeg(ctx->builder, x, llvm_tmp_name(ctx));
-        LLVMValueRef cmp = LLVMBuildICmp(ctx->builder, LLVMIntSLT, x, zero,
-                                          llvm_tmp_name(ctx));
-        *out = LLVMBuildSelect(ctx->builder, cmp, neg, x, llvm_tmp_name(ctx));
+        LLVMTypeRef ty = LLVMTypeOf(x);
+        LLVMTypeKind tk = LLVMGetTypeKind(ty);
+        if (tk == LLVMFloatTypeKind || tk == LLVMDoubleTypeKind) {
+            LLVMValueRef zero = LLVMConstReal(ty, 0.0);
+            LLVMValueRef neg = LLVMBuildFNeg(ctx->builder, x, llvm_tmp_name(ctx));
+            LLVMValueRef cmp = LLVMBuildFCmp(ctx->builder, LLVMRealOLT, x, zero,
+                                              llvm_tmp_name(ctx));
+            *out = LLVMBuildSelect(ctx->builder, cmp, neg, x, llvm_tmp_name(ctx));
+        } else {
+            LLVMValueRef zero = LLVMConstInt(ty, 0, 0);
+            LLVMValueRef neg = LLVMBuildNeg(ctx->builder, x, llvm_tmp_name(ctx));
+            LLVMValueRef cmp = LLVMBuildICmp(ctx->builder, LLVMIntSLT, x, zero,
+                                              llvm_tmp_name(ctx));
+            *out = LLVMBuildSelect(ctx->builder, cmp, neg, x, llvm_tmp_name(ctx));
+        }
         return true;
     }
 
@@ -111,8 +121,15 @@ llvm_emit_scalar_math_call(ASTNode *node, LLVMGenCtx *ctx,
         if (a == NULL || b == NULL)
             return llvm_math_error_out(ctx, node, out,
                 "LLVM Min could not lower operand expression");
-        LLVMValueRef cmp = LLVMBuildICmp(ctx->builder, LLVMIntSLT, a, b,
-                                          llvm_tmp_name(ctx));
+        LLVMTypeKind tk = LLVMGetTypeKind(LLVMTypeOf(a));
+        LLVMValueRef cmp;
+        if (tk == LLVMFloatTypeKind || tk == LLVMDoubleTypeKind) {
+            cmp = LLVMBuildFCmp(ctx->builder, LLVMRealOLT, a, b,
+                                llvm_tmp_name(ctx));
+        } else {
+            cmp = LLVMBuildICmp(ctx->builder, LLVMIntSLT, a, b,
+                                llvm_tmp_name(ctx));
+        }
         *out = LLVMBuildSelect(ctx->builder, cmp, a, b, llvm_tmp_name(ctx));
         return true;
     }
@@ -123,8 +140,15 @@ llvm_emit_scalar_math_call(ASTNode *node, LLVMGenCtx *ctx,
         if (a == NULL || b == NULL)
             return llvm_math_error_out(ctx, node, out,
                 "LLVM Max could not lower operand expression");
-        LLVMValueRef cmp = LLVMBuildICmp(ctx->builder, LLVMIntSGT, a, b,
-                                          llvm_tmp_name(ctx));
+        LLVMTypeKind tk = LLVMGetTypeKind(LLVMTypeOf(a));
+        LLVMValueRef cmp;
+        if (tk == LLVMFloatTypeKind || tk == LLVMDoubleTypeKind) {
+            cmp = LLVMBuildFCmp(ctx->builder, LLVMRealOGT, a, b,
+                                llvm_tmp_name(ctx));
+        } else {
+            cmp = LLVMBuildICmp(ctx->builder, LLVMIntSGT, a, b,
+                                llvm_tmp_name(ctx));
+        }
         *out = LLVMBuildSelect(ctx->builder, cmp, a, b, llvm_tmp_name(ctx));
         return true;
     }
@@ -136,10 +160,20 @@ llvm_emit_scalar_math_call(ASTNode *node, LLVMGenCtx *ctx,
         if (val == NULL || lo == NULL || hi == NULL)
             return llvm_math_error_out(ctx, node, out,
                 "LLVM Clamp could not lower operand expression");
-        LLVMValueRef below = LLVMBuildICmp(ctx->builder, LLVMIntSLT, val, lo,
-                                           llvm_tmp_name(ctx));
-        LLVMValueRef above = LLVMBuildICmp(ctx->builder, LLVMIntSGT, val, hi,
-                                           llvm_tmp_name(ctx));
+        LLVMTypeKind tk = LLVMGetTypeKind(LLVMTypeOf(val));
+        LLVMValueRef below;
+        LLVMValueRef above;
+        if (tk == LLVMFloatTypeKind || tk == LLVMDoubleTypeKind) {
+            below = LLVMBuildFCmp(ctx->builder, LLVMRealOLT, val, lo,
+                                  llvm_tmp_name(ctx));
+            above = LLVMBuildFCmp(ctx->builder, LLVMRealOGT, val, hi,
+                                  llvm_tmp_name(ctx));
+        } else {
+            below = LLVMBuildICmp(ctx->builder, LLVMIntSLT, val, lo,
+                                  llvm_tmp_name(ctx));
+            above = LLVMBuildICmp(ctx->builder, LLVMIntSGT, val, hi,
+                                  llvm_tmp_name(ctx));
+        }
         LLVMValueRef bounded_hi = LLVMBuildSelect(ctx->builder, above, hi, val,
                                                   llvm_tmp_name(ctx));
         *out = LLVMBuildSelect(ctx->builder, below, lo, bounded_hi,

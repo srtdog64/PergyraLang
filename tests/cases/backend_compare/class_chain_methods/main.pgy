@@ -1,0 +1,31 @@
+class Pair {
+    let a: Int;
+    let b: Int;
+
+    func Sum(self) -> Int {
+        return a + b;
+    }
+
+    func Product(self) -> Int {
+        return a * b;
+    }
+
+    func Diff(self) -> Int {
+        return a - b;
+    }
+}
+
+func Combine(p: Pair) -> Int {
+    return p.Sum() + p.Product() * 2 - p.Diff();
+}
+
+func Main() -> Void {
+    let p1 = Pair(3, 5);
+    let p2 = Pair(2, 7);
+    let p3 = Pair(0, 0);
+    Log(Combine(p1));
+    Log(Combine(p2));
+    Log(Combine(p3));
+    Log(p1.Sum() + p2.Product());
+    Log(p1.Diff() * p2.Diff());
+}

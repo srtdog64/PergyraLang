@@ -1,0 +1,21 @@
+enum Signal { Idle, Quiet, Data(Int), Burst(Int, Int), Done }
+
+func Process(s: Signal) -> Int {
+    match s {
+        case Idle: return -1;
+        case Quiet: return 0;
+        case Data(n): return n;
+        case Burst(a, b): return a + b * 100;
+        case Done: return -999;
+    }
+}
+
+func Main() -> Void {
+    Log(Process(Idle));
+    Log(Process(Quiet));
+    Log(Process(Data(7)));
+    Log(Process(Data(0)));
+    Log(Process(Burst(3, 5)));
+    Log(Process(Burst(0, 0)));
+    Log(Process(Done));
+}

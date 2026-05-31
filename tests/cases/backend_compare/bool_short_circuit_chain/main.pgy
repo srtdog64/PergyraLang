@@ -1,0 +1,27 @@
+func InRange(v: Int, lo: Int, hi: Int) -> Bool {
+    return v >= lo && v <= hi;
+}
+
+func EitherEdge(v: Int, lo: Int, hi: Int) -> Bool {
+    return v == lo || v == hi;
+}
+
+func Score(v: Int) -> Int {
+    if InRange(v, 0, 100) && !EitherEdge(v, 0, 100) {
+        return 1;
+    }
+    if InRange(v, 0, 100) || EitherEdge(v, -50, 200) {
+        return 2;
+    }
+    return 0;
+}
+
+func Main() -> Void {
+    Log(Score(50));
+    Log(Score(0));
+    Log(Score(100));
+    Log(Score(-50));
+    Log(Score(200));
+    Log(Score(-100));
+    Log(Score(150));
+}

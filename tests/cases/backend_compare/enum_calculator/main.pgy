@@ -1,0 +1,24 @@
+enum BinOp {
+    Inc(Int),
+    Double(Int),
+    Negate(Int),
+    Square(Int)
+}
+
+func Compute(op: BinOp) -> Int {
+    match op {
+        case Inc(x): return x + 1;
+        case Double(y): return y * 2;
+        case Negate(z): return -z;
+        case Square(w): return w * w;
+    }
+}
+
+func Main() -> Void {
+    Log(Compute(Inc(3)));
+    Log(Compute(Double(7)));
+    Log(Compute(Negate(15)));
+    Log(Compute(Square(4)));
+    Log(Compute(Inc(99)));
+    Log(Compute(Square(10)));
+}

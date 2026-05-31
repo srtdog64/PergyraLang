@@ -257,11 +257,33 @@ void
 emit_role_decl(ASTNode *node, TranspilerCtx *ctx)
 {
     const char *name = transpiler_decl_name_local(node);
+    TranspilerHostedMethodView method_view;
 
     codebuf_write(ctx->out, "\n/* Role: %s */\n", name);
     emit_included_role_impls(node, ctx);
     if (ctx != NULL && ctx->backend_error != NULL)
         return;
+
+    method_view = transpiler_hosted_method_view_from_decl(ctx, name, node);
+    if (transpiler_hosted_method_view_missing_mir_metadata(&method_view)) {
+        transpiler_set_mir_inventory_missing(
+            ctx,
+            "MIR-only C path missing method declaration metadata for role '%s'",
+            name != NULL ? name : "(anonymous-role)");
+        return;
+    }
+
+    for (size_t i = 0; i < method_view.count; i++) {
+        const MIRDeclMethod *method_meta =
+            transpiler_hosted_method_view_metadata(&method_view, i);
+        const MIRRoutine *mir_method =
+            transpiler_hosted_method_view_routine(ctx, &method_view, i);
+        ASTNode *method =
+            transpiler_hosted_method_view_source_ast(&method_view, i);
+        emit_role_method_impl(name, method_meta, mir_method, method, ctx);
+        if (ctx != NULL && ctx->backend_error != NULL)
+            return;
+    }
 
     for (size_t i = 0; i < ast_role_impl_count(node); i++) {
         ASTNode *impl = ast_role_impl(node, i);
@@ -270,15 +292,6 @@ emit_role_decl(ASTNode *node, TranspilerCtx *ctx)
             continue;
 
         if (impl->type == AST_IMPL_ABILITY) {
-            for (size_t j = 0; j < ast_impl_ability_method_count(impl); j++) {
-                ASTNode *method = ast_impl_ability_method(impl, j);
-                if (method == NULL || method->type != AST_FUNC_DECL)
-                    continue;
-                emit_role_method_impl(name, method, ctx);
-                if (ctx != NULL && ctx->backend_error != NULL)
-                    return;
-            }
-
             emit_role_vtable_instance(name, impl, ctx);
             if (ctx != NULL && ctx->backend_error != NULL)
                 return;
@@ -443,8 +456,10 @@ emit_party_decl(ASTNode *node, TranspilerCtx *ctx)
             transpiler_hosted_method_view_metadata(&method_view, i);
         ASTNode *method =
             transpiler_hosted_method_view_source_ast(&method_view, i);
-        if (method == NULL || method->type != AST_FUNC_DECL)
+        if (method_meta == NULL
+            && (method == NULL || method->type != AST_FUNC_DECL)) {
             continue;
+        }
         emit_hosted_method_forward_decl_from_metadata(name, method_meta,
             method, true, ctx->out, ctx);
     }

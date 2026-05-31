@@ -8,6 +8,7 @@
 void llvm_mir_emit_true_phi_nodes(const MIRRoutine *routine,
                                   LLVMGenCtx *ctx,
                                   LLVMBasicBlockRef *llvm_blocks,
+                                  LLVMBasicBlockRef *llvm_block_heads,
                                   LLVMMirVar *vars,
                                   size_t var_count);
 

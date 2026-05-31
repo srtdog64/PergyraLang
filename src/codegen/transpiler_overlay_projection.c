@@ -10,11 +10,11 @@
 
 #include "../common/string_compat.h"
 #include "../parser/ast_api.h"
-#include "host_decl_compat.h"
 #include "transpiler_context.h"
 #include "transpiler_decl_lookup.h"
 #include "transpiler_domain_receiver_query.h"
 #include "transpiler_format.h"
+#include "transpiler_inventory_view.h"
 #include "transpiler_projection.h"
 #include "transpiler_projection_field_path.h"
 
@@ -37,6 +37,58 @@ current_overlay_refresh_list(TranspilerCtx *ctx, size_t *refresh_count_out)
         return ast_zone_refreshes(decl, refresh_count_out);
 
     return NULL;
+}
+
+static bool
+overlay_projection_field_view(TranspilerCtx *ctx,
+                              ASTNode *target_decl,
+                              TranspilerHostedFieldView *view)
+{
+    const char *target_name;
+
+    if (view == NULL)
+        return false;
+    view->decl_header = NULL;
+    view->ast_compat_fields = NULL;
+    view->ast_compat_count = 0;
+    view->count = 0;
+    view->uses_mir_metadata = false;
+    view->requires_mir_metadata = false;
+
+    if (ctx == NULL || target_decl == NULL || target_decl->type != AST_CLASS_DECL)
+        return false;
+
+    target_name = transpiler_decl_name_local(target_decl);
+    *view = transpiler_hosted_class_field_view_from_decl(
+        ctx, target_name, target_decl);
+    if (transpiler_hosted_field_view_missing_mir_metadata(view)) {
+        transpiler_set_mir_inventory_missing(ctx,
+            "MIR-only C path missing overlay projection field metadata for '%s'",
+            target_name != NULL ? target_name : "(anonymous-class)");
+        return false;
+    }
+    return true;
+}
+
+static size_t
+overlay_projection_field_count(TranspilerCtx *ctx, ASTNode *target_decl)
+{
+    TranspilerHostedFieldView view;
+
+    return overlay_projection_field_view(ctx, target_decl, &view)
+        ? view.count : 0;
+}
+
+static const char *
+overlay_projection_field_name(TranspilerCtx *ctx, ASTNode *target_decl,
+                              size_t index)
+{
+    TranspilerHostedFieldView view;
+
+    if (!overlay_projection_field_view(ctx, target_decl, &view))
+        return NULL;
+
+    return transpiler_hosted_field_view_name(&view, index);
 }
 
 static bool
@@ -71,22 +123,20 @@ projection_target_mentions_source_field(TranspilerCtx *ctx,
     if (target_decl == NULL || target_decl->type != AST_CLASS_DECL)
         return true;
 
-    PgyHostClassFieldsCompatView field_view =
-        pgy_host_class_fields_compat_view_from_decl(target_decl);
-    size_t field_count = field_view.count;
-    ClassField **fields = field_view.fields;
+    size_t field_count = overlay_projection_field_count(ctx, target_decl);
     for (size_t i = 0; i < field_count; i++) {
-        ClassField *field = fields != NULL ? fields[i] : NULL;
-        const char *mapped_source_name = field != NULL ? field->name : NULL;
-        if (refresh != NULL && refresh->type == AST_ZONE_REFRESH && field != NULL
-            && field->name != NULL) {
+        const char *target_field_name =
+            overlay_projection_field_name(ctx, target_decl, i);
+        const char *mapped_source_name = target_field_name;
+        if (refresh != NULL && refresh->type == AST_ZONE_REFRESH
+            && target_field_name != NULL) {
             for (size_t j = 0; j < ast_zone_refresh_field_map_count(refresh); j++) {
                 const char *mapped_target =
                     ast_zone_refresh_mapped_target_field(refresh, j);
                 const char *mapped_source =
                     ast_zone_refresh_mapped_source_field(refresh, j);
                 if (mapped_target != NULL && mapped_source != NULL
-                    && strcmp(mapped_target, field->name) == 0) {
+                    && strcmp(mapped_target, target_field_name) == 0) {
                     mapped_source_name = mapped_source;
                     break;
                 }

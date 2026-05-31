@@ -1,0 +1,27 @@
+enum Status { Idle, Active, Error }
+
+func Decide(s: Status, threshold: Int, val: Int) -> Int {
+    match s {
+        case Idle:
+            if val > threshold || val < -threshold {
+                return 1;
+            }
+            return 0;
+        case Active:
+            if val > 0 && val <= threshold {
+                return 2;
+            }
+            return 3;
+        case Error: return -1;
+    }
+}
+
+func Main() -> Void {
+    Log(Decide(Idle, 5, 10));
+    Log(Decide(Idle, 5, -10));
+    Log(Decide(Idle, 5, 2));
+    Log(Decide(Active, 5, 3));
+    Log(Decide(Active, 5, -1));
+    Log(Decide(Active, 5, 100));
+    Log(Decide(Error, 5, 0));
+}

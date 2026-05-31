@@ -36,6 +36,12 @@ mir_routine_inventory_get(const MIRRoutineInventory *inventory, size_t index)
     return &inventory->routines[index];
 }
 
+ASTNode *
+mir_routine_source_ast(const MIRRoutine *routine)
+{
+    return routine != NULL ? routine->ast : NULL;
+}
+
 void
 mir_mutable_routine_inventory_from_program(
         MIRProgram *mir,

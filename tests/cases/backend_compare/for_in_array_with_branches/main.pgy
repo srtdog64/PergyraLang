@@ -1,0 +1,26 @@
+func ClassifyEach(arr: Array<Int>, n: Int) -> Int {
+    let sum: Int = 0;
+    let i: Int = 0;
+    while i < n {
+        let v: Int = arr[i];
+        if v > 0 && v % 2 == 0 {
+            sum = sum + v * 2;
+        } else if v > 0 {
+            sum = sum + v;
+        } else if v == 0 {
+            sum = sum + 1;
+        } else {
+            sum = sum - 1;
+        }
+        i = i + 1;
+    }
+    return sum;
+}
+
+func Main() -> Void {
+    let nums: Array<Int> = [-3, 0, 2, 5, 8, 11, -7];
+    Log(ClassifyEach(nums, 7));
+    Log(ClassifyEach(nums, 3));
+    Log(ClassifyEach(nums, 1));
+    Log(ClassifyEach(nums, 0));
+}

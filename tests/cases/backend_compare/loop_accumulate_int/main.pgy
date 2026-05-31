@@ -1,0 +1,28 @@
+func SumRange(lo: Int, hi: Int) -> Int {
+    let total: Int = 0;
+    let i: Int = lo;
+    while i <= hi {
+        total = total + i;
+        i = i + 1;
+    }
+    return total;
+}
+
+func ProductRange(lo: Int, hi: Int) -> Int {
+    let product: Int = 1;
+    let i: Int = lo;
+    while i <= hi {
+        product = product * i;
+        i = i + 1;
+    }
+    return product;
+}
+
+func Main() -> Void {
+    Log(SumRange(1, 10));
+    Log(SumRange(0, 0));
+    Log(SumRange(-3, 3));
+    Log(ProductRange(1, 5));
+    Log(ProductRange(2, 4));
+    Log(ProductRange(3, 3));
+}

@@ -7,6 +7,8 @@
 
 #include "host_decl_compat.h"
 #include "llvm_internal.h"
+#include "../compiler/mir_decl_headers.h"
+#include "../parser/ast_api.h"
 
 ASTNode *
 llvm_bind_current_host_decl(LLVMGenCtx *ctx, ASTNode *host_decl)
@@ -93,8 +95,9 @@ llvm_find_decl_in_active_inventory(const LLVMGenCtx *ctx,
     if (ctx->mir != NULL) {
         decl_header = mir_find_decl_header(ctx->mir, name);
         if (decl_header != NULL)
-            return decl_header->ast_type == decl_type
-                ? decl_header->source_ast
+            return mir_decl_header_ast_type_or(
+                       decl_header, AST_PROGRAM) == decl_type
+                ? mir_decl_header_source_ast(decl_header)
                 : NULL;
     }
 
@@ -141,9 +144,189 @@ llvm_find_host_decl_header_in_context(const LLVMGenCtx *ctx, const char *name)
     const MIRDeclHeader *decl_header =
         llvm_find_decl_header_in_context(ctx, name);
 
-    if (decl_header == NULL || !llvm_is_host_decl_type(decl_header->ast_type))
+    if (decl_header == NULL
+        || !llvm_is_host_decl_type(mir_decl_header_ast_type_or(
+            decl_header, AST_PROGRAM))) {
         return NULL;
+    }
     return decl_header;
+}
+
+const MIRDeclField *
+llvm_find_decl_field_in_context(const LLVMGenCtx *ctx,
+                                const char *host_name,
+                                const char *field_name)
+{
+    const MIRDeclHeader *decl_header;
+
+    if (ctx == NULL || host_name == NULL || field_name == NULL)
+        return NULL;
+    decl_header = llvm_find_host_decl_header_in_context(ctx, host_name);
+    for (size_t i = 0; decl_header != NULL
+         && i < mir_decl_header_field_count(decl_header); i++) {
+        const MIRDeclField *field = mir_decl_header_field(decl_header, i);
+        const char *name = mir_decl_field_name(field);
+        if (name != NULL && strcmp(name, field_name) == 0)
+            return field;
+    }
+    return NULL;
+}
+
+ASTNode *
+llvm_mir_decl_field_type(const MIRDeclField *field)
+{
+    return mir_decl_field_type(field);
+}
+
+const char *
+llvm_mir_decl_field_type_name(const MIRDeclField *field)
+{
+    return mir_decl_field_type_name(field);
+}
+
+static size_t
+llvm_decl_header_shared_field_count(const MIRDeclHeader *header)
+{
+    size_t count = 0;
+
+    for (size_t i = 0; i < mir_decl_header_field_count(header); i++) {
+        const MIRDeclField *field = mir_decl_header_field(header, i);
+        if (mir_decl_field_kind_or(field, MIR_DECL_FIELD_UNKNOWN)
+            == MIR_DECL_FIELD_SHARED) {
+            count++;
+        }
+    }
+    return count;
+}
+
+static const MIRDeclField *
+llvm_decl_header_shared_field(const MIRDeclHeader *header, size_t index)
+{
+    size_t shared_index = 0;
+
+    for (size_t i = 0; i < mir_decl_header_field_count(header); i++) {
+        const MIRDeclField *field = mir_decl_header_field(header, i);
+        if (mir_decl_field_kind_or(field, MIR_DECL_FIELD_UNKNOWN)
+            != MIR_DECL_FIELD_SHARED) {
+            continue;
+        }
+        if (shared_index == index)
+            return field;
+        shared_index++;
+    }
+    return NULL;
+}
+
+LLVMHostedSharedFieldView
+llvm_hosted_shared_field_view_from_decl(const LLVMGenCtx *ctx,
+                                        const char *host_name,
+                                        ASTNode *decl)
+{
+    LLVMHostedSharedFieldView view;
+    PgyHostSharedFieldsCompatView compat =
+        pgy_host_shared_fields_compat_view_from_decl(decl);
+    const MIRDeclHeader *header = NULL;
+
+    view.decl_header = NULL;
+    view.ast_compat_fields = compat.fields;
+    view.ast_compat_count = compat.count;
+    view.count = compat.count;
+    view.uses_mir_metadata = false;
+    view.requires_mir_metadata = ctx != NULL && ctx->mir != NULL
+        && compat.count > 0;
+
+    header = llvm_find_host_decl_header_in_context(ctx, host_name);
+    if (header != NULL) {
+        view.decl_header = header;
+        view.count = llvm_decl_header_shared_field_count(header);
+        view.uses_mir_metadata = true;
+    }
+
+    return view;
+}
+
+bool
+llvm_hosted_shared_field_view_missing_mir_metadata(
+    const LLVMHostedSharedFieldView *view)
+{
+    return view != NULL
+        && view->requires_mir_metadata
+        && (!view->uses_mir_metadata
+            || view->count != view->ast_compat_count)
+        && view->ast_compat_count > 0;
+}
+
+const MIRDeclField *
+llvm_hosted_shared_field_view_metadata(
+    const LLVMHostedSharedFieldView *view,
+    size_t index)
+{
+    if (view == NULL || !view->uses_mir_metadata
+        || view->decl_header == NULL || index >= view->count) {
+        return NULL;
+    }
+    return llvm_decl_header_shared_field(view->decl_header, index);
+}
+
+ASTNode *
+llvm_hosted_shared_field_view_source_ast(
+    const LLVMHostedSharedFieldView *view,
+    size_t index)
+{
+    const MIRDeclField *field =
+        llvm_hosted_shared_field_view_metadata(view, index);
+
+    if (view == NULL || index >= view->count)
+        return NULL;
+    if (field != NULL)
+        return mir_decl_field_source_ast(field);
+    if (view->requires_mir_metadata)
+        return NULL;
+    if (view->ast_compat_fields != NULL)
+        return view->ast_compat_fields[index];
+    return NULL;
+}
+
+const char *
+llvm_hosted_shared_field_view_name(
+    const LLVMHostedSharedFieldView *view,
+    size_t index)
+{
+    const MIRDeclField *field =
+        llvm_hosted_shared_field_view_metadata(view, index);
+
+    if (view == NULL || index >= view->count)
+        return NULL;
+    if (field != NULL)
+        return mir_decl_field_name(field);
+    if (view->requires_mir_metadata)
+        return NULL;
+    if (view->ast_compat_fields != NULL
+        && view->ast_compat_fields[index] != NULL) {
+        return ast_party_shared_name(view->ast_compat_fields[index]);
+    }
+    return NULL;
+}
+
+ASTNode *
+llvm_hosted_shared_field_view_type(
+    const LLVMHostedSharedFieldView *view,
+    size_t index)
+{
+    const MIRDeclField *field =
+        llvm_hosted_shared_field_view_metadata(view, index);
+
+    if (view == NULL || index >= view->count)
+        return NULL;
+    if (field != NULL)
+        return mir_decl_field_type(field);
+    if (view->requires_mir_metadata)
+        return NULL;
+    if (view->ast_compat_fields != NULL
+        && view->ast_compat_fields[index] != NULL) {
+        return ast_party_shared_type(view->ast_compat_fields[index]);
+    }
+    return NULL;
 }
 
 ASTNode *
@@ -158,7 +341,7 @@ llvm_find_host_decl_in_active_inventory(const LLVMGenCtx *ctx, const char *name)
 
     decl_header = llvm_find_host_decl_header_in_context(ctx, name);
     if (decl_header != NULL)
-        return decl_header->source_ast;
+        return mir_decl_header_source_ast(decl_header);
     if (ctx->mir != NULL)
         return NULL;
 

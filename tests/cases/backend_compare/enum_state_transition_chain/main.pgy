@@ -1,0 +1,42 @@
+enum Phase { Init, Run(Int), Wait, Done(Int) }
+
+func NextPhase(p: Phase) -> Phase {
+    match p {
+        case Init: return Run(0);
+        case Run(step):
+            if step >= 3 { return Wait; }
+            return Run(step + 1);
+        case Wait: return Done(0);
+        case Done(d): return Done(d);
+    }
+}
+
+func IsDone(p: Phase) -> Bool {
+    match p {
+        case Init: return false;
+        case Run(rs): return false;
+        case Wait: return false;
+        case Done(dd): return true;
+    }
+}
+
+func RunUntilDone(start: Phase) -> Int {
+    let cur: Phase = start;
+    let count: Int = 0;
+    let i: Int = 0;
+    while i < 20 {
+        if IsDone(cur) { return count; }
+        count = count + 1;
+        cur = NextPhase(cur);
+        i = i + 1;
+    }
+    return -1;
+}
+
+func Main() -> Void {
+    Log(RunUntilDone(Init));
+    Log(RunUntilDone(Run(0)));
+    Log(RunUntilDone(Run(2)));
+    Log(RunUntilDone(Wait));
+    Log(RunUntilDone(Done(0)));
+}

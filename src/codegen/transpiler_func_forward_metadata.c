@@ -26,18 +26,20 @@ emit_hosted_method_forward_decl_from_metadata(const char *host_name,
     char ret_type_buf[256];
     const char *ret_type = "void";
 
-    if (host_name == NULL || method == NULL || buf == NULL || ctx == NULL
-        || method->type != AST_FUNC_DECL)
+    if (host_name == NULL || buf == NULL || ctx == NULL)
+        return;
+    if (method_meta == NULL
+        && (method == NULL || method->type != AST_FUNC_DECL))
         return;
 
     method_name = transpiler_mir_decl_method_name(method_meta);
     return_type = transpiler_mir_decl_method_return_type(method_meta);
     param_count = transpiler_mir_decl_method_param_count(method_meta);
-    if (method_name == NULL)
+    if (method_name == NULL && method != NULL)
         method_name = ast_declaration_name(method);
-    if (return_type == NULL)
+    if (return_type == NULL && method != NULL)
         return_type = ast_func_return_type(method);
-    if (param_count == 0 && method_meta == NULL)
+    if (param_count == 0 && method_meta == NULL && method != NULL)
         param_count = ast_func_param_count(method);
     if (method_name == NULL)
         return;
@@ -58,7 +60,7 @@ emit_hosted_method_forward_decl_from_metadata(const char *host_name,
         char pt[256];
         char surface_desc[256];
 
-        if (p == NULL && method_meta == NULL)
+        if (p == NULL && method_meta == NULL && method != NULL)
             p = ast_func_param(method, j);
         if (p == NULL || p->name == NULL)
             continue;

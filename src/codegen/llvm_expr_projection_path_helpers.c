@@ -10,6 +10,7 @@
 #include <stdio.h>
 #include <string.h>
 
+#include "../compiler/mir_decl_headers.h"
 #include "host_decl_compat.h"
 #include "llvm_internal_api.h"
 #include "llvm_inventory_decl_lookup.h"
@@ -62,10 +63,17 @@ llvm_expr_projection_join_path(LLVMGenCtx *ctx,
 }
 
 static size_t
-llvm_projection_field_count(ASTNode *decl)
+llvm_projection_field_count(LLVMGenCtx *ctx, ASTNode *decl)
 {
+    const MIRDeclHeader *header;
+    const char *decl_name;
+
     if (decl == NULL)
         return 0;
+    decl_name = llvm_decl_node_name(decl);
+    header = llvm_find_host_decl_header_in_context(ctx, decl_name);
+    if (header != NULL)
+        return mir_decl_header_field_count(header);
     if (decl->type == AST_CLASS_DECL) {
         PgyHostClassFieldsCompatView view =
             pgy_host_class_fields_compat_view_from_decl(decl);
@@ -74,19 +82,58 @@ llvm_projection_field_count(ASTNode *decl)
     return 0;
 }
 
-static ClassField *
-llvm_projection_field_at(ASTNode *decl, size_t index)
+static const char *
+llvm_projection_field_name(LLVMGenCtx *ctx, ASTNode *decl, size_t index)
 {
+    const MIRDeclHeader *header;
+    const MIRDeclField *field;
+    const char *decl_name;
+
     if (decl == NULL)
         return NULL;
+    decl_name = llvm_decl_node_name(decl);
+    header = llvm_find_host_decl_header_in_context(ctx, decl_name);
+    field = mir_decl_header_field(header, index);
+    if (field != NULL)
+        return mir_decl_field_name(field);
     if (decl->type == AST_CLASS_DECL) {
         PgyHostClassFieldsCompatView view =
             pgy_host_class_fields_compat_view_from_decl(decl);
-        if (index < view.count && view.fields != NULL)
-            return view.fields[index];
-        return NULL;
+        if (index < view.count && view.fields != NULL) {
+            ClassField *compat_field = view.fields[index];
+            return compat_field != NULL ? compat_field->name : NULL;
+        }
     }
     return NULL;
+}
+
+static const char *
+llvm_projection_field_type_name(LLVMGenCtx *ctx, ASTNode *decl, size_t index)
+{
+    const MIRDeclHeader *header;
+    const MIRDeclField *field;
+    const char *decl_name;
+    ASTNode *type_node = NULL;
+
+    if (decl == NULL)
+        return NULL;
+    decl_name = llvm_decl_node_name(decl);
+    header = llvm_find_host_decl_header_in_context(ctx, decl_name);
+    field = mir_decl_header_field(header, index);
+    if (field != NULL) {
+        const char *type_name = llvm_mir_decl_field_type_name(field);
+        if (type_name != NULL)
+            return type_name;
+        type_node = llvm_mir_decl_field_type(field);
+    } else if (decl->type == AST_CLASS_DECL) {
+        PgyHostClassFieldsCompatView view =
+            pgy_host_class_fields_compat_view_from_decl(decl);
+        ClassField *compat_field = index < view.count && view.fields != NULL
+            ? view.fields[index] : NULL;
+        type_node = compat_field != NULL ? compat_field->type : NULL;
+    }
+
+    return type_node != NULL ? ast_type_name(type_node) : NULL;
 }
 
 static int
@@ -103,11 +150,11 @@ llvm_resolve_projection_source_path_rec(LLVMGenCtx *ctx, ASTNode *source_decl,
     if (ctx == NULL || source_decl == NULL || field_name == NULL || depth > 8)
         return 0;
 
-    field_count = llvm_projection_field_count(source_decl);
+    field_count = llvm_projection_field_count(ctx, source_decl);
     for (size_t i = 0; i < field_count; i++) {
-        ClassField *field = llvm_projection_field_at(source_decl, i);
-        if (field != NULL && field->name != NULL
-            && strcmp(field->name, field_name) == 0) {
+        const char *candidate_name =
+            llvm_projection_field_name(ctx, source_decl, i);
+        if (candidate_name != NULL && strcmp(candidate_name, field_name) == 0) {
             if (path_out != NULL)
                 *path_out = pergyra_strdup(field_name);
             return 1;
@@ -115,15 +162,16 @@ llvm_resolve_projection_source_path_rec(LLVMGenCtx *ctx, ASTNode *source_decl,
     }
 
     for (size_t i = 0; i < field_count; i++) {
-        ClassField *field = llvm_projection_field_at(source_decl, i);
         ASTNode *vessel_decl;
+        const char *candidate_name =
+            llvm_projection_field_name(ctx, source_decl, i);
+        const char *field_type_name =
+            llvm_projection_field_type_name(ctx, source_decl, i);
         char *nested_path = NULL;
         char *prefixed_path;
         int nested_status;
-        const char *field_type_name = field != NULL ? ast_type_name(field->type) : NULL;
 
-        if (field == NULL || !field->is_vessel_field
-            || field_type_name == NULL) {
+        if (candidate_name == NULL || field_type_name == NULL) {
             continue;
         }
 
@@ -143,7 +191,7 @@ llvm_resolve_projection_source_path_rec(LLVMGenCtx *ctx, ASTNode *source_decl,
         }
 
         prefixed_path = llvm_expr_projection_join_path(
-            ctx, field->name, nested_path);
+            ctx, candidate_name, nested_path);
         if (prefixed_path == NULL)
             continue;
 
@@ -237,20 +285,27 @@ llvm_load_projection_path_value(LLVMGenCtx *ctx,
                 field_ptr, llvm_tmp_name(ctx));
         }
 
-        for (size_t i = 0; i < llvm_projection_field_count(current_decl); i++) {
-            ClassField *field = llvm_projection_field_at(current_decl, i);
-            const char *field_type_name = field != NULL ? ast_type_name(field->type) : NULL;
-            if (field == NULL || field->name == NULL
-                || strcmp(field->name, segment) != 0
+        for (size_t i = 0;
+             i < llvm_projection_field_count(ctx, current_decl);
+             i++) {
+            const char *candidate_name =
+                llvm_projection_field_name(ctx, current_decl, i);
+            const char *field_type_name =
+                llvm_projection_field_type_name(ctx, current_decl, i);
+            if (candidate_name == NULL
+                || strcmp(candidate_name, segment) != 0
                 || field_type_name == NULL) {
                 continue;
             }
-            current_decl = llvm_find_projection_nominal_decl(ctx,
-                field_type_name);
-            current_cls = llvm_lookup_class(ctx, field_type_name);
-            if (current_decl == NULL || current_cls == NULL)
-                return llvm_projection_error_recovery(ctx, field->type,
+            ASTNode *next_decl = llvm_find_projection_nominal_decl(ctx,
+                                                                   field_type_name);
+            LLVMClassTypeEntry *next_cls = llvm_lookup_class(ctx,
+                                                             field_type_name);
+            if (next_decl == NULL || next_cls == NULL)
+                return llvm_projection_error_recovery(ctx, current_decl,
                     "LLVM projection nested path requires vessel class metadata");
+            current_decl = next_decl;
+            current_cls = next_cls;
             current_ptr = field_ptr;
             break;
         }

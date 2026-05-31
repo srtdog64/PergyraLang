@@ -18,13 +18,11 @@
 
 Pergyra는 자원의 세부 구현을 직접 드러내기보다, 서로 다른 자원들을 같은 사고 체계로 다룰 수 있게 만드는 **의미 통일 언어**입니다.
 
-PergyraLang은 자원을 **Slot 계열 핸들 + 비동기 경계**라는 공통 모델로 다룬다.
+PergyraLang은 자원을 **Slot 계열 핸들 + 비동기 경계**라는 공통 모델로 다룹니다.
 
-`Slot<T>`, `SecureSlot<T>`, `DeviceSlot<T>`는 로컬에 고정된 anchored 자원 핸들이고,
-`QubitSlot`은 현재 partial quantum surface 위의 복사 불가 move-only 자원 핸들이다.
-원격 작업은 슬롯 자체를 직접 넘기기보다 `RemoteFuture<T>`를 `await`해 `Result<T>`로 회수한다.
+`Slot<T>`, `SecureSlot<T>`, `DeviceSlot<T>`는 로컬에 고정된 anchored 자원 핸들입니다. 원격 작업은 슬롯 자체를 직접 넘기기보다 `RemoteFuture<T>`를 `await`해 `Result<T>`로 회수합니다.
 
-이로써 언어는 최고 성능 대신, **이종 자원 통합**과 **도메인 파편화 감소**를 목표로 한다.
+이로써 언어는 최고 성능 대신, **이종 자원 통합**과 **도메인 파편화 감소**를 목표로 합니다.
 
 | Slot이 담는 것 | 예시 |
 |----------------|------|
@@ -32,8 +30,8 @@ PergyraLang은 자원을 **Slot 계열 핸들 + 비동기 경계**라는 공통 
 | 소유권(Ownership) | anchored handle은 단일 바인딩 유지, movable handle은 명시적 이동만 허용 |
 | 접근 권한(Permission) | SecureSlot의 토큰 기반 읽기/쓰기 제어 |
 | 해제 의미론(Release) | `with` 블록 자동 해제, 명시적 `Release` |
-| 보호 의미론(Protection) | 관측이 상태를 파괴하는 양자 자원도 동일 모델 |
-| 전이 의미론(Transfer) | `QubitSlot` 이동, `recv/await` 경계 전달, 원격 결과는 `RemoteFuture<T>` → `Result<T>` |
+| 보호 의미론(Protection) | 보안 슬롯의 권한 제어 및 토큰 기반 검증 |
+| 전이 의미론(Transfer) | `recv/await` 경계 전달, 원격 결과는 `RemoteFuture<T>` → `Result<T>` |
 
 ## 개요
 
@@ -54,7 +52,7 @@ LLVM 지원 빌드에서는 LLVM을 기본 백엔드로 사용하고, 그렇지 
 
 ### 핵심 특징
 
-- **Slot 기반 자원 모델**: `Slot<T>`/`SecureSlot<T>`/`DeviceSlot<T>`는 anchored handle, `QubitSlot`은 move-only handle로 구분
+- **Slot 기반 자원 모델**: `Slot<T>`/`SecureSlot<T>`/`DeviceSlot<T>`는 로컬 자원에 고정된 anchored handle 모델로 작동
 - **보안 슬롯**: `SecureSlot<T>`에 토큰 기반 접근 제어
 - **Subject-first 철학**: `subject`는 코어 host, `class`는 보조 nominal value 축으로 semantic/codegen에서 실제로 구분됨
 - **제네릭 클래스**: `class Pair<T>` 단형화 기반 제네릭 (Pair<Int> → Pair_Int)
@@ -62,7 +60,7 @@ LLVM 지원 빌드에서는 LLVM을 기본 백엔드로 사용하고, 그렇지 
 - **원격 결과 의미론**: `RemoteFuture<T>`를 `await`하면 `Result<T>`가 되어 실패 가능성을 타입에 남김
 - **내장 병렬성**: `parallel` 블록으로 선언적 병렬 처리
 - **스코프 기반 해제**: `with` 블록으로 자동 자원 반환
-- **양자 자원 표면**: `QubitSlot`/`ClaimQubit`/`Measure`/`Entangle` 표면은 존재하지만, 전체 quantum resource semantics는 아직 v2 작업
+- **이종 자원 모델 확장성**: 디바이스 제어(`DeviceSlot`) 및 토큰 기반 보안 슬롯 등을 동일한 추상화 경계로 수용
 
 ## 빠른 시작
 
@@ -219,7 +217,6 @@ Slot은 "무엇을 가리키는가(handle)"가 아니라, **"어떻게 다뤄야
 | `Slot<T>` | 메모리 | anchored handle: 점유 → 읽기/쓰기 → 반환 |
 | `SecureSlot<T>` | 보안 메모리 | anchored handle: 토큰 없이 접근 불가 |
 | `DeviceSlot<T>` | 디바이스/가속기 자원 | anchored handle: device read/write/submit/release |
-| `QubitSlot` | 양자 큐비트 | movable handle: 복사 금지, partial quantum surface 위에서 move/measure/entangle 표면 제공 |
 
 현재 `own/ref` 함수 경계 규칙은 일반 자원 전체에 열린 것이 아닙니다.
 직접 확인 가능한 안정 범위는 `ref Slot<subject-host>` / `own SecureSlot<subject-host>` 입니다.
@@ -239,7 +236,6 @@ Slot은 "무엇을 가리키는가(handle)"가 아니라, **"어떻게 다뤄야
 - 해제 후 읽기/쓰기
 - 이중 해제
 - 잘못된 토큰 접근
-- 붕괴된 큐비트에 게이트 연산 시도
 
 ## TODO
 
@@ -271,61 +267,6 @@ Slot은 "무엇을 가리키는가(handle)"가 아니라, **"어떻게 다뤄야
 - [Class 객체 모델](docs/22_class_object_model.md)
 - [Intrinsic Template 개요](docs/intrinsic_templates/README.md)
 
-## 양자 컴퓨팅 대응 설계
-
-Pergyra의 Slot 모델은 클래식 메모리 관리를 넘어, 양자 자원 제어의 기반으로 설계되었습니다.
-
-### 1. 복제 불가 정리(No-Cloning Theorem)와 Slot
-
-고전 컴퓨터에서는 포인터로 메모리를 무한정 복사(`copy = *ptr`)할 수 있지만,
-양자 역학의 복제 불가 정리에 의해 임의의 큐비트 상태는 완벽하게 복사할 수 없습니다.
-
-Pergyra가 메모리 주소를 숨기고 자원을 Slot 단위로 추상화하여,
-복사 대신 점유(Claim)하고 반환(Release)하도록 강제한 구조는
-양자 정보 이론의 선형 논리(Linear Logic)와 일치합니다.
-큐비트는 변수처럼 대입되는 것이 아니라, Slot처럼 물리적 흐름으로 전달되어야 합니다.
-
-### 2. 관측에 의한 붕괴(Measurement Collapse)와 권한 제어
-
-큐비트는 관측(Read)하는 순간 중첩 상태가 붕괴되어 0 또는 1로 확정됩니다.
-"누가 언제 자원을 읽느냐"가 데이터의 상태를 영구적으로 파괴하는 물리적 행위가 됩니다.
-
-SecureSlot과 Party 시스템이 자원 접근을 토큰과 권한 기반으로 통제하는 것은,
-큐비트의 관측 시점을 컴파일 타임에 엄격하게 제어하고
-의도치 않은 상태 붕괴를 막기 위한 방어 메커니즘으로 발전할 수 있습니다.
-
-### 3. 양자 얽힘(Entanglement)과 댕글링 문제
-
-두 큐비트가 얽혀 있으면, A에 대한 측정이 B의 상태를 즉각 변화시킵니다.
-이것은 고전 컴퓨팅의 댕글링 포인터와 구조적으로 동일한 문제입니다:
-
-| 고전 (포인터) | 양자 (큐비트) |
-|--------------|--------------|
-| `free(a)` 후 `*b`가 댕글링 | `Measure(a)` 후 `b`가 붕괴됨을 모르는 상태 |
-| 해결: Slot의 Release 추적 | 해결: 얽힘 관계 그래프 + Measure 전파 추적 |
-
-Pergyra의 Party 시스템이 이 문제를 풀 수 있는 구조를 가지고 있습니다:
-
-```pergyra
-// v2 방향 — 얽힘 = Party 관계로 추적
-party EntangledPair {
-    role qubitA: QubitSlot;
-    role qubitB: QubitSlot;
-}
-
-let pair: EntangledPair = Entangle(ClaimQubit(), ClaimQubit());
-let resultA: Bool = Measure(pair.qubitA);
-// pair.qubitB는 이제 COLLAPSED — 게이트 연산 불가
-// 컴파일러가 Measure 전파를 추적하여 댕글링 얽힘을 방지
-```
-
-### 4. 한계와 도전 과제
-
-- **얽힘 상태 추적**: `slot_analyzer`가 독립 자원의 경계 상태는 추적하지만, 얽힌 자원 간 상태 전파 모델링이 필요
-- **가역 연산**: 관측 외의 모든 양자 게이트는 유니터리(가역적)여야 함 — 파괴적 대입 연산은 양자에서 불가능
-- **선형 타입 시스템**: Slot의 단일 소유권을 Linear/Affine 타입으로 정식화해야 컴파일 타임 검증이 완전해짐
-
-자세한 내용은 [설계 비전 문서](docs/00_vision.md)를 참조하세요.
 
 ## 라이센스
 

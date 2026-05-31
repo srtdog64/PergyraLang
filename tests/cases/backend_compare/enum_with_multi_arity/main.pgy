@@ -1,0 +1,21 @@
+enum Token {
+    Number(Int),
+    Op(String),
+    Paren(String, Int)
+}
+
+func TokenSummary(t: Token) -> Int {
+    match t {
+        case Number(n): return n + 1000;
+        case Op(s): return StringLength(s) + 100;
+        case Paren(p, depth): return StringLength(p) + depth * 10;
+    }
+}
+
+func Main() -> Void {
+    Log(TokenSummary(Number(42)));
+    Log(TokenSummary(Op("+")));
+    Log(TokenSummary(Op("abc")));
+    Log(TokenSummary(Paren("(", 3)));
+    Log(TokenSummary(Paren(")end", 7)));
+}

@@ -7,6 +7,7 @@
 
 #include "transpiler_decl_lookup.h"
 #include "host_decl_compat.h"
+#include "../compiler/mir_decl_headers.h"
 
 TranspilerHostedMethodView
 transpiler_hosted_method_view(const TranspilerCtx *ctx,
@@ -17,7 +18,7 @@ transpiler_hosted_method_view(const TranspilerCtx *ctx,
     TranspilerHostedMethodView view;
     const MIRDeclHeader *header = NULL;
 
-    view.metadata = NULL;
+    view.decl_header = NULL;
     view.ast_compat_methods = ast_compat_methods;
     view.ast_compat_count = ast_compat_count;
     view.count = ast_compat_count;
@@ -26,9 +27,11 @@ transpiler_hosted_method_view(const TranspilerCtx *ctx,
         transpiler_active_has_mir(ctx) && ast_compat_count > 0;
 
     header = transpiler_active_decl_header(ctx, host_name);
-    if (header != NULL && transpiler_is_host_decl_type(header->ast_type)) {
-        view.metadata = header->method_metadata;
-        view.count = header->method_metadata_count;
+    if (header != NULL
+        && transpiler_is_host_decl_type(mir_decl_header_ast_type_or(
+            header, AST_PROGRAM))) {
+        view.decl_header = header;
+        view.count = mir_decl_header_method_count(header);
         view.uses_mir_metadata = true;
     }
 
@@ -51,58 +54,48 @@ transpiler_hosted_method_view_metadata(const TranspilerHostedMethodView *view,
                                        size_t index)
 {
     if (view == NULL || !view->uses_mir_metadata
-        || view->metadata == NULL || index >= view->count) {
+        || view->decl_header == NULL || index >= view->count) {
         return NULL;
     }
-    return &view->metadata[index];
+    return mir_decl_header_method(view->decl_header, index);
 }
 
 const char *
 transpiler_mir_decl_method_name(const MIRDeclMethod *method)
 {
-    if (method != NULL && method->name != NULL)
-        return method->name;
-    return NULL;
+    return mir_decl_method_name(method);
 }
 
 ASTNode *
 transpiler_mir_decl_method_source_ast(const MIRDeclMethod *method)
 {
     if (method != NULL)
-        return method->source_ast;
+        return mir_decl_method_source_ast(method);
     return NULL;
 }
 
 size_t
 transpiler_mir_decl_method_param_count(const MIRDeclMethod *method)
 {
-    if (method != NULL)
-        return method->param_count;
-    return 0;
+    return mir_decl_method_param_count(method);
 }
 
 FuncParam *
 transpiler_mir_decl_method_param(const MIRDeclMethod *method, size_t index)
 {
-    if (method == NULL || method->params == NULL
-        || index >= method->param_count) {
-        return NULL;
-    }
-    return method->params[index];
+    return mir_decl_method_param(method, index);
 }
 
 ASTNode *
 transpiler_mir_decl_method_return_type(const MIRDeclMethod *method)
 {
-    if (method != NULL)
-        return method->return_type;
-    return NULL;
+    return mir_decl_method_return_type(method);
 }
 
 bool
 transpiler_mir_decl_method_is_action_like(const MIRDeclMethod *method)
 {
-    return method != NULL && method->is_action_like;
+    return mir_decl_method_is_action_like(method);
 }
 
 const MIRRoutine *
@@ -110,12 +103,14 @@ transpiler_mir_decl_method_routine(const TranspilerCtx *ctx,
                                    const MIRDeclMethod *method)
 {
     TranspilerMIRRoutineInventory inventory;
+    size_t routine_index = 0;
+
     if (ctx == NULL || !transpiler_active_has_mir(ctx) || method == NULL)
         return NULL;
-    if (!method->has_routine)
+    if (!mir_decl_method_routine_index(method, &routine_index))
         return NULL;
     transpiler_active_routine_inventory(ctx, &inventory);
-    return transpiler_routine_inventory_get(&inventory, method->routine_index);
+    return transpiler_routine_inventory_get(&inventory, routine_index);
 }
 
 const MIRRoutine *
@@ -150,7 +145,7 @@ transpiler_hosted_method_view_source_ast(
     if (view == NULL || index >= view->count)
         return NULL;
     if (method != NULL)
-        return method->source_ast;
+        return mir_decl_method_source_ast(method);
     if (view->requires_mir_metadata)
         return NULL;
     return view->ast_compat_methods != NULL

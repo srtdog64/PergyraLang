@@ -12,13 +12,33 @@
 
 typedef struct
 {
-    const MIRDeclMethod *metadata;
+    const MIRDeclHeader *decl_header;
     ASTNode           **ast_compat_methods;
     size_t             ast_compat_count;
     size_t             count;
     bool               uses_mir_metadata;
     bool               requires_mir_metadata;
 } TranspilerHostedMethodView;
+
+typedef struct
+{
+    const MIRDeclHeader *decl_header;
+    ClassField        **ast_compat_fields;
+    size_t             ast_compat_count;
+    size_t             count;
+    bool               uses_mir_metadata;
+    bool               requires_mir_metadata;
+} TranspilerHostedFieldView;
+
+typedef struct
+{
+    const MIRDeclHeader *decl_header;
+    ASTNode           **ast_compat_fields;
+    size_t             ast_compat_count;
+    size_t             count;
+    bool               uses_mir_metadata;
+    bool               requires_mir_metadata;
+} TranspilerHostedSharedFieldView;
 
 TranspilerHostedMethodView transpiler_hosted_method_view(
     const TranspilerCtx *ctx,
@@ -51,6 +71,49 @@ TranspilerHostedMethodView transpiler_hosted_method_view_from_decl(
 ASTNode *transpiler_hosted_method_view_source_ast(
     const TranspilerHostedMethodView *view,
     size_t index);
+TranspilerHostedFieldView transpiler_hosted_class_field_view_from_decl(
+    const TranspilerCtx *ctx,
+    const char *host_name,
+    ASTNode *decl);
+bool transpiler_hosted_field_view_missing_mir_metadata(
+    const TranspilerHostedFieldView *view);
+const MIRDeclField *transpiler_hosted_field_view_metadata(
+    const TranspilerHostedFieldView *view,
+    size_t index);
+const char *transpiler_hosted_field_view_name(
+    const TranspilerHostedFieldView *view,
+    size_t index);
+ASTNode *transpiler_hosted_field_view_type(
+    const TranspilerHostedFieldView *view,
+    size_t index);
+TranspilerHostedSharedFieldView transpiler_hosted_shared_field_view_from_decl(
+    const TranspilerCtx *ctx,
+    const char *host_name,
+    ASTNode *decl);
+bool transpiler_hosted_shared_field_view_missing_mir_metadata(
+    const TranspilerHostedSharedFieldView *view);
+const MIRDeclField *transpiler_hosted_shared_field_view_metadata(
+    const TranspilerHostedSharedFieldView *view,
+    size_t index);
+ASTNode *transpiler_hosted_shared_field_view_source_ast(
+    const TranspilerHostedSharedFieldView *view,
+    size_t index);
+const char *transpiler_hosted_shared_field_view_name(
+    const TranspilerHostedSharedFieldView *view,
+    size_t index);
+ASTNode *transpiler_hosted_shared_field_view_type(
+    const TranspilerHostedSharedFieldView *view,
+    size_t index);
+const MIRDeclField *transpiler_find_decl_field_metadata(
+    const TranspilerCtx *ctx,
+    const char *host_name,
+    const char *field_name);
+ASTNode *transpiler_mir_decl_field_type(const MIRDeclField *field);
+const char *transpiler_mir_decl_field_type_name(const MIRDeclField *field);
+MIRDeclFieldKind transpiler_mir_decl_field_kind_or(
+    const MIRDeclField *field,
+    MIRDeclFieldKind fallback);
+bool transpiler_mir_decl_field_is_subject_like(const MIRDeclField *field);
 
 ASTNode *transpiler_find_named_decl_local(TranspilerCtx *ctx,
                                           ASTNodeType decl_type,

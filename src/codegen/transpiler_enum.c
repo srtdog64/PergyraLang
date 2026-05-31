@@ -37,14 +37,30 @@ lookup_enum_variant_qualified_name_copy(TranspilerCtx *ctx,
         if (stmt == NULL || stmt->type != AST_ENUM_DECL)
             continue;
         variants = ast_enum_variants(stmt, &variant_count);
+        bool enum_has_data = false;
+        for (size_t k = 0; k < variant_count; k++) {
+            if (ast_enum_variant_param_count(stmt, k) > 0) {
+                enum_has_data = true;
+                break;
+            }
+        }
         for (size_t j = 0; j < variant_count; j++) {
             const char *candidate = variants != NULL ? variants[j] : NULL;
             if (candidate != NULL && strcmp(candidate, variant_name) == 0) {
                 const char *enum_name = transpiler_decl_name_local(stmt);
                 if (enum_name == NULL)
                     return false;
-                int written = snprintf(out, out_size, "%s_%s",
-                    enum_name, candidate);
+                size_t pc = ast_enum_variant_param_count(stmt, j);
+                int written;
+                if (pc == 0 && enum_has_data) {
+                    /* Tagged union with payload-less variant uses macro form. */
+                    written = snprintf(out, out_size, "%s_%s()",
+                        enum_name, candidate);
+                } else {
+                    /* Plain enum or payload variant uses bare identifier. */
+                    written = snprintf(out, out_size, "%s_%s",
+                        enum_name, candidate);
+                }
                 if (written < 0 || (size_t)written >= out_size) {
                     out[0] = '\0';
                     return false;

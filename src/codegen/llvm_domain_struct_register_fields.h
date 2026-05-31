@@ -2,6 +2,7 @@
 #define PGY_LLVM_DOMAIN_STRUCT_REGISTER_FIELDS_H
 
 #include "llvm_internal.h"
+#include "llvm_inventory_decl_lookup.h"
 
 bool llvm_domain_struct_register_fields(LLVMGenCtx *ctx,
                                         ASTNode *stmt,
@@ -9,8 +10,6 @@ bool llvm_domain_struct_register_fields(LLVMGenCtx *ctx,
                                         LLVMTypeRef *ftypes,
                                         ASTNode **slots,
                                         size_t slot_count,
-                                        ASTNode **shared_fields,
-                                        size_t shared_count,
                                         ASTNode **refreshes,
                                         size_t refresh_count);
 

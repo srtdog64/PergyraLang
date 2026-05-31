@@ -1,0 +1,32 @@
+enum Phase { Setup, Run, Verify, Done }
+
+func DescribeState(p: Phase, retry: Int) -> Int {
+    let base: Int = 0;
+    match p {
+        case Setup: base = 100;
+        case Run: base = 200;
+        case Verify: base = 300;
+        case Done: base = 400;
+    }
+    return base + retry;
+}
+
+func IsTerminal(p: Phase) -> Bool {
+    match p {
+        case Done: return true;
+        case Setup: return false;
+        case Run: return false;
+        case Verify: return false;
+    }
+}
+
+func Main() -> Void {
+    Log(DescribeState(Setup, 0));
+    Log(DescribeState(Run, 2));
+    Log(DescribeState(Verify, 5));
+    Log(DescribeState(Done, 0));
+    let t_done: Bool = IsTerminal(Done);
+    let t_run: Bool = IsTerminal(Run);
+    Log(ToString(t_done));
+    Log(ToString(t_run));
+}

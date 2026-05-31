@@ -297,7 +297,9 @@ type_check_unary(ASTNode *expr, SemanticContext *ctx)
 
     if (op == TOKEN_MINUS) {
         if (!type_equals(operand, TYPE_INT)
-            && !type_equals(operand, TYPE_FLOAT)) {
+            && !type_equals(operand, TYPE_LONG)
+            && !type_equals(operand, TYPE_FLOAT)
+            && !type_equals(operand, TYPE_DOUBLE)) {
             semantic_error_with_hints(ctx, PGY_CODE_SEM_UNOP_TYPE_MISMATCH,
                 PGY_CAUSE_UNARY_OPERATOR_OPERAND, PGY_FIX_ALIGN_OPERAND_TYPE,
                 expr,

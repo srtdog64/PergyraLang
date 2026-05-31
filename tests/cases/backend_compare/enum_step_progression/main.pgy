@@ -1,0 +1,20 @@
+enum Step { Start, Middle, End }
+
+func Score(s: Step) -> Int {
+    match s {
+        case Start: return 10;
+        case Middle: return 20;
+        case End: return 50;
+    }
+}
+
+func Main() -> Void {
+    let total: Int = 0;
+    total = total + Score(Start);
+    total = total + Score(Middle);
+    total = total + Score(End);
+    total = total + Score(Middle);
+    Log(total);
+    Log(Score(Start));
+    Log(Score(End));
+}

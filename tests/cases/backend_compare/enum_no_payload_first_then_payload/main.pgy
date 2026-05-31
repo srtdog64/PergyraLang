@@ -1,0 +1,17 @@
+enum Step { Skip, Run(Int), Done }
+
+func StepCost(s: Step) -> Int {
+    match s {
+        case Skip: return 0;
+        case Run(cycles): return cycles * 10;
+        case Done: return -1;
+    }
+}
+
+func Main() -> Void {
+    Log(StepCost(Skip));
+    Log(StepCost(Run(3)));
+    Log(StepCost(Run(0)));
+    Log(StepCost(Done));
+    Log(StepCost(Run(100)));
+}

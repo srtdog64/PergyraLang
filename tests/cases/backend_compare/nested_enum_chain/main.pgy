@@ -1,0 +1,26 @@
+enum Outer { A, B(Int), C(Int, Int) }
+enum Inner { X, Y(Int) }
+
+func InnerScore(i: Inner) -> Int {
+    match i {
+        case X: return 0;
+        case Y(v): return v;
+    }
+}
+
+func OuterScore(o: Outer, inner: Inner) -> Int {
+    match o {
+        case A: return InnerScore(inner);
+        case B(n): return n + InnerScore(inner);
+        case C(a, b): return a * b + InnerScore(inner);
+    }
+}
+
+func Main() -> Void {
+    Log(OuterScore(A, X));
+    Log(OuterScore(A, Y(7)));
+    Log(OuterScore(B(10), X));
+    Log(OuterScore(B(10), Y(3)));
+    Log(OuterScore(C(2, 3), X));
+    Log(OuterScore(C(2, 3), Y(100)));
+}

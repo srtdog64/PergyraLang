@@ -1,0 +1,36 @@
+func ContainsRepeat(s: String) -> Bool {
+    let n: Int = StringLength(s);
+    let i: Int = 0;
+    while i < n - 1 {
+        if Substring(s, i, 1) == Substring(s, i + 1, 1) {
+            return true;
+        }
+        i = i + 1;
+    }
+    return false;
+}
+
+func MatchAt(s: String, pos: Int, ch: String) -> Bool {
+    if pos >= StringLength(s) { return false; }
+    return Substring(s, pos, 1) == ch;
+}
+
+func Main() -> Void {
+    let r1: Bool = ContainsRepeat("hello");
+    let r2: Bool = ContainsRepeat("abc");
+    let r3: Bool = ContainsRepeat("aa");
+    let r4: Bool = ContainsRepeat("");
+    let r5: Bool = ContainsRepeat("abcdeeefg");
+    Log(ToString(r1));
+    Log(ToString(r2));
+    Log(ToString(r3));
+    Log(ToString(r4));
+    Log(ToString(r5));
+
+    let m1: Bool = MatchAt("hello", 0, "h");
+    let m2: Bool = MatchAt("hello", 1, "h");
+    let m3: Bool = MatchAt("hello", 99, "x");
+    Log(ToString(m1));
+    Log(ToString(m2));
+    Log(ToString(m3));
+}

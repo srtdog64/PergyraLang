@@ -1,0 +1,18 @@
+func HalvedIfPositive(n: Int) -> Option<Int> {
+    if n > 0 { return Some(n / 2); }
+    return None();
+}
+
+func DoubleHalveOr(n: Int, fallback: Int) -> Int {
+    let first: Int = HalvedIfPositive(n) ?? fallback;
+    let second: Int = HalvedIfPositive(first) ?? fallback;
+    return second;
+}
+
+func Main() -> Void {
+    Log(DoubleHalveOr(40, -1));
+    Log(DoubleHalveOr(20, -1));
+    Log(DoubleHalveOr(0, 5));
+    Log(DoubleHalveOr(-10, 99));
+    Log(DoubleHalveOr(3, 0));
+}

@@ -1,0 +1,23 @@
+func MaybeFlag(n: Int) -> Option<Bool> {
+    if n > 0 { return Some(true); }
+    return None();
+}
+
+func CountActive(arr: Array<Int>, n: Int) -> Int {
+    let count: Int = 0;
+    let i: Int = 0;
+    while i < n {
+        if MaybeFlag(arr[i]) ?? false {
+            count = count + 1;
+        }
+        i = i + 1;
+    }
+    return count;
+}
+
+func Main() -> Void {
+    let nums: Array<Int> = [3, -1, 5, 0, 7];
+    Log(CountActive(nums, 5));
+    Log(CountActive(nums, 0));
+    Log(CountActive(nums, 1));
+}

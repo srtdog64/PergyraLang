@@ -6,8 +6,8 @@
 
 #include "../parser/ast_api.h"
 #include "../semantic/diag_codes.h"
-#include "host_decl_compat.h"
 #include "transpiler_context.h"
+#include "transpiler_decl_lookup.h"
 #include "transpiler_domain_provenance_emit.h"
 #include "transpiler_type_require.h"
 
@@ -50,10 +50,15 @@ transpiler_emit_zone_struct_decl(TranspilerCtx *ctx, ASTNode *node,
     ASTNode **slots = ast_zone_slots(node, &slot_count);
     size_t layer_slot_count = 0;
     ASTNode **layer_slots = ast_zone_layer_slots(node, &layer_slot_count);
-    PgyHostSharedFieldsCompatView shared_view =
-        pgy_host_shared_fields_compat_view_from_decl(node);
-    size_t shared_count = shared_view.count;
-    ASTNode **shared_fields = shared_view.fields;
+    TranspilerHostedSharedFieldView shared_view =
+        transpiler_hosted_shared_field_view_from_decl(ctx, name, node);
+    if (transpiler_hosted_shared_field_view_missing_mir_metadata(&shared_view)) {
+        transpiler_set_mir_inventory_missing(
+            ctx,
+            "MIR-only C path missing shared field metadata for zone '%s'",
+            name != NULL ? name : "(anonymous-zone)");
+        return false;
+    }
     size_t state_count = 0;
     ASTNode **states = ast_zone_states(node, &state_count);
 
@@ -113,26 +118,39 @@ transpiler_emit_zone_struct_decl(TranspilerCtx *ctx, ASTNode *node,
             ast_zone_layer_slot_name(slot));
     }
 
-    for (size_t i = 0; i < shared_count; i++) {
-        ASTNode *shared = shared_fields[i];
+    for (size_t i = 0; i < shared_view.count; i++) {
+        const char *shared_name =
+            transpiler_hosted_shared_field_view_name(&shared_view, i);
+        ASTNode *shared_type =
+            transpiler_hosted_shared_field_view_type(&shared_view, i);
         char ft[256];
         char surface_desc[256];
+        if (shared_name == NULL) {
+            transpiler_set_backend_error_with_hints(
+                ctx,
+                PGY_CODE_C_TYPE_UNSUPPORTED,
+                PGY_CAUSE_C_TYPE_UNSUPPORTED,
+                PGY_FIX_INSPECT_MIR_INVENTORY,
+                "C backend: zone '%s' shared field[%zu] is missing declaration field metadata",
+                name != NULL ? name : "(anonymous-zone)",
+                i);
+            return false;
+        }
         if (!transpiler_zone_surface_desc(surface_desc,
                 sizeof(surface_desc), "zone shared field", name,
-                ast_party_shared_name(shared))) {
+                shared_name)) {
             transpiler_zone_surface_desc_too_long(ctx, "zone shared field");
             return false;
         }
         if (!transpiler_require_ast_c_type_copy(
                 ctx,
-                ast_party_shared_type(shared),
+                shared_type,
                 surface_desc,
                 ft,
                 sizeof(ft))) {
             return false;
         }
-        codebuf_write(ctx->out, "    %s %s;\n", ft,
-            ast_party_shared_name(shared));
+        codebuf_write(ctx->out, "    %s %s;\n", ft, shared_name);
     }
 
     for (size_t i = 0; i < state_count; i++) {

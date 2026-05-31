@@ -1,0 +1,23 @@
+func FilterAndSum(arr: Array<Int>, n: Int, lo: Int, hi: Int) -> Int {
+    let sum: Int = 0;
+    let i: Int = 0;
+    while i < n {
+        let v: Int = arr[i];
+        if v >= lo && v <= hi && v % 2 == 0 {
+            sum = sum + v;
+        }
+        if v == 0 || v == 1 {
+            sum = sum + 1;
+        }
+        i = i + 1;
+    }
+    return sum;
+}
+
+func Main() -> Void {
+    let nums: Array<Int> = [-3, 0, 1, 2, 5, 8, 12, 15];
+    Log(FilterAndSum(nums, 8, 0, 10));
+    Log(FilterAndSum(nums, 8, -5, 5));
+    Log(FilterAndSum(nums, 8, 100, 200));
+    Log(FilterAndSum(nums, 8, 1, 1));
+}

@@ -1,0 +1,19 @@
+func PopCount(n: Int) -> Int {
+    let count: Int = 0;
+    let v: Int = n;
+    if v < 0 { v = 0; }
+    while v > 0 {
+        if v % 2 == 1 { count = count + 1; }
+        v = v / 2;
+    }
+    return count;
+}
+
+func Main() -> Void {
+    Log(PopCount(0));
+    Log(PopCount(1));
+    Log(PopCount(7));
+    Log(PopCount(15));
+    Log(PopCount(255));
+    Log(PopCount(1024));
+}

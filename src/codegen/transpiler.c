@@ -28,7 +28,6 @@
 #include "transpiler_type_declarator.h"
 #include "transpiler_type_require.h"
 #include "transpiler_type_render.h"
-#include "transpiler_mir_role_lookup.h"
 #include "transpiler_mir_ssa_entry.h"
 #include "transpiler_mir_ssa_map.h"
 #include "transpiler_mir_ssa_names.h"

@@ -1,0 +1,24 @@
+func Step(n: Int) -> Option<Int> {
+    if n <= 0 { return None(); }
+    return Some(n - 1);
+}
+
+func StepsUntilZero(start: Int) -> Int {
+    let count: Int = 0;
+    let cur: Int = start;
+    while cur > 0 && (Step(cur) ?? 0) >= 0 {
+        cur = Step(cur) ?? -1;
+        count = count + 1;
+        if count > 1000 { return -1; }
+    }
+    return count;
+}
+
+func Main() -> Void {
+    Log(StepsUntilZero(5));
+    Log(StepsUntilZero(1));
+    Log(StepsUntilZero(0));
+    Log(StepsUntilZero(-3));
+    Log(StepsUntilZero(10));
+    Log(StepsUntilZero(20));
+}

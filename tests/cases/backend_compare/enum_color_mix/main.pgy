@@ -1,0 +1,25 @@
+enum Color { Red, Green, Blue }
+
+func MixCode(a: Color, b: Color) -> Int {
+    let ca: Int = ColorCode(a);
+    let cb: Int = ColorCode(b);
+    return ca * 100 + cb;
+}
+
+func ColorCode(c: Color) -> Int {
+    match c {
+        case Red: return 1;
+        case Green: return 2;
+        case Blue: return 3;
+    }
+}
+
+func Main() -> Void {
+    Log(MixCode(Red, Blue));
+    Log(MixCode(Green, Green));
+    Log(MixCode(Blue, Red));
+    Log(ColorCode(Red));
+    Log(ColorCode(Green));
+    Log(ColorCode(Blue));
+    Log(MixCode(Red, Red));
+}

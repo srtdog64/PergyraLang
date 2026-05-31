@@ -1,0 +1,25 @@
+enum ParseError { Empty, BadDigit }
+
+func ParseInt(s: String) -> Result<Int, ParseError> {
+    if StringLength(s) == 0 { return Err(ParseError.Empty); }
+    let v: Int = ToInt(s);
+    if v < 0 { return Err(ParseError.BadDigit); }
+    return Ok(v);
+}
+
+func Doubled(s: String) -> Int {
+    let r: Result<Int, ParseError> = ParseInt(s);
+    match r {
+        case Ok(v): return v * 2;
+        case Err(e): return -1;
+    }
+}
+
+func Main() -> Void {
+    Log(Doubled("5"));
+    Log(Doubled("100"));
+    Log(Doubled(""));
+    Log(Doubled("42"));
+    Log(Doubled("0"));
+    Log(Doubled("999"));
+}

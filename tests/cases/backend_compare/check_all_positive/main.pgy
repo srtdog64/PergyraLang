@@ -1,0 +1,26 @@
+func AllPositive(xs: Array<Int>) -> Bool {
+    let i: Int = 0;
+    while i < ArrayLength(xs) {
+        if xs[i] <= 0 { return false; }
+        i = i + 1;
+    }
+    return true;
+}
+
+func Main() -> Void {
+    let a: Array<Int> = [1, 2, 3, 4];
+    let b: Array<Int> = [1, 2, 0, 4];
+    let c: Array<Int> = [-1, 2, 3];
+    let d: Array<Int> = [10];
+    let e: Array<Int> = [];
+    let ra: Bool = AllPositive(a);
+    let rb: Bool = AllPositive(b);
+    let rc: Bool = AllPositive(c);
+    let rd: Bool = AllPositive(d);
+    let re: Bool = AllPositive(e);
+    Log(ToString(ra));
+    Log(ToString(rb));
+    Log(ToString(rc));
+    Log(ToString(rd));
+    Log(ToString(re));
+}

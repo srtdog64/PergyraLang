@@ -1,0 +1,26 @@
+func Classify(score: Int) -> Int {
+    if score < 0 {
+        return -1;
+    } else if score < 10 {
+        return 0;
+    } else if score < 50 {
+        return 1;
+    } else if score < 80 {
+        return 2;
+    } else if score <= 100 {
+        return 3;
+    } else {
+        return -2;
+    }
+}
+
+func Main() -> Void {
+    Log(Classify(-5));
+    Log(Classify(0));
+    Log(Classify(7));
+    Log(Classify(25));
+    Log(Classify(60));
+    Log(Classify(99));
+    Log(Classify(100));
+    Log(Classify(101));
+}

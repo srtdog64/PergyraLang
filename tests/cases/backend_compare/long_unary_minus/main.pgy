@@ -1,0 +1,11 @@
+func Main() -> Void {
+    Log(ToString(-9999L));
+    Log(ToString(-1L));
+    let v: Long = 100L;
+    Log(ToString(-v));
+    let big: Long = 1000000L;
+    Log(ToString(-big));
+    Log(ToString(-(5L * 3L)));
+    Log(ToString(-3.5));
+    Log(ToString(-(1.25 + 0.75)));
+}

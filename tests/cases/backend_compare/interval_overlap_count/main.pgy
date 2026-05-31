@@ -1,0 +1,25 @@
+func Overlap(a_lo: Int, a_hi: Int, b_lo: Int, b_hi: Int) -> Bool {
+    if a_hi < b_lo { return false; }
+    if b_hi < a_lo { return false; }
+    return true;
+}
+
+func Main() -> Void {
+    let starts: Array<Int> = [1, 5, 10, 15, 22, 30];
+    let ends: Array<Int> = [3, 8, 12, 20, 25, 35];
+    let query_lo: Int = 8;
+    let query_hi: Int = 22;
+    let n: Int = ArrayLength(starts);
+    let count: Int = 0;
+    let i: Int = 0;
+    while i < n {
+        if Overlap(starts[i], ends[i], query_lo, query_hi) {
+            count = count + 1;
+        }
+        i = i + 1;
+    }
+    Log(count);
+    Log(Overlap(0, 5, 10, 20));
+    Log(Overlap(3, 7, 5, 10));
+    Log(Overlap(10, 20, 0, 15));
+}

@@ -1,0 +1,25 @@
+func CountPairs(xs: Array<Int>, target: Int) -> Int {
+    let n: Int = ArrayLength(xs);
+    let count: Int = 0;
+    let i: Int = 0;
+    while i < n {
+        let j: Int = i + 1;
+        while j < n {
+            if xs[i] + xs[j] == target {
+                count = count + 1;
+            }
+            j = j + 1;
+        }
+        i = i + 1;
+    }
+    return count;
+}
+
+func Main() -> Void {
+    let xs: Array<Int> = [1, 2, 3, 4, 5, 6, 7];
+    Log(CountPairs(xs, 7));
+    Log(CountPairs(xs, 8));
+    Log(CountPairs(xs, 3));
+    Log(CountPairs(xs, 100));
+    Log(CountPairs(xs, 12));
+}

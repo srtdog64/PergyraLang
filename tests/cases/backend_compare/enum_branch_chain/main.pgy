@@ -1,0 +1,38 @@
+enum Color { Red, Green, Blue, Yellow, Cyan, Magenta, White, Black }
+
+func Brightness(c: Color) -> Int {
+    match c {
+        case Red: return 50;
+        case Green: return 70;
+        case Blue: return 30;
+        case Yellow: return 90;
+        case Cyan: return 80;
+        case Magenta: return 60;
+        case White: return 100;
+        case Black: return 0;
+    }
+}
+
+func IsWarm(c: Color) -> Bool {
+    match c {
+        case Red: return true;
+        case Yellow: return true;
+        case Magenta: return true;
+        case Green: return false;
+        case Blue: return false;
+        case Cyan: return false;
+        case White: return false;
+        case Black: return false;
+    }
+}
+
+func Main() -> Void {
+    Log(Brightness(Red));
+    Log(Brightness(White));
+    Log(Brightness(Black));
+    let warm_r: Bool = IsWarm(Red);
+    let warm_b: Bool = IsWarm(Blue);
+    Log(ToString(warm_r));
+    Log(ToString(warm_b));
+    Log(Brightness(Cyan));
+}

@@ -1,0 +1,16 @@
+func Main() -> Void {
+    let xs: Array<Int> = [1, 2, 3, 4, 5, 6, 7];
+    let n: Int = ArrayLength(xs);
+    let shift: Int = 3;
+    let rotated: Array<Int> = [];
+    let i: Int = 0;
+    while i < n {
+        ArrayPush(rotated, xs[(i + shift) % n]);
+        i = i + 1;
+    }
+    let j: Int = 0;
+    while j < n {
+        Log(rotated[j]);
+        j = j + 1;
+    }
+}

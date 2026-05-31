@@ -1,0 +1,15 @@
+func Identity<T>(x: T) -> T {
+    return x;
+}
+
+func Pair<T, U>(a: T, b: U) -> Int {
+    return 42;
+}
+
+func Main() -> Void {
+    Log(Identity(7));
+    Log(Identity(99));
+    Log(Pair(1, 2));
+    Log(Pair("hi", 5));
+    Log(Identity(-100));
+}

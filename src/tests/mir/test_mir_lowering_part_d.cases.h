@@ -1,6 +1,79 @@
 static void
 test_mir_lowering_part_d(void)
 {
+    TEST("MIR declaration headers preserve field metadata");
+    {
+        const char *src =
+            "class Item {\n"
+            "    let value: Int;\n"
+            "    let label: String;\n"
+            "}\n";
+        HIRProgram *hir = NULL;
+        RIRProgram *rir = NULL;
+        MIRProgram *mir = NULL;
+        const MIRDeclHeader *item = NULL;
+        const MIRDeclField *value = NULL;
+        const MIRDeclField *label = NULL;
+        bool ok = lower_mir_from_source(src, &hir, &rir, &mir);
+        if (ok && mir != NULL)
+            item = mir_find_decl_header(mir, "Item");
+        if (item != NULL) {
+            value = mir_decl_header_field(item, 0);
+            label = mir_decl_header_field(item, 1);
+        }
+        EXPECT(ok
+               && item != NULL
+               && mir_decl_header_field_count(item) == 2
+               && value != NULL
+               && label != NULL
+               && mir_decl_field_kind_or(value, MIR_DECL_FIELD_UNKNOWN)
+                    == MIR_DECL_FIELD_CLASS
+               && mir_decl_field_name(value) != NULL
+               && strcmp(mir_decl_field_name(value), "value") == 0
+               && mir_decl_field_type(value) != NULL
+               && ast_type_name(mir_decl_field_type(value)) != NULL
+               && strcmp(ast_type_name(mir_decl_field_type(value)), "Int") == 0
+               && mir_decl_field_name(label) != NULL
+               && strcmp(mir_decl_field_name(label), "label") == 0
+               && mir_validate(mir, NULL));
+        mir_destroy(mir);
+        rir_destroy(rir);
+        hir_destroy(hir);
+    }
+
+    TEST("MIR validator rejects declaration field owner metadata drift");
+    {
+        const char *src =
+            "class Item {\n"
+            "    let value: Int;\n"
+            "}\n";
+        HIRProgram *hir = NULL;
+        RIRProgram *rir = NULL;
+        MIRProgram *mir = NULL;
+        char *mir_error = NULL;
+        bool mutated = false;
+        bool rejected = false;
+        bool ok = lower_mir_from_source(src, &hir, &rir, &mir);
+        if (ok && mir != NULL) {
+            MIRDeclHeader *item =
+                (MIRDeclHeader *) mir_find_decl_header(mir, "Item");
+            if (item != NULL && item->field_metadata_count > 0) {
+                item->field_metadata[0].owner_name = "OtherItem";
+                mutated = true;
+            }
+        }
+        rejected = ok
+                   && mutated
+                   && !mir_validate(mir, &mir_error)
+                   && mir_error != NULL
+                   && strstr(mir_error, "field[0] has owner metadata drift") != NULL;
+        EXPECT(rejected);
+        free(mir_error);
+        mir_destroy(mir);
+        rir_destroy(rir);
+        hir_destroy(hir);
+    }
+
     TEST("MIR validator rejects terminal CFG-owned control fallback statements");
     {
         const char *src =
@@ -51,6 +124,47 @@ test_mir_lowering_part_d(void)
                    && strstr(mir_error, "CFG-owned control statement") != NULL;
         EXPECT(rejected);
         free(mir_error);
+        mir_destroy(mir);
+        rir_destroy(rir);
+        hir_destroy(hir);
+    }
+
+    TEST("MIR does not treat Intent-prefixed user calls as observability");
+    {
+        const char *src =
+            "func IntentDomainAction() -> String {\n"
+            "    return \"ok\";\n"
+            "}\n"
+            "func Main() -> Void {\n"
+            "    Log(IntentDomainAction());\n"
+            "}\n";
+        HIRProgram *hir = NULL;
+        RIRProgram *rir = NULL;
+        MIRProgram *mir = NULL;
+        const MIRRoutine *routine = NULL;
+        bool any_observability_fact = false;
+        bool ok = lower_mir_from_source(src, &hir, &rir, &mir);
+        if (ok)
+            routine = find_mir_routine(mir, "Main", MIR_SCOPE_FUNCTION);
+        if (routine != NULL) {
+            for (size_t b = 0; b < routine->block_count; b++) {
+                const MIRBasicBlock *block = &routine->blocks[b];
+                for (size_t i = 0; i < block->instruction_count; i++) {
+                    const MIRInstruction *inst = &block->instructions[i];
+                    if (inst->has_surface_usage_facts
+                        && inst->uses_intent_observability_surface) {
+                        any_observability_fact = true;
+                    }
+                }
+            }
+        }
+        EXPECT(ok
+               && routine != NULL
+               && mir != NULL
+               && mir->has_inventory_surface_usage_facts
+               && !mir->inventory_uses_intent_observability_surface
+               && !any_observability_fact
+               && mir_validate(mir, NULL));
         mir_destroy(mir);
         rir_destroy(rir);
         hir_destroy(hir);

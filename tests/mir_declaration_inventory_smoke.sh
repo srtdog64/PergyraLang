@@ -62,7 +62,6 @@ for rel in \
     "src/codegen/transpiler_domain_role_ability_emit.c" \
     "src/codegen/transpiler_domain_role_ability_emit.h" \
     "src/codegen/transpiler_generic_class_specialization_emit.c" \
-    "src/codegen/transpiler_mir_role_lookup.c" \
     "src/codegen/transpiler_mir_ssa_names.h" \
     "src/compiler/mir.h" \
     "src/compiler/mir_lower_public_api.h" \
@@ -114,25 +113,113 @@ require_term "src/codegen/host_decl_compat.c" \
 require_term "src/codegen/host_decl_compat.c" \
     "ast_class_fields(decl, &view.count)"
 require_term "src/codegen/transpiler_constructor_channel_guard.c" \
-    "pgy_host_class_fields_compat_view_from_decl(decl)"
+    "transpiler_constructor_find_mir_channel_field"
 require_term "src/codegen/transpiler_constructor_channel_guard.c" \
-    "pgy_host_shared_fields_compat_view_from_decl(decl)"
+    "transpiler_active_decl_header(ctx, host_name)"
+require_term "src/codegen/transpiler_constructor_channel_guard.c" \
+    "mir_decl_header_field_count(header)"
+require_term "src/codegen/transpiler_constructor_channel_guard.c" \
+    "transpiler_mir_decl_field_type_name(field)"
+require_term "src/codegen/transpiler_constructor_channel_guard.c" \
+    "transpiler_type_name_is_channel(type_name)"
+for term in \
+    "TranspilerHostedFieldView fields" \
+    "transpiler_hosted_class_field_view_from_decl(ctx, decl_name, decl)" \
+    "transpiler_hosted_field_view_missing_mir_metadata(&fields)" \
+    "transpiler_hosted_field_view_type(view, i)" \
+    "transpiler_hosted_field_view_name(view, i)"; do
+    require_term "src/codegen/transpiler_constructor_channel_guard.c" "$term"
+done
+if grep -Fq "pgy_host_class_fields_compat_view_from_decl" \
+    "$ROOT_DIR/src/codegen/transpiler_constructor_channel_guard.c"; then
+    fail "C constructor channel guard must consume TranspilerHostedFieldView for class fields"
+fi
+require_term "src/codegen/transpiler_constructor_channel_guard.c" \
+    "TranspilerHostedSharedFieldView shared"
+require_term "src/codegen/transpiler_constructor_channel_guard.c" \
+    "transpiler_hosted_shared_field_view_from_decl(ctx, decl_name, decl)"
+require_term "src/codegen/transpiler_constructor_channel_guard.c" \
+    "transpiler_hosted_shared_field_view_missing_mir_metadata(&shared)"
+require_term "src/codegen/transpiler_constructor_channel_guard.c" \
+    "transpiler_hosted_shared_field_view_type(view, i)"
+if grep -Fq "pgy_host_shared_fields_compat_view_from_decl" \
+    "$ROOT_DIR/src/codegen/transpiler_constructor_channel_guard.c"; then
+    fail "C constructor channel guard must consume TranspilerHostedSharedFieldView"
+fi
+require_term "src/codegen/llvm_expr_constructor_calls.c" \
+    "llvm_constructor_find_mir_channel_field"
+require_term "src/codegen/llvm_expr_constructor_calls.c" \
+    "llvm_find_host_decl_header_in_context(ctx, host_name)"
+require_term "src/codegen/llvm_expr_constructor_calls.c" \
+    "llvm_find_host_decl_header_in_context(ctx, callee_name)"
+require_term "src/codegen/llvm_expr_constructor_calls.c" \
+    "mir_decl_header_field(header, index)"
+require_term "src/codegen/llvm_expr_constructor_calls.c" \
+    "llvm_mir_decl_field_type(field)"
+require_term "src/codegen/llvm_expr_constructor_calls.c" \
+    "mir_decl_header_field_count(header)"
+require_term "src/codegen/llvm_expr_constructor_calls.c" \
+    "llvm_mir_decl_field_type_name(field)"
+require_term "src/codegen/llvm_expr_constructor_calls.c" \
+    "pgy_classify_type(type_name) == PGY_TK_CHANNEL"
 require_term "src/codegen/llvm_expr_constructor_calls.c" \
     "pgy_host_class_fields_compat_view_from_decl(class_decl)"
 require_term "src/codegen/llvm_expr_constructor_calls.c" \
-    "pgy_host_shared_fields_compat_view_from_decl(decl)"
+    "LLVMHostedSharedFieldView shared"
+require_term "src/codegen/llvm_expr_constructor_calls.c" \
+    "llvm_hosted_shared_field_view_from_decl(ctx, decl_name, decl)"
+require_term "src/codegen/llvm_expr_constructor_calls.c" \
+    "llvm_hosted_shared_field_view_missing_mir_metadata(&shared)"
+require_term "src/codegen/llvm_expr_constructor_calls.c" \
+    "llvm_hosted_shared_field_view_source_ast(view, i)"
+if grep -Fq "pgy_host_shared_fields_compat_view_from_decl" \
+    "$ROOT_DIR/src/codegen/llvm_expr_constructor_calls.c"; then
+    fail "LLVM constructor calls must consume LLVMHostedSharedFieldView"
+fi
+require_term "src/codegen/transpiler_zone_decl_emit.c" \
+    "transpiler_hosted_shared_field_view_from_decl(ctx, name, node)"
+require_term "src/codegen/transpiler_zone_decl_emit.c" \
+    "transpiler_hosted_shared_field_view_missing_mir_metadata("
+require_term "src/codegen/transpiler_zone_specialization_emit.c" \
+    "transpiler_hosted_shared_field_view_type(shared_view, i)"
+if grep -Fq "pgy_host_shared_fields_compat_view_from_decl" \
+    "$ROOT_DIR/src/codegen/transpiler_zone_decl_emit.c"; then
+    fail "C zone declaration emission must consume TranspilerHostedSharedFieldView"
+fi
 for rel in \
     "src/codegen/transpiler_relation_effect_emit.c" \
     "src/codegen/transpiler_world_select_event_emit.c" \
-    "src/codegen/transpiler_zone_decl_emit.c" \
     "src/codegen/transpiler_zone_struct_emit.c"; do
-    require_term "$rel" "pgy_host_shared_fields_compat_view_from_decl(node)"
+    require_term "$rel" "transpiler_hosted_shared_field_view_from_decl(ctx, name, node)"
+    require_term "$rel" "transpiler_hosted_shared_field_view_missing_mir_metadata(&shared_view)"
+    require_term "$rel" "transpiler_hosted_shared_field_view_name(&shared_view, i)"
+    require_term "$rel" "transpiler_hosted_shared_field_view_type(&shared_view, i)"
+    if grep -Fq "pgy_host_shared_fields_compat_view_from_decl" "$ROOT_DIR/$rel"; then
+        fail "$rel must consume TranspilerHostedSharedFieldView, not shared field compatibility view"
+    fi
 done
-for rel in \
-    "src/codegen/llvm_domain_struct_register.c" \
-    "src/codegen/llvm_domain_struct_register_fields.c"; do
-    require_term "$rel" "pgy_host_shared_fields_compat_view_from_decl(stmt)"
-done
+require_term "src/codegen/llvm_domain_struct_register.c" \
+    "LLVMHostedSharedFieldView shared_view"
+require_term "src/codegen/llvm_domain_struct_register.c" \
+    "llvm_hosted_shared_field_view_from_decl(ctx, decl_name, stmt)"
+require_term "src/codegen/llvm_domain_struct_register.c" \
+    "llvm_hosted_shared_field_view_missing_mir_metadata("
+require_term "src/codegen/llvm_domain_struct_register.c" \
+    "llvm_hosted_shared_field_view_type(&shared_view, j)"
+if grep -Fq "pgy_host_shared_fields_compat_view_from_decl" \
+    "$ROOT_DIR/src/codegen/llvm_domain_struct_register.c"; then
+    fail "LLVM domain struct registration must consume LLVMHostedSharedFieldView"
+fi
+require_term "src/codegen/llvm_domain_struct_register_fields.c" \
+    "llvm_hosted_shared_field_view_from_decl(ctx, decl_name, stmt)"
+require_term "src/codegen/llvm_domain_struct_register_fields.c" \
+    "llvm_hosted_shared_field_view_missing_mir_metadata(&shared_view)"
+require_term "src/codegen/llvm_domain_struct_register_fields.c" \
+    "llvm_hosted_shared_field_view_name(shared_view, j)"
+if grep -Fq "pgy_host_shared_fields_compat_view_from_decl" \
+    "$ROOT_DIR/src/codegen/llvm_domain_struct_register_fields.c"; then
+    fail "LLVM domain struct field registration must consume LLVMHostedSharedFieldView"
+fi
 for rel in \
     "src/codegen/llvm_channel_target.c" \
     "src/codegen/llvm_domain_lookup.c" \
@@ -141,6 +228,13 @@ for rel in \
     "src/codegen/transpiler_projection_field_path.c"; do
     require_term "$rel" "pgy_host_class_field_compat_find"
 done
+for term in \
+    "transpiler_find_decl_field_metadata(ctx, host_type_name" \
+    "transpiler_mir_decl_field_is_subject_like(mir_field)"; do
+    require_term "src/codegen/transpiler_projection_field_path.c" "$term"
+done
+require_term "src/codegen/transpiler_decl_lookup.c" \
+    "transpiler_mir_decl_field_is_subject_like"
 for rel in \
     "src/codegen/transpiler_expr_type_infer.c" \
     "src/codegen/transpiler_mir_local_type_lookup.c"; do
@@ -150,28 +244,107 @@ for rel in \
     fi
 done
 for rel in \
-    "src/codegen/transpiler_nominal.c" \
     "src/codegen/transpiler_overlay_host_fields.c" \
     "src/codegen/transpiler_projection.c"; do
-    require_term "$rel" "pgy_host_shared_field_compat_find"
+    require_term "$rel" "transpiler_hosted_shared_field_view_from_decl("
+    require_term "$rel" \
+        "transpiler_hosted_shared_field_view_missing_mir_metadata("
+    require_term "$rel" "transpiler_hosted_shared_field_view_name("
+    if grep -Fq "pgy_host_shared_field_compat_find" "$ROOT_DIR/$rel"; then
+        fail "$rel must consume TranspilerHostedSharedFieldView for shared-field presence"
+    fi
 done
+for term in \
+    "transpiler_hosted_shared_field_view_from_decl(" \
+    "transpiler_hosted_shared_field_view_missing_mir_metadata(" \
+    "transpiler_hosted_shared_field_view_metadata(&shared_view, i)" \
+    "transpiler_hosted_shared_field_view_type(&shared_view, i)"; do
+    require_term "src/codegen/transpiler_nominal.c" "$term"
+done
+if grep -Fq "pgy_host_shared_field_compat_find" \
+    "$ROOT_DIR/src/codegen/transpiler_nominal.c"; then
+    fail "C nominal shared member type lookup must consume TranspilerHostedSharedFieldView"
+fi
 for rel in \
     "src/codegen/llvm_domain_projection_value_helpers.c" \
     "src/codegen/llvm_expr_projection_path_helpers.c" \
-    "src/codegen/transpiler_domain_constructor_emit.c" \
-    "src/codegen/transpiler_generic_class_specialization_emit.c" \
-    "src/codegen/transpiler_let_emit.c" \
-    "src/codegen/transpiler_overlay_projection.c" \
-    "src/codegen/transpiler_projection.c"; do
+    "src/codegen/transpiler_let_emit.c"; do
     require_term "$rel" "pgy_host_class_fields_compat_view_from_decl"
 done
-for rel in \
-    "src/codegen/llvm_domain_decl_parts_helpers.c" \
-    "src/codegen/transpiler_mir_ssa_names.c"; do
-    require_term "$rel" "pgy_host_shared_fields_compat_view_from_decl"
+for term in \
+    "transpiler_hosted_class_field_view_from_decl(ctx, decl_name, decl)" \
+    "transpiler_hosted_field_view_missing_mir_metadata(view)" \
+    "transpiler_hosted_field_view_name(&view, index)" \
+    "transpiler_hosted_field_view_metadata(&view, index)" \
+    "transpiler_mir_decl_field_type_name(field)" \
+    "transpiler_hosted_field_view_type(&view, index)"; do
+    require_term "src/codegen/transpiler_projection.c" "$term"
 done
+if grep -Fq "pgy_host_class_fields_compat_view_from_decl" \
+    "$ROOT_DIR/src/codegen/transpiler_projection.c"; then
+    fail "C projection class-field iteration must consume TranspilerHostedFieldView"
+fi
+for term in \
+    "overlay_projection_field_view" \
+    "transpiler_hosted_class_field_view_from_decl(" \
+    "transpiler_hosted_field_view_missing_mir_metadata(view)" \
+    "transpiler_hosted_field_view_name(&view, index)"; do
+    require_term "src/codegen/transpiler_overlay_projection.c" "$term"
+done
+if grep -Fq "pgy_host_class_fields_compat_view_from_decl" \
+    "$ROOT_DIR/src/codegen/transpiler_overlay_projection.c"; then
+    fail "C overlay projection field iteration must consume TranspilerHostedFieldView"
+fi
+for term in \
+    "transpiler_hosted_class_field_view_from_decl(" \
+    "transpiler_hosted_field_view_missing_mir_metadata(&field_view)" \
+    "transpiler_hosted_field_view_type(&field_view, i)" \
+    "transpiler_hosted_field_view_name(&field_view, i)"; do
+    require_term "src/codegen/transpiler_domain_constructor_emit.c" "$term"
+done
+if grep -Fq "pgy_host_class_fields_compat_view_from_decl" \
+    "$ROOT_DIR/src/codegen/transpiler_domain_constructor_emit.c"; then
+    fail "C domain constructor class-field emission must consume TranspilerHostedFieldView"
+fi
+require_term "src/codegen/transpiler_domain_constructor_emit.c" \
+    "transpiler_hosted_shared_field_view_from_decl(ctx, decl_name, decl)"
+require_term "src/codegen/transpiler_domain_constructor_emit.c" \
+    "transpiler_hosted_shared_field_view_from_decl(ctx, decl_name, zone_decl)"
+require_term "src/codegen/transpiler_domain_constructor_emit.c" \
+    "transpiler_hosted_shared_field_view_from_decl(ctx, decl_name, world_decl)"
+require_term "src/codegen/transpiler_domain_constructor_emit.c" \
+    "transpiler_hosted_shared_field_view_missing_mir_metadata(&shared_view)"
+require_term "src/codegen/transpiler_domain_constructor_emit.c" \
+    "transpiler_hosted_shared_field_view_source_ast("
+require_term "src/codegen/transpiler_domain_constructor_emit.c" \
+    "transpiler_hosted_shared_field_view_type("
+if grep -Fq "pgy_host_shared_fields_compat_view_from_decl" \
+    "$ROOT_DIR/src/codegen/transpiler_domain_constructor_emit.c"; then
+    fail "C domain constructor emission must consume TranspilerHostedSharedFieldView"
+fi
+require_term "src/codegen/transpiler_mir_ssa_names.c" \
+    "transpiler_hosted_shared_field_view_from_decl("
+require_term "src/codegen/transpiler_mir_ssa_names.c" \
+    "transpiler_hosted_shared_field_view_missing_mir_metadata("
+require_term "src/codegen/transpiler_mir_ssa_names.c" \
+    "transpiler_hosted_shared_field_view_name(&shared_view, i)"
+if grep -Fq "pgy_host_shared_fields_compat_view_from_decl" \
+    "$ROOT_DIR/src/codegen/transpiler_mir_ssa_names.c"; then
+    fail "C MIR SSA implicit zone-field recovery must consume TranspilerHostedSharedFieldView"
+fi
 require_term "src/codegen/llvm_domain_decl_parts_helpers.c" \
     "llvm_decl_node_name(stmt)"
+if grep -Fq "pgy_host_shared_fields_compat_view_from_decl" \
+    "$ROOT_DIR/src/codegen/llvm_domain_decl_parts_helpers.c"; then
+    fail "LLVM domain decl parts must not reopen shared-field compatibility views"
+fi
+for rel in \
+    "src/codegen/llvm_domain_struct_register.c" \
+    "src/codegen/llvm_domain_struct_register_fields.c"; do
+    if grep -Fq "ast_roster_shared" "$ROOT_DIR/$rel"; then
+        fail "$rel must consume LLVMHostedSharedFieldView for roster shared fields"
+    fi
+done
 require_term "src/codegen/transpiler_mir_local_type_lookup.c" \
     "transpiler_decl_name_local(host_decl)"
 require_term "src/codegen/transpiler_overlay_host_fields.c" \
@@ -189,7 +362,22 @@ require_term "src/codegen/llvm_register.c" \
 require_term "src/codegen/llvm_register.c" \
     "pgy_host_class_fields_compat_view_from_decl(stmt)"
 require_term "src/codegen/transpiler_class_decl_emit.c" \
-    "pgy_host_class_fields_compat_view_from_decl(node)"
+    "transpiler_hosted_class_field_view_from_decl(ctx, name, node)"
+require_term "src/codegen/transpiler_generic_class_specialization_emit.c" \
+    "transpiler_hosted_class_field_view_from_decl(ctx, base_class_name"
+require_term "src/codegen/transpiler_domain_constructor_emit.c" \
+    "transpiler_hosted_class_field_view_from_decl("
+for rel in \
+    "src/codegen/transpiler_class_decl_emit.c" \
+    "src/codegen/transpiler_generic_class_specialization_emit.c" \
+    "src/codegen/transpiler_domain_constructor_emit.c"; do
+    require_term "$rel" "transpiler_hosted_field_view_missing_mir_metadata(&field_view)"
+    require_term "$rel" "transpiler_hosted_field_view_name(&field_view, i)"
+    require_term "$rel" "transpiler_hosted_field_view_type(&field_view, i)"
+    if grep -Fq "pgy_host_class_fields_compat_view_from_decl" "$ROOT_DIR/$rel"; then
+        fail "$rel must consume TranspilerHostedFieldView, not class field compatibility view"
+    fi
+done
 require_term "src/codegen/llvm_domain_forward_role.c" \
     "role_name = llvm_decl_node_name(stmt)"
 require_term "src/codegen/llvm_domain_role_emit.c" \
@@ -338,7 +526,6 @@ for term in \
 done
 
 for term in \
-    "llvm_host_decl_method_metadata" \
     "llvm_find_host_method_metadata_in_context" \
     "llvm_hosted_method_view" \
     "llvm_hosted_method_view_metadata" \
@@ -370,6 +557,170 @@ require_term "src/codegen/llvm_inventory_host_methods.h" "ast_compat_methods"
 require_term "src/codegen/llvm_inventory_host_methods.h" "ast_compat_count"
 require_term "src/codegen/llvm_inventory_host_methods.c" \
     "view->count != view->ast_compat_count"
+for term in \
+    "mir_decl_header_source_ast" \
+    "mir_decl_method_source_ast" \
+    "mir_decl_method_name" \
+    "mir_decl_method_param_count" \
+    "mir_decl_method_param" \
+    "mir_decl_method_return_type" \
+    "mir_decl_method_is_action_like" \
+    "mir_decl_method_routine_index"; do
+    require_term "src/compiler/mir_decl_headers.h" "$term"
+    require_term "src/compiler/mir_decl_headers.c" "$term"
+done
+for term in \
+    "MIRDeclField" \
+    "MIRDeclFieldKind" \
+    "field_metadata" \
+    "field_metadata_count" \
+    "MIR_DECL_FIELD_CLASS" \
+    "MIR_DECL_FIELD_SHARED" \
+    "MIR_DECL_FIELD_ROLE_SLOT" \
+    "MIR_DECL_FIELD_ROSTER_SLOT" \
+    "MIR_DECL_FIELD_WORLD_ROSTER_SLOT" \
+    "MIR_DECL_FIELD_WORLD_ZONE_SLOT" \
+    "MIR_DECL_FIELD_DOMAIN_SLOT" \
+    "MIR_DECL_FIELD_ZONE_LAYER_SLOT"; do
+    require_term "src/compiler/mir.h" "$term"
+done
+for term in \
+    "mir_decl_header_field_count" \
+    "mir_decl_header_field" \
+    "mir_decl_field_source_ast" \
+    "mir_decl_field_owner_name" \
+    "mir_decl_field_name" \
+    "mir_decl_field_type" \
+    "mir_decl_field_type_name" \
+    "mir_decl_field_kind_or" \
+    "mir_decl_field_is_dynamic" \
+    "mir_decl_field_is_subject_like"; do
+    require_term "src/compiler/mir_decl_headers.h" "$term"
+    require_term "src/compiler/mir_decl_headers.c" "$term"
+done
+for term in \
+    "MIR declaration header[%zu] '%s' has %zu hosted field(s) without MIRDeclField metadata" \
+    "MIR declaration header[%zu] '%s' field metadata count %zu does not match AST compatibility count %zu" \
+    "MIR declaration header[%zu] field[%zu] has owner metadata drift" \
+    "MIR declaration header[%zu] field[%zu] has incomplete field metadata"; do
+    require_term "src/compiler/mir_decl_header_validate.c" "$term"
+done
+for term in \
+    "transpiler_find_decl_field_metadata" \
+    "transpiler_decl_header_shared_field_count" \
+    "transpiler_decl_header_shared_field" \
+    "pgy_host_shared_fields_compat_view_from_decl(decl)" \
+    "transpiler_active_decl_header(ctx, host_name)" \
+    "mir_decl_header_field_count(header)" \
+    "mir_decl_header_field(header, i)" \
+    "MIR_DECL_FIELD_SHARED" \
+    "return transpiler_decl_header_shared_field(view->decl_header, index)" \
+    "ast_party_shared_name(view->ast_compat_fields[index])" \
+    "ast_party_shared_type(view->ast_compat_fields[index])" \
+    "mir_decl_field_name(field)" \
+    "mir_decl_field_type_name(field)" \
+    "mir_decl_field_type(field)" \
+    "transpiler_mir_decl_field_kind_or"; do
+    require_term "src/codegen/transpiler_decl_lookup.c" "$term"
+done
+for term in \
+    "TranspilerHostedSharedFieldView" \
+    "transpiler_hosted_shared_field_view_from_decl(" \
+    "transpiler_hosted_shared_field_view_missing_mir_metadata(" \
+    "transpiler_hosted_shared_field_view_metadata(" \
+    "transpiler_hosted_shared_field_view_source_ast(" \
+    "transpiler_hosted_shared_field_view_name(" \
+    "transpiler_hosted_shared_field_view_type("; do
+    require_term "src/codegen/transpiler_decl_lookup.h" "$term"
+done
+for term in \
+    "transpiler_find_decl_field_metadata(ctx, host_name, field_name)" \
+    "transpiler_find_decl_field_metadata(ctx, host_type_name, member_name)" \
+    "render_mir_decl_field_type_name(ctx, field)" \
+    "transpiler_mir_decl_field_kind_or(field, MIR_DECL_FIELD_UNKNOWN)"; do
+    require_term "src/codegen/transpiler_nominal.c" "$term"
+done
+for term in \
+    "projection_class_field_count" \
+    "projection_class_field_name" \
+    "projection_class_field_type_name" \
+    "projection_class_field_view" \
+    "transpiler_hosted_class_field_view_from_decl(ctx, decl_name, decl)" \
+    "transpiler_hosted_field_view_name(&view, index)" \
+    "transpiler_hosted_field_view_metadata(&view, index)" \
+    "transpiler_mir_decl_field_type_name(field)"; do
+    require_term "src/codegen/transpiler_projection.c" "$term"
+done
+for term in \
+    "overlay_projection_field_count" \
+    "overlay_projection_field_name" \
+    "overlay_projection_field_view" \
+    "transpiler_hosted_class_field_view_from_decl(" \
+    "transpiler_hosted_field_view_name(&view, index)"; do
+    require_term "src/codegen/transpiler_overlay_projection.c" "$term"
+done
+for term in \
+    "llvm_find_decl_field_in_context" \
+    "LLVMHostedSharedFieldView" \
+    "llvm_decl_header_shared_field_count" \
+    "llvm_decl_header_shared_field" \
+    "llvm_hosted_shared_field_view_from_decl" \
+    "llvm_hosted_shared_field_view_missing_mir_metadata" \
+    "llvm_hosted_shared_field_view_metadata" \
+    "llvm_hosted_shared_field_view_source_ast" \
+    "llvm_hosted_shared_field_view_name" \
+    "llvm_hosted_shared_field_view_type" \
+    "pgy_host_shared_fields_compat_view_from_decl(decl)" \
+    "MIR_DECL_FIELD_SHARED" \
+    "return llvm_decl_header_shared_field(view->decl_header, index)" \
+    "mir_decl_header_field_count(decl_header)" \
+    "mir_decl_header_field(decl_header, i)" \
+    "mir_decl_field_name(field)" \
+    "llvm_mir_decl_field_type" \
+    "llvm_mir_decl_field_type_name"; do
+    require_term "src/codegen/llvm_inventory_decl_lookup.c" "$term"
+done
+for term in \
+    "llvm_find_decl_field_in_context(ctx, host_name, field_name)" \
+    "llvm_mir_decl_field_type_name(mir_field)" \
+    "llvm_mir_decl_field_type(mir_field)"; do
+    require_term "src/codegen/llvm_domain_lookup.c" "$term"
+done
+for term in \
+    "llvm_projection_field_count" \
+    "llvm_projection_field_name" \
+    "llvm_projection_field_type_name" \
+    "llvm_find_host_decl_header_in_context(ctx, decl_name)" \
+    "mir_decl_header_field_count(header)" \
+    "mir_decl_header_field(header, index)" \
+    "llvm_mir_decl_field_type_name(field)"; do
+    require_term "src/codegen/llvm_expr_projection_path_helpers.c" "$term"
+done
+for term in \
+    "llvm_domain_projection_field_count" \
+    "llvm_domain_projection_field_name" \
+    "llvm_domain_projection_field_type_name" \
+    "llvm_find_host_decl_header_in_context(ctx, decl_name)" \
+    "mir_decl_header_field_count(header)" \
+    "mir_decl_header_field(header, index)" \
+    "llvm_mir_decl_field_type_name(field)"; do
+    require_term "src/codegen/llvm_domain_projection_value_helpers.c" "$term"
+done
+for rel in \
+    "src/codegen/llvm_inventory_decl_lookup.c" \
+    "src/codegen/transpiler_decl_lookup.c"; do
+    require_term "$rel" "mir_decl_header_source_ast("
+done
+for rel in \
+    "src/codegen/llvm_inventory_host_methods.c" \
+    "src/codegen/transpiler_decl_host_lookup.c" \
+    "src/codegen/transpiler_decl_method_view.c"; do
+    require_term "$rel" "mir_decl_method_source_ast("
+done
+if grep -RInE 'decl_header->source_ast|method->source_ast' \
+        "$ROOT_DIR/src/codegen" --include='*.c' --include='*.h'; then
+    fail "backend source/provenance compatibility must use MIR source_ast accessors"
+fi
 require_term "src/codegen/host_decl_compat.c" \
     "ast_role_impl_method_total_count"
 require_term "src/codegen/host_decl_compat.c" \
@@ -378,6 +729,17 @@ require_term "src/codegen/host_decl_compat.c" \
     "case AST_ROLE_DECL"
 require_term "src/codegen/llvm_inventory_host_methods.c" \
     "pgy_host_method_compat_view_from_decl(decl, llvm_active_has_mir(ctx))"
+for term in \
+    "view.decl_header = decl_header" \
+    "view.count = mir_decl_header_method_count(decl_header)" \
+    "return mir_decl_header_method(view->decl_header, index)"; do
+    require_term "src/codegen/llvm_inventory_host_methods.c" "$term"
+done
+if grep -RInE 'const MIRDeclMethod \*metadata|view[.]metadata|view->metadata|llvm_host_decl_method_metadata' \
+        "$ROOT_DIR/src/codegen/llvm_inventory_host_methods.h" \
+        "$ROOT_DIR/src/codegen/llvm_inventory_host_methods.c"; then
+    fail "LLVM hosted method view must keep MIRDeclMethod arrays behind compiler accessors"
+fi
 if grep -Fq "llvm_hosted_method_view(" \
         "$ROOT_DIR/src/codegen/llvm_inventory_host_methods.c" \
     && grep -Fq "NULL, 0)" \
@@ -393,13 +755,17 @@ if grep -Fq "fallback_count" "$ROOT_DIR/src/codegen/llvm_inventory_host_methods.
     fail "LLVM hosted method view must name AST compatibility counts explicitly, not as fallback_count"
 fi
 for term in \
-    "method->has_routine" \
+    "mir_decl_method_routine_index(method, &routine_index)" \
     "llvm_active_routine_inventory(ctx, &inventory)" \
-    "llvm_routine_inventory_get(&inventory, method->routine_index)" \
+    "llvm_routine_inventory_get(&inventory, routine_index)" \
     "llvm_mir_decl_method_routine(" \
     "llvm_hosted_method_view_routine("; do
     require_term "src/codegen/llvm_inventory_host_methods.c" "$term"
 done
+if grep -RInE 'method->(name|params|param_count|return_type|is_action_like|has_routine|routine_index)|methods\[[^]]+\]\.name' \
+        "$ROOT_DIR/src/codegen/llvm_inventory_host_methods.c"; then
+    fail "LLVM hosted method metadata view must consume compiler MIRDeclMethod accessors"
+fi
 if grep -RInE 'method(_meta)?->(has_routine|routine_index)' \
     "$ROOT_DIR/src/codegen"/llvm_*.c \
     "$ROOT_DIR/src/codegen"/llvm_*.h \
@@ -420,9 +786,13 @@ done
 for term in \
     "llvm_mir_routine_source_ast(const MIRRoutine *routine)" \
     "llvm_mir_routine_source_ast_of_type(const MIRRoutine *routine" \
-    "return routine != NULL ? routine->ast : NULL"; do
+    "return mir_routine_source_ast(routine)"; do
     require_term "src/codegen/llvm_inventory_internal.c" "$term"
 done
+require_term "src/compiler/mir.h" \
+    "mir_routine_source_ast(const MIRRoutine *routine)"
+require_term "src/compiler/mir_program_inventory.c" \
+    "mir_routine_source_ast(const MIRRoutine *routine)"
 for rel in \
     "src/codegen/llvm_decl_routines.c" \
     "src/codegen/llvm_intent.c" \
@@ -631,6 +1001,7 @@ for rel in \
     "src/codegen/llvm_decl.c" \
     "src/codegen/llvm_decl_authority.c" \
     "src/codegen/llvm_decl_routines.c" \
+    "src/codegen/llvm_inventory_internal.c" \
     "src/codegen/llvm_intent.c" \
     "src/codegen/llvm_intent_forward.c" \
     "src/codegen/llvm_mir_emit.c"; do
@@ -845,10 +1216,11 @@ require_term "src/codegen/transpiler_inventory_view.c" \
 for term in \
     "transpiler_mir_routine_source_ast(const MIRRoutine *routine)" \
     "transpiler_mir_routine_source_ast_of_type(" \
-    "return routine != NULL ? routine->ast : NULL"; do
+    "return mir_routine_source_ast(routine)"; do
     require_term "src/codegen/transpiler_inventory_view.c" "$term"
 done
 for rel in \
+    "src/codegen/transpiler_inventory_view.c" \
     "src/codegen/transpiler_mir_emission_contract.c"; do
     if grep -Fq "routine->ast" "$ROOT_DIR/$rel"; then
         fail "$rel must consume routine source AST through transpiler_mir_routine_source_ast* accessors"
@@ -1118,9 +1490,10 @@ for term in \
     "host_lookup_types[i]" \
     "AST_ROLE_DECL" \
     "transpiler_hosted_method_view_from_decl(ctx, host_type_name, decl)" \
-    "header->method_metadata_count" \
-    "method->name" \
-    "method->source_ast"; do
+    "mir_decl_header_method_count(header)" \
+    "mir_decl_header_method(header, i)" \
+    "transpiler_mir_decl_method_name(method)" \
+    "mir_decl_method_source_ast(method)"; do
     require_term "src/codegen/transpiler_decl_host_lookup.c" "$term"
 done
 if grep -Fq "static const TranspilerHostOwnerLookup kTranspilerHostOwnerLookups[]" \
@@ -1151,20 +1524,42 @@ for rel in \
     fi
 done
 for term in \
-    "transpiler_active_decl_header(ctx, owner_name)" \
-    "header->ast_type != AST_ROLE_DECL" \
-    "header->method_metadata_count" \
-    "transpiler_mir_decl_method_routine(ctx, method)"; do
-    require_term "src/codegen/transpiler_mir_role_lookup.c" "$term"
+    "TranspilerHostedMethodView method_view" \
+    "transpiler_hosted_method_view_from_decl(ctx, name, node)" \
+    "transpiler_hosted_method_view_metadata(&method_view, i)" \
+    "transpiler_hosted_method_view_routine(ctx, &method_view, i)" \
+    "transpiler_hosted_method_view_source_ast(&method_view, i)" \
+    "emit_role_method_impl(name, method_meta, mir_method, method, ctx)"; do
+    require_term "src/codegen/transpiler_domain_nominal_emit.c" "$term"
 done
 for term in \
-    "method->has_routine" \
-    "transpiler_is_host_decl_type(header->ast_type)" \
+    "const MIRDeclMethod *method_meta" \
+    "const MIRRoutine *mir_method" \
+    "transpiler_mir_decl_method_name(method_meta)" \
+    "transpiler_mir_routine_source_ast_of_type(" \
+    "MIR-only C path missing declaration metadata for role method"; do
+    require_term "src/codegen/transpiler_domain_role_methods_emit.c" "$term"
+done
+for term in \
+    "mir_decl_method_routine_index(method, &routine_index)" \
+    "mir_decl_header_ast_type_or(" \
     "pgy_host_method_compat_view_from_decl(" \
     "transpiler_active_routine_inventory(ctx, &inventory)" \
-    "transpiler_routine_inventory_get(&inventory, method->routine_index)"; do
+    "transpiler_routine_inventory_get(&inventory, routine_index)"; do
     require_term "src/codegen/transpiler_decl_method_view.c" "$term"
 done
+if grep -RInE 'header->(ast_type|method_metadata|method_metadata_count)|decl_header->ast_type' \
+        "$ROOT_DIR/src/codegen/transpiler_decl_host_lookup.c" \
+        "$ROOT_DIR/src/codegen/transpiler_decl_lookup.c" \
+        "$ROOT_DIR/src/codegen/transpiler_decl_method_view.c" \
+        "$ROOT_DIR/src/codegen/llvm_inventory_decl_lookup.c" \
+        "$ROOT_DIR/src/codegen/llvm_inventory_host_methods.c"; then
+    fail "backend declaration header views must consume compiler MIRDeclHeader accessors"
+fi
+if grep -RInE 'method->(name|params|param_count|return_type|is_action_like|has_routine|routine_index)' \
+        "$ROOT_DIR/src/codegen/transpiler_decl_method_view.c"; then
+    fail "C hosted method metadata view must consume compiler MIRDeclMethod accessors"
+fi
 for rel in \
     "src/codegen/llvm_inventory_host_methods.c" \
     "src/codegen/transpiler_decl_method_view.c"; do
@@ -1197,7 +1592,7 @@ for term in \
     require_term "src/codegen/host_decl_compat.c" "$term"
 done
 require_term "src/codegen/llvm_expr_constructor_calls.c" \
-    "pgy_host_shared_fields_compat_view_from_decl(host_decl)"
+    "llvm_hosted_shared_field_view_from_decl(ctx, host_name, host_decl)"
 require_term "src/codegen/llvm_domain_lookup.c" \
     "llvm_find_domain_constructor_decl"
 require_term "src/codegen/llvm_domain_lookup.c" \
@@ -1349,17 +1744,23 @@ for term in \
 done
 for term in \
     "emit_hosted_method_forward_decl_from_metadata" \
+    "method_meta == NULL" \
     "transpiler_mir_decl_method_param_count(method_meta)" \
     "transpiler_mir_decl_method_return_type(method_meta)" \
     "transpiler_mir_decl_method_param(method_meta, j)"; do
     require_term "src/codegen/transpiler_func_forward_metadata.c" "$term"
 done
+if grep -Fq "host_name == NULL || method == NULL || buf == NULL || ctx == NULL" \
+        "$ROOT_DIR/src/codegen/transpiler_func_forward_metadata.c"; then
+    fail "C hosted method forward declarations must not require source AST when MIRDeclMethod metadata exists"
+fi
 for rel in \
     "src/codegen/transpiler_class_decl_emit.c" \
     "src/codegen/transpiler_enum_decl_emit.c"; do
     require_term "$rel" "transpiler_hosted_method_view_from_decl(ctx"
     require_term "$rel" "transpiler_hosted_method_view_source_ast(&method_view, i)"
     require_term "$rel" "transpiler_hosted_method_view_routine(ctx, &method_view, i)"
+    require_term "$rel" "method_meta == NULL"
     require_term "$rel" "emit_hosted_method_forward_decl_from_metadata"
 done
 require_term "src/codegen/transpiler_generic_class_specialization_emit.c" \
@@ -1369,6 +1770,10 @@ require_term "src/codegen/transpiler_generic_class_specialization_emit.c" \
 require_term "src/codegen/transpiler_generic_class_specialization_emit.c" \
     "transpiler_hosted_method_view_routine(ctx,"
 require_term "src/codegen/transpiler_generic_class_specialization_emit.c" \
+    "transpiler_mir_routine_source_ast_of_type("
+require_term "src/codegen/transpiler_generic_class_specialization_emit.c" \
+    "method_meta == NULL"
+require_term "src/codegen/transpiler_generic_class_specialization_emit.c" \
     "emit_hosted_method_forward_decl_from_metadata"
 if grep -Eq 'class_decl->data\.class_decl\.methods\[[^]]+\]' \
     "$ROOT_DIR/src/codegen/transpiler_generic_class_specialization_emit.c"; then
@@ -1376,8 +1781,10 @@ if grep -Eq 'class_decl->data\.class_decl\.methods\[[^]]+\]' \
 fi
 for term in \
     "TranspilerHostedMethodView" \
+    "TranspilerHostedFieldView" \
     "ast_compat_methods" \
     "ast_compat_count" \
+    "ast_compat_fields" \
     "transpiler_hosted_method_view(" \
     "transpiler_hosted_method_view_metadata(" \
     "transpiler_mir_decl_method_name(" \
@@ -1386,8 +1793,22 @@ for term in \
     "transpiler_hosted_method_view_routine(" \
     "transpiler_hosted_method_view_from_decl(" \
     "transpiler_hosted_method_view_source_ast(" \
-    "transpiler_hosted_method_view_missing_mir_metadata("; do
+    "transpiler_hosted_method_view_missing_mir_metadata(" \
+    "transpiler_hosted_class_field_view_from_decl(" \
+    "transpiler_hosted_field_view_metadata(" \
+    "transpiler_hosted_field_view_name(" \
+    "transpiler_hosted_field_view_type(" \
+    "transpiler_hosted_field_view_missing_mir_metadata("; do
     require_term "src/codegen/transpiler_decl_lookup.h" "$term"
+done
+for term in \
+    "transpiler_hosted_class_field_view_from_decl" \
+    "pgy_host_class_fields_compat_view_from_decl(decl)" \
+    "view.count = mir_decl_header_field_count(header)" \
+    "return mir_decl_header_field(view->decl_header, index)" \
+    "mir_decl_field_name(field)" \
+    "mir_decl_field_type(field)"; do
+    require_term "src/codegen/transpiler_decl_lookup.c" "$term"
 done
 require_term "src/codegen/transpiler_context.h" \
     "transpiler_set_mir_inventory_missing"
@@ -1417,6 +1838,17 @@ for term in \
     "if (view->requires_mir_metadata)"; do
     require_term "src/codegen/transpiler_decl_method_view.c" "$term"
 done
+for term in \
+    "view.decl_header = header" \
+    "view.count = mir_decl_header_method_count(header)" \
+    "return mir_decl_header_method(view->decl_header, index)"; do
+    require_term "src/codegen/transpiler_decl_method_view.c" "$term"
+done
+if grep -RInE 'const MIRDeclMethod \*metadata|view[.]metadata|view->metadata' \
+        "$ROOT_DIR/src/codegen/transpiler_decl_lookup.h" \
+        "$ROOT_DIR/src/codegen/transpiler_decl_method_view.c"; then
+    fail "C hosted method view must keep MIRDeclMethod arrays behind compiler accessors"
+fi
 if grep -Fq "transpiler_hosted_method_view(" \
         "$ROOT_DIR/src/codegen/transpiler_decl_method_view.c" \
     && grep -Fq "NULL, 0)" \
@@ -1449,17 +1881,27 @@ require_term "src/codegen/transpiler_zone_methods_emit.c" \
     "emit_hosted_method_forward_decl_from_metadata"
 require_term "src/codegen/transpiler_domain_nominal_emit.c" \
     "MIR-only C path missing method declaration metadata for party"
+require_term "src/codegen/transpiler_domain_nominal_emit.c" \
+    "method_meta == NULL"
 require_term "src/codegen/transpiler_roster_decl_emit.c" \
     "MIR-only C path missing method declaration metadata for roster"
+require_term "src/codegen/transpiler_roster_decl_emit.c" \
+    "method_meta == NULL"
 for term in \
     "MIR-only C path missing method declaration metadata for relation" \
     "MIR-only C path missing method declaration metadata for effect"; do
     require_term "src/codegen/transpiler_relation_effect_emit.c" "$term"
 done
+require_term "src/codegen/transpiler_relation_effect_emit.c" \
+    "method_meta == NULL"
 require_term "src/codegen/transpiler_zone_decl_emit.c" \
     "MIR-only C path missing method declaration metadata for zone"
+require_term "src/codegen/transpiler_zone_methods_emit.c" \
+    "method_meta == NULL"
 require_term "src/codegen/transpiler_world_select_event_emit.c" \
     "MIR-only C path missing method declaration metadata for world"
+require_term "src/codegen/transpiler_world_select_event_emit.c" \
+    "method_meta == NULL"
 require_term "src/codegen/transpiler_generic_class_specialization_emit.c" \
     "transpiler_hosted_method_view_missing_mir_metadata(&method_view)"
 require_term "src/codegen/transpiler_generic_class_specialization_emit.c" \
@@ -1473,6 +1915,8 @@ require_term "src/codegen/transpiler_hosted_method_body_emit.c" \
     "transpiler_hosted_method_view_metadata(method_view, i)"
 require_term "src/codegen/transpiler_hosted_method_body_emit.c" \
     "transpiler_mir_decl_method_routine(ctx, method_meta)"
+require_term "src/codegen/transpiler_hosted_method_body_emit.c" \
+    "transpiler_mir_routine_source_ast_of_type("
 if grep -Eq 'emit_hosted_methods_from_mir_or_error_local\([^)]*ASTNode \*\*methods|emit_hosted_methods_from_mir_or_error_local\([^)]*size_t method_count' \
     "$ROOT_DIR/src/codegen/transpiler_domain_role_ability_emit.h"; then
     fail "hosted method body emission must accept TranspilerHostedMethodView, not AST method arrays"
@@ -1482,11 +1926,15 @@ require_term "src/codegen/transpiler_class_decl_emit.c" \
 require_term "src/codegen/transpiler_class_decl_emit.c" \
     "transpiler_hosted_method_view_missing_mir_metadata(&method_view)"
 require_term "src/codegen/transpiler_class_decl_emit.c" \
+    "transpiler_mir_routine_source_ast_of_type("
+require_term "src/codegen/transpiler_class_decl_emit.c" \
     "transpiler_set_mir_inventory_missing("
 require_term "src/codegen/transpiler_enum_decl_emit.c" \
     "transpiler_hosted_method_view_from_decl(ctx, ename"
 require_term "src/codegen/transpiler_enum_decl_emit.c" \
     "transpiler_hosted_method_view_missing_mir_metadata(&method_view)"
+require_term "src/codegen/transpiler_enum_decl_emit.c" \
+    "transpiler_mir_routine_source_ast_of_type("
 require_term "src/codegen/transpiler_enum_decl_emit.c" \
     "transpiler_set_mir_inventory_missing("
 require_term "src/codegen/transpiler_hosted_method_body_emit.c" \
@@ -1542,10 +1990,15 @@ if sed -n '1,110p' "$ROOT_DIR/src/codegen/transpiler_hosted_method_body_emit.c" 
     fail "hosted role/domain method emission must use MIRDeclMethod routine metadata, not a secondary method lookup"
 fi
 if grep -RIn "transpiler_find_mir_method" "$ROOT_DIR/src/codegen"; then
-    fail "generic C method lookup helper name must not reappear; remaining role include seam is explicit"
+    fail "generic C method lookup helper name must not reappear"
 fi
-require_term "src/codegen/transpiler_mir_role_lookup.c" \
-    "transpiler_find_role_impl_mir_method"
+if grep -RIn "transpiler_find_role_impl_mir_method" "$ROOT_DIR/src/codegen"; then
+    fail "C role method emission must consume TranspilerHostedMethodView metadata, not owner/name routine lookup"
+fi
+if grep -RInE 'method->name' \
+        "$ROOT_DIR/src/codegen/transpiler_decl_host_lookup.c"; then
+    fail "C role/host method lookup must consume MIRDeclMethod name accessor"
+fi
 c_method_raw_hits="$(
     c_method_files=()
     for path in "$ROOT_DIR"/src/codegen/transpiler*.c \
@@ -1664,11 +2117,6 @@ for term in \
     "mir_record_decl_header(mir, hir->roles[i])"; do
     require_term "src/compiler/mir.c" "$term"
 done
-if grep -Fq "routine->ast == method_decl" \
-    "$ROOT_DIR/src/codegen/transpiler_mir_role_lookup.c"; then
-    fail "C MIR method lookup must use MIRDeclMethod routine metadata, not AST identity fallback"
-fi
-
 for term in \
     "llvm_mir_decl_method_param_count(method_meta)" \
     "llvm_mir_decl_method_return_type(method_meta)" \
@@ -1677,6 +2125,8 @@ for term in \
     "llvm_hosted_method_view_from_decl(ctx, cls_name, stmt)" \
     "llvm_hosted_method_view_missing_mir_metadata(&enum_method_view)" \
     "llvm_hosted_method_view_missing_mir_metadata(&class_method_view)" \
+    "llvm_hosted_method_view_metadata(&enum_method_view, j)" \
+    "llvm_hosted_method_view_metadata(&class_method_view, j)" \
     "llvm_mir_decl_method_source_ast(method_meta)" \
     "llvm_set_mir_inventory_missing(ctx" \
     "MIR-only LLVM path missing enum method declaration metadata" \
@@ -1694,6 +2144,11 @@ fi
 if grep -Eq 'stmt->data\.(enum_decl|class_decl)\.methods\[[^]]+\]' \
     "$ROOT_DIR/src/codegen/llvm_register.c"; then
     fail "LLVM nominal method registration must not index AST method arrays"
+fi
+if grep -Eq 'enum_method_metadata|class_method_metadata|[.]metadata' \
+    "$ROOT_DIR/src/codegen/llvm_register.c" \
+    "$ROOT_DIR/src/codegen/llvm_domain_method_emit.c"; then
+    fail "LLVM method consumers must use LLVMHostedMethodView accessors, not view metadata arrays"
 fi
 
 domain_method_forward_body="$(

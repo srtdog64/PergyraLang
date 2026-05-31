@@ -1,0 +1,24 @@
+func TrapezoidArea(heights: Array<Int>) -> Int {
+    let n: Int = ArrayLength(heights);
+    if n < 2 { return 0; }
+    let area: Int = 0;
+    let i: Int = 0;
+    while i < n - 1 {
+        let a: Int = heights[i];
+        let b: Int = heights[i + 1];
+        area = area + (a + b);
+        i = i + 1;
+    }
+    return area;
+}
+
+func Main() -> Void {
+    let xs: Array<Int> = [3, 5, 8, 4, 6, 2];
+    let single: Array<Int> = [10];
+    let pair: Array<Int> = [4, 4];
+    let empty: Array<Int> = [];
+    Log(TrapezoidArea(xs));
+    Log(TrapezoidArea(single));
+    Log(TrapezoidArea(pair));
+    Log(TrapezoidArea(empty));
+}

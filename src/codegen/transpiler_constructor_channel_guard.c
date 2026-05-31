@@ -2,12 +2,19 @@
 
 #include <stdlib.h>
 
+#include "../compiler/mir_decl_headers.h"
 #include "../semantic/diag_codes.h"
-#include "host_decl_compat.h"
 #include "parser/ast_api.h"
 #include "transpiler_context.h"
+#include "transpiler_decl_lookup.h"
+#include "transpiler_inventory_view.h"
 #include "transpiler_type_mapping.h"
 #include "transpiler_type_render.h"
+
+static const char kMirSharedFieldMetadataMissing[] =
+    "<mir-shared-field-metadata>";
+static const char kMirClassFieldMetadataMissing[] =
+    "<mir-class-field-metadata>";
 
 bool
 transpiler_constructor_field_is_channel(TranspilerCtx *ctx,
@@ -40,17 +47,28 @@ transpiler_constructor_reject_channel_field(TranspilerCtx *ctx,
 }
 
 static const char *
-transpiler_constructor_find_shared_channel(TranspilerCtx *ctx,
-                                           ASTNode **fields,
-                                           size_t count)
+transpiler_constructor_find_shared_channel(
+    TranspilerCtx *ctx,
+    const TranspilerHostedSharedFieldView *view)
 {
-    for (size_t i = 0; fields != NULL && i < count; i++) {
-        ASTNode *field = fields[i];
-        if (field != NULL
-            && transpiler_constructor_field_is_channel(
-                ctx, ast_party_shared_type(field))) {
-            return ast_party_shared_name(field);
-        }
+    for (size_t i = 0; view != NULL && i < view->count; i++) {
+        ASTNode *field_type =
+            transpiler_hosted_shared_field_view_type(view, i);
+        if (transpiler_constructor_field_is_channel(ctx, field_type))
+            return transpiler_hosted_shared_field_view_name(view, i);
+    }
+    return NULL;
+}
+
+static const char *
+transpiler_constructor_find_class_channel(
+    TranspilerCtx *ctx,
+    const TranspilerHostedFieldView *view)
+{
+    for (size_t i = 0; view != NULL && i < view->count; i++) {
+        ASTNode *field_type = transpiler_hosted_field_view_type(view, i);
+        if (transpiler_constructor_field_is_channel(ctx, field_type))
+            return transpiler_hosted_field_view_name(view, i);
     }
     return NULL;
 }
@@ -71,37 +89,102 @@ transpiler_constructor_find_slot_channel(TranspilerCtx *ctx,
     return NULL;
 }
 
-const char *
-transpiler_constructor_find_channel_field(TranspilerCtx *ctx, ASTNode *decl)
+static const char *
+transpiler_constructor_fail_shared_metadata_missing(TranspilerCtx *ctx,
+                                                    const char *decl_name)
 {
-    PgyHostSharedFieldsCompatView shared;
-    size_t count = 0;
-    ASTNode **nodes = NULL;
+    transpiler_set_mir_inventory_missing(ctx,
+        "MIR-only C path missing shared-field channel metadata for constructor '%s'",
+        decl_name != NULL ? decl_name : "(anonymous-domain)");
+    return kMirSharedFieldMetadataMissing;
+}
+
+static const char *
+transpiler_constructor_fail_class_metadata_missing(TranspilerCtx *ctx,
+                                                  const char *decl_name)
+{
+    transpiler_set_mir_inventory_missing(ctx,
+        "MIR-only C path missing class-field channel metadata for constructor '%s'",
+        decl_name != NULL ? decl_name : "(anonymous-class)");
+    return kMirClassFieldMetadataMissing;
+}
+
+static bool
+transpiler_constructor_mir_field_is_channel(TranspilerCtx *ctx,
+                                            const MIRDeclField *field)
+{
+    ASTNode *type_node;
+    const char *type_name;
+
+    if (field == NULL)
+        return false;
+
+    type_node = transpiler_mir_decl_field_type(field);
+    if (transpiler_constructor_field_is_channel(ctx, type_node))
+        return true;
+
+    type_name = transpiler_mir_decl_field_type_name(field);
+    return transpiler_type_name_is_channel(type_name);
+}
+
+static const char *
+transpiler_constructor_find_mir_channel_field(TranspilerCtx *ctx,
+                                              ASTNode *decl)
+{
+    const MIRDeclHeader *header;
+    const char *host_name;
 
     if (ctx == NULL || decl == NULL)
         return NULL;
 
-    if (decl->type == AST_CLASS_DECL) {
-        PgyHostClassFieldsCompatView class_fields =
-            pgy_host_class_fields_compat_view_from_decl(decl);
-        for (size_t i = 0;
-             class_fields.fields != NULL && i < class_fields.count; i++) {
-            ClassField *field = class_fields.fields[i];
-            if (field != NULL
-                && transpiler_constructor_field_is_channel(
-                    ctx, field->type)) {
-                return field->name;
-            }
-        }
+    host_name = transpiler_decl_name_local(decl);
+    header = transpiler_active_decl_header(ctx, host_name);
+    for (size_t i = 0; header != NULL
+         && i < mir_decl_header_field_count(header); i++) {
+        const MIRDeclField *field = mir_decl_header_field(header, i);
+        if (transpiler_constructor_mir_field_is_channel(ctx, field))
+            return mir_decl_field_name(field);
+    }
+    return NULL;
+}
+
+const char *
+transpiler_constructor_find_channel_field(TranspilerCtx *ctx, ASTNode *decl)
+{
+    size_t count = 0;
+    ASTNode **nodes = NULL;
+    const char *decl_name;
+    const char *mir_channel_field;
+
+    if (ctx == NULL || decl == NULL)
         return NULL;
+
+    decl_name = transpiler_decl_name_local(decl);
+
+    mir_channel_field = transpiler_constructor_find_mir_channel_field(
+        ctx, decl);
+    if (mir_channel_field != NULL)
+        return mir_channel_field;
+
+    if (decl->type == AST_CLASS_DECL) {
+        TranspilerHostedFieldView fields =
+            transpiler_hosted_class_field_view_from_decl(ctx, decl_name, decl);
+        if (transpiler_hosted_field_view_missing_mir_metadata(&fields))
+            return transpiler_constructor_fail_class_metadata_missing(
+                ctx, decl_name);
+        return transpiler_constructor_find_class_channel(ctx, &fields);
     }
 
     switch (decl->type) {
     case AST_PARTY_DECL:
-    case AST_ROSTER_DECL:
-        shared = pgy_host_shared_fields_compat_view_from_decl(decl);
-        return transpiler_constructor_find_shared_channel(
-            ctx, shared.fields, shared.count);
+    case AST_ROSTER_DECL: {
+        TranspilerHostedSharedFieldView shared =
+            transpiler_hosted_shared_field_view_from_decl(ctx, decl_name, decl);
+        if (transpiler_hosted_shared_field_view_missing_mir_metadata(&shared))
+            return transpiler_constructor_fail_shared_metadata_missing(
+                ctx, decl_name);
+        return transpiler_constructor_find_shared_channel(ctx, &shared);
+    }
     case AST_RELATION_DECL:
         nodes = ast_relation_slots(decl, &count);
         {
@@ -110,9 +193,17 @@ transpiler_constructor_find_channel_field(TranspilerCtx *ctx, ASTNode *decl)
             if (slot != NULL)
                 return slot;
         }
-        shared = pgy_host_shared_fields_compat_view_from_decl(decl);
-        return transpiler_constructor_find_shared_channel(
-            ctx, shared.fields, shared.count);
+        {
+            TranspilerHostedSharedFieldView shared =
+                transpiler_hosted_shared_field_view_from_decl(
+                    ctx, decl_name, decl);
+            if (transpiler_hosted_shared_field_view_missing_mir_metadata(
+                    &shared)) {
+                return transpiler_constructor_fail_shared_metadata_missing(
+                    ctx, decl_name);
+            }
+            return transpiler_constructor_find_shared_channel(ctx, &shared);
+        }
     case AST_EFFECT_DECL:
         nodes = ast_effect_slots(decl, &count);
         {
@@ -121,9 +212,17 @@ transpiler_constructor_find_channel_field(TranspilerCtx *ctx, ASTNode *decl)
             if (slot != NULL)
                 return slot;
         }
-        shared = pgy_host_shared_fields_compat_view_from_decl(decl);
-        return transpiler_constructor_find_shared_channel(
-            ctx, shared.fields, shared.count);
+        {
+            TranspilerHostedSharedFieldView shared =
+                transpiler_hosted_shared_field_view_from_decl(
+                    ctx, decl_name, decl);
+            if (transpiler_hosted_shared_field_view_missing_mir_metadata(
+                    &shared)) {
+                return transpiler_constructor_fail_shared_metadata_missing(
+                    ctx, decl_name);
+            }
+            return transpiler_constructor_find_shared_channel(ctx, &shared);
+        }
     case AST_ZONE_DECL:
         nodes = ast_zone_slots(decl, &count);
         {
@@ -132,13 +231,25 @@ transpiler_constructor_find_channel_field(TranspilerCtx *ctx, ASTNode *decl)
             if (slot != NULL)
                 return slot;
         }
-        shared = pgy_host_shared_fields_compat_view_from_decl(decl);
-        return transpiler_constructor_find_shared_channel(
-            ctx, shared.fields, shared.count);
-    case AST_WORLD_DECL:
-        shared = pgy_host_shared_fields_compat_view_from_decl(decl);
-        return transpiler_constructor_find_shared_channel(
-            ctx, shared.fields, shared.count);
+        {
+            TranspilerHostedSharedFieldView shared =
+                transpiler_hosted_shared_field_view_from_decl(
+                    ctx, decl_name, decl);
+            if (transpiler_hosted_shared_field_view_missing_mir_metadata(
+                    &shared)) {
+                return transpiler_constructor_fail_shared_metadata_missing(
+                    ctx, decl_name);
+            }
+            return transpiler_constructor_find_shared_channel(ctx, &shared);
+        }
+    case AST_WORLD_DECL: {
+        TranspilerHostedSharedFieldView shared =
+            transpiler_hosted_shared_field_view_from_decl(ctx, decl_name, decl);
+        if (transpiler_hosted_shared_field_view_missing_mir_metadata(&shared))
+            return transpiler_constructor_fail_shared_metadata_missing(
+                ctx, decl_name);
+        return transpiler_constructor_find_shared_channel(ctx, &shared);
+    }
     default:
         return NULL;
     }

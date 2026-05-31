@@ -1,4 +1,5 @@
 #include "mir_fact_validate.h"
+#include "mir_decl_headers.h"
 
 #include <stdarg.h>
 #include <stdio.h>
@@ -65,10 +66,52 @@ mir_decl_ast_domain_method_count(ASTNode *ast)
     return method_count;
 }
 
+static size_t
+mir_decl_ast_field_count(ASTNode *ast)
+{
+    size_t count = 0;
+    size_t extra = 0;
+
+    if (ast == NULL)
+        return 0;
+    switch (ast->type) {
+    case AST_CLASS_DECL:
+        (void) ast_class_fields(ast, &count);
+        return count;
+    case AST_PARTY_DECL:
+        return ast_party_role_count(ast) + ast_party_shared_count(ast);
+    case AST_ROSTER_DECL:
+        return ast_roster_party_count(ast) + ast_roster_shared_count(ast);
+    case AST_WORLD_DECL:
+        (void) ast_world_rosters(ast, &count);
+        (void) ast_world_zones(ast, &extra);
+        count += extra;
+        (void) ast_world_shared_fields(ast, &extra);
+        return count + extra;
+    case AST_RELATION_DECL:
+        (void) ast_relation_slots(ast, &count);
+        (void) ast_relation_shared_fields(ast, &extra);
+        return count + extra;
+    case AST_EFFECT_DECL:
+        (void) ast_effect_slots(ast, &count);
+        (void) ast_effect_shared_fields(ast, &extra);
+        return count + extra;
+    case AST_ZONE_DECL:
+        (void) ast_zone_slots(ast, &count);
+        (void) ast_zone_layer_slots(ast, &extra);
+        count += extra;
+        (void) ast_zone_shared_fields(ast, &extra);
+        return count + extra;
+    default:
+        return 0;
+    }
+}
+
 static bool
 mir_decl_header_ast_shape(const MIRDeclHeader *header,
                           const char **name_out,
                           size_t *method_count_out,
+                          size_t *field_count_out,
                           bool *uses_pointer_self_out)
 {
     ASTNode *ast;
@@ -77,18 +120,22 @@ mir_decl_header_ast_shape(const MIRDeclHeader *header,
         *name_out = NULL;
     if (method_count_out != NULL)
         *method_count_out = 0;
+    if (field_count_out != NULL)
+        *field_count_out = 0;
     if (uses_pointer_self_out != NULL)
         *uses_pointer_self_out = false;
-    if (header == NULL || header->source_ast == NULL)
+    ast = mir_decl_header_source_ast(header);
+    if (header == NULL || ast == NULL)
         return false;
 
-    ast = header->source_ast;
     switch (ast->type) {
     case AST_CLASS_DECL:
         if (name_out != NULL)
             *name_out = ast_class_name(ast);
         if (method_count_out != NULL)
             (void) ast_class_methods(ast, method_count_out);
+        if (field_count_out != NULL)
+            *field_count_out = mir_decl_ast_field_count(ast);
         if (uses_pointer_self_out != NULL)
             *uses_pointer_self_out =
                 ast_class_nominal_kind(ast) == NOMINAL_DECL_SUBJECT
@@ -99,12 +146,16 @@ mir_decl_header_ast_shape(const MIRDeclHeader *header,
             *name_out = ast_enum_name(ast);
         if (method_count_out != NULL)
             (void) ast_enum_methods(ast, method_count_out);
+        if (field_count_out != NULL)
+            *field_count_out = mir_decl_ast_field_count(ast);
         return true;
     case AST_PARTY_DECL:
         if (name_out != NULL)
             *name_out = ast_party_name(ast);
         if (method_count_out != NULL)
             *method_count_out = ast_party_method_count(ast);
+        if (field_count_out != NULL)
+            *field_count_out = mir_decl_ast_field_count(ast);
         if (uses_pointer_self_out != NULL)
             *uses_pointer_self_out = true;
         return true;
@@ -115,6 +166,8 @@ mir_decl_header_ast_shape(const MIRDeclHeader *header,
             && !ast_role_impl_method_total_count(ast, method_count_out)) {
             return false;
         }
+        if (field_count_out != NULL)
+            *field_count_out = mir_decl_ast_field_count(ast);
         if (uses_pointer_self_out != NULL)
             *uses_pointer_self_out = true;
         return true;
@@ -123,6 +176,8 @@ mir_decl_header_ast_shape(const MIRDeclHeader *header,
             *name_out = ast_roster_name(ast);
         if (method_count_out != NULL)
             *method_count_out = ast_roster_method_count(ast);
+        if (field_count_out != NULL)
+            *field_count_out = mir_decl_ast_field_count(ast);
         if (uses_pointer_self_out != NULL)
             *uses_pointer_self_out = true;
         return true;
@@ -131,6 +186,8 @@ mir_decl_header_ast_shape(const MIRDeclHeader *header,
             *name_out = ast_world_name(ast);
         if (method_count_out != NULL)
             *method_count_out = mir_decl_ast_domain_method_count(ast);
+        if (field_count_out != NULL)
+            *field_count_out = mir_decl_ast_field_count(ast);
         if (uses_pointer_self_out != NULL)
             *uses_pointer_self_out = true;
         return true;
@@ -139,6 +196,8 @@ mir_decl_header_ast_shape(const MIRDeclHeader *header,
             *name_out = ast_relation_name(ast);
         if (method_count_out != NULL)
             *method_count_out = mir_decl_ast_domain_method_count(ast);
+        if (field_count_out != NULL)
+            *field_count_out = mir_decl_ast_field_count(ast);
         if (uses_pointer_self_out != NULL)
             *uses_pointer_self_out = true;
         return true;
@@ -147,6 +206,8 @@ mir_decl_header_ast_shape(const MIRDeclHeader *header,
             *name_out = ast_effect_name(ast);
         if (method_count_out != NULL)
             *method_count_out = mir_decl_ast_domain_method_count(ast);
+        if (field_count_out != NULL)
+            *field_count_out = mir_decl_ast_field_count(ast);
         if (uses_pointer_self_out != NULL)
             *uses_pointer_self_out = true;
         return true;
@@ -155,6 +216,8 @@ mir_decl_header_ast_shape(const MIRDeclHeader *header,
             *name_out = ast_zone_name(ast);
         if (method_count_out != NULL)
             *method_count_out = mir_decl_ast_domain_method_count(ast);
+        if (field_count_out != NULL)
+            *field_count_out = mir_decl_ast_field_count(ast);
         if (uses_pointer_self_out != NULL)
             *uses_pointer_self_out = true;
         return true;
@@ -170,11 +233,14 @@ mir_validate_decl_header_ast_compat(const MIRDeclHeader *header,
 {
     const char *ast_name = NULL;
     size_t ast_method_count = 0;
+    size_t ast_field_count = 0;
     bool ast_uses_pointer_self = false;
 
     if (header == NULL)
         return false;
-    if (header->source_ast == NULL) {
+    ASTNode *source_ast = mir_decl_header_source_ast(header);
+
+    if (source_ast == NULL) {
         if (error_message != NULL) {
             *error_message = mir_strdup_fmt(
                 "MIR declaration header[%zu] '%s' has no AST compatibility payload",
@@ -183,7 +249,7 @@ mir_validate_decl_header_ast_compat(const MIRDeclHeader *header,
         }
         return false;
     }
-    if (header->ast_type != header->source_ast->type) {
+    if (header->ast_type != source_ast->type) {
         if (error_message != NULL) {
             *error_message = mir_strdup_fmt(
                 "MIR declaration header[%zu] '%s' AST type metadata drift",
@@ -193,7 +259,8 @@ mir_validate_decl_header_ast_compat(const MIRDeclHeader *header,
         return false;
     }
     if (!mir_decl_header_ast_shape(
-            header, &ast_name, &ast_method_count, &ast_uses_pointer_self)) {
+            header, &ast_name, &ast_method_count, &ast_field_count,
+            &ast_uses_pointer_self)) {
         if (error_message != NULL) {
             *error_message = mir_strdup_fmt(
                 "MIR declaration header[%zu] '%s' has unsupported declaration AST shape",
@@ -216,6 +283,15 @@ mir_validate_decl_header_ast_compat(const MIRDeclHeader *header,
         if (error_message != NULL) {
             *error_message = mir_strdup_fmt(
                 "MIR declaration header[%zu] '%s' AST method-count compatibility drift",
+                header_index,
+                header->name != NULL ? header->name : "(anonymous)");
+        }
+        return false;
+    }
+    if (header->field_count != ast_field_count) {
+        if (error_message != NULL) {
+            *error_message = mir_strdup_fmt(
+                "MIR declaration header[%zu] '%s' AST field-count compatibility drift",
                 header_index,
                 header->name != NULL ? header->name : "(anonymous)");
         }
@@ -280,11 +356,67 @@ mir_validate_decl_method_metadata(const MIRProgram *mir,
         return false;
     }
 
+    if (header->field_metadata_count > 0 && header->field_metadata == NULL) {
+        if (error_message != NULL) {
+            *error_message = mir_strdup_fmt(
+                "MIR declaration header[%zu] '%s' has %zu field metadata row(s) but no storage",
+                header_index,
+                header->name != NULL ? header->name : "(anonymous)",
+                header->field_metadata_count);
+        }
+        return false;
+    }
+
+    if (header->field_count > 0 && header->field_metadata == NULL) {
+        if (error_message != NULL) {
+            *error_message = mir_strdup_fmt(
+                "MIR declaration header[%zu] '%s' has %zu hosted field(s) without MIRDeclField metadata",
+                header_index,
+                header->name != NULL ? header->name : "(anonymous)",
+                header->field_count);
+        }
+        return false;
+    }
+
+    if (header->field_metadata_count != header->field_count) {
+        if (error_message != NULL) {
+            *error_message = mir_strdup_fmt(
+                "MIR declaration header[%zu] '%s' field metadata count %zu does not match AST compatibility count %zu",
+                header_index,
+                header->name != NULL ? header->name : "(anonymous)",
+                header->field_metadata_count,
+                header->field_count);
+        }
+        return false;
+    }
+
+    for (size_t i = 0; i < header->field_metadata_count; i++) {
+        const MIRDeclField *field = &header->field_metadata[i];
+        if (field->owner_name == NULL
+            || header->name == NULL
+            || strcmp(field->owner_name, header->name) != 0) {
+            if (error_message != NULL) {
+                *error_message = mir_strdup_fmt(
+                    "MIR declaration header[%zu] field[%zu] has owner metadata drift",
+                    header_index, i);
+            }
+            return false;
+        }
+        if (field->kind == MIR_DECL_FIELD_UNKNOWN || field->name == NULL) {
+            if (error_message != NULL) {
+                *error_message = mir_strdup_fmt(
+                    "MIR declaration header[%zu] field[%zu] has incomplete field metadata",
+                    header_index, i);
+            }
+            return false;
+        }
+    }
+
     mir_routine_inventory_from_program(mir, &inventory);
 
     for (size_t i = 0; i < header->method_metadata_count; i++) {
         const MIRDeclMethod *method = &header->method_metadata[i];
-        ASTNode *ast = method->source_ast;
+        ASTNode *ast = mir_decl_method_source_ast(method);
 
         if (method->owner_name == NULL
             || header->name == NULL

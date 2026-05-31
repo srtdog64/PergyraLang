@@ -1,0 +1,37 @@
+func ShiftLetter(c: String, shift: Int) -> String {
+    if c == "a" { return ShiftHelper(0, shift); }
+    if c == "b" { return ShiftHelper(1, shift); }
+    if c == "c" { return ShiftHelper(2, shift); }
+    if c == "d" { return ShiftHelper(3, shift); }
+    if c == "e" { return ShiftHelper(4, shift); }
+    if c == "f" { return ShiftHelper(5, shift); }
+    return c;
+}
+
+func ShiftHelper(idx: Int, shift: Int) -> String {
+    let target: Int = (idx + shift) % 6;
+    if target == 0 { return "a"; }
+    if target == 1 { return "b"; }
+    if target == 2 { return "c"; }
+    if target == 3 { return "d"; }
+    if target == 4 { return "e"; }
+    return "f";
+}
+
+func Caesar(s: String, shift: Int) -> String {
+    let result: String = "";
+    let i: Int = 0;
+    while i < StringLength(s) {
+        result = Concat(result, ShiftLetter(Substring(s, i, 1), shift));
+        i = i + 1;
+    }
+    return result;
+}
+
+func Main() -> Void {
+    Log(Caesar("abcdef", 1));
+    Log(Caesar("abcdef", 5));
+    Log(Caesar("face", 2));
+    Log(Caesar("", 3));
+    Log(Caesar("aaa", 4));
+}

@@ -1,0 +1,10 @@
+func Main() -> Void {
+    Log(ToString(Abs(-3.75)));
+    Log(ToString(Abs(2.5)));
+    Log(ToString(Min(1.5, 2.5)));
+    Log(ToString(Max(1.5, 2.5)));
+    Log(ToString(Min(-1.0, -5.0)));
+    Log(ToString(Clamp(5.75, 1.0, 3.0)));
+    Log(ToString(Clamp(0.5, 1.0, 3.0)));
+    Log(ToString(Clamp(2.0, 1.0, 3.0)));
+}

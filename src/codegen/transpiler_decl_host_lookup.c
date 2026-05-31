@@ -8,6 +8,7 @@
 #include <stdio.h>
 #include <string.h>
 
+#include "../compiler/mir_decl_headers.h"
 #include "host_decl_compat.h"
 #include "transpiler_decl_lookup.h"
 
@@ -16,7 +17,8 @@ transpiler_decl_header_is_nominal_host(const MIRDeclHeader *header)
 {
     if (header == NULL)
         return false;
-    return transpiler_is_host_decl_type(header->ast_type);
+    return transpiler_is_host_decl_type(
+        mir_decl_header_ast_type_or(header, AST_PROGRAM));
 }
 
 static ASTNode *
@@ -26,10 +28,11 @@ transpiler_find_method_source_ast_in_mir_header(const MIRDeclHeader *header,
     if (header == NULL || method_name == NULL)
         return NULL;
 
-    for (size_t i = 0; i < header->method_metadata_count; i++) {
-        MIRDeclMethod *method = &header->method_metadata[i];
-        if (method->name != NULL && strcmp(method->name, method_name) == 0)
-            return method->source_ast;
+    for (size_t i = 0; i < mir_decl_header_method_count(header); i++) {
+        const MIRDeclMethod *method = mir_decl_header_method(header, i);
+        const char *name = transpiler_mir_decl_method_name(method);
+        if (name != NULL && strcmp(name, method_name) == 0)
+            return mir_decl_method_source_ast(method);
     }
 
     return NULL;

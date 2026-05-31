@@ -1,0 +1,26 @@
+enum Event { Begin(Int), Step(Int, Int), End(Int) }
+
+func IsTerminal(e: Event) -> Bool {
+    match e {
+        case Begin(_): return false;
+        case Step(a, b): return false;
+        case End(_): return true;
+    }
+}
+
+func CountSig(e: Event) -> Int {
+    match e {
+        case Begin(n): return n;
+        case Step(x, _): return x;
+        case End(_): return -1;
+    }
+}
+
+func Main() -> Void {
+    Log(IsTerminal(Begin(5)));
+    Log(IsTerminal(Step(1, 2)));
+    Log(IsTerminal(End(7)));
+    Log(CountSig(Begin(10)));
+    Log(CountSig(Step(3, 4)));
+    Log(CountSig(End(8)));
+}

@@ -7,12 +7,12 @@
 
 #include <string.h>
 
-#include "host_decl_compat.h"
-#include "transpiler_context.h"
-#include "transpiler_decl_lookup.h"
-#include "transpiler_projection.h"
-#include "parser/ast_api.h"
 #include "../common/string_compat.h"
+#include "parser/ast_api.h"
+#include "transpiler_decl_lookup.h"
+#include "transpiler_inventory_view.h"
+#include "transpiler_context.h"
+#include "transpiler_projection.h"
 
 ASTNode *
 transpiler_find_zone_domain_slot(ASTNode *zone_decl, const char *slot_name)
@@ -105,6 +105,8 @@ bool
 transpiler_current_world_has_field(TranspilerCtx *ctx, const char *field_name)
 {
     ASTNode *decl;
+    const char *decl_name;
+    TranspilerHostedSharedFieldView shared_view;
 
     if (ctx == NULL || field_name == NULL)
         return false;
@@ -135,8 +137,22 @@ transpiler_current_world_has_field(TranspilerCtx *ctx, const char *field_name)
             return true;
         }
     }
-    if (pgy_host_shared_field_compat_find(decl, field_name) != NULL)
-        return true;
+    decl_name = transpiler_decl_name_local(decl);
+    shared_view =
+        transpiler_hosted_shared_field_view_from_decl(ctx, decl_name, decl);
+    if (transpiler_hosted_shared_field_view_missing_mir_metadata(
+            &shared_view)) {
+        transpiler_set_mir_inventory_missing(ctx,
+            "MIR-only C path missing world shared-field metadata for '%s'",
+            decl_name != NULL ? decl_name : "(anonymous-world)");
+        return false;
+    }
+    for (size_t i = 0; i < shared_view.count; i++) {
+        const char *shared_name =
+            transpiler_hosted_shared_field_view_name(&shared_view, i);
+        if (shared_name != NULL && strcmp(shared_name, field_name) == 0)
+            return true;
+    }
 
     return false;
 }
@@ -236,31 +252,76 @@ transpiler_resolve_world_zone_decl(TranspilerCtx *ctx, ASTNode *world_decl,
                                                    zone_type);
 }
 
-static size_t
-projection_source_field_count(ASTNode *decl)
+static bool
+projection_class_field_view(TranspilerCtx *ctx,
+                            ASTNode *decl,
+                            TranspilerHostedFieldView *view)
 {
-    if (decl == NULL)
-        return 0;
-    if (decl->type == AST_CLASS_DECL) {
-        PgyHostClassFieldsCompatView view =
-            pgy_host_class_fields_compat_view_from_decl(decl);
-        return view.count;
+    const char *decl_name;
+
+    if (view == NULL)
+        return false;
+    view->decl_header = NULL;
+    view->ast_compat_fields = NULL;
+    view->ast_compat_count = 0;
+    view->count = 0;
+    view->uses_mir_metadata = false;
+    view->requires_mir_metadata = false;
+
+    if (ctx == NULL || decl == NULL || decl->type != AST_CLASS_DECL)
+        return false;
+
+    decl_name = transpiler_decl_name_local(decl);
+    *view = transpiler_hosted_class_field_view_from_decl(ctx, decl_name, decl);
+    if (transpiler_hosted_field_view_missing_mir_metadata(view)) {
+        transpiler_set_mir_inventory_missing(ctx,
+            "MIR-only C path missing projection class-field metadata for '%s'",
+            decl_name != NULL ? decl_name : "(anonymous-class)");
+        return false;
     }
-    return 0;
+    return true;
 }
 
-static ClassField *
-projection_source_field_at(ASTNode *decl, size_t index)
+static size_t
+projection_class_field_count(TranspilerCtx *ctx, ASTNode *decl)
 {
-    if (decl == NULL)
+    TranspilerHostedFieldView view;
+
+    return projection_class_field_view(ctx, decl, &view) ? view.count : 0;
+}
+
+static const char *
+projection_class_field_name(TranspilerCtx *ctx, ASTNode *decl, size_t index)
+{
+    TranspilerHostedFieldView view;
+
+    if (!projection_class_field_view(ctx, decl, &view))
         return NULL;
-    if (decl->type == AST_CLASS_DECL) {
-        PgyHostClassFieldsCompatView view =
-            pgy_host_class_fields_compat_view_from_decl(decl);
-        if (index < view.count && view.fields != NULL)
-            return view.fields[index];
+    return transpiler_hosted_field_view_name(&view, index);
+}
+
+static const char *
+projection_class_field_type_name(TranspilerCtx *ctx, ASTNode *decl,
+                                 size_t index)
+{
+    TranspilerHostedFieldView view;
+    const MIRDeclField *field;
+    ASTNode *type_node;
+
+    if (!projection_class_field_view(ctx, decl, &view))
         return NULL;
+    field = transpiler_hosted_field_view_metadata(&view, index);
+    if (field != NULL) {
+        const char *type_name = transpiler_mir_decl_field_type_name(field);
+        if (type_name != NULL)
+            return type_name;
+        type_node = transpiler_mir_decl_field_type(field);
+    } else {
+        type_node = transpiler_hosted_field_view_type(&view, index);
     }
+
+    if (type_node != NULL && type_node->type == AST_TYPE)
+        return ast_type_name(type_node);
     return NULL;
 }
 
@@ -278,11 +339,12 @@ resolve_projection_source_path_rec(TranspilerCtx *ctx, ASTNode *source_decl,
     if (ctx == NULL || source_decl == NULL || field_name == NULL || depth > 8)
         return 0;
 
-    field_count = projection_source_field_count(source_decl);
+    field_count = projection_class_field_count(ctx, source_decl);
     for (size_t i = 0; i < field_count; i++) {
-        ClassField *field = projection_source_field_at(source_decl, i);
-        if (field != NULL && field->name != NULL
-            && strcmp(field->name, field_name) == 0) {
+        const char *candidate_name =
+            projection_class_field_name(ctx, source_decl, i);
+        if (candidate_name != NULL
+            && strcmp(candidate_name, field_name) == 0) {
             if (path_out != NULL)
                 *path_out = transpiler_scratch_strdup(ctx, field_name);
             return 1;
@@ -290,20 +352,21 @@ resolve_projection_source_path_rec(TranspilerCtx *ctx, ASTNode *source_decl,
     }
 
     for (size_t i = 0; i < field_count; i++) {
-        ClassField *field = projection_source_field_at(source_decl, i);
         ASTNode *vessel_decl;
+        const char *candidate_name;
+        const char *type_name;
         char *nested_path = NULL;
         char *prefixed_path;
         int nested_status;
 
-        if (field == NULL
-            || field->type == NULL || field->type->type != AST_TYPE
-            || ast_type_name(field->type) == NULL) {
+        candidate_name = projection_class_field_name(ctx, source_decl, i);
+        type_name = projection_class_field_type_name(ctx, source_decl, i);
+        if (candidate_name == NULL || type_name == NULL) {
             continue;
         }
 
         vessel_decl = transpiler_find_projection_nominal_decl_local(
-            ctx, ast_type_name(field->type));
+            ctx, type_name);
         if (vessel_decl == NULL
             || vessel_decl->type != AST_CLASS_DECL
             || ast_class_nominal_kind(vessel_decl) != NOMINAL_DECL_VESSEL) {
@@ -320,7 +383,7 @@ resolve_projection_source_path_rec(TranspilerCtx *ctx, ASTNode *source_decl,
 
         prefixed_path = transpiler_scratch_fmt(ctx,
                                                "%s.%s",
-                                               field->name,
+                                               candidate_name,
                                                nested_path);
         if (prefixed_path == NULL)
             continue;
@@ -359,19 +422,18 @@ emit_projection_literal(TranspilerCtx *ctx, ASTNode *target_decl, ASTNode *sourc
     buf = codebuf_create();
     codebuf_write(buf, "(%s){ ", target_type_name);
 
-    PgyHostClassFieldsCompatView target_fields =
-        pgy_host_class_fields_compat_view_from_decl(target_decl);
-    for (size_t i = 0; i < target_fields.count; i++) {
-        ClassField *target_field =
-            target_fields.fields != NULL ? target_fields.fields[i] : NULL;
+    size_t target_field_count = projection_class_field_count(ctx, target_decl);
+    for (size_t i = 0; i < target_field_count; i++) {
+        const char *target_field_name =
+            projection_class_field_name(ctx, target_decl, i);
         const char *source_field_name = NULL;
         char *source_path = NULL;
         int source_status;
 
-        if (target_field == NULL || target_field->name == NULL)
+        if (target_field_name == NULL)
             continue;
 
-        source_field_name = target_field->name;
+        source_field_name = target_field_name;
         if (refresh != NULL && refresh->type == AST_ZONE_REFRESH) {
             for (size_t j = 0; j < ast_zone_refresh_field_map_count(refresh); j++) {
                 const char *mapped_target =
@@ -379,7 +441,7 @@ emit_projection_literal(TranspilerCtx *ctx, ASTNode *target_decl, ASTNode *sourc
                 const char *mapped_source =
                     ast_zone_refresh_mapped_source_field(refresh, j);
                 if (mapped_target != NULL && mapped_source != NULL
-                    && strcmp(mapped_target, target_field->name) == 0) {
+                    && strcmp(mapped_target, target_field_name) == 0) {
                     source_field_name = mapped_source;
                     break;
                 }
@@ -394,9 +456,9 @@ emit_projection_literal(TranspilerCtx *ctx, ASTNode *target_decl, ASTNode *sourc
 
         if (source_status == 1 && source_path != NULL) {
             codebuf_write(buf, ".%s = %s.%s",
-                target_field->name, source_expr, source_path);
+                target_field_name, source_expr, source_path);
         } else {
-            codebuf_write(buf, ".%s = 0", target_field->name);
+            codebuf_write(buf, ".%s = 0", target_field_name);
         }
     }
 

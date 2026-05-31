@@ -1,0 +1,21 @@
+enum Shape {
+    Circle(Int),
+    Rect(Int, Int),
+    Tri(Int, Int, Int)
+}
+
+func Area(s: Shape) -> Int {
+    match s {
+        case Circle(r): return r * r;
+        case Rect(w, h): return w * h;
+        case Tri(a, b, c): return a + b + c;
+    }
+}
+
+func Main() -> Void {
+    Log(Area(Circle(3)));
+    Log(Area(Rect(4, 5)));
+    Log(Area(Tri(2, 3, 4)));
+    Log(Area(Circle(10)));
+    Log(Area(Rect(7, 8)));
+}

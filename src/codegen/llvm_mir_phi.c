@@ -95,12 +95,14 @@ void
 llvm_mir_emit_true_phi_nodes(const MIRRoutine *routine,
                              LLVMGenCtx *ctx,
                              LLVMBasicBlockRef *llvm_blocks,
+                             LLVMBasicBlockRef *llvm_block_heads,
                              LLVMMirVar *vars,
                              size_t var_count)
 {
     LLVMBasicBlockRef saved_block;
 
-    if (routine == NULL || ctx == NULL || llvm_blocks == NULL)
+    if (routine == NULL || ctx == NULL || llvm_blocks == NULL
+        || llvm_block_heads == NULL)
         return;
 
     saved_block = LLVMGetInsertBlock(ctx->builder);
@@ -115,7 +117,14 @@ llvm_mir_emit_true_phi_nodes(const MIRRoutine *routine,
         if (!target_block->is_reachable || target_block->is_cleanup)
             continue;
 
-        first_inst = LLVMGetFirstInstruction(llvm_blocks[b]);
+        /*
+         * PHI nodes must be inserted at the original block head, not the
+         * tail. llvm_blocks[b] may have been updated by block emit to point
+         * at a split tail block (Coalesce / short-circuit lowering). The
+         * head map preserves the entry-block identity that matches MIR's
+         * logical predecessor edges.
+         */
+        first_inst = LLVMGetFirstInstruction(llvm_block_heads[b]);
         for (size_t i = 0; i < target_block->instruction_count; i++) {
             const MIRInstruction *inst = &target_block->instructions[i];
             LLVMTypeRef phi_type = NULL;
@@ -136,7 +145,7 @@ llvm_mir_emit_true_phi_nodes(const MIRRoutine *routine,
             if (incoming_values == NULL || incoming_blocks == NULL)
                 return;
 
-            llvm_mir_position_before_original_first(ctx, llvm_blocks[b], first_inst);
+            llvm_mir_position_before_original_first(ctx, llvm_block_heads[b], first_inst);
             phi = LLVMBuildPhi(ctx->builder, phi_type, inst->result_name);
 
             for (size_t j = 0; j < inst->phi_incoming_count; j++) {

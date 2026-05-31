@@ -1,0 +1,32 @@
+enum Light { Red, Yellow, Green }
+
+func Transition(l: Light) -> Light {
+    match l {
+        case Red: return Green;
+        case Yellow: return Red;
+        case Green: return Yellow;
+    }
+}
+
+func Duration(l: Light) -> Int {
+    match l {
+        case Red: return 30;
+        case Yellow: return 5;
+        case Green: return 25;
+    }
+}
+
+func Main() -> Void {
+    let cur: Light = Red;
+    let total: Int = 0;
+    let cycles: Int = 0;
+    while cycles < 6 {
+        total = total + Duration(cur);
+        cur = Transition(cur);
+        cycles = cycles + 1;
+    }
+    Log(total);
+    Log(Duration(cur));
+    Log(Duration(Red));
+    Log(Duration(Green));
+}

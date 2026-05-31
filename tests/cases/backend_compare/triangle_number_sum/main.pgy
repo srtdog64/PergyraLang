@@ -1,0 +1,28 @@
+func TriangleN(n: Int) -> Int {
+    let sum: Int = 0;
+    let i: Int = 1;
+    while i <= n {
+        sum = sum + i;
+        i = i + 1;
+    }
+    return sum;
+}
+
+func TriangleClosed(n: Int) -> Int {
+    if n < 0 { return 0; }
+    return n * (n + 1) / 2;
+}
+
+func CompareBoth(n: Int) -> Bool {
+    return TriangleN(n) == TriangleClosed(n);
+}
+
+func Main() -> Void {
+    Log(CompareBoth(0));
+    Log(CompareBoth(5));
+    Log(CompareBoth(100));
+    Log(TriangleN(10));
+    Log(TriangleClosed(10));
+    Log(TriangleN(0));
+    Log(TriangleClosed(-3));
+}

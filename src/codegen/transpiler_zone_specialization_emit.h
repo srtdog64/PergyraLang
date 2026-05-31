@@ -10,8 +10,7 @@ void transpiler_emit_zone_required_specializations(
     TranspilerCtx *ctx,
     ASTNode **slots,
     size_t slot_count,
-    ASTNode **shared_fields,
-    size_t shared_count,
+    const TranspilerHostedSharedFieldView *shared_view,
     const TranspilerHostedMethodView *method_view);
 
 #endif /* PGY_TRANSPILER_ZONE_SPECIALIZATION_EMIT_H */

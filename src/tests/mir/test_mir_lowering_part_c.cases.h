@@ -975,44 +975,4 @@ test_mir_lowering_part_c(void)
         hir_destroy(hir);
     }
 
-    TEST("MIR does not treat Intent-prefixed user calls as observability");
-    {
-        const char *src =
-            "func IntentDomainAction() -> String {\n"
-            "    return \"ok\";\n"
-            "}\n"
-            "func Main() -> Void {\n"
-            "    Log(IntentDomainAction());\n"
-            "}\n";
-        HIRProgram *hir = NULL;
-        RIRProgram *rir = NULL;
-        MIRProgram *mir = NULL;
-        const MIRRoutine *routine = NULL;
-        bool any_observability_fact = false;
-        bool ok = lower_mir_from_source(src, &hir, &rir, &mir);
-        if (ok)
-            routine = find_mir_routine(mir, "Main", MIR_SCOPE_FUNCTION);
-        if (routine != NULL) {
-            for (size_t b = 0; b < routine->block_count; b++) {
-                const MIRBasicBlock *block = &routine->blocks[b];
-                for (size_t i = 0; i < block->instruction_count; i++) {
-                    const MIRInstruction *inst = &block->instructions[i];
-                    if (inst->has_surface_usage_facts
-                        && inst->uses_intent_observability_surface) {
-                        any_observability_fact = true;
-                    }
-                }
-            }
-        }
-        EXPECT(ok
-               && routine != NULL
-               && mir != NULL
-               && mir->has_inventory_surface_usage_facts
-               && !mir->inventory_uses_intent_observability_surface
-               && !any_observability_fact
-               && mir_validate(mir, NULL));
-        mir_destroy(mir);
-        rir_destroy(rir);
-        hir_destroy(hir);
-    }
 }

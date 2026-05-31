@@ -54,8 +54,11 @@ llvm_mir_stmt_instruction_is_cfg_container(const MIRInstruction *inst)
 }
 
 void
-llvm_emit_mir_block_with_exprs(const MIRBasicBlock *mir_block, const MIRRoutine *routine,
-                               LLVMGenCtx *ctx, LLVMBasicBlockRef *llvm_blocks,
+llvm_emit_mir_block_with_exprs(const MIRBasicBlock *mir_block,
+                               const MIRRoutine *routine,
+                               LLVMGenCtx *ctx,
+                               LLVMBasicBlockRef *llvm_blocks,
+                               LLVMBasicBlockRef *llvm_block_heads,
                                LLVMMirVar *vars, size_t var_count, ASTNode *func_decl,
                                LLVMClassTypeEntry *owner_cls, LLVMFuncEntry *owner_sync,
                                const char *owner_name)
@@ -156,17 +159,38 @@ llvm_emit_mir_block_with_exprs(const MIRBasicBlock *mir_block, const MIRRoutine 
                     cond = llvm_emit_expression(inst->expr0, ctx);
                 }
                 if (cond != NULL) {
-                    LLVMBasicBlockRef true_bb = llvm_blocks[mir_block->succ_true];
-                    LLVMBasicBlockRef false_bb = llvm_blocks[mir_block->succ_false];
+                    LLVMBasicBlockRef true_bb = llvm_block_heads[mir_block->succ_true];
+                    LLVMBasicBlockRef false_bb = llvm_block_heads[mir_block->succ_false];
                     if (!llvm_mir_emit_pin_exit(mir_block, ctx))
                         return;
+                    /*
+                     * Condition emission may have split this MIR block across
+                     * multiple LLVM basic blocks (e.g. Coalesce lowering
+                     * creates extra blocks). The actual predecessor of
+                     * succ_true/succ_false is the current insert block, not
+                     * the entry block recorded at llvm_blocks[mir_block->id].
+                     * Update the entry so the subsequent PHI lowering wires
+                     * incoming entries to the real predecessor.
+                     *
+                     * Note: if this MIR block has its own PHI to lower, the
+                     * PHI lowering will now target the tail block. This is a
+                     * trade-off: PHI insertion at the original entry would
+                     * leave succ predecessors pointing to a stale block. The
+                     * proper fix is a separate llvm_block_tails[] array
+                     * threaded through PHI lowering; deferred until the
+                     * block-split lowering footprint grows.
+                     */
+                    llvm_blocks[mir_block->id] =
+                        LLVMGetInsertBlock(ctx->builder);
                     LLVMBuildCondBr(ctx->builder, cond, true_bb, false_bb);
                     emitted_terminator = true;
                 }
             } else if (mir_block->has_succ_true) {
                 if (!llvm_mir_emit_pin_exit(mir_block, ctx))
                     return;
-                LLVMBuildBr(ctx->builder, llvm_blocks[mir_block->succ_true]);
+                llvm_blocks[mir_block->id] =
+                    LLVMGetInsertBlock(ctx->builder);
+                LLVMBuildBr(ctx->builder, llvm_block_heads[mir_block->succ_true]);
                 emitted_terminator = true;
             }
             break;
@@ -238,17 +262,21 @@ llvm_emit_mir_block_with_exprs(const MIRBasicBlock *mir_block, const MIRRoutine 
         if (mir_block->has_succ_true && mir_block->has_succ_false) {
             if (!llvm_mir_emit_pin_exit(mir_block, ctx))
                 return;
+            llvm_blocks[mir_block->id] =
+                LLVMGetInsertBlock(ctx->builder);
             LLVMBuildCondBr(ctx->builder,
                             LLVMConstInt(LLVMInt1TypeInContext(
                                 LLVMGetModuleContext(ctx->module)), 1, false),
-                            llvm_blocks[mir_block->succ_true],
-                            llvm_blocks[mir_block->succ_false]);
+                            llvm_block_heads[mir_block->succ_true],
+                            llvm_block_heads[mir_block->succ_false]);
         } else if (mir_block->has_succ_true) {
             if (!llvm_mir_emit_loop_backedge_increment(routine, mir_block, ctx))
                 return;
             if (!llvm_mir_emit_pin_exit(mir_block, ctx))
                 return;
-            LLVMBuildBr(ctx->builder, llvm_blocks[mir_block->succ_true]);
+            llvm_blocks[mir_block->id] =
+                LLVMGetInsertBlock(ctx->builder);
+            LLVMBuildBr(ctx->builder, llvm_block_heads[mir_block->succ_true]);
         } else {
             llvm_emit_defers_from(ctx, 0);
             llvm_mir_emit_owner_sync_exit(ctx, owner_cls, owner_sync, owner_name);

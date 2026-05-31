@@ -1,0 +1,28 @@
+func SafeAdd(a: Int, b: Int, limit: Int) -> Int {
+    if a > limit - b { return limit; }
+    if b > limit - a { return limit; }
+    return a + b;
+}
+
+func SafeMul(a: Int, b: Int, max_bits: Int) -> Int {
+    let upper: Int = 1;
+    let i: Int = 0;
+    while i < max_bits {
+        upper = upper * 2;
+        i = i + 1;
+    }
+    if a == 0 { return 0; }
+    if b == 0 { return 0; }
+    if a > upper / b { return upper; }
+    return a * b;
+}
+
+func Main() -> Void {
+    Log(SafeAdd(10, 20, 1000));
+    Log(SafeAdd(999, 5, 1000));
+    Log(SafeAdd(0, 0, 100));
+    Log(SafeMul(5, 7, 10));
+    Log(SafeMul(100, 100, 10));
+    Log(SafeMul(0, 99, 10));
+    Log(SafeMul(99, 0, 10));
+}

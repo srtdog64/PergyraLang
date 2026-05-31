@@ -20,6 +20,38 @@ const MIRDeclHeader *llvm_find_decl_header_in_context(const LLVMGenCtx *ctx,
 const MIRDeclHeader *llvm_find_host_decl_header_in_context(
     const LLVMGenCtx *ctx,
     const char *name);
+const MIRDeclField *llvm_find_decl_field_in_context(const LLVMGenCtx *ctx,
+                                                    const char *host_name,
+                                                    const char *field_name);
+ASTNode *llvm_mir_decl_field_type(const MIRDeclField *field);
+const char *llvm_mir_decl_field_type_name(const MIRDeclField *field);
+typedef struct
+{
+    const MIRDeclHeader *decl_header;
+    ASTNode           **ast_compat_fields;
+    size_t             ast_compat_count;
+    size_t             count;
+    bool               uses_mir_metadata;
+    bool               requires_mir_metadata;
+} LLVMHostedSharedFieldView;
+LLVMHostedSharedFieldView llvm_hosted_shared_field_view_from_decl(
+    const LLVMGenCtx *ctx,
+    const char *host_name,
+    ASTNode *decl);
+bool llvm_hosted_shared_field_view_missing_mir_metadata(
+    const LLVMHostedSharedFieldView *view);
+const MIRDeclField *llvm_hosted_shared_field_view_metadata(
+    const LLVMHostedSharedFieldView *view,
+    size_t index);
+ASTNode *llvm_hosted_shared_field_view_source_ast(
+    const LLVMHostedSharedFieldView *view,
+    size_t index);
+const char *llvm_hosted_shared_field_view_name(
+    const LLVMHostedSharedFieldView *view,
+    size_t index);
+ASTNode *llvm_hosted_shared_field_view_type(
+    const LLVMHostedSharedFieldView *view,
+    size_t index);
 ASTNode *llvm_find_host_decl_in_active_inventory(const LLVMGenCtx *ctx,
                                                  const char *name);
 ASTNode *llvm_current_host_decl(const LLVMGenCtx *ctx);

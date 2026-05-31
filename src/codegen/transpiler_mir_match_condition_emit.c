@@ -10,7 +10,9 @@
 #include "transpiler_context.h"
 #include "transpiler_expr_type_infer.h"
 #include "transpiler_format.h"
+#include "transpiler_match_bindings.h"
 #include "transpiler_type_mapping.h"
+#include "transpiler_type_render.h"
 #include "transpiler_type_require.h"
 
 static ASTNode *
@@ -334,11 +336,74 @@ transpiler_mir_render_match_case_condition(ASTNode *func_decl,
                                                       subject, kind, binding);
             cond = strdup_fmt("(%s).tag == %s", subject, tag);
         } else {
-            char *pat = emit_expression_with_ssa_map(
-                pattern_node, ctx, ssa_map);
-            if (pat != NULL)
-                cond = strdup_fmt("%s == %s", subject, pat);
-            free(pat);
+            const char *enum_vname = NULL;
+            const char *enum_ename = NULL;
+            const char **enum_bindings = NULL;
+            ASTNode **enum_binding_types = NULL;
+            size_t enum_bind_count = 0;
+            const char *enum_bindings_buf[8];
+            ASTNode *enum_binding_types_buf[8];
+            if (transpiler_match_is_enum_variant_destructor(pattern_node, ctx,
+                    &enum_vname, &enum_ename, &enum_bindings,
+                    &enum_binding_types, &enum_bind_count,
+                    enum_bindings_buf, enum_binding_types_buf,
+                    sizeof(enum_bindings_buf)
+                        / sizeof(enum_bindings_buf[0]))) {
+                for (size_t b = 0; b < enum_bind_count; b++) {
+                    if (enum_bindings == NULL || enum_bindings[b] == NULL)
+                        continue;
+                    char bt_buf[256];
+                    const char *bt_c_type = "int32_t";
+                    if (enum_binding_types != NULL
+                        && enum_binding_types[b] != NULL) {
+                        if (!transpiler_require_ast_c_type_copy(
+                                ctx, enum_binding_types[b],
+                                "MIR enum match payload binding",
+                                bt_buf, sizeof(bt_buf))) {
+                            free(subject);
+                            free(cond);
+                            free(guard);
+                            return NULL;
+                        }
+                        bt_c_type = bt_buf;
+                    }
+                    /*
+                     * Wildcard `_` bindings are discarded — body never
+                     * references them. Rename per-(variant, slot) to avoid
+                     * C function-scope redefinition when multiple cases
+                     * use `_`. Non-wildcard names keep their identity so
+                     * the SSA-map-driven body resolution still works.
+                     */
+                    const char *emitted_name = enum_bindings[b];
+                    char wildcard_buf[64];
+                    if (emitted_name != NULL
+                        && strcmp(emitted_name, "_") == 0) {
+                        int wn = snprintf(wildcard_buf, sizeof(wildcard_buf),
+                            "_pgy_match_discard_%s_%zu",
+                            enum_vname, b);
+                        if (wn > 0
+                            && (size_t)wn < sizeof(wildcard_buf)) {
+                            emitted_name = wildcard_buf;
+                        }
+                    }
+                    write_indent_to(ctx->out, ctx->indent);
+                    codebuf_write(ctx->out,
+                        "%s %s = (%s).%s._%zu;\n",
+                        bt_c_type, emitted_name, subject, enum_vname, b);
+                    if (emitted_name != enum_bindings[b]) {
+                        write_indent_to(ctx->out, ctx->indent);
+                        codebuf_write(ctx->out, "(void)%s;\n", emitted_name);
+                    }
+                }
+                cond = strdup_fmt("(%s).tag == %s_TAG_%s",
+                    subject, enum_ename, enum_vname);
+            } else {
+                char *pat = emit_expression_with_ssa_map(
+                    pattern_node, ctx, ssa_map);
+                if (pat != NULL)
+                    cond = strdup_fmt("%s == %s", subject, pat);
+                free(pat);
+            }
         }
     }
 

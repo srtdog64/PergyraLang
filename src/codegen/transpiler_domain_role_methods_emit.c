@@ -14,8 +14,8 @@
 #include "transpiler_domain_role_ability_names.h"
 #include "transpiler_generic_binding_query.h"
 #include "transpiler_host_self_policy.h"
+#include "transpiler_inventory_view.h"
 #include "transpiler_mir_func_emit.h"
-#include "transpiler_mir_role_lookup.h"
 #include "transpiler_operator.h"
 #include "transpiler_type_require.h"
 #include "transpiler_type_render.h"
@@ -29,18 +29,31 @@
 #endif
 
 void
-emit_role_method_impl(const char *role_name, ASTNode *method, TranspilerCtx *ctx)
+emit_role_method_impl(const char *role_name,
+                      const MIRDeclMethod *method_meta,
+                      const MIRRoutine *mir_method,
+                      ASTNode *method,
+                      TranspilerCtx *ctx)
 {
-    const MIRRoutine *mir_method;
     const char *method_name;
 
     if (ctx != NULL && ctx->backend_error != NULL)
         return;
-    if (method == NULL || method->type != AST_FUNC_DECL)
-        return;
 
-    mir_method = transpiler_find_role_impl_mir_method(ctx, role_name, method);
-    method_name = ast_declaration_name(method);
+    method_name = transpiler_mir_decl_method_name(method_meta);
+    if (method == NULL && mir_method != NULL)
+        method = transpiler_mir_routine_source_ast_of_type(
+            mir_method, MIR_SCOPE_METHOD, AST_FUNC_DECL);
+    if (method_name == NULL && method != NULL)
+        method_name = ast_declaration_name(method);
+    if (transpiler_active_has_mir(ctx) && method_meta == NULL) {
+        transpiler_set_mir_inventory_missing(
+            ctx,
+            "MIR-only C path missing declaration metadata for role method '%s.%s'",
+            role_name != NULL ? role_name : "(anonymous)",
+            method_name != NULL ? method_name : "(anonymous)");
+        return;
+    }
     if (transpiler_active_has_mir(ctx) && mir_method == NULL) {
         transpiler_set_mir_inventory_missing(
             ctx,
@@ -49,6 +62,8 @@ emit_role_method_impl(const char *role_name, ASTNode *method, TranspilerCtx *ctx
             method_name != NULL ? method_name : "(anonymous)");
         return;
     }
+    if (method == NULL || method->type != AST_FUNC_DECL)
+        return;
     if (mir_method != NULL) {
         char emitted_name[256];
         if (!transpiler_role_ability_host_method_name(

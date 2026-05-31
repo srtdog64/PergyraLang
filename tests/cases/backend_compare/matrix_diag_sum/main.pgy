@@ -1,0 +1,21 @@
+func Main() -> Void {
+    let r0: Array<Int> = [1, 2, 3];
+    let r1: Array<Int> = [4, 5, 6];
+    let r2: Array<Int> = [7, 8, 9];
+
+    let main_diag: Int = r0[0] + r1[1] + r2[2];
+    let anti_diag: Int = r0[2] + r1[1] + r2[0];
+    let row_sum: Int = 0;
+    let col_sum: Int = 0;
+    let i: Int = 0;
+    while i < 3 {
+        row_sum = row_sum + r1[i];
+        col_sum = col_sum + r0[i];
+        i = i + 1;
+    }
+
+    Log(main_diag);
+    Log(anti_diag);
+    Log(row_sum);
+    Log(col_sum);
+}

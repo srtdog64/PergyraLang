@@ -7,25 +7,7 @@
 
 #include "host_decl_compat.h"
 #include "llvm_internal.h"
-
-void
-llvm_host_decl_method_metadata(const MIRDeclHeader *decl_header,
-                               const MIRDeclMethod **methods_out,
-                               size_t *method_count_out)
-{
-    const MIRDeclMethod *methods = NULL;
-    size_t method_count = 0;
-
-    if (decl_header != NULL && llvm_is_host_decl_type(decl_header->ast_type)) {
-        methods = decl_header->method_metadata;
-        method_count = decl_header->method_metadata_count;
-    }
-
-    if (methods_out != NULL)
-        *methods_out = methods;
-    if (method_count_out != NULL)
-        *method_count_out = method_count;
-}
+#include "../compiler/mir_decl_headers.h"
 
 const MIRDeclMethod *
 llvm_find_host_method_metadata_in_context(const LLVMGenCtx *ctx,
@@ -33,17 +15,18 @@ llvm_find_host_method_metadata_in_context(const LLVMGenCtx *ctx,
                                           const char *method_name)
 {
     const MIRDeclHeader *decl_header;
-    const MIRDeclMethod *methods = NULL;
-    size_t method_count = 0;
+    size_t method_count;
 
     if (ctx == NULL || host_type_name == NULL || method_name == NULL)
         return NULL;
 
     decl_header = llvm_find_host_decl_header_in_context(ctx, host_type_name);
-    llvm_host_decl_method_metadata(decl_header, &methods, &method_count);
+    method_count = mir_decl_header_method_count(decl_header);
     for (size_t i = 0; i < method_count; i++) {
-        if (methods[i].name != NULL && strcmp(methods[i].name, method_name) == 0)
-            return &methods[i];
+        const char *candidate = llvm_mir_decl_method_name(
+            mir_decl_header_method(decl_header, i));
+        if (candidate != NULL && strcmp(candidate, method_name) == 0)
+            return mir_decl_header_method(decl_header, i);
     }
 
     return NULL;
@@ -58,7 +41,7 @@ llvm_hosted_method_view(const LLVMGenCtx *ctx,
     LLVMHostedMethodView view;
     const MIRDeclHeader *decl_header = NULL;
 
-    view.metadata = NULL;
+    view.decl_header = NULL;
     view.ast_compat_methods = ast_compat_methods;
     view.ast_compat_count = ast_compat_count;
     view.count = ast_compat_count;
@@ -69,8 +52,8 @@ llvm_hosted_method_view(const LLVMGenCtx *ctx,
     if (llvm_active_has_mir(ctx) && host_type_name != NULL)
         decl_header = llvm_find_host_decl_header_in_context(ctx, host_type_name);
     if (decl_header != NULL) {
-        llvm_host_decl_method_metadata(decl_header,
-            &view.metadata, &view.count);
+        view.decl_header = decl_header;
+        view.count = mir_decl_header_method_count(decl_header);
         view.uses_mir_metadata = true;
     }
 
@@ -104,10 +87,10 @@ llvm_hosted_method_view_metadata(const LLVMHostedMethodView *view,
                                  size_t index)
 {
     if (view == NULL || !view->uses_mir_metadata
-        || view->metadata == NULL || index >= view->count) {
+        || view->decl_header == NULL || index >= view->count) {
         return NULL;
     }
-    return &view->metadata[index];
+    return mir_decl_header_method(view->decl_header, index);
 }
 
 ASTNode *
@@ -119,7 +102,7 @@ llvm_hosted_method_view_source_ast(const LLVMHostedMethodView *view,
     if (view == NULL || index >= view->count)
         return NULL;
     if (method != NULL)
-        return method->source_ast;
+        return mir_decl_method_source_ast(method);
     if (view->requires_mir_metadata)
         return NULL;
     return view->ast_compat_methods != NULL
@@ -130,49 +113,39 @@ llvm_hosted_method_view_source_ast(const LLVMHostedMethodView *view,
 const char *
 llvm_mir_decl_method_name(const MIRDeclMethod *method)
 {
-    if (method != NULL && method->name != NULL)
-        return method->name;
-    return NULL;
+    return mir_decl_method_name(method);
 }
 
 ASTNode *
 llvm_mir_decl_method_source_ast(const MIRDeclMethod *method)
 {
     if (method != NULL)
-        return method->source_ast;
+        return mir_decl_method_source_ast(method);
     return NULL;
 }
 
 size_t
 llvm_mir_decl_method_param_count(const MIRDeclMethod *method)
 {
-    if (method != NULL)
-        return method->param_count;
-    return 0;
+    return mir_decl_method_param_count(method);
 }
 
 FuncParam *
 llvm_mir_decl_method_param(const MIRDeclMethod *method, size_t index)
 {
-    if (method != NULL && method->params != NULL && index < method->param_count)
-        return method->params[index];
-    return NULL;
+    return mir_decl_method_param(method, index);
 }
 
 ASTNode *
 llvm_mir_decl_method_return_type(const MIRDeclMethod *method)
 {
-    if (method != NULL && method->return_type != NULL)
-        return method->return_type;
-    return NULL;
+    return mir_decl_method_return_type(method);
 }
 
 bool
 llvm_mir_decl_method_is_action_like(const MIRDeclMethod *method)
 {
-    if (method != NULL)
-        return method->is_action_like;
-    return false;
+    return mir_decl_method_is_action_like(method);
 }
 
 const MIRRoutine *
@@ -180,13 +153,14 @@ llvm_mir_decl_method_routine(const LLVMGenCtx *ctx,
                              const MIRDeclMethod *method)
 {
     LLVMMIRRoutineInventory inventory;
+    size_t routine_index = 0;
 
     if (!llvm_active_has_mir(ctx) || method == NULL)
         return NULL;
-    if (!method->has_routine)
+    if (!mir_decl_method_routine_index(method, &routine_index))
         return NULL;
     llvm_active_routine_inventory(ctx, &inventory);
-    return llvm_routine_inventory_get(&inventory, method->routine_index);
+    return llvm_routine_inventory_get(&inventory, routine_index);
 }
 
 const MIRRoutine *

@@ -1,0 +1,32 @@
+class Counter {
+    let value: Int;
+
+    func IsAtLeast(self, threshold: Int) -> Bool {
+        return value >= threshold;
+    }
+
+    func IsBetween(self, lo: Int, hi: Int) -> Bool {
+        return value >= lo && value <= hi;
+    }
+}
+
+func Categorize(c: Counter) -> Int {
+    if c.IsAtLeast(100) || c.IsBetween(0, 10) {
+        return 1;
+    }
+    if c.IsBetween(11, 50) && !c.IsAtLeast(100) {
+        return 2;
+    }
+    return 0;
+}
+
+func Main() -> Void {
+    let a = Counter(5);
+    let b = Counter(25);
+    let c = Counter(75);
+    let d = Counter(150);
+    Log(Categorize(a));
+    Log(Categorize(b));
+    Log(Categorize(c));
+    Log(Categorize(d));
+}

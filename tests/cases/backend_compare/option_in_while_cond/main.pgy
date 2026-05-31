@@ -1,0 +1,23 @@
+func DecrIfPositive(n: Int) -> Option<Int> {
+    if n > 0 { return Some(n - 1); }
+    return None();
+}
+
+func CountDownSteps(start: Int) -> Int {
+    let count: Int = 0;
+    let cur: Int = start;
+    while (DecrIfPositive(cur) ?? -1) >= 0 {
+        cur = DecrIfPositive(cur) ?? -1;
+        count = count + 1;
+        if count > 100 { return -1; }
+    }
+    return count;
+}
+
+func Main() -> Void {
+    Log(CountDownSteps(5));
+    Log(CountDownSteps(1));
+    Log(CountDownSteps(0));
+    Log(CountDownSteps(-3));
+    Log(CountDownSteps(10));
+}

@@ -137,6 +137,293 @@ mir_decl_header_set_role_impl_methods(MIRDeclHeader *header, ASTNode *role_decl)
     return true;
 }
 
+static void
+mir_decl_field_metadata_init(MIRDeclField *meta,
+                             const MIRDeclHeader *header,
+                             ASTNode *source_ast,
+                             const char *name,
+                             ASTNode *type,
+                             const char *type_name,
+                             MIRDeclFieldKind kind)
+{
+    if (meta == NULL || header == NULL)
+        return;
+
+    meta->source_ast = source_ast;
+    meta->owner_name = header->name;
+    meta->name = name;
+    meta->type = type;
+    meta->type_name = type_name;
+    meta->kind = kind;
+}
+
+static void
+mir_decl_field_metadata_init_class(MIRDeclField *meta,
+                                   const MIRDeclHeader *header,
+                                   ClassField *field)
+{
+    if (meta == NULL || field == NULL)
+        return;
+    mir_decl_field_metadata_init(
+        meta, header, NULL, field->name, field->type, NULL,
+        MIR_DECL_FIELD_CLASS);
+    meta->is_subject_like = field->is_vessel_field;
+}
+
+static void
+mir_decl_field_metadata_init_shared(MIRDeclField *meta,
+                                    const MIRDeclHeader *header,
+                                    ASTNode *field)
+{
+    if (meta == NULL || field == NULL)
+        return;
+    mir_decl_field_metadata_init(
+        meta, header, field, ast_party_shared_name(field),
+        ast_party_shared_type(field), NULL, MIR_DECL_FIELD_SHARED);
+}
+
+static void
+mir_decl_field_metadata_init_role_slot(MIRDeclField *meta,
+                                       const MIRDeclHeader *header,
+                                       ASTNode *slot)
+{
+    if (meta == NULL || slot == NULL)
+        return;
+    mir_decl_field_metadata_init(
+        meta, header, slot, ast_role_slot_name(slot), NULL, NULL,
+        MIR_DECL_FIELD_ROLE_SLOT);
+    meta->is_dynamic = ast_role_slot_is_dynamic(slot);
+}
+
+static void
+mir_decl_field_metadata_init_roster_slot(MIRDeclField *meta,
+                                         const MIRDeclHeader *header,
+                                         ASTNode *slot)
+{
+    if (meta == NULL || slot == NULL)
+        return;
+    mir_decl_field_metadata_init(
+        meta, header, slot, ast_roster_slot_name(slot), NULL,
+        ast_roster_slot_party_type(slot), MIR_DECL_FIELD_ROSTER_SLOT);
+}
+
+static void
+mir_decl_field_metadata_init_world_slot(MIRDeclField *meta,
+                                        const MIRDeclHeader *header,
+                                        ASTNode *slot,
+                                        MIRDeclFieldKind kind)
+{
+    const char *name;
+    const char *type_name;
+
+    if (meta == NULL || slot == NULL)
+        return;
+    if (kind == MIR_DECL_FIELD_WORLD_ROSTER_SLOT) {
+        name = ast_world_roster_slot_name(slot);
+        type_name = ast_world_roster_type_name(slot);
+    } else {
+        name = ast_world_zone_slot_name(slot);
+        type_name = ast_world_zone_type_name(slot);
+    }
+    mir_decl_field_metadata_init(meta, header, slot, name, NULL, type_name, kind);
+}
+
+static void
+mir_decl_field_metadata_init_domain_slot(MIRDeclField *meta,
+                                         const MIRDeclHeader *header,
+                                         ASTNode *slot)
+{
+    if (meta == NULL || slot == NULL)
+        return;
+    mir_decl_field_metadata_init(
+        meta, header, slot, ast_domain_slot_name(slot),
+        ast_domain_slot_type(slot), NULL, MIR_DECL_FIELD_DOMAIN_SLOT);
+    meta->is_subject_like = ast_domain_slot_is_subject(slot);
+}
+
+static void
+mir_decl_field_metadata_init_zone_layer(MIRDeclField *meta,
+                                        const MIRDeclHeader *header,
+                                        ASTNode *slot)
+{
+    if (meta == NULL || slot == NULL)
+        return;
+    mir_decl_field_metadata_init(
+        meta, header, slot, ast_zone_layer_slot_name(slot), NULL,
+        ast_zone_layer_slot_layer_type(slot), MIR_DECL_FIELD_ZONE_LAYER_SLOT);
+}
+
+static size_t
+mir_decl_header_ast_field_count(ASTNode *decl)
+{
+    size_t count = 0;
+    size_t extra = 0;
+
+    if (decl == NULL)
+        return 0;
+    switch (decl->type) {
+    case AST_CLASS_DECL:
+        (void) ast_class_fields(decl, &count);
+        return count;
+    case AST_PARTY_DECL:
+        return ast_party_role_count(decl) + ast_party_shared_count(decl);
+    case AST_ROSTER_DECL:
+        return ast_roster_party_count(decl) + ast_roster_shared_count(decl);
+    case AST_WORLD_DECL:
+        (void) ast_world_rosters(decl, &count);
+        (void) ast_world_zones(decl, &extra);
+        count += extra;
+        (void) ast_world_shared_fields(decl, &extra);
+        return count + extra;
+    case AST_RELATION_DECL:
+        (void) ast_relation_slots(decl, &count);
+        (void) ast_relation_shared_fields(decl, &extra);
+        return count + extra;
+    case AST_EFFECT_DECL:
+        (void) ast_effect_slots(decl, &count);
+        (void) ast_effect_shared_fields(decl, &extra);
+        return count + extra;
+    case AST_ZONE_DECL:
+        (void) ast_zone_slots(decl, &count);
+        (void) ast_zone_layer_slots(decl, &extra);
+        count += extra;
+        (void) ast_zone_shared_fields(decl, &extra);
+        return count + extra;
+    default:
+        return 0;
+    }
+}
+
+static bool
+mir_decl_header_alloc_fields(MIRDeclHeader *header, size_t field_count)
+{
+    if (header == NULL)
+        return false;
+
+    header->field_count = field_count;
+    header->field_metadata = NULL;
+    header->field_metadata_count = 0;
+    if (field_count == 0)
+        return true;
+    if (field_count > SIZE_MAX / sizeof(MIRDeclField))
+        return false;
+    header->field_metadata = calloc(field_count, sizeof(MIRDeclField));
+    return header->field_metadata != NULL;
+}
+
+static void
+mir_decl_header_append_shared_fields(MIRDeclHeader *header,
+                                     ASTNode **fields,
+                                     size_t count,
+                                     size_t *out)
+{
+    if (header == NULL || out == NULL)
+        return;
+    for (size_t i = 0; fields != NULL && i < count; i++) {
+        mir_decl_field_metadata_init_shared(
+            &header->field_metadata[(*out)++], header, fields[i]);
+    }
+}
+
+static bool
+mir_decl_header_set_fields(MIRDeclHeader *header, ASTNode *decl)
+{
+    size_t field_count;
+    size_t out = 0;
+    size_t count = 0;
+    size_t shared_count = 0;
+    ASTNode **nodes = NULL;
+    ASTNode **shared = NULL;
+
+    if (header == NULL)
+        return false;
+    field_count = mir_decl_header_ast_field_count(decl);
+    if (!mir_decl_header_alloc_fields(header, field_count))
+        return false;
+
+    switch (decl != NULL ? decl->type : AST_PROGRAM) {
+    case AST_CLASS_DECL: {
+        ClassField **fields = ast_class_fields(decl, &count);
+        for (size_t i = 0; fields != NULL && i < count; i++) {
+            mir_decl_field_metadata_init_class(
+                &header->field_metadata[out++], header, fields[i]);
+        }
+        break;
+    }
+    case AST_PARTY_DECL:
+        for (size_t i = 0; i < ast_party_role_count(decl); i++) {
+            mir_decl_field_metadata_init_role_slot(
+                &header->field_metadata[out++], header,
+                ast_party_role(decl, i));
+        }
+        shared = ast_party_shared_fields(decl, &shared_count);
+        mir_decl_header_append_shared_fields(header, shared, shared_count, &out);
+        break;
+    case AST_ROSTER_DECL:
+        for (size_t i = 0; i < ast_roster_party_count(decl); i++) {
+            mir_decl_field_metadata_init_roster_slot(
+                &header->field_metadata[out++], header,
+                ast_roster_party(decl, i));
+        }
+        shared = ast_roster_shared_fields(decl, &shared_count);
+        mir_decl_header_append_shared_fields(header, shared, shared_count, &out);
+        break;
+    case AST_WORLD_DECL:
+        nodes = ast_world_rosters(decl, &count);
+        for (size_t i = 0; nodes != NULL && i < count; i++) {
+            mir_decl_field_metadata_init_world_slot(
+                &header->field_metadata[out++], header, nodes[i],
+                MIR_DECL_FIELD_WORLD_ROSTER_SLOT);
+        }
+        nodes = ast_world_zones(decl, &count);
+        for (size_t i = 0; nodes != NULL && i < count; i++) {
+            mir_decl_field_metadata_init_world_slot(
+                &header->field_metadata[out++], header, nodes[i],
+                MIR_DECL_FIELD_WORLD_ZONE_SLOT);
+        }
+        shared = ast_world_shared_fields(decl, &shared_count);
+        mir_decl_header_append_shared_fields(header, shared, shared_count, &out);
+        break;
+    case AST_RELATION_DECL:
+        nodes = ast_relation_slots(decl, &count);
+        for (size_t i = 0; nodes != NULL && i < count; i++) {
+            mir_decl_field_metadata_init_domain_slot(
+                &header->field_metadata[out++], header, nodes[i]);
+        }
+        shared = ast_relation_shared_fields(decl, &shared_count);
+        mir_decl_header_append_shared_fields(header, shared, shared_count, &out);
+        break;
+    case AST_EFFECT_DECL:
+        nodes = ast_effect_slots(decl, &count);
+        for (size_t i = 0; nodes != NULL && i < count; i++) {
+            mir_decl_field_metadata_init_domain_slot(
+                &header->field_metadata[out++], header, nodes[i]);
+        }
+        shared = ast_effect_shared_fields(decl, &shared_count);
+        mir_decl_header_append_shared_fields(header, shared, shared_count, &out);
+        break;
+    case AST_ZONE_DECL:
+        nodes = ast_zone_slots(decl, &count);
+        for (size_t i = 0; nodes != NULL && i < count; i++) {
+            mir_decl_field_metadata_init_domain_slot(
+                &header->field_metadata[out++], header, nodes[i]);
+        }
+        nodes = ast_zone_layer_slots(decl, &count);
+        for (size_t i = 0; nodes != NULL && i < count; i++) {
+            mir_decl_field_metadata_init_zone_layer(
+                &header->field_metadata[out++], header, nodes[i]);
+        }
+        shared = ast_zone_shared_fields(decl, &shared_count);
+        mir_decl_header_append_shared_fields(header, shared, shared_count, &out);
+        break;
+    default:
+        break;
+    }
+
+    header->field_metadata_count = out;
+    return out == field_count;
+}
+
 static bool
 mir_decl_method_matches_routine(const MIRDeclMethod *method,
                                 const MIRRoutine *routine)
@@ -150,6 +437,156 @@ mir_decl_method_matches_routine(const MIRDeclMethod *method,
     return routine->kind == MIR_SCOPE_METHOD
         && strcmp(routine->name, method->name) == 0
         && strcmp(routine->owner_name, method->owner_name) == 0;
+}
+
+ASTNode *
+mir_decl_header_source_ast(const MIRDeclHeader *header)
+{
+    return header != NULL ? header->source_ast : NULL;
+}
+
+ASTNodeType
+mir_decl_header_ast_type_or(const MIRDeclHeader *header, ASTNodeType fallback)
+{
+    return header != NULL ? header->ast_type : fallback;
+}
+
+const char *
+mir_decl_header_name(const MIRDeclHeader *header)
+{
+    return header != NULL ? header->name : NULL;
+}
+
+size_t
+mir_decl_header_method_count(const MIRDeclHeader *header)
+{
+    return header != NULL ? header->method_metadata_count : 0;
+}
+
+const MIRDeclMethod *
+mir_decl_header_method(const MIRDeclHeader *header, size_t index)
+{
+    if (header == NULL || header->method_metadata == NULL
+        || index >= header->method_metadata_count) {
+        return NULL;
+    }
+    return &header->method_metadata[index];
+}
+
+size_t
+mir_decl_header_field_count(const MIRDeclHeader *header)
+{
+    return header != NULL ? header->field_metadata_count : 0;
+}
+
+const MIRDeclField *
+mir_decl_header_field(const MIRDeclHeader *header, size_t index)
+{
+    if (header == NULL || header->field_metadata == NULL
+        || index >= header->field_metadata_count) {
+        return NULL;
+    }
+    return &header->field_metadata[index];
+}
+
+ASTNode *
+mir_decl_method_source_ast(const MIRDeclMethod *method)
+{
+    return method != NULL ? method->source_ast : NULL;
+}
+
+const char *
+mir_decl_method_name(const MIRDeclMethod *method)
+{
+    return method != NULL ? method->name : NULL;
+}
+
+size_t
+mir_decl_method_param_count(const MIRDeclMethod *method)
+{
+    return method != NULL ? method->param_count : 0;
+}
+
+FuncParam *
+mir_decl_method_param(const MIRDeclMethod *method, size_t index)
+{
+    if (method == NULL || method->params == NULL
+        || index >= method->param_count) {
+        return NULL;
+    }
+    return method->params[index];
+}
+
+ASTNode *
+mir_decl_method_return_type(const MIRDeclMethod *method)
+{
+    return method != NULL ? method->return_type : NULL;
+}
+
+bool
+mir_decl_method_is_action_like(const MIRDeclMethod *method)
+{
+    return method != NULL && method->is_action_like;
+}
+
+bool
+mir_decl_method_routine_index(const MIRDeclMethod *method, size_t *index_out)
+{
+    if (index_out != NULL)
+        *index_out = 0;
+    if (method == NULL || !method->has_routine)
+        return false;
+    if (index_out != NULL)
+        *index_out = method->routine_index;
+    return true;
+}
+
+ASTNode *
+mir_decl_field_source_ast(const MIRDeclField *field)
+{
+    return field != NULL ? field->source_ast : NULL;
+}
+
+const char *
+mir_decl_field_owner_name(const MIRDeclField *field)
+{
+    return field != NULL ? field->owner_name : NULL;
+}
+
+const char *
+mir_decl_field_name(const MIRDeclField *field)
+{
+    return field != NULL ? field->name : NULL;
+}
+
+ASTNode *
+mir_decl_field_type(const MIRDeclField *field)
+{
+    return field != NULL ? field->type : NULL;
+}
+
+const char *
+mir_decl_field_type_name(const MIRDeclField *field)
+{
+    return field != NULL ? field->type_name : NULL;
+}
+
+MIRDeclFieldKind
+mir_decl_field_kind_or(const MIRDeclField *field, MIRDeclFieldKind fallback)
+{
+    return field != NULL ? field->kind : fallback;
+}
+
+bool
+mir_decl_field_is_dynamic(const MIRDeclField *field)
+{
+    return field != NULL && field->is_dynamic;
+}
+
+bool
+mir_decl_field_is_subject_like(const MIRDeclField *field)
+{
+    return field != NULL && field->is_subject_like;
 }
 
 bool
@@ -210,10 +647,15 @@ mir_record_decl_header(MIRProgram *mir, ASTNode *decl)
         header.uses_pointer_self = true;
         if (header.name == NULL)
             return true;
-        if (!mir_decl_header_set_role_impl_methods(&header, decl))
+        if (!mir_decl_header_set_fields(&header, decl))
             return false;
+        if (!mir_decl_header_set_role_impl_methods(&header, decl)) {
+            free(header.field_metadata);
+            return false;
+        }
         if (!mir_append_decl_header(mir, header)) {
             free(header.method_metadata);
+            free(header.field_metadata);
             return false;
         }
         return true;
@@ -228,10 +670,15 @@ mir_record_decl_header(MIRProgram *mir, ASTNode *decl)
 
     if (header.name == NULL)
         return true;
-    if (!mir_decl_header_set_methods(&header, methods, method_count))
+    if (!mir_decl_header_set_fields(&header, decl))
         return false;
+    if (!mir_decl_header_set_methods(&header, methods, method_count)) {
+        free(header.field_metadata);
+        return false;
+    }
     if (!mir_append_decl_header(mir, header)) {
         free(header.method_metadata);
+        free(header.field_metadata);
         return false;
     }
     return true;

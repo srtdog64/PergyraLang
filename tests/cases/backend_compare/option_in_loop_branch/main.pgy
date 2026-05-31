@@ -1,0 +1,21 @@
+func MaybeBig(n: Int) -> Option<Int> {
+    if n > 10 { return Some(n * 2); }
+    return None();
+}
+
+func SumBigs(arr: Array<Int>, n: Int) -> Int {
+    let total: Int = 0;
+    let i: Int = 0;
+    while i < n {
+        total = total + (MaybeBig(arr[i]) ?? 0);
+        i = i + 1;
+    }
+    return total;
+}
+
+func Main() -> Void {
+    let nums: Array<Int> = [3, 15, 8, 20, 5, 11];
+    Log(SumBigs(nums, 6));
+    Log(SumBigs(nums, 3));
+    Log(SumBigs(nums, 0));
+}

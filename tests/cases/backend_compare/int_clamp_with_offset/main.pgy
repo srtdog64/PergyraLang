@@ -1,0 +1,13 @@
+func Adjust(value: Int, low: Int, high: Int, offset: Int) -> Int {
+    return Clamp(value + offset, low, high);
+}
+
+func Main() -> Void {
+    Log(Adjust(5, 0, 10, 0));
+    Log(Adjust(-3, 0, 10, 5));
+    Log(Adjust(15, 0, 10, -2));
+    Log(Adjust(7, 0, 10, 100));
+    Log(Adjust(7, 0, 10, -100));
+    Log(Adjust(0, -5, 5, 0));
+    Log(Adjust(-7, -5, 5, 1));
+}

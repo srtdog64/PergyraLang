@@ -1,0 +1,33 @@
+enum State { Idle, Loading, Ready, Error }
+
+func NextState(s: State) -> State {
+    match s {
+        case Idle: return Loading;
+        case Loading: return Ready;
+        case Ready: return Idle;
+        case Error: return Idle;
+    }
+}
+
+func Code(s: State) -> Int {
+    match s {
+        case Idle: return 0;
+        case Loading: return 1;
+        case Ready: return 2;
+        case Error: return 99;
+    }
+}
+
+func Main() -> Void {
+    let s1: State = Idle;
+    let s2: State = NextState(s1);
+    let s3: State = NextState(s2);
+    let s4: State = NextState(s3);
+    let s5: State = NextState(Error);
+    Log(Code(s1));
+    Log(Code(s2));
+    Log(Code(s3));
+    Log(Code(s4));
+    Log(Code(s5));
+    Log(Code(Error));
+}

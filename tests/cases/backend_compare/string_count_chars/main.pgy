@@ -1,0 +1,22 @@
+func CountVowelLike(s: String) -> Int {
+    let count: Int = 0;
+    let len: Int = StringLength(s);
+    let i: Int = 0;
+    while i < len {
+        let ch: String = Substring(s, i, i + 1);
+        if ch == "a" || ch == "e" || ch == "i" || ch == "o" || ch == "u" {
+            count = count + 1;
+        }
+        i = i + 1;
+    }
+    return count;
+}
+
+func Main() -> Void {
+    Log(CountVowelLike("hello"));
+    Log(CountVowelLike("rhythm"));
+    Log(CountVowelLike("queue"));
+    Log(CountVowelLike(""));
+    Log(CountVowelLike("aeiou"));
+    Log(CountVowelLike("bcdfg"));
+}

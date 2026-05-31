@@ -9,12 +9,12 @@
 #include "../compiler/mir.h"
 #include "../parser/ast_api.h"
 #include "../semantic/diag_codes.h"
-#include "host_decl_compat.h"
 #include "transpiler_context.h"
 #include "transpiler_decl_lookup.h"
 #include "transpiler_func_forward_metadata.h"
 #include "transpiler_generic_param_query.h"
 #include "transpiler_host_self_policy.h"
+#include "transpiler_inventory_view.h"
 #include "transpiler_mir_emit_state.h"
 #include "transpiler_mir_func_emit.h"
 #include "transpiler_specialization_registry.h"
@@ -84,14 +84,17 @@ emit_class_decl(ASTNode *node, TranspilerCtx *ctx)
         return;
 
     const char *name = transpiler_decl_name_local(node);
-    PgyHostClassFieldsCompatView field_view;
-    ClassField **fields;
-    size_t field_count;
     if (name == NULL)
         return;
-    field_view = pgy_host_class_fields_compat_view_from_decl(node);
-    fields = field_view.fields;
-    field_count = field_view.count;
+    TranspilerHostedFieldView field_view =
+        transpiler_hosted_class_field_view_from_decl(ctx, name, node);
+    if (transpiler_hosted_field_view_missing_mir_metadata(&field_view)) {
+        transpiler_set_mir_inventory_missing(
+            ctx,
+            "MIR-only C path missing declaration field metadata for class '%s'",
+            name != NULL ? name : "(anonymous-class)");
+        return;
+    }
     TranspilerHostedMethodView method_view =
         transpiler_hosted_method_view_from_decl(ctx, name, node);
     if (transpiler_hosted_method_view_missing_mir_metadata(&method_view)) {
@@ -102,38 +105,59 @@ emit_class_decl(ASTNode *node, TranspilerCtx *ctx)
         return;
     }
 
-    for (size_t i = 0; i < field_count; i++) {
-        ClassField *f = fields != NULL ? fields[i] : NULL;
-        if (f != NULL)
-            ensure_type_specializations_from_ast_to(ctx, ctx->out, f->type);
+    for (size_t i = 0; i < field_view.count; i++) {
+        ASTNode *field_type =
+            transpiler_hosted_field_view_type(&field_view, i);
+        if (field_type != NULL)
+            ensure_type_specializations_from_ast_to(ctx, ctx->out, field_type);
     }
     for (size_t i = 0; i < method_view.count; i++) {
         ASTNode *method =
             transpiler_hosted_method_view_source_ast(&method_view, i);
+        if (method == NULL) {
+            const MIRRoutine *mir_method =
+                transpiler_hosted_method_view_routine(ctx, &method_view, i);
+            method = transpiler_mir_routine_source_ast_of_type(
+                mir_method, MIR_SCOPE_METHOD, AST_FUNC_DECL);
+        }
         ensure_collection_specializations_from_stmt_to(ctx, ctx->out,
             method);
     }
 
     codebuf_write(ctx->out, "\ntypedef struct %s\n{\n", name);
 
-    for (size_t i = 0; i < field_count; i++) {
-        ClassField *f = fields != NULL ? fields[i] : NULL;
+    for (size_t i = 0; i < field_view.count; i++) {
+        const char *field_name =
+            transpiler_hosted_field_view_name(&field_view, i);
+        ASTNode *field_type =
+            transpiler_hosted_field_view_type(&field_view, i);
         char ft[256];
         char surface_desc[256];
+        if (field_name == NULL) {
+            transpiler_set_backend_error_with_hints(
+                ctx,
+                PGY_CODE_C_TYPE_UNSUPPORTED,
+                PGY_CAUSE_C_TYPE_UNSUPPORTED,
+                PGY_FIX_INSPECT_MIR_INVENTORY,
+                "C backend: class '%s' field[%zu] is missing declaration field metadata",
+                name != NULL ? name : "(anonymous-class)",
+                i);
+            return;
+        }
         if (!transpiler_class_surface_desc(surface_desc,
                 sizeof(surface_desc), "class field", name,
-                f != NULL ? f->name : NULL, NULL)) {
+                field_name, NULL)) {
             transpiler_class_format_too_long(ctx, "class field diagnostic surface");
             return;
         }
         if (!transpiler_require_ast_c_type_copy(ctx,
-                f != NULL ? f->type : NULL,
+                field_type,
                 surface_desc,
                 ft,
                 sizeof(ft))) {
             return;
         }
-        codebuf_write(ctx->out, "    %s %s;\n", ft, f->name);
+        codebuf_write(ctx->out, "    %s %s;\n", ft, field_name);
     }
 
     codebuf_write(ctx->out, "} %s;\n", name);
@@ -156,8 +180,10 @@ emit_class_decl(ASTNode *node, TranspilerCtx *ctx)
         ASTNode *method =
             transpiler_hosted_method_view_source_ast(&method_view, i);
         bool use_self_cell = is_pointer_self_host_type_name(ctx, name);
-        if (method == NULL || method->type != AST_FUNC_DECL)
+        if (method_meta == NULL
+            && (method == NULL || method->type != AST_FUNC_DECL)) {
             continue;
+        }
         emit_hosted_method_forward_decl_from_metadata(name, method_meta, method,
             use_self_cell, ctx->out, ctx);
     }
@@ -170,12 +196,17 @@ emit_class_decl(ASTNode *node, TranspilerCtx *ctx)
         bool use_self_cell = is_pointer_self_host_type_name(ctx, name);
         const MIRRoutine *mir_method;
         const char *method_name;
-        if (method == NULL || method->type != AST_FUNC_DECL)
-            continue;
         method_name = transpiler_mir_decl_method_name(method_meta);
-        if (method_name == NULL)
-            method_name = ast_declaration_name(method);
         mir_method = transpiler_hosted_method_view_routine(ctx, &method_view, i);
+        if (method == NULL && mir_method != NULL)
+            method = transpiler_mir_routine_source_ast_of_type(
+                mir_method, MIR_SCOPE_METHOD, AST_FUNC_DECL);
+        if (method_name == NULL && method != NULL)
+            method_name = ast_declaration_name(method);
+        if (method_meta == NULL
+            && (method == NULL || method->type != AST_FUNC_DECL)) {
+            continue;
+        }
         if (transpiler_active_has_mir(ctx) && mir_method == NULL) {
             transpiler_set_mir_inventory_missing(
                 ctx,

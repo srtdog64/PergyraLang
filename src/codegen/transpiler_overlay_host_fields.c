@@ -9,6 +9,7 @@
 
 #include "../parser/ast_api.h"
 #include "host_decl_compat.h"
+#include "transpiler_context.h"
 #include "transpiler_decl_lookup.h"
 #include "transpiler_host_self_policy.h"
 
@@ -59,6 +60,37 @@ roster_slot_list_has_field(ASTNode *roster, const char *field_name)
             return true;
     }
 
+    return false;
+}
+
+static bool
+host_shared_view_has_field(TranspilerCtx *ctx,
+                           ASTNode *decl,
+                           const char *field_name)
+{
+    const char *host_name;
+    TranspilerHostedSharedFieldView shared_view;
+
+    if (ctx == NULL || decl == NULL || field_name == NULL)
+        return false;
+
+    host_name = transpiler_decl_name_local(decl);
+    shared_view = transpiler_hosted_shared_field_view_from_decl(
+        ctx, host_name, decl);
+    if (transpiler_hosted_shared_field_view_missing_mir_metadata(
+            &shared_view)) {
+        transpiler_set_mir_inventory_missing(ctx,
+            "MIR-only C path missing shared-field existence metadata for '%s'",
+            host_name != NULL ? host_name : "(anonymous-domain)");
+        return false;
+    }
+
+    for (size_t i = 0; i < shared_view.count; i++) {
+        const char *shared_name =
+            transpiler_hosted_shared_field_view_name(&shared_view, i);
+        if (shared_name != NULL && strcmp(shared_name, field_name) == 0)
+            return true;
+    }
     return false;
 }
 
@@ -118,7 +150,7 @@ current_zone_has_field(TranspilerCtx *ctx, const char *field_name)
             layer_slots, layer_slot_count, field_name)) {
         return true;
     }
-    if (pgy_host_shared_field_compat_find(decl, field_name) != NULL)
+    if (host_shared_view_has_field(ctx, decl, field_name))
         return true;
 
     return false;
@@ -137,7 +169,7 @@ current_party_has_field(TranspilerCtx *ctx, const char *field_name)
     if (decl == NULL)
         return false;
 
-    if (pgy_host_shared_field_compat_find(decl, field_name) != NULL)
+    if (host_shared_view_has_field(ctx, decl, field_name))
         return true;
 
     return false;
@@ -159,7 +191,7 @@ current_roster_has_field(TranspilerCtx *ctx, const char *field_name)
     if (roster_slot_list_has_field(decl, field_name))
         return true;
 
-    if (pgy_host_shared_field_compat_find(decl, field_name) != NULL)
+    if (host_shared_view_has_field(ctx, decl, field_name))
         return true;
 
     return false;
@@ -183,7 +215,7 @@ current_relation_has_field(TranspilerCtx *ctx, const char *field_name)
     ASTNode **slots = ast_relation_slots(decl, &slot_count);
     if (domain_slot_list_has_field(slots, slot_count, field_name))
         return true;
-    if (pgy_host_shared_field_compat_find(decl, field_name) != NULL)
+    if (host_shared_view_has_field(ctx, decl, field_name))
         return true;
 
     return false;
@@ -207,7 +239,7 @@ current_effect_has_field(TranspilerCtx *ctx, const char *field_name)
     ASTNode **slots = ast_effect_slots(decl, &slot_count);
     if (domain_slot_list_has_field(slots, slot_count, field_name))
         return true;
-    if (pgy_host_shared_field_compat_find(decl, field_name) != NULL)
+    if (host_shared_view_has_field(ctx, decl, field_name))
         return true;
 
     return false;

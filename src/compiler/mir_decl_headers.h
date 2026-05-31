@@ -5,5 +5,32 @@
 
 bool mir_record_decl_header(MIRProgram *mir, ASTNode *decl);
 void mir_link_decl_method_routines(MIRProgram *mir);
+ASTNode *mir_decl_header_source_ast(const MIRDeclHeader *header);
+ASTNodeType mir_decl_header_ast_type_or(const MIRDeclHeader *header,
+                                        ASTNodeType fallback);
+const char *mir_decl_header_name(const MIRDeclHeader *header);
+size_t mir_decl_header_method_count(const MIRDeclHeader *header);
+const MIRDeclMethod *mir_decl_header_method(const MIRDeclHeader *header,
+                                            size_t index);
+size_t mir_decl_header_field_count(const MIRDeclHeader *header);
+const MIRDeclField *mir_decl_header_field(const MIRDeclHeader *header,
+                                          size_t index);
+ASTNode *mir_decl_method_source_ast(const MIRDeclMethod *method);
+const char *mir_decl_method_name(const MIRDeclMethod *method);
+size_t mir_decl_method_param_count(const MIRDeclMethod *method);
+FuncParam *mir_decl_method_param(const MIRDeclMethod *method, size_t index);
+ASTNode *mir_decl_method_return_type(const MIRDeclMethod *method);
+bool mir_decl_method_is_action_like(const MIRDeclMethod *method);
+bool mir_decl_method_routine_index(const MIRDeclMethod *method,
+                                   size_t *index_out);
+ASTNode *mir_decl_field_source_ast(const MIRDeclField *field);
+const char *mir_decl_field_owner_name(const MIRDeclField *field);
+const char *mir_decl_field_name(const MIRDeclField *field);
+ASTNode *mir_decl_field_type(const MIRDeclField *field);
+const char *mir_decl_field_type_name(const MIRDeclField *field);
+MIRDeclFieldKind mir_decl_field_kind_or(const MIRDeclField *field,
+                                        MIRDeclFieldKind fallback);
+bool mir_decl_field_is_dynamic(const MIRDeclField *field);
+bool mir_decl_field_is_subject_like(const MIRDeclField *field);
 
 #endif /* PGY_MIR_DECL_HEADERS_H */

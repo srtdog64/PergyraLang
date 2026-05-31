@@ -56,6 +56,24 @@ The five closure targets are:
 - ABI/Slot/Pin ownership freeze: Slot/Pin/Zone-bound handle, raw escape, and
   runtime-none policy must be documented, smoked, and backend-stable.
 
+MIR declaration-field inventory tightening (2026-05-31): declaration headers
+now carry validated `MIRDeclField` rows, and backend consumers are moving from
+field compatibility views to that metadata as the first source of truth. Current
+closed consumers include C nominal/member lookup, C class constructor
+  positional field emission, C class/generic-class field emission, C projection
+  literal source/target field iteration, C projection invalidation target-field
+  matching, C projection field-path relevance/vessel checks, C relation/effect/
+  world/zone struct shared-field declaration emission, C relation/effect/zone/
+  world constructor shared-field argument/default emission, LLVM domain struct
+  shared-field type/layout registration, LLVM domain declaration-parts cleanup,
+  LLVM
+projection/domain-projection source-path field iteration, C/LLVM constructor
+Channel guards, LLVM constructor expected-type lookup, and LLVM current
+field-class lookup, C overlay/world shared-field presence checks, and C
+projection literal/source-path plus overlay-projection invalidation class-field
+iteration through `TranspilerHostedFieldView`. Remaining declaration-side work is broader
+declaration/projection emitter coverage, not metadata creation.
+
 Current DAG intent-zone owner tightening (2026-05-25): intent step `where`,
 derived `using`, participant transfer-source checks, and transfer `from`/`to`
 zone declaration recovery now consume the intent type owner seam instead of
@@ -362,6 +380,36 @@ an empty role method view. Gates: `test-mir`,
 `mir-declaration-inventory-test-smoke`, `perf-contract-test-smoke`, and
 `LLVM_ENABLED=1 pgy`.
 
+Current MIR declaration-field inventory tightening (2026-05-31):
+`MIRDeclHeader` now records validated `MIRDeclField` metadata for class fields,
+domain shared fields, party role slots, roster slots, world roster/zone slots,
+domain slots, and zone layer slots. This closes the metadata-creation slice of
+the dedicated declaration IR row. Current consumers include C nominal/current
+member type lookup, C class constructor positional field emission, C
+  class/generic-class field emission, C projection literal source/target field
+  iteration, C projection invalidation target-field matching, C projection
+  field-path relevance/vessel checks, C relation/effect/world/zone struct
+  shared-field declaration emission, C relation/effect/zone/world constructor
+  shared-field argument/default emission, LLVM domain struct shared-field
+  type/layout registration, LLVM domain declaration-parts cleanup, LLVM
+  projection/domain-projection
+source-path field iteration, C/LLVM constructor Channel guards, LLVM
+constructor shared-field defaults, LLVM constructor expected-type lookup, and
+LLVM current field-class lookup. The C constructor Channel guard, MIR SSA
+implicit zone-field recovery, and zone specialization emission now scan shared
+fields through `TranspilerHostedSharedFieldView`, and LLVM constructor
+Channel/default paths scan shared fields through `LLVMHostedSharedFieldView`
+instead of reopening shared-field compatibility directly. C overlay/world
+shared-field presence checks use the same `TranspilerHostedSharedFieldView`
+path and fail closed when required MIR metadata is missing. C projection
+literal/source-path field iteration uses `TranspilerHostedFieldView` instead of
+reopening class-field compatibility locally, and overlay-projection
+invalidation now uses the same hosted field view. Broader
+declaration/projection emitters still need to migrate from `host_decl_compat.c`
+compatibility views before the row can be marked closed.
+Gates: `test-mir`, `test-transpile`, `LLVM_ENABLED=1 pgy`, and
+`mir-declaration-inventory-test-smoke`.
+
 Current MIR surface-usage tightening (2026-05-16):
 `mir_inventory_surface_usage_summary(...)` is now the single inventory summary
 seam for thread-pool and intent-observability usage. MIR lowering records both
@@ -508,8 +556,9 @@ Operational mode:
   linked metadata pass. The gate now checks role declaration metadata recording
   and rejects reintroducing AST-identity or owner/name routine fallbacks. C
   hosted method emission no longer calls a generic method lookup after reading a
-  hosted-method view; the only remaining method lookup helper is explicitly
-  named for the role-include copy seam.
+  hosted-method view, and role method bodies now consume the same
+  `TranspilerHostedMethodView -> MIRDeclMethod -> MIRRoutine` path instead of
+  the retired owner/name role lookup helper.
   Type-alias and event declaration metadata are now on the same parser-owned
   accessor boundary as nominal/domain declarations: DAG metadata/stage
   resolution, DIR/HIR naming, runtime-none scans, C stdlib/specialization/event

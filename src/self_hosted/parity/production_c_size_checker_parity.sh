@@ -51,8 +51,10 @@ LIB_BUILD_DIR="$ROOT_DIR/.tmp/lib"
 mkdir -p "$LIB_BUILD_DIR"
 cp "$ROOT_DIR/src/self_hosted/lib/"*.pgy "$LIB_BUILD_DIR/"
 
+PERGYRA_TOOL_ARG="$(pgy_path_for_compiler "$PGY" "$PERGYRA_TOOL")"
+
 set +e
-PERGYRA_OUT="$(cd "$ROOT_DIR" && "$PGY" "$PERGYRA_TOOL" --run 2>/dev/null)"
+PERGYRA_OUT="$(cd "$ROOT_DIR" && "$PGY" "$PERGYRA_TOOL_ARG" --run 2>/dev/null)"
 P_RC=$?
 set -e
 
@@ -68,21 +70,20 @@ fi
 
 # Shell ground truth.
 SHELL_C="$(wc -l < "$MANIFEST_FILE" | tr -d ' ')"
-SHELL_VIOLATIONS=0
-SHELL_MAX=0
-while IFS= read -r path; do
-    [[ -n "$path" ]] || continue
-    if [[ ! -f "$ROOT_DIR/$path" ]]; then
-        continue
-    fi
-    n="$(wc -l < "$ROOT_DIR/$path" | tr -d ' ')"
-    if [[ "$n" -gt "$SHELL_MAX" ]]; then
-        SHELL_MAX="$n"
-    fi
-    if [[ "$n" -gt 600 ]]; then
-        SHELL_VIOLATIONS=$((SHELL_VIOLATIONS + 1))
-    fi
-done < "$MANIFEST_FILE"
+SHELL_STATS="$(cd "$ROOT_DIR" && awk '
+    NF {
+        n = 0
+        while ((getline line < $0) > 0)
+            n++
+        close($0)
+        if (n > max)
+            max = n
+        if (n > 600)
+            violations++
+    }
+    END { printf "%d %d\n", violations, max }
+' "$MANIFEST_REL")"
+read -r SHELL_VIOLATIONS SHELL_MAX <<<"$SHELL_STATS"
 
 if ! grep -Fq "\"c_files\":${SHELL_C}," <<<"$PERGYRA_OUT"; then
     echo "[self-host-parity:production-c-size] c_files parity FAIL (shell=${SHELL_C})" >&2
@@ -101,6 +102,7 @@ fi
 PERGYRA_JSON="$(printf '%s\n' "$PERGYRA_OUT" \
     | grep -F 'pgy.selfhost.production-c-size.v1' \
     | tail -n 1)"
+PERGYRA_JSON="${PERGYRA_JSON%$'\r'}"
 EXPECTED_JSON="$(cat "$EXPECTED_JSON_FILE")"
 if [[ "$PERGYRA_JSON" != "$EXPECTED_JSON" ]]; then
     echo "[self-host-parity:production-c-size] clean JSON parity FAIL" >&2
@@ -122,19 +124,10 @@ mkdir -p "$NEG_ROOT/src/runtime"
     done
 } > "$NEG_ROOT/src/runtime/pgy_runtime_synthetic_c_drift.c"
 mkdir -p "$NEG_ROOT/$(dirname "$MANIFEST_REL")"
-{
-    cat "$MANIFEST_FILE"
-    echo "src/runtime/pgy_runtime_synthetic_c_drift.c"
-} > "$NEG_ROOT/$MANIFEST_REL"
-while IFS= read -r path; do
-    [[ -n "$path" ]] || continue
-    [[ -f "$ROOT_DIR/$path" ]] || continue
-    mkdir -p "$NEG_ROOT/$(dirname "$path")"
-    cp "$ROOT_DIR/$path" "$NEG_ROOT/$path"
-done < "$MANIFEST_FILE"
+echo "src/runtime/pgy_runtime_synthetic_c_drift.c" > "$NEG_ROOT/$MANIFEST_REL"
 
 set +e
-NEG_OUT="$(cd "$NEG_ROOT" && "$PGY" "$PERGYRA_TOOL" --run 2>/dev/null)"
+NEG_OUT="$(cd "$NEG_ROOT" && "$PGY" "$PERGYRA_TOOL_ARG" --run 2>/dev/null)"
 NEG_RC=$?
 set -e
 if [[ "$NEG_RC" -ne 1 ]]; then

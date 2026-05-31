@@ -310,6 +310,8 @@ infer_expression_type_name(TranspilerCtx *ctx, ASTNode *expr)
             TranspilerInferCallOp op = transpiler_infer_call_lookup(name);
             if (transpiler_infer_call_returns_float_constant(op))
                 return "Float";
+            if (transpiler_infer_call_returns_string(op))
+                return "String";
             if (transpiler_infer_call_is_numeric_passthrough(op)) {
                 if (argc >= 1) {
                     const char *arg_type = infer_expression_type_name(ctx,

@@ -1,0 +1,30 @@
+enum Level { Low, High, Critical }
+
+func WeightOf(l: Level) -> Int {
+    match l {
+        case Low: return 1;
+        case High: return 10;
+        case Critical: return 100;
+    }
+}
+
+func IsUrgent(l: Level) -> Bool {
+    match l {
+        case Low: return false;
+        case High: return false;
+        case Critical: return true;
+    }
+}
+
+func Main() -> Void {
+    let total_weight: Int = 0;
+    total_weight = total_weight + WeightOf(Low);
+    total_weight = total_weight + WeightOf(High);
+    total_weight = total_weight + WeightOf(Critical);
+    total_weight = total_weight + WeightOf(High);
+    Log(total_weight);
+    let urgent_low: Bool = IsUrgent(Low);
+    let urgent_crit: Bool = IsUrgent(Critical);
+    Log(ToString(urgent_low));
+    Log(ToString(urgent_crit));
+}

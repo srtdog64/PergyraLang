@@ -1,0 +1,17 @@
+enum Event { Begin(Int), Mid(Int, Int), End }
+
+func Process(e: Event) -> Int {
+    match e {
+        case Begin(n): return n;
+        case Mid(a, b): return a + b;
+        case End: return -1;
+    }
+}
+
+func Main() -> Void {
+    Log(Process(Begin(42)));
+    Log(Process(Begin(0)));
+    Log(Process(Mid(3, 7)));
+    Log(Process(Mid(-1, 2)));
+    Log(Process(End));
+}

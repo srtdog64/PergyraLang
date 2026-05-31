@@ -74,7 +74,7 @@ llvm_routine_inventory_get(const LLVMMIRRoutineInventory *inventory,
 ASTNode *
 llvm_mir_routine_source_ast(const MIRRoutine *routine)
 {
-    return routine != NULL ? routine->ast : NULL;
+    return mir_routine_source_ast(routine);
 }
 
 ASTNode *

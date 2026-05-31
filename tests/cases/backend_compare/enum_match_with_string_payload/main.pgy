@@ -1,0 +1,17 @@
+enum LogEntry { Info(String), Warning(String, Int), Critical }
+
+func Severity(e: LogEntry) -> Int {
+    match e {
+        case Info(text): return StringLength(text);
+        case Warning(reason, code): return StringLength(reason) + code * 10;
+        case Critical: return 999;
+    }
+}
+
+func Main() -> Void {
+    Log(Severity(Info("ok")));
+    Log(Severity(Info("")));
+    Log(Severity(Warning("watch", 3)));
+    Log(Severity(Warning("urgent", 7)));
+    Log(Severity(Critical));
+}

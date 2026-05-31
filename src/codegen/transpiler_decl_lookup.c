@@ -8,6 +8,8 @@
 #include <stdio.h>
 #include <string.h>
 
+#include "../compiler/mir_decl_headers.h"
+#include "../parser/ast_api.h"
 #include "host_decl_compat.h"
 #include "transpiler_decl_lookup.h"
 
@@ -122,8 +124,8 @@ transpiler_find_named_decl_local(TranspilerCtx *ctx, ASTNodeType decl_type,
         return NULL;
     decl_header = transpiler_active_decl_header(ctx, name);
     if (decl_header != NULL)
-        return decl_header->ast_type == decl_type
-            ? decl_header->source_ast
+        return mir_decl_header_ast_type_or(decl_header, AST_PROGRAM) == decl_type
+            ? mir_decl_header_source_ast(decl_header)
             : NULL;
     transpiler_active_inventory(ctx, decl_type, &decls, &decl_count);
     if (decls == NULL)
@@ -135,6 +137,289 @@ transpiler_find_named_decl_local(TranspilerCtx *ctx, ASTNodeType decl_type,
             return stmt;
     }
     return NULL;
+}
+
+const MIRDeclField *
+transpiler_find_decl_field_metadata(const TranspilerCtx *ctx,
+                                    const char *host_name,
+                                    const char *field_name)
+{
+    const MIRDeclHeader *header;
+
+    if (ctx == NULL || host_name == NULL || field_name == NULL)
+        return NULL;
+    header = transpiler_active_decl_header(ctx, host_name);
+    for (size_t i = 0; header != NULL
+         && i < mir_decl_header_field_count(header); i++) {
+        const MIRDeclField *field = mir_decl_header_field(header, i);
+        const char *name = mir_decl_field_name(field);
+        if (name != NULL && strcmp(name, field_name) == 0)
+            return field;
+    }
+    return NULL;
+}
+
+TranspilerHostedFieldView
+transpiler_hosted_class_field_view_from_decl(const TranspilerCtx *ctx,
+                                             const char *host_name,
+                                             ASTNode *decl)
+{
+    TranspilerHostedFieldView view;
+    PgyHostClassFieldsCompatView compat =
+        pgy_host_class_fields_compat_view_from_decl(decl);
+    const MIRDeclHeader *header = NULL;
+
+    view.decl_header = NULL;
+    view.ast_compat_fields = compat.fields;
+    view.ast_compat_count = compat.count;
+    view.count = compat.count;
+    view.uses_mir_metadata = false;
+    view.requires_mir_metadata =
+        transpiler_active_has_mir(ctx) && compat.count > 0;
+
+    header = transpiler_active_decl_header(ctx, host_name);
+    if (header != NULL
+        && mir_decl_header_ast_type_or(header, AST_PROGRAM) == AST_CLASS_DECL) {
+        view.decl_header = header;
+        view.count = mir_decl_header_field_count(header);
+        view.uses_mir_metadata = true;
+    }
+
+    return view;
+}
+
+bool
+transpiler_hosted_field_view_missing_mir_metadata(
+    const TranspilerHostedFieldView *view)
+{
+    return view != NULL
+        && view->requires_mir_metadata
+        && (!view->uses_mir_metadata
+            || view->count != view->ast_compat_count)
+        && view->ast_compat_count > 0;
+}
+
+const MIRDeclField *
+transpiler_hosted_field_view_metadata(const TranspilerHostedFieldView *view,
+                                      size_t index)
+{
+    if (view == NULL || !view->uses_mir_metadata
+        || view->decl_header == NULL || index >= view->count) {
+        return NULL;
+    }
+    return mir_decl_header_field(view->decl_header, index);
+}
+
+const char *
+transpiler_hosted_field_view_name(const TranspilerHostedFieldView *view,
+                                  size_t index)
+{
+    const MIRDeclField *field =
+        transpiler_hosted_field_view_metadata(view, index);
+
+    if (view == NULL || index >= view->count)
+        return NULL;
+    if (field != NULL)
+        return mir_decl_field_name(field);
+    if (view->requires_mir_metadata)
+        return NULL;
+    if (view->ast_compat_fields != NULL
+        && view->ast_compat_fields[index] != NULL) {
+        return view->ast_compat_fields[index]->name;
+    }
+    return NULL;
+}
+
+ASTNode *
+transpiler_hosted_field_view_type(const TranspilerHostedFieldView *view,
+                                  size_t index)
+{
+    const MIRDeclField *field =
+        transpiler_hosted_field_view_metadata(view, index);
+
+    if (view == NULL || index >= view->count)
+        return NULL;
+    if (field != NULL)
+        return mir_decl_field_type(field);
+    if (view->requires_mir_metadata)
+        return NULL;
+    if (view->ast_compat_fields != NULL
+        && view->ast_compat_fields[index] != NULL) {
+        return view->ast_compat_fields[index]->type;
+    }
+    return NULL;
+}
+
+static size_t
+transpiler_decl_header_shared_field_count(const MIRDeclHeader *header)
+{
+    size_t count = 0;
+
+    for (size_t i = 0; i < mir_decl_header_field_count(header); i++) {
+        const MIRDeclField *field = mir_decl_header_field(header, i);
+        if (mir_decl_field_kind_or(field, MIR_DECL_FIELD_UNKNOWN)
+            == MIR_DECL_FIELD_SHARED) {
+            count++;
+        }
+    }
+    return count;
+}
+
+static const MIRDeclField *
+transpiler_decl_header_shared_field(const MIRDeclHeader *header, size_t index)
+{
+    size_t shared_index = 0;
+
+    for (size_t i = 0; i < mir_decl_header_field_count(header); i++) {
+        const MIRDeclField *field = mir_decl_header_field(header, i);
+        if (mir_decl_field_kind_or(field, MIR_DECL_FIELD_UNKNOWN)
+            != MIR_DECL_FIELD_SHARED) {
+            continue;
+        }
+        if (shared_index == index)
+            return field;
+        shared_index++;
+    }
+    return NULL;
+}
+
+TranspilerHostedSharedFieldView
+transpiler_hosted_shared_field_view_from_decl(const TranspilerCtx *ctx,
+                                              const char *host_name,
+                                              ASTNode *decl)
+{
+    TranspilerHostedSharedFieldView view;
+    PgyHostSharedFieldsCompatView compat =
+        pgy_host_shared_fields_compat_view_from_decl(decl);
+    const MIRDeclHeader *header = NULL;
+
+    view.decl_header = NULL;
+    view.ast_compat_fields = compat.fields;
+    view.ast_compat_count = compat.count;
+    view.count = compat.count;
+    view.uses_mir_metadata = false;
+    view.requires_mir_metadata =
+        transpiler_active_has_mir(ctx) && compat.count > 0;
+
+    header = transpiler_active_decl_header(ctx, host_name);
+    if (header != NULL
+        && transpiler_is_host_decl_type(mir_decl_header_ast_type_or(
+            header, AST_PROGRAM))) {
+        view.decl_header = header;
+        view.count = transpiler_decl_header_shared_field_count(header);
+        view.uses_mir_metadata = true;
+    }
+
+    return view;
+}
+
+bool
+transpiler_hosted_shared_field_view_missing_mir_metadata(
+    const TranspilerHostedSharedFieldView *view)
+{
+    return view != NULL
+        && view->requires_mir_metadata
+        && (!view->uses_mir_metadata
+            || view->count != view->ast_compat_count)
+        && view->ast_compat_count > 0;
+}
+
+const MIRDeclField *
+transpiler_hosted_shared_field_view_metadata(
+    const TranspilerHostedSharedFieldView *view,
+    size_t index)
+{
+    if (view == NULL || !view->uses_mir_metadata
+        || view->decl_header == NULL || index >= view->count) {
+        return NULL;
+    }
+    return transpiler_decl_header_shared_field(view->decl_header, index);
+}
+
+ASTNode *
+transpiler_hosted_shared_field_view_source_ast(
+    const TranspilerHostedSharedFieldView *view,
+    size_t index)
+{
+    const MIRDeclField *field =
+        transpiler_hosted_shared_field_view_metadata(view, index);
+
+    if (view == NULL || index >= view->count)
+        return NULL;
+    if (field != NULL)
+        return mir_decl_field_source_ast(field);
+    if (view->requires_mir_metadata)
+        return NULL;
+    if (view->ast_compat_fields != NULL)
+        return view->ast_compat_fields[index];
+    return NULL;
+}
+
+const char *
+transpiler_hosted_shared_field_view_name(
+    const TranspilerHostedSharedFieldView *view,
+    size_t index)
+{
+    const MIRDeclField *field =
+        transpiler_hosted_shared_field_view_metadata(view, index);
+
+    if (view == NULL || index >= view->count)
+        return NULL;
+    if (field != NULL)
+        return mir_decl_field_name(field);
+    if (view->requires_mir_metadata)
+        return NULL;
+    if (view->ast_compat_fields != NULL
+        && view->ast_compat_fields[index] != NULL) {
+        return ast_party_shared_name(view->ast_compat_fields[index]);
+    }
+    return NULL;
+}
+
+ASTNode *
+transpiler_hosted_shared_field_view_type(
+    const TranspilerHostedSharedFieldView *view,
+    size_t index)
+{
+    const MIRDeclField *field =
+        transpiler_hosted_shared_field_view_metadata(view, index);
+
+    if (view == NULL || index >= view->count)
+        return NULL;
+    if (field != NULL)
+        return mir_decl_field_type(field);
+    if (view->requires_mir_metadata)
+        return NULL;
+    if (view->ast_compat_fields != NULL
+        && view->ast_compat_fields[index] != NULL) {
+        return ast_party_shared_type(view->ast_compat_fields[index]);
+    }
+    return NULL;
+}
+
+ASTNode *
+transpiler_mir_decl_field_type(const MIRDeclField *field)
+{
+    return mir_decl_field_type(field);
+}
+
+const char *
+transpiler_mir_decl_field_type_name(const MIRDeclField *field)
+{
+    return mir_decl_field_type_name(field);
+}
+
+MIRDeclFieldKind
+transpiler_mir_decl_field_kind_or(const MIRDeclField *field,
+                                  MIRDeclFieldKind fallback)
+{
+    return mir_decl_field_kind_or(field, fallback);
+}
+
+bool
+transpiler_mir_decl_field_is_subject_like(const MIRDeclField *field)
+{
+    return mir_decl_field_is_subject_like(field);
 }
 
 ASTNode *

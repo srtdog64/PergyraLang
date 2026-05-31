@@ -1,0 +1,20 @@
+func Halve(n: Int) -> Option<Int> {
+    if n % 2 != 0 { return None(); }
+    return Some(n / 2);
+}
+
+func DoubleHalve(n: Int) -> Int {
+    let first: Option<Int> = Halve(n);
+    let v: Int = first ?? 0;
+    let second: Option<Int> = Halve(v);
+    return second ?? -1;
+}
+
+func Main() -> Void {
+    Log(DoubleHalve(8));
+    Log(DoubleHalve(16));
+    Log(DoubleHalve(7));
+    Log(DoubleHalve(20));
+    Log(DoubleHalve(100));
+    Log(DoubleHalve(0));
+}

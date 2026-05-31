@@ -269,9 +269,43 @@ llvm_emit_identifier(ASTNode *node, LLVMGenCtx *ctx)
 
     {
         LLVMEnumVariantEntry *variant = llvm_lookup_enum_variant(ctx, name);
-        if (variant != NULL)
+        if (variant != NULL) {
+            /*
+             * Construct enum struct only when the enum has data-bearing
+             * variants (tagged union shape). Plain enums (all variants
+             * payload-less) lower to i32 tag, so returning struct would
+             * mismatch function signatures.
+             */
+            ASTNode *enum_decl = llvm_find_enum_decl(ctx, variant->enum_name);
+            bool has_data = false;
+            if (enum_decl != NULL) {
+                size_t vc = 0;
+                (void)ast_enum_variants(enum_decl, &vc);
+                for (size_t i = 0; i < vc; i++) {
+                    if (ast_enum_variant_param_count(enum_decl, i) > 0) {
+                        has_data = true;
+                        break;
+                    }
+                }
+            }
+            if (has_data) {
+                LLVMClassTypeEntry *enum_cls = llvm_lookup_class(ctx,
+                    variant->enum_name);
+                if (enum_cls != NULL
+                    && enum_cls->struct_type != NULL
+                    && LLVMGetTypeKind(enum_cls->struct_type)
+                           == LLVMStructTypeKind) {
+                    LLVMValueRef enum_val = LLVMGetUndef(enum_cls->struct_type);
+                    enum_val = LLVMBuildInsertValue(ctx->builder, enum_val,
+                        LLVMConstInt(ctx->type_i32,
+                            (unsigned long long)variant->value, 0),
+                        0, llvm_tmp_name(ctx));
+                    return enum_val;
+                }
+            }
             return LLVMConstInt(ctx->type_i32,
                 (unsigned long long)variant->value, 0);
+        }
     }
 
     return llvm_identifier_error(node, ctx,

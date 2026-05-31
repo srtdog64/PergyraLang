@@ -68,6 +68,13 @@ host_projection_relevant_field_exists(TranspilerCtx *ctx,
         return false;
 
     {
+        const MIRDeclField *mir_field =
+            transpiler_find_decl_field_metadata(ctx, host_type_name,
+                                                field_name);
+        if (mir_field != NULL)
+            return !transpiler_mir_decl_field_is_subject_like(mir_field);
+    }
+    {
         ClassField *field =
             pgy_host_class_field_compat_find(host_decl, field_name);
         return field != NULL && !field->is_vessel_field;
@@ -111,12 +118,22 @@ method_assignment_projection_field_name(TranspilerCtx *ctx,
         ASTNode *obj = ast_member_object(cursor);
         if (obj != NULL && obj->type == AST_IDENTIFIER
             && ast_identifier_name(obj) != NULL) {
-            ClassField *field = find_host_field_by_name_local(
-                host_decl, ast_identifier_name(obj));
-            if (field != NULL) {
-                if (field->is_vessel_field)
+            const char *candidate_name = ast_identifier_name(obj);
+            const MIRDeclField *mir_field =
+                transpiler_find_decl_field_metadata(ctx, host_type_name,
+                                                    candidate_name);
+            if (mir_field != NULL) {
+                if (transpiler_mir_decl_field_is_subject_like(mir_field))
                     return ast_member_name(cursor);
-                return ast_identifier_name(obj);
+                return candidate_name;
+            } else {
+                ClassField *field = find_host_field_by_name_local(
+                    host_decl, candidate_name);
+                if (field != NULL) {
+                    if (field->is_vessel_field)
+                        return ast_member_name(cursor);
+                    return candidate_name;
+                }
             }
         }
         cursor = obj;

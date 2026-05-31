@@ -304,13 +304,17 @@ llvm_emit_func_from_mir(const MIRRoutine *routine, LLVMGenCtx *ctx)
         var_capacity * sizeof(LLVMMirVar));
     size_t var_count = 0;
 
+    size_t bb_alloc =
+        (routine->block_count > 0 ? routine->block_count : 1);
     LLVMBasicBlockRef *llvm_blocks = pgy_arena_calloc(&ctx->scratch,
-        (routine->block_count > 0 ? routine->block_count : 1)
-            * sizeof(LLVMBasicBlockRef));
+        bb_alloc * sizeof(LLVMBasicBlockRef));
+    LLVMBasicBlockRef *llvm_block_heads = pgy_arena_calloc(&ctx->scratch,
+        bb_alloc * sizeof(LLVMBasicBlockRef));
     for (size_t i = 0; i < routine->block_count; i++) {
         char bb_name[64];
         snprintf(bb_name, sizeof(bb_name), "bb_%zu", i);
         llvm_blocks[i] = LLVMAppendBasicBlockInContext(ctx->context, fn, bb_name);
+        llvm_block_heads[i] = llvm_blocks[i];
     }
     llvm_mir_debug_stage("emit_func_from_mir:blocks_ready", routine);
 
@@ -337,7 +341,8 @@ llvm_emit_func_from_mir(const MIRRoutine *routine, LLVMGenCtx *ctx)
 
     if (routine->entry_block < routine->block_count) {
         llvm_emit_mir_block_with_exprs(&routine->blocks[routine->entry_block], routine, ctx,
-                                       llvm_blocks, vars, var_count, func_decl,
+                                       llvm_blocks, llvm_block_heads,
+                                       vars, var_count, func_decl,
                                        owner_cls, owner_sync, owner_name);
     }
     llvm_mir_debug_stage("emit_func_from_mir:entry_emitted", routine);
@@ -347,6 +352,7 @@ llvm_emit_func_from_mir(const MIRRoutine *routine, LLVMGenCtx *ctx)
         const MIRBasicBlock *mir_block = &routine->blocks[i];
         if (mir_block->is_reachable && !mir_block->is_cleanup) {
             llvm_emit_mir_block_with_exprs(mir_block, routine, ctx, llvm_blocks,
+                                           llvm_block_heads,
                                            vars, var_count, func_decl,
                                            owner_cls, owner_sync, owner_name);
         } else if (!mir_block->is_cleanup) {
@@ -362,14 +368,15 @@ llvm_emit_func_from_mir(const MIRRoutine *routine, LLVMGenCtx *ctx)
         if (LLVMGetBasicBlockTerminator(llvm_blocks[i]) != NULL)
             continue;
         if (mir_block->has_succ_true) {
-            LLVMBuildBr(ctx->builder, llvm_blocks[mir_block->succ_true]);
+            LLVMBuildBr(ctx->builder, llvm_block_heads[mir_block->succ_true]);
         } else if (ret_type == ctx->type_void) {
             LLVMBuildRetVoid(ctx->builder);
         } else {
             LLVMBuildRet(ctx->builder, LLVMConstNull(ret_type));
         }
     }
-    llvm_mir_emit_true_phi_nodes(routine, ctx, llvm_blocks, vars, var_count);
+    llvm_mir_emit_true_phi_nodes(routine, ctx, llvm_blocks, llvm_block_heads,
+                                 vars, var_count);
     llvm_mir_debug_stage("emit_func_from_mir:blocks_emitted", routine);
 
     if (routine->has_cleanup_block) {
@@ -377,6 +384,7 @@ llvm_emit_func_from_mir(const MIRRoutine *routine, LLVMGenCtx *ctx)
             const MIRBasicBlock *mir_block = &routine->blocks[i];
             if (mir_block->is_cleanup && mir_block->is_reachable) {
                 llvm_emit_mir_block_with_exprs(mir_block, routine, ctx, llvm_blocks,
+                                               llvm_block_heads,
                                                vars, var_count, func_decl,
                                                owner_cls, owner_sync, owner_name);
             }

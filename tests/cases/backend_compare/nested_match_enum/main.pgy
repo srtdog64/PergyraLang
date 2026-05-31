@@ -1,0 +1,31 @@
+enum Shape {
+    Square(Int),
+    Disk(Int),
+    Empty
+}
+
+func Symbol(s: Shape) -> String {
+    match s {
+        case Square(side): return "sq:" + ToString(side);
+        case Disk(r): return "dk:" + ToString(r);
+        case Empty: return "empty";
+    }
+}
+
+func Area(s: Shape) -> Int {
+    match s {
+        case Square(side): return side * side;
+        case Disk(r): return 3 * r * r;
+        case Empty: return 0;
+    }
+}
+
+func Main() -> Void {
+    Log(Symbol(Square(5)));
+    Log(Symbol(Disk(3)));
+    Log(Symbol(Empty));
+    Log(Area(Square(5)));
+    Log(Area(Disk(3)));
+    Log(Area(Empty));
+    Log(Area(Square(7)));
+}

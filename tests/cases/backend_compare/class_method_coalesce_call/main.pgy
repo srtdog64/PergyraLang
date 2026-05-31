@@ -1,0 +1,24 @@
+class Node {
+    let id: Int;
+    let weight: Int;
+
+    func WeightOrZero(self, n: Int) -> Option<Int> {
+        if weight > n { return Some(weight); }
+        return None();
+    }
+}
+
+func ContributedAbove(node: Node, threshold: Int, base: Int) -> Int {
+    return base + (node.WeightOrZero(threshold) ?? 0);
+}
+
+func Main() -> Void {
+    let a = Node(1, 10);
+    let b = Node(2, 5);
+    let c = Node(3, 100);
+    Log(ContributedAbove(a, 0, 0));
+    Log(ContributedAbove(a, 50, 0));
+    Log(ContributedAbove(b, 0, 1));
+    Log(ContributedAbove(c, 99, 0));
+    Log(ContributedAbove(c, 100, 0));
+}

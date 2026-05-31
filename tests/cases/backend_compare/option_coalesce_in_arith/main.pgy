@@ -1,0 +1,18 @@
+func HalveIfEven(n: Int) -> Option<Int> {
+    if n % 2 == 0 { return Some(n / 2); }
+    return None();
+}
+
+func WeightedSum(a: Int, b: Int, c: Int) -> Int {
+    return (HalveIfEven(a) ?? 0) * 3
+        + (HalveIfEven(b) ?? 0) * 2
+        + (HalveIfEven(c) ?? -1);
+}
+
+func Main() -> Void {
+    Log(WeightedSum(10, 8, 6));
+    Log(WeightedSum(7, 8, 6));
+    Log(WeightedSum(10, 7, 5));
+    Log(WeightedSum(0, 0, 0));
+    Log(WeightedSum(1, 3, 5));
+}

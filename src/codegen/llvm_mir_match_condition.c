@@ -261,6 +261,84 @@ llvm_mir_emit_match_case_condition(ASTNode *func_decl, ASTNode *case_node,
                         pgy_codegen_match_variant_lookup(result_kind)), 0),
                 llvm_tmp_name(ctx));
         }
+        /* General enum variant destructor: Circle(r), Empty, etc */
+        {
+            const char *variant_name = NULL;
+            size_t variant_argc = 0;
+            ASTNode *callee = NULL;
+            if (pattern_node->type == AST_CALL) {
+                callee = ast_call_callee(pattern_node);
+                if (callee != NULL && callee->type == AST_IDENTIFIER) {
+                    variant_name = ast_identifier_name(callee);
+                    variant_argc = ast_call_arg_count(pattern_node);
+                }
+            } else if (pattern_node->type == AST_IDENTIFIER) {
+                variant_name = ast_identifier_name(pattern_node);
+                variant_argc = 0;
+            }
+            if (variant_name != NULL) {
+                LLVMEnumVariantEntry *variant =
+                    llvm_lookup_enum_variant(ctx, variant_name);
+                if (variant != NULL) {
+                    LLVMClassTypeEntry *enum_cls =
+                        llvm_lookup_class(ctx, variant->enum_name);
+                    /*
+                     * Plain enums (no payload variants) lower the subject as
+                     * a bare i32 tag rather than a tagged-union struct, so
+                     * compare directly without ExtractValue.
+                     */
+                    LLVMTypeKind subject_kind =
+                        LLVMGetTypeKind(LLVMTypeOf(subject));
+                    if (subject_kind != LLVMStructTypeKind) {
+                        return LLVMBuildICmp(ctx->builder, LLVMIntEQ,
+                            subject,
+                            LLVMConstInt(LLVMTypeOf(subject),
+                                (unsigned long long)variant->value, 0),
+                            llvm_tmp_name(ctx));
+                    }
+                    LLVMValueRef tag = LLVMBuildExtractValue(ctx->builder,
+                        subject, 0, llvm_tmp_name(ctx));
+                    if (variant_argc > 0 && enum_cls != NULL) {
+                        int field_idx = llvm_class_field_index(enum_cls,
+                            variant_name);
+                        if (field_idx > 0) {
+                            LLVMValueRef payload = LLVMBuildExtractValue(
+                                ctx->builder, subject, (unsigned)field_idx,
+                                llvm_tmp_name(ctx));
+                            for (size_t i = 0; i < variant_argc; i++) {
+                                ASTNode *arg = ast_call_argument(pattern_node,
+                                    i);
+                                if (arg == NULL
+                                    || arg->type != AST_IDENTIFIER) {
+                                    continue;
+                                }
+                                const char *binding_name =
+                                    ast_identifier_name(arg);
+                                if (binding_name == NULL)
+                                    continue;
+                                LLVMValueRef binding_val =
+                                    LLVMBuildExtractValue(ctx->builder,
+                                        payload, (unsigned)i,
+                                        llvm_tmp_name(ctx));
+                                LLVMTypeRef binding_ty =
+                                    LLVMTypeOf(binding_val);
+                                LLVMValueRef alloca = llvm_create_entry_alloca(
+                                    ctx, binding_ty, binding_name);
+                                LLVMBuildStore(ctx->builder, binding_val,
+                                    alloca);
+                                llvm_scope_declare(ctx,
+                                    pergyra_strdup(binding_name),
+                                    alloca, binding_ty);
+                            }
+                        }
+                    }
+                    return LLVMBuildICmp(ctx->builder, LLVMIntEQ, tag,
+                        LLVMConstInt(ctx->type_i32,
+                            (unsigned long long)variant->value, 0),
+                        llvm_tmp_name(ctx));
+                }
+            }
+        }
         LLVMValueRef pattern = llvm_emit_expression(pattern_node, ctx);
         if (pattern == NULL)
             return NULL;

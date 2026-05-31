@@ -278,6 +278,7 @@ llvm_current_field_class_name(LLVMGenCtx *ctx, const char *field_name)
     LLVMClassTypeEntry *parent_cls;
     LLVMClassTypeEntry *field_cls;
     ASTNode *host_decl;
+    const MIRDeclField *mir_field;
     int field_idx;
     const char *host_name;
 
@@ -297,6 +298,17 @@ llvm_current_field_class_name(LLVMGenCtx *ctx, const char *field_name)
         parent_cls->fields[field_idx].field_type);
     if (field_cls != NULL)
         return field_cls->class_name;
+
+    mir_field = llvm_find_decl_field_in_context(ctx, host_name, field_name);
+    {
+        const char *field_type_name = llvm_mir_decl_field_type_name(mir_field);
+        ASTNode *field_type = llvm_mir_decl_field_type(mir_field);
+        if (field_type_name == NULL && field_type != NULL)
+            field_type_name = ast_type_name(field_type);
+        if (field_type_name != NULL
+            && llvm_lookup_class(ctx, field_type_name) != NULL)
+            return field_type_name;
+    }
 
     host_decl = llvm_find_projection_nominal_decl(ctx, host_name);
     if (host_decl == NULL || host_decl->type != AST_CLASS_DECL)

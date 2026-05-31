@@ -4,7 +4,6 @@
 #include <string.h>
 
 #include "domain_frontier_policy.h"
-#include "host_decl_compat.h"
 #include "parser/ast_api.h"
 #include "transpiler_context.h"
 #include "transpiler_decl_lookup.h"
@@ -41,10 +40,8 @@ emit_zone_decl(ASTNode *node, TranspilerCtx *ctx)
 
     size_t slot_count = 0;
     ASTNode **slots = ast_zone_slots(node, &slot_count);
-    PgyHostSharedFieldsCompatView shared_view =
-        pgy_host_shared_fields_compat_view_from_decl(node);
-    size_t shared_count = shared_view.count;
-    ASTNode **shared_fields = shared_view.fields;
+    TranspilerHostedSharedFieldView shared_view =
+        transpiler_hosted_shared_field_view_from_decl(ctx, name, node);
     size_t state_count = 0;
     ASTNode **states = ast_zone_states(node, &state_count);
     size_t layer_slot_count = 0;
@@ -69,9 +66,18 @@ emit_zone_decl(ASTNode *node, TranspilerCtx *ctx)
     ASTNode **maintained_states = ast_zone_maintained_states(
         node, &maintained_state_count);
 
+    if (transpiler_hosted_shared_field_view_missing_mir_metadata(
+            &shared_view)) {
+        transpiler_set_mir_inventory_missing(
+            ctx,
+            "MIR-only C path missing shared-field declaration metadata for zone '%s'",
+            name != NULL ? name : "(anonymous-zone)");
+        return;
+    }
+
     transpiler_emit_zone_required_specializations(ctx,
         slots, slot_count,
-        shared_fields, shared_count,
+        &shared_view,
         &method_view);
 
     if (!transpiler_emit_zone_struct_decl(ctx, node, name))

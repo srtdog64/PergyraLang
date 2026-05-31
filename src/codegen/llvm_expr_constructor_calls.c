@@ -11,10 +11,15 @@
 #include <stdlib.h>
 #include <string.h>
 
+#include "../compiler/mir_decl_headers.h"
 #include "host_decl_compat.h"
 #include "llvm_backend_type_map_internal.h"
+#include "llvm_inventory_decl_lookup.h"
 #include "llvm_internal_api.h"
 #include "parser/ast_api.h"
+
+static const char kLlvmMirSharedFieldMetadataMissing[] =
+    "<mir-shared-field-metadata>";
 
 static LLVMValueRef
 llvm_constructor_error(ASTNode *node, LLVMGenCtx *ctx, const char *message)
@@ -36,11 +41,21 @@ llvm_class_constructor_field_type_at(LLVMGenCtx *ctx,
                                      const char *callee_name,
                                      size_t index)
 {
+    const MIRDeclHeader *header;
+    const MIRDeclField *field;
+    ASTNode *mir_type;
     ASTNode *class_decl;
     PgyHostClassFieldsCompatView field_view;
 
     if (ctx == NULL || callee_name == NULL)
         return NULL;
+
+    header = llvm_find_host_decl_header_in_context(ctx, callee_name);
+    field = mir_decl_header_field(header, index);
+    mir_type = llvm_mir_decl_field_type(field);
+    if (mir_type != NULL)
+        return mir_type;
+
     class_decl = llvm_find_decl_in_active_inventory(
         ctx, AST_CLASS_DECL, callee_name);
     if (class_decl == NULL)
@@ -88,17 +103,14 @@ llvm_class_constructor_find_channel_field(LLVMGenCtx *ctx, ASTNode *class_decl)
 }
 
 static const char *
-llvm_constructor_find_shared_channel_field(LLVMGenCtx *ctx,
-                                           ASTNode **fields,
-                                           size_t count)
+llvm_constructor_find_shared_channel_field(
+    LLVMGenCtx *ctx,
+    const LLVMHostedSharedFieldView *view)
 {
-    for (size_t i = 0; fields != NULL && i < count; i++) {
-        ASTNode *field = fields[i];
-        if (field != NULL
-            && llvm_constructor_field_is_channel(
-                ctx, ast_party_shared_type(field))) {
-            return ast_party_shared_name(field);
-        }
+    for (size_t i = 0; view != NULL && i < view->count; i++) {
+        ASTNode *field_type = llvm_hosted_shared_field_view_type(view, i);
+        if (llvm_constructor_field_is_channel(ctx, field_type))
+            return llvm_hosted_shared_field_view_name(view, i);
     }
     return NULL;
 }
@@ -119,24 +131,84 @@ llvm_constructor_find_slot_channel_field(LLVMGenCtx *ctx,
     return NULL;
 }
 
-static const char *
-llvm_constructor_find_host_channel_field(LLVMGenCtx *ctx, ASTNode *decl)
+static bool
+llvm_constructor_mir_field_is_channel(LLVMGenCtx *ctx,
+                                      const MIRDeclField *field)
 {
-    PgyHostSharedFieldsCompatView shared;
-    ASTNode **nodes = NULL;
-    size_t count = 0;
+    ASTNode *type_node;
+    const char *type_name;
+
+    if (field == NULL)
+        return false;
+
+    type_node = llvm_mir_decl_field_type(field);
+    if (llvm_constructor_field_is_channel(ctx, type_node))
+        return true;
+
+    type_name = llvm_mir_decl_field_type_name(field);
+    return pgy_classify_type(type_name) == PGY_TK_CHANNEL;
+}
+
+static const char *
+llvm_constructor_find_mir_channel_field(LLVMGenCtx *ctx, ASTNode *decl)
+{
+    const MIRDeclHeader *header;
+    const char *host_name;
 
     if (ctx == NULL || decl == NULL)
         return NULL;
+
+    host_name = llvm_decl_node_name(decl);
+    header = llvm_find_host_decl_header_in_context(ctx, host_name);
+    for (size_t i = 0; header != NULL
+         && i < mir_decl_header_field_count(header); i++) {
+        const MIRDeclField *field = mir_decl_header_field(header, i);
+        if (llvm_constructor_mir_field_is_channel(ctx, field))
+            return mir_decl_field_name(field);
+    }
+    return NULL;
+}
+
+static const char *
+llvm_constructor_fail_shared_metadata_missing(LLVMGenCtx *ctx,
+                                              const char *decl_name)
+{
+    llvm_set_mir_inventory_missing(ctx,
+        "MIR-only LLVM path missing shared-field channel metadata for constructor '%s'",
+        decl_name != NULL ? decl_name : "(anonymous-domain)");
+    return kLlvmMirSharedFieldMetadataMissing;
+}
+
+static const char *
+llvm_constructor_find_host_channel_field(LLVMGenCtx *ctx, ASTNode *decl)
+{
+    ASTNode **nodes = NULL;
+    size_t count = 0;
+    const char *decl_name;
+    const char *mir_channel_field;
+
+    if (ctx == NULL || decl == NULL)
+        return NULL;
+
+    decl_name = llvm_decl_node_name(decl);
+
+    mir_channel_field = llvm_constructor_find_mir_channel_field(ctx, decl);
+    if (mir_channel_field != NULL)
+        return mir_channel_field;
+
     if (decl->type == AST_CLASS_DECL)
         return llvm_class_constructor_find_channel_field(ctx, decl);
 
     switch (decl->type) {
     case AST_PARTY_DECL:
-    case AST_ROSTER_DECL:
-        shared = pgy_host_shared_fields_compat_view_from_decl(decl);
-        return llvm_constructor_find_shared_channel_field(
-            ctx, shared.fields, shared.count);
+    case AST_ROSTER_DECL: {
+        LLVMHostedSharedFieldView shared =
+            llvm_hosted_shared_field_view_from_decl(ctx, decl_name, decl);
+        if (llvm_hosted_shared_field_view_missing_mir_metadata(&shared))
+            return llvm_constructor_fail_shared_metadata_missing(
+                ctx, decl_name);
+        return llvm_constructor_find_shared_channel_field(ctx, &shared);
+    }
     case AST_RELATION_DECL:
         nodes = ast_relation_slots(decl, &count);
         {
@@ -145,9 +217,14 @@ llvm_constructor_find_host_channel_field(LLVMGenCtx *ctx, ASTNode *decl)
             if (slot != NULL)
                 return slot;
         }
-        shared = pgy_host_shared_fields_compat_view_from_decl(decl);
-        return llvm_constructor_find_shared_channel_field(
-            ctx, shared.fields, shared.count);
+        {
+            LLVMHostedSharedFieldView shared =
+                llvm_hosted_shared_field_view_from_decl(ctx, decl_name, decl);
+            if (llvm_hosted_shared_field_view_missing_mir_metadata(&shared))
+                return llvm_constructor_fail_shared_metadata_missing(
+                    ctx, decl_name);
+            return llvm_constructor_find_shared_channel_field(ctx, &shared);
+        }
     case AST_EFFECT_DECL:
         nodes = ast_effect_slots(decl, &count);
         {
@@ -156,9 +233,14 @@ llvm_constructor_find_host_channel_field(LLVMGenCtx *ctx, ASTNode *decl)
             if (slot != NULL)
                 return slot;
         }
-        shared = pgy_host_shared_fields_compat_view_from_decl(decl);
-        return llvm_constructor_find_shared_channel_field(
-            ctx, shared.fields, shared.count);
+        {
+            LLVMHostedSharedFieldView shared =
+                llvm_hosted_shared_field_view_from_decl(ctx, decl_name, decl);
+            if (llvm_hosted_shared_field_view_missing_mir_metadata(&shared))
+                return llvm_constructor_fail_shared_metadata_missing(
+                    ctx, decl_name);
+            return llvm_constructor_find_shared_channel_field(ctx, &shared);
+        }
     case AST_ZONE_DECL:
         nodes = ast_zone_slots(decl, &count);
         {
@@ -167,13 +249,22 @@ llvm_constructor_find_host_channel_field(LLVMGenCtx *ctx, ASTNode *decl)
             if (slot != NULL)
                 return slot;
         }
-        shared = pgy_host_shared_fields_compat_view_from_decl(decl);
-        return llvm_constructor_find_shared_channel_field(
-            ctx, shared.fields, shared.count);
-    case AST_WORLD_DECL:
-        shared = pgy_host_shared_fields_compat_view_from_decl(decl);
-        return llvm_constructor_find_shared_channel_field(
-            ctx, shared.fields, shared.count);
+        {
+            LLVMHostedSharedFieldView shared =
+                llvm_hosted_shared_field_view_from_decl(ctx, decl_name, decl);
+            if (llvm_hosted_shared_field_view_missing_mir_metadata(&shared))
+                return llvm_constructor_fail_shared_metadata_missing(
+                    ctx, decl_name);
+            return llvm_constructor_find_shared_channel_field(ctx, &shared);
+        }
+    case AST_WORLD_DECL: {
+        LLVMHostedSharedFieldView shared =
+            llvm_hosted_shared_field_view_from_decl(ctx, decl_name, decl);
+        if (llvm_hosted_shared_field_view_missing_mir_metadata(&shared))
+            return llvm_constructor_fail_shared_metadata_missing(
+                ctx, decl_name);
+        return llvm_constructor_find_shared_channel_field(ctx, &shared);
+    }
     default:
         return NULL;
     }
@@ -237,7 +328,24 @@ llvm_emit_enum_variant_constructor(ASTNode *node, LLVMGenCtx *ctx,
     if (param_count > 0) {
         int field_idx = llvm_class_field_index(enum_cls, callee_name);
         if (field_idx > 0) {
-            LLVMTypeRef payload_ty = enum_cls->fields[field_idx].field_type;
+            /*
+             * `field_idx` is the LLVM struct field position (e.g. 2 for the
+             * second variant when a no-payload variant precedes it).
+             * `enum_cls->fields[]` is a parallel array of LLVMClassField
+             * entries with its own array index. Read the payload type by
+             * iterating until we find the entry whose .index matches.
+             */
+            LLVMTypeRef payload_ty = NULL;
+            for (int fi = 0; fi < enum_cls->field_count; fi++) {
+                if (enum_cls->fields[fi].index == field_idx) {
+                    payload_ty = enum_cls->fields[fi].field_type;
+                    break;
+                }
+            }
+            if (payload_ty == NULL) {
+                return llvm_constructor_error(node, ctx,
+                    "LLVM enum variant payload type metadata not found for field index");
+            }
             LLVMValueRef payload = LLVMGetUndef(payload_ty);
             LLVMClassTypeEntry *payload_cls = llvm_lookup_class_by_type(ctx, payload_ty);
 
@@ -277,17 +385,18 @@ llvm_emit_enum_variant_constructor(ASTNode *node, LLVMGenCtx *ctx,
 static void
 llvm_emit_class_constructor_shared_defaults(ASTNode *node, LLVMGenCtx *ctx,
                                             LLVMClassTypeEntry *cls,
-                                            ASTNode **shared_fields,
-                                            size_t shared_count,
+                                            const LLVMHostedSharedFieldView *view,
                                             LLVMValueRef *object)
 {
     if (object == NULL)
         return;
 
-    for (size_t i = 0; i < shared_count; i++) {
-        ASTNode *shared = shared_fields[i];
-        const char *shared_name = ast_party_shared_name(shared);
-        ASTNode *initializer = ast_party_shared_initializer(shared);
+    for (size_t i = 0; view != NULL && i < view->count; i++) {
+        ASTNode *shared = llvm_hosted_shared_field_view_source_ast(view, i);
+        const char *shared_name =
+            llvm_hosted_shared_field_view_name(view, i);
+        ASTNode *initializer = shared != NULL
+            ? ast_party_shared_initializer(shared) : NULL;
         int field_idx;
         LLVMValueRef init_val;
         if (shared == NULL || shared_name == NULL || initializer == NULL) {
@@ -480,11 +589,19 @@ llvm_emit_class_constructor(ASTNode *node, LLVMGenCtx *ctx, const char *callee_n
         && host_decl->type == AST_ZONE_DECL ? host_decl : NULL;
     ASTNode *world_decl = host_decl != NULL
         && host_decl->type == AST_WORLD_DECL ? host_decl : NULL;
-    PgyHostSharedFieldsCompatView shared_view =
-        pgy_host_shared_fields_compat_view_from_decl(host_decl);
+    const char *host_name = llvm_decl_node_name(host_decl);
+    LLVMHostedSharedFieldView shared_view =
+        llvm_hosted_shared_field_view_from_decl(ctx, host_name, host_decl);
 
-    llvm_emit_class_constructor_shared_defaults(node, ctx, cls,
-        shared_view.fields, shared_view.count, &object);
+    if (llvm_hosted_shared_field_view_missing_mir_metadata(&shared_view)) {
+        llvm_set_mir_inventory_missing(ctx,
+            "MIR-only LLVM path missing shared-field constructor metadata for '%s'",
+            host_name != NULL ? host_name : "(anonymous-domain)");
+        return NULL;
+    }
+
+    llvm_emit_class_constructor_shared_defaults(node, ctx, cls, &shared_view,
+        &object);
     llvm_emit_class_constructor_projection_dirty(ctx, cls,
         relation_decl, effect_decl, zone_decl, &object);
     llvm_emit_class_constructor_world_dirty(ctx, cls, world_decl, &object);

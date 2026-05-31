@@ -9,6 +9,7 @@
 
 #include "../parser/ast_api.h"
 #include "host_decl_compat.h"
+#include "transpiler_context.h"
 #include "transpiler_decl_lookup.h"
 #include "transpiler_nominal.h"
 #include "transpiler_projection.h"
@@ -21,6 +22,21 @@ render_nominal_member_type_name(TranspilerCtx *ctx, ASTNode *type_node)
     if (ctx == NULL || type_node == NULL || type_node->type != AST_TYPE)
         return NULL;
     return transpiler_render_type_name_local(ctx, type_node);
+}
+
+static const char *
+render_mir_decl_field_type_name(TranspilerCtx *ctx,
+                                const MIRDeclField *field)
+{
+    const char *type_name;
+
+    if (ctx == NULL || field == NULL)
+        return NULL;
+    type_name = transpiler_mir_decl_field_type_name(field);
+    if (type_name != NULL)
+        return type_name;
+    return render_nominal_member_type_name(
+        ctx, transpiler_mir_decl_field_type(field));
 }
 
 static const char *
@@ -45,11 +61,39 @@ transpiler_host_shared_member_type_name(TranspilerCtx *ctx,
                                         ASTNode *decl,
                                         const char *field_name)
 {
-    ASTNode *shared =
-        pgy_host_shared_field_compat_find(decl, field_name);
-    return shared != NULL
-        ? render_nominal_member_type_name(ctx, ast_party_shared_type(shared))
-        : NULL;
+    const char *host_name;
+    TranspilerHostedSharedFieldView shared_view;
+
+    if (ctx == NULL || decl == NULL || field_name == NULL)
+        return NULL;
+
+    host_name = transpiler_decl_name_local(decl);
+    shared_view = transpiler_hosted_shared_field_view_from_decl(
+        ctx, host_name, decl);
+    if (transpiler_hosted_shared_field_view_missing_mir_metadata(
+            &shared_view)) {
+        transpiler_set_mir_inventory_missing(ctx,
+            "MIR-only C path missing shared-field member metadata for '%s'",
+            host_name != NULL ? host_name : "(anonymous-domain)");
+        return NULL;
+    }
+
+    for (size_t i = 0; i < shared_view.count; i++) {
+        const char *shared_name =
+            transpiler_hosted_shared_field_view_name(&shared_view, i);
+        if (shared_name == NULL || strcmp(shared_name, field_name) != 0)
+            continue;
+        {
+            const MIRDeclField *field =
+                transpiler_hosted_shared_field_view_metadata(&shared_view, i);
+            const char *type_name = render_mir_decl_field_type_name(ctx, field);
+            if (type_name != NULL)
+                return type_name;
+        }
+        return render_nominal_member_type_name(ctx,
+            transpiler_hosted_shared_field_view_type(&shared_view, i));
+    }
+    return NULL;
 }
 
 static const char *
@@ -151,6 +195,9 @@ const char *
 transpiler_current_field_type_name(TranspilerCtx *ctx, const char *field_name)
 {
     ASTNode *decl;
+    const MIRDeclField *field;
+    const char *host_name;
+    const char *mir_type_name;
 
     if (ctx == NULL || field_name == NULL)
         return NULL;
@@ -158,6 +205,16 @@ transpiler_current_field_type_name(TranspilerCtx *ctx, const char *field_name)
     decl = transpiler_current_host_decl_local(ctx);
     if (decl == NULL)
         return NULL;
+    host_name = transpiler_decl_name_local(decl);
+    field = transpiler_find_decl_field_metadata(ctx, host_name, field_name);
+    if ((decl->type != AST_RELATION_DECL
+         && decl->type != AST_EFFECT_DECL)
+        || transpiler_mir_decl_field_kind_or(field, MIR_DECL_FIELD_UNKNOWN)
+            != MIR_DECL_FIELD_SHARED) {
+        mir_type_name = render_mir_decl_field_type_name(ctx, field);
+        if (mir_type_name != NULL)
+            return mir_type_name;
+    }
 
     switch (decl->type) {
     case AST_CLASS_DECL: {
@@ -187,9 +244,16 @@ transpiler_lookup_nominal_host_member_type_name(TranspilerCtx *ctx,
                                                 const char *member_name)
 {
     ASTNode *decl;
+    const MIRDeclField *field;
+    const char *mir_type_name;
 
     if (ctx == NULL || host_type_name == NULL || member_name == NULL)
         return NULL;
+
+    field = transpiler_find_decl_field_metadata(ctx, host_type_name, member_name);
+    mir_type_name = render_mir_decl_field_type_name(ctx, field);
+    if (mir_type_name != NULL)
+        return mir_type_name;
 
     decl = transpiler_find_nominal_host_decl_local(ctx, host_type_name);
     if (decl == NULL)

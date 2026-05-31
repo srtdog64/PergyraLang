@@ -1,0 +1,34 @@
+func HexDigit(n: Int) -> String {
+    if n == 0 { return "0"; }
+    if n == 1 { return "1"; }
+    if n == 2 { return "2"; }
+    if n == 3 { return "3"; }
+    if n == 4 { return "4"; }
+    if n == 5 { return "5"; }
+    if n == 6 { return "6"; }
+    if n == 7 { return "7"; }
+    if n == 8 { return "8"; }
+    if n == 9 { return "9"; }
+    if n == 10 { return "a"; }
+    if n == 11 { return "b"; }
+    if n == 12 { return "c"; }
+    if n == 13 { return "d"; }
+    if n == 14 { return "e"; }
+    if n == 15 { return "f"; }
+    return "?";
+}
+
+func ToHexByte(n: Int) -> String {
+    let hi: Int = (n / 16) % 16;
+    let lo: Int = n % 16;
+    return Concat(HexDigit(hi), HexDigit(lo));
+}
+
+func Main() -> Void {
+    Log(ToHexByte(0));
+    Log(ToHexByte(15));
+    Log(ToHexByte(16));
+    Log(ToHexByte(255));
+    Log(ToHexByte(100));
+    Log(ToHexByte(42));
+}

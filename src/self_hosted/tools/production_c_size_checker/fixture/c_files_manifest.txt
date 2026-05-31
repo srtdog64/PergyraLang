@@ -304,7 +304,6 @@ src/codegen/transpiler_mir_resource_hook_emit.c
 src/codegen/transpiler_mir_resource_name.c
 src/codegen/transpiler_mir_resource_op_core.c
 src/codegen/transpiler_mir_resource_op_emit.c
-src/codegen/transpiler_mir_role_lookup.c
 src/codegen/transpiler_mir_signature.c
 src/codegen/transpiler_mir_ssa_contract.c
 src/codegen/transpiler_mir_ssa_entry.c

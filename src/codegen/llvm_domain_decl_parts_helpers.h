@@ -7,8 +7,6 @@ void llvm_domain_decl_parts(ASTNode *stmt,
                             const char **decl_name,
                             ASTNode ***slots,
                             size_t *slot_count,
-                            ASTNode ***shared_fields,
-                            size_t *shared_count,
                             ASTNode ***refreshes,
                             size_t *refresh_count);
 

@@ -1,0 +1,20 @@
+func PositiveOr(n: Int) -> Option<Int> {
+    if n > 0 { return Some(n); }
+    return None();
+}
+
+func ResolveOr(a: Int, b: Int, fallback: Int) -> Int {
+    let pick: Int = PositiveOr(a) ?? -1;
+    if pick >= 0 { return pick; }
+    let next: Int = PositiveOr(b) ?? -1;
+    if next >= 0 { return next; }
+    return fallback;
+}
+
+func Main() -> Void {
+    Log(ResolveOr(5, 10, -1));
+    Log(ResolveOr(0, 10, -1));
+    Log(ResolveOr(0, 0, 99));
+    Log(ResolveOr(0, 0, -77));
+    Log(ResolveOr(3, 0, 0));
+}

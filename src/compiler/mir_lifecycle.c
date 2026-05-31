@@ -68,8 +68,10 @@ mir_destroy(MIRProgram *mir)
     }
     free(mir->externs);
     if (mir->decl_headers != NULL) {
-        for (size_t i = 0; i < mir->decl_header_count; i++)
+        for (size_t i = 0; i < mir->decl_header_count; i++) {
             free(mir->decl_headers[i].method_metadata);
+            free(mir->decl_headers[i].field_metadata);
+        }
     }
     free(mir->decl_headers);
     free(mir->types);

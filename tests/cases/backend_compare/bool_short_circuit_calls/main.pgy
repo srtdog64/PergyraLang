@@ -1,0 +1,15 @@
+func TruthyOdd(n: Int) -> Bool {
+    Log("check=" + ToString(n));
+    return n % 2 == 1;
+}
+
+func Main() -> Void {
+    let a: Bool = TruthyOdd(5) && TruthyOdd(7);
+    Log("and=" + ToString(a));
+    let short: Bool = TruthyOdd(2) && TruthyOdd(99);
+    Log("short=" + ToString(short));
+    let c: Bool = TruthyOdd(1) || TruthyOdd(99);
+    Log("orShort=" + ToString(c));
+    let d: Bool = TruthyOdd(2) || TruthyOdd(7);
+    Log("orFull=" + ToString(d));
+}

@@ -1,0 +1,22 @@
+enum Verdict { Pass, Warn(Int), Fail(String) }
+
+func Score(v: Verdict) -> Int {
+    match v {
+        case Pass: return 100;
+        case Warn(level):
+            if level <= 0 || level > 10 {
+                return -1;
+            }
+            return 50 + level;
+        case Fail(reason): return -StringLength(reason);
+    }
+}
+
+func Main() -> Void {
+    Log(Score(Pass));
+    Log(Score(Warn(5)));
+    Log(Score(Warn(0)));
+    Log(Score(Warn(11)));
+    Log(Score(Fail("nope")));
+    Log(Score(Fail("")));
+}

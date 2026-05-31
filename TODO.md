@@ -38,6 +38,62 @@ English anchor for tooling/doc gates:
   of raw `mir->routines` / `mir->routine_count`, and the program validator uses
   the same inventory view for routine-shape checks. This closes the hosted-method
   body selection row while leaving the dedicated declaration IR row open.
+- C role method body source-of-truth tightening: role impl methods now emit
+  through `TranspilerHostedMethodView -> MIRDeclMethod -> MIRRoutine` like
+  other hosted methods. The retired `transpiler_find_role_impl_mir_method(...)`
+  owner/name routine lookup helper and source file are removed from the build,
+  the declaration-inventory smoke rejects reintroducing it, and targeted
+  C/LLVM backend compare passed for role include, operator, party bind,
+  roster-host-method, and forward-ability fixtures.
+- Soft self-host production-size gate tightening: the `.c` / `.h` production
+  size parity scripts now pass Windows compiler paths through
+  `pgy_path_for_compiler(...)`, normalize CRLF JSON lines before exact parity
+  comparison, and use a single-file synthetic over-cap fixture instead of
+  copying the whole source tree. `rir_public_surface.c` is back at the hard
+  600-LOC owner cap after role lookup owner removal updated the manifests.
+- C MIR match enum payload type-source tightening: enum destructuring payload
+  bindings in MIR match lowering now call
+  `transpiler_require_ast_c_type_copy(...)` instead of the raw
+  `pergyra_ast_type_to_c_copy(...)` mapper, so unsupported payload types fail
+  through the ctx-aware backend diagnostic seam instead of silently falling
+  back to `int32_t`.
+- Backend owner-size gate tightening: `test_mir_lowering_part_c.cases.h` was
+  split back under the 990-LOC test-fragment cap by moving the intent
+  observability user-call case to part D, with `test-mir` and
+  `cfg-body-dataflow-test-smoke` still green. LLVM task/channel lowering also
+  keeps its explicit channel-variable requirement seam named
+  `llvm_required_channel_var(...)` instead of hiding the required Channel<T>
+  target check behind a generic arg helper.
+- Perf-contract gate tightening: `tests/perf_contract_smoke.sh` now indexes
+  `src` once and derives codegen/semantic/runtime/AIR-test slices for repeated
+  negative scans, while direct-branch loops collapse into owner-level regex
+  checks. The gate still remains expensive on Git Bash, but it no longer
+  reopens the same source tree for the most repeated absence checks.
+- MIR declaration-field inventory progress: `MIRDeclHeader` now carries
+  validated `MIRDeclField` rows for class fields, shared fields, party role
+  slots, roster slots, world roster/zone slots, domain slots, and zone layer
+  slots. `mir_decl_headers.c` owns the field metadata population/accessors,
+  `mir_decl_header_validate.c` rejects field count/storage/owner drift, and
+  `mir-declaration-inventory-test-smoke` pins the new metadata/accessor surface.
+  The C nominal/member type lookup, C class constructor positional field
+  emission, C class/generic-class field emission, C projection literal
+  source/target field iteration, C projection invalidation target-field
+  matching, C projection field-path relevance/vessel checks, C relation/effect/
+  world/zone struct shared-field declaration emission, C relation/effect/zone/
+  world constructor shared-field argument/default emission, LLVM domain struct
+  shared-field type/layout registration, and LLVM domain declaration parts
+  cleanup, LLVM
+  projection/domain-projection source-path field iteration, C/LLVM constructor
+  Channel guards, including the C shared-field channel scan through
+  `TranspilerHostedSharedFieldView`, LLVM constructor shared-field defaults and
+  expected-type lookup, C MIR SSA implicit zone shared-field recovery, C zone
+  specialization emission, C overlay/world shared-field presence checks, C
+  projection literal/source-path and overlay-projection invalidation
+  class-field iteration through `TranspilerHostedFieldView`, and LLVM current
+  field-class lookup now consume these MIR field facts before falling back to
+  host field compatibility views. Remaining declaration/projection emitters
+  still need the same migration before the dedicated declaration IR row can
+  close.
 - MIR routine/program structure seam tightening: C/LLVM inventory views and AIR
   MIR evidence now consume routines and `main`/top-level flags through
   `mir_program_inventory.c` inventory/program-shape accessors. The smoke gates
@@ -111,7 +167,9 @@ English anchor for tooling/doc gates:
   projection invalidation, and C/LLVM
   projection-path helpers consume those owner seams instead of reopening
   separate class/domain shared-field switches for those paths. Broader field
-  metadata is still open until dedicated declaration-field metadata exists.
+  metadata now exists in MIR, but backend consumers are still on the
+  compatibility view until the dedicated declaration-field consumer migration
+  is complete.
   `mir-declaration-inventory-test-smoke` now also runs a global codegen
   whitelist: direct `ast_class_fields(...)` / domain shared-field array access
   is allowed only in `host_decl_compat.c` and declaration/register emit owners.
@@ -145,7 +203,7 @@ English anchor for tooling/doc gates:
   Parallel validation must use distinct `BUILD_DIR`/`BIN_DIR` values or run
   sequentially.
 - Backend compare inventory note: the default C/LLVM registry currently lists
-  258 cases. The latest promoted fixtures (`for_in_array_int`,
+  308 cases. The latest promoted fixtures (`for_in_array_int`,
   `nested_array_subarray`, `float_to_string_precision`,
   `map_key_lookup_branch`, `phi_branch_value`, `queue_string_ops`,
   `list_int_loop`, `compose_two_functions`, `negative_index_check`,
@@ -159,8 +217,14 @@ English anchor for tooling/doc gates:
   `palindrome_check`, `bubble_sort_small`, `fizzbuzz_loop`,
   `multi_array_find`, `bool_state_toggle`, `primes_below_n`, and
   `string_repeat_pattern`, plus `linear_search_first_match` and
-  `map_word_grouping`) passed as targeted MinGW/Git Bash runs; do not claim a
-  full 258/258 gate until the whole default suite is run.
+  `map_word_grouping`) passed as targeted MinGW/Git Bash runs. The most recent
+  promotion adds matrix diagonal sum, descending sort, compound-interest loop,
+  frequency dominance, pair-sum counting, hex-digit lookup, sequential array
+  diff, all-positive scan, rotate-left, balanced-parentheses scan, interval
+  overlap counting, trapezoid accumulation, Caesar shift, float
+  Abs/Min/Max/Clamp, LLVM boolean short-circuit, and Long unary-minus parity.
+  The 16 new fixtures passed as targeted MinGW/Git Bash runs; do not claim a
+  full 308/308 gate until the whole default suite is run.
   Field-channel storage
   remains an intentional reject
   until movable `Channel<T>` handle ABI exists, so LLVM IR-only field-channel
@@ -7957,7 +8021,7 @@ Progress log, 2026-05-04:
 - Split C backend intent zone-slot resolution out of `transpiler_intent_zone_binding_emit.h` into `transpiler_intent_zone_slot.c`; block intent binding and intent trace emit now consume a named compiled owner for alias/zone slot resolution instead of relying on header include order. Gates: targeted `gcc -fsyntax-only` for `transpiler.c` and `transpiler_intent_zone_slot.c`; full make gates are currently blocked locally by shell/WSL permission errors.
 - Split C backend intent zone-binding emission out of `transpiler_intent_zone_binding_emit.h` into `transpiler_intent_zone_binding_emit.c`; intent forward declarations and zone-bound alias restore emission now live in a compiled owner, and the header is declaration-only. Gates: standalone owner compile, `pgy`, `build-source-inventory-test-smoke`, `test-inc-size-test-smoke`, `memory-string-safety-test-smoke`, `perf-contract-test-smoke`, `semantic-core-shape-test-smoke`, and `test-transpile` (`770/0`).
 - Split C backend MIR SSA lookup helpers out of `transpiler_mir_ssa_lookup.h` into `transpiler_mir_ssa_lookup.c`; prior-block, block-exit, renamed-local, and routine-exit SSA name resolution now share one compiled owner while `transpiler_mir_emit_decls.h` only exposes the early declaration seam. Gates: targeted `gcc -fsyntax-only` for `transpiler.c` and `transpiler_mir_ssa_lookup.c`; full make gates are currently blocked locally by shell/WSL permission errors.
-- Split C backend MIR role-method lookup and SSA entry/name rendering out of `transpiler_mir_ssa_names.h` into `transpiler_mir_role_lookup.c`, `transpiler_mir_ssa_entry.c`, and `transpiler_mir_ssa_names.c`; the SSA names header is now declaration-only, and SSA C-name rendering now receives `TranspilerCtx *` explicitly instead of reading the type-render context global. Gates: targeted `gcc -fsyntax-only` for `transpiler.c`, `transpiler_mir_role_lookup.c`, `transpiler_mir_ssa_entry.c`, and `transpiler_mir_ssa_names.c`; full make gates are currently blocked locally by shell/WSL permission errors.
+- Split C backend MIR role-method lookup and SSA entry/name rendering out of `transpiler_mir_ssa_names.h` into `transpiler_mir_role_lookup.c`, `transpiler_mir_ssa_entry.c`, and `transpiler_mir_ssa_names.c`; this was later superseded when role method bodies moved to `TranspilerHostedMethodView -> MIRDeclMethod -> MIRRoutine`, retiring `transpiler_mir_role_lookup.c`. The SSA names header remains declaration-only, and SSA C-name rendering now receives `TranspilerCtx *` explicitly instead of reading the type-render context global. Gates: targeted `gcc -fsyntax-only` for `transpiler.c`, `transpiler_mir_ssa_entry.c`, and `transpiler_mir_ssa_names.c`; full make gates are currently blocked locally by shell/WSL permission errors.
 - Split C backend MIR pin-region emission out of `transpiler_mir_pin_emit.h` into `transpiler_mir_pin_emit.c`; pin enter/exit, pin-slot lookup, anchor-def probing, and resource-alias seeding are now a compiled owner, while the pin header is declaration-only. Gates: targeted `gcc -fsyntax-only` for `transpiler.c` and `transpiler_mir_pin_emit.c`; full make gates are currently blocked locally by shell/WSL permission errors.
 - Split C backend MIR signature eligibility policy out of `transpiler_mir_ssa_emit.h` into `transpiler_mir_signature.c`; the emission contract now consumes a compiled signature owner and passes `TranspilerCtx *` explicitly instead of relying on type-render local state. Gates: targeted `gcc -fsyntax-only` for `transpiler.c` and `transpiler_mir_signature.c`; full make gates are currently blocked locally by shell/WSL permission errors.
 - Split C backend MIR local-binding discovery and with/destructure alias seeding out of `transpiler_mir_ssa_emit.h` into `transpiler_mir_local_binding.c`, reducing the SSA emit header's AST-walk responsibility before deeper MIR emitter splits. Gates: `test-transpile`, `build-source-inventory-test-smoke`.
@@ -14656,8 +14720,9 @@ Source of truth:
   open-coding `class_decl.methods[]` scans.
 - C hosted method emission now consumes `TranspilerHostedMethodView` routine
   metadata directly. The generic `transpiler_find_mir_method(...)` helper name is
-  gone; the only remaining method lookup helper is explicitly scoped as
-  `transpiler_find_role_impl_mir_method(...)` for the role-include copy seam.
+  gone, and the later role-method pass also removed
+  `transpiler_find_role_impl_mir_method(...)`; C role method bodies now consume
+  the hosted-method metadata view directly.
 - The public C backend `transpiler_decl_methods_local(...)` AST method-array
   seam is removed. The remaining AST method-list access is quarantined as a
   static fallback inside `transpiler_decl_host_lookup.c` for MIR-absent paths.

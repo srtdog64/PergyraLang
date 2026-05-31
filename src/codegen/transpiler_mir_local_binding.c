@@ -165,6 +165,30 @@ transpiler_register_with_alias_bindings_in_block(TranspilerSSANameMap *ssa_map,
         }
         transpiler_register_with_alias_bindings_in_block(ssa_map,
             ast_for_body(body));
+        return;
+    }
+    if (body->type == AST_MATCH_STMT) {
+        for (size_t i = 0; i < ast_match_case_count(body); i++) {
+            ASTNode *mc = ast_match_case_at(body, i);
+            if (mc == NULL)
+                continue;
+            ASTNode *pat = ast_match_case_pattern(mc);
+            if (pat != NULL && pat->type == AST_CALL) {
+                for (size_t a = 0; a < ast_call_arg_count(pat); a++) {
+                    ASTNode *arg = ast_call_argument(pat, a);
+                    if (arg != NULL && arg->type == AST_IDENTIFIER) {
+                        const char *name = ast_identifier_name(arg);
+                        if (name != NULL)
+                            transpiler_ssa_name_map_set(ssa_map, name, name);
+                    }
+                }
+            }
+            transpiler_register_with_alias_bindings_in_block(ssa_map,
+                ast_match_case_body(mc));
+        }
+        transpiler_register_with_alias_bindings_in_block(ssa_map,
+            ast_match_default_body(body));
+        return;
     }
 }
 

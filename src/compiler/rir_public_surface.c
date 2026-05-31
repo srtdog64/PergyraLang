@@ -395,7 +395,6 @@ void
 rir_dump_json(const RIRProgram *rir, FILE *out)
 {
     RIRScopeInventory inventory;
-
     if (out == NULL)
         out = stdout;
     if (rir == NULL) {
@@ -413,7 +412,6 @@ rir_dump_json(const RIRProgram *rir, FILE *out)
         size_t fact_count;
         size_t op_count;
         size_t summary_count;
-
         if (scope == NULL)
             continue;
         fact_count = rir_scope_fact_count(scope);
@@ -436,7 +434,6 @@ rir_dump_json(const RIRProgram *rir, FILE *out)
                      "      \"op_count\": %zu,\n"
                      "      \"facts\": [\n",
                 fact_count, op_count);
-
         for (size_t j = 0; j < fact_count; j++) {
             const RIRFact *fact = rir_scope_fact_at(scope, j);
             if (j > 0) fputs(",\n", out);
@@ -445,7 +442,6 @@ rir_dump_json(const RIRProgram *rir, FILE *out)
             else
                 fputs("null", out);
         }
-
         fprintf(out, "\n      ],\n"
                      "      \"ops\": [\n");
 

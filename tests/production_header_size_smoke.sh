@@ -6,13 +6,21 @@ DEFAULT_LIMIT="${PRODUCTION_HEADER_MAX_LINES:-600}"
 
 cd "$ROOT_DIR"
 
-violations=""
-while IFS= read -r -d '' path; do
-    lines="$(wc -l < "$path" | tr -d '[:space:]')"
-    if [ "$lines" -gt "$DEFAULT_LIMIT" ]; then
-        violations="${violations}${lines} ${path} > ${DEFAULT_LIMIT}"$'\n'
-    fi
-done < <(find src/codegen src/runtime src/compiler src/semantic src/parser src/lsp -name '*.h' -type f -print0)
+violations="$(
+    find src/codegen src/runtime src/compiler src/semantic src/parser src/lsp \
+        -name '*.h' -type f -print0 \
+    | awk -v RS='\0' -v limit="$DEFAULT_LIMIT" '
+        length($0) == 0 { next }
+        {
+            n = 0
+            while ((getline line < $0) > 0)
+                n++
+            close($0)
+            if (n > limit)
+                printf "%d %s > %d\n", n, $0, limit
+        }
+    '
+)"
 
 if [ -n "$violations" ]; then
     echo "[production-header-size] header owner size violation(s):" >&2

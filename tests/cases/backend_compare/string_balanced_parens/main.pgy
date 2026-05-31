@@ -1,0 +1,30 @@
+func IsBalanced(s: String) -> Bool {
+    let depth: Int = 0;
+    let i: Int = 0;
+    let n: Int = StringLength(s);
+    while i < n {
+        let ch: String = Substring(s, i, 1);
+        if ch == "(" { depth = depth + 1; }
+        if ch == ")" {
+            depth = depth - 1;
+            if depth < 0 { return false; }
+        }
+        i = i + 1;
+    }
+    return depth == 0;
+}
+
+func Main() -> Void {
+    let r1: Bool = IsBalanced("(())");
+    let r2: Bool = IsBalanced("(()");
+    let r3: Bool = IsBalanced(")(");
+    let r4: Bool = IsBalanced("");
+    let r5: Bool = IsBalanced("((()))");
+    let r6: Bool = IsBalanced("()()");
+    Log(ToString(r1));
+    Log(ToString(r2));
+    Log(ToString(r3));
+    Log(ToString(r4));
+    Log(ToString(r5));
+    Log(ToString(r6));
+}

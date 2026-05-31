@@ -221,7 +221,6 @@ src/codegen/transpiler_mir_resource_hook_emit.h
 src/codegen/transpiler_mir_resource_name_helpers.h
 src/codegen/transpiler_mir_resource_op_core.h
 src/codegen/transpiler_mir_resource_op_emit.h
-src/codegen/transpiler_mir_role_lookup.h
 src/codegen/transpiler_mir_signature.h
 src/codegen/transpiler_mir_ssa_contract.h
 src/codegen/transpiler_mir_ssa_entry.h

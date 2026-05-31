@@ -12,8 +12,8 @@
 #include <stdio.h>
 
 #include "../parser/ast_api.h"
-#include "host_decl_compat.h"
 #include "llvm_domain_struct_fields.h"
+#include "llvm_inventory_decl_lookup.h"
 
 static bool
 llvm_domain_struct_register_field_name(char *out,
@@ -86,18 +86,47 @@ llvm_domain_struct_add_suffixed_field(LLVMGenCtx *ctx,
 }
 
 static bool
+llvm_domain_struct_register_shared_field_names(
+    LLVMGenCtx *ctx,
+    LLVMClassTypeEntry *entry,
+    LLVMTypeRef *ftypes,
+    int *field_index,
+    const LLVMHostedSharedFieldView *shared_view,
+    const char *context)
+{
+    if (ctx == NULL || entry == NULL || ftypes == NULL || field_index == NULL
+        || shared_view == NULL) {
+        return false;
+    }
+
+    for (size_t j = 0; j < shared_view->count; j++) {
+        const char *field_name =
+            llvm_hosted_shared_field_view_name(shared_view, j);
+        if (field_name == NULL) {
+            llvm_set_error(ctx,
+                "LLVM domain %s shared field missing MIR field name",
+                context != NULL ? context : "declaration");
+            return false;
+        }
+        llvm_class_add_field(entry, field_name, ftypes[*field_index],
+            *field_index);
+        (*field_index)++;
+    }
+    return true;
+}
+
+static bool
 llvm_domain_struct_register_zone_fields(LLVMGenCtx *ctx,
                                         ASTNode *stmt,
                                         LLVMClassTypeEntry *entry,
                                         LLVMTypeRef *ftypes)
 {
+    const char *decl_name = llvm_decl_node_name(stmt);
     int field_index = 0;
     size_t slot_count = 0;
     ASTNode **slots = ast_zone_slots(stmt, &slot_count);
-    PgyHostSharedFieldsCompatView shared_view =
-        pgy_host_shared_fields_compat_view_from_decl(stmt);
-    ASTNode **shared_fields = shared_view.fields;
-    size_t shared_count = shared_view.count;
+    LLVMHostedSharedFieldView shared_view =
+        llvm_hosted_shared_field_view_from_decl(ctx, decl_name, stmt);
     size_t layer_slot_count = 0;
     ASTNode **layer_slots = ast_zone_layer_slots(stmt, &layer_slot_count);
     size_t state_count = 0;
@@ -106,16 +135,21 @@ llvm_domain_struct_register_zone_fields(LLVMGenCtx *ctx,
     ASTNode **refreshes = ast_zone_refreshes(stmt, &refresh_count);
 
     entry->domain_kind = LLVM_DOMAIN_ZONE;
+    if (llvm_hosted_shared_field_view_missing_mir_metadata(&shared_view)) {
+        llvm_set_error(ctx,
+            "LLVM zone '%s' shared fields missing MIR declaration metadata",
+            decl_name != NULL ? decl_name : "<anonymous>");
+        return false;
+    }
     for (size_t j = 0; j < slot_count; j++, field_index++) {
         ASTNode *slot = slots[j];
         llvm_class_add_field_ex(entry, ast_domain_slot_name(slot),
             ftypes[field_index], field_index,
             ast_domain_slot_is_subject(slot));
     }
-    for (size_t j = 0; j < shared_count; j++, field_index++) {
-        ASTNode *sf = shared_fields[j];
-        llvm_class_add_field(entry, ast_party_shared_name(sf),
-            ftypes[field_index], field_index);
+    if (!llvm_domain_struct_register_shared_field_names(ctx, entry, ftypes,
+            &field_index, &shared_view, "zone")) {
+        return false;
     }
     for (size_t j = 0; j < layer_slot_count; j++, field_index++) {
         ASTNode *slot = layer_slots[j];
@@ -172,23 +206,30 @@ llvm_domain_struct_register_zone_fields(LLVMGenCtx *ctx,
 }
 
 static void
-llvm_domain_struct_register_roster_fields(ASTNode *stmt,
+llvm_domain_struct_register_roster_fields(LLVMGenCtx *ctx,
+                                          ASTNode *stmt,
                                           LLVMClassTypeEntry *entry,
                                           LLVMTypeRef *ftypes)
 {
+    const char *decl_name = llvm_decl_node_name(stmt);
+    LLVMHostedSharedFieldView shared_view =
+        llvm_hosted_shared_field_view_from_decl(ctx, decl_name, stmt);
     int field_index = 0;
 
     entry->domain_kind = LLVM_DOMAIN_SYSTEMIC;
+    if (llvm_hosted_shared_field_view_missing_mir_metadata(&shared_view)) {
+        llvm_set_error(ctx,
+            "LLVM roster '%s' shared fields missing MIR declaration metadata",
+            decl_name != NULL ? decl_name : "<anonymous>");
+        return;
+    }
     for (size_t j = 0; j < ast_roster_party_count(stmt); j++, field_index++) {
         ASTNode *slot = ast_roster_party(stmt, j);
         llvm_class_add_field(entry, ast_roster_slot_name(slot),
             ftypes[field_index], field_index);
     }
-    for (size_t j = 0; j < ast_roster_shared_count(stmt); j++, field_index++) {
-        ASTNode *sf = ast_roster_shared(stmt, j);
-        llvm_class_add_field(entry, ast_party_shared_name(sf),
-            ftypes[field_index], field_index);
-    }
+    (void) llvm_domain_struct_register_shared_field_names(ctx, entry, ftypes,
+        &field_index, &shared_view, "roster");
 }
 
 static bool
@@ -197,19 +238,24 @@ llvm_domain_struct_register_world_fields(LLVMGenCtx *ctx,
                                          LLVMClassTypeEntry *entry,
                                          LLVMTypeRef *ftypes)
 {
+    const char *decl_name = llvm_decl_node_name(stmt);
     int field_index = 0;
     size_t roster_count = 0;
     ASTNode **rosters = ast_world_rosters(stmt, &roster_count);
     size_t zone_count = 0;
     ASTNode **zones = ast_world_zones(stmt, &zone_count);
-    PgyHostSharedFieldsCompatView shared_view =
-        pgy_host_shared_fields_compat_view_from_decl(stmt);
-    ASTNode **shared_fields = shared_view.fields;
-    size_t shared_count = shared_view.count;
+    LLVMHostedSharedFieldView shared_view =
+        llvm_hosted_shared_field_view_from_decl(ctx, decl_name, stmt);
     size_t state_count = 0;
     ASTNode **states = ast_world_states(stmt, &state_count);
 
     entry->domain_kind = LLVM_DOMAIN_WORLD;
+    if (llvm_hosted_shared_field_view_missing_mir_metadata(&shared_view)) {
+        llvm_set_error(ctx,
+            "LLVM world '%s' shared fields missing MIR declaration metadata",
+            decl_name != NULL ? decl_name : "<anonymous>");
+        return false;
+    }
     for (size_t j = 0; j < roster_count; j++, field_index++) {
         ASTNode *ws = rosters[j];
         llvm_class_add_field(entry, ast_world_roster_slot_name(ws),
@@ -220,10 +266,9 @@ llvm_domain_struct_register_world_fields(LLVMGenCtx *ctx,
         llvm_class_add_field(entry, ast_world_zone_slot_name(wz),
             ftypes[field_index], field_index);
     }
-    for (size_t j = 0; j < shared_count; j++, field_index++) {
-        ASTNode *sf = shared_fields[j];
-        llvm_class_add_field(entry, ast_party_shared_name(sf),
-            ftypes[field_index], field_index);
+    if (!llvm_domain_struct_register_shared_field_names(ctx, entry, ftypes,
+            &field_index, &shared_view, "world")) {
+        return false;
     }
     for (size_t j = 0; j < zone_count; j++, field_index++) {
         ASTNode *wz = zones[j];
@@ -293,24 +338,30 @@ llvm_domain_struct_register_default_fields(LLVMGenCtx *ctx,
                                            LLVMTypeRef *ftypes,
                                            ASTNode **slots,
                                            size_t slot_count,
-                                           ASTNode **shared_fields,
-                                           size_t shared_count,
                                            ASTNode **refreshes,
                                            size_t refresh_count)
 {
+    const char *decl_name = llvm_decl_node_name(stmt);
+    LLVMHostedSharedFieldView shared_view =
+        llvm_hosted_shared_field_view_from_decl(ctx, decl_name, stmt);
     int field_index = 0;
 
     if (stmt->type == AST_RELATION_DECL || stmt->type == AST_EFFECT_DECL)
         entry->domain_kind = LLVM_DOMAIN_PROJECTION;
+    if (llvm_hosted_shared_field_view_missing_mir_metadata(&shared_view)) {
+        llvm_set_error(ctx,
+            "LLVM domain '%s' shared fields missing MIR declaration metadata",
+            decl_name != NULL ? decl_name : "<anonymous>");
+        return false;
+    }
     for (size_t j = 0; j < slot_count; j++, field_index++) {
         ASTNode *slot = slots[j];
         llvm_class_add_field(entry, ast_domain_slot_name(slot),
             ftypes[field_index], field_index);
     }
-    for (size_t j = 0; j < shared_count; j++, field_index++) {
-        ASTNode *sf = shared_fields[j];
-        llvm_class_add_field(entry, ast_party_shared_name(sf),
-            ftypes[field_index], field_index);
+    if (!llvm_domain_struct_register_shared_field_names(ctx, entry, ftypes,
+            &field_index, &shared_view, "domain")) {
+        return false;
     }
     for (size_t j = 0; j < ast_party_role_count(stmt); j++) {
         ASTNode *rs = ast_party_role(stmt, j);
@@ -336,8 +387,6 @@ llvm_domain_struct_register_fields(LLVMGenCtx *ctx,
                                    LLVMTypeRef *ftypes,
                                    ASTNode **slots,
                                    size_t slot_count,
-                                   ASTNode **shared_fields,
-                                   size_t shared_count,
                                    ASTNode **refreshes,
                                    size_t refresh_count)
 {
@@ -346,14 +395,13 @@ llvm_domain_struct_register_fields(LLVMGenCtx *ctx,
     if (stmt->type == AST_ZONE_DECL)
         return llvm_domain_struct_register_zone_fields(ctx, stmt, entry, ftypes);
     if (stmt->type == AST_ROSTER_DECL) {
-        llvm_domain_struct_register_roster_fields(stmt, entry, ftypes);
-        return true;
+        llvm_domain_struct_register_roster_fields(ctx, stmt, entry, ftypes);
+        return !ctx->has_error;
     }
     if (stmt->type == AST_WORLD_DECL)
         return llvm_domain_struct_register_world_fields(ctx, stmt, entry, ftypes);
     return llvm_domain_struct_register_default_fields(ctx, stmt, entry, ftypes,
-        slots, slot_count, shared_fields, shared_count, refreshes,
-        refresh_count);
+        slots, slot_count, refreshes, refresh_count);
 }
 
 #endif /* PGY_LLVM_ENABLED */

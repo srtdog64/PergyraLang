@@ -23,6 +23,7 @@ typedef enum TranspilerInferCallOp
     TRANS_INFER_CALL_PI,
     TRANS_INFER_CALL_QUBIT_STATE,
     TRANS_INFER_CALL_RECV_TIMEOUT,
+    TRANS_INFER_CALL_RETURNS_STRING,
     TRANS_INFER_CALL_SEND_TIMEOUT_STATUS,
     TRANS_INFER_CALL_SOME,
     TRANS_INFER_CALL_SUBMIT_DEVICE_READ,
@@ -38,6 +39,7 @@ typedef enum TranspilerInferCallOp
 TranspilerInferCallOp transpiler_infer_call_lookup(const char *name);
 bool transpiler_infer_call_is_numeric_passthrough(TranspilerInferCallOp op);
 bool transpiler_infer_call_returns_float_constant(TranspilerInferCallOp op);
+bool transpiler_infer_call_returns_string(TranspilerInferCallOp op);
 bool transpiler_infer_call_returns_channel_status(TranspilerInferCallOp op);
 bool transpiler_infer_call_returns_channel_option(TranspilerInferCallOp op);
 

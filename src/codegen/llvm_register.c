@@ -172,20 +172,17 @@ llvm_register_enum_decl(LLVMGenCtx *ctx, ASTNode *stmt)
 
     LLVMHostedMethodView enum_method_view =
         llvm_hosted_method_view_from_decl(ctx, enum_name, stmt);
-    const MIRDeclMethod *enum_method_metadata = NULL;
-    size_t enum_method_metadata_count = 0;
-    if (enum_method_view.uses_mir_metadata) {
-        enum_method_metadata = enum_method_view.metadata;
-        enum_method_metadata_count = enum_method_view.count;
-    }
     if (llvm_hosted_method_view_missing_mir_metadata(&enum_method_view)) {
         llvm_set_mir_inventory_missing(ctx,
             "MIR-only LLVM path missing enum method declaration metadata");
         return;
     }
 
-    for (size_t j = 0; j < enum_method_metadata_count; j++) {
-        const MIRDeclMethod *method_meta = &enum_method_metadata[j];
+    if (!enum_method_view.uses_mir_metadata)
+        return;
+    for (size_t j = 0; j < enum_method_view.count; j++) {
+        const MIRDeclMethod *method_meta =
+            llvm_hosted_method_view_metadata(&enum_method_view, j);
         ASTNode *method = llvm_mir_decl_method_source_ast(method_meta);
         const char *method_name = NULL;
         size_t pc = 0;
@@ -298,20 +295,17 @@ llvm_register_nominal_decl(LLVMGenCtx *ctx, ASTNode *stmt)
 
     LLVMHostedMethodView class_method_view =
         llvm_hosted_method_view_from_decl(ctx, cls_name, stmt);
-    const MIRDeclMethod *class_method_metadata = NULL;
-    size_t class_method_metadata_count = 0;
-    if (class_method_view.uses_mir_metadata) {
-        class_method_metadata = class_method_view.metadata;
-        class_method_metadata_count = class_method_view.count;
-    }
     if (llvm_hosted_method_view_missing_mir_metadata(&class_method_view)) {
         llvm_set_mir_inventory_missing(ctx,
             "MIR-only LLVM path missing class method declaration metadata");
         return;
     }
 
-    for (size_t j = 0; j < class_method_metadata_count; j++) {
-        const MIRDeclMethod *method_meta = &class_method_metadata[j];
+    if (!class_method_view.uses_mir_metadata)
+        return;
+    for (size_t j = 0; j < class_method_view.count; j++) {
+        const MIRDeclMethod *method_meta =
+            llvm_hosted_method_view_metadata(&class_method_view, j);
         ASTNode *method = llvm_mir_decl_method_source_ast(method_meta);
         const char *method_name = NULL;
         size_t pc = 0;

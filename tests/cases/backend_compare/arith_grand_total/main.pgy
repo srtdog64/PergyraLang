@@ -1,0 +1,21 @@
+func SafeDiv(a: Int, b: Int) -> Int {
+    if b == 0 { return 0; }
+    return a / b;
+}
+
+func MixedOps(a: Int, b: Int, c: Int) -> Int {
+    let sum: Int = a + b + c;
+    let prod: Int = a * b;
+    let avg: Int = SafeDiv(sum, 3);
+    let span: Int = b - a + c;
+    return sum + prod - avg + span;
+}
+
+func Main() -> Void {
+    Log(MixedOps(2, 3, 4));
+    Log(MixedOps(0, 0, 0));
+    Log(MixedOps(-1, 5, -7));
+    Log(MixedOps(10, 10, 10));
+    Log(MixedOps(7, 0, 1));
+    Log(MixedOps(100, -50, 25));
+}

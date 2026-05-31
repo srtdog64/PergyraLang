@@ -318,6 +318,40 @@ llvm_emit_binary(ASTNode *node, LLVMGenCtx *ctx)
     if (op_type == TOKEN_COALESCE)
         return llvm_emit_option_coalesce(node, ctx);
 
+    if (op_type == TOKEN_AND || op_type == TOKEN_OR) {
+        LLVMValueRef left = llvm_emit_expression(left_expr, ctx);
+        if (left == NULL)
+            return llvm_scalar_expr_error(ctx, node,
+                "LLVM logical operator could not lower left operand");
+        LLVMBasicBlockRef entry_bb = LLVMGetInsertBlock(ctx->builder);
+        LLVMValueRef parent_fn = LLVMGetBasicBlockParent(entry_bb);
+        LLVMBasicBlockRef rhs_bb = LLVMAppendBasicBlock(parent_fn,
+            llvm_tmp_name(ctx));
+        LLVMBasicBlockRef merge_bb = LLVMAppendBasicBlock(parent_fn,
+            llvm_tmp_name(ctx));
+        if (op_type == TOKEN_AND) {
+            LLVMBuildCondBr(ctx->builder, left, rhs_bb, merge_bb);
+        } else {
+            LLVMBuildCondBr(ctx->builder, left, merge_bb, rhs_bb);
+        }
+        LLVMPositionBuilderAtEnd(ctx->builder, rhs_bb);
+        LLVMValueRef right_val = llvm_emit_expression(right_expr, ctx);
+        if (right_val == NULL)
+            return llvm_scalar_expr_error(ctx, node,
+                "LLVM logical operator could not lower right operand");
+        LLVMBasicBlockRef rhs_end_bb = LLVMGetInsertBlock(ctx->builder);
+        LLVMBuildBr(ctx->builder, merge_bb);
+        LLVMPositionBuilderAtEnd(ctx->builder, merge_bb);
+        LLVMValueRef phi = LLVMBuildPhi(ctx->builder, ctx->type_i1,
+            llvm_tmp_name(ctx));
+        LLVMValueRef short_val = LLVMConstInt(ctx->type_i1,
+            op_type == TOKEN_AND ? 0 : 1, 0);
+        LLVMValueRef incoming_vals[2] = { short_val, right_val };
+        LLVMBasicBlockRef incoming_blocks[2] = { entry_bb, rhs_end_bb };
+        LLVMAddIncoming(phi, incoming_vals, incoming_blocks, 2);
+        return phi;
+    }
+
     LLVMValueRef left  = llvm_emit_expression(left_expr, ctx);
     LLVMValueRef right = llvm_emit_expression(right_expr, ctx);
     if (left == NULL || right == NULL)

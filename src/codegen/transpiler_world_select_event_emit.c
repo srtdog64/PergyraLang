@@ -5,8 +5,8 @@
 #include <stdio.h>
 
 #include "../parser/ast_api.h"
+#include "../semantic/diag_codes.h"
 #include "domain_frontier_policy.h"
-#include "host_decl_compat.h"
 #include "transpiler_decl_lookup.h"
 #include "transpiler_domain_provenance_emit.h"
 #include "transpiler_func_forward_metadata.h"
@@ -38,10 +38,15 @@ emit_world_decl(ASTNode *node, TranspilerCtx *ctx)
     ASTNode **rosters = ast_world_rosters(node, &roster_count);
     size_t zone_count = 0;
     ASTNode **zones = ast_world_zones(node, &zone_count);
-    PgyHostSharedFieldsCompatView shared_view =
-        pgy_host_shared_fields_compat_view_from_decl(node);
-    size_t shared_count = shared_view.count;
-    ASTNode **shared_fields = shared_view.fields;
+    TranspilerHostedSharedFieldView shared_view =
+        transpiler_hosted_shared_field_view_from_decl(ctx, name, node);
+    if (transpiler_hosted_shared_field_view_missing_mir_metadata(&shared_view)) {
+        transpiler_set_mir_inventory_missing(
+            ctx,
+            "MIR-only C path missing shared field metadata for world '%s'",
+            name != NULL ? name : "(anonymous-world)");
+        return;
+    }
     size_t state_count = 0;
     ASTNode **states = ast_world_states(node, &state_count);
     size_t activate_count = 0;
@@ -81,26 +86,37 @@ emit_world_decl(ASTNode *node, TranspilerCtx *ctx)
         emit_hidden_provenance_fields(ctx, "zone", slot_name);
     }
 
-    for (size_t i = 0; i < shared_count; i++) {
-        ASTNode *shared = shared_fields[i];
+    for (size_t i = 0; i < shared_view.count; i++) {
+        const char *shared_name =
+            transpiler_hosted_shared_field_view_name(&shared_view, i);
+        ASTNode *shared_type =
+            transpiler_hosted_shared_field_view_type(&shared_view, i);
         char ft[256];
         char surface_desc[256];
+        if (shared_name == NULL) {
+            transpiler_set_backend_error_with_hints(
+                ctx,
+                PGY_CODE_C_TYPE_UNSUPPORTED,
+                PGY_CAUSE_C_TYPE_UNSUPPORTED,
+                PGY_FIX_INSPECT_MIR_INVENTORY,
+                "C backend: world '%s' shared field[%zu] is missing declaration field metadata",
+                name != NULL ? name : "(anonymous-world)",
+                i);
+            return;
+        }
         snprintf(surface_desc, sizeof(surface_desc),
             "world shared field '%s.%s'",
             name != NULL ? name : "(anonymous)",
-            ast_party_shared_name(shared) != NULL
-                ? ast_party_shared_name(shared)
-                : "(anonymous)");
+            shared_name);
         if (!transpiler_require_ast_c_type_copy(
                 ctx,
-                ast_party_shared_type(shared),
+                shared_type,
                 surface_desc,
                 ft,
                 sizeof(ft))) {
             return;
         }
-        codebuf_write(ctx->out, "    %s %s;\n", ft,
-            ast_party_shared_name(shared));
+        codebuf_write(ctx->out, "    %s %s;\n", ft, shared_name);
     }
 
     for (size_t i = 0; i < state_count; i++) {
@@ -453,8 +469,10 @@ emit_world_decl(ASTNode *node, TranspilerCtx *ctx)
             transpiler_hosted_method_view_metadata(&method_view, i);
         ASTNode *method =
             transpiler_hosted_method_view_source_ast(&method_view, i);
-        if (method == NULL || method->type != AST_FUNC_DECL)
+        if (method_meta == NULL
+            && (method == NULL || method->type != AST_FUNC_DECL)) {
             continue;
+        }
         emit_hosted_method_forward_decl_from_metadata(name, method_meta,
             method, true, ctx->out, ctx);
     }

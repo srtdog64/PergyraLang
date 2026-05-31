@@ -26,11 +26,13 @@ transpiler_infer_call_lookup(const char *name)
         { "Abs", TRANS_INFER_CALL_ABS },
         { "Clamp", TRANS_INFER_CALL_CLAMP },
         { "Clone", TRANS_INFER_CALL_CLONE },
+        { "Concat", TRANS_INFER_CALL_RETURNS_STRING },
         { "DeviceRead", TRANS_INFER_CALL_DEVICE_READ },
         { "E", TRANS_INFER_CALL_E },
         { "IsNone", TRANS_INFER_CALL_IS_NONE },
         { "IsSome", TRANS_INFER_CALL_IS_SOME },
         { "ListGet", TRANS_INFER_CALL_LIST_GET },
+        { "Lower", TRANS_INFER_CALL_RETURNS_STRING },
         { "MapGet", TRANS_INFER_CALL_MAP_GET },
         { "MapKeys", TRANS_INFER_CALL_MAP_KEYS },
         { "Max", TRANS_INFER_CALL_MAX },
@@ -40,14 +42,23 @@ transpiler_infer_call_lookup(const char *name)
         { "PI", TRANS_INFER_CALL_PI },
         { "QubitState", TRANS_INFER_CALL_QUBIT_STATE },
         { "RecvTimeout", TRANS_INFER_CALL_RECV_TIMEOUT },
+        { "Replace", TRANS_INFER_CALL_RETURNS_STRING },
         { "SendTimeoutStatus", TRANS_INFER_CALL_SEND_TIMEOUT_STATUS },
         { "Some", TRANS_INFER_CALL_SOME },
+        { "StringReplace", TRANS_INFER_CALL_RETURNS_STRING },
+        { "StringTrim", TRANS_INFER_CALL_RETURNS_STRING },
         { "SubmitDeviceRead", TRANS_INFER_CALL_SUBMIT_DEVICE_READ },
+        { "Substring", TRANS_INFER_CALL_RETURNS_STRING },
+        { "ToLower", TRANS_INFER_CALL_RETURNS_STRING },
         { "ToObject", TRANS_INFER_CALL_TO_OBJECT },
+        { "ToString", TRANS_INFER_CALL_RETURNS_STRING },
         { "ToTObject", TRANS_INFER_CALL_TO_TOBJECT },
+        { "ToUpper", TRANS_INFER_CALL_RETURNS_STRING },
+        { "Trim", TRANS_INFER_CALL_RETURNS_STRING },
         { "TryRecv", TRANS_INFER_CALL_TRY_RECV },
         { "TrySendStatus", TRANS_INFER_CALL_TRY_SEND_STATUS },
         { "UnwrapOption", TRANS_INFER_CALL_UNWRAP_OPTION },
+        { "Upper", TRANS_INFER_CALL_RETURNS_STRING },
         { "ViewRead", TRANS_INFER_CALL_VIEW_READ },
         { "ViewWrite", TRANS_INFER_CALL_VIEW_WRITE },
     };
@@ -80,6 +91,12 @@ transpiler_infer_call_returns_float_constant(TranspilerInferCallOp op)
 {
     return op == TRANS_INFER_CALL_E
         || op == TRANS_INFER_CALL_PI;
+}
+
+bool
+transpiler_infer_call_returns_string(TranspilerInferCallOp op)
+{
+    return op == TRANS_INFER_CALL_RETURNS_STRING;
 }
 
 bool

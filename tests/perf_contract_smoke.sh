@@ -6,6 +6,17 @@ source "$ROOT_DIR/tests/beta_checklist_shards.sh"
 TMPDIR="${TMPDIR:-/tmp}"
 WORK_DIR="$(mktemp -d "$TMPDIR/pgy_perf_contract.XXXXXX")"
 trap 'rm -rf "$WORK_DIR"' EXIT
+SRC_INDEX="$WORK_DIR/src-index.txt"
+CODEGEN_INDEX="$WORK_DIR/codegen-index.txt"
+SEMANTIC_INDEX="$WORK_DIR/semantic-index.txt"
+RUNTIME_INDEX="$WORK_DIR/runtime-index.txt"
+AIR_TEST_INDEX="$WORK_DIR/air-test-index.txt"
+
+grep -RIn -e '.' "$ROOT_DIR/src" > "$SRC_INDEX"
+grep -F "/src/codegen/" "$SRC_INDEX" > "$CODEGEN_INDEX" || true
+grep -F "/src/semantic/" "$SRC_INDEX" > "$SEMANTIC_INDEX" || true
+grep -F "/src/runtime/" "$SRC_INDEX" > "$RUNTIME_INDEX" || true
+grep -F "/src/tests/air/" "$SRC_INDEX" > "$AIR_TEST_INDEX" || true
 
 LOG="$WORK_DIR/test-abi-perf.log"
 SUMMARY="$WORK_DIR/perf-summary.txt"
@@ -149,24 +160,19 @@ grep -Fq "TranspilerTypeNameMap" "$ROOT_DIR/src/codegen/transpiler_type_mapping.
 grep -Fq "transpiler_lookup_type_name_map" "$ROOT_DIR/src/codegen/transpiler_type_mapping.c"
 grep -Fq "bsearch(" "$ROOT_DIR/src/codegen/transpiler_type_mapping.c"
 grep -Fq "transpiler_type_name_is_box_array" "$ROOT_DIR/src/codegen/transpiler_type_mapping.c"
-if grep -R -n -E --include='transpiler_*.c' \
-    'strncmp\([^"]*"(Channel|Future|RemoteFuture|Result|Option|Array|Slice|List|Queue|Set|HashMap|Box|Rc|Weak)(<|")' \
-    "$ROOT_DIR/src/codegen" | grep -v "transpiler_type_mapping.c"; then
+if grep -E '/transpiler_[^/]*\.c:.*strncmp\([^"]*"(Channel|Future|RemoteFuture|Result|Option|Array|Slice|List|Queue|Set|HashMap|Box|Rc|Weak)(<|")' \
+    "$CODEGEN_INDEX" | grep -v "transpiler_type_mapping.c"; then
     echo "[perf-contract] C backend type-family classification bypassed transpiler_type_mapping" >&2
     exit 1
 fi
 grep -Fq "transpiler_forward_type_name_is_allowed" "$ROOT_DIR/src/codegen/transpiler_func_forward_policy.c"
 grep -Fq "transpiler_forward_allowed_type_compare" "$ROOT_DIR/src/codegen/transpiler_func_forward_policy.c"
 grep -Fq "bsearch(&name" "$ROOT_DIR/src/codegen/transpiler_func_forward_policy.c"
-for direct_forward_type in \
-    Int Float Bool String Char Byte Void Qubit Result Option Slot SecureSlot \
-    DeviceSlot RemoteFuture Array Slice Channel Box Rc Weak Future; do
-    if grep -Fq "strcmp(name, \"$direct_forward_type\")" \
-        "$ROOT_DIR/src/codegen/transpiler_func_forward_policy.c"; then
-        echo "[perf-contract] function forward policy reintroduced direct type branch: $direct_forward_type" >&2
-        exit 1
-    fi
-done
+if grep -Eq 'strcmp[[:space:]]*\([[:space:]]*name[[:space:]]*,[[:space:]]*"(Int|Float|Bool|String|Char|Byte|Void|Qubit|Result|Option|Slot|SecureSlot|DeviceSlot|RemoteFuture|Array|Slice|Channel|Box|Rc|Weak|Future)"' \
+    "$ROOT_DIR/src/codegen/transpiler_func_forward_policy.c"; then
+    echo "[perf-contract] function forward policy reintroduced direct type branch" >&2
+    exit 1
+fi
 forward_allowed_type_names="$(
     sed -n '/static const char \*allowed_names\[\]/,/^    };/p' \
         "$ROOT_DIR/src/codegen/transpiler_func_forward_policy.c" \
@@ -463,28 +469,11 @@ for match_variant_owner in \
     "$ROOT_DIR/src/codegen/llvm_stmt_match.c" \
     "$ROOT_DIR/src/codegen/llvm_mir_match_condition.c"; do
     grep -Fq "pgy_codegen_match_variant_lookup" "$match_variant_owner"
-    for direct_match_variant in Some None Ok Err; do
-        if grep -Fq "strcmp(name, \"$direct_match_variant\")" \
-            "$match_variant_owner"; then
-            echo "[perf-contract] match lowering reintroduced direct destructor-name branch: $direct_match_variant in $match_variant_owner" >&2
-            exit 1
-        fi
-        if grep -Fq "strcmp(kind, \"$direct_match_variant\")" \
-            "$match_variant_owner"; then
-            echo "[perf-contract] match lowering reintroduced direct destructor-kind branch: $direct_match_variant in $match_variant_owner" >&2
-            exit 1
-        fi
-        if grep -Fq "strcmp(option_kind, \"$direct_match_variant\")" \
-            "$match_variant_owner"; then
-            echo "[perf-contract] match lowering reintroduced direct option-kind branch: $direct_match_variant in $match_variant_owner" >&2
-            exit 1
-        fi
-        if grep -Fq "strcmp(result_kind, \"$direct_match_variant\")" \
-            "$match_variant_owner"; then
-            echo "[perf-contract] match lowering reintroduced direct result-kind branch: $direct_match_variant in $match_variant_owner" >&2
-            exit 1
-        fi
-    done
+    if grep -Eq 'strcmp[[:space:]]*\([[:space:]]*(name|kind|option_kind|result_kind)[[:space:]]*,[[:space:]]*"(Some|None|Ok|Err)"' \
+        "$match_variant_owner"; then
+        echo "[perf-contract] match lowering reintroduced direct variant branch in $match_variant_owner" >&2
+        exit 1
+    fi
 done
 match_variant_names="$(
     sed -n '/static const PgyCodegenMatchVariantSpec specs\[\]/,/^    };/p' \
@@ -505,14 +494,11 @@ fi
 grep -Fq "llvm_registry_type_kind" "$ROOT_DIR/src/codegen/llvm_backend_type_registry.c"
 grep -Fq "llvm_registry_type_spec_compare" "$ROOT_DIR/src/codegen/llvm_backend_type_registry.c"
 grep -Fq "bsearch(&type_name" "$ROOT_DIR/src/codegen/llvm_backend_type_registry.c"
-for direct_llvm_registry_type in \
-    Array Slice List Set Queue HashMap Future RemoteFuture Channel Rc Weak; do
-    if grep -Fq "strcmp(type_name, \"$direct_llvm_registry_type\")" \
-        "$ROOT_DIR/src/codegen/llvm_backend_type_registry.c"; then
-        echo "[perf-contract] LLVM type registry reintroduced direct type-family branch: $direct_llvm_registry_type" >&2
-        exit 1
-    fi
-done
+if grep -Eq 'strcmp[[:space:]]*\([[:space:]]*type_name[[:space:]]*,[[:space:]]*"(Array|Slice|List|Set|Queue|HashMap|Future|RemoteFuture|Channel|Rc|Weak)"' \
+    "$ROOT_DIR/src/codegen/llvm_backend_type_registry.c"; then
+    echo "[perf-contract] LLVM type registry reintroduced direct type-family branch" >&2
+    exit 1
+fi
 llvm_registry_type_names="$(
     sed -n '/static const LLVMRegistryTypeSpec specs\[\]/,/^    };/p' \
         "$ROOT_DIR/src/codegen/llvm_backend_type_registry.c" \
@@ -532,25 +518,21 @@ fi
 grep -Fq "slot_runtime_fn_spec_compare" "$ROOT_DIR/src/codegen/transpiler_mir_resource_name.c"
 grep -Fq "transpiler_mir_resource_op_lookup" "$ROOT_DIR/src/codegen/transpiler_mir_resource_name.c"
 grep -Fq "bsearch(op_name" "$ROOT_DIR/src/codegen/transpiler_mir_resource_name.c"
-for direct_mir_resource_op in Claim Read Write Release Move; do
-    if grep -Fq "strcmp(op_name, \"$direct_mir_resource_op\")" \
-        "$ROOT_DIR/src/codegen/transpiler_mir_resource_op_core.c"; then
-        echo "[perf-contract] MIR resource op emission reintroduced direct op branch: $direct_mir_resource_op" >&2
-        exit 1
-    fi
-done
-for direct_mir_view_op in BorrowRead BorrowWrite; do
-    if grep -Fq "strcmp(inst->name, \"$direct_mir_view_op\")" \
-        "$ROOT_DIR/src/codegen/transpiler_mir_pin_emit.c"; then
-        echo "[perf-contract] C MIR pin alias seeding reintroduced direct op branch: $direct_mir_view_op" >&2
-        exit 1
-    fi
-    if grep -Fq "strcmp(inst->name, \"$direct_mir_view_op\")" \
-        "$ROOT_DIR/src/codegen/llvm_mir_resource_view.c"; then
-        echo "[perf-contract] LLVM MIR borrow-view aliasing reintroduced direct op branch: $direct_mir_view_op" >&2
-        exit 1
-    fi
-done
+if grep -Eq 'strcmp[[:space:]]*\([[:space:]]*op_name[[:space:]]*,[[:space:]]*"(Claim|Read|Write|Release|Move)"' \
+    "$ROOT_DIR/src/codegen/transpiler_mir_resource_op_core.c"; then
+    echo "[perf-contract] MIR resource op emission reintroduced direct op branch" >&2
+    exit 1
+fi
+if grep -Eq 'strcmp[[:space:]]*\([[:space:]]*inst->name[[:space:]]*,[[:space:]]*"(BorrowRead|BorrowWrite)"' \
+    "$ROOT_DIR/src/codegen/transpiler_mir_pin_emit.c"; then
+    echo "[perf-contract] C MIR pin alias seeding reintroduced direct op branch" >&2
+    exit 1
+fi
+if grep -Eq 'strcmp[[:space:]]*\([[:space:]]*inst->name[[:space:]]*,[[:space:]]*"(BorrowRead|BorrowWrite)"' \
+    "$ROOT_DIR/src/codegen/llvm_mir_resource_view.c"; then
+    echo "[perf-contract] LLVM MIR borrow-view aliasing reintroduced direct op branch" >&2
+    exit 1
+fi
 mir_resource_op_names="$(
     sed -n '/static const TranspilerMIRResourceOpSpec specs\[\]/,/^    };/p' \
         "$ROOT_DIR/src/codegen/transpiler_mir_resource_name.c" \
@@ -579,7 +561,7 @@ grep -A18 -F "WorldAddRoster(WorldContext* world" \
     "$ROOT_DIR/src/runtime/world_roster.c" | \
     grep -Fq "ownedRosterType ="
 grep -Fq "world_roster_plan_stats.c" "$ROOT_DIR/Makefile"
-if grep -R -Fq '#include "world_roster_plan_stats.h"' "$ROOT_DIR/src/runtime"; then
+if grep -Fq '#include "world_roster_plan_stats.h"' "$RUNTIME_INDEX"; then
     echo "[perf-contract] world roster plan/stats regressed to implementation header include" >&2
     exit 1
 fi
@@ -813,8 +795,8 @@ if grep -Fq "channel_inner_type_name_copy(TranspilerCtx" \
     echo "[perf-contract] channel type query regressed to collection support local copy" >&2
     exit 1
 fi
-if grep -R -Fq "transpiler_collection_infer_expression_type_name" \
-    "$ROOT_DIR/src/codegen"; then
+if grep -Fq "transpiler_collection_infer_expression_type_name" \
+    "$CODEGEN_INDEX"; then
     echo "[perf-contract] expression type inference regressed to collection-named API" >&2
     exit 1
 fi
@@ -1198,8 +1180,8 @@ grep -Fq "routine->hir_routine == NULL" "$ROOT_DIR/src/codegen/intent_observabil
 ! grep -Fq "pgy_ast_uses_intent_observability(inst->ast" "$ROOT_DIR/src/codegen/intent_observability_usage.c"
 grep -Fq "require_slot_token_name" "$ROOT_DIR/src/codegen/transpiler_symbols.c"
 grep -Fq "token name synthesis is disabled" "$ROOT_DIR/src/codegen/transpiler_symbols.c"
-! grep -R -Fq "lookup_slot_token_name_or_default" "$ROOT_DIR/src/codegen"
-! grep -R -Fq "fallback_token" "$ROOT_DIR/src/codegen"
+! grep -Fq "lookup_slot_token_name_or_default" "$CODEGEN_INDEX"
+! grep -Fq "fallback_token" "$CODEGEN_INDEX"
 ! grep -Fq "block->source_statements" "$ROOT_DIR/src/codegen/transpiler_mir_pending_uses.c"
 grep -Fq "transpiler_find_block_binding_from_mir_insts" "$ROOT_DIR/src/codegen/transpiler_mir_pending_uses.c"
 grep -Fq "transpiler_pending_binding_from_source_statement_emit" "$ROOT_DIR/src/codegen/transpiler_mir_pending_uses.c"
@@ -1212,16 +1194,16 @@ grep -Fq "transpiler_mir_ssa_local_limit_fail" "$ROOT_DIR/src/codegen/transpiler
 grep -Fq "transpiler_mir_func_ssa_locals_emit.c" "$ROOT_DIR/Makefile"
 grep -Fq "PGY_CODE_MIR_SSA_LIMIT" "$ROOT_DIR/src/codegen/transpiler_mir_func_ssa_locals_emit.c"
 grep -Fq "PGY_CAUSE_MIR_SSA_CAPACITY_EXCEEDED" "$ROOT_DIR/src/codegen/transpiler_mir_func_ssa_locals_emit.c"
-if grep -RIn --include 'transpiler_mir*.h' --include 'transpiler_mir*.c' \
-    "ctx->backend_error = strdup_fmt" "$ROOT_DIR/src/codegen"; then
+if grep -F "ctx->backend_error = strdup_fmt" "$CODEGEN_INDEX" \
+    | grep -E '/transpiler_mir[^/]*\.(c|h):'; then
     echo "C MIR emitters must route backend failures through diagnostic helpers" >&2
     exit 1
 fi
-if grep -RIn "ctx->backend_error = strdup_fmt" "$ROOT_DIR/src/codegen"; then
+if grep -F "ctx->backend_error = strdup_fmt" "$CODEGEN_INDEX"; then
     echo "C backend failures must route through diagnostic helpers" >&2
     exit 1
 fi
-if grep -RInE "ctx->backend_error[[:space:]]*=[^=]" "$ROOT_DIR/src/codegen" \
+if grep -E "ctx->backend_error[[:space:]]*=[^=]" "$CODEGEN_INDEX" \
     | grep -v "src/codegen/transpiler_context.c"; then
     echo "C backend must assign backend_error only inside transpiler_context.c" >&2
     exit 1
@@ -1375,8 +1357,8 @@ if grep -Fq "domain_resolve_type_ref(field->type, ctx)" \
     echo "[perf-contract] host-field consumers bypassed host metadata owner" >&2
     exit 1
 fi
-if grep -RIn 'domain_resolve_type_ref(param->type, ctx)\|domain_resolve_type_ref(ast_func_return_type' \
-    "$ROOT_DIR/src/semantic" --include='*.c'; then
+if grep -E '/[^/]*\.c:.*domain_resolve_type_ref\((param->type, ctx|ast_func_return_type)' \
+    "$SEMANTIC_INDEX"; then
     echo "[perf-contract] function signature consumers bypassed type_check_func_types owner" >&2
     exit 1
 fi
@@ -1504,17 +1486,15 @@ if grep -Fq "ast_create_type(inner_name)" \
     exit 1
 fi
 domain_resolver_consumers="$(
-    grep -RIn --include='*.c' --include='*.h' "domain_resolve_type_ref(" \
-        "$ROOT_DIR/src/semantic" || true
+    grep -F "domain_resolve_type_ref(" "$SEMANTIC_INDEX" || true
 )"
 if [ -n "$domain_resolver_consumers" ]; then
     echo "[perf-contract] broad domain resolver API reappeared" >&2
     echo "$domain_resolver_consumers" >&2
     exit 1
 fi
-if grep -RIn --include='*.c' --include='*.h' \
-    'domain_resolve_slot_type(\|domain_resolve_shared_type(\|domain_resolve_named_type_ref(' \
-    "$ROOT_DIR/src/semantic"; then
+if grep -E 'domain_resolve_slot_type\(|domain_resolve_shared_type\(|domain_resolve_named_type_ref\(' \
+    "$SEMANTIC_INDEX"; then
     echo "[perf-contract] domain metadata helper regressed to resolver naming" >&2
     exit 1
 fi
@@ -1522,8 +1502,8 @@ grep -Fq "domain_lookup_slot_type_metadata" "$ROOT_DIR/src/semantic/type_checker
 grep -Fq "domain_lookup_shared_type_metadata" "$ROOT_DIR/src/semantic/type_checker_decls_domain_helpers.c"
 grep -Fq "domain_lookup_named_type_metadata" "$ROOT_DIR/src/semantic/type_checker_decls_domain_helpers.c"
 grep -Fq "intent_step_set_where_type_name" "$ROOT_DIR/src/semantic/type_checker_intent_helpers.c"
-if grep -RIn --include='type_checker_intent*.c' \
-    "ast_intent_step_set_where_type(" "$ROOT_DIR/src/semantic" | \
+if grep -E '/type_checker_intent[^/]*\.c:.*ast_intent_step_set_where_type\(' \
+    "$SEMANTIC_INDEX" | \
     grep -v "type_checker_intent_helpers.c"; then
     echo "[perf-contract] intent where inference bypassed shared provenance owner" >&2
     exit 1
@@ -1579,17 +1559,11 @@ grep -Fq "transpiler_infer_call_lookup" "$ROOT_DIR/src/codegen/transpiler_expr_t
 grep -Fq "transpiler_infer_call_is_numeric_passthrough" "$ROOT_DIR/src/codegen/transpiler_expr_type_infer_call_policy.c"
 grep -Fq "transpiler_infer_call_returns_channel_option" "$ROOT_DIR/src/codegen/transpiler_expr_type_infer_call_policy.c"
 grep -Fq "bsearch(" "$ROOT_DIR/src/codegen/transpiler_expr_type_infer_call_policy.c"
-for direct_infer_name in \
-    Min Max Abs Clone MapGet MapKeys ListGet ViewRead ViewWrite Measure \
-    QubitState DeviceRead SubmitDeviceRead TryRecv RecvTimeout \
-    TrySendStatus SendTimeoutStatus Some None IsSome IsNone \
-    UnwrapOption ToObject ToTObject; do
-    if grep -Fq "strcmp(name, \"$direct_infer_name\")" \
-        "$ROOT_DIR/src/codegen/transpiler_expr_type_infer.c"; then
-        echo "[perf-contract] C expression type inference reintroduced direct builtin branch: $direct_infer_name" >&2
-        exit 1
-    fi
-done
+if grep -Eq 'strcmp[[:space:]]*\([[:space:]]*name[[:space:]]*,[[:space:]]*"(Min|Max|Abs|Clone|MapGet|MapKeys|ListGet|ViewRead|ViewWrite|Measure|QubitState|DeviceRead|SubmitDeviceRead|TryRecv|RecvTimeout|TrySendStatus|SendTimeoutStatus|Some|None|IsSome|IsNone|UnwrapOption|ToObject|ToTObject)"' \
+    "$ROOT_DIR/src/codegen/transpiler_expr_type_infer.c"; then
+    echo "[perf-contract] C expression type inference reintroduced direct builtin branch" >&2
+    exit 1
+fi
 transpiler_infer_call_names="$(
     sed -n '/kTranspilerInferCallSpecs\[\]/,/^    };/p' \
         "$ROOT_DIR/src/codegen/transpiler_expr_type_infer_call_policy.c" \
@@ -1630,8 +1604,7 @@ grep -Fq "generic_args_to_c_suffix_copy" "$ROOT_DIR/src/codegen/transpiler_type_
 ! grep -Fq "generic_args_to_c_suffix(const char" "$ROOT_DIR/src/codegen/transpiler_type_mapping.c"
 grep -Fq "collection_runtime_suffix_copy" "$ROOT_DIR/src/codegen/transpiler_collection_runtime_suffix.h"
 ! grep -Fq "collection_runtime_suffix(const char" "$ROOT_DIR/src/codegen/transpiler_collection_runtime_suffix.h"
-! grep -R "collection_runtime_suffix(" "$ROOT_DIR/src/codegen" \
-    --include='*.c' --include='*.h' >/dev/null
+! grep -Fq "collection_runtime_suffix(" "$CODEGEN_INDEX"
 grep -Fq "lookup_enum_variant_qualified_name_copy" "$ROOT_DIR/src/codegen/transpiler_enum.c"
 ! grep -Fq "lookup_enum_variant_qualified_name(TranspilerCtx" "$ROOT_DIR/src/codegen/transpiler_enum.c"
 ! grep -Fq "static char qualified" "$ROOT_DIR/src/codegen/transpiler_enum.c"
@@ -1695,8 +1668,9 @@ grep -Fq "pgy_intent_active_index_set_export(handle, i)" "$ROOT_DIR/src/runtime/
 grep -Fq "pgy_intent_find_active_registry_slot_export(handle)" "$ROOT_DIR/src/runtime/pgy_runtime_lib_intent_active_index_exports.c"
 grep -Fq "AIR rejects MIR pin cleanup without global cleanup evidence" "$ROOT_DIR/src/test_air.c"
 grep -Fq "AIR DAG evidence contains unresolved metadata dead-end" "$ROOT_DIR/src/compiler/air_verify_global.c"
-grep -R -Fq "sem.type_resolution_metadata_dead_ends = 2" "$ROOT_DIR/src/tests/air"
-! grep -R -Fq "type_resolution_metadata_materializer_fallbacks" "$ROOT_DIR/src/semantic" "$ROOT_DIR/src/tests/air"
+grep -Fq "sem.type_resolution_metadata_dead_ends = 2" "$AIR_TEST_INDEX"
+! { grep -Fq "type_resolution_metadata_materializer_fallbacks" "$SEMANTIC_INDEX" \
+    || grep -Fq "type_resolution_metadata_materializer_fallbacks" "$AIR_TEST_INDEX"; }
 grep -Fq "return inst->expr0" "$ROOT_DIR/src/compiler/mir_ssa_use_edges.c"
 grep -Fq "ASTNode *expr = inst->expr0 != NULL ? inst->expr0 : inst->expr1" "$ROOT_DIR/src/compiler/mir_ssa_use_edges.c"
 ! grep -Fq "inst->ast->type" "$ROOT_DIR/src/compiler/mir_ssa_rename.c"
@@ -1787,7 +1761,7 @@ grep -Fq "llvm_mir_emit_channel_receive_def(inst, ctx" "$ROOT_DIR/src/codegen/ll
 grep -Fq "llvm_mir_declare_recv_target(inst->arg0, inst->expr0, ctx)" "$ROOT_DIR/src/codegen/llvm_mir_cfg_control.c"
 grep -Fq "LLVM channel receive DEF requires registered runtime function" "$ROOT_DIR/src/codegen/llvm_mir_cfg_control.c"
 grep -Fq "llvm_emit_statement(source_payload, ctx)" "$ROOT_DIR/src/codegen/llvm_mir_block_emit.c"
-! grep -R -Fq "llvm_emit_statement(inst->ast" "$ROOT_DIR/src/codegen"
+! grep -Fq "llvm_emit_statement(inst->ast" "$CODEGEN_INDEX"
 grep -Fq "llvm_emit_option_coalesce" "$ROOT_DIR/src/codegen/llvm_expr_scalar_core.c"
 grep -Fq "coalesce.fallback" "$ROOT_DIR/src/codegen/llvm_expr_scalar_core.c"
 grep -Fq "LLVMBuildPhi(ctx->builder, fields[1]" "$ROOT_DIR/src/codegen/llvm_expr_scalar_core.c"
@@ -1811,7 +1785,7 @@ grep -Fq "transpiler_mir_seed_block_phi_names" "$ROOT_DIR/src/codegen/transpiler
 grep -Fq "transpiler_mir_def_uses_source_statement_emit(" "$ROOT_DIR/src/codegen/transpiler_mir_assignment_emit.c"
 grep -Fq "mir_instruction_source_matches_ast_type(inst, expected_type)" "$ROOT_DIR/src/codegen/transpiler_mir_block_emit_helpers.c"
 grep -Fq "mir_instruction_source_payload(resource_inst) != stmt" "$ROOT_DIR/src/codegen/transpiler_mir_stmt_emit.c"
-! grep -R -Fq "mir_instruction_source_matches_ast_node" "$ROOT_DIR/src"
+! grep -Fq "mir_instruction_source_matches_ast_node" "$SRC_INDEX"
 grep -Fq "missing receive emit fact" "$ROOT_DIR/src/codegen/transpiler_mir_assignment_emit.c"
 grep -Fq "missing select receive emit fact" "$ROOT_DIR/src/codegen/transpiler_mir_assignment_emit.c"
 grep -Fq "transpiler_emit_mir_assignment_def_inst" "$ROOT_DIR/src/codegen/transpiler_mir_assignment_emit.h"
@@ -1844,8 +1818,8 @@ grep -Fq "mir_source_ast_type_stmt_has_side_effect_hint" "$ROOT_DIR/src/compiler
 grep -Fq "MIR DCE uses statement shape facts without AST payload" "$ROOT_DIR/src/tests/mir/test_mir_lowering_part_c.cases.h"
 grep -Fq "mir_stmt_ast_type_is_cfg_owned_control" "$ROOT_DIR/src/compiler/mir_source_shape.c"
 grep -Fq "if (!mir_program_has_inventory_surface_usage_facts(mir))" "$ROOT_DIR/src/codegen/intent_observability_usage.c"
-! grep -R -Fq "mir->inventory_uses_" "$ROOT_DIR/src/codegen"
-! grep -R -Fq "mir->has_inventory_surface_usage_facts" "$ROOT_DIR/src/codegen"
+! grep -Fq "mir->inventory_uses_" "$CODEGEN_INDEX"
+! grep -Fq "mir->has_inventory_surface_usage_facts" "$CODEGEN_INDEX"
 ! grep -Fq "allow_ast_fallback" "$ROOT_DIR/src/codegen/intent_observability_usage.c"
 ! grep -Fq "pgy_ast_array_uses_intent_observability" "$ROOT_DIR/src/codegen/intent_observability_usage.c"
 ! grep -Fq "mir->types" "$ROOT_DIR/src/codegen/intent_observability_usage.c"
@@ -1891,7 +1865,7 @@ grep -Fq "llvm_build_mir_intent_step_sources" "$ROOT_DIR/src/codegen/llvm_intent
 grep -Fq "transpiler_build_mir_intent_step_sources" "$ROOT_DIR/src/codegen/transpiler_intent_emit_metadata_helpers.h"
 grep -Fq "missing intent step source mapping" "$ROOT_DIR/src/codegen/llvm_intent.c"
 grep -Fq "missing intent step source mapping" "$ROOT_DIR/src/codegen/transpiler_intent_emit.c"
-! grep -R -Fq "collect_mir_intent_steps" "$ROOT_DIR/src/codegen"
+! grep -Fq "collect_mir_intent_steps" "$CODEGEN_INDEX"
 grep -Fq "has_surface_usage_facts" "$ROOT_DIR/src/codegen/thread_pool_usage.c"
 grep -Fq "uses_thread_pool_surface" "$ROOT_DIR/src/codegen/thread_pool_usage.c"
 grep -Fq "allow_fixture_payload_probe" "$ROOT_DIR/src/codegen/thread_pool_usage.c"
@@ -1994,16 +1968,16 @@ grep -Fq "transpiler_register_defer(inst->expr0, ctx)" "$ROOT_DIR/src/codegen/tr
 grep -Fq "ASTNode *payload_expr = inst->expr0" "$ROOT_DIR/src/codegen/transpiler_mir_emission_mapping_contract.c"
 ! grep -Fq "transpiler_expr_identifiers_mapped(ctx, inst->ast" "$ROOT_DIR/src/codegen/transpiler_mir_emission_mapping_contract.c"
 grep -Fq "branch instruction misses required condition fact" "$ROOT_DIR/src/codegen/transpiler_mir_emission_contract.c"
-! grep -R -Fq "inst->ast->data" "$ROOT_DIR/src/codegen"
+! grep -Fq "inst->ast->data" "$CODEGEN_INDEX"
 ! grep -Fq "source_ast_type != AST_INTENT_STEP" "$ROOT_DIR/src/codegen/llvm_intent_flow.c"
 ! grep -Fq "source_ast_type != AST_INTENT_STEP" "$ROOT_DIR/src/codegen/transpiler_mir_inventory_intent.h"
 grep -Fq "mir_instruction_source_is_local_destructure(inst)" "$ROOT_DIR/src/codegen/transpiler_mir_emission_mapping_contract.c"
 grep -Fq "mir_instruction_source_is_assignment(inst)" "$ROOT_DIR/src/codegen/transpiler_mir_emission_mapping_contract.c"
-! grep -R -Fq "inst->ast->type" "$ROOT_DIR/src/codegen"
+! grep -Fq "inst->ast->type" "$CODEGEN_INDEX"
 grep -Fq "transpiler_emit_mir_preserved_let_stmt" "$ROOT_DIR/src/codegen/transpiler_mir_preserved_let_emit.c"
 grep -Fq "transpiler_mir_preserved_let_emit.h" "$ROOT_DIR/src/codegen/transpiler_mir_block_emit.c"
-! grep -R -Fq "transpiler_mir_fallback_let_emit.h" "$ROOT_DIR/src/codegen"
-! grep -R -Fq "transpiler_emit_mir_fallback_let_stmt" "$ROOT_DIR/src/codegen"
+! grep -Fq "transpiler_mir_fallback_let_emit.h" "$CODEGEN_INDEX"
+! grep -Fq "transpiler_emit_mir_fallback_let_stmt" "$CODEGEN_INDEX"
 grep -Fq "silent true fallback is disabled" "$ROOT_DIR/src/codegen/llvm_intent.c"
 grep -Fq "Some requires concrete payload type during C emission" "$ROOT_DIR/src/codegen/transpiler_call_result_option_builtin_emit.c"
 grep -Fq "C match lowering requires a concrete subject type; implicit Int match fallback is disabled" "$ROOT_DIR/src/codegen/transpiler_match_emit.c"
@@ -2296,13 +2270,11 @@ grep -Fq "kTranspilerStdlibSpecs" "$ROOT_DIR/src/codegen/transpiler_expr_stdlib_
 grep -Fq "transpiler_stdlib_lookup" "$ROOT_DIR/src/codegen/transpiler_expr_stdlib_builtin_policy.c"
 grep -Fq "TranspilerToStringSpec" "$ROOT_DIR/src/codegen/transpiler_expr_stdlib_builtin_policy.c"
 grep -Fq "transpiler_to_string_kind" "$ROOT_DIR/src/codegen/transpiler_expr_stdlib_builtin_policy.c"
-for direct_to_string_type in String Bool Float Double Long; do
-    if grep -Fq "strcmp(arg_type, \"$direct_to_string_type\")" \
-        "$ROOT_DIR/src/codegen/transpiler_expr_stdlib_builtin_policy.c"; then
-        echo "[perf-contract] C ToString lowering reintroduced direct type branch: $direct_to_string_type" >&2
-        exit 1
-    fi
-done
+if grep -Eq 'strcmp[[:space:]]*\([[:space:]]*arg_type[[:space:]]*,[[:space:]]*"(String|Bool|Float|Double|Long)"' \
+    "$ROOT_DIR/src/codegen/transpiler_expr_stdlib_builtin_policy.c"; then
+    echo "[perf-contract] C ToString lowering reintroduced direct type branch" >&2
+    exit 1
+fi
 transpiler_to_string_names="$(
     sed -n '/static const TranspilerToStringSpec kTranspilerToStringSpecs\[\]/,/^};/p' \
         "$ROOT_DIR/src/codegen/transpiler_expr_stdlib_builtin_policy.c" \
@@ -2613,9 +2585,9 @@ grep -Fq "registry requires concrete type metadata" "$ROOT_DIR/src/codegen/llvm_
 grep -Fq "if (ctx->has_error || elem_type == NULL)" "$ROOT_DIR/src/codegen/llvm_backend_type_registry.c"
 grep -Fq "llvm_lookup_or_declare_function" "$ROOT_DIR/src/codegen/llvm_registry.c"
 grep -Fq "LLVMAddFunction(ctx->module, name, decl_type)" "$ROOT_DIR/src/codegen/llvm_registry.c"
-! grep -R -Fq "llvm_lookup_or_create_function" "$ROOT_DIR/src/codegen"
-! grep -R -Fq "fallback_type" "$ROOT_DIR/src/codegen"
-! grep -R -Fq "fallback_ret_type" "$ROOT_DIR/src/codegen"
+! grep -Fq "llvm_lookup_or_create_function" "$CODEGEN_INDEX"
+! grep -Fq "fallback_type" "$CODEGEN_INDEX"
+! grep -Fq "fallback_ret_type" "$CODEGEN_INDEX"
 grep -Fq "llvm_required_collection_function" "$ROOT_DIR/src/codegen/llvm_expr_call_collections_extended.c"
 grep -Fq "llvm_required_collection_function" "$ROOT_DIR/src/codegen/llvm_expr_collection_base_calls.c"
 grep -Fq "llvm_required_hashmap_raw_export" "$ROOT_DIR/src/codegen/llvm_expr_call_collections_map_exports.c"
@@ -3081,8 +3053,8 @@ grep -Fq "pgy_host_decl_compat_types(&host_type_count)" "$ROOT_DIR/src/codegen/l
 grep -Fq "host_types[i]" "$ROOT_DIR/src/codegen/llvm_inventory_decl_lookup.c"
 ! grep -Fq "kLLVMHostDeclTypes" "$ROOT_DIR/src/codegen/llvm_inventory_decl_lookup.c"
 ! grep -Fq "llvm_host_decl_type_count()" "$ROOT_DIR/src/codegen/llvm_inventory_decl_lookup.c"
-grep -Fq "return decl_header->ast_type == decl_type" "$ROOT_DIR/src/codegen/llvm_inventory_decl_lookup.c"
-grep -Fq "return decl_header->ast_type == decl_type" "$ROOT_DIR/src/codegen/transpiler_decl_lookup.c"
+grep -Fq "mir_decl_header_ast_type_or(" "$ROOT_DIR/src/codegen/llvm_inventory_decl_lookup.c"
+grep -Fq "mir_decl_header_ast_type_or(" "$ROOT_DIR/src/codegen/transpiler_decl_lookup.c"
 grep -Fq "AST_PARTY_DECL" "$ROOT_DIR/src/codegen/host_decl_compat.c"
 grep -Fq "AST_ROLE_DECL" "$ROOT_DIR/src/codegen/host_decl_compat.c"
 grep -Fq "AST_ROSTER_DECL" "$ROOT_DIR/src/codegen/host_decl_compat.c"
@@ -3932,18 +3904,13 @@ grep -Fq "slot_inner_type_name_copy(type_name, inner_buf" \
     echo "[perf-contract] expression type inference bypassed slot inner copy seam" >&2
     exit 1
 }
-if grep -R "return slot_inner_type_name(" "$ROOT_DIR/src/codegen" >/dev/null; then
-    echo "[perf-contract] C backend reintroduced static slot inner return" >&2
-    exit 1
-fi
-if grep -R "= slot_inner_type_name(" "$ROOT_DIR/src/codegen" >/dev/null; then
-    echo "[perf-contract] C backend reintroduced static slot inner assignment" >&2
-    exit 1
-fi
-if grep -R "slot_inner_type_name(.*)" "$ROOT_DIR/src/codegen" \
+slot_inner_escape_matches="$(
+    grep -F "slot_inner_type_name(" "$CODEGEN_INDEX" \
     | grep -v "transpiler_type_mapping" \
     | grep -v "transpiler.h" \
-    | grep -v "transpiler_infer_slot_inner_type_name" >/dev/null; then
+    | grep -v "transpiler_infer_slot_inner_type_name" || true
+)"
+if [ -n "$slot_inner_escape_matches" ]; then
     echo "[perf-contract] C backend direct slot_inner_type_name call escaped copy seam" >&2
     exit 1
 fi

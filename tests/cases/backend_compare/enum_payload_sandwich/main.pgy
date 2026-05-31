@@ -1,0 +1,20 @@
+enum Cell { Empty, Filled(Int), Reserved, Pinned(Int, Int), Locked }
+
+func Score(c: Cell) -> Int {
+    match c {
+        case Empty: return 0;
+        case Filled(v): return v;
+        case Reserved: return -1;
+        case Pinned(a, b): return a * b;
+        case Locked: return -999;
+    }
+}
+
+func Main() -> Void {
+    Log(Score(Empty));
+    Log(Score(Filled(42)));
+    Log(Score(Reserved));
+    Log(Score(Pinned(3, 4)));
+    Log(Score(Pinned(0, 5)));
+    Log(Score(Locked));
+}

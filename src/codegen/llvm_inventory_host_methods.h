@@ -5,7 +5,7 @@
 
 typedef struct
 {
-    const MIRDeclMethod *metadata;
+    const MIRDeclHeader *decl_header;
     ASTNode           **ast_compat_methods;
     size_t             ast_compat_count;
     size_t             count;
@@ -13,9 +13,6 @@ typedef struct
     bool               requires_mir_metadata;
 } LLVMHostedMethodView;
 
-void llvm_host_decl_method_metadata(const MIRDeclHeader *decl_header,
-                                    const MIRDeclMethod **methods_out,
-                                    size_t *method_count_out);
 const MIRDeclMethod *llvm_find_host_method_metadata_in_context(
     const LLVMGenCtx *ctx,
     const char *host_type_name,

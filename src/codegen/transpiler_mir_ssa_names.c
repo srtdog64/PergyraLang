@@ -12,7 +12,7 @@
 
 #include "../common/string_compat.h"
 #include "../parser/ast_api.h"
-#include "host_decl_compat.h"
+#include "transpiler_context.h"
 #include "transpiler_decl_lookup.h"
 #include "transpiler_mir_local_binding.h"
 #include "transpiler_mir_ssa_map.h"
@@ -42,6 +42,36 @@ transpiler_ssa_strdup_fmt(const char *fmt, ...)
         vsnprintf(buf, (size_t)n + 1, fmt, ap2);
     va_end(ap2);
     return buf;
+}
+
+static bool
+transpiler_zone_shared_view_has_field(TranspilerCtx *ctx,
+                                      ASTNode *zone_decl,
+                                      const char *zone_name,
+                                      const char *field_name)
+{
+    TranspilerHostedSharedFieldView shared_view;
+
+    if (ctx == NULL || zone_decl == NULL || field_name == NULL)
+        return false;
+
+    shared_view = transpiler_hosted_shared_field_view_from_decl(
+        ctx, zone_name, zone_decl);
+    if (transpiler_hosted_shared_field_view_missing_mir_metadata(
+            &shared_view)) {
+        transpiler_set_mir_inventory_missing(ctx,
+            "MIR-only C path missing shared-field metadata for zone '%s'",
+            zone_name != NULL ? zone_name : "(anonymous-zone)");
+        return false;
+    }
+
+    for (size_t i = 0; i < shared_view.count; i++) {
+        const char *shared_name =
+            transpiler_hosted_shared_field_view_name(&shared_view, i);
+        if (shared_name != NULL && strcmp(shared_name, field_name) == 0)
+            return true;
+    }
+    return false;
 }
 
 const char *
@@ -146,17 +176,9 @@ transpiler_is_implicit_field(TranspilerCtx *ctx, const char *base_name)
                     return true;
                 }
             }
-            PgyHostSharedFieldsCompatView shared_view =
-                pgy_host_shared_fields_compat_view_from_decl(zone_decl);
-            size_t shared_count = shared_view.count;
-            ASTNode **shared_fields = shared_view.fields;
-            for (size_t i = 0; i < shared_count; i++) {
-                ASTNode *shared = shared_fields[i];
-                const char *shared_name = ast_party_shared_name(shared);
-                if (shared != NULL && shared_name != NULL
-                    && strcmp(shared_name, base_name) == 0) {
-                    return true;
-                }
+            if (transpiler_zone_shared_view_has_field(
+                    ctx, zone_decl, host_name, base_name)) {
+                return true;
             }
         }
         if (host_name != NULL) {

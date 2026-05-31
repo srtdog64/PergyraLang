@@ -38,11 +38,9 @@ llvm_emit_domain_projection_sync_body(ASTNode *stmt,
     const char *unused_name = NULL;
     ASTNode **slots = NULL;
     size_t slot_count = 0;
-    ASTNode **unused_shared = NULL;
-    size_t unused_shared_count = 0;
 
     llvm_domain_decl_parts(stmt, &unused_name, &slots, &slot_count,
-        &unused_shared, &unused_shared_count, &refreshes, &refresh_count);
+        &refreshes, &refresh_count);
 
     if (stmt == NULL || decl_cls == NULL || sync_fn == NULL || ctx == NULL
         || refresh_count == 0) {
