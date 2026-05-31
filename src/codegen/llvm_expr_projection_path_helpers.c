@@ -10,8 +10,6 @@
 #include <stdio.h>
 #include <string.h>
 
-#include "../compiler/mir_decl_headers.h"
-#include "host_decl_compat.h"
 #include "llvm_internal_api.h"
 #include "llvm_inventory_decl_lookup.h"
 #include "../common/string_compat.h"
@@ -62,75 +60,61 @@ llvm_expr_projection_join_path(LLVMGenCtx *ctx,
     return path;
 }
 
+static LLVMHostedFieldView
+llvm_projection_field_view(LLVMGenCtx *ctx, ASTNode *decl)
+{
+    const char *decl_name = llvm_decl_node_name(decl);
+    LLVMHostedFieldView view =
+        llvm_hosted_class_field_view_from_decl(ctx, decl_name, decl);
+
+    if (llvm_hosted_field_view_missing_mir_metadata(&view)) {
+        llvm_set_mir_inventory_missing(ctx,
+            "MIR-only LLVM path missing class-field projection metadata for '%s'",
+            decl_name != NULL ? decl_name : "(anonymous-class)");
+    }
+    return view;
+}
+
 static size_t
 llvm_projection_field_count(LLVMGenCtx *ctx, ASTNode *decl)
 {
-    const MIRDeclHeader *header;
-    const char *decl_name;
+    LLVMHostedFieldView view;
 
     if (decl == NULL)
         return 0;
-    decl_name = llvm_decl_node_name(decl);
-    header = llvm_find_host_decl_header_in_context(ctx, decl_name);
-    if (header != NULL)
-        return mir_decl_header_field_count(header);
-    if (decl->type == AST_CLASS_DECL) {
-        PgyHostClassFieldsCompatView view =
-            pgy_host_class_fields_compat_view_from_decl(decl);
-        return view.count;
-    }
-    return 0;
+    view = llvm_projection_field_view(ctx, decl);
+    return view.count;
 }
 
 static const char *
 llvm_projection_field_name(LLVMGenCtx *ctx, ASTNode *decl, size_t index)
 {
-    const MIRDeclHeader *header;
-    const MIRDeclField *field;
-    const char *decl_name;
+    LLVMHostedFieldView view;
 
     if (decl == NULL)
         return NULL;
-    decl_name = llvm_decl_node_name(decl);
-    header = llvm_find_host_decl_header_in_context(ctx, decl_name);
-    field = mir_decl_header_field(header, index);
-    if (field != NULL)
-        return mir_decl_field_name(field);
-    if (decl->type == AST_CLASS_DECL) {
-        PgyHostClassFieldsCompatView view =
-            pgy_host_class_fields_compat_view_from_decl(decl);
-        if (index < view.count && view.fields != NULL) {
-            ClassField *compat_field = view.fields[index];
-            return compat_field != NULL ? compat_field->name : NULL;
-        }
-    }
-    return NULL;
+    view = llvm_projection_field_view(ctx, decl);
+    return llvm_hosted_field_view_name(&view, index);
 }
 
 static const char *
 llvm_projection_field_type_name(LLVMGenCtx *ctx, ASTNode *decl, size_t index)
 {
-    const MIRDeclHeader *header;
     const MIRDeclField *field;
-    const char *decl_name;
+    LLVMHostedFieldView view;
     ASTNode *type_node = NULL;
 
     if (decl == NULL)
         return NULL;
-    decl_name = llvm_decl_node_name(decl);
-    header = llvm_find_host_decl_header_in_context(ctx, decl_name);
-    field = mir_decl_header_field(header, index);
+    view = llvm_projection_field_view(ctx, decl);
+    field = llvm_hosted_field_view_metadata(&view, index);
     if (field != NULL) {
         const char *type_name = llvm_mir_decl_field_type_name(field);
         if (type_name != NULL)
             return type_name;
         type_node = llvm_mir_decl_field_type(field);
-    } else if (decl->type == AST_CLASS_DECL) {
-        PgyHostClassFieldsCompatView view =
-            pgy_host_class_fields_compat_view_from_decl(decl);
-        ClassField *compat_field = index < view.count && view.fields != NULL
-            ? view.fields[index] : NULL;
-        type_node = compat_field != NULL ? compat_field->type : NULL;
+    } else {
+        type_node = llvm_hosted_field_view_type(&view, index);
     }
 
     return type_node != NULL ? ast_type_name(type_node) : NULL;

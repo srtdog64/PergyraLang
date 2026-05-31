@@ -451,6 +451,7 @@ main() {
         "tests/cases/backend_compare/multi_return_paths"
         "tests/cases/backend_compare/bool_expr_chain"
         "tests/cases/backend_compare/fibonacci_iterative"
+        "tests/cases/backend_compare/fib_iterative"
         "tests/cases/backend_compare/map_count_unique"
         "tests/cases/backend_compare/result_via_unwrap"
         "tests/cases/backend_compare/string_compare_branch"
@@ -471,6 +472,7 @@ main() {
         "tests/cases/backend_compare/count_letters_in_word"
         "tests/cases/backend_compare/binary_search_int"
         "tests/cases/backend_compare/gcd_recursive"
+        "tests/cases/backend_compare/gcd_recursive_ish"
         "tests/cases/backend_compare/reverse_array_in_place"
         "tests/cases/backend_compare/palindrome_check"
         "tests/cases/backend_compare/bubble_sort_small"
@@ -732,6 +734,11 @@ main() {
             done
             echo "Add each case to the default cases array, or pass explicit case arguments for a targeted run." >&2
             return 1
+        fi
+
+        if [[ "${PGY_BACKEND_COMPARE_INVENTORY_ONLY:-0}" != "0" ]]; then
+            echo "[backend-compare-inventory] default case inventory is complete"
+            return 0
         fi
     fi
 

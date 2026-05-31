@@ -99,6 +99,11 @@ llvm_emit_world_embedded_action_effect_sync(LLVMGenCtx *ctx,
     LLVMVarEntry *self_var;
     LLVMValueRef world_ptr;
     LLVMValueRef zone_ptr;
+    LLVMHostedZoneLayerSlotView layer_view;
+    size_t state_count = 0;
+    ASTNode **states = NULL;
+    size_t refresh_count = 0;
+    ASTNode **refreshes = NULL;
     const char *effect_name;
     const char *world_name;
     const char *zone_name;
@@ -154,16 +159,20 @@ llvm_emit_world_embedded_action_effect_sync(LLVMGenCtx *ctx,
             world_ptr, (unsigned)zone_idx, llvm_tmp_name(ctx));
     }
 
-    size_t layer_slot_count = 0;
-    ASTNode **layer_slots = ast_zone_layer_slots(zone_decl, &layer_slot_count);
-    size_t state_count = 0;
-    ASTNode **states = ast_zone_states(zone_decl, &state_count);
-    size_t refresh_count = 0;
-    ASTNode **refreshes = ast_effect_refreshes(effect_decl, &refresh_count);
+    layer_view = llvm_hosted_zone_layer_slot_view_from_decl(ctx, zone_name, zone_decl);
+    if (llvm_hosted_zone_layer_slot_view_missing_mir_metadata(&layer_view)) {
+        llvm_set_error(ctx,
+            "MIR declaration inventory missing zone layer-slot metadata for world effect sync");
+        return;
+    }
+    states = ast_zone_states(zone_decl, &state_count);
+    refreshes = ast_effect_refreshes(effect_decl, &refresh_count);
 
-    for (size_t i = 0; i < layer_slot_count; i++) {
-        ASTNode *layer_slot = layer_slots[i];
+    for (size_t i = 0; i < layer_view.count; i++) {
+        ASTNode *layer_slot =
+            llvm_hosted_zone_layer_slot_view_source_ast(&layer_view, i);
         const char *layer_name;
+        const char *layer_type;
         int active_idx;
         int layer_idx;
         int source_idx;
@@ -172,14 +181,15 @@ llvm_emit_world_embedded_action_effect_sync(LLVMGenCtx *ctx,
         LLVMValueRef source_ptr;
         LLVMValueRef source_value;
 
+        layer_name = llvm_hosted_zone_layer_slot_view_name(&layer_view, i);
+        layer_type = llvm_hosted_zone_layer_slot_view_type_name(&layer_view, i);
         if (layer_slot == NULL || layer_slot->type != AST_ZONE_LAYER_SLOT
             || ast_zone_layer_slot_is_relation(layer_slot)
-            || ast_zone_layer_slot_layer_type(layer_slot) == NULL
-            || strcmp(ast_zone_layer_slot_layer_type(layer_slot), effect_name) != 0) {
+            || layer_type == NULL
+            || strcmp(layer_type, effect_name) != 0) {
             continue;
         }
 
-        layer_name = ast_zone_layer_slot_name(layer_slot);
         if (layer_name == NULL)
             continue;
 

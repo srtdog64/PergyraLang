@@ -13,8 +13,9 @@ const char *assignment_target_root_subfield_name(ASTNode *target);
 bool host_projection_relevant_field_exists(TranspilerCtx *ctx,
                                            const char *host_type_name,
                                            const char *field_name);
-ClassField *find_host_field_by_name_local(ASTNode *host_decl,
-                                          const char *field_name);
+const char *host_projection_subject_field_type_name(TranspilerCtx *ctx,
+                                                   const char *host_type_name,
+                                                   const char *field_name);
 const char *method_assignment_projection_field_name(TranspilerCtx *ctx,
                                                    const char *host_type_name,
                                                    ASTNode *target);

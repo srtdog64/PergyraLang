@@ -14,5 +14,13 @@ const char *resolve_intent_zone_slot_name_for_zone(TranspilerCtx *ctx,
                                                    ASTNode *intent,
                                                    const char *zone_type_name,
                                                    const char *alias);
+const char *resolve_intent_zone_slot_name_for_zone_with_metadata(
+    TranspilerCtx *ctx,
+    ASTNode *intent,
+    const char *zone_type_name,
+    const char *alias,
+    const char **participant_aliases,
+    const char **participant_types,
+    size_t participant_count);
 
 #endif /* PERGYRA_TRANSPILER_INTENT_ZONE_SLOT_H */

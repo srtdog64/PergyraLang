@@ -90,14 +90,20 @@ emit_intent_step_restore_bound_zone_aliases_with_metadata(CodeBuf *out,
                                                           const char *zone_type,
                                                           const char **who_aliases,
                                                           size_t who_alias_count,
-                                                          size_t step_index)
+                                                          size_t step_index,
+                                                          const char **participant_aliases,
+                                                          const char **participant_types,
+                                                          size_t participant_count)
 {
     if (out == NULL || ctx == NULL || intent == NULL || zone_type == NULL)
         return;
 
     for (size_t i = 0; i < who_alias_count; i++) {
         const char *alias = who_aliases[i];
-        const char *slot_name = resolve_intent_zone_slot_name_for_zone(ctx, intent, zone_type, alias);
+        const char *slot_name =
+            resolve_intent_zone_slot_name_for_zone_with_metadata(
+                ctx, intent, zone_type, alias,
+                participant_aliases, participant_types, participant_count);
 
         if (alias == NULL || slot_name == NULL || strcmp(slot_name, "<unbound>") == 0)
             continue;
@@ -276,9 +282,12 @@ transpiler_can_forward_declare_intent_early(TranspilerCtx *ctx, ASTNode *intent)
     values = ast_intent_decl_values(intent, &value_count);
     for (size_t i = 0; i < involve_count; i++) {
         ASTNode *involves = involves_nodes[i];
-        ASTNode *subject_type = ast_intent_involves_subject_type(involves);
-        if (involves == NULL || involves->type != AST_INTENT_INVOLVES
-            || subject_type == NULL) {
+        ASTNode *subject_type = NULL;
+        if (involves == NULL || involves->type != AST_INTENT_INVOLVES) {
+            continue;
+        }
+        subject_type = ast_intent_involves_subject_type(involves);
+        if (subject_type == NULL) {
             continue;
         }
         if (!transpiler_can_forward_declare_type_early(
@@ -288,9 +297,12 @@ transpiler_can_forward_declare_intent_early(TranspilerCtx *ctx, ASTNode *intent)
     }
     for (size_t i = 0; i < value_count; i++) {
         ASTNode *value = values[i];
-        ASTNode *value_type = ast_intent_value_type(value);
-        if (value == NULL || value->type != AST_INTENT_VALUE
-            || value_type == NULL) {
+        ASTNode *value_type = NULL;
+        if (value == NULL || value->type != AST_INTENT_VALUE) {
+            continue;
+        }
+        value_type = ast_intent_value_type(value);
+        if (value_type == NULL) {
             continue;
         }
         if (!transpiler_can_forward_declare_type_early(

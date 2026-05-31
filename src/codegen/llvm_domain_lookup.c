@@ -7,6 +7,7 @@
 
 #include "host_decl_compat.h"
 #include "llvm_internal.h"
+#include "llvm_inventory_decl_lookup.h"
 #include "parser/ast_api.h"
 
 ASTNode *
@@ -175,21 +176,32 @@ llvm_find_zone_domain_slot_decl(ASTNode *zone_decl, const char *slot_name)
 }
 
 ASTNode *
-llvm_find_zone_layer_slot_decl(ASTNode *zone_decl, const char *slot_name)
+llvm_find_zone_layer_slot_decl(LLVMGenCtx *ctx, ASTNode *zone_decl,
+                               const char *slot_name)
 {
-    size_t layer_slot_count = 0;
-    ASTNode **layer_slots;
+    const char *zone_name;
+    LLVMHostedZoneLayerSlotView layer_view;
 
     if (zone_decl == NULL || zone_decl->type != AST_ZONE_DECL
         || slot_name == NULL)
         return NULL;
-    layer_slots = ast_zone_layer_slots(zone_decl, &layer_slot_count);
-    for (size_t i = 0; i < layer_slot_count; i++) {
-        ASTNode *slot = layer_slots[i];
-        if (slot != NULL && slot->type == AST_ZONE_LAYER_SLOT
-            && ast_zone_layer_slot_name(slot) != NULL
-            && strcmp(ast_zone_layer_slot_name(slot), slot_name) == 0)
-            return slot;
+
+    zone_name = llvm_decl_node_name(zone_decl);
+    layer_view =
+        llvm_hosted_zone_layer_slot_view_from_decl(ctx, zone_name, zone_decl);
+    if (llvm_hosted_zone_layer_slot_view_missing_mir_metadata(&layer_view)) {
+        llvm_set_error(ctx,
+            "LLVM zone '%s' layer slots missing MIR declaration metadata",
+            zone_name != NULL ? zone_name : "<anonymous>");
+        return NULL;
+    }
+
+    for (size_t i = 0; i < layer_view.count; i++) {
+        const char *candidate_name =
+            llvm_hosted_zone_layer_slot_view_name(&layer_view, i);
+        if (candidate_name != NULL && strcmp(candidate_name, slot_name) == 0) {
+            return llvm_hosted_zone_layer_slot_view_source_ast(&layer_view, i);
+        }
     }
     return NULL;
 }
@@ -315,10 +327,22 @@ llvm_current_field_class_name(LLVMGenCtx *ctx, const char *field_name)
         return NULL;
 
     {
-        ClassField *field =
-            pgy_host_class_field_compat_find(host_decl, field_name);
-        const char *field_type_name =
-            field != NULL ? ast_type_name(field->type) : NULL;
+        LLVMHostedFieldView field_view =
+            llvm_hosted_class_field_view_from_decl(ctx, host_name, host_decl);
+        size_t field_index = 0;
+        const char *field_type_name = NULL;
+        if (llvm_hosted_field_view_missing_mir_metadata(&field_view)) {
+            llvm_set_mir_inventory_missing(ctx,
+                "MIR-only LLVM path missing current-field class metadata for '%s'",
+                host_name);
+            return NULL;
+        }
+        if (llvm_hosted_field_view_find_index(
+                &field_view, field_name, &field_index)) {
+            ASTNode *field_type =
+                llvm_hosted_field_view_type(&field_view, field_index);
+            field_type_name = field_type != NULL ? ast_type_name(field_type) : NULL;
+        }
         if (field_type_name != NULL
             && llvm_lookup_class(ctx, field_type_name) != NULL)
             return field_type_name;

@@ -64,9 +64,11 @@ const char *
 intent_participant_type_name(ASTNode *intent, const char *alias)
 {
     ASTNode *involves = find_intent_participant_local(intent, alias);
-    ASTNode *subject_type = ast_intent_involves_subject_type(involves);
-    if (involves != NULL
-        && subject_type != NULL
+    ASTNode *subject_type = NULL;
+
+    if (involves != NULL && involves->type == AST_INTENT_INVOLVES)
+        subject_type = ast_intent_involves_subject_type(involves);
+    if (subject_type != NULL
         && subject_type->type == AST_TYPE) {
         return ast_type_name(subject_type);
     }
@@ -89,9 +91,11 @@ const char *
 intent_zone_binding_type_name(ASTNode *intent, const char *alias)
 {
     ASTNode *involves = find_intent_participant_local(intent, alias);
-    ASTNode *subject_type = ast_intent_involves_subject_type(involves);
-    if (involves != NULL
-        && subject_type != NULL
+    ASTNode *subject_type = NULL;
+
+    if (involves != NULL && involves->type == AST_INTENT_INVOLVES)
+        subject_type = ast_intent_involves_subject_type(involves);
+    if (subject_type != NULL
         && subject_type->type == AST_TYPE) {
         return ast_type_name(subject_type);
     }

@@ -23,7 +23,8 @@ ASTNode *transpiler_find_zone_state_decl(ASTNode *zone_decl,
                                          const char *state_name);
 ASTNode *transpiler_find_world_state_decl(ASTNode *world_decl,
                                           const char *state_name);
-ASTNode *transpiler_find_zone_layer_slot(ASTNode *zone_decl,
+ASTNode *transpiler_find_zone_layer_slot(TranspilerCtx *ctx,
+                                         ASTNode *zone_decl,
                                          const char *slot_name);
 ASTNode *transpiler_find_world_zone_slot_decl(ASTNode *world_decl,
                                               const char *slot_name);

@@ -28,12 +28,54 @@ const char *llvm_mir_decl_field_type_name(const MIRDeclField *field);
 typedef struct
 {
     const MIRDeclHeader *decl_header;
+    ClassField        **ast_compat_fields;
+    size_t             ast_compat_count;
+    size_t             count;
+    bool               uses_mir_metadata;
+    bool               requires_mir_metadata;
+} LLVMHostedFieldView;
+LLVMHostedFieldView llvm_hosted_class_field_view_from_decl(
+    const LLVMGenCtx *ctx,
+    const char *host_name,
+    ASTNode *decl);
+bool llvm_hosted_field_view_missing_mir_metadata(
+    const LLVMHostedFieldView *view);
+const MIRDeclField *llvm_hosted_field_view_metadata(
+    const LLVMHostedFieldView *view,
+    size_t index);
+const char *llvm_hosted_field_view_name(
+    const LLVMHostedFieldView *view,
+    size_t index);
+ASTNode *llvm_hosted_field_view_type(
+    const LLVMHostedFieldView *view,
+    size_t index);
+bool llvm_hosted_field_view_find_index(
+    const LLVMHostedFieldView *view,
+    const char *field_name,
+    size_t *index_out);
+bool llvm_hosted_field_view_is_subject_like(
+    const LLVMHostedFieldView *view,
+    size_t index);
+typedef struct
+{
+    const MIRDeclHeader *decl_header;
     ASTNode           **ast_compat_fields;
     size_t             ast_compat_count;
     size_t             count;
     bool               uses_mir_metadata;
     bool               requires_mir_metadata;
 } LLVMHostedSharedFieldView;
+
+typedef struct
+{
+    const MIRDeclHeader *decl_header;
+    ASTNode           **ast_compat_slots;
+    size_t             ast_compat_count;
+    size_t             count;
+    bool               uses_mir_metadata;
+    bool               requires_mir_metadata;
+} LLVMHostedZoneLayerSlotView;
+
 LLVMHostedSharedFieldView llvm_hosted_shared_field_view_from_decl(
     const LLVMGenCtx *ctx,
     const char *host_name,
@@ -51,6 +93,24 @@ const char *llvm_hosted_shared_field_view_name(
     size_t index);
 ASTNode *llvm_hosted_shared_field_view_type(
     const LLVMHostedSharedFieldView *view,
+    size_t index);
+LLVMHostedZoneLayerSlotView llvm_hosted_zone_layer_slot_view_from_decl(
+    const LLVMGenCtx *ctx,
+    const char *host_name,
+    ASTNode *decl);
+bool llvm_hosted_zone_layer_slot_view_missing_mir_metadata(
+    const LLVMHostedZoneLayerSlotView *view);
+const MIRDeclField *llvm_hosted_zone_layer_slot_view_metadata(
+    const LLVMHostedZoneLayerSlotView *view,
+    size_t index);
+ASTNode *llvm_hosted_zone_layer_slot_view_source_ast(
+    const LLVMHostedZoneLayerSlotView *view,
+    size_t index);
+const char *llvm_hosted_zone_layer_slot_view_name(
+    const LLVMHostedZoneLayerSlotView *view,
+    size_t index);
+const char *llvm_hosted_zone_layer_slot_view_type_name(
+    const LLVMHostedZoneLayerSlotView *view,
     size_t index);
 ASTNode *llvm_find_host_decl_in_active_inventory(const LLVMGenCtx *ctx,
                                                  const char *name);

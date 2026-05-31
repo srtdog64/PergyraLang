@@ -37,6 +37,58 @@ find_nth_bindable_domain_slot_local(ASTNode **slots, size_t slot_count,
     return NULL;
 }
 
+bool
+transpiler_find_zone_layer_slot_local(TranspilerCtx *ctx,
+                                      ASTNode *zone,
+                                      const char *layer_slot_name,
+                                      bool is_relation,
+                                      ASTNode **slot_out,
+                                      const char **layer_type_out)
+{
+    const char *zone_name;
+    TranspilerHostedZoneLayerSlotView layer_view;
+
+    if (slot_out != NULL)
+        *slot_out = NULL;
+    if (layer_type_out != NULL)
+        *layer_type_out = NULL;
+    if (ctx == NULL || zone == NULL || layer_slot_name == NULL)
+        return false;
+
+    zone_name = transpiler_decl_name_local(zone);
+    layer_view = transpiler_hosted_zone_layer_slot_view_from_decl(
+        ctx, zone_name, zone);
+    if (transpiler_hosted_zone_layer_slot_view_missing_mir_metadata(
+            &layer_view)) {
+        transpiler_set_mir_inventory_missing(ctx,
+            "MIR-only C path missing zone layer-slot bind metadata for '%s'",
+            zone_name != NULL ? zone_name : "(anonymous-zone)");
+        return false;
+    }
+
+    for (size_t i = 0; i < layer_view.count; i++) {
+        ASTNode *slot =
+            transpiler_hosted_zone_layer_slot_view_source_ast(&layer_view, i);
+        const char *candidate_name =
+            transpiler_hosted_zone_layer_slot_view_name(&layer_view, i);
+        if (slot != NULL && slot->type == AST_ZONE_LAYER_SLOT
+            && ast_zone_layer_slot_is_relation(slot) == is_relation
+            && candidate_name != NULL
+            && strcmp(candidate_name, layer_slot_name) == 0) {
+            if (slot_out != NULL)
+                *slot_out = slot;
+            if (layer_type_out != NULL) {
+                *layer_type_out =
+                    transpiler_hosted_zone_layer_slot_view_type_name(
+                        &layer_view, i);
+            }
+            return true;
+        }
+    }
+
+    return false;
+}
+
 void
 emit_zone_bind_effect_layer(CodeBuf *out, ASTNode *zone,
                             const char *layer_slot_name,
@@ -46,30 +98,20 @@ emit_zone_bind_effect_layer(CodeBuf *out, ASTNode *zone,
     ASTNode *effect_decl;
     ASTNode *target_slot;
     const char *effect_name;
+    const char *effect_type_name;
 
     if (out == NULL || zone == NULL || layer_slot_name == NULL
         || target_slot_name == NULL || ctx == NULL) {
         return;
     }
 
-    layer_slot = NULL;
-    size_t layer_slot_count = 0;
-    ASTNode **layer_slots = ast_zone_layer_slots(zone, &layer_slot_count);
-    for (size_t i = 0; i < layer_slot_count; i++) {
-        ASTNode *slot = layer_slots[i];
-        if (slot != NULL && slot->type == AST_ZONE_LAYER_SLOT
-            && !ast_zone_layer_slot_is_relation(slot)
-            && ast_zone_layer_slot_name(slot) != NULL
-            && strcmp(ast_zone_layer_slot_name(slot), layer_slot_name) == 0) {
-            layer_slot = slot;
-            break;
-        }
-    }
-    if (layer_slot == NULL)
+    if (!transpiler_find_zone_layer_slot_local(ctx, zone, layer_slot_name,
+            false, &layer_slot, &effect_type_name)) {
         return;
+    }
 
     effect_decl = transpiler_find_decl_in_inventory_local(
-        ctx, AST_EFFECT_DECL, ast_zone_layer_slot_layer_type(layer_slot));
+        ctx, AST_EFFECT_DECL, effect_type_name);
     if (effect_decl == NULL)
         return;
     effect_name = transpiler_decl_name_local(effect_decl);

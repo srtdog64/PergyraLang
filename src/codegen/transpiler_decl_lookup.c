@@ -250,15 +250,56 @@ transpiler_hosted_field_view_type(const TranspilerHostedFieldView *view,
     return NULL;
 }
 
+bool
+transpiler_hosted_field_view_find_index(
+    const TranspilerHostedFieldView *view,
+    const char *field_name,
+    size_t *index_out)
+{
+    if (index_out != NULL)
+        *index_out = 0;
+    if (view == NULL || field_name == NULL)
+        return false;
+
+    for (size_t i = 0; i < view->count; i++) {
+        const char *name = transpiler_hosted_field_view_name(view, i);
+        if (name != NULL && strcmp(name, field_name) == 0) {
+            if (index_out != NULL)
+                *index_out = i;
+            return true;
+        }
+    }
+    return false;
+}
+
+bool
+transpiler_hosted_field_view_is_subject_like(
+    const TranspilerHostedFieldView *view,
+    size_t index)
+{
+    const MIRDeclField *field =
+        transpiler_hosted_field_view_metadata(view, index);
+
+    if (view == NULL || index >= view->count)
+        return false;
+    if (field != NULL)
+        return transpiler_mir_decl_field_is_subject_like(field);
+    if (view->requires_mir_metadata)
+        return false;
+    return view->ast_compat_fields != NULL
+        && view->ast_compat_fields[index] != NULL
+        && view->ast_compat_fields[index]->is_vessel_field;
+}
+
 static size_t
-transpiler_decl_header_shared_field_count(const MIRDeclHeader *header)
+transpiler_decl_header_field_count_by_kind(const MIRDeclHeader *header,
+                                           MIRDeclFieldKind kind)
 {
     size_t count = 0;
 
     for (size_t i = 0; i < mir_decl_header_field_count(header); i++) {
         const MIRDeclField *field = mir_decl_header_field(header, i);
-        if (mir_decl_field_kind_or(field, MIR_DECL_FIELD_UNKNOWN)
-            == MIR_DECL_FIELD_SHARED) {
+        if (mir_decl_field_kind_or(field, MIR_DECL_FIELD_UNKNOWN) == kind) {
             count++;
         }
     }
@@ -266,21 +307,36 @@ transpiler_decl_header_shared_field_count(const MIRDeclHeader *header)
 }
 
 static const MIRDeclField *
-transpiler_decl_header_shared_field(const MIRDeclHeader *header, size_t index)
+transpiler_decl_header_field_by_kind(const MIRDeclHeader *header,
+                                     MIRDeclFieldKind kind,
+                                     size_t index)
 {
-    size_t shared_index = 0;
+    size_t matched_index = 0;
 
     for (size_t i = 0; i < mir_decl_header_field_count(header); i++) {
         const MIRDeclField *field = mir_decl_header_field(header, i);
-        if (mir_decl_field_kind_or(field, MIR_DECL_FIELD_UNKNOWN)
-            != MIR_DECL_FIELD_SHARED) {
+        if (mir_decl_field_kind_or(field, MIR_DECL_FIELD_UNKNOWN) != kind) {
             continue;
         }
-        if (shared_index == index)
+        if (matched_index == index)
             return field;
-        shared_index++;
+        matched_index++;
     }
     return NULL;
+}
+
+static size_t
+transpiler_decl_header_shared_field_count(const MIRDeclHeader *header)
+{
+    return transpiler_decl_header_field_count_by_kind(
+        header, MIR_DECL_FIELD_SHARED);
+}
+
+static const MIRDeclField *
+transpiler_decl_header_shared_field(const MIRDeclHeader *header, size_t index)
+{
+    return transpiler_decl_header_field_by_kind(
+        header, MIR_DECL_FIELD_SHARED, index);
 }
 
 TranspilerHostedSharedFieldView
@@ -393,6 +449,142 @@ transpiler_hosted_shared_field_view_type(
     if (view->ast_compat_fields != NULL
         && view->ast_compat_fields[index] != NULL) {
         return ast_party_shared_type(view->ast_compat_fields[index]);
+    }
+    return NULL;
+}
+
+TranspilerHostedZoneLayerSlotView
+transpiler_hosted_zone_layer_slot_view_from_decl(const TranspilerCtx *ctx,
+                                                 const char *host_name,
+                                                 ASTNode *decl)
+{
+    TranspilerHostedZoneLayerSlotView view;
+    ASTNode **compat_slots = NULL;
+    size_t compat_count = 0;
+    const MIRDeclHeader *header = NULL;
+
+    if (decl != NULL && decl->type == AST_ZONE_DECL)
+        compat_slots = ast_zone_layer_slots(decl, &compat_count);
+
+    view.decl_header = NULL;
+    view.ast_compat_slots = compat_slots;
+    view.ast_compat_count = compat_count;
+    view.count = compat_count;
+    view.uses_mir_metadata = false;
+    view.requires_mir_metadata =
+        transpiler_active_has_mir(ctx) && compat_count > 0;
+
+    header = transpiler_active_decl_header(ctx, host_name);
+    if (header != NULL
+        && mir_decl_header_ast_type_or(header, AST_PROGRAM)
+            == AST_ZONE_DECL) {
+        view.decl_header = header;
+        view.count = transpiler_decl_header_field_count_by_kind(
+            header, MIR_DECL_FIELD_ZONE_LAYER_SLOT);
+        view.uses_mir_metadata = true;
+    }
+
+    return view;
+}
+
+bool
+transpiler_hosted_zone_layer_slot_view_missing_mir_metadata(
+    const TranspilerHostedZoneLayerSlotView *view)
+{
+    return view != NULL
+        && view->requires_mir_metadata
+        && (!view->uses_mir_metadata
+            || view->count != view->ast_compat_count)
+        && view->ast_compat_count > 0;
+}
+
+const MIRDeclField *
+transpiler_hosted_zone_layer_slot_view_metadata(
+    const TranspilerHostedZoneLayerSlotView *view,
+    size_t index)
+{
+    if (view == NULL || !view->uses_mir_metadata
+        || view->decl_header == NULL || index >= view->count) {
+        return NULL;
+    }
+    return transpiler_decl_header_field_by_kind(
+        view->decl_header, MIR_DECL_FIELD_ZONE_LAYER_SLOT, index);
+}
+
+ASTNode *
+transpiler_hosted_zone_layer_slot_view_source_ast(
+    const TranspilerHostedZoneLayerSlotView *view,
+    size_t index)
+{
+    const MIRDeclField *field =
+        transpiler_hosted_zone_layer_slot_view_metadata(view, index);
+
+    if (view == NULL || index >= view->count)
+        return NULL;
+    if (field != NULL)
+        return mir_decl_field_source_ast(field);
+    if (view->requires_mir_metadata)
+        return NULL;
+    if (view->ast_compat_slots != NULL)
+        return view->ast_compat_slots[index];
+    return NULL;
+}
+
+const char *
+transpiler_hosted_zone_layer_slot_view_name(
+    const TranspilerHostedZoneLayerSlotView *view,
+    size_t index)
+{
+    const MIRDeclField *field =
+        transpiler_hosted_zone_layer_slot_view_metadata(view, index);
+
+    if (view == NULL || index >= view->count)
+        return NULL;
+    if (field != NULL)
+        return mir_decl_field_name(field);
+    if (view->requires_mir_metadata)
+        return NULL;
+    if (view->ast_compat_slots != NULL
+        && view->ast_compat_slots[index] != NULL) {
+        return ast_zone_layer_slot_name(view->ast_compat_slots[index]);
+    }
+    return NULL;
+}
+
+ASTNode *
+transpiler_hosted_zone_layer_slot_view_type(
+    const TranspilerHostedZoneLayerSlotView *view,
+    size_t index)
+{
+    const MIRDeclField *field =
+        transpiler_hosted_zone_layer_slot_view_metadata(view, index);
+
+    if (view == NULL || index >= view->count)
+        return NULL;
+    if (field != NULL)
+        return mir_decl_field_type(field);
+    if (view->requires_mir_metadata)
+        return NULL;
+    return NULL;
+}
+
+const char *
+transpiler_hosted_zone_layer_slot_view_type_name(
+    const TranspilerHostedZoneLayerSlotView *view,
+    size_t index)
+{
+    const MIRDeclField *field =
+        transpiler_hosted_zone_layer_slot_view_metadata(view, index);
+
+    if (view == NULL || index >= view->count)
+        return NULL;
+    if (field != NULL)
+        return mir_decl_field_type_name(field);
+    if (view->requires_mir_metadata)
+        return NULL;
+    if (view->ast_compat_slots != NULL
+        && view->ast_compat_slots[index] != NULL) {
+        return ast_zone_layer_slot_layer_type(view->ast_compat_slots[index]);
     }
     return NULL;
 }

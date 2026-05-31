@@ -108,23 +108,21 @@ append_overlay_method_projection_invalidations(CodeBuf *buf,
             ASTNode *host_decl =
                 transpiler_find_projection_nominal_decl_local(
                     ctx, host_type_name);
-            ClassField *field = NULL;
+            const char *field_type_name = NULL;
 
             if (host_decl != NULL && host_decl->type == AST_CLASS_DECL) {
-                field = find_host_field_by_name_local(host_decl,
+                field_type_name = host_projection_subject_field_type_name(
+                    ctx, host_type_name,
                     ast_identifier_name(ast_member_object(ast_call_callee(node))));
             }
-            if (field != NULL && field->is_vessel_field
-                && field->type != NULL
-                && field->type->type == AST_TYPE
-                && ast_type_name(field->type) != NULL) {
+            if (field_type_name != NULL) {
                 ASTNode *method_decl = find_nominal_host_method_decl(
-                    ctx, ast_type_name(field->type),
+                    ctx, field_type_name,
                     ast_member_name(ast_call_callee(node)));
                 if (method_decl != NULL) {
                     append_overlay_method_projection_invalidations(
                         buf, ctx, source_slot_name,
-                        ast_type_name(field->type),
+                        field_type_name,
                         ast_func_body(method_decl), depth + 1);
                 }
             }

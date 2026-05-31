@@ -10,12 +10,12 @@
 
 #include "../parser/ast.h"
 #include "transpiler.h"
+#include "transpiler_decl_lookup.h"
 
 void transpiler_emit_zone_frontier_change_checks(TranspilerCtx *ctx,
                                                  ASTNode **states,
                                                  size_t state_count,
-                                                 ASTNode **layer_slots,
-                                                 size_t layer_slot_count);
+                                                 const TranspilerHostedZoneLayerSlotView *layer_view);
 void transpiler_emit_zone_frontier_overflow_guard(TranspilerCtx *ctx);
 
 #endif /* PERGYRA_TRANSPILER_ZONE_FRONTIER_EMIT_H */

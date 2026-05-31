@@ -315,7 +315,9 @@ emit_intent_decl(ASTNode *node, CodeBuf *buf, TranspilerCtx *ctx)
             for (size_t j = 0; j < who_alias_count; j++) {
                 const char *alias = who_aliases[j];
                 const char *slot_name = (mir_only_intent && step_zone_name != NULL)
-                    ? resolve_intent_zone_slot_name_for_zone(ctx, node, step_zone_name, alias)
+                    ? resolve_intent_zone_slot_name_for_zone_with_metadata(
+                        ctx, node, step_zone_name, alias,
+                        participant_aliases, participant_types, participant_count)
                     : resolve_intent_zone_slot_name(ctx, node, step, alias);
                 write_indent(ctx);
                 codebuf_write(ctx->out, "pgy_intent_trace_bind_export(__intent_handle, \"%s\", \"%s\");\n",
@@ -386,7 +388,9 @@ emit_intent_decl(ASTNode *node, CodeBuf *buf, TranspilerCtx *ctx)
                         node, alias, participant_aliases, participant_types, participant_count);
                 } else {
                     ASTNode *involves = find_intent_participant_local(node, alias);
-                    ASTNode *subject_type = ast_intent_involves_subject_type(involves);
+                    ASTNode *subject_type = NULL;
+                    if (involves != NULL && involves->type == AST_INTENT_INVOLVES)
+                        subject_type = ast_intent_involves_subject_type(involves);
                     if (subject_type != NULL && subject_type->type == AST_TYPE) {
                         subject_name = ast_type_name(subject_type);
                     }
@@ -421,7 +425,9 @@ emit_intent_decl(ASTNode *node, CodeBuf *buf, TranspilerCtx *ctx)
         if (rebound_aliases) {
             if (mir_only_intent) {
                 emit_intent_step_restore_bound_zone_aliases_with_metadata(
-                    ctx->out, ctx, node, step_zone_name, who_aliases, who_alias_count, i);
+                    ctx->out, ctx, node, step_zone_name,
+                    who_aliases, who_alias_count, i,
+                    participant_aliases, participant_types, participant_count);
             } else {
                 emit_intent_step_restore_bound_zone_aliases(ctx->out, ctx, node, step, i);
             }

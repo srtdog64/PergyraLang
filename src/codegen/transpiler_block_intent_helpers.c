@@ -122,10 +122,14 @@ emit_intent_step_bind_bound_zone_with_metadata(CodeBuf *out, TranspilerCtx *ctx,
     if (from_alias != NULL && from_zone_type != NULL) {
         for (size_t i = 0; i < who_alias_count; i++) {
             const char *alias = who_aliases[i];
-            const char *from_slot_name = resolve_intent_zone_slot_name_for_zone(
-                ctx, intent, from_zone_type, alias);
-            const char *to_slot_name = resolve_intent_zone_slot_name_for_zone(
-                ctx, intent, zone_type, alias);
+            const char *from_slot_name =
+                resolve_intent_zone_slot_name_for_zone_with_metadata(
+                    ctx, intent, from_zone_type, alias,
+                    participant_aliases, participant_types, participant_count);
+            const char *to_slot_name =
+                resolve_intent_zone_slot_name_for_zone_with_metadata(
+                    ctx, intent, zone_type, alias,
+                    participant_aliases, participant_types, participant_count);
             if (alias == NULL)
                 continue;
             if (from_slot_name != NULL && strcmp(from_slot_name, "<unbound>") != 0) {
@@ -164,7 +168,10 @@ emit_intent_step_bind_bound_zone_with_metadata(CodeBuf *out, TranspilerCtx *ctx,
 
     for (size_t i = 0; i < who_alias_count; i++) {
         const char *alias = who_aliases[i];
-        const char *slot_name = resolve_intent_zone_slot_name_for_zone(ctx, intent, zone_type, alias);
+        const char *slot_name =
+            resolve_intent_zone_slot_name_for_zone_with_metadata(
+                ctx, intent, zone_type, alias,
+                participant_aliases, participant_types, participant_count);
         if (alias == NULL || slot_name == NULL || strcmp(slot_name, "<unbound>") == 0)
             continue;
         write_indent(ctx);
@@ -197,24 +204,40 @@ emit_intent_step_mark_caused_effect(CodeBuf *out, TranspilerCtx *ctx,
     if (zone_decl == NULL || zone_decl->type != AST_ZONE_DECL)
         return;
 
-    size_t layer_slot_count = 0;
-    ASTNode **layer_slots = ast_zone_layer_slots(zone_decl, &layer_slot_count);
+    TranspilerHostedZoneLayerSlotView layer_view =
+        transpiler_hosted_zone_layer_slot_view_from_decl(
+            ctx, zone_type, zone_decl);
+    if (transpiler_hosted_zone_layer_slot_view_missing_mir_metadata(
+            &layer_view)) {
+        transpiler_set_mir_inventory_missing(
+            ctx,
+            "MIR-only C path missing intent step caused-effect layer metadata for '%s'",
+            zone_type != NULL ? zone_type : "(anonymous-zone)");
+        return;
+    }
     size_t state_count = 0;
     ASTNode **states = ast_zone_states(zone_decl, &state_count);
 
-    for (size_t i = 0; i < layer_slot_count; i++) {
-        ASTNode *layer_slot = layer_slots[i];
+    for (size_t i = 0; i < layer_view.count; i++) {
+        ASTNode *layer_slot =
+            transpiler_hosted_zone_layer_slot_view_source_ast(
+                &layer_view, i);
         const char *layer_name;
+        const char *layer_type =
+            transpiler_hosted_zone_layer_slot_view_type_name(
+                &layer_view, i);
 
         if (layer_slot == NULL || layer_slot->type != AST_ZONE_LAYER_SLOT
             || ast_zone_layer_slot_is_relation(layer_slot)
-            || ast_zone_layer_slot_name(layer_slot) == NULL
-            || ast_zone_layer_slot_layer_type(layer_slot) == NULL
-            || strcmp(ast_zone_layer_slot_layer_type(layer_slot), causes_effect) != 0) {
+            || layer_type == NULL
+            || strcmp(layer_type, causes_effect) != 0) {
             continue;
         }
 
-        layer_name = ast_zone_layer_slot_name(layer_slot);
+        layer_name =
+            transpiler_hosted_zone_layer_slot_view_name(&layer_view, i);
+        if (layer_name == NULL)
+            continue;
         write_indent(ctx);
         codebuf_write(out, "%s->__layer_epoch_%s++;\n", zone_alias, layer_name);
         write_indent(ctx);

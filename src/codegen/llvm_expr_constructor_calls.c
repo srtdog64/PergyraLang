@@ -12,7 +12,6 @@
 #include <string.h>
 
 #include "../compiler/mir_decl_headers.h"
-#include "host_decl_compat.h"
 #include "llvm_backend_type_map_internal.h"
 #include "llvm_inventory_decl_lookup.h"
 #include "llvm_internal_api.h"
@@ -20,6 +19,8 @@
 
 static const char kLlvmMirSharedFieldMetadataMissing[] =
     "<mir-shared-field-metadata>";
+static const char kLlvmMirClassFieldMetadataMissing[] =
+    "<mir-class-field-metadata>";
 
 static LLVMValueRef
 llvm_constructor_error(ASTNode *node, LLVMGenCtx *ctx, const char *message)
@@ -41,30 +42,23 @@ llvm_class_constructor_field_type_at(LLVMGenCtx *ctx,
                                      const char *callee_name,
                                      size_t index)
 {
-    const MIRDeclHeader *header;
-    const MIRDeclField *field;
-    ASTNode *mir_type;
     ASTNode *class_decl;
-    PgyHostClassFieldsCompatView field_view;
+    LLVMHostedFieldView field_view;
 
     if (ctx == NULL || callee_name == NULL)
         return NULL;
 
-    header = llvm_find_host_decl_header_in_context(ctx, callee_name);
-    field = mir_decl_header_field(header, index);
-    mir_type = llvm_mir_decl_field_type(field);
-    if (mir_type != NULL)
-        return mir_type;
-
     class_decl = llvm_find_decl_in_active_inventory(
         ctx, AST_CLASS_DECL, callee_name);
-    if (class_decl == NULL)
+    field_view = llvm_hosted_class_field_view_from_decl(
+        ctx, callee_name, class_decl);
+    if (llvm_hosted_field_view_missing_mir_metadata(&field_view)) {
+        llvm_set_mir_inventory_missing(ctx,
+            "MIR-only LLVM path missing class-field constructor metadata for '%s'",
+            callee_name);
         return NULL;
-    field_view = pgy_host_class_fields_compat_view_from_decl(class_decl);
-    if (field_view.fields == NULL || index >= field_view.count
-        || field_view.fields[index] == NULL)
-        return NULL;
-    return field_view.fields[index]->type;
+    }
+    return llvm_hosted_field_view_type(&field_view, index);
 }
 
 static bool
@@ -86,17 +80,25 @@ llvm_constructor_field_is_channel(LLVMGenCtx *ctx, ASTNode *field_type)
 static const char *
 llvm_class_constructor_find_channel_field(LLVMGenCtx *ctx, ASTNode *class_decl)
 {
-    PgyHostClassFieldsCompatView class_fields;
+    const char *class_name;
+    LLVMHostedFieldView class_fields;
 
     if (ctx == NULL || class_decl == NULL)
         return NULL;
-    class_fields = pgy_host_class_fields_compat_view_from_decl(class_decl);
-    for (size_t i = 0;
-         class_fields.fields != NULL && i < class_fields.count; i++) {
-        ClassField *field = class_fields.fields[i];
-        if (field != NULL
-            && llvm_constructor_field_is_channel(ctx, field->type)) {
-            return field->name;
+    class_name = llvm_decl_node_name(class_decl);
+    class_fields = llvm_hosted_class_field_view_from_decl(
+        ctx, class_name, class_decl);
+    if (llvm_hosted_field_view_missing_mir_metadata(&class_fields)) {
+        llvm_set_mir_inventory_missing(ctx,
+            "MIR-only LLVM path missing class-field channel metadata for constructor '%s'",
+            class_name != NULL ? class_name : "(anonymous-class)");
+        return kLlvmMirClassFieldMetadataMissing;
+    }
+    for (size_t i = 0; i < class_fields.count; i++) {
+        ASTNode *field_type =
+            llvm_hosted_field_view_type(&class_fields, i);
+        if (llvm_constructor_field_is_channel(ctx, field_type)) {
+            return llvm_hosted_field_view_name(&class_fields, i);
         }
     }
     return NULL;

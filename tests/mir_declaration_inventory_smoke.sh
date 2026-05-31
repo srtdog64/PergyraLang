@@ -151,9 +151,7 @@ require_term "src/codegen/llvm_expr_constructor_calls.c" \
 require_term "src/codegen/llvm_expr_constructor_calls.c" \
     "llvm_find_host_decl_header_in_context(ctx, host_name)"
 require_term "src/codegen/llvm_expr_constructor_calls.c" \
-    "llvm_find_host_decl_header_in_context(ctx, callee_name)"
-require_term "src/codegen/llvm_expr_constructor_calls.c" \
-    "mir_decl_header_field(header, index)"
+    "mir_decl_header_field(header, i)"
 require_term "src/codegen/llvm_expr_constructor_calls.c" \
     "llvm_mir_decl_field_type(field)"
 require_term "src/codegen/llvm_expr_constructor_calls.c" \
@@ -163,7 +161,13 @@ require_term "src/codegen/llvm_expr_constructor_calls.c" \
 require_term "src/codegen/llvm_expr_constructor_calls.c" \
     "pgy_classify_type(type_name) == PGY_TK_CHANNEL"
 require_term "src/codegen/llvm_expr_constructor_calls.c" \
-    "pgy_host_class_fields_compat_view_from_decl(class_decl)"
+    "LLVMHostedFieldView field_view"
+require_term "src/codegen/llvm_expr_constructor_calls.c" \
+    "llvm_hosted_class_field_view_from_decl("
+require_term "src/codegen/llvm_expr_constructor_calls.c" \
+    "llvm_hosted_field_view_missing_mir_metadata("
+require_term "src/codegen/llvm_expr_constructor_calls.c" \
+    "llvm_hosted_field_view_type("
 require_term "src/codegen/llvm_expr_constructor_calls.c" \
     "LLVMHostedSharedFieldView shared"
 require_term "src/codegen/llvm_expr_constructor_calls.c" \
@@ -176,10 +180,32 @@ if grep -Fq "pgy_host_shared_fields_compat_view_from_decl" \
     "$ROOT_DIR/src/codegen/llvm_expr_constructor_calls.c"; then
     fail "LLVM constructor calls must consume LLVMHostedSharedFieldView"
 fi
+if grep -Fq "pgy_host_class_fields_compat_view_from_decl" \
+    "$ROOT_DIR/src/codegen/llvm_expr_constructor_calls.c"; then
+    fail "LLVM constructor calls must consume LLVMHostedFieldView"
+fi
 require_term "src/codegen/transpiler_zone_decl_emit.c" \
     "transpiler_hosted_shared_field_view_from_decl(ctx, name, node)"
 require_term "src/codegen/transpiler_zone_decl_emit.c" \
     "transpiler_hosted_shared_field_view_missing_mir_metadata("
+require_term "src/codegen/transpiler_zone_decl_emit.c" \
+    "TranspilerHostedZoneLayerSlotView layer_view"
+require_term "src/codegen/transpiler_zone_decl_emit.c" \
+    "transpiler_hosted_zone_layer_slot_view_from_decl(ctx, name, node)"
+require_term "src/codegen/transpiler_zone_decl_emit.c" \
+    "transpiler_hosted_zone_layer_slot_view_missing_mir_metadata("
+require_term "src/codegen/transpiler_zone_decl_emit.c" \
+    "transpiler_hosted_zone_layer_slot_view_name(&layer_view, i)"
+require_term "src/codegen/transpiler_zone_decl_emit.c" \
+    "transpiler_hosted_zone_layer_slot_view_source_ast("
+if grep -Fq "ast_zone_layer_slots" \
+    "$ROOT_DIR/src/codegen/transpiler_zone_decl_emit.c"; then
+    fail "C zone sync emission must consume TranspilerHostedZoneLayerSlotView"
+fi
+require_term "src/codegen/transpiler_zone_frontier_emit.c" \
+    "const TranspilerHostedZoneLayerSlotView *layer_view"
+require_term "src/codegen/transpiler_zone_frontier_emit.c" \
+    "transpiler_hosted_zone_layer_slot_view_name(layer_view, i)"
 require_term "src/codegen/transpiler_zone_specialization_emit.c" \
     "transpiler_hosted_shared_field_view_type(shared_view, i)"
 if grep -Fq "pgy_host_shared_fields_compat_view_from_decl" \
@@ -198,6 +224,20 @@ for rel in \
         fail "$rel must consume TranspilerHostedSharedFieldView, not shared field compatibility view"
     fi
 done
+require_term "src/codegen/transpiler_zone_struct_emit.c" \
+    "TranspilerHostedZoneLayerSlotView layer_view"
+require_term "src/codegen/transpiler_zone_struct_emit.c" \
+    "transpiler_hosted_zone_layer_slot_view_from_decl(ctx, name, node)"
+require_term "src/codegen/transpiler_zone_struct_emit.c" \
+    "transpiler_hosted_zone_layer_slot_view_missing_mir_metadata("
+require_term "src/codegen/transpiler_zone_struct_emit.c" \
+    "transpiler_hosted_zone_layer_slot_view_name(&layer_view, i)"
+require_term "src/codegen/transpiler_zone_struct_emit.c" \
+    "transpiler_hosted_zone_layer_slot_view_type_name(&layer_view, i)"
+if grep -Fq "ast_zone_layer_slots" \
+    "$ROOT_DIR/src/codegen/transpiler_zone_struct_emit.c"; then
+    fail "C zone struct emission must consume TranspilerHostedZoneLayerSlotView"
+fi
 require_term "src/codegen/llvm_domain_struct_register.c" \
     "LLVMHostedSharedFieldView shared_view"
 require_term "src/codegen/llvm_domain_struct_register.c" \
@@ -220,14 +260,38 @@ if grep -Fq "pgy_host_shared_fields_compat_view_from_decl" \
     "$ROOT_DIR/src/codegen/llvm_domain_struct_register_fields.c"; then
     fail "LLVM domain struct field registration must consume LLVMHostedSharedFieldView"
 fi
+for term in \
+    "transpiler_hosted_field_view_find_index" \
+    "transpiler_hosted_field_view_is_subject_like"; do
+    require_term "src/codegen/transpiler_decl_lookup.h" "$term"
+    require_term "src/codegen/transpiler_decl_lookup.c" "$term"
+done
+for term in \
+    "llvm_hosted_field_view_find_index" \
+    "llvm_hosted_field_view_is_subject_like"; do
+    require_term "src/codegen/llvm_inventory_decl_lookup.h" "$term"
+    require_term "src/codegen/llvm_inventory_decl_lookup.c" "$term"
+done
 for rel in \
     "src/codegen/llvm_channel_target.c" \
-    "src/codegen/llvm_domain_lookup.c" \
+    "src/codegen/llvm_domain_lookup.c"; do
+    require_term "$rel" "llvm_hosted_class_field_view_from_decl("
+    require_term "$rel" "llvm_hosted_field_view_missing_mir_metadata("
+    require_term "$rel" "llvm_hosted_field_view_find_index("
+    require_term "$rel" "llvm_hosted_field_view_type("
+done
+for rel in \
     "src/codegen/transpiler_nominal.c" \
     "src/codegen/transpiler_overlay_host_fields.c" \
     "src/codegen/transpiler_projection_field_path.c"; do
-    require_term "$rel" "pgy_host_class_field_compat_find"
+    require_term "$rel" "transpiler_hosted_class_field_view_from_decl("
+    require_term "$rel" "transpiler_hosted_field_view_missing_mir_metadata("
+    require_term "$rel" "transpiler_hosted_field_view_find_index("
 done
+require_term "src/codegen/transpiler_projection_field_path.c" \
+    "transpiler_hosted_field_view_is_subject_like("
+require_term "src/codegen/transpiler_projection_method_invalidation.c" \
+    "host_projection_subject_field_type_name("
 for term in \
     "transpiler_find_decl_field_metadata(ctx, host_type_name" \
     "transpiler_mir_decl_field_is_subject_like(mir_field)"; do
@@ -267,10 +331,22 @@ if grep -Fq "pgy_host_shared_field_compat_find" \
 fi
 for rel in \
     "src/codegen/llvm_domain_projection_value_helpers.c" \
-    "src/codegen/llvm_expr_projection_path_helpers.c" \
-    "src/codegen/transpiler_let_emit.c"; do
-    require_term "$rel" "pgy_host_class_fields_compat_view_from_decl"
+    "src/codegen/llvm_expr_projection_path_helpers.c"; do
+    require_term "$rel" "llvm_hosted_class_field_view_from_decl("
+    require_term "$rel" "llvm_hosted_field_view_missing_mir_metadata("
+    require_term "$rel" "llvm_hosted_field_view_name("
+    require_term "$rel" "llvm_hosted_field_view_metadata("
+    require_term "$rel" "llvm_hosted_field_view_type("
+    if grep -Fq "pgy_host_class_fields_compat_view_from_decl" "$ROOT_DIR/$rel"; then
+        fail "$rel must consume LLVMHostedFieldView"
+    fi
 done
+require_term "src/codegen/transpiler_let_emit.c" \
+    "transpiler_emit_class_constructor_with_type("
+if grep -Fq "pgy_host_class_fields_compat_view_from_decl" \
+    "$ROOT_DIR/src/codegen/transpiler_let_emit.c"; then
+    fail "C annotated let class constructor lowering must consume the shared class-constructor owner"
+fi
 for term in \
     "transpiler_hosted_class_field_view_from_decl(ctx, decl_name, decl)" \
     "transpiler_hosted_field_view_missing_mir_metadata(view)" \
@@ -280,9 +356,21 @@ for term in \
     "transpiler_hosted_field_view_type(&view, index)"; do
     require_term "src/codegen/transpiler_projection.c" "$term"
 done
+for term in \
+    "TranspilerHostedZoneLayerSlotView layer_view" \
+    "transpiler_hosted_zone_layer_slot_view_from_decl(" \
+    "transpiler_hosted_zone_layer_slot_view_missing_mir_metadata(" \
+    "transpiler_hosted_zone_layer_slot_view_name(&layer_view, i)" \
+    "transpiler_hosted_zone_layer_slot_view_source_ast("; do
+    require_term "src/codegen/transpiler_projection.c" "$term"
+done
 if grep -Fq "pgy_host_class_fields_compat_view_from_decl" \
     "$ROOT_DIR/src/codegen/transpiler_projection.c"; then
     fail "C projection class-field iteration must consume TranspilerHostedFieldView"
+fi
+if grep -Fq "ast_zone_layer_slots" \
+    "$ROOT_DIR/src/codegen/transpiler_projection.c"; then
+    fail "C projection zone-layer lookup must consume TranspilerHostedZoneLayerSlotView"
 fi
 for term in \
     "overlay_projection_field_view" \
@@ -328,9 +416,21 @@ require_term "src/codegen/transpiler_mir_ssa_names.c" \
     "transpiler_hosted_shared_field_view_missing_mir_metadata("
 require_term "src/codegen/transpiler_mir_ssa_names.c" \
     "transpiler_hosted_shared_field_view_name(&shared_view, i)"
+require_term "src/codegen/transpiler_mir_ssa_names.c" \
+    "TranspilerHostedZoneLayerSlotView layer_view"
+require_term "src/codegen/transpiler_mir_ssa_names.c" \
+    "transpiler_hosted_zone_layer_slot_view_from_decl("
+require_term "src/codegen/transpiler_mir_ssa_names.c" \
+    "transpiler_hosted_zone_layer_slot_view_missing_mir_metadata("
+require_term "src/codegen/transpiler_mir_ssa_names.c" \
+    "transpiler_hosted_zone_layer_slot_view_name("
+if grep -Fq "ast_zone_layer_slots" \
+    "$ROOT_DIR/src/codegen/transpiler_mir_ssa_names.c"; then
+    fail "C MIR SSA implicit zone layer-field recovery must consume TranspilerHostedZoneLayerSlotView"
+fi
 if grep -Fq "pgy_host_shared_fields_compat_view_from_decl" \
     "$ROOT_DIR/src/codegen/transpiler_mir_ssa_names.c"; then
-    fail "C MIR SSA implicit zone-field recovery must consume TranspilerHostedSharedFieldView"
+    fail "C MIR SSA implicit zone shared-field recovery must consume TranspilerHostedSharedFieldView"
 fi
 require_term "src/codegen/llvm_domain_decl_parts_helpers.c" \
     "llvm_decl_node_name(stmt)"
@@ -345,14 +445,168 @@ for rel in \
         fail "$rel must consume LLVMHostedSharedFieldView for roster shared fields"
     fi
 done
+require_term "src/codegen/llvm_domain_struct_register.c" \
+    "LLVMHostedZoneLayerSlotView layer_view"
+require_term "src/codegen/llvm_domain_struct_register.c" \
+    "llvm_hosted_zone_layer_slot_view_from_decl("
+require_term "src/codegen/llvm_domain_struct_register.c" \
+    "llvm_hosted_zone_layer_slot_view_missing_mir_metadata("
+require_term "src/codegen/llvm_domain_struct_register.c" \
+    "llvm_hosted_zone_layer_slot_view_source_ast("
+require_term "src/codegen/llvm_domain_struct_register.c" \
+    "llvm_hosted_zone_layer_slot_view_type_name("
+if grep -Fq "ast_zone_layer_slots" \
+    "$ROOT_DIR/src/codegen/llvm_domain_struct_register.c"; then
+    fail "LLVM zone struct type registration must consume LLVMHostedZoneLayerSlotView"
+fi
+require_term "src/codegen/llvm_domain_struct_register_fields.c" \
+    "LLVMHostedZoneLayerSlotView layer_view"
+require_term "src/codegen/llvm_domain_struct_register_fields.c" \
+    "llvm_hosted_zone_layer_slot_view_from_decl(ctx, decl_name, stmt)"
+require_term "src/codegen/llvm_domain_struct_register_fields.c" \
+    "llvm_hosted_zone_layer_slot_view_missing_mir_metadata(&layer_view)"
+require_term "src/codegen/llvm_domain_struct_register_fields.c" \
+    "llvm_hosted_zone_layer_slot_view_name(&layer_view, j)"
+if grep -Fq "ast_zone_layer_slots" \
+    "$ROOT_DIR/src/codegen/llvm_domain_struct_register_fields.c"; then
+    fail "LLVM zone struct field registration must consume LLVMHostedZoneLayerSlotView"
+fi
 require_term "src/codegen/transpiler_mir_local_type_lookup.c" \
     "transpiler_decl_name_local(host_decl)"
+require_term "src/codegen/transpiler_nominal.c" \
+    "TranspilerHostedZoneLayerSlotView layer_view"
+require_term "src/codegen/transpiler_nominal.c" \
+    "transpiler_hosted_zone_layer_slot_view_from_decl("
+require_term "src/codegen/transpiler_nominal.c" \
+    "transpiler_hosted_zone_layer_slot_view_missing_mir_metadata("
+require_term "src/codegen/transpiler_nominal.c" \
+    "transpiler_hosted_zone_layer_slot_view_name(&layer_view, i)"
+require_term "src/codegen/transpiler_nominal.c" \
+    "transpiler_hosted_zone_layer_slot_view_type_name("
+if grep -Fq "ast_zone_layer_slots" \
+    "$ROOT_DIR/src/codegen/transpiler_nominal.c"; then
+    fail "C nominal zone member lookup must consume TranspilerHostedZoneLayerSlotView"
+fi
 require_term "src/codegen/transpiler_overlay_host_fields.c" \
     "transpiler_decl_name_local(host_decl)"
+require_term "src/codegen/transpiler_overlay_host_fields.c" \
+    "TranspilerHostedZoneLayerSlotView layer_view"
+require_term "src/codegen/transpiler_overlay_host_fields.c" \
+    "transpiler_hosted_zone_layer_slot_view_from_decl("
+require_term "src/codegen/transpiler_overlay_host_fields.c" \
+    "transpiler_hosted_zone_layer_slot_view_missing_mir_metadata("
+require_term "src/codegen/transpiler_overlay_host_fields.c" \
+    "transpiler_hosted_zone_layer_slot_view_name(&layer_view, i)"
+if grep -Fq "ast_zone_layer_slots" \
+    "$ROOT_DIR/src/codegen/transpiler_overlay_host_fields.c"; then
+    fail "C overlay zone field lookup must consume TranspilerHostedZoneLayerSlotView"
+fi
+require_term "src/codegen/transpiler_overlay_zone_bind.c" \
+    "transpiler_find_zone_layer_slot_local("
+require_term "src/codegen/transpiler_overlay_zone_bind.c" \
+    "TranspilerHostedZoneLayerSlotView layer_view"
+require_term "src/codegen/transpiler_overlay_zone_bind.c" \
+    "transpiler_hosted_zone_layer_slot_view_from_decl("
+require_term "src/codegen/transpiler_overlay_zone_bind.c" \
+    "transpiler_hosted_zone_layer_slot_view_missing_mir_metadata("
+require_term "src/codegen/transpiler_overlay_zone_bind.c" \
+    "transpiler_hosted_zone_layer_slot_view_name(&layer_view, i)"
+require_term "src/codegen/transpiler_overlay_zone_bind.c" \
+    "transpiler_hosted_zone_layer_slot_view_type_name("
+if grep -Fq "ast_zone_layer_slots" \
+    "$ROOT_DIR/src/codegen/transpiler_overlay_zone_bind.c"; then
+    fail "C overlay zone effect bind must consume TranspilerHostedZoneLayerSlotView"
+fi
+require_term "src/codegen/transpiler_overlay_zone_relation_bind.c" \
+    "transpiler_find_zone_layer_slot_local(ctx, zone, layer_slot_name"
+if grep -Fq "ast_zone_layer_slots" \
+    "$ROOT_DIR/src/codegen/transpiler_overlay_zone_relation_bind.c"; then
+    fail "C overlay zone relation bind must consume TranspilerHostedZoneLayerSlotView"
+fi
 require_term "src/codegen/llvm_domain_zone_bind_helpers.c" \
     "effect_name = llvm_decl_node_name(effect_decl)"
 require_term "src/codegen/llvm_domain_zone_bind_helpers.c" \
     "relation_name = llvm_decl_node_name(relation_decl)"
+require_term "src/codegen/llvm_domain_zone_bind_helpers.c" \
+    "LLVMHostedZoneLayerSlotView layer_view"
+require_term "src/codegen/llvm_domain_zone_bind_helpers.c" \
+    "llvm_hosted_zone_layer_slot_view_from_decl(ctx, zone_name, zone_decl)"
+require_term "src/codegen/llvm_domain_zone_bind_helpers.c" \
+    "llvm_hosted_zone_layer_slot_view_missing_mir_metadata(&layer_view)"
+require_term "src/codegen/llvm_domain_zone_bind_helpers.c" \
+    "llvm_hosted_zone_layer_slot_view_name(&layer_view, i)"
+require_term "src/codegen/llvm_domain_zone_bind_helpers.c" \
+    "llvm_hosted_zone_layer_slot_view_source_ast(&layer_view, i)"
+if grep -Fq "ast_zone_layer_slots" \
+    "$ROOT_DIR/src/codegen/llvm_domain_zone_bind_helpers.c"; then
+    fail "LLVM zone bind emission must consume LLVMHostedZoneLayerSlotView"
+fi
+require_term "src/codegen/llvm_domain_lookup.c" \
+    "llvm_hosted_zone_layer_slot_view_from_decl(ctx, zone_name, zone_decl)"
+require_term "src/codegen/llvm_domain_lookup.c" \
+    "llvm_hosted_zone_layer_slot_view_missing_mir_metadata(&layer_view)"
+require_term "src/codegen/llvm_domain_lookup.c" \
+    "llvm_hosted_zone_layer_slot_view_name(&layer_view, i)"
+if grep -Fq "ast_zone_layer_slots" \
+    "$ROOT_DIR/src/codegen/llvm_domain_lookup.c"; then
+    fail "LLVM domain lookup must consume LLVMHostedZoneLayerSlotView for zone layer lookup"
+fi
+require_term "src/codegen/llvm_domain_zone_sync_clauses.c" \
+    "LLVMHostedZoneLayerSlotView layer_view"
+require_term "src/codegen/llvm_domain_zone_sync_clauses.c" \
+    "llvm_hosted_zone_layer_slot_view_from_decl(ctx, zone_name, stmt)"
+require_term "src/codegen/llvm_domain_zone_sync_clauses.c" \
+    "llvm_hosted_zone_layer_slot_view_missing_mir_metadata(&layer_view)"
+require_term "src/codegen/llvm_domain_zone_sync_clauses.c" \
+    "llvm_hosted_zone_layer_slot_view_name(&layer_view, i)"
+require_term "src/codegen/llvm_domain_zone_sync_clauses.c" \
+    "llvm_hosted_zone_layer_slot_view_source_ast(&layer_view, i)"
+if grep -Fq "ast_zone_layer_slots" \
+    "$ROOT_DIR/src/codegen/llvm_domain_zone_sync_clauses.c"; then
+    fail "LLVM zone sync clauses must consume LLVMHostedZoneLayerSlotView"
+fi
+require_term "src/codegen/llvm_domain_zone_sync.c" \
+    "LLVMHostedZoneLayerSlotView layer_view"
+require_term "src/codegen/llvm_domain_zone_sync.c" \
+    "llvm_hosted_zone_layer_slot_view_from_decl(ctx, decl_name, stmt)"
+require_term "src/codegen/llvm_domain_zone_sync.c" \
+    "llvm_hosted_zone_layer_slot_view_missing_mir_metadata(&layer_view)"
+require_term "src/codegen/llvm_domain_zone_sync.c" \
+    "pgy_domain_zone_frontier_pass_limit_from_counts("
+if grep -Fq "pgy_domain_zone_frontier_pass_limit(stmt)" \
+    "$ROOT_DIR/src/codegen/llvm_domain_zone_sync.c"; then
+    fail "LLVM zone sync frontier limit must consume metadata counts"
+fi
+require_term "src/codegen/llvm_domain_zone_frontier_state.c" \
+    "LLVMHostedZoneLayerSlotView layer_view"
+require_term "src/codegen/llvm_domain_zone_frontier_state.c" \
+    "llvm_hosted_zone_layer_slot_view_from_decl(ctx, zone_name, stmt)"
+require_term "src/codegen/llvm_domain_zone_frontier_state.c" \
+    "llvm_hosted_zone_layer_slot_view_missing_mir_metadata(&layer_view)"
+require_term "src/codegen/llvm_domain_zone_frontier_state.c" \
+    "llvm_hosted_zone_layer_slot_view_name(&layer_view, i)"
+require_term "src/codegen/llvm_domain_zone_frontier_state.c" \
+    "llvm_hosted_zone_layer_slot_view_source_ast(&layer_view, i)"
+if grep -Fq "ast_zone_layer_slots" \
+    "$ROOT_DIR/src/codegen/llvm_domain_zone_frontier_state.c"; then
+    fail "LLVM zone frontier state must consume LLVMHostedZoneLayerSlotView"
+fi
+require_term "src/codegen/llvm_intent_effect.c" \
+    "LLVMHostedZoneLayerSlotView layer_view"
+require_term "src/codegen/llvm_intent_effect.c" \
+    "llvm_hosted_zone_layer_slot_view_from_decl(ctx, zone_name, zone_decl)"
+require_term "src/codegen/llvm_intent_effect.c" \
+    "llvm_hosted_zone_layer_slot_view_missing_mir_metadata(&layer_view)"
+require_term "src/codegen/llvm_intent_effect.c" \
+    "llvm_hosted_zone_layer_slot_view_name(&layer_view, i)"
+require_term "src/codegen/llvm_intent_effect.c" \
+    "llvm_hosted_zone_layer_slot_view_type_name(&layer_view, i)"
+require_term "src/codegen/llvm_intent_effect.c" \
+    "llvm_hosted_zone_layer_slot_view_source_ast(&layer_view, i)"
+if grep -Fq "ast_zone_layer_slots" \
+    "$ROOT_DIR/src/codegen/llvm_intent_effect.c"; then
+    fail "LLVM intent effect emission must consume LLVMHostedZoneLayerSlotView"
+fi
 require_term "src/codegen/llvm_decl_authority.c" \
     "zone_name = llvm_decl_node_name(zone_decl)"
 require_term "src/codegen/llvm_register.c" \
@@ -360,7 +614,17 @@ require_term "src/codegen/llvm_register.c" \
 require_term "src/codegen/llvm_register.c" \
     "cls_name = llvm_decl_node_name(stmt)"
 require_term "src/codegen/llvm_register.c" \
-    "pgy_host_class_fields_compat_view_from_decl(stmt)"
+    "llvm_hosted_class_field_view_from_decl(ctx, cls_name, stmt)"
+require_term "src/codegen/llvm_register.c" \
+    "llvm_hosted_field_view_missing_mir_metadata(&field_view)"
+require_term "src/codegen/llvm_register.c" \
+    "llvm_hosted_field_view_type(&field_view, j)"
+require_term "src/codegen/llvm_register.c" \
+    "llvm_hosted_field_view_name(&field_view, j)"
+if grep -Fq "pgy_host_class_fields_compat_view_from_decl" \
+    "$ROOT_DIR/src/codegen/llvm_register.c"; then
+    fail "LLVM nominal class registration must consume LLVMHostedFieldView"
+fi
 require_term "src/codegen/transpiler_class_decl_emit.c" \
     "transpiler_hosted_class_field_view_from_decl(ctx, name, node)"
 require_term "src/codegen/transpiler_generic_class_specialization_emit.c" \
@@ -390,6 +654,38 @@ require_term "src/codegen/llvm_expr_assignment_projection.c" \
     "zone_name = llvm_decl_node_name(zone_decl)"
 require_term "src/codegen/llvm_stmt_zone_action.c" \
     "zone_name = llvm_decl_node_name(zone_decl)"
+require_term "src/codegen/llvm_stmt_zone_action.c" \
+    "LLVMHostedZoneLayerSlotView layer_view"
+require_term "src/codegen/llvm_stmt_zone_action.c" \
+    "llvm_hosted_zone_layer_slot_view_from_decl(ctx, zone_name, zone_decl)"
+require_term "src/codegen/llvm_stmt_zone_action.c" \
+    "llvm_hosted_zone_layer_slot_view_missing_mir_metadata(&layer_view)"
+require_term "src/codegen/llvm_stmt_zone_action.c" \
+    "llvm_hosted_zone_layer_slot_view_name(&layer_view, i)"
+require_term "src/codegen/llvm_stmt_zone_action.c" \
+    "llvm_hosted_zone_layer_slot_view_type_name(&layer_view, i)"
+require_term "src/codegen/llvm_stmt_zone_action.c" \
+    "llvm_hosted_zone_layer_slot_view_source_ast(&layer_view, i)"
+if grep -Fq "ast_zone_layer_slots" \
+    "$ROOT_DIR/src/codegen/llvm_stmt_zone_action.c"; then
+    fail "LLVM zone action emission must consume LLVMHostedZoneLayerSlotView"
+fi
+require_term "src/codegen/llvm_expr_call_methods_world_effect_sync.c" \
+    "LLVMHostedZoneLayerSlotView layer_view"
+require_term "src/codegen/llvm_expr_call_methods_world_effect_sync.c" \
+    "llvm_hosted_zone_layer_slot_view_from_decl(ctx, zone_name, zone_decl)"
+require_term "src/codegen/llvm_expr_call_methods_world_effect_sync.c" \
+    "llvm_hosted_zone_layer_slot_view_missing_mir_metadata(&layer_view)"
+require_term "src/codegen/llvm_expr_call_methods_world_effect_sync.c" \
+    "llvm_hosted_zone_layer_slot_view_name(&layer_view, i)"
+require_term "src/codegen/llvm_expr_call_methods_world_effect_sync.c" \
+    "llvm_hosted_zone_layer_slot_view_type_name(&layer_view, i)"
+require_term "src/codegen/llvm_expr_call_methods_world_effect_sync.c" \
+    "llvm_hosted_zone_layer_slot_view_source_ast(&layer_view, i)"
+if grep -Fq "ast_zone_layer_slots" \
+    "$ROOT_DIR/src/codegen/llvm_expr_call_methods_world_effect_sync.c"; then
+    fail "LLVM world effect sync must consume LLVMHostedZoneLayerSlotView"
+fi
 require_term "src/codegen/transpiler_domain_receiver_query.c" \
     "zone_type_name = transpiler_decl_name_local(zone_decl)"
 require_term "src/codegen/transpiler_domain_nominal_emit.c" \
@@ -414,6 +710,22 @@ require_term "src/codegen/transpiler_projection_sync.c" \
     "active_zone_name = transpiler_decl_name_local(host_decl)"
 require_term "src/codegen/transpiler_projection_sync.c" \
     "transpiler_resolve_world_zone_decl(ctx, world_decl"
+require_term "src/codegen/transpiler_projection_sync.c" \
+    "TranspilerHostedZoneLayerSlotView layer_view"
+require_term "src/codegen/transpiler_projection_sync.c" \
+    "transpiler_hosted_zone_layer_slot_view_from_decl("
+require_term "src/codegen/transpiler_projection_sync.c" \
+    "transpiler_hosted_zone_layer_slot_view_missing_mir_metadata("
+require_term "src/codegen/transpiler_projection_sync.c" \
+    "transpiler_hosted_zone_layer_slot_view_name(&layer_view, i)"
+require_term "src/codegen/transpiler_projection_sync.c" \
+    "transpiler_hosted_zone_layer_slot_view_type_name("
+require_term "src/codegen/transpiler_projection_sync.c" \
+    "transpiler_hosted_zone_layer_slot_view_source_ast("
+if grep -Fq "ast_zone_layer_slots" \
+    "$ROOT_DIR/src/codegen/transpiler_projection_sync.c"; then
+    fail "C projection sync layer iteration must consume TranspilerHostedZoneLayerSlotView"
+fi
 require_term "src/codegen/transpiler_generic_class_naming.c" \
     "base_class_name = transpiler_decl_name_local(class_decl)"
 require_term "src/codegen/transpiler_generic_class_specialization_emit.c" \
@@ -437,6 +749,46 @@ host_name_hits="$(
 if [[ -n "$host_name_hits" ]]; then
     fail "backend host declaration names must flow through host_decl_compat.c:
 $host_name_hits"
+fi
+class_field_compat_hits="$(
+    grep -RIn "pgy_host_class_fields_compat_view_from_decl" \
+        "$ROOT_DIR/src/codegen" \
+        --include='*.c' --include='*.h' |
+        grep -Ev 'src/codegen/(host_decl_compat\.[ch]|llvm_inventory_decl_lookup\.c|transpiler_decl_lookup\.c):' || true
+)"
+if [[ -n "$class_field_compat_hits" ]]; then
+    fail "class-field compatibility views must stay behind declaration inventory owners:
+$class_field_compat_hits"
+fi
+class_field_find_hits="$(
+    grep -RIn "pgy_host_class_field_compat_find" \
+        "$ROOT_DIR/src/codegen" \
+        --include='*.c' --include='*.h' |
+        grep -Ev 'src/codegen/host_decl_compat\.[ch]:' || true
+)"
+if [[ -n "$class_field_find_hits" ]]; then
+    fail "class-field compatibility lookup must stay behind host_decl_compat.c:
+$class_field_find_hits"
+fi
+shared_field_compat_hits="$(
+    grep -RInE "pgy_host_shared_fields_compat_view_from_decl|pgy_host_shared_field_compat_find" \
+        "$ROOT_DIR/src/codegen" \
+        --include='*.c' --include='*.h' |
+        grep -Ev 'src/codegen/(host_decl_compat\.[ch]|llvm_inventory_decl_lookup\.c|transpiler_decl_lookup\.c):' || true
+)"
+if [[ -n "$shared_field_compat_hits" ]]; then
+    fail "shared-field compatibility views must stay behind declaration inventory owners:
+$shared_field_compat_hits"
+fi
+zone_layer_slot_hits="$(
+    grep -RIn "ast_zone_layer_slots" \
+        "$ROOT_DIR/src/codegen" \
+        --include='*.c' --include='*.h' |
+        grep -Ev 'src/codegen/(domain_frontier_policy\.c|llvm_inventory_decl_lookup\.c|transpiler_decl_lookup\.c):' || true
+)"
+if [[ -n "$zone_layer_slot_hits" ]]; then
+    fail "zone layer-slot AST child-list access must stay behind frontier policy or declaration inventory owners:
+$zone_layer_slot_hits"
 fi
 for rel in \
     "src/codegen/llvm_channel_target.c" \
@@ -661,6 +1013,14 @@ for term in \
 done
 for term in \
     "llvm_find_decl_field_in_context" \
+    "LLVMHostedFieldView" \
+    "llvm_hosted_class_field_view_from_decl" \
+    "llvm_hosted_field_view_missing_mir_metadata" \
+    "llvm_hosted_field_view_metadata" \
+    "llvm_hosted_field_view_name" \
+    "llvm_hosted_field_view_type" \
+    "pgy_host_class_fields_compat_view_from_decl(decl)" \
+    "return mir_decl_header_field(view->decl_header, index)" \
     "LLVMHostedSharedFieldView" \
     "llvm_decl_header_shared_field_count" \
     "llvm_decl_header_shared_field" \
@@ -690,9 +1050,8 @@ for term in \
     "llvm_projection_field_count" \
     "llvm_projection_field_name" \
     "llvm_projection_field_type_name" \
-    "llvm_find_host_decl_header_in_context(ctx, decl_name)" \
-    "mir_decl_header_field_count(header)" \
-    "mir_decl_header_field(header, index)" \
+    "llvm_projection_field_view" \
+    "llvm_hosted_field_view_metadata(&view, index)" \
     "llvm_mir_decl_field_type_name(field)"; do
     require_term "src/codegen/llvm_expr_projection_path_helpers.c" "$term"
 done
@@ -700,9 +1059,8 @@ for term in \
     "llvm_domain_projection_field_count" \
     "llvm_domain_projection_field_name" \
     "llvm_domain_projection_field_type_name" \
-    "llvm_find_host_decl_header_in_context(ctx, decl_name)" \
-    "mir_decl_header_field_count(header)" \
-    "mir_decl_header_field(header, index)" \
+    "llvm_domain_projection_field_view" \
+    "llvm_hosted_field_view_metadata(&view, index)" \
     "llvm_mir_decl_field_type_name(field)"; do
     require_term "src/codegen/llvm_domain_projection_value_helpers.c" "$term"
 done
@@ -1391,9 +1749,25 @@ if grep -Fq "find_zone_decl(ctx, step_zone_name)" \
 fi
 require_term "src/codegen/transpiler_block_intent_helpers.c" \
     "find_zone_decl_in_program_view(ctx, zone_type)"
+require_term "src/codegen/transpiler_block_intent_helpers.c" \
+    "TranspilerHostedZoneLayerSlotView layer_view"
+require_term "src/codegen/transpiler_block_intent_helpers.c" \
+    "transpiler_hosted_zone_layer_slot_view_from_decl("
+require_term "src/codegen/transpiler_block_intent_helpers.c" \
+    "transpiler_hosted_zone_layer_slot_view_missing_mir_metadata("
+require_term "src/codegen/transpiler_block_intent_helpers.c" \
+    "transpiler_hosted_zone_layer_slot_view_name(&layer_view, i)"
+require_term "src/codegen/transpiler_block_intent_helpers.c" \
+    "transpiler_hosted_zone_layer_slot_view_type_name("
+require_term "src/codegen/transpiler_block_intent_helpers.c" \
+    "transpiler_hosted_zone_layer_slot_view_source_ast("
 if grep -Fq "find_zone_decl(ctx, zone_type)" \
     "$ROOT_DIR/src/codegen/transpiler_block_intent_helpers.c"; then
     fail "C intent block zone-effect helpers must consume the active inventory view instead of direct AST lookup"
+fi
+if grep -Fq "ast_zone_layer_slots" \
+    "$ROOT_DIR/src/codegen/transpiler_block_intent_helpers.c"; then
+    fail "C intent block zone-effect helpers must consume TranspilerHostedZoneLayerSlotView"
 fi
 require_term "src/codegen/transpiler_projection.c" \
     "transpiler_find_decl_in_inventory_local(ctx, AST_ZONE_DECL,"

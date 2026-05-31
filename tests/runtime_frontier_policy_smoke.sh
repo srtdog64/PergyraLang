@@ -68,6 +68,7 @@ main(void)
     failures += expect_size("world-derived-limit", pgy_frontier_world_derived_pass_limit(4), 5);
     failures += expect_size("world-derived-limit-cap", pgy_frontier_world_derived_pass_limit(cap), cap);
     failures += expect_size("domain-zone-null", pgy_domain_zone_frontier_pass_limit(NULL), 1);
+    failures += expect_size("domain-zone-counted", pgy_domain_zone_frontier_pass_limit_from_counts(2, 3), 6);
     failures += expect_size("domain-projection", pgy_domain_projection_frontier_pass_limit(3), 4);
     failures += expect_size("domain-world-derived-null", pgy_domain_world_derived_frontier_pass_limit(NULL), 1);
     failures += expect_size("domain-world-embedded-null", pgy_domain_world_embedded_frontier_count(NULL, NULL, NULL), 0);

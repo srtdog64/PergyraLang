@@ -166,13 +166,21 @@ transpiler_is_implicit_field(TranspilerCtx *ctx, const char *base_name)
                     return true;
                 }
             }
-            size_t layer_slot_count = 0;
-            ASTNode **layer_slots = ast_zone_layer_slots(zone_decl,
-                &layer_slot_count);
-            for (size_t i = 0; i < layer_slot_count; i++) {
-                ASTNode *slot = layer_slots[i];
-                if (slot != NULL && ast_zone_layer_slot_name(slot) != NULL
-                    && strcmp(ast_zone_layer_slot_name(slot), base_name) == 0) {
+            TranspilerHostedZoneLayerSlotView layer_view =
+                transpiler_hosted_zone_layer_slot_view_from_decl(
+                    ctx, host_name, zone_decl);
+            if (transpiler_hosted_zone_layer_slot_view_missing_mir_metadata(
+                    &layer_view)) {
+                transpiler_set_mir_inventory_missing(ctx,
+                    "MIR-only C path missing zone layer-slot SSA metadata for '%s'",
+                    host_name != NULL ? host_name : "(anonymous-zone)");
+                return false;
+            }
+            for (size_t i = 0; i < layer_view.count; i++) {
+                const char *layer_name =
+                    transpiler_hosted_zone_layer_slot_view_name(
+                        &layer_view, i);
+                if (layer_name != NULL && strcmp(layer_name, base_name) == 0) {
                     return true;
                 }
             }

@@ -603,6 +603,45 @@ grep -Fq "transpiler_collect_mir_intent_who_aliases" \
     missing=1
 }
 
+if grep -RIn "ASTNode \\*subject_type = ast_intent_involves_subject_type(involves);" \
+    "$ROOT_DIR/src/codegen" \
+    --include='*.c' --include='*.h'; then
+    echo "[build-source-inventory] intent participant accessors must check involves before reading subject_type" >&2
+    missing=1
+fi
+
+for intent_zone_slot_term in \
+    "resolve_intent_zone_slot_name_for_zone_with_metadata" \
+    "intent_zone_binding_type_name_with_metadata("; do
+    grep -Fq "$intent_zone_slot_term" \
+        "$ROOT_DIR/src/codegen/transpiler_intent_zone_slot.c" || {
+        echo "[build-source-inventory] MIR-only intent zone-slot lookup must consume participant metadata: $intent_zone_slot_term" >&2
+        missing=1
+    }
+done
+
+for metadata_slot_consumer in \
+    src/codegen/transpiler_block_intent_helpers.c \
+    src/codegen/transpiler_block_intent_rebind_helpers.c \
+    src/codegen/transpiler_intent_zone_binding_emit.c \
+    src/codegen/transpiler_intent_emit.c; do
+    grep -Fq "resolve_intent_zone_slot_name_for_zone_with_metadata" \
+        "$ROOT_DIR/$metadata_slot_consumer" || {
+        echo "[build-source-inventory] MIR-only intent zone-slot consumer must use metadata-aware resolver: $metadata_slot_consumer" >&2
+        missing=1
+    }
+done
+
+for llvm_var_class_guard in \
+    "ctx == NULL || var_name == NULL || class_name == NULL" \
+    "ctx == NULL || var_name == NULL"; do
+    grep -Fq "$llvm_var_class_guard" \
+        "$ROOT_DIR/src/codegen/llvm_registry.c" || {
+        echo "[build-source-inventory] LLVM var-class registry must fail closed on NULL metadata: $llvm_var_class_guard" >&2
+        missing=1
+    }
+done
+
 if grep -Eq "^(transpiler_collect_mir_intent_(who|authorized|dispatch)_aliases|transpiler_collect_mir_intent_participants)\\(" \
     "$ROOT_DIR/src/codegen/transpiler_mir_inventory_intent_collect.c"; then
     echo "[build-source-inventory] MIR intent alias/participant collection regressed into the step/eval collector" >&2

@@ -71,20 +71,35 @@ emit_zone_action_effect_runtime(ASTNode *call, TranspilerCtx *ctx)
         return;
 
     effect_name = ast_func_causes_effect(method_decl);
-    size_t layer_slot_count = 0;
-    ASTNode **layer_slots = ast_zone_layer_slots(zone_decl, &layer_slot_count);
-    for (size_t i = 0; i < layer_slot_count; i++) {
-        ASTNode *layer_slot = layer_slots[i];
+    TranspilerHostedZoneLayerSlotView layer_view =
+        transpiler_hosted_zone_layer_slot_view_from_decl(
+            ctx, active_zone_name, zone_decl);
+    if (transpiler_hosted_zone_layer_slot_view_missing_mir_metadata(
+            &layer_view)) {
+        transpiler_set_mir_inventory_missing(
+            ctx,
+            "MIR-only C path missing zone action effect layer metadata for '%s'",
+            active_zone_name != NULL ? active_zone_name : "(anonymous-zone)");
+        return;
+    }
+    for (size_t i = 0; i < layer_view.count; i++) {
+        ASTNode *layer_slot =
+            transpiler_hosted_zone_layer_slot_view_source_ast(
+                &layer_view, i);
         const char *layer_name;
+        const char *layer_type =
+            transpiler_hosted_zone_layer_slot_view_type_name(
+                &layer_view, i);
 
         if (layer_slot == NULL || layer_slot->type != AST_ZONE_LAYER_SLOT
             || ast_zone_layer_slot_is_relation(layer_slot)
-            || ast_zone_layer_slot_layer_type(layer_slot) == NULL
-            || strcmp(ast_zone_layer_slot_layer_type(layer_slot), effect_name) != 0) {
+            || layer_type == NULL
+            || strcmp(layer_type, effect_name) != 0) {
             continue;
         }
 
-        layer_name = ast_zone_layer_slot_name(layer_slot);
+        layer_name =
+            transpiler_hosted_zone_layer_slot_view_name(&layer_view, i);
         if (layer_name == NULL)
             continue;
 
@@ -146,9 +161,18 @@ emit_world_embedded_action_effect_sync(TranspilerCtx *ctx,
     if (effect_type_name == NULL)
         return NULL;
 
+    TranspilerHostedZoneLayerSlotView layer_view =
+        transpiler_hosted_zone_layer_slot_view_from_decl(
+            ctx, zone_type_name, zone_decl);
+    if (transpiler_hosted_zone_layer_slot_view_missing_mir_metadata(
+            &layer_view)) {
+        transpiler_set_mir_inventory_missing(
+            ctx,
+            "MIR-only C path missing world embedded effect layer metadata for '%s'",
+            zone_type_name != NULL ? zone_type_name : "(anonymous-zone)");
+        return NULL;
+    }
     buf = codebuf_create();
-    size_t layer_slot_count = 0;
-    ASTNode **layer_slots = ast_zone_layer_slots(zone_decl, &layer_slot_count);
     size_t state_count = 0;
     ASTNode **states = ast_zone_states(zone_decl, &state_count);
     size_t effect_slot_count = 0;
@@ -156,20 +180,26 @@ emit_world_embedded_action_effect_sync(TranspilerCtx *ctx,
     size_t effect_refresh_count = 0;
     ASTNode **effect_refreshes =
         ast_effect_refreshes(effect_decl, &effect_refresh_count);
-    for (size_t i = 0; i < layer_slot_count; i++) {
-        ASTNode *layer_slot = layer_slots[i];
+    for (size_t i = 0; i < layer_view.count; i++) {
+        ASTNode *layer_slot =
+            transpiler_hosted_zone_layer_slot_view_source_ast(
+                &layer_view, i);
         ASTNode *target_slot;
         const char *layer_name;
+        const char *layer_type =
+            transpiler_hosted_zone_layer_slot_view_type_name(
+                &layer_view, i);
         int tmp_id;
 
         if (layer_slot == NULL || layer_slot->type != AST_ZONE_LAYER_SLOT
             || ast_zone_layer_slot_is_relation(layer_slot)
-            || ast_zone_layer_slot_layer_type(layer_slot) == NULL
-            || strcmp(ast_zone_layer_slot_layer_type(layer_slot), effect_name) != 0) {
+            || layer_type == NULL
+            || strcmp(layer_type, effect_name) != 0) {
             continue;
         }
 
-        layer_name = ast_zone_layer_slot_name(layer_slot);
+        layer_name =
+            transpiler_hosted_zone_layer_slot_view_name(&layer_view, i);
         if (layer_name == NULL)
             continue;
 

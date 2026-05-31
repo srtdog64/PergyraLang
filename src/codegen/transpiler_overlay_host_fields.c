@@ -8,7 +8,6 @@
 #include <string.h>
 
 #include "../parser/ast_api.h"
-#include "host_decl_compat.h"
 #include "transpiler_context.h"
 #include "transpiler_decl_lookup.h"
 #include "transpiler_host_self_policy.h"
@@ -22,21 +21,6 @@ domain_slot_list_has_field(ASTNode **slots, size_t slot_count,
         const char *slot_name = ast_domain_slot_name(slot);
         if (slot != NULL && slot_name != NULL
             && strcmp(slot_name, field_name) == 0) {
-            return true;
-        }
-    }
-
-    return false;
-}
-
-static bool
-zone_layer_slot_list_has_field(ASTNode **slots, size_t slot_count,
-                               const char *field_name)
-{
-    for (size_t i = 0; i < slot_count; i++) {
-        ASTNode *slot = slots[i];
-        if (slot != NULL && ast_zone_layer_slot_name(slot) != NULL
-            && strcmp(ast_zone_layer_slot_name(slot), field_name) == 0) {
             return true;
         }
     }
@@ -61,6 +45,32 @@ roster_slot_list_has_field(ASTNode *roster, const char *field_name)
     }
 
     return false;
+}
+
+static bool
+class_field_view_has_field(TranspilerCtx *ctx,
+                           ASTNode *decl,
+                           const char *field_name)
+{
+    const char *host_name;
+    TranspilerHostedFieldView field_view;
+
+    if (ctx == NULL || decl == NULL || decl->type != AST_CLASS_DECL
+        || field_name == NULL)
+        return false;
+
+    host_name = transpiler_decl_name_local(decl);
+    field_view = transpiler_hosted_class_field_view_from_decl(
+        ctx, host_name, decl);
+    if (transpiler_hosted_field_view_missing_mir_metadata(&field_view)) {
+        transpiler_set_mir_inventory_missing(ctx,
+            "MIR-only C path missing class-field existence metadata for '%s'",
+            host_name != NULL ? host_name : "(anonymous-class)");
+        return false;
+    }
+
+    return transpiler_hosted_field_view_find_index(
+        &field_view, field_name, NULL);
 }
 
 static bool
@@ -89,6 +99,37 @@ host_shared_view_has_field(TranspilerCtx *ctx,
         const char *shared_name =
             transpiler_hosted_shared_field_view_name(&shared_view, i);
         if (shared_name != NULL && strcmp(shared_name, field_name) == 0)
+            return true;
+    }
+    return false;
+}
+
+static bool
+zone_layer_view_has_field(TranspilerCtx *ctx,
+                          ASTNode *decl,
+                          const char *field_name)
+{
+    const char *zone_name;
+    TranspilerHostedZoneLayerSlotView layer_view;
+
+    if (ctx == NULL || decl == NULL || field_name == NULL)
+        return false;
+
+    zone_name = transpiler_decl_name_local(decl);
+    layer_view = transpiler_hosted_zone_layer_slot_view_from_decl(
+        ctx, zone_name, decl);
+    if (transpiler_hosted_zone_layer_slot_view_missing_mir_metadata(
+            &layer_view)) {
+        transpiler_set_mir_inventory_missing(ctx,
+            "MIR-only C path missing zone layer-slot existence metadata for '%s'",
+            zone_name != NULL ? zone_name : "(anonymous-zone)");
+        return false;
+    }
+
+    for (size_t i = 0; i < layer_view.count; i++) {
+        const char *layer_name =
+            transpiler_hosted_zone_layer_slot_view_name(&layer_view, i);
+        if (layer_name != NULL && strcmp(layer_name, field_name) == 0)
             return true;
     }
     return false;
@@ -123,7 +164,7 @@ current_class_has_field(TranspilerCtx *ctx, const char *field_name)
     if (decl == NULL)
         return false;
 
-    return pgy_host_class_field_compat_find(decl, field_name) != NULL;
+    return class_field_view_has_field(ctx, decl, field_name);
 }
 
 bool
@@ -144,12 +185,8 @@ current_zone_has_field(TranspilerCtx *ctx, const char *field_name)
     ASTNode **slots = ast_zone_slots(decl, &slot_count);
     if (domain_slot_list_has_field(slots, slot_count, field_name))
         return true;
-    size_t layer_slot_count = 0;
-    ASTNode **layer_slots = ast_zone_layer_slots(decl, &layer_slot_count);
-    if (zone_layer_slot_list_has_field(
-            layer_slots, layer_slot_count, field_name)) {
+    if (zone_layer_view_has_field(ctx, decl, field_name))
         return true;
-    }
     if (host_shared_view_has_field(ctx, decl, field_name))
         return true;
 

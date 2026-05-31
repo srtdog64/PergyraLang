@@ -389,7 +389,8 @@ ASTNode *llvm_resolve_world_zone_decl(LLVMGenCtx *ctx, ASTNode *world_decl,
                                       const char *slot_name);
 ASTNode *llvm_find_zone_domain_slot_decl(ASTNode *zone_decl,
                                          const char *slot_name);
-ASTNode *llvm_find_zone_layer_slot_decl(ASTNode *zone_decl,
+ASTNode *llvm_find_zone_layer_slot_decl(LLVMGenCtx *ctx,
+                                        ASTNode *zone_decl,
                                         const char *slot_name);
 bool llvm_world_has_zone_slot(ASTNode *world_decl, const char *slot_name);
 const char *llvm_call_name_or_string_arg(ASTNode *node, size_t index);

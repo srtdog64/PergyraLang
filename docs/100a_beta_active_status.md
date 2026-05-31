@@ -60,19 +60,38 @@ MIR declaration-field inventory tightening (2026-05-31): declaration headers
 now carry validated `MIRDeclField` rows, and backend consumers are moving from
 field compatibility views to that metadata as the first source of truth. Current
 closed consumers include C nominal/member lookup, C class constructor
-  positional field emission, C class/generic-class field emission, C projection
+  positional field emission through `TranspilerHostedFieldView`, C
+  class/generic-class field emission, C projection
   literal source/target field iteration, C projection invalidation target-field
   matching, C projection field-path relevance/vessel checks, C relation/effect/
   world/zone struct shared-field declaration emission, C relation/effect/zone/
-  world constructor shared-field argument/default emission, LLVM domain struct
-  shared-field type/layout registration, LLVM domain declaration-parts cleanup,
-  LLVM
-projection/domain-projection source-path field iteration, C/LLVM constructor
-Channel guards, LLVM constructor expected-type lookup, and LLVM current
+  world constructor shared-field argument/default emission, LLVM constructor
+  class-field expected-type/channel checks through `LLVMHostedFieldView`, LLVM
+  domain struct shared-field type/layout registration, LLVM domain
+  declaration-parts cleanup, LLVM nominal struct field registration, LLVM
+projection/domain-projection source-path field iteration through
+`LLVMHostedFieldView`, C nominal zone member lookup and zone struct layer-slot
+emission through `TranspilerHostedZoneLayerSlotView`, LLVM zone struct layer-slot type
+registration, layer-slot field registration, zone bind layer-slot lookup, and
+zone-layer query lookup through
+`LLVMHostedZoneLayerSlotView`, LLVM zone frontier previous-state/reset/
+continue tracking, LLVM zone sync action-cause layer iteration, LLVM zone
+action effect-layer emission, LLVM world embedded effect sync layer iteration,
+and LLVM intent effect caused-layer emission through
+`LLVMHostedZoneLayerSlotView`, C overlay zone-field presence checks through
+`TranspilerHostedZoneLayerSlotView`, C overlay zone effect/relation bind lookup
+through the same hosted view, C/LLVM constructor
+Channel guards, and LLVM current
 field-class lookup, C overlay/world shared-field presence checks, and C
 projection literal/source-path plus overlay-projection invalidation class-field
-iteration through `TranspilerHostedFieldView`. Remaining declaration-side work is broader
-declaration/projection emitter coverage, not metadata creation.
+iteration through `TranspilerHostedFieldView`. The MIR declaration-inventory
+smoke now also globally confines direct class/shared compatibility-view calls
+to `host_decl_compat.c`, `transpiler_decl_lookup.c`, and
+`llvm_inventory_decl_lookup.c`, and confines direct
+`pgy_host_class_field_compat_find(...)` calls to `host_decl_compat.c`, so new
+backend consumers must use hosted field views instead of reopening
+compatibility views. Remaining declaration-side work is broader declaration/
+projection emitter coverage, not metadata creation.
 
 Current DAG intent-zone owner tightening (2026-05-25): intent step `where`,
 derived `using`, participant transfer-source checks, and transfer `from`/`to`
@@ -385,8 +404,8 @@ Current MIR declaration-field inventory tightening (2026-05-31):
 domain shared fields, party role slots, roster slots, world roster/zone slots,
 domain slots, and zone layer slots. This closes the metadata-creation slice of
 the dedicated declaration IR row. Current consumers include C nominal/current
-member type lookup, C class constructor positional field emission, C
-  class/generic-class field emission, C projection literal source/target field
+member type lookup, C class constructor positional field emission through
+  `TranspilerHostedFieldView`, C class/generic-class field emission, C projection literal source/target field
   iteration, C projection invalidation target-field matching, C projection
   field-path relevance/vessel checks, C relation/effect/world/zone struct
   shared-field declaration emission, C relation/effect/zone/world constructor
@@ -394,17 +413,28 @@ member type lookup, C class constructor positional field emission, C
   type/layout registration, LLVM domain declaration-parts cleanup, LLVM
   projection/domain-projection
 source-path field iteration, C/LLVM constructor Channel guards, LLVM
-constructor shared-field defaults, LLVM constructor expected-type lookup, and
+constructor class-field expected-type/channel checks through
+`LLVMHostedFieldView`, LLVM projection/domain-projection source-path field
+iteration through `LLVMHostedFieldView`, LLVM nominal struct field registration
+through `LLVMHostedFieldView`, LLVM constructor shared-field defaults, and
 LLVM current field-class lookup. The C constructor Channel guard, MIR SSA
-implicit zone-field recovery, and zone specialization emission now scan shared
-fields through `TranspilerHostedSharedFieldView`, and LLVM constructor
+implicit zone layer/shared-field recovery, projection zone-layer lookup,
+projection sync layer iteration, intent block caused-effect layer marking, and
+zone sync/frontier layer iteration now scan layer slots through
+`TranspilerHostedZoneLayerSlotView` and shared fields through
+`TranspilerHostedSharedFieldView`; C/LLVM zone frontier pass-limit emission uses the
+counted frontier policy wrapper instead of recounting zone layer slots. LLVM constructor
 Channel/default paths scan shared fields through `LLVMHostedSharedFieldView`
 instead of reopening shared-field compatibility directly. C overlay/world
 shared-field presence checks use the same `TranspilerHostedSharedFieldView`
 path and fail closed when required MIR metadata is missing. C projection
 literal/source-path field iteration uses `TranspilerHostedFieldView` instead of
 reopening class-field compatibility locally, and overlay-projection
-invalidation now uses the same hosted field view. Broader
+invalidation now uses the same hosted field view. C class constructor
+positional field emission in `transpiler_domain_constructor_emit.c` also uses
+the hosted field view and fails closed when required MIR metadata is missing.
+Annotated let class-constructor lowering now delegates to that same constructor
+owner instead of reopening class-field compatibility locally. Broader
 declaration/projection emitters still need to migrate from `host_decl_compat.c`
 compatibility views before the row can be marked closed.
 Gates: `test-mir`, `test-transpile`, `LLVM_ENABLED=1 pgy`, and

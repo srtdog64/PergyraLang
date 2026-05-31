@@ -12,9 +12,12 @@
 static const char *
 llvm_forward_intent_involves_type_name(ASTNode *involves)
 {
-    ASTNode *subject_type = ast_intent_involves_subject_type(involves);
-    if (involves == NULL || involves->type != AST_INTENT_INVOLVES
-        || subject_type == NULL) {
+    ASTNode *subject_type = NULL;
+
+    if (involves == NULL || involves->type != AST_INTENT_INVOLVES)
+        return NULL;
+    subject_type = ast_intent_involves_subject_type(involves);
+    if (subject_type == NULL) {
         return NULL;
     }
     return ast_type_name(subject_type);
@@ -106,17 +109,19 @@ llvm_forward_declare_intent(ASTNode *node, LLVMGenCtx *ctx)
                         return;
                     if (llvm_type_name_uses_pointer_self(ctx, type_name))
                         pt = LLVMPointerType(pt, 0);
-                } else if (!mir_only_intent
-                           && ast_intent_involves_subject_type(binding) != NULL) {
-                    pt = ast_type_to_llvm(ctx,
-                        ast_intent_involves_subject_type(binding));
-                    if (ctx->has_error || pt == NULL)
-                        return;
-                    if (llvm_intent_involves_uses_pointer_self(ctx, binding))
-                        pt = LLVMPointerType(pt, 0);
+                } else if (!mir_only_intent) {
+                    ASTNode *subject_type =
+                        ast_intent_involves_subject_type(binding);
+                    if (subject_type != NULL) {
+                        pt = ast_type_to_llvm(ctx, subject_type);
+                        if (ctx->has_error || pt == NULL)
+                            return;
+                        if (llvm_intent_involves_uses_pointer_self(ctx, binding))
+                            pt = LLVMPointerType(pt, 0);
+                    }
                 }
                 participant_index++;
-            } else {
+            } else if (binding != NULL && binding->type == AST_INTENT_VALUE) {
                 ASTNode *value_type = ast_intent_value_type(binding);
                 if (value_type != NULL) {
                     pt = ast_type_to_llvm(ctx, value_type);

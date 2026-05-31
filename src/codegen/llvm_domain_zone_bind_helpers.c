@@ -10,6 +10,7 @@
 #include <string.h>
 
 #include "llvm_internal_api.h"
+#include "llvm_inventory_decl_lookup.h"
 #include "parser/ast_api.h"
 
 static bool
@@ -65,23 +66,37 @@ llvm_find_nth_bindable_domain_slot(ASTNode **slots, size_t slot_count,
 }
 
 static ASTNode *
-llvm_find_zone_layer_slot(ASTNode *zone_decl,
+llvm_find_zone_layer_slot(LLVMGenCtx *ctx,
+                          ASTNode *zone_decl,
                           const char *slot_name,
                           bool is_relation)
 {
+    const char *zone_name;
+    LLVMHostedZoneLayerSlotView layer_view;
+
     if (zone_decl == NULL || zone_decl->type != AST_ZONE_DECL
         || slot_name == NULL) {
         return NULL;
     }
 
-    size_t layer_slot_count = 0;
-    ASTNode **layer_slots = ast_zone_layer_slots(zone_decl, &layer_slot_count);
-    for (size_t i = 0; i < layer_slot_count; i++) {
-        ASTNode *slot = layer_slots[i];
+    zone_name = llvm_decl_node_name(zone_decl);
+    layer_view =
+        llvm_hosted_zone_layer_slot_view_from_decl(ctx, zone_name, zone_decl);
+    if (llvm_hosted_zone_layer_slot_view_missing_mir_metadata(&layer_view)) {
+        llvm_set_error(ctx,
+            "MIR declaration inventory missing zone layer-slot metadata for zone bind emission");
+        return NULL;
+    }
+
+    for (size_t i = 0; i < layer_view.count; i++) {
+        ASTNode *slot =
+            llvm_hosted_zone_layer_slot_view_source_ast(&layer_view, i);
+        const char *candidate_name =
+            llvm_hosted_zone_layer_slot_view_name(&layer_view, i);
         if (slot != NULL && slot->type == AST_ZONE_LAYER_SLOT
             && ast_zone_layer_slot_is_relation(slot) == is_relation
-            && ast_zone_layer_slot_name(slot) != NULL
-            && strcmp(ast_zone_layer_slot_name(slot), slot_name) == 0) {
+            && candidate_name != NULL
+            && strcmp(candidate_name, slot_name) == 0) {
             return slot;
         }
     }
@@ -114,7 +129,7 @@ llvm_zone_bind_effect_layer(ASTNode *zone_decl, LLVMClassTypeEntry *zone_cls,
         return;
     }
 
-    layer_slot = llvm_find_zone_layer_slot(zone_decl, layer_slot_name, false);
+    layer_slot = llvm_find_zone_layer_slot(ctx, zone_decl, layer_slot_name, false);
     if (layer_slot == NULL)
         return;
     effect_decl = llvm_find_named_domain_decl(ctx, AST_EFFECT_DECL,
@@ -350,7 +365,7 @@ llvm_zone_bind_relation_layer(ASTNode *zone_decl, LLVMClassTypeEntry *zone_cls,
         return;
     }
 
-    layer_slot = llvm_find_zone_layer_slot(zone_decl, layer_slot_name, true);
+    layer_slot = llvm_find_zone_layer_slot(ctx, zone_decl, layer_slot_name, true);
     if (layer_slot == NULL)
         return;
     relation_decl = llvm_find_named_domain_decl(ctx, AST_RELATION_DECL,

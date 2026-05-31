@@ -8,7 +8,6 @@
 #ifdef PGY_LLVM_ENABLED
 
 #include "llvm_internal.h"
-#include "host_decl_compat.h"
 #include "llvm_inventory_decl_lookup.h"
 #include "llvm_inventory_host_methods.h"
 
@@ -254,18 +253,23 @@ llvm_register_nominal_decl(LLVMGenCtx *ctx, ASTNode *stmt)
     const char *cls_name = llvm_decl_node_name(stmt);
     if (cls_name == NULL || llvm_lookup_class(ctx, cls_name) != NULL)
         return;
-    PgyHostClassFieldsCompatView field_view =
-        pgy_host_class_fields_compat_view_from_decl(stmt);
-    ClassField **fields = field_view.fields;
+    LLVMHostedFieldView field_view =
+        llvm_hosted_class_field_view_from_decl(ctx, cls_name, stmt);
+    if (llvm_hosted_field_view_missing_mir_metadata(&field_view)) {
+        llvm_set_mir_inventory_missing(ctx,
+            "MIR-only LLVM path missing class-field declaration metadata for '%s'",
+            cls_name);
+        return;
+    }
     size_t fc = field_view.count;
     /* Field-type buffer: consumed by LLVMStructSetBody (copies) and read
      * once for llvm_class_add_field below; never retained. */
     LLVMTypeRef *field_types = pgy_arena_calloc(&ctx->scratch,
         (fc > 0 ? fc : 1) * sizeof(LLVMTypeRef));
     for (size_t j = 0; j < fc; j++) {
-        ClassField *f = fields != NULL ? fields[j] : NULL;
+        ASTNode *field_type = llvm_hosted_field_view_type(&field_view, j);
         field_types[j] = llvm_register_required_ast_type(
-            ctx, stmt, f != NULL ? f->type : NULL, "class field");
+            ctx, stmt, field_type, "class field");
         if (ctx->has_error || field_types[j] == NULL)
             return;
     }
@@ -284,10 +288,11 @@ llvm_register_nominal_decl(LLVMGenCtx *ctx, ASTNode *stmt)
         entry->is_immutable = is_immutable;
         entry->is_boundary_transfer_contract = is_boundary_transfer;
         for (size_t j = 0; j < fc; j++) {
-            ClassField *f = fields != NULL ? fields[j] : NULL;
-            if (f == NULL || f->name == NULL)
+            const char *field_name =
+                llvm_hosted_field_view_name(&field_view, j);
+            if (field_name == NULL)
                 continue;
-            llvm_class_add_field(entry, f->name, field_types[j], (int)j);
+            llvm_class_add_field(entry, field_name, field_types[j], (int)j);
         }
     }
 

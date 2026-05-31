@@ -1,6 +1,7 @@
 #ifdef PGY_LLVM_ENABLED
 #include "llvm_internal.h"
 #include "llvm_domain_zone_sync_internal.h"
+#include "llvm_inventory_decl_lookup.h"
 #include "parser/ast_api.h"
 
 static bool
@@ -26,13 +27,22 @@ llvm_zone_sync_emit_action_causes(ASTNode *stmt,
     if (stmt == NULL || decl_cls == NULL || sync_fn == NULL || ctx == NULL)
         return;
 
-    size_t layer_slot_count = 0;
-    ASTNode **layer_slots = ast_zone_layer_slots(stmt, &layer_slot_count);
+    const char *zone_name = llvm_decl_node_name(stmt);
+    LLVMHostedZoneLayerSlotView layer_view =
+        llvm_hosted_zone_layer_slot_view_from_decl(ctx, zone_name, stmt);
     size_t state_count = 0;
     ASTNode **states = ast_zone_states(stmt, &state_count);
 
-    for (size_t i = 0; i < layer_slot_count; i++) {
-        ASTNode *slot = layer_slots[i];
+    if (llvm_hosted_zone_layer_slot_view_missing_mir_metadata(&layer_view)) {
+        llvm_set_error(ctx,
+            "LLVM zone '%s' action-cause layer slots missing MIR declaration metadata",
+            zone_name != NULL ? zone_name : "<anonymous>");
+        return;
+    }
+
+    for (size_t i = 0; i < layer_view.count; i++) {
+        ASTNode *slot =
+            llvm_hosted_zone_layer_slot_view_source_ast(&layer_view, i);
         const char *layer_name;
         char cause_field[256];
         char active_field[256];
@@ -45,13 +55,13 @@ llvm_zone_sync_emit_action_causes(ASTNode *stmt,
         LLVMBasicBlockRef action_bb;
         LLVMBasicBlockRef next_bb;
 
+        layer_name = llvm_hosted_zone_layer_slot_view_name(&layer_view, i);
         if (slot == NULL || slot->type != AST_ZONE_LAYER_SLOT
             || ast_zone_layer_slot_is_relation(slot)
-            || ast_zone_layer_slot_name(slot) == NULL) {
+            || layer_name == NULL) {
             continue;
         }
 
-        layer_name = ast_zone_layer_slot_name(slot);
         if (!llvm_zone_sync_clause_field_name(cause_field, sizeof(cause_field),
                 "layer_cause", layer_name))
             continue;

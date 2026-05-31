@@ -2,17 +2,25 @@
 #include "../parser/ast_domain_api.h"
 
 size_t
+pgy_domain_zone_frontier_pass_limit_from_counts(size_t state_count,
+                                                size_t layer_slot_count)
+{
+    return pgy_frontier_zone_pass_limit(state_count, layer_slot_count);
+}
+
+size_t
 pgy_domain_zone_frontier_pass_limit(ASTNode *zone_decl)
 {
     size_t state_count = 0;
     size_t layer_slot_count = 0;
 
     if (zone_decl == NULL || zone_decl->type != AST_ZONE_DECL)
-        return pgy_frontier_zone_pass_limit(0, 0);
+        return pgy_domain_zone_frontier_pass_limit_from_counts(0, 0);
 
     (void) ast_zone_states(zone_decl, &state_count);
     (void) ast_zone_layer_slots(zone_decl, &layer_slot_count);
-    return pgy_frontier_zone_pass_limit(state_count, layer_slot_count);
+    return pgy_domain_zone_frontier_pass_limit_from_counts(
+        state_count, layer_slot_count);
 }
 
 size_t

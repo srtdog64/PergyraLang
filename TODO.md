@@ -76,24 +76,47 @@ English anchor for tooling/doc gates:
   `mir_decl_header_validate.c` rejects field count/storage/owner drift, and
   `mir-declaration-inventory-test-smoke` pins the new metadata/accessor surface.
   The C nominal/member type lookup, C class constructor positional field
-  emission, C class/generic-class field emission, C projection literal
+  emission through `TranspilerHostedFieldView`, C class/generic-class field emission, C projection literal
   source/target field iteration, C projection invalidation target-field
   matching, C projection field-path relevance/vessel checks, C relation/effect/
   world/zone struct shared-field declaration emission, C relation/effect/zone/
-  world constructor shared-field argument/default emission, LLVM domain struct
-  shared-field type/layout registration, and LLVM domain declaration parts
-  cleanup, LLVM
-  projection/domain-projection source-path field iteration, C/LLVM constructor
-  Channel guards, including the C shared-field channel scan through
+  world constructor shared-field argument/default emission, LLVM constructor
+  class-field expected-type/channel checks through `LLVMHostedFieldView`, LLVM
+  domain struct shared-field type/layout registration, LLVM nominal struct
+  field registration through `LLVMHostedFieldView`, and LLVM domain
+  declaration parts cleanup, LLVM projection/domain-projection source-path field
+  iteration through `LLVMHostedFieldView`, C/LLVM constructor Channel guards,
+  including the C shared-field channel scan through
   `TranspilerHostedSharedFieldView`, LLVM constructor shared-field defaults and
-  expected-type lookup, C MIR SSA implicit zone shared-field recovery, C zone
-  specialization emission, C overlay/world shared-field presence checks, C
+  expected-type lookup, C MIR SSA implicit zone layer/shared-field recovery, C
+  projection zone-layer lookup, projection sync layer iteration, intent block
+  caused-effect layer marking, zone sync/frontier layer iteration, counted
+  C/LLVM zone frontier pass-limit emission, C zone specialization emission, C nominal
+  zone member lookup and zone struct layer-slot emission through
+  `TranspilerHostedZoneLayerSlotView`, LLVM zone struct layer-slot field
+  type registration, layer-slot field registration, zone bind layer-slot lookup,
+  and zone-layer query lookup through
+  `LLVMHostedZoneLayerSlotView`, LLVM zone frontier previous-state/reset/
+  continue tracking, LLVM zone sync action-cause layer iteration, LLVM zone
+  action effect-layer emission, LLVM world embedded effect sync layer iteration,
+  and LLVM intent effect caused-layer emission through
+  `LLVMHostedZoneLayerSlotView`, C overlay zone-field presence checks through
+  `TranspilerHostedZoneLayerSlotView`, C overlay zone effect/relation bind lookup
+  through the same hosted view, C overlay/world shared-field presence checks, C
   projection literal/source-path and overlay-projection invalidation
-  class-field iteration through `TranspilerHostedFieldView`, and LLVM current
+  class-field iteration through `TranspilerHostedFieldView`, C class
+  constructor positional field emission in `transpiler_domain_constructor_emit.c`
+  through the same hosted field view, annotated let class-constructor lowering
+  delegation to that same constructor owner, and LLVM current
   field-class lookup now consume these MIR field facts before falling back to
-  host field compatibility views. Remaining declaration/projection emitters
-  still need the same migration before the dedicated declaration IR row can
-  close.
+  host field compatibility views. The declaration-inventory smoke also globally
+  confines direct class/shared compatibility-view calls to `host_decl_compat.c`,
+  `transpiler_decl_lookup.c`, and `llvm_inventory_decl_lookup.c`, and confines
+  direct `pgy_host_class_field_compat_find(...)` calls to `host_decl_compat.c`.
+  New backend consumers must use hosted field views or MIR field accessors
+  instead of reopening compatibility views. Remaining declaration/projection
+  emitters still need the same migration before the dedicated declaration IR
+  row can close.
 - MIR routine/program structure seam tightening: C/LLVM inventory views and AIR
   MIR evidence now consume routines and `main`/top-level flags through
   `mir_program_inventory.c` inventory/program-shape accessors. The smoke gates
@@ -172,7 +195,11 @@ English anchor for tooling/doc gates:
   is complete.
   `mir-declaration-inventory-test-smoke` now also runs a global codegen
   whitelist: direct `ast_class_fields(...)` / domain shared-field array access
-  is allowed only in `host_decl_compat.c` and declaration/register emit owners.
+  is allowed only in `host_decl_compat.c` and declaration/register emit owners;
+  direct class/shared compatibility-view calls are allowed only in the
+  host-compat owner and the C/LLVM declaration-inventory lookup owners; direct
+  `pgy_host_class_field_compat_find(...)` calls are allowed only in
+  `host_decl_compat.c`.
 - C/LLVM backend-compare default parity now includes exact LLVM-smoke surface
   coverage for minimal extern blocks, direct `Slot<T>` claim/write/read/release,
   direct `Channel<T>` send/receive, and explicit `Future<T>` spawn annotation.

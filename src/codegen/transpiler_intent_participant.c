@@ -11,11 +11,12 @@
 const char *
 intent_involves_type_name_local(ASTNode *involves)
 {
-    ASTNode *subject_type = ast_intent_involves_subject_type(involves);
+    ASTNode *subject_type = NULL;
 
-    if (involves == NULL || involves->type != AST_INTENT_INVOLVES
-        || subject_type == NULL
-        || subject_type->type != AST_TYPE) {
+    if (involves == NULL || involves->type != AST_INTENT_INVOLVES)
+        return NULL;
+    subject_type = ast_intent_involves_subject_type(involves);
+    if (subject_type == NULL || subject_type->type != AST_TYPE) {
         return NULL;
     }
     return ast_type_name(subject_type);

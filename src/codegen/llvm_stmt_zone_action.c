@@ -151,6 +151,11 @@ llvm_stmt_emit_zone_action_effect_runtime(ASTNode *call, LLVMGenCtx *ctx)
     LLVMClassTypeEntry *effect_cls;
     LLVMVarEntry *self_var;
     LLVMValueRef self_ptr;
+    LLVMHostedZoneLayerSlotView layer_view;
+    size_t effect_slot_count = 0;
+    ASTNode **effect_slots = NULL;
+    size_t refresh_count = 0;
+    ASTNode **refreshes = NULL;
     const char *method_name;
     const char *receiver_slot_name = NULL;
     const char *receiver_type_name = NULL;
@@ -206,17 +211,21 @@ llvm_stmt_emit_zone_action_effect_runtime(ASTNode *call, LLVMGenCtx *ctx)
         LLVMPointerType(zone_cls->struct_type, 0),
         self_var->alloca, llvm_tmp_name(ctx));
 
-    size_t layer_slot_count = 0;
-    ASTNode **layer_slots = ast_zone_layer_slots(zone_decl, &layer_slot_count);
-    size_t effect_slot_count = 0;
-    ASTNode **effect_slots = ast_effect_slots(effect_decl, &effect_slot_count);
-    size_t refresh_count = 0;
-    ASTNode **refreshes = ast_effect_refreshes(effect_decl, &refresh_count);
+    layer_view = llvm_hosted_zone_layer_slot_view_from_decl(ctx, zone_name, zone_decl);
+    if (llvm_hosted_zone_layer_slot_view_missing_mir_metadata(&layer_view)) {
+        llvm_set_error(ctx,
+            "MIR declaration inventory missing zone layer-slot metadata for zone action emission");
+        return;
+    }
+    effect_slots = ast_effect_slots(effect_decl, &effect_slot_count);
+    refreshes = ast_effect_refreshes(effect_decl, &refresh_count);
 
-    for (size_t i = 0; i < layer_slot_count; i++) {
-        ASTNode *layer_slot = layer_slots[i];
+    for (size_t i = 0; i < layer_view.count; i++) {
+        ASTNode *layer_slot =
+            llvm_hosted_zone_layer_slot_view_source_ast(&layer_view, i);
         ASTNode *subject_slot;
         const char *layer_name;
+        const char *layer_type;
         int active_idx;
         int layer_idx;
         int target_idx;
@@ -229,14 +238,15 @@ llvm_stmt_emit_zone_action_effect_runtime(ASTNode *call, LLVMGenCtx *ctx)
         char active_field[256];
         char sync_name[256];
 
+        layer_name = llvm_hosted_zone_layer_slot_view_name(&layer_view, i);
+        layer_type = llvm_hosted_zone_layer_slot_view_type_name(&layer_view, i);
         if (layer_slot == NULL || layer_slot->type != AST_ZONE_LAYER_SLOT
             || ast_zone_layer_slot_is_relation(layer_slot)
-            || ast_zone_layer_slot_layer_type(layer_slot) == NULL
-            || strcmp(ast_zone_layer_slot_layer_type(layer_slot), effect_name) != 0) {
+            || layer_type == NULL
+            || strcmp(layer_type, effect_name) != 0) {
             continue;
         }
 
-        layer_name = ast_zone_layer_slot_name(layer_slot);
         if (layer_name == NULL)
             continue;
 

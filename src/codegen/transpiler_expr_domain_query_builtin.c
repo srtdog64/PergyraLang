@@ -217,7 +217,7 @@ emit_builtin_has_zone_layer(ASTNode *call, TranspilerCtx *ctx)
         && ast_call_arg_count(call) == 2
         && zone_decl != NULL
         && layer_name != NULL
-        && transpiler_find_zone_layer_slot(zone_decl, layer_name) != NULL) {
+        && transpiler_find_zone_layer_slot(ctx, zone_decl, layer_name) != NULL) {
         return domain_query_heap_fmt("self->%s.__layer_active_%s",
             zone_name, layer_name);
     }

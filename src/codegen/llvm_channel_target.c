@@ -5,7 +5,6 @@
 
 #ifdef PGY_LLVM_ENABLED
 
-#include "host_decl_compat.h"
 #include "llvm_backend_type_map_internal.h"
 #include "llvm_internal.h"
 #include "llvm_inventory_decl_lookup.h"
@@ -29,36 +28,53 @@ llvm_channel_target_error(LLVMGenCtx *ctx, ASTNode *node,
     return false;
 }
 
-static ClassField *
-llvm_channel_current_host_field(LLVMGenCtx *ctx, const char *field_name)
+static ASTNode *
+llvm_channel_current_host_field_type(LLVMGenCtx *ctx,
+                                     const char *field_name,
+                                     const char *operation_name)
 {
     ASTNode *host_decl = llvm_current_host_decl(ctx);
+    const char *host_name = llvm_current_host_class_name(ctx);
+    LLVMHostedFieldView field_view;
+    size_t field_index = 0;
 
     if (host_decl == NULL || host_decl->type != AST_CLASS_DECL
-        || field_name == NULL)
+        || host_name == NULL || field_name == NULL)
         return NULL;
 
-    return pgy_host_class_field_compat_find(host_decl, field_name);
+    field_view = llvm_hosted_class_field_view_from_decl(
+        ctx, host_name, host_decl);
+    if (llvm_hosted_field_view_missing_mir_metadata(&field_view)) {
+        llvm_set_mir_inventory_missing(ctx,
+            "MIR-only LLVM path missing channel class-field metadata for '%s'",
+            host_name);
+        return NULL;
+    }
+    if (!llvm_hosted_field_view_find_index(
+            &field_view, field_name, &field_index)) {
+        return NULL;
+    }
+    (void)operation_name;
+    return llvm_hosted_field_view_type(&field_view, field_index);
 }
 
 static const char *
 llvm_channel_field_inner_type(LLVMGenCtx *ctx, ASTNode *node,
-                              ClassField *field,
+                              ASTNode *field_type,
                               const char *operation_name)
 {
     GenericParams *args;
     GenericParam *arg0;
     ASTNode *arg0_type;
 
-    if (field == NULL || field->type == NULL
-        || ast_type_name(field->type) == NULL
-        || strcmp(ast_type_name(field->type), "Channel") != 0) {
+    if (field_type == NULL || ast_type_name(field_type) == NULL
+        || strcmp(ast_type_name(field_type), "Channel") != 0) {
         llvm_channel_target_error(ctx, node, operation_name,
             "requires a Channel<T> local or current-host field");
         return NULL;
     }
 
-    args = ast_type_generic_args(field->type);
+    args = ast_type_generic_args(field_type);
     arg0 = ast_generic_param_at(args, 0);
     arg0_type = ast_generic_param_constraint(arg0);
     if (arg0_type == NULL) {
@@ -97,13 +113,14 @@ llvm_resolve_channel_target_inner(LLVMGenCtx *ctx, ASTNode *node,
         const char *host_name = llvm_current_host_class_name(ctx);
         LLVMClassTypeEntry *host_cls = host_name != NULL
             ? llvm_lookup_class(ctx, host_name) : NULL;
-        ClassField *field = llvm_channel_current_host_field(ctx, name);
+        ASTNode *field_type = llvm_channel_current_host_field_type(
+            ctx, name, operation_name);
         int field_idx = host_cls != NULL
             ? llvm_class_field_index(host_cls, name) : -1;
 
-        if (host_cls == NULL || field == NULL || field_idx < 0)
+        if (host_cls == NULL || field_type == NULL || field_idx < 0)
             return NULL;
-        return llvm_channel_field_inner_type(ctx, node, field, operation_name);
+        return llvm_channel_field_inner_type(ctx, node, field_type, operation_name);
     }
 }
 
@@ -150,17 +167,18 @@ llvm_resolve_channel_target(LLVMGenCtx *ctx, ASTNode *node,
         const char *host_name = llvm_current_host_class_name(ctx);
         LLVMClassTypeEntry *host_cls = host_name != NULL
             ? llvm_lookup_class(ctx, host_name) : NULL;
-        ClassField *field = llvm_channel_current_host_field(ctx, name);
+        ASTNode *field_type = llvm_channel_current_host_field_type(
+            ctx, name, operation_name);
         int field_idx = host_cls != NULL
             ? llvm_class_field_index(host_cls, name) : -1;
         LLVMValueRef self_ptr = NULL;
 
-        if (host_cls == NULL || field == NULL || field_idx < 0) {
+        if (host_cls == NULL || field_type == NULL || field_idx < 0) {
             llvm_expr_set_missing_type_error(ctx, node, operation_name);
             return false;
         }
 
-        inner = llvm_channel_field_inner_type(ctx, channel, field,
+        inner = llvm_channel_field_inner_type(ctx, channel, field_type,
             operation_name);
         if (inner == NULL || inner[0] == '\0')
             return false;

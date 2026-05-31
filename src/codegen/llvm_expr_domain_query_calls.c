@@ -336,7 +336,8 @@ llvm_emit_has_zone_detail_query(ASTNode *node, LLVMGenCtx *ctx,
             field_idx = llvm_class_field_index(zone_cls, field_name);
         }
     } else if (op == LLVM_DOMAIN_QUERY_OP_HAS_ZONE_LAYER) {
-        if (llvm_find_zone_layer_slot_decl(zone_decl, detail_name) != NULL) {
+        if (llvm_find_zone_layer_slot_decl(
+                ctx, zone_decl, detail_name) != NULL) {
             char field_name[256];
             if (!llvm_domain_query_field_name(ctx, field_name, sizeof(field_name),
                     "__layer_active_", detail_name, "zone layer query field name")) {

@@ -7,6 +7,8 @@
 #include "llvm_domain_projection_value_helpers.h"
 #include "llvm_domain_projection_sync_body_helpers.h"
 #include "llvm_domain_zone_sync_internal.h"
+#include "llvm_internal_api.h"
+#include "llvm_inventory_decl_lookup.h"
 #include "parser/ast_api.h"
 
 static bool
@@ -32,6 +34,9 @@ llvm_emit_zone_sync(ASTNode *stmt, const char *decl_name,
     LLVMTypeRef saved_ret;
     ASTNode *saved_host_decl;
     LLVMBasicBlockRef bb;
+    size_t state_count = 0;
+    ASTNode **states = NULL;
+    LLVMHostedZoneLayerSlotView layer_view;
 
     if (stmt == NULL || stmt->type != AST_ZONE_DECL || decl_name == NULL
         || decl_cls == NULL || sync_fn == NULL || ctx == NULL)
@@ -53,13 +58,25 @@ llvm_emit_zone_sync(ASTNode *stmt, const char *decl_name,
         llvm_scope_declare(ctx, "self", sa, self_ptr_t);
         llvm_register_var_class(ctx, "self", decl_name);
     }
+    states = ast_zone_states(stmt, &state_count);
+    layer_view = llvm_hosted_zone_layer_slot_view_from_decl(ctx, decl_name, stmt);
+    if (llvm_hosted_zone_layer_slot_view_missing_mir_metadata(&layer_view)) {
+        llvm_set_mir_inventory_missing(ctx,
+            "MIR-only LLVM path missing zone frontier layer-slot metadata for '%s'",
+            decl_name);
+        LLVMBuildRetVoid(ctx->builder);
+        llvm_scope_pop(ctx);
+        llvm_finish_domain_sync_emit(ctx, saved_fn, saved_ret, saved_host_decl);
+        return;
+    }
     llvm_emit_sync_generation_increment(ctx, decl_cls, LLVMGetParam(sync_fn, 0));
     LLVMValueRef frontier_pass_addr = llvm_create_entry_alloca(ctx, ctx->type_i32,
         "zone.frontier.pass.addr");
     LLVMValueRef frontier_continue_addr = llvm_create_entry_alloca(ctx, ctx->type_i1,
         "zone.frontier.continue.addr");
     LLVMValueRef frontier_limit_val = LLVMConstInt(ctx->type_i32,
-        (unsigned long long)pgy_domain_zone_frontier_pass_limit(stmt), 0);
+        (unsigned long long)pgy_domain_zone_frontier_pass_limit_from_counts(
+            state_count, layer_view.count), 0);
     LLVMBasicBlockRef frontier_check_bb = LLVMAppendBasicBlockInContext(ctx->context, sync_fn,
         "zone.frontier.check");
     LLVMBasicBlockRef frontier_body_bb = LLVMAppendBasicBlockInContext(ctx->context, sync_fn,
@@ -110,8 +127,6 @@ llvm_emit_zone_sync(ASTNode *stmt, const char *decl_name,
 
     llvm_zone_sync_emit_action_causes(stmt, decl_cls, sync_fn, ctx);
 
-    size_t state_count = 0;
-    ASTNode **states = ast_zone_states(stmt, &state_count);
     size_t apply_count = 0;
     ASTNode **applies = ast_zone_applies(stmt, &apply_count);
     for (size_t i = 0; i < apply_count; i++) {

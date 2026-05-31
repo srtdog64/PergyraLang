@@ -12,9 +12,12 @@
 const char *
 llvm_intent_involves_type_name(ASTNode *involves)
 {
-    ASTNode *subject_type = ast_intent_involves_subject_type(involves);
-    if (involves == NULL || involves->type != AST_INTENT_INVOLVES
-        || subject_type == NULL) {
+    ASTNode *subject_type = NULL;
+
+    if (involves == NULL || involves->type != AST_INTENT_INVOLVES)
+        return NULL;
+    subject_type = ast_intent_involves_subject_type(involves);
+    if (subject_type == NULL) {
         return NULL;
     }
     return ast_type_name(subject_type);
@@ -103,8 +106,8 @@ llvm_emit_intent_entry_bindings(LLVMGenCtx *ctx,
             ASTNode *value = binding;
             ASTNode *value_type = ast_intent_value_type(value);
             alias = ast_intent_value_alias(value);
-            type_name = ast_type_name(value_type);
             if (value_type != NULL) {
+                type_name = ast_type_name(value_type);
                 pt = ast_type_to_llvm(ctx, value_type);
                 if (ctx->has_error || pt == NULL)
                     return;

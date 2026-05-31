@@ -196,19 +196,35 @@ transpiler_find_world_state_decl(ASTNode *world_decl, const char *state_name)
 }
 
 ASTNode *
-transpiler_find_zone_layer_slot(ASTNode *zone_decl, const char *slot_name)
+transpiler_find_zone_layer_slot(TranspilerCtx *ctx,
+                                ASTNode *zone_decl,
+                                const char *slot_name)
 {
-    if (zone_decl == NULL || zone_decl->type != AST_ZONE_DECL || slot_name == NULL)
-        return NULL;
+    const char *zone_name;
+    TranspilerHostedZoneLayerSlotView layer_view;
 
-    size_t layer_slot_count = 0;
-    ASTNode **layer_slots = ast_zone_layer_slots(zone_decl, &layer_slot_count);
-    for (size_t i = 0; i < layer_slot_count; i++) {
-        ASTNode *slot = layer_slots[i];
-        if (slot != NULL && slot->type == AST_ZONE_LAYER_SLOT
-            && ast_zone_layer_slot_name(slot) != NULL
-            && strcmp(ast_zone_layer_slot_name(slot), slot_name) == 0) {
-            return slot;
+    if (zone_decl == NULL || zone_decl->type != AST_ZONE_DECL
+        || slot_name == NULL) {
+        return NULL;
+    }
+
+    zone_name = transpiler_decl_name_local(zone_decl);
+    layer_view = transpiler_hosted_zone_layer_slot_view_from_decl(
+        ctx, zone_name, zone_decl);
+    if (transpiler_hosted_zone_layer_slot_view_missing_mir_metadata(
+            &layer_view)) {
+        transpiler_set_mir_inventory_missing(ctx,
+            "MIR-only C path missing zone layer lookup metadata for '%s'",
+            zone_name != NULL ? zone_name : "(anonymous-zone)");
+        return NULL;
+    }
+
+    for (size_t i = 0; i < layer_view.count; i++) {
+        const char *candidate_name =
+            transpiler_hosted_zone_layer_slot_view_name(&layer_view, i);
+        if (candidate_name != NULL && strcmp(candidate_name, slot_name) == 0) {
+            return transpiler_hosted_zone_layer_slot_view_source_ast(
+                &layer_view, i);
         }
     }
     return NULL;

@@ -6,6 +6,9 @@
 
 typedef ASTNode *(*PgyDomainZoneLookupFn)(void *ctx, const char *zone_name);
 
+size_t pgy_domain_zone_frontier_pass_limit_from_counts(
+    size_t state_count,
+    size_t layer_slot_count);
 size_t pgy_domain_zone_frontier_pass_limit(ASTNode *zone_decl);
 size_t pgy_domain_projection_frontier_pass_limit(size_t refresh_count);
 size_t pgy_domain_world_derived_frontier_pass_limit(ASTNode *world_decl);

@@ -29,6 +29,20 @@ const char *
 resolve_intent_zone_slot_name_for_zone(TranspilerCtx *ctx, ASTNode *intent,
                                        const char *zone_type_name, const char *alias)
 {
+    return resolve_intent_zone_slot_name_for_zone_with_metadata(
+        ctx, intent, zone_type_name, alias, NULL, NULL, 0);
+}
+
+const char *
+resolve_intent_zone_slot_name_for_zone_with_metadata(
+    TranspilerCtx *ctx,
+    ASTNode *intent,
+    const char *zone_type_name,
+    const char *alias,
+    const char **participant_aliases,
+    const char **participant_types,
+    size_t participant_count)
+{
     ASTNode *zone_decl = NULL;
     const char *participant_type = NULL;
     ASTNode *named_match = NULL;
@@ -39,7 +53,8 @@ resolve_intent_zone_slot_name_for_zone(TranspilerCtx *ctx, ASTNode *intent,
     }
 
     zone_decl = find_zone_decl_in_program_view(ctx, zone_type_name);
-    participant_type = intent_participant_type_name(intent, alias);
+    participant_type = intent_zone_binding_type_name_with_metadata(
+        intent, alias, participant_aliases, participant_types, participant_count);
     if (zone_decl == NULL)
         return "<unbound>";
 

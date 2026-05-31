@@ -48,14 +48,22 @@ transpiler_emit_zone_struct_decl(TranspilerCtx *ctx, ASTNode *node,
 {
     size_t slot_count = 0;
     ASTNode **slots = ast_zone_slots(node, &slot_count);
-    size_t layer_slot_count = 0;
-    ASTNode **layer_slots = ast_zone_layer_slots(node, &layer_slot_count);
     TranspilerHostedSharedFieldView shared_view =
         transpiler_hosted_shared_field_view_from_decl(ctx, name, node);
+    TranspilerHostedZoneLayerSlotView layer_view =
+        transpiler_hosted_zone_layer_slot_view_from_decl(ctx, name, node);
     if (transpiler_hosted_shared_field_view_missing_mir_metadata(&shared_view)) {
         transpiler_set_mir_inventory_missing(
             ctx,
             "MIR-only C path missing shared field metadata for zone '%s'",
+            name != NULL ? name : "(anonymous-zone)");
+        return false;
+    }
+    if (transpiler_hosted_zone_layer_slot_view_missing_mir_metadata(
+            &layer_view)) {
+        transpiler_set_mir_inventory_missing(
+            ctx,
+            "MIR-only C path missing zone layer-slot metadata for zone '%s'",
             name != NULL ? name : "(anonymous-zone)");
         return false;
     }
@@ -95,27 +103,42 @@ transpiler_emit_zone_struct_decl(TranspilerCtx *ctx, ASTNode *node,
         }
     }
 
-    for (size_t i = 0; i < layer_slot_count; i++) {
-        ASTNode *slot = layer_slots[i];
-        if (ast_zone_layer_slot_is_pool(slot)) {
+    for (size_t i = 0; i < layer_view.count; i++) {
+        ASTNode *slot =
+            transpiler_hosted_zone_layer_slot_view_source_ast(&layer_view, i);
+        const char *slot_name =
+            transpiler_hosted_zone_layer_slot_view_name(&layer_view, i);
+        const char *layer_type =
+            transpiler_hosted_zone_layer_slot_view_type_name(&layer_view, i);
+
+        if (slot_name == NULL || layer_type == NULL) {
+            transpiler_set_mir_inventory_missing(
+                ctx,
+                "C backend: zone '%s' layer slot[%zu] is missing declaration field metadata",
+                name != NULL ? name : "(anonymous-zone)",
+                i);
+            return false;
+        }
+
+        if (slot != NULL && ast_zone_layer_slot_is_pool(slot)) {
             int cap = ast_zone_layer_slot_pool_capacity(slot);
             if (cap <= 0)
                 cap = 1;
             codebuf_write(ctx->out,
                 "    struct { %s items[%d]; bool active[%d]; uint8_t count; uint8_t cap; } %s;\n",
-                ast_zone_layer_slot_layer_type(slot),
+                layer_type,
                 cap,
                 cap,
-                ast_zone_layer_slot_name(slot));
+                slot_name);
         } else {
             codebuf_write(ctx->out, "    %s %s;\n",
-                ast_zone_layer_slot_layer_type(slot),
-                ast_zone_layer_slot_name(slot));
+                layer_type,
+                slot_name);
         }
         codebuf_write(ctx->out, "    bool __layer_active_%s;\n",
-            ast_zone_layer_slot_name(slot));
+            slot_name);
         emit_hidden_provenance_fields(ctx, "layer",
-            ast_zone_layer_slot_name(slot));
+            slot_name);
     }
 
     for (size_t i = 0; i < shared_view.count; i++) {
@@ -172,10 +195,22 @@ transpiler_emit_zone_layer_accessors(TranspilerCtx *ctx, ASTNode *node,
                                      const char *name)
 {
     size_t layer_slot_count = 0;
-    ASTNode **layer_slots = ast_zone_layer_slots(node, &layer_slot_count);
+    TranspilerHostedZoneLayerSlotView layer_view =
+        transpiler_hosted_zone_layer_slot_view_from_decl(ctx, name, node);
+
+    if (transpiler_hosted_zone_layer_slot_view_missing_mir_metadata(
+            &layer_view)) {
+        transpiler_set_mir_inventory_missing(
+            ctx,
+            "MIR-only C path missing zone layer-slot metadata for zone '%s'",
+            name != NULL ? name : "(anonymous-zone)");
+        return;
+    }
+
+    layer_slot_count = layer_view.count;
     for (size_t i = 0; i < layer_slot_count; i++) {
-        ASTNode *slot = layer_slots[i];
-        const char *slot_name = ast_zone_layer_slot_name(slot);
+        const char *slot_name =
+            transpiler_hosted_zone_layer_slot_view_name(&layer_view, i);
 
         if (slot_name == NULL)
             continue;

@@ -56,6 +56,14 @@ transpiler_emit_class_constructor_with_type(ASTNode *call,
 
     if (call == NULL || class_decl == NULL || ctor_type == NULL)
         return NULL;
+    {
+        const char *channel_field =
+            transpiler_constructor_find_channel_field(ctx, class_decl);
+        if (channel_field != NULL) {
+            transpiler_constructor_reject_channel_field(ctx, channel_field);
+            return pergyra_strdup("0");
+        }
+    }
 
     argc = ast_call_arg_count(call);
     fields = codebuf_create();

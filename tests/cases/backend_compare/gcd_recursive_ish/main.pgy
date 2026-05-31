@@ -1,0 +1,28 @@
+func Gcd(a: Int, b: Int) -> Int {
+    let x: Int = a;
+    let y: Int = b;
+    if x < 0 { x = -x; }
+    if y < 0 { y = -y; }
+    while y != 0 {
+        let r: Int = x % y;
+        x = y;
+        y = r;
+    }
+    return x;
+}
+
+func Lcm(a: Int, b: Int) -> Int {
+    let g: Int = Gcd(a, b);
+    if g == 0 { return 0; }
+    return (a * b) / g;
+}
+
+func Main() -> Void {
+    Log(Gcd(12, 18));
+    Log(Gcd(100, 75));
+    Log(Gcd(7, 11));
+    Log(Gcd(0, 5));
+    Log(Gcd(-12, 18));
+    Log(Lcm(4, 6));
+    Log(Lcm(10, 15));
+}

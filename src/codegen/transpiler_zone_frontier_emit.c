@@ -13,8 +13,7 @@ void
 transpiler_emit_zone_frontier_change_checks(TranspilerCtx *ctx,
                                             ASTNode **states,
                                             size_t state_count,
-                                            ASTNode **layer_slots,
-                                            size_t layer_slot_count)
+                                            const TranspilerHostedZoneLayerSlotView *layer_view)
 {
     for (size_t i = 0; i < state_count; i++) {
         ASTNode *state = states[i];
@@ -30,13 +29,18 @@ transpiler_emit_zone_frontier_change_checks(TranspilerCtx *ctx,
         write_indent(ctx);
         codebuf_write(ctx->out, "}\n");
     }
-    for (size_t i = 0; i < layer_slot_count; i++) {
-        ASTNode *slot = layer_slots[i];
+    if (layer_view == NULL)
+        return;
+    for (size_t i = 0; i < layer_view->count; i++) {
+        const char *slot_name =
+            transpiler_hosted_zone_layer_slot_view_name(layer_view, i);
+        if (slot_name == NULL)
+            continue;
         write_indent(ctx);
         codebuf_write(ctx->out,
             "if (self->__layer_active_%s != _pgy_prev_layer_%s) {\n",
-            ast_zone_layer_slot_name(slot),
-            ast_zone_layer_slot_name(slot));
+            slot_name,
+            slot_name);
         ctx->indent++;
         write_indent(ctx);
         codebuf_write(ctx->out, "_pgy_zone_frontier_continue = true;\n");

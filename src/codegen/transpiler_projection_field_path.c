@@ -6,9 +6,66 @@
 #include <string.h>
 
 #include "../parser/ast_api.h"
-#include "host_decl_compat.h"
+#include "transpiler_context.h"
 #include "transpiler_decl_lookup.h"
 #include "transpiler_projection_field_path.h"
+
+typedef struct
+{
+    bool exists;
+    bool subject_like;
+    const char *type_name;
+} TranspilerProjectionFieldInfo;
+
+static const char *
+projection_field_type_name(const TranspilerHostedFieldView *view,
+                           size_t index)
+{
+    const MIRDeclField *field;
+    const char *type_name;
+    ASTNode *type_node;
+
+    field = transpiler_hosted_field_view_metadata(view, index);
+    type_name = transpiler_mir_decl_field_type_name(field);
+    if (type_name != NULL)
+        return type_name;
+    type_node = transpiler_hosted_field_view_type(view, index);
+    return type_node != NULL ? ast_type_name(type_node) : NULL;
+}
+
+static TranspilerProjectionFieldInfo
+host_projection_class_field_info(TranspilerCtx *ctx,
+                                 ASTNode *host_decl,
+                                 const char *host_type_name,
+                                 const char *field_name)
+{
+    TranspilerProjectionFieldInfo info = {0};
+    TranspilerHostedFieldView field_view;
+    size_t field_index = 0;
+
+    if (ctx == NULL || host_decl == NULL || host_decl->type != AST_CLASS_DECL
+        || host_type_name == NULL || field_name == NULL)
+        return info;
+
+    field_view = transpiler_hosted_class_field_view_from_decl(
+        ctx, host_type_name, host_decl);
+    if (transpiler_hosted_field_view_missing_mir_metadata(&field_view)) {
+        transpiler_set_mir_inventory_missing(ctx,
+            "MIR-only C path missing projection class-field metadata for '%s'",
+            host_type_name);
+        return info;
+    }
+    if (!transpiler_hosted_field_view_find_index(
+            &field_view, field_name, &field_index)) {
+        return info;
+    }
+
+    info.exists = true;
+    info.subject_like =
+        transpiler_hosted_field_view_is_subject_like(&field_view, field_index);
+    info.type_name = projection_field_type_name(&field_view, field_index);
+    return info;
+}
 
 const char *
 assignment_target_root_slot_name(ASTNode *target)
@@ -75,21 +132,29 @@ host_projection_relevant_field_exists(TranspilerCtx *ctx,
             return !transpiler_mir_decl_field_is_subject_like(mir_field);
     }
     {
-        ClassField *field =
-            pgy_host_class_field_compat_find(host_decl, field_name);
-        return field != NULL && !field->is_vessel_field;
+        TranspilerProjectionFieldInfo info =
+            host_projection_class_field_info(ctx, host_decl,
+                host_type_name, field_name);
+        return info.exists && !info.subject_like;
     }
 }
 
-ClassField *
-find_host_field_by_name_local(ASTNode *host_decl, const char *field_name)
+const char *
+host_projection_subject_field_type_name(TranspilerCtx *ctx,
+                                        const char *host_type_name,
+                                        const char *field_name)
 {
-    if (host_decl == NULL || host_decl->type != AST_CLASS_DECL
-        || field_name == NULL) {
-        return NULL;
-    }
+    ASTNode *host_decl;
+    TranspilerProjectionFieldInfo info;
 
-    return pgy_host_class_field_compat_find(host_decl, field_name);
+    if (ctx == NULL || host_type_name == NULL || field_name == NULL)
+        return NULL;
+
+    host_decl = transpiler_find_projection_nominal_decl_local(
+        ctx, host_type_name);
+    info = host_projection_class_field_info(ctx, host_decl,
+        host_type_name, field_name);
+    return info.exists && info.subject_like ? info.type_name : NULL;
 }
 
 const char *
@@ -127,10 +192,11 @@ method_assignment_projection_field_name(TranspilerCtx *ctx,
                     return ast_member_name(cursor);
                 return candidate_name;
             } else {
-                ClassField *field = find_host_field_by_name_local(
-                    host_decl, candidate_name);
-                if (field != NULL) {
-                    if (field->is_vessel_field)
+                TranspilerProjectionFieldInfo info =
+                    host_projection_class_field_info(ctx, host_decl,
+                        host_type_name, candidate_name);
+                if (info.exists) {
+                    if (info.subject_like)
                         return ast_member_name(cursor);
                     return candidate_name;
                 }

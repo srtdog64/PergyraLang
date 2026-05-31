@@ -40,6 +40,16 @@ typedef struct
     bool               requires_mir_metadata;
 } TranspilerHostedSharedFieldView;
 
+typedef struct
+{
+    const MIRDeclHeader *decl_header;
+    ASTNode           **ast_compat_slots;
+    size_t             ast_compat_count;
+    size_t             count;
+    bool               uses_mir_metadata;
+    bool               requires_mir_metadata;
+} TranspilerHostedZoneLayerSlotView;
+
 TranspilerHostedMethodView transpiler_hosted_method_view(
     const TranspilerCtx *ctx,
     const char *host_name,
@@ -86,6 +96,13 @@ const char *transpiler_hosted_field_view_name(
 ASTNode *transpiler_hosted_field_view_type(
     const TranspilerHostedFieldView *view,
     size_t index);
+bool transpiler_hosted_field_view_find_index(
+    const TranspilerHostedFieldView *view,
+    const char *field_name,
+    size_t *index_out);
+bool transpiler_hosted_field_view_is_subject_like(
+    const TranspilerHostedFieldView *view,
+    size_t index);
 TranspilerHostedSharedFieldView transpiler_hosted_shared_field_view_from_decl(
     const TranspilerCtx *ctx,
     const char *host_name,
@@ -103,6 +120,27 @@ const char *transpiler_hosted_shared_field_view_name(
     size_t index);
 ASTNode *transpiler_hosted_shared_field_view_type(
     const TranspilerHostedSharedFieldView *view,
+    size_t index);
+TranspilerHostedZoneLayerSlotView
+transpiler_hosted_zone_layer_slot_view_from_decl(const TranspilerCtx *ctx,
+                                                 const char *host_name,
+                                                 ASTNode *decl);
+bool transpiler_hosted_zone_layer_slot_view_missing_mir_metadata(
+    const TranspilerHostedZoneLayerSlotView *view);
+const MIRDeclField *transpiler_hosted_zone_layer_slot_view_metadata(
+    const TranspilerHostedZoneLayerSlotView *view,
+    size_t index);
+ASTNode *transpiler_hosted_zone_layer_slot_view_source_ast(
+    const TranspilerHostedZoneLayerSlotView *view,
+    size_t index);
+const char *transpiler_hosted_zone_layer_slot_view_name(
+    const TranspilerHostedZoneLayerSlotView *view,
+    size_t index);
+ASTNode *transpiler_hosted_zone_layer_slot_view_type(
+    const TranspilerHostedZoneLayerSlotView *view,
+    size_t index);
+const char *transpiler_hosted_zone_layer_slot_view_type_name(
+    const TranspilerHostedZoneLayerSlotView *view,
     size_t index);
 const MIRDeclField *transpiler_find_decl_field_metadata(
     const TranspilerCtx *ctx,

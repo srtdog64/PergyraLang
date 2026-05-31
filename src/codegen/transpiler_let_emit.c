@@ -7,11 +7,10 @@
 #include "../parser/ast_api.h"
 #include "../semantic/diag_codes.h"
 
-#include "host_decl_compat.h"
 #include "transpiler_context.h"
 #include "transpiler_collection_runtime_suffix.h"
-#include "transpiler_constructor_channel_guard.h"
 #include "transpiler_decl_lookup.h"
+#include "transpiler_domain_constructor_emit.h"
 #include "transpiler_expr_type_infer.h"
 #include "transpiler_format.h"
 #include "transpiler_generic_class_specialization.h"
@@ -364,41 +363,13 @@ emit_let_decl(ASTNode *node, TranspilerCtx *ctx)
         if (class_decl == NULL && generic_class_spec_name != NULL
             && ann_node_type_name != NULL)
             class_decl = find_class_decl(ctx, ann_node_type_name);
-        PgyHostClassFieldsCompatView field_view =
-            pgy_host_class_fields_compat_view_from_decl(class_decl);
-        size_t field_count = field_view.count;
-        ClassField **fields = field_view.fields;
-        const char *channel_field = class_decl != NULL
-            && class_decl->type == AST_CLASS_DECL
-            ? transpiler_constructor_find_channel_field(ctx, class_decl)
-            : NULL;
-        if (channel_field != NULL) {
-            transpiler_constructor_reject_channel_field(ctx,
-                channel_field);
-            free(ann_type_name);
-            return;
-        }
-        write_indent(ctx);
-        if (class_decl != NULL
-            && class_decl->type == AST_CLASS_DECL
-            && field_count > 0
-            && ast_call_arg_count(init) > 0) {
-            codebuf_write(ctx->out, "%s %s = { ", ann_type_name, name);
-            for (size_t i = 0; i < ast_call_arg_count(init); i++) {
-                ClassField *field;
-                char *arg_expr;
-                if (i >= field_count)
-                    break;
-                field = fields != NULL ? fields[i] : NULL;
-                if (field == NULL || field->name == NULL)
-                    continue;
-                arg_expr = emit_expression(ast_call_argument(init, i), ctx);
-                if (i > 0)
-                    codebuf_write(ctx->out, ", ");
-                codebuf_write(ctx->out, ".%s = %s", field->name, arg_expr);
-                free(arg_expr);
-            }
-            codebuf_write(ctx->out, " };\n");
+        if (class_decl != NULL && class_decl->type == AST_CLASS_DECL) {
+            char *init_expr = transpiler_emit_class_constructor_with_type(
+                init, class_decl, ann_type_name, ctx);
+            write_indent(ctx);
+            codebuf_write(ctx->out, "%s %s = %s;\n",
+                ann_type_name, name, init_expr != NULL ? init_expr : "0");
+            free(init_expr);
         } else {
             /* Domain/runtime constructors carry internal state bits.
              * Reuse expression lowering so zone/world/relation/effect

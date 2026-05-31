@@ -127,8 +127,8 @@ llvm_domain_struct_register_zone_fields(LLVMGenCtx *ctx,
     ASTNode **slots = ast_zone_slots(stmt, &slot_count);
     LLVMHostedSharedFieldView shared_view =
         llvm_hosted_shared_field_view_from_decl(ctx, decl_name, stmt);
-    size_t layer_slot_count = 0;
-    ASTNode **layer_slots = ast_zone_layer_slots(stmt, &layer_slot_count);
+    LLVMHostedZoneLayerSlotView layer_view =
+        llvm_hosted_zone_layer_slot_view_from_decl(ctx, decl_name, stmt);
     size_t state_count = 0;
     ASTNode **states = ast_zone_states(stmt, &state_count);
     size_t refresh_count = 0;
@@ -138,6 +138,12 @@ llvm_domain_struct_register_zone_fields(LLVMGenCtx *ctx,
     if (llvm_hosted_shared_field_view_missing_mir_metadata(&shared_view)) {
         llvm_set_error(ctx,
             "LLVM zone '%s' shared fields missing MIR declaration metadata",
+            decl_name != NULL ? decl_name : "<anonymous>");
+        return false;
+    }
+    if (llvm_hosted_zone_layer_slot_view_missing_mir_metadata(&layer_view)) {
+        llvm_set_error(ctx,
+            "LLVM zone '%s' layer slots missing MIR declaration metadata",
             decl_name != NULL ? decl_name : "<anonymous>");
         return false;
     }
@@ -151,30 +157,62 @@ llvm_domain_struct_register_zone_fields(LLVMGenCtx *ctx,
             &field_index, &shared_view, "zone")) {
         return false;
     }
-    for (size_t j = 0; j < layer_slot_count; j++, field_index++) {
-        ASTNode *slot = layer_slots[j];
-        llvm_class_add_field(entry, ast_zone_layer_slot_name(slot),
-            ftypes[field_index], field_index);
+    for (size_t j = 0; j < layer_view.count; j++, field_index++) {
+        const char *slot_name =
+            llvm_hosted_zone_layer_slot_view_name(&layer_view, j);
+        if (slot_name == NULL) {
+            llvm_set_error(ctx,
+                "LLVM zone '%s' layer slot[%zu] missing MIR field name",
+                decl_name != NULL ? decl_name : "<anonymous>",
+                j);
+            return false;
+        }
+        llvm_class_add_field(entry, slot_name, ftypes[field_index],
+            field_index);
     }
-    for (size_t j = 0; j < layer_slot_count; j++, field_index++) {
-        ASTNode *slot = layer_slots[j];
+    for (size_t j = 0; j < layer_view.count; j++, field_index++) {
+        const char *slot_name =
+            llvm_hosted_zone_layer_slot_view_name(&layer_view, j);
+        if (slot_name == NULL) {
+            llvm_set_error(ctx,
+                "LLVM zone '%s' layer active field[%zu] missing MIR field name",
+                decl_name != NULL ? decl_name : "<anonymous>",
+                j);
+            return false;
+        }
         if (!llvm_domain_struct_add_generated_field(ctx, entry,
                 ftypes[field_index], field_index, "layer_active",
-                ast_zone_layer_slot_name(slot)))
+                slot_name))
             return false;
     }
-    for (size_t j = 0; j < layer_slot_count; j++, field_index++) {
-        ASTNode *slot = layer_slots[j];
+    for (size_t j = 0; j < layer_view.count; j++, field_index++) {
+        const char *slot_name =
+            llvm_hosted_zone_layer_slot_view_name(&layer_view, j);
+        if (slot_name == NULL) {
+            llvm_set_error(ctx,
+                "LLVM zone '%s' layer epoch field[%zu] missing MIR field name",
+                decl_name != NULL ? decl_name : "<anonymous>",
+                j);
+            return false;
+        }
         if (!llvm_domain_struct_add_generated_field(ctx, entry,
                 ftypes[field_index], field_index, "layer_epoch",
-                ast_zone_layer_slot_name(slot)))
+                slot_name))
             return false;
     }
-    for (size_t j = 0; j < layer_slot_count; j++, field_index++) {
-        ASTNode *slot = layer_slots[j];
+    for (size_t j = 0; j < layer_view.count; j++, field_index++) {
+        const char *slot_name =
+            llvm_hosted_zone_layer_slot_view_name(&layer_view, j);
+        if (slot_name == NULL) {
+            llvm_set_error(ctx,
+                "LLVM zone '%s' layer cause field[%zu] missing MIR field name",
+                decl_name != NULL ? decl_name : "<anonymous>",
+                j);
+            return false;
+        }
         if (!llvm_domain_struct_add_generated_field(ctx, entry,
                 ftypes[field_index], field_index, "layer_cause",
-                ast_zone_layer_slot_name(slot)))
+                slot_name))
             return false;
     }
     for (size_t j = 0; j < state_count; j++, field_index++) {

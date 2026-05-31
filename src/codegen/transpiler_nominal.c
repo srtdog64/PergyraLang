@@ -8,7 +8,6 @@
 #include <string.h>
 
 #include "../parser/ast_api.h"
-#include "host_decl_compat.h"
 #include "transpiler_context.h"
 #include "transpiler_decl_lookup.h"
 #include "transpiler_nominal.h"
@@ -37,6 +36,44 @@ render_mir_decl_field_type_name(TranspilerCtx *ctx,
         return type_name;
     return render_nominal_member_type_name(
         ctx, transpiler_mir_decl_field_type(field));
+}
+
+static const char *
+transpiler_class_member_type_name(TranspilerCtx *ctx,
+                                  ASTNode *decl,
+                                  const char *field_name)
+{
+    const char *host_name;
+    TranspilerHostedFieldView field_view;
+    size_t field_index = 0;
+    const MIRDeclField *field;
+    const char *type_name;
+
+    if (ctx == NULL || decl == NULL || decl->type != AST_CLASS_DECL
+        || field_name == NULL)
+        return NULL;
+
+    host_name = transpiler_decl_name_local(decl);
+    field_view = transpiler_hosted_class_field_view_from_decl(
+        ctx, host_name, decl);
+    if (transpiler_hosted_field_view_missing_mir_metadata(&field_view)) {
+        transpiler_set_mir_inventory_missing(ctx,
+            "MIR-only C path missing class-field member metadata for '%s'",
+            host_name != NULL ? host_name : "(anonymous-class)");
+        return NULL;
+    }
+
+    if (!transpiler_hosted_field_view_find_index(
+            &field_view, field_name, &field_index)) {
+        return NULL;
+    }
+
+    field = transpiler_hosted_field_view_metadata(&field_view, field_index);
+    type_name = render_mir_decl_field_type_name(ctx, field);
+    if (type_name != NULL)
+        return type_name;
+    return render_nominal_member_type_name(
+        ctx, transpiler_hosted_field_view_type(&field_view, field_index));
 }
 
 static const char *
@@ -101,6 +138,8 @@ transpiler_zone_member_type_name(TranspilerCtx *ctx,
                                  ASTNode *decl,
                                  const char *field_name)
 {
+    const char *zone_name;
+    TranspilerHostedZoneLayerSlotView layer_view;
     size_t slot_count = 0;
     ASTNode **slots = ast_zone_slots(decl, &slot_count);
     const char *slot_type = transpiler_domain_slot_member_type_name(
@@ -108,14 +147,22 @@ transpiler_zone_member_type_name(TranspilerCtx *ctx,
     if (slot_type != NULL)
         return slot_type;
 
-    size_t layer_slot_count = 0;
-    ASTNode **layer_slots = ast_zone_layer_slots(decl, &layer_slot_count);
-    for (size_t i = 0; i < layer_slot_count; i++) {
-        ASTNode *layer = layer_slots[i];
-        if (layer != NULL && layer->type == AST_ZONE_LAYER_SLOT
-            && ast_zone_layer_slot_name(layer) != NULL
-            && strcmp(ast_zone_layer_slot_name(layer), field_name) == 0) {
-            return ast_zone_layer_slot_layer_type(layer);
+    zone_name = transpiler_decl_name_local(decl);
+    layer_view = transpiler_hosted_zone_layer_slot_view_from_decl(
+        ctx, zone_name, decl);
+    if (transpiler_hosted_zone_layer_slot_view_missing_mir_metadata(
+            &layer_view)) {
+        transpiler_set_mir_inventory_missing(ctx,
+            "MIR-only C path missing zone layer-slot member metadata for '%s'",
+            zone_name != NULL ? zone_name : "(anonymous-zone)");
+        return NULL;
+    }
+    for (size_t i = 0; i < layer_view.count; i++) {
+        const char *layer_name =
+            transpiler_hosted_zone_layer_slot_view_name(&layer_view, i);
+        if (layer_name != NULL && strcmp(layer_name, field_name) == 0) {
+            return transpiler_hosted_zone_layer_slot_view_type_name(
+                &layer_view, i);
         }
     }
 
@@ -217,13 +264,8 @@ transpiler_current_field_type_name(TranspilerCtx *ctx, const char *field_name)
     }
 
     switch (decl->type) {
-    case AST_CLASS_DECL: {
-        ClassField *field =
-            pgy_host_class_field_compat_find(decl, field_name);
-        if (field != NULL)
-            return render_nominal_member_type_name(ctx, field->type);
-        break;
-    }
+    case AST_CLASS_DECL:
+        return transpiler_class_member_type_name(ctx, decl, field_name);
     case AST_ZONE_DECL: {
         return transpiler_domain_host_member_type_name(ctx, decl, field_name, false);
     }
@@ -260,13 +302,8 @@ transpiler_lookup_nominal_host_member_type_name(TranspilerCtx *ctx,
         return NULL;
 
     switch (decl->type) {
-    case AST_CLASS_DECL: {
-        ClassField *field =
-            pgy_host_class_field_compat_find(decl, member_name);
-        if (field != NULL)
-            return render_nominal_member_type_name(ctx, field->type);
-        break;
-    }
+    case AST_CLASS_DECL:
+        return transpiler_class_member_type_name(ctx, decl, member_name);
     case AST_ZONE_DECL: {
         return transpiler_domain_host_member_type_name(ctx, decl, member_name, true);
     }

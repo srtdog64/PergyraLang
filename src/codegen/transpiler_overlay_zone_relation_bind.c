@@ -20,35 +20,24 @@ emit_zone_bind_relation_layer(CodeBuf *out,
                               const char *right_slot_name,
                               TranspilerCtx *ctx)
 {
-    ASTNode *layer_slot;
     ASTNode *relation_decl;
     ASTNode *left_target;
     ASTNode *right_target;
     const char *relation_name;
+    const char *relation_type_name;
 
     if (out == NULL || zone == NULL || layer_slot_name == NULL
         || left_slot_name == NULL || right_slot_name == NULL || ctx == NULL) {
         return;
     }
 
-    layer_slot = NULL;
-    size_t layer_slot_count = 0;
-    ASTNode **layer_slots = ast_zone_layer_slots(zone, &layer_slot_count);
-    for (size_t i = 0; i < layer_slot_count; i++) {
-        ASTNode *slot = layer_slots[i];
-        if (slot != NULL && slot->type == AST_ZONE_LAYER_SLOT
-            && ast_zone_layer_slot_is_relation(slot)
-            && ast_zone_layer_slot_name(slot) != NULL
-            && strcmp(ast_zone_layer_slot_name(slot), layer_slot_name) == 0) {
-            layer_slot = slot;
-            break;
-        }
-    }
-    if (layer_slot == NULL)
+    if (!transpiler_find_zone_layer_slot_local(ctx, zone, layer_slot_name,
+            true, NULL, &relation_type_name)) {
         return;
+    }
 
     relation_decl = transpiler_find_decl_in_inventory_local(
-        ctx, AST_RELATION_DECL, ast_zone_layer_slot_layer_type(layer_slot));
+        ctx, AST_RELATION_DECL, relation_type_name);
     if (relation_decl == NULL)
         return;
     relation_name = transpiler_decl_name_local(relation_decl);

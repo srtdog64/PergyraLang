@@ -69,9 +69,9 @@ llvm_register_domain_structs(LLVMGenCtx *ctx,
             size_t fc = 0;
             LLVMTypeRef *ftypes = NULL;
             if (stmt->type == AST_ZONE_DECL) {
-                size_t layer_slot_count = 0;
-                ASTNode **layer_slots = ast_zone_layer_slots(
-                    stmt, &layer_slot_count);
+                LLVMHostedZoneLayerSlotView layer_view =
+                    llvm_hosted_zone_layer_slot_view_from_decl(
+                        ctx, decl_name, stmt);
                 size_t state_count = 0;
                 (void) ast_zone_states(stmt, &state_count);
                 size_t projection_count =
@@ -79,11 +79,18 @@ llvm_register_domain_structs(LLVMGenCtx *ctx,
                         slot_count,
                         refreshes,
                         refresh_count);
+                if (llvm_hosted_zone_layer_slot_view_missing_mir_metadata(
+                        &layer_view)) {
+                    llvm_set_error(ctx,
+                        "LLVM zone '%s' layer slots missing MIR declaration metadata",
+                        decl_name);
+                    return;
+                }
                 fc = slot_count
                     + shared_view.count
-                    + layer_slot_count
-                    + layer_slot_count
-                    + (layer_slot_count * 2)
+                    + layer_view.count
+                    + layer_view.count
+                    + (layer_view.count * 2)
                     + state_count
                     + (state_count * 2)
                     + (projection_count * 4)
@@ -108,14 +115,16 @@ llvm_register_domain_structs(LLVMGenCtx *ctx,
                     if (ctx->has_error || ftypes[idx] == NULL)
                         return;
                 }
-                for (size_t j = 0; j < layer_slot_count; j++, idx++) {
-                    ASTNode *slot = layer_slots[j];
+                for (size_t j = 0; j < layer_view.count; j++, idx++) {
+                    ASTNode *slot =
+                        llvm_hosted_zone_layer_slot_view_source_ast(
+                            &layer_view, j);
+                    const char *layer_type =
+                        llvm_hosted_zone_layer_slot_view_type_name(
+                            &layer_view, j);
                     LLVMClassTypeEntry *layer_cls = NULL;
-                    if (slot != NULL && slot->type == AST_ZONE_LAYER_SLOT
-                        && ast_zone_layer_slot_layer_type(slot) != NULL) {
-                        layer_cls = llvm_lookup_class(ctx,
-                            ast_zone_layer_slot_layer_type(slot));
-                    }
+                    if (layer_type != NULL)
+                        layer_cls = llvm_lookup_class(ctx, layer_type);
                     if (slot != NULL && slot->type == AST_ZONE_LAYER_SLOT
                         && ast_zone_layer_slot_is_pool(slot)
                         && layer_cls != NULL) {
@@ -126,9 +135,9 @@ llvm_register_domain_structs(LLVMGenCtx *ctx,
                         ftypes[idx] = layer_cls != NULL ? layer_cls->struct_type : ctx->type_i8ptr;
                     }
                 }
-                for (size_t j = 0; j < layer_slot_count; j++, idx++)
+                for (size_t j = 0; j < layer_view.count; j++, idx++)
                     ftypes[idx] = ctx->type_i1;
-                for (size_t j = 0; j < layer_slot_count * 2; j++, idx++)
+                for (size_t j = 0; j < layer_view.count * 2; j++, idx++)
                     ftypes[idx] = ctx->type_i32;
                 for (size_t j = 0; j < state_count; j++, idx++)
                     ftypes[idx] = ctx->type_i1;

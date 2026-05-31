@@ -292,8 +292,11 @@ llvm_lookup_class_by_struct_type(LLVMGenCtx *ctx, LLVMTypeRef struct_type)
 int
 llvm_class_field_index(LLVMClassTypeEntry *entry, const char *field_name)
 {
+    if (entry == NULL || field_name == NULL)
+        return -1;
     for (int i = 0; i < entry->field_count; i++) {
-        if (strcmp(entry->fields[i].field_name, field_name) == 0)
+        if (entry->fields[i].field_name != NULL
+            && strcmp(entry->fields[i].field_name, field_name) == 0)
             return entry->fields[i].index;
     }
     return -1;
@@ -303,6 +306,9 @@ void
 llvm_register_var_class(LLVMGenCtx *ctx, const char *var_name,
                         const char *class_name)
 {
+    if (ctx == NULL || var_name == NULL || class_name == NULL)
+        return;
+
     PGY_DYNARR_ENSURE(ctx->var_classes, ctx->var_class_count,
                       ctx->var_class_capacity, LLVMVarClassEntry);
 
@@ -314,8 +320,12 @@ llvm_register_var_class(LLVMGenCtx *ctx, const char *var_name,
 const char *
 llvm_lookup_var_class(LLVMGenCtx *ctx, const char *var_name)
 {
+    if (ctx == NULL || var_name == NULL)
+        return NULL;
+
     for (int i = ctx->var_class_count - 1; i >= 0; i--) {
-        if (strcmp(ctx->var_classes[i].var_name, var_name) == 0)
+        if (ctx->var_classes[i].var_name != NULL
+            && strcmp(ctx->var_classes[i].var_name, var_name) == 0)
             return ctx->var_classes[i].class_name;
     }
     return NULL;

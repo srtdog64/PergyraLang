@@ -91,7 +91,10 @@ emit_intent_step_rebind_bound_zone_aliases_with_metadata(CodeBuf *out,
 
     for (size_t i = 0; i < who_alias_count; i++) {
         const char *alias = who_aliases[i];
-        const char *slot_name = resolve_intent_zone_slot_name_for_zone(ctx, intent, zone_type, alias);
+        const char *slot_name =
+            resolve_intent_zone_slot_name_for_zone_with_metadata(
+                ctx, intent, zone_type, alias,
+                participant_aliases, participant_types, participant_count);
         const char *participant_type = intent_zone_binding_type_name_with_metadata(
             intent, alias, participant_aliases, participant_types, participant_count);
         char participant_c_type_buf[256];

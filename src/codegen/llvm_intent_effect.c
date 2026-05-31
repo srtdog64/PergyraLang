@@ -8,6 +8,7 @@
 #ifdef PGY_LLVM_ENABLED
 
 #include "llvm_intent_internal.h"
+#include "llvm_inventory_decl_lookup.h"
 
 static ASTNode *
 llvm_find_zone_decl_by_name(LLVMGenCtx *ctx, const char *zone_type_name)
@@ -53,9 +54,13 @@ llvm_emit_intent_step_mark_caused_effect(LLVMGenCtx *ctx,
                                          const char *causes_effect)
 {
     ASTNode *zone_decl;
+    const char *zone_name;
     LLVMClassTypeEntry *zone_cls;
     LLVMVarEntry *zone_var;
     LLVMValueRef zone_ptr;
+    LLVMHostedZoneLayerSlotView layer_view;
+    size_t state_count = 0;
+    ASTNode **states = NULL;
 
     if (ctx == NULL || zone_type_name == NULL || zone_alias == NULL
         || causes_effect == NULL) {
@@ -63,9 +68,10 @@ llvm_emit_intent_step_mark_caused_effect(LLVMGenCtx *ctx,
     }
 
     zone_decl = llvm_find_zone_decl_by_name(ctx, zone_type_name);
+    zone_name = llvm_decl_node_name(zone_decl);
     zone_cls = llvm_lookup_class(ctx, zone_type_name);
     zone_var = llvm_scope_lookup(ctx, zone_alias);
-    if (zone_decl == NULL || zone_cls == NULL || zone_var == NULL
+    if (zone_decl == NULL || zone_name == NULL || zone_cls == NULL || zone_var == NULL
         || LLVMGetTypeKind(zone_var->type) != LLVMPointerTypeKind) {
         return;
     }
@@ -73,28 +79,34 @@ llvm_emit_intent_step_mark_caused_effect(LLVMGenCtx *ctx,
     zone_ptr = LLVMBuildLoad2(ctx->builder, zone_var->type,
         zone_var->alloca, llvm_tmp_name(ctx));
 
-    size_t layer_slot_count = 0;
-    ASTNode **layer_slots = ast_zone_layer_slots(zone_decl, &layer_slot_count);
-    size_t state_count = 0;
-    ASTNode **states = ast_zone_states(zone_decl, &state_count);
+    layer_view = llvm_hosted_zone_layer_slot_view_from_decl(ctx, zone_name, zone_decl);
+    if (llvm_hosted_zone_layer_slot_view_missing_mir_metadata(&layer_view)) {
+        llvm_set_error(ctx,
+            "MIR declaration inventory missing zone layer-slot metadata for intent effect emission");
+        return;
+    }
+    states = ast_zone_states(zone_decl, &state_count);
 
-    for (size_t i = 0; i < layer_slot_count; i++) {
-        ASTNode *layer_slot = layer_slots[i];
+    for (size_t i = 0; i < layer_view.count; i++) {
+        ASTNode *layer_slot =
+            llvm_hosted_zone_layer_slot_view_source_ast(&layer_view, i);
         const char *layer_name;
+        const char *layer_type;
         char epoch_field[256];
         char cause_field[256];
         int epoch_idx;
         int cause_idx;
 
+        layer_name = llvm_hosted_zone_layer_slot_view_name(&layer_view, i);
+        layer_type = llvm_hosted_zone_layer_slot_view_type_name(&layer_view, i);
         if (layer_slot == NULL || layer_slot->type != AST_ZONE_LAYER_SLOT
             || ast_zone_layer_slot_is_relation(layer_slot)
-            || ast_zone_layer_slot_name(layer_slot) == NULL
-            || ast_zone_layer_slot_layer_type(layer_slot) == NULL
-            || strcmp(ast_zone_layer_slot_layer_type(layer_slot), causes_effect) != 0) {
+            || layer_name == NULL
+            || layer_type == NULL
+            || strcmp(layer_type, causes_effect) != 0) {
             continue;
         }
 
-        layer_name = ast_zone_layer_slot_name(layer_slot);
         if (!llvm_intent_effect_field_name(epoch_field, sizeof(epoch_field),
                 "layer_epoch", layer_name)) {
             llvm_set_error(ctx, "intent effect layer epoch field name is too long");
