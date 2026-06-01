@@ -6,6 +6,9 @@
 LLVMValueRef llvm_expression_error(LLVMGenCtx *ctx,
                                    ASTNode *node,
                                    const char *message);
+LLVMValueRef llvm_void_expression_placeholder(LLVMGenCtx *ctx,
+                                              ASTNode *node,
+                                              const char *owner);
 LLVMValueRef llvm_zero_value_for_type(LLVMGenCtx *ctx, LLVMTypeRef type);
 bool         llvm_expr_runtime_name(LLVMGenCtx *ctx,
                                     ASTNode *node,

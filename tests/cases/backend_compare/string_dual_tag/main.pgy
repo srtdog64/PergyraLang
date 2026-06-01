@@ -1,0 +1,18 @@
+func Tag(s: String) -> Int {
+    if s == "alpha" { return 1; }
+    if s == "beta" { return 2; }
+    if s == "gamma" { return 3; }
+    return 0;
+}
+
+func DualTag(a: String, b: String, mult: Int) -> Int {
+    return Tag(a) * mult + Tag(b);
+}
+
+func Main() -> Void {
+    Log(DualTag("alpha", "beta", 100));
+    Log(DualTag("gamma", "alpha", 10));
+    Log(DualTag("zeta", "beta", 100));
+    Log(DualTag("alpha", "alpha", 1));
+    Log(DualTag("beta", "gamma", 1000));
+}

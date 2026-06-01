@@ -1,0 +1,32 @@
+func Fib(n: Int) -> Int {
+    if n <= 0 { return 0; }
+    if n == 1 { return 1; }
+    let a: Int = 0;
+    let b: Int = 1;
+    let i: Int = 2;
+    while i <= n {
+        let c: Int = a + b;
+        a = b;
+        b = c;
+        i = i + 1;
+    }
+    return b;
+}
+
+func FibSum(n: Int) -> Int {
+    let total: Int = 0;
+    let i: Int = 0;
+    while i <= n {
+        total = total + Fib(i);
+        i = i + 1;
+    }
+    return total;
+}
+
+func Main() -> Void {
+    Log(Fib(10));
+    Log(Fib(20));
+    Log(Fib(0));
+    Log(FibSum(5));
+    Log(FibSum(10));
+}

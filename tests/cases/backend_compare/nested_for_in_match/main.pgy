@@ -1,0 +1,32 @@
+enum Tag { Add, Mul, Skip }
+
+func TagOf(n: Int) -> Tag {
+    if n % 3 == 0 { return Skip; }
+    if n % 2 == 0 { return Mul; }
+    return Add;
+}
+
+func Process(rows: Array<Int>, cols: Array<Int>) -> Int {
+    let acc: Int = 0;
+    for r in rows {
+        for c in cols {
+            match TagOf(r + c) {
+                case Add: acc = acc + (r + c);
+                case Mul: acc = acc + (r * c);
+                case Skip: acc = acc + 0;
+            }
+        }
+    }
+    return acc;
+}
+
+func Main() -> Void {
+    let r: Array<Int> = [1, 2, 3];
+    let c: Array<Int> = [10, 20];
+    Log(Process(r, c));
+    let empty: Array<Int> = [];
+    Log(Process(empty, c));
+    Log(Process(r, empty));
+    let single: Array<Int> = [5];
+    Log(Process(single, single));
+}

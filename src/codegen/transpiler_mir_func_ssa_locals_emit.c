@@ -10,11 +10,13 @@
 #include "transpiler_context.h"
 #include "transpiler_format.h"
 #include "transpiler_mir_block_emit_helpers.h"
+#include "transpiler_mir_effective_type.h"
 #include "transpiler_mir_local_type_ast_lookup.h"
 #include "transpiler_mir_local_type_lookup.h"
 #include "transpiler_mir_ssa_map.h"
 #include "transpiler_mir_ssa_names.h"
 #include "transpiler_mir_ssa_utils.h"
+#include "transpiler_projection.h"
 #include "transpiler_symbols.h"
 #include "transpiler_type_declarator.h"
 #include "transpiler_type_mapping.h"
@@ -133,6 +135,40 @@ transpiler_mir_find_receive_payload_type_name(TranspilerCtx *ctx,
     return NULL;
 }
 
+static char *
+transpiler_mir_find_versioned_def_type_name(TranspilerCtx *ctx,
+                                            const MIRRoutine *routine,
+                                            const char *versioned_name)
+{
+    if (routine == NULL || versioned_name == NULL)
+        return NULL;
+
+    for (size_t i = 0; i < routine->block_count; i++) {
+        const MIRBasicBlock *block = &routine->blocks[i];
+        if (block == NULL || !block->is_reachable || block->is_cleanup)
+            continue;
+        for (size_t j = 0; j < block->instruction_count; j++) {
+            const MIRInstruction *inst = &block->instructions[j];
+            if (inst->kind == MIR_INST_DEF
+                && inst->result_name != NULL
+                && strcmp(inst->result_name, versioned_name) == 0) {
+                if (inst->expr1 != NULL
+                    && inst->expr1->type == AST_TYPE) {
+                    return transpiler_render_effective_local_type_name(
+                        ctx, inst->expr1);
+                }
+                if (inst->arg1 != NULL
+                    && inst->arg1[0] != '\0'
+                    && is_nominal_host_type_name(ctx, inst->arg1)) {
+                    return pergyra_strdup(inst->arg1);
+                }
+            }
+        }
+    }
+
+    return NULL;
+}
+
 bool
 transpiler_emit_mir_func_ssa_local_decls(TranspilerCtx *ctx,
                                          ASTNode *node,
@@ -204,6 +240,7 @@ transpiler_emit_mir_func_ssa_local_decls(TranspilerCtx *ctx,
         char base[128];
         size_t version = 0;
         const char *type_name = NULL;
+        char *owned_type_name = NULL;
         char normalized_type_buf[128];
         char c_type_buf[256];
         const char *c_type = NULL;
@@ -221,7 +258,11 @@ transpiler_emit_mir_func_ssa_local_decls(TranspilerCtx *ctx,
         }
         if (transpiler_is_implicit_field(ctx, base))
             continue;
-        type_name = transpiler_find_local_type_name(ctx, node, base);
+        owned_type_name = transpiler_mir_find_versioned_def_type_name(
+            ctx, mir_routine, versioned_name);
+        type_name = owned_type_name;
+        if (type_name == NULL || strcmp(type_name, "Unknown") == 0)
+            type_name = transpiler_find_local_type_name(ctx, node, base);
         if (type_name == NULL || strcmp(type_name, "Unknown") == 0) {
             type_name = transpiler_mir_find_receive_payload_type_name(
                 ctx, node, mir_routine, base);
@@ -236,8 +277,10 @@ transpiler_emit_mir_func_ssa_local_decls(TranspilerCtx *ctx,
                     type_name = normalized_type_buf;
             }
         }
-        if (transpiler_type_name_is_claim_shape(type_name))
+        if (transpiler_type_name_is_claim_shape(type_name)) {
+            free(owned_type_name);
             continue;
+        }
         type_ast = transpiler_find_local_type_ast(ctx, node, base);
         if (type_ast != NULL && type_ast->type == AST_EVENT_HANDLER_TYPE) {
             c_name = transpiler_render_ssa_name(ctx, versioned_name);
@@ -248,6 +291,7 @@ transpiler_emit_mir_func_ssa_local_decls(TranspilerCtx *ctx,
             codebuf_write(ctx->out, "(void)%s;\n", c_name);
             free(decl);
             free(c_name);
+            free(owned_type_name);
             continue;
         }
         if (type_name != NULL) {
@@ -268,8 +312,10 @@ transpiler_emit_mir_func_ssa_local_decls(TranspilerCtx *ctx,
                 "cannot determine C type for MIR local '%s' in function '%s'",
                 versioned_name,
                 name != NULL ? name : "<function>");
+            free(owned_type_name);
             return false;
         }
+        register_typed_var(ctx, versioned_name, type_name);
         c_name = transpiler_render_ssa_name(ctx, versioned_name);
         write_indent(ctx);
         if (version == 0) {
@@ -314,6 +360,7 @@ transpiler_emit_mir_func_ssa_local_decls(TranspilerCtx *ctx,
         codebuf_write(ctx->out, "(void)%s;\n", c_name);
         free(initial_expr);
         free(c_name);
+        free(owned_type_name);
     }
 
     return true;

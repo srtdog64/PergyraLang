@@ -1,0 +1,31 @@
+func TryHalf(n: Int) -> Option<Int> {
+    if n % 2 != 0 { return None; }
+    return Some(n / 2);
+}
+
+func TwoStep(n: Int) -> Option<Int> {
+    match TryHalf(n) {
+        case Some(half):
+            match TryHalf(half) {
+                case Some(quarter): return Some(quarter);
+                case None: return None;
+            }
+        case None: return None;
+    }
+}
+
+func Get(n: Int, def: Int) -> Int {
+    match TwoStep(n) {
+        case Some(v): return v;
+        case None: return def;
+    }
+}
+
+func Main() -> Void {
+    Log(Get(8, -1));
+    Log(Get(16, -1));
+    Log(Get(7, 999));
+    Log(Get(4, -1));
+    Log(Get(2, 999));
+    Log(Get(1, 0));
+}

@@ -292,6 +292,7 @@ ASTNode* parser_parse_program(Parser* parser) {
         }
     }
 
+    ast_assign_stable_ids(program);
     return program;
 }
 

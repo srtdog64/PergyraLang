@@ -1,0 +1,25 @@
+func Pick(n: Int) -> Option<Int> {
+    if n < 0 {
+        return None;
+    }
+    return Some(n);
+}
+
+func Score(a: Int, b: Int) -> Int {
+    let total: Int = 0;
+    match Pick(a) {
+        case Some(v): total = total + v;
+        case None: total = total + 10;
+    }
+    match Pick(b) {
+        case Some(v): total = total + v * 2;
+        case None: total = total + 20;
+    }
+    return total;
+}
+
+func Main() -> Void {
+    Log(Score(2, 3));
+    Log(Score(-1, 5));
+    Log(Score(4, -1));
+}

@@ -1,0 +1,28 @@
+class Box2 {
+    let count: Int;
+    let max: Int;
+
+    func IsFull(self) -> Bool {
+        return count >= max;
+    }
+
+    func Frac(self) -> Int {
+        if max == 0 { return 0; }
+        return count * 100 / max;
+    }
+}
+
+func Inspect(b: Box2) -> Int {
+    if b.IsFull() {
+        return 999;
+    }
+    return b.Frac();
+}
+
+func Main() -> Void {
+    Log(Inspect(Box2(5, 10)));
+    Log(Inspect(Box2(10, 10)));
+    Log(Inspect(Box2(0, 100)));
+    Log(Inspect(Box2(50, 100)));
+    Log(Inspect(Box2(11, 10)));
+}

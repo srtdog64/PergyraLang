@@ -20,6 +20,17 @@ const MIRInstruction *
 transpiler_mir_find_incoming_for_in_branch(const MIRRoutine *routine,
                                            const MIRBasicBlock *block)
 {
+    const MIRInstruction *inst =
+        transpiler_mir_find_incoming_loop_branch(routine, block);
+    return inst != NULL && inst->branch_shape == MIR_BRANCH_FOR_IN
+        ? inst
+        : NULL;
+}
+
+const MIRInstruction *
+transpiler_mir_find_incoming_loop_branch(const MIRRoutine *routine,
+                                         const MIRBasicBlock *block)
+{
     size_t target_id = SIZE_MAX;
 
     if (routine == NULL || block == NULL)
@@ -40,12 +51,31 @@ transpiler_mir_find_incoming_for_in_branch(const MIRRoutine *routine,
         for (size_t j = 0; j < pred->instruction_count; j++) {
             const MIRInstruction *inst = &pred->instructions[j];
             if (inst->kind == MIR_INST_BRANCH
-                && inst->branch_shape == MIR_BRANCH_FOR_IN) {
+                && (inst->branch_shape == MIR_BRANCH_FOR_RANGE
+                    || inst->branch_shape == MIR_BRANCH_FOR_IN)) {
                 return inst;
             }
         }
     }
     return NULL;
+}
+
+const MIRInstruction *
+transpiler_mir_find_backedge_loop_branch(const MIRRoutine *routine,
+                                         const MIRBasicBlock *block)
+{
+    const MIRBasicBlock *target;
+
+    if (routine == NULL || block == NULL)
+        return NULL;
+    if (!block->has_succ_true || block->succ_true >= routine->block_count)
+        return NULL;
+    if (block->id <= block->succ_true)
+        return NULL;
+    target = &routine->blocks[block->succ_true];
+    if (target == block)
+        return NULL;
+    return transpiler_mir_find_loop_branch_inst(target);
 }
 
 const MIRInstruction *

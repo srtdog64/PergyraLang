@@ -1,0 +1,30 @@
+enum Sign { Pos, Neg, Zero }
+
+func Classify(n: Int) -> Sign {
+    if n > 0 { return Pos; }
+    if n < 0 { return Neg; }
+    return Zero;
+}
+
+func Tally(arr: Array<Int>) -> Int {
+    let pos: Int = 0;
+    let neg: Int = 0;
+    let zer: Int = 0;
+    for v in arr {
+        match Classify(v) {
+            case Pos: pos = pos + 1;
+            case Neg: neg = neg + 1;
+            case Zero: zer = zer + 1;
+        }
+    }
+    return pos * 100 + neg * 10 + zer;
+}
+
+func Main() -> Void {
+    let a: Array<Int> = [1, -2, 0, 3, -4, 0, 5];
+    Log(Tally(a));
+    let b: Array<Int> = [];
+    Log(Tally(b));
+    let c: Array<Int> = [0, 0, 0];
+    Log(Tally(c));
+}

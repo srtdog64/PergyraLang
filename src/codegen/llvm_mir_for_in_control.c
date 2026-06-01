@@ -10,13 +10,46 @@
 #ifdef PGY_LLVM_ENABLED
 
 #include "llvm_internal.h"
+#include "parser/ast_api.h"
 
 static void
-llvm_mir_for_in_index_name(const char *variable, char *buf, size_t buf_size)
+llvm_mir_for_in_index_name(const MIRInstruction *inst,
+                           const char *variable,
+                           char *buf,
+                           size_t buf_size)
 {
+    uint32_t stable_id;
+
     if (buf == NULL || buf_size == 0)
         return;
-    snprintf(buf, buf_size, "__pgy_idx_%s", variable != NULL ? variable : "it");
+    stable_id = ast_node_stable_id(mir_instruction_source_payload(inst));
+    if (stable_id == 0) {
+        snprintf(buf, buf_size, "__pgy_idx_%s",
+                 variable != NULL ? variable : "it");
+        return;
+    }
+    snprintf(buf, buf_size, "__pgy_idx_%s_%u",
+             variable != NULL ? variable : "it", stable_id);
+}
+
+static void
+llvm_mir_for_in_binding_name(const MIRInstruction *inst,
+                             const char *variable,
+                             char *buf,
+                             size_t buf_size)
+{
+    uint32_t stable_id;
+
+    if (buf == NULL || buf_size == 0)
+        return;
+    stable_id = ast_node_stable_id(mir_instruction_source_payload(inst));
+    if (stable_id == 0) {
+        snprintf(buf, buf_size, "%s.mir.forin",
+                 variable != NULL ? variable : "it");
+        return;
+    }
+    snprintf(buf, buf_size, "%s.mir.forin.%u",
+             variable != NULL ? variable : "it", stable_id);
 }
 
 static LLVMFuncEntry *
@@ -55,7 +88,7 @@ llvm_mir_emit_for_in_loop_init(const MIRInstruction *inst, LLVMGenCtx *ctx)
     if (variable == NULL)
         return true;
 
-    llvm_mir_for_in_index_name(variable, idx_name, sizeof(idx_name));
+    llvm_mir_for_in_index_name(inst, variable, idx_name, sizeof(idx_name));
     if (llvm_scope_lookup(ctx, idx_name) != NULL)
         return true;
     idx_alloca = llvm_create_entry_alloca(ctx, ctx->type_i32, idx_name);
@@ -83,7 +116,7 @@ llvm_mir_emit_for_in_loop_condition(const MIRInstruction *inst, LLVMGenCtx *ctx)
     if (variable == NULL)
         return NULL;
 
-    llvm_mir_for_in_index_name(variable, idx_name, sizeof(idx_name));
+    llvm_mir_for_in_index_name(inst, variable, idx_name, sizeof(idx_name));
     idx_var = llvm_scope_lookup(ctx, idx_name);
     if (idx_var == NULL || idx_var->alloca == NULL) {
         LLVMValueRef idx_alloca = llvm_create_entry_alloca(ctx, ctx->type_i32,
@@ -153,7 +186,7 @@ llvm_mir_emit_for_in_loop_increment(const MIRInstruction *inst, LLVMGenCtx *ctx)
     if (variable == NULL)
         return true;
 
-    llvm_mir_for_in_index_name(variable, idx_name, sizeof(idx_name));
+    llvm_mir_for_in_index_name(inst, variable, idx_name, sizeof(idx_name));
     idx_var = llvm_scope_lookup(ctx, idx_name);
     if (idx_var == NULL || idx_var->alloca == NULL)
         return true;
@@ -217,6 +250,7 @@ llvm_mir_emit_for_in_body_binding(const MIRRoutine *routine,
     LLVMTypeRef elem_ty;
     LLVMValueRef idx;
     char idx_name[256];
+    char binding_name[256];
 
     if (routine == NULL || block == NULL || ctx == NULL)
         return true;
@@ -239,11 +273,15 @@ llvm_mir_emit_for_in_body_binding(const MIRRoutine *routine,
                                   : pergyra_type_to_llvm(ctx, list_inner);
     if (ctx->has_error || elem_ty == NULL)
         return false;
-    loop_var = llvm_scope_lookup(ctx, variable);
+    llvm_mir_for_in_binding_name(branch_inst, variable, binding_name,
+                                 sizeof(binding_name));
+    loop_var = llvm_scope_lookup(ctx, binding_name);
     if (loop_var == NULL) {
         LLVMValueRef loop_alloca = llvm_create_entry_alloca(ctx, elem_ty,
-                                                            variable);
+                                                            binding_name);
         llvm_scope_declare(ctx, pergyra_strdup(variable), loop_alloca, elem_ty);
+        llvm_scope_declare(ctx, pergyra_strdup(binding_name), loop_alloca,
+                           elem_ty);
         {
             LLVMClassTypeEntry *cls = llvm_stmt_lookup_class_by_type(ctx, elem_ty);
             if (cls != NULL)
@@ -252,7 +290,8 @@ llvm_mir_emit_for_in_body_binding(const MIRRoutine *routine,
         }
         loop_var = llvm_scope_lookup(ctx, variable);
     }
-    llvm_mir_for_in_index_name(variable, idx_name, sizeof(idx_name));
+    llvm_mir_for_in_index_name(branch_inst, variable,
+                               idx_name, sizeof(idx_name));
     idx_var = llvm_scope_lookup(ctx, idx_name);
     if (loop_var == NULL || loop_var->alloca == NULL
         || idx_var == NULL || idx_var->alloca == NULL) {

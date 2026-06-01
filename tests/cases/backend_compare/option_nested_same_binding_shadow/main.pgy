@@ -1,0 +1,28 @@
+func Pick(x: Int) -> Option<Int> {
+    if x == 0 {
+        return None;
+    }
+    return Some(x);
+}
+
+func Score(a: Int, b: Int) -> Int {
+    let total: Int = 0;
+    match Pick(a) {
+        case Some(v):
+            total = v;
+            match Pick(b) {
+                case Some(v): total = total + v;
+                case None: total = total + 100;
+            }
+            total = total + v;
+        case None:
+            total = -1;
+    }
+    return total;
+}
+
+func Main() -> Void {
+    Log(Score(2, 3));
+    Log(Score(2, 0));
+    Log(Score(0, 3));
+}

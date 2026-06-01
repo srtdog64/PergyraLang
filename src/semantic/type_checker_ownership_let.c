@@ -249,6 +249,24 @@ type_check_let_decl(ASTNode *node, SemanticContext *ctx)
         decl_type = TYPE_UNKNOWN;
     }
 
+    if (init != NULL && type_equals(init_type, TYPE_VOID)) {
+        semantic_error_with_hints(ctx,
+            PGY_CODE_SEM_TYPE_MISMATCH,
+            PGY_CAUSE_ASSIGNABILITY_CHECK,
+            PGY_FIX_ALIGN_OPERAND_TYPE,
+            init,
+            "Void expression cannot initialize local binding '%s'.\n"
+            "Reason:\n"
+            "- Void calls are statement-only side effects, not values\n"
+            "- treating them as values forces backends to synthesize placeholder data\n"
+            "Fix:\n"
+            "- call the Void expression as a statement before this binding\n"
+            "- or initialize '%s' from an expression that returns a concrete value",
+            name != NULL ? name : "<binding>",
+            name != NULL ? name : "<binding>");
+        decl_type = TYPE_UNKNOWN;
+    }
+
     if (type_is_class_object_type(decl_type, ctx)
         && init != NULL
         && type_is_class_object_type(init_type, ctx)

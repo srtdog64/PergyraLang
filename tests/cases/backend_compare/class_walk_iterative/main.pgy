@@ -1,0 +1,29 @@
+class Stage {
+    let n: Int;
+    let max: Int;
+
+    func Next(self) -> Int {
+        if n + 1 > max { return max; }
+        return n + 1;
+    }
+}
+
+func Walk(start: Int, max: Int, steps: Int) -> Int {
+    let s: Stage = Stage(start, max);
+    let cur: Int = s.Next();
+    let i: Int = 1;
+    while i < steps {
+        let s2: Stage = Stage(cur, max);
+        cur = s2.Next();
+        i = i + 1;
+    }
+    return cur;
+}
+
+func Main() -> Void {
+    Log(Walk(0, 100, 5));
+    Log(Walk(50, 100, 10));
+    Log(Walk(95, 100, 20));
+    Log(Walk(0, 5, 100));
+    Log(Walk(99, 100, 1));
+}

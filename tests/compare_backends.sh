@@ -195,6 +195,11 @@ run_windows_abi_pipeline_precheck_fallback() {
         "\$env:PATH='${PGY_WINDOWS_PS_PATH_PREFIX}' + \$env:PATH; \$env:PGY_ABI_PIPELINE_SAME_PROCESS='1'; \$env:PGY_ABI_PIPELINE_BACKEND='llvm'; & '${abi_native}'; exit \$LASTEXITCODE"
 }
 
+pgy_powershell_quote() {
+    local value="${1//\'/\'\'}"
+    printf "'%s'" "$value"
+}
+
 if [[ "${PGY_BACKEND_COMPARE_INVENTORY_ONLY:-0}" == "0"
     && ! -x "$PGY_BIN" ]]; then
     echo "backend-compare: missing compiler binary: $PGY_BIN" >&2
@@ -256,12 +261,48 @@ run_native_binary() {
     local bin="$1"
     local out="$2"
     local err="$3"
+    local rc
 
     if command -v timeout >/dev/null 2>&1; then
         timeout "$RUN_TIMEOUT_SECONDS"s "$bin" >"$out" 2>"$err"
+        rc=$?
     else
         "$bin" >"$out" 2>"$err"
+        rc=$?
     fi
+
+    if [[ "$rc" -eq 126 || "$rc" -eq 127 ]]; then
+        run_windows_native_binary_fallback "$bin" "$out" "$err"
+        return $?
+    fi
+    return "$rc"
+}
+
+run_windows_native_binary_fallback() {
+    local bin="$1"
+    local out="$2"
+    local err="$3"
+    local bin_native
+    local out_native
+    local err_native
+    local cwd_native
+    local timeout_ms
+
+    case "$(uname -s 2>/dev/null || echo unknown)" in
+        MINGW*|MSYS*|CYGWIN*) ;;
+        *) return 127 ;;
+    esac
+    command -v powershell.exe >/dev/null 2>&1 || return 127
+
+    bin_native="$(pgy_path_for_windows_tool "$bin")"
+    out_native="$(pgy_path_for_windows_tool "$out")"
+    err_native="$(pgy_path_for_windows_tool "$err")"
+    cwd_native="$(pgy_path_for_windows_tool "$PWD")"
+
+    timeout_ms=$((RUN_TIMEOUT_SECONDS * 1000))
+
+    powershell.exe -NoProfile -ExecutionPolicy Bypass -Command \
+        "\$env:PATH='${PGY_WINDOWS_PS_PATH_PREFIX}' + \$env:PATH; Set-Location -LiteralPath $(pgy_powershell_quote "$cwd_native"); \$p = Start-Process -FilePath $(pgy_powershell_quote "$bin_native") -NoNewWindow -PassThru -RedirectStandardOutput $(pgy_powershell_quote "$out_native") -RedirectStandardError $(pgy_powershell_quote "$err_native"); if (\$p -eq \$null) { exit 127 }; if (-not \$p.WaitForExit(${timeout_ms})) { Stop-Process -Id \$p.Id -Force; exit 124 }; exit \$p.ExitCode"
 }
 
 run_case() {
@@ -436,6 +477,7 @@ main() {
         "tests/cases/backend_compare/class_method_coalesce_call"
         "tests/cases/backend_compare/class_method_short_circuit"
         "tests/cases/backend_compare/class_compose_helper"
+        "tests/cases/backend_compare/lexical_shadow_class_method"
         "tests/cases/backend_compare/nested_loop_break"
         "tests/cases/backend_compare/function_returning_array"
         "tests/cases/backend_compare/if_expression_in_let"
@@ -443,6 +485,10 @@ main() {
         "tests/cases/backend_compare/array_of_strings_loop"
         "tests/cases/backend_compare/else_if_int_classify"
         "tests/cases/backend_compare/option_match_simple"
+        "tests/cases/backend_compare/option_same_binding_guard"
+        "tests/cases/backend_compare/option_multi_same_binding_loop"
+        "tests/cases/backend_compare/option_nested_same_binding_shadow"
+        "tests/cases/backend_compare/match_nested_same_binding_shadow"
         "tests/cases/backend_compare/continue_skip_odd"
         "tests/cases/backend_compare/sum_to_n_recursive"
         "tests/cases/backend_compare/recursive_funcs"
@@ -480,6 +526,8 @@ main() {
         "tests/cases/backend_compare/string_compare_branch"
         "tests/cases/backend_compare/if_short_circuit_pure"
         "tests/cases/backend_compare/for_range_explicit"
+        "tests/cases/backend_compare/for_same_binding_sequence"
+        "tests/cases/backend_compare/for_nested_same_binding_shadow"
         "tests/cases/backend_compare/option_param_pass"
         "tests/cases/backend_compare/subject_class_pair"
         "tests/cases/backend_compare/nested_match_int"
@@ -818,6 +866,66 @@ main() {
         "tests/cases/backend_compare/select_fairness"
         "tests/cases/backend_compare/try_operator_result"
         "tests/cases/backend_compare/triple_paradigm"
+        "tests/cases/backend_compare/bin_push_chain"
+        "tests/cases/backend_compare/array_filter_predicate_class"
+        "tests/cases/backend_compare/array_minmax_range"
+        "tests/cases/backend_compare/bool_short_circuit_method"
+        "tests/cases/backend_compare/bucket_count_array"
+        "tests/cases/backend_compare/class_bool_int_method_mix"
+        "tests/cases/backend_compare/class_dual_method_loop"
+        "tests/cases/backend_compare/class_dual_predicate"
+        "tests/cases/backend_compare/class_holds_enum_field"
+        "tests/cases/backend_compare/class_holds_class"
+        "tests/cases/backend_compare/class_method_self_chain"
+        "tests/cases/backend_compare/class_param_method_arr"
+        "tests/cases/backend_compare/class_returning_class"
+        "tests/cases/backend_compare/class_three_method_compose"
+        "tests/cases/backend_compare/class_three_params_clamp"
+        "tests/cases/backend_compare/class_walk_iterative"
+        "tests/cases/backend_compare/class_with_array_param"
+        "tests/cases/backend_compare/dot_product_with_bias"
+        "tests/cases/backend_compare/enum_polyarity_compare"
+        "tests/cases/backend_compare/factorial_sum_pure"
+        "tests/cases/backend_compare/fib_iterative_sum"
+        "tests/cases/backend_compare/higher_order_return_context"
+        "tests/cases/backend_compare/intermediate_locals_arith"
+        "tests/cases/backend_compare/mark_classify_score"
+        "tests/cases/backend_compare/match_string_subject"
+        "tests/cases/backend_compare/modulo_grouping_sum"
+        "tests/cases/backend_compare/multi_match_err_collision"
+        "tests/cases/backend_compare/nested_branching_pure"
+        "tests/cases/backend_compare/option_2level_class_nested"
+        "tests/cases/backend_compare/option_chain_3level_class"
+        "tests/cases/backend_compare/option_chain_step_classmethod"
+        "tests/cases/backend_compare/option_class_carrying_string"
+        "tests/cases/backend_compare/option_class_param_method_call"
+        "tests/cases/backend_compare/option_drain_2step"
+        "tests/cases/backend_compare/option_default_method"
+        "tests/cases/backend_compare/option_mode_dispatch"
+        "tests/cases/backend_compare/option_nested_class_field_string"
+        "tests/cases/backend_compare/option_pair_map_lookup"
+        "tests/cases/backend_compare/option_as_class_field"
+        "tests/cases/backend_compare/option_str_to_int_arr"
+        "tests/cases/backend_compare/option_typed_chain_diff"
+        "tests/cases/backend_compare/option_two_step_half"
+        "tests/cases/backend_compare/range_three_method_test"
+        "tests/cases/backend_compare/result_as_class_field"
+        "tests/cases/backend_compare/result_chain_propagate_err"
+        "tests/cases/backend_compare/result_chained_method_class"
+        "tests/cases/backend_compare/result_class_chain_score"
+        "tests/cases/backend_compare/result_class_with_string"
+        "tests/cases/backend_compare/result_field_class_method"
+        "tests/cases/backend_compare/result_nested_outer_inner_e"
+        "tests/cases/backend_compare/result_pipeline_distinct_classes"
+        "tests/cases/backend_compare/result_string_payload"
+        "tests/cases/backend_compare/string_array_tag_sum"
+        "tests/cases/backend_compare/string_dual_tag"
+        "tests/cases/backend_compare/stats_class_build"
+        "tests/cases/backend_compare/three_func_compose"
+        "tests/cases/backend_compare/try_class_method_chain"
+        "tests/cases/backend_compare/two_class_chained_compose"
+        "tests/cases/backend_compare/two_step_pure_func_compose"
+        "tests/cases/backend_compare/while_class_method_returning_int"
         "tests/cases/backend_compare/array_binary_search"
         "tests/cases/backend_compare/array_balanced_split"
         "tests/cases/backend_compare/array_count_above_avg"
@@ -905,19 +1013,16 @@ main() {
     if [[ "$#" -eq 0 ]]; then
         local -a missing_cases=()
         local -a missing_registered_cases=()
+        local -A registered_case_set=()
         local discovered
         local registered
         local source_rel
+        for registered in "${cases[@]}"; do
+            registered_case_set["$registered"]=1
+        done
         while IFS= read -r discovered; do
-            local found=0
             source_rel="$(dirname "$discovered")"
-            for registered in "${cases[@]}"; do
-                if [[ "$registered" == "$source_rel" ]]; then
-                    found=1
-                    break
-                fi
-            done
-            if [[ "$found" -eq 0 ]]; then
+            if [[ -z "${registered_case_set[$source_rel]+x}" ]]; then
                 missing_cases+=("$source_rel")
             fi
         done < <(find tests/cases/backend_compare -mindepth 2 -maxdepth 2 -name main.pgy | LC_ALL=C sort)

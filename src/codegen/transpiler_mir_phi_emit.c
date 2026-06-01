@@ -29,6 +29,23 @@ transpiler_mir_ssa_name_is_pin_view(const MIRBasicBlock *pred_block,
             && strcmp(base, target_block->pin_view_name) == 0);
 }
 
+static bool
+transpiler_mir_block_live_out_has_name(const MIRBasicBlock *block,
+                                       const char *versioned_name)
+{
+    if (block == NULL || versioned_name == NULL)
+        return false;
+
+    for (size_t i = 0; i < block->live_out_name_count; i++) {
+        if (block->live_out_names[i] != NULL
+            && strcmp(block->live_out_names[i], versioned_name) == 0) {
+            return true;
+        }
+    }
+
+    return false;
+}
+
 bool
 transpiler_emit_mir_phi_copies(CodeBuf *buf, TranspilerCtx *ctx, int indent,
                                size_t pred_block_index,
@@ -108,6 +125,8 @@ transpiler_emit_mir_phi_copies(CodeBuf *buf, TranspilerCtx *ctx, int indent,
                                                 lhs_version)) {
             continue;
         }
+        if (transpiler_mir_block_live_out_has_name(pred_block, lhs_version))
+            continue;
         for (size_t j = 0; j < pred_count; j++) {
             if (pred_bases[j] != NULL
                 && strcmp(pred_bases[j], target_bases[i]) == 0) {

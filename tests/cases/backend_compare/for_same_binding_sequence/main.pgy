@@ -1,0 +1,14 @@
+func Score() -> Int {
+    let total: Int = 0;
+    for i in 0..3 {
+        total = total + i;
+    }
+    for i in 5..8 {
+        total = total + i;
+    }
+    return total;
+}
+
+func Main() -> Void {
+    Log(Score());
+}

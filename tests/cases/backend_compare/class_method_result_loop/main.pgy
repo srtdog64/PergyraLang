@@ -1,0 +1,36 @@
+enum DivErr { Zero }
+
+class Calc {
+    let base: Int;
+
+    func DivBy(self, d: Int) -> Result<Int, DivErr> {
+        if d == 0 { return Err(Zero); }
+        return Ok(base / d);
+    }
+}
+
+func RunSeries(start: Int, divs: Array<Int>, n: Int) -> Int {
+    let c: Calc = Calc(start);
+    let acc: Int = 0;
+    let i: Int = 0;
+    while i < n {
+        match c.DivBy(divs[i]) {
+            case Ok(v): acc = acc + v;
+            case Err(e):
+                match e {
+                    case Zero: acc = acc - 1;
+                }
+        }
+        i = i + 1;
+    }
+    return acc;
+}
+
+func Main() -> Void {
+    let d: Array<Int> = [2, 4, 5, 0, 10];
+    Log(RunSeries(100, d, 5));
+    let z: Array<Int> = [0, 0];
+    Log(RunSeries(50, z, 2));
+    let e: Array<Int> = [];
+    Log(RunSeries(50, e, 0));
+}

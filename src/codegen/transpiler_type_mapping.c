@@ -82,8 +82,6 @@ pergyra_primitive_to_c(const char *name)
         sizeof(primitive_maps) / sizeof(primitive_maps[0]));
     if (mapped != NULL)
         return mapped;
-    if (name[0] >= 'A' && name[0] <= 'Z' && name[1] == '\0')
-        return "void*";
     return name;
 }
 

@@ -245,6 +245,9 @@ bool          llvm_mir_emit_for_in_body_binding(const MIRRoutine *routine,
                                                 LLVMGenCtx *ctx);
 bool          llvm_mir_emit_for_in_loop_increment(const MIRInstruction *inst,
                                                   LLVMGenCtx *ctx);
+bool          llvm_mir_emit_for_loop_body_binding(const MIRRoutine *routine,
+                                                  const MIRBasicBlock *block,
+                                                  LLVMGenCtx *ctx);
 bool          llvm_mir_emit_loop_backedge_increment(const MIRRoutine *routine,
                                                     const MIRBasicBlock *mir_block,
                                                     LLVMGenCtx *ctx);
@@ -254,6 +257,16 @@ LLVMValueRef  llvm_mir_emit_select_dispatch_condition(ASTNode *case_node,
                                                        LLVMGenCtx *ctx);
 LLVMValueRef  llvm_mir_emit_match_case_condition(ASTNode *func_decl,
                                                   ASTNode *case_node,
+                                                  LLVMGenCtx *ctx);
+bool          llvm_mir_emit_match_case_body_binding(
+                                                  const MIRRoutine *routine,
+                                                  const MIRBasicBlock *block,
+                                                  ASTNode *func_decl,
+                                                  LLVMGenCtx *ctx);
+bool          llvm_mir_remap_active_match_bindings(
+                                                  const MIRRoutine *routine,
+                                                  const MIRBasicBlock *block,
+                                                  ASTNode *func_decl,
                                                   LLVMGenCtx *ctx);
 void          llvm_mir_emit_owner_sync_exit(LLVMGenCtx *ctx,
                                             LLVMClassTypeEntry *owner_cls,
@@ -362,6 +375,9 @@ LLVMClassTypeEntry *llvm_lookup_class_by_type(LLVMGenCtx *ctx,
                                               LLVMTypeRef ty);
 LLVMValueRef llvm_emit_number(ASTNode *node, LLVMGenCtx *ctx);
 LLVMValueRef llvm_emit_string(ASTNode *node, LLVMGenCtx *ctx);
+LLVMValueRef llvm_void_expression_placeholder(LLVMGenCtx *ctx,
+                                              ASTNode *node,
+                                              const char *owner);
 LLVMValueRef llvm_emit_function_call_args(LLVMGenCtx *ctx, LLVMFuncEntry *func,
                                           ASTNode **arg_nodes, size_t argc);
 LLVMValueRef llvm_array_data_ptr(LLVMGenCtx *ctx, LLVMValueRef array_value);

@@ -1,0 +1,30 @@
+class Stats {
+    let mn: Int;
+    let mx: Int;
+    let sum: Int;
+
+    func Mid(self) -> Int {
+        return (mn + mx) / 2;
+    }
+
+    func Avg(self, count: Int) -> Int {
+        if count <= 0 { return 0; }
+        return sum / count;
+    }
+
+    func Spread(self) -> Int {
+        return mx - mn;
+    }
+}
+
+func Combine(s: Stats, count: Int) -> Int {
+    return s.Mid() + s.Avg(count) * 10 + s.Spread() * 100;
+}
+
+func Main() -> Void {
+    Log(Combine(Stats(2, 8, 30), 5));
+    Log(Combine(Stats(0, 100, 500), 10));
+    Log(Combine(Stats(-5, 5, 0), 5));
+    Log(Combine(Stats(10, 10, 50), 5));
+    Log(Combine(Stats(1, 99, 1000), 0));
+}

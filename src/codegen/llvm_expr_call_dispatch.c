@@ -307,8 +307,23 @@ llvm_emit_call(ASTNode *node, LLVMGenCtx *ctx)
                         return NULL;
                     }
                 }
-                if (args[i] == NULL)
+                if (args[i] == NULL) {
+                    LLVMTypeRef arg_type = llvm_stmt_infer_expr_type(ctx,
+                        arg_node);
+                    if (ctx->has_error)
+                        return NULL;
+                    if (arg_type == ctx->type_void) {
+                        llvm_set_error_at_with_hints(ctx, arg_node,
+                            PGY_CODE_LLVM_TYPE_UNSUPPORTED,
+                            PGY_CAUSE_LLVM_TYPE_UNSUPPORTED,
+                            PGY_FIX_ALIGN_ARG_TYPE,
+                            "LLVM intent call '%s' cannot consume a Void expression as argument %zu",
+                            callee_name != NULL ? callee_name : "<intent>",
+                            i + 1);
+                        return NULL;
+                    }
                     args[i] = llvm_emit_expression(arg_node, ctx);
+                }
                 if (args[i] == NULL)
                     return llvm_call_arg_error_recovery(ctx, node,
                         callee_name, i);
@@ -327,6 +342,20 @@ llvm_emit_call(ASTNode *node, LLVMGenCtx *ctx)
         for (size_t i = 0; i < argc; i++) {
             LLVMTypeRef saved_ret = ctx->current_ret_type;
             LLVMTypeRef expected_ty = NULL;
+            ASTNode *arg_node = ast_call_argument(node, i);
+            LLVMTypeRef arg_type = llvm_stmt_infer_expr_type(ctx, arg_node);
+            if (ctx->has_error)
+                return NULL;
+            if (arg_type == ctx->type_void) {
+                llvm_set_error_at_with_hints(ctx, arg_node,
+                    PGY_CODE_LLVM_TYPE_UNSUPPORTED,
+                    PGY_CAUSE_LLVM_TYPE_UNSUPPORTED,
+                    PGY_FIX_ALIGN_ARG_TYPE,
+                    "LLVM call '%s' cannot consume a Void expression as argument %zu",
+                    callee_name != NULL ? callee_name : "<call>",
+                    i + 1);
+                return NULL;
+            }
             if (predeclared_func != NULL
                 && i < LLVMCountParams(predeclared_func->fn)) {
                 expected_ty = LLVMTypeOf(
@@ -336,7 +365,7 @@ llvm_emit_call(ASTNode *node, LLVMGenCtx *ctx)
                 && LLVMGetTypeKind(expected_ty) == LLVMStructTypeKind) {
                 ctx->current_ret_type = expected_ty;
             }
-            args[i] = llvm_emit_expression(ast_call_argument(node, i), ctx);
+            args[i] = llvm_emit_expression(arg_node, ctx);
             ctx->current_ret_type = saved_ret;
             if (args[i] == NULL)
                 return llvm_call_arg_error_recovery(ctx, node,
@@ -480,7 +509,8 @@ llvm_emit_call(ASTNode *node, LLVMGenCtx *ctx)
     if (func->ret_type == ctx->type_void) {
         LLVMBuildCall2(ctx->builder, func->fn_type, func->fn,
                        args, emitted_argc, "");
-        result = LLVMConstInt(ctx->type_i32, 0, 0);
+        result = llvm_void_expression_placeholder(ctx, node,
+            "direct-call");
     } else {
         result = LLVMBuildCall2(ctx->builder, func->fn_type, func->fn,
                                 args, emitted_argc, llvm_tmp_name(ctx));

@@ -1,0 +1,38 @@
+enum Tier { Bronze, Silver, Gold }
+
+class Player {
+    let level: Int;
+    let tier: Tier;
+
+    func Score(self) -> Int {
+        match tier {
+            case Bronze: return level;
+            case Silver: return level * 5;
+            case Gold: return level * 10;
+        }
+    }
+}
+
+func Total(arr: Array<Int>, count: Int) -> Int {
+    let total: Int = 0;
+    let i: Int = 0;
+    while i < count {
+        let lvl: Int = arr[i];
+        let p: Player = Player(lvl, Gold);
+        total = total + p.Score();
+        i = i + 1;
+    }
+    return total;
+}
+
+func Main() -> Void {
+    let arr: Array<Int> = [5, 10, 15];
+    Log(Total(arr, 3));
+    Log(Total(arr, 1));
+    let pb: Player = Player(5, Bronze);
+    Log(pb.Score());
+    let ps: Player = Player(5, Silver);
+    Log(ps.Score());
+    let pg: Player = Player(5, Gold);
+    Log(pg.Score());
+}

@@ -1,0 +1,25 @@
+class Counter {
+    let n: Int;
+    let cap: Int;
+
+    func Next(self) -> Int {
+        return n + 1;
+    }
+}
+
+func StepsLoop(start: Int, steps: Int) -> Int {
+    let cur: Int = start;
+    let i: Int = 0;
+    while i < steps {
+        let c: Counter = Counter(cur, 100);
+        cur = c.Next();
+        i = i + 1;
+    }
+    return cur;
+}
+
+func Main() -> Void {
+    Log(StepsLoop(0, 5));
+    Log(StepsLoop(10, 3));
+    Log(StepsLoop(0, 0));
+}

@@ -1,0 +1,24 @@
+func TrySquare(n: Int) -> Option<Int> {
+    if n > 100 { return None; }
+    return Some(n * n);
+}
+
+func MapSum(arr: Array<Int>) -> Int {
+    let s: Int = 0;
+    for v in arr {
+        match TrySquare(v) {
+            case Some(v): s = s + v;
+            case None: s = s + 0;
+        }
+    }
+    return s;
+}
+
+func Main() -> Void {
+    let a: Array<Int> = [3, 4, 5, 200, 6];
+    Log(MapSum(a));
+    let empty: Array<Int> = [];
+    Log(MapSum(empty));
+    let bigs: Array<Int> = [101, 200];
+    Log(MapSum(bigs));
+}

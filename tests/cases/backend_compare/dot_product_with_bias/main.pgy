@@ -1,0 +1,24 @@
+func PairProduct(a: Array<Int>, b: Array<Int>, n: Int) -> Int {
+    let total: Int = 0;
+    let i: Int = 0;
+    while i < n {
+        total = total + a[i] * b[i];
+        i = i + 1;
+    }
+    return total;
+}
+
+func DotPlus(a: Array<Int>, b: Array<Int>, n: Int, bias: Int) -> Int {
+    return PairProduct(a, b, n) + bias;
+}
+
+func Main() -> Void {
+    let a: Array<Int> = [1, 2, 3, 4];
+    let b: Array<Int> = [10, 20, 30, 40];
+    Log(DotPlus(a, b, 4, 0));
+    Log(DotPlus(a, b, 4, 100));
+    Log(DotPlus(a, b, 2, 0));
+    let c: Array<Int> = [-1, -2];
+    let d: Array<Int> = [5, 5];
+    Log(DotPlus(c, d, 2, 0));
+}

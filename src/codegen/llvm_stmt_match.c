@@ -3,6 +3,31 @@
 #include "llvm_internal.h"
 #include "parser/ast_api.h"
 
+#include <stdio.h>
+
+static void
+llvm_match_payload_alloca_name(ASTNode *match_case,
+                               const char *binding,
+                               char *buffer,
+                               size_t buffer_size)
+{
+    uint32_t stable_id;
+
+    if (buffer == NULL || buffer_size == 0)
+        return;
+    buffer[0] = '\0';
+    if (binding == NULL) {
+        snprintf(buffer, buffer_size, "match.payload");
+        return;
+    }
+    stable_id = ast_node_stable_id(match_case);
+    if (stable_id == 0) {
+        snprintf(buffer, buffer_size, "%s.match", binding);
+        return;
+    }
+    snprintf(buffer, buffer_size, "%s.match.%u", binding, stable_id);
+}
+
 static bool
 llvm_match_is_option_destructor(ASTNode *pat,
                                 const char **kind,
@@ -184,26 +209,33 @@ llvm_emit_match_stmt(ASTNode *node, LLVMGenCtx *ctx)
         LLVMBuildCondBr(ctx->builder, cmp, case_bb, next_bb);
 
         LLVMPositionBuilderAtEnd(ctx->builder, case_bb);
+        int saved_var_class_count = ctx->var_class_count;
         llvm_scope_push(ctx);
         if (option_binding != NULL) {
+            char alloca_name[256];
             LLVMValueRef payload = LLVMBuildExtractValue(ctx->builder, subject,
                 1, llvm_tmp_name(ctx));
             LLVMTypeRef payload_ty = LLVMTypeOf(payload);
+            llvm_match_payload_alloca_name(mc, option_binding,
+                                           alloca_name, sizeof(alloca_name));
             LLVMValueRef payload_alloca = llvm_create_entry_alloca(ctx,
-                payload_ty, option_binding);
+                payload_ty, alloca_name);
             LLVMBuildStore(ctx->builder, payload, payload_alloca);
             llvm_scope_declare(ctx, pergyra_strdup(option_binding),
                 payload_alloca, payload_ty);
         }
         if (result_binding != NULL) {
+            char alloca_name[256];
             unsigned payload_index =
                 pgy_codegen_match_variant_result_payload_index(
                     pgy_codegen_match_variant_lookup(result_kind));
             LLVMValueRef payload = LLVMBuildExtractValue(ctx->builder, subject,
                 payload_index, llvm_tmp_name(ctx));
             LLVMTypeRef payload_ty = LLVMTypeOf(payload);
+            llvm_match_payload_alloca_name(mc, result_binding,
+                                           alloca_name, sizeof(alloca_name));
             LLVMValueRef payload_alloca = llvm_create_entry_alloca(ctx,
-                payload_ty, result_binding);
+                payload_ty, alloca_name);
             LLVMBuildStore(ctx->builder, payload, payload_alloca);
             llvm_scope_declare(ctx, pergyra_strdup(result_binding),
                 payload_alloca, payload_ty);
@@ -211,6 +243,7 @@ llvm_emit_match_stmt(ASTNode *node, LLVMGenCtx *ctx)
         if (ast_match_case_body(mc) != NULL)
             llvm_emit_statement(ast_match_case_body(mc), ctx);
         llvm_scope_pop(ctx);
+        ctx->var_class_count = saved_var_class_count;
         if (LLVMGetBasicBlockTerminator(LLVMGetInsertBlock(ctx->builder)) == NULL)
             LLVMBuildBr(ctx->builder, merge_bb);
 

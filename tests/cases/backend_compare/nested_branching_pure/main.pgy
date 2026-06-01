@@ -1,0 +1,27 @@
+func ChooseScore(category: Int, value: Int, weight: Int) -> Int {
+    if category == 1 {
+        if value > 100 {
+            if weight > 0 {
+                return value * weight + 1000;
+            }
+            return value * 2;
+        }
+        return value;
+    }
+    if category == 2 {
+        if weight < 0 {
+            return -value;
+        }
+        return value + weight;
+    }
+    return 0;
+}
+
+func Main() -> Void {
+    Log(ChooseScore(1, 150, 3));
+    Log(ChooseScore(1, 50, 5));
+    Log(ChooseScore(1, 200, 0));
+    Log(ChooseScore(2, 10, -1));
+    Log(ChooseScore(2, 50, 100));
+    Log(ChooseScore(3, 99, 99));
+}

@@ -203,7 +203,8 @@ llvm_emit_member_call(ASTNode *node, LLVMGenCtx *ctx)
                         llvm_emit_current_zone_subject_projection_sync(ctx, obj_node);
                         llvm_emit_world_embedded_action_effect_sync(ctx, obj_node, method_decl);
                         llvm_emit_world_embedded_receiver_projection_sync(ctx, obj_node);
-                        result = LLVMConstInt(ctx->type_i32, 0, 0);
+                        result = llvm_void_expression_placeholder(ctx, node,
+                            "member-call");
                     } else {
                         result = LLVMBuildCall2(ctx->builder,
                             fn_type, fn_value, args,
@@ -249,7 +250,8 @@ llvm_emit_member_call(ASTNode *node, LLVMGenCtx *ctx)
                     if (ret_type == ctx->type_void) {
                         LLVMBuildCall2(ctx->builder, fn_type, fn_value,
                                        args, (unsigned)(argc + 1), "");
-                        return LLVMConstInt(ctx->type_i32, 0, 0);
+                        return llvm_void_expression_placeholder(ctx, node,
+                            "member-call");
                     } else {
                         LLVMValueRef result = LLVMBuildCall2(
                             ctx->builder, fn_type, fn_value,
@@ -362,7 +364,8 @@ llvm_emit_member_call(ASTNode *node, LLVMGenCtx *ctx)
                         args, (unsigned)(argc + 1), "");
                     llvm_emit_world_embedded_action_effect_sync(ctx, obj_node, method_decl);
                     llvm_emit_world_embedded_receiver_projection_sync(ctx, obj_node);
-                    return LLVMConstInt(ctx->type_i32, 0, 0);
+                    return llvm_void_expression_placeholder(ctx, node,
+                        "member-call");
                 }
 
                 {
@@ -474,11 +477,56 @@ llvm_emit_member_call(ASTNode *node, LLVMGenCtx *ctx)
                 if (fn->ret_type == ctx->type_void) {
                     LLVMBuildCall2(ctx->builder, fn->fn_type, fn->fn,
                         args, (unsigned)(argc + 1), "");
-                    result = LLVMConstInt(ctx->type_i32, 0, 0);
+                    result = llvm_void_expression_placeholder(ctx, node,
+                        "member-call");
                 } else {
                     result = LLVMBuildCall2(ctx->builder,
                         fn->fn_type, fn->fn, args,
                         (unsigned)(argc + 1), llvm_tmp_name(ctx));
+                }
+                return result;
+            }
+        }
+    }
+
+    if (obj_node != NULL && obj_node->type == AST_CALL
+        && method_name != NULL) {
+        const char *class_name = llvm_expr_custom_type_name(obj_node, ctx);
+        LLVMClassTypeEntry *cls = class_name != NULL
+            ? llvm_lookup_class(ctx, class_name) : NULL;
+        if (cls != NULL) {
+            char *full_name = llvm_member_call_mangle_method_name(ctx, node,
+                class_name, method_name);
+            if (full_name == NULL)
+                return NULL;
+            LLVMFuncEntry *fn = llvm_lookup_function(ctx, full_name);
+            if (fn != NULL) {
+                size_t argc = ast_call_arg_count(node);
+                LLVMValueRef *args = llvm_member_call_alloc_args(ctx, node,
+                    class_name, method_name, argc);
+                if (args == NULL)
+                    return NULL;
+                LLVMValueRef recv = llvm_emit_expression(obj_node, ctx);
+                if (recv == NULL)
+                    return llvm_member_call_error_recovery(ctx, node,
+                        class_name, method_name, "could not lower receiver");
+                args[0] = recv;
+                for (size_t i = 0; i < argc; i++) {
+                    LLVMValueRef arg_val = llvm_emit_expression(
+                        ast_call_argument(node, i), ctx);
+                    if (!llvm_member_call_store_arg(ctx, node, class_name,
+                            method_name, args, i, arg_val))
+                        return NULL;
+                }
+                LLVMValueRef result;
+                if (fn->ret_type == ctx->type_void) {
+                    LLVMBuildCall2(ctx->builder, fn->fn_type, fn->fn,
+                        args, (unsigned)(argc + 1), "");
+                    result = llvm_void_expression_placeholder(ctx, node,
+                        "member-call");
+                } else {
+                    result = LLVMBuildCall2(ctx->builder, fn->fn_type, fn->fn,
+                        args, (unsigned)(argc + 1), llvm_tmp_name(ctx));
                 }
                 return result;
             }

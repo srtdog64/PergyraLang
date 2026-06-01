@@ -359,6 +359,10 @@ emit_func_decl_from_mir_named(ASTNode *node, const MIRRoutine *mir_routine,
             continue;
     }
 
+    TranspilerSSANameMap match_alias_map = {0};
+    void *saved_match_alias_map = ctx->match_binding_alias_map;
+    ctx->match_binding_alias_map = &match_alias_map;
+
     transpiler_defer_scope_push(ctx);
 
     write_indent(ctx);
@@ -475,6 +479,7 @@ emit_func_decl_from_mir_named(ASTNode *node, const MIRRoutine *mir_routine,
     }
 
     transpiler_defer_scope_pop(ctx);
+    ctx->match_binding_alias_map = saved_match_alias_map;
     ctx->indent--;
     codebuf_write(ctx->out, "}\n");
     transpiler_restore_mir_emit_state_from_snapshot_local(ctx, &saved_emit_state);

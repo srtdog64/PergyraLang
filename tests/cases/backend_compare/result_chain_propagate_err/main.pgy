@@ -1,0 +1,34 @@
+enum InitErr { OutOfBounds, Negative }
+
+func TryFetch(arr: Array<Int>, n: Int, idx: Int) -> Result<Int, InitErr> {
+    if idx < 0 { return Err(Negative); }
+    if idx >= n { return Err(OutOfBounds); }
+    return Ok(arr[idx]);
+}
+
+func DoubleAt(arr: Array<Int>, n: Int, idx: Int) -> Result<Int, InitErr> {
+    match TryFetch(arr, n, idx) {
+        case Ok(v): return Ok(v * 2);
+        case Err(e): return Err(e);
+    }
+}
+
+func TagOr(r: Result<Int, InitErr>, def: Int) -> Int {
+    match r {
+        case Ok(v): return v;
+        case Err(e):
+            match e {
+                case OutOfBounds: return def + 1;
+                case Negative: return def + 2;
+            }
+    }
+}
+
+func Main() -> Void {
+    let arr: Array<Int> = [10, 20, 30];
+    Log(TagOr(DoubleAt(arr, 3, 1), -100));
+    Log(TagOr(DoubleAt(arr, 3, -1), -100));
+    Log(TagOr(DoubleAt(arr, 3, 5), -100));
+    Log(TagOr(DoubleAt(arr, 3, 0), -100));
+    Log(TagOr(DoubleAt(arr, 3, 2), -100));
+}

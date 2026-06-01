@@ -1,0 +1,23 @@
+func Pick(x: Int) -> Option<Int> {
+    if x == 0 {
+        return None;
+    }
+    return Some(x);
+}
+
+func Score(x: Int) -> Int {
+    match Pick(x) {
+        case Some(v) if v < 0:
+            return 0 - v;
+        case Some(v):
+            return v * 2;
+        case None:
+            return 0;
+    }
+}
+
+func Main() -> Void {
+    Log(Score(-3));
+    Log(Score(0));
+    Log(Score(4));
+}

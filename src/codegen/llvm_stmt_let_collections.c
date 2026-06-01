@@ -341,7 +341,7 @@ llvm_stmt_emit_collection_like_let(ASTNode *node, LLVMGenCtx *ctx)
 
     if (init != NULL && init->type == AST_ARRAY_LITERAL) {
         size_t count = ast_array_literal_count(init);
-        LLVMTypeRef elem_type = ctx->type_i32;
+        LLVMTypeRef elem_type = NULL;
         char *owned_inner_name = NULL;
         const char *inner_name = NULL;
 
@@ -366,6 +366,12 @@ llvm_stmt_emit_collection_like_let(ASTNode *node, LLVMGenCtx *ctx)
             }
         }
         if (inner_name == NULL || inner_name[0] == '\0') {
+            bool ok = llvm_stmt_diag_collection(ctx, node,
+                LLVM_STMT_COLLECTION_DIAG_TYPE_ARG, name, "Array", 0, NULL);
+            free(owned_inner_name);
+            return ok;
+        }
+        if (elem_type == NULL) {
             bool ok = llvm_stmt_diag_collection(ctx, node,
                 LLVM_STMT_COLLECTION_DIAG_TYPE_ARG, name, "Array", 0, NULL);
             free(owned_inner_name);

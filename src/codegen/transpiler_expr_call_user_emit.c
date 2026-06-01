@@ -29,7 +29,23 @@ emit_call_user_function(ASTNode *call, ASTNode *callee, TranspilerCtx *ctx)
             CodeBuf *args_buf = codebuf_create();
             codebuf_write(args_buf, "self");
             for (size_t i = 0; i < ast_call_arg_count(call); i++) {
-                char *arg = emit_expression(ast_call_argument(call, i), ctx);
+                ASTNode *arg_node = ast_call_argument(call, i);
+                const char *arg_type =
+                    transpiler_expr_infer_type_name(ctx, arg_node);
+                char *arg;
+                if (arg_type != NULL && strcmp(arg_type, "Void") == 0) {
+                    transpiler_set_backend_error_with_hints(ctx,
+                        PGY_CODE_C_TYPE_UNSUPPORTED,
+                        PGY_CAUSE_C_TYPE_UNSUPPORTED,
+                        PGY_FIX_ALIGN_ARG_TYPE,
+                        "C backend: hosted method '%s.%s' cannot consume a Void expression as argument %zu",
+                        host_name,
+                        callee_name != NULL ? callee_name : "<call>",
+                        i + 1);
+                    codebuf_destroy(args_buf);
+                    return pergyra_strdup("0");
+                }
+                arg = emit_expression(arg_node, ctx);
                 codebuf_write(args_buf, ", %s", arg);
                 free(arg);
             }
@@ -59,6 +75,7 @@ emit_call_user_function(ASTNode *call, ASTNode *callee, TranspilerCtx *ctx)
 
     CodeBuf *args_buf = codebuf_create();
     for (size_t i = 0; i < ast_call_arg_count(call); i++) {
+        ASTNode *arg_node = ast_call_argument(call, i);
         FuncParam *param = (decl != NULL && decl->type == AST_FUNC_DECL
                             && i < ast_func_param_count(decl))
             ? ast_func_param(decl, i) : NULL;
@@ -103,11 +120,10 @@ emit_call_user_function(ASTNode *call, ASTNode *callee, TranspilerCtx *ctx)
                 bool secure = false;
                 bool saved_suppress = ctx->suppress_slot_auto_read;
                 ctx->suppress_slot_auto_read = true;
-                ASTNode *call_arg = ast_call_argument(call, i);
-                arg = emit_expression(call_arg, ctx);
+                arg = emit_expression(arg_node, ctx);
                 ctx->suppress_slot_auto_read = saved_suppress;
                 (void)transpiler_resolve_slot_target_copy(ctx,
-                    call_arg, inner_buf,
+                    arg_node, inner_buf,
                     sizeof(inner_buf), &slot_name, &secure);
                 if (i > 0)
                     codebuf_write(args_buf, ", ");
@@ -130,10 +146,25 @@ emit_call_user_function(ASTNode *call, ASTNode *callee, TranspilerCtx *ctx)
             param_type_for_ctx = render_type_name_in_ctx(ctx, intent_param_type);
 
         if (!handled) {
+            const char *arg_type =
+                transpiler_expr_infer_type_name(ctx, arg_node);
+            if (arg_type != NULL && strcmp(arg_type, "Void") == 0) {
+                transpiler_set_backend_error_with_hints(ctx,
+                    PGY_CODE_C_TYPE_UNSUPPORTED,
+                    PGY_CAUSE_C_TYPE_UNSUPPORTED,
+                    PGY_FIX_ALIGN_ARG_TYPE,
+                    "C backend: call '%s' cannot consume a Void expression as argument %zu",
+                    callee_name != NULL ? callee_name : "<call>",
+                    i + 1);
+                free(param_type_for_ctx);
+                free(callee_str);
+                codebuf_destroy(args_buf);
+                return pergyra_strdup("0");
+            }
             const char *saved_expected_type = ctx->expected_type;
             if (param_type_for_ctx != NULL)
                 ctx->expected_type = param_type_for_ctx;
-            arg = emit_expression(ast_call_argument(call, i), ctx);
+            arg = emit_expression(arg_node, ctx);
             ctx->expected_type = saved_expected_type;
         }
         free(param_type_for_ctx);
@@ -142,7 +173,6 @@ emit_call_user_function(ASTNode *call, ASTNode *callee, TranspilerCtx *ctx)
         if (!handled) {
             if (transpiler_call_arg_needs_subject_address(ctx,
                     param, intent_param_type)) {
-                ASTNode *arg_node = ast_call_argument(call, i);
                 if (transpiler_call_arg_is_subject_ref(ctx, arg_node))
                     codebuf_write(args_buf, "%s", arg);
                 else if (transpiler_call_arg_can_take_subject_address(arg_node))

@@ -1,0 +1,29 @@
+class Buf {
+    let nums: Array<Int>;
+    let len: Int;
+
+    func At(self, i: Int) -> Int {
+        return nums[i];
+    }
+
+    func Sum(self) -> Int {
+        let total: Int = 0;
+        let i: Int = 0;
+        while i < len {
+            total = total + nums[i];
+            i = i + 1;
+        }
+        return total;
+    }
+}
+
+func Main() -> Void {
+    let arr: Array<Int> = [3, 1, 4, 1, 5];
+    let b: Buf = Buf(arr, 5);
+    Log(b.At(0));
+    Log(b.At(4));
+    Log(b.Sum());
+    let empty: Array<Int> = [];
+    let e: Buf = Buf(empty, 0);
+    Log(e.Sum());
+}

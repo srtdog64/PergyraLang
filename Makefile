@@ -215,6 +215,7 @@ LEXER_SOURCES    = $(LEXER_DIR)/lexer.c \
                    $(LEXER_DIR)/lexer_token_debug.c
 PARSER_SOURCES   = $(PARSER_DIR)/ast.c \
                    $(PARSER_DIR)/ast_analysis.c \
+                   $(PARSER_DIR)/ast_identity.c \
                    $(PARSER_DIR)/ast_thread_pool_analysis.c \
                    $(PARSER_DIR)/ast_async_constructors.c \
                    $(PARSER_DIR)/ast_destroy.c \
@@ -515,6 +516,7 @@ CODEGEN_SOURCES  = $(CODEGEN_DIR)/transpiler_allocator_builtin_emit.c \
                    $(CODEGEN_DIR)/transpiler_call_constructor_result_emit.c \
                    $(CODEGEN_DIR)/transpiler_call_subject_arg_policy.c \
                    $(CODEGEN_DIR)/transpiler_call_result_option_builtin_emit.c \
+                   $(CODEGEN_DIR)/transpiler_class_constructor_emit.c \
                    $(CODEGEN_DIR)/transpiler_constructor_channel_guard.c \
                    $(CODEGEN_DIR)/transpiler_context.c \
                    $(CODEGEN_DIR)/codegen_channel_runtime_abi.c \
@@ -538,12 +540,15 @@ CODEGEN_SOURCES  = $(CODEGEN_DIR)/transpiler_allocator_builtin_emit.c \
                    $(CODEGEN_DIR)/transpiler_entry.c \
                    $(CODEGEN_DIR)/transpiler_symbols.c \
                    $(CODEGEN_DIR)/transpiler_decl_lookup.c \
+                   $(CODEGEN_DIR)/transpiler_decl_field_view.c \
+                   $(CODEGEN_DIR)/transpiler_decl_slot_view.c \
                    $(CODEGEN_DIR)/transpiler_decl_method_view.c \
                    $(CODEGEN_DIR)/transpiler_decl_host_lookup.c \
                    $(CODEGEN_DIR)/transpiler_destructure_emit.c \
                    $(CODEGEN_DIR)/transpiler_domain_constructor_emit.c \
                    $(CODEGEN_DIR)/transpiler_domain_nominal_emit.c \
                    $(CODEGEN_DIR)/transpiler_domain_provenance_emit.c \
+                   $(CODEGEN_DIR)/transpiler_enum_constructor_emit.c \
                    $(CODEGEN_DIR)/transpiler_domain_role_ability_emit.c \
                    $(CODEGEN_DIR)/transpiler_domain_role_methods_emit.c \
                    $(CODEGEN_DIR)/transpiler_domain_role_ability_names.c \
@@ -647,6 +652,9 @@ CODEGEN_SOURCES  = $(CODEGEN_DIR)/transpiler_allocator_builtin_emit.c \
                    $(CODEGEN_DIR)/transpiler_mir_cfg_policy.c \
                    $(CODEGEN_DIR)/transpiler_mir_cfg_control_emit.c \
                    $(CODEGEN_DIR)/transpiler_mir_destructure_emit.c \
+                   $(CODEGEN_DIR)/transpiler_mir_match_pattern_emit.c \
+                   $(CODEGEN_DIR)/transpiler_mir_match_payload_emit.c \
+                   $(CODEGEN_DIR)/transpiler_mir_match_region_emit.c \
                    $(CODEGEN_DIR)/transpiler_mir_match_condition_emit.c \
                    $(CODEGEN_DIR)/transpiler_mir_pin_emit.c \
                    $(CODEGEN_DIR)/transpiler_mir_pending_uses.c \
@@ -783,6 +791,7 @@ COMPILER_SOURCES = $(COMPILER_DIR)/compiler.c \
                    $(COMPILER_DIR)/mir_fact_surface_validate.c \
                    $(COMPILER_DIR)/mir_fact_terminator_validate.c \
                    $(COMPILER_DIR)/mir_decl_header_validate.c \
+                   $(COMPILER_DIR)/mir_decl_header_access.c \
                    $(COMPILER_DIR)/mir_decl_headers.c \
                    $(COMPILER_DIR)/mir_stmt_population.c \
                    $(COMPILER_DIR)/mir_stmt_population_resource_ops.c \
@@ -873,10 +882,13 @@ ifneq ($(LLVM_ENABLED),0)
                         $(CODEGEN_DIR)/llvm_mir_resource_claim.c \
                         $(CODEGEN_DIR)/llvm_mir_resource_view.c \
                         $(CODEGEN_DIR)/llvm_mir_local_emit.c \
+                        $(CODEGEN_DIR)/llvm_mir_param_emit.c \
                         $(CODEGEN_DIR)/llvm_mir_type_helpers.c \
                         $(CODEGEN_DIR)/llvm_mir_vars.c \
                         $(CODEGEN_DIR)/llvm_mir_phi.c \
                         $(CODEGEN_DIR)/llvm_mir_cfg_control.c \
+                        $(CODEGEN_DIR)/llvm_mir_match_pattern.c \
+                        $(CODEGEN_DIR)/llvm_mir_match_region.c \
                         $(CODEGEN_DIR)/llvm_mir_match_condition.c \
                         $(CODEGEN_DIR)/llvm_mir_for_in_control.c \
                         $(CODEGEN_DIR)/llvm_mir_loop_control.c \
@@ -888,6 +900,8 @@ ifneq ($(LLVM_ENABLED),0)
                         $(CODEGEN_DIR)/llvm_intent_forward.c \
                         $(CODEGEN_DIR)/llvm_inventory_internal.c \
                         $(CODEGEN_DIR)/llvm_inventory_decl_lookup.c \
+                        $(CODEGEN_DIR)/llvm_inventory_field_view.c \
+                        $(CODEGEN_DIR)/llvm_inventory_slot_view.c \
                         $(CODEGEN_DIR)/llvm_inventory_host_methods.c \
                         $(CODEGEN_DIR)/llvm_expr.c \
                         $(CODEGEN_DIR)/llvm_expr_aggregate.c \
@@ -918,6 +932,7 @@ ifneq ($(LLVM_ENABLED),0)
                         $(CODEGEN_DIR)/llvm_expr_channel.c \
                         $(CODEGEN_DIR)/llvm_expr_collection_base_calls.c \
                         $(CODEGEN_DIR)/llvm_expr_constructor_calls.c \
+                        $(CODEGEN_DIR)/llvm_expr_constructor_channel_guard.c \
                         $(CODEGEN_DIR)/llvm_expr_event_calls.c \
                         $(CODEGEN_DIR)/llvm_expr_helpers.c \
                         $(CODEGEN_DIR)/llvm_expr_domain_query_calls.c \
@@ -950,6 +965,7 @@ ifneq ($(LLVM_ENABLED),0)
                         $(CODEGEN_DIR)/llvm_stmt.c \
                         $(CODEGEN_DIR)/llvm_stmt_emit_support.c \
                         $(CODEGEN_DIR)/llvm_stmt_defer_scope.c \
+                        $(CODEGEN_DIR)/llvm_stmt_array_type_infer.c \
                         $(CODEGEN_DIR)/llvm_stmt_type_infer.c \
                         $(CODEGEN_DIR)/llvm_stmt_type_infer_nominal.c \
                         $(CODEGEN_DIR)/llvm_stmt_type_infer_await.c \
@@ -1087,6 +1103,7 @@ BUILD_CONTRACT_INVENTORY_FILES = \
                    $(RUNTIME_DIR)/pgy_runtime_lib_channel_string_exports.h \
                    $(RUNTIME_DIR)/pgy_runtime_lib_device_slot_exports.h \
                    $(RUNTIME_DIR)/pgy_runtime_lib_io_string_exports.h \
+                   $(RUNTIME_DIR)/pgy_runtime_process_exit.h \
                    $(RUNTIME_DIR)/pgy_runtime_lib_qubit_state_exports.h \
                    $(RUNTIME_DIR)/pgy_runtime_lib_raw_collection_common_exports.h \
                    $(RUNTIME_DIR)/pgy_runtime_lib_raw_map_exports.h \
@@ -1232,6 +1249,7 @@ MIR_CORE_OBJECTS = $(BUILD_DIR)/compiler/mir.o \
                    $(BUILD_DIR)/compiler/mir_fact_surface_validate.o \
                    $(BUILD_DIR)/compiler/mir_fact_terminator_validate.o \
                    $(BUILD_DIR)/compiler/mir_decl_header_validate.o \
+                   $(BUILD_DIR)/compiler/mir_decl_header_access.o \
                    $(BUILD_DIR)/compiler/mir_decl_headers.o \
                    $(BUILD_DIR)/compiler/mir_stmt_population.o \
                    $(BUILD_DIR)/compiler/mir_stmt_population_resource_ops.o \

@@ -16,6 +16,7 @@
 #include "transpiler_block_emit.h"
 #include "transpiler_context.h"
 #include "transpiler_expr_type_infer.h"
+#include "transpiler_mir_emit_state.h"
 #include "transpiler_match_bindings.h"
 #include "transpiler_type_mapping.h"
 #include "transpiler_type_require.h"
@@ -139,6 +140,9 @@ emit_match_stmt(ASTNode *node, TranspilerCtx *ctx)
         codebuf_write(ctx->out, "{\n");
         ctx->indent++;
 
+        int saved_slot_count = ctx->slot_var_count;
+        int saved_typed_count = ctx->typed_var_count;
+        int saved_alias_count = ctx->alias_var_count;
         if (binding != NULL && kind != NULL) {
             transpiler_emit_builtin_match_binding(pattern_node, kind, binding,
                 subject_type, subject_is_option, tmp_id, ctx);
@@ -146,6 +150,9 @@ emit_match_stmt(ASTNode *node, TranspilerCtx *ctx)
         transpiler_emit_enum_match_bindings(pattern_node, kind, tmp_id, ctx);
 
         emit_block(ast_match_case_body(mc), ctx);
+        transpiler_restore_local_binding_counts_local(ctx, saved_slot_count,
+                                                      saved_typed_count,
+                                                      saved_alias_count);
         ctx->indent--;
         write_indent(ctx);
         codebuf_write(ctx->out, "}\n");

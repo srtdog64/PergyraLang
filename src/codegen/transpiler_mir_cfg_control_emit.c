@@ -1,5 +1,7 @@
 #include "transpiler_mir_cfg_control_emit.h"
 
+#include <stdint.h>
+#include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 
@@ -16,14 +18,76 @@
 #include "transpiler_type_mapping.h"
 #include "transpiler_type_require.h"
 
+static void
+transpiler_mir_loop_binding_name(const MIRInstruction *inst,
+                                 const char *variable,
+                                 char *buf,
+                                 size_t buf_size)
+{
+    uint32_t stable_id;
+
+    if (buf == NULL || buf_size == 0)
+        return;
+    buf[0] = '\0';
+    stable_id = ast_node_stable_id(mir_instruction_source_payload(inst));
+    if (stable_id == 0) {
+        snprintf(buf, buf_size, "_pgy_for_%s",
+                 variable != NULL ? variable : "it");
+        return;
+    }
+    snprintf(buf, buf_size, "_pgy_for_%s_%u",
+             variable != NULL ? variable : "it", stable_id);
+}
+
+static void
+transpiler_mir_loop_index_name(const MIRInstruction *inst,
+                               const char *variable,
+                               char *buf,
+                               size_t buf_size)
+{
+    uint32_t stable_id;
+
+    if (buf == NULL || buf_size == 0)
+        return;
+    buf[0] = '\0';
+    stable_id = ast_node_stable_id(mir_instruction_source_payload(inst));
+    if (stable_id == 0) {
+        snprintf(buf, buf_size, "_pgy_idx_%s",
+                 variable != NULL ? variable : "it");
+        return;
+    }
+    snprintf(buf, buf_size, "_pgy_idx_%s_%u",
+             variable != NULL ? variable : "it", stable_id);
+}
+
+static bool
+transpiler_mir_set_loop_binding_name(TranspilerCtx *ctx,
+                                     TranspilerSSANameMap *ssa_map,
+                                     const char *variable,
+                                     const char *loop_name)
+{
+    const char *stable_name;
+
+    if (ssa_map == NULL)
+        return true;
+    if (ctx == NULL || variable == NULL || loop_name == NULL)
+        return false;
+    stable_name = transpiler_scratch_strdup(ctx, loop_name);
+    if (stable_name == NULL)
+        return false;
+    return transpiler_ssa_name_map_set(ssa_map, variable, stable_name);
+}
+
 bool
 transpiler_mir_emit_for_loop_init_inst(CodeBuf *buf,
                                        const MIRInstruction *inst,
                                        TranspilerCtx *ctx,
-                                       const TranspilerSSANameMap *ssa_map)
+                                       TranspilerSSANameMap *ssa_map)
 {
     char *start;
     const char *variable;
+    char loop_name[256];
+    char idx_name[256];
 
     if (buf == NULL || inst == NULL || ctx == NULL)
         return true;
@@ -35,18 +99,32 @@ transpiler_mir_emit_for_loop_init_inst(CodeBuf *buf,
     variable = inst->arg0;
     if (variable == NULL)
         return true;
+    transpiler_mir_loop_binding_name(inst, variable, loop_name,
+                                     sizeof(loop_name));
     if (inst->branch_shape == MIR_BRANCH_FOR_IN) {
+        transpiler_mir_loop_index_name(inst, variable, idx_name,
+                                       sizeof(idx_name));
         write_indent_to(buf, ctx->indent);
-        codebuf_write(buf, "size_t _pgy_idx_%s = 0;\n", variable);
+        codebuf_write(buf, "size_t %s = 0;\n", idx_name);
+        if (!transpiler_mir_set_loop_binding_name(ctx, ssa_map, variable,
+                                                  loop_name)) {
+            return false;
+        }
         return true;
     }
 
     start = emit_expression_with_ssa_map(inst->expr0, ctx, ssa_map);
     write_indent_to(buf, ctx->indent);
     codebuf_write(buf, "int32_t %s = %s;\n",
-                  variable,
+                  loop_name,
                   start != NULL ? start : "0");
+    if (!transpiler_mir_set_loop_binding_name(ctx, ssa_map, variable,
+                                              loop_name)) {
+        free(start);
+        return false;
+    }
     register_typed_var(ctx, variable, "Int");
+    register_typed_var(ctx, loop_name, "Int");
     free(start);
     return true;
 }
@@ -93,6 +171,8 @@ transpiler_mir_render_for_loop_condition_inst(
     char *end;
     char *cond;
     const char *variable;
+    char loop_name[256];
+    char idx_name[256];
 
     if (inst == NULL || ctx == NULL)
         return NULL;
@@ -102,6 +182,8 @@ transpiler_mir_render_for_loop_condition_inst(
     variable = inst->arg0;
     if (variable == NULL)
         return NULL;
+    transpiler_mir_loop_binding_name(inst, variable, loop_name,
+                                     sizeof(loop_name));
     if (inst->branch_shape == MIR_BRANCH_FOR_IN) {
         const char *collection_type = NULL;
         const char *length_field;
@@ -113,8 +195,10 @@ transpiler_mir_render_for_loop_condition_inst(
             inner_type_buf, sizeof(inner_type_buf));
         length_field = transpiler_mir_for_in_length_field(collection_type);
         collection = emit_expression_with_ssa_map(inst->expr0, ctx, ssa_map);
-        cond = strdup_fmt("_pgy_idx_%s < %s.%s",
-            variable,
+        transpiler_mir_loop_index_name(inst, variable, idx_name,
+                                       sizeof(idx_name));
+        cond = strdup_fmt("%s < %s.%s",
+            idx_name,
             collection != NULL ? collection : "0",
             length_field);
         free(collection);
@@ -122,7 +206,7 @@ transpiler_mir_render_for_loop_condition_inst(
     }
 
     end = emit_expression_with_ssa_map(inst->expr1, ctx, ssa_map);
-    cond = strdup_fmt("%s < %s", variable, end != NULL ? end : "0");
+    cond = strdup_fmt("%s < %s", loop_name, end != NULL ? end : "0");
     free(end);
     return cond;
 }
@@ -132,7 +216,7 @@ transpiler_mir_emit_for_in_body_binding(CodeBuf *buf,
                                         const MIRRoutine *routine,
                                         const MIRBasicBlock *block,
                                         TranspilerCtx *ctx,
-                                        const TranspilerSSANameMap *ssa_map)
+                                        TranspilerSSANameMap *ssa_map)
 {
     const MIRInstruction *branch_inst;
     const char *variable;
@@ -140,16 +224,32 @@ transpiler_mir_emit_for_in_body_binding(CodeBuf *buf,
     char element_type[128];
     char inner_type[128];
     char *collection;
+    char loop_name[256];
+    char idx_name[256];
 
     if (buf == NULL || routine == NULL || block == NULL || ctx == NULL)
         return true;
 
-    branch_inst = transpiler_mir_find_incoming_for_in_branch(routine, block);
+    branch_inst = transpiler_mir_find_incoming_loop_branch(routine, block);
+    bool is_body_entry = branch_inst != NULL;
+    if (branch_inst == NULL)
+        branch_inst = transpiler_mir_find_backedge_loop_branch(routine, block);
     if (branch_inst == NULL)
         return true;
     variable = branch_inst->arg0;
     if (variable == NULL)
         return true;
+    transpiler_mir_loop_binding_name(branch_inst, variable, loop_name,
+                                     sizeof(loop_name));
+    if (branch_inst->branch_shape == MIR_BRANCH_FOR_RANGE) {
+        if (!transpiler_mir_set_loop_binding_name(ctx, ssa_map, variable,
+                                                  loop_name)) {
+            return false;
+        }
+        register_typed_var(ctx, variable, "Int");
+        register_typed_var(ctx, loop_name, "Int");
+        return true;
+    }
 
     if (!transpiler_mir_for_in_element_type(ctx, branch_inst->expr0,
             &collection_type, element_type, sizeof(element_type),
@@ -157,15 +257,33 @@ transpiler_mir_emit_for_in_body_binding(CodeBuf *buf,
         return false;
     }
 
-    collection = emit_expression_with_ssa_map(branch_inst->expr0, ctx, ssa_map);
-    write_indent_to(buf, ctx->indent);
-    codebuf_write(buf, "%s %s = %s.data[_pgy_idx_%s];\n",
-        element_type,
-        variable,
-        collection != NULL ? collection : "0",
-        variable);
+    if (is_body_entry) {
+        collection = emit_expression_with_ssa_map(branch_inst->expr0, ctx,
+                                                  ssa_map);
+        transpiler_mir_loop_index_name(branch_inst, variable, idx_name,
+                                       sizeof(idx_name));
+        write_indent_to(buf, ctx->indent);
+        codebuf_write(buf, "%s %s = %s.data[%s];\n",
+            element_type,
+            loop_name,
+            collection != NULL ? collection : "0",
+            idx_name);
+        free(collection);
+    }
+    if (!transpiler_mir_set_loop_binding_name(ctx, ssa_map, variable,
+                                              loop_name)) {
+        return false;
+    }
+    if (ctx->match_binding_alias_map != NULL) {
+        const char *stable_alias = transpiler_scratch_strdup(ctx, loop_name);
+        if (stable_alias != NULL) {
+            (void)transpiler_ssa_name_map_set(
+                (TranspilerSSANameMap *)ctx->match_binding_alias_map,
+                variable, stable_alias);
+        }
+    }
     register_typed_var(ctx, variable, inner_type);
-    free(collection);
+    register_typed_var(ctx, loop_name, inner_type);
     return true;
 }
 
@@ -178,6 +296,8 @@ transpiler_mir_emit_loop_backedge_increment(CodeBuf *buf,
     const MIRBasicBlock *target;
     const MIRInstruction *branch_inst;
     const char *variable;
+    char loop_name[256];
+    char idx_name[256];
 
     if (buf == NULL || ctx == NULL || routine == NULL || block == NULL)
         return true;
@@ -196,14 +316,16 @@ transpiler_mir_emit_loop_backedge_increment(CodeBuf *buf,
     variable = branch_inst->arg0;
     if (variable == NULL)
         return true;
+    transpiler_mir_loop_binding_name(branch_inst, variable, loop_name,
+                                     sizeof(loop_name));
+    transpiler_mir_loop_index_name(branch_inst, variable, idx_name,
+                                   sizeof(idx_name));
 
     write_indent_to(buf, ctx->indent);
     if (branch_inst->branch_shape == MIR_BRANCH_FOR_IN) {
-        codebuf_write(buf, "_pgy_idx_%s = _pgy_idx_%s + 1;\n",
-            variable,
-            variable);
+        codebuf_write(buf, "%s = %s + 1;\n", idx_name, idx_name);
     } else {
-        codebuf_write(buf, "%s = %s + 1;\n", variable, variable);
+        codebuf_write(buf, "%s = %s + 1;\n", loop_name, loop_name);
     }
     return true;
 }
@@ -304,7 +426,7 @@ transpiler_mir_render_branch_condition(ASTNode *func_decl,
                                        const MIRInstruction *inst,
                                        size_t target_block,
                                        TranspilerCtx *ctx,
-                                       const TranspilerSSANameMap *ssa_map)
+                                       TranspilerSSANameMap *ssa_map)
 {
     ASTNode *condition;
 

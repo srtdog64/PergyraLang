@@ -1,0 +1,23 @@
+func TagSum(names: Array<String>, n: Int) -> Int {
+    let total: Int = 0;
+    let i: Int = 0;
+    while i < n {
+        let s: String = names[i];
+        if s == "alpha" { total = total + 1; }
+        if s == "beta" { total = total + 10; }
+        if s == "gamma" { total = total + 100; }
+        i = i + 1;
+    }
+    return total;
+}
+
+func Main() -> Void {
+    let arr: Array<String> = ["alpha", "beta", "gamma"];
+    Log(TagSum(arr, 3));
+    let arr2: Array<String> = ["alpha", "alpha"];
+    Log(TagSum(arr2, 2));
+    let arr3: Array<String> = ["gamma", "gamma", "gamma"];
+    Log(TagSum(arr3, 3));
+    let arr4: Array<String> = ["unknown"];
+    Log(TagSum(arr4, 1));
+}

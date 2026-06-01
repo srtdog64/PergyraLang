@@ -1,0 +1,30 @@
+class Logger {
+    let level: Int;
+
+    func Note(self) -> Int {
+        return level + 1;
+    }
+
+    func Boost(self, mult: Int) -> Int {
+        return level * mult;
+    }
+}
+
+func RunBoth(seeds: Array<Int>, n: Int, mult: Int) -> Int {
+    let total: Int = 0;
+    let i: Int = 0;
+    while i < n {
+        let lg: Logger = Logger(seeds[i]);
+        total = total + lg.Note() + lg.Boost(mult);
+        i = i + 1;
+    }
+    return total;
+}
+
+func Main() -> Void {
+    let arr: Array<Int> = [1, 2, 3];
+    Log(RunBoth(arr, 3, 2));
+    Log(RunBoth(arr, 3, 10));
+    Log(RunBoth(arr, 0, 5));
+    Log(RunBoth(arr, 2, 100));
+}

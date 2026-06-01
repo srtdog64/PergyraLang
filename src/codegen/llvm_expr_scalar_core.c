@@ -397,7 +397,8 @@ llvm_emit_binary(ASTNode *node, LLVMGenCtx *ctx)
                 LLVMValueRef args[] = { left, right };
                 if (fn->ret_type == ctx->type_void) {
                     LLVMBuildCall2(ctx->builder, fn->fn_type, fn->fn, args, 2, "");
-                    return LLVMConstInt(ctx->type_i32, 0, 0);
+                    return llvm_void_expression_placeholder(ctx, node,
+                        "operator-overload-call");
                 }
                 return LLVMBuildCall2(ctx->builder, fn->fn_type, fn->fn,
                                       args, 2, llvm_tmp_name(ctx));

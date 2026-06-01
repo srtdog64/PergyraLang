@@ -91,9 +91,22 @@ llvm_emit_hosted_self_call(ASTNode *node, LLVMGenCtx *ctx,
 
     for (size_t i = 0; i < argc; i++) {
         ASTNode *arg_node = ast_call_argument(node, i);
-        LLVMValueRef arg_value = llvm_emit_expression(arg_node, ctx);
+        LLVMTypeRef arg_type = llvm_stmt_infer_expr_type(ctx, arg_node);
+        LLVMValueRef arg_value;
         FuncParam *param = llvm_hosted_self_logical_param(host_method, i);
 
+        if (ctx->has_error)
+            return NULL;
+        if (arg_type == ctx->type_void) {
+            llvm_set_error_at_with_hints(ctx, arg_node,
+                PGY_CODE_LLVM_TYPE_UNSUPPORTED,
+                PGY_CAUSE_LLVM_TYPE_UNSUPPORTED,
+                PGY_FIX_ALIGN_ARG_TYPE,
+                "LLVM hosted method call '%s' cannot consume a Void expression as argument %zu",
+                full_name, i + 1);
+            return NULL;
+        }
+        arg_value = llvm_emit_expression(arg_node, ctx);
         arg_value = llvm_emit_hosted_self_arg(arg_node, ctx, param, arg_value);
         if (arg_value == NULL)
             return llvm_call_arg_error_recovery(ctx, node, callee_name, i);
@@ -103,7 +116,8 @@ llvm_emit_hosted_self_call(ASTNode *node, LLVMGenCtx *ctx,
     if (fn->ret_type == ctx->type_void) {
         LLVMBuildCall2(ctx->builder, fn->fn_type, fn->fn,
                        args, (unsigned)(argc + 1), "");
-        return LLVMConstInt(ctx->type_i32, 0, 0);
+        return llvm_void_expression_placeholder(ctx, node,
+            "hosted-self-call");
     }
 
     return LLVMBuildCall2(ctx->builder, fn->fn_type, fn->fn,

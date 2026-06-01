@@ -98,7 +98,8 @@ llvm_emit_event_invocation_call(ASTNode *node, LLVMGenCtx *ctx,
     }
     LLVMBuildCall2(ctx->builder, fn->fn_type, fn->fn, args,
         (unsigned)(arg_count + 1), "");
-    *out = LLVMConstInt(ctx->type_i32, 0, 0);
+    *out = llvm_void_expression_placeholder(ctx, node,
+        "event-invocation-call");
     return true;
 }
 
@@ -141,7 +142,7 @@ llvm_emit_event_subscribe_expr(ASTNode *node, LLVMGenCtx *ctx)
 
     LLVMValueRef args[] = { ev_ptr, hval };
     LLVMBuildCall2(ctx->builder, fn->fn_type, fn->fn, args, 2, "");
-    return LLVMConstInt(ctx->type_i32, 0, 0);
+    return llvm_void_expression_placeholder(ctx, node, "event-subscribe");
 }
 
 LLVMValueRef
@@ -183,7 +184,7 @@ llvm_emit_event_unsubscribe_expr(ASTNode *node, LLVMGenCtx *ctx)
 
     LLVMValueRef args[] = { ev_ptr, hval };
     LLVMBuildCall2(ctx->builder, fn->fn_type, fn->fn, args, 2, "");
-    return LLVMConstInt(ctx->type_i32, 0, 0);
+    return llvm_void_expression_placeholder(ctx, node, "event-unsubscribe");
 }
 
 LLVMValueRef
@@ -233,7 +234,7 @@ llvm_emit_event_invoke_expr(ASTNode *node, LLVMGenCtx *ctx)
     }
     LLVMBuildCall2(ctx->builder, fn->fn_type, fn->fn, args,
         (unsigned)(ac + 1), "");
-    return LLVMConstInt(ctx->type_i32, 0, 0);
+    return llvm_void_expression_placeholder(ctx, node, "event-invoke");
 }
 
 #endif /* PGY_LLVM_ENABLED */

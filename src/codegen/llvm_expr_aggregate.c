@@ -10,8 +10,9 @@ LLVMValueRef
 llvm_emit_tuple_literal_expr(ASTNode *node, LLVMGenCtx *ctx)
 {
     size_t n = ast_tuple_literal_count(node);
-    if (n == 0)
-        return LLVMConstInt(ctx->type_i32, 0, 0);
+    if (n < 2)
+        return llvm_expression_error(ctx, node,
+            "LLVM tuple literal requires at least 2 elements");
 
     LLVMValueRef *vals = pgy_arena_calloc(&ctx->scratch,
         n * sizeof(LLVMValueRef));
@@ -52,7 +53,7 @@ llvm_emit_array_literal_expr(ASTNode *node, LLVMGenCtx *ctx)
     size_t count = ast_array_literal_count(node);
     const char *inner_name = NULL;
     char inner_name_buf[256];
-    LLVMTypeRef elem_type = ctx->type_i32;
+    LLVMTypeRef elem_type = NULL;
     LLVMValueRef first_value = NULL;
 
     if (count > 0) {

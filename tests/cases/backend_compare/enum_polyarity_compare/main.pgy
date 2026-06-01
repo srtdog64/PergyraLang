@@ -1,0 +1,29 @@
+enum Shape {
+    Circle(Int),
+    Square(Int),
+    Rect(Int, Int)
+}
+
+func Area(s: Shape) -> Int {
+    match s {
+        case Circle(r): return r * r * 3;
+        case Square(side): return side * side;
+        case Rect(w, h): return w * h;
+    }
+}
+
+func Compare(a: Shape, b: Shape) -> Int {
+    let ar: Int = Area(a);
+    let br: Int = Area(b);
+    if ar > br { return 1; }
+    if ar < br { return -1; }
+    return 0;
+}
+
+func Main() -> Void {
+    Log(Compare(Circle(5), Square(7)));
+    Log(Compare(Rect(3, 4), Square(4)));
+    Log(Compare(Circle(10), Rect(20, 20)));
+    Log(Compare(Square(5), Square(5)));
+    Log(Compare(Rect(1, 100), Square(10)));
+}

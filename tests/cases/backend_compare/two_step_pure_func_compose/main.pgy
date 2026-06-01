@@ -1,0 +1,32 @@
+func DoubleIfPositive(n: Int) -> Int {
+    if n > 0 { return n * 2; }
+    return n;
+}
+
+func TripleIfBig(n: Int) -> Int {
+    if n > 100 { return n * 3; }
+    return n;
+}
+
+func Compose(n: Int) -> Int {
+    return TripleIfBig(DoubleIfPositive(n));
+}
+
+func RunArr(arr: Array<Int>, n: Int) -> Int {
+    let total: Int = 0;
+    let i: Int = 0;
+    while i < n {
+        total = total + Compose(arr[i]);
+        i = i + 1;
+    }
+    return total;
+}
+
+func Main() -> Void {
+    let arr: Array<Int> = [1, 50, 100, -10, 200];
+    Log(RunArr(arr, 5));
+    Log(RunArr(arr, 3));
+    Log(Compose(75));
+    Log(Compose(60));
+    Log(Compose(-50));
+}

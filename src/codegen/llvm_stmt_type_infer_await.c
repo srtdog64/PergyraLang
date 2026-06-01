@@ -18,7 +18,7 @@ llvm_stmt_await_unknown_type(LLVMGenCtx *ctx, ASTNode *expr,
             "LLVM await expression type inference requires Future<T> metadata: %s",
             reason != NULL ? reason : "unknown await expression");
     }
-    return ctx->type_i32;
+    return NULL;
 }
 
 static LLVMTypeRef
@@ -68,7 +68,7 @@ llvm_stmt_infer_await_expr_type(LLVMGenCtx *ctx, ASTNode *expr)
 
     if (strcmp(inner, "Void") == 0) {
         if (!llvm_lookup_future_is_remote(ctx, future_name))
-            return ctx->type_i32;
+            return ctx->type_void;
         llvm_set_error_at_with_hints(ctx, expr,
             PGY_CODE_LLVM_TYPE_UNSUPPORTED,
             PGY_CAUSE_LLVM_TYPE_UNSUPPORTED,

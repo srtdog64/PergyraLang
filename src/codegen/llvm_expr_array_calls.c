@@ -258,7 +258,7 @@ llvm_emit_array_builtin_call(ASTNode *node, LLVMGenCtx *ctx,
         }
         LLVMValueRef args[] = { arr_var->alloca, value };
         LLVMBuildCall2(ctx->builder, fn->fn_type, fn->fn, args, 2, "");
-        *out = LLVMConstInt(ctx->type_i32, 0, 0);
+        *out = llvm_void_expression_placeholder(ctx, node, callee_name);
         return true;
     }
 
@@ -308,7 +308,7 @@ llvm_emit_array_builtin_call(ASTNode *node, LLVMGenCtx *ctx,
                 ctx->type_i64, llvm_tmp_name(ctx));
         LLVMValueRef args[] = { arr_var->alloca, index64, value };
         LLVMBuildCall2(ctx->builder, fn->fn_type, fn->fn, args, 3, "");
-        *out = LLVMConstInt(ctx->type_i32, 0, 0);
+        *out = llvm_void_expression_placeholder(ctx, node, callee_name);
         return true;
     }
 
@@ -340,7 +340,7 @@ llvm_emit_array_builtin_call(ASTNode *node, LLVMGenCtx *ctx,
         }
         LLVMValueRef args[] = { arr_var->alloca };
         LLVMBuildCall2(ctx->builder, fn->fn_type, fn->fn, args, 1, "");
-        *out = LLVMConstInt(ctx->type_i32, 0, 0);
+        *out = llvm_void_expression_placeholder(ctx, node, callee_name);
         return true;
     }
 

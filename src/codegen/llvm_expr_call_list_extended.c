@@ -109,7 +109,7 @@ llvm_emit_list_extended_call(ASTNode *node, LLVMGenCtx *ctx,
                 value
             };
             LLVMBuildCall2(ctx->builder, fn->fn_type, fn->fn, args, 2, "");
-            { *out = LLVMConstInt(ctx->type_i32, 0, 0); return true; }
+            { *out = llvm_void_expression_placeholder(ctx, node, callee_name); return true; }
         }
         tmp = llvm_create_entry_alloca(ctx, elem_ty, llvm_tmp_name(ctx));
         if (tmp == NULL)
@@ -128,7 +128,7 @@ llvm_emit_list_extended_call(ASTNode *node, LLVMGenCtx *ctx,
             llvm_sizeof_type_i64(ctx, elem_ty)
         };
         LLVMBuildCall2(ctx->builder, fn->fn_type, fn->fn, args, 3, "");
-        { *out = LLVMConstInt(ctx->type_i32, 0, 0); return true; }
+        { *out = llvm_void_expression_placeholder(ctx, node, callee_name); return true; }
     }
     if (op == LLVM_LIST_EXT_GET) {
         ASTNode *list_arg = ast_call_argument(node, 0);
@@ -230,7 +230,7 @@ llvm_emit_list_extended_call(ASTNode *node, LLVMGenCtx *ctx,
                 value
             };
             LLVMBuildCall2(ctx->builder, fn->fn_type, fn->fn, args, 3, "");
-            { *out = LLVMConstInt(ctx->type_i32, 0, 0); return true; }
+            { *out = llvm_void_expression_placeholder(ctx, node, callee_name); return true; }
         }
         tmp = llvm_create_entry_alloca(ctx, elem_ty, llvm_tmp_name(ctx));
         if (tmp == NULL)
@@ -250,7 +250,7 @@ llvm_emit_list_extended_call(ASTNode *node, LLVMGenCtx *ctx,
             llvm_sizeof_type_i64(ctx, elem_ty)
         };
         LLVMBuildCall2(ctx->builder, fn->fn_type, fn->fn, args, 4, "");
-        { *out = LLVMConstInt(ctx->type_i32, 0, 0); return true; }
+        { *out = llvm_void_expression_placeholder(ctx, node, callee_name); return true; }
     }
     if (op == LLVM_LIST_EXT_SIZE) {
         ASTNode *list_arg = ast_call_argument(node, 0);
@@ -305,7 +305,7 @@ llvm_emit_list_extended_call(ASTNode *node, LLVMGenCtx *ctx,
                 idx
             };
             LLVMBuildCall2(ctx->builder, fn->fn_type, fn->fn, args, 2, "");
-            { *out = LLVMConstInt(ctx->type_i32, 0, 0); return true; }
+            { *out = llvm_void_expression_placeholder(ctx, node, callee_name); return true; }
         }
         fn = llvm_required_collection_function(ctx, node, callee_name,
             "pgy_list_remove_raw_export");
@@ -319,7 +319,7 @@ llvm_emit_list_extended_call(ASTNode *node, LLVMGenCtx *ctx,
             llvm_sizeof_type_i64(ctx, elem_ty)
         };
         LLVMBuildCall2(ctx->builder, fn->fn_type, fn->fn, args, 3, "");
-        { *out = LLVMConstInt(ctx->type_i32, 0, 0); return true; }
+        { *out = llvm_void_expression_placeholder(ctx, node, callee_name); return true; }
     }
     return false;
 }

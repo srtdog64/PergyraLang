@@ -14,5 +14,7 @@ bool llvm_mir_param_uses_pointer_self(LLVMGenCtx *ctx, ASTNode *type_node);
 const char *llvm_mir_boundary_slot_inner_name(LLVMGenCtx *ctx,
                                               FuncParam *param,
                                               bool *is_secure_out);
+void llvm_mir_register_nominal_class(LLVMGenCtx *ctx, const char *name,
+                                     ASTNode *type_node);
 
 #endif

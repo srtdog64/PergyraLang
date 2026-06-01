@@ -163,6 +163,14 @@ type_check_function_symbol_call(ASTNode *expr, Symbol *sym,
         Type *arg_type = declared_param_ownership == OWNERSHIP_TYPE_MOVE_ONLY
             ? type_check_qubit_use(arg_expr, ctx)
             : type_check_expression(arg_expr, ctx);
+        if (type_equals(arg_type, TYPE_VOID)) {
+            semantic_error_with_hints(ctx, PGY_CODE_SEM_TYPE_MISMATCH,
+                PGY_CAUSE_ASSIGNABILITY_CHECK,
+                PGY_FIX_ALIGN_OPERAND_TYPE,
+                arg_expr,
+                "Void expression cannot be passed as a call argument; split the side effect into a statement before the call");
+            arg_type = TYPE_UNKNOWN;
+        }
         if (effective_generic_types != NULL
             && callable_decl != NULL
             && i < ast_func_param_count(callable_decl)) {

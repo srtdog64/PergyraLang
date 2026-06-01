@@ -1,0 +1,35 @@
+enum Sign { Plus, Minus, Zilch }
+
+func Of(n: Int) -> Sign {
+    if n > 0 { return Plus; }
+    if n < 0 { return Minus; }
+    return Zilch;
+}
+
+func Categorize(arr: Array<Int>) -> Int {
+    let total: Int = 0;
+    for v in arr {
+        match Of(v) {
+            case Plus:
+                if v > 100 { total = total + v * 2; }
+                else { total = total + v; }
+            case Minus:
+                let abs: Int = 0 - v;
+                if abs > 50 { total = total + 999; }
+                else { total = total + abs; }
+            case Zilch: total = total + 1000;
+        }
+    }
+    return total;
+}
+
+func Main() -> Void {
+    let a: Array<Int> = [5, -3, 0, 200, -100, 50];
+    Log(Categorize(a));
+    let empty: Array<Int> = [];
+    Log(Categorize(empty));
+    let z: Array<Int> = [0, 0];
+    Log(Categorize(z));
+    let big: Array<Int> = [150];
+    Log(Categorize(big));
+}

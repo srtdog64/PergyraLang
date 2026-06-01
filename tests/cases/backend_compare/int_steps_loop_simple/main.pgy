@@ -1,0 +1,16 @@
+func StepsLoop(start: Int, steps: Int) -> Int {
+    let cur: Int = start;
+    let i: Int = 0;
+    while i < steps {
+        let bump: Int = cur + 1;
+        cur = bump;
+        i = i + 1;
+    }
+    return cur;
+}
+
+func Main() -> Void {
+    Log(StepsLoop(0, 5));
+    Log(StepsLoop(10, 3));
+    Log(StepsLoop(0, 0));
+}

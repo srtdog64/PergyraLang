@@ -9,6 +9,7 @@
 #include "../semantic/diag_codes.h"
 #include "transpiler_context.h"
 #include "transpiler_expr_type_infer.h"
+#include "transpiler_mir_emit_state.h"
 #include "transpiler_symbols.h"
 #include "transpiler_type_mapping.h"
 #include "transpiler_type_require.h"
@@ -138,6 +139,9 @@ emit_for_loop(ASTNode *node, TranspilerCtx *ctx)
     ASTNode *body = ast_for_body(node);
     int loop_slot = ctx->loop_depth;
     int loop_id = ++ctx->tmp_counter;
+    int saved_slot_count = ctx->slot_var_count;
+    int saved_typed_count = ctx->typed_var_count;
+    int saved_alias_count = ctx->alias_var_count;
 
     if (loop_slot < TRANSPILE_MAX_LOOP_DEPTH) {
         ctx->loop_labels[loop_slot] = ast_for_label(node);
@@ -198,6 +202,13 @@ emit_for_loop(ASTNode *node, TranspilerCtx *ctx)
                 "cannot derive concrete element type for for-in iterable '%s'",
                 coll_type != NULL ? coll_type : "(unknown)");
             free(coll);
+            if (loop_slot < TRANSPILE_MAX_LOOP_DEPTH) {
+                ctx->loop_depth--;
+                ctx->loop_labels[loop_slot] = NULL;
+            }
+            transpiler_restore_local_binding_counts_local(ctx, saved_slot_count,
+                                                          saved_typed_count,
+                                                          saved_alias_count);
             return;
         }
 
@@ -236,6 +247,9 @@ emit_for_loop(ASTNode *node, TranspilerCtx *ctx)
             ctx->loop_depth--;
             ctx->loop_labels[loop_slot] = NULL;
         }
+        transpiler_restore_local_binding_counts_local(ctx, saved_slot_count,
+                                                      saved_typed_count,
+                                                      saved_alias_count);
         free(coll);
         return;
     }
@@ -274,6 +288,9 @@ emit_for_loop(ASTNode *node, TranspilerCtx *ctx)
         ctx->loop_depth--;
         ctx->loop_labels[loop_slot] = NULL;
     }
+    transpiler_restore_local_binding_counts_local(ctx, saved_slot_count,
+                                                  saved_typed_count,
+                                                  saved_alias_count);
 }
 
 void

@@ -1,0 +1,32 @@
+enum NetErr { Timeout, Refused }
+
+func TryConnect(port: Int) -> Result<Int, NetErr> {
+    if port < 1024 { return Err(Refused); }
+    if port > 9000 { return Err(Timeout); }
+    return Ok(port * 2);
+}
+
+func ScanPorts(ports: Array<Int>) -> Int {
+    let good: Int = 0;
+    let bad: Int = 0;
+    for p in ports {
+        match TryConnect(p) {
+            case Ok(v): good = good + v;
+            case Err(e):
+                match e {
+                    case Timeout: bad = bad - 1;
+                    case Refused: bad = bad - 10;
+                }
+        }
+    }
+    return good + bad;
+}
+
+func Main() -> Void {
+    let a: Array<Int> = [1080, 22, 8080, 9999, 80];
+    Log(ScanPorts(a));
+    let empty: Array<Int> = [];
+    Log(ScanPorts(empty));
+    let allbad: Array<Int> = [22, 80, 9999];
+    Log(ScanPorts(allbad));
+}

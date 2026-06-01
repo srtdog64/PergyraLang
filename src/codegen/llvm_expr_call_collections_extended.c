@@ -129,7 +129,7 @@ llvm_emit_collection_extended_call(ASTNode *node, LLVMGenCtx *ctx,
                 value
             };
             LLVMBuildCall2(ctx->builder, fn->fn_type, fn->fn, args, 3, "");
-            { *out = LLVMConstInt(ctx->type_i32, 0, 0); return true; }
+            { *out = llvm_void_expression_placeholder(ctx, node, callee_name); return true; }
         }
         tmp = llvm_create_entry_alloca(ctx, value_ty, llvm_tmp_name(ctx));
         if (tmp == NULL)
@@ -148,7 +148,7 @@ llvm_emit_collection_extended_call(ASTNode *node, LLVMGenCtx *ctx,
             llvm_sizeof_type_i64(ctx, value_ty)
         };
         LLVMBuildCall2(ctx->builder, fn->fn_type, fn->fn, args, 4, "");
-        { *out = LLVMConstInt(ctx->type_i32, 0, 0); return true; }
+        { *out = llvm_void_expression_placeholder(ctx, node, callee_name); return true; }
     }
     if (op == LLVM_MAP_EXT_GET) {
         ASTNode *map_arg = ast_call_argument(node, 0);
@@ -263,7 +263,7 @@ llvm_emit_collection_extended_call(ASTNode *node, LLVMGenCtx *ctx,
                 };
                 LLVMBuildCall2(ctx->builder, fn->fn_type, fn->fn, args, 2, "");
             }
-            { *out = LLVMConstInt(ctx->type_i32, 0, 0); return true; }
+            { *out = llvm_void_expression_placeholder(ctx, node, callee_name); return true; }
         }
         fn = llvm_required_hashmap_raw_export(ctx, node, callee_name, "remove", key_name);
         if (fn == NULL)
@@ -276,7 +276,7 @@ llvm_emit_collection_extended_call(ASTNode *node, LLVMGenCtx *ctx,
             };
             LLVMBuildCall2(ctx->builder, fn->fn_type, fn->fn, args, 3, "");
         }
-        { *out = LLVMConstInt(ctx->type_i32, 0, 0); return true; }
+        { *out = llvm_void_expression_placeholder(ctx, node, callee_name); return true; }
     }
     if (op == LLVM_MAP_EXT_SIZE) {
         ASTNode *map_arg = ast_call_argument(node, 0);

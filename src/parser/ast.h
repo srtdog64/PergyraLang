@@ -19,6 +19,7 @@ struct ASTNode
     bool        is_exported;
     bool        has_explicit_export;
     bool        is_async_decl;
+    uint32_t    stable_id;
     
     /* Line and column information */
     uint32_t line;

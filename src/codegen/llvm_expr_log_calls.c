@@ -156,7 +156,7 @@ llvm_emit_log_call(ASTNode *node, LLVMGenCtx *ctx)
 
     args[0] = arg;
     LLVMBuildCall2(ctx->builder, log_fn->fn_type, log_fn->fn, args, 1, "");
-    return LLVMConstInt(ctx->type_i32, 0, 0);
+    return llvm_void_expression_placeholder(ctx, node, "log-call");
 }
 
 static LLVMValueRef
@@ -193,7 +193,7 @@ llvm_emit_log_raw_call(ASTNode *node, LLVMGenCtx *ctx)
 
     args[0] = arg;
     LLVMBuildCall2(ctx->builder, log_fn->fn_type, log_fn->fn, args, 1, "");
-    return LLVMConstInt(ctx->type_i32, 0, 0);
+    return llvm_void_expression_placeholder(ctx, node, "log-call");
 }
 
 static LLVMValueRef
@@ -236,7 +236,7 @@ llvm_emit_log_banner_call(ASTNode *node, LLVMGenCtx *ctx)
 
     args[0] = log_arg;
     LLVMBuildCall2(ctx->builder, log_fn->fn_type, log_fn->fn, args, 1, "");
-    return LLVMConstInt(ctx->type_i32, 0, 0);
+    return llvm_void_expression_placeholder(ctx, node, "log-call");
 }
 
 bool

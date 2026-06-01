@@ -252,7 +252,7 @@ llvm_emit_collection_base_call(ASTNode *node, LLVMGenCtx *ctx,
                 value
             };
             LLVMBuildCall2(ctx->builder, fn->fn_type, fn->fn, args, 2, "");
-            *out = LLVMConstInt(ctx->type_i32, 0, 0);
+            *out = llvm_void_expression_placeholder(ctx, node, callee_name);
             return true;
         }
         tmp = llvm_create_entry_alloca(ctx, elem_ty, llvm_tmp_name(ctx));
@@ -272,7 +272,7 @@ llvm_emit_collection_base_call(ASTNode *node, LLVMGenCtx *ctx,
             llvm_sizeof_type_i64(ctx, elem_ty)
         };
         LLVMBuildCall2(ctx->builder, fn->fn_type, fn->fn, args, 3, "");
-        *out = LLVMConstInt(ctx->type_i32, 0, 0);
+        *out = llvm_void_expression_placeholder(ctx, node, callee_name);
         return true;
     }
 
@@ -390,7 +390,7 @@ llvm_emit_collection_base_call(ASTNode *node, LLVMGenCtx *ctx,
                 value
             };
             LLVMBuildCall2(ctx->builder, fn->fn_type, fn->fn, args, 2, "");
-            *out = LLVMConstInt(ctx->type_i32, 0, 0);
+            *out = llvm_void_expression_placeholder(ctx, node, callee_name);
             return true;
         }
         tmp = llvm_create_entry_alloca(ctx, elem_ty, llvm_tmp_name(ctx));
@@ -410,7 +410,7 @@ llvm_emit_collection_base_call(ASTNode *node, LLVMGenCtx *ctx,
             llvm_sizeof_type_i64(ctx, elem_ty)
         };
         LLVMBuildCall2(ctx->builder, fn->fn_type, fn->fn, args, 3, "");
-        *out = LLVMConstInt(ctx->type_i32, 0, 0);
+        *out = llvm_void_expression_placeholder(ctx, node, callee_name);
         return true;
     }
 

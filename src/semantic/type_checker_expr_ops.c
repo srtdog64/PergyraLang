@@ -335,18 +335,37 @@ type_check_array_literal(ASTNode *expr, SemanticContext *ctx)
         ast_array_literal_element(expr, 0), elem_type, ctx);
     if (elem_type == NULL)
         elem_type = TYPE_UNKNOWN;
+    if (type_equals(elem_type, TYPE_VOID)) {
+        semantic_error_with_hints(ctx, PGY_CODE_SEM_TYPE_MISMATCH,
+            PGY_CAUSE_ARRAY_LITERAL_ELEMENT_TYPE_MISMATCH,
+            PGY_FIX_ALIGN_ARRAY_ELEMENT_TYPES,
+            ast_array_literal_element(expr, 0),
+            "Void expression cannot be stored as an array literal element; split the side effect before constructing the array");
+        elem_type = TYPE_UNKNOWN;
+    }
 
     for (size_t i = 1; i < ast_array_literal_count(expr); i++) {
         Type *next = type_check_expression(ast_array_literal_element(expr, i), ctx);
         reject_borrowed_array_literal_store(
             ast_array_literal_element(expr, i), next, ctx);
+        if (next == NULL)
+            next = TYPE_UNKNOWN;
+        if (type_equals(next, TYPE_VOID)) {
+            semantic_error_with_hints(ctx, PGY_CODE_SEM_TYPE_MISMATCH,
+                PGY_CAUSE_ARRAY_LITERAL_ELEMENT_TYPE_MISMATCH,
+                PGY_FIX_ALIGN_ARRAY_ELEMENT_TYPES,
+                ast_array_literal_element(expr, i),
+                "Void expression cannot be stored as an array literal element; split the side effect before constructing the array");
+            next = TYPE_UNKNOWN;
+        }
         if (!type_is_assignable(next, elem_type) && !type_is_assignable(elem_type, next)) {
             semantic_error_with_hints(ctx, PGY_CODE_SEM_TYPE_MISMATCH,
                 PGY_CAUSE_ARRAY_LITERAL_ELEMENT_TYPE_MISMATCH,
                 PGY_FIX_ALIGN_ARRAY_ELEMENT_TYPES,
                 ast_array_literal_element(expr, i),
                 "Array literal element type mismatch: expected '%s', got '%s'",
-                elem_type->name, next->name);
+                type_name_or_unknown(elem_type),
+                type_name_or_unknown(next));
             elem_type = TYPE_UNKNOWN;
         }
     }

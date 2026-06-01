@@ -16,6 +16,7 @@
 #include "transpiler_mir_expr_ssa.h"
 #include "transpiler_mir_local_type_ast_lookup.h"
 #include "transpiler_mir_local_type_lookup.h"
+#include "transpiler_mir_match_condition_emit.h"
 #include "transpiler_mir_pending_uses.h"
 #include "transpiler_mir_pin_emit.h"
 #include "transpiler_mir_preserved_let_emit.h"
@@ -76,6 +77,17 @@ transpiler_emit_mir_block_statements(CodeBuf *buf, const ASTNode *func_decl,
         return false;
     saved_active_ssa_map = ctx->active_ssa_map;
     ctx->active_ssa_map = ssa_map_out;
+    if (!transpiler_mir_remap_active_match_bindings(
+            (ASTNode *)func_decl, mir_routine, block, ctx, ssa_map_out)) {
+        ctx->active_ssa_map = saved_active_ssa_map;
+        return false;
+    }
+    if (!transpiler_mir_emit_match_case_body_binding(
+            buf, (ASTNode *)func_decl, mir_routine, block, ctx,
+            ssa_map_out)) {
+        ctx->active_ssa_map = saved_active_ssa_map;
+        return false;
+    }
     if (!transpiler_emit_mir_pin_enter_local(buf, ctx, block, reason, reason_cap)) {
         ctx->active_ssa_map = saved_active_ssa_map;
         return false;

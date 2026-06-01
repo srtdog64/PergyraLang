@@ -8,7 +8,6 @@
 
 #include <stdlib.h>
 #include <string.h>
-#include <assert.h>
 #include <errno.h>
 #include <stdio.h>
 
@@ -20,6 +19,7 @@
 
 #include "fiber.h"
 #include "scheduler.h"
+#include "../pgy_runtime_panic_contract.h"
 
 /* Thread-local current fiber */
 static __thread Fiber* tlsCurrentFiber = NULL;
@@ -40,8 +40,14 @@ fiber_warn(const char *op, const char *reason, Fiber *fiber)
 /* Internal fiber entry point wrapper */
 static void FiberEntryPoint(Fiber* fiber)
 {
-    assert(fiber != NULL);
-    assert(fiber->startRoutine != NULL);
+    if (fiber == NULL) {
+        PGY_RUNTIME_PANIC(PGY_RUNTIME_PANIC_CLASS_INTERNAL_INVARIANT,
+                          "fiber entry received null fiber");
+    }
+    if (fiber->startRoutine == NULL) {
+        PGY_RUNTIME_PANIC(PGY_RUNTIME_PANIC_CLASS_INTERNAL_INVARIANT,
+                          "fiber entry received null start routine");
+    }
     
     /* Set current fiber */
     tlsCurrentFiber = fiber;
@@ -59,7 +65,8 @@ static void FiberEntryPoint(Fiber* fiber)
     SchedulerYield();
     
     /* Should never reach here */
-    assert(0 && "Fiber returned after completion");
+    PGY_RUNTIME_PANIC(PGY_RUNTIME_PANIC_CLASS_INTERNAL_INVARIANT,
+                      "fiber returned after completion");
 }
 
 Fiber* FiberCreate(FiberStartRoutine startRoutine, void* arg)

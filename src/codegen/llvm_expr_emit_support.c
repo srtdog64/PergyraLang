@@ -26,6 +26,18 @@ llvm_expression_error(LLVMGenCtx *ctx, ASTNode *node, const char *message)
 }
 
 LLVMValueRef
+llvm_void_expression_placeholder(LLVMGenCtx *ctx, ASTNode *node,
+                                 const char *owner)
+{
+    (void)node;
+    (void)owner;
+
+    if (ctx == NULL)
+        return NULL;
+    return LLVMConstInt(ctx->type_i32, 0, 0);
+}
+
+LLVMValueRef
 llvm_zero_value_for_type(LLVMGenCtx *ctx, LLVMTypeRef type)
 {
     if (ctx == NULL || type == NULL)

@@ -1,246 +1,289 @@
 #include "transpiler_mir_match_condition_emit.h"
 
+#include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 
 #include "../common/string_compat.h"
 #include "../parser/ast_api.h"
-#include "../semantic/diag_codes.h"
 #include "codegen_match_variant_policy.h"
 #include "transpiler_context.h"
-#include "transpiler_expr_type_infer.h"
 #include "transpiler_format.h"
 #include "transpiler_match_bindings.h"
-#include "transpiler_symbols.h"
-#include "transpiler_type_mapping.h"
-#include "transpiler_type_render.h"
+#include "transpiler_mir_match_pattern_emit.h"
+#include "transpiler_mir_match_payload_emit.h"
+#include "transpiler_mir_match_region_emit.h"
 #include "transpiler_type_require.h"
 
 static bool
-transpiler_mir_is_option_destructor(ASTNode *pat,
-                                    const char **kind,
-                                    const char **binding)
+transpiler_mir_set_payload_binding_name(TranspilerCtx *ctx,
+                                        TranspilerSSANameMap *ssa_map,
+                                        const char *binding,
+                                        const char *emitted_name)
 {
-    ASTNode *callee;
-    ASTNode *payload;
-    size_t arg_count;
+    const char *stable_name;
 
-    if (kind != NULL)
-        *kind = NULL;
-    if (binding != NULL)
-        *binding = NULL;
-    if (pat == NULL)
-        return false;
-
-    if (pat->type == AST_IDENTIFIER) {
-        const char *name = ast_identifier_name(pat);
-        PgyCodegenMatchVariantKind variant =
-            pgy_codegen_match_variant_lookup(name);
-        if (variant == PGY_MATCH_VARIANT_NONE_CTOR) {
-            if (kind != NULL)
-                *kind = pgy_codegen_match_variant_name(variant);
-            return true;
-        }
-        return false;
-    }
-
-    callee = ast_call_callee(pat);
-    arg_count = ast_call_arg_count(pat);
-    if (pat->type != AST_CALL
-        || callee == NULL
-        || callee->type != AST_IDENTIFIER) {
-        return false;
-    }
-
-    const char *name = ast_identifier_name(callee);
-    PgyCodegenMatchVariantKind variant =
-        pgy_codegen_match_variant_lookup(name);
-    if (name == NULL)
-        return false;
-
-    if (variant == PGY_MATCH_VARIANT_NONE_CTOR && arg_count == 0) {
-        if (kind != NULL)
-            *kind = pgy_codegen_match_variant_name(variant);
+    if (ssa_map == NULL)
         return true;
+    if (ctx == NULL || binding == NULL || emitted_name == NULL)
+        return false;
+    stable_name = transpiler_scratch_strdup(ctx, emitted_name);
+    if (stable_name == NULL)
+        return false;
+    if (ctx->match_binding_alias_map != NULL) {
+        transpiler_ssa_name_map_set(
+            (TranspilerSSANameMap *)ctx->match_binding_alias_map,
+            binding, stable_name);
     }
-    if (variant == PGY_MATCH_VARIANT_SOME && arg_count == 1) {
-        if (kind != NULL)
-            *kind = pgy_codegen_match_variant_name(variant);
-        payload = ast_call_argument(pat, 0);
-        if (binding != NULL
-            && payload != NULL
-            && payload->type == AST_IDENTIFIER) {
-            *binding = ast_identifier_name(payload);
-        }
-        return true;
-    }
-    return false;
+    return transpiler_ssa_name_map_set(ssa_map, binding, stable_name);
 }
 
 static bool
-transpiler_mir_is_result_destructor(ASTNode *pat,
-                                    const char **kind,
-                                    const char **binding)
+transpiler_mir_remap_payload_binding(TranspilerCtx *ctx,
+                                     TranspilerSSANameMap *ssa_map,
+                                     ASTNode *case_node,
+                                     const char *binding)
 {
-    ASTNode *callee;
-    ASTNode *payload;
-    size_t arg_count;
+    char emitted_name[256];
 
-    if (kind != NULL)
-        *kind = NULL;
-    if (binding != NULL)
-        *binding = NULL;
-    callee = ast_call_callee(pat);
-    arg_count = ast_call_arg_count(pat);
-    if (pat == NULL || pat->type != AST_CALL
-        || callee == NULL
-        || callee->type != AST_IDENTIFIER) {
-        return false;
-    }
-
-    const char *name = ast_identifier_name(callee);
-    PgyCodegenMatchVariantKind variant =
-        pgy_codegen_match_variant_lookup(name);
-    if (name == NULL)
-        return false;
-    if (pgy_codegen_match_variant_is_result(variant)
-        && arg_count == 1) {
-        if (kind != NULL)
-            *kind = pgy_codegen_match_variant_name(variant);
-        payload = ast_call_argument(pat, 0);
-        if (binding != NULL
-            && payload != NULL
-            && payload->type == AST_IDENTIFIER) {
-            *binding = ast_identifier_name(payload);
-        }
+    if (binding == NULL || strcmp(binding, "_") == 0)
         return true;
-    }
-    return false;
-}
-
-static const char *
-transpiler_mir_match_payload_field(const char *kind)
-{
-    return pgy_codegen_match_variant_c_payload_field(
-        pgy_codegen_match_variant_lookup(kind));
+    transpiler_mir_match_binding_name(case_node, binding,
+                                      emitted_name, sizeof(emitted_name));
+    return transpiler_mir_set_payload_binding_name(ctx, ssa_map,
+                                                   binding, emitted_name);
 }
 
 static bool
-transpiler_mir_match_payload_type_name(TranspilerCtx *ctx,
-                                       ASTNode *subject_node,
-                                       const char *kind,
-                                       char *buf,
-                                       size_t buf_size)
+transpiler_mir_remap_case_bindings(TranspilerCtx *ctx,
+                                   TranspilerSSANameMap *ssa_map,
+                                   ASTNode *case_node)
 {
-    const char *subject_type;
+    ASTNode *pattern_node;
+    const char *kind = NULL;
+    const char *binding = NULL;
 
-    if (buf == NULL || buf_size == 0)
-        return false;
-    buf[0] = '\0';
-    if (ctx == NULL || subject_node == NULL || kind == NULL)
-        return false;
-
-    subject_type = infer_expression_type_name(ctx, subject_node);
-    if (subject_type == NULL || subject_type[0] == '\0')
-        return false;
-
-    PgyCodegenMatchVariantKind variant =
-        pgy_codegen_match_variant_lookup(kind);
-
-    if (variant == PGY_MATCH_VARIANT_SOME) {
-        if (!transpiler_type_name_is_option(subject_type))
-            return false;
-        return slot_inner_type_name_copy(subject_type, buf, buf_size)
-            && buf[0] != '\0';
-    }
-    if (variant == PGY_MATCH_VARIANT_OK) {
-        if (!transpiler_type_name_is_result(subject_type))
-            return false;
-        copy_constructed_arg_name_at(subject_type, 0, buf, buf_size);
-        return buf[0] != '\0' && strcmp(buf, "Unknown") != 0;
-    }
-    if (variant == PGY_MATCH_VARIANT_ERR) {
-        if (!transpiler_type_name_is_result(subject_type))
-            return false;
-        copy_constructed_arg_name_at(subject_type, 1, buf, buf_size);
-        return buf[0] != '\0' && strcmp(buf, "Unknown") != 0;
-    }
-
-    return false;
-}
-
-static void
-transpiler_mir_emit_match_payload_binding(CodeBuf *buf,
-                                          TranspilerCtx *ctx,
-                                          ASTNode *subject_node,
-                                          const char *subject,
-                                          const char *kind,
-                                          const char *binding)
-{
-    const char *field;
-    const char *payload_c_type;
-    char payload_type[128];
-
-    if (buf == NULL || ctx == NULL || subject == NULL
-        || kind == NULL || binding == NULL) {
-        return;
-    }
-
-    field = transpiler_mir_match_payload_field(kind);
-    if (field == NULL)
-        return;
-    if (!transpiler_mir_match_payload_type_name(ctx, subject_node, kind,
-                                                payload_type,
-                                                sizeof(payload_type))) {
-        transpiler_set_backend_error_with_hints(ctx,
-            PGY_CODE_C_TYPE_UNSUPPORTED,
-            PGY_CAUSE_C_TYPE_UNSUPPORTED,
-            PGY_FIX_USE_LLVM_BACKEND_OR_EXTEND_TRANSPILER,
-            "C MIR match lowering cannot derive payload type for %s(%s); explicit Option<T>/Result<T,E> subject type is required",
-            kind,
-            binding);
-        return;
+    if (ctx == NULL || case_node == NULL || case_node->type != AST_MATCH_CASE)
+        return true;
+    pattern_node = ast_match_case_pattern(case_node);
+    if (pattern_node == NULL)
+        return true;
+    if (transpiler_mir_is_option_destructor(pattern_node, &kind, &binding)
+        || transpiler_mir_is_result_destructor(pattern_node, &kind, &binding)) {
+        (void)kind;
+        return transpiler_mir_remap_payload_binding(ctx, ssa_map,
+                                                    case_node, binding);
     }
 
     {
-        char payload_c_type_buf[256];
-        if (!transpiler_require_type_name_c_type_copy(ctx, payload_type,
-                "MIR match payload", payload_c_type_buf,
-                sizeof(payload_c_type_buf))) {
-            transpiler_set_backend_error_with_hints(ctx,
-                PGY_CODE_C_TYPE_UNSUPPORTED,
-                PGY_CAUSE_C_TYPE_UNSUPPORTED,
-                PGY_FIX_ANNOTATE_CONCRETE_TYPE,
-                "C MIR match lowering cannot render payload type '%s' for %s(%s)",
-                payload_type,
-                kind,
-                binding);
-            return;
+        const char *enum_vname = NULL;
+        const char *enum_ename = NULL;
+        const char **enum_bindings = NULL;
+        ASTNode **enum_binding_types = NULL;
+        size_t enum_bind_count = 0;
+        const char *enum_bindings_buf[8];
+        ASTNode *enum_binding_types_buf[8];
+        if (transpiler_match_is_enum_variant_destructor(pattern_node, ctx,
+                &enum_vname, &enum_ename, &enum_bindings,
+                &enum_binding_types, &enum_bind_count,
+                enum_bindings_buf, enum_binding_types_buf,
+                sizeof(enum_bindings_buf)
+                    / sizeof(enum_bindings_buf[0]))) {
+            (void)enum_vname;
+            (void)enum_ename;
+            (void)enum_binding_types;
+            for (size_t i = 0; i < enum_bind_count; i++) {
+                if (enum_bindings == NULL)
+                    continue;
+                if (!transpiler_mir_remap_payload_binding(
+                        ctx, ssa_map, case_node, enum_bindings[i])) {
+                    return false;
+                }
+            }
         }
-        payload_c_type = payload_c_type_buf;
-
-        write_indent_to(buf, ctx->indent);
-        codebuf_write(buf, "%s %s = (%s).%s;\n",
-                      payload_c_type, binding, subject, field);
-        register_typed_var(ctx, binding, payload_type);
     }
+    return true;
+}
+
+bool
+transpiler_mir_emit_match_case_body_binding(CodeBuf *buf,
+                                            ASTNode *func_decl,
+                                            const MIRRoutine *routine,
+                                            const MIRBasicBlock *block,
+                                            TranspilerCtx *ctx,
+                                            TranspilerSSANameMap *ssa_map)
+{
+    const MIRInstruction *branch_inst;
+    ASTNode *case_node;
+    ASTNode *pattern_node;
+    ASTNode *subject_node;
+    char *subject;
+    const char *kind = NULL;
+    const char *binding = NULL;
+
+    if (buf == NULL || func_decl == NULL || routine == NULL
+        || block == NULL || ctx == NULL) {
+        return true;
+    }
+    branch_inst = transpiler_mir_find_incoming_match_branch(routine, block);
+    if (branch_inst == NULL)
+        return true;
+    case_node = mir_instruction_source_payload(branch_inst);
+    if (case_node == NULL || case_node->type != AST_MATCH_CASE)
+        return true;
+    pattern_node = ast_match_case_pattern(case_node);
+    if (pattern_node == NULL)
+        return true;
+    subject_node = func_decl->type == AST_FUNC_DECL
+        ? ast_find_match_subject_for_case(ast_func_body(func_decl), case_node)
+        : NULL;
+    if (subject_node == NULL)
+        return true;
+    subject = emit_expression_with_ssa_map(subject_node, ctx, ssa_map);
+    if (subject == NULL)
+        return false;
+
+    if (transpiler_mir_is_option_destructor(pattern_node, &kind, &binding)
+        || transpiler_mir_is_result_destructor(pattern_node, &kind, &binding)) {
+        if (binding != NULL) {
+            char emitted_name[256];
+            transpiler_mir_match_binding_name(case_node, binding,
+                                              emitted_name,
+                                              sizeof(emitted_name));
+            if (ast_match_case_guard(case_node) != NULL) {
+                if (!transpiler_mir_set_payload_binding_name(
+                        ctx, ssa_map, binding, emitted_name)) {
+                    free(subject);
+                    return false;
+                }
+                free(subject);
+                return true;
+            }
+            transpiler_mir_emit_match_payload_binding(buf, ctx, subject_node,
+                                                      subject, kind, binding,
+                                                      emitted_name);
+            if (!transpiler_mir_set_payload_binding_name(
+                    ctx, ssa_map, binding, emitted_name)) {
+                free(subject);
+                return false;
+            }
+        }
+        free(subject);
+        return true;
+    }
+
+    {
+        const char *enum_vname = NULL;
+        const char *enum_ename = NULL;
+        const char **enum_bindings = NULL;
+        ASTNode **enum_binding_types = NULL;
+        size_t enum_bind_count = 0;
+        const char *enum_bindings_buf[8];
+        ASTNode *enum_binding_types_buf[8];
+        if (transpiler_match_is_enum_variant_destructor(pattern_node, ctx,
+                &enum_vname, &enum_ename, &enum_bindings,
+                &enum_binding_types, &enum_bind_count,
+                enum_bindings_buf, enum_binding_types_buf,
+                sizeof(enum_bindings_buf)
+                    / sizeof(enum_bindings_buf[0]))) {
+            (void)enum_ename;
+            for (size_t b = 0; b < enum_bind_count; b++) {
+                char bt_buf[256];
+                const char *bt_c_type = "int32_t";
+                const char *binding_name;
+                char emitted_name[256];
+                if (enum_bindings == NULL || enum_bindings[b] == NULL)
+                    continue;
+                binding_name = enum_bindings[b];
+                if (strcmp(binding_name, "_") == 0)
+                    continue;
+                if (enum_binding_types != NULL
+                    && enum_binding_types[b] != NULL) {
+                    if (!transpiler_require_ast_c_type_copy(
+                            ctx, enum_binding_types[b],
+                            "MIR enum match payload binding",
+                            bt_buf, sizeof(bt_buf))) {
+                        free(subject);
+                        return false;
+                    }
+                    bt_c_type = bt_buf;
+                }
+                transpiler_mir_match_binding_name(case_node, binding_name,
+                                                  emitted_name,
+                                                  sizeof(emitted_name));
+                write_indent_to(buf, ctx->indent);
+                codebuf_write(buf, "%s %s = (%s).%s._%zu;\n",
+                    bt_c_type, emitted_name, subject, enum_vname, b);
+                if (!transpiler_mir_set_payload_binding_name(
+                        ctx, ssa_map, binding_name, emitted_name)) {
+                    free(subject);
+                    return false;
+                }
+            }
+        }
+    }
+
+    free(subject);
+    return true;
+}
+
+bool
+transpiler_mir_remap_active_match_bindings(ASTNode *func_decl,
+                                           const MIRRoutine *routine,
+                                           const MIRBasicBlock *block,
+                                           TranspilerCtx *ctx,
+                                           TranspilerSSANameMap *ssa_map)
+{
+    size_t target_id;
+
+    if (func_decl == NULL || routine == NULL || block == NULL || ctx == NULL)
+        return true;
+    (void)func_decl;
+    target_id = block->id;
+    if (target_id >= routine->block_count)
+        return true;
+
+    for (size_t i = 0; i < routine->block_count; i++) {
+        const MIRBasicBlock *candidate = &routine->blocks[i];
+        if (!transpiler_mir_case_true_region_contains(routine, candidate,
+                                                      target_id)) {
+            continue;
+        }
+        for (size_t j = 0; j < candidate->instruction_count; j++) {
+            const MIRInstruction *inst = &candidate->instructions[j];
+            ASTNode *case_node;
+            if (inst->kind != MIR_INST_BRANCH
+                || inst->branch_shape != MIR_BRANCH_MATCH_CASE) {
+                continue;
+            }
+            case_node = mir_instruction_source_payload(inst);
+            if (!transpiler_mir_remap_case_bindings(ctx, ssa_map,
+                                                    case_node)) {
+                return false;
+            }
+        }
+    }
+    return true;
 }
 
 char *
 transpiler_mir_render_match_case_condition(ASTNode *func_decl,
                                            ASTNode *case_node,
                                            TranspilerCtx *ctx,
-                                           const TranspilerSSANameMap *ssa_map)
+                                           TranspilerSSANameMap *ssa_map)
 {
     ASTNode *subject_node;
     char *subject;
     char *cond = NULL;
     char *guard = NULL;
+    char *guard_payload_assign = NULL;
+    bool has_guard;
 
     if (func_decl == NULL || case_node == NULL || ctx == NULL
         || func_decl->type != AST_FUNC_DECL || case_node->type != AST_MATCH_CASE) {
         return NULL;
     }
+    has_guard = ast_match_case_guard(case_node) != NULL;
 
     subject_node = ast_find_match_subject_for_case(ast_func_body(func_decl),
                                                    case_node);
@@ -274,18 +317,68 @@ transpiler_mir_render_match_case_condition(ASTNode *func_decl,
                 pattern_node, &kind, &binding)) {
             const char *tag = pgy_codegen_match_variant_c_option_tag(
                 pgy_codegen_match_variant_lookup(kind));
-            transpiler_mir_emit_match_payload_binding(ctx->out, ctx,
-                                                      subject_node,
-                                                      subject, kind, binding);
             cond = strdup_fmt("(%s).tag == %s", subject, tag);
+            if (has_guard && binding != NULL) {
+                const char *field =
+                    transpiler_mir_match_payload_field(kind);
+                char emitted_name[256];
+                transpiler_mir_match_binding_name(case_node, binding,
+                                                  emitted_name,
+                                                  sizeof(emitted_name));
+                if (!transpiler_mir_declare_guard_payload_binding(
+                        ctx->out, ctx, subject_node, kind, binding,
+                        emitted_name)) {
+                    free(subject);
+                    free(cond);
+                    return NULL;
+                }
+                if (ssa_map != NULL
+                    && !transpiler_mir_set_payload_binding_name(
+                        ctx, ssa_map, binding, emitted_name)) {
+                    free(subject);
+                    free(cond);
+                    return NULL;
+                }
+                if (field != NULL) {
+                    guard_payload_assign = strdup_fmt("%s = (%s).%s",
+                                                      emitted_name,
+                                                      subject,
+                                                      field);
+                }
+            }
         } else if (transpiler_mir_is_result_destructor(
                        pattern_node, &kind, &binding)) {
             const char *tag = pgy_codegen_match_variant_c_result_tag(
                 pgy_codegen_match_variant_lookup(kind));
-            transpiler_mir_emit_match_payload_binding(ctx->out, ctx,
-                                                      subject_node,
-                                                      subject, kind, binding);
             cond = strdup_fmt("(%s).tag == %s", subject, tag);
+            if (has_guard && binding != NULL) {
+                const char *field =
+                    transpiler_mir_match_payload_field(kind);
+                char emitted_name[256];
+                transpiler_mir_match_binding_name(case_node, binding,
+                                                  emitted_name,
+                                                  sizeof(emitted_name));
+                if (!transpiler_mir_declare_guard_payload_binding(
+                        ctx->out, ctx, subject_node, kind, binding,
+                        emitted_name)) {
+                    free(subject);
+                    free(cond);
+                    return NULL;
+                }
+                if (ssa_map != NULL
+                    && !transpiler_mir_set_payload_binding_name(
+                        ctx, ssa_map, binding, emitted_name)) {
+                    free(subject);
+                    free(cond);
+                    return NULL;
+                }
+                if (field != NULL) {
+                    guard_payload_assign = strdup_fmt("%s = (%s).%s",
+                                                      emitted_name,
+                                                      subject,
+                                                      field);
+                }
+            }
         } else {
             const char *enum_vname = NULL;
             const char *enum_ename = NULL;
@@ -362,12 +455,16 @@ transpiler_mir_render_match_case_condition(ASTNode *func_decl,
         guard = emit_expression_with_ssa_map(ast_match_case_guard(case_node),
                                              ctx, ssa_map);
         if (guard != NULL && cond != NULL) {
-            char *with_guard = strdup_fmt("(%s) && (%s)", cond, guard);
+            char *with_guard = guard_payload_assign != NULL
+                ? strdup_fmt("(%s) && ((%s), (%s))",
+                             cond, guard_payload_assign, guard)
+                : strdup_fmt("(%s) && (%s)", cond, guard);
             free(cond);
             cond = with_guard;
         }
     }
 
+    free(guard_payload_assign);
     free(guard);
     free(subject);
     return cond;

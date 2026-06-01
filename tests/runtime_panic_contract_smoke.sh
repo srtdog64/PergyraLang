@@ -45,7 +45,9 @@ run_literal_contract_smoke() {
         "src/runtime/pgy_runtime_lib_slot_array_io_string_exports.h"
         "src/runtime/pgy_runtime_lib_array_map_exports.h"
         "src/runtime/pgy_runtime_panic_checked_inline.h"
+        "src/runtime/pgy_runtime_process_exit.h"
         "src/runtime/pgy_runtime_result_option_inline.h"
+        "src/runtime/async/fiber.c"
         "src/codegen/transpiler_expr_core_emit.c"
         "src/codegen/llvm_expr_scalar_core.h"
         "src/codegen/llvm_expr_scalar_core.c"
@@ -100,6 +102,15 @@ run_literal_contract_smoke() {
     require_literal "src/runtime/pgy_runtime_result_option_inline.h" "PGY_RUNTIME_PANIC_REASON_RESULT_UNWRAP_ERR"
     require_literal "src/runtime/pgy_runtime_result_option_inline.h" "PGY_RUNTIME_PANIC_REASON_OPTION_UNWRAP_NONE"
     require_literal "src/runtime/pgy_runtime_panic_checked_inline.h" "PGY_RUNTIME_PANIC_CLASS_DIVIDE_BY_ZERO"
+    require_literal "src/runtime/async/fiber.c" "pgy_runtime_panic_contract.h"
+    require_literal "src/runtime/async/fiber.c" "fiber returned after completion"
+    forbid_literal "src/runtime/async/fiber.c" "assert("
+    require_literal "src/runtime/pgy_runtime_process_exit.h" "pgy_runtime_process_exit"
+    require_literal "src/runtime/pgy_runtime_process_exit.h" "exit((int)code)"
+    require_literal "src/runtime/pgy_runtime_io_qubit_inline.h" "pgy_runtime_process_exit(code)"
+    require_literal "src/runtime/pgy_runtime_lib_io_string_exports.h" "pgy_runtime_process_exit(code)"
+    forbid_literal "src/runtime/pgy_runtime_io_qubit_inline.h" "exit((int)code)"
+    forbid_literal "src/runtime/pgy_runtime_lib_io_string_exports.h" "exit((int)code)"
     require_literal "src/codegen/transpiler_expr_core_emit.c" "pgy_checked_div_i32_export"
     require_literal "src/codegen/llvm_expr_scalar_core.c" "pgy_checked_mod_i32_export"
     require_literal "src/codegen/llvm_runtime_core_builtin_decl.c" "pgy_runtime_panic_internal_invariant_export"
@@ -137,6 +148,8 @@ inline_top = root / "src" / "runtime" / "pgy_runtime_platform_io_core.h"
 inline_panic = root / "src" / "runtime" / "pgy_runtime_memory_array_slot_inline.h"
 allocator_inline = root / "src" / "runtime" / "pgy_runtime_allocator_inline.h"
 result_option_inline = root / "src" / "runtime" / "pgy_runtime_result_option_inline.h"
+process_exit_h = root / "src" / "runtime" / "pgy_runtime_process_exit.h"
+fiber_c = root / "src" / "runtime" / "async" / "fiber.c"
 lib_top = root / "src" / "runtime" / "pgy_runtime_lib_authority_file_core.h"
 slot_c = root / "src" / "runtime" / "pgy_runtime_lib_intent_slot_core_exports.h"
 slot_export = root / "src" / "runtime" / "pgy_runtime_lib_slot_exports.h"
@@ -202,6 +215,34 @@ for path in [inline_top, lib_top]:
     text = path.read_text(encoding="utf-8")
     if "pgy_runtime_panic_contract.h" not in text:
         raise SystemExit(f"{path.relative_to(root)} does not include panic contract")
+
+fiber_text = fiber_c.read_text(encoding="utf-8")
+if "pgy_runtime_panic_contract.h" not in fiber_text:
+    raise SystemExit("fiber runtime does not include panic contract")
+if "assert(" in fiber_text:
+    raise SystemExit("fiber runtime still uses raw assert instead of panic contract")
+for token in [
+    "fiber entry received null fiber",
+    "fiber entry received null start routine",
+    "fiber returned after completion",
+]:
+    if token not in fiber_text:
+        raise SystemExit(f"fiber runtime missing panic reason: {token}")
+
+process_exit_text = process_exit_h.read_text(encoding="utf-8")
+if "pgy_runtime_process_exit" not in process_exit_text:
+    raise SystemExit("process exit owner missing pgy_runtime_process_exit")
+if "exit((int)code)" not in process_exit_text:
+    raise SystemExit("process exit owner must retain explicit language Exit(Int)")
+for path in [
+    root / "src" / "runtime" / "pgy_runtime_io_qubit_inline.h",
+    root / "src" / "runtime" / "pgy_runtime_lib_io_string_exports.h",
+]:
+    text = path.read_text(encoding="utf-8")
+    if "pgy_runtime_process_exit(code)" not in text:
+        raise SystemExit(f"{path.relative_to(root)} must consume process exit owner")
+    if "exit((int)code)" in text:
+        raise SystemExit(f"{path.relative_to(root)} still owns raw exit")
 
 inline_text = inline_panic.read_text(encoding="utf-8")
 if "PGY_RUNTIME_PANIC(PGY_RUNTIME_PANIC_CLASS_INTERNAL_INVARIANT" not in inline_text:

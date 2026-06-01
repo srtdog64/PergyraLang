@@ -171,7 +171,7 @@ llvm_emit_slot_builtin_call(ASTNode *node, LLVMGenCtx *ctx,
                 llvm_emit_structural_secure_slot_write(ctx, slot_var, val);
             else
                 llvm_direct_slot_write(ctx, slot_var, val);
-            *out = LLVMConstInt(ctx->type_i32, 0, 0);
+            *out = llvm_void_expression_placeholder(ctx, node, callee_name);
             return true;
         }
 
@@ -195,7 +195,7 @@ llvm_emit_slot_builtin_call(ASTNode *node, LLVMGenCtx *ctx,
             };
             LLVMBuildCall2(ctx->builder, fn->fn_type, fn->fn, args, 2, "");
         }
-        *out = LLVMConstInt(ctx->type_i32, 0, 0);
+        *out = llvm_void_expression_placeholder(ctx, node, callee_name);
         return true;
     }
 
@@ -319,7 +319,7 @@ llvm_emit_slot_builtin_call(ASTNode *node, LLVMGenCtx *ctx,
             }
         }
 
-        *out = LLVMConstInt(ctx->type_i32, 0, 0);
+        *out = llvm_void_expression_placeholder(ctx, node, callee_name);
         return true;
     }
 
@@ -358,7 +358,7 @@ llvm_emit_slot_builtin_call(ASTNode *node, LLVMGenCtx *ctx,
 
         LLVMValueRef args[] = { slot_var->alloca, val };
         LLVMBuildCall2(ctx->builder, fn->fn_type, fn->fn, args, 2, "");
-        *out = LLVMConstInt(ctx->type_i32, 0, 0);
+        *out = llvm_void_expression_placeholder(ctx, node, callee_name);
         return true;
     }
 
@@ -416,7 +416,7 @@ llvm_emit_slot_builtin_call(ASTNode *node, LLVMGenCtx *ctx,
             LLVMBuildCall2(ctx->builder, fn->fn_type, fn->fn, args, 1, "");
             if (slot_arg->type == AST_IDENTIFIER)
                 llvm_mark_device_slot_released(ctx, slot_name);
-            *out = LLVMConstInt(ctx->type_i32, 0, 0);
+            *out = llvm_void_expression_placeholder(ctx, node, callee_name);
         }
         return true;
     }

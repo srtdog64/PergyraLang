@@ -90,6 +90,13 @@ transpiler_resolve_active_ssa_name(const TranspilerCtx *ctx,
         base_name);
     if (resolved != NULL)
         return resolved;
+    if (ctx->match_binding_alias_map != NULL) {
+        resolved = transpiler_resolve_ssa_name(
+            (const TranspilerSSANameMap *)ctx->match_binding_alias_map,
+            base_name);
+        if (resolved != NULL)
+            return resolved;
+    }
     if (transpiler_name_is_token_local(base_name))
         return base_name;
     return NULL;

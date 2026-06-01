@@ -1,0 +1,46 @@
+func Half(n: Int) -> Option<Int> {
+    if n % 2 != 0 { return None; }
+    return Some(n / 2);
+}
+
+func Triple(n: Int) -> Option<Int> {
+    if n > 1000 { return None; }
+    return Some(n * 3);
+}
+
+func Pipeline(start: Int) -> Option<Int> {
+    match Half(start) {
+        case Some(h):
+            match Triple(h) {
+                case Some(t):
+                    match Half(t) {
+                        case Some(q): return Some(q);
+                        case None: return None;
+                    }
+                case None: return None;
+            }
+        case None: return None;
+    }
+}
+
+func ChainAll(arr: Array<Int>) -> Int {
+    let acc: Int = 0;
+    for v in arr {
+        match Pipeline(v) {
+            case Some(r): acc = acc + r;
+            case None: acc = acc - 1;
+        }
+    }
+    return acc;
+}
+
+func Main() -> Void {
+    let a: Array<Int> = [12, 7, 8, 200, 600];
+    Log(ChainAll(a));
+    let empty: Array<Int> = [];
+    Log(ChainAll(empty));
+    let single_ok: Array<Int> = [4];
+    Log(ChainAll(single_ok));
+    let single_bad: Array<Int> = [5];
+    Log(ChainAll(single_bad));
+}

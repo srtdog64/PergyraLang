@@ -71,6 +71,7 @@ if command -v git >/dev/null 2>&1 \
 fi
 
 while IFS= read -r src; do
+    src="${src%$'\r'}"
     [[ -n "$src" ]] || continue
 
     if [[ ! -f "$ROOT_DIR/$src" ]]; then
@@ -313,6 +314,15 @@ do
         fi
     fi
 done
+
+if ! grep -Fq 'run_windows_native_binary_fallback' "$ROOT_DIR/tests/compare_backends.sh"; then
+    echo "[build-source-inventory] backend compare must keep Windows native 126/127 fallback" >&2
+    missing=1
+fi
+if ! grep -Fq 'pgy_powershell_quote' "$ROOT_DIR/tests/compare_backends.sh"; then
+    echo "[build-source-inventory] backend compare PowerShell fallback must quote paths explicitly" >&2
+    missing=1
+fi
 
 bash4_lint_dirs=(tests)
 if [[ -d "$ROOT_DIR/src/self_hosted/parity" ]]; then

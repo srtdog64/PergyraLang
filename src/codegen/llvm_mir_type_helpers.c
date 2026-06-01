@@ -11,6 +11,40 @@
 #include "codegen_slot_type_policy.h"
 #include "llvm_internal_api.h"
 
+static LLVMTypeRef
+llvm_mir_pinned_view_type_from_layout(LLVMGenCtx *ctx, const char *layout_name)
+{
+    char inner_name[256];
+    bool is_secure = false;
+
+    if (ctx == NULL || layout_name == NULL)
+        return NULL;
+    if (strncmp(layout_name, "PinnedSlotView<", 15) == 0) {
+        is_secure = false;
+    } else if (strncmp(layout_name, "PinnedSecureSlotView<", 21) == 0) {
+        is_secure = true;
+    } else {
+        return NULL;
+    }
+
+    if (!llvm_constructed_arg_name_copy(layout_name, 0,
+            inner_name, sizeof(inner_name))
+        || inner_name[0] == '\0'
+        || strcmp(inner_name, "Unknown") == 0) {
+        llvm_set_error_with_hints(ctx,
+            PGY_CODE_LLVM_TYPE_UNSUPPORTED,
+            PGY_CAUSE_LLVM_TYPE_UNSUPPORTED,
+            PGY_FIX_ANNOTATE_CONCRETE_TYPE,
+            "LLVM MIR pinned view '%s' requires concrete inner type metadata",
+            layout_name);
+        return NULL;
+    }
+
+    return is_secure
+        ? llvm_pinned_secure_slot_struct_type(ctx, inner_name)
+        : llvm_pinned_slot_struct_type(ctx, inner_name);
+}
+
 LLVMTypeRef
 llvm_mir_type_from_abi_layout(LLVMGenCtx *ctx, const MIRTypeLayout *layout)
 {
@@ -22,6 +56,11 @@ llvm_mir_type_from_abi_layout(LLVMGenCtx *ctx, const MIRTypeLayout *layout)
     layout_name = layout->abi_type_name;
 
     if (layout_name != NULL) {
+        LLVMTypeRef pinned_view_ty =
+            llvm_mir_pinned_view_type_from_layout(ctx, layout_name);
+        if (pinned_view_ty != NULL || ctx->has_error)
+            return pinned_view_ty;
+
         if (strncmp(layout_name, "Slot<", 5) == 0
             || strncmp(layout_name, "SecureSlot<", 11) == 0
             || strncmp(layout_name, "DeviceSlot<", 11) == 0
@@ -40,11 +79,6 @@ llvm_mir_type_from_abi_layout(LLVMGenCtx *ctx, const MIRTypeLayout *layout)
         }
         if (strcmp(layout_name, "TaskHandle") == 0)
             return ctx->type_task_handle;
-
-        if (strcmp(layout_name, "PinnedSlotView<Int>") == 0)
-            return llvm_pinned_slot_struct_type(ctx, "Int");
-        if (strcmp(layout_name, "PinnedSecureSlotView<Int>") == 0)
-            return llvm_pinned_secure_slot_struct_type(ctx, "Int");
     }
 
     if (layout->inner_c_type != NULL) {
@@ -114,6 +148,21 @@ bool
 llvm_mir_param_uses_pointer_self(LLVMGenCtx *ctx, ASTNode *type_node)
 {
     return llvm_ast_type_uses_pointer_self(ctx, type_node);
+}
+
+void
+llvm_mir_register_nominal_class(LLVMGenCtx *ctx, const char *name,
+                                ASTNode *type_node)
+{
+    const char *type_name;
+
+    if (ctx == NULL || name == NULL || type_node == NULL
+        || type_node->type != AST_TYPE) {
+        return;
+    }
+    type_name = ast_type_name(type_node);
+    if (type_name != NULL && type_name[0] != '\0')
+        llvm_register_var_class(ctx, name, type_name);
 }
 
 const char *

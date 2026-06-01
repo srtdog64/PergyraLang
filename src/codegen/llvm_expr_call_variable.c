@@ -125,7 +125,8 @@ llvm_emit_callable_variable_call(ASTNode *node,
 
     if (LLVMGetReturnType(fn_type) == ctx->type_void) {
         LLVMBuildCall2(ctx->builder, fn_type, fn_ptr, args, emitted_argc, "");
-        result = LLVMConstInt(ctx->type_i32, 0, 0);
+        result = llvm_void_expression_placeholder(ctx, node,
+            "callable-variable-call");
     } else {
         result = LLVMBuildCall2(ctx->builder, fn_type, fn_ptr, args,
             emitted_argc, llvm_tmp_name(ctx));

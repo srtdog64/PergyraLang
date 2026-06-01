@@ -1,0 +1,25 @@
+func SumArr(arr: Array<Int>, n: Int) -> Int {
+    let total: Int = 0;
+    let i: Int = 0;
+    while i < n {
+        total = total + arr[i];
+        i = i + 1;
+    }
+    return total;
+}
+
+func SafeSum(maybe_empty: Bool) -> Int {
+    if maybe_empty {
+        let empty: Array<Int> = [];
+        return SumArr(empty, 0);
+    }
+    let one: Array<Int> = [42];
+    return SumArr(one, 1);
+}
+
+func Main() -> Void {
+    Log(SafeSum(true));
+    Log(SafeSum(false));
+    let arr: Array<Int> = [];
+    Log(SumArr(arr, 0));
+}

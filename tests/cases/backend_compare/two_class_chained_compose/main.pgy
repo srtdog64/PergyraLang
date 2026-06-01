@@ -1,0 +1,33 @@
+class A {
+    let v: Int;
+
+    func Doubled(self) -> Int {
+        return v * 2;
+    }
+}
+
+class B {
+    let scale: Int;
+
+    func Apply(self, n: Int) -> Int {
+        return n * scale;
+    }
+}
+
+func Combine(a: A, b: B, rounds: Int) -> Int {
+    let cur: Int = a.Doubled();
+    let i: Int = 0;
+    while i < rounds {
+        cur = b.Apply(cur);
+        i = i + 1;
+    }
+    return cur;
+}
+
+func Main() -> Void {
+    Log(Combine(A(5), B(3), 1));
+    Log(Combine(A(5), B(3), 2));
+    Log(Combine(A(10), B(2), 3));
+    Log(Combine(A(0), B(100), 5));
+    Log(Combine(A(1), B(1), 0));
+}

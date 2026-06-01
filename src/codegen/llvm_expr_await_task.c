@@ -52,7 +52,8 @@ llvm_await_task_handle(LLVMGenCtx *ctx, ASTNode *node, LLVMValueRef task,
 
     if (strcmp(inner, "Void") == 0) {
         if (!is_remote)
-            return LLVMConstInt(ctx->type_i32, 0, 0);
+            return llvm_void_expression_placeholder(ctx, node,
+                "await-future-void");
         llvm_set_error_at_with_hints(ctx, node,
             PGY_CODE_LLVM_TYPE_UNSUPPORTED,
             PGY_CAUSE_LLVM_TYPE_UNSUPPORTED,

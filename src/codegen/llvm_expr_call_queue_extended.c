@@ -118,7 +118,7 @@ llvm_emit_queue_extended_call(ASTNode *node, LLVMGenCtx *ctx,
                 value
             };
             LLVMBuildCall2(ctx->builder, fn->fn_type, fn->fn, args, 2, "");
-            { *out = LLVMConstInt(ctx->type_i32, 0, 0); return true; }
+            { *out = llvm_void_expression_placeholder(ctx, node, callee_name); return true; }
         }
         if (LLVMTypeOf(value) != elem_ty) {
             if ((elem_ty == ctx->type_i32 || elem_ty == ctx->type_i64)
@@ -145,7 +145,7 @@ llvm_emit_queue_extended_call(ASTNode *node, LLVMGenCtx *ctx,
             llvm_sizeof_type_i64(ctx, elem_ty)
         };
         LLVMBuildCall2(ctx->builder, fn->fn_type, fn->fn, args, 3, "");
-        { *out = LLVMConstInt(ctx->type_i32, 0, 0); return true; }
+        { *out = llvm_void_expression_placeholder(ctx, node, callee_name); return true; }
     }
 
     if (op == LLVM_QUEUE_EXT_POP) {

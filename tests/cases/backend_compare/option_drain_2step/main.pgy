@@ -1,0 +1,31 @@
+class Buf {
+    let cap: Int;
+
+    func Take(self, n: Int) -> Option<Int> {
+        if n > cap { return None; }
+        return Some(cap - n);
+    }
+}
+
+func Drain(start: Int, n1: Int, n2: Int) -> Int {
+    let b: Buf = Buf(start);
+    let success: Int = 0;
+    match b.Take(n1) {
+        case Some(rem):
+            success = success + 1;
+            let b2: Buf = Buf(rem);
+            match b2.Take(n2) {
+                case Some(_): success = success + 1;
+                case None: success = success;
+            }
+        case None: success = success;
+    }
+    return success;
+}
+
+func Main() -> Void {
+    Log(Drain(100, 10, 20));
+    Log(Drain(100, 50, 50));
+    Log(Drain(100, 100, 1));
+    Log(Drain(50, 60, 0));
+}

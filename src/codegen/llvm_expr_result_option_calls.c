@@ -145,19 +145,34 @@ llvm_emit_checked_result_option_unwrap(LLVMGenCtx *ctx, ASTNode *node,
         llvm_tmp_name(ctx));
 }
 
-static bool
-llvm_result_option_context_struct(LLVMGenCtx *ctx, unsigned field_count,
-                                  LLVMTypeRef *fields_out)
+static LLVMTypeRef
+llvm_result_option_context_type(LLVMGenCtx *ctx, unsigned field_count,
+                                LLVMTypeRef *fields_out)
 {
-    if (ctx == NULL || ctx->current_ret_type == NULL)
-        return false;
-    if (LLVMGetTypeKind(ctx->current_ret_type) != LLVMStructTypeKind)
-        return false;
-    if (LLVMCountStructElementTypes(ctx->current_ret_type) != field_count)
-        return false;
+    LLVMTypeRef candidate = NULL;
+
+    if (ctx == NULL)
+        return NULL;
+
+    if (ctx->expected_type_name != NULL)
+        candidate = pergyra_type_to_llvm(ctx, ctx->expected_type_name);
+    if (candidate != NULL
+        && LLVMGetTypeKind(candidate) == LLVMStructTypeKind
+        && LLVMCountStructElementTypes(candidate) == field_count) {
+        if (fields_out != NULL)
+            LLVMGetStructElementTypes(candidate, fields_out);
+        return candidate;
+    }
+
+    candidate = ctx->current_ret_type;
+    if (candidate == NULL
+        || LLVMGetTypeKind(candidate) != LLVMStructTypeKind
+        || LLVMCountStructElementTypes(candidate) != field_count) {
+        return NULL;
+    }
     if (fields_out != NULL)
-        LLVMGetStructElementTypes(ctx->current_ret_type, fields_out);
-    return true;
+        LLVMGetStructElementTypes(candidate, fields_out);
+    return candidate;
 }
 
 static bool
@@ -220,9 +235,8 @@ llvm_emit_result_option_call(ASTNode *node, LLVMGenCtx *ctx, const char *callee_
         LLVMValueRef val;
         LLVMTypeRef result_ty = NULL;
         LLVMTypeRef fields[3];
-        if (llvm_result_option_context_struct(ctx, 3, fields)) {
-            result_ty = ctx->current_ret_type;
-        } else {
+        result_ty = llvm_result_option_context_type(ctx, 3, fields);
+        if (result_ty == NULL) {
             llvm_set_error_at_with_hints(ctx, node,
                 PGY_CODE_LLVM_TYPE_UNSUPPORTED,
                 PGY_CAUSE_LLVM_TYPE_UNSUPPORTED,
@@ -266,9 +280,8 @@ llvm_emit_result_option_call(ASTNode *node, LLVMGenCtx *ctx, const char *callee_
         LLVMValueRef val;
         LLVMTypeRef result_ty = NULL;
         LLVMTypeRef fields[3];
-        if (llvm_result_option_context_struct(ctx, 3, fields)) {
-            result_ty = ctx->current_ret_type;
-        } else {
+        result_ty = llvm_result_option_context_type(ctx, 3, fields);
+        if (result_ty == NULL) {
             llvm_set_error_at_with_hints(ctx, node,
                 PGY_CODE_LLVM_TYPE_UNSUPPORTED,
                 PGY_CAUSE_LLVM_TYPE_UNSUPPORTED,
@@ -390,8 +403,8 @@ llvm_emit_result_option_call(ASTNode *node, LLVMGenCtx *ctx, const char *callee_
         LLVMValueRef val;
         LLVMTypeRef option_ty = NULL;
         LLVMTypeRef fields[2];
-        if (!llvm_result_option_context_struct(ctx, 2, fields)
-            || fields[0] != ctx->type_i32) {
+        option_ty = llvm_result_option_context_type(ctx, 2, fields);
+        if (option_ty == NULL || fields[0] != ctx->type_i32) {
             llvm_set_error_at_with_hints(ctx, node,
                 PGY_CODE_LLVM_TYPE_UNSUPPORTED,
                 PGY_CAUSE_LLVM_TYPE_UNSUPPORTED,
@@ -403,7 +416,6 @@ llvm_emit_result_option_call(ASTNode *node, LLVMGenCtx *ctx, const char *callee_
         if (val == NULL)
             return llvm_result_option_error(ctx, node,
                 "LLVM Some(value) could not lower payload expression");
-        option_ty = ctx->current_ret_type;
         val = llvm_coerce_result_option_payload(ctx, val, fields[1]);
         LLVMValueRef o = LLVMGetUndef(option_ty);
         o = LLVMBuildInsertValue(ctx->builder, o,
@@ -415,8 +427,8 @@ llvm_emit_result_option_call(ASTNode *node, LLVMGenCtx *ctx, const char *callee_
     /* Built-in: None() creates the active Option<T> none-tag payload. */
     if (op == LLVM_RESULT_OPTION_OP_NONE_VALUE) {
         LLVMTypeRef fields[2];
-        if (!llvm_result_option_context_struct(ctx, 2, fields)
-            || fields[0] != ctx->type_i32) {
+        LLVMTypeRef option_ty = llvm_result_option_context_type(ctx, 2, fields);
+        if (option_ty == NULL || fields[0] != ctx->type_i32) {
             llvm_set_error_at_with_hints(ctx, node,
                 PGY_CODE_LLVM_TYPE_UNSUPPORTED,
                 PGY_CAUSE_LLVM_TYPE_UNSUPPORTED,
@@ -425,8 +437,6 @@ llvm_emit_result_option_call(ASTNode *node, LLVMGenCtx *ctx, const char *callee_
             return NULL;
         }
         LLVMTypeRef value_ty = fields[1];
-        LLVMTypeRef option_ty = LLVMStructTypeInContext(ctx->context,
-            (LLVMTypeRef[]){ ctx->type_i32, value_ty }, 2, 0);
         LLVMValueRef o = LLVMGetUndef(option_ty);
         o = LLVMBuildInsertValue(ctx->builder, o,
             LLVMConstInt(ctx->type_i32, 1, 0), 0, llvm_tmp_name(ctx));

@@ -1,0 +1,30 @@
+func TryParseInt(s: String) -> Option<Int> {
+    if s == "one" { return Some(1); }
+    if s == "two" { return Some(2); }
+    if s == "ten" { return Some(10); }
+    return None;
+}
+
+func Sum(names: Array<String>, n: Int) -> Int {
+    let total: Int = 0;
+    let i: Int = 0;
+    while i < n {
+        match TryParseInt(names[i]) {
+            case Some(v): total = total + v;
+            case None: total = total - 1;
+        }
+        i = i + 1;
+    }
+    return total;
+}
+
+func Main() -> Void {
+    let arr: Array<String> = ["one", "two", "ten"];
+    Log(Sum(arr, 3));
+    let arr2: Array<String> = ["one", "x", "two", "y"];
+    Log(Sum(arr2, 4));
+    let arr3: Array<String> = ["?", "?", "?"];
+    Log(Sum(arr3, 3));
+    let arr4: Array<String> = ["ten"];
+    Log(Sum(arr4, 1));
+}

@@ -1,0 +1,22 @@
+enum FlagErr { Unset, Locked }
+
+class Cell {
+    let n: Int;
+    let r: Result<Int, FlagErr>;
+
+    func Status(self) -> Int {
+        match r {
+            case Ok(v): return v + n;
+            case Err(e): return -1;
+        }
+    }
+}
+
+func Main() -> Void {
+    let s1: Cell = Cell(10, Ok(5));
+    Log(s1.Status());
+    let s2: Cell = Cell(100, Err(Unset));
+    Log(s2.Status());
+    let s3: Cell = Cell(50, Err(Locked));
+    Log(s3.Status());
+}

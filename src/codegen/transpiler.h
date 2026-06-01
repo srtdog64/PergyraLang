@@ -250,6 +250,13 @@ typedef struct
     const char *current_overlay_receiver_expr;
     bool uses_intent_observability;
     const void *active_ssa_map;
+    /* Persistent alias map for match-case bindings, valid for the whole
+     * function emission. Each entry maps source binding name (e.g. "v") to
+     * the SSA-renamed unique C variable name (e.g. "_pgy_match_v_42").
+     * Used as a fallback when block-local ssa_map doesn't have the alias
+     * — necessary for nested matches where outer binding is referenced in
+     * inner-match subject expression in a successor block. */
+    void *match_binding_alias_map;
     const char *active_type_hint;
 
     /* Expected target type for context-sensitive emission.

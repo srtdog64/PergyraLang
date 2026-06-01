@@ -1,0 +1,46 @@
+enum BuildErr { Invalid, Limit }
+
+class Builder {
+    let val: Int;
+    let max: Int;
+
+    func Add(self, n: Int) -> Result<Builder, BuildErr> {
+        if n < 0 { return Err(Invalid); }
+        if val + n > max { return Err(Limit); }
+        return Ok(Builder(val + n, max));
+    }
+
+    func Score(self) -> Int {
+        return val * 10;
+    }
+}
+
+func TryStep(b: Builder, a: Int, c: Int) -> Result<Int, BuildErr> {
+    match b.Add(a) {
+        case Ok(b2):
+            match b2.Add(c) {
+                case Ok(b3): return Ok(b3.Score());
+                case Err(e2): return Err(e2);
+            }
+        case Err(e1): return Err(e1);
+    }
+}
+
+func Tag(r: Result<Int, BuildErr>, def: Int) -> Int {
+    match r {
+        case Ok(v): return v;
+        case Err(e):
+            match e {
+                case Invalid: return def + 1;
+                case Limit: return def + 2;
+            }
+    }
+}
+
+func Main() -> Void {
+    Log(Tag(TryStep(Builder(0, 100), 5, 10), -1000));
+    Log(Tag(TryStep(Builder(0, 100), -1, 5), -1000));
+    Log(Tag(TryStep(Builder(95, 100), 1, 5), -1000));
+    Log(Tag(TryStep(Builder(50, 200), 100, 100), -1000));
+    Log(Tag(TryStep(Builder(0, 1000), 500, 500), -1000));
+}

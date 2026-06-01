@@ -15,6 +15,14 @@ type_check_assignment(ASTNode *expr, SemanticContext *ctx)
     value_type = type_check_expression(value, ctx);
     if (value_type == NULL)
         value_type = TYPE_UNKNOWN;
+    if (type_equals(value_type, TYPE_VOID)) {
+        semantic_error_with_hints(ctx, PGY_CODE_SEM_TYPE_MISMATCH,
+            PGY_CAUSE_ASSIGNABILITY_CHECK,
+            PGY_FIX_ALIGN_OPERAND_TYPE,
+            value,
+            "Void expression cannot be assigned as a value; split the side effect into a statement before assignment");
+        value_type = TYPE_UNKNOWN;
+    }
 
     if (target != NULL && target->type == AST_IDENTIFIER) {
         const char *target_name = ast_identifier_name(target);

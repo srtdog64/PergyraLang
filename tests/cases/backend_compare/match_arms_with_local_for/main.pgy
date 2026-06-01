@@ -1,0 +1,32 @@
+enum Mode { Sum, Max, Mul }
+
+func Reduce(arr: Array<Int>, mode: Mode) -> Int {
+    match mode {
+        case Sum:
+            let s: Int = 0;
+            for v in arr { s = s + v; }
+            return s;
+        case Max:
+            let best: Int = 0;
+            let first: Bool = true;
+            for v in arr {
+                if first { best = v; first = false; }
+                else if v > best { best = v; }
+            }
+            return best;
+        case Mul:
+            let p: Int = 1;
+            for v in arr { p = p * v; }
+            return p;
+    }
+}
+
+func Main() -> Void {
+    let a: Array<Int> = [3, 1, 4, 1, 5, 9];
+    Log(Reduce(a, Sum));
+    Log(Reduce(a, Max));
+    Log(Reduce(a, Mul));
+    let empty: Array<Int> = [];
+    Log(Reduce(empty, Sum));
+    Log(Reduce(empty, Mul));
+}

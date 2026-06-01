@@ -1,0 +1,22 @@
+func GroupSum(arr: Array<Int>, n: Int, mod: Int) -> Int {
+    let total: Int = 0;
+    let i: Int = 0;
+    while i < n {
+        let bucket: Int = arr[i] % mod;
+        if bucket == 0 {
+            total = total + arr[i];
+        } else {
+            total = total + bucket;
+        }
+        i = i + 1;
+    }
+    return total;
+}
+
+func Main() -> Void {
+    let arr: Array<Int> = [3, 7, 12, 15, 20];
+    Log(GroupSum(arr, 5, 3));
+    Log(GroupSum(arr, 5, 5));
+    Log(GroupSum(arr, 5, 2));
+    Log(GroupSum(arr, 0, 3));
+}

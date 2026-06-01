@@ -50,7 +50,25 @@ type_check_return_stmt(ASTNode *node, SemanticContext *ctx)
             type_check_expression(value, ctx));
     }
     ret_type = ownership_return_apply_context(value, ret_type,
-                                              ctx->current_return);
+                                               ctx->current_return);
+
+    if (value != NULL && ctx->current_return != NULL
+        && type_equals(ctx->current_return, TYPE_VOID)
+        && type_equals(ret_type, TYPE_VOID)) {
+        semantic_error_with_hints(ctx,
+            PGY_CODE_SEM_TYPE_MISMATCH,
+            PGY_CAUSE_ASSIGNABILITY_CHECK,
+            PGY_FIX_ALIGN_OPERAND_TYPE,
+            value,
+            "Void function return must not carry a Void expression value.\n"
+            "Reason:\n"
+            "- Void calls are statement-only side effects, not return values\n"
+            "- lowering 'return <Void expression>' requires a backend placeholder\n"
+            "Fix:\n"
+            "- emit the side-effecting call as a statement before 'return'\n"
+            "- or use bare 'return' in a Void function");
+        ret_type = TYPE_UNKNOWN;
+    }
 
     if (ctx->current_return != NULL)
         require_assignable(ret_type, ctx->current_return, node, ctx);

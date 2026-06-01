@@ -1,0 +1,34 @@
+class Filter {
+    let lo: Int;
+    let hi: Int;
+
+    func Accept(self, n: Int) -> Bool {
+        if n < lo { return false; }
+        if n > hi { return false; }
+        return true;
+    }
+
+    func Reject(self, n: Int) -> Bool {
+        return n < lo || n > hi;
+    }
+}
+
+func CountBoth(f: Filter, arr: Array<Int>, n: Int) -> Int {
+    let acc: Int = 0;
+    let rej: Int = 0;
+    let i: Int = 0;
+    while i < n {
+        if f.Accept(arr[i]) { acc = acc + 1; }
+        if f.Reject(arr[i]) { rej = rej + 1; }
+        i = i + 1;
+    }
+    return acc * 1000 + rej;
+}
+
+func Main() -> Void {
+    let arr: Array<Int> = [1, 5, 10, 15, 20, 25];
+    Log(CountBoth(Filter(5, 20), arr, 6));
+    Log(CountBoth(Filter(0, 100), arr, 6));
+    Log(CountBoth(Filter(100, 200), arr, 6));
+    Log(CountBoth(Filter(10, 10), arr, 6));
+}

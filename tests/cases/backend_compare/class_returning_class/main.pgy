@@ -1,0 +1,26 @@
+class Cell {
+    let value: Int;
+    let limit: Int;
+
+    func Total(self) -> Int {
+        return value * 100 + limit;
+    }
+
+    func Saturate(self) -> Cell {
+        if value > limit { return Cell(limit, limit); }
+        return Cell(value, limit);
+    }
+}
+
+func ScoreCell(c: Cell, factor: Int) -> Int {
+    let s: Cell = c.Saturate();
+    return s.Total() * factor;
+}
+
+func Main() -> Void {
+    Log(ScoreCell(Cell(5, 10), 1));
+    Log(ScoreCell(Cell(50, 10), 1));
+    Log(ScoreCell(Cell(8, 10), 2));
+    Log(ScoreCell(Cell(11, 10), 3));
+    Log(ScoreCell(Cell(0, 100), 5));
+}

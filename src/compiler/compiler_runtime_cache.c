@@ -99,6 +99,7 @@ compiler_runtime_cache_is_fresh(const char *cache_obj_path)
         PGY_RUNTIME_DIR "/pgy_runtime_lib_qubit_state_exports.h",
         PGY_RUNTIME_DIR "/pgy_runtime_lib_quantum_exports.h",
         PGY_RUNTIME_DIR "/pgy_runtime_platform_io_core.h",
+        PGY_RUNTIME_DIR "/pgy_runtime_process_exit.h",
         PGY_RUNTIME_DIR "/pgy_runtime_inline_core.h",
         PGY_RUNTIME_DIR "/pgy_runtime_intent_active_index_inline.h",
         PGY_RUNTIME_DIR "/pgy_runtime_intent_trace_inline.h",

@@ -1,0 +1,36 @@
+func F1(n: Int) -> Int {
+    if n < 0 { return 0; }
+    return n + 1;
+}
+
+func F2(n: Int) -> Int {
+    if n > 100 { return 100; }
+    return n * 2;
+}
+
+func F3(n: Int) -> Int {
+    return n - 1;
+}
+
+func Apply3(seed: Int) -> Int {
+    return F3(F2(F1(seed)));
+}
+
+func Loop(arr: Array<Int>, n: Int) -> Int {
+    let total: Int = 0;
+    let i: Int = 0;
+    while i < n {
+        total = total + Apply3(arr[i]);
+        i = i + 1;
+    }
+    return total;
+}
+
+func Main() -> Void {
+    let arr: Array<Int> = [5, -1, 100, 50];
+    Log(Loop(arr, 4));
+    Log(Loop(arr, 1));
+    Log(Loop(arr, 0));
+    Log(Apply3(60));
+    Log(Apply3(-5));
+}

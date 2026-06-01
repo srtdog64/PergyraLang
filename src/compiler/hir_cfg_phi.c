@@ -42,6 +42,31 @@ hir_stmt_collect_local_defs(ASTNode *node,
     }
 }
 
+static bool
+hir_stmt_collect_phi_seed_names(ASTNode *node,
+                                const char ***names,
+                                size_t *count,
+                                size_t *capacity)
+{
+    if (node == NULL)
+        return true;
+
+    switch (node->type) {
+        case AST_ASSIGNMENT:
+            if (ast_assignment_target(node) != NULL
+                && ast_assignment_target(node)->type == AST_IDENTIFIER) {
+                return hir_cfg_append_name_unique(names,
+                                                  count,
+                                                  capacity,
+                                                  ast_identifier_name(ast_assignment_target(node)));
+            }
+            return true;
+
+        default:
+            return true;
+    }
+}
+
 bool
 hir_collect_cfg_local_defs(HIRRoutine *routine)
 {
@@ -81,8 +106,11 @@ hir_routine_collect_ssa_names(const HIRRoutine *routine,
         const HIRBasicBlock *block = &routine->cfg.blocks[i];
         if (!block->is_reachable)
             continue;
-        for (size_t j = 0; j < block->local_def_count; j++) {
-            if (!hir_cfg_append_name_unique(names, count, capacity, block->local_defs[j]))
+        for (size_t j = 0; j < block->statement_count; j++) {
+            if (!hir_stmt_collect_phi_seed_names(block->statements[j],
+                                                 names,
+                                                 count,
+                                                 capacity))
                 return false;
         }
     }

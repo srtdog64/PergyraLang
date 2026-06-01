@@ -14,6 +14,7 @@ pgy_runtime_lib_strdup(const char *src)
 }
 
 #include "pgy_runtime_io_status.h"
+#include "pgy_runtime_process_exit.h"
 
 /* =================================================================
  * File I/O and string helpers needed by LLVM backend
@@ -333,7 +334,7 @@ char *pgy_input(const char *prompt)
 
 void pgy_exit(int32_t code)
 {
-    exit((int)code);
+    pgy_runtime_process_exit(code);
 }
 
 bool StringContains(const char *haystack, const char *needle)

@@ -1,0 +1,22 @@
+class Counter {
+    let n: Int;
+    let cap: Int;
+
+    func Next(self) -> Int {
+        return n + 1;
+    }
+}
+
+func Twice(start: Int) -> Int {
+    let c: Counter = Counter(start, 100);
+    let after1: Int = c.Next();
+    let c2: Counter = Counter(after1, 100);
+    let after2: Int = c2.Next();
+    return after2;
+}
+
+func Main() -> Void {
+    Log(Twice(0));
+    Log(Twice(10));
+    Log(Twice(50));
+}

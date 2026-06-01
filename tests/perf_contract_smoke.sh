@@ -467,8 +467,11 @@ grep -Fq "bsearch(&name" "$ROOT_DIR/src/common/match_variant_policy.c"
 for match_variant_owner in \
     "$ROOT_DIR/src/codegen/transpiler_match_emit.c" \
     "$ROOT_DIR/src/codegen/transpiler_mir_match_condition_emit.c" \
+    "$ROOT_DIR/src/codegen/transpiler_mir_match_pattern_emit.c" \
+    "$ROOT_DIR/src/codegen/transpiler_mir_match_payload_emit.c" \
     "$ROOT_DIR/src/codegen/llvm_stmt_match.c" \
-    "$ROOT_DIR/src/codegen/llvm_mir_match_condition.c"; do
+    "$ROOT_DIR/src/codegen/llvm_mir_match_condition.c" \
+    "$ROOT_DIR/src/codegen/llvm_mir_match_pattern.c"; do
     grep -Fq "pgy_codegen_match_variant_lookup" "$match_variant_owner"
     if grep -Eq 'strcmp[[:space:]]*\([[:space:]]*(name|kind|option_kind|result_kind)[[:space:]]*,[[:space:]]*"(Some|None|Ok|Err)"' \
         "$match_variant_owner"; then
@@ -1155,6 +1158,92 @@ done
 grep -Fq "ast_contains_identifier_call" "$ROOT_DIR/src/parser/ast_analysis.c"
 grep -Fq "ast_decl_methods_contain_identifier_call" "$ROOT_DIR/src/parser/ast_analysis.c"
 grep -Fq "ast_uses_intent_observability_surface" "$ROOT_DIR/src/parser/ast_analysis.c"
+grep -Fq "ast_identity.c" "$ROOT_DIR/Makefile"
+grep -Fq "uint32_t    stable_id;" "$ROOT_DIR/src/parser/ast.h"
+grep -Fq "ast_assign_stable_ids(program)" "$ROOT_DIR/src/parser/parser.c"
+grep -Fq "ast_node_stable_id(match_case)" "$ROOT_DIR/src/codegen/llvm_stmt_match.c"
+grep -Fq "ast_node_stable_id(loop)" "$ROOT_DIR/src/codegen/llvm_stmt_loop_match.c"
+grep -Fq "ast_node_stable_id(match_case)" \
+    "$ROOT_DIR/src/codegen/llvm_mir_match_pattern.c"
+grep -Fq "ast_node_stable_id(mir_instruction_source_payload(inst))" \
+    "$ROOT_DIR/src/codegen/llvm_mir_loop_control.c"
+grep -Fq "ast_node_stable_id(mir_instruction_source_payload(inst))" \
+    "$ROOT_DIR/src/codegen/llvm_mir_for_in_control.c"
+grep -Fq "ast_node_stable_id(case_node)" \
+    "$ROOT_DIR/src/codegen/transpiler_mir_match_pattern_emit.c"
+grep -Fq "ast_node_stable_id(mir_instruction_source_payload(inst))" \
+    "$ROOT_DIR/src/codegen/transpiler_mir_cfg_control_emit.c"
+grep -Fq "llvm_match_payload_alloca_name" "$ROOT_DIR/src/codegen/llvm_stmt_match.c"
+grep -Fq "llvm_for_loop_alloca_name" "$ROOT_DIR/src/codegen/llvm_stmt_loop_match.c"
+grep -Fq "llvm_mir_match_payload_alloca_name" \
+    "$ROOT_DIR/src/codegen/llvm_mir_match_pattern.c"
+grep -Fq "llvm_mir_emit_match_case_body_binding" \
+    "$ROOT_DIR/src/codegen/llvm_mir_block_emit.c"
+grep -Fq "transpiler_mir_emit_match_case_body_binding" \
+    "$ROOT_DIR/src/codegen/transpiler_mir_block_emit.c"
+grep -Fq "llvm_mir_remap_active_match_bindings" \
+    "$ROOT_DIR/src/codegen/llvm_mir_block_emit.c"
+grep -Fq "llvm_mir_case_true_region_contains" \
+    "$ROOT_DIR/src/codegen/llvm_mir_match_region.c"
+grep -Fq "transpiler_mir_remap_active_match_bindings" \
+    "$ROOT_DIR/src/codegen/transpiler_mir_block_emit.c"
+grep -Fq "transpiler_mir_case_true_region_contains" \
+    "$ROOT_DIR/src/codegen/transpiler_mir_match_region_emit.c"
+grep -Fq "llvm_mir_local_type_from_vars(" \
+    "$ROOT_DIR/src/codegen/llvm_mir_local_emit.c"
+if grep -RIn -F "PGY_DEBUG_BINDING" "$ROOT_DIR/src/codegen"; then
+    echo "[perf-contract] temporary binding debug output escaped into codegen" >&2
+    exit 1
+fi
+grep -Fq "transpiler_mir_set_payload_binding_name" \
+    "$ROOT_DIR/src/codegen/transpiler_mir_match_condition_emit.c"
+grep -Fq "transpiler_scratch_strdup(ctx, emitted_name)" \
+    "$ROOT_DIR/src/codegen/transpiler_mir_match_condition_emit.c"
+grep -Fq "transpiler_mir_set_loop_binding_name" \
+    "$ROOT_DIR/src/codegen/transpiler_mir_cfg_control_emit.c"
+grep -Fq "transpiler_scratch_strdup(ctx, loop_name)" \
+    "$ROOT_DIR/src/codegen/transpiler_mir_cfg_control_emit.c"
+grep -Fq "transpiler_mir_find_backedge_loop_branch" \
+    "$ROOT_DIR/src/codegen/transpiler_mir_cfg_policy.c"
+grep -Fq "transpiler_mir_find_backedge_loop_branch(routine, block)" \
+    "$ROOT_DIR/src/codegen/transpiler_mir_cfg_control_emit.c"
+grep -Fq "llvm_mir_emit_for_loop_body_binding" \
+    "$ROOT_DIR/src/codegen/llvm_mir_block_emit.c"
+grep -Fq "llvm_mir_find_backedge_range_loop_branch" \
+    "$ROOT_DIR/src/codegen/llvm_mir_loop_control.c"
+grep -Fq "transpiler_restore_local_binding_counts_local(ctx, saved_slot_count" \
+    "$ROOT_DIR/src/codegen/transpiler_match_emit.c"
+grep -Fq "transpiler_restore_local_binding_counts_local(ctx, saved_slot_count" \
+    "$ROOT_DIR/src/codegen/transpiler_control_flow_emit.c"
+grep -Fq "ctx->var_class_count = saved_var_class_count;" \
+    "$ROOT_DIR/src/codegen/llvm_stmt_match.c"
+grep -Fq "ctx->var_class_count = saved_var_class_count;" \
+    "$ROOT_DIR/src/codegen/llvm_stmt_loop_match.c"
+if grep -Fq "payload_ty, option_binding)" "$ROOT_DIR/src/codegen/llvm_stmt_match.c" ||
+   grep -Fq "payload_ty, result_binding)" "$ROOT_DIR/src/codegen/llvm_stmt_match.c"; then
+    echo "[perf-contract] LLVM match payload alloca regressed to source-name identity" >&2
+    exit 1
+fi
+if grep -Fq "elem_ty, var_name)" "$ROOT_DIR/src/codegen/llvm_stmt_loop_match.c"; then
+    echo "[perf-contract] LLVM for-loop binding alloca regressed to source-name identity" >&2
+    exit 1
+fi
+if grep -Fq "payload_ty, binding)" "$ROOT_DIR/src/codegen/llvm_mir_match_condition.c"; then
+    echo "[perf-contract] LLVM MIR match payload alloca regressed to source-name identity" >&2
+    exit 1
+fi
+if grep -Fq "ctx, ctx->type_i32, variable)" "$ROOT_DIR/src/codegen/llvm_mir_loop_control.c"; then
+    echo "[perf-contract] LLVM MIR range loop alloca regressed to source-name identity" >&2
+    exit 1
+fi
+grep -A3 -F "int32_t %s = %s" \
+    "$ROOT_DIR/src/codegen/transpiler_mir_cfg_control_emit.c" | \
+    grep -Fq "loop_name,"
+if grep -Fq "codebuf_write(buf, \"int32_t %s = %s;\\n\", variable" \
+    "$ROOT_DIR/src/codegen/transpiler_mir_cfg_control_emit.c"; then
+    echo "[perf-contract] C MIR range loop binding regressed to source-name emission" >&2
+    exit 1
+fi
 grep -Fq "pgy_mir_instruction_uses_intent_observability" "$ROOT_DIR/src/codegen/intent_observability_usage.c"
 if [[ "$(grep -Fc "llvm_active_uses_intent_observability(ctx)" "$ROOT_DIR/src/codegen/llvm_api.c")" -lt 2 ]]; then
     echo "LLVM IR and object codegen paths must both preserve intent observability runtime selection" >&2
@@ -2188,6 +2277,14 @@ grep -Fq "if (ctx->has_error || map_ty == NULL || value_ty == NULL)" "$ROOT_DIR/
 ! grep -A8 -F "PGY_TK_ARRAY" "$ROOT_DIR/src/codegen/llvm_backend_type_map.c" | grep -Fq "return ctx->type_i32"
 ! grep -A8 -F "PGY_TK_SLICE" "$ROOT_DIR/src/codegen/llvm_backend_type_map.c" | grep -Fq "return ctx->type_i32"
 grep -Fq "LLVM array literal could not lower Array<T> type" "$ROOT_DIR/src/codegen/llvm_expr_aggregate.c"
+grep -Fq "LLVM tuple literal requires at least 2 elements" "$ROOT_DIR/src/codegen/llvm_expr_aggregate.c"
+grep -Fq "if (n < 2)" "$ROOT_DIR/src/codegen/llvm_expr_aggregate.c"
+! grep -A8 -F "llvm_emit_tuple_literal_expr" "$ROOT_DIR/src/codegen/llvm_expr_aggregate.c" | grep -Fq "LLVMConstInt(ctx->type_i32, 0, 0)"
+grep -Fq "LLVMTypeRef elem_type = NULL" "$ROOT_DIR/src/codegen/llvm_expr_aggregate.c"
+! grep -Fq "LLVMTypeRef elem_type = ctx->type_i32" "$ROOT_DIR/src/codegen/llvm_expr_aggregate.c"
+grep -Fq "LLVMTypeRef elem_type = NULL" "$ROOT_DIR/src/codegen/llvm_stmt_let_collections.c"
+! grep -Fq "LLVMTypeRef elem_type = ctx->type_i32" "$ROOT_DIR/src/codegen/llvm_stmt_let_collections.c"
+grep -Fq "if (elem_type == NULL)" "$ROOT_DIR/src/codegen/llvm_stmt_let_collections.c"
 grep -Fq "if (ctx->has_error || array_type == NULL)" "$ROOT_DIR/src/codegen/llvm_stmt_let_collections.c"
 ! grep -A12 -F "llvm_type_to_suffix" "$ROOT_DIR/src/codegen/llvm_backend_generic.c" | grep -Fq 'return "Unknown";'
 grep -Fq "llvm_array_required_receiver_var" "$ROOT_DIR/src/codegen/llvm_expr_array_calls.c"
@@ -2399,7 +2496,7 @@ if [[ "$llvm_stmt_collection_get_names" != "$llvm_stmt_collection_get_names_sort
         <(printf '%s\n' "$llvm_stmt_collection_get_names") >&2 || true
     exit 1
 fi
-grep -Fq "return pergyra_type_to_llvm(ctx, inner_buf)" "$ROOT_DIR/src/codegen/llvm_stmt_type_infer.c"
+grep -Fq "return pergyra_type_to_llvm(ctx, inner_buf)" "$ROOT_DIR/src/codegen/llvm_stmt_array_type_infer.c"
 ! grep -A18 -F "llvm_stmt_unknown_expr_type" \
     "$ROOT_DIR/src/codegen/llvm_stmt_type_infer.c" | \
     grep -Fq "return ctx->type_i32"
@@ -2474,7 +2571,7 @@ grep -Fq "transpiler_require_type_name_c_type_copy(ctx, subject_type" "$ROOT_DIR
 grep -Fq "transpiler_require_type_name_c_type_copy(ctx, inner" "$ROOT_DIR/src/codegen/transpiler_match_bindings.c"
 grep -Fq "transpiler_require_type_name_c_type_copy(ctx, ok_type" "$ROOT_DIR/src/codegen/transpiler_match_bindings.c"
 grep -Fq "transpiler_require_type_name_c_type_copy(ctx, err_type" "$ROOT_DIR/src/codegen/transpiler_match_bindings.c"
-grep -Fq "transpiler_require_type_name_c_type_copy(ctx, payload_type" "$ROOT_DIR/src/codegen/transpiler_mir_match_condition_emit.c"
+grep -Fq "transpiler_require_type_name_c_type_copy(ctx, payload_type" "$ROOT_DIR/src/codegen/transpiler_mir_match_payload_emit.c"
 grep -Fq "transpiler_require_type_name_c_type_copy(ctx, inner" "$ROOT_DIR/src/codegen/transpiler_select.c"
 grep -Fq "transpiler_require_type_name_c_type_copy(ctx, return_type_name" "$ROOT_DIR/src/codegen/transpiler_spawn_channel_emit.c"
 grep -Fq "bound_type," "$ROOT_DIR/src/codegen/transpiler_spawn_channel_emit.c"
@@ -2850,13 +2947,13 @@ grep -Fq "zone constructor rejects default Channel shared field storage" \
 grep -Fq "PGY_CODE_SEM_CHANNEL_TRANSPORT_INVALID" \
     "$ROOT_DIR/src/semantic/type_checker_call_constructor.c"
 grep -Fq "cannot be aggregate-constructed or default-initialized until movable channel-handle lowering is available" \
-    "$ROOT_DIR/src/codegen/llvm_expr_constructor_calls.c"
+    "$ROOT_DIR/src/codegen/llvm_expr_constructor_channel_guard.c"
 grep -Fq "cannot be aggregate-constructed or default-initialized until movable channel-handle lowering is available" \
     "$ROOT_DIR/src/codegen/transpiler_constructor_channel_guard.c"
 grep -Fq "cannot be aggregate-constructed or default-initialized until movable channel-handle lowering is available" \
     "$ROOT_DIR/src/codegen/transpiler_constructor_channel_guard.c"
 grep -Fq "PGY_FIX_PROVIDE_MOVABLE_HANDLE" \
-    "$ROOT_DIR/src/codegen/llvm_expr_constructor_calls.c"
+    "$ROOT_DIR/src/codegen/llvm_expr_constructor_channel_guard.c"
 grep -Fq "PGY_FIX_PROVIDE_MOVABLE_HANDLE" \
     "$ROOT_DIR/src/codegen/transpiler_constructor_channel_guard.c"
 grep -Fq "PGY_FIX_PROVIDE_MOVABLE_HANDLE" \
@@ -2866,7 +2963,7 @@ grep -Fq "transpiler_type_name_is_channel" \
 grep -Fq "transpiler_type_name_is_channel" \
     "$ROOT_DIR/src/codegen/transpiler_constructor_channel_guard.c"
 grep -Fq "pgy_classify_type(expected_type) == PGY_TK_CHANNEL" \
-    "$ROOT_DIR/src/codegen/llvm_expr_constructor_calls.c"
+    "$ROOT_DIR/src/codegen/llvm_expr_constructor_channel_guard.c"
 grep -Fq 'current-host' "$ROOT_DIR/docs/semantics/06_backend_parity.md"
 grep -Fq '`Channel<T>` fields through the same `LLVMChannelTarget`' \
     "$ROOT_DIR/docs/semantics/06_backend_parity.md"
@@ -2983,6 +3080,10 @@ grep -Fq "LLVM spawn expression requires a target expression" "$ROOT_DIR/src/cod
     grep -Fq "return ctx->type_i32"
 ! grep -Fq "strstr(layout_name" "$ROOT_DIR/src/codegen/llvm_mir_type_helpers.c"
 ! grep -Fq 'strncmp(runtime_fn, "pgy_claim_' "$ROOT_DIR/src/codegen/llvm_mir_type_helpers.c"
+grep -Fq "llvm_mir_pinned_view_type_from_layout" "$ROOT_DIR/src/codegen/llvm_mir_type_helpers.c"
+grep -Fq "llvm_constructed_arg_name_copy(layout_name, 0" "$ROOT_DIR/src/codegen/llvm_mir_type_helpers.c"
+! grep -Fq 'strcmp(layout_name, "PinnedSlotView<Int>")' "$ROOT_DIR/src/codegen/llvm_mir_type_helpers.c"
+! grep -Fq 'strcmp(layout_name, "PinnedSecureSlotView<Int>")' "$ROOT_DIR/src/codegen/llvm_mir_type_helpers.c"
 grep -Fq 'strcmp(type_name, "Future") == 0' "$ROOT_DIR/src/codegen/llvm_type.c"
 grep -Fq 'strcmp(type_name, "RemoteFuture") == 0' "$ROOT_DIR/src/codegen/llvm_type.c"
 grep -Fq "LLVMTypeRef var_type = NULL" "$ROOT_DIR/src/codegen/llvm_stmt_let_with.c"
@@ -2992,6 +3093,8 @@ grep -Fq "llvm_mir_local_elem_type_from_layout" "$ROOT_DIR/src/codegen/llvm_mir_
 grep -Fq "LLVMTypeRef elem_type = NULL" "$ROOT_DIR/src/codegen/llvm_mir_local_emit.c"
 grep -Fq "llvm_mir_local_require_elem_type" "$ROOT_DIR/src/codegen/llvm_mir_local_emit.c"
 ! grep -Fq "LLVMTypeRef elem_type = ctx->type_i32" "$ROOT_DIR/src/codegen/llvm_mir_local_emit.c"
+grep -Fq "LLVMTypeRef pt = NULL" "$ROOT_DIR/src/codegen/llvm_mir_param_emit.c"
+! grep -Fq "LLVMTypeRef pt = ctx->type_i32" "$ROOT_DIR/src/codegen/llvm_mir_param_emit.c"
 grep -Fq "if (ctx->has_error || alloca_type == NULL)" \
     "$ROOT_DIR/src/codegen/llvm_mir_local_emit.c"
 grep -Fq "llvm_mir_local_type_from_value_fact" \
@@ -3032,7 +3135,7 @@ grep -Fq "if (ctx->has_error || pt == NULL)" \
 grep -Fq "if (ctx->has_error || param_types[i] == NULL)" \
     "$ROOT_DIR/src/codegen/llvm_mir_emit.c"
 grep -Fq "if (ctx->has_error || pt == NULL)" \
-    "$ROOT_DIR/src/codegen/llvm_mir_local_emit.c"
+    "$ROOT_DIR/src/codegen/llvm_mir_param_emit.c"
 grep -Fq "could not lower argument %zu" "$ROOT_DIR/src/codegen/llvm_expr_spawn_call_helpers.c"
 grep -Fq "loaded-argument allocation failed" "$ROOT_DIR/src/codegen/llvm_expr_spawn_call_helpers.c"
 grep -Fq "llvm_member_call_error_recovery" "$ROOT_DIR/src/codegen/llvm_member_call_support.c"
@@ -3412,6 +3515,51 @@ grep -Fq "LLVM await expression could not lower task handle expression" "$ROOT_D
 grep -Fq "llvm_stmt_type_infer_await.c" "$ROOT_DIR/Makefile"
 grep -Fq "LLVM await expression type inference requires Future<T> metadata" "$ROOT_DIR/src/codegen/llvm_stmt_type_infer_await.c"
 grep -Fq "operand '%s' has no registered Future<T> metadata" "$ROOT_DIR/src/codegen/llvm_stmt_type_infer_await.c"
+grep -A6 -F 'if (strcmp(inner, "Void") == 0)' \
+    "$ROOT_DIR/src/codegen/llvm_stmt_type_infer_await.c" | \
+    grep -Fq "return ctx->type_void"
+! grep -A6 -F 'if (strcmp(inner, "Void") == 0)' \
+    "$ROOT_DIR/src/codegen/llvm_stmt_type_infer_await.c" | \
+    grep -Fq "return ctx->type_i32"
+grep -Fq "LLVM void function return must not carry a value expression" "$ROOT_DIR/src/codegen/llvm_stmt.c"
+grep -Fq "LLVM constructor field '%s' cannot consume a Void expression value" "$ROOT_DIR/src/codegen/llvm_expr_constructor_calls.c"
+grep -Fq "llvm_stmt_infer_expr_type(ctx, arg)" "$ROOT_DIR/src/codegen/llvm_expr_constructor_calls.c"
+grep -Fq "LLVM enum variant constructor '%s' cannot consume a Void expression as payload %zu" "$ROOT_DIR/src/codegen/llvm_expr_constructor_calls.c"
+grep -Fq "LLVM call helper cannot pass a Void expression as argument %zu" "$ROOT_DIR/src/codegen/llvm_expr_call_args.c"
+grep -Fq "LLVMTypeRef arg_type = llvm_stmt_infer_expr_type(ctx, arg_nodes[i])" "$ROOT_DIR/src/codegen/llvm_expr_call_args.c"
+grep -Fq "LLVM call '%s' cannot consume a Void expression as argument %zu" "$ROOT_DIR/src/codegen/llvm_expr_call_dispatch.c"
+grep -Fq "LLVM intent call '%s' cannot consume a Void expression as argument %zu" "$ROOT_DIR/src/codegen/llvm_expr_call_dispatch.c"
+grep -Fq "LLVM hosted method call '%s' cannot consume a Void expression as argument %zu" "$ROOT_DIR/src/codegen/llvm_expr_call_hosted.c"
+grep -Fq "llvm_void_expression_placeholder" "$ROOT_DIR/src/codegen/llvm_expr_emit_support.c"
+for void_call_owner in \
+    "$ROOT_DIR/src/codegen/llvm_expr_call_args.c" \
+    "$ROOT_DIR/src/codegen/llvm_expr_call_dispatch.c" \
+    "$ROOT_DIR/src/codegen/llvm_expr_call_hosted.c" \
+    "$ROOT_DIR/src/codegen/llvm_expr_call_variable.c" \
+    "$ROOT_DIR/src/codegen/llvm_expr_await_task.c" \
+    "$ROOT_DIR/src/codegen/llvm_expr_scalar_core.c" \
+    "$ROOT_DIR/src/codegen/llvm_member_call_emit.c" \
+    "$ROOT_DIR/src/codegen/llvm_expr_log_calls.c" \
+    "$ROOT_DIR/src/codegen/llvm_expr_event_calls.c" \
+    "$ROOT_DIR/src/codegen/llvm_expr_slot_device_calls.c" \
+    "$ROOT_DIR/src/codegen/llvm_expr_array_calls.c" \
+    "$ROOT_DIR/src/codegen/llvm_expr_call_collections_extended.c" \
+    "$ROOT_DIR/src/codegen/llvm_expr_call_list_extended.c" \
+    "$ROOT_DIR/src/codegen/llvm_expr_call_queue_extended.c" \
+    "$ROOT_DIR/src/codegen/llvm_expr_collection_base_calls.c"; do
+    if grep -Fq "return LLVMConstInt(ctx->type_i32, 0, 0)" "$void_call_owner" \
+        || grep -Fq "result = LLVMConstInt(ctx->type_i32, 0, 0)" "$void_call_owner"; then
+        echo "[perf-contract] LLVM void expression placeholder bypassed owner in $void_call_owner" >&2
+        exit 1
+    fi
+done
+grep -Fq "C backend: call '%s' cannot consume a Void expression as argument %zu" "$ROOT_DIR/src/codegen/transpiler_expr_call_user_emit.c"
+grep -Fq "C backend: hosted method '%s.%s' cannot consume a Void expression as argument %zu" "$ROOT_DIR/src/codegen/transpiler_expr_call_user_emit.c"
+grep -Fq "C constructor field '%s' cannot consume a Void expression value" "$ROOT_DIR/src/codegen/transpiler_domain_constructor_emit.c"
+grep -Fq "C enum variant constructor '%s' cannot consume a Void expression as payload %zu" "$ROOT_DIR/src/codegen/transpiler_enum_constructor_emit.c"
+! grep -A18 -F "llvm_stmt_await_unknown_type" \
+    "$ROOT_DIR/src/codegen/llvm_stmt_type_infer_await.c" | \
+    grep -Fq "return ctx->type_i32"
 ! grep -Fq "poison i32 until Future<T>" "$ROOT_DIR/src/codegen/llvm_stmt_type_infer.c"
 grep -Fq "llvm_stmt_lookup_visible_function" "$ROOT_DIR/src/codegen/llvm_stmt_type_infer.c"
 grep -Fq "channel receive '%s' has no registered Channel<T> metadata" "$ROOT_DIR/src/codegen/llvm_stmt_type_infer.c"
@@ -3446,8 +3594,8 @@ grep -A12 -F "Domain helper calls can be emitted" "$ROOT_DIR/src/codegen/llvm_st
     grep -Fq "ctx->expected_type_name"
 grep -A28 -F "case AST_BINARY" "$ROOT_DIR/src/codegen/llvm_stmt_type_infer.c" | \
     grep -Fq "unsupported binary operator has no inferred LLVM type"
-grep -Fq "llvm_stmt_expected_array_elem_type" "$ROOT_DIR/src/codegen/llvm_stmt_type_infer.c"
-grep -A10 -F "llvm_stmt_resolve_array_elem_type" "$ROOT_DIR/src/codegen/llvm_stmt_type_infer.c" | \
+grep -Fq "llvm_stmt_expected_array_elem_type" "$ROOT_DIR/src/codegen/llvm_stmt_array_type_infer.c"
+grep -A10 -F "llvm_stmt_resolve_array_elem_type" "$ROOT_DIR/src/codegen/llvm_stmt_array_type_infer.c" | \
     grep -Fq "llvm_stmt_expected_array_elem_type(ctx)"
 grep -A8 -F "llvm_register_future_var(LLVMGenCtx *ctx" \
     "$ROOT_DIR/src/codegen/llvm_registry_resources.c" | \

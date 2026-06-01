@@ -25,6 +25,9 @@ const char *llvm_stmt_lookup_collection_get_inner(LLVMGenCtx *ctx,
 const char *llvm_stmt_lookup_slot_or_view_inner(LLVMGenCtx *ctx,
                                                 const char *receiver_name);
 LLVMTypeRef llvm_stmt_infer_await_expr_type(LLVMGenCtx *ctx, ASTNode *expr);
+LLVMTypeRef llvm_stmt_unknown_expr_type(LLVMGenCtx *ctx,
+                                        ASTNode *expr,
+                                        const char *reason);
 
 #endif /* PGY_LLVM_ENABLED */
 

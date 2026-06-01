@@ -313,6 +313,10 @@ llvm_emit_identifier(ASTNode *node, LLVMGenCtx *ctx)
 
     if (pgy_codegen_match_variant_lookup(name) == PGY_MATCH_VARIANT_NONE_CTOR) {
         LLVMTypeRef ctx_ty = ctx->current_ret_type;
+        if (ctx->expected_type_name != NULL
+            && pgy_classify_type(ctx->expected_type_name) == PGY_TK_OPTION) {
+            ctx_ty = pergyra_type_to_llvm(ctx, ctx->expected_type_name);
+        }
         if (ctx_ty != NULL
             && LLVMGetTypeKind(ctx_ty) == LLVMStructTypeKind
             && LLVMCountStructElementTypes(ctx_ty) == 2

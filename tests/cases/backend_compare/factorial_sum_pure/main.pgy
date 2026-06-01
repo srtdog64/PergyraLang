@@ -1,0 +1,28 @@
+func Factorial(n: Int) -> Int {
+    if n <= 1 { return 1; }
+    let acc: Int = 1;
+    let i: Int = 2;
+    while i <= n {
+        acc = acc * i;
+        i = i + 1;
+    }
+    return acc;
+}
+
+func SumFact(n: Int) -> Int {
+    let total: Int = 0;
+    let i: Int = 0;
+    while i <= n {
+        total = total + Factorial(i);
+        i = i + 1;
+    }
+    return total;
+}
+
+func Main() -> Void {
+    Log(Factorial(5));
+    Log(Factorial(0));
+    Log(SumFact(4));
+    Log(SumFact(0));
+    Log(SumFact(6));
+}

@@ -69,6 +69,7 @@ ASTNode* ast_create_node(ASTNodeType type) {
     node->is_exported = false;
     node->has_explicit_export = false;
     node->is_async_decl = false;
+    node->stable_id = 0;
     return node;
 }
 

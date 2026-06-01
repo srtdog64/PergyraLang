@@ -163,7 +163,19 @@ type_check_constructor_symbol_call(ASTNode *expr,
                         display_name, (unsigned long long) field_count, (unsigned long long) provided);
                 } else if (decl_is_generic) {
                     for (size_t i = 0; i < provided; i++) {
-                        type_check_expression(ast_call_argument(expr, i), ctx);
+                        ASTNode *arg = ast_call_argument(expr, i);
+                        Type *arg_type = constructor_call_normalize_type(
+                            type_check_expression(arg, ctx));
+                        if (type_equals(arg_type, TYPE_VOID)) {
+                            semantic_error_with_hints(ctx,
+                                PGY_CODE_SEM_TYPE_MISMATCH,
+                                PGY_CAUSE_ASSIGNABILITY_CHECK,
+                                PGY_FIX_ALIGN_OPERAND_TYPE,
+                                arg,
+                                "Void expression cannot initialize constructor field; split the side effect before constructing '%s'",
+                                display_name != NULL
+                                    ? display_name : "<constructor>");
+                        }
                     }
                 } else {
                     for (size_t i = 0; i < provided; i++) {
@@ -178,6 +190,18 @@ type_check_constructor_symbol_call(ASTNode *expr,
                         ASTNode *arg = ast_call_argument(expr, i);
                         Type *arg_type = constructor_call_normalize_type(
                             type_check_expression(arg, ctx));
+                        if (type_equals(arg_type, TYPE_VOID)) {
+                            semantic_error_with_hints(ctx,
+                                PGY_CODE_SEM_TYPE_MISMATCH,
+                                PGY_CAUSE_ASSIGNABILITY_CHECK,
+                                PGY_FIX_ALIGN_OPERAND_TYPE,
+                                arg,
+                                "Void expression cannot initialize constructor field '%s.%s'; split the side effect before construction",
+                                display_name != NULL
+                                    ? display_name : "<constructor>",
+                                field_name != NULL ? field_name : "<field>");
+                            arg_type = TYPE_UNKNOWN;
+                        }
                         if (field_type != NULL
                             && !type_is_assignable(arg_type, field_type)) {
                             semantic_error_with_hints(ctx, PGY_CODE_SEM_CLASS_CONTRACT_INVALID, PGY_CAUSE_CLASS_CONTRACT, PGY_FIX_SATISFY_GENERIC_BOUND_OR_WIDEN, arg,

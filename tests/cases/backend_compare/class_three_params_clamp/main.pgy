@@ -1,0 +1,21 @@
+class Reading {
+    let value: Int;
+    let max: Int;
+
+    func Clamp(self) -> Int {
+        if value > max { return max; }
+        if value < 0 { return 0; }
+        return value;
+    }
+}
+
+func ProcessThree(a: Reading, b: Reading, c: Reading) -> Int {
+    return a.Clamp() + b.Clamp() * 10 + c.Clamp() * 100;
+}
+
+func Main() -> Void {
+    Log(ProcessThree(Reading(5, 10), Reading(50, 100), Reading(500, 1000)));
+    Log(ProcessThree(Reading(15, 10), Reading(150, 100), Reading(2000, 1000)));
+    Log(ProcessThree(Reading(-5, 10), Reading(-50, 100), Reading(-500, 1000)));
+    Log(ProcessThree(Reading(0, 100), Reading(0, 100), Reading(0, 100)));
+}

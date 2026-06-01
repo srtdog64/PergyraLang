@@ -1,0 +1,27 @@
+class Bag2 {
+    let amt: Int;
+
+    func Worth(self, rate: Int) -> Int {
+        return amt * rate;
+    }
+}
+
+func TotalWorth(rates: Array<Int>, n: Int) -> Int {
+    let bag: Bag2 = Bag2(100);
+    let total: Int = 0;
+    let i: Int = 0;
+    while i < n {
+        total = total + bag.Worth(rates[i]);
+        i = i + 1;
+    }
+    return total;
+}
+
+func Main() -> Void {
+    let rates: Array<Int> = [1, 2, 5, 10];
+    Log(TotalWorth(rates, 4));
+    Log(TotalWorth(rates, 1));
+    Log(TotalWorth(rates, 0));
+    let r2: Array<Int> = [0, 0, 0];
+    Log(TotalWorth(r2, 3));
+}

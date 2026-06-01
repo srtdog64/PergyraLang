@@ -51,6 +51,18 @@ llvm_emit_function_call_args(LLVMGenCtx *ctx, LLVMFuncEntry *func,
             return NULL;
         }
         for (size_t i = 0; i < argc; i++) {
+            LLVMTypeRef arg_type = llvm_stmt_infer_expr_type(ctx, arg_nodes[i]);
+            if (ctx->has_error)
+                return NULL;
+            if (arg_type == ctx->type_void) {
+                llvm_set_error_at_with_hints(ctx, arg_nodes[i],
+                    PGY_CODE_LLVM_TYPE_UNSUPPORTED,
+                    PGY_CAUSE_LLVM_TYPE_UNSUPPORTED,
+                    PGY_FIX_ALIGN_ARG_TYPE,
+                    "LLVM call helper cannot pass a Void expression as argument %zu for '%s'",
+                    i, LLVMGetValueName(func->fn));
+                return NULL;
+            }
             args[i] = llvm_emit_expression(arg_nodes[i], ctx);
             if (args[i] == NULL) {
                 llvm_set_error_at_with_hints(ctx, arg_nodes[i],
@@ -67,7 +79,8 @@ llvm_emit_function_call_args(LLVMGenCtx *ctx, LLVMFuncEntry *func,
     if (func->ret_type == ctx->type_void) {
         LLVMBuildCall2(ctx->builder, func->fn_type, func->fn,
                        args, (unsigned)argc, "");
-        result = LLVMConstInt(ctx->type_i32, 0, 0);
+        result = llvm_void_expression_placeholder(ctx, NULL,
+            "function-call");
     } else {
         result = LLVMBuildCall2(ctx->builder, func->fn_type, func->fn,
                                 args, (unsigned)argc, llvm_tmp_name(ctx));

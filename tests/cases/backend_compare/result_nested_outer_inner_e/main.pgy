@@ -1,0 +1,42 @@
+enum E { A, B }
+
+func F(seed: Int) -> Result<Int, E> {
+    if seed < 0 { return Err(A); }
+    return Ok(seed);
+}
+
+func G(seed: Int) -> Result<Int, E> {
+    if seed == 0 { return Err(B); }
+    return Ok(seed * 10);
+}
+
+func ChainResult(seed: Int) -> Int {
+    match F(seed) {
+        case Ok(v):
+            match G(v) {
+                case Ok(w): return w + 1;
+                case Err(eg): return -1;
+            }
+        case Err(ef): return -2;
+    }
+}
+
+func TagOr(r: Result<Int, E>, def: Int) -> Int {
+    match r {
+        case Ok(v): return v;
+        case Err(e):
+            match e {
+                case A: return def + 1;
+                case B: return def + 2;
+            }
+    }
+}
+
+func Main() -> Void {
+    Log(ChainResult(5));
+    Log(ChainResult(0));
+    Log(ChainResult(-1));
+    Log(TagOr(F(5), 100));
+    Log(TagOr(F(-1), 100));
+    Log(TagOr(G(0), 100));
+}

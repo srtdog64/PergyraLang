@@ -10,13 +10,13 @@ bool transpiler_mir_emit_for_loop_init_inst(
     CodeBuf *buf,
     const MIRInstruction *inst,
     TranspilerCtx *ctx,
-    const TranspilerSSANameMap *ssa_map);
+    TranspilerSSANameMap *ssa_map);
 bool transpiler_mir_emit_for_in_body_binding(
     CodeBuf *buf,
     const MIRRoutine *routine,
     const MIRBasicBlock *block,
     TranspilerCtx *ctx,
-    const TranspilerSSANameMap *ssa_map);
+    TranspilerSSANameMap *ssa_map);
 bool transpiler_mir_emit_loop_backedge_increment(CodeBuf *buf,
                                                  TranspilerCtx *ctx,
                                                  const MIRRoutine *routine,
@@ -27,6 +27,6 @@ char *transpiler_mir_render_branch_condition(
     const MIRInstruction *inst,
     size_t target_block,
     TranspilerCtx *ctx,
-    const TranspilerSSANameMap *ssa_map);
+    TranspilerSSANameMap *ssa_map);
 
 #endif /* PGY_TRANSPILER_MIR_CFG_CONTROL_EMIT_H */

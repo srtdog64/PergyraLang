@@ -39,6 +39,8 @@ for rel in \
     "src/codegen/llvm_inventory_internal.c" \
     "src/codegen/llvm_inventory_internal.h" \
     "src/codegen/llvm_inventory_decl_lookup.c" \
+    "src/codegen/llvm_inventory_field_view.c" \
+    "src/codegen/llvm_inventory_slot_view.c" \
     "src/codegen/llvm_inventory_decl_lookup.h" \
     "src/codegen/host_decl_compat.c" \
     "src/codegen/host_decl_compat.h" \
@@ -62,6 +64,8 @@ for rel in \
     "src/codegen/transpiler_inventory_view.h" \
     "src/codegen/transpiler.c" \
     "src/codegen/transpiler_decl_host_lookup.c" \
+    "src/codegen/transpiler_decl_field_view.c" \
+    "src/codegen/transpiler_decl_slot_view.c" \
     "src/codegen/transpiler_domain_role_ability_emit.c" \
     "src/codegen/transpiler_domain_role_ability_emit.h" \
     "src/codegen/transpiler_generic_class_specialization_emit.c" \
@@ -232,10 +236,10 @@ require_term "src/codegen/llvm_stmt_type_infer.c" \
     "llvm_current_host_class_name(ctx)"
 require_term "src/codegen/llvm_stmt_type_infer.c" \
     "expression requires typed MIR result facts"
-require_term "src/codegen/llvm_stmt_type_infer.c" \
+require_term "src/codegen/llvm_stmt_array_type_infer.c" \
     "array or slice element type requires registered Array<T>/Slice<T> metadata"
 if grep -Fq "elem_type = ctx->type_i32;" \
-    "$ROOT_DIR/src/codegen/llvm_stmt_type_infer.c"; then
+    "$ROOT_DIR/src/codegen/llvm_stmt_array_type_infer.c"; then
     fail "LLVM array/slice element inference must not default missing metadata to Int"
 fi
 require_term "src/codegen/llvm_expr.c" \
@@ -328,42 +332,42 @@ if grep -Fq "pgy_host_shared_fields_compat_view_from_decl" \
     "$ROOT_DIR/src/codegen/transpiler_constructor_channel_guard.c"; then
     fail "C constructor channel guard must consume TranspilerHostedSharedFieldView"
 fi
-require_term "src/codegen/llvm_expr_constructor_calls.c" \
+require_term "src/codegen/llvm_expr_constructor_channel_guard.c" \
     "llvm_constructor_find_mir_channel_field"
-require_term "src/codegen/llvm_expr_constructor_calls.c" \
+require_term "src/codegen/llvm_expr_constructor_channel_guard.c" \
     "llvm_find_host_decl_header_in_context(ctx, host_name)"
-require_term "src/codegen/llvm_expr_constructor_calls.c" \
+require_term "src/codegen/llvm_expr_constructor_channel_guard.c" \
     "mir_decl_header_field(header, i)"
-require_term "src/codegen/llvm_expr_constructor_calls.c" \
+require_term "src/codegen/llvm_expr_constructor_channel_guard.c" \
     "llvm_mir_decl_field_type(field)"
-require_term "src/codegen/llvm_expr_constructor_calls.c" \
+require_term "src/codegen/llvm_expr_constructor_channel_guard.c" \
     "mir_decl_header_field_count(header)"
-require_term "src/codegen/llvm_expr_constructor_calls.c" \
+require_term "src/codegen/llvm_expr_constructor_channel_guard.c" \
     "llvm_mir_decl_field_type_name(field)"
-require_term "src/codegen/llvm_expr_constructor_calls.c" \
+require_term "src/codegen/llvm_expr_constructor_channel_guard.c" \
     "pgy_classify_type(type_name) == PGY_TK_CHANNEL"
-require_term "src/codegen/llvm_expr_constructor_calls.c" \
-    "LLVMHostedFieldView field_view"
-require_term "src/codegen/llvm_expr_constructor_calls.c" \
+require_term "src/codegen/llvm_expr_constructor_channel_guard.c" \
+    "LLVMHostedFieldView class_fields"
+require_term "src/codegen/llvm_expr_constructor_channel_guard.c" \
     "llvm_hosted_class_field_view_from_decl("
-require_term "src/codegen/llvm_expr_constructor_calls.c" \
+require_term "src/codegen/llvm_expr_constructor_channel_guard.c" \
     "llvm_hosted_field_view_missing_mir_metadata("
-require_term "src/codegen/llvm_expr_constructor_calls.c" \
+require_term "src/codegen/llvm_expr_constructor_channel_guard.c" \
     "llvm_hosted_field_view_type("
-require_term "src/codegen/llvm_expr_constructor_calls.c" \
+require_term "src/codegen/llvm_expr_constructor_channel_guard.c" \
     "LLVMHostedSharedFieldView shared"
-require_term "src/codegen/llvm_expr_constructor_calls.c" \
+require_term "src/codegen/llvm_expr_constructor_channel_guard.c" \
     "llvm_hosted_shared_field_view_from_decl(ctx, decl_name, decl)"
-require_term "src/codegen/llvm_expr_constructor_calls.c" \
+require_term "src/codegen/llvm_expr_constructor_channel_guard.c" \
     "llvm_hosted_shared_field_view_missing_mir_metadata(&shared)"
 require_term "src/codegen/llvm_expr_constructor_calls.c" \
     "llvm_hosted_shared_field_view_source_ast(view, i)"
 if grep -Fq "pgy_host_shared_fields_compat_view_from_decl" \
-    "$ROOT_DIR/src/codegen/llvm_expr_constructor_calls.c"; then
+    "$ROOT_DIR/src/codegen/llvm_expr_constructor_channel_guard.c"; then
     fail "LLVM constructor calls must consume LLVMHostedSharedFieldView"
 fi
 if grep -Fq "pgy_host_class_fields_compat_view_from_decl" \
-    "$ROOT_DIR/src/codegen/llvm_expr_constructor_calls.c"; then
+    "$ROOT_DIR/src/codegen/llvm_expr_constructor_channel_guard.c"; then
     fail "LLVM constructor calls must consume LLVMHostedFieldView"
 fi
 require_term "src/codegen/transpiler_zone_decl_emit.c" \
@@ -446,13 +450,13 @@ for term in \
     "transpiler_hosted_field_view_find_index" \
     "transpiler_hosted_field_view_is_subject_like"; do
     require_term "src/codegen/transpiler_decl_lookup.h" "$term"
-    require_term "src/codegen/transpiler_decl_lookup.c" "$term"
+    require_term "src/codegen/transpiler_decl_field_view.c" "$term"
 done
 for term in \
     "llvm_hosted_field_view_find_index" \
     "llvm_hosted_field_view_is_subject_like"; do
     require_term "src/codegen/llvm_inventory_decl_lookup.h" "$term"
-    require_term "src/codegen/llvm_inventory_decl_lookup.c" "$term"
+    require_term "src/codegen/llvm_inventory_field_view.c" "$term"
 done
 for rel in \
     "src/codegen/llvm_channel_target.c" \
@@ -570,10 +574,10 @@ for term in \
     "transpiler_hosted_field_view_missing_mir_metadata(&field_view)" \
     "transpiler_hosted_field_view_type(&field_view, i)" \
     "transpiler_hosted_field_view_name(&field_view, i)"; do
-    require_term "src/codegen/transpiler_domain_constructor_emit.c" "$term"
+    require_term "src/codegen/transpiler_class_constructor_emit.c" "$term"
 done
 if grep -Fq "pgy_host_class_fields_compat_view_from_decl" \
-    "$ROOT_DIR/src/codegen/transpiler_domain_constructor_emit.c"; then
+    "$ROOT_DIR/src/codegen/transpiler_class_constructor_emit.c"; then
     fail "C domain constructor class-field emission must consume TranspilerHostedFieldView"
 fi
 require_term "src/codegen/transpiler_domain_constructor_emit.c" \
@@ -970,12 +974,12 @@ require_term "src/codegen/transpiler_class_decl_emit.c" \
     "transpiler_hosted_class_field_view_from_decl(ctx, name, node)"
 require_term "src/codegen/transpiler_generic_class_specialization_emit.c" \
     "transpiler_hosted_class_field_view_from_decl(ctx, base_class_name"
-require_term "src/codegen/transpiler_domain_constructor_emit.c" \
+require_term "src/codegen/transpiler_class_constructor_emit.c" \
     "transpiler_hosted_class_field_view_from_decl("
 for rel in \
     "src/codegen/transpiler_class_decl_emit.c" \
     "src/codegen/transpiler_generic_class_specialization_emit.c" \
-    "src/codegen/transpiler_domain_constructor_emit.c"; do
+    "src/codegen/transpiler_class_constructor_emit.c"; do
     require_term "$rel" "transpiler_hosted_field_view_missing_mir_metadata(&field_view)"
     require_term "$rel" "transpiler_hosted_field_view_name(&field_view, i)"
     require_term "$rel" "transpiler_hosted_field_view_type(&field_view, i)"
@@ -1107,7 +1111,7 @@ class_field_compat_hits="$(
     grep -RIn "pgy_host_class_fields_compat_view_from_decl" \
         "$ROOT_DIR/src/codegen" \
         --include='*.c' --include='*.h' |
-        grep -Ev 'src/codegen/(host_decl_compat\.[ch]|llvm_inventory_decl_lookup\.c|transpiler_decl_lookup\.c):' || true
+        grep -Ev 'src/codegen/(host_decl_compat\.[ch]|llvm_inventory_field_view\.c|transpiler_decl_field_view\.c):' || true
 )"
 if [[ -n "$class_field_compat_hits" ]]; then
     fail "class-field compatibility views must stay behind declaration inventory owners:
@@ -1127,7 +1131,7 @@ shared_field_compat_hits="$(
     grep -RInE "pgy_host_shared_fields_compat_view_from_decl|pgy_host_shared_field_compat_find" \
         "$ROOT_DIR/src/codegen" \
         --include='*.c' --include='*.h' |
-        grep -Ev 'src/codegen/(host_decl_compat\.[ch]|llvm_inventory_decl_lookup\.c|transpiler_decl_lookup\.c):' || true
+        grep -Ev 'src/codegen/(host_decl_compat\.[ch]|llvm_inventory_field_view\.c|transpiler_decl_field_view\.c):' || true
 )"
 if [[ -n "$shared_field_compat_hits" ]]; then
     fail "shared-field compatibility views must stay behind declaration inventory owners:
@@ -1137,7 +1141,7 @@ zone_layer_slot_hits="$(
     grep -RIn "ast_zone_layer_slots" \
         "$ROOT_DIR/src/codegen" \
         --include='*.c' --include='*.h' |
-        grep -Ev 'src/codegen/(domain_frontier_policy\.c|llvm_inventory_decl_lookup\.c|transpiler_decl_lookup\.c):' || true
+        grep -Ev 'src/codegen/(domain_frontier_policy\.c|llvm_inventory_slot_view\.c|transpiler_decl_slot_view\.c):' || true
 )"
 if [[ -n "$zone_layer_slot_hits" ]]; then
     fail "zone layer-slot AST child-list access must stay behind frontier policy or declaration inventory owners:
@@ -1272,7 +1276,7 @@ for term in \
     "mir_decl_method_is_action_like" \
     "mir_decl_method_routine_index"; do
     require_term "src/compiler/mir_decl_headers.h" "$term"
-    require_term "src/compiler/mir_decl_headers.c" "$term"
+    require_term "src/compiler/mir_decl_header_access.c" "$term"
 done
 for term in \
     "MIRDeclField" \
@@ -1301,7 +1305,7 @@ for term in \
     "mir_decl_field_is_dynamic" \
     "mir_decl_field_is_subject_like"; do
     require_term "src/compiler/mir_decl_headers.h" "$term"
-    require_term "src/compiler/mir_decl_headers.c" "$term"
+    require_term "src/compiler/mir_decl_header_access.c" "$term"
 done
 for term in \
     "MIR declaration header[%zu] '%s' has %zu hosted field(s) without MIRDeclField metadata" \
@@ -1312,6 +1316,15 @@ for term in \
 done
 for term in \
     "transpiler_find_decl_field_metadata" \
+    "mir_decl_header_field_count(header)" \
+    "mir_decl_header_field(header, i)" \
+    "mir_decl_field_name(field)" \
+    "mir_decl_field_type_name(field)" \
+    "mir_decl_field_type(field)" \
+    "transpiler_mir_decl_field_kind_or"; do
+    require_term "src/codegen/transpiler_decl_lookup.c" "$term"
+done
+for term in \
     "transpiler_decl_header_shared_field_count" \
     "transpiler_decl_header_shared_field" \
     "pgy_host_shared_fields_compat_view_from_decl(decl)" \
@@ -1323,10 +1336,8 @@ for term in \
     "ast_party_shared_name(view->ast_compat_fields[index])" \
     "ast_party_shared_type(view->ast_compat_fields[index])" \
     "mir_decl_field_name(field)" \
-    "mir_decl_field_type_name(field)" \
-    "mir_decl_field_type(field)" \
-    "transpiler_mir_decl_field_kind_or"; do
-    require_term "src/codegen/transpiler_decl_lookup.c" "$term"
+    "mir_decl_field_type(field)"; do
+    require_term "src/codegen/transpiler_decl_field_view.c" "$term"
 done
 for term in \
     "TranspilerHostedSharedFieldView" \
@@ -1366,6 +1377,14 @@ for term in \
 done
 for term in \
     "llvm_find_decl_field_in_context" \
+    "mir_decl_header_field_count(decl_header)" \
+    "mir_decl_header_field(decl_header, i)" \
+    "mir_decl_field_name(field)" \
+    "llvm_mir_decl_field_type" \
+    "llvm_mir_decl_field_type_name"; do
+    require_term "src/codegen/llvm_inventory_decl_lookup.c" "$term"
+done
+for term in \
     "LLVMHostedFieldView" \
     "llvm_hosted_class_field_view_from_decl" \
     "llvm_hosted_field_view_missing_mir_metadata" \
@@ -1386,12 +1405,8 @@ for term in \
     "pgy_host_shared_fields_compat_view_from_decl(decl)" \
     "MIR_DECL_FIELD_SHARED" \
     "return llvm_decl_header_shared_field(view->decl_header, index)" \
-    "mir_decl_header_field_count(decl_header)" \
-    "mir_decl_header_field(decl_header, i)" \
-    "mir_decl_field_name(field)" \
-    "llvm_mir_decl_field_type" \
-    "llvm_mir_decl_field_type_name"; do
-    require_term "src/codegen/llvm_inventory_decl_lookup.c" "$term"
+    "mir_decl_field_name(field)"; do
+    require_term "src/codegen/llvm_inventory_field_view.c" "$term"
 done
 for term in \
     "llvm_find_decl_field_in_context(ctx, host_name, field_name)" \
@@ -1589,7 +1604,7 @@ done
 
 raw_ctx_mir_hits="$(
     grep -RIn 'ctx->mir' "$ROOT_DIR/src/codegen" |
-        grep -Ev 'src/codegen/(llvm_api\.c|llvm_inventory_decl_lookup\.c|llvm_inventory_internal\.c|transpiler_entry\.c|transpiler_inventory_view\.c|transpiler_mir_emission_contract\.c):' || true
+        grep -Ev 'src/codegen/(llvm_api\.c|llvm_inventory_decl_lookup\.c|llvm_inventory_field_view\.c|llvm_inventory_slot_view\.c|llvm_inventory_internal\.c|transpiler_entry\.c|transpiler_inventory_view\.c|transpiler_mir_emission_contract\.c):' || true
 )"
 if [[ -n "$raw_ctx_mir_hits" ]]; then
     fail "raw ctx->mir access must stay in backend entrypoints, inventory view/lookup owners, or MIR emission contract probes:
@@ -2602,7 +2617,7 @@ for term in \
     "return mir_decl_header_field(view->decl_header, index)" \
     "mir_decl_field_name(field)" \
     "mir_decl_field_type(field)"; do
-    require_term "src/codegen/transpiler_decl_lookup.c" "$term"
+    require_term "src/codegen/transpiler_decl_field_view.c" "$term"
 done
 require_term "src/codegen/transpiler_context.h" \
     "transpiler_set_mir_inventory_missing"

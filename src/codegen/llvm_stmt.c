@@ -39,6 +39,14 @@ llvm_emit_return_stmt(ASTNode *node, LLVMGenCtx *ctx)
     llvm_emit_defers_from(ctx, 0);
 
     if (value != NULL) {
+        if (ctx->current_ret_type == ctx->type_void) {
+            llvm_set_error_at_with_hints(ctx, node,
+                PGY_CODE_LLVM_TYPE_UNSUPPORTED,
+                PGY_CAUSE_LLVM_TYPE_UNSUPPORTED,
+                PGY_FIX_INSPECT_MIR_INVENTORY,
+                "LLVM void function return must not carry a value expression");
+            return;
+        }
         const char *saved_expected_type_name = ctx->expected_type_name;
         ASTNode *saved_expected_callable_type = ctx->expected_callable_type;
         LLVMValueRef val;

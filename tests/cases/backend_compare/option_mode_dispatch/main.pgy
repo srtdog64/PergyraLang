@@ -1,0 +1,33 @@
+enum Mode { Direct, Doubled, Squared }
+
+func Apply(m: Mode, n: Int) -> Option<Int> {
+    match m {
+        case Direct:
+            if n < 0 { return None; }
+            return Some(n);
+        case Doubled:
+            return Some(n * 2);
+        case Squared:
+            if n > 100 { return None; }
+            return Some(n * n);
+    }
+}
+
+func ChainApply(m1: Mode, m2: Mode, seed: Int) -> Int {
+    match Apply(m1, seed) {
+        case Some(a):
+            match Apply(m2, a) {
+                case Some(b): return b;
+                case None: return -1;
+            }
+        case None: return -2;
+    }
+}
+
+func Main() -> Void {
+    Log(ChainApply(Direct, Doubled, 5));
+    Log(ChainApply(Direct, Squared, 7));
+    Log(ChainApply(Squared, Doubled, 4));
+    Log(ChainApply(Direct, Direct, -1));
+    Log(ChainApply(Doubled, Squared, 50));
+}

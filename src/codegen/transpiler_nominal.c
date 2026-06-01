@@ -10,6 +10,7 @@
 #include "../parser/ast_api.h"
 #include "transpiler_context.h"
 #include "transpiler_decl_lookup.h"
+#include "transpiler_mir_ssa_names.h"
 #include "transpiler_nominal.h"
 #include "transpiler_projection.h"
 #include "transpiler_symbols.h"
@@ -329,7 +330,13 @@ transpiler_resolve_nominal_host_expr_type_name(TranspilerCtx *ctx, ASTNode *expr
 
     if (expr->type == AST_IDENTIFIER && ast_identifier_name(expr) != NULL) {
         const char *name = ast_identifier_name(expr);
+        const char *active_name = transpiler_resolve_active_ssa_name(ctx, name);
         ASTNode *alias_expr = lookup_alias_expr(ctx, name);
+        if (active_name != NULL) {
+            const char *active_type = lookup_typed_var(ctx, active_name);
+            if (active_type != NULL)
+                return active_type;
+        }
         if (alias_expr != NULL)
             return transpiler_resolve_nominal_host_expr_type_name(ctx, alias_expr);
         const char *type_name = lookup_typed_var(ctx, name);
@@ -351,6 +358,14 @@ transpiler_resolve_nominal_host_expr_type_name(TranspilerCtx *ctx, ASTNode *expr
             return transpiler_lookup_nominal_host_member_type_name(
                 ctx, obj_type, ast_member_name(expr));
         }
+    }
+
+    if (expr->type == AST_CALL
+        && ast_call_callee(expr) != NULL
+        && ast_call_callee(expr)->type == AST_IDENTIFIER) {
+        const char *callee_name = ast_identifier_name(ast_call_callee(expr));
+        if (callee_name != NULL && is_nominal_host_type_name(ctx, callee_name))
+            return callee_name;
     }
 
     return NULL;

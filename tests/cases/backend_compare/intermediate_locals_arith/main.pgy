@@ -1,0 +1,21 @@
+func ProcessRow(arr: Array<Int>, n: Int) -> Int {
+    let i: Int = 0;
+    let total: Int = 0;
+    while i < n {
+        let raw: Int = arr[i];
+        let doubled: Int = raw * 2;
+        let mod3: Int = doubled % 3;
+        total = total + mod3;
+        i = i + 1;
+    }
+    return total;
+}
+
+func Main() -> Void {
+    let arr: Array<Int> = [1, 2, 3, 4, 5, 6];
+    Log(ProcessRow(arr, 6));
+    Log(ProcessRow(arr, 3));
+    let arr2: Array<Int> = [10, 100, 1000];
+    Log(ProcessRow(arr2, 3));
+    Log(ProcessRow(arr, 0));
+}

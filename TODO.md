@@ -14,6 +14,90 @@ English anchor for tooling/doc gates:
   CFG/body safety source-of-truth, AIR abstraction-boundary verification,
   DAG recursive compatibility seam removal, MIR/LLVM declaration bootstrap parity,
   and ABI/Slot/Pin ownership freeze.
+- Honest weakness ledger: beta messaging and work selection must keep five
+  real costs visible instead of hiding them behind safety language. (1) Runtime
+  Slot/authority validation can trade memory corruption for availability loss;
+  recoverable boundary APIs must return structured `Result` data where the
+  caller can recover. (2) LLVM is a heavy toolchain and slow-build risk; C
+  backend remains the fast/dogfood path while LLVM parity is narrowed through
+  MIR inventory gates. (3) `intent` / `zone` / `world` / `authority` / `Slot`
+  create real cognitive load; compact intent inference and zone-first entry
+  paths are surface-stability work, not optional polish. (4) The stable 32-bit
+  Slot ABI remains an availability constraint until handle widening or a
+  proven recycling/tombstone contract is frozen. (5) C-based compiler core
+  keeps self-host contribution harder; self-host begins only after C/LLVM
+  source-of-truth closure, not as a substitute for finishing it.
+- Runtime panic-contract tightening: async fiber internal invariants no longer
+  use raw `assert()`; they route through `PGY_RUNTIME_PANIC` with
+  `internal-invariant` reasons so release/debug builds share the same hard-fail
+  vocabulary. Gate: `runtime-panic-contract-test-smoke`.
+- Runtime process-exit source-of-truth: `Exit(Int)` remains an intentional
+  language-level process termination, not a panic, but raw `exit()` is now owned
+  only by `pgy_runtime_process_exit(...)`. Inline and exported I/O runtimes
+  consume that owner so availability/panic audits can distinguish requested
+  termination from internal hard-fail. Gate:
+  `runtime-panic-contract-test-smoke`.
+- Binding identity source-of-truth target: source spellings are not binding
+  identities. The remaining multi-tick failures must close through parser/AST
+  stable ids consumed by MIR/SSA/C/LLVM, not backend-local counters or name
+  heuristics: sibling match cases such as `Some(v)` / `Some(v)` need distinct
+  binding ids, same-name for-loop induction variables need a stable loop id,
+  and LLVM physical alloca names must not leak across same-name scoped
+  bindings. Harness launch noise is not binding identity: `compare_backends.sh`
+  now retries Windows native executable 126/127 launches through the same
+  PowerShell/path-helper fallback used by ABI prechecks, and direct `pgy.exe`
+  success is no longer used as evidence for binding identity.
+  Closed slices: `ast_identity.c` now assigns parser-owned stable ids after
+  parse completion; direct LLVM match/for lowering consumes those ids for
+  physical payload/induction alloca names; C match/for restores typed local
+  side registries after scoped bindings; LLVM direct match/for restores
+  var-class side registries after scope pop. MIR C/LLVM match and loop lowering
+  now consume the same stable ids for physical payload/induction names. C MIR
+  SSA maps now keep generated physical names in the transpiler scratch arena
+  instead of storing stack-buffer pointers. The guarded sibling-case regression
+  `case Some(v) if ...` / `case Some(v)` is locked by
+  `tests/cases/backend_compare/option_same_binding_guard`, and sequential
+  same-name range loops are locked by
+  `tests/cases/backend_compare/for_same_binding_sequence`. Nested same-name
+  range loops now remap tail-block logical bindings through MIR loop/backedge
+  facts on both C and LLVM backends, locked by
+  `tests/cases/backend_compare/for_nested_same_binding_shadow`. Nested
+  same-name match tail blocks now remap active payload bindings through MIR
+  case-region reachability on both backends, locked by
+  `tests/cases/backend_compare/match_nested_same_binding_shadow`,
+  `tests/cases/backend_compare/multi_match_same_binding`,
+  `tests/cases/backend_compare/option_multi_same_binding_loop`, and
+  `tests/cases/backend_compare/option_nested_same_binding_shadow`. Same-name
+  lexical `let` shadowing no longer seeds PHI insertion by spelling alone:
+  HIR PHI candidates are seeded from assignment updates, C MIR local emission
+  consumes versioned MIR def-type/live-out facts before falling back to base
+  names, and LLVM MIR block emission seeds scope lookups from `ssa_entry_values`
+  plus copies source-local declarations into versioned MIR allocas. This is
+  locked by `tests/cases/backend_compare/lexical_shadow_class_method`.
+  Remaining work is the broader lexical-scope model: block-scope registry
+  frames for non-MIR source fallback paths and true MIR binding-id facts beyond
+  the current stable-AST-id physical name seam. The explicit multi-tick targets
+  are: (1) sibling match-case binding collisions must become first-class
+  binding ids, not only stable-AST physical-name suffixes; (2) same-name
+  for-loop induction variables must carry a stable MIR loop id through PHI,
+  body, and tail-block lowering; (3) LLVM lexical scope frames must push/pop
+  same-name binding allocas and side registries uniformly outside direct MIR
+  lowering; (4) `compare_backends.sh` launch 126/127 handling is tooling noise
+  and must stay separated from semantic binding evidence.
+  Gate: `build-source-inventory-test-smoke` rejects removing the backend
+  compare Windows native fallback.
+- Backend compare inventory cleanup: all discovered non-experimental backend
+  compare fixtures are registered in the default suite as of this checkpoint.
+  The final promoted batch closed LLVM expected-type/typed-result seams for
+  contextual `None`, `Array<T>` indexed constructor arguments, enum-field
+  locals, method-heavy loop locals, and `Result` nested outer/inner error
+  payloads. Six nested Option/Result chain cases that previously emitted raw
+  logical payload names in C (`layer`, `b`, `a`, `b1`, `b2`, `u`) now pass after
+  active match binding remap was moved before match payload body binding on both
+  backends. The inventory checker uses a registered-case set instead of a
+  discovered x registered nested scan so the gate remains cheap on WSL/NTFS
+  worktrees. Gate: `PGY_BACKEND_COMPARE_INVENTORY_ONLY=1
+  tests/compare_backends.sh`.
 - Rework loop guard: beta closure work must not keep rewriting already gated
   seams. Once a seam has a named owner plus a smoke gate, further edits are
   allowed only for a concrete bug, a missing consumer, or a broken gate. Current
@@ -147,10 +231,13 @@ English anchor for tooling/doc gates:
 - LLVM MIR local alloca typing no longer uses a blind `i32` default for
   untyped local/PHI slots. Local storage is typed from ABI layout, explicit AST
   type facts, expression facts, prior SSA vars, or PHI incoming result facts;
-  missing metadata now fails through the MIR inventory seam. This closes the
+  missing metadata now fails through the MIR inventory seam. MIR intent binding
+  parameter storage also starts with no placeholder type and must consume the
+  same required AST type seam before allocation. This closes the
   `select_fairness` shape where a loop PHI appears before the select-case
   receive defs (`v.1 -> v.2 -> v.3/v.4`) in block order. Gates:
-  `mir-declaration-inventory-test-smoke`, `llvm-test-smoke`.
+  `mir-declaration-inventory-test-smoke`, `llvm-test-smoke`,
+  `perf-contract-test-smoke`.
 - LLVM channel receive type inference no longer treats missing `Channel<T>`
   metadata as `Int`. A receive without registered channel metadata now reports
   a concrete type-inference diagnostic unless an enclosing expected value type
@@ -182,7 +269,21 @@ English anchor for tooling/doc gates:
   metadata to `Int`. Element type must come from expected `Array<T>` context,
   registered array variable metadata, a non-empty literal element, or a
   declared Array/Slice return type; destructuring now stops if that metadata is
-  absent. Gates: `mir-declaration-inventory-test-smoke`, `llvm-test-smoke`.
+  absent. LLVM array literal expression emission also keeps its element type
+  slot unset until the expected context or first element proves it, and LLVM
+  collection-let lowering now uses the same unset-first rule before registering
+  local Array/Slice metadata. Gates: `mir-declaration-inventory-test-smoke`,
+  `llvm-test-smoke`, `perf-contract-test-smoke`.
+- LLVM tuple literal lowering now follows the semantic arity source of truth:
+  tuple literals with fewer than 2 elements fail closed instead of becoming a
+  fake `i32 0` aggregate placeholder. Gate: `perf-contract-test-smoke`.
+- LLVM Void-call expression placeholders now have an explicit owner:
+  `llvm_void_expression_placeholder(...)`. Function, hosted/self, callable,
+  member, operator-overload, log, event, slot/device-slot, Array/List/Set/
+  HashMap/Queue mutation, and local `await Future<Void>` lowering no longer
+  return raw `i32 0` directly; value contexts are rejected by semantic/type
+  inference, while statement-side compatibility has one named seam to tighten
+  later. Gate: `perf-contract-test-smoke`.
 - C Future metadata queries no longer report unknown spawn/await operands as
   `Void`. Void remains valid only for a declared void-returning function or an
   explicit `Future<Void>` shape; missing targets or missing function
@@ -194,6 +295,12 @@ English anchor for tooling/doc gates:
   exact `Future` and `RemoteFuture` classification routed through
   `pgy_classify_type(...)`. Gates: `perf-contract-test-smoke`,
   `llvm-test-smoke`.
+- LLVM MIR pinned-view layout lowering no longer recognizes only
+  `PinnedSlotView<Int>` / `PinnedSecureSlotView<Int>`. It now consumes the
+  canonical `MIRTypeLayout.abi_type_name`, extracts the generic inner type, and
+  lowers `PinnedSlotView<T>` / `PinnedSecureSlotView<T>` through the same typed
+  slot view registry used by runtime declarations. Gate:
+  `perf-contract-test-smoke`.
 - LLVM ordinary `let` lowering no longer defaults annotation-less,
   initializer-less bindings to `Int`. The backend now fails closed with a
   concrete diagnostic if neither a type annotation nor an initializer provides
@@ -207,6 +314,27 @@ English anchor for tooling/doc gates:
   unsupported-type diagnostic. Unknown expression types now propagate `NULL`,
   and numeric promotion refuses to synthesize an `Int` result when either side
   is unresolved. Gate: `perf-contract-test-smoke`.
+- LLVM await expression type inference no longer returns `i32` after recording
+  a missing `Future<T>` metadata diagnostic. Unknown await operands now
+  propagate `NULL` through the same fail-closed source-of-truth path as other
+  unresolved LLVM expression types, and local `Future<Void>` awaits infer
+  LLVM `void` instead of a fake `i32` value so value-context barriers remain
+  consistent with semantic checking. Gate: `perf-contract-test-smoke`.
+- Semantic let/assignment/call/return checking now rejects `Void` expressions
+  as value sources: `let x = Print(...)`, `x = Print(...)`,
+  `f(Print(...))`, and `return Print(...)` in a `Void` function must be split
+  into a statement-side effect plus a real value or bare return. Call checking
+  applies the barrier before generic argument inference, so `T` cannot be
+  silently inferred as `Void` from a side-effect expression. This keeps LLVM
+  void-call lowering from becoming the source of truth for fake `i32 0` values.
+  Array and tuple literal checking apply the same barrier before constructing
+  aggregate types, constructor checking applies it before field initialization,
+  and array diagnostics no longer dereference unresolved element types. LLVM
+  return, C/LLVM call-argument, C/LLVM constructor-field, and C/LLVM
+  enum-payload lowering also reject
+  value-bearing `Void` expression contexts instead of letting a void-call
+  placeholder become a return, call argument, or field value. Gates:
+  `semantic-core-shape-test-smoke`, `perf-contract-test-smoke`.
 - Lambda lowering no longer uses `Int` as the default return or parameter type
   across semantic, C backend, or LLVM backend paths. Return type must come from
   an explicit lambda return annotation, an enclosing `func(...) -> ...`
@@ -241,6 +369,12 @@ English anchor for tooling/doc gates:
   comparison, and use a single-file synthetic over-cap fixture instead of
   copying the whole source tree. `rir_public_surface.c` is back at the hard
   600-LOC owner cap after role lookup owner removal updated the manifests.
+  `llvm_mir_local_emit.c` is also back under the cap after parameter alloca
+  emission moved into the responsibility-named `llvm_mir_param_emit.c` owner;
+  the split keeps local SSA alloca/type facts separate from function/intent
+  parameter ABI binding. The inline I/O/string/qubit bridge header is under
+  the same cap after removing stale decorative comments while preserving the
+  grep-gated file/string runtime contracts.
 - C MIR match enum payload type-source tightening: enum destructuring payload
   bindings in MIR match lowering now call
   `transpiler_require_ast_c_type_copy(...)` instead of the raw
@@ -262,7 +396,8 @@ English anchor for tooling/doc gates:
 - MIR declaration-field inventory progress: `MIRDeclHeader` now carries
   validated `MIRDeclField` rows for class fields, shared fields, party role
   slots, roster slots, world roster/zone slots, domain slots, and zone layer
-  slots. `mir_decl_headers.c` owns the field metadata population/accessors,
+  slots. `mir_decl_headers.c` owns field metadata population,
+  `mir_decl_header_access.c` owns read-only declaration-header accessors,
   `mir_decl_header_validate.c` rejects field count/storage/owner drift, and
   `mir-declaration-inventory-test-smoke` pins the new metadata/accessor surface.
   The C nominal/member type lookup, C class constructor positional field
@@ -277,8 +412,10 @@ English anchor for tooling/doc gates:
   declaration parts cleanup, LLVM projection/domain-projection source-path field
   iteration through `LLVMHostedFieldView`, C/LLVM constructor Channel guards,
   including the C shared-field channel scan through
-  `TranspilerHostedSharedFieldView`, LLVM constructor shared-field defaults and
-  expected-type lookup, C MIR SSA implicit zone layer/shared-field recovery, C
+  `TranspilerHostedSharedFieldView` and the LLVM
+  `llvm_expr_constructor_channel_guard.c` owner for Channel-field detection and
+  reject vocabulary, LLVM constructor shared-field defaults and expected-type
+  lookup, C MIR SSA implicit zone layer/shared-field recovery, C
   projection zone-layer lookup, projection sync layer iteration, intent block
   caused-effect layer marking, zone sync/frontier layer iteration, counted
   C/LLVM zone frontier pass-limit emission, C zone specialization emission, C nominal
@@ -454,8 +591,13 @@ English anchor for tooling/doc gates:
   explicit owned snapshot escape hatch for borrowed views; generated C and LLVM
   both lower it through `pgy_slice_copy_<T>`, `Slice<String>` duplicates string
   payloads to satisfy the result-owned string-array producer policy, and backend
-  compare gates the `slice_copy` fixture. Semantic ownership classification still treats
-  `Slice<T>` as a borrowed boundary view, so ref-spawn, blocking channel
+  compare gates the `slice_copy` fixture. LLVM MIR local allocation now treats
+  `SliceCopy` as a typed MIR result fact (`Slice<T>` operand to `Array<T>`
+  result) instead of copying the operand's slice type into the destination SSA
+  local; this prevents source-local emission from storing the owned array into
+  one alloca while later uses read an uninitialized slice alloca. Semantic
+  ownership classification still treats `Slice<T>` as a borrowed boundary view,
+  so ref-spawn, blocking channel
   send/receive, and non-blocking channel helper send/receive attempts are
   rejected by the same CFG/body-dataflow boundary rules as other
   `BORROW_TRACKED` values unless the programmer first materializes an owned
@@ -17054,3 +17196,13 @@ Local verification for this debt refresh:
   resolve through `semantic_find_role_decl_by_name(...)`. This preserves the
   previous multi-role search behavior while removing raw program-root traversal
   from the expression operator consumer.
+- Closed the remaining declaration lookup owner-size seam without adding
+  helper buckets: C backend declaration lookup now keeps named declaration,
+  alias, constructor, and inventory lookup in `transpiler_decl_lookup.c`, while
+  class/shared field views live in `transpiler_decl_field_view.c` and
+  zone/world/role slot views live in `transpiler_decl_slot_view.c`. LLVM mirrors
+  the same shape with `llvm_inventory_decl_lookup.c`,
+  `llvm_inventory_field_view.c`, and `llvm_inventory_slot_view.c`. The
+  declaration-inventory smoke now whitelists those field/slot view owners as
+  declaration-inventory source-of-truth seams, and `test_inc_size_smoke.sh`
+  reports zero production owner size violations.

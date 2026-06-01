@@ -1,0 +1,41 @@
+class Stats {
+    let n: Int;
+    let sum: Int;
+    let max: Int;
+}
+
+func Mean(s: Stats) -> Int {
+    if s.n == 0 { return 0; }
+    return s.sum / s.n;
+}
+
+func Variance(s: Stats) -> Int {
+    if s.n == 0 { return 0; }
+    let avg: Int = Mean(s);
+    return s.max - avg;
+}
+
+func Build(arr: Array<Int>, n: Int) -> Stats {
+    let sum: Int = 0;
+    let max: Int = 0;
+    let i: Int = 0;
+    while i < n {
+        sum = sum + arr[i];
+        if arr[i] > max { max = arr[i]; }
+        i = i + 1;
+    }
+    return Stats(n, sum, max);
+}
+
+func Main() -> Void {
+    let arr: Array<Int> = [5, 10, 15, 20];
+    let s: Stats = Build(arr, 4);
+    Log(Mean(s));
+    Log(Variance(s));
+    let arr2: Array<Int> = [100];
+    let s2: Stats = Build(arr2, 1);
+    Log(Mean(s2));
+    let arr3: Array<Int> = [0, 0, 0];
+    let s3: Stats = Build(arr3, 3);
+    Log(Mean(s3));
+}

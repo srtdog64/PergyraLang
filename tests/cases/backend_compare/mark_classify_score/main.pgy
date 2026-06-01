@@ -1,0 +1,37 @@
+enum Mark { Hot, Cold, Mild }
+
+func Classify(n: Int) -> Mark {
+    if n > 50 { return Hot; }
+    if n < 10 { return Cold; }
+    return Mild;
+}
+
+func Score(m: Mark) -> Int {
+    match m {
+        case Hot: return 100;
+        case Cold: return -100;
+        case Mild: return 0;
+    }
+}
+
+func Apply(arr: Array<Int>, n: Int) -> Int {
+    let total: Int = 0;
+    let i: Int = 0;
+    while i < n {
+        let cl: Mark = Classify(arr[i]);
+        total = total + Score(cl);
+        i = i + 1;
+    }
+    return total;
+}
+
+func Main() -> Void {
+    let arr: Array<Int> = [5, 25, 75, 100];
+    Log(Apply(arr, 4));
+    Log(Apply(arr, 1));
+    Log(Apply(arr, 2));
+    let arr2: Array<Int> = [55, 55, 55];
+    Log(Apply(arr2, 3));
+    let arr3: Array<Int> = [1, 2, 3];
+    Log(Apply(arr3, 3));
+}

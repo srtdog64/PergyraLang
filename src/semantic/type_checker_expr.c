@@ -274,9 +274,18 @@ type_check_expression(ASTNode *expr, SemanticContext *ctx)
         Type **elems = calloc(n, sizeof(Type *));
         if (elems == NULL)
             return TYPE_UNKNOWN;
-        for (size_t i = 0; i < n; i++)
+        for (size_t i = 0; i < n; i++) {
             elems[i] = expr_normalize_type(type_check_expression(
                 ast_tuple_literal_element(expr, i), ctx));
+            if (type_equals(elems[i], TYPE_VOID)) {
+                semantic_error_with_hints(ctx, PGY_CODE_SEM_TYPE_MISMATCH,
+                    PGY_CAUSE_ARRAY_LITERAL_ELEMENT_TYPE_MISMATCH,
+                    PGY_FIX_ALIGN_ARRAY_ELEMENT_TYPES,
+                    ast_tuple_literal_element(expr, i),
+                    "Void expression cannot be stored as a tuple literal element; split the side effect before constructing the tuple");
+                elems[i] = TYPE_UNKNOWN;
+            }
+        }
         Type *tup = type_create_tuple(elems, n);
         free(elems);
         return tup != NULL ? tup : TYPE_UNKNOWN;

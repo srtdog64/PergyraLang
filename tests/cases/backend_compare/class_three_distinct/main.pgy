@@ -1,0 +1,22 @@
+class Counter {
+    let n: Int;
+    let cap: Int;
+
+    func Next(self) -> Int {
+        return n + 1;
+    }
+}
+
+func ThreeSteps(start: Int) -> Int {
+    let c1: Counter = Counter(start, 100);
+    let a1: Int = c1.Next();
+    let c2: Counter = Counter(a1, 100);
+    let a2: Int = c2.Next();
+    let c3: Counter = Counter(a2, 100);
+    return c3.Next();
+}
+
+func Main() -> Void {
+    Log(ThreeSteps(0));
+    Log(ThreeSteps(10));
+}

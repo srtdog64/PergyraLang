@@ -1,0 +1,35 @@
+enum Verdict { Stop, Skip, Take }
+
+func Decide(n: Int) -> Verdict {
+    if n < 0 { return Stop; }
+    if n % 5 == 0 { return Skip; }
+    return Take;
+}
+
+func RunUntil(arr: Array<Int>, n: Int) -> Int {
+    let acc: Int = 0;
+    let i: Int = 0;
+    while i < n {
+        match Decide(arr[i]) {
+            case Stop:
+                return acc;
+            case Skip:
+                i = i + 1;
+            case Take:
+                acc = acc + arr[i];
+                i = i + 1;
+        }
+    }
+    return acc;
+}
+
+func Main() -> Void {
+    let a: Array<Int> = [3, 7, 10, 11, -5, 99];
+    Log(RunUntil(a, 6));
+    let b: Array<Int> = [-1, 99];
+    Log(RunUntil(b, 2));
+    let c: Array<Int> = [5, 10, 15];
+    Log(RunUntil(c, 3));
+    let d: Array<Int> = [];
+    Log(RunUntil(d, 0));
+}

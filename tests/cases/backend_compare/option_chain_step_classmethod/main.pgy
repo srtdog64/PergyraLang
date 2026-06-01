@@ -1,0 +1,33 @@
+class Counter {
+    let n: Int;
+    let cap: Int;
+
+    func Next(self) -> Option<Int> {
+        if n + 1 > cap { return None; }
+        return Some(n + 1);
+    }
+}
+
+func StepsUntil(start: Int, cap: Int) -> Int {
+    let c: Counter = Counter(start, cap);
+    let steps: Int = 0;
+    let cur: Option<Int> = c.Next();
+    while IsSome(cur) {
+        steps = steps + 1;
+        match cur {
+            case Some(v):
+                let nc: Counter = Counter(v, cap);
+                cur = nc.Next();
+            case None: cur = cur;
+        }
+    }
+    return steps;
+}
+
+func Main() -> Void {
+    Log(StepsUntil(0, 10));
+    Log(StepsUntil(8, 10));
+    Log(StepsUntil(10, 10));
+    Log(StepsUntil(0, 100));
+    Log(StepsUntil(99, 100));
+}

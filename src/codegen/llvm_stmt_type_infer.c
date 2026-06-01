@@ -1,6 +1,7 @@
 #ifdef PGY_LLVM_ENABLED
 #include "llvm_internal.h"
 #include "llvm_stmt_type_infer_helpers.h"
+#include "codegen_match_variant_policy.h"
 #include "../parser/ast_api.h"
 
 #include <stdarg.h>
@@ -18,38 +19,13 @@ llvm_stmt_type_reasonf(char *out, size_t out_size, const char *fmt, ...)
     return written >= 0 && (size_t)written < out_size;
 }
 
-static LLVMTypeRef
-llvm_stmt_expected_array_elem_type(LLVMGenCtx *ctx)
-{
-    const char *inner;
-    char inner_buf[256];
-
-    if (ctx == NULL || ctx->expected_type_name == NULL)
-        return NULL;
-    switch (pgy_classify_type(ctx->expected_type_name)) {
-    case PGY_TK_ARRAY:
-    case PGY_TK_SLICE:
-        break;
-    default:
-        return NULL;
-    }
-    if (!llvm_constructed_arg_name_copy(ctx->expected_type_name, 0,
-            inner_buf, sizeof(inner_buf))) {
-        return NULL;
-    }
-    inner = inner_buf;
-    if (strcmp(inner, "Unknown") == 0)
-        return NULL;
-    return pergyra_type_to_llvm(ctx, inner_buf);
-}
-
 LLVMClassTypeEntry *
 llvm_stmt_lookup_class_by_type(LLVMGenCtx *ctx, LLVMTypeRef type)
 {
     return llvm_lookup_class_by_struct_type(ctx, type);
 }
 
-static LLVMTypeRef
+LLVMTypeRef
 llvm_stmt_unknown_expr_type(LLVMGenCtx *ctx, ASTNode *expr, const char *reason)
 {
     if (ctx == NULL)
@@ -82,6 +58,16 @@ llvm_stmt_infer_expr_type(LLVMGenCtx *ctx, ASTNode *expr)
         return nominal_cls->struct_type;
 
     switch (expr->type) {
+    case AST_LET_DECL: {
+        ASTNode *type_ann = ast_let_type(expr);
+        ASTNode *initializer = ast_let_initializer(expr);
+        if (type_ann != NULL)
+            return ast_type_to_llvm(ctx, type_ann);
+        if (initializer != NULL)
+            return llvm_stmt_infer_expr_type(ctx, initializer);
+        return llvm_stmt_unknown_expr_type(ctx, expr,
+            "let declaration requires an annotation or initializer type");
+    }
     case AST_STRING:
         return ctx->type_i8ptr;
     case AST_BOOLEAN:
@@ -135,9 +121,39 @@ llvm_stmt_infer_expr_type(LLVMGenCtx *ctx, ASTNode *expr)
         suffix = suffix_buf;
         return llvm_array_struct_type(ctx, suffix);
     }
+    case AST_ARRAY_ACCESS: {
+        ASTNode *array = ast_array_access_array(expr);
+        if (array != NULL && array->type == AST_IDENTIFIER) {
+            LLVMArrayVarEntry *entry = llvm_lookup_array_var(ctx,
+                ast_identifier_name(array));
+            if (entry != NULL && entry->elem_type != NULL)
+                return entry->elem_type;
+        }
+        return llvm_stmt_unknown_expr_type(ctx, expr,
+            "indexed collection access requires registered Array<T>/Slice<T> metadata");
+    }
     case AST_IDENTIFIER: {
         const char *name = ast_identifier_name(expr);
         LLVMVarEntry *var = llvm_scope_lookup(ctx, name);
+        if (pgy_codegen_match_variant_lookup(name)
+                == PGY_MATCH_VARIANT_NONE_CTOR) {
+            if (ctx->expected_type_name != NULL
+                && pgy_classify_type(ctx->expected_type_name)
+                    == PGY_TK_OPTION) {
+                LLVMTypeRef expected = pergyra_type_to_llvm(
+                    ctx, ctx->expected_type_name);
+                if (expected != NULL)
+                    return expected;
+            }
+            if (ctx->current_ret_type != NULL
+                && LLVMGetTypeKind(ctx->current_ret_type)
+                    == LLVMStructTypeKind
+                && LLVMCountStructElementTypes(ctx->current_ret_type) == 2
+                && LLVMStructGetTypeAtIndex(ctx->current_ret_type, 0)
+                    == ctx->type_i32) {
+                return ctx->current_ret_type;
+            }
+        }
         if (var != NULL)
             return var->type;
         if (name != NULL && strcmp(name, "self") != 0
@@ -147,8 +163,16 @@ llvm_stmt_infer_expr_type(LLVMGenCtx *ctx, ASTNode *expr)
             int field_idx = host_cls != NULL
                 ? llvm_class_field_index(host_cls, name)
                 : -1;
-            if (field_idx >= 0)
+        if (field_idx >= 0)
                 return llvm_class_field_type_at_index(host_cls, field_idx);
+        }
+        {
+            const char *custom_type = llvm_expr_custom_type_name(expr, ctx);
+            if (custom_type != NULL) {
+                LLVMTypeRef ty = pergyra_type_to_llvm(ctx, custom_type);
+                if (ty != NULL)
+                    return ty;
+            }
         }
         return llvm_stmt_unknown_expr_type(ctx, expr,
             "identifier requires registered LLVM local metadata");
@@ -165,6 +189,15 @@ llvm_stmt_infer_expr_type(LLVMGenCtx *ctx, ASTNode *expr)
             return llvm_stmt_infer_expr_type(ctx, ast_assignment_value(expr));
         return llvm_stmt_unknown_expr_type(ctx, expr,
             "assignment is missing a value expression");
+    case AST_UNARY: {
+        PgyTokenType op = ast_unary_operator(expr).type;
+        if (op == TOKEN_NOT)
+            return ctx->type_i1;
+        if (op == TOKEN_MINUS)
+            return llvm_stmt_infer_expr_type(ctx, ast_unary_operand(expr));
+        return llvm_stmt_unknown_expr_type(ctx, expr,
+            "unsupported unary operator has no inferred LLVM type");
+    }
     case AST_CHANNEL_RECV:
         if (ast_channel_recv_channel(expr) != NULL
             && ast_channel_recv_channel(expr)->type == AST_IDENTIFIER) {
@@ -437,116 +470,5 @@ llvm_stmt_infer_expr_type(LLVMGenCtx *ctx, ASTNode *expr)
             "expression requires typed MIR result facts");
     }
 }
-
-LLVMTypeRef
-llvm_stmt_resolve_array_elem_type(LLVMGenCtx *ctx, ASTNode *expr,
-                                  LLVMValueRef data_ptr)
-{
-    LLVMTypeRef elem_type = llvm_stmt_expected_array_elem_type(ctx);
-    (void)data_ptr;
-
-    if (expr == NULL)
-        return elem_type != NULL ? elem_type
-            : llvm_stmt_unknown_expr_type(ctx, expr,
-                "array element type requires expected Array<T> metadata");
-
-    if (expr->type == AST_IDENTIFIER && ast_identifier_name(expr) != NULL) {
-        LLVMArrayVarEntry *entry = llvm_lookup_array_var(
-            ctx, ast_identifier_name(expr));
-        if (entry != NULL && entry->elem_type != NULL)
-            return entry->elem_type;
-    }
-
-    if (expr->type == AST_ARRAY_LITERAL
-        && ast_array_literal_count(expr) > 0
-        && ast_array_literal_element(expr, 0) != NULL) {
-        LLVMTypeRef inferred = llvm_stmt_infer_expr_type(
-            ctx, ast_array_literal_element(expr, 0));
-        if (inferred != NULL)
-            return inferred;
-    }
-
-    if (expr->type == AST_CALL
-        && ast_call_callee(expr) != NULL
-        && ast_call_callee(expr)->type == AST_MEMBER_ACCESS
-        && ast_member_name(ast_call_callee(expr)) != NULL
-        && strcmp(ast_member_name(ast_call_callee(expr)), "Slice") == 0
-        && ast_member_object(ast_call_callee(expr)) != NULL) {
-        ASTNode *receiver = ast_member_object(ast_call_callee(expr));
-        if (receiver->type == AST_IDENTIFIER && ast_identifier_name(receiver) != NULL) {
-            LLVMArrayVarEntry *entry = llvm_lookup_array_var(
-                ctx, ast_identifier_name(receiver));
-            if (entry != NULL && entry->elem_type != NULL)
-                return entry->elem_type;
-        }
-        if (receiver->type == AST_CALL
-            && ast_call_callee(receiver) != NULL
-            && ast_call_callee(receiver)->type == AST_IDENTIFIER
-            && ast_identifier_name(ast_call_callee(receiver)) != NULL) {
-            ASTNode *decl = llvm_stmt_find_function_decl_by_name(
-                ctx, ast_identifier_name(ast_call_callee(receiver)));
-            ASTNode *ret = ast_func_return_type(decl);
-            if (ret != NULL && ret->type == AST_TYPE) {
-                const char *ret_name = ast_type_name(ret);
-                GenericParams *generic_args = ast_type_generic_args(ret);
-                if (ret_name != NULL
-                    && (strcmp(ret_name, "Array") == 0
-                        || strcmp(ret_name, "Slice") == 0)
-                    && ast_generic_param_at(generic_args, 0) != NULL) {
-                    char *elem_name = llvm_stmt_render_type_arg_scratch(
-                        ast_generic_param_at(generic_args, 0),
-                        &ctx->scratch);
-                    if (elem_name == NULL || elem_name[0] == '\0')
-                        return llvm_stmt_unknown_expr_type(ctx, receiver,
-                            "array return element type is unresolved");
-                    LLVMTypeRef declared = pergyra_type_to_llvm(ctx, elem_name);
-                    if (declared != NULL)
-                        return declared;
-                }
-            }
-        }
-        return llvm_stmt_resolve_array_elem_type(
-            ctx, receiver, NULL);
-    }
-
-    if (expr->type == AST_CALL
-        && ast_call_callee(expr) != NULL
-        && ast_call_callee(expr)->type == AST_IDENTIFIER
-        && ast_identifier_name(ast_call_callee(expr)) != NULL) {
-        ASTNode *decl = llvm_stmt_find_function_decl_by_name(
-            ctx, ast_identifier_name(ast_call_callee(expr)));
-        ASTNode *ret = ast_func_return_type(decl);
-        if (ret != NULL && ret->type == AST_TYPE) {
-            const char *ret_name = ast_type_name(ret);
-            GenericParams *generic_args = ast_type_generic_args(ret);
-            if (ret_name != NULL
-                && (strcmp(ret_name, "Array") == 0
-                    || strcmp(ret_name, "Slice") == 0)
-                && ast_generic_param_at(generic_args, 0) != NULL) {
-                GenericParam *gp = ast_generic_param_at(generic_args, 0);
-                /* Prefer the simple type name ("String", "Int"); fall back
-                 * to the explicit constraint node if given. */
-                if (ast_generic_param_name(gp) != NULL) {
-                    LLVMTypeRef declared = pergyra_type_to_llvm(
-                        ctx, ast_generic_param_name(gp));
-                    if (declared != NULL)
-                        return declared;
-                }
-                if (ast_generic_param_constraint(gp) != NULL) {
-                    LLVMTypeRef declared = ast_type_to_llvm(
-                        ctx, ast_generic_param_constraint(gp));
-                    if (declared != NULL)
-                        return declared;
-                }
-            }
-        }
-    }
-
-    if (elem_type != NULL)
-        return elem_type;
-    return llvm_stmt_unknown_expr_type(ctx, expr,
-        "array or slice element type requires registered Array<T>/Slice<T> metadata");
-}
-
 
 #endif /* PGY_LLVM_ENABLED */

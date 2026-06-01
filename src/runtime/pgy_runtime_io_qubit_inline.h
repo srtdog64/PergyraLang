@@ -1,9 +1,4 @@
-/* =================================================================
- * I/O Built-ins (platform-independent via C stdio)
- *
- * File handles use an internal table mapping Int fd → FILE*.
- * fd 0/1/2 are reserved for stdin/stdout/stderr.
- * ================================================================= */
+#include "pgy_runtime_process_exit.h"
 
 #define PGY_MAX_OPEN_FILES 256
 
@@ -18,7 +13,6 @@ _pgy_io_init_locked(void)
     _pgy_ftable[2] = stderr;
 }
 
-/* FileOpen(path, mode) → fd (-1 on error) */
 static inline PgyRuntimeIoIntResult
 pgy_try_file_open_result(const char *path, const char *mode)
 {
@@ -67,7 +61,6 @@ pgy_try_file_open_result(const char *path, const char *mode)
     return pgy_runtime_io_int_ok((int32_t)fd);
 }
 
-/* FileOpen(path, mode) returns fd (-1 on error) */
 static inline int32_t
 pgy_file_open(const char *path, const char *mode)
 {
@@ -75,7 +68,6 @@ pgy_file_open(const char *path, const char *mode)
     return result.tag == PGY_RUNTIME_IO_RESULT_OK ? result.ok : -1;
 }
 
-/* FileRead(fd) → read one line (heap-allocated copy) */
 static inline PgyRuntimeIoStringResult
 pgy_try_file_read_result(int32_t fd)
 {
@@ -104,7 +96,6 @@ pgy_try_file_read_result(int32_t fd)
     return pgy_runtime_io_string_ok(copy);
 }
 
-/* FileRead(fd) returns one line (heap-allocated copy) */
 static inline char *
 pgy_file_read(int32_t fd)
 {
@@ -141,14 +132,12 @@ pgy_try_file_write_result(int32_t fd, const char *data)
     return pgy_runtime_io_void_ok();
 }
 
-/* FileWrite(fd, data) */
 static inline void
 pgy_file_write(int32_t fd, const char *data)
 {
     (void)pgy_try_file_write_result(fd, data);
 }
 
-/* FileClose(fd) */
 static inline void
 pgy_file_close(int32_t fd)
 {
@@ -165,7 +154,6 @@ pgy_file_close(int32_t fd)
     fclose(fp);
 }
 
-/* ReadFile(path) → entire file as heap-allocated string */
 static inline PgyRuntimeIoStringResult
 pgy_try_read_file_result(const char *path)
 {
@@ -221,7 +209,6 @@ pgy_try_read_file_result(const char *path)
     return pgy_runtime_io_string_ok(buf);
 }
 
-/* ReadFile(path) returns entire file as heap-allocated string */
 static inline char *
 pgy_read_file(const char *path)
 {
@@ -258,7 +245,6 @@ pgy_file_exists(const char *path)
     return result.tag == PGY_RUNTIME_IO_RESULT_OK && result.ok != 0;
 }
 
-/* WriteFile(path, data) → write entire string to file */
 static inline PgyRuntimeIoVoidResult
 pgy_try_write_file_result(const char *path, const char *data)
 {
@@ -294,7 +280,6 @@ pgy_write_file(const char *path, const char *data)
     (void)pgy_try_write_file_result(path, data);
 }
 
-/* Input(prompt) → read line from stdin */
 static inline PgyRuntimeIoStringResult
 pgy_try_input_result(const char *prompt)
 {
@@ -327,7 +312,6 @@ pgy_input(const char *prompt)
         : pgy_runtime_strdup("");
 }
 
-/* Print(msg) → stdout without newline */
 static inline void
 pgy_print(const char *msg)
 {
@@ -367,14 +351,9 @@ pgy_sleep_ms(int32_t ms)
 static inline void
 pgy_exit(int32_t code)
 {
-    exit((int)code);
+    pgy_runtime_process_exit(code);
 }
 
-/* =================================================================
- * String Built-ins
- * ================================================================= */
-
-/* StringContains(haystack, needle) → Bool */
 static inline bool
 StringContains(const char *haystack, const char *needle)
 {
@@ -395,9 +374,6 @@ StringIndexOf(const char *haystack, const char *needle)
     return (int32_t)(match - haystack);
 }
 
-/* StringLength is already defined as pgy_string_length or similar */
-
-/* Substring(s, start, len) → new string */
 static inline char *
 Substring(const char *s, int32_t start, int32_t len)
 {
@@ -418,7 +394,6 @@ Substring(const char *s, int32_t start, int32_t len)
     return buf;
 }
 
-/* StringReplace(s, old, new) → new string with all occurrences replaced */
 static inline char *
 StringReplace(const char *s, const char *old_str, const char *new_str)
 {
@@ -427,7 +402,6 @@ StringReplace(const char *s, const char *old_str, const char *new_str)
     size_t new_len = strlen(new_str);
     if (old_len == 0) return pgy_runtime_strdup(s);
 
-    /* Count occurrences */
     size_t count = 0;
     const char *p = s;
     while ((p = strstr(p, old_str)) != NULL) { count++; p += old_len; }
@@ -462,7 +436,6 @@ StringReplace(const char *s, const char *old_str, const char *new_str)
     return result;
 }
 
-/* StringTrim(s) → new string with leading/trailing whitespace removed */
 static inline char *
 StringTrim(const char *s)
 {
@@ -478,7 +451,6 @@ StringTrim(const char *s)
     return buf;
 }
 
-/* ToUpper(s) → new uppercase string */
 static inline char *
 ToUpper(const char *s)
 {
@@ -491,7 +463,6 @@ ToUpper(const char *s)
     return buf;
 }
 
-/* ToLower(s) → new lowercase string */
 static inline char *
 ToLower(const char *s)
 {
@@ -504,7 +475,6 @@ ToLower(const char *s)
     return buf;
 }
 
-/* StringConcat(a, b) → new concatenated string */
 static inline char *
 StringConcat(const char *a, const char *b)
 {
@@ -519,16 +489,6 @@ StringConcat(const char *a, const char *b)
     memcpy(buf + la, b, lb + 1);
     return buf;
 }
-
-/* =================================================================
- * StringSplit / StringJoin — string manipulation
- *
- * StringSplit(s, delim) → Array<String>
- * StringJoin(arr, sep)  → String
- *
- * Note: These must be defined AFTER PGY_ARRAY_DEFINE(String, char*)
- * which generates PgyArray_String.
- * ================================================================= */
 
 static inline PgyArray_String
 StringSplit(const char *s, const char *delim)
@@ -569,7 +529,6 @@ StringJoin(PgyArray_String *arr, const char *sep)
     }
     if (sep == NULL) sep = "";
     size_t sep_len = strlen(sep);
-    /* Calculate total length */
     size_t total = 0;
     for (size_t i = 0; i < arr->length; i++) {
         if (arr->data[i]) {

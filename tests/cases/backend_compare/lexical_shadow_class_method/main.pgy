@@ -1,0 +1,24 @@
+class A {
+    let v: Int;
+
+    func Value(self) -> Int {
+        return v + 1;
+    }
+}
+
+class B {
+    let v: Int;
+
+    func Value(self) -> Int {
+        return v + 100;
+    }
+}
+
+func Main() -> Void {
+    let x: A = A(1);
+    if true {
+        let x: B = B(2);
+        Log(x.Value());
+    }
+    Log(x.Value());
+}

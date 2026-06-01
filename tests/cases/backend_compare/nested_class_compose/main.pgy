@@ -1,0 +1,25 @@
+class Outer {
+    let inner_val: Int;
+    let mult: Int;
+
+    func Wrap(self, base: Int) -> Int {
+        return inner_val + base * mult;
+    }
+}
+
+class Layer {
+    let outer: Outer;
+    let bias: Int;
+
+    func Apply(self, x: Int) -> Int {
+        return outer.Wrap(x) + bias;
+    }
+}
+
+func Main() -> Void {
+    let o: Outer = Outer(10, 2);
+    let l: Layer = Layer(o, 5);
+    Log(l.Apply(3));
+    Log(l.Apply(0));
+    Log(l.Apply(-1));
+}

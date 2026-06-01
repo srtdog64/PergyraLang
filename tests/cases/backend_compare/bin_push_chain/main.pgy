@@ -1,0 +1,26 @@
+class Bin {
+    let count: Int;
+
+    func Push(self, n: Int) -> Bin {
+        return Bin(count + n);
+    }
+}
+
+func RunPush(seeds: Array<Int>, n: Int) -> Int {
+    let b: Bin = Bin(0);
+    let i: Int = 0;
+    while i < n {
+        b = b.Push(seeds[i]);
+        i = i + 1;
+    }
+    return b.count;
+}
+
+func Main() -> Void {
+    let arr: Array<Int> = [1, 2, 3, 4];
+    Log(RunPush(arr, 4));
+    Log(RunPush(arr, 2));
+    Log(RunPush(arr, 0));
+    let arr2: Array<Int> = [100, 200, 300];
+    Log(RunPush(arr2, 3));
+}

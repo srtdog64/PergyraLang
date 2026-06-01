@@ -6,7 +6,6 @@
 
 #include "llvm_mir_local_emit.h"
 
-#include <stdio.h>
 #include <string.h>
 
 #include "llvm_internal_api.h"
@@ -34,6 +33,35 @@ llvm_mir_local_elem_type_from_layout(LLVMGenCtx *ctx,
         return NULL;
     }
     if (inner_name[0] == '\0' || strcmp(inner_name, "Unknown") == 0)
+        return NULL;
+    return pergyra_type_to_llvm(ctx, inner_name);
+}
+
+static LLVMTypeRef
+llvm_mir_local_elem_type_from_type_ast(LLVMGenCtx *ctx, ASTNode *type_node)
+{
+    const char *type_name;
+    GenericParams *args;
+    GenericParam *first_arg;
+    const char *inner_name;
+
+    if (ctx == NULL || type_node == NULL || type_node->type != AST_TYPE)
+        return NULL;
+    type_name = ast_type_name(type_node);
+    if (type_name == NULL)
+        return NULL;
+    if (strcmp(type_name, "Array") != 0
+        && strcmp(type_name, "Slice") != 0
+        && strncmp(type_name, "Array<", 6) != 0
+        && strncmp(type_name, "Slice<", 6) != 0) {
+        return NULL;
+    }
+    args = ast_type_generic_args(type_node);
+    if (args == NULL || ast_generic_param_count(args) == 0)
+        return NULL;
+    first_arg = ast_generic_param_at(args, 0);
+    inner_name = ast_generic_param_name(first_arg);
+    if (inner_name == NULL || inner_name[0] == '\0')
         return NULL;
     return pergyra_type_to_llvm(ctx, inner_name);
 }
@@ -85,6 +113,20 @@ llvm_mir_local_type_from_vars(LLVMMirVar *vars, size_t var_count,
     return NULL;
 }
 
+static bool
+llvm_mir_value_expr_is_method_call(ASTNode *expr)
+{
+    ASTNode *callee;
+
+    if (expr == NULL || expr->type != AST_CALL)
+        return false;
+    callee = ast_call_callee(expr);
+    if (callee == NULL)
+        return false;
+    return callee->type == AST_MEMBER_ACCESS
+        || callee->type == AST_IDENTIFIER;
+}
+
 static LLVMTypeRef
 llvm_mir_local_type_from_value_fact(const MIRInstruction *inst,
                                     LLVMMirVar *vars,
@@ -94,6 +136,9 @@ llvm_mir_local_type_from_value_fact(const MIRInstruction *inst,
 
     if (inst == NULL)
         return NULL;
+    value_expr = inst->expr0;
+    if (llvm_mir_value_expr_is_method_call(value_expr))
+        return NULL;
     if (inst->use_count > 0 && inst->uses != NULL) {
         LLVMTypeRef use_type =
             llvm_mir_local_type_from_vars(vars, var_count, inst->uses[0]);
@@ -101,7 +146,6 @@ llvm_mir_local_type_from_value_fact(const MIRInstruction *inst,
             return use_type;
     }
 
-    value_expr = inst->expr0;
     if (value_expr != NULL
         && value_expr->type == AST_IDENTIFIER) {
         const char *value_name = ast_identifier_name(value_expr);
@@ -166,6 +210,57 @@ llvm_mir_local_type_from_named_result(const MIRRoutine *routine,
 }
 
 static LLVMTypeRef
+llvm_mir_array_type_from_slice_type(LLVMGenCtx *ctx, LLVMTypeRef slice_type)
+{
+    if (ctx == NULL || slice_type == NULL)
+        return NULL;
+    if (slice_type == ctx->slice_type_Int)
+        return ctx->array_type_Int;
+    if (slice_type == ctx->slice_type_Long)
+        return ctx->array_type_Long;
+    if (slice_type == ctx->slice_type_Float)
+        return ctx->array_type_Float;
+    if (slice_type == ctx->slice_type_Double)
+        return ctx->array_type_Double;
+    if (slice_type == ctx->slice_type_Bool)
+        return ctx->array_type_Bool;
+    if (slice_type == ctx->slice_type_String)
+        return ctx->array_type_String;
+    return NULL;
+}
+
+static LLVMTypeRef
+llvm_mir_local_type_from_slice_copy_fact(const MIRRoutine *routine,
+                                         LLVMGenCtx *ctx,
+                                         const MIRInstruction *inst,
+                                         LLVMMirVar *vars,
+                                         size_t var_count,
+                                         unsigned depth)
+{
+    LLVMTypeRef slice_type;
+    LLVMTypeRef array_type;
+
+    if (inst == NULL || inst->arg1 == NULL
+        || strcmp(inst->arg1, "SliceCopy") != 0
+        || inst->use_count == 0 || inst->uses == NULL) {
+        return NULL;
+    }
+
+    slice_type = llvm_mir_local_type_from_named_result(routine, ctx,
+        inst->uses[0], vars, var_count, depth + 1);
+    array_type = llvm_mir_array_type_from_slice_type(ctx, slice_type);
+    if (array_type != NULL || slice_type == NULL || ctx == NULL
+        || ctx->has_error) {
+        return array_type;
+    }
+
+    llvm_set_mir_inventory_missing(ctx,
+        "LLVM MIR SliceCopy result '%s' requires Slice<T> operand metadata",
+        inst->result_name != NULL ? inst->result_name : "(anonymous-local)");
+    return NULL;
+}
+
+static LLVMTypeRef
 llvm_mir_local_type_from_instruction_fact(const MIRRoutine *routine,
                                           LLVMGenCtx *ctx,
                                           const MIRInstruction *inst,
@@ -187,6 +282,11 @@ llvm_mir_local_type_from_instruction_fact(const MIRRoutine *routine,
         if (ctx->has_error || type != NULL)
             return type;
     }
+
+    type = llvm_mir_local_type_from_slice_copy_fact(routine, ctx, inst,
+        vars, var_count, depth);
+    if (ctx->has_error || type != NULL)
+        return type;
 
     type = llvm_mir_local_type_from_value_fact(inst, vars, var_count);
     if (type != NULL)
@@ -252,11 +352,26 @@ llvm_emit_mir_local_allocas(const MIRRoutine *routine, LLVMGenCtx *ctx,
                     alloca_type = llvm_mir_type_from_ast(ctx, type_expr);
                     if (ctx->has_error || alloca_type == NULL)
                         return;
-                    if (has_base_name)
+                    if (has_base_name) {
                         llvm_register_typed_var(ctx, base_name, type_expr);
+                        llvm_mir_register_nominal_class(ctx, base_name,
+                                                        type_expr);
+                    }
                 } else if (value_expr != NULL) {
-                    alloca_type = llvm_mir_local_type_from_value_fact(
-                        inst, vars, var_count);
+                    if (inst->arg1 != NULL
+                        && strcmp(inst->arg1, "SliceCopy") == 0) {
+                        alloca_type =
+                            llvm_mir_local_type_from_instruction_fact(
+                                routine, ctx, inst, vars, var_count, 0);
+                    }
+                    if (alloca_type == NULL) {
+                        alloca_type = llvm_mir_local_type_from_value_fact(
+                            inst, vars, var_count);
+                    }
+                    if (alloca_type == NULL && has_base_name) {
+                        alloca_type = llvm_mir_local_type_from_vars(
+                            vars, var_count, base_name);
+                    }
                     if (alloca_type == NULL)
                         alloca_type = llvm_stmt_infer_expr_type(ctx, value_expr);
                     if (ctx->has_error || alloca_type == NULL)
@@ -303,8 +418,14 @@ llvm_emit_mir_local_allocas(const MIRRoutine *routine, LLVMGenCtx *ctx,
                         elem_type = llvm_stmt_infer_expr_type(ctx,
                             ast_array_literal_element(value_expr, 0));
                     } else {
-                        elem_type = llvm_mir_local_elem_type_from_layout(
-                            ctx, inst->type_layout);
+                        if (type_expr != NULL) {
+                            elem_type = llvm_mir_local_elem_type_from_type_ast(
+                                ctx, type_expr);
+                        }
+                        if (elem_type == NULL) {
+                            elem_type = llvm_mir_local_elem_type_from_layout(
+                                ctx, inst->type_layout);
+                        }
                     }
                     if (!llvm_mir_local_require_elem_type(ctx, value_expr,
                             elem_type, base_name))
@@ -381,192 +502,6 @@ llvm_emit_mir_local_allocas(const MIRRoutine *routine, LLVMGenCtx *ctx,
     *vars_ptr = vars;
     *var_capacity_ptr = var_capacity;
     *var_count_ptr = var_count;
-}
-
-void
-llvm_emit_mir_param_allocas(const MIRRoutine *routine, ASTNode *func_decl,
-                            LLVMValueRef fn, LLVMGenCtx *ctx, bool is_intent,
-                            bool is_method, LLVMClassTypeEntry *owner_cls,
-                            const char *owner_name, size_t param_count)
-{
-    (void)routine;
-    if (!is_intent) {
-        size_t emitted_index = 0;
-        if (is_method) {
-            LLVMTypeRef self_type = owner_cls != NULL
-                ? (owner_cls->is_pointer_self_host
-                    ? LLVMPointerType(owner_cls->struct_type, 0)
-                    : owner_cls->struct_type)
-                : ctx->type_i8ptr;
-            LLVMValueRef alloca = LLVMBuildAlloca(ctx->builder, self_type,
-                (owner_cls != NULL && owner_cls->is_pointer_self_host)
-                    ? "self.addr" : "self");
-            LLVMBuildStore(ctx->builder, LLVMGetParam(fn, 0), alloca);
-            llvm_scope_declare(ctx, "self", alloca, self_type);
-            if (owner_name != NULL)
-                llvm_register_var_class(ctx, "self", owner_name);
-            emitted_index = 1;
-        }
-
-        size_t func_param_count = ast_func_param_count(func_decl);
-        for (size_t param_index = 0; param_index < func_param_count;
-             param_index++) {
-            FuncParam *p = ast_func_param(func_decl, param_index);
-            bool is_secure_slot = false;
-            const char *slot_inner;
-            LLVMTypeRef pt;
-            LLVMValueRef alloca;
-
-            if (p == NULL || (is_method && p->type == NULL && p->name != NULL
-                && strcmp(p->name, "self") == 0)) {
-                continue;
-            }
-
-            slot_inner = llvm_mir_boundary_slot_inner_name(ctx, p,
-                &is_secure_slot);
-            if (p->name == NULL) {
-                emitted_index += (slot_inner != NULL && is_secure_slot) ? 2 : 1;
-                continue;
-            }
-
-            pt = llvm_mir_required_type_from_ast(ctx, func_decl, p->type,
-                "function parameter");
-            if (ctx->has_error || pt == NULL)
-                return;
-            if (slot_inner != NULL) {
-                LLVMTypeRef slot_ptr_ty = LLVMPointerType(pt, 0);
-                alloca = LLVMBuildAlloca(ctx->builder, slot_ptr_ty, p->name);
-                LLVMBuildStore(ctx->builder,
-                    LLVMGetParam(fn, (unsigned)emitted_index++), alloca);
-                llvm_scope_declare(ctx, p->name, alloca, slot_ptr_ty);
-                llvm_register_typed_var(ctx, p->name, p->type);
-                llvm_register_slot_var(ctx, p->name, slot_inner, is_secure_slot);
-                if (is_secure_slot) {
-                    char token_name[256];
-                    LLVMTypeRef token_ty = llvm_secure_token_type(ctx, slot_inner);
-                    LLVMValueRef token_alloca;
-                    snprintf(token_name, sizeof(token_name), "%s_token", p->name);
-                    token_alloca = LLVMBuildAlloca(ctx->builder, token_ty,
-                        token_name);
-                    LLVMBuildStore(ctx->builder,
-                        LLVMGetParam(fn, (unsigned)emitted_index++),
-                        token_alloca);
-                    llvm_scope_declare(ctx, pergyra_strdup(token_name),
-                        token_alloca, token_ty);
-                }
-                continue;
-            }
-
-            if (p->type != NULL && llvm_mir_param_uses_pointer_self(ctx, p->type))
-                pt = LLVMPointerType(pt, 0);
-            alloca = LLVMBuildAlloca(ctx->builder, pt, p->name);
-            LLVMBuildStore(ctx->builder,
-                LLVMGetParam(fn, (unsigned)emitted_index++), alloca);
-            llvm_scope_declare(ctx, p->name, alloca, pt);
-            llvm_register_typed_var(ctx, p->name, p->type);
-        }
-        return;
-    }
-
-    for (size_t i = 0; i < param_count; i++) {
-        if (is_intent) {
-            size_t binding_count = 0;
-            size_t involve_count = 0;
-            size_t value_count = 0;
-            ASTNode **bindings = ast_intent_decl_bindings(func_decl, &binding_count);
-            ASTNode **involves = ast_intent_decl_involves(func_decl, &involve_count);
-            ASTNode **values = ast_intent_decl_values(func_decl, &value_count);
-            ASTNode *binding = binding_count > 0
-                ? (i < binding_count ? bindings[i] : NULL)
-                : (i < involve_count
-                    ? involves[i]
-                    : (i - involve_count < value_count
-                        ? values[i - involve_count]
-                        : NULL));
-            const char *alias = NULL;
-            ASTNode *type_node = NULL;
-            const char *type_name = NULL;
-            LLVMTypeRef pt = ctx->type_i32;
-            bool pointer_param = false;
-            if (binding != NULL && binding->type == AST_INTENT_INVOLVES) {
-                alias = ast_intent_involves_alias(binding);
-                type_node = ast_intent_involves_subject_type(binding);
-                pointer_param = llvm_intent_involves_uses_pointer_self(ctx,
-                    binding);
-            } else if (binding != NULL && binding->type == AST_INTENT_VALUE) {
-                alias = ast_intent_value_alias(binding);
-                type_node = ast_intent_value_type(binding);
-            }
-            if (type_node != NULL && type_node->type == AST_TYPE)
-                type_name = ast_type_name(type_node);
-            pt = llvm_mir_required_type_from_ast(ctx, binding, type_node,
-                "intent binding");
-            if (ctx->has_error || pt == NULL)
-                return;
-            if (pointer_param)
-                pt = LLVMPointerType(pt, 0);
-            LLVMValueRef alloca = LLVMBuildAlloca(ctx->builder, pt,
-                alias != NULL ? alias : "binding");
-            LLVMBuildStore(ctx->builder, LLVMGetParam(fn, (unsigned)i), alloca);
-            llvm_scope_declare(ctx, alias != NULL ? alias : "binding", alloca,
-                pt);
-            if (type_node != NULL)
-                llvm_register_typed_var(ctx, alias, type_node);
-            if (type_name != NULL)
-                llvm_register_var_class(ctx, alias, type_name);
-        } else {
-            if (is_method && i == 0) {
-                LLVMTypeRef self_type = owner_cls != NULL
-                    ? (owner_cls->is_pointer_self_host
-                        ? LLVMPointerType(owner_cls->struct_type, 0)
-                        : owner_cls->struct_type)
-                    : ctx->type_i8ptr;
-                LLVMValueRef alloca = LLVMBuildAlloca(ctx->builder, self_type,
-                    (owner_cls != NULL && owner_cls->is_pointer_self_host)
-                        ? "self.addr" : "self");
-                LLVMBuildStore(ctx->builder, LLVMGetParam(fn, 0), alloca);
-                llvm_scope_declare(ctx, "self", alloca, self_type);
-                if (owner_name != NULL)
-                    llvm_register_var_class(ctx, "self", owner_name);
-            } else {
-                size_t logical_index = is_method ? (i - 1) : i;
-                size_t seen = 0;
-                FuncParam *p = NULL;
-                size_t func_param_count = ast_func_param_count(func_decl);
-                for (size_t param_index = 0; param_index < func_param_count;
-                     param_index++) {
-                    FuncParam *candidate = ast_func_param(func_decl,
-                        param_index);
-                    if (candidate != NULL
-                        && candidate->type == NULL
-                        && candidate->name != NULL
-                        && strcmp(candidate->name, "self") == 0) {
-                        continue;
-                    }
-                    if (seen == logical_index) {
-                        p = candidate;
-                        break;
-                    }
-                    seen++;
-                }
-                if (p == NULL || p->name == NULL)
-                    continue;
-                LLVMTypeRef pt = llvm_mir_required_type_from_ast(
-                    ctx, func_decl, p->type, "function parameter");
-                if (ctx->has_error || pt == NULL)
-                    return;
-                if (p->type != NULL && llvm_mir_param_uses_pointer_self(ctx,
-                    p->type)) {
-                    pt = LLVMPointerType(pt, 0);
-                }
-                LLVMValueRef alloca = LLVMBuildAlloca(ctx->builder, pt, p->name);
-                LLVMBuildStore(ctx->builder, LLVMGetParam(fn, (unsigned)i),
-                    alloca);
-                llvm_scope_declare(ctx, p->name, alloca, pt);
-                llvm_register_typed_var(ctx, p->name, p->type);
-            }
-        }
-    }
 }
 
 #endif

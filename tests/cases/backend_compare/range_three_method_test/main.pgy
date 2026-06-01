@@ -1,0 +1,36 @@
+class Range2 {
+    let lo: Int;
+    let hi: Int;
+
+    func Width(self) -> Int {
+        return hi - lo;
+    }
+
+    func Mid(self) -> Int {
+        return (hi + lo) / 2;
+    }
+
+    func Contains(self, n: Int) -> Bool {
+        if n < lo { return false; }
+        if n > hi { return false; }
+        return true;
+    }
+}
+
+func TestRange(r: Range2, probes: Array<Int>, n: Int) -> Int {
+    let total: Int = r.Width() + r.Mid() * 10;
+    let i: Int = 0;
+    while i < n {
+        if r.Contains(probes[i]) { total = total + 1; }
+        i = i + 1;
+    }
+    return total;
+}
+
+func Main() -> Void {
+    let probes: Array<Int> = [5, 15, 25, 35, 45];
+    Log(TestRange(Range2(10, 30), probes, 5));
+    Log(TestRange(Range2(0, 100), probes, 5));
+    Log(TestRange(Range2(100, 200), probes, 5));
+    Log(TestRange(Range2(10, 30), probes, 0));
+}

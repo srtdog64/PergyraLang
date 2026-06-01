@@ -1,0 +1,32 @@
+class Slot2 {
+    let id: Int;
+    let mark: Int;
+}
+
+func FillArr(n: Int, mark: Int) -> Array<Int> {
+    let arr: Array<Int> = [0, 0, 0, 0, 0, 0, 0, 0];
+    let i: Int = 0;
+    while i < n {
+        arr[i] = mark + i;
+        i = i + 1;
+    }
+    return arr;
+}
+
+func SumWith(slot: Slot2, arr: Array<Int>, n: Int) -> Int {
+    let total: Int = slot.id;
+    let i: Int = 0;
+    while i < n {
+        total = total + arr[i] * slot.mark;
+        i = i + 1;
+    }
+    return total;
+}
+
+func Main() -> Void {
+    let arr: Array<Int> = FillArr(4, 10);
+    Log(SumWith(Slot2(1, 2), arr, 4));
+    Log(SumWith(Slot2(100, 1), arr, 4));
+    Log(SumWith(Slot2(0, 3), arr, 4));
+    Log(SumWith(Slot2(-5, 5), arr, 4));
+}

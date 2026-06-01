@@ -1107,6 +1107,38 @@ grep -q 'semantic_find_class_decl_by_name(' \
     src/semantic/type_checker_ownership_let.c \
     || fail "let ownership annotation where-check must consume semantic class lookup seam"
 
+grep -q 'Void expression cannot initialize local binding' \
+    src/semantic/type_checker_ownership_let.c \
+    || fail "let binding must reject Void expressions as value sources"
+
+grep -q 'Void function return must not carry a Void expression value' \
+    src/semantic/type_checker_ownership_return.c \
+    || fail "return checking must reject Void expression values in Void functions"
+
+grep -q 'Void expression cannot be assigned as a value' \
+    src/semantic/type_checker_assignment.c \
+    || fail "assignment checking must reject Void expressions as value sources"
+
+grep -q 'Void expression cannot be passed as a call argument' \
+    src/semantic/type_checker_helpers_late.c \
+    || fail "call checking must reject Void expressions before generic argument inference"
+
+grep -q 'Void expression cannot be stored as an array literal element' \
+    src/semantic/type_checker_expr_ops.c \
+    || fail "array literal checking must reject Void element values"
+
+grep -q 'Void expression cannot be stored as a tuple literal element' \
+    src/semantic/type_checker_expr.c \
+    || fail "tuple literal checking must reject Void element values"
+
+grep -q 'Void expression cannot initialize constructor field' \
+    src/semantic/type_checker_call_constructor.c \
+    || fail "constructor checking must reject Void field initializer values"
+
+grep -q 'type_name_or_unknown(elem_type)' \
+    src/semantic/type_checker_expr_ops.c \
+    || fail "array literal diagnostics must not dereference unresolved element types"
+
 if grep -q 'find_type_decl_by_name(ctx->program_root' \
     src/semantic/type_checker_ownership_let.c; then
     fail "let ownership annotation where-check must not reopen raw type-decl lookup"

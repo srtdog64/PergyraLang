@@ -2,6 +2,31 @@
 #include "llvm_internal.h"
 #include "parser/ast_api.h"
 
+#include <stdio.h>
+
+static void
+llvm_for_loop_alloca_name(ASTNode *loop,
+                          const char *binding,
+                          char *buffer,
+                          size_t buffer_size)
+{
+    uint32_t stable_id;
+
+    if (buffer == NULL || buffer_size == 0)
+        return;
+    buffer[0] = '\0';
+    if (binding == NULL) {
+        snprintf(buffer, buffer_size, "for.binding");
+        return;
+    }
+    stable_id = ast_node_stable_id(loop);
+    if (stable_id == 0) {
+        snprintf(buffer, buffer_size, "%s.for", binding);
+        return;
+    }
+    snprintf(buffer, buffer_size, "%s.for.%u", binding, stable_id);
+}
+
 static LLVMFuncEntry *
 llvm_stmt_for_in_required_runtime(LLVMGenCtx *ctx,
                                   ASTNode *node,
@@ -101,11 +126,15 @@ llvm_emit_for_loop(ASTNode *node, LLVMGenCtx *ctx)
                 if (size_fn == NULL || get_fn == NULL)
                     return;
 
+                int saved_var_class_count = ctx->var_class_count;
                 llvm_scope_push(ctx);
                 idx_alloca = llvm_create_entry_alloca(ctx, ctx->type_i32, llvm_tmp_name(ctx));
                 LLVMBuildStore(ctx->builder, LLVMConstInt(ctx->type_i32, 0, 0), idx_alloca);
                 {
-                    LLVMValueRef item_alloca = llvm_create_entry_alloca(ctx, elem_ty, var_name);
+                    char alloca_name[256];
+                    llvm_for_loop_alloca_name(node, var_name,
+                                              alloca_name, sizeof(alloca_name));
+                    LLVMValueRef item_alloca = llvm_create_entry_alloca(ctx, elem_ty, alloca_name);
                     llvm_scope_declare(ctx, var_name, item_alloca, elem_ty);
                     {
                         LLVMClassTypeEntry *cls = llvm_stmt_lookup_class_by_type(ctx, elem_ty);
@@ -174,6 +203,7 @@ llvm_emit_for_loop(ASTNode *node, LLVMGenCtx *ctx)
 
                 LLVMPositionBuilderAtEnd(ctx->builder, exit_bb);
                 llvm_scope_pop(ctx);
+                ctx->var_class_count = saved_var_class_count;
                 return;
             }
         }
@@ -204,12 +234,16 @@ llvm_emit_for_loop(ASTNode *node, LLVMGenCtx *ctx)
         data_ptr = LLVMBuildExtractValue(ctx->builder, iterable, 0, llvm_tmp_name(ctx));
         count64 = LLVMBuildExtractValue(ctx->builder, iterable, 1, llvm_tmp_name(ctx));
 
+        int saved_var_class_count = ctx->var_class_count;
         llvm_scope_push(ctx);
         idx_alloca = llvm_create_entry_alloca(ctx, ctx->type_i64, llvm_tmp_name(ctx));
         LLVMBuildStore(ctx->builder, LLVMConstInt(ctx->type_i64, 0, 0), idx_alloca);
 
         {
-            LLVMValueRef item_alloca = llvm_create_entry_alloca(ctx, elem_ty, var_name);
+            char alloca_name[256];
+            llvm_for_loop_alloca_name(node, var_name,
+                                      alloca_name, sizeof(alloca_name));
+            LLVMValueRef item_alloca = llvm_create_entry_alloca(ctx, elem_ty, alloca_name);
             llvm_scope_declare(ctx, var_name, item_alloca, elem_ty);
             {
                 LLVMClassTypeEntry *cls = llvm_stmt_lookup_class_by_type(ctx, elem_ty);
@@ -269,14 +303,18 @@ llvm_emit_for_loop(ASTNode *node, LLVMGenCtx *ctx)
 
         LLVMPositionBuilderAtEnd(ctx->builder, exit_bb);
         llvm_scope_pop(ctx);
+        ctx->var_class_count = saved_var_class_count;
         return;
     }
 
+    int saved_var_class_count = ctx->var_class_count;
     llvm_scope_push(ctx);
 
     /* Create loop variable */
+    char alloca_name[256];
+    llvm_for_loop_alloca_name(node, var_name, alloca_name, sizeof(alloca_name));
     LLVMValueRef var_alloca = llvm_create_entry_alloca(ctx, ctx->type_i32,
-                                                        var_name);
+                                                        alloca_name);
     LLVMValueRef start = llvm_emit_expression(ast_for_range_start(node), ctx);
     if (start == NULL)
         start = LLVMConstInt(ctx->type_i32, 0, 0);
@@ -338,6 +376,7 @@ llvm_emit_for_loop(ASTNode *node, LLVMGenCtx *ctx)
     LLVMPositionBuilderAtEnd(ctx->builder, exit_bb);
 
     llvm_scope_pop(ctx);
+    ctx->var_class_count = saved_var_class_count;
 }
 
 #endif /* PGY_LLVM_ENABLED */
