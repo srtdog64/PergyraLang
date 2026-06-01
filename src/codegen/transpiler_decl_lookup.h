@@ -77,6 +77,14 @@ TranspilerHostedMethodView transpiler_hosted_method_view(
     size_t ast_compat_count);
 bool transpiler_hosted_method_view_missing_mir_metadata(
     const TranspilerHostedMethodView *view);
+bool transpiler_hosted_method_view_missing_mir_method_row(
+    const TranspilerHostedMethodView *view,
+    size_t index);
+bool transpiler_require_hosted_method_view_rows(
+    TranspilerCtx *ctx,
+    const TranspilerHostedMethodView *view,
+    const char *message_fmt,
+    const char *host_name);
 const MIRDeclMethod *transpiler_hosted_method_view_metadata(
     const TranspilerHostedMethodView *view,
     size_t index);

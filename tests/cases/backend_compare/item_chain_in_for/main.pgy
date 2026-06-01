@@ -1,0 +1,26 @@
+class Item {
+    let v: Int;
+    let multi: Int;
+
+    func Score(self) -> Int { return self.v * self.multi; }
+
+    func DoubleIt(self) -> Item { return Item(self.v * 2, self.multi); }
+}
+
+func Make(seed: Int) -> Item {
+    return Item(seed, seed % 3 + 1);
+}
+
+func TotalScores(start: Int, n: Int) -> Int {
+    let total: Int = 0;
+    for i in 0..n {
+        total = total + Make(start + i).DoubleIt().Score();
+    }
+    return total;
+}
+
+func Main() -> Void {
+    Log(TotalScores(1, 5));
+    Log(TotalScores(0, 3));
+    Log(TotalScores(0, 0));
+}

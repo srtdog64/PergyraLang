@@ -1,0 +1,29 @@
+class Player {
+    let hp: Int;
+    let level: Int;
+
+    func Power(self) -> Int {
+        return hp + level * 10;
+    }
+}
+
+func Spawn(stage: Int) -> Option<Player> {
+    if stage < 0 { return None; }
+    if stage > 10 { return None; }
+    return Some(Player(100 + stage * 10, stage));
+}
+
+func PowerAt(stage: Int) -> Int {
+    match Spawn(stage) {
+        case Some(p): return p.Power();
+        case None: return -1;
+    }
+}
+
+func Main() -> Void {
+    Log(PowerAt(0));
+    Log(PowerAt(5));
+    Log(PowerAt(10));
+    Log(PowerAt(-1));
+    Log(PowerAt(15));
+}

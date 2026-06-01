@@ -1,0 +1,30 @@
+enum Animal { Cat, Dog, Bird, Fish }
+
+func Sound(a: Animal) -> String {
+    match a {
+        case Cat: return "meow";
+        case Dog: return "woof";
+        case Bird: return "tweet";
+        case Fish: return "blub";
+    }
+}
+
+func Size(a: Animal) -> Int {
+    match a {
+        case Cat: return 10;
+        case Dog: return 25;
+        case Bird: return 1;
+        case Fish: return 5;
+    }
+}
+
+func Main() -> Void {
+    Log(Sound(Cat));
+    Log(Size(Cat));
+    Log(Sound(Dog));
+    Log(Size(Dog));
+    Log(Sound(Bird));
+    Log(Size(Bird));
+    Log(Sound(Fish));
+    Log(Size(Fish));
+}

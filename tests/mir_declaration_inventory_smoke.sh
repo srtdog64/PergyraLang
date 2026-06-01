@@ -1458,9 +1458,13 @@ require_term "src/codegen/llvm_inventory_host_methods.c" \
 for term in \
     "view.decl_header = decl_header" \
     "view.count = mir_decl_header_method_count(decl_header)" \
-    "return mir_decl_header_method(view->decl_header, index)"; do
+    "return mir_decl_header_method(view->decl_header, index)" \
+    "llvm_hosted_method_view_missing_mir_method_row(" \
+    "llvm_require_hosted_method_view_rows("; do
     require_term "src/codegen/llvm_inventory_host_methods.c" "$term"
 done
+require_term "src/codegen/llvm_inventory_host_methods.h" \
+    "llvm_require_hosted_method_view_rows("
 if grep -RInE 'const MIRDeclMethod \*metadata|view[.]metadata|view->metadata|llvm_host_decl_method_metadata' \
         "$ROOT_DIR/src/codegen/llvm_inventory_host_methods.h" \
         "$ROOT_DIR/src/codegen/llvm_inventory_host_methods.c"; then
@@ -1703,10 +1707,14 @@ for term in \
     "llvm_forward_declare_function_routines_from_inventory(" \
     "llvm_emit_function_routines_from_inventory(" \
     "llvm_validate_function_routine_bodies_from_inventory(" \
+    "llvm_decl_require_function_source_ast(" \
+    "routine->block_count > 0 && routine->blocks == NULL" \
     "llvm_mir_routine_source_ast_of_type(" \
     "llvm_register_generic_template_decl(ctx, func_decl)" \
     "llvm_emit_func_from_mir(routine, ctx)" \
-    "MIR-only LLVM path missing routine for function"; do
+    "MIR-only LLVM path missing routine for function" \
+    "MIR-only LLVM path missing function source declaration metadata for routine" \
+    "MIR-only LLVM path has invalid function routine inventory row"; do
     require_term "src/codegen/llvm_decl_routines.c" "$term"
 done
 require_term "src/codegen/llvm_decl.c" '#include "llvm_decl_authority.h"'
@@ -1765,15 +1773,24 @@ if grep -Fq "MIR-only LLVM path missing routine for function" \
 fi
 for term in \
     "llvm_forward_declare_intent_routines_from_inventory(" \
-    "llvm_mir_routine_source_ast_of_type(" \
-    "llvm_forward_declare_intent(intent_decl, ctx)"; do
+    "llvm_require_mir_intent_source_ast(ctx, routine, &intent_decl)" \
+    "llvm_forward_declare_intent(intent_decl, ctx)" \
+    "MIR-only LLVM path has invalid intent routine inventory row"; do
     require_term "src/codegen/llvm_intent_forward.c" "$term"
 done
 for term in \
     "llvm_emit_intent_routines_from_inventory(" \
-    "llvm_mir_routine_source_ast_of_type(" \
-    "llvm_emit_intent_decl(intent_decl, ctx)"; do
+    "llvm_require_mir_intent_source_ast(ctx, routine, &intent_decl)" \
+    "llvm_emit_intent_decl(intent_decl, ctx)" \
+    "MIR-only LLVM path has invalid intent routine inventory row"; do
     require_term "src/codegen/llvm_intent.c" "$term"
+done
+for term in \
+    "llvm_require_mir_intent_source_ast(" \
+    "routine->block_count > 0 && routine->blocks == NULL" \
+    "llvm_mir_routine_source_ast_of_type(" \
+    "MIR-only LLVM path missing intent source declaration metadata for routine"; do
+    require_term "src/codegen/llvm_intent_flow.c" "$term"
 done
 if grep -Fq "llvm_forward_declare_intent(stmt, ctx)" \
     "$ROOT_DIR/src/codegen/llvm_pipeline.c"; then
@@ -2650,7 +2667,9 @@ done
 for term in \
     "view.decl_header = header" \
     "view.count = mir_decl_header_method_count(header)" \
-    "return mir_decl_header_method(view->decl_header, index)"; do
+    "return mir_decl_header_method(view->decl_header, index)" \
+    "transpiler_hosted_method_view_missing_mir_method_row(" \
+    "transpiler_require_hosted_method_view_rows("; do
     require_term "src/codegen/transpiler_decl_method_view.c" "$term"
 done
 if grep -RInE 'const MIRDeclMethod \*metadata|view[.]metadata|view->metadata' \
@@ -2680,6 +2699,16 @@ for rel in \
     require_term "$rel" "transpiler_hosted_method_view_missing_mir_metadata(&method_view)"
     require_term "$rel" "emit_hosted_method_forward_decl_from_metadata"
 done
+for rel in \
+    "src/codegen/transpiler_class_decl_emit.c" \
+    "src/codegen/transpiler_enum_decl_emit.c" \
+    "src/codegen/transpiler_domain_nominal_emit.c" \
+    "src/codegen/transpiler_relation_effect_emit.c" \
+    "src/codegen/transpiler_roster_decl_emit.c" \
+    "src/codegen/transpiler_world_select_event_emit.c" \
+    "src/codegen/transpiler_zone_decl_emit.c"; do
+    require_term "$rel" "transpiler_require_hosted_method_view_rows("
+done
 require_term "src/codegen/transpiler_zone_decl_emit.c" \
     "transpiler_hosted_method_view_from_decl(ctx"
 require_term "src/codegen/transpiler_zone_decl_emit.c" \
@@ -2691,30 +2720,48 @@ require_term "src/codegen/transpiler_zone_methods_emit.c" \
 require_term "src/codegen/transpiler_domain_nominal_emit.c" \
     "MIR-only C path missing method declaration metadata for party"
 require_term "src/codegen/transpiler_domain_nominal_emit.c" \
+    "MIR-only C path has invalid method declaration metadata row for party"
+require_term "src/codegen/transpiler_domain_nominal_emit.c" \
+    "MIR-only C path has invalid method declaration metadata row for role"
+require_term "src/codegen/transpiler_domain_nominal_emit.c" \
     "method_meta == NULL"
 require_term "src/codegen/transpiler_roster_decl_emit.c" \
     "MIR-only C path missing method declaration metadata for roster"
 require_term "src/codegen/transpiler_roster_decl_emit.c" \
+    "MIR-only C path has invalid method declaration metadata row for roster"
+require_term "src/codegen/transpiler_roster_decl_emit.c" \
     "method_meta == NULL"
 for term in \
     "MIR-only C path missing method declaration metadata for relation" \
-    "MIR-only C path missing method declaration metadata for effect"; do
+    "MIR-only C path missing method declaration metadata for effect" \
+    "MIR-only C path has invalid method declaration metadata row for relation" \
+    "MIR-only C path has invalid method declaration metadata row for effect"; do
     require_term "src/codegen/transpiler_relation_effect_emit.c" "$term"
 done
 require_term "src/codegen/transpiler_relation_effect_emit.c" \
     "method_meta == NULL"
 require_term "src/codegen/transpiler_zone_decl_emit.c" \
     "MIR-only C path missing method declaration metadata for zone"
+require_term "src/codegen/transpiler_zone_decl_emit.c" \
+    "transpiler_require_hosted_method_view_rows("
+require_term "src/codegen/transpiler_zone_decl_emit.c" \
+    "MIR-only C path has invalid method declaration metadata row for zone"
 require_term "src/codegen/transpiler_zone_methods_emit.c" \
     "method_meta == NULL"
+require_term "src/codegen/transpiler_zone_methods_emit.c" \
+    "MIR-only C path has invalid method declaration metadata row for zone"
 require_term "src/codegen/transpiler_world_select_event_emit.c" \
     "MIR-only C path missing method declaration metadata for world"
 require_term "src/codegen/transpiler_world_select_event_emit.c" \
     "method_meta == NULL"
+require_term "src/codegen/transpiler_world_select_event_emit.c" \
+    "MIR-only C path has invalid method declaration metadata row for world"
 require_term "src/codegen/transpiler_generic_class_specialization_emit.c" \
     "transpiler_hosted_method_view_missing_mir_metadata(&method_view)"
 require_term "src/codegen/transpiler_generic_class_specialization_emit.c" \
     "MIR-only C path missing method declaration metadata for generic class"
+require_term "src/codegen/transpiler_generic_class_specialization_emit.c" \
+    "MIR-only C path has invalid method declaration metadata row for generic class"
 if grep -RIn "emit_hosted_method_forward_decl_named" "$ROOT_DIR/src/codegen"; then
     fail "C hosted method forward declarations must use MIRDeclMethod metadata-first helper"
 fi
@@ -2738,6 +2785,8 @@ require_term "src/codegen/transpiler_class_decl_emit.c" \
     "transpiler_mir_routine_source_ast_of_type("
 require_term "src/codegen/transpiler_class_decl_emit.c" \
     "transpiler_set_mir_inventory_missing("
+require_term "src/codegen/transpiler_class_decl_emit.c" \
+    "MIR-only C path has invalid method declaration metadata row for class"
 require_term "src/codegen/transpiler_enum_decl_emit.c" \
     "transpiler_hosted_method_view_from_decl(ctx, ename"
 require_term "src/codegen/transpiler_enum_decl_emit.c" \
@@ -2746,8 +2795,14 @@ require_term "src/codegen/transpiler_enum_decl_emit.c" \
     "transpiler_mir_routine_source_ast_of_type("
 require_term "src/codegen/transpiler_enum_decl_emit.c" \
     "transpiler_set_mir_inventory_missing("
+require_term "src/codegen/transpiler_enum_decl_emit.c" \
+    "MIR-only C path has invalid method declaration metadata row for enum"
 require_term "src/codegen/transpiler_hosted_method_body_emit.c" \
     "transpiler_hosted_method_view_missing_mir_metadata(method_view)"
+require_term "src/codegen/transpiler_hosted_method_body_emit.c" \
+    "transpiler_hosted_method_view_missing_mir_method_row(method_view, i)"
+require_term "src/codegen/transpiler_hosted_method_body_emit.c" \
+    "MIR-only C path has invalid method declaration metadata row for"
 require_term "src/codegen/transpiler_hosted_method_body_emit.c" \
     "transpiler_set_mir_inventory_missing("
 require_term "src/codegen/transpiler_intent_emit.c" \
@@ -2936,10 +2991,13 @@ for term in \
     "llvm_hosted_method_view_missing_mir_metadata(&class_method_view)" \
     "llvm_hosted_method_view_metadata(&enum_method_view, j)" \
     "llvm_hosted_method_view_metadata(&class_method_view, j)" \
+    "llvm_require_hosted_method_view_rows(" \
     "llvm_mir_decl_method_source_ast(method_meta)" \
     "llvm_set_mir_inventory_missing(ctx" \
     "MIR-only LLVM path missing enum method declaration metadata" \
-    "MIR-only LLVM path missing class method declaration metadata"; do
+    "MIR-only LLVM path missing class method declaration metadata" \
+    "MIR-only LLVM path has invalid method declaration metadata row for enum" \
+    "MIR-only LLVM path has invalid method declaration metadata row for class"; do
     require_term "src/codegen/llvm_register.c" "$term"
 done
 if grep -Eq 'for[[:space:]]*\([^)]*stmt->data\.(enum_decl|class_decl)\.method_count' \
@@ -2971,6 +3029,8 @@ for term in \
     "llvm_hosted_method_view_missing_mir_metadata(methods)" \
     "MIR-only LLVM path missing method forward metadata for domain" \
     "llvm_hosted_method_view_metadata(methods, j)" \
+    "llvm_hosted_method_view_missing_mir_method_row(methods, j)" \
+    "MIR-only LLVM path has invalid method forward metadata row for domain" \
     "llvm_domain_method_param_count_metadata_first" \
     "llvm_domain_method_param_metadata_first" \
     "llvm_domain_method_return_type_metadata_first"; do
@@ -2992,6 +3052,8 @@ for term in \
     "llvm_hosted_method_view_missing_mir_metadata(methods)" \
     "MIR-only LLVM path missing method forward metadata for role" \
     "llvm_hosted_method_view_metadata(methods, j)" \
+    "llvm_hosted_method_view_missing_mir_method_row(methods, j)" \
+    "MIR-only LLVM path has invalid method forward metadata row for role" \
     "llvm_domain_method_param_count_metadata_first" \
     "llvm_domain_method_param_metadata_first" \
     "llvm_domain_method_return_type_metadata_first"; do
@@ -3043,6 +3105,12 @@ require_term "src/codegen/llvm_domain_method_emit.c" \
     "MIR-only LLVM path missing method declaration metadata for domain"
 require_term "src/codegen/llvm_domain_method_emit.c" \
     "llvm_hosted_method_view_metadata(&method_view, j)"
+require_term "src/codegen/llvm_domain_method_emit.c" \
+    "llvm_hosted_method_view_missing_mir_method_row(&method_view, j)"
+require_term "src/codegen/llvm_domain_method_emit.c" \
+    "MIR-only LLVM path has invalid method declaration metadata row for domain"
+require_term "src/codegen/llvm_domain_method_emit.c" \
+    "MIR-only LLVM path has invalid method declaration metadata row for class"
 require_term "src/codegen/llvm_domain_role_emit.c" \
     "LLVMHostedMethodView method_view"
 require_term "src/codegen/llvm_domain_role_emit.c" \
@@ -3051,6 +3119,10 @@ require_term "src/codegen/llvm_domain_role_emit.c" \
     "MIR-only LLVM path missing method declaration metadata for role"
 require_term "src/codegen/llvm_domain_role_emit.c" \
     "llvm_hosted_method_view_metadata(&method_view, j)"
+require_term "src/codegen/llvm_domain_role_emit.c" \
+    "llvm_hosted_method_view_missing_mir_method_row(&method_view, j)"
+require_term "src/codegen/llvm_domain_role_emit.c" \
+    "MIR-only LLVM path has invalid method declaration metadata row for role"
 require_term "src/codegen/llvm_domain_role_emit.c" \
     "llvm_mir_decl_method_routine(ctx, method_meta)"
 require_term "src/codegen/llvm_domain_role_emit.c" \

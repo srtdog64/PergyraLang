@@ -104,6 +104,7 @@ typedef struct
 typedef struct
 {
     const char *var_name;
+    LLVMValueRef binding;
     const char *inner_type;
     bool        released;
     bool        is_secure;
@@ -112,6 +113,7 @@ typedef struct
 typedef struct
 {
     const char *var_name;
+    LLVMValueRef binding;
     const char *source_slot;
     const char *inner_type;
     bool        is_move_token;
@@ -120,6 +122,7 @@ typedef struct
 typedef struct
 {
     const char *var_name;
+    LLVMValueRef binding;
     const char *inner_type;
     bool        released;
 } LLVMDeviceSlotVarEntry;
@@ -127,6 +130,7 @@ typedef struct
 typedef struct
 {
     const char *var_name;
+    LLVMValueRef binding;
     const char *inner_type;
     bool        is_remote;
 } LLVMFutureVarEntry;
@@ -134,6 +138,7 @@ typedef struct
 typedef struct
 {
     const char *var_name;
+    LLVMValueRef binding;
     const char *inner_type;
 } LLVMChannelVarEntry;
 
@@ -147,12 +152,14 @@ typedef struct
 typedef struct
 {
     const char *var_name;
+    LLVMValueRef binding;
     const char *inner_type;
 } LLVMRcVarEntry;
 
 typedef struct
 {
     const char *var_name;
+    LLVMValueRef binding;
     const char *inner_type;
 } LLVMWeakVarEntry;
 
@@ -219,6 +226,7 @@ typedef struct
 typedef struct
 {
     const char  *var_name;
+    LLVMValueRef binding;
     LLVMTypeRef  elem_type;
     int64_t      length;
 } LLVMArrayVarEntry;
@@ -226,24 +234,28 @@ typedef struct
 typedef struct
 {
     const char *var_name;
+    LLVMValueRef binding;
     const char *inner_type;
 } LLVMListVarEntry;
 
 typedef struct
 {
     const char *var_name;
+    LLVMValueRef binding;
     const char *inner_type;
 } LLVMSetVarEntry;
 
 typedef struct
 {
     const char *var_name;
+    LLVMValueRef binding;
     const char *inner_type;
 } LLVMQueueVarEntry;
 
 typedef struct
 {
     const char *var_name;
+    LLVMValueRef binding;
     const char *key_type;
     const char *value_type;
 } LLVMMapVarEntry;

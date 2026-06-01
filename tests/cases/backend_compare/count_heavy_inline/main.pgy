@@ -1,0 +1,26 @@
+class Item {
+    let id: Int;
+    let weight: Int;
+
+    func Heavy(self) -> Bool { return self.weight > 50; }
+}
+
+func MakeItem(id: Int) -> Item {
+    return Item(id, id * 5);
+}
+
+func CountHeavy(start: Int, n: Int) -> Int {
+    let count: Int = 0;
+    let i: Int = 0;
+    while i < n {
+        if MakeItem(start + i).Heavy() { count = count + 1; }
+        i = i + 1;
+    }
+    return count;
+}
+
+func Main() -> Void {
+    Log(CountHeavy(1, 20));
+    Log(CountHeavy(0, 0));
+    Log(CountHeavy(20, 5));
+}

@@ -1,0 +1,10 @@
+func Main() -> Void {
+    let ch: Channel<Int> = Channel(2);
+    ch <- 10;
+    ch <- 20;
+    let a: Int = <- ch;
+    let b: Int = <- ch;
+    Log(a);
+    Log(b);
+    Log(a + b);
+}

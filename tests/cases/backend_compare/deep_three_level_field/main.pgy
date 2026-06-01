@@ -1,0 +1,29 @@
+class A {
+    let av: Int;
+
+    func Doubled(self) -> Int { return self.av * 2; }
+}
+
+class B {
+    let a: A;
+    let bv: Int;
+}
+
+class C {
+    let b: B;
+    let cv: Int;
+
+    func DeepVal(self) -> Int { return self.b.a.av; }
+}
+
+func Make(av: Int, bv: Int, cv: Int) -> C {
+    return C(B(A(av), bv), cv);
+}
+
+func Main() -> Void {
+    Log(Make(5, 10, 100).b.a.av);
+    Log(Make(5, 10, 100).b.bv);
+    Log(Make(5, 10, 100).cv);
+    Log(Make(7, 0, 0).b.a.Doubled());
+    Log(Make(3, 6, 9).DeepVal());
+}

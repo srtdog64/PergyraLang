@@ -5,6 +5,7 @@
 
 #include "air_internal.h"
 
+#include <stdint.h>
 #include <stdio.h>
 
 void
@@ -100,11 +101,11 @@ air_dump(const AIRProgram *air, FILE *out)
         fprintf(out,
                 "  evidence_node[%zu] kind=%s boundary=%zu provider=%s subject=%s facts=%zu fallbacks=%zu\n",
                 i,
-            air_evidence_kind_name(evidence->kind),
-            evidence->boundary_index,
-                evidence->provider_name != NULL ? evidence->provider_name : "<none>",
-                evidence->subject_name != NULL ? evidence->subject_name : "<none>",
-                evidence->fact_count,
-                evidence->fallback_count);
+                air_evidence_kind_name(air_evidence_node_kind(evidence)),
+                air_evidence_node_boundary_index_or(evidence, SIZE_MAX),
+                air_evidence_node_provider_name_or(evidence, "<none>"),
+                air_evidence_node_subject_name_or(evidence, "<none>"),
+                air_evidence_node_fact_count(evidence),
+                air_evidence_node_fallback_count(evidence));
     }
 }

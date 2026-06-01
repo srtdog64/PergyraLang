@@ -1,0 +1,26 @@
+func Plus(a: Int, b: Int) -> Int { return a + b; }
+func Minus(a: Int, b: Int) -> Int { return a - b; }
+func Times(a: Int, b: Int) -> Int { return a * b; }
+
+func Apply(f: func(Int, Int) -> Int, a: Int, b: Int) -> Int {
+    return f(a, b);
+}
+
+func Reduce(arr: Array<Int>, n: Int, init: Int, f: func(Int, Int) -> Int) -> Int {
+    let acc: Int = init;
+    let i: Int = 0;
+    while i < n {
+        acc = f(acc, arr[i]);
+        i = i + 1;
+    }
+    return acc;
+}
+
+func Main() -> Void {
+    let a: Array<Int> = [3, 1, 4, 1, 5];
+    Log(Apply(Plus, 10, 20));
+    Log(Apply(Minus, 100, 50));
+    Log(Apply(Times, 7, 8));
+    Log(Reduce(a, 5, 0, Plus));
+    Log(Reduce(a, 5, 1, Times));
+}

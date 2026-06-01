@@ -1,0 +1,27 @@
+class Mapper {
+    let factor: Int;
+
+    func Apply(self, n: Int) -> Int {
+        return n * factor;
+    }
+}
+
+func Sum(arr: Array<Int>, n: Int, m: Mapper) -> Int {
+    let total: Int = 0;
+    let i: Int = 0;
+    while i < n {
+        total = total + m.Apply(arr[i]);
+        i = i + 1;
+    }
+    return total;
+}
+
+func Main() -> Void {
+    let arr: Array<Int> = [1, 2, 3, 4, 5];
+    let double: Mapper = Mapper(2);
+    let triple: Mapper = Mapper(3);
+    Log(Sum(arr, 5, double));
+    Log(Sum(arr, 5, triple));
+    let neg: Mapper = Mapper(-1);
+    Log(Sum(arr, 5, neg));
+}

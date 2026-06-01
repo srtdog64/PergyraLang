@@ -176,10 +176,14 @@ llvm_forward_declare_intent_routines_from_inventory(
 
     for (size_t i = 0; i < inventory->count; i++) {
         const MIRRoutine *routine = llvm_routine_inventory_get(inventory, i);
-        if (routine == NULL)
-            continue;
-        ASTNode *intent_decl = llvm_mir_routine_source_ast_of_type(
-            routine, MIR_SCOPE_INTENT, AST_INTENT_DECL);
+        if (routine == NULL) {
+            llvm_set_mir_inventory_missing(ctx,
+                "MIR-only LLVM path has invalid intent routine inventory row");
+            return;
+        }
+        ASTNode *intent_decl = NULL;
+        if (!llvm_require_mir_intent_source_ast(ctx, routine, &intent_decl))
+            return;
         if (intent_decl == NULL)
             continue;
         llvm_forward_declare_intent(intent_decl, ctx);

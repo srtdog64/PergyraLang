@@ -1,0 +1,32 @@
+class Pixel {
+    let r: Int;
+    let g: Int;
+    let b: Int;
+}
+
+enum Color { Red, Green, Blue, White, Black }
+
+func MakePx(c: Color) -> Pixel {
+    match c {
+        case Red: return Pixel(255, 0, 0);
+        case Green: return Pixel(0, 255, 0);
+        case Blue: return Pixel(0, 0, 255);
+        case White: return Pixel(255, 255, 255);
+        case Black: return Pixel(0, 0, 0);
+    }
+}
+
+func RedComp(c: Color) -> Int { return MakePx(c).r; }
+func GreenComp(c: Color) -> Int { return MakePx(c).g; }
+func Sum(c: Color) -> Int {
+    let p: Pixel = MakePx(c);
+    return p.r + p.g + p.b;
+}
+
+func Main() -> Void {
+    Log(RedComp(Red));
+    Log(GreenComp(Green));
+    Log(Sum(White));
+    Log(Sum(Black));
+    Log(MakePx(Blue).b);
+}

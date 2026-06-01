@@ -1,0 +1,28 @@
+func Halve(n: Int) -> Option<Int> {
+    if n % 2 != 0 { return None; }
+    return Some(n / 2);
+}
+
+func Step(arr: Array<Int>) -> Int {
+    let acc: Int = 0;
+    for v in arr {
+        match Halve(v) {
+            case Some(h):
+                match Halve(h) {
+                    case Some(q): acc = acc + q;
+                    case None: acc = acc - 1;
+                }
+            case None: acc = acc - 2;
+        }
+    }
+    return acc;
+}
+
+func Main() -> Void {
+    let a: Array<Int> = [4, 8, 6, 16, 7];
+    Log(Step(a));
+    let empty: Array<Int> = [];
+    Log(Step(empty));
+    let odds: Array<Int> = [1, 3, 5];
+    Log(Step(odds));
+}

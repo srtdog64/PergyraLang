@@ -1,0 +1,46 @@
+enum DecodeErr { Empty, NegLen, Oversize }
+
+func Decode(arr: Array<Int>, n: Int) -> Result<Int, DecodeErr> {
+    if n == 0 { return Err(Empty); }
+    if n < 0 { return Err(NegLen); }
+    if n > 100 { return Err(Oversize); }
+    let sum: Int = 0;
+    let i: Int = 0;
+    while i < n {
+        sum = sum + arr[i];
+        i = i + 1;
+    }
+    return Ok(sum);
+}
+
+func Main() -> Void {
+    let arr: Array<Int> = [10, 20, 30];
+    match Decode(arr, 3) {
+        case Ok(v): Log(v);
+        case Err(e):
+            match e {
+                case Empty: Log(-1);
+                case NegLen: Log(-2);
+                case Oversize: Log(-3);
+            }
+    }
+    let empty: Array<Int> = [];
+    match Decode(empty, 0) {
+        case Ok(v): Log(v);
+        case Err(e):
+            match e {
+                case Empty: Log(-1);
+                case NegLen: Log(-2);
+                case Oversize: Log(-3);
+            }
+    }
+    match Decode(arr, 200) {
+        case Ok(v): Log(v);
+        case Err(e):
+            match e {
+                case Empty: Log(-1);
+                case NegLen: Log(-2);
+                case Oversize: Log(-3);
+            }
+    }
+}

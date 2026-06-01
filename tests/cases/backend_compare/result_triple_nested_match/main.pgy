@@ -1,0 +1,53 @@
+enum Err { Bad, Tiny, Big }
+
+func Validate(n: Int) -> Result<Int, Err> {
+    if n < 0 { return Err(Bad); }
+    if n < 10 { return Err(Tiny); }
+    if n > 1000 { return Err(Big); }
+    return Ok(n);
+}
+
+func Double(n: Int) -> Result<Int, Err> {
+    let v: Int = n * 2;
+    if v > 1000 { return Err(Big); }
+    return Ok(v);
+}
+
+func Pipeline(n: Int) -> Int {
+    match Validate(n) {
+        case Ok(v):
+            match Double(v) {
+                case Ok(w):
+                    match Double(w) {
+                        case Ok(x): return x;
+                        case Err(e):
+                            match e {
+                                case Bad: return -1;
+                                case Tiny: return -2;
+                                case Big: return -3;
+                            }
+                    }
+                case Err(e):
+                    match e {
+                        case Bad: return -10;
+                        case Tiny: return -20;
+                        case Big: return -30;
+                    }
+            }
+        case Err(e):
+            match e {
+                case Bad: return -100;
+                case Tiny: return -200;
+                case Big: return -300;
+            }
+    }
+}
+
+func Main() -> Void {
+    Log(Pipeline(50));
+    Log(Pipeline(-5));
+    Log(Pipeline(5));
+    Log(Pipeline(1500));
+    Log(Pipeline(300));
+    Log(Pipeline(150));
+}

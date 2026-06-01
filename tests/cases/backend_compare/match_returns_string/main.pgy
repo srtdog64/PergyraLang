@@ -1,0 +1,19 @@
+enum Mode { Read, Write, Exec }
+
+func ToStr(m: Mode) -> String {
+    match m {
+        case Read: return "r";
+        case Write: return "w";
+        case Exec: return "x";
+    }
+}
+
+func Main() -> Void {
+    Log(ToStr(Read));
+    Log(ToStr(Write));
+    Log(ToStr(Exec));
+    let m1: Mode = Read;
+    Log(ToStr(m1));
+    let m2: Mode = Write;
+    Log(ToStr(m2));
+}

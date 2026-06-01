@@ -1,0 +1,33 @@
+class State {
+    let total: Int;
+    let high: Int;
+    let low: Int;
+}
+
+func InitState() -> State { return State(0, 0, 99999); }
+
+func Observe(s: State, v: Int) -> State {
+    let new_high: Int = s.high;
+    if v > new_high { new_high = v; }
+    let new_low: Int = s.low;
+    if v < new_low { new_low = v; }
+    return State(s.total + v, new_high, new_low);
+}
+
+func Run(arr: Array<Int>, n: Int) -> Int {
+    let s: State = InitState();
+    let i: Int = 0;
+    while i < n {
+        s = Observe(s, arr[i]);
+        i = i + 1;
+    }
+    return s.high - s.low + s.total;
+}
+
+func Main() -> Void {
+    let v: Array<Int> = [5, 2, 8, 1, 9, 3];
+    Log(Run(v, 6));
+    Log(Run(v, 1));
+    let empty: Array<Int> = [];
+    Log(Run(empty, 0));
+}

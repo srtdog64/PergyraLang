@@ -195,6 +195,14 @@ void
 emit_ability_decl(ASTNode *node, TranspilerCtx *ctx)
 {
     const char *name = ast_ability_name(node);
+    GenericParams *generic_params = ast_ability_generic_params(node);
+
+    if (ast_generic_param_count(generic_params) > 0) {
+        codebuf_write(ctx->out,
+            "\n/* Generic ability: %s (vtable emitted per concrete ability reference) */\n",
+            name != NULL ? name : "<anonymous>");
+        return;
+    }
 
     codebuf_write(ctx->out, "\n/* Ability: %s */\n", name);
     codebuf_write(ctx->out, "typedef struct\n{\n");
@@ -259,11 +267,6 @@ emit_role_decl(ASTNode *node, TranspilerCtx *ctx)
     const char *name = transpiler_decl_name_local(node);
     TranspilerHostedMethodView method_view;
 
-    codebuf_write(ctx->out, "\n/* Role: %s */\n", name);
-    emit_included_role_impls(node, ctx);
-    if (ctx != NULL && ctx->backend_error != NULL)
-        return;
-
     method_view = transpiler_hosted_method_view_from_decl(ctx, name, node);
     if (transpiler_hosted_method_view_missing_mir_metadata(&method_view)) {
         transpiler_set_mir_inventory_missing(
@@ -272,6 +275,18 @@ emit_role_decl(ASTNode *node, TranspilerCtx *ctx)
             name != NULL ? name : "(anonymous-role)");
         return;
     }
+    if (!transpiler_require_hosted_method_view_rows(
+            ctx,
+            &method_view,
+            "MIR-only C path has invalid method declaration metadata row for role '%s'",
+            name != NULL ? name : "(anonymous-role)")) {
+        return;
+    }
+
+    codebuf_write(ctx->out, "\n/* Role: %s */\n", name);
+    emit_included_role_impls(node, ctx);
+    if (ctx != NULL && ctx->backend_error != NULL)
+        return;
 
     for (size_t i = 0; i < method_view.count; i++) {
         const MIRDeclMethod *method_meta =
@@ -280,6 +295,13 @@ emit_role_decl(ASTNode *node, TranspilerCtx *ctx)
             transpiler_hosted_method_view_routine(ctx, &method_view, i);
         ASTNode *method =
             transpiler_hosted_method_view_source_ast(&method_view, i);
+        if (transpiler_hosted_method_view_missing_mir_method_row(&method_view, i)) {
+            transpiler_set_mir_inventory_missing(
+                ctx,
+                "MIR-only C path has invalid method declaration metadata row for role '%s'",
+                name != NULL ? name : "(anonymous-role)");
+            return;
+        }
         emit_role_method_impl(name, method_meta, mir_method, method, ctx);
         if (ctx != NULL && ctx->backend_error != NULL)
             return;
@@ -374,6 +396,32 @@ emit_party_decl(ASTNode *node, TranspilerCtx *ctx)
             name != NULL ? name : "(anonymous-party)");
         return;
     }
+    TranspilerHostedSharedFieldView shared_view =
+        transpiler_hosted_shared_field_view_from_decl(ctx, name, node);
+    if (transpiler_hosted_shared_field_view_missing_mir_metadata(
+            &shared_view)) {
+        transpiler_set_mir_inventory_missing(
+            ctx,
+            "MIR-only C path missing shared-field declaration metadata for party '%s'",
+            name != NULL ? name : "(anonymous-party)");
+        return;
+    }
+    TranspilerHostedMethodView method_view =
+        transpiler_hosted_method_view_from_decl(ctx, name, node);
+    if (transpiler_hosted_method_view_missing_mir_metadata(&method_view)) {
+        transpiler_set_mir_inventory_missing(
+            ctx,
+            "MIR-only C path missing method declaration metadata for party '%s'",
+            name != NULL ? name : "(anonymous-party)");
+        return;
+    }
+    if (!transpiler_require_hosted_method_view_rows(
+            ctx,
+            &method_view,
+            "MIR-only C path has invalid method declaration metadata row for party '%s'",
+            name != NULL ? name : "(anonymous-party)")) {
+        return;
+    }
 
     codebuf_write(ctx->out, "\n/* Party: %s */\n", name);
     codebuf_write(ctx->out, "typedef struct %s\n{\n", name);
@@ -428,17 +476,6 @@ emit_party_decl(ASTNode *node, TranspilerCtx *ctx)
         }
     }
 
-    TranspilerHostedSharedFieldView shared_view =
-        transpiler_hosted_shared_field_view_from_decl(ctx, name, node);
-    if (transpiler_hosted_shared_field_view_missing_mir_metadata(
-            &shared_view)) {
-        transpiler_set_mir_inventory_missing(
-            ctx,
-            "MIR-only C path missing shared-field declaration metadata for party '%s'",
-            name != NULL ? name : "(anonymous-party)");
-        return;
-    }
-
     for (size_t i = 0; i < shared_view.count; i++) {
         const char *shared_name =
             transpiler_hosted_shared_field_view_name(&shared_view, i);
@@ -465,21 +502,18 @@ emit_party_decl(ASTNode *node, TranspilerCtx *ctx)
 
     codebuf_write(ctx->out, "} %s;\n", name);
 
-    TranspilerHostedMethodView method_view =
-        transpiler_hosted_method_view_from_decl(ctx, name, node);
-    if (transpiler_hosted_method_view_missing_mir_metadata(&method_view)) {
-        transpiler_set_mir_inventory_missing(
-            ctx,
-            "MIR-only C path missing method declaration metadata for party '%s'",
-            name != NULL ? name : "(anonymous-party)");
-        return;
-    }
-
     for (size_t i = 0; i < method_view.count; i++) {
         const MIRDeclMethod *method_meta =
             transpiler_hosted_method_view_metadata(&method_view, i);
         ASTNode *method =
             transpiler_hosted_method_view_source_ast(&method_view, i);
+        if (transpiler_hosted_method_view_missing_mir_method_row(&method_view, i)) {
+            transpiler_set_mir_inventory_missing(
+                ctx,
+                "MIR-only C path has invalid method declaration metadata row for party '%s'",
+                name != NULL ? name : "(anonymous-party)");
+            return;
+        }
         if (method_meta == NULL
             && (method == NULL || method->type != AST_FUNC_DECL)) {
             continue;

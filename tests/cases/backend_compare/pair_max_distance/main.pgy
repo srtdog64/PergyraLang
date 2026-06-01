@@ -1,0 +1,38 @@
+class Pt {
+    let x: Int;
+    let y: Int;
+
+    func DistSqFrom(self, other_x: Int, other_y: Int) -> Int {
+        let dx: Int = self.x - other_x;
+        let dy: Int = self.y - other_y;
+        return dx * dx + dy * dy;
+    }
+}
+
+func MaxDist(xs: Array<Int>, ys: Array<Int>, n: Int) -> Int {
+    if n < 2 { return 0; }
+    let best: Int = 0;
+    let i: Int = 0;
+    while i < n {
+        let p: Pt = Pt(xs[i], ys[i]);
+        let j: Int = i + 1;
+        while j < n {
+            let d: Int = p.DistSqFrom(xs[j], ys[j]);
+            if d > best { best = d; }
+            j = j + 1;
+        }
+        i = i + 1;
+    }
+    return best;
+}
+
+func Main() -> Void {
+    let x: Array<Int> = [0, 3, 6, 9];
+    let y: Array<Int> = [0, 4, 8, 12];
+    Log(MaxDist(x, y, 4));
+    let single_x: Array<Int> = [0];
+    let single_y: Array<Int> = [0];
+    Log(MaxDist(single_x, single_y, 1));
+    let empty: Array<Int> = [];
+    Log(MaxDist(empty, empty, 0));
+}

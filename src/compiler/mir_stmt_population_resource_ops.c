@@ -15,14 +15,12 @@ mir_resource_op_matches_source_stmt(const MIRInstruction *inst,
     if (mir_instruction_source_location_matches_node(inst, stmt))
         return true;
     if (stmt->type == AST_CALL
-        && inst->name != NULL
-        && strcmp(inst->name, "Read") == 0
+        && mir_instruction_resource_op_is_read(inst)
         && mir_instruction_source_line_matches_node(inst, stmt)) {
         return true;
     }
     if (stmt->type != AST_WITH_STMT
-        || inst->name == NULL
-        || strcmp(inst->name, "Claim") != 0) {
+        || !mir_instruction_resource_op_is_claim(inst)) {
         return false;
     }
     anchor = inst->slot_anchor != NULL ? inst->slot_anchor : inst->arg0;

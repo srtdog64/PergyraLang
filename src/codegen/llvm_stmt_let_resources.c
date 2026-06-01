@@ -67,12 +67,7 @@ llvm_stmt_emit_view_or_move_let(ASTNode *node, LLVMGenCtx *ctx)
             source->alloca, llvm_tmp_name(ctx));
         LLVMBuildStore(ctx->builder, moved, alloca_val);
         llvm_scope_declare(ctx, name, alloca_val, slot_ty);
-        for (int i = 0; i < ctx->slot_var_count; i++) {
-            if (strcmp(ctx->slot_vars[i].var_name, source_name) == 0) {
-                ctx->slot_vars[i].released = true;
-                break;
-            }
-        }
+        llvm_mark_slot_released(ctx, source_name);
     } else {
         llvm_scope_declare(ctx, name, source->alloca, source->type);
     }

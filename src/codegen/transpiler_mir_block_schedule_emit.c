@@ -6,10 +6,10 @@
 #include "transpiler_mir_block_schedule_emit.h"
 
 #include <stdlib.h>
-#include <string.h>
 
 #include "transpiler_mir_pin_emit.h"
 #include "transpiler_mir_reason.h"
+#include "transpiler_mir_resource_name_helpers.h"
 #include "transpiler_mir_resource_hook_emit.h"
 
 bool
@@ -106,7 +106,9 @@ transpiler_emit_mir_claim_prepass(CodeBuf *buf,
         const MIRInstruction *inst = &block->instructions[i];
         if (inst->kind != MIR_INST_RESOURCE_OP)
             continue;
-        if (inst->name == NULL || strcmp(inst->name, "Claim") != 0)
+        TranspilerMIRResourceOp op =
+            transpiler_mir_resource_op_lookup(inst->name);
+        if (op != TRANS_MIR_RESOURCE_OP_CLAIM)
             continue;
         if (!transpiler_mir_block_has_local_def_for_anchor(
                 block, inst->slot_anchor != NULL ? inst->slot_anchor : inst->arg0)) {

@@ -8,6 +8,7 @@
 #include "transpiler_decl_lookup.h"
 #include "host_decl_compat.h"
 #include "../compiler/mir_decl_headers.h"
+#include "transpiler_context.h"
 
 TranspilerHostedMethodView
 transpiler_hosted_method_view(const TranspilerCtx *ctx,
@@ -58,6 +59,37 @@ transpiler_hosted_method_view_metadata(const TranspilerHostedMethodView *view,
         return NULL;
     }
     return mir_decl_header_method(view->decl_header, index);
+}
+
+bool
+transpiler_hosted_method_view_missing_mir_method_row(
+    const TranspilerHostedMethodView *view,
+    size_t index)
+{
+    return view != NULL
+        && view->uses_mir_metadata
+        && transpiler_hosted_method_view_metadata(view, index) == NULL;
+}
+
+bool
+transpiler_require_hosted_method_view_rows(
+    TranspilerCtx *ctx,
+    const TranspilerHostedMethodView *view,
+    const char *message_fmt,
+    const char *host_name)
+{
+    for (size_t i = 0; view != NULL && i < view->count; i++) {
+        if (transpiler_hosted_method_view_missing_mir_method_row(view, i)) {
+            transpiler_set_mir_inventory_missing(
+                ctx,
+                message_fmt != NULL
+                    ? message_fmt
+                    : "MIR-only C path has invalid method declaration metadata row for '%s'",
+                host_name != NULL ? host_name : "(anonymous)");
+            return false;
+        }
+    }
+    return true;
 }
 
 const char *

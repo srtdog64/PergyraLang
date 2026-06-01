@@ -1,0 +1,30 @@
+class Token {
+    let kind: Int;
+    let value: Int;
+}
+
+func KindOf(n: Int) -> Int {
+    if n < 0 { return 1; }
+    if n == 0 { return 2; }
+    return 0;
+}
+
+func Scan(arr: Array<Int>, n: Int) -> Int {
+    let neg: Int = 0;
+    let zer: Int = 0;
+    let pos: Int = 0;
+    for i in 0..n {
+        let t: Token = Token(KindOf(arr[i]), arr[i]);
+        if t.kind == 0 { pos = pos + t.value; }
+        if t.kind == 1 { neg = neg + t.value; }
+        if t.kind == 2 { zer = zer + 1; }
+    }
+    return pos * 10000 + (0 - neg) * 100 + zer;
+}
+
+func Main() -> Void {
+    let arr: Array<Int> = [3, -1, 0, 5, -2, 0, 7];
+    Log(Scan(arr, 7));
+    let empty: Array<Int> = [];
+    Log(Scan(empty, 0));
+}

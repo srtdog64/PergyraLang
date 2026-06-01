@@ -1,0 +1,28 @@
+class Pile {
+    let count: Int;
+    let weight: Int;
+
+    func Mass(self) -> Int {
+        return self.count * self.weight;
+    }
+}
+
+func MakePile(seed: Int) -> Pile {
+    return Pile(seed + 1, seed * 2);
+}
+
+func TotalMass(n: Int) -> Int {
+    let total: Int = 0;
+    let i: Int = 0;
+    while i < n {
+        total = total + MakePile(i).Mass();
+        i = i + 1;
+    }
+    return total;
+}
+
+func Main() -> Void {
+    Log(TotalMass(5));
+    Log(TotalMass(0));
+    Log(TotalMass(10));
+}

@@ -6,6 +6,33 @@
 #include <string.h>
 
 bool
+mir_instruction_resource_op_is_claim(const MIRInstruction *inst)
+{
+    return inst != NULL
+        && inst->kind == MIR_INST_RESOURCE_OP
+        && inst->name != NULL
+        && strcmp(inst->name, "Claim") == 0;
+}
+
+bool
+mir_instruction_resource_op_is_read(const MIRInstruction *inst)
+{
+    return inst != NULL
+        && inst->kind == MIR_INST_RESOURCE_OP
+        && inst->name != NULL
+        && strcmp(inst->name, "Read") == 0;
+}
+
+bool
+mir_instruction_resource_op_is_write(const MIRInstruction *inst)
+{
+    return inst != NULL
+        && inst->kind == MIR_INST_RESOURCE_OP
+        && inst->name != NULL
+        && strcmp(inst->name, "Write") == 0;
+}
+
+bool
 mir_instruction_source_matches_ast_type(const MIRInstruction *inst,
                                         ASTNodeType expected_type)
 {
@@ -17,10 +44,7 @@ mir_instruction_source_matches_ast_type(const MIRInstruction *inst,
 bool
 mir_instruction_source_is_with_slot_claim(const MIRInstruction *inst)
 {
-    return inst != NULL
-        && inst->kind == MIR_INST_RESOURCE_OP
-        && inst->name != NULL
-        && strcmp(inst->name, "Claim") == 0
+    return mir_instruction_resource_op_is_claim(inst)
         && mir_instruction_source_matches_ast_type(inst, AST_WITH_STMT);
 }
 
@@ -482,6 +506,20 @@ mir_instruction_source_stmt_fallback_is_allowed(const MIRInstruction *inst)
     if (mir_instruction_source_is_cfg_owned_control(inst))
         return false;
     return mir_instruction_source_stmt_has_side_effect_hint(inst);
+}
+
+bool
+mir_instruction_resource_op_keeps_residual_statement_emit(
+        const MIRInstruction *inst)
+{
+    if (inst == NULL || inst->kind != MIR_INST_RESOURCE_OP
+        || inst->name == NULL)
+        return false;
+    return mir_instruction_resource_op_is_read(inst)
+        || strcmp(inst->name, "IO") == 0
+        || strcmp(inst->name, "ChannelSend") == 0
+        || strcmp(inst->name, "ChannelRecv") == 0
+        || strcmp(inst->name, "ChannelSelect") == 0;
 }
 
 bool

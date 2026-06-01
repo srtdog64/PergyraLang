@@ -1,0 +1,29 @@
+func TailFact(n: Int, acc: Int) -> Int {
+    if n <= 1 { return acc; }
+    return TailFact(n - 1, acc * n);
+}
+
+func Fact(n: Int) -> Int {
+    return TailFact(n, 1);
+}
+
+func GCD(a: Int, b: Int) -> Int {
+    if b == 0 { return a; }
+    return GCD(b, a - (a / b) * b);
+}
+
+func Power(base: Int, exp: Int) -> Int {
+    if exp == 0 { return 1; }
+    if exp == 1 { return base; }
+    if exp % 2 == 0 { return Power(base * base, exp / 2); }
+    return base * Power(base, exp - 1);
+}
+
+func Main() -> Void {
+    Log(Fact(5));
+    Log(Fact(10));
+    Log(GCD(48, 36));
+    Log(GCD(17, 5));
+    Log(Power(2, 10));
+    Log(Power(3, 5));
+}

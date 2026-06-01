@@ -1,0 +1,29 @@
+class Crystal {
+    let color: Int;
+    let power: Int;
+}
+
+enum Rarity { Common, Uncommon, Rare }
+
+func MakeCrystal(r: Rarity, base: Int) -> Crystal {
+    match r {
+        case Common: return Crystal(1, base);
+        case Uncommon: return Crystal(2, base * 2);
+        case Rare: return Crystal(3, base * 5);
+    }
+}
+
+func BattleResult(player_r: Rarity, enemy_r: Rarity, base: Int) -> Int {
+    let p: Crystal = MakeCrystal(player_r, base);
+    let e: Crystal = MakeCrystal(enemy_r, base);
+    if p.power > e.power { return p.power - e.power; }
+    if p.power < e.power { return 0 - (e.power - p.power); }
+    return 0;
+}
+
+func Main() -> Void {
+    Log(BattleResult(Common, Common, 10));
+    Log(BattleResult(Rare, Common, 10));
+    Log(BattleResult(Common, Rare, 10));
+    Log(BattleResult(Uncommon, Uncommon, 50));
+}

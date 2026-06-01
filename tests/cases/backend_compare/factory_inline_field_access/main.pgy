@@ -1,0 +1,14 @@
+class Crate {
+    let inside: Int;
+    let cap: Int;
+}
+
+func MakeCrate(v: Int) -> Crate {
+    return Crate(v, 100);
+}
+
+func Main() -> Void {
+    Log(MakeCrate(42).inside);
+    Log(MakeCrate(7).cap);
+    Log(MakeCrate(0).inside);
+}

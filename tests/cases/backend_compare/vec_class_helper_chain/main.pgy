@@ -1,0 +1,29 @@
+class Vec {
+    let dx: Int;
+    let dy: Int;
+}
+
+func Plus(a: Vec, b: Vec) -> Vec {
+    return Vec(a.dx + b.dx, a.dy + b.dy);
+}
+
+func Scale(v: Vec, k: Int) -> Vec {
+    return Vec(v.dx * k, v.dy * k);
+}
+
+func Dot(a: Vec, b: Vec) -> Int {
+    return a.dx * b.dx + a.dy * b.dy;
+}
+
+func Main() -> Void {
+    let a: Vec = Vec(3, 4);
+    let b: Vec = Vec(1, 2);
+    let c: Vec = Plus(a, b);
+    Log(Dot(c, c));
+    let d: Vec = Scale(a, 2);
+    Log(d.dx);
+    Log(d.dy);
+    let e: Vec = Plus(Scale(a, 2), Scale(b, 3));
+    Log(e.dx);
+    Log(e.dy);
+}

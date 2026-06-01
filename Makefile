@@ -862,6 +862,7 @@ ifneq ($(LLVM_ENABLED),0)
                          $(CODEGEN_DIR)/llvm_intent_step_context.c \
                          $(CODEGEN_DIR)/llvm_intent_trace.c \
                          $(CODEGEN_DIR)/llvm_registry.c \
+                         $(CODEGEN_DIR)/llvm_registry_arrays.c \
                          $(CODEGEN_DIR)/llvm_registry_collections.c \
                          $(CODEGEN_DIR)/llvm_registry_resources.c \
                          $(CODEGEN_DIR)/llvm_registry_resource_types.c \
@@ -1688,9 +1689,7 @@ llvm-test-smoke:
 
 llvm-test-abi-same-process: $(ABI_PIPELINE_TEST)
 	@echo "=== ABI Pipeline Same-Process LLVM Regression ==="
-	PGY_ABI_PIPELINE_SAME_PROCESS=1 \
-	PGY_ABI_PIPELINE_BACKEND=llvm \
-	"$(ABI_PIPELINE_TEST)"
+	"$(BASH)" tests/abi_pipeline_same_process_smoke.sh "$(ABI_PIPELINE_TEST)"
 
 fmt-test-smoke:
 	$(MAKE) $(PGY)
@@ -1738,33 +1737,9 @@ build-source-inventory-test-smoke:
 	"$(BASH)" tests/build_source_inventory_smoke.sh
 
 __pgy_build_source_inventory_print:
-	@printf '%s\n' $(COMMON_SOURCES)
-	@printf '%s\n' $(LEXER_SOURCES)
-	@printf '%s\n' $(PARSER_SOURCES)
-	@printf '%s\n' $(RUNTIME_SOURCES)
-	@printf '%s\n' $(SEMANTIC_SOURCES)
-	@printf '%s\n' $(CODEGEN_SOURCES)
-	@printf '%s\n' $(COMPILER_SOURCES)
-	@printf '%s\n' $(LLVM_BACKEND_SOURCES)
-	@printf '%s\n' $(RUNTIME_LIB_SOURCES)
-	@printf '%s\n' $(MAIN_SOURCE)
-	@printf '%s\n' $(PARSER_TEST_SOURCE)
-	@printf '%s\n' $(TEST_DATASTRUCTURES_SRC)
-	@printf '%s\n' $(TEST_SECURITY_SRC)
-	@printf '%s\n' $(TEST_SEMANTIC_SRC)
-	@printf '%s\n' $(TEST_TRANSPILE_SRC)
-	@printf '%s\n' $(TEST_MEMORY_SRC)
-	@printf '%s\n' $(TEST_ABI_SRC)
-	@printf '%s\n' $(TEST_ABI_PIPELINE_SRC)
-	@printf '%s\n' $(TEST_CONCURRENCY_SRC)
-	@printf '%s\n' $(TEST_DIR_SRC)
-	@printf '%s\n' $(TEST_AIR_SRC)
-	@printf '%s\n' $(TEST_RIR_SRC)
-	@printf '%s\n' $(TEST_MIR_SRC)
-	@printf '%s\n' $(TEST_HIR_SRC)
-	@printf '%s\n' $(DRIVER_SRC)
-	@printf '%s\n' $(LSP_SRC)
-	@printf '%s\n' $(BUILD_CONTRACT_INVENTORY_FILES)
+	$(foreach src,$(BUILD_SOURCE_INVENTORY_SOURCES),$(info $(src)))
+	$(foreach src,$(BUILD_CONTRACT_INVENTORY_FILES),$(info $(src)))
+	@:
 
 source-utf8-test-smoke:
 	"$(BASH)" tests/source_utf8_smoke.sh

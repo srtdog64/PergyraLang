@@ -1,0 +1,36 @@
+class Tax {
+    let amount: Int;
+    let rate: Int;
+
+    func Compute(self) -> Int {
+        return amount * rate / 100;
+    }
+}
+
+enum TaxErr { Invalid, OutOfRange }
+
+func MakeTax(amount: Int, rate: Int) -> Result<Tax, TaxErr> {
+    if amount < 0 { return Err(Invalid); }
+    if rate < 0 { return Err(Invalid); }
+    if rate > 100 { return Err(OutOfRange); }
+    return Ok(Tax(amount, rate));
+}
+
+func ComputeTax(amount: Int, rate: Int) -> Int {
+    match MakeTax(amount, rate) {
+        case Ok(t): return t.Compute();
+        case Err(e):
+            match e {
+                case Invalid: return -1;
+                case OutOfRange: return -2;
+            }
+    }
+}
+
+func Main() -> Void {
+    Log(ComputeTax(100, 10));
+    Log(ComputeTax(500, 5));
+    Log(ComputeTax(-50, 10));
+    Log(ComputeTax(100, 150));
+    Log(ComputeTax(200, 0));
+}

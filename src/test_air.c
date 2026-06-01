@@ -300,6 +300,9 @@ main(void)
     TEST("AIR rejects MIR evidence without routine provider");
     EXPECT(test_air_rejects_mir_evidence_without_routine_provider());
 
+    TEST("AIR rejects malformed MIR routine inventory");
+    EXPECT(test_air_rejects_malformed_mir_routine_inventory());
+
     TEST("AIR collects MIR select receive evidence");
     EXPECT(test_air_collects_mir_select_receive_evidence());
 

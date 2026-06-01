@@ -1,0 +1,34 @@
+func FindMax(arr: Array<Int>, n: Int) -> Int {
+    if n == 0 { return 0; }
+    let m: Int = arr[0];
+    let i: Int = 1;
+    while i < n {
+        if arr[i] > m {
+            m = arr[i];
+        }
+        i = i + 1;
+    }
+    return m;
+}
+
+func FindMin(arr: Array<Int>, n: Int) -> Int {
+    if n == 0 { return 0; }
+    let mn: Int = arr[0];
+    let i: Int = 1;
+    while i < n {
+        if arr[i] < mn {
+            mn = arr[i];
+        }
+        i = i + 1;
+    }
+    return mn;
+}
+
+func Main() -> Void {
+    let a: Array<Int> = [3, 7, 1, 8, 4, 2];
+    Log(FindMax(a, 6));
+    Log(FindMin(a, 6));
+    let single: Array<Int> = [42];
+    Log(FindMax(single, 1));
+    Log(FindMin(single, 1));
+}

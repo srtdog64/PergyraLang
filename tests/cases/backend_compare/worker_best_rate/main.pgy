@@ -1,0 +1,38 @@
+class Worker {
+    let efficiency: Int;
+    let tasks_done: Int;
+
+    func Rate(self) -> Int { return self.efficiency * 10 + self.tasks_done; }
+}
+
+func Make(eff: Int) -> Worker { return Worker(eff, 0); }
+
+func DoTask(w: Worker) -> Worker {
+    return Worker(w.efficiency, w.tasks_done + 1);
+}
+
+func Best(workers_eff: Array<Int>, n: Int, tasks: Int) -> Int {
+    if n == 0 { return -1; }
+    let best_rate: Int = 0;
+    let i: Int = 0;
+    while i < n {
+        let w: Worker = Make(workers_eff[i]);
+        let j: Int = 0;
+        while j < tasks {
+            w = DoTask(w);
+            j = j + 1;
+        }
+        let r: Int = w.Rate();
+        if r > best_rate { best_rate = r; }
+        i = i + 1;
+    }
+    return best_rate;
+}
+
+func Main() -> Void {
+    let e: Array<Int> = [3, 7, 2, 9];
+    Log(Best(e, 4, 5));
+    Log(Best(e, 4, 0));
+    let empty: Array<Int> = [];
+    Log(Best(empty, 0, 10));
+}

@@ -1,0 +1,30 @@
+class Star {
+    let mag: Int;
+    let dist: Int;
+
+    func Brightness(self) -> Int {
+        return mag * mag / (dist + 1);
+    }
+}
+
+func MakeStar(seed: Int) -> Star {
+    return Star(seed % 10 + 1, seed * 2);
+}
+
+func Catalog(n: Int) -> Int {
+    let total: Int = 0;
+    let i: Int = 0;
+    while i < n {
+        let s: Star = MakeStar(i + 1);
+        total = total + s.Brightness();
+        i = i + 1;
+    }
+    return total;
+}
+
+func Main() -> Void {
+    Log(Catalog(5));
+    Log(Catalog(0));
+    Log(Catalog(1));
+    Log(Catalog(10));
+}

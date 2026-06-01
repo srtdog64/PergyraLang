@@ -1,0 +1,27 @@
+class Spec {
+    let weight: Int;
+    let active: Bool;
+}
+
+func MakeSpec(w: Int, threshold: Int) -> Spec {
+    return Spec(w, w > threshold);
+}
+
+func ActiveTotal(weights: Array<Int>, n: Int, threshold: Int) -> Int {
+    let total: Int = 0;
+    let i: Int = 0;
+    while i < n {
+        let s: Spec = MakeSpec(weights[i], threshold);
+        if s.active { total = total + s.weight; }
+        i = i + 1;
+    }
+    return total;
+}
+
+func Main() -> Void {
+    let w: Array<Int> = [10, 50, 20, 100, 30];
+    Log(ActiveTotal(w, 5, 25));
+    Log(ActiveTotal(w, 5, 100));
+    Log(ActiveTotal(w, 5, 0));
+    Log(ActiveTotal(w, 0, 25));
+}

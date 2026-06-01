@@ -1,0 +1,39 @@
+class Hex {
+    let q: Int;
+    let r: Int;
+}
+
+func Diff(a: Hex, b: Hex) -> Int {
+    let dq: Int = a.q - b.q;
+    let dr: Int = a.r - b.r;
+    if dq < 0 { dq = 0 - dq; }
+    if dr < 0 { dr = 0 - dr; }
+    return dq + dr;
+}
+
+func MaxDiff(hexes: Array<Int>, n: Int) -> Int {
+    if n < 2 { return 0; }
+    let max: Int = 0;
+    let i: Int = 0;
+    while i < n - 1 {
+        let h1: Hex = Hex(hexes[i], hexes[i + 1]);
+        let j: Int = i + 1;
+        while j < n - 1 {
+            let h2: Hex = Hex(hexes[j], hexes[j + 1]);
+            let d: Int = Diff(h1, h2);
+            if d > max { max = d; }
+            j = j + 1;
+        }
+        i = i + 1;
+    }
+    return max;
+}
+
+func Main() -> Void {
+    let h: Array<Int> = [3, 5, 1, 8, 4, 2];
+    Log(MaxDiff(h, 6));
+    let small: Array<Int> = [1, 1];
+    Log(MaxDiff(small, 2));
+    let empty: Array<Int> = [];
+    Log(MaxDiff(empty, 0));
+}

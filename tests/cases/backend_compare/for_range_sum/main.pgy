@@ -1,0 +1,14 @@
+func Sum(n: Int) -> Int {
+    let total: Int = 0;
+    for i in 0..n {
+        total = total + i;
+    }
+    return total;
+}
+
+func Main() -> Void {
+    Log(Sum(5));
+    Log(Sum(0));
+    Log(Sum(1));
+    Log(Sum(10));
+}

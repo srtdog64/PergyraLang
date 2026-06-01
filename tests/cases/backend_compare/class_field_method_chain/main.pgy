@@ -1,0 +1,28 @@
+class Vec {
+    let x: Int;
+    let y: Int;
+    let z: Int;
+
+    func Sum(self) -> Int { return self.x + self.y + self.z; }
+}
+
+class Frame {
+    let pos: Vec;
+    let scale: Int;
+
+    func Total(self) -> Int {
+        return self.pos.Sum() * self.scale;
+    }
+}
+
+func MakeFrame(x: Int, y: Int, z: Int, s: Int) -> Frame {
+    return Frame(Vec(x, y, z), s);
+}
+
+func Main() -> Void {
+    Log(MakeFrame(1, 2, 3, 10).Total());
+    Log(MakeFrame(0, 0, 0, 5).Total());
+    let f: Frame = MakeFrame(5, 5, 5, 2);
+    Log(f.pos.Sum());
+    Log(MakeFrame(10, -10, 100, 1).Total());
+}

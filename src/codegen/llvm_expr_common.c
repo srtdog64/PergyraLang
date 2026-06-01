@@ -220,6 +220,24 @@ llvm_expr_custom_type_name(ASTNode *node, LLVMGenCtx *ctx)
                 }
             }
         }
+        if (ast_call_callee(node) != NULL
+            && ast_call_callee(node)->type == AST_MEMBER_ACCESS) {
+            const char *recv_cls = llvm_expr_custom_type_name(
+                ast_member_object(ast_call_callee(node)), ctx);
+            const char *method = ast_member_name(ast_call_callee(node));
+            if (recv_cls != NULL && method != NULL) {
+                char full_name[256];
+                snprintf(full_name, sizeof(full_name), "%s_%s",
+                    recv_cls, method);
+                LLVMFuncEntry *fn = llvm_lookup_function(ctx, full_name);
+                if (fn != NULL) {
+                    LLVMClassTypeEntry *ret_cls =
+                        llvm_lookup_class_by_type(ctx, fn->ret_type);
+                    if (ret_cls != NULL)
+                        return ret_cls->class_name;
+                }
+            }
+        }
         return NULL;
     default:
         return NULL;

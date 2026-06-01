@@ -1,0 +1,24 @@
+class Step {
+    let stride: Int;
+    let count: Int;
+
+    func Apply(self, base: Int) -> Int {
+        return base + self.stride * self.count;
+    }
+}
+
+func MakeStep(s: Int, c: Int) -> Step { return Step(s, c); }
+
+func Walk(start: Int, n: Int) -> Int {
+    let total: Int = start;
+    for i in 0..n {
+        total = MakeStep(i + 1, 2).Apply(total);
+    }
+    return total;
+}
+
+func Main() -> Void {
+    Log(Walk(0, 5));
+    Log(Walk(100, 3));
+    Log(Walk(0, 0));
+}

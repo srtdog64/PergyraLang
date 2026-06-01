@@ -1,0 +1,18 @@
+class Frame {
+    let depth: Int;
+    let acc: Int;
+}
+
+func MakeFrame(d: Int, a: Int) -> Frame { return Frame(d, a); }
+
+func Recurse(f: Frame, target: Int) -> Frame {
+    if f.depth >= target { return f; }
+    return Recurse(MakeFrame(f.depth + 1, f.acc + f.depth * 2), target);
+}
+
+func Main() -> Void {
+    Log(Recurse(MakeFrame(0, 0), 5).acc);
+    Log(Recurse(MakeFrame(0, 100), 3).acc);
+    Log(Recurse(MakeFrame(0, 0), 0).depth);
+    Log(Recurse(MakeFrame(0, 0), 10).acc);
+}

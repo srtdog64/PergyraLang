@@ -1,0 +1,17 @@
+class Game {
+    let mode: Int;
+    let score: Int;
+
+    func Verdict(self) -> Int {
+        return self.score;
+    }
+}
+
+func MakeGame(mode: Int, score: Int) -> Game {
+    return Game(mode, score);
+}
+
+func Main() -> Void {
+    Log(MakeGame(1, 95).Verdict());
+    Log(MakeGame(2, 70).Verdict());
+}

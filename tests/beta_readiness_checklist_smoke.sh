@@ -222,13 +222,13 @@ LSP beta-stable: initialize capability response, keyword hover, and keyword comp
 Debugger beta-stable: CLI `pgy debug <file>` parse + semantic gate and interactive quit path
 DAP, binary breakpoints, variable watch, multi-file workspace indexing
 beta readiness
-strict beta readiness is now about 72-74%
-Do not call this 75% or 80% yet
+strict beta readiness is now about 75%
+Do not call this 80% until
 EOF
 
-require_text "TODO.md" "strict beta readiness is now about 72-74%"
+require_text "TODO.md" "strict beta readiness is now about 75%"
 require_text "TODO.md" "Historical note: this old 60% readiness anchor is superseded"
-require_text "docs/50_language_completion_board.md" "Strict beta readiness remains about 72-74%"
+require_text "docs/50_language_completion_board.md" "Strict beta readiness is about 75%"
 
 require_terms "docs/19_design_philosophy.md" <<'EOF'
 Pergyra is a systems language with domain extensions

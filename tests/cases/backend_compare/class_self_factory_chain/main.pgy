@@ -1,0 +1,23 @@
+class Pos {
+    let x: Int;
+    let y: Int;
+
+    func Add(self, dx: Int, dy: Int) -> Pos {
+        return Pos(x + dx, y + dy);
+    }
+
+    func Dist(self) -> Int {
+        return x * x + y * y;
+    }
+}
+
+func Origin() -> Pos { return Pos(0, 0); }
+
+func Main() -> Void {
+    let p0: Pos = Origin();
+    Log(p0.Dist());
+    let p1: Pos = p0.Add(3, 4);
+    Log(p1.Dist());
+    let p2: Pos = p1.Add(10, 0);
+    Log(p2.Dist());
+}

@@ -1,0 +1,37 @@
+enum Operation { Inc, Dec, Reset }
+
+class Counter {
+    let n: Int;
+    let max: Int;
+
+    func Bounded(self) -> Int {
+        if self.n > self.max { return self.max; }
+        if self.n < 0 { return 0; }
+        return self.n;
+    }
+}
+
+func Process(c: Counter, ops: Array<Int>, n_ops: Int, op_kinds: Array<Int>) -> Int {
+    let cur: Counter = c;
+    let i: Int = 0;
+    while i < n_ops {
+        let kind: Int = op_kinds[i];
+        let amt: Int = ops[i];
+        if kind == 0 { cur = Counter(cur.n + amt, cur.max); }
+        if kind == 1 { cur = Counter(cur.n - amt, cur.max); }
+        if kind == 2 { cur = Counter(0, cur.max); }
+        i = i + 1;
+    }
+    return cur.Bounded();
+}
+
+func Main() -> Void {
+    let c: Counter = Counter(0, 100);
+    let amts: Array<Int> = [10, 50, 5, 200];
+    let kinds: Array<Int> = [0, 0, 1, 0];
+    Log(Process(c, amts, 4, kinds));
+    let neg_amts: Array<Int> = [200, 100];
+    let neg_kinds: Array<Int> = [1, 1];
+    Log(Process(c, neg_amts, 2, neg_kinds));
+    Log(Process(c, amts, 0, kinds));
+}

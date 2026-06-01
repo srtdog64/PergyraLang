@@ -1,0 +1,33 @@
+class Quest {
+    let id: Int;
+    let reward: Int;
+}
+
+func MakeQuest(id: Int) -> Quest {
+    return Quest(id, id * 10 + 5);
+}
+
+func TotalRewards(start: Int, n: Int) -> Int {
+    let total: Int = 0;
+    for i in 0..n {
+        total = total + MakeQuest(start + i).reward;
+    }
+    return total;
+}
+
+func MaxReward(start: Int, n: Int) -> Int {
+    if n == 0 { return 0; }
+    let best: Int = MakeQuest(start).reward;
+    for i in 1..n {
+        let r: Int = MakeQuest(start + i).reward;
+        if r > best { best = r; }
+    }
+    return best;
+}
+
+func Main() -> Void {
+    Log(TotalRewards(1, 5));
+    Log(MaxReward(1, 5));
+    Log(TotalRewards(0, 0));
+    Log(MaxReward(10, 3));
+}

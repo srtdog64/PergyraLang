@@ -1,0 +1,24 @@
+class Color {
+    let r: Int;
+    let g: Int;
+    let b: Int;
+
+    func Luma(self) -> Int {
+        return (self.r + self.g + self.b) / 3;
+    }
+}
+
+func Black() -> Color { return Color(0, 0, 0); }
+func White() -> Color { return Color(255, 255, 255); }
+func Red() -> Color { return Color(255, 0, 0); }
+func Mix(a: Color, b: Color) -> Color {
+    return Color((a.r + b.r) / 2, (a.g + b.g) / 2, (a.b + b.b) / 2);
+}
+
+func Main() -> Void {
+    Log(Black().Luma());
+    Log(White().Luma());
+    Log(Red().Luma());
+    Log(Mix(Black(), White()).Luma());
+    Log(Mix(Red(), Black()).r);
+}

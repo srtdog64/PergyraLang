@@ -182,6 +182,12 @@ llvm_emit_domain_method_forward_decls(LLVMGenCtx *ctx,
         char fname[256];
         LLVMValueRef fn;
 
+        if (llvm_hosted_method_view_missing_mir_method_row(methods, j)) {
+            llvm_set_mir_inventory_missing(ctx,
+                "MIR-only LLVM path has invalid method forward metadata row for domain '%s'",
+                decl_name != NULL ? decl_name : "(anonymous-domain)");
+            return;
+        }
         if (method_meta == NULL && (method == NULL || method->type != AST_FUNC_DECL))
             continue;
 

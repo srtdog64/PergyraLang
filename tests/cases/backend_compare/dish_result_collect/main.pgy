@@ -1,0 +1,41 @@
+enum CookErr { NoTime, NoIng }
+
+class Dish {
+    let calories: Int;
+    let savor: Int;
+
+    func Score(self) -> Int { return self.calories + self.savor * 3; }
+}
+
+func TryCook(time: Int, ing: Int) -> Result<Dish, CookErr> {
+    if time < 5 { return Err(NoTime); }
+    if ing < 1 { return Err(NoIng); }
+    return Ok(Dish(time * 10, ing * 5));
+}
+
+func Main() -> Void {
+    match TryCook(10, 5) {
+        case Ok(d): Log(d.Score());
+        case Err(e):
+            match e {
+                case NoTime: Log(-1);
+                case NoIng: Log(-2);
+            }
+    }
+    match TryCook(2, 5) {
+        case Ok(d): Log(d.Score());
+        case Err(e):
+            match e {
+                case NoTime: Log(-1);
+                case NoIng: Log(-2);
+            }
+    }
+    match TryCook(30, 0) {
+        case Ok(d): Log(d.Score());
+        case Err(e):
+            match e {
+                case NoTime: Log(-1);
+                case NoIng: Log(-2);
+            }
+    }
+}

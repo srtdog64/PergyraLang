@@ -1,0 +1,34 @@
+class Vault {
+    let coins: Int;
+    let gems: Int;
+
+    func Total(self) -> Int { return self.coins + self.gems * 10; }
+
+    func TopUp(self, c: Int, g: Int) -> Vault {
+        return Vault(self.coins + c, self.gems + g);
+    }
+}
+
+func New() -> Vault { return Vault(0, 0); }
+
+func MaxTotal(start: Vault, ops: Array<Int>, n: Int) -> Int {
+    let cur: Vault = start;
+    let best: Int = cur.Total();
+    let i: Int = 0;
+    while i < n {
+        cur = cur.TopUp(ops[i], 0);
+        let t: Int = cur.Total();
+        if t > best { best = t; }
+        i = i + 1;
+    }
+    return best;
+}
+
+func Main() -> Void {
+    let v: Vault = New().TopUp(100, 5);
+    Log(v.Total());
+    let amts: Array<Int> = [50, -10, 200, 30];
+    Log(MaxTotal(v, amts, 4));
+    let empty: Array<Int> = [];
+    Log(MaxTotal(v, empty, 0));
+}

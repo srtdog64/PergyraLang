@@ -1,0 +1,29 @@
+class Atom {
+    let charge: Int;
+
+    func Polarized(self) -> Bool { return self.charge != 0; }
+}
+
+enum Element { Helium, Hydrogen, Oxygen, Sodium, Iron }
+
+func MakeAtom(e: Element) -> Atom {
+    match e {
+        case Helium: return Atom(0);
+        case Hydrogen: return Atom(1);
+        case Oxygen: return Atom(-2);
+        case Sodium: return Atom(1);
+        case Iron: return Atom(3);
+    }
+}
+
+func IsCharged(e: Element) -> Bool {
+    return MakeAtom(e).Polarized();
+}
+
+func Main() -> Void {
+    Log(IsCharged(Helium));
+    Log(IsCharged(Hydrogen));
+    Log(IsCharged(Oxygen));
+    Log(IsCharged(Iron));
+    Log(MakeAtom(Iron).charge);
+}

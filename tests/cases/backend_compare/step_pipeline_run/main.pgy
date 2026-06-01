@@ -1,0 +1,26 @@
+class Step {
+    let n: Int;
+    let stage: Int;
+}
+
+func Start() -> Step { return Step(0, 0); }
+
+func Process(s: Step) -> Step {
+    if s.stage >= 5 { return s; }
+    return Step(s.n + s.stage, s.stage + 1);
+}
+
+func RunPipeline() -> Int {
+    let s: Step = Start();
+    while s.stage < 5 {
+        s = Process(s);
+    }
+    return s.n;
+}
+
+func Main() -> Void {
+    Log(RunPipeline());
+    Log(Start().n);
+    Log(Process(Start()).stage);
+    Log(Process(Process(Start())).n);
+}

@@ -1,0 +1,18 @@
+class Pair {
+    let first: Int;
+    let second: Int;
+
+    func Both(self) -> Int { return self.first + self.second; }
+    func Swap(self) -> Pair { return Pair(self.second, self.first); }
+}
+
+func MakePair(a: Int, b: Int) -> Pair { return Pair(a, b); }
+
+func Main() -> Void {
+    let p: Pair = MakePair(10, 20);
+    Log(p.Both());
+    Log(p.Swap().first);
+    Log(p.Swap().second);
+    Log(MakePair(5, 7).Both());
+    Log(MakePair(5, 7).Swap().Both());
+}

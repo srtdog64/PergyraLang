@@ -1,0 +1,20 @@
+func TotalDamage(hits: Array<Int>, crits: Array<Bool>, n: Int) -> Int {
+    let total: Int = 0;
+    let i: Int = 0;
+    while i < n {
+        let damage: Int = hits[i];
+        if crits[i] { damage = damage * 2; }
+        total = total + damage;
+        i = i + 1;
+    }
+    return total;
+}
+
+func Main() -> Void {
+    let h: Array<Int> = [10, 20, 30, 40, 50];
+    let c: Array<Bool> = [false, true, false, true, false];
+    Log(TotalDamage(h, c, 5));
+    let empty: Array<Int> = [];
+    let ec: Array<Bool> = [];
+    Log(TotalDamage(empty, ec, 0));
+}

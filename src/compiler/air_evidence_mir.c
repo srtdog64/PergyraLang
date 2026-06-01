@@ -13,6 +13,26 @@ air_collect_mir_requires_routine_provider(const MIRRoutine *routine,
     return false;
 }
 
+static bool
+air_collect_mir_requires_routine_inventory(const MIRRoutine *routine,
+                                           size_t index,
+                                           char **error_message)
+{
+    if (routine == NULL) {
+        air_set_error(error_message,
+                      "AIR MIR evidence has invalid routine inventory row[%zu]",
+                      index);
+        return false;
+    }
+    if (routine->block_count > 0 && routine->blocks == NULL) {
+        air_set_error(error_message,
+                      "AIR MIR evidence requires block inventory for routine '%s'",
+                      routine->name != NULL ? routine->name : "(anonymous)");
+        return false;
+    }
+    return true;
+}
+
 bool
 air_collect_mir_evidence(AIRProgram *air,
                          const MIRProgram *mir,
@@ -28,6 +48,10 @@ air_collect_mir_evidence(AIRProgram *air,
 
     for (size_t i = 0; i < inventory.count; i++) {
         const MIRRoutine *routine = mir_routine_inventory_get(&inventory, i);
+        if (!air_collect_mir_requires_routine_inventory(routine, i,
+                                                        error_message)) {
+            return false;
+        }
         const char *routine_name = air_mir_routine_provider_name(routine);
         size_t cleanup_fact_count = air_mir_routine_cleanup_fact_count(routine);
         size_t terminator_fact_count =
@@ -130,6 +154,10 @@ air_collect_mir_evidence(AIRProgram *air,
 
     for (size_t i = 0; i < inventory.count; i++) {
         const MIRRoutine *routine = mir_routine_inventory_get(&inventory, i);
+        if (!air_collect_mir_requires_routine_inventory(routine, i,
+                                                        error_message)) {
+            return false;
+        }
         const char *routine_name = air_mir_routine_provider_name(routine);
         for (size_t j = 0; j < routine->block_count; j++) {
             if (!air_collect_mir_pin_block_evidence(air, routine,

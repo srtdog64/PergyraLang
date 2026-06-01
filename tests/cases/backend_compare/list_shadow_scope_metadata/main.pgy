@@ -1,0 +1,14 @@
+func Main() -> Void {
+    let items: List<Int> = ListNew();
+    ListPush(items, 10);
+
+    if 1 == 1 {
+        let items: List<String> = ListNew();
+        ListPush(items, "shadow");
+        Log(ListGet(items, 0));
+    }
+
+    ListPush(items, 20);
+    Log(ListGet(items, 0));
+    Log(ListGet(items, 1));
+}

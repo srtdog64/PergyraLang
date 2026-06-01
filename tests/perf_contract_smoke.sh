@@ -150,6 +150,10 @@ grep -Fq "const char  *last_lookup_name;" "$ROOT_DIR/src/codegen/llvm_internal.h
 grep -Fq "LLVMVarEntry *last_lookup;" "$ROOT_DIR/src/codegen/llvm_internal.h"
 grep -Fq "frame->last_lookup_name" "$ROOT_DIR/src/codegen/llvm_registry.c"
 grep -Fq "frame->last_lookup = &frame->entries" "$ROOT_DIR/src/codegen/llvm_registry.c"
+grep -Fq "llvm_scope_declare(ctx, name, NULL, target_cls->struct_type)" "$ROOT_DIR/src/codegen/llvm_stmt_let_collections.c"
+grep -Fq "llvm_register_projection_borrow(ctx, name, type_name, source_name)" "$ROOT_DIR/src/codegen/llvm_stmt_let_collections.c"
+grep -Fq "source->alloca == NULL" "$ROOT_DIR/src/codegen/llvm_mir_block_emit.c"
+grep -Fq "llvm_lookup_projection_borrow(ctx, base_name) != NULL" "$ROOT_DIR/src/codegen/llvm_mir_block_emit.c"
 grep -Fq "llvm_intent_current_handle_or_zero" "$ROOT_DIR/src/codegen/llvm_intent_zone_bind.c"
 ! grep -Fq "llvm_scope_lookup(ctx, \"__intent_handle\")->alloca" \
     "$ROOT_DIR/src/codegen/llvm_intent_zone_bind.c"
@@ -527,16 +531,58 @@ if grep -Eq 'strcmp[[:space:]]*\([[:space:]]*op_name[[:space:]]*,[[:space:]]*"(C
     echo "[perf-contract] MIR resource op emission reintroduced direct op branch" >&2
     exit 1
 fi
+grep -Fq "transpiler_mir_resource_op_lookup(inst->name)" \
+    "$ROOT_DIR/src/codegen/transpiler_mir_resource_op_emit.c"
+if grep -Eq 'strcmp[[:space:]]*\([[:space:]]*inst->name[[:space:]]*,[[:space:]]*"(Claim|Read|Write|Release|Move)"' \
+    "$ROOT_DIR/src/codegen/transpiler_mir_resource_op_emit.c"; then
+    echo "[perf-contract] C MIR resource-op statement emitter reintroduced direct op branch" >&2
+    exit 1
+fi
+for rel in \
+    src/codegen/transpiler_mir_block_schedule_emit.c \
+    src/codegen/transpiler_mir_emission_mapping_contract.c \
+    src/codegen/transpiler_mir_ssa_utils.c; do
+    grep -Fq "transpiler_mir_resource_op_lookup(inst->name)" "$ROOT_DIR/$rel"
+    if grep -Eq 'strcmp[[:space:]]*\([[:space:]]*inst->name[[:space:]]*,[[:space:]]*"(Claim|Read|Write|Release|Move)"' \
+        "$ROOT_DIR/$rel"; then
+        echo "[perf-contract] $rel reintroduced direct MIR slot op branch" >&2
+        exit 1
+    fi
+done
 if grep -Eq 'strcmp[[:space:]]*\([[:space:]]*inst->name[[:space:]]*,[[:space:]]*"(BorrowRead|BorrowWrite)"' \
     "$ROOT_DIR/src/codegen/transpiler_mir_pin_emit.c"; then
     echo "[perf-contract] C MIR pin alias seeding reintroduced direct op branch" >&2
     exit 1
 fi
+grep -Fq "transpiler_mir_resource_op_lookup(inst->name)" \
+    "$ROOT_DIR/src/codegen/transpiler_mir_resource_hook_emit.c"
+if grep -Eq 'strcmp[[:space:]]*\([[:space:]]*(inst|candidate|emit_inst)->name[[:space:]]*,[[:space:]]*"(Claim|Read|Write|Release|Move|BorrowRead|BorrowWrite)"' \
+    "$ROOT_DIR/src/codegen/transpiler_mir_resource_hook_emit.c"; then
+    echo "[perf-contract] C MIR resource hook reintroduced direct slot op branch" >&2
+    exit 1
+fi
+if grep -Eq 'strcmp[[:space:]]*\([[:space:]]*inst->name[[:space:]]*,[[:space:]]*"(ProjectRefresh|ProjectPublish)"' \
+    "$ROOT_DIR/src/codegen/transpiler_mir_resource_hook_emit.c"; then
+    echo "[perf-contract] C MIR resource hook must consume RIR projection op kind, not projection op names" >&2
+    exit 1
+fi
+grep -Fq "inst->rir_op->kind == RIR_OP_PROJECT_REFRESH" \
+    "$ROOT_DIR/src/codegen/transpiler_mir_resource_hook_emit.c"
 if grep -Eq 'strcmp[[:space:]]*\([[:space:]]*inst->name[[:space:]]*,[[:space:]]*"(BorrowRead|BorrowWrite)"' \
     "$ROOT_DIR/src/codegen/llvm_mir_resource_view.c"; then
     echo "[perf-contract] LLVM MIR borrow-view aliasing reintroduced direct op branch" >&2
     exit 1
 fi
+for rel in \
+    src/codegen/llvm_mir_emit.c \
+    src/codegen/llvm_mir_param_emit.c; do
+    grep -Fq "llvm_param_is_implicit_self_local" "$ROOT_DIR/$rel"
+    if grep -Eq 'strcmp[[:space:]]*\([[:space:]]*(p|candidate)->name[[:space:]]*,[[:space:]]*"self"' \
+        "$ROOT_DIR/$rel"; then
+        echo "[perf-contract] $rel must consume the implicit-self predicate" >&2
+        exit 1
+    fi
+done
 mir_resource_op_names="$(
     sed -n '/static const TranspilerMIRResourceOpSpec specs\[\]/,/^    };/p' \
         "$ROOT_DIR/src/codegen/transpiler_mir_resource_name.c" \
@@ -3562,6 +3608,11 @@ grep -Fq "C enum variant constructor '%s' cannot consume a Void expression as pa
     grep -Fq "return ctx->type_i32"
 ! grep -Fq "poison i32 until Future<T>" "$ROOT_DIR/src/codegen/llvm_stmt_type_infer.c"
 grep -Fq "llvm_stmt_lookup_visible_function" "$ROOT_DIR/src/codegen/llvm_stmt_type_infer.c"
+grep -Fq "llvm_stmt_host_method_return_type" "$ROOT_DIR/src/codegen/llvm_stmt_type_infer.c"
+grep -Fq "llvm_find_host_method_metadata_in_context" "$ROOT_DIR/src/codegen/llvm_stmt_type_infer.c"
+grep -Fq "llvm_mir_decl_method_return_type" "$ROOT_DIR/src/codegen/llvm_stmt_type_infer.c"
+grep -Fq "llvm_current_field_class_name(ctx, receiver_name)" "$ROOT_DIR/src/codegen/llvm_stmt_type_infer.c"
+grep -Fq "tests/cases/backend_compare/zone_host_method_abi_combo" "$ROOT_DIR/tests/compare_backends.sh"
 grep -Fq "channel receive '%s' has no registered Channel<T> metadata" "$ROOT_DIR/src/codegen/llvm_stmt_type_infer.c"
 grep -A34 -F "case AST_CHANNEL_RECV" "$ROOT_DIR/src/codegen/llvm_stmt_type_infer.c" | \
     grep -Fq "ctx->expected_type_name"
@@ -3597,7 +3648,7 @@ grep -A28 -F "case AST_BINARY" "$ROOT_DIR/src/codegen/llvm_stmt_type_infer.c" | 
 grep -Fq "llvm_stmt_expected_array_elem_type" "$ROOT_DIR/src/codegen/llvm_stmt_array_type_infer.c"
 grep -A10 -F "llvm_stmt_resolve_array_elem_type" "$ROOT_DIR/src/codegen/llvm_stmt_array_type_infer.c" | \
     grep -Fq "llvm_stmt_expected_array_elem_type(ctx)"
-grep -A8 -F "llvm_register_future_var(LLVMGenCtx *ctx" \
+grep -A8 -F "llvm_register_future_var_binding(LLVMGenCtx *ctx" \
     "$ROOT_DIR/src/codegen/llvm_registry_resources.c" | \
     grep -Fq "ctx == NULL || var_name == NULL || inner_type == NULL"
 grep -A14 -F "llvm_register_future_var(ctx, name, future_inner" \
@@ -3661,19 +3712,30 @@ grep -Fq "owned_inner_name = llvm_stmt_render_type_arg" \
 grep -A10 -F "llvm_register_array_var(ctx, name, elem_type" \
     "$ROOT_DIR/src/codegen/llvm_stmt_let_collections.c" | \
     grep -Fq "free(owned_inner_name)"
+grep -A10 -F "llvm_register_array_var_binding(LLVMGenCtx *ctx" \
+    "$ROOT_DIR/src/codegen/llvm_registry_arrays.c" | \
+    grep -Fq "ctx == NULL"
+grep -A24 -F "llvm_register_array_var_binding(LLVMGenCtx *ctx" \
+    "$ROOT_DIR/src/codegen/llvm_registry_arrays.c" | \
+    grep -Fq "ctx->array_vars[ctx->array_var_count].binding = binding"
+grep -A14 -F "llvm_lookup_array_var(LLVMGenCtx *ctx" \
+    "$ROOT_DIR/src/codegen/llvm_registry_arrays.c" | \
+    grep -Fq "ctx->array_vars[i].binding == entry->alloca"
+! grep -Fq "void llvm_register_array_var(LLVMGenCtx *ctx" \
+    "$ROOT_DIR/src/codegen/llvm_registry.c"
 grep -A8 -F "llvm_lookup_future_inner(LLVMGenCtx *ctx" \
     "$ROOT_DIR/src/codegen/llvm_registry_resources.c" | \
     grep -Fq "ctx == NULL || var_name == NULL"
-grep -A8 -F "llvm_register_channel_var(LLVMGenCtx *ctx" \
+grep -A8 -F "llvm_register_channel_var_binding(LLVMGenCtx *ctx" \
     "$ROOT_DIR/src/codegen/llvm_registry_resources.c" | \
     grep -Fq "ctx == NULL || var_name == NULL || inner_type == NULL"
 grep -A8 -F "llvm_lookup_channel_inner(LLVMGenCtx *ctx" \
     "$ROOT_DIR/src/codegen/llvm_registry_resources.c" | \
     grep -Fq "ctx == NULL || var_name == NULL"
-grep -A14 -F "llvm_register_device_slot_var(LLVMGenCtx *ctx" \
+grep -A14 -F "llvm_register_device_slot_var_binding(LLVMGenCtx *ctx" \
     "$ROOT_DIR/src/codegen/llvm_registry_resources.c" | \
     grep -Fq "owned_var_name = llvm_registry_keep_string(ctx, var_name)"
-grep -A14 -F "llvm_register_device_slot_var(LLVMGenCtx *ctx" \
+grep -A14 -F "llvm_register_device_slot_var_binding(LLVMGenCtx *ctx" \
     "$ROOT_DIR/src/codegen/llvm_registry_resources.c" | \
     grep -Fq "owned_inner_type = llvm_registry_keep_string(ctx, inner_type)"
 grep -A10 -F "llvm_lookup_secure_token_var(LLVMGenCtx *ctx" \

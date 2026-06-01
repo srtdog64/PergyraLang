@@ -1,0 +1,16 @@
+class Bank {
+    let bal: Int;
+
+    func Add(self, x: Int) -> Bank { return Bank(self.bal + x); }
+    func Sub(self, x: Int) -> Bank { return Bank(self.bal - x); }
+    func Get(self) -> Int { return self.bal; }
+}
+
+func New() -> Bank { return Bank(0); }
+
+func Main() -> Void {
+    Log(New().Add(100).Add(50).Sub(30).Get());
+    Log(New().Sub(10).Add(5).Get());
+    Log(New().Add(1000).Sub(500).Sub(500).Get());
+    Log(New().Get());
+}

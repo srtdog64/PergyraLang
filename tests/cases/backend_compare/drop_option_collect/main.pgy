@@ -1,0 +1,33 @@
+class Drop {
+    let v: Int;
+    let bonus: Int;
+
+    func Total(self) -> Int { return self.v + self.bonus * 5; }
+}
+
+func TryDrop(seed: Int) -> Option<Drop> {
+    if seed < 10 { return None; }
+    if seed > 100 { return None; }
+    return Some(Drop(seed, seed / 10));
+}
+
+func CollectTotal(seeds: Array<Int>, n: Int) -> Int {
+    let total: Int = 0;
+    let i: Int = 0;
+    while i < n {
+        match TryDrop(seeds[i]) {
+            case Some(d): total = total + d.Total();
+            case None: total = total + 0;
+        }
+        i = i + 1;
+    }
+    return total;
+}
+
+func Main() -> Void {
+    let s: Array<Int> = [5, 50, 200, 30, 75];
+    Log(CollectTotal(s, 5));
+    Log(CollectTotal(s, 0));
+    let valid: Array<Int> = [20, 40, 60];
+    Log(CollectTotal(valid, 3));
+}

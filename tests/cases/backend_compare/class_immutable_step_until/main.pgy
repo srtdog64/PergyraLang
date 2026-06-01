@@ -1,0 +1,25 @@
+class Counter {
+    let n: Int;
+    let goal: Int;
+}
+
+func StepCount(c: Counter) -> Counter {
+    return Counter(c.n + 1, c.goal);
+}
+
+func RunUntil(start: Int, goal: Int) -> Int {
+    let c: Counter = Counter(start, goal);
+    let steps: Int = 0;
+    while c.n < c.goal {
+        c = StepCount(c);
+        steps = steps + 1;
+    }
+    return steps;
+}
+
+func Main() -> Void {
+    Log(RunUntil(0, 10));
+    Log(RunUntil(5, 5));
+    Log(RunUntil(10, 5));
+    Log(RunUntil(0, 100));
+}

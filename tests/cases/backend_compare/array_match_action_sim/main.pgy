@@ -1,0 +1,41 @@
+enum Action { Buy, Sell, Hold }
+
+func DecideOf(price: Int, threshold: Int) -> Action {
+    if price > threshold * 2 { return Sell; }
+    if price < threshold { return Buy; }
+    return Hold;
+}
+
+func Simulate(prices: Array<Int>, n: Int, threshold: Int) -> Int {
+    let cash: Int = 1000;
+    let shares: Int = 0;
+    let i: Int = 0;
+    while i < n {
+        let p: Int = prices[i];
+        match DecideOf(p, threshold) {
+            case Buy:
+                if cash >= p {
+                    cash = cash - p;
+                    shares = shares + 1;
+                }
+            case Sell:
+                if shares > 0 {
+                    shares = shares - 1;
+                    cash = cash + p;
+                }
+            case Hold:
+                cash = cash + 0;
+        }
+        i = i + 1;
+    }
+    return cash + shares * 50;
+}
+
+func Main() -> Void {
+    let prices: Array<Int> = [40, 30, 80, 50, 20, 100, 60];
+    Log(Simulate(prices, 7, 50));
+    let flat: Array<Int> = [50, 50, 50];
+    Log(Simulate(flat, 3, 50));
+    let empty: Array<Int> = [];
+    Log(Simulate(empty, 0, 50));
+}

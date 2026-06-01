@@ -1,0 +1,23 @@
+func Fact(n: Int) -> Int {
+    if n <= 1 { return 1; }
+    return n * Fact(n - 1);
+}
+
+func Fib(n: Int) -> Int {
+    if n < 2 { return n; }
+    return Fib(n - 1) + Fib(n - 2);
+}
+
+func Sum(arr: Array<Int>, i: Int, n: Int) -> Int {
+    if i >= n { return 0; }
+    return arr[i] + Sum(arr, i + 1, n);
+}
+
+func Main() -> Void {
+    Log(Fact(5));
+    Log(Fact(0));
+    Log(Fib(10));
+    Log(Fib(0));
+    let a: Array<Int> = [1, 2, 3, 4, 5];
+    Log(Sum(a, 0, 5));
+}

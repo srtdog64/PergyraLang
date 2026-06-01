@@ -1,0 +1,17 @@
+class Counter {
+    let n: Int;
+
+    func Plus(self, x: Int) -> Int { return self.n + x; }
+    func Times(self, x: Int) -> Int { return self.n * x; }
+}
+
+func MakeCounter(n: Int) -> Counter {
+    return Counter(n);
+}
+
+func Main() -> Void {
+    Log(MakeCounter(5).Plus(10));
+    Log(MakeCounter(7).Times(3));
+    Log(MakeCounter(0).Plus(100));
+    Log(MakeCounter(50).Times(0));
+}

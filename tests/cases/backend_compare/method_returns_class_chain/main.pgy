@@ -1,0 +1,20 @@
+class Wallet {
+    let amount: Int;
+
+    func Add(self, x: Int) -> Wallet {
+        return Wallet(self.amount + x);
+    }
+}
+
+func MakeWallet(initial: Int) -> Wallet {
+    return Wallet(initial);
+}
+
+func Main() -> Void {
+    let w: Wallet = MakeWallet(100);
+    Log(w.amount);
+    let w2: Wallet = w.Add(50);
+    Log(w2.amount);
+    Log(w.Add(30).amount);
+    Log(MakeWallet(5).Add(10).amount);
+}

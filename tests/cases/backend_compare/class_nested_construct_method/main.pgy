@@ -1,0 +1,28 @@
+class Stats {
+    let attack: Int;
+    let defense: Int;
+}
+
+class Battle {
+    let attacker: Stats;
+    let defender: Stats;
+
+    func Resolve(self) -> Int {
+        let dmg: Int = attacker.attack - defender.defense;
+        if dmg < 0 { dmg = 0; }
+        return dmg;
+    }
+}
+
+func MakeBattle(att: Int, def: Int, target_def: Int) -> Battle {
+    return Battle(Stats(att, def), Stats(0, target_def));
+}
+
+func Main() -> Void {
+    let b1: Battle = MakeBattle(100, 50, 30);
+    Log(b1.Resolve());
+    let b2: Battle = MakeBattle(50, 100, 200);
+    Log(b2.Resolve());
+    let b3: Battle = MakeBattle(75, 25, 75);
+    Log(b3.Resolve());
+}

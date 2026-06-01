@@ -29,9 +29,21 @@ llvm_collection_registry_strdup(LLVMGenCtx *ctx, const char *value,
     return copy;
 }
 
+static LLVMValueRef
+llvm_collection_active_binding(LLVMGenCtx *ctx, const char *var_name)
+{
+    LLVMVarEntry *entry;
+
+    if (ctx == NULL || var_name == NULL)
+        return NULL;
+    entry = llvm_scope_lookup(ctx, var_name);
+    return entry != NULL ? entry->alloca : NULL;
+}
+
 void
-llvm_register_list_var(LLVMGenCtx *ctx, const char *var_name,
-                       const char *inner_type)
+llvm_register_list_var_binding(LLVMGenCtx *ctx, const char *var_name,
+                               LLVMValueRef binding,
+                               const char *inner_type)
 {
     char *owned_name;
     char *owned_inner;
@@ -48,23 +60,41 @@ llvm_register_list_var(LLVMGenCtx *ctx, const char *var_name,
         return;
     }
     ctx->list_vars[ctx->list_var_count].var_name = owned_name;
+    ctx->list_vars[ctx->list_var_count].binding = binding;
     ctx->list_vars[ctx->list_var_count].inner_type = owned_inner;
     ctx->list_var_count++;
+}
+
+void
+llvm_register_list_var(LLVMGenCtx *ctx, const char *var_name,
+                       const char *inner_type)
+{
+    llvm_register_list_var_binding(ctx, var_name,
+        llvm_collection_active_binding(ctx, var_name), inner_type);
 }
 
 const char *
 llvm_lookup_list_inner(LLVMGenCtx *ctx, const char *var_name)
 {
+    LLVMValueRef binding;
+
+    if (ctx == NULL || var_name == NULL)
+        return NULL;
+    binding = llvm_collection_active_binding(ctx, var_name);
+    if (binding == NULL)
+        return NULL;
     for (int i = ctx->list_var_count - 1; i >= 0; i--) {
-        if (strcmp(ctx->list_vars[i].var_name, var_name) == 0)
+        if (ctx->list_vars[i].binding == binding
+            && strcmp(ctx->list_vars[i].var_name, var_name) == 0)
             return ctx->list_vars[i].inner_type;
     }
     return NULL;
 }
 
 void
-llvm_register_set_var(LLVMGenCtx *ctx, const char *var_name,
-                      const char *inner_type)
+llvm_register_set_var_binding(LLVMGenCtx *ctx, const char *var_name,
+                              LLVMValueRef binding,
+                              const char *inner_type)
 {
     char *owned_name;
     char *owned_inner;
@@ -81,23 +111,41 @@ llvm_register_set_var(LLVMGenCtx *ctx, const char *var_name,
         return;
     }
     ctx->set_vars[ctx->set_var_count].var_name = owned_name;
+    ctx->set_vars[ctx->set_var_count].binding = binding;
     ctx->set_vars[ctx->set_var_count].inner_type = owned_inner;
     ctx->set_var_count++;
+}
+
+void
+llvm_register_set_var(LLVMGenCtx *ctx, const char *var_name,
+                      const char *inner_type)
+{
+    llvm_register_set_var_binding(ctx, var_name,
+        llvm_collection_active_binding(ctx, var_name), inner_type);
 }
 
 const char *
 llvm_lookup_set_inner(LLVMGenCtx *ctx, const char *var_name)
 {
+    LLVMValueRef binding;
+
+    if (ctx == NULL || var_name == NULL)
+        return NULL;
+    binding = llvm_collection_active_binding(ctx, var_name);
+    if (binding == NULL)
+        return NULL;
     for (int i = ctx->set_var_count - 1; i >= 0; i--) {
-        if (strcmp(ctx->set_vars[i].var_name, var_name) == 0)
+        if (ctx->set_vars[i].binding == binding
+            && strcmp(ctx->set_vars[i].var_name, var_name) == 0)
             return ctx->set_vars[i].inner_type;
     }
     return NULL;
 }
 
 void
-llvm_register_queue_var(LLVMGenCtx *ctx, const char *var_name,
-                        const char *inner_type)
+llvm_register_queue_var_binding(LLVMGenCtx *ctx, const char *var_name,
+                                LLVMValueRef binding,
+                                const char *inner_type)
 {
     char *owned_name;
     char *owned_inner;
@@ -114,23 +162,42 @@ llvm_register_queue_var(LLVMGenCtx *ctx, const char *var_name,
         return;
     }
     ctx->queue_vars[ctx->queue_var_count].var_name = owned_name;
+    ctx->queue_vars[ctx->queue_var_count].binding = binding;
     ctx->queue_vars[ctx->queue_var_count].inner_type = owned_inner;
     ctx->queue_var_count++;
+}
+
+void
+llvm_register_queue_var(LLVMGenCtx *ctx, const char *var_name,
+                        const char *inner_type)
+{
+    llvm_register_queue_var_binding(ctx, var_name,
+        llvm_collection_active_binding(ctx, var_name), inner_type);
 }
 
 const char *
 llvm_lookup_queue_inner(LLVMGenCtx *ctx, const char *var_name)
 {
+    LLVMValueRef binding;
+
+    if (ctx == NULL || var_name == NULL)
+        return NULL;
+    binding = llvm_collection_active_binding(ctx, var_name);
+    if (binding == NULL)
+        return NULL;
     for (int i = ctx->queue_var_count - 1; i >= 0; i--) {
-        if (strcmp(ctx->queue_vars[i].var_name, var_name) == 0)
+        if (ctx->queue_vars[i].binding == binding
+            && strcmp(ctx->queue_vars[i].var_name, var_name) == 0)
             return ctx->queue_vars[i].inner_type;
     }
     return NULL;
 }
 
 void
-llvm_register_map_var(LLVMGenCtx *ctx, const char *var_name,
-                      const char *key_type, const char *value_type)
+llvm_register_map_var_binding(LLVMGenCtx *ctx, const char *var_name,
+                              LLVMValueRef binding,
+                              const char *key_type,
+                              const char *value_type)
 {
     char *owned_name;
     char *owned_key;
@@ -151,16 +218,33 @@ llvm_register_map_var(LLVMGenCtx *ctx, const char *var_name,
         return;
     }
     ctx->map_vars[ctx->map_var_count].var_name = owned_name;
+    ctx->map_vars[ctx->map_var_count].binding = binding;
     ctx->map_vars[ctx->map_var_count].key_type = owned_key;
     ctx->map_vars[ctx->map_var_count].value_type = owned_value;
     ctx->map_var_count++;
 }
 
+void
+llvm_register_map_var(LLVMGenCtx *ctx, const char *var_name,
+                      const char *key_type, const char *value_type)
+{
+    llvm_register_map_var_binding(ctx, var_name,
+        llvm_collection_active_binding(ctx, var_name), key_type, value_type);
+}
+
 const char *
 llvm_lookup_map_key(LLVMGenCtx *ctx, const char *var_name)
 {
+    LLVMValueRef binding;
+
+    if (ctx == NULL || var_name == NULL)
+        return NULL;
+    binding = llvm_collection_active_binding(ctx, var_name);
+    if (binding == NULL)
+        return NULL;
     for (int i = ctx->map_var_count - 1; i >= 0; i--) {
-        if (strcmp(ctx->map_vars[i].var_name, var_name) == 0)
+        if (ctx->map_vars[i].binding == binding
+            && strcmp(ctx->map_vars[i].var_name, var_name) == 0)
             return ctx->map_vars[i].key_type;
     }
     return NULL;
@@ -169,8 +253,16 @@ llvm_lookup_map_key(LLVMGenCtx *ctx, const char *var_name)
 const char *
 llvm_lookup_map_value(LLVMGenCtx *ctx, const char *var_name)
 {
+    LLVMValueRef binding;
+
+    if (ctx == NULL || var_name == NULL)
+        return NULL;
+    binding = llvm_collection_active_binding(ctx, var_name);
+    if (binding == NULL)
+        return NULL;
     for (int i = ctx->map_var_count - 1; i >= 0; i--) {
-        if (strcmp(ctx->map_vars[i].var_name, var_name) == 0)
+        if (ctx->map_vars[i].binding == binding
+            && strcmp(ctx->map_vars[i].var_name, var_name) == 0)
             return ctx->map_vars[i].value_type;
     }
     return NULL;

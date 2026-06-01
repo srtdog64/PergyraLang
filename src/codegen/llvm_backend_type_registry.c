@@ -22,6 +22,9 @@ typedef enum LLVMRegistryTypeKind {
     LLVM_REGISTRY_TYPE_RC,
     LLVM_REGISTRY_TYPE_REMOTE_FUTURE,
     LLVM_REGISTRY_TYPE_SET,
+    LLVM_REGISTRY_TYPE_SLOT,
+    LLVM_REGISTRY_TYPE_SECURE_SLOT,
+    LLVM_REGISTRY_TYPE_DEVICE_SLOT,
     LLVM_REGISTRY_TYPE_SLICE,
     LLVM_REGISTRY_TYPE_WEAK,
 } LLVMRegistryTypeKind;
@@ -46,12 +49,14 @@ llvm_registry_type_kind(const char *type_name)
     static const LLVMRegistryTypeSpec specs[] = {
         { "Array", LLVM_REGISTRY_TYPE_ARRAY },
         { "Channel", LLVM_REGISTRY_TYPE_CHANNEL },
+        { "DeviceSlot", LLVM_REGISTRY_TYPE_DEVICE_SLOT },
         { "Future", LLVM_REGISTRY_TYPE_FUTURE },
         { "HashMap", LLVM_REGISTRY_TYPE_HASHMAP },
         { "List", LLVM_REGISTRY_TYPE_LIST },
         { "Queue", LLVM_REGISTRY_TYPE_QUEUE },
         { "Rc", LLVM_REGISTRY_TYPE_RC },
         { "RemoteFuture", LLVM_REGISTRY_TYPE_REMOTE_FUTURE },
+        { "SecureSlot", LLVM_REGISTRY_TYPE_SECURE_SLOT },
         { "Set", LLVM_REGISTRY_TYPE_SET },
         { "Slice", LLVM_REGISTRY_TYPE_SLICE },
         { "Weak", LLVM_REGISTRY_TYPE_WEAK },
@@ -67,6 +72,12 @@ llvm_registry_type_kind(const char *type_name)
         return LLVM_REGISTRY_TYPE_RC;
     if (pgy_kind == PGY_TK_WEAK)
         return LLVM_REGISTRY_TYPE_WEAK;
+    if (pgy_kind == PGY_TK_SLOT)
+        return LLVM_REGISTRY_TYPE_SLOT;
+    if (pgy_kind == PGY_TK_SECURE_SLOT)
+        return LLVM_REGISTRY_TYPE_SECURE_SLOT;
+    if (pgy_kind == PGY_TK_DEVICE_SLOT)
+        return LLVM_REGISTRY_TYPE_DEVICE_SLOT;
 
     spec = (const LLVMRegistryTypeSpec *)bsearch(&type_name,
         specs,
@@ -126,9 +137,21 @@ llvm_registry_generic_arg_type(GenericParams *generic_args, size_t index)
     return ast_generic_param_constraint(param);
 }
 
+static LLVMValueRef
+llvm_registry_active_binding(LLVMGenCtx *ctx, const char *var_name)
+{
+    LLVMVarEntry *entry;
+
+    if (ctx == NULL || var_name == NULL)
+        return NULL;
+    entry = llvm_scope_lookup(ctx, var_name);
+    return entry != NULL ? entry->alloca : NULL;
+}
+
 void
-llvm_register_typed_var(LLVMGenCtx *ctx, const char *var_name,
-                        ASTNode *type_node)
+llvm_register_typed_var_binding(LLVMGenCtx *ctx, const char *var_name,
+                                LLVMValueRef binding,
+                                ASTNode *type_node)
 {
     const char *type_name;
     LLVMRegistryTypeKind type_kind;
@@ -169,7 +192,7 @@ llvm_register_typed_var(LLVMGenCtx *ctx, const char *var_name,
         LLVMTypeRef elem_type = pergyra_type_to_llvm(ctx, elem_name);
         if (ctx->has_error || elem_type == NULL)
             return;
-        llvm_register_array_var(ctx, var_name, elem_type, -1);
+        llvm_register_array_var_binding(ctx, var_name, binding, elem_type, -1);
     }
 
     if (type_kind == LLVM_REGISTRY_TYPE_LIST
@@ -179,7 +202,34 @@ llvm_register_typed_var(LLVMGenCtx *ctx, const char *var_name,
             "List<T>");
         if (inner_name == NULL)
             return;
-        llvm_register_list_var(ctx, var_name, inner_name);
+        llvm_register_list_var_binding(ctx, var_name, binding, inner_name);
+        free(inner_name);
+        return;
+    }
+
+    if ((type_kind == LLVM_REGISTRY_TYPE_SLOT
+         || type_kind == LLVM_REGISTRY_TYPE_SECURE_SLOT)
+        && arg0_type != NULL) {
+        char *inner_name = llvm_registry_render_required_type_name(ctx,
+            type_node, arg0_type,
+            type_kind == LLVM_REGISTRY_TYPE_SECURE_SLOT
+                ? "SecureSlot<T>" : "Slot<T>");
+        if (inner_name == NULL)
+            return;
+        llvm_register_slot_var_binding(ctx, var_name, binding, inner_name,
+            type_kind == LLVM_REGISTRY_TYPE_SECURE_SLOT);
+        free(inner_name);
+        return;
+    }
+
+    if (type_kind == LLVM_REGISTRY_TYPE_DEVICE_SLOT
+        && arg0_type != NULL) {
+        char *inner_name = llvm_registry_render_required_type_name(ctx,
+            type_node, arg0_type, "DeviceSlot<T>");
+        if (inner_name == NULL)
+            return;
+        llvm_register_device_slot_var_binding(ctx, var_name, binding,
+            inner_name);
         free(inner_name);
         return;
     }
@@ -191,7 +241,7 @@ llvm_register_typed_var(LLVMGenCtx *ctx, const char *var_name,
             "Set<T>");
         if (inner_name == NULL)
             return;
-        llvm_register_set_var(ctx, var_name, inner_name);
+        llvm_register_set_var_binding(ctx, var_name, binding, inner_name);
         free(inner_name);
         return;
     }
@@ -203,7 +253,7 @@ llvm_register_typed_var(LLVMGenCtx *ctx, const char *var_name,
             "Queue<T>");
         if (inner_name == NULL)
             return;
-        llvm_register_queue_var(ctx, var_name, inner_name);
+        llvm_register_queue_var_binding(ctx, var_name, binding, inner_name);
         free(inner_name);
         return;
     }
@@ -222,7 +272,8 @@ llvm_register_typed_var(LLVMGenCtx *ctx, const char *var_name,
             free(value_name);
             return;
         }
-        llvm_register_map_var(ctx, var_name, key_name, value_name);
+        llvm_register_map_var_binding(ctx, var_name, binding, key_name,
+            value_name);
         free(key_name);
         free(value_name);
         return;
@@ -236,7 +287,7 @@ llvm_register_typed_var(LLVMGenCtx *ctx, const char *var_name,
             "Future<T>");
         if (inner_name == NULL)
             return;
-        llvm_register_future_var(ctx, var_name, inner_name,
+        llvm_register_future_var_binding(ctx, var_name, binding, inner_name,
             type_kind == LLVM_REGISTRY_TYPE_REMOTE_FUTURE);
         free(inner_name);
         return;
@@ -249,7 +300,7 @@ llvm_register_typed_var(LLVMGenCtx *ctx, const char *var_name,
             "Channel<T>");
         if (inner_name == NULL)
             return;
-        llvm_register_channel_var(ctx, var_name, inner_name);
+        llvm_register_channel_var_binding(ctx, var_name, binding, inner_name);
         free(inner_name);
         return;
     }
@@ -277,9 +328,9 @@ llvm_register_typed_var(LLVMGenCtx *ctx, const char *var_name,
             return;
         }
         if (type_kind == LLVM_REGISTRY_TYPE_RC)
-            llvm_register_rc_var(ctx, var_name, inner_name);
+            llvm_register_rc_var_binding(ctx, var_name, binding, inner_name);
         else
-            llvm_register_weak_var(ctx, var_name, inner_name);
+            llvm_register_weak_var_binding(ctx, var_name, binding, inner_name);
         if (free_inner_name)
             free(inner_name);
         return;
@@ -288,6 +339,78 @@ llvm_register_typed_var(LLVMGenCtx *ctx, const char *var_name,
     if (llvm_lookup_class(ctx, type_name) != NULL
         || llvm_find_enum_decl(ctx, type_name) != NULL)
         llvm_register_var_class(ctx, var_name, type_name);
+}
+
+void
+llvm_register_typed_var_abi_binding(LLVMGenCtx *ctx,
+                                    const char *var_name,
+                                    LLVMValueRef binding,
+                                    const char *abi_type_name)
+{
+    PgyTypeKind kind;
+    char *inner_name;
+
+    if (ctx == NULL || var_name == NULL || abi_type_name == NULL)
+        return;
+
+    kind = pgy_classify_type(abi_type_name);
+    switch (kind) {
+    case PGY_TK_SLOT:
+    case PGY_TK_SECURE_SLOT:
+    case PGY_TK_DEVICE_SLOT:
+    case PGY_TK_FUTURE:
+    case PGY_TK_REMOTE_FUTURE:
+    case PGY_TK_CHANNEL:
+    case PGY_TK_RC:
+    case PGY_TK_WEAK:
+        inner_name = llvm_copy_first_constructed_arg_name(ctx, abi_type_name);
+        break;
+    default:
+        return;
+    }
+
+    if (inner_name == NULL || inner_name[0] == '\0') {
+        if (!ctx->has_error)
+            llvm_set_error(ctx,
+                "LLVM ABI type registry requires concrete resource metadata");
+        return;
+    }
+
+    switch (kind) {
+    case PGY_TK_SLOT:
+    case PGY_TK_SECURE_SLOT:
+        llvm_register_slot_var_binding(ctx, var_name, binding, inner_name,
+            kind == PGY_TK_SECURE_SLOT);
+        return;
+    case PGY_TK_DEVICE_SLOT:
+        llvm_register_device_slot_var_binding(ctx, var_name, binding,
+            inner_name);
+        return;
+    case PGY_TK_FUTURE:
+    case PGY_TK_REMOTE_FUTURE:
+        llvm_register_future_var_binding(ctx, var_name, binding, inner_name,
+            kind == PGY_TK_REMOTE_FUTURE);
+        return;
+    case PGY_TK_CHANNEL:
+        llvm_register_channel_var_binding(ctx, var_name, binding, inner_name);
+        return;
+    case PGY_TK_RC:
+        llvm_register_rc_var_binding(ctx, var_name, binding, inner_name);
+        return;
+    case PGY_TK_WEAK:
+        llvm_register_weak_var_binding(ctx, var_name, binding, inner_name);
+        return;
+    default:
+        return;
+    }
+}
+
+void
+llvm_register_typed_var(LLVMGenCtx *ctx, const char *var_name,
+                        ASTNode *type_node)
+{
+    llvm_register_typed_var_binding(ctx, var_name,
+        llvm_registry_active_binding(ctx, var_name), type_node);
 }
 
 #endif /* PGY_LLVM_ENABLED */

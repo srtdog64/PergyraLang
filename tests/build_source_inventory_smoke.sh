@@ -323,6 +323,11 @@ if ! grep -Fq 'pgy_powershell_quote' "$ROOT_DIR/tests/compare_backends.sh"; then
     echo "[build-source-inventory] backend compare PowerShell fallback must quote paths explicitly" >&2
     missing=1
 fi
+if ! grep -Fq 'PGY_BACKEND_COMPARE_SHARD_TOTAL' "$ROOT_DIR/tests/compare_backends.sh" \
+    || ! grep -Fq 'case_index % shard_total' "$ROOT_DIR/tests/compare_backends.sh"; then
+    echo "[build-source-inventory] backend compare must keep deterministic shard selection" >&2
+    missing=1
+fi
 
 bash4_lint_dirs=(tests)
 if [[ -d "$ROOT_DIR/src/self_hosted/parity" ]]; then

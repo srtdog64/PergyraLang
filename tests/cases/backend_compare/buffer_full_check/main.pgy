@@ -1,0 +1,35 @@
+class Buffer {
+    let head: Int;
+    let tail: Int;
+    let cap: Int;
+
+    func Size(self) -> Int { return self.tail - self.head; }
+    func Full(self) -> Bool { return self.Size() >= self.cap; }
+    func Empty(self) -> Bool { return self.head == self.tail; }
+}
+
+func New(cap: Int) -> Buffer { return Buffer(0, 0, cap); }
+
+func Enqueue(b: Buffer) -> Buffer {
+    if b.Full() { return b; }
+    return Buffer(b.head, b.tail + 1, b.cap);
+}
+
+func Dequeue(b: Buffer) -> Buffer {
+    if b.Empty() { return b; }
+    return Buffer(b.head + 1, b.tail, b.cap);
+}
+
+func Main() -> Void {
+    let b: Buffer = New(5);
+    Log(b.Size());
+    Log(b.Empty());
+    let b1: Buffer = Enqueue(b);
+    Log(b1.Size());
+    let b3: Buffer = Enqueue(Enqueue(b1));
+    Log(b3.Size());
+    Log(b3.Full());
+    let b4: Buffer = Enqueue(Enqueue(Enqueue(b3)));
+    Log(b4.Size());
+    Log(b4.Full());
+}

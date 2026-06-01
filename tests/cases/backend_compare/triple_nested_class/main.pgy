@@ -1,0 +1,26 @@
+class Inner {
+    let val: Int;
+}
+
+class Middle {
+    let inner: Inner;
+    let factor: Int;
+}
+
+class Outer {
+    let middle: Middle;
+    let tag: Int;
+}
+
+func Build(v: Int, f: Int, t: Int) -> Outer {
+    return Outer(Middle(Inner(v), f), t);
+}
+
+func Main() -> Void {
+    let o: Outer = Build(10, 3, 1);
+    Log(o.middle.inner.val);
+    Log(o.middle.factor);
+    Log(o.tag);
+    Log(o.middle.inner.val * o.middle.factor + o.tag);
+    Log(Build(99, 5, 2).middle.inner.val);
+}

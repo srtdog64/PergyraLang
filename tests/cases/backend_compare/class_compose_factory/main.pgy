@@ -1,0 +1,34 @@
+class Weapon {
+    let attack: Int;
+    let speed: Int;
+}
+
+class Char {
+    let hp: Int;
+    let weapon: Weapon;
+
+    func Dps(self) -> Int {
+        return self.weapon.attack * self.weapon.speed;
+    }
+}
+
+func MakeSword(power: Int) -> Weapon { return Weapon(power, 2); }
+func MakeDagger(power: Int) -> Weapon { return Weapon(power, 5); }
+
+func MakeWarrior(hp: Int, weapon_power: Int) -> Char {
+    return Char(hp, MakeSword(weapon_power));
+}
+
+func MakeRogue(hp: Int, weapon_power: Int) -> Char {
+    return Char(hp, MakeDagger(weapon_power));
+}
+
+func Main() -> Void {
+    let w: Char = MakeWarrior(100, 50);
+    Log(w.hp);
+    Log(w.weapon.attack);
+    Log(w.Dps());
+    let r: Char = MakeRogue(50, 30);
+    Log(r.hp);
+    Log(r.Dps());
+}

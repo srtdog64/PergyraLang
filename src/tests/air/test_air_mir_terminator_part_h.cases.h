@@ -123,6 +123,61 @@ test_air_rejects_mir_evidence_without_routine_provider(void)
 }
 
 static bool
+test_air_rejects_malformed_mir_routine_inventory(void)
+{
+    AIRProgram *missing_routines_air =
+        (AIRProgram *)calloc(1, sizeof(AIRProgram));
+    AIRProgram *missing_blocks_air =
+        (AIRProgram *)calloc(1, sizeof(AIRProgram));
+    MIRProgram missing_routines_mir;
+    MIRProgram missing_blocks_mir;
+    MIRRoutine routine;
+    char *error = NULL;
+    bool ok;
+
+    if (missing_routines_air == NULL || missing_blocks_air == NULL) {
+        air_destroy(missing_routines_air);
+        air_destroy(missing_blocks_air);
+        return false;
+    }
+
+    memset(&missing_routines_mir, 0, sizeof(missing_routines_mir));
+    missing_routines_mir.routine_count = 1;
+
+    ok = !air_collect_mir_evidence(missing_routines_air,
+                                   &missing_routines_mir,
+                                   &error)
+        && error != NULL
+        && strstr(error,
+                  "AIR MIR evidence has invalid routine inventory row[0]") != NULL
+        && missing_routines_air->has_mir_input
+        && missing_routines_air->evidence_count == 0;
+    free(error);
+    error = NULL;
+
+    memset(&routine, 0, sizeof(routine));
+    routine.name = "missing_blocks";
+    routine.block_count = 1;
+    memset(&missing_blocks_mir, 0, sizeof(missing_blocks_mir));
+    missing_blocks_mir.routines = &routine;
+    missing_blocks_mir.routine_count = 1;
+
+    ok = ok
+        && !air_collect_mir_evidence(missing_blocks_air,
+                                     &missing_blocks_mir,
+                                     &error)
+        && error != NULL
+        && strstr(error,
+                  "AIR MIR evidence requires block inventory for routine 'missing_blocks'") != NULL
+        && missing_blocks_air->has_mir_input
+        && missing_blocks_air->evidence_count == 0;
+    free(error);
+    air_destroy(missing_routines_air);
+    air_destroy(missing_blocks_air);
+    return ok;
+}
+
+static bool
 test_air_collects_mir_select_receive_evidence(void)
 {
     AIRProgram *air = (AIRProgram *)calloc(1, sizeof(AIRProgram));

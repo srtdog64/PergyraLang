@@ -1,0 +1,16 @@
+subject Ent { let id: Int; let life: Int; }
+
+zone Arena {
+    subject slot fighter: Ent
+    shared rounds: Int = 0
+
+    func Tick(self) -> Int {
+        return rounds;
+    }
+}
+
+func Main() -> Void {
+    let e: Ent = Ent(1, 100);
+    Log(e.id);
+    Log(e.life);
+}

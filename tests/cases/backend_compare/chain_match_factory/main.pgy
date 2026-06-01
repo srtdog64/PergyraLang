@@ -1,0 +1,25 @@
+class Lot {
+    let qty: Int;
+
+    func Doubled(self) -> Int { return self.qty * 2; }
+}
+
+enum Op { Buy, Sell }
+
+func Lots(op: Op, base: Int) -> Lot {
+    match op {
+        case Buy: return Lot(base);
+        case Sell: return Lot(0 - base);
+    }
+}
+
+func Compute(op: Op, base: Int) -> Int {
+    return Lots(op, base).Doubled();
+}
+
+func Main() -> Void {
+    Log(Compute(Buy, 10));
+    Log(Compute(Sell, 5));
+    Log(Lots(Buy, 100).Doubled() + Lots(Sell, 50).Doubled());
+    Log(Lots(Buy, 7).qty);
+}

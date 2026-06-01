@@ -179,7 +179,9 @@ llvm_emit_block(ASTNode *node, LLVMGenCtx *ctx)
             }
             LLVMFuncEntry *fn = llvm_lookup_function(ctx, fn_name);
             LLVMVarEntry *var = llvm_scope_lookup(ctx, vname);
-            if (fn != NULL && var != NULL) {
+            if (var == NULL || var->alloca != ctx->slot_vars[i].binding)
+                continue;
+            if (fn != NULL) {
                 if (is_secure) {
                     LLVMVarEntry *token_var = llvm_lookup_secure_token_var(ctx, vname);
                     if (token_var != NULL) {
@@ -198,8 +200,7 @@ llvm_emit_block(ASTNode *node, LLVMGenCtx *ctx)
                     LLVMValueRef args[] = { var->alloca };
                     LLVMBuildCall2(ctx->builder, fn->fn_type, fn->fn, args, 1, "");
                 }
-            } else if (var != NULL
-                       && pgy_classify_type(inner) != PGY_TK_UNKNOWN) {
+            } else if (pgy_classify_type(inner) != PGY_TK_UNKNOWN) {
                 llvm_set_error_at_with_hints(ctx, node,
                     PGY_CODE_LLVM_TYPE_UNSUPPORTED,
                     PGY_CAUSE_LLVM_TYPE_UNSUPPORTED,
@@ -207,7 +208,7 @@ llvm_emit_block(ASTNode *node, LLVMGenCtx *ctx)
                     "LLVM auto-release requires registered runtime function '%s'",
                     fn_name);
                 break;
-            } else if (is_secure && var != NULL) {
+            } else if (is_secure) {
                 LLVMValueRef occ_ptr = LLVMBuildStructGEP2(ctx->builder,
                     var->type, var->alloca, 1, llvm_tmp_name(ctx));
                 LLVMValueRef token_ptr = LLVMBuildStructGEP2(ctx->builder,
@@ -217,13 +218,14 @@ llvm_emit_block(ASTNode *node, LLVMGenCtx *ctx)
                     occ_ptr);
                 LLVMBuildStore(ctx->builder,
                     LLVMConstInt(ctx->type_i64, 0, 0), token_ptr);
-            } else if (!is_secure && var != NULL) {
+            } else {
                 LLVMValueRef occ_ptr = LLVMBuildStructGEP2(ctx->builder,
                     var->type, var->alloca, 1, llvm_tmp_name(ctx));
                 LLVMBuildStore(ctx->builder,
                     LLVMConstInt(LLVMInt1TypeInContext(ctx->context), 0, 0),
                     occ_ptr);
             }
+            ctx->slot_vars[i].released = true;
         }
     }
 

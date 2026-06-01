@@ -165,12 +165,14 @@ air_node_column(const ASTNode *node)
 static const AIRBoundaryNode *
 air_evidence_boundary(const AIRProgram *air, const AIREvidenceNode *evidence)
 {
+    size_t boundary_index = air_evidence_node_boundary_index_or(evidence,
+                                                                SIZE_MAX);
     if (air == NULL || evidence == NULL
-        || evidence->boundary_index == SIZE_MAX
-        || evidence->boundary_index >= air_boundary_node_count(air)) {
+        || boundary_index == SIZE_MAX
+        || boundary_index >= air_boundary_node_count(air)) {
         return NULL;
     }
-    return air_boundary_node_at(air, evidence->boundary_index);
+    return air_boundary_node_at(air, boundary_index);
 }
 
 static void
@@ -344,19 +346,24 @@ air_dump_json_evidence(const AIRProgram *air, FILE *out)
     for (size_t i = 0; i < air_evidence_node_count(air); i++) {
         const AIREvidenceNode *evidence = air_evidence_node_at(air, i);
         const AIRBoundaryNode *boundary = air_evidence_boundary(air, evidence);
+        size_t boundary_index = air_evidence_node_boundary_index_or(evidence,
+                                                                    SIZE_MAX);
         if (evidence == NULL)
             continue;
         if (i > 0)
             fputc(',', out);
         fprintf(out, "{\"id\":%zu,\"kind\":", i);
-        air_json_string(out, air_evidence_kind_name(evidence->kind));
-        if (evidence->boundary_index == SIZE_MAX)
+        air_json_string(out,
+                        air_evidence_kind_name(air_evidence_node_kind(evidence)));
+        if (boundary_index == SIZE_MAX)
             fputs(",\"boundary\":null,\"provider\":", out);
         else
-            fprintf(out, ",\"boundary\":%zu,\"provider\":", evidence->boundary_index);
-        air_json_string(out, evidence->provider_name);
+            fprintf(out, ",\"boundary\":%zu,\"provider\":", boundary_index);
+        air_json_string(out,
+                        air_evidence_node_provider_name_or(evidence, NULL));
         fputs(",\"subject\":", out);
-        air_json_string(out, evidence->subject_name);
+        air_json_string(out,
+                        air_evidence_node_subject_name_or(evidence, NULL));
         fputs(",\"boundary_kind\":", out);
         air_json_string(out, boundary != NULL
                              ? air_boundary_kind_name(boundary->kind)
@@ -367,8 +374,8 @@ air_dump_json_evidence(const AIRProgram *air, FILE *out)
         air_json_string(out, boundary != NULL ? boundary->source_name : NULL);
         fprintf(out,
                 ",\"fact_count\":%zu,\"fallback_count\":%zu",
-                evidence->fact_count,
-                evidence->fallback_count);
+                air_evidence_node_fact_count(evidence),
+                air_evidence_node_fallback_count(evidence));
         fputc('}', out);
     }
     fputs("]", out);

@@ -1,0 +1,35 @@
+class Stat {
+    let raw: Int;
+    let cap: Int;
+
+    func Normalized(self) -> Int {
+        if self.cap == 0 { return 0; }
+        let pct: Int = self.raw * 100 / self.cap;
+        if pct > 100 { return 100; }
+        if pct < 0 { return 0; }
+        return pct;
+    }
+}
+
+func Make(r: Int, c: Int) -> Stat { return Stat(r, c); }
+
+func MaxNormalized(raws: Array<Int>, caps: Array<Int>, n: Int) -> Int {
+    let best: Int = 0;
+    let i: Int = 0;
+    while i < n {
+        let cur: Int = Make(raws[i], caps[i]).Normalized();
+        if cur > best { best = cur; }
+        i = i + 1;
+    }
+    return best;
+}
+
+func Main() -> Void {
+    let r: Array<Int> = [50, 70, 100, 30];
+    let c: Array<Int> = [100, 100, 50, 100];
+    Log(MaxNormalized(r, c, 4));
+    let empty: Array<Int> = [];
+    Log(MaxNormalized(empty, empty, 0));
+    let zero: Array<Int> = [0, 0];
+    Log(MaxNormalized(zero, zero, 2));
+}

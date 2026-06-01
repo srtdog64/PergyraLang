@@ -85,6 +85,49 @@ air_evidence_node_at(const AIRProgram *air, size_t index)
     return &air->evidence_nodes[index];
 }
 
+AIREvidenceKind
+air_evidence_node_kind(const AIREvidenceNode *evidence)
+{
+    return evidence != NULL ? evidence->kind : AIR_EVIDENCE_KIND_COUNT;
+}
+
+size_t
+air_evidence_node_boundary_index_or(const AIREvidenceNode *evidence,
+                                    size_t fallback)
+{
+    return evidence != NULL ? evidence->boundary_index : fallback;
+}
+
+const char *
+air_evidence_node_provider_name_or(const AIREvidenceNode *evidence,
+                                   const char *fallback)
+{
+    return evidence != NULL && evidence->provider_name != NULL
+        ? evidence->provider_name
+        : fallback;
+}
+
+const char *
+air_evidence_node_subject_name_or(const AIREvidenceNode *evidence,
+                                  const char *fallback)
+{
+    return evidence != NULL && evidence->subject_name != NULL
+        ? evidence->subject_name
+        : fallback;
+}
+
+size_t
+air_evidence_node_fact_count(const AIREvidenceNode *evidence)
+{
+    return evidence != NULL ? evidence->fact_count : 0;
+}
+
+size_t
+air_evidence_node_fallback_count(const AIREvidenceNode *evidence)
+{
+    return evidence != NULL ? evidence->fallback_count : 0;
+}
+
 static bool
 air_evidence_node_merge_counts(AIREvidenceNode *node,
                                AIREvidenceKind kind,

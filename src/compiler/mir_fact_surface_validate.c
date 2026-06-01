@@ -101,9 +101,7 @@ mir_validate_instruction_surface_usage(const MIRRoutine *routine,
             }
             return false;
         }
-        if (inst->kind == MIR_INST_RESOURCE_OP
-            && inst->name != NULL
-            && strcmp(inst->name, "Write") == 0
+        if (mir_instruction_resource_op_is_write(inst)
             && mir_instruction_source_matches_ast_type(inst, AST_CALL)
             && inst->expr0 == NULL) {
             if (error_message != NULL) {
@@ -151,10 +149,7 @@ mir_validate_instruction_surface_usage(const MIRRoutine *routine,
             }
             return false;
         }
-        if (inst->kind == MIR_INST_RESOURCE_OP
-            && inst->name != NULL
-            && strcmp(inst->name, "Claim") == 0
-            && mir_instruction_source_is_with_slot_claim(inst)) {
+        if (mir_instruction_source_is_with_slot_claim(inst)) {
             if (inst->type_layout == NULL
                 || inst->type_layout->abi_type_name == NULL) {
                 if (error_message != NULL) {

@@ -17,6 +17,7 @@
 #include "transpiler_decl_lookup.h"
 #include "transpiler_enum.h"
 #include "transpiler_extern.h"
+#include "transpiler_generic_param_query.h"
 #include "transpiler_log_normalize.h"
 #include "transpiler_nominal.h"
 #include "transpiler_operator.h"
@@ -311,8 +312,10 @@ emit_program(TranspilerCtx *ctx)
     for (size_t i = 0; i < event_count; i++)
         emit_event_decl(events[i], ctx);
 
-    for (size_t i = 0; i < function_count; i++)
-        emit_func_forward_decl(functions[i], ctx->decls, ctx);
+    for (size_t i = 0; i < function_count; i++) {
+        if (!transpiler_func_has_generic_params(functions[i]))
+            emit_func_forward_decl(functions[i], ctx->decls, ctx);
+    }
     if (synthetic_executable_func != NULL)
         emit_func_forward_decl(synthetic_executable_func, ctx->decls, ctx);
     for (size_t i = 0; i < intent_count; i++)
@@ -326,8 +329,10 @@ emit_program(TranspilerCtx *ctx)
         CodeBuf *func_buf = codebuf_create();
         CodeBuf *saved_out = ctx->out;
         ctx->out = func_buf;
-        for (size_t i = 0; i < function_count; i++)
-            emit_func_decl(functions[i], ctx);
+        for (size_t i = 0; i < function_count; i++) {
+            if (!transpiler_func_has_generic_params(functions[i]))
+                emit_func_decl(functions[i], ctx);
+        }
         if (synthetic_executable_func != NULL)
             emit_func_decl(synthetic_executable_func, ctx);
         for (size_t i = 0; i < intent_count; i++)

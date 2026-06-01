@@ -11,6 +11,7 @@
 #include "llvm_domain_role_helpers.h"
 #include "llvm_inventory_decl_lookup.h"
 #include "llvm_inventory_host_methods.h"
+#include "llvm_mir_type_helpers.h"
 
 static void
 llvm_emit_role_method_forward_decls_metadata_first(
@@ -45,6 +46,12 @@ llvm_emit_role_method_forward_decls_metadata_first(
         char fname[256];
         LLVMValueRef fn;
 
+        if (llvm_hosted_method_view_missing_mir_method_row(methods, j)) {
+            llvm_set_mir_inventory_missing(ctx,
+                "MIR-only LLVM path has invalid method forward metadata row for role '%s'",
+                role_name != NULL ? role_name : "(anonymous-role)");
+            return;
+        }
         if (method_meta == NULL
             && (method == NULL || method->type != AST_FUNC_DECL))
             continue;
@@ -76,6 +83,10 @@ llvm_emit_role_method_forward_decls_metadata_first(
                 ctx, method, p, "role method", mname);
             if (ctx->has_error || pt == NULL)
                 return;
+            if (p != NULL && p->type != NULL
+                && llvm_mir_param_uses_pointer_self(ctx, p->type)) {
+                pt = LLVMPointerType(pt, 0);
+            }
             ptypes[pidx++] = pt;
         }
 

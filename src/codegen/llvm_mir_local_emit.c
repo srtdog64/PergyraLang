@@ -118,7 +118,11 @@ llvm_mir_value_expr_is_method_call(ASTNode *expr)
 {
     ASTNode *callee;
 
-    if (expr == NULL || expr->type != AST_CALL)
+    if (expr == NULL)
+        return false;
+    if (expr->type == AST_ARRAY_ACCESS)
+        return true;
+    if (expr->type != AST_CALL)
         return false;
     callee = ast_call_callee(expr);
     if (callee == NULL)
@@ -260,6 +264,159 @@ llvm_mir_local_type_from_slice_copy_fact(const MIRRoutine *routine,
     return NULL;
 }
 
+static ASTNode *
+llvm_mir_local_initializer_expr(ASTNode *expr)
+{
+    if (expr != NULL && expr->type == AST_LET_DECL)
+        return ast_let_initializer(expr);
+    return expr;
+}
+
+static ASTNode *
+llvm_mir_local_recv_expr(ASTNode *expr)
+{
+    ASTNode *value = llvm_mir_local_initializer_expr(expr);
+
+    if (value == NULL)
+        return NULL;
+    if (value->type == AST_CHANNEL_RECV)
+        return value;
+    if (value->type == AST_ASSIGNMENT
+        && ast_assignment_value(value) != NULL
+        && ast_assignment_value(value)->type == AST_CHANNEL_RECV) {
+        return ast_assignment_value(value);
+    }
+    return NULL;
+}
+
+static ASTNode *
+llvm_mir_local_await_expr(ASTNode *expr)
+{
+    ASTNode *value = llvm_mir_local_initializer_expr(expr);
+
+    return value != NULL && value->type == AST_AWAIT_EXPR ? value : NULL;
+}
+
+static const MIRInstruction *
+llvm_mir_local_find_base_def(const MIRRoutine *routine, const char *base_name)
+{
+    char result_base[128];
+
+    if (routine == NULL || base_name == NULL)
+        return NULL;
+    for (size_t b = 0; b < routine->block_count; b++) {
+        const MIRBasicBlock *block = &routine->blocks[b];
+        for (size_t i = 0; i < block->instruction_count; i++) {
+            const MIRInstruction *candidate = &block->instructions[i];
+            if (candidate->kind != MIR_INST_DEF)
+                continue;
+            if (candidate->arg0 != NULL
+                && strcmp(candidate->arg0, base_name) == 0)
+                return candidate;
+            if (candidate->result_name == NULL)
+                continue;
+            if (!llvm_mir_base_name_from_versioned(candidate->result_name,
+                    result_base, sizeof(result_base)))
+                continue;
+            if (strcmp(result_base, base_name) == 0)
+                return candidate;
+        }
+    }
+    return NULL;
+}
+
+static const char *
+llvm_mir_local_first_type_arg_scratch(LLVMGenCtx *ctx, ASTNode *type_node,
+                                      const char *container_name)
+{
+    GenericParams *args;
+    GenericParam *arg0;
+
+    if (ctx == NULL || type_node == NULL || type_node->type != AST_TYPE)
+        return NULL;
+    if (ast_type_name(type_node) == NULL
+        || strcmp(ast_type_name(type_node), container_name) != 0)
+        return NULL;
+    args = ast_type_generic_args(type_node);
+    arg0 = ast_generic_param_at(args, 0);
+    if (arg0 == NULL)
+        return NULL;
+    return llvm_stmt_render_type_arg_scratch(arg0, &ctx->scratch);
+}
+
+static LLVMTypeRef
+llvm_mir_local_type_from_channel_recv_fact(const MIRRoutine *routine,
+                                           LLVMGenCtx *ctx,
+                                           const MIRInstruction *inst)
+{
+    ASTNode *recv;
+    ASTNode *channel;
+    const MIRInstruction *channel_def;
+    ASTNode *source;
+    ASTNode *type_ann;
+    const char *inner;
+
+    if (routine == NULL || ctx == NULL || inst == NULL)
+        return NULL;
+    recv = llvm_mir_local_recv_expr(inst->expr0);
+    if (recv == NULL)
+        return NULL;
+    channel = ast_channel_recv_channel(recv);
+    if (channel == NULL || channel->type != AST_IDENTIFIER
+        || ast_identifier_name(channel) == NULL)
+        return NULL;
+
+    channel_def = llvm_mir_local_find_base_def(routine,
+        ast_identifier_name(channel));
+    source = mir_instruction_source_payload(channel_def);
+    type_ann = source != NULL && source->type == AST_LET_DECL
+        ? ast_let_type(source) : NULL;
+    inner = llvm_mir_local_first_type_arg_scratch(ctx, type_ann, "Channel");
+    if (inner == NULL || inner[0] == '\0')
+        return NULL;
+    return pergyra_type_to_llvm(ctx, inner);
+}
+
+static LLVMTypeRef
+llvm_mir_local_type_from_await_fact(const MIRRoutine *routine,
+                                    LLVMGenCtx *ctx,
+                                    const MIRInstruction *inst)
+{
+    ASTNode *await_expr;
+    ASTNode *operand;
+    const MIRInstruction *future_def;
+    ASTNode *source;
+    ASTNode *type_ann;
+    ASTNode *init;
+    const char *inner;
+
+    if (routine == NULL || ctx == NULL || inst == NULL)
+        return NULL;
+    await_expr = llvm_mir_local_await_expr(inst->expr0);
+    if (await_expr == NULL)
+        return NULL;
+    operand = ast_await_expression(await_expr);
+    if (operand == NULL || operand->type != AST_IDENTIFIER
+        || ast_identifier_name(operand) == NULL)
+        return NULL;
+
+    future_def = llvm_mir_local_find_base_def(routine,
+        ast_identifier_name(operand));
+    source = mir_instruction_source_payload(future_def);
+    type_ann = source != NULL && source->type == AST_LET_DECL
+        ? ast_let_type(source) : NULL;
+    inner = llvm_mir_local_first_type_arg_scratch(ctx, type_ann, "Future");
+    if (inner == NULL || inner[0] == '\0') {
+        init = source != NULL && source->type == AST_LET_DECL
+            ? ast_let_initializer(source) : NULL;
+        if (init != NULL && init->type == AST_SPAWN_EXPR)
+            inner = llvm_infer_spawn_future_inner(ctx, init);
+    }
+    if (inner == NULL || inner[0] == '\0')
+        return NULL;
+    return pergyra_type_to_llvm(ctx, inner);
+}
+
 static LLVMTypeRef
 llvm_mir_local_type_from_instruction_fact(const MIRRoutine *routine,
                                           LLVMGenCtx *ctx,
@@ -285,6 +442,14 @@ llvm_mir_local_type_from_instruction_fact(const MIRRoutine *routine,
 
     type = llvm_mir_local_type_from_slice_copy_fact(routine, ctx, inst,
         vars, var_count, depth);
+    if (ctx->has_error || type != NULL)
+        return type;
+
+    type = llvm_mir_local_type_from_channel_recv_fact(routine, ctx, inst);
+    if (ctx->has_error || type != NULL)
+        return type;
+
+    type = llvm_mir_local_type_from_await_fact(routine, ctx, inst);
     if (ctx->has_error || type != NULL)
         return type;
 
@@ -353,7 +518,6 @@ llvm_emit_mir_local_allocas(const MIRRoutine *routine, LLVMGenCtx *ctx,
                     if (ctx->has_error || alloca_type == NULL)
                         return;
                     if (has_base_name) {
-                        llvm_register_typed_var(ctx, base_name, type_expr);
                         llvm_mir_register_nominal_class(ctx, base_name,
                                                         type_expr);
                     }
@@ -371,6 +535,12 @@ llvm_emit_mir_local_allocas(const MIRRoutine *routine, LLVMGenCtx *ctx,
                     if (alloca_type == NULL && has_base_name) {
                         alloca_type = llvm_mir_local_type_from_vars(
                             vars, var_count, base_name);
+                    }
+                    if (alloca_type == NULL) {
+                        alloca_type = llvm_mir_local_type_from_instruction_fact(
+                            routine, ctx, inst, vars, var_count, 0);
+                        if (ctx->has_error)
+                            return;
                     }
                     if (alloca_type == NULL)
                         alloca_type = llvm_stmt_infer_expr_type(ctx, value_expr);
@@ -409,6 +579,16 @@ llvm_emit_mir_local_allocas(const MIRRoutine *routine, LLVMGenCtx *ctx,
                 vars[var_count].type = alloca_type;
                 vars[var_count].alloca = llvm_create_entry_alloca(
                     ctx, alloca_type, inst->result_name);
+                if (has_base_name && type_expr != NULL) {
+                    llvm_register_typed_var_binding(ctx, base_name,
+                        vars[var_count].alloca, type_expr);
+                } else if (has_base_name
+                           && inst->type_layout != NULL
+                           && inst->type_layout->abi_type_name != NULL) {
+                    llvm_register_typed_var_abi_binding(ctx, base_name,
+                        vars[var_count].alloca,
+                        inst->type_layout->abi_type_name);
+                }
                 if (has_base_name
                     && value_expr != NULL
                     && value_expr->type == AST_ARRAY_LITERAL) {
@@ -430,8 +610,9 @@ llvm_emit_mir_local_allocas(const MIRRoutine *routine, LLVMGenCtx *ctx,
                     if (!llvm_mir_local_require_elem_type(ctx, value_expr,
                             elem_type, base_name))
                         return;
-                    llvm_register_array_var(ctx, base_name,
-                        elem_type, (int64_t)ast_array_literal_count(value_expr));
+                    llvm_register_array_var_binding(ctx, base_name,
+                        vars[var_count].alloca, elem_type,
+                        (int64_t)ast_array_literal_count(value_expr));
                 } else if (has_base_name
                     && value_expr != NULL
                     && value_expr->type == AST_CALL
@@ -491,8 +672,8 @@ llvm_emit_mir_local_allocas(const MIRRoutine *routine, LLVMGenCtx *ctx,
                     if (!llvm_mir_local_require_elem_type(ctx, value_expr,
                             elem_type, base_name))
                         return;
-                    llvm_register_array_var(ctx, base_name,
-                        elem_type, -1);
+                    llvm_register_array_var_binding(ctx, base_name,
+                        vars[var_count].alloca, elem_type, -1);
                 }
                 var_count++;
             }

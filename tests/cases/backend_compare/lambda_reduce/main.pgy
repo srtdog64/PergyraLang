@@ -1,0 +1,19 @@
+func Reduce(arr: Array<Int>, n: Int, init: Int, f: func(Int, Int) -> Int) -> Int {
+    let acc: Int = init;
+    let i: Int = 0;
+    while i < n {
+        acc = f(acc, arr[i]);
+        i = i + 1;
+    }
+    return acc;
+}
+
+func Main() -> Void {
+    let a: Array<Int> = [1, 2, 3, 4, 5];
+    let add: func(Int, Int) -> Int = (x: Int, y: Int) => x + y;
+    Log(Reduce(a, 5, 0, add));
+    let mul: func(Int, Int) -> Int = (x: Int, y: Int) => x * y;
+    Log(Reduce(a, 5, 1, mul));
+    let max: func(Int, Int) -> Int = (x: Int, y: Int) => { if x > y { return x; } return y; };
+    Log(Reduce(a, 5, 0, max));
+}

@@ -1,0 +1,27 @@
+class Bank {
+    let total: Int;
+    let fees: Int;
+
+    func Deposit(self, amt: Int) -> Bank {
+        return Bank(self.total + amt, self.fees);
+    }
+
+    func Withdraw(self, amt: Int) -> Bank {
+        let new_total: Int = self.total - amt;
+        if new_total < 0 { return Bank(0, self.fees + 10); }
+        return Bank(new_total, self.fees);
+    }
+
+    func Balance(self) -> Int {
+        return self.total;
+    }
+}
+
+func NewBank() -> Bank { return Bank(0, 0); }
+
+func Main() -> Void {
+    Log(NewBank().Deposit(100).Deposit(50).Balance());
+    Log(NewBank().Deposit(100).Withdraw(30).Balance());
+    Log(NewBank().Deposit(50).Withdraw(100).fees);
+    Log(NewBank().Deposit(1000).Withdraw(300).Withdraw(200).Balance());
+}

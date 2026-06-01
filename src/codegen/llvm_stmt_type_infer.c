@@ -1,5 +1,6 @@
 #ifdef PGY_LLVM_ENABLED
 #include "llvm_internal.h"
+#include "llvm_inventory_host_methods.h"
 #include "llvm_stmt_type_infer_helpers.h"
 #include "codegen_match_variant_policy.h"
 #include "../parser/ast_api.h"
@@ -37,6 +38,34 @@ llvm_stmt_unknown_expr_type(LLVMGenCtx *ctx, ASTNode *expr, const char *reason)
             PGY_FIX_ANNOTATE_CONCRETE_TYPE,
             "LLVM expression type inference requires a concrete type: %s",
             reason != NULL ? reason : "unknown expression");
+    }
+    return NULL;
+}
+
+static LLVMTypeRef
+llvm_stmt_host_method_return_type(LLVMGenCtx *ctx, const char *host_type_name,
+                                  const char *method_name)
+{
+    ASTNode *ret_ty = NULL;
+    const MIRDeclMethod *method_meta = NULL;
+
+    if (ctx == NULL || host_type_name == NULL || method_name == NULL)
+        return NULL;
+
+    method_meta = llvm_find_host_method_metadata_in_context(
+        ctx, host_type_name, method_name);
+    ret_ty = llvm_mir_decl_method_return_type(method_meta);
+    if (ret_ty == NULL) {
+        ASTNode *method_decl = llvm_find_nominal_host_method_decl(
+            ctx, host_type_name, method_name);
+        if (method_decl != NULL && method_decl->type == AST_FUNC_DECL)
+            ret_ty = ast_func_return_type(method_decl);
+    }
+    if (ret_ty != NULL) {
+        LLVMTypeRef llvm_ret = ast_type_to_llvm(ctx, ret_ty);
+        if (llvm_ret != NULL && !ctx->has_error)
+            return llvm_ret;
+        ctx->has_error = false;
     }
     return NULL;
 }
@@ -290,19 +319,14 @@ llvm_stmt_infer_expr_type(LLVMGenCtx *ctx, ASTNode *expr)
             }
             if (receiver_name != NULL) {
                 const char *class_name = llvm_lookup_var_class(ctx, receiver_name);
+                if (class_name == NULL)
+                    class_name = llvm_current_field_class_name(ctx, receiver_name);
                 if (class_name != NULL) {
-                    ASTNode *method_decl = llvm_find_nominal_host_method_decl(
-                        ctx, class_name, method_name);
-                    if (method_decl != NULL
-                        && method_decl->type == AST_FUNC_DECL) {
-                        ASTNode *ret_ty = ast_func_return_type(method_decl);
-                        if (ret_ty != NULL) {
-                            LLVMTypeRef llvm_ret = ast_type_to_llvm(ctx, ret_ty);
-                            if (llvm_ret != NULL && !ctx->has_error)
-                                return llvm_ret;
-                            ctx->has_error = false;
-                        }
-                    }
+                    LLVMTypeRef method_ret =
+                        llvm_stmt_host_method_return_type(
+                            ctx, class_name, method_name);
+                    if (method_ret != NULL)
+                        return method_ret;
                 }
             }
             if (strcmp(method_name, "Slice") == 0
@@ -370,6 +394,12 @@ llvm_stmt_infer_expr_type(LLVMGenCtx *ctx, ASTNode *expr)
                 if (inner != NULL)
                     return ctx->type_void;
             }
+            if (llvm_current_host_class_name(ctx) != NULL) {
+                LLVMTypeRef method_ret = llvm_stmt_host_method_return_type(
+                    ctx, llvm_current_host_class_name(ctx), callee);
+                if (method_ret != NULL)
+                    return method_ret;
+            }
             LLVMFuncEntry *fn = llvm_stmt_lookup_visible_function(ctx, callee);
             if (fn != NULL)
                 return fn->ret_type;
@@ -417,8 +447,22 @@ llvm_stmt_infer_expr_type(LLVMGenCtx *ctx, ASTNode *expr)
             if (expected != NULL)
                 return expected;
         }
-        return llvm_stmt_unknown_expr_type(ctx, expr,
-            "call result requires registered function or expected type metadata");
+        {
+            char reason[256];
+            const char *callee = NULL;
+            ASTNode *callee_node = ast_call_callee(expr);
+            if (callee_node != NULL && callee_node->type == AST_IDENTIFIER)
+                callee = ast_identifier_name(callee_node);
+            if (callee_node != NULL && callee_node->type == AST_MEMBER_ACCESS)
+                callee = ast_member_name(callee_node);
+            if (!llvm_stmt_type_reasonf(reason, sizeof(reason),
+                    "call '%s' requires registered function or expected type metadata",
+                    callee != NULL ? callee : "<expr>")) {
+                return llvm_stmt_unknown_expr_type(ctx, expr,
+                    "call result requires registered function or expected type metadata");
+            }
+            return llvm_stmt_unknown_expr_type(ctx, expr, reason);
+        }
     case AST_BINARY: {
         PgyTokenType op = ast_binary_operator(expr).type;
         LLVMTypeRef left_ty = NULL;

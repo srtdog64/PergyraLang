@@ -1,0 +1,37 @@
+class Score {
+    let total: Int;
+    let count: Int;
+}
+
+enum Op { Add(Int), Reset }
+
+func ApplyOp(s: Score, op: Op) -> Score {
+    match op {
+        case Add(v):
+            return Score(s.total + v, s.count + 1);
+        case Reset:
+            return Score(0, 0);
+    }
+}
+
+func RunOps(score: Int, ops: Array<Int>, kinds: Array<Int>, n: Int) -> Int {
+    let s: Score = Score(score, 0);
+    let i: Int = 0;
+    while i < n {
+        if kinds[i] == 0 {
+            s = ApplyOp(s, Add(ops[i]));
+        }
+        if kinds[i] == 1 {
+            s = ApplyOp(s, Reset);
+        }
+        i = i + 1;
+    }
+    return s.total * 100 + s.count;
+}
+
+func Main() -> Void {
+    let v: Array<Int> = [10, 20, 0, 30];
+    let k: Array<Int> = [0, 0, 1, 0];
+    Log(RunOps(0, v, k, 4));
+    Log(RunOps(100, v, k, 0));
+}

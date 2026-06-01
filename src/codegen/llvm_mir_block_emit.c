@@ -12,6 +12,8 @@
 #include <string.h>
 
 #include "llvm_internal_api.h"
+#include "llvm_mir_resource_view.h"
+#include "../parser/ast_api.h"
 
 static bool
 llvm_mir_instruction_has_source_ast_payload(const MIRInstruction *inst)
@@ -54,25 +56,16 @@ llvm_mir_stmt_instruction_is_cfg_container(const MIRInstruction *inst)
 }
 
 static void
-llvm_mir_bind_versioned_local_scope(LLVMGenCtx *ctx,
-                                    LLVMMirVar *vars,
-                                    size_t var_count,
-                                    const char *versioned_name,
-                                    const char *type_name)
+llvm_mir_bind_base_local_scope(LLVMGenCtx *ctx,
+                               const char *base_name,
+                               LLVMValueRef alloca,
+                               LLVMTypeRef type,
+                               const char *type_name)
 {
-    char base_name[128];
     char *owned_base;
-    LLVMMirVar *entry;
     LLVMClassTypeEntry *class_entry;
 
-    if (ctx == NULL || versioned_name == NULL)
-        return;
-    if (!llvm_mir_base_name_from_versioned(versioned_name, base_name,
-            sizeof(base_name))) {
-        return;
-    }
-    entry = llvm_mir_get_var_entry(vars, var_count, versioned_name);
-    if (entry == NULL || entry->alloca == NULL || entry->type == NULL)
+    if (ctx == NULL || base_name == NULL || alloca == NULL || type == NULL)
         return;
 
     owned_base = pgy_arena_strdup(&ctx->persistent, base_name);
@@ -81,14 +74,47 @@ llvm_mir_bind_versioned_local_scope(LLVMGenCtx *ctx,
             "LLVM MIR block emission out of memory binding local scope");
         return;
     }
-    llvm_scope_declare(ctx, owned_base, entry->alloca, entry->type);
-    if (type_name != NULL && type_name[0] != '\0')
+    llvm_scope_declare(ctx, owned_base, alloca, type);
+    if (type_name != NULL && type_name[0] != '\0'
+        && llvm_lookup_class(ctx, type_name) != NULL) {
         llvm_register_var_class(ctx, owned_base, type_name);
-    else {
-        class_entry = llvm_lookup_class_by_struct_type(ctx, entry->type);
+    } else {
+        class_entry = llvm_lookup_class_by_struct_type(ctx, type);
         if (class_entry != NULL && class_entry->class_name != NULL)
             llvm_register_var_class(ctx, owned_base, class_entry->class_name);
     }
+}
+
+static void
+llvm_mir_bind_versioned_local_scope(LLVMGenCtx *ctx,
+                                    LLVMMirVar *vars,
+                                    size_t var_count,
+                                    const char *versioned_name,
+                                    const char *type_name)
+{
+    char base_name[128];
+    LLVMMirVar *entry;
+
+    if (ctx == NULL || versioned_name == NULL)
+        return;
+    if (!llvm_mir_base_name_from_versioned(versioned_name, base_name,
+            sizeof(base_name))) {
+        return;
+    }
+    entry = llvm_mir_get_var_entry(vars, var_count, versioned_name);
+    if (entry == NULL)
+        return;
+    if (strcmp(base_name, versioned_name) != 0
+        && llvm_lookup_channel_inner(ctx, base_name) != NULL) {
+        return;
+    }
+    if (strcmp(base_name, versioned_name) != 0
+        && llvm_lookup_slot_inner(ctx, base_name) != NULL
+        && llvm_lookup_slot_inner(ctx, versioned_name) != NULL) {
+        return;
+    }
+    llvm_mir_bind_base_local_scope(ctx, base_name, entry->alloca,
+        entry->type, type_name);
 }
 
 static void
@@ -122,7 +148,13 @@ llvm_mir_seed_block_phi_scope(const MIRBasicBlock *mir_block,
 }
 
 static bool
+llvm_mir_copy_host_field_to_versioned_local(LLVMGenCtx *ctx,
+                                            const char *field_name,
+                                            LLVMMirVar *target);
+
+static bool
 llvm_mir_copy_source_def_to_versioned_local(const MIRInstruction *inst,
+                                            const MIRBasicBlock *mir_block,
                                             LLVMGenCtx *ctx,
                                             LLVMMirVar *vars,
                                             size_t var_count)
@@ -131,6 +163,12 @@ llvm_mir_copy_source_def_to_versioned_local(const MIRInstruction *inst,
     LLVMVarEntry *source;
     LLVMMirVar *target;
     LLVMValueRef loaded;
+    ASTNode *source_payload;
+    ASTNode *type_ann;
+    LLVMValueRef active_alloca;
+    const char *source_future_inner;
+    const char *source_channel_inner;
+    bool source_future_is_remote = false;
 
     if (inst == NULL || ctx == NULL || inst->result_name == NULL)
         return true;
@@ -138,21 +176,126 @@ llvm_mir_copy_source_def_to_versioned_local(const MIRInstruction *inst,
             sizeof(base_name))) {
         return true;
     }
+    if (llvm_mir_def_is_resource_view_alias(inst))
+        return llvm_mir_bind_resource_view_def_alias(inst, mir_block, ctx, vars,
+            var_count);
     source = llvm_scope_lookup(ctx, base_name);
     target = llvm_mir_get_var_entry(vars, var_count, inst->result_name);
-    if (source == NULL || target == NULL || target->alloca == NULL)
+    if (target == NULL || target->alloca == NULL)
         return true;
-    if (source->alloca != target->alloca
+    if (llvm_mir_copy_host_field_to_versioned_local(ctx, base_name,
+            target)) {
+        llvm_mir_bind_base_local_scope(ctx, base_name, target->alloca,
+            target->type, inst->arg1);
+        return !ctx->has_error;
+    }
+    if (source == NULL) {
+        return !ctx->has_error;
+    }
+    if (source->alloca == NULL) {
+        if (llvm_lookup_projection_borrow(ctx, base_name) != NULL)
+            return true;
+        llvm_set_mir_inventory_missing(ctx,
+            "LLVM MIR source local '%s' has no backing storage",
+            base_name);
+        return false;
+    }
+    source_future_inner = llvm_lookup_future_inner(ctx, base_name);
+    if (source_future_inner != NULL)
+        source_future_is_remote = llvm_lookup_future_is_remote(ctx, base_name);
+    source_channel_inner = llvm_lookup_channel_inner(ctx, base_name);
+    active_alloca = target->alloca;
+    if (source_channel_inner != NULL) {
+        active_alloca = source->alloca;
+    } else if (source->alloca != target->alloca
         && source->type != NULL
         && target->type != NULL
         && source->type == target->type) {
         loaded = LLVMBuildLoad2(ctx->builder, source->type, source->alloca,
             llvm_tmp_name(ctx));
         LLVMBuildStore(ctx->builder, loaded, target->alloca);
+    } else if (source->alloca != target->alloca
+               && source->type != NULL
+               && target->type != NULL
+               && source->type != target->type) {
+        active_alloca = source->alloca;
     }
-    llvm_mir_bind_versioned_local_scope(ctx, vars, var_count,
-        inst->result_name, inst->arg1);
+    llvm_mir_bind_base_local_scope(ctx, base_name, active_alloca,
+        active_alloca == source->alloca ? source->type : target->type,
+        inst->arg1);
+    source_payload = mir_instruction_source_payload(inst);
+    type_ann = source_payload != NULL && source_payload->type == AST_LET_DECL
+        ? ast_let_type(source_payload) : NULL;
+    if (type_ann != NULL)
+        llvm_register_typed_var_binding(ctx, base_name, active_alloca,
+            type_ann);
+    else if (inst->type_layout != NULL
+             && inst->type_layout->abi_type_name != NULL) {
+        llvm_register_typed_var_abi_binding(ctx, base_name, active_alloca,
+            inst->type_layout->abi_type_name);
+    } else if (source_future_inner != NULL
+               && source_future_inner[0] != '\0') {
+        llvm_register_future_var_binding(ctx, base_name, active_alloca,
+            source_future_inner, source_future_is_remote);
+    } else if (source_channel_inner != NULL
+               && source_channel_inner[0] != '\0') {
+        llvm_register_channel_var_binding(ctx, base_name, active_alloca,
+            source_channel_inner);
+    }
     return !ctx->has_error;
+}
+
+static bool
+llvm_mir_copy_host_field_to_versioned_local(LLVMGenCtx *ctx,
+                                            const char *field_name,
+                                            LLVMMirVar *target)
+{
+    const char *host_name;
+    LLVMClassTypeEntry *cls;
+    LLVMValueRef base_ptr;
+    LLVMValueRef gep;
+    LLVMValueRef loaded;
+    LLVMTypeRef field_type;
+    int field_idx;
+
+    if (ctx == NULL || field_name == NULL || target == NULL
+        || target->alloca == NULL || target->type == NULL) {
+        return false;
+    }
+
+    host_name = llvm_current_host_class_name(ctx);
+    if (host_name == NULL)
+        return false;
+    cls = llvm_lookup_class(ctx, host_name);
+    field_idx = cls != NULL ? llvm_class_field_index(cls, field_name) : -1;
+    if (field_idx < 0)
+        return false;
+    field_type = llvm_class_field_type_at_index(cls, field_idx);
+    if (field_type == NULL)
+        return false;
+    base_ptr = llvm_current_self_base_ptr(ctx, cls);
+    if (base_ptr == NULL)
+        return false;
+
+    gep = LLVMBuildStructGEP2(ctx->builder, cls->struct_type, base_ptr,
+        (unsigned)field_idx, llvm_tmp_name(ctx));
+    loaded = LLVMBuildLoad2(ctx->builder, field_type, gep, llvm_tmp_name(ctx));
+    if (LLVMTypeOf(loaded) != target->type) {
+        if ((target->type == ctx->type_i32 || target->type == ctx->type_i64)
+            && (LLVMTypeOf(loaded) == ctx->type_i32
+                || LLVMTypeOf(loaded) == ctx->type_i64)) {
+            loaded = LLVMGetIntTypeWidth(target->type)
+                    > LLVMGetIntTypeWidth(LLVMTypeOf(loaded))
+                ? LLVMBuildSExt(ctx->builder, loaded, target->type,
+                    llvm_tmp_name(ctx))
+                : LLVMBuildTrunc(ctx->builder, loaded, target->type,
+                    llvm_tmp_name(ctx));
+        } else {
+            return false;
+        }
+    }
+    LLVMBuildStore(ctx->builder, loaded, target->alloca);
+    return true;
 }
 
 void
@@ -236,7 +379,7 @@ llvm_emit_mir_block_with_exprs(const MIRBasicBlock *mir_block,
                             : "[llvm inst] emit_source_statement\n");
                     llvm_emit_statement(source_payload, ctx);
                     if (!llvm_mir_copy_source_def_to_versioned_local(
-                            inst, ctx, vars, var_count)) {
+                            inst, mir_block, ctx, vars, var_count)) {
                         return;
                     }
                 } else {

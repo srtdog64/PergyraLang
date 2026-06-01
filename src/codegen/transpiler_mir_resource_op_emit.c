@@ -5,12 +5,11 @@
 
 #include "transpiler_mir_resource_op_emit.h"
 
-#include <string.h>
-
 #include "transpiler_decl_lookup.h"
 #include "transpiler_enum.h"
 #include "transpiler_mir_pin_emit.h"
 #include "transpiler_mir_reason.h"
+#include "transpiler_mir_resource_name_helpers.h"
 #include "transpiler_mir_resource_hook_emit.h"
 #include "transpiler_mir_ssa_lookup.h"
 #include "transpiler_mir_ssa_utils.h"
@@ -28,12 +27,14 @@ transpiler_emit_mir_resource_op_inst(CodeBuf *buf,
                                      char *reason,
                                      size_t reason_cap)
 {
+    TranspilerMIRResourceOp op;
+
     if (inst == NULL || inst->kind != MIR_INST_RESOURCE_OP)
         return TRANSPILE_MIR_INST_NOT_HANDLED;
+    op = transpiler_mir_resource_op_lookup(inst->name);
     if (!transpiler_mir_seed_resource_alias_local(ssa_map_out, inst))
         return TRANSPILE_MIR_INST_FAILED;
-    if (inst->name != NULL
-        && strcmp(inst->name, "Write") == 0
+    if (op == TRANS_MIR_RESOURCE_OP_WRITE
         && inst->expr0 != NULL) {
         ASTNode *value_expr = inst->expr0;
         char map_reason[256];
@@ -61,7 +62,7 @@ transpiler_emit_mir_resource_op_inst(CodeBuf *buf,
             return TRANSPILE_MIR_INST_FAILED;
         }
     }
-    if (inst->name != NULL && strcmp(inst->name, "Claim") == 0
+    if (op == TRANS_MIR_RESOURCE_OP_CLAIM
         && !mir_instruction_is_with_slot_claim(inst)) {
         return TRANSPILE_MIR_INST_HANDLED;
     }

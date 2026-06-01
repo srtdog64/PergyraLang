@@ -3,12 +3,15 @@
 English anchor for tooling/doc gates:
 
 - Current beta progress: feature-surface feel remains about 70%, and
-  strict beta readiness is now about 72-74% after current CFG body-dataflow,
+  strict beta readiness is now about 75% after current CFG body-dataflow,
   MIR executable tests, AIR drift/schema, DAG resolver-inventory/metadata,
   runtime-frontier, semantic domain-owner seams, and full local LLVM parity
   gates pass locally. Windows-bash tooling and raw-escape gates now reach
-  executable probes instead of skipping after path helper setup. Do not call this 75% or 80% yet.
-  The remaining 75% line requires consumer-completeness across CFG/AIR plus
+  executable probes instead of skipping after path helper setup. The 75% line
+  is now backed by binding-aware resource/collection metadata parity for
+  shadowed `List<T>`, `DeviceSlot<T>`, and `Channel<T>` locals, plus complete
+  backend-compare fixture inventory registration. Do not call this 80% until
+  consumer-completeness lands across CFG/AIR plus
   MIR/LLVM declaration bootstrap parity and ABI/Slot/Pin ownership freeze.
   The five closure targets are:
   CFG/body safety source-of-truth, AIR abstraction-boundary verification,
@@ -37,6 +40,57 @@ English anchor for tooling/doc gates:
   consume that owner so availability/panic audits can distinguish requested
   termination from internal hard-fail. Gate:
   `runtime-panic-contract-test-smoke`.
+- LLVM registry smoke source-of-truth: `perf_contract_smoke.sh` now checks the
+  binding-aware registry owners (`*_var_binding`) instead of stale compatibility
+  wrappers for Future, Channel, DeviceSlot, and Array metadata. Array/Slice
+  registry ownership is locked to `llvm_registry_arrays.c`, including active
+  binding matching and null-context rejection. Gates:
+  `perf_contract_smoke.sh`, `build_source_inventory_smoke.sh`,
+  `test_inc_size_smoke.sh`, and LLVM-enabled `bin/pgy.exe` build.
+- AIR MIR evidence input contract: AIR now rejects invalid MIR routine inventory
+  or missing block inventory before collecting MIR cleanup/terminator/pin
+  evidence. MIR fact counters are null-safe for malformed block inventories, but
+  the AIR verifier fails closed instead of silently losing evidence or
+  dereferencing invalid MIR storage. `test-air` now includes malformed routine
+  and block-inventory regressions. Gates: `test-air`, `air_drift_smoke.sh`.
+- LLVM function routine declaration bootstrap tightening: MIR function routines
+  that carry body instructions now fail closed when their source declaration
+  metadata is missing instead of being silently skipped by forward/emit/validate
+  passes; malformed routine inventory rows now also emit structured inventory
+  diagnostics instead of a bare false return. This is still AST-compatible
+  metadata, not the final declaration IR, but it removes another silent
+  MIR/LLVM bootstrap escape hatch. Gates:
+  targeted `llvm_decl_routines.o`, `mir_declaration_inventory_smoke.sh`.
+- LLVM intent routine declaration bootstrap tightening: MIR intent routines that
+  carry body instructions now fail closed through the intent-flow owner when
+  source declaration metadata is missing; forward and body emission no longer
+  silently skip those routines locally, and invalid intent routine inventory
+  rows now fail with structured inventory diagnostics. This keeps intent
+  bootstrap parity on the same fail-closed contract as function routines while
+  the final declaration IR remains unfinished. Gates: targeted intent LLVM objects,
+  `mir_declaration_inventory_smoke.sh`.
+- LLVM hosted-method declaration bootstrap tightening: domain/role/class hosted
+  method forward/body emitters now consume a shared hosted-method row-validity
+  contract and fail closed when MIR method metadata rows are missing. This
+  prevents malformed declaration headers from being treated as empty AST
+  compatibility rows during LLVM emission. Enum/class nominal method
+  registration now also preflights invalid `MIRDeclMethod` rows through
+  `llvm_require_hosted_method_view_rows(...)` before function prototypes are
+  registered. Gates: targeted hosted-method LLVM objects,
+  `mir_declaration_inventory_smoke.sh`, LLVM-enabled `bin/pgy.exe`.
+- C hosted-method declaration bootstrap tightening: the C backend now mirrors
+  the hosted-method row-validity contract for class/enum/generic
+  specialization, role/party/roster/relation/effect/zone/world forward/body
+  emission, and the repeated row preflight is owned by
+  `transpiler_require_hosted_method_view_rows(...)`. Malformed
+  `MIRDeclMethod` rows no longer fall through as empty AST compatibility rows
+  or emit partial declaration output on the C path. Gates: targeted C codegen
+  objects, `mir_declaration_inventory_smoke.sh`.
+- C zone declaration bootstrap preflight: zone declarations now validate hosted
+  method MIR rows before required specialization, struct, sync, or bridge
+  emission starts. Invalid `MIRDeclMethod` rows fail closed at the declaration
+  entry point instead of after partial C output has already been written. Gate:
+  `mir_declaration_inventory_smoke.sh`, targeted `transpiler_zone_decl_emit.o`.
 - Binding identity source-of-truth target: source spellings are not binding
   identities. The remaining multi-tick failures must close through parser/AST
   stable ids consumed by MIR/SSA/C/LLVM, not backend-local counters or name
@@ -73,7 +127,9 @@ English anchor for tooling/doc gates:
   consumes versioned MIR def-type/live-out facts before falling back to base
   names, and LLVM MIR block emission seeds scope lookups from `ssa_entry_values`
   plus copies source-local declarations into versioned MIR allocas. This is
-  locked by `tests/cases/backend_compare/lexical_shadow_class_method`.
+  locked by `tests/cases/backend_compare/lexical_shadow_class_method` and
+  `tests/cases/backend_compare/list_shadow_scope_metadata`, which guards the
+  List<Int> outer / List<String> inner metadata case across C and LLVM.
   Remaining work is the broader lexical-scope model: block-scope registry
   frames for non-MIR source fallback paths and true MIR binding-id facts beyond
   the current stable-AST-id physical name seam. The explicit multi-tick targets
@@ -8911,7 +8967,7 @@ section anchors so the tracker cannot silently rot.
 **확정 순서 — BDFL 결정:**
 
 1. **BETA closure** — 현재 (§0a 참조). 기능 체감 약 70% /
-   strict beta readiness 약 72-74%
+   strict beta readiness 약 75%
    → 100% 신뢰도까지 닫기
 2. **dogfood (compiler-adjacent first)** — §0-selfhost 의 첫 dogfood
    원칙: diagnostic catalog checker, AIR graph JSON validator, MIR dump
@@ -9088,7 +9144,7 @@ is the longer execution plan.
 ## 0a. Strict Beta Closure Order — 2026-05-01 재고정
 
 **현재 판정:** 기능 구현률은 약 70%로 본다. strict beta readiness는
-약 72-74%다. 차이는 기능 수가 아니라 CFG/AIR/DAG/MIR/ABI가 실제
+약 75%다. 차이는 기능 수가 아니라 CFG/AIR/DAG/MIR/ABI가 실제
 source-of-truth로 소비되는 깊이다. 75%는 CFG/AIR consumer-completeness,
 MIR/LLVM declaration bootstrap, ABI/Slot/Pin freeze가 모두 닫힌 뒤
 재평가한다.
@@ -9595,7 +9651,7 @@ Intent-Compress는 척추 변경이므로 "며칠 컷"으로 고정하지 않는
 
 2026-05-01 update:
 - Beta progress is tracked as two numbers: user-visible feature progress is
-  about 70%, while strict beta readiness is about 72-74%. The delta to 75% is
+  about 70%, while strict beta readiness is about 75%. The delta to 80% is
   CFG/AIR consumer-completeness, MIR/LLVM declaration bootstrap, and
   ABI/Slot/Pin freeze, not missing surface syntax.
 - WebGL/WASM is no longer framed as "native LLVM wasm before beta". The beta
@@ -12785,7 +12841,7 @@ not marketing claims.
   - Type-resolution DAG가 아직 semantic source-of-truth가 아니므로 declaration order / module contract / generic consumer path drift 위험이 남아 있다
   - 장기 모듈화 stop condition도 아직 멀다. semantic 800 LOC 초과 `.inc` 조건과 runtime/codegen/compiler 1,000 LOC 초과 `.inc` 조건은 닫혔지만, 여러 split은 아직 include-order 보존 상태라 실제 owner/TU extraction 부채가 남아 있다
   - Historical note: this old 60% readiness anchor is superseded by the current
-    top-of-file source-of-truth range, strict beta readiness about 72-74%.
+    top-of-file source-of-truth range, strict beta readiness about 75%.
 
 ## Beta taxonomy freeze: core / foundation / style
 
@@ -16549,7 +16605,7 @@ Local verification for this debt refresh:
 - Rechecked the beta status anchors after the current source-of-truth gates:
   `docs/100_beta_readiness_checklist.md`,
   `docs/70_beta_closure_master_board.md`, and this TODO now use the same
-  strict beta readiness range: about 72-74%, not 75% or 80%. The remaining 75% line is
+  strict beta readiness range: about 75%, not 80%. The remaining 80% line is
   explicitly CFG/AIR consumer-completeness, MIR/LLVM declaration bootstrap, and
   ABI/Slot/Pin freeze. Also tightened the C call emitter receiver-type copy:
   method-style nominal calls now reject overlong receiver type names instead of
@@ -16667,7 +16723,7 @@ Local verification for this debt refresh:
   `abi-ownership-shape-test-smoke`, `runtime-panic-abi-test-smoke` (Windows
   local compiler probe skips, CI still owns the executable gate), and
   `test-abi` (`58/0` plus C ABI pipeline fixtures). This keeps the ABI axis
-  stable but does not close the 75% line by itself; the remaining blocker is
+  stable but does not close the 80% line by itself; the remaining blocker is
   still consumer-completeness across CFG/AIR and MIR/LLVM declaration bootstrap
   parity.
 - Repaired CFG/body-dataflow smoke ownership drift after recent owner splits:

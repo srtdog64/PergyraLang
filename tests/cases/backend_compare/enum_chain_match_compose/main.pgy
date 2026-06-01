@@ -1,0 +1,30 @@
+enum Light { Red, Yellow, Green }
+enum Speed { Stop, Slow, Fast }
+
+func LightToSpeed(l: Light) -> Speed {
+    match l {
+        case Red: return Stop;
+        case Yellow: return Slow;
+        case Green: return Fast;
+    }
+}
+
+func SpeedValue(s: Speed) -> Int {
+    match s {
+        case Stop: return 0;
+        case Slow: return 30;
+        case Fast: return 60;
+    }
+}
+
+func Velocity(l: Light) -> Int {
+    return SpeedValue(LightToSpeed(l));
+}
+
+func Main() -> Void {
+    Log(Velocity(Red));
+    Log(Velocity(Yellow));
+    Log(Velocity(Green));
+    let signal: Light = Yellow;
+    Log(Velocity(signal));
+}

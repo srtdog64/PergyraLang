@@ -52,6 +52,12 @@ llvm_emit_domain_role_method_bodies(LLVMGenCtx *ctx,
             char fname[256];
             LLVMFuncEntry *fentry;
 
+            if (llvm_hosted_method_view_missing_mir_method_row(&method_view, j)) {
+                llvm_set_mir_inventory_missing(ctx,
+                    "MIR-only LLVM path has invalid method declaration metadata row for role '%s'",
+                    role_name != NULL ? role_name : "(anonymous-role)");
+                return false;
+            }
             if (method_name == NULL && method != NULL
                 && method->type == AST_FUNC_DECL)
                 method_name = llvm_role_method_name_from_ast(method);

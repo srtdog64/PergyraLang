@@ -1,0 +1,28 @@
+class Shield {
+    let level: Int;
+    let dur: Int;
+}
+
+enum Mat { Wood, Iron, Steel }
+
+func MakeShield(m: Mat) -> Shield {
+    match m {
+        case Wood: return Shield(1, 10);
+        case Iron: return Shield(3, 50);
+        case Steel: return Shield(5, 200);
+    }
+}
+
+func Effect(m: Mat, dmg: Int) -> Int {
+    let s: Shield = MakeShield(m);
+    if s.level * 10 >= dmg { return 0; }
+    return dmg - s.level * 10;
+}
+
+func Main() -> Void {
+    Log(Effect(Wood, 5));
+    Log(Effect(Iron, 50));
+    Log(Effect(Steel, 100));
+    Log(Effect(Wood, 100));
+    Log(Effect(Steel, 30));
+}

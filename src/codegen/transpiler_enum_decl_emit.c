@@ -35,6 +35,13 @@ emit_enum_decl_stmt(ASTNode *node, TranspilerCtx *ctx)
             ename != NULL ? ename : "(anonymous-enum)");
         return;
     }
+    if (!transpiler_require_hosted_method_view_rows(
+            ctx,
+            &method_view,
+            "MIR-only C path has invalid method declaration metadata row for enum '%s'",
+            ename != NULL ? ename : "(anonymous-enum)")) {
+        return;
+    }
 
     bool has_data = false;
     for (size_t i = 0; i < variant_count; i++) {
@@ -127,6 +134,13 @@ emit_enum_decl_stmt(ASTNode *node, TranspilerCtx *ctx)
             transpiler_hosted_method_view_metadata(&method_view, i);
         ASTNode *method =
             transpiler_hosted_method_view_source_ast(&method_view, i);
+        if (transpiler_hosted_method_view_missing_mir_method_row(&method_view, i)) {
+            transpiler_set_mir_inventory_missing(
+                ctx,
+                "MIR-only C path has invalid method declaration metadata row for enum '%s'",
+                ename != NULL ? ename : "(anonymous-enum)");
+            return;
+        }
         if (method_meta == NULL
             && (method == NULL || method->type != AST_FUNC_DECL)) {
             continue;
@@ -142,6 +156,13 @@ emit_enum_decl_stmt(ASTNode *node, TranspilerCtx *ctx)
             transpiler_hosted_method_view_source_ast(&method_view, i);
         const MIRRoutine *mir_method;
         const char *method_name;
+        if (transpiler_hosted_method_view_missing_mir_method_row(&method_view, i)) {
+            transpiler_set_mir_inventory_missing(
+                ctx,
+                "MIR-only C path has invalid method declaration metadata row for enum '%s'",
+                ename != NULL ? ename : "(anonymous-enum)");
+            return;
+        }
         method_name = transpiler_mir_decl_method_name(method_meta);
         mir_method = transpiler_hosted_method_view_routine(ctx, &method_view, i);
         if (method == NULL && mir_method != NULL)

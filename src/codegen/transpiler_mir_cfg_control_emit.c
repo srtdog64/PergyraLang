@@ -75,6 +75,11 @@ transpiler_mir_set_loop_binding_name(TranspilerCtx *ctx,
     stable_name = transpiler_scratch_strdup(ctx, loop_name);
     if (stable_name == NULL)
         return false;
+    if (ctx->match_binding_alias_map != NULL) {
+        (void)transpiler_ssa_name_map_set(
+            (TranspilerSSANameMap *)ctx->match_binding_alias_map,
+            variable, stable_name);
+    }
     return transpiler_ssa_name_map_set(ssa_map, variable, stable_name);
 }
 

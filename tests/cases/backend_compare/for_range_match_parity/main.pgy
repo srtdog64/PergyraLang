@@ -1,0 +1,25 @@
+enum Tag { Even, Odd }
+
+func ParityOf(n: Int) -> Tag {
+    if n % 2 == 0 { return Even; }
+    return Odd;
+}
+
+func ParitySum(n: Int) -> Int {
+    let evens: Int = 0;
+    let odds: Int = 0;
+    for i in 0..n {
+        match ParityOf(i) {
+            case Even: evens = evens + i;
+            case Odd: odds = odds + i;
+        }
+    }
+    return evens * 100 + odds;
+}
+
+func Main() -> Void {
+    Log(ParitySum(10));
+    Log(ParitySum(5));
+    Log(ParitySum(0));
+    Log(ParitySum(1));
+}

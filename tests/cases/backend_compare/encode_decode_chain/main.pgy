@@ -1,0 +1,28 @@
+class Token {
+    let value: Int;
+    let typ: Int;
+}
+
+func Encode(v: Int) -> Token { return Token(v * 7, v % 3); }
+
+func Decode(t: Token) -> Int {
+    if t.typ == 0 { return t.value / 7; }
+    if t.typ == 1 { return t.value / 7 - 1; }
+    return t.value / 7 - 2;
+}
+
+func RoundTrip(values: Array<Int>, n: Int) -> Int {
+    let total: Int = 0;
+    let i: Int = 0;
+    while i < n {
+        total = total + Decode(Encode(values[i]));
+        i = i + 1;
+    }
+    return total;
+}
+
+func Main() -> Void {
+    let v: Array<Int> = [3, 7, 9, 15, 21];
+    Log(RoundTrip(v, 5));
+    Log(RoundTrip(v, 0));
+}

@@ -1,0 +1,33 @@
+class Crystal {
+    let kind: Int;
+    let purity: Int;
+
+    func Quality(self) -> Int {
+        return self.kind * self.purity;
+    }
+}
+
+func Forge(seed: Int) -> Crystal {
+    return Crystal(seed % 3 + 1, seed * 2);
+}
+
+func BestQuality(seeds: Array<Int>, n: Int) -> Int {
+    if n == 0 { return -1; }
+    let best: Int = Forge(seeds[0]).Quality();
+    let i: Int = 1;
+    while i < n {
+        let q: Int = Forge(seeds[i]).Quality();
+        if q > best { best = q; }
+        i = i + 1;
+    }
+    return best;
+}
+
+func Main() -> Void {
+    let s: Array<Int> = [1, 5, 3, 7, 2];
+    Log(BestQuality(s, 5));
+    let empty: Array<Int> = [];
+    Log(BestQuality(empty, 0));
+    let single: Array<Int> = [10];
+    Log(BestQuality(single, 1));
+}

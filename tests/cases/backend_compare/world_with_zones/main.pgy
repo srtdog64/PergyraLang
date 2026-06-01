@@ -1,0 +1,17 @@
+zone Cell { }
+world Habitat {
+    zone alpha: Cell
+    zone beta: Cell
+    state alphaLive: zone alpha
+    state betaLive: zone beta
+    state bothLive: all alphaLive, betaLive
+    activate alpha
+    maintain beta
+    func Status(self) -> Int {
+        return 0;
+    }
+}
+
+func Main() -> Void {
+    Log(0);
+}

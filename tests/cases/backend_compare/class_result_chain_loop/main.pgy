@@ -1,0 +1,37 @@
+enum DraftErr { OutOfMana, OverLevel }
+
+class Wizard {
+    let mana: Int;
+    let level: Int;
+}
+
+func CastSpell(w: Wizard, cost: Int, level_req: Int) -> Result<Wizard, DraftErr> {
+    if w.mana < cost { return Err(OutOfMana); }
+    if w.level < level_req { return Err(OverLevel); }
+    return Ok(Wizard(w.mana - cost, w.level));
+}
+
+func ManaPoints(start_mana: Int, costs: Array<Int>, n: Int) -> Int {
+    let w: Wizard = Wizard(start_mana, 10);
+    let i: Int = 0;
+    while i < n {
+        match CastSpell(w, costs[i], 5) {
+            case Ok(after): w = after;
+            case Err(e):
+                match e {
+                    case OutOfMana: return w.mana;
+                    case OverLevel: return -1;
+                }
+        }
+        i = i + 1;
+    }
+    return w.mana;
+}
+
+func Main() -> Void {
+    let costs: Array<Int> = [10, 20, 30, 40];
+    Log(ManaPoints(200, costs, 4));
+    Log(ManaPoints(100, costs, 4));
+    Log(ManaPoints(50, costs, 4));
+    Log(ManaPoints(0, costs, 4));
+}

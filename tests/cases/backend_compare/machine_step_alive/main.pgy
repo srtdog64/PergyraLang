@@ -1,0 +1,30 @@
+class Machine {
+    let fuel: Int;
+    let distance: Int;
+    let alive: Bool;
+}
+
+func Make() -> Machine { return Machine(100, 0, true); }
+
+func Step(m: Machine) -> Machine {
+    if m.alive == false { return m; }
+    if m.fuel == 0 { return Machine(0, m.distance, false); }
+    return Machine(m.fuel - 1, m.distance + 10, true);
+}
+
+func RunUntilDead(steps_max: Int) -> Int {
+    let m: Machine = Make();
+    let i: Int = 0;
+    while m.alive && i < steps_max {
+        m = Step(m);
+        i = i + 1;
+    }
+    return m.distance;
+}
+
+func Main() -> Void {
+    Log(RunUntilDead(50));
+    Log(RunUntilDead(200));
+    Log(RunUntilDead(0));
+    Log(RunUntilDead(10));
+}

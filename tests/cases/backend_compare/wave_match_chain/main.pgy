@@ -1,0 +1,27 @@
+class Wave {
+    let amp: Int;
+    let freq: Int;
+
+    func Energy(self) -> Int { return self.amp * self.amp * self.freq; }
+}
+
+enum Sound { Bass, Mid, Treble }
+
+func Tune(s: Sound, base: Int) -> Wave {
+    match s {
+        case Bass: return Wave(base * 2, 100);
+        case Mid: return Wave(base, 500);
+        case Treble: return Wave(base / 2, 2000);
+    }
+}
+
+func Compose(s: Sound, base: Int) -> Int {
+    return Tune(s, base).Energy();
+}
+
+func Main() -> Void {
+    Log(Compose(Bass, 10));
+    Log(Compose(Mid, 10));
+    Log(Compose(Treble, 10));
+    Log(Compose(Bass, 0));
+}

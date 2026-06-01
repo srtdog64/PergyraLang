@@ -1,0 +1,24 @@
+class Drop {
+    let id: Int;
+    let value: Int;
+}
+
+func MakeDrop(seed: Int) -> Drop {
+    return Drop(seed * 10, seed * seed);
+}
+
+func TotalDrops(n: Int) -> Int {
+    let total: Int = 0;
+    for i in 0..n {
+        let d: Drop = MakeDrop(i + 1);
+        total = total + d.value;
+    }
+    return total;
+}
+
+func Main() -> Void {
+    Log(TotalDrops(5));
+    Log(TotalDrops(0));
+    Log(TotalDrops(1));
+    Log(TotalDrops(10));
+}

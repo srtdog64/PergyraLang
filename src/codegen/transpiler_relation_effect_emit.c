@@ -56,6 +56,32 @@ emit_relation_decl(ASTNode *node, TranspilerCtx *ctx)
     if (inventory_decl != NULL)
         node = inventory_decl;
 
+    TranspilerHostedSharedFieldView shared_view =
+        transpiler_hosted_shared_field_view_from_decl(ctx, name, node);
+    if (transpiler_hosted_shared_field_view_missing_mir_metadata(&shared_view)) {
+        transpiler_set_mir_inventory_missing(
+            ctx,
+            "MIR-only C path missing shared field metadata for relation '%s'",
+            name != NULL ? name : "(anonymous-relation)");
+        return;
+    }
+    TranspilerHostedMethodView method_view =
+        transpiler_hosted_method_view_from_decl(ctx, name, node);
+    if (transpiler_hosted_method_view_missing_mir_metadata(&method_view)) {
+        transpiler_set_mir_inventory_missing(
+            ctx,
+            "MIR-only C path missing method declaration metadata for relation '%s'",
+            name != NULL ? name : "(anonymous-relation)");
+        return;
+    }
+    if (!transpiler_require_hosted_method_view_rows(
+            ctx,
+            &method_view,
+            "MIR-only C path has invalid method declaration metadata row for relation '%s'",
+            name != NULL ? name : "(anonymous-relation)")) {
+        return;
+    }
+
     codebuf_write(ctx->out, "\n/* Relation: %s */\n", name);
     codebuf_write(ctx->out, "typedef struct %s\n{\n", name);
 
@@ -92,15 +118,6 @@ emit_relation_decl(ASTNode *node, TranspilerCtx *ctx)
         }
     }
 
-    TranspilerHostedSharedFieldView shared_view =
-        transpiler_hosted_shared_field_view_from_decl(ctx, name, node);
-    if (transpiler_hosted_shared_field_view_missing_mir_metadata(&shared_view)) {
-        transpiler_set_mir_inventory_missing(
-            ctx,
-            "MIR-only C path missing shared field metadata for relation '%s'",
-            name != NULL ? name : "(anonymous-relation)");
-        return;
-    }
     for (size_t i = 0; i < shared_view.count; i++) {
         const char *shared_name =
             transpiler_hosted_shared_field_view_name(&shared_view, i);
@@ -154,21 +171,18 @@ emit_relation_decl(ASTNode *node, TranspilerCtx *ctx)
     ctx->indent--;
     codebuf_write(ctx->out, "}\n");
 
-    TranspilerHostedMethodView method_view =
-        transpiler_hosted_method_view_from_decl(ctx, name, node);
-    if (transpiler_hosted_method_view_missing_mir_metadata(&method_view)) {
-        transpiler_set_mir_inventory_missing(
-            ctx,
-            "MIR-only C path missing method declaration metadata for relation '%s'",
-            name != NULL ? name : "(anonymous-relation)");
-        return;
-    }
-
     for (size_t i = 0; i < method_view.count; i++) {
         const MIRDeclMethod *method_meta =
             transpiler_hosted_method_view_metadata(&method_view, i);
         ASTNode *method =
             transpiler_hosted_method_view_source_ast(&method_view, i);
+        if (transpiler_hosted_method_view_missing_mir_method_row(&method_view, i)) {
+            transpiler_set_mir_inventory_missing(
+                ctx,
+                "MIR-only C path has invalid method declaration metadata row for relation '%s'",
+                name != NULL ? name : "(anonymous-relation)");
+            return;
+        }
         if (method_meta == NULL
             && (method == NULL || method->type != AST_FUNC_DECL)) {
             continue;
@@ -193,6 +207,32 @@ emit_effect_decl(ASTNode *node, TranspilerCtx *ctx)
         ctx, AST_EFFECT_DECL, name);
     if (inventory_decl != NULL)
         node = inventory_decl;
+
+    TranspilerHostedSharedFieldView shared_view =
+        transpiler_hosted_shared_field_view_from_decl(ctx, name, node);
+    if (transpiler_hosted_shared_field_view_missing_mir_metadata(&shared_view)) {
+        transpiler_set_mir_inventory_missing(
+            ctx,
+            "MIR-only C path missing shared field metadata for effect '%s'",
+            name != NULL ? name : "(anonymous-effect)");
+        return;
+    }
+    TranspilerHostedMethodView method_view =
+        transpiler_hosted_method_view_from_decl(ctx, name, node);
+    if (transpiler_hosted_method_view_missing_mir_metadata(&method_view)) {
+        transpiler_set_mir_inventory_missing(
+            ctx,
+            "MIR-only C path missing method declaration metadata for effect '%s'",
+            name != NULL ? name : "(anonymous-effect)");
+        return;
+    }
+    if (!transpiler_require_hosted_method_view_rows(
+            ctx,
+            &method_view,
+            "MIR-only C path has invalid method declaration metadata row for effect '%s'",
+            name != NULL ? name : "(anonymous-effect)")) {
+        return;
+    }
 
     codebuf_write(ctx->out, "\n/* Effect: %s */\n", name);
     codebuf_write(ctx->out, "typedef struct %s\n{\n", name);
@@ -230,15 +270,6 @@ emit_effect_decl(ASTNode *node, TranspilerCtx *ctx)
         }
     }
 
-    TranspilerHostedSharedFieldView shared_view =
-        transpiler_hosted_shared_field_view_from_decl(ctx, name, node);
-    if (transpiler_hosted_shared_field_view_missing_mir_metadata(&shared_view)) {
-        transpiler_set_mir_inventory_missing(
-            ctx,
-            "MIR-only C path missing shared field metadata for effect '%s'",
-            name != NULL ? name : "(anonymous-effect)");
-        return;
-    }
     for (size_t i = 0; i < shared_view.count; i++) {
         const char *shared_name =
             transpiler_hosted_shared_field_view_name(&shared_view, i);
@@ -292,21 +323,18 @@ emit_effect_decl(ASTNode *node, TranspilerCtx *ctx)
     ctx->indent--;
     codebuf_write(ctx->out, "}\n");
 
-    TranspilerHostedMethodView method_view =
-        transpiler_hosted_method_view_from_decl(ctx, name, node);
-    if (transpiler_hosted_method_view_missing_mir_metadata(&method_view)) {
-        transpiler_set_mir_inventory_missing(
-            ctx,
-            "MIR-only C path missing method declaration metadata for effect '%s'",
-            name != NULL ? name : "(anonymous-effect)");
-        return;
-    }
-
     for (size_t i = 0; i < method_view.count; i++) {
         const MIRDeclMethod *method_meta =
             transpiler_hosted_method_view_metadata(&method_view, i);
         ASTNode *method =
             transpiler_hosted_method_view_source_ast(&method_view, i);
+        if (transpiler_hosted_method_view_missing_mir_method_row(&method_view, i)) {
+            transpiler_set_mir_inventory_missing(
+                ctx,
+                "MIR-only C path has invalid method declaration metadata row for effect '%s'",
+                name != NULL ? name : "(anonymous-effect)");
+            return;
+        }
         if (method_meta == NULL
             && (method == NULL || method->type != AST_FUNC_DECL)) {
             continue;

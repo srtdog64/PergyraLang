@@ -24,6 +24,14 @@ LLVMHostedMethodView llvm_hosted_method_view(
     size_t ast_compat_count);
 bool llvm_hosted_method_view_missing_mir_metadata(
     const LLVMHostedMethodView *view);
+bool llvm_hosted_method_view_missing_mir_method_row(
+    const LLVMHostedMethodView *view,
+    size_t index);
+bool llvm_require_hosted_method_view_rows(
+    LLVMGenCtx *ctx,
+    const LLVMHostedMethodView *view,
+    const char *message_fmt,
+    const char *host_name);
 LLVMHostedMethodView llvm_hosted_method_view_from_decl(
     const LLVMGenCtx *ctx,
     const char *host_type_name,

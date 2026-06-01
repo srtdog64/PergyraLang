@@ -1,0 +1,28 @@
+class Counter {
+    let count: Int;
+    let target: Int;
+
+    func Done(self) -> Bool { return self.count >= self.target; }
+}
+
+func MakeCounter(t: Int) -> Counter { return Counter(0, t); }
+
+func Tick(c: Counter) -> Counter {
+    return Counter(c.count + 1, c.target);
+}
+
+func RunUntilDone(target: Int) -> Int {
+    let c: Counter = MakeCounter(target);
+    let ticks: Int = 0;
+    while c.Done() == false {
+        c = Tick(c);
+        ticks = ticks + 1;
+    }
+    return ticks;
+}
+
+func Main() -> Void {
+    Log(RunUntilDone(5));
+    Log(RunUntilDone(0));
+    Log(RunUntilDone(100));
+}

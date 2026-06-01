@@ -39,6 +39,11 @@ transpiler_condition_is_already_parenthesized(const char *expr)
     len = strlen(expr);
     if (len < 2 || expr[0] != '(' || expr[len - 1] != ')')
         return false;
+    /* GCC statement-expression ({ ... }) — outer parens are part of the
+     * statement-expression syntax, not C grouping; condition wrapping must
+     * still add real parens. */
+    if (len >= 2 && expr[1] == '{')
+        return false;
 
     for (size_t i = 0; i < len; i++) {
         if (in_string) {

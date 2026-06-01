@@ -176,6 +176,13 @@ llvm_register_enum_decl(LLVMGenCtx *ctx, ASTNode *stmt)
             "MIR-only LLVM path missing enum method declaration metadata");
         return;
     }
+    if (!llvm_require_hosted_method_view_rows(
+            ctx,
+            &enum_method_view,
+            "MIR-only LLVM path has invalid method declaration metadata row for enum '%s'",
+            enum_name != NULL ? enum_name : "(anonymous-enum)")) {
+        return;
+    }
 
     if (!enum_method_view.uses_mir_metadata)
         return;
@@ -303,6 +310,13 @@ llvm_register_nominal_decl(LLVMGenCtx *ctx, ASTNode *stmt)
     if (llvm_hosted_method_view_missing_mir_metadata(&class_method_view)) {
         llvm_set_mir_inventory_missing(ctx,
             "MIR-only LLVM path missing class method declaration metadata");
+        return;
+    }
+    if (!llvm_require_hosted_method_view_rows(
+            ctx,
+            &class_method_view,
+            "MIR-only LLVM path has invalid method declaration metadata row for class '%s'",
+            cls_name != NULL ? cls_name : "(anonymous-class)")) {
         return;
     }
 

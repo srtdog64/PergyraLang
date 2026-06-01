@@ -1,0 +1,41 @@
+class Cell {
+    let row: Int;
+    let col: Int;
+    let val: Int;
+}
+
+class Grid {
+    let total: Int;
+    let count: Int;
+
+    func Avg(self) -> Int {
+        if self.count == 0 { return 0; }
+        return self.total / self.count;
+    }
+}
+
+func Empty() -> Grid { return Grid(0, 0); }
+
+func Add(g: Grid, c: Cell) -> Grid {
+    return Grid(g.total + c.val, g.count + 1);
+}
+
+func Scan(vals: Array<Int>, n: Int) -> Int {
+    let g: Grid = Empty();
+    let i: Int = 0;
+    while i < n {
+        let c: Cell = Cell(i / 10, i % 10, vals[i]);
+        g = Add(g, c);
+        i = i + 1;
+    }
+    return g.Avg();
+}
+
+func Main() -> Void {
+    let v: Array<Int> = [10, 20, 30, 40, 50];
+    Log(Scan(v, 5));
+    let empty: Array<Int> = [];
+    Log(Scan(empty, 0));
+    let single: Array<Int> = [42];
+    Log(Scan(single, 1));
+}

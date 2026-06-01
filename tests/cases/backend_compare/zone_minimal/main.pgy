@@ -1,0 +1,11 @@
+zone Inventory {
+    shared count: Int = 0
+
+    func AddItem(self) -> Int {
+        return count;
+    }
+}
+
+func Main() -> Void {
+    Log(0);
+}

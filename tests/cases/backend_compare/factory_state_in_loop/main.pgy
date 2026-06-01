@@ -1,0 +1,28 @@
+class Path {
+    let steps: Int;
+    let cost: Int;
+}
+
+func InitPath() -> Path { return Path(0, 0); }
+
+func Advance(p: Path, dist: Int) -> Path {
+    return Path(p.steps + 1, p.cost + dist);
+}
+
+func RunPath(distances: Array<Int>, n: Int) -> Int {
+    let p: Path = InitPath();
+    let i: Int = 0;
+    while i < n {
+        p = Advance(p, distances[i]);
+        i = i + 1;
+    }
+    return p.steps * 1000 + p.cost;
+}
+
+func Main() -> Void {
+    let d: Array<Int> = [5, 3, 8, 2, 10];
+    Log(RunPath(d, 5));
+    Log(RunPath(d, 3));
+    let empty: Array<Int> = [];
+    Log(RunPath(empty, 0));
+}

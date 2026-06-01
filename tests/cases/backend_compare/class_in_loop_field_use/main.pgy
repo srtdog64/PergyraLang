@@ -1,0 +1,22 @@
+class Tag {
+    let id: Int;
+    let weight: Int;
+}
+
+func MakeTags(n: Int, base: Int) -> Int {
+    let total: Int = 0;
+    let i: Int = 0;
+    while i < n {
+        let t: Tag = Tag(base + i, i + 1);
+        total = total + t.id * t.weight;
+        i = i + 1;
+    }
+    return total;
+}
+
+func Main() -> Void {
+    Log(MakeTags(3, 10));
+    Log(MakeTags(0, 100));
+    Log(MakeTags(5, 0));
+    Log(MakeTags(1, 50));
+}

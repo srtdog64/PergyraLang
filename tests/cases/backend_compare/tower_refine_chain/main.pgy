@@ -1,0 +1,33 @@
+class Tower {
+    let level: Int;
+    let stones: Int;
+
+    func IsTall(self) -> Bool { return self.level >= 5; }
+}
+
+func Built(stones: Int) -> Tower {
+    return Tower(stones / 10, stones);
+}
+
+func Refine(t: Tower) -> Tower {
+    if t.IsTall() { return Tower(t.level + 1, t.stones - 10); }
+    return Tower(t.level, t.stones - 5);
+}
+
+func RunUntilEnd(start: Int, max_steps: Int) -> Int {
+    let t: Tower = Built(start);
+    let steps: Int = 0;
+    while t.stones > 0 {
+        if steps >= max_steps { return t.level; }
+        t = Refine(t);
+        steps = steps + 1;
+    }
+    return t.level;
+}
+
+func Main() -> Void {
+    Log(RunUntilEnd(50, 100));
+    Log(RunUntilEnd(100, 50));
+    Log(RunUntilEnd(0, 10));
+    Log(RunUntilEnd(20, 5));
+}

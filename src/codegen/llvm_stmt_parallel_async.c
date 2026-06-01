@@ -14,7 +14,14 @@ llvm_emit_parallel_block(ASTNode *node, LLVMGenCtx *ctx)
     if (count == 0)
         return;
 
-    typedef struct { const char *name; LLVMValueRef alloca; LLVMTypeRef type; } CapturedVar;
+    typedef struct {
+        const char *name;
+        LLVMValueRef alloca;
+        LLVMTypeRef type;
+        const char *channel_inner;
+        const char *future_inner;
+        bool future_is_remote;
+    } CapturedVar;
     CapturedVar captured[MAX_SCOPE_VARS];
     int n_captured = 0;
 
@@ -24,7 +31,10 @@ llvm_emit_parallel_block(ASTNode *node, LLVMGenCtx *ctx)
             captured[n_captured++] = (CapturedVar){
                 frame->entries[j].name,
                 frame->entries[j].alloca,
-                frame->entries[j].type
+                frame->entries[j].type,
+                llvm_lookup_channel_inner(ctx, frame->entries[j].name),
+                llvm_lookup_future_inner(ctx, frame->entries[j].name),
+                llvm_lookup_future_is_remote(ctx, frame->entries[j].name)
             };
         }
     }
@@ -95,6 +105,13 @@ llvm_emit_parallel_block(ASTNode *node, LLVMGenCtx *ctx)
                 ctx->builder, ctx->type_i8ptr, field_ptr,
                 llvm_tmp_name(ctx));
             llvm_scope_declare(ctx, captured[c].name, var_ptr, captured[c].type);
+            if (captured[c].channel_inner != NULL)
+                llvm_register_channel_var_binding(ctx, captured[c].name,
+                    var_ptr, captured[c].channel_inner);
+            if (captured[c].future_inner != NULL)
+                llvm_register_future_var_binding(ctx, captured[c].name,
+                    var_ptr, captured[c].future_inner,
+                    captured[c].future_is_remote);
         }
 
         llvm_emit_statement(ast_parallel_task(node, i), ctx);
@@ -155,7 +172,14 @@ llvm_emit_async_block(ASTNode *node, LLVMGenCtx *ctx)
     LLVMBasicBlockRef saved_bb = LLVMGetInsertBlock(ctx->builder);
 
     int saved_parallel_counter = ctx->parallel_counter;
-    typedef struct { const char *name; LLVMValueRef alloca; LLVMTypeRef type; } CapturedVar;
+    typedef struct {
+        const char *name;
+        LLVMValueRef alloca;
+        LLVMTypeRef type;
+        const char *channel_inner;
+        const char *future_inner;
+        bool future_is_remote;
+    } CapturedVar;
     CapturedVar captured[MAX_SCOPE_VARS];
     int n_captured = 0;
     for (int i = 0; i < ctx->scope_depth; i++) {
@@ -164,7 +188,10 @@ llvm_emit_async_block(ASTNode *node, LLVMGenCtx *ctx)
             captured[n_captured++] = (CapturedVar){
                 frame->entries[j].name,
                 frame->entries[j].alloca,
-                frame->entries[j].type
+                frame->entries[j].type,
+                llvm_lookup_channel_inner(ctx, frame->entries[j].name),
+                llvm_lookup_future_inner(ctx, frame->entries[j].name),
+                llvm_lookup_future_is_remote(ctx, frame->entries[j].name)
             };
         }
     }
@@ -219,6 +246,13 @@ llvm_emit_async_block(ASTNode *node, LLVMGenCtx *ctx)
             LLVMValueRef var_ptr = LLVMBuildBitCast(ctx->builder, var_ptr_i8,
                 LLVMPointerType(captured[i].type, 0), llvm_tmp_name(ctx));
             llvm_scope_declare(ctx, captured[i].name, var_ptr, captured[i].type);
+            if (captured[i].channel_inner != NULL)
+                llvm_register_channel_var_binding(ctx, captured[i].name,
+                    var_ptr, captured[i].channel_inner);
+            if (captured[i].future_inner != NULL)
+                llvm_register_future_var_binding(ctx, captured[i].name,
+                    var_ptr, captured[i].future_inner,
+                    captured[i].future_is_remote);
         }
     }
     for (size_t i = 0; i < statement_count; i++)

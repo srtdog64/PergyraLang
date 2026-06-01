@@ -1,0 +1,32 @@
+class Pos {
+    let x: Int;
+    let y: Int;
+
+    func DistSq(self) -> Int {
+        return self.x * self.x + self.y * self.y;
+    }
+}
+
+enum Move { Up, Down, Right, Left }
+
+func Step(p: Pos, m: Move) -> Pos {
+    match m {
+        case Up: return Pos(p.x, p.y + 1);
+        case Down: return Pos(p.x, p.y - 1);
+        case Right: return Pos(p.x + 1, p.y);
+        case Left: return Pos(p.x - 1, p.y);
+    }
+}
+
+func StepN(p: Pos, m: Move, n: Int) -> Pos {
+    if n <= 0 { return p; }
+    return StepN(Step(p, m), m, n - 1);
+}
+
+func Main() -> Void {
+    let origin: Pos = Pos(0, 0);
+    Log(StepN(origin, Up, 3).y);
+    Log(StepN(origin, Down, 5).y);
+    Log(StepN(origin, Right, 4).x);
+    Log(StepN(origin, Right, 3).DistSq());
+}

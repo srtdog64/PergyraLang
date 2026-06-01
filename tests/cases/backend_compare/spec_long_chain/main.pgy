@@ -1,0 +1,25 @@
+class Spec {
+    let key: Int;
+    let level: Int;
+    let bonus: Int;
+
+    func Power(self) -> Int { return self.level * 10 + self.bonus; }
+
+    func WithLevel(self, l: Int) -> Spec {
+        return Spec(self.key, l, self.bonus);
+    }
+
+    func WithBonus(self, b: Int) -> Spec {
+        return Spec(self.key, self.level, b);
+    }
+}
+
+func Make(k: Int) -> Spec { return Spec(k, 1, 0); }
+
+func Main() -> Void {
+    Log(Make(1).Power());
+    Log(Make(1).WithLevel(5).Power());
+    Log(Make(1).WithLevel(5).WithBonus(50).Power());
+    Log(Make(2).WithBonus(100).WithLevel(3).WithBonus(200).Power());
+    Log(Make(0).WithLevel(0).WithBonus(0).key);
+}

@@ -1,0 +1,15 @@
+class Pt {
+    let v: Int;
+
+    func Times(self, k: Int) -> Pt { return Pt(self.v * k); }
+
+    func Get(self) -> Int { return self.v; }
+}
+
+func Make(n: Int) -> Pt { return Pt(n); }
+
+func Main() -> Void {
+    Log(Make(5).Times(3).Get());
+    Log(Make(10).Times(0).Get());
+    Log(Make(7).Times(2).Times(2).Times(2).Get());
+}

@@ -1,0 +1,17 @@
+class Cell {
+    let kind: Int;
+    let value: Int;
+
+    func Heavy(self) -> Bool { return self.value > 100; }
+}
+
+func MakeCell(k: Int, v: Int) -> Cell { return Cell(k, v); }
+
+func Main() -> Void {
+    let c1: Cell = MakeCell(1, 50);
+    Log(c1.value);
+    let c2: Cell = MakeCell(2, 200);
+    Log(c2.value);
+    Log(MakeCell(3, 99).value);
+    Log(MakeCell(4, 150).Heavy());
+}

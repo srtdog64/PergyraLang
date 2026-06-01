@@ -112,6 +112,7 @@ llvm_emit_func_from_mir(const MIRRoutine *routine, LLVMGenCtx *ctx)
     size_t param_count = 0;
     bool is_intent = false;
     bool is_method = false;
+    bool owner_is_role = false;
     const char *owner_name = NULL;
     LLVMClassTypeEntry *owner_cls = NULL;
     LLVMFuncEntry *owner_sync = NULL;
@@ -133,6 +134,7 @@ llvm_emit_func_from_mir(const MIRRoutine *routine, LLVMGenCtx *ctx)
 
     is_intent = (func_decl->type == AST_INTENT_DECL);
     is_method = (!is_intent && routine->kind == MIR_SCOPE_METHOD);
+    owner_is_role = is_method && routine->owner_ast_type == AST_ROLE_DECL;
     owner_name = routine->owner_name;
     if (is_method && owner_name == NULL) {
         llvm_set_mir_topology_invalid(ctx,
@@ -158,8 +160,7 @@ llvm_emit_func_from_mir(const MIRRoutine *routine, LLVMGenCtx *ctx)
     if (!is_intent) {
         for (size_t i = 0; i < ast_func_param_count(func_decl); i++) {
             FuncParam *p = ast_func_param(func_decl, i);
-            if (is_method && p != NULL && p->type == NULL
-                && p->name != NULL && strcmp(p->name, "self") == 0) {
+            if (is_method && llvm_param_is_implicit_self_local(p)) {
                 continue;
             }
             bool is_secure_slot = false;
@@ -208,7 +209,9 @@ llvm_emit_func_from_mir(const MIRRoutine *routine, LLVMGenCtx *ctx)
                     return NULL;
             }
         } else if (is_method && i == 0) {
-            if (owner_cls != NULL) {
+            if (owner_is_role) {
+                param_types[i] = ctx->type_i8ptr;
+            } else if (owner_cls != NULL) {
                 param_types[i] = owner_cls->is_pointer_self_host
                     ? LLVMPointerType(owner_cls->struct_type, 0)
                     : owner_cls->struct_type;
@@ -220,13 +223,10 @@ llvm_emit_func_from_mir(const MIRRoutine *routine, LLVMGenCtx *ctx)
             size_t seen = 0;
             FuncParam *p = NULL;
             for (size_t param_index = 0;
-                 param_index < ast_func_param_count(func_decl);
+                param_index < ast_func_param_count(func_decl);
                  param_index++) {
                 FuncParam *candidate = ast_func_param(func_decl, param_index);
-                if (candidate != NULL
-                    && candidate->type == NULL
-                    && candidate->name != NULL
-                    && strcmp(candidate->name, "self") == 0) {
+                if (llvm_param_is_implicit_self_local(candidate)) {
                     continue;
                 }
                 if (seen == logical_index) {

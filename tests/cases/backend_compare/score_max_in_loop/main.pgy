@@ -1,0 +1,30 @@
+class Score {
+    let raw: Int;
+    let weight: Int;
+
+    func Effective(self) -> Int { return self.raw * self.weight / 10; }
+}
+
+func Highest(raws: Array<Int>, weights: Array<Int>, n: Int) -> Int {
+    if n == 0 { return -1; }
+    let best: Int = -1;
+    let i: Int = 0;
+    while i < n {
+        let s: Score = Score(raws[i], weights[i]);
+        let eff: Int = s.Effective();
+        if eff > best { best = eff; }
+        i = i + 1;
+    }
+    return best;
+}
+
+func Main() -> Void {
+    let r: Array<Int> = [10, 20, 30, 15, 25];
+    let w: Array<Int> = [5, 3, 4, 7, 2];
+    Log(Highest(r, w, 5));
+    let empty: Array<Int> = [];
+    Log(Highest(empty, empty, 0));
+    let single: Array<Int> = [42];
+    let single_w: Array<Int> = [3];
+    Log(Highest(single, single_w, 1));
+}

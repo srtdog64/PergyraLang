@@ -1,0 +1,31 @@
+class Step {
+    let n: Int;
+
+    func Adv(self, x: Int) -> Step {
+        return Step(self.n + x);
+    }
+
+    func Half(self) -> Step {
+        return Step(self.n / 2);
+    }
+
+    func Get(self) -> Int { return self.n; }
+}
+
+func New(n: Int) -> Step { return Step(n); }
+
+func Reduce(start: Int, n: Int) -> Step {
+    let s: Step = New(start);
+    let i: Int = 0;
+    while i < n {
+        s = s.Adv(10).Half();
+        i = i + 1;
+    }
+    return s;
+}
+
+func Main() -> Void {
+    Log(Reduce(0, 1).Get());
+    Log(Reduce(0, 3).Get());
+    Log(Reduce(100, 5).Get());
+}

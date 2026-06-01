@@ -431,45 +431,12 @@ llvm_lookup_projection_borrow(LLVMGenCtx *ctx, const char *var_name)
 {
     if (ctx == NULL || var_name == NULL)
         return NULL;
+    if (llvm_scope_lookup(ctx, var_name) == NULL)
+        return NULL;
 
     for (int i = ctx->projection_borrow_count - 1; i >= 0; i--) {
         if (strcmp(ctx->projection_borrows[i].var_name, var_name) == 0)
             return &ctx->projection_borrows[i];
-    }
-    return NULL;
-}
-
-void
-llvm_register_array_var(LLVMGenCtx *ctx, const char *var_name,
-                        LLVMTypeRef elem_type, int64_t length)
-{
-    char *owned_name;
-
-    if (var_name == NULL || var_name[0] == '\0') {
-        llvm_set_error(ctx, "LLVM Array registry requires a variable name");
-        return;
-    }
-
-    PGY_DYNARR_ENSURE(ctx->array_vars, ctx->array_var_count,
-                      ctx->array_var_capacity, LLVMArrayVarEntry);
-
-    owned_name = pergyra_strdup(var_name);
-    if (owned_name == NULL) {
-        llvm_set_error(ctx, "out of memory copying LLVM Array registry name");
-        return;
-    }
-    ctx->array_vars[ctx->array_var_count].var_name = owned_name;
-    ctx->array_vars[ctx->array_var_count].elem_type = elem_type;
-    ctx->array_vars[ctx->array_var_count].length = length;
-    ctx->array_var_count++;
-}
-
-LLVMArrayVarEntry *
-llvm_lookup_array_var(LLVMGenCtx *ctx, const char *var_name)
-{
-    for (int i = ctx->array_var_count - 1; i >= 0; i--) {
-        if (strcmp(ctx->array_vars[i].var_name, var_name) == 0)
-            return &ctx->array_vars[i];
     }
     return NULL;
 }
@@ -523,6 +490,10 @@ llvm_register_callable_signature(LLVMGenCtx *ctx, const char *var_name,
 LLVMCallableVarEntry *
 llvm_lookup_callable_entry(LLVMGenCtx *ctx, const char *var_name)
 {
+    if (ctx == NULL || var_name == NULL
+        || llvm_scope_lookup(ctx, var_name) == NULL) {
+        return NULL;
+    }
     for (int i = ctx->callable_var_count - 1; i >= 0; i--) {
         if (strcmp(ctx->callable_vars[i].var_name, var_name) == 0)
             return &ctx->callable_vars[i];

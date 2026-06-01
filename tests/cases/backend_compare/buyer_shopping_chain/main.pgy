@@ -1,0 +1,29 @@
+class Buyer {
+    let cash: Int;
+    let items: Int;
+
+    func CanBuy(self, cost: Int) -> Bool { return self.cash >= cost; }
+    func Buy(self, cost: Int) -> Buyer {
+        if self.CanBuy(cost) == false { return self; }
+        return Buyer(self.cash - cost, self.items + 1);
+    }
+}
+
+func ShoppingTrip(start: Int, costs: Array<Int>, n: Int) -> Int {
+    let b: Buyer = Buyer(start, 0);
+    let i: Int = 0;
+    while i < n {
+        b = b.Buy(costs[i]);
+        i = i + 1;
+    }
+    return b.items;
+}
+
+func Main() -> Void {
+    let costs: Array<Int> = [50, 30, 100, 20, 40];
+    Log(ShoppingTrip(200, costs, 5));
+    Log(ShoppingTrip(100, costs, 5));
+    Log(ShoppingTrip(0, costs, 5));
+    let empty: Array<Int> = [];
+    Log(ShoppingTrip(100, empty, 0));
+}

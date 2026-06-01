@@ -1,0 +1,28 @@
+func Calc(arr: Array<Int>, n: Int) -> Int {
+    let total: Int = 0;
+    let avg: Int = 0;
+    let i: Int = 0;
+    while i < n {
+        total = total + arr[i];
+        i = i + 1;
+    }
+    if n > 0 { avg = total / n; }
+    let dev: Int = 0;
+    let j: Int = 0;
+    while j < n {
+        let diff: Int = arr[j] - avg;
+        if diff < 0 { diff = 0 - diff; }
+        dev = dev + diff;
+        j = j + 1;
+    }
+    return avg * 1000 + dev;
+}
+
+func Main() -> Void {
+    let a: Array<Int> = [10, 20, 30, 40, 50];
+    Log(Calc(a, 5));
+    let b: Array<Int> = [100, 100, 100];
+    Log(Calc(b, 3));
+    let empty: Array<Int> = [];
+    Log(Calc(empty, 0));
+}

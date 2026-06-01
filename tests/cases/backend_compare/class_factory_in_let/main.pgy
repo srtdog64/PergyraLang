@@ -1,0 +1,21 @@
+class Inventory {
+    let gold: Int;
+    let xp: Int;
+
+    func Total(self) -> Int {
+        return gold * 10 + xp;
+    }
+}
+
+func MakeInv(g: Int, x: Int) -> Inventory {
+    return Inventory(g, x);
+}
+
+func Main() -> Void {
+    let i1: Inventory = MakeInv(100, 50);
+    let i2: Inventory = MakeInv(200, 75);
+    let i3: Inventory = MakeInv(50, 200);
+    Log(i1.Total());
+    Log(i2.Total());
+    Log(i3.Total());
+}

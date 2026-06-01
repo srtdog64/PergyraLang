@@ -1,0 +1,29 @@
+class Health {
+    let hp: Int;
+    let max: Int;
+}
+
+func Heal(h: Health, amt: Int) -> Health {
+    let new_hp: Int = h.hp + amt;
+    if new_hp > h.max { new_hp = h.max; }
+    return Health(new_hp, h.max);
+}
+
+func Damage(h: Health, amt: Int) -> Health {
+    let new_hp: Int = h.hp - amt;
+    if new_hp < 0 { new_hp = 0; }
+    return Health(new_hp, h.max);
+}
+
+func Main() -> Void {
+    let h: Health = Health(100, 100);
+    Log(h.hp);
+    let h2: Health = Damage(h, 30);
+    Log(h2.hp);
+    let h3: Health = Damage(h2, 200);
+    Log(h3.hp);
+    let h4: Health = Heal(h3, 50);
+    Log(h4.hp);
+    let h5: Health = Heal(h4, 1000);
+    Log(h5.hp);
+}

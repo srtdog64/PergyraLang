@@ -1,0 +1,24 @@
+class Stat {
+    let level: Int;
+    let xp: Int;
+
+    func PromoteIf(self, threshold: Int) -> Stat {
+        if self.xp >= threshold {
+            return Stat(self.level + 1, 0);
+        }
+        return self;
+    }
+}
+
+func MakeStat(l: Int, x: Int) -> Stat { return Stat(l, x); }
+
+func Promote(s: Stat) -> Stat {
+    return s.PromoteIf(100);
+}
+
+func Main() -> Void {
+    Log(MakeStat(1, 50).PromoteIf(100).level);
+    Log(MakeStat(1, 150).PromoteIf(100).level);
+    Log(Promote(MakeStat(5, 200)).level);
+    Log(Promote(MakeStat(10, 50)).xp);
+}

@@ -1,0 +1,23 @@
+class Bag {
+    let coins: Int;
+    let gems: Int;
+}
+
+func Clone(b: Bag) -> Bag {
+    return Bag(b.coins, b.gems);
+}
+
+func Deposit(b: Bag, c: Int, g: Int) -> Bag {
+    return Bag(b.coins + c, b.gems + g);
+}
+
+func Main() -> Void {
+    let b: Bag = Bag(100, 5);
+    Log(b.coins);
+    let c: Bag = Clone(b);
+    Log(c.coins);
+    Log(c.gems);
+    let after: Bag = Deposit(Clone(b), 50, 2);
+    Log(after.coins);
+    Log(after.gems);
+}

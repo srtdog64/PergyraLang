@@ -1,0 +1,32 @@
+class Reward {
+    let amount: Int;
+    let bonus: Int;
+
+    func Total(self) -> Int { return amount + bonus; }
+}
+
+enum Tier { Low, Mid, High }
+
+func GiveLow() -> Reward { return Reward(10, 0); }
+func GiveMid() -> Reward { return Reward(50, 10); }
+func GiveHigh() -> Reward { return Reward(200, 50); }
+
+func PickReward(t: Tier) -> Int {
+    match t {
+        case Low:
+            let r: Reward = Reward(10, 0);
+            return r.Total();
+        case Mid:
+            let r: Reward = Reward(50, 10);
+            return r.Total();
+        case High:
+            let r: Reward = Reward(200, 50);
+            return r.Total();
+    }
+}
+
+func Main() -> Void {
+    Log(PickReward(Low));
+    Log(PickReward(Mid));
+    Log(PickReward(High));
+}

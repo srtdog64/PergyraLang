@@ -1,0 +1,24 @@
+class Score {
+    let val: Int;
+    let bonus: Int;
+
+    func Total(self) -> Int { return self.val + self.bonus; }
+}
+
+func Highest(scores_v: Array<Int>, bonus_v: Array<Int>, n: Int) -> Int {
+    if n == 0 { return 0; }
+    let best: Int = Score(scores_v[0], bonus_v[0]).Total();
+    for i in 1..n {
+        let cur: Int = Score(scores_v[i], bonus_v[i]).Total();
+        if cur > best { best = cur; }
+    }
+    return best;
+}
+
+func Main() -> Void {
+    let v: Array<Int> = [10, 50, 30, 70, 20];
+    let b: Array<Int> = [5, 10, 15, 0, 100];
+    Log(Highest(v, b, 5));
+    Log(Highest(v, b, 0));
+    Log(Highest(v, b, 1));
+}

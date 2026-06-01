@@ -60,6 +60,44 @@ llvm_find_mir_intent_routine(const LLVMGenCtx *ctx, ASTNode *intent_decl)
     return NULL;
 }
 
+static bool
+llvm_mir_intent_routine_has_instructions(const MIRRoutine *routine)
+{
+    if (routine == NULL)
+        return false;
+    if (routine->block_count > 0 && routine->blocks == NULL)
+        return true;
+    for (size_t i = 0; i < routine->block_count; i++) {
+        if (routine->blocks[i].instruction_count > 0)
+            return true;
+    }
+    return false;
+}
+
+bool
+llvm_require_mir_intent_source_ast(LLVMGenCtx *ctx,
+                                   const MIRRoutine *routine,
+                                   ASTNode **intent_decl_out)
+{
+    ASTNode *intent_decl;
+
+    intent_decl = llvm_mir_routine_source_ast_of_type(
+        routine, MIR_SCOPE_INTENT, AST_INTENT_DECL);
+    if (intent_decl_out != NULL)
+        *intent_decl_out = intent_decl;
+    if (intent_decl != NULL)
+        return true;
+    if (routine != NULL
+        && routine->kind == MIR_SCOPE_INTENT
+        && llvm_mir_intent_routine_has_instructions(routine)) {
+        llvm_set_mir_inventory_missing(ctx,
+            "MIR-only LLVM path missing intent source declaration metadata for routine '%s'",
+            routine->name != NULL ? routine->name : "(anonymous)");
+        return false;
+    }
+    return true;
+}
+
 void
 llvm_emit_mir_resource_hook(LLVMGenCtx *ctx,
                             const MIRInstruction *inst,

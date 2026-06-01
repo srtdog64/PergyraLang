@@ -1,0 +1,37 @@
+enum Mode { Easy, Med, Hard }
+
+class GameState {
+    let score: Int;
+    let lives: Int;
+}
+
+func Start(g: Mode) -> GameState {
+    match g {
+        case Easy: return GameState(0, 5);
+        case Med: return GameState(0, 3);
+        case Hard: return GameState(0, 1);
+    }
+}
+
+func Play(s: GameState, win: Bool) -> GameState {
+    if win { return GameState(s.score + 10, s.lives); }
+    return GameState(s.score, s.lives - 1);
+}
+
+func RunGames(g: Mode, wins: Array<Bool>, n: Int) -> GameState {
+    let s: GameState = Start(g);
+    let i: Int = 0;
+    while i < n && s.lives > 0 {
+        s = Play(s, wins[i]);
+        i = i + 1;
+    }
+    return s;
+}
+
+func Main() -> Void {
+    let results: Array<Bool> = [true, false, true, true, false];
+    Log(RunGames(Easy, results, 5).score);
+    Log(RunGames(Med, results, 5).score);
+    Log(RunGames(Hard, results, 5).score);
+    Log(RunGames(Easy, results, 5).lives);
+}

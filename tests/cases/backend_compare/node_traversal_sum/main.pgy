@@ -1,0 +1,28 @@
+class Node {
+    let v: Int;
+    let next: Int;
+}
+
+func MakeNode(v: Int, next: Int) -> Node { return Node(v, next); }
+
+func TraverseSum(nodes: Array<Int>, start: Int, n: Int) -> Int {
+    let total: Int = 0;
+    let cur: Int = start;
+    let limit: Int = 0;
+    while cur >= 0 && limit < n {
+        if cur >= n { return total; }
+        let node: Node = MakeNode(nodes[cur], cur + 1);
+        total = total + node.v;
+        cur = cur + 1;
+        limit = limit + 1;
+    }
+    return total;
+}
+
+func Main() -> Void {
+    let n: Array<Int> = [10, 20, 30, 40, 50];
+    Log(TraverseSum(n, 0, 5));
+    Log(TraverseSum(n, 2, 5));
+    Log(TraverseSum(n, 0, 0));
+    Log(TraverseSum(n, 4, 5));
+}

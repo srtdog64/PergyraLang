@@ -17,6 +17,13 @@ transpiler_emit_zone_hosted_methods_bridge(
             transpiler_hosted_method_view_metadata(method_view, i);
         ASTNode *method =
             transpiler_hosted_method_view_source_ast(method_view, i);
+        if (transpiler_hosted_method_view_missing_mir_method_row(method_view, i)) {
+            transpiler_set_mir_inventory_missing(
+                ctx,
+                "MIR-only C path has invalid method declaration metadata row for zone '%s'",
+                name != NULL ? name : "(anonymous-zone)");
+            return;
+        }
         if (method_meta == NULL
             && (method == NULL || method->type != AST_FUNC_DECL)) {
             continue;

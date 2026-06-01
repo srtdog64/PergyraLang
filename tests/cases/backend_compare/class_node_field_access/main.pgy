@@ -1,0 +1,29 @@
+class Node {
+    let value: Int;
+    let next_id: Int;
+}
+
+func MakeNode(v: Int, next: Int) -> Node {
+    return Node(v, next);
+}
+
+func GetValue(arr: Array<Node>, n: Int, idx: Int) -> Int {
+    if idx < 0 { return -1; }
+    if idx >= n { return -1; }
+    let total: Int = 0;
+    let cur: Int = idx;
+    while cur >= 0 {
+        if cur >= n { return total; }
+        cur = cur - 1;
+    }
+    return total;
+}
+
+func Main() -> Void {
+    let n1: Node = MakeNode(10, 1);
+    let n2: Node = MakeNode(20, 2);
+    let n3: Node = MakeNode(30, -1);
+    Log(n1.value);
+    Log(n2.value);
+    Log(n3.next_id);
+}

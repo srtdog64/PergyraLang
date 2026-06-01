@@ -1,0 +1,28 @@
+class Snap {
+    let timestamp: Int;
+    let value: Int;
+}
+
+class Series {
+    let cur: Snap;
+    let prev: Snap;
+
+    func Delta(self) -> Int {
+        return self.cur.value - self.prev.value;
+    }
+
+    func ElapsedMs(self) -> Int {
+        return self.cur.timestamp - self.prev.timestamp;
+    }
+}
+
+func MakeSeries(t1: Int, v1: Int, t2: Int, v2: Int) -> Series {
+    return Series(Snap(t2, v2), Snap(t1, v1));
+}
+
+func Main() -> Void {
+    Log(MakeSeries(100, 50, 200, 80).Delta());
+    Log(MakeSeries(100, 50, 200, 80).ElapsedMs());
+    Log(MakeSeries(0, 100, 50, 200).cur.value);
+    Log(MakeSeries(0, 100, 50, 200).prev.value);
+}

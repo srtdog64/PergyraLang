@@ -15,9 +15,9 @@ Live source of truth:
 
 ## Current Readiness
 
-Feature-surface feel is about 70%. Strict beta readiness remains about 72-74%.
-Do not raise the official number to 75% or 80% until the remaining source-of-
-truth closures below are consumed by implementation and gates, not just by docs.
+Feature-surface feel is about 70%. Strict beta readiness is about 75%.
+Do not raise the official number to 80% until the remaining source-of-truth
+closures below are consumed by implementation and gates, not just by docs.
 
 ## Closure Axes
 
@@ -59,7 +59,7 @@ truth for each judgment:
 - Self-hosting has a soft diagnostic-catalog checker scaffold, but it is now
   treated as post-beta dogfood evidence rather than beta closure priority.
 
-## Still Blocking 75%+
+## Still Blocking 80%
 
 - CFG must become the body-safety source of truth for ownership, cleanup,
   branch/join, loop, channel, cancellation, zone, and effect transitions.

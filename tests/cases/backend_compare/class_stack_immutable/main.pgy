@@ -1,0 +1,32 @@
+class Stack {
+    let data: Array<Int>;
+    let size: Int;
+}
+
+func StackNew() -> Stack {
+    let arr: Array<Int> = [];
+    return Stack(arr, 0);
+}
+
+func StackPush(s: Stack, v: Int) -> Stack {
+    let new_arr: Array<Int> = s.data;
+    ArrayPush(new_arr, v);
+    return Stack(new_arr, s.size + 1);
+}
+
+func StackTop(s: Stack) -> Int {
+    if s.size == 0 { return -1; }
+    return s.data[s.size - 1];
+}
+
+func Main() -> Void {
+    let s0: Stack = StackNew();
+    Log(StackTop(s0));
+    let s1: Stack = StackPush(s0, 100);
+    Log(StackTop(s1));
+    let s2: Stack = StackPush(s1, 200);
+    Log(StackTop(s2));
+    let s3: Stack = StackPush(s2, 300);
+    Log(StackTop(s3));
+    Log(s3.size);
+}

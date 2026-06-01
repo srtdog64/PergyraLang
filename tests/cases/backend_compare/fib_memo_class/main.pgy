@@ -1,0 +1,20 @@
+class Memo {
+    let n: Int;
+    let cached: Int;
+}
+
+func ComputeFib(n: Int) -> Int {
+    if n < 2 { return n; }
+    return ComputeFib(n - 1) + ComputeFib(n - 2);
+}
+
+func MakeMemo(n: Int) -> Memo {
+    return Memo(n, ComputeFib(n));
+}
+
+func Main() -> Void {
+    Log(MakeMemo(5).cached);
+    Log(MakeMemo(10).cached);
+    Log(MakeMemo(0).cached);
+    Log(MakeMemo(15).cached);
+}

@@ -301,6 +301,16 @@ llvm_emit_member_call(ASTNode *node, LLVMGenCtx *ctx)
                     return NULL;
                 self_ptr = llvm_emit_member_lvalue_ptr(obj_node, ctx, NULL);
                 if (self_ptr == NULL) {
+                    LLVMValueRef recv_val = llvm_emit_expression(obj_node, ctx);
+                    if (recv_val != NULL
+                        && LLVMGetTypeKind(LLVMTypeOf(recv_val))
+                           == LLVMStructTypeKind) {
+                        self_ptr = llvm_create_entry_alloca(ctx,
+                            host_cls->struct_type, llvm_tmp_name(ctx));
+                        LLVMBuildStore(ctx->builder, recv_val, self_ptr);
+                    }
+                }
+                if (self_ptr == NULL) {
                     return llvm_member_call_error_recovery(ctx, node,
                         class_name, method_name, "could not lower receiver");
                 }

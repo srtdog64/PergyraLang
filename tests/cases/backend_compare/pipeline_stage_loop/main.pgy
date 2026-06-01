@@ -1,0 +1,30 @@
+class Pipeline {
+    let input: Int;
+    let stage: Int;
+
+    func Stage(self) -> Int { return self.stage; }
+}
+
+func Initialize(n: Int) -> Pipeline { return Pipeline(n, 0); }
+
+func Process(p: Pipeline) -> Pipeline {
+    if p.stage == 0 { return Pipeline(p.input * 2, 1); }
+    if p.stage == 1 { return Pipeline(p.input + 10, 2); }
+    if p.stage == 2 { return Pipeline(p.input - 5, 3); }
+    return p;
+}
+
+func RunPipeline(start: Int) -> Int {
+    let p: Pipeline = Initialize(start);
+    while p.Stage() < 3 {
+        p = Process(p);
+    }
+    return p.input;
+}
+
+func Main() -> Void {
+    Log(RunPipeline(10));
+    Log(RunPipeline(50));
+    Log(RunPipeline(0));
+    Log(RunPipeline(100));
+}

@@ -1,0 +1,29 @@
+class Score {
+    let pts: Int;
+    let multi: Int;
+}
+
+func Boost(s: Score) -> Int {
+    return s.pts * s.multi;
+}
+
+enum Status { Active, Idle, Stop }
+
+func Eval(s: Score, st: Status) -> Int {
+    match st {
+        case Active:
+            if Boost(s) > 1000 { return 9999; }
+            return Boost(s);
+        case Idle: return s.pts;
+        case Stop: return 0;
+    }
+}
+
+func Main() -> Void {
+    let s1: Score = Score(100, 5);
+    Log(Eval(s1, Active));
+    Log(Eval(s1, Idle));
+    Log(Eval(s1, Stop));
+    let s2: Score = Score(300, 10);
+    Log(Eval(s2, Active));
+}

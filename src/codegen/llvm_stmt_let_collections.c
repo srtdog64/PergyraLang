@@ -152,6 +152,7 @@ llvm_stmt_emit_collection_like_let(ASTNode *node, LLVMGenCtx *ctx)
             && !target_cls->is_boundary_transfer_contract) {
             const char *source_name =
                 ast_identifier_name(ast_call_argument(init, 1));
+            llvm_scope_declare(ctx, name, NULL, target_cls->struct_type);
             llvm_register_var_class(ctx, name, type_name);
             llvm_register_projection_borrow(ctx, name, type_name, source_name);
             return true;

@@ -1,0 +1,26 @@
+class Plot {
+    let row: Int;
+    let col: Int;
+    let val: Int;
+}
+
+func Make(r: Int, c: Int, v: Int) -> Plot { return Plot(r, c, v); }
+
+func TotalByRow(plots: Array<Int>, n: Int, target_row: Int) -> Int {
+    let total: Int = 0;
+    let i: Int = 0;
+    while i < n {
+        let p: Plot = Make(i / 10, i % 10, plots[i]);
+        if p.row == target_row { total = total + p.val; }
+        i = i + 1;
+    }
+    return total;
+}
+
+func Main() -> Void {
+    let arr: Array<Int> = [10, 20, 30, 40, 50, 60];
+    Log(TotalByRow(arr, 6, 0));
+    Log(TotalByRow(arr, 6, 1));
+    let empty: Array<Int> = [];
+    Log(TotalByRow(empty, 0, 0));
+}

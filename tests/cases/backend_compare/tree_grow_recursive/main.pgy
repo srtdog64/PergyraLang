@@ -1,0 +1,26 @@
+class Tree {
+    let value: Int;
+    let height: Int;
+
+    func WithHeight(self, h: Int) -> Tree {
+        return Tree(self.value, h);
+    }
+
+    func IsTall(self) -> Bool { return self.height >= 5; }
+}
+
+func Sapling(v: Int) -> Tree { return Tree(v, 0); }
+
+func Grow(t: Tree, years: Int) -> Tree {
+    if years <= 0 { return t; }
+    if t.IsTall() { return t; }
+    return Grow(t.WithHeight(t.height + 1), years - 1);
+}
+
+func Main() -> Void {
+    Log(Sapling(10).height);
+    Log(Grow(Sapling(10), 3).height);
+    Log(Grow(Sapling(10), 100).height);
+    Log(Grow(Sapling(0), 10).IsTall());
+    Log(Grow(Sapling(0), 3).IsTall());
+}

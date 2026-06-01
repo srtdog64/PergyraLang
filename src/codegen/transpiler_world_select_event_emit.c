@@ -64,6 +64,22 @@ emit_world_decl(ASTNode *node, TranspilerCtx *ctx)
             name != NULL ? name : "(anonymous-world)");
         return;
     }
+    TranspilerHostedMethodView method_view =
+        transpiler_hosted_method_view_from_decl(ctx, name, node);
+    if (transpiler_hosted_method_view_missing_mir_metadata(&method_view)) {
+        transpiler_set_mir_inventory_missing(
+            ctx,
+            "MIR-only C path missing method declaration metadata for world '%s'",
+            name != NULL ? name : "(anonymous-world)");
+        return;
+    }
+    if (!transpiler_require_hosted_method_view_rows(
+            ctx,
+            &method_view,
+            "MIR-only C path has invalid method declaration metadata row for world '%s'",
+            name != NULL ? name : "(anonymous-world)")) {
+        return;
+    }
     size_t state_count = 0;
     ASTNode **states = ast_world_states(node, &state_count);
     size_t activate_count = 0;
@@ -478,21 +494,18 @@ emit_world_decl(ASTNode *node, TranspilerCtx *ctx)
     ctx->indent--;
     codebuf_write(ctx->out, "}\n");
 
-    TranspilerHostedMethodView method_view =
-        transpiler_hosted_method_view_from_decl(ctx, name, node);
-    if (transpiler_hosted_method_view_missing_mir_metadata(&method_view)) {
-        transpiler_set_mir_inventory_missing(
-            ctx,
-            "MIR-only C path missing method declaration metadata for world '%s'",
-            name != NULL ? name : "(anonymous-world)");
-        return;
-    }
-
     for (size_t i = 0; i < method_view.count; i++) {
         const MIRDeclMethod *method_meta =
             transpiler_hosted_method_view_metadata(&method_view, i);
         ASTNode *method =
             transpiler_hosted_method_view_source_ast(&method_view, i);
+        if (transpiler_hosted_method_view_missing_mir_method_row(&method_view, i)) {
+            transpiler_set_mir_inventory_missing(
+                ctx,
+                "MIR-only C path has invalid method declaration metadata row for world '%s'",
+                name != NULL ? name : "(anonymous-world)");
+            return;
+        }
         if (method_meta == NULL
             && (method == NULL || method->type != AST_FUNC_DECL)) {
             continue;

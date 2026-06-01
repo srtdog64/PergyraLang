@@ -1,0 +1,28 @@
+class Inner {
+    let val: Int;
+
+    func Bumped(self) -> Int { return self.val + 1; }
+}
+
+class Outer {
+    let inner: Inner;
+    let scale: Int;
+
+    func Total(self) -> Int { return self.inner.val * self.scale; }
+}
+
+func MakeOuter(v: Int, s: Int) -> Outer {
+    return Outer(Inner(v), s);
+}
+
+func InnerOf(v: Int) -> Inner {
+    return Inner(v);
+}
+
+func Main() -> Void {
+    Log(MakeOuter(10, 3).Total());
+    Log(MakeOuter(5, 7).inner.val);
+    Log(InnerOf(99).Bumped());
+    let o: Outer = MakeOuter(20, 2);
+    Log(o.inner.Bumped());
+}

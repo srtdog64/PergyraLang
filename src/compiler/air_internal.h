@@ -167,6 +167,18 @@ bool        air_evidence_inventory_storage_valid(const AIRProgram *air);
 size_t      air_evidence_node_count(const AIRProgram *air);
 const AIREvidenceNode *air_evidence_node_at(const AIRProgram *air,
                                             size_t index);
+AIREvidenceKind air_evidence_node_kind(const AIREvidenceNode *evidence);
+size_t      air_evidence_node_boundary_index_or(
+                const AIREvidenceNode *evidence,
+                size_t fallback);
+const char *air_evidence_node_provider_name_or(
+                const AIREvidenceNode *evidence,
+                const char *fallback);
+const char *air_evidence_node_subject_name_or(
+                const AIREvidenceNode *evidence,
+                const char *fallback);
+size_t      air_evidence_node_fact_count(const AIREvidenceNode *evidence);
+size_t      air_evidence_node_fallback_count(const AIREvidenceNode *evidence);
 size_t      air_global_evidence_node_count(const AIRProgram *air,
                                            AIREvidenceKind kind);
 size_t      air_global_evidence_fact_count(const AIRProgram *air,

@@ -1,0 +1,25 @@
+class Cell {
+    let value: Int;
+    let factor: Int;
+
+    func Score(self) -> Int { return self.value * self.factor; }
+}
+
+func MakeCell(seed: Int) -> Cell {
+    return Cell(seed % 100, seed % 10);
+}
+
+func TotalGrid(start: Int, n: Int) -> Int {
+    let total: Int = 0;
+    for i in 0..n {
+        total = total + MakeCell(start + i * 7).Score();
+    }
+    return total;
+}
+
+func Main() -> Void {
+    Log(TotalGrid(1, 5));
+    Log(TotalGrid(100, 3));
+    Log(TotalGrid(0, 0));
+    Log(TotalGrid(50, 10));
+}

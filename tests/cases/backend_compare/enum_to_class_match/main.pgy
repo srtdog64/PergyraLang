@@ -1,0 +1,25 @@
+class Stat {
+    let val: Int;
+    let scale: Int;
+}
+
+enum Class { Tank, DPS, Healer }
+
+func StatOf(c: Class) -> Stat {
+    match c {
+        case Tank: return Stat(50, 2);
+        case DPS: return Stat(100, 1);
+        case Healer: return Stat(30, 3);
+    }
+}
+
+func Power(c: Class) -> Int {
+    let s: Stat = StatOf(c);
+    return s.val * s.scale;
+}
+
+func Main() -> Void {
+    Log(Power(Tank));
+    Log(Power(DPS));
+    Log(Power(Healer));
+}

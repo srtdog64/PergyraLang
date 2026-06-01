@@ -1,0 +1,33 @@
+class Outcome {
+    let val: Int;
+    let valid: Bool;
+}
+
+enum Action { Buy, Sell, Hold, Cancel }
+
+func Process(a: Action, base: Int) -> Outcome {
+    match a {
+        case Buy:
+            if base < 0 { return Outcome(0, false); }
+            return Outcome(base * 2, true);
+        case Sell:
+            if base <= 0 { return Outcome(0, false); }
+            return Outcome(base / 2, true);
+        case Hold: return Outcome(base, true);
+        case Cancel: return Outcome(0, false);
+    }
+}
+
+func Execute(a: Action, base: Int) -> Int {
+    let o: Outcome = Process(a, base);
+    if o.valid { return o.val; }
+    return -1;
+}
+
+func Main() -> Void {
+    Log(Execute(Buy, 100));
+    Log(Execute(Buy, -10));
+    Log(Execute(Sell, 100));
+    Log(Execute(Hold, 50));
+    Log(Execute(Cancel, 50));
+}

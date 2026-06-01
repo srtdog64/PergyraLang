@@ -20,17 +20,21 @@ llvm_emit_mir_param_allocas(const MIRRoutine *routine, ASTNode *func_decl,
                             bool is_method, LLVMClassTypeEntry *owner_cls,
                             const char *owner_name, size_t param_count)
 {
-    (void)routine;
+    bool owner_is_role = is_method && routine != NULL
+        && routine->owner_ast_type == AST_ROLE_DECL;
     if (!is_intent) {
         size_t emitted_index = 0;
         if (is_method) {
-            LLVMTypeRef self_type = owner_cls != NULL
+            LLVMTypeRef self_type = owner_is_role
+                ? ctx->type_i8ptr
+                : (owner_cls != NULL
                 ? (owner_cls->is_pointer_self_host
                     ? LLVMPointerType(owner_cls->struct_type, 0)
                     : owner_cls->struct_type)
-                : ctx->type_i8ptr;
+                : ctx->type_i8ptr);
             LLVMValueRef alloca = LLVMBuildAlloca(ctx->builder, self_type,
-                (owner_cls != NULL && owner_cls->is_pointer_self_host)
+                (owner_cls != NULL && owner_cls->is_pointer_self_host
+                 && !owner_is_role)
                     ? "self.addr" : "self");
             LLVMBuildStore(ctx->builder, LLVMGetParam(fn, 0), alloca);
             llvm_scope_declare(ctx, "self", alloca, self_type);
@@ -48,8 +52,7 @@ llvm_emit_mir_param_allocas(const MIRRoutine *routine, ASTNode *func_decl,
             LLVMTypeRef pt;
             LLVMValueRef alloca;
 
-            if (p == NULL || (is_method && p->type == NULL && p->name != NULL
-                && strcmp(p->name, "self") == 0)) {
+            if (p == NULL || (is_method && llvm_param_is_implicit_self_local(p))) {
                 continue;
             }
 
@@ -148,13 +151,16 @@ llvm_emit_mir_param_allocas(const MIRRoutine *routine, ASTNode *func_decl,
                 llvm_register_var_class(ctx, alias, type_name);
         } else {
             if (is_method && i == 0) {
-                LLVMTypeRef self_type = owner_cls != NULL
+                LLVMTypeRef self_type = owner_is_role
+                    ? ctx->type_i8ptr
+                    : (owner_cls != NULL
                     ? (owner_cls->is_pointer_self_host
                         ? LLVMPointerType(owner_cls->struct_type, 0)
                         : owner_cls->struct_type)
-                    : ctx->type_i8ptr;
+                    : ctx->type_i8ptr);
                 LLVMValueRef alloca = LLVMBuildAlloca(ctx->builder, self_type,
-                    (owner_cls != NULL && owner_cls->is_pointer_self_host)
+                    (owner_cls != NULL && owner_cls->is_pointer_self_host
+                     && !owner_is_role)
                         ? "self.addr" : "self");
                 LLVMBuildStore(ctx->builder, LLVMGetParam(fn, 0), alloca);
                 llvm_scope_declare(ctx, "self", alloca, self_type);
@@ -169,10 +175,7 @@ llvm_emit_mir_param_allocas(const MIRRoutine *routine, ASTNode *func_decl,
                      param_index++) {
                     FuncParam *candidate = ast_func_param(func_decl,
                         param_index);
-                    if (candidate != NULL
-                        && candidate->type == NULL
-                        && candidate->name != NULL
-                        && strcmp(candidate->name, "self") == 0) {
+                    if (llvm_param_is_implicit_self_local(candidate)) {
                         continue;
                     }
                     if (seen == logical_index) {

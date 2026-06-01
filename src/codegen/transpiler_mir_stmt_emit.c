@@ -1,7 +1,6 @@
 #include "transpiler_mir_stmt_emit.h"
 
 #include <stdlib.h>
-#include <string.h>
 
 #include "../compiler/mir.h"
 #include "transpiler_context.h"
@@ -38,20 +37,13 @@ transpiler_mir_stmt_is_mirrored_resource(TranspilerCtx *ctx,
              */
             continue;
         }
-        if (resource_inst->name != NULL
-            && (strcmp(resource_inst->name, "IO") == 0
-                || strcmp(resource_inst->name, "ChannelSend") == 0
-                || strcmp(resource_inst->name, "ChannelRecv") == 0
-                || strcmp(resource_inst->name, "ChannelSelect") == 0)) {
+        if (mir_instruction_resource_op_keeps_residual_statement_emit(
+                resource_inst)) {
             /*
              * AIR/RIR IO and channel ops are boundary evidence and
              * observability hooks. They do not emit the concrete builtin or
              * channel runtime call; the residual source statement owns that.
              */
-            continue;
-        }
-        if (resource_inst->name != NULL
-            && strcmp(resource_inst->name, "Read") == 0) {
             continue;
         }
         if (resource_inst->slot_anchor != NULL)

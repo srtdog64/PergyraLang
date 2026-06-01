@@ -1,0 +1,21 @@
+class Cell {
+    let kind: Int;
+    let value: Int;
+}
+
+func Empty(kind: Int) -> Cell { return Cell(kind, 0); }
+func WithVal(kind: Int, v: Int) -> Cell { return Cell(kind, v); }
+func Bump(s: Cell, delta: Int) -> Cell { return Cell(s.kind, s.value + delta); }
+func IsEmpty(s: Cell) -> Bool { return s.value == 0; }
+
+func Main() -> Void {
+    let s1: Cell = Empty(1);
+    Log(s1.value);
+    Log(IsEmpty(s1));
+    let s2: Cell = WithVal(1, 100);
+    Log(s2.value);
+    let s3: Cell = Bump(s2, 50);
+    Log(s3.value);
+    let s4: Cell = Bump(Bump(s2, 10), 20);
+    Log(s4.value);
+}

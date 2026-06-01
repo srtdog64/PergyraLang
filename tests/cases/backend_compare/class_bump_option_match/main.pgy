@@ -1,0 +1,29 @@
+class Counter {
+    let n: Int;
+    let cap: Int;
+
+    func Bump(self) -> Option<Counter> {
+        if n + 1 > cap { return None; }
+        return Some(Counter(n + 1, cap));
+    }
+}
+
+func Steps(start: Int, cap: Int, requested: Int) -> Int {
+    let c: Counter = Counter(start, cap);
+    let i: Int = 0;
+    while i < requested {
+        match c.Bump() {
+            case Some(next): c = next;
+            case None: return c.n;
+        }
+        i = i + 1;
+    }
+    return c.n;
+}
+
+func Main() -> Void {
+    Log(Steps(0, 10, 5));
+    Log(Steps(0, 10, 100));
+    Log(Steps(5, 10, 10));
+    Log(Steps(0, 0, 5));
+}

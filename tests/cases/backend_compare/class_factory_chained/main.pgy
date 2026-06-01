@@ -1,0 +1,24 @@
+class Cap {
+    let v: Int;
+
+    func Plus(self, x: Int) -> Int {
+        return v + x;
+    }
+}
+
+func MakeCap(v: Int) -> Cap {
+    return Cap(v);
+}
+
+func ScaleCap(b: Cap, factor: Int) -> Cap {
+    return Cap(b.Plus(0) * factor);
+}
+
+func Main() -> Void {
+    let b: Cap = MakeCap(5);
+    Log(b.Plus(10));
+    let scaled: Cap = ScaleCap(b, 3);
+    Log(scaled.Plus(0));
+    let chain: Cap = ScaleCap(MakeCap(7), 2);
+    Log(chain.Plus(0));
+}

@@ -6,6 +6,7 @@
 #include <string.h>
 
 #include "codegen_slot_type_policy.h"
+#include "transpiler_mir_resource_name_helpers.h"
 #include "transpiler_mir_ssa_utils.h"
 
 bool
@@ -56,9 +57,12 @@ transpiler_block_has_claim_for_slot_local(const MIRBasicBlock *block,
     for (size_t i = 0; i < block->instruction_count; i++) {
         const MIRInstruction *inst = &block->instructions[i];
         const char *claim_name;
-        if (inst->kind != MIR_INST_RESOURCE_OP
-            || inst->name == NULL
-            || strcmp(inst->name, "Claim") != 0) {
+        TranspilerMIRResourceOp op;
+        if (inst->kind != MIR_INST_RESOURCE_OP) {
+            continue;
+        }
+        op = transpiler_mir_resource_op_lookup(inst->name);
+        if (op != TRANS_MIR_RESOURCE_OP_CLAIM) {
             continue;
         }
         claim_name = inst->slot_anchor != NULL ? inst->slot_anchor : inst->arg0;

@@ -70,6 +70,7 @@ typedef struct
 typedef struct
 {
     char name[64];
+    char ssa_name[128];
     char type_name[128];
     char source_slot[64];
     bool is_view;

@@ -1,0 +1,26 @@
+class Stage {
+    let level: Int;
+
+    func Next(self) -> Stage {
+        return Stage(self.level + 1);
+    }
+
+    func Score(self) -> Int { return self.level * 100; }
+}
+
+func PromoteAndScore(s: Stage) -> Int {
+    return s.Next().Score();
+}
+
+func PromoteN(s: Stage, n: Int) -> Stage {
+    if n <= 0 { return s; }
+    return PromoteN(s.Next(), n - 1);
+}
+
+func Main() -> Void {
+    let init: Stage = Stage(1);
+    Log(PromoteAndScore(init));
+    let after3: Stage = PromoteN(init, 3);
+    Log(after3.Score());
+    Log(PromoteN(Stage(0), 10).Score());
+}

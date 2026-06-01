@@ -1,0 +1,25 @@
+class Token {
+    let kind: Int;
+    let value: Int;
+}
+
+func KindOf(t: Token) -> Int { return t.kind; }
+func ValueOf(t: Token) -> Int { return t.value; }
+
+func SumValues(seeds: Array<Int>, n: Int) -> Int {
+    let total: Int = 0;
+    let i: Int = 0;
+    while i < n {
+        let t: Token = Token(i, seeds[i]);
+        total = total + ValueOf(t);
+        i = i + 1;
+    }
+    return total;
+}
+
+func Main() -> Void {
+    let s: Array<Int> = [10, 20, 30];
+    Log(SumValues(s, 3));
+    let empty: Array<Int> = [];
+    Log(SumValues(empty, 0));
+}

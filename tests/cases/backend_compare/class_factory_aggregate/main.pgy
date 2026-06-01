@@ -1,0 +1,26 @@
+class Score {
+    let player: Int;
+    let opponent: Int;
+}
+
+func PlayMatch(p1: Int, p2: Int) -> Score {
+    if p1 > p2 { return Score(p1, p2); }
+    return Score(p1, p2);
+}
+
+func TotalDifferences(rounds: Int) -> Int {
+    let total: Int = 0;
+    let i: Int = 0;
+    while i < rounds {
+        let s: Score = PlayMatch(i * 3, i * 2);
+        total = total + (s.player - s.opponent);
+        i = i + 1;
+    }
+    return total;
+}
+
+func Main() -> Void {
+    Log(TotalDifferences(5));
+    Log(TotalDifferences(0));
+    Log(TotalDifferences(10));
+}

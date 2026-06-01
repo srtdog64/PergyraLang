@@ -33,15 +33,28 @@ void          llvm_emit_defers_from(LLVMGenCtx *ctx, int from_depth);
 
 void llvm_register_list_var(LLVMGenCtx *ctx, const char *var_name,
                             const char *inner_type);
+void llvm_register_list_var_binding(LLVMGenCtx *ctx, const char *var_name,
+                                    LLVMValueRef binding,
+                                    const char *inner_type);
 const char *llvm_lookup_list_inner(LLVMGenCtx *ctx, const char *var_name);
 void llvm_register_set_var(LLVMGenCtx *ctx, const char *var_name,
                            const char *inner_type);
+void llvm_register_set_var_binding(LLVMGenCtx *ctx, const char *var_name,
+                                   LLVMValueRef binding,
+                                   const char *inner_type);
 const char *llvm_lookup_set_inner(LLVMGenCtx *ctx, const char *var_name);
 void llvm_register_queue_var(LLVMGenCtx *ctx, const char *var_name,
                              const char *inner_type);
+void llvm_register_queue_var_binding(LLVMGenCtx *ctx, const char *var_name,
+                                     LLVMValueRef binding,
+                                     const char *inner_type);
 const char *llvm_lookup_queue_inner(LLVMGenCtx *ctx, const char *var_name);
 void llvm_register_map_var(LLVMGenCtx *ctx, const char *var_name,
                       const char *key_type, const char *value_type);
+void llvm_register_map_var_binding(LLVMGenCtx *ctx, const char *var_name,
+                                   LLVMValueRef binding,
+                                   const char *key_type,
+                                   const char *value_type);
 const char *llvm_lookup_map_key(LLVMGenCtx *ctx, const char *var_name);
 const char *llvm_lookup_map_value(LLVMGenCtx *ctx, const char *var_name);
 void llvm_register_callable_var(LLVMGenCtx *ctx, const char *var_name,
@@ -55,6 +68,13 @@ LLVMCallableVarEntry *llvm_lookup_callable_entry(LLVMGenCtx *ctx,
                                                  const char *var_name);
 void llvm_register_typed_var(LLVMGenCtx *ctx, const char *var_name,
                              ASTNode *type_node);
+void llvm_register_typed_var_binding(LLVMGenCtx *ctx, const char *var_name,
+                                     LLVMValueRef binding,
+                                     ASTNode *type_node);
+void llvm_register_typed_var_abi_binding(LLVMGenCtx *ctx,
+                                         const char *var_name,
+                                         LLVMValueRef binding,
+                                         const char *abi_type_name);
 
 /* =================================================================
  * Function registry (llvm_backend.c)
@@ -81,12 +101,24 @@ LLVMFuncEntry *llvm_required_runtime_function(LLVMGenCtx *ctx,
 void          llvm_register_slot_var(LLVMGenCtx *ctx, const char *var_name,
                                      const char *inner_type,
                                      bool is_secure);
+void          llvm_register_slot_var_binding(LLVMGenCtx *ctx,
+                                             const char *var_name,
+                                             LLVMValueRef binding,
+                                             const char *inner_type,
+                                             bool is_secure);
 const char   *llvm_lookup_slot_inner(LLVMGenCtx *ctx, const char *var_name);
 bool          llvm_lookup_slot_is_secure(LLVMGenCtx *ctx, const char *var_name);
+void          llvm_mark_slot_released(LLVMGenCtx *ctx, const char *var_name);
 void          llvm_register_view_var(LLVMGenCtx *ctx, const char *var_name,
                                      const char *source_slot,
                                      const char *inner_type,
                                      bool is_move_token);
+void          llvm_register_view_var_binding(LLVMGenCtx *ctx,
+                                             const char *var_name,
+                                             LLVMValueRef binding,
+                                             const char *source_slot,
+                                             const char *inner_type,
+                                             bool is_move_token);
 LLVMViewVarEntry *llvm_lookup_view_var(LLVMGenCtx *ctx, const char *var_name);
 LLVMTypeRef   llvm_slot_struct_type(LLVMGenCtx *ctx, const char *inner);
 LLVMTypeRef   llvm_pinned_slot_struct_type(LLVMGenCtx *ctx, const char *inner);
@@ -95,6 +127,10 @@ LLVMTypeRef   llvm_pinned_secure_slot_struct_type(LLVMGenCtx *ctx, const char *i
 LLVMTypeRef   llvm_secure_token_type(LLVMGenCtx *ctx, const char *inner);
 void          llvm_register_device_slot_var(LLVMGenCtx *ctx, const char *var_name,
                                              const char *inner_type);
+void          llvm_register_device_slot_var_binding(LLVMGenCtx *ctx,
+                                                     const char *var_name,
+                                                     LLVMValueRef binding,
+                                                     const char *inner_type);
 const char   *llvm_lookup_device_slot_inner(LLVMGenCtx *ctx,
                                              const char *var_name);
 void          llvm_mark_device_slot_released(LLVMGenCtx *ctx,
@@ -104,11 +140,20 @@ LLVMVarEntry *llvm_lookup_secure_token_var(LLVMGenCtx *ctx,
 void          llvm_register_future_var(LLVMGenCtx *ctx, const char *var_name,
                                         const char *inner_type,
                                         bool is_remote);
+void          llvm_register_future_var_binding(LLVMGenCtx *ctx,
+                                                const char *var_name,
+                                                LLVMValueRef binding,
+                                                const char *inner_type,
+                                                bool is_remote);
 const char   *llvm_lookup_future_inner(LLVMGenCtx *ctx, const char *var_name);
 bool          llvm_lookup_future_is_remote(LLVMGenCtx *ctx,
                                             const char *var_name);
 void          llvm_register_channel_var(LLVMGenCtx *ctx, const char *var_name,
                                         const char *inner_type);
+void          llvm_register_channel_var_binding(LLVMGenCtx *ctx,
+                                                 const char *var_name,
+                                                 LLVMValueRef binding,
+                                                 const char *inner_type);
 const char   *llvm_lookup_channel_inner(LLVMGenCtx *ctx, const char *var_name);
 bool          llvm_resolve_channel_target(LLVMGenCtx *ctx, ASTNode *node,
                                           ASTNode *channel,
@@ -120,9 +165,17 @@ const char   *llvm_resolve_channel_target_inner(LLVMGenCtx *ctx,
                                                  const char *operation_name);
 void          llvm_register_rc_var(LLVMGenCtx *ctx, const char *var_name,
                                    const char *inner_type);
+void          llvm_register_rc_var_binding(LLVMGenCtx *ctx,
+                                           const char *var_name,
+                                           LLVMValueRef binding,
+                                           const char *inner_type);
 const char   *llvm_lookup_rc_inner(LLVMGenCtx *ctx, const char *var_name);
 void          llvm_register_weak_var(LLVMGenCtx *ctx, const char *var_name,
                                      const char *inner_type);
+void          llvm_register_weak_var_binding(LLVMGenCtx *ctx,
+                                             const char *var_name,
+                                             LLVMValueRef binding,
+                                             const char *inner_type);
 const char   *llvm_lookup_weak_inner(LLVMGenCtx *ctx, const char *var_name);
 
 /* =================================================================
@@ -170,6 +223,11 @@ LLVMProjectionBorrowEntry *llvm_lookup_projection_borrow(LLVMGenCtx *ctx,
                                                          const char *var_name);
 void                llvm_register_array_var(LLVMGenCtx *ctx, const char *var_name,
                                              LLVMTypeRef elem_type, int64_t length);
+void                llvm_register_array_var_binding(LLVMGenCtx *ctx,
+                                                     const char *var_name,
+                                                     LLVMValueRef binding,
+                                                     LLVMTypeRef elem_type,
+                                                     int64_t length);
 LLVMArrayVarEntry  *llvm_lookup_array_var(LLVMGenCtx *ctx, const char *var_name);
 void                llvm_register_enum_variant(LLVMGenCtx *ctx,
                                                 const char *enum_name,

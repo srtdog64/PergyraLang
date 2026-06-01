@@ -1,0 +1,23 @@
+class Sphere {
+    let radius: Int;
+    let mass: Int;
+
+    func Volume(self) -> Int { return self.radius * self.radius * self.radius * 4; }
+
+    func Density(self) -> Int {
+        if self.Volume() == 0 { return 0; }
+        return self.mass * 100 / self.Volume();
+    }
+}
+
+func MakeSphere(r: Int) -> Sphere { return Sphere(r, r * r); }
+
+func Main() -> Void {
+    let s: Sphere = MakeSphere(5);
+    Log(s.Volume());
+    Log(s.Density());
+    Log(MakeSphere(10).Volume());
+    Log(MakeSphere(10).Density());
+    Log(MakeSphere(0).Volume());
+    Log(MakeSphere(0).Density());
+}

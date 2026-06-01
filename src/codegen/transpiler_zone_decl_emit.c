@@ -37,6 +37,13 @@ emit_zone_decl(ASTNode *node, TranspilerCtx *ctx)
             name != NULL ? name : "(anonymous-zone)");
         return;
     }
+    if (!transpiler_require_hosted_method_view_rows(
+            ctx,
+            &method_view,
+            "MIR-only C path has invalid method declaration metadata row for zone '%s'",
+            name != NULL ? name : "(anonymous-zone)")) {
+        return;
+    }
 
     size_t slot_count = 0;
     ASTNode **slots = ast_zone_slots(node, &slot_count);

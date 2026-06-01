@@ -1,0 +1,33 @@
+enum Kind { Earth, Fire, Wind, Water }
+
+class Element {
+    let kind: Kind;
+    let power: Int;
+
+    func DamageVs(self, other_power: Int) -> Int {
+        return self.power - other_power;
+    }
+}
+
+func MakeElem(k: Kind, p: Int) -> Element { return Element(k, p); }
+
+func Conflict(a: Kind, b: Kind, a_power: Int, b_power: Int) -> Int {
+    match a {
+        case Earth: return MakeElem(a, a_power).DamageVs(b_power);
+        case Fire:
+            if b == Water { return MakeElem(a, a_power / 2).DamageVs(b_power); }
+            return MakeElem(a, a_power).DamageVs(b_power);
+        case Wind:
+            return MakeElem(a, a_power).DamageVs(b_power);
+        case Water:
+            if b == Fire { return MakeElem(a, a_power * 2).DamageVs(b_power); }
+            return MakeElem(a, a_power).DamageVs(b_power);
+    }
+}
+
+func Main() -> Void {
+    Log(Conflict(Earth, Water, 100, 50));
+    Log(Conflict(Fire, Water, 100, 200));
+    Log(Conflict(Water, Fire, 100, 50));
+    Log(Conflict(Wind, Earth, 200, 100));
+}

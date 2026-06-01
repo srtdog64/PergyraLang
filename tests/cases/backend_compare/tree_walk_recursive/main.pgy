@@ -1,0 +1,17 @@
+class Tree {
+    let val: Int;
+    let depth: Int;
+}
+
+func Walk(t: Tree, ops: Int) -> Tree {
+    if ops <= 0 { return t; }
+    return Walk(Tree(t.val + 1, t.depth + 1), ops - 1);
+}
+
+func Main() -> Void {
+    let t: Tree = Tree(0, 0);
+    Log(Walk(t, 5).val);
+    Log(Walk(t, 0).val);
+    Log(Walk(t, 10).depth);
+    Log(Walk(Walk(t, 3), 4).val);
+}

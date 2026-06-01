@@ -1,0 +1,33 @@
+class Acc {
+    let total: Int;
+    let count: Int;
+
+    func Avg(self) -> Int {
+        if self.count == 0 { return 0; }
+        return self.total / self.count;
+    }
+}
+
+func Init() -> Acc { return Acc(0, 0); }
+
+func Push(a: Acc, v: Int) -> Acc {
+    return Acc(a.total + v, a.count + 1);
+}
+
+func AvgOf(arr: Array<Int>, n: Int) -> Int {
+    let a: Acc = Init();
+    let i: Int = 0;
+    while i < n {
+        a = Push(a, arr[i]);
+        i = i + 1;
+    }
+    return a.Avg();
+}
+
+func Main() -> Void {
+    let v: Array<Int> = [10, 20, 30, 40, 50];
+    Log(AvgOf(v, 5));
+    Log(AvgOf(v, 0));
+    let single: Array<Int> = [99];
+    Log(AvgOf(single, 1));
+}

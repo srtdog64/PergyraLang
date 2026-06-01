@@ -1,0 +1,23 @@
+class Wallet {
+    let amount: Int;
+
+    func Add(self, x: Int) -> Wallet { return Wallet(self.amount + x); }
+}
+
+class Account {
+    let main: Wallet;
+    let bonus: Int;
+
+    func TotalAt(self, plus: Int) -> Int {
+        return self.main.amount + self.bonus + plus;
+    }
+}
+
+func MakeAcc(m: Int, b: Int) -> Account { return Account(Wallet(m), b); }
+
+func Main() -> Void {
+    Log(MakeAcc(100, 20).main.Add(50).amount);
+    Log(MakeAcc(0, 0).TotalAt(99));
+    Log(MakeAcc(200, 50).main.amount);
+    Log(MakeAcc(500, 100).main.Add(0).amount);
+}

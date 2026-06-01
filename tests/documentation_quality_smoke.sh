@@ -699,8 +699,8 @@ for term in "${beta_io_boundary_terms[@]}"; do
 done
 
 beta_progress_terms=(
-    "strict beta readiness is now about 72-74%"
-    "Do not call this 75% or 80% yet"
+    "strict beta readiness is now about 75%"
+    "Do not call this 80% until"
     "The five closure targets are:"
     "CFG/body safety source-of-truth"
     "AIR abstraction-boundary verification"

@@ -85,7 +85,11 @@ type_check_call(ASTNode *expr, SemanticContext *ctx)
 
     if (callee->type == AST_IDENTIFIER) {
         const char *name = ast_identifier_name(callee);
-        BuiltinKind bk   = builtin_resolve(name);
+        bool user_class_overrides_builtin =
+            semantic_find_class_decl_by_name(ctx, name) != NULL;
+        BuiltinKind bk   = user_class_overrides_builtin
+            ? BUILTIN_NOT_BUILTIN
+            : builtin_resolve(name);
         if (bk != BUILTIN_NOT_BUILTIN)
             return type_check_builtin_call(expr, bk, ctx);
 
@@ -101,7 +105,7 @@ type_check_call(ASTNode *expr, SemanticContext *ctx)
         if (pgy_match_variant_is_result(pgy_match_variant_lookup(name)))
             return TYPE_UNKNOWN;
 
-        {
+        if (!user_class_overrides_builtin) {
             Type *stdlib_type = type_check_stdlib_call(expr, name, ctx);
             if (stdlib_type != NULL)
                 return stdlib_type;

@@ -1,0 +1,28 @@
+class Bid {
+    let amount: Int;
+    let priority: Int;
+
+    func Score(self) -> Int { return self.amount * self.priority; }
+}
+
+func BestBid(amounts: Array<Int>, priorities: Array<Int>, n: Int) -> Int {
+    if n == 0 { return -1; }
+    let best: Int = Bid(amounts[0], priorities[0]).Score();
+    let i: Int = 1;
+    while i < n {
+        let cur: Int = Bid(amounts[i], priorities[i]).Score();
+        if cur > best { best = cur; }
+        i = i + 1;
+    }
+    return best;
+}
+
+func Main() -> Void {
+    let a: Array<Int> = [100, 50, 200, 75];
+    let p: Array<Int> = [1, 5, 2, 3];
+    Log(BestBid(a, p, 4));
+    Log(BestBid(a, p, 0));
+    let single_a: Array<Int> = [42];
+    let single_p: Array<Int> = [10];
+    Log(BestBid(single_a, single_p, 1));
+}

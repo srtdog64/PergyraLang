@@ -1,0 +1,28 @@
+subject Quest {
+    let id: Int;
+    let goal: Int;
+}
+
+class Hero {
+    let name: String;
+    let level: Int;
+
+    func Power(self) -> Int {
+        return self.level * 100;
+    }
+}
+
+func CompletedBy(q: Quest, h: Hero) -> Bool {
+    return h.level >= q.goal;
+}
+
+func Main() -> Void {
+    let q: Quest = Quest(1, 5);
+    let h1: Hero = Hero("Aria", 3);
+    let h2: Hero = Hero("Borg", 10);
+    Log(CompletedBy(q, h1));
+    Log(CompletedBy(q, h2));
+    Log(h2.Power());
+    Log(q.id);
+    Log(q.goal);
+}

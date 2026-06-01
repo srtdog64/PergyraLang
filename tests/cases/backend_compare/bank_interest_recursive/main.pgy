@@ -1,0 +1,27 @@
+class Bank {
+    let savings: Int;
+    let debt: Int;
+
+    func Net(self) -> Int { return self.savings - self.debt; }
+}
+
+func New(s: Int, d: Int) -> Bank { return Bank(s, d); }
+
+func PayInterest(b: Bank, rate: Int) -> Bank {
+    return Bank(b.savings + b.savings * rate / 100,
+                b.debt + b.debt * rate / 100);
+}
+
+func RunYears(b: Bank, rate: Int, years: Int) -> Bank {
+    if years <= 0 { return b; }
+    return RunYears(PayInterest(b, rate), rate, years - 1);
+}
+
+func Main() -> Void {
+    let b: Bank = New(1000, 500);
+    Log(b.Net());
+    Log(RunYears(b, 5, 1).Net());
+    Log(RunYears(b, 5, 5).savings);
+    Log(RunYears(b, 0, 10).Net());
+    Log(RunYears(New(0, 100), 10, 3).Net());
+}

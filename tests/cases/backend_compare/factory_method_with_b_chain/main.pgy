@@ -1,0 +1,18 @@
+class Pair {
+    let a: Int;
+    let b: Int;
+
+    func WithB(self, x: Int) -> Pair { return Pair(self.a, x); }
+
+    func Diff(self) -> Int { return self.a - self.b; }
+}
+
+func Make(a: Int, b: Int) -> Pair { return Pair(a, b); }
+
+func Main() -> Void {
+    Log(Make(10, 5).Diff());
+    Log(Make(10, 5).WithB(100).Diff());
+    Log(Make(0, 0).WithB(50).a);
+    Log(Make(0, 0).WithB(50).b);
+    Log(Make(99, 1).WithB(0).WithB(2).b);
+}

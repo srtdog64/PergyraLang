@@ -144,6 +144,44 @@ run_literal_air_drift_smoke() {
     require_literal "src/compiler/air_evidence_node.c" "AIR evidence append requires at least one fact or fallback fact"
     require_literal "src/compiler/air_evidence_node.c" "air_next_capacity(&new_capacity"
     require_literal "src/compiler/air_evidence_node.c" "node->fact_count += fact_count"
+    require_literal "src/compiler/air_evidence_node.c" "air_evidence_node_kind"
+    require_literal "src/compiler/air_evidence_node.c" "air_evidence_node_boundary_index_or"
+    require_literal "src/compiler/air_evidence_node.c" "air_evidence_node_provider_name_or"
+    require_literal "src/compiler/air_evidence_node.c" "air_evidence_node_subject_name_or"
+    require_literal "src/compiler/air_evidence_node.c" "air_evidence_node_fact_count"
+    require_literal "src/compiler/air_evidence_node.c" "air_evidence_node_fallback_count"
+    for rel in src/compiler/air_dump.c src/compiler/air_dump_json.c; do
+        for field in kind boundary_index provider_name subject_name fact_count fallback_count; do
+            if grep -Fq -- "evidence->$field" "$ROOT_DIR/$rel"; then
+                echo "AIR dumps must consume evidence node fields through the evidence-node owner: $rel evidence->$field" >&2
+                exit 1
+            fi
+        done
+    done
+    for field in kind provider_name subject_name fact_count fallback_count; do
+        if grep -Fq -- "evidence->$field" "$ROOT_DIR/src/compiler/air_validate_global_evidence.c"; then
+            echo "AIR global evidence validator must consume evidence node fields through the evidence-node owner: evidence->$field" >&2
+            exit 1
+        fi
+    done
+    for field in kind boundary_index provider_name subject_name fact_count fallback_count; do
+        if grep -Fq -- "evidence->$field" "$ROOT_DIR/src/compiler/air_validate_boundary_evidence.c"; then
+            echo "AIR boundary evidence validator must consume evidence node fields through the evidence-node owner: evidence->$field" >&2
+            exit 1
+        fi
+    done
+    raw_evidence_hits="$(
+        grep -RInE -- 'evidence->(kind|boundary_index|provider_name|subject_name|fact_count|fallback_count)' "$ROOT_DIR/src/compiler" \
+            --include='air*.c' --include='air*.h' \
+            | grep -v 'src/compiler/air_evidence_node.c:' \
+            | grep -v 'src/compiler/air_validate_evidence.c:' \
+            || true
+    )"
+    if [[ -n "$raw_evidence_hits" ]]; then
+        printf '%s\n' "$raw_evidence_hits" >&2
+        echo "AIR consumers must read AIREvidenceNode fields through the evidence-node owner" >&2
+        exit 1
+    fi
     require_literal "src/compiler/air_validate_evidence.c" "duplicates evidence node"
     require_literal "src/compiler/driver_app.c" "air_synthesize"
     require_literal "docs/72_diagnostic_codes.md" "PGY_SEM_INTENT_BOUNDARY_DRIFT"
@@ -162,11 +200,14 @@ run_literal_air_drift_smoke() {
     require_literal "src/test_air.c" "AIR append rejects empty evidence counts"
     require_literal "src/test_air.c" "AIR collects MIR terminator evidence"
     require_literal "src/test_air.c" "AIR rejects MIR evidence without routine provider"
+    require_literal "src/test_air.c" "AIR rejects malformed MIR routine inventory"
     require_literal "src/compiler/air_evidence_mir.c" "AIR MIR evidence requires routine name or owner provenance"
     require_literal "src/tests/air/test_air_mir_terminator_part_h.cases.h" "AIR MIR evidence counter has no matching evidence node"
     require_literal "src/tests/air/test_air_mir_terminator_part_h.cases.h" "MIR cleanup evidence counter does not match evidence nodes"
     require_literal "src/tests/air/test_air_mir_terminator_part_h.cases.h" "MIR terminator evidence node 0 has no terminator facts"
     require_literal "src/tests/air/test_air_mir_terminator_part_h.cases.h" "test_air_rejects_mir_evidence_without_routine_provider"
+    require_literal "src/tests/air/test_air_mir_terminator_part_h.cases.h" "test_air_rejects_malformed_mir_routine_inventory"
+    require_literal "src/tests/air/test_air_mir_terminator_part_h.cases.h" "AIR MIR evidence has invalid routine inventory row[0]"
     require_literal "src/tests/air/test_air_mir_terminator_part_h.cases.h" "AIR MIR input has no CFG terminator evidence"
     require_literal "src/test_air.c" "AIR parsed transfer emits zone and world boundaries"
     require_literal "src/tests/rir/test_rir_lowering.cases.h" "RIR_OP_SPAWN"
@@ -404,7 +445,7 @@ if missing_air:
     raise SystemExit("AIR architecture doc missing term(s): " + ", ".join(missing_air))
 
 required_checklist_terms = [
-    "strict beta readiness is now about 72-74%",
+    "strict beta readiness is now about 75%",
     "## 0f. AIR Abstraction Safety Closure",
     "Source of truth: `docs/104_air_compiler_architecture.md`",
     "Status: `BLOCKER`",
@@ -421,7 +462,7 @@ if missing_checklist:
     raise SystemExit("beta checklist missing AIR term(s): " + ", ".join(missing_checklist))
 
 required_todo_terms = [
-    "strict beta readiness is now about 72-74%",
+    "strict beta readiness is now about 75%",
     "AIR abstraction safety는 Phase 1 데이터 구조 / synthesis / drift checker baseline",
     "strict evidence는 기본값으로 승격됐다",
     "PGY_AIR_STRICT_EVIDENCE=0",
@@ -875,6 +916,16 @@ if "air_increment_evidence_summary_count(air, kind)" not in air_evidence_runtime
     raise SystemExit("AIR runtime evidence must mutate summary counters through the summary owner")
 if "&air->runtime_frontier_policy_evidence_count" in air_evidence_runtime_path.read_text(encoding="utf-8"):
     raise SystemExit("AIR runtime evidence reintroduced raw summary counter pointers")
+air_evidence_mir_text = air_evidence_path.read_text(encoding="utf-8")
+air_evidence_mir_facts_text = air_evidence_mir_facts_path.read_text(encoding="utf-8")
+if "air_collect_mir_requires_routine_inventory" not in air_evidence_mir_text:
+    raise SystemExit("AIR MIR evidence must explicitly validate MIR routine inventory")
+if "AIR MIR evidence requires block inventory" not in air_evidence_mir_text:
+    raise SystemExit("AIR MIR evidence must fail closed on missing block inventory")
+if "routine->block_count > 0 && routine->blocks == NULL" not in air_evidence_mir_facts_text:
+    raise SystemExit("AIR MIR fact counters must be null-safe for missing block inventory")
+if "routine->blocks != NULL" not in air_evidence_mir_facts_text:
+    raise SystemExit("AIR MIR cleanup-root validation must require block storage")
 for path in [
     air_evidence_hir_path,
     air_evidence_path,
@@ -921,6 +972,80 @@ for path in [air_dump_path, air_dump_json_path]:
             raise SystemExit(
                 "AIR dumps must consume summary counters through the "
                 "summary owner: " + raw_counter
+            )
+    for raw_field in [
+        "evidence->kind",
+        "evidence->boundary_index",
+        "evidence->provider_name",
+        "evidence->subject_name",
+        "evidence->fact_count",
+        "evidence->fallback_count",
+    ]:
+        if raw_field in dump_text:
+            raise SystemExit(
+                "AIR dumps must consume evidence node fields through the "
+                "evidence-node owner: " + raw_field
+            )
+for accessor in [
+    "air_evidence_node_kind",
+    "air_evidence_node_boundary_index_or",
+    "air_evidence_node_provider_name_or",
+    "air_evidence_node_subject_name_or",
+    "air_evidence_node_fact_count",
+    "air_evidence_node_fallback_count",
+]:
+    if accessor not in air_impl:
+        raise SystemExit("AIR evidence-node owner missing accessor: " + accessor)
+air_validate_global_evidence_text = air_validate_global_evidence_path.read_text(encoding="utf-8")
+for raw_field in [
+    "evidence->kind",
+    "evidence->provider_name",
+    "evidence->subject_name",
+    "evidence->fact_count",
+    "evidence->fallback_count",
+]:
+    if raw_field in air_validate_global_evidence_text:
+        raise SystemExit(
+            "AIR global evidence validator must consume evidence node fields "
+            "through the evidence-node owner: " + raw_field
+        )
+air_validate_boundary_evidence_text = air_validate_boundary_evidence_path.read_text(encoding="utf-8")
+for raw_field in [
+    "evidence->kind",
+    "evidence->boundary_index",
+    "evidence->provider_name",
+    "evidence->subject_name",
+    "evidence->fact_count",
+    "evidence->fallback_count",
+]:
+    if raw_field in air_validate_boundary_evidence_text:
+        raise SystemExit(
+            "AIR boundary evidence validator must consume evidence node fields "
+            "through the evidence-node owner: " + raw_field
+        )
+allowed_raw_evidence_paths = {
+    root / "src" / "compiler" / "air_evidence_node.c",
+    root / "src" / "compiler" / "air_validate_evidence.c",
+}
+for path in (root / "src" / "compiler").glob("air*.[ch]"):
+    if path in allowed_raw_evidence_paths:
+        continue
+    text = path.read_text(encoding="utf-8", errors="ignore")
+    for raw_field in [
+        "evidence->kind",
+        "evidence->boundary_index",
+        "evidence->provider_name",
+        "evidence->subject_name",
+        "evidence->fact_count",
+        "evidence->fallback_count",
+    ]:
+        if raw_field in text:
+            raise SystemExit(
+                "AIR consumers must read AIREvidenceNode fields through "
+                "the evidence-node owner: "
+                + str(path.relative_to(root))
+                + " "
+                + raw_field
             )
 for accessor in [
     "air_boundary_evidence_node(const AIRProgram *air",

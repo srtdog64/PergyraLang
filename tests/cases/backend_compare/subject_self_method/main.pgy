@@ -1,0 +1,16 @@
+subject Beast {
+    let attack: Int;
+    let defense: Int;
+
+    func DamageVs(self, target: Int) -> Int {
+        if self.attack < target { return 0; }
+        return self.attack - target;
+    }
+}
+
+func Main() -> Void {
+    let b: Beast = Beast(80, 30);
+    Log(b.DamageVs(40));
+    Log(b.DamageVs(100));
+    Log(b.DamageVs(50));
+}

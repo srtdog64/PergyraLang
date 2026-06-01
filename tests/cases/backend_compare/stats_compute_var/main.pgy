@@ -1,0 +1,46 @@
+class Stats {
+    let mean: Int;
+    let variance: Int;
+
+    func StdDev(self) -> Int {
+        let v: Int = self.variance;
+        let s: Int = 0;
+        let i: Int = 0;
+        while i < 100 {
+            if s * s > v { return s - 1; }
+            s = s + 1;
+            i = i + 1;
+        }
+        return s;
+    }
+}
+
+func Compute(values: Array<Int>, n: Int) -> Stats {
+    if n == 0 { return Stats(0, 0); }
+    let total: Int = 0;
+    let i: Int = 0;
+    while i < n {
+        total = total + values[i];
+        i = i + 1;
+    }
+    let mean: Int = total / n;
+    let var_sum: Int = 0;
+    i = 0;
+    while i < n {
+        let diff: Int = values[i] - mean;
+        var_sum = var_sum + diff * diff;
+        i = i + 1;
+    }
+    return Stats(mean, var_sum / n);
+}
+
+func Main() -> Void {
+    let arr: Array<Int> = [10, 20, 30, 40, 50];
+    let s: Stats = Compute(arr, 5);
+    Log(s.mean);
+    Log(s.StdDev());
+    let single: Array<Int> = [100];
+    Log(Compute(single, 1).mean);
+    let empty: Array<Int> = [];
+    Log(Compute(empty, 0).mean);
+}

@@ -1,0 +1,26 @@
+class Crate {
+    let id: Int;
+    let weight: Int;
+
+    func Heavy(self) -> Bool { return self.weight > 50; }
+}
+
+func CountHeavy(crates: Array<Int>, weights: Array<Int>, n: Int) -> Int {
+    let count: Int = 0;
+    let i: Int = 0;
+    while i < n {
+        let c: Crate = Crate(crates[i], weights[i]);
+        if c.Heavy() { count = count + 1; }
+        i = i + 1;
+    }
+    return count;
+}
+
+func Main() -> Void {
+    let ids: Array<Int> = [1, 2, 3, 4, 5];
+    let wts: Array<Int> = [30, 70, 20, 100, 60];
+    Log(CountHeavy(ids, wts, 5));
+    Log(CountHeavy(ids, wts, 0));
+    let lights: Array<Int> = [10, 20, 30];
+    Log(CountHeavy(ids, lights, 3));
+}

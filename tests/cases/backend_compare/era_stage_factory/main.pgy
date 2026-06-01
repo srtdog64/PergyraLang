@@ -1,0 +1,24 @@
+class Stage {
+    let id: Int;
+    let level: Int;
+
+    func Score(self) -> Int { return self.level * 100; }
+}
+
+enum Era { Old, Mid, New }
+
+func StageOf(e: Era) -> Stage {
+    match e {
+        case Old: return Stage(1, 1);
+        case Mid: return Stage(2, 5);
+        case New: return Stage(3, 10);
+    }
+}
+
+func Main() -> Void {
+    Log(StageOf(Old).Score());
+    Log(StageOf(Mid).Score());
+    Log(StageOf(New).Score());
+    Log(StageOf(Mid).id);
+    Log(StageOf(Mid).level);
+}

@@ -1,0 +1,31 @@
+enum Err { Tiny, Big }
+
+class Item {
+    let v: Int;
+
+    func DoubledOrZero(self) -> Int {
+        if self.v < 0 { return 0; }
+        return self.v * 2;
+    }
+}
+
+func Validate(v: Int) -> Result<Item, Err> {
+    if v < 0 { return Err(Tiny); }
+    if v > 1000 { return Err(Big); }
+    return Ok(Item(v));
+}
+
+func Main() -> Void {
+    match Validate(50) {
+        case Ok(i): Log(i.DoubledOrZero());
+        case Err(e): Log(-1);
+    }
+    match Validate(2000) {
+        case Ok(i): Log(i.DoubledOrZero());
+        case Err(e):
+            match e {
+                case Tiny: Log(-2);
+                case Big: Log(-3);
+            }
+    }
+}

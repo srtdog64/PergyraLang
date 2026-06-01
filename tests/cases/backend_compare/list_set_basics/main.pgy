@@ -1,0 +1,17 @@
+func Main() -> Void {
+    let lst: List<Int> = ListNew();
+    ListPush(lst, 10);
+    ListPush(lst, 20);
+    ListPush(lst, 30);
+    Log(ListSize(lst));
+    Log(ListGet(lst, 0));
+    Log(ListGet(lst, 2));
+
+    let s: Set<Int> = SetNew();
+    SetAdd(s, 5);
+    SetAdd(s, 10);
+    SetAdd(s, 5);
+    Log(SetSize(s));
+    Log(SetHas(s, 5));
+    Log(SetHas(s, 99));
+}

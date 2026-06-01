@@ -1,0 +1,23 @@
+class Stage {
+    let n: Int;
+    let acc: Int;
+
+    func Next(self) -> Stage { return Stage(self.n + 1, self.acc + self.n); }
+}
+
+func Build(n: Int) -> Stage {
+    let s: Stage = Stage(0, 0);
+    let i: Int = 0;
+    while i < n {
+        s = s.Next();
+        i = i + 1;
+    }
+    return s;
+}
+
+func Main() -> Void {
+    Log(Build(5).acc);
+    Log(Build(10).acc);
+    Log(Build(0).n);
+    Log(Build(100).n);
+}

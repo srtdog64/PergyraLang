@@ -1,0 +1,32 @@
+class Action {
+    let kind: Int;
+    let strength: Int;
+
+    func Effect(self) -> Int {
+        if self.kind == 0 { return self.strength; }
+        if self.kind == 1 { return self.strength * 2; }
+        if self.kind == 2 { return self.strength / 2; }
+        return 0;
+    }
+}
+
+enum Mode { Prim, Sec, Special }
+
+func Engage(s: Mode, str: Int) -> Action {
+    match s {
+        case Prim: return Action(0, str);
+        case Sec: return Action(1, str);
+        case Special: return Action(2, str);
+    }
+}
+
+func Combo(a: Mode, b: Mode, str: Int) -> Int {
+    return Engage(a, str).Effect() + Engage(b, str).Effect();
+}
+
+func Main() -> Void {
+    Log(Combo(Prim, Sec, 100));
+    Log(Combo(Prim, Special, 50));
+    Log(Combo(Special, Special, 80));
+    Log(Combo(Prim, Prim, 30));
+}

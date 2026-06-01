@@ -1,0 +1,23 @@
+class Builder {
+    let val: Int;
+
+    func Add(self, x: Int) -> Builder {
+        return Builder(self.val + x);
+    }
+
+    func Mul(self, x: Int) -> Builder {
+        return Builder(self.val * x);
+    }
+
+    func Value(self) -> Int {
+        return self.val;
+    }
+}
+
+func New() -> Builder { return Builder(0); }
+
+func Main() -> Void {
+    Log(New().Add(5).Mul(2).Add(10).Value());
+    Log(New().Add(100).Value());
+    Log(New().Mul(3).Add(7).Value());
+}

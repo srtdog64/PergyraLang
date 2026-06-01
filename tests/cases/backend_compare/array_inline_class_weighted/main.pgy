@@ -1,0 +1,27 @@
+class Score {
+    let val: Int;
+    let weight: Int;
+
+    func Weighted(self) -> Int {
+        return self.val * self.weight;
+    }
+}
+
+func Total(vals: Array<Int>, weights: Array<Int>, n: Int) -> Int {
+    let total: Int = 0;
+    let i: Int = 0;
+    while i < n {
+        total = total + Score(vals[i], weights[i]).Weighted();
+        i = i + 1;
+    }
+    return total;
+}
+
+func Main() -> Void {
+    let v: Array<Int> = [10, 20, 30, 40];
+    let w: Array<Int> = [1, 2, 3, 1];
+    Log(Total(v, w, 4));
+    Log(Total(v, w, 2));
+    let empty: Array<Int> = [];
+    Log(Total(empty, empty, 0));
+}

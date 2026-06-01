@@ -1,0 +1,33 @@
+class Loot {
+    let gold: Int;
+    let xp: Int;
+
+    func TotalValue(self) -> Int { return self.gold + self.xp; }
+}
+
+func Drop(roll: Int) -> Option<Loot> {
+    if roll < 10 { return None; }
+    return Some(Loot(roll, roll * 2));
+}
+
+func TotalRoll(rolls: Array<Int>, n: Int) -> Int {
+    let total: Int = 0;
+    let i: Int = 0;
+    while i < n {
+        match Drop(rolls[i]) {
+            case Some(l): total = total + l.TotalValue();
+            case None: total = total + 0;
+        }
+        i = i + 1;
+    }
+    return total;
+}
+
+func Main() -> Void {
+    let r: Array<Int> = [5, 20, 50, 8, 100];
+    Log(TotalRoll(r, 5));
+    let zeros: Array<Int> = [0, 0, 0];
+    Log(TotalRoll(zeros, 3));
+    let empty: Array<Int> = [];
+    Log(TotalRoll(empty, 0));
+}

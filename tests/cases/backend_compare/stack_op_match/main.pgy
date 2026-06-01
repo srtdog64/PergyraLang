@@ -1,0 +1,30 @@
+class Stack {
+    let top: Int;
+    let size: Int;
+
+    func Empty(self) -> Bool { return self.size == 0; }
+}
+
+enum Op { Push, Pop }
+
+func Apply(s: Stack, op: Op, value: Int) -> Stack {
+    match op {
+        case Push: return Stack(value, s.size + 1);
+        case Pop:
+            if s.Empty() { return s; }
+            return Stack(0, s.size - 1);
+    }
+}
+
+func Main() -> Void {
+    let s: Stack = Stack(0, 0);
+    let s1: Stack = Apply(s, Push, 10);
+    let s2: Stack = Apply(s1, Push, 20);
+    let s3: Stack = Apply(s2, Push, 30);
+    Log(s3.top);
+    Log(s3.size);
+    let s4: Stack = Apply(s3, Pop, 0);
+    Log(s4.size);
+    let s5: Stack = Apply(s, Pop, 0);
+    Log(s5.size);
+}

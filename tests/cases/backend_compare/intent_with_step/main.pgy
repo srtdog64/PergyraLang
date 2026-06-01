@@ -1,0 +1,16 @@
+subject Sub { let x: Int; }
+zone World { subject slot a: Sub }
+
+intent Run(z: World, a: Sub) {
+    step Action {
+        where: World;
+        using: z;
+    }
+    success: true;
+    failure: false;
+}
+
+func Main() -> Void {
+    let s: Sub = Sub(42);
+    Log(s.x);
+}

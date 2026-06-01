@@ -376,6 +376,9 @@ bool        mir_instruction_is_intent_stmt(const MIRInstruction *inst,
 bool        mir_instruction_is_with_slot_claim(const MIRInstruction *inst);
 bool        mir_instruction_source_is_with_slot_claim(
                 const MIRInstruction *inst);
+bool        mir_instruction_resource_op_is_claim(const MIRInstruction *inst);
+bool        mir_instruction_resource_op_is_read(const MIRInstruction *inst);
+bool        mir_instruction_resource_op_is_write(const MIRInstruction *inst);
 bool        mir_instruction_has_source_payload(const MIRInstruction *inst);
 ASTNode    *mir_instruction_source_payload(const MIRInstruction *inst);
 bool        mir_instruction_has_source_location(const MIRInstruction *inst);
@@ -430,6 +433,8 @@ bool        mir_instruction_source_is_cfg_owned_control(
 bool        mir_instruction_source_stmt_has_side_effect_hint(
                 const MIRInstruction *inst);
 bool        mir_instruction_source_stmt_fallback_is_allowed(
+                const MIRInstruction *inst);
+bool        mir_instruction_resource_op_keeps_residual_statement_emit(
                 const MIRInstruction *inst);
 bool        mir_source_ast_type_stmt_has_side_effect_hint(
                 ASTNodeType type,

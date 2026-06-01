@@ -1,0 +1,32 @@
+class Item {
+    let v: Int;
+    let bonus: Int;
+
+    func Score(self) -> Int { return self.v * 10 + self.bonus; }
+}
+
+enum Tier { Bronze, Silver, Gold }
+
+func Make(t: Tier, val: Int) -> Item {
+    match t {
+        case Bronze: return Item(val, 0);
+        case Silver: return Item(val, 50);
+        case Gold: return Item(val, 200);
+    }
+}
+
+func Stats(t: Tier, val: Int) -> Int {
+    return Make(t, val).Score();
+}
+
+func Compare(t: Tier, a: Int, b: Int) -> Int {
+    if Stats(t, a) > Stats(t, b) { return a; }
+    return b;
+}
+
+func Main() -> Void {
+    Log(Stats(Bronze, 5));
+    Log(Stats(Gold, 5));
+    Log(Compare(Silver, 10, 20));
+    Log(Compare(Gold, 5, 5));
+}

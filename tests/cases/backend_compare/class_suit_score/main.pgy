@@ -1,0 +1,29 @@
+class Card {
+    let suit: Int;
+    let rank: Int;
+}
+
+func SuitName(c: Card) -> String {
+    if c.suit == 0 { return "Heart"; }
+    if c.suit == 1 { return "Diamond"; }
+    if c.suit == 2 { return "Spade"; }
+    return "Club";
+}
+
+func Score(c: Card) -> Int {
+    if c.rank == 1 { return 14; }
+    if c.rank == 13 { return 13; }
+    return c.rank;
+}
+
+func Main() -> Void {
+    let c1: Card = Card(0, 1);
+    let c2: Card = Card(2, 7);
+    let c3: Card = Card(3, 13);
+    Log(SuitName(c1));
+    Log(Score(c1));
+    Log(SuitName(c2));
+    Log(Score(c2));
+    Log(SuitName(c3));
+    Log(Score(c3));
+}

@@ -1,0 +1,28 @@
+class Bag {
+    let count: Int;
+    let limit: Int;
+}
+
+func Add(b: Bag, n: Int) -> Bag {
+    let new_count: Int = b.count + n;
+    if new_count > b.limit { new_count = b.limit; }
+    return Bag(new_count, b.limit);
+}
+
+func Remove(b: Bag, n: Int) -> Bag {
+    let new_count: Int = b.count - n;
+    if new_count < 0 { new_count = 0; }
+    return Bag(new_count, b.limit);
+}
+
+func Main() -> Void {
+    let b0: Bag = Bag(0, 100);
+    let b1: Bag = Add(b0, 30);
+    Log(b1.count);
+    let b2: Bag = Add(b1, 80);
+    Log(b2.count);
+    let b3: Bag = Remove(b2, 20);
+    Log(b3.count);
+    let b4: Bag = Remove(b3, 1000);
+    Log(b4.count);
+}

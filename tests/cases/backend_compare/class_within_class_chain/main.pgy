@@ -1,0 +1,31 @@
+class Inner {
+    let id: Int;
+}
+
+class Outer {
+    let inner: Inner;
+    let tag: Int;
+
+    func InnerId(self) -> Int {
+        return self.inner.id;
+    }
+
+    func WithNewTag(self, t: Int) -> Outer {
+        return Outer(self.inner, t);
+    }
+}
+
+func MakeOuter(id: Int, tag: Int) -> Outer {
+    return Outer(Inner(id), tag);
+}
+
+func Main() -> Void {
+    let o: Outer = MakeOuter(42, 1);
+    Log(o.InnerId());
+    Log(o.tag);
+    let o2: Outer = o.WithNewTag(99);
+    Log(o2.InnerId());
+    Log(o2.tag);
+    Log(MakeOuter(100, 5).WithNewTag(10).InnerId());
+    Log(MakeOuter(100, 5).WithNewTag(10).tag);
+}

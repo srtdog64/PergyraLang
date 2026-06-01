@@ -1,0 +1,27 @@
+func And3(a: Bool, b: Bool, c: Bool) -> Bool {
+    if a == false { return false; }
+    if b == false { return false; }
+    return c;
+}
+
+func Or3(a: Bool, b: Bool, c: Bool) -> Bool {
+    if a { return true; }
+    if b { return true; }
+    return c;
+}
+
+func Xor(a: Bool, b: Bool) -> Bool {
+    if a && b { return false; }
+    if a == false && b == false { return false; }
+    return true;
+}
+
+func Main() -> Void {
+    Log(And3(true, true, true));
+    Log(And3(true, false, true));
+    Log(Or3(false, false, false));
+    Log(Or3(false, true, false));
+    Log(Xor(true, false));
+    Log(Xor(true, true));
+    Log(Xor(false, false));
+}

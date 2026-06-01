@@ -1,0 +1,25 @@
+class Trade {
+    let qty: Int;
+    let price: Int;
+}
+
+enum Side { Buy, Sell }
+
+func DealOf(side: Side, q: Int, p: Int) -> Trade {
+    match side {
+        case Buy: return Trade(q, p);
+        case Sell: return Trade(0 - q, p);
+    }
+}
+
+func Net(side: Side, q: Int, p: Int) -> Int {
+    return DealOf(side, q, p).qty * DealOf(side, q, p).price;
+}
+
+func Main() -> Void {
+    Log(Net(Buy, 100, 5));
+    Log(Net(Sell, 100, 5));
+    Log(Net(Buy, 0, 10));
+    Log(DealOf(Buy, 10, 20).qty);
+    Log(DealOf(Sell, 10, 20).qty);
+}

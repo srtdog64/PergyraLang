@@ -8,6 +8,7 @@ bool
 air_mir_cleanup_root_is_valid(const MIRRoutine *routine)
 {
     return routine != NULL
+        && routine->blocks != NULL
         && routine->has_cleanup_block
         && routine->cleanup_block < routine->block_count
         && routine->blocks[routine->cleanup_block].is_cleanup
@@ -87,6 +88,8 @@ air_mir_routine_terminator_fact_count(const MIRRoutine *routine)
 
     if (routine == NULL)
         return 0;
+    if (routine->block_count > 0 && routine->blocks == NULL)
+        return 0;
     for (size_t i = 0; i < routine->block_count; i++) {
         const MIRBasicBlock *block = &routine->blocks[i];
         if (block->instruction_count > 0 && block->instructions == NULL)
@@ -126,6 +129,8 @@ air_mir_routine_select_receive_fact_count(const MIRRoutine *routine)
     size_t count = 0;
 
     if (routine == NULL)
+        return 0;
+    if (routine->block_count > 0 && routine->blocks == NULL)
         return 0;
     for (size_t i = 0; i < routine->block_count; i++) {
         const MIRBasicBlock *block = &routine->blocks[i];

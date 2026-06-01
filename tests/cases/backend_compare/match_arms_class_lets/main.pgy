@@ -1,0 +1,31 @@
+class Stats {
+    let attack: Int;
+    let defense: Int;
+}
+
+enum Tier { Bronze, Silver, Gold }
+
+func Calc(t: Tier, level: Int) -> Int {
+    match t {
+        case Bronze:
+            let s: Stats = Stats(level * 10, level * 5);
+            return s.attack + s.defense;
+        case Silver:
+            let s: Stats = Stats(level * 20, level * 10);
+            let bonus: Int = level * 5;
+            return s.attack + s.defense + bonus;
+        case Gold:
+            let s: Stats = Stats(level * 50, level * 25);
+            let bonus: Int = level * 15;
+            let multi: Int = 2;
+            return (s.attack + s.defense + bonus) * multi;
+    }
+}
+
+func Main() -> Void {
+    Log(Calc(Bronze, 1));
+    Log(Calc(Bronze, 5));
+    Log(Calc(Silver, 3));
+    Log(Calc(Gold, 2));
+    Log(Calc(Gold, 0));
+}

@@ -1,0 +1,37 @@
+class Player {
+    let hp: Int;
+    let max: Int;
+}
+
+func Heal(p: Player, amt: Int) -> Player {
+    let new_hp: Int = p.hp + amt;
+    if new_hp > p.max { new_hp = p.max; }
+    return Player(new_hp, p.max);
+}
+
+func Damage(p: Player, amt: Int) -> Player {
+    let new_hp: Int = p.hp - amt;
+    if new_hp < 0 { new_hp = 0; }
+    return Player(new_hp, p.max);
+}
+
+func IsAlive(p: Player) -> Bool { return p.hp > 0; }
+func PercentFull(p: Player) -> Int {
+    if p.max == 0 { return 0; }
+    return p.hp * 100 / p.max;
+}
+
+func Main() -> Void {
+    let p: Player = Player(50, 100);
+    Log(p.hp);
+    let healed: Player = Heal(p, 30);
+    Log(healed.hp);
+    let damaged: Player = Damage(healed, 50);
+    Log(damaged.hp);
+    let dead: Player = Damage(damaged, 100);
+    Log(dead.hp);
+    Log(IsAlive(dead));
+    Log(PercentFull(healed));
+    let over_healed: Player = Heal(damaged, 1000);
+    Log(over_healed.hp);
+}

@@ -1,0 +1,30 @@
+class Inner {
+    let val: Int;
+}
+
+class Outer {
+    let inner: Inner;
+    let scale: Int;
+
+    func Total(self) -> Int {
+        return inner.val * scale;
+    }
+}
+
+func MakeOuter(v: Int, s: Int) -> Outer {
+    return Outer(Inner(v), s);
+}
+
+func ScaleOuter(o: Outer, mult: Int) -> Outer {
+    return Outer(Inner(o.inner.val * mult), o.scale);
+}
+
+func Main() -> Void {
+    let o1: Outer = MakeOuter(10, 3);
+    Log(o1.Total());
+    let o2: Outer = ScaleOuter(o1, 2);
+    Log(o2.Total());
+    let o3: Outer = MakeOuter(5, 100);
+    Log(o3.Total());
+    Log(o3.inner.val);
+}

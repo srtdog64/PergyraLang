@@ -1,0 +1,19 @@
+class Lot {
+    let qty: Int;
+    let price: Int;
+
+    func Total(self) -> Int { return self.qty * self.price; }
+}
+
+func Clone(l: Lot) -> Lot {
+    return Lot(l.qty, l.price);
+}
+
+func Main() -> Void {
+    let l: Lot = Lot(10, 50);
+    Log(l.Total());
+    let c: Lot = Clone(l);
+    Log(c.Total());
+    Log(Clone(l).qty);
+    Log(Clone(Lot(0, 0)).Total());
+}

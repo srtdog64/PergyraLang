@@ -1,0 +1,17 @@
+class Box {
+    let weight: Int;
+    let label: Int;
+
+    func WithWeight(self, w: Int) -> Box { return Box(w, self.label); }
+
+    func Heavy(self) -> Bool { return self.weight > 100; }
+}
+
+func New(label: Int) -> Box { return Box(0, label); }
+
+func Main() -> Void {
+    Log(New(1).WithWeight(50).Heavy());
+    Log(New(2).WithWeight(150).Heavy());
+    Log(New(4).WithWeight(0).weight);
+    Log(New(5).WithWeight(75).label);
+}

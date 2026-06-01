@@ -1,0 +1,25 @@
+class Pair {
+    let a: Int;
+    let b: Int;
+
+    func Total(self) -> Int {
+        return a + b;
+    }
+}
+
+func Many(start: Int, n: Int) -> Int {
+    let acc: Int = 0;
+    let i: Int = 0;
+    while i < n {
+        let p: Pair = Pair(start + i, start - i);
+        acc = acc + p.Total();
+        i = i + 1;
+    }
+    return acc;
+}
+
+func Main() -> Void {
+    Log(Many(10, 5));
+    Log(Many(0, 0));
+    Log(Many(-5, 3));
+}

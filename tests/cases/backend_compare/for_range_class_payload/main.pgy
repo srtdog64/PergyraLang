@@ -1,0 +1,19 @@
+class Note {
+    let pitch: Int;
+    let dur: Int;
+}
+
+func Octave(start: Int) -> Int {
+    let total: Int = 0;
+    for i in 0..7 {
+        let n: Note = Note(start + i * 2, i + 1);
+        total = total + n.pitch * n.dur;
+    }
+    return total;
+}
+
+func Main() -> Void {
+    Log(Octave(60));
+    Log(Octave(0));
+    Log(Octave(100));
+}

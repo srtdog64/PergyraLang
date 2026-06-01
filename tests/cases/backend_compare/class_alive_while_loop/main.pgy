@@ -1,0 +1,32 @@
+class Cell {
+    let value: Int;
+    let alive: Bool;
+}
+
+func MakeCell(v: Int) -> Cell {
+    if v > 0 { return Cell(v, true); }
+    return Cell(0, false);
+}
+
+func StepCell(c: Cell) -> Cell {
+    if c.alive == false { return c; }
+    if c.value <= 1 { return Cell(0, false); }
+    return Cell(c.value - 1, true);
+}
+
+func RunUntilDead(start: Int) -> Int {
+    let c: Cell = MakeCell(start);
+    let steps: Int = 0;
+    while c.alive {
+        c = StepCell(c);
+        steps = steps + 1;
+    }
+    return steps;
+}
+
+func Main() -> Void {
+    Log(RunUntilDead(5));
+    Log(RunUntilDead(1));
+    Log(RunUntilDead(0));
+    Log(RunUntilDead(100));
+}

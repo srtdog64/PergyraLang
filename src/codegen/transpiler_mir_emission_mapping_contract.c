@@ -1,11 +1,10 @@
 #include "transpiler_mir_emission_mapping_contract.h"
 
-#include <string.h>
-
 #include "../compiler/mir.h"
 #include "../parser/ast_api.h"
 #include "transpiler_mir_local_binding.h"
 #include "transpiler_mir_pending_uses.h"
+#include "transpiler_mir_resource_name_helpers.h"
 #include "transpiler_mir_ssa_contract.h"
 #include "transpiler_mir_ssa_entry.h"
 #include "transpiler_mir_ssa_lookup.h"
@@ -151,8 +150,8 @@ transpiler_has_mapping_for_all_emitted_blocks(const TranspilerCtx *ctx,
             }
             if (inst->kind == MIR_INST_BRANCH || inst->kind == MIR_INST_RETURN
                 || (inst->kind == MIR_INST_RESOURCE_OP
-                    && inst->name != NULL
-                    && strcmp(inst->name, "Write") == 0)) {
+                    && transpiler_mir_resource_op_lookup(inst->name)
+                        == TRANS_MIR_RESOURCE_OP_WRITE)) {
                 ASTNode *payload_expr = inst->expr0;
                 if (payload_expr != NULL
                     && !transpiler_expr_identifiers_mapped(ctx, payload_expr,

@@ -1,0 +1,32 @@
+enum Rarity { Common, Rare, Epic }
+
+class Item {
+    let id: Int;
+    let power: Int;
+}
+
+func MakeItem(id: Int, base: Int, r: Rarity) -> Item {
+    match r {
+        case Common: return Item(id, base);
+        case Rare: return Item(id, base * 2);
+        case Epic: return Item(id, base * 5);
+    }
+}
+
+func Compare(a: Item, b: Item) -> Int {
+    if a.power > b.power { return 1; }
+    if a.power < b.power { return -1; }
+    return 0;
+}
+
+func Main() -> Void {
+    let i1: Item = MakeItem(1, 100, Common);
+    let i2: Item = MakeItem(2, 100, Rare);
+    let i3: Item = MakeItem(3, 100, Epic);
+    Log(i1.power);
+    Log(i2.power);
+    Log(i3.power);
+    Log(Compare(i2, i1));
+    Log(Compare(i1, i3));
+    Log(Compare(i2, i2));
+}

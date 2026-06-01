@@ -1,0 +1,29 @@
+enum Strength { Weak, Mid, Strong }
+
+func GradeOf(n: Int) -> Strength {
+    if n < 10 { return Weak; }
+    if n < 50 { return Mid; }
+    return Strong;
+}
+
+func Reward(grade: Strength, base: Int) -> Int {
+    match grade {
+        case Weak:
+            if base > 100 { return 0; }
+            return 1;
+        case Mid:
+            if base > 100 { return base / 2; }
+            return base;
+        case Strong:
+            if base > 1000 { return 9999; }
+            return base * 2;
+    }
+}
+
+func Main() -> Void {
+    Log(Reward(GradeOf(5), 50));
+    Log(Reward(GradeOf(30), 80));
+    Log(Reward(GradeOf(80), 500));
+    Log(Reward(GradeOf(200), 5000));
+    Log(Reward(GradeOf(5), 200));
+}

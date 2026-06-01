@@ -1,0 +1,27 @@
+class Pos {
+    let x: Int;
+    let y: Int;
+}
+
+func IsBefore(a: Pos, b: Pos) -> Bool {
+    if a.x < b.x { return true; }
+    if a.x > b.x { return false; }
+    return a.y < b.y;
+}
+
+func Pick(a: Pos, b: Pos) -> Pos {
+    if IsBefore(a, b) { return a; }
+    return b;
+}
+
+func Main() -> Void {
+    let p1: Pos = Pos(3, 5);
+    let p2: Pos = Pos(3, 8);
+    let p3: Pos = Pos(1, 99);
+    Log(IsBefore(p1, p2));
+    Log(IsBefore(p2, p1));
+    Log(IsBefore(p3, p1));
+    let lo: Pos = Pick(p1, p3);
+    Log(lo.x);
+    Log(lo.y);
+}

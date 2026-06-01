@@ -1,0 +1,16 @@
+class Pair {
+    let a: Int;
+    let b: Int;
+    func Sum(self) -> Int { return a + b; }
+}
+
+func MakePair(x: Int, y: Int) -> Pair {
+    return Pair(x, y);
+}
+
+func Main() -> Void {
+    let p: Pair = MakePair(10, 20);
+    Log(p.a);
+    Log(p.b);
+    Log(p.Sum());
+}

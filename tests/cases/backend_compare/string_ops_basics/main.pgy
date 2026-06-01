@@ -1,0 +1,16 @@
+func Main() -> Void {
+    let a: String = "hello";
+    let b: String = "world";
+    let c: String = a + " " + b;
+    Log(c);
+    Log(StringLength(c));
+    
+    let nums: String = "12345";
+    Log(StringLength(nums));
+    
+    let empty: String = "";
+    Log(StringLength(empty));
+    
+    let big: String = "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa";
+    Log(StringLength(big));
+}

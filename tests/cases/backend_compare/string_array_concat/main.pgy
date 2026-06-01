@@ -1,0 +1,20 @@
+func MyJoin(parts: Array<String>, n: Int, sep: String) -> String {
+    let result: String = "";
+    let i: Int = 0;
+    while i < n {
+        if i > 0 { result = result + sep; }
+        result = result + parts[i];
+        i = i + 1;
+    }
+    return result;
+}
+
+func Main() -> Void {
+    let words: Array<String> = ["hello", "world", "foo", "bar"];
+    Log(MyJoin(words, 4, ", "));
+    Log(MyJoin(words, 2, "-"));
+    let empty: Array<String> = [];
+    Log(MyJoin(empty, 0, "/"));
+    let single: Array<String> = ["alone"];
+    Log(MyJoin(single, 1, "+"));
+}

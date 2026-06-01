@@ -1,0 +1,23 @@
+class Stats {
+    let attack: Int;
+    let defense: Int;
+
+    func Total(self) -> Int { return self.attack + self.defense; }
+}
+
+class Char {
+    let stats: Stats;
+    let level: Int;
+}
+
+func MakeCh(a: Int, d: Int, l: Int) -> Char {
+    return Char(Stats(a, d), l);
+}
+
+func Main() -> Void {
+    Log(MakeCh(50, 30, 5).stats.Total());
+    Log(MakeCh(100, 100, 10).stats.attack);
+    Log(MakeCh(0, 0, 1).stats.Total());
+    let c: Char = MakeCh(80, 20, 3);
+    Log(c.stats.Total());
+}

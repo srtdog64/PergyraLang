@@ -11,6 +11,7 @@
 #include "../semantic/diag_codes.h"
 #include "transpiler_context.h"
 #include "transpiler_mir_expr_ssa.h"
+#include "transpiler_mir_resource_name_helpers.h"
 #include "transpiler_mir_resource_op_core.h"
 #include "transpiler_mir_ssa_map.h"
 #include "transpiler_symbols.h"
@@ -37,11 +38,12 @@ transpiler_emit_mir_resource_hook(TranspilerCtx *ctx,
         return false;
 
     if (inst->kind == MIR_INST_RESOURCE_OP) {
+        TranspilerMIRResourceOp op =
+            transpiler_mir_resource_op_lookup(inst->name);
         if (!cleanup_hook
             && ctx != NULL
             && ctx->active_ssa_map != NULL
-            && inst->name != NULL
-            && strcmp(inst->name, "Write") == 0
+            && op == TRANS_MIR_RESOURCE_OP_WRITE
             && inst->expr0 != NULL) {
             ASTNode *value_node = inst->expr0;
             if (value_node != NULL) {
@@ -57,7 +59,7 @@ transpiler_emit_mir_resource_hook(TranspilerCtx *ctx,
             }
         }
         bool claim_already_materialized_by_stmt = false;
-        bool is_claim_op = inst->name != NULL && strcmp(inst->name, "Claim") == 0;
+        bool is_claim_op = op == TRANS_MIR_RESOURCE_OP_CLAIM;
         if (!cleanup_hook && is_claim_op) {
             if (transpiler_active_has_mir(ctx)) {
                 claim_already_materialized_by_stmt = false;
@@ -92,8 +94,7 @@ transpiler_emit_mir_resource_hook(TranspilerCtx *ctx,
             || (is_claim_op && !claim_already_materialized_by_stmt && !cleanup_hook);
         if (!cleanup_hook
             && ctx != NULL
-            && inst->name != NULL
-            && strcmp(inst->name, "Write") == 0
+            && op == TRANS_MIR_RESOURCE_OP_WRITE
             && inst->slot_anchor != NULL) {
             TypedVarEntry *view_entry = lookup_typed_entry(ctx, inst->slot_anchor);
             const char *view_source_slot = NULL;
@@ -114,12 +115,13 @@ transpiler_emit_mir_resource_hook(TranspilerCtx *ctx,
                         const MIRBasicBlock *block = &routine->blocks[bi];
                         for (size_t ii = 0; ii < block->instruction_count; ii++) {
                             const MIRInstruction *candidate = &block->instructions[ii];
+                            TranspilerMIRResourceOp candidate_op =
+                                transpiler_mir_resource_op_lookup(candidate->name);
                             if (candidate == inst)
                                 break;
                             if (candidate->kind == MIR_INST_RESOURCE_OP
-                                && candidate->name != NULL
-                                && (strcmp(candidate->name, "BorrowRead") == 0
-                                    || strcmp(candidate->name, "BorrowWrite") == 0)
+                                && (candidate_op == TRANS_MIR_RESOURCE_OP_BORROW_READ
+                                    || candidate_op == TRANS_MIR_RESOURCE_OP_BORROW_WRITE)
                                 && candidate->arg1 != NULL
                                 && strcmp(candidate->arg1, inst->slot_anchor) == 0
                                 && candidate->arg0 != NULL) {
@@ -149,19 +151,18 @@ transpiler_emit_mir_resource_hook(TranspilerCtx *ctx,
                 && lookup_slot_is_secure(ctx, emit_inst->slot_anchor);
             if (is_claim_op
                 || redirected_view_resource
-                || (emit_inst->name != NULL
-                    && (strcmp(emit_inst->name, "Write") == 0
-                        || strcmp(emit_inst->name, "Release") == 0
-                        || strcmp(emit_inst->name, "Move") == 0)
+                || ((op == TRANS_MIR_RESOURCE_OP_WRITE
+                        || op == TRANS_MIR_RESOURCE_OP_RELEASE
+                        || op == TRANS_MIR_RESOURCE_OP_MOVE)
                     && !slot_is_secure)) {
                 needs_concrete_emit = true;
             }
         }
         if (needs_concrete_emit) {
             if (!transpiler_emit_mir_resource_op(ctx, out, indent, emit_inst, emit_inst->type_layout, NULL)) {
-                if (inst->name != NULL
-                    && (strcmp(inst->name, "ProjectRefresh") == 0
-                        || strcmp(inst->name, "ProjectPublish") == 0)) {
+                if (inst->rir_op != NULL
+                    && (inst->rir_op->kind == RIR_OP_PROJECT_REFRESH
+                        || inst->rir_op->kind == RIR_OP_PROJECT_PUBLISH)) {
                     /* Direct projection expressions already emit the concrete value
                      * via MIR DEF/STMT paths; keep only the observability/export hook
                      * for projection resource ops that do not have a slot runtime ABI. */

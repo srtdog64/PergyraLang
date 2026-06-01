@@ -1,0 +1,25 @@
+class Inner {
+    let v: Int;
+
+    func Doubled(self) -> Int { return self.v * 2; }
+}
+
+class Outer {
+    let i: Inner;
+    let mark: Int;
+
+    func InnerVal(self) -> Int { return self.i.v; }
+    func InnerDoubled(self) -> Int { return self.i.Doubled(); }
+}
+
+func MakeOuter(v: Int, m: Int) -> Outer {
+    return Outer(Inner(v), m);
+}
+
+func Main() -> Void {
+    Log(MakeOuter(10, 1).InnerVal());
+    Log(MakeOuter(10, 1).InnerDoubled());
+    Log(MakeOuter(7, 5).i.Doubled());
+    Log(MakeOuter(7, 5).i.v);
+    Log(MakeOuter(99, 0).i.v + MakeOuter(99, 0).mark);
+}

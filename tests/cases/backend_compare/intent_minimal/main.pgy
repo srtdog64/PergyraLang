@@ -1,0 +1,11 @@
+subject Cont { let v: Int; }
+
+intent Increment(b: Cont) {
+    success: true;
+    failure: false;
+}
+
+func Main() -> Void {
+    let b: Cont = Cont(10);
+    Log(b.v);
+}

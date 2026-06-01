@@ -1,0 +1,20 @@
+func StringSwap(arr: Array<String>, n: Int, sep: String) -> String {
+    let total: Int = 0;
+    let i: Int = 0;
+    while i < n {
+        total = total + 1;
+        i = i + 1;
+    }
+    let result: String = sep;
+    if total > 5 { result = "many"; }
+    return result;
+}
+
+func Main() -> Void {
+    let a: Array<String> = ["a", "b", "c"];
+    Log(StringSwap(a, 3, "-"));
+    let b: Array<String> = ["1", "2", "3", "4", "5", "6", "7"];
+    Log(StringSwap(b, 7, "/"));
+    let empty: Array<String> = [];
+    Log(StringSwap(empty, 0, "default"));
+}

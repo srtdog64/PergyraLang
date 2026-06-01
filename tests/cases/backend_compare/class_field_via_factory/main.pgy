@@ -1,0 +1,22 @@
+class Player {
+    let hp: Int;
+    let mp: Int;
+    let level: Int;
+}
+
+func Create(seed: Int) -> Player {
+    return Player(100 + seed * 10, 50 + seed * 5, 1 + seed);
+}
+
+func Stats(p: Player) -> Int {
+    return p.hp + p.mp * 2 + p.level * 100;
+}
+
+func Main() -> Void {
+    Log(Stats(Create(0)));
+    Log(Stats(Create(5)));
+    Log(Create(3).hp);
+    Log(Create(3).mp);
+    Log(Create(3).level);
+    Log(Stats(Create(10)));
+}

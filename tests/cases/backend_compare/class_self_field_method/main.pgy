@@ -1,0 +1,25 @@
+class Tree {
+    let depth: Int;
+    let value: Int;
+
+    func Power(self) -> Int {
+        if self.depth == 0 { return self.value; }
+        return self.value * self.depth + self.depth;
+    }
+}
+
+func MakeTree(depth: Int, value: Int) -> Tree {
+    return Tree(depth, value);
+}
+
+func Score(d: Int, v: Int) -> Int {
+    let t: Tree = MakeTree(d, v);
+    return t.Power();
+}
+
+func Main() -> Void {
+    Log(Score(0, 100));
+    Log(Score(3, 10));
+    Log(Score(5, 0));
+    Log(Score(10, -5));
+}

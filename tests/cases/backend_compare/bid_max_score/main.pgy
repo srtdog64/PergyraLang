@@ -1,0 +1,22 @@
+class Bid {
+    let amount: Int;
+    let priority: Int;
+
+    func Score(self) -> Int { return self.amount * self.priority; }
+}
+
+func New(a: Int, p: Int) -> Bid { return Bid(a, p); }
+
+func Best(a: Bid, b: Bid) -> Bid {
+    if a.Score() > b.Score() { return a; }
+    return b;
+}
+
+func Main() -> Void {
+    let b1: Bid = New(100, 5);
+    let b2: Bid = New(200, 1);
+    Log(Best(b1, b2).amount);
+    Log(Best(b1, b2).Score());
+    Log(Best(New(10, 10), New(5, 50)).amount);
+    Log(Best(New(0, 0), New(1, 1)).Score());
+}

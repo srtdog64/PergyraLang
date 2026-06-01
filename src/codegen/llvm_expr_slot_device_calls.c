@@ -309,15 +309,8 @@ llvm_emit_slot_builtin_call(ASTNode *node, LLVMGenCtx *ctx,
             LLVMBuildCall2(ctx->builder, fn->fn_type, fn->fn, args, 1, "");
         }
 
-        if (source_name != NULL) {
-            const char *sname = source_name;
-            for (int ri = 0; ri < ctx->slot_var_count; ri++) {
-                if (strcmp(ctx->slot_vars[ri].var_name, sname) == 0) {
-                    ctx->slot_vars[ri].released = true;
-                    break;
-                }
-            }
-        }
+        if (source_name != NULL)
+            llvm_mark_slot_released(ctx, source_name);
 
         *out = llvm_void_expression_placeholder(ctx, node, callee_name);
         return true;

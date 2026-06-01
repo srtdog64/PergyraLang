@@ -9,9 +9,31 @@
 
 #include "transpiler_symbols.h"
 #include "transpiler_context.h"
+#include "transpiler_mir_ssa_map.h"
 #include "codegen_slot_type_policy.h"
 #include "../common/string_compat.h"
 #include "../semantic/diag_codes.h"
+
+static const char *
+active_typed_var_ssa_name(TranspilerCtx *ctx, const char *name)
+{
+    if (ctx == NULL || ctx->active_ssa_map == NULL || name == NULL)
+        return NULL;
+    return transpiler_resolve_ssa_name(
+        (const TranspilerSSANameMap *)ctx->active_ssa_map, name);
+}
+
+static void
+copy_active_typed_var_ssa_name(TranspilerCtx *ctx, TypedVarEntry *entry)
+{
+    const char *ssa_name;
+
+    if (ctx == NULL || entry == NULL)
+        return;
+    ssa_name = active_typed_var_ssa_name(ctx, entry->name);
+    if (ssa_name != NULL)
+        pergyra_str_copy(entry->ssa_name, sizeof(entry->ssa_name), ssa_name);
+}
 
 void
 register_slot_var(TranspilerCtx *ctx, const char *name,
@@ -242,6 +264,7 @@ register_typed_var(TranspilerCtx *ctx, const char *name, const char *type_name)
     memset(e, 0, sizeof(*e));
     pergyra_str_copy(e->name, sizeof(e->name), name);
     pergyra_str_copy(e->type_name, sizeof(e->type_name), type_name);
+    copy_active_typed_var_ssa_name(ctx, e);
 }
 
 void
@@ -285,6 +308,24 @@ lookup_typed_entry(TranspilerCtx *ctx, const char *var_name)
 {
     if (ctx == NULL || var_name == NULL)
         return NULL;
+    {
+        const char *ssa_name = active_typed_var_ssa_name(ctx, var_name);
+        if (ssa_name != NULL) {
+            if (ctx->last_typed_var_index >= 0
+                && ctx->last_typed_var_index < ctx->typed_var_count
+                && strcmp(ctx->typed_vars[ctx->last_typed_var_index].ssa_name,
+                          ssa_name) == 0) {
+                return &ctx->typed_vars[ctx->last_typed_var_index];
+            }
+            for (int i = ctx->typed_var_count - 1; i >= 0; i--) {
+                if (ctx->typed_vars[i].ssa_name[0] != '\0'
+                    && strcmp(ctx->typed_vars[i].ssa_name, ssa_name) == 0) {
+                    ctx->last_typed_var_index = i;
+                    return &ctx->typed_vars[i];
+                }
+            }
+        }
+    }
     if (ctx != NULL
         && ctx->last_typed_var_index >= 0
         && ctx->last_typed_var_index < ctx->typed_var_count
@@ -322,6 +363,7 @@ register_view_like_var(TranspilerCtx *ctx, const char *name, const char *type_na
     memset(e, 0, sizeof(*e));
     pergyra_str_copy(e->name, sizeof(e->name), name);
     pergyra_str_copy(e->type_name, sizeof(e->type_name), type_name);
+    copy_active_typed_var_ssa_name(ctx, e);
     if (source_slot != NULL) {
         pergyra_str_copy(e->source_slot, sizeof(e->source_slot), source_slot);
     }
@@ -345,6 +387,7 @@ register_projection_borrow_var(TranspilerCtx *ctx, const char *name,
     memset(e, 0, sizeof(*e));
     pergyra_str_copy(e->name, sizeof(e->name), name);
     pergyra_str_copy(e->type_name, sizeof(e->type_name), type_name);
+    copy_active_typed_var_ssa_name(ctx, e);
     pergyra_str_copy(e->source_slot, sizeof(e->source_slot), source_name);
     e->is_projection_borrow = true;
 }

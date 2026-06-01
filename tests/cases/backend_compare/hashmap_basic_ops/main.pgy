@@ -1,0 +1,14 @@
+func Main() -> Void {
+    let pairs: HashMap<Int, Int> = MapNew();
+    MapSet(pairs, 1, 100);
+    MapSet(pairs, 2, 200);
+    MapSet(pairs, 3, 300);
+    Log(MapGet(pairs, 1));
+    Log(MapGet(pairs, 2));
+    Log(MapGet(pairs, 3));
+    Log(MapHas(pairs, 1));
+    Log(MapHas(pairs, 99));
+
+    MapSet(pairs, 2, 2000);
+    Log(MapGet(pairs, 2));
+}

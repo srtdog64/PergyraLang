@@ -1,0 +1,31 @@
+class Game {
+    let mode: Int;
+    let score: Int;
+
+    func Verdict(self) -> Int {
+        if self.score >= 90 {
+            if self.mode == 1 { return 100; }
+            if self.mode == 2 { return 200; }
+            return 999;
+        }
+        if self.score >= 50 { return 50; }
+        return 0;
+    }
+}
+
+func MakeGame(mode: Int, score: Int) -> Game {
+    return Game(mode, score);
+}
+
+func Main() -> Void {
+    let g1: Game = MakeGame(1, 95);
+    Log(g1.Verdict());
+    let g2: Game = MakeGame(2, 85);
+    Log(g2.Verdict());
+    let g3: Game = MakeGame(3, 50);
+    Log(g3.Verdict());
+    let g4: Game = MakeGame(1, 10);
+    Log(g4.Verdict());
+    let g5: Game = MakeGame(2, 95);
+    Log(g5.Verdict());
+}

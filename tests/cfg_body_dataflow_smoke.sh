@@ -245,9 +245,30 @@ run_literal_doc_contract_smoke() {
     require_literal "src/compiler/mir_source_shape.c" "mir_instruction_source_is_cfg_owned_control"
     require_literal "src/compiler/mir_source_shape.c" "mir_instruction_source_stmt_has_side_effect_hint"
     require_literal "src/compiler/mir_source_shape.c" "mir_instruction_source_stmt_fallback_is_allowed"
+    require_literal "src/compiler/mir_source_shape.c" "mir_instruction_resource_op_is_claim"
+    require_literal "src/compiler/mir_source_shape.c" "mir_instruction_resource_op_is_read"
+    require_literal "src/compiler/mir_source_shape.c" "mir_instruction_resource_op_is_write"
+    require_literal "src/compiler/mir_source_shape.c" "mir_instruction_resource_op_keeps_residual_statement_emit"
+    require_literal "src/codegen/transpiler_mir_stmt_emit.c" "mir_instruction_resource_op_keeps_residual_statement_emit"
+    require_literal "src/compiler/mir_fact_surface_validate.c" "mir_instruction_resource_op_is_write(inst)"
+    require_literal "src/compiler/mir_stmt_population_resource_ops.c" "mir_instruction_resource_op_is_read(inst)"
+    require_literal "src/compiler/mir_stmt_population_resource_ops.c" "mir_instruction_resource_op_is_claim(inst)"
     require_literal "src/compiler/mir_source_shape.c" "mir_instruction_source_payload(inst) != NULL"
     require_literal "src/compiler/mir_source_shape.c" "k_pure_query_builtins"
     require_literal "src/compiler/mir_source_shape.c" "bsearch(&callee"
+    if grep -nE 'strcmp\(resource_inst->name, "(IO|ChannelSend|ChannelRecv|ChannelSelect|Read)"\)' \
+        "$ROOT_DIR/src/codegen/transpiler_mir_stmt_emit.c"; then
+        echo "C backend must consume MIR residual resource-op policy, not classify resource op names directly" >&2
+        exit 1
+    fi
+    for rel in \
+        src/compiler/mir_fact_surface_validate.c \
+        src/compiler/mir_stmt_population_resource_ops.c; do
+        if grep -nE 'strcmp\(inst->name, "(Claim|Read|Write)"\)' "$ROOT_DIR/$rel"; then
+            echo "$rel must consume MIR resource-op predicates, not classify op names directly" >&2
+            exit 1
+        fi
+    done
     require_literal "src/compiler/mir_cfg_contract_validate.c" "mir_instruction_source_is_cfg_owned_control(inst)"
     require_literal "src/compiler/mir_dce.c" "mir_instruction_source_stmt_has_side_effect_hint(inst)"
     require_literal "src/compiler/mir_source_shape.c" "mir_instruction_source_branch_payload_matches_shape"

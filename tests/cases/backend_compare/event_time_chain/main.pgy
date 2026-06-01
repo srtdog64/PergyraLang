@@ -1,0 +1,25 @@
+class Time {
+    let hours: Int;
+    let minutes: Int;
+
+    func TotalMin(self) -> Int { return self.hours * 60 + self.minutes; }
+}
+
+class Event {
+    let start: Time;
+    let dur: Int;
+
+    func EndMin(self) -> Int { return self.start.TotalMin() + self.dur; }
+}
+
+func Make(h: Int, m: Int, dur: Int) -> Event {
+    return Event(Time(h, m), dur);
+}
+
+func Main() -> Void {
+    Log(Make(9, 30, 60).EndMin());
+    Log(Make(0, 0, 1440).EndMin());
+    Log(Make(12, 0, 0).start.TotalMin());
+    Log(Make(15, 45, 30).EndMin());
+    Log(Make(23, 30, 60).EndMin());
+}

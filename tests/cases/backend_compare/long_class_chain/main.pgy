@@ -1,0 +1,30 @@
+class Sub {
+    let v: Int;
+
+    func Half(self) -> Int { return self.v / 2; }
+}
+
+class Mid {
+    let sub: Sub;
+    let id: Int;
+
+    func InnerHalf(self) -> Int { return self.sub.Half(); }
+}
+
+class Top {
+    let mid: Mid;
+    let tag: Int;
+}
+
+func MakeAll(v: Int, id: Int, tag: Int) -> Top {
+    return Top(Mid(Sub(v), id), tag);
+}
+
+func Main() -> Void {
+    let t: Top = MakeAll(100, 5, 1);
+    Log(t.mid.InnerHalf());
+    Log(t.mid.sub.v);
+    Log(t.mid.id);
+    Log(t.tag);
+    Log(MakeAll(40, 0, 0).mid.InnerHalf());
+}

@@ -1,0 +1,23 @@
+enum Lang { Korean, English, Japanese, Other }
+
+func Hello(l: Lang) -> String {
+    match l {
+        case Korean: return "안녕";
+        case English: return "Hello";
+        case Japanese: return "こんにちは";
+        case Other: return "?";
+    }
+}
+
+func Length(l: Lang) -> Int {
+    return StringLength(Hello(l));
+}
+
+func Main() -> Void {
+    Log(Hello(Korean));
+    Log(Hello(English));
+    Log(Hello(Japanese));
+    Log(Hello(Other));
+    Log(Length(English));
+    Log(Length(Other));
+}

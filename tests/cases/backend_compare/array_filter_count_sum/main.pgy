@@ -1,0 +1,31 @@
+func CountPositive(arr: Array<Int>, n: Int) -> Int {
+    let count: Int = 0;
+    let i: Int = 0;
+    while i < n {
+        if arr[i] > 0 { count = count + 1; }
+        i = i + 1;
+    }
+    return count;
+}
+
+func SumWhere(arr: Array<Int>, n: Int, threshold: Int) -> Int {
+    let total: Int = 0;
+    let i: Int = 0;
+    while i < n {
+        let v: Int = arr[i];
+        if v >= threshold { total = total + v; }
+        i = i + 1;
+    }
+    return total;
+}
+
+func Main() -> Void {
+    let a: Array<Int> = [3, -1, 5, -2, 7, 0, -3, 4];
+    Log(CountPositive(a, 8));
+    Log(SumWhere(a, 8, 0));
+    Log(SumWhere(a, 8, 5));
+    let allneg: Array<Int> = [-1, -2, -3];
+    Log(CountPositive(allneg, 3));
+    let empty: Array<Int> = [];
+    Log(SumWhere(empty, 0, 0));
+}

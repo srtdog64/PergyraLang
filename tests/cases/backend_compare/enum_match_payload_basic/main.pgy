@@ -1,0 +1,22 @@
+enum Shape {
+    Circle(Int),
+    Rect(Int, Int),
+    Empty
+}
+
+func Area(s: Shape) -> Int {
+    match s {
+        case Circle(r): return r * r * 3;
+        case Rect(w, h): return w * h;
+        case Empty: return 0;
+    }
+}
+
+func Main() -> Void {
+    let c: Shape = Circle(5);
+    Log(Area(c));
+    let r: Shape = Rect(3, 4);
+    Log(Area(r));
+    let e: Shape = Empty;
+    Log(Area(e));
+}

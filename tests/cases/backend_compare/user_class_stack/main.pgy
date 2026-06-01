@@ -1,0 +1,20 @@
+class Stack {
+    let top: Int;
+    let count: Int;
+
+    func Peek(self) -> Int { return self.top; }
+}
+
+func Push(s: Stack, v: Int) -> Stack {
+    return Stack(v, s.count + 1);
+}
+
+func Main() -> Void {
+    let s: Stack = Stack(0, 0);
+    let s1: Stack = Push(s, 10);
+    let s2: Stack = Push(s1, 20);
+    Log(s2.Peek());
+    Log(s2.count);
+    Log(Push(s, 5).top);
+    Log(Push(Push(s, 100), 200).top);
+}

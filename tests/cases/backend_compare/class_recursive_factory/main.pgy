@@ -1,0 +1,32 @@
+class State {
+    let level: Int;
+    let energy: Int;
+
+    func Power(self) -> Int {
+        return level * 10 + energy;
+    }
+}
+
+func Charge(s: State, amount: Int) -> State {
+    return State(s.level, s.energy + amount);
+}
+
+func LevelUp(s: State) -> State {
+    return State(s.level + 1, 0);
+}
+
+func Train(s: State, n: Int) -> State {
+    if n == 0 { return s; }
+    return Train(LevelUp(Charge(s, 50)), n - 1);
+}
+
+func Main() -> Void {
+    let s0: State = State(1, 0);
+    Log(s0.Power());
+    let s1: State = Train(s0, 1);
+    Log(s1.Power());
+    let s3: State = Train(s0, 3);
+    Log(s3.Power());
+    let s5: State = Train(s3, 2);
+    Log(s5.Power());
+}

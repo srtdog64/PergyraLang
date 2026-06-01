@@ -1,0 +1,35 @@
+enum Stage { Init, Mid, Done }
+
+func Next(s: Stage) -> Stage {
+    match s {
+        case Init: return Mid;
+        case Mid: return Done;
+        case Done: return Init;
+    }
+}
+
+func StageValue(s: Stage) -> Int {
+    match s {
+        case Init: return 0;
+        case Mid: return 50;
+        case Done: return 100;
+    }
+}
+
+func Run(start: Stage, steps: Int) -> Int {
+    let s: Stage = start;
+    let total: Int = 0;
+    let i: Int = 0;
+    while i < steps {
+        total = total + StageValue(s);
+        s = Next(s);
+        i = i + 1;
+    }
+    return total;
+}
+
+func Main() -> Void {
+    Log(Run(Init, 5));
+    Log(Run(Done, 3));
+    Log(Run(Mid, 0));
+}

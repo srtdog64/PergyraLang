@@ -1,0 +1,22 @@
+class Coord {
+    let x: Int;
+    let y: Int;
+}
+
+func Manhattan(a: Coord, b: Coord) -> Int {
+    let dx: Int = a.x - b.x;
+    let dy: Int = a.y - b.y;
+    if dx < 0 { dx = 0 - dx; }
+    if dy < 0 { dy = 0 - dy; }
+    return dx + dy;
+}
+
+func Main() -> Void {
+    let p1: Coord = Coord(0, 0);
+    let p2: Coord = Coord(3, 4);
+    let p3: Coord = Coord(-1, 2);
+    Log(Manhattan(p1, p2));
+    Log(Manhattan(p2, p3));
+    Log(Manhattan(p1, p1));
+    Log(Manhattan(p3, p1));
+}

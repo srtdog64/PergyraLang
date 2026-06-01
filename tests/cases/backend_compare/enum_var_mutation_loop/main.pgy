@@ -1,0 +1,29 @@
+enum Code { Yes, Maybe, No }
+
+func CodeValue(c: Code) -> Int {
+    match c {
+        case Yes: return 1;
+        case Maybe: return 0;
+        case No: return -1;
+    }
+}
+
+func Logic(arr: Array<Int>, n: Int) -> Int {
+    let acc: Int = 0;
+    let i: Int = 0;
+    while i < n {
+        let c: Code = Yes;
+        if arr[i] < 0 { c = No; }
+        if arr[i] == 0 { c = Maybe; }
+        acc = acc + CodeValue(c);
+        i = i + 1;
+    }
+    return acc;
+}
+
+func Main() -> Void {
+    let a: Array<Int> = [3, -1, 0, 5, -2, 0];
+    Log(Logic(a, 6));
+    let empty: Array<Int> = [];
+    Log(Logic(empty, 0));
+}
