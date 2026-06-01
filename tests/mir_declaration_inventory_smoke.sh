@@ -1604,7 +1604,7 @@ done
 
 raw_ctx_mir_hits="$(
     grep -RIn 'ctx->mir' "$ROOT_DIR/src/codegen" |
-        grep -Ev 'src/codegen/(llvm_api\.c|llvm_inventory_decl_lookup\.c|llvm_inventory_field_view\.c|llvm_inventory_slot_view\.c|llvm_inventory_internal\.c|transpiler_entry\.c|transpiler_inventory_view\.c|transpiler_mir_emission_contract\.c):' || true
+        grep -Ev 'src/codegen/(llvm_api\.c|llvm_inventory_decl_lookup\.c|llvm_inventory_internal\.c|transpiler_entry\.c|transpiler_inventory_view\.c|transpiler_mir_emission_contract\.c):' || true
 )"
 if [[ -n "$raw_ctx_mir_hits" ]]; then
     fail "raw ctx->mir access must stay in backend entrypoints, inventory view/lookup owners, or MIR emission contract probes:

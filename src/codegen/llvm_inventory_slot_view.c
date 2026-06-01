@@ -59,7 +59,7 @@ llvm_hosted_zone_layer_slot_view_from_decl(const LLVMGenCtx *ctx,
     view.ast_compat_count = compat_count;
     view.count = compat_count;
     view.uses_mir_metadata = false;
-    view.requires_mir_metadata = ctx != NULL && ctx->mir != NULL
+    view.requires_mir_metadata = llvm_active_has_mir(ctx)
         && compat_count > 0;
 
     header = llvm_find_host_decl_header_in_context(ctx, host_name);
@@ -178,7 +178,7 @@ llvm_hosted_world_zone_slot_view_from_decl(const LLVMGenCtx *ctx,
     view.ast_compat_count = compat_count;
     view.count = compat_count;
     view.uses_mir_metadata = false;
-    view.requires_mir_metadata = ctx != NULL && ctx->mir != NULL
+    view.requires_mir_metadata = llvm_active_has_mir(ctx)
         && compat_count > 0;
 
     header = llvm_find_host_decl_header_in_context(ctx, host_name);
@@ -296,7 +296,7 @@ llvm_hosted_role_slot_view_from_decl(const LLVMGenCtx *ctx,
     view.ast_compat_count = compat_count;
     view.count = compat_count;
     view.uses_mir_metadata = false;
-    view.requires_mir_metadata = ctx != NULL && ctx->mir != NULL
+    view.requires_mir_metadata = llvm_active_has_mir(ctx)
         && compat_count > 0;
 
     header = llvm_find_host_decl_header_in_context(ctx, host_name);

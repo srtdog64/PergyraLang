@@ -71,7 +71,7 @@ llvm_hosted_class_field_view_from_decl(const LLVMGenCtx *ctx,
     view.ast_compat_count = compat.count;
     view.count = compat.count;
     view.uses_mir_metadata = false;
-    view.requires_mir_metadata = ctx != NULL && ctx->mir != NULL
+    view.requires_mir_metadata = llvm_active_has_mir(ctx)
         && compat.count > 0;
 
     header = llvm_find_host_decl_header_in_context(ctx, host_name);
@@ -199,7 +199,7 @@ llvm_hosted_shared_field_view_from_decl(const LLVMGenCtx *ctx,
     view.ast_compat_count = compat.count;
     view.count = compat.count;
     view.uses_mir_metadata = false;
-    view.requires_mir_metadata = ctx != NULL && ctx->mir != NULL
+    view.requires_mir_metadata = llvm_active_has_mir(ctx)
         && compat.count > 0;
 
     header = llvm_find_host_decl_header_in_context(ctx, host_name);
