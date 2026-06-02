@@ -25,10 +25,16 @@ run_case() {
     local output
 
     file_arg="$(pgy_path_for_compiler "$PGY" "$file")"
-    output="$(
+    if ! output="$(
         cd "$(dirname "$file")"
         "$PGY" "$file_arg" --run --backend=llvm 2>&1
-    )"
+    )"; then
+        echo "[llvm-smoke] $name failed" >&2
+        echo "--- output ---" >&2
+        echo "$output" >&2
+        echo "--------------" >&2
+        exit 1
+    fi
     for expected in "$@"; do
         if ! grep -Fq -- "$expected" <<<"$output"; then
             echo "[llvm-smoke] $name failed" >&2
@@ -52,10 +58,16 @@ run_ir_contains_case() {
 
     file_arg="$(pgy_path_for_compiler "$PGY" "$file")"
     ll_arg="$(pgy_path_for_compiler "$PGY" "$ll")"
-    output="$(
+    if ! output="$(
         cd "$(dirname "$file")"
         "$PGY" "$file_arg" --emit-llvm -o "$ll_arg" 2>&1
-    )"
+    )"; then
+        echo "[llvm-smoke] $name failed" >&2
+        echo "--- output ---" >&2
+        echo "$output" >&2
+        echo "--------------" >&2
+        exit 1
+    fi
     if [[ ! -f "$ll" ]] || ! grep -Fq -- "$needle" "$ll"; then
         echo "[llvm-smoke] $name failed" >&2
         echo "--- output ---" >&2
@@ -79,10 +91,16 @@ run_ir_not_contains_case() {
 
     file_arg="$(pgy_path_for_compiler "$PGY" "$file")"
     ll_arg="$(pgy_path_for_compiler "$PGY" "$ll")"
-    output="$(
+    if ! output="$(
         cd "$(dirname "$file")"
         "$PGY" "$file_arg" --emit-llvm -o "$ll_arg" 2>&1
-    )"
+    )"; then
+        echo "[llvm-smoke] $name failed" >&2
+        echo "--- output ---" >&2
+        echo "$output" >&2
+        echo "--------------" >&2
+        exit 1
+    fi
     if [[ ! -f "$ll" ]] || grep -Fq -- "$needle" "$ll"; then
         echo "[llvm-smoke] $name failed" >&2
         echo "--- output ---" >&2

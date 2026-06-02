@@ -79,16 +79,40 @@ transpiler_class_member_type_name(TranspilerCtx *ctx,
 
 static const char *
 transpiler_domain_slot_member_type_name(TranspilerCtx *ctx,
-                                        ASTNode **slots,
-                                        size_t slot_count,
+                                        ASTNode *decl,
                                         const char *field_name)
 {
-    for (size_t i = 0; i < slot_count; i++) {
-        ASTNode *slot = slots[i];
-        const char *slot_name = ast_domain_slot_name(slot);
-        if (slot_name != NULL && strcmp(slot_name, field_name) == 0) {
-            return render_nominal_member_type_name(ctx, ast_domain_slot_type(slot));
+    const char *host_name;
+    TranspilerHostedDomainSlotView slot_view;
+
+    if (ctx == NULL || decl == NULL || field_name == NULL)
+        return NULL;
+
+    host_name = transpiler_decl_name_local(decl);
+    slot_view = transpiler_hosted_domain_slot_view_from_decl(ctx, host_name,
+        decl);
+    if (transpiler_hosted_domain_slot_view_missing_mir_metadata(
+            &slot_view)) {
+        transpiler_set_mir_inventory_missing(ctx,
+            "MIR-only C path missing domain-slot member metadata for '%s'",
+            host_name != NULL ? host_name : "(anonymous-domain)");
+        return NULL;
+    }
+
+    for (size_t i = 0; i < slot_view.count; i++) {
+        const char *slot_name =
+            transpiler_hosted_domain_slot_view_name(&slot_view, i);
+        if (slot_name == NULL || strcmp(slot_name, field_name) != 0)
+            continue;
+        {
+            const MIRDeclField *field =
+                transpiler_hosted_domain_slot_view_metadata(&slot_view, i);
+            const char *type_name = render_mir_decl_field_type_name(ctx, field);
+            if (type_name != NULL)
+                return type_name;
         }
+        return render_nominal_member_type_name(ctx,
+            transpiler_hosted_domain_slot_view_type(&slot_view, i));
     }
     return NULL;
 }
@@ -140,10 +164,8 @@ transpiler_zone_member_type_name(TranspilerCtx *ctx,
 {
     const char *zone_name;
     TranspilerHostedZoneLayerSlotView layer_view;
-    size_t slot_count = 0;
-    ASTNode **slots = ast_zone_slots(decl, &slot_count);
     const char *slot_type = transpiler_domain_slot_member_type_name(
-        ctx, slots, slot_count, field_name);
+        ctx, decl, field_name);
     if (slot_type != NULL)
         return slot_type;
 
@@ -174,17 +196,26 @@ transpiler_world_member_type_name(TranspilerCtx *ctx,
                                   ASTNode *decl,
                                   const char *field_name)
 {
-    size_t roster_count = 0;
-    ASTNode **rosters = ast_world_rosters(decl, &roster_count);
-    for (size_t i = 0; i < roster_count; i++) {
-        ASTNode *slot = rosters[i];
-        const char *slot_name = ast_world_roster_slot_name(slot);
+    const char *world_name = transpiler_decl_name_local(decl);
+    TranspilerHostedWorldRosterSlotView roster_view =
+        transpiler_hosted_world_roster_slot_view_from_decl(
+            ctx, world_name, decl);
+    if (transpiler_hosted_world_roster_slot_view_missing_mir_metadata(
+            &roster_view)) {
+        transpiler_set_mir_inventory_missing(ctx,
+            "MIR-only C path missing world roster-slot member metadata for '%s'",
+            world_name != NULL ? world_name : "(anonymous-world)");
+        return NULL;
+    }
+    for (size_t i = 0; i < roster_view.count; i++) {
+        const char *slot_name =
+            transpiler_hosted_world_roster_slot_view_name(&roster_view, i);
         if (slot_name != NULL && strcmp(slot_name, field_name) == 0) {
-            return ast_world_roster_type_name(slot);
+            return transpiler_hosted_world_roster_slot_view_type_name(
+                &roster_view, i);
         }
     }
 
-    const char *world_name = transpiler_decl_name_local(decl);
     TranspilerHostedWorldZoneSlotView zone_view =
         transpiler_hosted_world_zone_slot_view_from_decl(ctx, world_name, decl);
     if (transpiler_hosted_world_zone_slot_view_missing_mir_metadata(
@@ -207,10 +238,8 @@ static const char *
 transpiler_domain_host_member_type_name(TranspilerCtx *ctx,
                                         ASTNode *decl,
                                         const char *field_name,
-                                        bool include_overlay_shared)
+    bool include_overlay_shared)
 {
-    size_t slot_count = 0;
-    ASTNode **slots = NULL;
     const char *slot_type = NULL;
 
     if (decl == NULL)
@@ -222,17 +251,15 @@ transpiler_domain_host_member_type_name(TranspilerCtx *ctx,
     case AST_WORLD_DECL:
         return transpiler_world_member_type_name(ctx, decl, field_name);
     case AST_RELATION_DECL:
-        slots = ast_relation_slots(decl, &slot_count);
         slot_type = transpiler_domain_slot_member_type_name(
-            ctx, slots, slot_count, field_name);
+            ctx, decl, field_name);
         if (slot_type != NULL || !include_overlay_shared)
             return slot_type;
         return transpiler_host_shared_member_type_name(
             ctx, decl, field_name);
     case AST_EFFECT_DECL:
-        slots = ast_effect_slots(decl, &slot_count);
         slot_type = transpiler_domain_slot_member_type_name(
-            ctx, slots, slot_count, field_name);
+            ctx, decl, field_name);
         if (slot_type != NULL || !include_overlay_shared)
             return slot_type;
         return transpiler_host_shared_member_type_name(

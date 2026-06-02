@@ -15,6 +15,8 @@ static const char kMirSharedFieldMetadataMissing[] =
     "<mir-shared-field-metadata>";
 static const char kMirClassFieldMetadataMissing[] =
     "<mir-class-field-metadata>";
+static const char kMirDomainSlotMetadataMissing[] =
+    "<mir-domain-slot-metadata>";
 
 bool
 transpiler_constructor_field_is_channel(TranspilerCtx *ctx,
@@ -75,16 +77,13 @@ transpiler_constructor_find_class_channel(
 
 static const char *
 transpiler_constructor_find_slot_channel(TranspilerCtx *ctx,
-                                         ASTNode **slots,
-                                         size_t count)
+                                         const TranspilerHostedDomainSlotView *view)
 {
-    for (size_t i = 0; slots != NULL && i < count; i++) {
-        ASTNode *slot = slots[i];
-        if (slot != NULL
-            && transpiler_constructor_field_is_channel(
-                ctx, ast_domain_slot_type(slot))) {
-            return ast_domain_slot_name(slot);
-        }
+    for (size_t i = 0; view != NULL && i < view->count; i++) {
+        ASTNode *slot_type =
+            transpiler_hosted_domain_slot_view_type(view, i);
+        if (transpiler_constructor_field_is_channel(ctx, slot_type))
+            return transpiler_hosted_domain_slot_view_name(view, i);
     }
     return NULL;
 }
@@ -107,6 +106,17 @@ transpiler_constructor_fail_class_metadata_missing(TranspilerCtx *ctx,
         "MIR-only C path missing class-field channel metadata for constructor '%s'",
         decl_name != NULL ? decl_name : "(anonymous-class)");
     return kMirClassFieldMetadataMissing;
+}
+
+static const char *
+transpiler_constructor_fail_domain_slot_metadata_missing(
+    TranspilerCtx *ctx,
+    const char *decl_name)
+{
+    transpiler_set_mir_inventory_missing(ctx,
+        "MIR-only C path missing domain-slot channel metadata for constructor '%s'",
+        decl_name != NULL ? decl_name : "(anonymous-domain)");
+    return kMirDomainSlotMetadataMissing;
 }
 
 static bool
@@ -151,8 +161,6 @@ transpiler_constructor_find_mir_channel_field(TranspilerCtx *ctx,
 const char *
 transpiler_constructor_find_channel_field(TranspilerCtx *ctx, ASTNode *decl)
 {
-    size_t count = 0;
-    ASTNode **nodes = NULL;
     const char *decl_name;
     const char *mir_channel_field;
 
@@ -186,10 +194,17 @@ transpiler_constructor_find_channel_field(TranspilerCtx *ctx, ASTNode *decl)
         return transpiler_constructor_find_shared_channel(ctx, &shared);
     }
     case AST_RELATION_DECL:
-        nodes = ast_relation_slots(decl, &count);
         {
+            TranspilerHostedDomainSlotView slot_view =
+                transpiler_hosted_domain_slot_view_from_decl(ctx, decl_name,
+                    decl);
+            if (transpiler_hosted_domain_slot_view_missing_mir_metadata(
+                    &slot_view)) {
+                return transpiler_constructor_fail_domain_slot_metadata_missing(
+                    ctx, decl_name);
+            }
             const char *slot =
-                transpiler_constructor_find_slot_channel(ctx, nodes, count);
+                transpiler_constructor_find_slot_channel(ctx, &slot_view);
             if (slot != NULL)
                 return slot;
         }
@@ -205,10 +220,17 @@ transpiler_constructor_find_channel_field(TranspilerCtx *ctx, ASTNode *decl)
             return transpiler_constructor_find_shared_channel(ctx, &shared);
         }
     case AST_EFFECT_DECL:
-        nodes = ast_effect_slots(decl, &count);
         {
+            TranspilerHostedDomainSlotView slot_view =
+                transpiler_hosted_domain_slot_view_from_decl(ctx, decl_name,
+                    decl);
+            if (transpiler_hosted_domain_slot_view_missing_mir_metadata(
+                    &slot_view)) {
+                return transpiler_constructor_fail_domain_slot_metadata_missing(
+                    ctx, decl_name);
+            }
             const char *slot =
-                transpiler_constructor_find_slot_channel(ctx, nodes, count);
+                transpiler_constructor_find_slot_channel(ctx, &slot_view);
             if (slot != NULL)
                 return slot;
         }
@@ -224,10 +246,17 @@ transpiler_constructor_find_channel_field(TranspilerCtx *ctx, ASTNode *decl)
             return transpiler_constructor_find_shared_channel(ctx, &shared);
         }
     case AST_ZONE_DECL:
-        nodes = ast_zone_slots(decl, &count);
         {
+            TranspilerHostedDomainSlotView slot_view =
+                transpiler_hosted_domain_slot_view_from_decl(ctx, decl_name,
+                    decl);
+            if (transpiler_hosted_domain_slot_view_missing_mir_metadata(
+                    &slot_view)) {
+                return transpiler_constructor_fail_domain_slot_metadata_missing(
+                    ctx, decl_name);
+            }
             const char *slot =
-                transpiler_constructor_find_slot_channel(ctx, nodes, count);
+                transpiler_constructor_find_slot_channel(ctx, &slot_view);
             if (slot != NULL)
                 return slot;
         }

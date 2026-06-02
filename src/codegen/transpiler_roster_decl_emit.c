@@ -23,6 +23,16 @@ emit_roster_decl(ASTNode *node, TranspilerCtx *ctx)
     if (inventory_decl != NULL)
         node = inventory_decl;
 
+    TranspilerHostedRosterSlotView roster_view =
+        transpiler_hosted_roster_slot_view_from_decl(ctx, name, node);
+    if (transpiler_hosted_roster_slot_view_missing_mir_metadata(
+            &roster_view)) {
+        transpiler_set_mir_inventory_missing(
+            ctx,
+            "MIR-only C path missing roster-slot declaration metadata for roster '%s'",
+            name != NULL ? name : "(anonymous-roster)");
+        return;
+    }
     TranspilerHostedSharedFieldView shared_view =
         transpiler_hosted_shared_field_view_from_decl(ctx, name, node);
     if (transpiler_hosted_shared_field_view_missing_mir_metadata(
@@ -53,11 +63,10 @@ emit_roster_decl(ASTNode *node, TranspilerCtx *ctx)
     codebuf_write(ctx->out, "\n/* Roster: %s */\n", name);
     codebuf_write(ctx->out, "typedef struct %s\n{\n", name);
 
-    for (size_t i = 0; i < ast_roster_party_count(node); i++) {
-        ASTNode *slot = ast_roster_party(node, i);
+    for (size_t i = 0; i < roster_view.count; i++) {
         codebuf_write(ctx->out, "    %s %s;\n",
-            ast_roster_slot_party_type(slot),
-            ast_roster_slot_name(slot));
+            transpiler_hosted_roster_slot_view_type_name(&roster_view, i),
+            transpiler_hosted_roster_slot_view_name(&roster_view, i));
     }
 
     for (size_t i = 0; i < shared_view.count; i++) {

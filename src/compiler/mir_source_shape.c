@@ -496,6 +496,8 @@ mir_instruction_source_stmt_has_side_effect_hint(const MIRInstruction *inst)
 bool
 mir_instruction_source_stmt_fallback_is_allowed(const MIRInstruction *inst)
 {
+    int source_type;
+
     if (inst == NULL || inst->kind != MIR_INST_STMT)
         return false;
     if (mir_instruction_is_intent_semantic_carrier(inst))
@@ -504,6 +506,11 @@ mir_instruction_source_stmt_fallback_is_allowed(const MIRInstruction *inst)
         || !inst->has_source_statement_index)
         return false;
     if (mir_instruction_source_is_cfg_owned_control(inst))
+        return false;
+    source_type = mir_instruction_source_ast_type_or(inst, -1);
+    if (source_type == AST_LET_DECL
+        || source_type == AST_LET_DESTRUCTURE
+        || source_type == AST_ASSIGNMENT)
         return false;
     return mir_instruction_source_stmt_has_side_effect_hint(inst);
 }

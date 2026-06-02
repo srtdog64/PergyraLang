@@ -312,6 +312,8 @@ llvm_ctx_destroy(LLVMGenCtx *ctx)
     }
 
     /* Free dynamic arrays */
+    for (int i = 0; i < MAX_SCOPE_DEPTH; i++)
+        free(ctx->scopes[i].entries);
     free(ctx->functions);
     free(ctx->slot_vars);
     free(ctx->view_vars);

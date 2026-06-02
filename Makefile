@@ -112,6 +112,10 @@ CI_WINDOWS_BIN_DIR   := $(TMPDIR_CI)/pgy-ci-windows-bin
 CI_MACOS_CC := $(or $(shell command -v cc 2>/dev/null),$(CC))
 CI_MACOS_BUILD_DIR := $(TMPDIR_CI)/pgy-ci-macos-build
 CI_MACOS_BIN_DIR   := $(TMPDIR_CI)/pgy-ci-macos-bin
+PGY_BACKEND_COMPARE_SHARD_TOTAL ?= 0
+PGY_BACKEND_COMPARE_SHARD_INDEX ?= 0
+CI_BACKEND_COMPARE_SHARD_TOTAL ?= 20
+CI_BACKEND_COMPARE_SHARD_INDEX ?= 0
 ifeq ($(strip $(BASH)),)
 BASH := $(shell command -v bash 2>/dev/null)
 endif
@@ -1960,6 +1964,8 @@ llvm-test-backend-compare: $(ABI_PIPELINE_TEST)
 	PGY_ABI_PIPELINE_TEST_BIN="$(abspath $(ABI_PIPELINE_TEST))" \
 	LLVM_INSTALL="$(LLVM_INSTALL)" \
 	PGY_BACKEND_COMPARE_PRECHECK_SAME_PROCESS=1 \
+	PGY_BACKEND_COMPARE_SHARD_TOTAL="$(PGY_BACKEND_COMPARE_SHARD_TOTAL)" \
+	PGY_BACKEND_COMPARE_SHARD_INDEX="$(PGY_BACKEND_COMPARE_SHARD_INDEX)" \
 	"$(BASH)" tests/compare_backends.sh
 
 air-strict-backend-compare-test-smoke: $(ABI_PIPELINE_TEST)
@@ -1970,6 +1976,8 @@ air-strict-backend-compare-test-smoke: $(ABI_PIPELINE_TEST)
 	PGY_ABI_PIPELINE_TEST_BIN="$(abspath $(ABI_PIPELINE_TEST))" \
 	LLVM_INSTALL="$(LLVM_INSTALL)" \
 	PGY_BACKEND_COMPARE_PRECHECK_SAME_PROCESS=1 \
+	PGY_BACKEND_COMPARE_SHARD_TOTAL="$(PGY_BACKEND_COMPARE_SHARD_TOTAL)" \
+	PGY_BACKEND_COMPARE_SHARD_INDEX="$(PGY_BACKEND_COMPARE_SHARD_INDEX)" \
 	"$(BASH)" tests/compare_backends.sh
 
 example-test-smoke:
@@ -2138,9 +2146,13 @@ ci-linux:
 	$(MAKE) mir-declaration-inventory-test-smoke
 	$(MAKE) CC="$(CI_LINUX_CC)" BUILD_DIR="$(CI_LINUX_BUILD_DIR)" BIN_DIR="$(CI_LINUX_BIN_DIR)" example-test-smoke
 	$(MAKE) CC="$(CI_LINUX_CC)" BUILD_DIR="$(CI_LINUX_BUILD_DIR)" BIN_DIR="$(CI_LINUX_BIN_DIR)" llvm-test-abi-same-process
+	PGY_BACKEND_COMPARE_SHARD_TOTAL="$(CI_BACKEND_COMPARE_SHARD_TOTAL)" \
+	PGY_BACKEND_COMPARE_SHARD_INDEX="$(CI_BACKEND_COMPARE_SHARD_INDEX)" \
 	$(MAKE) CC="$(CI_LINUX_CC)" BUILD_DIR="$(CI_LINUX_BUILD_DIR)" BIN_DIR="$(CI_LINUX_BIN_DIR)" llvm-test-backend-compare
 	$(MAKE) CC="$(CI_LINUX_CC)" BUILD_DIR="$(CI_LINUX_BUILD_DIR)" BIN_DIR="$(CI_LINUX_BIN_DIR)" llvm-campaign-projection-test-smoke
 	$(MAKE) CC="$(CI_LINUX_CC)" BUILD_DIR="$(CI_LINUX_BUILD_DIR)" BIN_DIR="$(CI_LINUX_BIN_DIR)" llvm-dnd-campaign-test-smoke
+	PGY_BACKEND_COMPARE_SHARD_TOTAL="$(CI_BACKEND_COMPARE_SHARD_TOTAL)" \
+	PGY_BACKEND_COMPARE_SHARD_INDEX="$(CI_BACKEND_COMPARE_SHARD_INDEX)" \
 	$(MAKE) CC="$(CI_LINUX_CC)" BUILD_DIR="$(CI_LINUX_BUILD_DIR)" BIN_DIR="$(CI_LINUX_BIN_DIR)" air-strict-backend-compare-test-smoke
 	$(MAKE) CC="$(CI_LINUX_CC)" BUILD_DIR="$(CI_LINUX_BUILD_DIR)" BIN_DIR="$(CI_LINUX_BIN_DIR)" clean
 	$(MAKE) CC="$(CI_LINUX_CC)" BUILD_DIR="$(CI_LINUX_BUILD_DIR)" BIN_DIR="$(CI_LINUX_BIN_DIR)" test-all
@@ -2240,7 +2252,7 @@ ci-windows:
 		if [ "$(WINDOWS_LLVM_READY)" = "1" ]; then \
 			echo "ci-windows: LLVM toolchain detected; running LLVM smoke and backend compare"; \
 			$(MAKE) CC="$(CI_WINDOWS_CC)" LLVM_ENABLED=1 BUILD_DIR="$(CI_WINDOWS_BUILD_DIR)" BIN_DIR="$(CI_WINDOWS_BIN_DIR)" llvm-test-smoke; \
-			$(MAKE) CC="$(CI_WINDOWS_CC)" LLVM_ENABLED=1 BUILD_DIR="$(CI_WINDOWS_BUILD_DIR)" BIN_DIR="$(CI_WINDOWS_BIN_DIR)" llvm-test-backend-compare; \
+			PGY_BACKEND_COMPARE_SHARD_TOTAL="$(CI_BACKEND_COMPARE_SHARD_TOTAL)" PGY_BACKEND_COMPARE_SHARD_INDEX="$(CI_BACKEND_COMPARE_SHARD_INDEX)" $(MAKE) CC="$(CI_WINDOWS_CC)" LLVM_ENABLED=1 BUILD_DIR="$(CI_WINDOWS_BUILD_DIR)" BIN_DIR="$(CI_WINDOWS_BIN_DIR)" llvm-test-backend-compare; \
 		else \
 			echo "ci-windows: LLVM toolchain not detected; skipping Windows LLVM smoke/backend compare"; \
 		fi; \

@@ -160,8 +160,14 @@ require_text(
         "stmt->type == AST_PARALLEL_BLOCK",
         "resource ops are observability hooks, not semantic",
         "The residual statement must still lower the",
-        "strcmp(resource_inst->name, \"IO\") == 0",
+        "mir_instruction_resource_op_keeps_residual_statement_emit",
         "They do not emit the concrete builtin or",
+    ],
+)
+require_text(
+    "src/compiler/mir_source_shape.c",
+    [
+        "strcmp(inst->name, \"IO\") == 0",
     ],
 )
 

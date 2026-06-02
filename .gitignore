@@ -98,5 +98,9 @@ tests/*.o
 tests/*_llvm
 tests/tmp_*
 tests/cases/**/main
+# Backend-compare LLVM executable byproducts can appear at repo root when a
+# fixture source name is used as the output stem.
+/*_llvm
+/*_llvm_fixed
 .codex
 .claude/

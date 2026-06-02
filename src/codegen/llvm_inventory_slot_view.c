@@ -41,6 +41,47 @@ llvm_decl_header_field_by_kind(const MIRDeclHeader *header,
     return NULL;
 }
 
+static size_t
+llvm_decl_header_roster_slot_count(const MIRDeclHeader *header)
+{
+    return llvm_decl_header_field_count_by_kind(
+        header, MIR_DECL_FIELD_ROSTER_SLOT);
+}
+
+static const MIRDeclField *
+llvm_decl_header_roster_slot(const MIRDeclHeader *header, size_t index)
+{
+    return llvm_decl_header_field_by_kind(
+        header, MIR_DECL_FIELD_ROSTER_SLOT, index);
+}
+
+static ASTNode **
+llvm_domain_slot_compat_slots(ASTNode *decl, size_t *count_out)
+{
+    if (count_out != NULL)
+        *count_out = 0;
+    if (decl == NULL)
+        return NULL;
+    switch (decl->type) {
+    case AST_RELATION_DECL:
+        return ast_relation_slots(decl, count_out);
+    case AST_EFFECT_DECL:
+        return ast_effect_slots(decl, count_out);
+    case AST_ZONE_DECL:
+        return ast_zone_slots(decl, count_out);
+    default:
+        return NULL;
+    }
+}
+
+static bool
+llvm_domain_slot_decl_type(ASTNodeType type)
+{
+    return type == AST_RELATION_DECL
+        || type == AST_EFFECT_DECL
+        || type == AST_ZONE_DECL;
+}
+
 LLVMHostedZoneLayerSlotView
 llvm_hosted_zone_layer_slot_view_from_decl(const LLVMGenCtx *ctx,
                                            const char *host_name,
@@ -160,6 +201,214 @@ llvm_hosted_zone_layer_slot_view_type_name(
     return NULL;
 }
 
+bool
+llvm_hosted_zone_layer_slot_view_is_relation(
+    const LLVMHostedZoneLayerSlotView *view,
+    size_t index)
+{
+    const MIRDeclField *field =
+        llvm_hosted_zone_layer_slot_view_metadata(view, index);
+
+    if (view == NULL || index >= view->count)
+        return false;
+    if (field != NULL)
+        return mir_decl_field_is_relation_layer(field);
+    if (view->requires_mir_metadata)
+        return false;
+    if (view->ast_compat_slots != NULL
+        && view->ast_compat_slots[index] != NULL) {
+        return ast_zone_layer_slot_is_relation(view->ast_compat_slots[index]);
+    }
+    return false;
+}
+
+bool
+llvm_hosted_zone_layer_slot_view_is_pool(
+    const LLVMHostedZoneLayerSlotView *view,
+    size_t index)
+{
+    const MIRDeclField *field =
+        llvm_hosted_zone_layer_slot_view_metadata(view, index);
+
+    if (view == NULL || index >= view->count)
+        return false;
+    if (field != NULL)
+        return mir_decl_field_is_pool_layer(field);
+    if (view->requires_mir_metadata)
+        return false;
+    if (view->ast_compat_slots != NULL
+        && view->ast_compat_slots[index] != NULL) {
+        return ast_zone_layer_slot_is_pool(view->ast_compat_slots[index]);
+    }
+    return false;
+}
+
+int
+llvm_hosted_zone_layer_slot_view_pool_capacity(
+    const LLVMHostedZoneLayerSlotView *view,
+    size_t index)
+{
+    const MIRDeclField *field =
+        llvm_hosted_zone_layer_slot_view_metadata(view, index);
+
+    if (view == NULL || index >= view->count)
+        return 0;
+    if (field != NULL)
+        return mir_decl_field_pool_capacity(field);
+    if (view->requires_mir_metadata)
+        return 0;
+    if (view->ast_compat_slots != NULL
+        && view->ast_compat_slots[index] != NULL) {
+        return ast_zone_layer_slot_pool_capacity(view->ast_compat_slots[index]);
+    }
+    return 0;
+}
+
+LLVMHostedDomainSlotView
+llvm_hosted_domain_slot_view_from_decl(const LLVMGenCtx *ctx,
+                                       const char *host_name,
+                                       ASTNode *decl)
+{
+    LLVMHostedDomainSlotView view;
+    ASTNode **compat_slots = NULL;
+    size_t compat_count = 0;
+    const MIRDeclHeader *header = NULL;
+
+    compat_slots = llvm_domain_slot_compat_slots(decl, &compat_count);
+
+    view.decl_header = NULL;
+    view.ast_compat_slots = compat_slots;
+    view.ast_compat_count = compat_count;
+    view.count = compat_count;
+    view.uses_mir_metadata = false;
+    view.requires_mir_metadata = llvm_active_has_mir(ctx)
+        && compat_count > 0;
+
+    header = llvm_find_host_decl_header_in_context(ctx, host_name);
+    if (header != NULL
+        && llvm_domain_slot_decl_type(
+            mir_decl_header_ast_type_or(header, AST_PROGRAM))) {
+        view.decl_header = header;
+        view.count = llvm_decl_header_field_count_by_kind(
+            header, MIR_DECL_FIELD_DOMAIN_SLOT);
+        view.uses_mir_metadata = true;
+    }
+
+    return view;
+}
+
+bool
+llvm_hosted_domain_slot_view_missing_mir_metadata(
+    const LLVMHostedDomainSlotView *view)
+{
+    return view != NULL
+        && view->requires_mir_metadata
+        && (!view->uses_mir_metadata
+            || view->count != view->ast_compat_count)
+        && view->ast_compat_count > 0;
+}
+
+const MIRDeclField *
+llvm_hosted_domain_slot_view_metadata(
+    const LLVMHostedDomainSlotView *view,
+    size_t index)
+{
+    if (view == NULL || !view->uses_mir_metadata
+        || view->decl_header == NULL || index >= view->count) {
+        return NULL;
+    }
+    return llvm_decl_header_field_by_kind(
+        view->decl_header, MIR_DECL_FIELD_DOMAIN_SLOT, index);
+}
+
+ASTNode *
+llvm_hosted_domain_slot_view_source_ast(
+    const LLVMHostedDomainSlotView *view,
+    size_t index)
+{
+    const MIRDeclField *field =
+        llvm_hosted_domain_slot_view_metadata(view, index);
+
+    if (view == NULL || index >= view->count)
+        return NULL;
+    if (field != NULL)
+        return mir_decl_field_source_ast(field);
+    if (view->requires_mir_metadata)
+        return NULL;
+    if (view->ast_compat_slots != NULL)
+        return view->ast_compat_slots[index];
+    return NULL;
+}
+
+const char *
+llvm_hosted_domain_slot_view_name(const LLVMHostedDomainSlotView *view,
+                                  size_t index)
+{
+    const MIRDeclField *field =
+        llvm_hosted_domain_slot_view_metadata(view, index);
+    ASTNode *slot;
+
+    if (view == NULL || index >= view->count)
+        return NULL;
+    if (field != NULL)
+        return mir_decl_field_name(field);
+    if (view->requires_mir_metadata)
+        return NULL;
+    slot = llvm_hosted_domain_slot_view_source_ast(view, index);
+    return slot != NULL ? ast_domain_slot_name(slot) : NULL;
+}
+
+ASTNode *
+llvm_hosted_domain_slot_view_type(const LLVMHostedDomainSlotView *view,
+                                  size_t index)
+{
+    const MIRDeclField *field =
+        llvm_hosted_domain_slot_view_metadata(view, index);
+    ASTNode *slot;
+
+    if (view == NULL || index >= view->count)
+        return NULL;
+    if (field != NULL)
+        return mir_decl_field_type(field);
+    if (view->requires_mir_metadata)
+        return NULL;
+    slot = llvm_hosted_domain_slot_view_source_ast(view, index);
+    return slot != NULL ? ast_domain_slot_type(slot) : NULL;
+}
+
+const char *
+llvm_hosted_domain_slot_view_type_name(const LLVMHostedDomainSlotView *view,
+                                       size_t index)
+{
+    const MIRDeclField *field =
+        llvm_hosted_domain_slot_view_metadata(view, index);
+
+    if (view == NULL || index >= view->count)
+        return NULL;
+    if (field != NULL)
+        return mir_decl_field_type_name(field);
+    return NULL;
+}
+
+bool
+llvm_hosted_domain_slot_view_is_subject_like(
+    const LLVMHostedDomainSlotView *view,
+    size_t index)
+{
+    const MIRDeclField *field =
+        llvm_hosted_domain_slot_view_metadata(view, index);
+    ASTNode *slot;
+
+    if (view == NULL || index >= view->count)
+        return false;
+    if (field != NULL)
+        return mir_decl_field_is_subject_like(field);
+    if (view->requires_mir_metadata)
+        return false;
+    slot = llvm_hosted_domain_slot_view_source_ast(view, index);
+    return slot != NULL && ast_domain_slot_is_subject(slot);
+}
+
 LLVMHostedWorldZoneSlotView
 llvm_hosted_world_zone_slot_view_from_decl(const LLVMGenCtx *ctx,
                                            const char *host_name,
@@ -277,6 +526,239 @@ llvm_hosted_world_zone_slot_view_type_name(
         return ast_world_zone_type_name(view->ast_compat_slots[index]);
     }
     return NULL;
+}
+
+LLVMHostedWorldRosterSlotView
+llvm_hosted_world_roster_slot_view_from_decl(const LLVMGenCtx *ctx,
+                                             const char *host_name,
+                                             ASTNode *decl)
+{
+    LLVMHostedWorldRosterSlotView view;
+    ASTNode **compat_slots = NULL;
+    size_t compat_count = 0;
+    const MIRDeclHeader *header = NULL;
+
+    if (decl != NULL && decl->type == AST_WORLD_DECL)
+        compat_slots = ast_world_rosters(decl, &compat_count);
+
+    view.decl_header = NULL;
+    view.ast_compat_slots = compat_slots;
+    view.ast_compat_count = compat_count;
+    view.count = compat_count;
+    view.uses_mir_metadata = false;
+    view.requires_mir_metadata = llvm_active_has_mir(ctx)
+        && compat_count > 0;
+
+    header = llvm_find_host_decl_header_in_context(ctx, host_name);
+    if (header != NULL
+        && mir_decl_header_ast_type_or(header, AST_PROGRAM)
+            == AST_WORLD_DECL) {
+        view.decl_header = header;
+        view.count = llvm_decl_header_field_count_by_kind(
+            header, MIR_DECL_FIELD_WORLD_ROSTER_SLOT);
+        view.uses_mir_metadata = true;
+    }
+
+    return view;
+}
+
+bool
+llvm_hosted_world_roster_slot_view_missing_mir_metadata(
+    const LLVMHostedWorldRosterSlotView *view)
+{
+    return view != NULL
+        && view->requires_mir_metadata
+        && (!view->uses_mir_metadata
+            || view->count != view->ast_compat_count)
+        && view->ast_compat_count > 0;
+}
+
+const MIRDeclField *
+llvm_hosted_world_roster_slot_view_metadata(
+    const LLVMHostedWorldRosterSlotView *view,
+    size_t index)
+{
+    if (view == NULL || !view->uses_mir_metadata
+        || view->decl_header == NULL || index >= view->count) {
+        return NULL;
+    }
+    return llvm_decl_header_field_by_kind(
+        view->decl_header, MIR_DECL_FIELD_WORLD_ROSTER_SLOT, index);
+}
+
+ASTNode *
+llvm_hosted_world_roster_slot_view_source_ast(
+    const LLVMHostedWorldRosterSlotView *view,
+    size_t index)
+{
+    const MIRDeclField *field =
+        llvm_hosted_world_roster_slot_view_metadata(view, index);
+
+    if (view == NULL || index >= view->count)
+        return NULL;
+    if (field != NULL)
+        return mir_decl_field_source_ast(field);
+    if (view->requires_mir_metadata)
+        return NULL;
+    if (view->ast_compat_slots != NULL)
+        return view->ast_compat_slots[index];
+    return NULL;
+}
+
+const char *
+llvm_hosted_world_roster_slot_view_name(
+    const LLVMHostedWorldRosterSlotView *view,
+    size_t index)
+{
+    const MIRDeclField *field =
+        llvm_hosted_world_roster_slot_view_metadata(view, index);
+
+    if (view == NULL || index >= view->count)
+        return NULL;
+    if (field != NULL)
+        return mir_decl_field_name(field);
+    if (view->requires_mir_metadata)
+        return NULL;
+    if (view->ast_compat_slots != NULL
+        && view->ast_compat_slots[index] != NULL) {
+        return ast_world_roster_slot_name(view->ast_compat_slots[index]);
+    }
+    return NULL;
+}
+
+const char *
+llvm_hosted_world_roster_slot_view_type_name(
+    const LLVMHostedWorldRosterSlotView *view,
+    size_t index)
+{
+    const MIRDeclField *field =
+        llvm_hosted_world_roster_slot_view_metadata(view, index);
+
+    if (view == NULL || index >= view->count)
+        return NULL;
+    if (field != NULL)
+        return mir_decl_field_type_name(field);
+    if (view->requires_mir_metadata)
+        return NULL;
+    if (view->ast_compat_slots != NULL
+        && view->ast_compat_slots[index] != NULL) {
+        return ast_world_roster_type_name(view->ast_compat_slots[index]);
+    }
+    return NULL;
+}
+
+LLVMHostedRosterSlotView
+llvm_hosted_roster_slot_view_from_decl(const LLVMGenCtx *ctx,
+                                       const char *host_name,
+                                       ASTNode *decl)
+{
+    LLVMHostedRosterSlotView view;
+    const MIRDeclHeader *header = NULL;
+    size_t compat_count = 0;
+
+    if (decl != NULL && decl->type == AST_ROSTER_DECL)
+        compat_count = ast_roster_party_count(decl);
+
+    view.decl_header = NULL;
+    view.ast_compat_decl = decl;
+    view.ast_compat_count = compat_count;
+    view.count = compat_count;
+    view.uses_mir_metadata = false;
+    view.requires_mir_metadata = llvm_active_has_mir(ctx)
+        && compat_count > 0;
+
+    header = llvm_find_host_decl_header_in_context(ctx, host_name);
+    if (header != NULL
+        && mir_decl_header_ast_type_or(header, AST_PROGRAM)
+            == AST_ROSTER_DECL) {
+        view.decl_header = header;
+        view.count = llvm_decl_header_roster_slot_count(header);
+        view.uses_mir_metadata = true;
+    }
+
+    return view;
+}
+
+bool
+llvm_hosted_roster_slot_view_missing_mir_metadata(
+    const LLVMHostedRosterSlotView *view)
+{
+    return view != NULL
+        && view->requires_mir_metadata
+        && (!view->uses_mir_metadata
+            || view->count != view->ast_compat_count)
+        && view->ast_compat_count > 0;
+}
+
+const MIRDeclField *
+llvm_hosted_roster_slot_view_metadata(
+    const LLVMHostedRosterSlotView *view,
+    size_t index)
+{
+    if (view == NULL || !view->uses_mir_metadata
+        || view->decl_header == NULL || index >= view->count) {
+        return NULL;
+    }
+    return llvm_decl_header_roster_slot(view->decl_header, index);
+}
+
+ASTNode *
+llvm_hosted_roster_slot_view_source_ast(
+    const LLVMHostedRosterSlotView *view,
+    size_t index)
+{
+    const MIRDeclField *field =
+        llvm_hosted_roster_slot_view_metadata(view, index);
+
+    if (view == NULL || index >= view->count)
+        return NULL;
+    if (field != NULL)
+        return mir_decl_field_source_ast(field);
+    if (view->requires_mir_metadata)
+        return NULL;
+    if (view->ast_compat_decl != NULL
+        && view->ast_compat_decl->type == AST_ROSTER_DECL) {
+        return ast_roster_party(view->ast_compat_decl, index);
+    }
+    return NULL;
+}
+
+const char *
+llvm_hosted_roster_slot_view_name(
+    const LLVMHostedRosterSlotView *view,
+    size_t index)
+{
+    const MIRDeclField *field =
+        llvm_hosted_roster_slot_view_metadata(view, index);
+    ASTNode *slot;
+
+    if (view == NULL || index >= view->count)
+        return NULL;
+    if (field != NULL)
+        return mir_decl_field_name(field);
+    if (view->requires_mir_metadata)
+        return NULL;
+    slot = llvm_hosted_roster_slot_view_source_ast(view, index);
+    return slot != NULL ? ast_roster_slot_name(slot) : NULL;
+}
+
+const char *
+llvm_hosted_roster_slot_view_type_name(
+    const LLVMHostedRosterSlotView *view,
+    size_t index)
+{
+    const MIRDeclField *field =
+        llvm_hosted_roster_slot_view_metadata(view, index);
+    ASTNode *slot;
+
+    if (view == NULL || index >= view->count)
+        return NULL;
+    if (field != NULL)
+        return mir_decl_field_type_name(field);
+    if (view->requires_mir_metadata)
+        return NULL;
+    slot = llvm_hosted_roster_slot_view_source_ast(view, index);
+    return slot != NULL ? ast_roster_slot_party_type(slot) : NULL;
 }
 
 LLVMHostedRoleSlotView

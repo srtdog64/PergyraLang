@@ -142,10 +142,12 @@ mir_validate_instruction_surface_usage(const MIRRoutine *routine,
             && !mir_instruction_source_stmt_fallback_is_allowed(inst)) {
             if (error_message != NULL) {
                 *error_message = mir_strdup_fmt(
-                    "MIR routine '%s' block[%zu] instruction[%zu] STMT fallback is outside allowed residual statement policy",
+                    "MIR routine '%s' block[%zu] instruction[%zu] STMT fallback is outside allowed residual statement policy (%s)",
                     routine->name != NULL ? routine->name : "(anonymous)",
                     block_index,
-                    i);
+                    i,
+                    mir_source_ast_type_name((ASTNodeType)
+                        mir_instruction_source_ast_type_or(inst, AST_PROGRAM)));
             }
             return false;
         }

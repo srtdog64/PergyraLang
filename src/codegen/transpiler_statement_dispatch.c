@@ -265,7 +265,7 @@ emit_statement(ASTNode *node, TranspilerCtx *ctx)
             write_indent(ctx);
             codebuf_write(ctx->out, "%s;\n", expr);
             if (node->type == AST_CALL)
-                emit_zone_action_effect_runtime(node, ctx);
+                emit_zone_action_effect_runtime(ctx->out, node, ctx);
         }
         free(expr);
         break;

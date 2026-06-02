@@ -43,7 +43,8 @@ transpiler_find_zone_layer_slot_local(TranspilerCtx *ctx,
                                       const char *layer_slot_name,
                                       bool is_relation,
                                       ASTNode **slot_out,
-                                      const char **layer_type_out)
+                                      const char **layer_type_out,
+                                      bool *is_pool_out)
 {
     const char *zone_name;
     TranspilerHostedZoneLayerSlotView layer_view;
@@ -52,6 +53,8 @@ transpiler_find_zone_layer_slot_local(TranspilerCtx *ctx,
         *slot_out = NULL;
     if (layer_type_out != NULL)
         *layer_type_out = NULL;
+    if (is_pool_out != NULL)
+        *is_pool_out = false;
     if (ctx == NULL || zone == NULL || layer_slot_name == NULL)
         return false;
 
@@ -71,8 +74,8 @@ transpiler_find_zone_layer_slot_local(TranspilerCtx *ctx,
             transpiler_hosted_zone_layer_slot_view_source_ast(&layer_view, i);
         const char *candidate_name =
             transpiler_hosted_zone_layer_slot_view_name(&layer_view, i);
-        if (slot != NULL && slot->type == AST_ZONE_LAYER_SLOT
-            && ast_zone_layer_slot_is_relation(slot) == is_relation
+        if (transpiler_hosted_zone_layer_slot_view_is_relation(
+                &layer_view, i) == is_relation
             && candidate_name != NULL
             && strcmp(candidate_name, layer_slot_name) == 0) {
             if (slot_out != NULL)
@@ -80,6 +83,11 @@ transpiler_find_zone_layer_slot_local(TranspilerCtx *ctx,
             if (layer_type_out != NULL) {
                 *layer_type_out =
                     transpiler_hosted_zone_layer_slot_view_type_name(
+                        &layer_view, i);
+            }
+            if (is_pool_out != NULL) {
+                *is_pool_out =
+                    transpiler_hosted_zone_layer_slot_view_is_pool(
                         &layer_view, i);
             }
             return true;
@@ -94,11 +102,11 @@ emit_zone_bind_effect_layer(CodeBuf *out, ASTNode *zone,
                             const char *layer_slot_name,
                             const char *target_slot_name, TranspilerCtx *ctx)
 {
-    ASTNode *layer_slot;
     ASTNode *effect_decl;
     ASTNode *target_slot;
     const char *effect_name;
     const char *effect_type_name;
+    bool layer_is_pool = false;
 
     if (out == NULL || zone == NULL || layer_slot_name == NULL
         || target_slot_name == NULL || ctx == NULL) {
@@ -106,7 +114,7 @@ emit_zone_bind_effect_layer(CodeBuf *out, ASTNode *zone,
     }
 
     if (!transpiler_find_zone_layer_slot_local(ctx, zone, layer_slot_name,
-            false, &layer_slot, &effect_type_name)) {
+            false, NULL, &effect_type_name, &layer_is_pool)) {
         return;
     }
 
@@ -131,16 +139,16 @@ emit_zone_bind_effect_layer(CodeBuf *out, ASTNode *zone,
     if (target_binding_name == NULL)
         return;
 
-    if (ast_zone_layer_slot_is_pool(layer_slot)) {
-        write_indent(ctx);
+    if (layer_is_pool) {
+        write_indent_to(out, ctx->indent);
         codebuf_write(out, "{\n");
         ctx->indent++;
-        write_indent(ctx);
+        write_indent_to(out, ctx->indent);
         codebuf_write(out, "%s _pgy_%s_instance = (%s){0};\n",
             effect_name,
             layer_slot_name,
             effect_name);
-        write_indent(ctx);
+        write_indent_to(out, ctx->indent);
         codebuf_write(out, "_pgy_%s_instance.%s = self->%s;\n",
             layer_slot_name,
             target_binding_name,
@@ -158,34 +166,34 @@ emit_zone_bind_effect_layer(CodeBuf *out, ASTNode *zone,
                 || strcmp(source_name, target_binding_name) != 0) {
                 continue;
             }
-            write_indent(ctx);
+            write_indent_to(out, ctx->indent);
             codebuf_write(out,
                 "_pgy_%s_instance.__projection_dirty_%s = true;\n",
                 layer_slot_name, projection_name);
-            write_indent(ctx);
+            write_indent_to(out, ctx->indent);
             codebuf_write(out,
                 "_pgy_%s_instance.__projection_ready_%s = false;\n",
                 layer_slot_name, projection_name);
         }
-        write_indent(ctx);
+        write_indent_to(out, ctx->indent);
         codebuf_write(out, "%s_sync(&_pgy_%s_instance);\n",
             effect_name,
             layer_slot_name);
-        write_indent(ctx);
+        write_indent_to(out, ctx->indent);
         codebuf_write(out, "PGY_EFFECT_POOL_APPLY(self->%s, _pgy_%s_instance);\n",
             layer_slot_name,
             layer_slot_name);
-        write_indent(ctx);
+        write_indent_to(out, ctx->indent);
         codebuf_write(out, "self->__layer_active_%s = PGY_EFFECT_POOL_ACTIVE_COUNT(self->%s) > 0;\n",
             layer_slot_name,
             layer_slot_name);
         ctx->indent--;
-        write_indent(ctx);
+        write_indent_to(out, ctx->indent);
         codebuf_write(out, "}\n");
         return;
     }
 
-    write_indent(ctx);
+    write_indent_to(out, ctx->indent);
     codebuf_write(out, "self->%s.%s = self->%s;\n",
         layer_slot_name,
         target_binding_name,
@@ -203,16 +211,16 @@ emit_zone_bind_effect_layer(CodeBuf *out, ASTNode *zone,
             || strcmp(source_name, target_binding_name) != 0) {
             continue;
         }
-        write_indent(ctx);
+        write_indent_to(out, ctx->indent);
         codebuf_write(out,
             "self->%s.__projection_dirty_%s = true;\n",
             layer_slot_name, projection_name);
-        write_indent(ctx);
+        write_indent_to(out, ctx->indent);
         codebuf_write(out,
             "self->%s.__projection_ready_%s = false;\n",
             layer_slot_name, projection_name);
     }
-    write_indent(ctx);
+    write_indent_to(out, ctx->indent);
     codebuf_write(out, "%s_sync(&self->%s);\n",
         effect_name,
         layer_slot_name);

@@ -193,22 +193,30 @@ llvm_resolve_world_zone_decl(LLVMGenCtx *ctx, ASTNode *world_decl,
 }
 
 ASTNode *
-llvm_find_zone_domain_slot_decl(ASTNode *zone_decl, const char *slot_name)
+llvm_find_zone_domain_slot_decl(LLVMGenCtx *ctx,
+                                ASTNode *zone_decl,
+                                const char *slot_name)
 {
-    size_t slot_count = 0;
-    ASTNode **slots;
+    const char *zone_name;
+    LLVMHostedDomainSlotView slot_view;
 
     if (zone_decl == NULL || zone_decl->type != AST_ZONE_DECL
         || slot_name == NULL)
         return NULL;
-    slots = ast_zone_slots(zone_decl, &slot_count);
-    for (size_t i = 0; i < slot_count; i++) {
-        ASTNode *slot = slots[i];
-        const char *candidate_name = ast_domain_slot_name(slot);
-        if (slot != NULL && slot->type == AST_DOMAIN_SLOT
-            && candidate_name != NULL
-            && strcmp(candidate_name, slot_name) == 0)
-            return slot;
+    zone_name = llvm_decl_node_name(zone_decl);
+    slot_view = llvm_hosted_domain_slot_view_from_decl(ctx, zone_name,
+        zone_decl);
+    if (llvm_hosted_domain_slot_view_missing_mir_metadata(&slot_view)) {
+        llvm_set_mir_inventory_missing(ctx,
+            "MIR-only LLVM path missing zone domain-slot lookup metadata for '%s'",
+            zone_name != NULL ? zone_name : "<anonymous>");
+        return NULL;
+    }
+    for (size_t i = 0; i < slot_view.count; i++) {
+        const char *candidate_name =
+            llvm_hosted_domain_slot_view_name(&slot_view, i);
+        if (candidate_name != NULL && strcmp(candidate_name, slot_name) == 0)
+            return llvm_hosted_domain_slot_view_source_ast(&slot_view, i);
     }
     return NULL;
 }

@@ -64,6 +64,8 @@ typedef enum
     MIR_INST_RETURN,
     MIR_INST_CLEANUP_EDGE,
     MIR_INST_LOOP_INIT,
+    MIR_INST_DESTRUCTURE,
+    MIR_INST_ASSIGN,
     MIR_INST_STMT
 } MIRInstKind;
 
@@ -308,6 +310,9 @@ typedef struct
     MIRDeclFieldKind kind;
     bool             is_dynamic;
     bool             is_subject_like;
+    bool             is_relation_layer;
+    bool             is_pool_layer;
+    int              pool_capacity;
 } MIRDeclField;
 
 typedef struct

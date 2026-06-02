@@ -14,13 +14,14 @@
 #include "parser/ast_api.h"
 
 static bool
-llvm_host_projection_source_from_assignment(ASTNode *host_decl,
+llvm_host_projection_source_from_assignment(LLVMGenCtx *ctx,
+                                            ASTNode *host_decl,
                                             ASTNode *target,
                                             const char **source_slot_out,
                                             const char **source_field_out)
 {
-    ASTNode **slots = NULL;
-    size_t slot_count = 0;
+    const char *host_name;
+    LLVMHostedDomainSlotView slot_view;
     ASTNode *cursor = target;
     const char *source_field = NULL;
 
@@ -33,25 +34,28 @@ llvm_host_projection_source_from_assignment(ASTNode *host_decl,
 
     switch (host_decl->type) {
     case AST_ZONE_DECL:
-        slots = ast_zone_slots(host_decl, &slot_count);
-        break;
     case AST_RELATION_DECL:
-        slots = ast_relation_slots(host_decl, &slot_count);
-        break;
     case AST_EFFECT_DECL:
-        slots = ast_effect_slots(host_decl, &slot_count);
         break;
     default:
+        return false;
+    }
+    host_name = llvm_decl_node_name(host_decl);
+    slot_view = llvm_hosted_domain_slot_view_from_decl(ctx, host_name,
+        host_decl);
+    if (llvm_hosted_domain_slot_view_missing_mir_metadata(&slot_view)) {
+        llvm_set_mir_inventory_missing(ctx,
+            "MIR-only LLVM path missing domain-slot assignment metadata for '%s'",
+            host_name != NULL ? host_name : "<anonymous>");
         return false;
     }
 
     if (target->type == AST_IDENTIFIER && ast_identifier_name(target) != NULL) {
         const char *target_name = ast_identifier_name(target);
-        for (size_t i = 0; i < slot_count; i++) {
-            ASTNode *slot = slots[i];
-            const char *slot_name = ast_domain_slot_name(slot);
-            if (slot != NULL && slot->type == AST_DOMAIN_SLOT
-                && slot_name != NULL
+        for (size_t i = 0; i < slot_view.count; i++) {
+            const char *slot_name =
+                llvm_hosted_domain_slot_view_name(&slot_view, i);
+            if (slot_name != NULL
                 && strcmp(slot_name, target_name) == 0) {
                 if (source_slot_out != NULL)
                     *source_slot_out = target_name;
@@ -67,11 +71,10 @@ llvm_host_projection_source_from_assignment(ASTNode *host_decl,
         if (obj != NULL && obj->type == AST_IDENTIFIER
             && ast_identifier_name(obj) != NULL) {
             const char *obj_name = ast_identifier_name(obj);
-            for (size_t i = 0; i < slot_count; i++) {
-                ASTNode *slot = slots[i];
-                const char *slot_name = ast_domain_slot_name(slot);
-                if (slot != NULL && slot->type == AST_DOMAIN_SLOT
-                    && slot_name != NULL
+            for (size_t i = 0; i < slot_view.count; i++) {
+                const char *slot_name =
+                    llvm_hosted_domain_slot_view_name(&slot_view, i);
+                if (slot_name != NULL
                     && strcmp(slot_name, obj_name) == 0) {
                     if (source_slot_out != NULL)
                         *source_slot_out = obj_name;
@@ -213,7 +216,7 @@ llvm_world_embedded_projection_source_from_assignment(LLVMGenCtx *ctx,
                 zone_decl = llvm_resolve_world_zone_decl(ctx, world_decl,
                     zone_slot_name);
                 if (zone_decl != NULL
-                    && llvm_find_zone_domain_slot_decl(zone_decl,
+                    && llvm_find_zone_domain_slot_decl(ctx, zone_decl,
                         slot_name) != NULL) {
                     if (zone_slot_out != NULL)
                         *zone_slot_out = zone_slot_name;
@@ -315,7 +318,7 @@ llvm_emit_host_projection_invalidations(LLVMGenCtx *ctx, ASTNode *target)
         return;
     }
 
-    if (!llvm_host_projection_source_from_assignment(host_decl, target,
+    if (!llvm_host_projection_source_from_assignment(ctx, host_decl, target,
             &source_slot, &source_field)
         || source_slot == NULL
         || refreshes == NULL

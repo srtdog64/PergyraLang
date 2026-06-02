@@ -14,11 +14,13 @@
  * mir_populate_stmt_instructions
  *
  * After SSA rename has placed DEF instructions, this pass walks each HIR
- * block's statement list and rebuilds the MIR block instruction array so that
- * general statements (function calls, expression statements, assignments to
- * non-identifier targets, etc.) are represented as MIR_INST_STMT instructions
- * interleaved with the existing DEF/PHI/BRANCH/RETURN instructions in the
- * correct source order.
+ * block's statement list and rebuilds the MIR block instruction array so local
+ * dataflow statements stay on typed MIR instructions. Local definitions remain
+ * MIR_INST_DEF when SSA produced a matching definition; assignment and
+ * destructuring residuals use MIR_INST_ASSIGN / MIR_INST_DESTRUCTURE; only the
+ * remaining side-effect statement surface is allowed to stay MIR_INST_STMT.
+ * These instructions are interleaved with the existing PHI/BRANCH/RETURN facts
+ * in source order.
  * -------------------------------------------------------------------------*/
 bool
 mir_stmt_population_append(MIRInstruction *new_insts,
@@ -29,6 +31,59 @@ mir_stmt_population_append(MIRInstruction *new_insts,
     if (new_insts == NULL || new_count == NULL || *new_count >= new_cap)
         return false;
     new_insts[(*new_count)++] = inst;
+    return true;
+}
+
+static bool
+mir_append_matching_def_for_stmt(MIRInstruction *new_insts,
+                                 size_t new_cap,
+                                 size_t *new_count,
+                                 MIRInstruction *old_insts,
+                                 size_t old_count,
+                                 bool *copied_flags,
+                                 const MIRBasicBlock *block,
+                                 ASTNode *stmt,
+                                 size_t source_statement_index,
+                                 bool *handled_out)
+{
+    const char *stmt_name = mir_stmt_def_name(stmt);
+
+    if (handled_out != NULL)
+        *handled_out = false;
+    if (new_insts == NULL || new_count == NULL || old_insts == NULL
+        || copied_flags == NULL || stmt_name == NULL) {
+        return true;
+    }
+
+    for (size_t i = 0; i < old_count; i++) {
+        MIRInstruction def_inst;
+        const char *def_name;
+
+        if (copied_flags[i] || old_insts[i].kind != MIR_INST_DEF)
+            continue;
+        def_name = old_insts[i].arg0 != NULL
+            ? old_insts[i].arg0
+            : old_insts[i].slot_anchor;
+        if (def_name == NULL || strcmp(stmt_name, def_name) != 0)
+            continue;
+
+        def_inst = old_insts[i];
+        if (def_inst.ast == NULL)
+            def_inst.ast = stmt;
+        mir_attach_def_initializer_call_fact(&def_inst, stmt);
+        mir_set_inst_source_statement_index(&def_inst,
+                                            source_statement_index);
+        mir_mark_select_receive_statement_emit(block, &def_inst);
+        if (!mir_stmt_population_append(new_insts, new_cap, new_count,
+                                        def_inst)) {
+            return false;
+        }
+        copied_flags[i] = true;
+        if (handled_out != NULL)
+            *handled_out = true;
+        return true;
+    }
+
     return true;
 }
 
@@ -92,8 +147,8 @@ mir_populate_stmt_instructions(MIRRoutine *routine)
             mir_block_source_inventory_items(block),
             inventory_count);
 
-        /* Count max possible new STMT instructions (worst case: all
-         * non-control-flow statements including let/assignment that
+        /* Count max possible inserted instructions (worst case: all
+         * non-control-flow statements, including let/assignment records that
          * might not have matching DEFs). */
         size_t stmt_count = 0;
         for (size_t s = 0; s < inventory_count; s++) {
@@ -224,7 +279,7 @@ mir_populate_stmt_instructions(MIRRoutine *routine)
                                                      copied_flags,
                                                      mir_stmt_def_name(stmt));
                 MIRInstruction inst =
-                    mir_make_source_stmt_instruction(routine, stmt, s);
+                    mir_make_assignment_instruction(routine, stmt, s);
                 if (!mir_stmt_population_append(new_insts,
                                                 new_cap,
                                                 &new_count,
@@ -257,15 +312,26 @@ mir_populate_stmt_instructions(MIRRoutine *routine)
 
                         def_cursor = saved_cursor;
                         if (mir_stmt_requires_source_local_preservation(stmt)) {
-                            MIRInstruction inst =
-                                mir_make_source_stmt_instruction(routine, stmt, s);
-                            if (!mir_stmt_population_append(new_insts,
-                                                            new_cap,
-                                                            &new_count,
-                                                            inst)) {
+                            bool handled = false;
+                            if (!mir_append_matching_def_for_stmt(
+                                    new_insts, new_cap, &new_count,
+                                    old_insts, old_count, copied_flags,
+                                    block, stmt, s, &handled)) {
                                 free(copied_flags);
                                 free(new_insts);
                                 return false;
+                            }
+                            if (!handled) {
+                                MIRInstruction inst =
+                                    mir_make_source_stmt_instruction(routine, stmt, s);
+                                if (!mir_stmt_population_append(new_insts,
+                                                                new_cap,
+                                                                &new_count,
+                                                                inst)) {
+                                    free(copied_flags);
+                                    free(new_insts);
+                                    return false;
+                                }
                             }
                             continue;
                         }
@@ -279,7 +345,11 @@ mir_populate_stmt_instructions(MIRRoutine *routine)
                         }
                         memset(&def_inst, 0, sizeof(def_inst));
                         def_inst =
-                            mir_make_source_stmt_instruction(routine, stmt, s);
+                            stmt != NULL && stmt->type == AST_ASSIGNMENT
+                                ? mir_make_assignment_instruction(routine, stmt, s)
+                                : (stmt != NULL && stmt->type == AST_LET_DESTRUCTURE
+                                    ? mir_make_destructure_instruction(routine, stmt, s)
+                                    : mir_make_source_stmt_instruction(routine, stmt, s));
                         if (!mir_stmt_population_append(new_insts,
                                                         new_cap,
                                                         &new_count,
@@ -312,15 +382,26 @@ mir_populate_stmt_instructions(MIRRoutine *routine)
                      * Emit the let/assignment as a regular STMT so it still
                      * generates code. */
                     if (mir_stmt_requires_source_local_preservation(stmt)) {
-                        MIRInstruction inst =
-                            mir_make_source_stmt_instruction(routine, stmt, s);
-                        if (!mir_stmt_population_append(new_insts,
-                                                        new_cap,
-                                                        &new_count,
-                                                        inst)) {
+                        bool handled = false;
+                        if (!mir_append_matching_def_for_stmt(
+                                new_insts, new_cap, &new_count,
+                                old_insts, old_count, copied_flags,
+                                block, stmt, s, &handled)) {
                             free(copied_flags);
                             free(new_insts);
                             return false;
+                        }
+                        if (!handled) {
+                            MIRInstruction inst =
+                                mir_make_source_stmt_instruction(routine, stmt, s);
+                            if (!mir_stmt_population_append(new_insts,
+                                                            new_cap,
+                                                            &new_count,
+                                                            inst)) {
+                                free(copied_flags);
+                                free(new_insts);
+                                return false;
+                            }
                         }
                         continue;
                     }
@@ -333,7 +414,11 @@ mir_populate_stmt_instructions(MIRRoutine *routine)
                     }
                     def_cursor = saved_cursor;
                     MIRInstruction inst =
-                        mir_make_source_stmt_instruction(routine, stmt, s);
+                        stmt != NULL && stmt->type == AST_ASSIGNMENT
+                            ? mir_make_assignment_instruction(routine, stmt, s)
+                            : (stmt != NULL && stmt->type == AST_LET_DESTRUCTURE
+                                ? mir_make_destructure_instruction(routine, stmt, s)
+                                : mir_make_source_stmt_instruction(routine, stmt, s));
                     if (!mir_stmt_population_append(new_insts,
                                                     new_cap,
                                                     &new_count,
@@ -344,9 +429,13 @@ mir_populate_stmt_instructions(MIRRoutine *routine)
                     }
                 }
             } else {
-                /* Create new STMT instruction */
+                /* Create the residual instruction owned by this source shape. */
                 MIRInstruction inst =
-                    mir_make_source_stmt_instruction(routine, stmt, s);
+                    stmt != NULL && stmt->type == AST_ASSIGNMENT
+                        ? mir_make_assignment_instruction(routine, stmt, s)
+                        : (stmt != NULL && stmt->type == AST_LET_DESTRUCTURE
+                            ? mir_make_destructure_instruction(routine, stmt, s)
+                            : mir_make_source_stmt_instruction(routine, stmt, s));
                 if (!mir_stmt_population_append(new_insts,
                                                 new_cap,
                                                 &new_count,

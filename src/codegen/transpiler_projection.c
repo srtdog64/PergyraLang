@@ -14,24 +14,57 @@
 #include "transpiler_context.h"
 #include "transpiler_projection.h"
 
-ASTNode *
-transpiler_find_zone_domain_slot(ASTNode *zone_decl, const char *slot_name)
+static ASTNode *
+transpiler_find_domain_slot_in_decl(TranspilerCtx *ctx,
+                                    ASTNode *decl,
+                                    const char *slot_name,
+                                    const char *context)
 {
-    if (zone_decl == NULL || zone_decl->type != AST_ZONE_DECL || slot_name == NULL)
+    const char *decl_name;
+    TranspilerHostedDomainSlotView slot_view;
+
+    if (ctx == NULL || decl == NULL || slot_name == NULL)
         return NULL;
 
-    size_t slot_count = 0;
-    ASTNode **slots = ast_zone_slots(zone_decl, &slot_count);
-    for (size_t i = 0; i < slot_count; i++) {
-        ASTNode *slot = slots[i];
-        const char *candidate_name = ast_domain_slot_name(slot);
-        if (slot != NULL && slot->type == AST_DOMAIN_SLOT
-            && candidate_name != NULL
-            && strcmp(candidate_name, slot_name) == 0) {
-            return slot;
-        }
+    switch (decl->type) {
+    case AST_RELATION_DECL:
+    case AST_EFFECT_DECL:
+    case AST_ZONE_DECL:
+        break;
+    default:
+        return NULL;
+    }
+
+    decl_name = transpiler_decl_name_local(decl);
+    slot_view = transpiler_hosted_domain_slot_view_from_decl(ctx, decl_name,
+        decl);
+    if (transpiler_hosted_domain_slot_view_missing_mir_metadata(&slot_view)) {
+        transpiler_set_mir_inventory_missing(ctx,
+            "MIR-only C path missing %s domain-slot lookup metadata for '%s'",
+            context != NULL ? context : "domain",
+            decl_name != NULL ? decl_name : "(anonymous-domain)");
+        return NULL;
+    }
+
+    for (size_t i = 0; i < slot_view.count; i++) {
+        const char *candidate_name =
+            transpiler_hosted_domain_slot_view_name(&slot_view, i);
+        if (candidate_name != NULL && strcmp(candidate_name, slot_name) == 0)
+            return transpiler_hosted_domain_slot_view_source_ast(
+                &slot_view, i);
     }
     return NULL;
+}
+
+ASTNode *
+transpiler_find_zone_domain_slot(TranspilerCtx *ctx,
+                                 ASTNode *zone_decl,
+                                 const char *slot_name)
+{
+    if (zone_decl == NULL || zone_decl->type != AST_ZONE_DECL)
+        return NULL;
+    return transpiler_find_domain_slot_in_decl(ctx, zone_decl, slot_name,
+        "zone");
 }
 
 bool
@@ -69,34 +102,14 @@ transpiler_current_overlay_domain_slot_decl(TranspilerCtx *ctx,
         return NULL;
 
     decl = transpiler_current_host_decl_local(ctx);
-    if (decl != NULL && decl->type == AST_RELATION_DECL) {
-        size_t slot_count = 0;
-        ASTNode **slots = ast_relation_slots(decl, &slot_count);
-        for (size_t i = 0; i < slot_count; i++) {
-            ASTNode *slot = slots[i];
-            const char *candidate_name = ast_domain_slot_name(slot);
-            if (slot != NULL && slot->type == AST_DOMAIN_SLOT
-                && candidate_name != NULL
-                && strcmp(candidate_name, slot_name) == 0) {
-                return slot;
-            }
-        }
-    }
-    if (decl != NULL && decl->type == AST_EFFECT_DECL) {
-        size_t slot_count = 0;
-        ASTNode **slots = ast_effect_slots(decl, &slot_count);
-        for (size_t i = 0; i < slot_count; i++) {
-            ASTNode *slot = slots[i];
-            const char *candidate_name = ast_domain_slot_name(slot);
-            if (slot != NULL && slot->type == AST_DOMAIN_SLOT
-                && candidate_name != NULL
-                && strcmp(candidate_name, slot_name) == 0) {
-                return slot;
-            }
-        }
-    }
+    if (decl != NULL && decl->type == AST_RELATION_DECL)
+        return transpiler_find_domain_slot_in_decl(ctx, decl, slot_name,
+            "relation");
+    if (decl != NULL && decl->type == AST_EFFECT_DECL)
+        return transpiler_find_domain_slot_in_decl(ctx, decl, slot_name,
+            "effect");
     if (decl != NULL && decl->type == AST_ZONE_DECL)
-        return transpiler_find_zone_domain_slot(decl, slot_name);
+        return transpiler_find_zone_domain_slot(ctx, decl, slot_name);
 
     return NULL;
 }
@@ -117,16 +130,24 @@ transpiler_current_world_has_field(TranspilerCtx *ctx, const char *field_name)
     if (decl == NULL)
         return false;
 
-    size_t roster_count = 0;
-    ASTNode **rosters = ast_world_rosters(decl, &roster_count);
-    for (size_t i = 0; i < roster_count; i++) {
-        ASTNode *slot = rosters[i];
-        const char *slot_name = ast_world_roster_slot_name(slot);
+    decl_name = transpiler_decl_name_local(decl);
+    TranspilerHostedWorldRosterSlotView roster_view =
+        transpiler_hosted_world_roster_slot_view_from_decl(
+            ctx, decl_name, decl);
+    if (transpiler_hosted_world_roster_slot_view_missing_mir_metadata(
+            &roster_view)) {
+        transpiler_set_mir_inventory_missing(ctx,
+            "MIR-only C path missing world roster-slot metadata for '%s'",
+            decl_name != NULL ? decl_name : "(anonymous-world)");
+        return false;
+    }
+    for (size_t i = 0; i < roster_view.count; i++) {
+        const char *slot_name =
+            transpiler_hosted_world_roster_slot_view_name(&roster_view, i);
         if (slot_name != NULL && strcmp(slot_name, field_name) == 0) {
             return true;
         }
     }
-    decl_name = transpiler_decl_name_local(decl);
     TranspilerHostedWorldZoneSlotView zone_view =
         transpiler_hosted_world_zone_slot_view_from_decl(ctx, decl_name, decl);
     if (transpiler_hosted_world_zone_slot_view_missing_mir_metadata(

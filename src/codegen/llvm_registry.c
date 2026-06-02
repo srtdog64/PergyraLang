@@ -18,37 +18,108 @@
 
 #include <llvm-c/Core.h>
 
+static void
+llvm_scope_cache_invalidate(LLVMGenCtx *ctx)
+{
+    if (ctx == NULL)
+        return;
+    for (int i = 0; i < MAX_SCOPE_DEPTH; i++) {
+        ctx->scopes[i].last_lookup_name = NULL;
+        ctx->scopes[i].last_lookup = NULL;
+    }
+}
+
 void
 llvm_scope_push(LLVMGenCtx *ctx)
 {
+    LLVMScopeFrame *frame;
+
+    if (ctx == NULL || ctx->has_error)
+        return;
+
     if (ctx->scope_depth >= MAX_SCOPE_DEPTH) {
         llvm_set_error_with_hints(ctx, PGY_CODE_LLVM_SCOPE_LIMIT, PGY_CAUSE_LLVM_SCOPE_CAPACITY, PGY_FIX_REFACTOR_OR_RAISE_LIMIT, "Scope depth overflow (max %d)", MAX_SCOPE_DEPTH);
         return;
     }
-    ctx->scopes[ctx->scope_depth].count = 0;
-    ctx->scopes[ctx->scope_depth].last_lookup_name = NULL;
-    ctx->scopes[ctx->scope_depth].last_lookup = NULL;
+
+    llvm_scope_cache_invalidate(ctx);
+
+    frame = &ctx->scopes[ctx->scope_depth];
+    frame->count = 0;
+    frame->last_lookup_name = NULL;
+    frame->last_lookup = NULL;
     ctx->scope_depth++;
 }
 
 void
 llvm_scope_pop(LLVMGenCtx *ctx)
 {
-    if (ctx->scope_depth > 0)
-        ctx->scope_depth--;
+    if (ctx == NULL || ctx->has_error)
+        return;
+
+    if (ctx->scope_depth == 0) {
+        llvm_set_error_with_hints(ctx, PGY_CODE_LLVM_SCOPE_LIMIT, PGY_CAUSE_LLVM_SCOPE_CAPACITY, PGY_FIX_REFACTOR_OR_RAISE_LIMIT, "Scope depth underflow");
+        return;
+    }
+
+    llvm_scope_cache_invalidate(ctx);
+    ctx->scope_depth--;
 }
 
 void
 llvm_scope_declare(LLVMGenCtx *ctx, const char *name,
                    LLVMValueRef alloca_val, LLVMTypeRef type)
 {
-    if (ctx->scope_depth == 0)
+    LLVMScopeFrame *frame;
+
+    if (ctx == NULL || ctx->has_error)
         return;
 
-    LLVMScopeFrame *frame = &ctx->scopes[ctx->scope_depth - 1];
-    if (frame->count >= MAX_SCOPE_VARS) {
-        llvm_set_error_with_hints(ctx, PGY_CODE_LLVM_SCOPE_LIMIT, PGY_CAUSE_LLVM_SCOPE_CAPACITY, PGY_FIX_REFACTOR_OR_RAISE_LIMIT, "Too many variables in scope (max %d)", MAX_SCOPE_VARS);
+    if (ctx->scope_depth == 0) {
+        llvm_set_error_with_hints(ctx, PGY_CODE_LLVM_SCOPE_LIMIT, PGY_CAUSE_LLVM_SCOPE_CAPACITY, PGY_FIX_REFACTOR_OR_RAISE_LIMIT, "Variable declaration outside active scope");
         return;
+    }
+
+    llvm_scope_cache_invalidate(ctx);
+
+    frame = &ctx->scopes[ctx->scope_depth - 1];
+    if (frame->count >= frame->capacity) {
+        int new_capacity;
+        LLVMVarEntry *grown;
+
+        if (frame->capacity < 0 || frame->capacity > INT_MAX / 2) {
+            llvm_set_error_with_hints(ctx,
+                PGY_CODE_LLVM_SCOPE_LIMIT,
+                PGY_CAUSE_LLVM_SCOPE_CAPACITY,
+                PGY_FIX_REFACTOR_OR_RAISE_LIMIT,
+                "LLVM scope registry capacity overflow");
+            return;
+        }
+        new_capacity = frame->capacity == 0
+            ? LLVM_SCOPE_INITIAL_CAPACITY
+            : frame->capacity * 2;
+        if ((size_t)new_capacity > SIZE_MAX / sizeof(*frame->entries)) {
+            llvm_set_error_with_hints(ctx,
+                PGY_CODE_LLVM_SCOPE_LIMIT,
+                PGY_CAUSE_LLVM_SCOPE_CAPACITY,
+                PGY_FIX_REFACTOR_OR_RAISE_LIMIT,
+                "LLVM scope registry allocation overflow");
+            return;
+        }
+        grown = realloc(frame->entries,
+            (size_t)new_capacity * sizeof(*frame->entries));
+        if (grown == NULL) {
+            llvm_set_error_with_hints(ctx,
+                PGY_CODE_LLVM_OOM,
+                PGY_CAUSE_LLVM_MEMORY_EXHAUSTED,
+                PGY_FIX_REDUCE_UNIT_SIZE_OR_RAISE_LIMIT,
+                "out of memory growing LLVM scope registry");
+            return;
+        }
+        memset(grown + frame->capacity, 0,
+            (size_t)(new_capacity - frame->capacity) * sizeof(*grown));
+        frame->entries = grown;
+        frame->capacity = new_capacity;
     }
 
     frame->entries[frame->count].name   = name;

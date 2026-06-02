@@ -7,8 +7,8 @@
 //
 // Cwd contract: the parity harness cd's into the repo root before running.
 //
-// New pattern: manifest input + per-line file I/O loop -- the 489-header
-// manifest exercises Pergyra `for line in lines` plus `ReadFile` at scale.
+// New pattern: manifest input + per-line file I/O loop. The manifest
+// exercises Pergyra `for line in lines` plus `ReadFile` at scale.
 //
 // CountLines moved to src/self_hosted/lib/text_scan.pgy (2026-05-27, lifted
 // once a third consumer adopted it).

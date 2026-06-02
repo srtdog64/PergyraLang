@@ -242,6 +242,39 @@ transpiler_emit_mir_block_statements(CodeBuf *buf, const ASTNode *func_decl,
             continue;
         }
 
+        if (inst->kind == MIR_INST_DESTRUCTURE) {
+            if (stmt == NULL || stmt->type != AST_LET_DESTRUCTURE) {
+                if (reason != NULL && reason_cap > 0) {
+                    transpiler_mir_reasonf(reason, reason_cap,
+                        "MIR block %llu emission failed: DESTRUCTURE instruction missing destructure payload",
+                        (unsigned long long) block->id);
+                }
+                ok = false;
+                break;
+            }
+            if (!transpiler_emit_mir_let_destructure_stmt(
+                    buf, block, stmt, ctx, ssa_map_out,
+                    reason, reason_cap)) {
+                ok = false;
+                break;
+            }
+            continue;
+        }
+
+        if (inst->kind == MIR_INST_ASSIGN) {
+            if (stmt == NULL || stmt->type != AST_ASSIGNMENT) {
+                if (reason != NULL && reason_cap > 0) {
+                    transpiler_mir_reasonf(reason, reason_cap,
+                        "MIR block %llu emission failed: ASSIGN instruction missing assignment payload",
+                        (unsigned long long) block->id);
+                }
+                ok = false;
+                break;
+            }
+            emit_statement(stmt, ctx);
+            continue;
+        }
+
         if (inst->kind != MIR_INST_STMT)
             continue;
         if (stmt != NULL && stmt->type == AST_DEFER_STMT)
@@ -259,69 +292,8 @@ transpiler_emit_mir_block_statements(CodeBuf *buf, const ASTNode *func_decl,
             ok = false;
             break;
         }
-        if (stmt->type == AST_LET_DECL
-            && ast_let_name(stmt) != NULL
-            && ast_let_initializer(stmt) != NULL
-            && ast_let_initializer(stmt)->type != AST_CALL
-            && transpiler_find_routine_exit_ssa_name(
-                   mir_routine, ast_let_name(stmt)) != NULL) {
-            continue;
-        }
         if (transpiler_mir_stmt_is_mirrored_resource(ctx, block, stmt))
             continue;
-        if (stmt->type == AST_ASSIGNMENT) {
-            ASTNode *target = ast_assignment_target(stmt);
-            ASTNode *value = ast_assignment_value(stmt);
-            if (target != NULL
-                && target->type == AST_IDENTIFIER
-                && ast_identifier_name(target) != NULL
-                && transpiler_is_implicit_field(ctx,
-                    ast_identifier_name(target))) {
-                char map_reason[256];
-                if (!transpiler_expr_identifiers_mapped(
-                        ctx,
-                        value,
-                        ssa_map_out,
-                        mir_routine->name,
-                        map_reason,
-                        sizeof(map_reason))) {
-                    continue;
-                }
-            }
-            if (target != NULL
-                && target->type == AST_IDENTIFIER
-                && ast_identifier_name(target) != NULL
-                && !transpiler_is_implicit_field(
-                       ctx, ast_identifier_name(target))) {
-                const char *target_name = ast_identifier_name(target);
-                const char *mapped_target = transpiler_resolve_ssa_name(
-                    (const TranspilerSSANameMap *)ssa_map_out,
-                    target_name);
-                if (mapped_target != NULL) {
-                    char *lhs = transpiler_render_ssa_name(ctx, mapped_target);
-                    char *rhs = emit_expression_with_ssa_map(
-                        value, ctx, ssa_map_out);
-
-                    if (lhs == NULL || rhs == NULL) {
-                        free(lhs);
-                        free(rhs);
-                        if (reason != NULL && reason_cap > 0) {
-                            transpiler_mir_reasonf(reason, reason_cap,
-                                     "MIR block %llu emission failed: unable to render local assignment to '%s'",
-                                     (unsigned long long) block->id,
-                                     target_name);
-                        }
-                        ok = false;
-                        break;
-                    }
-                    write_indent_to(buf, ctx->indent);
-                    codebuf_write(buf, "%s = %s;\n", lhs, rhs);
-                    free(lhs);
-                    free(rhs);
-                    continue;
-                }
-            }
-        }
         if (transpiler_mir_routine_has_explicit_cfg(mir_routine)
             && transpiler_mir_inst_is_cfg_container(inst, stmt)) {
             continue;
@@ -334,29 +306,6 @@ transpiler_emit_mir_block_statements(CodeBuf *buf, const ASTNode *func_decl,
                 break;
             }
             continue;
-        }
-        if (stmt->type == AST_LET_DESTRUCTURE) {
-            if (!transpiler_emit_mir_let_destructure_stmt(
-                    buf, block, stmt, ctx, ssa_map_out,
-                    reason, reason_cap)) {
-                ok = false;
-                break;
-            }
-            continue;
-        }
-        if (stmt != NULL
-            && stmt->type == AST_LET_DECL
-            && ast_let_name(stmt) != NULL
-            && ast_let_initializer(stmt) != NULL) {
-            bool handled_let = false;
-            if (!transpiler_emit_mir_preserved_let_stmt(
-                    buf, func_decl, mir_routine, block, stmt, ctx,
-                    ssa_map_out, &handled_let, reason, reason_cap)) {
-                ok = false;
-                break;
-            }
-            if (handled_let)
-                continue;
         }
         emit_statement(stmt, ctx);
     }

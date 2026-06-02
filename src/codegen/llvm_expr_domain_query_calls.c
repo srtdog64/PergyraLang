@@ -325,7 +325,8 @@ llvm_emit_has_zone_detail_query(ASTNode *node, LLVMGenCtx *ctx,
     }
 
     if (op == LLVM_DOMAIN_QUERY_OP_HAS_ZONE_PROJECTION) {
-        ASTNode *slot = llvm_find_zone_domain_slot_decl(zone_decl, detail_name);
+        ASTNode *slot = llvm_find_zone_domain_slot_decl(ctx, zone_decl,
+            detail_name);
         if (slot != NULL && !ast_domain_slot_is_subject(slot)) {
             char field_name[256];
             if (!llvm_domain_query_field_name(ctx, field_name, sizeof(field_name),

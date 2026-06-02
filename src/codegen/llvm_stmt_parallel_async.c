@@ -22,12 +22,43 @@ llvm_emit_parallel_block(ASTNode *node, LLVMGenCtx *ctx)
         const char *future_inner;
         bool future_is_remote;
     } CapturedVar;
-    CapturedVar captured[MAX_SCOPE_VARS];
-    int n_captured = 0;
+    CapturedVar *captured = NULL;
+    size_t capture_count = 0;
+    size_t n_captured = 0;
 
     for (int i = 0; i < ctx->scope_depth; i++) {
         LLVMScopeFrame *frame = &ctx->scopes[i];
-        for (int j = 0; j < frame->count && n_captured < MAX_SCOPE_VARS; j++) {
+        if (frame->count > 0
+            && capture_count > SIZE_MAX - (size_t)frame->count) {
+            llvm_set_error(ctx,
+                "LLVM parallel capture registry capacity overflow");
+            return;
+        }
+        capture_count += (size_t)frame->count;
+    }
+    if (capture_count > UINT_MAX) {
+        llvm_set_error(ctx,
+            "LLVM parallel capture registry exceeds LLVM struct field limit");
+        return;
+    }
+    if (capture_count > SIZE_MAX / sizeof(*captured)) {
+        llvm_set_error(ctx,
+            "LLVM parallel capture registry allocation overflow");
+        return;
+    }
+    if (capture_count > 0) {
+        captured = pgy_arena_calloc(&ctx->scratch,
+            capture_count * sizeof(*captured));
+        if (captured == NULL) {
+            llvm_set_error(ctx,
+                "out of memory allocating LLVM parallel capture registry");
+            return;
+        }
+    }
+
+    for (int i = 0; i < ctx->scope_depth; i++) {
+        LLVMScopeFrame *frame = &ctx->scopes[i];
+        for (int j = 0; j < frame->count; j++) {
             captured[n_captured++] = (CapturedVar){
                 frame->entries[j].name,
                 frame->entries[j].alloca,
@@ -39,9 +70,22 @@ llvm_emit_parallel_block(ASTNode *node, LLVMGenCtx *ctx)
         }
     }
 
-    LLVMTypeRef *ctx_fields = pgy_arena_calloc(&ctx->scratch,
-        (size_t)n_captured * sizeof(LLVMTypeRef));
-    for (int i = 0; i < n_captured; i++)
+    LLVMTypeRef *ctx_fields = NULL;
+    if (n_captured > 0) {
+        if (n_captured > SIZE_MAX / sizeof(*ctx_fields)) {
+            llvm_set_error(ctx,
+                "LLVM parallel capture field allocation overflow");
+            return;
+        }
+        ctx_fields = pgy_arena_calloc(&ctx->scratch,
+            n_captured * sizeof(*ctx_fields));
+        if (ctx_fields == NULL) {
+            llvm_set_error(ctx,
+                "out of memory allocating LLVM parallel capture field types");
+            return;
+        }
+    }
+    for (size_t i = 0; i < n_captured; i++)
         ctx_fields[i] = ctx->type_i8ptr;
 
     char ctx_name[64];
@@ -53,7 +97,7 @@ llvm_emit_parallel_block(ASTNode *node, LLVMGenCtx *ctx)
 
     LLVMValueRef ctx_alloca = LLVMBuildAlloca(ctx->builder, ctx_struct_type,
                                                "_pctx");
-    for (int i = 0; i < n_captured; i++) {
+    for (size_t i = 0; i < n_captured; i++) {
         LLVMValueRef gep = LLVMBuildStructGEP2(ctx->builder, ctx_struct_type,
                                                  ctx_alloca, (unsigned)i,
                                                  llvm_tmp_name(ctx));
@@ -72,8 +116,19 @@ llvm_emit_parallel_block(ASTNode *node, LLVMGenCtx *ctx)
     LLVMTypeRef wrapper_type = LLVMFunctionType(ctx->type_i8ptr,
                                                  wrapper_params, 1, 0);
 
-    LLVMValueRef *wrapper_fns = pgy_arena_calloc(&ctx->scratch,
-        count * sizeof(LLVMValueRef));
+    LLVMValueRef *wrapper_fns;
+    if (count > SIZE_MAX / sizeof(*wrapper_fns)) {
+        llvm_set_error(ctx,
+            "LLVM parallel wrapper registry allocation overflow");
+        return;
+    }
+    wrapper_fns = pgy_arena_calloc(&ctx->scratch,
+        count * sizeof(*wrapper_fns));
+    if (wrapper_fns == NULL) {
+        llvm_set_error(ctx,
+            "out of memory allocating LLVM parallel wrapper registry");
+        return;
+    }
 
     for (size_t i = 0; i < count; i++) {
         char fn_name[64];
@@ -97,7 +152,7 @@ llvm_emit_parallel_block(ASTNode *node, LLVMGenCtx *ctx)
         LLVMValueRef ctx_ptr = LLVMBuildBitCast(ctx->builder, arg0,
             LLVMPointerType(ctx_struct_type, 0), "_pctx");
 
-        for (int c = 0; c < n_captured; c++) {
+        for (size_t c = 0; c < n_captured; c++) {
             LLVMValueRef field_ptr = LLVMBuildStructGEP2(
                 ctx->builder, ctx_struct_type, ctx_ptr, (unsigned)c,
                 llvm_tmp_name(ctx));
@@ -141,8 +196,19 @@ llvm_emit_parallel_block(ASTNode *node, LLVMGenCtx *ctx)
         return;
     }
 
-    LLVMValueRef *handles = pgy_arena_calloc(&ctx->scratch,
-        count * sizeof(LLVMValueRef));
+    LLVMValueRef *handles;
+    if (count > SIZE_MAX / sizeof(*handles)) {
+        llvm_set_error(ctx,
+            "LLVM parallel handle registry allocation overflow");
+        return;
+    }
+    handles = pgy_arena_calloc(&ctx->scratch,
+        count * sizeof(*handles));
+    if (handles == NULL) {
+        llvm_set_error(ctx,
+            "out of memory allocating LLVM parallel handle registry");
+        return;
+    }
     for (size_t i = 0; i < count; i++) {
         LLVMValueRef fn_ptr = LLVMBuildBitCast(
             ctx->builder, wrapper_fns[i], ctx->type_i8ptr,
@@ -180,11 +246,41 @@ llvm_emit_async_block(ASTNode *node, LLVMGenCtx *ctx)
         const char *future_inner;
         bool future_is_remote;
     } CapturedVar;
-    CapturedVar captured[MAX_SCOPE_VARS];
-    int n_captured = 0;
+    CapturedVar *captured = NULL;
+    size_t capture_count = 0;
+    size_t n_captured = 0;
     for (int i = 0; i < ctx->scope_depth; i++) {
         LLVMScopeFrame *frame = &ctx->scopes[i];
-        for (int j = 0; j < frame->count && n_captured < MAX_SCOPE_VARS; j++) {
+        if (frame->count > 0
+            && capture_count > SIZE_MAX - (size_t)frame->count) {
+            llvm_set_error(ctx,
+                "LLVM async capture registry capacity overflow");
+            return;
+        }
+        capture_count += (size_t)frame->count;
+    }
+    if (capture_count > UINT_MAX) {
+        llvm_set_error(ctx,
+            "LLVM async capture registry exceeds LLVM struct field limit");
+        return;
+    }
+    if (capture_count > SIZE_MAX / sizeof(*captured)) {
+        llvm_set_error(ctx,
+            "LLVM async capture registry allocation overflow");
+        return;
+    }
+    if (capture_count > 0) {
+        captured = pgy_arena_calloc(&ctx->scratch,
+            capture_count * sizeof(*captured));
+        if (captured == NULL) {
+            llvm_set_error(ctx,
+                "out of memory allocating LLVM async capture registry");
+            return;
+        }
+    }
+    for (int i = 0; i < ctx->scope_depth; i++) {
+        LLVMScopeFrame *frame = &ctx->scopes[i];
+        for (int j = 0; j < frame->count; j++) {
             captured[n_captured++] = (CapturedVar){
                 frame->entries[j].name,
                 frame->entries[j].alloca,
@@ -200,15 +296,26 @@ llvm_emit_async_block(ASTNode *node, LLVMGenCtx *ctx)
     LLVMTypeRef ctx_struct_type = NULL;
 
     if (has_captures) {
-        LLVMTypeRef *fields = pgy_arena_calloc(&ctx->scratch,
-            (size_t)n_captured * sizeof(LLVMTypeRef));
-        for (int i = 0; i < n_captured; i++)
+        LLVMTypeRef *fields;
+        if (n_captured > SIZE_MAX / sizeof(*fields)) {
+            llvm_set_error(ctx,
+                "LLVM async capture field allocation overflow");
+            return;
+        }
+        fields = pgy_arena_calloc(&ctx->scratch,
+            n_captured * sizeof(*fields));
+        if (fields == NULL) {
+            llvm_set_error(ctx,
+                "out of memory allocating LLVM async capture field types");
+            return;
+        }
+        for (size_t i = 0; i < n_captured; i++)
             fields[i] = ctx->type_i8ptr;
         ctx_struct_type = LLVMStructCreateNamed(ctx->context, llvm_tmp_name(ctx));
         LLVMStructSetBody(ctx_struct_type, fields, (unsigned)n_captured, 0);
 
         ctx_alloca = LLVMBuildAlloca(ctx->builder, ctx_struct_type, "_actx");
-        for (int i = 0; i < n_captured; i++) {
+        for (size_t i = 0; i < n_captured; i++) {
             LLVMValueRef gep = LLVMBuildStructGEP2(ctx->builder, ctx_struct_type,
                 ctx_alloca, (unsigned)i, llvm_tmp_name(ctx));
             LLVMValueRef cast = LLVMBuildBitCast(ctx->builder, captured[i].alloca,
@@ -238,7 +345,7 @@ llvm_emit_async_block(ASTNode *node, LLVMGenCtx *ctx)
         LLVMValueRef arg0 = LLVMGetParam(fn, 0);
         LLVMValueRef ctx_ptr = LLVMBuildBitCast(ctx->builder, arg0,
             LLVMPointerType(ctx_struct_type, 0), "_actx");
-        for (int i = 0; i < n_captured; i++) {
+        for (size_t i = 0; i < n_captured; i++) {
             LLVMValueRef field_ptr = LLVMBuildStructGEP2(ctx->builder, ctx_struct_type,
                 ctx_ptr, (unsigned)i, llvm_tmp_name(ctx));
             LLVMValueRef var_ptr_i8 = LLVMBuildLoad2(ctx->builder, ctx->type_i8ptr,

@@ -16,7 +16,8 @@ bool transpiler_find_zone_layer_slot_local(TranspilerCtx *ctx,
                                            const char *layer_slot_name,
                                            bool is_relation,
                                            ASTNode **slot_out,
-                                           const char **layer_type_out);
+                                           const char **layer_type_out,
+                                           bool *is_pool_out);
 void emit_zone_bind_effect_layer(CodeBuf *out,
                                  ASTNode *zone,
                                  const char *layer_slot_name,

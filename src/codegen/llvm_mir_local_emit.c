@@ -666,6 +666,9 @@ llvm_emit_mir_local_allocas(const MIRRoutine *routine, LLVMGenCtx *ctx,
                             }
                         }
                     }
+                    if (elem_type == NULL && type_expr != NULL)
+                        elem_type = llvm_mir_local_elem_type_from_type_ast(
+                            ctx, type_expr);
                     if (elem_type == NULL)
                         elem_type = llvm_mir_local_elem_type_from_layout(
                             ctx, inst->type_layout);

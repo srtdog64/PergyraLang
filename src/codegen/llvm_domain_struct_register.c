@@ -67,6 +67,10 @@ llvm_register_domain_structs(LLVMGenCtx *ctx,
                     dyn_slot_count++;
             }
 
+            LLVMHostedDomainSlotView domain_slot_view =
+                llvm_hosted_domain_slot_view_from_decl(ctx, decl_name, stmt);
+            size_t domain_slot_count = domain_slot_view.count;
+            ASTNode **domain_slots = domain_slot_view.ast_compat_slots;
             size_t fc = 0;
             LLVMTypeRef *ftypes = NULL;
             if (stmt->type == AST_ZONE_DECL) {
@@ -76,10 +80,17 @@ llvm_register_domain_structs(LLVMGenCtx *ctx,
                 size_t state_count = 0;
                 (void) ast_zone_states(stmt, &state_count);
                 size_t projection_count =
-                    llvm_count_domain_projection_slots(slots,
-                        slot_count,
+                    llvm_count_domain_projection_slots(domain_slots,
+                        domain_slot_count,
                         refreshes,
                         refresh_count);
+                if (llvm_hosted_domain_slot_view_missing_mir_metadata(
+                        &domain_slot_view)) {
+                    llvm_set_mir_inventory_missing(ctx,
+                        "MIR-only LLVM path missing zone domain-slot metadata for '%s'",
+                        decl_name);
+                    return;
+                }
                 if (llvm_hosted_zone_layer_slot_view_missing_mir_metadata(
                         &layer_view)) {
                     llvm_set_mir_inventory_missing(ctx,
@@ -87,7 +98,7 @@ llvm_register_domain_structs(LLVMGenCtx *ctx,
                         decl_name);
                     return;
                 }
-                fc = slot_count
+                fc = domain_slot_count
                     + shared_view.count
                     + layer_view.count
                     + layer_view.count
@@ -99,10 +110,15 @@ llvm_register_domain_structs(LLVMGenCtx *ctx,
                 ftypes = pgy_arena_calloc(&ctx->scratch,
                     (fc > 0 ? fc : 1) * sizeof(LLVMTypeRef));
                 size_t idx = 0;
-                for (size_t j = 0; j < slot_count; j++, idx++) {
-                    ASTNode *slot = slots[j];
-                    ASTNode *slot_type = ast_domain_slot_type(slot);
-                    ftypes[idx] = llvm_domain_required_ast_type(ctx, slot, slot_type, "zone slot");
+                for (size_t j = 0; j < domain_slot_count; j++, idx++) {
+                    ASTNode *slot =
+                        llvm_hosted_domain_slot_view_source_ast(
+                            &domain_slot_view, j);
+                    ASTNode *slot_type =
+                        llvm_hosted_domain_slot_view_type(
+                            &domain_slot_view, j);
+                    ftypes[idx] = llvm_domain_required_ast_type(
+                        ctx, slot, slot_type, "zone slot");
                     if (ctx->has_error || ftypes[idx] == NULL)
                         return;
                 }
@@ -144,8 +160,10 @@ llvm_register_domain_structs(LLVMGenCtx *ctx,
                     ftypes[idx] = ctx->type_i1;
                 for (size_t j = 0; j < state_count * 2; j++, idx++)
                     ftypes[idx] = ctx->type_i32;
-                for (size_t j = 0; j < slot_count; j++) {
-                    ASTNode *slot = slots[j];
+                for (size_t j = 0; j < domain_slot_count; j++) {
+                    ASTNode *slot =
+                        llvm_hosted_domain_slot_view_source_ast(
+                            &domain_slot_view, j);
                     if (slot == NULL || slot->type != AST_DOMAIN_SLOT
                         || (!ast_domain_slot_is_tobject(slot)
                             && !llvm_domain_slot_is_projection_target(slot,
@@ -160,16 +178,28 @@ llvm_register_domain_structs(LLVMGenCtx *ctx,
                 }
                 ftypes[idx++] = ctx->type_i32;
             } else if (stmt->type == AST_ROSTER_DECL) {
-                fc = ast_roster_party_count(stmt)
+                LLVMHostedRosterSlotView roster_view =
+                    llvm_hosted_roster_slot_view_from_decl(
+                        ctx, decl_name, stmt);
+                if (llvm_hosted_roster_slot_view_missing_mir_metadata(
+                        &roster_view)) {
+                    llvm_set_mir_inventory_missing(ctx,
+                        "MIR-only LLVM path missing roster-slot metadata for '%s'",
+                        decl_name != NULL ? decl_name : "<anonymous>");
+                    return;
+                }
+                fc = roster_view.count
                     + shared_view.count;
                 ftypes = pgy_arena_calloc(&ctx->scratch,
                     (fc > 0 ? fc : 1) * sizeof(LLVMTypeRef));
                 size_t idx = 0;
-                for (size_t j = 0; j < ast_roster_party_count(stmt); j++, idx++) {
-                    ASTNode *slot = ast_roster_party(stmt, j);
+                for (size_t j = 0; j < roster_view.count; j++, idx++) {
+                    ASTNode *slot =
+                        llvm_hosted_roster_slot_view_source_ast(
+                            &roster_view, j);
                     const char *party_type =
-                        (slot != NULL && slot->type == AST_SYSTEMIC_SLOT)
-                        ? ast_roster_slot_party_type(slot) : NULL;
+                        llvm_hosted_roster_slot_view_type_name(
+                            &roster_view, j);
                     ftypes[idx] = llvm_domain_required_class_struct_type(ctx,
                         slot, party_type, "roster party slot");
                     if (ctx->has_error || ftypes[idx] == NULL)
@@ -186,14 +216,23 @@ llvm_register_domain_structs(LLVMGenCtx *ctx,
                         return;
                 }
             } else if (stmt->type == AST_WORLD_DECL) {
-                size_t roster_count = 0;
-                ASTNode **rosters = ast_world_rosters(stmt, &roster_count);
+                LLVMHostedWorldRosterSlotView roster_view =
+                    llvm_hosted_world_roster_slot_view_from_decl(
+                        ctx, decl_name, stmt);
+                size_t roster_count = roster_view.count;
                 LLVMHostedWorldZoneSlotView zone_view =
                     llvm_hosted_world_zone_slot_view_from_decl(ctx, decl_name,
                         stmt);
                 size_t zone_count = zone_view.count;
                 size_t state_count = 0;
                 (void) ast_world_states(stmt, &state_count);
+                if (llvm_hosted_world_roster_slot_view_missing_mir_metadata(
+                        &roster_view)) {
+                    llvm_set_mir_inventory_missing(ctx,
+                        "MIR-only LLVM path missing world roster-slot metadata for '%s'",
+                        decl_name != NULL ? decl_name : "<anonymous>");
+                    return;
+                }
                 if (llvm_hosted_world_zone_slot_view_missing_mir_metadata(
                         &zone_view)) {
                     llvm_set_mir_inventory_missing(ctx,
@@ -215,8 +254,12 @@ llvm_register_domain_structs(LLVMGenCtx *ctx,
                     (fc > 0 ? fc : 1) * sizeof(LLVMTypeRef));
                 size_t idx = 0;
                 for (size_t j = 0; j < roster_count; j++, idx++) {
-                    ASTNode *ws = rosters[j];
-                    const char *roster_type = ast_world_roster_type_name(ws);
+                    ASTNode *ws =
+                        llvm_hosted_world_roster_slot_view_source_ast(
+                            &roster_view, j);
+                    const char *roster_type =
+                        llvm_hosted_world_roster_slot_view_type_name(
+                            &roster_view, j);
                     ftypes[idx] = llvm_domain_required_class_struct_type(ctx,
                         ws, roster_type, "world roster slot");
                     if (ctx->has_error || ftypes[idx] == NULL)
@@ -260,19 +303,33 @@ llvm_register_domain_structs(LLVMGenCtx *ctx,
             } else {
                 size_t projection_count =
                     (stmt->type == AST_RELATION_DECL || stmt->type == AST_EFFECT_DECL)
-                    ? llvm_count_domain_projection_slots(slots, slot_count,
-                        refreshes, refresh_count)
+                    ? llvm_count_domain_projection_slots(domain_slots,
+                        domain_slot_count, refreshes, refresh_count)
                     : 0;
-                fc = slot_count + shared_view.count + dyn_slot_count + projection_count;
+                if ((stmt->type == AST_RELATION_DECL
+                        || stmt->type == AST_EFFECT_DECL)
+                    && llvm_hosted_domain_slot_view_missing_mir_metadata(
+                        &domain_slot_view)) {
+                    llvm_set_mir_inventory_missing(ctx,
+                        "MIR-only LLVM path missing domain-slot metadata for '%s'",
+                        decl_name);
+                    return;
+                }
+                fc = domain_slot_count + shared_view.count + dyn_slot_count + projection_count;
                 if (stmt->type == AST_RELATION_DECL || stmt->type == AST_EFFECT_DECL)
-                    fc = slot_count + shared_view.count + dyn_slot_count + (projection_count * 4);
+                    fc = domain_slot_count + shared_view.count + dyn_slot_count + (projection_count * 4);
                 ftypes = pgy_arena_calloc(&ctx->scratch,
                     (fc > 0 ? fc : 1) * sizeof(LLVMTypeRef));
                 size_t idx = 0;
-                for (size_t j = 0; j < slot_count; j++, idx++) {
-                    ASTNode *slot = slots[j];
-                    ASTNode *slot_type = ast_domain_slot_type(slot);
-                    ftypes[idx] = llvm_domain_required_ast_type(ctx, slot, slot_type, "domain slot");
+                for (size_t j = 0; j < domain_slot_count; j++, idx++) {
+                    ASTNode *slot =
+                        llvm_hosted_domain_slot_view_source_ast(
+                            &domain_slot_view, j);
+                    ASTNode *slot_type =
+                        llvm_hosted_domain_slot_view_type(
+                            &domain_slot_view, j);
+                    ftypes[idx] = llvm_domain_required_ast_type(
+                        ctx, slot, slot_type, "domain slot");
                     if (ctx->has_error || ftypes[idx] == NULL)
                         return;
                 }
@@ -289,8 +346,10 @@ llvm_register_domain_structs(LLVMGenCtx *ctx,
                 for (size_t j = 0; j < dyn_slot_count; j++, idx++)
                     ftypes[idx] = ctx->type_i8ptr;
                 if (projection_count > 0) {
-                    for (size_t j = 0; j < slot_count; j++) {
-                        ASTNode *slot = slots[j];
+                    for (size_t j = 0; j < domain_slot_count; j++) {
+                        ASTNode *slot =
+                            llvm_hosted_domain_slot_view_source_ast(
+                                &domain_slot_view, j);
                         if (slot == NULL || slot->type != AST_DOMAIN_SLOT
                             || (!ast_domain_slot_is_tobject(slot)
                                 && !llvm_domain_slot_is_projection_target(slot,

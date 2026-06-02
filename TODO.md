@@ -5,12 +5,15 @@ English anchor for tooling/doc gates:
 - Current beta progress: feature-surface feel remains about 70%, and
   strict beta readiness is now about 75% after current CFG body-dataflow,
   MIR executable tests, AIR drift/schema, DAG resolver-inventory/metadata,
-  runtime-frontier, semantic domain-owner seams, and full local LLVM parity
-  gates pass locally. Windows-bash tooling and raw-escape gates now reach
+  runtime-frontier, semantic domain-owner seams, and LLVM backend-compare
+  inventory/coverage plus targeted shard gates pass locally. Windows-bash
+  tooling and raw-escape gates now reach
   executable probes instead of skipping after path helper setup. The 75% line
   is now backed by binding-aware resource/collection metadata parity for
   shadowed `List<T>`, `DeviceSlot<T>`, and `Channel<T>` locals, plus complete
-  backend-compare fixture inventory registration. Do not call this 80% until
+  backend-compare fixture inventory registration. The default backend-compare
+  suite is now large enough that CI runs deterministic shards rather than a
+  single full 787-case pass. Do not call this 80% until
   consumer-completeness lands across CFG/AIR plus
   MIR/LLVM declaration bootstrap parity and ABI/Slot/Pin ownership freeze.
   The five closure targets are:
@@ -613,7 +616,7 @@ English anchor for tooling/doc gates:
   Parallel validation must use distinct `BUILD_DIR`/`BIN_DIR` values or run
   sequentially.
 - Backend compare inventory note: the default C/LLVM registry currently lists
-  308 cases. The latest promoted fixtures (`for_in_array_int`,
+  787 cases. The latest promoted fixtures (`for_in_array_int`,
   `nested_array_subarray`, `float_to_string_precision`,
   `map_key_lookup_branch`, `phi_branch_value`, `queue_string_ops`,
   `list_int_loop`, `compose_two_functions`, `negative_index_check`,
@@ -639,6 +642,13 @@ English anchor for tooling/doc gates:
   remains an intentional reject
   until movable `Channel<T>` handle ABI exists, so LLVM IR-only field-channel
   probes are not backend-compare fixtures.
+- Backend compare CI policy: full default backend-compare remains a manual
+  parity gate, but CI uses `CI_BACKEND_COMPARE_SHARD_TOTAL` /
+  `CI_BACKEND_COMPARE_SHARD_INDEX` to run a deterministic shard after
+  inventory and LLVM-coverage checks. This prevents the enlarged 787-case
+  suite from turning every CI run into a timeout while preserving exact
+  C/LLVM comparison for the selected shard. Full-suite claims require either
+  all shards to pass or an explicit local full run.
 - Slice borrowed-view closure: `Slice<T>` is now treated as a local borrowed
   view, not an owner. Generated C and LLVM `Slice<T>.Slice(start, len)` both
   use subtract-form bounds checks, reject non-empty null backing storage, return

@@ -217,11 +217,11 @@ require_literal "src/codegen/llvm_domain_forward.c" \
     "llvm_domain_forward_suffix_name"
 require_literal "src/codegen/llvm_domain_forward.c" \
     "return written >= 0 && (size_t)written < out_size"
-require_literal "src/codegen/llvm_domain_role_emit.c" \
-    "llvm_role_emit_join_name"
-require_literal "src/codegen/llvm_domain_role_emit.c" \
-    "llvm_role_emit_vtable_global_name"
-require_literal "src/codegen/llvm_domain_role_emit.c" \
+require_literal "src/codegen/llvm_domain_role_lookup.c" \
+    "llvm_role_method_symbol_name"
+require_literal "src/codegen/llvm_domain_role_lookup.c" \
+    "llvm_role_vtable_global_name"
+require_literal "src/codegen/llvm_domain_role_lookup.c" \
     "return written >= 0 && (size_t)written < out_size"
 require_literal "src/codegen/llvm_domain_event.c" \
     "llvm_domain_event_helper_name"

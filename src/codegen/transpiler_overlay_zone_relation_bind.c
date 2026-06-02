@@ -32,7 +32,7 @@ emit_zone_bind_relation_layer(CodeBuf *out,
     }
 
     if (!transpiler_find_zone_layer_slot_local(ctx, zone, layer_slot_name,
-            true, NULL, &relation_type_name)) {
+            true, NULL, &relation_type_name, NULL)) {
         return;
     }
 

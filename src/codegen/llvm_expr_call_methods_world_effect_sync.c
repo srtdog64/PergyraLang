@@ -62,21 +62,28 @@ llvm_world_effect_sync_function_name(char *out,
     return written >= 0 && (size_t)written < out_size;
 }
 
-static ASTNode *
-llvm_call_find_first_effect_subject_slot(ASTNode *effect_decl)
+static const char *
+llvm_call_find_first_effect_subject_slot_name(LLVMGenCtx *ctx,
+                                              ASTNode *effect_decl)
 {
-    size_t slot_count = 0;
-    ASTNode **slots;
+    const char *effect_name;
+    LLVMHostedDomainSlotView slot_view;
 
     if (effect_decl == NULL || effect_decl->type != AST_EFFECT_DECL)
         return NULL;
-    slots = ast_effect_slots(effect_decl, &slot_count);
-    for (size_t i = 0; i < slot_count; i++) {
-        ASTNode *slot = slots[i];
-        if (slot != NULL && slot->type == AST_DOMAIN_SLOT
-            && ast_domain_slot_is_subject(slot)
-            && ast_domain_slot_name(slot) != NULL) {
-            return slot;
+
+    effect_name = llvm_decl_node_name(effect_decl);
+    slot_view = llvm_hosted_domain_slot_view_from_decl(ctx, effect_name,
+        effect_decl);
+    if (llvm_hosted_domain_slot_view_missing_mir_metadata(&slot_view)) {
+        llvm_set_mir_inventory_missing(ctx,
+            "MIR-only LLVM path missing effect target-slot metadata");
+        return NULL;
+    }
+
+    for (size_t i = 0; i < slot_view.count; i++) {
+        if (llvm_hosted_domain_slot_view_is_subject_like(&slot_view, i)) {
+            return llvm_hosted_domain_slot_view_name(&slot_view, i);
         }
     }
     return NULL;
@@ -92,7 +99,7 @@ llvm_emit_world_embedded_action_effect_sync(LLVMGenCtx *ctx,
     ASTNode *zone_decl = NULL;
     const char *source_slot_name = NULL;
     ASTNode *effect_decl;
-    ASTNode *target_slot;
+    const char *target_slot_name;
     LLVMClassTypeEntry *world_cls;
     LLVMClassTypeEntry *zone_cls;
     LLVMClassTypeEntry *effect_cls;
@@ -132,8 +139,8 @@ llvm_emit_world_embedded_action_effect_sync(LLVMGenCtx *ctx,
 
     effect_name = ast_func_causes_effect(method_decl);
     effect_decl = llvm_call_find_domain_decl(ctx, AST_EFFECT_DECL, effect_name);
-    target_slot = llvm_call_find_first_effect_subject_slot(effect_decl);
-    const char *target_slot_name = ast_domain_slot_name(target_slot);
+    target_slot_name = llvm_call_find_first_effect_subject_slot_name(ctx,
+        effect_decl);
     world_name = llvm_decl_node_name(host_decl);
     if (world_name == NULL)
         return;
@@ -141,7 +148,7 @@ llvm_emit_world_embedded_action_effect_sync(LLVMGenCtx *ctx,
     zone_cls = llvm_lookup_class(ctx, zone_name);
     effect_cls = llvm_lookup_class(ctx, effect_name);
     self_var = llvm_scope_lookup(ctx, "self");
-    if (effect_decl == NULL || target_slot == NULL || target_slot_name == NULL || world_cls == NULL
+    if (effect_decl == NULL || target_slot_name == NULL || world_cls == NULL
         || zone_cls == NULL || effect_cls == NULL || self_var == NULL) {
         return;
     }
@@ -169,10 +176,9 @@ llvm_emit_world_embedded_action_effect_sync(LLVMGenCtx *ctx,
     refreshes = ast_effect_refreshes(effect_decl, &refresh_count);
 
     for (size_t i = 0; i < layer_view.count; i++) {
-        ASTNode *layer_slot =
-            llvm_hosted_zone_layer_slot_view_source_ast(&layer_view, i);
         const char *layer_name;
         const char *layer_type;
+        int layer_capacity;
         int active_idx;
         int layer_idx;
         int source_idx;
@@ -183,12 +189,15 @@ llvm_emit_world_embedded_action_effect_sync(LLVMGenCtx *ctx,
 
         layer_name = llvm_hosted_zone_layer_slot_view_name(&layer_view, i);
         layer_type = llvm_hosted_zone_layer_slot_view_type_name(&layer_view, i);
-        if (layer_slot == NULL || layer_slot->type != AST_ZONE_LAYER_SLOT
-            || ast_zone_layer_slot_is_relation(layer_slot)
+        if (llvm_hosted_zone_layer_slot_view_is_relation(&layer_view, i)
             || layer_type == NULL
             || strcmp(layer_type, effect_name) != 0) {
             continue;
         }
+        layer_capacity =
+            llvm_hosted_zone_layer_slot_view_pool_capacity(&layer_view, i);
+        if (layer_capacity <= 0)
+            layer_capacity = 1;
 
         if (layer_name == NULL)
             continue;
@@ -307,7 +316,7 @@ llvm_emit_world_embedded_action_effect_sync(LLVMGenCtx *ctx,
         source_value = LLVMBuildLoad2(ctx->builder,
             source_ty, source_ptr, llvm_tmp_name(ctx));
 
-        if (ast_zone_layer_slot_is_pool(layer_slot)) {
+        if (llvm_hosted_zone_layer_slot_view_is_pool(&layer_view, i)) {
             LLVMValueRef tmp_effect = llvm_create_entry_alloca(ctx,
                 effect_cls->struct_type, "world.effect.pool.tmp");
             LLVMValueRef subject_ptr;
@@ -350,8 +359,7 @@ llvm_emit_world_embedded_action_effect_sync(LLVMGenCtx *ctx,
                 count_ptr, llvm_tmp_name(ctx));
             has_space = LLVMBuildICmp(ctx->builder, LLVMIntULT, count_val,
                 LLVMConstInt(LLVMInt8TypeInContext(ctx->context),
-                    ast_zone_layer_slot_pool_capacity(layer_slot) > 0
-                        ? (unsigned)ast_zone_layer_slot_pool_capacity(layer_slot) : 1,
+                    (unsigned)layer_capacity,
                     0),
                 llvm_tmp_name(ctx));
             insert_bb = LLVMAppendBasicBlockInContext(ctx->context, current_fn,
@@ -394,8 +402,7 @@ llvm_emit_world_embedded_action_effect_sync(LLVMGenCtx *ctx,
                     llvm_tmp_name(ctx));
                 LLVMBuildStore(ctx->builder,
                     LLVMConstInt(LLVMInt8TypeInContext(ctx->context),
-                        ast_zone_layer_slot_pool_capacity(layer_slot) > 0
-                            ? (unsigned)ast_zone_layer_slot_pool_capacity(layer_slot) : 1,
+                        (unsigned)layer_capacity,
                         0),
                     cap_ptr);
             }

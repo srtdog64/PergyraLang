@@ -237,7 +237,9 @@ mir_decl_field_metadata_init_domain_slot(MIRDeclField *meta,
         return;
     mir_decl_field_metadata_init(
         meta, header, slot, ast_domain_slot_name(slot),
-        ast_domain_slot_type(slot), NULL, MIR_DECL_FIELD_DOMAIN_SLOT);
+        ast_domain_slot_type(slot),
+        ast_type_name(ast_domain_slot_type(slot)),
+        MIR_DECL_FIELD_DOMAIN_SLOT);
     meta->is_subject_like = ast_domain_slot_is_subject(slot);
 }
 
@@ -251,6 +253,9 @@ mir_decl_field_metadata_init_zone_layer(MIRDeclField *meta,
     mir_decl_field_metadata_init(
         meta, header, slot, ast_zone_layer_slot_name(slot), NULL,
         ast_zone_layer_slot_layer_type(slot), MIR_DECL_FIELD_ZONE_LAYER_SLOT);
+    meta->is_relation_layer = ast_zone_layer_slot_is_relation(slot);
+    meta->is_pool_layer = ast_zone_layer_slot_is_pool(slot);
+    meta->pool_capacity = ast_zone_layer_slot_pool_capacity(slot);
 }
 
 static size_t

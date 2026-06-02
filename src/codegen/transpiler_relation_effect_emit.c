@@ -81,40 +81,50 @@ emit_relation_decl(ASTNode *node, TranspilerCtx *ctx)
             name != NULL ? name : "(anonymous-relation)")) {
         return;
     }
+    TranspilerHostedDomainSlotView slot_view =
+        transpiler_hosted_domain_slot_view_from_decl(ctx, name, node);
+    if (transpiler_hosted_domain_slot_view_missing_mir_metadata(
+            &slot_view)) {
+        transpiler_set_mir_inventory_missing(
+            ctx,
+            "MIR-only C path missing domain-slot metadata for relation '%s'",
+            name != NULL ? name : "(anonymous-relation)");
+        return;
+    }
 
     codebuf_write(ctx->out, "\n/* Relation: %s */\n", name);
     codebuf_write(ctx->out, "typedef struct %s\n{\n", name);
 
-    size_t slot_count = 0;
-    ASTNode **slots = ast_relation_slots(node, &slot_count);
+    size_t slot_count = slot_view.count;
+    ASTNode **slots = slot_view.ast_compat_slots;
     for (size_t i = 0; i < slot_count; i++) {
-        ASTNode *slot = slots[i];
+        const char *slot_name =
+            transpiler_hosted_domain_slot_view_name(&slot_view, i);
         char ft[256];
         char surface_desc[256];
         if (!transpiler_relation_effect_surface_desc(surface_desc,
                 sizeof(surface_desc), "relation slot", name,
-                ast_domain_slot_name(slot))) {
+                slot_name)) {
             transpiler_relation_effect_surface_desc_too_long(
                 ctx, "relation slot");
             return;
         }
         if (!transpiler_require_ast_c_type_copy(
                 ctx,
-                ast_domain_slot_type(slot),
+                transpiler_hosted_domain_slot_view_type(&slot_view, i),
                 surface_desc,
                 ft,
                 sizeof(ft))) {
             return;
         }
-        codebuf_write(ctx->out, "    %s %s;\n", ft,
-            ast_domain_slot_name(slot));
-        if (!ast_domain_slot_is_subject(slot)) {
+        codebuf_write(ctx->out, "    %s %s;\n", ft, slot_name);
+        if (!transpiler_hosted_domain_slot_view_is_subject_like(
+                &slot_view, i)) {
             codebuf_write(ctx->out, "    bool __projection_ready_%s;\n",
-                ast_domain_slot_name(slot));
+                slot_name);
             codebuf_write(ctx->out, "    bool __projection_dirty_%s;\n",
-                ast_domain_slot_name(slot));
-            emit_hidden_provenance_fields(ctx, "projection",
-                ast_domain_slot_name(slot));
+                slot_name);
+            emit_hidden_provenance_fields(ctx, "projection", slot_name);
         }
     }
 
@@ -233,40 +243,50 @@ emit_effect_decl(ASTNode *node, TranspilerCtx *ctx)
             name != NULL ? name : "(anonymous-effect)")) {
         return;
     }
+    TranspilerHostedDomainSlotView slot_view =
+        transpiler_hosted_domain_slot_view_from_decl(ctx, name, node);
+    if (transpiler_hosted_domain_slot_view_missing_mir_metadata(
+            &slot_view)) {
+        transpiler_set_mir_inventory_missing(
+            ctx,
+            "MIR-only C path missing domain-slot metadata for effect '%s'",
+            name != NULL ? name : "(anonymous-effect)");
+        return;
+    }
 
     codebuf_write(ctx->out, "\n/* Effect: %s */\n", name);
     codebuf_write(ctx->out, "typedef struct %s\n{\n", name);
 
-    size_t slot_count = 0;
-    ASTNode **slots = ast_effect_slots(node, &slot_count);
+    size_t slot_count = slot_view.count;
+    ASTNode **slots = slot_view.ast_compat_slots;
     for (size_t i = 0; i < slot_count; i++) {
-        ASTNode *slot = slots[i];
+        const char *slot_name =
+            transpiler_hosted_domain_slot_view_name(&slot_view, i);
         char ft[256];
         char surface_desc[256];
         if (!transpiler_relation_effect_surface_desc(surface_desc,
                 sizeof(surface_desc), "effect slot", name,
-                ast_domain_slot_name(slot))) {
+                slot_name)) {
             transpiler_relation_effect_surface_desc_too_long(
                 ctx, "effect slot");
             return;
         }
         if (!transpiler_require_ast_c_type_copy(
                 ctx,
-                ast_domain_slot_type(slot),
+                transpiler_hosted_domain_slot_view_type(&slot_view, i),
                 surface_desc,
                 ft,
                 sizeof(ft))) {
             return;
         }
-        codebuf_write(ctx->out, "    %s %s;\n", ft,
-            ast_domain_slot_name(slot));
-        if (!ast_domain_slot_is_subject(slot)) {
+        codebuf_write(ctx->out, "    %s %s;\n", ft, slot_name);
+        if (!transpiler_hosted_domain_slot_view_is_subject_like(
+                &slot_view, i)) {
             codebuf_write(ctx->out, "    bool __projection_ready_%s;\n",
-                ast_domain_slot_name(slot));
+                slot_name);
             codebuf_write(ctx->out, "    bool __projection_dirty_%s;\n",
-                ast_domain_slot_name(slot));
-            emit_hidden_provenance_fields(ctx, "projection",
-                ast_domain_slot_name(slot));
+                slot_name);
+            emit_hidden_provenance_fields(ctx, "projection", slot_name);
         }
     }
 

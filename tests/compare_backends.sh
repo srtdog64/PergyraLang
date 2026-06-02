@@ -478,6 +478,7 @@ main() {
         "tests/cases/backend_compare/class_method_short_circuit"
         "tests/cases/backend_compare/class_compose_helper"
         "tests/cases/backend_compare/lexical_shadow_class_method"
+        "tests/cases/backend_compare/llvm_dynamic_scope_capture"
         "tests/cases/backend_compare/list_shadow_scope_metadata"
         "tests/cases/backend_compare/nested_loop_break"
         "tests/cases/backend_compare/function_returning_array"

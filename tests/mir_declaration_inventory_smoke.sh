@@ -66,6 +66,11 @@ for rel in \
     "src/codegen/transpiler_decl_host_lookup.c" \
     "src/codegen/transpiler_decl_field_view.c" \
     "src/codegen/transpiler_decl_slot_view.c" \
+    "src/codegen/transpiler_domain_receiver_query.c" \
+    "src/codegen/transpiler_mir_stmt_emit.c" \
+    "src/codegen/transpiler_overlay_zone_bind.c" \
+    "src/codegen/transpiler_projection_sync.c" \
+    "src/codegen/transpiler_projection_sync.h" \
     "src/codegen/transpiler_domain_role_ability_emit.c" \
     "src/codegen/transpiler_domain_role_ability_emit.h" \
     "src/codegen/transpiler_generic_class_specialization_emit.c" \
@@ -81,6 +86,42 @@ for rel in \
     "docs/100_beta_readiness_checklist.md" \
     "TODO.md"; do
     require_file "$rel"
+done
+
+require_term "src/codegen/transpiler_projection_sync.h" \
+    "void emit_zone_action_effect_runtime(CodeBuf *out"
+require_term "src/codegen/transpiler_mir_stmt_emit.c" \
+    "emit_zone_action_effect_runtime(buf, stmt, ctx)"
+require_term "src/codegen/transpiler_statement_dispatch.c" \
+    "emit_zone_action_effect_runtime(ctx->out, node, ctx)"
+require_term "src/codegen/transpiler_projection_sync.c" \
+    "write_indent_to(out, ctx->indent)"
+require_term "src/codegen/transpiler_overlay_zone_bind.c" \
+    "write_indent_to(out, ctx->indent)"
+require_term "src/codegen/transpiler_domain_receiver_query.c" \
+    "transpiler_resolve_nominal_host_expr_type_name(ctx, receiver)"
+require_term "src/codegen/transpiler_domain_receiver_query.c" \
+    "transpiler_zone_subject_slot_type_name(ctx, zone_decl"
+if grep -Fq "type_name = NULL; /* revert to NULL" \
+    "$ROOT_DIR/src/codegen/transpiler_domain_receiver_query.c"; then
+    fail "zone subject receiver resolution must not keep temporary NULL receiver fallback"
+fi
+if grep -Fq "codebuf_write(ctx->out, \"self->__layer_active_" \
+    "$ROOT_DIR/src/codegen/transpiler_projection_sync.c"; then
+    fail "zone action effect sync must emit through the caller CodeBuf sink"
+fi
+
+for term in \
+    "llvm_hosted_zone_layer_slot_view_is_relation" \
+    "llvm_hosted_zone_layer_slot_view_is_pool" \
+    "llvm_hosted_zone_layer_slot_view_pool_capacity"; do
+    require_term "src/codegen/llvm_inventory_decl_lookup.h" "$term"
+done
+for term in \
+    "mir_decl_field_is_relation_layer(field)" \
+    "mir_decl_field_is_pool_layer(field)" \
+    "mir_decl_field_pool_capacity(field)"; do
+    require_term "src/codegen/llvm_inventory_slot_view.c" "$term"
 done
 
 for term in \
@@ -134,6 +175,28 @@ for rel in \
 done
 require_term "src/codegen/llvm_internal_api.h" \
     "LLVMTypeRef         llvm_class_field_type_at_index"
+require_term "src/codegen/llvm_internal.h" \
+    "LLVMVarEntry *entries"
+require_term "src/codegen/llvm_internal.h" \
+    "int           capacity"
+require_term "src/codegen/llvm_limits_internal.h" \
+    "LLVM_SCOPE_INITIAL_CAPACITY"
+require_term "src/codegen/llvm_registry.c" \
+    "frame->capacity"
+require_term "src/codegen/llvm_stmt_parallel_async.c" \
+    "capture_count"
+require_term "src/codegen/llvm_stmt_parallel_async.c" \
+    "LLVM parallel wrapper registry allocation overflow"
+require_term "src/codegen/llvm_stmt_parallel_async.c" \
+    "out of memory allocating LLVM parallel wrapper registry"
+require_term "src/codegen/llvm_stmt_parallel_async.c" \
+    "LLVM parallel handle registry allocation overflow"
+require_term "src/codegen/llvm_stmt_parallel_async.c" \
+    "out of memory allocating LLVM parallel handle registry"
+if grep -R --include='llvm*.c' --include='llvm*.h' -Fq \
+    "MAX_SCOPE_VARS" "$ROOT_DIR/src/codegen"; then
+    fail "LLVM scope/capture registries must stay dynamically sized, not MAX_SCOPE_VARS bounded"
+fi
 for term in \
     "llvm_class_field_count" \
     "llvm_class_field_name_at" \
@@ -328,9 +391,19 @@ require_term "src/codegen/transpiler_constructor_channel_guard.c" \
     "transpiler_hosted_shared_field_view_missing_mir_metadata(&shared)"
 require_term "src/codegen/transpiler_constructor_channel_guard.c" \
     "transpiler_hosted_shared_field_view_type(view, i)"
+require_term "src/codegen/transpiler_constructor_channel_guard.c" \
+    "TranspilerHostedDomainSlotView slot_view"
+require_term "src/codegen/transpiler_constructor_channel_guard.c" \
+    "transpiler_hosted_domain_slot_view_from_decl(ctx, decl_name"
+require_term "src/codegen/transpiler_constructor_channel_guard.c" \
+    "transpiler_hosted_domain_slot_view_type(view, i)"
 if grep -Fq "pgy_host_shared_fields_compat_view_from_decl" \
     "$ROOT_DIR/src/codegen/transpiler_constructor_channel_guard.c"; then
     fail "C constructor channel guard must consume TranspilerHostedSharedFieldView"
+fi
+if grep -Eq 'ast_relation_slots|ast_effect_slots|ast_zone_slots|ast_domain_slot_(name|type)\(' \
+    "$ROOT_DIR/src/codegen/transpiler_constructor_channel_guard.c"; then
+    fail "C constructor channel guard must consume TranspilerHostedDomainSlotView"
 fi
 require_term "src/codegen/llvm_expr_constructor_channel_guard.c" \
     "llvm_constructor_find_mir_channel_field"
@@ -360,6 +433,12 @@ require_term "src/codegen/llvm_expr_constructor_channel_guard.c" \
     "llvm_hosted_shared_field_view_from_decl(ctx, decl_name, decl)"
 require_term "src/codegen/llvm_expr_constructor_channel_guard.c" \
     "llvm_hosted_shared_field_view_missing_mir_metadata(&shared)"
+require_term "src/codegen/llvm_expr_constructor_channel_guard.c" \
+    "LLVMHostedDomainSlotView slot_view"
+require_term "src/codegen/llvm_expr_constructor_channel_guard.c" \
+    "llvm_hosted_domain_slot_view_from_decl(ctx, decl_name, decl)"
+require_term "src/codegen/llvm_expr_constructor_channel_guard.c" \
+    "llvm_hosted_domain_slot_view_type(view, i)"
 require_term "src/codegen/llvm_expr_constructor_calls.c" \
     "llvm_hosted_shared_field_view_source_ast(view, i)"
 if grep -Fq "pgy_host_shared_fields_compat_view_from_decl" \
@@ -369,6 +448,10 @@ fi
 if grep -Fq "pgy_host_class_fields_compat_view_from_decl" \
     "$ROOT_DIR/src/codegen/llvm_expr_constructor_channel_guard.c"; then
     fail "LLVM constructor calls must consume LLVMHostedFieldView"
+fi
+if grep -Eq 'ast_relation_slots|ast_effect_slots|ast_zone_slots|ast_domain_slot_(name|type)\(' \
+    "$ROOT_DIR/src/codegen/llvm_expr_constructor_channel_guard.c"; then
+    fail "LLVM constructor calls must consume LLVMHostedDomainSlotView"
 fi
 require_term "src/codegen/transpiler_zone_decl_emit.c" \
     "transpiler_hosted_shared_field_view_from_decl(ctx, name, node)"
@@ -639,6 +722,149 @@ for rel in \
         fail "$rel must consume LLVMHostedSharedFieldView for roster shared fields"
     fi
 done
+require_term "src/codegen/transpiler_decl_lookup.h" \
+    "TranspilerHostedRosterSlotView"
+require_term "src/codegen/transpiler_decl_lookup.h" \
+    "transpiler_hosted_roster_slot_view_from_decl"
+require_term "src/codegen/transpiler_decl_lookup.h" \
+    "transpiler_hosted_roster_slot_view_type_name"
+require_term "src/codegen/transpiler_roster_decl_emit.c" \
+    "TranspilerHostedRosterSlotView roster_view"
+require_term "src/codegen/transpiler_roster_decl_emit.c" \
+    "transpiler_hosted_roster_slot_view_from_decl("
+require_term "src/codegen/transpiler_roster_decl_emit.c" \
+    "transpiler_hosted_roster_slot_view_type_name("
+require_term "src/codegen/transpiler_domain_constructor_emit.c" \
+    "TranspilerHostedRosterSlotView roster_view"
+require_term "src/codegen/transpiler_domain_constructor_emit.c" \
+    "transpiler_hosted_roster_slot_view_name("
+require_term "src/codegen/transpiler_overlay_host_fields.c" \
+    "TranspilerHostedRosterSlotView roster_view"
+require_term "src/codegen/transpiler_overlay_host_fields.c" \
+    "transpiler_hosted_roster_slot_view_name(&roster_view, i)"
+require_term "src/codegen/llvm_inventory_decl_lookup.h" \
+    "LLVMHostedRosterSlotView"
+require_term "src/codegen/llvm_inventory_decl_lookup.h" \
+    "llvm_hosted_roster_slot_view_from_decl"
+require_term "src/codegen/llvm_inventory_decl_lookup.h" \
+    "llvm_hosted_roster_slot_view_type_name"
+require_term "src/codegen/llvm_domain_struct_register.c" \
+    "LLVMHostedRosterSlotView roster_view"
+require_term "src/codegen/llvm_domain_struct_register.c" \
+    "llvm_hosted_roster_slot_view_from_decl("
+require_term "src/codegen/llvm_domain_struct_register.c" \
+    "llvm_hosted_roster_slot_view_type_name("
+require_term "src/codegen/llvm_domain_struct_register_fields.c" \
+    "LLVMHostedRosterSlotView roster_view"
+require_term "src/codegen/llvm_domain_struct_register_fields.c" \
+    "llvm_hosted_roster_slot_view_from_decl(ctx, decl_name, stmt)"
+require_term "src/codegen/llvm_domain_struct_register_fields.c" \
+    "llvm_hosted_roster_slot_view_name(&roster_view, j)"
+roster_slot_consumer_hits="$(
+    grep -RInE 'ast_roster_party|ast_roster_slot_(name|party_type)' \
+        "$ROOT_DIR/src/codegen" | \
+        grep -v 'src/codegen/transpiler_decl_slot_view.c' | \
+        grep -v 'src/codegen/llvm_inventory_slot_view.c' || true
+)"
+if [[ -n "$roster_slot_consumer_hits" ]]; then
+    fail "Codegen roster-slot consumers must use hosted roster-slot views:
+$roster_slot_consumer_hits"
+fi
+require_term "src/codegen/transpiler_decl_lookup.h" \
+    "TranspilerHostedDomainSlotView"
+require_term "src/codegen/transpiler_decl_lookup.h" \
+    "transpiler_hosted_domain_slot_view_from_decl"
+require_term "src/codegen/transpiler_decl_lookup.h" \
+    "transpiler_hosted_domain_slot_view_is_subject_like"
+require_term "src/codegen/transpiler_relation_effect_emit.c" \
+    "TranspilerHostedDomainSlotView slot_view"
+require_term "src/codegen/transpiler_relation_effect_emit.c" \
+    "transpiler_hosted_domain_slot_view_from_decl("
+require_term "src/codegen/transpiler_relation_effect_emit.c" \
+    "transpiler_hosted_domain_slot_view_type("
+require_term "src/codegen/transpiler_relation_effect_emit.c" \
+    "transpiler_hosted_domain_slot_view_is_subject_like("
+require_term "src/codegen/transpiler_zone_struct_emit.c" \
+    "TranspilerHostedDomainSlotView slot_view"
+require_term "src/codegen/transpiler_zone_struct_emit.c" \
+    "transpiler_hosted_domain_slot_view_from_decl("
+require_term "src/codegen/transpiler_zone_struct_emit.c" \
+    "transpiler_hosted_domain_slot_view_type("
+require_term "src/codegen/transpiler_domain_constructor_emit.c" \
+    "TranspilerHostedDomainSlotView slot_view"
+require_term "src/codegen/transpiler_domain_constructor_emit.c" \
+    "transpiler_hosted_domain_slot_view_from_decl("
+require_term "src/codegen/transpiler_domain_constructor_emit.c" \
+    "transpiler_hosted_domain_slot_view_source_ast("
+require_term "src/codegen/llvm_inventory_decl_lookup.h" \
+    "LLVMHostedDomainSlotView"
+require_term "src/codegen/llvm_inventory_decl_lookup.h" \
+    "llvm_hosted_domain_slot_view_from_decl"
+require_term "src/codegen/llvm_inventory_decl_lookup.h" \
+    "llvm_hosted_domain_slot_view_is_subject_like"
+require_term "src/codegen/llvm_domain_struct_register.c" \
+    "LLVMHostedDomainSlotView domain_slot_view"
+require_term "src/codegen/llvm_domain_struct_register.c" \
+    "llvm_hosted_domain_slot_view_from_decl("
+require_term "src/codegen/llvm_domain_struct_register.c" \
+    "llvm_hosted_domain_slot_view_type("
+require_term "src/codegen/llvm_domain_struct_register_fields.c" \
+    "LLVMHostedDomainSlotView slot_view"
+require_term "src/codegen/llvm_domain_struct_register_fields.c" \
+    "llvm_hosted_domain_slot_view_from_decl(ctx, decl_name, stmt)"
+require_term "src/codegen/llvm_domain_struct_register_fields.c" \
+    "llvm_hosted_domain_slot_view_is_subject_like(&slot_view, j)"
+require_term "src/codegen/llvm_domain_lookup.c" \
+    "LLVMHostedDomainSlotView slot_view"
+require_term "src/codegen/llvm_domain_lookup.c" \
+    "llvm_hosted_domain_slot_view_from_decl(ctx, zone_name"
+require_term "src/codegen/llvm_domain_lookup.c" \
+    "llvm_hosted_domain_slot_view_source_ast(&slot_view, i)"
+require_term "src/codegen/llvm_expr_assignment_projection.c" \
+    "LLVMHostedDomainSlotView slot_view"
+require_term "src/codegen/llvm_expr_assignment_projection.c" \
+    "llvm_hosted_domain_slot_view_name(&slot_view, i)"
+require_term "src/codegen/llvm_internal_api.h" \
+    "ASTNode *llvm_find_zone_domain_slot_decl(LLVMGenCtx *ctx"
+domain_slot_layout_consumer_hits="$(
+    grep -RInE 'ast_relation_slots|ast_effect_slots|ast_zone_slots|ast_domain_slot_(name|type)\(' \
+        "$ROOT_DIR/src/codegen/transpiler_relation_effect_emit.c" \
+        "$ROOT_DIR/src/codegen/transpiler_zone_struct_emit.c" \
+        "$ROOT_DIR/src/codegen/transpiler_domain_constructor_emit.c" \
+        "$ROOT_DIR/src/codegen/llvm_domain_struct_register.c" \
+        "$ROOT_DIR/src/codegen/llvm_domain_struct_register_fields.c" \
+        "$ROOT_DIR/src/codegen/llvm_domain_lookup.c" \
+        "$ROOT_DIR/src/codegen/llvm_expr_assignment_projection.c" \
+        "$ROOT_DIR/src/codegen/llvm_expr_domain_query_calls.c" || true
+)"
+if [[ -n "$domain_slot_layout_consumer_hits" ]]; then
+    fail "C/LLVM domain layout consumers must use hosted domain-slot views:
+$domain_slot_layout_consumer_hits"
+fi
+require_term "src/codegen/transpiler_nominal.c" \
+    "TranspilerHostedDomainSlotView slot_view"
+require_term "src/codegen/transpiler_nominal.c" \
+    "transpiler_hosted_domain_slot_view_metadata(&slot_view, i)"
+require_term "src/codegen/transpiler_nominal.c" \
+    "transpiler_hosted_domain_slot_view_type(&slot_view, i)"
+require_term "src/codegen/transpiler_overlay_host_fields.c" \
+    "TranspilerHostedDomainSlotView slot_view"
+require_term "src/codegen/transpiler_overlay_host_fields.c" \
+    "transpiler_hosted_domain_slot_view_name(&slot_view, i)"
+require_term "src/codegen/transpiler_mir_ssa_names.c" \
+    "TranspilerHostedDomainSlotView slot_view"
+require_term "src/codegen/transpiler_mir_ssa_names.c" \
+    "transpiler_hosted_domain_slot_view_name(&slot_view, i)"
+domain_slot_c_lookup_consumer_hits="$(
+    grep -RInE 'ast_relation_slots|ast_effect_slots|ast_zone_slots|ast_domain_slot_(name|type)\(' \
+        "$ROOT_DIR/src/codegen/transpiler_nominal.c" \
+        "$ROOT_DIR/src/codegen/transpiler_overlay_host_fields.c" \
+        "$ROOT_DIR/src/codegen/transpiler_mir_ssa_names.c" || true
+)"
+if [[ -n "$domain_slot_c_lookup_consumer_hits" ]]; then
+    fail "C domain lookup/implicit-field consumers must use hosted domain-slot views:
+$domain_slot_c_lookup_consumer_hits"
+fi
 require_term "src/codegen/llvm_domain_struct_register.c" \
     "LLVMHostedZoneLayerSlotView layer_view"
 require_term "src/codegen/llvm_domain_struct_register.c" \
@@ -671,6 +897,20 @@ require_term "src/codegen/llvm_inventory_decl_lookup.h" \
     "llvm_hosted_world_zone_slot_view_from_decl"
 require_term "src/codegen/llvm_inventory_decl_lookup.h" \
     "llvm_hosted_world_zone_slot_view_type_name"
+require_term "src/codegen/llvm_inventory_decl_lookup.h" \
+    "LLVMHostedWorldRosterSlotView"
+require_term "src/codegen/llvm_inventory_decl_lookup.h" \
+    "llvm_hosted_world_roster_slot_view_from_decl"
+require_term "src/codegen/llvm_inventory_decl_lookup.h" \
+    "llvm_hosted_world_roster_slot_view_type_name"
+require_term "src/codegen/llvm_domain_struct_register.c" \
+    "LLVMHostedWorldRosterSlotView roster_view"
+require_term "src/codegen/llvm_domain_struct_register.c" \
+    "llvm_hosted_world_roster_slot_view_from_decl("
+require_term "src/codegen/llvm_domain_struct_register.c" \
+    "llvm_hosted_world_roster_slot_view_missing_mir_metadata("
+require_term "src/codegen/llvm_domain_struct_register.c" \
+    "llvm_hosted_world_roster_slot_view_type_name("
 require_term "src/codegen/llvm_domain_struct_register.c" \
     "LLVMHostedWorldZoneSlotView zone_view"
 require_term "src/codegen/llvm_domain_struct_register.c" \
@@ -681,6 +921,14 @@ require_term "src/codegen/llvm_domain_struct_register.c" \
     "llvm_hosted_world_zone_slot_view_type_name("
 require_term "src/codegen/llvm_domain_struct_register_fields.c" \
     "LLVMHostedWorldZoneSlotView zone_view"
+require_term "src/codegen/llvm_domain_struct_register_fields.c" \
+    "LLVMHostedWorldRosterSlotView roster_view"
+require_term "src/codegen/llvm_domain_struct_register_fields.c" \
+    "llvm_hosted_world_roster_slot_view_from_decl(ctx, decl_name, stmt)"
+require_term "src/codegen/llvm_domain_struct_register_fields.c" \
+    "llvm_hosted_world_roster_slot_view_missing_mir_metadata("
+require_term "src/codegen/llvm_domain_struct_register_fields.c" \
+    "llvm_hosted_world_roster_slot_view_name(&roster_view, j)"
 require_term "src/codegen/llvm_domain_struct_register_fields.c" \
     "llvm_hosted_world_zone_slot_view_from_decl(ctx, decl_name, stmt)"
 require_term "src/codegen/llvm_domain_struct_register_fields.c" \
@@ -718,18 +966,42 @@ require_term "src/codegen/transpiler_decl_lookup.h" \
     "transpiler_hosted_world_zone_slot_view_from_decl"
 require_term "src/codegen/transpiler_decl_lookup.h" \
     "transpiler_hosted_world_zone_slot_view_type_name"
+require_term "src/codegen/transpiler_decl_lookup.h" \
+    "TranspilerHostedWorldRosterSlotView"
+require_term "src/codegen/transpiler_decl_lookup.h" \
+    "transpiler_hosted_world_roster_slot_view_from_decl"
+require_term "src/codegen/transpiler_decl_lookup.h" \
+    "transpiler_hosted_world_roster_slot_view_type_name"
+require_term "src/codegen/transpiler_nominal.c" \
+    "TranspilerHostedWorldRosterSlotView roster_view"
+require_term "src/codegen/transpiler_nominal.c" \
+    "transpiler_hosted_world_roster_slot_view_from_decl("
+require_term "src/codegen/transpiler_nominal.c" \
+    "transpiler_hosted_world_roster_slot_view_type_name("
 require_term "src/codegen/transpiler_nominal.c" \
     "TranspilerHostedWorldZoneSlotView zone_view"
 require_term "src/codegen/transpiler_nominal.c" \
     "transpiler_hosted_world_zone_slot_view_from_decl(ctx, world_name, decl)"
 require_term "src/codegen/transpiler_domain_constructor_emit.c" \
+    "TranspilerHostedWorldRosterSlotView roster_view"
+require_term "src/codegen/transpiler_domain_constructor_emit.c" \
+    "transpiler_hosted_world_roster_slot_view_name("
+require_term "src/codegen/transpiler_domain_constructor_emit.c" \
     "TranspilerHostedWorldZoneSlotView zone_view"
 require_term "src/codegen/transpiler_domain_constructor_emit.c" \
     "transpiler_hosted_world_zone_slot_view_missing_mir_metadata("
 require_term "src/codegen/transpiler_world_select_event_emit.c" \
+    "TranspilerHostedWorldRosterSlotView roster_view"
+require_term "src/codegen/transpiler_world_select_event_emit.c" \
+    "transpiler_hosted_world_roster_slot_view_type_name("
+require_term "src/codegen/transpiler_world_select_event_emit.c" \
     "TranspilerHostedWorldZoneSlotView zone_view"
 require_term "src/codegen/transpiler_world_select_event_emit.c" \
     "transpiler_hosted_world_zone_slot_view_type_name(&zone_view, i)"
+require_term "src/codegen/transpiler_projection.c" \
+    "TranspilerHostedWorldRosterSlotView roster_view"
+require_term "src/codegen/transpiler_projection.c" \
+    "transpiler_hosted_world_roster_slot_view_name(&roster_view, i)"
 require_term "src/codegen/transpiler_world_select_event_emit.c" \
     "pgy_domain_world_embedded_frontier_count_from_zone_types("
 if grep -Fq "pgy_domain_world_embedded_frontier_count(" \
@@ -829,6 +1101,16 @@ c_world_zone_consumer_hits="$(
 if [[ -n "$c_world_zone_consumer_hits" ]]; then
     fail "C world zone-slot consumers must consume TranspilerHostedWorldZoneSlotView:
 $c_world_zone_consumer_hits"
+fi
+world_roster_consumer_hits="$(
+    grep -RInE 'ast_world_rosters|ast_world_roster_(slot_name|type_name)' \
+        "$ROOT_DIR/src/codegen" | \
+        grep -v 'src/codegen/transpiler_decl_slot_view.c' | \
+        grep -v 'src/codegen/llvm_inventory_slot_view.c' || true
+)"
+if [[ -n "$world_roster_consumer_hits" ]]; then
+    fail "Codegen world roster-slot consumers must use hosted roster-slot views:
+$world_roster_consumer_hits"
 fi
 require_term "src/codegen/transpiler_overlay_host_fields.c" \
     "transpiler_decl_name_local(host_decl)"
@@ -1010,10 +1292,16 @@ require_term "src/codegen/llvm_stmt_zone_action.c" \
 require_term "src/codegen/llvm_stmt_zone_action.c" \
     "llvm_hosted_zone_layer_slot_view_type_name(&layer_view, i)"
 require_term "src/codegen/llvm_stmt_zone_action.c" \
-    "llvm_hosted_zone_layer_slot_view_source_ast(&layer_view, i)"
-if grep -Fq "ast_zone_layer_slots" \
+    "llvm_hosted_zone_layer_slot_view_is_relation(&layer_view, i)"
+require_term "src/codegen/llvm_stmt_zone_action.c" \
+    "LLVMHostedDomainSlotView slot_view"
+require_term "src/codegen/llvm_stmt_zone_action.c" \
+    "llvm_hosted_domain_slot_view_is_subject_like(&slot_view, i)"
+require_term "src/codegen/llvm_stmt_zone_action.c" \
+    "llvm_stmt_first_effect_subject_slot_name(ctx,"
+if grep -Eq 'ast_zone_slots|ast_effect_slots|ast_domain_slot_(name|type|is_subject)\(|ast_zone_layer_slot_(is_relation|is_pool|pool_capacity)' \
     "$ROOT_DIR/src/codegen/llvm_stmt_zone_action.c"; then
-    fail "LLVM zone action emission must consume LLVMHostedZoneLayerSlotView"
+    fail "LLVM zone action emission must consume hosted domain/zone metadata views"
 fi
 require_term "src/codegen/llvm_expr_call_methods_world_effect_sync.c" \
     "LLVMHostedZoneLayerSlotView layer_view"
@@ -1026,10 +1314,18 @@ require_term "src/codegen/llvm_expr_call_methods_world_effect_sync.c" \
 require_term "src/codegen/llvm_expr_call_methods_world_effect_sync.c" \
     "llvm_hosted_zone_layer_slot_view_type_name(&layer_view, i)"
 require_term "src/codegen/llvm_expr_call_methods_world_effect_sync.c" \
-    "llvm_hosted_zone_layer_slot_view_source_ast(&layer_view, i)"
-if grep -Fq "ast_zone_layer_slots" \
+    "llvm_hosted_zone_layer_slot_view_is_relation(&layer_view, i)"
+require_term "src/codegen/llvm_expr_call_methods_world_effect_sync.c" \
+    "llvm_hosted_zone_layer_slot_view_is_pool(&layer_view, i)"
+require_term "src/codegen/llvm_expr_call_methods_world_effect_sync.c" \
+    "llvm_hosted_zone_layer_slot_view_pool_capacity(&layer_view, i)"
+require_term "src/codegen/llvm_expr_call_methods_world_effect_sync.c" \
+    "llvm_call_find_first_effect_subject_slot_name(ctx,"
+require_term "src/codegen/llvm_expr_call_methods_world_effect_sync.c" \
+    "llvm_hosted_domain_slot_view_is_subject_like(&slot_view, i)"
+if grep -Eq 'ast_effect_slots|ast_domain_slot_(name|is_subject)\(|ast_zone_layer_slot_(is_relation|is_pool|pool_capacity)' \
     "$ROOT_DIR/src/codegen/llvm_expr_call_methods_world_effect_sync.c"; then
-    fail "LLVM world effect sync must consume LLVMHostedZoneLayerSlotView"
+    fail "LLVM world effect sync must consume hosted domain/zone metadata views"
 fi
 require_term "src/codegen/transpiler_domain_receiver_query.c" \
     "zone_type_name = transpiler_decl_name_local(zone_decl)"
@@ -1066,7 +1362,9 @@ require_term "src/codegen/transpiler_projection_sync.c" \
 require_term "src/codegen/transpiler_projection_sync.c" \
     "transpiler_hosted_zone_layer_slot_view_type_name("
 require_term "src/codegen/transpiler_projection_sync.c" \
-    "transpiler_hosted_zone_layer_slot_view_source_ast("
+    "transpiler_hosted_zone_layer_slot_view_is_relation(&layer_view, i)"
+require_term "src/codegen/transpiler_projection_sync.c" \
+    "transpiler_hosted_zone_layer_slot_view_is_pool(&layer_view, i)"
 if grep -Fq "ast_zone_layer_slots" \
     "$ROOT_DIR/src/codegen/transpiler_projection_sync.c"; then
     fail "C projection sync layer iteration must consume TranspilerHostedZoneLayerSlotView"
@@ -3365,6 +3663,8 @@ for term in \
         fail "MIR declaration method metadata missing term: $term"
     fi
 done
+require_term "src/compiler/mir_decl_headers.c" \
+    "ast_type_name(ast_domain_slot_type(slot))"
 for term in \
     "mir_validate_decl_header_ast_compat" \
     "mir_validate_decl_header_metadata" \

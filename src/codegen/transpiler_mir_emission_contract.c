@@ -21,6 +21,21 @@ static bool transpiler_validate_mir_emission_block_shape(
     size_t reason_cap);
 
 static bool
+transpiler_mir_instruction_kind_is_emit_supported(MIRInstKind kind)
+{
+    return kind == MIR_INST_BRANCH
+        || kind == MIR_INST_RETURN
+        || kind == MIR_INST_RESOURCE_OP
+        || kind == MIR_INST_CLEANUP_EDGE
+        || kind == MIR_INST_PHI
+        || kind == MIR_INST_DEF
+        || kind == MIR_INST_LOOP_INIT
+        || kind == MIR_INST_DESTRUCTURE
+        || kind == MIR_INST_ASSIGN
+        || kind == MIR_INST_STMT;
+}
+
+static bool
 transpiler_validate_mir_emission_contract(const TranspilerCtx *ctx,
                                          const MIRRoutine *routine,
                                          const ASTNode *decl,
@@ -153,11 +168,7 @@ transpiler_validate_mir_emission_contract(const TranspilerCtx *ctx,
 
         for (size_t j = 0; j < block->instruction_count; j++) {
             MIRInstKind kind = block->instructions[j].kind;
-            if (kind != MIR_INST_BRANCH && kind != MIR_INST_RETURN
-                && kind != MIR_INST_RESOURCE_OP && kind != MIR_INST_CLEANUP_EDGE
-                && kind != MIR_INST_PHI && kind != MIR_INST_DEF
-                && kind != MIR_INST_LOOP_INIT
-                && kind != MIR_INST_STMT) {
+            if (!transpiler_mir_instruction_kind_is_emit_supported(kind)) {
                 if (reason != NULL && reason_cap > 0)
                     transpiler_mir_reasonf(reason, reason_cap, "MIR contract invalid for %s: unsupported instruction kind %d in block %llu",
                              routine_name, (int)kind, (unsigned long long) block->id);
@@ -219,12 +230,7 @@ transpiler_validate_mir_emission_block_shape(const MIRBasicBlock *block,
             }
             has_return = true;
             return_count++;
-        } else if (inst->kind != MIR_INST_RESOURCE_OP
-                   && inst->kind != MIR_INST_DEF
-                   && inst->kind != MIR_INST_PHI
-                   && inst->kind != MIR_INST_CLEANUP_EDGE
-                   && inst->kind != MIR_INST_LOOP_INIT
-                   && inst->kind != MIR_INST_STMT) {
+        } else if (!transpiler_mir_instruction_kind_is_emit_supported(inst->kind)) {
             continue;
         }
 

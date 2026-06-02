@@ -26,7 +26,7 @@ emit_c_log_call_for_expr(ASTNode *arg_node, char *arg, TranspilerCtx *ctx)
     type_name = transpiler_expr_infer_type_name(ctx, arg_node);
     if (type_name != NULL && strcmp(type_name, "Bool") == 0)
         return strdup_fmt("pgy_log_bool((bool)(%s))", arg);
-    return strdup_fmt("pgy_log((%s))", arg);
+    return strdup_fmt("pgy_log(%s)", arg);
 }
 
 char *

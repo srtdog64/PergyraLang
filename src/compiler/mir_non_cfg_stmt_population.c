@@ -5,6 +5,7 @@
 #include "mir_base_helpers.h"
 #include "mir_call_fact.h"
 #include "mir_stmt_population.h"
+#include "mir_stmt_population_internal.h"
 #include "mir_type_helpers.h"
 
 static void
@@ -95,15 +96,28 @@ mir_append_non_cfg_body_statements(MIRRoutine *routine, MIRBasicBlock *entry)
                                                       statement_count,
                                                       i,
                                                       stmt)) {
-            if (!mir_append_non_cfg_source_statement(routine, entry, stmt, i)) {
+            MIRInstruction inst = mir_make_assignment_instruction(NULL,
+                                                                  stmt,
+                                                                  i);
+            if (!mir_commit_non_cfg_instruction(routine, entry, &inst)) {
                 return false;
             }
+            mir_record_non_cfg_body_fallback(routine);
             continue;
         }
         if (mir_stmt_requires_source_local_preservation(stmt)) {
             if (!mir_append_non_cfg_source_statement(routine, entry, stmt, i)) {
                 return false;
             }
+            continue;
+        }
+        if (stmt->type == AST_LET_DESTRUCTURE) {
+            MIRInstruction inst = mir_make_destructure_instruction(NULL,
+                                                                   stmt,
+                                                                   i);
+            if (!mir_commit_non_cfg_instruction(routine, entry, &inst))
+                return false;
+            mir_record_non_cfg_body_fallback(routine);
             continue;
         }
         if (mir_stmt_is_def_source(stmt)) {
@@ -128,6 +142,15 @@ mir_append_non_cfg_body_statements(MIRRoutine *routine, MIRBasicBlock *entry)
             }
             if (matched_def)
                 continue;
+        }
+        if (stmt->type == AST_ASSIGNMENT) {
+            MIRInstruction inst = mir_make_assignment_instruction(NULL,
+                                                                  stmt,
+                                                                  i);
+            if (!mir_commit_non_cfg_instruction(routine, entry, &inst))
+                return false;
+            mir_record_non_cfg_body_fallback(routine);
+            continue;
         }
         if (!mir_append_non_cfg_source_statement(routine, entry, stmt, i)) {
             return false;

@@ -64,8 +64,9 @@ air_evidence_node_matches_scope(const AIREvidenceNode *evidence,
                                 AIREvidenceKind kind)
 {
     return evidence != NULL
-        && evidence->kind == kind
-        && evidence->boundary_index == boundary_index;
+        && air_evidence_node_kind(evidence) == kind
+        && air_evidence_node_boundary_index_or(evidence, SIZE_MAX)
+            == boundary_index;
 }
 
 static bool
@@ -75,7 +76,9 @@ air_evidence_node_matches_subject(const AIREvidenceNode *evidence,
                                   const char *subject_name)
 {
     return air_evidence_node_matches_scope(evidence, boundary_index, kind)
-        && air_name_matches(evidence->subject_name, subject_name);
+        && air_name_matches(
+            air_evidence_node_subject_name_or(evidence, NULL),
+            subject_name);
 }
 
 static bool
@@ -85,7 +88,9 @@ air_evidence_node_matches_provider(const AIREvidenceNode *evidence,
                                    const char *provider_name)
 {
     return air_evidence_node_matches_scope(evidence, boundary_index, kind)
-        && air_name_matches(evidence->provider_name, provider_name);
+        && air_name_matches(
+            air_evidence_node_provider_name_or(evidence, NULL),
+            provider_name);
 }
 
 const AIREvidenceNode *
@@ -113,9 +118,7 @@ air_boundary_evidence_provider(const AIRProgram *air,
 {
     const AIREvidenceNode *evidence =
         air_boundary_evidence_node(air, boundary_index, kind);
-    return evidence != NULL && evidence->provider_name != NULL
-        ? evidence->provider_name
-        : "<none>";
+    return air_evidence_node_provider_name_or(evidence, "<none>");
 }
 
 const char *
@@ -125,9 +128,7 @@ air_boundary_evidence_subject(const AIRProgram *air,
 {
     const AIREvidenceNode *evidence =
         air_boundary_evidence_node(air, boundary_index, kind);
-    return evidence != NULL && evidence->subject_name != NULL
-        ? evidence->subject_name
-        : "<none>";
+    return air_evidence_node_subject_name_or(evidence, "<none>");
 }
 
 bool
@@ -204,7 +205,9 @@ air_global_evidence_node_provider_subject(const AIRProgram *air,
                                                SIZE_MAX,
                                                kind,
                                                provider_name)
-            && air_name_matches(node->subject_name, subject_name)) {
+            && air_name_matches(
+                air_evidence_node_subject_name_or(node, NULL),
+                subject_name)) {
             return node;
         }
     }
@@ -253,7 +256,8 @@ air_global_evidence_node_count(const AIRProgram *air, AIREvidenceKind kind)
         const AIREvidenceNode *evidence = air_evidence_node_at(air, i);
         if (evidence == NULL)
             continue;
-        if (evidence->kind == kind && evidence->boundary_index == SIZE_MAX)
+        if (air_evidence_node_kind(evidence) == kind
+            && air_evidence_node_boundary_index_or(evidence, 0) == SIZE_MAX)
             count++;
     }
     return count;
@@ -270,8 +274,9 @@ air_global_evidence_fact_count(const AIRProgram *air, AIREvidenceKind kind)
         const AIREvidenceNode *evidence = air_evidence_node_at(air, i);
         if (evidence == NULL)
             continue;
-        if (evidence->kind == kind && evidence->boundary_index == SIZE_MAX)
-            count += evidence->fact_count;
+        if (air_evidence_node_kind(evidence) == kind
+            && air_evidence_node_boundary_index_or(evidence, 0) == SIZE_MAX)
+            count += air_evidence_node_fact_count(evidence);
     }
     return count;
 }
@@ -287,8 +292,9 @@ air_global_evidence_fallback_count(const AIRProgram *air, AIREvidenceKind kind)
         const AIREvidenceNode *evidence = air_evidence_node_at(air, i);
         if (evidence == NULL)
             continue;
-        if (evidence->kind == kind && evidence->boundary_index == SIZE_MAX)
-            count += evidence->fallback_count;
+        if (air_evidence_node_kind(evidence) == kind
+            && air_evidence_node_boundary_index_or(evidence, 0) == SIZE_MAX)
+            count += air_evidence_node_fallback_count(evidence);
     }
     return count;
 }
@@ -310,7 +316,9 @@ air_boundary_evidence_node_count(const AIRProgram *air, AIREvidenceKind kind)
         const AIREvidenceNode *evidence = air_evidence_node_at(air, i);
         if (evidence == NULL)
             continue;
-        if (evidence->kind == kind && evidence->boundary_index != SIZE_MAX)
+        if (air_evidence_node_kind(evidence) == kind
+            && air_evidence_node_boundary_index_or(evidence, SIZE_MAX)
+                != SIZE_MAX)
             count++;
     }
     return count;
@@ -372,10 +380,15 @@ air_evidence_nodes_duplicate(const AIREvidenceNode *left,
 {
     if (left == NULL || right == NULL)
         return false;
-    return left->kind == right->kind
-        && left->boundary_index == right->boundary_index
-        && air_name_matches(left->provider_name, right->provider_name)
-        && air_name_matches(left->subject_name, right->subject_name);
+    return air_evidence_node_kind(left) == air_evidence_node_kind(right)
+        && air_evidence_node_boundary_index_or(left, SIZE_MAX)
+            == air_evidence_node_boundary_index_or(right, SIZE_MAX)
+        && air_name_matches(
+            air_evidence_node_provider_name_or(left, NULL),
+            air_evidence_node_provider_name_or(right, NULL))
+        && air_name_matches(
+            air_evidence_node_subject_name_or(left, NULL),
+            air_evidence_node_subject_name_or(right, NULL));
 }
 
 bool
@@ -390,26 +403,31 @@ air_validate_evidence_inventory(const AIRProgram *air, char **error_message)
                                     "AIR evidence node %zu is missing", i);
             return false;
         }
-        if (!air_evidence_kind_is_known(evidence->kind)) {
+        AIREvidenceKind kind = air_evidence_node_kind(evidence);
+        size_t boundary_index =
+            air_evidence_node_boundary_index_or(evidence, SIZE_MAX);
+        if (!air_evidence_kind_is_known(kind)) {
             air_set_invariant_error(error_message, "AIR evidence node %zu has invalid kind", i);
             return false;
         }
-        if (evidence->boundary_index >= air_boundary_node_count(air)
-            && !(evidence->boundary_index == SIZE_MAX
-                 && air_evidence_kind_is_global(evidence->kind))) {
+        if (boundary_index >= air_boundary_node_count(air)
+            && !(boundary_index == SIZE_MAX
+                 && air_evidence_kind_is_global(kind))) {
             air_set_invariant_error(error_message,
                                     "AIR evidence node %zu references missing boundary node %zu",
                                     i,
-                                    evidence->boundary_index);
+                                    boundary_index);
             return false;
         }
-        if (air_name_is_empty(evidence->provider_name)) {
+        if (air_name_is_empty(
+                air_evidence_node_provider_name_or(evidence, NULL))) {
             air_set_invariant_error(error_message,
                                     "AIR evidence node %zu has no provider provenance",
                                     i);
             return false;
         }
-        if (air_name_is_empty(evidence->subject_name)) {
+        if (air_name_is_empty(
+                air_evidence_node_subject_name_or(evidence, NULL))) {
             air_set_invariant_error(error_message,
                                     "AIR evidence node %zu has no subject provenance",
                                     i);

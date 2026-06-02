@@ -286,9 +286,10 @@ typedef struct
 
 typedef struct
 {
-    LLVMVarEntry entries[MAX_SCOPE_VARS];
-    int          count;
-    const char  *last_lookup_name;
+    LLVMVarEntry *entries;
+    int           count;
+    int           capacity;
+    const char   *last_lookup_name;
     LLVMVarEntry *last_lookup;
 } LLVMScopeFrame;
 
@@ -367,7 +368,7 @@ typedef struct LLVMGenCtx
     LLVMBuilderRef  builder;
     LLVMContextRef  context;
 
-    /* Scope stack: fixed depth (nesting rarely exceeds 64). */
+    /* Scope stack: fixed depth, dynamic entries per scope. */
     LLVMScopeFrame  scopes[MAX_SCOPE_DEPTH];
     int             scope_depth;
 

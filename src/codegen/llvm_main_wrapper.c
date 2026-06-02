@@ -124,22 +124,41 @@ llvm_main_emit_thread_pool_shutdown(LLVMGenCtx *ctx, bool needs_thread_pool)
 void
 llvm_emit_main_wrapper(LLVMGenCtx *ctx)
 {
+    if (ctx == NULL)
+        return;
+
+    LLVMFuncEntry *user_lowercase = llvm_lookup_function(ctx, "main");
+
+    if (!llvm_active_has_mir(ctx)
+        && llvm_lookup_function(ctx, "Main") == NULL
+        && user_lowercase == NULL) {
+        return;
+    }
+
     ASTNode *synthetic_executable_func = NULL;
     bool has_top_level_exec = false;
     bool has_main_function = false;
     bool needs_thread_pool = false;
 
-    if (ctx == NULL || !llvm_active_has_mir(ctx))
-        return;
-
     LLVMFuncEntry *main_user = NULL;
     synthetic_executable_func = llvm_active_synthetic_executable_func(ctx);
     has_top_level_exec = llvm_active_has_top_level_exec(ctx);
-    has_main_function = llvm_active_has_main_function(ctx);
+    has_main_function = llvm_active_has_main_function(ctx)
+        || llvm_lookup_function(ctx, "Main") != NULL
+        || user_lowercase != NULL;
     needs_thread_pool = llvm_main_requires_thread_pool(ctx);
 
-    if (has_main_function)
+    if (has_main_function) {
         main_user = llvm_lookup_function(ctx, "Main");
+        if (main_user == NULL) {
+            main_user = user_lowercase;
+        }
+    }
+
+    if (main_user != NULL && strcmp(main_user->name, "main") == 0) {
+        main_user->name = "Main";
+        LLVMSetValueName(main_user->fn, "Main");
+    }
     if (has_main_function && main_user == NULL) {
         llvm_set_mir_inventory_missing(ctx,
             "MIR-only LLVM path missing registered executable function 'Main'");

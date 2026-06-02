@@ -143,14 +143,25 @@ transpiler_emit_roster_constructor(ASTNode *call,
                                    TranspilerCtx *ctx)
 {
     size_t argc = ast_call_arg_count(call);
-    size_t roster_party_count = ast_roster_party_count(roster_decl);
     const char *decl_name = transpiler_decl_name_local(roster_decl);
+    TranspilerHostedRosterSlotView roster_view =
+        transpiler_hosted_roster_slot_view_from_decl(ctx, decl_name,
+            roster_decl);
+    size_t roster_party_count = roster_view.count;
     TranspilerHostedSharedFieldView shared_view =
         transpiler_hosted_shared_field_view_from_decl(ctx, decl_name, roster_decl);
     size_t shared_count = shared_view.count;
     size_t exposed = roster_party_count + shared_count;
     CodeBuf *fields = codebuf_create();
 
+    if (transpiler_hosted_roster_slot_view_missing_mir_metadata(
+            &roster_view)) {
+        transpiler_set_mir_inventory_missing(ctx,
+            "MIR-only C path missing roster-slot declaration metadata for roster '%s'",
+            decl_name != NULL ? decl_name : "(anonymous-roster)");
+        codebuf_destroy(fields);
+        return pergyra_strdup("0");
+    }
     if (transpiler_hosted_shared_field_view_missing_mir_metadata(&shared_view)) {
         transpiler_set_mir_inventory_missing(ctx,
             "MIR-only C path missing shared-field declaration metadata for roster '%s'",
@@ -162,11 +173,9 @@ transpiler_emit_roster_constructor(ASTNode *call,
     for (size_t i = 0; i < argc && i < exposed; i++) {
         const char *field_name = NULL;
         ASTNode *field_type = NULL;
-        ASTNode *slot = NULL;
         if (i < roster_party_count) {
-            slot = ast_roster_party(roster_decl, i);
-            field_name = ast_roster_slot_name(slot) != NULL
-                ? ast_roster_slot_name(slot) : "field";
+            field_name = transpiler_hosted_roster_slot_view_name(
+                &roster_view, i);
         } else {
             size_t shared_index = i - roster_party_count;
             field_name = transpiler_hosted_shared_field_view_name(
@@ -226,20 +235,27 @@ transpiler_emit_relation_effect_constructor(ASTNode *call,
                                             TranspilerCtx *ctx)
 {
     size_t argc = ast_call_arg_count(call);
-    size_t slot_count = 0;
     const char *decl_name = transpiler_decl_name_local(decl);
+    TranspilerHostedDomainSlotView slot_view =
+        transpiler_hosted_domain_slot_view_from_decl(ctx, decl_name, decl);
+    size_t slot_count = slot_view.count;
     TranspilerHostedSharedFieldView shared_view =
         transpiler_hosted_shared_field_view_from_decl(ctx, decl_name, decl);
     size_t shared_count = shared_view.count;
     size_t refresh_count = 0;
-    ASTNode **slots = decl->type == AST_RELATION_DECL
-        ? ast_relation_slots(decl, &slot_count)
-        : ast_effect_slots(decl, &slot_count);
     ASTNode **refreshes = decl->type == AST_RELATION_DECL
         ? ast_relation_refreshes(decl, &refresh_count)
         : ast_effect_refreshes(decl, &refresh_count);
     CodeBuf *fields = codebuf_create();
 
+    if (transpiler_hosted_domain_slot_view_missing_mir_metadata(
+            &slot_view)) {
+        transpiler_set_mir_inventory_missing(ctx,
+            "MIR-only C path missing domain-slot declaration metadata for domain '%s'",
+            decl_name != NULL ? decl_name : "(anonymous-domain)");
+        codebuf_destroy(fields);
+        return pergyra_strdup("0");
+    }
     if (transpiler_hosted_shared_field_view_missing_mir_metadata(&shared_view)) {
         transpiler_set_mir_inventory_missing(ctx,
             "MIR-only C path missing shared-field declaration metadata for domain '%s'",
@@ -251,11 +267,11 @@ transpiler_emit_relation_effect_constructor(ASTNode *call,
     for (size_t i = 0; i < argc && i < slot_count + shared_count; i++) {
         const char *field_name = NULL;
         ASTNode *field_type = NULL;
-        ASTNode *slot = NULL;
         if (i < slot_count) {
-            slot = slots[i];
-            field_name = ast_domain_slot_name(slot);
-            field_type = ast_domain_slot_type(slot);
+            field_name = transpiler_hosted_domain_slot_view_name(
+                &slot_view, i);
+            field_type = transpiler_hosted_domain_slot_view_type(
+                &slot_view, i);
         } else {
             field_name = transpiler_hosted_shared_field_view_name(
                 &shared_view, i - slot_count);
@@ -299,8 +315,10 @@ transpiler_emit_relation_effect_constructor(ASTNode *call,
     }
 
     for (size_t i = 0; i < slot_count; i++) {
-        ASTNode *slot = slots[i];
-        const char *slot_name = ast_domain_slot_name(slot);
+        ASTNode *slot =
+            transpiler_hosted_domain_slot_view_source_ast(&slot_view, i);
+        const char *slot_name =
+            transpiler_hosted_domain_slot_view_name(&slot_view, i);
         bool projection_slot = slot != NULL
             && (ast_domain_slot_is_tobject(slot)
                 || transpiler_domain_slot_is_projection_target(
@@ -328,9 +346,11 @@ transpiler_emit_zone_constructor(ASTNode *call,
                                  TranspilerCtx *ctx)
 {
     size_t argc = ast_call_arg_count(call);
-    size_t slot_count = 0;
-    ASTNode **slots = ast_zone_slots(zone_decl, &slot_count);
     const char *decl_name = transpiler_decl_name_local(zone_decl);
+    TranspilerHostedDomainSlotView slot_view =
+        transpiler_hosted_domain_slot_view_from_decl(ctx, decl_name,
+            zone_decl);
+    size_t slot_count = slot_view.count;
     TranspilerHostedSharedFieldView shared_view =
         transpiler_hosted_shared_field_view_from_decl(ctx, decl_name, zone_decl);
     size_t shared_count = shared_view.count;
@@ -338,6 +358,14 @@ transpiler_emit_zone_constructor(ASTNode *call,
     ASTNode **refreshes = ast_zone_refreshes(zone_decl, &refresh_count);
     CodeBuf *fields = codebuf_create();
 
+    if (transpiler_hosted_domain_slot_view_missing_mir_metadata(
+            &slot_view)) {
+        transpiler_set_mir_inventory_missing(ctx,
+            "MIR-only C path missing domain-slot declaration metadata for zone '%s'",
+            decl_name != NULL ? decl_name : "(anonymous-zone)");
+        codebuf_destroy(fields);
+        return pergyra_strdup("0");
+    }
     if (transpiler_hosted_shared_field_view_missing_mir_metadata(&shared_view)) {
         transpiler_set_mir_inventory_missing(ctx,
             "MIR-only C path missing shared-field declaration metadata for zone '%s'",
@@ -349,11 +377,11 @@ transpiler_emit_zone_constructor(ASTNode *call,
     for (size_t i = 0; i < argc && i < slot_count + shared_count; i++) {
         const char *field_name = NULL;
         ASTNode *field_type = NULL;
-        ASTNode *slot = NULL;
         if (i < slot_count) {
-            slot = slots[i];
-            field_name = ast_domain_slot_name(slot);
-            field_type = ast_domain_slot_type(slot);
+            field_name = transpiler_hosted_domain_slot_view_name(
+                &slot_view, i);
+            field_type = transpiler_hosted_domain_slot_view_type(
+                &slot_view, i);
         } else {
             field_name = transpiler_hosted_shared_field_view_name(
                 &shared_view, i - slot_count);
@@ -397,8 +425,10 @@ transpiler_emit_zone_constructor(ASTNode *call,
     }
 
     for (size_t i = 0; i < slot_count; i++) {
-        ASTNode *slot = slots[i];
-        const char *slot_name = ast_domain_slot_name(slot);
+        ASTNode *slot =
+            transpiler_hosted_domain_slot_view_source_ast(&slot_view, i);
+        const char *slot_name =
+            transpiler_hosted_domain_slot_view_name(&slot_view, i);
         bool projection_slot = slot != NULL
             && (ast_domain_slot_is_tobject(slot)
                 || transpiler_domain_slot_is_projection_target(
@@ -427,9 +457,11 @@ transpiler_emit_world_constructor(ASTNode *call,
 {
     size_t argc = ast_call_arg_count(call);
     CodeBuf *fields = codebuf_create();
-    size_t roster_count = 0;
-    ASTNode **rosters = ast_world_rosters(world_decl, &roster_count);
     const char *decl_name = transpiler_decl_name_local(world_decl);
+    TranspilerHostedWorldRosterSlotView roster_view =
+        transpiler_hosted_world_roster_slot_view_from_decl(ctx, decl_name,
+            world_decl);
+    size_t roster_count = roster_view.count;
     TranspilerHostedWorldZoneSlotView zone_view =
         transpiler_hosted_world_zone_slot_view_from_decl(ctx, decl_name,
             world_decl);
@@ -439,6 +471,14 @@ transpiler_emit_world_constructor(ASTNode *call,
     size_t shared_count = shared_view.count;
     size_t exposed = roster_count + zone_count + shared_count;
 
+    if (transpiler_hosted_world_roster_slot_view_missing_mir_metadata(
+            &roster_view)) {
+        transpiler_set_mir_inventory_missing(ctx,
+            "MIR-only C path missing roster-slot declaration metadata for world '%s'",
+            decl_name != NULL ? decl_name : "(anonymous-world)");
+        codebuf_destroy(fields);
+        return pergyra_strdup("0");
+    }
     if (transpiler_hosted_shared_field_view_missing_mir_metadata(&shared_view)) {
         transpiler_set_mir_inventory_missing(ctx,
             "MIR-only C path missing shared-field declaration metadata for world '%s'",
@@ -458,10 +498,9 @@ transpiler_emit_world_constructor(ASTNode *call,
     for (size_t i = 0; i < argc && i < exposed; i++) {
         const char *field_name = NULL;
         ASTNode *field_type = NULL;
-        ASTNode *slot = NULL;
         if (i < roster_count) {
-            slot = rosters[i];
-            field_name = ast_world_roster_slot_name(slot);
+            field_name = transpiler_hosted_world_roster_slot_view_name(
+                &roster_view, i);
         } else if (i < roster_count + zone_count) {
             field_name = transpiler_hosted_world_zone_slot_view_name(
                 &zone_view, i - roster_count);

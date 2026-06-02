@@ -22,6 +22,8 @@ mir_inst_kind_name(MIRInstKind kind)
         case MIR_INST_RETURN: return "return";
         case MIR_INST_CLEANUP_EDGE: return "cleanup";
         case MIR_INST_LOOP_INIT: return "loop-init";
+        case MIR_INST_DESTRUCTURE: return "destructure";
+        case MIR_INST_ASSIGN: return "assign";
         case MIR_INST_STMT: return "stmt";
         default: return "unknown";
     }

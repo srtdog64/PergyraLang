@@ -10,7 +10,8 @@
 
 #include "transpiler.h"
 
-ASTNode *transpiler_find_zone_domain_slot(ASTNode *zone_decl,
+ASTNode *transpiler_find_zone_domain_slot(TranspilerCtx *ctx,
+                                          ASTNode *zone_decl,
                                           const char *slot_name);
 bool transpiler_domain_slot_is_projection_target(ASTNode *slot,
                                                  ASTNode **refreshes,

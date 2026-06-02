@@ -182,7 +182,7 @@ emit_builtin_has_zone_projection(ASTNode *call, TranspilerCtx *ctx)
         ? transpiler_resolve_world_zone_decl(ctx, world_decl, zone_name)
         : NULL;
     ASTNode *slot_decl = zone_decl != NULL && slot_name != NULL
-        ? transpiler_find_zone_domain_slot(zone_decl, slot_name)
+        ? transpiler_find_zone_domain_slot(ctx, zone_decl, slot_name)
         : NULL;
 
     if (world_decl != NULL

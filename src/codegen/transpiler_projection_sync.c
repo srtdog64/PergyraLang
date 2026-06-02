@@ -16,7 +16,7 @@
 #include "transpiler_projection.h"
 
 void
-emit_zone_action_effect_runtime(ASTNode *call, TranspilerCtx *ctx)
+emit_zone_action_effect_runtime(CodeBuf *out, ASTNode *call, TranspilerCtx *ctx)
 {
     ASTNode *callee;
     ASTNode *receiver;
@@ -29,7 +29,7 @@ emit_zone_action_effect_runtime(ASTNode *call, TranspilerCtx *ctx)
     const char *effect_name;
     const char *active_zone_name = NULL;
 
-    if (ctx == NULL || call == NULL
+    if (out == NULL || ctx == NULL || call == NULL
         || call->type != AST_CALL) {
         return;
     }
@@ -83,16 +83,12 @@ emit_zone_action_effect_runtime(ASTNode *call, TranspilerCtx *ctx)
         return;
     }
     for (size_t i = 0; i < layer_view.count; i++) {
-        ASTNode *layer_slot =
-            transpiler_hosted_zone_layer_slot_view_source_ast(
-                &layer_view, i);
         const char *layer_name;
         const char *layer_type =
             transpiler_hosted_zone_layer_slot_view_type_name(
                 &layer_view, i);
 
-        if (layer_slot == NULL || layer_slot->type != AST_ZONE_LAYER_SLOT
-            || ast_zone_layer_slot_is_relation(layer_slot)
+        if (transpiler_hosted_zone_layer_slot_view_is_relation(&layer_view, i)
             || layer_type == NULL
             || strcmp(layer_type, effect_name) != 0) {
             continue;
@@ -103,9 +99,10 @@ emit_zone_action_effect_runtime(ASTNode *call, TranspilerCtx *ctx)
         if (layer_name == NULL)
             continue;
 
-        write_indent(ctx);
-        codebuf_write(ctx->out, "self->__layer_active_%s = true;\n", layer_name);
-        emit_zone_bind_effect_layer(ctx->out, zone_decl, layer_name, receiver_slot_name, ctx);
+        write_indent_to(out, ctx->indent);
+        codebuf_write(out, "self->__layer_active_%s = true;\n", layer_name);
+        emit_zone_bind_effect_layer(out, zone_decl, layer_name,
+                                    receiver_slot_name, ctx);
     }
 }
 
@@ -181,9 +178,6 @@ emit_world_embedded_action_effect_sync(TranspilerCtx *ctx,
     ASTNode **effect_refreshes =
         ast_effect_refreshes(effect_decl, &effect_refresh_count);
     for (size_t i = 0; i < layer_view.count; i++) {
-        ASTNode *layer_slot =
-            transpiler_hosted_zone_layer_slot_view_source_ast(
-                &layer_view, i);
         ASTNode *target_slot;
         const char *layer_name;
         const char *layer_type =
@@ -191,8 +185,7 @@ emit_world_embedded_action_effect_sync(TranspilerCtx *ctx,
                 &layer_view, i);
         int tmp_id;
 
-        if (layer_slot == NULL || layer_slot->type != AST_ZONE_LAYER_SLOT
-            || ast_zone_layer_slot_is_relation(layer_slot)
+        if (transpiler_hosted_zone_layer_slot_view_is_relation(&layer_view, i)
             || layer_type == NULL
             || strcmp(layer_type, effect_name) != 0) {
             continue;
@@ -232,7 +225,7 @@ emit_world_embedded_action_effect_sync(TranspilerCtx *ctx,
                 zone_slot_name, ast_zone_state_name(state));
         }
 
-        if (ast_zone_layer_slot_is_pool(layer_slot)) {
+        if (transpiler_hosted_zone_layer_slot_view_is_pool(&layer_view, i)) {
             tmp_id = ++ctx->tmp_counter;
             codebuf_write(buf,
                 "{ %s _pgy_world_effect_%d = (%s){0}; "

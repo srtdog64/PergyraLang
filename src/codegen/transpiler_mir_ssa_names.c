@@ -163,13 +163,20 @@ transpiler_is_implicit_field(TranspilerCtx *ctx, const char *base_name)
             transpiler_find_decl_in_inventory_local(ctx, AST_ZONE_DECL,
                                                     host_name);
         if (zone_decl != NULL) {
-            size_t slot_count = 0;
-            ASTNode **slots = ast_zone_slots(zone_decl, &slot_count);
-            for (size_t i = 0; i < slot_count; i++) {
-                ASTNode *slot = slots[i];
-                const char *slot_name = ast_domain_slot_name(slot);
-                if (slot != NULL && slot_name != NULL
-                    && strcmp(slot_name, base_name) == 0) {
+            TranspilerHostedDomainSlotView slot_view =
+                transpiler_hosted_domain_slot_view_from_decl(ctx, host_name,
+                    zone_decl);
+            if (transpiler_hosted_domain_slot_view_missing_mir_metadata(
+                    &slot_view)) {
+                transpiler_set_mir_inventory_missing(ctx,
+                    "MIR-only C path missing zone domain-slot SSA metadata for '%s'",
+                    host_name != NULL ? host_name : "(anonymous-zone)");
+                return false;
+            }
+            for (size_t i = 0; i < slot_view.count; i++) {
+                const char *slot_name =
+                    transpiler_hosted_domain_slot_view_name(&slot_view, i);
+                if (slot_name != NULL && strcmp(slot_name, base_name) == 0) {
                     return true;
                 }
             }

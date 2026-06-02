@@ -171,10 +171,9 @@ run_literal_air_drift_smoke() {
         fi
     done
     raw_evidence_hits="$(
-        grep -RInE -- 'evidence->(kind|boundary_index|provider_name|subject_name|fact_count|fallback_count)' "$ROOT_DIR/src/compiler" \
-            --include='air*.c' --include='air*.h' \
+        grep -RInE --include='air*.c' --include='air*.h' -- \
+            'evidence->(kind|boundary_index|provider_name|subject_name|fact_count|fallback_count)' "$ROOT_DIR/src/compiler" \
             | grep -v 'src/compiler/air_evidence_node.c:' \
-            | grep -v 'src/compiler/air_validate_evidence.c:' \
             || true
     )"
     if [[ -n "$raw_evidence_hits" ]]; then
@@ -1025,7 +1024,6 @@ for raw_field in [
         )
 allowed_raw_evidence_paths = {
     root / "src" / "compiler" / "air_evidence_node.c",
-    root / "src" / "compiler" / "air_validate_evidence.c",
 }
 for path in (root / "src" / "compiler").glob("air*.[ch]"):
     if path in allowed_raw_evidence_paths:

@@ -83,7 +83,7 @@ transpiler_emit_mir_call_statement(CodeBuf *buf,
 
     write_indent_to(buf, ctx->indent);
     codebuf_write(buf, "%s;\n", expr);
-    emit_zone_action_effect_runtime(stmt, ctx);
+    emit_zone_action_effect_runtime(buf, stmt, ctx);
     free(expr);
     return true;
 }

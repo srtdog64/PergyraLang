@@ -32,5 +32,8 @@ MIRDeclFieldKind mir_decl_field_kind_or(const MIRDeclField *field,
                                         MIRDeclFieldKind fallback);
 bool mir_decl_field_is_dynamic(const MIRDeclField *field);
 bool mir_decl_field_is_subject_like(const MIRDeclField *field);
+bool mir_decl_field_is_relation_layer(const MIRDeclField *field);
+bool mir_decl_field_is_pool_layer(const MIRDeclField *field);
+int mir_decl_field_pool_capacity(const MIRDeclField *field);
 
 #endif /* PGY_MIR_DECL_HEADERS_H */

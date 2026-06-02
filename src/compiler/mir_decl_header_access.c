@@ -149,3 +149,21 @@ mir_decl_field_is_subject_like(const MIRDeclField *field)
 {
     return field != NULL && field->is_subject_like;
 }
+
+bool
+mir_decl_field_is_relation_layer(const MIRDeclField *field)
+{
+    return field != NULL && field->is_relation_layer;
+}
+
+bool
+mir_decl_field_is_pool_layer(const MIRDeclField *field)
+{
+    return field != NULL && field->is_pool_layer;
+}
+
+int
+mir_decl_field_pool_capacity(const MIRDeclField *field)
+{
+    return field != NULL ? field->pool_capacity : 0;
+}

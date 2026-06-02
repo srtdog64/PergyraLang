@@ -480,7 +480,8 @@ ASTNode *llvm_find_world_state_decl(LLVMGenCtx *ctx, ASTNode *world_decl,
                                     const char *state_name);
 ASTNode *llvm_resolve_world_zone_decl(LLVMGenCtx *ctx, ASTNode *world_decl,
                                       const char *slot_name);
-ASTNode *llvm_find_zone_domain_slot_decl(ASTNode *zone_decl,
+ASTNode *llvm_find_zone_domain_slot_decl(LLVMGenCtx *ctx,
+                                         ASTNode *zone_decl,
                                          const char *slot_name);
 ASTNode *llvm_find_zone_layer_slot_decl(LLVMGenCtx *ctx,
                                         ASTNode *zone_decl,

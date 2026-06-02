@@ -2,7 +2,7 @@
 //
 // Status: rung-2 minimal (2026-05-27). Sister tool to tool 8 -- iterates
 // the committed `.c` manifest, reads each translation unit, counts
-// newlines, asserts <= 600 LOC.
+// newlines, asserts the current production C size cap.
 //
 // Cwd contract: the parity harness cd's into the repo root before running.
 //
@@ -56,13 +56,8 @@ func MissingManifestJson(path: String) -> String {
 
 func Main() -> Void {
     let manifest_path: String = "src/self_hosted/tools/production_c_size_checker/fixture/c_files_manifest.txt";
-    // Temporary lift from 600 to 900: 5 files crossed the original 600
-    // cap during MIR-to-LLVM transpiler / declaration-inventory work
-    // (transpiler_decl_lookup.c=848, mir_decl_headers.c=715,
-    // transpiler_domain_constructor_emit.c=640, llvm_inventory_decl_lookup.c=667,
-    // llvm_expr_constructor_calls.c=610). Permanent cleanup is deferred to
-    // Pergyra self-host namespace block restructure (see memory
-    // project_code_quality_self_host_deferred).
+    // Temporary 900-line production C cap. The checker records current
+    // max_lines from the manifest so source-owner splits cannot drift silently.
     let cap: Int = 900;
 
     if !FileExists(manifest_path) {

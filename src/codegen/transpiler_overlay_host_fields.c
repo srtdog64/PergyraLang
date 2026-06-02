@@ -13,33 +13,62 @@
 #include "transpiler_host_self_policy.h"
 
 static bool
-domain_slot_list_has_field(ASTNode **slots, size_t slot_count,
+domain_slot_view_has_field(TranspilerCtx *ctx,
+                           ASTNode *decl,
                            const char *field_name)
 {
-    for (size_t i = 0; i < slot_count; i++) {
-        ASTNode *slot = slots[i];
-        const char *slot_name = ast_domain_slot_name(slot);
-        if (slot != NULL && slot_name != NULL
-            && strcmp(slot_name, field_name) == 0) {
+    const char *host_name;
+    TranspilerHostedDomainSlotView slot_view;
+
+    if (ctx == NULL || decl == NULL || field_name == NULL)
+        return false;
+
+    host_name = transpiler_decl_name_local(decl);
+    slot_view = transpiler_hosted_domain_slot_view_from_decl(ctx, host_name,
+        decl);
+    if (transpiler_hosted_domain_slot_view_missing_mir_metadata(
+            &slot_view)) {
+        transpiler_set_mir_inventory_missing(ctx,
+            "MIR-only C path missing domain-slot existence metadata for '%s'",
+            host_name != NULL ? host_name : "(anonymous-domain)");
+        return false;
+    }
+
+    for (size_t i = 0; i < slot_view.count; i++) {
+        const char *slot_name =
+            transpiler_hosted_domain_slot_view_name(&slot_view, i);
+        if (slot_name != NULL && strcmp(slot_name, field_name) == 0)
             return true;
-        }
     }
 
     return false;
 }
 
 static bool
-roster_slot_list_has_field(ASTNode *roster, const char *field_name)
+roster_slot_view_has_field(TranspilerCtx *ctx,
+                           ASTNode *roster,
+                           const char *field_name)
 {
-    size_t party_count;
+    const char *roster_name;
+    TranspilerHostedRosterSlotView roster_view;
 
-    if (roster == NULL || field_name == NULL)
+    if (ctx == NULL || roster == NULL || field_name == NULL)
         return false;
 
-    party_count = ast_roster_party_count(roster);
-    for (size_t i = 0; i < party_count; i++) {
-        ASTNode *slot = ast_roster_party(roster, i);
-        const char *slot_name = ast_roster_slot_name(slot);
+    roster_name = transpiler_decl_name_local(roster);
+    roster_view = transpiler_hosted_roster_slot_view_from_decl(
+        ctx, roster_name, roster);
+    if (transpiler_hosted_roster_slot_view_missing_mir_metadata(
+            &roster_view)) {
+        transpiler_set_mir_inventory_missing(ctx,
+            "MIR-only C path missing roster-slot existence metadata for '%s'",
+            roster_name != NULL ? roster_name : "(anonymous-roster)");
+        return false;
+    }
+
+    for (size_t i = 0; i < roster_view.count; i++) {
+        const char *slot_name =
+            transpiler_hosted_roster_slot_view_name(&roster_view, i);
         if (slot_name != NULL && strcmp(slot_name, field_name) == 0)
             return true;
     }
@@ -181,9 +210,7 @@ current_zone_has_field(TranspilerCtx *ctx, const char *field_name)
     if (decl == NULL)
         return false;
 
-    size_t slot_count = 0;
-    ASTNode **slots = ast_zone_slots(decl, &slot_count);
-    if (domain_slot_list_has_field(slots, slot_count, field_name))
+    if (domain_slot_view_has_field(ctx, decl, field_name))
         return true;
     if (zone_layer_view_has_field(ctx, decl, field_name))
         return true;
@@ -225,7 +252,7 @@ current_roster_has_field(TranspilerCtx *ctx, const char *field_name)
     if (decl == NULL)
         return false;
 
-    if (roster_slot_list_has_field(decl, field_name))
+    if (roster_slot_view_has_field(ctx, decl, field_name))
         return true;
 
     if (host_shared_view_has_field(ctx, decl, field_name))
@@ -248,9 +275,7 @@ current_relation_has_field(TranspilerCtx *ctx, const char *field_name)
     if (decl == NULL)
         return false;
 
-    size_t slot_count = 0;
-    ASTNode **slots = ast_relation_slots(decl, &slot_count);
-    if (domain_slot_list_has_field(slots, slot_count, field_name))
+    if (domain_slot_view_has_field(ctx, decl, field_name))
         return true;
     if (host_shared_view_has_field(ctx, decl, field_name))
         return true;
@@ -272,9 +297,7 @@ current_effect_has_field(TranspilerCtx *ctx, const char *field_name)
     if (decl == NULL)
         return false;
 
-    size_t slot_count = 0;
-    ASTNode **slots = ast_effect_slots(decl, &slot_count);
-    if (domain_slot_list_has_field(slots, slot_count, field_name))
+    if (domain_slot_view_has_field(ctx, decl, field_name))
         return true;
     if (host_shared_view_has_field(ctx, decl, field_name))
         return true;

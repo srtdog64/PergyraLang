@@ -12,8 +12,8 @@
 #include <stdint.h>
 
 /* Fixed limits -- bounded by nesting depth, reasonable for any program. */
-#define MAX_SCOPE_DEPTH     64
-#define MAX_SCOPE_VARS      256
+#define MAX_SCOPE_DEPTH     256
+#define LLVM_SCOPE_INITIAL_CAPACITY 16
 #define MAX_CLASS_FIELDS    256
 #define MAX_EVENT_PARAMS    8
 #define MAX_DEFER_PER_SCOPE 64

@@ -93,12 +93,61 @@ mir_make_source_stmt_instruction(MIRRoutine *routine,
 {
     MIRInstruction inst;
 
+    if (stmt != NULL && stmt->type == AST_ASSIGNMENT)
+        return mir_make_assignment_instruction(routine, stmt,
+            source_statement_index);
+    if (stmt != NULL && stmt->type == AST_LET_DESTRUCTURE)
+        return mir_make_destructure_instruction(routine, stmt,
+            source_statement_index);
+
     memset(&inst, 0, sizeof(inst));
     if (routine != NULL)
         inst.id = routine->instruction_count++;
     inst.kind = MIR_INST_STMT;
     inst.name = "stmt";
     inst.ast = stmt;
+    mir_attach_statement_call_fact(&inst, stmt);
+    mir_set_inst_source_statement_index(&inst, source_statement_index);
+    return inst;
+}
+
+MIRInstruction
+mir_make_destructure_instruction(MIRRoutine *routine,
+                                 ASTNode *stmt,
+                                 size_t source_statement_index)
+{
+    MIRInstruction inst;
+
+    memset(&inst, 0, sizeof(inst));
+    if (routine != NULL)
+        inst.id = routine->instruction_count++;
+    inst.kind = MIR_INST_DESTRUCTURE;
+    inst.name = "destructure";
+    inst.ast = stmt;
+    if (stmt != NULL && stmt->type == AST_LET_DESTRUCTURE)
+        inst.expr0 = ast_let_destructure_initializer(stmt);
+    mir_attach_statement_call_fact(&inst, stmt);
+    mir_set_inst_source_statement_index(&inst, source_statement_index);
+    return inst;
+}
+
+MIRInstruction
+mir_make_assignment_instruction(MIRRoutine *routine,
+                                ASTNode *stmt,
+                                size_t source_statement_index)
+{
+    MIRInstruction inst;
+
+    memset(&inst, 0, sizeof(inst));
+    if (routine != NULL)
+        inst.id = routine->instruction_count++;
+    inst.kind = MIR_INST_ASSIGN;
+    inst.name = "assign";
+    inst.ast = stmt;
+    if (stmt != NULL && stmt->type == AST_ASSIGNMENT) {
+        inst.expr0 = ast_assignment_target(stmt);
+        inst.expr1 = ast_assignment_value(stmt);
+    }
     mir_attach_statement_call_fact(&inst, stmt);
     mir_set_inst_source_statement_index(&inst, source_statement_index);
     return inst;

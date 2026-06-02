@@ -42,13 +42,22 @@ emit_world_decl(ASTNode *node, TranspilerCtx *ctx)
         ctx, AST_WORLD_DECL, name);
     if (inventory_decl != NULL)
         node = inventory_decl;
-    size_t roster_count = 0;
-    ASTNode **rosters = ast_world_rosters(node, &roster_count);
+    TranspilerHostedWorldRosterSlotView roster_view =
+        transpiler_hosted_world_roster_slot_view_from_decl(ctx, name, node);
+    size_t roster_count = roster_view.count;
     TranspilerHostedWorldZoneSlotView zone_view =
         transpiler_hosted_world_zone_slot_view_from_decl(ctx, name, node);
     size_t zone_count = zone_view.count;
     TranspilerHostedSharedFieldView shared_view =
         transpiler_hosted_shared_field_view_from_decl(ctx, name, node);
+    if (transpiler_hosted_world_roster_slot_view_missing_mir_metadata(
+            &roster_view)) {
+        transpiler_set_mir_inventory_missing(
+            ctx,
+            "MIR-only C path missing roster-slot declaration metadata for world '%s'",
+            name != NULL ? name : "(anonymous-world)");
+        return;
+    }
     if (transpiler_hosted_shared_field_view_missing_mir_metadata(&shared_view)) {
         transpiler_set_mir_inventory_missing(
             ctx,
@@ -102,9 +111,11 @@ emit_world_decl(ASTNode *node, TranspilerCtx *ctx)
     codebuf_write(ctx->out, "typedef struct %s\n{\n", name);
 
     for (size_t i = 0; i < roster_count; i++) {
-        ASTNode *ws = rosters[i];
-        const char *roster_type = ast_world_roster_type_name(ws);
-        const char *slot_name = ast_world_roster_slot_name(ws);
+        const char *roster_type =
+            transpiler_hosted_world_roster_slot_view_type_name(
+                &roster_view, i);
+        const char *slot_name =
+            transpiler_hosted_world_roster_slot_view_name(&roster_view, i);
         if (roster_type == NULL || slot_name == NULL)
             continue;
         codebuf_write(ctx->out, "    %s %s;\n", roster_type, slot_name);

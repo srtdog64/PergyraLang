@@ -328,6 +328,11 @@ if ! grep -Fq 'PGY_BACKEND_COMPARE_SHARD_TOTAL' "$ROOT_DIR/tests/compare_backend
     echo "[build-source-inventory] backend compare must keep deterministic shard selection" >&2
     missing=1
 fi
+if ! grep -Fq 'CI_BACKEND_COMPARE_SHARD_TOTAL ?= 20' "$ROOT_DIR/Makefile" \
+    || ! grep -Fq 'PGY_BACKEND_COMPARE_SHARD_TOTAL="$(CI_BACKEND_COMPARE_SHARD_TOTAL)"' "$ROOT_DIR/Makefile"; then
+    echo "[build-source-inventory] CI backend compare must stay shard-wired" >&2
+    missing=1
+fi
 
 bash4_lint_dirs=(tests)
 if [[ -d "$ROOT_DIR/src/self_hosted/parity" ]]; then
