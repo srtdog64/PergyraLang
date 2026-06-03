@@ -2,9 +2,10 @@
 
 This folder is the post-beta self-hosting entry point.
 
-Self-hosting is not a beta blocker. It begins only after beta closure and final
-dogfood evidence. Until then, this folder records the contracts future agents
-must preserve while preparing the migration path.
+Self-hosting is not a beta blocker. Hard self-hosting begins only after beta
+closure, final dogfood evidence, and a stable C/LLVM oracle pair. Until then,
+this folder records the contracts future agents must preserve while preparing
+the migration path.
 
 ## Position
 
@@ -15,7 +16,10 @@ Pergyra should not attempt a full compiler rewrite first. The practical path is:
 3. **Hard self-host**: frontend/backend migration only after the stable subset survives real dogfood.
 
 The current compiler remains C + LLVM/C backend until this track explicitly
-graduates.
+graduates. C and LLVM must finish first because the self-hosted implementation
+will be judged by a three-way comparison: C oracle output, LLVM oracle output,
+and Pergyra-written tool/pass output. If C and LLVM still disagree, a
+self-hosted result cannot be trusted as the deciding value.
 
 The executable soft self-host scaffolds live in `src/self_hosted/`. This
 `docs/self_hosted/` folder is the contract and handoff documentation;
@@ -56,8 +60,12 @@ artifacts:
   or unresolved metadata dead-end on stable paths;
 - ABI contract: Slot/Pin/Zone-bound ownership, panic/failure classes, and C FFI
   layout are frozen for the beta subset;
-- backend oracle contract: C remains the reference, and LLVM parity gaps are
-  explicit, gated, and not silently successful;
+- backend oracle contract: C remains the reference, LLVM parity gaps are
+  explicit, gated, and not silently successful, and hard self-host migration
+  waits until the frozen C/LLVM support matrix is green or explicitly
+  unsupported. `self-host-backend-tri-compare-test-smoke` is the small
+  comparator smoke, and `self-host-backend-tri-compare-extended-test-smoke` is
+  the opt-in 29-case C/LLVM/Pergyra comparator gate for C/LLVM closure work;
 - dogfood evidence: at least one compiler-adjacent tool path and the C
   `--emit-c` host-bridge path are proven.
 

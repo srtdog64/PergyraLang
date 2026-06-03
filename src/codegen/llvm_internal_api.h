@@ -232,6 +232,9 @@ void                llvm_register_array_var_binding(LLVMGenCtx *ctx,
                                                      LLVMTypeRef elem_type,
                                                      int64_t length);
 LLVMArrayVarEntry  *llvm_lookup_array_var(LLVMGenCtx *ctx, const char *var_name);
+LLVMArrayVarEntry  *llvm_lookup_array_var_binding(LLVMGenCtx *ctx,
+                                                   const char *var_name,
+                                                   LLVMValueRef binding);
 void                llvm_register_enum_variant(LLVMGenCtx *ctx,
                                                 const char *enum_name,
                                                 const char *variant_name,
@@ -413,6 +416,8 @@ ASTNode *llvm_find_enum_decl(LLVMGenCtx *ctx, const char *enum_name);
 void llvm_register_active_nominal_types(LLVMGenCtx *ctx);
 void llvm_register_active_extern_prototypes(LLVMGenCtx *ctx);
 bool llvm_type_name_uses_pointer_self(LLVMGenCtx *ctx, const char *type_name);
+const char *llvm_current_zone_slot_type_name(LLVMGenCtx *ctx,
+                                             const char *slot_name);
 const char *llvm_current_field_class_name(LLVMGenCtx *ctx,
                                           const char *field_name);
 bool llvm_ast_type_uses_pointer_self(LLVMGenCtx *ctx, ASTNode *type_node);

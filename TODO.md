@@ -6,7 +6,8 @@ English anchor for tooling/doc gates:
   strict beta readiness is now about 75% after current CFG body-dataflow,
   MIR executable tests, AIR drift/schema, DAG resolver-inventory/metadata,
   runtime-frontier, semantic domain-owner seams, and LLVM backend-compare
-  inventory/coverage plus targeted shard gates pass locally. Windows-bash
+  inventory/coverage plus full local backend-compare shard sweep pass locally.
+  Windows-bash
   tooling and raw-escape gates now reach
   executable probes instead of skipping after path helper setup. The 75% line
   is now backed by binding-aware resource/collection metadata parity for
@@ -31,12 +32,23 @@ English anchor for tooling/doc gates:
   paths are surface-stability work, not optional polish. (4) The stable 32-bit
   Slot ABI remains an availability constraint until handle widening or a
   proven recycling/tombstone contract is frozen. (5) C-based compiler core
-  keeps self-host contribution harder; self-host begins only after C/LLVM
-  source-of-truth closure, not as a substitute for finishing it.
+  keeps self-host contribution harder; hard self-host begins only after C and
+  LLVM agree on the frozen support matrix. The self-hosted implementation is
+  the third value in a C/LLVM/Pergyra comparison, not a substitute for finishing
+  the first two.
 - Runtime panic-contract tightening: async fiber internal invariants no longer
   use raw `assert()`; they route through `PGY_RUNTIME_PANIC` with
   `internal-invariant` reasons so release/debug builds share the same hard-fail
   vocabulary. Gate: `runtime-panic-contract-test-smoke`.
+- LLVM zone/world action method-contract source-of-truth: `MIRDeclMethod` now
+  carries `is_async`, action `within zone`, and `causes effect` coordinates
+  alongside param/return/action metadata. LLVM zone action/effect runtime
+  lowering and world embedded action/effect sync read `is_async`,
+  `is_action_like`, `within_zone`, and `causes_effect` from that metadata first,
+  leaving AST method access only as a non-MIR compatibility fallback. Gates:
+  `mir-declaration-inventory-test-smoke`, targeted
+  `zone_action_effect_runtime`, `zone_effect_pool_runtime`,
+  `relation_effect_projection_sync`, and world embedded action backend compares.
 - Runtime process-exit source-of-truth: `Exit(Int)` remains an intentional
   language-level process termination, not a panic, but raw `exit()` is now owned
   only by `pgy_runtime_process_exit(...)`. Inline and exported I/O runtimes
@@ -50,6 +62,68 @@ English anchor for tooling/doc gates:
   binding matching and null-context rejection. Gates:
   `perf_contract_smoke.sh`, `build_source_inventory_smoke.sh`,
   `test_inc_size_smoke.sh`, and LLVM-enabled `bin/pgy.exe` build.
+- LLVM projection path scratch ownership: projection/domain-projection source
+  path resolution now matches the C backend scratch-lane contract. Direct
+  matches allocate path text in `LLVMGenCtx.scratch`, and nested vessel path
+  traversal fails closed when declaration metadata is missing instead of
+  advancing with stale class state. Gates: `mir-declaration-inventory-test-smoke`,
+  `perf-contract-test-smoke`, `llvm-test-smoke`,
+  `self-host-backend-tri-compare-test-smoke`.
+- C/LLVM frontier policy source-of-truth: `domain_frontier_policy` no longer
+  exposes AST convenience wrappers for zone/world pass-limit selection. World
+  embedded frontier calculation now accepts zone type names plus a backend-owned
+  member-count callback, so C/LLVM derive embedded zone member counts from their
+  hosted metadata views before calling the runtime arithmetic seam. Gates:
+  `runtime-frontier-policy-test-smoke`,
+  `runtime-frontier-contract-test-smoke`.
+- LLVM type-kind owner split: `PgyTypeKind` classification now lives in
+  `llvm_type_kind.h` instead of inflating `llvm_internal.h`. This keeps the
+  backend context header under the 600 LOC signal while preserving the same
+  classifier source-of-truth. Gate: `backend_inc_size_smoke.sh`.
+- C/LLVM oracle refresh: the backend-compare fixture inventory and LLVM-only
+  coverage gates are green through the Makefile path, and `llvm-test-smoke`
+  is green with LLVM enabled. This is evidence that the current registered
+  support matrix is synchronized with the completed shard evidence below. Gates:
+  `backend-compare-inventory-test-smoke`,
+  `backend-compare-llvm-coverage-test-smoke`, `llvm-test-smoke`.
+- C/LLVM compare gate ergonomics: `llvm-test-backend-compare` keeps the ABI
+  same-process precheck default-on, but the precheck is now controlled by
+  `PGY_BACKEND_COMPARE_PRECHECK`. Targeted backend shards can set it to `0`
+  to compare C/LLVM outputs without rerunning the 196-case ABI pipeline first.
+  This separates ABI health from oracle-output parity while preserving the
+  default full guard. Gate: `build-source-inventory-test-smoke`.
+- C/LLVM compare runner Windows closure: `tests/compare_backends.sh` now retries
+  compiler invocations through the same PowerShell launch fallback used for
+  generated binaries when Git Bash direct execution returns 126/127. This closes
+  the multi-case Windows drift where a later case could lose access to
+  `/e/PergyraLang/bin/pgy.exe` even though the compiler existed. Targeted
+  frontier/projection C/LLVM compare now passes as one 7-case run, and a
+  `PGY_BACKEND_COMPARE_SHARD_TOTAL=160` local shards `INDEX=0` and `INDEX=1`
+  pass 5/5 through the Makefile `llvm-test-backend-compare` path. Gate:
+  `backend-compare-llvm-coverage-test-smoke`.
+- C/LLVM CI oracle coverage: GitHub Actions now has a dedicated Linux
+  `backend-compare-linux` matrix over 20 shards. Each shard runs
+  `llvm-test-backend-compare` with `PGY_BACKEND_COMPARE_PRECHECK=0`, while the
+  main Linux CI path still runs the ABI same-process gate separately. This
+  turns the registered C/LLVM support matrix into CI-covered oracle evidence
+  instead of checking only shard 0. Gate: `build-source-inventory-test-smoke`.
+- C/LLVM shard evidence: Windows local validation showed the old 20-way shard
+  is too large for a 300s interactive run even with the ABI precheck disabled,
+  but the 80-way targeted sweep completed locally. Shards `0` through `79` of
+  `PGY_BACKEND_COMPARE_SHARD_TOTAL=80` passed with
+  `PGY_BACKEND_COMPARE_PRECHECK=0`, covering the registered backend-compare
+  support matrix at `787/787`. Treat this as local oracle evidence; CI still
+  owns the repeated Linux 20-way matrix confirmation. Follow-up local gates:
+  `llvm-test-abi-same-process` (`196/196`), `llvm-test-smoke`,
+  `backend-compare-inventory-test-smoke`,
+  `backend-compare-llvm-coverage-test-smoke`, `build-source-inventory-test-smoke`,
+  and `git diff --check`.
+- MIR declaration inventory gate tightening: the duplicate declaration-header
+  regression check no longer depends on one fixed test shard file after the
+  MIR tests were split. `mir_declaration_inventory_smoke.sh` now accepts the
+  regression in the expected part C/D file set, so test-owner splitting does
+  not produce false declaration-inventory failures. Gate:
+  `mir-declaration-inventory-test-smoke`.
 - LLVM builder-state restoration source-of-truth: generated-function emission
   must restore the exact caller insertion block captured by
   `LLVMGetInsertBlock(ctx->builder)`, not infer it from
@@ -155,6 +229,20 @@ English anchor for tooling/doc gates:
   `class_method_self_access`, `class_chain_methods`,
   `enum_match_payload_basic`, `enum_state_machine`, and
   `option_class_method_call`.
+- Role operator bridge source-of-truth: LLVM role operator forward/body bridge
+  selection now consumes `llvm_find_role_operator_method_metadata(...)` and
+  method name/param/return facts from `MIRDeclMethod` instead of reopening role
+  impl AST method lookup at the bridge sites. C role operator alias emission
+  mirrors this when MIR is active and keeps the old AST lookup only as the
+  non-MIR compatibility path. Gates: `mir_declaration_inventory_smoke.sh`,
+  `backend-compare-llvm-coverage-test-smoke`, LLVM-enabled `bin/pgy.exe`, and
+  targeted C/LLVM compare for `role_operator_overload`.
+- LLVM member-call argument source-of-truth: nominal member-call lowering now
+  looks up `MIRDeclMethod` metadata before adjusting pointer-self arguments.
+  The repeated AST `method_decl` parameter loops were replaced by
+  `llvm_member_call_adjust_pointer_self_arg(...)`; AST parameter traversal is
+  confined to that support owner only as the non-MIR compatibility fallback.
+  Gate: `mir_declaration_inventory_smoke.sh`, targeted LLVM member-call objects.
 - C zone declaration bootstrap preflight: zone declarations now validate hosted
   method MIR rows before required specialization, struct, sync, or bridge
   emission starts. Invalid `MIRDeclMethod` rows fail closed at the declaration
@@ -446,6 +534,56 @@ English anchor for tooling/doc gates:
   entry. Local metadata now consumes `MIRTypeLayout.abi_type_name` to recover
   `Array<T>` / `Slice<T>` element type and fails closed if the MIR inventory
   does not carry a concrete `T`. Gate: `perf-contract-test-smoke`.
+- LLVM MIR local Slice receiver inference now works before scope declaration.
+  The Array/Slice registry exposes a binding-aware lookup for MIR alloca
+  prepass consumers, and MIR local typing unwraps `AST_LET_DECL` to its real
+  initializer before resolving `view.Slice(...)` / nested Slice facts. This
+  keeps reslicing from falling back to generic call inference. Gates:
+  `runtime_panic_codegen_smoke.sh` (`c llvm`) and backend compare
+  `slice_copy`, `slice_range_syntax`, `slice_inline_access`, `slice_surface`.
+- LLVM MIR local fact ownership is split by responsibility instead of helper
+  bucket. Slice receiver/result reconstruction now lives in
+  `llvm_mir_slice_fact.{c,h}`, channel recv / await value facts live in
+  `llvm_mir_async_fact.{c,h}`, and `llvm_mir_local_emit.c` is back under the
+  600 LOC signal as the alloca orchestration owner. Gates:
+  `build_source_inventory_smoke.sh`, `backend_inc_size_smoke.sh`, and
+  LLVM-enabled object builds for the three owners.
+- C/LLVM/self-host comparator tri-parity now has an executable smoke. The new
+  `self-host-backend-tri-compare-test-smoke` compiles selected backend-compare
+  fixtures through C and LLVM, writes their stdout and stderr streams into the
+  fixed `backend_output_comparator` fixture shape, and requires the
+  Pergyra-written comparator to report `ok:true` for both streams. The shell
+  harness still compares process exit codes, but text-output parity is now
+  owned first by the Pergyra comparator; shell `diff` is only a
+  post-comparator sanity check. Coverage now includes baseline output,
+  arithmetic, arrays, class method dispatch, channels, async spawn/await,
+  Slice, SliceCopy, string interpolation, Pin `WriteView`, SecureSlot view,
+  and intent/zone binding fixtures. This is soft self-host evidence only, not a
+  claim that the compiler is self-hosted. The parity script also accepts
+  explicit backend-compare fixture directories as arguments for targeted
+  C/LLVM/Pergyra comparator runs. Additional targeted evidence has covered
+  file I/O, IO negative paths, Rc/Weak, HashMap/List/Queue/Set, Result `?`,
+  future cancellation, select, unsafe boundary, visibility, events, generic
+  async spawn, seeded random, map ops, and zone-host method ABI. The default
+  smoke stays small; `self-host-backend-tri-compare-extended-test-smoke`
+  promotes those targeted slices into an opt-in 29-case C/LLVM/Pergyra gate for
+  C/LLVM closure work.
+  Gate:
+  `self-host-backend-tri-compare-test-smoke`,
+  `self-host-backend-tri-compare-extended-test-smoke`,
+  `self-host-preparation-test-smoke`.
+- LLVM let Array/Slice registry registration now fails closed when the
+  annotation or `Slice()` initializer cannot produce concrete element metadata.
+  This keeps NULL element types out of the binding-aware Array/Slice registry
+  instead of letting later expression lowering rediscover the missing fact.
+  Gate: `perf-contract-test-smoke`.
+- LLVM statement type inference no longer opens hosted domain-slot metadata
+  directly when resolving a zone-local slot receiver method. The lookup now
+  goes through `llvm_current_zone_slot_type_name(...)` in the domain lookup
+  owner, and `perf-contract-test-smoke` rejects reintroducing direct
+  `llvm_hosted_domain_slot_view_from_decl(...)` access from
+  `llvm_stmt_type_infer.c`. Targeted tri-compare evidence:
+  `zone_host_method_abi_combo`.
 - LLVM expression type inference no longer returns `i32` after recording an
   unsupported-type diagnostic. Unknown expression types now propagate `NULL`,
   and numeric promotion refuses to synthesize an `Int` result when either side
@@ -6817,10 +6955,11 @@ Progress log, 2026-05-08:
 - Tightened LLVM role method body emission:
   role impl method bodies now consume the same `LLVMHostedMethodView` /
   `MIRDeclMethod.routine_index` path as class/enum/domain host methods instead
-  of doing AST/name-based MIR routine rediscovery. Ability vtable/operator
-  bridge generation still reads role impl syntax because that surface is not
-  routine-body inventory, and `mir-declaration-inventory-test-smoke` now gates
-  the role body path against regression.
+  of doing AST/name-based MIR routine rediscovery. Ability vtable generation
+  still reads role impl syntax because that surface is not routine-body
+  inventory; role operator bridge selection now consumes `MIRDeclMethod`
+  metadata for method identity/signature facts. `mir-declaration-inventory-test-smoke`
+  gates both paths against regression.
 - Tightened LLVM role method forward declarations:
   role method prototypes now use `MIRDeclMethod` name/signature metadata first
   while preserving the existing `i8* self` role ABI. Direct AST
@@ -6834,11 +6973,12 @@ Progress log, 2026-05-08:
   `llvm_mir_decl_method_routine(...)`; the declaration-inventory smoke rejects
   reintroducing the old compatibility helper under `src/codegen`.
 - Narrowed LLVM ability/operator signature reads:
-  ability vtable construction and role operator bridge construction still own
-  syntax-level ability/impl traversal, but their method name/param/return
-  access now goes through the same local method accessors used by
-  `MIRDeclMethod`-first hosted method forwarding. The smoke gate now rejects
-  direct AST `param_count` / `return_type` reads in those bridge bodies.
+  ability vtable construction still owns syntax-level ability/impl traversal.
+  Role operator bridge construction now resolves the operator method through
+  `MIRDeclMethod` metadata first, and its method name/param/return access goes
+  through the same metadata-first surface used by hosted method forwarding. The
+  smoke gate rejects direct AST operator-method lookup in LLVM bridge emitters
+  and direct AST `param_count` / `return_type` reads in those bridge bodies.
 - Hardened MIR declaration-header construction:
   declaration-header array growth and hosted-method metadata allocation now
   guard `size_t` capacity/multiplication overflow before `realloc` / `calloc`.
@@ -6846,10 +6986,10 @@ Progress log, 2026-05-08:
   wrapping the flattened `MIRDeclMethod` count. Gate:
   `mir-declaration-inventory-test-smoke`.
 - Narrowed LLVM role bridge method-name reads:
-  role operator bridge and vtable initialization still traverse role impl
-  syntax, but method names now pass through `llvm_role_method_name_from_ast(...)`
-  instead of open-coded `method->data.func_decl.name` reads in each bridge
-  site. Gate: `mir-declaration-inventory-test-smoke`.
+  vtable initialization still traverses role impl syntax and normalizes method
+  names through `llvm_role_method_name_from_ast(...)`; role operator bridge
+  emission now reads method names from `MIRDeclMethod` metadata. Gate:
+  `mir-declaration-inventory-test-smoke`.
 - Tightened AIR evidence ownership one more step:
   `air-drift-test-smoke` now rejects direct reads of the boundary summary
   `AIRBoundaryNode.has_*_evidence` summary booleans outside the AIR evidence /

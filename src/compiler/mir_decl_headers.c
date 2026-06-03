@@ -66,8 +66,10 @@ mir_decl_method_metadata_init(MIRDeclMethod *meta,
     meta->name = ast_declaration_name(method);
     meta->params = ast_func_params(method, &meta->param_count);
     meta->return_type = ast_func_return_type(method);
+    meta->is_async = method->is_async_decl;
     meta->is_action_like = ast_func_is_action(method);
     meta->within_zone = ast_func_within_zone(method);
+    meta->causes_effect = ast_func_causes_effect(method);
 }
 
 static bool

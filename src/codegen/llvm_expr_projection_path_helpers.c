@@ -139,8 +139,14 @@ llvm_resolve_projection_source_path_rec(LLVMGenCtx *ctx, ASTNode *source_decl,
         const char *candidate_name =
             llvm_projection_field_name(ctx, source_decl, i);
         if (candidate_name != NULL && strcmp(candidate_name, field_name) == 0) {
-            if (path_out != NULL)
-                *path_out = pergyra_strdup(field_name);
+            if (path_out != NULL) {
+                size_t len = strlen(field_name) + 1;
+                char *path = pgy_arena_alloc(&ctx->scratch, len);
+                if (path == NULL)
+                    return 0;
+                memcpy(path, field_name, len);
+                *path_out = path;
+            }
             return 1;
         }
     }
@@ -244,6 +250,7 @@ llvm_load_projection_path_value(LLVMGenCtx *ctx,
         int field_index;
         LLVMTypeRef field_type;
         LLVMValueRef field_ptr;
+        int advanced = 0;
 
         if (dot != NULL)
             *dot = '\0';
@@ -286,7 +293,12 @@ llvm_load_projection_path_value(LLVMGenCtx *ctx,
             current_decl = next_decl;
             current_cls = next_cls;
             current_ptr = field_ptr;
+            advanced = 1;
             break;
+        }
+        if (!advanced) {
+            return llvm_projection_error_recovery(ctx, current_decl,
+                "LLVM projection nested path requires field declaration metadata");
         }
         cursor = dot + 1;
     }

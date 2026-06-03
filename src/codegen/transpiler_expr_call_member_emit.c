@@ -82,7 +82,14 @@ emit_call_member_style(ASTNode *call, ASTNode *callee, TranspilerCtx *ctx)
                 bool is_self_ident = (obj->type == AST_IDENTIFIER
                     && ast_identifier_name(obj) != NULL
                     && strcmp(ast_identifier_name(obj), "self") == 0);
-                ASTNode *method_decl = find_nominal_host_method_decl(ctx, owned_type_name, method);
+                const MIRDeclMethod *method_meta =
+                    transpiler_find_host_method_metadata_in_context(
+                        ctx, owned_type_name, method);
+                ASTNode *method_decl =
+                    transpiler_mir_decl_method_source_ast(method_meta);
+                if (method_decl == NULL)
+                    method_decl = find_nominal_host_method_decl(
+                        ctx, owned_type_name, method);
 
                 if (!pergyra_str_copy(stable_type_name,
                         sizeof(stable_type_name), owned_type_name)) {
@@ -222,7 +229,7 @@ emit_call_member_style(ASTNode *call, ASTNode *callee, TranspilerCtx *ctx)
                     ctx->current_overlay_receiver_expr = saved_receiver_expr;
                     transpiler_bind_current_host_decl_local(ctx, saved_host_decl);
                     action_sync = emit_world_embedded_action_effect_sync(
-                        ctx, obj, method_decl);
+                        ctx, obj, method_meta, method_decl);
                     post_sync = emit_world_embedded_receiver_projection_sync(ctx, obj);
                     codebuf_destroy(args_buf);
                     if (invalidation != NULL || action_sync != NULL || post_sync != NULL) {

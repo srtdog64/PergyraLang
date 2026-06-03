@@ -8,6 +8,7 @@
 #include "llvm_expr_assignment_projection.h"
 #include "llvm_internal_api.h"
 #include "llvm_inventory_decl_lookup.h"
+#include "llvm_inventory_host_methods.h"
 #include "llvm_inventory_internal.h"
 #include "parser/ast_api.h"
 
@@ -92,6 +93,7 @@ llvm_call_find_first_effect_subject_slot_name(LLVMGenCtx *ctx,
 void
 llvm_emit_world_embedded_action_effect_sync(LLVMGenCtx *ctx,
                                             ASTNode *receiver,
+                                            const MIRDeclMethod *method_meta,
                                             ASTNode *method_decl)
 {
     ASTNode *host_decl;
@@ -112,15 +114,28 @@ llvm_emit_world_embedded_action_effect_sync(LLVMGenCtx *ctx,
     size_t refresh_count = 0;
     ASTNode **refreshes = NULL;
     const char *effect_name;
+    const char *method_within_zone;
     const char *world_name;
     const char *zone_name;
+    bool method_is_async;
+    bool method_is_action;
 
-    if (ctx == NULL || receiver == NULL || method_decl == NULL
-        || method_decl->type != AST_FUNC_DECL
-        || method_decl->is_async_decl
-        || !ast_func_is_action(method_decl)
-        || ast_func_within_zone(method_decl) == NULL
-        || ast_func_causes_effect(method_decl) == NULL) {
+    if (ctx == NULL || receiver == NULL)
+        return;
+
+    method_is_async = llvm_mir_decl_method_is_async(method_meta);
+    method_is_action = llvm_mir_decl_method_is_action_like(method_meta);
+    method_within_zone = llvm_mir_decl_method_within_zone(method_meta);
+    effect_name = llvm_mir_decl_method_causes_effect(method_meta);
+    if (method_meta == NULL) {
+        method_is_async = method_decl != NULL && method_decl->is_async_decl;
+        method_is_action = ast_func_is_action(method_decl);
+        method_within_zone = ast_func_within_zone(method_decl);
+        effect_name = ast_func_causes_effect(method_decl);
+    }
+
+    if (method_is_async || !method_is_action
+        || method_within_zone == NULL || effect_name == NULL) {
         return;
     }
 
@@ -132,12 +147,10 @@ llvm_emit_world_embedded_action_effect_sync(LLVMGenCtx *ctx,
             &zone_slot_name, &zone_decl, &source_slot_name, NULL)
         || zone_slot_name == NULL || zone_decl == NULL || source_slot_name == NULL
         || (zone_name = llvm_decl_node_name(zone_decl)) == NULL
-        || strcmp(ast_func_within_zone(method_decl),
-                  zone_name) != 0) {
+        || strcmp(method_within_zone, zone_name) != 0) {
         return;
     }
 
-    effect_name = ast_func_causes_effect(method_decl);
     effect_decl = llvm_call_find_domain_decl(ctx, AST_EFFECT_DECL, effect_name);
     target_slot_name = llvm_call_find_first_effect_subject_slot_name(ctx,
         effect_decl);

@@ -917,25 +917,25 @@ fi
 grep -Fq "transpiler_domain_provenance_emit.c" "$ROOT_DIR/Makefile"
 grep -Fq "void emit_domain_projection_sync_loop_from_view(" \
     "$ROOT_DIR/src/codegen/transpiler_domain_provenance_emit.h"
-grep -Fq "mir_method = llvm_hosted_method_view_routine(" \
+grep -Fq "mir_method = llvm_mir_decl_method_routine(ctx, method_meta)" \
     "$ROOT_DIR/src/codegen/llvm_domain_method_emit.c"
-if grep -Fq "mir_method = llvm_mir_decl_method_routine(ctx, method_meta)" \
+if grep -Fq "mir_method = llvm_hosted_method_view_routine(" \
     "$ROOT_DIR/src/codegen/llvm_domain_method_emit.c"; then
-    echo "[perf-contract] LLVM domain method emission bypassed hosted method view routine owner" >&2
+    echo "[perf-contract] LLVM domain method emission reintroduced hosted method view routine wrapper" >&2
     exit 1
 fi
-grep -Fq "mir_method = llvm_hosted_method_view_routine(" \
+grep -Fq "mir_method = llvm_mir_decl_method_routine(ctx, method_meta)" \
     "$ROOT_DIR/src/codegen/llvm_domain_role_emit.c"
-if grep -Fq "mir_method = llvm_mir_decl_method_routine(ctx, method_meta)" \
+if grep -Fq "mir_method = llvm_hosted_method_view_routine(" \
     "$ROOT_DIR/src/codegen/llvm_domain_role_emit.c"; then
-    echo "[perf-contract] LLVM role method emission bypassed hosted method view routine owner" >&2
+    echo "[perf-contract] LLVM role method emission reintroduced hosted method view routine wrapper" >&2
     exit 1
 fi
-grep -Fq "mir_method = transpiler_hosted_method_view_routine(" \
+grep -Fq "mir_method = transpiler_mir_decl_method_routine(ctx, method_meta)" \
     "$ROOT_DIR/src/codegen/transpiler_hosted_method_body_emit.c"
-if grep -Fq "mir_method = transpiler_mir_decl_method_routine(ctx, method_meta)" \
+if grep -Fq "mir_method = transpiler_hosted_method_view_routine(" \
     "$ROOT_DIR/src/codegen/transpiler_hosted_method_body_emit.c"; then
-    echo "[perf-contract] C hosted method emission bypassed hosted method view routine owner" >&2
+    echo "[perf-contract] C hosted method emission reintroduced hosted method view routine wrapper" >&2
     exit 1
 fi
 if grep -Fq "static void" \
@@ -2220,7 +2220,15 @@ grep -Fq "llvm_register_defer(inst->expr0, ctx)" "$ROOT_DIR/src/codegen/llvm_mir
 grep -Fq "mir_instruction_is_with_slot_claim(inst)" "$ROOT_DIR/src/codegen/llvm_mir_block_emit.c"
 grep -Fq "mir_instruction_uses_source_local_decl_emit(inst)" "$ROOT_DIR/src/codegen/llvm_mir_block_emit.c"
 ! grep -Fq "inst->ast->type" "$ROOT_DIR/src/codegen/llvm_mir_block_emit.c"
-grep -Fq "ASTNode *value_expr = inst->expr0" "$ROOT_DIR/src/codegen/llvm_mir_local_emit.c"
+grep -Fq "llvm_mir_local_initializer_expr(inst->expr0)" "$ROOT_DIR/src/codegen/llvm_mir_local_emit.c"
+if grep -Fq "ASTNode *value_expr = inst->expr0" "$ROOT_DIR/src/codegen/llvm_mir_local_emit.c"; then
+    echo "[perf-contract] LLVM MIR local emit bypassed initializer unwrap fact" >&2
+    exit 1
+fi
+grep -Fq "LLVM let binding '%s' requires concrete Array<T>/Slice<T> element metadata" \
+    "$ROOT_DIR/src/codegen/llvm_stmt_let_with.c"
+grep -Fq "LLVM let binding '%s' Slice() initializer requires concrete element type metadata" \
+    "$ROOT_DIR/src/codegen/llvm_stmt_let_with.c"
 grep -Fq "ASTNode *type_expr = inst->expr1" "$ROOT_DIR/src/codegen/llvm_mir_local_emit.c"
 grep -Fq "type_expr != NULL" "$ROOT_DIR/src/codegen/llvm_mir_local_emit.c"
 grep -Fq "value_expr != NULL" "$ROOT_DIR/src/codegen/llvm_mir_local_emit.c"
@@ -2669,6 +2677,10 @@ grep -Fq "transpiler_scratch_strdup(ctx, field_name)" "$ROOT_DIR/src/codegen/tra
 ! grep -Fq "free(source_path)" "$ROOT_DIR/src/codegen/transpiler_projection.c"
 ! grep -Fq "free(source_path)" "$ROOT_DIR/src/codegen/transpiler_expr_dispatch_emit.c"
 ! grep -Fq "pergyra_strdup(field_name)" "$ROOT_DIR/src/codegen/transpiler_projection.c"
+grep -Fq "pgy_arena_alloc(&ctx->scratch, len)" "$ROOT_DIR/src/codegen/llvm_domain_projection_value_helpers.c"
+grep -Fq "pgy_arena_alloc(&ctx->scratch, len)" "$ROOT_DIR/src/codegen/llvm_expr_projection_path_helpers.c"
+! grep -Fq "pergyra_strdup(field_name)" "$ROOT_DIR/src/codegen/llvm_domain_projection_value_helpers.c"
+! grep -Fq "pergyra_strdup(field_name)" "$ROOT_DIR/src/codegen/llvm_expr_projection_path_helpers.c"
 grep -Fq "pgy_arena_strdup(&ctx->scratch_arena, text)" "$ROOT_DIR/src/semantic/type_checker_projection_path.c"
 grep -Fq "pgy_arena_fmt(&ctx->scratch_arena" "$ROOT_DIR/src/semantic/type_checker_projection_path.c"
 ! grep -Fq "projection_path_strdup_fmt" "$ROOT_DIR/src/semantic/type_checker_projection_path.c"
@@ -3328,8 +3340,12 @@ grep -Fq "if (ctx->has_error || alloca_type == NULL)" \
     "$ROOT_DIR/src/codegen/llvm_mir_local_emit.c"
 grep -Fq "llvm_mir_local_type_from_value_fact" \
     "$ROOT_DIR/src/codegen/llvm_mir_local_emit.c"
-grep -Fq "llvm_mir_get_var_entry(vars, var_count, name)" \
+grep -Fq "llvm_mir_async_fact_type_from_channel_recv" \
     "$ROOT_DIR/src/codegen/llvm_mir_local_emit.c"
+grep -Fq "llvm_mir_slice_fact_type_from_call" \
+    "$ROOT_DIR/src/codegen/llvm_mir_local_emit.c"
+grep -Fq "llvm_mir_get_var_entry(vars, var_count, name)" \
+    "$ROOT_DIR/src/codegen/llvm_mir_slice_fact.c"
 ! grep -A24 -F "llvm_decl_required_param_type(LLVMGenCtx *ctx" \
     "$ROOT_DIR/src/codegen/llvm_decl.c" | \
     grep -Fq "return ctx->type_i32"
@@ -3931,6 +3947,13 @@ grep -Fq "llvm_stmt_host_method_return_type" "$ROOT_DIR/src/codegen/llvm_stmt_ty
 grep -Fq "llvm_find_host_method_metadata_in_context" "$ROOT_DIR/src/codegen/llvm_stmt_type_infer.c"
 grep -Fq "llvm_mir_decl_method_return_type" "$ROOT_DIR/src/codegen/llvm_stmt_type_infer.c"
 grep -Fq "llvm_current_field_class_name(ctx, receiver_name)" "$ROOT_DIR/src/codegen/llvm_stmt_type_infer.c"
+grep -Fq "llvm_current_zone_slot_type_name(ctx" "$ROOT_DIR/src/codegen/llvm_stmt_type_infer.c"
+if grep -Fq "llvm_hosted_domain_slot_view_from_decl(ctx" "$ROOT_DIR/src/codegen/llvm_stmt_type_infer.c"; then
+    echo "[perf-contract] LLVM stmt type inference reopened domain slot-view metadata directly" >&2
+    exit 1
+fi
+grep -Fq "llvm_current_zone_slot_type_name(LLVMGenCtx *ctx" \
+    "$ROOT_DIR/src/codegen/llvm_domain_lookup.c"
 grep -Fq "tests/cases/backend_compare/zone_host_method_abi_combo" "$ROOT_DIR/tests/compare_backends.sh"
 grep -Fq "channel receive '%s' has no registered Channel<T> metadata" "$ROOT_DIR/src/codegen/llvm_stmt_type_infer.c"
 grep -A34 -F "case AST_CHANNEL_RECV" "$ROOT_DIR/src/codegen/llvm_stmt_type_infer.c" | \

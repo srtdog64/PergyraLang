@@ -114,6 +114,7 @@ CI_MACOS_BUILD_DIR := $(TMPDIR_CI)/pgy-ci-macos-build
 CI_MACOS_BIN_DIR   := $(TMPDIR_CI)/pgy-ci-macos-bin
 PGY_BACKEND_COMPARE_SHARD_TOTAL ?= 0
 PGY_BACKEND_COMPARE_SHARD_INDEX ?= 0
+PGY_BACKEND_COMPARE_PRECHECK ?= 1
 CI_BACKEND_COMPARE_SHARD_TOTAL ?= 20
 CI_BACKEND_COMPARE_SHARD_INDEX ?= 0
 ifeq ($(strip $(BASH)),)
@@ -547,6 +548,7 @@ CODEGEN_SOURCES  = $(CODEGEN_DIR)/transpiler_allocator_builtin_emit.c \
                    $(CODEGEN_DIR)/transpiler_decl_lookup.c \
                    $(CODEGEN_DIR)/transpiler_decl_field_view.c \
                    $(CODEGEN_DIR)/transpiler_decl_slot_view.c \
+                   $(CODEGEN_DIR)/transpiler_decl_role_roster_slot_view.c \
                    $(CODEGEN_DIR)/transpiler_decl_method_view.c \
                    $(CODEGEN_DIR)/transpiler_decl_host_lookup.c \
                    $(CODEGEN_DIR)/transpiler_destructure_emit.c \
@@ -689,6 +691,7 @@ CODEGEN_SOURCES  = $(CODEGEN_DIR)/transpiler_allocator_builtin_emit.c \
                    $(CODEGEN_DIR)/transpiler_projection_sync.c \
                    $(CODEGEN_DIR)/transpiler_relation_effect_emit.c \
                    $(CODEGEN_DIR)/transpiler_projection.c \
+                   $(CODEGEN_DIR)/transpiler_projection_emit.c \
                    $(CODEGEN_DIR)/transpiler_role_ability.c \
                    $(CODEGEN_DIR)/transpiler_slot_builtin_emit.c \
                    $(CODEGEN_DIR)/transpiler_spawn_channel_emit.c \
@@ -867,6 +870,7 @@ ifneq ($(LLVM_ENABLED),0)
                          $(CODEGEN_DIR)/llvm_intent_step_context.c \
                          $(CODEGEN_DIR)/llvm_intent_trace.c \
                          $(CODEGEN_DIR)/llvm_registry.c \
+                         $(CODEGEN_DIR)/llvm_registry_aux.c \
                          $(CODEGEN_DIR)/llvm_registry_arrays.c \
                          $(CODEGEN_DIR)/llvm_registry_collections.c \
                          $(CODEGEN_DIR)/llvm_registry_resources.c \
@@ -887,7 +891,9 @@ ifneq ($(LLVM_ENABLED),0)
                         $(CODEGEN_DIR)/llvm_mir_pin_region.c \
                         $(CODEGEN_DIR)/llvm_mir_resource_claim.c \
                         $(CODEGEN_DIR)/llvm_mir_resource_view.c \
+                        $(CODEGEN_DIR)/llvm_mir_async_fact.c \
                         $(CODEGEN_DIR)/llvm_mir_local_emit.c \
+                        $(CODEGEN_DIR)/llvm_mir_slice_fact.c \
                         $(CODEGEN_DIR)/llvm_mir_param_emit.c \
                         $(CODEGEN_DIR)/llvm_mir_type_helpers.c \
                         $(CODEGEN_DIR)/llvm_mir_vars.c \
@@ -908,6 +914,7 @@ ifneq ($(LLVM_ENABLED),0)
                         $(CODEGEN_DIR)/llvm_inventory_decl_lookup.c \
                         $(CODEGEN_DIR)/llvm_inventory_field_view.c \
                         $(CODEGEN_DIR)/llvm_inventory_slot_view.c \
+                        $(CODEGEN_DIR)/llvm_inventory_role_roster_slot_view.c \
                         $(CODEGEN_DIR)/llvm_inventory_host_methods.c \
                         $(CODEGEN_DIR)/llvm_expr.c \
                         $(CODEGEN_DIR)/llvm_expr_aggregate.c \
@@ -1013,7 +1020,7 @@ ifneq ($(LLVM_ENABLED),0)
                         $(CODEGEN_DIR)/llvm_domain_zone_sync.c \
                         $(CODEGEN_DIR)/llvm_domain_zone_sync_clauses.c \
                         $(CODEGEN_DIR)/llvm_domain_zone_sync_relations.c \
-                        $(CODEGEN_DIR)/llvm_domain_zone_bind_helpers.c \
+                        $(CODEGEN_DIR)/llvm_domain_zone_bind_lowering.c \
                         $(CODEGEN_DIR)/llvm_domain_world_sync_directives.c \
                         $(CODEGEN_DIR)/llvm_domain_world_frontier_derived.c \
                         $(CODEGEN_DIR)/llvm_domain_world_frontier.c \
@@ -1767,6 +1774,7 @@ self-host-preparation-test-smoke: $(PGY)
 	"$(BASH)" tests/self_hosted_scaffold_smoke.sh
 	"$(BASH)" src/self_hosted/parity/air_graph_json_validator_parity.sh
 	"$(BASH)" src/self_hosted/parity/backend_output_comparator_parity.sh
+	"$(BASH)" src/self_hosted/parity/backend_output_tri_compare_parity.sh
 	"$(BASH)" src/self_hosted/parity/diagnostic_catalog_checker_parity.sh
 	"$(BASH)" src/self_hosted/parity/doc_link_checker_parity.sh
 	"$(BASH)" src/self_hosted/parity/examples_inventory_checker_parity.sh
@@ -1780,6 +1788,12 @@ self-host-preparation-test-smoke: $(PGY)
 
 self-host-diagnostic-catalog-parity-test-smoke: $(PGY)
 	"$(BASH)" src/self_hosted/parity/diagnostic_catalog_checker_parity.sh
+
+self-host-backend-tri-compare-test-smoke: $(PGY)
+	"$(BASH)" src/self_hosted/parity/backend_output_tri_compare_parity.sh
+
+self-host-backend-tri-compare-extended-test-smoke: $(PGY)
+	PGY_BACKEND_TRI_COMPARE_SUITE=extended "$(BASH)" src/self_hosted/parity/backend_output_tri_compare_parity.sh
 
 self-host-lexer-parity-test-smoke: $(PGY)
 	"$(BASH)" src/self_hosted/parity/lexer_parity.sh
@@ -1956,7 +1970,7 @@ backend-compare-llvm-coverage-test-smoke:
 backend-compare-inventory-test-smoke:
 	PGY_BACKEND_COMPARE_INVENTORY_ONLY=1 "$(BASH)" tests/compare_backends.sh
 
-llvm-test-backend-compare: $(ABI_PIPELINE_TEST)
+llvm-test-backend-compare: $(if $(filter 0,$(PGY_BACKEND_COMPARE_PRECHECK)),,$(ABI_PIPELINE_TEST))
 	$(MAKE) backend-compare-inventory-test-smoke
 	$(MAKE) backend-compare-llvm-coverage-test-smoke
 	$(MAKE) LLVM_ENABLED=1 $(PGY)
@@ -1964,19 +1978,19 @@ llvm-test-backend-compare: $(ABI_PIPELINE_TEST)
 	PGY_CC="$(CC)" \
 	PGY_ABI_PIPELINE_TEST_BIN="$(abspath $(ABI_PIPELINE_TEST))" \
 	LLVM_INSTALL="$(LLVM_INSTALL)" \
-	PGY_BACKEND_COMPARE_PRECHECK_SAME_PROCESS=1 \
+	PGY_BACKEND_COMPARE_PRECHECK_SAME_PROCESS="$(PGY_BACKEND_COMPARE_PRECHECK)" \
 	PGY_BACKEND_COMPARE_SHARD_TOTAL="$(PGY_BACKEND_COMPARE_SHARD_TOTAL)" \
 	PGY_BACKEND_COMPARE_SHARD_INDEX="$(PGY_BACKEND_COMPARE_SHARD_INDEX)" \
 	"$(BASH)" tests/compare_backends.sh
 
-air-strict-backend-compare-test-smoke: $(ABI_PIPELINE_TEST)
+air-strict-backend-compare-test-smoke: $(if $(filter 0,$(PGY_BACKEND_COMPARE_PRECHECK)),,$(ABI_PIPELINE_TEST))
 	$(MAKE) LLVM_ENABLED=1 $(PGY)
 	PGY_AIR_STRICT_EVIDENCE=1 \
 	PGY_BIN="$(abspath $(PGY))" \
 	PGY_CC="$(CC)" \
 	PGY_ABI_PIPELINE_TEST_BIN="$(abspath $(ABI_PIPELINE_TEST))" \
 	LLVM_INSTALL="$(LLVM_INSTALL)" \
-	PGY_BACKEND_COMPARE_PRECHECK_SAME_PROCESS=1 \
+	PGY_BACKEND_COMPARE_PRECHECK_SAME_PROCESS="$(PGY_BACKEND_COMPARE_PRECHECK)" \
 	PGY_BACKEND_COMPARE_SHARD_TOTAL="$(PGY_BACKEND_COMPARE_SHARD_TOTAL)" \
 	PGY_BACKEND_COMPARE_SHARD_INDEX="$(PGY_BACKEND_COMPARE_SHARD_INDEX)" \
 	"$(BASH)" tests/compare_backends.sh
@@ -2149,11 +2163,13 @@ ci-linux:
 	$(MAKE) CC="$(CI_LINUX_CC)" BUILD_DIR="$(CI_LINUX_BUILD_DIR)" BIN_DIR="$(CI_LINUX_BIN_DIR)" llvm-test-abi-same-process
 	PGY_BACKEND_COMPARE_SHARD_TOTAL="$(CI_BACKEND_COMPARE_SHARD_TOTAL)" \
 	PGY_BACKEND_COMPARE_SHARD_INDEX="$(CI_BACKEND_COMPARE_SHARD_INDEX)" \
+	PGY_BACKEND_COMPARE_PRECHECK=0 \
 	$(MAKE) CC="$(CI_LINUX_CC)" BUILD_DIR="$(CI_LINUX_BUILD_DIR)" BIN_DIR="$(CI_LINUX_BIN_DIR)" llvm-test-backend-compare
 	$(MAKE) CC="$(CI_LINUX_CC)" BUILD_DIR="$(CI_LINUX_BUILD_DIR)" BIN_DIR="$(CI_LINUX_BIN_DIR)" llvm-campaign-projection-test-smoke
 	$(MAKE) CC="$(CI_LINUX_CC)" BUILD_DIR="$(CI_LINUX_BUILD_DIR)" BIN_DIR="$(CI_LINUX_BIN_DIR)" llvm-dnd-campaign-test-smoke
 	PGY_BACKEND_COMPARE_SHARD_TOTAL="$(CI_BACKEND_COMPARE_SHARD_TOTAL)" \
 	PGY_BACKEND_COMPARE_SHARD_INDEX="$(CI_BACKEND_COMPARE_SHARD_INDEX)" \
+	PGY_BACKEND_COMPARE_PRECHECK=0 \
 	$(MAKE) CC="$(CI_LINUX_CC)" BUILD_DIR="$(CI_LINUX_BUILD_DIR)" BIN_DIR="$(CI_LINUX_BIN_DIR)" air-strict-backend-compare-test-smoke
 	$(MAKE) CC="$(CI_LINUX_CC)" BUILD_DIR="$(CI_LINUX_BUILD_DIR)" BIN_DIR="$(CI_LINUX_BIN_DIR)" clean
 	$(MAKE) CC="$(CI_LINUX_CC)" BUILD_DIR="$(CI_LINUX_BUILD_DIR)" BIN_DIR="$(CI_LINUX_BIN_DIR)" test-all
@@ -2311,7 +2327,7 @@ lsp: $(PGY_LSP)
 
 .PHONY: all clean clean-objects rebuild debug release analyze format memcheck \
         test test-parser test-datastructures test-security test-semantic test-transpile test-memory test-abi test-concurrency test-dir test-air test-rir test-mir test-hir test-all \
-llvm-test llvm-test-parser llvm-test-semantic llvm-test-transpile llvm-test-memory llvm-test-concurrency llvm-test-dir llvm-test-rir llvm-test-mir llvm-test-hir backend-compare-inventory-test-smoke backend-compare-llvm-coverage-test-smoke llvm-test-backend-compare llvm-test-all llvm-test-smoke tooling-conformance-test-smoke stdlib-test-smoke module-test-smoke module-taxonomy-test-smoke package-module-resolver-test-smoke unicode-policy-test-smoke beta-test-suite-freeze-test-smoke build-source-inventory-test-smoke observability-schema-test-smoke memory-concurrency-model-test-smoke async-model-positioning-test-smoke documentation-quality-test-smoke self-host-preparation-test-smoke self-host-diagnostic-catalog-parity-test-smoke self-host-lex-minimal-parity-test-smoke debug-hygiene-test-smoke memory-string-safety-test-smoke security-portability-contract-test-smoke llvm-campaign-projection-test-smoke llvm-dnd-campaign-test-smoke beta-readiness-checklist-test-smoke dogfood-webgl-test-smoke formal-semantics-test-smoke air-drift-test-smoke air-json-schema-test-smoke air-backend-nonimpact-test-smoke air-backend-nonimpact-full-test-smoke air-strict-backend-compare-test-smoke codegen-determinism-test-smoke runtime-none-contract-test-smoke raw-escape-contract-test-smoke semantic-inc-size-test-smoke semantic-tu-size-test-smoke production-header-size-test-smoke production-c-size-test-smoke examples-inventory-test-smoke backend-inc-size-test-smoke test-inc-size-test-smoke transpile-strict-source-test-smoke source-test-harness-compile-test-smoke semantic-core-shape-test-smoke type-resolution-dag-test-smoke type-resolution-resolver-inventory-test-smoke semantic-fixture-isolation-test-smoke diagnostic-registry-test-smoke layered-diagnostics-contract-test-smoke intent-compression-contract-test-smoke runtime-authority-contract-test-smoke runtime-panic-contract-test-smoke runtime-panic-abi-test-smoke runtime-panic-codegen-test-smoke projection-diagnostic-contract-test-smoke runtime-abi-lifetime-test-smoke abi-ownership-shape-test-smoke runtime-frontier-contract-test-smoke runtime-frontier-policy-test-smoke runtime-intent-observability-contract-test-smoke parallel-core-contract-test-smoke perf-contract-test-smoke perf-c-baseline-test-smoke parser-lexer-diagnostic-test-smoke diagnostics-json-test-smoke cfg-body-dataflow-test-smoke mir-declaration-inventory-test-smoke example-test-smoke ast-dispatch-test-smoke ci-linux ci-macos ci-windows check-build-tools check-security-toolchain check-linux-toolchain check-macos-toolchain check-windows-toolchain \
+llvm-test llvm-test-parser llvm-test-semantic llvm-test-transpile llvm-test-memory llvm-test-concurrency llvm-test-dir llvm-test-rir llvm-test-mir llvm-test-hir backend-compare-inventory-test-smoke backend-compare-llvm-coverage-test-smoke llvm-test-backend-compare llvm-test-all llvm-test-smoke tooling-conformance-test-smoke stdlib-test-smoke module-test-smoke module-taxonomy-test-smoke package-module-resolver-test-smoke unicode-policy-test-smoke beta-test-suite-freeze-test-smoke build-source-inventory-test-smoke observability-schema-test-smoke memory-concurrency-model-test-smoke async-model-positioning-test-smoke documentation-quality-test-smoke self-host-preparation-test-smoke self-host-diagnostic-catalog-parity-test-smoke self-host-backend-tri-compare-test-smoke self-host-backend-tri-compare-extended-test-smoke self-host-lex-minimal-parity-test-smoke debug-hygiene-test-smoke memory-string-safety-test-smoke security-portability-contract-test-smoke llvm-campaign-projection-test-smoke llvm-dnd-campaign-test-smoke beta-readiness-checklist-test-smoke dogfood-webgl-test-smoke formal-semantics-test-smoke air-drift-test-smoke air-json-schema-test-smoke air-backend-nonimpact-test-smoke air-backend-nonimpact-full-test-smoke air-strict-backend-compare-test-smoke codegen-determinism-test-smoke runtime-none-contract-test-smoke raw-escape-contract-test-smoke semantic-inc-size-test-smoke semantic-tu-size-test-smoke production-header-size-test-smoke production-c-size-test-smoke examples-inventory-test-smoke backend-inc-size-test-smoke test-inc-size-test-smoke transpile-strict-source-test-smoke source-test-harness-compile-test-smoke semantic-core-shape-test-smoke type-resolution-dag-test-smoke type-resolution-resolver-inventory-test-smoke semantic-fixture-isolation-test-smoke diagnostic-registry-test-smoke layered-diagnostics-contract-test-smoke intent-compression-contract-test-smoke runtime-authority-contract-test-smoke runtime-panic-contract-test-smoke runtime-panic-abi-test-smoke runtime-panic-codegen-test-smoke projection-diagnostic-contract-test-smoke runtime-abi-lifetime-test-smoke abi-ownership-shape-test-smoke runtime-frontier-contract-test-smoke runtime-frontier-policy-test-smoke runtime-intent-observability-contract-test-smoke parallel-core-contract-test-smoke perf-contract-test-smoke perf-c-baseline-test-smoke parser-lexer-diagnostic-test-smoke diagnostics-json-test-smoke cfg-body-dataflow-test-smoke mir-declaration-inventory-test-smoke example-test-smoke ast-dispatch-test-smoke ci-linux ci-macos ci-windows check-build-tools check-security-toolchain check-linux-toolchain check-macos-toolchain check-windows-toolchain \
         example-hello example-slots llvm emit-llvm-% lsp
 
 ifeq ($(filter clean clean-objects,$(MAKECMDGOALS)),)

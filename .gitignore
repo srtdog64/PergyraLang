@@ -70,6 +70,10 @@ src/self_hosted/parser/main.ll
 src/self_hosted/lib/*.c
 src/self_hosted/lib/*.ll
 
+# Backend-compare source fixtures are tracked as main.pgy. Generated C
+# sidecars can appear beside them during targeted local C/LLVM runs.
+tests/cases/backend_compare/**/main.c
+
 # Temporary compiler artifacts
 *.o.tmp
 *.tmp

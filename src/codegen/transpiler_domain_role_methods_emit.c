@@ -168,11 +168,20 @@ emit_role_operator_aliases(ASTNode *role, TranspilerCtx *ctx)
     for (size_t i = 0; i < sizeof(ops) / sizeof(ops[0]); i++) {
         PgyTokenType op = ops[i];
         const char *suffix = operator_overload_suffix(op);
-        ASTNode *method = find_role_operator_method_decl(ctx, role, op, 0);
-        const char *method_name = ast_declaration_name(method);
+        const MIRDeclMethod *method_meta =
+            find_role_operator_method_metadata(ctx, role, op, 0);
+        ASTNode *method = transpiler_mir_decl_method_source_ast(method_meta);
+        const char *method_name =
+            transpiler_mir_decl_method_name(method_meta);
         char fn_name[256];
-        if (suffix == NULL || method == NULL
-            || method->type != AST_FUNC_DECL
+        if (method_meta == NULL && !transpiler_active_has_mir(ctx)) {
+            method = find_role_operator_method_decl(ctx, role, op, 0);
+            method_name = ast_declaration_name(method);
+        }
+        if (suffix == NULL
+            || (method_meta == NULL && transpiler_active_has_mir(ctx))
+            || (method_meta == NULL
+                && (method == NULL || method->type != AST_FUNC_DECL))
             || method_name == NULL
             ) {
             continue;
@@ -192,8 +201,13 @@ emit_role_operator_aliases(ASTNode *role, TranspilerCtx *ctx)
 
         FuncParam *rhs_param = NULL;
         size_t rhs_param_count = 0;
-        for (size_t j = 0; j < ast_func_param_count(method); j++) {
-            FuncParam *p = ast_func_param(method, j);
+        size_t param_count = method_meta != NULL
+            ? transpiler_mir_decl_method_param_count(method_meta)
+            : ast_func_param_count(method);
+        for (size_t j = 0; j < param_count; j++) {
+            FuncParam *p = method_meta != NULL
+                ? transpiler_mir_decl_method_param(method_meta, j)
+                : ast_func_param(method, j);
             if (p != NULL && p->name != NULL
                 && !(p->type == NULL && strcmp(p->name, "self") == 0)) {
                 rhs_param = p;
@@ -221,8 +235,12 @@ emit_role_operator_aliases(ASTNode *role, TranspilerCtx *ctx)
             ? rhs_param->name : "rhs";
         char surface_desc[256];
 
-        if (ast_func_return_type(method) != NULL) {
-            if (pergyra_ast_type_to_c_copy_in_ctx(ctx, ast_func_return_type(method),
+        ASTNode *return_type = method_meta != NULL
+            ? transpiler_mir_decl_method_return_type(method_meta)
+            : ast_func_return_type(method);
+        if (return_type != NULL) {
+            if (pergyra_ast_type_to_c_copy_in_ctx(ctx,
+                    return_type,
                     ret_type_storage,
                     sizeof(ret_type_storage))) {
                 ret_type = ret_type_storage;

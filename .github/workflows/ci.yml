@@ -20,6 +20,28 @@ jobs:
       - name: Run Linux CI target
         run: make ci-linux
 
+  backend-compare-linux:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        shard: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19]
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y gcc make llvm-dev llvm
+
+      - name: Run Linux C/LLVM backend compare shard
+        run: |
+          make LLVM_ENABLED=1 \
+            PGY_BACKEND_COMPARE_PRECHECK=0 \
+            PGY_BACKEND_COMPARE_SHARD_TOTAL=20 \
+            PGY_BACKEND_COMPARE_SHARD_INDEX="${{ matrix.shard }}" \
+            llvm-test-backend-compare
+
   build-windows:
     runs-on: windows-latest
     steps:

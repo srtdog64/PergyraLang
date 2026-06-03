@@ -30,58 +30,8 @@
 
 #include "llvm_limits_internal.h"
 #include "llvm_debug_flags.h"
+#include "llvm_type_kind.h"
 
-/* =================================================================
- * Pergyra type classification: eliminates repeated strcmp dispatch.
- *
- * Call pgy_classify_type() once on a type name string, then use
- * switch() everywhere else for exhaustive, typo-proof dispatch.
- * ================================================================= */
-
-typedef enum
-{
-    PGY_TK_INT,
-    PGY_TK_LONG,
-    PGY_TK_FLOAT,
-    PGY_TK_DOUBLE,
-    PGY_TK_BOOL,
-    PGY_TK_STRING,
-    PGY_TK_VOID,
-    PGY_TK_QUBIT_SLOT,
-    PGY_TK_REMOTE_FUTURE,
-    PGY_TK_DEVICE_SLOT,
-
-    /* Generic container types: inner type parsed separately. */
-    PGY_TK_SLOT,
-    PGY_TK_SECURE_SLOT,
-    PGY_TK_RESULT,
-    PGY_TK_OPTION,
-    PGY_TK_CHANNEL,
-    PGY_TK_FUTURE,
-    PGY_TK_BOX,
-    PGY_TK_RC,
-    PGY_TK_WEAK,
-    PGY_TK_ARRAY,
-    PGY_TK_SLICE,
-
-    PGY_TK_CLASS,        /* user-defined class (not matched by classifier) */
-    PGY_TK_UNKNOWN       /* type param, unresolved, or unrecognized */
-} PgyTypeKind;
-
-typedef struct LLVMGenCtx LLVMGenCtx;
-
-/* Classify a Pergyra type name string into its kind.
- * Handles both primitive ("Int") and generic ("Slot<Int>") forms.
- * Returns PGY_TK_UNKNOWN for unrecognized names. */
-PgyTypeKind pgy_classify_type(const char *type_name);
-
-/* Map a PgyTypeKind (primitive only) to its LLVM type in the context.
- * Returns NULL for non-primitive kinds. */
-LLVMTypeRef pgy_kind_to_llvm(LLVMGenCtx *ctx, PgyTypeKind kind);
-
-/* Map a PgyTypeKind (primitive only) to its Pergyra name suffix.
- * Returns NULL for non-primitive kinds. */
-const char *pgy_kind_to_suffix(PgyTypeKind kind);
 LLVMTypeRef llvm_array_struct_type(LLVMGenCtx *ctx, const char *inner);
 LLVMTypeRef llvm_slice_struct_type(LLVMGenCtx *ctx, const char *inner);
 LLVMTypeRef llvm_list_struct_type(LLVMGenCtx *ctx, const char *inner);

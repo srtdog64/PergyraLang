@@ -20,7 +20,10 @@ const char *mir_decl_method_name(const MIRDeclMethod *method);
 size_t mir_decl_method_param_count(const MIRDeclMethod *method);
 FuncParam *mir_decl_method_param(const MIRDeclMethod *method, size_t index);
 ASTNode *mir_decl_method_return_type(const MIRDeclMethod *method);
+bool mir_decl_method_is_async(const MIRDeclMethod *method);
 bool mir_decl_method_is_action_like(const MIRDeclMethod *method);
+const char *mir_decl_method_within_zone(const MIRDeclMethod *method);
+const char *mir_decl_method_causes_effect(const MIRDeclMethod *method);
 bool mir_decl_method_routine_index(const MIRDeclMethod *method,
                                    size_t *index_out);
 ASTNode *mir_decl_field_source_ast(const MIRDeclField *field);

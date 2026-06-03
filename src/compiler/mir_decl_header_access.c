@@ -85,9 +85,27 @@ mir_decl_method_return_type(const MIRDeclMethod *method)
 }
 
 bool
+mir_decl_method_is_async(const MIRDeclMethod *method)
+{
+    return method != NULL && method->is_async;
+}
+
+bool
 mir_decl_method_is_action_like(const MIRDeclMethod *method)
 {
     return method != NULL && method->is_action_like;
+}
+
+const char *
+mir_decl_method_within_zone(const MIRDeclMethod *method)
+{
+    return method != NULL ? method->within_zone : NULL;
+}
+
+const char *
+mir_decl_method_causes_effect(const MIRDeclMethod *method)
+{
+    return method != NULL ? method->causes_effect : NULL;
 }
 
 bool

@@ -24,10 +24,10 @@ test_parallel_family_emit(void)
         main_fn->data.func_decl.body = main_body;
 
         ASTNode *stmts[2] = { worker, main_fn };
-        ASTNode *program = make_program(stmts, 2);
+        ASTNode *prog = make_program(stmts, 2);
         HIRProgram *hir = NULL;
         RIRProgram *rir = NULL;
-        MIRProgram *mir = lower_program_to_mir(program, &hir, &rir);
+        MIRProgram *mir = lower_program_to_mir(prog, &hir, &rir);
         TranspilerCtx *ctx = transpiler_ctx_create();
         emit_program(ctx);
 
@@ -40,7 +40,7 @@ test_parallel_family_emit(void)
         mir_destroy(mir);
         rir_destroy(rir);
         hir_destroy(hir);
-        ast_destroy(program);
+        ast_destroy(prog);
     }
 
     TEST("select-readiness: select emits round-robin switch");

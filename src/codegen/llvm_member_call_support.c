@@ -5,6 +5,8 @@
 #include <stdio.h>
 #include <string.h>
 
+#include "llvm_inventory_host_methods.h"
+
 LLVMValueRef
 llvm_member_call_error_recovery(LLVMGenCtx *ctx, ASTNode *node,
                                 const char *class_name,
@@ -54,6 +56,60 @@ llvm_member_call_store_arg(LLVMGenCtx *ctx, ASTNode *node,
     llvm_member_call_error_recovery(ctx, node, class_name, method_name,
         "could not lower an argument");
     return false;
+}
+
+LLVMValueRef
+llvm_member_call_adjust_pointer_self_arg(LLVMGenCtx *ctx,
+                                         const MIRDeclMethod *method_meta,
+                                         ASTNode *method_decl,
+                                         size_t logical_index,
+                                         ASTNode *arg_node,
+                                         LLVMValueRef arg_val)
+{
+    size_t logical_idx = 0;
+
+    if (method_meta == NULL
+        && (method_decl == NULL || method_decl->type != AST_FUNC_DECL))
+        return arg_val;
+
+    size_t method_param_count = method_meta != NULL
+        ? llvm_mir_decl_method_param_count(method_meta)
+        : ast_func_param_count(method_decl);
+
+    for (size_t pk = 0; pk < method_param_count; pk++) {
+        FuncParam *p = method_meta != NULL
+            ? llvm_mir_decl_method_param(method_meta, pk)
+            : ast_func_param(method_decl, pk);
+        const char *ptn = NULL;
+        LLVMClassTypeEntry *param_cls = NULL;
+
+        if (p == NULL || p->name == NULL)
+            continue;
+        if (p->type == NULL && strcmp(p->name, "self") == 0)
+            continue;
+        if (logical_idx != logical_index) {
+            logical_idx++;
+            continue;
+        }
+
+        if (p->type != NULL && p->type->type == AST_TYPE)
+            ptn = ast_type_name(p->type);
+        param_cls = ptn != NULL ? llvm_lookup_class(ctx, ptn) : NULL;
+        if (param_cls != NULL && param_cls->is_pointer_self_host
+            && arg_node != NULL && arg_node->type == AST_IDENTIFIER) {
+            const char *arg_name = ast_identifier_name(arg_node);
+            LLVMVarEntry *arg_var = llvm_scope_lookup(ctx, arg_name);
+            if (arg_var != NULL) {
+                if (arg_var->type == LLVMPointerType(param_cls->struct_type, 0))
+                    return LLVMBuildLoad2(ctx->builder, arg_var->type,
+                        arg_var->alloca, llvm_tmp_name(ctx));
+                return arg_var->alloca;
+            }
+        }
+        break;
+    }
+
+    return arg_val;
 }
 
 char *

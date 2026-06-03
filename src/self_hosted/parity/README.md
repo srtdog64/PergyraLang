@@ -12,6 +12,9 @@ The parity set currently covers:
 - `stable_subset_section_checker`
 - `air_graph_json_validator`
 - `backend_output_comparator`
+- `backend_output_tri_compare` (C/LLVM outputs checked by the Pergyra
+  comparator; use `make self-host-backend-tri-compare-extended-test-smoke` for
+  the opt-in 29-case C/LLVM closure gate)
 - `module_manifest_resolver`
 - `stdlib_dispatch_inventory_checker`
 - `doc_link_checker`

@@ -118,13 +118,22 @@ bool transpiler_require_hosted_method_view_rows(
 const MIRDeclMethod *transpiler_hosted_method_view_metadata(
     const TranspilerHostedMethodView *view,
     size_t index);
+const MIRDeclMethod *transpiler_find_host_method_metadata_in_context(
+    const TranspilerCtx *ctx,
+    const char *host_type_name,
+    const char *method_name);
 const char *transpiler_mir_decl_method_name(const MIRDeclMethod *method);
 ASTNode *transpiler_mir_decl_method_source_ast(const MIRDeclMethod *method);
 size_t transpiler_mir_decl_method_param_count(const MIRDeclMethod *method);
 FuncParam *transpiler_mir_decl_method_param(const MIRDeclMethod *method,
                                             size_t index);
 ASTNode *transpiler_mir_decl_method_return_type(const MIRDeclMethod *method);
+bool transpiler_mir_decl_method_is_async(const MIRDeclMethod *method);
 bool transpiler_mir_decl_method_is_action_like(const MIRDeclMethod *method);
+const char *transpiler_mir_decl_method_within_zone(
+    const MIRDeclMethod *method);
+const char *transpiler_mir_decl_method_causes_effect(
+    const MIRDeclMethod *method);
 const MIRRoutine *transpiler_mir_decl_method_routine(
     const TranspilerCtx *ctx,
     const MIRDeclMethod *method);

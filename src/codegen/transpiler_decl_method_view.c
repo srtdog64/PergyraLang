@@ -6,6 +6,9 @@
  */
 
 #include "transpiler_decl_lookup.h"
+
+#include <string.h>
+
 #include "host_decl_compat.h"
 #include "../compiler/mir_decl_headers.h"
 #include "transpiler_context.h"
@@ -59,6 +62,28 @@ transpiler_hosted_method_view_metadata(const TranspilerHostedMethodView *view,
         return NULL;
     }
     return mir_decl_header_method(view->decl_header, index);
+}
+
+const MIRDeclMethod *
+transpiler_find_host_method_metadata_in_context(
+    const TranspilerCtx *ctx,
+    const char *host_type_name,
+    const char *method_name)
+{
+    const MIRDeclHeader *header;
+
+    if (ctx == NULL || host_type_name == NULL || method_name == NULL)
+        return NULL;
+
+    header = transpiler_active_decl_header(ctx, host_type_name);
+    for (size_t i = 0; header != NULL
+         && i < mir_decl_header_method_count(header); i++) {
+        const MIRDeclMethod *method = mir_decl_header_method(header, i);
+        const char *name = transpiler_mir_decl_method_name(method);
+        if (name != NULL && strcmp(name, method_name) == 0)
+            return method;
+    }
+    return NULL;
 }
 
 bool
@@ -125,9 +150,27 @@ transpiler_mir_decl_method_return_type(const MIRDeclMethod *method)
 }
 
 bool
+transpiler_mir_decl_method_is_async(const MIRDeclMethod *method)
+{
+    return mir_decl_method_is_async(method);
+}
+
+bool
 transpiler_mir_decl_method_is_action_like(const MIRDeclMethod *method)
 {
     return mir_decl_method_is_action_like(method);
+}
+
+const char *
+transpiler_mir_decl_method_within_zone(const MIRDeclMethod *method)
+{
+    return mir_decl_method_within_zone(method);
+}
+
+const char *
+transpiler_mir_decl_method_causes_effect(const MIRDeclMethod *method)
+{
+    return mir_decl_method_causes_effect(method);
 }
 
 const MIRRoutine *

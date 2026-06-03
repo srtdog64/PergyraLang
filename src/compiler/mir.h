@@ -281,8 +281,10 @@ typedef struct
     FuncParam **params;
     size_t      param_count;
     ASTNode    *return_type;
+    bool        is_async;
     bool        is_action_like;
     const char *within_zone;
+    const char *causes_effect;
     bool        has_routine;
     size_t      routine_index;
 } MIRDeclMethod;

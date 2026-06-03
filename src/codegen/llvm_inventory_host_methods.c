@@ -174,9 +174,27 @@ llvm_mir_decl_method_return_type(const MIRDeclMethod *method)
 }
 
 bool
+llvm_mir_decl_method_is_async(const MIRDeclMethod *method)
+{
+    return mir_decl_method_is_async(method);
+}
+
+bool
 llvm_mir_decl_method_is_action_like(const MIRDeclMethod *method)
 {
     return mir_decl_method_is_action_like(method);
+}
+
+const char *
+llvm_mir_decl_method_within_zone(const MIRDeclMethod *method)
+{
+    return mir_decl_method_within_zone(method);
+}
+
+const char *
+llvm_mir_decl_method_causes_effect(const MIRDeclMethod *method)
+{
+    return mir_decl_method_causes_effect(method);
 }
 
 const MIRRoutine *

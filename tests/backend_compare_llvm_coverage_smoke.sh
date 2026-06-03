@@ -8,6 +8,29 @@ COMPARE_CASES="$(mktemp)"
 MISSING_CASES="$(mktemp)"
 trap 'rm -f "$LLVM_CASES" "$COMPARE_CASES" "$MISSING_CASES"' EXIT
 
+require_term() {
+    local rel="$1"
+    local term="$2"
+
+    if ! grep -Fq "$term" "$ROOT_DIR/$rel"; then
+        echo "backend-compare-llvm-coverage: $rel missing term: $term" >&2
+        exit 1
+    fi
+}
+
+require_term "tests/compare_backends.sh" \
+    "run_windows_compiler_backend_fallback()"
+require_term "tests/compare_backends.sh" \
+    "run_compiler_backend()"
+require_term "tests/compare_backends.sh" \
+    "run_windows_compiler_backend_fallback \\"
+require_term "tests/compare_backends.sh" \
+    'if [[ "$rc" -eq 126 || "$rc" -eq 127 ]]; then'
+require_term "tests/compare_backends.sh" \
+    'if ! run_compiler_backend "$source_arg" "c" "$c_bin_arg" "$c_compile_log"; then'
+require_term "tests/compare_backends.sh" \
+    'if ! run_compiler_backend "$source_arg" "llvm" "$llvm_bin_arg" "$llvm_compile_log"; then'
+
 sed -n 's/^run_case "\([^"]*\)".*/\1/p' \
     "$ROOT_DIR/tests/llvm_smoke.sh" \
     | sort -u > "$LLVM_CASES"

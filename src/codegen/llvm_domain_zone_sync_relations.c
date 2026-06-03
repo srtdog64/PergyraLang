@@ -1,6 +1,6 @@
 #ifdef PGY_LLVM_ENABLED
 #include "llvm_internal.h"
-#include "llvm_domain_zone_bind_helpers.h"
+#include "llvm_domain_zone_bind_lowering.h"
 #include "llvm_domain_zone_sync_internal.h"
 #include "parser/ast_api.h"
 

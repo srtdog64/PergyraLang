@@ -46,6 +46,15 @@ test_zone_type_name_at(void *ctx, size_t index)
     return names[index];
 }
 
+static size_t
+test_zone_member_count(void *ctx, const char *zone_name)
+{
+    (void)ctx;
+    if (zone_name == NULL || zone_name[0] == '\0')
+        return 0;
+    return pgy_frontier_embedded_zone_member_count(2, 3);
+}
+
 int
 main(void)
 {
@@ -78,17 +87,18 @@ main(void)
     failures += expect_size("world-derived-limit-zero", pgy_frontier_world_derived_pass_limit(0), 1);
     failures += expect_size("world-derived-limit", pgy_frontier_world_derived_pass_limit(4), 5);
     failures += expect_size("world-derived-limit-cap", pgy_frontier_world_derived_pass_limit(cap), cap);
-    failures += expect_size("domain-zone-null", pgy_domain_zone_frontier_pass_limit(NULL), 1);
     failures += expect_size("domain-zone-counted", pgy_domain_zone_frontier_pass_limit_from_counts(2, 3), 6);
     failures += expect_size("domain-projection", pgy_domain_projection_frontier_pass_limit(3), 4);
-    failures += expect_size("domain-world-derived-null", pgy_domain_world_derived_frontier_pass_limit(NULL), 1);
     failures += expect_size("domain-world-derived-counted", pgy_domain_world_derived_frontier_pass_limit_from_count(4), 5);
-    failures += expect_size("domain-world-embedded-null", pgy_domain_world_embedded_frontier_count(NULL, NULL, NULL), 0);
     failures += expect_size("domain-world-embedded-types-null",
                             pgy_domain_world_embedded_frontier_count_from_zone_types(
                                 1, test_zone_type_name_at, zone_names, NULL, NULL),
                             0);
-    failures += expect_size("domain-world-transitive-null", pgy_domain_world_transitive_frontier_pass_limit(NULL, 3), 4);
+    failures += expect_size("domain-world-embedded-types-counted",
+                            pgy_domain_world_embedded_frontier_count_from_zone_types(
+                                1, test_zone_type_name_at, zone_names,
+                                test_zone_member_count, NULL),
+                            5);
     failures += expect_size("domain-world-transitive-counted", pgy_domain_world_transitive_frontier_pass_limit_from_counts(2, 4, 3), 10);
     failures += expect_size("pass-limit-fact-count", PGY_FRONTIER_PASS_LIMIT_FACT_COUNT, 10);
     failures += expect_size("overflow-reason-fact-count", PGY_FRONTIER_OVERFLOW_REASON_FACT_COUNT, 5);
@@ -135,9 +145,6 @@ for candidate in "$CC_BIN" gcc clang cc; do
         -std=c11 -Isrc \
         "$tmp_dir/frontier_policy_check.c" \
         src/codegen/domain_frontier_policy.c \
-        src/parser/ast_domain_accessors.c \
-        src/parser/ast_domain_accessors_world.c \
-        src/parser/ast_zone_accessors.c \
         -o "$probe_exe"; then
         CC_BIN="$candidate"
         compiled=1

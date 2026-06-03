@@ -116,13 +116,14 @@ llvm_emit_domain_role_method_bodies(LLVMGenCtx *ctx,
                 for (size_t oi = 0; for_type_name != NULL
                        && oi < sizeof(ops) / sizeof(ops[0]); oi++) {
                     const char *suffix = llvm_operator_suffix(ops[oi]);
-                    ASTNode *method =
-                        llvm_find_role_operator_method(ctx, stmt, ops[oi], 0);
-                    const char *method_name = llvm_role_method_name_from_ast(method);
-                    if (suffix == NULL || method == NULL)
+                    const MIRDeclMethod *method_meta =
+                        llvm_find_role_operator_method_metadata(
+                            ctx, stmt, ops[oi], 0);
+                    const char *method_name =
+                        llvm_mir_decl_method_name(method_meta);
+                    if (suffix == NULL || method_meta == NULL)
                         continue;
-                    if (role_name == NULL || method->type != AST_FUNC_DECL
-                        || method_name == NULL) {
+                    if (role_name == NULL || method_name == NULL) {
                         continue;
                     }
 

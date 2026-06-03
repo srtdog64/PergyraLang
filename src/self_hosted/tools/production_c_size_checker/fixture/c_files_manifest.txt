@@ -43,7 +43,7 @@ src/codegen/llvm_domain_world_frontier_derived.c
 src/codegen/llvm_domain_world_frontier_zones.c
 src/codegen/llvm_domain_world_sync.c
 src/codegen/llvm_domain_world_sync_directives.c
-src/codegen/llvm_domain_zone_bind_helpers.c
+src/codegen/llvm_domain_zone_bind_lowering.c
 src/codegen/llvm_domain_zone_frontier_state.c
 src/codegen/llvm_domain_zone_sync.c
 src/codegen/llvm_domain_zone_sync_clauses.c

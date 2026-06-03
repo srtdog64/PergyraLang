@@ -116,6 +116,51 @@ find_role_operator_method_decl(TranspilerCtx *ctx, ASTNode *role,
     return NULL;
 }
 
+const MIRDeclMethod *
+find_role_operator_method_metadata(TranspilerCtx *ctx,
+                                   ASTNode *role,
+                                   PgyTokenType op,
+                                   int depth)
+{
+    const char *role_name;
+    TranspilerHostedMethodView view;
+
+    if (ctx == NULL || role == NULL || role->type != AST_ROLE_DECL
+        || depth > 16) {
+        return NULL;
+    }
+
+    role_name = transpiler_decl_name_local(role);
+    view = transpiler_hosted_method_view_from_decl(ctx, role_name, role);
+    for (size_t i = 0; i < view.count; i++) {
+        const MIRDeclMethod *method =
+            transpiler_hosted_method_view_metadata(&view, i);
+        const char *method_name = transpiler_mir_decl_method_name(method);
+
+        if (method_name != NULL
+            && operator_method_name_matches(op, method_name)) {
+            return method;
+        }
+    }
+
+    for (size_t i = 0; i < ast_role_include_count(role); i++) {
+        ASTNode *include_stmt = ast_role_include(role, i);
+        const char *role_name = ast_include_role_name(include_stmt);
+        ASTNode *included_role;
+        const MIRDeclMethod *method;
+
+        if (role_name == NULL)
+            continue;
+        included_role = find_role_decl(ctx, role_name);
+        method = find_role_operator_method_metadata(ctx, included_role,
+            op, depth + 1);
+        if (method != NULL)
+            return method;
+    }
+
+    return NULL;
+}
+
 ASTNode *
 find_operator_overload_decl(TranspilerCtx *ctx, const char *type_name, PgyTokenType op)
 {
@@ -141,8 +186,12 @@ find_operator_overload_decl(TranspilerCtx *ctx, const char *type_name, PgyTokenT
             if (role_type == NULL || strcmp(role_type, type_name) != 0) {
                 continue;
             }
-            if (find_role_operator_method_decl(ctx, role, op, 0) != NULL)
+            if (transpiler_active_has_mir(ctx)) {
+                if (find_role_operator_method_metadata(ctx, role, op, 0) != NULL)
+                    return role;
+            } else if (find_role_operator_method_decl(ctx, role, op, 0) != NULL) {
                 return role;
+            }
         }
     }
 

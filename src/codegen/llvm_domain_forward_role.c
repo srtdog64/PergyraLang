@@ -118,7 +118,9 @@ llvm_emit_role_operator_forward_decl(LLVMGenCtx *ctx,
                                      PgyTokenType op)
 {
     const char *suffix = llvm_operator_suffix(op);
-    ASTNode *method = llvm_find_role_operator_method(ctx, role, op, 0);
+    const MIRDeclMethod *method_meta =
+        llvm_find_role_operator_method_metadata(ctx, role, op, 0);
+    ASTNode *method = llvm_mir_decl_method_source_ast(method_meta);
     char opname[256];
     FuncParam *rhs_param = NULL;
     size_t rhs_param_count = 0;
@@ -129,10 +131,9 @@ llvm_emit_role_operator_forward_decl(LLVMGenCtx *ctx,
     LLVMTypeRef ft;
     LLVMValueRef fn;
 
-    if (suffix == NULL || method == NULL)
+    if (suffix == NULL || method_meta == NULL)
         return true;
-    if (method->type != AST_FUNC_DECL
-        || llvm_domain_method_name_metadata_first(NULL, method) == NULL)
+    if (llvm_domain_method_name_metadata_first(method_meta, method) == NULL)
         return true;
 
     if (!llvm_role_operator_symbol_name(opname, sizeof(opname),
@@ -146,10 +147,10 @@ llvm_emit_role_operator_forward_decl(LLVMGenCtx *ctx,
         return true;
 
     for (size_t pj = 0;
-         pj < llvm_domain_method_param_count_metadata_first(NULL, method);
+         pj < llvm_domain_method_param_count_metadata_first(method_meta, method);
          pj++) {
         FuncParam *p =
-            llvm_domain_method_param_metadata_first(NULL, method, pj);
+            llvm_domain_method_param_metadata_first(method_meta, method, pj);
         if (!llvm_param_is_implicit_self_local(p)) {
             rhs_param = p;
             rhs_param_count++;
@@ -167,7 +168,7 @@ llvm_emit_role_operator_forward_decl(LLVMGenCtx *ctx,
         return false;
     {
         ASTNode *return_type =
-            llvm_domain_method_return_type_metadata_first(NULL, method);
+            llvm_domain_method_return_type_metadata_first(method_meta, method);
         ret = return_type != NULL
             ? ast_type_to_llvm(ctx, return_type)
             : ctx->type_void;

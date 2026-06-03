@@ -69,4 +69,18 @@ llvm_lookup_array_var(LLVMGenCtx *ctx, const char *var_name)
     return NULL;
 }
 
+LLVMArrayVarEntry *
+llvm_lookup_array_var_binding(LLVMGenCtx *ctx, const char *var_name,
+                              LLVMValueRef binding)
+{
+    if (ctx == NULL || var_name == NULL || binding == NULL)
+        return NULL;
+    for (int i = ctx->array_var_count - 1; i >= 0; i--) {
+        if (ctx->array_vars[i].binding == binding
+            && strcmp(ctx->array_vars[i].var_name, var_name) == 0)
+            return &ctx->array_vars[i];
+    }
+    return NULL;
+}
+
 #endif

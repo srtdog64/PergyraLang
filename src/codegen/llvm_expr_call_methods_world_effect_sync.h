@@ -5,6 +5,7 @@
 
 void llvm_emit_world_embedded_action_effect_sync(LLVMGenCtx *ctx,
                                                  ASTNode *receiver,
+                                                 const MIRDeclMethod *method_meta,
                                                  ASTNode *method_decl);
 
 #endif

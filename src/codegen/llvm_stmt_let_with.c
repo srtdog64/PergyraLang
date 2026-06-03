@@ -189,6 +189,17 @@ llvm_emit_let_decl(ASTNode *node, LLVMGenCtx *ctx)
             return;
         }
         LLVMTypeRef elem_type = pergyra_type_to_llvm(ctx, elem_name);
+        if (ctx->has_error || elem_type == NULL) {
+            if (!ctx->has_error) {
+                llvm_set_error_at_with_hints(ctx, node,
+                    PGY_CODE_LLVM_TYPE_UNSUPPORTED,
+                    PGY_CAUSE_LLVM_TYPE_UNSUPPORTED,
+                    PGY_FIX_ANNOTATE_CONCRETE_TYPE,
+                    "LLVM let binding '%s' requires concrete Array<T>/Slice<T> element metadata",
+                    name != NULL ? name : "<binding>");
+            }
+            return;
+        }
         llvm_register_array_var(ctx, name, elem_type, -1);
     } else if (init != NULL
         && init->type == AST_CALL
@@ -199,6 +210,17 @@ llvm_emit_let_decl(ASTNode *node, LLVMGenCtx *ctx)
         && ast_member_object(ast_call_callee(init)) != NULL) {
         LLVMTypeRef elem_type = llvm_stmt_resolve_array_elem_type(
             ctx, ast_member_object(ast_call_callee(init)), NULL);
+        if (ctx->has_error || elem_type == NULL) {
+            if (!ctx->has_error) {
+                llvm_set_error_at_with_hints(ctx, init,
+                    PGY_CODE_LLVM_TYPE_UNSUPPORTED,
+                    PGY_CAUSE_LLVM_TYPE_UNSUPPORTED,
+                    PGY_FIX_ANNOTATE_CONCRETE_TYPE,
+                    "LLVM let binding '%s' Slice() initializer requires concrete element type metadata",
+                    name != NULL ? name : "<binding>");
+            }
+            return;
+        }
         llvm_register_array_var(ctx, name, elem_type, -1);
         if (llvm_debug_detail_enabled())
             fprintf(stderr, "[llvm let] name=%s phase=after-slice-register\n",

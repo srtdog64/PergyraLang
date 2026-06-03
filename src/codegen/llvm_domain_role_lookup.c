@@ -8,6 +8,7 @@
 #include "llvm_internal.h"
 #include "llvm_domain_role_helpers.h"
 #include "llvm_inventory_decl_lookup.h"
+#include "llvm_inventory_host_methods.h"
 
 bool
 llvm_role_method_symbol_name(char *out,
@@ -129,6 +130,51 @@ llvm_find_role_operator_method(LLVMGenCtx *ctx, ASTNode *role,
             continue;
         included = llvm_find_role_decl(ctx, role_name);
         method = llvm_find_role_operator_method(ctx, included, op, depth + 1);
+        if (method != NULL)
+            return method;
+    }
+
+    return NULL;
+}
+
+const MIRDeclMethod *
+llvm_find_role_operator_method_metadata(LLVMGenCtx *ctx,
+                                        ASTNode *role,
+                                        PgyTokenType op,
+                                        int depth)
+{
+    const char *role_name;
+    LLVMHostedMethodView view;
+
+    if (ctx == NULL || role == NULL || role->type != AST_ROLE_DECL
+        || depth > 16) {
+        return NULL;
+    }
+
+    role_name = llvm_decl_node_name(role);
+    view = llvm_hosted_method_view_from_decl(ctx, role_name, role);
+    for (size_t i = 0; i < view.count; i++) {
+        const MIRDeclMethod *method =
+            llvm_hosted_method_view_metadata(&view, i);
+        const char *method_name = llvm_mir_decl_method_name(method);
+
+        if (method_name != NULL
+            && llvm_operator_method_name_matches(op, method_name)) {
+            return method;
+        }
+    }
+
+    for (size_t i = 0; i < ast_role_include_count(role); i++) {
+        ASTNode *inc = ast_role_include(role, i);
+        const char *included_name = ast_include_role_name(inc);
+        ASTNode *included;
+        const MIRDeclMethod *method;
+
+        if (included_name == NULL)
+            continue;
+        included = llvm_find_role_decl(ctx, included_name);
+        method = llvm_find_role_operator_method_metadata(
+            ctx, included, op, depth + 1);
         if (method != NULL)
             return method;
     }

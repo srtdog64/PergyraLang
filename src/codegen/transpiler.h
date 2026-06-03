@@ -49,7 +49,10 @@ bool     codebuf_dump_file(const CodeBuf *buf, const char *path);
  * Slot variable tracking: maps variable name to inner type name.
  * ----------------------------------------------------------------- */
 
-#define MAX_SLOT_VARS 256
+/* Sized to fit self-host compiler-scale function locals.
+ * Caps slot_vars / typed_vars / par_capture arrays in TranspilerCtx;
+ * each ctx is allocated once per compile, so the memory cost is bounded. */
+#define MAX_SLOT_VARS 4096
 #define MAX_ALIAS_VARS 128
 #define MAX_GENERIC_BINDINGS 32
 #define MAX_GENERIC_SPECIALIZATIONS 128

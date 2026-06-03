@@ -2,7 +2,7 @@
 #include "llvm_internal.h"
 #include "llvm_domain_decl_parts_helpers.h"
 #include "domain_frontier_policy.h"
-#include "llvm_domain_zone_bind_helpers.h"
+#include "llvm_domain_zone_bind_lowering.h"
 #include "llvm_domain_sync_frontier.h"
 #include "llvm_domain_projection_value_helpers.h"
 #include "llvm_domain_projection_sync_body_helpers.h"

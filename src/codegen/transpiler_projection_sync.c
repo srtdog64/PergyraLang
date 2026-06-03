@@ -23,11 +23,15 @@ emit_zone_action_effect_runtime(CodeBuf *out, ASTNode *call, TranspilerCtx *ctx)
     ASTNode *host_decl;
     ASTNode *zone_decl;
     ASTNode *method_decl;
+    const MIRDeclMethod *method_meta;
     const char *method_name;
     const char *receiver_slot_name = NULL;
     const char *receiver_type_name = NULL;
     const char *effect_name;
+    const char *method_within_zone;
     const char *active_zone_name = NULL;
+    bool method_is_async;
+    bool method_is_action;
 
     if (out == NULL || ctx == NULL || call == NULL
         || call->type != AST_CALL) {
@@ -55,14 +59,25 @@ emit_zone_action_effect_runtime(CodeBuf *out, ASTNode *call, TranspilerCtx *ctx)
         return;
     }
 
-    method_decl = transpiler_find_subject_host_method_decl(ctx,
+    method_meta = transpiler_find_host_method_metadata_in_context(ctx,
         receiver_type_name, method_name);
-    if (method_decl == NULL || method_decl->type != AST_FUNC_DECL
-        || method_decl->is_async_decl
-        || !ast_func_is_action(method_decl)
-        || ast_func_within_zone(method_decl) == NULL
-        || ast_func_causes_effect(method_decl) == NULL
-        || strcmp(ast_func_within_zone(method_decl), active_zone_name) != 0) {
+    method_decl = transpiler_mir_decl_method_source_ast(method_meta);
+    method_is_async = transpiler_mir_decl_method_is_async(method_meta);
+    method_is_action = transpiler_mir_decl_method_is_action_like(method_meta);
+    method_within_zone = transpiler_mir_decl_method_within_zone(method_meta);
+    effect_name = transpiler_mir_decl_method_causes_effect(method_meta);
+    if (method_meta == NULL) {
+        method_decl = transpiler_find_subject_host_method_decl(ctx,
+            receiver_type_name, method_name);
+        method_is_async = method_decl != NULL && method_decl->is_async_decl;
+        method_is_action = ast_func_is_action(method_decl);
+        method_within_zone = ast_func_within_zone(method_decl);
+        effect_name = ast_func_causes_effect(method_decl);
+    }
+    if (method_is_async || !method_is_action
+        || method_within_zone == NULL
+        || effect_name == NULL
+        || strcmp(method_within_zone, active_zone_name) != 0) {
         return;
     }
 
@@ -70,7 +85,6 @@ emit_zone_action_effect_runtime(CodeBuf *out, ASTNode *call, TranspilerCtx *ctx)
     if (zone_decl == NULL)
         return;
 
-    effect_name = ast_func_causes_effect(method_decl);
     TranspilerHostedZoneLayerSlotView layer_view =
         transpiler_hosted_zone_layer_slot_view_from_decl(
             ctx, active_zone_name, zone_decl);
@@ -109,6 +123,7 @@ emit_zone_action_effect_runtime(CodeBuf *out, ASTNode *call, TranspilerCtx *ctx)
 char *
 emit_world_embedded_action_effect_sync(TranspilerCtx *ctx,
                                        ASTNode *receiver,
+                                       const MIRDeclMethod *method_meta,
                                        ASTNode *method_decl)
 {
     ASTNode *world_decl;
@@ -121,15 +136,26 @@ emit_world_embedded_action_effect_sync(TranspilerCtx *ctx,
     const char *source_type_name = NULL;
     const char *effect_name;
     const char *effect_type_name;
+    const char *method_within_zone;
+    bool method_is_async;
+    bool method_is_action;
 
-    if (ctx == NULL || receiver == NULL || method_decl == NULL
-        || method_decl->type != AST_FUNC_DECL
-        || method_decl->is_async_decl
-        || !ast_func_is_action(method_decl)
-        || ast_func_within_zone(method_decl) == NULL
-        || ast_func_causes_effect(method_decl) == NULL) {
+    if (ctx == NULL || receiver == NULL)
         return NULL;
+
+    method_is_async = transpiler_mir_decl_method_is_async(method_meta);
+    method_is_action = transpiler_mir_decl_method_is_action_like(method_meta);
+    method_within_zone = transpiler_mir_decl_method_within_zone(method_meta);
+    effect_name = transpiler_mir_decl_method_causes_effect(method_meta);
+    if (method_meta == NULL) {
+        method_is_async = method_decl != NULL && method_decl->is_async_decl;
+        method_is_action = ast_func_is_action(method_decl);
+        method_within_zone = ast_func_within_zone(method_decl);
+        effect_name = ast_func_causes_effect(method_decl);
     }
+    if (method_is_async || !method_is_action
+        || method_within_zone == NULL || effect_name == NULL)
+        return NULL;
 
     world_decl = transpiler_current_host_decl_local(ctx);
     if (world_decl == NULL || world_decl->type != AST_WORLD_DECL)
@@ -140,7 +166,7 @@ emit_world_embedded_action_effect_sync(TranspilerCtx *ctx,
             &source_slot_name, &source_type_name)
         || zone_slot_name == NULL || zone_type_name == NULL
         || source_slot_name == NULL
-        || strcmp(ast_func_within_zone(method_decl), zone_type_name) != 0) {
+        || strcmp(method_within_zone, zone_type_name) != 0) {
         return NULL;
     }
 
@@ -149,7 +175,6 @@ emit_world_embedded_action_effect_sync(TranspilerCtx *ctx,
     if (zone_decl == NULL || zone_decl->type != AST_ZONE_DECL)
         return NULL;
 
-    effect_name = ast_func_causes_effect(method_decl);
     effect_decl = transpiler_find_decl_in_inventory_local(ctx, AST_EFFECT_DECL,
                                                           effect_name);
     if (effect_decl == NULL || effect_decl->type != AST_EFFECT_DECL)

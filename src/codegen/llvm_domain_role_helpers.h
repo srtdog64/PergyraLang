@@ -9,6 +9,11 @@ const char *llvm_role_for_type_name(ASTNode *role);
 
 ASTNode *llvm_find_role_operator_method(LLVMGenCtx *ctx, ASTNode *role,
                                         PgyTokenType op, int depth);
+const MIRDeclMethod *llvm_find_role_operator_method_metadata(
+    LLVMGenCtx *ctx,
+    ASTNode *role,
+    PgyTokenType op,
+    int depth);
 
 bool llvm_role_method_symbol_name(char *out,
                                   size_t out_size,

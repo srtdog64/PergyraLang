@@ -232,6 +232,36 @@ llvm_world_has_zone_slot(LLVMGenCtx *ctx, ASTNode *world_decl,
 }
 
 const char *
+llvm_current_zone_slot_type_name(LLVMGenCtx *ctx, const char *slot_name)
+{
+    ASTNode *zone_decl;
+    const char *zone_name;
+    LLVMHostedDomainSlotView slot_view;
+
+    if (ctx == NULL || slot_name == NULL)
+        return NULL;
+    zone_decl = llvm_current_host_decl(ctx);
+    if (zone_decl == NULL || zone_decl->type != AST_ZONE_DECL)
+        return NULL;
+
+    zone_name = llvm_decl_node_name(zone_decl);
+    slot_view = llvm_hosted_domain_slot_view_from_decl(ctx, zone_name,
+        zone_decl);
+    if (llvm_hosted_domain_slot_view_missing_mir_metadata(&slot_view))
+        return NULL;
+
+    for (size_t i = 0; i < slot_view.count; i++) {
+        const char *candidate_name =
+            llvm_hosted_domain_slot_view_name(&slot_view, i);
+        if (candidate_name != NULL
+            && strcmp(candidate_name, slot_name) == 0) {
+            return llvm_hosted_domain_slot_view_type_name(&slot_view, i);
+        }
+    }
+    return NULL;
+}
+
+const char *
 llvm_current_host_class_name(LLVMGenCtx *ctx)
 {
     ASTNode *decl = NULL;

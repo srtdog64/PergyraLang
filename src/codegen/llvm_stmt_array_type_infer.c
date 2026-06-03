@@ -117,7 +117,7 @@ llvm_stmt_array_elem_type_from_slice_receiver(LLVMGenCtx *ctx,
             if (elem_name == NULL)
                 return llvm_stmt_unknown_expr_type(ctx, expr,
                     "Slice() receiver return type is missing its element type");
-            return llvm_slice_struct_type(ctx, elem_name);
+            return pergyra_type_to_llvm(ctx, elem_name);
         }
     }
 

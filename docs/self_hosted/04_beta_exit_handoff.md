@@ -25,8 +25,14 @@ Self-host preparation may begin after all of these are true:
   graph-heavy collections, file/path/string basics, scoped unsafe/raw escape,
   runtime profile selection, and debug-info strategy are either implemented or
   explicitly assigned to soft/partial self-host stages.
-- C backend remains the oracle, and LLVM parity gaps are documented as explicit
-  unsupported paths or failing diagnostics.
+- C backend remains the first oracle, LLVM is the second oracle, and their
+  frozen support matrix is green or explicitly unsupported. Hard self-host does
+  not start while C/LLVM parity is still ambiguous, because the self-hosted
+  implementation must be compared against a stable two-oracle baseline rather
+  than used to decide which backend is correct. Use
+  `self-host-backend-tri-compare-test-smoke` for the small comparator smoke and
+  `self-host-backend-tri-compare-extended-test-smoke` for the opt-in 29-case
+  C/LLVM/Pergyra comparator gate.
 - A dogfood path exists through emitted C and at least one compiler-adjacent
   tool candidate has a concrete input/output contract.
 
@@ -74,6 +80,11 @@ Do not start with:
 
 These tasks can only be considered after soft self-host tools are useful and
 partial self-host passes have run beside the C implementation.
+
+Hard self-host is additionally blocked until C and LLVM agree on the stable
+backend-compare suite. A Pergyra-written compiler pass may be added as the
+third implementation only after the C/LLVM pair is trustworthy enough to serve
+as the expected-value source.
 
 ## Architecture Rule
 

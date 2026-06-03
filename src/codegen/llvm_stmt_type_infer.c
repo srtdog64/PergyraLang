@@ -26,6 +26,38 @@ llvm_stmt_lookup_class_by_type(LLVMGenCtx *ctx, LLVMTypeRef type)
     return llvm_lookup_class_by_struct_type(ctx, type);
 }
 
+static const char *
+llvm_stmt_find_with_slot_inner_in_body(ASTNode *body, const char *alias)
+{
+    if (body == NULL || alias == NULL)
+        return NULL;
+    if (body->type == AST_WITH_STMT
+        && ast_with_alias(body) != NULL
+        && strcmp(ast_with_alias(body), alias) == 0) {
+        ASTNode *slot_type = ast_with_slot_type(body);
+        if (slot_type != NULL && slot_type->type == AST_TYPE) {
+            const char *inner = ast_type_name(slot_type);
+            if (inner != NULL && inner[0] != '\0')
+                return inner;
+        }
+    }
+    if (body->type == AST_WITH_STMT) {
+        const char *found = llvm_stmt_find_with_slot_inner_in_body(
+            ast_with_body(body), alias);
+        if (found != NULL)
+            return found;
+    }
+    if (body->type == AST_BLOCK) {
+        for (size_t i = 0; i < ast_block_statement_count(body); i++) {
+            const char *found = llvm_stmt_find_with_slot_inner_in_body(
+                ast_block_statement(body, i), alias);
+            if (found != NULL)
+                return found;
+        }
+    }
+    return NULL;
+}
+
 LLVMTypeRef
 llvm_stmt_unknown_expr_type(LLVMGenCtx *ctx, ASTNode *expr, const char *reason)
 {
@@ -309,18 +341,22 @@ llvm_stmt_infer_expr_type(LLVMGenCtx *ctx, ASTNode *expr)
                 && llvm_stmt_call_is_slot_builtin(method_name)) {
                 return ctx->type_void;
             }
-            if (strcmp(method_name, "Slice") == 0 && receiver_name != NULL) {
-                LLVMArrayVarEntry *entry = llvm_lookup_array_var(ctx, receiver_name);
-                if (entry != NULL) {
-                    const char *suffix = llvm_type_to_suffix(ctx, entry->elem_type);
-                    if (suffix != NULL && strcmp(suffix, "Unknown") != 0)
-                        return llvm_slice_struct_type(ctx, suffix);
-                }
+            if (strcmp(method_name, "Slice") == 0) {
+                LLVMTypeRef elem_type =
+                    llvm_stmt_resolve_array_elem_type(ctx, receiver, NULL);
+                const char *suffix = llvm_type_to_suffix(ctx, elem_type);
+                if (suffix != NULL && strcmp(suffix, "Unknown") != 0)
+                    return llvm_slice_struct_type(ctx, suffix);
             }
             if (receiver_name != NULL) {
                 const char *class_name = llvm_lookup_var_class(ctx, receiver_name);
                 if (class_name == NULL)
                     class_name = llvm_current_field_class_name(ctx, receiver_name);
+                if (class_name == NULL)
+                    class_name = llvm_current_zone_slot_type_name(ctx,
+                        receiver_name);
+                if (class_name == NULL)
+                    class_name = llvm_expr_custom_type_name(receiver, ctx);
                 if (class_name != NULL) {
                     LLVMTypeRef method_ret =
                         llvm_stmt_host_method_return_type(
@@ -329,32 +365,16 @@ llvm_stmt_infer_expr_type(LLVMGenCtx *ctx, ASTNode *expr)
                         return method_ret;
                 }
             }
-            if (strcmp(method_name, "Slice") == 0
-                && receiver->type == AST_CALL
-                && ast_call_callee(receiver) != NULL
-                && ast_call_callee(receiver)->type == AST_IDENTIFIER
-                && ast_identifier_name(ast_call_callee(receiver)) != NULL) {
-                ASTNode *decl = llvm_stmt_find_function_decl_by_name(
-                    ctx, ast_identifier_name(ast_call_callee(receiver)));
-                ASTNode *return_type = ast_func_return_type(decl);
-                const char *return_type_name = ast_type_name(return_type);
-                GenericParams *return_generic_args =
-                    ast_type_generic_args(return_type);
-                if (return_type != NULL
-                    && return_type->type == AST_TYPE
-                    && return_type_name != NULL
-                    && (strcmp(return_type_name, "Array") == 0
-                        || strcmp(return_type_name, "Slice") == 0)
-                    && ast_generic_param_at(return_generic_args, 0) != NULL) {
-                    char *elem_name = llvm_stmt_render_type_arg_scratch(
-                        ast_generic_param_at(return_generic_args, 0),
-                        &ctx->scratch);
-                    if (elem_name == NULL) {
-                        return llvm_stmt_unknown_expr_type(ctx, expr,
-                            "Slice() receiver return type is missing its element type");
-                    }
-                    LLVMTypeRef slice_ty = llvm_slice_struct_type(ctx, elem_name);
-                    return slice_ty;
+            if (receiver_name == NULL
+                && receiver->type == AST_MEMBER_ACCESS) {
+                const char *recv_class =
+                    llvm_expr_custom_type_name(receiver, ctx);
+                if (recv_class != NULL) {
+                    LLVMTypeRef method_ret =
+                        llvm_stmt_host_method_return_type(
+                            ctx, recv_class, method_name);
+                    if (method_ret != NULL)
+                        return method_ret;
                 }
             }
         }
@@ -389,6 +409,13 @@ llvm_stmt_infer_expr_type(LLVMGenCtx *ctx, ASTNode *expr)
                     ast_identifier_name(ast_call_argument(expr, 0));
                 const char *inner = llvm_stmt_lookup_slot_or_view_inner(
                     ctx, receiver_name);
+                if (inner == NULL && ctx != NULL
+                    && ctx->current_func_decl != NULL
+                    && ctx->current_func_decl->type == AST_FUNC_DECL) {
+                    inner = llvm_stmt_find_with_slot_inner_in_body(
+                        ast_func_body(ctx->current_func_decl),
+                        receiver_name);
+                }
                 if (inner != NULL && llvm_stmt_slot_call_returns_value(callee))
                     return pergyra_type_to_llvm(ctx, inner);
                 if (inner != NULL)
@@ -409,6 +436,8 @@ llvm_stmt_infer_expr_type(LLVMGenCtx *ctx, ASTNode *expr)
                 if (declared_type != NULL)
                     return declared_type;
             }
+            if (llvm_find_intent_decl(ctx, callee) != NULL)
+                return ctx->type_i1;
             {
                 LLVMTypeRef builtin_type =
                     llvm_stmt_infer_scalar_builtin_type(ctx, callee);

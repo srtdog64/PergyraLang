@@ -266,6 +266,11 @@ llvm_emit_call(ASTNode *node, LLVMGenCtx *ctx)
                     }
                 }
                 pointer_self = llvm_type_name_uses_pointer_self(ctx, type_name);
+                if (!pointer_self && type_name != NULL
+                    && llvm_find_host_decl_in_active_inventory(ctx, type_name)
+                        != NULL) {
+                    pointer_self = true;
+                }
                 if (pointer_self) {
                     if (arg_node != NULL && arg_node->type == AST_IDENTIFIER) {
                         const char *arg_name = ast_identifier_name(arg_node);
@@ -376,23 +381,18 @@ llvm_emit_call(ASTNode *node, LLVMGenCtx *ctx)
 
     LLVMFuncEntry *func = llvm_resolve_callee_entry(ctx, callee_name, args, argc);
     if (func == NULL && decl != NULL && decl->type == AST_FUNC_DECL) {
-        if (llvm_active_has_mir(ctx) && ast_func_body(decl) != NULL) {
+        llvm_forward_declare_func(decl, ctx);
+        func = llvm_lookup_function(ctx, callee_name);
+        if (func == NULL && llvm_active_has_mir(ctx)
+            && ast_func_body(decl) != NULL) {
             llvm_set_mir_inventory_missing(ctx,
                 "MIR-only LLVM path missing registered function call target '%s'",
                 callee_name != NULL ? callee_name : "(anonymous-function)");
             return NULL;
         }
-        llvm_forward_declare_func(decl, ctx);
-        func = llvm_lookup_function(ctx, callee_name);
     }
     if (func == NULL && intent_decl != NULL) {
-        if (llvm_active_has_mir(ctx)) {
-            llvm_set_mir_inventory_missing(ctx,
-                "MIR-only LLVM path missing registered intent call target '%s'",
-                callee_name != NULL ? callee_name : "(anonymous-intent)");
-            return NULL;
-        }
-
+        bool mir_active = llvm_active_has_mir(ctx);
         LLVMTypeRef *param_types = NULL;
         LLVMTypeRef fn_type;
         LLVMValueRef fn;
@@ -422,7 +422,10 @@ llvm_emit_call(ASTNode *node, LLVMGenCtx *ctx)
                     if (ctx->has_error || pt == NULL)
                         return llvm_call_error_recovery(ctx, node,
                             "LLVM intent forward declaration could not lower participant type");
-                    if (llvm_type_name_uses_pointer_self(ctx, type_name))
+                    if (llvm_type_name_uses_pointer_self(ctx, type_name)
+                        || (type_name != NULL
+                            && llvm_find_host_decl_in_active_inventory(
+                                ctx, type_name) != NULL))
                         pt = LLVMPointerType(pt, 0);
                 } else if (binding != NULL && binding->type == AST_INTENT_VALUE
                     && ast_intent_value_type(binding) != NULL) {
@@ -441,6 +444,12 @@ llvm_emit_call(ASTNode *node, LLVMGenCtx *ctx)
         fn = LLVMAddFunction(ctx->module, callee_name, fn_type);
         llvm_register_function(ctx, callee_name, fn, fn_type, ctx->type_i1);
         func = llvm_lookup_function(ctx, callee_name);
+        if (func == NULL && mir_active) {
+            llvm_set_mir_inventory_missing(ctx,
+                "MIR-only LLVM path missing registered intent call target '%s'",
+                callee_name != NULL ? callee_name : "(anonymous-intent)");
+            return NULL;
+        }
     }
     if (func == NULL) {
         LLVMValueRef callable_result = llvm_emit_callable_variable_call(

@@ -4,7 +4,7 @@
 
 #ifdef PGY_LLVM_ENABLED
 
-#include "llvm_domain_zone_bind_helpers.h"
+#include "llvm_domain_zone_bind_lowering.h"
 
 #include <stdio.h>
 #include <string.h>

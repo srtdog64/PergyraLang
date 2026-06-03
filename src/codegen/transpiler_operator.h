@@ -17,6 +17,10 @@ ASTNode *find_role_operator_method_decl(TranspilerCtx *ctx,
                                         ASTNode *role,
                                         PgyTokenType op,
                                         int depth);
+const MIRDeclMethod *find_role_operator_method_metadata(TranspilerCtx *ctx,
+                                                        ASTNode *role,
+                                                        PgyTokenType op,
+                                                        int depth);
 bool operator_method_name_matches(PgyTokenType op, const char *name);
 const char *operator_overload_suffix(PgyTokenType op);
 

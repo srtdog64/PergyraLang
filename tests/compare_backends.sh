@@ -311,6 +311,49 @@ run_windows_native_binary_fallback() {
         "\$env:PATH='${PGY_WINDOWS_PS_PATH_PREFIX}' + \$env:PATH; Set-Location -LiteralPath $(pgy_powershell_quote "$cwd_native"); \$p = Start-Process -FilePath $(pgy_powershell_quote "$bin_native") -NoNewWindow -PassThru -RedirectStandardOutput $(pgy_powershell_quote "$out_native") -RedirectStandardError $(pgy_powershell_quote "$err_native"); if (\$p -eq \$null) { exit 127 }; if (-not \$p.WaitForExit(${timeout_ms})) { Stop-Process -Id \$p.Id -Force; exit 124 }; exit \$p.ExitCode"
 }
 
+run_windows_compiler_backend_fallback() {
+    local source_arg="$1"
+    local backend="$2"
+    local output_arg="$3"
+    local log="$4"
+    local pgy_native
+    local root_native
+    local log_native
+
+    case "$(uname -s 2>/dev/null || echo unknown)" in
+        MINGW*|MSYS*|CYGWIN*) ;;
+        *) return 127 ;;
+    esac
+    command -v powershell.exe >/dev/null 2>&1 || return 127
+
+    pgy_native="$(pgy_path_for_windows_tool "$PGY_BIN")"
+    root_native="$(pgy_path_for_windows_tool "$ROOT_DIR")"
+    log_native="$(pgy_path_for_windows_tool "$log")"
+
+    powershell.exe -NoProfile -ExecutionPolicy Bypass -Command \
+        "\$env:PATH='${PGY_WINDOWS_PS_PATH_PREFIX}' + \$env:PATH; Set-Location -LiteralPath $(pgy_powershell_quote "$root_native"); & $(pgy_powershell_quote "$pgy_native") $(pgy_powershell_quote "$source_arg") $(pgy_powershell_quote "--backend=${backend}") '-o' $(pgy_powershell_quote "$output_arg") > $(pgy_powershell_quote "$log_native") 2>&1; exit \$LASTEXITCODE"
+}
+
+run_compiler_backend() {
+    local source_arg="$1"
+    local backend="$2"
+    local output_arg="$3"
+    local log="$4"
+    local rc
+
+    set +e
+    (cd "$ROOT_DIR" && "$PGY_BIN" "$source_arg" "--backend=${backend}" -o "$output_arg") \
+        >"$log" 2>&1
+    rc=$?
+    if [[ "$rc" -eq 126 || "$rc" -eq 127 ]]; then
+        run_windows_compiler_backend_fallback \
+            "$source_arg" "$backend" "$output_arg" "$log"
+        rc=$?
+    fi
+    set -e
+    return "$rc"
+}
+
 run_case() {
     local case_ref="$1"
     local case_name
@@ -355,15 +398,13 @@ run_case() {
     c_err="$WORK_DIR/${case_name}_c.stderr"
     llvm_err="$WORK_DIR/${case_name}_llvm.stderr"
 
-    if ! (cd "$ROOT_DIR" && "$PGY_BIN" "$source_arg" --backend=c -o "$c_bin_arg") \
-        >"$c_compile_log" 2>&1; then
+    if ! run_compiler_backend "$source_arg" "c" "$c_bin_arg" "$c_compile_log"; then
         echo "backend-compare: C backend compile failed for $source_rel" >&2
         cat "$c_compile_log" >&2
         return 1
     fi
 
-    if ! (cd "$ROOT_DIR" && "$PGY_BIN" "$source_arg" --backend=llvm -o "$llvm_bin_arg") \
-        >"$llvm_compile_log" 2>&1; then
+    if ! run_compiler_backend "$source_arg" "llvm" "$llvm_bin_arg" "$llvm_compile_log"; then
         echo "backend-compare: LLVM backend compile failed for $source_rel" >&2
         cat "$llvm_compile_log" >&2
         return 1

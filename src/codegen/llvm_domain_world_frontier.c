@@ -33,11 +33,34 @@ llvm_world_frontier_sync_name(char *out,
     return written >= 0 && (size_t)written < out_size;
 }
 
-static ASTNode *
-llvm_world_frontier_lookup_zone(void *ctx, const char *zone_name)
+static size_t
+llvm_world_frontier_zone_member_count(void *ctx, const char *zone_name)
 {
-    return llvm_find_decl_in_active_inventory(
-        (LLVMGenCtx *)ctx, AST_ZONE_DECL, zone_name);
+    LLVMGenCtx *llvm_ctx = (LLVMGenCtx *)ctx;
+    ASTNode *zone_decl;
+    size_t state_count = 0;
+    LLVMHostedZoneLayerSlotView layer_view;
+
+    if (llvm_ctx == NULL || zone_name == NULL)
+        return 0;
+
+    zone_decl = llvm_find_decl_in_active_inventory(
+        llvm_ctx, AST_ZONE_DECL, zone_name);
+    if (zone_decl == NULL || zone_decl->type != AST_ZONE_DECL)
+        return 0;
+
+    (void)ast_zone_states(zone_decl, &state_count);
+    layer_view = llvm_hosted_zone_layer_slot_view_from_decl(
+        llvm_ctx, zone_name, zone_decl);
+    if (llvm_hosted_zone_layer_slot_view_missing_mir_metadata(&layer_view)) {
+        llvm_set_mir_inventory_missing(llvm_ctx,
+            "MIR-only LLVM path missing embedded zone layer-slot metadata for world frontier '%s'",
+            zone_name);
+        return 0;
+    }
+
+    return pgy_frontier_embedded_zone_member_count(
+        state_count, layer_view.count);
 }
 
 static const char *
@@ -103,8 +126,10 @@ llvm_world_sync_emit_frontier(ASTNode *stmt, LLVMClassTypeEntry *decl_cls,
             zone_view.count,
             llvm_world_frontier_zone_type_name,
             &zone_view,
-            llvm_world_frontier_lookup_zone,
+            llvm_world_frontier_zone_member_count,
             ctx);
+    if (ctx->has_error)
+        return;
     frontier_pass_addr = llvm_create_entry_alloca(ctx, ctx->type_i32,
         "world.frontier.pass.addr");
     frontier_continue_addr = llvm_create_entry_alloca(ctx, ctx->type_i1,

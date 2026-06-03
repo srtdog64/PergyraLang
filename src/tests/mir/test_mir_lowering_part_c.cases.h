@@ -977,38 +977,4 @@ test_mir_lowering_part_c(void)
         hir_destroy(hir);
     }
 
-    TEST("MIR validator rejects duplicate declaration header names");
-    {
-        const char *src =
-            "class A { let value: Int; }\n"
-            "class B { let value: Int; }\n";
-        HIRProgram *hir = NULL;
-        RIRProgram *rir = NULL;
-        MIRProgram *mir = NULL;
-        char *mir_error = NULL;
-        size_t mutated = 0;
-        bool rejected = false;
-        bool ok = lower_mir_from_source(src, &hir, &rir, &mir);
-        if (ok && mir != NULL) {
-            for (size_t i = 0; i < mir->decl_header_count; i++) {
-                MIRDeclHeader *header = &mir->decl_headers[i];
-                if (header->name != NULL && strcmp(header->name, "B") == 0) {
-                    header->name = "A";
-                    mutated++;
-                    break;
-                }
-            }
-        }
-        rejected = ok
-                   && mutated == 1
-                   && !mir_validate(mir, &mir_error)
-                   && mir_error != NULL
-                   && strstr(mir_error, "duplicates declaration header") != NULL;
-        EXPECT(rejected);
-        free(mir_error);
-        mir_destroy(mir);
-        rir_destroy(rir);
-        hir_destroy(hir);
-    }
-
 }

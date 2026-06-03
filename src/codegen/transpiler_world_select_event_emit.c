@@ -14,11 +14,35 @@
 #include "transpiler_projection.h"
 #include "transpiler_type_require.h"
 
-static ASTNode *
-transpiler_frontier_lookup_zone(void *ctx, const char *zone_name)
+static size_t
+transpiler_frontier_zone_member_count(void *ctx, const char *zone_name)
 {
-    return transpiler_find_decl_in_inventory_local((TranspilerCtx *)ctx,
-                                                   AST_ZONE_DECL, zone_name);
+    TranspilerCtx *transpiler_ctx = (TranspilerCtx *)ctx;
+    ASTNode *zone_decl;
+    size_t state_count = 0;
+    TranspilerHostedZoneLayerSlotView layer_view;
+
+    if (transpiler_ctx == NULL || zone_name == NULL)
+        return 0;
+
+    zone_decl = transpiler_find_decl_in_inventory_local(
+        transpiler_ctx, AST_ZONE_DECL, zone_name);
+    if (zone_decl == NULL || zone_decl->type != AST_ZONE_DECL)
+        return 0;
+
+    (void)ast_zone_states(zone_decl, &state_count);
+    layer_view = transpiler_hosted_zone_layer_slot_view_from_decl(
+        transpiler_ctx, zone_name, zone_decl);
+    if (transpiler_hosted_zone_layer_slot_view_missing_mir_metadata(
+            &layer_view)) {
+        transpiler_set_mir_inventory_missing(transpiler_ctx,
+            "MIR-only C path missing embedded zone layer-slot metadata for world frontier '%s'",
+            zone_name);
+        return 0;
+    }
+
+    return pgy_frontier_embedded_zone_member_count(
+        state_count, layer_view.count);
 }
 
 static const char *
@@ -104,8 +128,10 @@ emit_world_decl(ASTNode *node, TranspilerCtx *ctx)
             zone_view.count,
             transpiler_frontier_world_zone_type_name,
             &zone_view,
-            transpiler_frontier_lookup_zone,
+            transpiler_frontier_zone_member_count,
             ctx);
+    if (ctx->backend_error != NULL)
+        return;
 
     codebuf_write(ctx->out, "\n/* World: %s */\n", name);
     codebuf_write(ctx->out, "typedef struct %s\n{\n", name);

@@ -27,7 +27,7 @@ src/codegen/llvm_domain_struct_register_fields.h
 src/codegen/llvm_domain_sync_frontier.h
 src/codegen/llvm_domain_world_frontier_internal.h
 src/codegen/llvm_domain_world_sync_internal.h
-src/codegen/llvm_domain_zone_bind_helpers.h
+src/codegen/llvm_domain_zone_bind_lowering.h
 src/codegen/llvm_domain_zone_sync_internal.h
 src/codegen/llvm_expr_aggregate.h
 src/codegen/llvm_expr_array_calls.h

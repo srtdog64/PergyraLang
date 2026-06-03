@@ -1,6 +1,14 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
+if ! command -v dirname >/dev/null 2>&1 \
+    || ! command -v grep >/dev/null 2>&1 \
+    || ! command -v sed >/dev/null 2>&1 \
+    || ! command -v sort >/dev/null 2>&1; then
+    PATH="/usr/bin:/bin:$PATH"
+    export PATH
+fi
+
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 MAKE_BIN="${MAKE:-}"
 
@@ -336,6 +344,18 @@ fi
 if ! grep -Fq 'CI_BACKEND_COMPARE_SHARD_TOTAL ?= 20' "$ROOT_DIR/Makefile" \
     || ! grep -Fq 'PGY_BACKEND_COMPARE_SHARD_TOTAL="$(CI_BACKEND_COMPARE_SHARD_TOTAL)"' "$ROOT_DIR/Makefile"; then
     echo "[build-source-inventory] CI backend compare must stay shard-wired" >&2
+    missing=1
+fi
+if ! grep -Fq 'PGY_BACKEND_COMPARE_PRECHECK ?= 1' "$ROOT_DIR/Makefile" \
+    || ! grep -Fq 'PGY_BACKEND_COMPARE_PRECHECK_SAME_PROCESS="$(PGY_BACKEND_COMPARE_PRECHECK)"' "$ROOT_DIR/Makefile"; then
+    echo "[build-source-inventory] backend compare precheck must remain overrideable and default-on" >&2
+    missing=1
+fi
+if ! grep -Fq 'backend-compare-linux:' "$ROOT_DIR/.github/workflows/ci.yml" \
+    || ! grep -Fq 'PGY_BACKEND_COMPARE_PRECHECK=0' "$ROOT_DIR/.github/workflows/ci.yml" \
+    || ! grep -Fq 'PGY_BACKEND_COMPARE_SHARD_TOTAL=20' "$ROOT_DIR/.github/workflows/ci.yml" \
+    || ! grep -Fq 'PGY_BACKEND_COMPARE_SHARD_INDEX="${{ matrix.shard }}"' "$ROOT_DIR/.github/workflows/ci.yml"; then
+    echo "[build-source-inventory] GitHub CI must keep full C/LLVM backend-compare shard matrix" >&2
     missing=1
 fi
 

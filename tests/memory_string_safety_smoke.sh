@@ -205,9 +205,9 @@ require_literal "src/codegen/llvm_domain_zone_sync_relations.c" \
     "llvm_zone_relation_sync_field_name"
 require_literal "src/codegen/llvm_domain_zone_sync_relations.c" \
     "return written >= 0 && (size_t)written < out_size"
-require_literal "src/codegen/llvm_domain_zone_bind_helpers.c" \
+require_literal "src/codegen/llvm_domain_zone_bind_lowering.c" \
     "llvm_zone_bind_projection_field_name"
-require_literal "src/codegen/llvm_domain_zone_bind_helpers.c" \
+require_literal "src/codegen/llvm_domain_zone_bind_lowering.c" \
     "return written >= 0 && (size_t)written < out_size"
 require_literal "src/codegen/llvm_domain_world_sync_directives.c" \
     "llvm_world_sync_directive_field_name"
