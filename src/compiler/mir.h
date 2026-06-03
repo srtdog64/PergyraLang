@@ -224,6 +224,12 @@ typedef struct
     const char        *name;
     ASTNode           *ast;
     bool               is_action_like;
+    bool               has_signature;
+    FuncParam        **params;
+    char             **param_type_names;
+    size_t             param_count;
+    ASTNode           *return_type;
+    char              *return_type_name;
     const HIRRoutine  *hir_routine;
     const RIRScope    *rir_scope;
     MIRBasicBlock     *blocks;
@@ -279,8 +285,10 @@ typedef struct
     const char *owner_name;
     const char *name;
     FuncParam **params;
+    char      **param_type_names;
     size_t      param_count;
     ASTNode    *return_type;
+    char       *return_type_name;
     bool        is_async;
     bool        is_action_like;
     const char *within_zone;
@@ -490,6 +498,13 @@ const MIRRoutine *mir_routine_inventory_get(
                 const MIRRoutineInventory *inventory,
                 size_t index);
 ASTNode    *mir_routine_source_ast(const MIRRoutine *routine);
+bool        mir_routine_has_signature(const MIRRoutine *routine);
+size_t      mir_routine_param_count(const MIRRoutine *routine);
+FuncParam  *mir_routine_param(const MIRRoutine *routine, size_t index);
+const char *mir_routine_param_type_name(const MIRRoutine *routine,
+                                        size_t index);
+ASTNode    *mir_routine_return_type(const MIRRoutine *routine);
+const char *mir_routine_return_type_name(const MIRRoutine *routine);
 void        mir_mutable_routine_inventory_from_program(
                 MIRProgram *mir,
                 MIRMutableRoutineInventory *inventory);

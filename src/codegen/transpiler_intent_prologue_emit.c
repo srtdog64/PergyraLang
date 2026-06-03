@@ -9,7 +9,6 @@
 #include "../parser/ast_api.h"
 #include "../semantic/diag_codes.h"
 #include "transpiler_context.h"
-#include "transpiler_host_self_policy.h"
 #include "transpiler_intent_participant.h"
 #include "transpiler_projection.h"
 #include "transpiler_symbols.h"
@@ -56,6 +55,9 @@ transpiler_emit_intent_signature_and_entry(ASTNode *node,
                                            const char **participant_aliases,
                                            const char **participant_types,
                                            size_t participant_count,
+                                           const char **value_aliases,
+                                           const char **value_types,
+                                           size_t mir_value_count,
                                            bool emit_cleanup_from_mir,
                                            const MIRRoutine *mir_routine)
 {
@@ -87,6 +89,7 @@ transpiler_emit_intent_signature_and_entry(ASTNode *node,
             ? explicit_binding_count
             : (involve_count + value_count);
         size_t participant_index = 0;
+        size_t value_index = 0;
         for (size_t i = 0; i < binding_count; i++) {
             ASTNode *binding = explicit_binding_count > 0
                 ? bindings[i]
@@ -127,7 +130,8 @@ transpiler_emit_intent_signature_and_entry(ASTNode *node,
                         pt = c_type_buf;
                     }
                     type_name = pergyra_strdup(participant_type);
-                    pointer_param = is_pointer_self_host_type_name(ctx, participant_type);
+                    pointer_param = intent_type_name_uses_pointer_self(
+                        ctx, participant_type);
                 } else if (!mir_only_intent
                     && ast_intent_involves_subject_type(binding) != NULL) {
                     if (transpiler_require_ast_c_type_copy(ctx,
@@ -143,9 +147,16 @@ transpiler_emit_intent_signature_and_entry(ASTNode *node,
                 }
                 participant_index++;
             } else {
+                const char *value_type_name = value_types != NULL
+                        && value_index < mir_value_count
+                    ? value_types[value_index]
+                    : NULL;
                 ASTNode *value_type = binding != NULL
                     ? ast_intent_value_type(binding) : NULL;
-                alias = (binding != NULL && ast_intent_value_alias(binding) != NULL)
+                alias = (value_aliases != NULL && value_index < mir_value_count
+                         && value_aliases[value_index] != NULL)
+                    ? value_aliases[value_index]
+                    : (binding != NULL && ast_intent_value_alias(binding) != NULL)
                     ? ast_intent_value_alias(binding) : "value";
                 if (!transpiler_intent_prologue_surface_desc(surface_desc,
                         sizeof(surface_desc), "intent value", alias,
@@ -154,13 +165,21 @@ transpiler_emit_intent_signature_and_entry(ASTNode *node,
                         ctx, "intent value");
                     return false;
                 }
-                if (transpiler_require_ast_c_type_copy(ctx, value_type,
-                        surface_desc, c_type_buf,
+                if (value_type_name != NULL
+                    && transpiler_require_type_name_c_type_copy(ctx,
+                        value_type_name, surface_desc, c_type_buf,
                         sizeof(c_type_buf))) {
                     pt = c_type_buf;
+                    type_name = pergyra_strdup(value_type_name);
+                } else if (value_type_name == NULL
+                           && transpiler_require_ast_c_type_copy(ctx,
+                               value_type, surface_desc, c_type_buf,
+                               sizeof(c_type_buf))) {
+                    pt = c_type_buf;
+                    if (value_type != NULL)
+                        type_name = render_type_name_in_ctx(ctx, value_type);
                 }
-                if (value_type != NULL)
-                    type_name = render_type_name_in_ctx(ctx, value_type);
+                value_index++;
             }
             if (pt == NULL)
                 return false;
@@ -198,7 +217,7 @@ transpiler_emit_intent_signature_and_entry(ASTNode *node,
             ? participant_types[i]
             : NULL;
         bool is_subject = participant_type != NULL
-            ? is_subject_type_name(ctx, participant_type)
+            ? intent_type_name_is_subject_participant(ctx, participant_type)
             : intent_involves_is_subject_participant(ctx, involves);
         if (is_subject)
             subject_count++;
@@ -220,7 +239,7 @@ transpiler_emit_intent_signature_and_entry(ASTNode *node,
                     ? participant_types[i]
                     : NULL;
                 bool is_subject = participant_type != NULL
-                    ? is_subject_type_name(ctx, participant_type)
+                    ? intent_type_name_is_subject_participant(ctx, participant_type)
                     : intent_involves_is_subject_participant(ctx, involves);
                 if (!is_subject)
                     continue;

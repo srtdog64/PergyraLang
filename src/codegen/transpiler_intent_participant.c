@@ -23,9 +23,9 @@ intent_involves_type_name_local(ASTNode *involves)
 }
 
 bool
-intent_involves_is_subject_participant(TranspilerCtx *ctx, ASTNode *involves)
+intent_type_name_is_subject_participant(TranspilerCtx *ctx,
+                                        const char *type_name)
 {
-    const char *type_name = intent_involves_type_name_local(involves);
     if (type_name == NULL)
         return false;
     return is_subject_type_name(ctx, type_name)
@@ -33,11 +33,24 @@ intent_involves_is_subject_participant(TranspilerCtx *ctx, ASTNode *involves)
 }
 
 bool
-intent_involves_uses_pointer_self(TranspilerCtx *ctx, ASTNode *involves)
+intent_type_name_uses_pointer_self(TranspilerCtx *ctx, const char *type_name)
 {
-    const char *type_name = intent_involves_type_name_local(involves);
     if (type_name == NULL)
         return false;
     return is_pointer_self_host_type_name(ctx, type_name)
         || find_subject_host_decl(ctx, type_name) != NULL;
+}
+
+bool
+intent_involves_is_subject_participant(TranspilerCtx *ctx, ASTNode *involves)
+{
+    return intent_type_name_is_subject_participant(
+        ctx, intent_involves_type_name_local(involves));
+}
+
+bool
+intent_involves_uses_pointer_self(TranspilerCtx *ctx, ASTNode *involves)
+{
+    return intent_type_name_uses_pointer_self(
+        ctx, intent_involves_type_name_local(involves));
 }

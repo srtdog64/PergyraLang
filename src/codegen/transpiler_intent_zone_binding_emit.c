@@ -7,7 +7,6 @@
 #include "../parser/ast_api.h"
 #include "../semantic/diag_codes.h"
 #include "transpiler_context.h"
-#include "transpiler_host_self_policy.h"
 #include "transpiler_intent_context.h"
 #include "transpiler_intent_participant.h"
 #include "transpiler_intent_zone_slot.h"
@@ -16,6 +15,8 @@
 
 bool transpiler_can_forward_declare_type_early(TranspilerCtx *ctx,
                                                ASTNode *type_node);
+bool transpiler_can_forward_declare_type_name_early(TranspilerCtx *ctx,
+                                                    const char *type_name);
 
 static bool
 transpiler_intent_binding_surface_desc(char *out, size_t out_size,
@@ -138,9 +139,13 @@ emit_intent_forward_decl(ASTNode *node, CodeBuf *buf, TranspilerCtx *ctx)
     const MIRRoutine *mir_routine = NULL;
     const char **participant_aliases = NULL;
     const char **participant_types = NULL;
+    const char **value_aliases = NULL;
+    const char **value_types = NULL;
     size_t participant_count = 0;
+    size_t mir_value_count = 0;
     size_t binding_count = 0;
     size_t participant_index = 0;
+    size_t value_index = 0;
     size_t explicit_binding_count = 0;
     size_t involve_count = 0;
     size_t value_count = 0;
@@ -162,6 +167,8 @@ emit_intent_forward_decl(ASTNode *node, CodeBuf *buf, TranspilerCtx *ctx)
     if (mir_routine != NULL) {
         participant_count = transpiler_collect_mir_intent_participants(
             mir_routine, &participant_aliases, &participant_types);
+        mir_value_count = transpiler_collect_mir_intent_values(
+            mir_routine, &value_aliases, &value_types);
     }
     binding_count = explicit_binding_count > 0
         ? explicit_binding_count
@@ -195,9 +202,7 @@ emit_intent_forward_decl(ASTNode *node, CodeBuf *buf, TranspilerCtx *ctx)
                     intent_name)) {
                 transpiler_intent_binding_surface_desc_too_long(
                     ctx, "intent participant");
-                free((void *)participant_aliases);
-                free((void *)participant_types);
-                return;
+                goto cleanup;
             }
             if (participant_type != NULL) {
                 if (transpiler_require_type_name_c_type_copy(ctx,
@@ -205,7 +210,8 @@ emit_intent_forward_decl(ASTNode *node, CodeBuf *buf, TranspilerCtx *ctx)
                         sizeof(participant_c_type_buf))) {
                     pt = participant_c_type_buf;
                 }
-                pointer_param = is_pointer_self_host_type_name(ctx, participant_type);
+                pointer_param = intent_type_name_uses_pointer_self(
+                    ctx, participant_type);
             } else if (subject_type != NULL) {
                 if (transpiler_require_ast_c_type_copy(ctx,
                         subject_type,
@@ -222,9 +228,7 @@ emit_intent_forward_decl(ASTNode *node, CodeBuf *buf, TranspilerCtx *ctx)
             }
             participant_index++;
             if (pt == NULL) {
-                free((void *)participant_aliases);
-                free((void *)participant_types);
-                return;
+                goto cleanup;
             }
             codebuf_write(buf, "%s%s%s", pt, pointer_param ? " *" : " ", alias);
             continue;
@@ -232,45 +236,64 @@ emit_intent_forward_decl(ASTNode *node, CodeBuf *buf, TranspilerCtx *ctx)
 
         alias = binding != NULL && ast_intent_value_alias(binding) != NULL
             ? ast_intent_value_alias(binding) : "value";
+        if (value_aliases != NULL && value_index < mir_value_count
+            && value_aliases[value_index] != NULL) {
+            alias = value_aliases[value_index];
+        }
         if (!transpiler_intent_binding_surface_desc(surface_desc,
                 sizeof(surface_desc), "intent value", alias,
                 intent_name)) {
             transpiler_intent_binding_surface_desc_too_long(
                 ctx, "intent value");
-            free((void *)participant_aliases);
-            free((void *)participant_types);
-            return;
+            goto cleanup;
         }
         {
+            const char *value_type_name = value_types != NULL
+                    && value_index < mir_value_count
+                ? value_types[value_index]
+                : NULL;
             char value_c_type_buf[256];
-            if (transpiler_require_ast_c_type_copy(ctx,
-                    binding != NULL ? ast_intent_value_type(binding) : NULL,
-                    surface_desc,
-                    value_c_type_buf,
+            if (value_type_name != NULL
+                && transpiler_require_type_name_c_type_copy(ctx,
+                    value_type_name, surface_desc, value_c_type_buf,
                     sizeof(value_c_type_buf))) {
+                pt = value_c_type_buf;
+            } else if (value_type_name == NULL
+                       && transpiler_require_ast_c_type_copy(ctx,
+                           binding != NULL ? ast_intent_value_type(binding) : NULL,
+                           surface_desc,
+                           value_c_type_buf,
+                           sizeof(value_c_type_buf))) {
                 pt = value_c_type_buf;
             }
             if (pt == NULL) {
-                free((void *)participant_aliases);
-                free((void *)participant_types);
-                return;
+                goto cleanup;
             }
             codebuf_write(buf, "%s %s", pt, alias);
         }
+        value_index++;
         if (pt == NULL) {
-            free((void *)participant_aliases);
-            free((void *)participant_types);
-            return;
+            goto cleanup;
         }
     }
     codebuf_write(buf, ");\n");
+cleanup:
     free((void *)participant_aliases);
     free((void *)participant_types);
+    free((void *)value_aliases);
+    free((void *)value_types);
 }
 
 bool
 transpiler_can_forward_declare_intent_early(TranspilerCtx *ctx, ASTNode *intent)
 {
+    const MIRRoutine *mir_routine = NULL;
+    const char **participant_aliases = NULL;
+    const char **participant_types = NULL;
+    const char **value_aliases = NULL;
+    const char **value_types = NULL;
+    size_t participant_count = 0;
+    size_t mir_value_count = 0;
     ASTNode **involves_nodes;
     ASTNode **values;
     size_t involve_count;
@@ -280,10 +303,32 @@ transpiler_can_forward_declare_intent_early(TranspilerCtx *ctx, ASTNode *intent)
         return false;
     involves_nodes = ast_intent_decl_involves(intent, &involve_count);
     values = ast_intent_decl_values(intent, &value_count);
+    mir_routine = transpiler_find_mir_intent(ctx, intent);
+    if (mir_routine != NULL) {
+        participant_count = transpiler_collect_mir_intent_participants(
+            mir_routine, &participant_aliases, &participant_types);
+        mir_value_count = transpiler_collect_mir_intent_values(
+            mir_routine, &value_aliases, &value_types);
+    }
     for (size_t i = 0; i < involve_count; i++) {
         ASTNode *involves = involves_nodes[i];
         ASTNode *subject_type = NULL;
+        const char *participant_type = participant_types != NULL
+                && i < participant_count
+            ? participant_types[i]
+            : NULL;
         if (involves == NULL || involves->type != AST_INTENT_INVOLVES) {
+            continue;
+        }
+        if (participant_type != NULL) {
+            if (!transpiler_can_forward_declare_type_name_early(
+                    ctx, participant_type)) {
+                free((void *)participant_aliases);
+                free((void *)participant_types);
+                free((void *)value_aliases);
+                free((void *)value_types);
+                return false;
+            }
             continue;
         }
         subject_type = ast_intent_involves_subject_type(involves);
@@ -292,13 +337,31 @@ transpiler_can_forward_declare_intent_early(TranspilerCtx *ctx, ASTNode *intent)
         }
         if (!transpiler_can_forward_declare_type_early(
                 ctx, subject_type)) {
+            free((void *)participant_aliases);
+            free((void *)participant_types);
+            free((void *)value_aliases);
+            free((void *)value_types);
             return false;
         }
     }
     for (size_t i = 0; i < value_count; i++) {
         ASTNode *value = values[i];
         ASTNode *value_type = NULL;
+        const char *type_name = value_types != NULL && i < mir_value_count
+            ? value_types[i]
+            : NULL;
         if (value == NULL || value->type != AST_INTENT_VALUE) {
+            continue;
+        }
+        if (type_name != NULL) {
+            if (!transpiler_can_forward_declare_type_name_early(
+                    ctx, type_name)) {
+                free((void *)participant_aliases);
+                free((void *)participant_types);
+                free((void *)value_aliases);
+                free((void *)value_types);
+                return false;
+            }
             continue;
         }
         value_type = ast_intent_value_type(value);
@@ -307,8 +370,16 @@ transpiler_can_forward_declare_intent_early(TranspilerCtx *ctx, ASTNode *intent)
         }
         if (!transpiler_can_forward_declare_type_early(
                 ctx, value_type)) {
+            free((void *)participant_aliases);
+            free((void *)participant_types);
+            free((void *)value_aliases);
+            free((void *)value_types);
             return false;
         }
     }
+    free((void *)participant_aliases);
+    free((void *)participant_types);
+    free((void *)value_aliases);
+    free((void *)value_types);
     return true;
 }

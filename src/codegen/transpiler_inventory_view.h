@@ -28,6 +28,23 @@ ASTNode *transpiler_mir_routine_source_ast_of_type(
     MIRScopeKind expected_kind,
     ASTNodeType expected_ast_type);
 
+bool transpiler_mir_routine_has_signature(const MIRRoutine *routine);
+
+size_t transpiler_mir_routine_param_count(const MIRRoutine *routine);
+
+FuncParam *transpiler_mir_routine_param(
+    const MIRRoutine *routine,
+    size_t index);
+
+const char *transpiler_mir_routine_param_type_name(
+    const MIRRoutine *routine,
+    size_t index);
+
+ASTNode *transpiler_mir_routine_return_type(const MIRRoutine *routine);
+
+const char *transpiler_mir_routine_return_type_name(
+    const MIRRoutine *routine);
+
 size_t transpiler_active_routine_count(const TranspilerCtx *ctx);
 
 void

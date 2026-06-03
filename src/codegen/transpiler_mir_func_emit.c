@@ -58,6 +58,10 @@ emit_func_decl_from_mir_named(ASTNode *node, const MIRRoutine *mir_routine,
     bool owner_is_world = owner_ast_type == AST_WORLD_DECL;
     bool pointer_self = false;
     ASTNode *resolved_host_decl = NULL;
+    bool routine_has_signature =
+        transpiler_mir_routine_has_signature(mir_routine);
+    ASTNode *return_type = NULL;
+    size_t func_param_count = 0;
 
     if (is_method && owner_name == NULL) {
         transpiler_set_mir_topology_invalid(
@@ -110,8 +114,15 @@ emit_func_decl_from_mir_named(ASTNode *node, const MIRRoutine *mir_routine,
 
     ensure_collection_specializations_from_stmt_to(ctx, ctx->decls, node);
 
-    ASTNode *return_type = ast_func_return_type(node);
-    if (return_type != NULL) {
+    return_type = routine_has_signature
+        ? transpiler_mir_routine_return_type(mir_routine)
+        : ast_func_return_type(node);
+    const char *return_type_name = routine_has_signature
+        ? transpiler_mir_routine_return_type_name(mir_routine)
+        : NULL;
+    if (return_type_name != NULL) {
+        transpiler_set_current_return_type_local(ctx, return_type_name);
+    } else if (return_type != NULL) {
         char *rendered = render_type_name_in_ctx(ctx, return_type);
         transpiler_set_current_return_type_local(ctx, rendered);
         free(rendered);
@@ -130,12 +141,19 @@ emit_func_decl_from_mir_named(ASTNode *node, const MIRRoutine *mir_routine,
         }
     }
 
-    size_t func_param_count = ast_func_param_count(node);
+    func_param_count = routine_has_signature
+        ? transpiler_mir_routine_param_count(mir_routine)
+        : ast_func_param_count(node);
     for (size_t i = 0; i < func_param_count; i++) {
-        FuncParam *p = ast_func_param(node, i);
+        FuncParam *p = routine_has_signature
+            ? transpiler_mir_routine_param(mir_routine, i)
+            : ast_func_param(node, i);
         char pt_buf[256];
         const char *pt = NULL;
-        char *type_name = NULL;
+        const char *type_name = routine_has_signature
+            ? transpiler_mir_routine_param_type_name(mir_routine, i)
+            : NULL;
+        char *owned_type_name = NULL;
         char *decl = NULL;
         bool boundary_slot = false;
         bool secure_slot = false;
@@ -145,7 +163,13 @@ emit_func_decl_from_mir_named(ASTNode *node, const MIRRoutine *mir_routine,
             && strcmp(p->name, "self") == 0 && p->type == NULL) {
             continue;
         }
-        if (p->type != NULL) {
+        if (type_name != NULL) {
+            if (transpiler_require_type_name_c_type_copy(ctx,
+                    type_name, "MIR function parameter",
+                    pt_buf, sizeof(pt_buf))) {
+                pt = pt_buf;
+            }
+        } else if (p->type != NULL) {
             if (pergyra_ast_type_to_c_copy_in_ctx(
                     ctx, p->type, pt_buf, sizeof(pt_buf)))
                 pt = pt_buf;
@@ -154,7 +178,8 @@ emit_func_decl_from_mir_named(ASTNode *node, const MIRRoutine *mir_routine,
                  && mir_routine != NULL
                  && mir_routine->owner_name != NULL) {
             pt = mir_routine->owner_name;
-            type_name = pergyra_strdup(mir_routine->owner_name);
+            owned_type_name = pergyra_strdup(mir_routine->owner_name);
+            type_name = owned_type_name;
         }
         if (pt == NULL) {
             transpiler_set_backend_error_with_hints(
@@ -172,8 +197,10 @@ emit_func_decl_from_mir_named(ASTNode *node, const MIRRoutine *mir_routine,
         }
         if (params_sig->len > 0)
             codebuf_write(params_sig, ", ");
-        if (p->type != NULL && type_name == NULL)
-            type_name = render_type_name_in_ctx(ctx, p->type);
+        if (type_name == NULL && p->type != NULL) {
+            owned_type_name = render_type_name_in_ctx(ctx, p->type);
+            type_name = owned_type_name;
+        }
         boundary_slot = type_name != NULL
             && (strncmp(type_name, "Slot<", 5) == 0
                 || strncmp(type_name, "SecureSlot<", 11) == 0)
@@ -195,7 +222,7 @@ emit_func_decl_from_mir_named(ASTNode *node, const MIRRoutine *mir_routine,
                 codebuf_destroy(params_sig);
                 free(header_decl);
                 free(decl);
-                free(type_name);
+                free(owned_type_name);
                 transpiler_restore_mir_emit_state_from_snapshot_local(ctx,
                     &saved_emit_state);
                 return;
@@ -218,7 +245,7 @@ emit_func_decl_from_mir_named(ASTNode *node, const MIRRoutine *mir_routine,
             codebuf_write(params_sig, "%s %s", pt, p->name);
         }
         free(decl);
-        free(type_name);
+        free(owned_type_name);
     }
 
     header_decl = pergyra_func_signature_declarator_in_ctx(ctx, return_type,
@@ -292,20 +319,28 @@ emit_func_decl_from_mir_named(ASTNode *node, const MIRRoutine *mir_routine,
         }
     }
     for (size_t i = 0; i < func_param_count; i++) {
-        FuncParam *p = ast_func_param(node, i);
-        char *type_name = NULL;
+        FuncParam *p = routine_has_signature
+            ? transpiler_mir_routine_param(mir_routine, i)
+            : ast_func_param(node, i);
+        const char *type_name = routine_has_signature
+            ? transpiler_mir_routine_param_type_name(mir_routine, i)
+            : NULL;
+        char *owned_type_name = NULL;
         if (p == NULL || p->name == NULL)
             continue;
         if (is_method && strcmp(p->name, "self") == 0 && p->type == NULL)
             continue;
-        if (p->type != NULL)
-            type_name = render_type_name_in_ctx(ctx, p->type);
+        if (type_name == NULL && p->type != NULL) {
+            owned_type_name = render_type_name_in_ctx(ctx, p->type);
+            type_name = owned_type_name;
+        }
         if (p->type == NULL
             && strcmp(p->name, "self") == 0
             && mir_routine != NULL
             && mir_routine->owner_name != NULL) {
-            free(type_name);
-            type_name = pergyra_strdup(mir_routine->owner_name);
+            free(owned_type_name);
+            owned_type_name = pergyra_strdup(mir_routine->owner_name);
+            type_name = owned_type_name;
         }
         if (type_name == NULL)
             continue;
@@ -334,7 +369,7 @@ emit_func_decl_from_mir_named(ASTNode *node, const MIRRoutine *mir_routine,
                         "cannot register slot parameter metadata for MIR-emitted function '%s' parameter '%s'",
                         name != NULL ? name : "<function>",
                         p->name != NULL ? p->name : "<param>");
-                    free(type_name);
+                    free(owned_type_name);
                     transpiler_restore_mir_emit_state_from_snapshot_local(ctx,
                         &saved_emit_state);
                     return;
@@ -342,7 +377,7 @@ emit_func_decl_from_mir_named(ASTNode *node, const MIRRoutine *mir_routine,
                 register_slot_var(ctx, p->name, inner_buf, secure_slot,
                     boundary_slot);
             }
-            free(type_name);
+            free(owned_type_name);
         }
     }
     transpiler_register_explicit_local_bindings_in_block(ctx, node,
@@ -405,7 +440,9 @@ emit_func_decl_from_mir_named(ASTNode *node, const MIRRoutine *mir_routine,
 
         /* Ensure function parameters are in SSA map for expression resolution in branches/returns */
         for (size_t p = 0; p < func_param_count; p++) {
-            FuncParam *param = ast_func_param(node, p);
+            FuncParam *param = routine_has_signature
+                ? transpiler_mir_routine_param(mir_routine, p)
+                : ast_func_param(node, p);
             if (param != NULL && param->name != NULL) {
                 if (transpiler_resolve_ssa_name(&block_ssa_map, param->name) == NULL) {
                     transpiler_ssa_name_map_set(&block_ssa_map, param->name, param->name);

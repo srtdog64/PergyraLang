@@ -50,6 +50,13 @@ ASTNode *llvm_mir_routine_source_ast(const MIRRoutine *routine);
 ASTNode *llvm_mir_routine_source_ast_of_type(const MIRRoutine *routine,
                                              MIRScopeKind expected_kind,
                                              ASTNodeType expected_ast_type);
+bool llvm_mir_routine_has_signature(const MIRRoutine *routine);
+size_t llvm_mir_routine_param_count(const MIRRoutine *routine);
+FuncParam *llvm_mir_routine_param(const MIRRoutine *routine, size_t index);
+const char *llvm_mir_routine_param_type_name(const MIRRoutine *routine,
+                                             size_t index);
+ASTNode *llvm_mir_routine_return_type(const MIRRoutine *routine);
+const char *llvm_mir_routine_return_type_name(const MIRRoutine *routine);
 void llvm_active_domain_inventory(const LLVMGenCtx *ctx,
                                   LLVMDomainInventory *inventory);
 void llvm_active_executables(const LLVMGenCtx *ctx,

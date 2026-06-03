@@ -44,6 +44,10 @@ size_t transpiler_collect_mir_intent_participants(
     const MIRRoutine *routine,
     const char ***aliases_out,
     const char ***types_out);
+size_t transpiler_collect_mir_intent_values(
+    const MIRRoutine *routine,
+    const char ***aliases_out,
+    const char ***types_out);
 size_t transpiler_collect_mir_intent_dispatch_aliases(
     const MIRRoutine *routine,
     const char *step_name,

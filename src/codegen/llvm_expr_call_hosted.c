@@ -7,6 +7,7 @@
 
 #include "llvm_internal_api.h"
 #include "llvm_inventory_decl_lookup.h"
+#include "llvm_inventory_host_methods.h"
 #include "../parser/ast_api.h"
 
 static LLVMValueRef
@@ -40,12 +41,19 @@ llvm_emit_hosted_self_arg(ASTNode *arg_node, LLVMGenCtx *ctx,
 }
 
 static FuncParam *
-llvm_hosted_self_logical_param(ASTNode *host_method, size_t arg_index)
+llvm_hosted_self_logical_param(const MIRDeclMethod *method_meta,
+                               ASTNode *host_method,
+                               size_t arg_index)
 {
     size_t logical_index = 0;
+    size_t param_count = method_meta != NULL
+        ? llvm_mir_decl_method_param_count(method_meta)
+        : ast_func_param_count(host_method);
 
-    for (size_t i = 0; i < ast_func_param_count(host_method); i++) {
-        FuncParam *param = ast_func_param(host_method, i);
+    for (size_t i = 0; i < param_count; i++) {
+        FuncParam *param = method_meta != NULL
+            ? llvm_mir_decl_method_param(method_meta, i)
+            : ast_func_param(host_method, i);
         if (param == NULL || param->name == NULL)
             continue;
         if (param->type == NULL && strcmp(param->name, "self") == 0)
@@ -63,13 +71,17 @@ llvm_emit_hosted_self_call(ASTNode *node, LLVMGenCtx *ctx,
 {
     ASTNode *host_decl = llvm_current_host_decl(ctx);
     const char *host_name = llvm_decl_node_name(host_decl);
-    ASTNode *host_method = llvm_current_host_method_decl(ctx, callee_name);
+    const MIRDeclMethod *method_meta =
+        llvm_find_host_method_metadata_in_context(ctx, host_name, callee_name);
+    ASTNode *host_method = llvm_mir_decl_method_source_ast(method_meta);
     size_t argc = ast_call_arg_count(node);
     char full_name[256];
     LLVMFuncEntry *fn = NULL;
     LLVMValueRef *args = NULL;
 
-    if (host_name == NULL || host_method == NULL)
+    if (host_method == NULL && method_meta == NULL)
+        host_method = llvm_current_host_method_decl(ctx, callee_name);
+    if (host_name == NULL || (method_meta == NULL && host_method == NULL))
         return NULL;
 
     snprintf(full_name, sizeof(full_name), "%s_%s", host_name, callee_name);
@@ -93,7 +105,8 @@ llvm_emit_hosted_self_call(ASTNode *node, LLVMGenCtx *ctx,
         ASTNode *arg_node = ast_call_argument(node, i);
         LLVMTypeRef arg_type = llvm_stmt_infer_expr_type(ctx, arg_node);
         LLVMValueRef arg_value;
-        FuncParam *param = llvm_hosted_self_logical_param(host_method, i);
+        FuncParam *param = llvm_hosted_self_logical_param(
+            method_meta, host_method, i);
 
         if (ctx->has_error)
             return NULL;

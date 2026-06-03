@@ -18,6 +18,8 @@ llvm_emit_intent_decl(ASTNode *node, LLVMGenCtx *ctx)
     const char **mir_step_names = NULL;
     const char **participant_aliases = NULL;
     const char **participant_types = NULL;
+    const char **value_aliases = NULL;
+    const char **value_types = NULL;
     LLVMFuncEntry *entry;
     LLVMFuncEntry *enter_fn;
     LLVMFuncEntry *exit_fn;
@@ -47,6 +49,7 @@ llvm_emit_intent_decl(ASTNode *node, LLVMGenCtx *ctx)
     LLVMValueRef subjects_ptr;
     LLVMValueRef *completed_allocas = NULL;
     size_t participant_count = 0;
+    size_t mir_value_count = 0;
     size_t param_count = 0;
     size_t subject_count = 0;
     size_t step_count = 0;
@@ -115,6 +118,8 @@ llvm_emit_intent_decl(ASTNode *node, LLVMGenCtx *ctx)
     if (mir_routine != NULL) {
         participant_count = llvm_collect_mir_intent_participants(
             mir_routine, ctx, &participant_aliases, &participant_types);
+        mir_value_count = llvm_collect_mir_intent_values(
+            mir_routine, ctx, &value_aliases, &value_types);
     }
     if (mir_only_intent && involve_count > 0) {
         if (participant_count < involve_count) {
@@ -128,6 +133,23 @@ llvm_emit_intent_decl(ASTNode *node, LLVMGenCtx *ctx)
                 || participant_aliases[i] == NULL || participant_types[i] == NULL) {
                 llvm_set_mir_inventory_missing(ctx,
                     "MIR-only LLVM path has incomplete intent participant metadata for '%s'",
+                    intent_name != NULL ? intent_name : "(anonymous)");
+                return;
+            }
+        }
+    }
+    if (mir_only_intent && value_count > 0) {
+        if (mir_value_count < value_count) {
+            llvm_set_mir_inventory_missing(ctx,
+                "MIR-only LLVM path missing intent value metadata for '%s'",
+                intent_name != NULL ? intent_name : "(anonymous)");
+            return;
+        }
+        for (size_t i = 0; i < value_count; i++) {
+            if (value_aliases == NULL || value_types == NULL
+                || value_aliases[i] == NULL || value_types[i] == NULL) {
+                llvm_set_mir_inventory_missing(ctx,
+                    "MIR-only LLVM path has incomplete intent value metadata for '%s'",
                     intent_name != NULL ? intent_name : "(anonymous)");
                 return;
             }
@@ -199,7 +221,8 @@ llvm_emit_intent_decl(ASTNode *node, LLVMGenCtx *ctx)
 
     llvm_emit_intent_entry_bindings(ctx, node, fn,
         participant_aliases, participant_types,
-        participant_count, param_count, mir_only_intent,
+        participant_count, value_aliases, value_types, mir_value_count,
+        param_count, mir_only_intent,
         &subjects_ptr, &subject_count);
 
     result_alloca = llvm_create_entry_alloca(ctx, ctx->type_i1, "__intent_result");

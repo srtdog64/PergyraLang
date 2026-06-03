@@ -81,7 +81,7 @@ llvm_forward_declare_function_routines_from_inventory(
             continue;
         }
         if (llvm_lookup_function(ctx, ast_declaration_name(func_decl)) == NULL)
-            llvm_forward_declare_func(func_decl, ctx);
+            llvm_forward_declare_func_from_mir(routine, func_decl, ctx);
         if (ctx->has_error)
             return false;
     }

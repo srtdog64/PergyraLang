@@ -1,0 +1,36 @@
+struct Strat {
+    name: String;
+    posture: String;
+    aggression: Int;
+    guardBias: Int;
+    focusShift: Int;
+    moraleSwing: Int;
+    effectBias: Int;
+}
+
+class Card {
+    let name: String;
+    let style: String;
+    let power: Int;
+    let guardBreak: Int;
+    let focusCost: Int;
+    let effectTag: String;
+
+    func ActionLine(self, strategy: Strat) -> String {
+        return strategy.name + " with " + name + " in a " + strategy.posture + " pattern";
+    }
+
+    func EffectLine(self, strategy: Strat) -> String {
+        return effectTag
+            + ", aggression=" + ToString(strategy.aggression)
+            + ", guard=" + ToString(strategy.guardBias)
+            + ", morale=" + ToString(strategy.moraleSwing);
+    }
+}
+
+func Main() -> Void {
+    let s = Strat("tempo line", "measured", 2, 0, 0, 0, 0);
+    let c = Card("blade", "swift", 3, 1, 0, "fire");
+    Log(c.ActionLine(s));
+    Log(c.EffectLine(s));
+}

@@ -19,19 +19,44 @@ emit_func_forward_decl_named(ASTNode *node, const char *emitted_name,
     const char *name = emitted_name != NULL ? emitted_name : ast_declaration_name(node);
     CodeBuf *params_sig = codebuf_create();
     char *header_decl = NULL;
-    ASTNode *return_type = ast_func_return_type(node);
+    const MIRRoutine *mir_routine = transpiler_find_mir_function(ctx, node);
+    bool routine_has_signature =
+        transpiler_mir_routine_has_signature(mir_routine);
+    ASTNode *return_type = routine_has_signature
+        ? transpiler_mir_routine_return_type(mir_routine)
+        : ast_func_return_type(node);
+    size_t param_count = routine_has_signature
+        ? transpiler_mir_routine_param_count(mir_routine)
+        : ast_func_param_count(node);
     ensure_type_specializations_from_ast(ctx, return_type);
-    for (size_t i = 0; i < ast_func_param_count(node); i++) {
-        FuncParam *p = ast_func_param(node, i);
+    for (size_t i = 0; i < param_count; i++) {
+        FuncParam *p = routine_has_signature
+            ? transpiler_mir_routine_param(mir_routine, i)
+            : ast_func_param(node, i);
         const char *pt = NULL;
         char pt_buf[256];
-        char *type_name = NULL;
+        const char *type_name = routine_has_signature
+            ? transpiler_mir_routine_param_type_name(mir_routine, i)
+            : NULL;
+        char *owned_type_name = NULL;
         char *decl = NULL;
         bool boundary_slot = false;
         bool secure_slot = false;
+        if (p == NULL)
+            continue;
         if (p->type != NULL)
             ensure_type_specializations_from_ast(ctx, p->type);
-        if (p->type != NULL) {
+        if (type_name != NULL) {
+            char surface_desc[256];
+            snprintf(surface_desc, sizeof(surface_desc),
+                "forward declaration parameter '%s' of '%s'",
+                p->name != NULL ? p->name : "(anonymous)",
+                name != NULL ? name : "(anonymous)");
+            if (transpiler_require_type_name_c_type_copy(ctx, type_name,
+                    surface_desc, pt_buf, sizeof(pt_buf))) {
+                pt = pt_buf;
+            }
+        } else if (p->type != NULL) {
             char surface_desc[256];
             snprintf(surface_desc, sizeof(surface_desc),
                 "forward declaration parameter '%s' of '%s'",
@@ -53,8 +78,10 @@ emit_func_forward_decl_named(ASTNode *node, const char *emitted_name,
         }
         if (i > 0)
             codebuf_write(params_sig, ", ");
-        if (p->type != NULL)
-            type_name = render_type_name_in_ctx(ctx, p->type);
+        if (type_name == NULL && p->type != NULL) {
+            owned_type_name = render_type_name_in_ctx(ctx, p->type);
+            type_name = owned_type_name;
+        }
         boundary_slot = type_name != NULL
             && (strncmp(type_name, "Slot<", 5) == 0
                 || strncmp(type_name, "SecureSlot<", 11) == 0)
@@ -72,7 +99,7 @@ emit_func_forward_decl_named(ASTNode *node, const char *emitted_name,
                     "cannot determine slot payload type for forward declaration '%s' parameter '%s'",
                     name != NULL ? name : "<function>",
                     p->name != NULL ? p->name : "<param>");
-                free(type_name);
+                free(owned_type_name);
                 if (params_sig != NULL)
                     codebuf_destroy(params_sig);
                 free(header_decl);
@@ -92,7 +119,7 @@ emit_func_forward_decl_named(ASTNode *node, const char *emitted_name,
             codebuf_write(params_sig, "%s %s", pt, p->name);
         }
         free(decl);
-        free(type_name);
+        free(owned_type_name);
     }
     header_decl = pergyra_func_signature_declarator_in_ctx(ctx, return_type,
         name, params_sig != NULL ? params_sig->data : "void");

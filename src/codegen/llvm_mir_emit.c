@@ -7,7 +7,9 @@
 
 #ifdef PGY_LLVM_ENABLED
 
+#include "llvm_boundary_slot_param.h"
 #include "llvm_internal.h"
+#include "llvm_intent_internal.h"
 #include "llvm_mir_vars.h"
 #include "llvm_mir_phi.h"
 #include "llvm_mir_type_helpers.h"
@@ -114,6 +116,15 @@ llvm_emit_func_from_mir(const MIRRoutine *routine, LLVMGenCtx *ctx)
     bool is_method = false;
     bool owner_is_role = false;
     const char *owner_name = NULL;
+    const char **participant_aliases = NULL;
+    const char **participant_types = NULL;
+    const char **value_aliases = NULL;
+    const char **value_types = NULL;
+    size_t participant_count = 0;
+    size_t mir_value_count = 0;
+    size_t intent_binding_count = 0;
+    size_t intent_involve_count = 0;
+    size_t intent_value_count = 0;
     LLVMClassTypeEntry *owner_cls = NULL;
     LLVMFuncEntry *owner_sync = NULL;
     ASTNode *func_decl = NULL;
@@ -133,6 +144,27 @@ llvm_emit_func_from_mir(const MIRRoutine *routine, LLVMGenCtx *ctx)
         return NULL;
 
     is_intent = (func_decl->type == AST_INTENT_DECL);
+    if (is_intent) {
+        intent_binding_count = ast_intent_decl_binding_count(func_decl);
+        intent_involve_count = ast_intent_decl_involve_count(func_decl);
+        intent_value_count = ast_intent_decl_value_count(func_decl);
+        participant_count = llvm_collect_mir_intent_participants(
+            routine, ctx, &participant_aliases, &participant_types);
+        mir_value_count = llvm_collect_mir_intent_values(
+            routine, ctx, &value_aliases, &value_types);
+        if (intent_involve_count > 0 && participant_count < intent_involve_count) {
+            llvm_set_mir_inventory_missing(ctx,
+                "MIR-only LLVM path missing intent participant metadata for '%s'",
+                routine->name != NULL ? routine->name : "(anonymous)");
+            return NULL;
+        }
+        if (intent_value_count > 0 && mir_value_count < intent_value_count) {
+            llvm_set_mir_inventory_missing(ctx,
+                "MIR-only LLVM path missing intent value metadata for '%s'",
+                routine->name != NULL ? routine->name : "(anonymous)");
+            return NULL;
+        }
+    }
     is_method = (!is_intent && routine->kind == MIR_SCOPE_METHOD);
     owner_is_role = is_method && routine->owner_ast_type == AST_ROLE_DECL;
     owner_name = routine->owner_name;
@@ -152,14 +184,18 @@ llvm_emit_func_from_mir(const MIRRoutine *routine, LLVMGenCtx *ctx)
         owner_sync = llvm_lookup_function(ctx, owner_cls->sync_function_name);
     }
     param_count = is_intent
-        ? (ast_intent_decl_binding_count(func_decl) > 0
-            ? ast_intent_decl_binding_count(func_decl)
-            : (ast_intent_decl_involve_count(func_decl)
-                + ast_intent_decl_value_count(func_decl)))
+        ? (intent_binding_count > 0
+            ? intent_binding_count
+            : (intent_involve_count + intent_value_count))
         : (is_method ? 1 : 0);
     if (!is_intent) {
-        for (size_t i = 0; i < ast_func_param_count(func_decl); i++) {
-            FuncParam *p = ast_func_param(func_decl, i);
+        size_t func_param_count = llvm_mir_routine_has_signature(routine)
+            ? llvm_mir_routine_param_count(routine)
+            : ast_func_param_count(func_decl);
+        for (size_t i = 0; i < func_param_count; i++) {
+            FuncParam *p = llvm_mir_routine_has_signature(routine)
+                ? llvm_mir_routine_param(routine, i)
+                : ast_func_param(func_decl, i);
             if (is_method && llvm_param_is_implicit_self_local(p)) {
                 continue;
             }
@@ -178,7 +214,8 @@ llvm_emit_func_from_mir(const MIRRoutine *routine, LLVMGenCtx *ctx)
             routine->name != NULL ? routine->name : "(anonymous)");
         return NULL;
     }
-    for (size_t i = 0; i < param_count; i++) {
+    for (size_t i = 0, participant_index = 0, value_index = 0;
+         i < param_count; i++) {
         if (is_intent) {
             size_t binding_count = 0;
             size_t involve_count = 0;
@@ -196,18 +233,47 @@ llvm_emit_func_from_mir(const MIRRoutine *routine, LLVMGenCtx *ctx)
             ASTNode *binding_type = NULL;
             if (binding != NULL && binding->type == AST_INTENT_INVOLVES
                 && ast_intent_involves_subject_type(binding) != NULL) {
-                binding_type = ast_intent_involves_subject_type(binding);
-                param_types[i] = llvm_mir_type_from_ast(ctx, binding_type);
-                if (ctx->has_error || param_types[i] == NULL)
+                const char *type_name =
+                    participant_types != NULL && participant_index < participant_count
+                        ? participant_types[participant_index]
+                        : NULL;
+                if (type_name != NULL) {
+                    param_types[i] = pergyra_type_to_llvm(ctx, type_name);
+                    if (ctx->has_error || param_types[i] == NULL)
+                        return NULL;
+                    if (llvm_type_name_uses_pointer_self(ctx, type_name))
+                        param_types[i] = LLVMPointerType(param_types[i], 0);
+                } else {
+                    binding_type = ast_intent_involves_subject_type(binding);
+                    param_types[i] = llvm_mir_type_from_ast(ctx, binding_type);
+                    if (ctx->has_error || param_types[i] == NULL)
+                        return NULL;
+                    if (llvm_intent_involves_uses_pointer_self(ctx, binding))
+                        param_types[i] = LLVMPointerType(param_types[i], 0);
+                }
+                participant_index++;
+            } else if (binding != NULL && binding->type == AST_INTENT_VALUE) {
+                const char *type_name =
+                    value_types != NULL && value_index < mir_value_count
+                        ? value_types[value_index]
+                        : NULL;
+                if (type_name != NULL) {
+                    param_types[i] = pergyra_type_to_llvm(ctx, type_name);
+                    if (ctx->has_error || param_types[i] == NULL)
+                        return NULL;
+                } else if (ast_intent_value_type(binding) != NULL) {
+                    binding_type = ast_intent_value_type(binding);
+                    param_types[i] = llvm_mir_type_from_ast(ctx, binding_type);
+                    if (ctx->has_error || param_types[i] == NULL)
+                        return NULL;
+                }
+                value_index++;
+                if (param_types[i] == NULL) {
+                    llvm_set_mir_inventory_missing(ctx,
+                        "MIR-only LLVM path missing intent value type metadata for '%s'",
+                        routine->name != NULL ? routine->name : "(anonymous)");
                     return NULL;
-                if (llvm_intent_involves_uses_pointer_self(ctx, binding))
-                    param_types[i] = LLVMPointerType(param_types[i], 0);
-            } else if (binding != NULL && binding->type == AST_INTENT_VALUE
-                && ast_intent_value_type(binding) != NULL) {
-                binding_type = ast_intent_value_type(binding);
-                param_types[i] = llvm_mir_type_from_ast(ctx, binding_type);
-                if (ctx->has_error || param_types[i] == NULL)
-                    return NULL;
+                }
             } else {
                 param_types[i] = llvm_mir_required_type_from_ast(
                     ctx, binding, NULL, "intent binding");
@@ -228,23 +294,44 @@ llvm_emit_func_from_mir(const MIRRoutine *routine, LLVMGenCtx *ctx)
             size_t logical_index = is_method ? (i - 1) : i;
             size_t seen = 0;
             FuncParam *p = NULL;
+            size_t source_param_index = (size_t)-1;
+            size_t func_param_count = llvm_mir_routine_has_signature(routine)
+                ? llvm_mir_routine_param_count(routine)
+                : ast_func_param_count(func_decl);
             for (size_t param_index = 0;
-                param_index < ast_func_param_count(func_decl);
+                param_index < func_param_count;
                  param_index++) {
-                FuncParam *candidate = ast_func_param(func_decl, param_index);
+                FuncParam *candidate =
+                    llvm_mir_routine_has_signature(routine)
+                        ? llvm_mir_routine_param(routine, param_index)
+                        : ast_func_param(func_decl, param_index);
                 if (llvm_param_is_implicit_self_local(candidate)) {
                     continue;
                 }
                 if (seen == logical_index) {
                     p = candidate;
+                    source_param_index = param_index;
                     break;
                 }
                 seen++;
             }
             bool is_secure_slot = false;
-            const char *slot_inner = llvm_mir_boundary_slot_inner_name(ctx, p, &is_secure_slot);
-            if (slot_inner != NULL && p != NULL && p->type != NULL) {
-                LLVMTypeRef slot_ty = llvm_mir_type_from_ast(ctx, p->type);
+            const char *param_type_name =
+                source_param_index != (size_t)-1
+                    && llvm_mir_routine_has_signature(routine)
+                    ? llvm_mir_routine_param_type_name(routine,
+                        source_param_index)
+                    : NULL;
+            const char *slot_inner = param_type_name != NULL
+                ? llvm_boundary_slot_inner_name_from_type_name(ctx,
+                    p,
+                    param_type_name,
+                    &is_secure_slot)
+                : llvm_mir_boundary_slot_inner_name(ctx, p, &is_secure_slot);
+            if (slot_inner != NULL) {
+                LLVMTypeRef slot_ty = param_type_name != NULL
+                    ? pergyra_type_to_llvm(ctx, param_type_name)
+                    : llvm_mir_type_from_ast(ctx, p->type);
                 if (ctx->has_error || slot_ty == NULL)
                     return NULL;
                 param_types[i] = LLVMPointerType(slot_ty, 0);
@@ -252,7 +339,10 @@ llvm_emit_func_from_mir(const MIRRoutine *routine, LLVMGenCtx *ctx)
                     param_types[++i] = llvm_secure_token_type(ctx, slot_inner);
                 }
             } else {
-                if (p != NULL && p->type != NULL)
+                if (param_type_name != NULL)
+                    param_types[i] = pergyra_type_to_llvm(ctx,
+                        param_type_name);
+                else if (p != NULL && p->type != NULL)
                     param_types[i] = llvm_mir_required_type_from_ast(
                         ctx, func_decl, p->type, "function parameter");
                 else
@@ -260,16 +350,27 @@ llvm_emit_func_from_mir(const MIRRoutine *routine, LLVMGenCtx *ctx)
                         ctx, func_decl, NULL, "function parameter");
                 if (ctx->has_error || param_types[i] == NULL)
                     return NULL;
-                if (p != NULL && p->type != NULL
-                    && llvm_mir_param_uses_pointer_self(ctx, p->type)) {
+                if (param_type_name != NULL
+                    ? llvm_type_name_uses_pointer_self(ctx, param_type_name)
+                    : (p != NULL && p->type != NULL
+                        && llvm_mir_param_uses_pointer_self(ctx, p->type))) {
                     param_types[i] = LLVMPointerType(param_types[i], 0);
                 }
             }
         }
     }
     LLVMTypeRef ret_type = is_intent ? ctx->type_i1 : ctx->type_i32;
-    if (!is_intent && ast_func_return_type(func_decl) != NULL)
-        ret_type = llvm_mir_type_from_ast(ctx, ast_func_return_type(func_decl));
+    if (!is_intent) {
+        const char *return_type_name =
+            llvm_mir_routine_return_type_name(routine);
+        ASTNode *return_type = llvm_mir_routine_return_type(routine);
+        if (return_type == NULL && !llvm_mir_routine_has_signature(routine))
+            return_type = ast_func_return_type(func_decl);
+        if (return_type_name != NULL)
+            ret_type = pergyra_type_to_llvm(ctx, return_type_name);
+        else if (return_type != NULL)
+            ret_type = llvm_mir_type_from_ast(ctx, return_type);
+    }
     if (ctx->has_error || ret_type == NULL)
         return NULL;
 

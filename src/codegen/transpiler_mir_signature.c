@@ -8,6 +8,7 @@
 #include <stdlib.h>
 #include <string.h>
 
+#include "transpiler_type_require.h"
 #include "transpiler_type_render.h"
 
 bool
@@ -25,6 +26,29 @@ transpiler_mir_type_supported(const char *type_name)
            || strncmp(type_name, "Slot<", 5) == 0
            || strncmp(type_name, "SecureSlot<", 11) == 0
            || strncmp(type_name, "DeviceSlot<", 11) == 0;
+}
+
+bool
+transpiler_mir_type_name_supported(TranspilerCtx *ctx, const char *type_name)
+{
+    char c_type[256];
+
+    if (type_name == NULL || type_name[0] == '\0')
+        return false;
+    if (strcmp(type_name, "Unknown") == 0)
+        return false;
+    if (transpiler_mir_type_supported(type_name))
+        return true;
+
+    if (!transpiler_copy_c_type_or_user_type_name(type_name,
+            c_type,
+            sizeof(c_type))
+        || c_type[0] == '\0'
+        || strcmp(c_type, "Unknown") == 0) {
+        (void)ctx;
+        return false;
+    }
+    return true;
 }
 
 bool
@@ -69,23 +93,55 @@ transpiler_mir_ast_type_supported(TranspilerCtx *ctx, const ASTNode *type_node)
 }
 
 bool
-transpiler_mir_function_signature_supported(TranspilerCtx *ctx,
-                                            const ASTNode *func_decl)
+transpiler_mir_routine_signature_supported(TranspilerCtx *ctx,
+                                           const MIRRoutine *routine,
+                                           const ASTNode *func_decl)
 {
+    const bool has_signature = mir_routine_has_signature(routine);
+
     if (func_decl == NULL || func_decl->type != AST_FUNC_DECL)
         return false;
 
-    if (!transpiler_mir_ast_type_supported(ctx, ast_func_return_type(func_decl)))
+    const char *return_type_name = has_signature
+        ? mir_routine_return_type_name(routine)
+        : NULL;
+    if (return_type_name != NULL) {
+        if (!transpiler_mir_type_name_supported(ctx, return_type_name))
+            return false;
+    } else if (!transpiler_mir_ast_type_supported(
+                   ctx, ast_func_return_type(func_decl))) {
         return false;
+    }
 
-    size_t param_count = ast_func_param_count(func_decl);
+    size_t param_count = has_signature
+        ? mir_routine_param_count(routine)
+        : ast_func_param_count(func_decl);
     for (size_t i = 0; i < param_count; i++) {
-        FuncParam *param = ast_func_param(func_decl, i);
-        if (param == NULL || param->type == NULL)
+        FuncParam *param = has_signature
+            ? mir_routine_param(routine, i)
+            : ast_func_param(func_decl, i);
+        const char *param_type_name = has_signature
+            ? mir_routine_param_type_name(routine, i)
+            : NULL;
+        if (param == NULL)
+            continue;
+        if (param_type_name != NULL) {
+            if (!transpiler_mir_type_name_supported(ctx, param_type_name))
+                return false;
+            continue;
+        }
+        if (param->type == NULL)
             continue;
         if (!transpiler_mir_ast_type_supported(ctx, param->type))
             return false;
     }
 
     return true;
+}
+
+bool
+transpiler_mir_function_signature_supported(TranspilerCtx *ctx,
+                                            const ASTNode *func_decl)
+{
+    return transpiler_mir_routine_signature_supported(ctx, NULL, func_decl);
 }

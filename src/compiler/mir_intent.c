@@ -1,10 +1,12 @@
 #include "mir_intent.h"
 
 #include "mir_base_helpers.h"
+#include "mir_type_helpers.h"
 
 #include <stdlib.h>
 #include <string.h>
 
+#include "../common/arena.h"
 #include "parser/ast_api.h"
 
 static bool
@@ -173,6 +175,47 @@ mir_append_intent_participants(MIRRoutine *routine, MIRBasicBlock *block, ASTNod
                                     alias,
                                     type_name,
                                     involves)) {
+            return false;
+        }
+    }
+    return true;
+}
+
+static bool
+mir_append_intent_values(MIRRoutine *routine, MIRBasicBlock *block, ASTNode *intent)
+{
+    ASTNode **values;
+    size_t value_count;
+
+    values = ast_intent_decl_values(intent, &value_count);
+    for (size_t i = 0; i < value_count; i++) {
+        ASTNode *value = values[i];
+        ASTNode *value_type;
+        const char *alias = NULL;
+        const char *type_name = NULL;
+
+        if (value == NULL || value->type != AST_INTENT_VALUE)
+            continue;
+        alias = ast_intent_value_alias(value);
+        value_type = ast_intent_value_type(value);
+        if (value_type != NULL) {
+            char *rendered = mir_render_type_name(value_type);
+            if (rendered != NULL) {
+                type_name = pgy_arena_strdup(&routine->scratch, rendered);
+                free(rendered);
+            } else if (value_type->type == AST_TYPE) {
+                type_name = ast_type_name(value_type);
+            }
+        }
+        if (alias == NULL || type_name == NULL)
+            continue;
+        if (!mir_append_intent_stmt(routine,
+                                    block,
+                                    "IntentValue",
+                                    routine->name,
+                                    alias,
+                                    type_name,
+                                    value)) {
             return false;
         }
     }
@@ -379,6 +422,8 @@ mir_append_intent_step_instructions(MIRRoutine *routine, MIRBasicBlock *block)
 
     intent = routine->hir_routine->ast;
     if (!mir_append_intent_participants(routine, block, intent))
+        return false;
+    if (!mir_append_intent_values(routine, block, intent))
         return false;
 
     {

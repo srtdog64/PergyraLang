@@ -56,6 +56,7 @@ static const char *const k_mir_intent_semantic_carrier_names[] = {
     "IntentInvalidationTarget",
     "IntentParticipant",
     "IntentStep",
+    "IntentValue",
     "IntentWho",
     "IntentZoneAlias",
     "IntentZoneFrom",

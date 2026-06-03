@@ -1,0 +1,14 @@
+world W {
+    shared morale: Int = 0
+
+    func Advance(self, hazard: Int) -> Void {
+        morale = morale - hazard + 1;
+        morale = morale + 1;
+        Log("morale=" + ToString(morale));
+    }
+}
+
+func Main() -> Void {
+    let w = W(8);
+    w.Advance(2);
+}

@@ -205,16 +205,20 @@ llvm_register_enum_decl(LLVMGenCtx *ctx, ASTNode *stmt)
         ASTNode *method = llvm_mir_decl_method_source_ast(method_meta);
         const char *method_name = NULL;
         size_t pc = 0;
+        const char *return_type_name = NULL;
         ASTNode *return_type = NULL;
 
         method_name = llvm_mir_decl_method_name(method_meta);
         pc = llvm_mir_decl_method_param_count(method_meta);
+        return_type_name = llvm_mir_decl_method_return_type_name(method_meta);
         return_type = llvm_mir_decl_method_return_type(method_meta);
         if (method_name == NULL)
             continue;
 
         LLVMTypeRef ret_type = ctx->type_void;
-        if (return_type != NULL)
+        if (return_type_name != NULL)
+            ret_type = pergyra_type_to_llvm(ctx, return_type_name);
+        else if (return_type != NULL)
             ret_type = ast_type_to_llvm(ctx, return_type);
         if (ctx->has_error || ret_type == NULL)
             return;
@@ -245,10 +249,18 @@ llvm_register_enum_decl(LLVMGenCtx *ctx, ASTNode *stmt)
         size_t pidx = 1;
         for (size_t k = 0; k < pc; k++) {
             FuncParam *p = llvm_mir_decl_method_param(method_meta, k);
+            const char *param_type_name =
+                llvm_mir_decl_method_param_type_name(method_meta, k);
             if (llvm_param_is_implicit_self(p))
                 continue;
-            param_types[pidx++] = llvm_register_required_ast_type(
-                ctx, method, p != NULL ? p->type : NULL, "enum method parameter");
+            if (param_type_name != NULL) {
+                param_types[pidx++] =
+                    pergyra_type_to_llvm(ctx, param_type_name);
+            } else {
+                param_types[pidx++] = llvm_register_required_ast_type(
+                    ctx, method, p != NULL ? p->type : NULL,
+                    "enum method parameter");
+            }
             if (ctx->has_error || param_types[pidx - 1] == NULL)
                 return;
         }
@@ -354,18 +366,22 @@ llvm_register_nominal_decl(LLVMGenCtx *ctx, ASTNode *stmt)
         ASTNode *method = llvm_mir_decl_method_source_ast(method_meta);
         const char *method_name = NULL;
         size_t pc = 0;
+        const char *return_type_name = NULL;
         ASTNode *return_type = NULL;
         bool method_is_action = false;
 
         method_name = llvm_mir_decl_method_name(method_meta);
         pc = llvm_mir_decl_method_param_count(method_meta);
+        return_type_name = llvm_mir_decl_method_return_type_name(method_meta);
         return_type = llvm_mir_decl_method_return_type(method_meta);
         method_is_action = llvm_mir_decl_method_is_action_like(method_meta);
         if (method_name == NULL)
             continue;
 
         LLVMTypeRef ret_type = ctx->type_void;
-        if (return_type != NULL)
+        if (return_type_name != NULL)
+            ret_type = pergyra_type_to_llvm(ctx, return_type_name);
+        else if (return_type != NULL)
             ret_type = ast_type_to_llvm(ctx, return_type);
         if (ctx->has_error || ret_type == NULL)
             return;
@@ -392,10 +408,18 @@ llvm_register_nominal_decl(LLVMGenCtx *ctx, ASTNode *stmt)
         size_t pidx = 1;
         for (size_t k = 0; k < pc; k++) {
             FuncParam *p = llvm_mir_decl_method_param(method_meta, k);
+            const char *param_type_name =
+                llvm_mir_decl_method_param_type_name(method_meta, k);
             if (llvm_param_is_implicit_self(p))
                 continue;
-            param_types[pidx++] = llvm_register_required_ast_type(
-                ctx, method, p != NULL ? p->type : NULL, "class method parameter");
+            if (param_type_name != NULL) {
+                param_types[pidx++] =
+                    pergyra_type_to_llvm(ctx, param_type_name);
+            } else {
+                param_types[pidx++] = llvm_register_required_ast_type(
+                    ctx, method, p != NULL ? p->type : NULL,
+                    "class method parameter");
+            }
             if (ctx->has_error || param_types[pidx - 1] == NULL)
                 return;
         }

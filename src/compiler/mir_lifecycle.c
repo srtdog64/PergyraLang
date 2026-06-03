@@ -62,6 +62,12 @@ mir_destroy(MIRProgram *mir)
                     free((void *)routine->value_summaries[j].name);
             }
             free(routine->value_summaries);
+            if (routine->param_type_names != NULL) {
+                for (size_t j = 0; j < routine->param_count; j++)
+                    free(routine->param_type_names[j]);
+            }
+            free(routine->param_type_names);
+            free(routine->return_type_name);
             free(routine->blocks);
             pgy_arena_destroy(&routine->scratch);
         }
@@ -69,6 +75,20 @@ mir_destroy(MIRProgram *mir)
     free(mir->externs);
     if (mir->decl_headers != NULL) {
         for (size_t i = 0; i < mir->decl_header_count; i++) {
+            if (mir->decl_headers[i].method_metadata != NULL) {
+                for (size_t j = 0;
+                     j < mir->decl_headers[i].method_metadata_count;
+                     j++) {
+                    MIRDeclMethod *method =
+                        &mir->decl_headers[i].method_metadata[j];
+                    if (method->param_type_names != NULL) {
+                        for (size_t k = 0; k < method->param_count; k++)
+                            free(method->param_type_names[k]);
+                    }
+                    free(method->param_type_names);
+                    free(method->return_type_name);
+                }
+            }
             free(mir->decl_headers[i].method_metadata);
             free(mir->decl_headers[i].field_metadata);
         }

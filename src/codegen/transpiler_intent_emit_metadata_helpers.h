@@ -6,6 +6,8 @@
 void transpiler_free_intent_emit_metadata(ASTNode **mir_steps,
                                           const char **participant_aliases,
                                           const char **participant_types,
+                                          const char **value_aliases,
+                                          const char **value_types,
                                           const char **mir_step_names);
 
 ASTNode *transpiler_find_intent_step_source_by_name(ASTNode *intent,

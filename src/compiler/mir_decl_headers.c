@@ -1,4 +1,5 @@
 #include "mir_decl_headers.h"
+#include "mir_type_helpers.h"
 
 #include <stdint.h>
 #include <stdlib.h>
@@ -51,6 +52,42 @@ mir_append_decl_header(MIRProgram *mir, MIRDeclHeader header)
 }
 
 static void
+mir_decl_method_metadata_clear(MIRDeclMethod *meta)
+{
+    if (meta == NULL)
+        return;
+    if (meta->param_type_names != NULL) {
+        for (size_t i = 0; i < meta->param_count; i++)
+            free(meta->param_type_names[i]);
+    }
+    free(meta->param_type_names);
+    free(meta->return_type_name);
+    meta->param_type_names = NULL;
+    meta->return_type_name = NULL;
+}
+
+static void
+mir_decl_method_metadata_capture_type_names(MIRDeclMethod *meta)
+{
+    if (meta == NULL)
+        return;
+
+    if (meta->param_count > 0) {
+        meta->param_type_names = calloc(meta->param_count, sizeof(char *));
+        if (meta->param_type_names != NULL) {
+            for (size_t i = 0; i < meta->param_count; i++) {
+                FuncParam *param = meta->params != NULL ? meta->params[i] : NULL;
+                if (param != NULL && param->type != NULL)
+                    meta->param_type_names[i] =
+                        mir_render_type_name(param->type);
+            }
+        }
+    }
+    if (meta->return_type != NULL)
+        meta->return_type_name = mir_render_type_name(meta->return_type);
+}
+
+static void
 mir_decl_method_metadata_init(MIRDeclMethod *meta,
                               const MIRDeclHeader *header,
                               ASTNode *method)
@@ -66,6 +103,7 @@ mir_decl_method_metadata_init(MIRDeclMethod *meta,
     meta->name = ast_declaration_name(method);
     meta->params = ast_func_params(method, &meta->param_count);
     meta->return_type = ast_func_return_type(method);
+    mir_decl_method_metadata_capture_type_names(meta);
     meta->is_async = method->is_async_decl;
     meta->is_action_like = ast_func_is_action(method);
     meta->within_zone = ast_func_within_zone(method);
@@ -509,10 +547,15 @@ mir_record_decl_header(MIRProgram *mir, ASTNode *decl)
         if (!mir_decl_header_set_fields(&header, decl))
             return false;
         if (!mir_decl_header_set_role_impl_methods(&header, decl)) {
+            for (size_t i = 0; i < header.method_metadata_count; i++)
+                mir_decl_method_metadata_clear(&header.method_metadata[i]);
+            free(header.method_metadata);
             free(header.field_metadata);
             return false;
         }
         if (!mir_append_decl_header(mir, header)) {
+            for (size_t i = 0; i < header.method_metadata_count; i++)
+                mir_decl_method_metadata_clear(&header.method_metadata[i]);
             free(header.method_metadata);
             free(header.field_metadata);
             return false;
@@ -536,6 +579,8 @@ mir_record_decl_header(MIRProgram *mir, ASTNode *decl)
         return false;
     }
     if (!mir_append_decl_header(mir, header)) {
+        for (size_t i = 0; i < header.method_metadata_count; i++)
+            mir_decl_method_metadata_clear(&header.method_metadata[i]);
         free(header.method_metadata);
         free(header.field_metadata);
         return false;

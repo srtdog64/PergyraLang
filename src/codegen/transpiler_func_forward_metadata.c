@@ -21,6 +21,7 @@ emit_hosted_method_forward_decl_from_metadata(const char *host_name,
                                               TranspilerCtx *ctx)
 {
     const char *method_name;
+    const char *return_type_name;
     ASTNode *return_type;
     size_t param_count;
     char ret_type_buf[256];
@@ -33,18 +34,30 @@ emit_hosted_method_forward_decl_from_metadata(const char *host_name,
         return;
 
     method_name = transpiler_mir_decl_method_name(method_meta);
+    return_type_name = transpiler_mir_decl_method_return_type_name(method_meta);
     return_type = transpiler_mir_decl_method_return_type(method_meta);
     param_count = transpiler_mir_decl_method_param_count(method_meta);
     if (method_name == NULL && method != NULL)
         method_name = ast_declaration_name(method);
-    if (return_type == NULL && method != NULL)
+    if (return_type == NULL && method_meta == NULL && method != NULL)
         return_type = ast_func_return_type(method);
     if (param_count == 0 && method_meta == NULL && method != NULL)
         param_count = ast_func_param_count(method);
     if (method_name == NULL)
         return;
     ensure_type_specializations_from_ast(ctx, return_type);
-    if (return_type != NULL
+    if (return_type_name != NULL) {
+        char surface_desc[256];
+        snprintf(surface_desc, sizeof(surface_desc),
+            "hosted method return '%s.%s'",
+            host_name != NULL ? host_name : "(anonymous)",
+            method_name != NULL ? method_name : "(anonymous)");
+        if (!transpiler_require_type_name_c_type_copy(ctx, return_type_name,
+                surface_desc, ret_type_buf, sizeof(ret_type_buf))) {
+            return;
+        }
+        ret_type = ret_type_buf;
+    } else if (return_type != NULL
         && pergyra_ast_type_to_c_copy_in_ctx(ctx, return_type,
             ret_type_buf,
             sizeof(ret_type_buf))) {
@@ -57,6 +70,8 @@ emit_hosted_method_forward_decl_from_metadata(const char *host_name,
 
     for (size_t j = 0; j < param_count; j++) {
         FuncParam *p = transpiler_mir_decl_method_param(method_meta, j);
+        const char *param_type_name =
+            transpiler_mir_decl_method_param_type_name(method_meta, j);
         char pt[256];
         char surface_desc[256];
 
@@ -74,14 +89,23 @@ emit_hosted_method_forward_decl_from_metadata(const char *host_name,
             host_name != NULL ? host_name : "(anonymous)",
             method_name != NULL ? method_name : "(anonymous)",
             p->name != NULL ? p->name : "(anonymous)");
-        if (!transpiler_require_ast_c_type_copy(ctx,
-                p->type, surface_desc, pt, sizeof(pt))) {
-            return;
+        if (param_type_name != NULL) {
+            if (!transpiler_require_type_name_c_type_copy(ctx,
+                    param_type_name, surface_desc, pt, sizeof(pt))) {
+                return;
+            }
+        } else {
+            if (!transpiler_require_ast_c_type_copy(ctx,
+                    p->type, surface_desc, pt, sizeof(pt))) {
+                return;
+            }
         }
         {
-            const char *ptn = p->type != NULL
-                ? transpiler_render_type_name_local(ctx, p->type)
-                : NULL;
+            const char *ptn = param_type_name != NULL
+                ? param_type_name
+                : (p->type != NULL
+                    ? transpiler_render_type_name_local(ctx, p->type)
+                    : NULL);
             bool subj_param = ptn != NULL
                 && is_pointer_self_host_type_name(ctx, ptn);
             if (subj_param)

@@ -13,6 +13,9 @@ bool transpiler_emit_intent_signature_and_entry(ASTNode *node,
                                                 const char **participant_aliases,
                                                 const char **participant_types,
                                                 size_t participant_count,
+                                                const char **value_aliases,
+                                                const char **value_types,
+                                                size_t mir_value_count,
                                                 bool emit_cleanup_from_mir,
                                                 const MIRRoutine *mir_routine);
 

@@ -4,13 +4,24 @@
 #include "llvm_decl_authority.h"
 
 static unsigned
-llvm_function_emitted_param_count(LLVMGenCtx *ctx, ASTNode *node)
+llvm_function_emitted_param_count(LLVMGenCtx *ctx, ASTNode *node,
+                                  const MIRRoutine *routine)
 {
     unsigned count = 0;
+    bool routine_has_signature = llvm_mir_routine_has_signature(routine);
+    size_t param_count = routine_has_signature
+        ? llvm_mir_routine_param_count(routine)
+        : ast_func_param_count(node);
 
-    for (size_t i = 0; i < ast_func_param_count(node); i++) {
+    for (size_t i = 0; i < param_count; i++) {
         bool is_secure = false;
-        FuncParam *p = ast_func_param(node, i);
+        FuncParam *p = routine_has_signature
+            ? llvm_mir_routine_param(routine, i)
+            : ast_func_param(node, i);
+        const char *param_type_name = routine_has_signature
+            ? llvm_mir_routine_param_type_name(routine, i)
+            : NULL;
+        const char *slot_inner = NULL;
         if (p == NULL || p->name == NULL) {
             llvm_set_error_at_with_hints(ctx, node,
                 PGY_CODE_LLVM_TYPE_UNSUPPORTED,
@@ -20,7 +31,13 @@ llvm_function_emitted_param_count(LLVMGenCtx *ctx, ASTNode *node)
             continue;
         }
         count++;
-        if (llvm_boundary_slot_inner_name(ctx, p, &is_secure) != NULL && is_secure)
+        slot_inner = param_type_name != NULL
+            ? llvm_boundary_slot_inner_name_from_type_name(ctx,
+                p,
+                param_type_name,
+                &is_secure)
+            : llvm_boundary_slot_inner_name(ctx, p, &is_secure);
+        if (slot_inner != NULL && is_secure)
             count++;
     }
     return count;
@@ -48,6 +65,20 @@ llvm_decl_required_param_type(LLVMGenCtx *ctx, ASTNode *func, FuncParam *param)
         PGY_FIX_ANNOTATE_CONCRETE_TYPE,
         "LLVM function parameter requires explicit type metadata; silent i32 fallback is not allowed");
     return NULL;
+}
+
+static LLVMTypeRef
+llvm_decl_required_param_type_name_first(LLVMGenCtx *ctx,
+                                         ASTNode *func,
+                                         FuncParam *param,
+                                         const char *type_name)
+{
+    if (type_name != NULL) {
+        LLVMTypeRef type = pergyra_type_to_llvm(ctx, type_name);
+        if (type != NULL || (ctx != NULL && ctx->has_error))
+            return type;
+    }
+    return llvm_decl_required_param_type(ctx, func, param);
 }
 
 static bool
@@ -80,17 +111,32 @@ llvm_decl_token_param_name(LLVMGenCtx *ctx, ASTNode *node,
  * Function declaration emission
  * ================================================================= */
 
-void
-llvm_forward_declare_func(ASTNode *node, LLVMGenCtx *ctx)
+static void
+llvm_forward_declare_func_with_signature(ASTNode *node,
+                                         const MIRRoutine *routine,
+                                         LLVMGenCtx *ctx)
 {
     const char *name = ast_declaration_name(node);
-    size_t param_count = ast_func_param_count(node);
-    unsigned emitted_param_count = llvm_function_emitted_param_count(ctx, node);
+    bool routine_has_signature = llvm_mir_routine_has_signature(routine);
+    size_t param_count = routine_has_signature
+        ? llvm_mir_routine_param_count(routine)
+        : ast_func_param_count(node);
+    unsigned emitted_param_count =
+        llvm_function_emitted_param_count(ctx, node, routine);
 
     /* Return type */
     LLVMTypeRef ret_type = ctx->type_void;
-    if (ast_func_return_type(node) != NULL)
-        ret_type = ast_type_to_llvm(ctx, ast_func_return_type(node));
+    const char *return_type_name = routine_has_signature
+        ? llvm_mir_routine_return_type_name(routine)
+        : NULL;
+    ASTNode *return_type = routine_has_signature
+        ? llvm_mir_routine_return_type(routine)
+        : ast_func_return_type(node);
+    if (return_type_name != NULL) {
+        ret_type = pergyra_type_to_llvm(ctx, return_type_name);
+    } else if (return_type != NULL) {
+        ret_type = ast_type_to_llvm(ctx, return_type);
+    }
     if (ctx->has_error || ret_type == NULL)
         return;
 
@@ -111,23 +157,39 @@ llvm_forward_declare_func(ASTNode *node, LLVMGenCtx *ctx)
         unsigned pidx = 0;
         for (size_t i = 0; i < param_count; i++) {
             bool is_secure = false;
-            FuncParam *p = ast_func_param(node, i);
+            FuncParam *p = routine_has_signature
+                ? llvm_mir_routine_param(routine, i)
+                : ast_func_param(node, i);
+            const char *param_type_name = routine_has_signature
+                ? llvm_mir_routine_param_type_name(routine, i)
+                : NULL;
+            const char *slot_inner = NULL;
             if (p == NULL || p->name == NULL)
                 continue;
-            LLVMTypeRef pt = llvm_decl_required_param_type(ctx, node, p);
+            LLVMTypeRef pt = llvm_decl_required_param_type_name_first(
+                ctx, node, p, param_type_name);
             if (ctx->has_error || pt == NULL)
                 return;
-            if (p != NULL
-                && p->type != NULL
-                && ast_type_name(p->type) != NULL
-                && llvm_type_name_uses_pointer_self(ctx, ast_type_name(p->type))) {
+            if (param_type_name != NULL
+                ? llvm_type_name_uses_pointer_self(ctx, param_type_name)
+                : (p != NULL
+                    && p->type != NULL
+                    && ast_type_name(p->type) != NULL
+                    && llvm_type_name_uses_pointer_self(ctx,
+                        ast_type_name(p->type)))) {
                 pt = LLVMPointerType(pt, 0);
             }
-            if (llvm_boundary_slot_inner_name(ctx, p, &is_secure) != NULL) {
+            slot_inner = param_type_name != NULL
+                ? llvm_boundary_slot_inner_name_from_type_name(ctx,
+                    p,
+                    param_type_name,
+                    &is_secure)
+                : llvm_boundary_slot_inner_name(ctx, p, &is_secure);
+            if (slot_inner != NULL) {
                 param_types[pidx++] = LLVMPointerType(pt, 0);
                 if (is_secure) {
-                    const char *inner = llvm_boundary_slot_inner_name(ctx, p, NULL);
-                    param_types[pidx++] = llvm_secure_token_type(ctx, inner);
+                    param_types[pidx++] =
+                        llvm_secure_token_type(ctx, slot_inner);
                 }
             } else {
                 param_types[pidx++] = pt;
@@ -140,6 +202,20 @@ llvm_forward_declare_func(ASTNode *node, LLVMGenCtx *ctx)
     LLVMValueRef fn = LLVMAddFunction(ctx->module, name, fn_type);
     llvm_register_function(ctx, name, fn, fn_type, ret_type);
 
+}
+
+void
+llvm_forward_declare_func(ASTNode *node, LLVMGenCtx *ctx)
+{
+    llvm_forward_declare_func_with_signature(node, NULL, ctx);
+}
+
+void
+llvm_forward_declare_func_from_mir(const MIRRoutine *routine,
+                                   ASTNode *node,
+                                   LLVMGenCtx *ctx)
+{
+    llvm_forward_declare_func_with_signature(node, routine, ctx);
 }
 
 void

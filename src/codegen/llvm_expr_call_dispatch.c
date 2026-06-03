@@ -23,6 +23,7 @@
 #include "llvm_expr_spawn_call_helpers.h"
 #include "llvm_expr_stdlib_scalar_io_calls.h"
 #include "llvm_expr_task_channel_calls.h"
+#include "llvm_intent_internal.h"
 #include "llvm_internal_api.h"
 #include "llvm_inventory_decl_lookup.h"
 #include "llvm_member_call_emit.h"
@@ -230,6 +231,23 @@ llvm_emit_call(ASTNode *node, LLVMGenCtx *ctx)
     unsigned emitted_argc = 0;
     LLVMValueRef *args = NULL;
     LLVMFuncEntry *predeclared_func = NULL;
+    const MIRRoutine *intent_routine = NULL;
+    const char **participant_aliases = NULL;
+    const char **participant_types = NULL;
+    const char **value_aliases = NULL;
+    const char **value_types = NULL;
+    size_t participant_count = 0;
+    size_t mir_value_count = 0;
+
+    if (intent_decl != NULL) {
+        intent_routine = llvm_find_mir_intent_routine(ctx, intent_decl);
+        if (intent_routine != NULL) {
+            participant_count = llvm_collect_mir_intent_participants(
+                intent_routine, ctx, &participant_aliases, &participant_types);
+            mir_value_count = llvm_collect_mir_intent_values(
+                intent_routine, ctx, &value_aliases, &value_types);
+        }
+    }
 
     if (decl != NULL)
         args = llvm_build_boundary_call_args(ctx, decl, call_args,
@@ -241,6 +259,8 @@ llvm_emit_call(ASTNode *node, LLVMGenCtx *ctx)
         args = pgy_arena_calloc(&ctx->scratch,
             (argc > 0 ? argc : 1) * sizeof(LLVMValueRef));
         if (args != NULL) {
+            size_t participant_index = 0;
+            size_t value_index = 0;
             for (size_t i = 0; i < argc; i++) {
                 const char *type_name = NULL;
                 bool pointer_self = false;
@@ -252,24 +272,43 @@ llvm_emit_call(ASTNode *node, LLVMGenCtx *ctx)
                         intent_decl, i, &binding_count);
                     if (i < binding_count) {
                         ASTNode *binding_type = NULL;
-                        if (binding != NULL && binding->type == AST_INTENT_INVOLVES
-                            && ast_intent_involves_subject_type(binding) != NULL
-                            && ast_intent_involves_subject_type(binding)->type == AST_TYPE) {
-                            binding_type = ast_intent_involves_subject_type(binding);
-                            type_name = ast_type_name(binding_type);
-                        } else if (binding != NULL && binding->type == AST_INTENT_VALUE
-                            && ast_intent_value_type(binding) != NULL
-                            && ast_intent_value_type(binding)->type == AST_TYPE) {
-                            binding_type = ast_intent_value_type(binding);
-                            type_name = ast_type_name(binding_type);
+                        if (binding != NULL && binding->type == AST_INTENT_INVOLVES) {
+                            type_name = participant_types != NULL
+                                    && participant_index < participant_count
+                                ? participant_types[participant_index]
+                                : NULL;
+                            if (type_name == NULL
+                                && ast_intent_involves_subject_type(binding) != NULL
+                                && ast_intent_involves_subject_type(binding)->type == AST_TYPE) {
+                                binding_type = ast_intent_involves_subject_type(binding);
+                                type_name = ast_type_name(binding_type);
+                            }
+                            participant_index++;
+                        } else if (binding != NULL && binding->type == AST_INTENT_VALUE) {
+                            type_name = value_types != NULL
+                                    && value_index < mir_value_count
+                                ? value_types[value_index]
+                                : NULL;
+                            if (type_name == NULL
+                                && ast_intent_value_type(binding) != NULL
+                                && ast_intent_value_type(binding)->type == AST_TYPE) {
+                                binding_type = ast_intent_value_type(binding);
+                                type_name = ast_type_name(binding_type);
+                            }
+                            value_index++;
                         }
                     }
                 }
                 pointer_self = llvm_type_name_uses_pointer_self(ctx, type_name);
-                if (!pointer_self && type_name != NULL
-                    && llvm_find_host_decl_in_active_inventory(ctx, type_name)
-                        != NULL) {
-                    pointer_self = true;
+                if (!pointer_self && type_name != NULL) {
+                    ASTNode *host_decl =
+                        llvm_find_host_decl_in_active_inventory(ctx,
+                            type_name);
+                    if (host_decl != NULL
+                        && !(host_decl->type == AST_CLASS_DECL
+                             && ast_class_is_struct(host_decl))) {
+                        pointer_self = true;
+                    }
                 }
                 if (pointer_self) {
                     if (arg_node != NULL && arg_node->type == AST_IDENTIFIER) {
@@ -406,6 +445,8 @@ llvm_emit_call(ASTNode *node, LLVMGenCtx *ctx)
                 return llvm_call_error_recovery(ctx, node,
                     "LLVM intent forward declaration parameter allocation failed");
             }
+            size_t participant_index = 0;
+            size_t value_index = 0;
             for (size_t i = 0; i < forward_param_count; i++) {
                 LLVMTypeRef pt = ctx->type_i8ptr;
                 ASTNode *binding = llvm_intent_call_binding_at(
@@ -413,27 +454,49 @@ llvm_emit_call(ASTNode *node, LLVMGenCtx *ctx)
                 const char *type_name = NULL;
                 ASTNode *binding_type = NULL;
 
-                if (binding != NULL && binding->type == AST_INTENT_INVOLVES
-                    && ast_intent_involves_subject_type(binding) != NULL
-                    && ast_intent_involves_subject_type(binding)->type == AST_TYPE) {
-                    binding_type = ast_intent_involves_subject_type(binding);
-                    type_name = ast_type_name(binding_type);
-                    pt = ast_type_to_llvm(ctx, binding_type);
+                if (binding != NULL && binding->type == AST_INTENT_INVOLVES) {
+                    type_name = participant_types != NULL
+                            && participant_index < participant_count
+                        ? participant_types[participant_index]
+                        : NULL;
+                    if (type_name != NULL) {
+                        pt = pergyra_type_to_llvm(ctx, type_name);
+                    } else if (ast_intent_involves_subject_type(binding) != NULL
+                               && ast_intent_involves_subject_type(binding)->type == AST_TYPE) {
+                        binding_type = ast_intent_involves_subject_type(binding);
+                        type_name = ast_type_name(binding_type);
+                        pt = ast_type_to_llvm(ctx, binding_type);
+                    }
                     if (ctx->has_error || pt == NULL)
                         return llvm_call_error_recovery(ctx, node,
                             "LLVM intent forward declaration could not lower participant type");
-                    if (llvm_type_name_uses_pointer_self(ctx, type_name)
-                        || (type_name != NULL
-                            && llvm_find_host_decl_in_active_inventory(
-                                ctx, type_name) != NULL))
+                    if (llvm_type_name_uses_pointer_self(ctx, type_name)) {
                         pt = LLVMPointerType(pt, 0);
-                } else if (binding != NULL && binding->type == AST_INTENT_VALUE
-                    && ast_intent_value_type(binding) != NULL) {
-                    binding_type = ast_intent_value_type(binding);
-                    pt = ast_type_to_llvm(ctx, binding_type);
+                    } else if (type_name != NULL) {
+                        ASTNode *host_decl =
+                            llvm_find_host_decl_in_active_inventory(
+                                ctx, type_name);
+                        if (host_decl != NULL
+                            && !(host_decl->type == AST_CLASS_DECL
+                                 && ast_class_is_struct(host_decl)))
+                            pt = LLVMPointerType(pt, 0);
+                    }
+                    participant_index++;
+                } else if (binding != NULL && binding->type == AST_INTENT_VALUE) {
+                    type_name = value_types != NULL
+                            && value_index < mir_value_count
+                        ? value_types[value_index]
+                        : NULL;
+                    if (type_name != NULL) {
+                        pt = pergyra_type_to_llvm(ctx, type_name);
+                    } else if (ast_intent_value_type(binding) != NULL) {
+                        binding_type = ast_intent_value_type(binding);
+                        pt = ast_type_to_llvm(ctx, binding_type);
+                    }
                     if (ctx->has_error || pt == NULL)
                         return llvm_call_error_recovery(ctx, node,
                             "LLVM intent forward declaration could not lower value type");
+                    value_index++;
                 }
                 param_types[i] = pt;
             }

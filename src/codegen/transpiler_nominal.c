@@ -415,16 +415,27 @@ transpiler_resolve_nominal_host_expr_type_name(TranspilerCtx *ctx, ASTNode *expr
             ctx, ast_member_object(ast_call_callee(expr)));
         const char *method_name = ast_member_name(ast_call_callee(expr));
         if (recv_type != NULL && method_name != NULL) {
-            ASTNode *method_decl = find_nominal_host_method_decl(
-                ctx, recv_type, method_name);
-            if (method_decl != NULL) {
-                ASTNode *ret_type = ast_func_return_type(method_decl);
-                if (ret_type != NULL && ret_type->type == AST_TYPE) {
-                    const char *ret_name = ast_type_name(ret_type);
-                    if (ret_name != NULL
-                        && is_nominal_host_type_name(ctx, ret_name)) {
-                        return ret_name;
-                    }
+            const MIRDeclMethod *method_meta =
+                transpiler_find_host_method_metadata_in_context(
+                    ctx, recv_type, method_name);
+            const char *ret_name =
+                transpiler_mir_decl_method_return_type_name(method_meta);
+            if (ret_name != NULL && is_nominal_host_type_name(ctx, ret_name)) {
+                return ret_name;
+            }
+            ASTNode *ret_type =
+                transpiler_mir_decl_method_return_type(method_meta);
+            if (ret_type == NULL && method_meta == NULL) {
+                ASTNode *method_decl = find_nominal_host_method_decl(
+                    ctx, recv_type, method_name);
+                if (method_decl != NULL)
+                    ret_type = ast_func_return_type(method_decl);
+            }
+            if (ret_type != NULL && ret_type->type == AST_TYPE) {
+                const char *ret_name = ast_type_name(ret_type);
+                if (ret_name != NULL
+                    && is_nominal_host_type_name(ctx, ret_name)) {
+                    return ret_name;
                 }
             }
         }

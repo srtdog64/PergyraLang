@@ -10,6 +10,7 @@
 
 #include "transpiler.h"
 #include "transpiler_decl_lookup.h"
+#include "transpiler_mir_inventory_intent_collect.h"
 #include "../parser/ast_api.h"
 
 static int
@@ -60,6 +61,17 @@ transpiler_forward_type_name_is_allowed(const char *name)
 }
 
 bool
+transpiler_can_forward_declare_type_name_early(TranspilerCtx *ctx,
+                                               const char *type_name)
+{
+    if (ctx == NULL || type_name == NULL)
+        return true;
+    if (transpiler_forward_type_name_is_allowed(type_name))
+        return true;
+    return find_class_decl(ctx, type_name) != NULL;
+}
+
+bool
 transpiler_can_forward_declare_type_early(TranspilerCtx *ctx,
                                           ASTNode *type_node)
 {
@@ -71,29 +83,61 @@ transpiler_can_forward_declare_type_early(TranspilerCtx *ctx,
         return true;
 
     name = ast_type_name(type_node);
-    if (transpiler_forward_type_name_is_allowed(name))
-        return true;
-
-    return find_class_decl(ctx, name) != NULL;
+    return transpiler_can_forward_declare_type_name_early(ctx, name);
 }
 
 bool
 transpiler_can_forward_declare_func_early(TranspilerCtx *ctx, ASTNode *func)
 {
+    const MIRRoutine *routine;
+    bool routine_has_signature;
+
     if (ctx == NULL || func == NULL || func->type != AST_FUNC_DECL)
         return false;
     GenericParams *generic_params = ast_func_generic_params(func);
     if (ast_generic_param_count(generic_params) > 0)
         return false;
-    if (!transpiler_can_forward_declare_type_early(ctx,
-            ast_func_return_type(func)))
-        return false;
-    for (size_t i = 0; i < ast_func_param_count(func); i++) {
-        FuncParam *p = ast_func_param(func, i);
-        if (p == NULL || p->type == NULL)
-            continue;
-        if (!transpiler_can_forward_declare_type_early(ctx, p->type))
+
+    routine = transpiler_find_mir_function(ctx, func);
+    routine_has_signature = transpiler_mir_routine_has_signature(routine);
+
+    const char *return_type_name = routine_has_signature
+        ? transpiler_mir_routine_return_type_name(routine)
+        : NULL;
+    if (return_type_name != NULL) {
+        if (!transpiler_can_forward_declare_type_name_early(ctx,
+                return_type_name)) {
             return false;
+        }
+    } else if (!transpiler_can_forward_declare_type_early(ctx,
+            ast_func_return_type(func))) {
+        return false;
+    }
+
+    size_t param_count = routine_has_signature
+        ? transpiler_mir_routine_param_count(routine)
+        : ast_func_param_count(func);
+    for (size_t i = 0; i < param_count; i++) {
+        FuncParam *p = routine_has_signature
+            ? transpiler_mir_routine_param(routine, i)
+            : ast_func_param(func, i);
+        const char *param_type_name = routine_has_signature
+            ? transpiler_mir_routine_param_type_name(routine, i)
+            : NULL;
+        if (p == NULL)
+            continue;
+        if (param_type_name != NULL) {
+            if (!transpiler_can_forward_declare_type_name_early(ctx,
+                    param_type_name)) {
+                return false;
+            }
+            continue;
+        }
+        if (p->type == NULL)
+            continue;
+        if (!transpiler_can_forward_declare_type_early(ctx, p->type)) {
+            return false;
+        }
     }
     return true;
 }
@@ -117,24 +161,73 @@ transpiler_can_forward_declare_type_after_zones(TranspilerCtx *ctx,
     return transpiler_has_known_nominal_type(ctx, name);
 }
 
+static bool
+transpiler_can_forward_declare_type_name_after_zones(TranspilerCtx *ctx,
+                                                     const char *type_name)
+{
+    if (ctx == NULL || type_name == NULL)
+        return true;
+    if (transpiler_can_forward_declare_type_name_early(ctx, type_name))
+        return true;
+    if (transpiler_find_decl_in_inventory_local(ctx, AST_WORLD_DECL,
+                                                type_name) != NULL)
+        return false;
+    return transpiler_has_known_nominal_type(ctx, type_name);
+}
+
 bool
 transpiler_can_forward_declare_func_after_zones(TranspilerCtx *ctx,
                                                 ASTNode *func)
 {
+    const MIRRoutine *routine;
+    bool routine_has_signature;
+
     if (ctx == NULL || func == NULL || func->type != AST_FUNC_DECL)
         return false;
     GenericParams *generic_params = ast_func_generic_params(func);
     if (ast_generic_param_count(generic_params) > 0)
         return false;
-    if (!transpiler_can_forward_declare_type_after_zones(ctx,
-            ast_func_return_type(func)))
-        return false;
-    for (size_t i = 0; i < ast_func_param_count(func); i++) {
-        FuncParam *p = ast_func_param(func, i);
-        if (p == NULL || p->type == NULL)
-            continue;
-        if (!transpiler_can_forward_declare_type_after_zones(ctx, p->type))
+
+    routine = transpiler_find_mir_function(ctx, func);
+    routine_has_signature = transpiler_mir_routine_has_signature(routine);
+
+    const char *return_type_name = routine_has_signature
+        ? transpiler_mir_routine_return_type_name(routine)
+        : NULL;
+    if (return_type_name != NULL) {
+        if (!transpiler_can_forward_declare_type_name_after_zones(ctx,
+                return_type_name)) {
             return false;
+        }
+    } else if (!transpiler_can_forward_declare_type_after_zones(ctx,
+            ast_func_return_type(func))) {
+        return false;
+    }
+
+    size_t param_count = routine_has_signature
+        ? transpiler_mir_routine_param_count(routine)
+        : ast_func_param_count(func);
+    for (size_t i = 0; i < param_count; i++) {
+        FuncParam *p = routine_has_signature
+            ? transpiler_mir_routine_param(routine, i)
+            : ast_func_param(func, i);
+        const char *param_type_name = routine_has_signature
+            ? transpiler_mir_routine_param_type_name(routine, i)
+            : NULL;
+        if (p == NULL)
+            continue;
+        if (param_type_name != NULL) {
+            if (!transpiler_can_forward_declare_type_name_after_zones(ctx,
+                    param_type_name)) {
+                return false;
+            }
+            continue;
+        }
+        if (p->type == NULL)
+            continue;
+        if (!transpiler_can_forward_declare_type_after_zones(ctx, p->type)) {
+            return false;
+        }
     }
     return true;
 }

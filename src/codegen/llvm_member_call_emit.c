@@ -103,7 +103,7 @@ llvm_emit_member_call(ASTNode *node, LLVMGenCtx *ctx)
                         class_name, method_name);
                 ASTNode *method_decl =
                     llvm_mir_decl_method_source_ast(method_meta);
-                if (method_decl == NULL)
+                if (method_decl == NULL && method_meta == NULL)
                     method_decl = llvm_find_nominal_host_method_decl(ctx,
                         class_name, method_name);
                 if (fn_value != NULL && fn_type != NULL && ret_type != NULL) {
@@ -269,7 +269,7 @@ llvm_emit_member_call(ASTNode *node, LLVMGenCtx *ctx)
             method_meta = llvm_find_host_method_metadata_in_context(ctx,
                 class_name, method_name);
             method_decl = llvm_mir_decl_method_source_ast(method_meta);
-            if (method_decl == NULL)
+            if (method_decl == NULL && method_meta == NULL)
                 method_decl = llvm_find_nominal_host_method_decl(ctx,
                     class_name, method_name);
             if (fn_value != NULL && fn_type != NULL && ret_type != NULL) {
@@ -377,7 +377,7 @@ llvm_emit_member_call(ASTNode *node, LLVMGenCtx *ctx)
                         class_name, method_name);
                 ASTNode *method_decl =
                     llvm_mir_decl_method_source_ast(method_meta);
-                if (method_decl == NULL)
+                if (method_decl == NULL && method_meta == NULL)
                     method_decl = llvm_find_nominal_host_method_decl(ctx,
                         class_name, method_name);
 

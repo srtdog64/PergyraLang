@@ -70,6 +70,42 @@ transpiler_mir_routine_source_ast_of_type(
     return source_ast;
 }
 
+bool
+transpiler_mir_routine_has_signature(const MIRRoutine *routine)
+{
+    return mir_routine_has_signature(routine);
+}
+
+size_t
+transpiler_mir_routine_param_count(const MIRRoutine *routine)
+{
+    return mir_routine_param_count(routine);
+}
+
+FuncParam *
+transpiler_mir_routine_param(const MIRRoutine *routine, size_t index)
+{
+    return mir_routine_param(routine, index);
+}
+
+const char *
+transpiler_mir_routine_param_type_name(const MIRRoutine *routine, size_t index)
+{
+    return mir_routine_param_type_name(routine, index);
+}
+
+ASTNode *
+transpiler_mir_routine_return_type(const MIRRoutine *routine)
+{
+    return mir_routine_return_type(routine);
+}
+
+const char *
+transpiler_mir_routine_return_type_name(const MIRRoutine *routine)
+{
+    return mir_routine_return_type_name(routine);
+}
+
 size_t
 transpiler_active_routine_count(const TranspilerCtx *ctx)
 {

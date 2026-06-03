@@ -36,6 +36,9 @@ llvm_emit_role_method_forward_decls_metadata_first(
             llvm_domain_method_name_metadata_first(method_meta, method);
         size_t pc =
             llvm_domain_method_param_count_metadata_first(method_meta, method);
+        const char *return_type_name =
+            llvm_domain_method_return_type_name_metadata_first(
+                method_meta, method);
         ASTNode *return_type =
             llvm_domain_method_return_type_metadata_first(method_meta, method);
         LLVMTypeRef ret = ctx->type_void;
@@ -57,7 +60,11 @@ llvm_emit_role_method_forward_decls_metadata_first(
             continue;
         if (mname == NULL)
             continue;
-        if (return_type != NULL) {
+        if (return_type_name != NULL) {
+            ret = pergyra_type_to_llvm(ctx, return_type_name);
+            if (ctx->has_error || ret == NULL)
+                return;
+        } else if (return_type != NULL) {
             ret = ast_type_to_llvm(ctx, return_type);
             if (ctx->has_error || ret == NULL)
                 return;
@@ -83,15 +90,25 @@ llvm_emit_role_method_forward_decls_metadata_first(
         for (size_t k = 0; k < pc; k++) {
             FuncParam *p =
                 llvm_domain_method_param_metadata_first(method_meta, method, k);
+            const char *param_type_name =
+                llvm_domain_method_param_type_name_metadata_first(
+                    method_meta, method, k);
+            LLVMClassTypeEntry *param_cls = param_type_name != NULL
+                ? llvm_lookup_class(ctx, param_type_name)
+                : NULL;
             LLVMTypeRef pt;
             if (llvm_param_is_implicit_self_local(p))
                 continue;
-            pt = llvm_domain_forward_required_param_type(
-                ctx, method, p, "role method", mname);
+            if (param_type_name != NULL)
+                pt = pergyra_type_to_llvm(ctx, param_type_name);
+            else
+                pt = llvm_domain_forward_required_param_type(
+                    ctx, method, p, "role method", mname);
             if (ctx->has_error || pt == NULL)
                 return;
-            if (p != NULL && p->type != NULL
-                && llvm_mir_param_uses_pointer_self(ctx, p->type)) {
+            if ((param_cls != NULL && param_cls->is_pointer_self_host)
+                || (param_type_name == NULL && p != NULL && p->type != NULL
+                    && llvm_mir_param_uses_pointer_self(ctx, p->type))) {
                 pt = LLVMPointerType(pt, 0);
             }
             ptypes[pidx++] = pt;
@@ -162,14 +179,36 @@ llvm_emit_role_operator_forward_decl(LLVMGenCtx *ctx,
     lhs_type = ast_type_to_llvm(ctx, for_type);
     if (ctx->has_error || lhs_type == NULL)
         return false;
-    rhs_type = llvm_domain_forward_required_param_type(
-        ctx, method, rhs_param, "role operator", opname);
+    {
+        const char *rhs_type_name = NULL;
+        for (size_t pj = 0;
+             pj < llvm_domain_method_param_count_metadata_first(method_meta, method);
+             pj++) {
+            FuncParam *p =
+                llvm_domain_method_param_metadata_first(method_meta, method, pj);
+            if (p == rhs_param) {
+                rhs_type_name =
+                    llvm_domain_method_param_type_name_metadata_first(
+                        method_meta, method, pj);
+                break;
+            }
+        }
+        rhs_type = rhs_type_name != NULL
+            ? pergyra_type_to_llvm(ctx, rhs_type_name)
+            : llvm_domain_forward_required_param_type(
+                ctx, method, rhs_param, "role operator", opname);
+    }
     if (ctx->has_error || rhs_type == NULL)
         return false;
     {
+        const char *return_type_name =
+            llvm_domain_method_return_type_name_metadata_first(
+                method_meta, method);
         ASTNode *return_type =
             llvm_domain_method_return_type_metadata_first(method_meta, method);
-        ret = return_type != NULL
+        ret = return_type_name != NULL
+            ? pergyra_type_to_llvm(ctx, return_type_name)
+            : return_type != NULL
             ? ast_type_to_llvm(ctx, return_type)
             : ctx->type_void;
     }

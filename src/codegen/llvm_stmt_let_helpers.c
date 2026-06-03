@@ -380,10 +380,22 @@ llvm_simple_expr_type_name(LLVMGenCtx *ctx, ASTNode *expr)
                 if (receiver_type == NULL)
                     receiver_type = llvm_lookup_var_class(ctx, name);
                 if (receiver_type != NULL) {
-                    method_decl = llvm_find_host_method_decl_in_context(
-                        ctx, receiver_type, method_name);
-                    ASTNode *method_return_type = ast_func_return_type(method_decl);
-                    if (ast_type_name(method_return_type) != NULL) {
+                    const MIRDeclMethod *method_meta =
+                        llvm_find_host_method_metadata_in_context(
+                            ctx, receiver_type, method_name);
+                    const char *method_return_type_name =
+                        llvm_mir_decl_method_return_type_name(method_meta);
+                    ASTNode *method_return_type =
+                        llvm_mir_decl_method_return_type(method_meta);
+                    if (method_return_type_name != NULL)
+                        return method_return_type_name;
+                    if (method_return_type == NULL && method_meta == NULL) {
+                        method_decl = llvm_find_host_method_decl_in_context(
+                            ctx, receiver_type, method_name);
+                        method_return_type = ast_func_return_type(method_decl);
+                    }
+                    if (method_return_type != NULL
+                        && ast_type_name(method_return_type) != NULL) {
                         return ast_type_name(method_return_type);
                     }
                 }

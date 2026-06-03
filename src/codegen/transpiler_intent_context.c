@@ -53,6 +53,49 @@ find_subject_action_decl(TranspilerCtx *ctx,
     return method;
 }
 
+const MIRDeclMethod *
+find_subject_action_metadata(TranspilerCtx *ctx,
+                             const char *subject_name,
+                             const char *action_name)
+{
+    ASTNode *decl;
+    const MIRDeclMethod *method;
+
+    if (ctx == NULL || subject_name == NULL || action_name == NULL)
+        return NULL;
+
+    decl = find_subject_host_decl(ctx, subject_name);
+    if (decl == NULL || decl->type != AST_CLASS_DECL
+        || ast_class_nominal_kind(decl) != NOMINAL_DECL_SUBJECT) {
+        return NULL;
+    }
+
+    method = transpiler_find_host_method_metadata_in_context(
+        ctx, subject_name, action_name);
+    if (method == NULL || !transpiler_mir_decl_method_is_action_like(method))
+        return NULL;
+    return method;
+}
+
+bool
+intent_action_metadata_has_only_self(const MIRDeclMethod *method)
+{
+    size_t real_pc = 0;
+
+    if (method == NULL)
+        return false;
+
+    for (size_t i = 0; i < transpiler_mir_decl_method_param_count(method); i++) {
+        FuncParam *p = transpiler_mir_decl_method_param(method, i);
+        if (p == NULL || p->name == NULL)
+            continue;
+        if (p->type == NULL && strcmp(p->name, "self") == 0)
+            continue;
+        real_pc++;
+    }
+    return real_pc == 0;
+}
+
 ASTNode *
 find_zone_decl_in_program_view(TranspilerCtx *ctx, const char *zone_name)
 {

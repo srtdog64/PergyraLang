@@ -3,6 +3,34 @@
 > Split from `docs/100_beta_readiness_checklist.md` on 2026-05-29.
 > Keep active blocker edits in the shard that owns the relevant closure track.
 
+## Progress Log - 2026-06-04 LLVM Host-Field Sync And MIR Intent Value Type Fidelity
+
+- LLVM `llvm_emit_current_host_field_assignment` now also stores into a
+  same-name local alloca (when present and field-type-matched) so that
+  chained `host_field = host_field + X` reads do not return the stale
+  alloca-cached value. Source-only reproducer captured at
+  `tests/cases/backend_compare/probe_record/main.pgy` (was: `"a"`, expected
+  `"abc"`); the same gap was the root cause of `examples/dnd_tavern_campaign`
+  runtime crash and the `examples/campaign_graph_fsm` projection drift.
+- MIR `IntentValue` emission no longer stores only `ast_type_name(...)` for
+  the value's declared type. `mir_intent.c` now renders the full type via
+  `mir_render_type_name(...)` (lifted to a public mir helper) and interns
+  the rendered string in the routine's scratch arena, so a binding like
+  `adjustments: Array<Int>` reaches the transpiler intent prologue as
+  `Array<Int>` instead of `Array`. The C backend `ArrayLength` builtin
+  resolver then accepts `adjustments` because the registered typed-var has
+  the generic argument. Reproducer:
+  `tests/cases/backend_compare/probe_intent_array/main.pgy`. The same fix
+  also closes the residual `examples/campaign_graph_fsm` numerical drift
+  because intent value parameters there reuse generic container types.
+- Backend evidence: `tests/compare_backends.sh tests/cases/backend_compare/*/main.pgy`
+  reports 789/789 passed, 0 failed (788 prior fixtures + the two new probes).
+  `tests/llvm_dnd_campaign_smoke.sh` and
+  `tests/llvm_campaign_projection_smoke.sh` are RC=0 with no diff. `make
+  test-all` reports `2624/0`, `870/0`, `74/0`, `58/0`, `9/0`, `119/0`,
+  `18/0`, `74/0`, `20/0` across parser/lexer/semantic/transpile/memory/
+  concurrency/AIR/RIR/MIR/HIR.
+
 ## Progress Log - 2026-06-03 LLVM Builder Restoration Tightening
 
 - LLVM generated-function emitters no longer restore caller builder state by

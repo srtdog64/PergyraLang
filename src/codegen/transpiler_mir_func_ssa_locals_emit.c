@@ -321,9 +321,15 @@ transpiler_emit_mir_func_ssa_local_decls(TranspilerCtx *ctx,
         if (version == 0) {
             bool has_param = false;
             bool has_top_level = false;
-            size_t param_count = ast_func_param_count(node);
+            bool routine_has_signature =
+                transpiler_mir_routine_has_signature(mir_routine);
+            size_t param_count = routine_has_signature
+                ? transpiler_mir_routine_param_count(mir_routine)
+                : ast_func_param_count(node);
             for (size_t p = 0; p < param_count; p++) {
-                FuncParam *param = ast_func_param(node, p);
+                FuncParam *param = routine_has_signature
+                    ? transpiler_mir_routine_param(mir_routine, p)
+                    : ast_func_param(node, p);
                 if (param != NULL && param->name != NULL
                     && strcmp(param->name, base) == 0) {
                     has_param = true;

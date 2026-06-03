@@ -1,0 +1,30 @@
+subject Buyer {
+    let hp: Int;
+
+    action Pay(self) -> Void {
+        hp = hp - 1;
+    }
+}
+
+zone CheckZone {
+    subject slot buyer: Buyer
+}
+
+intent Check(check: CheckZone, buyer: Buyer, count: Int, items: Array<Int>) {
+    step pay {
+        where: CheckZone;
+        using: check;
+        who: buyer;
+        guard: count >= 1;
+        expect: ArrayLength(items) == 2;
+        on: buyer.Pay();
+    }
+    success: buyer.hp >= 0;
+    failure: false;
+}
+
+func Main() -> Void {
+    let z = CheckZone(Buyer(7));
+    let ok = Check(z, z.buyer, 5, [1, 2]);
+    Log("ok=" + ToString(ok));
+}

@@ -25,7 +25,14 @@ FuncParam *llvm_domain_method_param_metadata_first(
     const MIRDeclMethod *method_meta,
     ASTNode *method,
     size_t index);
+const char *llvm_domain_method_param_type_name_metadata_first(
+    const MIRDeclMethod *method_meta,
+    ASTNode *method,
+    size_t index);
 ASTNode *llvm_domain_method_return_type_metadata_first(
+    const MIRDeclMethod *method_meta,
+    ASTNode *method);
+const char *llvm_domain_method_return_type_name_metadata_first(
     const MIRDeclMethod *method_meta,
     ASTNode *method);
 LLVMTypeRef llvm_domain_forward_required_param_type(

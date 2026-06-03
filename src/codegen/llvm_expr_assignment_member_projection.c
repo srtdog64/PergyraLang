@@ -86,6 +86,14 @@ llvm_emit_current_host_field_assignment(ASTNode *node,
     gep = LLVMBuildStructGEP2(ctx->builder, cls->struct_type, base_ptr,
         (unsigned)field_idx, llvm_tmp_name(ctx));
     LLVMBuildStore(ctx->builder, val, gep);
+    {
+        LLVMVarEntry *local_alias = llvm_scope_lookup(ctx, name);
+        if (local_alias != NULL && local_alias->alloca != NULL
+            && local_alias->alloca != gep
+            && local_alias->type == field_type) {
+            LLVMBuildStore(ctx->builder, val, local_alias->alloca);
+        }
+    }
     llvm_emit_host_projection_invalidations(ctx, ast_assignment_target(node));
     llvm_emit_world_embedded_assignment_sync(ctx, ast_assignment_target(node));
     return val;

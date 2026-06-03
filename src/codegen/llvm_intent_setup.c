@@ -41,6 +41,9 @@ llvm_emit_intent_entry_bindings(LLVMGenCtx *ctx,
                                 const char **participant_aliases,
                                 const char **participant_types,
                                 size_t participant_count,
+                                const char **value_aliases,
+                                const char **value_types,
+                                size_t mir_value_count,
                                 size_t param_count,
                                 bool mir_only_intent,
                                 LLVMValueRef *subjects_ptr_out,
@@ -63,7 +66,8 @@ llvm_emit_intent_entry_bindings(LLVMGenCtx *ctx,
     ASTNode **involves_nodes = ast_intent_decl_involves(node, &involve_count);
     ASTNode **values = ast_intent_decl_values(node, &value_count);
 
-    for (size_t i = 0, participant_index = 0; i < param_count; i++) {
+    for (size_t i = 0, participant_index = 0, value_index = 0;
+         i < param_count; i++) {
         LLVMTypeRef pt = ctx->type_i8ptr;
         const char *alias = NULL;
         const char *type_name = NULL;
@@ -104,14 +108,29 @@ llvm_emit_intent_entry_bindings(LLVMGenCtx *ctx,
             participant_index++;
         } else if (binding != NULL && binding->type == AST_INTENT_VALUE) {
             ASTNode *value = binding;
-            ASTNode *value_type = ast_intent_value_type(value);
-            alias = ast_intent_value_alias(value);
-            if (value_type != NULL) {
-                type_name = ast_type_name(value_type);
-                pt = ast_type_to_llvm(ctx, value_type);
+            const char *value_type_name =
+                (value_types != NULL && value_index < mir_value_count)
+                    ? value_types[value_index]
+                    : NULL;
+            alias = (value_aliases != NULL && value_index < mir_value_count
+                     && value_aliases[value_index] != NULL)
+                ? value_aliases[value_index]
+                : ast_intent_value_alias(value);
+            if (value_type_name != NULL) {
+                type_name = value_type_name;
+                pt = pergyra_type_to_llvm(ctx, value_type_name);
                 if (ctx->has_error || pt == NULL)
                     return;
+            } else {
+                ASTNode *value_type = ast_intent_value_type(value);
+                if (value_type != NULL) {
+                    type_name = ast_type_name(value_type);
+                    pt = ast_type_to_llvm(ctx, value_type);
+                    if (ctx->has_error || pt == NULL)
+                        return;
+                }
             }
+            value_index++;
         }
         LLVMValueRef a = llvm_create_entry_alloca(ctx, pt, alias != NULL ? alias : "param");
         LLVMBuildStore(ctx->builder, LLVMGetParam(fn, (unsigned)i), a);

@@ -12,6 +12,10 @@ ASTNode *find_intent_participant_local(ASTNode *intent, const char *alias);
 ASTNode *find_subject_action_decl(TranspilerCtx *ctx,
                                   const char *subject_name,
                                   const char *action_name);
+const MIRDeclMethod *find_subject_action_metadata(TranspilerCtx *ctx,
+                                                  const char *subject_name,
+                                                  const char *action_name);
+bool intent_action_metadata_has_only_self(const MIRDeclMethod *method);
 ASTNode *find_zone_decl_in_program_view(TranspilerCtx *ctx,
                                         const char *zone_name);
 const char *intent_participant_type_name(ASTNode *intent, const char *alias);

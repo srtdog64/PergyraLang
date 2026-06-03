@@ -287,12 +287,26 @@ infer_expression_type_name(TranspilerCtx *ctx, ASTNode *expr)
                 }
             }
             ASTNode *method_decl = NULL;
+            const MIRDeclMethod *method_meta = NULL;
+            ASTNode *method_return_type = NULL;
             receiver_type = transpiler_resolve_nominal_host_expr_type_name(ctx, receiver);
             if (receiver_type != NULL) {
-                method_decl = find_nominal_host_method_decl(ctx, receiver_type,
-                    method_name);
+                const char *method_return_type_name = NULL;
+                method_meta = transpiler_find_host_method_metadata_in_context(
+                    ctx, receiver_type, method_name);
+                method_return_type_name =
+                    transpiler_mir_decl_method_return_type_name(method_meta);
+                if (method_return_type_name != NULL)
+                    return transpiler_infer_arena_copy_type_name(
+                        ctx, method_return_type_name);
+                method_return_type =
+                    transpiler_mir_decl_method_return_type(method_meta);
+                if (method_return_type == NULL && method_meta == NULL) {
+                    method_decl = find_nominal_host_method_decl(
+                        ctx, receiver_type, method_name);
+                    method_return_type = ast_func_return_type(method_decl);
+                }
             }
-            ASTNode *method_return_type = ast_func_return_type(method_decl);
             if (method_return_type != NULL) {
                 char *resolved = render_type_name_in_ctx(ctx,
                     method_return_type);

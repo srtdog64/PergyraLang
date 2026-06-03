@@ -7,11 +7,15 @@ void
 transpiler_free_intent_emit_metadata(ASTNode **mir_steps,
                                      const char **participant_aliases,
                                      const char **participant_types,
+                                     const char **value_aliases,
+                                     const char **value_types,
                                      const char **mir_step_names)
 {
     free(mir_steps);
     free((void *)participant_aliases);
     free((void *)participant_types);
+    free((void *)value_aliases);
+    free((void *)value_types);
     free((void *)mir_step_names);
 }
 

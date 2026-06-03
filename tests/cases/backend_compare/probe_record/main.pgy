@@ -1,0 +1,15 @@
+world W {
+    shared transcript: String = ""
+
+    func Run(self) -> Void {
+        transcript = "a";
+        transcript = transcript + "b";
+        transcript = transcript + "c";
+        Log(transcript);
+    }
+}
+
+func Main() -> Void {
+    let w = W("");
+    w.Run();
+}

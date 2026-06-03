@@ -9,6 +9,10 @@
 #include "transpiler.h"
 
 const char *intent_involves_type_name_local(ASTNode *involves);
+bool intent_type_name_is_subject_participant(TranspilerCtx *ctx,
+                                             const char *type_name);
+bool intent_type_name_uses_pointer_self(TranspilerCtx *ctx,
+                                        const char *type_name);
 bool intent_involves_is_subject_participant(TranspilerCtx *ctx,
                                             ASTNode *involves);
 bool intent_involves_uses_pointer_self(TranspilerCtx *ctx,

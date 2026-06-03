@@ -86,8 +86,18 @@ llvm_stmt_host_method_return_type(LLVMGenCtx *ctx, const char *host_type_name,
 
     method_meta = llvm_find_host_method_metadata_in_context(
         ctx, host_type_name, method_name);
+    {
+        const char *ret_name =
+            llvm_mir_decl_method_return_type_name(method_meta);
+        if (ret_name != NULL) {
+            LLVMTypeRef llvm_ret = pergyra_type_to_llvm(ctx, ret_name);
+            if (llvm_ret != NULL && !ctx->has_error)
+                return llvm_ret;
+            ctx->has_error = false;
+        }
+    }
     ret_ty = llvm_mir_decl_method_return_type(method_meta);
-    if (ret_ty == NULL) {
+    if (ret_ty == NULL && method_meta == NULL) {
         ASTNode *method_decl = llvm_find_nominal_host_method_decl(
             ctx, host_type_name, method_name);
         if (method_decl != NULL && method_decl->type == AST_FUNC_DECL)

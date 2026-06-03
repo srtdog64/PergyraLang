@@ -13,6 +13,7 @@
 #include "transpiler_format.h"
 #include "transpiler_generic_param_query.h"
 #include "transpiler_generic_specialization_emit.h"
+#include "transpiler_mir_inventory_intent_collect.h"
 #include "transpiler_slot_target.h"
 #include "transpiler_symbols.h"
 #include "transpiler_type_render.h"
@@ -61,6 +62,13 @@ emit_call_user_function(ASTNode *call, ASTNode *callee, TranspilerCtx *ctx)
     ASTNode *decl = (callee->type == AST_IDENTIFIER)
         ? find_callable_decl(ctx, callee_name) : NULL;
     char *callee_str = NULL;
+    const MIRRoutine *intent_routine = NULL;
+    const char **participant_aliases = NULL;
+    const char **participant_types = NULL;
+    const char **value_aliases = NULL;
+    const char **value_types = NULL;
+    size_t participant_count = 0;
+    size_t value_meta_count = 0;
     if (callee->type == AST_IDENTIFIER) {
         if (decl != NULL && decl->type == AST_FUNC_DECL
             && transpiler_func_has_generic_params(decl)) {
@@ -73,13 +81,26 @@ emit_call_user_function(ASTNode *call, ASTNode *callee, TranspilerCtx *ctx)
     if (callee_str == NULL)
         callee_str = emit_expression(callee, ctx);
 
+    if (decl != NULL && decl->type == AST_INTENT_DECL) {
+        intent_routine = transpiler_find_mir_intent(ctx, decl);
+        if (intent_routine != NULL) {
+            participant_count = transpiler_collect_mir_intent_participants(
+                intent_routine, &participant_aliases, &participant_types);
+            value_meta_count = transpiler_collect_mir_intent_values(
+                intent_routine, &value_aliases, &value_types);
+        }
+    }
+
     CodeBuf *args_buf = codebuf_create();
+    size_t participant_index = 0;
+    size_t value_index = 0;
     for (size_t i = 0; i < ast_call_arg_count(call); i++) {
         ASTNode *arg_node = ast_call_argument(call, i);
         FuncParam *param = (decl != NULL && decl->type == AST_FUNC_DECL
                             && i < ast_func_param_count(decl))
             ? ast_func_param(decl, i) : NULL;
         ASTNode *intent_param_type = NULL;
+        const char *intent_param_type_name = NULL;
         bool handled = false;
         char *arg = NULL;
 
@@ -99,10 +120,21 @@ emit_call_user_function(ASTNode *call, ASTNode *callee, TranspilerCtx *ctx)
                     : (i < involve_count
                         ? involves[i]
                         : values[i - involve_count]);
-                if (binding != NULL && binding->type == AST_INTENT_INVOLVES)
+                if (binding != NULL && binding->type == AST_INTENT_INVOLVES) {
+                    intent_param_type_name =
+                        participant_types != NULL && participant_index < participant_count
+                            ? participant_types[participant_index]
+                            : NULL;
                     intent_param_type = ast_intent_involves_subject_type(binding);
-                else if (binding != NULL && binding->type == AST_INTENT_VALUE)
+                    participant_index++;
+                } else if (binding != NULL && binding->type == AST_INTENT_VALUE) {
+                    intent_param_type_name =
+                        value_types != NULL && value_index < value_meta_count
+                            ? value_types[value_index]
+                            : NULL;
                     intent_param_type = ast_intent_value_type(binding);
+                    value_index++;
+                }
             }
         }
 
@@ -142,6 +174,8 @@ emit_call_user_function(ASTNode *call, ASTNode *callee, TranspilerCtx *ctx)
         char *param_type_for_ctx = NULL;
         if (param != NULL && param->type != NULL)
             param_type_for_ctx = render_type_name_in_ctx(ctx, param->type);
+        else if (intent_param_type_name != NULL)
+            param_type_for_ctx = pergyra_strdup(intent_param_type_name);
         else if (intent_param_type != NULL)
             param_type_for_ctx = render_type_name_in_ctx(ctx, intent_param_type);
 
@@ -158,6 +192,10 @@ emit_call_user_function(ASTNode *call, ASTNode *callee, TranspilerCtx *ctx)
                     i + 1);
                 free(param_type_for_ctx);
                 free(callee_str);
+                free((void *)participant_aliases);
+                free((void *)participant_types);
+                free((void *)value_aliases);
+                free((void *)value_types);
                 codebuf_destroy(args_buf);
                 return pergyra_strdup("0");
             }
@@ -172,7 +210,7 @@ emit_call_user_function(ASTNode *call, ASTNode *callee, TranspilerCtx *ctx)
             codebuf_write(args_buf, ", ");
         if (!handled) {
             if (transpiler_call_arg_needs_subject_address(ctx,
-                    param, intent_param_type)) {
+                    param, intent_param_type, intent_param_type_name)) {
                 if (transpiler_call_arg_is_subject_ref(ctx, arg_node))
                     codebuf_write(args_buf, "%s", arg);
                 else if (transpiler_call_arg_can_take_subject_address(arg_node))
@@ -186,6 +224,10 @@ emit_call_user_function(ASTNode *call, ASTNode *callee, TranspilerCtx *ctx)
                         i + 1, callee_name != NULL ? callee_name : "<call>");
                     free(arg);
                     free(callee_str);
+                    free((void *)participant_aliases);
+                    free((void *)participant_types);
+                    free((void *)value_aliases);
+                    free((void *)value_types);
                     codebuf_destroy(args_buf);
                     return pergyra_strdup("0");
                 }
@@ -198,6 +240,10 @@ emit_call_user_function(ASTNode *call, ASTNode *callee, TranspilerCtx *ctx)
 
     char *result = strdup_fmt("%s(%s)", callee_str, args_buf->data);
     free(callee_str);
+    free((void *)participant_aliases);
+    free((void *)participant_types);
+    free((void *)value_aliases);
+    free((void *)value_types);
     codebuf_destroy(args_buf);
     return result;
 }

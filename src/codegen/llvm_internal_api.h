@@ -542,6 +542,9 @@ void llvm_stmt_emit_zone_action_effect_runtime(ASTNode *call, LLVMGenCtx *ctx);
  * Emitters -- declarations (llvm_decl.c)
  * ================================================================= */
 void llvm_forward_declare_func(ASTNode *node, LLVMGenCtx *ctx);
+void llvm_forward_declare_func_from_mir(const MIRRoutine *routine,
+                                        ASTNode *node,
+                                        LLVMGenCtx *ctx);
 void llvm_emit_func_decl(ASTNode *node, LLVMGenCtx *ctx);
 LLVMValueRef llvm_emit_func_from_mir(const MIRRoutine *routine, LLVMGenCtx *ctx);
 bool llvm_forward_declare_function_routines_from_inventory(

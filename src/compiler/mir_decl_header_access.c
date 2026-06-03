@@ -78,10 +78,26 @@ mir_decl_method_param(const MIRDeclMethod *method, size_t index)
     return method->params[index];
 }
 
+const char *
+mir_decl_method_param_type_name(const MIRDeclMethod *method, size_t index)
+{
+    if (method == NULL || method->param_type_names == NULL
+        || index >= method->param_count) {
+        return NULL;
+    }
+    return method->param_type_names[index];
+}
+
 ASTNode *
 mir_decl_method_return_type(const MIRDeclMethod *method)
 {
     return method != NULL ? method->return_type : NULL;
+}
+
+const char *
+mir_decl_method_return_type_name(const MIRDeclMethod *method)
+{
+    return method != NULL ? method->return_type_name : NULL;
 }
 
 bool

@@ -87,7 +87,7 @@ emit_call_member_style(ASTNode *call, ASTNode *callee, TranspilerCtx *ctx)
                         ctx, owned_type_name, method);
                 ASTNode *method_decl =
                     transpiler_mir_decl_method_source_ast(method_meta);
-                if (method_decl == NULL)
+                if (method_decl == NULL && method_meta == NULL)
                     method_decl = find_nominal_host_method_decl(
                         ctx, owned_type_name, method);
 
@@ -128,7 +128,37 @@ emit_call_member_style(ASTNode *call, ASTNode *callee, TranspilerCtx *ctx)
                     ASTNode *arg_node = ast_call_argument(call, i);
                     char *arg = emit_expression(arg_node, ctx);
                     bool pass_by_ptr = false;
-                    if (method_decl != NULL) {
+                    if (method_meta != NULL) {
+                        size_t param_index = i;
+                        size_t param_count =
+                            transpiler_mir_decl_method_param_count(
+                                method_meta);
+                        if (param_count > 0) {
+                            FuncParam *first =
+                                transpiler_mir_decl_method_param(
+                                    method_meta, 0);
+                            if (first != NULL && first->name != NULL
+                                && strcmp(first->name, "self") == 0)
+                                param_index++;
+                        }
+                        if (param_index < param_count) {
+                            FuncParam *param =
+                                transpiler_mir_decl_method_param(
+                                    method_meta, param_index);
+                            const char *ptn =
+                                transpiler_mir_decl_method_param_type_name(
+                                    method_meta, param_index);
+                            char *owned_ptn = (ptn == NULL
+                                    && param != NULL && param->type != NULL)
+                                ? render_type_name_in_ctx(ctx, param->type)
+                                : NULL;
+                            if (ptn == NULL)
+                                ptn = owned_ptn;
+                            if (ptn != NULL && is_pointer_self_host_type_name(ctx, ptn))
+                                pass_by_ptr = true;
+                            free(owned_ptn);
+                        }
+                    } else if (method_meta == NULL && method_decl != NULL) {
                         size_t param_index = i;
                         if (ast_func_param_count(method_decl) > 0) {
                             FuncParam *first = ast_func_param(method_decl, 0);
@@ -219,6 +249,9 @@ emit_call_member_style(ASTNode *call, ASTNode *callee, TranspilerCtx *ctx)
                         }
                     }
 
+                    if (method_decl == NULL && source_slot_name != NULL)
+                        method_decl = find_nominal_host_method_decl(
+                            ctx, owned_type_name, method);
                     invalidation =
                         emit_current_overlay_method_projection_invalidation(
                             ctx, source_slot_name, owned_type_name, method_decl);
@@ -239,9 +272,23 @@ emit_call_member_style(ASTNode *call, ASTNode *callee, TranspilerCtx *ctx)
                         const char *effect_suffix = action_sync != NULL ? action_sync : "";
                         const char *suffix = post_sync != NULL ? post_sync : "";
 
-                        if (ast_func_return_type(method_decl) != NULL)
-                            ret_type_name = render_type_name_in_ctx(ctx,
-                                ast_func_return_type(method_decl));
+                        {
+                            const char *ret_type_name_fact =
+                                transpiler_mir_decl_method_return_type_name(
+                                    method_meta);
+                            ASTNode *ret_type =
+                                transpiler_mir_decl_method_return_type(
+                                    method_meta);
+                            if (ret_type_name_fact != NULL) {
+                                ret_type_name =
+                                    pergyra_strdup(ret_type_name_fact);
+                            } else if (ret_type == NULL && method_meta == NULL
+                                && method_decl != NULL)
+                                ret_type = ast_func_return_type(method_decl);
+                            if (ret_type_name == NULL && ret_type != NULL)
+                                ret_type_name =
+                                    render_type_name_in_ctx(ctx, ret_type);
+                        }
 
                         if (ret_type_name != NULL
                             && strcmp(ret_type_name, "Void") != 0) {

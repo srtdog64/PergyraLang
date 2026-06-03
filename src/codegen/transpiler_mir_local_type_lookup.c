@@ -127,6 +127,8 @@ transpiler_infer_local_type_name_from_expr(TranspilerCtx *ctx,
             const char *receiver_type = transpiler_infer_local_type_name_from_expr(
                 ctx, func_decl, receiver);
             ASTNode *method_decl = NULL;
+            const MIRDeclMethod *method_meta = NULL;
+            ASTNode *method_return_type = NULL;
             if (receiver_type != NULL
                 && method_name != NULL
                 && strcmp(method_name, "Slice") == 0
@@ -139,9 +141,23 @@ transpiler_infer_local_type_name_from_expr(TranspilerCtx *ctx,
                 return transpiler_mir_arena_render_type_name(
                     ctx, "Slice", inner_buf);
             }
-            if (receiver_type != NULL)
-                method_decl = find_nominal_host_method_decl(ctx, receiver_type, method_name);
-            ASTNode *method_return_type = ast_func_return_type(method_decl);
+            if (receiver_type != NULL) {
+                const char *method_return_type_name = NULL;
+                method_meta = transpiler_find_host_method_metadata_in_context(
+                    ctx, receiver_type, method_name);
+                method_return_type_name =
+                    transpiler_mir_decl_method_return_type_name(method_meta);
+                if (method_return_type_name != NULL)
+                    return transpiler_mir_arena_copy_type_name(
+                        ctx, method_return_type_name);
+                method_return_type =
+                    transpiler_mir_decl_method_return_type(method_meta);
+                if (method_return_type == NULL && method_meta == NULL) {
+                    method_decl = find_nominal_host_method_decl(
+                        ctx, receiver_type, method_name);
+                    method_return_type = ast_func_return_type(method_decl);
+                }
+            }
             if (method_return_type != NULL) {
                 char *rendered = render_type_name_in_ctx(ctx,
                     method_return_type);

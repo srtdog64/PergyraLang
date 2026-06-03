@@ -48,6 +48,50 @@ mir_routine_source_ast(const MIRRoutine *routine)
     return routine != NULL ? routine->ast : NULL;
 }
 
+bool
+mir_routine_has_signature(const MIRRoutine *routine)
+{
+    return routine != NULL && routine->has_signature;
+}
+
+size_t
+mir_routine_param_count(const MIRRoutine *routine)
+{
+    return mir_routine_has_signature(routine) ? routine->param_count : 0;
+}
+
+FuncParam *
+mir_routine_param(const MIRRoutine *routine, size_t index)
+{
+    if (!mir_routine_has_signature(routine) || routine->params == NULL
+        || index >= routine->param_count) {
+        return NULL;
+    }
+    return routine->params[index];
+}
+
+const char *
+mir_routine_param_type_name(const MIRRoutine *routine, size_t index)
+{
+    if (!mir_routine_has_signature(routine) || routine->param_type_names == NULL
+        || index >= routine->param_count) {
+        return NULL;
+    }
+    return routine->param_type_names[index];
+}
+
+ASTNode *
+mir_routine_return_type(const MIRRoutine *routine)
+{
+    return mir_routine_has_signature(routine) ? routine->return_type : NULL;
+}
+
+const char *
+mir_routine_return_type_name(const MIRRoutine *routine)
+{
+    return mir_routine_has_signature(routine) ? routine->return_type_name : NULL;
+}
+
 void
 mir_mutable_routine_inventory_from_program(
         MIRProgram *mir,

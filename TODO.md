@@ -40,15 +40,50 @@ English anchor for tooling/doc gates:
   use raw `assert()`; they route through `PGY_RUNTIME_PANIC` with
   `internal-invariant` reasons so release/debug builds share the same hard-fail
   vocabulary. Gate: `runtime-panic-contract-test-smoke`.
-- LLVM zone/world action method-contract source-of-truth: `MIRDeclMethod` now
+- MIR routine signature source-of-truth: `MIRRoutine` now records
+  `AST_FUNC_DECL` params and return type during MIR lowering, and LLVM
+  MIR-backed function emission plus parameter alloca lowering consume that
+  metadata before source-AST compatibility. C MIR-backed function body emission
+  and SSA-local parameter matching also consume the same metadata before
+  source-AST compatibility, and C forward declarations use the matching MIR
+  routine signature when present. LLVM function-routine forward declarations
+  now call a MIR-aware wrapper that consumes the same signature metadata before
+  source-AST compatibility. Intent forward declarations now materialize
+  `IntentValue` rows in MIR and consume participant/value alias/type metadata
+  before source-AST compatibility in C and LLVM forward declarations, C
+  prologue, LLVM entry-binding setup, LLVM MIR routine type/parameter
+  lowering, C/LLVM intent call argument lowering, and C early intent
+  forward-eligibility checks. Do not treat self-host as a substitute for this
+  closure; C participant subject/pointer-self classification now goes through
+  the `transpiler_intent_participant` type-name owner even when the input comes
+  from MIR carrier rows, so metadata-first paths do not rediscover host-self
+  policy locally, including intent call argument address policy. C intent
+  dispatch also checks subject action metadata through `MIRDeclMethod` before
+  falling back to AST action lookup for non-MIR compatibility. C nominal
+  method return inference now consumes
+  `MIRDeclMethod` return metadata before AST method return fallback in ordinary
+  expression inference, MIR local type lookup, and nominal receiver probing;
+  LLVM let-call type inference follows the same metadata-first return lookup.
+  Remaining intent value consumers outside
+  signature/setup/call-site lowering and a future dedicated non-AST
+  routine-signature payload remain before C/LLVM/Pergyra tri-parity for
+  compiler-core functions.
+- C/LLVM zone/world action method-contract source-of-truth: `MIRDeclMethod` now
   carries `is_async`, action `within zone`, and `causes effect` coordinates
-  alongside param/return/action metadata. LLVM zone action/effect runtime
-  lowering and world embedded action/effect sync read `is_async`,
+  alongside param/return/action metadata. C and LLVM zone action/effect runtime
+  lowering plus world embedded action/effect sync read `is_async`,
   `is_action_like`, `within_zone`, and `causes_effect` from that metadata first,
-  leaving AST method access only as a non-MIR compatibility fallback. Gates:
+  leaving AST method access only as a non-MIR compatibility fallback. LLVM zone
+  action lowering no longer requires a source-AST method declaration when
+  `MIRDeclMethod` metadata is present. Gates:
   `mir-declaration-inventory-test-smoke`, targeted
   `zone_action_effect_runtime`, `zone_effect_pool_runtime`,
   `relation_effect_projection_sync`, and world embedded action backend compares.
+  C member-call param/return wrapping also consumes the same metadata first, so
+  AST method param/return reads remain only on explicit non-MIR compatibility
+  fallback paths. LLVM hosted-self method calls now resolve their logical
+  parameters through the same hosted-method metadata before falling back to the
+  current host method AST.
 - Runtime process-exit source-of-truth: `Exit(Int)` remains an intentional
   language-level process termination, not a panic, but raw `exit()` is now owned
   only by `pgy_runtime_process_exit(...)`. Inline and exported I/O runtimes

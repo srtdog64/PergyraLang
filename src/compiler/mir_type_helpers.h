@@ -7,6 +7,7 @@
 #include "../parser/ast.h"
 
 char *mir_claim_abi_type_name_from_ast(const ASTNode *ast);
+char *mir_render_type_name(ASTNode *type_node);
 
 bool mir_assignment_requires_stmt_preservation(const ASTNode *func_decl,
                                                ASTNode **statements,

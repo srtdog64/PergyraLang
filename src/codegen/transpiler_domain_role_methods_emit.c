@@ -200,6 +200,7 @@ emit_role_operator_aliases(ASTNode *role, TranspilerCtx *ctx)
             continue;
 
         FuncParam *rhs_param = NULL;
+        const char *rhs_param_type_name = NULL;
         size_t rhs_param_count = 0;
         size_t param_count = method_meta != NULL
             ? transpiler_mir_decl_method_param_count(method_meta)
@@ -211,6 +212,9 @@ emit_role_operator_aliases(ASTNode *role, TranspilerCtx *ctx)
             if (p != NULL && p->name != NULL
                 && !(p->type == NULL && strcmp(p->name, "self") == 0)) {
                 rhs_param = p;
+                rhs_param_type_name = method_meta != NULL
+                    ? transpiler_mir_decl_method_param_type_name(method_meta, j)
+                    : NULL;
                 rhs_param_count++;
             }
         }
@@ -235,13 +239,24 @@ emit_role_operator_aliases(ASTNode *role, TranspilerCtx *ctx)
             ? rhs_param->name : "rhs";
         char surface_desc[256];
 
-        ASTNode *return_type = method_meta != NULL
-            ? transpiler_mir_decl_method_return_type(method_meta)
-            : ast_func_return_type(method);
-        if (return_type != NULL) {
-            if (pergyra_ast_type_to_c_copy_in_ctx(ctx,
-                    return_type,
-                    ret_type_storage,
+        {
+            const char *return_type_name = method_meta != NULL
+                ? transpiler_mir_decl_method_return_type_name(method_meta)
+                : NULL;
+            ASTNode *return_type = method_meta != NULL
+                ? transpiler_mir_decl_method_return_type(method_meta)
+                : ast_func_return_type(method);
+            if (return_type_name != NULL) {
+                if (transpiler_require_type_name_c_type_copy(ctx,
+                        return_type_name,
+                        "role operator return type",
+                        ret_type_storage,
+                        sizeof(ret_type_storage))) {
+                    ret_type = ret_type_storage;
+                }
+            } else if (return_type != NULL
+                && pergyra_ast_type_to_c_copy_in_ctx(ctx,
+                    return_type, ret_type_storage,
                     sizeof(ret_type_storage))) {
                 ret_type = ret_type_storage;
             }
@@ -256,12 +271,18 @@ emit_role_operator_aliases(ASTNode *role, TranspilerCtx *ctx)
                 "C backend: role operator parameter diagnostic is too long");
             return;
         }
-        if (transpiler_require_ast_c_type_copy(
-            ctx,
-            rhs_param != NULL ? rhs_param->type : NULL,
-            surface_desc,
-            rhs_type_storage,
-            sizeof(rhs_type_storage))) {
+        if (rhs_param_type_name != NULL
+            && transpiler_require_type_name_c_type_copy(
+                ctx, rhs_param_type_name, surface_desc,
+                rhs_type_storage, sizeof(rhs_type_storage))) {
+            rhs_type = rhs_type_storage;
+        } else if (rhs_param_type_name == NULL
+            && transpiler_require_ast_c_type_copy(
+                ctx,
+                rhs_param != NULL ? rhs_param->type : NULL,
+                surface_desc,
+                rhs_type_storage,
+                sizeof(rhs_type_storage))) {
             rhs_type = rhs_type_storage;
         }
         if (lhs_type == NULL || rhs_type == NULL)

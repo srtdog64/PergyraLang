@@ -77,6 +77,42 @@ llvm_mir_routine_source_ast(const MIRRoutine *routine)
     return mir_routine_source_ast(routine);
 }
 
+bool
+llvm_mir_routine_has_signature(const MIRRoutine *routine)
+{
+    return mir_routine_has_signature(routine);
+}
+
+size_t
+llvm_mir_routine_param_count(const MIRRoutine *routine)
+{
+    return mir_routine_param_count(routine);
+}
+
+FuncParam *
+llvm_mir_routine_param(const MIRRoutine *routine, size_t index)
+{
+    return mir_routine_param(routine, index);
+}
+
+const char *
+llvm_mir_routine_param_type_name(const MIRRoutine *routine, size_t index)
+{
+    return mir_routine_param_type_name(routine, index);
+}
+
+ASTNode *
+llvm_mir_routine_return_type(const MIRRoutine *routine)
+{
+    return mir_routine_return_type(routine);
+}
+
+const char *
+llvm_mir_routine_return_type_name(const MIRRoutine *routine)
+{
+    return mir_routine_return_type_name(routine);
+}
+
 ASTNode *
 llvm_mir_routine_source_ast_of_type(const MIRRoutine *routine,
                                     MIRScopeKind expected_kind,

@@ -167,10 +167,22 @@ llvm_mir_decl_method_param(const MIRDeclMethod *method, size_t index)
     return mir_decl_method_param(method, index);
 }
 
+const char *
+llvm_mir_decl_method_param_type_name(const MIRDeclMethod *method, size_t index)
+{
+    return mir_decl_method_param_type_name(method, index);
+}
+
 ASTNode *
 llvm_mir_decl_method_return_type(const MIRDeclMethod *method)
 {
     return mir_decl_method_return_type(method);
+}
+
+const char *
+llvm_mir_decl_method_return_type_name(const MIRDeclMethod *method)
+{
+    return mir_decl_method_return_type_name(method);
 }
 
 bool

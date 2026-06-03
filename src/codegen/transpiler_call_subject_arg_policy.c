@@ -5,6 +5,7 @@
 
 #include "../parser/ast_api.h"
 #include "transpiler_host_self_policy.h"
+#include "transpiler_intent_participant.h"
 #include "transpiler_symbols.h"
 #include "transpiler_type_render.h"
 
@@ -27,7 +28,8 @@ type_node_is_pointer_self_host(TranspilerCtx *ctx, ASTNode *type_node)
 bool
 transpiler_call_arg_needs_subject_address(TranspilerCtx *ctx,
                                           FuncParam *param,
-                                          ASTNode *intent_param_type)
+                                          ASTNode *intent_param_type,
+                                          const char *intent_param_type_name)
 {
     if (ctx == NULL)
         return false;
@@ -37,6 +39,9 @@ transpiler_call_arg_needs_subject_address(TranspilerCtx *ctx,
         && type_node_is_pointer_self_host(ctx, param->type)) {
         return true;
     }
+
+    if (intent_param_type_name != NULL)
+        return intent_type_name_uses_pointer_self(ctx, intent_param_type_name);
 
     return type_node_is_pointer_self_host(ctx, intent_param_type);
 }
