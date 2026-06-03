@@ -1133,7 +1133,7 @@ required_test_terms = [
     "AIR strict evidence rejects observability counter only",
     "AIR rejects invalid runtime frontier policy provider",
     "AIR rejects empty runtime frontier policy evidence",
-    "expected=14 actual=0",
+    "expected=15 actual=0",
     "AIR strict evidence rejects frontier counter only",
     "pgy.air.graph.v1",
     "pgy.intent.observability.v1",

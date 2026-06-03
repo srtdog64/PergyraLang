@@ -8,8 +8,6 @@ bool llvm_domain_struct_register_fields(LLVMGenCtx *ctx,
                                         ASTNode *stmt,
                                         LLVMClassTypeEntry *entry,
                                         LLVMTypeRef *ftypes,
-                                        ASTNode **slots,
-                                        size_t slot_count,
                                         ASTNode **refreshes,
                                         size_t refresh_count);
 

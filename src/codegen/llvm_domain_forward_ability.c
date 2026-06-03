@@ -33,6 +33,12 @@ llvm_emit_domain_ability_vtables(LLVMGenCtx *ctx,
         mc = ast_ability_method_count(stmt);
         vt_fields = pgy_arena_calloc(&ctx->scratch,
             (mc > 0 ? mc : 1) * sizeof(LLVMTypeRef));
+        if (vt_fields == NULL) {
+            llvm_set_error(ctx,
+                "LLVM ability vtable field allocation failed for '%s'",
+                ab_name != NULL ? ab_name : "(anonymous)");
+            return;
+        }
         for (size_t j = 0; j < mc; j++) {
             ASTNode *method = ast_ability_method(stmt, j);
             LLVMTypeRef ret;
@@ -69,6 +75,13 @@ llvm_emit_domain_ability_vtables(LLVMGenCtx *ctx,
                 }
                 ptypes = pgy_arena_calloc(&ctx->scratch,
                     (user_pc + 1) * sizeof(LLVMTypeRef));
+                if (ptypes == NULL) {
+                    llvm_set_error(ctx,
+                        "LLVM ability method parameter allocation failed for '%s.%s'",
+                        ab_name != NULL ? ab_name : "(anonymous)",
+                        mname != NULL ? mname : "(anonymous)");
+                    return;
+                }
                 ptypes[0] = ctx->type_i8ptr;
                 for (size_t k = 0; k < pc; k++) {
                     FuncParam *p =

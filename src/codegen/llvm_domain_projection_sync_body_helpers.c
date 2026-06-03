@@ -11,6 +11,7 @@
 #include "llvm_domain_projection_value_helpers.h"
 #include "llvm_domain_sync_frontier.h"
 #include "llvm_internal_api.h"
+#include "llvm_inventory_decl_lookup.h"
 #include "parser/ast_api.h"
 
 static bool
@@ -27,6 +28,22 @@ llvm_projection_sync_field_name(char *out,
     return written >= 0 && (size_t)written < out_size;
 }
 
+static const char *
+llvm_projection_sync_slot_type_name(const LLVMHostedDomainSlotView *slot_view,
+                                    const char *slot_name)
+{
+    if (slot_view == NULL || slot_name == NULL)
+        return NULL;
+
+    for (size_t i = 0; i < slot_view->count; i++) {
+        const char *candidate =
+            llvm_hosted_domain_slot_view_name(slot_view, i);
+        if (candidate != NULL && strcmp(candidate, slot_name) == 0)
+            return llvm_hosted_domain_slot_view_type_name(slot_view, i);
+    }
+    return NULL;
+}
+
 void
 llvm_emit_domain_projection_sync_body(ASTNode *stmt,
                                       LLVMClassTypeEntry *decl_cls,
@@ -35,15 +52,20 @@ llvm_emit_domain_projection_sync_body(ASTNode *stmt,
 {
     ASTNode **refreshes = NULL;
     size_t refresh_count = 0;
-    const char *unused_name = NULL;
-    ASTNode **slots = NULL;
-    size_t slot_count = 0;
+    const char *decl_name = NULL;
+    LLVMHostedDomainSlotView slot_view;
 
-    llvm_domain_decl_parts(stmt, &unused_name, &slots, &slot_count,
-        &refreshes, &refresh_count);
+    llvm_domain_decl_refreshes(stmt, &decl_name, &refreshes, &refresh_count);
 
     if (stmt == NULL || decl_cls == NULL || sync_fn == NULL || ctx == NULL
         || refresh_count == 0) {
+        return;
+    }
+    slot_view = llvm_hosted_domain_slot_view_from_decl(ctx, decl_name, stmt);
+    if (llvm_hosted_domain_slot_view_missing_mir_metadata(&slot_view)) {
+        llvm_set_mir_inventory_missing(ctx,
+            "MIR-only LLVM path missing projection sync domain-slot metadata for '%s'",
+            decl_name != NULL ? decl_name : "(anonymous-domain)");
         return;
     }
 
@@ -138,8 +160,6 @@ llvm_emit_domain_projection_sync_body(ASTNode *stmt,
             const char *source_slot_name;
             const char *target_type_name;
             const char *source_type_name;
-            ASTNode *target_slot_decl = NULL;
-            ASTNode *source_slot_decl = NULL;
 
             if (refresh == NULL || refresh->type != AST_ZONE_REFRESH)
                 continue;
@@ -149,33 +169,10 @@ llvm_emit_domain_projection_sync_body(ASTNode *stmt,
             if (target_slot_name == NULL || source_slot_name == NULL)
                 continue;
 
-            for (size_t j = 0; j < slot_count; j++) {
-                ASTNode *slot = slots[j];
-                const char *slot_name;
-                if (slot == NULL || slot->type != AST_DOMAIN_SLOT)
-                    continue;
-                slot_name = ast_domain_slot_name(slot);
-                if (slot_name != NULL
-                    && strcmp(slot_name, target_slot_name) == 0) {
-                    target_slot_decl = slot;
-                }
-                if (slot_name != NULL
-                    && strcmp(slot_name, source_slot_name) == 0) {
-                    source_slot_decl = slot;
-                }
-            }
-            ASTNode *target_slot_type = ast_domain_slot_type(target_slot_decl);
-            ASTNode *source_slot_type = ast_domain_slot_type(source_slot_decl);
-            if (target_slot_decl == NULL || source_slot_decl == NULL
-                || target_slot_type == NULL
-                || source_slot_type == NULL
-                || target_slot_type->type != AST_TYPE
-                || source_slot_type->type != AST_TYPE) {
-                continue;
-            }
-
-            target_type_name = ast_type_name(target_slot_type);
-            source_type_name = ast_type_name(source_slot_type);
+            target_type_name = llvm_projection_sync_slot_type_name(
+                &slot_view, target_slot_name);
+            source_type_name = llvm_projection_sync_slot_type_name(
+                &slot_view, source_slot_name);
             if (target_type_name == NULL || source_type_name == NULL)
                 continue;
 

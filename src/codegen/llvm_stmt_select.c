@@ -144,6 +144,8 @@ llvm_select_emit_bound_receive_case(const LLVMSelectCaseInfo *info,
     LLVMBuildCondBr(ctx->builder, ok, case_bb, fail_bb);
 
     LLVMPositionBuilderAtEnd(ctx->builder, case_bb);
+    LLVMLexicalRegistrySnapshot lexical_snapshot =
+        llvm_lexical_registry_snapshot(ctx);
     llvm_scope_push(ctx);
     {
         LLVMValueRef bind_alloca =
@@ -157,6 +159,7 @@ llvm_select_emit_bound_receive_case(const LLVMSelectCaseInfo *info,
     if (info->body != NULL)
         llvm_emit_statement(info->body, ctx);
     llvm_scope_pop(ctx);
+    llvm_lexical_registry_restore(ctx, lexical_snapshot);
     if (LLVMGetBasicBlockTerminator(LLVMGetInsertBlock(ctx->builder)) == NULL)
         LLVMBuildBr(ctx->builder, merge_bb);
     return true;
@@ -246,6 +249,14 @@ llvm_emit_select_stmt(ASTNode *node, LLVMGenCtx *ctx)
             ctx->context, fn, "select.default");
         LLVMBasicBlockRef *rotation_bbs = pgy_arena_calloc(&ctx->scratch,
             case_count * sizeof(LLVMBasicBlockRef));
+        if (rotation_bbs == NULL) {
+            llvm_set_error_at_with_hints(ctx, node,
+                PGY_CODE_LLVM_OOM,
+                PGY_CAUSE_LLVM_MEMORY_EXHAUSTED,
+                PGY_FIX_REDUCE_UNIT_SIZE_OR_RAISE_LIMIT,
+                "LLVM select rotation block allocation failed");
+            return;
+        }
         for (size_t i = 0; i < case_count; i++) {
             rotation_bbs[i] = LLVMAppendBasicBlockInContext(
                 ctx->context, fn, "select.rotation");

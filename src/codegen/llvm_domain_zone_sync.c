@@ -33,6 +33,8 @@ llvm_emit_zone_sync(ASTNode *stmt, const char *decl_name,
     LLVMValueRef saved_fn;
     LLVMTypeRef saved_ret;
     ASTNode *saved_host_decl;
+    LLVMBasicBlockRef saved_bb;
+    LLVMLexicalRegistrySnapshot lexical_snapshot;
     LLVMBasicBlockRef bb;
     size_t state_count = 0;
     ASTNode **states = NULL;
@@ -44,6 +46,8 @@ llvm_emit_zone_sync(ASTNode *stmt, const char *decl_name,
 
     saved_fn = ctx->current_function;
     saved_ret = ctx->current_ret_type;
+    saved_bb = LLVMGetInsertBlock(ctx->builder);
+    lexical_snapshot = llvm_lexical_registry_snapshot(ctx);
     saved_host_decl = llvm_bind_current_host_decl(ctx, stmt);
     bb = LLVMAppendBasicBlockInContext(ctx->context, sync_fn, "entry");
     LLVMPositionBuilderAtEnd(ctx->builder, bb);
@@ -66,7 +70,9 @@ llvm_emit_zone_sync(ASTNode *stmt, const char *decl_name,
             decl_name);
         LLVMBuildRetVoid(ctx->builder);
         llvm_scope_pop(ctx);
-        llvm_finish_domain_sync_emit(ctx, saved_fn, saved_ret, saved_host_decl);
+        llvm_lexical_registry_restore(ctx, lexical_snapshot);
+        llvm_finish_domain_sync_emit(ctx, saved_fn, saved_ret,
+            saved_host_decl, saved_bb);
         return;
     }
     llvm_emit_sync_generation_increment(ctx, decl_cls, LLVMGetParam(sync_fn, 0));
@@ -404,7 +410,9 @@ llvm_emit_zone_sync(ASTNode *stmt, const char *decl_name,
     LLVMPositionBuilderAtEnd(ctx->builder, frontier_exit_bb);
     LLVMBuildRetVoid(ctx->builder);
     llvm_scope_pop(ctx);
-    llvm_finish_domain_sync_emit(ctx, saved_fn, saved_ret, saved_host_decl);
+    llvm_lexical_registry_restore(ctx, lexical_snapshot);
+    llvm_finish_domain_sync_emit(ctx, saved_fn, saved_ret,
+        saved_host_decl, saved_bb);
 }
 
 #endif /* PGY_LLVM_ENABLED */

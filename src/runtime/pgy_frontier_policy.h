@@ -6,7 +6,7 @@
 
 #define PGY_FRONTIER_POLICY_SCHEMA "pgy.runtime.frontier-policy.v1"
 #define PGY_FRONTIER_POLICY_SUBJECT "bounded-frontier-pass-limit"
-#define PGY_FRONTIER_PASS_LIMIT_FACT_COUNT 9u
+#define PGY_FRONTIER_PASS_LIMIT_FACT_COUNT 10u
 #define PGY_FRONTIER_OVERFLOW_REASON_FACT_COUNT 5u
 #define PGY_FRONTIER_POLICY_FACT_COUNT \
     (PGY_FRONTIER_PASS_LIMIT_FACT_COUNT + PGY_FRONTIER_OVERFLOW_REASON_FACT_COUNT)
@@ -105,6 +105,13 @@ pgy_frontier_world_pass_limit(size_t zone_count, size_t state_count)
 {
     return pgy_frontier_pass_limit_add_one(
         pgy_frontier_pass_limit_add(zone_count, state_count));
+}
+
+static inline size_t
+pgy_frontier_embedded_zone_member_count(size_t state_count,
+                                        size_t layer_slot_count)
+{
+    return pgy_frontier_pass_limit_add(state_count, layer_slot_count);
 }
 
 static inline size_t

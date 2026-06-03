@@ -184,6 +184,12 @@ transpiler_mir_decl_field_is_subject_like(const MIRDeclField *field)
     return mir_decl_field_is_subject_like(field);
 }
 
+bool
+transpiler_mir_decl_field_is_tobject_like(const MIRDeclField *field)
+{
+    return mir_decl_field_is_tobject_like(field);
+}
+
 ASTNode *
 find_role_decl(TranspilerCtx *ctx, const char *role_name)
 {

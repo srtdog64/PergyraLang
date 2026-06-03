@@ -6,7 +6,7 @@
 
 char *transpiler_mir_render_match_case_condition(
     ASTNode *func_decl,
-    ASTNode *case_node,
+    const MIRInstruction *inst,
     TranspilerCtx *ctx,
     TranspilerSSANameMap *ssa_map);
 bool transpiler_mir_emit_match_case_body_binding(

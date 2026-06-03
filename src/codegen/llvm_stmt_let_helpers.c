@@ -195,13 +195,18 @@ llvm_stmt_lambda_return_type(LLVMGenCtx *ctx, ASTNode *expr)
             if (ctx->has_error || param_types[i] == NULL)
                 return NULL;
         }
+        LLVMLexicalRegistrySnapshot lexical_snapshot =
+            llvm_lexical_registry_snapshot(ctx);
         llvm_scope_push(ctx);
-        if (ctx->has_error)
+        if (ctx->has_error) {
+            llvm_lexical_registry_restore(ctx, lexical_snapshot);
             return NULL;
+        }
         for (int i = 0; i < pc; i++)
             llvm_scope_declare(ctx, param_names[i], NULL, param_types[i]);
         LLVMTypeRef inferred = llvm_stmt_infer_expr_type(ctx, body);
         llvm_scope_pop(ctx);
+        llvm_lexical_registry_restore(ctx, lexical_snapshot);
         if (ctx->has_error || inferred == NULL)
             return NULL;
         return inferred;

@@ -51,10 +51,6 @@ ASTNode *llvm_mir_decl_method_return_type(const MIRDeclMethod *method);
 bool llvm_mir_decl_method_is_action_like(const MIRDeclMethod *method);
 const MIRRoutine *llvm_mir_decl_method_routine(const LLVMGenCtx *ctx,
                                                const MIRDeclMethod *method);
-const MIRRoutine *llvm_hosted_method_view_routine(
-    const LLVMGenCtx *ctx,
-    const LLVMHostedMethodView *view,
-    size_t index);
 ASTNode *llvm_find_host_method_decl_in_context(const LLVMGenCtx *ctx,
                                                const char *host_type_name,
                                                const char *method_name);

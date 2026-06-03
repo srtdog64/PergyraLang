@@ -43,6 +43,88 @@ transpiler_capture_surface_desc_too_long(TranspilerCtx *ctx,
         kind != NULL ? kind : "parallel/async");
 }
 
+static void
+transpiler_write_capture_address(TranspilerCtx *ctx, const char *name)
+{
+    const char *ssa_name;
+    char *c_name;
+
+    if (ctx == NULL || name == NULL)
+        return;
+
+    ssa_name = transpiler_resolve_active_ssa_name(ctx, name);
+    if (ssa_name == NULL) {
+        codebuf_write(ctx->out, "&%s", name);
+        return;
+    }
+
+    c_name = transpiler_make_c_ssa_name(ctx, ssa_name);
+    codebuf_write(ctx->out, "&%s", c_name != NULL ? c_name : name);
+    free(c_name);
+}
+
+typedef struct TranspilerParallelWrapperState {
+    CodeBuf *out;
+    int indent;
+    bool in_parallel_wrapper;
+    int slot_count;
+    int typed_count;
+    char slot_names[MAX_SLOT_VARS][64];
+    char typed_names[MAX_SLOT_VARS][64];
+} TranspilerParallelWrapperState;
+
+static void
+transpiler_parallel_wrapper_state_enter(
+    TranspilerCtx *ctx,
+    TranspilerParallelWrapperState *state,
+    char capture_slot_names[MAX_SLOT_VARS][64],
+    int capture_slot_count,
+    char capture_typed_names[MAX_SLOT_VARS][64],
+    int capture_typed_count)
+{
+    if (ctx == NULL || state == NULL)
+        return;
+
+    state->out = ctx->out;
+    state->indent = ctx->indent;
+    state->in_parallel_wrapper = ctx->in_parallel_wrapper;
+    state->slot_count = ctx->par_capture_slot_count;
+    state->typed_count = ctx->par_capture_typed_count;
+    memcpy(state->slot_names, ctx->par_capture_slot_names,
+           sizeof(state->slot_names));
+    memcpy(state->typed_names, ctx->par_capture_typed_names,
+           sizeof(state->typed_names));
+
+    ctx->out = ctx->helpers;
+    ctx->indent = 1;
+    ctx->in_parallel_wrapper = true;
+    memcpy(ctx->par_capture_slot_names, capture_slot_names,
+           sizeof(state->slot_names));
+    memcpy(ctx->par_capture_typed_names, capture_typed_names,
+           sizeof(state->typed_names));
+    ctx->par_capture_slot_count = capture_slot_count;
+    ctx->par_capture_typed_count = capture_typed_count;
+}
+
+static void
+transpiler_parallel_wrapper_state_restore(
+    TranspilerCtx *ctx,
+    const TranspilerParallelWrapperState *state)
+{
+    if (ctx == NULL || state == NULL)
+        return;
+
+    ctx->out = state->out;
+    ctx->indent = state->indent;
+    ctx->in_parallel_wrapper = state->in_parallel_wrapper;
+    memcpy(ctx->par_capture_slot_names, state->slot_names,
+           sizeof(state->slot_names));
+    memcpy(ctx->par_capture_typed_names, state->typed_names,
+           sizeof(state->typed_names));
+    ctx->par_capture_slot_count = state->slot_count;
+    ctx->par_capture_typed_count = state->typed_count;
+}
+
 void
 emit_parallel_block(ASTNode *node, TranspilerCtx *ctx)
 {
@@ -178,34 +260,14 @@ emit_parallel_block(ASTNode *node, TranspilerCtx *ctx)
             codebuf_write(ctx->helpers, "    (void)_arg;\n");
         }
 
-        /* Redirect output to helpers and set parallel-capture mode */
-        CodeBuf *saved = ctx->out;
-        int saved_indent = ctx->indent;
-        bool saved_in_pw = ctx->in_parallel_wrapper;
-        int saved_slot_count  = ctx->par_capture_slot_count;
-        int saved_typed_count = ctx->par_capture_typed_count;
-        char saved_slot_names[MAX_SLOT_VARS][64];
-        char saved_typed_names[MAX_SLOT_VARS][64];
-
-        ctx->out = ctx->helpers;
-        ctx->indent = 1;
-        ctx->in_parallel_wrapper  = true;
-        memcpy(saved_slot_names, ctx->par_capture_slot_names, sizeof(saved_slot_names));
-        memcpy(saved_typed_names, ctx->par_capture_typed_names, sizeof(saved_typed_names));
-        memcpy(ctx->par_capture_slot_names, capture_slot_names, sizeof(capture_slot_names));
-        memcpy(ctx->par_capture_typed_names, capture_typed_names, sizeof(capture_typed_names));
-        ctx->par_capture_slot_count = capture_slot_count;
-        ctx->par_capture_typed_count = capture_typed_count;
+        TranspilerParallelWrapperState wrapper_state;
+        transpiler_parallel_wrapper_state_enter(
+            ctx, &wrapper_state, capture_slot_names, capture_slot_count,
+            capture_typed_names, capture_typed_count);
 
         emit_statement(ast_parallel_task(node, i), ctx);
 
-        ctx->out = saved;
-        ctx->indent = saved_indent;
-        ctx->in_parallel_wrapper  = saved_in_pw;
-        memcpy(ctx->par_capture_slot_names, saved_slot_names, sizeof(saved_slot_names));
-        memcpy(ctx->par_capture_typed_names, saved_typed_names, sizeof(saved_typed_names));
-        ctx->par_capture_slot_count = saved_slot_count;
-        ctx->par_capture_typed_count = saved_typed_count;
+        transpiler_parallel_wrapper_state_restore(ctx, &wrapper_state);
 
         codebuf_write(ctx->helpers,
             "    return NULL;\n"
@@ -225,30 +287,12 @@ emit_parallel_block(ASTNode *node, TranspilerCtx *ctx)
         bool first = true;
         for (int i = 0; i < capture_slot_count; i++) {
             if (!first) codebuf_write(ctx->out, ", ");
-            const char *ssa_name = transpiler_resolve_active_ssa_name(
-                ctx, capture_slot_names[i]);
-            if (ssa_name != NULL) {
-                char *c_name = transpiler_make_c_ssa_name(ctx, ssa_name);
-                codebuf_write(ctx->out, "&%s",
-                    c_name != NULL ? c_name : capture_slot_names[i]);
-                free(c_name);
-            } else {
-                codebuf_write(ctx->out, "&%s", capture_slot_names[i]);
-            }
+            transpiler_write_capture_address(ctx, capture_slot_names[i]);
             first = false;
         }
         for (int i = 0; i < capture_typed_count; i++) {
             if (!first) codebuf_write(ctx->out, ", ");
-            const char *ssa_name = transpiler_resolve_active_ssa_name(
-                ctx, capture_typed_names[i]);
-            if (ssa_name != NULL) {
-                char *c_name = transpiler_make_c_ssa_name(ctx, ssa_name);
-                codebuf_write(ctx->out, "&%s",
-                    c_name != NULL ? c_name : capture_typed_names[i]);
-                free(c_name);
-            } else {
-                codebuf_write(ctx->out, "&%s", capture_typed_names[i]);
-            }
+            transpiler_write_capture_address(ctx, capture_typed_names[i]);
             first = false;
         }
         codebuf_write(ctx->out, " };\n");
@@ -357,34 +401,15 @@ emit_async_block(ASTNode *node, TranspilerCtx *ctx)
         codebuf_write(ctx->helpers, "    (void)_arg;\n");
     }
 
-    CodeBuf *saved = ctx->out;
-    int saved_indent = ctx->indent;
-    bool saved_in_pw = ctx->in_parallel_wrapper;
-    int saved_slot_count  = ctx->par_capture_slot_count;
-    int saved_typed_count = ctx->par_capture_typed_count;
-    char saved_slot_names[MAX_SLOT_VARS][64];
-    char saved_typed_names[MAX_SLOT_VARS][64];
-
-    ctx->out = ctx->helpers;
-    ctx->indent = 1;
-    ctx->in_parallel_wrapper  = true;
-    memcpy(saved_slot_names, ctx->par_capture_slot_names, sizeof(saved_slot_names));
-    memcpy(saved_typed_names, ctx->par_capture_typed_names, sizeof(saved_typed_names));
-    memcpy(ctx->par_capture_slot_names, capture_slot_names, sizeof(capture_slot_names));
-    memcpy(ctx->par_capture_typed_names, capture_typed_names, sizeof(capture_typed_names));
-    ctx->par_capture_slot_count = capture_slot_count;
-    ctx->par_capture_typed_count = capture_typed_count;
+    TranspilerParallelWrapperState wrapper_state;
+    transpiler_parallel_wrapper_state_enter(
+        ctx, &wrapper_state, capture_slot_names, capture_slot_count,
+        capture_typed_names, capture_typed_count);
 
     for (size_t i = 0; i < ast_async_block_statement_count(node); i++)
         emit_statement(ast_async_block_statement(node, i), ctx);
 
-    ctx->out = saved;
-    ctx->indent = saved_indent;
-    ctx->in_parallel_wrapper  = saved_in_pw;
-    memcpy(ctx->par_capture_slot_names, saved_slot_names, sizeof(saved_slot_names));
-    memcpy(ctx->par_capture_typed_names, saved_typed_names, sizeof(saved_typed_names));
-    ctx->par_capture_slot_count = saved_slot_count;
-    ctx->par_capture_typed_count = saved_typed_count;
+    transpiler_parallel_wrapper_state_restore(ctx, &wrapper_state);
 
     if (has_captures)
         codebuf_write(ctx->helpers, "    free(_pctx);\n");
@@ -407,12 +432,12 @@ emit_async_block(ASTNode *node, TranspilerCtx *ctx)
         bool first = true;
         for (int i = 0; i < capture_slot_count; i++) {
             if (!first) codebuf_write(ctx->out, ", ");
-            codebuf_write(ctx->out, "&%s", capture_slot_names[i]);
+            transpiler_write_capture_address(ctx, capture_slot_names[i]);
             first = false;
         }
         for (int i = 0; i < capture_typed_count; i++) {
             if (!first) codebuf_write(ctx->out, ", ");
-            codebuf_write(ctx->out, "&%s", capture_typed_names[i]);
+            transpiler_write_capture_address(ctx, capture_typed_names[i]);
             first = false;
         }
         codebuf_write(ctx->out, " };\n");

@@ -345,6 +345,7 @@ mir_lower(const HIRProgram *hir, const RIRProgram *rir, char **error_message)
     MIR_COPY_AST_LIST(functions, function_count);
     mir->has_top_level_exec = false;
     mir->has_main_function = false;
+    mir->main_function_name = NULL;
     for (size_t i = 0; i < mir->function_count; i++) {
         ASTNode *fn = mir->functions[i];
         const char *fn_name = ast_declaration_name(fn);
@@ -354,8 +355,14 @@ mir_lower(const HIRProgram *hir, const RIRProgram *rir, char **error_message)
         }
         if (strcmp(fn_name, "__pgy_top_level_exec") == 0)
             mir->has_top_level_exec = true;
-        if (strcmp(fn_name, "Main") == 0)
+        if (strcmp(fn_name, "Main") == 0) {
             mir->has_main_function = true;
+            mir->main_function_name = fn_name;
+        } else if (strcmp(fn_name, "main") == 0) {
+            mir->has_main_function = true;
+            if (mir->main_function_name == NULL)
+                mir->main_function_name = fn_name;
+        }
     }
     mir_program_record_inventory_surface_usage(mir);
 

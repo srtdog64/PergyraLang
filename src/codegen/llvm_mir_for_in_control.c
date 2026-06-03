@@ -22,7 +22,7 @@ llvm_mir_for_in_index_name(const MIRInstruction *inst,
 
     if (buf == NULL || buf_size == 0)
         return;
-    stable_id = ast_node_stable_id(mir_instruction_source_payload(inst));
+    stable_id = mir_instruction_source_stable_id(inst);
     if (stable_id == 0) {
         snprintf(buf, buf_size, "__pgy_idx_%s",
                  variable != NULL ? variable : "it");
@@ -42,7 +42,7 @@ llvm_mir_for_in_binding_name(const MIRInstruction *inst,
 
     if (buf == NULL || buf_size == 0)
         return;
-    stable_id = ast_node_stable_id(mir_instruction_source_payload(inst));
+    stable_id = mir_instruction_source_stable_id(inst);
     if (stable_id == 0) {
         snprintf(buf, buf_size, "%s.mir.forin",
                  variable != NULL ? variable : "it");

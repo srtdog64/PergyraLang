@@ -96,7 +96,6 @@ emit_relation_decl(ASTNode *node, TranspilerCtx *ctx)
     codebuf_write(ctx->out, "typedef struct %s\n{\n", name);
 
     size_t slot_count = slot_view.count;
-    ASTNode **slots = slot_view.ast_compat_slots;
     for (size_t i = 0; i < slot_count; i++) {
         const char *slot_name =
             transpiler_hosted_domain_slot_view_name(&slot_view, i);
@@ -171,9 +170,8 @@ emit_relation_decl(ASTNode *node, TranspilerCtx *ctx)
     ctx->indent++;
     size_t refresh_count = 0;
     ASTNode **refreshes = ast_relation_refreshes(node, &refresh_count);
-    emit_domain_projection_sync_loop(ctx,
-        slots,
-        slot_count,
+    emit_domain_projection_sync_loop_from_view(ctx,
+        &slot_view,
         refreshes,
         refresh_count,
         "relation_projection",
@@ -258,7 +256,6 @@ emit_effect_decl(ASTNode *node, TranspilerCtx *ctx)
     codebuf_write(ctx->out, "typedef struct %s\n{\n", name);
 
     size_t slot_count = slot_view.count;
-    ASTNode **slots = slot_view.ast_compat_slots;
     for (size_t i = 0; i < slot_count; i++) {
         const char *slot_name =
             transpiler_hosted_domain_slot_view_name(&slot_view, i);
@@ -333,9 +330,8 @@ emit_effect_decl(ASTNode *node, TranspilerCtx *ctx)
     ctx->indent++;
     size_t refresh_count = 0;
     ASTNode **refreshes = ast_effect_refreshes(node, &refresh_count);
-    emit_domain_projection_sync_loop(ctx,
-        slots,
-        slot_count,
+    emit_domain_projection_sync_loop_from_view(ctx,
+        &slot_view,
         refreshes,
         refresh_count,
         "effect_projection",

@@ -10,47 +10,19 @@
 #include "../parser/ast_api.h"
 #include "transpiler_context.h"
 #include "transpiler_decl_lookup.h"
-
-ASTNode *
-find_nth_bindable_domain_slot_local(ASTNode **slots, size_t slot_count,
-                                    ASTNode **refreshes, size_t refresh_count,
-                                    size_t nth)
-{
-    size_t seen = 0;
-    (void)refreshes;
-    (void)refresh_count;
-
-    if (slots == NULL)
-        return NULL;
-
-    for (size_t i = 0; i < slot_count; i++) {
-        ASTNode *slot = slots[i];
-        if (slot == NULL || slot->type != AST_DOMAIN_SLOT
-            || !ast_domain_slot_is_binding(slot)) {
-            continue;
-        }
-        if (seen == nth)
-            return slot;
-        seen++;
-    }
-
-    return NULL;
-}
+#include "transpiler_projection.h"
 
 bool
 transpiler_find_zone_layer_slot_local(TranspilerCtx *ctx,
                                       ASTNode *zone,
                                       const char *layer_slot_name,
                                       bool is_relation,
-                                      ASTNode **slot_out,
                                       const char **layer_type_out,
                                       bool *is_pool_out)
 {
     const char *zone_name;
     TranspilerHostedZoneLayerSlotView layer_view;
 
-    if (slot_out != NULL)
-        *slot_out = NULL;
     if (layer_type_out != NULL)
         *layer_type_out = NULL;
     if (is_pool_out != NULL)
@@ -70,16 +42,12 @@ transpiler_find_zone_layer_slot_local(TranspilerCtx *ctx,
     }
 
     for (size_t i = 0; i < layer_view.count; i++) {
-        ASTNode *slot =
-            transpiler_hosted_zone_layer_slot_view_source_ast(&layer_view, i);
         const char *candidate_name =
             transpiler_hosted_zone_layer_slot_view_name(&layer_view, i);
         if (transpiler_hosted_zone_layer_slot_view_is_relation(
                 &layer_view, i) == is_relation
             && candidate_name != NULL
             && strcmp(candidate_name, layer_slot_name) == 0) {
-            if (slot_out != NULL)
-                *slot_out = slot;
             if (layer_type_out != NULL) {
                 *layer_type_out =
                     transpiler_hosted_zone_layer_slot_view_type_name(
@@ -103,9 +71,9 @@ emit_zone_bind_effect_layer(CodeBuf *out, ASTNode *zone,
                             const char *target_slot_name, TranspilerCtx *ctx)
 {
     ASTNode *effect_decl;
-    ASTNode *target_slot;
     const char *effect_name;
     const char *effect_type_name;
+    const char *target_binding_name;
     bool layer_is_pool = false;
 
     if (out == NULL || zone == NULL || layer_slot_name == NULL
@@ -114,7 +82,7 @@ emit_zone_bind_effect_layer(CodeBuf *out, ASTNode *zone,
     }
 
     if (!transpiler_find_zone_layer_slot_local(ctx, zone, layer_slot_name,
-            false, NULL, &effect_type_name, &layer_is_pool)) {
+            false, &effect_type_name, &layer_is_pool)) {
         return;
     }
 
@@ -126,16 +94,21 @@ emit_zone_bind_effect_layer(CodeBuf *out, ASTNode *zone,
     if (effect_name == NULL)
         return;
 
-    size_t effect_slot_count = 0;
-    ASTNode **effect_slots = ast_effect_slots(effect_decl, &effect_slot_count);
     size_t effect_refresh_count = 0;
     ASTNode **effect_refreshes =
         ast_effect_refreshes(effect_decl, &effect_refresh_count);
-    target_slot = find_nth_bindable_domain_slot_local(effect_slots,
-        effect_slot_count, effect_refreshes, effect_refresh_count, 0);
-    if (target_slot == NULL)
+    TranspilerHostedDomainSlotView effect_slot_view =
+        transpiler_hosted_domain_slot_view_from_decl(ctx, effect_name,
+                                                     effect_decl);
+    if (transpiler_hosted_domain_slot_view_missing_mir_metadata(
+            &effect_slot_view)) {
+        transpiler_set_mir_inventory_missing(ctx,
+            "MIR-only C path missing zone effect bind domain-slot metadata for '%s'",
+            effect_name);
         return;
-    const char *target_binding_name = ast_domain_slot_name(target_slot);
+    }
+    target_binding_name = transpiler_domain_slot_view_bindable_name(
+        &effect_slot_view, 0);
     if (target_binding_name == NULL)
         return;
 

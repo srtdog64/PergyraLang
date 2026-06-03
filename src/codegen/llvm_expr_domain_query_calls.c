@@ -102,6 +102,37 @@ llvm_domain_query_field_name(LLVMGenCtx *ctx, char *out, size_t out_size,
 }
 
 static bool
+llvm_zone_domain_slot_is_projection(LLVMGenCtx *ctx,
+                                    ASTNode *zone_decl,
+                                    const char *slot_name)
+{
+    const char *zone_decl_name;
+    LLVMHostedDomainSlotView slot_view;
+
+    if (ctx == NULL || zone_decl == NULL || slot_name == NULL)
+        return false;
+
+    zone_decl_name = llvm_decl_node_name(zone_decl);
+    slot_view = llvm_hosted_domain_slot_view_from_decl(ctx, zone_decl_name,
+        zone_decl);
+    if (llvm_hosted_domain_slot_view_missing_mir_metadata(&slot_view)) {
+        llvm_set_mir_inventory_missing(ctx,
+            "MIR-only LLVM path missing zone projection query metadata for '%s'",
+            zone_decl_name != NULL ? zone_decl_name : "(anonymous-zone)");
+        return false;
+    }
+
+    for (size_t i = 0; i < slot_view.count; i++) {
+        const char *candidate =
+            llvm_hosted_domain_slot_view_name(&slot_view, i);
+        if (candidate == NULL || strcmp(candidate, slot_name) != 0)
+            continue;
+        return !llvm_hosted_domain_slot_view_is_subject_like(&slot_view, i);
+    }
+    return false;
+}
+
+static bool
 llvm_emit_has_projection_query(ASTNode *node, LLVMGenCtx *ctx, LLVMValueRef *out)
 {
     ASTNode *host_decl = llvm_current_host_decl(ctx);
@@ -325,9 +356,7 @@ llvm_emit_has_zone_detail_query(ASTNode *node, LLVMGenCtx *ctx,
     }
 
     if (op == LLVM_DOMAIN_QUERY_OP_HAS_ZONE_PROJECTION) {
-        ASTNode *slot = llvm_find_zone_domain_slot_decl(ctx, zone_decl,
-            detail_name);
-        if (slot != NULL && !ast_domain_slot_is_subject(slot)) {
+        if (llvm_zone_domain_slot_is_projection(ctx, zone_decl, detail_name)) {
             char field_name[256];
             if (!llvm_domain_query_field_name(ctx, field_name, sizeof(field_name),
                     "__projection_ready_", detail_name, "zone projection query field name")) {
@@ -337,8 +366,7 @@ llvm_emit_has_zone_detail_query(ASTNode *node, LLVMGenCtx *ctx,
             field_idx = llvm_class_field_index(zone_cls, field_name);
         }
     } else if (op == LLVM_DOMAIN_QUERY_OP_HAS_ZONE_LAYER) {
-        if (llvm_find_zone_layer_slot_decl(
-                ctx, zone_decl, detail_name) != NULL) {
+        if (llvm_zone_has_layer_slot(ctx, zone_decl, detail_name)) {
             char field_name[256];
             if (!llvm_domain_query_field_name(ctx, field_name, sizeof(field_name),
                     "__layer_active_", detail_name, "zone layer query field name")) {

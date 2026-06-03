@@ -216,8 +216,8 @@ llvm_world_embedded_projection_source_from_assignment(LLVMGenCtx *ctx,
                 zone_decl = llvm_resolve_world_zone_decl(ctx, world_decl,
                     zone_slot_name);
                 if (zone_decl != NULL
-                    && llvm_find_zone_domain_slot_decl(ctx, zone_decl,
-                        slot_name) != NULL) {
+                    && llvm_zone_has_domain_slot(ctx, zone_decl,
+                        slot_name)) {
                     if (zone_slot_out != NULL)
                         *zone_slot_out = zone_slot_name;
                     if (zone_decl_out != NULL)

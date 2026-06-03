@@ -88,8 +88,6 @@ llvm_emit_intent_step_mark_caused_effect(LLVMGenCtx *ctx,
     states = ast_zone_states(zone_decl, &state_count);
 
     for (size_t i = 0; i < layer_view.count; i++) {
-        ASTNode *layer_slot =
-            llvm_hosted_zone_layer_slot_view_source_ast(&layer_view, i);
         const char *layer_name;
         const char *layer_type;
         char epoch_field[256];
@@ -99,8 +97,7 @@ llvm_emit_intent_step_mark_caused_effect(LLVMGenCtx *ctx,
 
         layer_name = llvm_hosted_zone_layer_slot_view_name(&layer_view, i);
         layer_type = llvm_hosted_zone_layer_slot_view_type_name(&layer_view, i);
-        if (layer_slot == NULL || layer_slot->type != AST_ZONE_LAYER_SLOT
-            || ast_zone_layer_slot_is_relation(layer_slot)
+        if (llvm_hosted_zone_layer_slot_view_is_relation(&layer_view, i)
             || layer_name == NULL
             || layer_type == NULL
             || strcmp(layer_type, causes_effect) != 0) {

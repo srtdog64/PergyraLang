@@ -76,7 +76,7 @@ typedef struct
     bool               requires_mir_metadata;
 } LLVMHostedZoneLayerSlotView;
 
-typedef struct
+typedef struct LLVMHostedDomainSlotView
 {
     const MIRDeclHeader *decl_header;
     ASTNode           **ast_compat_slots;
@@ -193,6 +193,12 @@ const char *llvm_hosted_domain_slot_view_type_name(
     const LLVMHostedDomainSlotView *view,
     size_t index);
 bool llvm_hosted_domain_slot_view_is_subject_like(
+    const LLVMHostedDomainSlotView *view,
+    size_t index);
+bool llvm_hosted_domain_slot_view_is_tobject_like(
+    const LLVMHostedDomainSlotView *view,
+    size_t index);
+bool llvm_hosted_domain_slot_view_is_binding_like(
     const LLVMHostedDomainSlotView *view,
     size_t index);
 LLVMHostedWorldZoneSlotView llvm_hosted_world_zone_slot_view_from_decl(

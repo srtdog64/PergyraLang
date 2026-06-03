@@ -6,6 +6,7 @@
 
 #include "domain_frontier_policy.h"
 #include "transpiler.h"
+#include "transpiler_decl_lookup.h"
 #include "parser/ast_api.h"
 
 enum {
@@ -31,12 +32,12 @@ void emit_hidden_provenance_stamp(TranspilerCtx *ctx,
                                   const char *prefix,
                                   const char *name,
                                   int cause);
-void emit_domain_projection_sync_loop(TranspilerCtx *ctx,
-                                      ASTNode **slots,
-                                      size_t slot_count,
-                                      ASTNode **refreshes,
-                                      size_t refresh_count,
-                                      const char *loop_prefix,
-                                      bool early_return_if_clean);
+void emit_domain_projection_sync_loop_from_view(
+    TranspilerCtx *ctx,
+    const TranspilerHostedDomainSlotView *slot_view,
+    ASTNode **refreshes,
+    size_t refresh_count,
+    const char *loop_prefix,
+    bool early_return_if_clean);
 
 #endif /* PGY_TRANSPILER_DOMAIN_PROVENANCE_EMIT_H */

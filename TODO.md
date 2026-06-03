@@ -50,6 +50,55 @@ English anchor for tooling/doc gates:
   binding matching and null-context rejection. Gates:
   `perf_contract_smoke.sh`, `build_source_inventory_smoke.sh`,
   `test_inc_size_smoke.sh`, and LLVM-enabled `bin/pgy.exe` build.
+- LLVM builder-state restoration source-of-truth: generated-function emission
+  must restore the exact caller insertion block captured by
+  `LLVMGetInsertBlock(ctx->builder)`, not infer it from
+  `LLVMGetLastBasicBlock(saved_fn)`. Function declaration emission, role
+  operator bridge emission, domain sync finish, and parallel/async wrapper
+  emission now consume explicit `saved_bb` snapshots; `perf_contract_smoke.sh`
+  rejects reintroducing the saved-function last-block restore pattern and
+  rejects unguarded parallel/async `saved_bb` restores.
+- LLVM parallel/async wrapper capture tightening: scope entries may be
+  type-only (`alloca == NULL`) for metadata/projection bookkeeping, but wrapper
+  capture requires an actual storage-backed binding. Parallel and async capture
+  discovery now consumes AST-owned executable free-identifier-reference analysis
+  plus the LLVM visible-binding registry instead of capturing every scope entry.
+  Local `let`/destructure/for/match/lambda binders are treated as shadows, so
+  unused outer bindings are not captured just because an inner same-name binding
+  is referenced. It still fails closed before wrapper-function creation when a
+  used type-only entry would cross the wrapper boundary; `perf_contract_smoke.sh`
+  gates both the diagnostic contract and the no-whole-scope-capture contract.
+- C parallel/async wrapper capture now consumes the same AST-owned free
+  identifier-reference owner instead of maintaining a second local AST switch
+  walker. The C symbol registry supplies capture candidates, and
+  `ast_contains_free_identifier_ref(...)` decides whether each candidate is
+  executable and not shadowed inside the wrapper body. Gate:
+  `perf_contract_smoke.sh`; targeted compile:
+  `mingw32-make build/codegen/transpiler_parallel_capture.o`.
+- C parallel/async capture-address emission now shares the same active-SSA
+  address writer for both `parallel` and `async` contexts. Async capture
+  initialization no longer emits raw `&capture_name` from source spelling when
+  the active C local has a generated SSA physical name. Gate:
+  `perf_contract_smoke.sh`; targeted compile:
+  `mingw32-make build/codegen/transpiler_async_parallel_emit.o`.
+- Executable entry-name source-of-truth: `MIRProgram` now records the selected
+  executable function name instead of forcing C/LLVM backends to rediscover
+  `Main` / lowercase `main` locally. The C backend emits lowercase user
+  `main` as `__pgy_user_main_lowercase`, LLVM mirrors the same internal symbol,
+  and both missing-inventory diagnostics use the selected executable name
+  format. LLVM main-wrapper emission now snapshots and restores the active
+  function, return type, and builder insertion block around wrapper generation
+  so thread-pool/event/top-level failure paths cannot leak executable-wrapper
+  state into later backend emission. Existing `entry_lowercase_main`
+  backend-compare coverage remains the parity fixture; local C probe verified
+  `0 warning(s)`. Gates:
+  `mir_declaration_inventory_smoke.sh`, `test-transpile`, `test-mir`.
+- Transpiler source-backed fixture tightening: the nested operator-overload
+  left-type regression now goes through parser -> semantic -> HIR/RIR/MIR
+  instead of a hand-built AST that lacked the same nominal inventory context as
+  real source programs. This keeps operator overload suffix inference tied to
+  callable return-type metadata and prevents unit fixtures from proving a
+  different backend state than the source pipeline. Gate: `test-transpile`.
 - AIR MIR evidence input contract: AIR now rejects invalid MIR routine inventory
   or missing block inventory before collecting MIR cleanup/terminator/pin
   evidence. MIR fact counters are null-safe for malformed block inventories, but
@@ -89,6 +138,23 @@ English anchor for tooling/doc gates:
   `MIRDeclMethod` rows no longer fall through as empty AST compatibility rows
   or emit partial declaration output on the C path. Gates: targeted C codegen
   objects, `mir_declaration_inventory_smoke.sh`.
+- MIR backend diagnostic closure: LLVM MIR emission no longer reports OOM or
+  allocation failures through bare `llvm_set_error(ctx, ...)`; MIR emission
+  memory failures route through `llvm_set_mir_memory_exhausted(...)`, keeping
+  MIR backend failures in the same diagnostic vocabulary as inventory/topology
+  errors. Gate: `mir_declaration_inventory_smoke.sh`.
+- Hosted-method routine source-of-truth: C hosted method body emission and LLVM
+  role method body emission now consume `transpiler_mir_decl_method_routine(...)`
+  / `llvm_mir_decl_method_routine(...)` directly from `MIRDeclMethod` metadata
+  instead of relying on view wrappers or secondary lookup wording. The thin
+  `*_hosted_method_view_routine(...)` wrappers were removed so routine lookup
+  has one named owner per backend. Gates: `mir_declaration_inventory_smoke.sh`,
+  targeted backend compare for role/domain/class/enum fixtures including
+  `role_operator`, `role_operator_overload`, `party_role_bind`,
+  `zone_host_method_abi_combo`, `host_method_class_return`,
+  `class_method_self_access`, `class_chain_methods`,
+  `enum_match_payload_basic`, `enum_state_machine`, and
+  `option_class_method_call`.
 - C zone declaration bootstrap preflight: zone declarations now validate hosted
   method MIR rows before required specialization, struct, sync, or bridge
   emission starts. Invalid `MIRDeclMethod` rows fail closed at the declaration
@@ -98,19 +164,31 @@ English anchor for tooling/doc gates:
   identities. The remaining multi-tick failures must close through parser/AST
   stable ids consumed by MIR/SSA/C/LLVM, not backend-local counters or name
   heuristics: sibling match cases such as `Some(v)` / `Some(v)` need distinct
-  binding ids, same-name for-loop induction variables need a stable loop id,
-  and LLVM physical alloca names must not leak across same-name scoped
-  bindings. Harness launch noise is not binding identity: `compare_backends.sh`
+  binding ids, and LLVM physical alloca names must not leak across same-name
+  scoped bindings. Harness launch noise is not binding identity:
+  `compare_backends.sh`
   now retries Windows native executable 126/127 launches through the same
   PowerShell/path-helper fallback used by ABI prechecks, and direct `pgy.exe`
   success is no longer used as evidence for binding identity.
   Closed slices: `ast_identity.c` now assigns parser-owned stable ids after
   parse completion; direct LLVM match/for lowering consumes those ids for
   physical payload/induction alloca names; C match/for restores typed local
-  side registries after scoped bindings; LLVM direct match/for restores
-  var-class side registries after scope pop. MIR C/LLVM match and loop lowering
-  now consume the same stable ids for physical payload/induction names. C MIR
-  SSA maps now keep generated physical names in the transpiler scratch arena
+  side registries after scoped bindings; LLVM lexical source fallback scopes now
+  restore `LLVMLexicalRegistrySnapshot` instead of only `var_class_count`,
+  covering slot/view/device/future/channel/rc/weak/var-class/projection/array/
+  list/set/queue/map/callable side registries for source blocks, direct
+  source match/for, with-slot, select receive, and parallel/async wrapper
+  frames; LLVM AST function body emission and MIR routine body emission now
+  consume the same snapshot owner instead of hand-restoring side-registry
+  counters. C lambda helper emission now restores slot/typed/alias binding
+  counts through the same transpiler binding-count owner instead of only
+  rewinding typed locals. C parallel/async wrapper emission now snapshots and
+  restores wrapper output/capture state through `TranspilerParallelWrapperState`
+  instead of duplicated saved-counter blocks. MIR C/LLVM match and loop lowering now consume the same stable ids
+  for physical payload/induction names through the explicit
+  `MIRInstruction.source_stable_id` fact; MIR match/loop name policy no longer
+  reopens `mir_instruction_source_payload(...)` to recover AST ids. C MIR SSA
+  maps now keep generated physical names in the transpiler scratch arena
   instead of storing stack-buffer pointers. The guarded sibling-case regression
   `case Some(v) if ...` / `case Some(v)` is locked by
   `tests/cases/backend_compare/option_same_binding_guard`, and sequential
@@ -133,18 +211,17 @@ English anchor for tooling/doc gates:
   locked by `tests/cases/backend_compare/lexical_shadow_class_method` and
   `tests/cases/backend_compare/list_shadow_scope_metadata`, which guards the
   List<Int> outer / List<String> inner metadata case across C and LLVM.
-  Remaining work is the broader lexical-scope model: block-scope registry
-  frames for non-MIR source fallback paths and true MIR binding-id facts beyond
-  the current stable-AST-id physical name seam. The explicit multi-tick targets
-  are: (1) sibling match-case binding collisions must become first-class
-  binding ids, not only stable-AST physical-name suffixes; (2) same-name
-  for-loop induction variables must carry a stable MIR loop id through PHI,
-  body, and tail-block lowering; (3) LLVM lexical scope frames must push/pop
-  same-name binding allocas and side registries uniformly outside direct MIR
-  lowering; (4) `compare_backends.sh` launch 126/127 handling is tooling noise
-  and must stay separated from semantic binding evidence.
-  Gate: `build-source-inventory-test-smoke` rejects removing the backend
-  compare Windows native fallback.
+  Remaining semantic work is true binding-id facts beyond the current
+  stable-AST-id physical-name seam. The explicit multi-tick target is sibling
+  match-case binding collisions as first-class binding ids, not only
+  stable-AST physical-name suffixes. The `compare_backends.sh` launch 126/127
+  noise is now separated from semantic binding evidence: the script self-heals
+  missing Git Bash POSIX-tool PATH before resolving its root and the source
+  inventory smoke locks that bootstrap.
+  Gates: `perf-contract-test-smoke` now rejects var-class-only LLVM lexical
+  scope restore and rejects MIR match/loop name policy that reopens AST
+  payloads for stable ids; `build-source-inventory-test-smoke` rejects
+  removing the backend compare Windows native fallback.
 - Backend compare inventory cleanup: all discovered non-experimental backend
   compare fixtures are registered in the default suite as of this checkpoint.
   The final promoted batch closed LLVM expected-type/typed-result seams for
@@ -783,6 +860,56 @@ English anchor for tooling/doc gates:
   carries it to fact helpers. C backend type rendering no longer uses
   `g_type_render_ctx`; generic bindings flow through
   `render_type_name_in_ctx(...)` and `pergyra_ast_type_to_c_copy_in_ctx(...)`.
+  C generic binding rendering, function specialization, and class
+  specialization now snapshot/restore binding depth through
+  `TranspilerGenericBindingSnapshot` instead of open-coded count saves. Generic
+  class specialization now also rolls back the class specialization registry
+  and helper buffer through a single transaction snapshot when specialization
+  emission fails, so partial class specializations cannot be cached as
+  reusable successes. LLVM domain and role method body emission now consume
+  `llvm_hosted_method_view_routine(...)` like class paths; the shared C hosted
+  method emitter consumes `transpiler_hosted_method_view_routine(...)`.
+  Method body emission no longer reopens routine lookup through raw MIR decl
+  metadata after already holding a hosted-method view. LLVM generic callee
+  monomorphization now registers the mono-cache entry only after type
+  substitution and parameter preflight has built the function type, so
+  preflight failures cannot poison the specialization cache as a reusable
+  success. LLVM spawn-expression wrapper emission now allocates argument
+  structure metadata and loaded-argument storage before calling
+  `LLVMAddFunction`, so allocation preflight failures do not leave partial
+  wrapper functions in the module. LLVM domain event helper emission now
+  restores the caller builder insertion block after helper generation and
+  reports allocation failures for event parameter / invoke argument buffers
+  instead of dereferencing unchecked arena results. LLVM parallel/async
+  statement wrappers now preflight required runtime functions before creating
+  wrapper functions, so missing runtime inventory cannot leave partial wrapper
+  declarations in the module. LLVM domain/role/intent forward declarations now
+  report parameter-array allocation failures before writing into arena-backed
+  type arrays. LLVM MIR routine emission now reports parameter/local/block
+  registry allocation failures before writing into arena-backed arrays and
+  restores the caller builder insertion block after MIR routine emission.
+  LLVM nominal/enum/extern declaration registration now reports field,
+  payload, method-parameter, and extern-parameter array allocation failures
+  before writing into declaration bootstrap buffers. LLVM function declaration,
+  ability vtable, domain struct, and world sync bootstrap paths now report
+  scratch-allocation failures before writing into transient field/parameter
+  buffers. Zone frontier state snapshots, role vtable constants, intent
+  compensation/rebind state, and MIR true-PHI lowering now report scratch
+  allocation failures instead of silently continuing or returning with the
+  builder left at a transient block. LLVM select round-robin lowering now
+  reports rotation-block allocation failure before indexing the transient
+  block array. LLVM intent and world-sync emission now snapshot/restore lexical
+  side registries and builder insertion blocks across success and failure
+  paths, so synthetic intent/world blocks cannot leak scope state into later
+  emission. Generic spawn specialization, lambda type/emission scopes, domain
+  projection sync, and zone sync now consume the same lexical snapshot owner
+  instead of relying on `llvm_scope_pop` to clean side registries. Spawn
+  expression wrappers and the executable main wrapper now follow the same
+  lexical restore contract, closing the remaining LLVM owner files that pushed
+  scopes without restoring lexical side registries. `llvm_scope_declare` now
+  rejects NULL names and missing type metadata at the registry owner, so
+  unchecked `pergyra_strdup(...)` failure cannot enter scope lookup/cache state
+  as a nullable binding row.
   C compiler detection no longer uses process-global cache buffers; callers own
   `PgyCCompilerSelection`, and detection failure now reaches the compile/link
   diagnostic path instead of silently falling back to an unprobed `gcc`. The

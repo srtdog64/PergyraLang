@@ -130,6 +130,25 @@ run_literal_doc_contract_smoke() {
     require_literal "src/compiler/mir_cfg_contract_pin.c" "mir_block_find_pin_cleanup_edge_fact"
     require_literal "src/compiler/mir_cfg_contract_pin.h" "mir_block_pin_cleanup_missing_reason"
     require_literal "src/compiler/mir_cfg_contract_pin.c" "pin cleanup fact does not match source slot, view, and access mode"
+    require_literal "src/compiler/mir_cfg_contract_control.h" "mir_stmt_ast_is_unconditional_cfg_owned_control"
+    require_literal "src/compiler/mir_cfg_contract_control.c" "mir_stmt_ast_type_is_unconditional_cfg_owned_control"
+    require_literal "src/compiler/mir_cfg_contract_control.h" "mir_stmt_ast_type_is_cfg_container"
+    require_literal "src/compiler/mir_cfg_contract_control.c" "mir_stmt_ast_type_is_cfg_container"
+    require_literal "src/compiler/mir_source_shape.c" "return mir_stmt_ast_type_is_cfg_container(type);"
+    require_literal "src/compiler/mir_stmt_population.c" "mir_stmt_ast_is_unconditional_cfg_owned_control(stmt)"
+    if grep -nE "stmt->type == AST_(RETURN|WITH_STMT|UNSAFE_BLOCK)" "$ROOT_DIR/src/compiler/mir_stmt_population.c"; then
+        echo "MIR statement population must consume the CFG control contract instead of local AST control lists" >&2
+        exit 1
+    fi
+    if awk '
+        /^mir_source_ast_type_is_cfg_container\(ASTNodeType type\)/ { in_fn = 1; next }
+        in_fn && /switch[[:space:]]*\(/ { print FNR ":" $0; bad = 1 }
+        in_fn && /^}/ { in_fn = 0 }
+        END { exit bad ? 0 : 1 }
+    ' "$ROOT_DIR/src/compiler/mir_source_shape.c"; then
+        echo "MIR source-shape must delegate CFG container taxonomy to the CFG control contract" >&2
+        exit 1
+    fi
     require_literal "src/compiler/mir_cfg_contract_edges.c" "mir_validate_edge_predecessor_link"
     require_literal "src/compiler/mir_cfg_contract_edges.c" "mir_validate_successor_index"
     require_literal "src/semantic/type_checker_flow_internal.h" "type_check_statement_flow_boundary"

@@ -45,10 +45,10 @@ emit_zone_decl(ASTNode *node, TranspilerCtx *ctx)
         return;
     }
 
-    size_t slot_count = 0;
-    ASTNode **slots = ast_zone_slots(node, &slot_count);
     TranspilerHostedSharedFieldView shared_view =
         transpiler_hosted_shared_field_view_from_decl(ctx, name, node);
+    TranspilerHostedDomainSlotView slot_view =
+        transpiler_hosted_domain_slot_view_from_decl(ctx, name, node);
     TranspilerHostedZoneLayerSlotView layer_view =
         transpiler_hosted_zone_layer_slot_view_from_decl(ctx, name, node);
     size_t state_count = 0;
@@ -81,6 +81,14 @@ emit_zone_decl(ASTNode *node, TranspilerCtx *ctx)
             name != NULL ? name : "(anonymous-zone)");
         return;
     }
+    if (transpiler_hosted_domain_slot_view_missing_mir_metadata(
+            &slot_view)) {
+        transpiler_set_mir_inventory_missing(
+            ctx,
+            "MIR-only C path missing domain-slot metadata for zone '%s'",
+            name != NULL ? name : "(anonymous-zone)");
+        return;
+    }
     if (transpiler_hosted_zone_layer_slot_view_missing_mir_metadata(
             &layer_view)) {
         transpiler_set_mir_inventory_missing(
@@ -90,23 +98,19 @@ emit_zone_decl(ASTNode *node, TranspilerCtx *ctx)
         return;
     }
     for (size_t i = 0; i < layer_view.count; i++) {
-        ASTNode *slot =
-            transpiler_hosted_zone_layer_slot_view_source_ast(
-                &layer_view, i);
         const char *layer_name =
             transpiler_hosted_zone_layer_slot_view_name(&layer_view, i);
-        if (slot == NULL || slot->type != AST_ZONE_LAYER_SLOT
-            || layer_name == NULL) {
+        if (layer_name == NULL) {
             transpiler_set_mir_inventory_missing(
                 ctx,
-                "MIR-only C path missing zone layer-slot source payload for '%s'",
+                "MIR-only C path missing zone layer-slot name metadata for '%s'",
                 name != NULL ? name : "(anonymous-zone)");
             return;
         }
     }
 
     transpiler_emit_zone_required_specializations(ctx,
-        slots, slot_count,
+        &slot_view,
         &shared_view,
         &method_view);
 
@@ -164,14 +168,11 @@ emit_zone_decl(ASTNode *node, TranspilerCtx *ctx)
             ast_zone_state_name(state));
     }
     for (size_t i = 0; i < layer_view.count; i++) {
-        ASTNode *slot =
-            transpiler_hosted_zone_layer_slot_view_source_ast(
-                &layer_view, i);
         const char *layer_name =
             transpiler_hosted_zone_layer_slot_view_name(&layer_view, i);
         if (layer_name == NULL)
             continue;
-        if (ast_zone_layer_slot_is_pool(slot)) {
+        if (transpiler_hosted_zone_layer_slot_view_is_pool(&layer_view, i)) {
             write_indent(ctx);
             codebuf_write(ctx->out, "PGY_EFFECT_POOL_INIT(self->%s);\n",
                 layer_name);
@@ -181,21 +182,16 @@ emit_zone_decl(ASTNode *node, TranspilerCtx *ctx)
             layer_name);
     }
 
-    emit_domain_projection_sync_loop(ctx,
-        slots,
-        slot_count,
+    emit_domain_projection_sync_loop_from_view(ctx,
+        &slot_view,
         refreshes,
         refresh_count,
         "zone_projection",
         false);
 
     for (size_t i = 0; i < layer_view.count; i++) {
-        ASTNode *slot =
-            transpiler_hosted_zone_layer_slot_view_source_ast(
-                &layer_view, i);
         const char *layer_name;
-        if (slot == NULL || slot->type != AST_ZONE_LAYER_SLOT
-            || ast_zone_layer_slot_is_relation(slot)
+        if (transpiler_hosted_zone_layer_slot_view_is_relation(&layer_view, i)
             || transpiler_hosted_zone_layer_slot_view_name(
                 &layer_view, i) == NULL) {
             continue;

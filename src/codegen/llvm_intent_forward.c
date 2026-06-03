@@ -88,6 +88,12 @@ llvm_forward_declare_intent(ASTNode *node, LLVMGenCtx *ctx)
         size_t participant_index = 0;
         param_types = pgy_arena_calloc(&ctx->scratch,
             param_count * sizeof(LLVMTypeRef));
+        if (param_types == NULL) {
+            llvm_set_error(ctx,
+                "LLVM intent forward parameter allocation failed for '%s'",
+                name != NULL ? name : "<anonymous>");
+            return;
+        }
         for (size_t i = 0; i < param_count; i++) {
             LLVMTypeRef pt = NULL;
             ASTNode *binding = binding_count > 0

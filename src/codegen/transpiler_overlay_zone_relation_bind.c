@@ -11,6 +11,7 @@
 #include "transpiler_context.h"
 #include "transpiler_decl_lookup.h"
 #include "transpiler_overlay_zone_bind.h"
+#include "transpiler_projection.h"
 
 void
 emit_zone_bind_relation_layer(CodeBuf *out,
@@ -21,10 +22,10 @@ emit_zone_bind_relation_layer(CodeBuf *out,
                               TranspilerCtx *ctx)
 {
     ASTNode *relation_decl;
-    ASTNode *left_target;
-    ASTNode *right_target;
     const char *relation_name;
     const char *relation_type_name;
+    const char *left_binding_name;
+    const char *right_binding_name;
 
     if (out == NULL || zone == NULL || layer_slot_name == NULL
         || left_slot_name == NULL || right_slot_name == NULL || ctx == NULL) {
@@ -32,7 +33,7 @@ emit_zone_bind_relation_layer(CodeBuf *out,
     }
 
     if (!transpiler_find_zone_layer_slot_local(ctx, zone, layer_slot_name,
-            true, NULL, &relation_type_name, NULL)) {
+            true, &relation_type_name, NULL)) {
         return;
     }
 
@@ -44,20 +45,23 @@ emit_zone_bind_relation_layer(CodeBuf *out,
     if (relation_name == NULL)
         return;
 
-    size_t relation_slot_count = 0;
-    ASTNode **relation_slots = ast_relation_slots(relation_decl,
-        &relation_slot_count);
     size_t relation_refresh_count = 0;
     ASTNode **relation_refreshes =
         ast_relation_refreshes(relation_decl, &relation_refresh_count);
-    left_target = find_nth_bindable_domain_slot_local(relation_slots,
-        relation_slot_count, relation_refreshes, relation_refresh_count, 0);
-    right_target = find_nth_bindable_domain_slot_local(relation_slots,
-        relation_slot_count, relation_refreshes, relation_refresh_count, 1);
-    if (left_target == NULL || right_target == NULL)
+    TranspilerHostedDomainSlotView relation_slot_view =
+        transpiler_hosted_domain_slot_view_from_decl(ctx, relation_name,
+                                                     relation_decl);
+    if (transpiler_hosted_domain_slot_view_missing_mir_metadata(
+            &relation_slot_view)) {
+        transpiler_set_mir_inventory_missing(ctx,
+            "MIR-only C path missing zone relation bind domain-slot metadata for '%s'",
+            relation_name);
         return;
-    const char *left_binding_name = ast_domain_slot_name(left_target);
-    const char *right_binding_name = ast_domain_slot_name(right_target);
+    }
+    left_binding_name = transpiler_domain_slot_view_bindable_name(
+        &relation_slot_view, 0);
+    right_binding_name = transpiler_domain_slot_view_bindable_name(
+        &relation_slot_view, 1);
     if (left_binding_name == NULL || right_binding_name == NULL) {
         return;
     }

@@ -433,6 +433,44 @@ transpiler_hosted_domain_slot_view_is_subject_like(
     return slot != NULL && ast_domain_slot_is_subject(slot);
 }
 
+bool
+transpiler_hosted_domain_slot_view_is_tobject_like(
+    const TranspilerHostedDomainSlotView *view,
+    size_t index)
+{
+    const MIRDeclField *field =
+        transpiler_hosted_domain_slot_view_metadata(view, index);
+    ASTNode *slot;
+
+    if (view == NULL || index >= view->count)
+        return false;
+    if (field != NULL)
+        return mir_decl_field_is_tobject_like(field);
+    if (view->requires_mir_metadata)
+        return false;
+    slot = transpiler_hosted_domain_slot_view_source_ast(view, index);
+    return slot != NULL && ast_domain_slot_is_tobject(slot);
+}
+
+bool
+transpiler_hosted_domain_slot_view_is_binding_like(
+    const TranspilerHostedDomainSlotView *view,
+    size_t index)
+{
+    const MIRDeclField *field =
+        transpiler_hosted_domain_slot_view_metadata(view, index);
+    ASTNode *slot;
+
+    if (view == NULL || index >= view->count)
+        return false;
+    if (field != NULL)
+        return mir_decl_field_is_binding_like(field);
+    if (view->requires_mir_metadata)
+        return false;
+    slot = transpiler_hosted_domain_slot_view_source_ast(view, index);
+    return slot != NULL && ast_domain_slot_is_binding(slot);
+}
+
 TranspilerHostedWorldZoneSlotView
 transpiler_hosted_world_zone_slot_view_from_decl(const TranspilerCtx *ctx,
                                                  const char *host_name,

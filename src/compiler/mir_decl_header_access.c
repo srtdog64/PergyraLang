@@ -151,6 +151,18 @@ mir_decl_field_is_subject_like(const MIRDeclField *field)
 }
 
 bool
+mir_decl_field_is_tobject_like(const MIRDeclField *field)
+{
+    return field != NULL && field->is_tobject_like;
+}
+
+bool
+mir_decl_field_is_binding_like(const MIRDeclField *field)
+{
+    return field != NULL && field->is_binding_like;
+}
+
+bool
 mir_decl_field_is_relation_layer(const MIRDeclField *field)
 {
     return field != NULL && field->is_relation_layer;

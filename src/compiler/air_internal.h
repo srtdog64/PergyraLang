@@ -156,6 +156,9 @@ const char *air_boundary_first_authority_name_or(
                 const char *fallback);
 bool        air_boundary_requires_hir_routine_evidence(
                 const AIRBoundaryNode *boundary);
+bool        air_boundary_requires_hir_cfg_for_program(
+                const AIRProgram *air,
+                const AIRBoundaryNode *boundary);
 bool        air_boundary_requires_mir_pin_cleanup_evidence(
                 const AIRBoundaryNode *boundary);
 bool        air_evidence_inventory_is_authoritative(const AIRProgram *air);

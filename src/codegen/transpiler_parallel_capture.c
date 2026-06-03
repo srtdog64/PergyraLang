@@ -4,6 +4,7 @@
 #include <string.h>
 
 #include "../common/string_compat.h"
+#include "../parser/ast_analysis.h"
 #include "../parser/ast_api.h"
 #include "transpiler_mir_local_type_lookup.h"
 #include "transpiler_symbols.h"
@@ -122,109 +123,19 @@ transpiler_parallel_collect_stmt_captures(ASTNode *node,
     if (node == NULL || ctx == NULL)
         return;
 
-    switch (node->type) {
-    case AST_IDENTIFIER:
-        transpiler_parallel_add_capture_name(ctx, ast_identifier_name(node),
-            slot_names, slot_count, typed_names, typed_count);
-        break;
-    case AST_LET_DECL:
-        transpiler_parallel_collect_stmt_captures(ast_let_initializer(node),
-            ctx, slot_names, slot_count, typed_names, typed_count);
-        break;
-    case AST_ASSIGNMENT:
-        transpiler_parallel_collect_stmt_captures(ast_assignment_target(node),
-            ctx, slot_names, slot_count, typed_names, typed_count);
-        transpiler_parallel_collect_stmt_captures(ast_assignment_value(node),
-            ctx, slot_names, slot_count, typed_names, typed_count);
-        break;
-    case AST_CHANNEL_SEND:
-        transpiler_parallel_collect_stmt_captures(ast_channel_send_channel(node),
-            ctx, slot_names, slot_count, typed_names, typed_count);
-        transpiler_parallel_collect_stmt_captures(ast_channel_send_value(node),
-            ctx, slot_names, slot_count, typed_names, typed_count);
-        break;
-    case AST_CHANNEL_RECV:
-        transpiler_parallel_collect_stmt_captures(ast_channel_recv_channel(node),
-            ctx, slot_names, slot_count, typed_names, typed_count);
-        break;
-    case AST_CALL:
-        transpiler_parallel_collect_stmt_captures(ast_call_callee(node),
-            ctx, slot_names, slot_count, typed_names, typed_count);
-        for (size_t i = 0; i < ast_call_arg_count(node); i++) {
-            transpiler_parallel_collect_stmt_captures(ast_call_argument(node, i),
-                ctx, slot_names, slot_count, typed_names, typed_count);
+    for (int i = 0; i < ctx->slot_var_count; i++) {
+        const char *name = ctx->slot_vars[i].name;
+        if (ast_contains_free_identifier_ref(node, name)) {
+            transpiler_parallel_add_capture_name(ctx, name, slot_names,
+                slot_count, typed_names, typed_count);
         }
-        break;
-    case AST_MEMBER_ACCESS:
-        transpiler_parallel_collect_stmt_captures(ast_member_object(node),
-            ctx, slot_names, slot_count, typed_names, typed_count);
-        break;
-    case AST_ARRAY_ACCESS:
-        transpiler_parallel_collect_stmt_captures(ast_array_access_array(node),
-            ctx, slot_names, slot_count, typed_names, typed_count);
-        transpiler_parallel_collect_stmt_captures(ast_array_access_index(node),
-            ctx, slot_names, slot_count, typed_names, typed_count);
-        break;
-    case AST_ARRAY_LITERAL:
-        for (size_t i = 0; i < ast_array_literal_count(node); i++) {
-            transpiler_parallel_collect_stmt_captures(ast_array_literal_element(node, i),
-                ctx, slot_names, slot_count, typed_names, typed_count);
+    }
+
+    for (int i = 0; i < ctx->typed_var_count; i++) {
+        const char *name = ctx->typed_vars[i].name;
+        if (ast_contains_free_identifier_ref(node, name)) {
+            transpiler_parallel_add_capture_name(ctx, name, slot_names,
+                slot_count, typed_names, typed_count);
         }
-        break;
-    case AST_BINARY:
-        transpiler_parallel_collect_stmt_captures(ast_binary_left(node),
-            ctx, slot_names, slot_count, typed_names, typed_count);
-        transpiler_parallel_collect_stmt_captures(ast_binary_right(node),
-            ctx, slot_names, slot_count, typed_names, typed_count);
-        break;
-    case AST_UNARY:
-        transpiler_parallel_collect_stmt_captures(ast_unary_operand(node),
-            ctx, slot_names, slot_count, typed_names, typed_count);
-        break;
-    case AST_AWAIT_EXPR:
-        transpiler_parallel_collect_stmt_captures(ast_await_expression(node),
-            ctx, slot_names, slot_count, typed_names, typed_count);
-        break;
-    case AST_SPAWN_EXPR:
-        transpiler_parallel_collect_stmt_captures(ast_spawn_function(node),
-            ctx, slot_names, slot_count, typed_names, typed_count);
-        for (size_t i = 0; i < ast_spawn_arg_count(node); i++) {
-            transpiler_parallel_collect_stmt_captures(ast_spawn_argument(node, i),
-                ctx, slot_names, slot_count, typed_names, typed_count);
-        }
-        break;
-    case AST_IF_STMT:
-        transpiler_parallel_collect_stmt_captures(ast_if_condition(node),
-            ctx, slot_names, slot_count, typed_names, typed_count);
-        transpiler_parallel_collect_stmt_captures(ast_if_then_branch(node),
-            ctx, slot_names, slot_count, typed_names, typed_count);
-        transpiler_parallel_collect_stmt_captures(ast_if_else_branch(node),
-            ctx, slot_names, slot_count, typed_names, typed_count);
-        break;
-    case AST_RETURN:
-        transpiler_parallel_collect_stmt_captures(ast_return_value(node),
-            ctx, slot_names, slot_count, typed_names, typed_count);
-        break;
-    case AST_BLOCK:
-        for (size_t i = 0; i < ast_block_statement_count(node); i++) {
-            transpiler_parallel_collect_stmt_captures(ast_block_statement(node, i),
-                ctx, slot_names, slot_count, typed_names, typed_count);
-        }
-        break;
-    case AST_PARALLEL_BLOCK:
-        for (size_t i = 0; i < ast_parallel_task_count(node); i++) {
-            transpiler_parallel_collect_stmt_captures(ast_parallel_task(node, i),
-                ctx, slot_names, slot_count, typed_names, typed_count);
-        }
-        break;
-    case AST_ASYNC_BLOCK:
-        for (size_t i = 0; i < ast_async_block_statement_count(node); i++) {
-            transpiler_parallel_collect_stmt_captures(
-                ast_async_block_statement(node, i),
-                ctx, slot_names, slot_count, typed_names, typed_count);
-        }
-        break;
-    default:
-        break;
     }
 }

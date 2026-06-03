@@ -315,14 +315,11 @@ transpiler_emit_relation_effect_constructor(ASTNode *call,
     }
 
     for (size_t i = 0; i < slot_count; i++) {
-        ASTNode *slot =
-            transpiler_hosted_domain_slot_view_source_ast(&slot_view, i);
         const char *slot_name =
             transpiler_hosted_domain_slot_view_name(&slot_view, i);
-        bool projection_slot = slot != NULL
-            && (ast_domain_slot_is_tobject(slot)
-                || transpiler_domain_slot_is_projection_target(
-                    slot, refreshes, refresh_count));
+        bool projection_slot =
+            transpiler_domain_slot_view_is_projection_slot(
+                &slot_view, i, refreshes, refresh_count);
         if (!projection_slot || slot_name == NULL)
             continue;
         if (fields->len > 0)
@@ -425,14 +422,11 @@ transpiler_emit_zone_constructor(ASTNode *call,
     }
 
     for (size_t i = 0; i < slot_count; i++) {
-        ASTNode *slot =
-            transpiler_hosted_domain_slot_view_source_ast(&slot_view, i);
         const char *slot_name =
             transpiler_hosted_domain_slot_view_name(&slot_view, i);
-        bool projection_slot = slot != NULL
-            && (ast_domain_slot_is_tobject(slot)
-                || transpiler_domain_slot_is_projection_target(
-                    slot, refreshes, refresh_count));
+        bool projection_slot =
+            transpiler_domain_slot_view_is_projection_slot(
+                &slot_view, i, refreshes, refresh_count);
         if (!projection_slot || slot_name == NULL)
             continue;
         if (fields->len > 0)

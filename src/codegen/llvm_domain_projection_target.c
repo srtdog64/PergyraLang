@@ -13,15 +13,12 @@
 #include <string.h>
 
 bool
-llvm_domain_slot_is_projection_target(ASTNode *slot,
+llvm_domain_slot_is_projection_target(const char *slot_name,
                                       ASTNode **refreshes,
                                       size_t refresh_count)
 {
-    const char *slot_name = ast_domain_slot_name(slot);
-    if (slot == NULL || slot->type != AST_DOMAIN_SLOT
-        || slot_name == NULL) {
+    if (slot_name == NULL)
         return false;
-    }
 
     for (size_t i = 0; i < refresh_count; i++) {
         ASTNode *refresh = refreshes[i];

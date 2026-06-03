@@ -409,6 +409,44 @@ llvm_hosted_domain_slot_view_is_subject_like(
     return slot != NULL && ast_domain_slot_is_subject(slot);
 }
 
+bool
+llvm_hosted_domain_slot_view_is_tobject_like(
+    const LLVMHostedDomainSlotView *view,
+    size_t index)
+{
+    const MIRDeclField *field =
+        llvm_hosted_domain_slot_view_metadata(view, index);
+    ASTNode *slot;
+
+    if (view == NULL || index >= view->count)
+        return false;
+    if (field != NULL)
+        return mir_decl_field_is_tobject_like(field);
+    if (view->requires_mir_metadata)
+        return false;
+    slot = llvm_hosted_domain_slot_view_source_ast(view, index);
+    return slot != NULL && ast_domain_slot_is_tobject(slot);
+}
+
+bool
+llvm_hosted_domain_slot_view_is_binding_like(
+    const LLVMHostedDomainSlotView *view,
+    size_t index)
+{
+    const MIRDeclField *field =
+        llvm_hosted_domain_slot_view_metadata(view, index);
+    ASTNode *slot;
+
+    if (view == NULL || index >= view->count)
+        return false;
+    if (field != NULL)
+        return mir_decl_field_is_binding_like(field);
+    if (view->requires_mir_metadata)
+        return false;
+    slot = llvm_hosted_domain_slot_view_source_ast(view, index);
+    return slot != NULL && ast_domain_slot_is_binding(slot);
+}
+
 LLVMHostedWorldZoneSlotView
 llvm_hosted_world_zone_slot_view_from_decl(const LLVMGenCtx *ctx,
                                            const char *host_name,

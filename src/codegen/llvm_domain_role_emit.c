@@ -79,6 +79,12 @@ llvm_emit_domain_role_method_bodies(LLVMGenCtx *ctx,
             }
 
             mir_method = llvm_mir_decl_method_routine(ctx, method_meta);
+            if (method == NULL && mir_method != NULL)
+                method = llvm_mir_routine_source_ast_of_type(
+                    mir_method, MIR_SCOPE_METHOD, AST_FUNC_DECL);
+            if (method_name == NULL && method != NULL
+                && method->type == AST_FUNC_DECL)
+                method_name = llvm_role_method_name_from_ast(method);
             if (mir_method != NULL) {
                 llvm_emit_func_from_mir(mir_method, ctx);
                 if (ctx->has_error)
@@ -144,6 +150,8 @@ llvm_emit_domain_role_method_bodies(LLVMGenCtx *ctx,
 
                     LLVMValueRef saved_fn = ctx->current_function;
                     LLVMTypeRef saved_ret = ctx->current_ret_type;
+                    LLVMBasicBlockRef saved_bb =
+                        LLVMGetInsertBlock(ctx->builder);
                     LLVMTypeRef op_ret_type = op_entry->ret_type;
                     ctx->current_function = op_entry->fn;
                     ctx->current_ret_type = op_ret_type;
@@ -177,12 +185,8 @@ llvm_emit_domain_role_method_bodies(LLVMGenCtx *ctx,
 
                     ctx->current_function = saved_fn;
                     ctx->current_ret_type = saved_ret;
-                    if (saved_fn != NULL) {
-                        LLVMBasicBlockRef last =
-                            LLVMGetLastBasicBlock(saved_fn);
-                        if (last != NULL)
-                            LLVMPositionBuilderAtEnd(ctx->builder, last);
-                    }
+                    if (saved_bb != NULL)
+                        LLVMPositionBuilderAtEnd(ctx->builder, saved_bb);
                 }
             }
 
@@ -205,6 +209,13 @@ llvm_emit_domain_role_method_bodies(LLVMGenCtx *ctx,
                  */
                 LLVMValueRef *vals = pgy_arena_calloc(&ctx->scratch,
                     (mc > 0 ? mc : 1) * sizeof(LLVMValueRef));
+                if (vals == NULL) {
+                    llvm_set_error(ctx,
+                        "LLVM role vtable value allocation failed for '%s.%s'",
+                        role_name != NULL ? role_name : "(anonymous-role)",
+                        ab_name != NULL ? ab_name : "(anonymous-ability)");
+                    return false;
+                }
                 for (size_t j = 0; j < mc; j++) {
                     ASTNode *method = ast_impl_ability_method(impl, j);
                     const char *method_name = llvm_role_method_name_from_ast(method);

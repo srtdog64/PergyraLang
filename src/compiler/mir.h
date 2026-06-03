@@ -109,6 +109,7 @@ typedef struct
     bool             has_source_location;
     uint32_t         source_line;
     uint32_t         source_column;
+    uint32_t         source_stable_id;
     ASTNodeType      source_ast_type;
     HIRBlockTerminatorKind source_terminator_kind;
     bool             has_source_terminator_kind;
@@ -310,6 +311,8 @@ typedef struct
     MIRDeclFieldKind kind;
     bool             is_dynamic;
     bool             is_subject_like;
+    bool             is_tobject_like;
+    bool             is_binding_like;
     bool             is_relation_layer;
     bool             is_pool_layer;
     int              pool_capacity;
@@ -372,6 +375,7 @@ struct MIRProgram
     size_t      non_cfg_body_fallback_routine_count;
     bool        has_top_level_exec;
     bool        has_main_function;
+    const char *main_function_name;
 };
 
 MIRProgram *mir_lower(const HIRProgram *hir, const RIRProgram *rir, char **error_message);
@@ -398,6 +402,7 @@ bool        mir_instruction_source_line_matches_node(
                 const ASTNode *node);
 uint32_t    mir_instruction_source_line(const MIRInstruction *inst);
 uint32_t    mir_instruction_source_column(const MIRInstruction *inst);
+uint32_t    mir_instruction_source_stable_id(const MIRInstruction *inst);
 bool        mir_instruction_has_source_terminator_kind(
                 const MIRInstruction *inst);
 bool        mir_instruction_source_terminator_matches(
@@ -492,6 +497,7 @@ MIRRoutine *mir_mutable_routine_inventory_get(
 ASTNode     *mir_find_function_decl(const MIRProgram *mir, const char *name);
 const MIRDeclHeader *mir_find_decl_header(const MIRProgram *mir, const char *name);
 bool        mir_program_has_main_function(const MIRProgram *mir);
+const char *mir_program_main_function_name(const MIRProgram *mir);
 bool        mir_program_has_top_level_exec(const MIRProgram *mir);
 bool        mir_run_liveness_pass(MIRProgram *mir, char **error_message);
 bool        mir_run_dce_pass(MIRProgram *mir, char **error_message);

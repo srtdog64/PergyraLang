@@ -97,8 +97,6 @@ projection_target_mentions_source_field(TranspilerCtx *ctx,
                                         const char *target_slot_name,
                                         const char *source_field_name)
 {
-    ASTNode *slot_decl;
-    ASTNode *slot_type;
     ASTNode *target_decl;
     const char *target_type_name;
 
@@ -107,17 +105,12 @@ projection_target_mentions_source_field(TranspilerCtx *ctx,
     if (source_field_name == NULL)
         return true;
 
-    slot_decl = transpiler_current_overlay_domain_slot_decl(ctx, target_slot_name);
-    if (slot_decl == NULL)
-        return true;
-    slot_type = ast_domain_slot_type(slot_decl);
-    if (slot_type == NULL
-        || slot_type->type != AST_TYPE
-        || ast_type_name(slot_type) == NULL) {
+    target_type_name = transpiler_current_overlay_domain_slot_type_name(
+        ctx, target_slot_name);
+    if (target_type_name == NULL) {
         return true;
     }
 
-    target_type_name = ast_type_name(slot_type);
     target_decl = transpiler_find_projection_nominal_decl_local(
         ctx, target_type_name);
     if (target_decl == NULL || target_decl->type != AST_CLASS_DECL)
@@ -358,6 +351,8 @@ emit_world_embedded_receiver_projection_sync(TranspilerCtx *ctx,
     const char *source_slot_name = NULL;
     const char *source_type_name = NULL;
     const char *world_name;
+    const char *zone_decl_name;
+    TranspilerHostedDomainSlotView slot_view;
 
     if (ctx == NULL || receiver == NULL)
         return NULL;
@@ -382,18 +377,26 @@ emit_world_embedded_receiver_projection_sync(TranspilerCtx *ctx,
     if (zone_decl == NULL || zone_decl->type != AST_ZONE_DECL)
         return NULL;
 
+    zone_decl_name = transpiler_decl_name_local(zone_decl);
+    slot_view = transpiler_hosted_domain_slot_view_from_decl(ctx,
+        zone_decl_name, zone_decl);
+    if (transpiler_hosted_domain_slot_view_missing_mir_metadata(&slot_view)) {
+        transpiler_set_mir_inventory_missing(ctx,
+            "MIR-only C path missing embedded zone projection metadata for '%s'",
+            zone_decl_name != NULL ? zone_decl_name : "(anonymous-zone)");
+        return NULL;
+    }
+
     buf = codebuf_create();
-    size_t slot_count = 0;
-    ASTNode **slots = ast_zone_slots(zone_decl, &slot_count);
-    for (size_t i = 0; i < slot_count; i++) {
-        ASTNode *slot = slots[i];
-        if (slot == NULL || slot->type != AST_DOMAIN_SLOT
-            || ast_domain_slot_is_subject(slot)) {
-            continue;
-        }
-        const char *slot_name = ast_domain_slot_name(slot);
+    for (size_t i = 0; i < slot_view.count; i++) {
+        const char *slot_name =
+            transpiler_hosted_domain_slot_view_name(&slot_view, i);
         if (slot_name == NULL)
             continue;
+        if (transpiler_hosted_domain_slot_view_is_subject_like(
+                &slot_view, i)) {
+            continue;
+        }
         codebuf_write(buf,
             "self->%s.__projection_dirty_%s = true; "
             "self->%s.__projection_ready_%s = false; ",

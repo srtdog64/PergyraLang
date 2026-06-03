@@ -7,7 +7,6 @@
 
 #include "llvm_domain_method_emit.h"
 
-#include "llvm_domain_decl_parts_helpers.h"
 #include "llvm_inventory_host_methods.h"
 #include "llvm_domain_sync_frontier.h"
 #include "llvm_domain_projection_sync_helpers.h"
@@ -28,13 +27,7 @@ llvm_emit_domain_sync_and_method_bodies(LLVMGenCtx *ctx,
                 continue;
 
             const char *decl_name = NULL;
-            ASTNode **slots = NULL;
-            size_t slot_count = 0;
-            ASTNode **refreshes = NULL;
-            size_t refresh_count = 0;
-
-            llvm_domain_decl_parts(stmt, &decl_name, &slots, &slot_count,
-                &refreshes, &refresh_count);
+            decl_name = llvm_decl_node_name(stmt);
             if (decl_name == NULL)
                 continue;
 
@@ -89,6 +82,11 @@ llvm_emit_domain_sync_and_method_bodies(LLVMGenCtx *ctx,
                 }
 
                 mir_method = llvm_mir_decl_method_routine(ctx, method_meta);
+                if (method == NULL && mir_method != NULL)
+                    method = llvm_mir_routine_source_ast_of_type(
+                        mir_method, MIR_SCOPE_METHOD, AST_FUNC_DECL);
+                if (method_name == NULL && method != NULL)
+                    method_name = ast_declaration_name(method);
                 if (mir_method != NULL) {
                     llvm_emit_func_from_mir(mir_method, ctx);
                     if (ctx->has_error)
@@ -149,8 +147,7 @@ llvm_emit_class_method_bodies_from_inventory(LLVMGenCtx *ctx)
                 return false;
             }
             method_name = llvm_mir_decl_method_name(method_meta);
-            mir_method = llvm_hosted_method_view_routine(
-                ctx, &method_view, j);
+            mir_method = llvm_mir_decl_method_routine(ctx, method_meta);
             if (mir_method != NULL) {
                 llvm_emit_func_from_mir(mir_method, ctx);
                 if (ctx->has_error)

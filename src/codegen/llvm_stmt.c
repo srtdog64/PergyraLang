@@ -150,7 +150,8 @@ llvm_emit_block(ASTNode *node, LLVMGenCtx *ctx)
     if (node->type != AST_BLOCK)
         return;
 
-    int saved_slot_count = ctx->slot_var_count;
+    LLVMLexicalRegistrySnapshot lexical_snapshot =
+        llvm_lexical_registry_snapshot(ctx);
     llvm_defer_scope_push(ctx);
     llvm_scope_push(ctx);
     for (size_t i = 0; i < ast_block_statement_count(node); i++) {
@@ -165,7 +166,9 @@ llvm_emit_block(ASTNode *node, LLVMGenCtx *ctx)
      * Skip slots already explicitly released by the user. */
     if (LLVMGetBasicBlockTerminator(LLVMGetInsertBlock(ctx->builder)) == NULL) {
         llvm_emit_defers_from(ctx, ctx->defer_scope_depth - 1);
-        for (int i = ctx->slot_var_count - 1; i >= saved_slot_count; i--) {
+        for (int i = ctx->slot_var_count - 1;
+             i >= lexical_snapshot.slot_var_count;
+             i--) {
             if (ctx->slot_vars[i].released) continue;
             const char *inner = ctx->slot_vars[i].inner_type;
             const char *vname = ctx->slot_vars[i].var_name;
@@ -229,8 +232,8 @@ llvm_emit_block(ASTNode *node, LLVMGenCtx *ctx)
         }
     }
 
-    ctx->slot_var_count = saved_slot_count;
     llvm_scope_pop(ctx);
+    llvm_lexical_registry_restore(ctx, lexical_snapshot);
     llvm_defer_scope_pop(ctx);
 }
 

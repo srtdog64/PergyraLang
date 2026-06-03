@@ -126,6 +126,8 @@ llvm_emit_spawn_expr(ASTNode *node, LLVMGenCtx *ctx)
         LLVMValueRef saved_fn = ctx->current_function;
         LLVMTypeRef saved_ret = ctx->current_ret_type;
         LLVMBasicBlockRef saved_bb = LLVMGetInsertBlock(ctx->builder);
+        LLVMLexicalRegistrySnapshot lexical_snapshot =
+            llvm_lexical_registry_snapshot(ctx);
         char wrapper_name[96];
         LLVMTypeRef wrapper_params[] = { ctx->type_i8ptr };
         LLVMTypeRef wrapper_type;
@@ -144,8 +146,6 @@ llvm_emit_spawn_expr(ASTNode *node, LLVMGenCtx *ctx)
         if (!llvm_spawn_wrapper_name(ctx, node, wrapper_name,
                 sizeof(wrapper_name), wrapper_id))
             return NULL;
-        wrapper_type = LLVMFunctionType(ctx->type_i8ptr, wrapper_params, 1, 0);
-        wrapper_fn = LLVMAddFunction(ctx->module, wrapper_name, wrapper_type);
 
         if (argc > 0) {
             LLVMTypeRef *field_types = pgy_arena_calloc(&ctx->scratch,
@@ -177,11 +177,22 @@ llvm_emit_spawn_expr(ASTNode *node, LLVMGenCtx *ctx)
             }
         }
 
+        wrapper_type = LLVMFunctionType(ctx->type_i8ptr, wrapper_params, 1, 0);
+        wrapper_fn = LLVMAddFunction(ctx->module, wrapper_name, wrapper_type);
+
         ctx->current_function = wrapper_fn;
         ctx->current_ret_type = ctx->type_i8ptr;
         entry = LLVMAppendBasicBlockInContext(ctx->context, wrapper_fn, "entry");
         LLVMPositionBuilderAtEnd(ctx->builder, entry);
         llvm_scope_push(ctx);
+        if (ctx->has_error) {
+            llvm_lexical_registry_restore(ctx, lexical_snapshot);
+            ctx->current_function = saved_fn;
+            ctx->current_ret_type = saved_ret;
+            if (saved_bb != NULL)
+                LLVMPositionBuilderAtEnd(ctx->builder, saved_bb);
+            return NULL;
+        }
 
         raw_arg = LLVMGetParam(wrapper_fn, 0);
         if (argc > 0) {
@@ -226,6 +237,7 @@ llvm_emit_spawn_expr(ASTNode *node, LLVMGenCtx *ctx)
         }
 
         llvm_scope_pop(ctx);
+        llvm_lexical_registry_restore(ctx, lexical_snapshot);
         ctx->current_function = saved_fn;
         ctx->current_ret_type = saved_ret;
         if (saved_bb != NULL)

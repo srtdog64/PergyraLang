@@ -8,7 +8,7 @@
 #ifdef PGY_LLVM_ENABLED
 
 #include "llvm_domain_struct_fields.h"
-#include "llvm_domain_projection_target_helpers.h"
+#include "llvm_domain_projection_count_helpers.h"
 #include "parser/ast_api.h"
 
 #include <stdbool.h>
@@ -129,49 +129,56 @@ llvm_zone_effect_pool_struct_type(LLVMGenCtx *ctx, LLVMTypeRef effect_ty, int ca
     return LLVMStructTypeInContext(ctx->context, fields, 4, 0);
 }
 
-void
+bool
 llvm_domain_add_projection_state_fields(LLVMGenCtx *ctx,
                                         LLVMClassTypeEntry *entry,
                                         LLVMTypeRef *ftypes,
                                         int *field_index,
-                                        ASTNode **slots,
-                                        size_t slot_count,
+                                        const LLVMHostedDomainSlotView *slot_view,
                                         ASTNode **refreshes,
                                         size_t refresh_count)
 {
     if (ctx == NULL || entry == NULL || ftypes == NULL || field_index == NULL)
-        return;
+        return false;
 
-    for (size_t j = 0; j < slot_count; j++) {
-        ASTNode *slot = slots[j];
-        const char *slot_name = ast_domain_slot_name(slot);
-        if (slot == NULL || slot->type != AST_DOMAIN_SLOT
-            || (!ast_domain_slot_is_tobject(slot)
-                && !llvm_domain_slot_is_projection_target(slot, refreshes, refresh_count))
-            || slot_name == NULL) {
+    if (slot_view == NULL)
+        return false;
+
+    for (size_t j = 0; j < slot_view->count; j++) {
+        const char *slot_name =
+            llvm_hosted_domain_slot_view_name(slot_view, j);
+        if (!llvm_domain_slot_view_is_projection_slot(slot_view, j, refreshes,
+                refresh_count)) {
             continue;
+        }
+        if (slot_name == NULL) {
+            llvm_set_error(ctx,
+                "LLVM projection field slot[%zu] is missing metadata name",
+                j);
+            return false;
         }
         if (!llvm_domain_struct_add_projection_field(ctx, entry,
                 ftypes[*field_index], *field_index, "ready",
                 slot_name))
-            return;
+            return false;
         (*field_index)++;
         if (!llvm_domain_struct_add_projection_field(ctx, entry,
                 ftypes[*field_index], *field_index, "dirty",
                 slot_name))
-            return;
+            return false;
         (*field_index)++;
         if (!llvm_domain_struct_add_projection_field(ctx, entry,
                 ftypes[*field_index], *field_index, "epoch",
                 slot_name))
-            return;
+            return false;
         (*field_index)++;
         if (!llvm_domain_struct_add_projection_field(ctx, entry,
                 ftypes[*field_index], *field_index, "cause",
                 slot_name))
-            return;
+            return false;
         (*field_index)++;
     }
+    return true;
 }
 
 #endif

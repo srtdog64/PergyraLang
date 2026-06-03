@@ -13,6 +13,7 @@
 
 #include "llvm_expr_constructor_channel_guard.h"
 #include "llvm_backend_type_map_internal.h"
+#include "llvm_domain_projection_count_helpers.h"
 #include "llvm_inventory_decl_lookup.h"
 #include "llvm_internal_api.h"
 #include "parser/ast_api.h"
@@ -226,8 +227,8 @@ llvm_emit_class_constructor_projection_dirty(LLVMGenCtx *ctx,
                                              ASTNode *zone_decl,
                                              LLVMValueRef *object)
 {
-    ASTNode **slots = NULL;
-    size_t slot_count = 0;
+    ASTNode *decl = NULL;
+    const char *decl_name = NULL;
     ASTNode **refreshes = NULL;
     size_t refresh_count = 0;
 
@@ -237,42 +238,35 @@ llvm_emit_class_constructor_projection_dirty(LLVMGenCtx *ctx,
     }
 
     if (relation_decl != NULL) {
-        slots = ast_relation_slots(relation_decl, &slot_count);
+        decl = relation_decl;
         refreshes = ast_relation_refreshes(relation_decl, &refresh_count);
     } else if (effect_decl != NULL) {
-        slots = ast_effect_slots(effect_decl, &slot_count);
+        decl = effect_decl;
         refreshes = ast_effect_refreshes(effect_decl, &refresh_count);
     } else if (zone_decl != NULL) {
-        slots = ast_zone_slots(zone_decl, &slot_count);
+        decl = zone_decl;
         refreshes = ast_zone_refreshes(zone_decl, &refresh_count);
     }
 
-    for (size_t i = 0; i < slot_count; i++) {
-        ASTNode *slot = slots != NULL ? slots[i] : NULL;
-        const char *slot_name = ast_domain_slot_name(slot);
-        bool projection_slot = false;
+    decl_name = llvm_decl_node_name(decl);
+    LLVMHostedDomainSlotView slot_view =
+        llvm_hosted_domain_slot_view_from_decl(ctx, decl_name, decl);
+    if (llvm_hosted_domain_slot_view_missing_mir_metadata(&slot_view)) {
+        llvm_set_mir_inventory_missing(ctx,
+            "MIR-only LLVM path missing domain-slot constructor metadata for '%s'",
+            decl_name != NULL ? decl_name : "(anonymous-domain)");
+        return;
+    }
 
-        if (slot == NULL || slot->type != AST_DOMAIN_SLOT || slot_name == NULL)
+    for (size_t i = 0; i < slot_view.count; i++) {
+        const char *slot_name =
+            llvm_hosted_domain_slot_view_name(&slot_view, i);
+        if (slot_name == NULL
+            || !llvm_domain_slot_view_is_projection_slot(&slot_view, i,
+                refreshes, refresh_count)) {
             continue;
-
-        if (ast_domain_slot_is_tobject(slot)) {
-            projection_slot = true;
-        } else {
-            for (size_t ri = 0; ri < refresh_count; ri++) {
-                ASTNode *refresh = refreshes != NULL ? refreshes[ri] : NULL;
-                if (refresh == NULL
-                    || refresh->type != AST_ZONE_REFRESH
-                    || ast_zone_refresh_object_slot_name(refresh) == NULL) {
-                    continue;
-                }
-                if (strcmp(slot_name, ast_zone_refresh_object_slot_name(refresh)) == 0) {
-                    projection_slot = true;
-                    break;
-                }
-            }
         }
-
-        if (projection_slot) {
+        {
             char dirty_field[256];
             int dirty_idx;
 

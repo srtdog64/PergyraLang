@@ -5,5 +5,8 @@
 
 bool mir_stmt_ast_is_cfg_owned_control(const ASTNode *ast);
 bool mir_stmt_ast_type_is_cfg_owned_control(ASTNodeType type);
+bool mir_stmt_ast_type_is_cfg_container(ASTNodeType type);
+bool mir_stmt_ast_is_unconditional_cfg_owned_control(const ASTNode *ast);
+bool mir_stmt_ast_type_is_unconditional_cfg_owned_control(ASTNodeType type);
 
 #endif

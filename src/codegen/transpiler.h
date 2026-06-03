@@ -42,6 +42,7 @@ CodeBuf *codebuf_create(void);
 void     codebuf_destroy(CodeBuf *buf);
 void     codebuf_write(CodeBuf *buf, const char *fmt, ...);
 void     codebuf_write_raw(CodeBuf *buf, const char *s, size_t n);
+void     codebuf_truncate(CodeBuf *buf, size_t len);
 bool     codebuf_dump_file(const CodeBuf *buf, const char *path);
 
 /* -----------------------------------------------------------------

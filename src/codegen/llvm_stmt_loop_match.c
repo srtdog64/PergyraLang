@@ -126,7 +126,8 @@ llvm_emit_for_loop(ASTNode *node, LLVMGenCtx *ctx)
                 if (size_fn == NULL || get_fn == NULL)
                     return;
 
-                int saved_var_class_count = ctx->var_class_count;
+                LLVMLexicalRegistrySnapshot lexical_snapshot =
+                    llvm_lexical_registry_snapshot(ctx);
                 llvm_scope_push(ctx);
                 idx_alloca = llvm_create_entry_alloca(ctx, ctx->type_i32, llvm_tmp_name(ctx));
                 LLVMBuildStore(ctx->builder, LLVMConstInt(ctx->type_i32, 0, 0), idx_alloca);
@@ -203,7 +204,7 @@ llvm_emit_for_loop(ASTNode *node, LLVMGenCtx *ctx)
 
                 LLVMPositionBuilderAtEnd(ctx->builder, exit_bb);
                 llvm_scope_pop(ctx);
-                ctx->var_class_count = saved_var_class_count;
+                llvm_lexical_registry_restore(ctx, lexical_snapshot);
                 return;
             }
         }
@@ -234,7 +235,8 @@ llvm_emit_for_loop(ASTNode *node, LLVMGenCtx *ctx)
         data_ptr = LLVMBuildExtractValue(ctx->builder, iterable, 0, llvm_tmp_name(ctx));
         count64 = LLVMBuildExtractValue(ctx->builder, iterable, 1, llvm_tmp_name(ctx));
 
-        int saved_var_class_count = ctx->var_class_count;
+        LLVMLexicalRegistrySnapshot lexical_snapshot =
+            llvm_lexical_registry_snapshot(ctx);
         llvm_scope_push(ctx);
         idx_alloca = llvm_create_entry_alloca(ctx, ctx->type_i64, llvm_tmp_name(ctx));
         LLVMBuildStore(ctx->builder, LLVMConstInt(ctx->type_i64, 0, 0), idx_alloca);
@@ -303,11 +305,12 @@ llvm_emit_for_loop(ASTNode *node, LLVMGenCtx *ctx)
 
         LLVMPositionBuilderAtEnd(ctx->builder, exit_bb);
         llvm_scope_pop(ctx);
-        ctx->var_class_count = saved_var_class_count;
+        llvm_lexical_registry_restore(ctx, lexical_snapshot);
         return;
     }
 
-    int saved_var_class_count = ctx->var_class_count;
+    LLVMLexicalRegistrySnapshot lexical_snapshot =
+        llvm_lexical_registry_snapshot(ctx);
     llvm_scope_push(ctx);
 
     /* Create loop variable */
@@ -376,7 +379,7 @@ llvm_emit_for_loop(ASTNode *node, LLVMGenCtx *ctx)
     LLVMPositionBuilderAtEnd(ctx->builder, exit_bb);
 
     llvm_scope_pop(ctx);
-    ctx->var_class_count = saved_var_class_count;
+    llvm_lexical_registry_restore(ctx, lexical_snapshot);
 }
 
 #endif /* PGY_LLVM_ENABLED */

@@ -113,8 +113,6 @@ transpiler_emit_zone_struct_decl(TranspilerCtx *ctx, ASTNode *node,
     }
 
     for (size_t i = 0; i < layer_view.count; i++) {
-        ASTNode *slot =
-            transpiler_hosted_zone_layer_slot_view_source_ast(&layer_view, i);
         const char *slot_name =
             transpiler_hosted_zone_layer_slot_view_name(&layer_view, i);
         const char *layer_type =
@@ -129,8 +127,10 @@ transpiler_emit_zone_struct_decl(TranspilerCtx *ctx, ASTNode *node,
             return false;
         }
 
-        if (slot != NULL && ast_zone_layer_slot_is_pool(slot)) {
-            int cap = ast_zone_layer_slot_pool_capacity(slot);
+        if (transpiler_hosted_zone_layer_slot_view_is_pool(&layer_view, i)) {
+            int cap =
+                transpiler_hosted_zone_layer_slot_view_pool_capacity(
+                    &layer_view, i);
             if (cap <= 0)
                 cap = 1;
             codebuf_write(ctx->out,

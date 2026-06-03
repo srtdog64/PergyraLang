@@ -72,17 +72,15 @@ void
 llvm_finish_domain_sync_emit(LLVMGenCtx *ctx,
                              LLVMValueRef saved_fn,
                              LLVMTypeRef saved_ret,
-                             ASTNode *saved_host_decl)
+                             ASTNode *saved_host_decl,
+                             LLVMBasicBlockRef saved_bb)
 {
     ctx->current_function = saved_fn;
     ctx->current_ret_type = saved_ret;
     llvm_restore_current_host_decl(ctx, saved_host_decl);
 
-    if (saved_fn != NULL) {
-        LLVMBasicBlockRef last = LLVMGetLastBasicBlock(saved_fn);
-        if (last != NULL)
-            LLVMPositionBuilderAtEnd(ctx->builder, last);
-    }
+    if (saved_bb != NULL)
+        LLVMPositionBuilderAtEnd(ctx->builder, saved_bb);
 }
 
 #endif

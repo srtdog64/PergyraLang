@@ -39,44 +39,41 @@ llvm_zone_bind_projection_field_name(char *out,
     return written >= 0 && (size_t)written < out_size;
 }
 
-static ASTNode *
-llvm_find_nth_bindable_domain_slot(ASTNode **slots, size_t slot_count,
-                                   ASTNode **refreshes, size_t refresh_count,
-                                   size_t nth)
+static const char *
+llvm_domain_slot_view_bindable_name(const LLVMHostedDomainSlotView *slot_view,
+                                    size_t nth)
 {
     size_t seen = 0;
-    (void)refreshes;
-    (void)refresh_count;
 
-    if (slots == NULL)
+    if (slot_view == NULL)
         return NULL;
 
-    for (size_t i = 0; i < slot_count; i++) {
-        ASTNode *slot = slots[i];
-        if (slot == NULL || slot->type != AST_DOMAIN_SLOT
-            || !ast_domain_slot_is_binding(slot)) {
+    for (size_t i = 0; i < slot_view->count; i++) {
+        if (!llvm_hosted_domain_slot_view_is_binding_like(slot_view, i))
             continue;
-        }
         if (seen == nth)
-            return slot;
+            return llvm_hosted_domain_slot_view_name(slot_view, i);
         seen++;
     }
 
     return NULL;
 }
 
-static ASTNode *
+static bool
 llvm_find_zone_layer_slot(LLVMGenCtx *ctx,
                           ASTNode *zone_decl,
                           const char *slot_name,
-                          bool is_relation)
+                          bool is_relation,
+                          const char **layer_type_name_out,
+                          bool *is_pool_out,
+                          int *pool_capacity_out)
 {
     const char *zone_name;
     LLVMHostedZoneLayerSlotView layer_view;
 
     if (zone_decl == NULL || zone_decl->type != AST_ZONE_DECL
         || slot_name == NULL) {
-        return NULL;
+        return false;
     }
 
     zone_name = llvm_decl_node_name(zone_decl);
@@ -85,23 +82,32 @@ llvm_find_zone_layer_slot(LLVMGenCtx *ctx,
     if (llvm_hosted_zone_layer_slot_view_missing_mir_metadata(&layer_view)) {
         llvm_set_mir_inventory_missing(ctx,
             "MIR-only LLVM path missing zone layer-slot metadata for zone bind emission");
-        return NULL;
+        return false;
     }
 
     for (size_t i = 0; i < layer_view.count; i++) {
-        ASTNode *slot =
-            llvm_hosted_zone_layer_slot_view_source_ast(&layer_view, i);
         const char *candidate_name =
             llvm_hosted_zone_layer_slot_view_name(&layer_view, i);
-        if (slot != NULL && slot->type == AST_ZONE_LAYER_SLOT
-            && ast_zone_layer_slot_is_relation(slot) == is_relation
+        if (llvm_hosted_zone_layer_slot_view_is_relation(&layer_view, i)
+                == is_relation
             && candidate_name != NULL
             && strcmp(candidate_name, slot_name) == 0) {
-            return slot;
+            if (layer_type_name_out != NULL) {
+                *layer_type_name_out =
+                    llvm_hosted_zone_layer_slot_view_type_name(&layer_view, i);
+            }
+            if (is_pool_out != NULL)
+                *is_pool_out =
+                    llvm_hosted_zone_layer_slot_view_is_pool(&layer_view, i);
+            if (pool_capacity_out != NULL)
+                *pool_capacity_out =
+                    llvm_hosted_zone_layer_slot_view_pool_capacity(
+                        &layer_view, i);
+            return layer_type_name_out == NULL || *layer_type_name_out != NULL;
         }
     }
 
-    return NULL;
+    return false;
 }
 
 void
@@ -110,11 +116,11 @@ llvm_zone_bind_effect_layer(ASTNode *zone_decl, LLVMClassTypeEntry *zone_cls,
                             const char *layer_slot_name,
                             const char *target_slot_name)
 {
-    ASTNode *layer_slot;
     ASTNode *effect_decl;
-    ASTNode *target_slot;
     LLVMClassTypeEntry *effect_cls;
     const char *effect_name;
+    const char *effect_type_name = NULL;
+    const char *target_binding_name;
     int layer_idx;
     int target_idx;
     int subject_idx;
@@ -124,31 +130,38 @@ llvm_zone_bind_effect_layer(ASTNode *zone_decl, LLVMClassTypeEntry *zone_cls,
     LLVMValueRef target_value;
     LLVMTypeRef target_ty;
     bool is_pool = false;
+    int pool_capacity = 1;
 
     if (zone_decl == NULL || zone_cls == NULL || sync_fn == NULL || ctx == NULL
         || layer_slot_name == NULL || target_slot_name == NULL) {
         return;
     }
 
-    layer_slot = llvm_find_zone_layer_slot(ctx, zone_decl, layer_slot_name, false);
-    if (layer_slot == NULL)
+    if (!llvm_find_zone_layer_slot(ctx, zone_decl, layer_slot_name, false,
+            &effect_type_name, &is_pool, &pool_capacity)) {
         return;
+    }
     effect_decl = llvm_find_named_domain_decl(ctx, AST_EFFECT_DECL,
-        ast_zone_layer_slot_layer_type(layer_slot));
+        effect_type_name);
     if (effect_decl == NULL)
         return;
-    size_t effect_slot_count = 0;
-    ASTNode **effect_slots = ast_effect_slots(effect_decl, &effect_slot_count);
     size_t effect_refresh_count = 0;
     ASTNode **effect_refreshes =
         ast_effect_refreshes(effect_decl, &effect_refresh_count);
-    target_slot = llvm_find_nth_bindable_domain_slot(
-        effect_slots, effect_slot_count, effect_refreshes, effect_refresh_count, 0);
     effect_name = llvm_decl_node_name(effect_decl);
+    LLVMHostedDomainSlotView effect_slot_view =
+        llvm_hosted_domain_slot_view_from_decl(ctx, effect_name, effect_decl);
+    if (llvm_hosted_domain_slot_view_missing_mir_metadata(
+            &effect_slot_view)) {
+        llvm_set_mir_inventory_missing(ctx,
+            "MIR-only LLVM path missing zone effect bind domain-slot metadata for '%s'",
+            effect_name != NULL ? effect_name : "(anonymous-effect)");
+        return;
+    }
     effect_cls = llvm_lookup_class(ctx, effect_name);
-    const char *target_binding_name = ast_domain_slot_name(target_slot);
-    if (target_slot == NULL || effect_cls == NULL
-        || target_binding_name == NULL) {
+    target_binding_name = llvm_domain_slot_view_bindable_name(
+        &effect_slot_view, 0);
+    if (effect_cls == NULL || target_binding_name == NULL) {
         return;
     }
 
@@ -157,8 +170,6 @@ llvm_zone_bind_effect_layer(ASTNode *zone_decl, LLVMClassTypeEntry *zone_cls,
     subject_idx = llvm_class_field_index(effect_cls, target_binding_name);
     if (layer_idx < 0 || target_idx < 0 || subject_idx < 0)
         return;
-    is_pool = ast_zone_layer_slot_is_pool(layer_slot);
-
     self_ptr = LLVMGetParam(sync_fn, 0);
     layer_ptr = LLVMBuildStructGEP2(ctx->builder, zone_cls->struct_type,
         self_ptr, (unsigned)layer_idx, llvm_tmp_name(ctx));
@@ -212,9 +223,7 @@ llvm_zone_bind_effect_layer(ASTNode *zone_decl, LLVMClassTypeEntry *zone_cls,
             LLVMInt8TypeInContext(ctx->context), count_ptr, llvm_tmp_name(ctx));
         has_space = LLVMBuildICmp(ctx->builder, LLVMIntULT, count_val,
             LLVMConstInt(LLVMInt8TypeInContext(ctx->context),
-                ast_zone_layer_slot_pool_capacity(layer_slot) > 0
-                    ? (unsigned)ast_zone_layer_slot_pool_capacity(layer_slot)
-                    : 1,
+                pool_capacity > 0 ? (unsigned)pool_capacity : 1,
                 0),
             llvm_tmp_name(ctx));
 
@@ -266,9 +275,7 @@ llvm_zone_bind_effect_layer(ASTNode *zone_decl, LLVMClassTypeEntry *zone_cls,
                 llvm_tmp_name(ctx));
             LLVMBuildStore(ctx->builder,
                 LLVMConstInt(LLVMInt8TypeInContext(ctx->context),
-                    ast_zone_layer_slot_pool_capacity(layer_slot) > 0
-                        ? (unsigned)ast_zone_layer_slot_pool_capacity(layer_slot)
-                        : 1,
+                    pool_capacity > 0 ? (unsigned)pool_capacity : 1,
                     0),
                 cap_ptr);
         }
@@ -348,12 +355,12 @@ llvm_zone_bind_relation_layer(ASTNode *zone_decl, LLVMClassTypeEntry *zone_cls,
                               const char *left_slot_name,
                               const char *right_slot_name)
 {
-    ASTNode *layer_slot;
     ASTNode *relation_decl;
-    ASTNode *left_target;
-    ASTNode *right_target;
     LLVMClassTypeEntry *relation_cls;
     const char *relation_name;
+    const char *relation_type_name = NULL;
+    const char *left_binding_name;
+    const char *right_binding_name;
     int layer_idx;
     int left_idx;
     int right_idx;
@@ -374,28 +381,34 @@ llvm_zone_bind_relation_layer(ASTNode *zone_decl, LLVMClassTypeEntry *zone_cls,
         return;
     }
 
-    layer_slot = llvm_find_zone_layer_slot(ctx, zone_decl, layer_slot_name, true);
-    if (layer_slot == NULL)
+    if (!llvm_find_zone_layer_slot(ctx, zone_decl, layer_slot_name, true,
+            &relation_type_name, NULL, NULL)) {
         return;
+    }
     relation_decl = llvm_find_named_domain_decl(ctx, AST_RELATION_DECL,
-        ast_zone_layer_slot_layer_type(layer_slot));
+        relation_type_name);
     if (relation_decl == NULL)
         return;
-    size_t relation_slot_count = 0;
-    ASTNode **relation_slots = ast_relation_slots(relation_decl, &relation_slot_count);
     size_t relation_refresh_count = 0;
     ASTNode **relation_refreshes =
         ast_relation_refreshes(relation_decl, &relation_refresh_count);
-    left_target = llvm_find_nth_bindable_domain_slot(
-        relation_slots, relation_slot_count, relation_refreshes, relation_refresh_count, 0);
-    right_target = llvm_find_nth_bindable_domain_slot(
-        relation_slots, relation_slot_count, relation_refreshes, relation_refresh_count, 1);
     relation_name = llvm_decl_node_name(relation_decl);
+    LLVMHostedDomainSlotView relation_slot_view =
+        llvm_hosted_domain_slot_view_from_decl(ctx, relation_name,
+                                               relation_decl);
+    if (llvm_hosted_domain_slot_view_missing_mir_metadata(
+            &relation_slot_view)) {
+        llvm_set_mir_inventory_missing(ctx,
+            "MIR-only LLVM path missing zone relation bind domain-slot metadata for '%s'",
+            relation_name != NULL ? relation_name : "(anonymous-relation)");
+        return;
+    }
     relation_cls = llvm_lookup_class(ctx, relation_name);
-    const char *left_binding_name = ast_domain_slot_name(left_target);
-    const char *right_binding_name = ast_domain_slot_name(right_target);
-    if (left_target == NULL || right_target == NULL || relation_cls == NULL
-        || left_binding_name == NULL
+    left_binding_name = llvm_domain_slot_view_bindable_name(
+        &relation_slot_view, 0);
+    right_binding_name = llvm_domain_slot_view_bindable_name(
+        &relation_slot_view, 1);
+    if (relation_cls == NULL || left_binding_name == NULL
         || right_binding_name == NULL) {
         return;
     }

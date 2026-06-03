@@ -29,7 +29,7 @@ transpiler_mir_loop_binding_name(const MIRInstruction *inst,
     if (buf == NULL || buf_size == 0)
         return;
     buf[0] = '\0';
-    stable_id = ast_node_stable_id(mir_instruction_source_payload(inst));
+    stable_id = mir_instruction_source_stable_id(inst);
     if (stable_id == 0) {
         snprintf(buf, buf_size, "_pgy_for_%s",
                  variable != NULL ? variable : "it");
@@ -50,7 +50,7 @@ transpiler_mir_loop_index_name(const MIRInstruction *inst,
     if (buf == NULL || buf_size == 0)
         return;
     buf[0] = '\0';
-    stable_id = ast_node_stable_id(mir_instruction_source_payload(inst));
+    stable_id = mir_instruction_source_stable_id(inst);
     if (stable_id == 0) {
         snprintf(buf, buf_size, "_pgy_idx_%s",
                  variable != NULL ? variable : "it");
@@ -446,7 +446,7 @@ transpiler_mir_render_branch_condition(ASTNode *func_decl,
         condition = mir_instruction_source_payload(inst);
         if (condition == NULL)
             return pergyra_strdup("true");
-        return transpiler_mir_render_match_case_condition(func_decl, condition,
+        return transpiler_mir_render_match_case_condition(func_decl, inst,
                                                          ctx, ssa_map);
     }
     if (inst->branch_shape == MIR_BRANCH_SELECT_DISPATCH) {

@@ -881,68 +881,21 @@ test_stdlib_and_enum_emit(void)
 
     TEST("operator overload dispatch keeps left-type suffix stable across nested inferred calls");
     {
-        ASTNode *op_fn;
-        ASTNode *make_vec_fn;
-        ASTNode *make_count_fn;
-        ASTNode *main_fn;
-        ASTNode *main_body;
-        ASTNode *sum;
-        ASTNode *left_call;
-        ASTNode *right_call;
-        ASTNode *stmts[4];
-        ASTNode *prog;
+        const char *source =
+            "struct Vec2 { x: Int; y: Int; }\n"
+            "func operator_add_Vec2(a: Vec2, b: Int) -> Vec2 { return a; }\n"
+            "func MakeVec() -> Vec2 { return Vec2(1, 2); }\n"
+            "func MakeCount() -> Int { return 7; }\n"
+            "func Main() -> Vec2 { return MakeVec() + MakeCount(); }\n";
+        ASTNode *prog = NULL;
         HIRProgram *hir = NULL;
         RIRProgram *rir = NULL;
-        MIRProgram *mir;
+        MIRProgram *mir = NULL;
+        bool ok = lower_pipeline_from_source(source, &prog, &hir, &rir, &mir);
 
-        op_fn = calloc(1, sizeof(ASTNode));
-        op_fn->type = AST_FUNC_DECL;
-        op_fn->data.func_decl.name = pergyra_strdup("operator_add_Vec2");
-        op_fn->data.func_decl.params = calloc(2, sizeof(FuncParam *));
-        op_fn->data.func_decl.params[0] = make_func_param("a", "Vec2");
-        op_fn->data.func_decl.params[1] = make_func_param("b", "Int");
-        op_fn->data.func_decl.param_count = 2;
-        op_fn->data.func_decl.return_type = make_type_node("Vec2");
-        op_fn->data.func_decl.body = ast_create_block();
-        ast_add_statement(op_fn->data.func_decl.body,
-            make_return(make_identifier("a", 1), 1));
-
-        make_vec_fn = calloc(1, sizeof(ASTNode));
-        make_vec_fn->type = AST_FUNC_DECL;
-        make_vec_fn->data.func_decl.name = pergyra_strdup("MakeVec");
-        make_vec_fn->data.func_decl.return_type = make_type_node("Vec2");
-        make_vec_fn->data.func_decl.body = ast_create_block();
-        ast_add_statement(make_vec_fn->data.func_decl.body,
-            make_return(make_identifier("seedVec", 2), 2));
-
-        make_count_fn = calloc(1, sizeof(ASTNode));
-        make_count_fn->type = AST_FUNC_DECL;
-        make_count_fn->data.func_decl.name = pergyra_strdup("MakeCount");
-        make_count_fn->data.func_decl.return_type = make_type_node("Int");
-        make_count_fn->data.func_decl.body = ast_create_block();
-        ast_add_statement(make_count_fn->data.func_decl.body,
-            make_return(make_number(7, 3), 3));
-
-        left_call = make_call("MakeVec", NULL, 0, 4);
-        right_call = make_call("MakeCount", NULL, 0, 4);
-        sum = ast_create_binary(left_call, (Token){ .type = TOKEN_PLUS }, right_call);
-
-        main_fn = calloc(1, sizeof(ASTNode));
-        main_fn->type = AST_FUNC_DECL;
-        main_fn->data.func_decl.name = pergyra_strdup("Main");
-        main_fn->data.func_decl.return_type = make_type_node("Vec2");
-        main_body = ast_create_block();
-        ast_add_statement(main_body, make_return(sum, 4));
-        main_fn->data.func_decl.body = main_body;
-
-        stmts[0] = op_fn;
-        stmts[1] = make_vec_fn;
-        stmts[2] = make_count_fn;
-        stmts[3] = main_fn;
-
-        prog = make_program(stmts, 4);
-        mir = lower_program_to_mir(prog, &hir, &rir);
+        EXPECT(ok);
         ctx = transpiler_ctx_create();
+        ctx->mir = mir;
         emit_program(ctx);
 
         EXPECT_STR_CONTAINS(ctx->out->data, "operator_add_Vec2(");

@@ -8,8 +8,7 @@
 
 void transpiler_emit_zone_required_specializations(
     TranspilerCtx *ctx,
-    ASTNode **slots,
-    size_t slot_count,
+    const TranspilerHostedDomainSlotView *slot_view,
     const TranspilerHostedSharedFieldView *shared_view,
     const TranspilerHostedMethodView *method_view);
 

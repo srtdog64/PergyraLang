@@ -142,8 +142,14 @@ llvm_mir_emit_true_phi_nodes(const MIRRoutine *routine,
                 inst->phi_incoming_count * sizeof(LLVMValueRef));
             incoming_blocks = pgy_arena_calloc(&ctx->scratch,
                 inst->phi_incoming_count * sizeof(LLVMBasicBlockRef));
-            if (incoming_values == NULL || incoming_blocks == NULL)
-                return;
+            if (incoming_values == NULL || incoming_blocks == NULL) {
+                llvm_set_mir_memory_exhausted(ctx,
+                    "LLVM MIR PHI incoming allocation failed for '%s'",
+                    inst->result_name != NULL
+                        ? inst->result_name
+                        : "(anonymous-phi)");
+                goto restore_builder;
+            }
 
             llvm_mir_position_before_original_first(ctx, llvm_block_heads[b], first_inst);
             phi = LLVMBuildPhi(ctx->builder, phi_type, inst->result_name);
@@ -173,8 +179,12 @@ llvm_mir_emit_true_phi_nodes(const MIRRoutine *routine,
                     target_block->instruction_count * sizeof(LLVMValueRef));
                 allocas = pgy_arena_calloc(&ctx->scratch,
                     target_block->instruction_count * sizeof(LLVMValueRef));
-                if (phis == NULL || allocas == NULL)
-                    return;
+                if (phis == NULL || allocas == NULL) {
+                    llvm_set_mir_memory_exhausted(ctx,
+                        "LLVM MIR PHI result allocation failed for block %zu",
+                        b);
+                    goto restore_builder;
+                }
             }
             phis[phi_count] = phi;
             allocas[phi_count] = phi_alloca;
@@ -191,6 +201,7 @@ llvm_mir_emit_true_phi_nodes(const MIRRoutine *routine,
         }
     }
 
+restore_builder:
     if (saved_block != NULL)
         LLVMPositionBuilderAtEnd(ctx->builder, saved_block);
 }

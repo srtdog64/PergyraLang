@@ -323,6 +323,11 @@ if ! grep -Fq 'pgy_powershell_quote' "$ROOT_DIR/tests/compare_backends.sh"; then
     echo "[build-source-inventory] backend compare PowerShell fallback must quote paths explicitly" >&2
     missing=1
 fi
+if ! grep -Fq 'command -v dirname' "$ROOT_DIR/tests/compare_backends.sh" \
+    || ! grep -Fq 'PATH="/usr/bin:/bin:$PATH"' "$ROOT_DIR/tests/compare_backends.sh"; then
+    echo "[build-source-inventory] backend compare must self-heal Git Bash POSIX tool PATH" >&2
+    missing=1
+fi
 if ! grep -Fq 'PGY_BACKEND_COMPARE_SHARD_TOTAL' "$ROOT_DIR/tests/compare_backends.sh" \
     || ! grep -Fq 'case_index % shard_total' "$ROOT_DIR/tests/compare_backends.sh"; then
     echo "[build-source-inventory] backend compare must keep deterministic shard selection" >&2
@@ -1106,17 +1111,65 @@ grep -Fq "transpiler_emit_zone_required_specializations" \
     missing=1
 }
 
-grep -Fq "transpiler_current_overlay_domain_slot_decl" \
+grep -Fq "transpiler_current_overlay_domain_slot_type_name" \
     "$ROOT_DIR/src/codegen/transpiler_projection.c" || {
-    echo "[build-source-inventory] overlay domain-slot query must be owned by transpiler_projection.c" >&2
+    echo "[build-source-inventory] overlay domain-slot type query must be owned by transpiler_projection.c" >&2
     missing=1
 }
+
+grep -Fq "transpiler_current_overlay_domain_slot_is_projection" \
+    "$ROOT_DIR/src/codegen/transpiler_projection.c" || {
+    echo "[build-source-inventory] overlay projection-slot predicate must be owned by transpiler_projection.c" >&2
+    missing=1
+}
+
+if grep -Fq "ast_domain_slot_is_subject" \
+    "$ROOT_DIR/src/codegen/transpiler_expr_domain_query_builtin.c"; then
+    echo "[build-source-inventory] domain query builtins regressed to direct domain-slot subject checks" >&2
+    missing=1
+fi
 
 grep -Fq "transpiler_domain_slot_is_projection_target" \
     "$ROOT_DIR/src/codegen/transpiler_projection.c" || {
     echo "[build-source-inventory] projection-target query must be owned by transpiler_projection.c" >&2
     missing=1
 }
+
+grep -Fq "transpiler_domain_slot_view_is_projection_slot" \
+    "$ROOT_DIR/src/codegen/transpiler_projection.c" || {
+    echo "[build-source-inventory] projection slot-view predicate must be owned by transpiler_projection.c" >&2
+    missing=1
+}
+
+grep -Fq "transpiler_domain_slot_view_is_projection_slot(" \
+    "$ROOT_DIR/src/codegen/transpiler_domain_constructor_emit.c" || {
+    echo "[build-source-inventory] domain constructors must consume the projection slot-view predicate" >&2
+    missing=1
+}
+
+grep -Fq "emit_domain_projection_sync_loop_from_view" \
+    "$ROOT_DIR/src/codegen/transpiler_domain_provenance_emit.c" || {
+    echo "[build-source-inventory] C projection sync must expose a domain slot-view consumer" >&2
+    missing=1
+}
+
+grep -Fq "emit_domain_projection_sync_loop_from_view(ctx" \
+    "$ROOT_DIR/src/codegen/transpiler_relation_effect_emit.c" || {
+    echo "[build-source-inventory] relation/effect projection sync must consume the domain slot view" >&2
+    missing=1
+}
+
+grep -Fq "emit_domain_projection_sync_loop_from_view(ctx" \
+    "$ROOT_DIR/src/codegen/transpiler_zone_decl_emit.c" || {
+    echo "[build-source-inventory] zone projection sync must consume the domain slot view" >&2
+    missing=1
+}
+
+if grep -Fq "ast_compat_slots" \
+    "$ROOT_DIR/src/codegen/transpiler_relation_effect_emit.c"; then
+    echo "[build-source-inventory] relation/effect projection sync regressed to AST slot array consumption" >&2
+    missing=1
+fi
 
 grep -Fq "transpiler_find_world_state_decl" \
     "$ROOT_DIR/src/codegen/transpiler_projection.c" || {
@@ -1135,6 +1188,24 @@ if grep -Eq '(^|[^A-Za-z0-9_])current_overlay_domain_slot_decl\(' \
     "$ROOT_DIR/src/codegen/transpiler_overlay_projection.c" \
     "$ROOT_DIR/src/codegen/transpiler_expr_builtin_dispatch.h"; then
     echo "[build-source-inventory] overlay domain-slot query regressed to implementation-header local helper" >&2
+    missing=1
+fi
+
+if grep -Fq "ast_domain_slot_type(" \
+    "$ROOT_DIR/src/codegen/transpiler_overlay_projection.c"; then
+    echo "[build-source-inventory] overlay projection sync regressed to AST domain-slot type lookup" >&2
+    missing=1
+fi
+
+grep -Fq "transpiler_hosted_domain_slot_view_from_decl(ctx" \
+    "$ROOT_DIR/src/codegen/transpiler_overlay_projection.c" || {
+    echo "[build-source-inventory] overlay projection sync must consume domain slot views" >&2
+    missing=1
+}
+
+if grep -Fq "ast_zone_slots" \
+    "$ROOT_DIR/src/codegen/transpiler_overlay_projection.c"; then
+    echo "[build-source-inventory] overlay projection sync regressed to AST zone-slot scanning" >&2
     missing=1
 fi
 

@@ -28,6 +28,9 @@ llvm_emit_intent_decl(ASTNode *node, LLVMGenCtx *ctx)
     LLVMValueRef fn;
     LLVMValueRef saved_fn;
     LLVMTypeRef saved_ret_type;
+    LLVMBasicBlockRef saved_bb;
+    LLVMLexicalRegistrySnapshot lexical_snapshot;
+    bool scope_pushed = false;
     LLVMBasicBlockRef entry_bb;
     LLVMBasicBlockRef run_bb;
     LLVMBasicBlockRef fail_enter_bb;
@@ -174,6 +177,8 @@ llvm_emit_intent_decl(ASTNode *node, LLVMGenCtx *ctx)
     fn = entry->fn;
     saved_fn = ctx->current_function;
     saved_ret_type = ctx->current_ret_type;
+    saved_bb = LLVMGetInsertBlock(ctx->builder);
+    lexical_snapshot = llvm_lexical_registry_snapshot(ctx);
     ctx->current_function = fn;
     ctx->current_ret_type = ctx->type_i1;
 
@@ -188,6 +193,9 @@ llvm_emit_intent_decl(ASTNode *node, LLVMGenCtx *ctx)
     ret_bb = LLVMAppendBasicBlockInContext(ctx->context, fn, "intent.ret");
     LLVMPositionBuilderAtEnd(ctx->builder, entry_bb);
     llvm_scope_push(ctx);
+    if (ctx->has_error)
+        goto intent_emit_fail;
+    scope_pushed = true;
 
     llvm_emit_intent_entry_bindings(ctx, node, fn,
         participant_aliases, participant_types,
@@ -209,6 +217,15 @@ llvm_emit_intent_decl(ASTNode *node, LLVMGenCtx *ctx)
          * only during intent emission; never escapes. */
         completed_allocas = pgy_arena_calloc(&ctx->scratch,
             step_count * sizeof(LLVMValueRef));
+        if (completed_allocas == NULL) {
+            llvm_set_error_at_with_hints(ctx, node,
+                PGY_CODE_LLVM_OOM,
+                PGY_CAUSE_LLVM_MEMORY_EXHAUSTED,
+                PGY_FIX_REDUCE_UNIT_SIZE_OR_RAISE_LIMIT,
+                "LLVM intent completion allocation failed for '%s'",
+                intent_name != NULL ? intent_name : "(anonymous)");
+            goto intent_emit_fail;
+        }
         for (size_t i = 0; i < step_count; i++) {
             completed_allocas[i] = llvm_create_entry_alloca(ctx, ctx->type_i1, "__intent_step_done");
             LLVMBuildStore(ctx->builder, LLVMConstInt(ctx->type_i1, 0, 0), completed_allocas[i]);
@@ -280,10 +297,18 @@ llvm_emit_intent_decl(ASTNode *node, LLVMGenCtx *ctx)
              * at step end, never escapes. */
             saved_participant_ptrs = pgy_arena_calloc(&ctx->scratch,
                 step_ctx.who_alias_count * sizeof(LLVMValueRef));
-            if (saved_participant_ptrs != NULL)
-                rebound_aliases = llvm_emit_intent_step_rebind_bound_zone_aliases(
-                    ctx, node, step_ctx.zone_type_name, step_ctx.zone_alias,
-                    step_ctx.who_aliases, step_ctx.who_alias_count, saved_participant_ptrs);
+            if (saved_participant_ptrs == NULL) {
+                llvm_set_error_at_with_hints(ctx, step,
+                    PGY_CODE_LLVM_OOM,
+                    PGY_CAUSE_LLVM_MEMORY_EXHAUSTED,
+                    PGY_FIX_REDUCE_UNIT_SIZE_OR_RAISE_LIMIT,
+                    "LLVM intent participant rebind allocation failed for step '%s'",
+                    step_name != NULL ? step_name : "(anonymous-step)");
+                goto intent_emit_fail;
+            }
+            rebound_aliases = llvm_emit_intent_step_rebind_bound_zone_aliases(
+                ctx, node, step_ctx.zone_type_name, step_ctx.zone_alias,
+                step_ctx.who_aliases, step_ctx.who_alias_count, saved_participant_ptrs);
         }
 
         if (!llvm_emit_intent_predicate_check(ctx, fn, fail_bb,
@@ -445,26 +470,25 @@ llvm_emit_intent_decl(ASTNode *node, LLVMGenCtx *ctx)
     }
 
     llvm_scope_pop(ctx);
+    scope_pushed = false;
+    llvm_lexical_registry_restore(ctx, lexical_snapshot);
     /* completed_allocas is ctx->scratch-owned. */
     ctx->current_function = saved_fn;
     ctx->current_ret_type = saved_ret_type;
 
-    if (saved_fn != NULL) {
-        LLVMBasicBlockRef last = LLVMGetLastBasicBlock(saved_fn);
-        if (last != NULL)
-            LLVMPositionBuilderAtEnd(ctx->builder, last);
-    }
+    if (saved_bb != NULL)
+        LLVMPositionBuilderAtEnd(ctx->builder, saved_bb);
     return;
 
 intent_emit_fail:
+    if (scope_pushed)
+        llvm_scope_pop(ctx);
+    llvm_lexical_registry_restore(ctx, lexical_snapshot);
     /* completed_allocas is ctx->scratch-owned. */
     ctx->current_function = saved_fn;
     ctx->current_ret_type = saved_ret_type;
-    if (saved_fn != NULL) {
-        LLVMBasicBlockRef last = LLVMGetLastBasicBlock(saved_fn);
-        if (last != NULL)
-            LLVMPositionBuilderAtEnd(ctx->builder, last);
-    }
+    if (saved_bb != NULL)
+        LLVMPositionBuilderAtEnd(ctx->builder, saved_bb);
 }
 
 void

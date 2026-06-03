@@ -1,11 +1,32 @@
 #ifdef PGY_LLVM_ENABLED
 #include "llvm_internal.h"
 #include "llvm_stmt_parallel_names.h"
+#include "../parser/ast_analysis.h"
 #include "../parser/ast_api.h"
 
 /* =================================================================
  * Parallel / async / select statement emission
  * ================================================================= */
+
+static bool
+llvm_capture_entry_is_required(LLVMGenCtx *ctx,
+                               const ASTNode *body,
+                               LLVMScopeFrame *frame,
+                               int index)
+{
+    LLVMVarEntry *entry;
+
+    if (ctx == NULL || body == NULL || frame == NULL || index < 0
+        || index >= frame->count || frame->entries[index].name == NULL) {
+        return false;
+    }
+    if (!ast_contains_free_identifier_ref(body, frame->entries[index].name)) {
+        return false;
+    }
+
+    entry = llvm_scope_lookup(ctx, frame->entries[index].name);
+    return entry == &frame->entries[index];
+}
 
 void
 llvm_emit_parallel_block(ASTNode *node, LLVMGenCtx *ctx)
@@ -13,6 +34,17 @@ llvm_emit_parallel_block(ASTNode *node, LLVMGenCtx *ctx)
     size_t count = ast_parallel_task_count(node);
     if (count == 0)
         return;
+
+    LLVMFuncEntry *spawn_fn = llvm_lookup_function(ctx, "pgy_spawn_export");
+    LLVMFuncEntry *await_fn = llvm_lookup_function(ctx, "pgy_await_export");
+    if (spawn_fn == NULL || await_fn == NULL) {
+        llvm_set_error_at_with_hints(ctx, node,
+            PGY_CODE_LLVM_TYPE_UNSUPPORTED,
+            PGY_CAUSE_LLVM_TYPE_UNSUPPORTED,
+            PGY_FIX_INSPECT_MIR_INVENTORY,
+            "LLVM parallel block requires registered runtime functions 'pgy_spawn_export' and 'pgy_await_export'; sequential fallback is disabled");
+        return;
+    }
 
     typedef struct {
         const char *name;
@@ -28,13 +60,16 @@ llvm_emit_parallel_block(ASTNode *node, LLVMGenCtx *ctx)
 
     for (int i = 0; i < ctx->scope_depth; i++) {
         LLVMScopeFrame *frame = &ctx->scopes[i];
-        if (frame->count > 0
-            && capture_count > SIZE_MAX - (size_t)frame->count) {
-            llvm_set_error(ctx,
-                "LLVM parallel capture registry capacity overflow");
-            return;
+        for (int j = 0; j < frame->count; j++) {
+            if (!llvm_capture_entry_is_required(ctx, node, frame, j))
+                continue;
+            if (capture_count == SIZE_MAX) {
+                llvm_set_error(ctx,
+                    "LLVM parallel capture registry capacity overflow");
+                return;
+            }
+            capture_count++;
         }
-        capture_count += (size_t)frame->count;
     }
     if (capture_count > UINT_MAX) {
         llvm_set_error(ctx,
@@ -59,6 +94,19 @@ llvm_emit_parallel_block(ASTNode *node, LLVMGenCtx *ctx)
     for (int i = 0; i < ctx->scope_depth; i++) {
         LLVMScopeFrame *frame = &ctx->scopes[i];
         for (int j = 0; j < frame->count; j++) {
+            if (!llvm_capture_entry_is_required(ctx, node, frame, j))
+                continue;
+            if (frame->entries[j].alloca == NULL) {
+                llvm_set_error_at_with_hints(ctx, node,
+                    PGY_CODE_LLVM_TYPE_UNSUPPORTED,
+                    PGY_CAUSE_LLVM_TYPE_UNSUPPORTED,
+                    PGY_FIX_INSPECT_MIR_INVENTORY,
+                    "LLVM parallel capture requires storage-backed binding '%s'; type-only scope entries cannot cross a wrapper boundary",
+                    frame->entries[j].name != NULL
+                        ? frame->entries[j].name
+                        : "<binding>");
+                return;
+            }
             captured[n_captured++] = (CapturedVar){
                 frame->entries[j].name,
                 frame->entries[j].alloca,
@@ -146,6 +194,8 @@ llvm_emit_parallel_block(ASTNode *node, LLVMGenCtx *ctx)
         ctx->current_function = fn;
         ctx->current_ret_type = ctx->type_i8ptr;
 
+        LLVMLexicalRegistrySnapshot lexical_snapshot =
+            llvm_lexical_registry_snapshot(ctx);
         llvm_scope_push(ctx);
 
         LLVMValueRef arg0 = LLVMGetParam(fn, 0);
@@ -176,25 +226,15 @@ llvm_emit_parallel_block(ASTNode *node, LLVMGenCtx *ctx)
             LLVMBuildRet(ctx->builder, LLVMConstNull(ctx->type_i8ptr));
 
         llvm_scope_pop(ctx);
+        llvm_lexical_registry_restore(ctx, lexical_snapshot);
     }
 
     ctx->parallel_counter++;
 
     ctx->current_function = saved_fn;
     ctx->current_ret_type = saved_ret;
-    LLVMPositionBuilderAtEnd(ctx->builder, saved_bb);
-
-    LLVMFuncEntry *spawn_fn = llvm_lookup_function(ctx, "pgy_spawn_export");
-    LLVMFuncEntry *await_fn = llvm_lookup_function(ctx, "pgy_await_export");
-
-    if (spawn_fn == NULL || await_fn == NULL) {
-        llvm_set_error_at_with_hints(ctx, node,
-            PGY_CODE_LLVM_TYPE_UNSUPPORTED,
-            PGY_CAUSE_LLVM_TYPE_UNSUPPORTED,
-            PGY_FIX_INSPECT_MIR_INVENTORY,
-            "LLVM parallel block requires registered runtime functions 'pgy_spawn_export' and 'pgy_await_export'; sequential fallback is disabled");
-        return;
-    }
+    if (saved_bb != NULL)
+        LLVMPositionBuilderAtEnd(ctx->builder, saved_bb);
 
     LLVMValueRef *handles;
     if (count > SIZE_MAX / sizeof(*handles)) {
@@ -232,12 +272,21 @@ llvm_emit_async_block(ASTNode *node, LLVMGenCtx *ctx)
 {
     size_t statement_count = 0;
     ASTNode **statements = ast_async_block_statements(node, &statement_count);
+    LLVMFuncEntry *spawn_fn = llvm_lookup_function(ctx, "pgy_async_spawn_export");
+    LLVMFuncEntry *detach_fn = llvm_lookup_function(ctx, "pgy_async_detach_export");
+    if (spawn_fn == NULL || detach_fn == NULL) {
+        llvm_set_error_at_with_hints(ctx, node,
+            PGY_CODE_LLVM_TYPE_UNSUPPORTED,
+            PGY_CAUSE_LLVM_TYPE_UNSUPPORTED,
+            PGY_FIX_INSPECT_MIR_INVENTORY,
+            "LLVM async block requires registered runtime functions 'pgy_async_spawn_export' and 'pgy_async_detach_export'; synchronous fallback is disabled");
+        return;
+    }
 
     LLVMValueRef saved_fn = ctx->current_function;
     LLVMTypeRef saved_ret = ctx->current_ret_type;
     LLVMBasicBlockRef saved_bb = LLVMGetInsertBlock(ctx->builder);
 
-    int saved_parallel_counter = ctx->parallel_counter;
     typedef struct {
         const char *name;
         LLVMValueRef alloca;
@@ -251,13 +300,16 @@ llvm_emit_async_block(ASTNode *node, LLVMGenCtx *ctx)
     size_t n_captured = 0;
     for (int i = 0; i < ctx->scope_depth; i++) {
         LLVMScopeFrame *frame = &ctx->scopes[i];
-        if (frame->count > 0
-            && capture_count > SIZE_MAX - (size_t)frame->count) {
-            llvm_set_error(ctx,
-                "LLVM async capture registry capacity overflow");
-            return;
+        for (int j = 0; j < frame->count; j++) {
+            if (!llvm_capture_entry_is_required(ctx, node, frame, j))
+                continue;
+            if (capture_count == SIZE_MAX) {
+                llvm_set_error(ctx,
+                    "LLVM async capture registry capacity overflow");
+                return;
+            }
+            capture_count++;
         }
-        capture_count += (size_t)frame->count;
     }
     if (capture_count > UINT_MAX) {
         llvm_set_error(ctx,
@@ -281,6 +333,19 @@ llvm_emit_async_block(ASTNode *node, LLVMGenCtx *ctx)
     for (int i = 0; i < ctx->scope_depth; i++) {
         LLVMScopeFrame *frame = &ctx->scopes[i];
         for (int j = 0; j < frame->count; j++) {
+            if (!llvm_capture_entry_is_required(ctx, node, frame, j))
+                continue;
+            if (frame->entries[j].alloca == NULL) {
+                llvm_set_error_at_with_hints(ctx, node,
+                    PGY_CODE_LLVM_TYPE_UNSUPPORTED,
+                    PGY_CAUSE_LLVM_TYPE_UNSUPPORTED,
+                    PGY_FIX_INSPECT_MIR_INVENTORY,
+                    "LLVM async capture requires storage-backed binding '%s'; type-only scope entries cannot cross a wrapper boundary",
+                    frame->entries[j].name != NULL
+                        ? frame->entries[j].name
+                        : "<binding>");
+                return;
+            }
             captured[n_captured++] = (CapturedVar){
                 frame->entries[j].name,
                 frame->entries[j].alloca,
@@ -340,6 +405,8 @@ llvm_emit_async_block(ASTNode *node, LLVMGenCtx *ctx)
     LLVMPositionBuilderAtEnd(ctx->builder, entry);
     ctx->current_function = fn;
     ctx->current_ret_type = ctx->type_i8ptr;
+    LLVMLexicalRegistrySnapshot lexical_snapshot =
+        llvm_lexical_registry_snapshot(ctx);
     llvm_scope_push(ctx);
     if (has_captures) {
         LLVMValueRef arg0 = LLVMGetParam(fn, 0);
@@ -367,22 +434,12 @@ llvm_emit_async_block(ASTNode *node, LLVMGenCtx *ctx)
     if (LLVMGetBasicBlockTerminator(LLVMGetInsertBlock(ctx->builder)) == NULL)
         LLVMBuildRet(ctx->builder, LLVMConstNull(ctx->type_i8ptr));
     llvm_scope_pop(ctx);
+    llvm_lexical_registry_restore(ctx, lexical_snapshot);
 
     ctx->current_function = saved_fn;
     ctx->current_ret_type = saved_ret;
-    LLVMPositionBuilderAtEnd(ctx->builder, saved_bb);
-
-    LLVMFuncEntry *spawn_fn = llvm_lookup_function(ctx, "pgy_async_spawn_export");
-    LLVMFuncEntry *detach_fn = llvm_lookup_function(ctx, "pgy_async_detach_export");
-    if (spawn_fn == NULL || detach_fn == NULL) {
-        ctx->parallel_counter = saved_parallel_counter;
-        llvm_set_error_at_with_hints(ctx, node,
-            PGY_CODE_LLVM_TYPE_UNSUPPORTED,
-            PGY_CAUSE_LLVM_TYPE_UNSUPPORTED,
-            PGY_FIX_INSPECT_MIR_INVENTORY,
-            "LLVM async block requires registered runtime functions 'pgy_async_spawn_export' and 'pgy_async_detach_export'; synchronous fallback is disabled");
-        return;
-    }
+    if (saved_bb != NULL)
+        LLVMPositionBuilderAtEnd(ctx->builder, saved_bb);
 
     LLVMValueRef fn_ptr = LLVMBuildBitCast(ctx->builder, fn, ctx->type_i8ptr, llvm_tmp_name(ctx));
     LLVMValueRef spawn_args[] = { fn_ptr, ctx_i8ptr };

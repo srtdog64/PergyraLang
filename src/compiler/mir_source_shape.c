@@ -210,6 +210,14 @@ mir_instruction_source_column(const MIRInstruction *inst)
     return mir_instruction_has_source_location(inst) ? inst->source_column : 0;
 }
 
+uint32_t
+mir_instruction_source_stable_id(const MIRInstruction *inst)
+{
+    return mir_instruction_has_source_location(inst)
+        ? inst->source_stable_id
+        : 0;
+}
+
 bool
 mir_instruction_has_source_terminator_kind(const MIRInstruction *inst)
 {
@@ -353,22 +361,7 @@ mir_instruction_source_is_intent_step(const MIRInstruction *inst)
 bool
 mir_source_ast_type_is_cfg_container(ASTNodeType type)
 {
-    switch (type) {
-    case AST_WITH_STMT:
-    case AST_UNSAFE_BLOCK:
-    case AST_DEFER_STMT:
-    case AST_IF_STMT:
-    case AST_WHILE_LOOP:
-    case AST_FOR_LOOP:
-    case AST_SELECT_STMT:
-    case AST_MATCH_STMT:
-    case AST_BREAK:
-    case AST_CONTINUE:
-    case AST_RETURN:
-        return true;
-    default:
-        return false;
-    }
+    return mir_stmt_ast_type_is_cfg_container(type);
 }
 
 bool

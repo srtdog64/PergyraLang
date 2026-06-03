@@ -41,6 +41,51 @@ test_mir_lowering_part_d(void)
         hir_destroy(hir);
     }
 
+    TEST("MIR declaration headers preserve domain slot classification metadata");
+    {
+        const char *src =
+            "subject Buyer { }\n"
+            "tobject ReceiptExport { let id: Int; }\n"
+            "zone PaymentZone {\n"
+            "    subject slot buyer: Buyer\n"
+            "    tobject slot receipt_out: ReceiptExport\n"
+            "}\n";
+        HIRProgram *hir = NULL;
+        RIRProgram *rir = NULL;
+        MIRProgram *mir = NULL;
+        const MIRDeclHeader *zone = NULL;
+        const MIRDeclField *buyer = NULL;
+        const MIRDeclField *receipt = NULL;
+        bool ok = lower_mir_from_source(src, &hir, &rir, &mir);
+        if (ok && mir != NULL)
+            zone = mir_find_decl_header(mir, "PaymentZone");
+        if (zone != NULL) {
+            buyer = mir_decl_header_field(zone, 0);
+            receipt = mir_decl_header_field(zone, 1);
+        }
+        EXPECT(ok
+               && zone != NULL
+               && mir_decl_header_field_count(zone) == 2
+               && buyer != NULL
+               && receipt != NULL
+               && mir_decl_field_kind_or(buyer, MIR_DECL_FIELD_UNKNOWN)
+                    == MIR_DECL_FIELD_DOMAIN_SLOT
+               && mir_decl_field_kind_or(receipt, MIR_DECL_FIELD_UNKNOWN)
+                    == MIR_DECL_FIELD_DOMAIN_SLOT
+               && mir_decl_field_is_subject_like(buyer)
+               && !mir_decl_field_is_tobject_like(buyer)
+               && mir_decl_field_is_binding_like(buyer)
+               && !mir_decl_field_is_subject_like(receipt)
+               && mir_decl_field_is_tobject_like(receipt)
+               && !mir_decl_field_is_binding_like(receipt)
+               && mir_decl_field_type_name(receipt) != NULL
+               && strcmp(mir_decl_field_type_name(receipt), "ReceiptExport") == 0
+               && mir_validate(mir, NULL));
+        mir_destroy(mir);
+        rir_destroy(rir);
+        hir_destroy(hir);
+    }
+
     TEST("MIR validator rejects declaration field owner metadata drift");
     {
         const char *src =

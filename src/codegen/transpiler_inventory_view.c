@@ -164,6 +164,14 @@ transpiler_active_has_main_function(const TranspilerCtx *ctx)
     return ctx != NULL && mir_program_has_main_function(ctx->mir);
 }
 
+const char *
+transpiler_active_main_function_name(const TranspilerCtx *ctx)
+{
+    if (ctx == NULL || ctx->mir == NULL)
+        return NULL;
+    return mir_program_main_function_name(ctx->mir);
+}
+
 bool
 transpiler_active_has_top_level_exec(const TranspilerCtx *ctx)
 {

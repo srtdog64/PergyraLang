@@ -6,6 +6,12 @@ mir_program_has_main_function(const MIRProgram *mir)
     return mir != NULL && mir->has_main_function;
 }
 
+const char *
+mir_program_main_function_name(const MIRProgram *mir)
+{
+    return mir != NULL ? mir->main_function_name : NULL;
+}
+
 bool
 mir_program_has_top_level_exec(const MIRProgram *mir)
 {

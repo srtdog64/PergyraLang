@@ -72,6 +72,13 @@ llvm_emit_role_method_forward_decls_metadata_first(
 
         ptypes = pgy_arena_calloc(&ctx->scratch,
             (user_pc + 1) * sizeof(LLVMTypeRef));
+        if (ptypes == NULL) {
+            llvm_set_error(ctx,
+                "LLVM role method parameter allocation failed for '%s.%s'",
+                role_name,
+                mname != NULL ? mname : "<anonymous>");
+            return;
+        }
         ptypes[0] = ctx->type_i8ptr;
         for (size_t k = 0; k < pc; k++) {
             FuncParam *p =

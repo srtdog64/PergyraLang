@@ -7,6 +7,7 @@
 #include "transpiler_context.h"
 #include "transpiler_expr_type_infer.h"
 #include "transpiler_format.h"
+#include "transpiler_mir_emit_state.h"
 #include "transpiler_symbols.h"
 #include "transpiler_type_render.h"
 #include "transpiler_type_require.h"
@@ -193,7 +194,9 @@ emit_lambda_expr(ASTNode *node, TranspilerCtx *ctx)
     const char *return_type = NULL;
     char inferred_return_c_type_buf[256];
     char *return_type_owned = NULL;
+    int saved_slot_var_count = ctx->slot_var_count;
     int saved_typed_var_count = ctx->typed_var_count;
+    int saved_alias_var_count = ctx->alias_var_count;
 
     for (size_t i = 0; i < ast_lambda_param_count(node); i++) {
         ASTNode *param = ast_lambda_param(node, i);
@@ -258,12 +261,16 @@ emit_lambda_expr(ASTNode *node, TranspilerCtx *ctx)
             PGY_CAUSE_C_TYPE_UNSUPPORTED,
             PGY_FIX_USE_LLVM_BACKEND_OR_EXTEND_TRANSPILER,
             "cannot determine lambda return type; explicit return type is required for non-block lambda bodies");
-        ctx->typed_var_count = saved_typed_var_count;
+        transpiler_restore_local_binding_counts_local(
+            ctx, saved_slot_var_count, saved_typed_var_count,
+            saved_alias_var_count);
         return pergyra_strdup("0");
     }
     return_type_owned = pergyra_strdup(return_type);
     if (return_type_owned == NULL) {
-        ctx->typed_var_count = saved_typed_var_count;
+        transpiler_restore_local_binding_counts_local(
+            ctx, saved_slot_var_count, saved_typed_var_count,
+            saved_alias_var_count);
         return pergyra_strdup("0");
     }
     return_type = return_type_owned;
@@ -271,7 +278,9 @@ emit_lambda_expr(ASTNode *node, TranspilerCtx *ctx)
     char *lambda_name = strdup_fmt("pgy_lambda_%d", lambda_id);
     if (lambda_name == NULL) {
         free(return_type_owned);
-        ctx->typed_var_count = saved_typed_var_count;
+        transpiler_restore_local_binding_counts_local(
+            ctx, saved_slot_var_count, saved_typed_var_count,
+            saved_alias_var_count);
         return pergyra_strdup("0");
     }
 
@@ -281,7 +290,9 @@ emit_lambda_expr(ASTNode *node, TranspilerCtx *ctx)
             return_type, lambda_name, false)) {
         free(lambda_name);
         free(return_type_owned);
-        ctx->typed_var_count = saved_typed_var_count;
+        transpiler_restore_local_binding_counts_local(
+            ctx, saved_slot_var_count, saved_typed_var_count,
+            saved_alias_var_count);
         return pergyra_strdup("0");
     }
 
@@ -302,6 +313,8 @@ emit_lambda_expr(ASTNode *node, TranspilerCtx *ctx)
 
     codebuf_write(ctx->helpers, "}\n");
     free(return_type_owned);
-    ctx->typed_var_count = saved_typed_var_count;
+    transpiler_restore_local_binding_counts_local(
+        ctx, saved_slot_var_count, saved_typed_var_count,
+        saved_alias_var_count);
     return lambda_name;
 }

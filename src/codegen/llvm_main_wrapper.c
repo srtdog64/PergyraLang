@@ -8,6 +8,7 @@
 #ifdef PGY_LLVM_ENABLED
 
 #include "llvm_internal.h"
+#include <string.h>
 
 static bool
 llvm_main_requires_thread_pool(const LLVMGenCtx *ctx)
@@ -128,6 +129,12 @@ llvm_emit_main_wrapper(LLVMGenCtx *ctx)
         return;
 
     LLVMFuncEntry *user_lowercase = llvm_lookup_function(ctx, "main");
+    const char *active_main_name = llvm_active_main_function_name(ctx);
+
+    if (user_lowercase != NULL) {
+        user_lowercase->name = "__pgy_user_main_lowercase";
+        LLVMSetValueName(user_lowercase->fn, "__pgy_user_main_lowercase");
+    }
 
     if (!llvm_active_has_mir(ctx)
         && llvm_lookup_function(ctx, "Main") == NULL
@@ -141,6 +148,7 @@ llvm_emit_main_wrapper(LLVMGenCtx *ctx)
     bool needs_thread_pool = false;
 
     LLVMFuncEntry *main_user = NULL;
+    const char *emitted_main_name = active_main_name;
     synthetic_executable_func = llvm_active_synthetic_executable_func(ctx);
     has_top_level_exec = llvm_active_has_top_level_exec(ctx);
     has_main_function = llvm_active_has_main_function(ctx)
@@ -148,20 +156,23 @@ llvm_emit_main_wrapper(LLVMGenCtx *ctx)
         || user_lowercase != NULL;
     needs_thread_pool = llvm_main_requires_thread_pool(ctx);
 
+    if (emitted_main_name != NULL
+        && strcmp(emitted_main_name, "main") == 0) {
+        emitted_main_name = "__pgy_user_main_lowercase";
+    }
     if (has_main_function) {
-        main_user = llvm_lookup_function(ctx, "Main");
-        if (main_user == NULL) {
+        if (emitted_main_name != NULL)
+            main_user = llvm_lookup_function(ctx, emitted_main_name);
+        if (main_user == NULL)
+            main_user = llvm_lookup_function(ctx, "Main");
+        if (main_user == NULL)
             main_user = user_lowercase;
-        }
     }
 
-    if (main_user != NULL && strcmp(main_user->name, "main") == 0) {
-        main_user->name = "Main";
-        LLVMSetValueName(main_user->fn, "Main");
-    }
     if (has_main_function && main_user == NULL) {
         llvm_set_mir_inventory_missing(ctx,
-            "MIR-only LLVM path missing registered executable function 'Main'");
+            "MIR-only LLVM path missing registered executable function '%s'",
+            emitted_main_name != NULL ? emitted_main_name : "Main");
         return;
     }
     if (has_top_level_exec && synthetic_executable_func == NULL) {
@@ -182,6 +193,13 @@ llvm_emit_main_wrapper(LLVMGenCtx *ctx)
     if (main_fn == NULL)
         return;
 
+    LLVMValueRef saved_fn = ctx->current_function;
+    LLVMTypeRef saved_ret = ctx->current_ret_type;
+    LLVMBasicBlockRef saved_bb = LLVMGetInsertBlock(ctx->builder);
+    LLVMLexicalRegistrySnapshot lexical_snapshot =
+        llvm_lexical_registry_snapshot(ctx);
+    bool scope_pushed = false;
+
     LLVMSetLinkage(main_fn, LLVMExternalLinkage);
     ctx->current_function = main_fn;
     ctx->current_ret_type = ctx->type_i32;
@@ -191,30 +209,39 @@ llvm_emit_main_wrapper(LLVMGenCtx *ctx)
     LLVMPositionBuilderAtEnd(ctx->builder, entry);
 
     if (!llvm_main_emit_thread_pool_init(ctx, needs_thread_pool))
-        return;
+        goto restore_state;
 
     llvm_scope_push(ctx);
+    if (ctx->has_error)
+        goto restore_state;
+    scope_pushed = true;
 
-    if (!llvm_main_emit_event_initializers(ctx)) {
-        llvm_scope_pop(ctx);
-        return;
-    }
+    if (!llvm_main_emit_event_initializers(ctx))
+        goto restore_state;
     if (has_main_function)
         llvm_main_emit_user_main(ctx, main_user);
-    if (!llvm_main_emit_top_level_exec(ctx, synthetic_executable_func)) {
-        llvm_scope_pop(ctx);
-        return;
-    }
+    if (!llvm_main_emit_top_level_exec(ctx, synthetic_executable_func))
+        goto restore_state;
 
     llvm_scope_pop(ctx);
+    scope_pushed = false;
 
     if (LLVMGetBasicBlockTerminator(LLVMGetInsertBlock(ctx->builder)) == NULL) {
         if (!llvm_main_emit_thread_pool_shutdown(ctx, needs_thread_pool))
-            return;
+            goto restore_state;
         LLVMBuildRet(ctx->builder, LLVMConstInt(ctx->type_i32, 0, 0));
     }
 
     llvm_mark_function_as_used(ctx, "main");
+
+restore_state:
+    if (scope_pushed)
+        llvm_scope_pop(ctx);
+    llvm_lexical_registry_restore(ctx, lexical_snapshot);
+    ctx->current_function = saved_fn;
+    ctx->current_ret_type = saved_ret;
+    if (saved_bb != NULL)
+        LLVMPositionBuilderAtEnd(ctx->builder, saved_bb);
 }
 
 #endif

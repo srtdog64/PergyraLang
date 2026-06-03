@@ -211,6 +211,13 @@ llvm_emit_domain_method_forward_decls(LLVMGenCtx *ctx,
 
         ptypes = pgy_arena_calloc(&ctx->scratch,
             (user_pc + 1) * sizeof(LLVMTypeRef));
+        if (ptypes == NULL) {
+            llvm_set_error(ctx,
+                "LLVM domain method parameter allocation failed for '%s.%s'",
+                decl_name,
+                mname != NULL ? mname : "<anonymous>");
+            return;
+        }
         ptypes[0] = LLVMPointerType(struct_ty, 0);
         for (size_t k = 0; k < pc; k++) {
             FuncParam *p =

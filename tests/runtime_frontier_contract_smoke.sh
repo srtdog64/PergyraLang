@@ -275,6 +275,7 @@ require_terms "frontier policy source of truth" "$ROOT_DIR/src/runtime/pgy_front
     "pgy_frontier_projection_pass_limit" \
     "pgy_frontier_zone_pass_limit" \
     "pgy_frontier_world_pass_limit" \
+    "pgy_frontier_embedded_zone_member_count" \
     "pgy_frontier_world_transitive_pass_limit" \
     "embedded_zone_frontier_count" \
     "pgy_frontier_world_derived_pass_limit" \
@@ -305,6 +306,7 @@ require_terms "codegen frontier policy compatibility wrapper implementation" "$R
     "pgy_frontier_world_derived_pass_limit" \
     "pgy_frontier_world_transitive_pass_limit" \
     "pgy_domain_world_embedded_frontier_count_from_zone_types" \
+    "pgy_frontier_embedded_zone_member_count" \
     "ast_zone_states(zone_decl, &state_count)" \
     "ast_zone_layer_slots(zone_decl, &layer_slot_count)" \
     "ast_world_zones(world_decl, &zone_count)" \
@@ -317,6 +319,7 @@ require_terms "frontier runtime policy smoke" "$ROOT_DIR/tests/runtime_frontier_
     "PGY_FRONTIER_PASS_LIMIT_FACT_COUNT" \
     "PGY_FRONTIER_OVERFLOW_REASON_FACT_COUNT" \
     "PGY_FRONTIER_REASON_WORLD_TRANSITIVE_OVERFLOW" \
+    "pgy_frontier_embedded_zone_member_count" \
     "pgy_frontier_world_transitive_pass_limit" \
     "pgy_domain_zone_frontier_pass_limit" \
     "pgy_domain_projection_frontier_pass_limit" \

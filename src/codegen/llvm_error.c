@@ -203,6 +203,24 @@ llvm_set_mir_intent_carrier_missing(LLVMGenCtx *ctx, const char *fmt, ...)
     va_end(args);
 }
 
+void
+llvm_set_mir_memory_exhausted(LLVMGenCtx *ctx, const char *fmt, ...)
+{
+    if (ctx->has_error)
+        return;
+    ctx->has_error = true;
+    ctx->error_line = 0;
+    ctx->error_column = 0;
+    ctx->error_code = PGY_CODE_LLVM_OOM;
+    ctx->error_cause_ir = PGY_CAUSE_LLVM_MEMORY_EXHAUSTED;
+    ctx->error_fix_source = PGY_FIX_REDUCE_UNIT_SIZE_OR_RAISE_LIMIT;
+
+    va_list args;
+    va_start(args, fmt);
+    vsnprintf(ctx->error_msg, sizeof(ctx->error_msg), fmt, args);
+    va_end(args);
+}
+
 LLVMGenResult *
 llvm_result_error(const char *message)
 {

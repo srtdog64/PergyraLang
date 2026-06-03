@@ -126,7 +126,6 @@ llvm_domain_struct_register_zone_fields(LLVMGenCtx *ctx,
     LLVMHostedDomainSlotView slot_view =
         llvm_hosted_domain_slot_view_from_decl(ctx, decl_name, stmt);
     size_t domain_slot_count = slot_view.count;
-    ASTNode **domain_slots = slot_view.ast_compat_slots;
     LLVMHostedSharedFieldView shared_view =
         llvm_hosted_shared_field_view_from_decl(ctx, decl_name, stmt);
     LLVMHostedZoneLayerSlotView layer_view =
@@ -245,9 +244,10 @@ llvm_domain_struct_register_zone_fields(LLVMGenCtx *ctx,
                 ast_zone_state_name(state)))
             return false;
     }
-    llvm_domain_add_projection_state_fields(ctx, entry, ftypes,
-        &field_index, domain_slots, domain_slot_count, refreshes,
-        refresh_count);
+    if (!llvm_domain_add_projection_state_fields(ctx, entry, ftypes,
+            &field_index, &slot_view, refreshes, refresh_count)) {
+        return false;
+    }
     llvm_class_add_field(entry, pergyra_strdup("__sync_generation"),
         ftypes[field_index], field_index);
     return true;
@@ -415,8 +415,6 @@ llvm_domain_struct_register_default_fields(LLVMGenCtx *ctx,
                                            ASTNode *stmt,
                                            LLVMClassTypeEntry *entry,
                                            LLVMTypeRef *ftypes,
-                                           ASTNode **slots,
-                                           size_t slot_count,
                                            ASTNode **refreshes,
                                            size_t refresh_count)
 {
@@ -426,15 +424,12 @@ llvm_domain_struct_register_default_fields(LLVMGenCtx *ctx,
     LLVMHostedDomainSlotView slot_view =
         llvm_hosted_domain_slot_view_from_decl(ctx, decl_name, stmt);
     size_t domain_slot_count = slot_view.count;
-    ASTNode **domain_slots = slot_view.ast_compat_slots;
     LLVMHostedRoleSlotView role_view =
         llvm_hosted_role_slot_view_from_decl(ctx, decl_name, stmt);
     int field_index = 0;
 
     if (stmt->type == AST_RELATION_DECL || stmt->type == AST_EFFECT_DECL)
         entry->domain_kind = LLVM_DOMAIN_PROJECTION;
-    (void) slots;
-    (void) slot_count;
     if (llvm_hosted_domain_slot_view_missing_mir_metadata(&slot_view)) {
         llvm_set_mir_inventory_missing(ctx,
             "MIR-only LLVM path missing domain-slot metadata for '%s'",
@@ -474,9 +469,10 @@ llvm_domain_struct_register_default_fields(LLVMGenCtx *ctx,
         field_index++;
     }
     if (stmt->type == AST_RELATION_DECL || stmt->type == AST_EFFECT_DECL) {
-        llvm_domain_add_projection_state_fields(ctx, entry, ftypes,
-            &field_index, domain_slots, domain_slot_count, refreshes,
-            refresh_count);
+        if (!llvm_domain_add_projection_state_fields(ctx, entry, ftypes,
+                &field_index, &slot_view, refreshes, refresh_count)) {
+            return false;
+        }
     }
     return true;
 }
@@ -486,8 +482,6 @@ llvm_domain_struct_register_fields(LLVMGenCtx *ctx,
                                    ASTNode *stmt,
                                    LLVMClassTypeEntry *entry,
                                    LLVMTypeRef *ftypes,
-                                   ASTNode **slots,
-                                   size_t slot_count,
                                    ASTNode **refreshes,
                                    size_t refresh_count)
 {
@@ -502,7 +496,7 @@ llvm_domain_struct_register_fields(LLVMGenCtx *ctx,
     if (stmt->type == AST_WORLD_DECL)
         return llvm_domain_struct_register_world_fields(ctx, stmt, entry, ftypes);
     return llvm_domain_struct_register_default_fields(ctx, stmt, entry, ftypes,
-        slots, slot_count, refreshes, refresh_count);
+        refreshes, refresh_count);
 }
 
 #endif /* PGY_LLVM_ENABLED */

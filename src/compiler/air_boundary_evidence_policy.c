@@ -57,6 +57,19 @@ air_boundary_requires_hir_evidence(const AIRBoundaryNode *boundary)
 }
 
 bool
+air_boundary_requires_hir_cfg_for_program(const AIRProgram *air,
+                                          const AIRBoundaryNode *boundary)
+{
+    if (boundary == NULL)
+        return false;
+    if (air_boundary_requires_hir_evidence(boundary))
+        return true;
+    return air_has_hir_input(air)
+        && (boundary->kind == AIR_BOUNDARY_ZONE
+            || boundary->kind == AIR_BOUNDARY_WORLD);
+}
+
+bool
 air_boundary_requires_rir_evidence(const AIRBoundaryNode *boundary)
 {
     const AIRBoundaryEvidencePolicy *policy;

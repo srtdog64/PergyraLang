@@ -41,8 +41,6 @@ llvm_zone_sync_emit_action_causes(ASTNode *stmt,
     }
 
     for (size_t i = 0; i < layer_view.count; i++) {
-        ASTNode *slot =
-            llvm_hosted_zone_layer_slot_view_source_ast(&layer_view, i);
         const char *layer_name;
         char cause_field[256];
         char active_field[256];
@@ -56,8 +54,7 @@ llvm_zone_sync_emit_action_causes(ASTNode *stmt,
         LLVMBasicBlockRef next_bb;
 
         layer_name = llvm_hosted_zone_layer_slot_view_name(&layer_view, i);
-        if (slot == NULL || slot->type != AST_ZONE_LAYER_SLOT
-            || ast_zone_layer_slot_is_relation(slot)
+        if (llvm_hosted_zone_layer_slot_view_is_relation(&layer_view, i)
             || layer_name == NULL) {
             continue;
         }

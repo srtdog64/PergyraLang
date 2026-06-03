@@ -10,35 +10,6 @@
 #include "llvm_internal.h"
 #include "../parser/ast_api.h"
 
-bool
-llvm_mir_ast_type_is_cfg_container(ASTNodeType type)
-{
-    switch (type) {
-    case AST_WITH_STMT:
-    case AST_UNSAFE_BLOCK:
-    case AST_DEFER_STMT:
-    case AST_IF_STMT:
-    case AST_WHILE_LOOP:
-    case AST_FOR_LOOP:
-    case AST_SELECT_STMT:
-    case AST_MATCH_STMT:
-    case AST_BREAK:
-    case AST_CONTINUE:
-    case AST_RETURN:
-        return true;
-    default:
-        return false;
-    }
-}
-
-bool
-llvm_mir_stmt_is_cfg_container(ASTNode *node)
-{
-    if (node == NULL)
-        return false;
-    return llvm_mir_ast_type_is_cfg_container(node->type);
-}
-
 static ASTNode *
 llvm_mir_recv_expr_channel(ASTNode *node)
 {

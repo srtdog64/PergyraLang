@@ -75,6 +75,15 @@ llvm_scope_declare(LLVMGenCtx *ctx, const char *name,
     if (ctx == NULL || ctx->has_error)
         return;
 
+    if (name == NULL || type == NULL) {
+        llvm_set_error_with_hints(ctx,
+            PGY_CODE_LLVM_TYPE_UNSUPPORTED,
+            PGY_CAUSE_LLVM_TYPE_UNSUPPORTED,
+            PGY_FIX_INSPECT_MIR_INVENTORY,
+            "LLVM scope declaration requires concrete name and type metadata");
+        return;
+    }
+
     if (ctx->scope_depth == 0) {
         llvm_set_error_with_hints(ctx, PGY_CODE_LLVM_SCOPE_LIMIT, PGY_CAUSE_LLVM_SCOPE_CAPACITY, PGY_FIX_REFACTOR_OR_RAISE_LIMIT, "Variable declaration outside active scope");
         return;
@@ -152,6 +161,57 @@ llvm_scope_lookup(LLVMGenCtx *ctx, const char *name)
         }
     }
     return NULL;
+}
+
+LLVMLexicalRegistrySnapshot
+llvm_lexical_registry_snapshot(LLVMGenCtx *ctx)
+{
+    LLVMLexicalRegistrySnapshot snapshot;
+
+    memset(&snapshot, 0, sizeof(snapshot));
+    if (ctx == NULL)
+        return snapshot;
+
+    snapshot.slot_var_count = ctx->slot_var_count;
+    snapshot.view_var_count = ctx->view_var_count;
+    snapshot.device_slot_var_count = ctx->device_slot_var_count;
+    snapshot.future_var_count = ctx->future_var_count;
+    snapshot.channel_var_count = ctx->channel_var_count;
+    snapshot.rc_var_count = ctx->rc_var_count;
+    snapshot.weak_var_count = ctx->weak_var_count;
+    snapshot.var_class_count = ctx->var_class_count;
+    snapshot.projection_borrow_count = ctx->projection_borrow_count;
+    snapshot.array_var_count = ctx->array_var_count;
+    snapshot.list_var_count = ctx->list_var_count;
+    snapshot.set_var_count = ctx->set_var_count;
+    snapshot.queue_var_count = ctx->queue_var_count;
+    snapshot.map_var_count = ctx->map_var_count;
+    snapshot.callable_var_count = ctx->callable_var_count;
+    return snapshot;
+}
+
+void
+llvm_lexical_registry_restore(LLVMGenCtx *ctx,
+                              LLVMLexicalRegistrySnapshot snapshot)
+{
+    if (ctx == NULL)
+        return;
+
+    ctx->slot_var_count = snapshot.slot_var_count;
+    ctx->view_var_count = snapshot.view_var_count;
+    ctx->device_slot_var_count = snapshot.device_slot_var_count;
+    ctx->future_var_count = snapshot.future_var_count;
+    ctx->channel_var_count = snapshot.channel_var_count;
+    ctx->rc_var_count = snapshot.rc_var_count;
+    ctx->weak_var_count = snapshot.weak_var_count;
+    ctx->var_class_count = snapshot.var_class_count;
+    ctx->projection_borrow_count = snapshot.projection_borrow_count;
+    ctx->array_var_count = snapshot.array_var_count;
+    ctx->list_var_count = snapshot.list_var_count;
+    ctx->set_var_count = snapshot.set_var_count;
+    ctx->queue_var_count = snapshot.queue_var_count;
+    ctx->map_var_count = snapshot.map_var_count;
+    ctx->callable_var_count = snapshot.callable_var_count;
 }
 
 void

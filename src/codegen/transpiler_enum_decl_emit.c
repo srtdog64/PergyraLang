@@ -164,7 +164,7 @@ emit_enum_decl_stmt(ASTNode *node, TranspilerCtx *ctx)
             return;
         }
         method_name = transpiler_mir_decl_method_name(method_meta);
-        mir_method = transpiler_hosted_method_view_routine(ctx, &method_view, i);
+        mir_method = transpiler_mir_decl_method_routine(ctx, method_meta);
         if (method == NULL && mir_method != NULL)
             method = transpiler_mir_routine_source_ast_of_type(
                 mir_method, MIR_SCOPE_METHOD, AST_FUNC_DECL);

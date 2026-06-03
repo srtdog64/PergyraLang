@@ -194,15 +194,6 @@ llvm_mir_decl_method_routine(const LLVMGenCtx *ctx,
     return llvm_routine_inventory_get(&inventory, routine_index);
 }
 
-const MIRRoutine *
-llvm_hosted_method_view_routine(const LLVMGenCtx *ctx,
-                                const LLVMHostedMethodView *view,
-                                size_t index)
-{
-    return llvm_mir_decl_method_routine(
-        ctx, llvm_hosted_method_view_metadata(view, index));
-}
-
 ASTNode *
 llvm_find_host_method_decl_in_context(const LLVMGenCtx *ctx,
                                       const char *host_type_name,

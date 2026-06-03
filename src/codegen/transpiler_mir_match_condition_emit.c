@@ -3,6 +3,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <stdint.h>
 
 #include "../common/string_compat.h"
 #include "../parser/ast_api.h"
@@ -41,14 +42,14 @@ transpiler_mir_set_payload_binding_name(TranspilerCtx *ctx,
 static bool
 transpiler_mir_remap_payload_binding(TranspilerCtx *ctx,
                                      TranspilerSSANameMap *ssa_map,
-                                     ASTNode *case_node,
+                                     uint32_t case_stable_id,
                                      const char *binding)
 {
     char emitted_name[256];
 
     if (binding == NULL || strcmp(binding, "_") == 0)
         return true;
-    transpiler_mir_match_binding_name(case_node, binding,
+    transpiler_mir_match_binding_name(case_stable_id, binding,
                                       emitted_name, sizeof(emitted_name));
     return transpiler_mir_set_payload_binding_name(ctx, ssa_map,
                                                    binding, emitted_name);
@@ -57,7 +58,8 @@ transpiler_mir_remap_payload_binding(TranspilerCtx *ctx,
 static bool
 transpiler_mir_remap_case_bindings(TranspilerCtx *ctx,
                                    TranspilerSSANameMap *ssa_map,
-                                   ASTNode *case_node)
+                                   ASTNode *case_node,
+                                   uint32_t case_stable_id)
 {
     ASTNode *pattern_node;
     const char *kind = NULL;
@@ -72,7 +74,7 @@ transpiler_mir_remap_case_bindings(TranspilerCtx *ctx,
         || transpiler_mir_is_result_destructor(pattern_node, &kind, &binding)) {
         (void)kind;
         return transpiler_mir_remap_payload_binding(ctx, ssa_map,
-                                                    case_node, binding);
+                                                    case_stable_id, binding);
     }
 
     {
@@ -96,7 +98,7 @@ transpiler_mir_remap_case_bindings(TranspilerCtx *ctx,
                 if (enum_bindings == NULL)
                     continue;
                 if (!transpiler_mir_remap_payload_binding(
-                        ctx, ssa_map, case_node, enum_bindings[i])) {
+                        ctx, ssa_map, case_stable_id, enum_bindings[i])) {
                     return false;
                 }
             }
@@ -120,6 +122,7 @@ transpiler_mir_emit_match_case_body_binding(CodeBuf *buf,
     char *subject;
     const char *kind = NULL;
     const char *binding = NULL;
+    uint32_t case_stable_id;
 
     if (buf == NULL || func_decl == NULL || routine == NULL
         || block == NULL || ctx == NULL) {
@@ -129,6 +132,7 @@ transpiler_mir_emit_match_case_body_binding(CodeBuf *buf,
     if (branch_inst == NULL)
         return true;
     case_node = mir_instruction_source_payload(branch_inst);
+    case_stable_id = mir_instruction_source_stable_id(branch_inst);
     if (case_node == NULL || case_node->type != AST_MATCH_CASE)
         return true;
     pattern_node = ast_match_case_pattern(case_node);
@@ -147,7 +151,7 @@ transpiler_mir_emit_match_case_body_binding(CodeBuf *buf,
         || transpiler_mir_is_result_destructor(pattern_node, &kind, &binding)) {
         if (binding != NULL) {
             char emitted_name[256];
-            transpiler_mir_match_binding_name(case_node, binding,
+            transpiler_mir_match_binding_name(case_stable_id, binding,
                                               emitted_name,
                                               sizeof(emitted_name));
             if (ast_match_case_guard(case_node) != NULL) {
@@ -208,7 +212,8 @@ transpiler_mir_emit_match_case_body_binding(CodeBuf *buf,
                     }
                     bt_c_type = bt_buf;
                 }
-                transpiler_mir_match_binding_name(case_node, binding_name,
+                transpiler_mir_match_binding_name(case_stable_id,
+                                                  binding_name,
                                                   emitted_name,
                                                   sizeof(emitted_name));
                 write_indent_to(buf, ctx->indent);
@@ -258,7 +263,7 @@ transpiler_mir_remap_active_match_bindings(ASTNode *func_decl,
             }
             case_node = mir_instruction_source_payload(inst);
             if (!transpiler_mir_remap_case_bindings(ctx, ssa_map,
-                                                    case_node)) {
+                    case_node, mir_instruction_source_stable_id(inst))) {
                 return false;
             }
         }
@@ -268,19 +273,26 @@ transpiler_mir_remap_active_match_bindings(ASTNode *func_decl,
 
 char *
 transpiler_mir_render_match_case_condition(ASTNode *func_decl,
-                                           ASTNode *case_node,
+                                           const MIRInstruction *inst,
                                            TranspilerCtx *ctx,
                                            TranspilerSSANameMap *ssa_map)
 {
+    ASTNode *case_node;
     ASTNode *subject_node;
     char *subject;
     char *cond = NULL;
     char *guard = NULL;
     char *guard_payload_assign = NULL;
     bool has_guard;
+    uint32_t case_stable_id;
 
-    if (func_decl == NULL || case_node == NULL || ctx == NULL
-        || func_decl->type != AST_FUNC_DECL || case_node->type != AST_MATCH_CASE) {
+    if (func_decl == NULL || inst == NULL || ctx == NULL
+        || func_decl->type != AST_FUNC_DECL) {
+        return NULL;
+    }
+    case_node = mir_instruction_source_payload(inst);
+    case_stable_id = mir_instruction_source_stable_id(inst);
+    if (case_node == NULL || case_node->type != AST_MATCH_CASE) {
         return NULL;
     }
     has_guard = ast_match_case_guard(case_node) != NULL;
@@ -322,7 +334,7 @@ transpiler_mir_render_match_case_condition(ASTNode *func_decl,
                 const char *field =
                     transpiler_mir_match_payload_field(kind);
                 char emitted_name[256];
-                transpiler_mir_match_binding_name(case_node, binding,
+                transpiler_mir_match_binding_name(case_stable_id, binding,
                                                   emitted_name,
                                                   sizeof(emitted_name));
                 if (!transpiler_mir_declare_guard_payload_binding(
@@ -355,7 +367,7 @@ transpiler_mir_render_match_case_condition(ASTNode *func_decl,
                 const char *field =
                     transpiler_mir_match_payload_field(kind);
                 char emitted_name[256];
-                transpiler_mir_match_binding_name(case_node, binding,
+                transpiler_mir_match_binding_name(case_stable_id, binding,
                                                   emitted_name,
                                                   sizeof(emitted_name));
                 if (!transpiler_mir_declare_guard_payload_binding(

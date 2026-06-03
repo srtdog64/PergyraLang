@@ -93,6 +93,7 @@ llvm_resolve_callee_entry(LLVMGenCtx *ctx, const char *callee_name,
         GenericParams *gp;
         int saved_subst;
         LLVMBasicBlockRef saved_bb;
+        LLVMLexicalRegistrySnapshot lexical_snapshot;
         LLVMValueRef saved_fn;
         LLVMTypeRef saved_ret;
         LLVMTypeRef ret = ctx->type_void;
@@ -102,8 +103,6 @@ llvm_resolve_callee_entry(LLVMGenCtx *ctx, const char *callee_name,
         LLVMTypeRef ft;
         LLVMValueRef mono_fn;
         LLVMBasicBlockRef entry;
-
-        llvm_register_mono(ctx, mangled);
 
         gp = ast_func_generic_params(generic_ast);
         saved_subst = ctx->type_subst_count;
@@ -144,6 +143,7 @@ llvm_resolve_callee_entry(LLVMGenCtx *ctx, const char *callee_name,
         saved_bb = LLVMGetInsertBlock(ctx->builder);
         saved_fn = ctx->current_function;
         saved_ret = ctx->current_ret_type;
+        lexical_snapshot = llvm_lexical_registry_snapshot(ctx);
 
         ASTNode *return_type = ast_func_return_type(generic_ast);
         if (return_type != NULL)
@@ -190,6 +190,7 @@ llvm_resolve_callee_entry(LLVMGenCtx *ctx, const char *callee_name,
             }
         }
         ft = LLVMFunctionType(ret, ptypes, (unsigned)real_pc, 0);
+        llvm_register_mono(ctx, mangled);
         mono_fn = LLVMAddFunction(ctx->module, mangled, ft);
         llvm_register_function(ctx, mangled, mono_fn, ft, ret);
         ctx->current_function = mono_fn;
@@ -197,6 +198,15 @@ llvm_resolve_callee_entry(LLVMGenCtx *ctx, const char *callee_name,
         entry = LLVMAppendBasicBlockInContext(ctx->context, mono_fn, "entry");
         LLVMPositionBuilderAtEnd(ctx->builder, entry);
         llvm_scope_push(ctx);
+        if (ctx->has_error) {
+            llvm_lexical_registry_restore(ctx, lexical_snapshot);
+            ctx->type_subst_count = saved_subst;
+            ctx->current_function = saved_fn;
+            ctx->current_ret_type = saved_ret;
+            if (saved_bb != NULL)
+                LLVMPositionBuilderAtEnd(ctx->builder, saved_bb);
+            return NULL;
+        }
 
         real_pc = 0;
         for (size_t k = 0; k < pc; k++) {
@@ -213,6 +223,7 @@ llvm_resolve_callee_entry(LLVMGenCtx *ctx, const char *callee_name,
                     ctx, generic_ast, p, callee_name);
                 if (pt == NULL) {
                     llvm_scope_pop(ctx);
+                    llvm_lexical_registry_restore(ctx, lexical_snapshot);
                     ctx->type_subst_count = saved_subst;
                     ctx->current_function = saved_fn;
                     ctx->current_ret_type = saved_ret;
@@ -234,6 +245,7 @@ llvm_resolve_callee_entry(LLVMGenCtx *ctx, const char *callee_name,
                                 token_name, sizeof(token_name), p->name,
                                 "_token", "secure token")) {
                             llvm_scope_pop(ctx);
+                            llvm_lexical_registry_restore(ctx, lexical_snapshot);
                             ctx->type_subst_count = saved_subst;
                             ctx->current_function = saved_fn;
                             ctx->current_ret_type = saved_ret;
@@ -279,6 +291,7 @@ llvm_resolve_callee_entry(LLVMGenCtx *ctx, const char *callee_name,
         }
 
         llvm_scope_pop(ctx);
+        llvm_lexical_registry_restore(ctx, lexical_snapshot);
         ctx->type_subst_count = saved_subst;
         ctx->current_function = saved_fn;
         ctx->current_ret_type = saved_ret;

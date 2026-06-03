@@ -292,7 +292,7 @@ emit_role_decl(ASTNode *node, TranspilerCtx *ctx)
         const MIRDeclMethod *method_meta =
             transpiler_hosted_method_view_metadata(&method_view, i);
         const MIRRoutine *mir_method =
-            transpiler_hosted_method_view_routine(ctx, &method_view, i);
+            transpiler_mir_decl_method_routine(ctx, method_meta);
         ASTNode *method =
             transpiler_hosted_method_view_source_ast(&method_view, i);
         if (transpiler_hosted_method_view_missing_mir_method_row(&method_view, i)) {

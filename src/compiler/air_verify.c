@@ -21,19 +21,6 @@ air_sync_conflicts(AIRSyncClass expected, AIRSyncClass actual)
     return expected != actual;
 }
 
-static bool
-air_boundary_requires_hir_cfg_for_program(const AIRProgram *air,
-                                          const AIRBoundaryNode *boundary)
-{
-    if (boundary == NULL)
-        return false;
-    if (air_boundary_requires_hir_evidence(boundary))
-        return true;
-    return air_has_hir_input(air)
-        && (boundary->kind == AIR_BOUNDARY_ZONE
-            || boundary->kind == AIR_BOUNDARY_WORLD);
-}
-
 bool
 air_verify(AIRProgram *air, char **error_message)
 {

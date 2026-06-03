@@ -16,13 +16,11 @@
 #include "parser/ast_api.h"
 
 void
-llvm_mir_match_payload_alloca_name(ASTNode *match_case,
+llvm_mir_match_payload_alloca_name(uint32_t case_stable_id,
                                    const char *binding,
                                    char *buffer,
                                    size_t buffer_size)
 {
-    uint32_t stable_id;
-
     if (buffer == NULL || buffer_size == 0)
         return;
     buffer[0] = '\0';
@@ -30,12 +28,12 @@ llvm_mir_match_payload_alloca_name(ASTNode *match_case,
         snprintf(buffer, buffer_size, "mir.match.payload");
         return;
     }
-    stable_id = ast_node_stable_id(match_case);
-    if (stable_id == 0) {
+    if (case_stable_id == 0) {
         snprintf(buffer, buffer_size, "%s.mir.match", binding);
         return;
     }
-    snprintf(buffer, buffer_size, "%s.mir.match.%u", binding, stable_id);
+    snprintf(buffer, buffer_size, "%s.mir.match.%u", binding,
+             case_stable_id);
 }
 
 bool

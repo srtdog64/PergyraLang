@@ -172,14 +172,24 @@ emit_world_embedded_action_effect_sync(TranspilerCtx *ctx,
     buf = codebuf_create();
     size_t state_count = 0;
     ASTNode **states = ast_zone_states(zone_decl, &state_count);
-    size_t effect_slot_count = 0;
-    ASTNode **effect_slots = ast_effect_slots(effect_decl, &effect_slot_count);
     size_t effect_refresh_count = 0;
     ASTNode **effect_refreshes =
         ast_effect_refreshes(effect_decl, &effect_refresh_count);
+    TranspilerHostedDomainSlotView effect_slot_view =
+        transpiler_hosted_domain_slot_view_from_decl(ctx, effect_type_name,
+                                                     effect_decl);
+    if (transpiler_hosted_domain_slot_view_missing_mir_metadata(
+            &effect_slot_view)) {
+        transpiler_set_mir_inventory_missing(
+            ctx,
+            "MIR-only C path missing world embedded effect domain-slot metadata for '%s'",
+            effect_type_name);
+        codebuf_destroy(buf);
+        return NULL;
+    }
     for (size_t i = 0; i < layer_view.count; i++) {
-        ASTNode *target_slot;
         const char *layer_name;
+        const char *target_slot_name;
         const char *layer_type =
             transpiler_hosted_zone_layer_slot_view_type_name(
                 &layer_view, i);
@@ -196,10 +206,9 @@ emit_world_embedded_action_effect_sync(TranspilerCtx *ctx,
         if (layer_name == NULL)
             continue;
 
-        target_slot = find_nth_bindable_domain_slot_local(effect_slots,
-            effect_slot_count, effect_refreshes, effect_refresh_count, 0);
-        const char *target_slot_name = ast_domain_slot_name(target_slot);
-        if (target_slot == NULL || target_slot_name == NULL)
+        target_slot_name = transpiler_domain_slot_view_bindable_name(
+            &effect_slot_view, 0);
+        if (target_slot_name == NULL)
             continue;
 
         codebuf_write(buf, "self->%s.__layer_active_%s = true; ",

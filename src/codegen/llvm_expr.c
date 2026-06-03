@@ -188,6 +188,8 @@ llvm_emit_expression(ASTNode *node, LLVMGenCtx *ctx)
         LLVMBasicBlockRef saved_bb = LLVMGetInsertBlock(ctx->builder);
         LLVMValueRef saved_fn = ctx->current_function;
         LLVMTypeRef saved_ret = ctx->current_ret_type;
+        LLVMLexicalRegistrySnapshot lexical_snapshot =
+            llvm_lexical_registry_snapshot(ctx);
 
         ctx->current_function = lfn;
         ctx->current_ret_type = ret_type;
@@ -247,6 +249,7 @@ llvm_emit_expression(ASTNode *node, LLVMGenCtx *ctx)
         }
 
         llvm_scope_pop(ctx);
+        llvm_lexical_registry_restore(ctx, lexical_snapshot);
 
         ctx->current_function = saved_fn;
         ctx->current_ret_type = saved_ret;

@@ -99,16 +99,22 @@ llvm_emit_world_embedded_receiver_projection_sync(LLVMGenCtx *ctx,
     zone_ptr = LLVMBuildStructGEP2(ctx->builder, world_cls->struct_type,
         world_ptr, (unsigned)zone_field_idx, llvm_tmp_name(ctx));
 
-    size_t slot_count = 0;
-    ASTNode **slots = ast_zone_slots(zone_decl, &slot_count);
-    for (size_t i = 0; i < slot_count; i++) {
-        ASTNode *slot = slots[i];
-        const char *slot_name = ast_domain_slot_name(slot);
+    LLVMHostedDomainSlotView slot_view =
+        llvm_hosted_domain_slot_view_from_decl(ctx, zone_name, zone_decl);
+    if (llvm_hosted_domain_slot_view_missing_mir_metadata(&slot_view)) {
+        llvm_set_mir_inventory_missing(ctx,
+            "MIR-only LLVM path missing embedded zone projection metadata for '%s'",
+            zone_name != NULL ? zone_name : "(anonymous-zone)");
+        return;
+    }
+    for (size_t i = 0; i < slot_view.count; i++) {
+        const char *slot_name =
+            llvm_hosted_domain_slot_view_name(&slot_view, i);
         char field_name[256];
         int field_idx;
-        if (slot == NULL || slot->type != AST_DOMAIN_SLOT
-            || slot_name == NULL
-            || ast_domain_slot_is_subject(slot)) {
+        if (slot_name == NULL
+            || llvm_hosted_domain_slot_view_is_subject_like(
+                &slot_view, i)) {
             continue;
         }
 

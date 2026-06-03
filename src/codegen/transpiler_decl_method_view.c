@@ -145,15 +145,6 @@ transpiler_mir_decl_method_routine(const TranspilerCtx *ctx,
     return transpiler_routine_inventory_get(&inventory, routine_index);
 }
 
-const MIRRoutine *
-transpiler_hosted_method_view_routine(const TranspilerCtx *ctx,
-                                      const TranspilerHostedMethodView *view,
-                                      size_t index)
-{
-    return transpiler_mir_decl_method_routine(
-        ctx, transpiler_hosted_method_view_metadata(view, index));
-}
-
 TranspilerHostedMethodView
 transpiler_hosted_method_view_from_decl(const TranspilerCtx *ctx,
                                         const char *host_name,

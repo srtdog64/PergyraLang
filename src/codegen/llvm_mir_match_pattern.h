@@ -5,10 +5,11 @@
 
 #include <stdbool.h>
 #include <stddef.h>
+#include <stdint.h>
 
 #include "parser/ast.h"
 
-void llvm_mir_match_payload_alloca_name(ASTNode *match_case,
+void llvm_mir_match_payload_alloca_name(uint32_t case_stable_id,
                                         const char *binding,
                                         char *buffer,
                                         size_t buffer_size);

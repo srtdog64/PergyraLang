@@ -108,19 +108,38 @@ transpiler_infer_generic_call_bindings(TranspilerCtx *ctx,
     return true;
 }
 
+TranspilerGenericBindingSnapshot
+transpiler_generic_binding_snapshot(TranspilerCtx *ctx)
+{
+    TranspilerGenericBindingSnapshot snapshot;
+
+    snapshot.binding_count = ctx != NULL ? ctx->generic_binding_count : 0;
+    return snapshot;
+}
+
+void
+transpiler_generic_binding_restore(
+    TranspilerCtx *ctx,
+    TranspilerGenericBindingSnapshot snapshot)
+{
+    if (ctx == NULL)
+        return;
+    ctx->generic_binding_count = snapshot.binding_count;
+}
+
 char *
 transpiler_render_type_name_with_bindings(TranspilerCtx *ctx,
                                           ASTNode *type_node,
                                           GenericBindingEntry *bindings,
                                           size_t binding_count)
 {
-    int saved_binding_count;
+    TranspilerGenericBindingSnapshot snapshot;
     char *result;
 
     if (ctx == NULL)
         return NULL;
 
-    saved_binding_count = ctx->generic_binding_count;
+    snapshot = transpiler_generic_binding_snapshot(ctx);
     for (size_t i = 0;
         i < binding_count && ctx->generic_binding_count < MAX_GENERIC_BINDINGS;
         i++) {
@@ -128,6 +147,6 @@ transpiler_render_type_name_with_bindings(TranspilerCtx *ctx,
     }
 
     result = render_type_name_in_ctx(ctx, type_node);
-    ctx->generic_binding_count = saved_binding_count;
+    transpiler_generic_binding_restore(ctx, snapshot);
     return result;
 }

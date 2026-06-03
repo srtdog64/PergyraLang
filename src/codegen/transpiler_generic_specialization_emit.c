@@ -52,7 +52,7 @@ ensure_generic_specialization(TranspilerCtx *ctx, ASTNode *decl, ASTNode *call)
     const char *decl_name;
     CodeBuf *name_buf;
     GenericSpecializationEntry *entry;
-    int saved_binding_count;
+    TranspilerGenericBindingSnapshot generic_binding_snapshot;
 
     if (ctx == NULL || decl == NULL || decl->type != AST_FUNC_DECL)
         return NULL;
@@ -103,7 +103,7 @@ ensure_generic_specialization(TranspilerCtx *ctx, ASTNode *decl, ASTNode *call)
     entry->emitting = true;
     codebuf_destroy(name_buf);
 
-    saved_binding_count = ctx->generic_binding_count;
+    generic_binding_snapshot = transpiler_generic_binding_snapshot(ctx);
     for (size_t i = 0; i < binding_count
          && ctx->generic_binding_count < MAX_GENERIC_BINDINGS; i++) {
         ctx->generic_bindings[ctx->generic_binding_count++] = bindings[i];
@@ -112,7 +112,7 @@ ensure_generic_specialization(TranspilerCtx *ctx, ASTNode *decl, ASTNode *call)
     emit_func_forward_decl_named(decl, entry->specialized_name, ctx->decls, ctx);
     emit_func_decl_named(decl, entry->specialized_name, ctx->helpers, ctx);
 
-    ctx->generic_binding_count = saved_binding_count;
+    transpiler_generic_binding_restore(ctx, generic_binding_snapshot);
     entry->emitting = false;
     return entry->specialized_name;
 }

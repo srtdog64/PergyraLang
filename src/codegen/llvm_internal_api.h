@@ -26,6 +26,9 @@ void          llvm_scope_pop(LLVMGenCtx *ctx);
 void          llvm_scope_declare(LLVMGenCtx *ctx, const char *name,
                                   LLVMValueRef alloca, LLVMTypeRef type);
 LLVMVarEntry *llvm_scope_lookup(LLVMGenCtx *ctx, const char *name);
+LLVMLexicalRegistrySnapshot llvm_lexical_registry_snapshot(LLVMGenCtx *ctx);
+void          llvm_lexical_registry_restore(
+                  LLVMGenCtx *ctx, LLVMLexicalRegistrySnapshot snapshot);
 void          llvm_defer_scope_push(LLVMGenCtx *ctx);
 void          llvm_defer_scope_pop(LLVMGenCtx *ctx);
 void          llvm_register_defer(ASTNode *body, LLVMGenCtx *ctx);
@@ -274,8 +277,6 @@ ASTNode      *llvm_stmt_find_function_decl_by_name(LLVMGenCtx *ctx,
 bool          llvm_mir_base_name_from_versioned(const char *mir_name,
                                                 char *base_out,
                                                 size_t base_out_size);
-bool          llvm_mir_stmt_is_cfg_container(ASTNode *node);
-bool          llvm_mir_ast_type_is_cfg_container(ASTNodeType type);
 bool          llvm_mir_declare_recv_target(const char *target_name,
                                            ASTNode *recv_expr,
                                            LLVMGenCtx *ctx);
@@ -314,7 +315,7 @@ LLVMValueRef  llvm_mir_emit_select_dispatch_condition(ASTNode *case_node,
                                                        size_t target_block,
                                                        LLVMGenCtx *ctx);
 LLVMValueRef  llvm_mir_emit_match_case_condition(ASTNode *func_decl,
-                                                  ASTNode *case_node,
+                                                  const MIRInstruction *inst,
                                                   LLVMGenCtx *ctx);
 bool          llvm_mir_emit_match_case_body_binding(
                                                   const MIRRoutine *routine,
@@ -370,6 +371,7 @@ void llvm_set_error_at_with_hints(LLVMGenCtx *ctx, ASTNode *node,
 void llvm_set_mir_inventory_missing(LLVMGenCtx *ctx, const char *fmt, ...);
 void llvm_set_mir_topology_invalid(LLVMGenCtx *ctx, const char *fmt, ...);
 void llvm_set_mir_intent_carrier_missing(LLVMGenCtx *ctx, const char *fmt, ...);
+void llvm_set_mir_memory_exhausted(LLVMGenCtx *ctx, const char *fmt, ...);
 
 /* =================================================================
  * Result helpers (llvm_backend.c)
@@ -480,12 +482,12 @@ ASTNode *llvm_find_world_state_decl(LLVMGenCtx *ctx, ASTNode *world_decl,
                                     const char *state_name);
 ASTNode *llvm_resolve_world_zone_decl(LLVMGenCtx *ctx, ASTNode *world_decl,
                                       const char *slot_name);
-ASTNode *llvm_find_zone_domain_slot_decl(LLVMGenCtx *ctx,
-                                         ASTNode *zone_decl,
-                                         const char *slot_name);
-ASTNode *llvm_find_zone_layer_slot_decl(LLVMGenCtx *ctx,
-                                        ASTNode *zone_decl,
-                                        const char *slot_name);
+bool llvm_zone_has_domain_slot(LLVMGenCtx *ctx,
+                               ASTNode *zone_decl,
+                               const char *slot_name);
+bool llvm_zone_has_layer_slot(LLVMGenCtx *ctx,
+                              ASTNode *zone_decl,
+                              const char *slot_name);
 bool llvm_world_has_zone_slot(LLVMGenCtx *ctx, ASTNode *world_decl,
                               const char *slot_name);
 const char *llvm_call_name_or_string_arg(ASTNode *node, size_t index);

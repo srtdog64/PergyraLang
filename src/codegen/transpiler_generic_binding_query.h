@@ -6,6 +6,15 @@
 
 #include "transpiler.h"
 
+typedef struct TranspilerGenericBindingSnapshot {
+    int binding_count;
+} TranspilerGenericBindingSnapshot;
+
+TranspilerGenericBindingSnapshot transpiler_generic_binding_snapshot(
+    TranspilerCtx *ctx);
+void transpiler_generic_binding_restore(
+    TranspilerCtx *ctx,
+    TranspilerGenericBindingSnapshot snapshot);
 bool transpiler_infer_generic_call_bindings(TranspilerCtx *ctx,
                                             ASTNode *decl,
                                             ASTNode *call,

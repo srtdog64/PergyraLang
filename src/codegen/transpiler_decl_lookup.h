@@ -128,10 +128,6 @@ bool transpiler_mir_decl_method_is_action_like(const MIRDeclMethod *method);
 const MIRRoutine *transpiler_mir_decl_method_routine(
     const TranspilerCtx *ctx,
     const MIRDeclMethod *method);
-const MIRRoutine *transpiler_hosted_method_view_routine(
-    const TranspilerCtx *ctx,
-    const TranspilerHostedMethodView *view,
-    size_t index);
 TranspilerHostedMethodView transpiler_hosted_method_view_from_decl(
     const TranspilerCtx *ctx,
     const char *host_name,
@@ -233,6 +229,12 @@ const char *transpiler_hosted_domain_slot_view_type_name(
 bool transpiler_hosted_domain_slot_view_is_subject_like(
     const TranspilerHostedDomainSlotView *view,
     size_t index);
+bool transpiler_hosted_domain_slot_view_is_tobject_like(
+    const TranspilerHostedDomainSlotView *view,
+    size_t index);
+bool transpiler_hosted_domain_slot_view_is_binding_like(
+    const TranspilerHostedDomainSlotView *view,
+    size_t index);
 TranspilerHostedWorldZoneSlotView
 transpiler_hosted_world_zone_slot_view_from_decl(const TranspilerCtx *ctx,
                                                  const char *host_name,
@@ -322,6 +324,7 @@ MIRDeclFieldKind transpiler_mir_decl_field_kind_or(
     const MIRDeclField *field,
     MIRDeclFieldKind fallback);
 bool transpiler_mir_decl_field_is_subject_like(const MIRDeclField *field);
+bool transpiler_mir_decl_field_is_tobject_like(const MIRDeclField *field);
 
 ASTNode *transpiler_find_named_decl_local(TranspilerCtx *ctx,
                                           ASTNodeType decl_type,

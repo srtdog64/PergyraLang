@@ -106,6 +106,12 @@ llvm_register_enum_decl(LLVMGenCtx *ctx, ASTNode *stmt)
          * shares block reuse with other LLVM-lowering scratch sites. */
         LLVMTypeRef *enum_fields = pgy_arena_calloc(&ctx->scratch,
             (variant_count + 1) * sizeof(LLVMTypeRef));
+        if (enum_fields == NULL) {
+            llvm_set_error(ctx,
+                "LLVM enum field allocation failed for '%s'",
+                enum_name);
+            return;
+        }
         LLVMTypeRef enum_ty = LLVMStructCreateNamed(ctx->context, enum_name);
         LLVMClassTypeEntry *enum_entry =
             llvm_register_class(ctx, enum_name, enum_ty, false, false);
@@ -132,6 +138,13 @@ llvm_register_enum_decl(LLVMGenCtx *ctx, ASTNode *stmt)
 
             LLVMTypeRef *payload_fields = pgy_arena_calloc(&ctx->scratch,
                 param_count * sizeof(LLVMTypeRef));
+            if (payload_fields == NULL) {
+                llvm_set_error(ctx,
+                    "LLVM enum payload field allocation failed for '%s.%s'",
+                    enum_name,
+                    variant_name != NULL ? variant_name : "<anonymous>");
+                return;
+            }
             for (size_t p = 0; p < param_count; p++) {
                 ASTNode *pt = ast_enum_variant_param(stmt, j, p);
                 payload_fields[p] = llvm_register_required_ast_type(
@@ -221,6 +234,13 @@ llvm_register_enum_decl(LLVMGenCtx *ctx, ASTNode *stmt)
         /* Param-type buffer is consumed by LLVMFunctionType (copies). */
         LLVMTypeRef *param_types = pgy_arena_calloc(&ctx->scratch,
             (user_pc + 1) * sizeof(LLVMTypeRef));
+        if (param_types == NULL) {
+            llvm_set_error(ctx,
+                "LLVM enum method parameter allocation failed for '%s.%s'",
+                enum_name,
+                method_name != NULL ? method_name : "<anonymous>");
+            return;
+        }
         param_types[0] = self_type;
         size_t pidx = 1;
         for (size_t k = 0; k < pc; k++) {
@@ -273,6 +293,12 @@ llvm_register_nominal_decl(LLVMGenCtx *ctx, ASTNode *stmt)
      * once for llvm_class_add_field below; never retained. */
     LLVMTypeRef *field_types = pgy_arena_calloc(&ctx->scratch,
         (fc > 0 ? fc : 1) * sizeof(LLVMTypeRef));
+    if (field_types == NULL) {
+        llvm_set_error(ctx,
+            "LLVM class field allocation failed for '%s'",
+            cls_name);
+        return;
+    }
     for (size_t j = 0; j < fc; j++) {
         ASTNode *field_type = llvm_hosted_field_view_type(&field_view, j);
         field_types[j] = llvm_register_required_ast_type(
@@ -355,6 +381,13 @@ llvm_register_nominal_decl(LLVMGenCtx *ctx, ASTNode *stmt)
         /* Per-method param-type buffer: consumed by LLVMFunctionType. */
         LLVMTypeRef *param_types = pgy_arena_calloc(&ctx->scratch,
             (user_pc + 1) * sizeof(LLVMTypeRef));
+        if (param_types == NULL) {
+            llvm_set_error(ctx,
+                "LLVM class method parameter allocation failed for '%s.%s'",
+                cls_name,
+                method_name != NULL ? method_name : "<anonymous>");
+            return;
+        }
         param_types[0] = is_pointer_self_host ? LLVMPointerType(struct_ty, 0) : struct_ty;
         size_t pidx = 1;
         for (size_t k = 0; k < pc; k++) {
@@ -445,6 +478,12 @@ llvm_register_active_extern_prototypes(LLVMGenCtx *ctx)
             /* Extern param-type buffer: consumed by LLVMFunctionType. */
             LLVMTypeRef *ptypes = pgy_arena_calloc(&ctx->scratch,
                 (pc > 0 ? pc : 1) * sizeof(LLVMTypeRef));
+            if (ptypes == NULL) {
+                llvm_set_error(ctx,
+                    "LLVM extern parameter allocation failed for '%s'",
+                    fname);
+                return;
+            }
             for (size_t k = 0; k < pc; k++) {
                 FuncParam *p = ast_func_param(decl, k);
                 ptypes[k] = llvm_register_required_ast_type(

@@ -209,7 +209,8 @@ llvm_emit_match_stmt(ASTNode *node, LLVMGenCtx *ctx)
         LLVMBuildCondBr(ctx->builder, cmp, case_bb, next_bb);
 
         LLVMPositionBuilderAtEnd(ctx->builder, case_bb);
-        int saved_var_class_count = ctx->var_class_count;
+        LLVMLexicalRegistrySnapshot lexical_snapshot =
+            llvm_lexical_registry_snapshot(ctx);
         llvm_scope_push(ctx);
         if (option_binding != NULL) {
             char alloca_name[256];
@@ -243,7 +244,7 @@ llvm_emit_match_stmt(ASTNode *node, LLVMGenCtx *ctx)
         if (ast_match_case_body(mc) != NULL)
             llvm_emit_statement(ast_match_case_body(mc), ctx);
         llvm_scope_pop(ctx);
-        ctx->var_class_count = saved_var_class_count;
+        llvm_lexical_registry_restore(ctx, lexical_snapshot);
         if (LLVMGetBasicBlockTerminator(LLVMGetInsertBlock(ctx->builder)) == NULL)
             LLVMBuildBr(ctx->builder, merge_bb);
 

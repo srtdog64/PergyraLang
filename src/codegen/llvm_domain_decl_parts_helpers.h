@@ -3,11 +3,9 @@
 
 #include "llvm_internal.h"
 
-void llvm_domain_decl_parts(ASTNode *stmt,
-                            const char **decl_name,
-                            ASTNode ***slots,
-                            size_t *slot_count,
-                            ASTNode ***refreshes,
-                            size_t *refresh_count);
+void llvm_domain_decl_refreshes(ASTNode *stmt,
+                                const char **decl_name,
+                                ASTNode ***refreshes,
+                                size_t *refresh_count);
 
 #endif

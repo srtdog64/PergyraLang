@@ -5,10 +5,11 @@
 
 #include "transpiler_intent_zone_slot.h"
 
-#include <stdint.h>
 #include <string.h>
 
 #include "parser/ast_api.h"
+#include "transpiler_context.h"
+#include "transpiler_decl_lookup.h"
 #include "transpiler_intent_context.h"
 
 const char *
@@ -45,8 +46,10 @@ resolve_intent_zone_slot_name_for_zone_with_metadata(
 {
     ASTNode *zone_decl = NULL;
     const char *participant_type = NULL;
-    ASTNode *named_match = NULL;
-    ASTNode *typed_match = NULL;
+    const char *named_match = NULL;
+    const char *typed_match = NULL;
+    bool typed_match_is_ambiguous = false;
+    TranspilerHostedDomainSlotView slot_view;
 
     if (ctx == NULL || intent == NULL || zone_type_name == NULL || alias == NULL) {
         return "<unbound>";
@@ -58,36 +61,41 @@ resolve_intent_zone_slot_name_for_zone_with_metadata(
     if (zone_decl == NULL)
         return "<unbound>";
 
-    size_t slot_count = 0;
-    ASTNode **slots = ast_zone_slots(zone_decl, &slot_count);
-    for (size_t i = 0; i < slot_count; i++) {
-        ASTNode *slot = slots[i];
-        const char *slot_name = ast_domain_slot_name(slot);
-        ASTNode *slot_type = ast_domain_slot_type(slot);
-        if (slot == NULL || slot->type != AST_DOMAIN_SLOT
-            || !ast_domain_slot_is_subject(slot)
+    slot_view = transpiler_hosted_domain_slot_view_from_decl(ctx,
+        zone_type_name, zone_decl);
+    if (transpiler_hosted_domain_slot_view_missing_mir_metadata(&slot_view)) {
+        transpiler_set_mir_inventory_missing(ctx,
+            "MIR-only C path missing intent zone-slot metadata for '%s'",
+            zone_type_name);
+        return "<unbound>";
+    }
+
+    for (size_t i = 0; i < slot_view.count; i++) {
+        const char *slot_name =
+            transpiler_hosted_domain_slot_view_name(&slot_view, i);
+        const char *slot_type_name =
+            transpiler_hosted_domain_slot_view_type_name(&slot_view, i);
+        if (!transpiler_hosted_domain_slot_view_is_subject_like(&slot_view, i)
             || slot_name == NULL) {
             continue;
         }
         if (strcmp(slot_name, alias) == 0) {
-            named_match = slot;
+            named_match = slot_name;
             break;
         }
         if (participant_type != NULL
-            && slot_type != NULL
-            && slot_type->type == AST_TYPE
-            && ast_type_name(slot_type) != NULL
-            && strcmp(ast_type_name(slot_type), participant_type) == 0) {
+            && slot_type_name != NULL
+            && strcmp(slot_type_name, participant_type) == 0) {
             if (typed_match != NULL)
-                typed_match = (ASTNode *)(uintptr_t)1;
+                typed_match_is_ambiguous = true;
             else
-                typed_match = slot;
+                typed_match = slot_name;
         }
     }
 
     if (named_match != NULL)
-        return ast_domain_slot_name(named_match);
-    if (typed_match != NULL && typed_match != (ASTNode *)(uintptr_t)1)
-        return ast_domain_slot_name(typed_match);
+        return named_match;
+    if (typed_match != NULL && !typed_match_is_ambiguous)
+        return typed_match;
     return "<unbound>";
 }

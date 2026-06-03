@@ -17,6 +17,8 @@ llvm_emit_domain_projection_sync(ASTNode *stmt,
     LLVMValueRef saved_fn;
     LLVMTypeRef saved_ret;
     ASTNode *saved_host_decl;
+    LLVMBasicBlockRef saved_bb;
+    LLVMLexicalRegistrySnapshot lexical_snapshot;
     LLVMBasicBlockRef bb;
 
     if (stmt == NULL || decl_name == NULL || decl_cls == NULL || sync_fn == NULL || ctx == NULL)
@@ -24,6 +26,8 @@ llvm_emit_domain_projection_sync(ASTNode *stmt,
 
     saved_fn = ctx->current_function;
     saved_ret = ctx->current_ret_type;
+    saved_bb = LLVMGetInsertBlock(ctx->builder);
+    lexical_snapshot = llvm_lexical_registry_snapshot(ctx);
     saved_host_decl = llvm_bind_current_host_decl(ctx, stmt);
     bb = LLVMAppendBasicBlockInContext(ctx->context, sync_fn, "entry");
     LLVMPositionBuilderAtEnd(ctx->builder, bb);
@@ -43,15 +47,13 @@ llvm_emit_domain_projection_sync(ASTNode *stmt,
 
     LLVMBuildRetVoid(ctx->builder);
     llvm_scope_pop(ctx);
+    llvm_lexical_registry_restore(ctx, lexical_snapshot);
     ctx->current_function = saved_fn;
     ctx->current_ret_type = saved_ret;
     llvm_restore_current_host_decl(ctx, saved_host_decl);
 
-    if (saved_fn != NULL) {
-        LLVMBasicBlockRef last = LLVMGetLastBasicBlock(saved_fn);
-        if (last != NULL)
-            LLVMPositionBuilderAtEnd(ctx->builder, last);
-    }
+    if (saved_bb != NULL)
+        LLVMPositionBuilderAtEnd(ctx->builder, saved_bb);
 }
 
 #endif

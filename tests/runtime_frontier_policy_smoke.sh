@@ -68,6 +68,9 @@ main(void)
     failures += expect_size("zone-limit-cap", pgy_frontier_zone_pass_limit(cap - 1, 9), cap);
     failures += expect_size("world-limit-zero", pgy_frontier_world_pass_limit(0, 0), 1);
     failures += expect_size("world-limit", pgy_frontier_world_pass_limit(2, 4), 7);
+    failures += expect_size("embedded-zone-member-zero", pgy_frontier_embedded_zone_member_count(0, 0), 0);
+    failures += expect_size("embedded-zone-member", pgy_frontier_embedded_zone_member_count(2, 3), 5);
+    failures += expect_size("embedded-zone-member-cap", pgy_frontier_embedded_zone_member_count(cap - 2, 7), cap);
     failures += expect_size("world-transitive-limit-zero", pgy_frontier_world_transitive_pass_limit(0, 0, 0), 1);
     failures += expect_size("world-transitive-limit", pgy_frontier_world_transitive_pass_limit(2, 4, 0), 7);
     failures += expect_size("world-transitive-embedded-limit", pgy_frontier_world_transitive_pass_limit(2, 4, 3), 10);
@@ -87,9 +90,9 @@ main(void)
                             0);
     failures += expect_size("domain-world-transitive-null", pgy_domain_world_transitive_frontier_pass_limit(NULL, 3), 4);
     failures += expect_size("domain-world-transitive-counted", pgy_domain_world_transitive_frontier_pass_limit_from_counts(2, 4, 3), 10);
-    failures += expect_size("pass-limit-fact-count", PGY_FRONTIER_PASS_LIMIT_FACT_COUNT, 9);
+    failures += expect_size("pass-limit-fact-count", PGY_FRONTIER_PASS_LIMIT_FACT_COUNT, 10);
     failures += expect_size("overflow-reason-fact-count", PGY_FRONTIER_OVERFLOW_REASON_FACT_COUNT, 5);
-    failures += expect_size("policy-fact-count", PGY_FRONTIER_POLICY_FACT_COUNT, 14);
+    failures += expect_size("policy-fact-count", PGY_FRONTIER_POLICY_FACT_COUNT, 15);
     failures += expect_nonempty_string("reason-generic", PGY_FRONTIER_REASON_GENERIC_OVERFLOW);
     failures += expect_nonempty_string("reason-projection", PGY_FRONTIER_REASON_PROJECTION_OVERFLOW);
     failures += expect_nonempty_string("reason-zone", PGY_FRONTIER_REASON_ZONE_OVERFLOW);

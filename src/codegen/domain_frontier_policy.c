@@ -90,7 +90,9 @@ pgy_domain_world_embedded_frontier_count_from_zone_types(
 
         (void) ast_zone_states(zone_decl, &state_count);
         (void) ast_zone_layer_slots(zone_decl, &layer_slot_count);
-        zone_members = pgy_frontier_pass_limit_add(state_count, layer_slot_count);
+        zone_members = pgy_frontier_embedded_zone_member_count(
+            state_count,
+            layer_slot_count);
         count = pgy_frontier_pass_limit_add(count, zone_members);
     }
 

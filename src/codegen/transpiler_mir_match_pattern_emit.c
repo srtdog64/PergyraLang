@@ -7,13 +7,11 @@
 #include "codegen_match_variant_policy.h"
 
 void
-transpiler_mir_match_binding_name(ASTNode *case_node,
+transpiler_mir_match_binding_name(uint32_t case_stable_id,
                                   const char *binding,
                                   char *buf,
                                   size_t buf_size)
 {
-    uint32_t stable_id;
-
     if (buf == NULL || buf_size == 0)
         return;
     buf[0] = '\0';
@@ -21,12 +19,11 @@ transpiler_mir_match_binding_name(ASTNode *case_node,
         snprintf(buf, buf_size, "_pgy_match_payload");
         return;
     }
-    stable_id = ast_node_stable_id(case_node);
-    if (stable_id == 0) {
+    if (case_stable_id == 0) {
         snprintf(buf, buf_size, "_pgy_match_%s", binding);
         return;
     }
-    snprintf(buf, buf_size, "_pgy_match_%s_%u", binding, stable_id);
+    snprintf(buf, buf_size, "_pgy_match_%s_%u", binding, case_stable_id);
 }
 
 bool

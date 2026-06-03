@@ -59,6 +59,8 @@ const MIRProgram *transpiler_active_mir_identity(const TranspilerCtx *ctx);
 
 bool transpiler_active_has_main_function(const TranspilerCtx *ctx);
 
+const char *transpiler_active_main_function_name(const TranspilerCtx *ctx);
+
 bool transpiler_active_has_top_level_exec(const TranspilerCtx *ctx);
 
 bool transpiler_active_uses_intent_observability(const TranspilerCtx *ctx);

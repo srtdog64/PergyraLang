@@ -13,25 +13,34 @@
 #include "llvm_mir_match_region.h"
 #include "parser/ast_api.h"
 
+#include <stdint.h>
 #include <string.h>
 
 static LLVMValueRef
 llvm_mir_emit_guarded_match_condition(LLVMGenCtx *ctx,
                                       ASTNode *case_node,
+                                      uint32_t case_stable_id,
                                       LLVMValueRef tag_cmp,
                                       LLVMValueRef subject,
                                       unsigned payload_index,
                                       const char *binding);
 
 LLVMValueRef
-llvm_mir_emit_match_case_condition(ASTNode *func_decl, ASTNode *case_node,
+llvm_mir_emit_match_case_condition(ASTNode *func_decl,
+                                   const MIRInstruction *inst,
                                    LLVMGenCtx *ctx)
 {
+    ASTNode *case_node;
     ASTNode *subject_node;
     LLVMValueRef subject;
     LLVMValueRef cmp = NULL;
+    uint32_t case_stable_id;
 
-    if (func_decl == NULL || case_node == NULL || ctx == NULL
+    if (func_decl == NULL || inst == NULL || ctx == NULL)
+        return NULL;
+    case_node = mir_instruction_source_payload(inst);
+    case_stable_id = mir_instruction_source_stable_id(inst);
+    if (case_node == NULL
         || case_node->type != AST_MATCH_CASE) {
         return NULL;
     }
@@ -80,7 +89,7 @@ llvm_mir_emit_match_case_condition(ASTNode *func_decl, ASTNode *case_node,
                         pgy_codegen_match_variant_lookup(option_kind)), 0),
                 llvm_tmp_name(ctx));
             return llvm_mir_emit_guarded_match_condition(
-                ctx, case_node, tag_cmp, subject, 1, binding);
+                ctx, case_node, case_stable_id, tag_cmp, subject, 1, binding);
         }
         if (llvm_mir_is_result_destructor(pattern_node,
                                           &result_kind, &binding)) {
@@ -96,7 +105,8 @@ llvm_mir_emit_match_case_condition(ASTNode *func_decl, ASTNode *case_node,
                         result_variant), 0),
                 llvm_tmp_name(ctx));
             return llvm_mir_emit_guarded_match_condition(
-                ctx, case_node, tag_cmp, subject, payload_index, binding);
+                ctx, case_node, case_stable_id, tag_cmp, subject,
+                payload_index, binding);
         }
         /* General enum variant destructor: Circle(r), Empty, etc */
         {
@@ -154,7 +164,7 @@ llvm_mir_emit_match_case_condition(ASTNode *func_decl, ASTNode *case_node,
 
 static bool
 llvm_mir_remap_payload_binding(LLVMGenCtx *ctx,
-                               ASTNode *case_node,
+                               uint32_t case_stable_id,
                                const char *binding,
                                LLVMTypeRef payload_ty)
 {
@@ -164,7 +174,7 @@ llvm_mir_remap_payload_binding(LLVMGenCtx *ctx,
 
     if (ctx == NULL || binding == NULL || strcmp(binding, "_") == 0)
         return true;
-    llvm_mir_match_payload_alloca_name(case_node, binding,
+    llvm_mir_match_payload_alloca_name(case_stable_id, binding,
                                        alloca_name, sizeof(alloca_name));
     entry = llvm_scope_lookup(ctx, alloca_name);
     if ((entry == NULL || entry->alloca == NULL) && payload_ty != NULL) {
@@ -251,7 +261,8 @@ llvm_mir_case_payload_type(LLVMGenCtx *ctx,
 static bool
 llvm_mir_remap_case_bindings(LLVMGenCtx *ctx,
                              ASTNode *func_decl,
-                             ASTNode *case_node)
+                             ASTNode *case_node,
+                             uint32_t case_stable_id)
 {
     ASTNode *pattern_node;
     const char *kind = NULL;
@@ -266,7 +277,7 @@ llvm_mir_remap_case_bindings(LLVMGenCtx *ctx,
         || llvm_mir_is_result_destructor(pattern_node, &kind, &binding)) {
         LLVMTypeRef payload_ty =
             llvm_mir_case_payload_type(ctx, func_decl, case_node, kind);
-        return llvm_mir_remap_payload_binding(ctx, case_node, binding,
+        return llvm_mir_remap_payload_binding(ctx, case_stable_id, binding,
                                               payload_ty);
     }
 
@@ -276,7 +287,7 @@ llvm_mir_remap_case_bindings(LLVMGenCtx *ctx,
             ASTNode *arg = ast_call_argument(pattern_node, i);
             if (arg == NULL || arg->type != AST_IDENTIFIER)
                 continue;
-            if (!llvm_mir_remap_payload_binding(ctx, case_node,
+            if (!llvm_mir_remap_payload_binding(ctx, case_stable_id,
                                                 ast_identifier_name(arg),
                                                 NULL)) {
                 return false;
@@ -314,7 +325,9 @@ llvm_mir_remap_active_match_bindings(const MIRRoutine *routine,
                 continue;
             }
             case_node = mir_instruction_source_payload(inst);
-            if (!llvm_mir_remap_case_bindings(ctx, func_decl, case_node))
+            if (!llvm_mir_remap_case_bindings(
+                    ctx, func_decl, case_node,
+                    mir_instruction_source_stable_id(inst)))
                 return false;
         }
     }
@@ -323,7 +336,7 @@ llvm_mir_remap_active_match_bindings(const MIRRoutine *routine,
 
 static bool
 llvm_mir_emit_payload_binding(LLVMGenCtx *ctx,
-                              ASTNode *case_node,
+                              uint32_t case_stable_id,
                               LLVMValueRef payload,
                               const char *binding)
 {
@@ -335,7 +348,7 @@ llvm_mir_emit_payload_binding(LLVMGenCtx *ctx,
     if (ctx == NULL || payload == NULL || binding == NULL)
         return true;
     payload_ty = LLVMTypeOf(payload);
-    llvm_mir_match_payload_alloca_name(case_node, binding,
+    llvm_mir_match_payload_alloca_name(case_stable_id, binding,
                                        alloca_name, sizeof(alloca_name));
     {
         LLVMVarEntry *existing = llvm_scope_lookup(ctx, alloca_name);
@@ -357,6 +370,7 @@ llvm_mir_emit_payload_binding(LLVMGenCtx *ctx,
 static LLVMValueRef
 llvm_mir_emit_guarded_match_condition(LLVMGenCtx *ctx,
                                       ASTNode *case_node,
+                                      uint32_t case_stable_id,
                                       LLVMValueRef tag_cmp,
                                       LLVMValueRef subject,
                                       unsigned payload_index,
@@ -395,7 +409,8 @@ llvm_mir_emit_guarded_match_condition(LLVMGenCtx *ctx,
     if (binding != NULL && subject != NULL) {
         LLVMValueRef payload = LLVMBuildExtractValue(ctx->builder, subject,
             payload_index, llvm_tmp_name(ctx));
-        if (!llvm_mir_emit_payload_binding(ctx, case_node, payload, binding))
+        if (!llvm_mir_emit_payload_binding(ctx, case_stable_id,
+                                           payload, binding))
             return NULL;
     }
     guard = llvm_emit_expression(ast_match_case_guard(case_node), ctx);
@@ -430,6 +445,7 @@ llvm_mir_emit_match_case_body_binding(const MIRRoutine *routine,
     const char *option_kind = NULL;
     const char *result_kind = NULL;
     const char *binding = NULL;
+    uint32_t case_stable_id;
 
     if (routine == NULL || block == NULL || func_decl == NULL || ctx == NULL)
         return true;
@@ -437,6 +453,7 @@ llvm_mir_emit_match_case_body_binding(const MIRRoutine *routine,
     if (branch_inst == NULL)
         return true;
     case_node = mir_instruction_source_payload(branch_inst);
+    case_stable_id = mir_instruction_source_stable_id(branch_inst);
     if (case_node == NULL || case_node->type != AST_MATCH_CASE)
         return true;
     pattern_node = ast_match_case_pattern(case_node);
@@ -457,7 +474,7 @@ llvm_mir_emit_match_case_body_binding(const MIRRoutine *routine,
                 return true;
             LLVMValueRef payload = LLVMBuildExtractValue(ctx->builder,
                 subject, 1, llvm_tmp_name(ctx));
-            return llvm_mir_emit_payload_binding(ctx, case_node,
+            return llvm_mir_emit_payload_binding(ctx, case_stable_id,
                                                  payload, binding);
         }
         return true;
@@ -472,7 +489,7 @@ llvm_mir_emit_match_case_body_binding(const MIRRoutine *routine,
                 return true;
             LLVMValueRef payload = LLVMBuildExtractValue(ctx->builder,
                 subject, payload_index, llvm_tmp_name(ctx));
-            return llvm_mir_emit_payload_binding(ctx, case_node,
+            return llvm_mir_emit_payload_binding(ctx, case_stable_id,
                                                  payload, binding);
         }
         return true;
@@ -507,7 +524,7 @@ llvm_mir_emit_match_case_body_binding(const MIRRoutine *routine,
                         continue;
                     binding_val = LLVMBuildExtractValue(ctx->builder,
                         payload, (unsigned)i, llvm_tmp_name(ctx));
-                    if (!llvm_mir_emit_payload_binding(ctx, case_node,
+                    if (!llvm_mir_emit_payload_binding(ctx, case_stable_id,
                                                        binding_val, binding)) {
                         return false;
                     }

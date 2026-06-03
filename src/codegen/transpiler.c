@@ -17,6 +17,7 @@
 #include "transpiler_decl_lookup.h"
 #include "transpiler_enum.h"
 #include "transpiler_extern.h"
+#include "transpiler_func_forward_helpers.h"
 #include "transpiler_generic_param_query.h"
 #include "transpiler_log_normalize.h"
 #include "transpiler_nominal.h"
@@ -108,6 +109,14 @@ emit_c_nominal_forward_decls(TranspilerCtx *ctx,
     codebuf_write(out, "\n");
 }
 
+static const char *
+transpiler_c_executable_emitted_name(const char *name)
+{
+    if (name != NULL && strcmp(name, "main") == 0)
+        return "__pgy_user_main_lowercase";
+    return name;
+}
+
 /* -----------------------------------------------------------------
  * Program emitter
  * ----------------------------------------------------------------- */
@@ -144,12 +153,14 @@ emit_program(TranspilerCtx *ctx)
     size_t event_count = 0;
     bool has_main_function = false;
     bool has_top_level_exec = false;
+    const char *main_function_name = NULL;
 
     if (!transpiler_active_has_mir(ctx))
         return;
 
     synthetic_executable_func = transpiler_active_synthetic_executable_func(ctx);
     has_main_function = transpiler_active_has_main_function(ctx);
+    main_function_name = transpiler_active_main_function_name(ctx);
     has_top_level_exec = transpiler_active_has_top_level_exec(ctx);
     if (has_top_level_exec && synthetic_executable_func == NULL) {
         transpiler_set_mir_inventory_missing(ctx,
@@ -170,9 +181,12 @@ emit_program(TranspilerCtx *ctx)
     transpiler_active_inventory(ctx, AST_WORLD_DECL, &worlds, &world_count);
     transpiler_active_inventory(ctx, AST_EVENT_DECL, &events, &event_count);
     if (has_main_function
-        && transpiler_find_named_decl_local(ctx, AST_FUNC_DECL, "Main") == NULL) {
+        && (main_function_name == NULL
+            || transpiler_find_named_decl_local(
+                   ctx, AST_FUNC_DECL, main_function_name) == NULL)) {
         transpiler_set_mir_inventory_missing(ctx,
-            "MIR-only C path missing registered executable function 'Main'");
+            "MIR-only C path missing registered executable function '%s'",
+            main_function_name != NULL ? main_function_name : "Main");
         return;
     }
 
@@ -253,8 +267,14 @@ emit_program(TranspilerCtx *ctx)
     /* Pass 2.6: early forward declarations for standalone functions so
      * class/domain hosted methods can call file-scope helpers declared later. */
     for (size_t i = 0; i < function_count; i++) {
-        if (transpiler_can_forward_declare_func_early(ctx, functions[i]))
-            emit_func_forward_decl(functions[i], ctx->out, ctx);
+        if (transpiler_can_forward_declare_func_early(ctx, functions[i])) {
+            emit_func_forward_decl_named(
+                functions[i],
+                transpiler_c_executable_emitted_name(
+                    ast_declaration_name(functions[i])),
+                ctx->out,
+                ctx);
+        }
     }
     if (synthetic_executable_func != NULL
         && transpiler_can_forward_declare_func_early(ctx, synthetic_executable_func)) {
@@ -296,7 +316,12 @@ emit_program(TranspilerCtx *ctx)
     for (size_t i = 0; i < function_count; i++) {
         if (!transpiler_can_forward_declare_func_early(ctx, functions[i])
             && transpiler_can_forward_declare_func_after_zones(ctx, functions[i])) {
-            emit_func_forward_decl(functions[i], ctx->out, ctx);
+            emit_func_forward_decl_named(
+                functions[i],
+                transpiler_c_executable_emitted_name(
+                    ast_declaration_name(functions[i])),
+                ctx->out,
+                ctx);
         }
     }
     if (synthetic_executable_func != NULL
@@ -314,7 +339,12 @@ emit_program(TranspilerCtx *ctx)
 
     for (size_t i = 0; i < function_count; i++) {
         if (!transpiler_func_has_generic_params(functions[i]))
-            emit_func_forward_decl(functions[i], ctx->decls, ctx);
+            emit_func_forward_decl_named(
+                functions[i],
+                transpiler_c_executable_emitted_name(
+                    ast_declaration_name(functions[i])),
+                ctx->decls,
+                ctx);
     }
     if (synthetic_executable_func != NULL)
         emit_func_forward_decl(synthetic_executable_func, ctx->decls, ctx);
@@ -331,7 +361,12 @@ emit_program(TranspilerCtx *ctx)
         ctx->out = func_buf;
         for (size_t i = 0; i < function_count; i++) {
             if (!transpiler_func_has_generic_params(functions[i]))
-                emit_func_decl(functions[i], ctx);
+                emit_func_decl_named(
+                    functions[i],
+                    transpiler_c_executable_emitted_name(
+                        ast_declaration_name(functions[i])),
+                    ctx->out,
+                    ctx);
         }
         if (synthetic_executable_func != NULL)
             emit_func_decl(synthetic_executable_func, ctx);
@@ -381,7 +416,8 @@ emit_program(TranspilerCtx *ctx)
         /* If Main() exists and no top-level statements, call it */
         if (has_main_function) {
             write_indent(ctx);
-            codebuf_write(ctx->out, "Main();\n");
+            codebuf_write(ctx->out, "%s();\n",
+                transpiler_c_executable_emitted_name(main_function_name));
         }
 
         /* Shutdown runtime */

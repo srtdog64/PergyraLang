@@ -1,6 +1,12 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
+if ! command -v dirname >/dev/null 2>&1 \
+    || ! command -v pwd >/dev/null 2>&1; then
+    PATH="/usr/bin:/bin:$PATH"
+    export PATH
+fi
+
 PYTHON_BIN="${PYTHON_BIN:-}"
 if [[ -z "$PYTHON_BIN" ]]; then
     if command -v python3 >/dev/null 2>&1; then

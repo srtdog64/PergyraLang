@@ -65,8 +65,12 @@ llvm_emit_domain_event_helpers(LLVMGenCtx *ctx,
     ASTNode **events,
     size_t event_count)
 {
+    LLVMBasicBlockRef saved_bb;
+
     if (ctx == NULL || events == NULL)
         return;
+
+    saved_bb = LLVMGetInsertBlock(ctx->builder);
 
     /* Register event types and generate helper functions. */
     for (size_t i = 0; i < event_count; i++) {
@@ -84,7 +88,7 @@ llvm_emit_domain_event_helpers(LLVMGenCtx *ctx,
         char sname[256];
         if (!llvm_domain_event_struct_name(sname, sizeof(sname), ename)) {
             llvm_set_error(ctx, "event struct name is too long");
-            return;
+            goto restore_state;
         }
         LLVMTypeRef evt_struct = LLVMStructCreateNamed(ctx->context, sname);
         LLVMStructSetBody(evt_struct, sfields, 2, 0);
@@ -97,13 +101,17 @@ llvm_emit_domain_event_helpers(LLVMGenCtx *ctx,
         size_t ptype_count = (pc > 0) ? (size_t)pc : 1;
         LLVMTypeRef *ptypes = pgy_arena_calloc(&ctx->scratch,
             ptype_count * sizeof(LLVMTypeRef));
+        if (ptypes == NULL) {
+            llvm_set_error(ctx, "event parameter type allocation failed");
+            goto restore_state;
+        }
         for (int j = 0; j < pc; j++) {
             ASTNode *p = ast_event_param(stmt, (size_t)j);
             ASTNode *param_type = (p != NULL) ? ast_let_type(p) : NULL;
             ptypes[j] = llvm_domain_event_required_param_type(
                 ctx, stmt, param_type, ename);
             if (ctx->has_error || ptypes[j] == NULL)
-                return;
+                goto restore_state;
         }
         llvm_register_event(ctx, ename, evt_struct, pc, ptypes);
 
@@ -119,7 +127,7 @@ llvm_emit_domain_event_helpers(LLVMGenCtx *ctx,
             if (!llvm_domain_event_helper_name(fname, sizeof(fname),
                     ename, "INIT")) {
                 llvm_set_error(ctx, "event init helper name is too long");
-                return;
+                goto restore_state;
             }
             LLVMTypeRef init_params[] = { ctx->type_i8ptr };
             LLVMTypeRef init_ft = LLVMFunctionType(ctx->type_void,
@@ -147,7 +155,7 @@ llvm_emit_domain_event_helpers(LLVMGenCtx *ctx,
             if (!llvm_domain_event_helper_name(fname, sizeof(fname),
                     ename, "SUBSCRIBE")) {
                 llvm_set_error(ctx, "event subscribe helper name is too long");
-                return;
+                goto restore_state;
             }
             LLVMTypeRef sub_params[] = { ctx->type_i8ptr, ctx->type_i8ptr };
             LLVMTypeRef sub_ft = LLVMFunctionType(ctx->type_void,
@@ -209,7 +217,7 @@ llvm_emit_domain_event_helpers(LLVMGenCtx *ctx,
                     ename, "UNSUBSCRIBE")) {
                 llvm_set_error(ctx,
                     "event unsubscribe helper name is too long");
-                return;
+                goto restore_state;
             }
             LLVMTypeRef unsub_params[] = { ctx->type_i8ptr, ctx->type_i8ptr };
             LLVMTypeRef unsub_ft = LLVMFunctionType(ctx->type_void,
@@ -304,7 +312,7 @@ llvm_emit_domain_event_helpers(LLVMGenCtx *ctx,
             if (!llvm_domain_event_helper_name(fname, sizeof(fname),
                     ename, "INVOKE")) {
                 llvm_set_error(ctx, "event invoke helper name is too long");
-                return;
+                goto restore_state;
             }
             /*
              * params: ptr (event), then handler params.  Consumed by
@@ -313,6 +321,10 @@ llvm_emit_domain_event_helpers(LLVMGenCtx *ctx,
              */
             LLVMTypeRef *inv_params = pgy_arena_calloc(&ctx->scratch,
                 (size_t)(pc + 1) * sizeof(LLVMTypeRef));
+            if (inv_params == NULL) {
+                llvm_set_error(ctx, "event invoke parameter allocation failed");
+                goto restore_state;
+            }
             inv_params[0] = ctx->type_i8ptr;
             for (int j = 0; j < pc; j++)
                 inv_params[j + 1] = ptypes[j];
@@ -372,6 +384,10 @@ llvm_emit_domain_event_helpers(LLVMGenCtx *ctx,
              */
             LLVMValueRef *call_args = pgy_arena_calloc(&ctx->scratch,
                 (size_t)pc * sizeof(LLVMValueRef));
+            if (call_args == NULL && pc > 0) {
+                llvm_set_error(ctx, "event invoke call argument allocation failed");
+                goto restore_state;
+            }
             for (int j = 0; j < pc; j++)
                 call_args[j] = LLVMGetParam(inv_fn, (unsigned)(j + 1));
             LLVMBuildCall2(ctx->builder, handler_ft, hval,
@@ -392,6 +408,10 @@ llvm_emit_domain_event_helpers(LLVMGenCtx *ctx,
         LLVMSetInitializer(gv, LLVMConstNull(evt_struct));
         LLVMSetLinkage(gv, LLVMInternalLinkage);
     }
+
+restore_state:
+    if (saved_bb != NULL)
+        LLVMPositionBuilderAtEnd(ctx->builder, saved_bb);
 }
 
 #endif /* PGY_LLVM_ENABLED */

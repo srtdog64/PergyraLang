@@ -49,6 +49,16 @@ llvm_zone_sync_alloc_previous_state(ASTNode *stmt, LLVMGenCtx *ctx,
         (state_count > 0 ? state_count : 1) * sizeof(LLVMValueRef));
     LLVMValueRef *prev_layer_addrs = pgy_arena_calloc(&ctx->scratch,
         (layer_view.count > 0 ? layer_view.count : 1) * sizeof(LLVMValueRef));
+    if (prev_state_addrs == NULL || prev_layer_addrs == NULL) {
+        llvm_set_error(ctx,
+            "LLVM zone frontier previous-state allocation failed for '%s'",
+            zone_name != NULL ? zone_name : "(anonymous)");
+        if (prev_state_addrs_out != NULL)
+            *prev_state_addrs_out = NULL;
+        if (prev_layer_addrs_out != NULL)
+            *prev_layer_addrs_out = NULL;
+        return;
+    }
 
     if (llvm_hosted_zone_layer_slot_view_missing_mir_metadata(&layer_view)) {
         llvm_set_mir_inventory_missing(ctx,
@@ -72,13 +82,10 @@ llvm_zone_sync_alloc_previous_state(ASTNode *stmt, LLVMGenCtx *ctx,
         prev_state_addrs[i] = llvm_create_entry_alloca(ctx, ctx->type_i1, prev_name);
     }
     for (size_t i = 0; i < layer_view.count; i++) {
-        ASTNode *slot =
-            llvm_hosted_zone_layer_slot_view_source_ast(&layer_view, i);
         const char *slot_name =
             llvm_hosted_zone_layer_slot_view_name(&layer_view, i);
         char prev_name[256];
-        if (slot == NULL || slot->type != AST_ZONE_LAYER_SLOT
-            || slot_name == NULL)
+        if (slot_name == NULL)
             continue;
         if (!llvm_zone_frontier_prev_name(prev_name, sizeof(prev_name),
                 "layer", slot_name))
@@ -142,8 +149,6 @@ llvm_zone_sync_snapshot_previous_state(ASTNode *stmt,
         LLVMBuildStore(ctx->builder, state_val, prev_state_addrs[i]);
     }
     for (size_t i = 0; i < layer_view.count; i++) {
-        ASTNode *slot =
-            llvm_hosted_zone_layer_slot_view_source_ast(&layer_view, i);
         const char *slot_name =
             llvm_hosted_zone_layer_slot_view_name(&layer_view, i);
         char field_name[256];
@@ -151,8 +156,7 @@ llvm_zone_sync_snapshot_previous_state(ASTNode *stmt,
         LLVMValueRef self_ptr;
         LLVMValueRef layer_ptr;
         LLVMValueRef layer_val;
-        if (prev_layer_addrs[i] == NULL || slot == NULL || slot->type != AST_ZONE_LAYER_SLOT
-            || slot_name == NULL)
+        if (prev_layer_addrs[i] == NULL || slot_name == NULL)
             continue;
         if (!llvm_zone_frontier_field_name(field_name, sizeof(field_name),
                 "layer_active", slot_name))
@@ -216,8 +220,6 @@ llvm_zone_sync_reset_state_and_layers(ASTNode *stmt,
             LLVMConstInt(ctx->type_i1, 0, 0), state_ptr);
     }
     for (size_t i = 0; i < layer_view.count; i++) {
-        ASTNode *slot =
-            llvm_hosted_zone_layer_slot_view_source_ast(&layer_view, i);
         const char *slot_name =
             llvm_hosted_zone_layer_slot_view_name(&layer_view, i);
         int field_idx;
@@ -229,11 +231,13 @@ llvm_zone_sync_reset_state_and_layers(ASTNode *stmt,
         LLVMValueRef count_ptr;
         LLVMValueRef cap_ptr;
         LLVMTypeRef i8_ty;
+        int pool_capacity;
 
-        if (slot == NULL || slot->type != AST_ZONE_LAYER_SLOT
-            || !ast_zone_layer_slot_is_pool(slot)
+        if (!llvm_hosted_zone_layer_slot_view_is_pool(&layer_view, i)
             || slot_name == NULL)
             continue;
+        pool_capacity =
+            llvm_hosted_zone_layer_slot_view_pool_capacity(&layer_view, i);
 
         field_idx = llvm_class_field_index(decl_cls,
             slot_name);
@@ -260,22 +264,18 @@ llvm_zone_sync_reset_state_and_layers(ASTNode *stmt,
         LLVMBuildStore(ctx->builder, LLVMConstInt(i8_ty, 0, 0), count_ptr);
         LLVMBuildStore(ctx->builder,
             LLVMConstInt(i8_ty,
-                ast_zone_layer_slot_pool_capacity(slot) > 0
-                    ? (unsigned)ast_zone_layer_slot_pool_capacity(slot) : 1,
+                pool_capacity > 0 ? (unsigned)pool_capacity : 1,
                 0),
             cap_ptr);
     }
     for (size_t i = 0; i < layer_view.count; i++) {
-        ASTNode *slot =
-            llvm_hosted_zone_layer_slot_view_source_ast(&layer_view, i);
         const char *slot_name =
             llvm_hosted_zone_layer_slot_view_name(&layer_view, i);
         char field_name[256];
         int field_idx;
         LLVMValueRef self_ptr;
         LLVMValueRef layer_ptr;
-        if (slot == NULL || slot->type != AST_ZONE_LAYER_SLOT
-            || slot_name == NULL)
+        if (slot_name == NULL)
             continue;
         if (!llvm_zone_frontier_field_name(field_name, sizeof(field_name),
                 "layer_active", slot_name))
@@ -354,8 +354,6 @@ llvm_zone_sync_update_frontier_continue(ASTNode *stmt,
             frontier_continue_addr);
     }
     for (size_t i = 0; i < layer_view.count; i++) {
-        ASTNode *slot =
-            llvm_hosted_zone_layer_slot_view_source_ast(&layer_view, i);
         const char *slot_name =
             llvm_hosted_zone_layer_slot_view_name(&layer_view, i);
         char field_name[256];
@@ -366,8 +364,7 @@ llvm_zone_sync_update_frontier_continue(ASTNode *stmt,
         LLVMValueRef prev_val;
         LLVMValueRef changed_val;
         LLVMValueRef pending_val;
-        if (prev_layer_addrs[i] == NULL || slot == NULL || slot->type != AST_ZONE_LAYER_SLOT
-            || slot_name == NULL)
+        if (prev_layer_addrs[i] == NULL || slot_name == NULL)
             continue;
         if (!llvm_zone_frontier_field_name(field_name, sizeof(field_name),
                 "layer_active", slot_name))

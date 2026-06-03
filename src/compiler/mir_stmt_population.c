@@ -105,9 +105,7 @@ mir_stmt_is_control_flow(const ASTNode *stmt, const MIRBasicBlock *mir_block)
         return true;
     if (mir_block == NULL)
         return mir_stmt_ast_is_cfg_owned_control(stmt);
-    if (stmt->type == AST_RETURN)
-        return true;
-    if (stmt->type == AST_WITH_STMT || stmt->type == AST_UNSAFE_BLOCK)
+    if (mir_stmt_ast_is_unconditional_cfg_owned_control(stmt))
         return true;
     if (mir_block->has_succ_true || mir_block->has_succ_false) {
         if (mir_stmt_ast_is_cfg_owned_control(stmt))

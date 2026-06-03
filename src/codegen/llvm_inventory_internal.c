@@ -172,6 +172,14 @@ llvm_active_has_main_function(const LLVMGenCtx *ctx)
     return ctx != NULL && mir_program_has_main_function(ctx->mir);
 }
 
+const char *
+llvm_active_main_function_name(const LLVMGenCtx *ctx)
+{
+    if (ctx == NULL || ctx->mir == NULL)
+        return NULL;
+    return mir_program_main_function_name(ctx->mir);
+}
+
 bool
 llvm_active_has_top_level_exec(const LLVMGenCtx *ctx)
 {

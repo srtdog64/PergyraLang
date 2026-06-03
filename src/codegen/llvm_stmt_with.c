@@ -87,6 +87,8 @@ llvm_emit_with_stmt(ASTNode *node, LLVMGenCtx *ctx)
         LLVMConstInt(LLVMInt1TypeInContext(ctx->context), 1, 0),
         claimed_ptr);
 
+    LLVMLexicalRegistrySnapshot lexical_snapshot =
+        llvm_lexical_registry_snapshot(ctx);
     llvm_scope_push(ctx);
     if (is_secure) {
         LLVMTypeRef token_ty = llvm_secure_token_type(ctx, inner);
@@ -94,6 +96,7 @@ llvm_emit_with_stmt(ASTNode *node, LLVMGenCtx *ctx)
         if (!llvm_with_token_name(ctx, node, token_name,
                 sizeof(token_name), alias)) {
             llvm_scope_pop(ctx);
+            llvm_lexical_registry_restore(ctx, lexical_snapshot);
             return;
         }
         LLVMValueRef token_alloca = llvm_stmt_create_slot_alloca(ctx,
@@ -179,6 +182,7 @@ llvm_emit_with_stmt(ASTNode *node, LLVMGenCtx *ctx)
     }
 
     llvm_scope_pop(ctx);
+    llvm_lexical_registry_restore(ctx, lexical_snapshot);
 }
 
 #endif /* PGY_LLVM_ENABLED */

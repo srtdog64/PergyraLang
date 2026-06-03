@@ -69,13 +69,10 @@ emit_builtin_has_projection(ASTNode *call, TranspilerCtx *ctx)
 {
     ASTNode *arg0 = ast_call_argument(call, 0);
     const char *slot_name = domain_query_name_arg(arg0);
-    ASTNode *slot_decl = transpiler_current_overlay_domain_slot_decl(ctx,
-        slot_name);
 
     if (ast_call_arg_count(call) == 1 && slot_name != NULL) {
-        if (slot_decl != NULL
-            && slot_decl->type == AST_DOMAIN_SLOT
-            && !ast_domain_slot_is_subject(slot_decl)) {
+        if (transpiler_current_overlay_domain_slot_is_projection(
+                ctx, slot_name)) {
             return domain_query_heap_fmt("self->__projection_ready_%s",
                 slot_name);
         }
@@ -181,15 +178,12 @@ emit_builtin_has_zone_projection(ASTNode *call, TranspilerCtx *ctx)
     ASTNode *zone_decl = world_decl != NULL
         ? transpiler_resolve_world_zone_decl(ctx, world_decl, zone_name)
         : NULL;
-    ASTNode *slot_decl = zone_decl != NULL && slot_name != NULL
-        ? transpiler_find_zone_domain_slot(ctx, zone_decl, slot_name)
-        : NULL;
 
     if (world_decl != NULL
         && ast_call_arg_count(call) == 2
         && zone_decl != NULL
-        && slot_decl != NULL
-        && !ast_domain_slot_is_subject(slot_decl)) {
+        && transpiler_zone_domain_slot_is_projection(
+            ctx, zone_decl, slot_name)) {
         return domain_query_heap_fmt("self->%s.__projection_ready_%s",
             zone_name, slot_name);
     }
@@ -217,7 +211,7 @@ emit_builtin_has_zone_layer(ASTNode *call, TranspilerCtx *ctx)
         && ast_call_arg_count(call) == 2
         && zone_decl != NULL
         && layer_name != NULL
-        && transpiler_find_zone_layer_slot(ctx, zone_decl, layer_name) != NULL) {
+        && transpiler_zone_has_layer_slot(ctx, zone_decl, layer_name)) {
         return domain_query_heap_fmt("self->%s.__layer_active_%s",
             zone_name, layer_name);
     }

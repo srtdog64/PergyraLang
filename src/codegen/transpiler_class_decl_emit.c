@@ -170,6 +170,8 @@ emit_class_decl(ASTNode *node, TranspilerCtx *ctx)
         name, name);
 
     for (size_t i = 0; i < method_view.count; i++) {
+        const MIRDeclMethod *method_meta =
+            transpiler_hosted_method_view_metadata(&method_view, i);
         ASTNode *method =
             transpiler_hosted_method_view_source_ast(&method_view, i);
         if (transpiler_hosted_method_view_missing_mir_method_row(&method_view, i)) {
@@ -181,7 +183,7 @@ emit_class_decl(ASTNode *node, TranspilerCtx *ctx)
         }
         if (method == NULL) {
             const MIRRoutine *mir_method =
-                transpiler_hosted_method_view_routine(ctx, &method_view, i);
+                transpiler_mir_decl_method_routine(ctx, method_meta);
             method = transpiler_mir_routine_source_ast_of_type(
                 mir_method, MIR_SCOPE_METHOD, AST_FUNC_DECL);
         }
@@ -226,7 +228,7 @@ emit_class_decl(ASTNode *node, TranspilerCtx *ctx)
             return;
         }
         method_name = transpiler_mir_decl_method_name(method_meta);
-        mir_method = transpiler_hosted_method_view_routine(ctx, &method_view, i);
+        mir_method = transpiler_mir_decl_method_routine(ctx, method_meta);
         if (method == NULL && mir_method != NULL)
             method = transpiler_mir_routine_source_ast_of_type(
                 mir_method, MIR_SCOPE_METHOD, AST_FUNC_DECL);

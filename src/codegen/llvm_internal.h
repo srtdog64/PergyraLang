@@ -324,6 +324,25 @@ typedef struct
     const char  *type_name;   /* "Int" */
 } LLVMTypeSubst;
 
+typedef struct
+{
+    int slot_var_count;
+    int view_var_count;
+    int device_slot_var_count;
+    int future_var_count;
+    int channel_var_count;
+    int rc_var_count;
+    int weak_var_count;
+    int var_class_count;
+    int projection_borrow_count;
+    int array_var_count;
+    int list_var_count;
+    int set_var_count;
+    int queue_var_count;
+    int map_var_count;
+    int callable_var_count;
+} LLVMLexicalRegistrySnapshot;
+
 /* Result<T, E> specialization cache: parity with C backend's
  * ensure_result_specialization (transpiler_helpers_core_b.h).
  * LLVM has no preprocessor, so each unique (T, E) gets a named struct

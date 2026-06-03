@@ -69,9 +69,9 @@ test_air_dump_json_prints_stable_graph_schema(void)
         && strstr(buffer, "\"runtime_frontier_policy\"") != NULL
         && strstr(buffer, "\"" PGY_FRONTIER_POLICY_SCHEMA "\"") != NULL
         && strstr(buffer, "\"" PGY_FRONTIER_POLICY_SUBJECT "\"") != NULL
-        && strstr(buffer, "\"pass_limit_fact_count\":9") != NULL
+        && strstr(buffer, "\"pass_limit_fact_count\":10") != NULL
         && strstr(buffer, "\"overflow_reason_fact_count\":5") != NULL
-        && strstr(buffer, "\"fact_count\":14") != NULL
+        && strstr(buffer, "\"fact_count\":15") != NULL
         && strstr(buffer, "\"abi_schema\":\"" PGY_OBSERVABILITY_ABI_SCHEMA "\"") != NULL
         && strstr(buffer, "\"trace_schema\":\"" PGY_OBSERVABILITY_TRACE_SCHEMA "\"") != NULL
         && strstr(buffer, "\"surfaces\":[\"last\",\"history\",\"active\",\"recent\"]") != NULL
@@ -445,7 +445,7 @@ test_air_rejects_empty_runtime_frontier_policy_evidence(void)
         && error != NULL
         && strstr(error,
                   "runtime frontier policy evidence node 0 has invalid policy fact count") != NULL
-        && strstr(error, "expected=14 actual=0") != NULL;
+        && strstr(error, "expected=15 actual=0") != NULL;
     free(error);
     return ok;
 }
@@ -519,9 +519,12 @@ test_air_strict_evidence_rejects_frontier_counter_only(void)
 static bool
 test_air_runtime_frontier_policy_names_publish_order(void)
 {
-    bool ok = PGY_FRONTIER_PASS_LIMIT_FACT_COUNT == 9
+    bool ok = PGY_FRONTIER_PASS_LIMIT_FACT_COUNT == 10
         && PGY_FRONTIER_OVERFLOW_REASON_FACT_COUNT == 5
-        && PGY_FRONTIER_POLICY_FACT_COUNT == 14
+        && PGY_FRONTIER_POLICY_FACT_COUNT == 15
+        && pgy_frontier_embedded_zone_member_count(2, 3) == 5
+        && pgy_frontier_embedded_zone_member_count((size_t)UINT32_MAX, 1)
+            == (size_t)UINT32_MAX
         && pgy_frontier_publish_order_is_valid(
             PGY_FRONTIER_PUBLISH_WRITE_VALUE,
             PGY_FRONTIER_PUBLISH_READY)

@@ -3,6 +3,20 @@
 > Split from `docs/100_beta_readiness_checklist.md` on 2026-05-29.
 > Keep active blocker edits in the shard that owns the relevant closure track.
 
+## Progress Log - 2026-06-03 LLVM Builder Restoration Tightening
+
+- LLVM generated-function emitters no longer restore caller builder state by
+  guessing `LLVMGetLastBasicBlock(saved_fn)`. Function declaration emission,
+  role operator bridge emission, and domain sync finish now restore the exact
+  caller insertion block captured as `saved_bb`.
+- `llvm_finish_domain_sync_emit(...)` now consumes the caller-owned `saved_bb`
+  snapshot, so zone sync no longer performs a duplicate restore after the
+  helper returns.
+- Source-contract evidence: `perf_contract_smoke.sh` rejects reintroducing the
+  saved-function last-block restore pattern. Local verification in this slice
+  was limited to script syntax, `git diff --check`, and source scans because
+  the local LLVM toolchain is not available.
+
 ## Immediate Execution Order
 
 1. Continue the 600-1,000 LOC production owner queue without reintroducing

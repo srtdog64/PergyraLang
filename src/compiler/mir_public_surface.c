@@ -24,11 +24,13 @@ mir_instruction_record_surface_usage(MIRInstruction *inst)
         inst->has_source_location = true;
         inst->source_line = source_payload->line;
         inst->source_column = source_payload->column;
+        inst->source_stable_id = ast_node_stable_id(source_payload);
         inst->source_ast_type = source_payload->type;
     } else {
         inst->has_source_location = false;
         inst->source_line = 0;
         inst->source_column = 0;
+        inst->source_stable_id = 0;
         inst->source_ast_type = 0;
     }
     inst->has_surface_usage_facts = true;

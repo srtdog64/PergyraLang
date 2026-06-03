@@ -241,6 +241,8 @@ mir_decl_field_metadata_init_domain_slot(MIRDeclField *meta,
         ast_type_name(ast_domain_slot_type(slot)),
         MIR_DECL_FIELD_DOMAIN_SLOT);
     meta->is_subject_like = ast_domain_slot_is_subject(slot);
+    meta->is_tobject_like = ast_domain_slot_is_tobject(slot);
+    meta->is_binding_like = ast_domain_slot_is_binding(slot);
 }
 
 static void

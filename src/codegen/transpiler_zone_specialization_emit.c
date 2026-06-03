@@ -6,16 +6,13 @@
 void
 transpiler_emit_zone_required_specializations(
     TranspilerCtx *ctx,
-    ASTNode **slots,
-    size_t slot_count,
+    const TranspilerHostedDomainSlotView *slot_view,
     const TranspilerHostedSharedFieldView *shared_view,
     const TranspilerHostedMethodView *method_view)
 {
-    for (size_t i = 0; i < slot_count; i++) {
-        ASTNode *slot = slots[i];
-        if (slot != NULL)
-            ensure_type_specializations_from_ast_to(ctx, ctx->out,
-                ast_domain_slot_type(slot));
+    for (size_t i = 0; slot_view != NULL && i < slot_view->count; i++) {
+        ensure_type_specializations_from_ast_to(ctx, ctx->out,
+            transpiler_hosted_domain_slot_view_type(slot_view, i));
     }
     for (size_t i = 0; shared_view != NULL && i < shared_view->count; i++) {
         ensure_type_specializations_from_ast_to(ctx, ctx->out,

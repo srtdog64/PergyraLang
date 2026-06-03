@@ -38,6 +38,8 @@ llvm_emit_world_sync(ASTNode *stmt, const char *decl_name,
     LLVMValueRef saved_fn;
     LLVMTypeRef saved_ret;
     ASTNode *saved_host_decl;
+    LLVMBasicBlockRef saved_bb;
+    LLVMLexicalRegistrySnapshot lexical_snapshot;
     LLVMBasicBlockRef bb;
 
     if (stmt == NULL || stmt->type != AST_WORLD_DECL || decl_name == NULL
@@ -46,6 +48,8 @@ llvm_emit_world_sync(ASTNode *stmt, const char *decl_name,
 
     saved_fn = ctx->current_function;
     saved_ret = ctx->current_ret_type;
+    saved_bb = LLVMGetInsertBlock(ctx->builder);
+    lexical_snapshot = llvm_lexical_registry_snapshot(ctx);
     saved_host_decl = llvm_bind_current_host_decl(ctx, stmt);
     bb = LLVMAppendBasicBlockInContext(ctx->context, sync_fn, "entry");
     LLVMPositionBuilderAtEnd(ctx->builder, bb);
@@ -72,14 +76,30 @@ llvm_emit_world_sync(ASTNode *stmt, const char *decl_name,
          * returns.  Never escapes. */
         LLVMValueRef *prev_active_addrs = pgy_arena_calloc(&ctx->scratch,
             (zone_count > 0 ? zone_count : 1) * sizeof(LLVMValueRef));
+        if (prev_active_addrs == NULL) {
+            llvm_set_error(ctx,
+                "LLVM world sync previous-active allocation failed for '%s'",
+                world_name != NULL ? world_name : "(anonymous)");
+            llvm_scope_pop(ctx);
+            llvm_lexical_registry_restore(ctx, lexical_snapshot);
+            ctx->current_function = saved_fn;
+            ctx->current_ret_type = saved_ret;
+            if (saved_bb != NULL)
+                LLVMPositionBuilderAtEnd(ctx->builder, saved_bb);
+            llvm_restore_current_host_decl(ctx, saved_host_decl);
+            return;
+        }
 
         if (llvm_hosted_world_zone_slot_view_missing_mir_metadata(&zone_view)) {
             llvm_set_mir_inventory_missing(ctx,
                 "MIR-only LLVM path missing world zone-slot metadata for '%s'",
                 world_name != NULL ? world_name : "<anonymous>");
             llvm_scope_pop(ctx);
+            llvm_lexical_registry_restore(ctx, lexical_snapshot);
             ctx->current_function = saved_fn;
             ctx->current_ret_type = saved_ret;
+            if (saved_bb != NULL)
+                LLVMPositionBuilderAtEnd(ctx->builder, saved_bb);
             llvm_restore_current_host_decl(ctx, saved_host_decl);
             return;
         }
@@ -195,15 +215,13 @@ llvm_emit_world_sync(ASTNode *stmt, const char *decl_name,
 
     LLVMBuildRetVoid(ctx->builder);
     llvm_scope_pop(ctx);
+    llvm_lexical_registry_restore(ctx, lexical_snapshot);
     ctx->current_function = saved_fn;
     ctx->current_ret_type = saved_ret;
     llvm_restore_current_host_decl(ctx, saved_host_decl);
 
-    if (saved_fn != NULL) {
-        LLVMBasicBlockRef last = LLVMGetLastBasicBlock(saved_fn);
-        if (last != NULL)
-            LLVMPositionBuilderAtEnd(ctx->builder, last);
-    }
+    if (saved_bb != NULL)
+        LLVMPositionBuilderAtEnd(ctx->builder, saved_bb);
 }
 
 #endif /* PGY_LLVM_ENABLED */

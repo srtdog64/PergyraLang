@@ -172,6 +172,12 @@ llvm_emit_func_from_mir(const MIRRoutine *routine, LLVMGenCtx *ctx)
     }
     LLVMTypeRef *param_types = pgy_arena_calloc(&ctx->scratch,
         (param_count > 0 ? param_count : 1) * sizeof(LLVMTypeRef));
+    if (param_types == NULL) {
+        llvm_set_mir_memory_exhausted(ctx,
+            "LLVM MIR routine '%s' parameter type allocation failed",
+            routine->name != NULL ? routine->name : "(anonymous)");
+        return NULL;
+    }
     for (size_t i = 0; i < param_count; i++) {
         if (is_intent) {
             size_t binding_count = 0;
@@ -293,30 +299,22 @@ llvm_emit_func_from_mir(const MIRRoutine *routine, LLVMGenCtx *ctx)
     LLVMValueRef saved_fn = ctx->current_function;
     LLVMTypeRef saved_ret = ctx->current_ret_type;
     ASTNode *saved_func_decl = ctx->current_func_decl;
-    int saved_slot_var_count = ctx->slot_var_count;
-    int saved_view_var_count = ctx->view_var_count;
-    int saved_device_slot_var_count = ctx->device_slot_var_count;
-    int saved_future_var_count = ctx->future_var_count;
-    int saved_channel_var_count = ctx->channel_var_count;
-    int saved_var_class_count = ctx->var_class_count;
-    int saved_projection_borrow_count = ctx->projection_borrow_count;
-    int saved_array_var_count = ctx->array_var_count;
-    int saved_list_var_count = ctx->list_var_count;
-    int saved_set_var_count = ctx->set_var_count;
-    int saved_queue_var_count = ctx->queue_var_count;
-    int saved_map_var_count = ctx->map_var_count;
-    int saved_callable_var_count = ctx->callable_var_count;
+    LLVMBasicBlockRef saved_bb = LLVMGetInsertBlock(ctx->builder);
+    LLVMLexicalRegistrySnapshot lexical_snapshot =
+        llvm_lexical_registry_snapshot(ctx);
     ASTNode *saved_host_decl = NULL;
-    ctx->current_function = fn;
-    ctx->current_ret_type = ret_type;
-    ctx->current_func_decl = func_decl;
-    if (is_method)
-        saved_host_decl = llvm_bind_current_host_decl(
-            ctx, llvm_find_host_decl_in_active_inventory(ctx, owner_name));
+    bool scope_pushed = false;
+    bool defer_scope_pushed = false;
 
     size_t var_capacity = 64;
     LLVMMirVar *vars = pgy_arena_calloc(&ctx->scratch,
         var_capacity * sizeof(LLVMMirVar));
+    if (vars == NULL) {
+        llvm_set_mir_memory_exhausted(ctx,
+            "LLVM MIR routine '%s' local registry allocation failed",
+            routine->name != NULL ? routine->name : "(anonymous)");
+        return NULL;
+    }
     size_t var_count = 0;
 
     size_t bb_alloc =
@@ -325,6 +323,12 @@ llvm_emit_func_from_mir(const MIRRoutine *routine, LLVMGenCtx *ctx)
         bb_alloc * sizeof(LLVMBasicBlockRef));
     LLVMBasicBlockRef *llvm_block_heads = pgy_arena_calloc(&ctx->scratch,
         bb_alloc * sizeof(LLVMBasicBlockRef));
+    if (llvm_blocks == NULL || llvm_block_heads == NULL) {
+        llvm_set_mir_memory_exhausted(ctx,
+            "LLVM MIR routine '%s' block registry allocation failed",
+            routine->name != NULL ? routine->name : "(anonymous)");
+        return NULL;
+    }
     for (size_t i = 0; i < routine->block_count; i++) {
         char bb_name[64];
         snprintf(bb_name, sizeof(bb_name), "bb_%zu", i);
@@ -333,9 +337,20 @@ llvm_emit_func_from_mir(const MIRRoutine *routine, LLVMGenCtx *ctx)
     }
     llvm_mir_debug_stage("emit_func_from_mir:blocks_ready", routine);
 
+    ctx->current_function = fn;
+    ctx->current_ret_type = ret_type;
+    ctx->current_func_decl = func_decl;
+    if (is_method)
+        saved_host_decl = llvm_bind_current_host_decl(
+            ctx, llvm_find_host_decl_in_active_inventory(ctx, owner_name));
+
     LLVMPositionBuilderAtEnd(ctx->builder, llvm_blocks[routine->entry_block]);
     llvm_scope_push(ctx);
+    if (ctx->has_error)
+        goto restore_state;
+    scope_pushed = true;
     llvm_defer_scope_push(ctx);
+    defer_scope_pushed = true;
     llvm_emit_mir_param_allocas(routine, func_decl, fn, ctx, is_intent, is_method,
                                 owner_cls, owner_name, param_count);
     llvm_emit_mir_local_allocas(routine, ctx, &vars, &var_capacity, &var_count);
@@ -407,24 +422,17 @@ llvm_emit_func_from_mir(const MIRRoutine *routine, LLVMGenCtx *ctx)
     }
     llvm_mir_debug_stage("emit_func_from_mir:cleanup_emitted", routine);
 
-    llvm_defer_scope_pop(ctx);
-    llvm_scope_pop(ctx);
-    ctx->slot_var_count = saved_slot_var_count;
-    ctx->view_var_count = saved_view_var_count;
-    ctx->device_slot_var_count = saved_device_slot_var_count;
-    ctx->future_var_count = saved_future_var_count;
-    ctx->channel_var_count = saved_channel_var_count;
-    ctx->var_class_count = saved_var_class_count;
-    ctx->projection_borrow_count = saved_projection_borrow_count;
-    ctx->array_var_count = saved_array_var_count;
-    ctx->list_var_count = saved_list_var_count;
-    ctx->set_var_count = saved_set_var_count;
-    ctx->queue_var_count = saved_queue_var_count;
-    ctx->map_var_count = saved_map_var_count;
-    ctx->callable_var_count = saved_callable_var_count;
+restore_state:
+    if (defer_scope_pushed)
+        llvm_defer_scope_pop(ctx);
+    if (scope_pushed)
+        llvm_scope_pop(ctx);
+    llvm_lexical_registry_restore(ctx, lexical_snapshot);
     ctx->current_function = saved_fn;
     ctx->current_ret_type = saved_ret;
     ctx->current_func_decl = saved_func_decl;
+    if (saved_bb != NULL)
+        LLVMPositionBuilderAtEnd(ctx->builder, saved_bb);
     if (is_method)
         llvm_restore_current_host_decl(ctx, saved_host_decl);
     llvm_mir_debug_stage("emit_func_from_mir:return", routine);

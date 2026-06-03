@@ -147,6 +147,17 @@ codebuf_write_raw(CodeBuf *buf, const char *s, size_t n)
     buf->data[buf->len] = '\0';
 }
 
+void
+codebuf_truncate(CodeBuf *buf, size_t len)
+{
+    if (buf == NULL || buf->data == NULL)
+        return;
+    if (len > buf->len)
+        return;
+    buf->len = len;
+    buf->data[buf->len] = '\0';
+}
+
 bool
 codebuf_dump_file(const CodeBuf *buf, const char *path)
 {

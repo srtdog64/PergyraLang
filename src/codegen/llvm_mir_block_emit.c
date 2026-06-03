@@ -411,7 +411,7 @@ llvm_emit_mir_block_with_exprs(const MIRBasicBlock *mir_block,
                     cond = llvm_mir_emit_for_loop_condition(inst, ctx);
                 } else if (inst->branch_shape == MIR_BRANCH_MATCH_CASE) {
                     cond = llvm_mir_emit_match_case_condition(func_decl,
-                                                              source_payload,
+                                                              inst,
                                                               ctx);
                 } else if (inst->branch_shape == MIR_BRANCH_SELECT_DISPATCH) {
                     cond = llvm_mir_emit_select_dispatch_condition(

@@ -13,6 +13,43 @@
 #include "transpiler_decl_lookup.h"
 #include "transpiler_projection.h"
 
+static const char *
+domain_slot_view_type_name(const TranspilerHostedDomainSlotView *slot_view,
+                           size_t index)
+{
+    ASTNode *slot_type;
+    const char *type_name =
+        transpiler_hosted_domain_slot_view_type_name(slot_view, index);
+
+    if (type_name != NULL)
+        return type_name;
+
+    slot_type = transpiler_hosted_domain_slot_view_type(slot_view, index);
+    if (slot_type == NULL || slot_type->type != AST_TYPE)
+        return NULL;
+    return ast_type_name(slot_type);
+}
+
+static bool
+domain_slot_view_find_index(const TranspilerHostedDomainSlotView *slot_view,
+                            const char *slot_name,
+                            size_t *index_out)
+{
+    if (slot_view == NULL || slot_name == NULL)
+        return false;
+
+    for (size_t i = 0; i < slot_view->count; i++) {
+        const char *candidate =
+            transpiler_hosted_domain_slot_view_name(slot_view, i);
+        if (candidate != NULL && strcmp(candidate, slot_name) == 0) {
+            if (index_out != NULL)
+                *index_out = i;
+            return true;
+        }
+    }
+    return false;
+}
+
 void
 emit_hidden_provenance_fields(TranspilerCtx *ctx,
                               const char *prefix,
@@ -43,27 +80,27 @@ emit_hidden_provenance_stamp(TranspilerCtx *ctx,
 }
 
 void
-emit_domain_projection_sync_loop(TranspilerCtx *ctx,
-                                 ASTNode **slots,
-                                 size_t slot_count,
-                                 ASTNode **refreshes,
-                                 size_t refresh_count,
-                                 const char *loop_prefix,
-                                 bool early_return_if_clean)
+emit_domain_projection_sync_loop_from_view(
+    TranspilerCtx *ctx,
+    const TranspilerHostedDomainSlotView *slot_view,
+    ASTNode **refreshes,
+    size_t refresh_count,
+    const char *loop_prefix,
+    bool early_return_if_clean)
 {
     bool emitted_condition = false;
 
-    if (ctx == NULL || ctx->out == NULL || slots == NULL || refreshes == NULL
-        || loop_prefix == NULL || refresh_count == 0) {
+    if (ctx == NULL || ctx->out == NULL || slot_view == NULL
+        || refreshes == NULL || loop_prefix == NULL || refresh_count == 0) {
         return;
     }
 
-    for (size_t i = 0; i < slot_count; i++) {
-        ASTNode *slot = slots[i];
-        const char *slot_name = ast_domain_slot_name(slot);
-        if (slot == NULL || slot->type != AST_DOMAIN_SLOT
-            || ast_domain_slot_is_subject(slot)
-            || slot_name == NULL) {
+    for (size_t i = 0; i < slot_view->count; i++) {
+        const char *slot_name =
+            transpiler_hosted_domain_slot_view_name(slot_view, i);
+        if (slot_name == NULL
+            || transpiler_hosted_domain_slot_view_is_subject_like(
+                slot_view, i)) {
             continue;
         }
         emitted_condition = true;
@@ -77,18 +114,17 @@ emit_domain_projection_sync_loop(TranspilerCtx *ctx,
     codebuf_write(ctx->out, "if (");
     if (early_return_if_clean)
         codebuf_write(ctx->out, "!(");
-    for (size_t i = 0; i < slot_count; i++) {
-        ASTNode *slot = slots[i];
-        const char *slot_name = ast_domain_slot_name(slot);
-        if (slot == NULL || slot->type != AST_DOMAIN_SLOT
-            || ast_domain_slot_is_subject(slot)
-            || slot_name == NULL) {
+    for (size_t i = 0; i < slot_view->count; i++) {
+        const char *slot_name =
+            transpiler_hosted_domain_slot_view_name(slot_view, i);
+        if (slot_name == NULL
+            || transpiler_hosted_domain_slot_view_is_subject_like(
+                slot_view, i)) {
             continue;
         }
         if (emitted_condition)
             codebuf_write(ctx->out, " || ");
-        codebuf_write(ctx->out, "self->__projection_dirty_%s",
-            slot_name);
+        codebuf_write(ctx->out, "self->__projection_dirty_%s", slot_name);
         emitted_condition = true;
     }
     if (early_return_if_clean)
@@ -118,57 +154,44 @@ emit_domain_projection_sync_loop(TranspilerCtx *ctx,
 
     for (size_t i = 0; i < refresh_count; i++) {
         ASTNode *refresh = refreshes[i];
-        ASTNode *target_slot = NULL;
-        ASTNode *source_slot = NULL;
-        ASTNode *target_decl = NULL;
-        ASTNode *source_decl = NULL;
+        const char *target_slot_name;
+        const char *source_slot_name;
+        size_t target_index = 0;
+        size_t source_index = 0;
         const char *target_type_name = NULL;
         const char *source_type_name = NULL;
-        const char *target_slot_name;
+        ASTNode *target_decl = NULL;
+        ASTNode *source_decl = NULL;
         char *literal;
 
         if (refresh == NULL || refresh->type != AST_ZONE_REFRESH)
             continue;
 
         target_slot_name = ast_zone_refresh_object_slot_name(refresh);
-        if (target_slot_name == NULL
-            || ast_zone_refresh_source_slot_name(refresh) == NULL) {
+        source_slot_name = ast_zone_refresh_source_slot_name(refresh);
+        if (target_slot_name == NULL || source_slot_name == NULL)
+            continue;
+        if (!domain_slot_view_find_index(slot_view, target_slot_name,
+                &target_index)
+            || !domain_slot_view_find_index(slot_view, source_slot_name,
+                &source_index)) {
             continue;
         }
 
-        for (size_t j = 0; j < slot_count; j++) {
-            ASTNode *slot = slots[j];
-            const char *slot_name = ast_domain_slot_name(slot);
-            if (slot == NULL || slot->type != AST_DOMAIN_SLOT
-                || slot_name == NULL) {
-                continue;
-            }
-            if (strcmp(slot_name, target_slot_name) == 0)
-                target_slot = slot;
-            if (strcmp(slot_name,
-                       ast_zone_refresh_source_slot_name(refresh)) == 0) {
-                source_slot = slot;
-            }
-        }
-        ASTNode *target_slot_type = ast_domain_slot_type(target_slot);
-        ASTNode *source_slot_type = ast_domain_slot_type(source_slot);
-        if (target_slot == NULL || source_slot == NULL
-            || target_slot_type == NULL
-            || source_slot_type == NULL
-            || target_slot_type->type != AST_TYPE
-            || source_slot_type->type != AST_TYPE) {
+        target_type_name =
+            domain_slot_view_type_name(slot_view, target_index);
+        source_type_name =
+            domain_slot_view_type_name(slot_view, source_index);
+        if (target_type_name == NULL || source_type_name == NULL)
             continue;
-        }
 
-        target_type_name = ast_type_name(target_slot_type);
-        source_type_name = ast_type_name(source_slot_type);
         target_decl = transpiler_find_projection_nominal_decl_local(
             ctx, target_type_name);
         source_decl = transpiler_find_projection_nominal_decl_local(
             ctx, source_type_name);
         {
             const char *source_expr = transpiler_scratch_fmt(ctx, "self->%s",
-                ast_zone_refresh_source_slot_name(refresh));
+                source_slot_name);
             literal = emit_projection_literal(ctx, target_decl, source_decl,
                 refresh, target_type_name, source_expr);
         }
@@ -181,7 +204,8 @@ emit_domain_projection_sync_loop(TranspilerCtx *ctx,
         codebuf_write(ctx->out, "self->__projection_ready_%s = false;\n",
             target_slot_name);
         write_indent(ctx);
-        codebuf_write(ctx->out, "self->%s = %s;\n", target_slot_name, literal);
+        codebuf_write(ctx->out, "self->%s = %s;\n",
+            target_slot_name, literal);
         write_indent(ctx);
         codebuf_write(ctx->out, "self->__projection_ready_%s = true;\n",
             target_slot_name);

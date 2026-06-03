@@ -2,20 +2,12 @@
 #include "mir_cfg_contract_pin.h"
 
 static bool
-air_boundary_is_pin_boundary(const AIRBoundaryNode *boundary)
-{
-    return boundary != NULL
-        && boundary->kind == AIR_BOUNDARY_EXECUTION
-        && air_name_matches(boundary->source_name, "pin");
-}
-
-static bool
 air_mir_pin_block_matches_boundary(const MIRBasicBlock *block,
                                    const AIRBoundaryNode *boundary)
 {
     if (block == NULL || boundary == NULL || !block->is_pin_region)
         return false;
-    if (!air_boundary_is_pin_boundary(boundary))
+    if (!air_boundary_requires_mir_pin_cleanup_evidence(boundary))
         return false;
     if (boundary->ast == NULL || block->pin_block_ast == NULL)
         return false;

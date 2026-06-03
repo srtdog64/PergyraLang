@@ -25,7 +25,7 @@ llvm_mir_for_loop_alloca_name(const MIRInstruction *inst,
         snprintf(buffer, buffer_size, "mir.for.binding");
         return;
     }
-    stable_id = ast_node_stable_id(mir_instruction_source_payload(inst));
+    stable_id = mir_instruction_source_stable_id(inst);
     if (stable_id == 0) {
         snprintf(buffer, buffer_size, "%s.mir.for", binding);
         return;
