@@ -9,9 +9,7 @@ if [[ -z "${PGY_BIN:-}" ]]; then
     PGY_BIN="$ROOT_DIR/bin/pgy"
     PGY_BIN_WAS_DEFAULT=1
 fi
-if [[ "$PGY_BIN" != *.exe ]] && pgy_binary_expects_windows_paths "${PGY_BIN}.exe"; then
-    PGY_BIN="${PGY_BIN}.exe"
-fi
+PGY_BIN="$(pgy_select_optional_exe_binary "$PGY_BIN")"
 WORK_DIR="$(mktemp -d "${TMPDIR:-/tmp}/pgy-runtime-none.XXXXXX")"
 trap 'rm -rf "$WORK_DIR"' EXIT
 
@@ -51,6 +49,13 @@ if [[ ! -x "$PGY_BIN" ]]; then
     fi
     echo "[runtime-none-contract] missing compiler binary: $PGY_BIN" >&2
     exit 1
+fi
+if ! pgy_binary_is_runnable_here "$PGY_BIN"; then
+    if [[ "$PGY_BIN_WAS_DEFAULT" -eq 1 || "${PGY_RUNTIME_NONE_ALLOW_MISSING_BIN:-0}" == "1" ]]; then
+        echo "[runtime-none-contract] SKIP executable probe; binary is not runnable on this host: $PGY_BIN"
+        exit 0
+    fi
+    pgy_require_runnable_binary_here "runtime-none-contract" "$PGY_BIN"
 fi
 if ! "$PGY_BIN" --help >"$WORK_DIR/pgy-help.out" 2>"$WORK_DIR/pgy-help.err"; then
     if [[ "$PGY_BIN_WAS_DEFAULT" -eq 1 || "${PGY_RUNTIME_NONE_ALLOW_MISSING_BIN:-0}" == "1" ]]; then

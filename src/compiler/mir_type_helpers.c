@@ -193,6 +193,11 @@ mir_render_type_name(ASTNode *type_node)
 {
     if (type_node == NULL)
         return pergyra_strdup("Int");
+    if (type_node->type == AST_EVENT_HANDLER_TYPE)
+        return NULL;
+    if (type_node->type == AST_TYPE
+        && ast_type_tuple_element_count(type_node) > 0)
+        return NULL;
     if (type_node->type == AST_TYPE) {
         GenericParams *generic_args = ast_type_generic_args(type_node);
         char *result = pergyra_strdup(ast_type_name(type_node) != NULL

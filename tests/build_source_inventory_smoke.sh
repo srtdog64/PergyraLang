@@ -166,6 +166,18 @@ if [[ -n "$portable_grep_violations" ]]; then
     missing=1
 fi
 
+hardcoded_usr_bin_tools="$(
+    cd "$ROOT_DIR"
+    grep -RInE '/usr/bin/(time|bash|python|python3)' tests \
+        --include='*.sh' \
+        | grep -v '^tests/build_source_inventory_smoke.sh:' || true
+)"
+if [[ -n "$hardcoded_usr_bin_tools" ]]; then
+    printf '%s\n' "$hardcoded_usr_bin_tools" >&2
+    echo "[build-source-inventory] smoke and bench scripts must not hardcode /usr/bin tool paths; Git Bash and macOS layouts differ" >&2
+    missing=1
+fi
+
 legacy_c_declarator_consumers="$(
     cd "$ROOT_DIR"
     grep -RInE 'pergyra_(ast_typed_declarator|func_pointer_declarator_from_decl)\(' \
@@ -327,13 +339,71 @@ if ! grep -Fq 'run_windows_native_binary_fallback' "$ROOT_DIR/tests/compare_back
     echo "[build-source-inventory] backend compare must keep Windows native 126/127 fallback" >&2
     missing=1
 fi
+if ! grep -Fq 'pgy_binary_is_runnable_here()' "$ROOT_DIR/tests/pgy_binary_path_helpers.sh"; then
+    echo "[build-source-inventory] shared path helper must classify current-host runnable compiler binaries" >&2
+    missing=1
+fi
+if ! grep -Fq 'pgy_select_optional_exe_binary()' "$ROOT_DIR/tests/pgy_binary_path_helpers.sh" \
+    || ! grep -Fq 'pgy_require_runnable_binary_here()' "$ROOT_DIR/tests/pgy_binary_path_helpers.sh"; then
+    echo "[build-source-inventory] shared path helper must own optional .exe selection and runnable-binary rejection" >&2
+    missing=1
+fi
+if ! grep -Fq 'pgy_binary_magic_kind()' "$ROOT_DIR/tests/pgy_binary_path_helpers.sh" \
+    || ! grep -Fq 'od -An -tx1 -N4' "$ROOT_DIR/tests/pgy_binary_path_helpers.sh"; then
+    echo "[build-source-inventory] shared path helper must classify executable format without relying only on file(1)" >&2
+    missing=1
+fi
+for smoke in \
+    tests/air_json_schema_smoke.sh \
+    tests/fmt_smoke.sh \
+    tests/raw_escape_contract_smoke.sh \
+    tests/runtime_none_contract_smoke.sh \
+    tests/semantic_fixture_isolation_smoke.sh \
+    tests/stdlib_surface_smoke.sh
+do
+    if ! grep -Fq 'pgy_require_runnable_binary_here' "$ROOT_DIR/$smoke"; then
+        echo "[build-source-inventory] P0 executable smoke must reject stale cross-platform binaries before launch: $smoke" >&2
+        missing=1
+    fi
+done
+if ! grep -Fq 'pgy_binary_is_runnable_here "$candidate"' "$ROOT_DIR/tests/compare_backends.sh" \
+    || ! grep -Fq 'compiler binary is not runnable on this host' "$ROOT_DIR/tests/compare_backends.sh"; then
+    echo "[build-source-inventory] backend compare must reject stale cross-platform compiler binaries before launch" >&2
+    missing=1
+fi
 if ! grep -Fq 'pgy_powershell_quote' "$ROOT_DIR/tests/compare_backends.sh"; then
     echo "[build-source-inventory] backend compare PowerShell fallback must quote paths explicitly" >&2
+    missing=1
+fi
+if ! grep -Fq 'pgy_powershell_quote()' "$ROOT_DIR/tests/pgy_binary_path_helpers.sh"; then
+    echo "[build-source-inventory] PowerShell path quoting must live in the shared binary path helper" >&2
+    missing=1
+fi
+if ! grep -Fq 'pgy_windows_path_is_git_runtime()' "$ROOT_DIR/tests/pgy_binary_path_helpers.sh" \
+    || ! grep -Fq '*"\\Git\\mingw64\\bin"|*"\\Git\\usr\\bin")' "$ROOT_DIR/tests/pgy_binary_path_helpers.sh" \
+    || ! grep -Fq '"/c/ProgramData/mingw64/mingw64/bin"' "$ROOT_DIR/tests/pgy_binary_path_helpers.sh"; then
+    echo "[build-source-inventory] runtime PATH must prefer real MinGW/LLVM runtime dirs over Git-Bash runtime mounts" >&2
+    missing=1
+fi
+if ! grep -Fq 'pgy_binary_is_runnable_here "$ABI_PIPELINE_BIN"' "$ROOT_DIR/tests/compare_backends.sh" \
+    || ! grep -Fq 'ABI pipeline test binary is not runnable on this host' "$ROOT_DIR/tests/compare_backends.sh"; then
+    echo "[build-source-inventory] backend compare ABI precheck must reject stale cross-platform test binaries before launch" >&2
+    missing=1
+fi
+if ! grep -Fq 'pgy_binary_is_runnable_here "$ABI_BIN"' "$ROOT_DIR/tests/abi_pipeline_same_process_smoke.sh" \
+    || ! grep -Fq 'ABI pipeline test binary is not runnable on this host' "$ROOT_DIR/tests/abi_pipeline_same_process_smoke.sh" \
+    || ! grep -Fq 'pgy_powershell_quote "$ABI_WIN_BIN"' "$ROOT_DIR/tests/abi_pipeline_same_process_smoke.sh"; then
+    echo "[build-source-inventory] ABI same-process smoke must share runnable-binary and PowerShell quoting policy" >&2
     missing=1
 fi
 if ! grep -Fq 'command -v dirname' "$ROOT_DIR/tests/compare_backends.sh" \
     || ! grep -Fq 'PATH="/usr/bin:/bin:$PATH"' "$ROOT_DIR/tests/compare_backends.sh"; then
     echo "[build-source-inventory] backend compare must self-heal Git Bash POSIX tool PATH" >&2
+    missing=1
+fi
+if ! grep -Fq 'command -v dirname' "$ROOT_DIR/tests/source_utf8_smoke.sh" \
+    || ! grep -Fq 'PATH="/usr/bin:/bin:$PATH"' "$ROOT_DIR/tests/source_utf8_smoke.sh"; then
+    echo "[build-source-inventory] source UTF-8 smoke must self-heal Git Bash POSIX tool PATH" >&2
     missing=1
 fi
 if ! grep -Fq 'PGY_BACKEND_COMPARE_SHARD_TOTAL' "$ROOT_DIR/tests/compare_backends.sh" \
@@ -716,8 +786,8 @@ if grep -RIn "ASTNode \\*subject_type = ast_intent_involves_subject_type(involve
 fi
 
 for intent_zone_slot_term in \
-    "resolve_intent_zone_slot_name_for_zone_with_metadata" \
-    "intent_zone_binding_type_name_with_metadata("; do
+    "resolve_intent_zone_slot_name_for_zone_with_bindings" \
+    "intent_zone_binding_type_name_with_bindings("; do
     grep -Fq "$intent_zone_slot_term" \
         "$ROOT_DIR/src/codegen/transpiler_intent_zone_slot.c" || {
         echo "[build-source-inventory] MIR-only intent zone-slot lookup must consume participant metadata: $intent_zone_slot_term" >&2
@@ -725,12 +795,19 @@ for intent_zone_slot_term in \
     }
 done
 
+if grep -RIn "resolve_intent_zone_slot_name_for_zone_with_metadata\\|intent_zone_binding_type_name_with_metadata" \
+    "$ROOT_DIR/src/codegen" \
+    --include='*.c' --include='*.h'; then
+    echo "[build-source-inventory] legacy participant-array intent zone-slot metadata API must not reappear" >&2
+    missing=1
+fi
+
 for metadata_slot_consumer in \
     src/codegen/transpiler_block_intent_helpers.c \
     src/codegen/transpiler_block_intent_rebind_helpers.c \
     src/codegen/transpiler_intent_zone_binding_emit.c \
     src/codegen/transpiler_intent_emit.c; do
-    grep -Fq "resolve_intent_zone_slot_name_for_zone_with_metadata" \
+    grep -Fq "resolve_intent_zone_slot_name_for_zone_with_bindings" \
         "$ROOT_DIR/$metadata_slot_consumer" || {
         echo "[build-source-inventory] MIR-only intent zone-slot consumer must use metadata-aware resolver: $metadata_slot_consumer" >&2
         missing=1

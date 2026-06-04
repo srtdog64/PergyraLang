@@ -26,6 +26,28 @@ transpiler_loop_label_name(char *out, size_t out_size,
     return written >= 0 && (size_t)written < out_size;
 }
 
+static char *
+transpiler_control_flow_emit_expr(TranspilerCtx *ctx,
+                                  ASTNode *expr,
+                                  const char *operation,
+                                  const char *role)
+{
+    char *rendered = emit_expression(expr, ctx);
+
+    if (rendered != NULL)
+        return rendered;
+
+    transpiler_set_backend_error_with_hints(
+        ctx,
+        PGY_CODE_C_TYPE_UNSUPPORTED,
+        PGY_CAUSE_C_TYPE_UNSUPPORTED,
+        PGY_FIX_USE_LLVM_BACKEND_OR_EXTEND_TRANSPILER,
+        "C backend: %s could not lower %s expression",
+        operation != NULL ? operation : "control-flow",
+        role != NULL ? role : "operand");
+    return NULL;
+}
+
 static bool
 transpiler_condition_is_already_parenthesized(const char *expr)
 {
@@ -93,7 +115,11 @@ transpiler_write_condition_head(TranspilerCtx *ctx,
 void
 emit_if_stmt(ASTNode *node, TranspilerCtx *ctx)
 {
-    char *cond = emit_expression(ast_if_condition(node), ctx);
+    char *cond = transpiler_control_flow_emit_expr(
+        ctx, ast_if_condition(node), "if", "condition");
+    if (cond == NULL)
+        return;
+
     write_indent(ctx);
     transpiler_write_condition_head(ctx, "if", cond, "\n");
     free(cond);
@@ -170,13 +196,24 @@ emit_for_loop(ASTNode *node, TranspilerCtx *ctx)
     }
 
     if (iterable != NULL) {
-        char *coll = emit_expression(iterable, ctx);
+        char *coll = transpiler_control_flow_emit_expr(
+            ctx, iterable, "for-in", "iterable");
         const char *coll_type = infer_expression_type_name(ctx, iterable);
         char elem_inner_buf[128];
         char elem_type_buf[128];
         const char *elem_inner = NULL;
         const char *elem_type = NULL;
         const char *length_field = "count";
+        if (coll == NULL) {
+            if (loop_slot < TRANSPILE_MAX_LOOP_DEPTH) {
+                ctx->loop_depth--;
+                ctx->loop_labels[loop_slot] = NULL;
+            }
+            transpiler_restore_local_binding_counts_local(ctx, saved_slot_count,
+                                                          saved_typed_count,
+                                                          saved_alias_count);
+            return;
+        }
         if (transpiler_type_name_is_array_or_slice(coll_type)) {
             if (slot_inner_type_name_copy(coll_type, elem_inner_buf,
                     sizeof(elem_inner_buf)))
@@ -259,8 +296,25 @@ emit_for_loop(ASTNode *node, TranspilerCtx *ctx)
         return;
     }
 
-    char *start = emit_expression(ast_for_range_start(node), ctx);
-    char *end   = emit_expression(ast_for_range_end(node), ctx);
+    char *start = transpiler_control_flow_emit_expr(
+        ctx, ast_for_range_start(node), "for range", "start");
+    char *end = NULL;
+    if (start != NULL) {
+        end = transpiler_control_flow_emit_expr(
+            ctx, ast_for_range_end(node), "for range", "end");
+    }
+    if (start == NULL || end == NULL) {
+        free(start);
+        free(end);
+        if (loop_slot < TRANSPILE_MAX_LOOP_DEPTH) {
+            ctx->loop_depth--;
+            ctx->loop_labels[loop_slot] = NULL;
+        }
+        transpiler_restore_local_binding_counts_local(ctx, saved_slot_count,
+                                                      saved_typed_count,
+                                                      saved_alias_count);
+        return;
+    }
 
     write_indent(ctx);
     codebuf_write(ctx->out,
@@ -301,9 +355,14 @@ emit_for_loop(ASTNode *node, TranspilerCtx *ctx)
 void
 emit_while_loop(ASTNode *node, TranspilerCtx *ctx)
 {
-    char *cond = emit_expression(ast_while_condition(node), ctx);
+    char *cond = transpiler_control_flow_emit_expr(
+        ctx, ast_while_condition(node), "while", "condition");
     int loop_slot = ctx->loop_depth;
     int loop_id = ++ctx->tmp_counter;
+
+    if (cond == NULL)
+        return;
+
     if (loop_slot < TRANSPILE_MAX_LOOP_DEPTH) {
         ctx->loop_labels[loop_slot] = ast_while_label(node);
         if (!transpiler_loop_label_name(ctx->loop_break_labels[loop_slot],

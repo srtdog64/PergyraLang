@@ -21,6 +21,26 @@
 #include "transpiler_type_render.h"
 #include "transpiler_type_require.h"
 
+static char *
+transpiler_spawn_channel_emit_expr(TranspilerCtx *ctx,
+                                   ASTNode *expr,
+                                   const char *operation,
+                                   const char *role)
+{
+    char *lowered = emit_expression(expr, ctx);
+    if (lowered != NULL)
+        return lowered;
+
+    transpiler_set_backend_error_with_hints(ctx,
+        PGY_CODE_C_TYPE_UNSUPPORTED,
+        PGY_CAUSE_C_TYPE_UNSUPPORTED,
+        PGY_FIX_USE_LLVM_BACKEND_OR_EXTEND_TRANSPILER,
+        "C backend: %s could not lower %s expression",
+        operation != NULL ? operation : "spawn/channel operation",
+        role != NULL ? role : "operand");
+    return NULL;
+}
+
 char *
 emit_spawn_expr(ASTNode *node, TranspilerCtx *ctx)
 {
@@ -230,7 +250,12 @@ emit_spawn_expr(ASTNode *node, TranspilerCtx *ctx)
                 "if (_pgy_args == NULL) { PGY_PANIC(\"spawn arg allocation failed\"); } ",
                 args_type_name, args_type_name, args_type_name);
             for (size_t i = 0; i < arg_count; i++) {
-                char *arg = emit_expression(ast_call_argument(call, i), ctx);
+                char *arg = transpiler_spawn_channel_emit_expr(ctx,
+                    ast_call_argument(call, i), "spawn", "argument");
+                if (arg == NULL) {
+                    codebuf_destroy(expr);
+                    return pergyra_strdup("pgy_async_spawn(NULL, NULL)");
+                }
                 codebuf_write(expr, "_pgy_args->arg%zu = %s; ", i, arg);
                 free(arg);
             }
@@ -254,7 +279,12 @@ emit_channel_send(ASTNode *node, TranspilerCtx *ctx)
     }
 
     char *ch  = transpiler_emit_channel_lvalue_expr(ctx, channel);
-    char *val = emit_expression(value, ctx);
+    char *val = transpiler_spawn_channel_emit_expr(ctx,
+        value, "channel send", "value");
+    if (val == NULL) {
+        free(ch);
+        return pergyra_strdup("0");
+    }
     char inner_buf[128];
     const char *inner = transpiler_require_channel_inner_type(
         ctx, channel, "channel send", inner_buf, sizeof(inner_buf));

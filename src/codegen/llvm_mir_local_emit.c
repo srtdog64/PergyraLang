@@ -5,6 +5,7 @@
 #ifdef PGY_LLVM_ENABLED
 
 #include "llvm_mir_local_emit.h"
+#include "llvm_mir_block_emit.h"
 
 #include <string.h>
 
@@ -462,6 +463,23 @@ llvm_emit_mir_local_allocas(const MIRRoutine *routine, LLVMGenCtx *ctx,
                 vars[var_count].type = alloca_type;
                 vars[var_count].alloca = llvm_create_entry_alloca(
                     ctx, alloca_type, inst->result_name);
+                /* Closure #70: pre-initialize host-field-aliased local from
+                 * host field at function entry. Without this, branches that
+                 * read the local without a prior SSA-DEF observe uninit memory
+                 * (W_Record bb_3 stale read of transcript.1). Guarded to only
+                 * fire when we're confirmed in a host method context with a
+                 * matching field. */
+                if (has_base_name && vars[var_count].alloca != NULL
+                    && llvm_current_host_class_name(ctx) != NULL
+                    && llvm_scope_lookup(ctx, "self") != NULL) {
+                    LLVMClassTypeEntry *_host_cls = llvm_lookup_class(ctx,
+                        llvm_current_host_class_name(ctx));
+                    if (_host_cls != NULL
+                        && llvm_class_field_index(_host_cls, base_name) >= 0) {
+                        llvm_mir_copy_host_field_to_versioned_local(ctx,
+                            base_name, &vars[var_count]);
+                    }
+                }
                 if (has_base_name && type_expr != NULL) {
                     llvm_register_typed_var_binding(ctx, base_name,
                         vars[var_count].alloca, type_expr);

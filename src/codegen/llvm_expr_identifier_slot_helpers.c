@@ -237,34 +237,39 @@ llvm_emit_identifier(ASTNode *node, LLVMGenCtx *ctx)
             projection_borrow->source_name);
     }
 
-    entry = llvm_scope_lookup(ctx, name);
-    if (entry != NULL)
-        return LLVMBuildLoad2(ctx->builder, entry->type, entry->alloca,
-                              llvm_tmp_name(ctx));
-
-    if (llvm_current_host_class_name(ctx) != NULL && strcmp(name, "self") != 0) {
+    /* Closure #71: bare identifier reads inside a host method that match a
+     * shared host field must always GEP+load from the host, not from a stale
+     * SSA-versioned local. Callees can mutate self->field opaquely and the
+     * local mirror won't see it. Without this, RunCampaign's
+     * cursor=ToString(choiceCursor+1) after RollChoice(...) reads the
+     * pre-call local copy. */
+    if (llvm_current_host_class_name(ctx) != NULL
+        && strcmp(name, "self") != 0) {
         LLVMClassTypeEntry *cls =
             llvm_lookup_class(ctx, llvm_current_host_class_name(ctx));
         if (cls != NULL) {
             int field_idx = llvm_class_field_index(cls, name);
             if (field_idx >= 0) {
                 LLVMValueRef base_ptr = llvm_current_self_base_ptr(ctx, cls);
-                LLVMValueRef gep;
-                LLVMTypeRef field_type;
-                if (base_ptr == NULL)
-                    return llvm_identifier_error(node, ctx,
-                        "LLVM host field access requires a self receiver");
-                gep = LLVMBuildStructGEP2(ctx->builder,
-                    cls->struct_type, base_ptr, (unsigned)field_idx,
-                    llvm_tmp_name(ctx));
-                field_type = llvm_class_field_type_at_index(cls, field_idx);
-                if (field_type == NULL)
-                    return NULL;
-                return LLVMBuildLoad2(ctx->builder, field_type, gep,
-                    llvm_tmp_name(ctx));
+                if (base_ptr != NULL) {
+                    LLVMValueRef gep = LLVMBuildStructGEP2(ctx->builder,
+                        cls->struct_type, base_ptr, (unsigned)field_idx,
+                        llvm_tmp_name(ctx));
+                    LLVMTypeRef field_type =
+                        llvm_class_field_type_at_index(cls, field_idx);
+                    if (field_type != NULL) {
+                        return LLVMBuildLoad2(ctx->builder, field_type, gep,
+                            llvm_tmp_name(ctx));
+                    }
+                }
             }
         }
     }
+
+    entry = llvm_scope_lookup(ctx, name);
+    if (entry != NULL)
+        return LLVMBuildLoad2(ctx->builder, entry->type, entry->alloca,
+                              llvm_tmp_name(ctx));
 
     fn = llvm_lookup_function(ctx, name);
     if (fn != NULL)

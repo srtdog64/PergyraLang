@@ -59,12 +59,10 @@ bool        llvm_intent_step_context_load(LLVMGenCtx *ctx,
 void        llvm_emit_intent_entry_bindings(LLVMGenCtx *ctx,
                                             ASTNode *node,
                                             LLVMValueRef fn,
-                                            const char **participant_aliases,
-                                            const char **participant_types,
-                                            size_t participant_count,
-                                            const char **value_aliases,
-                                            const char **value_types,
-                                            size_t mir_value_count,
+                                            const char **binding_kinds,
+                                            const char **binding_aliases,
+                                            const char **binding_types,
+                                            size_t mir_binding_count,
                                             size_t param_count,
                                             bool mir_only_intent,
                                             LLVMValueRef *subjects_ptr_out,
@@ -99,14 +97,11 @@ size_t      llvm_collect_mir_intent_authorized_aliases(const MIRRoutine *routine
                                                        LLVMGenCtx *ctx,
                                                        const char *step_name,
                                                        const char ***aliases_out);
-size_t      llvm_collect_mir_intent_participants(const MIRRoutine *routine,
-                                                 LLVMGenCtx *ctx,
-                                                 const char ***aliases_out,
-                                                 const char ***types_out);
-size_t      llvm_collect_mir_intent_values(const MIRRoutine *routine,
-                                           LLVMGenCtx *ctx,
-                                           const char ***aliases_out,
-                                           const char ***types_out);
+size_t      llvm_collect_mir_intent_bindings(const MIRRoutine *routine,
+                                             LLVMGenCtx *ctx,
+                                             const char ***kinds_out,
+                                             const char ***aliases_out,
+                                             const char ***types_out);
 
 const char *llvm_intent_zone_binding_type_name(LLVMGenCtx *ctx,
                                                const char *alias);

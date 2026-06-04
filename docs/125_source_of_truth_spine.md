@@ -1,6 +1,6 @@
 # Pergyra Source-Of-Truth Spine
 
-Last updated: 2026-05-31
+Last updated: 2026-06-04
 
 This document freezes the compiler ownership spine for beta closure. It exists
 to stop A -> B -> A refactoring loops. When a future change is unclear, use this
@@ -49,6 +49,10 @@ Current beta closure snapshot:
   `transpiler_resolve_active_ssa_name(...)` for the emitted local name; it must
   not scan `ctx->typed_vars` locally or emit the source binding name when MIR
   SSA has already renamed it.
+- LLVM verifier diagnostics live at the LLVM C API boundary in
+  `src/codegen/llvm_api.c`. `LLVMVerifyModule(...)` may leave the diagnostic
+  message pointer null on success; backend code must only call
+  `LLVMDisposeMessage(...)` when the pointer is non-null.
 - type-resolution DAG worklist execution lives in
   `src/semantic/type_checker_resolution_worklist.c`.
 - type-resolution internal declarations live in
@@ -315,6 +319,19 @@ Current beta closure snapshot:
   `pgy_binary_path_helpers.sh` and `pgy_path_for_compiler(...)` is a source
   inventory failure unless the smoke delegates all compiler execution to a
   helper such as `tests/compare_backends.sh` that owns path conversion.
+- `tests/pgy_binary_path_helpers.sh` also owns executable-format
+  classification. Backend compare, perf, bench, dogfood, and ABI precheck
+  paths must fail closed when an explicit binary is not runnable on the current
+  host. The check must not depend only on filename suffixes or `file(1)` text;
+  PE/ELF/Mach-O magic bytes are part of the owner contract.
+- The same helper owns optional `.exe` selection and runnable-binary rejection
+  for P0 executable smokes. Formatter, stdlib, AIR JSON schema, runtime-none,
+  raw-escape, and semantic fixture-isolation probes must not execute a binary
+  after only checking `-x`; they must call the shared runnable guard first.
+- Git for Windows runtime mounts (`C:\Program Files\Git\mingw64\bin` and
+  `...\Git\usr\bin`) are not MinGW/LLVM runtime evidence. Bash and PowerShell
+  launch helpers may leave existing Git Bash PATH entries later in `PATH`, but
+  they must not prepend those mounts ahead of explicit LLVM/MSYS2/MinGW roots.
 - `tests/compare_backends.sh` owns C/LLVM backend-compare case inventory. A
   fixture under `tests/cases/backend_compare/**/main.pgy` must either be in
   the default case array or be run through an explicit targeted command; the
@@ -434,12 +451,27 @@ to reduce a fallback counter or move code behind a helper.
 | Hosted method identity | AST method-array name lookup when MIR metadata exists | `mir_decl_header_method(...)` plus `mir_decl_method_name(...)` through C/LLVM hosted method views | `mir-declaration-inventory-test-smoke` rejects AST method-array lookup helpers, old `*_method_ast` names, backend raw method-name field reads, and hosted-view MIR method-array exposure | Closed for lookup-visible identity |
 | Hosted method signature/action contract | AST method param/return/action reads in LLVM/C prototype emitters, member-call argument policy, zone action runtime lowering, or world embedded action/effect sync | `mir_decl_header_method(...)`, `mir_decl_method_param_count(...)`, `mir_decl_method_param(...)`, `mir_decl_method_param_type_name(...)`, `mir_decl_method_return_type(...)`, `mir_decl_method_return_type_name(...)`, `mir_decl_method_is_async(...)`, `mir_decl_method_is_action_like(...)`, `mir_decl_method_within_zone(...)`, and `mir_decl_method_causes_effect(...)` | MIR validator rejects signature metadata drift; smoke rejects direct method param/return reads in guarded consumers, hosted-method view wrappers, hosted-view MIR method-array exposure, LLVM nominal registration signature rediscovery, LLVM domain/role forward signature rediscovery, C/LLVM role operator signature rediscovery, LLVM member-call pointer-self argument adjustment, LLVM hosted-self logical parameter metadata consumption, C member-call param/return wrapping metadata consumption, LLVM let/type inference return-type rediscovery, LLVM zone action method-contract rediscovery, LLVM world embedded sync contract rediscovery, and C zone/world sync contract rediscovery | Closed for frozen hosted-method prototypes, C/LLVM member-call signature consumers, C/LLVM method return/type inference consumers, C/LLVM role operator signatures, LLVM nominal/domain/role method forward and registration signatures, LLVM hosted-self call signature consumers, LLVM member-call argument policy, LLVM zone action method-contract lowering without source-AST method presence, and C/LLVM zone/world action/effect sync contract input |
 | Hosted method routine link | AST/name-based routine search or unchecked routine index reuse | `mir_decl_method_routine_index(...)` plus routine owner/name validation | MIR linker requires method owner/name equality; MIR validator rejects routine index overflow and routine link metadata drift; smoke rejects local routine search helpers and backend raw routine-index field reads | Closed for hosted method body selection |
-| MIR routine signature metadata | Function/method routine emission reconstructs params and return type from `source_ast` | `MIRRoutine` signature fields plus `param_type_names` / `return_type_name` populated during MIR lowering and consumed through `mir_routine_*`, `transpiler_mir_routine_*`, and `llvm_mir_routine_*` accessors; intent participant/value forward, entry, LLVM MIR parameter, call-site, and early eligibility signatures are carried by MIR intent carrier rows | `mir-declaration-inventory-test-smoke` requires signature fields, compiler/C/LLVM accessors, C/LLVM forward-declaration consumption, C MIR signature eligibility consumption, LLVM MIR-backed function/parameter emission consumption, C MIR-backed function/SSA-local parameter consumption, C SSA mapping precheck parameter seeding, `IntentValue` materialization, and C/LLVM intent value collector consumption in forward, entry/prologue setup, LLVM MIR type/param lowering, C/LLVM call-site lowering, and C/LLVM early forward eligibility | Partial closure: routine-backed C/LLVM function body emission, C MIR signature eligibility, C forward parameter signatures, C/LLVM forward eligibility, LLVM forward return/parameter signatures, LLVM MIR function/parameter type construction, and C SSA mapping precheck parameter seeding are metadata-first for routine payloads; C/LLVM intent forward declarations, C prologue, LLVM entry setup, C/LLVM call-site lowering, and C early forward eligibility are metadata-first for participant/value alias/type rows; remaining intent value consumers outside signature/setup/call-site lowering and AST-only event-handler declarator compatibility remain |
+| MIR routine signature metadata | Function/method routine emission reconstructs params and return type from `source_ast` | `MIRRoutine` signature fields plus `param_type_names` / `return_type_name` populated during MIR lowering and consumed through `mir_routine_*`, `transpiler_mir_routine_*`, and `llvm_mir_routine_*` accessors; intent participant/value forward, entry, LLVM MIR parameter, call-site, and early eligibility signatures are carried by MIR intent carrier rows; ordered `IntentBinding(kind, alias, type)` rows carry intent binding order for LLVM MIR type/parameter lowering, C/LLVM MIR-backed intent call argument lowering, C/LLVM intent forward declarations, C prologue signature/entry emission, C early forward eligibility, C MIR emission-mapping alias seeding, C MIR zone-slot/bind/rebind/restore/rollback emission, LLVM entry binding/count setup, and LLVM intent trace materialize/transfer handle lookup; intent declaration-level `priority` / `success` contracts are MIR `IntentEval(priority)` / `IntentCheck(success)` rows anchored by the intent name | `mir-declaration-inventory-test-smoke` requires signature fields, compiler/C/LLVM accessors, C/LLVM forward-declaration consumption, C MIR signature eligibility consumption, LLVM MIR-backed function/parameter emission consumption, C MIR-backed function/SSA-local parameter consumption, C SSA mapping precheck parameter seeding, C MIR mapping precheck intent alias seeding, `IntentValue` and `IntentBinding` materialization, declaration-level intent priority/success carrier materialization and C/LLVM consumption, ordered binding consumption in C/LLVM forward/entry/prologue setup, C/LLVM call-site lowering, and C/LLVM early forward eligibility, plus AST binding-array rejection in LLVM MIR type/param lowering, LLVM entry setup, C MIR emission mapping, C MIR zone-slot binding, C/LLVM forward declaration, C/LLVM call-target lowering, C prologue, and C early-eligibility emission, old separate participant/value collector rejection in LLVM MIR type construction and C MIR mapping precheck, LLVM implicit-self placeholder rejection in declaration lowering, LLVM enum method payload-self metadata checks, LLVM entry-binding `i8ptr`/alias synthesis rejection, LLVM call-target forward `i8ptr` placeholder rejection, and LLVM trace handle zero-synthesis rejection | Partial closure: routine-backed C/LLVM function body emission, C MIR signature eligibility, C forward parameter signatures, C/LLVM forward eligibility, LLVM forward return/parameter signatures, LLVM MIR function/parameter type construction and parameter alloca lowering without separate participant/value collectors, C SSA mapping precheck parameter seeding, C MIR mapping precheck intent alias seeding from ordered carrier rows without separate participant/value collectors, C/LLVM intent forward declaration ordered binding consumption and fail-closed checks without separate MIR participant/value collectors in C/LLVM forward, LLVM entry setup, or C early eligibility, C intent body/prologue fail-closed checks including alias/type row completeness and ordered binding metadata completeness through `IntentBindingMetadataView`, C/LLVM routine-backed no-step intent declaration entry/prologue lowering, C/LLVM declaration-level priority/success consumption through MIR intent carriers, C MIR zone-slot/bind/rebind/restore/rollback ordered binding consumption and fail-closed checks, C/LLVM routine-backed intent call-site ordered binding validation and arity checking from ordered row count without AST participant/value count comparison or separate participant/value collector use, C early forward eligibility ordered binding consumption and fail-closed checks, LLVM entry/count setup ordered binding consumption without MIR-only AST count pre-read, separate participant/value collectors, `i8ptr` type seeding, synthesized `"param"` aliases, or trace handle `0` synthesis, LLVM call-target forward declaration without `i8ptr` parameter placeholders, LLVM MIR ordered binding order consumption, and LLVM call-site/implicit forward-declaration fail-closed checks are metadata-first for routine payloads; LLVM forward declaration no longer substitutes `i32` for missing binding type metadata, LLVM function declaration lowering no longer substitutes `i32` for implicit `self` when current host metadata is unavailable, and LLVM enum method registration now distinguishes no-payload enum `i32` ABI from payload enum struct metadata requirements; remaining intent value consumers outside signature/setup/call-site lowering and AST-only event-handler declarator compatibility remain |
 | Role implementation methods | Role impl methods omitted from declaration headers or re-found through owner/name body/operator lookup | `mir_decl_header_set_role_impl_methods(...)`, consumed through `TranspilerHostedMethodView` / `LLVMHostedMethodView` and role-operator `MIRDeclMethod` metadata lookup | Smoke requires role impl metadata recording, rejects role method-count exceptions, rejects the retired C owner/name role routine lookup helper, and rejects LLVM role operator bridge AST method lookup | Closed for role method inventory count, C/LLVM body link, and LLVM operator bridge method selection |
 | Host field compatibility view | Class fields and domain shared fields reopened through separate backend switches | `host_decl_compat.c` class/shared-field compatibility views and C/LLVM declaration-inventory hosted field views | Smoke requires C/LLVM constructor channel, class/domain constructor lowering, generic class specialization emission, LLVM domain-parts splitting, MIR SSA zone-field lookup, nominal/current-field, member/local type inference, overlay projection, projection-path helpers, and declaration/register emitters to consume hosted field views or field lookup owner seams | Closed for backend compatibility; direct codegen field-array access is confined to `host_decl_compat.c`, direct class/shared compatibility-view calls are confined to `host_decl_compat.c`, `transpiler_decl_lookup.c`, and `llvm_inventory_decl_lookup.c`, and direct class-field compatibility lookup is confined to `host_decl_compat.c`. Backend consumers still need to migrate to MIR declaration-field metadata |
 | Source/provenance payload | Treating `source_ast` as semantic inventory truth | `mir_decl_header_source_ast(...)`, `mir_decl_method_source_ast(...)`, `mir_routine_source_ast(...)`, plus backend `*_source_ast` compatibility accessors | Smoke rejects generic fallback naming, old AST method-array state, backend raw `decl_header->source_ast` / `method->source_ast` reads, backend raw routine `ast` reads, and C hosted-method forward/body paths that require source AST when MIR metadata/routine source is available | Named compatibility seam; still not dedicated declaration IR |
 | Declaration field metadata | Field/slot/member shape was available only through AST compatibility views | `MIRDeclField` rows populated by `mir_decl_headers.c` and validated by `mir_decl_header_validate.c` | `mir-declaration-inventory-test-smoke` requires `MIRDeclField`/`MIRDeclFieldKind`, field metadata storage, class/shared/role/roster/world/domain/zone-layer field kinds, compiler accessors, field drift diagnostics, C nominal lookup consumption, C class constructor field emission through `TranspilerHostedFieldView`, C annotated-let class constructor delegation to the same constructor owner, C class/generic-class field emission, C party/roster shared-field declaration emission, C projection literal field iteration, C projection invalidation target-field matching, C projection field-path relevance/vessel checks, C relation/effect/world/zone struct shared-field declaration emission, C nominal zone member lookup, overlay zone-field presence checks, overlay zone effect/relation bind lookup, and zone struct layer-slot emission through `TranspilerHostedZoneLayerSlotView`, C party/roster/relation/effect/zone/world constructor shared-field argument/default emission, C constructor Channel shared-field scanning, C projection literal/source-path and overlay-projection invalidation class-field iteration through `TranspilerHostedFieldView`, C MIR SSA implicit zone layer/shared-field recovery through `TranspilerHostedZoneLayerSlotView` and `TranspilerHostedSharedFieldView`, C projection zone-layer lookup, projection sync layer iteration, intent block caused-effect layer marking, and zone sync/frontier layer iteration through `TranspilerHostedZoneLayerSlotView`, C counted zone frontier pass-limit emission, C zone specialization emission through `TranspilerHostedSharedFieldView`, C overlay/world shared-field presence checks through `TranspilerHostedSharedFieldView`, C party role-slot struct/vtable emission and bind dispatch through `TranspilerHostedRoleSlotView`, C world member type lookup/constructor/declaration emission through `TranspilerHostedWorldZoneSlotView`, LLVM constructor class-field expected-type/channel checks through `LLVMHostedFieldView`, LLVM projection/domain-projection source-path field iteration through `LLVMHostedFieldView`, LLVM nominal struct field registration through `LLVMHostedFieldView`, LLVM constructor Channel/default shared-field scanning through `LLVMHostedSharedFieldView`, LLVM domain struct shared-field type/layout registration, LLVM zone struct layer-slot type registration, layer-slot field registration, LLVM world zone-slot struct type/field registration through `LLVMHostedWorldZoneSlotView`, zone bind layer-slot lookup, zone-layer query lookup, zone frontier previous-state/reset/continue tracking, zone sync action-cause layer iteration, zone action effect-layer emission, world embedded effect sync layer iteration, and intent effect caused-layer emission through `LLVMHostedZoneLayerSlotView`, LLVM domain declaration-parts cleanup, C/LLVM constructor Channel guard consumption, LLVM field-class lookup consumption, and LLVM party role-slot struct/type/ability lookup through `LLVMHostedRoleSlotView` | Closed for metadata creation, validation, and current C/LLVM field consumers; remaining declaration/projection emitter migration remains |
 | Dedicated declaration IR | `MIRProgram` still carries AST-shaped declaration payloads and some backend consumers still use compatibility field views | `MIRDeclHeader` / `MIRDeclMethod` / `MIRDeclField` metadata model, consumed through compiler accessors | Partial gate exists for methods and fields; full closure requires projection/declaration emitters to stop reopening compatibility views when MIR field facts exist | Open beta blocker row |
+
+Callable/event-handler and tuple types are not losslessly representable in the
+current `param_type_names` / `return_type_name` string cache.
+`mir_render_type_name(...)` must therefore leave `AST_EVENT_HANDLER_TYPE` names
+and tuple type names absent so C/LLVM consumers fall back to the retained AST
+type node and produce function-pointer signatures or anonymous tuple structs
+instead of treating the callable/tuple as `Int` or `Tuple`.
+
+Collection ABI type names are different: `Array<T>`, `Slice<T>`,
+`List<T>`, `Set<T>`, `Queue<T>`, and `HashMap<K, V>` are losslessly
+representable as MIR type-name strings for frozen backend lowering. LLVM
+parameter and local alloca emission must therefore register collection
+metadata from `llvm_register_typed_var_abi_binding(...)` instead of requiring a
+retained AST type node. `HashMap<K, V>` must populate both key and value
+metadata from the ABI string before `MapHas` / `MapGet` / `MapSet` lowering.
 
 Note: the declaration-field metadata row's counted zone frontier pass-limit
 consumer is now C/LLVM, not C-only; LLVM zone sync must consume
@@ -594,6 +626,11 @@ type (`List<T>`, `Array<T>`, or `Slice<T>`) through
 `transpiler_mir_for_loop_variable_type_name(...)`; backend consumers must not
 register all loop variables as `Int` and then rely on later expression
 rediscovery to repair subject or collection element types.
+LLVM for-in body binding uses the MIR CFG region, not AST nesting. In nested
+loops, the false-exit reachability check must stop when it re-enters the same
+loop condition block; a path that exits an inner loop, reaches an outer
+backedge, and later re-enters the inner condition is not evidence that the
+current body block is outside the inner loop.
 
 The source-local preservation decision is shared across CFG and non-CFG
 population. `Read`/`ViewRead`/`ViewWrite`/`Move` lets are classified by the MIR
@@ -808,6 +845,12 @@ lowering must copy `List<T>`, `Queue<T>`, `HashMap<K,V>`, and `Option<T>`
 arguments into caller-owned storage before asking the type mapper to lower the
 nested type.
 
+LLVM boundary slot parameter lowering follows the same ownership contract.
+`llvm_keep_rendered_persistent(...)` only accepts heap-rendered type text that
+it may free after copying. When a boundary helper derives the inner type from a
+caller-owned stack buffer, it must copy directly into `ctx->persistent` instead
+of passing that stack buffer to the heap-rendered-type owner.
+
 The same rule applies to expected-type helpers. If an expression emitter reads
 an expected `Rc<T>`/container inner type from a static scratch helper, it must
 copy that inner type before recursively lowering child expressions or lowering
@@ -832,6 +875,14 @@ generic bindings such as active `T -> Long` specializations from silently
 falling back to unbound/default C types inside lambda signatures, event
 handlers, match bindings, hosted method forwards, spawn wrappers, and MIR
 signature policy.
+
+Concrete type-name-to-C lowering follows the same owner rule. When a backend
+consumer already has a string type fact from MIR metadata, specialization
+metadata, or expression inference, `transpiler_require_type_name_c_type_copy(...)`
+must resolve active generic bindings before it accepts a one-letter nominal
+type name. This prevents specialized C functions such as `Identity_Int(T x)`
+from reintroducing unbound generic C parameters after MIR/source metadata has
+already selected a concrete specialization.
 
 C backend type-name inference follows the same context rule. Expression type
 inference, MIR local type lookup, Future/RemoteFuture return inference,
@@ -911,6 +962,18 @@ let lowering, channel type queries, and collection builtin inference consume
 those classifiers instead of local `strncmp(...)` checks. The perf contract
 smoke rejects new C `transpiler_*.c` direct type-family prefix checks outside
 `transpiler_type_mapping.c`.
+
+LLVM for-in lowering also consumes active LLVM scope aggregate facts for
+`PgyArray_*` and `PgySlice_*` parameters. A function parameter or preserved
+MIR local with a concrete aggregate LLVM type is sufficient metadata for loop
+condition length checks and loop element binding; the emitter must not require
+the separate array-var registry when the concrete scope type already owns the
+same element fact.
+
+LLVM indexed array assignment follows the same element-owner rule. The
+assignment emitter must ask `llvm_stmt_resolve_array_elem_type(...)` for the
+element fact so parameter arrays and preserved MIR locals lower through the same
+metadata path as indexed reads and for-in loops.
 
 Result/Option constructor vocabulary is owned by
 `src/common/match_variant_policy.c`. Parser shorthand, semantic match
@@ -1300,8 +1363,18 @@ Current closed slices:
   pointer-return helper is compatibility surface for immediate-use callers only.
 - Intent prologue, intent zone-binding forward declarations, and intent
   step-rebind compatibility paths use the copy helper for AST-carried participant
-  and value types. MIR metadata paths already consume type-name copy helpers; the
-  AST fallback must obey the same lifetime contract while it remains.
+  and value types. MIR metadata paths already consume type-name copy helpers, and
+  C zone-slot metadata variants do not reopen AST participant lookup when
+  metadata arrays are provided; C missing carrier rows and LLVM MIR-active
+  participant type-registry or binding misses become MIR inventory diagnostics.
+  C and LLVM intent emitters must check those diagnostics immediately after
+  zone bind/rebind/sync/restore helpers; continuing C text emission or LLVM IR
+  construction after a metadata diagnostic is source-of-truth drift.
+  MIR-only intent dispatch must also fail closed when dispatch participant
+  metadata is missing. C dispatch may use AST action lookup only on non-MIR
+  compatibility paths; MIR-backed dispatch consumes `MIRDeclMethod` action
+  metadata or skips absent optional action calls without reopening AST methods.
+  The AST fallback must obey the same lifetime contract while it remains.
 - Annotated `let` lowering snapshots the annotated C type before emitting the
   initializer expression. Initializer emission may recursively render other
   types, so the declaration C type must be caller-owned before the initializer

@@ -2,9 +2,30 @@
 
 #include <stdlib.h>
 
+#include "../semantic/diag_codes.h"
 #include "transpiler_context.h"
 #include "transpiler_type_render.h"
 #include "../parser/ast_api.h"
+
+static char *
+transpiler_event_op_emit_part(TranspilerCtx *ctx,
+                              ASTNode *expr,
+                              const char *op_name,
+                              const char *role)
+{
+    char *lowered = emit_expression(expr, ctx);
+    if (lowered != NULL)
+        return lowered;
+
+    transpiler_set_backend_error_with_hints(ctx,
+        PGY_CODE_C_TYPE_UNSUPPORTED,
+        PGY_CAUSE_C_TYPE_UNSUPPORTED,
+        PGY_FIX_USE_LLVM_BACKEND_OR_EXTEND_TRANSPILER,
+        "C backend: event %s could not lower %s expression",
+        op_name != NULL ? op_name : "operation",
+        role != NULL ? role : "operand");
+    return NULL;
+}
 
 void
 emit_event_decl(ASTNode *node, TranspilerCtx *ctx)
@@ -96,8 +117,15 @@ emit_event_decl(ASTNode *node, TranspilerCtx *ctx)
 void
 emit_event_subscribe(ASTNode *node, TranspilerCtx *ctx)
 {
-    char *event_expr = emit_expression(ast_event_op_event(node), ctx);
-    char *handler_expr = emit_expression(ast_event_op_handler(node), ctx);
+    char *event_expr = transpiler_event_op_emit_part(ctx,
+        ast_event_op_event(node), "subscribe", "event");
+    char *handler_expr = transpiler_event_op_emit_part(ctx,
+        ast_event_op_handler(node), "subscribe", "handler");
+    if (event_expr == NULL || handler_expr == NULL) {
+        free(event_expr);
+        free(handler_expr);
+        return;
+    }
 
     write_indent(ctx);
     codebuf_write(ctx->out, "%s_SUBSCRIBE(&%s, %s);\n",
@@ -110,8 +138,15 @@ emit_event_subscribe(ASTNode *node, TranspilerCtx *ctx)
 void
 emit_event_unsubscribe(ASTNode *node, TranspilerCtx *ctx)
 {
-    char *event_expr = emit_expression(ast_event_op_event(node), ctx);
-    char *handler_expr = emit_expression(ast_event_op_handler(node), ctx);
+    char *event_expr = transpiler_event_op_emit_part(ctx,
+        ast_event_op_event(node), "unsubscribe", "event");
+    char *handler_expr = transpiler_event_op_emit_part(ctx,
+        ast_event_op_handler(node), "unsubscribe", "handler");
+    if (event_expr == NULL || handler_expr == NULL) {
+        free(event_expr);
+        free(handler_expr);
+        return;
+    }
 
     write_indent(ctx);
     codebuf_write(ctx->out, "%s_UNSUBSCRIBE(&%s, %s);\n",

@@ -78,9 +78,7 @@ emit_intent_step_rebind_bound_zone_aliases_with_metadata(CodeBuf *out,
                                                          const char **who_aliases,
                                                          size_t who_alias_count,
                                                          size_t step_index,
-                                                         const char **participant_aliases,
-                                                         const char **participant_types,
-                                                         size_t participant_count)
+                                                         const IntentBindingMetadataView *bindings)
 {
     bool rebound = false;
 
@@ -92,11 +90,10 @@ emit_intent_step_rebind_bound_zone_aliases_with_metadata(CodeBuf *out,
     for (size_t i = 0; i < who_alias_count; i++) {
         const char *alias = who_aliases[i];
         const char *slot_name =
-            resolve_intent_zone_slot_name_for_zone_with_metadata(
-                ctx, intent, zone_type, alias,
-                participant_aliases, participant_types, participant_count);
-        const char *participant_type = intent_zone_binding_type_name_with_metadata(
-            intent, alias, participant_aliases, participant_types, participant_count);
+            resolve_intent_zone_slot_name_for_zone_with_bindings(
+                ctx, intent, zone_type, alias, bindings);
+        const char *participant_type = intent_zone_binding_type_name_with_bindings(
+            intent, alias, bindings);
         char participant_c_type_buf[256];
         const char *participant_c_type;
 

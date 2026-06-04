@@ -3,6 +3,9 @@
 #include <stdlib.h>
 #include <stdio.h>
 
+#include "../common/string_compat.h"
+#include "../semantic/diag_codes.h"
+#include "transpiler_context.h"
 #include "transpiler_decl_lookup.h"
 
 static char *
@@ -30,6 +33,26 @@ transpiler_event_strdup_invoke(const char *name, const char *args)
     return result;
 }
 
+static char *
+transpiler_event_emit_arg(TranspilerCtx *ctx,
+                          ASTNode *expr,
+                          const char *event_name,
+                          size_t index)
+{
+    char *lowered = emit_expression(expr, ctx);
+    if (lowered != NULL)
+        return lowered;
+
+    transpiler_set_backend_error_with_hints(ctx,
+        PGY_CODE_C_TYPE_UNSUPPORTED,
+        PGY_CAUSE_C_TYPE_UNSUPPORTED,
+        PGY_FIX_USE_LLVM_BACKEND_OR_EXTEND_TRANSPILER,
+        "C backend: event '%s' could not lower argument %zu",
+        event_name != NULL ? event_name : "<event>",
+        index);
+    return NULL;
+}
+
 char *
 emit_call_event_builtin(ASTNode *call, ASTNode *callee, TranspilerCtx *ctx)
 {
@@ -43,7 +66,12 @@ emit_call_event_builtin(ASTNode *call, ASTNode *callee, TranspilerCtx *ctx)
             if (args_buf == NULL)
                 return NULL;
             for (size_t i = 0; i < ast_call_arg_count(call); i++) {
-                char *arg = emit_expression(ast_call_argument(call, i), ctx);
+                char *arg = transpiler_event_emit_arg(ctx,
+                    ast_call_argument(call, i), name, i);
+                if (arg == NULL) {
+                    codebuf_destroy(args_buf);
+                    return pergyra_strdup("0");
+                }
                 if (i > 0)
                     codebuf_write(args_buf, ", ");
                 codebuf_write(args_buf, "%s", arg);

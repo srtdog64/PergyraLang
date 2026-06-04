@@ -16,6 +16,19 @@
 #include "transpiler_type_mapping.h"
 #include "transpiler_type_render.h"
 
+static const char *
+transpiler_bound_type_name(TranspilerCtx *ctx, const char *type_name)
+{
+    if (ctx == NULL || type_name == NULL)
+        return type_name;
+
+    for (int i = ctx->generic_binding_count - 1; i >= 0; i--) {
+        if (strcmp(ctx->generic_bindings[i].name, type_name) == 0)
+            return ctx->generic_bindings[i].concrete_type;
+    }
+    return type_name;
+}
+
 bool
 transpiler_require_ast_c_type_copy(TranspilerCtx *ctx,
                                    ASTNode *type_ast,
@@ -81,28 +94,32 @@ transpiler_require_type_name_c_type_copy(TranspilerCtx *ctx,
         return false;
     }
 
-    if (type_name[0] >= 'A' && type_name[0] <= 'Z' && type_name[1] == '\0') {
-        if (!pergyra_str_copy(out, out_size, type_name)) {
+    const char *resolved_type_name = transpiler_bound_type_name(ctx, type_name);
+
+    if (resolved_type_name[0] >= 'A' && resolved_type_name[0] <= 'Z'
+        && resolved_type_name[1] == '\0') {
+        if (!pergyra_str_copy(out, out_size, resolved_type_name)) {
             transpiler_set_backend_error_with_hints(ctx,
                 PGY_CODE_C_TYPE_UNSUPPORTED,
                 PGY_CAUSE_C_TYPE_UNSUPPORTED,
                 PGY_FIX_ANNOTATE_CONCRETE_TYPE,
                 "cannot lower %s type '%s' to a concrete C type",
                 surface_desc != NULL ? surface_desc : "declaration",
-                type_name);
+                resolved_type_name);
             out[0] = '\0';
             return false;
         }
         return true;
     }
 
-    if (!pergyra_type_to_c_copy(type_name, out, out_size)
+    if (!pergyra_type_to_c_copy(resolved_type_name, out, out_size)
         || out[0] == '\0'
         || strcmp(out, "Unknown") == 0) {
-        if (transpiler_type_name_is_channel(type_name)) {
+        if (transpiler_type_name_is_channel(resolved_type_name)) {
             char inner[128];
 
-            if (!slot_inner_type_name_copy(type_name, inner, sizeof(inner)))
+            if (!slot_inner_type_name_copy(resolved_type_name,
+                    inner, sizeof(inner)))
                 pergyra_str_copy(inner, sizeof(inner), "<unknown>");
             transpiler_set_backend_error_with_hints(ctx,
                 PGY_CODE_C_TYPE_UNSUPPORTED,
@@ -110,7 +127,7 @@ transpiler_require_type_name_c_type_copy(TranspilerCtx *ctx,
                 PGY_FIX_ANNOTATE_CONCRETE_TYPE,
                 "C backend: %s type '%s' has no runtime Channel<%s> ABI; beta runtime supports %s",
                 surface_desc != NULL ? surface_desc : "declaration",
-                type_name,
+                resolved_type_name,
                 inner,
                 pgy_channel_runtime_payload_supported_list());
             out[0] = '\0';
@@ -122,7 +139,7 @@ transpiler_require_type_name_c_type_copy(TranspilerCtx *ctx,
             PGY_FIX_ANNOTATE_CONCRETE_TYPE,
             "cannot lower %s type '%s' to a concrete C type",
             surface_desc != NULL ? surface_desc : "declaration",
-            type_name);
+            resolved_type_name);
         out[0] = '\0';
         return false;
     }

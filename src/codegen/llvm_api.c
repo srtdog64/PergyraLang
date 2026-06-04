@@ -61,11 +61,13 @@ llvm_verify_module_result(LLVMGenCtx *ctx)
         }
         res = llvm_result_error_fmt("LLVM verify failed: %s",
             verify_error != NULL ? verify_error : "(unknown)");
-        LLVMDisposeMessage(verify_error);
+        if (verify_error != NULL)
+            LLVMDisposeMessage(verify_error);
         return res;
     }
 
-    LLVMDisposeMessage(verify_error);
+    if (verify_error != NULL)
+        LLVMDisposeMessage(verify_error);
     return NULL;
 }
 

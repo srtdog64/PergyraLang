@@ -32,6 +32,8 @@ case "$bin" in
     ;;
 esac
 
+pgy_require_runnable_binary_here "semantic-fixture-isolation" "$bin"
+
 log_a="$(mktemp)"
 log_b="$(mktemp)"
 cleanup() {

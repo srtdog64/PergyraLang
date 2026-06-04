@@ -15,6 +15,8 @@ test_mir_lowering_part_b(void)
             "    effect slot guarded: Guarded\n"
             "}\n"
             "intent Patrol(arena: Arena, hero: Hero) {\n"
+            "    priority: 1;\n"
+            "    success: true;\n"
             "    step Guard {\n"
             "        where: Arena;\n"
             "        using: arena;\n"
@@ -43,6 +45,10 @@ test_mir_lowering_part_b(void)
                 "IntentDispatch", "hero", "Guard"));
             EXPECT(block_has_inst_named_args(&patrol->blocks[patrol->entry_block],
                 "IntentCauses", "Guarded", "Guard"));
+            EXPECT(block_has_inst_named_args(&patrol->blocks[patrol->entry_block],
+                "IntentEval", "priority", "Patrol"));
+            EXPECT(block_has_inst_named_args(&patrol->blocks[patrol->entry_block],
+                "IntentCheck", "success", "Patrol"));
         }
         mir_destroy(mir);
         rir_destroy(rir);

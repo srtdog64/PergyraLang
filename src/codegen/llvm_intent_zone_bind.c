@@ -10,13 +10,20 @@
 #include "llvm_intent_internal.h"
 
 static LLVMValueRef
-llvm_intent_current_handle_or_zero(LLVMGenCtx *ctx)
+llvm_intent_current_handle_or_error(LLVMGenCtx *ctx, ASTNode *intent)
 {
     LLVMVarEntry *handle_entry;
 
     handle_entry = llvm_scope_lookup(ctx, "__intent_handle");
-    if (handle_entry == NULL)
-        return LLVMConstInt(ctx->type_i32, 0, 0);
+    if (handle_entry == NULL) {
+        llvm_set_error_at_with_hints(ctx, intent,
+            PGY_CODE_LLVM_TYPE_UNSUPPORTED,
+            PGY_CAUSE_LLVM_TYPE_UNSUPPORTED,
+            PGY_FIX_REPORT_COMPILER_BUG,
+            "LLVM intent trace binding requires active __intent_handle metadata; "
+            "silent zero handle fallback is not allowed");
+        return NULL;
+    }
     return LLVMBuildLoad2(ctx->builder, ctx->type_i32,
         handle_entry->alloca, llvm_tmp_name(ctx));
 }
@@ -92,15 +99,22 @@ llvm_emit_intent_step_bind_bound_zone(LLVMGenCtx *ctx,
                 LLVMTypeRef participant_value_type;
                 LLVMValueRef participant_ptr;
                 LLVMValueRef participant_value;
-                LLVMValueRef handle;
+                LLVMValueRef handle = NULL;
 
                 if (alias == NULL)
                     continue;
 
                 participant_var = llvm_scope_lookup(ctx, alias);
                 participant_type_name = llvm_lookup_var_class(ctx, alias);
-                if (participant_var == NULL || participant_type_name == NULL)
+                if (participant_var == NULL || participant_type_name == NULL) {
+                    if (llvm_active_has_mir(ctx)) {
+                        llvm_set_mir_inventory_missing(ctx,
+                            "MIR-only LLVM path missing intent participant binding for zone transfer '%s'",
+                            alias);
+                        return;
+                    }
                     continue;
+                }
 
                 participant_ptr_type = participant_var->type;
                 participant_value_type = pergyra_type_to_llvm(ctx, participant_type_name);
@@ -110,7 +124,11 @@ llvm_emit_intent_step_bind_bound_zone(LLVMGenCtx *ctx,
                     participant_var->alloca, llvm_tmp_name(ctx));
                 participant_value = LLVMBuildLoad2(ctx->builder, participant_value_type,
                     participant_ptr, llvm_tmp_name(ctx));
-                handle = llvm_intent_current_handle_or_zero(ctx);
+                if (trace_materialize_fn != NULL || trace_transfer_fn != NULL) {
+                    handle = llvm_intent_current_handle_or_error(ctx, intent);
+                    if (ctx->has_error || handle == NULL)
+                        return;
+                }
 
                 if (from_slot_name != NULL && strcmp(from_slot_name, "<unbound>") != 0) {
                     int from_field_idx = llvm_class_field_index(from_zone_cls, from_slot_name);
@@ -216,8 +234,15 @@ llvm_emit_intent_step_bind_bound_zone(LLVMGenCtx *ctx,
 
             participant_var = llvm_scope_lookup(ctx, alias);
             participant_type_name = llvm_lookup_var_class(ctx, alias);
-            if (participant_var == NULL || participant_type_name == NULL)
+            if (participant_var == NULL || participant_type_name == NULL) {
+                if (llvm_active_has_mir(ctx)) {
+                    llvm_set_mir_inventory_missing(ctx,
+                        "MIR-only LLVM path missing intent participant binding for zone materialization '%s'",
+                        alias);
+                    return;
+                }
                 continue;
+            }
 
             participant_ptr_type = participant_var->type;
             participant_value_type = pergyra_type_to_llvm(ctx, participant_type_name);
@@ -232,7 +257,9 @@ llvm_emit_intent_step_bind_bound_zone(LLVMGenCtx *ctx,
             LLVMBuildStore(ctx->builder, participant_value, slot_ptr);
 
             if (trace_materialize_fn != NULL) {
-                LLVMValueRef handle = llvm_intent_current_handle_or_zero(ctx);
+                LLVMValueRef handle = llvm_intent_current_handle_or_error(ctx, intent);
+                if (ctx->has_error || handle == NULL)
+                    return;
                 LLVMValueRef args[] = {
                     handle,
                     LLVMBuildGlobalStringPtr(ctx->builder, alias, llvm_tmp_name(ctx)),

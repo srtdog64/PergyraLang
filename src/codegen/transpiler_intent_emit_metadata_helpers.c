@@ -9,6 +9,9 @@ transpiler_free_intent_emit_metadata(ASTNode **mir_steps,
                                      const char **participant_types,
                                      const char **value_aliases,
                                      const char **value_types,
+                                     const char **binding_kinds,
+                                     const char **binding_aliases,
+                                     const char **binding_types,
                                      const char **mir_step_names)
 {
     free(mir_steps);
@@ -16,6 +19,9 @@ transpiler_free_intent_emit_metadata(ASTNode **mir_steps,
     free((void *)participant_types);
     free((void *)value_aliases);
     free((void *)value_types);
+    free((void *)binding_kinds);
+    free((void *)binding_aliases);
+    free((void *)binding_types);
     free((void *)mir_step_names);
 }
 

@@ -181,6 +181,113 @@ mir_append_intent_participants(MIRRoutine *routine, MIRBasicBlock *block, ASTNod
     return true;
 }
 
+static const char *
+mir_intent_binding_type_name(MIRRoutine *routine, ASTNode *binding)
+{
+    if (routine == NULL || binding == NULL)
+        return NULL;
+    if (binding->type == AST_INTENT_INVOLVES) {
+        ASTNode *subject_type = ast_intent_involves_subject_type(binding);
+        if (subject_type != NULL && subject_type->type == AST_TYPE)
+            return ast_type_name(subject_type);
+        return NULL;
+    }
+    if (binding->type == AST_INTENT_VALUE) {
+        ASTNode *value_type = ast_intent_value_type(binding);
+        if (value_type != NULL) {
+            char *rendered = mir_render_type_name(value_type);
+            if (rendered != NULL) {
+                const char *type_name = pgy_arena_strdup(&routine->scratch,
+                                                         rendered);
+                free(rendered);
+                return type_name;
+            }
+            if (value_type->type == AST_TYPE)
+                return ast_type_name(value_type);
+        }
+    }
+    return NULL;
+}
+
+static const char *
+mir_intent_binding_alias(ASTNode *binding)
+{
+    if (binding == NULL)
+        return NULL;
+    if (binding->type == AST_INTENT_INVOLVES)
+        return ast_intent_involves_alias(binding);
+    if (binding->type == AST_INTENT_VALUE)
+        return ast_intent_value_alias(binding);
+    return NULL;
+}
+
+static const char *
+mir_intent_binding_kind(ASTNode *binding)
+{
+    if (binding == NULL)
+        return NULL;
+    if (binding->type == AST_INTENT_INVOLVES)
+        return "participant";
+    if (binding->type == AST_INTENT_VALUE)
+        return "value";
+    return NULL;
+}
+
+static bool
+mir_append_intent_binding(MIRRoutine *routine,
+                          MIRBasicBlock *block,
+                          ASTNode *binding)
+{
+    const char *kind = mir_intent_binding_kind(binding);
+    const char *alias = mir_intent_binding_alias(binding);
+    const char *type_name = mir_intent_binding_type_name(routine, binding);
+
+    if (kind == NULL || alias == NULL || type_name == NULL)
+        return true;
+    return mir_append_intent_stmt(routine,
+                                  block,
+                                  "IntentBinding",
+                                  kind,
+                                  alias,
+                                  type_name,
+                                  binding);
+}
+
+static bool
+mir_append_intent_bindings(MIRRoutine *routine, MIRBasicBlock *block, ASTNode *intent)
+{
+    ASTNode **bindings;
+    size_t binding_count;
+
+    bindings = ast_intent_decl_bindings(intent, &binding_count);
+    if (binding_count > 0) {
+        for (size_t i = 0; i < binding_count; i++) {
+            if (!mir_append_intent_binding(routine, block, bindings[i]))
+                return false;
+        }
+        return true;
+    }
+
+    {
+        ASTNode **involves_nodes;
+        size_t involve_count;
+        ASTNode **values;
+        size_t value_count;
+
+        involves_nodes = ast_intent_decl_involves(intent, &involve_count);
+        for (size_t i = 0; i < involve_count; i++) {
+            if (!mir_append_intent_binding(routine, block, involves_nodes[i]))
+                return false;
+        }
+        values = ast_intent_decl_values(intent, &value_count);
+        for (size_t i = 0; i < value_count; i++) {
+            if (!mir_append_intent_binding(routine, block, values[i]))
+                return false;
+        }
+    }
+    return true;
+}
+
 static bool
 mir_append_intent_values(MIRRoutine *routine, MIRBasicBlock *block, ASTNode *intent)
 {
@@ -410,6 +517,42 @@ mir_append_intent_step_eval(MIRRoutine *routine, MIRBasicBlock *block, ASTNode *
     return true;
 }
 
+static bool
+mir_append_intent_decl_contracts(MIRRoutine *routine, MIRBasicBlock *block, ASTNode *intent)
+{
+    ASTNode *priority_expr;
+    ASTNode *success_expr;
+
+    if (routine == NULL || block == NULL || intent == NULL)
+        return false;
+
+    priority_expr = ast_intent_decl_priority_expr(intent);
+    if (priority_expr != NULL
+        && !mir_append_intent_stmt(routine,
+                                   block,
+                                   "IntentEval",
+                                   routine->name,
+                                   "priority",
+                                   routine->name,
+                                   priority_expr)) {
+        return false;
+    }
+
+    success_expr = ast_intent_decl_success_expr(intent);
+    if (success_expr != NULL
+        && !mir_append_intent_stmt(routine,
+                                   block,
+                                   "IntentCheck",
+                                   routine->name,
+                                   "success",
+                                   routine->name,
+                                   success_expr)) {
+        return false;
+    }
+
+    return true;
+}
+
 bool
 mir_append_intent_step_instructions(MIRRoutine *routine, MIRBasicBlock *block)
 {
@@ -421,9 +564,13 @@ mir_append_intent_step_instructions(MIRRoutine *routine, MIRBasicBlock *block)
         return true;
 
     intent = routine->hir_routine->ast;
+    if (!mir_append_intent_bindings(routine, block, intent))
+        return false;
     if (!mir_append_intent_participants(routine, block, intent))
         return false;
     if (!mir_append_intent_values(routine, block, intent))
+        return false;
+    if (!mir_append_intent_decl_contracts(routine, block, intent))
         return false;
 
     {

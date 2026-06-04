@@ -54,6 +54,8 @@ llvm_stmt_emit_view_or_move_let(ASTNode *node, LLVMGenCtx *ctx)
         free(inner);
         return true;
     }
+    LLVMValueRef source_alloca = source->alloca;
+    LLVMTypeRef source_type = source->type;
 
     bool is_move = pgy_codegen_call_name_is_move(callee);
     if (is_move) {
@@ -63,13 +65,13 @@ llvm_stmt_emit_view_or_move_let(ASTNode *node, LLVMGenCtx *ctx)
             return true;
         }
         LLVMValueRef alloca_val = llvm_create_entry_alloca(ctx, slot_ty, name);
-        LLVMValueRef moved = LLVMBuildLoad2(ctx->builder, source->type,
-            source->alloca, llvm_tmp_name(ctx));
+        LLVMValueRef moved = LLVMBuildLoad2(ctx->builder, source_type,
+            source_alloca, llvm_tmp_name(ctx));
         LLVMBuildStore(ctx->builder, moved, alloca_val);
         llvm_scope_declare(ctx, name, alloca_val, slot_ty);
         llvm_mark_slot_released(ctx, source_name);
     } else {
-        llvm_scope_declare(ctx, name, source->alloca, source->type);
+        llvm_scope_declare(ctx, name, source_alloca, source_type);
     }
     llvm_register_view_var(ctx, name, source_name, inner, is_move);
     free(inner);

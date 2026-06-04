@@ -1416,7 +1416,11 @@ $(DATASTRUCTURES_TEST): $(BUILD_DIR)/runtime/slot_pool.o \
 $(SECURITY_TEST): $(RUNTIME_OBJECTS) $(RUNTIME_ASM_OBJECTS) \
                    $(TEST_SECURITY_OBJ) | check-security-toolchain $(BIN_DIR)
 	@$(call pgy_mkdir_p,$(dir $@))
+ifeq ($(EXEEXT),.exe)
+	$(call pgy_link,$(THREAD_LINK_LIB) -ladvapi32 -liphlpapi)
+else
 	$(call pgy_link,$(THREAD_LINK_LIB) -lssl -lcrypto)
+endif
 
 # Semantic analyzer test
 $(SEMANTIC_TEST): $(FRONTEND_OBJECTS) $(TEST_SEMANTIC_OBJ) | $(BIN_DIR)
@@ -2082,6 +2086,9 @@ check-build-tools:
 	fi
 
 check-security-toolchain:
+ifeq ($(EXEEXT),.exe)
+	@echo "Bypassing OpenSSL check on Windows"
+else
 	@tmp="$${TMPDIR:-/tmp}/pgy_openssl_check_$$$$.c"; \
 	exe="$${TMPDIR:-/tmp}/pgy_openssl_check_$$$$$(EXEEXT)"; \
 	printf '%s\n' '#include <openssl/evp.h>' 'int main(void) { return EVP_sha256() == 0; }' > "$$tmp"; \
@@ -2093,6 +2100,7 @@ check-security-toolchain:
 		exit 1; \
 	fi; \
 	rm -f "$$tmp" "$$exe"
+endif
 
 ci-linux:
 	$(MAKE) check-build-tools CC="$(CI_LINUX_CC)"

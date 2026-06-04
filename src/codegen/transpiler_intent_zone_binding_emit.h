@@ -4,6 +4,7 @@
 #include <stdbool.h>
 
 #include "transpiler.h"
+#include "transpiler_intent_context.h"
 
 void emit_intent_step_restore_bound_zone_aliases(CodeBuf *out,
                                                  TranspilerCtx *ctx,
@@ -18,9 +19,7 @@ void emit_intent_step_restore_bound_zone_aliases_with_metadata(
     const char **who_aliases,
     size_t who_alias_count,
     size_t step_index,
-    const char **participant_aliases,
-    const char **participant_types,
-    size_t participant_count);
+    const IntentBindingMetadataView *bindings);
 bool intent_action_has_only_self(ASTNode *action_decl);
 void emit_intent_forward_decl(ASTNode *node, CodeBuf *buf, TranspilerCtx *ctx);
 bool transpiler_can_forward_declare_intent_early(TranspilerCtx *ctx,

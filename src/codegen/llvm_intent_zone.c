@@ -50,6 +50,12 @@ llvm_resolve_intent_zone_slot_name_for_zone(LLVMGenCtx *ctx, ASTNode *intent,
 
     zone_cls = llvm_lookup_class(ctx, zone_type_name);
     participant_type = llvm_lookup_var_class(ctx, alias);
+    if (llvm_active_has_mir(ctx) && participant_type == NULL) {
+        llvm_set_mir_inventory_missing(ctx,
+            "MIR-only LLVM path missing intent participant metadata for zone-slot binding '%s'",
+            alias);
+        return "<unbound>";
+    }
     if (participant_type != NULL)
         participant_llvm_type = pergyra_type_to_llvm(ctx, participant_type);
     if (zone_cls == NULL)
@@ -123,8 +129,16 @@ llvm_emit_intent_step_rebind_bound_zone_aliases(LLVMGenCtx *ctx,
             continue;
 
         participant_var = llvm_scope_lookup(ctx, alias);
-        if (participant_var == NULL || LLVMGetTypeKind(participant_var->type) != LLVMPointerTypeKind)
+        if (participant_var == NULL
+            || LLVMGetTypeKind(participant_var->type) != LLVMPointerTypeKind) {
+            if (llvm_active_has_mir(ctx)) {
+                llvm_set_mir_inventory_missing(ctx,
+                    "MIR-only LLVM path missing intent participant binding for zone rebind '%s'",
+                    alias);
+                return false;
+            }
             continue;
+        }
 
         field_idx = llvm_class_field_index(zone_cls, slot_name);
         if (field_idx < 0)
@@ -249,6 +263,12 @@ llvm_emit_intent_step_restore_bound_zone_aliases(LLVMGenCtx *ctx,
         participant_var = llvm_scope_lookup(ctx, alias);
         participant_type_name = llvm_lookup_var_class(ctx, alias);
         if (participant_var == NULL || participant_type_name == NULL) {
+            if (llvm_active_has_mir(ctx)) {
+                llvm_set_mir_inventory_missing(ctx,
+                    "MIR-only LLVM path missing intent participant binding for zone restore '%s'",
+                    alias);
+                return;
+            }
             continue;
         }
 

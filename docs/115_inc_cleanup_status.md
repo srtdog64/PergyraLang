@@ -2603,9 +2603,15 @@ Observed results:
   setup before its direct semantic `.exe` launch path; its PowerShell fallback
   already used the helper-derived PATH prefix. Gate:
   `type-resolution-dag-test-smoke`.
-  The PowerShell prefix intentionally does not convert the generic Git-Bash
-  `/mingw64/bin` mount: under Git for Windows that path becomes
+  The PowerShell and Bash runtime prefixes intentionally do not promote the
+  generic Git-Bash `/mingw64/bin` mount: under Git for Windows that path becomes
   `C:\Program Files\Git\mingw64\bin` and can shadow the actual MinGW runtime.
-  PowerShell launch priority must come from `MSYSTEM_PREFIX` or explicit
-  `/c/msys64/...` / `/c/ProgramData/...` candidates. Gates:
-  `type-resolution-dag-test-smoke`, `runtime-panic-abi-test-smoke`.
+  Launch priority must come from explicit `/c/msys64/...` /
+  `/c/ProgramData/...` candidates first; `MSYSTEM_PREFIX` is allowed only when
+  it does not resolve into Git's bundled runtime. The same helper now owns
+  optional `.exe` selection and runnable-binary rejection for formatter,
+  stdlib, AIR JSON, runtime-none, raw-escape, and semantic fixture-isolation
+  smokes. Gates: `fmt-test-smoke`, `stdlib-test-smoke`,
+  `air-json-schema-test-smoke`, `runtime-none-contract-test-smoke`,
+  `raw-escape-contract-test-smoke`, `semantic-fixture-isolation-test-smoke`,
+  and `build-source-inventory-test-smoke`.

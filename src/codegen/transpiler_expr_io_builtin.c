@@ -49,14 +49,42 @@ io_builtin_unsupported(TranspilerCtx *ctx, const char *message)
 }
 
 static char *
+io_builtin_emit_arg(TranspilerCtx *ctx,
+                    ASTNode *arg,
+                    const char *builtin_name,
+                    const char *role)
+{
+    char *lowered = emit_expression(arg, ctx);
+    if (lowered != NULL)
+        return lowered;
+
+    transpiler_set_backend_error_with_hints(ctx,
+        PGY_CODE_C_TYPE_UNSUPPORTED,
+        PGY_CAUSE_C_TYPE_UNSUPPORTED,
+        PGY_FIX_USE_LLVM_BACKEND_OR_EXTEND_TRANSPILER,
+        "C backend: %s could not lower %s argument",
+        builtin_name != NULL ? builtin_name : "I/O builtin",
+        role != NULL ? role : "value");
+    return NULL;
+}
+
+static char *
 emit_builtin_file_open(ASTNode *call, TranspilerCtx *ctx)
 {
     if (ast_call_arg_count(call) < 2)
         return io_builtin_unsupported(ctx,
             "C backend: FileOpen requires path and mode");
 
-    char *path = emit_expression(ast_call_argument(call, 0), ctx);
-    char *mode = emit_expression(ast_call_argument(call, 1), ctx);
+    char *path = io_builtin_emit_arg(ctx, ast_call_argument(call, 0),
+        "FileOpen", "path");
+    if (path == NULL)
+        return pergyra_strdup("0");
+    char *mode = io_builtin_emit_arg(ctx, ast_call_argument(call, 1),
+        "FileOpen", "mode");
+    if (mode == NULL) {
+        free(path);
+        return pergyra_strdup("0");
+    }
     char *result = io_builtin_heap_fmt("pgy_file_open(%s, %s)", path, mode);
     free(path);
     free(mode);
@@ -70,7 +98,10 @@ emit_builtin_file_read(ASTNode *call, TranspilerCtx *ctx)
         return io_builtin_unsupported(ctx,
             "C backend: FileRead requires file descriptor");
 
-    char *fd = emit_expression(ast_call_argument(call, 0), ctx);
+    char *fd = io_builtin_emit_arg(ctx, ast_call_argument(call, 0),
+        "FileRead", "file descriptor");
+    if (fd == NULL)
+        return pergyra_strdup("0");
     char *result = io_builtin_heap_fmt("pgy_file_read(%s)", fd);
     free(fd);
     return result;
@@ -83,8 +114,16 @@ emit_builtin_file_write(ASTNode *call, TranspilerCtx *ctx)
         return io_builtin_unsupported(ctx,
             "C backend: FileWrite requires file descriptor and data");
 
-    char *fd = emit_expression(ast_call_argument(call, 0), ctx);
-    char *data = emit_expression(ast_call_argument(call, 1), ctx);
+    char *fd = io_builtin_emit_arg(ctx, ast_call_argument(call, 0),
+        "FileWrite", "file descriptor");
+    if (fd == NULL)
+        return pergyra_strdup("0");
+    char *data = io_builtin_emit_arg(ctx, ast_call_argument(call, 1),
+        "FileWrite", "data");
+    if (data == NULL) {
+        free(fd);
+        return pergyra_strdup("0");
+    }
     char *result = io_builtin_heap_fmt("pgy_file_write(%s, %s)", fd, data);
     free(fd);
     free(data);
@@ -98,7 +137,10 @@ emit_builtin_file_close(ASTNode *call, TranspilerCtx *ctx)
         return io_builtin_unsupported(ctx,
             "C backend: FileClose requires file descriptor");
 
-    char *fd = emit_expression(ast_call_argument(call, 0), ctx);
+    char *fd = io_builtin_emit_arg(ctx, ast_call_argument(call, 0),
+        "FileClose", "file descriptor");
+    if (fd == NULL)
+        return pergyra_strdup("0");
     char *result = io_builtin_heap_fmt("pgy_file_close(%s)", fd);
     free(fd);
     return result;
@@ -111,7 +153,10 @@ emit_builtin_read_file(ASTNode *call, TranspilerCtx *ctx)
         return io_builtin_unsupported(ctx,
             "C backend: ReadFile requires path");
 
-    char *path = emit_expression(ast_call_argument(call, 0), ctx);
+    char *path = io_builtin_emit_arg(ctx, ast_call_argument(call, 0),
+        "ReadFile", "path");
+    if (path == NULL)
+        return pergyra_strdup("0");
     char *result = io_builtin_heap_fmt("pgy_read_file(%s)", path);
     free(path);
     return result;
@@ -124,7 +169,10 @@ emit_builtin_file_exists(ASTNode *call, TranspilerCtx *ctx)
         return io_builtin_unsupported(ctx,
             "C backend: FileExists requires path");
 
-    char *path = emit_expression(ast_call_argument(call, 0), ctx);
+    char *path = io_builtin_emit_arg(ctx, ast_call_argument(call, 0),
+        "FileExists", "path");
+    if (path == NULL)
+        return pergyra_strdup("0");
     char *result = io_builtin_heap_fmt("pgy_file_exists(%s)", path);
     free(path);
     return result;
@@ -137,8 +185,16 @@ emit_builtin_write_file(ASTNode *call, TranspilerCtx *ctx)
         return io_builtin_unsupported(ctx,
             "C backend: WriteFile requires path and data");
 
-    char *path = emit_expression(ast_call_argument(call, 0), ctx);
-    char *data = emit_expression(ast_call_argument(call, 1), ctx);
+    char *path = io_builtin_emit_arg(ctx, ast_call_argument(call, 0),
+        "WriteFile", "path");
+    if (path == NULL)
+        return pergyra_strdup("0");
+    char *data = io_builtin_emit_arg(ctx, ast_call_argument(call, 1),
+        "WriteFile", "data");
+    if (data == NULL) {
+        free(path);
+        return pergyra_strdup("0");
+    }
     char *result = io_builtin_heap_fmt("pgy_write_file(%s, %s)", path, data);
     free(path);
     free(data);
@@ -149,8 +205,10 @@ static char *
 emit_builtin_input(ASTNode *call, TranspilerCtx *ctx)
 {
     char *prompt = ast_call_arg_count(call) >= 1
-        ? emit_expression(ast_call_argument(call, 0), ctx)
+        ? io_builtin_emit_arg(ctx, ast_call_argument(call, 0), "Input", "prompt")
         : pergyra_strdup("\"\"");
+    if (prompt == NULL)
+        return pergyra_strdup("0");
     char *result = io_builtin_heap_fmt("pgy_input(%s)", prompt);
     free(prompt);
     return result;
@@ -163,7 +221,10 @@ emit_builtin_print(ASTNode *call, TranspilerCtx *ctx)
         return io_builtin_unsupported(ctx,
             "C backend: Print requires message");
 
-    char *msg = emit_expression(ast_call_argument(call, 0), ctx);
+    char *msg = io_builtin_emit_arg(ctx, ast_call_argument(call, 0),
+        "Print", "message");
+    if (msg == NULL)
+        return pergyra_strdup("0");
     char *result = io_builtin_heap_fmt("pgy_print(%s)", msg);
     free(msg);
     return result;
@@ -176,7 +237,10 @@ emit_builtin_sleep(ASTNode *call, TranspilerCtx *ctx)
         return io_builtin_unsupported(ctx,
             "C backend: Sleep requires milliseconds");
 
-    char *ms = emit_expression(ast_call_argument(call, 0), ctx);
+    char *ms = io_builtin_emit_arg(ctx, ast_call_argument(call, 0),
+        "Sleep", "milliseconds");
+    if (ms == NULL)
+        return pergyra_strdup("0");
     char *result = io_builtin_heap_fmt("pgy_sleep_ms(%s)", ms);
     free(ms);
     return result;

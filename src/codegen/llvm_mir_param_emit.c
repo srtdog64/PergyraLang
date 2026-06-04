@@ -24,32 +24,35 @@ llvm_emit_mir_param_allocas(const MIRRoutine *routine, ASTNode *func_decl,
 {
     bool owner_is_role = is_method && routine != NULL
         && routine->owner_ast_type == AST_ROLE_DECL;
-    const char **participant_aliases = NULL;
-    const char **participant_types = NULL;
-    const char **value_aliases = NULL;
-    const char **value_types = NULL;
-    size_t participant_count = 0;
-    size_t mir_value_count = 0;
-    size_t intent_involve_count = 0;
-    size_t intent_value_count = 0;
+    const char **binding_kinds = NULL;
+    const char **binding_aliases = NULL;
+    const char **binding_types = NULL;
+    size_t mir_binding_count = 0;
     if (is_intent && routine != NULL && func_decl != NULL) {
-        intent_involve_count = ast_intent_decl_involve_count(func_decl);
-        intent_value_count = ast_intent_decl_value_count(func_decl);
-        participant_count = llvm_collect_mir_intent_participants(
-            routine, ctx, &participant_aliases, &participant_types);
-        mir_value_count = llvm_collect_mir_intent_values(
-            routine, ctx, &value_aliases, &value_types);
-        if (intent_involve_count > 0 && participant_count < intent_involve_count) {
+        mir_binding_count = llvm_collect_mir_intent_bindings(
+            routine, ctx, &binding_kinds, &binding_aliases, &binding_types);
+        if (param_count > 0 && mir_binding_count != param_count) {
             llvm_set_mir_inventory_missing(ctx,
-                "MIR-only LLVM path missing intent participant metadata for '%s'",
+                "MIR-only LLVM path missing ordered intent binding metadata for '%s'",
                 routine->name != NULL ? routine->name : "(anonymous)");
             return;
         }
-        if (intent_value_count > 0 && mir_value_count < intent_value_count) {
+        if (param_count > 0
+            && (binding_kinds == NULL || binding_aliases == NULL
+                || binding_types == NULL)) {
             llvm_set_mir_inventory_missing(ctx,
-                "MIR-only LLVM path missing intent value metadata for '%s'",
+                "MIR-only LLVM path has incomplete ordered intent binding metadata for '%s'",
                 routine->name != NULL ? routine->name : "(anonymous)");
             return;
+        }
+        for (size_t i = 0; i < mir_binding_count; i++) {
+            if (binding_kinds[i] == NULL || binding_aliases[i] == NULL
+                || binding_types[i] == NULL) {
+                llvm_set_mir_inventory_missing(ctx,
+                    "MIR-only LLVM path has incomplete ordered intent binding metadata for '%s'",
+                    routine->name != NULL ? routine->name : "(anonymous)");
+                return;
+            }
         }
     }
     if (!is_intent) {
@@ -161,76 +164,52 @@ llvm_emit_mir_param_allocas(const MIRRoutine *routine, ASTNode *func_decl,
         return;
     }
 
-    for (size_t i = 0, participant_index = 0, value_index = 0;
-         i < param_count; i++) {
+    for (size_t i = 0; i < param_count; i++) {
         if (is_intent) {
-            size_t binding_count = 0;
-            size_t involve_count = 0;
-            size_t value_count = 0;
-            ASTNode **bindings = ast_intent_decl_bindings(func_decl, &binding_count);
-            ASTNode **involves = ast_intent_decl_involves(func_decl, &involve_count);
-            ASTNode **values = ast_intent_decl_values(func_decl, &value_count);
-            ASTNode *binding = binding_count > 0
-                ? (i < binding_count ? bindings[i] : NULL)
-                : (i < involve_count
-                    ? involves[i]
-                    : (i - involve_count < value_count
-                        ? values[i - involve_count]
-                        : NULL));
+            const char *kind = binding_kinds != NULL ? binding_kinds[i] : NULL;
             const char *alias = NULL;
-            ASTNode *type_node = NULL;
             const char *type_name = NULL;
             LLVMTypeRef pt = NULL;
             bool pointer_param = false;
-            if (binding != NULL && binding->type == AST_INTENT_INVOLVES) {
-                const char *participant_type =
-                    participant_types != NULL && participant_index < participant_count
-                        ? participant_types[participant_index]
-                        : NULL;
-                alias = (participant_aliases != NULL
-                         && participant_index < participant_count
-                         && participant_aliases[participant_index] != NULL)
-                    ? participant_aliases[participant_index]
-                    : ast_intent_involves_alias(binding);
-                if (participant_type != NULL) {
-                    type_name = participant_type;
-                    pt = pergyra_type_to_llvm(ctx, participant_type);
+            if (kind != NULL && strcmp(kind, "participant") == 0) {
+                alias = binding_aliases != NULL ? binding_aliases[i] : NULL;
+                type_name = binding_types != NULL ? binding_types[i] : NULL;
+                if (type_name != NULL) {
+                    pt = pergyra_type_to_llvm(ctx, type_name);
                     if (ctx->has_error || pt == NULL)
                         return;
                     pointer_param = llvm_type_name_uses_pointer_self(
-                        ctx, participant_type);
+                        ctx, type_name);
                 } else {
-                    type_node = ast_intent_involves_subject_type(binding);
-                    pointer_param = llvm_intent_involves_uses_pointer_self(ctx,
-                        binding);
+                    llvm_set_mir_inventory_missing(ctx,
+                        "MIR-only LLVM path missing intent participant type metadata for '%s'",
+                        routine->name != NULL ? routine->name : "(anonymous)");
+                    return;
                 }
-                participant_index++;
-            } else if (binding != NULL && binding->type == AST_INTENT_VALUE) {
-                const char *value_type =
-                    value_types != NULL && value_index < mir_value_count
-                        ? value_types[value_index]
-                        : NULL;
-                alias = (value_aliases != NULL && value_index < mir_value_count
-                         && value_aliases[value_index] != NULL)
-                    ? value_aliases[value_index]
-                    : ast_intent_value_alias(binding);
-                if (value_type != NULL) {
-                    type_name = value_type;
-                    pt = pergyra_type_to_llvm(ctx, value_type);
+            } else if (kind != NULL && strcmp(kind, "value") == 0) {
+                alias = binding_aliases != NULL ? binding_aliases[i] : NULL;
+                type_name = binding_types != NULL ? binding_types[i] : NULL;
+                if (type_name != NULL) {
+                    pt = pergyra_type_to_llvm(ctx, type_name);
                     if (ctx->has_error || pt == NULL)
                         return;
                 } else {
-                    type_node = ast_intent_value_type(binding);
-                }
-                value_index++;
-            }
-            if (type_node != NULL && type_node->type == AST_TYPE)
-                type_name = ast_type_name(type_node);
-            if (pt == NULL) {
-                pt = llvm_mir_required_type_from_ast(ctx, binding, type_node,
-                    "intent binding");
-                if (ctx->has_error || pt == NULL)
+                    llvm_set_mir_inventory_missing(ctx,
+                        "MIR-only LLVM path missing intent value type metadata for '%s'",
+                        routine->name != NULL ? routine->name : "(anonymous)");
                     return;
+                }
+            } else {
+                llvm_set_mir_inventory_missing(ctx,
+                    "MIR-only LLVM path missing intent parameter metadata for '%s'",
+                    routine->name != NULL ? routine->name : "(anonymous)");
+                return;
+            }
+            if (pt == NULL) {
+                llvm_set_mir_inventory_missing(ctx,
+                    "MIR-only LLVM path missing intent parameter type metadata for '%s'",
+                    routine->name != NULL ? routine->name : "(anonymous)");
+                return;
             }
             if (pointer_param)
                 pt = LLVMPointerType(pt, 0);
@@ -239,8 +218,9 @@ llvm_emit_mir_param_allocas(const MIRRoutine *routine, ASTNode *func_decl,
             LLVMBuildStore(ctx->builder, LLVMGetParam(fn, (unsigned)i), alloca);
             llvm_scope_declare(ctx, alias != NULL ? alias : "binding", alloca,
                 pt);
-            if (type_node != NULL)
-                llvm_register_typed_var(ctx, alias, type_node);
+            if (type_name != NULL && alias != NULL)
+                llvm_register_typed_var_abi_binding(ctx, alias, alloca,
+                    type_name);
             if (type_name != NULL)
                 llvm_register_var_class(ctx, alias, type_name);
         } else {

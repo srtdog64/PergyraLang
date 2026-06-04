@@ -86,11 +86,12 @@ llvm_boundary_slot_inner_name_from_type_name(LLVMGenCtx *ctx,
         return NULL;
     }
 
-    inner = llvm_keep_rendered_persistent(ctx,
-        inner_name,
-        "out of memory copying LLVM boundary slot type");
-    if (inner == NULL)
+    inner = pgy_arena_strdup(&ctx->persistent, inner_name);
+    if (inner == NULL) {
+        llvm_set_error(ctx, "%s",
+            "out of memory copying LLVM boundary slot type");
         return NULL;
+    }
 
     (void)llvm_lookup_class(ctx, inner);
 

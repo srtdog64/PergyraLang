@@ -105,6 +105,26 @@ transpiler_option_type_has_concrete_inner(const char *opt_type)
         && strcmp(inner, "Unknown") != 0;
 }
 
+static char *
+transpiler_result_option_emit_arg(TranspilerCtx *ctx,
+                                  ASTNode *expr,
+                                  const char *fn,
+                                  const char *role)
+{
+    char *lowered = emit_expression(expr, ctx);
+    if (lowered != NULL)
+        return lowered;
+
+    transpiler_set_backend_error_with_hints(ctx,
+        PGY_CODE_C_TYPE_UNSUPPORTED,
+        PGY_CAUSE_C_TYPE_UNSUPPORTED,
+        PGY_FIX_USE_LLVM_BACKEND_OR_EXTEND_TRANSPILER,
+        "C backend: %s could not lower %s expression",
+        fn != NULL ? fn : "<Result/Option builtin>",
+        role != NULL ? role : "argument");
+    return NULL;
+}
+
 char *
 emit_call_result_option_builtin(ASTNode *call, ASTNode *callee, TranspilerCtx *ctx)
 {
@@ -144,45 +164,70 @@ emit_call_result_option_builtin(ASTNode *call, ASTNode *callee, TranspilerCtx *c
         }
 
         if (op == TRANS_RESULT_OPTION_OP_OK && argc == 1) {
-            char *arg = emit_expression(arg0, ctx);
+            char *arg = transpiler_result_option_emit_arg(ctx, arg0, fn,
+                "payload");
+            if (arg == NULL)
+                return pergyra_strdup("0");
             char *result = strdup_fmt("Ok_%s(%s)", result_suffix, arg);
             free(arg);
             return result;
         }
         if (op == TRANS_RESULT_OPTION_OP_ERR && argc == 1) {
-            char *arg = emit_expression(arg0, ctx);
+            char *arg = transpiler_result_option_emit_arg(ctx, arg0, fn,
+                "error payload");
+            if (arg == NULL)
+                return pergyra_strdup("0");
             char *result = strdup_fmt("Err_%s(%s)", result_suffix, arg);
             free(arg);
             return result;
         }
         if (op == TRANS_RESULT_OPTION_OP_IS_OK && argc == 1) {
-            char *arg = emit_expression(arg0, ctx);
+            char *arg = transpiler_result_option_emit_arg(ctx, arg0, fn,
+                "operand");
+            if (arg == NULL)
+                return pergyra_strdup("false");
             char *result = strdup_fmt("IsOk_%s(%s)", result_suffix, arg);
             free(arg);
             return result;
         }
         if (op == TRANS_RESULT_OPTION_OP_IS_ERR && argc == 1) {
-            char *arg = emit_expression(arg0, ctx);
+            char *arg = transpiler_result_option_emit_arg(ctx, arg0, fn,
+                "operand");
+            if (arg == NULL)
+                return pergyra_strdup("false");
             char *result = strdup_fmt("IsErr_%s(%s)", result_suffix, arg);
             free(arg);
             return result;
         }
         if (op == TRANS_RESULT_OPTION_OP_UNWRAP && argc == 1) {
-            char *arg = emit_expression(arg0, ctx);
+            char *arg = transpiler_result_option_emit_arg(ctx, arg0, fn,
+                "operand");
+            if (arg == NULL)
+                return pergyra_strdup("0");
             char *result = strdup_fmt("Unwrap_%s(%s)", result_suffix, arg);
             free(arg);
             return result;
         }
         if (op == TRANS_RESULT_OPTION_OP_UNWRAP_OR && argc == 2) {
-            char *arg = emit_expression(arg0, ctx);
-            char *fallback = emit_expression(arg1, ctx);
+            char *arg = transpiler_result_option_emit_arg(ctx, arg0, fn,
+                "operand");
+            char *fallback = transpiler_result_option_emit_arg(ctx, arg1,
+                fn, "fallback");
+            if (arg == NULL || fallback == NULL) {
+                free(arg);
+                free(fallback);
+                return pergyra_strdup("0");
+            }
             char *result = strdup_fmt("UnwrapOr_%s(%s, %s)", result_suffix, arg, fallback);
             free(arg);
             free(fallback);
             return result;
         }
         if (op == TRANS_RESULT_OPTION_OP_SOME && argc == 1) {
-            char *arg = emit_expression(arg0, ctx);
+            char *arg = transpiler_result_option_emit_arg(ctx, arg0, fn,
+                "payload");
+            if (arg == NULL)
+                return pergyra_strdup("0");
             const char *inner = transpiler_expr_infer_type_name(ctx, arg0);
             char inner_buf[128];
             if (inner == NULL || inner[0] == '\0'
@@ -220,7 +265,10 @@ emit_call_result_option_builtin(ASTNode *call, ASTNode *callee, TranspilerCtx *c
                     opt_type != NULL ? opt_type : "<unknown>");
                 return pergyra_strdup("false");
             }
-            char *arg = emit_expression(arg0, ctx);
+            char *arg = transpiler_result_option_emit_arg(ctx, arg0, fn,
+                "operand");
+            if (arg == NULL)
+                return pergyra_strdup("false");
             char inner_buf[128];
             const char *inner = inner_buf;
             (void)slot_inner_type_name_copy(opt_type, inner_buf,
@@ -240,7 +288,10 @@ emit_call_result_option_builtin(ASTNode *call, ASTNode *callee, TranspilerCtx *c
                     opt_type != NULL ? opt_type : "<unknown>");
                 return pergyra_strdup("false");
             }
-            char *arg = emit_expression(arg0, ctx);
+            char *arg = transpiler_result_option_emit_arg(ctx, arg0, fn,
+                "operand");
+            if (arg == NULL)
+                return pergyra_strdup("false");
             char inner_buf[128];
             const char *inner = inner_buf;
             (void)slot_inner_type_name_copy(opt_type, inner_buf,
@@ -260,7 +311,10 @@ emit_call_result_option_builtin(ASTNode *call, ASTNode *callee, TranspilerCtx *c
                     opt_type != NULL ? opt_type : "<unknown>");
                 return pergyra_strdup("0");
             }
-            char *arg = emit_expression(arg0, ctx);
+            char *arg = transpiler_result_option_emit_arg(ctx, arg0, fn,
+                "operand");
+            if (arg == NULL)
+                return pergyra_strdup("0");
             char inner_buf[128];
             const char *inner = inner_buf;
             (void)slot_inner_type_name_copy(opt_type, inner_buf,

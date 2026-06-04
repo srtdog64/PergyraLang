@@ -12,52 +12,19 @@
 #include "transpiler_decl_lookup.h"
 #include "transpiler_intent_context.h"
 
-const char *
-resolve_intent_zone_slot_name(TranspilerCtx *ctx, ASTNode *intent,
-                              ASTNode *step, const char *alias)
-{
-    if (ctx == NULL || intent == NULL || step == NULL || alias == NULL
-        || ast_intent_step_where_type(step) == NULL
-        || ast_intent_step_where_type(step)->type != AST_TYPE
-        || ast_type_name(ast_intent_step_where_type(step)) == NULL) {
-        return "<unbound>";
-    }
-    return resolve_intent_zone_slot_name_for_zone(ctx, intent,
-        ast_type_name(ast_intent_step_where_type(step)), alias);
-}
-
-const char *
-resolve_intent_zone_slot_name_for_zone(TranspilerCtx *ctx, ASTNode *intent,
-                                       const char *zone_type_name, const char *alias)
-{
-    return resolve_intent_zone_slot_name_for_zone_with_metadata(
-        ctx, intent, zone_type_name, alias, NULL, NULL, 0);
-}
-
-const char *
-resolve_intent_zone_slot_name_for_zone_with_metadata(
-    TranspilerCtx *ctx,
-    ASTNode *intent,
-    const char *zone_type_name,
-    const char *alias,
-    const char **participant_aliases,
-    const char **participant_types,
-    size_t participant_count)
+static const char *
+resolve_intent_zone_slot_name_for_type(TranspilerCtx *ctx,
+                                       const char *zone_type_name,
+                                       const char *alias,
+                                       const char *participant_type)
 {
     ASTNode *zone_decl = NULL;
-    const char *participant_type = NULL;
     const char *named_match = NULL;
     const char *typed_match = NULL;
     bool typed_match_is_ambiguous = false;
     TranspilerHostedDomainSlotView slot_view;
 
-    if (ctx == NULL || intent == NULL || zone_type_name == NULL || alias == NULL) {
-        return "<unbound>";
-    }
-
     zone_decl = find_zone_decl_in_program_view(ctx, zone_type_name);
-    participant_type = intent_zone_binding_type_name_with_metadata(
-        intent, alias, participant_aliases, participant_types, participant_count);
     if (zone_decl == NULL)
         return "<unbound>";
 
@@ -98,4 +65,54 @@ resolve_intent_zone_slot_name_for_zone_with_metadata(
     if (typed_match != NULL && !typed_match_is_ambiguous)
         return typed_match;
     return "<unbound>";
+}
+
+const char *
+resolve_intent_zone_slot_name(TranspilerCtx *ctx, ASTNode *intent,
+                              ASTNode *step, const char *alias)
+{
+    if (ctx == NULL || intent == NULL || step == NULL || alias == NULL
+        || ast_intent_step_where_type(step) == NULL
+        || ast_intent_step_where_type(step)->type != AST_TYPE
+        || ast_type_name(ast_intent_step_where_type(step)) == NULL) {
+        return "<unbound>";
+    }
+    return resolve_intent_zone_slot_name_for_zone(ctx, intent,
+        ast_type_name(ast_intent_step_where_type(step)), alias);
+}
+
+const char *
+resolve_intent_zone_slot_name_for_zone(TranspilerCtx *ctx, ASTNode *intent,
+                                       const char *zone_type_name, const char *alias)
+{
+    return resolve_intent_zone_slot_name_for_zone_with_bindings(
+        ctx, intent, zone_type_name, alias, NULL);
+}
+
+const char *
+resolve_intent_zone_slot_name_for_zone_with_bindings(
+    TranspilerCtx *ctx,
+    ASTNode *intent,
+    const char *zone_type_name,
+    const char *alias,
+    const IntentBindingMetadataView *bindings)
+{
+    const char *participant_type = NULL;
+    bool has_binding_metadata = false;
+
+    if (ctx == NULL || intent == NULL || zone_type_name == NULL || alias == NULL) {
+        return "<unbound>";
+    }
+
+    has_binding_metadata = intent_binding_metadata_view_is_active(bindings);
+    participant_type = intent_zone_binding_type_name_with_bindings(
+        intent, alias, bindings);
+    if (has_binding_metadata && participant_type == NULL) {
+        transpiler_set_mir_inventory_missing(ctx,
+            "MIR-only C path missing ordered intent binding metadata for zone-slot binding '%s'",
+            alias);
+        return "<unbound>";
+    }
+    return resolve_intent_zone_slot_name_for_type(ctx,
+        zone_type_name, alias, participant_type);
 }

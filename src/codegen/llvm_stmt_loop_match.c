@@ -109,8 +109,12 @@ llvm_emit_for_loop(ASTNode *node, LLVMGenCtx *ctx)
             const char *list_inner = llvm_lookup_list_inner(ctx, iter_name);
             LLVMVarEntry *list_var = llvm_scope_lookup(ctx, iter_name);
             if (list_inner != NULL && list_var != NULL) {
+                LLVMValueRef list_alloca = list_var->alloca;
+                LLVMTypeRef list_type = list_var->type;
                 LLVMTypeRef elem_ty = pergyra_type_to_llvm(ctx, list_inner);
                 if (ctx->has_error || elem_ty == NULL)
+                    return;
+                if (list_alloca == NULL || list_type == NULL)
                     return;
                 LLVMValueRef idx_alloca;
                 LLVMValueRef fn = ctx->current_function;
@@ -156,7 +160,7 @@ llvm_emit_for_loop(ASTNode *node, LLVMGenCtx *ctx)
                     LLVMValueRef size_call = LLVMConstInt(ctx->type_i32, 0, 0);
                     if (size_fn != NULL) {
                         LLVMValueRef args[] = {
-                            LLVMBuildBitCast(ctx->builder, list_var->alloca, ctx->type_i8ptr, llvm_tmp_name(ctx))
+                            LLVMBuildBitCast(ctx->builder, list_alloca, ctx->type_i8ptr, llvm_tmp_name(ctx))
                         };
                         size_call = LLVMBuildCall2(ctx->builder, size_fn->fn_type, size_fn->fn, args, 1, llvm_tmp_name(ctx));
                     }
@@ -170,7 +174,7 @@ llvm_emit_for_loop(ASTNode *node, LLVMGenCtx *ctx)
                     LLVMVarEntry *loop_var = llvm_scope_lookup(ctx, var_name);
                     if (get_fn != NULL && loop_var != NULL) {
                         LLVMValueRef args[] = {
-                            LLVMBuildBitCast(ctx->builder, list_var->alloca, ctx->type_i8ptr, llvm_tmp_name(ctx)),
+                            LLVMBuildBitCast(ctx->builder, list_alloca, ctx->type_i8ptr, llvm_tmp_name(ctx)),
                             idx,
                             LLVMBuildBitCast(ctx->builder, loop_var->alloca, ctx->type_i8ptr, llvm_tmp_name(ctx)),
                             llvm_sizeof_type_i64(ctx, elem_ty)

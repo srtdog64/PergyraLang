@@ -6,9 +6,12 @@
 #include "codegen_match_variant_policy.h"
 #include "codegen_scalar_arithmetic_policy.h"
 #include "parser/ast_api.h"
+#include "transpiler_context.h"
 #include "transpiler_expr_type_infer.h"
 #include "transpiler_format.h"
 #include "transpiler_operator.h"
+#include "../common/string_compat.h"
+#include "../semantic/diag_codes.h"
 
 static const char *
 binary_op_to_c(PgyTokenType op)
@@ -29,6 +32,24 @@ binary_op_to_c(PgyTokenType op)
     case TOKEN_OR:            return "||";
     default:                  return "?";
     }
+}
+
+static char *
+transpiler_binary_emit_operand(TranspilerCtx *ctx,
+                               ASTNode *operand,
+                               const char *role)
+{
+    char *lowered = emit_expression(operand, ctx);
+    if (lowered != NULL)
+        return lowered;
+
+    transpiler_set_backend_error_with_hints(ctx,
+        PGY_CODE_C_TYPE_UNSUPPORTED,
+        PGY_CAUSE_C_TYPE_UNSUPPORTED,
+        PGY_FIX_USE_LLVM_BACKEND_OR_EXTEND_TRANSPILER,
+        "C backend: binary expression could not lower %s operand",
+        role != NULL ? role : "unknown");
+    return NULL;
 }
 
 char *
@@ -75,8 +96,14 @@ emit_binary(ASTNode *expr, TranspilerCtx *ctx)
             }
         }
         if (is_string || is_string_literal_chain) {
-            char *left = emit_expression(left_expr, ctx);
-            char *right = emit_expression(right_expr, ctx);
+            char *left = transpiler_binary_emit_operand(ctx, left_expr, "left");
+            if (left == NULL)
+                return pergyra_strdup("0");
+            char *right = transpiler_binary_emit_operand(ctx, right_expr, "right");
+            if (right == NULL) {
+                free(left);
+                return pergyra_strdup("0");
+            }
             char *result = strdup_fmt("StringConcat(%s, %s)", left, right);
             free(left);
             free(right);
@@ -89,8 +116,14 @@ emit_binary(ASTNode *expr, TranspilerCtx *ctx)
         const char *rt = infer_expression_type_name(ctx, right_expr);
         if ((lt != NULL && strcmp(lt, "String") == 0)
             || (rt != NULL && strcmp(rt, "String") == 0)) {
-            char *left = emit_expression(left_expr, ctx);
-            char *right = emit_expression(right_expr, ctx);
+            char *left = transpiler_binary_emit_operand(ctx, left_expr, "left");
+            if (left == NULL)
+                return pergyra_strdup("0");
+            char *right = transpiler_binary_emit_operand(ctx, right_expr, "right");
+            if (right == NULL) {
+                free(left);
+                return pergyra_strdup("0");
+            }
             char *result = NULL;
             if (op_type == TOKEN_EQUAL)
                 result = strdup_fmt("pgy_string_equals(%s, %s)", left, right);
@@ -115,8 +148,14 @@ emit_binary(ASTNode *expr, TranspilerCtx *ctx)
 
         overload = find_operator_overload_decl(ctx, stable_lt, op_type);
         if (overload != NULL) {
-            char *left = emit_expression(left_expr, ctx);
-            char *right = emit_expression(right_expr, ctx);
+            char *left = transpiler_binary_emit_operand(ctx, left_expr, "left");
+            if (left == NULL)
+                return pergyra_strdup("0");
+            char *right = transpiler_binary_emit_operand(ctx, right_expr, "right");
+            if (right == NULL) {
+                free(left);
+                return pergyra_strdup("0");
+            }
             const char *suffix = operator_overload_suffix(op_type);
             char *result = strdup_fmt("operator_%s_%s(%s, %s)",
                 suffix, stable_lt, left, right);
@@ -127,8 +166,14 @@ emit_binary(ASTNode *expr, TranspilerCtx *ctx)
     }
 
     if (op_type == TOKEN_COALESCE) {
-        char *left = emit_expression(left_expr, ctx);
-        char *right = emit_expression(right_expr, ctx);
+        char *left = transpiler_binary_emit_operand(ctx, left_expr, "left");
+        if (left == NULL)
+            return pergyra_strdup("0");
+        char *right = transpiler_binary_emit_operand(ctx, right_expr, "right");
+        if (right == NULL) {
+            free(left);
+            return pergyra_strdup("0");
+        }
         const char *some_tag =
             pgy_codegen_match_variant_c_option_tag(PGY_MATCH_VARIANT_SOME);
         char *result = strdup_fmt(
@@ -140,8 +185,14 @@ emit_binary(ASTNode *expr, TranspilerCtx *ctx)
         return result;
     }
 
-    char *left = emit_expression(left_expr, ctx);
-    char *right = emit_expression(right_expr, ctx);
+    char *left = transpiler_binary_emit_operand(ctx, left_expr, "left");
+    if (left == NULL)
+        return pergyra_strdup("0");
+    char *right = transpiler_binary_emit_operand(ctx, right_expr, "right");
+    if (right == NULL) {
+        free(left);
+        return pergyra_strdup("0");
+    }
     const char *op = binary_op_to_c(op_type);
     char *result;
     if (op_type == TOKEN_SLASH || op_type == TOKEN_PERCENT) {

@@ -10,9 +10,7 @@ if [[ -n "${PGY_BIN:-}" ]]; then
     PGY_EXPLICIT=1
 fi
 
-if [[ "$PGY" != *.exe ]] && pgy_binary_expects_windows_paths "${PGY}.exe"; then
-    PGY="${PGY}.exe"
-fi
+PGY="$(pgy_select_optional_exe_binary "$PGY")"
 if [[ ! -x "$PGY" ]]; then
     if [[ "$PGY_EXPLICIT" -eq 0 ]]; then
         echo "[air-json-schema] SKIP executable probe; missing compiler binary: $PGY"
@@ -20,6 +18,13 @@ if [[ ! -x "$PGY" ]]; then
     fi
     echo "[air-json-schema] missing compiler binary: $PGY" >&2
     exit 1
+fi
+if ! pgy_binary_is_runnable_here "$PGY"; then
+    if [[ "$PGY_EXPLICIT" -eq 0 ]]; then
+        echo "[air-json-schema] SKIP default compiler executable probe; binary is not runnable on this host: $PGY"
+        exit 0
+    fi
+    pgy_require_runnable_binary_here "air-json-schema" "$PGY"
 fi
 
 TMP_BASE="${TMPDIR:-${TEMP:-/tmp}}"

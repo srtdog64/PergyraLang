@@ -1,6 +1,13 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
+if ! command -v dirname >/dev/null 2>&1 \
+    || ! command -v find >/dev/null 2>&1 \
+    || ! command -v grep >/dev/null 2>&1; then
+    PATH="/usr/bin:/bin:$PATH"
+    export PATH
+fi
+
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 
 fail() {

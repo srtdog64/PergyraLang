@@ -25,6 +25,11 @@ void          llvm_scope_push(LLVMGenCtx *ctx);
 void          llvm_scope_pop(LLVMGenCtx *ctx);
 void          llvm_scope_declare(LLVMGenCtx *ctx, const char *name,
                                   LLVMValueRef alloca, LLVMTypeRef type);
+/*
+ * The returned entry is borrowed from the active scope frame. Any subsequent
+ * llvm_scope_push/pop/declare can invalidate it because declarations may grow
+ * the frame storage. Snapshot alloca/type/name before mutating scope state.
+ */
 LLVMVarEntry *llvm_scope_lookup(LLVMGenCtx *ctx, const char *name);
 LLVMLexicalRegistrySnapshot llvm_lexical_registry_snapshot(LLVMGenCtx *ctx);
 void          llvm_lexical_registry_restore(

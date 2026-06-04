@@ -12,6 +12,8 @@
 
 #include "../common/string_compat.h"
 #include "../parser/ast_api.h"
+#include "../semantic/diag_codes.h"
+#include "transpiler_context.h"
 #include "transpiler_expr_stdlib_collection_support.h"
 #include "transpiler_format.h"
 
@@ -154,6 +156,28 @@ transpiler_scalar_lookup(const char *fn, size_t argc)
     return spec->op;
 }
 
+static char *
+transpiler_scalar_emit_arg(TranspilerCtx *ctx,
+                           ASTNode *arg,
+                           const char *builtin_name,
+                           const char *role)
+{
+    char *rendered = emit_expression(arg, ctx);
+
+    if (rendered != NULL)
+        return rendered;
+
+    transpiler_set_backend_error_with_hints(
+        ctx,
+        PGY_CODE_C_TYPE_UNSUPPORTED,
+        PGY_CAUSE_C_TYPE_UNSUPPORTED,
+        PGY_FIX_USE_LLVM_BACKEND_OR_EXTEND_TRANSPILER,
+        "C backend: scalar builtin %s could not lower %s argument",
+        builtin_name != NULL ? builtin_name : "(unknown)",
+        role != NULL ? role : "operand");
+    return NULL;
+}
+
 char *
 emit_call_stdlib_scalar_builtin(const char *fn, ASTNode *call, TranspilerCtx *ctx)
 {
@@ -164,95 +188,169 @@ emit_call_stdlib_scalar_builtin(const char *fn, ASTNode *call, TranspilerCtx *ct
     ASTNode *a2 = ast_call_argument(call, 2);
 
     if (op == TRANSPILER_SCALAR_OP_ABS) {
-        char *arg = emit_expression(a0, ctx);
+        char *arg = transpiler_scalar_emit_arg(ctx, a0, fn, "value");
+        if (arg == NULL)
+            return pergyra_strdup("0");
         char *result = strdup_fmt("((%s) < 0 ? -(%s) : (%s))", arg, arg, arg);
         free(arg);
         return result;
     }
     if (op == TRANSPILER_SCALAR_OP_MIN) {
-        char *a = emit_expression(a0, ctx);
-        char *b = emit_expression(a1, ctx);
+        char *a = transpiler_scalar_emit_arg(ctx, a0, fn, "left");
+        char *b = a != NULL
+            ? transpiler_scalar_emit_arg(ctx, a1, fn, "right")
+            : NULL;
+        if (a == NULL || b == NULL) {
+            free(a);
+            free(b);
+            return pergyra_strdup("0");
+        }
         char *result = strdup_fmt("((%s) < (%s) ? (%s) : (%s))", a, b, a, b);
         free(a); free(b);
         return result;
     }
     if (op == TRANSPILER_SCALAR_OP_MAX) {
-        char *a = emit_expression(a0, ctx);
-        char *b = emit_expression(a1, ctx);
+        char *a = transpiler_scalar_emit_arg(ctx, a0, fn, "left");
+        char *b = a != NULL
+            ? transpiler_scalar_emit_arg(ctx, a1, fn, "right")
+            : NULL;
+        if (a == NULL || b == NULL) {
+            free(a);
+            free(b);
+            return pergyra_strdup("0");
+        }
         char *result = strdup_fmt("((%s) > (%s) ? (%s) : (%s))", a, b, a, b);
         free(a); free(b);
         return result;
     }
     if (op == TRANSPILER_SCALAR_OP_STRING_LENGTH) {
-        char *arg = emit_expression(a0, ctx);
+        char *arg = transpiler_scalar_emit_arg(ctx, a0, fn, "value");
+        if (arg == NULL)
+            return pergyra_strdup("0");
         char *result = strdup_fmt("((int32_t)strlen(%s))", arg);
         free(arg);
         return result;
     }
     if (op == TRANSPILER_SCALAR_OP_STRING_CONTAINS) {
-        char *a = emit_expression(a0, ctx);
-        char *b = emit_expression(a1, ctx);
+        char *a = transpiler_scalar_emit_arg(ctx, a0, fn, "haystack");
+        char *b = a != NULL
+            ? transpiler_scalar_emit_arg(ctx, a1, fn, "needle")
+            : NULL;
+        if (a == NULL || b == NULL) {
+            free(a);
+            free(b);
+            return pergyra_strdup("0");
+        }
         char *result = strdup_fmt("StringContains(%s, %s)", a, b);
         free(a); free(b);
         return result;
     }
     if (op == TRANSPILER_SCALAR_OP_STRING_INDEX_OF) {
-        char *a = emit_expression(a0, ctx);
-        char *b = emit_expression(a1, ctx);
+        char *a = transpiler_scalar_emit_arg(ctx, a0, fn, "haystack");
+        char *b = a != NULL
+            ? transpiler_scalar_emit_arg(ctx, a1, fn, "needle")
+            : NULL;
+        if (a == NULL || b == NULL) {
+            free(a);
+            free(b);
+            return pergyra_strdup("0");
+        }
         char *result = strdup_fmt("StringIndexOf(%s, %s)", a, b);
         free(a); free(b);
         return result;
     }
     if (op == TRANSPILER_SCALAR_OP_EXIT) {
-        char *arg = emit_expression(a0, ctx);
+        char *arg = transpiler_scalar_emit_arg(ctx, a0, fn, "code");
+        if (arg == NULL)
+            return pergyra_strdup("0");
         char *result = strdup_fmt("pgy_exit(%s)", arg);
         free(arg);
         return result;
     }
     if (op == TRANSPILER_SCALAR_OP_REPLACE) {
-        char *s = emit_expression(a0, ctx);
-        char *old_s = emit_expression(a1, ctx);
-        char *new_s = emit_expression(a2, ctx);
+        char *s = transpiler_scalar_emit_arg(ctx, a0, fn, "source");
+        char *old_s = s != NULL
+            ? transpiler_scalar_emit_arg(ctx, a1, fn, "old")
+            : NULL;
+        char *new_s = old_s != NULL
+            ? transpiler_scalar_emit_arg(ctx, a2, fn, "new")
+            : NULL;
+        if (s == NULL || old_s == NULL || new_s == NULL) {
+            free(s);
+            free(old_s);
+            free(new_s);
+            return pergyra_strdup("0");
+        }
         char *result = strdup_fmt("StringReplace(%s, %s, %s)", s, old_s, new_s);
         free(s); free(old_s); free(new_s);
         return result;
     }
     if (op == TRANSPILER_SCALAR_OP_SUBSTRING) {
-        char *s = emit_expression(a0, ctx);
-        char *start = emit_expression(a1, ctx);
-        char *len = emit_expression(a2, ctx);
+        char *s = transpiler_scalar_emit_arg(ctx, a0, fn, "source");
+        char *start = s != NULL
+            ? transpiler_scalar_emit_arg(ctx, a1, fn, "start")
+            : NULL;
+        char *len = start != NULL
+            ? transpiler_scalar_emit_arg(ctx, a2, fn, "length")
+            : NULL;
+        if (s == NULL || start == NULL || len == NULL) {
+            free(s);
+            free(start);
+            free(len);
+            return pergyra_strdup("0");
+        }
         char *result = strdup_fmt("Substring(%s, %s, %s)", s, start, len);
         free(s); free(start); free(len);
         return result;
     }
     if (op == TRANSPILER_SCALAR_OP_STRING_TRIM) {
-        char *arg = emit_expression(a0, ctx);
+        char *arg = transpiler_scalar_emit_arg(ctx, a0, fn, "value");
+        if (arg == NULL)
+            return pergyra_strdup("0");
         char *result = strdup_fmt("StringTrim(%s)", arg);
         free(arg);
         return result;
     }
     if (op == TRANSPILER_SCALAR_OP_UPPER) {
-        char *arg = emit_expression(a0, ctx);
+        char *arg = transpiler_scalar_emit_arg(ctx, a0, fn, "value");
+        if (arg == NULL)
+            return pergyra_strdup("0");
         char *result = strdup_fmt("ToUpper(%s)", arg);
         free(arg);
         return result;
     }
     if (op == TRANSPILER_SCALAR_OP_LOWER) {
-        char *arg = emit_expression(a0, ctx);
+        char *arg = transpiler_scalar_emit_arg(ctx, a0, fn, "value");
+        if (arg == NULL)
+            return pergyra_strdup("0");
         char *result = strdup_fmt("ToLower(%s)", arg);
         free(arg);
         return result;
     }
     if (op == TRANSPILER_SCALAR_OP_CONCAT) {
-        char *a = emit_expression(a0, ctx);
-        char *b = emit_expression(a1, ctx);
+        char *a = transpiler_scalar_emit_arg(ctx, a0, fn, "left");
+        char *b = a != NULL
+            ? transpiler_scalar_emit_arg(ctx, a1, fn, "right")
+            : NULL;
+        if (a == NULL || b == NULL) {
+            free(a);
+            free(b);
+            return pergyra_strdup("0");
+        }
         char *result = strdup_fmt("StringConcat(%s, %s)", a, b);
         free(a); free(b);
         return result;
     }
     if (op == TRANSPILER_SCALAR_OP_SPLIT) {
-        char *s = emit_expression(a0, ctx);
-        char *d = emit_expression(a1, ctx);
+        char *s = transpiler_scalar_emit_arg(ctx, a0, fn, "source");
+        char *d = s != NULL
+            ? transpiler_scalar_emit_arg(ctx, a1, fn, "delimiter")
+            : NULL;
+        if (s == NULL || d == NULL) {
+            free(s);
+            free(d);
+            return pergyra_strdup("0");
+        }
         char *result = strdup_fmt("StringSplit(%s, %s)", s, d);
         free(s); free(d);
         return result;
@@ -261,55 +359,94 @@ emit_call_stdlib_scalar_builtin(const char *fn, ASTNode *call, TranspilerCtx *ct
         if (!transpiler_require_c_addressable_storage(ctx, a0,
                 "StringJoin", "Array"))
             return pergyra_strdup("0");
-        char *arr = emit_expression(a0, ctx);
-        char *sep = emit_expression(a1, ctx);
+        char *arr = transpiler_scalar_emit_arg(ctx, a0, fn, "array");
+        char *sep = arr != NULL
+            ? transpiler_scalar_emit_arg(ctx, a1, fn, "separator")
+            : NULL;
+        if (arr == NULL || sep == NULL) {
+            free(arr);
+            free(sep);
+            return pergyra_strdup("0");
+        }
         char *result = strdup_fmt("StringJoin(&%s, %s)", arr, sep);
         free(arr); free(sep);
         return result;
     }
     if (op == TRANSPILER_SCALAR_OP_TO_INT) {
-        char *arg = emit_expression(a0, ctx);
+        char *arg = transpiler_scalar_emit_arg(ctx, a0, fn, "value");
+        if (arg == NULL)
+            return pergyra_strdup("0");
         char *result = strdup_fmt("ToInt(%s)", arg);
         free(arg);
         return result;
     }
     if (op == TRANSPILER_SCALAR_OP_TO_FLOAT) {
-        char *arg = emit_expression(a0, ctx);
+        char *arg = transpiler_scalar_emit_arg(ctx, a0, fn, "value");
+        if (arg == NULL)
+            return pergyra_strdup("0");
         char *result = strdup_fmt("ToFloat(%s)", arg);
         free(arg);
         return result;
     }
     if (op == TRANSPILER_SCALAR_OP_SQRT) {
-        char *arg = emit_expression(a0, ctx);
+        char *arg = transpiler_scalar_emit_arg(ctx, a0, fn, "value");
+        if (arg == NULL)
+            return pergyra_strdup("0");
         char *result = strdup_fmt("Sqrt(%s)", arg);
         free(arg);
         return result;
     }
     if (op == TRANSPILER_SCALAR_OP_POW) {
-        char *a = emit_expression(a0, ctx);
-        char *b = emit_expression(a1, ctx);
+        char *a = transpiler_scalar_emit_arg(ctx, a0, fn, "base");
+        char *b = a != NULL
+            ? transpiler_scalar_emit_arg(ctx, a1, fn, "exponent")
+            : NULL;
+        if (a == NULL || b == NULL) {
+            free(a);
+            free(b);
+            return pergyra_strdup("0");
+        }
         char *result = strdup_fmt("Pow(%s, %s)", a, b);
         free(a); free(b);
         return result;
     }
     if (transpiler_scalar_unary_builtin_name(fn)
         && argc == 1) {
-        char *arg = emit_expression(a0, ctx);
+        char *arg = transpiler_scalar_emit_arg(ctx, a0, fn, "value");
+        if (arg == NULL)
+            return pergyra_strdup("0");
         char *result = strdup_fmt("%s(%s)", fn, arg);
         free(arg);
         return result;
     }
     if (op == TRANSPILER_SCALAR_OP_ATAN2) {
-        char *a = emit_expression(a0, ctx);
-        char *b = emit_expression(a1, ctx);
+        char *a = transpiler_scalar_emit_arg(ctx, a0, fn, "y");
+        char *b = a != NULL
+            ? transpiler_scalar_emit_arg(ctx, a1, fn, "x")
+            : NULL;
+        if (a == NULL || b == NULL) {
+            free(a);
+            free(b);
+            return pergyra_strdup("0");
+        }
         char *result = strdup_fmt("Atan2(%s, %s)", a, b);
         free(a); free(b);
         return result;
     }
     if (op == TRANSPILER_SCALAR_OP_CLAMP) {
-        char *val = emit_expression(a0, ctx);
-        char *lo = emit_expression(a1, ctx);
-        char *hi = emit_expression(a2, ctx);
+        char *val = transpiler_scalar_emit_arg(ctx, a0, fn, "value");
+        char *lo = val != NULL
+            ? transpiler_scalar_emit_arg(ctx, a1, fn, "min")
+            : NULL;
+        char *hi = lo != NULL
+            ? transpiler_scalar_emit_arg(ctx, a2, fn, "max")
+            : NULL;
+        if (val == NULL || lo == NULL || hi == NULL) {
+            free(val);
+            free(lo);
+            free(hi);
+            return pergyra_strdup("0");
+        }
         char *result = strdup_fmt("Clamp(%s, %s, %s)", val, lo, hi);
         free(val); free(lo); free(hi);
         return result;
@@ -320,7 +457,9 @@ emit_call_stdlib_scalar_builtin(const char *fn, ASTNode *call, TranspilerCtx *ct
         return pergyra_strdup("PGY_E");
     if (op == TRANSPILER_SCALAR_OP_RANDOM) {
         if (argc >= 1) {
-            char *arg = emit_expression(a0, ctx);
+            char *arg = transpiler_scalar_emit_arg(ctx, a0, fn, "limit");
+            if (arg == NULL)
+                return pergyra_strdup("0");
             char *result = strdup_fmt("Random(%s)", arg);
             free(arg);
             return result;
@@ -328,7 +467,9 @@ emit_call_stdlib_scalar_builtin(const char *fn, ASTNode *call, TranspilerCtx *ct
         return pergyra_strdup("Random(100)");
     }
     if (op == TRANSPILER_SCALAR_OP_SEED_RANDOM) {
-        char *arg = emit_expression(a0, ctx);
+        char *arg = transpiler_scalar_emit_arg(ctx, a0, fn, "seed");
+        if (arg == NULL)
+            return pergyra_strdup("0");
         char *result = strdup_fmt("SeedRandom(%s)", arg);
         free(arg);
         return result;

@@ -9,6 +9,8 @@
 
 #include "llvm_intent_internal.h"
 
+#include <string.h>
+
 void
 llvm_emit_intent_decl(ASTNode *node, LLVMGenCtx *ctx)
 {
@@ -16,10 +18,9 @@ llvm_emit_intent_decl(ASTNode *node, LLVMGenCtx *ctx)
     ASTNode **mir_steps = NULL;
     ASTNode **step_nodes = NULL;
     const char **mir_step_names = NULL;
-    const char **participant_aliases = NULL;
-    const char **participant_types = NULL;
-    const char **value_aliases = NULL;
-    const char **value_types = NULL;
+    const char **binding_kinds = NULL;
+    const char **binding_aliases = NULL;
+    const char **binding_types = NULL;
     LLVMFuncEntry *entry;
     LLVMFuncEntry *enter_fn;
     LLVMFuncEntry *exit_fn;
@@ -48,8 +49,7 @@ llvm_emit_intent_decl(ASTNode *node, LLVMGenCtx *ctx)
     LLVMValueRef handle_alloca;
     LLVMValueRef subjects_ptr;
     LLVMValueRef *completed_allocas = NULL;
-    size_t participant_count = 0;
-    size_t mir_value_count = 0;
+    size_t mir_binding_count = 0;
     size_t param_count = 0;
     size_t subject_count = 0;
     size_t step_count = 0;
@@ -65,26 +65,44 @@ llvm_emit_intent_decl(ASTNode *node, LLVMGenCtx *ctx)
     ASTNode *priority_expr = NULL;
     ASTNode *success_expr = NULL;
     bool is_concurrent = false;
+    bool mir_requires_routine = false;
 
     if (node == NULL || node->type != AST_INTENT_DECL || ctx == NULL)
         return;
     intent_name = ast_intent_decl_name(node);
     decl_steps = ast_intent_decl_steps(node, &decl_step_count);
-    involve_count = ast_intent_decl_involve_count(node);
-    binding_count = ast_intent_decl_binding_count(node);
-    value_count = ast_intent_decl_value_count(node);
     rollback_policy = ast_intent_decl_rollback_policy(node);
-    priority_expr = ast_intent_decl_priority_expr(node);
-    success_expr = ast_intent_decl_success_expr(node);
     is_concurrent = ast_intent_decl_is_concurrent(node);
     mir_routine = llvm_find_mir_intent_routine(ctx, node);
+    mir_requires_routine = llvm_active_has_mir(ctx) && decl_step_count > 0;
     if (mir_routine != NULL) {
+        priority_expr = llvm_find_mir_intent_eval_expr(
+            mir_routine, ctx, intent_name, "priority");
+        success_expr = llvm_find_mir_intent_check_expr(
+            mir_routine, intent_name, "success");
+        if (llvm_mir_intent_has_stmt(
+                mir_routine, intent_name, "IntentEval", "priority")
+            && priority_expr == NULL) {
+            llvm_set_mir_intent_carrier_missing(ctx,
+                "MIR-only LLVM path missing intent priority eval carrier");
+            return;
+        }
+        if (llvm_mir_intent_has_stmt(
+                mir_routine, intent_name, "IntentCheck", "success")
+            && success_expr == NULL) {
+            llvm_set_mir_intent_carrier_missing(ctx,
+                "MIR-only LLVM path missing intent success check carrier");
+            return;
+        }
         step_count = llvm_collect_mir_intent_step_names(
             mir_routine, ctx, &mir_step_names);
         mir_steps = llvm_build_mir_intent_step_sources(
             node, mir_step_names, step_count, ctx);
+    } else {
+        priority_expr = ast_intent_decl_priority_expr(node);
+        success_expr = ast_intent_decl_success_expr(node);
     }
-    if (llvm_active_has_mir(ctx) && decl_step_count > 0) {
+    if (mir_requires_routine) {
         if (mir_routine == NULL) {
             llvm_set_mir_inventory_missing(ctx,
                 "MIR-only LLVM path missing intent routine for '%s'",
@@ -107,8 +125,8 @@ llvm_emit_intent_decl(ASTNode *node, LLVMGenCtx *ctx)
                     : "(anonymous-step)");
             return;
         }
-        mir_only_intent = true;
     }
+    mir_only_intent = mir_routine != NULL;
     if (step_count > 0) {
         step_nodes = mir_steps;
     } else {
@@ -116,50 +134,35 @@ llvm_emit_intent_decl(ASTNode *node, LLVMGenCtx *ctx)
         step_nodes = decl_steps;
     }
     if (mir_routine != NULL) {
-        participant_count = llvm_collect_mir_intent_participants(
-            mir_routine, ctx, &participant_aliases, &participant_types);
-        mir_value_count = llvm_collect_mir_intent_values(
-            mir_routine, ctx, &value_aliases, &value_types);
+        mir_binding_count = llvm_collect_mir_intent_bindings(
+            mir_routine, ctx, &binding_kinds, &binding_aliases, &binding_types);
     }
-    if (mir_only_intent && involve_count > 0) {
-        if (participant_count < involve_count) {
-            llvm_set_mir_inventory_missing(ctx,
-                "MIR-only LLVM path missing intent participant metadata for '%s'",
-                intent_name != NULL ? intent_name : "(anonymous)");
-            return;
-        }
-        for (size_t i = 0; i < involve_count; i++) {
-            if (participant_aliases == NULL || participant_types == NULL
-                || participant_aliases[i] == NULL || participant_types[i] == NULL) {
+    if (mir_only_intent) {
+        for (size_t i = 0; i < mir_binding_count; i++) {
+            if (binding_kinds == NULL || binding_aliases == NULL
+                || binding_types == NULL || binding_kinds[i] == NULL
+                || binding_aliases[i] == NULL || binding_types[i] == NULL) {
                 llvm_set_mir_inventory_missing(ctx,
-                    "MIR-only LLVM path has incomplete intent participant metadata for '%s'",
+                    "MIR-only LLVM path has incomplete ordered intent binding metadata for entry setup '%s'",
+                    intent_name != NULL ? intent_name : "(anonymous)");
+                return;
+            }
+            if (strcmp(binding_kinds[i], "participant") != 0
+                && strcmp(binding_kinds[i], "value") != 0) {
+                llvm_set_mir_inventory_missing(ctx,
+                    "MIR-only LLVM path has invalid ordered intent binding metadata for entry setup '%s'",
                     intent_name != NULL ? intent_name : "(anonymous)");
                 return;
             }
         }
+    } else {
+        involve_count = ast_intent_decl_involve_count(node);
+        binding_count = ast_intent_decl_binding_count(node);
+        value_count = ast_intent_decl_value_count(node);
     }
-    if (mir_only_intent && value_count > 0) {
-        if (mir_value_count < value_count) {
-            llvm_set_mir_inventory_missing(ctx,
-                "MIR-only LLVM path missing intent value metadata for '%s'",
-                intent_name != NULL ? intent_name : "(anonymous)");
-            return;
-        }
-        for (size_t i = 0; i < value_count; i++) {
-            if (value_aliases == NULL || value_types == NULL
-                || value_aliases[i] == NULL || value_types[i] == NULL) {
-                llvm_set_mir_inventory_missing(ctx,
-                    "MIR-only LLVM path has incomplete intent value metadata for '%s'",
-                    intent_name != NULL ? intent_name : "(anonymous)");
-                return;
-            }
-        }
-    }
-    if (participant_count == 0)
-        participant_count = involve_count;
-    param_count = binding_count > 0 ? binding_count : (involve_count + value_count);
-    if (param_count == 0)
-        param_count = participant_count;
+    param_count = mir_only_intent
+        ? mir_binding_count
+        : (binding_count > 0 ? binding_count : (involve_count + value_count));
 
     for (size_t i = 0; i < step_count; i++) {
         ASTNode *step = step_nodes[i];
@@ -220,8 +223,7 @@ llvm_emit_intent_decl(ASTNode *node, LLVMGenCtx *ctx)
     scope_pushed = true;
 
     llvm_emit_intent_entry_bindings(ctx, node, fn,
-        participant_aliases, participant_types,
-        participant_count, value_aliases, value_types, mir_value_count,
+        binding_kinds, binding_aliases, binding_types, mir_binding_count,
         param_count, mir_only_intent,
         &subjects_ptr, &subject_count);
 
@@ -315,6 +317,8 @@ llvm_emit_intent_decl(ASTNode *node, LLVMGenCtx *ctx)
         llvm_emit_intent_step_bind_bound_zone(
             ctx, node, step_ctx.zone_type_name, step_ctx.zone_alias, step_ctx.from_alias,
             step_ctx.who_aliases, step_ctx.who_alias_count);
+        if (ctx->has_error)
+            goto intent_emit_fail;
         if (step_ctx.who_alias_count > 0) {
             /* Participant pointer cache for rebind/unrebind window; freed
              * at step end, never escapes. */
@@ -332,6 +336,8 @@ llvm_emit_intent_decl(ASTNode *node, LLVMGenCtx *ctx)
             rebound_aliases = llvm_emit_intent_step_rebind_bound_zone_aliases(
                 ctx, node, step_ctx.zone_type_name, step_ctx.zone_alias,
                 step_ctx.who_aliases, step_ctx.who_alias_count, saved_participant_ptrs);
+            if (ctx->has_error)
+                goto intent_emit_fail;
         }
 
         if (!llvm_emit_intent_predicate_check(ctx, fn, fail_bb,
@@ -370,6 +376,12 @@ llvm_emit_intent_decl(ASTNode *node, LLVMGenCtx *ctx)
             for (size_t j = 0; j < alias_count; j++) {
                 const char *alias = step_ctx.dispatch_aliases[j];
                 const char *subject_name = llvm_lookup_var_class(ctx, alias);
+                if (mir_only_intent && subject_name == NULL) {
+                    llvm_set_mir_inventory_missing(ctx,
+                        "MIR-only LLVM path missing intent dispatch participant metadata for '%s'",
+                        alias != NULL ? alias : "(anonymous-participant)");
+                    goto intent_emit_fail;
+                }
                 if (subject_name != NULL) {
                     char full_name[256];
                     LLVMFuncEntry *action_fn;
@@ -399,17 +411,25 @@ llvm_emit_intent_decl(ASTNode *node, LLVMGenCtx *ctx)
         if (rebound_aliases)
             llvm_emit_intent_step_dirty_zone_projections(
                 ctx, step_ctx.zone_type_name, step_ctx.zone_alias);
-        if (rebound_aliases)
+        if (rebound_aliases) {
             llvm_emit_intent_step_sync_effective_zone(
                 ctx, step_ctx.zone_type_name, step_ctx.zone_alias);
-        else
+            if (ctx->has_error)
+                goto intent_emit_fail;
+        } else {
             llvm_emit_intent_step_bind_bound_zone(
                 ctx, node, step_ctx.zone_type_name, step_ctx.zone_alias, step_ctx.from_alias,
                 step_ctx.who_aliases, step_ctx.who_alias_count);
-        if (rebound_aliases)
+            if (ctx->has_error)
+                goto intent_emit_fail;
+        }
+        if (rebound_aliases) {
             llvm_emit_intent_step_restore_bound_zone_aliases(
                 ctx, node, step_ctx.zone_type_name, step_ctx.who_aliases,
                 step_ctx.who_alias_count, saved_participant_ptrs);
+            if (ctx->has_error)
+                goto intent_emit_fail;
+        }
 
         if (completed_allocas != NULL) {
             LLVMBuildStore(ctx->builder, LLVMConstInt(ctx->type_i1, 1, 0), completed_allocas[i]);

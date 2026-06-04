@@ -232,20 +232,59 @@ llvm_emit_call(ASTNode *node, LLVMGenCtx *ctx)
     LLVMValueRef *args = NULL;
     LLVMFuncEntry *predeclared_func = NULL;
     const MIRRoutine *intent_routine = NULL;
-    const char **participant_aliases = NULL;
-    const char **participant_types = NULL;
-    const char **value_aliases = NULL;
-    const char **value_types = NULL;
-    size_t participant_count = 0;
-    size_t mir_value_count = 0;
+    const char **binding_kinds = NULL;
+    const char **binding_aliases = NULL;
+    const char **binding_types = NULL;
+    size_t mir_binding_count = 0;
+    size_t intent_step_count = 0;
+    bool mir_requires_routine = false;
+    bool mir_only_intent = false;
 
     if (intent_decl != NULL) {
+        intent_step_count = ast_intent_decl_step_count(intent_decl);
+        mir_requires_routine = llvm_active_has_mir(ctx) && intent_step_count > 0;
         intent_routine = llvm_find_mir_intent_routine(ctx, intent_decl);
+        if (mir_requires_routine && intent_routine == NULL) {
+            llvm_set_mir_inventory_missing(ctx,
+                "MIR-only LLVM path missing intent routine for call target '%s'",
+                callee_name != NULL ? callee_name : "(anonymous-intent)");
+            return NULL;
+        }
+        mir_only_intent = intent_routine != NULL;
         if (intent_routine != NULL) {
-            participant_count = llvm_collect_mir_intent_participants(
-                intent_routine, ctx, &participant_aliases, &participant_types);
-            mir_value_count = llvm_collect_mir_intent_values(
-                intent_routine, ctx, &value_aliases, &value_types);
+            mir_binding_count = llvm_collect_mir_intent_bindings(
+                intent_routine, ctx, &binding_kinds, &binding_aliases,
+                &binding_types);
+        }
+        if (mir_only_intent) {
+            for (size_t i = 0; i < mir_binding_count; i++) {
+                if (binding_kinds == NULL || binding_aliases == NULL
+                    || binding_types == NULL || binding_kinds[i] == NULL
+                    || binding_aliases[i] == NULL || binding_types[i] == NULL) {
+                    llvm_set_mir_inventory_missing(ctx,
+                        "MIR-only LLVM path has incomplete ordered intent binding metadata for call target '%s'",
+                        callee_name != NULL ? callee_name : "(anonymous-intent)");
+                    return NULL;
+                }
+                if (strcmp(binding_kinds[i], "participant") != 0
+                    && strcmp(binding_kinds[i], "value") != 0) {
+                    llvm_set_mir_inventory_missing(ctx,
+                        "MIR-only LLVM path has invalid ordered intent binding metadata for call target '%s'",
+                        callee_name != NULL ? callee_name : "(anonymous-intent)");
+                    return NULL;
+                }
+            }
+            if (argc != mir_binding_count) {
+                llvm_set_error_at_with_hints(ctx, node,
+                    PGY_CODE_LLVM_TYPE_UNSUPPORTED,
+                    PGY_CAUSE_LLVM_TYPE_UNSUPPORTED,
+                    PGY_FIX_ALIGN_ARG_TYPE,
+                    "LLVM MIR-backed intent call '%s' expects %zu argument(s), got %zu",
+                    callee_name != NULL ? callee_name : "(anonymous-intent)",
+                    mir_binding_count,
+                    argc);
+                return NULL;
+            }
         }
     }
 
@@ -259,8 +298,6 @@ llvm_emit_call(ASTNode *node, LLVMGenCtx *ctx)
         args = pgy_arena_calloc(&ctx->scratch,
             (argc > 0 ? argc : 1) * sizeof(LLVMValueRef));
         if (args != NULL) {
-            size_t participant_index = 0;
-            size_t value_index = 0;
             for (size_t i = 0; i < argc; i++) {
                 const char *type_name = NULL;
                 bool pointer_self = false;
@@ -268,34 +305,44 @@ llvm_emit_call(ASTNode *node, LLVMGenCtx *ctx)
 
                 {
                     size_t binding_count = 0;
-                    ASTNode *binding = llvm_intent_call_binding_at(
-                        intent_decl, i, &binding_count);
-                    if (i < binding_count) {
+                    ASTNode *binding = NULL;
+
+                    if (mir_only_intent) {
+                        if (i >= mir_binding_count || binding_kinds == NULL
+                            || binding_types == NULL) {
+                            llvm_set_mir_inventory_missing(ctx,
+                                "MIR-only LLVM path missing ordered intent binding metadata for call target '%s'",
+                                callee_name != NULL ? callee_name : "(anonymous-intent)");
+                            return NULL;
+                        }
+                        if (strcmp(binding_kinds[i], "participant") == 0) {
+                            type_name = binding_types[i];
+                        } else if (strcmp(binding_kinds[i], "value") == 0) {
+                            type_name = binding_types[i];
+                        } else {
+                            llvm_set_mir_inventory_missing(ctx,
+                                "MIR-only LLVM path has invalid ordered intent binding metadata for call target '%s'",
+                                callee_name != NULL ? callee_name : "(anonymous-intent)");
+                            return NULL;
+                        }
+                    } else {
+                        binding = llvm_intent_call_binding_at(
+                            intent_decl, i, &binding_count);
+                    }
+                    if (!mir_only_intent && i < binding_count) {
                         ASTNode *binding_type = NULL;
                         if (binding != NULL && binding->type == AST_INTENT_INVOLVES) {
-                            type_name = participant_types != NULL
-                                    && participant_index < participant_count
-                                ? participant_types[participant_index]
-                                : NULL;
-                            if (type_name == NULL
-                                && ast_intent_involves_subject_type(binding) != NULL
+                            if (ast_intent_involves_subject_type(binding) != NULL
                                 && ast_intent_involves_subject_type(binding)->type == AST_TYPE) {
                                 binding_type = ast_intent_involves_subject_type(binding);
                                 type_name = ast_type_name(binding_type);
                             }
-                            participant_index++;
                         } else if (binding != NULL && binding->type == AST_INTENT_VALUE) {
-                            type_name = value_types != NULL
-                                    && value_index < mir_value_count
-                                ? value_types[value_index]
-                                : NULL;
-                            if (type_name == NULL
-                                && ast_intent_value_type(binding) != NULL
+                            if (ast_intent_value_type(binding) != NULL
                                 && ast_intent_value_type(binding)->type == AST_TYPE) {
                                 binding_type = ast_intent_value_type(binding);
                                 type_name = ast_type_name(binding_type);
                             }
-                            value_index++;
                         }
                     }
                 }
@@ -431,13 +478,16 @@ llvm_emit_call(ASTNode *node, LLVMGenCtx *ctx)
         }
     }
     if (func == NULL && intent_decl != NULL) {
-        bool mir_active = llvm_active_has_mir(ctx);
         LLVMTypeRef *param_types = NULL;
         LLVMTypeRef fn_type;
         LLVMValueRef fn;
         size_t forward_param_count = 0;
 
-        (void)llvm_intent_call_binding_at(intent_decl, 0, &forward_param_count);
+        if (mir_only_intent) {
+            forward_param_count = mir_binding_count;
+        } else {
+            (void)llvm_intent_call_binding_at(intent_decl, 0, &forward_param_count);
+        }
         if (forward_param_count > 0) {
             param_types = pgy_arena_calloc(&ctx->scratch,
                 forward_param_count * sizeof(LLVMTypeRef));
@@ -445,24 +495,49 @@ llvm_emit_call(ASTNode *node, LLVMGenCtx *ctx)
                 return llvm_call_error_recovery(ctx, node,
                     "LLVM intent forward declaration parameter allocation failed");
             }
-            size_t participant_index = 0;
-            size_t value_index = 0;
             for (size_t i = 0; i < forward_param_count; i++) {
-                LLVMTypeRef pt = ctx->type_i8ptr;
-                ASTNode *binding = llvm_intent_call_binding_at(
-                    intent_decl, i, NULL);
+                LLVMTypeRef pt = NULL;
+                ASTNode *binding = mir_only_intent
+                    ? NULL
+                    : llvm_intent_call_binding_at(intent_decl, i, NULL);
                 const char *type_name = NULL;
                 ASTNode *binding_type = NULL;
 
-                if (binding != NULL && binding->type == AST_INTENT_INVOLVES) {
-                    type_name = participant_types != NULL
-                            && participant_index < participant_count
-                        ? participant_types[participant_index]
-                        : NULL;
-                    if (type_name != NULL) {
-                        pt = pergyra_type_to_llvm(ctx, type_name);
-                    } else if (ast_intent_involves_subject_type(binding) != NULL
-                               && ast_intent_involves_subject_type(binding)->type == AST_TYPE) {
+                if (mir_only_intent) {
+                    if (binding_kinds == NULL || binding_types == NULL
+                        || i >= mir_binding_count || binding_types[i] == NULL) {
+                        llvm_set_mir_inventory_missing(ctx,
+                            "MIR-only LLVM path missing ordered intent binding metadata for call target '%s'",
+                            callee_name != NULL ? callee_name : "(anonymous-intent)");
+                        return NULL;
+                    }
+                    type_name = binding_types[i];
+                    pt = pergyra_type_to_llvm(ctx, type_name);
+                    if (ctx->has_error || pt == NULL)
+                        return llvm_call_error_recovery(ctx, node,
+                            "LLVM intent forward declaration could not lower ordered binding type");
+                    if (strcmp(binding_kinds[i], "participant") == 0) {
+                        if (llvm_type_name_uses_pointer_self(ctx, type_name))
+                            pt = LLVMPointerType(pt, 0);
+                        else if (type_name != NULL) {
+                            ASTNode *host_decl =
+                                llvm_find_host_decl_in_active_inventory(
+                                    ctx, type_name);
+                            if (host_decl != NULL
+                                && !(host_decl->type == AST_CLASS_DECL
+                                     && ast_class_is_struct(host_decl))) {
+                                pt = LLVMPointerType(pt, 0);
+                            }
+                        }
+                    } else if (strcmp(binding_kinds[i], "value") != 0) {
+                        llvm_set_mir_inventory_missing(ctx,
+                            "MIR-only LLVM path has invalid ordered intent binding metadata for call target '%s'",
+                            callee_name != NULL ? callee_name : "(anonymous-intent)");
+                        return NULL;
+                    }
+                } else if (binding != NULL && binding->type == AST_INTENT_INVOLVES) {
+                    if (ast_intent_involves_subject_type(binding) != NULL
+                        && ast_intent_involves_subject_type(binding)->type == AST_TYPE) {
                         binding_type = ast_intent_involves_subject_type(binding);
                         type_name = ast_type_name(binding_type);
                         pt = ast_type_to_llvm(ctx, binding_type);
@@ -481,22 +556,20 @@ llvm_emit_call(ASTNode *node, LLVMGenCtx *ctx)
                                  && ast_class_is_struct(host_decl)))
                             pt = LLVMPointerType(pt, 0);
                     }
-                    participant_index++;
                 } else if (binding != NULL && binding->type == AST_INTENT_VALUE) {
-                    type_name = value_types != NULL
-                            && value_index < mir_value_count
-                        ? value_types[value_index]
-                        : NULL;
-                    if (type_name != NULL) {
-                        pt = pergyra_type_to_llvm(ctx, type_name);
-                    } else if (ast_intent_value_type(binding) != NULL) {
+                    if (ast_intent_value_type(binding) != NULL) {
                         binding_type = ast_intent_value_type(binding);
+                        if (binding_type->type == AST_TYPE)
+                            type_name = ast_type_name(binding_type);
                         pt = ast_type_to_llvm(ctx, binding_type);
                     }
                     if (ctx->has_error || pt == NULL)
                         return llvm_call_error_recovery(ctx, node,
                             "LLVM intent forward declaration could not lower value type");
-                    value_index++;
+                }
+                if (pt == NULL) {
+                    return llvm_call_error_recovery(ctx, node,
+                        "LLVM intent forward declaration requires binding type metadata; silent i8ptr fallback is not allowed");
                 }
                 param_types[i] = pt;
             }
@@ -507,7 +580,7 @@ llvm_emit_call(ASTNode *node, LLVMGenCtx *ctx)
         fn = LLVMAddFunction(ctx->module, callee_name, fn_type);
         llvm_register_function(ctx, callee_name, fn, fn_type, ctx->type_i1);
         func = llvm_lookup_function(ctx, callee_name);
-        if (func == NULL && mir_active) {
+        if (func == NULL && mir_only_intent) {
             llvm_set_mir_inventory_missing(ctx,
                 "MIR-only LLVM path missing registered intent call target '%s'",
                 callee_name != NULL ? callee_name : "(anonymous-intent)");

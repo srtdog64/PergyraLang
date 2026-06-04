@@ -17,6 +17,27 @@
 #include <string.h>
 
 static char *
+transpiler_log_emit_arg(TranspilerCtx *ctx,
+                        ASTNode *arg_node,
+                        const char *builtin_name,
+                        size_t index)
+{
+    char *arg = emit_expression(arg_node, ctx);
+    if (arg != NULL)
+        return arg;
+
+    transpiler_set_backend_error_with_hints(
+        ctx,
+        PGY_CODE_C_TYPE_UNSUPPORTED,
+        PGY_CAUSE_C_TYPE_UNSUPPORTED,
+        PGY_FIX_USE_LLVM_BACKEND_OR_EXTEND_TRANSPILER,
+        "C backend: %s could not lower argument %zu",
+        builtin_name != NULL ? builtin_name : "Log",
+        index);
+    return NULL;
+}
+
+static char *
 emit_c_log_call_for_expr(ASTNode *arg_node, char *arg, TranspilerCtx *ctx)
 {
     const char *type_name;
@@ -62,7 +83,10 @@ emit_builtin_log(ASTNode *call, TranspilerCtx *ctx)
             }
             return pergyra_strdup("/* Log: failed to escape string */");
         }
-        char *arg = emit_expression(ast_call_argument(call, 0), ctx);
+        char *arg = transpiler_log_emit_arg(ctx,
+            ast_call_argument(call, 0), "Log", 0);
+        if (arg == NULL)
+            return pergyra_strdup("0");
         char *result = emit_c_log_call_for_expr(arg_node, arg, ctx);
         free(arg);
         return result;
@@ -72,7 +96,11 @@ emit_builtin_log(ASTNode *call, TranspilerCtx *ctx)
     codebuf_write(buf, "do { ");
     for (size_t i = 0; i < ast_call_arg_count(call); i++) {
         ASTNode *arg_node = ast_call_argument(call, i);
-        char *arg = emit_expression(arg_node, ctx);
+        char *arg = transpiler_log_emit_arg(ctx, arg_node, "Log", i);
+        if (arg == NULL) {
+            codebuf_destroy(buf);
+            return pergyra_strdup("0");
+        }
         char *log_call = emit_c_log_call_for_expr(arg_node, arg, ctx);
         codebuf_write(buf, log_call);
         codebuf_write(buf, "; ");
@@ -105,7 +133,9 @@ emit_builtin_log_raw(ASTNode *call, TranspilerCtx *ctx)
             return pergyra_strdup("/* LogRaw: failed to escape string */");
         }
 
-        char *arg = emit_expression(arg_node, ctx);
+        char *arg = transpiler_log_emit_arg(ctx, arg_node, "LogRaw", 0);
+        if (arg == NULL)
+            return pergyra_strdup("0");
         char *result = strdup_fmt("pgy_log(%s)", arg);
         free(arg);
         return result;
@@ -114,7 +144,12 @@ emit_builtin_log_raw(ASTNode *call, TranspilerCtx *ctx)
     CodeBuf *buf = codebuf_create();
     codebuf_write(buf, "do { ");
     for (size_t i = 0; i < ast_call_arg_count(call); i++) {
-        char *arg = emit_expression(ast_call_argument(call, i), ctx);
+        char *arg = transpiler_log_emit_arg(ctx,
+            ast_call_argument(call, i), "LogRaw", i);
+        if (arg == NULL) {
+            codebuf_destroy(buf);
+            return pergyra_strdup("0");
+        }
         codebuf_write(buf, "pgy_log(%s); ", arg);
         free(arg);
     }

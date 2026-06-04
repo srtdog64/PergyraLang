@@ -127,6 +127,36 @@ llvm_stmt_array_elem_type_from_slice_receiver(LLVMGenCtx *ctx,
     return llvm_stmt_resolve_array_elem_type(ctx, receiver, NULL);
 }
 
+static LLVMTypeRef
+llvm_stmt_array_elem_type_from_scope_entry(LLVMGenCtx *ctx, const char *name)
+{
+    LLVMVarEntry *var;
+    const char *struct_name;
+    const char *suffix = NULL;
+
+    if (ctx == NULL || name == NULL)
+        return NULL;
+    var = llvm_scope_lookup(ctx, name);
+    if (var == NULL || var->type == NULL)
+        return NULL;
+    if (LLVMGetTypeKind(var->type) != LLVMStructTypeKind)
+        return NULL;
+
+    struct_name = LLVMGetStructName(var->type);
+    if (struct_name == NULL)
+        return NULL;
+    if (strncmp(struct_name, "PgyArray_", 9) == 0) {
+        suffix = struct_name + 9;
+    } else if (strncmp(struct_name, "PgySlice_", 9) == 0) {
+        suffix = struct_name + 9;
+    }
+    if (suffix == NULL || suffix[0] == '\0'
+        || strcmp(suffix, "Unknown") == 0) {
+        return NULL;
+    }
+    return pergyra_type_to_llvm(ctx, suffix);
+}
+
 LLVMTypeRef
 llvm_stmt_resolve_array_elem_type(LLVMGenCtx *ctx, ASTNode *expr,
                                   LLVMValueRef data_ptr)
@@ -145,6 +175,10 @@ llvm_stmt_resolve_array_elem_type(LLVMGenCtx *ctx, ASTNode *expr,
             ctx, ast_identifier_name(expr));
         if (entry != NULL && entry->elem_type != NULL)
             return entry->elem_type;
+        inferred = llvm_stmt_array_elem_type_from_scope_entry(
+            ctx, ast_identifier_name(expr));
+        if (inferred != NULL)
+            return inferred;
     }
 
     if (expr->type == AST_ARRAY_LITERAL

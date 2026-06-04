@@ -1,0 +1,16 @@
+world W {
+    shared cursor: Int = 0
+
+    func Step(self) -> Void {
+        let nextCursor = cursor + 1;
+        cursor = nextCursor;
+        Log("step nextCursor=" + ToString(nextCursor) + " cursor=" + ToString(cursor));
+    }
+}
+
+func Main() -> Void {
+    let w = W(0);
+    w.Step();
+    w.Step();
+    w.Step();
+}

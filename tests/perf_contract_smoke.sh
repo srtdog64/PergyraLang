@@ -69,6 +69,14 @@ grep -Fq "codegen_scalar_arithmetic_policy.c" "$ROOT_DIR/Makefile"
 grep -Fq "pgy_codegen_ast_number_is_nonzero_i32_literal" "$ROOT_DIR/src/codegen/codegen_scalar_arithmetic_policy.c"
 grep -Fq "pgy_codegen_ast_number_is_nonzero_i32_literal" "$ROOT_DIR/src/codegen/transpiler_expr_core_emit.c"
 grep -Fq "pgy_codegen_ast_number_is_nonzero_i32_literal" "$ROOT_DIR/src/codegen/llvm_expr_scalar_core.c"
+grep -Fq "transpiler_binary_emit_operand" "$ROOT_DIR/src/codegen/transpiler_expr_core_emit.c"
+grep -Fq "C backend: binary expression could not lower %s operand" "$ROOT_DIR/src/codegen/transpiler_expr_core_emit.c"
+grep -Fq "transpiler_control_flow_emit_expr" "$ROOT_DIR/src/codegen/transpiler_control_flow_emit.c"
+grep -Fq "C backend: %s could not lower %s expression" "$ROOT_DIR/src/codegen/transpiler_control_flow_emit.c"
+grep -Fq '"if", "condition"' "$ROOT_DIR/src/codegen/transpiler_control_flow_emit.c"
+grep -Fq '"for-in", "iterable"' "$ROOT_DIR/src/codegen/transpiler_control_flow_emit.c"
+grep -Fq '"for range", "start"' "$ROOT_DIR/src/codegen/transpiler_control_flow_emit.c"
+grep -Fq '"while", "condition"' "$ROOT_DIR/src/codegen/transpiler_control_flow_emit.c"
 grep -Fq "P10" "$ROOT_DIR/TODO.md"
 grep -Fq "trace_len" "$ROOT_DIR/src/runtime/pgy_runtime_intent_trace_inline.h"
 grep -Fq "pgy_intent_active_count" "$ROOT_DIR/src/runtime/pgy_runtime_intent_trace_inline.h"
@@ -178,11 +186,40 @@ grep -Fq "LLVM scope registry capacity overflow" \
     "$ROOT_DIR/src/codegen/llvm_registry.c"
 grep -Fq "LLVM scope registry allocation overflow" \
     "$ROOT_DIR/src/codegen/llvm_registry.c"
+grep -Fq "The returned entry is borrowed from the active scope frame" \
+    "$ROOT_DIR/src/codegen/llvm_internal_api.h"
+grep -Fq 'Do not keep a borrowed `LLVMVarEntry *`' \
+    "$ROOT_DIR/AGENTS.md"
+grep -Fq "list_alloca = list_var->alloca" \
+    "$ROOT_DIR/src/codegen/llvm_mir_for_in_control.c"
+grep -Fq "loop_alloca = loop_var->alloca" \
+    "$ROOT_DIR/src/codegen/llvm_mir_for_in_control.c"
+grep -Fq "LLVMValueRef binding_alloca = entry->alloca" \
+    "$ROOT_DIR/src/codegen/llvm_mir_match_condition.c"
+grep -Fq "LLVMValueRef list_alloca = list_var->alloca" \
+    "$ROOT_DIR/src/codegen/llvm_stmt_loop_match.c"
+grep -Fq "LLVMValueRef loop_alloca = loop_var->alloca" \
+    "$ROOT_DIR/src/codegen/llvm_mir_loop_control.c"
+grep -Fq "LLVMValueRef source_alloca = source->alloca" \
+    "$ROOT_DIR/src/codegen/llvm_stmt_let_resources.c"
+grep -Fq "LLVMValueRef source_alloca = source_entry->alloca" \
+    "$ROOT_DIR/src/codegen/llvm_mir_resource_view.c"
+grep -Fq "LLVMValueRef token_alloca = token_entry->alloca" \
+    "$ROOT_DIR/src/codegen/llvm_mir_pin_region.c"
+grep -A16 -F "LLVMVerifyModule(ctx->module" \
+    "$ROOT_DIR/src/codegen/llvm_api.c" | \
+    grep -Fq "if (verify_error != NULL)"
+! grep -A16 -F "LLVMVerifyModule(ctx->module" \
+    "$ROOT_DIR/src/codegen/llvm_api.c" | \
+    grep -Fxq "    LLVMDisposeMessage(verify_error);"
 grep -Fq "llvm_scope_declare(ctx, name, NULL, target_cls->struct_type)" "$ROOT_DIR/src/codegen/llvm_stmt_let_collections.c"
 grep -Fq "llvm_register_projection_borrow(ctx, name, type_name, source_name)" "$ROOT_DIR/src/codegen/llvm_stmt_let_collections.c"
 grep -Fq "source->alloca == NULL" "$ROOT_DIR/src/codegen/llvm_mir_block_emit.c"
 grep -Fq "llvm_lookup_projection_borrow(ctx, base_name) != NULL" "$ROOT_DIR/src/codegen/llvm_mir_block_emit.c"
-grep -Fq "llvm_intent_current_handle_or_zero" "$ROOT_DIR/src/codegen/llvm_intent_zone_bind.c"
+grep -Fq "llvm_intent_current_handle_or_error" "$ROOT_DIR/src/codegen/llvm_intent_zone_bind.c"
+grep -Fq "silent zero handle fallback is not allowed" "$ROOT_DIR/src/codegen/llvm_intent_zone_bind.c"
+! grep -Fq "return LLVMConstInt(ctx->type_i32, 0, 0)" \
+    "$ROOT_DIR/src/codegen/llvm_intent_zone_bind.c"
 ! grep -Fq "llvm_scope_lookup(ctx, \"__intent_handle\")->alloca" \
     "$ROOT_DIR/src/codegen/llvm_intent_zone_bind.c"
 grep -Fq "ScaffoldKindSpec" "$ROOT_DIR/src/compiler/driver_scaffold.c"
@@ -2284,16 +2321,34 @@ grep -Fq "strcmp(subject_type, \"Unknown\") == 0" "$ROOT_DIR/src/codegen/transpi
 ! grep -Fq "owned_type_name : \"Unknown\"" "$ROOT_DIR/src/codegen/transpiler_expr_call_member_emit.c"
 grep -Fq "C array access requires concrete Array<T> element metadata" "$ROOT_DIR/src/codegen/transpiler_expr_array_access_emit.c"
 grep -Fq "C slice access requires concrete Slice<T> element metadata" "$ROOT_DIR/src/codegen/transpiler_expr_array_access_emit.c"
+grep -Fq "transpiler_array_access_emit_operand" "$ROOT_DIR/src/codegen/transpiler_expr_array_access_emit.c"
+grep -Fq "C backend: array access could not lower %s expression" "$ROOT_DIR/src/codegen/transpiler_expr_array_access_emit.c"
 grep -Fq "C tuple literal requires concrete tuple layout metadata" "$ROOT_DIR/src/codegen/transpiler_expr_composite_literal_emit.c"
 grep -Fq "C array literal requires concrete Array<T> element metadata" "$ROOT_DIR/src/codegen/transpiler_expr_composite_literal_emit.c"
+grep -Fq "C tuple literal could not lower element %zu" "$ROOT_DIR/src/codegen/transpiler_expr_composite_literal_emit.c"
+grep -Fq "C array literal could not lower element %zu" "$ROOT_DIR/src/codegen/transpiler_expr_composite_literal_emit.c"
 grep -Fq "C slot SSA auto-read requires concrete Slot<T> payload metadata" "$ROOT_DIR/src/codegen/transpiler_expr_dispatch_emit.c"
 grep -Fq "cannot determine slot payload type for assignment" "$ROOT_DIR/src/codegen/transpiler_expr_dispatch_emit.c"
+grep -Fq "slot_builtin_emit_operand" "$ROOT_DIR/src/codegen/transpiler_slot_builtin_emit.c"
+grep -Fq "slot_builtin_emit_slot_operand" "$ROOT_DIR/src/codegen/transpiler_slot_builtin_emit.c"
+grep -Fq "C backend: %s could not lower %s expression" "$ROOT_DIR/src/codegen/transpiler_slot_builtin_emit.c"
+grep -Fq "DeviceWrite\", \"value\"" "$ROOT_DIR/src/codegen/transpiler_slot_builtin_emit.c"
+grep -Fq "Release\", \"token\"" "$ROOT_DIR/src/codegen/transpiler_slot_builtin_emit.c"
 grep -Fq "C await expression requires concrete Future<T> result metadata" "$ROOT_DIR/src/codegen/transpiler_expr_dispatch_emit.c"
 grep -Fq "C spawn expression requires a target expression" "$ROOT_DIR/src/codegen/transpiler_spawn_channel_emit.c"
 grep -Fq "C spawn expression requires concrete Future<T> return metadata" "$ROOT_DIR/src/codegen/transpiler_spawn_channel_emit.c"
 grep -Fq "requires concrete C type metadata for call" "$ROOT_DIR/src/codegen/transpiler_spawn_channel_emit.c"
+grep -Fq "transpiler_spawn_channel_emit_expr" "$ROOT_DIR/src/codegen/transpiler_spawn_channel_emit.c"
+grep -Fq "C backend: %s could not lower %s expression" "$ROOT_DIR/src/codegen/transpiler_spawn_channel_emit.c"
+grep -Fq "\"channel send\", \"value\"" "$ROOT_DIR/src/codegen/transpiler_spawn_channel_emit.c"
 grep -Fq "transpiler_require_channel_inner_type" "$ROOT_DIR/src/codegen/transpiler_spawn_channel_emit.c"
 grep -Fq "transpiler_channel_expr_is_c_lvalue" "$ROOT_DIR/src/codegen/transpiler_spawn_channel_emit.c"
+grep -Fq "transpiler_event_emit_arg" "$ROOT_DIR/src/codegen/transpiler_event_builtin_emit.c"
+grep -Fq "C backend: event '%s' could not lower argument %zu" "$ROOT_DIR/src/codegen/transpiler_event_builtin_emit.c"
+grep -Fq "transpiler_event_op_emit_part" "$ROOT_DIR/src/codegen/transpiler_event_emit.c"
+grep -Fq "C backend: event %s could not lower %s expression" "$ROOT_DIR/src/codegen/transpiler_event_emit.c"
+grep -Fq "\"subscribe\", \"event\"" "$ROOT_DIR/src/codegen/transpiler_event_emit.c"
+grep -Fq "\"unsubscribe\", \"handler\"" "$ROOT_DIR/src/codegen/transpiler_event_emit.c"
 grep -Fq "requires a named Channel<T> binding" "$ROOT_DIR/src/codegen/transpiler_channel_type_query.c"
 grep -Fq "requires concrete Channel<T> payload metadata" "$ROOT_DIR/src/codegen/transpiler_channel_type_query.c"
 grep -Fq "transpiler_channel_require_lvalue" "$ROOT_DIR/src/codegen/transpiler_expr_stdlib_channel_builtin.c"
@@ -2311,7 +2366,16 @@ grep -Fq "transpiler_require_c_addressable_storage(ctx, a0" "$ROOT_DIR/src/codeg
 grep -Fq "BUILTIN_RC_DROP || kind == BUILTIN_RC_GET" "$ROOT_DIR/src/codegen/transpiler_expr_core_builtins_emit.c"
 grep -Fq "BUILTIN_BOX_SET || kind == BUILTIN_BOX_DROP" "$ROOT_DIR/src/codegen/transpiler_expr_core_builtins_emit.c"
 grep -Fq "BoxSet requires exactly two arguments" "$ROOT_DIR/src/codegen/transpiler_expr_core_builtins_emit.c"
+grep -Fq "transpiler_core_builtin_emit_arg" "$ROOT_DIR/src/codegen/transpiler_expr_core_builtins_emit.c"
+grep -Fq "C backend: %s could not lower %s expression" "$ROOT_DIR/src/codegen/transpiler_expr_core_builtins_emit.c"
+grep -Fq "RcNew" "$ROOT_DIR/src/codegen/transpiler_expr_core_builtins_emit.c"
+grep -Fq "BoxSet" "$ROOT_DIR/src/codegen/transpiler_expr_core_builtins_emit.c"
+grep -Fq "AllocatorPool could not lower capacity expression" "$ROOT_DIR/src/codegen/transpiler_allocator_builtin_emit.c"
+grep -Fq "AllocatorPool requires exactly one capacity argument" "$ROOT_DIR/src/codegen/transpiler_allocator_builtin_emit.c"
 grep -Fq "intent_observability_require_arg_count" "$ROOT_DIR/src/codegen/transpiler_intent_observability_builtin_emit.c"
+grep -Fq "intent_observability_emit_index" "$ROOT_DIR/src/codegen/transpiler_intent_observability_builtin_emit.c"
+grep -Fq "intent index" "$ROOT_DIR/src/codegen/transpiler_intent_observability_builtin_emit.c"
+grep -Fq "step index" "$ROOT_DIR/src/codegen/transpiler_intent_observability_builtin_emit.c"
 grep -Fq "transpiler_call_arg_can_take_subject_address" "$ROOT_DIR/src/codegen/transpiler_call_subject_arg_policy.c"
 grep -Fq "requires addressable storage" "$ROOT_DIR/src/codegen/transpiler_expr_call_user_emit.c"
 grep -Fq "requires addressable storage" "$ROOT_DIR/src/codegen/transpiler_expr_call_member_emit.c"
@@ -2320,6 +2384,13 @@ grep -Fq "LLVM intent subject argument" "$ROOT_DIR/src/codegen/llvm_expr_call_di
 grep -Fq "requires addressable Rc/Weak storage" "$ROOT_DIR/src/tests/transpile/test_transpile_core_part_a.cases.h"
 grep -Fq "requires addressable Box storage" "$ROOT_DIR/src/tests/transpile/test_transpile_core_part_a.cases.h"
 grep -Fq "IntentRecentName missing index emits diagnostic recovery" "$ROOT_DIR/src/tests/transpile/test_transpile_core_part_a.cases.h"
+grep -Fq "transpiler_log_emit_arg" "$ROOT_DIR/src/codegen/transpiler_log_builtin_emit.c"
+grep -Fq "C backend: %s could not lower argument %zu" "$ROOT_DIR/src/codegen/transpiler_log_builtin_emit.c"
+grep -Fq "\"LogRaw\", i" "$ROOT_DIR/src/codegen/transpiler_log_builtin_emit.c"
+grep -Fq "io_builtin_emit_arg" "$ROOT_DIR/src/codegen/transpiler_expr_io_builtin.c"
+grep -Fq "C backend: %s could not lower %s argument" "$ROOT_DIR/src/codegen/transpiler_expr_io_builtin.c"
+grep -Fq "\"FileOpen\", \"path\"" "$ROOT_DIR/src/codegen/transpiler_expr_io_builtin.c"
+grep -Fq "\"Sleep\", \"milliseconds\"" "$ROOT_DIR/src/codegen/transpiler_expr_io_builtin.c"
 grep -Fq "subject temporary argument rejects pointer-self boundary" "$ROOT_DIR/src/tests/transpile/test_transpile_program_part_a.cases.h"
 grep -Fq "subject method temporary argument rejects pointer-self boundary" "$ROOT_DIR/src/tests/transpile/test_transpile_program_part_a.cases.h"
 ! grep -Fq "slot_inner_type_name_copy(type_name, inner_buf" "$ROOT_DIR/src/codegen/transpiler_spawn_channel_emit.c"
@@ -2340,6 +2411,9 @@ grep -Fq "Result suffix keeps user type names containing Unknown" "$ROOT_DIR/src
 grep -Fq "kTranspilerResultOptionSpecs" "$ROOT_DIR/src/codegen/transpiler_call_result_option_builtin_emit.c"
 grep -Fq "transpiler_result_option_lookup" "$ROOT_DIR/src/codegen/transpiler_call_result_option_builtin_emit.c"
 grep -Fq "bsearch(" "$ROOT_DIR/src/codegen/transpiler_call_result_option_builtin_emit.c"
+grep -Fq "transpiler_result_option_emit_arg" "$ROOT_DIR/src/codegen/transpiler_call_result_option_builtin_emit.c"
+grep -Fq "C backend: %s could not lower %s expression" "$ROOT_DIR/src/codegen/transpiler_call_result_option_builtin_emit.c"
+grep -Fq "TRANS_RESULT_OPTION_OP_UNWRAP_OR" "$ROOT_DIR/src/codegen/transpiler_call_result_option_builtin_emit.c"
 transpiler_result_option_names="$(
     sed -n '/static const TranspilerResultOptionSpec kTranspilerResultOptionSpecs\[\]/,/^    };/p' \
         "$ROOT_DIR/src/codegen/transpiler_call_result_option_builtin_emit.c" \
@@ -2671,12 +2745,12 @@ grep -Fq "llvm_stmt_render_type_annotation_copy" "$ROOT_DIR/src/codegen/llvm_stm
 ! grep -Fq "llvm_stmt_render_type_annotation_static" "$ROOT_DIR/src/codegen/llvm_internal_api.h"
 ! grep -Fq "static char buf[256]" "$ROOT_DIR/src/codegen/llvm_stmt_let_helpers.c"
 grep -Fq "pgy_arena_strdup(&ctx->scratch, actual_type)" "$ROOT_DIR/src/codegen/llvm_stmt_let_helpers.c"
-grep -Fq "transpiler_scratch_fmt(ctx," "$ROOT_DIR/src/codegen/transpiler_projection.c"
-grep -Fq "transpiler_scratch_strdup(ctx, field_name)" "$ROOT_DIR/src/codegen/transpiler_projection.c"
-! grep -Fq "projection_heap_fmt" "$ROOT_DIR/src/codegen/transpiler_projection.c"
-! grep -Fq "free(source_path)" "$ROOT_DIR/src/codegen/transpiler_projection.c"
+grep -Fq "transpiler_scratch_fmt(ctx," "$ROOT_DIR/src/codegen/transpiler_projection_emit.c"
+grep -Fq "transpiler_scratch_strdup(ctx, field_name)" "$ROOT_DIR/src/codegen/transpiler_projection_emit.c"
+! grep -Fq "projection_heap_fmt" "$ROOT_DIR/src/codegen/transpiler_projection_emit.c"
+! grep -Fq "free(source_path)" "$ROOT_DIR/src/codegen/transpiler_projection_emit.c"
 ! grep -Fq "free(source_path)" "$ROOT_DIR/src/codegen/transpiler_expr_dispatch_emit.c"
-! grep -Fq "pergyra_strdup(field_name)" "$ROOT_DIR/src/codegen/transpiler_projection.c"
+! grep -Fq "pergyra_strdup(field_name)" "$ROOT_DIR/src/codegen/transpiler_projection_emit.c"
 grep -Fq "pgy_arena_alloc(&ctx->scratch, len)" "$ROOT_DIR/src/codegen/llvm_domain_projection_value_helpers.c"
 grep -Fq "pgy_arena_alloc(&ctx->scratch, len)" "$ROOT_DIR/src/codegen/llvm_expr_projection_path_helpers.c"
 ! grep -Fq "pergyra_strdup(field_name)" "$ROOT_DIR/src/codegen/llvm_domain_projection_value_helpers.c"
@@ -2735,6 +2809,30 @@ grep -Fq "transpiler_func_current_return_callable_type(ctx);" "$ROOT_DIR/src/cod
 grep -Fq "transpiler_func_current_return_callable_type(ctx);" "$ROOT_DIR/src/codegen/transpiler_mir_terminator_emit.c"
 grep -Fq "ctx->expected_callable_type = callable_type" "$ROOT_DIR/src/codegen/transpiler_let_emit.c"
 grep -Fq "ctx->expected_callable_type = let_type" "$ROOT_DIR/src/codegen/transpiler_mir_preserved_let_emit.c"
+grep -Fq "type_node->type == AST_EVENT_HANDLER_TYPE" "$ROOT_DIR/src/compiler/mir_type_helpers.c"
+grep -A4 -F "type_node->type == AST_EVENT_HANDLER_TYPE" \
+    "$ROOT_DIR/src/compiler/mir_type_helpers.c" | \
+    grep -Fq "return NULL;"
+! grep -A4 -F "type_node->type == AST_EVENT_HANDLER_TYPE" \
+    "$ROOT_DIR/src/compiler/mir_type_helpers.c" | \
+    grep -Fq 'pergyra_strdup("Int")'
+grep -A4 -F "ast_type_tuple_element_count(type_node) > 0" \
+    "$ROOT_DIR/src/compiler/mir_type_helpers.c" | \
+    grep -Fq "return NULL;"
+! grep -A4 -F "ast_type_tuple_element_count(type_node) > 0" \
+    "$ROOT_DIR/src/compiler/mir_type_helpers.c" | \
+    grep -Fq 'pergyra_strdup("Tuple")'
+grep -Fq "type_kind = llvm_registry_type_kind(abi_type_name)" \
+    "$ROOT_DIR/src/codegen/llvm_backend_type_registry.c"
+grep -A95 -F "llvm_register_typed_var_abi_binding(LLVMGenCtx *ctx" \
+    "$ROOT_DIR/src/codegen/llvm_backend_type_registry.c" | \
+    grep -Fq "llvm_register_map_var_binding(ctx, var_name, binding, arg0_name"
+grep -A70 -F "llvm_register_typed_var_abi_binding(LLVMGenCtx *ctx" \
+    "$ROOT_DIR/src/codegen/llvm_backend_type_registry.c" | \
+    grep -Fq "llvm_register_array_var_binding(ctx, var_name, binding, elem_type, -1)"
+grep -A70 -F "llvm_register_typed_var_abi_binding(LLVMGenCtx *ctx" \
+    "$ROOT_DIR/src/codegen/llvm_backend_type_registry.c" | \
+    grep -Fq "llvm_register_list_var_binding(ctx, var_name, binding, arg0_name)"
 grep -Fq "ctx->expected_lambda_type = lambda_expected_type" "$ROOT_DIR/src/semantic/type_checker_ownership_let.c"
 grep -Fq "ctx->expected_lambda_type = ctx->current_return" "$ROOT_DIR/src/semantic/type_checker_ownership_return.c"
 grep -Fq "Type *expected_lambda_type = ctx->expected_lambda_type" "$ROOT_DIR/src/semantic/type_checker_expr.c"
@@ -2851,7 +2949,10 @@ grep -Fq "pergyra_ast_type_to_c_copy_in_ctx(ctx, ast_func_return_type(method)" "
 grep -Fq "pergyra_ast_type_to_c_copy_in_ctx(ctx, ast_func_return_type(method)" "$ROOT_DIR/src/codegen/transpiler_enum_decl_emit.c"
 grep -Fq "pergyra_ast_type_to_c_copy_in_ctx(ctx, ast_func_return_type(method)" "$ROOT_DIR/src/codegen/transpiler_domain_nominal_emit.c"
 grep -Fq "pergyra_ast_type_to_c_copy_in_ctx(ctx, ast_func_return_type(func)" "$ROOT_DIR/src/codegen/transpiler_domain_nominal_emit.c"
-grep -Fq "pergyra_ast_type_to_c_copy_in_ctx(ctx, ast_func_return_type(method)" "$ROOT_DIR/src/codegen/transpiler_domain_role_methods_emit.c"
+grep -Fq "transpiler_mir_decl_method_return_type_name(method_meta)" "$ROOT_DIR/src/codegen/transpiler_domain_role_methods_emit.c"
+grep -Fq "transpiler_mir_decl_method_return_type(method_meta)" "$ROOT_DIR/src/codegen/transpiler_domain_role_methods_emit.c"
+grep -Fq "pergyra_ast_type_to_c_copy_in_ctx(ctx," "$ROOT_DIR/src/codegen/transpiler_domain_role_methods_emit.c"
+grep -Fq "return_type, ret_type_storage" "$ROOT_DIR/src/codegen/transpiler_domain_role_methods_emit.c"
 grep -Fq "pergyra_ast_type_to_c_copy_in_ctx(ctx," "$ROOT_DIR/src/codegen/transpiler_generic_class_specialization_emit.c"
 grep -Fq "ast_func_return_type(method)" "$ROOT_DIR/src/codegen/transpiler_generic_class_specialization_emit.c"
 grep -Fq "pergyra_ast_type_to_c_copy_in_ctx(ctx, bt2[b]" "$ROOT_DIR/src/codegen/transpiler_match_bindings.c"
@@ -2862,7 +2963,9 @@ grep -Fq "transpiler_require_type_name_c_type_copy(ctx, elem_names[j]" "$ROOT_DI
 grep -Fq "lookup_future_inner_type_copy" "$ROOT_DIR/src/codegen/transpiler_future_type_query.c"
 grep -Fq "transpiler_type_name_is_any_future" "$ROOT_DIR/src/codegen/transpiler_future_type_query.c"
 grep -Fq "transpiler_type_name_is_remote_future" "$ROOT_DIR/src/codegen/transpiler_future_type_query.c"
-grep -Fq 'return pergyra_strdup("Unknown");' "$ROOT_DIR/src/codegen/transpiler_future_type_query.c"
+grep -Fq "future_owned_type_to_scratch" "$ROOT_DIR/src/codegen/transpiler_future_type_query.c"
+grep -Fq "transpiler_scratch_strdup(ctx, owned)" "$ROOT_DIR/src/codegen/transpiler_future_type_query.c"
+! grep -Fq 'pergyra_strdup("Unknown")' "$ROOT_DIR/src/codegen/transpiler_future_type_query.c"
 grep -Fq 'return out[0] != '\''\0'\'' && strcmp(out, "Unknown") != 0;' "$ROOT_DIR/src/codegen/transpiler_future_type_query.c"
 ! grep -Fq 'return pergyra_str_copy(out, out_size, "Void")' "$ROOT_DIR/src/codegen/transpiler_future_type_query.c"
 grep -Fq "transpiler_type_name_is_any_future" "$ROOT_DIR/src/codegen/transpiler_type_mapping.c"
@@ -2875,7 +2978,11 @@ grep -Fq "transpiler_type_name_is_option(subject_type)" "$ROOT_DIR/src/codegen/t
 grep -Fq "lookup_future_inner_type_copy(ctx" "$ROOT_DIR/src/codegen/transpiler_expr_dispatch_emit.c"
 grep -Fq "transpiler_require_type_name_c_type_copy" "$ROOT_DIR/src/codegen/transpiler_type_require.c"
 grep -Fq "transpiler_require_ast_c_type_copy" "$ROOT_DIR/src/codegen/transpiler_type_require.c"
-grep -Fq "pergyra_type_to_c_copy(type_name, out" "$ROOT_DIR/src/codegen/transpiler_type_require.c"
+grep -Fq "transpiler_bound_type_name(ctx, type_name)" "$ROOT_DIR/src/codegen/transpiler_type_require.c"
+grep -Fq "ctx->generic_bindings[i].concrete_type" "$ROOT_DIR/src/codegen/transpiler_type_require.c"
+grep -Fq "pergyra_type_to_c_copy(resolved_type_name, out" "$ROOT_DIR/src/codegen/transpiler_type_require.c"
+! grep -A8 -F "type_name[0] >= 'A'" "$ROOT_DIR/src/codegen/transpiler_type_require.c" | \
+    grep -Fq "pergyra_str_copy(out, out_size, type_name)"
 ! grep -Fq "const char *transpiler_require_ast_c_type" "$ROOT_DIR/src/codegen/transpiler_type_require.h"
 ! grep -Fq "transpiler_require_ast_c_type(TranspilerCtx" "$ROOT_DIR/src/codegen/transpiler_type_require.c"
 ! grep -Fq "const char *transpiler_require_type_name_c_type" "$ROOT_DIR/src/codegen/transpiler_type_require.h"
@@ -2935,6 +3042,14 @@ grep -Fq "llvm_required_collection_function" "$ROOT_DIR/src/codegen/llvm_expr_ca
 grep -Fq "llvm_mir_for_in_required_runtime" "$ROOT_DIR/src/codegen/llvm_mir_for_in_control.c"
 grep -Fq "LLVM MIR for-in lowering requires registered runtime function" "$ROOT_DIR/src/codegen/llvm_mir_for_in_control.c"
 grep -Fq "iterable = inst->expr0" "$ROOT_DIR/src/codegen/llvm_mir_for_in_control.c"
+grep -Fq "llvm_mir_for_in_body_region_contains" "$ROOT_DIR/src/codegen/llvm_mir_for_in_control.c"
+grep -Fq "llvm_mir_for_in_block_reaches_avoiding" "$ROOT_DIR/src/codegen/llvm_mir_for_in_control.c"
+grep -A8 -F "loop_block->succ_false, target_id" \
+    "$ROOT_DIR/src/codegen/llvm_mir_for_in_control.c" | \
+    grep -Fq "loop_block->id"
+grep -Fq "llvm_mir_for_in_scope_collection_elem_type" "$ROOT_DIR/src/codegen/llvm_mir_for_in_control.c"
+grep -Fq 'strncmp(struct_name, "PgyArray_", 9)' "$ROOT_DIR/src/codegen/llvm_mir_for_in_control.c"
+grep -Fq 'strncmp(struct_name, "PgySlice_", 9)' "$ROOT_DIR/src/codegen/llvm_mir_for_in_control.c"
 ! grep -Fq "inst->ast->data.for_loop.iterable" "$ROOT_DIR/src/codegen/llvm_mir_for_in_control.c"
 grep -Fq "start = llvm_emit_expression(inst->expr0, ctx)" "$ROOT_DIR/src/codegen/llvm_mir_loop_control.c"
 grep -Fq "end = llvm_emit_expression(inst->expr1, ctx)" "$ROOT_DIR/src/codegen/llvm_mir_loop_control.c"
@@ -2953,6 +3068,7 @@ grep -Fq '$(CODEGEN_DIR)/llvm_mir_resource_view.c' "$ROOT_DIR/Makefile"
 ! grep -Fq "node->data.with_stmt" "$ROOT_DIR/src/codegen/llvm_mir_resource_claim.c"
 ! grep -Fq "llvm_lookup_function(ctx, \"pgy_list_size_raw_export\")" "$ROOT_DIR/src/codegen/llvm_mir_for_in_control.c"
 ! grep -Fq "llvm_lookup_function(ctx, \"pgy_list_get_raw_export\")" "$ROOT_DIR/src/codegen/llvm_mir_for_in_control.c"
+grep -Fq "inner = pgy_arena_strdup(&ctx->persistent, inner_name)" "$ROOT_DIR/src/codegen/llvm_boundary_slot_param.c"
 grep -Fq "llvm_stmt_for_in_required_runtime" "$ROOT_DIR/src/codegen/llvm_stmt_loop_match.c"
 grep -Fq "LLVM statement for-in lowering requires registered runtime function" "$ROOT_DIR/src/codegen/llvm_stmt_loop_match.c"
 ! grep -Fq "LLVMFuncEntry *size_fn = llvm_lookup_function(ctx, \"pgy_list_size_raw_export\")" "$ROOT_DIR/src/codegen/llvm_stmt_loop_match.c"
@@ -3349,6 +3465,10 @@ grep -Fq "llvm_mir_get_var_entry(vars, var_count, name)" \
 ! grep -A24 -F "llvm_decl_required_param_type(LLVMGenCtx *ctx" \
     "$ROOT_DIR/src/codegen/llvm_decl.c" | \
     grep -Fq "return ctx->type_i32"
+! grep -Fq "llvm_decl_implicit_self_placeholder_type" \
+    "$ROOT_DIR/src/codegen/llvm_decl.c"
+grep -Fq "LLVM implicit self parameter requires current host metadata" \
+    "$ROOT_DIR/src/codegen/llvm_decl.c"
 ! grep -A24 -F "llvm_register_required_ast_type(LLVMGenCtx *ctx" \
     "$ROOT_DIR/src/codegen/llvm_register.c" | \
     grep -Fq "return ctx->type_i32"
@@ -3388,6 +3508,10 @@ grep -Fq "LLVM enum field allocation failed" \
 grep -Fq "LLVM enum payload field allocation failed" \
     "$ROOT_DIR/src/codegen/llvm_register.c"
 grep -Fq "LLVM enum method parameter allocation failed" \
+    "$ROOT_DIR/src/codegen/llvm_register.c"
+grep -Fq "LLVM payload enum method self type requires registered enum metadata" \
+    "$ROOT_DIR/src/codegen/llvm_register.c"
+! grep -Fq "LLVMTypeRef self_type = ctx->type_i32" \
     "$ROOT_DIR/src/codegen/llvm_register.c"
 grep -Fq "LLVM class field allocation failed" \
     "$ROOT_DIR/src/codegen/llvm_register.c"
@@ -3777,11 +3901,13 @@ grep -Fq "LLVM slot auto-read requires registered runtime function" "$ROOT_DIR/s
 grep -Fq "LLVM slot assignment requires registered runtime function" "$ROOT_DIR/src/codegen/llvm_expr_assignment_member_projection.c"
 grep -Fq "indexed array assignment" "$ROOT_DIR/src/codegen/llvm_expr_assignment_member_projection.c"
 grep -Fq "LLVM indexed array assignment requires concrete Array<T> element metadata" "$ROOT_DIR/src/codegen/llvm_expr_assignment_member_projection.c"
+grep -Fq "llvm_stmt_resolve_array_elem_type(ctx, array_node, NULL)" "$ROOT_DIR/src/codegen/llvm_expr_assignment_member_projection.c"
 grep -Fq "llvm_assignment_error" "$ROOT_DIR/src/codegen/llvm_expr_assignment_member_projection.c"
 ! grep -A16 -F "llvm_assignment_error(LLVMGenCtx *ctx" \
     "$ROOT_DIR/src/codegen/llvm_expr_assignment_member_projection.c" | \
     grep -Fq "LLVMConstInt(ctx->type_i32, 0, 0)"
-grep -Fq "requires registered Array<T> local" "$ROOT_DIR/src/codegen/llvm_expr_assignment_member_projection.c"
+! grep -Fq "requires registered Array<T> local" "$ROOT_DIR/src/codegen/llvm_expr_assignment_member_projection.c"
+grep -Fq "requires concrete Array<T> local metadata" "$ROOT_DIR/src/codegen/llvm_expr_assignment_member_projection.c"
 grep -Fq "requires a writable member lvalue" "$ROOT_DIR/src/codegen/llvm_expr_assignment_member_projection.c"
 grep -Fq "requires a registered local or host field target" "$ROOT_DIR/src/codegen/llvm_expr_assignment_member_projection.c"
 grep -Fq "\"secure slot\" : \"slot\"" "$ROOT_DIR/src/codegen/llvm_expr_slot_device_calls.c"
@@ -3834,6 +3960,11 @@ fi
 grep -Fq "kTranspilerScalarSpecs" "$scalar_builtin_owner"
 grep -Fq "transpiler_scalar_lookup" "$scalar_builtin_owner"
 grep -Fq "bsearch(" "$scalar_builtin_owner"
+grep -Fq "transpiler_scalar_emit_arg" "$scalar_builtin_owner"
+grep -Fq "C backend: scalar builtin %s could not lower %s argument" "$scalar_builtin_owner"
+grep -Fq "fn, \"value\"" "$scalar_builtin_owner"
+grep -Fq "fn, \"separator\"" "$scalar_builtin_owner"
+grep -Fq "fn, \"seed\"" "$scalar_builtin_owner"
 transpiler_scalar_names="$(
     sed -n '/static const TranspilerScalarSpec kTranspilerScalarSpecs\[\]/,/^};/p' \
         "$scalar_builtin_owner" \
@@ -3980,6 +4111,13 @@ grep -A28 -F "if (op == TOKEN_PLUS)" "$ROOT_DIR/src/codegen/transpiler_expr_type
 grep -Fq "llvm_stmt_promote_numeric_type" "$ROOT_DIR/src/codegen/llvm_stmt_type_infer.c"
 grep -A22 -F "if (op == TOKEN_PLUS)" "$ROOT_DIR/src/codegen/llvm_stmt_type_infer.c" | \
     grep -Fq "llvm_stmt_promote_numeric_type(ctx, left_ty, right_ty)"
+grep -A12 -F "case AST_ARRAY_ACCESS" "$ROOT_DIR/src/codegen/llvm_stmt_type_infer.c" | \
+    grep -Fq "llvm_stmt_resolve_array_elem_type(ctx, array, NULL)"
+if grep -A12 -F "case AST_ARRAY_ACCESS" "$ROOT_DIR/src/codegen/llvm_stmt_type_infer.c" | \
+    grep -Fq "llvm_lookup_array_var"; then
+    echo "[perf-contract] LLVM array access type inference bypassed array elem owner" >&2
+    exit 1
+fi
 grep -Fq "llvm_stmt_lookup_declared_call_return_type" "$ROOT_DIR/src/codegen/llvm_stmt_type_infer_helpers.c"
 grep -A14 -F "llvm_stmt_lookup_visible_function(ctx, callee)" "$ROOT_DIR/src/codegen/llvm_stmt_type_infer.c" | \
     grep -Fq "llvm_stmt_lookup_declared_call_return_type(ctx, callee)"
@@ -3990,6 +4128,12 @@ grep -A28 -F "case AST_BINARY" "$ROOT_DIR/src/codegen/llvm_stmt_type_infer.c" | 
 grep -Fq "llvm_stmt_expected_array_elem_type" "$ROOT_DIR/src/codegen/llvm_stmt_array_type_infer.c"
 grep -A10 -F "llvm_stmt_resolve_array_elem_type" "$ROOT_DIR/src/codegen/llvm_stmt_array_type_infer.c" | \
     grep -Fq "llvm_stmt_expected_array_elem_type(ctx)"
+grep -Fq "llvm_stmt_array_elem_type_from_scope_entry" \
+    "$ROOT_DIR/src/codegen/llvm_stmt_array_type_infer.c"
+grep -Fq 'strncmp(struct_name, "PgyArray_", 9)' \
+    "$ROOT_DIR/src/codegen/llvm_stmt_array_type_infer.c"
+grep -Fq 'strncmp(struct_name, "PgySlice_", 9)' \
+    "$ROOT_DIR/src/codegen/llvm_stmt_array_type_infer.c"
 grep -A8 -F "llvm_register_future_var_binding(LLVMGenCtx *ctx" \
     "$ROOT_DIR/src/codegen/llvm_registry_resources.c" | \
     grep -Fq "ctx == NULL || var_name == NULL || inner_type == NULL"

@@ -6,6 +6,7 @@
 #ifndef PERGYRA_TRANSPILER_INTENT_ZONE_SLOT_H
 #define PERGYRA_TRANSPILER_INTENT_ZONE_SLOT_H
 
+#include "transpiler_intent_context.h"
 #include "transpiler.h"
 
 const char *resolve_intent_zone_slot_name(TranspilerCtx *ctx, ASTNode *intent,
@@ -14,13 +15,11 @@ const char *resolve_intent_zone_slot_name_for_zone(TranspilerCtx *ctx,
                                                    ASTNode *intent,
                                                    const char *zone_type_name,
                                                    const char *alias);
-const char *resolve_intent_zone_slot_name_for_zone_with_metadata(
+const char *resolve_intent_zone_slot_name_for_zone_with_bindings(
     TranspilerCtx *ctx,
     ASTNode *intent,
     const char *zone_type_name,
     const char *alias,
-    const char **participant_aliases,
-    const char **participant_types,
-    size_t participant_count);
+    const IntentBindingMetadataView *bindings);
 
 #endif /* PERGYRA_TRANSPILER_INTENT_ZONE_SLOT_H */

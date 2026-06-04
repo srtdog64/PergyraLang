@@ -779,6 +779,8 @@ test_mir_lowering_part_c(void)
         HIRProgram *hir = NULL;
         RIRProgram *rir = NULL;
         MIRProgram *mir = NULL;
+        MIRDeclMethod *mutated_method = NULL;
+        size_t saved_param_count = 0;
         char *mir_error = NULL;
         bool mutated = false;
         bool rejected = false;
@@ -789,7 +791,9 @@ test_mir_lowering_part_c(void)
                 if (header->name != NULL
                     && strcmp(header->name, "Status") == 0
                     && header->method_metadata_count > 0) {
-                    header->method_metadata[0].param_count++;
+                    mutated_method = &header->method_metadata[0];
+                    saved_param_count = mutated_method->param_count;
+                    mutated_method->param_count++;
                     mutated = true;
                     break;
                 }
@@ -800,6 +804,8 @@ test_mir_lowering_part_c(void)
                    && !mir_validate(mir, &mir_error)
                    && mir_error != NULL
                    && strstr(mir_error, "signature metadata drift") != NULL;
+        if (mutated_method != NULL)
+            mutated_method->param_count = saved_param_count;
         EXPECT(rejected);
         free(mir_error);
         mir_destroy(mir);

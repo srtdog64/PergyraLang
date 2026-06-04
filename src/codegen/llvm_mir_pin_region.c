@@ -129,6 +129,7 @@ llvm_mir_emit_pin_enter(const MIRBasicBlock *block, LLVMGenCtx *ctx)
     slot_ptr_arg = llvm_mir_slot_pointer_arg(ctx, slot_entry);
     if (is_secure) {
         LLVMVarEntry *token_entry;
+        LLVMValueRef token_alloca;
         if (!llvm_mir_pin_token_name(ctx, token_name, sizeof(token_name),
                 block->pin_source_name))
             return false;
@@ -138,6 +139,7 @@ llvm_mir_emit_pin_enter(const MIRBasicBlock *block, LLVMGenCtx *ctx)
                 "LLVM MIR secure pin block cannot resolve paired token");
             return false;
         }
+        token_alloca = token_entry->alloca;
         if (!llvm_mir_pin_init_name(ctx, fn_name, sizeof(fn_name), true,
                 block->pin_view_is_write, inner))
             return false;
@@ -155,7 +157,7 @@ llvm_mir_emit_pin_enter(const MIRBasicBlock *block, LLVMGenCtx *ctx)
         pin_alloca = llvm_create_entry_alloca(ctx, pin_ty, pin_name);
         args[0] = pin_alloca;
         args[1] = slot_ptr_arg;
-        args[2] = token_entry->alloca;
+        args[2] = token_alloca;
         LLVMBuildCall2(ctx->builder, pin_fn->fn_type, pin_fn->fn,
                        args, 3, "");
     } else {
@@ -200,12 +202,14 @@ llvm_mir_emit_pin_enter(const MIRBasicBlock *block, LLVMGenCtx *ctx)
             token_entry = llvm_scope_lookup(ctx, token_name);
             if (token_entry != NULL) {
                 char view_token_name[256];
+                LLVMValueRef token_alloca = token_entry->alloca;
+                LLVMTypeRef token_type = token_entry->type;
                 if (!llvm_mir_pin_token_name(ctx, view_token_name,
                         sizeof(view_token_name), block->pin_view_name))
                     return false;
                 if (llvm_scope_lookup(ctx, view_token_name) == NULL) {
                     llvm_scope_declare(ctx, pergyra_strdup(view_token_name),
-                                       token_entry->alloca, token_entry->type);
+                                       token_alloca, token_type);
                 }
             }
         }

@@ -14,9 +14,16 @@ English anchor for tooling/doc gates:
   shadowed `List<T>`, `DeviceSlot<T>`, and `Channel<T>` locals, plus complete
   backend-compare fixture inventory registration. The default backend-compare
   suite is now large enough that CI runs deterministic shards rather than a
-  single full 787-case pass. Do not call this 80% until
+  single full 794-case pass. Do not call this 80% until
   consumer-completeness lands across CFG/AIR plus
   MIR/LLVM declaration bootstrap parity and ABI/Slot/Pin ownership freeze.
+  Current C/LLVM backend-compare cleanup closed the shard-0 failures for
+  subject-slot boundary refs, for-in variables inside match/if nested blocks,
+  and inline class constructor calls over Array<T> parameters. The fixes are
+  source-of-truth closures: boundary slot inner-type text now obeys the
+  heap-vs-arena ownership contract, LLVM for-in consumes active scope
+  Array/Slice aggregate facts and body-region membership, and LLVM array access
+  type inference consumes the shared array-element owner.
   The five closure targets are:
   CFG/body safety source-of-truth, AIR abstraction-boundary verification,
   DAG recursive compatibility seam removal, MIR/LLVM declaration bootstrap parity,
@@ -53,21 +60,111 @@ English anchor for tooling/doc gates:
   before source-AST compatibility in C and LLVM forward declarations, C
   prologue, LLVM entry-binding setup, LLVM MIR routine type/parameter
   lowering, C/LLVM intent call argument lowering, and C early intent
-  forward-eligibility checks. Do not treat self-host as a substitute for this
-  closure; C participant subject/pointer-self classification now goes through
+  forward-eligibility checks. C intent forward declarations, C prologue
+  signature/entry emission, C intent call argument lowering, and C early intent
+  forward eligibility now fail closed when a MIR routine exists but
+  participant/value carrier metadata is missing, partial, or has incomplete
+  alias/type rows. LLVM intent call
+  dispatch, LLVM intent forward declarations, LLVM entry binding setup, and LLVM
+  MIR function type/parameter alloca lowering now also fail closed for MIR-only
+  routine/carrier/type metadata gaps instead of reconstructing call argument,
+  forward-declaration, entry-binding, or MIR parameter types from AST. MIR now
+  materializes ordered `IntentBinding(kind, alias, type)` rows so LLVM MIR
+  function type construction and parameter alloca lowering consume binding
+  order from MIR metadata instead of reopening `ast_intent_decl_bindings`;
+  C and LLVM MIR-only intent call argument lowering now consume the same ordered
+  carrier and fail closed on missing/invalid binding-order metadata while
+  preserving AST binding compatibility only for non-MIR intent calls. C intent
+  forward declarations consume the same ordered carrier and fail closed on
+  incomplete/invalid ordered binding rows before source-AST compatibility can
+  reopen binding order; C forward, LLVM forward, and C early-eligibility paths
+  no longer collect separate participant/value metadata arrays for MIR-backed
+  signature shaping. LLVM entry binding setup now also consumes the ordered
+  rows directly and no longer collects separate participant/value metadata
+  arrays before parameter alloca and subject-array setup.
+  C prologue signature/entry emission now receives a single
+  `IntentBindingMetadataView` seam and no longer collects separate
+  participant/value metadata arrays for MIR-backed entry shaping.
+  C early intent forward eligibility now also checks forward-safe parameter
+  types from the ordered carrier instead of reopening intent participant/value
+  AST arrays when a MIR routine exists. LLVM intent forward declarations now
+  build MIR-backed forward parameter order/types from the same ordered carrier
+  instead of using AST binding arrays when a MIR routine exists. LLVM intent
+  declaration emission and entry binding setup now also build parameter allocas,
+  subject arrays, and MIR-only parameter counts from ordered carrier rows when
+  MIR metadata is active, without pre-reading AST binding counts.
+  LLVM intent trace materialize/transfer lowering now requires the active
+  `__intent_handle` entry created by intent entry setup and fails closed if that
+  metadata is missing; trace emission must not synthesize handle `0`.
+  Intent declaration-level `priority` and `success` contracts now materialize as
+  MIR `IntentEval(priority)` / `IntentCheck(success)` carriers anchored by the
+  intent name, and C/LLVM entry/body emission consume those carriers before
+  source-AST compatibility.
+  LLVM MIR function type construction now also rejects separate MIR
+  participant/value collector use and validates the ordered row shape directly.
+  Do not treat
+  self-host as a substitute for this closure; C participant
+  subject/pointer-self classification now goes through
   the `transpiler_intent_participant` type-name owner even when the input comes
   from MIR carrier rows, so metadata-first paths do not rediscover host-self
   policy locally, including intent call argument address policy. C intent
-  dispatch also checks subject action metadata through `MIRDeclMethod` before
-  falling back to AST action lookup for non-MIR compatibility. C nominal
+  zone-slot binding now consumes an ordered `IntentBindingMetadataView` in
+  MIR-backed trace/bind/rebind/restore/rollback paths: a binding miss returns
+  unbound/null and records a structured MIR inventory diagnostic instead of
+  reopening AST participant lookup. The older participant-array zone-slot
+  metadata resolver has been removed; non-MIR compatibility now calls the same
+  binding-aware resolver with an inactive binding view. LLVM zone-slot lookup
+  applies the same fail-closed rule to MIR-active participant type registry and
+  binding misses. C and LLVM intent step emitters now consume those
+  diagnostics immediately after zone bind/rebind/sync/restore helper calls, so
+  missing metadata cannot leave partially generated C or LLVM IR behind. C/LLVM
+  MIR-only intent dispatch now fails closed when dispatch participant metadata is
+  missing, and C intent dispatch checks subject action metadata through
+  `MIRDeclMethod` before falling back to AST action lookup only for non-MIR
+  compatibility. C nominal
   method return inference now consumes
   `MIRDeclMethod` return metadata before AST method return fallback in ordinary
   expression inference, MIR local type lookup, and nominal receiver probing;
   LLVM let-call type inference follows the same metadata-first return lookup.
-  Remaining intent value consumers outside
-  signature/setup/call-site lowering and a future dedicated non-AST
-  routine-signature payload remain before C/LLVM/Pergyra tri-parity for
-  compiler-core functions.
+  C MIR emission mapping precheck now seeds intent participant/value aliases
+  only from MIR carrier rows and fails closed on missing/partial carrier metadata
+  instead of silently refilling the map from AST or comparing separate
+  participant/value collector counts. Remaining intent value
+  consumers outside signature/setup/call-site lowering, AST-only event-handler
+  declarator compatibility, and a future dedicated non-AST routine-signature
+  payload remain before C/LLVM/Pergyra tri-parity for compiler-core functions.
+  C and LLVM intent call-target lowering also validate ordered `IntentBinding`
+  row completeness/shape instead of comparing MIR participant/value carrier
+  counts against AST intent counts, and MIR-backed call-target lowering uses
+  the ordered row count as the call arity source-of-truth. Both call-target and
+  implicit forward declaration paths now reject separate MIR participant/value
+  collector use, and LLVM intent forward declarations fail closed on missing
+  binding type metadata instead of silently substituting `i32`. LLVM function
+  declaration lowering also rejects implicit `self` parameters unless the
+  current host metadata can provide the concrete self type; the old silent
+  implicit-self `i32` placeholder is removed. LLVM enum method prototype
+  registration now treats no-payload enum `i32` as an explicit ABI case and
+  requires registered enum struct metadata for payload enum `self` instead of
+  hiding a registry miss behind the same `i32` shape. LLVM intent entry binding
+  setup now also starts from unset binding type/alias state and rejects missing
+  metadata instead of seeding `i8ptr` or synthesizing `"param"` aliases. LLVM
+  intent call-target forward declaration now follows the same unset-first rule
+  and rejects missing binding type metadata instead of emitting an `i8ptr`
+  parameter placeholder.
+  C and LLVM intent forward declaration paths now also fail closed when a
+  MIR-active step intent has no MIR routine, while still consuming existing MIR
+  metadata for no-step/minimal intents that materialize a routine. C and LLVM
+  intent declaration entry/prologue emission now follow the same rule:
+  step-bearing MIR-active intents require a MIR routine, while routine-backed
+  no-step intents consume ordered carrier rows instead of reopening AST binding
+  arrays.
+  Latest gate evidence: targeted C
+  intent/prologue/mapping objects and LLVM call-dispatch object rebuild cleanly,
+  `bin-codex/pgy.exe` relinks with LLVM enabled,
+  `mir-declaration-inventory-test-smoke` and
+  `build-source-inventory-test-smoke` pass, and the representative C/LLVM
+  intent/zone/projection compare shard, including no-step intent call lowering,
+  passes 9/9.
 - C/LLVM zone/world action method-contract source-of-truth: `MIRDeclMethod` now
   carries `is_async`, action `within zone`, and `causes effect` coordinates
   alongside param/return/action metadata. C and LLVM zone action/effect runtime
@@ -118,7 +215,10 @@ English anchor for tooling/doc gates:
 - C/LLVM oracle refresh: the backend-compare fixture inventory and LLVM-only
   coverage gates are green through the Makefile path, and `llvm-test-smoke`
   is green with LLVM enabled. This is evidence that the current registered
-  support matrix is synchronized with the completed shard evidence below. Gates:
+  support matrix is synchronized with the completed shard evidence below.
+  The default matrix now includes the `probe_field_index`,
+  `probe_intent_array`, `probe_record`, and `probe_zone_chain` fixtures, and
+  those four probe cases pass as an explicit C/LLVM targeted compare. Gates:
   `backend-compare-inventory-test-smoke`,
   `backend-compare-llvm-coverage-test-smoke`, `llvm-test-smoke`.
 - C/LLVM compare gate ergonomics: `llvm-test-backend-compare` keeps the ABI
@@ -142,12 +242,33 @@ English anchor for tooling/doc gates:
   main Linux CI path still runs the ABI same-process gate separately. This
   turns the registered C/LLVM support matrix into CI-covered oracle evidence
   instead of checking only shard 0. Gate: `build-source-inventory-test-smoke`.
+- Stale binary guard closure: backend compare, ABI same-process precheck,
+  bench, perf baseline, dogfood WebGL, formatter, stdlib, AIR JSON schema,
+  runtime-none, raw-escape, and semantic fixture-isolation smokes now consume
+  the shared current-host runnable-binary classifier in
+  `tests/pgy_binary_path_helpers.sh`. The helper checks PE/ELF/Mach-O magic
+  bytes before falling back to `file(1)` text, so a stale Linux `bin/pgy.exe`
+  under Windows Git Bash fails or source-only-skips before launch instead of
+  surfacing later as an execution or ABI-precheck drift. The same helper owns
+  optional `.exe` selection and excludes Git for Windows runtime mounts from
+  explicit MinGW/LLVM runtime priority. Gates:
+  `build-source-inventory-test-smoke`, `fmt-test-smoke`,
+  `stdlib-test-smoke`, `air-json-schema-test-smoke`,
+  `runtime-none-contract-test-smoke`, `raw-escape-contract-test-smoke`, and
+  `semantic-fixture-isolation-test-smoke`.
+- Remaining runner hardening debt: several smoke scripts already source the
+  shared path helper but still launch `PGY_BIN`/`PGY` directly without the
+  runnable classifier. Promote those one-by-one only when they are on a beta
+  CI or dogfood path; do not broad-rewrite all smoke scripts at once. The P0
+  C/LLVM compare, ABI precheck, bench, perf baseline, dogfood WebGL, formatter,
+  stdlib, AIR JSON, runtime-none, raw-escape, and semantic fixture-isolation
+  paths are closed.
 - C/LLVM shard evidence: Windows local validation showed the old 20-way shard
   is too large for a 300s interactive run even with the ABI precheck disabled,
-  but the 80-way targeted sweep completed locally. Shards `0` through `79` of
-  `PGY_BACKEND_COMPARE_SHARD_TOTAL=80` passed with
+  but the latest 20-way targeted sweep completed locally. Shards `0` through
+  `19` of `PGY_BACKEND_COMPARE_SHARD_TOTAL=20` passed with
   `PGY_BACKEND_COMPARE_PRECHECK=0`, covering the registered backend-compare
-  support matrix at `787/787`. Treat this as local oracle evidence; CI still
+  support matrix at `794/794`. Treat this as local oracle evidence; CI still
   owns the repeated Linux 20-way matrix confirmation. Follow-up local gates:
   `llvm-test-abi-same-process` (`196/196`), `llvm-test-smoke`,
   `backend-compare-inventory-test-smoke`,
@@ -866,7 +987,7 @@ English anchor for tooling/doc gates:
   Parallel validation must use distinct `BUILD_DIR`/`BIN_DIR` values or run
   sequentially.
 - Backend compare inventory note: the default C/LLVM registry currently lists
-  787 cases. The latest promoted fixtures (`for_in_array_int`,
+  794 cases. The latest promoted fixtures (`for_in_array_int`,
   `nested_array_subarray`, `float_to_string_precision`,
   `map_key_lookup_branch`, `phi_branch_value`, `queue_string_ops`,
   `list_int_loop`, `compose_two_functions`, `negative_index_check`,
@@ -895,7 +1016,7 @@ English anchor for tooling/doc gates:
 - Backend compare CI policy: full default backend-compare remains a manual
   parity gate, but CI uses `CI_BACKEND_COMPARE_SHARD_TOTAL` /
   `CI_BACKEND_COMPARE_SHARD_INDEX` to run a deterministic shard after
-  inventory and LLVM-coverage checks. This prevents the enlarged 787-case
+  inventory and LLVM-coverage checks. This prevents the enlarged 794-case
   suite from turning every CI run into a timeout while preserving exact
   C/LLVM comparison for the selected shard. Full-suite claims require either
   all shards to pass or an explicit local full run.
@@ -1098,6 +1219,11 @@ English anchor for tooling/doc gates:
   wrappers, and MIR signature policy now consume
   `pergyra_ast_type_to_c_copy_in_ctx(...)` so active generic bindings do not
   silently fall back to default C types.
+- C backend type-name-to-C lowering now consumes active generic bindings before
+  accepting one-letter nominal type names. This keeps MIR-backed generic
+  specialization signatures concrete (`T -> Int`, `T -> String`, etc.) instead
+  of emitting invalid C signatures such as `Identity_Int(T x)`. Gates:
+  targeted generic spawn backend-compare shard and `perf-contract-test-smoke`.
 - C backend type-name inference is being narrowed to the same ctx-aware rule:
   expression type inference, MIR local type lookup, and Future/RemoteFuture
   return inference, slot-let/Box/Rc inner type extraction, annotated let
@@ -1856,9 +1982,10 @@ English anchor for tooling/doc gates:
 - `pgy_windows_powershell_path_prefix(...)` intentionally does not convert the
   generic Git-Bash `/mingw64/bin` mount into PowerShell PATH. In Git Bash that
   path resolves to `C:\Program Files\Git\mingw64\bin`, which can shadow the
-  real MinGW runtime and re-open `127` executable-launch failures. Use
-  `MSYSTEM_PREFIX` or explicit `/c/msys64/...` / `/c/ProgramData/...`
-  candidates for PowerShell launch-path priority. Gates:
+  real MinGW runtime and re-open `127` executable-launch failures. Use explicit
+  `/c/msys64/...` / `/c/ProgramData/...` candidates first, and only pass
+  `MSYSTEM_PREFIX` through when it does not resolve into Git's bundled runtime.
+  Gates:
   `type-resolution-dag-test-smoke`, `runtime-panic-abi-test-smoke`.
 - LLVM internal API header cleanup: `llvm_ast_type_uses_pointer_self(...)` now
   lives in `llvm_domain_lookup.c`, leaving `llvm_internal_api.h` declaration-
@@ -13690,7 +13817,7 @@ Source of truth:
   - `mir_ssa_rename.h:mir_apply_ssa_rename` outer 3배열 → function-local `PgyArena`
 - arena scratch 5차 slice — LLVM 백엔드 첫 진입 (같은 날, 이후 6차에서 ctx-scope 로 통합)
   - `llvm_register.c:llvm_register_enum_decl` 의 `enum_fields` + per-variant `payload_fields` type-ref 버퍼를 function-local `PgyArena` 로 수렴
-  - `llvm_intent.c:llvm_collect_mir_intent_participants` 는 retun-ownership 계약이라 deferred
+  - 이전 LLVM MIR intent participant/value return-ownership API는 제거됨. Ordered `IntentBinding` collector만 유지.
 - arena scratch 6차 slice — **LLVMGenCtx ctx-scope scratch arena 도입** (같은 날)
   - `LLVMGenCtx` 에 `PgyArena scratch` 필드 추가
   - `llvm_ctx_create` / `llvm_ctx_destroy` 에서 lifecycle 관리
@@ -13708,7 +13835,7 @@ Source of truth:
   - `llvm_stmt.c`: lambda param, parallel closure ctx/wrapper/handles, async closure fields, select rotation BBs
   - `llvm_intent.c`: intent function param_types, step completion `completed_allocas`, `saved_participant_ptrs`
   - `llvm_domain.c`: world sync `prev_active_addrs`, domain struct `ftypes` (4 분기), role/class method `ptypes` (2 사이트), vtable `vals`
-  - LLVM 쪽 scratch-safe calloc/malloc 은 거의 전수 `ctx->scratch` 로 수렴. 남은 것은 retun-ownership 혼재 helper 와 AST-field stored 케이스
+  - LLVM 쪽 scratch-safe calloc/malloc 은 거의 전수 `ctx->scratch` 로 수렴. 남은 것은 return-ownership 혼재 helper 와 AST-field stored 케이스
 
 - arena scratch 4차 slice — **HIR/MIR routine-scope arena 도입** (같은 날)
   - `hir.h` HIRRoutine / `mir.h` MIRRoutine 에 `PgyArena scratch` 필드 추가

@@ -44,9 +44,28 @@ llvm_function_emitted_param_count(LLVMGenCtx *ctx, ASTNode *node,
 }
 
 static LLVMTypeRef
-llvm_decl_implicit_self_placeholder_type(LLVMGenCtx *ctx)
+llvm_decl_required_implicit_self_type(LLVMGenCtx *ctx, ASTNode *func)
 {
-    return ctx != NULL ? ctx->type_i32 : NULL;
+    const char *host_name = NULL;
+    LLVMClassTypeEntry *cls = NULL;
+
+    if (ctx == NULL)
+        return NULL;
+
+    host_name = llvm_current_host_class_name(ctx);
+    cls = host_name != NULL ? llvm_lookup_class(ctx, host_name) : NULL;
+    if (cls != NULL) {
+        return cls->is_pointer_self_host
+            ? LLVMPointerType(cls->struct_type, 0)
+            : cls->struct_type;
+    }
+
+    llvm_set_error_at_with_hints(ctx, func,
+        PGY_CODE_LLVM_TYPE_UNSUPPORTED,
+        PGY_CAUSE_LLVM_TYPE_UNSUPPORTED,
+        PGY_FIX_REPORT_COMPILER_BUG,
+        "LLVM implicit self parameter requires current host metadata; silent i32 placeholder is not allowed");
+    return NULL;
 }
 
 static LLVMTypeRef
@@ -57,7 +76,7 @@ llvm_decl_required_param_type(LLVMGenCtx *ctx, ASTNode *func, FuncParam *param)
     if (param != NULL && param->type != NULL)
         return ast_type_to_llvm(ctx, param->type);
     if (param != NULL && llvm_param_is_implicit_self(param))
-        return llvm_decl_implicit_self_placeholder_type(ctx);
+        return llvm_decl_required_implicit_self_type(ctx, func);
 
     llvm_set_error_at_with_hints(ctx, func,
         PGY_CODE_LLVM_TYPE_UNSUPPORTED,

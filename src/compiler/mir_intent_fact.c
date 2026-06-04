@@ -49,6 +49,7 @@ mir_instruction_is_intent_stmt(const MIRInstruction *inst, const char *name)
 
 static const char *const k_mir_intent_semantic_carrier_names[] = {
     "IntentAuthorizedBy",
+    "IntentBinding",
     "IntentCauses",
     "IntentCheck",
     "IntentDispatch",
@@ -140,6 +141,14 @@ mir_intent_fact_requires_phase(const MIRInstruction *inst)
 {
     return mir_instruction_is_intent_stmt(inst, "IntentCheck")
         || mir_instruction_is_intent_stmt(inst, "IntentEval");
+}
+
+static bool
+mir_intent_fact_is_binding_kind(const char *kind)
+{
+    return kind != NULL
+        && (strcmp(kind, "participant") == 0
+            || strcmp(kind, "value") == 0);
 }
 
 bool
@@ -235,6 +244,20 @@ mir_validate_intent_instruction_fact(const MIRRoutine *routine,
                     inst->name != NULL ? inst->name : "(unnamed)");
             }
             return false;
+        }
+        if (mir_instruction_is_intent_stmt(inst, "IntentBinding")) {
+            if (!mir_intent_fact_is_binding_kind(inst->slot_anchor)
+                || inst->arg0 == NULL
+                || inst->arg1 == NULL) {
+                if (error_message != NULL) {
+                    *error_message = mir_intent_fact_strdup_fmt(
+                        "MIR routine '%s' block[%zu] instruction[%zu] IntentBinding is missing ordered binding kind, alias, or type metadata",
+                        routine->name != NULL ? routine->name : "(anonymous)",
+                        block_index,
+                        i);
+                }
+                return false;
+            }
         }
     }
 

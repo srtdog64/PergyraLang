@@ -148,11 +148,6 @@ llvm_mir_seed_block_phi_scope(const MIRBasicBlock *mir_block,
 }
 
 static bool
-llvm_mir_copy_host_field_to_versioned_local(LLVMGenCtx *ctx,
-                                            const char *field_name,
-                                            LLVMMirVar *target);
-
-static bool
 llvm_mir_copy_source_def_to_versioned_local(const MIRInstruction *inst,
                                             const MIRBasicBlock *mir_block,
                                             LLVMGenCtx *ctx,
@@ -245,7 +240,7 @@ llvm_mir_copy_source_def_to_versioned_local(const MIRInstruction *inst,
     return !ctx->has_error;
 }
 
-static bool
+bool
 llvm_mir_copy_host_field_to_versioned_local(LLVMGenCtx *ctx,
                                             const char *field_name,
                                             LLVMMirVar *target)
@@ -302,14 +297,21 @@ void
 llvm_emit_mir_block_with_exprs(const MIRBasicBlock *mir_block,
                                const MIRRoutine *routine,
                                LLVMGenCtx *ctx,
-                               LLVMBasicBlockRef *llvm_blocks,
                                LLVMBasicBlockRef *llvm_block_heads,
+                               LLVMBasicBlockRef *llvm_block_tails,
                                LLVMMirVar *vars, size_t var_count, ASTNode *func_decl,
                                LLVMClassTypeEntry *owner_cls, LLVMFuncEntry *owner_sync,
                                const char *owner_name)
 {
-    (void)routine;
-    (void)func_decl;
+    if (mir_block == NULL || routine == NULL || ctx == NULL
+        || llvm_block_heads == NULL || llvm_block_tails == NULL)
+        return;
+    if (mir_block->id >= routine->block_count) {
+        llvm_set_mir_topology_invalid(ctx,
+            "LLVM MIR block emission failed: block id %llu is outside routine block inventory",
+            (unsigned long long)mir_block->id);
+        return;
+    }
 
     if (mir_block->instruction_count > 0 && mir_block->instructions == NULL) {
         llvm_set_mir_topology_invalid(ctx,
@@ -318,9 +320,10 @@ llvm_emit_mir_block_with_exprs(const MIRBasicBlock *mir_block,
         return;
     }
 
-    LLVMBasicBlockRef llvm_block = llvm_blocks[mir_block->id];
+    LLVMBasicBlockRef llvm_block = llvm_block_heads[mir_block->id];
     LLVMPositionBuilderAtEnd(ctx->builder, llvm_block);
     bool emitted_terminator = false;
+    llvm_block_tails[mir_block->id] = llvm_block;
 
     if (!llvm_mir_emit_pin_enter(mir_block, ctx))
         return;
@@ -426,24 +429,7 @@ llvm_emit_mir_block_with_exprs(const MIRBasicBlock *mir_block,
                     LLVMBasicBlockRef false_bb = llvm_block_heads[mir_block->succ_false];
                     if (!llvm_mir_emit_pin_exit(mir_block, ctx))
                         return;
-                    /*
-                     * Condition emission may have split this MIR block across
-                     * multiple LLVM basic blocks (e.g. Coalesce lowering
-                     * creates extra blocks). The actual predecessor of
-                     * succ_true/succ_false is the current insert block, not
-                     * the entry block recorded at llvm_blocks[mir_block->id].
-                     * Update the entry so the subsequent PHI lowering wires
-                     * incoming entries to the real predecessor.
-                     *
-                     * Note: if this MIR block has its own PHI to lower, the
-                     * PHI lowering will now target the tail block. This is a
-                     * trade-off: PHI insertion at the original entry would
-                     * leave succ predecessors pointing to a stale block. The
-                     * proper fix is a separate llvm_block_tails[] array
-                     * threaded through PHI lowering; deferred until the
-                     * block-split lowering footprint grows.
-                     */
-                    llvm_blocks[mir_block->id] =
+                    llvm_block_tails[mir_block->id] =
                         LLVMGetInsertBlock(ctx->builder);
                     LLVMBuildCondBr(ctx->builder, cond, true_bb, false_bb);
                     emitted_terminator = true;
@@ -451,7 +437,7 @@ llvm_emit_mir_block_with_exprs(const MIRBasicBlock *mir_block,
             } else if (mir_block->has_succ_true) {
                 if (!llvm_mir_emit_pin_exit(mir_block, ctx))
                     return;
-                llvm_blocks[mir_block->id] =
+                llvm_block_tails[mir_block->id] =
                     LLVMGetInsertBlock(ctx->builder);
                 LLVMBuildBr(ctx->builder, llvm_block_heads[mir_block->succ_true]);
                 emitted_terminator = true;
@@ -547,7 +533,7 @@ llvm_emit_mir_block_with_exprs(const MIRBasicBlock *mir_block,
         if (mir_block->has_succ_true && mir_block->has_succ_false) {
             if (!llvm_mir_emit_pin_exit(mir_block, ctx))
                 return;
-            llvm_blocks[mir_block->id] =
+            llvm_block_tails[mir_block->id] =
                 LLVMGetInsertBlock(ctx->builder);
             LLVMBuildCondBr(ctx->builder,
                             LLVMConstInt(LLVMInt1TypeInContext(
@@ -559,7 +545,7 @@ llvm_emit_mir_block_with_exprs(const MIRBasicBlock *mir_block,
                 return;
             if (!llvm_mir_emit_pin_exit(mir_block, ctx))
                 return;
-            llvm_blocks[mir_block->id] =
+            llvm_block_tails[mir_block->id] =
                 LLVMGetInsertBlock(ctx->builder);
             LLVMBuildBr(ctx->builder, llvm_block_heads[mir_block->succ_true]);
         } else {

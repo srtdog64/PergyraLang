@@ -89,31 +89,44 @@ WORK_ROOT="$ROOT_DIR/.tmp"
 mkdir -p "$WORK_ROOT"
 DEFAULT_PGY="$ROOT_DIR/bin/pgy"
 TMP_PGY="${TMP_BASE%/}/pgy-$(basename "$ROOT_DIR")-bin/pgy"
+CODEX_PGY="$ROOT_DIR/bin-codex/pgy"
 if [[ -x "${DEFAULT_PGY}.exe" ]]; then
     DEFAULT_PGY="${DEFAULT_PGY}.exe"
 fi
 if [[ -x "${TMP_PGY}.exe" ]]; then
     TMP_PGY="${TMP_PGY}.exe"
 fi
+if [[ -x "${CODEX_PGY}.exe" ]]; then
+    CODEX_PGY="${CODEX_PGY}.exe"
+fi
+
+select_default_pgy_bin() {
+    local candidate
+    local -a candidates
+
+    case "$(uname -s 2>/dev/null || echo unknown)" in
+        MINGW*|MSYS*|CYGWIN*)
+            candidates=("$TMP_PGY" "$CODEX_PGY" "$DEFAULT_PGY")
+            ;;
+        *)
+            candidates=("$TMP_PGY" "$DEFAULT_PGY" "$CODEX_PGY")
+            ;;
+    esac
+
+    for candidate in "${candidates[@]}"; do
+        if pgy_binary_is_runnable_here "$candidate"; then
+            printf '%s\n' "$candidate"
+            return 0
+        fi
+    done
+
+    printf '%s\n' "$DEFAULT_PGY"
+}
+
 if [[ -n "${PGY_BIN:-}" ]]; then
     PGY_BIN="$PGY_BIN"
 else
-    case "$(uname -s 2>/dev/null || echo unknown)" in
-        MINGW*|MSYS*|CYGWIN*)
-            if [[ -x "$TMP_PGY" && ( ! -x "$DEFAULT_PGY" || "$TMP_PGY" -nt "$DEFAULT_PGY" ) ]]; then
-                PGY_BIN="$TMP_PGY"
-            else
-                PGY_BIN="$DEFAULT_PGY"
-            fi
-            ;;
-        *)
-            if [[ -x "$TMP_PGY" ]]; then
-                PGY_BIN="$TMP_PGY"
-            else
-                PGY_BIN="$DEFAULT_PGY"
-            fi
-            ;;
-    esac
+    PGY_BIN="$(select_default_pgy_bin)"
 fi
 WORK_DIR="$(mktemp -d "$WORK_ROOT/pgy_backend_compare.XXXXXX")"
 RUN_TIMEOUT_SECONDS="${PGY_BACKEND_COMPARE_RUN_TIMEOUT_SECONDS:-30}"
@@ -189,21 +202,25 @@ run_abi_pipeline_precheck() {
 
 run_windows_abi_pipeline_precheck_fallback() {
     local abi_native="$ABI_PIPELINE_BIN"
+    local abi_dir=""
+    local abi_dir_win=""
+    local abi_native_ps=""
+    local path_prefix_ps=""
 
     case "$(uname -s 2>/dev/null || echo unknown)" in
         MINGW*|MSYS*|CYGWIN*) ;;
         *) return 127 ;;
     esac
     command -v powershell.exe >/dev/null 2>&1 || return 127
-    abi_native="$(pgy_path_for_windows_tool "$ABI_PIPELINE_BIN")"
+    abi_dir="$(cd "$(dirname "$ABI_PIPELINE_BIN")" && pwd)"
+    abi_native="${abi_dir}/$(basename "$ABI_PIPELINE_BIN")"
+    abi_dir_win="$(pgy_path_for_windows_tool "$abi_dir")"
+    abi_native="$(pgy_path_for_windows_tool "$abi_native")"
+    abi_native_ps="$(pgy_powershell_quote "$abi_native")"
+    path_prefix_ps="$(pgy_powershell_quote "${abi_dir_win};${PGY_WINDOWS_PS_PATH_PREFIX}")"
 
     powershell.exe -NoProfile -ExecutionPolicy Bypass -Command \
-        "\$env:PATH='${PGY_WINDOWS_PS_PATH_PREFIX}' + \$env:PATH; \$env:PGY_ABI_PIPELINE_SAME_PROCESS='1'; \$env:PGY_ABI_PIPELINE_BACKEND='llvm'; & '${abi_native}'; exit \$LASTEXITCODE"
-}
-
-pgy_powershell_quote() {
-    local value="${1//\'/\'\'}"
-    printf "'%s'" "$value"
+        "\$env:PATH=${path_prefix_ps} + \$env:PATH; \$env:PGY_ABI_PIPELINE_SAME_PROCESS='1'; \$env:PGY_ABI_PIPELINE_BACKEND='llvm'; & ${abi_native_ps}; exit \$LASTEXITCODE"
 }
 
 if [[ "${PGY_BACKEND_COMPARE_INVENTORY_ONLY:-0}" == "0"
@@ -213,6 +230,15 @@ if [[ "${PGY_BACKEND_COMPARE_INVENTORY_ONLY:-0}" == "0"
 fi
 if [[ -x "$PGY_BIN" ]]; then
     PGY_BIN="$(normalize_executable_path "$PGY_BIN")"
+fi
+if [[ "${PGY_BACKEND_COMPARE_INVENTORY_ONLY:-0}" == "0" ]] \
+    && ! pgy_binary_is_runnable_here "$PGY_BIN"; then
+    echo "backend-compare: compiler binary is not runnable on this host: $PGY_BIN" >&2
+    if command -v file >/dev/null 2>&1; then
+        file "$PGY_BIN" >&2 || true
+    fi
+    echo "backend-compare: set PGY_BIN to the current-platform compiler binary, or run through the Makefile target." >&2
+    exit 1
 fi
 export PGY_BIN
 
@@ -232,6 +258,14 @@ if [[ "${PGY_BACKEND_COMPARE_PRECHECK_SAME_PROCESS:-0}" != "0" ]]; then
         exit 1
     fi
     ABI_PIPELINE_BIN="$(normalize_executable_path "$ABI_PIPELINE_BIN")"
+    if ! pgy_binary_is_runnable_here "$ABI_PIPELINE_BIN"; then
+        echo "backend-compare: ABI pipeline test binary is not runnable on this host: $ABI_PIPELINE_BIN" >&2
+        if command -v file >/dev/null 2>&1; then
+            file "$ABI_PIPELINE_BIN" >&2 || true
+        fi
+        echo "backend-compare: rebuild test_abi_pipeline for the current host before enabling same-process precheck." >&2
+        exit 1
+    fi
     setup_windows_launch_path "$ABI_PIPELINE_BIN"
     set +e
     run_abi_pipeline_precheck
@@ -1201,6 +1235,7 @@ main() {
         "tests/cases/backend_compare/int_helpers_basic"
         "tests/cases/backend_compare/inline_ctor_for_range"
         "tests/cases/backend_compare/intent_minimal"
+        "tests/cases/backend_compare/intent_no_step_call"
         "tests/cases/backend_compare/intent_with_step"
         "tests/cases/backend_compare/item_chain_in_for"
         "tests/cases/backend_compare/list_set_basics"
@@ -1221,6 +1256,12 @@ main() {
         "tests/cases/backend_compare/param_class_chain_recursion"
         "tests/cases/backend_compare/pipeline_stage_loop"
         "tests/cases/backend_compare/player_state_chain"
+        "tests/cases/backend_compare/probe_cursor"
+        "tests/cases/backend_compare/probe_dnd_minimal"
+        "tests/cases/backend_compare/probe_field_index"
+        "tests/cases/backend_compare/probe_intent_array"
+        "tests/cases/backend_compare/probe_record"
+        "tests/cases/backend_compare/probe_zone_chain"
         "tests/cases/backend_compare/quest_collect_for_range"
         "tests/cases/backend_compare/recursive_class_factory_acc"
         "tests/cases/backend_compare/result_class_match_method"

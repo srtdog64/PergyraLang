@@ -11,13 +11,39 @@
 #include "transpiler_format.h"
 #include "transpiler_type_mapping.h"
 
+static char *
+transpiler_array_access_emit_operand(TranspilerCtx *ctx,
+                                     ASTNode *operand,
+                                     const char *role)
+{
+    char *lowered = emit_expression(operand, ctx);
+    if (lowered != NULL)
+        return lowered;
+
+    transpiler_set_backend_error_with_hints(ctx,
+        PGY_CODE_C_TYPE_UNSUPPORTED,
+        PGY_CAUSE_C_TYPE_UNSUPPORTED,
+        PGY_FIX_USE_LLVM_BACKEND_OR_EXTEND_TRANSPILER,
+        "C backend: array access could not lower %s expression",
+        role != NULL ? role : "operand");
+    return NULL;
+}
+
 char *
 emit_array_access_expression(ASTNode *node, TranspilerCtx *ctx)
 {
     ASTNode *array_node = ast_array_access_array(node);
     ASTNode *index_node = ast_array_access_index(node);
-    char *array = emit_expression(array_node, ctx);
-    char *index = emit_expression(index_node, ctx);
+    char *array = transpiler_array_access_emit_operand(ctx,
+        array_node, "receiver");
+    if (array == NULL)
+        return pergyra_strdup("0");
+    char *index = transpiler_array_access_emit_operand(ctx,
+        index_node, "index");
+    if (index == NULL) {
+        free(array);
+        return pergyra_strdup("0");
+    }
     const char *array_type = infer_expression_type_name(ctx, array_node);
     char *result;
 

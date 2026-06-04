@@ -105,9 +105,7 @@ emit_intent_step_bind_bound_zone_with_metadata(CodeBuf *out, TranspilerCtx *ctx,
                                                const char *from_alias,
                                                const char **who_aliases,
                                                size_t who_alias_count,
-                                               const char **participant_aliases,
-                                               const char **participant_types,
-                                               size_t participant_count)
+                                               const IntentBindingMetadataView *bindings)
 {
     const char *from_zone_type;
 
@@ -116,20 +114,18 @@ emit_intent_step_bind_bound_zone_with_metadata(CodeBuf *out, TranspilerCtx *ctx,
         return;
     }
 
-    from_zone_type = intent_zone_binding_type_name_with_metadata(
-        intent, from_alias, participant_aliases, participant_types, participant_count);
+    from_zone_type = intent_zone_binding_type_name_with_bindings(
+        intent, from_alias, bindings);
 
     if (from_alias != NULL && from_zone_type != NULL) {
         for (size_t i = 0; i < who_alias_count; i++) {
             const char *alias = who_aliases[i];
             const char *from_slot_name =
-                resolve_intent_zone_slot_name_for_zone_with_metadata(
-                    ctx, intent, from_zone_type, alias,
-                    participant_aliases, participant_types, participant_count);
+                resolve_intent_zone_slot_name_for_zone_with_bindings(
+                    ctx, intent, from_zone_type, alias, bindings);
             const char *to_slot_name =
-                resolve_intent_zone_slot_name_for_zone_with_metadata(
-                    ctx, intent, zone_type, alias,
-                    participant_aliases, participant_types, participant_count);
+                resolve_intent_zone_slot_name_for_zone_with_bindings(
+                    ctx, intent, zone_type, alias, bindings);
             if (alias == NULL)
                 continue;
             if (from_slot_name != NULL && strcmp(from_slot_name, "<unbound>") != 0) {
@@ -169,9 +165,8 @@ emit_intent_step_bind_bound_zone_with_metadata(CodeBuf *out, TranspilerCtx *ctx,
     for (size_t i = 0; i < who_alias_count; i++) {
         const char *alias = who_aliases[i];
         const char *slot_name =
-            resolve_intent_zone_slot_name_for_zone_with_metadata(
-                ctx, intent, zone_type, alias,
-                participant_aliases, participant_types, participant_count);
+            resolve_intent_zone_slot_name_for_zone_with_bindings(
+                ctx, intent, zone_type, alias, bindings);
         if (alias == NULL || slot_name == NULL || strcmp(slot_name, "<unbound>") == 0)
             continue;
         write_indent(ctx);

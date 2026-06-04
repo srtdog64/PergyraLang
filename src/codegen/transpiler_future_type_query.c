@@ -18,15 +18,29 @@
 #include "transpiler_type_mapping.h"
 #include "transpiler_type_render.h"
 
-static char *
-infer_spawn_return_type_name_owned(TranspilerCtx *ctx, ASTNode *spawn_expr)
+static const char *
+future_owned_type_to_scratch(TranspilerCtx *ctx, char *owned,
+                             const char *fallback)
+{
+    const char *result = NULL;
+
+    if (owned != NULL)
+        result = transpiler_scratch_strdup(ctx, owned);
+    free(owned);
+    if (result != NULL)
+        return result;
+    return fallback != NULL ? fallback : "Unknown";
+}
+
+const char *
+infer_spawn_return_type_name_scratch(TranspilerCtx *ctx, ASTNode *spawn_expr)
 {
     ASTNode *target = ast_spawn_function(spawn_expr);
     const char *function_name = NULL;
     ASTNode *call = NULL;
 
     if (target == NULL)
-        return pergyra_strdup("Unknown");
+        return "Unknown";
 
     if (target->type == AST_CALL
         && ast_call_callee(target) != NULL
@@ -37,12 +51,14 @@ infer_spawn_return_type_name_owned(TranspilerCtx *ctx, ASTNode *spawn_expr)
         function_name = ast_identifier_name(target);
     } else if (target->type == AST_FUNC_DECL) {
         if (ast_func_return_type(target) != NULL)
-            return render_type_name_in_ctx(ctx, ast_func_return_type(target));
-        return pergyra_strdup("Void");
+            return future_owned_type_to_scratch(ctx,
+                render_type_name_in_ctx(ctx, ast_func_return_type(target)),
+                "Unknown");
+        return "Void";
     }
 
     if (function_name == NULL)
-        return pergyra_strdup("Unknown");
+        return "Unknown";
 
     ASTNode *decl = find_function_decl(ctx, function_name);
     if (decl != NULL) {
@@ -53,28 +69,19 @@ infer_spawn_return_type_name_owned(TranspilerCtx *ctx, ASTNode *spawn_expr)
                 size_t binding_count = 0;
                 if (transpiler_infer_generic_call_bindings(ctx, decl, call,
                         bindings, &binding_count)) {
-                    return transpiler_render_type_name_with_bindings(ctx,
-                        return_type, bindings, binding_count);
+                    return future_owned_type_to_scratch(ctx,
+                        transpiler_render_type_name_with_bindings(ctx,
+                            return_type, bindings, binding_count),
+                        "Unknown");
                 }
             }
-            return render_type_name_in_ctx(ctx, return_type);
+            return future_owned_type_to_scratch(ctx,
+                render_type_name_in_ctx(ctx, return_type), "Unknown");
         }
-        return pergyra_strdup("Void");
+        return "Void";
     }
 
-    return pergyra_strdup("Unknown");
-}
-
-const char *
-infer_spawn_return_type_name_scratch(TranspilerCtx *ctx, ASTNode *spawn_expr)
-{
-    char *owned = infer_spawn_return_type_name_owned(ctx, spawn_expr);
-    const char *result = owned != NULL
-        ? transpiler_scratch_strdup(ctx, owned)
-        : NULL;
-
-    free(owned);
-    return result != NULL ? result : "Unknown";
+    return "Unknown";
 }
 
 bool

@@ -35,6 +35,15 @@ emit_builtin_allocator(ASTNode *call, BuiltinKind kind, TranspilerCtx *ctx)
         }
         {
             char *cap = emit_expression(ast_call_argument(call, 0), ctx);
+            if (cap == NULL) {
+                transpiler_set_backend_error_with_hints(
+                    ctx,
+                    PGY_CODE_C_TYPE_UNSUPPORTED,
+                    PGY_CAUSE_C_TYPE_UNSUPPORTED,
+                    PGY_FIX_USE_LLVM_BACKEND_OR_EXTEND_TRANSPILER,
+                    "C backend: AllocatorPool could not lower capacity expression");
+                return pergyra_strdup("0");
+            }
             char *result = strdup_fmt("pgy_allocator_pool(%s)", cap);
             free(cap);
             return result;

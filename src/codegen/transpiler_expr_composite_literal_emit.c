@@ -66,6 +66,15 @@ emit_tuple_literal_expression(ASTNode *node, TranspilerCtx *ctx)
     codebuf_write(out, "((%s){", ctype);
     for (size_t i = 0; i < ast_tuple_literal_count(node); i++) {
         char *v = emit_expression(ast_tuple_literal_element(node, i), ctx);
+        if (v == NULL) {
+            transpiler_set_backend_error_with_hints(ctx,
+                PGY_CODE_C_TYPE_UNSUPPORTED,
+                PGY_CAUSE_C_TYPE_UNSUPPORTED,
+                PGY_FIX_USE_LLVM_BACKEND_OR_EXTEND_TRANSPILER,
+                "C tuple literal could not lower element %zu", i);
+            codebuf_destroy(out);
+            return pergyra_strdup("0");
+        }
         if (i > 0)
             codebuf_write(out, ", ");
         codebuf_write(out, ".f%zu = %s", i, v);
@@ -101,6 +110,15 @@ emit_array_literal_expression(ASTNode *node, TranspilerCtx *ctx)
         inner, tmp_id, inner, ast_array_literal_count(node));
     for (size_t i = 0; i < ast_array_literal_count(node); i++) {
         char *elem = emit_expression(ast_array_literal_element(node, i), ctx);
+        if (elem == NULL) {
+            transpiler_set_backend_error_with_hints(ctx,
+                PGY_CODE_C_TYPE_UNSUPPORTED,
+                PGY_CAUSE_C_TYPE_UNSUPPORTED,
+                PGY_FIX_USE_LLVM_BACKEND_OR_EXTEND_TRANSPILER,
+                "C array literal could not lower element %zu", i);
+            codebuf_destroy(buf);
+            return pergyra_strdup("0");
+        }
         codebuf_write(buf, "pgy_array_push_%s(&_pgy_arr_%d, %s); ",
             inner, tmp_id, elem);
         free(elem);

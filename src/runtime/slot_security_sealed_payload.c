@@ -40,6 +40,10 @@ SecureDeriveMaskBlock(SecurityContext *context, uint32_t slotId,
     if (context == NULL || context->masterKey == NULL || nonce == NULL || out == NULL)
         return SECURITY_ERROR_CONTEXT_NOT_INITIALIZED;
 
+    if (context->keySize + 28 > sizeof(material)) {
+        return SECURITY_ERROR_CRYPTOGRAPHY_FAILED;
+    }
+
     memcpy(material + offset, context->masterKey, context->keySize);
     offset += context->keySize;
     memcpy(material + offset, nonce, 16);

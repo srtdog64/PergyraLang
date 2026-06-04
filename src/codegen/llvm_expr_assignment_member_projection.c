@@ -118,6 +118,9 @@ llvm_emit_assignment(ASTNode *node, LLVMGenCtx *ctx)
             const char *name = ast_identifier_name(array_node);
             LLVMVarEntry *arr_var = llvm_scope_lookup(ctx, name);
             LLVMArrayVarEntry *entry = llvm_lookup_array_var(ctx, name);
+            LLVMTypeRef elem_type = entry != NULL
+                ? entry->elem_type
+                : llvm_stmt_resolve_array_elem_type(ctx, array_node, NULL);
             LLVMValueRef idx = llvm_emit_expression(
                 ast_array_access_index(target), ctx);
             LLVMValueRef val = llvm_emit_expression(value, ctx);
@@ -126,9 +129,9 @@ llvm_emit_assignment(ASTNode *node, LLVMGenCtx *ctx)
             LLVMFuncEntry *fn;
             LLVMValueRef index64;
 
-            if (arr_var == NULL || entry == NULL)
+            if (arr_var == NULL || elem_type == NULL)
                 return llvm_assignment_error(ctx, node,
-                    "LLVM indexed array assignment requires registered Array<T> local");
+                    "LLVM indexed array assignment requires concrete Array<T> local metadata");
             if (idx == NULL)
                 return llvm_assignment_error(ctx, node,
                     "LLVM indexed array assignment could not lower index expression");
@@ -136,7 +139,7 @@ llvm_emit_assignment(ASTNode *node, LLVMGenCtx *ctx)
                 return llvm_assignment_error(ctx, node,
                     "LLVM indexed array assignment could not lower value expression");
 
-            suffix = llvm_type_to_suffix(ctx, entry->elem_type);
+            suffix = llvm_type_to_suffix(ctx, elem_type);
             if (suffix == NULL || strcmp(suffix, "Unknown") == 0) {
                 llvm_set_error_at_with_hints(ctx, node,
                     PGY_CODE_LLVM_TYPE_UNSUPPORTED,
@@ -145,19 +148,19 @@ llvm_emit_assignment(ASTNode *node, LLVMGenCtx *ctx)
                     "LLVM indexed array assignment requires concrete Array<T> element metadata");
                 return NULL;
             }
-            if (LLVMTypeOf(val) != entry->elem_type) {
-                if ((entry->elem_type == ctx->type_i32
-                     || entry->elem_type == ctx->type_i64)
+            if (LLVMTypeOf(val) != elem_type) {
+                if ((elem_type == ctx->type_i32
+                     || elem_type == ctx->type_i64)
                     && (LLVMTypeOf(val) == ctx->type_f32
                         || LLVMTypeOf(val) == ctx->type_f64)) {
                     val = LLVMBuildFPToSI(ctx->builder, val,
-                        entry->elem_type, llvm_tmp_name(ctx));
-                } else if ((entry->elem_type == ctx->type_f32
-                            || entry->elem_type == ctx->type_f64)
+                        elem_type, llvm_tmp_name(ctx));
+                } else if ((elem_type == ctx->type_f32
+                            || elem_type == ctx->type_f64)
                            && (LLVMTypeOf(val) == ctx->type_i32
                                || LLVMTypeOf(val) == ctx->type_i64)) {
                     val = LLVMBuildSIToFP(ctx->builder, val,
-                        entry->elem_type, llvm_tmp_name(ctx));
+                        elem_type, llvm_tmp_name(ctx));
                 }
             }
             snprintf(fn_name, sizeof(fn_name), "pgy_array_set_%s", suffix);

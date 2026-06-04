@@ -80,6 +80,8 @@ llvm_mir_bind_resource_view_token_alias(LLVMGenCtx *ctx,
     token_entry = llvm_scope_lookup(ctx, source_token_name);
     if (token_entry == NULL)
         return true;
+    LLVMValueRef token_alloca = token_entry->alloca;
+    LLVMTypeRef token_type = token_entry->type;
     owned_alias_token_name = pgy_arena_strdup(&ctx->persistent,
         alias_token_name);
     if (owned_alias_token_name == NULL) {
@@ -87,8 +89,7 @@ llvm_mir_bind_resource_view_token_alias(LLVMGenCtx *ctx,
             "LLVM MIR resource view token alias out of memory");
         return false;
     }
-    llvm_scope_declare(ctx, owned_alias_token_name, token_entry->alloca,
-        token_entry->type);
+    llvm_scope_declare(ctx, owned_alias_token_name, token_alloca, token_type);
     return !ctx->has_error;
 }
 
@@ -218,10 +219,12 @@ llvm_mir_emit_borrow_view_alias(const MIRInstruction *inst, LLVMGenCtx *ctx)
     is_secure = llvm_lookup_slot_is_secure(ctx, inst->arg0);
     if (source_entry == NULL || inner == NULL)
         return;
+    LLVMValueRef source_alloca = source_entry->alloca;
+    LLVMTypeRef source_type = source_entry->type;
 
     if (llvm_scope_lookup(ctx, inst->arg1) == NULL) {
         llvm_scope_declare(ctx, pergyra_strdup(inst->arg1),
-                           source_entry->alloca, source_entry->type);
+                           source_alloca, source_type);
     }
     llvm_register_slot_var(ctx, pergyra_strdup(inst->arg1), inner, is_secure);
     if (is_secure) {
@@ -234,10 +237,13 @@ llvm_mir_emit_borrow_view_alias(const MIRInstruction *inst, LLVMGenCtx *ctx)
         snprintf(view_token_name, sizeof(view_token_name), "%s_token",
                  inst->arg1);
         token_entry = llvm_scope_lookup(ctx, source_token_name);
-        if (token_entry != NULL
-            && llvm_scope_lookup(ctx, view_token_name) == NULL) {
-            llvm_scope_declare(ctx, pergyra_strdup(view_token_name),
-                               token_entry->alloca, token_entry->type);
+        if (token_entry != NULL) {
+            LLVMValueRef token_alloca = token_entry->alloca;
+            LLVMTypeRef token_type = token_entry->type;
+            if (llvm_scope_lookup(ctx, view_token_name) == NULL) {
+                llvm_scope_declare(ctx, pergyra_strdup(view_token_name),
+                                   token_alloca, token_type);
+            }
         }
     }
 }

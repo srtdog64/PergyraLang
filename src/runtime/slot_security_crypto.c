@@ -200,16 +200,23 @@ hmac_sha256(const uint8_t *key, size_t keyLen,
     uint8_t ipad_key[HMAC_BLOCK_SIZE];
     uint8_t opad_key[HMAC_BLOCK_SIZE];
     uint8_t inner_hash[HMAC_HASH_SIZE];
+    uint8_t outer_buf[HMAC_BLOCK_SIZE + HMAC_HASH_SIZE];
     uint8_t *buf = NULL;
-    SecurityError err;
+    SecurityError err = SECURITY_SUCCESS;
     size_t i;
 
     memset(key_prime, 0, HMAC_BLOCK_SIZE);
+    memset(ipad_key, 0, HMAC_BLOCK_SIZE);
+    memset(opad_key, 0, HMAC_BLOCK_SIZE);
+    memset(inner_hash, 0, HMAC_HASH_SIZE);
+    memset(outer_buf, 0, sizeof(outer_buf));
 
     if (keyLen > HMAC_BLOCK_SIZE) {
         err = SecureHashSHA256(key, keyLen, key_prime);
-        if (err != SECURITY_SUCCESS)
-            return SECURITY_ERROR_CRYPTOGRAPHY_FAILED;
+        if (err != SECURITY_SUCCESS) {
+            err = SECURITY_ERROR_CRYPTOGRAPHY_FAILED;
+            goto cleanup;
+        }
     } else {
         memcpy(key_prime, key, keyLen);
     }
@@ -221,32 +228,40 @@ hmac_sha256(const uint8_t *key, size_t keyLen,
 
     buf = (uint8_t *)malloc(HMAC_BLOCK_SIZE + messageLen);
     if (buf == NULL) {
-        SecureMemoryWipe(key_prime, sizeof(key_prime));
-        return SECURITY_ERROR_CRYPTOGRAPHY_FAILED;
+        err = SECURITY_ERROR_CRYPTOGRAPHY_FAILED;
+        goto cleanup;
     }
     memcpy(buf, ipad_key, HMAC_BLOCK_SIZE);
     memcpy(buf + HMAC_BLOCK_SIZE, message, messageLen);
     err = SecureHashSHA256(buf, HMAC_BLOCK_SIZE + messageLen, inner_hash);
     SecureMemoryWipe(buf, HMAC_BLOCK_SIZE + messageLen);
     free(buf);
+    buf = NULL;
     if (err != SECURITY_SUCCESS) {
-        SecureMemoryWipe(key_prime, sizeof(key_prime));
-        return SECURITY_ERROR_CRYPTOGRAPHY_FAILED;
+        err = SECURITY_ERROR_CRYPTOGRAPHY_FAILED;
+        goto cleanup;
     }
 
-    uint8_t outer_buf[HMAC_BLOCK_SIZE + HMAC_HASH_SIZE];
     memcpy(outer_buf, opad_key, HMAC_BLOCK_SIZE);
     memcpy(outer_buf + HMAC_BLOCK_SIZE, inner_hash, HMAC_HASH_SIZE);
     err = SecureHashSHA256(outer_buf, sizeof(outer_buf), output);
+    if (err != SECURITY_SUCCESS) {
+        err = SECURITY_ERROR_CRYPTOGRAPHY_FAILED;
+        goto cleanup;
+    }
 
+cleanup:
     SecureMemoryWipe(key_prime, sizeof(key_prime));
     SecureMemoryWipe(ipad_key, sizeof(ipad_key));
     SecureMemoryWipe(opad_key, sizeof(opad_key));
     SecureMemoryWipe(inner_hash, sizeof(inner_hash));
     SecureMemoryWipe(outer_buf, sizeof(outer_buf));
+    if (buf != NULL) {
+        SecureMemoryWipe(buf, HMAC_BLOCK_SIZE + messageLen);
+        free(buf);
+    }
 
-    return (err == SECURITY_SUCCESS) ? SECURITY_SUCCESS
-                                     : SECURITY_ERROR_CRYPTOGRAPHY_FAILED;
+    return err;
 }
 
 SecurityError
@@ -255,6 +270,7 @@ AES256Encrypt(const uint8_t key[32], const uint8_t iv[16],
               uint8_t *ciphertext, uint8_t authTag[16])
 {
     uint8_t digest[32];
+    SecurityError err;
 
     if (key == NULL || iv == NULL || plaintext == NULL || ciphertext == NULL ||
         authTag == NULL) {
@@ -268,14 +284,17 @@ AES256Encrypt(const uint8_t key[32], const uint8_t iv[16],
         return SECURITY_ERROR_CRYPTOGRAPHY_FAILED;
     memcpy(auth_data, iv, 16);
     memcpy(auth_data + 16, ciphertext, plaintextSize);
-    SecurityError err = hmac_sha256(key, 32, auth_data,
-                                    16 + plaintextSize, digest);
+    err = hmac_sha256(key, 32, auth_data,
+                      16 + plaintextSize, digest);
     SecureMemoryWipe(auth_data, 16 + plaintextSize);
     free(auth_data);
-    if (err != SECURITY_SUCCESS)
+    if (err != SECURITY_SUCCESS) {
+        SecureMemoryWipe(digest, sizeof(digest));
         return SECURITY_ERROR_CRYPTOGRAPHY_FAILED;
+    }
 
     memcpy(authTag, digest, 16);
+    SecureMemoryWipe(digest, sizeof(digest));
     return SECURITY_SUCCESS;
 }
 
@@ -285,6 +304,7 @@ AES256Decrypt(const uint8_t key[32], const uint8_t iv[16],
               const uint8_t authTag[16], uint8_t *plaintext)
 {
     uint8_t digest[32];
+    SecurityError err;
 
     if (key == NULL || iv == NULL || ciphertext == NULL || authTag == NULL ||
         plaintext == NULL) {
@@ -296,16 +316,21 @@ AES256Decrypt(const uint8_t key[32], const uint8_t iv[16],
         return SECURITY_ERROR_CRYPTOGRAPHY_FAILED;
     memcpy(auth_data, iv, 16);
     memcpy(auth_data + 16, ciphertext, ciphertextSize);
-    SecurityError err = hmac_sha256(key, 32, auth_data,
-                                    16 + ciphertextSize, digest);
+    err = hmac_sha256(key, 32, auth_data,
+                      16 + ciphertextSize, digest);
     SecureMemoryWipe(auth_data, 16 + ciphertextSize);
     free(auth_data);
-    if (err != SECURITY_SUCCESS)
+    if (err != SECURITY_SUCCESS) {
+        SecureMemoryWipe(digest, sizeof(digest));
         return SECURITY_ERROR_CRYPTOGRAPHY_FAILED;
+    }
 
-    if (!SecureCompareConstantTime(authTag, digest, 16))
+    if (!SecureCompareConstantTime(authTag, digest, 16)) {
+        SecureMemoryWipe(digest, sizeof(digest));
         return SECURITY_ERROR_INVALID_TOKEN;
+    }
 
+    SecureMemoryWipe(digest, sizeof(digest));
     aes256_ctr(key, iv, ciphertext, plaintext, ciphertextSize);
     return SECURITY_SUCCESS;
 }

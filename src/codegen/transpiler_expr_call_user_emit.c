@@ -13,6 +13,7 @@
 #include "transpiler_format.h"
 #include "transpiler_generic_param_query.h"
 #include "transpiler_generic_specialization_emit.h"
+#include "transpiler_inventory_view.h"
 #include "transpiler_mir_inventory_intent_collect.h"
 #include "transpiler_slot_target.h"
 #include "transpiler_symbols.h"
@@ -63,12 +64,12 @@ emit_call_user_function(ASTNode *call, ASTNode *callee, TranspilerCtx *ctx)
         ? find_callable_decl(ctx, callee_name) : NULL;
     char *callee_str = NULL;
     const MIRRoutine *intent_routine = NULL;
-    const char **participant_aliases = NULL;
-    const char **participant_types = NULL;
-    const char **value_aliases = NULL;
-    const char **value_types = NULL;
-    size_t participant_count = 0;
-    size_t value_meta_count = 0;
+    const char **binding_kinds = NULL;
+    const char **binding_aliases = NULL;
+    const char **binding_types = NULL;
+    size_t binding_meta_count = 0;
+    bool mir_requires_routine = false;
+    bool mir_only_intent = false;
     if (callee->type == AST_IDENTIFIER) {
         if (decl != NULL && decl->type == AST_FUNC_DECL
             && transpiler_func_has_generic_params(decl)) {
@@ -82,18 +83,67 @@ emit_call_user_function(ASTNode *call, ASTNode *callee, TranspilerCtx *ctx)
         callee_str = emit_expression(callee, ctx);
 
     if (decl != NULL && decl->type == AST_INTENT_DECL) {
+        size_t intent_step_count = ast_intent_decl_step_count(decl);
+        mir_requires_routine = transpiler_active_has_mir(ctx) && intent_step_count > 0;
         intent_routine = transpiler_find_mir_intent(ctx, decl);
+        if (mir_requires_routine && intent_routine == NULL) {
+            transpiler_set_mir_inventory_missing(ctx,
+                "MIR-only C path missing intent routine for call target '%s'",
+                callee_name != NULL ? callee_name : "(anonymous-intent)");
+            free(callee_str);
+            return pergyra_strdup("0");
+        }
+        mir_only_intent = intent_routine != NULL;
         if (intent_routine != NULL) {
-            participant_count = transpiler_collect_mir_intent_participants(
-                intent_routine, &participant_aliases, &participant_types);
-            value_meta_count = transpiler_collect_mir_intent_values(
-                intent_routine, &value_aliases, &value_types);
+            binding_meta_count = transpiler_collect_mir_intent_bindings(
+                intent_routine, &binding_kinds, &binding_aliases,
+                &binding_types);
+        }
+        if (mir_only_intent) {
+            for (size_t i = 0; i < binding_meta_count; i++) {
+                if (binding_kinds == NULL || binding_aliases == NULL
+                    || binding_types == NULL || binding_kinds[i] == NULL
+                    || binding_aliases[i] == NULL || binding_types[i] == NULL) {
+                    transpiler_set_mir_inventory_missing(ctx,
+                        "MIR-only C path has incomplete ordered intent binding metadata for call target '%s'",
+                        callee_name != NULL ? callee_name : "(anonymous-intent)");
+                    free(callee_str);
+                    free((void *)binding_kinds);
+                    free((void *)binding_aliases);
+                    free((void *)binding_types);
+                    return pergyra_strdup("0");
+                }
+                if (strcmp(binding_kinds[i], "participant") != 0
+                    && strcmp(binding_kinds[i], "value") != 0) {
+                    transpiler_set_mir_inventory_missing(ctx,
+                        "MIR-only C path has invalid ordered intent binding metadata for call target '%s'",
+                        callee_name != NULL ? callee_name : "(anonymous-intent)");
+                    free(callee_str);
+                    free((void *)binding_kinds);
+                    free((void *)binding_aliases);
+                    free((void *)binding_types);
+                    return pergyra_strdup("0");
+                }
+            }
+            if (ast_call_arg_count(call) != binding_meta_count) {
+                transpiler_set_backend_error_with_hints(ctx,
+                    PGY_CODE_C_TYPE_UNSUPPORTED,
+                    PGY_CAUSE_C_TYPE_UNSUPPORTED,
+                    PGY_FIX_ALIGN_ARG_TYPE,
+                    "C backend: MIR-backed intent call '%s' expects %zu argument(s), got %zu",
+                    callee_name != NULL ? callee_name : "(anonymous-intent)",
+                    binding_meta_count,
+                    ast_call_arg_count(call));
+                free(callee_str);
+                free((void *)binding_kinds);
+                free((void *)binding_aliases);
+                free((void *)binding_types);
+                return pergyra_strdup("0");
+            }
         }
     }
 
     CodeBuf *args_buf = codebuf_create();
-    size_t participant_index = 0;
-    size_t value_index = 0;
     for (size_t i = 0; i < ast_call_arg_count(call); i++) {
         ASTNode *arg_node = ast_call_argument(call, i);
         FuncParam *param = (decl != NULL && decl->type == AST_FUNC_DECL
@@ -105,36 +155,51 @@ emit_call_user_function(ASTNode *call, ASTNode *callee, TranspilerCtx *ctx)
         char *arg = NULL;
 
         if (decl != NULL && decl->type == AST_INTENT_DECL) {
-            size_t explicit_binding_count = ast_intent_decl_binding_count(decl);
-            size_t involve_count = ast_intent_decl_involve_count(decl);
-            size_t value_count = ast_intent_decl_value_count(decl);
-            size_t binding_count = explicit_binding_count > 0
-                ? explicit_binding_count
-                : (involve_count + value_count);
-            ASTNode **bindings = ast_intent_decl_bindings(decl, NULL);
-            ASTNode **involves = ast_intent_decl_involves(decl, NULL);
-            ASTNode **values = ast_intent_decl_values(decl, NULL);
-            if (i < binding_count) {
-                ASTNode *binding = explicit_binding_count > 0
-                    ? bindings[i]
-                    : (i < involve_count
-                        ? involves[i]
-                        : values[i - involve_count]);
-                if (binding != NULL && binding->type == AST_INTENT_INVOLVES) {
-                    intent_param_type_name =
-                        participant_types != NULL && participant_index < participant_count
-                            ? participant_types[participant_index]
-                            : NULL;
-                    intent_param_type = ast_intent_involves_subject_type(binding);
-                    participant_index++;
-                } else if (binding != NULL && binding->type == AST_INTENT_VALUE) {
-                    intent_param_type_name =
-                        value_types != NULL && value_index < value_meta_count
-                            ? value_types[value_index]
-                            : NULL;
-                    intent_param_type = ast_intent_value_type(binding);
-                    value_index++;
+            if (mir_only_intent) {
+                if (i >= binding_meta_count || binding_kinds == NULL
+                    || binding_types == NULL) {
+                    transpiler_set_mir_inventory_missing(ctx,
+                        "MIR-only C path missing ordered intent binding metadata for call target '%s'",
+                        callee_name != NULL ? callee_name : "(anonymous-intent)");
+                } else if (strcmp(binding_kinds[i], "participant") == 0) {
+                    intent_param_type_name = binding_types[i];
+                } else if (strcmp(binding_kinds[i], "value") == 0) {
+                    intent_param_type_name = binding_types[i];
+                } else {
+                    transpiler_set_mir_inventory_missing(ctx,
+                        "MIR-only C path has invalid ordered intent binding metadata for call target '%s'",
+                        callee_name != NULL ? callee_name : "(anonymous-intent)");
                 }
+            } else {
+                size_t explicit_binding_count = ast_intent_decl_binding_count(decl);
+                size_t involve_count = ast_intent_decl_involve_count(decl);
+                size_t value_count = ast_intent_decl_value_count(decl);
+                size_t binding_count = explicit_binding_count > 0
+                    ? explicit_binding_count
+                    : (involve_count + value_count);
+                ASTNode **bindings = ast_intent_decl_bindings(decl, NULL);
+                ASTNode **involves = ast_intent_decl_involves(decl, NULL);
+                ASTNode **values = ast_intent_decl_values(decl, NULL);
+                if (i < binding_count) {
+                    ASTNode *binding = explicit_binding_count > 0
+                        ? bindings[i]
+                        : (i < involve_count
+                            ? involves[i]
+                            : values[i - involve_count]);
+                    if (binding != NULL && binding->type == AST_INTENT_INVOLVES) {
+                        intent_param_type = ast_intent_involves_subject_type(binding);
+                    } else if (binding != NULL && binding->type == AST_INTENT_VALUE) {
+                        intent_param_type = ast_intent_value_type(binding);
+                    }
+                }
+            }
+            if (ctx->backend_error != NULL) {
+                free(callee_str);
+                free((void *)binding_kinds);
+                free((void *)binding_aliases);
+                free((void *)binding_types);
+                codebuf_destroy(args_buf);
+                return pergyra_strdup("0");
             }
         }
 
@@ -192,10 +257,9 @@ emit_call_user_function(ASTNode *call, ASTNode *callee, TranspilerCtx *ctx)
                     i + 1);
                 free(param_type_for_ctx);
                 free(callee_str);
-                free((void *)participant_aliases);
-                free((void *)participant_types);
-                free((void *)value_aliases);
-                free((void *)value_types);
+                free((void *)binding_kinds);
+                free((void *)binding_aliases);
+                free((void *)binding_types);
                 codebuf_destroy(args_buf);
                 return pergyra_strdup("0");
             }
@@ -224,10 +288,9 @@ emit_call_user_function(ASTNode *call, ASTNode *callee, TranspilerCtx *ctx)
                         i + 1, callee_name != NULL ? callee_name : "<call>");
                     free(arg);
                     free(callee_str);
-                    free((void *)participant_aliases);
-                    free((void *)participant_types);
-                    free((void *)value_aliases);
-                    free((void *)value_types);
+                    free((void *)binding_kinds);
+                    free((void *)binding_aliases);
+                    free((void *)binding_types);
                     codebuf_destroy(args_buf);
                     return pergyra_strdup("0");
                 }
@@ -240,10 +303,9 @@ emit_call_user_function(ASTNode *call, ASTNode *callee, TranspilerCtx *ctx)
 
     char *result = strdup_fmt("%s(%s)", callee_str, args_buf->data);
     free(callee_str);
-    free((void *)participant_aliases);
-    free((void *)participant_types);
-    free((void *)value_aliases);
-    free((void *)value_types);
+    free((void *)binding_kinds);
+    free((void *)binding_aliases);
+    free((void *)binding_types);
     codebuf_destroy(args_buf);
     return result;
 }

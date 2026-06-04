@@ -59,6 +59,40 @@ slot_builtin_require_arg_count(TranspilerCtx *ctx,
     return false;
 }
 
+static char *
+slot_builtin_emit_operand(TranspilerCtx *ctx,
+                          ASTNode *expr,
+                          const char *operation,
+                          const char *role)
+{
+    char *lowered = emit_expression(expr, ctx);
+    if (lowered != NULL)
+        return lowered;
+
+    transpiler_set_backend_error_with_hints(ctx,
+        PGY_CODE_C_TYPE_UNSUPPORTED,
+        PGY_CAUSE_C_TYPE_UNSUPPORTED,
+        PGY_FIX_USE_LLVM_BACKEND_OR_EXTEND_TRANSPILER,
+        "C backend: %s could not lower %s expression",
+        operation != NULL ? operation : "slot operation",
+        role != NULL ? role : "operand");
+    return NULL;
+}
+
+static char *
+slot_builtin_emit_slot_operand(TranspilerCtx *ctx,
+                               ASTNode *expr,
+                               const char *operation)
+{
+    bool saved_suppress = ctx->suppress_slot_auto_read;
+    char *slot_expr;
+
+    ctx->suppress_slot_auto_read = true;
+    slot_expr = slot_builtin_emit_operand(ctx, expr, operation, "slot");
+    ctx->suppress_slot_auto_read = saved_suppress;
+    return slot_expr;
+}
+
 char *
 emit_builtin_claim_slot(ASTNode *call, TranspilerCtx *ctx)
 {
@@ -97,18 +131,30 @@ emit_builtin_write(ASTNode *call, TranspilerCtx *ctx)
             inner_buf, sizeof(inner_buf), &slot_name, &secure))
         return pergyra_strdup("0");
 
-    bool saved_suppress = ctx->suppress_slot_auto_read;
-    ctx->suppress_slot_auto_read = true;
-    char *slot_expr = emit_expression(slot_arg, ctx);
-    ctx->suppress_slot_auto_read = saved_suppress;
+    char *slot_expr = slot_builtin_emit_slot_operand(ctx, slot_arg, "Write");
+    if (slot_expr == NULL)
+        return pergyra_strdup("0");
     transpiler_refine_slot_target_from_emitted_expr(ctx, slot_expr, &slot_name, &secure);
     char *slot_ref = slot_ref_expr(ctx, slot_name, slot_expr);
-    char *value_expr = emit_expression(ast_call_argument(call, 1), ctx);
+    char *value_expr = slot_builtin_emit_operand(ctx,
+        ast_call_argument(call, 1), "Write", "value");
+    if (value_expr == NULL) {
+        free(slot_ref);
+        free(slot_expr);
+        return pergyra_strdup("0");
+    }
 
     char *result;
     if (ast_call_arg_count(call) >= 3) {
         /* SecureSlot: Write(slot, value, token) */
-        char *token_expr = emit_expression(ast_call_argument(call, 2), ctx);
+        char *token_expr = slot_builtin_emit_operand(ctx,
+            ast_call_argument(call, 2), "Write", "token");
+        if (token_expr == NULL) {
+            free(slot_ref);
+            free(slot_expr);
+            free(value_expr);
+            return pergyra_strdup("0");
+        }
         result = slot_builtin_strdup_fmt(
             "pgy_secure_write_%s(%s, %s, &%s)",
             inner, slot_ref, value_expr, token_expr);
@@ -146,11 +192,9 @@ emit_builtin_view(ASTNode *call, TranspilerCtx *ctx)
         return pergyra_strdup("0");
     }
 
-    bool saved_suppress = ctx->suppress_slot_auto_read;
-    ctx->suppress_slot_auto_read = true;
-    char *slot_expr = emit_expression(ast_call_argument(call, 0), ctx);
-    ctx->suppress_slot_auto_read = saved_suppress;
-    return slot_expr;
+    char *slot_expr = slot_builtin_emit_slot_operand(ctx,
+        ast_call_argument(call, 0), "View");
+    return slot_expr != NULL ? slot_expr : pergyra_strdup("0");
 }
 
 char *
@@ -171,16 +215,21 @@ emit_builtin_read(ASTNode *call, TranspilerCtx *ctx)
             inner_buf, sizeof(inner_buf), &slot_name, &secure))
         return pergyra_strdup("0");
 
-    bool saved_suppress = ctx->suppress_slot_auto_read;
-    ctx->suppress_slot_auto_read = true;
-    char *slot_expr = emit_expression(slot_arg, ctx);
-    ctx->suppress_slot_auto_read = saved_suppress;
+    char *slot_expr = slot_builtin_emit_slot_operand(ctx, slot_arg, "Read");
+    if (slot_expr == NULL)
+        return pergyra_strdup("0");
     transpiler_refine_slot_target_from_emitted_expr(ctx, slot_expr, &slot_name, &secure);
     char *slot_ref = slot_ref_expr(ctx, slot_name, slot_expr);
     char *result;
 
     if (ast_call_arg_count(call) >= 2) {
-        char *token_expr = emit_expression(ast_call_argument(call, 1), ctx);
+        char *token_expr = slot_builtin_emit_operand(ctx,
+            ast_call_argument(call, 1), "Read", "token");
+        if (token_expr == NULL) {
+            free(slot_ref);
+            free(slot_expr);
+            return pergyra_strdup("0");
+        }
         result = slot_builtin_strdup_fmt(
             "pgy_secure_read_%s(%s, &%s)",
             inner, slot_ref, token_expr);
@@ -222,16 +271,21 @@ emit_builtin_release(ASTNode *call, TranspilerCtx *ctx)
             inner_buf, sizeof(inner_buf), &slot_name, &secure))
         return pergyra_strdup("0");
 
-    bool saved_suppress = ctx->suppress_slot_auto_read;
-    ctx->suppress_slot_auto_read = true;
-    char *slot_expr = emit_expression(slot_arg, ctx);
-    ctx->suppress_slot_auto_read = saved_suppress;
+    char *slot_expr = slot_builtin_emit_slot_operand(ctx, slot_arg, "Release");
+    if (slot_expr == NULL)
+        return pergyra_strdup("0");
     transpiler_refine_slot_target_from_emitted_expr(ctx, slot_expr, &slot_name, &secure);
     char *slot_ref = slot_ref_expr(ctx, slot_name, slot_expr);
     char *result;
 
     if (ast_call_arg_count(call) >= 2) {
-        char *token_expr = emit_expression(ast_call_argument(call, 1), ctx);
+        char *token_expr = slot_builtin_emit_operand(ctx,
+            ast_call_argument(call, 1), "Release", "token");
+        if (token_expr == NULL) {
+            free(slot_ref);
+            free(slot_expr);
+            return pergyra_strdup("0");
+        }
         result = slot_builtin_strdup_fmt(
             "pgy_secure_release_%s(%s, &%s)",
             inner, slot_ref, token_expr);
@@ -278,11 +332,15 @@ emit_builtin_device_write(ASTNode *call, TranspilerCtx *ctx)
     if (!transpiler_resolve_device_slot_inner_copy_or_error(ctx, slot_arg,
             "DeviceWrite", inner_buf, sizeof(inner_buf)))
         return pergyra_strdup("0");
-    bool saved_suppress = ctx->suppress_slot_auto_read;
-    ctx->suppress_slot_auto_read = true;
-    char *slot_expr = emit_expression(slot_arg, ctx);
-    ctx->suppress_slot_auto_read = saved_suppress;
-    char *value_expr = emit_expression(ast_call_argument(call, 1), ctx);
+    char *slot_expr = slot_builtin_emit_slot_operand(ctx, slot_arg, "DeviceWrite");
+    if (slot_expr == NULL)
+        return pergyra_strdup("0");
+    char *value_expr = slot_builtin_emit_operand(ctx,
+        ast_call_argument(call, 1), "DeviceWrite", "value");
+    if (value_expr == NULL) {
+        free(slot_expr);
+        return pergyra_strdup("0");
+    }
     char *result;
 
     result = slot_builtin_strdup_fmt("pgy_device_write_%s(&%s, %s)", inner, slot_expr, value_expr);
@@ -302,10 +360,9 @@ emit_builtin_device_read(ASTNode *call, TranspilerCtx *ctx)
     if (!transpiler_resolve_device_slot_inner_copy_or_error(ctx, slot_arg,
             "DeviceRead", inner_buf, sizeof(inner_buf)))
         return pergyra_strdup("0");
-    bool saved_suppress = ctx->suppress_slot_auto_read;
-    ctx->suppress_slot_auto_read = true;
-    char *slot_expr = emit_expression(slot_arg, ctx);
-    ctx->suppress_slot_auto_read = saved_suppress;
+    char *slot_expr = slot_builtin_emit_slot_operand(ctx, slot_arg, "DeviceRead");
+    if (slot_expr == NULL)
+        return pergyra_strdup("0");
     char *result;
 
     result = slot_builtin_strdup_fmt("pgy_device_read_%s(&%s)", inner, slot_expr);
@@ -324,10 +381,10 @@ emit_builtin_release_device_slot(ASTNode *call, TranspilerCtx *ctx)
     if (!transpiler_resolve_device_slot_inner_copy_or_error(ctx, slot_arg,
             "ReleaseDeviceSlot", inner_buf, sizeof(inner_buf)))
         return pergyra_strdup("0");
-    bool saved_suppress = ctx->suppress_slot_auto_read;
-    ctx->suppress_slot_auto_read = true;
-    char *slot_expr = emit_expression(slot_arg, ctx);
-    ctx->suppress_slot_auto_read = saved_suppress;
+    char *slot_expr = slot_builtin_emit_slot_operand(ctx,
+        slot_arg, "ReleaseDeviceSlot");
+    if (slot_expr == NULL)
+        return pergyra_strdup("0");
     char *result;
 
     result = slot_builtin_strdup_fmt("pgy_release_device_%s(&%s)", inner, slot_expr);
@@ -346,10 +403,10 @@ emit_builtin_submit_device_read(ASTNode *call, TranspilerCtx *ctx)
     if (!transpiler_resolve_device_slot_inner_copy_or_error(ctx, slot_arg,
             "SubmitDeviceRead", inner_buf, sizeof(inner_buf)))
         return pergyra_strdup("0");
-    bool saved_suppress = ctx->suppress_slot_auto_read;
-    ctx->suppress_slot_auto_read = true;
-    char *slot_expr = emit_expression(slot_arg, ctx);
-    ctx->suppress_slot_auto_read = saved_suppress;
+    char *slot_expr = slot_builtin_emit_slot_operand(ctx,
+        slot_arg, "SubmitDeviceRead");
+    if (slot_expr == NULL)
+        return pergyra_strdup("0");
     char *result;
 
     result = slot_builtin_strdup_fmt("pgy_submit_device_read_%s(&%s)", inner, slot_expr);

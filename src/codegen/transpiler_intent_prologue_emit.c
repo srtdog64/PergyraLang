@@ -4,12 +4,15 @@
 #include <stddef.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 
 #include "../common/string_compat.h"
 #include "../parser/ast_api.h"
 #include "../semantic/diag_codes.h"
 #include "transpiler_context.h"
 #include "transpiler_intent_participant.h"
+#include "transpiler_mir_inventory_intent_collect.h"
+#include "transpiler_mir_intent_query.h"
 #include "transpiler_projection.h"
 #include "transpiler_symbols.h"
 #include "transpiler_type_render.h"
@@ -49,53 +52,86 @@ transpiler_intent_prologue_surface_desc_too_long(TranspilerCtx *ctx,
 bool
 transpiler_emit_intent_signature_and_entry(ASTNode *node,
                                            TranspilerCtx *ctx,
-                                           bool mir_only_intent,
                                            bool has_compensate_steps,
                                            size_t step_count,
-                                           const char **participant_aliases,
-                                           const char **participant_types,
-                                           size_t participant_count,
-                                           const char **value_aliases,
-                                           const char **value_types,
-                                           size_t mir_value_count,
+                                           const IntentBindingMetadataView *bindings_view,
                                            bool emit_cleanup_from_mir,
                                            const MIRRoutine *mir_routine)
 {
     size_t subject_count = 0;
     const char *intent_name;
-    size_t explicit_binding_count;
-    size_t involve_count;
-    size_t value_count;
-    ASTNode **bindings;
-    ASTNode **involves_nodes;
-    ASTNode **values;
+    size_t explicit_binding_count = 0;
+    size_t involve_count = 0;
+    size_t value_count = 0;
+    size_t mir_binding_count = 0;
+    ASTNode **bindings = NULL;
+    ASTNode **involves_nodes = NULL;
+    ASTNode **values = NULL;
     ASTNode *priority_expr;
 
     if (node == NULL || ctx == NULL)
         return false;
 
     intent_name = ast_intent_decl_name(node);
-    explicit_binding_count = ast_intent_decl_binding_count(node);
-    involve_count = ast_intent_decl_involve_count(node);
-    value_count = ast_intent_decl_value_count(node);
-    bindings = ast_intent_decl_bindings(node, NULL);
-    involves_nodes = ast_intent_decl_involves(node, NULL);
-    values = ast_intent_decl_values(node, NULL);
-    priority_expr = ast_intent_decl_priority_expr(node);
+    if (mir_routine != NULL) {
+        priority_expr = transpiler_find_mir_intent_eval_expr(
+            mir_routine, intent_name, "priority");
+        if (transpiler_mir_intent_has_stmt(
+                mir_routine, intent_name, "IntentEval", "priority")
+            && priority_expr == NULL) {
+            transpiler_set_mir_intent_carrier_missing(ctx,
+                "MIR-backed C intent prologue missing priority eval carrier");
+            return false;
+        }
+        mir_binding_count = bindings_view != NULL ? bindings_view->count : 0;
+        for (size_t i = 0; i < mir_binding_count; i++) {
+            if (bindings_view == NULL || bindings_view->kinds == NULL
+                || bindings_view->aliases == NULL || bindings_view->types == NULL
+                || bindings_view->kinds[i] == NULL
+                || bindings_view->aliases[i] == NULL
+                || bindings_view->types[i] == NULL) {
+                transpiler_set_mir_inventory_missing(
+                    ctx,
+                    "MIR-backed C intent prologue has incomplete ordered binding metadata for '%s'",
+                    intent_name != NULL ? intent_name : "(anonymous-intent)");
+                return false;
+            }
+            if (strcmp(bindings_view->kinds[i], "participant") != 0
+                && strcmp(bindings_view->kinds[i], "value") != 0) {
+                transpiler_set_mir_inventory_missing(
+                    ctx,
+                    "MIR-backed C intent prologue has invalid ordered binding metadata for '%s'",
+                    intent_name != NULL ? intent_name : "(anonymous-intent)");
+                return false;
+            }
+        }
+    } else {
+        priority_expr = ast_intent_decl_priority_expr(node);
+        explicit_binding_count = ast_intent_decl_binding_count(node);
+        involve_count = ast_intent_decl_involve_count(node);
+        value_count = ast_intent_decl_value_count(node);
+        bindings = ast_intent_decl_bindings(node, NULL);
+        involves_nodes = ast_intent_decl_involves(node, NULL);
+        values = ast_intent_decl_values(node, NULL);
+    }
 
     codebuf_write(ctx->out, "\nbool\n%s(", intent_name);
     {
-        size_t binding_count = explicit_binding_count > 0
-            ? explicit_binding_count
-            : (involve_count + value_count);
+        size_t binding_count = mir_routine != NULL
+            ? mir_binding_count
+            : (explicit_binding_count > 0
+                ? explicit_binding_count
+                : (involve_count + value_count));
         size_t participant_index = 0;
         size_t value_index = 0;
         for (size_t i = 0; i < binding_count; i++) {
-            ASTNode *binding = explicit_binding_count > 0
-                ? bindings[i]
-                : (i < involve_count
-                    ? involves_nodes[i]
-                    : values[i - involve_count]);
+            ASTNode *binding = mir_routine != NULL
+                ? NULL
+                : (explicit_binding_count > 0
+                    ? bindings[i]
+                    : (i < involve_count
+                        ? involves_nodes[i]
+                        : values[i - involve_count]));
             const char *pt = NULL;
             const char *alias = "value";
             char *type_name = NULL;
@@ -106,15 +142,11 @@ transpiler_emit_intent_signature_and_entry(ASTNode *node,
             if (i > 0)
                 codebuf_write(ctx->out, ", ");
 
-            if (binding != NULL && binding->type == AST_INTENT_INVOLVES) {
-                const char *participant_type = participant_types != NULL && participant_index < participant_count
-                    ? participant_types[participant_index]
-                    : NULL;
-                alias = (mir_only_intent && participant_aliases != NULL && participant_index < participant_count
-                    && participant_aliases[participant_index] != NULL)
-                    ? participant_aliases[participant_index]
-                    : (ast_intent_involves_alias(binding) != NULL
-                        ? ast_intent_involves_alias(binding) : "participant");
+            if (mir_routine != NULL && bindings_view != NULL
+                && strcmp(bindings_view->kinds[i], "participant") == 0) {
+                const char *participant_type = bindings_view->types[i];
+                alias = bindings_view->aliases[i] != NULL
+                    ? bindings_view->aliases[i] : "participant";
                 if (!transpiler_intent_prologue_surface_desc(surface_desc,
                         sizeof(surface_desc), "intent participant", alias,
                         intent_name)) {
@@ -132,8 +164,30 @@ transpiler_emit_intent_signature_and_entry(ASTNode *node,
                     type_name = pergyra_strdup(participant_type);
                     pointer_param = intent_type_name_uses_pointer_self(
                         ctx, participant_type);
-                } else if (!mir_only_intent
-                    && ast_intent_involves_subject_type(binding) != NULL) {
+                }
+            } else if (binding != NULL && binding->type == AST_INTENT_INVOLVES) {
+                const char *participant_type = NULL;
+                (void)participant_index;
+                alias = ast_intent_involves_alias(binding) != NULL
+                    ? ast_intent_involves_alias(binding) : "participant";
+                if (!transpiler_intent_prologue_surface_desc(surface_desc,
+                        sizeof(surface_desc), "intent participant", alias,
+                        intent_name)) {
+                    transpiler_intent_prologue_surface_desc_too_long(
+                        ctx, "intent participant");
+                    return false;
+                }
+                if (participant_type != NULL) {
+                    if (transpiler_require_type_name_c_type_copy(ctx,
+                            participant_type, surface_desc,
+                            c_type_buf,
+                            sizeof(c_type_buf))) {
+                        pt = c_type_buf;
+                    }
+                    type_name = pergyra_strdup(participant_type);
+                    pointer_param = intent_type_name_uses_pointer_self(
+                        ctx, participant_type);
+                } else if (ast_intent_involves_subject_type(binding) != NULL) {
                     if (transpiler_require_ast_c_type_copy(ctx,
                             ast_intent_involves_subject_type(binding),
                             surface_desc,
@@ -147,17 +201,24 @@ transpiler_emit_intent_signature_and_entry(ASTNode *node,
                 }
                 participant_index++;
             } else {
-                const char *value_type_name = value_types != NULL
-                        && value_index < mir_value_count
-                    ? value_types[value_index]
+                const char *value_type_name = mir_routine != NULL
+                    ? (bindings_view != NULL ? bindings_view->types[i] : NULL)
                     : NULL;
-                ASTNode *value_type = binding != NULL
-                    ? ast_intent_value_type(binding) : NULL;
-                alias = (value_aliases != NULL && value_index < mir_value_count
-                         && value_aliases[value_index] != NULL)
-                    ? value_aliases[value_index]
-                    : (binding != NULL && ast_intent_value_alias(binding) != NULL)
-                    ? ast_intent_value_alias(binding) : "value";
+                ASTNode *value_type = NULL;
+                (void)value_index;
+                if (mir_routine != NULL && bindings_view != NULL
+                    && strcmp(bindings_view->kinds[i], "value") != 0) {
+                    transpiler_set_mir_inventory_missing(
+                        ctx,
+                        "MIR-backed C intent prologue has invalid ordered binding metadata for '%s'",
+                        intent_name != NULL ? intent_name : "(anonymous-intent)");
+                    return false;
+                }
+                alias = mir_routine != NULL
+                    ? (bindings_view != NULL && bindings_view->aliases[i] != NULL
+                        ? bindings_view->aliases[i] : "value")
+                    : ((binding != NULL && ast_intent_value_alias(binding) != NULL)
+                        ? ast_intent_value_alias(binding) : "value");
                 if (!transpiler_intent_prologue_surface_desc(surface_desc,
                         sizeof(surface_desc), "intent value", alias,
                         intent_name)) {
@@ -171,7 +232,9 @@ transpiler_emit_intent_signature_and_entry(ASTNode *node,
                         sizeof(c_type_buf))) {
                     pt = c_type_buf;
                     type_name = pergyra_strdup(value_type_name);
-                } else if (value_type_name == NULL
+                } else if (mir_routine == NULL && value_type_name == NULL
+                           && (value_type = binding != NULL
+                               ? ast_intent_value_type(binding) : NULL) != NULL
                            && transpiler_require_ast_c_type_copy(ctx,
                                value_type, surface_desc, c_type_buf,
                                sizeof(c_type_buf))) {
@@ -179,7 +242,8 @@ transpiler_emit_intent_signature_and_entry(ASTNode *node,
                     if (value_type != NULL)
                         type_name = render_type_name_in_ctx(ctx, value_type);
                 }
-                value_index++;
+                if (mir_routine == NULL)
+                    value_index++;
             }
             if (pt == NULL)
                 return false;
@@ -211,16 +275,22 @@ transpiler_emit_intent_signature_and_entry(ASTNode *node,
         codebuf_write(ctx->out, "bool __intent_step_completed[%zu] = { false };\n",
             step_count);
     }
-    for (size_t i = 0; i < involve_count; i++) {
-        ASTNode *involves = involves_nodes[i];
-        const char *participant_type = participant_types != NULL && i < participant_count
-            ? participant_types[i]
-            : NULL;
-        bool is_subject = participant_type != NULL
-            ? intent_type_name_is_subject_participant(ctx, participant_type)
-            : intent_involves_is_subject_participant(ctx, involves);
-        if (is_subject)
-            subject_count++;
+    if (mir_routine != NULL) {
+        for (size_t i = 0; i < mir_binding_count; i++) {
+            if (strcmp(bindings_view->kinds[i], "participant") != 0)
+                continue;
+            if (intent_type_name_is_subject_participant(ctx,
+                    bindings_view->types[i])) {
+                subject_count++;
+            }
+        }
+    } else {
+        for (size_t i = 0; i < involve_count; i++) {
+            ASTNode *involves = involves_nodes[i];
+            bool is_subject = intent_involves_is_subject_participant(ctx, involves);
+            if (is_subject)
+                subject_count++;
+        }
     }
     if (subject_count > 0) {
         write_indent(ctx);
@@ -228,18 +298,20 @@ transpiler_emit_intent_signature_and_entry(ASTNode *node,
             subject_count);
         {
             size_t subject_index = 0;
-            for (size_t i = 0; i < involve_count; i++) {
-                ASTNode *involves = involves_nodes[i];
-                const char *alias = (mir_only_intent && participant_aliases != NULL && i < participant_count
-                    && participant_aliases[i] != NULL)
-                    ? participant_aliases[i]
-                    : ((involves != NULL && ast_intent_involves_alias(involves) != NULL)
+            size_t participant_loop_count = mir_routine != NULL
+                ? mir_binding_count : involve_count;
+            for (size_t i = 0; i < participant_loop_count; i++) {
+                ASTNode *involves = mir_routine != NULL
+                    ? NULL : involves_nodes[i];
+                const char *alias = mir_routine != NULL
+                    ? bindings_view->aliases[i]
+                    : ((involves != NULL
+                        && ast_intent_involves_alias(involves) != NULL)
                         ? ast_intent_involves_alias(involves) : "participant");
-                const char *participant_type = participant_types != NULL && i < participant_count
-                    ? participant_types[i]
-                    : NULL;
-                bool is_subject = participant_type != NULL
-                    ? intent_type_name_is_subject_participant(ctx, participant_type)
+                bool is_subject = mir_routine != NULL
+                    ? (strcmp(bindings_view->kinds[i], "participant") == 0
+                        && intent_type_name_is_subject_participant(ctx,
+                            bindings_view->types[i]))
                     : intent_involves_is_subject_participant(ctx, involves);
                 if (!is_subject)
                     continue;

@@ -41,20 +41,6 @@ llvm_decl_header_field_by_kind(const MIRDeclHeader *header,
     return NULL;
 }
 
-static size_t
-llvm_decl_header_roster_slot_count(const MIRDeclHeader *header)
-{
-    return llvm_decl_header_field_count_by_kind(
-        header, MIR_DECL_FIELD_ROSTER_SLOT);
-}
-
-static const MIRDeclField *
-llvm_decl_header_roster_slot(const MIRDeclHeader *header, size_t index)
-{
-    return llvm_decl_header_field_by_kind(
-        header, MIR_DECL_FIELD_ROSTER_SLOT, index);
-}
-
 static ASTNode **
 llvm_domain_slot_compat_slots(ASTNode *decl, size_t *count_out)
 {

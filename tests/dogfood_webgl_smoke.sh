@@ -20,6 +20,10 @@ if [[ ! -x "$PGY_BIN" ]]; then
     echo "[dogfood-webgl] missing compiler binary: $PGY_BIN" >&2
     exit 1
 fi
+if ! pgy_binary_is_runnable_here "$PGY_BIN"; then
+    echo "[dogfood-webgl] compiler binary is not runnable on this host: $PGY_BIN" >&2
+    exit 1
+fi
 if ! "$PGY_BIN" --help >"$WORK_DIR/pgy-help.out" 2>"$WORK_DIR/pgy-help.err"; then
     echo "[dogfood-webgl] compiler binary is not runnable: $PGY_BIN" >&2
     cat "$WORK_DIR/pgy-help.err" >&2

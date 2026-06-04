@@ -231,10 +231,26 @@ llvm_register_enum_decl(LLVMGenCtx *ctx, ASTNode *stmt)
             user_pc++;
         }
 
-        LLVMTypeRef self_type = ctx->type_i32;
+        LLVMTypeRef self_type = NULL;
         LLVMClassTypeEntry *enum_entry = llvm_lookup_class(ctx, enum_name);
-        if (enum_entry != NULL)
+        if (has_data) {
+            if (enum_entry == NULL || enum_entry->struct_type == NULL) {
+                llvm_set_error(ctx,
+                    "LLVM payload enum method self type requires registered enum metadata for '%s.%s'",
+                    enum_name,
+                    method_name != NULL ? method_name : "<anonymous>");
+                return;
+            }
             self_type = enum_entry->struct_type;
+        } else if (llvm_enum_type_exists(ctx, enum_name)) {
+            self_type = ctx->type_i32;
+        } else {
+            llvm_set_error(ctx,
+                "LLVM enum method self type requires enum metadata for '%s.%s'",
+                enum_name,
+                method_name != NULL ? method_name : "<anonymous>");
+            return;
+        }
         /* Param-type buffer is consumed by LLVMFunctionType (copies). */
         LLVMTypeRef *param_types = pgy_arena_calloc(&ctx->scratch,
             (user_pc + 1) * sizeof(LLVMTypeRef));

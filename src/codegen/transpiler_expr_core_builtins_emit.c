@@ -56,6 +56,26 @@ expected_wrapped_inner_type(TranspilerCtx *ctx, const char *wrapper,
     return NULL;
 }
 
+static char *
+transpiler_core_builtin_emit_arg(TranspilerCtx *ctx,
+                                 ASTNode *expr,
+                                 const char *owner,
+                                 const char *role)
+{
+    char *lowered = emit_expression(expr, ctx);
+    if (lowered != NULL)
+        return lowered;
+
+    transpiler_set_backend_error_with_hints(ctx,
+        PGY_CODE_C_TYPE_UNSUPPORTED,
+        PGY_CAUSE_C_TYPE_UNSUPPORTED,
+        PGY_FIX_USE_LLVM_BACKEND_OR_EXTEND_TRANSPILER,
+        "C backend: %s could not lower %s expression",
+        owner != NULL ? owner : "core builtin",
+        role != NULL ? role : "argument");
+    return NULL;
+}
+
 char *
 emit_builtin_rc(ASTNode *call, BuiltinKind kind, TranspilerCtx *ctx)
 {
@@ -140,43 +160,64 @@ emit_builtin_rc(ASTNode *call, BuiltinKind kind, TranspilerCtx *ctx)
     }
 
     if (kind == BUILTIN_RC_NEW) {
-        char *value = emit_expression(arg, ctx);
+        char *value = transpiler_core_builtin_emit_arg(ctx, arg, "RcNew",
+            "payload");
+        if (value == NULL)
+            return pergyra_strdup("0");
         char *result = strdup_fmt("pgy_rc_new_%s(%s)", inner, value);
         free(value);
         return result;
     }
     if (kind == BUILTIN_RC_CLONE) {
-        char *value = emit_expression(arg, ctx);
+        char *value = transpiler_core_builtin_emit_arg(ctx, arg, "RcClone",
+            "operand");
+        if (value == NULL)
+            return pergyra_strdup("0");
         char *result = strdup_fmt("pgy_rc_clone_%s(%s)", inner, value);
         free(value);
         return result;
     }
     if (kind == BUILTIN_RC_DROP) {
-        char *value = emit_expression(arg, ctx);
+        char *value = transpiler_core_builtin_emit_arg(ctx, arg, "RcDrop",
+            "operand");
+        if (value == NULL)
+            return pergyra_strdup("0");
         char *result = strdup_fmt("pgy_rc_drop_%s(&%s)", inner, value);
         free(value);
         return result;
     }
     if (kind == BUILTIN_RC_GET) {
-        char *value = emit_expression(arg, ctx);
+        char *value = transpiler_core_builtin_emit_arg(ctx, arg, "RcGet",
+            "operand");
+        if (value == NULL)
+            return pergyra_strdup("0");
         char *result = strdup_fmt("(*pgy_rc_get_%s(&%s))", inner, value);
         free(value);
         return result;
     }
     if (kind == BUILTIN_RC_DOWNGRADE) {
-        char *value = emit_expression(arg, ctx);
+        char *value = transpiler_core_builtin_emit_arg(ctx, arg,
+            "RcDowngrade", "operand");
+        if (value == NULL)
+            return pergyra_strdup("0");
         char *result = strdup_fmt("pgy_rc_downgrade_%s(%s)", inner, value);
         free(value);
         return result;
     }
     if (kind == BUILTIN_WEAK_UPGRADE) {
-        char *value = emit_expression(arg, ctx);
+        char *value = transpiler_core_builtin_emit_arg(ctx, arg,
+            "WeakUpgrade", "operand");
+        if (value == NULL)
+            return pergyra_strdup("0");
         char *result = strdup_fmt("pgy_weak_upgrade_%s(%s)", inner, value);
         free(value);
         return result;
     }
     if (kind == BUILTIN_WEAK_DROP) {
-        char *value = emit_expression(arg, ctx);
+        char *value = transpiler_core_builtin_emit_arg(ctx, arg, "WeakDrop",
+            "operand");
+        if (value == NULL)
+            return pergyra_strdup("0");
         char *result = strdup_fmt("pgy_weak_drop_%s(&%s)", inner, value);
         free(value);
         return result;
@@ -297,13 +338,19 @@ emit_builtin_box(ASTNode *call, BuiltinKind kind, TranspilerCtx *ctx)
     }
 
     if (kind == BUILTIN_BOX) {
-        char *value = emit_expression(arg, ctx);
+        char *value = transpiler_core_builtin_emit_arg(ctx, arg, "Box",
+            "payload");
+        if (value == NULL)
+            return pergyra_strdup("0");
         char *result = strdup_fmt("pgy_box_new_%s(%s)", inner, value);
         free(value);
         return result;
     }
     if (kind == BUILTIN_BOX_GET) {
-        char *value = emit_expression(arg, ctx);
+        char *value = transpiler_core_builtin_emit_arg(ctx, arg, "BoxGet",
+            "operand");
+        if (value == NULL)
+            return pergyra_strdup("0");
         char *result = strdup_fmt("pgy_box_get_%s(%s)", inner, value);
         free(value);
         return result;
@@ -317,8 +364,15 @@ emit_builtin_box(ASTNode *call, BuiltinKind kind, TranspilerCtx *ctx)
                 "C backend: BoxSet requires exactly two arguments");
             return pergyra_strdup("0");
         }
-        char *box_expr = emit_expression(arg, ctx);
-        char *value = emit_expression(ast_call_argument(call, 1), ctx);
+        char *box_expr = transpiler_core_builtin_emit_arg(ctx, arg,
+            "BoxSet", "box operand");
+        char *value = transpiler_core_builtin_emit_arg(ctx,
+            ast_call_argument(call, 1), "BoxSet", "value");
+        if (box_expr == NULL || value == NULL) {
+            free(box_expr);
+            free(value);
+            return pergyra_strdup("0");
+        }
         char *result = strdup_fmt("pgy_box_set_%s(&%s, %s)", inner, box_expr,
             value);
         free(box_expr);
@@ -326,19 +380,28 @@ emit_builtin_box(ASTNode *call, BuiltinKind kind, TranspilerCtx *ctx)
         return result;
     }
     if (kind == BUILTIN_BOX_DROP) {
-        char *value = emit_expression(arg, ctx);
+        char *value = transpiler_core_builtin_emit_arg(ctx, arg, "BoxDrop",
+            "operand");
+        if (value == NULL)
+            return pergyra_strdup("0");
         char *result = strdup_fmt("pgy_box_drop_%s(&%s)", inner, value);
         free(value);
         return result;
     }
     if (kind == BUILTIN_BOX_IS_VALID) {
-        char *value = emit_expression(arg, ctx);
+        char *value = transpiler_core_builtin_emit_arg(ctx, arg,
+            "BoxIsValid", "operand");
+        if (value == NULL)
+            return pergyra_strdup("false");
         char *result = strdup_fmt("pgy_box_is_valid_%s(&%s)", inner, value);
         free(value);
         return result;
     }
     if (kind == BUILTIN_BOX_ARRAY) {
-        char *arr_expr = emit_expression(ast_call_argument(call, 0), ctx);
+        char *arr_expr = transpiler_core_builtin_emit_arg(ctx,
+            ast_call_argument(call, 0), "BoxArray", "array operand");
+        if (arr_expr == NULL)
+            return pergyra_strdup("0");
         char elem_buf[128];
         const char *elem = NULL;
         char *result;

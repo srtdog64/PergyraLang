@@ -47,6 +47,25 @@ require_term_any() {
     fail "missing term in expected file set: $term"
 }
 
+require_each_following_term() {
+    local rel="$1"
+    local anchor="$2"
+    local term="$3"
+    local window="$4"
+    local file="$ROOT_DIR/$rel"
+    local lines
+    local line
+
+    [[ -f "$file" ]] || fail "missing required file: $rel"
+    lines="$(grep -nF "$anchor" "$file" | cut -d: -f1 || true)"
+    [[ -n "$lines" ]] || fail "$rel missing anchor: $anchor"
+    while IFS= read -r line; do
+        [[ -n "$line" ]] || continue
+        sed -n "${line},$((line + window))p" "$file" | grep -Fq "$term" ||
+            fail "$rel anchor '$anchor' at line $line is not followed by: $term"
+    done <<< "$lines"
+}
+
 for rel in \
     "src/codegen/llvm_internal.h" \
     "src/codegen/llvm_internal_api.h" \
@@ -302,6 +321,18 @@ fi
 require_term "src/codegen/llvm_expr_call_dispatch.c" \
     "MIR-only LLVM path missing registered intent call target"
 require_term "src/codegen/llvm_expr_call_dispatch.c" \
+    "MIR-only LLVM path missing intent routine for call target"
+require_term "src/codegen/llvm_expr_call_dispatch.c" \
+    "llvm_collect_mir_intent_bindings"
+require_term "src/codegen/llvm_expr_call_dispatch.c" \
+    "MIR-only LLVM path missing ordered intent binding metadata for call target"
+require_term "src/codegen/llvm_expr_call_dispatch.c" \
+    "MIR-only LLVM path has incomplete ordered intent binding metadata for call target"
+require_term "src/codegen/llvm_expr_call_dispatch.c" \
+    "MIR-only LLVM path has invalid ordered intent binding metadata for call target"
+require_term "src/codegen/llvm_expr_call_dispatch.c" \
+    "!mir_only_intent && i < binding_count"
+require_term "src/codegen/llvm_expr_call_dispatch.c" \
     "MIR-only LLVM path missing registered function call target"
 require_term "src/codegen/llvm_expr_call_dispatch.c" \
     "llvm_active_has_mir(ctx)"
@@ -309,10 +340,59 @@ require_term "src/compiler/mir_intent.c" \
     "\"IntentValue\""
 require_term "src/compiler/mir_intent_fact.c" \
     "\"IntentValue\""
+require_term "src/compiler/mir_intent.c" \
+    "\"IntentBinding\""
+require_term "src/compiler/mir_intent_fact.c" \
+    "\"IntentBinding\""
+require_term "src/compiler/mir_intent.c" \
+    "mir_append_intent_decl_contracts"
+require_term "src/compiler/mir_intent.c" \
+    "\"priority\""
+require_term "src/compiler/mir_intent.c" \
+    "\"success\""
+require_term "src/codegen/llvm_intent.c" \
+    "llvm_find_mir_intent_eval_expr("
+require_term "src/codegen/llvm_intent.c" \
+    "mir_routine, ctx, intent_name, \"priority\""
+require_term "src/codegen/llvm_intent.c" \
+    "llvm_find_mir_intent_check_expr("
+require_term "src/codegen/llvm_intent.c" \
+    "mir_routine, intent_name, \"success\""
+require_term "src/codegen/transpiler_intent_prologue_emit.c" \
+    "transpiler_find_mir_intent_eval_expr("
+require_term "src/codegen/transpiler_intent_prologue_emit.c" \
+    "mir_routine, intent_name, \"priority\""
+require_term "src/codegen/transpiler_intent_emit.c" \
+    "transpiler_find_mir_intent_check_expr("
+require_term "src/codegen/transpiler_intent_emit.c" \
+    "mir_routine, intent_name, \"success\""
+require_term "src/codegen/transpiler_intent_emit.c" \
+    "C intent '%s' cannot lower its success predicate; silent true fallback is disabled"
+if grep -Fq 'success != NULL ? success : "true"' \
+    "$ROOT_DIR/src/codegen/transpiler_intent_emit.c"; then
+    fail "C intent success lowering must fail closed instead of silently falling back to true"
+fi
+require_term "src/codegen/llvm_intent_internal.h" \
+    "llvm_collect_mir_intent_bindings"
+require_term "src/codegen/llvm_intent_mir_meta.c" \
+    "llvm_collect_mir_intent_bindings"
+require_term "src/codegen/llvm_mir_emit.c" \
+    "llvm_collect_mir_intent_bindings"
+require_term "src/codegen/llvm_mir_param_emit.c" \
+    "llvm_collect_mir_intent_bindings"
+for file in \
+    "src/codegen/llvm_mir_emit.c" \
+    "src/codegen/llvm_mir_param_emit.c"; do
+    if grep -Fq "ast_intent_decl_bindings" "$ROOT_DIR/$file" \
+        || grep -Fq "ast_intent_decl_involves" "$ROOT_DIR/$file" \
+        || grep -Fq "ast_intent_decl_values" "$ROOT_DIR/$file"; then
+        fail "LLVM MIR intent param/type emission must consume ordered IntentBinding metadata instead of AST binding arrays: $file"
+    fi
+done
 require_term "src/codegen/transpiler_mir_inventory_intent_collect.h" \
-    "transpiler_collect_mir_intent_values"
+    "transpiler_collect_mir_intent_bindings"
 require_term "src/codegen/transpiler_mir_inventory_intent_alias_collect.c" \
-    "transpiler_collect_mir_intent_values"
+    "transpiler_collect_mir_intent_bindings"
 require_term "src/codegen/transpiler_intent_participant.h" \
     "intent_type_name_is_subject_participant"
 require_term "src/codegen/transpiler_intent_participant.h" \
@@ -321,18 +401,58 @@ require_term "src/codegen/transpiler_intent_participant.c" \
     "intent_type_name_is_subject_participant"
 require_term "src/codegen/transpiler_intent_participant.c" \
     "intent_type_name_uses_pointer_self"
-require_term "src/codegen/transpiler_intent_zone_binding_emit.c" \
-    "transpiler_collect_mir_intent_values"
 require_term "src/codegen/transpiler_intent_zone_binding_emit.c" \
     "intent_type_name_uses_pointer_self"
 require_term "src/codegen/transpiler_intent_zone_binding_emit.c" \
     "transpiler_require_type_name_c_type_copy(ctx"
 require_term "src/codegen/transpiler_intent_zone_binding_emit.c" \
     "transpiler_can_forward_declare_type_name_early"
+require_term "src/codegen/transpiler_intent_zone_binding_emit.c" \
+    "transpiler_collect_mir_intent_bindings"
+require_term "src/codegen/transpiler_intent_zone_binding_emit.c" \
+    "MIR-backed C forward declaration has incomplete ordered intent binding metadata"
+require_term "src/codegen/transpiler_intent_zone_binding_emit.c" \
+    "MIR-backed C forward declaration has invalid ordered intent binding metadata"
+require_term "src/codegen/transpiler_intent_zone_binding_emit.c" \
+    "mir_routine == NULL"
+require_term "src/codegen/transpiler_intent_zone_binding_emit.c" \
+    "subject_type = ast_intent_involves_subject_type(binding)"
+require_term "src/codegen/transpiler_intent_zone_binding_emit.c" \
+    "!mir_only_intent && value_type_name == NULL"
+require_term "src/codegen/transpiler_intent_zone_binding_emit.c" \
+    "binding_types[i]"
+require_term "src/codegen/transpiler_intent_zone_binding_emit.c" \
+    "transpiler_can_forward_declare_type_name_early("
+if grep -Fq "transpiler_collect_mir_intent_values(" \
+    "$ROOT_DIR/src/codegen/transpiler_intent_zone_binding_emit.c" \
+    || grep -Fq "transpiler_collect_mir_intent_participants(" \
+        "$ROOT_DIR/src/codegen/transpiler_intent_zone_binding_emit.c"; then
+    fail "C intent forward/early eligibility must consume ordered binding rows, not separate participant/value collectors"
+fi
+if grep -Fq "participant_count + mir_value_count" \
+    "$ROOT_DIR/src/codegen/transpiler_intent_zone_binding_emit.c"; then
+    fail "C intent forward/early eligibility must not compare ordered binding rows against legacy participant/value counts"
+fi
 require_term "src/codegen/transpiler_intent_context.c" \
     "find_subject_action_metadata"
 require_term "src/codegen/transpiler_intent_context.c" \
     "intent_action_metadata_has_only_self"
+require_term "src/codegen/transpiler_intent_context.c" \
+    "intent_binding_metadata_view_is_active"
+require_term "src/codegen/transpiler_intent_context.c" \
+    "strcmp(bindings->kinds[i], required_kind) == 0"
+require_term "src/codegen/transpiler_intent_context.c" \
+    "return NULL;"
+require_term "src/codegen/transpiler_intent_context.c" \
+    "return intent_zone_binding_type_name(intent, alias)"
+require_term "src/codegen/transpiler_intent_zone_slot.c" \
+    "has_binding_metadata"
+require_term "src/codegen/transpiler_intent_zone_slot.c" \
+    "MIR-only C path missing ordered intent binding metadata for zone-slot binding"
+require_term "src/codegen/transpiler_intent_emit.c" \
+    "IntentBindingMetadataView binding_metadata"
+require_term "src/codegen/transpiler_intent_emit.c" \
+    "resolve_intent_zone_slot_name_for_zone_with_bindings"
 require_term "src/codegen/transpiler_intent_emit.c" \
     "find_subject_action_metadata"
 require_term "src/codegen/transpiler_intent_emit.c" \
@@ -362,9 +482,52 @@ if grep -Fq "param == NULL || param->type == NULL" \
     fail "LLVM forward policy must not require AST param->type before MIR routine param_type_name"
 fi
 require_term "src/codegen/transpiler_intent_emit.c" \
-    "transpiler_collect_mir_intent_values"
+    "transpiler_collect_mir_intent_bindings"
 require_term "src/codegen/transpiler_intent_emit.c" \
-    "MIR-only C path missing intent value metadata"
+    "MIR-only C path has incomplete ordered intent binding metadata"
+require_term "src/codegen/transpiler_intent_emit.c" \
+    "mir_requires_routine = transpiler_active_has_mir(ctx) && decl_step_count > 0"
+require_term "src/codegen/transpiler_intent_emit.c" \
+    "mir_only_intent = mir_routine != NULL"
+require_term "src/codegen/transpiler_intent_emit.c" \
+    "IntentBindingMetadataView binding_metadata"
+require_term "src/codegen/transpiler_intent_emit.c" \
+    "&binding_metadata"
+if grep -Fq "transpiler_collect_mir_intent_values(" \
+    "$ROOT_DIR/src/codegen/transpiler_intent_emit.c"; then
+    fail "C intent emitter prologue path must consume ordered binding metadata, not separate value metadata"
+fi
+require_term "src/codegen/transpiler_expr_call_user_emit.c" \
+    "transpiler_collect_mir_intent_bindings"
+require_term "src/codegen/transpiler_expr_call_user_emit.c" \
+    "MIR-only C path missing ordered intent binding metadata for call target"
+require_term "src/codegen/transpiler_intent_emit.c" \
+    "MIR-only C path missing intent dispatch participant metadata"
+require_term "src/codegen/transpiler_intent_emit.c" \
+    "if (!mir_only_intent && action_meta == NULL)"
+require_term "src/codegen/transpiler_intent_emit.c" \
+    "emit_intent_step_bind_bound_zone_with_metadata"
+require_term "src/codegen/transpiler_intent_emit.c" \
+    "emit_intent_step_rebind_bound_zone_aliases_with_metadata"
+require_term "src/codegen/transpiler_intent_emit.c" \
+    "emit_intent_step_sync_effective_zone_with_metadata"
+require_term "src/codegen/transpiler_intent_emit.c" \
+    "emit_intent_step_restore_bound_zone_aliases_with_metadata"
+require_each_following_term "src/codegen/transpiler_intent_emit.c" \
+    "emit_intent_step_bind_bound_zone_with_metadata(" \
+    "ctx->backend_error" 8
+require_each_following_term "src/codegen/transpiler_intent_emit.c" \
+    "emit_intent_step_rebind_bound_zone_aliases_with_metadata(" \
+    "ctx->backend_error" 7
+require_each_following_term "src/codegen/transpiler_intent_emit.c" \
+    "emit_intent_step_sync_effective_zone_with_metadata(" \
+    "ctx->backend_error" 6
+require_each_following_term "src/codegen/transpiler_intent_emit.c" \
+    "emit_intent_step_restore_bound_zone_aliases_with_metadata(" \
+    "ctx->backend_error" 7
+require_each_following_term "src/codegen/transpiler_intent_cleanup_emit.c" \
+    "emit_intent_step_bind_bound_zone_with_metadata(" \
+    "ctx->backend_error" 6
 require_term "src/codegen/transpiler_intent_prologue_emit.c" \
     "transpiler_require_type_name_c_type_copy(ctx"
 require_term "src/codegen/transpiler_intent_prologue_emit.c" \
@@ -372,47 +535,227 @@ require_term "src/codegen/transpiler_intent_prologue_emit.c" \
 require_term "src/codegen/transpiler_intent_prologue_emit.c" \
     "intent_type_name_uses_pointer_self"
 require_term "src/codegen/transpiler_intent_prologue_emit.c" \
-    "value_types != NULL"
-require_term "src/codegen/llvm_intent_internal.h" \
-    "llvm_collect_mir_intent_values"
-require_term "src/codegen/llvm_intent_mir_meta.c" \
-    "llvm_collect_mir_intent_values"
+    "const IntentBindingMetadataView *bindings_view"
+require_term "src/codegen/transpiler_intent_prologue_emit.c" \
+    "MIR-backed C intent prologue has incomplete ordered binding metadata"
+require_term "src/codegen/transpiler_intent_prologue_emit.c" \
+    "MIR-backed C intent prologue has invalid ordered binding metadata"
+require_term "src/codegen/transpiler_intent_prologue_emit.c" \
+    "bindings_view->kinds"
+require_term "src/codegen/transpiler_intent_prologue_emit.c" \
+    "mir_routine == NULL &&"
+for term in \
+    "const char **participant_aliases" \
+    "const char **participant_types" \
+    "const char **value_aliases" \
+    "const char **value_types" \
+    "const char **binding_kinds"; do
+    if grep -Fq "$term" "$ROOT_DIR/src/codegen/transpiler_intent_prologue_emit.c"; then
+        fail "C intent prologue must consume IntentBindingMetadataView instead of old parallel metadata parameter: $term"
+    fi
+done
+require_term "src/codegen/transpiler_intent_prologue_emit.h" \
+    "const IntentBindingMetadataView *bindings"
 require_term "src/codegen/llvm_intent.c" \
-    "llvm_collect_mir_intent_values"
+    "llvm_collect_mir_intent_bindings"
 require_term "src/codegen/llvm_intent.c" \
-    "MIR-only LLVM path missing intent value metadata"
+    "mir_requires_routine = llvm_active_has_mir(ctx) && decl_step_count > 0"
+require_term "src/codegen/llvm_intent.c" \
+    "mir_only_intent = mir_routine != NULL"
+require_term "src/codegen/llvm_intent.c" \
+    "MIR-only LLVM path has incomplete ordered intent binding metadata for entry setup"
+require_term "src/codegen/llvm_intent.c" \
+    "MIR-only LLVM path has invalid ordered intent binding metadata for entry setup"
+require_term "src/codegen/llvm_intent.c" \
+    "MIR-only LLVM path missing intent dispatch participant metadata"
 require_term "src/codegen/llvm_intent_setup.c" \
-    "value_types != NULL"
+    "pergyra_type_to_llvm(ctx, type_name)"
 require_term "src/codegen/llvm_intent_setup.c" \
-    "pergyra_type_to_llvm(ctx, value_type_name)"
+    "MIR-only LLVM path has incomplete ordered intent entry binding metadata"
+require_term "src/codegen/llvm_intent_setup.c" \
+    "MIR-only LLVM path has invalid ordered intent entry binding metadata"
+require_term "src/codegen/llvm_intent_setup.c" \
+    "LLVM intent entry binding %zu requires alias and type metadata; silent i8ptr fallback is not allowed"
+require_term "src/codegen/llvm_intent_setup.c" \
+    "binding_kinds"
+if grep -Fq "LLVMTypeRef pt = ctx->type_i8ptr" \
+    "$ROOT_DIR/src/codegen/llvm_intent_setup.c"; then
+    fail "LLVM intent entry binding setup must not seed missing binding metadata with i8ptr"
+fi
+if grep -Fq 'alias != NULL ? alias : "param"' \
+    "$ROOT_DIR/src/codegen/llvm_intent_setup.c"; then
+    fail "LLVM intent entry binding setup must not synthesize parameter aliases"
+fi
+for rel in \
+    "src/codegen/llvm_intent.c" \
+    "src/codegen/llvm_intent_setup.c"; do
+    if grep -Fq "llvm_collect_mir_intent_values(" "$ROOT_DIR/$rel" \
+        || grep -Fq "llvm_collect_mir_intent_participants(" "$ROOT_DIR/$rel"; then
+        fail "$rel must consume ordered binding rows, not separate participant/value collectors"
+    fi
+    if grep -Fq "participant_count + mir_value_count" "$ROOT_DIR/$rel"; then
+        fail "$rel must not compare ordered binding rows against legacy participant/value counts"
+    fi
+done
+require_term "src/codegen/llvm_intent_zone.c" \
+    "MIR-only LLVM path missing intent participant metadata for zone-slot binding"
+require_term "src/codegen/llvm_intent_zone.c" \
+    "MIR-only LLVM path missing intent participant binding for zone rebind"
+require_term "src/codegen/llvm_intent_zone.c" \
+    "MIR-only LLVM path missing intent participant binding for zone restore"
+require_term "src/codegen/llvm_intent_zone_bind.c" \
+    "MIR-only LLVM path missing intent participant binding for zone transfer"
+require_term "src/codegen/llvm_intent_zone_bind.c" \
+    "MIR-only LLVM path missing intent participant binding for zone materialization"
+require_each_following_term "src/codegen/llvm_intent.c" \
+    "llvm_emit_intent_step_bind_bound_zone(" \
+    "ctx->has_error" 6
+require_each_following_term "src/codegen/llvm_intent.c" \
+    "llvm_emit_intent_step_rebind_bound_zone_aliases(" \
+    "ctx->has_error" 5
+require_each_following_term "src/codegen/llvm_intent.c" \
+    "llvm_emit_intent_step_sync_effective_zone(" \
+    "ctx->has_error" 5
+require_each_following_term "src/codegen/llvm_intent.c" \
+    "llvm_emit_intent_step_restore_bound_zone_aliases(" \
+    "ctx->has_error" 6
+require_each_following_term "src/codegen/llvm_intent_cleanup.c" \
+    "llvm_emit_intent_step_bind_bound_zone(" \
+    "ctx->has_error" 6
 require_term "src/codegen/llvm_intent_forward.c" \
-    "llvm_collect_mir_intent_values"
+    "llvm_collect_mir_intent_bindings"
 require_term "src/codegen/llvm_intent_forward.c" \
-    "MIR-only LLVM path missing intent value metadata"
+    "MIR-only LLVM path has incomplete ordered intent binding metadata for forward declaration"
+require_term "src/codegen/llvm_intent_forward.c" \
+    "MIR-only LLVM path has invalid ordered intent binding metadata for forward declaration"
+require_term "src/codegen/llvm_intent_forward.c" \
+    "requires binding type metadata for parameter"
+if grep -Fq "llvm_collect_mir_intent_values(" \
+    "$ROOT_DIR/src/codegen/llvm_intent_forward.c" \
+    || grep -Fq "llvm_collect_mir_intent_participants(" \
+        "$ROOT_DIR/src/codegen/llvm_intent_forward.c"; then
+    fail "LLVM intent forward declaration must consume ordered binding rows, not separate participant/value collectors"
+fi
+if grep -Fq "participant_count + mir_value_count" \
+    "$ROOT_DIR/src/codegen/llvm_intent_forward.c"; then
+    fail "LLVM intent forward declaration must not compare ordered binding rows against legacy participant/value counts"
+fi
+if grep -Fq "pt = ctx->type_i32;" \
+    "$ROOT_DIR/src/codegen/llvm_intent_forward.c"; then
+    fail "LLVM intent forward declaration must not hide missing binding type metadata with i32"
+fi
 require_term "src/codegen/llvm_mir_emit.c" \
-    "llvm_collect_mir_intent_values"
+    "llvm_collect_mir_intent_bindings"
 require_term "src/codegen/llvm_mir_emit.c" \
     "pergyra_type_to_llvm(ctx, type_name)"
+require_term "src/codegen/llvm_mir_emit.c" \
+    "MIR-only LLVM path has incomplete ordered intent binding metadata"
+require_term "src/codegen/llvm_mir_emit.c" \
+    "MIR-only LLVM path has invalid ordered intent binding metadata"
+require_term "src/codegen/llvm_mir_emit.c" \
+    "MIR-only LLVM path missing intent participant type metadata"
+require_term "src/codegen/llvm_mir_emit.c" \
+    "MIR-only LLVM path missing intent parameter metadata"
 require_term "src/codegen/llvm_mir_param_emit.c" \
-    "llvm_collect_mir_intent_values"
+    "llvm_collect_mir_intent_bindings"
 require_term "src/codegen/llvm_mir_param_emit.c" \
-    "pergyra_type_to_llvm(ctx, value_type)"
-require_term "src/codegen/transpiler_expr_call_user_emit.c" \
-    "transpiler_collect_mir_intent_values"
+    "pergyra_type_to_llvm(ctx, type_name)"
+require_term "src/codegen/llvm_mir_param_emit.c" \
+    "MIR-only LLVM path has incomplete ordered intent binding metadata"
+require_term "src/codegen/llvm_mir_param_emit.c" \
+    "MIR-only LLVM path missing intent parameter type metadata"
+require_term "src/codegen/llvm_mir_param_emit.c" \
+    "llvm_register_typed_var_abi_binding(ctx, alias, alloca"
+for rel in \
+    "src/codegen/llvm_mir_emit.c" \
+    "src/codegen/llvm_mir_param_emit.c"; do
+    if grep -Eq 'ast_intent_(involves_subject_type|involves_alias|value_type|value_alias)\(' "$ROOT_DIR/$rel"; then
+        fail "$rel must not reopen intent binding AST alias/type in MIR-backed lowering"
+    fi
+    if grep -Fq "llvm_collect_mir_intent_values(" "$ROOT_DIR/$rel" \
+        || grep -Fq "llvm_collect_mir_intent_participants(" "$ROOT_DIR/$rel"; then
+        fail "$rel must consume ordered IntentBinding rows, not separate participant/value collectors"
+    fi
+    if grep -Fq "participant_count + mir_value_count" "$ROOT_DIR/$rel"; then
+        fail "$rel must not compare ordered binding rows against legacy participant/value counts"
+    fi
+done
 require_term "src/codegen/transpiler_expr_call_user_emit.c" \
     "intent_param_type_name"
+require_term "src/codegen/transpiler_expr_call_user_emit.c" \
+    "MIR-only C path missing intent routine for call target"
+require_term "src/codegen/transpiler_expr_call_user_emit.c" \
+    "MIR-only C path has incomplete ordered intent binding metadata for call target"
+require_term "src/codegen/transpiler_expr_call_user_emit.c" \
+    "MIR-only C path has invalid ordered intent binding metadata for call target"
+require_term "src/codegen/transpiler_expr_call_user_emit.c" \
+    "C backend: MIR-backed intent call '%s' expects %zu argument(s), got %zu"
+require_term "src/codegen/transpiler_expr_call_user_emit.c" \
+    "mir_requires_routine = transpiler_active_has_mir(ctx)"
+require_term "src/codegen/transpiler_expr_call_user_emit.c" \
+    "mir_only_intent = intent_routine != NULL"
+require_term "src/codegen/transpiler_expr_call_user_emit.c" \
+    "if (mir_only_intent)"
+if grep -Fq "transpiler_collect_mir_intent_values(" \
+    "$ROOT_DIR/src/codegen/transpiler_expr_call_user_emit.c" \
+    || grep -Fq "transpiler_collect_mir_intent_participants(" \
+        "$ROOT_DIR/src/codegen/transpiler_expr_call_user_emit.c"; then
+    fail "C intent call target must consume ordered binding rows, not separate participant/value collectors"
+fi
+if grep -Fq "participant_count + value_meta_count" \
+    "$ROOT_DIR/src/codegen/transpiler_expr_call_user_emit.c"; then
+    fail "C intent call target must not compare ordered binding rows against legacy participant/value counts"
+fi
 require_term "src/codegen/transpiler_call_subject_arg_policy.c" \
     "intent_param_type_name != NULL"
 require_term "src/codegen/transpiler_call_subject_arg_policy.c" \
     "intent_type_name_uses_pointer_self(ctx, intent_param_type_name)"
 require_term "src/codegen/llvm_expr_call_dispatch.c" \
-    "llvm_collect_mir_intent_values"
+    "llvm_collect_mir_intent_bindings"
+require_term "src/codegen/llvm_expr_call_dispatch.c" \
+    "MIR-only LLVM path missing ordered intent binding metadata for call target"
+require_term "src/codegen/llvm_expr_call_dispatch.c" \
+    "MIR-only LLVM path has incomplete ordered intent binding metadata for call target"
+require_term "src/codegen/llvm_expr_call_dispatch.c" \
+    "MIR-only LLVM path has invalid ordered intent binding metadata for call target"
+require_term "src/codegen/llvm_expr_call_dispatch.c" \
+    "LLVM MIR-backed intent call '%s' expects %zu argument(s), got %zu"
+require_term "src/codegen/llvm_expr_call_dispatch.c" \
+    "LLVM intent forward declaration requires binding type metadata; silent i8ptr fallback is not allowed"
+require_term "src/codegen/llvm_expr_call_dispatch.c" \
+    "mir_requires_routine = llvm_active_has_mir(ctx) && intent_step_count > 0"
+require_term "src/codegen/llvm_expr_call_dispatch.c" \
+    "mir_only_intent = intent_routine != NULL"
 require_term "src/codegen/llvm_expr_call_dispatch.c" \
     "pergyra_type_to_llvm(ctx, type_name)"
+if grep -Fq "LLVMTypeRef pt = ctx->type_i8ptr" \
+    "$ROOT_DIR/src/codegen/llvm_expr_call_dispatch.c"; then
+    fail "LLVM intent call-target forward declaration must not seed missing binding metadata with i8ptr"
+fi
+if grep -Fq "llvm_collect_mir_intent_values(" \
+    "$ROOT_DIR/src/codegen/llvm_expr_call_dispatch.c" \
+    || grep -Fq "llvm_collect_mir_intent_participants(" \
+        "$ROOT_DIR/src/codegen/llvm_expr_call_dispatch.c"; then
+    fail "LLVM intent call target must consume ordered binding rows, not separate participant/value collectors"
+fi
+if grep -Fq "participant_count + mir_value_count" \
+    "$ROOT_DIR/src/codegen/llvm_expr_call_dispatch.c"; then
+    fail "LLVM intent call target must not compare ordered binding rows against legacy participant/value counts"
+fi
 require_term "src/codegen/llvm_intent_forward.c" \
-    "MIR-only LLVM path missing intent participant type metadata"
+    "mir_requires_routine = llvm_active_has_mir(ctx) && intent_step_count > 0"
 require_term "src/codegen/llvm_intent_forward.c" \
-    "MIR-only LLVM path missing intent value type metadata"
+    "mir_only_intent = mir_routine != NULL"
+require_term "src/codegen/llvm_intent_forward.c" \
+    "MIR-only LLVM path missing intent routine for forward declaration"
+require_term "src/codegen/transpiler_intent_zone_binding_emit.c" \
+    "mir_requires_routine = transpiler_active_has_mir(ctx) && intent_step_count > 0"
+require_term "src/codegen/transpiler_intent_zone_binding_emit.c" \
+    "mir_only_intent = mir_routine != NULL"
+require_term "src/codegen/transpiler_intent_zone_binding_emit.c" \
+    "MIR-only C path missing intent routine for forward declaration"
+require_term "src/codegen/transpiler_intent_zone_binding_emit.c" \
+    "MIR-only C path missing intent routine for early forward eligibility"
 require_term "src/codegen/llvm_mir_local_emit.c" \
     "MIR-only LLVM path missing local type metadata"
 require_term "src/codegen/llvm_mir_local_emit.c" \
@@ -2245,6 +2588,30 @@ for term in \
     "mir_routine_param(routine, p)"; do
     require_term "src/codegen/transpiler_mir_emission_mapping_contract.c" "$term"
 done
+for term in \
+    "transpiler_collect_mir_intent_bindings(" \
+    "transpiler_seed_intent_aliases_for_mapping" \
+    "transpiler_seed_aliases_from_mir_metadata" \
+    "if (alias == NULL)" \
+    "binding_aliases, mir_binding_count"; do
+    require_term "src/codegen/transpiler_mir_emission_mapping_contract.c" "$term"
+done
+if grep -Fq "transpiler_collect_mir_intent_values(" \
+    "$ROOT_DIR/src/codegen/transpiler_mir_emission_mapping_contract.c" \
+    || grep -Fq "transpiler_collect_mir_intent_participants(" \
+        "$ROOT_DIR/src/codegen/transpiler_mir_emission_mapping_contract.c"; then
+    fail "C MIR mapping precheck must consume ordered binding rows, not separate participant/value collectors"
+fi
+if grep -Fq "mir_binding_count != mir_participant_count + mir_value_count" \
+    "$ROOT_DIR/src/codegen/transpiler_mir_emission_mapping_contract.c"; then
+    fail "C MIR mapping precheck must not compare ordered binding rows against legacy participant/value counts"
+fi
+if grep -Eq 'ast_intent_decl_(involves|values)\(' "$ROOT_DIR/src/codegen/transpiler_mir_emission_mapping_contract.c"; then
+    fail "C MIR mapping precheck must not reopen intent participant/value AST arrays"
+fi
+if grep -Eq 'ast_intent_(involves|value)_alias\(' "$ROOT_DIR/src/codegen/transpiler_mir_emission_mapping_contract.c"; then
+    fail "C MIR mapping precheck must seed intent aliases from MIR carrier rows"
+fi
 for rel in \
     "src/codegen/llvm_decl_routines.c" \
     "src/codegen/llvm_intent.c" \
@@ -3971,9 +4338,14 @@ for term in \
     "MIR-only LLVM path missing enum method declaration metadata" \
     "MIR-only LLVM path missing class method declaration metadata" \
     "MIR-only LLVM path has invalid method declaration metadata row for enum" \
-    "MIR-only LLVM path has invalid method declaration metadata row for class"; do
+    "MIR-only LLVM path has invalid method declaration metadata row for class" \
+    "LLVM payload enum method self type requires registered enum metadata"; do
     require_term "src/codegen/llvm_register.c" "$term"
 done
+if grep -Fq "LLVMTypeRef self_type = ctx->type_i32" \
+    "$ROOT_DIR/src/codegen/llvm_register.c"; then
+    fail "LLVM enum method self type must distinguish no-payload ABI from payload enum metadata"
+fi
 if grep -Eq 'for[[:space:]]*\([^)]*stmt->data\.(enum_decl|class_decl)\.method_count' \
     "$ROOT_DIR/src/codegen/llvm_register.c"; then
     fail "LLVM nominal method registration must iterate MIRDeclMethod metadata, not AST method_count"

@@ -261,8 +261,12 @@ llvm_mir_emit_for_loop_body_binding(const MIRRoutine *routine,
     if (loop_var == NULL || loop_var->alloca == NULL)
         return true;
 
-    llvm_scope_declare(ctx, pergyra_strdup(variable), loop_var->alloca,
-                       loop_var->type);
+    {
+        LLVMValueRef loop_alloca = loop_var->alloca;
+        LLVMTypeRef loop_type = loop_var->type;
+        llvm_scope_declare(ctx, pergyra_strdup(variable), loop_alloca,
+                           loop_type);
+    }
     return true;
 }
 

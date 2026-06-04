@@ -194,12 +194,10 @@ llvm_stmt_infer_expr_type(LLVMGenCtx *ctx, ASTNode *expr)
     }
     case AST_ARRAY_ACCESS: {
         ASTNode *array = ast_array_access_array(expr);
-        if (array != NULL && array->type == AST_IDENTIFIER) {
-            LLVMArrayVarEntry *entry = llvm_lookup_array_var(ctx,
-                ast_identifier_name(array));
-            if (entry != NULL && entry->elem_type != NULL)
-                return entry->elem_type;
-        }
+        LLVMTypeRef elem_type =
+            llvm_stmt_resolve_array_elem_type(ctx, array, NULL);
+        if (elem_type != NULL)
+            return elem_type;
         return llvm_stmt_unknown_expr_type(ctx, expr,
             "indexed collection access requires registered Array<T>/Slice<T> metadata");
     }

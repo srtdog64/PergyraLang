@@ -16,6 +16,9 @@ cosmetic reshuffling.
   explicit invariant, or a documented panic boundary.
 - Do not re-scan AST/program roots when a typed owner seam, MIR fact, AIR
   evidence node, or DAG metadata fact already owns the answer.
+- Do not keep a borrowed `LLVMVarEntry *` from `llvm_scope_lookup()` across
+  `llvm_scope_push`, `llvm_scope_pop`, or `llvm_scope_declare`. Snapshot
+  `alloca` / `type` first; scope declarations may realloc the frame storage.
 
 ## Default Work Loop
 

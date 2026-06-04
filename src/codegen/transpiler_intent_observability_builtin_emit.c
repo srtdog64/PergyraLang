@@ -161,6 +161,25 @@ intent_observability_require_arg_count(ASTNode *call, TranspilerCtx *ctx,
     return false;
 }
 
+static char *
+intent_observability_emit_index(ASTNode *expr, TranspilerCtx *ctx,
+                                const char *export_name,
+                                const char *role)
+{
+    char *index = emit_expression(expr, ctx);
+    if (index != NULL)
+        return index;
+
+    transpiler_set_backend_error_with_hints(ctx,
+        PGY_CODE_C_TYPE_UNSUPPORTED,
+        PGY_CAUSE_C_TYPE_UNSUPPORTED,
+        PGY_FIX_USE_LLVM_BACKEND_OR_EXTEND_TRANSPILER,
+        "C backend: %s could not lower %s expression",
+        export_name != NULL ? export_name : "intent observability builtin",
+        role != NULL ? role : "index");
+    return NULL;
+}
+
 char *
 emit_builtin_intent_observability(ASTNode *call, BuiltinKind bk,
                                   TranspilerCtx *ctx)
@@ -179,7 +198,10 @@ emit_builtin_intent_observability(ASTNode *call, BuiltinKind bk,
     if (one_export != NULL) {
         if (!intent_observability_require_arg_count(call, ctx, one_export, 1))
             return pergyra_strdup("0");
-        char *index = emit_expression(ast_call_argument(call, 0), ctx);
+        char *index = intent_observability_emit_index(
+            ast_call_argument(call, 0), ctx, one_export, "index");
+        if (index == NULL)
+            return pergyra_strdup("0");
         char *result = strdup_fmt("%s(%s)", one_export, index);
         free(index);
         return result;
@@ -189,8 +211,15 @@ emit_builtin_intent_observability(ASTNode *call, BuiltinKind bk,
     if (two_export != NULL) {
         if (!intent_observability_require_arg_count(call, ctx, two_export, 2))
             return pergyra_strdup("0");
-        char *intent_index = emit_expression(ast_call_argument(call, 0), ctx);
-        char *step_index = emit_expression(ast_call_argument(call, 1), ctx);
+        char *intent_index = intent_observability_emit_index(
+            ast_call_argument(call, 0), ctx, two_export, "intent index");
+        char *step_index = intent_observability_emit_index(
+            ast_call_argument(call, 1), ctx, two_export, "step index");
+        if (intent_index == NULL || step_index == NULL) {
+            free(intent_index);
+            free(step_index);
+            return pergyra_strdup("0");
+        }
         char *result = strdup_fmt("%s(%s, %s)", two_export, intent_index,
                                   step_index);
         free(intent_index);

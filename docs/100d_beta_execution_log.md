@@ -3,6 +3,128 @@
 > Split from `docs/100_beta_readiness_checklist.md` on 2026-05-29.
 > Keep active blocker edits in the shard that owns the relevant closure track.
 
+## Progress Log - 2026-06-05 Intent Declaration Carrier Closure
+
+- MIR intent lowering now materializes declaration-level `priority` and
+  `success` as semantic carriers: `IntentEval(priority)` and
+  `IntentCheck(success)`, anchored by the intent routine name. Step-level
+  carriers remain unchanged and top-level carriers do not enter the step-name
+  sequence.
+- C and LLVM intent declaration emission consume those carriers when a MIR
+  routine exists and fail closed through the existing MIR intent-carrier
+  diagnostic path if a carrier row exists without its expression payload.
+- Tightened the MIR negative test lifecycle: the signature-drift case now
+  restores the mutated `param_count` before `mir_destroy(...)`, preventing a
+  validator fixture from turning its deliberate metadata corruption into a
+  teardown-time heap error.
+- Evidence: `mir-declaration-inventory-test-smoke`, `test-mir` (`76/0`),
+  `pgy`, and targeted backend compare for `intent_no_step_call`,
+  `probe_cursor`, and `probe_dnd_minimal` pass locally.
+
+## Progress Log - 2026-06-04 Backend Runner Stale-Binary Guard Closure
+
+- Backend runner executable selection is now fail-closed for stale or
+  cross-platform binaries. `tests/pgy_binary_path_helpers.sh` owns the
+  current-host runnable check and classifies PE, ELF, and Mach-O from magic
+  bytes before falling back to `file(1)` text. This prevents a stale Linux
+  `bin/pgy.exe` from being launched under Windows Git Bash simply because the
+  filename ends in `.exe`.
+- `tests/compare_backends.sh` applies the same runnable-binary policy to both
+  `PGY_BIN` and `PGY_ABI_PIPELINE_TEST_BIN` before the C/LLVM compare or ABI
+  same-process precheck can launch. The PowerShell fallback now quotes both
+  the PATH prefix and ABI executable path through the shared quote helper.
+- The PowerShell runtime PATH prefix now excludes Git for Windows'
+  `mingw64\bin` when `MSYSTEM_PREFIX=/mingw64` resolves there. That directory
+  can shadow the real MinGW runtime and crash `test_abi_pipeline.exe` before
+  the ABI same-process test prints diagnostics, so explicit LLVM/MinGW runtime
+  roots own PowerShell launch priority.
+- Local bench/perf/dogfood scripts now consume the same helper seam. The bench
+  script no longer hardcodes `/usr/bin/time`; it uses a shell clock fallback
+  so Git Bash/macOS layouts do not turn benchmarking into a tool-path failure.
+- The P0 CI smoke layer now uses the same runnable-binary seam for formatter,
+  stdlib, AIR JSON schema, runtime-none, raw-escape, and semantic
+  fixture-isolation probes. `pgy_select_optional_exe_binary(...)` selects an
+  existing `.exe` even when it is stale, and
+  `pgy_require_runnable_binary_here(...)` rejects it before launch; default
+  source-only smokes may still skip when no explicit binary was supplied.
+- Bash and PowerShell runtime PATH setup both reject Git for Windows runtime
+  mounts as explicit MinGW/LLVM priority candidates. Existing Git Bash PATH
+  entries may remain later in `PATH`, but they no longer shadow the real
+  runtime directories prepended by the helper.
+- Evidence: normal ABI precheck plus targeted backend compare passes for
+  `probe_cursor`; stale `bin/pgy.exe` is rejected for backend compare ABI
+  precheck, bench, perf baseline, and dogfood WebGL; `backend-compare-
+  inventory-test-smoke`, `backend-compare-llvm-coverage-test-smoke`,
+  `build-source-inventory-test-smoke`, `dogfood_webgl_smoke.sh`, and a reduced
+  `perf_c_baseline_smoke.sh` run all pass. A Makefile shard with precheck
+  enabled passed ABI same-process and then exceeded the 300s interactive tool
+  limit while running backend cases; this is time budget, not a code failure.
+  `llvm-test-abi-same-process` now passes through the Makefile path with
+  `196 passed, 0 failed`. Follow-up gates on 2026-06-05:
+  `fmt-test-smoke`, `stdlib-test-smoke`, `air-json-schema-test-smoke`,
+  `runtime-none-contract-test-smoke`, `raw-escape-contract-test-smoke`,
+  `semantic-fixture-isolation-test-smoke`, and
+  `build-source-inventory-test-smoke`.
+
+## Progress Log - 2026-06-04 LLVM Bare-Identifier Host-Field Read Closure
+
+- Closure #71: bare identifier reads inside a host method now ALWAYS lower
+  to a host-struct GEP+load when the name matches a shared field, rather
+  than first preferring an SSA-versioned local mirror. The local mirror is
+  authoritative only between explicit reassignments in the same function —
+  any opaque callee that touches `self->field` invalidates the mirror, and
+  the caller has no way to express "reload after call". This was the gap
+  behind `RunCampaign`'s `cursor=ToString(choiceCursor + 1)` print drifting
+  from C (cursor=2) to LLVM (cursor=1) after `RollChoice(gameState)` had
+  bumped `self->choiceCursor` via `ScriptedChoice`. The fix flips the
+  identifier-lookup order: host-field GEP first, scope alloca second.
+- Probe coverage stays green (probe_record, probe_intent_array,
+  probe_field_index, probe_zone_chain, probe_cursor, probe_dnd_minimal,
+  intent_header_interleaved) because writes still go through
+  `llvm_emit_current_host_field_assignment` (closure #67) and the host
+  store is therefore observed by subsequent host-field reads in the same
+  block. The local-mirror dual-store from #67 becomes belt-and-suspenders
+  rather than load-bearing.
+- Backend evidence after #71:
+  `tests/compare_backends.sh tests/cases/backend_compare/*/main.pgy` reports
+  794/794 passed, 0 failed; `make llvm-dnd-campaign-test-smoke` reports
+  `dnd_tavern_campaign C/LLVM parity ok`;
+  `make llvm-campaign-projection-test-smoke` reports
+  `campaign_graph_fsm LLVM projection parity ok`;
+  `make test-all` reports 2624/870/74/58/9/119/18/74/20 across
+  lexer/semantic/transpile/memory/concurrency/AIR/RIR/MIR/HIR with 0 failed.
+
+## Progress Log - 2026-06-04 LLVM Host-Field Local Pre-Init And Memory Error Closure
+
+- Closure #70: when emitting an SSA-versioned local alloca whose base name
+  matches a host field of the current method's host class, the entry block
+  now pre-initializes the alloca from the host field. Without this, branches
+  that read the local without a prior SSA-DEF observed uninitialised stack
+  memory. `W_Record` was the canonical failure: the `if/else` body of
+  `transcript = transcript + "\n" + line` lowered the else branch to
+  `load ptr, ptr %transcript.1` where `%transcript.1` had only ever been
+  stored in the sibling `if` branch — so the second `Record` call inside the
+  same `Broadcast` chain consumed garbage and segfaulted the program.
+  Pre-init guarded to fire only when `llvm_current_host_class_name(ctx)`,
+  `llvm_scope_lookup(ctx, "self")`, and `llvm_class_field_index(host_cls,
+  base_name) >= 0` all hold; otherwise free functions whose locals happen to
+  share a name with a host field would have produced bogus loads.
+- Closure #70 was bisected to confirm it is not the source of the previously
+  surfaced `dnd_campaign` memory error: compiling with #67 disabled
+  reproduced the identical `rc=255` segfault at
+  `WeaponCard.EffectLine`, confirming the bug pre-existed.
+- Backend evidence: `tests/compare_backends.sh tests/cases/backend_compare/*/main.pgy`
+  reports 793/793 passed, 0 failed (4 probes added: `probe_record`,
+  `probe_intent_array`, `probe_field_index`, `probe_zone_chain`,
+  `probe_cursor`, `probe_dnd_minimal`). `make test-all` reports
+  `2624/0`, `870/0`, `74/0`, `58/0`, `9/0`, `119/0`, `18/0`, `74/0`, `20/0`.
+  `make llvm-campaign-projection-test-smoke` is now green
+  (projection parity restored). `make llvm-dnd-campaign-test-smoke` no
+  longer segfaults but still diffs because the broader campaign exercises a
+  separate `journey.morale`/`choiceCursor` projection path not closed by
+  #70 alone; minimal probes (`probe_cursor`, `probe_dnd_minimal` of 4-strat
+  Broadcast chain) all pass byte-equal.
+
 ## Progress Log - 2026-06-04 LLVM Host-Field Sync And MIR Intent Value Type Fidelity
 
 - LLVM `llvm_emit_current_host_field_assignment` now also stores into a

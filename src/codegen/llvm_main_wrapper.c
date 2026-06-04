@@ -231,7 +231,6 @@ llvm_emit_main_wrapper(LLVMGenCtx *ctx)
             goto restore_state;
         LLVMBuildRet(ctx->builder, LLVMConstInt(ctx->type_i32, 0, 0));
     }
-
     llvm_mark_function_as_used(ctx, "main");
 
 restore_state:

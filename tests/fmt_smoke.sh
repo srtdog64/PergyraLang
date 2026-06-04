@@ -5,15 +5,14 @@ ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 source "$ROOT_DIR/tests/pgy_binary_path_helpers.sh"
 pgy_prepend_windows_runtime_paths
 PGY="${PGY_BIN:-$ROOT_DIR/bin/pgy}"
-if [[ "$PGY" != *.exe && -x "${PGY}.exe" ]]; then
-    PGY="${PGY}.exe"
-fi
+PGY="$(pgy_select_optional_exe_binary "$PGY")"
 TMP_BASE="${TMPDIR:-${TEMP:-/tmp}}"
 
 if [[ ! -x "$PGY" ]]; then
     echo "missing compiler binary: $PGY" >&2
     exit 1
 fi
+pgy_require_runnable_binary_here "fmt-smoke" "$PGY"
 
 WORK_DIR="$(mktemp -d "${TMP_BASE%/}/pgy_fmt_smoke.XXXXXX")"
 trap 'rm -rf "$WORK_DIR"' EXIT

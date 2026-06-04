@@ -38,34 +38,6 @@ transpiler_decl_header_field_by_kind(const MIRDeclHeader *header,
     }
     return NULL;
 }
-static size_t
-transpiler_decl_header_role_slot_count(const MIRDeclHeader *header)
-{
-    return transpiler_decl_header_field_count_by_kind(
-        header, MIR_DECL_FIELD_ROLE_SLOT);
-}
-
-static const MIRDeclField *
-transpiler_decl_header_role_slot(const MIRDeclHeader *header, size_t index)
-{
-    return transpiler_decl_header_field_by_kind(
-        header, MIR_DECL_FIELD_ROLE_SLOT, index);
-}
-
-static size_t
-transpiler_decl_header_roster_slot_count(const MIRDeclHeader *header)
-{
-    return transpiler_decl_header_field_count_by_kind(
-        header, MIR_DECL_FIELD_ROSTER_SLOT);
-}
-
-static const MIRDeclField *
-transpiler_decl_header_roster_slot(const MIRDeclHeader *header, size_t index)
-{
-    return transpiler_decl_header_field_by_kind(
-        header, MIR_DECL_FIELD_ROSTER_SLOT, index);
-}
-
 static ASTNode **
 transpiler_domain_slot_compat_slots(ASTNode *decl, size_t *count_out)
 {

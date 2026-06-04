@@ -186,9 +186,13 @@ llvm_mir_remap_payload_binding(LLVMGenCtx *ctx,
     }
     if (entry == NULL || entry->alloca == NULL)
         return true;
-    llvm_scope_declare(ctx, pergyra_strdup(binding), entry->alloca,
-                       entry->type);
-    payload_cls = llvm_lookup_class_by_type(ctx, entry->type);
+    {
+        LLVMValueRef binding_alloca = entry->alloca;
+        LLVMTypeRef binding_type = entry->type;
+        llvm_scope_declare(ctx, pergyra_strdup(binding), binding_alloca,
+                           binding_type);
+        payload_cls = llvm_lookup_class_by_type(ctx, binding_type);
+    }
     if (payload_cls != NULL)
         llvm_register_var_class(ctx, binding, payload_cls->class_name);
     return true;

@@ -55,9 +55,7 @@ transpiler_emit_intent_cleanup_tail(ASTNode *node,
                                     size_t step_count,
                                     const char **mir_step_names,
                                     const MIRRoutine *mir_routine,
-                                    const char **participant_aliases,
-                                    const char **participant_types,
-                                    size_t participant_count)
+                                    const IntentBindingMetadataView *bindings)
 {
     const char *intent_name = ast_intent_decl_name(node);
     IntentRollbackPolicy rollback_policy =
@@ -190,8 +188,12 @@ transpiler_emit_intent_cleanup_tail(ASTNode *node,
                     if (mir_only_intent) {
                         emit_intent_step_bind_bound_zone_with_metadata(
                             ctx->out, ctx, node, zone_type_name, zone_alias, from_alias,
-                            who_aliases, who_alias_count,
-                            participant_aliases, participant_types, participant_count);
+                            who_aliases, who_alias_count, bindings);
+                        if (ctx->backend_error != NULL) {
+                            free(compensate_exprs);
+                            free((void *)who_aliases);
+                            return false;
+                        }
                     } else {
                         emit_intent_step_bind_bound_zone(ctx->out, ctx, node, step);
                     }

@@ -56,8 +56,12 @@ SecureMemoryWipe(void *addr, size_t size)
     if (addr == NULL || size == 0)
         return;
 
-#ifdef HAVE_EXPLICIT_BZERO
+#if defined(_WIN32)
+    SecureZeroMemory(addr, size);
+#elif defined(HAVE_EXPLICIT_BZERO)
     explicit_bzero(addr, size);
+#elif defined(__STDC_LIB_EXT1__)
+    memset_s(addr, size, 0, size);
 #else
     volatile uint8_t *ptr = (volatile uint8_t *)addr;
     for (size_t i = 0; i < size; i++)
@@ -70,10 +74,10 @@ SecureCompareConstantTime(const void *a, const void *b, size_t size)
 {
     const uint8_t *pa = (const uint8_t *)a;
     const uint8_t *pb = (const uint8_t *)b;
-    uint8_t result = 0;
+    volatile uint8_t result = 0;
 
     for (size_t i = 0; i < size; i++)
-        result |= pa[i] ^ pb[i];
+        result = result | (pa[i] ^ pb[i]);
 
     return result == 0;
 }

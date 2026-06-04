@@ -2,6 +2,7 @@
 #define PGY_TRANSPILER_INTENT_CLEANUP_EMIT_H
 
 #include "transpiler.h"
+#include "transpiler_intent_context.h"
 
 /* C backend intent cleanup / rollback tail emission owner. */
 
@@ -15,8 +16,6 @@ bool transpiler_emit_intent_cleanup_tail(ASTNode *node,
                                          size_t step_count,
                                          const char **mir_step_names,
                                          const MIRRoutine *mir_routine,
-                                         const char **participant_aliases,
-                                         const char **participant_types,
-                                         size_t participant_count);
+                                         const IntentBindingMetadataView *bindings);
 
 #endif /* PGY_TRANSPILER_INTENT_CLEANUP_EMIT_H */

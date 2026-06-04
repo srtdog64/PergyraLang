@@ -20,6 +20,10 @@ if [[ ! -x "$PGY_BIN" ]]; then
   echo "[perf-c-baseline] PGY_BIN not executable: $PGY_BIN" >&2
   exit 1
 fi
+if ! pgy_binary_is_runnable_here "$PGY_BIN"; then
+  echo "[perf-c-baseline] PGY_BIN is not runnable on this host: $PGY_BIN" >&2
+  exit 1
+fi
 
 if ! command -v "$CC" >/dev/null 2>&1; then
   echo "[perf-c-baseline] C compiler not found: $CC" >&2

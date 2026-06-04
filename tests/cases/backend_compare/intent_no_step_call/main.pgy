@@ -1,0 +1,14 @@
+subject Box {
+    let v: Int;
+}
+
+intent CheckBox(b: Box) {
+    success: b.v == 7;
+    failure: false;
+}
+
+func Main() -> Void {
+    let b: Box = Box(7);
+    let ok: Bool = CheckBox(b);
+    Log("check=" + ToString(ok));
+}

@@ -234,7 +234,7 @@ Pergyra는 이미 다음 성격이 강하다.
 - LLVM 백엔드 5차 slice 1개 흡수 (2026-04-22, 5차, 이후 6차에서 ctx-scope 로 통합됨)
   - `llvm_register.c:llvm_register_enum_decl` 의 `enum_fields` + per-variant `payload_fields` 를 function-local `PgyArena` 하나로 수렴
   - LLVMStructSetBody / llvm_class_add_field 는 전달받은 type 배열을 내부 복사하므로 버퍼는 함수 밖으로 탈출하지 않는다
-- `llvm_intent.c:llvm_collect_mir_intent_participants` 의 growth 버퍼는 return-ownership 계약 (호출자가 `aliases_out`/`types_out`을 받아서 사용 후 free) 이라 deferred. 반환 배열 lifetime이 함수 밖으로 확장됨 → arena reset 시점을 caller 쪽 계약에 맞추지 않는 한 옮길 수 없음
+- 완료: LLVM/C MIR intent participant/value return-ownership collectors는 제거됨. Ordered `IntentBinding` collector가 backend carrier의 단일 seam이며, 더 이상 이 경로는 arena migration deferred 항목이 아님.
 
 - LLVM 6차: **LLVMGenCtx ctx-scope scratch arena 도입** (2026-04-22, 6차)
   - `LLVMGenCtx` 에 `PgyArena scratch` 필드 추가
@@ -257,7 +257,7 @@ Pergyra는 이미 다음 성격이 강하다.
   - `llvm_intent.c` intent 함수 param_types, 스텝 completion 추적 `completed_allocas`, `saved_participant_ptrs`
   - `llvm_domain.c` world sync `prev_active_addrs`, domain struct 빌드 `ftypes` 5분기 (zone/roster/world/default), role/class method `ptypes` 2 사이트, vtable method 값 배열 `vals`
   - 전부 같은 "type-ref/value 배열을 LLVM C API 에 넘긴 뒤 원본을 버리는" 패턴. `ctx->scratch` 로 수렴
-  - 결과: LLVM 백엔드 내의 scratch-safe calloc/malloc 사이트가 거의 모두 ctx arena 에 정렬됨. 남은 것은 return-ownership 혼재 helper (`llvm_intent.c:llvm_collect_mir_intent_participants`, `llvm_pipeline.c` 의 error_message 계산 등) 과 stored-in-AST 케이스 (`handler_type->data.event_handler_type.param_types` 에 저장되는 파서/에미션 경로)
+  - 결과: LLVM 백엔드 내의 scratch-safe calloc/malloc 사이트가 거의 모두 ctx arena 에 정렬됨. 남은 것은 return-ownership 혼재 helper (`llvm_pipeline.c` 의 error_message 계산 등) 과 stored-in-AST 케이스 (`handler_type->data.event_handler_type.param_types` 에 저장되는 파서/에미션 경로)
 
 - HIR/MIR 4차: **routine-scope scratch arena 도입** (2026-04-22, 4차)
   - `hir.h` HIRRoutine 에 `PgyArena scratch` 필드 추가
