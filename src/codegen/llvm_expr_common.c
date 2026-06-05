@@ -24,34 +24,32 @@ llvm_is_upper_ident(ASTNode *node)
 LLVMValueRef
 llvm_current_self_base_ptr(LLVMGenCtx *ctx, LLVMClassTypeEntry *cls)
 {
-    LLVMVarEntry *self_var;
+    LLVMVarEntry self_var;
 
     if (ctx == NULL || cls == NULL)
         return NULL;
 
-    self_var = llvm_scope_lookup(ctx, "self");
-    if (self_var == NULL)
+    if (!llvm_scope_lookup_snapshot(ctx, "self", &self_var))
         return NULL;
 
-    if (self_var->type == LLVMPointerType(cls->struct_type, 0))
-        return LLVMBuildLoad2(ctx->builder, self_var->type, self_var->alloca,
+    if (self_var.type == LLVMPointerType(cls->struct_type, 0))
+        return LLVMBuildLoad2(ctx->builder, self_var.type, self_var.alloca,
             llvm_tmp_name(ctx));
-    return self_var->alloca;
+    return self_var.alloca;
 }
 
 LLVMValueRef
 llvm_identifier_base_ptr(LLVMGenCtx *ctx, const char *name, LLVMClassTypeEntry *cls)
 {
-    LLVMVarEntry *var;
+    LLVMVarEntry var;
 
     if (ctx == NULL || name == NULL || cls == NULL)
         return NULL;
 
-    var = llvm_scope_lookup(ctx, name);
-    if (var != NULL) {
-        LLVMValueRef base_ptr = var->alloca;
-        if (var->type == LLVMPointerType(cls->struct_type, 0)) {
-            base_ptr = LLVMBuildLoad2(ctx->builder, var->type, var->alloca,
+    if (llvm_scope_lookup_snapshot(ctx, name, &var)) {
+        LLVMValueRef base_ptr = var.alloca;
+        if (var.type == LLVMPointerType(cls->struct_type, 0)) {
+            base_ptr = LLVMBuildLoad2(ctx->builder, var.type, var.alloca,
                 llvm_tmp_name(ctx));
         }
         return base_ptr;
@@ -94,16 +92,15 @@ llvm_current_host_method_decl(LLVMGenCtx *ctx, const char *method_name)
 LLVMValueRef
 llvm_current_self_call_arg(LLVMGenCtx *ctx)
 {
-    LLVMVarEntry *self_var;
+    LLVMVarEntry self_var;
 
     if (ctx == NULL)
         return NULL;
 
-    self_var = llvm_scope_lookup(ctx, "self");
-    if (self_var == NULL)
+    if (!llvm_scope_lookup_snapshot(ctx, "self", &self_var))
         return NULL;
 
-    return LLVMBuildLoad2(ctx->builder, self_var->type, self_var->alloca,
+    return LLVMBuildLoad2(ctx->builder, self_var.type, self_var.alloca,
         llvm_tmp_name(ctx));
 }
 
@@ -124,30 +121,6 @@ llvm_operator_overload_suffix(PgyTokenType op)
     case TOKEN_GREATER_EQUAL: return "ge";
     default: return NULL;
     }
-}
-
-static const char *
-llvm_find_local_let_type_in_block(ASTNode *body, const char *name)
-{
-    if (body == NULL || name == NULL)
-        return NULL;
-    if (body->type == AST_BLOCK) {
-        for (size_t i = 0; i < ast_block_statement_count(body); i++) {
-            const char *found = llvm_find_local_let_type_in_block(
-                ast_block_statement(body, i), name);
-            if (found != NULL)
-                return found;
-        }
-        return NULL;
-    }
-    if (body->type == AST_LET_DECL
-        && ast_let_name(body) != NULL
-        && strcmp(ast_let_name(body), name) == 0
-        && ast_let_type(body) != NULL
-        && ast_let_type(body)->type == AST_TYPE) {
-        return ast_type_name(ast_let_type(body));
-    }
-    return NULL;
 }
 
 const char *
@@ -182,15 +155,6 @@ llvm_expr_custom_type_name(ASTNode *node, LLVMGenCtx *ctx)
             LLVMEnumVariantEntry *variant = llvm_lookup_enum_variant(ctx, name);
             if (variant != NULL)
                 return variant->enum_name;
-        }
-        if (ctx != NULL && ctx->current_func_decl != NULL
-            && ctx->current_func_decl->type == AST_FUNC_DECL) {
-            const char *let_type = llvm_find_local_let_type_in_block(
-                ast_func_body(ctx->current_func_decl), name);
-            if (let_type != NULL
-                && llvm_lookup_class(ctx, let_type) != NULL) {
-                return let_type;
-            }
         }
         return NULL;
     }

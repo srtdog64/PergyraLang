@@ -3,7 +3,6 @@
 #include <stdlib.h>
 #include <string.h>
 
-#include "../common/string_compat.h"
 #include "../semantic/diag_codes.h"
 #include "parser/ast_api.h"
 #include "transpiler_context.h"
@@ -37,12 +36,12 @@ emit_array_access_expression(ASTNode *node, TranspilerCtx *ctx)
     char *array = transpiler_array_access_emit_operand(ctx,
         array_node, "receiver");
     if (array == NULL)
-        return pergyra_strdup("0");
+        return NULL;
     char *index = transpiler_array_access_emit_operand(ctx,
         index_node, "index");
     if (index == NULL) {
         free(array);
-        return pergyra_strdup("0");
+        return NULL;
     }
     const char *array_type = infer_expression_type_name(ctx, array_node);
     char *result;
@@ -59,11 +58,11 @@ emit_array_access_expression(ASTNode *node, TranspilerCtx *ctx)
             transpiler_set_backend_error_with_hints(ctx,
                 PGY_CODE_C_TYPE_UNSUPPORTED,
                 PGY_CAUSE_C_TYPE_UNSUPPORTED,
-                PGY_FIX_ANNOTATE_CONCRETE_TYPE,
-                "C array access requires concrete Array<T> element metadata");
+            PGY_FIX_ANNOTATE_CONCRETE_TYPE,
+            "C array access requires concrete Array<T> element metadata");
             free(array);
             free(index);
-            return pergyra_strdup("0");
+            return NULL;
         }
         int tmp_id = ++ctx->tmp_counter;
         result = strdup_fmt(
@@ -82,11 +81,11 @@ emit_array_access_expression(ASTNode *node, TranspilerCtx *ctx)
             transpiler_set_backend_error_with_hints(ctx,
                 PGY_CODE_C_TYPE_UNSUPPORTED,
                 PGY_CAUSE_C_TYPE_UNSUPPORTED,
-                PGY_FIX_ANNOTATE_CONCRETE_TYPE,
-                "C slice access requires concrete Slice<T> element metadata");
+            PGY_FIX_ANNOTATE_CONCRETE_TYPE,
+            "C slice access requires concrete Slice<T> element metadata");
             free(array);
             free(index);
-            return pergyra_strdup("0");
+            return NULL;
         }
         int tmp_id = ++ctx->tmp_counter;
         result = strdup_fmt(

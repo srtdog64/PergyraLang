@@ -56,7 +56,8 @@ llvm_emit_intent_step_mark_caused_effect(LLVMGenCtx *ctx,
     ASTNode *zone_decl;
     const char *zone_name;
     LLVMClassTypeEntry *zone_cls;
-    LLVMVarEntry *zone_var;
+    LLVMVarEntry zone_var;
+    bool has_zone_var;
     LLVMValueRef zone_ptr;
     LLVMHostedZoneLayerSlotView layer_view;
     size_t state_count = 0;
@@ -70,14 +71,15 @@ llvm_emit_intent_step_mark_caused_effect(LLVMGenCtx *ctx,
     zone_decl = llvm_find_zone_decl_by_name(ctx, zone_type_name);
     zone_name = llvm_decl_node_name(zone_decl);
     zone_cls = llvm_lookup_class(ctx, zone_type_name);
-    zone_var = llvm_scope_lookup(ctx, zone_alias);
-    if (zone_decl == NULL || zone_name == NULL || zone_cls == NULL || zone_var == NULL
-        || LLVMGetTypeKind(zone_var->type) != LLVMPointerTypeKind) {
+    has_zone_var = llvm_scope_lookup_snapshot(ctx, zone_alias, &zone_var);
+    if (zone_decl == NULL || zone_name == NULL || zone_cls == NULL
+        || !has_zone_var
+        || LLVMGetTypeKind(zone_var.type) != LLVMPointerTypeKind) {
         return;
     }
 
-    zone_ptr = LLVMBuildLoad2(ctx->builder, zone_var->type,
-        zone_var->alloca, llvm_tmp_name(ctx));
+    zone_ptr = LLVMBuildLoad2(ctx->builder, zone_var.type,
+        zone_var.alloca, llvm_tmp_name(ctx));
 
     layer_view = llvm_hosted_zone_layer_slot_view_from_decl(ctx, zone_name, zone_decl);
     if (llvm_hosted_zone_layer_slot_view_missing_mir_metadata(&layer_view)) {

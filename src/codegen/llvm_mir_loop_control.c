@@ -10,6 +10,20 @@
 #include "llvm_internal.h"
 #include "parser/ast_api.h"
 
+static bool
+llvm_mir_loop_bound_error(LLVMGenCtx *ctx, const char *bound_name)
+{
+    if (ctx != NULL && !ctx->has_error) {
+        llvm_set_error_at_with_hints(ctx, NULL,
+            PGY_CODE_LLVM_TYPE_UNSUPPORTED,
+            PGY_CAUSE_LLVM_TYPE_UNSUPPORTED,
+            PGY_FIX_INSPECT_MIR_INVENTORY,
+            "LLVM MIR for-range could not lower %s expression",
+            bound_name != NULL ? bound_name : "bound");
+    }
+    return false;
+}
+
 static void
 llvm_mir_for_loop_alloca_name(const MIRInstruction *inst,
                               const char *binding,
@@ -33,18 +47,18 @@ llvm_mir_for_loop_alloca_name(const MIRInstruction *inst,
     snprintf(buffer, buffer_size, "%s.mir.for.%u", binding, stable_id);
 }
 
-static LLVMVarEntry *
-llvm_mir_lookup_for_loop_var(const MIRInstruction *inst,
-                             LLVMGenCtx *ctx,
-                             const char *variable)
+static bool
+llvm_mir_lookup_for_loop_var_snapshot(const MIRInstruction *inst,
+                                      LLVMGenCtx *ctx,
+                                      const char *variable,
+                                      LLVMVarEntry *out)
 {
     char alloca_name[256];
-    LLVMVarEntry *loop_var;
 
     llvm_mir_for_loop_alloca_name(inst, variable,
                                   alloca_name, sizeof(alloca_name));
-    loop_var = llvm_scope_lookup(ctx, alloca_name);
-    return loop_var != NULL ? loop_var : llvm_scope_lookup(ctx, variable);
+    return llvm_scope_lookup_snapshot(ctx, alloca_name, out)
+        || llvm_scope_lookup_snapshot(ctx, variable, out);
 }
 
 bool
@@ -70,12 +84,12 @@ llvm_mir_emit_for_loop_init(const MIRInstruction *inst, LLVMGenCtx *ctx)
 
     llvm_mir_for_loop_alloca_name(inst, variable,
                                   alloca_name, sizeof(alloca_name));
-    if (llvm_scope_lookup(ctx, alloca_name) != NULL)
+    if (llvm_scope_contains(ctx, alloca_name))
         return true;
     var_alloca = llvm_create_entry_alloca(ctx, ctx->type_i32, alloca_name);
     start = llvm_emit_expression(inst->expr0, ctx);
     if (start == NULL)
-        start = LLVMConstInt(ctx->type_i32, 0, 0);
+        return llvm_mir_loop_bound_error(ctx, "start");
     LLVMBuildStore(ctx->builder, start, var_alloca);
     llvm_scope_declare(ctx, pergyra_strdup(variable), var_alloca,
                        ctx->type_i32);
@@ -87,7 +101,7 @@ llvm_mir_emit_for_loop_init(const MIRInstruction *inst, LLVMGenCtx *ctx)
 LLVMValueRef
 llvm_mir_emit_for_loop_condition(const MIRInstruction *inst, LLVMGenCtx *ctx)
 {
-    LLVMVarEntry *loop_var;
+    LLVMVarEntry loop_snapshot;
     LLVMValueRef current;
     LLVMValueRef end;
     const char *variable;
@@ -103,8 +117,9 @@ llvm_mir_emit_for_loop_condition(const MIRInstruction *inst, LLVMGenCtx *ctx)
     if (inst->branch_shape == MIR_BRANCH_FOR_IN)
         return llvm_mir_emit_for_in_loop_condition(inst, ctx);
 
-    loop_var = llvm_mir_lookup_for_loop_var(inst, ctx, variable);
-    if (loop_var == NULL || loop_var->alloca == NULL) {
+    if (!llvm_mir_lookup_for_loop_var_snapshot(inst, ctx, variable,
+                                               &loop_snapshot)
+        || loop_snapshot.alloca == NULL) {
         char alloca_name[256];
         LLVMValueRef var_alloca;
         LLVMValueRef start = llvm_emit_expression(inst->expr0, ctx);
@@ -112,23 +127,28 @@ llvm_mir_emit_for_loop_condition(const MIRInstruction *inst, LLVMGenCtx *ctx)
                                       alloca_name, sizeof(alloca_name));
         var_alloca = llvm_create_entry_alloca(ctx, ctx->type_i32,
                                               alloca_name);
-        if (start == NULL)
-            start = LLVMConstInt(ctx->type_i32, 0, 0);
+        if (start == NULL) {
+            llvm_mir_loop_bound_error(ctx, "start");
+            return NULL;
+        }
         LLVMBuildStore(ctx->builder, start, var_alloca);
         llvm_scope_declare(ctx, pergyra_strdup(variable), var_alloca,
                            ctx->type_i32);
         llvm_scope_declare(ctx, pergyra_strdup(alloca_name), var_alloca,
                            ctx->type_i32);
-        loop_var = llvm_mir_lookup_for_loop_var(inst, ctx, variable);
+        (void)llvm_mir_lookup_for_loop_var_snapshot(inst, ctx, variable,
+                                                    &loop_snapshot);
     }
-    if (loop_var == NULL || loop_var->alloca == NULL)
+    if (loop_snapshot.alloca == NULL)
         return NULL;
 
     current = LLVMBuildLoad2(ctx->builder, ctx->type_i32,
-                             loop_var->alloca, llvm_tmp_name(ctx));
+                             loop_snapshot.alloca, llvm_tmp_name(ctx));
     end = llvm_emit_expression(inst->expr1, ctx);
-    if (end == NULL)
-        end = LLVMConstInt(ctx->type_i32, 0, 0);
+    if (end == NULL) {
+        llvm_mir_loop_bound_error(ctx, "end");
+        return NULL;
+    }
     return LLVMBuildICmp(ctx->builder, LLVMIntSLT, current, end,
                          llvm_tmp_name(ctx));
 }
@@ -136,7 +156,7 @@ llvm_mir_emit_for_loop_condition(const MIRInstruction *inst, LLVMGenCtx *ctx)
 static bool
 llvm_mir_emit_for_loop_increment(const MIRInstruction *inst, LLVMGenCtx *ctx)
 {
-    LLVMVarEntry *loop_var;
+    LLVMVarEntry loop_snapshot;
     LLVMValueRef current;
     LLVMValueRef next;
     const char *variable;
@@ -152,16 +172,17 @@ llvm_mir_emit_for_loop_increment(const MIRInstruction *inst, LLVMGenCtx *ctx)
     if (inst->branch_shape == MIR_BRANCH_FOR_IN)
         return llvm_mir_emit_for_in_loop_increment(inst, ctx);
 
-    loop_var = llvm_mir_lookup_for_loop_var(inst, ctx, variable);
-    if (loop_var == NULL || loop_var->alloca == NULL)
+    if (!llvm_mir_lookup_for_loop_var_snapshot(inst, ctx, variable,
+                                               &loop_snapshot)
+        || loop_snapshot.alloca == NULL)
         return true;
 
     current = LLVMBuildLoad2(ctx->builder, ctx->type_i32,
-                             loop_var->alloca, llvm_tmp_name(ctx));
+                             loop_snapshot.alloca, llvm_tmp_name(ctx));
     next = LLVMBuildAdd(ctx->builder, current,
                         LLVMConstInt(ctx->type_i32, 1, 0),
                         llvm_tmp_name(ctx));
-    LLVMBuildStore(ctx->builder, next, loop_var->alloca);
+    LLVMBuildStore(ctx->builder, next, loop_snapshot.alloca);
     return true;
 }
 
@@ -238,7 +259,6 @@ llvm_mir_emit_for_loop_body_binding(const MIRRoutine *routine,
                                     LLVMGenCtx *ctx)
 {
     const MIRInstruction *branch_inst;
-    LLVMVarEntry *loop_var;
     const char *variable;
     char alloca_name[256];
 
@@ -257,17 +277,16 @@ llvm_mir_emit_for_loop_body_binding(const MIRRoutine *routine,
         return true;
     llvm_mir_for_loop_alloca_name(branch_inst, variable,
                                   alloca_name, sizeof(alloca_name));
-    loop_var = llvm_scope_lookup(ctx, alloca_name);
-    if (loop_var == NULL || loop_var->alloca == NULL)
-        return true;
-
     {
-        LLVMValueRef loop_alloca = loop_var->alloca;
-        LLVMTypeRef loop_type = loop_var->type;
-        llvm_scope_declare(ctx, pergyra_strdup(variable), loop_alloca,
-                           loop_type);
+        LLVMVarEntry loop_snapshot;
+        if (!llvm_scope_lookup_snapshot(ctx, alloca_name, &loop_snapshot)
+            || loop_snapshot.alloca == NULL) {
+            return true;
+        }
+        llvm_scope_declare(ctx, pergyra_strdup(variable),
+                           loop_snapshot.alloca, loop_snapshot.type);
+        return true;
     }
-    return true;
 }
 
 bool

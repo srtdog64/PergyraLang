@@ -30,19 +30,18 @@ llvm_mir_mark_owner_dirty_for_exit(LLVMGenCtx *ctx,
                                    LLVMClassTypeEntry *owner_cls,
                                    const char *owner_name)
 {
-    LLVMVarEntry *self_entry;
+    LLVMVarEntry self_entry;
     LLVMValueRef self_ptr;
 
     if (ctx == NULL || owner_cls == NULL || owner_name == NULL)
         return;
 
-    self_entry = llvm_scope_lookup(ctx, "self");
-    if (self_entry == NULL)
+    if (!llvm_scope_lookup_snapshot(ctx, "self", &self_entry))
         return;
 
     self_ptr = LLVMBuildLoad2(ctx->builder,
         LLVMPointerType(owner_cls->struct_type, 0),
-        self_entry->alloca, llvm_tmp_name(ctx));
+        self_entry.alloca, llvm_tmp_name(ctx));
 
     if (owner_cls->domain_kind == LLVM_DOMAIN_WORLD) {
         int field_count = llvm_class_field_count(owner_cls);
@@ -84,7 +83,7 @@ llvm_mir_emit_owner_sync_exit(LLVMGenCtx *ctx,
                               LLVMFuncEntry *owner_sync,
                               const char *owner_name)
 {
-    LLVMVarEntry *self_entry;
+    LLVMVarEntry self_entry;
     LLVMValueRef self_ptr;
     LLVMValueRef sync_args[1];
 
@@ -93,13 +92,12 @@ llvm_mir_emit_owner_sync_exit(LLVMGenCtx *ctx,
 
     llvm_mir_mark_owner_dirty_for_exit(ctx, owner_cls, owner_name);
 
-    self_entry = llvm_scope_lookup(ctx, "self");
-    if (self_entry == NULL)
+    if (!llvm_scope_lookup_snapshot(ctx, "self", &self_entry))
         return;
 
     self_ptr = LLVMBuildLoad2(ctx->builder,
         LLVMPointerType(owner_cls->struct_type, 0),
-        self_entry->alloca, llvm_tmp_name(ctx));
+        self_entry.alloca, llvm_tmp_name(ctx));
     sync_args[0] = self_ptr;
     LLVMBuildCall2(ctx->builder, owner_sync->fn_type, owner_sync->fn,
         sync_args, 1, "");
@@ -433,11 +431,11 @@ llvm_emit_func_from_mir(const MIRRoutine *routine, LLVMGenCtx *ctx)
 
     LLVMPositionBuilderAtEnd(ctx->builder, llvm_blocks[routine->entry_block]);
     if (owner_sync != NULL) {
-        LLVMVarEntry *self_entry = llvm_scope_lookup(ctx, "self");
-        if (self_entry != NULL) {
+        LLVMVarEntry self_entry;
+        if (llvm_scope_lookup_snapshot(ctx, "self", &self_entry)) {
             LLVMValueRef self_ptr = LLVMBuildLoad2(ctx->builder,
                 LLVMPointerType(owner_cls->struct_type, 0),
-                self_entry->alloca, llvm_tmp_name(ctx));
+                self_entry.alloca, llvm_tmp_name(ctx));
             LLVMValueRef sync_args[] = { self_ptr };
             LLVMBuildCall2(ctx->builder, owner_sync->fn_type, owner_sync->fn,
                 sync_args, 1, "");
@@ -480,7 +478,17 @@ llvm_emit_func_from_mir(const MIRRoutine *routine, LLVMGenCtx *ctx)
         } else if (ret_type == ctx->type_void) {
             LLVMBuildRetVoid(ctx->builder);
         } else {
-            LLVMBuildRet(ctx->builder, LLVMConstNull(ret_type));
+            if (!ctx->has_error) {
+                llvm_set_error_at_with_hints(ctx, func_decl,
+                    PGY_CODE_LLVM_TYPE_UNSUPPORTED,
+                    PGY_CAUSE_CFG_MISSING_RETURN,
+                    PGY_FIX_ADD_RETURN_ON_ALL_PATHS,
+                    "LLVM MIR routine '%s' reached backend without a terminal return value",
+                    routine != NULL && routine->name != NULL
+                        ? routine->name
+                        : "<anonymous>");
+            }
+            LLVMBuildUnreachable(ctx->builder);
         }
     }
     llvm_mir_emit_true_phi_nodes(routine, ctx, llvm_block_heads,

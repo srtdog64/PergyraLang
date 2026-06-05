@@ -35,7 +35,7 @@ emit_tuple_literal_expression(ASTNode *node, TranspilerCtx *ctx)
                     PGY_CAUSE_C_TYPE_UNSUPPORTED,
                     PGY_FIX_ANNOTATE_CONCRETE_TYPE,
                     "C backend: tuple literal requires concrete element type metadata");
-                return pergyra_strdup("0");
+                return NULL;
             }
             if (i > 0) {
                 off = pergyra_str_append(tuple_name_buf,
@@ -60,7 +60,7 @@ emit_tuple_literal_expression(ASTNode *node, TranspilerCtx *ctx)
             PGY_CAUSE_C_TYPE_UNSUPPORTED,
             PGY_FIX_ANNOTATE_CONCRETE_TYPE,
             "C tuple literal requires concrete tuple layout metadata");
-        return pergyra_strdup("0");
+        return NULL;
     }
     CodeBuf *out = codebuf_create();
     codebuf_write(out, "((%s){", ctype);
@@ -73,7 +73,7 @@ emit_tuple_literal_expression(ASTNode *node, TranspilerCtx *ctx)
                 PGY_FIX_USE_LLVM_BACKEND_OR_EXTEND_TRANSPILER,
                 "C tuple literal could not lower element %zu", i);
             codebuf_destroy(out);
-            return pergyra_strdup("0");
+            return NULL;
         }
         if (i > 0)
             codebuf_write(out, ", ");
@@ -102,7 +102,7 @@ emit_array_literal_expression(ASTNode *node, TranspilerCtx *ctx)
             PGY_CAUSE_C_TYPE_UNSUPPORTED,
             PGY_FIX_ANNOTATE_CONCRETE_TYPE,
             "C array literal requires concrete Array<T> element metadata");
-        return pergyra_strdup("0");
+        return NULL;
     }
     int tmp_id = ++ctx->tmp_counter;
     CodeBuf *buf = codebuf_create();
@@ -117,7 +117,7 @@ emit_array_literal_expression(ASTNode *node, TranspilerCtx *ctx)
                 PGY_FIX_USE_LLVM_BACKEND_OR_EXTEND_TRANSPILER,
                 "C array literal could not lower element %zu", i);
             codebuf_destroy(buf);
-            return pergyra_strdup("0");
+            return NULL;
         }
         codebuf_write(buf, "pgy_array_push_%s(&_pgy_arr_%d, %s); ",
             inner, tmp_id, elem);
@@ -133,10 +133,10 @@ char *
 emit_composite_literal_expression(ASTNode *node, TranspilerCtx *ctx)
 {
     if (node == NULL)
-        return pergyra_strdup("0");
+        return NULL;
     if (node->type == AST_TUPLE_LITERAL)
         return emit_tuple_literal_expression(node, ctx);
     if (node->type == AST_ARRAY_LITERAL)
         return emit_array_literal_expression(node, ctx);
-    return pergyra_strdup("0");
+    return NULL;
 }

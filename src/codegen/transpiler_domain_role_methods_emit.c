@@ -46,6 +46,15 @@ emit_role_method_impl(const char *role_name,
             mir_method, MIR_SCOPE_METHOD, AST_FUNC_DECL);
     if (method_name == NULL && method != NULL)
         method_name = ast_declaration_name(method);
+    if (transpiler_active_has_mir(ctx)
+        && (role_name == NULL || method_name == NULL)) {
+        transpiler_set_mir_inventory_missing(
+            ctx,
+            "MIR-only C path missing role method name metadata for '%s.%s'",
+            role_name != NULL ? role_name : "(anonymous-role)",
+            method_name != NULL ? method_name : "(anonymous)");
+        return;
+    }
     if (transpiler_active_has_mir(ctx) && method_meta == NULL) {
         transpiler_set_mir_inventory_missing(
             ctx,
@@ -97,7 +106,16 @@ emit_role_vtable_instance(const char *role_name, ASTNode *impl, TranspilerCtx *c
     char *vtable_tag = NULL;
     if (ctx != NULL && ctx->backend_error != NULL)
         return;
-    if (ability_name == NULL || ast_impl_ability_method_count(impl) == 0)
+    if (ability_name == NULL) {
+        if (transpiler_active_has_mir(ctx)) {
+            transpiler_set_mir_inventory_missing(
+                ctx,
+                "MIR-only C path missing role vtable ability name metadata for role '%s'",
+                role_name != NULL ? role_name : "(anonymous-role)");
+        }
+        return;
+    }
+    if (ast_impl_ability_method_count(impl) == 0)
         return;
 
     ensure_ability_ref_vtable_decl(ability_ref, ctx);
@@ -127,10 +145,20 @@ emit_role_vtable_instance(const char *role_name, ASTNode *impl, TranspilerCtx *c
     for (size_t j = 0; j < ast_impl_ability_method_count(impl); j++) {
         ASTNode *method = ast_impl_ability_method(impl, j);
         const char *method_name = ast_declaration_name(method);
-        if (method == NULL || method->type != AST_FUNC_DECL)
-            continue;
-        if (method_name == NULL)
-            continue;
+        if (method == NULL || method->type != AST_FUNC_DECL) {
+            transpiler_set_mir_inventory_missing(
+                ctx,
+                "MIR-only C path missing role vtable method source metadata for role '%s'",
+                role_name != NULL ? role_name : "(anonymous-role)");
+            return;
+        }
+        if (method_name == NULL) {
+            transpiler_set_mir_inventory_missing(
+                ctx,
+                "MIR-only C path missing role vtable method name metadata for role '%s'",
+                role_name != NULL ? role_name : "(anonymous-role)");
+            return;
+        }
         codebuf_write(ctx->out, "    .%s = %s_%s,\n",
                       method_name,
                       role_name, method_name);
@@ -158,12 +186,25 @@ emit_role_operator_aliases(ASTNode *role, TranspilerCtx *ctx)
     }
 
     role_name = transpiler_decl_name_local(role);
-    if (role_name == NULL)
+    if (role_name == NULL) {
+        if (transpiler_active_has_mir(ctx)) {
+            transpiler_set_mir_inventory_missing(
+                ctx,
+                "MIR-only C path missing role declaration name metadata");
+        }
         return;
+    }
 
     for_type = transpiler_role_subject_type_name_local(role);
-    if (for_type == NULL)
+    if (for_type == NULL) {
+        if (transpiler_active_has_mir(ctx)) {
+            transpiler_set_mir_inventory_missing(
+                ctx,
+                "MIR-only C path missing role subject type metadata for role '%s'",
+                role_name);
+        }
         return;
+    }
 
     for (size_t i = 0; i < sizeof(ops) / sizeof(ops[0]); i++) {
         PgyTokenType op = ops[i];
@@ -178,13 +219,25 @@ emit_role_operator_aliases(ASTNode *role, TranspilerCtx *ctx)
             method = find_role_operator_method_decl(ctx, role, op, 0);
             method_name = ast_declaration_name(method);
         }
+        if (method_meta != NULL && method_name == NULL) {
+            transpiler_set_mir_inventory_missing(
+                ctx,
+                "MIR-only C path missing role operator method name metadata for role '%s'",
+                role_name != NULL ? role_name : "(anonymous-role)");
+            return;
+        }
         if (suffix == NULL
             || (method_meta == NULL && transpiler_active_has_mir(ctx))
             || (method_meta == NULL
-                && (method == NULL || method->type != AST_FUNC_DECL))
-            || method_name == NULL
-            ) {
+                && (method == NULL || method->type != AST_FUNC_DECL))) {
             continue;
+        }
+        if (method_name == NULL) {
+            transpiler_set_mir_inventory_missing(
+                ctx,
+                "C backend role operator method name metadata is missing for role '%s'",
+                role_name);
+            return;
         }
         if (!transpiler_role_operator_alias_name(fn_name, sizeof(fn_name),
                 suffix, for_type)) {

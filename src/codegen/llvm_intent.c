@@ -385,15 +385,17 @@ llvm_emit_intent_decl(ASTNode *node, LLVMGenCtx *ctx)
                 if (subject_name != NULL) {
                     char full_name[256];
                     LLVMFuncEntry *action_fn;
-                    LLVMVarEntry *participant_var = llvm_scope_lookup(ctx, alias);
+                    LLVMVarEntry participant_var;
+                    bool has_participant_var =
+                        llvm_scope_lookup_snapshot(ctx, alias, &participant_var);
                     if (!llvm_intent_action_function_name(ctx, full_name,
                             sizeof(full_name), subject_name, step_name))
                         return;
                     action_fn = llvm_lookup_function(ctx, full_name);
                     if (action_fn != NULL && action_fn->is_action
-                        && action_fn->action_self_only && participant_var != NULL) {
+                        && action_fn->action_self_only && has_participant_var) {
                         LLVMValueRef participant_ptr = LLVMBuildLoad2(ctx->builder,
-                            participant_var->type, participant_var->alloca, llvm_tmp_name(ctx));
+                            participant_var.type, participant_var.alloca, llvm_tmp_name(ctx));
                         LLVMValueRef args[] = { participant_ptr };
                         if (action_fn->ret_type == ctx->type_void) {
                             LLVMBuildCall2(ctx->builder, action_fn->fn_type, action_fn->fn,

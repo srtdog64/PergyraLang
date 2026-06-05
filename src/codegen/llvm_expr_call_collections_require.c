@@ -50,17 +50,18 @@ llvm_required_collection_function(LLVMGenCtx *ctx,
     return fn;
 }
 
-LLVMVarEntry *
+bool
 llvm_collection_required_receiver_var(LLVMGenCtx *ctx,
                                       ASTNode *node,
                                       ASTNode *receiver,
                                       const char *callee_name,
                                       const char *collection_kind,
+                                      LLVMVarEntry *receiver_out,
                                       LLVMValueRef *out)
 {
     const char *kind;
     const char *name;
-    LLVMVarEntry *var;
+    LLVMVarEntry var;
 
     kind = collection_kind != NULL ? collection_kind : "collection";
     if (receiver == NULL || receiver->type != AST_IDENTIFIER) {
@@ -75,12 +76,11 @@ llvm_collection_required_receiver_var(LLVMGenCtx *ctx,
         }
         if (out != NULL)
             *out = NULL;
-        return NULL;
+        return false;
     }
 
     name = ast_identifier_name(receiver);
-    var = llvm_scope_lookup(ctx, name);
-    if (var == NULL) {
+    if (!llvm_scope_lookup_snapshot(ctx, name, &var)) {
         if (ctx != NULL && !ctx->has_error) {
             llvm_set_error_at_with_hints(ctx, node,
                 PGY_CODE_LLVM_TYPE_UNSUPPORTED,
@@ -94,9 +94,11 @@ llvm_collection_required_receiver_var(LLVMGenCtx *ctx,
         }
         if (out != NULL)
             *out = NULL;
-        return NULL;
+        return false;
     }
-    return var;
+    if (receiver_out != NULL)
+        *receiver_out = var;
+    return true;
 }
 
 bool

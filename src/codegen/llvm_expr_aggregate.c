@@ -137,12 +137,13 @@ llvm_emit_array_access_expr(ASTNode *node, LLVMGenCtx *ctx)
 
     if (array_node != NULL && array_node->type == AST_IDENTIFIER) {
         const char *name = ast_identifier_name(array_node);
-        LLVMVarEntry *arr_var = llvm_scope_lookup(ctx, name);
+        LLVMVarEntry arr_var;
+        bool has_arr_var = llvm_scope_lookup_snapshot(ctx, name, &arr_var);
         LLVMArrayVarEntry *entry = llvm_lookup_array_var(ctx, name);
-        if (arr_var != NULL && entry != NULL) {
+        if (has_arr_var && entry != NULL) {
             const char *suffix = llvm_type_to_suffix(ctx, entry->elem_type);
             if (suffix != NULL && strcmp(suffix, "Unknown") != 0) {
-                const char *struct_name = LLVMGetStructName(arr_var->type);
+                const char *struct_name = LLVMGetStructName(arr_var.type);
                 const char *fn_prefix = "pgy_array_get_";
                 char fn_name[64];
                 if (struct_name != NULL
@@ -158,7 +159,7 @@ llvm_emit_array_access_expr(ASTNode *node, LLVMGenCtx *ctx)
                     if (LLVMTypeOf(index64) != ctx->type_i64)
                         index64 = LLVMBuildSExtOrBitCast(ctx->builder, index64,
                             ctx->type_i64, llvm_tmp_name(ctx));
-                    LLVMValueRef args[] = { arr_var->alloca, index64 };
+                    LLVMValueRef args[] = { arr_var.alloca, index64 };
                     return LLVMBuildCall2(ctx->builder, fn->fn_type, fn->fn,
                         args, 2, llvm_tmp_name(ctx));
                 }

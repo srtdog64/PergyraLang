@@ -192,7 +192,7 @@ char *
 mir_render_type_name(ASTNode *type_node)
 {
     if (type_node == NULL)
-        return pergyra_strdup("Int");
+        return NULL;
     if (type_node->type == AST_EVENT_HANDLER_TYPE)
         return NULL;
     if (type_node->type == AST_TYPE
@@ -200,9 +200,12 @@ mir_render_type_name(ASTNode *type_node)
         return NULL;
     if (type_node->type == AST_TYPE) {
         GenericParams *generic_args = ast_type_generic_args(type_node);
-        char *result = pergyra_strdup(ast_type_name(type_node) != NULL
-            ? ast_type_name(type_node) : "Int");
+        const char *type_name = ast_type_name(type_node);
+        char *result = NULL;
         size_t generic_count = ast_generic_param_count(generic_args);
+        if (type_name == NULL)
+            return NULL;
+        result = pergyra_strdup(type_name);
         if (result == NULL)
             return NULL;
         if (generic_count > 0) {
@@ -214,8 +217,12 @@ mir_render_type_name(ASTNode *type_node)
                 GenericParam *param = ast_generic_param_at(generic_args, i);
                 char *inner = mir_render_type_name(
                     ast_generic_param_constraint(param));
+                if (inner == NULL) {
+                    free(result);
+                    return NULL;
+                }
                 if ((i > 0 && !mir_type_append_owned(&result, ","))
-                    || !mir_type_append_owned(&result, inner != NULL ? inner : "Int")) {
+                    || !mir_type_append_owned(&result, inner)) {
                     free(inner);
                     free(result);
                     return NULL;
@@ -235,7 +242,7 @@ mir_render_type_name(ASTNode *type_node)
         if (inner != NULL)
             result = mir_type_strdup_fmt("Channel<%s>", inner);
         free(inner);
-        return result != NULL ? result : pergyra_strdup("Channel<Int>");
+        return result;
     }
     if (type_node->type == AST_FUTURE_TYPE) {
         char *inner = mir_render_type_name(ast_future_type_value_type(type_node));
@@ -243,9 +250,9 @@ mir_render_type_name(ASTNode *type_node)
         if (inner != NULL)
             result = mir_type_strdup_fmt("Future<%s>", inner);
         free(inner);
-        return result != NULL ? result : pergyra_strdup("Future<Int>");
+        return result;
     }
-    return pergyra_strdup("Int");
+    return NULL;
 }
 
 char *
@@ -255,9 +262,12 @@ mir_claim_abi_type_name_from_ast(const ASTNode *ast)
         return NULL;
     if (ast->type == AST_WITH_STMT) {
         char *inner = mir_render_type_name(ast_with_slot_type(ast));
-        char *result = mir_type_strdup_fmt("%s<%s>",
-                                  ast_with_is_secure(ast) ? "SecureSlot" : "Slot",
-                                  inner != NULL ? inner : "Int");
+        char *result = NULL;
+        if (inner != NULL) {
+            result = mir_type_strdup_fmt("%s<%s>",
+                              ast_with_is_secure(ast) ? "SecureSlot" : "Slot",
+                              inner);
+        }
         free(inner);
         return result;
     }
@@ -270,10 +280,10 @@ mir_claim_abi_type_name_from_ast(const ASTNode *ast)
             const MIRClaimKindSpec *claim = mir_claim_kind_from_callee(callee);
             char *inner = mir_render_type_name(ast_call_argument(ast, 0));
             char *result = NULL;
-            if (claim != NULL) {
+            if (claim != NULL && inner != NULL) {
                 result = mir_type_strdup_fmt("%s<%s>",
                                              claim->abi_prefix,
-                                             inner != NULL ? inner : "Int");
+                                             inner);
             }
             free(inner);
             return result;

@@ -157,19 +157,22 @@ emit_func_decl_from_mir_named(ASTNode *node, const MIRRoutine *mir_routine,
         char *decl = NULL;
         bool boundary_slot = false;
         bool secure_slot = false;
+        bool event_handler_param = false;
         if (p == NULL || p->name == NULL)
             continue;
         if (is_method && p != NULL && p->name != NULL
             && strcmp(p->name, "self") == 0 && p->type == NULL) {
             continue;
         }
-        if (type_name != NULL) {
+        event_handler_param =
+            p->type != NULL && p->type->type == AST_EVENT_HANDLER_TYPE;
+        if (!event_handler_param && type_name != NULL) {
             if (transpiler_require_type_name_c_type_copy(ctx,
                     type_name, "MIR function parameter",
                     pt_buf, sizeof(pt_buf))) {
                 pt = pt_buf;
             }
-        } else if (p->type != NULL) {
+        } else if (!event_handler_param && p->type != NULL) {
             if (pergyra_ast_type_to_c_copy_in_ctx(
                     ctx, p->type, pt_buf, sizeof(pt_buf)))
                 pt = pt_buf;
@@ -181,7 +184,7 @@ emit_func_decl_from_mir_named(ASTNode *node, const MIRRoutine *mir_routine,
             owned_type_name = pergyra_strdup(mir_routine->owner_name);
             type_name = owned_type_name;
         }
-        if (pt == NULL) {
+        if (!event_handler_param && pt == NULL) {
             transpiler_set_backend_error_with_hints(
                 ctx,
                 PGY_CODE_C_TYPE_UNSUPPORTED,
@@ -230,8 +233,16 @@ emit_func_decl_from_mir_named(ASTNode *node, const MIRRoutine *mir_routine,
             codebuf_write(params_sig, "%s *%s", pt, p->name);
             if (secure_slot)
                 codebuf_write(params_sig, ", PgyToken_%s %s_token", inner, p->name);
-        } else if (p->type != NULL && p->type->type == AST_EVENT_HANDLER_TYPE) {
+        } else if (event_handler_param) {
             decl = pergyra_ast_typed_declarator_in_ctx(ctx, p->type, p->name);
+            if (decl == NULL) {
+                codebuf_destroy(params_sig);
+                free(header_decl);
+                free(owned_type_name);
+                transpiler_restore_mir_emit_state_from_snapshot_local(ctx,
+                    &saved_emit_state);
+                return;
+            }
             codebuf_write(params_sig, "%s", decl);
         } else if (p->name != NULL && strcmp(p->name, "self") == 0
                    && type_name != NULL
@@ -250,6 +261,12 @@ emit_func_decl_from_mir_named(ASTNode *node, const MIRRoutine *mir_routine,
 
     header_decl = pergyra_func_signature_declarator_in_ctx(ctx, return_type,
         name, params_sig != NULL ? params_sig->data : "void");
+    if (header_decl == NULL) {
+        codebuf_destroy(params_sig);
+        transpiler_restore_mir_emit_state_from_snapshot_local(ctx,
+            &saved_emit_state);
+        return;
+    }
     codebuf_write(ctx->out, "\n%s\n{\n", header_decl);
     free(header_decl);
     header_decl = NULL;
@@ -502,6 +519,20 @@ emit_func_decl_from_mir_named(ASTNode *node, const MIRRoutine *mir_routine,
                 } else if (inst->kind == MIR_INST_RETURN) {
                     if (inst->expr0 != NULL) {
                         char *ret_expr = emit_expression(inst->expr0, ctx);
+                        if (ret_expr == NULL) {
+                            if (ctx->backend_error == NULL) {
+                                transpiler_set_backend_error_with_hints(ctx,
+                                    PGY_CODE_C_TYPE_UNSUPPORTED,
+                                    PGY_CAUSE_C_TYPE_UNSUPPORTED,
+                                    PGY_FIX_INSPECT_MIR_INVENTORY,
+                                    "MIR cleanup block return in function '%s' could not lower return value",
+                                    name != NULL ? name : "<function>");
+                            }
+                            transpiler_defer_scope_pop(ctx);
+                            transpiler_restore_mir_emit_state_from_snapshot_local(
+                                ctx, &saved_emit_state);
+                            return;
+                        }
                         write_indent(ctx);
                         codebuf_write(ctx->out, "return %s;\n", ret_expr);
                         free(ret_expr);

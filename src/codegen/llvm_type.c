@@ -9,6 +9,7 @@
 
 #include "llvm_internal.h"
 #include "codegen_slot_type_policy.h"
+#include "transpiler_type_mapping.h"
 
 bool
 llvm_nominal_uses_immutable_projection_storage(NominalDeclKind kind)
@@ -155,35 +156,11 @@ pgy_sanitize_suffix(const char *in, char *out, size_t n)
  * Tracks `<>` depth so nested generics (`Result<Array<Int>, E>`) parse
  * correctly. Returns false if no top-level comma is found. */
 static bool
-pgy_result_type_ident_char(char c)
-{
-    return (c >= 'A' && c <= 'Z')
-        || (c >= 'a' && c <= 'z')
-        || (c >= '0' && c <= '9')
-        || c == '_';
-}
-
-static bool
 pgy_result_type_arg_has_unknown(const char *arg)
 {
-    const char *p = arg;
     if (arg == NULL || arg[0] == '\0')
         return true;
-    while (*p != '\0') {
-        const char *start;
-        size_t len;
-        if (!pgy_result_type_ident_char(*p)) {
-            p++;
-            continue;
-        }
-        start = p;
-        while (pgy_result_type_ident_char(*p))
-            p++;
-        len = (size_t)(p - start);
-        if (len == 7 && strncmp(start, "Unknown", 7) == 0)
-            return true;
-    }
-    return false;
+    return transpiler_type_name_contains_unknown_sentinel(arg);
 }
 
 static bool

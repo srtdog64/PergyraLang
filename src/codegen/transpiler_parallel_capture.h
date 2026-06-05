@@ -4,10 +4,7 @@
 #include "../parser/ast.h"
 #include "transpiler_context.h"
 
-/* Helpers for discovering locals captured by generated C parallel blocks. */
-
-ASTNode *transpiler_find_local_let_type_node(ASTNode *body,
-                                             const char *base_name);
+/* Owner for discovering locals captured by generated C parallel blocks. */
 
 void transpiler_parallel_collect_stmt_captures(ASTNode *node,
                                                TranspilerCtx *ctx,

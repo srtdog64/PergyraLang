@@ -61,6 +61,28 @@ transpiler_box_let_lookup(const char *callee_name)
     return match != NULL ? match->op : TRANS_BOX_LET_OP_NONE;
 }
 
+static char *
+transpiler_box_let_emit_arg(TranspilerCtx *ctx,
+                            ASTNode *arg,
+                            const char *binding_name,
+                            const char *role)
+{
+    char *rendered = emit_expression(arg, ctx);
+
+    if (rendered != NULL)
+        return rendered;
+
+    transpiler_set_backend_error_with_hints(
+        ctx,
+        PGY_CODE_C_TYPE_UNSUPPORTED,
+        PGY_CAUSE_C_TYPE_UNSUPPORTED,
+        PGY_FIX_USE_LLVM_BACKEND_OR_EXTEND_TRANSPILER,
+        "C Box/Rc let binding '%s' could not lower %s expression",
+        binding_name != NULL ? binding_name : "<binding>",
+        role != NULL ? role : "initializer");
+    return NULL;
+}
+
 static bool
 transpiler_try_emit_box_array_let(TranspilerCtx *ctx,
                                   const char *name,
@@ -114,11 +136,24 @@ transpiler_try_emit_box_array_let(TranspilerCtx *ctx,
     }
 
     capacity = (ast_call_arg_count(init) > 0)
-        ? emit_expression(ast_call_argument(init, 0), ctx)
+        ? transpiler_box_let_emit_arg(ctx, ast_call_argument(init, 0),
+              name, "capacity")
         : pergyra_strdup("0");
+    if (capacity == NULL) {
+        free(*ann_type_name_ptr);
+        *ann_type_name_ptr = NULL;
+        return true;
+    }
     allocator = (ast_call_arg_count(init) > 1)
-        ? emit_expression(ast_call_argument(init, 1), ctx)
+        ? transpiler_box_let_emit_arg(ctx, ast_call_argument(init, 1),
+              name, "allocator")
         : pergyra_strdup("NULL");
+    if (allocator == NULL) {
+        free(capacity);
+        free(*ann_type_name_ptr);
+        *ann_type_name_ptr = NULL;
+        return true;
+    }
     write_indent(ctx);
     codebuf_write(ctx->out,
         "PgyBoxArray_%s %s = pgy_box_array_new_%s(%s, %s);\n",
@@ -181,6 +216,7 @@ transpiler_try_emit_box_or_rc_let(TranspilerCtx *ctx,
     const char *callee_name;
     char *box_inner_owned = NULL;
     const char *box_inner;
+    char *payload_arg = NULL;
     char *registered_type;
 
     if (ctx == NULL || name == NULL || init == NULL || ann_type_name_ptr == NULL)
@@ -216,15 +252,23 @@ transpiler_try_emit_box_or_rc_let(TranspilerCtx *ctx,
         return true;
     }
 
-    write_indent(ctx);
-    codebuf_write(ctx->out, "PgyBox_%s %s = pgy_box_new_%s(",
-                  box_inner, name, box_inner);
     if (ast_call_arg_count(init) > 0) {
-        char *arg = emit_expression(ast_call_argument(init, 0), ctx);
-        codebuf_write(ctx->out, "%s", arg);
-        free(arg);
+        payload_arg = transpiler_box_let_emit_arg(ctx,
+            ast_call_argument(init, 0), name, "payload");
+        if (payload_arg == NULL) {
+            free(box_inner_owned);
+            free(*ann_type_name_ptr);
+            *ann_type_name_ptr = NULL;
+            return true;
+        }
     }
-    codebuf_write(ctx->out, ");\n");
+    write_indent(ctx);
+    codebuf_write(ctx->out, "PgyBox_%s %s = pgy_box_new_%s(%s);\n",
+                  box_inner,
+                  name,
+                  box_inner,
+                  payload_arg != NULL ? payload_arg : "");
+    free(payload_arg);
     registered_type = *ann_type_name_ptr != NULL
         ? pergyra_strdup(*ann_type_name_ptr)
         : strdup_fmt("Box<%s>", box_inner);

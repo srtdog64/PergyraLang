@@ -53,7 +53,9 @@ llvm_emit_member_call_vtable_dispatch(ASTNode *node, LLVMGenCtx *ctx,
                             &method_idx);
 
                     if (vt_cls != NULL && method_idx >= 0) {
-                        LLVMVarEntry *pvar = llvm_scope_lookup(ctx, party_var);
+                        LLVMVarEntry pvar;
+                        bool has_pvar =
+                            llvm_scope_lookup_snapshot(ctx, party_var, &pvar);
                         LLVMValueRef vt_ptr_field;
                         LLVMValueRef vt_raw;
                         LLVMTypeRef vt_ptr_ty;
@@ -67,7 +69,7 @@ llvm_emit_member_call_vtable_dispatch(ASTNode *node, LLVMGenCtx *ctx,
                         LLVMValueRef *args;
                         LLVMValueRef result;
 
-                        if (pvar == NULL) {
+                        if (!has_pvar) {
                             return llvm_vtable_dispatch_error(node, ctx,
                                 method_name,
                                 "requires a registered receiver variable");
@@ -88,7 +90,7 @@ llvm_emit_member_call_vtable_dispatch(ASTNode *node, LLVMGenCtx *ctx,
                         }
 
                         vt_ptr_field = LLVMBuildStructGEP2(ctx->builder,
-                            cls->struct_type, pvar->alloca,
+                            cls->struct_type, pvar.alloca,
                             (unsigned)vt_idx, llvm_tmp_name(ctx));
                         vt_raw = LLVMBuildLoad2(ctx->builder,
                             ctx->type_i8ptr, vt_ptr_field, llvm_tmp_name(ctx));
@@ -104,7 +106,7 @@ llvm_emit_member_call_vtable_dispatch(ASTNode *node, LLVMGenCtx *ctx,
                             fn_ptr_field, llvm_tmp_name(ctx));
 
                         args[0] = LLVMBuildBitCast(ctx->builder,
-                            pvar->alloca, ctx->type_i8ptr,
+                            pvar.alloca, ctx->type_i8ptr,
                             llvm_tmp_name(ctx));
                         for (size_t ai = 0; ai < argc; ai++) {
                             args[ai + 1] = llvm_emit_expression(
@@ -119,7 +121,8 @@ llvm_emit_member_call_vtable_dispatch(ASTNode *node, LLVMGenCtx *ctx,
                         if (ret_type == ctx->type_void) {
                             LLVMBuildCall2(ctx->builder, fn_type, fn_ptr,
                                 args, (unsigned)(argc + 1), "");
-                            result = LLVMConstInt(ctx->type_i32, 0, 0);
+                            result = llvm_void_expression_placeholder(ctx,
+                                node, method_name);
                         } else {
                             result = LLVMBuildCall2(ctx->builder, fn_type,
                                 fn_ptr, args, (unsigned)(argc + 1),

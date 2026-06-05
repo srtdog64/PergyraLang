@@ -142,7 +142,7 @@ llvm_mir_declare_recv_target(const char *target_name,
 
     if (ctx == NULL)
         return true;
-    if (target_name == NULL || llvm_scope_lookup(ctx, target_name) != NULL)
+    if (target_name == NULL || llvm_scope_contains(ctx, target_name))
         return true;
 
     channel = llvm_mir_recv_expr_channel(recv_expr);
@@ -169,7 +169,7 @@ llvm_mir_emit_channel_receive_def(const MIRInstruction *inst,
 {
     ASTNode *channel;
     LLVMChannelTarget channel_target;
-    LLVMVarEntry *target_var;
+    LLVMVarEntry target_var;
     LLVMFuncEntry *recv_fn;
     LLVMValueRef args[1];
     LLVMValueRef value;
@@ -201,8 +201,8 @@ llvm_mir_emit_channel_receive_def(const MIRInstruction *inst,
             "channel receive DEF", &channel_target))
         return false;
 
-    target_var = llvm_scope_lookup(ctx, inst->arg0);
-    if (target_var == NULL || target_var->alloca == NULL) {
+    if (!llvm_scope_lookup_snapshot(ctx, inst->arg0, &target_var)
+        || target_var.alloca == NULL) {
         llvm_set_error_at_with_hints(ctx, inst->expr0,
             PGY_CODE_LLVM_TYPE_UNSUPPORTED,
             PGY_CAUSE_LLVM_TYPE_UNSUPPORTED,
@@ -239,8 +239,8 @@ llvm_mir_emit_channel_receive_def(const MIRInstruction *inst,
     args[0] = channel_target.ptr;
     value = LLVMBuildCall2(ctx->builder, recv_fn->fn_type, recv_fn->fn,
                            args, 1, llvm_tmp_name(ctx));
-    LLVMBuildStore(ctx->builder, value, target_var->alloca);
-    if (mir_alloca != NULL && mir_alloca != target_var->alloca)
+    LLVMBuildStore(ctx->builder, value, target_var.alloca);
+    if (mir_alloca != NULL && mir_alloca != target_var.alloca)
         LLVMBuildStore(ctx->builder, value, mir_alloca);
     return true;
 }

@@ -26,38 +26,6 @@ llvm_stmt_lookup_class_by_type(LLVMGenCtx *ctx, LLVMTypeRef type)
     return llvm_lookup_class_by_struct_type(ctx, type);
 }
 
-static const char *
-llvm_stmt_find_with_slot_inner_in_body(ASTNode *body, const char *alias)
-{
-    if (body == NULL || alias == NULL)
-        return NULL;
-    if (body->type == AST_WITH_STMT
-        && ast_with_alias(body) != NULL
-        && strcmp(ast_with_alias(body), alias) == 0) {
-        ASTNode *slot_type = ast_with_slot_type(body);
-        if (slot_type != NULL && slot_type->type == AST_TYPE) {
-            const char *inner = ast_type_name(slot_type);
-            if (inner != NULL && inner[0] != '\0')
-                return inner;
-        }
-    }
-    if (body->type == AST_WITH_STMT) {
-        const char *found = llvm_stmt_find_with_slot_inner_in_body(
-            ast_with_body(body), alias);
-        if (found != NULL)
-            return found;
-    }
-    if (body->type == AST_BLOCK) {
-        for (size_t i = 0; i < ast_block_statement_count(body); i++) {
-            const char *found = llvm_stmt_find_with_slot_inner_in_body(
-                ast_block_statement(body, i), alias);
-            if (found != NULL)
-                return found;
-        }
-    }
-    return NULL;
-}
-
 LLVMTypeRef
 llvm_stmt_unknown_expr_type(LLVMGenCtx *ctx, ASTNode *expr, const char *reason)
 {
@@ -110,6 +78,25 @@ llvm_stmt_host_method_return_type(LLVMGenCtx *ctx, const char *host_type_name,
         ctx->has_error = false;
     }
     return NULL;
+}
+
+static LLVMTypeRef
+llvm_stmt_callable_entry_return_type(LLVMGenCtx *ctx,
+                                     const LLVMCallableVarEntry *entry)
+{
+    ASTNode *return_type;
+
+    if (ctx == NULL || entry == NULL)
+        return NULL;
+    if (entry->type_node != NULL
+        && entry->type_node->type == AST_EVENT_HANDLER_TYPE) {
+        return_type = ast_event_handler_return_type(entry->type_node);
+    } else {
+        return_type = entry->return_type;
+    }
+    if (return_type == NULL)
+        return ctx->type_void;
+    return ast_type_to_llvm(ctx, return_type);
 }
 
 LLVMTypeRef
@@ -203,7 +190,8 @@ llvm_stmt_infer_expr_type(LLVMGenCtx *ctx, ASTNode *expr)
     }
     case AST_IDENTIFIER: {
         const char *name = ast_identifier_name(expr);
-        LLVMVarEntry *var = llvm_scope_lookup(ctx, name);
+        LLVMVarEntry var;
+        bool has_var = llvm_scope_lookup_snapshot(ctx, name, &var);
         if (pgy_codegen_match_variant_lookup(name)
                 == PGY_MATCH_VARIANT_NONE_CTOR) {
             if (ctx->expected_type_name != NULL
@@ -223,8 +211,8 @@ llvm_stmt_infer_expr_type(LLVMGenCtx *ctx, ASTNode *expr)
                 return ctx->current_ret_type;
             }
         }
-        if (var != NULL)
-            return var->type;
+        if (has_var)
+            return var.type;
         if (name != NULL && strcmp(name, "self") != 0
             && llvm_current_host_class_name(ctx) != NULL) {
             LLVMClassTypeEntry *host_cls = llvm_lookup_class(
@@ -249,10 +237,11 @@ llvm_stmt_infer_expr_type(LLVMGenCtx *ctx, ASTNode *expr)
     case AST_ASSIGNMENT:
         if (ast_assignment_target(expr) != NULL
             && ast_assignment_target(expr)->type == AST_IDENTIFIER) {
-            LLVMVarEntry *var = llvm_scope_lookup(ctx,
-                ast_identifier_name(ast_assignment_target(expr)));
-            if (var != NULL)
-                return var->type;
+            LLVMVarEntry var;
+            const char *target_name =
+                ast_identifier_name(ast_assignment_target(expr));
+            if (llvm_scope_lookup_snapshot(ctx, target_name, &var))
+                return var.type;
         }
         if (ast_assignment_value(expr) != NULL)
             return llvm_stmt_infer_expr_type(ctx, ast_assignment_value(expr));
@@ -277,7 +266,7 @@ llvm_stmt_infer_expr_type(LLVMGenCtx *ctx, ASTNode *expr)
                 channel, "channel receive expression");
             if (inner != NULL)
                 return pergyra_type_to_llvm(ctx, inner);
-            if (name != NULL && llvm_scope_lookup(ctx, name) != NULL) {
+            if (name != NULL && llvm_scope_contains(ctx, name)) {
                 char reason[256];
                 if (!llvm_stmt_type_reasonf(reason, sizeof(reason),
                         "channel receive '%s' has no registered Channel<T> metadata",
@@ -417,13 +406,6 @@ llvm_stmt_infer_expr_type(LLVMGenCtx *ctx, ASTNode *expr)
                     ast_identifier_name(ast_call_argument(expr, 0));
                 const char *inner = llvm_stmt_lookup_slot_or_view_inner(
                     ctx, receiver_name);
-                if (inner == NULL && ctx != NULL
-                    && ctx->current_func_decl != NULL
-                    && ctx->current_func_decl->type == AST_FUNC_DECL) {
-                    inner = llvm_stmt_find_with_slot_inner_in_body(
-                        ast_func_body(ctx->current_func_decl),
-                        receiver_name);
-                }
                 if (inner != NULL && llvm_stmt_slot_call_returns_value(callee))
                     return pergyra_type_to_llvm(ctx, inner);
                 if (inner != NULL)
@@ -434,6 +416,25 @@ llvm_stmt_infer_expr_type(LLVMGenCtx *ctx, ASTNode *expr)
                     ctx, llvm_current_host_class_name(ctx), callee);
                 if (method_ret != NULL)
                     return method_ret;
+            }
+            /* Closure #73: Clone(x) returns x's type (identity pass-through
+             * matches llvm_expr_call_dispatch.c:92). Without this fallthrough
+             * tightened-mode type inference fails with "concrete type required"
+             * even though emit lowers Clone to its argument verbatim. */
+            if (strcmp(callee, "Clone") == 0 && ast_call_arg_count(expr) >= 1
+                && ast_call_argument(expr, 0) != NULL) {
+                LLVMTypeRef arg_type = llvm_stmt_infer_expr_type(ctx,
+                    ast_call_argument(expr, 0));
+                if (arg_type != NULL)
+                    return arg_type;
+            }
+            {
+                LLVMCallableVarEntry *callable =
+                    llvm_lookup_callable_entry(ctx, callee);
+                LLVMTypeRef ret_type =
+                    llvm_stmt_callable_entry_return_type(ctx, callable);
+                if (ret_type != NULL && !ctx->has_error)
+                    return ret_type;
             }
             LLVMFuncEntry *fn = llvm_stmt_lookup_visible_function(ctx, callee);
             if (fn != NULL)

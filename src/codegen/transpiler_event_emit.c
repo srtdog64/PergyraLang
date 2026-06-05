@@ -5,6 +5,7 @@
 #include "../semantic/diag_codes.h"
 #include "transpiler_context.h"
 #include "transpiler_type_render.h"
+#include "transpiler_type_require.h"
 #include "../parser/ast_api.h"
 
 static char *
@@ -40,13 +41,13 @@ emit_event_decl(ASTNode *node, TranspilerCtx *ctx)
         ASTNode *param = ast_event_param(node, i);
         ASTNode *param_type = ast_let_type(param);
         char pt_buf[256];
-        const char *pt = "void*";
-        if (param_type != NULL
-            && pergyra_ast_type_to_c_copy_in_ctx(ctx, param_type,
+        const char *pt = pt_buf;
+        if (!transpiler_require_ast_c_type_copy(ctx,
+                param_type,
+                "event handler parameter",
                 pt_buf,
-                sizeof(pt_buf))) {
-            pt = pt_buf;
-        }
+                sizeof(pt_buf)))
+            return;
         if (i > 0)
             codebuf_write(ctx->out, ", ");
         codebuf_write(ctx->out, "%s %s", pt, ast_let_name(param));
@@ -89,13 +90,13 @@ emit_event_decl(ASTNode *node, TranspilerCtx *ctx)
         ASTNode *param = ast_event_param(node, i);
         ASTNode *param_type = ast_let_type(param);
         char pt_buf[256];
-        const char *pt = "void*";
-        if (param_type != NULL
-            && pergyra_ast_type_to_c_copy_in_ctx(ctx, param_type,
+        const char *pt = pt_buf;
+        if (!transpiler_require_ast_c_type_copy(ctx,
+                param_type,
+                "event invoke parameter",
                 pt_buf,
-                sizeof(pt_buf))) {
-            pt = pt_buf;
-        }
+                sizeof(pt_buf)))
+            return;
         codebuf_write(ctx->out, ", %s %s", pt, ast_let_name(param));
     }
     codebuf_write(ctx->out, ") {\n");

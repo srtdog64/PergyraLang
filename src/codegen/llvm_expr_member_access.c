@@ -66,7 +66,8 @@ llvm_emit_member_access(ASTNode *node, LLVMGenCtx *ctx)
             if (projection_borrow != NULL) {
                 LLVMClassTypeEntry *source_cls;
                 ASTNode *source_decl;
-                LLVMVarEntry *source_var;
+                LLVMVarEntry source_var;
+                bool has_source_var;
                 const char *source_class_name = llvm_lookup_var_class(ctx,
                     projection_borrow->source_name);
                 if (source_class_name == NULL)
@@ -74,15 +75,16 @@ llvm_emit_member_access(ASTNode *node, LLVMGenCtx *ctx)
                         "LLVM projection member access requires source class metadata");
                 source_cls = llvm_lookup_class(ctx, source_class_name);
                 source_decl = llvm_find_projection_nominal_decl(ctx, source_class_name);
-                source_var = llvm_scope_lookup(ctx, projection_borrow->source_name);
-                if (source_cls == NULL || source_decl == NULL || source_var == NULL)
+                has_source_var = llvm_scope_lookup_snapshot(ctx,
+                    projection_borrow->source_name, &source_var);
+                if (source_cls == NULL || source_decl == NULL || !has_source_var)
                     return llvm_member_access_error(ctx, node,
                         "LLVM projection member access requires registered source metadata");
                 {
-                    LLVMValueRef source_base = source_var->alloca;
-                    if (source_var->type == LLVMPointerType(source_cls->struct_type, 0)) {
-                        source_base = LLVMBuildLoad2(ctx->builder, source_var->type,
-                            source_var->alloca, llvm_tmp_name(ctx));
+                    LLVMValueRef source_base = source_var.alloca;
+                    if (source_var.type == LLVMPointerType(source_cls->struct_type, 0)) {
+                        source_base = LLVMBuildLoad2(ctx->builder, source_var.type,
+                            source_var.alloca, llvm_tmp_name(ctx));
                     }
                     return llvm_load_projection_path_value(ctx, source_decl, source_cls,
                         source_base, field_name);

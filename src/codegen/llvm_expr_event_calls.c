@@ -64,9 +64,9 @@ llvm_emit_event_invocation_call(ASTNode *node, LLVMGenCtx *ctx,
     fn = llvm_lookup_function(ctx, fname);
     ev_ptr = LLVMGetNamedGlobal(ctx->module, callee_name);
     if (ev_ptr == NULL) {
-        LLVMVarEntry *ev = llvm_scope_lookup(ctx, callee_name);
-        if (ev != NULL)
-            ev_ptr = ev->alloca;
+        LLVMVarEntry ev;
+        if (llvm_scope_lookup_snapshot(ctx, callee_name, &ev))
+            ev_ptr = ev.alloca;
     }
     if (fn == NULL || ev_ptr == NULL) {
         *out = llvm_event_expr_error(ctx, node,
@@ -122,8 +122,9 @@ llvm_emit_event_subscribe_expr(ASTNode *node, LLVMGenCtx *ctx)
             "LLVM event subscribe helper name is too long");
     }
     LLVMFuncEntry *fn = llvm_lookup_function(ctx, fname);
-    LLVMVarEntry *ev = llvm_scope_lookup(ctx, evt_name);
-    LLVMValueRef ev_ptr = (ev != NULL) ? ev->alloca
+    LLVMVarEntry ev;
+    bool has_ev = llvm_scope_lookup_snapshot(ctx, evt_name, &ev);
+    LLVMValueRef ev_ptr = has_ev ? ev.alloca
         : LLVMGetNamedGlobal(ctx->module, evt_name);
     LLVMValueRef hval = llvm_emit_expression(handler, ctx);
 
@@ -164,8 +165,9 @@ llvm_emit_event_unsubscribe_expr(ASTNode *node, LLVMGenCtx *ctx)
             "LLVM event unsubscribe helper name is too long");
     }
     LLVMFuncEntry *fn = llvm_lookup_function(ctx, fname);
-    LLVMVarEntry *ev = llvm_scope_lookup(ctx, evt_name);
-    LLVMValueRef ev_ptr = (ev != NULL) ? ev->alloca
+    LLVMVarEntry ev;
+    bool has_ev = llvm_scope_lookup_snapshot(ctx, evt_name, &ev);
+    LLVMValueRef ev_ptr = has_ev ? ev.alloca
         : LLVMGetNamedGlobal(ctx->module, evt_name);
     LLVMValueRef hval = llvm_emit_expression(handler, ctx);
 
@@ -205,8 +207,9 @@ llvm_emit_event_invoke_expr(ASTNode *node, LLVMGenCtx *ctx)
             "LLVM event invoke helper name is too long");
     }
     LLVMFuncEntry *fn = llvm_lookup_function(ctx, fname);
-    LLVMVarEntry *ev = llvm_scope_lookup(ctx, evt_name);
-    LLVMValueRef ev_ptr = (ev != NULL) ? ev->alloca
+    LLVMVarEntry ev;
+    bool has_ev = llvm_scope_lookup_snapshot(ctx, evt_name, &ev);
+    LLVMValueRef ev_ptr = has_ev ? ev.alloca
         : LLVMGetNamedGlobal(ctx->module, evt_name);
     if (fn == NULL || ev_ptr == NULL) {
         llvm_set_error_at_with_hints(ctx, node,

@@ -97,7 +97,7 @@ llvm_emit_intent_step_rebind_bound_zone_aliases(LLVMGenCtx *ctx,
                                                 size_t who_alias_count,
                                                 LLVMValueRef *saved_allocas)
 {
-    LLVMVarEntry *zone_var;
+    LLVMVarEntry zone_var;
     LLVMValueRef zone_ptr;
     LLVMClassTypeEntry *zone_cls;
     bool rebound = false;
@@ -108,11 +108,12 @@ llvm_emit_intent_step_rebind_bound_zone_aliases(LLVMGenCtx *ctx,
     if (zone_alias == NULL || zone_type_name == NULL)
         return false;
 
-    zone_var = llvm_scope_lookup(ctx, zone_alias);
-    if (zone_var == NULL || LLVMGetTypeKind(zone_var->type) != LLVMPointerTypeKind)
+    if (!llvm_scope_lookup_snapshot(ctx, zone_alias, &zone_var)
+        || LLVMGetTypeKind(zone_var.type) != LLVMPointerTypeKind)
         return false;
 
-    zone_ptr = LLVMBuildLoad2(ctx->builder, zone_var->type, zone_var->alloca, llvm_tmp_name(ctx));
+    zone_ptr = LLVMBuildLoad2(ctx->builder, zone_var.type,
+        zone_var.alloca, llvm_tmp_name(ctx));
     zone_cls = llvm_lookup_class(ctx, zone_type_name);
     if (zone_cls == NULL)
         return false;
@@ -120,7 +121,7 @@ llvm_emit_intent_step_rebind_bound_zone_aliases(LLVMGenCtx *ctx,
     for (size_t i = 0; i < who_alias_count; i++) {
         const char *alias = who_aliases[i];
         const char *slot_name = llvm_resolve_intent_zone_slot_name_for_zone(ctx, intent, zone_type_name, alias);
-        LLVMVarEntry *participant_var;
+        LLVMVarEntry participant_var;
         int field_idx;
         LLVMValueRef original_ptr;
         LLVMValueRef slot_ptr;
@@ -128,9 +129,8 @@ llvm_emit_intent_step_rebind_bound_zone_aliases(LLVMGenCtx *ctx,
         if (alias == NULL || slot_name == NULL || strcmp(slot_name, "<unbound>") == 0)
             continue;
 
-        participant_var = llvm_scope_lookup(ctx, alias);
-        if (participant_var == NULL
-            || LLVMGetTypeKind(participant_var->type) != LLVMPointerTypeKind) {
+        if (!llvm_scope_lookup_snapshot(ctx, alias, &participant_var)
+            || LLVMGetTypeKind(participant_var.type) != LLVMPointerTypeKind) {
             if (llvm_active_has_mir(ctx)) {
                 llvm_set_mir_inventory_missing(ctx,
                     "MIR-only LLVM path missing intent participant binding for zone rebind '%s'",
@@ -144,12 +144,14 @@ llvm_emit_intent_step_rebind_bound_zone_aliases(LLVMGenCtx *ctx,
         if (field_idx < 0)
             continue;
 
-        original_ptr = LLVMBuildLoad2(ctx->builder, participant_var->type, participant_var->alloca, llvm_tmp_name(ctx));
-        saved_allocas[i] = LLVMBuildAlloca(ctx->builder, participant_var->type, llvm_tmp_name(ctx));
+        original_ptr = LLVMBuildLoad2(ctx->builder, participant_var.type,
+            participant_var.alloca, llvm_tmp_name(ctx));
+        saved_allocas[i] = LLVMBuildAlloca(ctx->builder,
+            participant_var.type, llvm_tmp_name(ctx));
         LLVMBuildStore(ctx->builder, original_ptr, saved_allocas[i]);
         slot_ptr = LLVMBuildStructGEP2(ctx->builder, zone_cls->struct_type, zone_ptr,
             (unsigned)field_idx, llvm_tmp_name(ctx));
-        LLVMBuildStore(ctx->builder, slot_ptr, participant_var->alloca);
+        LLVMBuildStore(ctx->builder, slot_ptr, participant_var.alloca);
         rebound = true;
     }
 
@@ -161,22 +163,22 @@ llvm_emit_intent_step_dirty_zone_projections(LLVMGenCtx *ctx,
                                              const char *zone_type_name,
                                              const char *zone_alias)
 {
-    LLVMVarEntry *zone_var;
+    LLVMVarEntry zone_var;
     LLVMValueRef zone_ptr;
     LLVMClassTypeEntry *zone_cls;
 
     if (ctx == NULL || zone_alias == NULL || zone_type_name == NULL)
         return;
 
-    zone_var = llvm_scope_lookup(ctx, zone_alias);
     zone_cls = llvm_lookup_class(ctx, zone_type_name);
-    if (zone_var == NULL || zone_cls == NULL
-        || LLVMGetTypeKind(zone_var->type) != LLVMPointerTypeKind) {
+    if (!llvm_scope_lookup_snapshot(ctx, zone_alias, &zone_var)
+        || zone_cls == NULL
+        || LLVMGetTypeKind(zone_var.type) != LLVMPointerTypeKind) {
         return;
     }
 
-    zone_ptr = LLVMBuildLoad2(ctx->builder, zone_var->type,
-        zone_var->alloca, llvm_tmp_name(ctx));
+    zone_ptr = LLVMBuildLoad2(ctx->builder, zone_var.type,
+        zone_var.alloca, llvm_tmp_name(ctx));
 
     for (int i = 0; i < llvm_class_field_count(zone_cls); i++) {
         const char *field_name = llvm_class_field_name_at(zone_cls, i);
@@ -202,7 +204,7 @@ llvm_emit_intent_step_sync_effective_zone(LLVMGenCtx *ctx,
                                           const char *zone_type_name,
                                           const char *zone_alias)
 {
-    LLVMVarEntry *zone_var;
+    LLVMVarEntry zone_var;
     LLVMValueRef zone_ptr;
     char sync_name[256];
     LLVMFuncEntry *sync_fn;
@@ -213,11 +215,12 @@ llvm_emit_intent_step_sync_effective_zone(LLVMGenCtx *ctx,
     if (zone_alias == NULL || zone_type_name == NULL)
         return;
 
-    zone_var = llvm_scope_lookup(ctx, zone_alias);
-    if (zone_var == NULL || LLVMGetTypeKind(zone_var->type) != LLVMPointerTypeKind)
+    if (!llvm_scope_lookup_snapshot(ctx, zone_alias, &zone_var)
+        || LLVMGetTypeKind(zone_var.type) != LLVMPointerTypeKind)
         return;
 
-    zone_ptr = LLVMBuildLoad2(ctx->builder, zone_var->type, zone_var->alloca, llvm_tmp_name(ctx));
+    zone_ptr = LLVMBuildLoad2(ctx->builder, zone_var.type,
+        zone_var.alloca, llvm_tmp_name(ctx));
     if (!llvm_intent_zone_sync_name(sync_name, sizeof(sync_name),
             zone_type_name)) {
         llvm_set_error(ctx, "zone sync function name is too long");
@@ -247,7 +250,7 @@ llvm_emit_intent_step_restore_bound_zone_aliases(LLVMGenCtx *ctx,
     for (size_t i = 0; i < who_alias_count; i++) {
         const char *alias = who_aliases[i];
         const char *slot_name = llvm_resolve_intent_zone_slot_name_for_zone(ctx, intent, zone_type_name, alias);
-        LLVMVarEntry *participant_var;
+        LLVMVarEntry participant_var;
         const char *participant_type_name;
         LLVMTypeRef participant_ptr_type;
         LLVMTypeRef participant_value_type;
@@ -260,9 +263,9 @@ llvm_emit_intent_step_restore_bound_zone_aliases(LLVMGenCtx *ctx,
             continue;
         }
 
-        participant_var = llvm_scope_lookup(ctx, alias);
         participant_type_name = llvm_lookup_var_class(ctx, alias);
-        if (participant_var == NULL || participant_type_name == NULL) {
+        if (!llvm_scope_lookup_snapshot(ctx, alias, &participant_var)
+            || participant_type_name == NULL) {
             if (llvm_active_has_mir(ctx)) {
                 llvm_set_mir_inventory_missing(ctx,
                     "MIR-only LLVM path missing intent participant binding for zone restore '%s'",
@@ -272,17 +275,17 @@ llvm_emit_intent_step_restore_bound_zone_aliases(LLVMGenCtx *ctx,
             continue;
         }
 
-        participant_ptr_type = participant_var->type;
+        participant_ptr_type = participant_var.type;
         participant_value_type = pergyra_type_to_llvm(ctx, participant_type_name);
         if (ctx->has_error || participant_value_type == NULL)
             return;
-        zone_bound_ptr = LLVMBuildLoad2(ctx->builder, participant_ptr_type, participant_var->alloca,
+        zone_bound_ptr = LLVMBuildLoad2(ctx->builder, participant_ptr_type, participant_var.alloca,
             llvm_tmp_name(ctx));
         zone_bound_value = LLVMBuildLoad2(ctx->builder, participant_value_type, zone_bound_ptr,
             llvm_tmp_name(ctx));
         saved_ptr = LLVMBuildLoad2(ctx->builder, participant_ptr_type, saved_allocas[i], llvm_tmp_name(ctx));
         LLVMBuildStore(ctx->builder, zone_bound_value, saved_ptr);
-        LLVMBuildStore(ctx->builder, saved_ptr, participant_var->alloca);
+        LLVMBuildStore(ctx->builder, saved_ptr, participant_var.alloca);
     }
 }
 

@@ -94,4 +94,40 @@ llvm_stmt_format_bind_name(LLVMGenCtx *ctx,
     return false;
 }
 
+bool
+llvm_stmt_require_non_void_value(LLVMGenCtx *ctx,
+                                 ASTNode *expr,
+                                 const char *message)
+{
+    LLVMTypeRef type;
+
+    if (ctx == NULL)
+        return false;
+    if (expr == NULL) {
+        llvm_set_error_with_hints(ctx,
+            PGY_CODE_LLVM_TYPE_UNSUPPORTED,
+            PGY_CAUSE_LLVM_TYPE_UNSUPPORTED,
+            PGY_FIX_INSPECT_MIR_INVENTORY,
+            "%s",
+            message != NULL ? message
+                : "LLVM value context requires an expression");
+        return false;
+    }
+
+    type = llvm_stmt_infer_expr_type(ctx, expr);
+    if (ctx->has_error)
+        return false;
+    if (type == ctx->type_void) {
+        llvm_set_error_at_with_hints(ctx, expr,
+            PGY_CODE_LLVM_TYPE_UNSUPPORTED,
+            PGY_CAUSE_LLVM_TYPE_UNSUPPORTED,
+            PGY_FIX_ALIGN_ARG_TYPE,
+            "%s",
+            message != NULL ? message
+                : "LLVM value context cannot consume a Void expression");
+        return false;
+    }
+    return true;
+}
+
 #endif

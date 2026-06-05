@@ -141,8 +141,10 @@ llvm_emit_member_call_slot_method(ASTNode *node, LLVMGenCtx *ctx,
         const char *slot_name = ast_identifier_name(obj_node);
         const char *inner = llvm_lookup_slot_inner(ctx, slot_name);
         bool is_secure = llvm_lookup_slot_is_secure(ctx, slot_name);
-        LLVMVarEntry *slot_var = inner != NULL ? llvm_scope_lookup(ctx, slot_name) : NULL;
-        if (inner != NULL && slot_var == NULL) {
+        LLVMVarEntry slot_var;
+        bool has_slot_var = inner != NULL
+            && llvm_scope_lookup_snapshot(ctx, slot_name, &slot_var);
+        if (inner != NULL && !has_slot_var) {
             llvm_set_error_at_with_hints(ctx, obj_node,
                 PGY_CODE_LLVM_TYPE_UNSUPPORTED,
                 PGY_CAUSE_LLVM_TYPE_UNSUPPORTED,
@@ -151,7 +153,7 @@ llvm_emit_member_call_slot_method(ASTNode *node, LLVMGenCtx *ctx,
                 method_name, slot_name);
             return NULL;
         }
-        if (inner != NULL && slot_var != NULL) {
+        if (inner != NULL && has_slot_var) {
             if (pgy_codegen_call_name_is_write(method_name)
                 && ast_call_arg_count(node) >= 1) {
                 LLVMValueRef val = llvm_emit_expression(
@@ -160,9 +162,9 @@ llvm_emit_member_call_slot_method(ASTNode *node, LLVMGenCtx *ctx,
                     return llvm_domain_slice_error(node, ctx,
                         "LLVM slot Write() could not lower value expression");
                 if (is_secure) {
-                    LLVMVarEntry *token_var = llvm_require_secure_token_var(ctx,
-                        node, slot_name, method_name);
-                    if (token_var == NULL)
+                    LLVMVarEntry token_var;
+                    if (!llvm_require_secure_token_var(ctx, node, slot_name,
+                            method_name, &token_var))
                         return NULL;
                     {
                         char fn_name[64];
@@ -174,13 +176,13 @@ llvm_emit_member_call_slot_method(ASTNode *node, LLVMGenCtx *ctx,
                         fn = llvm_lookup_function(ctx, fn_name);
                         if (fn != NULL) {
                             LLVMValueRef args[] = {
-                                llvm_slot_runtime_arg(ctx, slot_var),
+                                llvm_slot_runtime_arg(ctx, &slot_var),
                                 val,
-                                token_var->alloca
+                                token_var.alloca
                             };
                             LLVMBuildCall2(ctx->builder, fn->fn_type, fn->fn, args, 3, "");
                         } else if (!llvm_slot_inner_has_external_runtime_helpers(inner)) {
-                            llvm_emit_structural_secure_slot_write(ctx, slot_var, val);
+                            llvm_emit_structural_secure_slot_write(ctx, &slot_var, val);
                         } else {
                             llvm_required_runtime_function(ctx, node,
                                 "secure slot", method_name, fn_name);
@@ -197,7 +199,7 @@ llvm_emit_member_call_slot_method(ASTNode *node, LLVMGenCtx *ctx,
                     fn = llvm_lookup_function(ctx, fn_name);
                     if (fn != NULL) {
                         LLVMValueRef args[] = {
-                            llvm_slot_runtime_arg(ctx, slot_var),
+                            llvm_slot_runtime_arg(ctx, &slot_var),
                             val
                         };
                         LLVMBuildCall2(ctx->builder, fn->fn_type, fn->fn, args, 2, "");
@@ -206,17 +208,18 @@ llvm_emit_member_call_slot_method(ASTNode *node, LLVMGenCtx *ctx,
                             "slot", method_name, fn_name);
                         return NULL;
                     } else {
-                        llvm_direct_slot_write(ctx, slot_var, val);
+                        llvm_direct_slot_write(ctx, &slot_var, val);
                     }
                 }
-                return LLVMConstInt(ctx->type_i32, 0, 0);
+                return llvm_void_expression_placeholder(ctx, node,
+                    method_name);
             }
 
             if (pgy_codegen_call_name_is_read(method_name)) {
                 if (is_secure) {
-                    LLVMVarEntry *token_var = llvm_require_secure_token_var(ctx,
-                        node, slot_name, method_name);
-                    if (token_var == NULL)
+                    LLVMVarEntry token_var;
+                    if (!llvm_require_secure_token_var(ctx, node, slot_name,
+                            method_name, &token_var))
                         return NULL;
                     {
                         char fn_name[64];
@@ -228,15 +231,15 @@ llvm_emit_member_call_slot_method(ASTNode *node, LLVMGenCtx *ctx,
                         fn = llvm_lookup_function(ctx, fn_name);
                         if (fn != NULL) {
                             LLVMValueRef args[] = {
-                                llvm_slot_runtime_arg(ctx, slot_var),
-                                token_var->alloca
+                                llvm_slot_runtime_arg(ctx, &slot_var),
+                                token_var.alloca
                             };
                             return LLVMBuildCall2(ctx->builder, fn->fn_type, fn->fn,
                                 args, 2, llvm_tmp_name(ctx));
                         }
                         if (!llvm_slot_inner_has_external_runtime_helpers(inner))
                             return llvm_emit_structural_secure_slot_read(ctx,
-                                slot_var, inner);
+                                &slot_var, inner);
                         llvm_required_runtime_function(ctx, node,
                             "secure slot", method_name, fn_name);
                         return NULL;
@@ -253,7 +256,7 @@ llvm_emit_member_call_slot_method(ASTNode *node, LLVMGenCtx *ctx,
                     fn = llvm_lookup_function(ctx, fn_name);
                     if (fn != NULL) {
                         LLVMValueRef args[] = {
-                            llvm_slot_runtime_arg(ctx, slot_var)
+                            llvm_slot_runtime_arg(ctx, &slot_var)
                         };
                         return LLVMBuildCall2(ctx->builder, fn->fn_type, fn->fn,
                             args, 1, llvm_tmp_name(ctx));
@@ -263,15 +266,15 @@ llvm_emit_member_call_slot_method(ASTNode *node, LLVMGenCtx *ctx,
                             "slot", method_name, fn_name);
                         return NULL;
                     }
-                    return llvm_direct_slot_read(ctx, slot_var, inner);
+                    return llvm_direct_slot_read(ctx, &slot_var, inner);
                 }
             }
 
             if (pgy_codegen_call_name_is_release(method_name)) {
                 if (is_secure) {
-                    LLVMVarEntry *token_var = llvm_require_secure_token_var(ctx,
-                        node, slot_name, method_name);
-                    if (token_var == NULL)
+                    LLVMVarEntry token_var;
+                    if (!llvm_require_secure_token_var(ctx, node, slot_name,
+                            method_name, &token_var))
                         return NULL;
                     {
                         char fn_name[64];
@@ -283,12 +286,12 @@ llvm_emit_member_call_slot_method(ASTNode *node, LLVMGenCtx *ctx,
                         fn = llvm_lookup_function(ctx, fn_name);
                         if (fn != NULL) {
                             LLVMValueRef args[] = {
-                                llvm_slot_runtime_arg(ctx, slot_var),
-                                token_var->alloca
+                                llvm_slot_runtime_arg(ctx, &slot_var),
+                                token_var.alloca
                             };
                             LLVMBuildCall2(ctx->builder, fn->fn_type, fn->fn, args, 2, "");
                         } else if (!llvm_slot_inner_has_external_runtime_helpers(inner)) {
-                            llvm_emit_structural_secure_slot_release(ctx, slot_var);
+                            llvm_emit_structural_secure_slot_release(ctx, &slot_var);
                         } else {
                             llvm_required_runtime_function(ctx, node,
                                 "secure slot", method_name, fn_name);
@@ -305,7 +308,7 @@ llvm_emit_member_call_slot_method(ASTNode *node, LLVMGenCtx *ctx,
                     fn = llvm_lookup_function(ctx, fn_name);
                     if (fn != NULL) {
                         LLVMValueRef args[] = {
-                            llvm_slot_runtime_arg(ctx, slot_var)
+                            llvm_slot_runtime_arg(ctx, &slot_var)
                         };
                         LLVMBuildCall2(ctx->builder, fn->fn_type, fn->fn, args, 1, "");
                     } else if (llvm_slot_inner_has_external_runtime_helpers(inner)) {
@@ -313,10 +316,11 @@ llvm_emit_member_call_slot_method(ASTNode *node, LLVMGenCtx *ctx,
                             "slot", method_name, fn_name);
                         return NULL;
                     } else {
-                        llvm_direct_slot_release(ctx, slot_var);
+                        llvm_direct_slot_release(ctx, &slot_var);
                     }
                 }
-                return LLVMConstInt(ctx->type_i32, 0, 0);
+                return llvm_void_expression_placeholder(ctx, node,
+                    method_name);
             }
         }
     }

@@ -16,6 +16,7 @@
 #include "compiler/mir_abi_layout.h"
 #include "compiler/mir_dce.h"
 #include "compiler/mir_decl_headers.h"
+#include "compiler/mir_type_helpers.h"
 
 static int g_pass = 0;
 static int g_fail = 0;

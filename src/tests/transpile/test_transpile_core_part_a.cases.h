@@ -34,53 +34,49 @@ test_expression_emit(void)
         transpiler_ctx_destroy(ctx);
     }
 
-    TEST("Some(value) without concrete payload type emits diagnostic recovery");
+    TEST("Some(value) without concrete payload type fails closed");
     {
         ctx = transpiler_ctx_create();
         ASTNode *args[1] = { make_identifier("value", 1) };
         result = emit_expression(make_call("Some", args, 1, 1), ctx);
-        EXPECT(strcmp(result, "0") == 0);
+        EXPECT(result == NULL);
         EXPECT(ctx->backend_error != NULL);
         EXPECT_STR_CONTAINS(ctx->backend_error,
                             "Some requires concrete payload type");
-        free(result);
         transpiler_ctx_destroy(ctx);
     }
 
-    TEST("None() without contextual Option<T> emits diagnostic recovery");
+    TEST("None() without contextual Option<T> fails closed");
     {
         ctx = transpiler_ctx_create();
         result = emit_expression(make_call("None", NULL, 0, 1), ctx);
-        EXPECT(strcmp(result, "0") == 0);
+        EXPECT(result == NULL);
         EXPECT(ctx->backend_error != NULL);
-        free(result);
         transpiler_ctx_destroy(ctx);
     }
 
-    TEST("IsSome(None()) without concrete Option<T> emits diagnostic recovery");
+    TEST("IsSome(None()) without concrete Option<T> fails closed");
     {
         ctx = transpiler_ctx_create();
         ASTNode *args[1] = { make_call("None", NULL, 0, 1) };
         result = emit_expression(make_call("IsSome", args, 1, 1), ctx);
-        EXPECT(strcmp(result, "false") == 0);
+        EXPECT(result == NULL);
         EXPECT(ctx->backend_error != NULL);
         EXPECT_STR_CONTAINS(ctx->backend_error,
                             "IsSome requires concrete Option<T>");
-        free(result);
         transpiler_ctx_destroy(ctx);
     }
 
-    TEST("Ok(value) with unknown Result payload emits diagnostic recovery");
+    TEST("Ok(value) with unknown Result payload fails closed");
     {
         ctx = transpiler_ctx_create();
         ctx->expected_type = "Result<Unknown, NetError>";
         ASTNode *args[1] = { make_number(42, 1) };
         result = emit_expression(make_call("Ok", args, 1, 1), ctx);
-        EXPECT(strcmp(result, "0") == 0);
+        EXPECT(result == NULL);
         EXPECT(ctx->backend_error != NULL);
         EXPECT_STR_CONTAINS(ctx->backend_error,
                             "cannot derive Result<T, E> specialization");
-        free(result);
         transpiler_ctx_destroy(ctx);
     }
 
@@ -225,29 +221,27 @@ test_expression_emit(void)
         transpiler_ctx_destroy(ctx);
     }
 
-    TEST("DeviceWrite missing value emits diagnostic recovery");
+    TEST("DeviceWrite missing value fails closed");
     {
         ctx = transpiler_ctx_create();
         register_typed_var(ctx, "gpu", "DeviceSlot<Int>");
         ASTNode *args[1] = { make_identifier("gpu", 1) };
         result = emit_expression(make_call("DeviceWrite", args, 1, 1), ctx);
-        EXPECT(strcmp(result, "0") == 0);
+        EXPECT(result == NULL);
         EXPECT(ctx->backend_error != NULL);
         EXPECT_STR_CONTAINS(ctx->backend_error,
                             "DeviceWrite requires 2 arguments");
-        free(result);
         transpiler_ctx_destroy(ctx);
     }
 
-    TEST("SubmitDeviceRead missing slot emits diagnostic recovery");
+    TEST("SubmitDeviceRead missing slot fails closed");
     {
         ctx = transpiler_ctx_create();
         result = emit_expression(make_call("SubmitDeviceRead", NULL, 0, 1), ctx);
-        EXPECT(strcmp(result, "0") == 0);
+        EXPECT(result == NULL);
         EXPECT(ctx->backend_error != NULL);
         EXPECT_STR_CONTAINS(ctx->backend_error,
                             "SubmitDeviceRead requires 1 argument");
-        free(result);
         transpiler_ctx_destroy(ctx);
     }
 
@@ -311,7 +305,7 @@ test_expression_emit(void)
         transpiler_ctx_destroy(ctx);
     }
 
-    TEST("BoxSet missing value emits diagnostic recovery");
+    TEST("BoxSet missing value fails closed");
     {
         ctx = transpiler_ctx_create();
         ASTNode *init_args[1] = { make_number(1, 1) };
@@ -322,70 +316,63 @@ test_expression_emit(void)
             ctx);
         ASTNode *args[1] = { make_identifier("boxed", 1) };
         result = emit_expression(make_call("BoxSet", args, 1, 1), ctx);
-        EXPECT(strcmp(result, "0") == 0);
+        EXPECT(result == NULL);
         EXPECT(ctx->backend_error != NULL);
         EXPECT_STR_CONTAINS(ctx->backend_error,
                             "BoxSet requires exactly two arguments");
-        free(result);
         transpiler_ctx_destroy(ctx);
     }
 
-    TEST("RcGet rejects non-addressable Rc expression");
+    TEST("RcGet rejects non-addressable Rc expression fail-closed");
     {
         ctx = transpiler_ctx_create();
         ASTNode *init_args[1] = { make_number(1, 1) };
         ASTNode *rc_new = make_call("RcNew", init_args, 1, 1);
         ASTNode *args[1] = { rc_new };
         result = emit_expression(make_call("RcGet", args, 1, 1), ctx);
-        EXPECT(result != NULL);
-        EXPECT_STR_NOT_CONTAINS(result, "&RcNew");
+        EXPECT(result == NULL);
         EXPECT(ctx->backend_error != NULL);
         EXPECT_STR_CONTAINS(ctx->backend_error,
             "requires addressable Rc/Weak storage");
-        free(result);
         transpiler_ctx_destroy(ctx);
     }
 
-    TEST("BoxSet rejects non-addressable Box expression");
+    TEST("BoxSet rejects non-addressable Box expression fail-closed");
     {
         ctx = transpiler_ctx_create();
         ASTNode *init_args[1] = { make_number(1, 1) };
         ASTNode *box_new = make_call("Box", init_args, 1, 1);
         ASTNode *args[2] = { box_new, make_number(42, 1) };
         result = emit_expression(make_call("BoxSet", args, 2, 1), ctx);
-        EXPECT(result != NULL);
-        EXPECT_STR_NOT_CONTAINS(result, "&Box");
+        EXPECT(result == NULL);
         EXPECT(ctx->backend_error != NULL);
         EXPECT_STR_CONTAINS(ctx->backend_error,
             "requires addressable Box storage");
-        free(result);
         transpiler_ctx_destroy(ctx);
     }
 
-    TEST("IntentRecentName missing index emits diagnostic recovery");
+    TEST("IntentRecentName missing index fails closed");
     {
         ctx = transpiler_ctx_create();
         result = emit_expression(make_call("IntentRecentName", NULL, 0, 1),
                                  ctx);
-        EXPECT(strcmp(result, "0") == 0);
+        EXPECT(result == NULL);
         EXPECT(ctx->backend_error != NULL);
         EXPECT_STR_CONTAINS(ctx->backend_error,
                             "requires exactly 1 argument");
-        free(result);
         transpiler_ctx_destroy(ctx);
     }
 
-    TEST("IntentActiveStepName missing step emits diagnostic recovery");
+    TEST("IntentActiveStepName missing step fails closed");
     {
         ctx = transpiler_ctx_create();
         ASTNode *args[1] = { make_number(0, 1) };
         result = emit_expression(make_call("IntentActiveStepName", args, 1, 1),
                                  ctx);
-        EXPECT(strcmp(result, "0") == 0);
+        EXPECT(result == NULL);
         EXPECT(ctx->backend_error != NULL);
         EXPECT_STR_CONTAINS(ctx->backend_error,
                             "requires exactly 2 arguments");
-        free(result);
         transpiler_ctx_destroy(ctx);
     }
 
@@ -504,16 +491,39 @@ test_expression_emit(void)
         transpiler_ctx_destroy(ctx);
     }
 
+    TEST("AllocatorPool missing capacity fails closed");
+    {
+        ASTNode *call = make_call("AllocatorPool", NULL, 0, 1);
+        ctx = transpiler_ctx_create();
+        result = emit_expression(call, ctx);
+        EXPECT(result == NULL);
+        EXPECT(ctx->backend_error != NULL);
+        EXPECT_STR_CONTAINS(ctx->backend_error,
+            "AllocatorPool requires exactly one capacity argument");
+        ast_destroy(call);
+        transpiler_ctx_destroy(ctx);
+    }
+
+    TEST("ToTObject missing arguments fails closed");
+    {
+        ctx = transpiler_ctx_create();
+        result = emit_expression(make_call("ToTObject", NULL, 0, 1), ctx);
+        EXPECT(result == NULL);
+        EXPECT(ctx->backend_error != NULL);
+        EXPECT_STR_CONTAINS(ctx->backend_error,
+            "ToTObject requires target type and source subject");
+        transpiler_ctx_destroy(ctx);
+    }
+
     TEST("HasState(poisoned) -> zone semantic placeholder outside zone context");
     {
         ctx = transpiler_ctx_create();
         ASTNode *args[1] = { make_identifier("poisoned", 1) };
         result = emit_expression(make_call("HasState", args, 1, 1), ctx);
-        EXPECT(strcmp(result, "false") == 0);
+        EXPECT(result == NULL);
         EXPECT(ctx->backend_error != NULL);
         EXPECT_STR_CONTAINS(ctx->backend_error,
             "C backend: HasState requires active zone context");
-        free(result);
         transpiler_ctx_destroy(ctx);
     }
 
@@ -526,11 +536,10 @@ test_expression_emit(void)
             make_identifier("enemy", 1)
         };
         result = emit_expression(make_call("HasState", args, 3, 1), ctx);
-        EXPECT(strcmp(result, "false") == 0);
+        EXPECT(result == NULL);
         EXPECT(ctx->backend_error != NULL);
         EXPECT_STR_CONTAINS(ctx->backend_error,
             "C backend: HasState requires active zone context");
-        free(result);
         transpiler_ctx_destroy(ctx);
     }
 
@@ -539,11 +548,10 @@ test_expression_emit(void)
         ctx = transpiler_ctx_create();
         ASTNode *args[1] = { make_identifier("battle", 1) };
         result = emit_expression(make_call("HasZone", args, 1, 1), ctx);
-        EXPECT(strcmp(result, "false") == 0);
+        EXPECT(result == NULL);
         EXPECT(ctx->backend_error != NULL);
         EXPECT_STR_CONTAINS(ctx->backend_error,
             "C backend: HasZone requires active world context");
-        free(result);
         transpiler_ctx_destroy(ctx);
     }
 
@@ -552,11 +560,10 @@ test_expression_emit(void)
         ctx = transpiler_ctx_create();
         ASTNode *args[1] = { make_identifier("poison", 1) };
         result = emit_expression(make_call("HasLayer", args, 1, 1), ctx);
-        EXPECT(strcmp(result, "false") == 0);
+        EXPECT(result == NULL);
         EXPECT(ctx->backend_error != NULL);
         EXPECT_STR_CONTAINS(ctx->backend_error,
             "C backend: HasLayer requires active zone context");
-        free(result);
         transpiler_ctx_destroy(ctx);
     }
 
@@ -565,11 +572,10 @@ test_expression_emit(void)
         ctx = transpiler_ctx_create();
         ASTNode *args[1] = { make_identifier("snapshot", 1) };
         result = emit_expression(make_call("HasProjection", args, 1, 1), ctx);
-        EXPECT(strcmp(result, "false") == 0);
+        EXPECT(result == NULL);
         EXPECT(ctx->backend_error != NULL);
         EXPECT_STR_CONTAINS(ctx->backend_error,
             "C backend: HasProjection requires active relation/effect/zone projection context");
-        free(result);
         transpiler_ctx_destroy(ctx);
     }
 

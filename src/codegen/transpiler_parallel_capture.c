@@ -5,31 +5,8 @@
 
 #include "../common/string_compat.h"
 #include "../parser/ast_analysis.h"
-#include "../parser/ast_api.h"
 #include "transpiler_mir_local_type_lookup.h"
 #include "transpiler_symbols.h"
-
-ASTNode *
-transpiler_find_local_let_type_node(ASTNode *body, const char *base_name)
-{
-    if (body == NULL || base_name == NULL)
-        return NULL;
-    if (body->type == AST_BLOCK) {
-        for (size_t i = 0; i < ast_block_statement_count(body); i++) {
-            ASTNode *found = transpiler_find_local_let_type_node(
-                ast_block_statement(body, i), base_name);
-            if (found != NULL)
-                return found;
-        }
-        return NULL;
-    }
-    if (body->type == AST_LET_DECL
-        && ast_let_name(body) != NULL
-        && strcmp(ast_let_name(body), base_name) == 0) {
-        return ast_let_type(body);
-    }
-    return NULL;
-}
 
 static const char *
 transpiler_current_local_type_name(TranspilerCtx *ctx, const char *name)

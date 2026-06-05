@@ -9,9 +9,22 @@
 
 #include "../common/string_compat.h"
 #include "../parser/ast_api.h"
+#include "../semantic/diag_codes.h"
+#include "transpiler_context.h"
 #include "transpiler_decl_lookup.h"
 #include "transpiler_expr_stdlib_collection_support.h"
 #include "transpiler_projection.h"
+
+static char *
+totobject_unsupported(TranspilerCtx *ctx, const char *message)
+{
+    transpiler_set_backend_error_with_hints(ctx,
+        PGY_CODE_C_TYPE_UNSUPPORTED,
+        PGY_CAUSE_C_TYPE_UNSUPPORTED,
+        PGY_FIX_USE_LLVM_BACKEND_OR_EXTEND_TRANSPILER,
+        message);
+    return NULL;
+}
 
 char *
 emit_builtin_to_dto(ASTNode *call, TranspilerCtx *ctx)
@@ -26,29 +39,34 @@ emit_builtin_to_dto(ASTNode *call, TranspilerCtx *ctx)
     char *result;
 
     if (ast_call_arg_count(call) != 2)
-        return pergyra_strdup("/* ToTObject: invalid args */");
+        return totobject_unsupported(ctx,
+            "C backend: ToTObject requires target type and source subject");
 
     target_arg = ast_call_argument(call, 0);
     source_arg = ast_call_argument(call, 1);
     if (target_arg == NULL
         || target_arg->type != AST_IDENTIFIER
         || ast_identifier_name(target_arg) == NULL) {
-        return pergyra_strdup("/* ToTObject: need target tobject type */");
+        return totobject_unsupported(ctx,
+            "C backend: ToTObject requires named target tobject type");
     }
     target_name = ast_identifier_name(target_arg);
     if (source_arg == NULL || source_arg->type != AST_IDENTIFIER)
-        return pergyra_strdup("/* ToTObject: need named subject source */");
+        return totobject_unsupported(ctx,
+            "C backend: ToTObject requires named subject source");
 
     target_decl = transpiler_find_projection_nominal_decl_local(ctx, target_name);
     if (target_decl == NULL || !ast_class_is_struct(target_decl))
-        return pergyra_strdup("/* ToTObject: target must be tobject/struct */");
+        return totobject_unsupported(ctx,
+            "C backend: ToTObject target must be tobject/struct");
 
     source_type_name = transpiler_expr_infer_type_name(
         ctx, source_arg);
     source_decl = transpiler_find_projection_nominal_decl_local(
         ctx, source_type_name);
     if (source_decl == NULL)
-        return pergyra_strdup("/* ToTObject: source subject type not found */");
+        return totobject_unsupported(ctx,
+            "C backend: ToTObject source subject type not found");
 
     source_expr = emit_expression(source_arg, ctx);
     result = emit_projection_literal(ctx, target_decl, source_decl, NULL,

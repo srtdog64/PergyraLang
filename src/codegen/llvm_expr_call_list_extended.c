@@ -64,21 +64,21 @@ llvm_emit_list_extended_call(ASTNode *node, LLVMGenCtx *ctx,
 
     if (out == NULL)
         return false;
+    *out = NULL;
 
     op = llvm_list_extended_lookup(callee_name,
         (unsigned)ast_call_arg_count(node));
 
     if (op == LLVM_LIST_EXT_PUSH) {
         ASTNode *list_arg = ast_call_argument(node, 0);
-        LLVMVarEntry *list_var;
+        LLVMVarEntry list_var;
         const char *inner_name;
         LLVMTypeRef elem_ty;
         LLVMValueRef value;
         LLVMValueRef tmp;
         LLVMFuncEntry *fn;
-        list_var = llvm_collection_required_receiver_var(ctx, node, list_arg,
-            callee_name, "collection", out);
-        if (list_var == NULL)
+        if (!llvm_collection_required_receiver_var(ctx, node, list_arg,
+                callee_name, "collection", &list_var, out))
             return true;
         inner_name = llvm_lookup_list_inner(ctx, ast_identifier_name(list_arg));
         elem_ty = llvm_collection_required_value_type(ctx, node, "List",
@@ -100,12 +100,11 @@ llvm_emit_list_extended_call(ASTNode *node, LLVMGenCtx *ctx,
         if (inner_name != NULL && strcmp(inner_name, "String") == 0) {
             fn = llvm_required_collection_function(ctx, node, callee_name,
                 "pgy_list_push_string_raw_export");
-            if (fn == NULL) {
-                *out = NULL;
-                return true;
-            }
+            if (fn == NULL)
+                return llvm_collection_extended_error_out(ctx, node, out,
+                    "LLVM ListPush requires registered string runtime function");
             LLVMValueRef args[] = {
-                LLVMBuildBitCast(ctx->builder, list_var->alloca, ctx->type_i8ptr, llvm_tmp_name(ctx)),
+                LLVMBuildBitCast(ctx->builder, list_var.alloca, ctx->type_i8ptr, llvm_tmp_name(ctx)),
                 value
             };
             LLVMBuildCall2(ctx->builder, fn->fn_type, fn->fn, args, 2, "");
@@ -118,12 +117,11 @@ llvm_emit_list_extended_call(ASTNode *node, LLVMGenCtx *ctx,
         LLVMBuildStore(ctx->builder, value, tmp);
         fn = llvm_required_collection_function(ctx, node, callee_name,
             "pgy_list_push_raw_export");
-        if (fn == NULL) {
-            *out = NULL;
-            return true;
-        }
+        if (fn == NULL)
+            return llvm_collection_extended_error_out(ctx, node, out,
+                "LLVM ListPush requires registered runtime function");
         LLVMValueRef args[] = {
-            LLVMBuildBitCast(ctx->builder, list_var->alloca, ctx->type_i8ptr, llvm_tmp_name(ctx)),
+            LLVMBuildBitCast(ctx->builder, list_var.alloca, ctx->type_i8ptr, llvm_tmp_name(ctx)),
             LLVMBuildBitCast(ctx->builder, tmp, ctx->type_i8ptr, llvm_tmp_name(ctx)),
             llvm_sizeof_type_i64(ctx, elem_ty)
         };
@@ -132,15 +130,14 @@ llvm_emit_list_extended_call(ASTNode *node, LLVMGenCtx *ctx,
     }
     if (op == LLVM_LIST_EXT_GET) {
         ASTNode *list_arg = ast_call_argument(node, 0);
-        LLVMVarEntry *list_var;
+        LLVMVarEntry list_var;
         const char *inner_name;
         LLVMTypeRef elem_ty;
         LLVMValueRef idx;
         LLVMValueRef tmp;
         LLVMFuncEntry *fn;
-        list_var = llvm_collection_required_receiver_var(ctx, node, list_arg,
-            callee_name, "collection", out);
-        if (list_var == NULL)
+        if (!llvm_collection_required_receiver_var(ctx, node, list_arg,
+                callee_name, "collection", &list_var, out))
             return true;
         inner_name = llvm_lookup_list_inner(ctx, ast_identifier_name(list_arg));
         elem_ty = llvm_collection_required_value_type(ctx, node, "List",
@@ -162,9 +159,10 @@ llvm_emit_list_extended_call(ASTNode *node, LLVMGenCtx *ctx,
             fn = llvm_required_collection_function(ctx, node, callee_name,
                 "pgy_list_get_string_raw_export");
             if (fn == NULL)
-                { *out = NULL; return true; }
+                return llvm_collection_extended_error_out(ctx, node, out,
+                    "LLVM ListGet requires registered string runtime function");
             LLVMValueRef args[] = {
-                LLVMBuildBitCast(ctx->builder, list_var->alloca, ctx->type_i8ptr, llvm_tmp_name(ctx)),
+                LLVMBuildBitCast(ctx->builder, list_var.alloca, ctx->type_i8ptr, llvm_tmp_name(ctx)),
                 idx,
                 LLVMBuildBitCast(ctx->builder, tmp, ctx->type_i8ptr, llvm_tmp_name(ctx))
             };
@@ -174,9 +172,10 @@ llvm_emit_list_extended_call(ASTNode *node, LLVMGenCtx *ctx,
         fn = llvm_required_collection_function(ctx, node, callee_name,
             "pgy_list_get_raw_export");
         if (fn == NULL)
-            { *out = NULL; return true; }
+            return llvm_collection_extended_error_out(ctx, node, out,
+                "LLVM ListGet requires registered runtime function");
         LLVMValueRef args[] = {
-            LLVMBuildBitCast(ctx->builder, list_var->alloca, ctx->type_i8ptr, llvm_tmp_name(ctx)),
+            LLVMBuildBitCast(ctx->builder, list_var.alloca, ctx->type_i8ptr, llvm_tmp_name(ctx)),
             idx,
             LLVMBuildBitCast(ctx->builder, tmp, ctx->type_i8ptr, llvm_tmp_name(ctx)),
             llvm_sizeof_type_i64(ctx, elem_ty)
@@ -186,16 +185,15 @@ llvm_emit_list_extended_call(ASTNode *node, LLVMGenCtx *ctx,
     }
     if (op == LLVM_LIST_EXT_SET) {
         ASTNode *list_arg = ast_call_argument(node, 0);
-        LLVMVarEntry *list_var;
+        LLVMVarEntry list_var;
         const char *inner_name;
         LLVMTypeRef elem_ty;
         LLVMValueRef idx;
         LLVMValueRef value;
         LLVMValueRef tmp;
         LLVMFuncEntry *fn;
-        list_var = llvm_collection_required_receiver_var(ctx, node, list_arg,
-            callee_name, "collection", out);
-        if (list_var == NULL)
+        if (!llvm_collection_required_receiver_var(ctx, node, list_arg,
+                callee_name, "collection", &list_var, out))
             return true;
         inner_name = llvm_lookup_list_inner(ctx, ast_identifier_name(list_arg));
         elem_ty = llvm_collection_required_value_type(ctx, node, "List",
@@ -220,12 +218,11 @@ llvm_emit_list_extended_call(ASTNode *node, LLVMGenCtx *ctx,
         if (inner_name != NULL && strcmp(inner_name, "String") == 0) {
             fn = llvm_required_collection_function(ctx, node, callee_name,
                 "pgy_list_set_string_raw_export");
-            if (fn == NULL) {
-                *out = NULL;
-                return true;
-            }
+            if (fn == NULL)
+                return llvm_collection_extended_error_out(ctx, node, out,
+                    "LLVM ListSet requires registered string runtime function");
             LLVMValueRef args[] = {
-                LLVMBuildBitCast(ctx->builder, list_var->alloca, ctx->type_i8ptr, llvm_tmp_name(ctx)),
+                LLVMBuildBitCast(ctx->builder, list_var.alloca, ctx->type_i8ptr, llvm_tmp_name(ctx)),
                 idx,
                 value
             };
@@ -239,12 +236,11 @@ llvm_emit_list_extended_call(ASTNode *node, LLVMGenCtx *ctx,
         LLVMBuildStore(ctx->builder, value, tmp);
         fn = llvm_required_collection_function(ctx, node, callee_name,
             "pgy_list_set_raw_export");
-        if (fn == NULL) {
-            *out = NULL;
-            return true;
-        }
+        if (fn == NULL)
+            return llvm_collection_extended_error_out(ctx, node, out,
+                "LLVM ListSet requires registered runtime function");
         LLVMValueRef args[] = {
-            LLVMBuildBitCast(ctx->builder, list_var->alloca, ctx->type_i8ptr, llvm_tmp_name(ctx)),
+            LLVMBuildBitCast(ctx->builder, list_var.alloca, ctx->type_i8ptr, llvm_tmp_name(ctx)),
             idx,
             LLVMBuildBitCast(ctx->builder, tmp, ctx->type_i8ptr, llvm_tmp_name(ctx)),
             llvm_sizeof_type_i64(ctx, elem_ty)
@@ -254,33 +250,32 @@ llvm_emit_list_extended_call(ASTNode *node, LLVMGenCtx *ctx,
     }
     if (op == LLVM_LIST_EXT_SIZE) {
         ASTNode *list_arg = ast_call_argument(node, 0);
-        LLVMVarEntry *list_var;
+        LLVMVarEntry list_var;
         LLVMFuncEntry *fn;
-        list_var = llvm_collection_required_receiver_var(ctx, node, list_arg,
-            callee_name, "collection", out);
-        if (list_var == NULL)
+        if (!llvm_collection_required_receiver_var(ctx, node, list_arg,
+                callee_name, "collection", &list_var, out))
             return true;
         fn = llvm_required_collection_function(ctx, node, callee_name,
             "pgy_list_size_raw_export");
         if (fn == NULL)
-            { *out = NULL; return true; }
+            return llvm_collection_extended_error_out(ctx, node, out,
+                "LLVM ListSize requires registered runtime function");
         {
             LLVMValueRef args[] = {
-                LLVMBuildBitCast(ctx->builder, list_var->alloca, ctx->type_i8ptr, llvm_tmp_name(ctx))
+                LLVMBuildBitCast(ctx->builder, list_var.alloca, ctx->type_i8ptr, llvm_tmp_name(ctx))
             };
             { *out = LLVMBuildCall2(ctx->builder, fn->fn_type, fn->fn, args, 1, llvm_tmp_name(ctx)); return true; }
         }
     }
     if (op == LLVM_LIST_EXT_REMOVE) {
         ASTNode *list_arg = ast_call_argument(node, 0);
-        LLVMVarEntry *list_var;
+        LLVMVarEntry list_var;
         const char *inner_name;
         LLVMTypeRef elem_ty;
         LLVMValueRef idx;
         LLVMFuncEntry *fn;
-        list_var = llvm_collection_required_receiver_var(ctx, node, list_arg,
-            callee_name, "collection", out);
-        if (list_var == NULL)
+        if (!llvm_collection_required_receiver_var(ctx, node, list_arg,
+                callee_name, "collection", &list_var, out))
             return true;
         inner_name = llvm_lookup_list_inner(ctx, ast_identifier_name(list_arg));
         elem_ty = llvm_collection_required_value_type(ctx, node, "List",
@@ -296,12 +291,11 @@ llvm_emit_list_extended_call(ASTNode *node, LLVMGenCtx *ctx,
         if (inner_name != NULL && strcmp(inner_name, "String") == 0) {
             fn = llvm_required_collection_function(ctx, node, callee_name,
                 "pgy_list_remove_string_raw_export");
-            if (fn == NULL) {
-                *out = NULL;
-                return true;
-            }
+            if (fn == NULL)
+                return llvm_collection_extended_error_out(ctx, node, out,
+                    "LLVM ListRemove requires registered string runtime function");
             LLVMValueRef args[] = {
-                LLVMBuildBitCast(ctx->builder, list_var->alloca, ctx->type_i8ptr, llvm_tmp_name(ctx)),
+                LLVMBuildBitCast(ctx->builder, list_var.alloca, ctx->type_i8ptr, llvm_tmp_name(ctx)),
                 idx
             };
             LLVMBuildCall2(ctx->builder, fn->fn_type, fn->fn, args, 2, "");
@@ -309,12 +303,11 @@ llvm_emit_list_extended_call(ASTNode *node, LLVMGenCtx *ctx,
         }
         fn = llvm_required_collection_function(ctx, node, callee_name,
             "pgy_list_remove_raw_export");
-        if (fn == NULL) {
-            *out = NULL;
-            return true;
-        }
+        if (fn == NULL)
+            return llvm_collection_extended_error_out(ctx, node, out,
+                "LLVM ListRemove requires registered runtime function");
         LLVMValueRef args[] = {
-            LLVMBuildBitCast(ctx->builder, list_var->alloca, ctx->type_i8ptr, llvm_tmp_name(ctx)),
+            LLVMBuildBitCast(ctx->builder, list_var.alloca, ctx->type_i8ptr, llvm_tmp_name(ctx)),
             idx,
             llvm_sizeof_type_i64(ctx, elem_ty)
         };

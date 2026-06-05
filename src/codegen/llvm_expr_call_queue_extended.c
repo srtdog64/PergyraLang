@@ -82,20 +82,21 @@ llvm_emit_queue_extended_call(ASTNode *node, LLVMGenCtx *ctx,
 
     if (node == NULL || node->type != AST_CALL)
         return false;
+    if (out != NULL)
+        *out = NULL;
     op = llvm_queue_extended_lookup(callee_name,
         (unsigned)ast_call_arg_count(node));
 
     if (op == LLVM_QUEUE_EXT_PUSH) {
         ASTNode *queue_arg = ast_call_argument(node, 0);
-        LLVMVarEntry *queue_var;
+        LLVMVarEntry queue_var;
         const char *inner_name;
         LLVMTypeRef elem_ty;
         LLVMValueRef value;
         LLVMValueRef tmp;
         LLVMFuncEntry *fn;
-        queue_var = llvm_collection_required_receiver_var(ctx, node, queue_arg,
-            callee_name, "queue", out);
-        if (queue_var == NULL)
+        if (!llvm_collection_required_receiver_var(ctx, node, queue_arg,
+                callee_name, "queue", &queue_var, out))
             return true;
         inner_name = llvm_lookup_queue_inner(ctx, ast_identifier_name(queue_arg));
         elem_ty = llvm_collection_required_value_type(ctx, node, "Queue",
@@ -109,12 +110,11 @@ llvm_emit_queue_extended_call(ASTNode *node, LLVMGenCtx *ctx,
         if (inner_name != NULL && strcmp(inner_name, "String") == 0) {
             fn = llvm_required_collection_function(ctx, node, callee_name,
                 "pgy_queue_push_string_raw_export");
-            if (fn == NULL) {
-                *out = NULL;
-                return true;
-            }
+            if (fn == NULL)
+                return llvm_queue_error_out(ctx, node, out,
+                    "LLVM QueuePush requires registered string runtime function");
             LLVMValueRef args[] = {
-                LLVMBuildBitCast(ctx->builder, queue_var->alloca, ctx->type_i8ptr, llvm_tmp_name(ctx)),
+                LLVMBuildBitCast(ctx->builder, queue_var.alloca, ctx->type_i8ptr, llvm_tmp_name(ctx)),
                 value
             };
             LLVMBuildCall2(ctx->builder, fn->fn_type, fn->fn, args, 2, "");
@@ -135,12 +135,11 @@ llvm_emit_queue_extended_call(ASTNode *node, LLVMGenCtx *ctx,
         LLVMBuildStore(ctx->builder, value, tmp);
         fn = llvm_required_collection_function(ctx, node, callee_name,
             "pgy_queue_push_raw_export");
-        if (fn == NULL) {
-            *out = NULL;
-            return true;
-        }
+        if (fn == NULL)
+            return llvm_queue_error_out(ctx, node, out,
+                "LLVM QueuePush requires registered runtime function");
         LLVMValueRef args[] = {
-            LLVMBuildBitCast(ctx->builder, queue_var->alloca, ctx->type_i8ptr, llvm_tmp_name(ctx)),
+            LLVMBuildBitCast(ctx->builder, queue_var.alloca, ctx->type_i8ptr, llvm_tmp_name(ctx)),
             LLVMBuildBitCast(ctx->builder, tmp, ctx->type_i8ptr, llvm_tmp_name(ctx)),
             llvm_sizeof_type_i64(ctx, elem_ty)
         };
@@ -150,14 +149,13 @@ llvm_emit_queue_extended_call(ASTNode *node, LLVMGenCtx *ctx,
 
     if (op == LLVM_QUEUE_EXT_POP) {
         ASTNode *queue_arg = ast_call_argument(node, 0);
-        LLVMVarEntry *queue_var;
+        LLVMVarEntry queue_var;
         const char *inner_name;
         LLVMTypeRef elem_ty;
         LLVMValueRef tmp;
         LLVMFuncEntry *fn;
-        queue_var = llvm_collection_required_receiver_var(ctx, node, queue_arg,
-            callee_name, "queue", out);
-        if (queue_var == NULL)
+        if (!llvm_collection_required_receiver_var(ctx, node, queue_arg,
+                callee_name, "queue", &queue_var, out))
             return true;
         inner_name = llvm_lookup_queue_inner(ctx, ast_identifier_name(queue_arg));
         elem_ty = llvm_collection_required_value_type(ctx, node, "Queue",
@@ -173,9 +171,10 @@ llvm_emit_queue_extended_call(ASTNode *node, LLVMGenCtx *ctx,
             fn = llvm_required_collection_function(ctx, node, callee_name,
                 "pgy_queue_pop_string_raw_export");
             if (fn == NULL)
-                { *out = NULL; return true; }
+                return llvm_queue_error_out(ctx, node, out,
+                    "LLVM QueuePop requires registered string runtime function");
             LLVMValueRef args[] = {
-                LLVMBuildBitCast(ctx->builder, queue_var->alloca, ctx->type_i8ptr, llvm_tmp_name(ctx)),
+                LLVMBuildBitCast(ctx->builder, queue_var.alloca, ctx->type_i8ptr, llvm_tmp_name(ctx)),
                 LLVMBuildBitCast(ctx->builder, tmp, ctx->type_i8ptr, llvm_tmp_name(ctx))
             };
             LLVMBuildCall2(ctx->builder, fn->fn_type, fn->fn, args, 2, "");
@@ -184,9 +183,10 @@ llvm_emit_queue_extended_call(ASTNode *node, LLVMGenCtx *ctx,
         fn = llvm_required_collection_function(ctx, node, callee_name,
             "pgy_queue_pop_raw_export");
         if (fn == NULL)
-            { *out = NULL; return true; }
+            return llvm_queue_error_out(ctx, node, out,
+                "LLVM QueuePop requires registered runtime function");
         LLVMValueRef args[] = {
-            LLVMBuildBitCast(ctx->builder, queue_var->alloca, ctx->type_i8ptr, llvm_tmp_name(ctx)),
+            LLVMBuildBitCast(ctx->builder, queue_var.alloca, ctx->type_i8ptr, llvm_tmp_name(ctx)),
             LLVMBuildBitCast(ctx->builder, tmp, ctx->type_i8ptr, llvm_tmp_name(ctx)),
             llvm_sizeof_type_i64(ctx, elem_ty)
         };
@@ -196,19 +196,19 @@ llvm_emit_queue_extended_call(ASTNode *node, LLVMGenCtx *ctx,
 
     if (op == LLVM_QUEUE_EXT_SIZE) {
         ASTNode *queue_arg = ast_call_argument(node, 0);
-        LLVMVarEntry *queue_var;
+        LLVMVarEntry queue_var;
         LLVMFuncEntry *fn;
-        queue_var = llvm_collection_required_receiver_var(ctx, node, queue_arg,
-            callee_name, "queue", out);
-        if (queue_var == NULL)
+        if (!llvm_collection_required_receiver_var(ctx, node, queue_arg,
+                callee_name, "queue", &queue_var, out))
             return true;
         fn = llvm_required_collection_function(ctx, node, callee_name,
             "pgy_queue_size_raw_export");
         if (fn == NULL)
-            { *out = NULL; return true; }
+            return llvm_queue_error_out(ctx, node, out,
+                "LLVM QueueSize requires registered runtime function");
         {
             LLVMValueRef args[] = {
-                LLVMBuildBitCast(ctx->builder, queue_var->alloca, ctx->type_i8ptr, llvm_tmp_name(ctx))
+                LLVMBuildBitCast(ctx->builder, queue_var.alloca, ctx->type_i8ptr, llvm_tmp_name(ctx))
             };
             { *out = LLVMBuildCall2(ctx->builder, fn->fn_type, fn->fn, args, 1, llvm_tmp_name(ctx)); return true; }
         }
@@ -216,19 +216,19 @@ llvm_emit_queue_extended_call(ASTNode *node, LLVMGenCtx *ctx,
 
     if (op == LLVM_QUEUE_EXT_EMPTY) {
         ASTNode *queue_arg = ast_call_argument(node, 0);
-        LLVMVarEntry *queue_var;
+        LLVMVarEntry queue_var;
         LLVMFuncEntry *fn;
-        queue_var = llvm_collection_required_receiver_var(ctx, node, queue_arg,
-            callee_name, "queue", out);
-        if (queue_var == NULL)
+        if (!llvm_collection_required_receiver_var(ctx, node, queue_arg,
+                callee_name, "queue", &queue_var, out))
             return true;
         fn = llvm_required_collection_function(ctx, node, callee_name,
             "pgy_queue_empty_raw_export");
         if (fn == NULL)
-            { *out = NULL; return true; }
+            return llvm_queue_error_out(ctx, node, out,
+                "LLVM QueueEmpty requires registered runtime function");
         {
             LLVMValueRef args[] = {
-                LLVMBuildBitCast(ctx->builder, queue_var->alloca, ctx->type_i8ptr, llvm_tmp_name(ctx))
+                LLVMBuildBitCast(ctx->builder, queue_var.alloca, ctx->type_i8ptr, llvm_tmp_name(ctx))
             };
             { *out = LLVMBuildCall2(ctx->builder, fn->fn_type, fn->fn, args, 1, llvm_tmp_name(ctx)); return true; }
         }

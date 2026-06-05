@@ -130,19 +130,18 @@ llvm_stmt_array_elem_type_from_slice_receiver(LLVMGenCtx *ctx,
 static LLVMTypeRef
 llvm_stmt_array_elem_type_from_scope_entry(LLVMGenCtx *ctx, const char *name)
 {
-    LLVMVarEntry *var;
+    LLVMVarEntry var;
     const char *struct_name;
     const char *suffix = NULL;
 
     if (ctx == NULL || name == NULL)
         return NULL;
-    var = llvm_scope_lookup(ctx, name);
-    if (var == NULL || var->type == NULL)
+    if (!llvm_scope_lookup_snapshot(ctx, name, &var) || var.type == NULL)
         return NULL;
-    if (LLVMGetTypeKind(var->type) != LLVMStructTypeKind)
+    if (LLVMGetTypeKind(var.type) != LLVMStructTypeKind)
         return NULL;
 
-    struct_name = LLVMGetStructName(var->type);
+    struct_name = LLVMGetStructName(var.type);
     if (struct_name == NULL)
         return NULL;
     if (strncmp(struct_name, "PgyArray_", 9) == 0) {

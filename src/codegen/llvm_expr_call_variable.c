@@ -2,8 +2,6 @@
 
 #include "llvm_expr_call_variable.h"
 
-#include <string.h>
-
 #include "llvm_expr_call_dispatch.h"
 #include "llvm_expr_member_lvalue.h"
 #include "llvm_expr_scalar_core.h"
@@ -16,7 +14,8 @@ llvm_emit_callable_variable_call(ASTNode *node,
                                  LLVMValueRef *args,
                                  unsigned emitted_argc)
 {
-    LLVMVarEntry *callee_var = NULL;
+    LLVMVarEntry callee_var;
+    bool has_callee_var = false;
     LLVMValueRef fn_ptr = NULL;
     LLVMTypeRef fn_type = NULL;
     LLVMTypeRef callable_ptr_ty = NULL;
@@ -28,13 +27,13 @@ llvm_emit_callable_variable_call(ASTNode *node,
         || ast_call_callee(node)->type != AST_IDENTIFIER)
         return NULL;
 
-    callee_var = llvm_scope_lookup(ctx, callee_name);
-    if (callee_var == NULL)
+    has_callee_var = llvm_scope_lookup_snapshot(ctx, callee_name, &callee_var);
+    if (!has_callee_var)
         return NULL;
 
     callable_entry = llvm_lookup_callable_entry(ctx, callee_name);
-    if (LLVMGetTypeKind(callee_var->type) == LLVMPointerTypeKind)
-        fn_type = LLVMGetElementType(callee_var->type);
+    if (LLVMGetTypeKind(callee_var.type) == LLVMPointerTypeKind)
+        fn_type = LLVMGetElementType(callee_var.type);
     if (fn_type == NULL || LLVMGetTypeKind(fn_type) != LLVMFunctionTypeKind) {
         if (callable_entry != NULL) {
             fn_type = llvm_function_signature_from_callable_entry(ctx, callable_entry);
@@ -45,59 +44,6 @@ llvm_emit_callable_variable_call(ASTNode *node,
     }
     if (fn_type != NULL && LLVMGetTypeKind(fn_type) == LLVMFunctionTypeKind)
         callable_ptr_ty = LLVMPointerType(fn_type, 0);
-
-    if ((fn_type == NULL || LLVMGetTypeKind(fn_type) != LLVMFunctionTypeKind)
-        && ctx->current_function != NULL) {
-        ASTNode *current_decl = ctx->current_func_decl;
-        if (current_decl != NULL && current_decl->type == AST_FUNC_DECL) {
-            for (size_t i = 0; i < ast_func_param_count(current_decl); i++) {
-                FuncParam *p = ast_func_param(current_decl, i);
-                if (p == NULL || p->name == NULL || p->type == NULL)
-                    continue;
-                if (strcmp(p->name, callee_name) != 0)
-                    continue;
-                if (p->type->type == AST_EVENT_HANDLER_TYPE) {
-                    size_t pc = ast_event_handler_param_count(p->type);
-                    LLVMTypeRef *pts = NULL;
-                    LLVMTypeRef ret = ctx->type_void;
-                    ASTNode *return_type = ast_event_handler_return_type(p->type);
-                    if (return_type != NULL) {
-                        ret = ast_type_to_llvm(ctx,
-                            return_type);
-                        if (ctx->has_error || ret == NULL)
-                            return llvm_call_error_recovery(ctx, node,
-                                "LLVM event-handler callable could not lower return type");
-                    }
-                    if (pc > 0) {
-                        pts = pgy_arena_calloc(&ctx->scratch,
-                            pc * sizeof(LLVMTypeRef));
-                        if (pts == NULL) {
-                            return llvm_call_error_recovery(ctx, node,
-                                "LLVM event-handler callable parameter allocation failed");
-                        }
-                        for (size_t pi = 0; pi < pc; pi++) {
-                            pts[pi] = ast_type_to_llvm(ctx,
-                                ast_event_handler_param_type(p->type, pi));
-                            if (ctx->has_error || pts[pi] == NULL)
-                                return llvm_call_error_recovery(ctx, node,
-                                    "LLVM event-handler callable could not lower parameter type");
-                        }
-                    }
-                    fn_type = LLVMFunctionType(ret, pts, (unsigned)pc, 0);
-                } else {
-                    LLVMTypeRef declared_ptr_ty = ast_type_to_llvm(ctx, p->type);
-                    if (ctx->has_error || declared_ptr_ty == NULL)
-                        return llvm_call_error_recovery(ctx, node,
-                            "LLVM callable parameter declaration type could not be lowered");
-                    if (LLVMGetTypeKind(declared_ptr_ty) == LLVMPointerTypeKind)
-                        fn_type = LLVMGetElementType(declared_ptr_ty);
-                    else
-                        fn_type = declared_ptr_ty;
-                }
-                break;
-            }
-        }
-    }
 
     if (fn_type != NULL && LLVMGetTypeKind(fn_type) == LLVMPointerTypeKind) {
         callable_ptr_ty = fn_type;

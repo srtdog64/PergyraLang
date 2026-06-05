@@ -238,13 +238,15 @@ llvm_slot_runtime_arg(LLVMGenCtx *ctx, LLVMVarEntry *var)
     return var->alloca;
 }
 
-LLVMVarEntry *
+bool
 llvm_require_secure_token_var(LLVMGenCtx *ctx, ASTNode *node,
                               const char *slot_name,
-                              const char *operation_name)
+                              const char *operation_name,
+                              LLVMVarEntry *out)
 {
-    LLVMVarEntry *token_var = llvm_lookup_secure_token_var(ctx, slot_name);
-    if (token_var == NULL && ctx != NULL && !ctx->has_error) {
+    bool has_token_var =
+        llvm_lookup_secure_token_var(ctx, slot_name, out);
+    if (!has_token_var && ctx != NULL && !ctx->has_error) {
         llvm_set_error_at_with_hints(ctx, node,
             PGY_CODE_LLVM_TYPE_UNSUPPORTED,
             PGY_CAUSE_LLVM_TYPE_UNSUPPORTED,
@@ -253,7 +255,7 @@ llvm_require_secure_token_var(LLVMGenCtx *ctx, ASTNode *node,
             operation_name != NULL ? operation_name : "operation",
             slot_name != NULL ? slot_name : "<slot>");
     }
-    return token_var;
+    return has_token_var;
 }
 
 #endif /* PGY_LLVM_ENABLED */

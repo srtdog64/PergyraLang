@@ -75,6 +75,7 @@ mandatory_targets=(
     "self-host-preparation-test-smoke"
     "tooling-conformance-test-smoke"
     "perf-contract-test-smoke"
+    "backend-fail-closed-test-smoke"
     "beta-readiness-checklist-test-smoke"
     "beta-test-suite-freeze-test-smoke"
     "ci-linux"

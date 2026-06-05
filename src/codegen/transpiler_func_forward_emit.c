@@ -42,11 +42,14 @@ emit_func_forward_decl_named(ASTNode *node, const char *emitted_name,
         char *decl = NULL;
         bool boundary_slot = false;
         bool secure_slot = false;
+        bool event_handler_param = false;
         if (p == NULL)
             continue;
         if (p->type != NULL)
             ensure_type_specializations_from_ast(ctx, p->type);
-        if (type_name != NULL) {
+        event_handler_param =
+            p->type != NULL && p->type->type == AST_EVENT_HANDLER_TYPE;
+        if (!event_handler_param && type_name != NULL) {
             char surface_desc[256];
             snprintf(surface_desc, sizeof(surface_desc),
                 "forward declaration parameter '%s' of '%s'",
@@ -56,7 +59,7 @@ emit_func_forward_decl_named(ASTNode *node, const char *emitted_name,
                     surface_desc, pt_buf, sizeof(pt_buf))) {
                 pt = pt_buf;
             }
-        } else if (p->type != NULL) {
+        } else if (!event_handler_param && p->type != NULL) {
             char surface_desc[256];
             snprintf(surface_desc, sizeof(surface_desc),
                 "forward declaration parameter '%s' of '%s'",
@@ -67,7 +70,7 @@ emit_func_forward_decl_named(ASTNode *node, const char *emitted_name,
                 pt = pt_buf;
             }
         }
-        if (pt == NULL) {
+        if (!event_handler_param && pt == NULL) {
             transpiler_set_backend_error_with_hints(ctx, PGY_CODE_C_TYPE_UNSUPPORTED, PGY_CAUSE_C_TYPE_UNSUPPORTED, PGY_FIX_USE_LLVM_BACKEND_OR_EXTEND_TRANSPILER, "cannot determine parameter type for forward declaration '%s' at argument %llu",
                 name != NULL ? name : "<function>",
                 (unsigned long long) i);
@@ -108,8 +111,15 @@ emit_func_forward_decl_named(ASTNode *node, const char *emitted_name,
             codebuf_write(params_sig, "%s *%s", pt, p->name);
             if (secure_slot)
                 codebuf_write(params_sig, ", PgyToken_%s %s_token", inner, p->name);
-        } else if (p->type != NULL && p->type->type == AST_EVENT_HANDLER_TYPE) {
+        } else if (event_handler_param) {
             decl = pergyra_ast_typed_declarator_in_ctx(ctx, p->type, p->name);
+            if (decl == NULL) {
+                free(owned_type_name);
+                if (params_sig != NULL)
+                    codebuf_destroy(params_sig);
+                free(header_decl);
+                return;
+            }
             codebuf_write(params_sig, "%s", decl);
         } else if (p->name != NULL && strcmp(p->name, "self") != 0
                    && type_name != NULL
@@ -123,6 +133,11 @@ emit_func_forward_decl_named(ASTNode *node, const char *emitted_name,
     }
     header_decl = pergyra_func_signature_declarator_in_ctx(ctx, return_type,
         name, params_sig != NULL ? params_sig->data : "void");
+    if (header_decl == NULL) {
+        if (params_sig != NULL)
+            codebuf_destroy(params_sig);
+        return;
+    }
     codebuf_write(buf, "%s;\n", header_decl);
     free(header_decl);
     codebuf_destroy(params_sig);

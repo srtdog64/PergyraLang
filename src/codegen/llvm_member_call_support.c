@@ -99,12 +99,12 @@ llvm_member_call_adjust_pointer_self_arg(LLVMGenCtx *ctx,
         if (param_cls != NULL && param_cls->is_pointer_self_host
             && arg_node != NULL && arg_node->type == AST_IDENTIFIER) {
             const char *arg_name = ast_identifier_name(arg_node);
-            LLVMVarEntry *arg_var = llvm_scope_lookup(ctx, arg_name);
-            if (arg_var != NULL) {
-                if (arg_var->type == LLVMPointerType(param_cls->struct_type, 0))
-                    return LLVMBuildLoad2(ctx->builder, arg_var->type,
-                        arg_var->alloca, llvm_tmp_name(ctx));
-                return arg_var->alloca;
+            LLVMVarEntry arg_var;
+            if (llvm_scope_lookup_snapshot(ctx, arg_name, &arg_var)) {
+                if (arg_var.type == LLVMPointerType(param_cls->struct_type, 0))
+                    return LLVMBuildLoad2(ctx->builder, arg_var.type,
+                        arg_var.alloca, llvm_tmp_name(ctx));
+                return arg_var.alloca;
             }
         }
         break;

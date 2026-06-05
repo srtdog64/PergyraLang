@@ -85,6 +85,7 @@ emit_func_decl_named(ASTNode *node, const char *emitted_name,
         bool boundary_slot = false;
         bool secure_slot = false;
         char surface_desc[256];
+        bool event_handler_param = false;
         if (!transpiler_func_parameter_surface_desc(surface_desc,
                 sizeof(surface_desc),
                 p != NULL ? p->name : NULL, name)) {
@@ -92,15 +93,18 @@ emit_func_decl_named(ASTNode *node, const char *emitted_name,
                 ctx, "function parameter diagnostic surface");
             goto emit_func_decl_named_fail;
         }
-        if (!transpiler_require_ast_c_type_copy(ctx,
+        if (p == NULL || p->name == NULL)
+            goto emit_func_decl_named_fail;
+        event_handler_param =
+            p->type != NULL && p->type->type == AST_EVENT_HANDLER_TYPE;
+        if (!event_handler_param
+            && !transpiler_require_ast_c_type_copy(ctx,
                 p != NULL ? p->type : NULL,
                 surface_desc,
                 pt,
                 sizeof(pt))) {
             goto emit_func_decl_named_fail;
         }
-        if (p == NULL || p->name == NULL)
-            goto emit_func_decl_named_fail;
         if (i > 0) codebuf_write(params_sig, ", ");
         if (p->type != NULL)
             type_name = render_type_name_in_ctx(ctx, p->type);
@@ -123,8 +127,10 @@ emit_func_decl_named(ASTNode *node, const char *emitted_name,
             codebuf_write(params_sig, "%s *%s", pt, p->name);
             if (secure_slot)
                 codebuf_write(params_sig, ", PgyToken_%s %s_token", inner, p->name);
-        } else if (p->type != NULL && p->type->type == AST_EVENT_HANDLER_TYPE) {
+        } else if (event_handler_param) {
             decl = pergyra_ast_typed_declarator_in_ctx(ctx, p->type, p->name);
+            if (decl == NULL)
+                goto emit_func_decl_named_fail;
             codebuf_write(params_sig, "%s", decl);
         } else if (p->name != NULL && strcmp(p->name, "self") != 0
                    && type_name != NULL
@@ -140,6 +146,8 @@ emit_func_decl_named(ASTNode *node, const char *emitted_name,
     header_decl = pergyra_func_signature_declarator_in_ctx(
         ctx, ast_func_return_type(node),
         name, params_sig != NULL ? params_sig->data : "void");
+    if (header_decl == NULL)
+        goto emit_func_decl_named_fail;
     codebuf_write(ctx->out, "\n%s\n{\n", header_decl);
     opened_body = true;
     free(header_decl);

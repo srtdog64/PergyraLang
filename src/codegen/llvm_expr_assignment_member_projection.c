@@ -87,11 +87,12 @@ llvm_emit_current_host_field_assignment(ASTNode *node,
         (unsigned)field_idx, llvm_tmp_name(ctx));
     LLVMBuildStore(ctx->builder, val, gep);
     {
-        LLVMVarEntry *local_alias = llvm_scope_lookup(ctx, name);
-        if (local_alias != NULL && local_alias->alloca != NULL
-            && local_alias->alloca != gep
-            && local_alias->type == field_type) {
-            LLVMBuildStore(ctx->builder, val, local_alias->alloca);
+        LLVMVarEntry local_alias;
+        if (llvm_scope_lookup_snapshot(ctx, name, &local_alias)
+            && local_alias.alloca != NULL
+            && local_alias.alloca != gep
+            && local_alias.type == field_type) {
+            LLVMBuildStore(ctx->builder, val, local_alias.alloca);
         }
     }
     llvm_emit_host_projection_invalidations(ctx, ast_assignment_target(node));
@@ -116,7 +117,9 @@ llvm_emit_assignment(ASTNode *node, LLVMGenCtx *ctx)
                 "LLVM indexed array assignment requires an identifier receiver");
         {
             const char *name = ast_identifier_name(array_node);
-            LLVMVarEntry *arr_var = llvm_scope_lookup(ctx, name);
+            LLVMVarEntry arr_var;
+            bool has_arr_var =
+                llvm_scope_lookup_snapshot(ctx, name, &arr_var);
             LLVMArrayVarEntry *entry = llvm_lookup_array_var(ctx, name);
             LLVMTypeRef elem_type = entry != NULL
                 ? entry->elem_type
@@ -129,7 +132,7 @@ llvm_emit_assignment(ASTNode *node, LLVMGenCtx *ctx)
             LLVMFuncEntry *fn;
             LLVMValueRef index64;
 
-            if (arr_var == NULL || elem_type == NULL)
+            if (!has_arr_var || elem_type == NULL)
                 return llvm_assignment_error(ctx, node,
                     "LLVM indexed array assignment requires concrete Array<T> local metadata");
             if (idx == NULL)
@@ -173,7 +176,7 @@ llvm_emit_assignment(ASTNode *node, LLVMGenCtx *ctx)
                 index64 = LLVMBuildSExtOrBitCast(ctx->builder, index64,
                     ctx->type_i64, llvm_tmp_name(ctx));
             }
-            LLVMValueRef args[] = { arr_var->alloca, index64, val };
+            LLVMValueRef args[] = { arr_var.alloca, index64, val };
             LLVMBuildCall2(ctx->builder, fn->fn_type, fn->fn, args, 3, "");
             return val;
         }
@@ -226,8 +229,8 @@ llvm_emit_assignment(ASTNode *node, LLVMGenCtx *ctx)
             return host_field_value;
     }
 
-    LLVMVarEntry *var = llvm_scope_lookup(ctx, name);
-    if (var == NULL)
+    LLVMVarEntry var;
+    if (!llvm_scope_lookup_snapshot(ctx, name, &var))
         return llvm_assignment_error(ctx, node,
             "LLVM assignment requires a registered local or host field target");
 
@@ -245,14 +248,14 @@ llvm_emit_assignment(ASTNode *node, LLVMGenCtx *ctx)
             LLVMFuncEntry *fn = llvm_lookup_function(ctx, fn_name);
             if (fn != NULL) {
                 if (is_secure) {
-                    LLVMVarEntry *token_var = llvm_require_secure_token_var(ctx,
-                        node, name, "assignment");
-                    if (token_var == NULL)
+                    LLVMVarEntry token_var;
+                    if (!llvm_require_secure_token_var(ctx, node, name,
+                            "assignment", &token_var))
                         return NULL;
-                    LLVMValueRef args[] = { var->alloca, val, token_var->alloca };
+                    LLVMValueRef args[] = { var.alloca, val, token_var.alloca };
                     LLVMBuildCall2(ctx->builder, fn->fn_type, fn->fn, args, 3, "");
                 } else {
-                    LLVMValueRef args[] = { var->alloca, val };
+                    LLVMValueRef args[] = { var.alloca, val };
                     LLVMBuildCall2(ctx->builder, fn->fn_type, fn->fn, args, 2, "");
                 }
             } else if (pgy_classify_type(slot_inner) != PGY_TK_UNKNOWN) {
@@ -265,9 +268,9 @@ llvm_emit_assignment(ASTNode *node, LLVMGenCtx *ctx)
                 return NULL;
             } else {
                 if (is_secure)
-                    llvm_emit_structural_secure_slot_write(ctx, var, val);
+                    llvm_emit_structural_secure_slot_write(ctx, &var, val);
                 else
-                    llvm_direct_slot_write(ctx, var, val);
+                    llvm_direct_slot_write(ctx, &var, val);
             }
             return val;
         }
@@ -279,7 +282,7 @@ llvm_emit_assignment(ASTNode *node, LLVMGenCtx *ctx)
             return llvm_assignment_error(ctx, node,
                 "LLVM assignment could not lower value expression");
 
-        LLVMBuildStore(ctx->builder, val, var->alloca);
+        LLVMBuildStore(ctx->builder, val, var.alloca);
         return val;
     }
 }

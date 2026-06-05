@@ -12,7 +12,7 @@
 #include "../semantic/diag_codes.h"
 
 static char *
-slot_builtin_strdup_fmt(const char *fmt, ...)
+slot_builtin_heap_fmt(TranspilerCtx *ctx, const char *fmt, ...)
 {
     va_list ap;
     va_list ap2;
@@ -25,12 +25,22 @@ slot_builtin_strdup_fmt(const char *fmt, ...)
     va_end(ap);
     if (needed < 0) {
         va_end(ap2);
+        transpiler_set_backend_error_with_hints(ctx,
+            PGY_CODE_C_TYPE_UNSUPPORTED,
+            PGY_CAUSE_C_TYPE_UNSUPPORTED,
+            PGY_FIX_USE_LLVM_BACKEND_OR_EXTEND_TRANSPILER,
+            "C backend: slot builtin expression formatting failed");
         return NULL;
     }
 
     buf = malloc((size_t)needed + 1);
     if (buf == NULL) {
         va_end(ap2);
+        transpiler_set_backend_error_with_hints(ctx,
+            PGY_CODE_C_TYPE_UNSUPPORTED,
+            PGY_CAUSE_C_TYPE_UNSUPPORTED,
+            PGY_FIX_USE_LLVM_BACKEND_OR_EXTEND_TRANSPILER,
+            "C backend: slot builtin expression allocation failed");
         return NULL;
     }
     vsnprintf(buf, (size_t)needed + 1, fmt, ap2);
@@ -102,7 +112,7 @@ emit_builtin_claim_slot(ASTNode *call, TranspilerCtx *ctx)
      */
     (void)call;
     transpiler_set_backend_error_with_hints(ctx, PGY_CODE_C_TYPE_UNSUPPORTED, PGY_CAUSE_C_TYPE_UNSUPPORTED, PGY_FIX_USE_LLVM_BACKEND_OR_EXTEND_TRANSPILER, "C backend: standalone ClaimSlot expression is unsupported; ClaimSlot<T>() must lower through let binding");
-    return pergyra_strdup("0");
+    return NULL;
 }
 
 char *
@@ -110,7 +120,7 @@ emit_builtin_claim_device_slot(ASTNode *call, TranspilerCtx *ctx)
 {
     (void)call;
     transpiler_set_backend_error_with_hints(ctx, PGY_CODE_C_TYPE_UNSUPPORTED, PGY_CAUSE_C_TYPE_UNSUPPORTED, PGY_FIX_USE_LLVM_BACKEND_OR_EXTEND_TRANSPILER, "C backend: standalone ClaimDeviceSlot expression is unsupported; ClaimDeviceSlot<T>() must lower through let binding");
-    return pergyra_strdup("0");
+    return NULL;
 }
 
 char *
@@ -118,7 +128,7 @@ emit_builtin_write(ASTNode *call, TranspilerCtx *ctx)
 {
     if (ast_call_arg_count(call) < 2) {
         transpiler_set_backend_error_with_hints(ctx, PGY_CODE_C_TYPE_UNSUPPORTED, PGY_CAUSE_C_TYPE_UNSUPPORTED, PGY_FIX_USE_LLVM_BACKEND_OR_EXTEND_TRANSPILER, "C backend: Write requires slot and value");
-        return pergyra_strdup("0");
+        return NULL;
     }
 
     /* Resolve slot inner type from tracking table */
@@ -129,19 +139,23 @@ emit_builtin_write(ASTNode *call, TranspilerCtx *ctx)
     ASTNode *slot_arg = ast_call_argument(call, 0);
     if (!transpiler_resolve_slot_target_copy(ctx, slot_arg,
             inner_buf, sizeof(inner_buf), &slot_name, &secure))
-        return pergyra_strdup("0");
+        return NULL;
 
     char *slot_expr = slot_builtin_emit_slot_operand(ctx, slot_arg, "Write");
     if (slot_expr == NULL)
-        return pergyra_strdup("0");
+        return NULL;
     transpiler_refine_slot_target_from_emitted_expr(ctx, slot_expr, &slot_name, &secure);
     char *slot_ref = slot_ref_expr(ctx, slot_name, slot_expr);
+    if (slot_ref == NULL) {
+        free(slot_expr);
+        return NULL;
+    }
     char *value_expr = slot_builtin_emit_operand(ctx,
         ast_call_argument(call, 1), "Write", "value");
     if (value_expr == NULL) {
         free(slot_ref);
         free(slot_expr);
-        return pergyra_strdup("0");
+        return NULL;
     }
 
     char *result;
@@ -153,9 +167,9 @@ emit_builtin_write(ASTNode *call, TranspilerCtx *ctx)
             free(slot_ref);
             free(slot_expr);
             free(value_expr);
-            return pergyra_strdup("0");
+            return NULL;
         }
-        result = slot_builtin_strdup_fmt(
+        result = slot_builtin_heap_fmt(ctx,
             "pgy_secure_write_%s(%s, %s, &%s)",
             inner, slot_ref, value_expr, token_expr);
         free(token_expr);
@@ -166,14 +180,14 @@ emit_builtin_write(ASTNode *call, TranspilerCtx *ctx)
             free(slot_ref);
             free(slot_expr);
             free(value_expr);
-            return pergyra_strdup("0");
+            return NULL;
         }
-        result = slot_builtin_strdup_fmt(
+        result = slot_builtin_heap_fmt(ctx,
             "pgy_secure_write_%s(%s, %s, &%s)",
             inner, slot_ref, value_expr, token_name);
     } else {
         /* Plain slot: Write(slot, value) */
-        result = slot_builtin_strdup_fmt(
+        result = slot_builtin_heap_fmt(ctx,
             "pgy_write_%s(%s, %s)",
             inner, slot_ref, value_expr);
     }
@@ -189,12 +203,12 @@ emit_builtin_view(ASTNode *call, TranspilerCtx *ctx)
 {
     if (ast_call_arg_count(call) < 1) {
         transpiler_set_backend_error_with_hints(ctx, PGY_CODE_C_TYPE_UNSUPPORTED, PGY_CAUSE_C_TYPE_UNSUPPORTED, PGY_FIX_USE_LLVM_BACKEND_OR_EXTEND_TRANSPILER, "C backend: View requires source slot");
-        return pergyra_strdup("0");
+        return NULL;
     }
 
     char *slot_expr = slot_builtin_emit_slot_operand(ctx,
         ast_call_argument(call, 0), "View");
-    return slot_expr != NULL ? slot_expr : pergyra_strdup("0");
+    return slot_expr;
 }
 
 char *
@@ -202,7 +216,7 @@ emit_builtin_read(ASTNode *call, TranspilerCtx *ctx)
 {
     if (ast_call_arg_count(call) < 1) {
         transpiler_set_backend_error_with_hints(ctx, PGY_CODE_C_TYPE_UNSUPPORTED, PGY_CAUSE_C_TYPE_UNSUPPORTED, PGY_FIX_USE_LLVM_BACKEND_OR_EXTEND_TRANSPILER, "C backend: Read requires slot");
-        return pergyra_strdup("0");
+        return NULL;
     }
 
     /* Resolve slot inner type from tracking table */
@@ -213,13 +227,17 @@ emit_builtin_read(ASTNode *call, TranspilerCtx *ctx)
     ASTNode *slot_arg = ast_call_argument(call, 0);
     if (!transpiler_resolve_slot_target_copy(ctx, slot_arg,
             inner_buf, sizeof(inner_buf), &slot_name, &secure))
-        return pergyra_strdup("0");
+        return NULL;
 
     char *slot_expr = slot_builtin_emit_slot_operand(ctx, slot_arg, "Read");
     if (slot_expr == NULL)
-        return pergyra_strdup("0");
+        return NULL;
     transpiler_refine_slot_target_from_emitted_expr(ctx, slot_expr, &slot_name, &secure);
     char *slot_ref = slot_ref_expr(ctx, slot_name, slot_expr);
+    if (slot_ref == NULL) {
+        free(slot_expr);
+        return NULL;
+    }
     char *result;
 
     if (ast_call_arg_count(call) >= 2) {
@@ -228,9 +246,9 @@ emit_builtin_read(ASTNode *call, TranspilerCtx *ctx)
         if (token_expr == NULL) {
             free(slot_ref);
             free(slot_expr);
-            return pergyra_strdup("0");
+            return NULL;
         }
-        result = slot_builtin_strdup_fmt(
+        result = slot_builtin_heap_fmt(ctx,
             "pgy_secure_read_%s(%s, &%s)",
             inner, slot_ref, token_expr);
         free(token_expr);
@@ -240,12 +258,12 @@ emit_builtin_read(ASTNode *call, TranspilerCtx *ctx)
         if (token_name == NULL) {
             free(slot_ref);
             free(slot_expr);
-            return pergyra_strdup("0");
+            return NULL;
         }
-        result = slot_builtin_strdup_fmt("pgy_secure_read_%s(%s, &%s)",
+        result = slot_builtin_heap_fmt(ctx, "pgy_secure_read_%s(%s, &%s)",
             inner, slot_ref, token_name);
     } else {
-        result = slot_builtin_strdup_fmt("pgy_read_%s(%s)", inner, slot_ref);
+        result = slot_builtin_heap_fmt(ctx, "pgy_read_%s(%s)", inner, slot_ref);
     }
 
     free(slot_ref);
@@ -258,7 +276,7 @@ emit_builtin_release(ASTNode *call, TranspilerCtx *ctx)
 {
     if (ast_call_arg_count(call) < 1) {
         transpiler_set_backend_error_with_hints(ctx, PGY_CODE_C_TYPE_UNSUPPORTED, PGY_CAUSE_C_TYPE_UNSUPPORTED, PGY_FIX_USE_LLVM_BACKEND_OR_EXTEND_TRANSPILER, "C backend: Release requires slot");
-        return pergyra_strdup("0");
+        return NULL;
     }
 
     /* Resolve slot inner type from tracking table */
@@ -269,13 +287,17 @@ emit_builtin_release(ASTNode *call, TranspilerCtx *ctx)
     ASTNode *slot_arg = ast_call_argument(call, 0);
     if (!transpiler_resolve_slot_target_copy(ctx, slot_arg,
             inner_buf, sizeof(inner_buf), &slot_name, &secure))
-        return pergyra_strdup("0");
+        return NULL;
 
     char *slot_expr = slot_builtin_emit_slot_operand(ctx, slot_arg, "Release");
     if (slot_expr == NULL)
-        return pergyra_strdup("0");
+        return NULL;
     transpiler_refine_slot_target_from_emitted_expr(ctx, slot_expr, &slot_name, &secure);
     char *slot_ref = slot_ref_expr(ctx, slot_name, slot_expr);
+    if (slot_ref == NULL) {
+        free(slot_expr);
+        return NULL;
+    }
     char *result;
 
     if (ast_call_arg_count(call) >= 2) {
@@ -284,9 +306,9 @@ emit_builtin_release(ASTNode *call, TranspilerCtx *ctx)
         if (token_expr == NULL) {
             free(slot_ref);
             free(slot_expr);
-            return pergyra_strdup("0");
+            return NULL;
         }
-        result = slot_builtin_strdup_fmt(
+        result = slot_builtin_heap_fmt(ctx,
             "pgy_secure_release_%s(%s, &%s)",
             inner, slot_ref, token_expr);
         free(token_expr);
@@ -296,12 +318,12 @@ emit_builtin_release(ASTNode *call, TranspilerCtx *ctx)
         if (token_name == NULL) {
             free(slot_ref);
             free(slot_expr);
-            return pergyra_strdup("0");
+            return NULL;
         }
-        result = slot_builtin_strdup_fmt("pgy_secure_release_%s(%s, &%s)",
+        result = slot_builtin_heap_fmt(ctx, "pgy_secure_release_%s(%s, &%s)",
             inner, slot_ref, token_name);
     } else {
-        result = slot_builtin_strdup_fmt("pgy_release_%s(%s)", inner, slot_ref);
+        result = slot_builtin_heap_fmt(ctx, "pgy_release_%s(%s)", inner, slot_ref);
     }
 
     /* Mark slot as explicitly released -> prevents auto-release at scope exit */
@@ -325,25 +347,26 @@ char *
 emit_builtin_device_write(ASTNode *call, TranspilerCtx *ctx)
 {
     if (!slot_builtin_require_arg_count(ctx, call, "DeviceWrite", 2))
-        return pergyra_strdup("0");
+        return NULL;
     ASTNode *slot_arg = ast_call_argument(call, 0);
     char inner_buf[128];
     const char *inner = inner_buf;
     if (!transpiler_resolve_device_slot_inner_copy_or_error(ctx, slot_arg,
             "DeviceWrite", inner_buf, sizeof(inner_buf)))
-        return pergyra_strdup("0");
+        return NULL;
     char *slot_expr = slot_builtin_emit_slot_operand(ctx, slot_arg, "DeviceWrite");
     if (slot_expr == NULL)
-        return pergyra_strdup("0");
+        return NULL;
     char *value_expr = slot_builtin_emit_operand(ctx,
         ast_call_argument(call, 1), "DeviceWrite", "value");
     if (value_expr == NULL) {
         free(slot_expr);
-        return pergyra_strdup("0");
+        return NULL;
     }
     char *result;
 
-    result = slot_builtin_strdup_fmt("pgy_device_write_%s(&%s, %s)", inner, slot_expr, value_expr);
+    result = slot_builtin_heap_fmt(ctx,
+        "pgy_device_write_%s(&%s, %s)", inner, slot_expr, value_expr);
     free(slot_expr);
     free(value_expr);
     return result;
@@ -353,19 +376,19 @@ char *
 emit_builtin_device_read(ASTNode *call, TranspilerCtx *ctx)
 {
     if (!slot_builtin_require_arg_count(ctx, call, "DeviceRead", 1))
-        return pergyra_strdup("0");
+        return NULL;
     ASTNode *slot_arg = ast_call_argument(call, 0);
     char inner_buf[128];
     const char *inner = inner_buf;
     if (!transpiler_resolve_device_slot_inner_copy_or_error(ctx, slot_arg,
             "DeviceRead", inner_buf, sizeof(inner_buf)))
-        return pergyra_strdup("0");
+        return NULL;
     char *slot_expr = slot_builtin_emit_slot_operand(ctx, slot_arg, "DeviceRead");
     if (slot_expr == NULL)
-        return pergyra_strdup("0");
+        return NULL;
     char *result;
 
-    result = slot_builtin_strdup_fmt("pgy_device_read_%s(&%s)", inner, slot_expr);
+    result = slot_builtin_heap_fmt(ctx, "pgy_device_read_%s(&%s)", inner, slot_expr);
     free(slot_expr);
     return result;
 }
@@ -374,20 +397,21 @@ char *
 emit_builtin_release_device_slot(ASTNode *call, TranspilerCtx *ctx)
 {
     if (!slot_builtin_require_arg_count(ctx, call, "ReleaseDeviceSlot", 1))
-        return pergyra_strdup("0");
+        return NULL;
     ASTNode *slot_arg = ast_call_argument(call, 0);
     char inner_buf[128];
     const char *inner = inner_buf;
     if (!transpiler_resolve_device_slot_inner_copy_or_error(ctx, slot_arg,
             "ReleaseDeviceSlot", inner_buf, sizeof(inner_buf)))
-        return pergyra_strdup("0");
+        return NULL;
     char *slot_expr = slot_builtin_emit_slot_operand(ctx,
         slot_arg, "ReleaseDeviceSlot");
     if (slot_expr == NULL)
-        return pergyra_strdup("0");
+        return NULL;
     char *result;
 
-    result = slot_builtin_strdup_fmt("pgy_release_device_%s(&%s)", inner, slot_expr);
+    result = slot_builtin_heap_fmt(ctx, "pgy_release_device_%s(&%s)",
+        inner, slot_expr);
     free(slot_expr);
     return result;
 }
@@ -396,20 +420,21 @@ char *
 emit_builtin_submit_device_read(ASTNode *call, TranspilerCtx *ctx)
 {
     if (!slot_builtin_require_arg_count(ctx, call, "SubmitDeviceRead", 1))
-        return pergyra_strdup("0");
+        return NULL;
     ASTNode *slot_arg = ast_call_argument(call, 0);
     char inner_buf[128];
     const char *inner = inner_buf;
     if (!transpiler_resolve_device_slot_inner_copy_or_error(ctx, slot_arg,
             "SubmitDeviceRead", inner_buf, sizeof(inner_buf)))
-        return pergyra_strdup("0");
+        return NULL;
     char *slot_expr = slot_builtin_emit_slot_operand(ctx,
         slot_arg, "SubmitDeviceRead");
     if (slot_expr == NULL)
-        return pergyra_strdup("0");
+        return NULL;
     char *result;
 
-    result = slot_builtin_strdup_fmt("pgy_submit_device_read_%s(&%s)", inner, slot_expr);
+    result = slot_builtin_heap_fmt(ctx, "pgy_submit_device_read_%s(&%s)",
+        inner, slot_expr);
     free(slot_expr);
     return result;
 }

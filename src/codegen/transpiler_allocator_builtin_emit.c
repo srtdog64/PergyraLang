@@ -31,7 +31,7 @@ emit_builtin_allocator(ASTNode *call, BuiltinKind kind, TranspilerCtx *ctx)
                 PGY_CAUSE_C_TYPE_UNSUPPORTED,
                 PGY_FIX_USE_LLVM_BACKEND_OR_EXTEND_TRANSPILER,
                 "C backend: AllocatorPool requires exactly one capacity argument");
-            return pergyra_strdup("0");
+            return NULL;
         }
         {
             char *cap = emit_expression(ast_call_argument(call, 0), ctx);
@@ -42,7 +42,7 @@ emit_builtin_allocator(ASTNode *call, BuiltinKind kind, TranspilerCtx *ctx)
                     PGY_CAUSE_C_TYPE_UNSUPPORTED,
                     PGY_FIX_USE_LLVM_BACKEND_OR_EXTEND_TRANSPILER,
                     "C backend: AllocatorPool could not lower capacity expression");
-                return pergyra_strdup("0");
+                return NULL;
             }
             char *result = strdup_fmt("pgy_allocator_pool(%s)", cap);
             free(cap);
@@ -55,6 +55,6 @@ emit_builtin_allocator(ASTNode *call, BuiltinKind kind, TranspilerCtx *ctx)
             PGY_CAUSE_C_TYPE_UNSUPPORTED,
             PGY_FIX_USE_LLVM_BACKEND_OR_EXTEND_TRANSPILER,
             "C backend: unsupported allocator builtin kind %d", (int)kind);
-        return pergyra_strdup("0");
+        return NULL;
     }
 }

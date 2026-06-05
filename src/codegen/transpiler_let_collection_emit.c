@@ -89,6 +89,28 @@ transpiler_let_collection_ctor_lookup(const char *callee_name)
         transpiler_let_collection_ctor_compare);
 }
 
+static char *
+transpiler_let_collection_emit_arg(TranspilerCtx *ctx,
+                                   ASTNode *arg,
+                                   const char *binding_name,
+                                   const char *role)
+{
+    char *rendered = emit_expression(arg, ctx);
+
+    if (rendered != NULL)
+        return rendered;
+
+    transpiler_set_backend_error_with_hints(
+        ctx,
+        PGY_CODE_C_TYPE_UNSUPPORTED,
+        PGY_CAUSE_C_TYPE_UNSUPPORTED,
+        PGY_FIX_USE_LLVM_BACKEND_OR_EXTEND_TRANSPILER,
+        "C collection let binding '%s' could not lower %s expression",
+        binding_name != NULL ? binding_name : "<binding>",
+        role != NULL ? role : "initializer");
+    return NULL;
+}
+
 bool
 transpiler_try_emit_option_let(TranspilerCtx *ctx,
                                const char *name,
@@ -128,7 +150,13 @@ transpiler_try_emit_option_let(TranspilerCtx *ctx,
         transpiler_let_option_ctor_lookup(callee_name);
     if (op == TRANS_LET_OPTION_CTOR_SOME
         && ast_call_arg_count(init) == 1) {
-        char *arg = emit_expression(ast_call_argument(init, 0), ctx);
+        char *arg = transpiler_let_collection_emit_arg(ctx,
+            ast_call_argument(init, 0), name, "Some payload");
+        if (arg == NULL) {
+            free(ann_type_name);
+            *ann_type_name_io = NULL;
+            return true;
+        }
         write_indent(ctx);
         codebuf_write(ctx->out, "PgyOption_%s %s = Some_%s(%s);\n",
             inner, name, inner, arg);

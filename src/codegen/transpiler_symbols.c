@@ -211,8 +211,14 @@ lookup_slot_is_indirect(TranspilerCtx *ctx, const char *var_name)
 char *
 slot_ref_expr(TranspilerCtx *ctx, const char *slot_name, const char *slot_expr)
 {
-    if (slot_expr == NULL)
-        return pergyra_strdup("");
+    if (slot_expr == NULL) {
+        transpiler_set_backend_error_with_hints(ctx,
+            PGY_CODE_C_TYPE_UNSUPPORTED,
+            PGY_CAUSE_C_TYPE_UNSUPPORTED,
+            PGY_FIX_USE_LLVM_BACKEND_OR_EXTEND_TRANSPILER,
+            "C backend slot reference requires a lowered slot expression");
+        return NULL;
+    }
     if (slot_name != NULL && lookup_slot_is_indirect(ctx, slot_name))
         return pergyra_strdup(slot_expr);
     return pergyra_strdup_printf("&%s", slot_expr);

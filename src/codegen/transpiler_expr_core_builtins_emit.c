@@ -89,7 +89,7 @@ emit_builtin_rc(ASTNode *call, BuiltinKind kind, TranspilerCtx *ctx)
             || kind == BUILTIN_WEAK_DROP)
         && !transpiler_require_c_addressable_storage(ctx, arg,
             "Rc/Weak operation", "Rc/Weak")) {
-        return pergyra_strdup("0");
+        return NULL;
     }
 
     switch (kind) {
@@ -100,7 +100,7 @@ emit_builtin_rc(ASTNode *call, BuiltinKind kind, TranspilerCtx *ctx)
                 PGY_CAUSE_C_TYPE_UNSUPPORTED,
                 PGY_FIX_USE_LLVM_BACKEND_OR_EXTEND_TRANSPILER,
                 "C backend: RcNew requires exactly one argument");
-            return pergyra_strdup("0");
+            return NULL;
         }
         {
             const char *expected_inner =
@@ -123,7 +123,7 @@ emit_builtin_rc(ASTNode *call, BuiltinKind kind, TranspilerCtx *ctx)
                     PGY_CAUSE_C_TYPE_UNSUPPORTED,
                     PGY_FIX_ANNOTATE_CONCRETE_TYPE,
                     "C backend: RcNew requires concrete Rc<T> metadata or a typed initializer");
-                return pergyra_strdup("0");
+                return NULL;
             }
         }
         break;
@@ -139,7 +139,7 @@ emit_builtin_rc(ASTNode *call, BuiltinKind kind, TranspilerCtx *ctx)
                 PGY_CAUSE_C_TYPE_UNSUPPORTED,
                 PGY_FIX_ANNOTATE_CONCRETE_TYPE,
                 "C backend: Rc operation requires concrete Rc<T> metadata");
-            return pergyra_strdup("0");
+            return NULL;
         }
         break;
     case BUILTIN_WEAK_UPGRADE:
@@ -152,7 +152,7 @@ emit_builtin_rc(ASTNode *call, BuiltinKind kind, TranspilerCtx *ctx)
                 PGY_CAUSE_C_TYPE_UNSUPPORTED,
                 PGY_FIX_ANNOTATE_CONCRETE_TYPE,
                 "C backend: Weak operation requires concrete Weak<T> metadata");
-            return pergyra_strdup("0");
+            return NULL;
         }
         break;
     default:
@@ -163,7 +163,7 @@ emit_builtin_rc(ASTNode *call, BuiltinKind kind, TranspilerCtx *ctx)
         char *value = transpiler_core_builtin_emit_arg(ctx, arg, "RcNew",
             "payload");
         if (value == NULL)
-            return pergyra_strdup("0");
+            return NULL;
         char *result = strdup_fmt("pgy_rc_new_%s(%s)", inner, value);
         free(value);
         return result;
@@ -172,7 +172,7 @@ emit_builtin_rc(ASTNode *call, BuiltinKind kind, TranspilerCtx *ctx)
         char *value = transpiler_core_builtin_emit_arg(ctx, arg, "RcClone",
             "operand");
         if (value == NULL)
-            return pergyra_strdup("0");
+            return NULL;
         char *result = strdup_fmt("pgy_rc_clone_%s(%s)", inner, value);
         free(value);
         return result;
@@ -181,7 +181,7 @@ emit_builtin_rc(ASTNode *call, BuiltinKind kind, TranspilerCtx *ctx)
         char *value = transpiler_core_builtin_emit_arg(ctx, arg, "RcDrop",
             "operand");
         if (value == NULL)
-            return pergyra_strdup("0");
+            return NULL;
         char *result = strdup_fmt("pgy_rc_drop_%s(&%s)", inner, value);
         free(value);
         return result;
@@ -190,7 +190,7 @@ emit_builtin_rc(ASTNode *call, BuiltinKind kind, TranspilerCtx *ctx)
         char *value = transpiler_core_builtin_emit_arg(ctx, arg, "RcGet",
             "operand");
         if (value == NULL)
-            return pergyra_strdup("0");
+            return NULL;
         char *result = strdup_fmt("(*pgy_rc_get_%s(&%s))", inner, value);
         free(value);
         return result;
@@ -199,7 +199,7 @@ emit_builtin_rc(ASTNode *call, BuiltinKind kind, TranspilerCtx *ctx)
         char *value = transpiler_core_builtin_emit_arg(ctx, arg,
             "RcDowngrade", "operand");
         if (value == NULL)
-            return pergyra_strdup("0");
+            return NULL;
         char *result = strdup_fmt("pgy_rc_downgrade_%s(%s)", inner, value);
         free(value);
         return result;
@@ -208,7 +208,7 @@ emit_builtin_rc(ASTNode *call, BuiltinKind kind, TranspilerCtx *ctx)
         char *value = transpiler_core_builtin_emit_arg(ctx, arg,
             "WeakUpgrade", "operand");
         if (value == NULL)
-            return pergyra_strdup("0");
+            return NULL;
         char *result = strdup_fmt("pgy_weak_upgrade_%s(%s)", inner, value);
         free(value);
         return result;
@@ -217,7 +217,7 @@ emit_builtin_rc(ASTNode *call, BuiltinKind kind, TranspilerCtx *ctx)
         char *value = transpiler_core_builtin_emit_arg(ctx, arg, "WeakDrop",
             "operand");
         if (value == NULL)
-            return pergyra_strdup("0");
+            return NULL;
         char *result = strdup_fmt("pgy_weak_drop_%s(&%s)", inner, value);
         free(value);
         return result;
@@ -228,7 +228,7 @@ emit_builtin_rc(ASTNode *call, BuiltinKind kind, TranspilerCtx *ctx)
         PGY_CAUSE_C_TYPE_UNSUPPORTED,
         PGY_FIX_USE_LLVM_BACKEND_OR_EXTEND_TRANSPILER,
         "C backend: unsupported Rc builtin kind %d", (int)kind);
-    return pergyra_strdup("0");
+    return NULL;
 }
 
 char *
@@ -244,7 +244,7 @@ emit_builtin_box(ASTNode *call, BuiltinKind kind, TranspilerCtx *ctx)
             || kind == BUILTIN_BOX_IS_VALID)
         && !transpiler_require_c_addressable_storage(ctx, arg,
             "Box operation", "Box")) {
-        return pergyra_strdup("0");
+        return NULL;
     }
 
     switch (kind) {
@@ -255,7 +255,7 @@ emit_builtin_box(ASTNode *call, BuiltinKind kind, TranspilerCtx *ctx)
                 PGY_CAUSE_C_TYPE_UNSUPPORTED,
                 PGY_FIX_USE_LLVM_BACKEND_OR_EXTEND_TRANSPILER,
                 "C backend: Box requires exactly one argument");
-            return pergyra_strdup("0");
+            return NULL;
         }
         if (arg->type == AST_NUMBER) inner = "Int";
         else if (arg->type == AST_STRING) inner = "String";
@@ -290,7 +290,7 @@ emit_builtin_box(ASTNode *call, BuiltinKind kind, TranspilerCtx *ctx)
                 PGY_CAUSE_C_TYPE_UNSUPPORTED,
                 PGY_FIX_ANNOTATE_CONCRETE_TYPE,
                 "C backend: Box requires concrete Box<T> metadata or a typed initializer");
-            return pergyra_strdup("0");
+            return NULL;
         }
         break;
     case BUILTIN_BOX_GET:
@@ -305,7 +305,7 @@ emit_builtin_box(ASTNode *call, BuiltinKind kind, TranspilerCtx *ctx)
                 PGY_CAUSE_C_TYPE_UNSUPPORTED,
                 PGY_FIX_ANNOTATE_CONCRETE_TYPE,
                 "C backend: Box operation requires concrete Box<T> metadata");
-            return pergyra_strdup("0");
+            return NULL;
         }
         break;
     case BUILTIN_BOX_ARRAY:
@@ -315,7 +315,7 @@ emit_builtin_box(ASTNode *call, BuiltinKind kind, TranspilerCtx *ctx)
                 PGY_CAUSE_C_TYPE_UNSUPPORTED,
                 PGY_FIX_USE_LLVM_BACKEND_OR_EXTEND_TRANSPILER,
                 "C backend: BoxArray requires an array argument");
-            return pergyra_strdup("0");
+            return NULL;
         }
         {
             const char *arr_type =
@@ -329,7 +329,7 @@ emit_builtin_box(ASTNode *call, BuiltinKind kind, TranspilerCtx *ctx)
                     PGY_CAUSE_C_TYPE_UNSUPPORTED,
                     PGY_FIX_ANNOTATE_CONCRETE_TYPE,
                     "C backend: BoxArray requires concrete Array<T> metadata");
-                return pergyra_strdup("0");
+                return NULL;
             }
         }
         break;
@@ -341,7 +341,7 @@ emit_builtin_box(ASTNode *call, BuiltinKind kind, TranspilerCtx *ctx)
         char *value = transpiler_core_builtin_emit_arg(ctx, arg, "Box",
             "payload");
         if (value == NULL)
-            return pergyra_strdup("0");
+            return NULL;
         char *result = strdup_fmt("pgy_box_new_%s(%s)", inner, value);
         free(value);
         return result;
@@ -350,7 +350,7 @@ emit_builtin_box(ASTNode *call, BuiltinKind kind, TranspilerCtx *ctx)
         char *value = transpiler_core_builtin_emit_arg(ctx, arg, "BoxGet",
             "operand");
         if (value == NULL)
-            return pergyra_strdup("0");
+            return NULL;
         char *result = strdup_fmt("pgy_box_get_%s(%s)", inner, value);
         free(value);
         return result;
@@ -362,7 +362,7 @@ emit_builtin_box(ASTNode *call, BuiltinKind kind, TranspilerCtx *ctx)
                 PGY_CAUSE_C_TYPE_UNSUPPORTED,
                 PGY_FIX_USE_LLVM_BACKEND_OR_EXTEND_TRANSPILER,
                 "C backend: BoxSet requires exactly two arguments");
-            return pergyra_strdup("0");
+            return NULL;
         }
         char *box_expr = transpiler_core_builtin_emit_arg(ctx, arg,
             "BoxSet", "box operand");
@@ -371,7 +371,7 @@ emit_builtin_box(ASTNode *call, BuiltinKind kind, TranspilerCtx *ctx)
         if (box_expr == NULL || value == NULL) {
             free(box_expr);
             free(value);
-            return pergyra_strdup("0");
+            return NULL;
         }
         char *result = strdup_fmt("pgy_box_set_%s(&%s, %s)", inner, box_expr,
             value);
@@ -383,7 +383,7 @@ emit_builtin_box(ASTNode *call, BuiltinKind kind, TranspilerCtx *ctx)
         char *value = transpiler_core_builtin_emit_arg(ctx, arg, "BoxDrop",
             "operand");
         if (value == NULL)
-            return pergyra_strdup("0");
+            return NULL;
         char *result = strdup_fmt("pgy_box_drop_%s(&%s)", inner, value);
         free(value);
         return result;
@@ -392,7 +392,7 @@ emit_builtin_box(ASTNode *call, BuiltinKind kind, TranspilerCtx *ctx)
         char *value = transpiler_core_builtin_emit_arg(ctx, arg,
             "BoxIsValid", "operand");
         if (value == NULL)
-            return pergyra_strdup("false");
+            return NULL;
         char *result = strdup_fmt("pgy_box_is_valid_%s(&%s)", inner, value);
         free(value);
         return result;
@@ -401,7 +401,7 @@ emit_builtin_box(ASTNode *call, BuiltinKind kind, TranspilerCtx *ctx)
         char *arr_expr = transpiler_core_builtin_emit_arg(ctx,
             ast_call_argument(call, 0), "BoxArray", "array operand");
         if (arr_expr == NULL)
-            return pergyra_strdup("0");
+            return NULL;
         char elem_buf[128];
         const char *elem = NULL;
         char *result;
@@ -415,7 +415,7 @@ emit_builtin_box(ASTNode *call, BuiltinKind kind, TranspilerCtx *ctx)
                 PGY_CAUSE_C_TYPE_UNSUPPORTED,
                 PGY_FIX_ANNOTATE_CONCRETE_TYPE,
                 "C backend: BoxArray requires concrete Array<T> metadata");
-            return pergyra_strdup("0");
+            return NULL;
         }
         result = strdup_fmt("pgy_box_new_Array_%s(%s)", elem, arr_expr);
         free(arr_expr);
@@ -427,5 +427,5 @@ emit_builtin_box(ASTNode *call, BuiltinKind kind, TranspilerCtx *ctx)
         PGY_CAUSE_C_TYPE_UNSUPPORTED,
         PGY_FIX_USE_LLVM_BACKEND_OR_EXTEND_TRANSPILER,
         "C backend: unsupported Box builtin kind %d", (int)kind);
-    return pergyra_strdup("0");
+    return NULL;
 }

@@ -14,8 +14,11 @@
 
 #include "common/string_compat.h"
 #include "codegen/transpiler.h"
+#include "codegen/transpiler_let_type_register_emit.h"
 #include "codegen/transpiler_symbols.h"
 #include "codegen/transpiler_type_declarator.h"
+#include "codegen/transpiler_type_mapping.h"
+#include "codegen/transpiler_type_render.h"
 #include "lexer/lexer.h"
 #include "parser/parser.h"
 #include "semantic/semantic.h"
@@ -42,10 +45,20 @@ static MIRProgram *g_last_mir = NULL;
     } while (0)
 
 #define EXPECT_STR_CONTAINS(haystack, needle) \
-    EXPECT(strstr((haystack), (needle)) != NULL)
+    do { \
+        const char *_pgy_haystack = (haystack); \
+        const char *_pgy_needle = (needle); \
+        EXPECT(_pgy_haystack != NULL && _pgy_needle != NULL \
+               && strstr(_pgy_haystack, _pgy_needle) != NULL); \
+    } while (0)
 
 #define EXPECT_STR_NOT_CONTAINS(haystack, needle) \
-    EXPECT(strstr((haystack), (needle)) == NULL)
+    do { \
+        const char *_pgy_haystack = (haystack); \
+        const char *_pgy_needle = (needle); \
+        EXPECT(_pgy_haystack != NULL && _pgy_needle != NULL \
+               && strstr(_pgy_haystack, _pgy_needle) == NULL); \
+    } while (0)
 
 
 #include "tests/transpile/test_transpile_helpers.cases.h"

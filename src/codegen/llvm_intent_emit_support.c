@@ -125,8 +125,16 @@ llvm_emit_intent_predicate_check(LLVMGenCtx *ctx,
         return true;
     next_bb = LLVMAppendBasicBlockInContext(ctx->context, fn, ok_block_name);
     cond = llvm_emit_expression(expr, ctx);
-    if (cond == NULL)
+    if (cond == NULL) {
+        if (ctx != NULL && !ctx->has_error) {
+            llvm_set_error_at_with_hints(ctx, expr,
+                PGY_CODE_LLVM_TYPE_UNSUPPORTED,
+                PGY_CAUSE_LLVM_TYPE_UNSUPPORTED,
+                PGY_FIX_INSPECT_MIR_INVENTORY,
+                "LLVM intent predicate could not lower condition expression");
+        }
         return false;
+    }
     if (!llvm_intent_reason_name(ctx, reason, sizeof(reason),
             reason_prefix, step_name))
         return false;

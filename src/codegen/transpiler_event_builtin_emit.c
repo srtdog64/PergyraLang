@@ -3,7 +3,6 @@
 #include <stdlib.h>
 #include <stdio.h>
 
-#include "../common/string_compat.h"
 #include "../semantic/diag_codes.h"
 #include "transpiler_context.h"
 #include "transpiler_decl_lookup.h"
@@ -70,7 +69,7 @@ emit_call_event_builtin(ASTNode *call, ASTNode *callee, TranspilerCtx *ctx)
                     ast_call_argument(call, i), name, i);
                 if (arg == NULL) {
                     codebuf_destroy(args_buf);
-                    return pergyra_strdup("0");
+                    return NULL;
                 }
                 if (i > 0)
                     codebuf_write(args_buf, ", ");

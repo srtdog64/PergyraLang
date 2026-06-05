@@ -37,14 +37,23 @@ transpiler_emit_ctor_arg_with_expected_type(TranspilerCtx *ctx,
                 PGY_FIX_ALIGN_ARG_TYPE,
                 "C constructor field '%s' cannot consume a Void expression value",
                 field_name != NULL ? field_name : "<field>");
-            return pergyra_strdup("0");
+            return NULL;
         }
-        return emit_expression(arg, ctx);
+        result = emit_expression(arg, ctx);
+        if (result != NULL)
+            return result;
+        transpiler_set_backend_error_with_hints(ctx,
+            PGY_CODE_C_TYPE_UNSUPPORTED,
+            PGY_CAUSE_C_TYPE_UNSUPPORTED,
+            PGY_FIX_USE_LLVM_BACKEND_OR_EXTEND_TRANSPILER,
+            "C constructor field '%s' could not lower initializer expression",
+            field_name != NULL ? field_name : "<field>");
+        return NULL;
     }
 
     if (transpiler_constructor_field_is_channel(ctx, field_type)) {
         transpiler_constructor_reject_channel_field(ctx, field_name);
-        return pergyra_strdup("0");
+        return NULL;
     }
 
     expected_type = render_type_name_in_ctx(ctx, field_type);
@@ -60,11 +69,20 @@ transpiler_emit_ctor_arg_with_expected_type(TranspilerCtx *ctx,
             field_name != NULL ? field_name : "<field>");
         ctx->expected_type = saved_expected_type;
         free(expected_type);
-        return pergyra_strdup("0");
+        return NULL;
     }
     result = emit_expression(arg, ctx);
     ctx->expected_type = saved_expected_type;
     free(expected_type);
+    if (result == NULL) {
+        transpiler_set_backend_error_with_hints(ctx,
+            PGY_CODE_C_TYPE_UNSUPPORTED,
+            PGY_CAUSE_C_TYPE_UNSUPPORTED,
+            PGY_FIX_USE_LLVM_BACKEND_OR_EXTEND_TRANSPILER,
+            "C constructor field '%s' could not lower initializer expression",
+            field_name != NULL ? field_name : "<field>");
+        return NULL;
+    }
     return result;
 }
 
@@ -86,7 +104,7 @@ transpiler_emit_party_constructor(ASTNode *call,
             "MIR-only C path missing shared-field declaration metadata for party '%s'",
             decl_name != NULL ? decl_name : "(anonymous-party)");
         codebuf_destroy(fields);
-        return pergyra_strdup("0");
+        return NULL;
     }
 
     for (size_t i = 0; i < argc && i < shared_count; i++) {
@@ -96,11 +114,15 @@ transpiler_emit_party_constructor(ASTNode *call,
             transpiler_hosted_shared_field_view_type(&shared_view, i),
             field_name,
             ast_call_argument(call, i));
+        if (arg == NULL) {
+            codebuf_destroy(fields);
+            return NULL;
+        }
         if (i > 0)
             codebuf_write(fields, ", ");
         codebuf_write(fields, ".%s = %s",
             field_name != NULL ? field_name : "field",
-            arg != NULL ? arg : "0");
+            arg);
         free(arg);
     }
 
@@ -119,11 +141,15 @@ transpiler_emit_party_constructor(ASTNode *call,
             transpiler_hosted_shared_field_view_type(&shared_view, i),
             field_name,
             ast_party_shared_initializer(shared));
+        if (init_expr == NULL) {
+            codebuf_destroy(fields);
+            return NULL;
+        }
         if (fields->len > 0)
             codebuf_write(fields, ", ");
         codebuf_write(fields, ".%s = %s",
             field_name != NULL ? field_name : "field",
-            init_expr != NULL ? init_expr : "0");
+            init_expr);
         free(init_expr);
     }
 
@@ -160,14 +186,14 @@ transpiler_emit_roster_constructor(ASTNode *call,
             "MIR-only C path missing roster-slot declaration metadata for roster '%s'",
             decl_name != NULL ? decl_name : "(anonymous-roster)");
         codebuf_destroy(fields);
-        return pergyra_strdup("0");
+        return NULL;
     }
     if (transpiler_hosted_shared_field_view_missing_mir_metadata(&shared_view)) {
         transpiler_set_mir_inventory_missing(ctx,
             "MIR-only C path missing shared-field declaration metadata for roster '%s'",
             decl_name != NULL ? decl_name : "(anonymous-roster)");
         codebuf_destroy(fields);
-        return pergyra_strdup("0");
+        return NULL;
     }
 
     for (size_t i = 0; i < argc && i < exposed; i++) {
@@ -187,11 +213,15 @@ transpiler_emit_roster_constructor(ASTNode *call,
             field_type,
             field_name,
             ast_call_argument(call, i));
+        if (arg == NULL) {
+            codebuf_destroy(fields);
+            return NULL;
+        }
         if (i > 0)
             codebuf_write(fields, ", ");
         codebuf_write(fields, ".%s = %s",
             field_name != NULL ? field_name : "field",
-            arg != NULL ? arg : "0");
+            arg);
         free(arg);
     }
 
@@ -211,11 +241,15 @@ transpiler_emit_roster_constructor(ASTNode *call,
             transpiler_hosted_shared_field_view_type(&shared_view, i),
             field_name,
             ast_party_shared_initializer(shared));
+        if (init_expr == NULL) {
+            codebuf_destroy(fields);
+            return NULL;
+        }
         if (fields->len > 0)
             codebuf_write(fields, ", ");
         codebuf_write(fields, ".%s = %s",
             field_name != NULL ? field_name : "field",
-            init_expr != NULL ? init_expr : "0");
+            init_expr);
         free(init_expr);
     }
 
@@ -254,14 +288,14 @@ transpiler_emit_relation_effect_constructor(ASTNode *call,
             "MIR-only C path missing domain-slot declaration metadata for domain '%s'",
             decl_name != NULL ? decl_name : "(anonymous-domain)");
         codebuf_destroy(fields);
-        return pergyra_strdup("0");
+        return NULL;
     }
     if (transpiler_hosted_shared_field_view_missing_mir_metadata(&shared_view)) {
         transpiler_set_mir_inventory_missing(ctx,
             "MIR-only C path missing shared-field declaration metadata for domain '%s'",
             decl_name != NULL ? decl_name : "(anonymous-domain)");
         codebuf_destroy(fields);
-        return pergyra_strdup("0");
+        return NULL;
     }
 
     for (size_t i = 0; i < argc && i < slot_count + shared_count; i++) {
@@ -282,11 +316,15 @@ transpiler_emit_relation_effect_constructor(ASTNode *call,
             field_type,
             field_name,
             ast_call_argument(call, i));
+        if (arg == NULL) {
+            codebuf_destroy(fields);
+            return NULL;
+        }
         if (i > 0)
             codebuf_write(fields, ", ");
         codebuf_write(fields, ".%s = %s",
             field_name != NULL ? field_name : "field",
-            arg != NULL ? arg : "0");
+            arg);
         free(arg);
     }
 
@@ -306,11 +344,15 @@ transpiler_emit_relation_effect_constructor(ASTNode *call,
             transpiler_hosted_shared_field_view_type(&shared_view, i),
             field_name,
             ast_party_shared_initializer(shared));
+        if (init_expr == NULL) {
+            codebuf_destroy(fields);
+            return NULL;
+        }
         if (fields->len > 0)
             codebuf_write(fields, ", ");
         codebuf_write(fields, ".%s = %s",
             field_name != NULL ? field_name : "field",
-            init_expr != NULL ? init_expr : "0");
+            init_expr);
         free(init_expr);
     }
 
@@ -361,14 +403,14 @@ transpiler_emit_zone_constructor(ASTNode *call,
             "MIR-only C path missing domain-slot declaration metadata for zone '%s'",
             decl_name != NULL ? decl_name : "(anonymous-zone)");
         codebuf_destroy(fields);
-        return pergyra_strdup("0");
+        return NULL;
     }
     if (transpiler_hosted_shared_field_view_missing_mir_metadata(&shared_view)) {
         transpiler_set_mir_inventory_missing(ctx,
             "MIR-only C path missing shared-field declaration metadata for zone '%s'",
             decl_name != NULL ? decl_name : "(anonymous-zone)");
         codebuf_destroy(fields);
-        return pergyra_strdup("0");
+        return NULL;
     }
 
     for (size_t i = 0; i < argc && i < slot_count + shared_count; i++) {
@@ -389,11 +431,15 @@ transpiler_emit_zone_constructor(ASTNode *call,
             field_type,
             field_name,
             ast_call_argument(call, i));
+        if (arg == NULL) {
+            codebuf_destroy(fields);
+            return NULL;
+        }
         if (i > 0)
             codebuf_write(fields, ", ");
         codebuf_write(fields, ".%s = %s",
             field_name != NULL ? field_name : "field",
-            arg != NULL ? arg : "0");
+            arg);
         free(arg);
     }
 
@@ -413,11 +459,15 @@ transpiler_emit_zone_constructor(ASTNode *call,
             transpiler_hosted_shared_field_view_type(&shared_view, i),
             field_name,
             ast_party_shared_initializer(shared));
+        if (init_expr == NULL) {
+            codebuf_destroy(fields);
+            return NULL;
+        }
         if (fields->len > 0)
             codebuf_write(fields, ", ");
         codebuf_write(fields, ".%s = %s",
             field_name != NULL ? field_name : "field",
-            init_expr != NULL ? init_expr : "0");
+            init_expr);
         free(init_expr);
     }
 
@@ -471,14 +521,14 @@ transpiler_emit_world_constructor(ASTNode *call,
             "MIR-only C path missing roster-slot declaration metadata for world '%s'",
             decl_name != NULL ? decl_name : "(anonymous-world)");
         codebuf_destroy(fields);
-        return pergyra_strdup("0");
+        return NULL;
     }
     if (transpiler_hosted_shared_field_view_missing_mir_metadata(&shared_view)) {
         transpiler_set_mir_inventory_missing(ctx,
             "MIR-only C path missing shared-field declaration metadata for world '%s'",
             decl_name != NULL ? decl_name : "(anonymous-world)");
         codebuf_destroy(fields);
-        return pergyra_strdup("0");
+        return NULL;
     }
     if (transpiler_hosted_world_zone_slot_view_missing_mir_metadata(
             &zone_view)) {
@@ -486,7 +536,7 @@ transpiler_emit_world_constructor(ASTNode *call,
             "MIR-only C path missing zone-slot declaration metadata for world '%s'",
             decl_name != NULL ? decl_name : "(anonymous-world)");
         codebuf_destroy(fields);
-        return pergyra_strdup("0");
+        return NULL;
     }
 
     for (size_t i = 0; i < argc && i < exposed; i++) {
@@ -508,11 +558,15 @@ transpiler_emit_world_constructor(ASTNode *call,
             field_type,
             field_name,
             ast_call_argument(call, i));
+        if (arg == NULL) {
+            codebuf_destroy(fields);
+            return NULL;
+        }
         if (i > 0)
             codebuf_write(fields, ", ");
         codebuf_write(fields, ".%s = %s",
             field_name != NULL ? field_name : "field",
-            arg != NULL ? arg : "0");
+            arg);
         free(arg);
     }
 
@@ -532,11 +586,15 @@ transpiler_emit_world_constructor(ASTNode *call,
             transpiler_hosted_shared_field_view_type(&shared_view, i),
             field_name,
             ast_party_shared_initializer(shared));
+        if (init_expr == NULL) {
+            codebuf_destroy(fields);
+            return NULL;
+        }
         if (fields->len > 0)
             codebuf_write(fields, ", ");
         codebuf_write(fields, ".%s = %s",
             field_name != NULL ? field_name : "field",
-            init_expr != NULL ? init_expr : "0");
+            init_expr);
         free(init_expr);
     }
 
@@ -575,7 +633,7 @@ transpiler_emit_domain_constructor_for_decl(ASTNode *call,
             transpiler_constructor_find_channel_field(ctx, decl);
         if (channel_field != NULL) {
             transpiler_constructor_reject_channel_field(ctx, channel_field);
-            return pergyra_strdup("0");
+            return NULL;
         }
     }
 

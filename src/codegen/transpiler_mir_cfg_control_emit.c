@@ -119,10 +119,18 @@ transpiler_mir_emit_for_loop_init_inst(CodeBuf *buf,
     }
 
     start = emit_expression_with_ssa_map(inst->expr0, ctx, ssa_map);
+    if (start == NULL) {
+        if (ctx->backend_error == NULL) {
+            transpiler_set_backend_error_with_hints(ctx,
+                PGY_CODE_C_TYPE_UNSUPPORTED,
+                PGY_CAUSE_C_TYPE_UNSUPPORTED,
+                PGY_FIX_INSPECT_MIR_INVENTORY,
+                "MIR for-range start expression could not be emitted");
+        }
+        return false;
+    }
     write_indent_to(buf, ctx->indent);
-    codebuf_write(buf, "int32_t %s = %s;\n",
-                  loop_name,
-                  start != NULL ? start : "0");
+    codebuf_write(buf, "int32_t %s = %s;\n", loop_name, start);
     if (!transpiler_mir_set_loop_binding_name(ctx, ssa_map, variable,
                                               loop_name)) {
         free(start);
@@ -195,23 +203,52 @@ transpiler_mir_render_for_loop_condition_inst(
         char element_type_buf[128];
         char inner_type_buf[128];
         char *collection;
-        (void)transpiler_mir_for_in_element_type(ctx, inst->expr0,
-            &collection_type, element_type_buf, sizeof(element_type_buf),
-            inner_type_buf, sizeof(inner_type_buf));
+        if (!transpiler_mir_for_in_element_type(ctx, inst->expr0,
+                &collection_type, element_type_buf, sizeof(element_type_buf),
+                inner_type_buf, sizeof(inner_type_buf))) {
+            if (ctx->backend_error == NULL) {
+                transpiler_set_backend_error_with_hints(ctx,
+                    PGY_CODE_C_TYPE_UNSUPPORTED,
+                    PGY_CAUSE_C_TYPE_UNSUPPORTED,
+                    PGY_FIX_INSPECT_MIR_INVENTORY,
+                    "MIR for-in condition requires Array<T>, Slice<T>, or List<T> iterable metadata");
+            }
+            return NULL;
+        }
         length_field = transpiler_mir_for_in_length_field(collection_type);
         collection = emit_expression_with_ssa_map(inst->expr0, ctx, ssa_map);
+        if (collection == NULL) {
+            if (ctx->backend_error == NULL) {
+                transpiler_set_backend_error_with_hints(ctx,
+                    PGY_CODE_C_TYPE_UNSUPPORTED,
+                    PGY_CAUSE_C_TYPE_UNSUPPORTED,
+                    PGY_FIX_INSPECT_MIR_INVENTORY,
+                    "MIR for-in condition could not emit iterable expression");
+            }
+            return NULL;
+        }
         transpiler_mir_loop_index_name(inst, variable, idx_name,
                                        sizeof(idx_name));
         cond = strdup_fmt("%s < %s.%s",
             idx_name,
-            collection != NULL ? collection : "0",
+            collection,
             length_field);
         free(collection);
         return cond;
     }
 
     end = emit_expression_with_ssa_map(inst->expr1, ctx, ssa_map);
-    cond = strdup_fmt("%s < %s", loop_name, end != NULL ? end : "0");
+    if (end == NULL) {
+        if (ctx->backend_error == NULL) {
+            transpiler_set_backend_error_with_hints(ctx,
+                PGY_CODE_C_TYPE_UNSUPPORTED,
+                PGY_CAUSE_C_TYPE_UNSUPPORTED,
+                PGY_FIX_INSPECT_MIR_INVENTORY,
+                "MIR for-range end expression could not be emitted");
+        }
+        return NULL;
+    }
+    cond = strdup_fmt("%s < %s", loop_name, end);
     free(end);
     return cond;
 }
@@ -265,13 +302,23 @@ transpiler_mir_emit_for_in_body_binding(CodeBuf *buf,
     if (is_body_entry) {
         collection = emit_expression_with_ssa_map(branch_inst->expr0, ctx,
                                                   ssa_map);
+        if (collection == NULL) {
+            if (ctx->backend_error == NULL) {
+                transpiler_set_backend_error_with_hints(ctx,
+                    PGY_CODE_C_TYPE_UNSUPPORTED,
+                    PGY_CAUSE_C_TYPE_UNSUPPORTED,
+                    PGY_FIX_INSPECT_MIR_INVENTORY,
+                    "MIR for-in body binding could not emit iterable expression");
+            }
+            return false;
+        }
         transpiler_mir_loop_index_name(branch_inst, variable, idx_name,
                                        sizeof(idx_name));
         write_indent_to(buf, ctx->indent);
         codebuf_write(buf, "%s %s = %s.data[%s];\n",
             element_type,
             loop_name,
-            collection != NULL ? collection : "0",
+            collection,
             idx_name);
         free(collection);
     }
@@ -451,12 +498,18 @@ transpiler_mir_render_branch_condition(ASTNode *func_decl,
     }
     if (inst->branch_shape == MIR_BRANCH_SELECT_DISPATCH) {
         char *select_cond;
-        if (!mir_instruction_has_required_branch_condition_fact(inst))
-            return pergyra_strdup("false");
+        if (!mir_instruction_has_required_branch_condition_fact(inst)) {
+            transpiler_set_backend_error_with_hints(ctx,
+                PGY_CODE_C_TYPE_UNSUPPORTED,
+                PGY_CAUSE_C_TYPE_UNSUPPORTED,
+                PGY_FIX_USE_LLVM_BACKEND_OR_EXTEND_TRANSPILER,
+                "C MIR select branch requires branch condition fact");
+            return NULL;
+        }
         select_cond = transpiler_mir_render_select_case_condition(
             mir_instruction_source_payload(inst), routine, target_block, ctx,
             ssa_map);
-        return select_cond != NULL ? select_cond : pergyra_strdup("false");
+        return select_cond;
     }
     condition = inst->expr0;
     if (condition == NULL)

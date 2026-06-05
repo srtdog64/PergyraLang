@@ -20,13 +20,7 @@ pgy_intent_exit_export(int32_t handle)
             free(pgy_intent_last_failure);
             free(pgy_intent_last_name);
             for (int32_t j = 0; j < pgy_intent_last_history_count; j++) {
-                free(pgy_intent_last_steps[j].name);
-                free(pgy_intent_last_steps[j].zone);
-                free(pgy_intent_last_steps[j].failure_reason);
-                pgy_intent_last_steps[j].name = NULL;
-                pgy_intent_last_steps[j].zone = NULL;
-                pgy_intent_last_steps[j].failure_reason = NULL;
-                pgy_intent_last_steps[j].ok = false;
+                pgy_intent_history_step_clear_export(&pgy_intent_last_steps[j]);
             }
             pgy_intent_last_trace = entry->trace != NULL
                 ? pgy_runtime_strdup_export(entry->trace) : pgy_runtime_strdup_export("");

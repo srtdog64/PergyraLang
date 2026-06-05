@@ -67,11 +67,11 @@ strdup_fmt(const char *fmt, ...)
     n = vsnprintf(NULL, 0, fmt, ap);
     va_end(ap);
     if (n < 0)
-        return pergyra_strdup("");
+        return NULL;
 
     s = malloc((size_t)n + 1);
     if (s == NULL)
-        return pergyra_strdup("");
+        return NULL;
 
     va_start(ap, fmt);
     vsnprintf(s, (size_t)n + 1, fmt, ap);

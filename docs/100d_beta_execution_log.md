@@ -3,6 +3,206 @@
 > Split from `docs/100_beta_readiness_checklist.md` on 2026-05-29.
 > Keep active blocker edits in the shard that owns the relevant closure track.
 
+## Progress Log - 2026-06-05 Backend Fail-Closed Hardening
+
+- Promoted backend fail-open guards into the frozen smoke surface:
+  `backend-fail-closed-test-smoke` now runs in Linux, macOS, and Windows CI and
+  is listed in the beta freeze contract.
+- Tightened the fast gate beyond literal C fallback strings and synthetic LLVM
+  branch conditions. It now also rejects direct LLVM `i32 0` expression-result
+  placeholders outside the central `llvm_void_expression_placeholder(...)`
+  owner and rejects partial LLVM host-declaration lookup chains that bypass
+  `host_decl_compat.c`.
+- Removed two direct LLVM void-call placeholders in `RcDrop` and `WeakDrop`;
+  both now consume `llvm_void_expression_placeholder(...)`.
+- Closed two silent-skip metadata holes: C/LLVM role method emission now errors
+  when MIR-backed role/method name metadata is absent, and LLVM destructuring
+  let emission errors when a binding name is missing instead of skipping the
+  binding.
+- Removed empty generated-expression fallbacks from the C domain-query, I/O,
+  and misc builtin format owners. Formatting/allocation failures now set a
+  backend diagnostic and return `NULL` instead of emitting an empty C fragment.
+- Tightened the shared C formatting owner as well: `strdup_fmt(...)` now returns
+  `NULL` on `vsnprintf`/allocation failure instead of materializing `""`.
+  Literal string escaping keeps its separate input-policy empty-string path.
+- Tightened the same empty-string failure pattern in the C type-name renderer
+  for `Channel<T>`/`Future<T>` wrappers. A type-name formatting/allocation
+  failure now reports a backend diagnostic instead of returning `""`.
+- Closed the missing-type C mapping fallback:
+  `pergyra_primitive_to_c(NULL)` now returns `NULL`, and
+  `pergyra_type_to_c_copy(NULL, ...)` now fails closed and leaves the caller
+  buffer empty instead of materializing `int32_t`. The backend fail-closed
+  smoke gate freezes this as a regression test because missing semantic type
+  facts must not become concrete C types.
+- Closed the matching AST type-name rendering fallback:
+  `render_type_name_in_ctx(ctx, NULL)` now returns `NULL` instead of
+  materializing `Int`, and malformed `AST_TYPE` / nameless generic-argument
+  render paths now fail the whole render instead of writing `Int` into the
+  type-name buffer. `pergyra_ast_type_to_c_copy(NULL, ...)` remains the
+  explicit ABI owner for the intentional no-return-type-to-`void` policy.
+- Closed the C slot-reference empty-expression fallback: `slot_ref_expr(...)`
+  now reports a backend diagnostic and returns `NULL` when the lowered slot
+  expression is absent instead of emitting `""`, and the slot builtin/member/
+  dispatch call sites now propagate that failure instead of formatting an
+  invalid C expression.
+- Tightened the slot builtin formatter owner: generated slot builtin fragments
+  now use a context-aware formatter that reports formatting/allocation failure
+  through the backend diagnostic channel instead of returning an unannotated
+  `NULL`.
+- Closed C declarator type fallbacks: malformed or unmapped AST type facts in
+  typed declarators, event-handler parameter/return declarators, function
+  pointer declarators, and function signatures now report a backend diagnostic
+  and fail closed instead of being materialized as `void *`, `int32_t`, or
+  implicit `void`. The intentional no-return-type case still renders `void`.
+- Locked function-typed values behind the declarator owner: raw AST type-to-C
+  copying now rejects `func(...) -> ...` / `AST_EVENT_HANDLER_TYPE` instead of
+  returning `void *`, while `pergyra_ast_typed_declarator_in_ctx(...)` remains
+  the explicit owner that renders the correct function-pointer ABI. Event
+  declaration emission now requires concrete parameter types instead of falling
+  back to `void*`.
+- Locked MIR type rendering behind explicit type facts:
+  `mir_render_type_name(...)` now propagates missing type nodes, nameless
+  `AST_TYPE`s, unsupported `Future<T>` / `Channel<T>`, and generic inner-type
+  failures instead of silently materializing `Int`, `Future<Int>`, or
+  `Channel<Int>`. MIR intent metadata no longer recovers a failed rendered
+  value type by emitting only the outer AST type name.
+- Locked the matching DIR type-ref rendering path: DIR type references now
+  propagate missing base names and unsupported generic/async inner types instead
+  of manufacturing `Int` inside the domain graph.
+- Centralized the backend `Unknown` sentinel policy in the type mapping owner:
+  inferred `Unknown` and generic sentinel wrappers such as `Option<Unknown>` /
+  `Future<Unknown>` are no longer registered as typed-var facts after C let
+  emission, and LLVM Result layout now consumes the same token policy instead
+  of owning a separate scanner. User-defined names such as `UnknownError`
+  remain valid because the guard only rejects standalone `Unknown` sentinels.
+- Closed the matching LLVM callable-parameter metadata hole: MIR-backed
+  function-typed parameters now register callable facts in the parameter emit
+  owner, and LLVM call type inference consumes the same callable registry before
+  falling back to visible function declarations. This keeps higher-order calls
+  such as `f(x)` fail-closed without requiring a duplicated AST scan.
+- Removed the old callable-variable emission fallback that rescanned
+  `current_func_decl` parameters to rediscover function-typed callable
+  signatures. Callable variable calls now consume the callable registry as the
+  single source of truth, and the fail-closed / inventory / perf smoke gates
+  reject reintroducing the AST parameter rescan.
+- Removed the matching LLVM slot-identifier fallback that rescanned
+  `current_func_decl` parameters to rediscover `Slot<T>` / `SecureSlot<T>`
+  inner types. Slot operations now require the slot registry populated by
+  parameter/local emission, and the fail-closed / inventory / perf smoke gates
+  reject reintroducing the AST parameter rescan.
+- Removed the LLVM call type-inference fallback that rescanned `AST_WITH_STMT`
+  bodies to recover with-slot alias inner types. `with slot<T> as s` now relies
+  on the slot registry populated at with-block entry, matching the same
+  registry-only rule used by slot parameters and slot locals.
+- Removed the LLVM nominal type-inference fallbacks that rescanned the current
+  function body to rediscover local `let` annotations. Nominal identifier
+  lowering now consumes the active LLVM scope / var-class registry / host-field
+  and enum metadata owners only, so declaration order and shadowing cannot be
+  bypassed by a whole-body AST scan.
+- Blocked C/LLVM backend `parallel` / `async` pointer-capture of mutable collection
+  values (`Array<T>`, `Slice<T>`, `List<T>`, `Queue<T>`, `Set<T>`,
+  `HashMap<K,V>`). These runtime containers can grow or rehash, so sharing them
+  into worker wrappers by raw pointer would recreate the classic concurrent
+  rehash/read UB pattern. Captured collection state must now cross through a
+  channel/result boundary or an explicit copy.
+- Removed the duplicate C parallel-capture local type-AST walker. The
+  `transpiler_parallel_capture` owner now only discovers capture names, while
+  function/event-handler type AST recovery goes through the existing
+  `transpiler_mir_local_type_ast_lookup` owner. The perf contract rejects
+  reintroducing a parallel-capture-specific local type walker.
+- Removed the remaining C `parallel` emit fallback that rediscovered captured
+  local types by calling `transpiler_find_local_type_name(...)` during wrapper
+  field emission. Capture discovery now resolves/registers typed captures
+  before emission, and the `parallel` / `async` emit owner consumes the typed
+  registry only.
+- Centralized the C/LLVM MIR match-case subject compatibility lookup behind
+  `pgy_codegen_match_subject_for_case(...)`. This does not claim that the AST
+  compatibility path is gone; the owner still calls
+  `ast_find_match_subject_for_case(...)` until MIR carries a subject fact.
+  The important closure is that C/LLVM match condition emitters no longer own
+  separate function-body rescans, and smoke gates now reject reintroducing that
+  direct backend rescan.
+- Added `llvm_scope_lookup_snapshot(...)` as the registry-owned way to carry
+  a scope entry across later scope mutation. `llvm_scope_lookup(...)` remains
+  explicitly borrowed because `llvm_scope_declare/push/pop` can invalidate frame
+  storage and lookup caches. MIR match payload remapping, MIR pin token aliasing,
+  MIR pin enter/exit locals, MIR resource-view aliasing, MIR for-in list/index
+  metadata, MIR range-loop body aliasing, MIR block-local copy rebinding,
+  legacy LLVM statement-loop for-in bindings, and LLVM let-resource/view
+  lowering now snapshot `alloca/type/name` before any alias declaration can grow
+  the scope frame. Existence-only checks now use `llvm_scope_contains(...)`, and
+  the perf contract rejects mixing borrowed `llvm_scope_lookup(...)` with
+  `llvm_scope_declare/push/pop` outside the registry owner, API declaration, and
+  the intentional parallel-capture frame identity check.
+- Extended the same fail-closed policy to role operator/vtable lowering:
+  C/LLVM role operator method-name metadata, LLVM role operator forward-name
+  metadata, LLVM registered operator-method functions, and C/LLVM role vtable
+  method-name/ability-name metadata now fail through the backend metadata path
+  instead of being skipped or materialized as null function slots. LLVM role
+  forward declaration emission also fails closed when role name metadata is
+  absent. The C role operator alias path fails closed when MIR role declaration
+  or subject-type metadata is missing, leaving `continue` only for the
+  legitimate "this operator is not implemented by the role" probe result.
+- Local verification: `make test-transpile` (`893/0`),
+  `make test-dir` (`9/0`), `make test-rir` (`18/0`), `make test-air`
+  (`119/0`), `make test-mir` (`77/0`), and
+  `make backend-fail-closed-test-smoke`; latest narrow LLVM/source-of-truth
+  gates: `make backend-fail-closed-test-smoke
+  mir-declaration-inventory-test-smoke perf-contract-test-smoke
+  llvm-test-smoke`.
+
+## Progress Log - 2026-06-05 Real-Coverage Scope Test And Strict-Mode Repair
+
+- Real-coverage scope: compiled every `func Main` entrypoint across
+  `examples/`, `tests/cases/backend_compare/`, and `src/self_hosted/`
+  (~976 sources) through both C and LLVM backends using
+  `/tmp/pgy-PergyraLang-bin/pgy` (Linux ELF). Diagnosed earlier scope-test
+  miscount as path mangling by a stale Windows PE `bin/pgy.exe` — real
+  measurements require explicit POSIX-native binary selection.
+- Baseline before today's closures: `bc_cases` 779/0 C, 779/0 LLVM;
+  `examples` 102/12 C, 89/25 LLVM; `self_hosted` 71/12 C, 70/13 LLVM
+  (parser fixtures are deliberate edge cases).
+- Closure #72: parallel/async block capture now restores the slot inner
+  type and security flag via
+  `llvm_lookup_slot_inner`/`llvm_lookup_slot_is_secure` and
+  `llvm_register_slot_var_binding`, mirroring the existing channel/future
+  restoration. Without this restore, slot-typed bindings (`Slot<Int>`)
+  captured into a `parallel { ... }` task lost their inner type metadata at
+  the wrapper boundary and tripped
+  `LLVM slot operation on '<name>' requires a concrete slot inner type`
+  under strict mode. Recovered `channel_parallel.pgy`,
+  `concurrency_demo.pgy`, `slots_simple.pgy`, `spawn_test.pgy`,
+  `test_parallel.pgy` (+1 additional example knock-on).
+- Closure #73: bare `Clone(x)` call sites now fall through type inference
+  to their argument's inferred type. `llvm_expr_call_dispatch.c:92` already
+  lowers `Clone` as an identity pass-through; the type-inference pass had
+  no matching shortcut, so concurrent strict-mode tightening
+  (`b3296be2`) made it surface as `call 'Clone' requires registered
+  function or expected type metadata`. Recovered
+  `relation_effect_propagation`, `world_derived_states`,
+  `world_zone_cross_queries`, and `world_zone_projection_visibility` in
+  `tests/cases/backend_compare/`.
+- Closure #74: when a MIR block reaches the backend with no successors and
+  no terminating return — the canonical shape produced by an exhaustive
+  `match` where every case returns — the LLVM emit now emits
+  `unreachable` instead of erroring with
+  `LLVM MIR block %d reached backend without a terminal return value`.
+  The earlier error was load-bearing as a fail-closed for genuinely missing
+  returns, but it consumed legitimate exhaustive matches as collateral. The
+  LLVM verifier still rejects truly live paths, so the safety contract is
+  preserved. Recovered 150 backend-compare cases at once
+  (every `match`-everything-returns shape across enum/option/result/match
+  fixtures).
+- Backend evidence after #72 + #73 + #74:
+  `tests/compare_backends.sh tests/cases/backend_compare/*/main.pgy`
+  reports 794/794 passed, 0 failed; `make llvm-dnd-campaign-test-smoke`
+  reports `dnd_tavern_campaign C/LLVM parity ok`;
+  `make llvm-campaign-projection-test-smoke` reports
+  `campaign_graph_fsm LLVM projection parity ok`. Real-coverage scope:
+  `bc_cases` 779/0 C, 779/0 LLVM; `examples` 102/12 C, 95/19 LLVM
+  (LLVM gap closed by 6 vs baseline); `self_hosted` 71/12 C, 70/13 LLVM
+  (deliberate parser fixtures untouched).
+
 ## Progress Log - 2026-06-05 Intent Declaration Carrier Closure
 
 - MIR intent lowering now materializes declaration-level `priority` and

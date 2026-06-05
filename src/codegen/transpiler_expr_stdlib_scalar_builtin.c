@@ -190,7 +190,7 @@ emit_call_stdlib_scalar_builtin(const char *fn, ASTNode *call, TranspilerCtx *ct
     if (op == TRANSPILER_SCALAR_OP_ABS) {
         char *arg = transpiler_scalar_emit_arg(ctx, a0, fn, "value");
         if (arg == NULL)
-            return pergyra_strdup("0");
+            return NULL;
         char *result = strdup_fmt("((%s) < 0 ? -(%s) : (%s))", arg, arg, arg);
         free(arg);
         return result;
@@ -203,7 +203,7 @@ emit_call_stdlib_scalar_builtin(const char *fn, ASTNode *call, TranspilerCtx *ct
         if (a == NULL || b == NULL) {
             free(a);
             free(b);
-            return pergyra_strdup("0");
+            return NULL;
         }
         char *result = strdup_fmt("((%s) < (%s) ? (%s) : (%s))", a, b, a, b);
         free(a); free(b);
@@ -217,7 +217,7 @@ emit_call_stdlib_scalar_builtin(const char *fn, ASTNode *call, TranspilerCtx *ct
         if (a == NULL || b == NULL) {
             free(a);
             free(b);
-            return pergyra_strdup("0");
+            return NULL;
         }
         char *result = strdup_fmt("((%s) > (%s) ? (%s) : (%s))", a, b, a, b);
         free(a); free(b);
@@ -226,7 +226,7 @@ emit_call_stdlib_scalar_builtin(const char *fn, ASTNode *call, TranspilerCtx *ct
     if (op == TRANSPILER_SCALAR_OP_STRING_LENGTH) {
         char *arg = transpiler_scalar_emit_arg(ctx, a0, fn, "value");
         if (arg == NULL)
-            return pergyra_strdup("0");
+            return NULL;
         char *result = strdup_fmt("((int32_t)strlen(%s))", arg);
         free(arg);
         return result;
@@ -239,7 +239,7 @@ emit_call_stdlib_scalar_builtin(const char *fn, ASTNode *call, TranspilerCtx *ct
         if (a == NULL || b == NULL) {
             free(a);
             free(b);
-            return pergyra_strdup("0");
+            return NULL;
         }
         char *result = strdup_fmt("StringContains(%s, %s)", a, b);
         free(a); free(b);
@@ -253,7 +253,7 @@ emit_call_stdlib_scalar_builtin(const char *fn, ASTNode *call, TranspilerCtx *ct
         if (a == NULL || b == NULL) {
             free(a);
             free(b);
-            return pergyra_strdup("0");
+            return NULL;
         }
         char *result = strdup_fmt("StringIndexOf(%s, %s)", a, b);
         free(a); free(b);
@@ -262,7 +262,7 @@ emit_call_stdlib_scalar_builtin(const char *fn, ASTNode *call, TranspilerCtx *ct
     if (op == TRANSPILER_SCALAR_OP_EXIT) {
         char *arg = transpiler_scalar_emit_arg(ctx, a0, fn, "code");
         if (arg == NULL)
-            return pergyra_strdup("0");
+            return NULL;
         char *result = strdup_fmt("pgy_exit(%s)", arg);
         free(arg);
         return result;
@@ -279,7 +279,7 @@ emit_call_stdlib_scalar_builtin(const char *fn, ASTNode *call, TranspilerCtx *ct
             free(s);
             free(old_s);
             free(new_s);
-            return pergyra_strdup("0");
+            return NULL;
         }
         char *result = strdup_fmt("StringReplace(%s, %s, %s)", s, old_s, new_s);
         free(s); free(old_s); free(new_s);
@@ -297,7 +297,7 @@ emit_call_stdlib_scalar_builtin(const char *fn, ASTNode *call, TranspilerCtx *ct
             free(s);
             free(start);
             free(len);
-            return pergyra_strdup("0");
+            return NULL;
         }
         char *result = strdup_fmt("Substring(%s, %s, %s)", s, start, len);
         free(s); free(start); free(len);
@@ -306,7 +306,7 @@ emit_call_stdlib_scalar_builtin(const char *fn, ASTNode *call, TranspilerCtx *ct
     if (op == TRANSPILER_SCALAR_OP_STRING_TRIM) {
         char *arg = transpiler_scalar_emit_arg(ctx, a0, fn, "value");
         if (arg == NULL)
-            return pergyra_strdup("0");
+            return NULL;
         char *result = strdup_fmt("StringTrim(%s)", arg);
         free(arg);
         return result;
@@ -314,7 +314,7 @@ emit_call_stdlib_scalar_builtin(const char *fn, ASTNode *call, TranspilerCtx *ct
     if (op == TRANSPILER_SCALAR_OP_UPPER) {
         char *arg = transpiler_scalar_emit_arg(ctx, a0, fn, "value");
         if (arg == NULL)
-            return pergyra_strdup("0");
+            return NULL;
         char *result = strdup_fmt("ToUpper(%s)", arg);
         free(arg);
         return result;
@@ -322,7 +322,7 @@ emit_call_stdlib_scalar_builtin(const char *fn, ASTNode *call, TranspilerCtx *ct
     if (op == TRANSPILER_SCALAR_OP_LOWER) {
         char *arg = transpiler_scalar_emit_arg(ctx, a0, fn, "value");
         if (arg == NULL)
-            return pergyra_strdup("0");
+            return NULL;
         char *result = strdup_fmt("ToLower(%s)", arg);
         free(arg);
         return result;
@@ -335,7 +335,7 @@ emit_call_stdlib_scalar_builtin(const char *fn, ASTNode *call, TranspilerCtx *ct
         if (a == NULL || b == NULL) {
             free(a);
             free(b);
-            return pergyra_strdup("0");
+            return NULL;
         }
         char *result = strdup_fmt("StringConcat(%s, %s)", a, b);
         free(a); free(b);
@@ -349,7 +349,7 @@ emit_call_stdlib_scalar_builtin(const char *fn, ASTNode *call, TranspilerCtx *ct
         if (s == NULL || d == NULL) {
             free(s);
             free(d);
-            return pergyra_strdup("0");
+            return NULL;
         }
         char *result = strdup_fmt("StringSplit(%s, %s)", s, d);
         free(s); free(d);
@@ -358,7 +358,7 @@ emit_call_stdlib_scalar_builtin(const char *fn, ASTNode *call, TranspilerCtx *ct
     if (op == TRANSPILER_SCALAR_OP_STRING_JOIN) {
         if (!transpiler_require_c_addressable_storage(ctx, a0,
                 "StringJoin", "Array"))
-            return pergyra_strdup("0");
+            return NULL;
         char *arr = transpiler_scalar_emit_arg(ctx, a0, fn, "array");
         char *sep = arr != NULL
             ? transpiler_scalar_emit_arg(ctx, a1, fn, "separator")
@@ -366,7 +366,7 @@ emit_call_stdlib_scalar_builtin(const char *fn, ASTNode *call, TranspilerCtx *ct
         if (arr == NULL || sep == NULL) {
             free(arr);
             free(sep);
-            return pergyra_strdup("0");
+            return NULL;
         }
         char *result = strdup_fmt("StringJoin(&%s, %s)", arr, sep);
         free(arr); free(sep);
@@ -375,7 +375,7 @@ emit_call_stdlib_scalar_builtin(const char *fn, ASTNode *call, TranspilerCtx *ct
     if (op == TRANSPILER_SCALAR_OP_TO_INT) {
         char *arg = transpiler_scalar_emit_arg(ctx, a0, fn, "value");
         if (arg == NULL)
-            return pergyra_strdup("0");
+            return NULL;
         char *result = strdup_fmt("ToInt(%s)", arg);
         free(arg);
         return result;
@@ -383,7 +383,7 @@ emit_call_stdlib_scalar_builtin(const char *fn, ASTNode *call, TranspilerCtx *ct
     if (op == TRANSPILER_SCALAR_OP_TO_FLOAT) {
         char *arg = transpiler_scalar_emit_arg(ctx, a0, fn, "value");
         if (arg == NULL)
-            return pergyra_strdup("0");
+            return NULL;
         char *result = strdup_fmt("ToFloat(%s)", arg);
         free(arg);
         return result;
@@ -391,7 +391,7 @@ emit_call_stdlib_scalar_builtin(const char *fn, ASTNode *call, TranspilerCtx *ct
     if (op == TRANSPILER_SCALAR_OP_SQRT) {
         char *arg = transpiler_scalar_emit_arg(ctx, a0, fn, "value");
         if (arg == NULL)
-            return pergyra_strdup("0");
+            return NULL;
         char *result = strdup_fmt("Sqrt(%s)", arg);
         free(arg);
         return result;
@@ -404,7 +404,7 @@ emit_call_stdlib_scalar_builtin(const char *fn, ASTNode *call, TranspilerCtx *ct
         if (a == NULL || b == NULL) {
             free(a);
             free(b);
-            return pergyra_strdup("0");
+            return NULL;
         }
         char *result = strdup_fmt("Pow(%s, %s)", a, b);
         free(a); free(b);
@@ -414,7 +414,7 @@ emit_call_stdlib_scalar_builtin(const char *fn, ASTNode *call, TranspilerCtx *ct
         && argc == 1) {
         char *arg = transpiler_scalar_emit_arg(ctx, a0, fn, "value");
         if (arg == NULL)
-            return pergyra_strdup("0");
+            return NULL;
         char *result = strdup_fmt("%s(%s)", fn, arg);
         free(arg);
         return result;
@@ -427,7 +427,7 @@ emit_call_stdlib_scalar_builtin(const char *fn, ASTNode *call, TranspilerCtx *ct
         if (a == NULL || b == NULL) {
             free(a);
             free(b);
-            return pergyra_strdup("0");
+            return NULL;
         }
         char *result = strdup_fmt("Atan2(%s, %s)", a, b);
         free(a); free(b);
@@ -445,7 +445,7 @@ emit_call_stdlib_scalar_builtin(const char *fn, ASTNode *call, TranspilerCtx *ct
             free(val);
             free(lo);
             free(hi);
-            return pergyra_strdup("0");
+            return NULL;
         }
         char *result = strdup_fmt("Clamp(%s, %s, %s)", val, lo, hi);
         free(val); free(lo); free(hi);
@@ -459,7 +459,7 @@ emit_call_stdlib_scalar_builtin(const char *fn, ASTNode *call, TranspilerCtx *ct
         if (argc >= 1) {
             char *arg = transpiler_scalar_emit_arg(ctx, a0, fn, "limit");
             if (arg == NULL)
-                return pergyra_strdup("0");
+                return NULL;
             char *result = strdup_fmt("Random(%s)", arg);
             free(arg);
             return result;
@@ -469,7 +469,7 @@ emit_call_stdlib_scalar_builtin(const char *fn, ASTNode *call, TranspilerCtx *ct
     if (op == TRANSPILER_SCALAR_OP_SEED_RANDOM) {
         char *arg = transpiler_scalar_emit_arg(ctx, a0, fn, "seed");
         if (arg == NULL)
-            return pergyra_strdup("0");
+            return NULL;
         char *result = strdup_fmt("SeedRandom(%s)", arg);
         free(arg);
         return result;

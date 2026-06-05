@@ -35,8 +35,8 @@ emit_call(ASTNode *call, TranspilerCtx *ctx)
     result = emit_call_domain_constructor(call, callee, ctx);
     if (result != NULL)
         return result;
-    result = emit_call_result_option_builtin(call, callee, ctx);
-    if (result != NULL)
+    result = emit_call_result_option_builtin(call, callee, ctx, &handled);
+    if (handled)
         return result;
     result = emit_call_stdlib_builtin(call, callee, ctx);
     if (result != NULL)

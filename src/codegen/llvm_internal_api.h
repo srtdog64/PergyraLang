@@ -31,6 +31,12 @@ void          llvm_scope_declare(LLVMGenCtx *ctx, const char *name,
  * the frame storage. Snapshot alloca/type/name before mutating scope state.
  */
 LLVMVarEntry *llvm_scope_lookup(LLVMGenCtx *ctx, const char *name);
+bool          llvm_scope_contains(LLVMGenCtx *ctx, const char *name);
+bool          llvm_scope_lookup_snapshot(LLVMGenCtx *ctx, const char *name,
+                                         LLVMVarEntry *out);
+bool          llvm_scope_frame_entry_is_current(LLVMGenCtx *ctx,
+                                                LLVMScopeFrame *frame,
+                                                int index);
 LLVMLexicalRegistrySnapshot llvm_lexical_registry_snapshot(LLVMGenCtx *ctx);
 void          llvm_lexical_registry_restore(
                   LLVMGenCtx *ctx, LLVMLexicalRegistrySnapshot snapshot);
@@ -143,8 +149,9 @@ const char   *llvm_lookup_device_slot_inner(LLVMGenCtx *ctx,
                                              const char *var_name);
 void          llvm_mark_device_slot_released(LLVMGenCtx *ctx,
                                               const char *var_name);
-LLVMVarEntry *llvm_lookup_secure_token_var(LLVMGenCtx *ctx,
-                                            const char *slot_name);
+bool          llvm_lookup_secure_token_var(LLVMGenCtx *ctx,
+                                           const char *slot_name,
+                                           LLVMVarEntry *out);
 void          llvm_register_future_var(LLVMGenCtx *ctx, const char *var_name,
                                         const char *inner_type,
                                         bool is_remote);
@@ -340,6 +347,9 @@ void          llvm_mir_emit_owner_sync_exit(LLVMGenCtx *ctx,
                                             LLVMFuncEntry *owner_sync,
                                             const char *owner_name);
 LLVMTypeRef   llvm_stmt_infer_expr_type(LLVMGenCtx *ctx, ASTNode *expr);
+bool          llvm_stmt_require_non_void_value(LLVMGenCtx *ctx,
+                                               ASTNode *expr,
+                                               const char *message);
 LLVMTypeRef   llvm_stmt_resolve_array_elem_type(LLVMGenCtx *ctx, ASTNode *expr,
                                                 LLVMValueRef data_ptr);
 void          llvm_emit_let_destructure_stmt(ASTNode *node, LLVMGenCtx *ctx);
@@ -470,9 +480,10 @@ LLVMValueRef llvm_emit_structural_secure_slot_read(LLVMGenCtx *ctx,
 void llvm_emit_structural_secure_slot_release(LLVMGenCtx *ctx,
                                               LLVMVarEntry *slot_var);
 LLVMValueRef llvm_slot_runtime_arg(LLVMGenCtx *ctx, LLVMVarEntry *var);
-LLVMVarEntry *llvm_require_secure_token_var(LLVMGenCtx *ctx, ASTNode *node,
+bool          llvm_require_secure_token_var(LLVMGenCtx *ctx, ASTNode *node,
                                             const char *slot_name,
-                                            const char *operation_name);
+                                            const char *operation_name,
+                                            LLVMVarEntry *out);
 const char *llvm_call_arg_device_inner(LLVMGenCtx *ctx, ASTNode *node);
 ASTNode *llvm_find_named_domain_decl(LLVMGenCtx *ctx, ASTNodeType decl_type,
                                      const char *name);

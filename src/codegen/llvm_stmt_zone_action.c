@@ -163,7 +163,7 @@ llvm_stmt_emit_zone_action_effect_runtime(ASTNode *call, LLVMGenCtx *ctx)
     ASTNode *effect_decl;
     LLVMClassTypeEntry *zone_cls;
     LLVMClassTypeEntry *effect_cls;
-    LLVMVarEntry *self_var;
+    LLVMVarEntry self_var;
     LLVMValueRef self_ptr;
     LLVMHostedZoneLayerSlotView layer_view;
     const char *subject_slot_name = NULL;
@@ -232,13 +232,13 @@ llvm_stmt_emit_zone_action_effect_runtime(ASTNode *call, LLVMGenCtx *ctx)
     effect_decl = llvm_find_named_domain_decl(ctx, AST_EFFECT_DECL, effect_name);
     zone_cls = llvm_lookup_class(ctx, zone_name);
     effect_cls = llvm_lookup_class(ctx, effect_name);
-    self_var = llvm_scope_lookup(ctx, "self");
-    if (effect_decl == NULL || zone_cls == NULL || effect_cls == NULL || self_var == NULL)
+    if (effect_decl == NULL || zone_cls == NULL || effect_cls == NULL
+        || !llvm_scope_lookup_snapshot(ctx, "self", &self_var))
         return;
 
     self_ptr = LLVMBuildLoad2(ctx->builder,
         LLVMPointerType(zone_cls->struct_type, 0),
-        self_var->alloca, llvm_tmp_name(ctx));
+        self_var.alloca, llvm_tmp_name(ctx));
 
     layer_view = llvm_hosted_zone_layer_slot_view_from_decl(ctx, zone_name, zone_decl);
     if (llvm_hosted_zone_layer_slot_view_missing_mir_metadata(&layer_view)) {

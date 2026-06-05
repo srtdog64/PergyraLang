@@ -94,6 +94,28 @@ transpiler_collection_lookup(const char *fn, size_t argc)
     return spec->op;
 }
 
+static char *
+transpiler_collection_emit_arg(TranspilerCtx *ctx,
+                               ASTNode *arg,
+                               const char *builtin_name,
+                               const char *role)
+{
+    char *rendered = emit_expression(arg, ctx);
+
+    if (rendered != NULL)
+        return rendered;
+
+    transpiler_set_backend_error_with_hints(
+        ctx,
+        PGY_CODE_C_TYPE_UNSUPPORTED,
+        PGY_CAUSE_C_TYPE_UNSUPPORTED,
+        PGY_FIX_USE_LLVM_BACKEND_OR_EXTEND_TRANSPILER,
+        "C backend: collection builtin %s could not lower %s argument",
+        builtin_name != NULL ? builtin_name : "(unknown)",
+        role != NULL ? role : "operand");
+    return NULL;
+}
+
 #include "transpiler_expr_stdlib_map_builtin.h"
 #include "transpiler_expr_stdlib_queue_builtin.h"
 
@@ -119,7 +141,7 @@ emit_call_stdlib_collection_builtin(const char *fn, ASTNode *call, TranspilerCtx
         const char *inner = NULL;
         if (hint == NULL || !transpiler_require_unary_collection_type(ctx,
                 hint, "List", "ListNew", inner_buf, sizeof(inner_buf), &inner)) {
-            return pergyra_strdup("0");
+            return NULL;
         }
         ensure_collection_specialization(ctx, "List", inner);
         char suffix_buf[128];
@@ -130,16 +152,25 @@ emit_call_stdlib_collection_builtin(const char *fn, ASTNode *call, TranspilerCtx
         ASTNode *list_arg = ast_call_argument(call, 0);
         if (!transpiler_require_c_addressable_storage(ctx, list_arg,
                 "ListPush", "List"))
-            return pergyra_strdup("0");
-        char *l = emit_expression(list_arg, ctx);
-        char *v = emit_expression(ast_call_argument(call, 1), ctx);
+            return NULL;
+        char *l = transpiler_collection_emit_arg(ctx, list_arg,
+            "ListPush", "list");
+        char *v = l != NULL
+            ? transpiler_collection_emit_arg(ctx, ast_call_argument(call, 1),
+                  "ListPush", "value")
+            : NULL;
+        if (l == NULL || v == NULL) {
+            free(l);
+            free(v);
+            return NULL;
+        }
         const char *list_type = infer_expression_type_name(ctx, list_arg);
         char inner_buf[64];
         const char *inner = NULL;
         if (!transpiler_require_unary_collection_type(ctx, list_type,
                 "List", "ListPush", inner_buf, sizeof(inner_buf), &inner)) {
             free(l); free(v);
-            return pergyra_strdup("0");
+            return NULL;
         }
         ensure_collection_specialization(ctx, "List", inner);
         char suffix_buf[128];
@@ -152,16 +183,25 @@ emit_call_stdlib_collection_builtin(const char *fn, ASTNode *call, TranspilerCtx
         ASTNode *list_arg = ast_call_argument(call, 0);
         if (!transpiler_require_c_addressable_storage(ctx, list_arg,
                 "ListGet", "List"))
-            return pergyra_strdup("0");
-        char *l = emit_expression(list_arg, ctx);
-        char *i = emit_expression(ast_call_argument(call, 1), ctx);
+            return NULL;
+        char *l = transpiler_collection_emit_arg(ctx, list_arg,
+            "ListGet", "list");
+        char *i = l != NULL
+            ? transpiler_collection_emit_arg(ctx, ast_call_argument(call, 1),
+                  "ListGet", "index")
+            : NULL;
+        if (l == NULL || i == NULL) {
+            free(l);
+            free(i);
+            return NULL;
+        }
         const char *list_type = infer_expression_type_name(ctx, list_arg);
         char inner_buf[64];
         const char *inner = NULL;
         if (!transpiler_require_unary_collection_type(ctx, list_type,
                 "List", "ListGet", inner_buf, sizeof(inner_buf), &inner)) {
             free(l); free(i);
-            return pergyra_strdup("0");
+            return NULL;
         }
         ensure_collection_specialization(ctx, "List", inner);
         char suffix_buf[128];
@@ -174,17 +214,30 @@ emit_call_stdlib_collection_builtin(const char *fn, ASTNode *call, TranspilerCtx
         ASTNode *list_arg = ast_call_argument(call, 0);
         if (!transpiler_require_c_addressable_storage(ctx, list_arg,
                 "ListSet", "List"))
-            return pergyra_strdup("0");
-        char *l = emit_expression(list_arg, ctx);
-        char *i = emit_expression(ast_call_argument(call, 1), ctx);
-        char *v = emit_expression(ast_call_argument(call, 2), ctx);
+            return NULL;
+        char *l = transpiler_collection_emit_arg(ctx, list_arg,
+            "ListSet", "list");
+        char *i = l != NULL
+            ? transpiler_collection_emit_arg(ctx, ast_call_argument(call, 1),
+                  "ListSet", "index")
+            : NULL;
+        char *v = i != NULL
+            ? transpiler_collection_emit_arg(ctx, ast_call_argument(call, 2),
+                  "ListSet", "value")
+            : NULL;
+        if (l == NULL || i == NULL || v == NULL) {
+            free(l);
+            free(i);
+            free(v);
+            return NULL;
+        }
         const char *list_type = infer_expression_type_name(ctx, list_arg);
         char inner_buf[64];
         const char *inner = NULL;
         if (!transpiler_require_unary_collection_type(ctx, list_type,
                 "List", "ListSet", inner_buf, sizeof(inner_buf), &inner)) {
             free(l); free(i); free(v);
-            return pergyra_strdup("0");
+            return NULL;
         }
         ensure_collection_specialization(ctx, "List", inner);
         char suffix_buf[128];
@@ -197,15 +250,18 @@ emit_call_stdlib_collection_builtin(const char *fn, ASTNode *call, TranspilerCtx
         ASTNode *list_arg = ast_call_argument(call, 0);
         if (!transpiler_require_c_addressable_storage(ctx, list_arg,
                 "ListSize", "List"))
-            return pergyra_strdup("0");
-        char *l = emit_expression(list_arg, ctx);
+            return NULL;
+        char *l = transpiler_collection_emit_arg(ctx, list_arg,
+            "ListSize", "list");
+        if (l == NULL)
+            return NULL;
         const char *list_type = infer_expression_type_name(ctx, list_arg);
         char inner_buf[64];
         const char *inner = NULL;
         if (!transpiler_require_unary_collection_type(ctx, list_type,
                 "List", "ListSize", inner_buf, sizeof(inner_buf), &inner)) {
             free(l);
-            return pergyra_strdup("0");
+            return NULL;
         }
         ensure_collection_specialization(ctx, "List", inner);
         char suffix_buf[128];
@@ -218,16 +274,25 @@ emit_call_stdlib_collection_builtin(const char *fn, ASTNode *call, TranspilerCtx
         ASTNode *list_arg = ast_call_argument(call, 0);
         if (!transpiler_require_c_addressable_storage(ctx, list_arg,
                 "ListRemove", "List"))
-            return pergyra_strdup("0");
-        char *l = emit_expression(list_arg, ctx);
-        char *i = emit_expression(ast_call_argument(call, 1), ctx);
+            return NULL;
+        char *l = transpiler_collection_emit_arg(ctx, list_arg,
+            "ListRemove", "list");
+        char *i = l != NULL
+            ? transpiler_collection_emit_arg(ctx, ast_call_argument(call, 1),
+                  "ListRemove", "index")
+            : NULL;
+        if (l == NULL || i == NULL) {
+            free(l);
+            free(i);
+            return NULL;
+        }
         const char *list_type = infer_expression_type_name(ctx, list_arg);
         char inner_buf[64];
         const char *inner = NULL;
         if (!transpiler_require_unary_collection_type(ctx, list_type,
                 "List", "ListRemove", inner_buf, sizeof(inner_buf), &inner)) {
             free(l); free(i);
-            return pergyra_strdup("0");
+            return NULL;
         }
         ensure_collection_specialization(ctx, "List", inner);
         char suffix_buf[128];
@@ -243,7 +308,7 @@ emit_call_stdlib_collection_builtin(const char *fn, ASTNode *call, TranspilerCtx
         const char *set_inner = NULL;
         if (hint == NULL || !transpiler_require_unary_collection_type(ctx,
                 hint, "Set", "SetNew", inner_buf, sizeof(inner_buf), &set_inner)) {
-            return pergyra_strdup("0");
+            return NULL;
         }
         ensure_collection_specialization(ctx, "Set", set_inner);
         char suffix_buf[128];
@@ -254,16 +319,25 @@ emit_call_stdlib_collection_builtin(const char *fn, ASTNode *call, TranspilerCtx
         ASTNode *set_arg = ast_call_argument(call, 0);
         if (!transpiler_require_c_addressable_storage(ctx, set_arg,
                 "SetAdd", "Set"))
-            return pergyra_strdup("0");
+            return NULL;
         const char *set_type = infer_expression_type_name(ctx, set_arg);
         char inner_buf[64];
         const char *set_inner = NULL;
-        char *s = emit_expression(set_arg, ctx);
-        char *k = emit_expression(ast_call_argument(call, 1), ctx);
+        char *s = transpiler_collection_emit_arg(ctx, set_arg,
+            "SetAdd", "set");
+        char *k = s != NULL
+            ? transpiler_collection_emit_arg(ctx, ast_call_argument(call, 1),
+                  "SetAdd", "key")
+            : NULL;
+        if (s == NULL || k == NULL) {
+            free(s);
+            free(k);
+            return NULL;
+        }
         if (!transpiler_require_unary_collection_type(ctx, set_type,
                 "Set", "SetAdd", inner_buf, sizeof(inner_buf), &set_inner)) {
             free(s); free(k);
-            return pergyra_strdup("0");
+            return NULL;
         }
         ensure_collection_specialization(ctx, "Set", set_inner);
         char suffix_buf[128];
@@ -276,16 +350,25 @@ emit_call_stdlib_collection_builtin(const char *fn, ASTNode *call, TranspilerCtx
         ASTNode *set_arg = ast_call_argument(call, 0);
         if (!transpiler_require_c_addressable_storage(ctx, set_arg,
                 "SetHas", "Set"))
-            return pergyra_strdup("0");
+            return NULL;
         const char *set_type = infer_expression_type_name(ctx, set_arg);
         char inner_buf[64];
         const char *set_inner = NULL;
-        char *s = emit_expression(set_arg, ctx);
-        char *k = emit_expression(ast_call_argument(call, 1), ctx);
+        char *s = transpiler_collection_emit_arg(ctx, set_arg,
+            "SetHas", "set");
+        char *k = s != NULL
+            ? transpiler_collection_emit_arg(ctx, ast_call_argument(call, 1),
+                  "SetHas", "key")
+            : NULL;
+        if (s == NULL || k == NULL) {
+            free(s);
+            free(k);
+            return NULL;
+        }
         if (!transpiler_require_unary_collection_type(ctx, set_type,
                 "Set", "SetHas", inner_buf, sizeof(inner_buf), &set_inner)) {
             free(s); free(k);
-            return pergyra_strdup("0");
+            return NULL;
         }
         ensure_collection_specialization(ctx, "Set", set_inner);
         char suffix_buf[128];
@@ -298,16 +381,25 @@ emit_call_stdlib_collection_builtin(const char *fn, ASTNode *call, TranspilerCtx
         ASTNode *set_arg = ast_call_argument(call, 0);
         if (!transpiler_require_c_addressable_storage(ctx, set_arg,
                 "SetRemove", "Set"))
-            return pergyra_strdup("0");
+            return NULL;
         const char *set_type = infer_expression_type_name(ctx, set_arg);
         char inner_buf[64];
         const char *set_inner = NULL;
-        char *s = emit_expression(set_arg, ctx);
-        char *k = emit_expression(ast_call_argument(call, 1), ctx);
+        char *s = transpiler_collection_emit_arg(ctx, set_arg,
+            "SetRemove", "set");
+        char *k = s != NULL
+            ? transpiler_collection_emit_arg(ctx, ast_call_argument(call, 1),
+                  "SetRemove", "key")
+            : NULL;
+        if (s == NULL || k == NULL) {
+            free(s);
+            free(k);
+            return NULL;
+        }
         if (!transpiler_require_unary_collection_type(ctx, set_type,
                 "Set", "SetRemove", inner_buf, sizeof(inner_buf), &set_inner)) {
             free(s); free(k);
-            return pergyra_strdup("0");
+            return NULL;
         }
         ensure_collection_specialization(ctx, "Set", set_inner);
         char suffix_buf[128];
@@ -320,15 +412,18 @@ emit_call_stdlib_collection_builtin(const char *fn, ASTNode *call, TranspilerCtx
         ASTNode *set_arg = ast_call_argument(call, 0);
         if (!transpiler_require_c_addressable_storage(ctx, set_arg,
                 "SetSize", "Set"))
-            return pergyra_strdup("0");
+            return NULL;
         const char *set_type = infer_expression_type_name(ctx, set_arg);
         char inner_buf[64];
         const char *set_inner = NULL;
-        char *s = emit_expression(set_arg, ctx);
+        char *s = transpiler_collection_emit_arg(ctx, set_arg,
+            "SetSize", "set");
+        if (s == NULL)
+            return NULL;
         if (!transpiler_require_unary_collection_type(ctx, set_type,
                 "Set", "SetSize", inner_buf, sizeof(inner_buf), &set_inner)) {
             free(s);
-            return pergyra_strdup("0");
+            return NULL;
         }
         ensure_collection_specialization(ctx, "Set", set_inner);
         char suffix_buf[128];

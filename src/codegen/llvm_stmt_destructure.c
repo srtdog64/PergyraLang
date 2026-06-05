@@ -12,8 +12,16 @@ llvm_emit_let_destructure_stmt(ASTNode *node, LLVMGenCtx *ctx)
     if (init == NULL)
         return;
     LLVMValueRef rhs_val = llvm_emit_expression(init, ctx);
-    if (rhs_val == NULL)
+    if (rhs_val == NULL) {
+        if (ctx != NULL && !ctx->has_error) {
+            llvm_set_error_at_with_hints(ctx, init,
+                PGY_CODE_LLVM_TYPE_UNSUPPORTED,
+                PGY_CAUSE_LLVM_TYPE_UNSUPPORTED,
+                PGY_FIX_INSPECT_MIR_INVENTORY,
+                "LLVM destructuring let could not lower initializer expression");
+        }
         return;
+    }
     LLVMTypeRef rhs_ty = LLVMTypeOf(rhs_val);
     if (LLVMGetTypeKind(rhs_ty) != LLVMStructTypeKind) {
         llvm_set_error_with_hints(ctx, PGY_CODE_LLVM_TYPE_UNSUPPORTED, PGY_CAUSE_LLVM_TYPE_UNSUPPORTED, PGY_FIX_ANNOTATE_CONCRETE_TYPE, "destructuring requires an Array-like or tuple struct initializer");
@@ -34,7 +42,14 @@ llvm_emit_let_destructure_stmt(ASTNode *node, LLVMGenCtx *ctx)
     if (is_tuple) {
         for (size_t i = 0; i < ast_let_destructure_name_count(node); i++) {
             const char *bname = ast_let_destructure_name(node, i);
-            if (bname == NULL) continue;
+            if (bname == NULL) {
+                llvm_set_error_at_with_hints(ctx, node,
+                    PGY_CODE_LLVM_TYPE_UNSUPPORTED,
+                    PGY_CAUSE_LLVM_TYPE_UNSUPPORTED,
+                    PGY_FIX_INSPECT_MIR_INVENTORY,
+                    "LLVM destructuring let binding name metadata is missing");
+                return;
+            }
             LLVMTypeRef ft = LLVMStructGetTypeAtIndex(rhs_ty, (unsigned)i);
             LLVMValueRef v = LLVMBuildExtractValue(ctx->builder, rhs_val,
                 (unsigned)i, llvm_tmp_name(ctx));
@@ -54,8 +69,14 @@ llvm_emit_let_destructure_stmt(ASTNode *node, LLVMGenCtx *ctx)
         return;
     for (size_t i = 0; i < ast_let_destructure_name_count(node); i++) {
         const char *bname = ast_let_destructure_name(node, i);
-        if (bname == NULL)
-            continue;
+        if (bname == NULL) {
+            llvm_set_error_at_with_hints(ctx, node,
+                PGY_CODE_LLVM_TYPE_UNSUPPORTED,
+                PGY_CAUSE_LLVM_TYPE_UNSUPPORTED,
+                PGY_FIX_INSPECT_MIR_INVENTORY,
+                "LLVM destructuring let binding name metadata is missing");
+            return;
+        }
         LLVMValueRef idx = LLVMConstInt(ctx->type_i64,
             (unsigned long long)i, 0);
         LLVMValueRef gep = LLVMBuildGEP2(ctx->builder,

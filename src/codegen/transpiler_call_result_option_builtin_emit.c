@@ -126,12 +126,17 @@ transpiler_result_option_emit_arg(TranspilerCtx *ctx,
 }
 
 char *
-emit_call_result_option_builtin(ASTNode *call, ASTNode *callee, TranspilerCtx *ctx)
+emit_call_result_option_builtin(ASTNode *call,
+                                ASTNode *callee,
+                                TranspilerCtx *ctx,
+                                bool *handled)
 {
     /* Result<T, E> built-in functions:
      * - Ok/Err require explicit Result context from the surrounding type.
      * - IsOk/IsErr/Unwrap/UnwrapOr may also derive suffix from their Result
      *   operand when the surrounding expression context is not specific. */
+    if (handled != NULL)
+        *handled = false;
     if (callee->type == AST_IDENTIFIER) {
         const char *fn = ast_identifier_name(callee);
         size_t argc = ast_call_arg_count(call);
@@ -148,6 +153,11 @@ emit_call_result_option_builtin(ASTNode *call, ASTNode *callee, TranspilerCtx *c
         bool have_result_suffix = transpiler_result_suffix_from_context(
             ctx, result_suffix, sizeof(result_suffix));
 
+        if (op == TRANS_RESULT_OPTION_OP_NONE)
+            return NULL;
+        if (handled != NULL)
+            *handled = true;
+
         if (!have_result_suffix && is_result_consumer
             && argc >= 1
             && arg0 != NULL) {
@@ -160,14 +170,14 @@ emit_call_result_option_builtin(ASTNode *call, ASTNode *callee, TranspilerCtx *c
         if ((is_result_ctor || is_result_consumer) && !have_result_suffix) {
             transpiler_set_backend_error_with_hints(ctx, PGY_CODE_C_TYPE_UNSUPPORTED, PGY_CAUSE_C_TYPE_UNSUPPORTED, PGY_FIX_USE_LLVM_BACKEND_OR_EXTEND_TRANSPILER, "cannot derive Result<T, E> specialization for %s(); add explicit Result<T, E> type context",
                 fn);
-            return pergyra_strdup("0");
+            return NULL;
         }
 
         if (op == TRANS_RESULT_OPTION_OP_OK && argc == 1) {
             char *arg = transpiler_result_option_emit_arg(ctx, arg0, fn,
                 "payload");
             if (arg == NULL)
-                return pergyra_strdup("0");
+                return NULL;
             char *result = strdup_fmt("Ok_%s(%s)", result_suffix, arg);
             free(arg);
             return result;
@@ -176,7 +186,7 @@ emit_call_result_option_builtin(ASTNode *call, ASTNode *callee, TranspilerCtx *c
             char *arg = transpiler_result_option_emit_arg(ctx, arg0, fn,
                 "error payload");
             if (arg == NULL)
-                return pergyra_strdup("0");
+                return NULL;
             char *result = strdup_fmt("Err_%s(%s)", result_suffix, arg);
             free(arg);
             return result;
@@ -185,7 +195,7 @@ emit_call_result_option_builtin(ASTNode *call, ASTNode *callee, TranspilerCtx *c
             char *arg = transpiler_result_option_emit_arg(ctx, arg0, fn,
                 "operand");
             if (arg == NULL)
-                return pergyra_strdup("false");
+                return NULL;
             char *result = strdup_fmt("IsOk_%s(%s)", result_suffix, arg);
             free(arg);
             return result;
@@ -194,7 +204,7 @@ emit_call_result_option_builtin(ASTNode *call, ASTNode *callee, TranspilerCtx *c
             char *arg = transpiler_result_option_emit_arg(ctx, arg0, fn,
                 "operand");
             if (arg == NULL)
-                return pergyra_strdup("false");
+                return NULL;
             char *result = strdup_fmt("IsErr_%s(%s)", result_suffix, arg);
             free(arg);
             return result;
@@ -203,7 +213,7 @@ emit_call_result_option_builtin(ASTNode *call, ASTNode *callee, TranspilerCtx *c
             char *arg = transpiler_result_option_emit_arg(ctx, arg0, fn,
                 "operand");
             if (arg == NULL)
-                return pergyra_strdup("0");
+                return NULL;
             char *result = strdup_fmt("Unwrap_%s(%s)", result_suffix, arg);
             free(arg);
             return result;
@@ -216,7 +226,7 @@ emit_call_result_option_builtin(ASTNode *call, ASTNode *callee, TranspilerCtx *c
             if (arg == NULL || fallback == NULL) {
                 free(arg);
                 free(fallback);
-                return pergyra_strdup("0");
+                return NULL;
             }
             char *result = strdup_fmt("UnwrapOr_%s(%s, %s)", result_suffix, arg, fallback);
             free(arg);
@@ -227,7 +237,7 @@ emit_call_result_option_builtin(ASTNode *call, ASTNode *callee, TranspilerCtx *c
             char *arg = transpiler_result_option_emit_arg(ctx, arg0, fn,
                 "payload");
             if (arg == NULL)
-                return pergyra_strdup("0");
+                return NULL;
             const char *inner = transpiler_expr_infer_type_name(ctx, arg0);
             char inner_buf[128];
             if (inner == NULL || inner[0] == '\0'
@@ -245,7 +255,7 @@ emit_call_result_option_builtin(ASTNode *call, ASTNode *callee, TranspilerCtx *c
                     PGY_CAUSE_C_TYPE_UNSUPPORTED,
                     PGY_FIX_ANNOTATE_CONCRETE_TYPE,
                     "Some requires concrete payload type during C emission");
-                return pergyra_strdup("0");
+                return NULL;
             }
             char *result = strdup_fmt("Some_%s(%s)", inner, arg);
             free(arg);
@@ -263,12 +273,12 @@ emit_call_result_option_builtin(ASTNode *call, ASTNode *callee, TranspilerCtx *c
                     PGY_FIX_ANNOTATE_CONCRETE_TYPE,
                     "C backend: IsSome requires concrete Option<T>; inferred '%s'",
                     opt_type != NULL ? opt_type : "<unknown>");
-                return pergyra_strdup("false");
+                return NULL;
             }
             char *arg = transpiler_result_option_emit_arg(ctx, arg0, fn,
                 "operand");
             if (arg == NULL)
-                return pergyra_strdup("false");
+                return NULL;
             char inner_buf[128];
             const char *inner = inner_buf;
             (void)slot_inner_type_name_copy(opt_type, inner_buf,
@@ -286,12 +296,12 @@ emit_call_result_option_builtin(ASTNode *call, ASTNode *callee, TranspilerCtx *c
                     PGY_FIX_ANNOTATE_CONCRETE_TYPE,
                     "C backend: IsNone requires concrete Option<T>; inferred '%s'",
                     opt_type != NULL ? opt_type : "<unknown>");
-                return pergyra_strdup("false");
+                return NULL;
             }
             char *arg = transpiler_result_option_emit_arg(ctx, arg0, fn,
                 "operand");
             if (arg == NULL)
-                return pergyra_strdup("false");
+                return NULL;
             char inner_buf[128];
             const char *inner = inner_buf;
             (void)slot_inner_type_name_copy(opt_type, inner_buf,
@@ -309,12 +319,12 @@ emit_call_result_option_builtin(ASTNode *call, ASTNode *callee, TranspilerCtx *c
                     PGY_FIX_ANNOTATE_CONCRETE_TYPE,
                     "C backend: UnwrapOption requires concrete Option<T>; inferred '%s'",
                     opt_type != NULL ? opt_type : "<unknown>");
-                return pergyra_strdup("0");
+                return NULL;
             }
             char *arg = transpiler_result_option_emit_arg(ctx, arg0, fn,
                 "operand");
             if (arg == NULL)
-                return pergyra_strdup("0");
+                return NULL;
             char inner_buf[128];
             const char *inner = inner_buf;
             (void)slot_inner_type_name_copy(opt_type, inner_buf,
@@ -323,6 +333,14 @@ emit_call_result_option_builtin(ASTNode *call, ASTNode *callee, TranspilerCtx *c
             free(arg);
             return result;
         }
+
+        transpiler_set_backend_error_with_hints(ctx,
+            PGY_CODE_C_TYPE_UNSUPPORTED,
+            PGY_CAUSE_C_TYPE_UNSUPPORTED,
+            PGY_FIX_ALIGN_ARG_TYPE,
+            "C backend: Result/Option builtin '%s' received unsupported argument shape",
+            fn != NULL ? fn : "<Result/Option builtin>");
+        return NULL;
     }
 
     return NULL;

@@ -471,7 +471,7 @@ llvm_emit_mir_local_allocas(const MIRRoutine *routine, LLVMGenCtx *ctx,
                  * matching field. */
                 if (has_base_name && vars[var_count].alloca != NULL
                     && llvm_current_host_class_name(ctx) != NULL
-                    && llvm_scope_lookup(ctx, "self") != NULL) {
+                    && llvm_scope_contains(ctx, "self")) {
                     LLVMClassTypeEntry *_host_cls = llvm_lookup_class(ctx,
                         llvm_current_host_class_name(ctx));
                     if (_host_cls != NULL

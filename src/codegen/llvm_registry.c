@@ -163,6 +163,44 @@ llvm_scope_lookup(LLVMGenCtx *ctx, const char *name)
     return NULL;
 }
 
+bool
+llvm_scope_contains(LLVMGenCtx *ctx, const char *name)
+{
+    return llvm_scope_lookup(ctx, name) != NULL;
+}
+
+bool
+llvm_scope_lookup_snapshot(LLVMGenCtx *ctx, const char *name,
+                           LLVMVarEntry *out)
+{
+    LLVMVarEntry *entry;
+
+    if (out == NULL)
+        return false;
+    memset(out, 0, sizeof(*out));
+    entry = llvm_scope_lookup(ctx, name);
+    if (entry == NULL)
+        return false;
+    *out = *entry;
+    return true;
+}
+
+bool
+llvm_scope_frame_entry_is_current(LLVMGenCtx *ctx,
+                                  LLVMScopeFrame *frame,
+                                  int index)
+{
+    LLVMVarEntry *entry;
+
+    if (ctx == NULL || frame == NULL || index < 0
+        || index >= frame->count || frame->entries[index].name == NULL) {
+        return false;
+    }
+
+    entry = llvm_scope_lookup(ctx, frame->entries[index].name);
+    return entry == &frame->entries[index];
+}
+
 LLVMLexicalRegistrySnapshot
 llvm_lexical_registry_snapshot(LLVMGenCtx *ctx)
 {

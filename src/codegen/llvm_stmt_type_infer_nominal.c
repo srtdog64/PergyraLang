@@ -5,30 +5,6 @@
 
 #include <string.h>
 
-static const char *
-llvm_infer_local_let_type_in_block(ASTNode *body, const char *name)
-{
-    if (body == NULL || name == NULL)
-        return NULL;
-    if (body->type == AST_BLOCK) {
-        for (size_t i = 0; i < ast_block_statement_count(body); i++) {
-            const char *found = llvm_infer_local_let_type_in_block(
-                ast_block_statement(body, i), name);
-            if (found != NULL)
-                return found;
-        }
-        return NULL;
-    }
-    if (body->type == AST_LET_DECL
-        && ast_let_name(body) != NULL
-        && strcmp(ast_let_name(body), name) == 0
-        && ast_let_type(body) != NULL
-        && ast_let_type(body)->type == AST_TYPE) {
-        return ast_type_name(ast_let_type(body));
-    }
-    return NULL;
-}
-
 const char *
 llvm_stmt_infer_nominal_name_from_init(LLVMGenCtx *ctx, ASTNode *init)
 {
@@ -40,10 +16,10 @@ llvm_stmt_infer_nominal_name_from_init(LLVMGenCtx *ctx, ASTNode *init)
     if (init->type == AST_IDENTIFIER && ast_identifier_name(init) != NULL) {
         name = ast_identifier_name(init);
         {
-            LLVMVarEntry *var = llvm_scope_lookup(ctx, name);
-            if (var != NULL) {
+            LLVMVarEntry var;
+            if (llvm_scope_lookup_snapshot(ctx, name, &var)) {
                 LLVMClassTypeEntry *var_cls =
-                    llvm_stmt_lookup_class_by_type(ctx, var->type);
+                    llvm_stmt_lookup_class_by_type(ctx, var.type);
                 if (var_cls != NULL)
                     return var_cls->class_name;
             }
@@ -66,15 +42,6 @@ llvm_stmt_infer_nominal_name_from_init(LLVMGenCtx *ctx, ASTNode *init)
                     if (field_cls != NULL)
                         return field_cls->class_name;
                 }
-            }
-        }
-        if (ctx->current_func_decl != NULL
-            && ctx->current_func_decl->type == AST_FUNC_DECL) {
-            const char *let_type = llvm_infer_local_let_type_in_block(
-                ast_func_body(ctx->current_func_decl), name);
-            if (let_type != NULL
-                && llvm_lookup_class(ctx, let_type) != NULL) {
-                return let_type;
             }
         }
         return NULL;

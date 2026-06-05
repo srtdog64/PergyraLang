@@ -360,13 +360,13 @@ llvm_emit_call(ASTNode *node, LLVMGenCtx *ctx)
                 if (pointer_self) {
                     if (arg_node != NULL && arg_node->type == AST_IDENTIFIER) {
                         const char *arg_name = ast_identifier_name(arg_node);
-                        LLVMVarEntry *arg_var = llvm_scope_lookup(ctx, arg_name);
-                        if (arg_var != NULL) {
-                            if (LLVMGetTypeKind(arg_var->type) == LLVMPointerTypeKind)
-                                args[i] = LLVMBuildLoad2(ctx->builder, arg_var->type,
-                                    arg_var->alloca, llvm_tmp_name(ctx));
+                        LLVMVarEntry arg_var;
+                        if (llvm_scope_lookup_snapshot(ctx, arg_name, &arg_var)) {
+                            if (LLVMGetTypeKind(arg_var.type) == LLVMPointerTypeKind)
+                                args[i] = LLVMBuildLoad2(ctx->builder, arg_var.type,
+                                    arg_var.alloca, llvm_tmp_name(ctx));
                             else
-                                args[i] = arg_var->alloca;
+                                args[i] = arg_var.alloca;
                         } else {
                             ASTNode *host_decl = llvm_current_host_decl(ctx);
                             const char *host_name = llvm_decl_node_name(host_decl);
@@ -616,10 +616,11 @@ llvm_emit_call(ASTNode *node, LLVMGenCtx *ctx)
             && LLVMGetTypeKind(param_ty) == LLVMPointerTypeKind) {
             if (arg_node->type == AST_IDENTIFIER) {
                 const char *arg_name = ast_identifier_name(arg_node);
-                LLVMVarEntry *v = llvm_scope_lookup(ctx, arg_name);
+                LLVMVarEntry v;
+                bool has_var = llvm_scope_lookup_snapshot(ctx, arg_name, &v);
                 LLVMCallableVarEntry *callable_entry =
                     llvm_lookup_callable_entry(ctx, arg_name);
-                if (v != NULL) {
+                if (has_var) {
                     if (callable_entry != NULL) {
                         LLVMTypeRef callable_sig =
                             llvm_function_signature_from_callable_entry(ctx, callable_entry);
@@ -629,12 +630,12 @@ llvm_emit_call(ASTNode *node, LLVMGenCtx *ctx)
                         LLVMTypeRef callable_ptr_ty =
                             LLVMPointerType(callable_sig, 0);
                         args[i] = LLVMBuildLoad2(ctx->builder, callable_ptr_ty,
-                            v->alloca, llvm_tmp_name(ctx));
-                    } else if (LLVMGetTypeKind(v->type) == LLVMPointerTypeKind) {
-                        args[i] = LLVMBuildLoad2(ctx->builder, v->type,
-                            v->alloca, llvm_tmp_name(ctx));
+                            v.alloca, llvm_tmp_name(ctx));
+                    } else if (LLVMGetTypeKind(v.type) == LLVMPointerTypeKind) {
+                        args[i] = LLVMBuildLoad2(ctx->builder, v.type,
+                            v.alloca, llvm_tmp_name(ctx));
                     } else {
-                        args[i] = v->alloca;
+                        args[i] = v.alloca;
                     }
                 }
             } else if (arg_node->type == AST_MEMBER_ACCESS) {

@@ -201,13 +201,16 @@ llvm_emit_intent_entry_bindings(LLVMGenCtx *ctx,
             const char *type_name = mir_only_intent
                 ? binding_types[i]
                 : (involves != NULL ? llvm_intent_involves_type_name(involves) : NULL);
-            LLVMVarEntry *participant_var = llvm_scope_lookup(ctx, alias != NULL ? alias : "participant");
+            LLVMVarEntry participant_var;
+            bool has_participant_var = llvm_scope_lookup_snapshot(ctx,
+                alias != NULL ? alias : "participant", &participant_var);
             LLVMValueRef indices[] = {
                 zero,
                 LLVMConstInt(ctx->type_i32, subject_index, 0)
             };
-            LLVMValueRef participant_ptr = participant_var != NULL
-                ? LLVMBuildLoad2(ctx->builder, participant_var->type, participant_var->alloca, llvm_tmp_name(ctx))
+            LLVMValueRef participant_ptr = has_participant_var
+                ? LLVMBuildLoad2(ctx->builder, participant_var.type,
+                    participant_var.alloca, llvm_tmp_name(ctx))
                 : LLVMConstPointerNull(ctx->type_i8ptr);
             if (mir_only_intent && strcmp(binding_kinds[i], "participant") != 0)
                 continue;

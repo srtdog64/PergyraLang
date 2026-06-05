@@ -303,8 +303,9 @@ llvm_emit_stdlib_string_file_call(ASTNode *node, LLVMGenCtx *ctx,
             return true;
         }
         const char *recv_name = ast_identifier_name(receiver);
-        LLVMVarEntry *arr_var = llvm_scope_lookup(ctx, recv_name);
-        if (arr_var == NULL || arr_var->alloca == NULL) {
+        LLVMVarEntry arr_var;
+        if (!llvm_scope_lookup_snapshot(ctx, recv_name, &arr_var)
+            || arr_var.alloca == NULL) {
             *out_result = llvm_stdlib_error_value(node, ctx, callee_name,
                 "Array<String> receiver has no LLVM alloca");
             return true;
@@ -321,7 +322,7 @@ llvm_emit_stdlib_string_file_call(ASTNode *node, LLVMGenCtx *ctx,
                 "StringJoin runtime function not declared in backend registry");
             return true;
         }
-        LLVMValueRef args[] = { arr_var->alloca, sep };
+        LLVMValueRef args[] = { arr_var.alloca, sep };
         *out_result = LLVMBuildCall2(ctx->builder, fn->fn_type, fn->fn,
             args, 2, llvm_tmp_name(ctx));
         return true;
@@ -388,7 +389,8 @@ llvm_emit_stdlib_runtime_io_call(ASTNode *node, LLVMGenCtx *ctx,
             LLVMValueRef args[] = { fmt, val };
             LLVMBuildCall2(ctx->builder, pf->fn_type, pf->fn, args, 2, "");
         }
-        *out_result = LLVMConstInt(ctx->type_i32, 0, 0);
+        *out_result = llvm_void_expression_placeholder(ctx, node,
+            callee_name);
         return true;
     }
 
@@ -436,7 +438,8 @@ llvm_emit_stdlib_runtime_io_call(ASTNode *node, LLVMGenCtx *ctx,
             LLVMValueRef args[] = { arg };
             LLVMBuildCall2(ctx->builder, fn->fn_type, fn->fn, args, 1, "");
         }
-        *out_result = LLVMConstInt(ctx->type_i32, 0, 0);
+        *out_result = llvm_void_expression_placeholder(ctx, node,
+            callee_name);
         return true;
     }
 

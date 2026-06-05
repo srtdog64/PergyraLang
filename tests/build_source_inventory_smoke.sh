@@ -608,26 +608,28 @@ if [[ -n "$unexpected_top_level_mutable_statics" ]]; then
     echo "[build-source-inventory] top-level mutable static state requires an explicit source-of-truth owner" >&2
     missing=1
 fi
-backend_local_match_subject_lookup="$(
-    cd "$ROOT_DIR"
-    grep -RInE '(llvm|transpiler).*find.*match.*subject.*case|match.*subject.*for.*case' \
-        src/codegen \
-        --include='*.c' --include='*.h' \
-        | grep -v 'ast_find_match_subject_for_case' || true
-)"
-if [[ -n "$backend_local_match_subject_lookup" ]]; then
-    printf '%s\n' "$backend_local_match_subject_lookup" >&2
-    echo "[build-source-inventory] match subject lookup must use parser AST accessor source-of-truth" >&2
+for match_subject_consumer in \
+    "$ROOT_DIR/src/codegen/llvm_mir_match_condition.c" \
+    "$ROOT_DIR/src/codegen/transpiler_mir_match_condition_emit.c"; do
+    if ! grep -Fq 'pgy_codegen_match_subject_for_case(func_decl, case_node)' \
+        "$match_subject_consumer"; then
+        echo "[build-source-inventory] MIR match condition must consume codegen match-subject owner: $match_subject_consumer" >&2
+        missing=1
+    fi
+    if grep -Fq 'ast_find_match_subject_for_case(ast_func_body(func_decl)' \
+        "$match_subject_consumer"; then
+        echo "[build-source-inventory] backend MIR match condition must not rescan function body directly: $match_subject_consumer" >&2
+        missing=1
+    fi
+done
+if ! grep -Fq 'ast_find_match_subject_for_case(ast_func_body(func_decl)' \
+    "$ROOT_DIR/src/codegen/codegen_match_subject_lookup.c"; then
+    echo "[build-source-inventory] match-subject owner must keep the compatibility AST accessor seam" >&2
     missing=1
 fi
-if ! grep -Fq 'ast_find_match_subject_for_case(ast_func_body(func_decl)' \
-    "$ROOT_DIR/src/codegen/llvm_mir_match_condition.c"; then
-    echo "[build-source-inventory] LLVM MIR match condition must consume ast_find_match_subject_for_case" >&2
-    missing=1
-fi
-if ! grep -Fq 'ast_find_match_subject_for_case(ast_func_body(func_decl)' \
-    "$ROOT_DIR/src/codegen/transpiler_mir_match_condition_emit.c"; then
-    echo "[build-source-inventory] C MIR match condition must consume ast_find_match_subject_for_case" >&2
+if ! grep -Fq '$(CODEGEN_DIR)/codegen_match_subject_lookup.c' \
+    "$ROOT_DIR/Makefile"; then
+    echo "[build-source-inventory] match-subject owner missing from Makefile source inventory" >&2
     missing=1
 fi
 for select_atomic_term in \

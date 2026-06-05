@@ -59,7 +59,7 @@ llvm_mir_bind_resource_view_token_alias(LLVMGenCtx *ctx,
     char source_token_name[256];
     char alias_token_name[256];
     char *owned_alias_token_name;
-    LLVMVarEntry *token_entry;
+    LLVMVarEntry token_entry;
     int source_written;
     int alias_written;
 
@@ -77,11 +77,10 @@ llvm_mir_bind_resource_view_token_alias(LLVMGenCtx *ctx,
             "LLVM MIR resource view token alias name is too long");
         return false;
     }
-    token_entry = llvm_scope_lookup(ctx, source_token_name);
-    if (token_entry == NULL)
+    if (!llvm_scope_lookup_snapshot(ctx, source_token_name, &token_entry))
         return true;
-    LLVMValueRef token_alloca = token_entry->alloca;
-    LLVMTypeRef token_type = token_entry->type;
+    LLVMValueRef token_alloca = token_entry.alloca;
+    LLVMTypeRef token_type = token_entry.type;
     owned_alias_token_name = pgy_arena_strdup(&ctx->persistent,
         alias_token_name);
     if (owned_alias_token_name == NULL) {
@@ -129,7 +128,8 @@ llvm_mir_bind_resource_view_def_alias(const MIRInstruction *inst,
     const char *inner;
     bool is_secure;
     LLVMMirVar *source_var;
-    LLVMVarEntry *source_entry;
+    LLVMVarEntry source_entry;
+    bool has_source_entry;
     LLVMValueRef source_alloca;
     LLVMTypeRef source_type;
 
@@ -165,12 +165,13 @@ llvm_mir_bind_resource_view_def_alias(const MIRInstruction *inst,
     }
 
     source_var = llvm_mir_get_var_entry(vars, var_count, source_name);
-    source_entry = llvm_scope_lookup(ctx, source_base);
-    source_alloca = source_entry != NULL && source_entry->alloca != NULL
-        ? source_entry->alloca
+    has_source_entry =
+        llvm_scope_lookup_snapshot(ctx, source_base, &source_entry);
+    source_alloca = has_source_entry && source_entry.alloca != NULL
+        ? source_entry.alloca
         : (source_var != NULL ? source_var->alloca : NULL);
-    source_type = source_entry != NULL && source_entry->type != NULL
-        ? source_entry->type
+    source_type = has_source_entry && source_entry.type != NULL
+        ? source_entry.type
         : (source_var != NULL ? source_var->type : NULL);
     inner = llvm_lookup_slot_inner(ctx, source_base);
     if (source_alloca == NULL || source_type == NULL || inner == NULL) {
@@ -201,7 +202,7 @@ llvm_mir_bind_resource_view_def_alias(const MIRInstruction *inst,
 void
 llvm_mir_emit_borrow_view_alias(const MIRInstruction *inst, LLVMGenCtx *ctx)
 {
-    LLVMVarEntry *source_entry;
+    LLVMVarEntry source_entry;
     const char *inner;
     bool is_secure;
     TranspilerMIRResourceOp op;
@@ -214,15 +215,15 @@ llvm_mir_emit_borrow_view_alias(const MIRInstruction *inst, LLVMGenCtx *ctx)
         && op != TRANS_MIR_RESOURCE_OP_BORROW_WRITE)
         return;
 
-    source_entry = llvm_scope_lookup(ctx, inst->arg0);
     inner = llvm_lookup_slot_inner(ctx, inst->arg0);
     is_secure = llvm_lookup_slot_is_secure(ctx, inst->arg0);
-    if (source_entry == NULL || inner == NULL)
+    if (!llvm_scope_lookup_snapshot(ctx, inst->arg0, &source_entry)
+        || inner == NULL)
         return;
-    LLVMValueRef source_alloca = source_entry->alloca;
-    LLVMTypeRef source_type = source_entry->type;
+    LLVMValueRef source_alloca = source_entry.alloca;
+    LLVMTypeRef source_type = source_entry.type;
 
-    if (llvm_scope_lookup(ctx, inst->arg1) == NULL) {
+    if (!llvm_scope_contains(ctx, inst->arg1)) {
         llvm_scope_declare(ctx, pergyra_strdup(inst->arg1),
                            source_alloca, source_type);
     }
@@ -230,17 +231,16 @@ llvm_mir_emit_borrow_view_alias(const MIRInstruction *inst, LLVMGenCtx *ctx)
     if (is_secure) {
         char source_token_name[256];
         char view_token_name[256];
-        LLVMVarEntry *token_entry;
+        LLVMVarEntry token_entry;
 
         snprintf(source_token_name, sizeof(source_token_name), "%s_token",
                  inst->arg0);
         snprintf(view_token_name, sizeof(view_token_name), "%s_token",
                  inst->arg1);
-        token_entry = llvm_scope_lookup(ctx, source_token_name);
-        if (token_entry != NULL) {
-            LLVMValueRef token_alloca = token_entry->alloca;
-            LLVMTypeRef token_type = token_entry->type;
-            if (llvm_scope_lookup(ctx, view_token_name) == NULL) {
+        if (llvm_scope_lookup_snapshot(ctx, source_token_name, &token_entry)) {
+            LLVMValueRef token_alloca = token_entry.alloca;
+            LLVMTypeRef token_type = token_entry.type;
+            if (!llvm_scope_contains(ctx, view_token_name)) {
                 llvm_scope_declare(ctx, pergyra_strdup(view_token_name),
                                    token_alloca, token_type);
             }

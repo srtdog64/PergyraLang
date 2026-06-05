@@ -29,6 +29,28 @@
 #include "transpiler_type_render.h"
 #include "transpiler_type_require.h"
 
+static char *
+transpiler_let_emit_initializer(TranspilerCtx *ctx,
+                                ASTNode *init,
+                                const char *binding_name,
+                                const char *role)
+{
+    char *rendered = emit_expression(init, ctx);
+
+    if (rendered != NULL)
+        return rendered;
+
+    transpiler_set_backend_error_with_hints(
+        ctx,
+        PGY_CODE_C_TYPE_UNSUPPORTED,
+        PGY_CAUSE_C_TYPE_UNSUPPORTED,
+        PGY_FIX_USE_LLVM_BACKEND_OR_EXTEND_TRANSPILER,
+        "C let binding '%s' could not lower %s expression",
+        binding_name != NULL ? binding_name : "<binding>",
+        role != NULL ? role : "initializer");
+    return NULL;
+}
+
 void
 emit_let_decl(ASTNode *node, TranspilerCtx *ctx)
 {
@@ -176,8 +198,13 @@ emit_let_decl(ASTNode *node, TranspilerCtx *ctx)
             return;
         }
         ctx->expected_type = array_type_name;
-        init_expr = emit_expression(init, ctx);
+        init_expr = transpiler_let_emit_initializer(ctx, init,
+            name, "array literal initializer");
         ctx->expected_type = saved_expected_type;
+        if (init_expr == NULL) {
+            free(ann_type_name);
+            return;
+        }
         write_indent(ctx);
         codebuf_write(ctx->out, "%s %s = %s;\n", array_c_type, name, init_expr);
         free(init_expr);
@@ -314,7 +341,12 @@ emit_let_decl(ASTNode *node, TranspilerCtx *ctx)
         } else {
             c_type = "Unknown";
         }
-        operand_expr = emit_expression(operand, ctx);
+        operand_expr = transpiler_let_emit_initializer(ctx, operand,
+            name, "try operand");
+        if (operand_expr == NULL) {
+            free(ann_type_name);
+            return;
+        }
         try_id = ctx->tmp_counter++;
         const char *ok_tag =
             pgy_codegen_match_variant_c_result_tag(PGY_MATCH_VARIANT_OK);
@@ -381,9 +413,14 @@ emit_let_decl(ASTNode *node, TranspilerCtx *ctx)
                 transpiler_find_domain_constructor_decl_local(
                     ctx, ann_type_name);
             if (domain_constructor_decl != NULL) {
-                char *init_expr = emit_expression(init, ctx);
+                char *init_expr = transpiler_let_emit_initializer(ctx,
+                    init, name, "domain constructor");
+                if (init_expr == NULL) {
+                    free(ann_type_name);
+                    return;
+                }
                 codebuf_write(ctx->out, "%s %s = %s;\n",
-                    ann_type_name, name, init_expr != NULL ? init_expr : "0");
+                    ann_type_name, name, init_expr);
                 free(init_expr);
             } else {
                 codebuf_write(ctx->out, "%s %s = {0};\n", ann_type_name, name);
@@ -400,16 +437,26 @@ emit_let_decl(ASTNode *node, TranspilerCtx *ctx)
             ? pergyra_ast_typed_declarator_in_ctx(ctx, callable_type, name)
             : pergyra_func_pointer_declarator_from_decl_in_ctx(
                 ctx, callable_decl, name);
+        if (decl == NULL) {
+            free(ann_type_name);
+            return;
+        }
         if (init != NULL) {
             const char *saved_expected_type = ctx->expected_type;
             ASTNode *saved_expected_callable_type = ctx->expected_callable_type;
             ctx->expected_type = ann_type_name;
             if (callable_type != NULL)
                 ctx->expected_callable_type = callable_type;
-            char *init_expr = emit_expression(init, ctx);
+            char *init_expr = transpiler_let_emit_initializer(ctx, init,
+                name, "callable initializer");
 
             ctx->expected_callable_type = saved_expected_callable_type;
             ctx->expected_type = saved_expected_type;
+            if (init_expr == NULL) {
+                free(decl);
+                free(ann_type_name);
+                return;
+            }
             codebuf_write(ctx->out, "%s = %s;\n", decl, init_expr);
             free(init_expr);
         } else {
@@ -418,8 +465,13 @@ emit_let_decl(ASTNode *node, TranspilerCtx *ctx)
         free(decl);
     } else if (init != NULL) {
         ctx->expected_type = ann_type_name;
-        char *init_expr = emit_expression(init, ctx);
+        char *init_expr = transpiler_let_emit_initializer(ctx, init,
+            name, "initializer");
         ctx->expected_type = NULL;
+        if (init_expr == NULL) {
+            free(ann_type_name);
+            return;
+        }
         codebuf_write(ctx->out, "%s %s = %s;\n", c_type, name, init_expr);
         free(init_expr);
     } else if (transpiler_c_type_uses_scalar_zero(c_type)) {

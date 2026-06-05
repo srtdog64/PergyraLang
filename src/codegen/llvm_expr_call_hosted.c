@@ -30,14 +30,14 @@ llvm_emit_hosted_self_arg(ASTNode *arg_node, LLVMGenCtx *ctx,
         return fallback;
 
     const char *arg_name = ast_identifier_name(arg_node);
-    LLVMVarEntry *arg_var = llvm_scope_lookup(ctx, arg_name);
-    if (arg_var == NULL)
+    LLVMVarEntry arg_var;
+    if (!llvm_scope_lookup_snapshot(ctx, arg_name, &arg_var))
         return fallback;
-    if (LLVMGetTypeKind(arg_var->type) == LLVMPointerTypeKind) {
-        return LLVMBuildLoad2(ctx->builder, arg_var->type,
-                              arg_var->alloca, llvm_tmp_name(ctx));
+    if (LLVMGetTypeKind(arg_var.type) == LLVMPointerTypeKind) {
+        return LLVMBuildLoad2(ctx->builder, arg_var.type,
+                              arg_var.alloca, llvm_tmp_name(ctx));
     }
-    return arg_var->alloca;
+    return arg_var.alloca;
 }
 
 static FuncParam *

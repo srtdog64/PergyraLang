@@ -12,10 +12,9 @@
 static LLVMValueRef
 llvm_intent_current_handle_or_error(LLVMGenCtx *ctx, ASTNode *intent)
 {
-    LLVMVarEntry *handle_entry;
+    LLVMVarEntry handle_entry;
 
-    handle_entry = llvm_scope_lookup(ctx, "__intent_handle");
-    if (handle_entry == NULL) {
+    if (!llvm_scope_lookup_snapshot(ctx, "__intent_handle", &handle_entry)) {
         llvm_set_error_at_with_hints(ctx, intent,
             PGY_CODE_LLVM_TYPE_UNSUPPORTED,
             PGY_CAUSE_LLVM_TYPE_UNSUPPORTED,
@@ -25,7 +24,7 @@ llvm_intent_current_handle_or_error(LLVMGenCtx *ctx, ASTNode *intent)
         return NULL;
     }
     return LLVMBuildLoad2(ctx->builder, ctx->type_i32,
-        handle_entry->alloca, llvm_tmp_name(ctx));
+        handle_entry.alloca, llvm_tmp_name(ctx));
 }
 
 void
@@ -38,7 +37,7 @@ llvm_emit_intent_step_bind_bound_zone(LLVMGenCtx *ctx,
                                       size_t who_alias_count)
 {
     const char *from_zone_type_name;
-    LLVMVarEntry *zone_var;
+    LLVMVarEntry zone_var;
     LLVMValueRef zone_ptr;
     char sync_name[256];
     LLVMFuncEntry *sync_fn;
@@ -52,14 +51,13 @@ llvm_emit_intent_step_bind_bound_zone(LLVMGenCtx *ctx,
     if (zone_alias == NULL || zone_type_name == NULL)
         return;
 
-    zone_var = llvm_scope_lookup(ctx, zone_alias);
-    if (zone_var == NULL)
+    if (!llvm_scope_lookup_snapshot(ctx, zone_alias, &zone_var))
         return;
-    if (LLVMGetTypeKind(zone_var->type) != LLVMPointerTypeKind)
+    if (LLVMGetTypeKind(zone_var.type) != LLVMPointerTypeKind)
         return;
 
-    zone_ptr = LLVMBuildLoad2(ctx->builder, zone_var->type,
-        zone_var->alloca, llvm_tmp_name(ctx));
+    zone_ptr = LLVMBuildLoad2(ctx->builder, zone_var.type,
+        zone_var.alloca, llvm_tmp_name(ctx));
     if (LLVMGetTypeKind(LLVMTypeOf(zone_ptr)) != LLVMPointerTypeKind)
         return;
 
@@ -71,18 +69,18 @@ llvm_emit_intent_step_bind_bound_zone(LLVMGenCtx *ctx,
     from_zone_type_name = llvm_intent_zone_binding_type_name(ctx, from_alias);
 
     if (from_alias != NULL && from_zone_type_name != NULL) {
-        LLVMVarEntry *from_zone_var = llvm_scope_lookup(ctx, from_alias);
+        LLVMVarEntry from_zone_var;
         LLVMValueRef from_zone_ptr;
         LLVMClassTypeEntry *from_zone_cls = llvm_lookup_class(ctx, from_zone_type_name);
         char from_sync_name[256];
         LLVMFuncEntry *from_sync_fn;
 
-        if (from_zone_var == NULL
-            || LLVMGetTypeKind(from_zone_var->type) != LLVMPointerTypeKind)
+        if (!llvm_scope_lookup_snapshot(ctx, from_alias, &from_zone_var)
+            || LLVMGetTypeKind(from_zone_var.type) != LLVMPointerTypeKind)
             return;
 
-        from_zone_ptr = LLVMBuildLoad2(ctx->builder, from_zone_var->type,
-            from_zone_var->alloca, llvm_tmp_name(ctx));
+        from_zone_ptr = LLVMBuildLoad2(ctx->builder, from_zone_var.type,
+            from_zone_var.alloca, llvm_tmp_name(ctx));
         if (LLVMGetTypeKind(LLVMTypeOf(from_zone_ptr)) != LLVMPointerTypeKind)
             return;
 
@@ -93,7 +91,7 @@ llvm_emit_intent_step_bind_bound_zone(LLVMGenCtx *ctx,
                     ctx, intent, from_zone_type_name, alias);
                 const char *to_slot_name = llvm_resolve_intent_zone_slot_name_for_zone(
                     ctx, intent, zone_type_name, alias);
-                LLVMVarEntry *participant_var;
+                LLVMVarEntry participant_var;
                 const char *participant_type_name;
                 LLVMTypeRef participant_ptr_type;
                 LLVMTypeRef participant_value_type;
@@ -104,9 +102,9 @@ llvm_emit_intent_step_bind_bound_zone(LLVMGenCtx *ctx,
                 if (alias == NULL)
                     continue;
 
-                participant_var = llvm_scope_lookup(ctx, alias);
                 participant_type_name = llvm_lookup_var_class(ctx, alias);
-                if (participant_var == NULL || participant_type_name == NULL) {
+                if (!llvm_scope_lookup_snapshot(ctx, alias, &participant_var)
+                    || participant_type_name == NULL) {
                     if (llvm_active_has_mir(ctx)) {
                         llvm_set_mir_inventory_missing(ctx,
                             "MIR-only LLVM path missing intent participant binding for zone transfer '%s'",
@@ -116,12 +114,12 @@ llvm_emit_intent_step_bind_bound_zone(LLVMGenCtx *ctx,
                     continue;
                 }
 
-                participant_ptr_type = participant_var->type;
+                participant_ptr_type = participant_var.type;
                 participant_value_type = pergyra_type_to_llvm(ctx, participant_type_name);
                 if (ctx->has_error || participant_value_type == NULL)
                     return;
                 participant_ptr = LLVMBuildLoad2(ctx->builder, participant_ptr_type,
-                    participant_var->alloca, llvm_tmp_name(ctx));
+                    participant_var.alloca, llvm_tmp_name(ctx));
                 participant_value = LLVMBuildLoad2(ctx->builder, participant_value_type,
                     participant_ptr, llvm_tmp_name(ctx));
                 if (trace_materialize_fn != NULL || trace_transfer_fn != NULL) {
@@ -215,7 +213,7 @@ llvm_emit_intent_step_bind_bound_zone(LLVMGenCtx *ctx,
             const char *alias = who_aliases[i];
             const char *slot_name = llvm_resolve_intent_zone_slot_name_for_zone(
                 ctx, intent, zone_type_name, alias);
-            LLVMVarEntry *participant_var;
+            LLVMVarEntry participant_var;
             const char *participant_type_name;
             LLVMTypeRef participant_ptr_type;
             LLVMTypeRef participant_value_type;
@@ -232,9 +230,9 @@ llvm_emit_intent_step_bind_bound_zone(LLVMGenCtx *ctx,
             if (field_idx < 0)
                 continue;
 
-            participant_var = llvm_scope_lookup(ctx, alias);
             participant_type_name = llvm_lookup_var_class(ctx, alias);
-            if (participant_var == NULL || participant_type_name == NULL) {
+            if (!llvm_scope_lookup_snapshot(ctx, alias, &participant_var)
+                || participant_type_name == NULL) {
                 if (llvm_active_has_mir(ctx)) {
                     llvm_set_mir_inventory_missing(ctx,
                         "MIR-only LLVM path missing intent participant binding for zone materialization '%s'",
@@ -244,12 +242,12 @@ llvm_emit_intent_step_bind_bound_zone(LLVMGenCtx *ctx,
                 continue;
             }
 
-            participant_ptr_type = participant_var->type;
+            participant_ptr_type = participant_var.type;
             participant_value_type = pergyra_type_to_llvm(ctx, participant_type_name);
             if (ctx->has_error || participant_value_type == NULL)
                 return;
             participant_ptr = LLVMBuildLoad2(ctx->builder, participant_ptr_type,
-                participant_var->alloca, llvm_tmp_name(ctx));
+                participant_var.alloca, llvm_tmp_name(ctx));
             participant_value = LLVMBuildLoad2(ctx->builder, participant_value_type,
                 participant_ptr, llvm_tmp_name(ctx));
             slot_ptr = LLVMBuildStructGEP2(ctx->builder, zone_cls->struct_type, zone_ptr,

@@ -7,11 +7,12 @@
 #include "../parser/ast_api.h"
 #include "../semantic/diag_codes.h"
 #include "transpiler_context.h"
-#include "transpiler_mir_local_type_lookup.h"
+#include "transpiler_mir_local_type_ast_lookup.h"
 #include "transpiler_mir_ssa_names.h"
 #include "transpiler_symbols.h"
 #include "transpiler_parallel_capture.h"
 #include "transpiler_type_declarator.h"
+#include "transpiler_type_mapping.h"
 #include "transpiler_type_require.h"
 
 static bool
@@ -41,6 +42,33 @@ transpiler_capture_surface_desc_too_long(TranspilerCtx *ctx,
         PGY_FIX_USE_LLVM_BACKEND_OR_EXTEND_TRANSPILER,
         "%s capture diagnostic surface is too long for C backend emission",
         kind != NULL ? kind : "parallel/async");
+}
+
+static bool
+transpiler_capture_reject_shared_collection(TranspilerCtx *ctx,
+                                            const char *kind,
+                                            const char *capture_name,
+                                            const char *type_name)
+{
+    if (type_name == NULL)
+        return false;
+    if (!transpiler_type_name_is_array(type_name)
+        && !transpiler_type_name_is_slice(type_name)
+        && !transpiler_type_name_is_list(type_name)
+        && !transpiler_type_name_is_queue(type_name)
+        && !transpiler_type_name_is_set(type_name)
+        && !transpiler_type_name_is_hashmap(type_name)) {
+        return false;
+    }
+    transpiler_set_backend_error_with_hints(ctx,
+        PGY_CODE_C_TYPE_UNSUPPORTED,
+        PGY_CAUSE_C_TYPE_UNSUPPORTED,
+        PGY_FIX_USE_MOVE_OR_RETAIN_BINDING,
+        "%s capture '%s' cannot share mutable collection '%s' by pointer; use a channel/result boundary or copy before spawning",
+        kind != NULL ? kind : "parallel/async",
+        capture_name != NULL ? capture_name : "(anonymous)",
+        type_name);
+    return true;
 }
 
 static void
@@ -183,21 +211,14 @@ emit_parallel_block(ASTNode *node, TranspilerCtx *ctx)
             char c_type_buf[128];
             const char *c_type = NULL;
             const char *type_name = entry != NULL ? entry->type_name : NULL;
-            if ((type_name == NULL || strcmp(type_name, "Unknown") == 0)
-                && ctx->current_func_decl != NULL) {
-                type_name = transpiler_find_local_type_name(ctx,
-                                                            ctx->current_func_decl,
-                                                            capture_typed_names[i]);
-                if (type_name != NULL && type_name[0] != '\0'
-                    && strcmp(type_name, "Unknown") != 0) {
-                    register_typed_var(ctx, capture_typed_names[i], type_name);
-                    entry = lookup_typed_entry(ctx, capture_typed_names[i]);
-                }
-            }
             if (!transpiler_capture_surface_desc(surface_desc,
                     sizeof(surface_desc), "parallel",
                     capture_typed_names[i])) {
                 transpiler_capture_surface_desc_too_long(ctx, "parallel");
+                return;
+            }
+            if (transpiler_capture_reject_shared_collection(ctx, "parallel",
+                    capture_typed_names[i], type_name)) {
                 return;
             }
 
@@ -205,9 +226,8 @@ emit_parallel_block(ASTNode *node, TranspilerCtx *ctx)
              * declarator so `(*_pctx->name)` inside the wrapper yields the
              * function pointer (not a primitive deref). */
             ASTNode *local_type_node = ctx->current_func_decl != NULL
-                ? transpiler_find_local_let_type_node(
-                      ast_func_body(ctx->current_func_decl),
-                      capture_typed_names[i])
+                ? transpiler_find_local_type_ast(ctx,
+                      ctx->current_func_decl, capture_typed_names[i])
                 : NULL;
             if (local_type_node != NULL
                 && local_type_node->type == AST_EVENT_HANDLER_TYPE) {
@@ -223,6 +243,7 @@ emit_parallel_block(ASTNode *node, TranspilerCtx *ctx)
                     free(decl);
                     continue;
                 }
+                return;
             }
 
             if (transpiler_require_type_name_c_type_copy(
@@ -337,6 +358,16 @@ emit_async_block(ASTNode *node, TranspilerCtx *ctx)
 
     bool has_captures = (capture_slot_count > 0 || capture_typed_count > 0);
 
+    if (capture_slot_count > 0) {
+        transpiler_set_backend_error_with_hints(ctx,
+            PGY_CODE_C_TYPE_UNSUPPORTED,
+            PGY_CAUSE_C_TYPE_UNSUPPORTED,
+            PGY_FIX_USE_MOVE_OR_RETAIN_BINDING,
+            "async block cannot capture Slot<T> local '%s' by pointer; use a named task boundary or explicit handoff",
+            capture_slot_names[0]);
+        return;
+    }
+
     if (has_captures) {
         codebuf_write(ctx->helpers, "typedef struct {\n");
         for (int i = 0; i < capture_slot_count; i++) {
@@ -367,15 +398,30 @@ emit_async_block(ASTNode *node, TranspilerCtx *ctx)
             char surface_desc[256];
             char c_type_buf[128];
             const char *c_type = NULL;
+            const char *type_name = entry != NULL ? entry->type_name : NULL;
             if (!transpiler_capture_surface_desc(surface_desc,
                     sizeof(surface_desc), "async",
                     capture_typed_names[i])) {
                 transpiler_capture_surface_desc_too_long(ctx, "async");
                 return;
             }
+            if (transpiler_capture_reject_shared_collection(ctx, "async",
+                    capture_typed_names[i], type_name)) {
+                return;
+            }
+            if (!transpiler_type_name_is_channel(type_name)) {
+                transpiler_set_backend_error_with_hints(ctx,
+                    PGY_CODE_C_TYPE_UNSUPPORTED,
+                    PGY_CAUSE_C_TYPE_UNSUPPORTED,
+                    PGY_FIX_USE_MOVE_OR_RETAIN_BINDING,
+                    "async block cannot capture non-Channel local '%s' of type '%s' by pointer; use a named task boundary or explicit value handoff",
+                    capture_typed_names[i],
+                    type_name != NULL ? type_name : "Unknown");
+                return;
+            }
             if (transpiler_require_type_name_c_type_copy(
                 ctx,
-                entry != NULL ? entry->type_name : NULL,
+                type_name,
                 surface_desc,
                 c_type_buf,
                 sizeof(c_type_buf))) {

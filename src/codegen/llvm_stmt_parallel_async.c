@@ -14,8 +14,6 @@ llvm_capture_entry_is_required(LLVMGenCtx *ctx,
                                LLVMScopeFrame *frame,
                                int index)
 {
-    LLVMVarEntry *entry;
-
     if (ctx == NULL || body == NULL || frame == NULL || index < 0
         || index >= frame->count || frame->entries[index].name == NULL) {
         return false;
@@ -24,8 +22,45 @@ llvm_capture_entry_is_required(LLVMGenCtx *ctx,
         return false;
     }
 
-    entry = llvm_scope_lookup(ctx, frame->entries[index].name);
-    return entry == &frame->entries[index];
+    return llvm_scope_frame_entry_is_current(ctx, frame, index);
+}
+
+static const char *
+llvm_capture_shared_collection_kind(LLVMGenCtx *ctx, const char *name)
+{
+    if (ctx == NULL || name == NULL)
+        return NULL;
+    if (llvm_lookup_array_var(ctx, name) != NULL)
+        return "Array/Slice";
+    if (llvm_lookup_list_inner(ctx, name) != NULL)
+        return "List";
+    if (llvm_lookup_queue_inner(ctx, name) != NULL)
+        return "Queue";
+    if (llvm_lookup_set_inner(ctx, name) != NULL)
+        return "Set";
+    if (llvm_lookup_map_value(ctx, name) != NULL)
+        return "HashMap";
+    return NULL;
+}
+
+static bool
+llvm_capture_reject_shared_collection(LLVMGenCtx *ctx, ASTNode *site,
+                                      const char *boundary,
+                                      const char *name)
+{
+    const char *kind = llvm_capture_shared_collection_kind(ctx, name);
+
+    if (kind == NULL)
+        return false;
+    llvm_set_error_at_with_hints(ctx, site,
+        PGY_CODE_LLVM_TYPE_UNSUPPORTED,
+        PGY_CAUSE_LLVM_TYPE_UNSUPPORTED,
+        PGY_FIX_INSPECT_MIR_INVENTORY,
+        "LLVM %s capture '%s' cannot share mutable collection '%s' by pointer; use a channel/result boundary or copy before spawning",
+        boundary != NULL ? boundary : "worker",
+        name != NULL ? name : "<binding>",
+        kind);
+    return true;
 }
 
 void
@@ -52,7 +87,9 @@ llvm_emit_parallel_block(ASTNode *node, LLVMGenCtx *ctx)
         LLVMTypeRef type;
         const char *channel_inner;
         const char *future_inner;
+        const char *slot_inner;
         bool future_is_remote;
+        bool slot_is_secure;
     } CapturedVar;
     CapturedVar *captured = NULL;
     size_t capture_count = 0;
@@ -107,13 +144,19 @@ llvm_emit_parallel_block(ASTNode *node, LLVMGenCtx *ctx)
                         : "<binding>");
                 return;
             }
+            if (llvm_capture_reject_shared_collection(ctx, node, "parallel",
+                    frame->entries[j].name)) {
+                return;
+            }
             captured[n_captured++] = (CapturedVar){
                 frame->entries[j].name,
                 frame->entries[j].alloca,
                 frame->entries[j].type,
                 llvm_lookup_channel_inner(ctx, frame->entries[j].name),
                 llvm_lookup_future_inner(ctx, frame->entries[j].name),
-                llvm_lookup_future_is_remote(ctx, frame->entries[j].name)
+                llvm_lookup_slot_inner(ctx, frame->entries[j].name),
+                llvm_lookup_future_is_remote(ctx, frame->entries[j].name),
+                llvm_lookup_slot_is_secure(ctx, frame->entries[j].name)
             };
         }
     }
@@ -217,6 +260,10 @@ llvm_emit_parallel_block(ASTNode *node, LLVMGenCtx *ctx)
                 llvm_register_future_var_binding(ctx, captured[c].name,
                     var_ptr, captured[c].future_inner,
                     captured[c].future_is_remote);
+            if (captured[c].slot_inner != NULL)
+                llvm_register_slot_var_binding(ctx, captured[c].name,
+                    var_ptr, captured[c].slot_inner,
+                    captured[c].slot_is_secure);
         }
 
         llvm_emit_statement(ast_parallel_task(node, i), ctx);
@@ -293,7 +340,9 @@ llvm_emit_async_block(ASTNode *node, LLVMGenCtx *ctx)
         LLVMTypeRef type;
         const char *channel_inner;
         const char *future_inner;
+        const char *slot_inner;
         bool future_is_remote;
+        bool slot_is_secure;
     } CapturedVar;
     CapturedVar *captured = NULL;
     size_t capture_count = 0;
@@ -333,8 +382,14 @@ llvm_emit_async_block(ASTNode *node, LLVMGenCtx *ctx)
     for (int i = 0; i < ctx->scope_depth; i++) {
         LLVMScopeFrame *frame = &ctx->scopes[i];
         for (int j = 0; j < frame->count; j++) {
+            const char *name;
+            const char *channel_inner;
+            const char *slot_inner;
             if (!llvm_capture_entry_is_required(ctx, node, frame, j))
                 continue;
+            name = frame->entries[j].name;
+            channel_inner = llvm_lookup_channel_inner(ctx, name);
+            slot_inner = llvm_lookup_slot_inner(ctx, name);
             if (frame->entries[j].alloca == NULL) {
                 llvm_set_error_at_with_hints(ctx, node,
                     PGY_CODE_LLVM_TYPE_UNSUPPORTED,
@@ -346,13 +401,37 @@ llvm_emit_async_block(ASTNode *node, LLVMGenCtx *ctx)
                         : "<binding>");
                 return;
             }
+            if (slot_inner != NULL) {
+                llvm_set_error_at_with_hints(ctx, node,
+                    PGY_CODE_LLVM_TYPE_UNSUPPORTED,
+                    PGY_CAUSE_LLVM_TYPE_UNSUPPORTED,
+                    PGY_FIX_INSPECT_MIR_INVENTORY,
+                    "LLVM async block cannot capture Slot<T> local '%s' by pointer; use a named task boundary or explicit handoff",
+                    name != NULL ? name : "<binding>");
+                return;
+            }
+            if (llvm_capture_reject_shared_collection(ctx, node, "async",
+                    name)) {
+                return;
+            }
+            if (channel_inner == NULL) {
+                llvm_set_error_at_with_hints(ctx, node,
+                    PGY_CODE_LLVM_TYPE_UNSUPPORTED,
+                    PGY_CAUSE_LLVM_TYPE_UNSUPPORTED,
+                    PGY_FIX_INSPECT_MIR_INVENTORY,
+                    "LLVM async block cannot capture non-Channel local '%s' by pointer; use a named task boundary or explicit value handoff",
+                    name != NULL ? name : "<binding>");
+                return;
+            }
             captured[n_captured++] = (CapturedVar){
-                frame->entries[j].name,
+                name,
                 frame->entries[j].alloca,
                 frame->entries[j].type,
-                llvm_lookup_channel_inner(ctx, frame->entries[j].name),
+                channel_inner,
                 llvm_lookup_future_inner(ctx, frame->entries[j].name),
-                llvm_lookup_future_is_remote(ctx, frame->entries[j].name)
+                slot_inner,
+                llvm_lookup_future_is_remote(ctx, frame->entries[j].name),
+                llvm_lookup_slot_is_secure(ctx, frame->entries[j].name)
             };
         }
     }
@@ -427,6 +506,10 @@ llvm_emit_async_block(ASTNode *node, LLVMGenCtx *ctx)
                 llvm_register_future_var_binding(ctx, captured[i].name,
                     var_ptr, captured[i].future_inner,
                     captured[i].future_is_remote);
+            if (captured[i].slot_inner != NULL)
+                llvm_register_slot_var_binding(ctx, captured[i].name,
+                    var_ptr, captured[i].slot_inner,
+                    captured[i].slot_is_secure);
         }
     }
     for (size_t i = 0; i < statement_count; i++)

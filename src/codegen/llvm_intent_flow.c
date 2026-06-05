@@ -360,7 +360,7 @@ llvm_collect_mir_intent_dispatch_aliases(const MIRRoutine *routine,
 static LLVMValueRef
 llvm_emit_intent_presence_flag(LLVMGenCtx *ctx, const char *alias)
 {
-    LLVMVarEntry *var;
+    LLVMVarEntry var;
     LLVMValueRef value;
 
     if (ctx == NULL)
@@ -368,13 +368,13 @@ llvm_emit_intent_presence_flag(LLVMGenCtx *ctx, const char *alias)
     if (alias == NULL)
         return LLVMConstInt(ctx->type_i1, 0, 0);
 
-    var = llvm_scope_lookup(ctx, alias);
-    if (var == NULL || LLVMGetTypeKind(var->type) != LLVMPointerTypeKind)
+    if (!llvm_scope_lookup_snapshot(ctx, alias, &var)
+        || LLVMGetTypeKind(var.type) != LLVMPointerTypeKind)
         return LLVMConstInt(ctx->type_i1, 0, 0);
 
-    value = LLVMBuildLoad2(ctx->builder, var->type, var->alloca, llvm_tmp_name(ctx));
+    value = LLVMBuildLoad2(ctx->builder, var.type, var.alloca, llvm_tmp_name(ctx));
     return LLVMBuildICmp(ctx->builder, LLVMIntNE, value,
-        LLVMConstPointerNull(var->type), llvm_tmp_name(ctx));
+        LLVMConstPointerNull(var.type), llvm_tmp_name(ctx));
 }
 
 void

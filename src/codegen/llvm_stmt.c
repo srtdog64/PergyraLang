@@ -47,6 +47,10 @@ llvm_emit_return_stmt(ASTNode *node, LLVMGenCtx *ctx)
                 "LLVM void function return must not carry a value expression");
             return;
         }
+        if (!llvm_stmt_require_non_void_value(ctx, value,
+                "LLVM return statement cannot consume a Void expression value")) {
+            return;
+        }
         const char *saved_expected_type_name = ctx->expected_type_name;
         ASTNode *saved_expected_callable_type = ctx->expected_callable_type;
         LLVMValueRef val;
@@ -88,23 +92,52 @@ llvm_emit_return_stmt(ASTNode *node, LLVMGenCtx *ctx)
             }
             LLVMBuildRet(ctx->builder, val);
         } else {
-            LLVMBuildRet(ctx->builder, LLVMConstNull(ctx->current_ret_type));
+            if (ctx != NULL && !ctx->has_error) {
+                llvm_set_error_at_with_hints(ctx, value,
+                    PGY_CODE_LLVM_TYPE_UNSUPPORTED,
+                    PGY_CAUSE_LLVM_TYPE_UNSUPPORTED,
+                    PGY_FIX_INSPECT_MIR_INVENTORY,
+                    "LLVM return statement could not lower value expression");
+            }
+            if (LLVMGetBasicBlockTerminator(LLVMGetInsertBlock(ctx->builder)) == NULL)
+                LLVMBuildUnreachable(ctx->builder);
         }
     } else {
         if (ctx->current_ret_type == ctx->type_void)
             LLVMBuildRetVoid(ctx->builder);
-        else
-            LLVMBuildRet(ctx->builder,
-                         LLVMConstNull(ctx->current_ret_type));
+        else {
+            if (ctx != NULL && !ctx->has_error) {
+                llvm_set_error_at_with_hints(ctx, node,
+                    PGY_CODE_LLVM_TYPE_UNSUPPORTED,
+                    PGY_CAUSE_LLVM_TYPE_UNSUPPORTED,
+                    PGY_FIX_ADD_RETURN_ON_ALL_PATHS,
+                    "LLVM non-Void return statement requires a value expression");
+            }
+            if (LLVMGetBasicBlockTerminator(LLVMGetInsertBlock(ctx->builder)) == NULL)
+                LLVMBuildUnreachable(ctx->builder);
+        }
     }
 }
 
 static void
 llvm_emit_if_stmt(ASTNode *node, LLVMGenCtx *ctx)
 {
-    LLVMValueRef cond = llvm_emit_expression(ast_if_condition(node), ctx);
-    if (cond == NULL)
+    ASTNode *condition = ast_if_condition(node);
+    if (!llvm_stmt_require_non_void_value(ctx, condition,
+            "LLVM if statement cannot consume a Void expression as condition")) {
         return;
+    }
+    LLVMValueRef cond = llvm_emit_expression(condition, ctx);
+    if (cond == NULL) {
+        if (ctx != NULL && !ctx->has_error) {
+            llvm_set_error_at_with_hints(ctx, condition,
+                PGY_CODE_LLVM_TYPE_UNSUPPORTED,
+                PGY_CAUSE_LLVM_TYPE_UNSUPPORTED,
+                PGY_FIX_INSPECT_MIR_INVENTORY,
+                "LLVM if statement could not lower condition expression");
+        }
+        return;
+    }
 
     /* Ensure cond is i1 */
     if (LLVMTypeOf(cond) != ctx->type_i1)
@@ -181,14 +214,15 @@ llvm_emit_block(ASTNode *node, LLVMGenCtx *ctx)
                 break;
             }
             LLVMFuncEntry *fn = llvm_lookup_function(ctx, fn_name);
-            LLVMVarEntry *var = llvm_scope_lookup(ctx, vname);
-            if (var == NULL || var->alloca != ctx->slot_vars[i].binding)
+            LLVMVarEntry var;
+            if (!llvm_scope_lookup_snapshot(ctx, vname, &var)
+                || var.alloca != ctx->slot_vars[i].binding)
                 continue;
             if (fn != NULL) {
                 if (is_secure) {
-                    LLVMVarEntry *token_var = llvm_lookup_secure_token_var(ctx, vname);
-                    if (token_var != NULL) {
-                        LLVMValueRef args[] = { var->alloca, token_var->alloca };
+                    LLVMVarEntry token_var;
+                    if (llvm_lookup_secure_token_var(ctx, vname, &token_var)) {
+                        LLVMValueRef args[] = { var.alloca, token_var.alloca };
                         LLVMBuildCall2(ctx->builder, fn->fn_type, fn->fn, args, 2, "");
                     } else {
                         llvm_set_error_at_with_hints(ctx, node,
@@ -200,7 +234,7 @@ llvm_emit_block(ASTNode *node, LLVMGenCtx *ctx)
                         break;
                     }
                 } else {
-                    LLVMValueRef args[] = { var->alloca };
+                    LLVMValueRef args[] = { var.alloca };
                     LLVMBuildCall2(ctx->builder, fn->fn_type, fn->fn, args, 1, "");
                 }
             } else if (pgy_classify_type(inner) != PGY_TK_UNKNOWN) {
@@ -213,9 +247,9 @@ llvm_emit_block(ASTNode *node, LLVMGenCtx *ctx)
                 break;
             } else if (is_secure) {
                 LLVMValueRef occ_ptr = LLVMBuildStructGEP2(ctx->builder,
-                    var->type, var->alloca, 1, llvm_tmp_name(ctx));
+                    var.type, var.alloca, 1, llvm_tmp_name(ctx));
                 LLVMValueRef token_ptr = LLVMBuildStructGEP2(ctx->builder,
-                    var->type, var->alloca, 2, llvm_tmp_name(ctx));
+                    var.type, var.alloca, 2, llvm_tmp_name(ctx));
                 LLVMBuildStore(ctx->builder,
                     LLVMConstInt(LLVMInt1TypeInContext(ctx->context), 0, 0),
                     occ_ptr);
@@ -223,7 +257,7 @@ llvm_emit_block(ASTNode *node, LLVMGenCtx *ctx)
                     LLVMConstInt(ctx->type_i64, 0, 0), token_ptr);
             } else {
                 LLVMValueRef occ_ptr = LLVMBuildStructGEP2(ctx->builder,
-                    var->type, var->alloca, 1, llvm_tmp_name(ctx));
+                    var.type, var.alloca, 1, llvm_tmp_name(ctx));
                 LLVMBuildStore(ctx->builder,
                     LLVMConstInt(LLVMInt1TypeInContext(ctx->context), 0, 0),
                     occ_ptr);
@@ -392,8 +426,8 @@ llvm_emit_statement(ASTNode *node, LLVMGenCtx *ctx)
         }
 
         /* Look up the party variable */
-        LLVMVarEntry *pvar = llvm_scope_lookup(ctx, party_var);
-        if (pvar == NULL) {
+        LLVMVarEntry pvar;
+        if (!llvm_scope_lookup_snapshot(ctx, party_var, &pvar)) {
             llvm_set_error_at_with_hints(ctx, node,
                 PGY_CODE_LLVM_TYPE_UNSUPPORTED,
                 PGY_CAUSE_LLVM_TYPE_UNSUPPORTED,
@@ -456,7 +490,7 @@ llvm_emit_statement(ASTNode *node, LLVMGenCtx *ctx)
         }
 
         /* GEP to vtable pointer field + store */
-        LLVMValueRef party_alloca = pvar->alloca;
+        LLVMValueRef party_alloca = pvar.alloca;
         LLVMValueRef field_ptr = LLVMBuildStructGEP2(ctx->builder,
             cls->struct_type, party_alloca, (unsigned)field_idx,
             llvm_tmp_name(ctx));

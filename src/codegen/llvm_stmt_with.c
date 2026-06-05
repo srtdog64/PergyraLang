@@ -140,10 +140,9 @@ llvm_emit_with_stmt(ASTNode *node, LLVMGenCtx *ctx)
             release_fn = llvm_lookup_function(ctx, fn_name);
         if (release_fn != NULL) {
             if (is_secure) {
-                LLVMVarEntry *token_var = llvm_lookup_secure_token_var(ctx,
-                    alias);
-                if (token_var != NULL) {
-                    LLVMValueRef args[] = { alloca_val, token_var->alloca };
+                LLVMVarEntry token_var;
+                if (llvm_lookup_secure_token_var(ctx, alias, &token_var)) {
+                    LLVMValueRef args[] = { alloca_val, token_var.alloca };
                     LLVMBuildCall2(ctx->builder, release_fn->fn_type,
                                    release_fn->fn, args, 2, "");
                 } else {

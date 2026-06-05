@@ -264,14 +264,14 @@ emit_lambda_expr(ASTNode *node, TranspilerCtx *ctx)
         transpiler_restore_local_binding_counts_local(
             ctx, saved_slot_var_count, saved_typed_var_count,
             saved_alias_var_count);
-        return pergyra_strdup("0");
+        return NULL;
     }
     return_type_owned = pergyra_strdup(return_type);
     if (return_type_owned == NULL) {
         transpiler_restore_local_binding_counts_local(
             ctx, saved_slot_var_count, saved_typed_var_count,
             saved_alias_var_count);
-        return pergyra_strdup("0");
+        return NULL;
     }
     return_type = return_type_owned;
 
@@ -281,7 +281,7 @@ emit_lambda_expr(ASTNode *node, TranspilerCtx *ctx)
         transpiler_restore_local_binding_counts_local(
             ctx, saved_slot_var_count, saved_typed_var_count,
             saved_alias_var_count);
-        return pergyra_strdup("0");
+        return NULL;
     }
 
     if (!transpiler_emit_lambda_signature(node, ctx, ctx->decls,
@@ -293,7 +293,7 @@ emit_lambda_expr(ASTNode *node, TranspilerCtx *ctx)
         transpiler_restore_local_binding_counts_local(
             ctx, saved_slot_var_count, saved_typed_var_count,
             saved_alias_var_count);
-        return pergyra_strdup("0");
+        return NULL;
     }
 
     if (lambda_body != NULL && lambda_body->type == AST_BLOCK) {
@@ -306,6 +306,19 @@ emit_lambda_expr(ASTNode *node, TranspilerCtx *ctx)
         ctx->out = saved_out;
     } else if (lambda_body != NULL) {
         char *expr = emit_expression(lambda_body, ctx);
+        if (expr == NULL) {
+            transpiler_set_backend_error_with_hints(ctx,
+                PGY_CODE_C_TYPE_UNSUPPORTED,
+                PGY_CAUSE_C_TYPE_UNSUPPORTED,
+                PGY_FIX_USE_LLVM_BACKEND_OR_EXTEND_TRANSPILER,
+                "C lambda expression could not lower body expression");
+            free(lambda_name);
+            free(return_type_owned);
+            transpiler_restore_local_binding_counts_local(
+                ctx, saved_slot_var_count, saved_typed_var_count,
+                saved_alias_var_count);
+            return NULL;
+        }
         write_indent_to(ctx->helpers, 1);
         codebuf_write(ctx->helpers, "return %s;\n", expr);
         free(expr);

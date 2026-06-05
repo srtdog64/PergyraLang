@@ -105,7 +105,7 @@ llvm_emit_world_embedded_action_effect_sync(LLVMGenCtx *ctx,
     LLVMClassTypeEntry *world_cls;
     LLVMClassTypeEntry *zone_cls;
     LLVMClassTypeEntry *effect_cls;
-    LLVMVarEntry *self_var;
+    LLVMVarEntry self_var;
     LLVMValueRef world_ptr;
     LLVMValueRef zone_ptr;
     LLVMHostedZoneLayerSlotView layer_view;
@@ -160,16 +160,16 @@ llvm_emit_world_embedded_action_effect_sync(LLVMGenCtx *ctx,
     world_cls = llvm_lookup_class(ctx, world_name);
     zone_cls = llvm_lookup_class(ctx, zone_name);
     effect_cls = llvm_lookup_class(ctx, effect_name);
-    self_var = llvm_scope_lookup(ctx, "self");
     if (effect_decl == NULL || target_slot_name == NULL || world_cls == NULL
-        || zone_cls == NULL || effect_cls == NULL || self_var == NULL) {
+        || zone_cls == NULL || effect_cls == NULL
+        || !llvm_scope_lookup_snapshot(ctx, "self", &self_var)) {
         return;
     }
 
-    world_ptr = self_var->alloca;
-    if (self_var->type == LLVMPointerType(world_cls->struct_type, 0)) {
-        world_ptr = LLVMBuildLoad2(ctx->builder, self_var->type,
-            self_var->alloca, llvm_tmp_name(ctx));
+    world_ptr = self_var.alloca;
+    if (self_var.type == LLVMPointerType(world_cls->struct_type, 0)) {
+        world_ptr = LLVMBuildLoad2(ctx->builder, self_var.type,
+            self_var.alloca, llvm_tmp_name(ctx));
     }
     {
         int zone_idx = llvm_class_field_index(world_cls, zone_slot_name);

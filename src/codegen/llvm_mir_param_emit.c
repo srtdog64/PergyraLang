@@ -16,6 +16,17 @@
 #include "parser/ast_api.h"
 #include "../common/string_compat.h"
 
+static void
+llvm_register_callable_param_if_needed(LLVMGenCtx *ctx, FuncParam *param)
+{
+    if (ctx == NULL || param == NULL || param->name == NULL
+        || param->type == NULL || param->type->type != AST_EVENT_HANDLER_TYPE)
+        return;
+    if (llvm_lookup_callable_entry(ctx, param->name) != NULL)
+        return;
+    llvm_register_callable_var(ctx, param->name, param->type);
+}
+
 void
 llvm_emit_mir_param_allocas(const MIRRoutine *routine, ASTNode *func_decl,
                             LLVMValueRef fn, LLVMGenCtx *ctx, bool is_intent,
@@ -156,6 +167,7 @@ llvm_emit_mir_param_allocas(const MIRRoutine *routine, ASTNode *func_decl,
                     param_type_name);
             else
                 llvm_register_typed_var(ctx, p->name, p->type);
+            llvm_register_callable_param_if_needed(ctx, p);
             if (param_type_name != NULL)
                 llvm_register_var_class(ctx, p->name, param_type_name);
             else
@@ -293,6 +305,7 @@ llvm_emit_mir_param_allocas(const MIRRoutine *routine, ASTNode *func_decl,
                         param_type_name);
                 else
                     llvm_register_typed_var(ctx, p->name, p->type);
+                llvm_register_callable_param_if_needed(ctx, p);
                 if (param_type_name != NULL)
                     llvm_register_var_class(ctx, p->name, param_type_name);
                 else

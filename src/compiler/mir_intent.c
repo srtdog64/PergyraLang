@@ -202,8 +202,6 @@ mir_intent_binding_type_name(MIRRoutine *routine, ASTNode *binding)
                 free(rendered);
                 return type_name;
             }
-            if (value_type->type == AST_TYPE)
-                return ast_type_name(value_type);
         }
     }
     return NULL;
@@ -310,8 +308,6 @@ mir_append_intent_values(MIRRoutine *routine, MIRBasicBlock *block, ASTNode *int
             if (rendered != NULL) {
                 type_name = pgy_arena_strdup(&routine->scratch, rendered);
                 free(rendered);
-            } else if (value_type->type == AST_TYPE) {
-                type_name = ast_type_name(value_type);
             }
         }
         if (alias == NULL || type_name == NULL)

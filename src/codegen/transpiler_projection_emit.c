@@ -182,7 +182,7 @@ emit_projection_literal(TranspilerCtx *ctx, ASTNode *target_decl, ASTNode *sourc
 
     if (target_decl == NULL || source_decl == NULL
         || target_type_name == NULL || source_expr == NULL) {
-        return pergyra_strdup("0");
+        return NULL;
     }
 
     buf = codebuf_create();

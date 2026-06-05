@@ -7,6 +7,7 @@
 
 #ifdef PGY_LLVM_ENABLED
 
+#include "codegen_match_subject_lookup.h"
 #include "codegen_match_variant_policy.h"
 #include "llvm_internal.h"
 #include "llvm_mir_match_pattern.h"
@@ -24,6 +25,22 @@ llvm_mir_emit_guarded_match_condition(LLVMGenCtx *ctx,
                                       LLVMValueRef subject,
                                       unsigned payload_index,
                                       const char *binding);
+
+static void
+llvm_mir_match_lower_error(ASTNode *node,
+                           LLVMGenCtx *ctx,
+                           const char *message)
+{
+    if (ctx != NULL && !ctx->has_error) {
+        llvm_set_error_at_with_hints(ctx, node,
+            PGY_CODE_LLVM_TYPE_UNSUPPORTED,
+            PGY_CAUSE_LLVM_TYPE_UNSUPPORTED,
+            PGY_FIX_INSPECT_MIR_INVENTORY,
+            "%s",
+            message != NULL ? message
+                : "LLVM MIR match lowering failed");
+    }
+}
 
 LLVMValueRef
 llvm_mir_emit_match_case_condition(ASTNode *func_decl,
@@ -45,28 +62,38 @@ llvm_mir_emit_match_case_condition(ASTNode *func_decl,
         return NULL;
     }
 
-    subject_node = func_decl->type == AST_FUNC_DECL
-        ? ast_find_match_subject_for_case(ast_func_body(func_decl), case_node)
-        : NULL;
+    subject_node = pgy_codegen_match_subject_for_case(func_decl, case_node);
     if (subject_node == NULL)
         return NULL;
     subject = llvm_emit_expression(subject_node, ctx);
-    if (subject == NULL)
+    if (subject == NULL) {
+        llvm_mir_match_lower_error(subject_node, ctx,
+            "LLVM MIR match lowering could not lower subject expression");
         return NULL;
+    }
 
     if (ast_match_case_patterns(case_node, NULL) != NULL
         && ast_match_case_pattern_count(case_node) > 1) {
         for (size_t i = 0; i < ast_match_case_pattern_count(case_node); i++) {
+            ASTNode *pattern_node = ast_match_case_pattern_at(case_node, i);
             LLVMValueRef pattern = llvm_emit_expression(
-                ast_match_case_pattern_at(case_node, i), ctx);
+                pattern_node, ctx);
             LLVMValueRef one_cmp;
-            if (pattern == NULL)
-                continue;
+            if (pattern == NULL) {
+                llvm_mir_match_lower_error(pattern_node, ctx,
+                    "LLVM MIR match lowering could not lower case pattern");
+                return NULL;
+            }
             one_cmp = LLVMBuildICmp(ctx->builder, LLVMIntEQ, subject, pattern,
                                     llvm_tmp_name(ctx));
             cmp = cmp == NULL ? one_cmp
                               : LLVMBuildOr(ctx->builder, cmp, one_cmp,
                                             llvm_tmp_name(ctx));
+        }
+        if (cmp == NULL) {
+            llvm_mir_match_lower_error(case_node, ctx,
+                "LLVM MIR match lowering requires at least one case pattern");
+            return NULL;
         }
         return cmp;
     }
@@ -155,8 +182,11 @@ llvm_mir_emit_match_case_condition(ASTNode *func_decl,
             }
         }
         LLVMValueRef pattern = llvm_emit_expression(pattern_node, ctx);
-        if (pattern == NULL)
+        if (pattern == NULL) {
+            llvm_mir_match_lower_error(pattern_node, ctx,
+                "LLVM MIR match lowering could not lower case pattern");
             return NULL;
+        }
         return LLVMBuildICmp(ctx->builder, LLVMIntEQ, subject, pattern,
                              llvm_tmp_name(ctx));
     }
@@ -169,26 +199,27 @@ llvm_mir_remap_payload_binding(LLVMGenCtx *ctx,
                                LLVMTypeRef payload_ty)
 {
     char alloca_name[256];
-    LLVMVarEntry *entry;
+    LLVMVarEntry entry;
+    bool has_entry;
     LLVMClassTypeEntry *payload_cls;
 
     if (ctx == NULL || binding == NULL || strcmp(binding, "_") == 0)
         return true;
     llvm_mir_match_payload_alloca_name(case_stable_id, binding,
                                        alloca_name, sizeof(alloca_name));
-    entry = llvm_scope_lookup(ctx, alloca_name);
-    if ((entry == NULL || entry->alloca == NULL) && payload_ty != NULL) {
+    has_entry = llvm_scope_lookup_snapshot(ctx, alloca_name, &entry);
+    if ((!has_entry || entry.alloca == NULL) && payload_ty != NULL) {
         LLVMValueRef payload_alloca =
             llvm_create_entry_alloca(ctx, payload_ty, alloca_name);
         llvm_scope_declare(ctx, pergyra_strdup(alloca_name), payload_alloca,
                            payload_ty);
-        entry = llvm_scope_lookup(ctx, alloca_name);
+        has_entry = llvm_scope_lookup_snapshot(ctx, alloca_name, &entry);
     }
-    if (entry == NULL || entry->alloca == NULL)
+    if (!has_entry || entry.alloca == NULL)
         return true;
     {
-        LLVMValueRef binding_alloca = entry->alloca;
-        LLVMTypeRef binding_type = entry->type;
+        LLVMValueRef binding_alloca = entry.alloca;
+        LLVMTypeRef binding_type = entry.type;
         llvm_scope_declare(ctx, pergyra_strdup(binding), binding_alloca,
                            binding_type);
         payload_cls = llvm_lookup_class_by_type(ctx, binding_type);
@@ -217,10 +248,7 @@ llvm_mir_case_payload_type(LLVMGenCtx *ctx,
 
     if (ctx == NULL || func_decl == NULL || case_node == NULL || kind == NULL)
         return NULL;
-    if (func_decl->type != AST_FUNC_DECL)
-        return NULL;
-    subject_node = ast_find_match_subject_for_case(ast_func_body(func_decl),
-                                                   case_node);
+    subject_node = pgy_codegen_match_subject_for_case(func_decl, case_node);
     if (subject_node == NULL)
         return NULL;
     saved_has_error = ctx->has_error;
@@ -355,9 +383,11 @@ llvm_mir_emit_payload_binding(LLVMGenCtx *ctx,
     llvm_mir_match_payload_alloca_name(case_stable_id, binding,
                                        alloca_name, sizeof(alloca_name));
     {
-        LLVMVarEntry *existing = llvm_scope_lookup(ctx, alloca_name);
-        payload_alloca = existing != NULL && existing->alloca != NULL
-            ? existing->alloca
+        LLVMVarEntry existing;
+        bool has_existing =
+            llvm_scope_lookup_snapshot(ctx, alloca_name, &existing);
+        payload_alloca = has_existing && existing.alloca != NULL
+            ? existing.alloca
             : llvm_create_entry_alloca(ctx, payload_ty, alloca_name);
     }
     LLVMBuildStore(ctx->builder, payload, payload_alloca);
@@ -418,8 +448,16 @@ llvm_mir_emit_guarded_match_condition(LLVMGenCtx *ctx,
             return NULL;
     }
     guard = llvm_emit_expression(ast_match_case_guard(case_node), ctx);
-    if (guard == NULL)
-        guard = LLVMConstInt(LLVMInt1TypeInContext(ctx->context), 0, 0);
+    if (guard == NULL) {
+        if (ctx != NULL && !ctx->has_error) {
+            llvm_set_error_at_with_hints(ctx, ast_match_case_guard(case_node),
+                PGY_CODE_LLVM_TYPE_UNSUPPORTED,
+                PGY_CAUSE_LLVM_TYPE_UNSUPPORTED,
+                PGY_FIX_INSPECT_MIR_INVENTORY,
+                "LLVM MIR match lowering could not lower guard expression");
+        }
+        return NULL;
+    }
     guard_tail = LLVMGetInsertBlock(ctx->builder);
     LLVMBuildBr(ctx->builder, cont_block);
 
@@ -463,14 +501,15 @@ llvm_mir_emit_match_case_body_binding(const MIRRoutine *routine,
     pattern_node = ast_match_case_pattern(case_node);
     if (pattern_node == NULL)
         return true;
-    subject_node = func_decl->type == AST_FUNC_DECL
-        ? ast_find_match_subject_for_case(ast_func_body(func_decl), case_node)
-        : NULL;
+    subject_node = pgy_codegen_match_subject_for_case(func_decl, case_node);
     if (subject_node == NULL)
         return true;
     subject = llvm_emit_expression(subject_node, ctx);
-    if (subject == NULL)
+    if (subject == NULL) {
+        llvm_mir_match_lower_error(subject_node, ctx,
+            "LLVM MIR match body binding could not lower subject expression");
         return false;
+    }
 
     if (llvm_mir_is_option_destructor(pattern_node, &option_kind, &binding)) {
         if (binding != NULL) {

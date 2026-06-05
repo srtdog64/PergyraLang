@@ -19,6 +19,10 @@ cosmetic reshuffling.
 - Do not keep a borrowed `LLVMVarEntry *` from `llvm_scope_lookup()` across
   `llvm_scope_push`, `llvm_scope_pop`, or `llvm_scope_declare`. Snapshot
   `alloca` / `type` first; scope declarations may realloc the frame storage.
+- Do not pass growable runtime container storage (`Array`, `Slice`, `List`,
+  `Queue`, `Set`, `HashMap`) across `parallel` / `async` / worker boundaries by
+  raw pointer. Use a channel/result boundary, an explicit copy, or a documented
+  pinned read-only view owner. Rehash/grow plus concurrent read is UB.
 
 ## Default Work Loop
 

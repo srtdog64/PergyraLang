@@ -16,7 +16,7 @@ char *
 emit_literal_expression(ASTNode *node)
 {
     if (node == NULL)
-        return pergyra_strdup("0");
+        return NULL;
 
     switch (node->type) {
     case AST_NUMBER:
@@ -31,6 +31,8 @@ emit_literal_expression(ASTNode *node)
         return strdup_fmt("%g", ast_number_value(node));
     case AST_STRING: {
         char *escaped = escape_c_string_literal(ast_string_value(node));
+        if (escaped == NULL)
+            return NULL;
         char *result = strdup_fmt("\"%s\"", escaped);
         free(escaped);
         return result;
@@ -38,6 +40,6 @@ emit_literal_expression(ASTNode *node)
     case AST_BOOLEAN:
         return pergyra_strdup(ast_boolean_value(node) ? "true" : "false");
     default:
-        return pergyra_strdup("0");
+        return NULL;
     }
 }

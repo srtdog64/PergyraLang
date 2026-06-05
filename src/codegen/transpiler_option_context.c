@@ -9,7 +9,6 @@
 #include "transpiler_format.h"
 #include "transpiler_type_mapping.h"
 
-#include "../common/string_compat.h"
 #include "../semantic/diag_codes.h"
 
 #include <string.h>
@@ -59,7 +58,7 @@ transpiler_emit_none_with_context(TranspilerCtx *ctx, ASTNode *site)
             PGY_FIX_ANNOTATE_CONCRETE_TYPE,
             "None requires contextual Option<T> during C emission");
         (void)site;
-        return pergyra_strdup("0");
+        return NULL;
     }
     return strdup_fmt("None_%s()", inner);
 }

@@ -48,13 +48,13 @@ llvm_emit_expression(ASTNode *node, LLVMGenCtx *ctx)
     case AST_ARRAY_ACCESS:  return llvm_emit_array_access_expr(node, ctx);
 
     case AST_CONTEXT_ACCESS: {
-        LLVMVarEntry *self_var = llvm_scope_lookup(ctx, "self");
-        if (self_var == NULL)
+        LLVMVarEntry self_var;
+        if (!llvm_scope_lookup_snapshot(ctx, "self", &self_var))
             return llvm_expression_error(ctx, node,
                 "LLVM context access requires a registered self parameter");
 
         LLVMValueRef self_val = LLVMBuildLoad2(ctx->builder,
-            ctx->type_i8ptr, self_var->alloca, llvm_tmp_name(ctx));
+            ctx->type_i8ptr, self_var.alloca, llvm_tmp_name(ctx));
         return self_val;
     }
 

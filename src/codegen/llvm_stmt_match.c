@@ -6,6 +6,20 @@
 #include <stdio.h>
 
 static void
+llvm_match_lower_error(ASTNode *node, LLVMGenCtx *ctx, const char *message)
+{
+    if (ctx != NULL && !ctx->has_error) {
+        llvm_set_error_at_with_hints(ctx, node,
+            PGY_CODE_LLVM_TYPE_UNSUPPORTED,
+            PGY_CAUSE_LLVM_TYPE_UNSUPPORTED,
+            PGY_FIX_INSPECT_MIR_INVENTORY,
+            "%s",
+            message != NULL ? message
+                : "LLVM match lowering failed");
+    }
+}
+
+static void
 llvm_match_payload_alloca_name(ASTNode *match_case,
                                const char *binding,
                                char *buffer,
@@ -125,8 +139,11 @@ void
 llvm_emit_match_stmt(ASTNode *node, LLVMGenCtx *ctx)
 {
     LLVMValueRef subject = llvm_emit_expression(ast_match_subject(node), ctx);
-    if (subject == NULL)
+    if (subject == NULL) {
+        llvm_match_lower_error(ast_match_subject(node), ctx,
+            "LLVM match lowering could not lower subject expression");
         return;
+    }
 
     LLVMValueRef fn = ctx->current_function;
     LLVMBasicBlockRef merge_bb = LLVMAppendBasicBlockInContext(
@@ -149,8 +166,11 @@ llvm_emit_match_stmt(ASTNode *node, LLVMGenCtx *ctx)
                 LLVMValueRef pattern = llvm_emit_expression(
                     ast_match_case_pattern_at(mc, p), ctx);
                 LLVMValueRef alt_cmp;
-                if (pattern == NULL)
-                    continue;
+                if (pattern == NULL) {
+                    llvm_match_lower_error(ast_match_case_pattern_at(mc, p),
+                        ctx, "LLVM match lowering could not lower case pattern");
+                    return;
+                }
                 alt_cmp = LLVMBuildICmp(ctx->builder, LLVMIntEQ,
                                         subject, pattern,
                                         llvm_tmp_name(ctx));
@@ -159,8 +179,11 @@ llvm_emit_match_stmt(ASTNode *node, LLVMGenCtx *ctx)
                     : LLVMBuildOr(ctx->builder, cmp, alt_cmp,
                                   llvm_tmp_name(ctx));
             }
-            if (cmp == NULL)
-                continue;
+            if (cmp == NULL) {
+                llvm_match_lower_error(mc, ctx,
+                    "LLVM match lowering requires at least one case pattern");
+                return;
+            }
         } else if (llvm_match_is_option_destructor(
                        ast_match_case_pattern(mc),
                        &option_kind,
@@ -186,8 +209,11 @@ llvm_emit_match_stmt(ASTNode *node, LLVMGenCtx *ctx)
         } else {
             LLVMValueRef pattern = llvm_emit_expression(
                 ast_match_case_pattern(mc), ctx);
-            if (pattern == NULL)
-                continue;
+            if (pattern == NULL) {
+                llvm_match_lower_error(ast_match_case_pattern(mc), ctx,
+                    "LLVM match lowering could not lower case pattern");
+                return;
+            }
             cmp = LLVMBuildICmp(ctx->builder, LLVMIntEQ,
                                 subject, pattern,
                                 llvm_tmp_name(ctx));
@@ -196,8 +222,11 @@ llvm_emit_match_stmt(ASTNode *node, LLVMGenCtx *ctx)
         if (ast_match_case_guard(mc) != NULL) {
             LLVMValueRef guard = llvm_emit_expression(ast_match_case_guard(mc),
                                                       ctx);
-            if (guard == NULL)
-                continue;
+            if (guard == NULL) {
+                llvm_match_lower_error(ast_match_case_guard(mc), ctx,
+                    "LLVM match lowering could not lower guard expression");
+                return;
+            }
             cmp = LLVMBuildAnd(ctx->builder, cmp, guard, llvm_tmp_name(ctx));
         }
 

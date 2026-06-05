@@ -19,7 +19,7 @@
 #include "transpiler_projection.h"
 
 static char *
-domain_query_heap_fmt(const char *fmt, ...)
+domain_query_heap_fmt(TranspilerCtx *ctx, const char *fmt, ...)
 {
     va_list ap;
     int n;
@@ -28,12 +28,24 @@ domain_query_heap_fmt(const char *fmt, ...)
     va_start(ap, fmt);
     n = vsnprintf(NULL, 0, fmt, ap);
     va_end(ap);
-    if (n < 0)
-        return pergyra_strdup("");
+    if (n < 0) {
+        transpiler_set_backend_error_with_hints(ctx,
+            PGY_CODE_C_TYPE_UNSUPPORTED,
+            PGY_CAUSE_C_TYPE_UNSUPPORTED,
+            PGY_FIX_USE_LLVM_BACKEND_OR_EXTEND_TRANSPILER,
+            "C backend: domain query expression formatting failed");
+        return NULL;
+    }
 
     s = (char *)malloc((size_t)n + 1);
-    if (s == NULL)
-        return pergyra_strdup("");
+    if (s == NULL) {
+        transpiler_set_backend_error_with_hints(ctx,
+            PGY_CODE_C_TYPE_UNSUPPORTED,
+            PGY_CAUSE_C_TYPE_UNSUPPORTED,
+            PGY_FIX_USE_LLVM_BACKEND_OR_EXTEND_TRANSPILER,
+            "C backend: domain query expression allocation failed");
+        return NULL;
+    }
 
     va_start(ap, fmt);
     vsnprintf(s, (size_t)n + 1, fmt, ap);
@@ -61,7 +73,7 @@ domain_query_unsupported(TranspilerCtx *ctx, const char *message)
         PGY_CAUSE_C_TYPE_UNSUPPORTED,
         PGY_FIX_USE_LLVM_BACKEND_OR_EXTEND_TRANSPILER,
         message);
-    return pergyra_strdup("false");
+    return NULL;
 }
 
 static char *
@@ -73,13 +85,13 @@ emit_builtin_has_projection(ASTNode *call, TranspilerCtx *ctx)
     if (ast_call_arg_count(call) == 1 && slot_name != NULL) {
         if (transpiler_current_overlay_domain_slot_is_projection(
                 ctx, slot_name)) {
-            return domain_query_heap_fmt("self->__projection_ready_%s",
+            return domain_query_heap_fmt(ctx, "self->__projection_ready_%s",
                 slot_name);
         }
         {
             ASTNode *host_decl = transpiler_current_host_decl_local(ctx);
             if (pgy_host_decl_compat_has_projection_ready_flag(host_decl)) {
-                return domain_query_heap_fmt("self->__projection_ready_%s",
+                return domain_query_heap_fmt(ctx, "self->__projection_ready_%s",
                     slot_name);
             }
         }
@@ -106,7 +118,8 @@ emit_builtin_has_layer(ASTNode *call, TranspilerCtx *ctx)
         if (zone_name == NULL)
             return domain_query_unsupported(ctx,
                 "C backend: HasLayer requires active zone context");
-        return domain_query_heap_fmt("%s_has_layer_%s(self, __pgy_zone_gen)",
+        return domain_query_heap_fmt(ctx,
+            "%s_has_layer_%s(self, __pgy_zone_gen)",
             zone_name, layer_name);
     }
 
@@ -131,7 +144,7 @@ emit_builtin_has_state(ASTNode *call, TranspilerCtx *ctx)
         && ast_call_arg_count(call) >= 1
         && state_decl != NULL
         && state_name != NULL) {
-        return domain_query_heap_fmt("self->__state_%s", state_name);
+        return domain_query_heap_fmt(ctx, "self->__state_%s", state_name);
     }
 
     return domain_query_unsupported(ctx,
@@ -155,9 +168,9 @@ emit_builtin_has_zone(ASTNode *call, TranspilerCtx *ctx)
         && ast_call_arg_count(call) >= 1
         && name != NULL) {
         if (state_decl != NULL)
-            return domain_query_heap_fmt("self->__zone_state_%s", name);
+            return domain_query_heap_fmt(ctx, "self->__zone_state_%s", name);
         if (transpiler_world_has_zone_slot(ctx, world_decl, name))
-            return domain_query_heap_fmt("self->__zone_active_%s", name);
+            return domain_query_heap_fmt(ctx, "self->__zone_active_%s", name);
     }
 
     return domain_query_unsupported(ctx,
@@ -184,7 +197,7 @@ emit_builtin_has_zone_projection(ASTNode *call, TranspilerCtx *ctx)
         && zone_decl != NULL
         && transpiler_zone_domain_slot_is_projection(
             ctx, zone_decl, slot_name)) {
-        return domain_query_heap_fmt("self->%s.__projection_ready_%s",
+        return domain_query_heap_fmt(ctx, "self->%s.__projection_ready_%s",
             zone_name, slot_name);
     }
 
@@ -212,7 +225,7 @@ emit_builtin_has_zone_layer(ASTNode *call, TranspilerCtx *ctx)
         && zone_decl != NULL
         && layer_name != NULL
         && transpiler_zone_has_layer_slot(ctx, zone_decl, layer_name)) {
-        return domain_query_heap_fmt("self->%s.__layer_active_%s",
+        return domain_query_heap_fmt(ctx, "self->%s.__layer_active_%s",
             zone_name, layer_name);
     }
 
@@ -240,7 +253,7 @@ emit_builtin_has_zone_state(ASTNode *call, TranspilerCtx *ctx)
         && zone_decl != NULL
         && state_name != NULL
         && transpiler_find_zone_state_decl(zone_decl, state_name) != NULL) {
-        return domain_query_heap_fmt("self->%s.__state_%s",
+        return domain_query_heap_fmt(ctx, "self->%s.__state_%s",
             zone_name, state_name);
     }
 

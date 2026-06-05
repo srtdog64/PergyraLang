@@ -334,9 +334,19 @@ llvm_emit_func_decl(ASTNode *node, LLVMGenCtx *ctx)
     if (LLVMGetBasicBlockTerminator(LLVMGetInsertBlock(ctx->builder)) == NULL) {
         if (ret_type == ctx->type_void)
             LLVMBuildRetVoid(ctx->builder);
-        else
-            LLVMBuildRet(ctx->builder,
-                          LLVMConstInt(ret_type, 0, 0));
+        else {
+            if (!ctx->has_error) {
+                llvm_set_error_at_with_hints(ctx, node,
+                    PGY_CODE_LLVM_TYPE_UNSUPPORTED,
+                    PGY_CAUSE_CFG_MISSING_RETURN,
+                    PGY_FIX_ADD_RETURN_ON_ALL_PATHS,
+                    "LLVM non-Void function '%s' reached backend without an all-path return terminator",
+                    ast_declaration_name(node) != NULL
+                        ? ast_declaration_name(node)
+                        : "<anonymous>");
+            }
+            LLVMBuildUnreachable(ctx->builder);
+        }
     }
 
 cleanup:

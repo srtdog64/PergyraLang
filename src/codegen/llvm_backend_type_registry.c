@@ -153,12 +153,12 @@ llvm_registry_generic_arg_type(GenericParams *generic_args, size_t index)
 static LLVMValueRef
 llvm_registry_active_binding(LLVMGenCtx *ctx, const char *var_name)
 {
-    LLVMVarEntry *entry;
+    LLVMVarEntry entry;
 
     if (ctx == NULL || var_name == NULL)
         return NULL;
-    entry = llvm_scope_lookup(ctx, var_name);
-    return entry != NULL ? entry->alloca : NULL;
+    return llvm_scope_lookup_snapshot(ctx, var_name, &entry)
+        ? entry.alloca : NULL;
 }
 
 void

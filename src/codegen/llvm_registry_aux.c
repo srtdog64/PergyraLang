@@ -40,7 +40,7 @@ llvm_lookup_projection_borrow(LLVMGenCtx *ctx, const char *var_name)
 {
     if (ctx == NULL || var_name == NULL)
         return NULL;
-    if (llvm_scope_lookup(ctx, var_name) == NULL)
+    if (!llvm_scope_contains(ctx, var_name))
         return NULL;
 
     for (int i = ctx->projection_borrow_count - 1; i >= 0; i--) {
@@ -100,7 +100,7 @@ LLVMCallableVarEntry *
 llvm_lookup_callable_entry(LLVMGenCtx *ctx, const char *var_name)
 {
     if (ctx == NULL || var_name == NULL
-        || llvm_scope_lookup(ctx, var_name) == NULL) {
+        || !llvm_scope_contains(ctx, var_name)) {
         return NULL;
     }
     for (int i = ctx->callable_var_count - 1; i >= 0; i--) {

@@ -15,7 +15,7 @@
 #include "transpiler_context.h"
 
 static char *
-io_builtin_heap_fmt(const char *fmt, ...)
+io_builtin_heap_fmt(TranspilerCtx *ctx, const char *fmt, ...)
 {
     va_list ap;
     int n;
@@ -24,12 +24,24 @@ io_builtin_heap_fmt(const char *fmt, ...)
     va_start(ap, fmt);
     n = vsnprintf(NULL, 0, fmt, ap);
     va_end(ap);
-    if (n < 0)
-        return pergyra_strdup("");
+    if (n < 0) {
+        transpiler_set_backend_error_with_hints(ctx,
+            PGY_CODE_C_TYPE_UNSUPPORTED,
+            PGY_CAUSE_C_TYPE_UNSUPPORTED,
+            PGY_FIX_USE_LLVM_BACKEND_OR_EXTEND_TRANSPILER,
+            "C backend: I/O builtin expression formatting failed");
+        return NULL;
+    }
 
     s = (char *)malloc((size_t)n + 1);
-    if (s == NULL)
-        return pergyra_strdup("");
+    if (s == NULL) {
+        transpiler_set_backend_error_with_hints(ctx,
+            PGY_CODE_C_TYPE_UNSUPPORTED,
+            PGY_CAUSE_C_TYPE_UNSUPPORTED,
+            PGY_FIX_USE_LLVM_BACKEND_OR_EXTEND_TRANSPILER,
+            "C backend: I/O builtin expression allocation failed");
+        return NULL;
+    }
 
     va_start(ap, fmt);
     vsnprintf(s, (size_t)n + 1, fmt, ap);
@@ -45,7 +57,7 @@ io_builtin_unsupported(TranspilerCtx *ctx, const char *message)
         PGY_CAUSE_C_TYPE_UNSUPPORTED,
         PGY_FIX_USE_LLVM_BACKEND_OR_EXTEND_TRANSPILER,
         message);
-    return pergyra_strdup("0");
+    return NULL;
 }
 
 static char *
@@ -78,14 +90,14 @@ emit_builtin_file_open(ASTNode *call, TranspilerCtx *ctx)
     char *path = io_builtin_emit_arg(ctx, ast_call_argument(call, 0),
         "FileOpen", "path");
     if (path == NULL)
-        return pergyra_strdup("0");
+        return NULL;
     char *mode = io_builtin_emit_arg(ctx, ast_call_argument(call, 1),
         "FileOpen", "mode");
     if (mode == NULL) {
         free(path);
-        return pergyra_strdup("0");
+        return NULL;
     }
-    char *result = io_builtin_heap_fmt("pgy_file_open(%s, %s)", path, mode);
+    char *result = io_builtin_heap_fmt(ctx, "pgy_file_open(%s, %s)", path, mode);
     free(path);
     free(mode);
     return result;
@@ -101,8 +113,8 @@ emit_builtin_file_read(ASTNode *call, TranspilerCtx *ctx)
     char *fd = io_builtin_emit_arg(ctx, ast_call_argument(call, 0),
         "FileRead", "file descriptor");
     if (fd == NULL)
-        return pergyra_strdup("0");
-    char *result = io_builtin_heap_fmt("pgy_file_read(%s)", fd);
+        return NULL;
+    char *result = io_builtin_heap_fmt(ctx, "pgy_file_read(%s)", fd);
     free(fd);
     return result;
 }
@@ -117,14 +129,14 @@ emit_builtin_file_write(ASTNode *call, TranspilerCtx *ctx)
     char *fd = io_builtin_emit_arg(ctx, ast_call_argument(call, 0),
         "FileWrite", "file descriptor");
     if (fd == NULL)
-        return pergyra_strdup("0");
+        return NULL;
     char *data = io_builtin_emit_arg(ctx, ast_call_argument(call, 1),
         "FileWrite", "data");
     if (data == NULL) {
         free(fd);
-        return pergyra_strdup("0");
+        return NULL;
     }
-    char *result = io_builtin_heap_fmt("pgy_file_write(%s, %s)", fd, data);
+    char *result = io_builtin_heap_fmt(ctx, "pgy_file_write(%s, %s)", fd, data);
     free(fd);
     free(data);
     return result;
@@ -140,8 +152,8 @@ emit_builtin_file_close(ASTNode *call, TranspilerCtx *ctx)
     char *fd = io_builtin_emit_arg(ctx, ast_call_argument(call, 0),
         "FileClose", "file descriptor");
     if (fd == NULL)
-        return pergyra_strdup("0");
-    char *result = io_builtin_heap_fmt("pgy_file_close(%s)", fd);
+        return NULL;
+    char *result = io_builtin_heap_fmt(ctx, "pgy_file_close(%s)", fd);
     free(fd);
     return result;
 }
@@ -156,8 +168,8 @@ emit_builtin_read_file(ASTNode *call, TranspilerCtx *ctx)
     char *path = io_builtin_emit_arg(ctx, ast_call_argument(call, 0),
         "ReadFile", "path");
     if (path == NULL)
-        return pergyra_strdup("0");
-    char *result = io_builtin_heap_fmt("pgy_read_file(%s)", path);
+        return NULL;
+    char *result = io_builtin_heap_fmt(ctx, "pgy_read_file(%s)", path);
     free(path);
     return result;
 }
@@ -172,8 +184,8 @@ emit_builtin_file_exists(ASTNode *call, TranspilerCtx *ctx)
     char *path = io_builtin_emit_arg(ctx, ast_call_argument(call, 0),
         "FileExists", "path");
     if (path == NULL)
-        return pergyra_strdup("0");
-    char *result = io_builtin_heap_fmt("pgy_file_exists(%s)", path);
+        return NULL;
+    char *result = io_builtin_heap_fmt(ctx, "pgy_file_exists(%s)", path);
     free(path);
     return result;
 }
@@ -188,14 +200,14 @@ emit_builtin_write_file(ASTNode *call, TranspilerCtx *ctx)
     char *path = io_builtin_emit_arg(ctx, ast_call_argument(call, 0),
         "WriteFile", "path");
     if (path == NULL)
-        return pergyra_strdup("0");
+        return NULL;
     char *data = io_builtin_emit_arg(ctx, ast_call_argument(call, 1),
         "WriteFile", "data");
     if (data == NULL) {
         free(path);
-        return pergyra_strdup("0");
+        return NULL;
     }
-    char *result = io_builtin_heap_fmt("pgy_write_file(%s, %s)", path, data);
+    char *result = io_builtin_heap_fmt(ctx, "pgy_write_file(%s, %s)", path, data);
     free(path);
     free(data);
     return result;
@@ -208,8 +220,8 @@ emit_builtin_input(ASTNode *call, TranspilerCtx *ctx)
         ? io_builtin_emit_arg(ctx, ast_call_argument(call, 0), "Input", "prompt")
         : pergyra_strdup("\"\"");
     if (prompt == NULL)
-        return pergyra_strdup("0");
-    char *result = io_builtin_heap_fmt("pgy_input(%s)", prompt);
+        return NULL;
+    char *result = io_builtin_heap_fmt(ctx, "pgy_input(%s)", prompt);
     free(prompt);
     return result;
 }
@@ -224,8 +236,8 @@ emit_builtin_print(ASTNode *call, TranspilerCtx *ctx)
     char *msg = io_builtin_emit_arg(ctx, ast_call_argument(call, 0),
         "Print", "message");
     if (msg == NULL)
-        return pergyra_strdup("0");
-    char *result = io_builtin_heap_fmt("pgy_print(%s)", msg);
+        return NULL;
+    char *result = io_builtin_heap_fmt(ctx, "pgy_print(%s)", msg);
     free(msg);
     return result;
 }
@@ -240,8 +252,8 @@ emit_builtin_sleep(ASTNode *call, TranspilerCtx *ctx)
     char *ms = io_builtin_emit_arg(ctx, ast_call_argument(call, 0),
         "Sleep", "milliseconds");
     if (ms == NULL)
-        return pergyra_strdup("0");
-    char *result = io_builtin_heap_fmt("pgy_sleep_ms(%s)", ms);
+        return NULL;
+    char *result = io_builtin_heap_fmt(ctx, "pgy_sleep_ms(%s)", ms);
     free(ms);
     return result;
 }

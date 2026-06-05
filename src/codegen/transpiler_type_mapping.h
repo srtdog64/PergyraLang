@@ -17,6 +17,8 @@ void copy_constructed_arg_name_at(const char *type_name, int arg_index,
 bool generic_args_to_c_suffix_copy(const char *inner_body,
                                    char *out,
                                    size_t out_size);
+bool transpiler_type_name_contains_unknown_sentinel(const char *type_name);
+bool transpiler_type_name_is_concrete_fact(const char *type_name);
 bool transpiler_type_name_is_channel(const char *type_name);
 bool transpiler_type_name_is_future(const char *type_name);
 bool transpiler_type_name_is_remote_future(const char *type_name);

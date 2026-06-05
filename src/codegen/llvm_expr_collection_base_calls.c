@@ -132,10 +132,9 @@ llvm_emit_collection_base_call(ASTNode *node, LLVMGenCtx *ctx,
                 "LLVM ListNew() requires concrete element LLVM type metadata");
         fn = llvm_required_collection_function(ctx, node, callee_name,
             "pgy_list_new_raw_export");
-        if (fn == NULL) {
-            *out = NULL;
-            return true;
-        }
+        if (fn == NULL)
+            return llvm_collection_base_error_out(ctx, node, out,
+                "LLVM ListNew() requires registered runtime function");
         tmp = llvm_create_entry_alloca(ctx, list_ty, llvm_tmp_name(ctx));
         if (tmp == NULL)
             return llvm_collection_base_error_out(ctx, node, out,
@@ -191,10 +190,9 @@ llvm_emit_collection_base_call(ASTNode *node, LLVMGenCtx *ctx,
                 "LLVM SetNew() requires concrete element LLVM type metadata");
         fn = llvm_required_collection_function(ctx, node, callee_name,
             "pgy_set_new_raw_export");
-        if (fn == NULL) {
-            *out = NULL;
-            return true;
-        }
+        if (fn == NULL)
+            return llvm_collection_base_error_out(ctx, node, out,
+                "LLVM SetNew() requires registered runtime function");
         tmp = llvm_create_entry_alloca(ctx, set_ty, llvm_tmp_name(ctx));
         if (tmp == NULL)
             return llvm_collection_base_error_out(ctx, node, out,
@@ -211,23 +209,21 @@ llvm_emit_collection_base_call(ASTNode *node, LLVMGenCtx *ctx,
 
     if (op == LLVM_COLLECTION_BASE_OP_SET_ADD) {
         ASTNode *set_arg = ast_call_argument(node, 0);
-        LLVMVarEntry *set_var;
+        LLVMVarEntry set_var;
         const char *inner_name;
         LLVMTypeRef elem_ty;
         LLVMValueRef value;
         LLVMValueRef tmp;
         LLVMFuncEntry *fn;
-        set_var = llvm_collection_required_receiver_var(ctx, node, set_arg,
-            callee_name, "collection", out);
-        if (set_var == NULL)
+        if (!llvm_collection_required_receiver_var(ctx, node, set_arg,
+                callee_name, "collection", &set_var, out))
             return true;
         inner_name = llvm_lookup_set_inner(ctx, ast_identifier_name(set_arg));
         elem_ty = llvm_collection_required_value_type(ctx, node, "Set",
             ast_identifier_name(set_arg), inner_name, NULL);
-        if (elem_ty == NULL) {
-            *out = NULL;
-            return true;
-        }
+        if (elem_ty == NULL)
+            return llvm_collection_base_error_out(ctx, node, out,
+                "LLVM SetAdd requires concrete element type metadata");
         value = llvm_emit_expression(ast_call_argument(node, 1), ctx);
         if (value == NULL)
             return llvm_collection_base_error_out(ctx, node, out,
@@ -243,12 +239,11 @@ llvm_emit_collection_base_call(ASTNode *node, LLVMGenCtx *ctx,
         if (inner_name != NULL && strcmp(inner_name, "String") == 0) {
             fn = llvm_required_collection_function(ctx, node, callee_name,
                 "pgy_set_add_string_raw_export");
-            if (fn == NULL) {
-                *out = NULL;
-                return true;
-            }
+            if (fn == NULL)
+                return llvm_collection_base_error_out(ctx, node, out,
+                    "LLVM SetAdd requires registered string runtime function");
             LLVMValueRef args[] = {
-                LLVMBuildBitCast(ctx->builder, set_var->alloca, ctx->type_i8ptr, llvm_tmp_name(ctx)),
+                LLVMBuildBitCast(ctx->builder, set_var.alloca, ctx->type_i8ptr, llvm_tmp_name(ctx)),
                 value
             };
             LLVMBuildCall2(ctx->builder, fn->fn_type, fn->fn, args, 2, "");
@@ -262,12 +257,11 @@ llvm_emit_collection_base_call(ASTNode *node, LLVMGenCtx *ctx,
         LLVMBuildStore(ctx->builder, value, tmp);
         fn = llvm_required_collection_function(ctx, node, callee_name,
             "pgy_set_add_raw_export");
-        if (fn == NULL) {
-            *out = NULL;
-            return true;
-        }
+        if (fn == NULL)
+            return llvm_collection_base_error_out(ctx, node, out,
+                "LLVM SetAdd requires registered runtime function");
         LLVMValueRef args[] = {
-            LLVMBuildBitCast(ctx->builder, set_var->alloca, ctx->type_i8ptr, llvm_tmp_name(ctx)),
+            LLVMBuildBitCast(ctx->builder, set_var.alloca, ctx->type_i8ptr, llvm_tmp_name(ctx)),
             LLVMBuildBitCast(ctx->builder, tmp, ctx->type_i8ptr, llvm_tmp_name(ctx)),
             llvm_sizeof_type_i64(ctx, elem_ty)
         };
@@ -278,23 +272,21 @@ llvm_emit_collection_base_call(ASTNode *node, LLVMGenCtx *ctx,
 
     if (op == LLVM_COLLECTION_BASE_OP_SET_HAS) {
         ASTNode *set_arg = ast_call_argument(node, 0);
-        LLVMVarEntry *set_var;
+        LLVMVarEntry set_var;
         const char *inner_name;
         LLVMTypeRef elem_ty;
         LLVMValueRef value;
         LLVMValueRef tmp;
         LLVMFuncEntry *fn;
-        set_var = llvm_collection_required_receiver_var(ctx, node, set_arg,
-            callee_name, "collection", out);
-        if (set_var == NULL)
+        if (!llvm_collection_required_receiver_var(ctx, node, set_arg,
+                callee_name, "collection", &set_var, out))
             return true;
         inner_name = llvm_lookup_set_inner(ctx, ast_identifier_name(set_arg));
         elem_ty = llvm_collection_required_value_type(ctx, node, "Set",
             ast_identifier_name(set_arg), inner_name, NULL);
-        if (elem_ty == NULL) {
-            *out = NULL;
-            return true;
-        }
+        if (elem_ty == NULL)
+            return llvm_collection_base_error_out(ctx, node, out,
+                "LLVM SetHas requires concrete element type metadata");
         value = llvm_emit_expression(ast_call_argument(node, 1), ctx);
         if (value == NULL)
             return llvm_collection_base_error_out(ctx, node, out,
@@ -310,13 +302,12 @@ llvm_emit_collection_base_call(ASTNode *node, LLVMGenCtx *ctx,
         if (inner_name != NULL && strcmp(inner_name, "String") == 0) {
             fn = llvm_required_collection_function(ctx, node, callee_name,
                 "pgy_set_has_string_raw_export");
-            if (fn == NULL) {
-                *out = NULL;
-                return true;
-            }
+            if (fn == NULL)
+                return llvm_collection_base_error_out(ctx, node, out,
+                    "LLVM SetHas requires registered string runtime function");
             {
                 LLVMValueRef args[] = {
-                    LLVMBuildBitCast(ctx->builder, set_var->alloca, ctx->type_i8ptr, llvm_tmp_name(ctx)),
+                    LLVMBuildBitCast(ctx->builder, set_var.alloca, ctx->type_i8ptr, llvm_tmp_name(ctx)),
                     value
                 };
                 *out = LLVMBuildCall2(ctx->builder, fn->fn_type, fn->fn, args, 2,
@@ -331,13 +322,12 @@ llvm_emit_collection_base_call(ASTNode *node, LLVMGenCtx *ctx,
         LLVMBuildStore(ctx->builder, value, tmp);
         fn = llvm_required_collection_function(ctx, node, callee_name,
             "pgy_set_has_raw_export");
-        if (fn == NULL) {
-            *out = NULL;
-            return true;
-        }
+        if (fn == NULL)
+            return llvm_collection_base_error_out(ctx, node, out,
+                "LLVM SetHas requires registered runtime function");
         {
             LLVMValueRef args[] = {
-                LLVMBuildBitCast(ctx->builder, set_var->alloca, ctx->type_i8ptr, llvm_tmp_name(ctx)),
+                LLVMBuildBitCast(ctx->builder, set_var.alloca, ctx->type_i8ptr, llvm_tmp_name(ctx)),
                 LLVMBuildBitCast(ctx->builder, tmp, ctx->type_i8ptr, llvm_tmp_name(ctx)),
                 llvm_sizeof_type_i64(ctx, elem_ty)
             };
@@ -349,23 +339,21 @@ llvm_emit_collection_base_call(ASTNode *node, LLVMGenCtx *ctx,
 
     if (op == LLVM_COLLECTION_BASE_OP_SET_REMOVE) {
         ASTNode *set_arg = ast_call_argument(node, 0);
-        LLVMVarEntry *set_var;
+        LLVMVarEntry set_var;
         const char *inner_name;
         LLVMTypeRef elem_ty;
         LLVMValueRef value;
         LLVMValueRef tmp;
         LLVMFuncEntry *fn;
-        set_var = llvm_collection_required_receiver_var(ctx, node, set_arg,
-            callee_name, "collection", out);
-        if (set_var == NULL)
+        if (!llvm_collection_required_receiver_var(ctx, node, set_arg,
+                callee_name, "collection", &set_var, out))
             return true;
         inner_name = llvm_lookup_set_inner(ctx, ast_identifier_name(set_arg));
         elem_ty = llvm_collection_required_value_type(ctx, node, "Set",
             ast_identifier_name(set_arg), inner_name, NULL);
-        if (elem_ty == NULL) {
-            *out = NULL;
-            return true;
-        }
+        if (elem_ty == NULL)
+            return llvm_collection_base_error_out(ctx, node, out,
+                "LLVM SetRemove requires concrete element type metadata");
         value = llvm_emit_expression(ast_call_argument(node, 1), ctx);
         if (value == NULL)
             return llvm_collection_base_error_out(ctx, node, out,
@@ -381,12 +369,11 @@ llvm_emit_collection_base_call(ASTNode *node, LLVMGenCtx *ctx,
         if (inner_name != NULL && strcmp(inner_name, "String") == 0) {
             fn = llvm_required_collection_function(ctx, node, callee_name,
                 "pgy_set_remove_string_raw_export");
-            if (fn == NULL) {
-                *out = NULL;
-                return true;
-            }
+            if (fn == NULL)
+                return llvm_collection_base_error_out(ctx, node, out,
+                    "LLVM SetRemove requires registered string runtime function");
             LLVMValueRef args[] = {
-                LLVMBuildBitCast(ctx->builder, set_var->alloca, ctx->type_i8ptr, llvm_tmp_name(ctx)),
+                LLVMBuildBitCast(ctx->builder, set_var.alloca, ctx->type_i8ptr, llvm_tmp_name(ctx)),
                 value
             };
             LLVMBuildCall2(ctx->builder, fn->fn_type, fn->fn, args, 2, "");
@@ -400,12 +387,11 @@ llvm_emit_collection_base_call(ASTNode *node, LLVMGenCtx *ctx,
         LLVMBuildStore(ctx->builder, value, tmp);
         fn = llvm_required_collection_function(ctx, node, callee_name,
             "pgy_set_remove_raw_export");
-        if (fn == NULL) {
-            *out = NULL;
-            return true;
-        }
+        if (fn == NULL)
+            return llvm_collection_base_error_out(ctx, node, out,
+                "LLVM SetRemove requires registered runtime function");
         LLVMValueRef args[] = {
-            LLVMBuildBitCast(ctx->builder, set_var->alloca, ctx->type_i8ptr, llvm_tmp_name(ctx)),
+            LLVMBuildBitCast(ctx->builder, set_var.alloca, ctx->type_i8ptr, llvm_tmp_name(ctx)),
             LLVMBuildBitCast(ctx->builder, tmp, ctx->type_i8ptr, llvm_tmp_name(ctx)),
             llvm_sizeof_type_i64(ctx, elem_ty)
         };
@@ -416,21 +402,19 @@ llvm_emit_collection_base_call(ASTNode *node, LLVMGenCtx *ctx,
 
     if (op == LLVM_COLLECTION_BASE_OP_SET_SIZE) {
         ASTNode *set_arg = ast_call_argument(node, 0);
-        LLVMVarEntry *set_var;
+        LLVMVarEntry set_var;
         LLVMFuncEntry *fn;
-        set_var = llvm_collection_required_receiver_var(ctx, node, set_arg,
-            callee_name, "collection", out);
-        if (set_var == NULL)
+        if (!llvm_collection_required_receiver_var(ctx, node, set_arg,
+                callee_name, "collection", &set_var, out))
             return true;
         fn = llvm_required_collection_function(ctx, node, callee_name,
             "pgy_set_size_raw_export");
-        if (fn == NULL) {
-            *out = NULL;
-            return true;
-        }
+        if (fn == NULL)
+            return llvm_collection_base_error_out(ctx, node, out,
+                "LLVM SetSize requires registered runtime function");
         {
             LLVMValueRef args[] = {
-                LLVMBuildBitCast(ctx->builder, set_var->alloca, ctx->type_i8ptr, llvm_tmp_name(ctx))
+                LLVMBuildBitCast(ctx->builder, set_var.alloca, ctx->type_i8ptr, llvm_tmp_name(ctx))
             };
             *out = LLVMBuildCall2(ctx->builder, fn->fn_type, fn->fn, args, 1,
                                   llvm_tmp_name(ctx));

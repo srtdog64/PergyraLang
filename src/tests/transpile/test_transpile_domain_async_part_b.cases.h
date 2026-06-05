@@ -183,8 +183,7 @@ test_parallel_execution_emit(void)
         TranspilerCtx *ctx = transpiler_ctx_create();
         char *result = emit_expression(send, ctx);
 
-        EXPECT(result != NULL);
-        EXPECT_STR_NOT_CONTAINS(result, "&MakeChannel");
+        EXPECT(result == NULL);
         EXPECT(ctx->backend_error != NULL);
         EXPECT_STR_CONTAINS(ctx->backend_error,
                             "requires a named Channel<T> binding");
@@ -202,8 +201,7 @@ test_parallel_execution_emit(void)
         TranspilerCtx *ctx = transpiler_ctx_create();
         char *result = emit_expression(recv, ctx);
 
-        EXPECT(result != NULL);
-        EXPECT_STR_NOT_CONTAINS(result, "&MakeChannel");
+        EXPECT(result == NULL);
         EXPECT(ctx->backend_error != NULL);
         EXPECT_STR_CONTAINS(ctx->backend_error,
                             "requires a named Channel<T> binding");
@@ -223,7 +221,7 @@ test_parallel_execution_emit(void)
         register_typed_var(ctx, "ch", "Channel<Unknown>");
         char *result = emit_expression(send, ctx);
 
-        EXPECT(result != NULL);
+        EXPECT(result == NULL);
         EXPECT(ctx->backend_error != NULL);
         EXPECT_STR_CONTAINS(ctx->backend_error,
                             "requires concrete Channel<T> payload metadata");

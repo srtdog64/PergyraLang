@@ -341,9 +341,9 @@ llvm_simple_expr_type_name(LLVMGenCtx *ctx, ASTNode *expr)
     case AST_STRING: return "String";
     case AST_BOOLEAN: return "Bool";
     case AST_IDENTIFIER: {
-        LLVMVarEntry *entry = llvm_scope_lookup(ctx, ast_identifier_name(expr));
-        if (entry != NULL)
-            return llvm_type_to_suffix(ctx, entry->type);
+        LLVMVarEntry entry;
+        if (llvm_scope_lookup_snapshot(ctx, ast_identifier_name(expr), &entry))
+            return llvm_type_to_suffix(ctx, entry.type);
         return NULL;
     }
     case AST_CALL:

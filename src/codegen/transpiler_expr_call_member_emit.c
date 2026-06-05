@@ -30,6 +30,28 @@
 #include "transpiler_type_require.h"
 #include "transpiler_type_render.h"
 
+static char *
+transpiler_member_call_emit_part(TranspilerCtx *ctx,
+                                 ASTNode *expr,
+                                 const char *method_name,
+                                 const char *role)
+{
+    char *rendered = emit_expression(expr, ctx);
+
+    if (rendered != NULL)
+        return rendered;
+
+    transpiler_set_backend_error_with_hints(
+        ctx,
+        PGY_CODE_C_TYPE_UNSUPPORTED,
+        PGY_CAUSE_C_TYPE_UNSUPPORTED,
+        PGY_FIX_USE_LLVM_BACKEND_OR_EXTEND_TRANSPILER,
+        "C backend: member call %s could not lower %s expression",
+        method_name != NULL ? method_name : "(anonymous-method)",
+        role != NULL ? role : "operand");
+    return NULL;
+}
+
 char *
 emit_call_member_style(ASTNode *call, ASTNode *callee, TranspilerCtx *ctx)
 {
@@ -55,7 +77,14 @@ emit_call_member_style(ASTNode *call, ASTNode *callee, TranspilerCtx *ctx)
                     CodeBuf *args_buf = codebuf_create();
                     codebuf_write(args_buf, "%s.%s", party_var, slot_name);
                     for (size_t i = 0; i < ast_call_arg_count(call); i++) {
-                        char *arg = emit_expression(ast_call_argument(call, i), ctx);
+                        char *arg = transpiler_member_call_emit_part(ctx,
+                            ast_call_argument(call, i), method,
+                            "party ability argument");
+                        if (arg == NULL) {
+                            codebuf_destroy(args_buf);
+                            free(ability_name);
+                            return NULL;
+                        }
                         codebuf_write(args_buf, ", %s", arg);
                         free(arg);
                     }
@@ -109,8 +138,13 @@ emit_call_member_style(ASTNode *call, ASTNode *callee, TranspilerCtx *ctx)
                 if (is_self_ident && use_self_cell) {
                     codebuf_write(args_buf, "self");
                 } else {
-                    char *obj_expr = emit_expression(obj, ctx);
+                    char *obj_expr = transpiler_member_call_emit_part(ctx,
+                        obj, method, "receiver");
                     bool already_pointer = false;
+                    if (obj_expr == NULL) {
+                        codebuf_destroy(args_buf);
+                        return NULL;
+                    }
                     if (obj->type == AST_IDENTIFIER) {
                         TypedVarEntry *entry = lookup_typed_entry(ctx,
                             ast_identifier_name(obj));
@@ -126,8 +160,13 @@ emit_call_member_style(ASTNode *call, ASTNode *callee, TranspilerCtx *ctx)
 
                 for (size_t i = 0; i < ast_call_arg_count(call); i++) {
                     ASTNode *arg_node = ast_call_argument(call, i);
-                    char *arg = emit_expression(arg_node, ctx);
+                    char *arg = transpiler_member_call_emit_part(ctx,
+                        arg_node, method, "argument");
                     bool pass_by_ptr = false;
+                    if (arg == NULL) {
+                        codebuf_destroy(args_buf);
+                        return NULL;
+                    }
                     if (method_meta != NULL) {
                         size_t param_index = i;
                         size_t param_count =
@@ -204,7 +243,7 @@ emit_call_member_style(ASTNode *call, ASTNode *callee, TranspilerCtx *ctx)
                                 i + 1, method != NULL ? method : "<method>");
                             free(arg);
                             codebuf_destroy(args_buf);
-                            return pergyra_strdup("0");
+                            return NULL;
                         }
                     } else {
                         codebuf_write(args_buf, ", %s", arg);
@@ -308,7 +347,7 @@ emit_call_member_style(ASTNode *call, ASTNode *callee, TranspilerCtx *ctx)
                                     PGY_FIX_ANNOTATE_CONCRETE_TYPE,
                                     "C method call post-sync wrapper cannot render return type '%s'",
                                     ret_type_name);
-                                wrapped = pergyra_strdup("0");
+                                wrapped = NULL;
                             } else {
                             wrapped = strdup_fmt(
                                 "({ %s _pgy_call_%d = %s; %s%s%s_pgy_call_%d; })",
@@ -341,8 +380,11 @@ emit_call_member_style(ASTNode *call, ASTNode *callee, TranspilerCtx *ctx)
             bool is_secure = lookup_slot_is_secure(ctx, obj_name);
             bool saved_suppress = ctx->suppress_slot_auto_read;
             ctx->suppress_slot_auto_read = true;
-            char *obj_expr = emit_expression(obj, ctx);
+            char *obj_expr = transpiler_member_call_emit_part(ctx,
+                obj, method, "slot receiver");
             ctx->suppress_slot_auto_read = saved_suppress;
+            if (obj_expr == NULL)
+                return NULL;
             if (lookup_slot_type_copy(ctx, obj_name,
                     inner_buf, sizeof(inner_buf))) {
                 inner = inner_buf;
@@ -353,16 +395,33 @@ emit_call_member_style(ASTNode *call, ASTNode *callee, TranspilerCtx *ctx)
                         ? obj_name
                         : "<slot>");
                 free(obj_expr);
-                return pergyra_strdup("0");
+                return NULL;
             }
             char *slot_ref = slot_ref_expr(ctx, obj_name, obj_expr);
+            if (slot_ref == NULL) {
+                free(obj_expr);
+                return NULL;
+            }
 
             if (pgy_codegen_call_name_is_write(method)
                 && ast_call_arg_count(call) >= 1) {
-                char *val_expr = emit_expression(ast_call_argument(call, 0), ctx);
+                char *val_expr = transpiler_member_call_emit_part(ctx,
+                    ast_call_argument(call, 0), method, "write value");
                 char *result;
+                if (val_expr == NULL) {
+                    free(slot_ref);
+                    free(obj_expr);
+                    return NULL;
+                }
                 if (is_secure && ast_call_arg_count(call) >= 2) {
-                    char *tok = emit_expression(ast_call_argument(call, 1), ctx);
+                    char *tok = transpiler_member_call_emit_part(ctx,
+                        ast_call_argument(call, 1), method, "write token");
+                    if (tok == NULL) {
+                        free(val_expr);
+                        free(slot_ref);
+                        free(obj_expr);
+                        return NULL;
+                    }
                     result = strdup_fmt("pgy_secure_write_%s(%s, %s, &%s)",
                                         inner, slot_ref, val_expr, tok);
                     free(tok);
@@ -373,7 +432,7 @@ emit_call_member_style(ASTNode *call, ASTNode *callee, TranspilerCtx *ctx)
                         free(val_expr);
                         free(slot_ref);
                         free(obj_expr);
-                        return pergyra_strdup("0");
+                        return NULL;
                     }
                     result = strdup_fmt("pgy_secure_write_%s(%s, %s, &%s)",
                                         inner, slot_ref, val_expr, token_name);
@@ -393,7 +452,7 @@ emit_call_member_style(ASTNode *call, ASTNode *callee, TranspilerCtx *ctx)
                     if (token_name == NULL) {
                         free(slot_ref);
                         free(obj_expr);
-                        return pergyra_strdup("0");
+                        return NULL;
                     }
                     result = strdup_fmt("pgy_secure_read_%s(%s, &%s)",
                                         inner, slot_ref, token_name);
@@ -411,7 +470,7 @@ emit_call_member_style(ASTNode *call, ASTNode *callee, TranspilerCtx *ctx)
                     if (token_name == NULL) {
                         free(slot_ref);
                         free(obj_expr);
-                        return pergyra_strdup("0");
+                        return NULL;
                     }
                     result = strdup_fmt("pgy_secure_release_%s(%s, &%s)",
                                         inner, slot_ref, token_name);
@@ -443,10 +502,19 @@ emit_call_member_style(ASTNode *call, ASTNode *callee, TranspilerCtx *ctx)
                 && ast_call_arg_count(call) == 2) {
                 char inner_buf[128];
                 const char *inner = NULL;
-                char *start_expr = emit_expression(ast_call_argument(call, 0), ctx);
-                char *len_expr = emit_expression(ast_call_argument(call, 1), ctx);
+                char *start_expr = transpiler_member_call_emit_part(ctx,
+                    ast_call_argument(call, 0), method, "slice start");
+                char *len_expr = NULL;
                 char *result = NULL;
                 int tmp_id = ++ctx->tmp_counter;
+                if (start_expr == NULL)
+                    return NULL;
+                len_expr = transpiler_member_call_emit_part(ctx,
+                    ast_call_argument(call, 1), method, "slice length");
+                if (len_expr == NULL) {
+                    free(start_expr);
+                    return NULL;
+                }
                 if (slot_inner_type_name_copy(receiver_type, inner_buf,
                         sizeof(inner_buf)))
                     inner = inner_buf;
@@ -456,17 +524,29 @@ emit_call_member_style(ASTNode *call, ASTNode *callee, TranspilerCtx *ctx)
                         receiver_type);
                     free(start_expr);
                     free(len_expr);
-                    return pergyra_strdup("0");
+                    return NULL;
                 }
 
                 if (transpiler_type_name_is_array(receiver_type)) {
-                    char *obj_expr = emit_expression(obj, ctx);
+                    char *obj_expr = transpiler_member_call_emit_part(ctx,
+                        obj, method, "slice receiver");
+                    if (obj_expr == NULL) {
+                        free(start_expr);
+                        free(len_expr);
+                        return NULL;
+                    }
                     result = strdup_fmt(
                         "({ PgyArray_%s _pgy_arr_%d = %s; pgy_array_slice_%s(&_pgy_arr_%d, (size_t)(%s), (size_t)(%s)); })",
                         inner, tmp_id, obj_expr, inner, tmp_id, start_expr, len_expr);
                     free(obj_expr);
                 } else {
-                    char *obj_expr = emit_expression(obj, ctx);
+                    char *obj_expr = transpiler_member_call_emit_part(ctx,
+                        obj, method, "slice receiver");
+                    if (obj_expr == NULL) {
+                        free(start_expr);
+                        free(len_expr);
+                        return NULL;
+                    }
                     result = strdup_fmt(
                         "({ PgySlice_%s _pgy_slice_%d = %s; size_t _pgy_start_%d = (size_t)(%s); size_t _pgy_len_%d = (size_t)(%s); if (_pgy_start_%d > _pgy_slice_%d.length || _pgy_len_%d > _pgy_slice_%d.length - _pgy_start_%d || (_pgy_len_%d > 0 && _pgy_slice_%d.data == NULL)) PGY_RUNTIME_PANIC(PGY_RUNTIME_PANIC_CLASS_OUT_OF_BOUNDS, PGY_RUNTIME_PANIC_REASON_SLICE_OUT_OF_BOUNDS); (PgySlice_%s){ _pgy_len_%d == 0 ? NULL : _pgy_slice_%d.data + _pgy_start_%d, _pgy_len_%d }; })",
                         inner, tmp_id, obj_expr,

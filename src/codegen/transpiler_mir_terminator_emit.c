@@ -10,6 +10,7 @@
 #include "transpiler_mir_cfg_control_emit.h"
 #include "transpiler_mir_phi_emit.h"
 #include "transpiler_mir_pin_emit.h"
+#include "../semantic/diag_codes.h"
 
 static void
 transpiler_mir_set_pin_cleanup_error(TranspilerCtx *ctx,
@@ -43,7 +44,16 @@ transpiler_emit_mir_branch_terminator(ASTNode *node,
 {
     char *cond = transpiler_mir_render_branch_condition(
         node, mir_routine, inst, block->succ_true, ctx, block_ssa_map);
-    const char *cond_text = cond != NULL ? cond : "false";
+
+    if (cond == NULL) {
+        if (ctx != NULL && ctx->backend_error == NULL) {
+            transpiler_set_mir_topology_invalid(ctx,
+                "MIR branch condition emission failed in function '%s' at block %llu",
+                name != NULL ? name : "<function>",
+                (unsigned long long) block->id);
+        }
+        return false;
+    }
 
     if (block->has_succ_true) {
         transpiler_emit_mir_phi_copies(ctx->out, ctx, ctx->indent, block_index,
@@ -58,7 +68,7 @@ transpiler_emit_mir_branch_terminator(ASTNode *node,
     }
 
     write_indent(ctx);
-    transpiler_write_condition_head(ctx, "if", cond_text, " {\n");
+    transpiler_write_condition_head(ctx, "if", cond, " {\n");
     write_indent_to(ctx->out, ctx->indent + 1);
     codebuf_write(ctx->out, "goto _pgy_mir_bb_%s_%zu;\n",
                   name, block->succ_true);
@@ -102,6 +112,27 @@ transpiler_emit_mir_return_terminator(const MIRBasicBlock *block,
         ret_expr = emit_expression_with_ssa_map(inst->expr0, ctx, block_ssa_map);
         ctx->expected_callable_type = saved_expected_callable_type;
         ctx->expected_type = saved_expected_type;
+        if (ret_expr == NULL) {
+            if (ctx != NULL && ctx->backend_error == NULL) {
+                transpiler_set_backend_error_with_hints(ctx,
+                    PGY_CODE_C_TYPE_UNSUPPORTED,
+                    PGY_CAUSE_C_TYPE_UNSUPPORTED,
+                    PGY_FIX_INSPECT_MIR_INVENTORY,
+                    "MIR return terminator in function '%s' could not lower return value",
+                    name != NULL ? name : "<function>");
+            }
+            return false;
+        }
+    } else if (strcmp(ctx->current_return_type, "Void") != 0) {
+        if (ctx != NULL && ctx->backend_error == NULL) {
+            transpiler_set_backend_error_with_hints(ctx,
+                PGY_CODE_C_TYPE_UNSUPPORTED,
+                PGY_CAUSE_CFG_MISSING_RETURN,
+                PGY_FIX_ADD_RETURN_ON_ALL_PATHS,
+                "MIR non-Void return terminator in function '%s' requires a value",
+                name != NULL ? name : "<function>");
+        }
+        return false;
     }
     if (!transpiler_emit_mir_pin_exit_local(ctx->out, ctx, block,
                                             block_reason,
@@ -113,8 +144,7 @@ transpiler_emit_mir_return_terminator(const MIRBasicBlock *block,
 
     write_indent(ctx);
     if (inst->expr0 != NULL) {
-        codebuf_write(ctx->out, "return %s;\n",
-                      ret_expr != NULL ? ret_expr : "0");
+        codebuf_write(ctx->out, "return %s;\n", ret_expr);
     } else {
         codebuf_write(ctx->out, "return;\n");
     }

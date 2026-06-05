@@ -21,17 +21,41 @@
 #include "transpiler_type_mapping.h"
 #include "transpiler_type_require.h"
 
+static char *
+transpiler_match_emit_part(TranspilerCtx *ctx,
+                           ASTNode *expr,
+                           const char *role)
+{
+    char *rendered = emit_expression(expr, ctx);
+
+    if (rendered != NULL)
+        return rendered;
+
+    transpiler_set_backend_error_with_hints(
+        ctx,
+        PGY_CODE_C_TYPE_UNSUPPORTED,
+        PGY_CAUSE_C_TYPE_UNSUPPORTED,
+        PGY_FIX_USE_LLVM_BACKEND_OR_EXTEND_TRANSPILER,
+        "C match lowering could not lower %s expression",
+        role != NULL ? role : "operand");
+    return NULL;
+}
+
 void
 emit_match_stmt(ASTNode *node, TranspilerCtx *ctx)
 {
     ASTNode *subject_node = ast_match_subject(node);
-    char *subj = emit_expression(subject_node, ctx);
+    char *subj = transpiler_match_emit_part(ctx, subject_node, "subject");
+    int saved_indent = ctx->indent;
     int tmp_id = ctx->tmp_counter++;
     const char *subject_type = transpiler_expr_infer_type_name(ctx,
         subject_node);
     char subject_c_type_buf[256];
     const char *subject_c_type = NULL;
     bool subject_is_option = transpiler_type_name_is_option(subject_type);
+
+    if (subj == NULL)
+        return;
 
     if (subject_type == NULL || subject_type[0] == '\0'
         || strcmp(subject_type, "Unknown") == 0) {
@@ -81,8 +105,12 @@ emit_match_stmt(ASTNode *node, TranspilerCtx *ctx)
             && ast_match_case_pattern_count(mc) > 1) {
             codebuf_write(ctx->out, i == 0 ? "if (" : "else if (");
             for (size_t p = 0; p < ast_match_case_pattern_count(mc); p++) {
-                char *pat = emit_expression(ast_match_case_pattern_at(mc, p),
-                    ctx);
+                char *pat = transpiler_match_emit_part(ctx,
+                    ast_match_case_pattern_at(mc, p), "pattern");
+                if (pat == NULL) {
+                    ctx->indent = saved_indent;
+                    return;
+                }
                 if (p > 0)
                     codebuf_write(ctx->out, " || ");
                 codebuf_write(ctx->out, "__match_%d == %s", tmp_id, pat);
@@ -120,7 +148,12 @@ emit_match_stmt(ASTNode *node, TranspilerCtx *ctx)
                     tmp_id, ename, vname);
                 kind = vname;
             } else {
-                char *pat = emit_expression(pattern_node, ctx);
+                char *pat = transpiler_match_emit_part(ctx,
+                    pattern_node, "pattern");
+                if (pat == NULL) {
+                    ctx->indent = saved_indent;
+                    return;
+                }
                 codebuf_write(ctx->out,
                     i == 0 ? "if (__match_%d == %s"
                            : "else if (__match_%d == %s",
@@ -130,7 +163,12 @@ emit_match_stmt(ASTNode *node, TranspilerCtx *ctx)
         }
 
         if (ast_match_case_guard(mc) != NULL) {
-            char *guard = emit_expression(ast_match_case_guard(mc), ctx);
+            char *guard = transpiler_match_emit_part(ctx,
+                ast_match_case_guard(mc), "guard");
+            if (guard == NULL) {
+                ctx->indent = saved_indent;
+                return;
+            }
             codebuf_write(ctx->out, " && %s", guard);
             free(guard);
         }

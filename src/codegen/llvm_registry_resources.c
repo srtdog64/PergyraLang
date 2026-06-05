@@ -38,12 +38,12 @@ llvm_registry_keep_string(LLVMGenCtx *ctx, const char *value)
 static LLVMValueRef
 llvm_resource_active_binding(LLVMGenCtx *ctx, const char *var_name)
 {
-    LLVMVarEntry *entry;
+    LLVMVarEntry entry;
 
     if (ctx == NULL || var_name == NULL)
         return NULL;
-    entry = llvm_scope_lookup(ctx, var_name);
-    return entry != NULL ? entry->alloca : NULL;
+    return llvm_scope_lookup_snapshot(ctx, var_name, &entry)
+        ? entry.alloca : NULL;
 }
 
 void
@@ -263,18 +263,22 @@ llvm_mark_device_slot_released(LLVMGenCtx *ctx, const char *var_name)
     }
 }
 
-LLVMVarEntry *
-llvm_lookup_secure_token_var(LLVMGenCtx *ctx, const char *slot_name)
+bool
+llvm_lookup_secure_token_var(LLVMGenCtx *ctx, const char *slot_name,
+                             LLVMVarEntry *out)
 {
     char token_name[256];
     int written;
 
+    if (out == NULL)
+        return false;
+    memset(out, 0, sizeof(*out));
     if (ctx == NULL || slot_name == NULL)
-        return NULL;
+        return false;
     written = snprintf(token_name, sizeof(token_name), "%s_token", slot_name);
     if (written < 0 || (size_t)written >= sizeof(token_name))
-        return NULL;
-    return llvm_scope_lookup(ctx, token_name);
+        return false;
+    return llvm_scope_lookup_snapshot(ctx, token_name, out);
 }
 
 void

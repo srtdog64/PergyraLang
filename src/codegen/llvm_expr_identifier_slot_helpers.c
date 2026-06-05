@@ -35,62 +35,9 @@ llvm_identifier_error(ASTNode *node, LLVMGenCtx *ctx, const char *message)
     return NULL;
 }
 
-static const char *
-llvm_derive_slot_inner_from_current_decl(LLVMGenCtx *ctx,
-                                         const char *source_name,
-                                         bool *secure_out)
-{
-    ASTNode *current_decl;
-
-    if (secure_out != NULL)
-        *secure_out = false;
-    if (ctx == NULL || source_name == NULL || ctx->current_function == NULL)
-        return NULL;
-
-    current_decl = ctx->current_func_decl;
-    if (current_decl == NULL || current_decl->type != AST_FUNC_DECL)
-        return NULL;
-
-    for (size_t i = 0; i < ast_func_param_count(current_decl); i++) {
-        FuncParam *p = ast_func_param(current_decl, i);
-        const char *type_name;
-        GenericParams *generic_args;
-        const char *inner_name;
-
-        if (p == NULL || p->name == NULL || strcmp(p->name, source_name) != 0
-            || p->type == NULL || p->type->type != AST_TYPE
-            || ast_type_name(p->type) == NULL) {
-            continue;
-        }
-
-        type_name = ast_type_name(p->type);
-        if (!pgy_codegen_type_name_is_slot(type_name)
-            && !pgy_codegen_type_name_is_secure_slot(type_name)) {
-            continue;
-        }
-
-        generic_args = ast_type_generic_args(p->type);
-        GenericParam *inner_param = ast_generic_param_at(generic_args, 0);
-        if (inner_param == NULL) {
-            continue;
-        }
-
-        inner_name = llvm_keep_rendered_persistent(ctx,
-            llvm_stmt_render_type_arg(inner_param),
-            "out of memory copying LLVM slot source type");
-        if (inner_name == NULL)
-            continue;
-
-        if (secure_out != NULL)
-            *secure_out = pgy_codegen_type_name_is_secure_slot(type_name);
-        return inner_name;
-    }
-
-    return NULL;
-}
-
-LLVMVarEntry *
+bool
 llvm_resolve_slot_target(LLVMGenCtx *ctx, ASTNode *slot_arg,
+                         LLVMVarEntry *slot_out,
                          const char **inner_out,
                          const char **source_name_out,
                          bool *secure_out)
@@ -100,7 +47,7 @@ llvm_resolve_slot_target(LLVMGenCtx *ctx, ASTNode *slot_arg,
     bool is_secure = false;
 
     if (slot_arg == NULL)
-        return NULL;
+        return false;
 
     if (slot_arg->type == AST_IDENTIFIER) {
         LLVMViewVarEntry *view = llvm_lookup_view_var(ctx,
@@ -129,21 +76,13 @@ llvm_resolve_slot_target(LLVMGenCtx *ctx, ASTNode *slot_arg,
         }
     }
 
-    if (inner == NULL && source_name != NULL) {
-        const char *derived_inner =
-            llvm_derive_slot_inner_from_current_decl(ctx, source_name,
-                &is_secure);
-        if (derived_inner != NULL)
-            inner = derived_inner;
-    }
-
     if (source_name == NULL) {
         llvm_set_error_at_with_hints(ctx, slot_arg,
             PGY_CODE_LLVM_TYPE_UNSUPPORTED,
             PGY_CAUSE_LLVM_SLOT_BINDING_MISSING,
             PGY_FIX_USE_SLOT_BOUND_IDENTIFIER,
             "LLVM slot operation requires an identifier/view/move source with a known slot binding");
-        return NULL;
+        return false;
     }
     if (inner == NULL) {
         llvm_set_error_at_with_hints(ctx, slot_arg,
@@ -152,19 +91,17 @@ llvm_resolve_slot_target(LLVMGenCtx *ctx, ASTNode *slot_arg,
             PGY_FIX_ANNOTATE_CONCRETE_TYPE,
             "LLVM slot operation on '%s' requires a concrete slot inner type; silent Int fallback is no longer allowed",
             source_name);
-        return NULL;
+        return false;
     }
-    LLVMVarEntry *slot_var = source_name != NULL
-        ? llvm_scope_lookup(ctx, source_name)
-        : NULL;
-    if (slot_var == NULL) {
+    if (slot_out == NULL
+        || !llvm_scope_lookup_snapshot(ctx, source_name, slot_out)) {
         llvm_set_error_at_with_hints(ctx, slot_arg,
             PGY_CODE_LLVM_TYPE_UNSUPPORTED,
             PGY_CAUSE_LLVM_SLOT_BINDING_MISSING,
             PGY_FIX_INSPECT_MIR_INVENTORY,
             "LLVM slot operation on '%s' requires a registered slot local",
             source_name);
-        return NULL;
+        return false;
     }
     if (inner_out != NULL)
         *inner_out = inner;
@@ -172,7 +109,7 @@ llvm_resolve_slot_target(LLVMGenCtx *ctx, ASTNode *slot_arg,
         *source_name_out = source_name;
     if (secure_out != NULL)
         *secure_out = is_secure;
-    return slot_var;
+    return true;
 }
 
 LLVMValueRef
@@ -180,14 +117,14 @@ llvm_emit_identifier(ASTNode *node, LLVMGenCtx *ctx)
 {
     const char *name = ast_identifier_name(node);
     LLVMProjectionBorrowEntry *projection_borrow;
-    LLVMVarEntry *entry;
+    LLVMVarEntry entry;
     LLVMFuncEntry *fn;
 
     if (!ctx->suppress_slot_auto_read) {
         const char *inner = llvm_lookup_slot_inner(ctx, name);
         if (inner != NULL) {
-            LLVMVarEntry *var = llvm_scope_lookup(ctx, name);
-            if (var != NULL) {
+            LLVMVarEntry var;
+            if (llvm_scope_lookup_snapshot(ctx, name, &var)) {
                 bool is_secure = llvm_lookup_slot_is_secure(ctx, name);
                 char fn_name[64];
                 snprintf(fn_name, sizeof(fn_name),
@@ -195,13 +132,12 @@ llvm_emit_identifier(ASTNode *node, LLVMGenCtx *ctx)
                 fn = llvm_lookup_function(ctx, fn_name);
                 if (fn != NULL) {
                     if (is_secure) {
-                        LLVMVarEntry *token_var =
-                            llvm_require_secure_token_var(ctx, node, name,
-                                "auto-read");
-                        if (token_var != NULL) {
+                        LLVMVarEntry token_var;
+                        if (llvm_require_secure_token_var(ctx, node, name,
+                                "auto-read", &token_var)) {
                             LLVMValueRef args[] = {
-                                llvm_slot_runtime_arg(ctx, var),
-                                token_var->alloca
+                                llvm_slot_runtime_arg(ctx, &var),
+                                token_var.alloca
                             };
                             return LLVMBuildCall2(ctx->builder, fn->fn_type,
                                 fn->fn, args, 2, llvm_tmp_name(ctx));
@@ -209,7 +145,7 @@ llvm_emit_identifier(ASTNode *node, LLVMGenCtx *ctx)
                         return NULL;
                     }
                     {
-                        LLVMValueRef args[] = { llvm_slot_runtime_arg(ctx, var) };
+                        LLVMValueRef args[] = { llvm_slot_runtime_arg(ctx, &var) };
                         return LLVMBuildCall2(ctx->builder, fn->fn_type, fn->fn,
                             args, 1, llvm_tmp_name(ctx));
                     }
@@ -224,8 +160,8 @@ llvm_emit_identifier(ASTNode *node, LLVMGenCtx *ctx)
                     return NULL;
                 }
                 if (is_secure)
-                    return llvm_emit_structural_secure_slot_read(ctx, var, inner);
-                return llvm_direct_slot_read(ctx, var, inner);
+                    return llvm_emit_structural_secure_slot_read(ctx, &var, inner);
+                return llvm_direct_slot_read(ctx, &var, inner);
             }
         }
     }
@@ -251,24 +187,27 @@ llvm_emit_identifier(ASTNode *node, LLVMGenCtx *ctx)
             int field_idx = llvm_class_field_index(cls, name);
             if (field_idx >= 0) {
                 LLVMValueRef base_ptr = llvm_current_self_base_ptr(ctx, cls);
-                if (base_ptr != NULL) {
-                    LLVMValueRef gep = LLVMBuildStructGEP2(ctx->builder,
-                        cls->struct_type, base_ptr, (unsigned)field_idx,
-                        llvm_tmp_name(ctx));
-                    LLVMTypeRef field_type =
-                        llvm_class_field_type_at_index(cls, field_idx);
-                    if (field_type != NULL) {
-                        return LLVMBuildLoad2(ctx->builder, field_type, gep,
-                            llvm_tmp_name(ctx));
-                    }
+                if (base_ptr == NULL) {
+                    return llvm_identifier_error(node, ctx,
+                        "LLVM host field access requires a self receiver");
                 }
+                LLVMValueRef gep = LLVMBuildStructGEP2(ctx->builder,
+                    cls->struct_type, base_ptr, (unsigned)field_idx,
+                    llvm_tmp_name(ctx));
+                LLVMTypeRef field_type =
+                    llvm_class_field_type_at_index(cls, field_idx);
+                if (field_type != NULL) {
+                    return LLVMBuildLoad2(ctx->builder, field_type, gep,
+                        llvm_tmp_name(ctx));
+                }
+                return llvm_identifier_error(node, ctx,
+                    "LLVM host field access requires registered field metadata");
             }
         }
     }
 
-    entry = llvm_scope_lookup(ctx, name);
-    if (entry != NULL)
-        return LLVMBuildLoad2(ctx->builder, entry->type, entry->alloca,
+    if (llvm_scope_lookup_snapshot(ctx, name, &entry))
+        return LLVMBuildLoad2(ctx->builder, entry.type, entry.alloca,
                               llvm_tmp_name(ctx));
 
     fn = llvm_lookup_function(ctx, name);

@@ -75,22 +75,35 @@ llvm_mir_for_in_required_runtime(LLVMGenCtx *ctx,
     return fn;
 }
 
+static void
+llvm_mir_for_in_set_error(LLVMGenCtx *ctx,
+                          const MIRInstruction *inst,
+                          const char *message)
+{
+    if (ctx != NULL && !ctx->has_error) {
+        llvm_set_error_at_with_hints(ctx, mir_instruction_source_payload(inst),
+            PGY_CODE_LLVM_TYPE_UNSUPPORTED,
+            PGY_CAUSE_LLVM_TYPE_UNSUPPORTED,
+            PGY_FIX_INSPECT_MIR_INVENTORY,
+            "%s", message != NULL ? message : "LLVM MIR for-in lowering failed");
+    }
+}
+
 static LLVMTypeRef
 llvm_mir_for_in_scope_collection_elem_type(LLVMGenCtx *ctx, const char *name)
 {
-    LLVMVarEntry *var;
+    LLVMVarEntry var;
     const char *struct_name;
     const char *suffix = NULL;
 
     if (ctx == NULL || name == NULL)
         return NULL;
-    var = llvm_scope_lookup(ctx, name);
-    if (var == NULL || var->type == NULL)
+    if (!llvm_scope_lookup_snapshot(ctx, name, &var) || var.type == NULL)
         return NULL;
-    if (LLVMGetTypeKind(var->type) != LLVMStructTypeKind)
+    if (LLVMGetTypeKind(var.type) != LLVMStructTypeKind)
         return NULL;
 
-    struct_name = LLVMGetStructName(var->type);
+    struct_name = LLVMGetStructName(var.type);
     if (struct_name == NULL)
         return NULL;
     if (strncmp(struct_name, "PgyArray_", 9) == 0) {
@@ -122,7 +135,7 @@ llvm_mir_emit_for_in_loop_init(const MIRInstruction *inst, LLVMGenCtx *ctx)
         return true;
 
     llvm_mir_for_in_index_name(inst, variable, idx_name, sizeof(idx_name));
-    if (llvm_scope_lookup(ctx, idx_name) != NULL)
+    if (llvm_scope_contains(ctx, idx_name))
         return true;
     idx_alloca = llvm_create_entry_alloca(ctx, ctx->type_i32, idx_name);
     LLVMBuildStore(ctx->builder, LLVMConstInt(ctx->type_i32, 0, 0), idx_alloca);
@@ -135,7 +148,8 @@ llvm_mir_emit_for_in_loop_condition(const MIRInstruction *inst, LLVMGenCtx *ctx)
 {
     ASTNode *iterable;
     const char *variable;
-    LLVMVarEntry *idx_var;
+    LLVMVarEntry idx_snapshot;
+    LLVMVarEntry iter_snapshot;
     LLVMValueRef current;
     LLVMValueRef size_call;
     char idx_name[256];
@@ -150,64 +164,70 @@ llvm_mir_emit_for_in_loop_condition(const MIRInstruction *inst, LLVMGenCtx *ctx)
         return NULL;
 
     llvm_mir_for_in_index_name(inst, variable, idx_name, sizeof(idx_name));
-    idx_var = llvm_scope_lookup(ctx, idx_name);
-    if (idx_var == NULL || idx_var->alloca == NULL) {
+    if (!llvm_scope_lookup_snapshot(ctx, idx_name, &idx_snapshot)
+        || idx_snapshot.alloca == NULL) {
         LLVMValueRef idx_alloca = llvm_create_entry_alloca(ctx, ctx->type_i32,
                                                            idx_name);
         LLVMBuildStore(ctx->builder, LLVMConstInt(ctx->type_i32, 0, 0),
                        idx_alloca);
         llvm_scope_declare(ctx, pergyra_strdup(idx_name), idx_alloca,
                            ctx->type_i32);
-        idx_var = llvm_scope_lookup(ctx, idx_name);
+        (void)llvm_scope_lookup_snapshot(ctx, idx_name, &idx_snapshot);
     }
-    if (idx_var == NULL || idx_var->alloca == NULL)
+    if (idx_snapshot.alloca == NULL)
         return NULL;
 
-    size_call = LLVMConstInt(ctx->type_i32, 0, 0);
     iterable = inst->expr0;
-    if (iterable != NULL && iterable->type == AST_IDENTIFIER) {
-        const char *iter_name = ast_identifier_name(iterable);
-        LLVMVarEntry *iter_var = llvm_scope_lookup(ctx, iter_name);
-        LLVMArrayVarEntry *array_entry = llvm_lookup_array_var(ctx, iter_name);
-        LLVMTypeRef scope_elem =
-            llvm_mir_for_in_scope_collection_elem_type(ctx, iter_name);
-        if (iter_var != NULL && (array_entry != NULL || scope_elem != NULL)) {
-            LLVMValueRef aggregate = LLVMBuildLoad2(ctx->builder,
-                iter_var->type, iter_var->alloca, llvm_tmp_name(ctx));
-            LLVMValueRef length64 = llvm_array_length_i64(ctx, aggregate);
-            current = LLVMBuildLoad2(ctx->builder, ctx->type_i32,
-                                     idx_var->alloca, llvm_tmp_name(ctx));
-            current = LLVMBuildSExt(ctx->builder, current, ctx->type_i64,
-                                    llvm_tmp_name(ctx));
-            return LLVMBuildICmp(ctx->builder, LLVMIntSLT, current, length64,
-                                 llvm_tmp_name(ctx));
-        }
-        if (iter_var != NULL && llvm_lookup_list_inner(ctx, iter_name) != NULL) {
-            LLVMFuncEntry *size_fn = llvm_mir_for_in_required_runtime(ctx, inst,
-                "pgy_list_size_raw_export");
-            if (size_fn == NULL)
-                return NULL;
-            LLVMValueRef args[] = {
-                LLVMBuildBitCast(ctx->builder, iter_var->alloca,
-                                 ctx->type_i8ptr, llvm_tmp_name(ctx))
-            };
-            size_call = LLVMBuildCall2(ctx->builder, size_fn->fn_type,
-                                       size_fn->fn, args, 1,
-                                       llvm_tmp_name(ctx));
-        }
+    if (iterable == NULL || iterable->type != AST_IDENTIFIER) {
+        llvm_mir_for_in_set_error(ctx, inst,
+            "LLVM MIR for-in lowering requires identifier iterable metadata");
+        return NULL;
     }
 
-    current = LLVMBuildLoad2(ctx->builder, ctx->type_i32, idx_var->alloca,
+    const char *iter_name = ast_identifier_name(iterable);
+    LLVMArrayVarEntry *array_entry = llvm_lookup_array_var(ctx, iter_name);
+    LLVMTypeRef scope_elem =
+        llvm_mir_for_in_scope_collection_elem_type(ctx, iter_name);
+    if (llvm_scope_lookup_snapshot(ctx, iter_name, &iter_snapshot)
+        && (array_entry != NULL || scope_elem != NULL)) {
+        LLVMValueRef aggregate = LLVMBuildLoad2(ctx->builder,
+            iter_snapshot.type, iter_snapshot.alloca, llvm_tmp_name(ctx));
+        LLVMValueRef length64 = llvm_array_length_i64(ctx, aggregate);
+        current = LLVMBuildLoad2(ctx->builder, ctx->type_i32,
+                                 idx_snapshot.alloca, llvm_tmp_name(ctx));
+        current = LLVMBuildSExt(ctx->builder, current, ctx->type_i64,
+                                llvm_tmp_name(ctx));
+        return LLVMBuildICmp(ctx->builder, LLVMIntSLT, current, length64,
                              llvm_tmp_name(ctx));
-    return LLVMBuildICmp(ctx->builder, LLVMIntSLT, current, size_call,
-                         llvm_tmp_name(ctx));
+    }
+    if (iter_snapshot.alloca != NULL
+        && llvm_lookup_list_inner(ctx, iter_name) != NULL) {
+        LLVMFuncEntry *size_fn = llvm_mir_for_in_required_runtime(ctx, inst,
+            "pgy_list_size_raw_export");
+        if (size_fn == NULL)
+            return NULL;
+        LLVMValueRef args[] = {
+            LLVMBuildBitCast(ctx->builder, iter_snapshot.alloca,
+                             ctx->type_i8ptr, llvm_tmp_name(ctx))
+        };
+        size_call = LLVMBuildCall2(ctx->builder, size_fn->fn_type,
+                                   size_fn->fn, args, 1, llvm_tmp_name(ctx));
+        current = LLVMBuildLoad2(ctx->builder, ctx->type_i32,
+                                 idx_snapshot.alloca, llvm_tmp_name(ctx));
+        return LLVMBuildICmp(ctx->builder, LLVMIntSLT, current, size_call,
+                             llvm_tmp_name(ctx));
+    }
+
+    llvm_mir_for_in_set_error(ctx, inst,
+        "LLVM MIR for-in lowering requires Array<T>, Slice<T>, or List<T> iterable metadata");
+    return NULL;
 }
 
 bool
 llvm_mir_emit_for_in_loop_increment(const MIRInstruction *inst, LLVMGenCtx *ctx)
 {
     const char *variable;
-    LLVMVarEntry *idx_var;
+    LLVMVarEntry idx_snapshot;
     LLVMValueRef current;
     LLVMValueRef next;
     char idx_name[256];
@@ -222,16 +242,16 @@ llvm_mir_emit_for_in_loop_increment(const MIRInstruction *inst, LLVMGenCtx *ctx)
         return true;
 
     llvm_mir_for_in_index_name(inst, variable, idx_name, sizeof(idx_name));
-    idx_var = llvm_scope_lookup(ctx, idx_name);
-    if (idx_var == NULL || idx_var->alloca == NULL)
+    if (!llvm_scope_lookup_snapshot(ctx, idx_name, &idx_snapshot)
+        || idx_snapshot.alloca == NULL)
         return true;
 
-    current = LLVMBuildLoad2(ctx->builder, ctx->type_i32, idx_var->alloca,
+    current = LLVMBuildLoad2(ctx->builder, ctx->type_i32, idx_snapshot.alloca,
                              llvm_tmp_name(ctx));
     next = LLVMBuildAdd(ctx->builder, current,
                         LLVMConstInt(ctx->type_i32, 1, 0),
                         llvm_tmp_name(ctx));
-    LLVMBuildStore(ctx->builder, next, idx_var->alloca);
+    LLVMBuildStore(ctx->builder, next, idx_snapshot.alloca);
     return true;
 }
 
@@ -359,9 +379,9 @@ llvm_mir_emit_for_in_binding_for_inst(const MIRInstruction *branch_inst,
     const char *list_inner;
     LLVMArrayVarEntry *array_entry;
     LLVMTypeRef scope_elem_ty;
-    LLVMVarEntry *list_var;
-    LLVMVarEntry *loop_var;
-    LLVMVarEntry *idx_var;
+    LLVMVarEntry list_snapshot;
+    LLVMVarEntry loop_snapshot;
+    LLVMVarEntry idx_snapshot;
     LLVMValueRef list_alloca;
     LLVMTypeRef list_type;
     LLVMValueRef loop_alloca;
@@ -384,13 +404,12 @@ llvm_mir_emit_for_in_binding_for_inst(const MIRInstruction *branch_inst,
     list_inner = llvm_lookup_list_inner(ctx, iter_name);
     array_entry = llvm_lookup_array_var(ctx, iter_name);
     scope_elem_ty = llvm_mir_for_in_scope_collection_elem_type(ctx, iter_name);
-    list_var = llvm_scope_lookup(ctx, iter_name);
     if ((list_inner == NULL && array_entry == NULL && scope_elem_ty == NULL)
-        || list_var == NULL) {
+        || !llvm_scope_lookup_snapshot(ctx, iter_name, &list_snapshot)) {
         return true;
     }
-    list_alloca = list_var->alloca;
-    list_type = list_var->type;
+    list_alloca = list_snapshot.alloca;
+    list_type = list_snapshot.type;
     if (list_alloca == NULL || list_type == NULL)
         return true;
 
@@ -402,8 +421,7 @@ llvm_mir_emit_for_in_binding_for_inst(const MIRInstruction *branch_inst,
         return false;
     llvm_mir_for_in_binding_name(branch_inst, variable, binding_name,
                                  sizeof(binding_name));
-    loop_var = llvm_scope_lookup(ctx, binding_name);
-    if (loop_var == NULL) {
+    if (!llvm_scope_lookup_snapshot(ctx, binding_name, &loop_snapshot)) {
         LLVMValueRef loop_alloca = llvm_create_entry_alloca(ctx, elem_ty,
                                                             binding_name);
         llvm_scope_declare(ctx, pergyra_strdup(binding_name), loop_alloca,
@@ -414,23 +432,23 @@ llvm_mir_emit_for_in_binding_for_inst(const MIRInstruction *branch_inst,
                 llvm_register_var_class(ctx, pergyra_strdup(variable),
                                         cls->class_name);
         }
-        loop_var = llvm_scope_lookup(ctx, binding_name);
+        (void)llvm_scope_lookup_snapshot(ctx, binding_name, &loop_snapshot);
     }
-    if (loop_var == NULL || loop_var->alloca == NULL || loop_var->type == NULL)
+    if (loop_snapshot.alloca == NULL || loop_snapshot.type == NULL)
         return true;
-    loop_alloca = loop_var->alloca;
-    loop_type = loop_var->type;
+    loop_alloca = loop_snapshot.alloca;
+    loop_type = loop_snapshot.type;
     if (loop_alloca != NULL) {
         llvm_scope_declare(ctx, pergyra_strdup(variable), loop_alloca,
                            loop_type);
     }
     llvm_mir_for_in_index_name(branch_inst, variable,
                                idx_name, sizeof(idx_name));
-    idx_var = llvm_scope_lookup(ctx, idx_name);
-    if (idx_var == NULL || idx_var->alloca == NULL) {
+    if (!llvm_scope_lookup_snapshot(ctx, idx_name, &idx_snapshot)
+        || idx_snapshot.alloca == NULL) {
         return true;
     }
-    idx_alloca = idx_var->alloca;
+    idx_alloca = idx_snapshot.alloca;
 
     idx = LLVMBuildLoad2(ctx->builder, ctx->type_i32, idx_alloca,
                          llvm_tmp_name(ctx));

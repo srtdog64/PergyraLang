@@ -6,6 +6,8 @@
 #include <string.h>
 
 #include "../common/string_compat.h"
+#include "../semantic/diag_codes.h"
+#include "transpiler_context.h"
 #include "transpiler_type_mapping.h"
 
 static const char *
@@ -24,7 +26,7 @@ transpiler_type_render_lookup_generic_binding(TranspilerCtx *ctx,
 }
 
 static char *
-transpiler_type_render_strdup_fmt(const char *fmt, ...)
+transpiler_type_render_strdup_fmt(TranspilerCtx *ctx, const char *fmt, ...)
 {
     va_list ap;
     int n;
@@ -33,12 +35,24 @@ transpiler_type_render_strdup_fmt(const char *fmt, ...)
     va_start(ap, fmt);
     n = vsnprintf(NULL, 0, fmt, ap);
     va_end(ap);
-    if (n < 0)
-        return pergyra_strdup("");
+    if (n < 0) {
+        transpiler_set_backend_error_with_hints(ctx,
+            PGY_CODE_C_TYPE_UNSUPPORTED,
+            PGY_CAUSE_C_TYPE_UNSUPPORTED,
+            PGY_FIX_USE_LLVM_BACKEND_OR_EXTEND_TRANSPILER,
+            "C backend: type-name formatting failed");
+        return NULL;
+    }
 
     s = malloc((size_t)n + 1);
-    if (s == NULL)
-        return pergyra_strdup("");
+    if (s == NULL) {
+        transpiler_set_backend_error_with_hints(ctx,
+            PGY_CODE_C_TYPE_UNSUPPORTED,
+            PGY_CAUSE_C_TYPE_UNSUPPORTED,
+            PGY_FIX_USE_LLVM_BACKEND_OR_EXTEND_TRANSPILER,
+            "C backend: type-name allocation failed");
+        return NULL;
+    }
 
     va_start(ap, fmt);
     vsnprintf(s, (size_t)n + 1, fmt, ap);
@@ -46,15 +60,13 @@ transpiler_type_render_strdup_fmt(const char *fmt, ...)
     return s;
 }
 
-static void
+static bool
 append_type_name_in_ctx(TranspilerCtx *ctx, CodeBuf *buf, ASTNode *type_node)
 {
     if (type_node == NULL
         || type_node->type != AST_TYPE
-        || ast_type_name(type_node) == NULL) {
-        codebuf_write(buf, "Int");
-        return;
-    }
+        || ast_type_name(type_node) == NULL)
+        return false;
 
     if (ast_type_tuple_element_count(type_node) > 0) {
         codebuf_write(buf, "(");
@@ -62,11 +74,12 @@ append_type_name_in_ctx(TranspilerCtx *ctx, CodeBuf *buf, ASTNode *type_node)
         for (size_t i = 0; i < element_count; i++) {
             if (i > 0)
                 codebuf_write(buf, ", ");
-            append_type_name_in_ctx(ctx, buf,
-                                    ast_type_tuple_element(type_node, i));
+            if (!append_type_name_in_ctx(ctx, buf,
+                    ast_type_tuple_element(type_node, i)))
+                return false;
         }
         codebuf_write(buf, ")");
-        return;
+        return true;
     }
 
     {
@@ -83,7 +96,7 @@ append_type_name_in_ctx(TranspilerCtx *ctx, CodeBuf *buf, ASTNode *type_node)
         size_t generic_count = ast_generic_param_count(generic_args);
 
         if (generic_count == 0)
-            return;
+            return true;
 
         codebuf_write(buf, "<");
         for (size_t i = 0; i < generic_count; i++) {
@@ -91,16 +104,18 @@ append_type_name_in_ctx(TranspilerCtx *ctx, CodeBuf *buf, ASTNode *type_node)
             if (i > 0)
                 codebuf_write(buf, ", ");
             if (ast_generic_param_constraint(param) != NULL) {
-                append_type_name_in_ctx(ctx, buf,
-                                        ast_generic_param_constraint(param));
+                if (!append_type_name_in_ctx(ctx, buf,
+                        ast_generic_param_constraint(param)))
+                    return false;
             } else if (ast_generic_param_name(param) != NULL) {
                 codebuf_write(buf, "%s", ast_generic_param_name(param));
             } else {
-                codebuf_write(buf, "Int");
+                return false;
             }
         }
         codebuf_write(buf, ">");
     }
+    return true;
 }
 
 char *
@@ -113,12 +128,15 @@ char *
 render_type_name_in_ctx(TranspilerCtx *ctx, ASTNode *type_node)
 {
     if (type_node == NULL)
-        return pergyra_strdup("Int");
+        return NULL;
 
     if (type_node->type == AST_CHANNEL_TYPE) {
         char *inner = render_type_name_in_ctx(
             ctx, ast_channel_type_element_type(type_node));
-        char *result = transpiler_type_render_strdup_fmt("Channel<%s>", inner);
+        if (inner == NULL)
+            return NULL;
+        char *result = transpiler_type_render_strdup_fmt(ctx,
+            "Channel<%s>", inner);
         free(inner);
         return result;
     }
@@ -126,15 +144,21 @@ render_type_name_in_ctx(TranspilerCtx *ctx, ASTNode *type_node)
     if (type_node->type == AST_FUTURE_TYPE) {
         char *inner = render_type_name_in_ctx(
             ctx, ast_future_type_value_type(type_node));
-        char *result = transpiler_type_render_strdup_fmt("Future<%s>", inner);
+        if (inner == NULL)
+            return NULL;
+        char *result = transpiler_type_render_strdup_fmt(ctx,
+            "Future<%s>", inner);
         free(inner);
         return result;
     }
 
     CodeBuf *buf = codebuf_create();
     if (buf == NULL)
-        return pergyra_strdup("Int");
-    append_type_name_in_ctx(ctx, buf, type_node);
+        return NULL;
+    if (!append_type_name_in_ctx(ctx, buf, type_node)) {
+        codebuf_destroy(buf);
+        return NULL;
+    }
     char *result = pergyra_strdup(buf->data);
     codebuf_destroy(buf);
     return result;
@@ -177,8 +201,14 @@ pergyra_ast_type_to_c_copy_in_ctx(TranspilerCtx *ctx,
     if (type_node == NULL)
         return pergyra_str_copy(out, out_size, "void");
 
-    if (type_node->type == AST_EVENT_HANDLER_TYPE)
-        return pergyra_str_copy(out, out_size, "void *");
+    if (type_node->type == AST_EVENT_HANDLER_TYPE) {
+        transpiler_set_backend_error_with_hints(ctx,
+            PGY_CODE_C_TYPE_UNSUPPORTED,
+            PGY_CAUSE_C_TYPE_UNSUPPORTED,
+            PGY_FIX_USE_LLVM_BACKEND_OR_EXTEND_TRANSPILER,
+            "C backend function type requires declarator owner, not raw C type copy");
+        return false;
+    }
 
     type_name = render_type_name_in_ctx(ctx, type_node);
     ok = pergyra_type_to_c_copy(type_name, out, out_size);

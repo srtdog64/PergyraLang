@@ -73,6 +73,28 @@ transpiler_map_lookup(const char *fn, size_t argc)
     return spec->op;
 }
 
+static char *
+transpiler_map_emit_arg(TranspilerCtx *ctx,
+                        ASTNode *arg,
+                        const char *builtin_name,
+                        const char *role)
+{
+    char *rendered = emit_expression(arg, ctx);
+
+    if (rendered != NULL)
+        return rendered;
+
+    transpiler_set_backend_error_with_hints(
+        ctx,
+        PGY_CODE_C_TYPE_UNSUPPORTED,
+        PGY_CAUSE_C_TYPE_UNSUPPORTED,
+        PGY_FIX_USE_LLVM_BACKEND_OR_EXTEND_TRANSPILER,
+        "C backend: map builtin %s could not lower %s argument",
+        builtin_name != NULL ? builtin_name : "(unknown)",
+        role != NULL ? role : "operand");
+    return NULL;
+}
+
 char *
 emit_call_stdlib_map_builtin(const char *fn, ASTNode *call, TranspilerCtx *ctx)
 {
@@ -89,7 +111,7 @@ emit_call_stdlib_map_builtin(const char *fn, ASTNode *call, TranspilerCtx *ctx)
             if (!transpiler_require_hashmap_type(ctx, hint, "MapNew",
                     key_buf, sizeof(key_buf), value_buf, sizeof(value_buf),
                     &key, &value)) {
-                return pergyra_strdup("0");
+                return NULL;
             }
         } else {
             transpiler_set_backend_error_with_hints(ctx,
@@ -97,7 +119,7 @@ emit_call_stdlib_map_builtin(const char *fn, ASTNode *call, TranspilerCtx *ctx)
                 PGY_CAUSE_C_TYPE_UNSUPPORTED,
                 PGY_FIX_ANNOTATE_CONCRETE_TYPE,
                 "C backend: MapNew requires contextual HashMap<K, V> type hint");
-            return pergyra_strdup("0");
+            return NULL;
         }
         (void)key;
         transpiler_collection_ensure_specialization(ctx, "Map", value);
@@ -111,10 +133,20 @@ emit_call_stdlib_map_builtin(const char *fn, ASTNode *call, TranspilerCtx *ctx)
         ASTNode *value_arg = ast_call_argument(call, 2);
         if (!transpiler_require_c_addressable_storage(ctx, map_arg,
                 "MapSet", "HashMap"))
-            return pergyra_strdup("0");
-        char *m = emit_expression(map_arg, ctx);
-        char *k = emit_expression(key_arg, ctx);
-        char *v = emit_expression(value_arg, ctx);
+            return NULL;
+        char *m = transpiler_map_emit_arg(ctx, map_arg, "MapSet", "map");
+        char *k = m != NULL
+            ? transpiler_map_emit_arg(ctx, key_arg, "MapSet", "key")
+            : NULL;
+        char *v = k != NULL
+            ? transpiler_map_emit_arg(ctx, value_arg, "MapSet", "value")
+            : NULL;
+        if (m == NULL || k == NULL || v == NULL) {
+            free(m);
+            free(k);
+            free(v);
+            return NULL;
+        }
         const char *map_type = transpiler_expr_infer_type_name(ctx, map_arg);
         char key_buf[64];
         char value_buf[64];
@@ -124,7 +156,7 @@ emit_call_stdlib_map_builtin(const char *fn, ASTNode *call, TranspilerCtx *ctx)
                 key_buf, sizeof(key_buf), value_buf, sizeof(value_buf),
                 &key, &value)) {
             free(m); free(k); free(v);
-            return pergyra_strdup("0");
+            return NULL;
         }
         transpiler_collection_ensure_specialization(ctx, "Map", value);
         char suffix_buf[128];
@@ -141,9 +173,16 @@ emit_call_stdlib_map_builtin(const char *fn, ASTNode *call, TranspilerCtx *ctx)
         ASTNode *key_arg = ast_call_argument(call, 1);
         if (!transpiler_require_c_addressable_storage(ctx, map_arg,
                 "MapGet", "HashMap"))
-            return pergyra_strdup("0");
-        char *m = emit_expression(map_arg, ctx);
-        char *k = emit_expression(key_arg, ctx);
+            return NULL;
+        char *m = transpiler_map_emit_arg(ctx, map_arg, "MapGet", "map");
+        char *k = m != NULL
+            ? transpiler_map_emit_arg(ctx, key_arg, "MapGet", "key")
+            : NULL;
+        if (m == NULL || k == NULL) {
+            free(m);
+            free(k);
+            return NULL;
+        }
         const char *map_type = transpiler_expr_infer_type_name(ctx, map_arg);
         char key_buf[64];
         char value_buf[64];
@@ -153,7 +192,7 @@ emit_call_stdlib_map_builtin(const char *fn, ASTNode *call, TranspilerCtx *ctx)
                 key_buf, sizeof(key_buf), value_buf, sizeof(value_buf),
                 &key, &value)) {
             free(m); free(k);
-            return pergyra_strdup("0");
+            return NULL;
         }
         transpiler_collection_ensure_specialization(ctx, "Map", value);
         char suffix_buf[128];
@@ -170,9 +209,16 @@ emit_call_stdlib_map_builtin(const char *fn, ASTNode *call, TranspilerCtx *ctx)
         ASTNode *key_arg = ast_call_argument(call, 1);
         if (!transpiler_require_c_addressable_storage(ctx, map_arg,
                 "MapHas", "HashMap"))
-            return pergyra_strdup("0");
-        char *m = emit_expression(map_arg, ctx);
-        char *k = emit_expression(key_arg, ctx);
+            return NULL;
+        char *m = transpiler_map_emit_arg(ctx, map_arg, "MapHas", "map");
+        char *k = m != NULL
+            ? transpiler_map_emit_arg(ctx, key_arg, "MapHas", "key")
+            : NULL;
+        if (m == NULL || k == NULL) {
+            free(m);
+            free(k);
+            return NULL;
+        }
         const char *map_type = transpiler_expr_infer_type_name(ctx, map_arg);
         char key_buf[64];
         char value_buf[64];
@@ -182,7 +228,7 @@ emit_call_stdlib_map_builtin(const char *fn, ASTNode *call, TranspilerCtx *ctx)
                 key_buf, sizeof(key_buf), value_buf, sizeof(value_buf),
                 &key, &value)) {
             free(m); free(k);
-            return pergyra_strdup("0");
+            return NULL;
         }
         transpiler_collection_ensure_specialization(ctx, "Map", value);
         char suffix_buf[128];
@@ -199,9 +245,16 @@ emit_call_stdlib_map_builtin(const char *fn, ASTNode *call, TranspilerCtx *ctx)
         ASTNode *key_arg = ast_call_argument(call, 1);
         if (!transpiler_require_c_addressable_storage(ctx, map_arg,
                 "MapRemove", "HashMap"))
-            return pergyra_strdup("0");
-        char *m = emit_expression(map_arg, ctx);
-        char *k = emit_expression(key_arg, ctx);
+            return NULL;
+        char *m = transpiler_map_emit_arg(ctx, map_arg, "MapRemove", "map");
+        char *k = m != NULL
+            ? transpiler_map_emit_arg(ctx, key_arg, "MapRemove", "key")
+            : NULL;
+        if (m == NULL || k == NULL) {
+            free(m);
+            free(k);
+            return NULL;
+        }
         const char *map_type = transpiler_expr_infer_type_name(ctx, map_arg);
         char key_buf[64];
         char value_buf[64];
@@ -211,7 +264,7 @@ emit_call_stdlib_map_builtin(const char *fn, ASTNode *call, TranspilerCtx *ctx)
                 key_buf, sizeof(key_buf), value_buf, sizeof(value_buf),
                 &key, &value)) {
             free(m); free(k);
-            return pergyra_strdup("0");
+            return NULL;
         }
         transpiler_collection_ensure_specialization(ctx, "Map", value);
         char suffix_buf[128];
@@ -227,8 +280,10 @@ emit_call_stdlib_map_builtin(const char *fn, ASTNode *call, TranspilerCtx *ctx)
         ASTNode *map_arg = ast_call_argument(call, 0);
         if (!transpiler_require_c_addressable_storage(ctx, map_arg,
                 "MapSize", "HashMap"))
-            return pergyra_strdup("0");
-        char *m = emit_expression(map_arg, ctx);
+            return NULL;
+        char *m = transpiler_map_emit_arg(ctx, map_arg, "MapSize", "map");
+        if (m == NULL)
+            return NULL;
         const char *map_type = transpiler_expr_infer_type_name(ctx, map_arg);
         char key_buf[64];
         char value_buf[64];
@@ -238,7 +293,7 @@ emit_call_stdlib_map_builtin(const char *fn, ASTNode *call, TranspilerCtx *ctx)
                 key_buf, sizeof(key_buf), value_buf, sizeof(value_buf),
                 &key, &value)) {
             free(m);
-            return pergyra_strdup("0");
+            return NULL;
         }
         (void)key;
         transpiler_collection_ensure_specialization(ctx, "Map", value);
@@ -253,8 +308,10 @@ emit_call_stdlib_map_builtin(const char *fn, ASTNode *call, TranspilerCtx *ctx)
         ASTNode *map_arg = ast_call_argument(call, 0);
         if (!transpiler_require_c_addressable_storage(ctx, map_arg,
                 "MapKeys", "HashMap"))
-            return pergyra_strdup("0");
-        char *m = emit_expression(map_arg, ctx);
+            return NULL;
+        char *m = transpiler_map_emit_arg(ctx, map_arg, "MapKeys", "map");
+        if (m == NULL)
+            return NULL;
         const char *map_type = transpiler_expr_infer_type_name(ctx, map_arg);
         char key_buf[64];
         char value_buf[64];
@@ -264,7 +321,7 @@ emit_call_stdlib_map_builtin(const char *fn, ASTNode *call, TranspilerCtx *ctx)
                 key_buf, sizeof(key_buf), value_buf, sizeof(value_buf),
                 &key, &value)) {
             free(m);
-            return pergyra_strdup("0");
+            return NULL;
         }
         transpiler_collection_ensure_specialization(ctx, "Map", value);
         char suffix_buf[128];

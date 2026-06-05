@@ -16,5 +16,8 @@ bool llvm_stmt_format_bind_name(LLVMGenCtx *ctx,
                                 const char *prefix,
                                 const char *suffix,
                                 const char *label);
+bool llvm_stmt_require_non_void_value(LLVMGenCtx *ctx,
+                                      ASTNode *expr,
+                                      const char *message);
 
 #endif

@@ -34,11 +34,39 @@
 #include "transpiler_type_mapping.h"
 #include "transpiler_type_require.h"
 
+static char *
+transpiler_dispatch_emit_part(TranspilerCtx *ctx,
+                              ASTNode *expr,
+                              const char *owner,
+                              const char *role)
+{
+    char *rendered = emit_expression(expr, ctx);
+
+    if (rendered != NULL)
+        return rendered;
+
+    transpiler_set_backend_error_with_hints(
+        ctx,
+        PGY_CODE_C_TYPE_UNSUPPORTED,
+        PGY_CAUSE_C_TYPE_UNSUPPORTED,
+        PGY_FIX_USE_LLVM_BACKEND_OR_EXTEND_TRANSPILER,
+        "C backend: %s could not lower %s expression",
+        owner != NULL ? owner : "expression",
+        role != NULL ? role : "operand");
+    return NULL;
+}
+
 char *
 emit_expression(ASTNode *node, TranspilerCtx *ctx)
 {
-    if (node == NULL)
-        return pergyra_strdup("0");
+    if (node == NULL) {
+        transpiler_set_backend_error_with_hints(ctx,
+            PGY_CODE_C_TYPE_UNSUPPORTED,
+            PGY_CAUSE_C_TYPE_UNSUPPORTED,
+            PGY_FIX_USE_LLVM_BACKEND_OR_EXTEND_TRANSPILER,
+            "C backend: expression lowering received a null AST node");
+        return NULL;
+    }
 
     switch (node->type) {
     case AST_NUMBER:
@@ -48,8 +76,14 @@ emit_expression(ASTNode *node, TranspilerCtx *ctx)
 
     case AST_IDENTIFIER: {
         const char *id_name = ast_identifier_name(node);
-        if (id_name == NULL)
-            return pergyra_strdup("0");
+        if (id_name == NULL) {
+            transpiler_set_backend_error_with_hints(ctx,
+                PGY_CODE_C_TYPE_UNSUPPORTED,
+                PGY_CAUSE_C_TYPE_UNSUPPORTED,
+                PGY_FIX_USE_LLVM_BACKEND_OR_EXTEND_TRANSPILER,
+                "C backend: identifier expression is missing a name");
+            return NULL;
+        }
         /* None is target-typed; without contextual Option<T> semantic should
          * already reject it, and the backend keeps a hard guard. */
         if (pgy_codegen_match_variant_lookup(id_name)
@@ -132,16 +166,16 @@ emit_expression(ASTNode *node, TranspilerCtx *ctx)
                         PGY_CODE_C_TYPE_UNSUPPORTED,
                         PGY_CAUSE_C_TYPE_UNSUPPORTED,
                         PGY_FIX_ANNOTATE_CONCRETE_TYPE,
-                        "C slot SSA auto-read requires concrete Slot<T> payload metadata");
+                    "C slot SSA auto-read requires concrete Slot<T> payload metadata");
                     free(c_ssa_name);
-                    return pergyra_strdup("0");
+                    return NULL;
                 }
                 const char *token_name = secure
                     ? require_slot_token_name(ctx, id_name, "SecureSlot SSA auto-read")
                     : NULL;
                 if (secure && token_name == NULL) {
                     free(c_ssa_name);
-                    return pergyra_strdup("0");
+                    return NULL;
                 }
                 char *result = secure
                     ? strdup_fmt("pgy_secure_read_%s(&%s, &%s)",
@@ -171,15 +205,17 @@ emit_expression(ASTNode *node, TranspilerCtx *ctx)
                 || strcmp(inner, "Unknown") == 0) {
                 transpiler_set_backend_error_with_hints(ctx, PGY_CODE_C_TYPE_UNSUPPORTED, PGY_CAUSE_C_TYPE_UNSUPPORTED, PGY_FIX_USE_LLVM_BACKEND_OR_EXTEND_TRANSPILER, "cannot determine slot payload type for auto-read of '%s'",
                     id_name != NULL ? id_name : "<slot>");
-                return pergyra_strdup("0");
+                return NULL;
             }
             char *slot_ref = slot_ref_expr(ctx, id_name, id_name);
+            if (slot_ref == NULL)
+                return NULL;
             const char *token_name = secure
                 ? require_slot_token_name(ctx, id_name, "SecureSlot auto-read")
                 : NULL;
             if (secure && token_name == NULL) {
                 free(slot_ref);
-                return pergyra_strdup("0");
+                return NULL;
             }
             char *result = secure
                 ? strdup_fmt("pgy_secure_read_%s(%s, &%s)",
@@ -249,7 +285,10 @@ emit_expression(ASTNode *node, TranspilerCtx *ctx)
                 }
             }
         }
-        char *obj = emit_expression(member_object, ctx);
+        char *obj = transpiler_dispatch_emit_part(ctx, member_object,
+            "member access", "receiver");
+        if (obj == NULL)
+            return NULL;
         /* Enum variant access: Color.Red -> Color_Red. */
         if (member_object->type == AST_IDENTIFIER
             && ast_identifier_name(member_object) != NULL
@@ -319,9 +358,25 @@ emit_expression(ASTNode *node, TranspilerCtx *ctx)
                 }
                 if (inner != NULL && inner[0] != '\0'
                     && strcmp(inner, "Unknown") != 0) {
-                    char *array = emit_expression(array_node, ctx);
-                    char *index = emit_expression(index_node, ctx);
-                    char *value = emit_expression(value_node, ctx);
+                    char *array = transpiler_dispatch_emit_part(ctx,
+                        array_node, "array assignment", "array");
+                    char *index = NULL;
+                    char *value = NULL;
+                    if (array == NULL)
+                        return NULL;
+                    index = transpiler_dispatch_emit_part(ctx,
+                        index_node, "array assignment", "index");
+                    if (index == NULL) {
+                        free(array);
+                        return NULL;
+                    }
+                    value = transpiler_dispatch_emit_part(ctx,
+                        value_node, "array assignment", "value");
+                    if (value == NULL) {
+                        free(array);
+                        free(index);
+                        return NULL;
+                    }
                     char *result = strdup_fmt(
                         "pgy_array_set_%s(&%s, (size_t)(%s), %s)",
                         inner, array, index, value);
@@ -347,10 +402,17 @@ emit_expression(ASTNode *node, TranspilerCtx *ctx)
                     || strcmp(inner, "Unknown") == 0) {
                     transpiler_set_backend_error_with_hints(ctx, PGY_CODE_C_TYPE_UNSUPPORTED, PGY_CAUSE_C_TYPE_UNSUPPORTED, PGY_FIX_USE_LLVM_BACKEND_OR_EXTEND_TRANSPILER, "cannot determine slot payload type for assignment to '%s'",
                         tgt_name != NULL ? tgt_name : "<slot>");
-                    return pergyra_strdup("0");
+                    return NULL;
                 }
-                char *value = emit_expression(value_node, ctx);
+                char *value = transpiler_dispatch_emit_part(ctx, value_node,
+                    "slot assignment", "value");
+                if (value == NULL)
+                    return NULL;
                 char *slot_ref = slot_ref_expr(ctx, tgt_name, tgt_name);
+                if (slot_ref == NULL) {
+                    free(value);
+                    return NULL;
+                }
                 char *result;
                 if (secure) {
                     const char *token_name = require_slot_token_name(
@@ -358,7 +420,7 @@ emit_expression(ASTNode *node, TranspilerCtx *ctx)
                     if (token_name == NULL) {
                         free(slot_ref);
                         free(value);
-                        return pergyra_strdup("0");
+                        return NULL;
                     }
                     result = strdup_fmt("pgy_secure_write_%s(%s, %s, &%s)",
                         inner, slot_ref, value, token_name);
@@ -371,8 +433,17 @@ emit_expression(ASTNode *node, TranspilerCtx *ctx)
                 return result;
             }
         }
-        char *target = emit_expression(target_node, ctx);
-        char *value  = emit_expression(value_node,  ctx);
+        char *target = transpiler_dispatch_emit_part(ctx, target_node,
+            "assignment", "target");
+        char *value = NULL;
+        if (target == NULL)
+            return NULL;
+        value = transpiler_dispatch_emit_part(ctx, value_node,
+            "assignment", "value");
+        if (value == NULL) {
+            free(target);
+            return NULL;
+        }
         char *invalidation = emit_assignment_projection_invalidation(
             ctx, target_node);
         char *post_sync = emit_world_embedded_assignment_sync(
@@ -396,7 +467,8 @@ emit_expression(ASTNode *node, TranspilerCtx *ctx)
     case AST_AWAIT_EXPR:
         {
             ASTNode *awaited = ast_await_expression(node);
-            char *expr = emit_expression(awaited, ctx);
+            char *expr = transpiler_dispatch_emit_part(ctx, awaited,
+                "await", "task handle");
             char inner_buf[128];
             const char *inner = NULL;
             bool is_remote = is_remote_future_expr(ctx,
@@ -416,7 +488,7 @@ emit_expression(ASTNode *node, TranspilerCtx *ctx)
                     PGY_FIX_ANNOTATE_CONCRETE_TYPE,
                     "C await expression requires concrete Future<T> result metadata");
                 free(expr);
-                return pergyra_strdup("0");
+                return NULL;
             }
             if (is_remote && strcmp(inner, "Void") == 0) {
                 transpiler_set_backend_error_with_hints(ctx,
@@ -427,7 +499,7 @@ emit_expression(ASTNode *node, TranspilerCtx *ctx)
                     "semantic analysis must reject it until Result<Void> ABI "
                     "is frozen");
                 free(expr);
-                return pergyra_strdup("0");
+                return NULL;
             }
             if (strcmp(inner, "Void") == 0) {
                 result = strdup_fmt("pgy_await_void(%s)", expr);
@@ -449,7 +521,7 @@ emit_expression(ASTNode *node, TranspilerCtx *ctx)
                         "C await expression cannot render RemoteFuture result type '%s'",
                         inner);
                     free(expr);
-                    return pergyra_strdup("0");
+                    return NULL;
                 }
                 result = strdup_fmt("pgy_await_result_take(%s, %s, %s)",
                     expr, inner, inner_c_type);
@@ -470,7 +542,7 @@ emit_expression(ASTNode *node, TranspilerCtx *ctx)
                         "C await expression cannot render Future result type '%s'",
                         inner);
                     free(expr);
-                    return pergyra_strdup("0");
+                    return NULL;
                 }
                 result = strdup_fmt("pgy_await_take(%s, %s)",
                     expr, inner_c_type);
@@ -489,10 +561,22 @@ emit_expression(ASTNode *node, TranspilerCtx *ctx)
         return emit_channel_recv(node, ctx);
 
     case AST_EVENT_INVOKE: {
-        char *event = emit_expression(ast_event_invoke_event(node), ctx);
+        char *event = transpiler_dispatch_emit_part(ctx,
+            ast_event_invoke_event(node), "event invoke", "event");
         CodeBuf *args = codebuf_create();
+        if (event == NULL) {
+            codebuf_destroy(args);
+            return NULL;
+        }
         for (size_t i = 0; i < ast_event_invoke_arg_count(node); i++) {
-            char *arg = emit_expression(ast_event_invoke_argument(node, i), ctx);
+            char *arg = transpiler_dispatch_emit_part(ctx,
+                ast_event_invoke_argument(node, i),
+                "event invoke", "argument");
+            if (arg == NULL) {
+                free(event);
+                codebuf_destroy(args);
+                return NULL;
+            }
             if (i > 0)
                 codebuf_write(args, ", ");
             codebuf_write(args, "%s", arg);
@@ -524,6 +608,6 @@ emit_expression(ASTNode *node, TranspilerCtx *ctx)
     default:
         transpiler_set_backend_error_with_hints(ctx, PGY_CODE_C_TYPE_UNSUPPORTED, PGY_CAUSE_C_TYPE_UNSUPPORTED, PGY_FIX_USE_LLVM_BACKEND_OR_EXTEND_TRANSPILER, "C backend: unsupported expression node type %d at line %d",
             (int)node->type, node->line);
-        return pergyra_strdup("0");
+        return NULL;
     }
 }

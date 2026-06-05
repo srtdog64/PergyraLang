@@ -265,13 +265,14 @@ llvm_emit_rc_builtin_call(ASTNode *node, LLVMGenCtx *ctx,
     }
 
     const char *var_name = ast_identifier_name(arg);
-    LLVMVarEntry *var = llvm_scope_lookup(ctx, var_name);
+    LLVMVarEntry var;
+    bool has_var = llvm_scope_lookup_snapshot(ctx, var_name, &var);
     const char *inner = is_weak_op
         ? llvm_lookup_weak_inner(ctx, var_name)
         : llvm_lookup_rc_inner(ctx, var_name);
     const char *suffix = llvm_rc_suffix_from_inner(ctx, inner);
 
-    if (var == NULL || suffix == NULL) {
+    if (!has_var || suffix == NULL) {
         llvm_set_error_at_with_hints(ctx, arg,
             PGY_CODE_LLVM_TYPE_UNSUPPORTED,
             PGY_CAUSE_LLVM_TYPE_UNSUPPORTED,
@@ -290,7 +291,7 @@ llvm_emit_rc_builtin_call(ASTNode *node, LLVMGenCtx *ctx,
             "rc", callee_name, fn_name);
         if (fn == NULL)
             return true;
-        LLVMValueRef handle = llvm_rc_load_handle(ctx, var);
+        LLVMValueRef handle = llvm_rc_load_handle(ctx, &var);
         LLVMValueRef args[] = { handle };
         *out = LLVMBuildCall2(ctx->builder, fn->fn_type, fn->fn, args, 1,
                               llvm_tmp_name(ctx));
@@ -305,7 +306,7 @@ llvm_emit_rc_builtin_call(ASTNode *node, LLVMGenCtx *ctx,
             "rc", callee_name, fn_name);
         if (fn == NULL)
             return true;
-        LLVMValueRef handle = llvm_rc_load_handle(ctx, var);
+        LLVMValueRef handle = llvm_rc_load_handle(ctx, &var);
         LLVMValueRef args[] = { handle };
         LLVMValueRef ptr = LLVMBuildCall2(ctx->builder, fn->fn_type, fn->fn,
                                           args, 1, llvm_tmp_name(ctx));
@@ -326,10 +327,10 @@ llvm_emit_rc_builtin_call(ASTNode *node, LLVMGenCtx *ctx,
         LLVMFuncEntry *fn = llvm_required_runtime_function(ctx, node,
             "rc", callee_name, fn_name);
         if (fn != NULL) {
-            LLVMValueRef args[] = { var->alloca };
+            LLVMValueRef args[] = { var.alloca };
             LLVMBuildCall2(ctx->builder, fn->fn_type, fn->fn, args, 1, "");
         }
-        *out = LLVMConstInt(ctx->type_i32, 0, 0);
+        *out = llvm_void_expression_placeholder(ctx, node, callee_name);
         return true;
     }
 
@@ -341,7 +342,7 @@ llvm_emit_rc_builtin_call(ASTNode *node, LLVMGenCtx *ctx,
             "rc", callee_name, fn_name);
         if (fn == NULL)
             return true;
-        LLVMValueRef handle = llvm_rc_load_handle(ctx, var);
+        LLVMValueRef handle = llvm_rc_load_handle(ctx, &var);
         LLVMValueRef args[] = { handle };
         *out = LLVMBuildCall2(ctx->builder, fn->fn_type, fn->fn, args, 1,
                               llvm_tmp_name(ctx));
@@ -356,7 +357,7 @@ llvm_emit_rc_builtin_call(ASTNode *node, LLVMGenCtx *ctx,
             "weak", callee_name, fn_name);
         if (fn == NULL)
             return true;
-        LLVMValueRef handle = llvm_rc_load_handle(ctx, var);
+        LLVMValueRef handle = llvm_rc_load_handle(ctx, &var);
         LLVMValueRef args[] = { handle };
         *out = LLVMBuildCall2(ctx->builder, fn->fn_type, fn->fn, args, 1,
                               llvm_tmp_name(ctx));
@@ -370,10 +371,10 @@ llvm_emit_rc_builtin_call(ASTNode *node, LLVMGenCtx *ctx,
         LLVMFuncEntry *fn = llvm_required_runtime_function(ctx, node,
             "weak", callee_name, fn_name);
         if (fn != NULL) {
-            LLVMValueRef args[] = { var->alloca };
+            LLVMValueRef args[] = { var.alloca };
             LLVMBuildCall2(ctx->builder, fn->fn_type, fn->fn, args, 1, "");
         }
-        *out = LLVMConstInt(ctx->type_i32, 0, 0);
+        *out = llvm_void_expression_placeholder(ctx, node, callee_name);
         return true;
     }
 

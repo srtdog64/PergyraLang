@@ -46,23 +46,25 @@ void
 llvm_register_array_var(LLVMGenCtx *ctx, const char *var_name,
                         LLVMTypeRef elem_type, int64_t length)
 {
-    LLVMVarEntry *entry = llvm_scope_lookup(ctx, var_name);
+    LLVMVarEntry entry;
+    bool has_entry = llvm_scope_lookup_snapshot(ctx, var_name, &entry);
+
     llvm_register_array_var_binding(ctx, var_name,
-        entry != NULL ? entry->alloca : NULL, elem_type, length);
+        has_entry ? entry.alloca : NULL, elem_type, length);
 }
 
 LLVMArrayVarEntry *
 llvm_lookup_array_var(LLVMGenCtx *ctx, const char *var_name)
 {
-    LLVMVarEntry *entry;
+    LLVMVarEntry entry;
 
     if (ctx == NULL || var_name == NULL
-        || (entry = llvm_scope_lookup(ctx, var_name)) == NULL
-        || entry->alloca == NULL) {
+        || !llvm_scope_lookup_snapshot(ctx, var_name, &entry)
+        || entry.alloca == NULL) {
         return NULL;
     }
     for (int i = ctx->array_var_count - 1; i >= 0; i--) {
-        if (ctx->array_vars[i].binding == entry->alloca
+        if (ctx->array_vars[i].binding == entry.alloca
             && strcmp(ctx->array_vars[i].var_name, var_name) == 0)
             return &ctx->array_vars[i];
     }

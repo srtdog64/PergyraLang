@@ -149,19 +149,21 @@ llvm_build_boundary_call_args(LLVMGenCtx *ctx, ASTNode *decl,
 
         if (inner != NULL && arg_node != NULL && arg_node->type == AST_IDENTIFIER) {
             const char *source_name = ast_identifier_name(arg_node);
-            LLVMVarEntry *slot_var = llvm_scope_lookup(ctx, source_name);
-            args[emitted_idx++] = slot_var != NULL
-                ? llvm_boundary_slot_runtime_arg(ctx, slot_var)
+            LLVMVarEntry slot_var;
+            bool has_slot_var =
+                llvm_scope_lookup_snapshot(ctx, source_name, &slot_var);
+            args[emitted_idx++] = has_slot_var
+                ? llvm_boundary_slot_runtime_arg(ctx, &slot_var)
                 : llvm_emit_expression(arg_node, ctx);
             if (args[emitted_idx - 1] == NULL)
                 return llvm_boundary_args_error(ctx, arg_node,
                     "LLVM boundary slot argument could not be lowered");
             if (is_secure) {
-                LLVMVarEntry *token_var = llvm_lookup_secure_token_var(ctx, source_name);
-                if (token_var != NULL) {
-                    LLVMTypeRef token_ty = token_var->type;
+                LLVMVarEntry token_var;
+                if (llvm_lookup_secure_token_var(ctx, source_name, &token_var)) {
+                    LLVMTypeRef token_ty = token_var.type;
                     args[emitted_idx++] = LLVMBuildLoad2(ctx->builder, token_ty,
-                        token_var->alloca, llvm_tmp_name(ctx));
+                        token_var.alloca, llvm_tmp_name(ctx));
                 } else {
                     return llvm_boundary_args_error(ctx, arg_node,
                         "LLVM secure boundary slot argument requires paired token binding");
@@ -173,11 +175,11 @@ llvm_build_boundary_call_args(LLVMGenCtx *ctx, ASTNode *decl,
         if (pointer_self && arg_node != NULL) {
             if (arg_node->type == AST_IDENTIFIER) {
                 const char *source_name = ast_identifier_name(arg_node);
-                LLVMVarEntry *var = llvm_scope_lookup(ctx, source_name);
-                if (var != NULL) {
-                    args[emitted_idx++] = LLVMGetTypeKind(var->type) == LLVMPointerTypeKind
-                        ? LLVMBuildLoad2(ctx->builder, var->type, var->alloca, llvm_tmp_name(ctx))
-                        : var->alloca;
+                LLVMVarEntry var;
+                if (llvm_scope_lookup_snapshot(ctx, source_name, &var)) {
+                    args[emitted_idx++] = LLVMGetTypeKind(var.type) == LLVMPointerTypeKind
+                        ? LLVMBuildLoad2(ctx->builder, var.type, var.alloca, llvm_tmp_name(ctx))
+                        : var.alloca;
                     continue;
                 }
             } else if (arg_node->type == AST_MEMBER_ACCESS) {

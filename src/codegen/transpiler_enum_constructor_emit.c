@@ -4,7 +4,6 @@
 #include <stdlib.h>
 #include <string.h>
 
-#include "../common/string_compat.h"
 #include "../semantic/diag_codes.h"
 #include "parser/ast_api.h"
 #include "transpiler_context.h"
@@ -43,19 +42,25 @@ transpiler_emit_enum_variant_constructor(ASTNode *call,
             for (size_t j = 0; j < i; j++)
                 free(arg_strs[j]);
             free(arg_strs);
-            return pergyra_strdup("0");
+            return NULL;
         }
         arg_strs[i] = emit_expression(arg, ctx);
-    }
-
-    buf_len = strlen(qualified_name) + 3;
-    for (size_t i = 0; i < argc; i++) {
         if (arg_strs[i] == NULL) {
+            transpiler_set_backend_error_with_hints(ctx,
+                PGY_CODE_C_TYPE_UNSUPPORTED,
+                PGY_CAUSE_C_TYPE_UNSUPPORTED,
+                PGY_FIX_USE_LLVM_BACKEND_OR_EXTEND_TRANSPILER,
+                "C enum variant constructor '%s' could not lower payload %zu",
+                qualified_name, i + 1);
             for (size_t j = 0; j < i; j++)
                 free(arg_strs[j]);
             free(arg_strs);
             return NULL;
         }
+    }
+
+    buf_len = strlen(qualified_name) + 3;
+    for (size_t i = 0; i < argc; i++) {
         if (strlen(arg_strs[i]) > SIZE_MAX - buf_len - 2) {
             for (size_t j = 0; j <= i; j++)
                 free(arg_strs[j]);

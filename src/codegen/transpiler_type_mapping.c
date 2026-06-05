@@ -77,7 +77,7 @@ pergyra_primitive_to_c(const char *name)
     const char *mapped;
 
     if (name == NULL)
-        return "int32_t";
+        return NULL;
     mapped = transpiler_lookup_type_name_map(name, primitive_maps,
         sizeof(primitive_maps) / sizeof(primitive_maps[0]));
     if (mapped != NULL)
@@ -113,6 +113,42 @@ type_arg_name_is_void(const char *name)
     while (len > 0 && (name[len - 1] == ' ' || name[len - 1] == '\t'))
         len--;
     return len == 4 && strncmp(name, "Void", 4) == 0;
+}
+
+static bool
+type_name_fact_ident_char(char c)
+{
+    return (c >= 'A' && c <= 'Z')
+        || (c >= 'a' && c <= 'z')
+        || (c >= '0' && c <= '9')
+        || c == '_';
+}
+
+bool
+transpiler_type_name_contains_unknown_sentinel(const char *type_name)
+{
+    const char *hit = type_name;
+
+    while (hit != NULL && (hit = strstr(hit, "Unknown")) != NULL) {
+        char before = hit == type_name ? '\0' : hit[-1];
+        char after = hit[7];
+
+        if (!type_name_fact_ident_char(before)
+            && !type_name_fact_ident_char(after)) {
+            return true;
+        }
+        hit += 7;
+    }
+
+    return false;
+}
+
+bool
+transpiler_type_name_is_concrete_fact(const char *type_name)
+{
+    return type_name != NULL
+        && type_name[0] != '\0'
+        && !transpiler_type_name_contains_unknown_sentinel(type_name);
 }
 
 static bool
@@ -271,10 +307,8 @@ pergyra_type_to_c_copy(const char *name, char *out, size_t out_size)
         return false;
     out[0] = '\0';
 
-    if (name == NULL) {
-        copy_capped_string(out, out_size, "int32_t");
-        return true;
-    }
+    if (name == NULL)
+        return false;
 
     mapped = transpiler_lookup_type_name_map(name, builtin_alias_maps,
         sizeof(builtin_alias_maps) / sizeof(builtin_alias_maps[0]));

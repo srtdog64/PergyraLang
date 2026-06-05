@@ -34,7 +34,8 @@ llvm_emit_projection_from_binding(ASTNode *node, LLVMGenCtx *ctx,
     LLVMClassTypeEntry *target_cls;
     LLVMClassTypeEntry *source_cls;
     ASTNode *source_decl;
-    LLVMVarEntry *source_var;
+    LLVMVarEntry source_var;
+    bool has_source_var;
     LLVMValueRef source_base;
     LLVMValueRef projected;
 
@@ -43,22 +44,22 @@ llvm_emit_projection_from_binding(ASTNode *node, LLVMGenCtx *ctx,
             "LLVM projection binding requires target class and source names");
 
     target_cls = llvm_lookup_class(ctx, target_class_name);
-    source_var = llvm_scope_lookup(ctx, source_name);
+    has_source_var = llvm_scope_lookup_snapshot(ctx, source_name, &source_var);
     source_class_name = llvm_lookup_var_class(ctx, source_name);
     source_cls = source_class_name != NULL
         ? llvm_lookup_class(ctx, source_class_name) : NULL;
     source_decl = source_class_name != NULL
         ? llvm_find_projection_nominal_decl(ctx, source_class_name) : NULL;
-    if (target_cls == NULL || source_var == NULL || source_cls == NULL
+    if (target_cls == NULL || !has_source_var || source_cls == NULL
         || source_decl == NULL) {
         return llvm_projection_binding_error(node, ctx,
             "LLVM projection binding requires target/source metadata and source storage");
     }
 
-    source_base = source_var->alloca;
-    if (source_var->type == LLVMPointerType(source_cls->struct_type, 0)) {
-        source_base = LLVMBuildLoad2(ctx->builder, source_var->type,
-            source_var->alloca, llvm_tmp_name(ctx));
+    source_base = source_var.alloca;
+    if (source_var.type == LLVMPointerType(source_cls->struct_type, 0)) {
+        source_base = LLVMBuildLoad2(ctx->builder, source_var.type,
+            source_var.alloca, llvm_tmp_name(ctx));
     }
 
     projected = LLVMGetUndef(target_cls->struct_type);

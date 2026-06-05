@@ -286,8 +286,17 @@ llvm_resolve_callee_entry(LLVMGenCtx *ctx, const char *callee_name,
         if (LLVMGetBasicBlockTerminator(LLVMGetInsertBlock(ctx->builder)) == NULL) {
             if (ret == ctx->type_void)
                 LLVMBuildRetVoid(ctx->builder);
-            else
-                LLVMBuildRet(ctx->builder, LLVMConstInt(ret, 0, 0));
+            else {
+                if (!ctx->has_error) {
+                    llvm_set_error_at_with_hints(ctx, generic_ast,
+                        PGY_CODE_LLVM_TYPE_UNSUPPORTED,
+                        PGY_CAUSE_CFG_MISSING_RETURN,
+                        PGY_FIX_ADD_RETURN_ON_ALL_PATHS,
+                        "LLVM generic specialization '%s' reached backend without an all-path return terminator",
+                        mangled);
+                }
+                LLVMBuildUnreachable(ctx->builder);
+            }
         }
 
         llvm_scope_pop(ctx);

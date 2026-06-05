@@ -107,6 +107,24 @@ llvm_slot_report_runtime_name(ASTNode *node, LLVMGenCtx *ctx,
     return true;
 }
 
+static bool
+llvm_slot_builtin_error_out(ASTNode *node, LLVMGenCtx *ctx,
+                            const char *message, LLVMValueRef *out)
+{
+    if (ctx != NULL && !ctx->has_error) {
+        llvm_set_error_at_with_hints(ctx, node,
+            PGY_CODE_LLVM_TYPE_UNSUPPORTED,
+            PGY_CAUSE_LLVM_TYPE_UNSUPPORTED,
+            PGY_FIX_INSPECT_MIR_INVENTORY,
+            "%s",
+            message != NULL ? message
+                : "LLVM slot builtin could not be lowered");
+    }
+    if (out != NULL)
+        *out = NULL;
+    return true;
+}
+
 bool
 llvm_emit_slot_builtin_call(ASTNode *node, LLVMGenCtx *ctx,
                             const char *callee_name, LLVMValueRef *out)
@@ -142,18 +160,16 @@ llvm_emit_slot_builtin_call(ASTNode *node, LLVMGenCtx *ctx,
         const char *source_name = NULL;
         bool is_secure = false;
         ASTNode *slot_arg = ast_call_argument(node, 0);
-        LLVMVarEntry *slot_var = llvm_resolve_slot_target(ctx, slot_arg, &inner,
-            &source_name, &is_secure);
-        if (slot_var == NULL) {
-            *out = NULL;
-            return true;
-        }
+        LLVMVarEntry slot_var;
+        if (!llvm_resolve_slot_target(ctx, slot_arg, &slot_var, &inner,
+                &source_name, &is_secure))
+            return llvm_slot_builtin_error_out(node, ctx,
+                "LLVM Write requires registered slot receiver", out);
 
         LLVMValueRef val = llvm_emit_expression(ast_call_argument(node, 1), ctx);
-        if (val == NULL) {
-            *out = NULL;
-            return true;
-        }
+        if (val == NULL)
+            return llvm_slot_builtin_error_out(node, ctx,
+                "LLVM Write could not lower value expression", out);
 
         char fn_name[64];
         if (!llvm_slot_format_runtime_name(fn_name, sizeof(fn_name),
@@ -163,34 +179,34 @@ llvm_emit_slot_builtin_call(ASTNode *node, LLVMGenCtx *ctx,
         if (fn == NULL && llvm_slot_inner_has_external_runtime_helpers(inner)) {
             llvm_required_runtime_function(ctx, node,
                 is_secure ? "secure slot" : "slot", callee_name, fn_name);
-            *out = NULL;
-            return true;
+            return llvm_slot_builtin_error_out(node, ctx,
+                "LLVM Write requires registered external slot runtime function",
+                out);
         }
         if (fn == NULL) {
             if (is_secure)
-                llvm_emit_structural_secure_slot_write(ctx, slot_var, val);
+                llvm_emit_structural_secure_slot_write(ctx, &slot_var, val);
             else
-                llvm_direct_slot_write(ctx, slot_var, val);
+                llvm_direct_slot_write(ctx, &slot_var, val);
             *out = llvm_void_expression_placeholder(ctx, node, callee_name);
             return true;
         }
 
         if (is_secure) {
-            LLVMVarEntry *token_var = llvm_require_secure_token_var(ctx, node,
-                source_name, callee_name);
-            if (token_var == NULL) {
-                *out = NULL;
-                return true;
-            }
+            LLVMVarEntry token_var;
+            if (!llvm_require_secure_token_var(ctx, node, source_name,
+                    callee_name, &token_var))
+                return llvm_slot_builtin_error_out(node, ctx,
+                    "LLVM Write requires secure token metadata", out);
             LLVMValueRef args[] = {
-                llvm_slot_runtime_arg(ctx, slot_var),
+                llvm_slot_runtime_arg(ctx, &slot_var),
                 val,
-                token_var->alloca
+                token_var.alloca
             };
             LLVMBuildCall2(ctx->builder, fn->fn_type, fn->fn, args, 3, "");
         } else {
             LLVMValueRef args[] = {
-                llvm_slot_runtime_arg(ctx, slot_var),
+                llvm_slot_runtime_arg(ctx, &slot_var),
                 val
             };
             LLVMBuildCall2(ctx->builder, fn->fn_type, fn->fn, args, 2, "");
@@ -208,12 +224,11 @@ llvm_emit_slot_builtin_call(ASTNode *node, LLVMGenCtx *ctx,
         const char *source_name = NULL;
         bool is_secure = false;
         ASTNode *slot_arg = ast_call_argument(node, 0);
-        LLVMVarEntry *slot_var = llvm_resolve_slot_target(ctx, slot_arg, &inner,
-            &source_name, &is_secure);
-        if (slot_var == NULL) {
-            *out = NULL;
-            return true;
-        }
+        LLVMVarEntry slot_var;
+        if (!llvm_resolve_slot_target(ctx, slot_arg, &slot_var, &inner,
+                &source_name, &is_secure))
+            return llvm_slot_builtin_error_out(node, ctx,
+                "LLVM Read requires registered slot receiver", out);
 
         char fn_name[64];
         if (!llvm_slot_format_runtime_name(fn_name, sizeof(fn_name),
@@ -223,33 +238,33 @@ llvm_emit_slot_builtin_call(ASTNode *node, LLVMGenCtx *ctx,
         if (fn == NULL && llvm_slot_inner_has_external_runtime_helpers(inner)) {
             llvm_required_runtime_function(ctx, node,
                 is_secure ? "secure slot" : "slot", callee_name, fn_name);
-            *out = NULL;
-            return true;
+            return llvm_slot_builtin_error_out(node, ctx,
+                "LLVM Read requires registered external slot runtime function",
+                out);
         }
         if (fn == NULL) {
             if (is_secure)
-                *out = llvm_emit_structural_secure_slot_read(ctx, slot_var, inner);
+                *out = llvm_emit_structural_secure_slot_read(ctx, &slot_var, inner);
             else
-                *out = llvm_direct_slot_read(ctx, slot_var, inner);
+                *out = llvm_direct_slot_read(ctx, &slot_var, inner);
             return true;
         }
 
         if (is_secure) {
-            LLVMVarEntry *token_var = llvm_require_secure_token_var(ctx, node,
-                source_name, callee_name);
-            if (token_var == NULL) {
-                *out = NULL;
-                return true;
-            }
+            LLVMVarEntry token_var;
+            if (!llvm_require_secure_token_var(ctx, node, source_name,
+                    callee_name, &token_var))
+                return llvm_slot_builtin_error_out(node, ctx,
+                    "LLVM Read requires secure token metadata", out);
             LLVMValueRef args[] = {
-                llvm_slot_runtime_arg(ctx, slot_var),
-                token_var->alloca
+                llvm_slot_runtime_arg(ctx, &slot_var),
+                token_var.alloca
             };
             *out = LLVMBuildCall2(ctx->builder, fn->fn_type, fn->fn,
                                   args, 2, llvm_tmp_name(ctx));
         } else {
             LLVMValueRef args[] = {
-                llvm_slot_runtime_arg(ctx, slot_var)
+                llvm_slot_runtime_arg(ctx, &slot_var)
             };
             *out = LLVMBuildCall2(ctx->builder, fn->fn_type, fn->fn,
                                   args, 1, llvm_tmp_name(ctx));
@@ -266,12 +281,11 @@ llvm_emit_slot_builtin_call(ASTNode *node, LLVMGenCtx *ctx,
         const char *source_name = NULL;
         bool is_secure = false;
         ASTNode *slot_arg = ast_call_argument(node, 0);
-        LLVMVarEntry *slot_var = llvm_resolve_slot_target(ctx, slot_arg, &inner,
-            &source_name, &is_secure);
-        if (slot_var == NULL) {
-            *out = NULL;
-            return true;
-        }
+        LLVMVarEntry slot_var;
+        if (!llvm_resolve_slot_target(ctx, slot_arg, &slot_var, &inner,
+                &source_name, &is_secure))
+            return llvm_slot_builtin_error_out(node, ctx,
+                "LLVM Release requires registered slot receiver", out);
 
         char fn_name[64];
         if (!llvm_slot_format_runtime_name(fn_name, sizeof(fn_name),
@@ -281,30 +295,30 @@ llvm_emit_slot_builtin_call(ASTNode *node, LLVMGenCtx *ctx,
         if (fn == NULL && llvm_slot_inner_has_external_runtime_helpers(inner)) {
             llvm_required_runtime_function(ctx, node,
                 is_secure ? "secure slot" : "slot", callee_name, fn_name);
-            *out = NULL;
-            return true;
+            return llvm_slot_builtin_error_out(node, ctx,
+                "LLVM Release requires registered external slot runtime function",
+                out);
         }
 
         if (fn == NULL) {
             if (is_secure)
-                llvm_emit_structural_secure_slot_release(ctx, slot_var);
+                llvm_emit_structural_secure_slot_release(ctx, &slot_var);
             else
-                llvm_direct_slot_release(ctx, slot_var);
+                llvm_direct_slot_release(ctx, &slot_var);
         } else if (is_secure) {
-            LLVMVarEntry *token_var = llvm_require_secure_token_var(ctx, node,
-                source_name, callee_name);
-            if (token_var == NULL) {
-                *out = NULL;
-                return true;
-            }
+            LLVMVarEntry token_var;
+            if (!llvm_require_secure_token_var(ctx, node, source_name,
+                    callee_name, &token_var))
+                return llvm_slot_builtin_error_out(node, ctx,
+                    "LLVM Release requires secure token metadata", out);
             LLVMValueRef args[] = {
-                llvm_slot_runtime_arg(ctx, slot_var),
-                token_var->alloca
+                llvm_slot_runtime_arg(ctx, &slot_var),
+                token_var.alloca
             };
             LLVMBuildCall2(ctx->builder, fn->fn_type, fn->fn, args, 2, "");
         } else {
             LLVMValueRef args[] = {
-                llvm_slot_runtime_arg(ctx, slot_var)
+                llvm_slot_runtime_arg(ctx, &slot_var)
             };
             LLVMBuildCall2(ctx->builder, fn->fn_type, fn->fn, args, 1, "");
         }
@@ -323,19 +337,20 @@ llvm_emit_slot_builtin_call(ASTNode *node, LLVMGenCtx *ctx,
 
         ASTNode *slot_arg = ast_call_argument(node, 0);
         const char *inner = llvm_call_arg_device_inner(ctx, slot_arg);
-        LLVMVarEntry *slot_var = NULL;
+        LLVMVarEntry slot_var;
+        bool has_slot_var = false;
         const char *slot_name = ast_identifier_name(slot_arg);
         if (slot_arg != NULL && slot_arg->type == AST_IDENTIFIER)
-            slot_var = llvm_scope_lookup(ctx, slot_name);
+            has_slot_var = llvm_scope_lookup_snapshot(ctx, slot_name, &slot_var);
         if (inner == NULL && slot_arg != NULL && slot_arg->type == AST_IDENTIFIER) {
             llvm_set_error_at_with_hints(ctx, slot_arg, PGY_CODE_LLVM_TYPE_UNSUPPORTED, PGY_CAUSE_LLVM_SLOT_INNER_TYPE_MISSING, PGY_FIX_ANNOTATE_CONCRETE_TYPE, "LLVM DeviceWrite on '%s' requires a concrete DeviceSlot<T> inner type",
                 slot_name);
             return true;
         }
-        if (slot_var == NULL) {
-            *out = NULL;
-            return true;
-        }
+        if (!has_slot_var)
+            return llvm_slot_builtin_error_out(node, ctx,
+                "LLVM DeviceWrite requires registered DeviceSlot<T> receiver",
+                out);
 
         char fn_name[64];
         if (!llvm_slot_format_runtime_name(fn_name, sizeof(fn_name),
@@ -344,12 +359,14 @@ llvm_emit_slot_builtin_call(ASTNode *node, LLVMGenCtx *ctx,
         LLVMFuncEntry *fn = llvm_required_runtime_function(ctx, node,
             "device slot", callee_name, fn_name);
         LLVMValueRef val = llvm_emit_expression(ast_call_argument(node, 1), ctx);
-        if (fn == NULL || val == NULL) {
-            *out = NULL;
-            return true;
-        }
+        if (fn == NULL)
+            return llvm_slot_builtin_error_out(node, ctx,
+                "LLVM DeviceWrite requires registered runtime function", out);
+        if (val == NULL)
+            return llvm_slot_builtin_error_out(node, ctx,
+                "LLVM DeviceWrite could not lower value expression", out);
 
-        LLVMValueRef args[] = { slot_var->alloca, val };
+        LLVMValueRef args[] = { slot_var.alloca, val };
         LLVMBuildCall2(ctx->builder, fn->fn_type, fn->fn, args, 2, "");
         *out = llvm_void_expression_placeholder(ctx, node, callee_name);
         return true;
@@ -364,19 +381,20 @@ llvm_emit_slot_builtin_call(ASTNode *node, LLVMGenCtx *ctx,
 
         ASTNode *slot_arg = ast_call_argument(node, 0);
         const char *inner = llvm_call_arg_device_inner(ctx, slot_arg);
-        LLVMVarEntry *slot_var = NULL;
+        LLVMVarEntry slot_var;
+        bool has_slot_var = false;
         const char *slot_name = ast_identifier_name(slot_arg);
         if (slot_arg != NULL && slot_arg->type == AST_IDENTIFIER)
-            slot_var = llvm_scope_lookup(ctx, slot_name);
+            has_slot_var = llvm_scope_lookup_snapshot(ctx, slot_name, &slot_var);
         if (inner == NULL && slot_arg != NULL && slot_arg->type == AST_IDENTIFIER) {
             llvm_set_error_at_with_hints(ctx, slot_arg, PGY_CODE_LLVM_TYPE_UNSUPPORTED, PGY_CAUSE_LLVM_SLOT_INNER_TYPE_MISSING, PGY_FIX_ANNOTATE_CONCRETE_TYPE, "LLVM %s on '%s' requires a concrete DeviceSlot<T> inner type",
                 callee_name, slot_name);
             return true;
         }
-        if (slot_var == NULL) {
-            *out = NULL;
-            return true;
-        }
+        if (!has_slot_var)
+            return llvm_slot_builtin_error_out(node, ctx,
+                "LLVM device slot operation requires registered DeviceSlot<T> receiver",
+                out);
 
         char fn_name[64];
         if (op == LLVM_SLOT_BUILTIN_OP_DEVICE_READ) {
@@ -395,12 +413,12 @@ llvm_emit_slot_builtin_call(ASTNode *node, LLVMGenCtx *ctx,
 
         LLVMFuncEntry *fn = llvm_required_runtime_function(ctx, node,
             "device slot", callee_name, fn_name);
-        if (fn == NULL) {
-            *out = NULL;
-            return true;
-        }
+        if (fn == NULL)
+            return llvm_slot_builtin_error_out(node, ctx,
+                "LLVM device slot operation requires registered runtime function",
+                out);
 
-        LLVMValueRef args[] = { slot_var->alloca };
+        LLVMValueRef args[] = { slot_var.alloca };
         if (op == LLVM_SLOT_BUILTIN_OP_DEVICE_READ
             || op == LLVM_SLOT_BUILTIN_OP_SUBMIT_DEVICE_READ) {
             *out = LLVMBuildCall2(ctx->builder, fn->fn_type, fn->fn,

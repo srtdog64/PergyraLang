@@ -98,11 +98,11 @@ emit_binary(ASTNode *expr, TranspilerCtx *ctx)
         if (is_string || is_string_literal_chain) {
             char *left = transpiler_binary_emit_operand(ctx, left_expr, "left");
             if (left == NULL)
-                return pergyra_strdup("0");
+                return NULL;
             char *right = transpiler_binary_emit_operand(ctx, right_expr, "right");
             if (right == NULL) {
                 free(left);
-                return pergyra_strdup("0");
+                return NULL;
             }
             char *result = strdup_fmt("StringConcat(%s, %s)", left, right);
             free(left);
@@ -118,11 +118,11 @@ emit_binary(ASTNode *expr, TranspilerCtx *ctx)
             || (rt != NULL && strcmp(rt, "String") == 0)) {
             char *left = transpiler_binary_emit_operand(ctx, left_expr, "left");
             if (left == NULL)
-                return pergyra_strdup("0");
+                return NULL;
             char *right = transpiler_binary_emit_operand(ctx, right_expr, "right");
             if (right == NULL) {
                 free(left);
-                return pergyra_strdup("0");
+                return NULL;
             }
             char *result = NULL;
             if (op_type == TOKEN_EQUAL)
@@ -150,11 +150,11 @@ emit_binary(ASTNode *expr, TranspilerCtx *ctx)
         if (overload != NULL) {
             char *left = transpiler_binary_emit_operand(ctx, left_expr, "left");
             if (left == NULL)
-                return pergyra_strdup("0");
+                return NULL;
             char *right = transpiler_binary_emit_operand(ctx, right_expr, "right");
             if (right == NULL) {
                 free(left);
-                return pergyra_strdup("0");
+                return NULL;
             }
             const char *suffix = operator_overload_suffix(op_type);
             char *result = strdup_fmt("operator_%s_%s(%s, %s)",
@@ -168,11 +168,11 @@ emit_binary(ASTNode *expr, TranspilerCtx *ctx)
     if (op_type == TOKEN_COALESCE) {
         char *left = transpiler_binary_emit_operand(ctx, left_expr, "left");
         if (left == NULL)
-            return pergyra_strdup("0");
+            return NULL;
         char *right = transpiler_binary_emit_operand(ctx, right_expr, "right");
         if (right == NULL) {
             free(left);
-            return pergyra_strdup("0");
+            return NULL;
         }
         const char *some_tag =
             pgy_codegen_match_variant_c_option_tag(PGY_MATCH_VARIANT_SOME);
@@ -187,11 +187,11 @@ emit_binary(ASTNode *expr, TranspilerCtx *ctx)
 
     char *left = transpiler_binary_emit_operand(ctx, left_expr, "left");
     if (left == NULL)
-        return pergyra_strdup("0");
+        return NULL;
     char *right = transpiler_binary_emit_operand(ctx, right_expr, "right");
     if (right == NULL) {
         free(left);
-        return pergyra_strdup("0");
+        return NULL;
     }
     const char *op = binary_op_to_c(op_type);
     char *result;

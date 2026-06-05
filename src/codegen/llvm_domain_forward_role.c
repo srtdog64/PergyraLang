@@ -19,8 +19,13 @@ llvm_emit_role_method_forward_decls_metadata_first(
     const char *role_name,
     const LLVMHostedMethodView *methods)
 {
-    if (ctx == NULL || role_name == NULL || methods == NULL)
+    if (ctx == NULL || methods == NULL)
         return;
+    if (role_name == NULL) {
+        llvm_set_mir_inventory_missing(ctx,
+            "MIR-only LLVM path missing role forward declaration name metadata");
+        return;
+    }
     if (llvm_hosted_method_view_missing_mir_metadata(methods)) {
         llvm_set_mir_inventory_missing(ctx,
             "MIR-only LLVM path missing method forward metadata for role '%s'",
@@ -58,8 +63,12 @@ llvm_emit_role_method_forward_decls_metadata_first(
         if (method_meta == NULL
             && (method == NULL || method->type != AST_FUNC_DECL))
             continue;
-        if (mname == NULL)
-            continue;
+        if (mname == NULL) {
+            llvm_set_mir_inventory_missing(ctx,
+                "MIR-only LLVM path missing method forward name metadata for role '%s'",
+                role_name != NULL ? role_name : "(anonymous-role)");
+            return;
+        }
         if (return_type_name != NULL) {
             ret = pergyra_type_to_llvm(ctx, return_type_name);
             if (ctx->has_error || ret == NULL)
@@ -150,8 +159,11 @@ llvm_emit_role_operator_forward_decl(LLVMGenCtx *ctx,
 
     if (suffix == NULL || method_meta == NULL)
         return true;
-    if (llvm_domain_method_name_metadata_first(method_meta, method) == NULL)
-        return true;
+    if (llvm_domain_method_name_metadata_first(method_meta, method) == NULL) {
+        llvm_set_mir_inventory_missing(ctx,
+            "MIR-only LLVM path missing role operator forward name metadata");
+        return false;
+    }
 
     if (!llvm_role_operator_symbol_name(opname, sizeof(opname),
             suffix, for_type_name)) {

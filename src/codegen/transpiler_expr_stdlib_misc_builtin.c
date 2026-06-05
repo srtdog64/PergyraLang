@@ -6,21 +6,37 @@
 #include <string.h>
 
 #include "../common/string_compat.h"
+#include "../semantic/diag_codes.h"
+#include "transpiler_context.h"
 #include "transpiler_expr_stdlib_collection_support.h"
 
 static char *
-transpiler_misc_strdup_fmt(const char *fmt, ...)
+transpiler_misc_strdup_fmt(TranspilerCtx *ctx, const char *fmt, ...)
 {
     va_list ap;
     va_start(ap, fmt);
     int n = vsnprintf(NULL, 0, fmt, ap);
     va_end(ap);
-    if (n < 0)
-        return pergyra_strdup("");
+    if (n < 0) {
+        transpiler_set_backend_error_with_hints(
+            ctx,
+            PGY_CODE_C_TYPE_UNSUPPORTED,
+            PGY_CAUSE_C_TYPE_UNSUPPORTED,
+            PGY_FIX_USE_LLVM_BACKEND_OR_EXTEND_TRANSPILER,
+            "C backend: misc builtin expression formatting failed");
+        return NULL;
+    }
 
     char *s = malloc((size_t)n + 1);
-    if (s == NULL)
-        return pergyra_strdup("");
+    if (s == NULL) {
+        transpiler_set_backend_error_with_hints(
+            ctx,
+            PGY_CODE_C_TYPE_UNSUPPORTED,
+            PGY_CAUSE_C_TYPE_UNSUPPORTED,
+            PGY_FIX_USE_LLVM_BACKEND_OR_EXTEND_TRANSPILER,
+            "C backend: misc builtin expression allocation failed");
+        return NULL;
+    }
 
     va_start(ap, fmt);
     vsnprintf(s, (size_t)n + 1, fmt, ap);
@@ -103,6 +119,28 @@ transpiler_misc_lookup(const char *fn, size_t argc)
     return spec->op;
 }
 
+static char *
+transpiler_misc_emit_arg(TranspilerCtx *ctx,
+                         ASTNode *arg,
+                         const char *builtin_name,
+                         const char *role)
+{
+    char *rendered = emit_expression(arg, ctx);
+
+    if (rendered != NULL)
+        return rendered;
+
+    transpiler_set_backend_error_with_hints(
+        ctx,
+        PGY_CODE_C_TYPE_UNSUPPORTED,
+        PGY_CAUSE_C_TYPE_UNSUPPORTED,
+        PGY_FIX_USE_LLVM_BACKEND_OR_EXTEND_TRANSPILER,
+        "C backend: misc builtin %s could not lower %s argument",
+        builtin_name != NULL ? builtin_name : "(unknown)",
+        role != NULL ? role : "operand");
+    return NULL;
+}
+
 char *
 emit_call_stdlib_misc_builtin(const char *fn, ASTNode *call, TranspilerCtx *ctx)
 {
@@ -118,134 +156,213 @@ emit_call_stdlib_misc_builtin(const char *fn, ASTNode *call, TranspilerCtx *ctx)
     if (op == TRANSPILER_MISC_OP_FSM_ADD_STATE) {
         if (!transpiler_require_c_addressable_storage(ctx, a0,
                 "FsmAddState", "FSM"))
-            return pergyra_strdup("0");
-        char *f = emit_expression(a0, ctx);
-        char *n = emit_expression(a1, ctx);
-        char *r = transpiler_misc_strdup_fmt("pgy_fsm_add_state(&%s, %s)", f, n);
+            return NULL;
+        char *f = transpiler_misc_emit_arg(ctx, a0, "FsmAddState", "fsm");
+        char *n = f != NULL
+            ? transpiler_misc_emit_arg(ctx, a1, "FsmAddState", "name")
+            : NULL;
+        if (f == NULL || n == NULL) {
+            free(f);
+            free(n);
+            return NULL;
+        }
+        char *r = transpiler_misc_strdup_fmt(ctx, "pgy_fsm_add_state(&%s, %s)", f, n);
         free(f); free(n); return r;
     }
     if (op == TRANSPILER_MISC_OP_FSM_TRANSITION) {
         if (!transpiler_require_c_addressable_storage(ctx, a0,
                 "FsmTransition", "FSM"))
-            return pergyra_strdup("0");
-        char *f = emit_expression(a0, ctx);
-        char *from = emit_expression(a1, ctx);
-        char *inp = emit_expression(a2, ctx);
-        char *to = emit_expression(a3, ctx);
-        char *r = transpiler_misc_strdup_fmt("pgy_fsm_add_transition(&%s, %s, %s, %s)", f, from, inp, to);
+            return NULL;
+        char *f = transpiler_misc_emit_arg(ctx, a0, "FsmTransition", "fsm");
+        char *from = f != NULL
+            ? transpiler_misc_emit_arg(ctx, a1, "FsmTransition", "from")
+            : NULL;
+        char *inp = from != NULL
+            ? transpiler_misc_emit_arg(ctx, a2, "FsmTransition", "input")
+            : NULL;
+        char *to = inp != NULL
+            ? transpiler_misc_emit_arg(ctx, a3, "FsmTransition", "to")
+            : NULL;
+        if (f == NULL || from == NULL || inp == NULL || to == NULL) {
+            free(f);
+            free(from);
+            free(inp);
+            free(to);
+            return NULL;
+        }
+        char *r = transpiler_misc_strdup_fmt(ctx, "pgy_fsm_add_transition(&%s, %s, %s, %s)", f, from, inp, to);
         free(f); free(from); free(inp); free(to); return r;
     }
     if (op == TRANSPILER_MISC_OP_FSM_STEP) {
         if (!transpiler_require_c_addressable_storage(ctx, a0,
                 "FsmStep", "FSM"))
-            return pergyra_strdup("0");
-        char *f = emit_expression(a0, ctx);
-        char *i = emit_expression(a1, ctx);
-        char *r = transpiler_misc_strdup_fmt("pgy_fsm_step(&%s, %s)", f, i);
+            return NULL;
+        char *f = transpiler_misc_emit_arg(ctx, a0, "FsmStep", "fsm");
+        char *i = f != NULL
+            ? transpiler_misc_emit_arg(ctx, a1, "FsmStep", "input")
+            : NULL;
+        if (f == NULL || i == NULL) {
+            free(f);
+            free(i);
+            return NULL;
+        }
+        char *r = transpiler_misc_strdup_fmt(ctx, "pgy_fsm_step(&%s, %s)", f, i);
         free(f); free(i); return r;
     }
     if (op == TRANSPILER_MISC_OP_FSM_CURRENT) {
         if (!transpiler_require_c_addressable_storage(ctx, a0,
                 "FsmCurrent", "FSM"))
-            return pergyra_strdup("0");
-        char *f = emit_expression(a0, ctx);
-        char *r = transpiler_misc_strdup_fmt("pgy_fsm_current(&%s)", f);
+            return NULL;
+        char *f = transpiler_misc_emit_arg(ctx, a0, "FsmCurrent", "fsm");
+        if (f == NULL)
+            return NULL;
+        char *r = transpiler_misc_strdup_fmt(ctx, "pgy_fsm_current(&%s)", f);
         free(f); return r;
     }
     if (op == TRANSPILER_MISC_OP_FSM_CURRENT_NAME) {
         if (!transpiler_require_c_addressable_storage(ctx, a0,
                 "FsmCurrentName", "FSM"))
-            return pergyra_strdup("0");
-        char *f = emit_expression(a0, ctx);
-        char *r = transpiler_misc_strdup_fmt("pgy_fsm_current_name(&%s)", f);
+            return NULL;
+        char *f = transpiler_misc_emit_arg(ctx, a0, "FsmCurrentName", "fsm");
+        if (f == NULL)
+            return NULL;
+        char *r = transpiler_misc_strdup_fmt(ctx, "pgy_fsm_current_name(&%s)", f);
         free(f); return r;
     }
     if (op == TRANSPILER_MISC_OP_TIMER_NEW) {
-        char *d = emit_expression(a0, ctx);
-        char *r = transpiler_misc_strdup_fmt("pgy_timer_new(%s)", d);
+        char *d = transpiler_misc_emit_arg(ctx, a0, "TimerNew", "duration");
+        if (d == NULL)
+            return NULL;
+        char *r = transpiler_misc_strdup_fmt(ctx, "pgy_timer_new(%s)", d);
         free(d); return r;
     }
     if (op == TRANSPILER_MISC_OP_TIMER_TICK) {
         if (!transpiler_require_c_addressable_storage(ctx, a0,
                 "TimerTick", "Timer"))
-            return pergyra_strdup("0");
-        char *t = emit_expression(a0, ctx);
-        char *d = emit_expression(a1, ctx);
-        char *r = transpiler_misc_strdup_fmt("pgy_timer_tick(&%s, %s)", t, d);
+            return NULL;
+        char *t = transpiler_misc_emit_arg(ctx, a0, "TimerTick", "timer");
+        char *d = t != NULL
+            ? transpiler_misc_emit_arg(ctx, a1, "TimerTick", "delta")
+            : NULL;
+        if (t == NULL || d == NULL) {
+            free(t);
+            free(d);
+            return NULL;
+        }
+        char *r = transpiler_misc_strdup_fmt(ctx, "pgy_timer_tick(&%s, %s)", t, d);
         free(t); free(d); return r;
     }
     if (op == TRANSPILER_MISC_OP_TIMER_REMAINING) {
         if (!transpiler_require_c_addressable_storage(ctx, a0,
                 "TimerRemaining", "Timer"))
-            return pergyra_strdup("0");
-        char *t = emit_expression(a0, ctx);
-        char *r = transpiler_misc_strdup_fmt("pgy_timer_remaining(&%s)", t);
+            return NULL;
+        char *t = transpiler_misc_emit_arg(ctx, a0, "TimerRemaining", "timer");
+        if (t == NULL)
+            return NULL;
+        char *r = transpiler_misc_strdup_fmt(ctx, "pgy_timer_remaining(&%s)", t);
         free(t); return r;
     }
     if (op == TRANSPILER_MISC_OP_TIMER_DONE) {
         if (!transpiler_require_c_addressable_storage(ctx, a0,
                 "TimerDone", "Timer"))
-            return pergyra_strdup("0");
-        char *t = emit_expression(a0, ctx);
-        char *r = transpiler_misc_strdup_fmt("pgy_timer_done(&%s)", t);
+            return NULL;
+        char *t = transpiler_misc_emit_arg(ctx, a0, "TimerDone", "timer");
+        if (t == NULL)
+            return NULL;
+        char *r = transpiler_misc_strdup_fmt(ctx, "pgy_timer_done(&%s)", t);
         free(t); return r;
     }
     if (op == TRANSPILER_MISC_OP_TIMER_RESET) {
         if (!transpiler_require_c_addressable_storage(ctx, a0,
                 "TimerReset", "Timer"))
-            return pergyra_strdup("0");
-        char *t = emit_expression(a0, ctx);
-        char *r = transpiler_misc_strdup_fmt("pgy_timer_reset(&%s)", t);
+            return NULL;
+        char *t = transpiler_misc_emit_arg(ctx, a0, "TimerReset", "timer");
+        if (t == NULL)
+            return NULL;
+        char *r = transpiler_misc_strdup_fmt(ctx, "pgy_timer_reset(&%s)", t);
         free(t); return r;
     }
     if (op == TRANSPILER_MISC_OP_COOLDOWN_NEW) {
-        char *c = emit_expression(a0, ctx);
-        char *r = transpiler_misc_strdup_fmt("pgy_cooldown_new(%s)", c);
+        char *c = transpiler_misc_emit_arg(ctx, a0, "CooldownNew", "duration");
+        if (c == NULL)
+            return NULL;
+        char *r = transpiler_misc_strdup_fmt(ctx, "pgy_cooldown_new(%s)", c);
         free(c); return r;
     }
     if (op == TRANSPILER_MISC_OP_COOLDOWN_TICK) {
         if (!transpiler_require_c_addressable_storage(ctx, a0,
                 "CooldownTick", "Cooldown"))
-            return pergyra_strdup("0");
-        char *c = emit_expression(a0, ctx);
-        char *d = emit_expression(a1, ctx);
-        char *r = transpiler_misc_strdup_fmt("pgy_cooldown_tick(&%s, %s)", c, d);
+            return NULL;
+        char *c = transpiler_misc_emit_arg(ctx, a0, "CooldownTick",
+            "cooldown");
+        char *d = c != NULL
+            ? transpiler_misc_emit_arg(ctx, a1, "CooldownTick", "delta")
+            : NULL;
+        if (c == NULL || d == NULL) {
+            free(c);
+            free(d);
+            return NULL;
+        }
+        char *r = transpiler_misc_strdup_fmt(ctx, "pgy_cooldown_tick(&%s, %s)", c, d);
         free(c); free(d); return r;
     }
     if (op == TRANSPILER_MISC_OP_COOLDOWN_READY) {
         if (!transpiler_require_c_addressable_storage(ctx, a0,
                 "CooldownReady", "Cooldown"))
-            return pergyra_strdup("0");
-        char *c = emit_expression(a0, ctx);
-        char *r = transpiler_misc_strdup_fmt("pgy_cooldown_ready(&%s)", c);
+            return NULL;
+        char *c = transpiler_misc_emit_arg(ctx, a0, "CooldownReady",
+            "cooldown");
+        if (c == NULL)
+            return NULL;
+        char *r = transpiler_misc_strdup_fmt(ctx, "pgy_cooldown_ready(&%s)", c);
         free(c); return r;
     }
     if (op == TRANSPILER_MISC_OP_COOLDOWN_TRIGGER) {
         if (!transpiler_require_c_addressable_storage(ctx, a0,
                 "CooldownTrigger", "Cooldown"))
-            return pergyra_strdup("0");
-        char *c = emit_expression(a0, ctx);
-        char *r = transpiler_misc_strdup_fmt("pgy_cooldown_trigger(&%s)", c);
+            return NULL;
+        char *c = transpiler_misc_emit_arg(ctx, a0, "CooldownTrigger",
+            "cooldown");
+        if (c == NULL)
+            return NULL;
+        char *r = transpiler_misc_strdup_fmt(ctx, "pgy_cooldown_trigger(&%s)", c);
         free(c); return r;
     }
     if (op == TRANSPILER_MISC_OP_MAP_SET_STR) {
         if (!transpiler_require_c_addressable_storage(ctx, a0,
                 "MapSetStr", "HashMap"))
-            return pergyra_strdup("0");
-        char *m = emit_expression(a0, ctx);
-        char *k = emit_expression(a1, ctx);
-        char *v = emit_expression(a2, ctx);
-        char *result = transpiler_misc_strdup_fmt("pgy_map_set_string(&%s, %s, %s)", m, k, v);
+            return NULL;
+        char *m = transpiler_misc_emit_arg(ctx, a0, "MapSetStr", "map");
+        char *k = m != NULL
+            ? transpiler_misc_emit_arg(ctx, a1, "MapSetStr", "key")
+            : NULL;
+        char *v = k != NULL
+            ? transpiler_misc_emit_arg(ctx, a2, "MapSetStr", "value")
+            : NULL;
+        if (m == NULL || k == NULL || v == NULL) {
+            free(m);
+            free(k);
+            free(v);
+            return NULL;
+        }
+        char *result = transpiler_misc_strdup_fmt(ctx, "pgy_map_set_string(&%s, %s, %s)", m, k, v);
         free(m); free(k); free(v);
         return result;
     }
     if (op == TRANSPILER_MISC_OP_MAP_GET_STR) {
         if (!transpiler_require_c_addressable_storage(ctx, a0,
                 "MapGetStr", "HashMap"))
-            return pergyra_strdup("0");
-        char *m = emit_expression(a0, ctx);
-        char *k = emit_expression(a1, ctx);
-        char *result = transpiler_misc_strdup_fmt("pgy_map_get_string(&%s, %s)", m, k);
+            return NULL;
+        char *m = transpiler_misc_emit_arg(ctx, a0, "MapGetStr", "map");
+        char *k = m != NULL
+            ? transpiler_misc_emit_arg(ctx, a1, "MapGetStr", "key")
+            : NULL;
+        if (m == NULL || k == NULL) {
+            free(m);
+            free(k);
+            return NULL;
+        }
+        char *result = transpiler_misc_strdup_fmt(ctx, "pgy_map_get_string(&%s, %s)", m, k);
         free(m); free(k);
         return result;
     }

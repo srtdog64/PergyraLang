@@ -19,6 +19,28 @@
 #include "transpiler_symbols.h"
 #include "transpiler_type_render.h"
 
+static char *
+transpiler_user_call_emit_part(TranspilerCtx *ctx,
+                               ASTNode *expr,
+                               const char *call_name,
+                               const char *role)
+{
+    char *rendered = emit_expression(expr, ctx);
+
+    if (rendered != NULL)
+        return rendered;
+
+    transpiler_set_backend_error_with_hints(
+        ctx,
+        PGY_CODE_C_TYPE_UNSUPPORTED,
+        PGY_CAUSE_C_TYPE_UNSUPPORTED,
+        PGY_FIX_USE_LLVM_BACKEND_OR_EXTEND_TRANSPILER,
+        "C backend: user call %s could not lower %s expression",
+        call_name != NULL ? call_name : "(anonymous-call)",
+        role != NULL ? role : "operand");
+    return NULL;
+}
+
 char *
 emit_call_user_function(ASTNode *call, ASTNode *callee, TranspilerCtx *ctx)
 {
@@ -45,9 +67,14 @@ emit_call_user_function(ASTNode *call, ASTNode *callee, TranspilerCtx *ctx)
                         callee_name != NULL ? callee_name : "<call>",
                         i + 1);
                     codebuf_destroy(args_buf);
-                    return pergyra_strdup("0");
+                    return NULL;
                 }
-                arg = emit_expression(arg_node, ctx);
+                arg = transpiler_user_call_emit_part(ctx, arg_node,
+                    callee_name, "hosted method argument");
+                if (arg == NULL) {
+                    codebuf_destroy(args_buf);
+                    return NULL;
+                }
                 codebuf_write(args_buf, ", %s", arg);
                 free(arg);
             }
@@ -80,7 +107,10 @@ emit_call_user_function(ASTNode *call, ASTNode *callee, TranspilerCtx *ctx)
         }
     }
     if (callee_str == NULL)
-        callee_str = emit_expression(callee, ctx);
+        callee_str = transpiler_user_call_emit_part(ctx, callee,
+            callee_name, "callee");
+    if (callee_str == NULL)
+        return NULL;
 
     if (decl != NULL && decl->type == AST_INTENT_DECL) {
         size_t intent_step_count = ast_intent_decl_step_count(decl);
@@ -91,7 +121,7 @@ emit_call_user_function(ASTNode *call, ASTNode *callee, TranspilerCtx *ctx)
                 "MIR-only C path missing intent routine for call target '%s'",
                 callee_name != NULL ? callee_name : "(anonymous-intent)");
             free(callee_str);
-            return pergyra_strdup("0");
+            return NULL;
         }
         mir_only_intent = intent_routine != NULL;
         if (intent_routine != NULL) {
@@ -111,7 +141,7 @@ emit_call_user_function(ASTNode *call, ASTNode *callee, TranspilerCtx *ctx)
                     free((void *)binding_kinds);
                     free((void *)binding_aliases);
                     free((void *)binding_types);
-                    return pergyra_strdup("0");
+                    return NULL;
                 }
                 if (strcmp(binding_kinds[i], "participant") != 0
                     && strcmp(binding_kinds[i], "value") != 0) {
@@ -122,7 +152,7 @@ emit_call_user_function(ASTNode *call, ASTNode *callee, TranspilerCtx *ctx)
                     free((void *)binding_kinds);
                     free((void *)binding_aliases);
                     free((void *)binding_types);
-                    return pergyra_strdup("0");
+                    return NULL;
                 }
             }
             if (ast_call_arg_count(call) != binding_meta_count) {
@@ -138,7 +168,7 @@ emit_call_user_function(ASTNode *call, ASTNode *callee, TranspilerCtx *ctx)
                 free((void *)binding_kinds);
                 free((void *)binding_aliases);
                 free((void *)binding_types);
-                return pergyra_strdup("0");
+                return NULL;
             }
         }
     }
@@ -199,7 +229,7 @@ emit_call_user_function(ASTNode *call, ASTNode *callee, TranspilerCtx *ctx)
                 free((void *)binding_aliases);
                 free((void *)binding_types);
                 codebuf_destroy(args_buf);
-                return pergyra_strdup("0");
+                return NULL;
             }
         }
 
@@ -217,8 +247,18 @@ emit_call_user_function(ASTNode *call, ASTNode *callee, TranspilerCtx *ctx)
                 bool secure = false;
                 bool saved_suppress = ctx->suppress_slot_auto_read;
                 ctx->suppress_slot_auto_read = true;
-                arg = emit_expression(arg_node, ctx);
+                arg = transpiler_user_call_emit_part(ctx, arg_node,
+                    callee_name, "slot argument");
                 ctx->suppress_slot_auto_read = saved_suppress;
+                if (arg == NULL) {
+                    free(param_type);
+                    free(callee_str);
+                    free((void *)binding_kinds);
+                    free((void *)binding_aliases);
+                    free((void *)binding_types);
+                    codebuf_destroy(args_buf);
+                    return NULL;
+                }
                 (void)transpiler_resolve_slot_target_copy(ctx,
                     arg_node, inner_buf,
                     sizeof(inner_buf), &slot_name, &secure);
@@ -226,11 +266,24 @@ emit_call_user_function(ASTNode *call, ASTNode *callee, TranspilerCtx *ctx)
                     codebuf_write(args_buf, ", ");
                 if (slot_name != NULL) {
                     char *slot_ref = slot_ref_expr(ctx, slot_name, arg);
+                    if (slot_ref == NULL) {
+                        free(arg);
+                        free(param_type);
+                        free(callee_str);
+                        free((void *)binding_kinds);
+                        free((void *)binding_aliases);
+                        free((void *)binding_types);
+                        codebuf_destroy(args_buf);
+                        return NULL;
+                    }
                     codebuf_write(args_buf, "%s", slot_ref);
                     free(slot_ref);
                     if (secure_param)
                         codebuf_write(args_buf, ", %s_token", slot_name);
                     handled = true;
+                } else {
+                    free(arg);
+                    arg = NULL;
                 }
             }
             free(param_type);
@@ -261,13 +314,23 @@ emit_call_user_function(ASTNode *call, ASTNode *callee, TranspilerCtx *ctx)
                 free((void *)binding_aliases);
                 free((void *)binding_types);
                 codebuf_destroy(args_buf);
-                return pergyra_strdup("0");
+                return NULL;
             }
             const char *saved_expected_type = ctx->expected_type;
             if (param_type_for_ctx != NULL)
                 ctx->expected_type = param_type_for_ctx;
-            arg = emit_expression(arg_node, ctx);
+            arg = transpiler_user_call_emit_part(ctx, arg_node,
+                callee_name, "argument");
             ctx->expected_type = saved_expected_type;
+            if (arg == NULL) {
+                free(param_type_for_ctx);
+                free(callee_str);
+                free((void *)binding_kinds);
+                free((void *)binding_aliases);
+                free((void *)binding_types);
+                codebuf_destroy(args_buf);
+                return NULL;
+            }
         }
         free(param_type_for_ctx);
         if (!handled && i > 0)
@@ -292,7 +355,7 @@ emit_call_user_function(ASTNode *call, ASTNode *callee, TranspilerCtx *ctx)
                     free((void *)binding_aliases);
                     free((void *)binding_types);
                     codebuf_destroy(args_buf);
-                    return pergyra_strdup("0");
+                    return NULL;
                 }
             } else {
                 codebuf_write(args_buf, "%s", arg);

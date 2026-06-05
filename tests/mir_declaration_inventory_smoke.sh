@@ -2877,9 +2877,14 @@ for term in \
     "pgy_zone_authority_check_export" \
     "ast_zone_authorities(zone_decl" \
     "ast_zone_authority_subject_slot_name(authority)" \
+    "llvm_scope_lookup_snapshot(ctx, \"self\", &self_var)" \
     "llvm_set_mir_inventory_missing(ctx"; do
     require_term "src/codegen/llvm_decl_authority.c" "$term"
 done
+if grep -Fq "llvm_scope_lookup(ctx, \"self\")" \
+        "$ROOT_DIR/src/codegen/llvm_decl_authority.c"; then
+    fail "LLVM zone authority checks must snapshot implicit self scope metadata"
+fi
 if grep -R "data\.zone_decl\.\(authorities\|authority_count\)" \
     "$ROOT_DIR/src/codegen/llvm_decl.c" \
     "$ROOT_DIR/src/codegen/llvm_decl_authority.c" >/dev/null; then
@@ -3235,14 +3240,24 @@ if grep -Fq "return llvm_find_decl_in_active_inventory(ctx, AST_FUNC_DECL, name)
         "$ROOT_DIR/src/codegen/llvm_stmt.c"; then
     fail "LLVM statement function lookup must consume llvm_find_function_decl"
 fi
-for rel in \
-    "src/codegen/llvm_expr_call_variable.c" \
-    "src/codegen/llvm_expr_identifier_slot_helpers.c"; do
-    require_term "$rel" "current_decl = ctx->current_func_decl"
-    if grep -Fq "LLVMGetValueName(ctx->current_function)" "$ROOT_DIR/$rel"; then
-        fail "$rel must consume ctx->current_func_decl instead of rediscovering the current function declaration by name"
-    fi
-done
+require_term "src/codegen/llvm_expr_identifier_slot_helpers.c" \
+    "inner = llvm_lookup_slot_inner(ctx, source_name)"
+if grep -Fq "ast_func_param_count(current_decl)" \
+        "$ROOT_DIR/src/codegen/llvm_expr_identifier_slot_helpers.c"; then
+    fail "LLVM slot identifier resolution must consume slot registry metadata instead of rescanning current function parameters"
+fi
+require_term "src/codegen/llvm_expr_call_variable.c" \
+    "callable_entry = llvm_lookup_callable_entry(ctx, callee_name)"
+if grep -Fq "ast_func_param_count(current_decl)" \
+        "$ROOT_DIR/src/codegen/llvm_expr_call_variable.c"; then
+    fail "LLVM callable variable calls must consume callable registry metadata instead of rescanning current function parameters"
+fi
+if grep -Fq "llvm_find_local_let_type_in_block" \
+        "$ROOT_DIR/src/codegen/llvm_expr_common.c" \
+        || grep -Fq "llvm_infer_local_let_type_in_block" \
+        "$ROOT_DIR/src/codegen/llvm_stmt_type_infer_nominal.c"; then
+    fail "LLVM nominal type inference must consume active registries instead of rescanning the current function body"
+fi
 if grep -Eq 'llvm_find_(function|intent)_decl\(LLVMGenCtx \*ctx' \
         "$ROOT_DIR/src/codegen/llvm_expr_boundary_projection_helpers.c" \
         "$ROOT_DIR/src/codegen/llvm_expr_boundary_projection_helpers.h"; then

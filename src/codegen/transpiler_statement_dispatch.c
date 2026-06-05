@@ -245,6 +245,14 @@ emit_statement(ASTNode *node, TranspilerCtx *ctx)
     case AST_LAMBDA_EXPR:
         {
             char *expr = emit_expression(node, ctx);
+            if (expr == NULL) {
+                transpiler_set_backend_error_with_hints(ctx,
+                    PGY_CODE_C_TYPE_UNSUPPORTED,
+                    PGY_CAUSE_C_TYPE_UNSUPPORTED,
+                    PGY_FIX_USE_LLVM_BACKEND_OR_EXTEND_TRANSPILER,
+                    "C statement lowering could not lower lambda expression statement");
+                break;
+            }
             if (expr != NULL && expr[0] != '\0') {
                 write_indent(ctx);
                 codebuf_write(ctx->out, "%s;\n", expr);
@@ -261,6 +269,14 @@ emit_statement(ASTNode *node, TranspilerCtx *ctx)
     default: {
         /* Expression statement (including event invoke) */
         char *expr = emit_expression(node, ctx);
+        if (expr == NULL) {
+            transpiler_set_backend_error_with_hints(ctx,
+                PGY_CODE_C_TYPE_UNSUPPORTED,
+                PGY_CAUSE_C_TYPE_UNSUPPORTED,
+                PGY_FIX_USE_LLVM_BACKEND_OR_EXTEND_TRANSPILER,
+                "C statement lowering could not lower expression statement");
+            break;
+        }
         if (expr != NULL && expr[0] != '\0') {
             write_indent(ctx);
             codebuf_write(ctx->out, "%s;\n", expr);

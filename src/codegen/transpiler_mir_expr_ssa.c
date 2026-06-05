@@ -4,7 +4,6 @@
  */
 
 #include "transpiler_mir_expr_ssa.h"
-#include "../common/string_compat.h"
 
 char *
 emit_expression_with_ssa_map(ASTNode *node,
@@ -15,7 +14,7 @@ emit_expression_with_ssa_map(ASTNode *node,
     char *result;
 
     if (node == NULL)
-        return pergyra_strdup("0");
+        return NULL;
     if (ctx == NULL)
         return emit_expression(node, ctx);
 

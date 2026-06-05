@@ -155,7 +155,8 @@ llvm_mir_copy_source_def_to_versioned_local(const MIRInstruction *inst,
                                             size_t var_count)
 {
     char base_name[128];
-    LLVMVarEntry *source;
+    LLVMVarEntry source;
+    bool has_source;
     LLVMMirVar *target;
     LLVMValueRef loaded;
     ASTNode *source_payload;
@@ -174,7 +175,7 @@ llvm_mir_copy_source_def_to_versioned_local(const MIRInstruction *inst,
     if (llvm_mir_def_is_resource_view_alias(inst))
         return llvm_mir_bind_resource_view_def_alias(inst, mir_block, ctx, vars,
             var_count);
-    source = llvm_scope_lookup(ctx, base_name);
+    has_source = llvm_scope_lookup_snapshot(ctx, base_name, &source);
     target = llvm_mir_get_var_entry(vars, var_count, inst->result_name);
     if (target == NULL || target->alloca == NULL)
         return true;
@@ -184,10 +185,10 @@ llvm_mir_copy_source_def_to_versioned_local(const MIRInstruction *inst,
             target->type, inst->arg1);
         return !ctx->has_error;
     }
-    if (source == NULL) {
+    if (!has_source) {
         return !ctx->has_error;
     }
-    if (source->alloca == NULL) {
+    if (source.alloca == NULL) {
         if (llvm_lookup_projection_borrow(ctx, base_name) != NULL)
             return true;
         llvm_set_mir_inventory_missing(ctx,
@@ -201,22 +202,22 @@ llvm_mir_copy_source_def_to_versioned_local(const MIRInstruction *inst,
     source_channel_inner = llvm_lookup_channel_inner(ctx, base_name);
     active_alloca = target->alloca;
     if (source_channel_inner != NULL) {
-        active_alloca = source->alloca;
-    } else if (source->alloca != target->alloca
-        && source->type != NULL
+        active_alloca = source.alloca;
+    } else if (source.alloca != target->alloca
+        && source.type != NULL
         && target->type != NULL
-        && source->type == target->type) {
-        loaded = LLVMBuildLoad2(ctx->builder, source->type, source->alloca,
+        && source.type == target->type) {
+        loaded = LLVMBuildLoad2(ctx->builder, source.type, source.alloca,
             llvm_tmp_name(ctx));
         LLVMBuildStore(ctx->builder, loaded, target->alloca);
-    } else if (source->alloca != target->alloca
-               && source->type != NULL
+    } else if (source.alloca != target->alloca
+               && source.type != NULL
                && target->type != NULL
-               && source->type != target->type) {
-        active_alloca = source->alloca;
+               && source.type != target->type) {
+        active_alloca = source.alloca;
     }
     llvm_mir_bind_base_local_scope(ctx, base_name, active_alloca,
-        active_alloca == source->alloca ? source->type : target->type,
+        active_alloca == source.alloca ? source.type : target->type,
         inst->arg1);
     source_payload = mir_instruction_source_payload(inst);
     type_ann = source_payload != NULL && source_payload->type == AST_LET_DECL
@@ -389,6 +390,11 @@ llvm_emit_mir_block_with_exprs(const MIRBasicBlock *mir_block,
                     LLVMValueRef alloca = llvm_mir_get_var(vars, var_count, inst->result_name);
                     if (llvm_debug_detail_enabled())
                         fprintf(stderr, "[llvm inst] emit_expression_store\n");
+                    if (inst->expr0 != NULL
+                        && !llvm_stmt_require_non_void_value(ctx, inst->expr0,
+                            "LLVM MIR DEF cannot consume a Void expression value")) {
+                        return;
+                    }
                     LLVMValueRef val = inst->expr0 != NULL
                         ? llvm_emit_expression(inst->expr0, ctx)
                         : NULL;
@@ -419,10 +425,21 @@ llvm_emit_mir_block_with_exprs(const MIRBasicBlock *mir_block,
                 } else if (inst->branch_shape == MIR_BRANCH_SELECT_DISPATCH) {
                     cond = llvm_mir_emit_select_dispatch_condition(
                         source_payload, routine, mir_block->succ_true, ctx);
-                    if (cond == NULL)
-                        cond = LLVMConstInt(LLVMInt1TypeInContext(ctx->context), 0, 0);
+                    if (cond == NULL && ctx->has_error)
+                        return;
                 } else {
+                    if (!llvm_stmt_require_non_void_value(ctx, inst->expr0,
+                            "LLVM MIR branch cannot consume a Void expression as condition")) {
+                        return;
+                    }
                     cond = llvm_emit_expression(inst->expr0, ctx);
+                }
+                if (cond == NULL) {
+                    if (ctx->has_error)
+                        return;
+                    llvm_set_mir_topology_invalid(ctx,
+                        "LLVM MIR branch condition could not be lowered");
+                    return;
                 }
                 if (cond != NULL) {
                     LLVMBasicBlockRef true_bb = llvm_block_heads[mir_block->succ_true];
@@ -452,6 +469,18 @@ llvm_emit_mir_block_with_exprs(const MIRBasicBlock *mir_block,
                 ASTNode *saved_expected_callable_type =
                     ctx->expected_callable_type;
                 LLVMValueRef val;
+                if (ctx->current_ret_type == ctx->type_void) {
+                    llvm_set_error_at_with_hints(ctx, return_expr,
+                        PGY_CODE_LLVM_TYPE_UNSUPPORTED,
+                        PGY_CAUSE_LLVM_TYPE_UNSUPPORTED,
+                        PGY_FIX_INSPECT_MIR_INVENTORY,
+                        "LLVM MIR void function return must not carry a value expression");
+                    return;
+                }
+                if (!llvm_stmt_require_non_void_value(ctx, return_expr,
+                        "LLVM MIR return cannot consume a Void expression value")) {
+                    return;
+                }
                 if (ctx->current_func_decl != NULL
                     && ctx->current_func_decl->type == AST_FUNC_DECL
                     && ast_func_return_type(ctx->current_func_decl) != NULL) {
@@ -472,12 +501,33 @@ llvm_emit_mir_block_with_exprs(const MIRBasicBlock *mir_block,
                 } else {
                     if (!llvm_mir_emit_pin_exit(mir_block, ctx))
                         return;
-                    LLVMBuildRetVoid(ctx->builder);
+                    if (!ctx->has_error) {
+                        llvm_set_error_at_with_hints(ctx, return_expr,
+                            PGY_CODE_LLVM_TYPE_UNSUPPORTED,
+                            PGY_CAUSE_LLVM_TYPE_UNSUPPORTED,
+                            PGY_FIX_INSPECT_MIR_INVENTORY,
+                            "LLVM MIR return could not lower value expression");
+                    }
+                    if (LLVMGetBasicBlockTerminator(
+                            LLVMGetInsertBlock(ctx->builder)) == NULL) {
+                        LLVMBuildUnreachable(ctx->builder);
+                    }
+                    return;
                 }
             } else {
                 if (!llvm_mir_emit_pin_exit(mir_block, ctx))
                     return;
-                LLVMBuildRetVoid(ctx->builder);
+                if (ctx->current_ret_type == ctx->type_void) {
+                    LLVMBuildRetVoid(ctx->builder);
+                } else {
+                    llvm_set_error_at_with_hints(ctx,
+                        mir_instruction_source_payload(inst),
+                        PGY_CODE_LLVM_TYPE_UNSUPPORTED,
+                        PGY_CAUSE_LLVM_TYPE_UNSUPPORTED,
+                        PGY_FIX_ADD_RETURN_ON_ALL_PATHS,
+                        "LLVM MIR non-Void return requires a value expression");
+                    LLVMBuildUnreachable(ctx->builder);
+                }
             }
             emitted_terminator = true;
             break;
@@ -535,11 +585,12 @@ llvm_emit_mir_block_with_exprs(const MIRBasicBlock *mir_block,
                 return;
             llvm_block_tails[mir_block->id] =
                 LLVMGetInsertBlock(ctx->builder);
-            LLVMBuildCondBr(ctx->builder,
-                            LLVMConstInt(LLVMInt1TypeInContext(
-                                LLVMGetModuleContext(ctx->module)), 1, false),
-                            llvm_block_heads[mir_block->succ_true],
-                            llvm_block_heads[mir_block->succ_false]);
+            llvm_set_mir_topology_invalid(ctx,
+                "LLVM MIR block %llu has two successors without a branch condition terminator",
+                (unsigned long long)mir_block->id);
+            if (LLVMGetBasicBlockTerminator(LLVMGetInsertBlock(ctx->builder)) == NULL)
+                LLVMBuildUnreachable(ctx->builder);
+            return;
         } else if (mir_block->has_succ_true) {
             if (!llvm_mir_emit_loop_backedge_increment(routine, mir_block, ctx))
                 return;
@@ -556,7 +607,13 @@ llvm_emit_mir_block_with_exprs(const MIRBasicBlock *mir_block,
             if (ctx->current_ret_type == ctx->type_void) {
                 LLVMBuildRetVoid(ctx->builder);
             } else {
-                LLVMBuildRet(ctx->builder, LLVMConstNull(ctx->current_ret_type));
+                /* Closure #74: when a block has no successors AND no return
+                 * was emitted in the block body, MIR is telling us the path
+                 * was already terminated via earlier branches (e.g. match
+                 * with all-returning cases). Emit unreachable to keep the IR
+                 * valid; the verifier will reject if the path is actually
+                 * live. Erroring here breaks legitimate exhaustive matches. */
+                LLVMBuildUnreachable(ctx->builder);
             }
         }
     }

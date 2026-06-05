@@ -247,7 +247,8 @@ llvm_emit_host_projection_invalidations(LLVMGenCtx *ctx, ASTNode *target)
     const char *source_slot = NULL;
     const char *source_field = NULL;
     LLVMClassTypeEntry *host_cls;
-    LLVMVarEntry *self_var;
+    LLVMVarEntry self_var;
+    bool has_self_var;
     LLVMValueRef host_ptr;
 
     if (ctx == NULL || target == NULL)
@@ -288,8 +289,8 @@ llvm_emit_host_projection_invalidations(LLVMGenCtx *ctx, ASTNode *target)
         world_name = llvm_decl_node_name(host_decl);
         zone_name = llvm_decl_node_name(zone_decl);
         world_cls = llvm_lookup_class(ctx, world_name);
-        self_var = llvm_scope_lookup(ctx, "self");
-        if (world_cls == NULL || self_var == NULL)
+        has_self_var = llvm_scope_lookup_snapshot(ctx, "self", &self_var);
+        if (world_cls == NULL || !has_self_var)
             return;
 
         host_cls = llvm_lookup_class(ctx, zone_name);
@@ -297,10 +298,10 @@ llvm_emit_host_projection_invalidations(LLVMGenCtx *ctx, ASTNode *target)
         if (host_cls == NULL || zone_refreshes == NULL || zone_refresh_count == 0)
             return;
 
-        host_ptr = self_var->alloca;
-        if (self_var->type == LLVMPointerType(world_cls->struct_type, 0)) {
-            host_ptr = LLVMBuildLoad2(ctx->builder, self_var->type,
-                self_var->alloca, llvm_tmp_name(ctx));
+        host_ptr = self_var.alloca;
+        if (self_var.type == LLVMPointerType(world_cls->struct_type, 0)) {
+            host_ptr = LLVMBuildLoad2(ctx->builder, self_var.type,
+                self_var.alloca, llvm_tmp_name(ctx));
         }
 
         zone_field_idx = llvm_class_field_index(world_cls, zone_slot);
@@ -327,14 +328,14 @@ llvm_emit_host_projection_invalidations(LLVMGenCtx *ctx, ASTNode *target)
     }
 
     host_cls = llvm_lookup_class(ctx, llvm_decl_node_name(host_decl));
-    self_var = llvm_scope_lookup(ctx, "self");
-    if (host_cls == NULL || self_var == NULL)
+    has_self_var = llvm_scope_lookup_snapshot(ctx, "self", &self_var);
+    if (host_cls == NULL || !has_self_var)
         return;
 
-    host_ptr = self_var->alloca;
-    if (self_var->type == LLVMPointerType(host_cls->struct_type, 0)) {
-        host_ptr = LLVMBuildLoad2(ctx->builder, self_var->type,
-            self_var->alloca, llvm_tmp_name(ctx));
+    host_ptr = self_var.alloca;
+    if (self_var.type == LLVMPointerType(host_cls->struct_type, 0)) {
+        host_ptr = LLVMBuildLoad2(ctx->builder, self_var.type,
+            self_var.alloca, llvm_tmp_name(ctx));
     }
     llvm_emit_projection_invalidations_for_host(ctx,
         refreshes, refresh_count, host_cls, host_ptr, source_slot,
@@ -350,7 +351,7 @@ llvm_emit_world_embedded_assignment_sync(LLVMGenCtx *ctx, ASTNode *target)
     ASTNode *world_decl;
     LLVMClassTypeEntry *world_cls;
     LLVMClassTypeEntry *zone_cls;
-    LLVMVarEntry *self_var;
+    LLVMVarEntry self_var;
     LLVMValueRef world_ptr;
     LLVMValueRef zone_ptr;
     LLVMFuncEntry *sync_entry;
@@ -377,8 +378,8 @@ llvm_emit_world_embedded_assignment_sync(LLVMGenCtx *ctx, ASTNode *target)
     zone_name = llvm_decl_node_name(zone_decl);
     world_cls = llvm_lookup_class(ctx, world_name);
     zone_cls = llvm_lookup_class(ctx, zone_name);
-    self_var = llvm_scope_lookup(ctx, "self");
-    if (world_cls == NULL || zone_cls == NULL || self_var == NULL
+    if (world_cls == NULL || zone_cls == NULL
+        || !llvm_scope_lookup_snapshot(ctx, "self", &self_var)
         || zone_cls->sync_function_name == NULL) {
         return;
     }
@@ -389,10 +390,10 @@ llvm_emit_world_embedded_assignment_sync(LLVMGenCtx *ctx, ASTNode *target)
         return;
     }
 
-    world_ptr = self_var->alloca;
-    if (self_var->type == LLVMPointerType(world_cls->struct_type, 0)) {
-        world_ptr = LLVMBuildLoad2(ctx->builder, self_var->type,
-            self_var->alloca, llvm_tmp_name(ctx));
+    world_ptr = self_var.alloca;
+    if (self_var.type == LLVMPointerType(world_cls->struct_type, 0)) {
+        world_ptr = LLVMBuildLoad2(ctx->builder, self_var.type,
+            self_var.alloca, llvm_tmp_name(ctx));
     }
 
     zone_field_idx = llvm_class_field_index(world_cls, zone_slot);

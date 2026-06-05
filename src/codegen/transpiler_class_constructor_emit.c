@@ -2,7 +2,6 @@
 
 #include <stdlib.h>
 
-#include "../common/string_compat.h"
 #include "parser/ast_api.h"
 #include "transpiler_constructor_channel_guard.h"
 #include "transpiler_context.h"
@@ -31,7 +30,7 @@ transpiler_emit_class_constructor_with_type(ASTNode *call,
             transpiler_constructor_find_channel_field(ctx, class_decl);
         if (channel_field != NULL) {
             transpiler_constructor_reject_channel_field(ctx, channel_field);
-            return pergyra_strdup("0");
+            return NULL;
         }
     }
 
@@ -46,7 +45,7 @@ transpiler_emit_class_constructor_with_type(ASTNode *call,
             "MIR-only C path missing class-field declaration metadata for constructor '%s'",
             decl_name != NULL ? decl_name : "(anonymous-class)");
         codebuf_destroy(fields);
-        return pergyra_strdup("0");
+        return NULL;
     }
 
     for (size_t i = 0; i < argc && i < field_count; i++) {
@@ -56,11 +55,15 @@ transpiler_emit_class_constructor_with_type(ASTNode *call,
             transpiler_hosted_field_view_name(&field_view, i);
         char *arg = transpiler_emit_ctor_arg_with_expected_type(ctx,
             field_type, field_name, ast_call_argument(call, i));
+        if (arg == NULL) {
+            codebuf_destroy(fields);
+            return NULL;
+        }
         if (i > 0)
             codebuf_write(fields, ", ");
         codebuf_write(fields, ".%s = %s",
             field_name != NULL ? field_name : "field",
-            arg != NULL ? arg : "0");
+            arg);
         free(arg);
     }
 

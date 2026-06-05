@@ -110,15 +110,24 @@ select_write_case_guard(TranspilerCtx *ctx, size_t offset, size_t index,
         prefix, inner, channel_name, index);
 }
 
-static void
+static bool
 select_emit_unbound_consume(ASTNode *channel, const char *inner,
                             TranspilerCtx *ctx)
 {
     char *channel_expr = emit_expression(channel, ctx);
+    if (channel_expr == NULL) {
+        transpiler_set_backend_error_with_hints(ctx,
+            PGY_CODE_C_TYPE_UNSUPPORTED,
+            PGY_CAUSE_C_TYPE_UNSUPPORTED,
+            PGY_FIX_USE_LLVM_BACKEND_OR_EXTEND_TRANSPILER,
+            "C select lowering could not lower unbound receive channel expression");
+        return false;
+    }
     write_indent(ctx);
     codebuf_write(ctx->out, "(void)pgy_channel_recv_val_%s(&%s);\n",
                   inner, channel_expr);
     free(channel_expr);
+    return true;
 }
 
 void
@@ -239,7 +248,8 @@ emit_select_stmt(ASTNode *node, TranspilerCtx *ctx)
                             select_set_missing_channel_type_error(ctx, channel);
                             return;
                         }
-                        select_emit_unbound_consume(channel, inner, ctx);
+                        if (!select_emit_unbound_consume(channel, inner, ctx))
+                            return;
                     }
                     if (body != NULL)
                         emit_statement(body, ctx);

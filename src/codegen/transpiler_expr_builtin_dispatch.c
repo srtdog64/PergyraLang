@@ -2,12 +2,14 @@
 
 #include "../common/string_compat.h"
 #include "../parser/ast_api.h"
+#include "transpiler_context.h"
 #include "transpiler_expr_core_builtins_emit.h"
 #include "transpiler_expr_domain_query_builtin.h"
 #include "transpiler_expr_io_builtin.h"
 #include "transpiler_expr_projection_builtin.h"
 #include "transpiler_intent_observability_builtin_emit.h"
 #include "transpiler_slot_builtin_emit.h"
+#include "../semantic/diag_codes.h"
 
 char *
 emit_call_builtin_dispatch(ASTNode *call,
@@ -56,7 +58,13 @@ emit_call_builtin_dispatch(ASTNode *call,
     case BUILTIN_CLONE:
         if (argc >= 1 && arg0 != NULL)
             return emit_expression(arg0, ctx);
-        return pergyra_strdup("0");
+        transpiler_set_backend_error_with_hints(
+            ctx,
+            PGY_CODE_C_TYPE_UNSUPPORTED,
+            PGY_CAUSE_C_TYPE_UNSUPPORTED,
+            PGY_FIX_ALIGN_ARG_TYPE,
+            "C backend: Clone requires one value argument");
+        return NULL;
     case BUILTIN_RC_NEW:
     case BUILTIN_RC_CLONE:
     case BUILTIN_RC_DROP:

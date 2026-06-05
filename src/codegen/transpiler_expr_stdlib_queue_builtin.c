@@ -11,6 +11,7 @@
 
 #include "../common/string_compat.h"
 #include "../parser/ast_api.h"
+#include "../semantic/diag_codes.h"
 #include "transpiler_collection_runtime_suffix.h"
 #include "transpiler_context.h"
 #include "transpiler_expr_stdlib_collection_support.h"
@@ -67,6 +68,28 @@ transpiler_queue_lookup(const char *fn, size_t argc)
     return spec->op;
 }
 
+static char *
+transpiler_queue_emit_arg(TranspilerCtx *ctx,
+                          ASTNode *arg,
+                          const char *builtin_name,
+                          const char *role)
+{
+    char *rendered = emit_expression(arg, ctx);
+
+    if (rendered != NULL)
+        return rendered;
+
+    transpiler_set_backend_error_with_hints(
+        ctx,
+        PGY_CODE_C_TYPE_UNSUPPORTED,
+        PGY_CAUSE_C_TYPE_UNSUPPORTED,
+        PGY_FIX_USE_LLVM_BACKEND_OR_EXTEND_TRANSPILER,
+        "C backend: queue builtin %s could not lower %s argument",
+        builtin_name != NULL ? builtin_name : "(unknown)",
+        role != NULL ? role : "operand");
+    return NULL;
+}
+
 char *
 emit_call_stdlib_queue_builtin(const char *fn, ASTNode *call, TranspilerCtx *ctx)
 {
@@ -79,7 +102,7 @@ emit_call_stdlib_queue_builtin(const char *fn, ASTNode *call, TranspilerCtx *ctx
         const char *inner = NULL;
         if (hint == NULL || !transpiler_require_unary_collection_type(ctx,
                 hint, "Queue", "QueueNew", inner_buf, sizeof(inner_buf), &inner)) {
-            return pergyra_strdup("0");
+            return NULL;
         }
         transpiler_collection_ensure_specialization(ctx, "Queue", inner);
         char suffix_buf[128];
@@ -90,9 +113,18 @@ emit_call_stdlib_queue_builtin(const char *fn, ASTNode *call, TranspilerCtx *ctx
         ASTNode *queue_arg = ast_call_argument(call, 0);
         if (!transpiler_require_c_addressable_storage(ctx, queue_arg,
                 "QueuePush", "Queue"))
-            return pergyra_strdup("0");
-        char *q = emit_expression(queue_arg, ctx);
-        char *v = emit_expression(ast_call_argument(call, 1), ctx);
+            return NULL;
+        char *q = transpiler_queue_emit_arg(ctx, queue_arg,
+            "QueuePush", "queue");
+        char *v = q != NULL
+            ? transpiler_queue_emit_arg(ctx, ast_call_argument(call, 1),
+                  "QueuePush", "value")
+            : NULL;
+        if (q == NULL || v == NULL) {
+            free(q);
+            free(v);
+            return NULL;
+        }
         const char *queue_type = transpiler_expr_infer_type_name(ctx, queue_arg);
         char inner_buf[64];
         const char *inner = NULL;
@@ -100,7 +132,7 @@ emit_call_stdlib_queue_builtin(const char *fn, ASTNode *call, TranspilerCtx *ctx
                 "Queue", "QueuePush", inner_buf, sizeof(inner_buf), &inner)) {
             free(q);
             free(v);
-            return pergyra_strdup("0");
+            return NULL;
         }
         transpiler_collection_ensure_specialization(ctx, "Queue", inner);
         char suffix_buf[128];
@@ -115,15 +147,18 @@ emit_call_stdlib_queue_builtin(const char *fn, ASTNode *call, TranspilerCtx *ctx
         ASTNode *queue_arg = ast_call_argument(call, 0);
         if (!transpiler_require_c_addressable_storage(ctx, queue_arg,
                 "QueuePop", "Queue"))
-            return pergyra_strdup("0");
-        char *q = emit_expression(queue_arg, ctx);
+            return NULL;
+        char *q = transpiler_queue_emit_arg(ctx, queue_arg,
+            "QueuePop", "queue");
+        if (q == NULL)
+            return NULL;
         const char *queue_type = transpiler_expr_infer_type_name(ctx, queue_arg);
         char inner_buf[64];
         const char *inner = NULL;
         if (!transpiler_require_unary_collection_type(ctx, queue_type,
                 "Queue", "QueuePop", inner_buf, sizeof(inner_buf), &inner)) {
             free(q);
-            return pergyra_strdup("0");
+            return NULL;
         }
         transpiler_collection_ensure_specialization(ctx, "Queue", inner);
         char suffix_buf[128];
@@ -137,15 +172,18 @@ emit_call_stdlib_queue_builtin(const char *fn, ASTNode *call, TranspilerCtx *ctx
         ASTNode *queue_arg = ast_call_argument(call, 0);
         if (!transpiler_require_c_addressable_storage(ctx, queue_arg,
                 "QueueSize", "Queue"))
-            return pergyra_strdup("0");
-        char *q = emit_expression(queue_arg, ctx);
+            return NULL;
+        char *q = transpiler_queue_emit_arg(ctx, queue_arg,
+            "QueueSize", "queue");
+        if (q == NULL)
+            return NULL;
         const char *queue_type = transpiler_expr_infer_type_name(ctx, queue_arg);
         char inner_buf[64];
         const char *inner = NULL;
         if (!transpiler_require_unary_collection_type(ctx, queue_type,
                 "Queue", "QueueSize", inner_buf, sizeof(inner_buf), &inner)) {
             free(q);
-            return pergyra_strdup("0");
+            return NULL;
         }
         transpiler_collection_ensure_specialization(ctx, "Queue", inner);
         char suffix_buf[128];
@@ -159,15 +197,18 @@ emit_call_stdlib_queue_builtin(const char *fn, ASTNode *call, TranspilerCtx *ctx
         ASTNode *queue_arg = ast_call_argument(call, 0);
         if (!transpiler_require_c_addressable_storage(ctx, queue_arg,
                 "QueueEmpty", "Queue"))
-            return pergyra_strdup("0");
-        char *q = emit_expression(queue_arg, ctx);
+            return NULL;
+        char *q = transpiler_queue_emit_arg(ctx, queue_arg,
+            "QueueEmpty", "queue");
+        if (q == NULL)
+            return NULL;
         const char *queue_type = transpiler_expr_infer_type_name(ctx, queue_arg);
         char inner_buf[64];
         const char *inner = NULL;
         if (!transpiler_require_unary_collection_type(ctx, queue_type,
                 "Queue", "QueueEmpty", inner_buf, sizeof(inner_buf), &inner)) {
             free(q);
-            return pergyra_strdup("0");
+            return NULL;
         }
         transpiler_collection_ensure_specialization(ctx, "Queue", inner);
         char suffix_buf[128];

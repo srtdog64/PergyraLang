@@ -106,7 +106,7 @@ llvm_resolve_channel_target_inner(LLVMGenCtx *ctx, ASTNode *node,
     inner = llvm_lookup_channel_inner(ctx, name);
     if (inner != NULL && inner[0] != '\0')
         return inner;
-    if (llvm_scope_lookup(ctx, name) != NULL)
+    if (llvm_scope_contains(ctx, name))
         return NULL;
 
     {
@@ -132,7 +132,8 @@ llvm_resolve_channel_target(LLVMGenCtx *ctx, ASTNode *node,
 {
     const char *name;
     const char *inner;
-    LLVMVarEntry *local;
+    LLVMVarEntry local;
+    bool has_local;
 
     if (out != NULL)
         memset(out, 0, sizeof(*out));
@@ -146,19 +147,19 @@ llvm_resolve_channel_target(LLVMGenCtx *ctx, ASTNode *node,
 
     name = ast_identifier_name(channel);
     inner = llvm_lookup_channel_inner(ctx, name);
-    local = llvm_scope_lookup(ctx, name);
+    has_local = llvm_scope_lookup_snapshot(ctx, name, &local);
     if (inner != NULL && inner[0] != '\0') {
-        if (local == NULL) {
+        if (!has_local) {
             llvm_channel_target_error(ctx, channel, operation_name,
                 "requires registered Channel<T> local storage");
             return false;
         }
         out->name = name;
         out->inner = inner;
-        out->ptr = local->alloca;
+        out->ptr = local.alloca;
         return true;
     }
-    if (local != NULL) {
+    if (has_local) {
         llvm_expr_set_missing_type_error(ctx, node, operation_name);
         return false;
     }

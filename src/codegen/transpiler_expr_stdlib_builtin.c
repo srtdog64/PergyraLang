@@ -128,6 +128,28 @@ transpiler_require_array_inner_type(TranspilerCtx *ctx, ASTNode *expr,
     return false;
 }
 
+static char *
+transpiler_stdlib_emit_arg(TranspilerCtx *ctx,
+                           ASTNode *arg,
+                           const char *builtin_name,
+                           const char *role)
+{
+    char *rendered = emit_expression(arg, ctx);
+
+    if (rendered != NULL)
+        return rendered;
+
+    transpiler_set_backend_error_with_hints(
+        ctx,
+        PGY_CODE_C_TYPE_UNSUPPORTED,
+        PGY_CAUSE_C_TYPE_UNSUPPORTED,
+        PGY_FIX_USE_LLVM_BACKEND_OR_EXTEND_TRANSPILER,
+        "C backend: stdlib builtin %s could not lower %s argument",
+        builtin_name != NULL ? builtin_name : "(unknown)",
+        role != NULL ? role : "operand");
+    return NULL;
+}
+
 char *
 emit_call_stdlib_builtin(ASTNode *call, ASTNode *callee, TranspilerCtx *ctx)
 {
@@ -145,21 +167,27 @@ emit_call_stdlib_builtin(ASTNode *call, ASTNode *callee, TranspilerCtx *ctx)
 
         array_op = transpiler_array_lookup(fn, argc);
         if (array_op == TRANSPILER_ARRAY_OP_LENGTH) {
-            char *arg = emit_expression(arg0, ctx);
+            char *arg = transpiler_stdlib_emit_arg(ctx, arg0,
+                "ArrayLength", "array");
+            if (arg == NULL)
+                return NULL;
             const char *inner = NULL;
             char inner_buf[64];
             if (!transpiler_require_array_inner_type(ctx,
                     arg0, "ArrayLength", true,
                     inner_buf, sizeof(inner_buf), &inner)) {
                 free(arg);
-                return pergyra_strdup("0");
+                return NULL;
             }
             char *result = strdup_fmt("((int32_t)(%s.length))", arg);
             free(arg);
             return result;
         }
         if (array_op == TRANSPILER_ARRAY_OP_SLICE_COPY) {
-            char *slice = emit_expression(arg0, ctx);
+            char *slice = transpiler_stdlib_emit_arg(ctx, arg0,
+                "SliceCopy", "slice");
+            if (slice == NULL)
+                return NULL;
             const char *slice_type = transpiler_expr_infer_type_name(ctx, arg0);
             const char *inner = NULL;
             char inner_buf[64];
@@ -170,9 +198,9 @@ emit_call_stdlib_builtin(ASTNode *call, ASTNode *callee, TranspilerCtx *ctx)
                     PGY_CODE_C_TYPE_UNSUPPORTED,
                     PGY_CAUSE_C_TYPE_UNSUPPORTED,
                     PGY_FIX_ANNOTATE_CONCRETE_TYPE,
-                    "C backend: SliceCopy requires concrete Slice<T> metadata");
+                "C backend: SliceCopy requires concrete Slice<T> metadata");
                 free(slice);
-                return pergyra_strdup("0");
+                return NULL;
             }
             int tmp_id = ++ctx->tmp_counter;
             char *result = strdup_fmt(
@@ -186,9 +214,17 @@ emit_call_stdlib_builtin(ASTNode *call, ASTNode *callee, TranspilerCtx *ctx)
         if (array_op == TRANSPILER_ARRAY_OP_PUSH) {
             if (!transpiler_require_c_addressable_storage(ctx, arg0,
                     "ArrayPush", "Array"))
-                return pergyra_strdup("0");
-            char *arr = emit_expression(arg0, ctx);
-            char *val = emit_expression(arg1, ctx);
+                return NULL;
+            char *arr = transpiler_stdlib_emit_arg(ctx, arg0,
+                "ArrayPush", "array");
+            char *val = arr != NULL
+                ? transpiler_stdlib_emit_arg(ctx, arg1, "ArrayPush", "value")
+                : NULL;
+            if (arr == NULL || val == NULL) {
+                free(arr);
+                free(val);
+                return NULL;
+            }
             const char *suffix = NULL;
             char inner_buf[64];
             if (!transpiler_require_array_inner_type(ctx,
@@ -196,7 +232,7 @@ emit_call_stdlib_builtin(ASTNode *call, ASTNode *callee, TranspilerCtx *ctx)
                     inner_buf, sizeof(inner_buf), &suffix)) {
                 free(arr);
                 free(val);
-                return pergyra_strdup("0");
+                return NULL;
             }
             char *result = strdup_fmt(
                 "pgy_array_push_%s(&%s, %s)", suffix, arr, val);
@@ -206,17 +242,28 @@ emit_call_stdlib_builtin(ASTNode *call, ASTNode *callee, TranspilerCtx *ctx)
         if (array_op == TRANSPILER_ARRAY_OP_SET) {
             if (!transpiler_require_c_addressable_storage(ctx, arg0,
                     "ArraySet", "Array"))
-                return pergyra_strdup("0");
-            char *arr = emit_expression(arg0, ctx);
-            char *idx = emit_expression(arg1, ctx);
-            char *val = emit_expression(arg2, ctx);
+                return NULL;
+            char *arr = transpiler_stdlib_emit_arg(ctx, arg0,
+                "ArraySet", "array");
+            char *idx = arr != NULL
+                ? transpiler_stdlib_emit_arg(ctx, arg1, "ArraySet", "index")
+                : NULL;
+            char *val = idx != NULL
+                ? transpiler_stdlib_emit_arg(ctx, arg2, "ArraySet", "value")
+                : NULL;
+            if (arr == NULL || idx == NULL || val == NULL) {
+                free(arr);
+                free(idx);
+                free(val);
+                return NULL;
+            }
             const char *inner = NULL;
             char inner_buf[64];
             if (!transpiler_require_array_inner_type(ctx,
                     arg0, "ArraySet", false,
                     inner_buf, sizeof(inner_buf), &inner)) {
                 free(arr); free(idx); free(val);
-                return pergyra_strdup("0");
+                return NULL;
             }
             char *result = strdup_fmt(
                 "pgy_array_set_%s(&%s, %s, %s)", inner, arr, idx, val);
@@ -226,29 +273,35 @@ emit_call_stdlib_builtin(ASTNode *call, ASTNode *callee, TranspilerCtx *ctx)
         if (array_op == TRANSPILER_ARRAY_OP_POP) {
             if (!transpiler_require_c_addressable_storage(ctx, arg0,
                     "ArrayPop", "Array"))
-                return pergyra_strdup("0");
-            char *arr = emit_expression(arg0, ctx);
+                return NULL;
+            char *arr = transpiler_stdlib_emit_arg(ctx, arg0,
+                "ArrayPop", "array");
+            if (arr == NULL)
+                return NULL;
             const char *inner = NULL;
             char inner_buf[64];
             if (!transpiler_require_array_inner_type(ctx,
                     arg0, "ArrayPop", false,
                     inner_buf, sizeof(inner_buf), &inner)) {
                 free(arr);
-                return pergyra_strdup("0");
+                return NULL;
             }
             char *result = strdup_fmt("pgy_array_pop_%s(&%s)", inner, arr);
             free(arr);
             return result;
         }
         if (array_op == TRANSPILER_ARRAY_OP_SORT) {
-            char *arr = emit_expression(arg0, ctx);
+            char *arr = transpiler_stdlib_emit_arg(ctx, arg0,
+                "ArraySort", "array");
+            if (arr == NULL)
+                return NULL;
             const char *inner = NULL;
             char inner_buf[64];
             if (!transpiler_require_array_inner_type(ctx,
                     arg0, "ArraySort", false,
                     inner_buf, sizeof(inner_buf), &inner)) {
                 free(arr);
-                return pergyra_strdup("0");
+                return NULL;
             }
             char *result = strdup_fmt(
                 "({ pgy_array_sort_%s((%s).data, (%s).length); %s; })",
@@ -257,15 +310,24 @@ emit_call_stdlib_builtin(ASTNode *call, ASTNode *callee, TranspilerCtx *ctx)
             return result;
         }
         if (array_op == TRANSPILER_ARRAY_OP_MAP) {
-            char *arr = emit_expression(arg0, ctx);
-            char *fn_arg = emit_expression(arg1, ctx);
+            char *arr = transpiler_stdlib_emit_arg(ctx, arg0,
+                "ArrayMap", "array");
+            char *fn_arg = arr != NULL
+                ? transpiler_stdlib_emit_arg(ctx, arg1, "ArrayMap",
+                      "function")
+                : NULL;
+            if (arr == NULL || fn_arg == NULL) {
+                free(arr);
+                free(fn_arg);
+                return NULL;
+            }
             const char *inner = NULL;
             char inner_buf[64];
             if (!transpiler_require_array_inner_type(ctx,
                     arg0, "ArrayMap", false,
                     inner_buf, sizeof(inner_buf), &inner)) {
                 free(arr); free(fn_arg);
-                return pergyra_strdup("0");
+                return NULL;
             }
             int tmp_id = ++ctx->tmp_counter;
             char *result = strdup_fmt(
@@ -281,15 +343,24 @@ emit_call_stdlib_builtin(ASTNode *call, ASTNode *callee, TranspilerCtx *ctx)
             return result;
         }
         if (array_op == TRANSPILER_ARRAY_OP_FILTER) {
-            char *arr = emit_expression(arg0, ctx);
-            char *fn_arg = emit_expression(arg1, ctx);
+            char *arr = transpiler_stdlib_emit_arg(ctx, arg0,
+                "ArrayFilter", "array");
+            char *fn_arg = arr != NULL
+                ? transpiler_stdlib_emit_arg(ctx, arg1, "ArrayFilter",
+                      "function")
+                : NULL;
+            if (arr == NULL || fn_arg == NULL) {
+                free(arr);
+                free(fn_arg);
+                return NULL;
+            }
             const char *inner = NULL;
             char inner_buf[64];
             if (!transpiler_require_array_inner_type(ctx,
                     arg0, "ArrayFilter", false,
                     inner_buf, sizeof(inner_buf), &inner)) {
                 free(arr); free(fn_arg);
-                return pergyra_strdup("0");
+                return NULL;
             }
             int tmp_id = ++ctx->tmp_counter;
             char *result = strdup_fmt(
@@ -307,7 +378,10 @@ emit_call_stdlib_builtin(ASTNode *call, ASTNode *callee, TranspilerCtx *ctx)
             return result;
         }
         if (array_op == TRANSPILER_ARRAY_OP_REVERSE) {
-            char *arr = emit_expression(arg0, ctx);
+            char *arr = transpiler_stdlib_emit_arg(ctx, arg0,
+                "ArrayReverse", "array");
+            if (arr == NULL)
+                return NULL;
             const char *arr_type = transpiler_expr_infer_type_name(ctx, arg0);
             const char *inner = NULL;
             const char *c_type = NULL;
@@ -329,9 +403,9 @@ emit_call_stdlib_builtin(ASTNode *call, ASTNode *callee, TranspilerCtx *ctx)
                     PGY_CAUSE_C_TYPE_UNSUPPORTED,
                     PGY_FIX_USE_LLVM_BACKEND_OR_EXTEND_TRANSPILER,
                     "cannot determine element type for ArrayReverse; "
-                    "explicit concrete Array<T> input is required");
+                "explicit concrete Array<T> input is required");
                 free(arr);
-                return pergyra_strdup("0");
+                return NULL;
             }
             char *result = strdup_fmt(
                 "({ for (size_t _ri = 0; _ri < (%s).length / 2; _ri++) { "
@@ -347,7 +421,10 @@ emit_call_stdlib_builtin(ASTNode *call, ASTNode *callee, TranspilerCtx *ctx)
             return channel_builtin;
         stdlib_op = transpiler_stdlib_lookup(fn, argc);
         if (stdlib_op == TRANSPILER_STDLIB_OP_CLONE) {
-            char *src = emit_expression(arg0, ctx);
+            char *src = transpiler_stdlib_emit_arg(ctx, arg0, "Clone",
+                "value");
+            if (src == NULL)
+                return NULL;
             const char *tn = transpiler_expr_infer_type_name(ctx, arg0);
             if (tn != NULL && strncmp(tn, "Slot<", 5) == 0) {
                 char inner_buf[128];
@@ -361,7 +438,7 @@ emit_call_stdlib_builtin(ASTNode *call, ASTNode *callee, TranspilerCtx *ctx)
                         PGY_CAUSE_C_TYPE_UNSUPPORTED,
                         PGY_FIX_ANNOTATE_CONCRETE_TYPE,
                         "C backend: Clone requires concrete Slot<T> metadata");
-                    return pergyra_strdup("0");
+                    return NULL;
                 }
                 char *result = strdup_fmt(
                     "({ PgySlot_%s _c = pgy_claim_%s(); "
@@ -373,13 +450,19 @@ emit_call_stdlib_builtin(ASTNode *call, ASTNode *callee, TranspilerCtx *ctx)
             return src;
         }
         if (stdlib_op == TRANSPILER_STDLIB_OP_PRINT) {
-            char *arg = emit_expression(arg0, ctx);
+            char *arg = transpiler_stdlib_emit_arg(ctx, arg0, "Print",
+                "value");
+            if (arg == NULL)
+                return NULL;
             char *result = strdup_fmt("printf(\"%%s\", %s)", arg);
             free(arg);
             return result;
         }
         if (stdlib_op == TRANSPILER_STDLIB_OP_TO_STRING) {
-            char *arg = emit_expression(arg0, ctx);
+            char *arg = transpiler_stdlib_emit_arg(ctx, arg0, "ToString",
+                "value");
+            if (arg == NULL)
+                return NULL;
             const char *arg_type = transpiler_expr_infer_type_name(ctx, arg0);
             TranspilerToStringKind to_string_kind =
                 transpiler_to_string_kind(arg_type);

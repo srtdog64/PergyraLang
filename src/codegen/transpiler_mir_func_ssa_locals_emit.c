@@ -285,6 +285,11 @@ transpiler_emit_mir_func_ssa_local_decls(TranspilerCtx *ctx,
         if (type_ast != NULL && type_ast->type == AST_EVENT_HANDLER_TYPE) {
             c_name = transpiler_render_ssa_name(ctx, versioned_name);
             decl = pergyra_ast_typed_declarator_in_ctx(ctx, type_ast, c_name);
+            if (decl == NULL) {
+                free(c_name);
+                free(owned_type_name);
+                return false;
+            }
             write_indent(ctx);
             codebuf_write(ctx->out, "%s = 0;\n", decl);
             write_indent(ctx);

@@ -113,9 +113,9 @@ llvm_emit_task_runtime_call(ASTNode *node, LLVMGenCtx *ctx,
     if (op == LLVM_TASK_RUNTIME_CANCEL) {
         LLVMFuncEntry *fn = llvm_required_task_function(ctx, node, callee_name,
             "pgy_task_cancel_export");
-        LLVMValueRef task = llvm_emit_expression(ast_call_argument(node, 0), ctx);
         if (fn == NULL)
             return NULL;
+        LLVMValueRef task = llvm_emit_expression(ast_call_argument(node, 0), ctx);
         if (task == NULL)
             return llvm_task_runtime_error(ctx, node, callee_name,
                 "could not lower task handle expression");

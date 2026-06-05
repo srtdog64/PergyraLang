@@ -60,14 +60,15 @@ llvm_emit_member_call(ASTNode *node, LLVMGenCtx *ctx)
         }
 
         const char *var_name = ast_identifier_name(obj_node);
-        LLVMVarEntry *var = llvm_scope_lookup(ctx, var_name);
+        LLVMVarEntry var;
+        bool has_var = llvm_scope_lookup_snapshot(ctx, var_name, &var);
         const char *class_name = llvm_lookup_var_class(ctx, var_name);
         if (class_name == NULL)
             class_name = llvm_expr_custom_type_name(obj_node, ctx);
         LLVMClassTypeEntry *parent_cls = NULL;
         int field_idx = -1;
 
-        if (var == NULL) {
+        if (!has_var) {
             ASTNode *host_decl = llvm_current_host_decl(ctx);
             const char *host_name = llvm_decl_node_name(host_decl);
             class_name = llvm_current_field_class_name(ctx, var_name);
@@ -78,7 +79,8 @@ llvm_emit_member_call(ASTNode *node, LLVMGenCtx *ctx)
             }
         }
 
-        if (class_name != NULL && (var != NULL || (parent_cls != NULL && field_idx >= 0))) {
+        if (class_name != NULL
+            && (has_var || (parent_cls != NULL && field_idx >= 0))) {
             LLVMClassTypeEntry *cls = llvm_lookup_class(ctx, class_name);
             if (cls != NULL) {
                 LLVMFuncEntry *fn;
@@ -114,18 +116,18 @@ llvm_emit_member_call(ASTNode *node, LLVMGenCtx *ctx)
                     if (args == NULL)
                         return NULL;
                     if (llvm_type_name_uses_pointer_self(ctx, class_name)) {
-                        if (var != NULL && strcmp(var_name, "self") == 0) {
-                            if (var->type == LLVMPointerType(cls->struct_type, 0))
+                        if (has_var && strcmp(var_name, "self") == 0) {
+                            if (var.type == LLVMPointerType(cls->struct_type, 0))
                                 args[0] = LLVMBuildLoad2(ctx->builder,
-                                    var->type, var->alloca, llvm_tmp_name(ctx));
+                                    var.type, var.alloca, llvm_tmp_name(ctx));
                             else
-                                args[0] = var->alloca;
-                        } else if (var != NULL) {
-                            if (var->type == LLVMPointerType(cls->struct_type, 0))
+                                args[0] = var.alloca;
+                        } else if (has_var) {
+                            if (var.type == LLVMPointerType(cls->struct_type, 0))
                                 args[0] = LLVMBuildLoad2(ctx->builder,
-                                    var->type, var->alloca, llvm_tmp_name(ctx));
+                                    var.type, var.alloca, llvm_tmp_name(ctx));
                             else
-                                args[0] = var->alloca;
+                                args[0] = var.alloca;
                         } else {
                             LLVMValueRef base_ptr =
                                 llvm_current_self_base_ptr(ctx, parent_cls);
@@ -139,9 +141,9 @@ llvm_emit_member_call(ASTNode *node, LLVMGenCtx *ctx)
                             args[0] = field_ptr;
                         }
                     } else {
-                        if (var != NULL) {
+                        if (has_var) {
                             args[0] = LLVMBuildLoad2(ctx->builder,
-                                var->type, var->alloca, llvm_tmp_name(ctx));
+                                var.type, var.alloca, llvm_tmp_name(ctx));
                         } else {
                             LLVMValueRef base_ptr =
                                 llvm_current_self_base_ptr(ctx, parent_cls);

@@ -43,7 +43,8 @@ llvm_decl_emit_zone_authority_check(LLVMGenCtx *ctx)
     ASTNode *zone_decl;
     ASTNode *authority;
     LLVMClassTypeEntry *zone_cls;
-    LLVMVarEntry *self_var;
+    LLVMVarEntry self_var;
+    bool has_self_var;
     LLVMFuncEntry *check_fn;
     LLVMValueRef self_value;
     LLVMValueRef field_ptr;
@@ -86,7 +87,7 @@ llvm_decl_emit_zone_authority_check(LLVMGenCtx *ctx)
     }
 
     zone_cls = zone_name != NULL ? llvm_lookup_class(ctx, zone_name) : NULL;
-    self_var = llvm_scope_lookup(ctx, "self");
+    has_self_var = llvm_scope_lookup_snapshot(ctx, "self", &self_var);
     check_fn = llvm_lookup_function(ctx, "pgy_zone_authority_check_export");
     if (zone_cls == NULL) {
         llvm_decl_zone_authority_backend_error(ctx, zone_decl, zone_name,
@@ -94,7 +95,7 @@ llvm_decl_emit_zone_authority_check(LLVMGenCtx *ctx)
             "zone class layout is missing");
         return;
     }
-    if (self_var == NULL) {
+    if (!has_self_var) {
         llvm_decl_zone_authority_backend_error(ctx, ctx->current_func_decl,
             zone_name, subject_slot,
             "implicit self binding is missing");
@@ -114,7 +115,7 @@ llvm_decl_emit_zone_authority_check(LLVMGenCtx *ctx)
         return;
     }
 
-    self_value = LLVMBuildLoad2(ctx->builder, self_var->type, self_var->alloca,
+    self_value = LLVMBuildLoad2(ctx->builder, self_var.type, self_var.alloca,
         llvm_tmp_name(ctx));
     field_ptr = LLVMBuildStructGEP2(ctx->builder, zone_cls->struct_type,
         self_value, (unsigned)field_index, llvm_tmp_name(ctx));

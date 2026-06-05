@@ -32,12 +32,12 @@ llvm_collection_registry_strdup(LLVMGenCtx *ctx, const char *value,
 static LLVMValueRef
 llvm_collection_active_binding(LLVMGenCtx *ctx, const char *var_name)
 {
-    LLVMVarEntry *entry;
+    LLVMVarEntry entry;
 
     if (ctx == NULL || var_name == NULL)
         return NULL;
-    entry = llvm_scope_lookup(ctx, var_name);
-    return entry != NULL ? entry->alloca : NULL;
+    return llvm_scope_lookup_snapshot(ctx, var_name, &entry)
+        ? entry.alloca : NULL;
 }
 
 void

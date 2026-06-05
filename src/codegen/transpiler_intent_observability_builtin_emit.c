@@ -197,11 +197,11 @@ emit_builtin_intent_observability(ASTNode *call, BuiltinKind bk,
     one_export = intent_observability_one_arg_export(bk);
     if (one_export != NULL) {
         if (!intent_observability_require_arg_count(call, ctx, one_export, 1))
-            return pergyra_strdup("0");
+            return NULL;
         char *index = intent_observability_emit_index(
             ast_call_argument(call, 0), ctx, one_export, "index");
         if (index == NULL)
-            return pergyra_strdup("0");
+            return NULL;
         char *result = strdup_fmt("%s(%s)", one_export, index);
         free(index);
         return result;
@@ -210,7 +210,7 @@ emit_builtin_intent_observability(ASTNode *call, BuiltinKind bk,
     two_export = intent_observability_two_arg_export(bk);
     if (two_export != NULL) {
         if (!intent_observability_require_arg_count(call, ctx, two_export, 2))
-            return pergyra_strdup("0");
+            return NULL;
         char *intent_index = intent_observability_emit_index(
             ast_call_argument(call, 0), ctx, two_export, "intent index");
         char *step_index = intent_observability_emit_index(
@@ -218,7 +218,7 @@ emit_builtin_intent_observability(ASTNode *call, BuiltinKind bk,
         if (intent_index == NULL || step_index == NULL) {
             free(intent_index);
             free(step_index);
-            return pergyra_strdup("0");
+            return NULL;
         }
         char *result = strdup_fmt("%s(%s, %s)", two_export, intent_index,
                                   step_index);

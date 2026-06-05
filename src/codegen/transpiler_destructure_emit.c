@@ -20,6 +20,15 @@ emit_let_destructure_statement(ASTNode *node, TranspilerCtx *ctx)
     const char *c_init_type = NULL;
     int tmp_id;
 
+    if (init_expr == NULL) {
+        transpiler_set_backend_error_with_hints(ctx,
+            PGY_CODE_C_TYPE_UNSUPPORTED,
+            PGY_CAUSE_C_TYPE_UNSUPPORTED,
+            PGY_FIX_USE_LLVM_BACKEND_OR_EXTEND_TRANSPILER,
+            "C destructuring let could not lower initializer expression");
+        return;
+    }
+
     if ((init_type == NULL || strcmp(init_type, "Unknown") == 0)
         && init != NULL
         && init->type == AST_IDENTIFIER

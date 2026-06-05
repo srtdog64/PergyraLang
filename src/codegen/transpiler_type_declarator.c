@@ -12,8 +12,10 @@
 #include <string.h>
 
 #include "transpiler_type_declarator.h"
+#include "transpiler_context.h"
 #include "transpiler_type_render.h"
 #include "../common/string_compat.h"
+#include "../semantic/diag_codes.h"
 
 static bool
 declarator_ast_type_to_c_copy_in_ctx(TranspilerCtx *ctx, ASTNode *type_node,
@@ -25,7 +27,7 @@ declarator_ast_type_to_c_copy_in_ctx(TranspilerCtx *ctx, ASTNode *type_node,
 }
 
 static char *
-declarator_strdup_fmt(const char *fmt, ...)
+declarator_heap_fmt(TranspilerCtx *ctx, const char *fmt, ...)
 {
     va_list ap;
     va_list ap2;
@@ -39,18 +41,46 @@ declarator_strdup_fmt(const char *fmt, ...)
 
     if (n < 0) {
         va_end(ap2);
+        transpiler_set_backend_error_with_hints(ctx,
+            PGY_CODE_C_TYPE_UNSUPPORTED,
+            PGY_CAUSE_C_TYPE_UNSUPPORTED,
+            PGY_FIX_USE_LLVM_BACKEND_OR_EXTEND_TRANSPILER,
+            "C backend declarator formatting failed");
         return NULL;
     }
 
     buf = malloc((size_t)n + 1);
     if (buf == NULL) {
         va_end(ap2);
+        transpiler_set_backend_error_with_hints(ctx,
+            PGY_CODE_C_TYPE_UNSUPPORTED,
+            PGY_CAUSE_C_TYPE_UNSUPPORTED,
+            PGY_FIX_USE_LLVM_BACKEND_OR_EXTEND_TRANSPILER,
+            "C backend declarator allocation failed");
         return NULL;
     }
 
     vsnprintf(buf, (size_t)n + 1, fmt, ap2);
     va_end(ap2);
     return buf;
+}
+
+static bool
+declarator_require_ast_c_type_copy(TranspilerCtx *ctx,
+                                   ASTNode *type_node,
+                                   const char *surface,
+                                   char *out,
+                                   size_t out_size)
+{
+    if (declarator_ast_type_to_c_copy_in_ctx(ctx, type_node, out, out_size))
+        return true;
+    transpiler_set_backend_error_with_hints(ctx,
+        PGY_CODE_C_TYPE_UNSUPPORTED,
+        PGY_CAUSE_C_TYPE_UNSUPPORTED,
+        PGY_FIX_ANNOTATE_CONCRETE_TYPE,
+        "C backend declarator cannot render C type for %s",
+        surface != NULL ? surface : "typed declaration");
+    return false;
 }
 
 char *
@@ -61,7 +91,8 @@ pergyra_ast_typed_declarator_in_ctx(TranspilerCtx *ctx,
     char type_buf[256];
 
     if (type_node == NULL)
-        return declarator_strdup_fmt("void %s", name != NULL ? name : "value");
+        return declarator_heap_fmt(ctx, "void %s",
+            name != NULL ? name : "value");
 
     if (type_node->type == AST_EVENT_HANDLER_TYPE) {
         char ret_type_buf[256];
@@ -71,16 +102,24 @@ pergyra_ast_typed_declarator_in_ctx(TranspilerCtx *ctx,
 
         ASTNode *return_type = ast_event_handler_return_type(type_node);
         if (return_type != NULL) {
-            if (declarator_ast_type_to_c_copy_in_ctx(ctx,
+            if (declarator_require_ast_c_type_copy(ctx,
                     return_type,
+                    "event handler return type",
                     ret_type_buf, sizeof(ret_type_buf)))
                 ret_type = ret_type_buf;
+            else {
+                codebuf_destroy(params);
+                return NULL;
+            }
         }
 
         if (params == NULL) {
-            result = declarator_strdup_fmt("%s (*%s)(void)", ret_type,
-                name != NULL ? name : "value");
-            return result;
+            transpiler_set_backend_error_with_hints(ctx,
+                PGY_CODE_C_TYPE_UNSUPPORTED,
+                PGY_CAUSE_C_TYPE_UNSUPPORTED,
+                PGY_FIX_USE_LLVM_BACKEND_OR_EXTEND_TRANSPILER,
+                "C backend declarator parameter buffer allocation failed");
+            return NULL;
         }
 
         size_t param_count = ast_event_handler_param_count(type_node);
@@ -91,26 +130,28 @@ pergyra_ast_typed_declarator_in_ctx(TranspilerCtx *ctx,
                 char param_buf[256];
                 if (i > 0)
                     codebuf_write(params, ", ");
-                if (declarator_ast_type_to_c_copy_in_ctx(ctx,
+                if (declarator_require_ast_c_type_copy(ctx,
                         ast_event_handler_param_type(type_node, i),
+                        "event handler parameter type",
                         param_buf, sizeof(param_buf))) {
                     codebuf_write(params, "%s", param_buf);
                 } else {
-                    codebuf_write(params, "void *");
+                    codebuf_destroy(params);
+                    return NULL;
                 }
             }
         }
 
-        result = declarator_strdup_fmt("%s (*%s)(%s)", ret_type,
+        result = declarator_heap_fmt(ctx, "%s (*%s)(%s)", ret_type,
             name != NULL ? name : "value", params->data);
         codebuf_destroy(params);
         return result;
     }
 
-    if (!declarator_ast_type_to_c_copy_in_ctx(ctx, type_node,
-            type_buf, sizeof(type_buf)))
-        type_buf[0] = '\0';
-    return declarator_strdup_fmt("%s %s", type_buf[0] != '\0' ? type_buf : "void *",
+    if (!declarator_require_ast_c_type_copy(ctx, type_node,
+            "typed declarator", type_buf, sizeof(type_buf)))
+        return NULL;
+    return declarator_heap_fmt(ctx, "%s %s", type_buf,
         name != NULL ? name : "value");
 }
 
@@ -131,21 +172,29 @@ pergyra_func_pointer_declarator_from_decl_in_ctx(TranspilerCtx *ctx,
     char *result = NULL;
 
     if (func_decl == NULL || func_decl->type != AST_FUNC_DECL)
-        return declarator_strdup_fmt("void (*%s)(void)",
+        return declarator_heap_fmt(ctx, "void (*%s)(void)",
             name != NULL ? name : "value");
 
     params = codebuf_create();
     ASTNode *return_type = ast_func_return_type(func_decl);
     if (return_type != NULL) {
-        if (declarator_ast_type_to_c_copy_in_ctx(ctx,
-                return_type, ret_type_buf, sizeof(ret_type_buf)))
+        if (declarator_require_ast_c_type_copy(ctx,
+                return_type, "function pointer return type",
+                ret_type_buf, sizeof(ret_type_buf)))
             ret_type = ret_type_buf;
+        else {
+            codebuf_destroy(params);
+            return NULL;
+        }
     }
 
     if (params == NULL) {
-        result = declarator_strdup_fmt("%s (*%s)(void)", ret_type,
-            name != NULL ? name : "value");
-        return result;
+        transpiler_set_backend_error_with_hints(ctx,
+            PGY_CODE_C_TYPE_UNSUPPORTED,
+            PGY_CAUSE_C_TYPE_UNSUPPORTED,
+            PGY_FIX_USE_LLVM_BACKEND_OR_EXTEND_TRANSPILER,
+            "C backend declarator parameter buffer allocation failed");
+        return NULL;
     }
 
     size_t param_count = ast_func_param_count(func_decl);
@@ -157,17 +206,18 @@ pergyra_func_pointer_declarator_from_decl_in_ctx(TranspilerCtx *ctx,
             char param_buf[256];
             if (i > 0)
                 codebuf_write(params, ", ");
-            codebuf_write(params, "%s",
-                p != NULL
-                    && p->type != NULL
-                    && declarator_ast_type_to_c_copy_in_ctx(ctx,
-                        p->type, param_buf, sizeof(param_buf))
-                    ? param_buf
-                    : "int32_t");
+            if (p == NULL || p->type == NULL
+                || !declarator_require_ast_c_type_copy(ctx,
+                    p->type, "function pointer parameter type",
+                    param_buf, sizeof(param_buf))) {
+                codebuf_destroy(params);
+                return NULL;
+            }
+            codebuf_write(params, "%s", param_buf);
         }
     }
 
-    result = declarator_strdup_fmt("%s (*%s)(%s)", ret_type,
+    result = declarator_heap_fmt(ctx, "%s (*%s)(%s)", ret_type,
         name != NULL ? name : "value", params->data);
     codebuf_destroy(params);
     return result;
@@ -200,16 +250,24 @@ pergyra_func_signature_declarator_in_ctx(TranspilerCtx *ctx,
         ASTNode *handler_return_type =
             ast_event_handler_return_type(return_type);
         if (handler_return_type != NULL) {
-            if (declarator_ast_type_to_c_copy_in_ctx(ctx,
+            if (declarator_require_ast_c_type_copy(ctx,
                     handler_return_type,
+                    "returned event handler return type",
                     ret_type_buf, sizeof(ret_type_buf)))
                 ret_type = ret_type_buf;
+            else {
+                codebuf_destroy(handler_params);
+                return NULL;
+            }
         }
 
         if (handler_params == NULL) {
-            result = declarator_strdup_fmt("%s (*%s(%s))(void)",
-                ret_type, fn_name, sig);
-            return result;
+            transpiler_set_backend_error_with_hints(ctx,
+                PGY_CODE_C_TYPE_UNSUPPORTED,
+                PGY_CAUSE_C_TYPE_UNSUPPORTED,
+                PGY_FIX_USE_LLVM_BACKEND_OR_EXTEND_TRANSPILER,
+                "C backend declarator parameter buffer allocation failed");
+            return NULL;
         }
 
         size_t handler_param_count =
@@ -221,27 +279,32 @@ pergyra_func_signature_declarator_in_ctx(TranspilerCtx *ctx,
                 char param_buf[256];
                 if (i > 0)
                     codebuf_write(handler_params, ", ");
-                if (declarator_ast_type_to_c_copy_in_ctx(ctx,
+                if (declarator_require_ast_c_type_copy(ctx,
                         ast_event_handler_param_type(return_type, i),
+                        "returned event handler parameter type",
                         param_buf, sizeof(param_buf))) {
                     codebuf_write(handler_params, "%s", param_buf);
                 } else {
-                    codebuf_write(handler_params, "void *");
+                    codebuf_destroy(handler_params);
+                    return NULL;
                 }
             }
         }
 
-        result = declarator_strdup_fmt("%s (*%s(%s))(%s)", ret_type, fn_name, sig,
-            handler_params->data);
+        result = declarator_heap_fmt(ctx, "%s (*%s(%s))(%s)", ret_type,
+            fn_name, sig, handler_params->data);
         codebuf_destroy(handler_params);
         return result;
     }
 
-    if (!declarator_ast_type_to_c_copy_in_ctx(ctx, return_type,
-            return_type_buf, sizeof(return_type_buf))) {
+    if (return_type == NULL) {
         memcpy(return_type_buf, "void", sizeof("void"));
+    } else if (!declarator_require_ast_c_type_copy(ctx, return_type,
+            "function return type",
+            return_type_buf, sizeof(return_type_buf))) {
+        return NULL;
     }
-    return declarator_strdup_fmt("%s %s(%s)",
+    return declarator_heap_fmt(ctx, "%s %s(%s)",
         return_type_buf, fn_name, sig);
 }
 

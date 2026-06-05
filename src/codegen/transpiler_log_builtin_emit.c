@@ -38,12 +38,28 @@ transpiler_log_emit_arg(TranspilerCtx *ctx,
 }
 
 static char *
+transpiler_log_string_error(TranspilerCtx *ctx,
+                            const char *builtin_name,
+                            const char *operation)
+{
+    transpiler_set_backend_error_with_hints(
+        ctx,
+        PGY_CODE_C_TYPE_UNSUPPORTED,
+        PGY_CAUSE_C_TYPE_UNSUPPORTED,
+        PGY_FIX_USE_LLVM_BACKEND_OR_EXTEND_TRANSPILER,
+        "C backend: %s could not %s string literal",
+        builtin_name != NULL ? builtin_name : "Log",
+        operation != NULL ? operation : "lower");
+    return NULL;
+}
+
+static char *
 emit_c_log_call_for_expr(ASTNode *arg_node, char *arg, TranspilerCtx *ctx)
 {
     const char *type_name;
 
     if (arg == NULL)
-        return pergyra_strdup("0");
+        return NULL;
     type_name = transpiler_expr_infer_type_name(ctx, arg_node);
     if (type_name != NULL && strcmp(type_name, "Bool") == 0)
         return strdup_fmt("pgy_log_bool((bool)(%s))", arg);
@@ -74,19 +90,20 @@ emit_builtin_log(ASTNode *call, TranspilerCtx *ctx)
                     escaped = escape_c_string_literal(normalized);
                     free(normalized);
                     if (escaped == NULL)
-                        return pergyra_strdup("/* Log: failed to normalize string */");
+                        return transpiler_log_string_error(ctx, "Log",
+                            "normalize");
                 }
                 result = strdup_fmt("pgy_log%s(\"%s\")",
                     multiline ? "_banner" : "", escaped);
                 free(escaped);
                 return result;
             }
-            return pergyra_strdup("/* Log: failed to escape string */");
+            return transpiler_log_string_error(ctx, "Log", "escape");
         }
         char *arg = transpiler_log_emit_arg(ctx,
             ast_call_argument(call, 0), "Log", 0);
         if (arg == NULL)
-            return pergyra_strdup("0");
+            return NULL;
         char *result = emit_c_log_call_for_expr(arg_node, arg, ctx);
         free(arg);
         return result;
@@ -99,7 +116,7 @@ emit_builtin_log(ASTNode *call, TranspilerCtx *ctx)
         char *arg = transpiler_log_emit_arg(ctx, arg_node, "Log", i);
         if (arg == NULL) {
             codebuf_destroy(buf);
-            return pergyra_strdup("0");
+            return NULL;
         }
         char *log_call = emit_c_log_call_for_expr(arg_node, arg, ctx);
         codebuf_write(buf, log_call);
@@ -130,12 +147,12 @@ emit_builtin_log_raw(ASTNode *call, TranspilerCtx *ctx)
                 free(escaped);
                 return result;
             }
-            return pergyra_strdup("/* LogRaw: failed to escape string */");
+            return transpiler_log_string_error(ctx, "LogRaw", "escape");
         }
 
         char *arg = transpiler_log_emit_arg(ctx, arg_node, "LogRaw", 0);
         if (arg == NULL)
-            return pergyra_strdup("0");
+            return NULL;
         char *result = strdup_fmt("pgy_log(%s)", arg);
         free(arg);
         return result;
@@ -148,7 +165,7 @@ emit_builtin_log_raw(ASTNode *call, TranspilerCtx *ctx)
             ast_call_argument(call, i), "LogRaw", i);
         if (arg == NULL) {
             codebuf_destroy(buf);
-            return pergyra_strdup("0");
+            return NULL;
         }
         codebuf_write(buf, "pgy_log(%s); ", arg);
         free(arg);
@@ -169,7 +186,7 @@ emit_builtin_log_banner(ASTNode *call, TranspilerCtx *ctx)
             PGY_CAUSE_C_TYPE_UNSUPPORTED,
             PGY_FIX_USE_LLVM_BACKEND_OR_EXTEND_TRANSPILER,
             "C backend: LogBanner requires one argument");
-        return pergyra_strdup("0");
+        return NULL;
     }
 
     if (ast_call_arg_count(call) != 1)

@@ -7,6 +7,7 @@
 
 #include "llvm_expr_constructor_calls.h"
 
+#include <stdbool.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -68,8 +69,30 @@ llvm_emit_constructor_field_arg(ASTNode *node,
     const char *saved_expected_type_name;
     LLVMValueRef value;
 
-    if (field_type == NULL)
-        return llvm_emit_expression(arg, ctx);
+    if (field_type == NULL) {
+        LLVMTypeRef inferred = llvm_stmt_infer_expr_type(ctx, arg);
+        if (ctx->has_error)
+            return NULL;
+        if (inferred == ctx->type_void) {
+            llvm_set_error_at_with_hints(ctx, arg,
+                PGY_CODE_LLVM_TYPE_UNSUPPORTED,
+                PGY_CAUSE_LLVM_TYPE_UNSUPPORTED,
+                PGY_FIX_INSPECT_MIR_INVENTORY,
+                "LLVM constructor field '%s' cannot consume a Void expression value",
+                field_name != NULL ? field_name : "<field>");
+            return NULL;
+        }
+        value = llvm_emit_expression(arg, ctx);
+        if (value == NULL && !ctx->has_error) {
+            llvm_set_error_at_with_hints(ctx, arg,
+                PGY_CODE_LLVM_TYPE_UNSUPPORTED,
+                PGY_CAUSE_LLVM_TYPE_UNSUPPORTED,
+                PGY_FIX_INSPECT_MIR_INVENTORY,
+                "LLVM constructor field '%s' could not lower initializer expression",
+                field_name != NULL ? field_name : "<field>");
+        }
+        return value;
+    }
 
     expected_type = llvm_render_type_name_in_ctx(ctx, field_type);
     if (pgy_classify_type(expected_type) == PGY_TK_CHANNEL) {
@@ -102,6 +125,14 @@ llvm_emit_constructor_field_arg(ASTNode *node,
     value = llvm_emit_expression(arg, ctx);
     ctx->expected_type_name = saved_expected_type_name;
     free(expected_type);
+    if (value == NULL && !ctx->has_error) {
+        llvm_set_error_at_with_hints(ctx, arg,
+            PGY_CODE_LLVM_TYPE_UNSUPPORTED,
+            PGY_CAUSE_LLVM_TYPE_UNSUPPORTED,
+            PGY_FIX_INSPECT_MIR_INVENTORY,
+            "LLVM constructor field '%s' could not lower initializer expression",
+            field_name != NULL ? field_name : "<field>");
+    }
     return value;
 }
 
@@ -188,14 +219,14 @@ llvm_emit_enum_variant_constructor(ASTNode *node, LLVMGenCtx *ctx,
     return enum_val;
 }
 
-static void
+static bool
 llvm_emit_class_constructor_shared_defaults(ASTNode *node, LLVMGenCtx *ctx,
                                             LLVMClassTypeEntry *cls,
                                             const LLVMHostedSharedFieldView *view,
                                             LLVMValueRef *object)
 {
     if (object == NULL)
-        return;
+        return true;
 
     for (size_t i = 0; view != NULL && i < view->count; i++) {
         ASTNode *shared = llvm_hosted_shared_field_view_source_ast(view, i);
@@ -212,11 +243,15 @@ llvm_emit_class_constructor_shared_defaults(ASTNode *node, LLVMGenCtx *ctx,
         if (field_idx < 0 || (size_t)field_idx < ast_call_arg_count(node))
             continue;
         init_val = llvm_emit_expression(initializer, ctx);
-        if (init_val == NULL)
-            continue;
+        if (init_val == NULL) {
+            llvm_constructor_error(initializer, ctx,
+                "LLVM class constructor could not lower shared-field initializer");
+            return false;
+        }
         *object = LLVMBuildInsertValue(ctx->builder, *object, init_val,
             (unsigned)field_idx, llvm_tmp_name(ctx));
     }
+    return true;
 }
 
 static void
@@ -414,8 +449,10 @@ llvm_emit_class_constructor(ASTNode *node, LLVMGenCtx *ctx, const char *callee_n
         return NULL;
     }
 
-    llvm_emit_class_constructor_shared_defaults(node, ctx, cls, &shared_view,
-        &object);
+    if (!llvm_emit_class_constructor_shared_defaults(node, ctx, cls,
+        &shared_view, &object)) {
+        return NULL;
+    }
     llvm_emit_class_constructor_projection_dirty(ctx, cls,
         relation_decl, effect_decl, zone_decl, &object);
     llvm_emit_class_constructor_world_dirty(ctx, cls, world_decl, &object);

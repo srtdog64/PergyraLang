@@ -85,7 +85,7 @@ llvm_emit_collection_extended_call(ASTNode *node, LLVMGenCtx *ctx,
     op = llvm_map_extended_lookup(callee_name, (unsigned)argc);
     if (op == LLVM_MAP_EXT_SET) {
         ASTNode *map_arg = ast_call_argument(node, 0);
-        LLVMVarEntry *map_var;
+        LLVMVarEntry map_var;
         const char *key_name;
         const char *value_name;
         LLVMTypeRef value_ty;
@@ -93,9 +93,8 @@ llvm_emit_collection_extended_call(ASTNode *node, LLVMGenCtx *ctx,
         LLVMValueRef value;
         LLVMValueRef tmp;
         LLVMFuncEntry *fn;
-        map_var = llvm_collection_required_receiver_var(ctx, node, map_arg,
-            callee_name, "HashMap", out);
-        if (map_var == NULL)
+        if (!llvm_collection_required_receiver_var(ctx, node, map_arg,
+                callee_name, "HashMap", &map_var, out))
             return true;
         key_name = llvm_lookup_map_key(ctx, ast_identifier_name(map_arg));
         value_name = llvm_lookup_map_value(ctx, ast_identifier_name(map_arg));
@@ -119,12 +118,11 @@ llvm_emit_collection_extended_call(ASTNode *node, LLVMGenCtx *ctx,
         if (value_name != NULL && strcmp(value_name, "String") == 0) {
             fn = llvm_required_hashmap_raw_string_value_export(ctx, node,
                 callee_name, "set", key_name);
-            if (fn == NULL) {
-                *out = NULL;
-                return true;
-            }
+            if (fn == NULL)
+                return llvm_collection_extended_error_out(ctx, node, out,
+                    "LLVM MapSet requires registered string-value runtime function");
             LLVMValueRef args[] = {
-                LLVMBuildBitCast(ctx->builder, map_var->alloca, ctx->type_i8ptr, llvm_tmp_name(ctx)),
+                LLVMBuildBitCast(ctx->builder, map_var.alloca, ctx->type_i8ptr, llvm_tmp_name(ctx)),
                 key,
                 value
             };
@@ -137,12 +135,11 @@ llvm_emit_collection_extended_call(ASTNode *node, LLVMGenCtx *ctx,
                 "LLVM MapSet could not allocate value temporary");
         LLVMBuildStore(ctx->builder, value, tmp);
         fn = llvm_required_hashmap_raw_export(ctx, node, callee_name, "set", key_name);
-        if (fn == NULL) {
-            *out = NULL;
-            return true;
-        }
+        if (fn == NULL)
+            return llvm_collection_extended_error_out(ctx, node, out,
+                "LLVM MapSet requires registered runtime function");
         LLVMValueRef args[] = {
-            LLVMBuildBitCast(ctx->builder, map_var->alloca, ctx->type_i8ptr, llvm_tmp_name(ctx)),
+            LLVMBuildBitCast(ctx->builder, map_var.alloca, ctx->type_i8ptr, llvm_tmp_name(ctx)),
             key,
             LLVMBuildBitCast(ctx->builder, tmp, ctx->type_i8ptr, llvm_tmp_name(ctx)),
             llvm_sizeof_type_i64(ctx, value_ty)
@@ -152,16 +149,15 @@ llvm_emit_collection_extended_call(ASTNode *node, LLVMGenCtx *ctx,
     }
     if (op == LLVM_MAP_EXT_GET) {
         ASTNode *map_arg = ast_call_argument(node, 0);
-        LLVMVarEntry *map_var;
+        LLVMVarEntry map_var;
         const char *key_name;
         const char *value_name;
         LLVMTypeRef value_ty;
         LLVMValueRef key;
         LLVMValueRef tmp;
         LLVMFuncEntry *fn;
-        map_var = llvm_collection_required_receiver_var(ctx, node, map_arg,
-            callee_name, "HashMap", out);
-        if (map_var == NULL)
+        if (!llvm_collection_required_receiver_var(ctx, node, map_arg,
+                callee_name, "HashMap", &map_var, out))
             return true;
         key_name = llvm_lookup_map_key(ctx, ast_identifier_name(map_arg));
         value_name = llvm_lookup_map_value(ctx, ast_identifier_name(map_arg));
@@ -182,9 +178,10 @@ llvm_emit_collection_extended_call(ASTNode *node, LLVMGenCtx *ctx,
             fn = llvm_required_hashmap_raw_string_value_export(ctx, node,
                 callee_name, "get", key_name);
             if (fn == NULL)
-                { *out = NULL; return true; }
+                return llvm_collection_extended_error_out(ctx, node, out,
+                    "LLVM MapGet requires registered string-value runtime function");
             LLVMValueRef args[] = {
-                LLVMBuildBitCast(ctx->builder, map_var->alloca, ctx->type_i8ptr, llvm_tmp_name(ctx)),
+                LLVMBuildBitCast(ctx->builder, map_var.alloca, ctx->type_i8ptr, llvm_tmp_name(ctx)),
                 key,
                 LLVMBuildBitCast(ctx->builder, tmp, ctx->type_i8ptr, llvm_tmp_name(ctx))
             };
@@ -193,9 +190,10 @@ llvm_emit_collection_extended_call(ASTNode *node, LLVMGenCtx *ctx,
         }
         fn = llvm_required_hashmap_raw_export(ctx, node, callee_name, "get", key_name);
         if (fn == NULL)
-            { *out = NULL; return true; }
+            return llvm_collection_extended_error_out(ctx, node, out,
+                "LLVM MapGet requires registered runtime function");
         LLVMValueRef args[] = {
-            LLVMBuildBitCast(ctx->builder, map_var->alloca, ctx->type_i8ptr, llvm_tmp_name(ctx)),
+            LLVMBuildBitCast(ctx->builder, map_var.alloca, ctx->type_i8ptr, llvm_tmp_name(ctx)),
             key,
             LLVMBuildBitCast(ctx->builder, tmp, ctx->type_i8ptr, llvm_tmp_name(ctx)),
             llvm_sizeof_type_i64(ctx, value_ty)
@@ -205,13 +203,12 @@ llvm_emit_collection_extended_call(ASTNode *node, LLVMGenCtx *ctx,
     }
     if (op == LLVM_MAP_EXT_HAS) {
         ASTNode *map_arg = ast_call_argument(node, 0);
-        LLVMVarEntry *map_var;
+        LLVMVarEntry map_var;
         const char *key_name;
         LLVMValueRef key;
         LLVMFuncEntry *fn;
-        map_var = llvm_collection_required_receiver_var(ctx, node, map_arg,
-            callee_name, "HashMap", out);
-        if (map_var == NULL)
+        if (!llvm_collection_required_receiver_var(ctx, node, map_arg,
+                callee_name, "HashMap", &map_var, out))
             return true;
         key_name = llvm_lookup_map_key(ctx, ast_identifier_name(map_arg));
         key = llvm_emit_expression(ast_call_argument(node, 1), ctx);
@@ -220,10 +217,11 @@ llvm_emit_collection_extended_call(ASTNode *node, LLVMGenCtx *ctx,
             return llvm_collection_extended_error_out(ctx, node, out,
                 "LLVM MapHas could not lower key expression");
         if (fn == NULL)
-            { *out = NULL; return true; }
+            return llvm_collection_extended_error_out(ctx, node, out,
+                "LLVM MapHas requires registered runtime function");
         {
             LLVMValueRef args[] = {
-                LLVMBuildBitCast(ctx->builder, map_var->alloca, ctx->type_i8ptr, llvm_tmp_name(ctx)),
+                LLVMBuildBitCast(ctx->builder, map_var.alloca, ctx->type_i8ptr, llvm_tmp_name(ctx)),
                 key
             };
             { *out = LLVMBuildCall2(ctx->builder, fn->fn_type, fn->fn, args, 2, llvm_tmp_name(ctx)); return true; }
@@ -231,15 +229,14 @@ llvm_emit_collection_extended_call(ASTNode *node, LLVMGenCtx *ctx,
     }
     if (op == LLVM_MAP_EXT_REMOVE) {
         ASTNode *map_arg = ast_call_argument(node, 0);
-        LLVMVarEntry *map_var;
+        LLVMVarEntry map_var;
         const char *key_name;
         const char *value_name;
         LLVMTypeRef value_ty;
         LLVMValueRef key;
         LLVMFuncEntry *fn;
-        map_var = llvm_collection_required_receiver_var(ctx, node, map_arg,
-            callee_name, "HashMap", out);
-        if (map_var == NULL)
+        if (!llvm_collection_required_receiver_var(ctx, node, map_arg,
+                callee_name, "HashMap", &map_var, out))
             return true;
         key_name = llvm_lookup_map_key(ctx, ast_identifier_name(map_arg));
         value_name = llvm_lookup_map_value(ctx, ast_identifier_name(map_arg));
@@ -255,10 +252,11 @@ llvm_emit_collection_extended_call(ASTNode *node, LLVMGenCtx *ctx,
             fn = llvm_required_hashmap_raw_string_value_export(ctx, node,
                 callee_name, "remove", key_name);
             if (fn == NULL)
-                { *out = NULL; return true; }
+                return llvm_collection_extended_error_out(ctx, node, out,
+                    "LLVM MapRemove requires registered string-value runtime function");
             {
                 LLVMValueRef args[] = {
-                    LLVMBuildBitCast(ctx->builder, map_var->alloca, ctx->type_i8ptr, llvm_tmp_name(ctx)),
+                    LLVMBuildBitCast(ctx->builder, map_var.alloca, ctx->type_i8ptr, llvm_tmp_name(ctx)),
                     key
                 };
                 LLVMBuildCall2(ctx->builder, fn->fn_type, fn->fn, args, 2, "");
@@ -267,10 +265,11 @@ llvm_emit_collection_extended_call(ASTNode *node, LLVMGenCtx *ctx,
         }
         fn = llvm_required_hashmap_raw_export(ctx, node, callee_name, "remove", key_name);
         if (fn == NULL)
-            { *out = NULL; return true; }
+            return llvm_collection_extended_error_out(ctx, node, out,
+                "LLVM MapRemove requires registered runtime function");
         {
             LLVMValueRef args[] = {
-                LLVMBuildBitCast(ctx->builder, map_var->alloca, ctx->type_i8ptr, llvm_tmp_name(ctx)),
+                LLVMBuildBitCast(ctx->builder, map_var.alloca, ctx->type_i8ptr, llvm_tmp_name(ctx)),
                 key,
                 llvm_sizeof_type_i64(ctx, value_ty)
             };
@@ -280,33 +279,32 @@ llvm_emit_collection_extended_call(ASTNode *node, LLVMGenCtx *ctx,
     }
     if (op == LLVM_MAP_EXT_SIZE) {
         ASTNode *map_arg = ast_call_argument(node, 0);
-        LLVMVarEntry *map_var;
+        LLVMVarEntry map_var;
         LLVMFuncEntry *fn;
-        map_var = llvm_collection_required_receiver_var(ctx, node, map_arg,
-            callee_name, "HashMap", out);
-        if (map_var == NULL)
+        if (!llvm_collection_required_receiver_var(ctx, node, map_arg,
+                callee_name, "HashMap", &map_var, out))
             return true;
         fn = llvm_required_collection_function(ctx, node, callee_name,
             "pgy_map_size_raw_export");
         if (fn == NULL)
-            { *out = NULL; return true; }
+            return llvm_collection_extended_error_out(ctx, node, out,
+                "LLVM MapSize requires registered runtime function");
         {
             LLVMValueRef args[] = {
-                LLVMBuildBitCast(ctx->builder, map_var->alloca, ctx->type_i8ptr, llvm_tmp_name(ctx))
+                LLVMBuildBitCast(ctx->builder, map_var.alloca, ctx->type_i8ptr, llvm_tmp_name(ctx))
             };
             { *out = LLVMBuildCall2(ctx->builder, fn->fn_type, fn->fn, args, 1, llvm_tmp_name(ctx)); return true; }
         }
     }
     if (op == LLVM_MAP_EXT_KEYS) {
         ASTNode *map_arg = ast_call_argument(node, 0);
-        LLVMVarEntry *map_var;
+        LLVMVarEntry map_var;
         const char *key_name;
         LLVMTypeRef array_ty;
         LLVMValueRef tmp;
         LLVMFuncEntry *fn;
-        map_var = llvm_collection_required_receiver_var(ctx, node, map_arg,
-            callee_name, "HashMap", out);
-        if (map_var == NULL)
+        if (!llvm_collection_required_receiver_var(ctx, node, map_arg,
+                callee_name, "HashMap", &map_var, out))
             return true;
         key_name = llvm_lookup_map_key(ctx, ast_identifier_name(map_arg));
         array_ty = llvm_hashmap_key_array_type(ctx, key_name);
@@ -317,9 +315,10 @@ llvm_emit_collection_extended_call(ASTNode *node, LLVMGenCtx *ctx,
         LLVMBuildStore(ctx->builder, LLVMConstNull(array_ty), tmp);
         fn = llvm_required_hashmap_raw_export(ctx, node, callee_name, "keys", key_name);
         if (fn == NULL)
-            { *out = NULL; return true; }
+            return llvm_collection_extended_error_out(ctx, node, out,
+                "LLVM MapKeys requires registered runtime function");
         LLVMValueRef args[] = {
-            LLVMBuildBitCast(ctx->builder, map_var->alloca, ctx->type_i8ptr, llvm_tmp_name(ctx)),
+            LLVMBuildBitCast(ctx->builder, map_var.alloca, ctx->type_i8ptr, llvm_tmp_name(ctx)),
             LLVMBuildBitCast(ctx->builder, tmp, ctx->type_i8ptr, llvm_tmp_name(ctx))
         };
         LLVMBuildCall2(ctx->builder, fn->fn_type, fn->fn, args, 2, "");
@@ -327,7 +326,11 @@ llvm_emit_collection_extended_call(ASTNode *node, LLVMGenCtx *ctx,
     }
     if (pgy_codegen_call_name_is_slot_source(callee_name)
         && argc == 1) {
-        { *out = llvm_emit_expression(ast_call_argument(node, 0), ctx); return true; }
+        *out = llvm_emit_expression(ast_call_argument(node, 0), ctx);
+        if (*out == NULL)
+            return llvm_collection_extended_error_out(ctx, node, out,
+                "LLVM collection slot source could not lower source expression");
+        return true;
     }
     return false;
 }

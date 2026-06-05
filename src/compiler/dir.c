@@ -85,9 +85,9 @@ dir_render_type_name_dup(ASTNode *type_node)
 
     switch (type_node->type) {
     case AST_TYPE: {
-        const char *base_name = ast_type_name(type_node) != NULL
-            ? ast_type_name(type_node)
-            : "Int";
+        const char *base_name = ast_type_name(type_node);
+        if (base_name == NULL)
+            return NULL;
         result = pergyra_strdup(base_name);
         if (result == NULL)
             return NULL;
@@ -110,14 +110,16 @@ dir_render_type_name_dup(ASTNode *type_node)
                 } else if (ast_generic_param_default_type(param) != NULL) {
                     arg_text = dir_render_type_name_dup(
                         ast_generic_param_default_type(param));
-                } else {
-                    arg_text = pergyra_strdup("Int");
+                }
+                if (arg_text == NULL) {
+                    free(result);
+                    return NULL;
                 }
                 next = dir_type_name_strdup_fmt(
                     "%s%s%s",
                     result,
                     i > 0 ? ", " : "",
-                    arg_text != NULL ? arg_text : "Int");
+                    arg_text);
                 free(arg_text);
                 free(result);
                 result = next;
@@ -133,16 +135,16 @@ dir_render_type_name_dup(ASTNode *type_node)
     case AST_CHANNEL_TYPE: {
         char *inner = dir_render_type_name_dup(
             ast_channel_type_element_type(type_node));
-        result = dir_type_name_strdup_fmt("Channel<%s>",
-                                          inner != NULL ? inner : "Int");
+        if (inner != NULL)
+            result = dir_type_name_strdup_fmt("Channel<%s>", inner);
         free(inner);
         return result;
     }
     case AST_FUTURE_TYPE: {
         char *inner = dir_render_type_name_dup(
             ast_future_type_value_type(type_node));
-        result = dir_type_name_strdup_fmt("Future<%s>",
-                                          inner != NULL ? inner : "Int");
+        if (inner != NULL)
+            result = dir_type_name_strdup_fmt("Future<%s>", inner);
         free(inner);
         return result;
     }

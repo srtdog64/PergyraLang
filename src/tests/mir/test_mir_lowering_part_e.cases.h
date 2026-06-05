@@ -492,4 +492,28 @@ test_mir_lowering_part_e(void)
         rir_destroy(rir);
         hir_destroy(hir);
     }
+
+    TEST("MIR type rendering fails closed for missing or unsupported types");
+    {
+        ASTNode *future_inner = ast_create_event_handler_type();
+        ASTNode *channel_inner = ast_create_event_handler_type();
+        ASTNode *future_type = ast_create_future_type(future_inner);
+        ASTNode *channel_type = ast_create_channel_type(channel_inner);
+        ASTNode *nameless_type = ast_create_type(NULL);
+        char *missing_name = mir_render_type_name(NULL);
+        char *nameless_name = mir_render_type_name(nameless_type);
+        char *future_name = mir_render_type_name(future_type);
+        char *channel_name = mir_render_type_name(channel_type);
+        EXPECT(missing_name == NULL
+               && nameless_name == NULL
+               && future_name == NULL
+               && channel_name == NULL);
+        free(missing_name);
+        free(nameless_name);
+        free(future_name);
+        free(channel_name);
+        ast_destroy(nameless_type);
+        ast_destroy(future_type);
+        ast_destroy(channel_type);
+    }
 }

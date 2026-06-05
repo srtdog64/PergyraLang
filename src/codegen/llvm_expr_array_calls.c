@@ -58,11 +58,14 @@ llvm_array_builtin_lookup(const char *callee_name, unsigned argc)
     return spec->op;
 }
 
-static LLVMVarEntry *
-llvm_array_required_receiver_var(LLVMGenCtx *ctx, ASTNode *node,
-                                 ASTNode *receiver, const char *callee_name,
-                                 LLVMArrayVarEntry **entry_out)
+static LLVMValueRef
+llvm_array_required_receiver_binding(LLVMGenCtx *ctx, ASTNode *node,
+                                     ASTNode *receiver,
+                                     const char *callee_name,
+                                     LLVMArrayVarEntry **entry_out)
 {
+    LLVMVarEntry var;
+
     if (entry_out != NULL)
         *entry_out = NULL;
     if (receiver == NULL || receiver->type != AST_IDENTIFIER
@@ -77,9 +80,9 @@ llvm_array_required_receiver_var(LLVMGenCtx *ctx, ASTNode *node,
     }
 
     const char *name = ast_identifier_name(receiver);
-    LLVMVarEntry *var = llvm_scope_lookup(ctx, name);
     LLVMArrayVarEntry *entry = llvm_lookup_array_var(ctx, name);
-    if (var == NULL || entry == NULL) {
+    if (!llvm_scope_lookup_snapshot(ctx, name, &var)
+        || var.alloca == NULL || entry == NULL) {
         llvm_set_error_at_with_hints(ctx, receiver,
             PGY_CODE_LLVM_TYPE_UNSUPPORTED,
             PGY_CAUSE_LLVM_TYPE_UNSUPPORTED,
@@ -91,7 +94,7 @@ llvm_array_required_receiver_var(LLVMGenCtx *ctx, ASTNode *node,
 
     if (entry_out != NULL)
         *entry_out = entry;
-    return var;
+    return var.alloca;
 }
 
 static const char *
@@ -135,6 +138,24 @@ llvm_array_runtime_name_error(ASTNode *node, LLVMGenCtx *ctx,
         PGY_FIX_ANNOTATE_CONCRETE_TYPE,
         "LLVM array operation '%s' runtime function name is too long",
         callee_name != NULL ? callee_name : "<unknown>");
+    if (out != NULL)
+        *out = NULL;
+    return true;
+}
+
+static bool
+llvm_array_error_out(ASTNode *node, LLVMGenCtx *ctx,
+                     const char *message, LLVMValueRef *out)
+{
+    if (ctx != NULL && !ctx->has_error) {
+        llvm_set_error_at_with_hints(ctx, node,
+            PGY_CODE_LLVM_TYPE_UNSUPPORTED,
+            PGY_CAUSE_LLVM_TYPE_UNSUPPORTED,
+            PGY_FIX_INSPECT_MIR_INVENTORY,
+            "%s",
+            message != NULL ? message
+                : "LLVM array builtin could not be lowered");
+    }
     if (out != NULL)
         *out = NULL;
     return true;
@@ -204,10 +225,9 @@ llvm_emit_array_builtin_call(ASTNode *node, LLVMGenCtx *ctx,
             return llvm_array_runtime_name_error(node, ctx, callee_name, out);
         LLVMFuncEntry *fn = llvm_required_runtime_function(ctx, node,
             "array", callee_name, fn_name);
-        if (fn == NULL) {
-            *out = NULL;
-            return true;
-        }
+        if (fn == NULL)
+            return llvm_array_error_out(node, ctx,
+                "LLVM SliceCopy requires registered runtime function", out);
 
         LLVMValueRef slice_addr = llvm_create_entry_alloca(ctx,
             LLVMTypeOf(slice), "slice.copy.addr");
@@ -221,22 +241,20 @@ llvm_emit_array_builtin_call(ASTNode *node, LLVMGenCtx *ctx,
     if (op == LLVM_ARRAY_BUILTIN_PUSH) {
         ASTNode *arr_arg = ast_call_argument(node, 0);
         LLVMArrayVarEntry *entry = NULL;
-        LLVMVarEntry *arr_var = llvm_array_required_receiver_var(
+        LLVMValueRef arr_alloca = llvm_array_required_receiver_binding(
             ctx, node, arr_arg, callee_name, &entry);
-        if (arr_var == NULL) {
-            *out = NULL;
-            return true;
-        }
+        if (arr_alloca == NULL)
+            return llvm_array_error_out(node, ctx,
+                "LLVM ArrayPush requires registered Array<T> receiver", out);
         const char *suffix = llvm_array_required_elem_suffix(
             ctx, node, entry, callee_name);
         if (suffix == NULL)
             return true;
 
         LLVMValueRef value = llvm_emit_expression(ast_call_argument(node, 1), ctx);
-        if (value == NULL) {
-            *out = NULL;
-            return true;
-        }
+        if (value == NULL)
+            return llvm_array_error_out(node, ctx,
+                "LLVM ArrayPush could not lower value expression", out);
         if (LLVMTypeOf(value) != entry->elem_type) {
             if ((entry->elem_type == ctx->type_i32 || entry->elem_type == ctx->type_i64)
                 && (LLVMTypeOf(value) == ctx->type_f32 || LLVMTypeOf(value) == ctx->type_f64))
@@ -252,11 +270,10 @@ llvm_emit_array_builtin_call(ASTNode *node, LLVMGenCtx *ctx,
             return llvm_array_runtime_name_error(node, ctx, callee_name, out);
         LLVMFuncEntry *fn = llvm_required_runtime_function(ctx, node,
             "array", callee_name, fn_name);
-        if (fn == NULL) {
-            *out = NULL;
-            return true;
-        }
-        LLVMValueRef args[] = { arr_var->alloca, value };
+        if (fn == NULL)
+            return llvm_array_error_out(node, ctx,
+                "LLVM ArrayPush requires registered runtime function", out);
+        LLVMValueRef args[] = { arr_alloca, value };
         LLVMBuildCall2(ctx->builder, fn->fn_type, fn->fn, args, 2, "");
         *out = llvm_void_expression_placeholder(ctx, node, callee_name);
         return true;
@@ -265,12 +282,11 @@ llvm_emit_array_builtin_call(ASTNode *node, LLVMGenCtx *ctx,
     if (op == LLVM_ARRAY_BUILTIN_SET) {
         ASTNode *arr_arg = ast_call_argument(node, 0);
         LLVMArrayVarEntry *entry = NULL;
-        LLVMVarEntry *arr_var = llvm_array_required_receiver_var(
+        LLVMValueRef arr_alloca = llvm_array_required_receiver_binding(
             ctx, node, arr_arg, callee_name, &entry);
-        if (arr_var == NULL) {
-            *out = NULL;
-            return true;
-        }
+        if (arr_alloca == NULL)
+            return llvm_array_error_out(node, ctx,
+                "LLVM ArraySet requires registered Array<T> receiver", out);
         const char *suffix = llvm_array_required_elem_suffix(
             ctx, node, entry, callee_name);
         if (suffix == NULL)
@@ -278,10 +294,9 @@ llvm_emit_array_builtin_call(ASTNode *node, LLVMGenCtx *ctx,
 
         LLVMValueRef idx = llvm_emit_expression(ast_call_argument(node, 1), ctx);
         LLVMValueRef value = llvm_emit_expression(ast_call_argument(node, 2), ctx);
-        if (idx == NULL || value == NULL) {
-            *out = NULL;
-            return true;
-        }
+        if (idx == NULL || value == NULL)
+            return llvm_array_error_out(node, ctx,
+                "LLVM ArraySet could not lower index or value expression", out);
 
         if (LLVMTypeOf(value) != entry->elem_type) {
             if ((entry->elem_type == ctx->type_i32 || entry->elem_type == ctx->type_i64)
@@ -298,15 +313,14 @@ llvm_emit_array_builtin_call(ASTNode *node, LLVMGenCtx *ctx,
             return llvm_array_runtime_name_error(node, ctx, callee_name, out);
         LLVMFuncEntry *fn = llvm_required_runtime_function(ctx, node,
             "array", callee_name, fn_name);
-        if (fn == NULL) {
-            *out = NULL;
-            return true;
-        }
+        if (fn == NULL)
+            return llvm_array_error_out(node, ctx,
+                "LLVM ArraySet requires registered runtime function", out);
         LLVMValueRef index64 = idx;
         if (LLVMTypeOf(index64) != ctx->type_i64)
             index64 = LLVMBuildSExtOrBitCast(ctx->builder, index64,
                 ctx->type_i64, llvm_tmp_name(ctx));
-        LLVMValueRef args[] = { arr_var->alloca, index64, value };
+        LLVMValueRef args[] = { arr_alloca, index64, value };
         LLVMBuildCall2(ctx->builder, fn->fn_type, fn->fn, args, 3, "");
         *out = llvm_void_expression_placeholder(ctx, node, callee_name);
         return true;
@@ -315,17 +329,16 @@ llvm_emit_array_builtin_call(ASTNode *node, LLVMGenCtx *ctx,
     if (op == LLVM_ARRAY_BUILTIN_POP) {
         ASTNode *arr_arg = ast_call_argument(node, 0);
         LLVMArrayVarEntry *entry = NULL;
-        LLVMVarEntry *arr_var = llvm_array_required_receiver_var(
+        LLVMValueRef arr_alloca = llvm_array_required_receiver_binding(
             ctx, node, arr_arg, callee_name, &entry);
-        if (arr_var == NULL) {
-            *out = NULL;
-            return true;
-        }
+        if (arr_alloca == NULL)
+            return llvm_array_error_out(node, ctx,
+                "LLVM ArrayPop requires registered Array<T> receiver", out);
         const char *suffix = llvm_array_required_elem_suffix(
             ctx, node, entry, callee_name);
         if (suffix == NULL) {
-            *out = NULL;
-            return true;
+            return llvm_array_error_out(node, ctx,
+                "LLVM ArrayPop requires concrete Array<T> element metadata", out);
         }
 
         char fn_name[64];
@@ -334,11 +347,10 @@ llvm_emit_array_builtin_call(ASTNode *node, LLVMGenCtx *ctx,
             return llvm_array_runtime_name_error(node, ctx, callee_name, out);
         LLVMFuncEntry *fn = llvm_required_runtime_function(ctx, node,
             "array", callee_name, fn_name);
-        if (fn == NULL) {
-            *out = NULL;
-            return true;
-        }
-        LLVMValueRef args[] = { arr_var->alloca };
+        if (fn == NULL)
+            return llvm_array_error_out(node, ctx,
+                "LLVM ArrayPop requires registered runtime function", out);
+        LLVMValueRef args[] = { arr_alloca };
         LLVMBuildCall2(ctx->builder, fn->fn_type, fn->fn, args, 1, "");
         *out = llvm_void_expression_placeholder(ctx, node, callee_name);
         return true;

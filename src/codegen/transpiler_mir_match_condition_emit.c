@@ -7,6 +7,7 @@
 
 #include "../common/string_compat.h"
 #include "../parser/ast_api.h"
+#include "codegen_match_subject_lookup.h"
 #include "codegen_match_variant_policy.h"
 #include "transpiler_context.h"
 #include "transpiler_format.h"
@@ -138,9 +139,7 @@ transpiler_mir_emit_match_case_body_binding(CodeBuf *buf,
     pattern_node = ast_match_case_pattern(case_node);
     if (pattern_node == NULL)
         return true;
-    subject_node = func_decl->type == AST_FUNC_DECL
-        ? ast_find_match_subject_for_case(ast_func_body(func_decl), case_node)
-        : NULL;
+    subject_node = pgy_codegen_match_subject_for_case(func_decl, case_node);
     if (subject_node == NULL)
         return true;
     subject = emit_expression_with_ssa_map(subject_node, ctx, ssa_map);
@@ -297,8 +296,7 @@ transpiler_mir_render_match_case_condition(ASTNode *func_decl,
     }
     has_guard = ast_match_case_guard(case_node) != NULL;
 
-    subject_node = ast_find_match_subject_for_case(ast_func_body(func_decl),
-                                                   case_node);
+    subject_node = pgy_codegen_match_subject_for_case(func_decl, case_node);
     if (subject_node == NULL)
         return NULL;
 
