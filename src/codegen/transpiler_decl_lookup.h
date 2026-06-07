@@ -345,6 +345,8 @@ ASTNode *transpiler_find_named_decl_local(TranspilerCtx *ctx,
                                           const char *name);
 ASTNode *find_role_decl(TranspilerCtx *ctx, const char *role_name);
 ASTNode *find_function_decl(TranspilerCtx *ctx, const char *function_name);
+bool transpiler_decl_is_extern_function(const TranspilerCtx *ctx,
+                                        const ASTNode *decl);
 ASTNode *find_intent_decl(TranspilerCtx *ctx, const char *intent_name);
 ASTNode *find_callable_decl(TranspilerCtx *ctx, const char *name);
 ASTNode *find_party_decl(TranspilerCtx *ctx, const char *party_name);

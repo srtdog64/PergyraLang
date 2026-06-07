@@ -9,7 +9,6 @@
 /* C backend MIR terminator emission owner. */
 
 bool transpiler_emit_mir_explicit_terminator(
-    ASTNode *node,
     const MIRRoutine *mir_routine,
     const MIRBasicBlock *block,
     size_t block_index,

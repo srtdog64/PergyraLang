@@ -218,8 +218,16 @@ llvm_register_enum_decl(LLVMGenCtx *ctx, ASTNode *stmt)
         LLVMTypeRef ret_type = ctx->type_void;
         if (return_type_name != NULL)
             ret_type = pergyra_type_to_llvm(ctx, return_type_name);
-        else if (return_type != NULL)
+        else if (return_type != NULL
+                 && return_type->type != AST_EVENT_HANDLER_TYPE) {
+            llvm_set_mir_inventory_missing(ctx,
+                "MIR-only LLVM path missing enum method registry return type-name metadata for '%s.%s'",
+                enum_name != NULL ? enum_name : "(anonymous-enum)",
+                method_name != NULL ? method_name : "(anonymous)");
+            return;
+        } else if (return_type != NULL) {
             ret_type = ast_type_to_llvm(ctx, return_type);
+        }
         if (ctx->has_error || ret_type == NULL)
             return;
 
@@ -272,6 +280,13 @@ llvm_register_enum_decl(LLVMGenCtx *ctx, ASTNode *stmt)
             if (param_type_name != NULL) {
                 param_types[pidx++] =
                     pergyra_type_to_llvm(ctx, param_type_name);
+            } else if (p != NULL && p->type != NULL
+                       && p->type->type != AST_EVENT_HANDLER_TYPE) {
+                llvm_set_mir_inventory_missing(ctx,
+                    "MIR-only LLVM path missing enum method registry parameter type-name metadata for '%s.%s'",
+                    enum_name != NULL ? enum_name : "(anonymous-enum)",
+                    method_name != NULL ? method_name : "(anonymous)");
+                return;
             } else {
                 param_types[pidx++] = llvm_register_required_ast_type(
                     ctx, method, p != NULL ? p->type : NULL,
@@ -397,8 +412,16 @@ llvm_register_nominal_decl(LLVMGenCtx *ctx, ASTNode *stmt)
         LLVMTypeRef ret_type = ctx->type_void;
         if (return_type_name != NULL)
             ret_type = pergyra_type_to_llvm(ctx, return_type_name);
-        else if (return_type != NULL)
+        else if (return_type != NULL
+                 && return_type->type != AST_EVENT_HANDLER_TYPE) {
+            llvm_set_mir_inventory_missing(ctx,
+                "MIR-only LLVM path missing class method registry return type-name metadata for '%s.%s'",
+                cls_name != NULL ? cls_name : "(anonymous-class)",
+                method_name != NULL ? method_name : "(anonymous)");
+            return;
+        } else if (return_type != NULL) {
             ret_type = ast_type_to_llvm(ctx, return_type);
+        }
         if (ctx->has_error || ret_type == NULL)
             return;
 
@@ -431,6 +454,13 @@ llvm_register_nominal_decl(LLVMGenCtx *ctx, ASTNode *stmt)
             if (param_type_name != NULL) {
                 param_types[pidx++] =
                     pergyra_type_to_llvm(ctx, param_type_name);
+            } else if (p != NULL && p->type != NULL
+                       && p->type->type != AST_EVENT_HANDLER_TYPE) {
+                llvm_set_mir_inventory_missing(ctx,
+                    "MIR-only LLVM path missing class method registry parameter type-name metadata for '%s.%s'",
+                    cls_name != NULL ? cls_name : "(anonymous-class)",
+                    method_name != NULL ? method_name : "(anonymous)");
+                return;
             } else {
                 param_types[pidx++] = llvm_register_required_ast_type(
                     ctx, method, p != NULL ? p->type : NULL,

@@ -59,14 +59,19 @@ transpiler_mir_remap_payload_binding(TranspilerCtx *ctx,
 static bool
 transpiler_mir_remap_case_bindings(TranspilerCtx *ctx,
                                    TranspilerSSANameMap *ssa_map,
-                                   ASTNode *case_node,
-                                   uint32_t case_stable_id)
+                                   const MIRInstruction *inst)
 {
+    ASTNode *case_node;
     ASTNode *pattern_node;
     const char *kind = NULL;
     const char *binding = NULL;
+    uint32_t case_stable_id;
 
-    if (ctx == NULL || case_node == NULL || case_node->type != AST_MATCH_CASE)
+    if (ctx == NULL || inst == NULL)
+        return true;
+    case_node = mir_instruction_source_payload(inst);
+    case_stable_id = mir_instruction_source_stable_id(inst);
+    if (case_node == NULL || case_node->type != AST_MATCH_CASE)
         return true;
     pattern_node = ast_match_case_pattern(case_node);
     if (pattern_node == NULL)
@@ -110,7 +115,6 @@ transpiler_mir_remap_case_bindings(TranspilerCtx *ctx,
 
 bool
 transpiler_mir_emit_match_case_body_binding(CodeBuf *buf,
-                                            ASTNode *func_decl,
                                             const MIRRoutine *routine,
                                             const MIRBasicBlock *block,
                                             TranspilerCtx *ctx,
@@ -125,8 +129,7 @@ transpiler_mir_emit_match_case_body_binding(CodeBuf *buf,
     const char *binding = NULL;
     uint32_t case_stable_id;
 
-    if (buf == NULL || func_decl == NULL || routine == NULL
-        || block == NULL || ctx == NULL) {
+    if (buf == NULL || routine == NULL || block == NULL || ctx == NULL) {
         return true;
     }
     branch_inst = transpiler_mir_find_incoming_match_branch(routine, block);
@@ -139,7 +142,7 @@ transpiler_mir_emit_match_case_body_binding(CodeBuf *buf,
     pattern_node = ast_match_case_pattern(case_node);
     if (pattern_node == NULL)
         return true;
-    subject_node = pgy_codegen_match_subject_for_case(func_decl, case_node);
+    subject_node = pgy_codegen_match_subject_for_branch(branch_inst);
     if (subject_node == NULL)
         return true;
     subject = emit_expression_with_ssa_map(subject_node, ctx, ssa_map);
@@ -232,17 +235,15 @@ transpiler_mir_emit_match_case_body_binding(CodeBuf *buf,
 }
 
 bool
-transpiler_mir_remap_active_match_bindings(ASTNode *func_decl,
-                                           const MIRRoutine *routine,
+transpiler_mir_remap_active_match_bindings(const MIRRoutine *routine,
                                            const MIRBasicBlock *block,
                                            TranspilerCtx *ctx,
                                            TranspilerSSANameMap *ssa_map)
 {
     size_t target_id;
 
-    if (func_decl == NULL || routine == NULL || block == NULL || ctx == NULL)
+    if (routine == NULL || block == NULL || ctx == NULL)
         return true;
-    (void)func_decl;
     target_id = block->id;
     if (target_id >= routine->block_count)
         return true;
@@ -255,14 +256,11 @@ transpiler_mir_remap_active_match_bindings(ASTNode *func_decl,
         }
         for (size_t j = 0; j < candidate->instruction_count; j++) {
             const MIRInstruction *inst = &candidate->instructions[j];
-            ASTNode *case_node;
             if (inst->kind != MIR_INST_BRANCH
                 || inst->branch_shape != MIR_BRANCH_MATCH_CASE) {
                 continue;
             }
-            case_node = mir_instruction_source_payload(inst);
-            if (!transpiler_mir_remap_case_bindings(ctx, ssa_map,
-                    case_node, mir_instruction_source_stable_id(inst))) {
+            if (!transpiler_mir_remap_case_bindings(ctx, ssa_map, inst)) {
                 return false;
             }
         }
@@ -271,8 +269,7 @@ transpiler_mir_remap_active_match_bindings(ASTNode *func_decl,
 }
 
 char *
-transpiler_mir_render_match_case_condition(ASTNode *func_decl,
-                                           const MIRInstruction *inst,
+transpiler_mir_render_match_case_condition(const MIRInstruction *inst,
                                            TranspilerCtx *ctx,
                                            TranspilerSSANameMap *ssa_map)
 {
@@ -285,8 +282,7 @@ transpiler_mir_render_match_case_condition(ASTNode *func_decl,
     bool has_guard;
     uint32_t case_stable_id;
 
-    if (func_decl == NULL || inst == NULL || ctx == NULL
-        || func_decl->type != AST_FUNC_DECL) {
+    if (inst == NULL || ctx == NULL) {
         return NULL;
     }
     case_node = mir_instruction_source_payload(inst);
@@ -296,7 +292,7 @@ transpiler_mir_render_match_case_condition(ASTNode *func_decl,
     }
     has_guard = ast_match_case_guard(case_node) != NULL;
 
-    subject_node = pgy_codegen_match_subject_for_case(func_decl, case_node);
+    subject_node = pgy_codegen_match_subject_for_branch(inst);
     if (subject_node == NULL)
         return NULL;
 

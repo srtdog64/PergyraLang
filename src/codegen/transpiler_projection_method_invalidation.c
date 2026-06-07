@@ -9,7 +9,9 @@
 
 #include "../common/string_compat.h"
 #include "../parser/ast_api.h"
+#include "transpiler_context.h"
 #include "transpiler_decl_lookup.h"
+#include "transpiler_inventory_view.h"
 #include "transpiler_format.h"
 #include "transpiler_overlay_projection.h"
 #include "transpiler_projection_field_path.h"
@@ -116,9 +118,31 @@ append_overlay_method_projection_invalidations(CodeBuf *buf,
                     ast_identifier_name(ast_member_object(ast_call_callee(node))));
             }
             if (field_type_name != NULL) {
-                ASTNode *method_decl = find_nominal_host_method_decl(
-                    ctx, field_type_name,
-                    ast_member_name(ast_call_callee(node)));
+                const char *method_name = ast_member_name(ast_call_callee(node));
+                const MIRDeclMethod *method_meta =
+                    transpiler_find_host_method_metadata_in_context(
+                        ctx, field_type_name, method_name);
+                ASTNode *method_decl =
+                    transpiler_mir_decl_method_source_ast(method_meta);
+                if (method_decl == NULL && method_meta == NULL) {
+                    if (transpiler_active_has_mir(ctx)) {
+                        transpiler_set_mir_inventory_missing(ctx,
+                            "MIR-only C path missing projection invalidation method metadata for '%s.%s'",
+                            field_type_name != NULL ? field_type_name : "(anonymous)",
+                            method_name != NULL ? method_name : "(anonymous)");
+                        return;
+                    }
+                    method_decl = find_nominal_host_method_decl(
+                        ctx, field_type_name, method_name);
+                } else if (method_decl == NULL
+                           && method_meta != NULL
+                           && transpiler_active_has_mir(ctx)) {
+                    transpiler_set_mir_inventory_missing(ctx,
+                        "MIR-only C path missing projection invalidation method source metadata for '%s.%s'",
+                        field_type_name != NULL ? field_type_name : "(anonymous)",
+                        method_name != NULL ? method_name : "(anonymous)");
+                    return;
+                }
                 if (method_decl != NULL) {
                     append_overlay_method_projection_invalidations(
                         buf, ctx, source_slot_name,

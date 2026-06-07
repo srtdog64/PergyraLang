@@ -12,15 +12,30 @@
 
 static LLVMValueRef
 llvm_emit_hosted_self_arg(ASTNode *arg_node, LLVMGenCtx *ctx,
-                          FuncParam *param, LLVMValueRef fallback)
+                          FuncParam *param,
+                          const char *param_type_name,
+                          bool require_type_name,
+                          const char *callee_name,
+                          LLVMValueRef fallback)
 {
-    const char *param_type_name = NULL;
     LLVMClassTypeEntry *param_class = NULL;
 
-    if (param == NULL || param->type == NULL || param->type->type != AST_TYPE)
+    if (param == NULL)
         return fallback;
 
-    param_type_name = ast_type_name(param->type);
+    if (param_type_name == NULL) {
+        if (require_type_name
+            && param->type != NULL
+            && param->type->type != AST_EVENT_HANDLER_TYPE) {
+            llvm_set_mir_inventory_missing(ctx,
+                "MIR-only LLVM path missing hosted self-call parameter type-name metadata for '%s'",
+                callee_name != NULL ? callee_name : "(anonymous-method)");
+            return NULL;
+        }
+        if (param->type == NULL || param->type->type != AST_TYPE)
+            return fallback;
+        param_type_name = ast_type_name(param->type);
+    }
     param_class = param_type_name != NULL
         ? llvm_lookup_class(ctx, param_type_name)
         : NULL;
@@ -43,13 +58,16 @@ llvm_emit_hosted_self_arg(ASTNode *arg_node, LLVMGenCtx *ctx,
 static FuncParam *
 llvm_hosted_self_logical_param(const MIRDeclMethod *method_meta,
                                ASTNode *host_method,
-                               size_t arg_index)
+                               size_t arg_index,
+                               const char **type_name_out)
 {
     size_t logical_index = 0;
     size_t param_count = method_meta != NULL
         ? llvm_mir_decl_method_param_count(method_meta)
         : ast_func_param_count(host_method);
 
+    if (type_name_out != NULL)
+        *type_name_out = NULL;
     for (size_t i = 0; i < param_count; i++) {
         FuncParam *param = method_meta != NULL
             ? llvm_mir_decl_method_param(method_meta, i)
@@ -58,8 +76,12 @@ llvm_hosted_self_logical_param(const MIRDeclMethod *method_meta,
             continue;
         if (param->type == NULL && strcmp(param->name, "self") == 0)
             continue;
-        if (logical_index == arg_index)
+        if (logical_index == arg_index) {
+            if (type_name_out != NULL && method_meta != NULL)
+                *type_name_out =
+                    llvm_mir_decl_method_param_type_name(method_meta, i);
             return param;
+        }
         logical_index++;
     }
     return NULL;
@@ -85,6 +107,11 @@ llvm_emit_hosted_self_call(ASTNode *node, LLVMGenCtx *ctx,
     host_method = llvm_mir_decl_method_source_ast(method_meta);
     if (host_method == NULL && method_meta == NULL) {
         if (llvm_active_has_mir(ctx)) {
+            /* If a global function is registered, the callee is a free
+             * function and the dispatcher should fall through to that path. */
+            ASTNode *cd = llvm_find_callable_decl(ctx, callee_name);
+            if (cd != NULL && cd->type == AST_FUNC_DECL)
+                return NULL;
             llvm_set_mir_inventory_missing(ctx,
                 "MIR-only LLVM path missing hosted self-call method metadata for '%s.%s'",
                 host_name != NULL ? host_name : "(anonymous)",
@@ -117,8 +144,9 @@ llvm_emit_hosted_self_call(ASTNode *node, LLVMGenCtx *ctx,
         ASTNode *arg_node = ast_call_argument(node, i);
         LLVMTypeRef arg_type = llvm_stmt_infer_expr_type(ctx, arg_node);
         LLVMValueRef arg_value;
+        const char *param_type_name = NULL;
         FuncParam *param = llvm_hosted_self_logical_param(
-            method_meta, host_method, i);
+            method_meta, host_method, i, &param_type_name);
 
         if (ctx->has_error)
             return NULL;
@@ -132,7 +160,10 @@ llvm_emit_hosted_self_call(ASTNode *node, LLVMGenCtx *ctx,
             return NULL;
         }
         arg_value = llvm_emit_expression(arg_node, ctx);
-        arg_value = llvm_emit_hosted_self_arg(arg_node, ctx, param, arg_value);
+        arg_value = llvm_emit_hosted_self_arg(arg_node, ctx, param,
+            param_type_name, method_meta != NULL, callee_name, arg_value);
+        if (ctx->has_error)
+            return NULL;
         if (arg_value == NULL)
             return llvm_call_arg_error_recovery(ctx, node, callee_name, i);
         args[i + 1] = arg_value;

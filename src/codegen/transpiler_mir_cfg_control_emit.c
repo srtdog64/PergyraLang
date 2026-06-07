@@ -473,8 +473,7 @@ transpiler_mir_render_select_case_condition(
 }
 
 char *
-transpiler_mir_render_branch_condition(ASTNode *func_decl,
-                                       const MIRRoutine *routine,
+transpiler_mir_render_branch_condition(const MIRRoutine *routine,
                                        const MIRInstruction *inst,
                                        size_t target_block,
                                        TranspilerCtx *ctx,
@@ -493,8 +492,7 @@ transpiler_mir_render_branch_condition(ASTNode *func_decl,
         condition = mir_instruction_source_payload(inst);
         if (condition == NULL)
             return pergyra_strdup("true");
-        return transpiler_mir_render_match_case_condition(func_decl, inst,
-                                                         ctx, ssa_map);
+        return transpiler_mir_render_match_case_condition(inst, ctx, ssa_map);
     }
     if (inst->branch_shape == MIR_BRANCH_SELECT_DISPATCH) {
         char *select_cond;

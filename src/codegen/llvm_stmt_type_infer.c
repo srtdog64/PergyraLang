@@ -62,12 +62,17 @@ llvm_stmt_host_method_return_type(LLVMGenCtx *ctx, const char *host_type_name,
             LLVMTypeRef llvm_ret = pergyra_type_to_llvm(ctx, ret_name);
             if (llvm_ret != NULL && !ctx->has_error)
                 return llvm_ret;
-            ctx->has_error = false;
+            return NULL;
         }
     }
     ret_ty = llvm_mir_decl_method_return_type(method_meta);
     if (ret_ty == NULL && method_meta == NULL) {
         if (llvm_active_has_mir(ctx)) {
+            /* A registered global function is not a host method; let the
+             * caller's fallback chain resolve it through function metadata. */
+            ASTNode *cd = llvm_find_callable_decl(ctx, method_name);
+            if (cd != NULL && cd->type == AST_FUNC_DECL)
+                return NULL;
             llvm_set_mir_inventory_missing(ctx,
                 "MIR-only LLVM path missing method return metadata for '%s.%s'",
                 host_type_name != NULL ? host_type_name : "(anonymous)",
@@ -79,11 +84,20 @@ llvm_stmt_host_method_return_type(LLVMGenCtx *ctx, const char *host_type_name,
         if (method_decl != NULL && method_decl->type == AST_FUNC_DECL)
             ret_ty = ast_func_return_type(method_decl);
     }
+    if (method_meta != NULL
+        && ret_ty != NULL
+        && ret_ty->type != AST_EVENT_HANDLER_TYPE) {
+        llvm_set_mir_inventory_missing(ctx,
+            "MIR-only LLVM path missing method type inference return type-name metadata for '%s.%s'",
+            host_type_name != NULL ? host_type_name : "(anonymous)",
+            method_name != NULL ? method_name : "(anonymous)");
+        return NULL;
+    }
     if (ret_ty != NULL) {
         LLVMTypeRef llvm_ret = ast_type_to_llvm(ctx, ret_ty);
         if (llvm_ret != NULL && !ctx->has_error)
             return llvm_ret;
-        ctx->has_error = false;
+        return NULL;
     }
     return NULL;
 }
@@ -646,12 +660,6 @@ llvm_stmt_infer_expr_type(LLVMGenCtx *ctx, ASTNode *expr)
                 if (inner != NULL)
                     return pergyra_type_to_llvm(ctx, inner);
             }
-            if (llvm_stmt_call_returns_collection_size(callee))
-                return ctx->type_i32;
-            if (llvm_stmt_call_returns_collection_bool(callee))
-                return ctx->type_i1;
-            if (llvm_stmt_call_returns_domain_bool(callee))
-                return ctx->type_i1;
             {
                 LLVMClassTypeEntry *cls = llvm_lookup_class(ctx, callee);
                 if (cls != NULL && cls->struct_type != NULL)

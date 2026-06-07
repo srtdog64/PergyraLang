@@ -21,5 +21,7 @@ transpiler_emit_mir_resource_op_inst(CodeBuf *buf,
                                      TranspilerSSANameMap *ssa_map_out,
                                      char *reason,
                                      size_t reason_cap);
+void transpiler_register_mir_with_slot_claim_facts(TranspilerCtx *ctx,
+                                                   const MIRRoutine *routine);
 
 #endif /* PGY_SRC_CODEGEN_TRANSPILER_MIR_RESOURCE_OP_EMIT_H */

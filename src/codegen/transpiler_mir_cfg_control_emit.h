@@ -22,7 +22,6 @@ bool transpiler_mir_emit_loop_backedge_increment(CodeBuf *buf,
                                                  const MIRRoutine *routine,
                                                  const MIRBasicBlock *block);
 char *transpiler_mir_render_branch_condition(
-    ASTNode *func_decl,
     const MIRRoutine *routine,
     const MIRInstruction *inst,
     size_t target_block,

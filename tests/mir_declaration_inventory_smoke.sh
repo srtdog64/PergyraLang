@@ -393,6 +393,18 @@ require_term "src/codegen/llvm_expr_call_dispatch.c" \
 require_term "src/codegen/llvm_expr_call_dispatch.c" \
     "MIR-only LLVM path missing registered function call target"
 require_term "src/codegen/llvm_expr_call_dispatch.c" \
+    "MIR-only LLVM path missing user-call routine"
+require_term "src/codegen/llvm_expr_call_dispatch.c" \
+    "MIR-only LLVM path missing user-call signature metadata"
+require_term "src/codegen/llvm_expr_call_dispatch.c" \
+    "llvm_forward_declare_func_from_mir(callee_routine, decl, ctx)"
+require_term "src/codegen/llvm_expr_call_dispatch.c" \
+    "llvm_active_function_routine_for_source_ast(ctx, decl)"
+if grep -Fq "ast_func_body(decl)" \
+    "$ROOT_DIR/src/codegen/llvm_expr_call_dispatch.c"; then
+    fail "LLVM call dispatch must use MIR routine inventory, not AST body presence, for registered target fail-closed policy"
+fi
+require_term "src/codegen/llvm_expr_call_dispatch.c" \
     "llvm_active_has_mir(ctx)"
 require_term "src/compiler/mir_intent.c" \
     "\"IntentValue\""
@@ -432,8 +444,41 @@ if grep -Fq 'success != NULL ? success : "true"' \
 fi
 require_term "src/codegen/llvm_intent_internal.h" \
     "llvm_collect_mir_intent_bindings"
+require_term "src/codegen/intent_binding_metadata_view.h" \
+    "typedef struct IntentBindingMetadataView"
+require_term "src/codegen/llvm_intent_internal.h" \
+    "intent_binding_metadata_view.h"
+require_term "src/codegen/transpiler_intent_context.h" \
+    "intent_binding_metadata_view.h"
+if grep -R -Fq "typedef struct LLVMIntentBindingMetadataView" \
+        "$ROOT_DIR/src/codegen"; then
+    fail "C and LLVM backends must share IntentBindingMetadataView instead of duplicating backend-local view structs"
+fi
 require_term "src/codegen/llvm_intent_mir_meta.c" \
     "llvm_collect_mir_intent_bindings"
+require_term "src/codegen/llvm_intent_mir_meta.c" \
+    "bindings_out->kinds"
+require_term "src/codegen/llvm_intent_mir_meta.c" \
+    "bindings_out->aliases"
+require_term "src/codegen/llvm_intent_mir_meta.c" \
+    "bindings_out->types"
+if grep -Fq "const char ***kinds_out" \
+        "$ROOT_DIR/src/codegen/llvm_intent_internal.h" \
+    || grep -Fq "const char ***kinds_out" \
+        "$ROOT_DIR/src/codegen/llvm_intent_mir_meta.c"; then
+    fail "LLVM MIR intent binding collector must return one metadata view, not three parallel out-params"
+fi
+for rel in \
+    "src/codegen/llvm_expr_call_dispatch.c" \
+    "src/codegen/llvm_intent.c" \
+    "src/codegen/llvm_intent_forward.c" \
+    "src/codegen/llvm_mir_emit.c" \
+    "src/codegen/llvm_mir_param_emit.c"; do
+    require_term "$rel" "IntentBindingMetadataView binding_metadata"
+    if grep -Fq "&binding_kinds, &binding_aliases" "$ROOT_DIR/$rel"; then
+        fail "$rel must collect MIR intent bindings through IntentBindingMetadataView"
+    fi
+done
 require_term "src/codegen/llvm_mir_emit.c" \
     "llvm_collect_mir_intent_bindings"
 require_term "src/codegen/llvm_mir_param_emit.c" \
@@ -540,7 +585,7 @@ if grep -Fq "p == NULL || p->type == NULL" \
     fail "C forward policy must not require AST param->type before MIR routine param_type_name"
 fi
 for term in \
-    "llvm_find_mir_function_for_forward_decl(ctx, func)" \
+    "llvm_active_function_routine_for_source_ast(ctx, func)" \
     "llvm_mir_routine_generic_param_count(routine)" \
     "llvm_mir_routine_return_type_name(routine)" \
     "llvm_mir_routine_param_type_name(routine, i)" \
@@ -549,6 +594,12 @@ for term in \
     "llvm_can_forward_declare_type_name_early"; do
     require_term "src/codegen/llvm_backend_forward_declare.c" "$term"
 done
+if grep -Fq "llvm_find_mir_function_for_forward_decl" \
+    "$ROOT_DIR/src/codegen/llvm_backend_forward_declare.c"; then
+    fail "LLVM forward policy reintroduced owner-local MIR routine lookup"
+fi
+require_term "src/codegen/llvm_inventory_internal.c" \
+    "llvm_active_function_routine_for_source_ast"
 require_each_following_term "src/codegen/llvm_backend_forward_declare.c" \
     "routine_has_signature = llvm_mir_routine_has_signature(routine)" \
     "llvm_active_has_mir(ctx)" \
@@ -657,7 +708,14 @@ require_term "src/codegen/llvm_intent_setup.c" \
 require_term "src/codegen/llvm_intent_setup.c" \
     "LLVM intent entry binding %zu requires alias and type metadata; silent i8ptr fallback is not allowed"
 require_term "src/codegen/llvm_intent_setup.c" \
-    "binding_kinds"
+    "const IntentBindingMetadataView *bindings_view"
+require_term "src/codegen/llvm_intent.c" \
+    "llvm_emit_intent_entry_bindings(ctx, node, fn, &binding_metadata"
+if grep -A8 -F "void        llvm_emit_intent_entry_bindings" \
+        "$ROOT_DIR/src/codegen/llvm_intent_internal.h" |
+        grep -Fq "const char **binding_kinds"; then
+    fail "LLVM intent entry setup must receive binding metadata as one view, not parallel parameters"
+fi
 if grep -Fq "LLVMTypeRef pt = ctx->type_i8ptr" \
     "$ROOT_DIR/src/codegen/llvm_intent_setup.c"; then
     fail "LLVM intent entry binding setup must not seed missing binding metadata with i8ptr"
@@ -1297,6 +1355,20 @@ require_term "src/codegen/transpiler_mir_ssa_names.c" \
     "transpiler_hosted_zone_layer_slot_view_missing_mir_metadata("
 require_term "src/codegen/transpiler_mir_ssa_names.c" \
     "transpiler_hosted_zone_layer_slot_view_name("
+for term in \
+    "transpiler_current_function_has_local_binding" \
+    "transpiler_find_mir_function(ctx, ctx->current_func_decl)" \
+    "transpiler_mir_routine_has_local_name" \
+    "mir_routine_param_count(routine)" \
+    "block->source_local_defs[j]" \
+    "transpiler_active_has_mir(ctx)"; do
+    require_term "src/codegen/transpiler_mir_ssa_names.c" "$term"
+done
+if ! grep -B3 -F "return transpiler_has_explicit_local_binding(ctx->current_func_decl," \
+        "$ROOT_DIR/src/codegen/transpiler_mir_ssa_names.c" |
+        grep -Fq "if (transpiler_active_has_mir(ctx))"; then
+    fail "C MIR SSA implicit-field local detection must keep AST local-binding scan behind non-MIR guard"
+fi
 if grep -Fq "ast_zone_layer_slots" \
     "$ROOT_DIR/src/codegen/transpiler_mir_ssa_names.c"; then
     fail "C MIR SSA implicit zone layer-field recovery must consume TranspilerHostedZoneLayerSlotView"
@@ -2721,9 +2793,15 @@ for term in \
     "transpiler_mir_routine_param(mir_routine" \
     "transpiler_mir_routine_param_type_name(mir_routine" \
     "transpiler_mir_routine_return_type(mir_routine)" \
-    "transpiler_mir_routine_return_type_name(mir_routine)"; do
+    "transpiler_mir_routine_return_type_name(mir_routine)" \
+    "transpiler_register_ast_compat_local_bindings_in_block(ctx, node"; do
     require_term "src/codegen/transpiler_mir_func_emit.c" "$term"
 done
+if grep -R -n -F "transpiler_register_explicit_local_bindings_in_block" \
+        "$ROOT_DIR/src/codegen" \
+        --include='*.c' --include='*.h' >/dev/null; then
+    fail "C MIR local binding compatibility shim must keep an explicit AST-compat name"
+fi
 require_each_following_term "src/codegen/transpiler_mir_func_emit.c" \
     "transpiler_mir_routine_has_signature(mir_routine)" \
     "transpiler_active_has_mir(ctx)" \
@@ -2745,28 +2823,111 @@ require_each_following_term "src/codegen/transpiler_func_forward_emit.c" \
 for term in \
     "transpiler_mir_routine_has_signature(mir_routine)" \
     "MIR-only C path missing function SSA local signature metadata" \
-    "transpiler_mir_routine_param_count(mir_routine)" \
-    "transpiler_mir_routine_param(mir_routine"; do
+    "transpiler_mir_ssa_local_routine_has_param_name" \
+    "transpiler_mir_ssa_local_routine_has_source_def" \
+    "transpiler_mir_ssa_local_routine_has_destructure_binding" \
+    "transpiler_mir_ssa_local_register_base_type_fact" \
+    "has_param_fact" \
+    "has_source_local_fact"; do
     require_term "src/codegen/transpiler_mir_func_ssa_locals_emit.c" "$term"
 done
+for term in \
+    "transpiler_mir_routine_param_count(routine)" \
+    "transpiler_mir_routine_param(routine" \
+    "transpiler_mir_destructure_binding_type_name" \
+    "mir_instruction_source_payload(inst)" \
+    "source->type != AST_LET_DESTRUCTURE" \
+    "transpiler_mir_ssa_local_entry_has_source_def" \
+    "transpiler_mir_ssa_local_routine_has_source_def" \
+    "transpiler_mir_ssa_local_routine_has_param_name" \
+    "transpiler_mir_register_base_local_view_fact" \
+    "transpiler_mir_view_constructor_call_from_source" \
+    "transpiler_mir_ssa_local_register_base_type_fact" \
+    "register_view_like_var(ctx, base_name, type_name, source," \
+    "register_slot_var(ctx, base_name, inner_buf, is_secure, false)" \
+    "block->source_local_defs[i]"; do
+    require_term "src/codegen/transpiler_mir_ssa_local_facts.c" "$term"
+done
+if ! grep -B2 -F "transpiler_find_local_event_handler_type_ast(" \
+        "$ROOT_DIR/src/codegen/transpiler_mir_func_ssa_locals_emit.c" |
+        grep -Fq "if (type_name == NULL)"; then
+    fail "C MIR SSA local EventHandler AST lookup must stay behind missing type-name guard"
+fi
+require_term "src/codegen/transpiler_mir_local_binding.c" \
+    "if (!transpiler_active_has_mir(ctx)"
+require_term "src/codegen/transpiler_mir_local_binding.c" \
+    "&& transpiler_type_name_is_view_like(type_name)"
+for term in \
+    "transpiler_mir_register_with_slot_claim_fact" \
+    "transpiler_register_mir_with_slot_claim_facts" \
+    "inst->type_layout->abi_type_name" \
+    "mir_instruction_is_with_slot_claim(inst)" \
+    "lookup_slot_type_copy(ctx, alias, inner_buf, sizeof(inner_buf))" \
+    "register_typed_var(ctx, alias, type_name)" \
+    "register_slot_var(ctx, alias, inner_buf, is_secure, false)"; do
+    require_term "src/codegen/transpiler_mir_resource_op_emit.c" "$term"
+done
+require_term "src/codegen/transpiler_mir_func_emit.c" \
+    "transpiler_register_mir_with_slot_claim_facts(ctx, mir_routine)"
+require_each_following_term "src/codegen/transpiler_mir_local_binding.c" \
+    "stmt->type == AST_WITH_STMT && ast_with_alias(stmt) != NULL" \
+    "if (!transpiler_active_has_mir(ctx))" \
+    4
+if grep -Eq 'ast_func_body\(node\)|ast_block_statement_count\(body\)' \
+        "$ROOT_DIR/src/codegen/transpiler_mir_func_ssa_locals_emit.c"; then
+    fail "C MIR SSA local declarations must consume MIR source-local facts instead of rescanning function body AST"
+fi
+if grep -Eq 'ast_func_param_count\(node\)|ast_func_param\(node' \
+        "$ROOT_DIR/src/codegen/transpiler_mir_func_ssa_locals_emit.c"; then
+    fail "C MIR SSA local declarations must consume MIR routine parameter facts instead of function AST params"
+fi
 require_each_following_term "src/codegen/transpiler_mir_func_ssa_locals_emit.c" \
     "transpiler_active_has_mir(ctx)" \
     "transpiler_mir_routine_has_signature(mir_routine)" \
     2
 for term in \
-    "transpiler_find_active_function_routine_for_call" \
-    "transpiler_find_active_routine_for_source_ast" \
-    "transpiler_active_routine_inventory(ctx, &inventory)" \
+    "transpiler_find_mir_function(ctx, callee_decl)" \
     "MIR-only C path missing local parameter signature metadata" \
+    "MIR-only C path missing local parameter type-name metadata" \
     "transpiler_mir_routine_param_type_name(routine, i)" \
     "transpiler_mir_routine_return_type_name(callee_routine)" \
+    "MIR-only C path missing function call routine metadata" \
     "MIR-only C path missing function call return signature metadata" \
+    "MIR-only C path missing function call return type-name metadata" \
     "if (callee_decl != NULL && callee_decl->type == AST_FUNC_DECL" \
     "&& transpiler_active_has_mir(ctx)" \
     "ast_func_param_count(func_decl)" \
     "ast_func_return_type(callee_decl)"; do
     require_term "src/codegen/transpiler_mir_local_type_lookup.c" "$term"
 done
+if ! grep -B3 -F "transpiler_find_local_type_name_in_block(ctx, func_decl," \
+        "$ROOT_DIR/src/codegen/transpiler_mir_local_type_lookup.c" |
+        grep -Fq "if (!transpiler_active_has_mir(ctx))"; then
+    fail "C MIR local type AST body scan must stay behind non-MIR guard"
+fi
+if grep -Fq "transpiler_find_active_function_routine_for_call" \
+        "$ROOT_DIR/src/codegen/transpiler_mir_local_type_lookup.c"; then
+    fail "C MIR local type lookup reintroduced owner-local routine scan"
+fi
+for term in \
+    "transpiler_mir_assignment_target_is_local" \
+    "transpiler_mir_routine_has_source_local_name" \
+    "block->source_local_defs[j]" \
+    "mir_routine_param_count(routine)" \
+    "transpiler_emit_mir_assignment_def_inst("; do
+    require_term "src/codegen/transpiler_mir_assignment_emit.c" "$term"
+done
+require_term "src/codegen/transpiler_mir_block_emit.c" \
+    "buf, func_decl, mir_routine, block"
+if ! grep -B3 -F "return transpiler_has_explicit_local_binding(func_decl, target_name);" \
+        "$ROOT_DIR/src/codegen/transpiler_mir_assignment_emit.c" |
+        grep -Fq "if (routine != NULL)"; then
+    fail "C MIR assignment target classification must keep AST local-binding scan behind non-MIR fallback"
+fi
+if grep -Fq "transpiler_has_local_binding_in_block" \
+        "$ROOT_DIR/src/codegen/transpiler_mir_local_binding.h"; then
+    fail "C MIR local-binding AST block scan must stay private to its non-MIR compatibility owner"
+fi
 for term in \
     "mir_routine_has_signature(routine)" \
     "mir_routine_param_count(routine)" \
@@ -5205,11 +5366,11 @@ require_term "src/tests/mir/test_mir_lowering_part_c.cases.h" \
     "MIR validator rejects hosted method routine link metadata drift"
 require_term "src/tests/mir/test_mir_lowering_part_c.cases.h" \
     "MIR method routine linker requires owner metadata"
-require_term "src/tests/mir/test_mir_lowering_part_c.cases.h" \
+require_term "src/tests/mir/test_mir_lowering_part_g.cases.h" \
     "MIR validator rejects declaration header name metadata drift"
-require_term "src/tests/mir/test_mir_lowering_part_c.cases.h" \
+require_term "src/tests/mir/test_mir_lowering_part_g.cases.h" \
     "MIR declaration headers preserve pointer-self ABI shape"
-require_term "src/tests/mir/test_mir_lowering_part_c.cases.h" \
+require_term "src/tests/mir/test_mir_lowering_part_g.cases.h" \
     "MIR validator rejects pointer-self ABI metadata drift"
 require_term_any \
     "MIR validator rejects duplicate declaration header names" \

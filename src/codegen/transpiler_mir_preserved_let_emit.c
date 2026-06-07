@@ -10,7 +10,7 @@
 #include "transpiler_expr_type_infer.h"
 #include "transpiler_mir_block_emit_helpers.h"
 #include "transpiler_mir_effective_type.h"
-#include "transpiler_mir_local_type_ast_lookup.h"
+#include "transpiler_mir_local_type_lookup.h"
 #include "transpiler_mir_reason.h"
 #include "transpiler_mir_ssa_lookup.h"
 #include "transpiler_mir_ssa_names.h"
@@ -88,18 +88,11 @@ transpiler_emit_mir_preserved_let_stmt(CodeBuf *buf,
         }
 
         if (value_type != NULL && strcmp(value_type, "Unknown") != 0) {
-            ASTNode *binding_type_ast =
-                transpiler_find_local_type_ast(ctx, func_decl, let_name);
-            char *binding_type_name = NULL;
-            if (binding_type_ast != NULL) {
-                binding_type_name =
-                    transpiler_render_effective_local_type_name(
-                        ctx, binding_type_ast);
-            }
+            const char *binding_type_name =
+                transpiler_find_local_type_name(ctx, func_decl, let_name);
             if (transpiler_type_name_is_view_like(binding_type_name)
                 || transpiler_type_name_is_view_like(value_type)) {
                 emit_statement(stmt, ctx);
-                free(binding_type_name);
                 free(lhs);
                 free(rhs);
                 free(rendered_type);
@@ -116,7 +109,6 @@ transpiler_emit_mir_preserved_let_stmt(CodeBuf *buf,
                     && (transpiler_type_name_is_slot_like(value_type)
                         || transpiler_type_name_is_claim_shape(value_type)
                         || transpiler_type_name_is_channel(value_type)))) {
-                free(binding_type_name);
                 free(lhs);
                 free(rhs);
                 free(rendered_type);
@@ -124,7 +116,6 @@ transpiler_emit_mir_preserved_let_stmt(CodeBuf *buf,
                     *handled_out = true;
                 return true;
             }
-            free(binding_type_name);
         }
 
         if (lhs == NULL || rhs == NULL) {

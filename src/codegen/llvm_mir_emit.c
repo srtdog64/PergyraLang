@@ -114,6 +114,7 @@ llvm_emit_func_from_mir(const MIRRoutine *routine, LLVMGenCtx *ctx)
     bool is_method = false;
     bool owner_is_role = false;
     const char *owner_name = NULL;
+    IntentBindingMetadataView binding_metadata = {0};
     const char **binding_kinds = NULL;
     const char **binding_aliases = NULL;
     const char **binding_types = NULL;
@@ -141,7 +142,10 @@ llvm_emit_func_from_mir(const MIRRoutine *routine, LLVMGenCtx *ctx)
     is_intent = (func_decl->type == AST_INTENT_DECL);
     if (is_intent) {
         mir_binding_count = llvm_collect_mir_intent_bindings(
-            routine, ctx, &binding_kinds, &binding_aliases, &binding_types);
+            routine, ctx, &binding_metadata);
+        binding_kinds = binding_metadata.kinds;
+        binding_aliases = binding_metadata.aliases;
+        binding_types = binding_metadata.types;
         if (mir_binding_count > 0
             && (binding_kinds == NULL || binding_aliases == NULL
                 || binding_types == NULL)) {
@@ -180,6 +184,24 @@ llvm_emit_func_from_mir(const MIRRoutine *routine, LLVMGenCtx *ctx)
                 ? llvm_mir_routine_name(routine)
                 : "(anonymous)");
         return NULL;
+    }
+    if (!is_intent && llvm_mir_routine_has_signature(routine)) {
+        size_t func_param_count = llvm_mir_routine_param_count(routine);
+        for (size_t i = 0; i < func_param_count; i++) {
+            FuncParam *param = llvm_mir_routine_param(routine, i);
+            const char *param_type_name =
+                llvm_mir_routine_param_type_name(routine, i);
+            if (param == NULL || llvm_param_is_implicit_self_local(param))
+                continue;
+            if (param_type_name == NULL
+                && param->type != NULL
+                && param->type->type != AST_EVENT_HANDLER_TYPE) {
+                llvm_set_mir_inventory_missing(ctx,
+                    "MIR-only LLVM path missing function body parameter type-name metadata for '%s'",
+                    routine_name != NULL ? routine_name : "(anonymous)");
+                return NULL;
+            }
+        }
     }
     if (is_method && owner_name == NULL) {
         llvm_set_mir_topology_invalid(ctx,
@@ -350,6 +372,14 @@ llvm_emit_func_from_mir(const MIRRoutine *routine, LLVMGenCtx *ctx)
             return_type = ast_func_return_type(func_decl);
         if (return_type_name != NULL)
             ret_type = pergyra_type_to_llvm(ctx, return_type_name);
+        else if (llvm_mir_routine_has_signature(routine)
+                 && return_type != NULL
+                 && return_type->type != AST_EVENT_HANDLER_TYPE) {
+            llvm_set_mir_inventory_missing(ctx,
+                "MIR-only LLVM path missing function body return type-name metadata for '%s'",
+                routine_name != NULL ? routine_name : "(anonymous)");
+            return NULL;
+        }
         else if (return_type != NULL)
             ret_type = llvm_mir_type_from_ast(ctx, return_type);
     }
@@ -474,8 +504,8 @@ llvm_emit_func_from_mir(const MIRRoutine *routine, LLVMGenCtx *ctx)
     if (routine->entry_block < routine->block_count) {
         llvm_emit_mir_block_with_exprs(&routine->blocks[routine->entry_block], routine, ctx,
                                        llvm_block_heads, llvm_block_tails,
-                                       vars, var_count, func_decl,
-                                       owner_cls, owner_sync, owner_name);
+                                       vars, var_count, owner_cls, owner_sync,
+                                       owner_name);
     }
     llvm_mir_debug_stage("emit_func_from_mir:entry_emitted", routine);
     for (size_t i = 0; i < routine->block_count; i++) {
@@ -485,8 +515,8 @@ llvm_emit_func_from_mir(const MIRRoutine *routine, LLVMGenCtx *ctx)
         if (mir_block->is_reachable && !mir_block->is_cleanup) {
             llvm_emit_mir_block_with_exprs(mir_block, routine, ctx,
                                            llvm_block_heads, llvm_block_tails,
-                                           vars, var_count, func_decl,
-                                           owner_cls, owner_sync, owner_name);
+                                           vars, var_count, owner_cls,
+                                           owner_sync, owner_name);
         } else if (!mir_block->is_cleanup) {
             LLVMPositionBuilderAtEnd(ctx->builder, llvm_blocks[i]);
             LLVMBuildUnreachable(ctx->builder);
@@ -530,8 +560,8 @@ llvm_emit_func_from_mir(const MIRRoutine *routine, LLVMGenCtx *ctx)
                 llvm_emit_mir_block_with_exprs(mir_block, routine, ctx,
                                                llvm_block_heads,
                                                llvm_block_tails,
-                                               vars, var_count, func_decl,
-                                               owner_cls, owner_sync, owner_name);
+                                               vars, var_count, owner_cls,
+                                               owner_sync, owner_name);
             }
         }
     }

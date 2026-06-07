@@ -269,9 +269,25 @@ transpiler_emit_mir_let_destructure_stmt(CodeBuf *buf,
                 free(ssa_versioned);
                 continue;
             }
-            write_indent_to(buf, ctx->indent);
-            codebuf_write(buf, "%s = _pgy_destr_%d.f%zu;\n",
-                          ssa_lhs, tmp_id, dn);
+            /* Closure #82: tuple element SSA names need a type prefix.
+             * Without it gcc rejects `_pgy_ssa_X_0 = _pgy_destr_K.fN;`
+             * because the SSA-versioned identifier was never declared.
+             * Mirrors the non-MIR destructure emit's `<c_type> <name> = ...`
+             * shape. Falls back to the raw type name when the C-type buffer
+             * conversion fails so the diagnostic surface still moves forward
+             * instead of silently corrupting the emit. */
+            {
+                char elem_c_buf[128];
+                const char *elem_c = elem_names[dn];
+                if (transpiler_require_type_name_c_type_copy(ctx,
+                        elem_names[dn], "tuple destructuring element",
+                        elem_c_buf, sizeof(elem_c_buf))) {
+                    elem_c = elem_c_buf;
+                }
+                write_indent_to(buf, ctx->indent);
+                codebuf_write(buf, "%s %s = _pgy_destr_%d.f%zu;\n",
+                              elem_c, ssa_lhs, tmp_id, dn);
+            }
             free(ssa_lhs);
             register_typed_var(ctx, bname, elem_names[dn]);
             transpiler_ssa_name_map_set(ssa_map_out, bname, ssa_versioned);
@@ -340,9 +356,11 @@ transpiler_emit_mir_let_destructure_stmt(CodeBuf *buf,
                 free(ssa_versioned);
                 continue;
             }
+            /* Closure #82: array element SSA names need a type prefix
+             * (same gap as tuple case earlier in this function). */
             write_indent_to(buf, ctx->indent);
-            codebuf_write(buf, "%s = _pgy_destr_%d.data[%zu];\n",
-                          ssa_lhs, tmp_id, dn);
+            codebuf_write(buf, "%s %s = _pgy_destr_%d.data[%zu];\n",
+                          elem_c_type, ssa_lhs, tmp_id, dn);
             free(ssa_lhs);
             register_typed_var(ctx, bname, elem_inner);
             transpiler_ssa_name_map_set(ssa_map_out, bname, ssa_versioned);

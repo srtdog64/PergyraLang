@@ -46,8 +46,7 @@ transpiler_mir_return_callable_type(TranspilerCtx *ctx,
 }
 
 static bool
-transpiler_emit_mir_branch_terminator(ASTNode *node,
-                                      const MIRRoutine *mir_routine,
+transpiler_emit_mir_branch_terminator(const MIRRoutine *mir_routine,
                                       const MIRBasicBlock *block,
                                       size_t block_index,
                                       const MIRInstruction *inst,
@@ -58,7 +57,7 @@ transpiler_emit_mir_branch_terminator(ASTNode *node,
                                       size_t block_reason_cap)
 {
     char *cond = transpiler_mir_render_branch_condition(
-        node, mir_routine, inst, block->succ_true, ctx, block_ssa_map);
+        mir_routine, inst, block->succ_true, ctx, block_ssa_map);
 
     if (cond == NULL) {
         if (ctx != NULL && ctx->backend_error == NULL) {
@@ -171,8 +170,7 @@ transpiler_emit_mir_return_terminator(const MIRBasicBlock *block,
 }
 
 bool
-transpiler_emit_mir_explicit_terminator(ASTNode *node,
-                                        const MIRRoutine *mir_routine,
+transpiler_emit_mir_explicit_terminator(const MIRRoutine *mir_routine,
                                         const MIRBasicBlock *block,
                                         size_t block_index,
                                         const char *name,
@@ -190,7 +188,7 @@ transpiler_emit_mir_explicit_terminator(ASTNode *node,
             continue;
         if (inst->kind == MIR_INST_BRANCH) {
             if (!transpiler_emit_mir_branch_terminator(
-                    node, mir_routine, block, block_index, inst, name, ctx,
+                    mir_routine, block, block_index, inst, name, ctx,
                     block_ssa_map, block_reason, block_reason_cap)) {
                 return false;
             }

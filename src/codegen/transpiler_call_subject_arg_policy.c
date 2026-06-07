@@ -28,16 +28,21 @@ type_node_is_pointer_self_host(TranspilerCtx *ctx, ASTNode *type_node)
 bool
 transpiler_call_arg_needs_subject_address(TranspilerCtx *ctx,
                                           FuncParam *param,
+                                          const char *param_type_name,
                                           ASTNode *intent_param_type,
                                           const char *intent_param_type_name)
 {
     if (ctx == NULL)
         return false;
 
-    if (param != NULL && param->type != NULL
-        && param->name != NULL && strcmp(param->name, "self") != 0
-        && type_node_is_pointer_self_host(ctx, param->type)) {
-        return true;
+    if (param != NULL && param->name != NULL
+        && strcmp(param->name, "self") != 0) {
+        if (param_type_name != NULL)
+            return is_pointer_self_host_type_name(ctx, param_type_name);
+        if (param->type != NULL
+            && type_node_is_pointer_self_host(ctx, param->type)) {
+            return true;
+        }
     }
 
     if (intent_param_type_name != NULL)

@@ -37,6 +37,16 @@ hir_stmt_collect_local_defs(ASTNode *node,
             }
             return true;
 
+        case AST_WITH_STMT:
+            if (ast_with_alias(node) != NULL
+                && !hir_cfg_append_name_unique(names,
+                                               count,
+                                               capacity,
+                                               ast_with_alias(node))) {
+                return false;
+            }
+            return true;
+
         default:
             return true;
     }

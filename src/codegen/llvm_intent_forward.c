@@ -33,6 +33,7 @@ llvm_forward_declare_intent(ASTNode *node, LLVMGenCtx *ctx)
     LLVMTypeRef *param_types = NULL;
     LLVMTypeRef fn_type;
     LLVMValueRef fn;
+    IntentBindingMetadataView binding_metadata = {0};
     const char **binding_kinds = NULL;
     const char **binding_aliases = NULL;
     const char **binding_types = NULL;
@@ -65,7 +66,10 @@ llvm_forward_declare_intent(ASTNode *node, LLVMGenCtx *ctx)
     mir_only_intent = mir_routine != NULL;
     if (mir_routine != NULL) {
         mir_binding_count = llvm_collect_mir_intent_bindings(
-            mir_routine, ctx, &binding_kinds, &binding_aliases, &binding_types);
+            mir_routine, ctx, &binding_metadata);
+        binding_kinds = binding_metadata.kinds;
+        binding_aliases = binding_metadata.aliases;
+        binding_types = binding_metadata.types;
     } else {
         bindings = ast_intent_decl_bindings(node, &binding_count);
         involves = ast_intent_decl_involves(node, &involve_count);

@@ -19,12 +19,14 @@ transpiler_current_local_type_name(TranspilerCtx *ctx, const char *name)
 }
 
 static ASTNode *
-transpiler_current_local_type_ast(TranspilerCtx *ctx, const char *name)
+transpiler_current_local_event_handler_type_ast(TranspilerCtx *ctx,
+                                                const char *name)
 {
     if (ctx == NULL || name == NULL || ctx->current_func_decl == NULL)
         return NULL;
 
-    return transpiler_find_local_type_ast(ctx, ctx->current_func_decl, name);
+    return transpiler_find_local_event_handler_type_ast(
+        ctx, ctx->current_func_decl, name);
 }
 
 static bool
@@ -103,16 +105,14 @@ transpiler_parallel_add_capture_name(TranspilerCtx *ctx,
             }
             pergyra_str_copy(typed_names[*typed_count],
                 sizeof(typed_names[*typed_count]), name);
-            if (typed_type_asts != NULL) {
-                typed_type_asts[*typed_count] =
-                    transpiler_current_local_type_ast(ctx, name);
-            }
-            if (typed_is_event_handler != NULL) {
-                ASTNode *type_node = typed_type_asts != NULL
-                    ? typed_type_asts[*typed_count]
-                    : transpiler_current_local_type_ast(ctx, name);
-                typed_is_event_handler[*typed_count] =
-                    type_node != NULL && type_node->type == AST_EVENT_HANDLER_TYPE;
+            if (typed_type_asts != NULL || typed_is_event_handler != NULL) {
+                ASTNode *type_node =
+                    transpiler_current_local_event_handler_type_ast(ctx, name);
+                if (typed_type_asts != NULL)
+                    typed_type_asts[*typed_count] = type_node;
+                if (typed_is_event_handler != NULL)
+                    typed_is_event_handler[*typed_count] =
+                        type_node != NULL;
             }
             (*typed_count)++;
         }
@@ -137,16 +137,14 @@ transpiler_parallel_add_capture_name(TranspilerCtx *ctx,
             register_typed_var(ctx, name, type_name);
             pergyra_str_copy(typed_names[*typed_count],
                 sizeof(typed_names[*typed_count]), name);
-            if (typed_type_asts != NULL) {
-                typed_type_asts[*typed_count] =
-                    transpiler_current_local_type_ast(ctx, name);
-            }
-            if (typed_is_event_handler != NULL) {
-                ASTNode *type_node = typed_type_asts != NULL
-                    ? typed_type_asts[*typed_count]
-                    : transpiler_current_local_type_ast(ctx, name);
-                typed_is_event_handler[*typed_count] =
-                    type_node != NULL && type_node->type == AST_EVENT_HANDLER_TYPE;
+            if (typed_type_asts != NULL || typed_is_event_handler != NULL) {
+                ASTNode *type_node =
+                    transpiler_current_local_event_handler_type_ast(ctx, name);
+                if (typed_type_asts != NULL)
+                    typed_type_asts[*typed_count] = type_node;
+                if (typed_is_event_handler != NULL)
+                    typed_is_event_handler[*typed_count] =
+                        type_node != NULL;
             }
             (*typed_count)++;
         }

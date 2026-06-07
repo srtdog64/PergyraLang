@@ -14,6 +14,8 @@
 #include "transpiler_context.h"
 #include "transpiler_generic_binding_query.h"
 #include "transpiler_generic_param_query.h"
+#include "transpiler_inventory_view.h"
+#include "transpiler_mir_inventory_intent_collect.h"
 #include "transpiler_symbols.h"
 #include "transpiler_type_mapping.h"
 #include "transpiler_type_render.h"
@@ -62,9 +64,46 @@ infer_spawn_return_type_name_scratch(TranspilerCtx *ctx, ASTNode *spawn_expr)
 
     ASTNode *decl = find_function_decl(ctx, function_name);
     if (decl != NULL) {
-        ASTNode *return_type = ast_func_return_type(decl);
+        ASTNode *return_type = NULL;
+        bool generic_call = call != NULL
+            && transpiler_func_has_generic_params(decl);
+        bool extern_func = transpiler_decl_is_extern_function(ctx, decl);
+        if (!generic_call && !extern_func && transpiler_active_has_mir(ctx)) {
+            const MIRRoutine *routine =
+                transpiler_find_mir_function(ctx, decl);
+            if (routine == NULL) {
+                transpiler_set_mir_inventory_missing(ctx,
+                    "MIR-only C path missing spawn return routine for '%s'",
+                    function_name != NULL ? function_name : "<function>");
+                return "Unknown";
+            }
+            if (routine != NULL
+                && !transpiler_mir_routine_has_signature(routine)) {
+                transpiler_set_mir_inventory_missing(ctx,
+                    "MIR-only C path missing spawn return signature metadata for '%s'",
+                    function_name != NULL ? function_name : "<function>");
+                return "Unknown";
+            }
+            if (routine != NULL
+                && transpiler_mir_routine_has_signature(routine)) {
+                const char *return_type_name =
+                    transpiler_mir_routine_return_type_name(routine);
+                if (return_type_name != NULL)
+                    return transpiler_scratch_strdup(ctx, return_type_name);
+                return_type = transpiler_mir_routine_return_type(routine);
+                if (return_type != NULL
+                    && return_type->type != AST_EVENT_HANDLER_TYPE) {
+                    transpiler_set_mir_inventory_missing(ctx,
+                        "MIR-only C path missing spawn return type-name metadata for '%s'",
+                        function_name != NULL ? function_name : "<function>");
+                    return "Unknown";
+                }
+            }
+        } else {
+            return_type = ast_func_return_type(decl);
+        }
         if (return_type != NULL) {
-            if (call != NULL && transpiler_func_has_generic_params(decl)) {
+            if (generic_call) {
                 GenericBindingEntry bindings[MAX_GENERIC_BINDINGS];
                 size_t binding_count = 0;
                 if (transpiler_infer_generic_call_bindings(ctx, decl, call,

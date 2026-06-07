@@ -14,6 +14,7 @@
 #include "transpiler_let_slot_emit.h"
 #include "transpiler_inventory_view.h"
 #include "transpiler_mir_effective_type.h"
+#include "transpiler_mir_inventory_intent_collect.h"
 #include "transpiler_nominal.h"
 #include "transpiler_symbols.h"
 #include "transpiler_type_mapping.h"
@@ -44,63 +45,6 @@ const char *
 transpiler_find_local_type_name(TranspilerCtx *ctx,
                                 const ASTNode *func_decl,
                                 const char *base_name);
-
-static const MIRRoutine *
-transpiler_find_active_function_routine_for_call(TranspilerCtx *ctx,
-                                                const ASTNode *callee_decl,
-                                                const char *callee_name)
-{
-    TranspilerMIRRoutineInventory inventory;
-
-    if (ctx == NULL || !transpiler_active_has_mir(ctx)
-        || callee_decl == NULL || callee_name == NULL) {
-        return NULL;
-    }
-
-    transpiler_active_routine_inventory(ctx, &inventory);
-    for (size_t i = 0; i < inventory.count; i++) {
-        const MIRRoutine *routine =
-            transpiler_routine_inventory_get(&inventory, i);
-        const char *routine_name = transpiler_mir_routine_name(routine);
-        if (routine == NULL
-            || transpiler_mir_routine_kind(routine) != MIR_SCOPE_FUNCTION)
-            continue;
-        if (transpiler_mir_routine_source_ast(routine)
-            == (ASTNode *)callee_decl) {
-            return routine;
-        }
-        if (transpiler_mir_routine_owner_name(routine) == NULL
-            && routine_name != NULL
-            && strcmp(routine_name, callee_name) == 0) {
-            return routine;
-        }
-    }
-
-    return NULL;
-}
-
-static const MIRRoutine *
-transpiler_find_active_routine_for_source_ast(TranspilerCtx *ctx,
-                                             const ASTNode *source_ast)
-{
-    TranspilerMIRRoutineInventory inventory;
-
-    if (ctx == NULL || !transpiler_active_has_mir(ctx) || source_ast == NULL)
-        return NULL;
-
-    transpiler_active_routine_inventory(ctx, &inventory);
-    for (size_t i = 0; i < inventory.count; i++) {
-        const MIRRoutine *routine =
-            transpiler_routine_inventory_get(&inventory, i);
-        if (routine != NULL
-            && transpiler_mir_routine_source_ast(routine)
-                == (ASTNode *)source_ast) {
-            return routine;
-        }
-    }
-
-    return NULL;
-}
 
 const char *
 transpiler_infer_local_type_name_from_expr(TranspilerCtx *ctx,
@@ -217,6 +161,15 @@ transpiler_infer_local_type_name_from_expr(TranspilerCtx *ctx,
                         ctx, receiver_type, method_name);
                     method_return_type = ast_func_return_type(method_decl);
                 }
+                if (method_meta != NULL
+                    && method_return_type != NULL
+                    && method_return_type->type != AST_EVENT_HANDLER_TYPE) {
+                    transpiler_set_mir_inventory_missing(ctx,
+                        "MIR-only C path missing MIR local member-call return type-name metadata for '%s.%s'",
+                        receiver_type != NULL ? receiver_type : "(anonymous)",
+                        method_name != NULL ? method_name : "(anonymous)");
+                    return NULL;
+                }
             }
             if (method_return_type != NULL) {
                 char *rendered = render_type_name_in_ctx(ctx,
@@ -232,14 +185,27 @@ transpiler_infer_local_type_name_from_expr(TranspilerCtx *ctx,
             && ast_identifier_name(ast_call_callee(expr)) != NULL) {
             const char *callee_name = ast_identifier_name(ast_call_callee(expr));
             ASTNode *callee_decl = find_callable_decl(ctx, callee_name);
-            ASTNode *callee_return_type;
+            ASTNode *callee_return_type = NULL;
             if (callee_decl != NULL && callee_decl->type == AST_INTENT_DECL)
                 return "Bool";
             if (callee_decl != NULL && callee_decl->type == AST_FUNC_DECL
                 && transpiler_active_has_mir(ctx)) {
                 const MIRRoutine *callee_routine =
-                    transpiler_find_active_function_routine_for_call(
-                        ctx, callee_decl, callee_name);
+                    transpiler_find_mir_function(ctx, callee_decl);
+                if (callee_routine == NULL) {
+                    transpiler_set_mir_inventory_missing(
+                        ctx,
+                        "MIR-only C path missing function call routine metadata for '%s'",
+                        callee_name);
+                    return NULL;
+                }
+                if (!transpiler_mir_routine_has_signature(callee_routine)) {
+                    transpiler_set_mir_inventory_missing(
+                        ctx,
+                        "MIR-only C path missing function call return signature metadata for '%s'",
+                        callee_name);
+                    return NULL;
+                }
                 const char *return_type_name =
                     transpiler_mir_routine_return_type_name(callee_routine);
                 if (return_type_name != NULL)
@@ -247,13 +213,11 @@ transpiler_infer_local_type_name_from_expr(TranspilerCtx *ctx,
                         ctx, return_type_name);
                 callee_return_type =
                     transpiler_mir_routine_return_type(callee_routine);
-                if (callee_return_type == NULL
-                    && callee_routine != NULL
-                    && !transpiler_mir_routine_has_signature(
-                        callee_routine)) {
+                if (callee_return_type != NULL
+                    && callee_return_type->type != AST_EVENT_HANDLER_TYPE) {
                     transpiler_set_mir_inventory_missing(
                         ctx,
-                        "MIR-only C path missing function call return signature metadata for '%s'",
+                        "MIR-only C path missing function call return type-name metadata for '%s'",
                         callee_name);
                     return NULL;
                 }
@@ -579,7 +543,7 @@ transpiler_find_local_type_name(TranspilerCtx *ctx,
     if (func_decl == NULL || func_decl->type != AST_FUNC_DECL)
         return transpiler_lookup_current_owner_member_type_name(ctx, base_name);
     const MIRRoutine *routine =
-        transpiler_find_active_routine_for_source_ast(ctx, func_decl);
+        transpiler_find_mir_function(ctx, func_decl);
     if (routine != NULL) {
         if (!transpiler_mir_routine_has_signature(routine)) {
             transpiler_set_mir_inventory_missing(
@@ -604,6 +568,17 @@ transpiler_find_local_type_name(TranspilerCtx *ctx,
                 if (ctx != NULL && rendered_param != NULL)
                     register_typed_var(ctx, base_name, rendered_param);
                 return rendered_param;
+            }
+            if (transpiler_active_has_mir(ctx)
+                && p->type != NULL
+                && p->type->type != AST_EVENT_HANDLER_TYPE) {
+                transpiler_set_mir_inventory_missing(
+                    ctx,
+                    "MIR-only C path missing local parameter type-name metadata for '%s'",
+                    ast_declaration_name(func_decl) != NULL
+                        ? ast_declaration_name(func_decl)
+                        : "(anonymous)");
+                return NULL;
             }
             if (p->type != NULL) {
                 char *owned_param =
@@ -641,12 +616,14 @@ transpiler_find_local_type_name(TranspilerCtx *ctx,
             }
         }
     }
-    typed_name = transpiler_find_local_type_name_in_block(ctx, func_decl,
-        ast_func_body(func_decl), base_name);
-    if (typed_name != NULL) {
-        if (ctx != NULL)
-            register_typed_var(ctx, base_name, typed_name);
-        return typed_name;
+    if (!transpiler_active_has_mir(ctx)) {
+        typed_name = transpiler_find_local_type_name_in_block(ctx, func_decl,
+            ast_func_body(func_decl), base_name);
+        if (typed_name != NULL) {
+            if (ctx != NULL)
+                register_typed_var(ctx, base_name, typed_name);
+            return typed_name;
+        }
     }
 
     return transpiler_lookup_current_owner_member_type_name(ctx, base_name);

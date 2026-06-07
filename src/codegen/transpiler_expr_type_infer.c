@@ -14,6 +14,7 @@
 #include "codegen_match_variant_policy.h"
 #include "transpiler_builtin_type_table.h"
 #include "transpiler_channel_type_query.h"
+#include "transpiler_context.h"
 #include "transpiler_decl_lookup.h"
 #include "transpiler_enum.h"
 #include "transpiler_generic_binding_query.h"
@@ -21,6 +22,7 @@
 #include "transpiler_future_type_query.h"
 #include "transpiler_generic_param_query.h"
 #include "transpiler_inventory_view.h"
+#include "transpiler_mir_inventory_intent_collect.h"
 #include "transpiler_nominal.h"
 #include "transpiler_symbols.h"
 #include "transpiler_type_mapping.h"
@@ -308,6 +310,15 @@ infer_expression_type_name(TranspilerCtx *ctx, ASTNode *expr)
                         ctx, receiver_type, method_name);
                     method_return_type = ast_func_return_type(method_decl);
                 }
+                if (method_meta != NULL
+                    && method_return_type != NULL
+                    && method_return_type->type != AST_EVENT_HANDLER_TYPE) {
+                    transpiler_set_mir_inventory_missing(ctx,
+                        "MIR-only C path missing member-call inference return type-name metadata for '%s.%s'",
+                        receiver_type != NULL ? receiver_type : "(anonymous)",
+                        method_name != NULL ? method_name : "(anonymous)");
+                    return "Unknown";
+                }
             }
             if (method_return_type != NULL) {
                 char *resolved = render_type_name_in_ctx(ctx,
@@ -326,10 +337,6 @@ infer_expression_type_name(TranspilerCtx *ctx, ASTNode *expr)
             ASTNode *arg0 = ast_call_argument(expr, 0);
             const char *simple_type = NULL;
             TranspilerInferCallOp op = transpiler_infer_call_lookup(name);
-            if (transpiler_infer_call_returns_float_constant(op))
-                return "Float";
-            if (transpiler_infer_call_returns_string(op))
-                return "String";
             if (transpiler_infer_call_is_numeric_passthrough(op)) {
                 if (argc >= 1) {
                     const char *arg_type = infer_expression_type_name(ctx,
@@ -415,9 +422,6 @@ infer_expression_type_name(TranspilerCtx *ctx, ASTNode *expr)
                 return transpiler_infer_arena_format_type_name(
                     ctx, "WriteView", inner);
             }
-            if (op == TRANS_INFER_CALL_MEASURE
-                || op == TRANS_INFER_CALL_QUBIT_STATE)
-                return "Int";
             if (pgy_codegen_call_name_is_read(name) && argc >= 1) {
                 const char *slot_type = infer_expression_type_name(ctx,
                     arg0);
@@ -529,8 +533,37 @@ infer_expression_type_name(TranspilerCtx *ctx, ASTNode *expr)
             {
                 ASTNode *decl = find_callable_decl(ctx, name);
                 {
-                    ASTNode *host_method = current_host_method_decl(ctx, name);
-                    ASTNode *host_return_type = ast_func_return_type(host_method);
+                    ASTNode *host_decl = transpiler_current_host_decl_local(ctx);
+                    const char *host_name = transpiler_decl_name_local(host_decl);
+                    const MIRDeclMethod *host_method_meta =
+                        transpiler_find_host_method_metadata_in_context(
+                            ctx, host_name, name);
+                    ASTNode *host_method = NULL;
+                    ASTNode *host_return_type = NULL;
+                    const char *host_return_type_name =
+                        transpiler_mir_decl_method_return_type_name(
+                            host_method_meta);
+                    if (host_return_type_name != NULL) {
+                        return transpiler_infer_arena_copy_type_name(
+                            ctx, host_return_type_name);
+                    }
+                    host_return_type =
+                        transpiler_mir_decl_method_return_type(
+                            host_method_meta);
+                    if (host_method_meta != NULL
+                        && host_return_type != NULL
+                        && host_return_type->type != AST_EVENT_HANDLER_TYPE) {
+                        transpiler_set_mir_inventory_missing(ctx,
+                            "MIR-only C path missing hosted self-call inference return type-name metadata for '%s.%s'",
+                            host_name != NULL ? host_name : "(anonymous)",
+                            name != NULL ? name : "(anonymous)");
+                        return "Unknown";
+                    }
+                    if (host_method_meta == NULL
+                        && !transpiler_active_has_mir(ctx)) {
+                        host_method = current_host_method_decl(ctx, name);
+                        host_return_type = ast_func_return_type(host_method);
+                    }
                     if (host_return_type != NULL) {
                         char *resolved = render_type_name_in_ctx(ctx,
                             host_return_type);
@@ -546,10 +579,46 @@ infer_expression_type_name(TranspilerCtx *ctx, ASTNode *expr)
                 if (decl == NULL || decl->type != AST_FUNC_DECL)
                     return "Unknown";
                 {
-                    ASTNode *return_type = ast_func_return_type(decl);
+                    ASTNode *return_type = NULL;
+                    bool generic_call = transpiler_func_has_generic_params(decl);
+                    bool extern_func = transpiler_decl_is_extern_function(ctx, decl);
+                    if (!generic_call && !extern_func
+                        && transpiler_active_has_mir(ctx)) {
+                        const MIRRoutine *routine =
+                            transpiler_find_mir_function(ctx, decl);
+                        const char *return_type_name = NULL;
+                        if (routine == NULL) {
+                            transpiler_set_mir_inventory_missing(ctx,
+                                "MIR-only C path missing function inference routine for '%s'",
+                                name != NULL ? name : "(anonymous-call)");
+                            return "Unknown";
+                        }
+                        if (!transpiler_mir_routine_has_signature(routine)) {
+                            transpiler_set_mir_inventory_missing(ctx,
+                                "MIR-only C path missing function inference signature metadata for '%s'",
+                                name != NULL ? name : "(anonymous-call)");
+                            return "Unknown";
+                        }
+                        return_type_name =
+                            transpiler_mir_routine_return_type_name(routine);
+                        if (return_type_name != NULL) {
+                            return transpiler_infer_arena_copy_type_name(
+                                ctx, return_type_name);
+                        }
+                        return_type = transpiler_mir_routine_return_type(routine);
+                        if (return_type != NULL
+                            && return_type->type != AST_EVENT_HANDLER_TYPE) {
+                            transpiler_set_mir_inventory_missing(ctx,
+                                "MIR-only C path missing function inference return type-name metadata for '%s'",
+                                name != NULL ? name : "(anonymous-call)");
+                            return "Unknown";
+                        }
+                    } else {
+                        return_type = ast_func_return_type(decl);
+                    }
                     if (return_type != NULL) {
                         char *resolved = NULL;
-                        if (transpiler_func_has_generic_params(decl)) {
+                        if (generic_call) {
                             GenericBindingEntry bindings[MAX_GENERIC_BINDINGS];
                             size_t binding_count = 0;
                             if (transpiler_infer_generic_call_bindings(ctx,

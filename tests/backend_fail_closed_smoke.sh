@@ -166,9 +166,49 @@ if grep -n -F 'ast_func_return_type((ASTNode *)ctx->current_func_decl)' \
 fi
 grep -Fq "current_function_ret_type" "$ROOT_DIR/src/codegen/llvm_expr_unary_core.c"
 grep -Fq "current_return_type_name" "$ROOT_DIR/src/codegen/llvm_type.c"
-grep -Fq "current_return_callable_type" "$ROOT_DIR/src/codegen/llvm_stmt_let_helpers.c"
+grep -Fq "current_return_callable_type" "$ROOT_DIR/src/codegen/llvm_stmt_lambda_type.c"
 grep -Fq "current_return_callable_type" "$ROOT_DIR/src/codegen/transpiler_func_flow_policy.c"
 grep -Fq "current_return_callable_type" "$ROOT_DIR/src/codegen/transpiler_mir_func_emit.c"
+grep -Fq "MIR-only C path missing function signature return type-name metadata" \
+    "$ROOT_DIR/src/codegen/transpiler_mir_signature.c"
+grep -Fq "MIR-only C path missing function signature parameter type-name metadata" \
+    "$ROOT_DIR/src/codegen/transpiler_mir_signature.c"
+grep -Fq "MIR-only C path missing function forward return type-name metadata" \
+    "$ROOT_DIR/src/codegen/transpiler_func_forward_emit.c"
+grep -Fq "MIR-only C path missing function forward parameter type-name metadata" \
+    "$ROOT_DIR/src/codegen/transpiler_func_forward_emit.c"
+grep -Fq "MIR-only C path missing function forward return type-name metadata" \
+    "$ROOT_DIR/src/codegen/transpiler_func_forward_policy.c"
+grep -Fq "MIR-only C path missing function forward parameter type-name metadata" \
+    "$ROOT_DIR/src/codegen/transpiler_func_forward_policy.c"
+grep -Fq "MIR-only C path missing hosted method forward return type-name metadata" \
+    "$ROOT_DIR/src/codegen/transpiler_func_forward_metadata.c"
+grep -Fq "MIR-only C path missing hosted method forward parameter type-name metadata" \
+    "$ROOT_DIR/src/codegen/transpiler_func_forward_metadata.c"
+grep -Fq "MIR-only C path missing function body return type-name metadata" \
+    "$ROOT_DIR/src/codegen/transpiler_mir_func_emit.c"
+grep -Fq "MIR-only C path missing function body parameter type-name metadata" \
+    "$ROOT_DIR/src/codegen/transpiler_mir_func_emit.c"
+grep -Fq "MIR-only LLVM path missing function forward return type-name metadata" \
+    "$ROOT_DIR/src/codegen/llvm_backend_forward_declare.c"
+grep -Fq "MIR-only LLVM path missing function forward parameter type-name metadata" \
+    "$ROOT_DIR/src/codegen/llvm_backend_forward_declare.c"
+grep -Fq "MIR-only LLVM path missing function declaration return type-name metadata" \
+    "$ROOT_DIR/src/codegen/llvm_decl.c"
+grep -Fq "MIR-only LLVM path missing function declaration parameter type-name metadata" \
+    "$ROOT_DIR/src/codegen/llvm_decl.c"
+grep -Fq "MIR-only LLVM path missing function body return type-name metadata" \
+    "$ROOT_DIR/src/codegen/llvm_mir_emit.c"
+grep -Fq "MIR-only LLVM path missing function body parameter type-name metadata" \
+    "$ROOT_DIR/src/codegen/llvm_mir_emit.c"
+grep -Fq "MIR-only LLVM path missing function parameter type-name metadata" \
+    "$ROOT_DIR/src/codegen/llvm_mir_param_emit.c"
+grep -Fq "MIR-only LLVM path missing array return inference routine" \
+    "$ROOT_DIR/src/codegen/llvm_stmt_array_type_infer.c"
+grep -Fq "MIR-only LLVM path missing array return inference signature metadata" \
+    "$ROOT_DIR/src/codegen/llvm_stmt_array_type_infer.c"
+grep -Fq "MIR-only LLVM path missing array return inference return type-name metadata" \
+    "$ROOT_DIR/src/codegen/llvm_stmt_array_type_infer.c"
 if grep -n -F 'ast_func_within_zone(ctx->current_func_decl)' \
     "$ROOT_DIR/src/codegen/llvm_decl_authority.c" \
     "$ROOT_DIR/src/codegen/llvm_inventory_decl_lookup.c" >/dev/null; then
@@ -321,14 +361,82 @@ grep -Fq "MIR-only LLVM path missing role vtable method name metadata" \
     "$ROOT_DIR/src/codegen/llvm_domain_role_emit.c"
 grep -Fq "MIR-only LLVM path missing role vtable method source metadata" \
     "$ROOT_DIR/src/codegen/llvm_domain_role_emit.c"
+grep -Fq "MIR-only LLVM path missing role vtable method metadata" \
+    "$ROOT_DIR/src/codegen/llvm_domain_role_emit.c"
 grep -Fq "MIR-only LLVM path missing role vtable ability name metadata" \
     "$ROOT_DIR/src/codegen/llvm_domain_role_emit.c"
 grep -Fq "MIR-only LLVM path missing method forward name metadata for role" \
+    "$ROOT_DIR/src/codegen/llvm_domain_forward_role.c"
+grep -Fq "MIR-only LLVM path missing role method forward return type-name metadata" \
+    "$ROOT_DIR/src/codegen/llvm_domain_forward_role.c"
+grep -Fq "MIR-only LLVM path missing role method forward parameter type-name metadata" \
     "$ROOT_DIR/src/codegen/llvm_domain_forward_role.c"
 grep -Fq "MIR-only LLVM path missing role forward declaration name metadata" \
     "$ROOT_DIR/src/codegen/llvm_domain_forward_role.c"
 grep -Fq "MIR-only LLVM path missing role operator forward name metadata" \
     "$ROOT_DIR/src/codegen/llvm_domain_forward_role.c"
+grep -Fq "MIR-only LLVM path missing role operator forward return type-name metadata" \
+    "$ROOT_DIR/src/codegen/llvm_domain_forward_role.c"
+grep -Fq "MIR-only LLVM path missing role operator forward parameter type-name metadata" \
+    "$ROOT_DIR/src/codegen/llvm_domain_forward_role.c"
+grep -Fq "MIR-only LLVM path missing domain method forward return type-name metadata" \
+    "$ROOT_DIR/src/codegen/llvm_domain_forward.c"
+grep -Fq "MIR-only LLVM path missing domain method forward parameter type-name metadata" \
+    "$ROOT_DIR/src/codegen/llvm_domain_forward.c"
+grep -Fq "MIR-only LLVM path missing member-call parameter type-name metadata" \
+    "$ROOT_DIR/src/codegen/llvm_member_call_support.c"
+grep -Fq "MIR-only LLVM path missing hosted self-call parameter type-name metadata" \
+    "$ROOT_DIR/src/codegen/llvm_expr_call_hosted.c"
+grep -Fq "MIR-only LLVM path missing boundary call routine" \
+    "$ROOT_DIR/src/codegen/llvm_expr_boundary_projection_helpers.c"
+grep -Fq "MIR-only LLVM path missing boundary call signature metadata" \
+    "$ROOT_DIR/src/codegen/llvm_expr_boundary_projection_helpers.c"
+grep -Fq "MIR-only LLVM path missing boundary call parameter type-name metadata" \
+    "$ROOT_DIR/src/codegen/llvm_expr_boundary_projection_helpers.c"
+grep -Fq "MIR-only LLVM path missing match subject routine" \
+    "$ROOT_DIR/src/codegen/llvm_mir_match_condition.c"
+grep -Fq "MIR-only LLVM path missing match subject signature metadata" \
+    "$ROOT_DIR/src/codegen/llvm_mir_match_condition.c"
+grep -Fq "MIR-only LLVM path missing match subject return type-name metadata" \
+    "$ROOT_DIR/src/codegen/llvm_mir_match_condition.c"
+grep -Fq "MIR-only LLVM path missing method type inference return type-name metadata" \
+    "$ROOT_DIR/src/codegen/llvm_stmt_type_infer.c"
+grep -Fq "MIR-only LLVM path missing let method return type-name metadata" \
+    "$ROOT_DIR/src/codegen/llvm_stmt_let_helpers.c"
+grep -Fq "MIR-only LLVM path missing declared return inference routine" \
+    "$ROOT_DIR/src/codegen/llvm_stmt_let_helpers.c"
+grep -Fq "MIR-only LLVM path missing declared return inference signature metadata" \
+    "$ROOT_DIR/src/codegen/llvm_stmt_let_helpers.c"
+grep -Fq "MIR-only LLVM path missing declared return inference return type-name metadata" \
+    "$ROOT_DIR/src/codegen/llvm_stmt_let_helpers.c"
+grep -Fq "MIR-only LLVM path missing spawn future inference routine" \
+    "$ROOT_DIR/src/codegen/llvm_stmt_let_helpers.c"
+grep -Fq "MIR-only LLVM path missing spawn future inference signature metadata" \
+    "$ROOT_DIR/src/codegen/llvm_stmt_let_helpers.c"
+grep -Fq "MIR-only LLVM path missing spawn future inference return type-name metadata" \
+    "$ROOT_DIR/src/codegen/llvm_stmt_let_helpers.c"
+grep -Fq "MIR-only LLVM path missing spawn future inference parameter type-name metadata" \
+    "$ROOT_DIR/src/codegen/llvm_stmt_let_helpers.c"
+grep -Fq "MIR-only LLVM path missing callable let routine" \
+    "$ROOT_DIR/src/codegen/llvm_stmt_let_callable.c"
+grep -Fq "MIR-only LLVM path missing callable let signature metadata" \
+    "$ROOT_DIR/src/codegen/llvm_stmt_let_callable.c"
+grep -Fq "MIR-only LLVM path missing callable let parameter type-name metadata" \
+    "$ROOT_DIR/src/codegen/llvm_stmt_let_callable.c"
+grep -Fq "MIR-only LLVM path missing callable let return type-name metadata" \
+    "$ROOT_DIR/src/codegen/llvm_stmt_let_callable.c"
+grep -Fq "MIR-only LLVM path missing callable call-return routine" \
+    "$ROOT_DIR/src/codegen/llvm_stmt_let_callable.c"
+grep -Fq "MIR-only LLVM path missing callable call-return signature metadata" \
+    "$ROOT_DIR/src/codegen/llvm_stmt_let_callable.c"
+grep -Fq "MIR-only LLVM path missing enum method registry return type-name metadata" \
+    "$ROOT_DIR/src/codegen/llvm_register.c"
+grep -Fq "MIR-only LLVM path missing enum method registry parameter type-name metadata" \
+    "$ROOT_DIR/src/codegen/llvm_register.c"
+grep -Fq "MIR-only LLVM path missing class method registry return type-name metadata" \
+    "$ROOT_DIR/src/codegen/llvm_register.c"
+grep -Fq "MIR-only LLVM path missing class method registry parameter type-name metadata" \
+    "$ROOT_DIR/src/codegen/llvm_register.c"
 grep -Fq "MIR-only C path missing role method name metadata" \
     "$ROOT_DIR/src/codegen/transpiler_domain_role_methods_emit.c"
 grep -Fq "MIR-only C path missing role declaration name metadata" \
@@ -339,10 +447,71 @@ grep -Fq "MIR-only C path missing role vtable method name metadata" \
     "$ROOT_DIR/src/codegen/transpiler_domain_role_methods_emit.c"
 grep -Fq "MIR-only C path missing role vtable method source metadata" \
     "$ROOT_DIR/src/codegen/transpiler_domain_role_methods_emit.c"
+grep -Fq "MIR-only C path missing role vtable method metadata" \
+    "$ROOT_DIR/src/codegen/transpiler_domain_role_methods_emit.c"
 grep -Fq "MIR-only C path missing role vtable ability name metadata" \
     "$ROOT_DIR/src/codegen/transpiler_domain_role_methods_emit.c"
+grep -Fq "MIR-only C path missing included role method metadata" \
+    "$ROOT_DIR/src/codegen/transpiler_domain_nominal_emit.c"
+grep -Fq "MIR-only C path missing included role method name metadata" \
+    "$ROOT_DIR/src/codegen/transpiler_domain_nominal_emit.c"
+grep -Fq "MIR-only C path missing included role method return type-name metadata" \
+    "$ROOT_DIR/src/codegen/transpiler_domain_nominal_emit.c"
+grep -Fq "MIR-only C path missing included role method parameter type-name metadata" \
+    "$ROOT_DIR/src/codegen/transpiler_domain_nominal_emit.c"
 grep -Fq "MIR-only C path missing role operator method name metadata" \
     "$ROOT_DIR/src/codegen/transpiler_domain_role_methods_emit.c"
+grep -Fq "MIR-only C path missing role operator return type-name metadata" \
+    "$ROOT_DIR/src/codegen/transpiler_domain_role_methods_emit.c"
+grep -Fq "MIR-only C path missing role operator parameter type-name metadata" \
+    "$ROOT_DIR/src/codegen/transpiler_domain_role_methods_emit.c"
+grep -Fq "MIR-only C path missing member-call parameter type-name metadata" \
+    "$ROOT_DIR/src/codegen/transpiler_expr_call_member_emit.c"
+grep -Fq "MIR-only C path missing member-call return type-name metadata" \
+    "$ROOT_DIR/src/codegen/transpiler_expr_call_member_emit.c"
+grep -Fq "MIR-only C path missing user-call parameter type-name metadata" \
+    "$ROOT_DIR/src/codegen/transpiler_expr_call_user_emit.c"
+grep -Fq "MIR-only C path missing member-call inference return type-name metadata" \
+    "$ROOT_DIR/src/codegen/transpiler_expr_type_infer.c"
+grep -Fq "MIR-only C path missing function inference routine" \
+    "$ROOT_DIR/src/codegen/transpiler_expr_type_infer.c"
+grep -Fq "MIR-only C path missing function inference signature metadata" \
+    "$ROOT_DIR/src/codegen/transpiler_expr_type_infer.c"
+grep -Fq "MIR-only C path missing function inference return type-name metadata" \
+    "$ROOT_DIR/src/codegen/transpiler_expr_type_infer.c"
+grep -Fq "MIR-only C path missing hosted self-call inference return type-name metadata" \
+    "$ROOT_DIR/src/codegen/transpiler_expr_type_infer.c"
+grep -Fq "MIR-only C path missing callable let return routine" \
+    "$ROOT_DIR/src/codegen/transpiler_let_emit.c"
+grep -Fq "MIR-only C path missing callable let return signature metadata" \
+    "$ROOT_DIR/src/codegen/transpiler_let_emit.c"
+grep -Fq "transpiler_find_host_method_metadata_in_context" \
+    "$ROOT_DIR/src/codegen/transpiler_expr_call_user_emit.c"
+grep -Fq "host_method_meta == NULL && !transpiler_active_has_mir(ctx)" \
+    "$ROOT_DIR/src/codegen/transpiler_expr_call_user_emit.c"
+grep -Fq "MIR-only C path missing MIR local member-call return type-name metadata" \
+    "$ROOT_DIR/src/codegen/transpiler_mir_local_type_lookup.c"
+grep -Fq "transpiler_find_mir_function(ctx, callee_decl)" \
+    "$ROOT_DIR/src/codegen/transpiler_mir_local_type_lookup.c"
+if grep -Fq "transpiler_find_active_function_routine_for_call" \
+        "$ROOT_DIR/src/codegen/transpiler_mir_local_type_lookup.c"; then
+    echo "[backend-fail-closed] C MIR local type lookup reintroduced local routine scan" >&2
+    exit 1
+fi
+grep -Fq "MIR-only C path missing nominal member-call return type-name metadata" \
+    "$ROOT_DIR/src/codegen/transpiler_nominal.c"
+grep -Fq "MIR-only C path missing nominal function-call routine metadata" \
+    "$ROOT_DIR/src/codegen/transpiler_nominal.c"
+grep -Fq "MIR-only C path missing nominal function-call signature metadata" \
+    "$ROOT_DIR/src/codegen/transpiler_nominal.c"
+grep -Fq "MIR-only C path missing nominal function-call return type-name metadata" \
+    "$ROOT_DIR/src/codegen/transpiler_nominal.c"
+grep -Fq "MIR-only C path missing projection invalidation method metadata" \
+    "$ROOT_DIR/src/codegen/transpiler_projection_method_invalidation.c"
+grep -Fq "MIR-only C path missing projection invalidation method source metadata" \
+    "$ROOT_DIR/src/codegen/transpiler_projection_method_invalidation.c"
+grep -Fq "transpiler_find_host_method_metadata_in_context" \
+    "$ROOT_DIR/src/codegen/transpiler_projection_method_invalidation.c"
 grep -Fq "C backend role operator method name metadata is missing" \
     "$ROOT_DIR/src/codegen/transpiler_domain_role_methods_emit.c"
 grep -Fq "LLVM destructuring let binding name metadata is missing" \
@@ -354,6 +523,12 @@ grep -Fq "llvm_stmt_callable_entry_return_type" \
     "$ROOT_DIR/src/codegen/llvm_stmt_type_infer.c"
 grep -Fq "llvm_lookup_callable_entry(ctx, callee)" \
     "$ROOT_DIR/src/codegen/llvm_stmt_type_infer.c"
+grep -Fq "MIR-only LLVM path missing declared call return routine" \
+    "$ROOT_DIR/src/codegen/llvm_stmt_type_infer_helpers.c"
+grep -Fq "MIR-only LLVM path missing declared call return signature metadata" \
+    "$ROOT_DIR/src/codegen/llvm_stmt_type_infer_helpers.c"
+grep -Fq "MIR-only LLVM path missing declared call return type-name metadata" \
+    "$ROOT_DIR/src/codegen/llvm_stmt_type_infer_helpers.c"
 if grep -Fq "llvm_stmt_find_with_slot_inner_in_body" \
         "$ROOT_DIR/src/codegen/llvm_stmt_type_infer.c"; then
     echo "[backend-fail-closed] LLVM call type inference reintroduced with-slot AST body rescan" >&2
@@ -405,13 +580,18 @@ grep -Fq "async block cannot capture non-Channel local" \
     "$ROOT_DIR/src/codegen/transpiler_async_parallel_emit.c"
 grep -Fq "capture_typed_type_asts" \
     "$ROOT_DIR/src/codegen/transpiler_async_parallel_emit.c"
-grep -Fq "transpiler_current_local_type_ast" \
+grep -Fq "transpiler_current_local_event_handler_type_ast" \
     "$ROOT_DIR/src/codegen/transpiler_parallel_capture.c"
-if grep -Fq "transpiler_find_local_type_ast" \
-        "$ROOT_DIR/src/codegen/transpiler_async_parallel_emit.c"; then
-    echo "[backend-fail-closed] C parallel emitter reintroduced direct local type AST lookup" >&2
+if grep -R -n -F "transpiler_find_local_type_ast" \
+        "$ROOT_DIR/src/codegen" \
+        --include='*.c' --include='*.h' >/dev/null; then
+    echo "[backend-fail-closed] C backend reintroduced generic local type-AST lookup; use type-name facts or EventHandler-specific owner" >&2
     exit 1
 fi
+grep -Fq "MIR-only C path missing local EventHandler routine metadata" \
+    "$ROOT_DIR/src/codegen/transpiler_mir_local_type_ast_lookup.c"
+grep -Fq "MIR-only C path missing local EventHandler signature metadata" \
+    "$ROOT_DIR/src/codegen/transpiler_mir_local_type_ast_lookup.c"
 grep -Fq "codegen_worker_boundary_storage_kind_from_type_name(type_name, false)" \
     "$ROOT_DIR/src/codegen/transpiler_async_parallel_emit.c"
 grep -Fq "codegen_worker_boundary_storage_kind_from_type_name(type_name, true)" \
@@ -428,8 +608,30 @@ grep -Fq "\"Array/Slice\", false, true" \
     "$ROOT_DIR/src/codegen/llvm_stmt_parallel_async.c"
 grep -Fq "transpiler_spawn_reject_worker_storage" \
     "$ROOT_DIR/src/codegen/transpiler_spawn_channel_emit.c"
+grep -Fq "transpiler_decl_is_extern_function(ctx, decl)" \
+    "$ROOT_DIR/src/codegen/transpiler_spawn_channel_emit.c"
+grep -Fq "transpiler_decl_is_extern_function(ctx, decl)" \
+    "$ROOT_DIR/src/codegen/transpiler_future_type_query.c"
+grep -Fq "transpiler_decl_is_extern_function(ctx, decl)" \
+    "$ROOT_DIR/src/codegen/transpiler_expr_call_user_emit.c"
+grep -Fq "MIR-only C path missing user-call routine" \
+    "$ROOT_DIR/src/codegen/transpiler_expr_call_user_emit.c"
+grep -Fq "MIR-only C path missing user-call signature metadata" \
+    "$ROOT_DIR/src/codegen/transpiler_expr_call_user_emit.c"
+grep -Fq "MIR-only C path missing spawn routine" \
+    "$ROOT_DIR/src/codegen/transpiler_spawn_channel_emit.c"
+grep -Fq "MIR-only C path missing spawn signature metadata" \
+    "$ROOT_DIR/src/codegen/transpiler_spawn_channel_emit.c"
+grep -Fq "MIR-only C path missing spawn return routine" \
+    "$ROOT_DIR/src/codegen/transpiler_future_type_query.c"
+grep -Fq "MIR-only C path missing spawn return signature metadata" \
+    "$ROOT_DIR/src/codegen/transpiler_future_type_query.c"
 grep -Fq "codegen_worker_boundary_storage_kind_from_type_name(type_name, true)" \
     "$ROOT_DIR/src/codegen/transpiler_spawn_channel_emit.c"
+grep -Fq "MIR-only C path missing spawn parameter type-name metadata" \
+    "$ROOT_DIR/src/codegen/transpiler_spawn_channel_emit.c"
+grep -Fq "MIR-only C path missing spawn return type-name metadata" \
+    "$ROOT_DIR/src/codegen/transpiler_future_type_query.c"
 grep -Fq "C backend: spawn argument %llu" \
     "$ROOT_DIR/src/codegen/transpiler_spawn_channel_emit.c"
 grep -Fq "codegen_worker_boundary_storage_kind_from_type_name" \
@@ -444,17 +646,29 @@ grep -Fq "pgy_worker_boundary_storage_kind_name" \
 grep -Fq "pgy_worker_boundary_storage_kind_from_type_name" \
     "$ROOT_DIR/src/common/worker_boundary_storage_policy.c"
 grep -Fq "llvm_spawn_reject_worker_storage_arg" \
-    "$ROOT_DIR/src/codegen/llvm_expr_spawn_call_helpers.c"
+    "$ROOT_DIR/src/codegen/llvm_expr_spawn_worker_boundary.c"
 grep -Fq "llvm_spawn_reject_worker_storage_param" \
+    "$ROOT_DIR/src/codegen/llvm_expr_spawn_worker_boundary.c"
+grep -Fq "codegen_worker_boundary_storage_kind_from_type_name(" \
+    "$ROOT_DIR/src/codegen/llvm_expr_spawn_worker_boundary.c"
+grep -Fq "llvm_active_function_routine_for_source_ast" \
+    "$ROOT_DIR/src/codegen/llvm_inventory_internal.c"
+grep -Fq "MIR-only LLVM path missing user-call routine" \
+    "$ROOT_DIR/src/codegen/llvm_expr_call_dispatch.c"
+grep -Fq "MIR-only LLVM path missing user-call signature metadata" \
+    "$ROOT_DIR/src/codegen/llvm_expr_call_dispatch.c"
+grep -Fq "llvm_forward_declare_func_from_mir(callee_routine, decl, ctx)" \
+    "$ROOT_DIR/src/codegen/llvm_expr_call_dispatch.c"
+grep -Fq "MIR-only LLVM path missing spawn routine" \
     "$ROOT_DIR/src/codegen/llvm_expr_spawn_call_helpers.c"
-grep -Fq "codegen_worker_boundary_storage_kind_from_type_name(type_name, true)" \
+grep -Fq "MIR-only LLVM path missing spawn parameter type-name metadata" \
     "$ROOT_DIR/src/codegen/llvm_expr_spawn_call_helpers.c"
 grep -Fq "codegen_worker_boundary_storage_kind_from_constructor_name" \
-    "$ROOT_DIR/src/codegen/llvm_expr_spawn_call_helpers.c"
+    "$ROOT_DIR/src/codegen/llvm_expr_spawn_worker_boundary.c"
 grep -Fq "\"Array/Slice\", true, true" \
-    "$ROOT_DIR/src/codegen/llvm_expr_spawn_call_helpers.c"
+    "$ROOT_DIR/src/codegen/llvm_expr_spawn_worker_boundary.c"
 grep -Fq "LLVM spawn argument %zu" \
-    "$ROOT_DIR/src/codegen/llvm_expr_spawn_call_helpers.c"
+    "$ROOT_DIR/src/codegen/llvm_expr_spawn_worker_boundary.c"
 grep -Fq "parallel capture registry exceeded MAX_SLOT_VARS while capturing Slot<T> local" \
     "$ROOT_DIR/src/codegen/transpiler_parallel_capture.c"
 grep -Fq "parallel capture registry exceeded MAX_SLOT_VARS while capturing local" \

@@ -16,11 +16,13 @@
 #include "transpiler_format.h"
 #include "transpiler_generic_class_specialization.h"
 #include "transpiler_generic_param_query.h"
+#include "transpiler_inventory_view.h"
 #include "transpiler_let_box_emit.h"
 #include "transpiler_let_channel_emit.h"
 #include "transpiler_let_collection_emit.h"
 #include "transpiler_let_slot_emit.h"
 #include "transpiler_let_type_register_emit.h"
+#include "transpiler_mir_inventory_intent_collect.h"
 #include "transpiler_mir_ssa_utils.h"
 #include "transpiler_specialization_registry.h"
 #include "transpiler_symbols.h"
@@ -97,10 +99,36 @@ emit_let_decl(ASTNode *node, TranspilerCtx *ctx)
                && ast_identifier_name(ast_call_callee(init)) != NULL) {
         ASTNode *decl = find_function_decl(ctx,
             ast_identifier_name(ast_call_callee(init)));
-        if (decl != NULL && decl->type == AST_FUNC_DECL
-            && ast_func_return_type(decl) != NULL
-            && ast_func_return_type(decl)->type == AST_EVENT_HANDLER_TYPE) {
-            callable_type = ast_func_return_type(decl);
+        if (decl != NULL && decl->type == AST_FUNC_DECL) {
+            ASTNode *return_type = NULL;
+            bool generic_call = transpiler_func_has_generic_params(decl);
+            bool extern_func = transpiler_decl_is_extern_function(ctx, decl);
+            if (!generic_call && !extern_func
+                && transpiler_active_has_mir(ctx)) {
+                const MIRRoutine *routine =
+                    transpiler_find_mir_function(ctx, decl);
+                if (routine == NULL) {
+                    transpiler_set_mir_inventory_missing(ctx,
+                        "MIR-only C path missing callable let return routine for '%s'",
+                        ast_identifier_name(ast_call_callee(init)));
+                    free(ann_type_name);
+                    return;
+                }
+                if (!transpiler_mir_routine_has_signature(routine)) {
+                    transpiler_set_mir_inventory_missing(ctx,
+                        "MIR-only C path missing callable let return signature metadata for '%s'",
+                        ast_identifier_name(ast_call_callee(init)));
+                    free(ann_type_name);
+                    return;
+                }
+                return_type = transpiler_mir_routine_return_type(routine);
+            } else {
+                return_type = ast_func_return_type(decl);
+            }
+            if (return_type != NULL
+                && return_type->type == AST_EVENT_HANDLER_TYPE) {
+                callable_type = return_type;
+            }
         }
     } else if (init != NULL && init->type == AST_IDENTIFIER
                && ast_identifier_name(init) != NULL) {

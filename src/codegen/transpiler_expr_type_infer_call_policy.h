@@ -10,20 +10,15 @@ typedef enum TranspilerInferCallOp
     TRANS_INFER_CALL_CLAMP,
     TRANS_INFER_CALL_CLONE,
     TRANS_INFER_CALL_DEVICE_READ,
-    TRANS_INFER_CALL_E,
     TRANS_INFER_CALL_IS_NONE,
     TRANS_INFER_CALL_IS_SOME,
     TRANS_INFER_CALL_LIST_GET,
     TRANS_INFER_CALL_MAP_GET,
     TRANS_INFER_CALL_MAP_KEYS,
     TRANS_INFER_CALL_MAX,
-    TRANS_INFER_CALL_MEASURE,
     TRANS_INFER_CALL_MIN,
     TRANS_INFER_CALL_NONE_CTOR,
-    TRANS_INFER_CALL_PI,
-    TRANS_INFER_CALL_QUBIT_STATE,
     TRANS_INFER_CALL_RECV_TIMEOUT,
-    TRANS_INFER_CALL_RETURNS_STRING,
     TRANS_INFER_CALL_SEND_TIMEOUT_STATUS,
     TRANS_INFER_CALL_SOME,
     TRANS_INFER_CALL_SUBMIT_DEVICE_READ,
@@ -38,8 +33,6 @@ typedef enum TranspilerInferCallOp
 
 TranspilerInferCallOp transpiler_infer_call_lookup(const char *name);
 bool transpiler_infer_call_is_numeric_passthrough(TranspilerInferCallOp op);
-bool transpiler_infer_call_returns_float_constant(TranspilerInferCallOp op);
-bool transpiler_infer_call_returns_string(TranspilerInferCallOp op);
 bool transpiler_infer_call_returns_channel_status(TranspilerInferCallOp op);
 bool transpiler_infer_call_returns_channel_option(TranspilerInferCallOp op);
 

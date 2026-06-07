@@ -232,13 +232,20 @@ llvm_emit_call(ASTNode *node, LLVMGenCtx *ctx)
     LLVMValueRef *args = NULL;
     LLVMFuncEntry *predeclared_func = NULL;
     const MIRRoutine *intent_routine = NULL;
+    IntentBindingMetadataView binding_metadata = {0};
     const char **binding_kinds = NULL;
     const char **binding_aliases = NULL;
     const char **binding_types = NULL;
     size_t mir_binding_count = 0;
     size_t intent_step_count = 0;
+    bool decl_is_generic_func = false;
     bool mir_requires_routine = false;
     bool mir_only_intent = false;
+
+    if (decl != NULL) {
+        decl_is_generic_func =
+            ast_generic_param_count(ast_declaration_generic_params(decl)) > 0;
+    }
 
     if (intent_decl != NULL) {
         intent_step_count = ast_intent_decl_step_count(intent_decl);
@@ -253,8 +260,10 @@ llvm_emit_call(ASTNode *node, LLVMGenCtx *ctx)
         mir_only_intent = intent_routine != NULL;
         if (intent_routine != NULL) {
             mir_binding_count = llvm_collect_mir_intent_bindings(
-                intent_routine, ctx, &binding_kinds, &binding_aliases,
-                &binding_types);
+                intent_routine, ctx, &binding_metadata);
+            binding_kinds = binding_metadata.kinds;
+            binding_aliases = binding_metadata.aliases;
+            binding_types = binding_metadata.types;
         }
         if (mir_only_intent) {
             for (size_t i = 0; i < mir_binding_count; i++) {
@@ -465,12 +474,33 @@ llvm_emit_call(ASTNode *node, LLVMGenCtx *ctx)
         emitted_argc = (unsigned)argc;
     }
 
+    const MIRRoutine *callee_routine = NULL;
     LLVMFuncEntry *func = llvm_resolve_callee_entry(ctx, callee_name, args, argc);
     if (func == NULL && decl != NULL && decl->type == AST_FUNC_DECL) {
-        llvm_forward_declare_func(decl, ctx);
+        if (llvm_active_has_mir(ctx) && !decl_is_generic_func) {
+            callee_routine =
+                llvm_active_function_routine_for_source_ast(ctx, decl);
+            if (callee_routine == NULL) {
+                llvm_set_mir_inventory_missing(ctx,
+                    "MIR-only LLVM path missing user-call routine for '%s'",
+                    callee_name != NULL ? callee_name : "(anonymous-function)");
+                return NULL;
+            }
+            if (!llvm_mir_routine_has_signature(callee_routine)) {
+                llvm_set_mir_inventory_missing(ctx,
+                    "MIR-only LLVM path missing user-call signature metadata for '%s'",
+                    callee_name != NULL ? callee_name : "(anonymous-function)");
+                return NULL;
+            }
+        }
+        if (callee_routine != NULL)
+            llvm_forward_declare_func_from_mir(callee_routine, decl, ctx);
+        else
+            llvm_forward_declare_func(decl, ctx);
+        if (ctx->has_error)
+            return NULL;
         func = llvm_lookup_function(ctx, callee_name);
-        if (func == NULL && llvm_active_has_mir(ctx)
-            && ast_func_body(decl) != NULL) {
+        if (func == NULL && callee_routine != NULL) {
             llvm_set_mir_inventory_missing(ctx,
                 "MIR-only LLVM path missing registered function call target '%s'",
                 callee_name != NULL ? callee_name : "(anonymous-function)");

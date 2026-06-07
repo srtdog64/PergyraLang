@@ -619,6 +619,18 @@ pergyra_type_to_llvm(LLVMGenCtx *ctx, const char *type_name)
     if (llvm_find_enum_decl(ctx, type_name) != NULL)
         return ctx->type_i32;
 
+    /* Closure #75: unresolved generic placeholder names (single uppercase
+     * letter — T, K, V, ...) fall through to type-erased i8ptr. Generic
+     * type parameters in ability/role/intent contexts are erased at the
+     * LLVM ABI boundary; the concrete type lives only at the type-checker
+     * level. Strict-mode rejection here is too aggressive for the existing
+     * generic-ability surface (generic_ability_requires_minimal,
+     * logistics_intent_probe). */
+    if (type_name != NULL && type_name[0] >= 'A' && type_name[0] <= 'Z'
+        && type_name[1] == '\0') {
+        return ctx->type_i8ptr;
+    }
+
     if (ctx != NULL && !ctx->has_error) {
         llvm_set_error_with_hints(ctx,
             PGY_CODE_LLVM_TYPE_UNSUPPORTED,

@@ -40,6 +40,11 @@ bool    hir_cfg_set_branch(HIRBasicBlock *block,
                            ASTNode *condition,
                            size_t succ_true,
                            size_t succ_false);
+bool    hir_cfg_set_branch_with_value(HIRBasicBlock *block,
+                                      ASTNode *condition,
+                                      ASTNode *value,
+                                      size_t succ_true,
+                                      size_t succ_false);
 bool    hir_cfg_set_return(HIRBasicBlock *block, ASTNode *value);
 bool    hir_cfg_set_unreachable(HIRBasicBlock *block);
 bool    hir_cfg_resolve_loop_target(const HIRLoopContext *loop,

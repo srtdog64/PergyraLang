@@ -59,20 +59,6 @@ llvm_can_forward_declare_type_early(LLVMGenCtx *ctx, ASTNode *type_node)
         ctx, ast_type_name(type_node));
 }
 
-static const MIRRoutine *
-llvm_find_mir_function_for_forward_decl(LLVMGenCtx *ctx, ASTNode *func)
-{
-    LLVMMIRRoutineInventory inventory;
-
-    llvm_active_routine_inventory(ctx, &inventory);
-    for (size_t i = 0; i < inventory.count; i++) {
-        const MIRRoutine *routine = llvm_routine_inventory_get(&inventory, i);
-        if (llvm_mir_routine_source_ast(routine) == func)
-            return routine;
-    }
-    return NULL;
-}
-
 bool
 llvm_can_forward_declare_func_early(LLVMGenCtx *ctx, ASTNode *func)
 {
@@ -82,7 +68,7 @@ llvm_can_forward_declare_func_early(LLVMGenCtx *ctx, ASTNode *func)
     if (ctx == NULL || func == NULL || func->type != AST_FUNC_DECL)
         return false;
 
-    routine = llvm_find_mir_function_for_forward_decl(ctx, func);
+    routine = llvm_active_function_routine_for_source_ast(ctx, func);
     routine_has_signature = llvm_mir_routine_has_signature(routine);
     if (routine != NULL && llvm_active_has_mir(ctx)
         && !routine_has_signature) {
@@ -105,6 +91,16 @@ llvm_can_forward_declare_func_early(LLVMGenCtx *ctx, ASTNode *func)
     if (return_type_name != NULL) {
         if (!llvm_can_forward_declare_type_name_early(ctx, return_type_name))
             return false;
+    } else if (routine_has_signature
+               && llvm_mir_routine_return_type(routine) != NULL
+               && llvm_mir_routine_return_type(routine)->type
+                   != AST_EVENT_HANDLER_TYPE) {
+        llvm_set_mir_inventory_missing(ctx,
+            "MIR-only LLVM path missing function forward return type-name metadata for '%s'",
+            ast_declaration_name(func) != NULL
+                ? ast_declaration_name(func)
+                : "(anonymous)");
+        return false;
     } else if (!llvm_can_forward_declare_type_early(ctx,
             ast_func_return_type(func))) {
         return false;
@@ -128,6 +124,16 @@ llvm_can_forward_declare_func_early(LLVMGenCtx *ctx, ASTNode *func)
                 return false;
             }
             continue;
+        }
+        if (routine_has_signature
+            && param->type != NULL
+            && param->type->type != AST_EVENT_HANDLER_TYPE) {
+            llvm_set_mir_inventory_missing(ctx,
+                "MIR-only LLVM path missing function forward parameter type-name metadata for '%s'",
+                ast_declaration_name(func) != NULL
+                    ? ast_declaration_name(func)
+                    : "(anonymous)");
+            return false;
         }
         if (param->type == NULL)
             continue;

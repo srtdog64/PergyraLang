@@ -62,12 +62,16 @@ transpiler_domain_nominal_surface_desc_too_long(TranspilerCtx *ctx,
 static void
 emit_included_role_method_wrapper(const char *role_name,
                                   const char *included_role_name,
+                                  const MIRDeclMethod *method_meta,
                                   ASTNode *method,
                                   TranspilerCtx *ctx)
 {
     const char *method_name;
     const char *ret_type = "void";
     char ret_type_storage[128];
+    ASTNode *return_type;
+    const char *return_type_name;
+    size_t param_count;
 
     if (ctx != NULL && ctx->backend_error != NULL)
         return;
@@ -77,9 +81,48 @@ emit_included_role_method_wrapper(const char *role_name,
         return;
     }
 
-    method_name = ast_declaration_name(method);
-    if (ast_func_return_type(method) != NULL) {
-        if (pergyra_ast_type_to_c_copy_in_ctx(ctx, ast_func_return_type(method),
+    method_name = method_meta != NULL
+        ? transpiler_mir_decl_method_name(method_meta)
+        : ast_declaration_name(method);
+    if (transpiler_active_has_mir(ctx) && method_name == NULL) {
+        transpiler_set_mir_inventory_missing(
+            ctx,
+            "MIR-only C path missing included role method name metadata for '%s'",
+            included_role_name != NULL ? included_role_name : "(anonymous-role)");
+        return;
+    }
+    if (transpiler_active_has_mir(ctx) && method_meta == NULL) {
+        transpiler_set_mir_inventory_missing(
+            ctx,
+            "MIR-only C path missing included role method metadata for '%s.%s'",
+            included_role_name != NULL ? included_role_name : "(anonymous-role)",
+            method_name != NULL ? method_name : "(anonymous)");
+        return;
+    }
+    return_type_name = method_meta != NULL
+        ? transpiler_mir_decl_method_return_type_name(method_meta)
+        : NULL;
+    return_type = method_meta != NULL
+        ? transpiler_mir_decl_method_return_type(method_meta)
+        : ast_func_return_type(method);
+    if (return_type_name != NULL) {
+        if (!transpiler_require_type_name_c_type_copy(
+                ctx, return_type_name, "included role method return",
+                ret_type_storage, sizeof(ret_type_storage))) {
+            return;
+        }
+        ret_type = ret_type_storage;
+    } else if (method_meta != NULL
+               && return_type != NULL
+               && return_type->type != AST_EVENT_HANDLER_TYPE) {
+        transpiler_set_mir_inventory_missing(
+            ctx,
+            "MIR-only C path missing included role method return type-name metadata for '%s.%s'",
+            included_role_name != NULL ? included_role_name : "(anonymous-role)",
+            method_name != NULL ? method_name : "(anonymous)");
+        return;
+    } else if (return_type != NULL) {
+        if (pergyra_ast_type_to_c_copy_in_ctx(ctx, return_type,
                 ret_type_storage, sizeof(ret_type_storage))) {
             ret_type = ret_type_storage;
         }
@@ -87,13 +130,33 @@ emit_included_role_method_wrapper(const char *role_name,
 
     codebuf_write(ctx->out, "\nstatic %s\n%s_%s(void *_raw_self",
                   ret_type, role_name, method_name);
-    for (size_t i = 0; i < ast_func_param_count(method); i++) {
-        FuncParam *param = ast_func_param(method, i);
+    param_count = method_meta != NULL
+        ? transpiler_mir_decl_method_param_count(method_meta)
+        : ast_func_param_count(method);
+    for (size_t i = 0; i < param_count; i++) {
+        FuncParam *param = method_meta != NULL
+            ? transpiler_mir_decl_method_param(method_meta, i)
+            : ast_func_param(method, i);
+        const char *param_type_name = method_meta != NULL
+            ? transpiler_mir_decl_method_param_type_name(method_meta, i)
+            : NULL;
         char param_type[256];
-        char *param_type_name = NULL;
+        char *param_type_name_owned = NULL;
         bool pointer_param = false;
         char surface_desc[256];
-        if (param == NULL || param->name == NULL)
+        if (param == NULL) {
+            if (method_meta != NULL) {
+                transpiler_set_mir_inventory_missing(
+                    ctx,
+                    "MIR-only C path missing included role method parameter metadata for '%s.%s'",
+                    included_role_name != NULL
+                        ? included_role_name : "(anonymous-role)",
+                    method_name != NULL ? method_name : "(anonymous)");
+                return;
+            }
+            continue;
+        }
+        if (param->name == NULL)
             continue;
         if (strcmp(param->name, "self") == 0 && param->type == NULL)
             continue;
@@ -104,28 +167,49 @@ emit_included_role_method_wrapper(const char *role_name,
                 ctx, "included role method parameter");
             return;
         }
-        if (!transpiler_require_ast_c_type_copy(
-                ctx, param->type, surface_desc,
-                param_type, sizeof(param_type))) {
+        if (param_type_name != NULL) {
+            if (!transpiler_require_type_name_c_type_copy(
+                    ctx, param_type_name, surface_desc,
+                    param_type, sizeof(param_type))) {
+                return;
+            }
+        } else if (method_meta != NULL
+                   && param->type != NULL
+                   && param->type->type != AST_EVENT_HANDLER_TYPE) {
+            transpiler_set_mir_inventory_missing(
+                ctx,
+                "MIR-only C path missing included role method parameter type-name metadata for '%s.%s'",
+                included_role_name != NULL
+                    ? included_role_name : "(anonymous-role)",
+                method_name != NULL ? method_name : "(anonymous)");
             return;
+        } else {
+            if (!transpiler_require_ast_c_type_copy(
+                    ctx, param->type, surface_desc,
+                    param_type, sizeof(param_type))) {
+                return;
+            }
         }
-        if (param->type != NULL)
-            param_type_name = render_type_name_in_ctx(ctx, param->type);
-        pointer_param = param_type_name != NULL
-            && is_pointer_self_host_type_name(ctx, param_type_name);
+        if (param_type_name == NULL && param->type != NULL)
+            param_type_name_owned = render_type_name_in_ctx(ctx, param->type);
+        pointer_param = (param_type_name != NULL
+                && is_pointer_self_host_type_name(ctx, param_type_name))
+            || (param_type_name_owned != NULL
+                && is_pointer_self_host_type_name(ctx, param_type_name_owned));
         codebuf_write(ctx->out, ", %s%s %s",
                       param_type, pointer_param ? " *" : "", param->name);
-        free(param_type_name);
+        free(param_type_name_owned);
     }
     codebuf_write(ctx->out, ")\n{\n    ");
-    if (ast_func_return_type(method) != NULL
-        && strcmp(ret_type, "void") != 0) {
+    if (return_type != NULL && strcmp(ret_type, "void") != 0) {
         codebuf_write(ctx->out, "return ");
     }
     codebuf_write(ctx->out, "%s_%s(_raw_self",
                   included_role_name, method_name);
-    for (size_t i = 0; i < ast_func_param_count(method); i++) {
-        FuncParam *param = ast_func_param(method, i);
+    for (size_t i = 0; i < param_count; i++) {
+        FuncParam *param = method_meta != NULL
+            ? transpiler_mir_decl_method_param(method_meta, i)
+            : ast_func_param(method, i);
         if (param == NULL || param->name == NULL)
             continue;
         if (strcmp(param->name, "self") == 0 && param->type == NULL)
@@ -171,13 +255,31 @@ emit_included_role_impls(ASTNode *role, TranspilerCtx *ctx)
 
             for (size_t k = 0; k < ast_impl_ability_method_count(impl); k++) {
                 ASTNode *method = ast_impl_ability_method(impl, k);
+                const MIRDeclMethod *method_meta = NULL;
                 if (method == NULL || method->type != AST_FUNC_DECL)
                     continue;
                 if (role_has_method(role, ast_declaration_name(method)))
                     continue;
+                if (transpiler_active_has_mir(ctx)) {
+                    method_meta = transpiler_find_host_method_metadata_in_context(
+                        ctx, transpiler_decl_name_local(included_role),
+                        ast_declaration_name(method));
+                    if (method_meta == NULL) {
+                        transpiler_set_mir_inventory_missing(
+                            ctx,
+                            "MIR-only C path missing included role method metadata for '%s.%s'",
+                            transpiler_decl_name_local(included_role) != NULL
+                                ? transpiler_decl_name_local(included_role)
+                                : "(anonymous-role)",
+                            ast_declaration_name(method) != NULL
+                                ? ast_declaration_name(method) : "(anonymous)");
+                        return;
+                    }
+                }
                 emit_included_role_method_wrapper(
                     owner_role_name,
                     transpiler_decl_name_local(included_role),
+                    method_meta,
                     method,
                     ctx);
                 if (ctx != NULL && ctx->backend_error != NULL)

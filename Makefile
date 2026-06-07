@@ -662,6 +662,7 @@ CODEGEN_SOURCES  = $(CODEGEN_DIR)/transpiler_allocator_builtin_emit.c \
                    $(CODEGEN_DIR)/transpiler_mir_func_ssa_locals_emit.c \
                    $(CODEGEN_DIR)/transpiler_mir_local_binding.c \
                    $(CODEGEN_DIR)/transpiler_mir_local_type_lookup.c \
+                   $(CODEGEN_DIR)/transpiler_mir_ssa_local_facts.c \
                    $(CODEGEN_DIR)/transpiler_mir_local_type_ast_lookup.c \
                    $(CODEGEN_DIR)/transpiler_parallel_capture.c \
                    $(CODEGEN_DIR)/transpiler_mir_inventory_intent_alias_collect.c \
@@ -981,6 +982,7 @@ ifneq ($(LLVM_ENABLED),0)
                         $(CODEGEN_DIR)/llvm_expr_spawn_names.c \
                         $(CODEGEN_DIR)/llvm_expr_spawn_generic.c \
                         $(CODEGEN_DIR)/llvm_expr_spawn_call_helpers.c \
+                        $(CODEGEN_DIR)/llvm_expr_spawn_worker_boundary.c \
                         $(CODEGEN_DIR)/llvm_expr_stdlib_scalar_io_calls.c \
                         $(CODEGEN_DIR)/llvm_expr_string_coerce.c \
                         $(CODEGEN_DIR)/llvm_expr_task_calls.c \
@@ -995,6 +997,7 @@ ifneq ($(LLVM_ENABLED),0)
                         $(CODEGEN_DIR)/llvm_stmt_type_infer_await.c \
                         $(CODEGEN_DIR)/llvm_stmt_type_infer_helpers.c \
                         $(CODEGEN_DIR)/llvm_stmt_let_callable.c \
+                        $(CODEGEN_DIR)/llvm_stmt_lambda_type.c \
                         $(CODEGEN_DIR)/llvm_stmt_let_collection_policy.c \
                         $(CODEGEN_DIR)/llvm_stmt_let_collections.c \
                         $(CODEGEN_DIR)/llvm_stmt_let_helpers.c \

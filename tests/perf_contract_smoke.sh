@@ -801,13 +801,27 @@ grep -Fq "pgy_match_variant_lookup(name)" "$ROOT_DIR/src/codegen/codegen_match_v
 grep -Fq "pgy_match_variant_compare" "$ROOT_DIR/src/common/match_variant_policy.c"
 grep -Fq "bsearch(&name" "$ROOT_DIR/src/common/match_variant_policy.c"
 grep -Fq "codegen_match_subject_lookup.c" "$ROOT_DIR/Makefile"
-grep -Fq "ast_find_match_subject_for_case(ast_func_body(func_decl)" \
-    "$ROOT_DIR/src/codegen/codegen_match_subject_lookup.c"
+if grep -Fq "pgy_codegen_match_subject_for_case" \
+        "$ROOT_DIR/src/codegen/codegen_match_subject_lookup.c" \
+        "$ROOT_DIR/src/codegen/codegen_match_subject_lookup.h"; then
+    echo "[perf-contract] match-subject owner retained AST case compatibility fallback" >&2
+    exit 1
+fi
+if grep -Fq "ast_find_match_subject_for_case(ast_func_body(func_decl)" \
+        "$ROOT_DIR/src/codegen/codegen_match_subject_lookup.c"; then
+    echo "[perf-contract] match-subject owner reintroduced AST body subject lookup" >&2
+    exit 1
+fi
 for match_subject_consumer in \
     "$ROOT_DIR/src/codegen/transpiler_mir_match_condition_emit.c" \
     "$ROOT_DIR/src/codegen/llvm_mir_match_condition.c"; do
-    grep -Fq "pgy_codegen_match_subject_for_case(func_decl, case_node)" \
+    grep -Fq "pgy_codegen_match_subject_for_branch(" \
         "$match_subject_consumer"
+    if grep -Fq "pgy_codegen_match_subject_for_case(func_decl, case_node)" \
+        "$match_subject_consumer"; then
+        echo "[perf-contract] MIR match condition regressed to AST case subject fallback: $match_subject_consumer" >&2
+        exit 1
+    fi
     if grep -Fq "ast_find_match_subject_for_case(ast_func_body(func_decl)" \
         "$match_subject_consumer"; then
         echo "[perf-contract] MIR match condition reintroduced direct AST body subject lookup: $match_subject_consumer" >&2
@@ -3686,13 +3700,13 @@ grep -Fq "LLVM lambda expression could not lower body expression" "$ROOT_DIR/src
 grep -Fq "llvm_stmt_lambda_return_type(ctx, node)" "$ROOT_DIR/src/codegen/llvm_expr.c"
 grep -Fq "llvm_stmt_lambda_param_type(ctx, node, p, (size_t)j)" "$ROOT_DIR/src/codegen/llvm_expr.c"
 grep -Fq "llvm_scope_declare(ctx, param_names[i], NULL, param_types[i])" \
-    "$ROOT_DIR/src/codegen/llvm_stmt_let_helpers.c"
+    "$ROOT_DIR/src/codegen/llvm_stmt_lambda_type.c"
 grep -Fq "llvm_stmt_lambda_expected_return_type" \
-    "$ROOT_DIR/src/codegen/llvm_stmt_let_helpers.c"
+    "$ROOT_DIR/src/codegen/llvm_stmt_lambda_type.c"
 grep -Fq "llvm_stmt_lambda_expected_param_type" \
-    "$ROOT_DIR/src/codegen/llvm_stmt_let_helpers.c"
+    "$ROOT_DIR/src/codegen/llvm_stmt_lambda_type.c"
 grep -Fq "llvm_stmt_current_return_callable_type" \
-    "$ROOT_DIR/src/codegen/llvm_stmt_let_helpers.c"
+    "$ROOT_DIR/src/codegen/llvm_stmt_lambda_type.c"
 grep -Fq "ctx->expected_callable_type = ctx->current_return_callable_type" \
     "$ROOT_DIR/src/codegen/llvm_stmt.c"
 grep -Fq "llvm_stmt_current_return_callable_type(ctx);" \
@@ -3700,13 +3714,13 @@ grep -Fq "llvm_stmt_current_return_callable_type(ctx);" \
 grep -Fq "ctx->expected_callable_type = type_ann" \
     "$ROOT_DIR/src/codegen/llvm_stmt_let_with.c"
 grep -Fq "LLVM lambda return type requires an explicit annotation or inferable expression body" \
-    "$ROOT_DIR/src/codegen/llvm_stmt_let_helpers.c"
+    "$ROOT_DIR/src/codegen/llvm_stmt_lambda_type.c"
 grep -Fq "requires an explicit type annotation" \
-    "$ROOT_DIR/src/codegen/llvm_stmt_let_helpers.c"
+    "$ROOT_DIR/src/codegen/llvm_stmt_lambda_type.c"
 ! grep -Fq "LLVMTypeRef ret_type = ctx->type_i32" \
-    "$ROOT_DIR/src/codegen/llvm_stmt_let_helpers.c"
+    "$ROOT_DIR/src/codegen/llvm_stmt_lambda_type.c"
 ! grep -Fq "params[i] = ctx->type_i32" \
-    "$ROOT_DIR/src/codegen/llvm_stmt_let_helpers.c"
+    "$ROOT_DIR/src/codegen/llvm_stmt_lambda_type.c"
 ! grep -Fq "LLVMTypeRef ret_type = ctx->type_i32" \
     "$ROOT_DIR/src/codegen/llvm_expr.c"
 ! grep -Fq "lparams[j] = ctx->type_i32" "$ROOT_DIR/src/codegen/llvm_expr.c"
@@ -3896,7 +3910,7 @@ grep -Fq "llvm_scope_lookup_snapshot(ctx, callee_name, &callee_var)" "$ROOT_DIR/
 grep -Fq "callable_entry = llvm_lookup_callable_entry(ctx, callee_name)" "$ROOT_DIR/src/codegen/llvm_expr_call_variable.c"
 grep -Fq "llvm_function_signature_from_callable_entry(ctx, callable_entry)" "$ROOT_DIR/src/codegen/llvm_expr_call_variable.c"
 grep -Fq "LLVM callable signature parameter allocation failed" "$ROOT_DIR/src/codegen/llvm_expr_scalar_core.c"
-grep -Fq "LLVM lambda signature parameter allocation failed" "$ROOT_DIR/src/codegen/llvm_stmt_let_helpers.c"
+grep -Fq "LLVM lambda signature parameter allocation failed" "$ROOT_DIR/src/codegen/llvm_stmt_lambda_type.c"
 grep -Fq "if (ctx->has_error || var_type == NULL)" "$ROOT_DIR/src/codegen/llvm_stmt_let_with.c"
 grep -Fq "LLVM event-handler type parameter allocation failed" "$ROOT_DIR/src/codegen/llvm_backend_ast_type.c"
 grep -Fq "LLVM tuple type field allocation failed" "$ROOT_DIR/src/codegen/llvm_backend_ast_type.c"
@@ -4077,7 +4091,7 @@ grep -Fq "llvm_lexical_registry_restore(ctx, lexical_snapshot)" \
 grep -Fq "llvm_lexical_registry_restore(ctx, lexical_snapshot)" \
     "$ROOT_DIR/src/codegen/llvm_expr.c"
 grep -Fq "llvm_lexical_registry_restore(ctx, lexical_snapshot)" \
-    "$ROOT_DIR/src/codegen/llvm_stmt_let_helpers.c"
+    "$ROOT_DIR/src/codegen/llvm_stmt_lambda_type.c"
 grep -Fq "llvm_lexical_registry_restore(ctx, lexical_snapshot)" \
     "$ROOT_DIR/src/codegen/llvm_domain_projection_sync_helpers.c"
 grep -Fq "LLVMBasicBlockRef saved_bb" \
@@ -4175,11 +4189,12 @@ grep -Fq "cannot share mutable collection" \
     "$ROOT_DIR/src/codegen/transpiler_async_parallel_emit.c"
 grep -Fq "capture_typed_type_asts" \
     "$ROOT_DIR/src/codegen/transpiler_async_parallel_emit.c"
-grep -Fq "transpiler_current_local_type_ast" \
+grep -Fq "transpiler_current_local_event_handler_type_ast" \
     "$ROOT_DIR/src/codegen/transpiler_parallel_capture.c"
-if grep -Fq "transpiler_find_local_type_ast" \
-    "$ROOT_DIR/src/codegen/transpiler_async_parallel_emit.c"; then
-    echo "[perf-contract] C parallel/async emit reintroduced direct local type-AST lookup" >&2
+if grep -R -n -F "transpiler_find_local_type_ast" \
+        "$ROOT_DIR/src/codegen" \
+        --include='*.c' --include='*.h' >/dev/null; then
+    echo "[perf-contract] C backend reintroduced generic local type-AST lookup" >&2
     exit 1
 fi
 if grep -Fq "transpiler_find_local_type_name(ctx" \
@@ -4191,6 +4206,12 @@ grep -Fq "codegen_worker_boundary_storage_kind_from_type_name(type_name, false)"
     "$ROOT_DIR/src/codegen/transpiler_async_parallel_emit.c"
 grep -Fq "codegen_worker_boundary_storage_kind_from_type_name(type_name, true)" \
     "$ROOT_DIR/src/codegen/transpiler_async_parallel_emit.c"
+grep -Fq "codegen_worker_boundary_storage_kind_from_type_name(" \
+    "$ROOT_DIR/src/codegen/llvm_expr_spawn_worker_boundary.c"
+grep -Fq "param_type_name, true" \
+    "$ROOT_DIR/src/codegen/llvm_expr_spawn_worker_boundary.c"
+grep -Fq "codegen_worker_boundary_storage_kind_from_constructor_name" \
+    "$ROOT_DIR/src/codegen/llvm_expr_spawn_worker_boundary.c"
 grep -Fq "LLVM async capture requires storage-backed binding" \
     "$ROOT_DIR/src/codegen/llvm_stmt_parallel_async.c"
 grep -Fq "if (ctx->has_error || pt == NULL)" \

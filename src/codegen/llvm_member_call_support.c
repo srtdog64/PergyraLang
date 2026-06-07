@@ -92,8 +92,22 @@ llvm_member_call_adjust_pointer_self_arg(LLVMGenCtx *ctx,
             continue;
         }
 
-        ptn = llvm_mir_decl_method_param_type_name(method_meta, pk);
-        if (ptn == NULL && p->type != NULL && p->type->type == AST_TYPE)
+        ptn = method_meta != NULL
+            ? llvm_mir_decl_method_param_type_name(method_meta, pk)
+            : NULL;
+        if (method_meta != NULL
+            && ptn == NULL
+            && p->type != NULL
+            && p->type->type != AST_EVENT_HANDLER_TYPE) {
+            llvm_set_mir_inventory_missing(ctx,
+                "MIR-only LLVM path missing member-call parameter type-name metadata for '%s'",
+                llvm_mir_decl_method_name(method_meta) != NULL
+                    ? llvm_mir_decl_method_name(method_meta)
+                    : "(anonymous-method)");
+            return NULL;
+        }
+        if (method_meta == NULL
+            && ptn == NULL && p->type != NULL && p->type->type == AST_TYPE)
             ptn = ast_type_name(p->type);
         param_cls = ptn != NULL ? llvm_lookup_class(ctx, ptn) : NULL;
         if (param_cls != NULL && param_cls->is_pointer_self_host

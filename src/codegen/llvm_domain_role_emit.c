@@ -10,6 +10,7 @@
 #include "llvm_domain_role_helpers.h"
 #include "llvm_inventory_decl_lookup.h"
 #include "llvm_inventory_host_methods.h"
+#include "llvm_inventory_internal.h"
 
 static const char *
 llvm_role_method_name_from_ast(ASTNode *method)
@@ -255,7 +256,24 @@ llvm_emit_domain_role_method_bodies(LLVMGenCtx *ctx,
                 }
                 for (size_t j = 0; j < mc; j++) {
                     ASTNode *method = ast_impl_ability_method(impl, j);
-                    const char *method_name = llvm_role_method_name_from_ast(method);
+                    const MIRDeclMethod *method_meta = NULL;
+                    const char *method_name;
+                    if (llvm_active_has_mir(ctx)) {
+                        const char *ast_method_name =
+                            llvm_role_method_name_from_ast(method);
+                        method_meta = llvm_find_host_method_metadata_in_context(
+                            ctx, role_name, ast_method_name);
+                        if (method_meta == NULL) {
+                            llvm_set_mir_inventory_missing(ctx,
+                                "MIR-only LLVM path missing role vtable method metadata for role '%s'",
+                                role_name);
+                            return false;
+                        }
+                        method = llvm_mir_decl_method_source_ast(method_meta);
+                    }
+                    method_name = method_meta != NULL
+                        ? llvm_mir_decl_method_name(method_meta)
+                        : llvm_role_method_name_from_ast(method);
                     if (method == NULL || method->type != AST_FUNC_DECL) {
                         llvm_set_mir_inventory_missing(ctx,
                             "MIR-only LLVM path missing role vtable method source metadata for role '%s'",

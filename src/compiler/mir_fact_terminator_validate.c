@@ -68,6 +68,18 @@ mir_validate_terminator_provenance(const MIRRoutine *routine,
             return false;
         }
         if (inst->kind == MIR_INST_BRANCH
+            && inst->branch_shape == MIR_BRANCH_MATCH_CASE
+            && inst->expr0 == NULL) {
+            if (error_message != NULL) {
+                *error_message = mir_fact_strdup_fmt(
+                    "MIR routine '%s' block[%zu] instruction[%zu] match-case branch is missing MIR match subject fact",
+                    routine->name != NULL ? routine->name : "(anonymous)",
+                    block_index,
+                    i);
+            }
+            return false;
+        }
+        if (inst->kind == MIR_INST_BRANCH
             && mir_instruction_branch_requires_source_emit(inst)
             && !inst->requires_source_branch_emit) {
             if (error_message != NULL) {

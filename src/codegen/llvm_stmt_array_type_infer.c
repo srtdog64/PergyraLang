@@ -30,6 +30,30 @@ llvm_stmt_expected_array_elem_type(LLVMGenCtx *ctx)
 }
 
 static LLVMTypeRef
+llvm_stmt_array_elem_type_from_type_name(LLVMGenCtx *ctx,
+                                         const char *type_name)
+{
+    char inner_buf[256];
+
+    if (ctx == NULL || type_name == NULL)
+        return NULL;
+    switch (pgy_classify_type(type_name)) {
+    case PGY_TK_ARRAY:
+    case PGY_TK_SLICE:
+        break;
+    default:
+        return NULL;
+    }
+    if (!llvm_constructed_arg_name_copy(type_name, 0,
+            inner_buf, sizeof(inner_buf))) {
+        return NULL;
+    }
+    if (strcmp(inner_buf, "Unknown") == 0)
+        return NULL;
+    return pergyra_type_to_llvm(ctx, inner_buf);
+}
+
+static LLVMTypeRef
 llvm_stmt_array_elem_type_from_collection_type(LLVMGenCtx *ctx,
                                                LLVMTypeRef type)
 {
@@ -64,6 +88,8 @@ llvm_stmt_array_elem_type_from_declared_return(LLVMGenCtx *ctx, ASTNode *call)
     GenericParams *generic_args;
     GenericParam *gp;
     const char *ret_name;
+    const char *callee_name;
+    bool generic_func;
 
     if (ctx == NULL || call == NULL || call->type != AST_CALL
         || ast_call_callee(call) == NULL
@@ -72,8 +98,42 @@ llvm_stmt_array_elem_type_from_declared_return(LLVMGenCtx *ctx, ASTNode *call)
         return NULL;
     }
 
-    decl = llvm_stmt_find_function_decl_by_name(
-        ctx, ast_identifier_name(ast_call_callee(call)));
+    callee_name = ast_identifier_name(ast_call_callee(call));
+    decl = llvm_stmt_find_function_decl_by_name(ctx, callee_name);
+    if (decl == NULL || decl->type != AST_FUNC_DECL)
+        return NULL;
+    generic_func =
+        ast_generic_param_count(ast_declaration_generic_params(decl)) > 0;
+    if (llvm_active_has_mir(ctx) && !generic_func) {
+        const MIRRoutine *routine =
+            llvm_active_function_routine_for_source_ast(ctx, decl);
+        const char *return_type_name = NULL;
+        if (routine == NULL) {
+            llvm_set_mir_inventory_missing(ctx,
+                "MIR-only LLVM path missing array return inference routine for '%s'",
+                callee_name != NULL ? callee_name : "(anonymous-call)");
+            return NULL;
+        }
+        if (!llvm_mir_routine_has_signature(routine)) {
+            llvm_set_mir_inventory_missing(ctx,
+                "MIR-only LLVM path missing array return inference signature metadata for '%s'",
+                callee_name != NULL ? callee_name : "(anonymous-call)");
+            return NULL;
+        }
+        return_type_name = llvm_mir_routine_return_type_name(routine);
+        if (return_type_name != NULL)
+            return llvm_stmt_array_elem_type_from_type_name(
+                ctx, return_type_name);
+        ret = llvm_mir_routine_return_type(routine);
+        if (ret != NULL && ret->type != AST_EVENT_HANDLER_TYPE) {
+            llvm_set_mir_inventory_missing(ctx,
+                "MIR-only LLVM path missing array return inference return type-name metadata for '%s'",
+                callee_name != NULL ? callee_name : "(anonymous-call)");
+            return NULL;
+        }
+        return NULL;
+    }
+
     ret = ast_func_return_type(decl);
     if (ret == NULL || ret->type != AST_TYPE)
         return NULL;
@@ -120,32 +180,6 @@ llvm_stmt_array_elem_type_from_slice_receiver(LLVMGenCtx *ctx,
             ctx, ast_identifier_name(receiver));
         if (entry != NULL && entry->elem_type != NULL)
             return entry->elem_type;
-    }
-
-    if (receiver->type == AST_CALL
-        && ast_call_callee(receiver) != NULL
-        && ast_call_callee(receiver)->type == AST_IDENTIFIER
-        && ast_identifier_name(ast_call_callee(receiver)) != NULL) {
-        ASTNode *decl = llvm_stmt_find_function_decl_by_name(
-            ctx, ast_identifier_name(ast_call_callee(receiver)));
-        ASTNode *return_type = ast_func_return_type(decl);
-        const char *return_type_name = ast_type_name(return_type);
-        GenericParams *return_generic_args =
-            ast_type_generic_args(return_type);
-        if (return_type != NULL
-            && return_type->type == AST_TYPE
-            && return_type_name != NULL
-            && (strcmp(return_type_name, "Array") == 0
-                || strcmp(return_type_name, "Slice") == 0)
-            && ast_generic_param_at(return_generic_args, 0) != NULL) {
-            char *elem_name = llvm_stmt_render_type_arg_scratch(
-                ast_generic_param_at(return_generic_args, 0),
-                &ctx->scratch);
-            if (elem_name == NULL)
-                return llvm_stmt_unknown_expr_type(ctx, expr,
-                    "Slice() receiver return type is missing its element type");
-            return pergyra_type_to_llvm(ctx, elem_name);
-        }
     }
 
     declared = llvm_stmt_array_elem_type_from_declared_return(ctx, receiver);

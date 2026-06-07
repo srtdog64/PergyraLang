@@ -60,10 +60,11 @@ require_term "src/codegen/transpiler_spawn_channel_emit.c" "codegen_worker_bound
 require_term "src/codegen/llvm_stmt_parallel_async.c" "codegen_worker_boundary_storage_kind_from_constructor_name"
 require_term "src/codegen/llvm_stmt_parallel_async.c" '"Array/Slice", false, true'
 require_term "src/codegen/llvm_stmt_parallel_async.c" "LLVM async block cannot capture Channel<T> local"
-require_term "src/codegen/llvm_expr_spawn_call_helpers.c" "llvm_spawn_reject_worker_storage_param"
-require_term "src/codegen/llvm_expr_spawn_call_helpers.c" "llvm_spawn_reject_worker_storage_arg"
-require_term "src/codegen/llvm_expr_spawn_call_helpers.c" "codegen_worker_boundary_storage_kind_from_type_name(type_name, true)"
-require_term "src/codegen/llvm_expr_spawn_call_helpers.c" '"Array/Slice", true, true'
+require_term "src/codegen/llvm_expr_spawn_worker_boundary.c" "llvm_spawn_reject_worker_storage_param"
+require_term "src/codegen/llvm_expr_spawn_worker_boundary.c" "llvm_spawn_reject_worker_storage_arg"
+require_term "src/codegen/llvm_expr_spawn_worker_boundary.c" "codegen_worker_boundary_storage_kind_from_type_name("
+require_term "src/codegen/llvm_expr_spawn_worker_boundary.c" "param_type_name, true"
+require_term "src/codegen/llvm_expr_spawn_worker_boundary.c" '"Array/Slice", true, true'
 
 require_term "src/codegen/llvm_internal_api.h" "llvm_scope_lookup_snapshot"
 require_term "src/codegen/llvm_registry.c" "llvm_scope_cache_invalidate(ctx)"

@@ -147,10 +147,19 @@ hir_lower_choice_to_cfg(ASTNode *node, ASTNode **choices,
                 return -1;
         }
 
-        hir_cfg_set_branch(&(*blocks)[(size_t)dispatch_block],
-                       choice,
-                       (size_t)body_block,
-                       (size_t)false_target);
+        if (choice_is_match_case) {
+            hir_cfg_set_branch_with_value(
+                &(*blocks)[(size_t)dispatch_block],
+                choice,
+                ast_match_subject(node),
+                (size_t)body_block,
+                (size_t)false_target);
+        } else {
+            hir_cfg_set_branch(&(*blocks)[(size_t)dispatch_block],
+                           choice,
+                           (size_t)body_block,
+                           (size_t)false_target);
+        }
 
         ssize_t body_open = hir_lower_block_body_to_cfg(cfg_choice_body(choice, choice_is_match_case),
                                                         blocks,

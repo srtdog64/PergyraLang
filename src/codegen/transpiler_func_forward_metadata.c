@@ -76,6 +76,14 @@ emit_hosted_method_forward_decl_from_metadata(const char *host_name,
             return;
         }
         ret_type = ret_type_buf;
+    } else if (method_meta != NULL
+               && return_type != NULL
+               && return_type->type != AST_EVENT_HANDLER_TYPE) {
+        transpiler_set_mir_inventory_missing(ctx,
+            "MIR-only C path missing hosted method forward return type-name metadata for '%s.%s'",
+            host_name != NULL ? host_name : "(anonymous)",
+            method_name != NULL ? method_name : "(anonymous)");
+        return;
     } else if (return_type != NULL
         && pergyra_ast_type_to_c_copy_in_ctx(ctx, return_type,
             ret_type_buf,
@@ -114,6 +122,14 @@ emit_hosted_method_forward_decl_from_metadata(const char *host_name,
                     param_type_name, surface_desc, pt, sizeof(pt))) {
                 return;
             }
+        } else if (method_meta != NULL
+                   && p->type != NULL
+                   && p->type->type != AST_EVENT_HANDLER_TYPE) {
+            transpiler_set_mir_inventory_missing(ctx,
+                "MIR-only C path missing hosted method forward parameter type-name metadata for '%s.%s'",
+                host_name != NULL ? host_name : "(anonymous)",
+                method_name != NULL ? method_name : "(anonymous)");
+            return;
         } else {
             if (!transpiler_require_ast_c_type_copy(ctx,
                     p->type, surface_desc, pt, sizeof(pt))) {

@@ -3,12 +3,15 @@
 #include "../parser/ast.h"
 
 ASTNode *
-pgy_codegen_match_subject_for_case(ASTNode *func_decl, ASTNode *case_node)
+pgy_codegen_match_subject_for_branch(const MIRInstruction *inst)
 {
-    if (func_decl == NULL || case_node == NULL)
+    ASTNode *case_node;
+
+    if (inst == NULL || inst->kind != MIR_INST_BRANCH
+        || inst->branch_shape != MIR_BRANCH_MATCH_CASE)
         return NULL;
-    if (func_decl->type != AST_FUNC_DECL || case_node->type != AST_MATCH_CASE)
+    case_node = mir_instruction_source_payload(inst);
+    if (case_node == NULL || case_node->type != AST_MATCH_CASE)
         return NULL;
-    return ast_find_match_subject_for_case(ast_func_body(func_decl),
-                                           case_node);
+    return inst->expr0;
 }

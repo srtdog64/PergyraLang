@@ -204,6 +204,32 @@ find_function_decl(TranspilerCtx *ctx, const char *function_name)
     return find_extern_function_decl(ctx, function_name);
 }
 
+bool
+transpiler_decl_is_extern_function(const TranspilerCtx *ctx,
+                                   const ASTNode *decl)
+{
+    ASTNode **externs = NULL;
+    size_t extern_count = 0;
+
+    if (ctx == NULL || decl == NULL || decl->type != AST_FUNC_DECL)
+        return false;
+
+    transpiler_active_inventory(ctx, AST_EXTERN_BLOCK, &externs,
+                                &extern_count);
+    for (size_t i = 0; externs != NULL && i < extern_count; i++) {
+        ASTNode *block = externs[i];
+        size_t block_decl_count = 0;
+        if (block == NULL || block->type != AST_EXTERN_BLOCK)
+            continue;
+        (void)ast_extern_block_declarations(block, &block_decl_count);
+        for (size_t j = 0; j < block_decl_count; j++) {
+            if (ast_extern_block_declaration(block, j) == decl)
+                return true;
+        }
+    }
+    return false;
+}
+
 ASTNode *
 find_intent_decl(TranspilerCtx *ctx, const char *intent_name)
 {

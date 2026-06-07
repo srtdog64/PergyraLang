@@ -197,6 +197,18 @@ emit_call_member_style(ASTNode *call, ASTNode *callee, TranspilerCtx *ctx)
                             const char *ptn =
                                 transpiler_mir_decl_method_param_type_name(
                                     method_meta, param_index);
+                            if (ptn == NULL
+                                && param != NULL
+                                && param->type != NULL
+                                && param->type->type != AST_EVENT_HANDLER_TYPE) {
+                                transpiler_set_mir_inventory_missing(ctx,
+                                    "MIR-only C path missing member-call parameter type-name metadata for '%s.%s'",
+                                    owned_type_name != NULL ? owned_type_name : "(anonymous)",
+                                    method != NULL ? method : "(anonymous)");
+                                free(arg);
+                                codebuf_destroy(args_buf);
+                                return NULL;
+                            }
                             char *owned_ptn = (ptn == NULL
                                     && param != NULL && param->type != NULL)
                                 ? render_type_name_in_ctx(ctx, param->type)
@@ -336,6 +348,19 @@ emit_call_member_style(ASTNode *call, ASTNode *callee, TranspilerCtx *ctx)
                                 && method_decl != NULL
                                 && !transpiler_active_has_mir(ctx))
                                 ret_type = ast_func_return_type(method_decl);
+                            else if (method_meta != NULL
+                                && ret_type != NULL
+                                && ret_type->type != AST_EVENT_HANDLER_TYPE) {
+                                transpiler_set_mir_inventory_missing(ctx,
+                                    "MIR-only C path missing member-call return type-name metadata for '%s.%s'",
+                                    owned_type_name != NULL ? owned_type_name : "(anonymous)",
+                                    method != NULL ? method : "(anonymous)");
+                                free(invalidation);
+                                free(action_sync);
+                                free(post_sync);
+                                free(result);
+                                return NULL;
+                            }
                             if (ret_type_name == NULL && ret_type != NULL)
                                 ret_type_name =
                                     render_type_name_in_ctx(ctx, ret_type);

@@ -36,13 +36,17 @@ llvm_emit_mir_param_allocas(const MIRRoutine *routine, ASTNode *func_decl,
     const char *routine_name = llvm_mir_routine_name(routine);
     bool owner_is_role = is_method && routine != NULL
         && llvm_mir_routine_owner_ast_type(routine) == AST_ROLE_DECL;
+    IntentBindingMetadataView binding_metadata = {0};
     const char **binding_kinds = NULL;
     const char **binding_aliases = NULL;
     const char **binding_types = NULL;
     size_t mir_binding_count = 0;
     if (is_intent && routine != NULL && func_decl != NULL) {
         mir_binding_count = llvm_collect_mir_intent_bindings(
-            routine, ctx, &binding_kinds, &binding_aliases, &binding_types);
+            routine, ctx, &binding_metadata);
+        binding_kinds = binding_metadata.kinds;
+        binding_aliases = binding_metadata.aliases;
+        binding_types = binding_metadata.types;
         if (param_count > 0 && mir_binding_count != param_count) {
             llvm_set_mir_inventory_missing(ctx,
                 "MIR-only LLVM path missing ordered intent binding metadata for '%s'",
@@ -114,6 +118,15 @@ llvm_emit_mir_param_allocas(const MIRRoutine *routine, ASTNode *func_decl,
 
             if (p == NULL || (is_method && llvm_param_is_implicit_self_local(p))) {
                 continue;
+            }
+            if (llvm_mir_routine_has_signature(routine)
+                && param_type_name == NULL
+                && p->type != NULL
+                && p->type->type != AST_EVENT_HANDLER_TYPE) {
+                llvm_set_mir_inventory_missing(ctx,
+                    "MIR-only LLVM path missing function parameter type-name metadata for '%s'",
+                    routine_name != NULL ? routine_name : "(anonymous)");
+                return;
             }
 
             slot_inner = param_type_name != NULL

@@ -16,6 +16,7 @@ typedef enum {
     LLVM_ARRAY_BUILTIN_PUSH,
     LLVM_ARRAY_BUILTIN_SET,
     LLVM_ARRAY_BUILTIN_SLICE_COPY,
+    LLVM_ARRAY_BUILTIN_SORT,
 } LLVMArrayBuiltinOp;
 
 typedef struct {
@@ -29,6 +30,7 @@ static const LLVMArrayBuiltinSpec kArrayBuiltinSpecs[] = {
     {"ArrayPop", 1, LLVM_ARRAY_BUILTIN_POP},
     {"ArrayPush", 2, LLVM_ARRAY_BUILTIN_PUSH},
     {"ArraySet", 3, LLVM_ARRAY_BUILTIN_SET},
+    {"ArraySort", 1, LLVM_ARRAY_BUILTIN_SORT},
     {"SliceCopy", 1, LLVM_ARRAY_BUILTIN_SLICE_COPY},
 };
 
@@ -323,6 +325,54 @@ llvm_emit_array_builtin_call(ASTNode *node, LLVMGenCtx *ctx,
         LLVMValueRef args[] = { arr_alloca, index64, value };
         LLVMBuildCall2(ctx->builder, fn->fn_type, fn->fn, args, 3, "");
         *out = llvm_void_expression_placeholder(ctx, node, callee_name);
+        return true;
+    }
+
+    if (op == LLVM_ARRAY_BUILTIN_SORT) {
+        ASTNode *arr_arg = ast_call_argument(node, 0);
+        LLVMArrayVarEntry *entry = NULL;
+        LLVMValueRef arr_alloca = llvm_array_required_receiver_binding(
+            ctx, node, arr_arg, callee_name, &entry);
+        if (arr_alloca == NULL)
+            return llvm_array_error_out(node, ctx,
+                "LLVM ArraySort requires registered Array<T> receiver", out);
+        const char *suffix = llvm_array_required_elem_suffix(
+            ctx, node, entry, callee_name);
+        if (suffix == NULL)
+            return llvm_array_error_out(node, ctx,
+                "LLVM ArraySort requires concrete Array<T> element metadata",
+                out);
+
+        char fn_name[64];
+        if (!llvm_array_format_runtime_name(fn_name, sizeof(fn_name),
+                "pgy_array_sort", suffix))
+            return llvm_array_runtime_name_error(node, ctx, callee_name, out);
+        LLVMFuncEntry *fn = llvm_required_runtime_function(ctx, node,
+            "array", callee_name, fn_name);
+        if (fn == NULL)
+            return llvm_array_error_out(node, ctx,
+                "LLVM ArraySort requires registered runtime function", out);
+
+        /* Extract data pointer (field 0) and length (field 1) from the
+         * array struct, call sort, then return the original array value. */
+        LLVMTypeRef arr_struct_ty = llvm_array_struct_type(ctx, suffix);
+        if (arr_struct_ty == NULL)
+            return llvm_array_error_out(node, ctx,
+                "LLVM ArraySort cannot resolve Array<T> struct type", out);
+        LLVMValueRef data_gep = LLVMBuildStructGEP2(ctx->builder,
+            arr_struct_ty, arr_alloca, 0, llvm_tmp_name(ctx));
+        LLVMValueRef data_ptr = LLVMBuildLoad2(ctx->builder,
+            LLVMPointerType(entry->elem_type, 0), data_gep,
+            llvm_tmp_name(ctx));
+        LLVMValueRef len_gep = LLVMBuildStructGEP2(ctx->builder,
+            arr_struct_ty, arr_alloca, 1, llvm_tmp_name(ctx));
+        LLVMValueRef len = LLVMBuildLoad2(ctx->builder, ctx->type_i64,
+            len_gep, llvm_tmp_name(ctx));
+        LLVMValueRef args[] = { data_ptr, len };
+        LLVMBuildCall2(ctx->builder, fn->fn_type, fn->fn, args, 2, "");
+        /* Return the (now sorted) array struct value. */
+        *out = LLVMBuildLoad2(ctx->builder, arr_struct_ty, arr_alloca,
+            llvm_tmp_name(ctx));
         return true;
     }
 

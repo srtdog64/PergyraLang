@@ -127,14 +127,49 @@ LLVMTypeRef
 llvm_stmt_lookup_declared_call_return_type(LLVMGenCtx *ctx, const char *callee)
 {
     ASTNode *decl;
+    ASTNode *return_type;
+    bool decl_is_generic;
 
     if (ctx == NULL || callee == NULL)
         return NULL;
     decl = llvm_stmt_find_function_decl_by_name(ctx, callee);
-    if (decl == NULL || decl->type != AST_FUNC_DECL
-        || ast_func_return_type(decl) == NULL)
+    if (decl == NULL || decl->type != AST_FUNC_DECL)
         return NULL;
-    return ast_type_to_llvm(ctx, ast_func_return_type(decl));
+    decl_is_generic =
+        ast_generic_param_count(ast_declaration_generic_params(decl)) > 0;
+    if (llvm_active_has_mir(ctx) && !decl_is_generic) {
+        const MIRRoutine *routine =
+            llvm_active_function_routine_for_source_ast(ctx, decl);
+        const char *return_type_name = NULL;
+        if (routine == NULL) {
+            llvm_set_mir_inventory_missing(ctx,
+                "MIR-only LLVM path missing declared call return routine for '%s'",
+                callee);
+            return NULL;
+        }
+        if (!llvm_mir_routine_has_signature(routine)) {
+            llvm_set_mir_inventory_missing(ctx,
+                "MIR-only LLVM path missing declared call return signature metadata for '%s'",
+                callee);
+            return NULL;
+        }
+        return_type = llvm_mir_routine_return_type(routine);
+        return_type_name = llvm_mir_routine_return_type_name(routine);
+        if (return_type_name != NULL)
+            return pergyra_type_to_llvm(ctx, return_type_name);
+        if (return_type != NULL
+            && return_type->type != AST_EVENT_HANDLER_TYPE) {
+            llvm_set_mir_inventory_missing(ctx,
+                "MIR-only LLVM path missing declared call return type-name metadata for '%s'",
+                callee);
+            return NULL;
+        }
+    } else {
+        return_type = ast_func_return_type(decl);
+    }
+    if (return_type == NULL)
+        return NULL;
+    return ast_type_to_llvm(ctx, return_type);
 }
 
 LLVMTypeRef
@@ -165,47 +200,12 @@ llvm_stmt_slot_call_returns_value(const char *callee)
 }
 
 bool
-llvm_stmt_call_returns_collection_size(const char *callee)
-{
-    static const char *const calls[] = {
-        "ListSize",
-        "MapSize",
-        "QueueSize",
-        "SetSize",
-    };
-    return llvm_stmt_name_in_sorted_table(callee, calls, PGY_ARRAY_COUNT(calls));
-}
-
-bool
-llvm_stmt_call_returns_collection_bool(const char *callee)
-{
-    static const char *const calls[] = {
-        "MapHas",
-        "QueueEmpty",
-        "SetHas",
-    };
-    return llvm_stmt_name_in_sorted_table(callee, calls, PGY_ARRAY_COUNT(calls));
-}
-
-bool
 llvm_stmt_call_returns_collection_value(const char *callee)
 {
     static const char *const calls[] = {
         "ListGet",
         "MapGet",
         "QueuePop",
-    };
-    return llvm_stmt_name_in_sorted_table(callee, calls, PGY_ARRAY_COUNT(calls));
-}
-
-bool
-llvm_stmt_call_returns_domain_bool(const char *callee)
-{
-    static const char *const calls[] = {
-        "HasLayer",
-        "HasProjection",
-        "HasState",
-        "HasZone",
     };
     return llvm_stmt_name_in_sorted_table(callee, calls, PGY_ARRAY_COUNT(calls));
 }

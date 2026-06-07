@@ -122,6 +122,16 @@ transpiler_can_forward_declare_func_early(TranspilerCtx *ctx, ASTNode *func)
                 return_type_name)) {
             return false;
         }
+    } else if (routine_has_signature
+               && transpiler_mir_routine_return_type(routine) != NULL
+               && transpiler_mir_routine_return_type(routine)->type
+                   != AST_EVENT_HANDLER_TYPE) {
+        transpiler_set_mir_inventory_missing(ctx,
+            "MIR-only C path missing function forward return type-name metadata for '%s'",
+            ast_declaration_name(func) != NULL
+                ? ast_declaration_name(func)
+                : "(anonymous)");
+        return false;
     } else if (!transpiler_can_forward_declare_type_early(ctx,
             ast_func_return_type(func))) {
         return false;
@@ -145,6 +155,16 @@ transpiler_can_forward_declare_func_early(TranspilerCtx *ctx, ASTNode *func)
                 return false;
             }
             continue;
+        }
+        if (routine_has_signature
+            && p->type != NULL
+            && p->type->type != AST_EVENT_HANDLER_TYPE) {
+            transpiler_set_mir_inventory_missing(ctx,
+                "MIR-only C path missing function forward parameter type-name metadata for '%s'",
+                ast_declaration_name(func) != NULL
+                    ? ast_declaration_name(func)
+                    : "(anonymous)");
+            return false;
         }
         if (p->type == NULL)
             continue;
@@ -221,6 +241,16 @@ transpiler_can_forward_declare_func_after_zones(TranspilerCtx *ctx,
                 return_type_name)) {
             return false;
         }
+    } else if (routine_has_signature
+               && transpiler_mir_routine_return_type(routine) != NULL
+               && transpiler_mir_routine_return_type(routine)->type
+                   != AST_EVENT_HANDLER_TYPE) {
+        transpiler_set_mir_inventory_missing(ctx,
+            "MIR-only C path missing function forward return type-name metadata for '%s'",
+            ast_declaration_name(func) != NULL
+                ? ast_declaration_name(func)
+                : "(anonymous)");
+        return false;
     } else if (!transpiler_can_forward_declare_type_after_zones(ctx,
             ast_func_return_type(func))) {
         return false;
@@ -244,6 +274,16 @@ transpiler_can_forward_declare_func_after_zones(TranspilerCtx *ctx,
                 return false;
             }
             continue;
+        }
+        if (routine_has_signature
+            && p->type != NULL
+            && p->type->type != AST_EVENT_HANDLER_TYPE) {
+            transpiler_set_mir_inventory_missing(ctx,
+                "MIR-only C path missing function forward parameter type-name metadata for '%s'",
+                ast_declaration_name(func) != NULL
+                    ? ast_declaration_name(func)
+                    : "(anonymous)");
+            return false;
         }
         if (p->type == NULL)
             continue;

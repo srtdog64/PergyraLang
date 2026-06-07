@@ -325,18 +325,15 @@ LLVMValueRef  llvm_mir_emit_select_dispatch_condition(ASTNode *case_node,
                                                        const MIRRoutine *routine,
                                                        size_t target_block,
                                                        LLVMGenCtx *ctx);
-LLVMValueRef  llvm_mir_emit_match_case_condition(ASTNode *func_decl,
-                                                  const MIRInstruction *inst,
-                                                  LLVMGenCtx *ctx);
+LLVMValueRef  llvm_mir_emit_match_case_condition(const MIRInstruction *inst,
+                                                 LLVMGenCtx *ctx);
 bool          llvm_mir_emit_match_case_body_binding(
                                                   const MIRRoutine *routine,
                                                   const MIRBasicBlock *block,
-                                                  ASTNode *func_decl,
                                                   LLVMGenCtx *ctx);
 bool          llvm_mir_remap_active_match_bindings(
                                                   const MIRRoutine *routine,
                                                   const MIRBasicBlock *block,
-                                                  ASTNode *func_decl,
                                                   LLVMGenCtx *ctx);
 void          llvm_mir_emit_owner_sync_exit(LLVMGenCtx *ctx,
                                             LLVMClassTypeEntry *owner_cls,
@@ -409,6 +406,9 @@ LLVMGenResult *llvm_validate_mir_for_codegen(const MIRProgram *mir);
 bool llvm_emit_program_from_mir(const MIRProgram *mir, LLVMGenCtx *ctx);
 void llvm_declare_runtime(LLVMGenCtx *ctx);
 bool llvm_can_forward_declare_func_early(LLVMGenCtx *ctx, ASTNode *func);
+const MIRRoutine *llvm_active_function_routine_for_source_ast(
+    const LLVMGenCtx *ctx,
+    const ASTNode *func_decl);
 bool llvm_nominal_uses_immutable_projection_storage(NominalDeclKind kind);
 bool llvm_nominal_is_boundary_transfer_contract(NominalDeclKind kind);
 void llvm_forward_declare_intent(ASTNode *node, LLVMGenCtx *ctx);

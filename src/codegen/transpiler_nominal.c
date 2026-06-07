@@ -10,7 +10,9 @@
 #include "../parser/ast_api.h"
 #include "transpiler_context.h"
 #include "transpiler_decl_lookup.h"
+#include "transpiler_generic_param_query.h"
 #include "transpiler_inventory_view.h"
+#include "transpiler_mir_inventory_intent_collect.h"
 #include "transpiler_mir_ssa_names.h"
 #include "transpiler_nominal.h"
 #include "transpiler_projection.h"
@@ -398,6 +400,40 @@ transpiler_resolve_nominal_host_expr_type_name(TranspilerCtx *ctx, ASTNode *expr
             ASTNode *fn_decl = find_function_decl(ctx, callee_name);
             if (fn_decl != NULL) {
                 ASTNode *ret_type = ast_func_return_type(fn_decl);
+                bool generic_call = transpiler_func_has_generic_params(fn_decl);
+                bool extern_func = transpiler_decl_is_extern_function(ctx, fn_decl);
+                if (!generic_call && !extern_func
+                    && transpiler_active_has_mir(ctx)) {
+                    const MIRRoutine *routine =
+                        transpiler_find_mir_function(ctx, fn_decl);
+                    const char *ret_name = NULL;
+                    if (routine == NULL) {
+                        transpiler_set_mir_inventory_missing(ctx,
+                            "MIR-only C path missing nominal function-call routine metadata for '%s'",
+                            callee_name != NULL ? callee_name : "(anonymous-call)");
+                        return NULL;
+                    }
+                    if (!transpiler_mir_routine_has_signature(routine)) {
+                        transpiler_set_mir_inventory_missing(ctx,
+                            "MIR-only C path missing nominal function-call signature metadata for '%s'",
+                            callee_name != NULL ? callee_name : "(anonymous-call)");
+                        return NULL;
+                    }
+                    ret_name = transpiler_mir_routine_return_type_name(routine);
+                    if (ret_name != NULL) {
+                        if (is_nominal_host_type_name(ctx, ret_name))
+                            return ret_name;
+                        return NULL;
+                    }
+                    ret_type = transpiler_mir_routine_return_type(routine);
+                    if (ret_type != NULL
+                        && ret_type->type != AST_EVENT_HANDLER_TYPE) {
+                        transpiler_set_mir_inventory_missing(ctx,
+                            "MIR-only C path missing nominal function-call return type-name metadata for '%s'",
+                            callee_name != NULL ? callee_name : "(anonymous-call)");
+                        return NULL;
+                    }
+                }
                 if (ret_type != NULL && ret_type->type == AST_TYPE) {
                     const char *ret_name = ast_type_name(ret_type);
                     if (ret_name != NULL
@@ -432,6 +468,15 @@ transpiler_resolve_nominal_host_expr_type_name(TranspilerCtx *ctx, ASTNode *expr
                     ctx, recv_type, method_name);
                 if (method_decl != NULL)
                     ret_type = ast_func_return_type(method_decl);
+            }
+            if (method_meta != NULL
+                && ret_type != NULL
+                && ret_type->type != AST_EVENT_HANDLER_TYPE) {
+                transpiler_set_mir_inventory_missing(ctx,
+                    "MIR-only C path missing nominal member-call return type-name metadata for '%s.%s'",
+                    recv_type != NULL ? recv_type : "(anonymous)",
+                    method_name != NULL ? method_name : "(anonymous)");
+                return NULL;
             }
             if (ret_type != NULL && ret_type->type == AST_TYPE) {
                 const char *ret_name = ast_type_name(ret_type);

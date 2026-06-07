@@ -75,13 +75,12 @@ transpiler_emit_mir_block_statements(CodeBuf *buf, const ASTNode *func_decl,
     saved_active_ssa_map = ctx->active_ssa_map;
     ctx->active_ssa_map = ssa_map_out;
     if (!transpiler_mir_remap_active_match_bindings(
-            (ASTNode *)func_decl, mir_routine, block, ctx, ssa_map_out)) {
+            mir_routine, block, ctx, ssa_map_out)) {
         ctx->active_ssa_map = saved_active_ssa_map;
         return false;
     }
     if (!transpiler_mir_emit_match_case_body_binding(
-            buf, (ASTNode *)func_decl, mir_routine, block, ctx,
-            ssa_map_out)) {
+            buf, mir_routine, block, ctx, ssa_map_out)) {
         ctx->active_ssa_map = saved_active_ssa_map;
         return false;
     }
@@ -152,7 +151,7 @@ transpiler_emit_mir_block_statements(CodeBuf *buf, const ASTNode *func_decl,
         {
             TranspilerMIRAssignmentEmitResult assignment_result =
                 transpiler_emit_mir_assignment_def_inst(
-                    buf, func_decl, block, inst, inst_index, stmt, ctx,
+                    buf, func_decl, mir_routine, block, inst, inst_index, stmt, ctx,
                     ssa_map_out, reason, reason_cap);
             if (assignment_result == TRANSPILE_MIR_ASSIGNMENT_FAILED) {
                 ok = false;

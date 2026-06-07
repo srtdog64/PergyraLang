@@ -9,7 +9,7 @@
 #include "transpiler_expr_type_infer.h"
 #include "transpiler_mir_effective_type.h"
 #include "transpiler_mir_expr_ssa.h"
-#include "transpiler_mir_local_type_ast_lookup.h"
+#include "transpiler_mir_local_type_lookup.h"
 #include "transpiler_mir_reason.h"
 #include "transpiler_mir_ssa_lookup.h"
 #include "transpiler_mir_ssa_names.h"
@@ -106,8 +106,7 @@ transpiler_materialize_pending_inst_uses(CodeBuf *buf,
         TranspilerMirPendingBinding binding;
         ASTNode *initializer = NULL;
         const char *existing_type;
-        ASTNode *binding_type_ast;
-        char *binding_type_name = NULL;
+        const char *binding_type_name = NULL;
         char base[128];
         size_t version = 0;
         char *lhs = NULL;
@@ -132,19 +131,13 @@ transpiler_materialize_pending_inst_uses(CodeBuf *buf,
                 || transpiler_type_name_is_channel(existing_type))) {
             continue;
         }
-        binding_type_ast = transpiler_find_local_type_ast(ctx, func_decl, base);
-        if (binding_type_ast != NULL) {
-            binding_type_name = transpiler_render_effective_local_type_name(
-                ctx, binding_type_ast);
-            if (binding_type_name != NULL
-                && (transpiler_type_name_is_slot_like(binding_type_name)
-                    || transpiler_type_name_is_claim_shape(binding_type_name)
-                    || transpiler_type_name_is_channel(binding_type_name))) {
-                free(binding_type_name);
-                continue;
-            }
-            free(binding_type_name);
-            binding_type_name = NULL;
+        binding_type_name = transpiler_find_local_type_name(
+            ctx, func_decl, base);
+        if (binding_type_name != NULL
+            && (transpiler_type_name_is_slot_like(binding_type_name)
+                || transpiler_type_name_is_claim_shape(binding_type_name)
+                || transpiler_type_name_is_channel(binding_type_name))) {
+            continue;
         }
 
         exit_versioned = transpiler_find_block_exit_ssa_name(block, base);

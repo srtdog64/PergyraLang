@@ -6,14 +6,17 @@
 #include "../common/string_compat.h"
 #include "../parser/ast_api.h"
 #include "../semantic/diag_codes.h"
+#include "codegen_slot_type_policy.h"
 #include "transpiler_channel_type_query.h"
 #include "transpiler_context.h"
 #include "transpiler_format.h"
 #include "transpiler_inventory_view.h"
+#include "transpiler_let_slot_emit.h"
 #include "transpiler_mir_block_emit_helpers.h"
 #include "transpiler_mir_effective_type.h"
 #include "transpiler_mir_local_type_ast_lookup.h"
 #include "transpiler_mir_local_type_lookup.h"
+#include "transpiler_mir_ssa_local_facts.h"
 #include "transpiler_mir_ssa_map.h"
 #include "transpiler_mir_ssa_names.h"
 #include "transpiler_mir_ssa_utils.h"
@@ -34,140 +37,6 @@ transpiler_mir_ssa_local_limit_fail(TranspilerCtx *ctx, const char *name)
         "too many MIR SSA locals while emitting function '%s'",
         name != NULL ? name : "<function>");
     return false;
-}
-
-static void
-transpiler_trim_type_annotation_suffix(char *type_name)
-{
-    char *colon;
-
-    if (type_name == NULL)
-        return;
-    colon = strchr(type_name, ':');
-    if (colon == NULL)
-        return;
-    while (colon > type_name
-           && (colon[-1] == ' ' || colon[-1] == '\t')) {
-        colon--;
-    }
-    *colon = '\0';
-}
-
-static ASTNode *
-transpiler_mir_receive_expr_from_def(const MIRInstruction *inst)
-{
-    ASTNode *stmt;
-    ASTNode *value;
-
-    if (inst == NULL)
-        return NULL;
-    stmt = transpiler_mir_find_stmt_for_inst(inst);
-    if (stmt == NULL)
-        stmt = inst->expr0 != NULL
-            ? inst->expr0
-            : mir_instruction_source_payload(inst);
-    if (stmt == NULL)
-        return NULL;
-    if (stmt->type == AST_CHANNEL_RECV)
-        return stmt;
-    if (stmt->type != AST_ASSIGNMENT)
-        return NULL;
-    value = ast_assignment_value(stmt);
-    return value != NULL && value->type == AST_CHANNEL_RECV ? value : NULL;
-}
-
-static const char *
-transpiler_mir_find_receive_payload_type_name(TranspilerCtx *ctx,
-                                             ASTNode *func_decl,
-                                             const MIRRoutine *routine,
-                                             const char *base_name)
-{
-    char payload_buf[128];
-
-    if (ctx == NULL || routine == NULL || base_name == NULL)
-        return NULL;
-    for (size_t i = 0; i < routine->block_count; i++) {
-        const MIRBasicBlock *block = &routine->blocks[i];
-        if (!block->is_reachable || block->is_cleanup)
-            continue;
-        for (size_t j = 0; j < block->instruction_count; j++) {
-            const MIRInstruction *inst = &block->instructions[j];
-            char def_base[128];
-            size_t def_version = 0;
-            ASTNode *recv_expr;
-            ASTNode *channel;
-            const char *channel_type;
-            if (inst->kind != MIR_INST_DEF
-                || inst->result_name == NULL
-                || !mir_instruction_uses_channel_receive_statement_emit(inst)) {
-                continue;
-            }
-            if (!transpiler_parse_versioned_name(inst->result_name,
-                    def_base, sizeof(def_base), &def_version)
-                || strcmp(def_base, base_name) != 0) {
-                continue;
-            }
-            (void)def_version;
-            recv_expr = transpiler_mir_receive_expr_from_def(inst);
-            if (recv_expr == NULL)
-                continue;
-            channel = ast_channel_recv_channel(recv_expr);
-            if (channel_inner_type_name_copy(ctx, channel, payload_buf,
-                    sizeof(payload_buf))
-                && payload_buf[0] != '\0'
-                && strcmp(payload_buf, "Unknown") != 0) {
-                transpiler_trim_type_annotation_suffix(payload_buf);
-                return transpiler_mir_arena_copy_type_name(ctx, payload_buf);
-            }
-            if (channel == NULL || channel->type != AST_IDENTIFIER)
-                continue;
-            channel_type = transpiler_find_local_type_name(ctx, func_decl,
-                ast_identifier_name(channel));
-            if (!slot_inner_type_name_copy(channel_type, payload_buf,
-                    sizeof(payload_buf))
-                || payload_buf[0] == '\0'
-                || strcmp(payload_buf, "Unknown") == 0) {
-                continue;
-            }
-            transpiler_trim_type_annotation_suffix(payload_buf);
-            return transpiler_mir_arena_copy_type_name(ctx, payload_buf);
-        }
-    }
-    return NULL;
-}
-
-static char *
-transpiler_mir_find_versioned_def_type_name(TranspilerCtx *ctx,
-                                            const MIRRoutine *routine,
-                                            const char *versioned_name)
-{
-    if (routine == NULL || versioned_name == NULL)
-        return NULL;
-
-    for (size_t i = 0; i < routine->block_count; i++) {
-        const MIRBasicBlock *block = &routine->blocks[i];
-        if (block == NULL || !block->is_reachable || block->is_cleanup)
-            continue;
-        for (size_t j = 0; j < block->instruction_count; j++) {
-            const MIRInstruction *inst = &block->instructions[j];
-            if (inst->kind == MIR_INST_DEF
-                && inst->result_name != NULL
-                && strcmp(inst->result_name, versioned_name) == 0) {
-                if (inst->expr1 != NULL
-                    && inst->expr1->type == AST_TYPE) {
-                    return transpiler_render_effective_local_type_name(
-                        ctx, inst->expr1);
-                }
-                if (inst->arg1 != NULL
-                    && inst->arg1[0] != '\0'
-                    && is_nominal_host_type_name(ctx, inst->arg1)) {
-                    return pergyra_strdup(inst->arg1);
-                }
-            }
-        }
-    }
-
-    return NULL;
 }
 
 bool
@@ -260,6 +129,9 @@ transpiler_emit_mir_func_ssa_local_decls(TranspilerCtx *ctx,
         char *c_name = NULL;
         char *initial_expr = NULL;
         char *decl = NULL;
+        bool has_param_fact = false;
+        bool has_source_local_fact = false;
+        bool is_destructure_binding = false;
 
         if (versioned_name == NULL
             || !transpiler_parse_versioned_name(versioned_name,
@@ -270,13 +142,14 @@ transpiler_emit_mir_func_ssa_local_decls(TranspilerCtx *ctx,
         }
         if (transpiler_is_implicit_field(ctx, base))
             continue;
-        owned_type_name = transpiler_mir_find_versioned_def_type_name(
-            ctx, mir_routine, versioned_name);
+        owned_type_name = transpiler_mir_ssa_local_find_versioned_type_name(
+            ctx, node, mir_routine, versioned_name);
         type_name = owned_type_name;
         if (type_name == NULL || strcmp(type_name, "Unknown") == 0)
             type_name = transpiler_find_local_type_name(ctx, node, base);
         if (type_name == NULL || strcmp(type_name, "Unknown") == 0) {
-            type_name = transpiler_mir_find_receive_payload_type_name(
+            type_name =
+                transpiler_mir_ssa_local_find_receive_payload_type_name(
                 ctx, node, mir_routine, base);
         }
         if (type_name != NULL
@@ -284,7 +157,8 @@ transpiler_emit_mir_func_ssa_local_decls(TranspilerCtx *ctx,
             && strchr(type_name, '<') == NULL) {
             if (pergyra_str_copy(normalized_type_buf,
                     sizeof(normalized_type_buf), type_name)) {
-                transpiler_trim_type_annotation_suffix(normalized_type_buf);
+                transpiler_mir_ssa_local_trim_type_annotation_suffix(
+                    normalized_type_buf);
                 if (normalized_type_buf[0] != '\0')
                     type_name = normalized_type_buf;
             }
@@ -293,8 +167,11 @@ transpiler_emit_mir_func_ssa_local_decls(TranspilerCtx *ctx,
             free(owned_type_name);
             continue;
         }
-        type_ast = transpiler_find_local_type_ast(ctx, node, base);
-        if (type_ast != NULL && type_ast->type == AST_EVENT_HANDLER_TYPE) {
+        type_ast = NULL;
+        if (type_name == NULL)
+            type_ast = transpiler_find_local_event_handler_type_ast(
+                ctx, node, base);
+        if (type_ast != NULL) {
             c_name = transpiler_render_ssa_name(ctx, versioned_name);
             decl = pergyra_ast_typed_declarator_in_ctx(ctx, type_ast, c_name);
             if (decl == NULL) {
@@ -332,42 +209,29 @@ transpiler_emit_mir_func_ssa_local_decls(TranspilerCtx *ctx,
             free(owned_type_name);
             return false;
         }
+        if (version == 0) {
+            has_param_fact = transpiler_mir_ssa_local_routine_has_param_name(
+                mir_routine, base);
+            has_source_local_fact =
+                transpiler_mir_ssa_local_routine_has_source_def(mir_routine,
+                    base);
+            is_destructure_binding =
+                transpiler_mir_ssa_local_routine_has_destructure_binding(
+                    mir_routine, base);
+        }
         register_typed_var(ctx, versioned_name, type_name);
+        if (version == 0 && (has_param_fact || has_source_local_fact))
+            transpiler_mir_ssa_local_register_base_type_fact(ctx,
+                mir_routine, versioned_name, base, type_name);
         c_name = transpiler_render_ssa_name(ctx, versioned_name);
         write_indent(ctx);
         if (version == 0) {
-            bool has_param = false;
-            bool has_top_level = false;
-            bool routine_has_signature =
-                transpiler_mir_routine_has_signature(mir_routine);
-            size_t param_count = routine_has_signature
-                ? transpiler_mir_routine_param_count(mir_routine)
-                : ast_func_param_count(node);
-            for (size_t p = 0; p < param_count; p++) {
-                FuncParam *param = routine_has_signature
-                    ? transpiler_mir_routine_param(mir_routine, p)
-                    : ast_func_param(node, p);
-                if (param != NULL && param->name != NULL
-                    && strcmp(param->name, base) == 0) {
-                    has_param = true;
-                    break;
-                }
-            }
-            ASTNode *body = ast_func_body(node);
-            if (!has_param && body != NULL && body->type == AST_BLOCK) {
-                for (size_t s = 0; s < ast_block_statement_count(body); s++) {
-                    ASTNode *stmt = ast_block_statement(body, s);
-                    if (stmt == NULL)
-                        continue;
-                    if (stmt->type == AST_WITH_STMT
-                        && ast_with_alias(stmt) != NULL
-                        && strcmp(ast_with_alias(stmt), base) == 0) {
-                        has_top_level = true;
-                        break;
-                    }
-                }
-            }
-            if (has_param || has_top_level)
+            bool has_entry_local = false;
+            if (!has_param_fact)
+                has_entry_local =
+                    transpiler_mir_ssa_local_entry_has_source_def(
+                    mir_routine, base);
+            if (has_param_fact || (has_entry_local && !is_destructure_binding))
                 initial_expr = pergyra_strdup(base);
         }
         if (initial_expr != NULL) {

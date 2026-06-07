@@ -6,13 +6,12 @@
 
 #include "llvm_expr_spawn_call_helpers.h"
 #include "llvm_expr_spawn_names.h"
+#include "llvm_expr_spawn_worker_boundary.h"
 
 #include <limits.h>
 #include <stdint.h>
 
-#include "llvm_backend_type_map_internal.h"
 #include "llvm_internal_api.h"
-#include "transpiler_type_mapping.h"
 
 static LLVMFuncEntry *
 llvm_spawn_required_panic_fn(LLVMGenCtx *ctx, ASTNode *node)
@@ -80,88 +79,6 @@ llvm_spawn_emit_nonnull_guard(LLVMGenCtx *ctx, ASTNode *node,
     return true;
 }
 
-static const char *
-llvm_spawn_worker_storage_kind(LLVMGenCtx *ctx, const char *name)
-{
-    if (ctx == NULL || name == NULL)
-        return NULL;
-    if (llvm_lookup_array_var(ctx, name) != NULL)
-        return codegen_worker_boundary_storage_kind_from_constructor_name(
-            "Array/Slice", true, true);
-    if (llvm_lookup_list_inner(ctx, name) != NULL)
-        return codegen_worker_boundary_storage_kind_from_constructor_name(
-            "List", true, false);
-    if (llvm_lookup_queue_inner(ctx, name) != NULL)
-        return codegen_worker_boundary_storage_kind_from_constructor_name(
-            "Queue", true, false);
-    if (llvm_lookup_set_inner(ctx, name) != NULL)
-        return codegen_worker_boundary_storage_kind_from_constructor_name(
-            "Set", true, false);
-    if (llvm_lookup_map_value(ctx, name) != NULL)
-        return codegen_worker_boundary_storage_kind_from_constructor_name(
-            "HashMap", true, false);
-    if (llvm_lookup_channel_inner(ctx, name) != NULL)
-        return codegen_worker_boundary_storage_kind_from_constructor_name(
-            "Channel", true, false);
-    return NULL;
-}
-
-static bool
-llvm_spawn_reject_worker_storage_param(LLVMGenCtx *ctx, ASTNode *site,
-                                       FuncParam *param, size_t index,
-                                       const char *callee_name)
-{
-    char *type_name;
-    const char *kind;
-
-    if (ctx == NULL || param == NULL || param->type == NULL)
-        return false;
-
-    type_name = llvm_render_type_name_scratch_in_ctx(ctx, param->type,
-                                                     &ctx->scratch);
-    kind = codegen_worker_boundary_storage_kind_from_type_name(type_name, true);
-    if (kind == NULL)
-        return false;
-
-    llvm_set_error_at_with_hints(ctx, site,
-        PGY_CODE_LLVM_TYPE_UNSUPPORTED,
-        PGY_CAUSE_BORROW_ESCAPE,
-        PGY_FIX_SERIALIZE_OUTSIDE_PARALLEL,
-        "LLVM spawn parameter %zu for '%s' cannot transport %s<T> storage across a worker boundary; semantic/CFG should reject this path before lowering",
-        index + 1,
-        callee_name != NULL ? callee_name : "<function>",
-        kind);
-    return true;
-}
-
-static bool
-llvm_spawn_reject_worker_storage_arg(LLVMGenCtx *ctx, ASTNode *site,
-                                     ASTNode *arg, size_t index,
-                                     const char *callee_name)
-{
-    const char *name;
-    const char *kind;
-
-    if (arg == NULL || arg->type != AST_IDENTIFIER)
-        return false;
-
-    name = ast_identifier_name(arg);
-    kind = llvm_spawn_worker_storage_kind(ctx, name);
-    if (kind == NULL)
-        return false;
-
-    llvm_set_error_at_with_hints(ctx, site,
-        PGY_CODE_LLVM_TYPE_UNSUPPORTED,
-        PGY_CAUSE_BORROW_ESCAPE,
-        PGY_FIX_SERIALIZE_OUTSIDE_PARALLEL,
-        "LLVM spawn argument %zu for '%s' cannot transport %s<T> storage '%s' across a worker boundary; semantic/CFG should reject this path before lowering",
-        index + 1,
-        callee_name != NULL ? callee_name : "<function>",
-        kind,
-        name != NULL ? name : "<argument>");
-    return true;
-}
-
 LLVMValueRef
 llvm_emit_spawn_expr(ASTNode *node, LLVMGenCtx *ctx)
 {
@@ -173,6 +90,9 @@ llvm_emit_spawn_expr(ASTNode *node, LLVMGenCtx *ctx)
     LLVMValueRef *args = NULL;
     ASTNode *callee_decl = NULL;
     LLVMFuncEntry *callee_entry = NULL;
+    const MIRRoutine *callee_routine = NULL;
+    bool callee_has_mir_signature = false;
+    bool callee_is_generic_func = false;
     LLVMValueRef callee_fn = NULL;
     LLVMTypeRef callee_fn_type = NULL;
     LLVMTypeRef callee_ret_type = NULL;
@@ -210,6 +130,23 @@ llvm_emit_spawn_expr(ASTNode *node, LLVMGenCtx *ctx)
         return NULL;
     }
     callee_decl = llvm_find_function_decl(ctx, callee_name);
+    if (callee_decl != NULL && callee_decl->type == AST_FUNC_DECL) {
+        callee_is_generic_func =
+            ast_generic_param_count(
+                ast_declaration_generic_params(callee_decl)) > 0;
+        if (!callee_is_generic_func && llvm_active_has_mir(ctx)) {
+            callee_routine =
+                llvm_active_function_routine_for_source_ast(ctx, callee_decl);
+            if (callee_routine == NULL) {
+                llvm_set_mir_inventory_missing(ctx,
+                    "MIR-only LLVM path missing spawn routine for '%s'",
+                    callee_name != NULL ? callee_name : "<function>");
+                return NULL;
+            }
+            callee_has_mir_signature =
+                llvm_mir_routine_has_signature(callee_routine);
+        }
+    }
 
     if (argc > 0) {
         if (argc > (size_t)UINT_MAX || argc > SIZE_MAX / sizeof(LLVMValueRef)) {
@@ -231,11 +168,28 @@ llvm_emit_spawn_expr(ASTNode *node, LLVMGenCtx *ctx)
         }
         for (size_t i = 0; i < argc; i++) {
             ASTNode *arg = ast_call_argument(call, i);
-            FuncParam *param = callee_decl != NULL && callee_decl->type == AST_FUNC_DECL
-                ? ast_func_param(callee_decl, i)
-                : NULL;
-            if (llvm_spawn_reject_worker_storage_param(ctx, node, param, i,
-                    callee_name)) {
+            FuncParam *param = NULL;
+            const char *param_type_name = NULL;
+            if (callee_has_mir_signature) {
+                if (i < llvm_mir_routine_param_count(callee_routine)) {
+                    param = llvm_mir_routine_param(callee_routine, i);
+                    param_type_name =
+                        llvm_mir_routine_param_type_name(callee_routine, i);
+                }
+                if (param != NULL && param->type != NULL
+                    && param->type->type != AST_EVENT_HANDLER_TYPE
+                    && param_type_name == NULL) {
+                    llvm_set_mir_inventory_missing(ctx,
+                        "MIR-only LLVM path missing spawn parameter type-name metadata for '%s'",
+                        callee_name != NULL ? callee_name : "<function>");
+                    return NULL;
+                }
+            } else if (callee_decl != NULL
+                       && callee_decl->type == AST_FUNC_DECL) {
+                param = ast_func_param(callee_decl, i);
+            }
+            if (llvm_spawn_reject_worker_storage_param(ctx, node, param,
+                    param_type_name, i, callee_name)) {
                 return NULL;
             }
             if (llvm_spawn_reject_worker_storage_arg(ctx, node, arg, i,

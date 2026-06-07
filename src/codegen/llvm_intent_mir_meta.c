@@ -188,23 +188,20 @@ llvm_collect_mir_intent_authorized_aliases(const MIRRoutine *routine,
 size_t
 llvm_collect_mir_intent_bindings(const MIRRoutine *routine,
                                  LLVMGenCtx *ctx,
-                                 const char ***kinds_out,
-                                 const char ***aliases_out,
-                                 const char ***types_out)
+                                 IntentBindingMetadataView *bindings_out)
 {
     const char **kinds = NULL;
     const char **aliases = NULL;
     const char **types = NULL;
     size_t count = 0;
 
-    if (kinds_out != NULL)
-        *kinds_out = NULL;
-    if (aliases_out != NULL)
-        *aliases_out = NULL;
-    if (types_out != NULL)
-        *types_out = NULL;
-    if (routine == NULL || ctx == NULL || kinds_out == NULL
-        || aliases_out == NULL || types_out == NULL) {
+    if (bindings_out != NULL) {
+        bindings_out->kinds = NULL;
+        bindings_out->aliases = NULL;
+        bindings_out->types = NULL;
+        bindings_out->count = 0;
+    }
+    if (routine == NULL || ctx == NULL || bindings_out == NULL) {
         return 0;
     }
 
@@ -254,9 +251,10 @@ llvm_collect_mir_intent_bindings(const MIRRoutine *routine,
         }
     }
 
-    *kinds_out = kinds;
-    *aliases_out = aliases;
-    *types_out = types;
+    bindings_out->kinds = kinds;
+    bindings_out->aliases = aliases;
+    bindings_out->types = types;
+    bindings_out->count = count;
     return count;
 }
 

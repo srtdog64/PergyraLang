@@ -17,6 +17,62 @@
 #include "transpiler_symbols.h"
 #include "transpiler_mir_ssa_contract.h"
 
+#include <string.h>
+
+static void
+transpiler_mir_register_with_slot_claim_fact(TranspilerCtx *ctx,
+                                             const MIRInstruction *inst)
+{
+    const char *alias;
+    const char *type_name;
+    char inner_buf[128];
+    bool is_secure;
+
+    if (ctx == NULL || inst == NULL
+        || !mir_instruction_is_with_slot_claim(inst)
+        || inst->type_layout == NULL
+        || inst->type_layout->abi_type_name == NULL) {
+        return;
+    }
+    alias = inst->slot_anchor != NULL ? inst->slot_anchor : inst->arg0;
+    type_name = inst->type_layout->abi_type_name;
+    if (alias == NULL || alias[0] == '\0')
+        return;
+    if (lookup_typed_var(ctx, alias) != NULL
+        && lookup_slot_type_copy(ctx, alias, inner_buf, sizeof(inner_buf))) {
+        return;
+    }
+    is_secure = strncmp(type_name, "SecureSlot<", 11) == 0;
+    if (!is_secure && strncmp(type_name, "Slot<", 5) != 0)
+        return;
+    if (!slot_inner_type_name_copy(type_name, inner_buf, sizeof(inner_buf))
+        || inner_buf[0] == '\0') {
+        return;
+    }
+    register_typed_var(ctx, alias, type_name);
+    register_slot_var(ctx, alias, inner_buf, is_secure, false);
+}
+
+void
+transpiler_register_mir_with_slot_claim_facts(TranspilerCtx *ctx,
+                                              const MIRRoutine *routine)
+{
+    if (ctx == NULL || routine == NULL)
+        return;
+    for (size_t bi = 0; bi < routine->block_count; bi++) {
+        const MIRBasicBlock *block = &routine->blocks[bi];
+        if (block == NULL || !block->is_reachable || block->is_cleanup)
+            continue;
+        for (size_t ii = 0; ii < block->instruction_count; ii++) {
+            const MIRInstruction *inst = &block->instructions[ii];
+            if (inst->kind == MIR_INST_RESOURCE_OP
+                && mir_instruction_is_with_slot_claim(inst)) {
+                transpiler_mir_register_with_slot_claim_fact(ctx, inst);
+            }
+        }
+    }
+}
+
 TranspilerMIRInstEmitResult
 transpiler_emit_mir_resource_op_inst(CodeBuf *buf,
                                      const MIRRoutine *mir_routine,
@@ -68,6 +124,8 @@ transpiler_emit_mir_resource_op_inst(CodeBuf *buf,
         && !mir_instruction_is_with_slot_claim(inst)) {
         return TRANSPILE_MIR_INST_HANDLED;
     }
+    if (op == TRANS_MIR_RESOURCE_OP_CLAIM)
+        transpiler_mir_register_with_slot_claim_fact(ctx, inst);
     if (!transpiler_emit_mir_resource_hook(ctx, buf, ctx->indent, inst, "0", false)) {
         if (reason != NULL && reason_cap > 0) {
             transpiler_mir_reasonf(reason, reason_cap,

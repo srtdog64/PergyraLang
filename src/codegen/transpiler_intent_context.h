@@ -6,14 +6,8 @@
 #ifndef PERGYRA_TRANSPILER_INTENT_CONTEXT_H
 #define PERGYRA_TRANSPILER_INTENT_CONTEXT_H
 
+#include "intent_binding_metadata_view.h"
 #include "transpiler.h"
-
-typedef struct IntentBindingMetadataView {
-    const char **kinds;
-    const char **aliases;
-    const char **types;
-    size_t count;
-} IntentBindingMetadataView;
 
 ASTNode *find_intent_participant_local(ASTNode *intent, const char *alias);
 ASTNode *find_subject_action_decl(TranspilerCtx *ctx,

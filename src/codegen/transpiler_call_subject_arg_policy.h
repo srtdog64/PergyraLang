@@ -7,6 +7,7 @@
 
 bool transpiler_call_arg_needs_subject_address(TranspilerCtx *ctx,
                                                FuncParam *param,
+                                               const char *param_type_name,
                                                ASTNode *intent_param_type,
                                                const char *intent_param_type_name);
 bool transpiler_call_arg_can_take_subject_address(ASTNode *arg_node);

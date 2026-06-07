@@ -160,6 +160,13 @@ llvm_forward_declare_func_with_signature(ASTNode *node,
         : ast_func_return_type(node);
     if (return_type_name != NULL) {
         ret_type = pergyra_type_to_llvm(ctx, return_type_name);
+    } else if (routine_has_signature
+               && return_type != NULL
+               && return_type->type != AST_EVENT_HANDLER_TYPE) {
+        llvm_set_mir_inventory_missing(ctx,
+            "MIR-only LLVM path missing function declaration return type-name metadata for '%s'",
+            name != NULL ? name : "(anonymous)");
+        return;
     } else if (return_type != NULL) {
         ret_type = ast_type_to_llvm(ctx, return_type);
     }
@@ -192,6 +199,15 @@ llvm_forward_declare_func_with_signature(ASTNode *node,
             const char *slot_inner = NULL;
             if (p == NULL || p->name == NULL)
                 continue;
+            if (routine_has_signature
+                && param_type_name == NULL
+                && p->type != NULL
+                && p->type->type != AST_EVENT_HANDLER_TYPE) {
+                llvm_set_mir_inventory_missing(ctx,
+                    "MIR-only LLVM path missing function declaration parameter type-name metadata for '%s'",
+                    name != NULL ? name : "(anonymous)");
+                return;
+            }
             LLVMTypeRef pt = llvm_decl_required_param_type_name_first(
                 ctx, node, p, param_type_name);
             if (ctx->has_error || pt == NULL)

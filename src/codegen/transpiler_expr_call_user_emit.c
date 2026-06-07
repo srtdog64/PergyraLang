@@ -47,9 +47,15 @@ emit_call_user_function(ASTNode *call, ASTNode *callee, TranspilerCtx *ctx)
     const char *callee_name = ast_identifier_name(callee);
     if (callee->type == AST_IDENTIFIER) {
         ASTNode *host_decl = transpiler_current_host_decl_local(ctx);
-        ASTNode *host_method = current_host_method_decl(ctx, callee_name);
         const char *host_name = transpiler_decl_name_local(host_decl);
-        if (host_method != NULL && host_name != NULL) {
+        const MIRDeclMethod *host_method_meta =
+            transpiler_find_host_method_metadata_in_context(
+                ctx, host_name, callee_name);
+        ASTNode *host_method = NULL;
+        if (host_method_meta == NULL && !transpiler_active_has_mir(ctx))
+            host_method = current_host_method_decl(ctx, callee_name);
+        if ((host_method_meta != NULL || host_method != NULL)
+            && host_name != NULL) {
             CodeBuf *args_buf = codebuf_create();
             codebuf_write(args_buf, "self");
             for (size_t i = 0; i < ast_call_arg_count(call); i++) {
@@ -95,11 +101,16 @@ emit_call_user_function(ASTNode *call, ASTNode *callee, TranspilerCtx *ctx)
     const char **binding_aliases = NULL;
     const char **binding_types = NULL;
     size_t binding_meta_count = 0;
+    const MIRRoutine *callee_routine = NULL;
+    bool callee_has_mir_signature = false;
+    bool callee_is_generic_func = false;
+    bool callee_is_extern_func = false;
     bool mir_requires_routine = false;
     bool mir_only_intent = false;
     if (callee->type == AST_IDENTIFIER) {
         if (decl != NULL && decl->type == AST_FUNC_DECL
             && transpiler_func_has_generic_params(decl)) {
+            callee_is_generic_func = true;
             const char *specialized_name =
                 ensure_generic_specialization(ctx, decl, call);
             if (specialized_name != NULL)
@@ -111,6 +122,30 @@ emit_call_user_function(ASTNode *call, ASTNode *callee, TranspilerCtx *ctx)
             callee_name, "callee");
     if (callee_str == NULL)
         return NULL;
+
+    if (decl != NULL && decl->type == AST_FUNC_DECL)
+        callee_is_extern_func = transpiler_decl_is_extern_function(ctx, decl);
+
+    if (decl != NULL && decl->type == AST_FUNC_DECL
+        && !callee_is_generic_func && !callee_is_extern_func
+        && transpiler_active_has_mir(ctx)) {
+        callee_routine = transpiler_find_mir_function(ctx, decl);
+        if (callee_routine == NULL) {
+            transpiler_set_mir_inventory_missing(ctx,
+                "MIR-only C path missing user-call routine for '%s'",
+                callee_name != NULL ? callee_name : "(anonymous-call)");
+            free(callee_str);
+            return NULL;
+        }
+        if (!transpiler_mir_routine_has_signature(callee_routine)) {
+            transpiler_set_mir_inventory_missing(ctx,
+                "MIR-only C path missing user-call signature metadata for '%s'",
+                callee_name != NULL ? callee_name : "(anonymous-call)");
+            free(callee_str);
+            return NULL;
+        }
+        callee_has_mir_signature = true;
+    }
 
     if (decl != NULL && decl->type == AST_INTENT_DECL) {
         size_t intent_step_count = ast_intent_decl_step_count(decl);
@@ -176,13 +211,38 @@ emit_call_user_function(ASTNode *call, ASTNode *callee, TranspilerCtx *ctx)
     CodeBuf *args_buf = codebuf_create();
     for (size_t i = 0; i < ast_call_arg_count(call); i++) {
         ASTNode *arg_node = ast_call_argument(call, i);
-        FuncParam *param = (decl != NULL && decl->type == AST_FUNC_DECL
-                            && i < ast_func_param_count(decl))
-            ? ast_func_param(decl, i) : NULL;
+        FuncParam *param = NULL;
+        const char *param_type_name = NULL;
         ASTNode *intent_param_type = NULL;
         const char *intent_param_type_name = NULL;
         bool handled = false;
         char *arg = NULL;
+
+        if (decl != NULL && decl->type == AST_FUNC_DECL) {
+            if (callee_has_mir_signature) {
+                if (i < transpiler_mir_routine_param_count(callee_routine)) {
+                    param = transpiler_mir_routine_param(callee_routine, i);
+                    param_type_name =
+                        transpiler_mir_routine_param_type_name(
+                            callee_routine, i);
+                }
+                if (param != NULL && param->type != NULL
+                    && param->type->type != AST_EVENT_HANDLER_TYPE
+                    && param_type_name == NULL) {
+                    transpiler_set_mir_inventory_missing(ctx,
+                        "MIR-only C path missing user-call parameter type-name metadata for '%s'",
+                        callee_name != NULL ? callee_name : "(anonymous-call)");
+                    free(callee_str);
+                    free((void *)binding_kinds);
+                    free((void *)binding_aliases);
+                    free((void *)binding_types);
+                    codebuf_destroy(args_buf);
+                    return NULL;
+                }
+            } else if (i < ast_func_param_count(decl)) {
+                param = ast_func_param(decl, i);
+            }
+        }
 
         if (decl != NULL && decl->type == AST_INTENT_DECL) {
             if (mir_only_intent) {
@@ -235,7 +295,12 @@ emit_call_user_function(ASTNode *call, ASTNode *callee, TranspilerCtx *ctx)
 
         if (param != NULL && param->type != NULL
             && (param->mode == PARAM_MODE_OWN || param->mode == PARAM_MODE_REF)) {
-            char *param_type = render_type_name_in_ctx(ctx, param->type);
+            char *param_type_owned = NULL;
+            const char *param_type = param_type_name;
+            if (param_type == NULL) {
+                param_type_owned = render_type_name_in_ctx(ctx, param->type);
+                param_type = param_type_owned;
+            }
             bool slot_param = param_type != NULL
                 && (strncmp(param_type, "Slot<", 5) == 0
                     || strncmp(param_type, "SecureSlot<", 11) == 0);
@@ -251,7 +316,7 @@ emit_call_user_function(ASTNode *call, ASTNode *callee, TranspilerCtx *ctx)
                     callee_name, "slot argument");
                 ctx->suppress_slot_auto_read = saved_suppress;
                 if (arg == NULL) {
-                    free(param_type);
+                    free(param_type_owned);
                     free(callee_str);
                     free((void *)binding_kinds);
                     free((void *)binding_aliases);
@@ -268,7 +333,7 @@ emit_call_user_function(ASTNode *call, ASTNode *callee, TranspilerCtx *ctx)
                     char *slot_ref = slot_ref_expr(ctx, slot_name, arg);
                     if (slot_ref == NULL) {
                         free(arg);
-                        free(param_type);
+                        free(param_type_owned);
                         free(callee_str);
                         free((void *)binding_kinds);
                         free((void *)binding_aliases);
@@ -286,11 +351,13 @@ emit_call_user_function(ASTNode *call, ASTNode *callee, TranspilerCtx *ctx)
                     arg = NULL;
                 }
             }
-            free(param_type);
+            free(param_type_owned);
         }
 
         char *param_type_for_ctx = NULL;
-        if (param != NULL && param->type != NULL)
+        if (param_type_name != NULL)
+            param_type_for_ctx = pergyra_strdup(param_type_name);
+        else if (param != NULL && param->type != NULL)
             param_type_for_ctx = render_type_name_in_ctx(ctx, param->type);
         else if (intent_param_type_name != NULL)
             param_type_for_ctx = pergyra_strdup(intent_param_type_name);
@@ -337,7 +404,8 @@ emit_call_user_function(ASTNode *call, ASTNode *callee, TranspilerCtx *ctx)
             codebuf_write(args_buf, ", ");
         if (!handled) {
             if (transpiler_call_arg_needs_subject_address(ctx,
-                    param, intent_param_type, intent_param_type_name)) {
+                    param, param_type_name,
+                    intent_param_type, intent_param_type_name)) {
                 if (transpiler_call_arg_is_subject_ref(ctx, arg_node))
                     codebuf_write(args_buf, "%s", arg);
                 else if (transpiler_call_arg_can_take_subject_address(arg_node))

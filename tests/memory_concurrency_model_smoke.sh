@@ -418,16 +418,24 @@ for required_llvm_spawn_expr_guard in \
     "llvm_spawn_emit_nonnull_guard" \
     "LLVM spawn argument allocation failed" \
     "LLVM spawn task creation failed" \
-    "LLVMBuildExtractValue(ctx->builder, handle, 0" \
+    "LLVMBuildExtractValue(ctx->builder, handle, 0"; do
+    if ! grep -Fq "$required_llvm_spawn_expr_guard" \
+        "$ROOT_DIR/src/codegen/llvm_expr_spawn_call_helpers.c"; then
+        echo "[memory-concurrency] LLVM named-spawn expression missing fail-closed guard: $required_llvm_spawn_expr_guard" >&2
+        exit 1
+    fi
+done
+for required_llvm_spawn_worker_guard in \
     "llvm_spawn_reject_worker_storage_param" \
-    "codegen_worker_boundary_storage_kind_from_type_name(type_name, true)" \
+    "codegen_worker_boundary_storage_kind_from_type_name(" \
+    "param_type_name, true" \
     "cannot transport %s<T> storage across a worker boundary" \
     "llvm_spawn_reject_worker_storage_arg" \
     "codegen_worker_boundary_storage_kind_from_constructor_name" \
     "cannot transport %s<T> storage '%s' across a worker boundary"; do
-    if ! grep -Fq "$required_llvm_spawn_expr_guard" \
-        "$ROOT_DIR/src/codegen/llvm_expr_spawn_call_helpers.c"; then
-        echo "[memory-concurrency] LLVM named-spawn expression missing fail-closed guard: $required_llvm_spawn_expr_guard" >&2
+    if ! grep -Fq "$required_llvm_spawn_worker_guard" \
+        "$ROOT_DIR/src/codegen/llvm_expr_spawn_worker_boundary.c"; then
+        echo "[memory-concurrency] LLVM named-spawn worker boundary missing fail-closed guard: $required_llvm_spawn_worker_guard" >&2
         exit 1
     fi
 done
@@ -461,6 +469,7 @@ for required_codegen_storage_policy_shape in \
         "$ROOT_DIR/src/codegen/transpiler_type_mapping.h" \
         "$ROOT_DIR/src/codegen/transpiler_type_mapping.c" \
         "$ROOT_DIR/src/codegen/llvm_expr_spawn_call_helpers.c" \
+        "$ROOT_DIR/src/codegen/llvm_expr_spawn_worker_boundary.c" \
         "$ROOT_DIR/src/codegen/llvm_stmt_parallel_async.c"; then
         echo "[memory-concurrency] codegen worker-boundary storage policy must expose Array/Slice alias explicitly: $required_codegen_storage_policy_shape" >&2
         exit 1

@@ -43,8 +43,7 @@ llvm_mir_match_lower_error(ASTNode *node,
 }
 
 LLVMValueRef
-llvm_mir_emit_match_case_condition(ASTNode *func_decl,
-                                   const MIRInstruction *inst,
+llvm_mir_emit_match_case_condition(const MIRInstruction *inst,
                                    LLVMGenCtx *ctx)
 {
     ASTNode *case_node;
@@ -53,7 +52,7 @@ llvm_mir_emit_match_case_condition(ASTNode *func_decl,
     LLVMValueRef cmp = NULL;
     uint32_t case_stable_id;
 
-    if (func_decl == NULL || inst == NULL || ctx == NULL)
+    if (inst == NULL || ctx == NULL)
         return NULL;
     case_node = mir_instruction_source_payload(inst);
     case_stable_id = mir_instruction_source_stable_id(inst);
@@ -62,7 +61,7 @@ llvm_mir_emit_match_case_condition(ASTNode *func_decl,
         return NULL;
     }
 
-    subject_node = pgy_codegen_match_subject_for_case(func_decl, case_node);
+    subject_node = pgy_codegen_match_subject_for_branch(inst);
     if (subject_node == NULL)
         return NULL;
     subject = llvm_emit_expression(subject_node, ctx);
@@ -231,10 +230,10 @@ llvm_mir_remap_payload_binding(LLVMGenCtx *ctx,
 
 static LLVMTypeRef
 llvm_mir_case_payload_type(LLVMGenCtx *ctx,
-                           ASTNode *func_decl,
-                           ASTNode *case_node,
+                           const MIRInstruction *inst,
                            const char *kind)
 {
+    ASTNode *case_node;
     ASTNode *subject_node;
     LLVMTypeRef subject_ty;
     unsigned payload_index;
@@ -246,9 +245,12 @@ llvm_mir_case_payload_type(LLVMGenCtx *ctx,
     const char *saved_error_cause_ir;
     const char *saved_error_fix_source;
 
-    if (ctx == NULL || func_decl == NULL || case_node == NULL || kind == NULL)
+    if (ctx == NULL || inst == NULL || kind == NULL)
         return NULL;
-    subject_node = pgy_codegen_match_subject_for_case(func_decl, case_node);
+    case_node = mir_instruction_source_payload(inst);
+    if (case_node == NULL || case_node->type != AST_MATCH_CASE)
+        return NULL;
+    subject_node = pgy_codegen_match_subject_for_branch(inst);
     if (subject_node == NULL)
         return NULL;
     saved_has_error = ctx->has_error;
@@ -264,8 +266,46 @@ llvm_mir_case_payload_type(LLVMGenCtx *ctx,
         && ast_call_callee(subject_node)->type == AST_IDENTIFIER) {
         const char *callee = ast_identifier_name(ast_call_callee(subject_node));
         ASTNode *decl = llvm_stmt_find_function_decl_by_name(ctx, callee);
-        ASTNode *ret = ast_func_return_type(decl);
-        if (ret != NULL)
+        ASTNode *ret = NULL;
+        const char *return_type_name = NULL;
+        bool decl_is_generic = decl != NULL
+            && ast_generic_param_count(
+                ast_declaration_generic_params(decl)) > 0;
+        if (decl != NULL && decl->type == AST_FUNC_DECL
+            && llvm_active_has_mir(ctx) && !decl_is_generic) {
+            const MIRRoutine *routine =
+                llvm_active_function_routine_for_source_ast(ctx, decl);
+            if (routine == NULL) {
+                llvm_set_mir_inventory_missing(ctx,
+                    "MIR-only LLVM path missing match subject routine for '%s'",
+                    callee != NULL ? callee : "(anonymous-function)");
+                return NULL;
+            }
+            if (!llvm_mir_routine_has_signature(routine)) {
+                llvm_set_mir_inventory_missing(ctx,
+                    "MIR-only LLVM path missing match subject signature metadata for '%s'",
+                    callee != NULL ? callee : "(anonymous-function)");
+                return NULL;
+            }
+            ret = llvm_mir_routine_return_type(routine);
+            return_type_name = llvm_mir_routine_return_type_name(routine);
+            if (return_type_name == NULL
+                && ret != NULL
+                && ret->type != AST_EVENT_HANDLER_TYPE) {
+                llvm_set_mir_inventory_missing(ctx,
+                    "MIR-only LLVM path missing match subject return type-name metadata for '%s'",
+                    callee != NULL ? callee : "(anonymous-function)");
+                return NULL;
+            }
+            if (return_type_name != NULL) {
+                subject_ty = pergyra_type_to_llvm(ctx, return_type_name);
+                if (ctx->has_error)
+                    return NULL;
+            }
+        } else {
+            ret = ast_func_return_type(decl);
+        }
+        if (subject_ty == NULL && ret != NULL)
             subject_ty = ast_type_to_llvm(ctx, ret);
     }
     if (subject_ty == NULL
@@ -292,15 +332,19 @@ llvm_mir_case_payload_type(LLVMGenCtx *ctx,
 
 static bool
 llvm_mir_remap_case_bindings(LLVMGenCtx *ctx,
-                             ASTNode *func_decl,
-                             ASTNode *case_node,
-                             uint32_t case_stable_id)
+                             const MIRInstruction *inst)
 {
+    ASTNode *case_node;
     ASTNode *pattern_node;
     const char *kind = NULL;
     const char *binding = NULL;
+    uint32_t case_stable_id;
 
-    if (ctx == NULL || case_node == NULL || case_node->type != AST_MATCH_CASE)
+    if (ctx == NULL || inst == NULL)
+        return true;
+    case_node = mir_instruction_source_payload(inst);
+    case_stable_id = mir_instruction_source_stable_id(inst);
+    if (case_node == NULL || case_node->type != AST_MATCH_CASE)
         return true;
     pattern_node = ast_match_case_pattern(case_node);
     if (pattern_node == NULL)
@@ -308,7 +352,7 @@ llvm_mir_remap_case_bindings(LLVMGenCtx *ctx,
     if (llvm_mir_is_option_destructor(pattern_node, &kind, &binding)
         || llvm_mir_is_result_destructor(pattern_node, &kind, &binding)) {
         LLVMTypeRef payload_ty =
-            llvm_mir_case_payload_type(ctx, func_decl, case_node, kind);
+            llvm_mir_case_payload_type(ctx, inst, kind);
         return llvm_mir_remap_payload_binding(ctx, case_stable_id, binding,
                                               payload_ty);
     }
@@ -332,12 +376,11 @@ llvm_mir_remap_case_bindings(LLVMGenCtx *ctx,
 bool
 llvm_mir_remap_active_match_bindings(const MIRRoutine *routine,
                                      const MIRBasicBlock *block,
-                                     ASTNode *func_decl,
                                      LLVMGenCtx *ctx)
 {
     size_t target_id;
 
-    if (routine == NULL || block == NULL || func_decl == NULL || ctx == NULL)
+    if (routine == NULL || block == NULL || ctx == NULL)
         return true;
     target_id = block->id;
     if (target_id >= routine->block_count)
@@ -351,15 +394,11 @@ llvm_mir_remap_active_match_bindings(const MIRRoutine *routine,
         }
         for (size_t j = 0; j < candidate->instruction_count; j++) {
             const MIRInstruction *inst = &candidate->instructions[j];
-            ASTNode *case_node;
             if (inst->kind != MIR_INST_BRANCH
                 || inst->branch_shape != MIR_BRANCH_MATCH_CASE) {
                 continue;
             }
-            case_node = mir_instruction_source_payload(inst);
-            if (!llvm_mir_remap_case_bindings(
-                    ctx, func_decl, case_node,
-                    mir_instruction_source_stable_id(inst)))
+            if (!llvm_mir_remap_case_bindings(ctx, inst))
                 return false;
         }
     }
@@ -476,7 +515,6 @@ llvm_mir_emit_guarded_match_condition(LLVMGenCtx *ctx,
 bool
 llvm_mir_emit_match_case_body_binding(const MIRRoutine *routine,
                                       const MIRBasicBlock *block,
-                                      ASTNode *func_decl,
                                       LLVMGenCtx *ctx)
 {
     const MIRInstruction *branch_inst;
@@ -489,7 +527,7 @@ llvm_mir_emit_match_case_body_binding(const MIRRoutine *routine,
     const char *binding = NULL;
     uint32_t case_stable_id;
 
-    if (routine == NULL || block == NULL || func_decl == NULL || ctx == NULL)
+    if (routine == NULL || block == NULL || ctx == NULL)
         return true;
     branch_inst = llvm_mir_find_incoming_match_branch(routine, block);
     if (branch_inst == NULL)
@@ -501,7 +539,7 @@ llvm_mir_emit_match_case_body_binding(const MIRRoutine *routine,
     pattern_node = ast_match_case_pattern(case_node);
     if (pattern_node == NULL)
         return true;
-    subject_node = pgy_codegen_match_subject_for_case(func_decl, case_node);
+    subject_node = pgy_codegen_match_subject_for_branch(branch_inst);
     if (subject_node == NULL)
         return true;
     subject = llvm_emit_expression(subject_node, ctx);

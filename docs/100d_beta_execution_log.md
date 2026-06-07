@@ -547,6 +547,57 @@
   mir-declaration-inventory-test-smoke perf-contract-test-smoke
   llvm-test-smoke`.
 
+## Progress Log - 2026-06-05 ArraySort LLVM Lowering
+
+- Closure #81: `ArraySort` is now declared in the LLVM runtime function
+  inventory (`pgy_array_sort_<suffix>(val_ty *data, i64 length)` for the
+  same slot type set used by `array_push`/`array_pop`) and dispatched as
+  an `LLVM_ARRAY_BUILTIN_SORT` op. The lowering matches the C-backend
+  statement-expression shape: GEP into the array struct for the data
+  pointer and length, call the in-place sort runtime, then return the
+  loaded (now sorted) array struct value. `examples/collection_ops.pgy`
+  now compiles past its `ArraySort` site; the file still fails later at
+  `ArrayMap(nums, Double)` because mapping a callable into an array
+  builtin requires closure/function-arg surface that LLVM lowering
+  hasn't been wired for. Not a regression — same line was already
+  failing C-backend in the strict-mode build.
+
+## Progress Log - 2026-06-05 Free-Function-In-Host-Body Strict-Mode Closure
+
+- Closure #75: unresolved generic placeholder names (single uppercase
+  letter — `T`, `K`, `V`, ...) now type-erase to `i8ptr` in the LLVM type
+  map instead of erroring with `LLVM type '%s' is not registered`. The
+  strict rejection was too aggressive for the existing ability/role
+  generic surface (`examples/generic_ability_requires_minimal.pgy`,
+  `examples/logistics_intent_probe/main.pgy`). Concrete type still wins
+  when available; this only fires when no resolver above produced a hit.
+- Closure #78: `llvm_emit_hosted_self_call` and the type-inference path
+  `llvm_stmt_host_method_return_type` now consult
+  `llvm_find_callable_decl` before raising the strict-mode "missing host
+  method metadata" error. If a global free function `AST_FUNC_DECL`
+  exists with the callee's name, we let the dispatcher's global-function
+  resolver take over instead of poisoning the inference pipeline. This is
+  the canonical shape for a free function called from inside a host
+  method body (`MergeRouteScore` inside `LoadingZone`,
+  `CombatStrategyFactory` inside `TavernCampaignWorld_RunSkirmishRounds`).
+  Fail-closed semantics survive: when the callee is neither a host
+  method (no MIR metadata) NOR a registered global, the strict error
+  still fires. (Note: `llvm_stmt_lookup_declared_call_return_type` keeps
+  its strict MIR-mode error by design — that helper's strictness is a
+  separate policy decision and is intentionally preserved.)
+- Backend evidence: `tests/compare_backends.sh tests/cases/backend_compare/*/main.pgy`
+  reports 794/795 passed (`role_include_methods` is a C-backend
+  inventory regression from a separate user-side tightening, unrelated to
+  the LLVM closures here);
+  `tests/cases/backend_compare/probe_record`, `probe_intent_array`,
+  `probe_field_index`, `probe_zone_chain`, and `intent_header_interleaved`
+  all pass byte-equal; `beta-readiness-checklist-test-smoke`,
+  `mir-declaration-inventory-test-smoke`, and
+  `intent-compression-contract-test-smoke` are RC=0. Real-coverage scope:
+  `examples` LLVM 96/18 with `generic_ability_requires_minimal` recovered
+  by #75 (the C-also-fails set is parse/semantic frontend gaps, not
+  backend gaps).
+
 ## Progress Log - 2026-06-05 Real-Coverage Scope Test And Strict-Mode Repair
 
 - Real-coverage scope: compiled every `func Main` entrypoint across

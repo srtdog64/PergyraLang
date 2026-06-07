@@ -16,6 +16,8 @@
 #include "transpiler_generic_binding_query.h"
 #include "transpiler_generic_param_query.h"
 #include "transpiler_generic_specialization_emit.h"
+#include "transpiler_inventory_view.h"
+#include "transpiler_mir_inventory_intent_collect.h"
 #include "transpiler_symbols.h"
 #include "transpiler_type_mapping.h"
 #include "transpiler_type_render.h"
@@ -84,6 +86,10 @@ emit_spawn_expr(ASTNode *node, TranspilerCtx *ctx)
     const char *return_c_type = NULL;
     GenericBindingEntry bindings[MAX_GENERIC_BINDINGS];
     size_t binding_count = 0;
+    const MIRRoutine *callee_routine = NULL;
+    bool callee_has_mir_signature = false;
+    bool callee_is_generic_func = false;
+    bool callee_is_extern_func = false;
 
     if (transpiler_require_type_name_c_type_copy(ctx, return_type_name,
             "spawn return metadata", return_c_type_buf,
@@ -129,12 +135,33 @@ emit_spawn_expr(ASTNode *node, TranspilerCtx *ctx)
 
     decl = find_function_decl(ctx, function_name);
     emitted_function_name = function_name;
-    if (call != NULL && transpiler_func_has_generic_params(decl)
+    callee_is_extern_func = transpiler_decl_is_extern_function(ctx, decl);
+    callee_is_generic_func = transpiler_func_has_generic_params(decl);
+    if (call != NULL && callee_is_generic_func
         && transpiler_infer_generic_call_bindings(ctx, decl, call, bindings,
             &binding_count)) {
         const char *specialized = ensure_generic_specialization(ctx, decl, call);
         if (specialized != NULL)
             emitted_function_name = specialized;
+    }
+    if (!callee_is_generic_func && !callee_is_extern_func
+        && decl != NULL && decl->type == AST_FUNC_DECL
+        && transpiler_active_has_mir(ctx)) {
+        callee_routine = transpiler_find_mir_function(ctx, decl);
+        if (callee_routine == NULL) {
+            transpiler_set_mir_inventory_missing(ctx,
+                "MIR-only C path missing spawn routine for '%s'",
+                function_name != NULL ? function_name : "<function>");
+            return NULL;
+        }
+        callee_has_mir_signature =
+            transpiler_mir_routine_has_signature(callee_routine);
+        if (!callee_has_mir_signature) {
+            transpiler_set_mir_inventory_missing(ctx,
+                "MIR-only C path missing spawn signature metadata for '%s'",
+                function_name != NULL ? function_name : "<function>");
+            return NULL;
+        }
     }
     if (arg_count > 0)
         args_type_name = transpiler_scratch_fmt(ctx,
@@ -146,7 +173,26 @@ emit_spawn_expr(ASTNode *node, TranspilerCtx *ctx)
         for (size_t i = 0; i < arg_count; i++) {
             char arg_type_buf[256];
             const char *arg_type = NULL;
-            FuncParam *param = ast_func_param(decl, i);
+            FuncParam *param = NULL;
+            const char *param_type_name = NULL;
+            if (callee_has_mir_signature) {
+                if (i < transpiler_mir_routine_param_count(callee_routine)) {
+                    param = transpiler_mir_routine_param(callee_routine, i);
+                    param_type_name =
+                        transpiler_mir_routine_param_type_name(
+                            callee_routine, i);
+                }
+                if (param != NULL && param->type != NULL
+                    && param->type->type != AST_EVENT_HANDLER_TYPE
+                    && param_type_name == NULL) {
+                    transpiler_set_mir_inventory_missing(ctx,
+                        "MIR-only C path missing spawn parameter type-name metadata for '%s'",
+                        function_name != NULL ? function_name : "<function>");
+                    return NULL;
+                }
+            } else {
+                param = ast_func_param(decl, i);
+            }
             if (param != NULL && param->type != NULL) {
                 if (binding_count > 0) {
                     char *bound_type =
@@ -189,21 +235,33 @@ emit_spawn_expr(ASTNode *node, TranspilerCtx *ctx)
                     free(bound_type);
                     continue;
                 }
-                {
-                    char *param_type_name =
-                        render_type_name_in_ctx(ctx, param->type);
+                if (param_type_name != NULL) {
                     if (transpiler_spawn_reject_worker_storage(ctx,
                             function_name, i, param_type_name)) {
-                        free(param_type_name);
                         return NULL;
                     }
-                    free(param_type_name);
-                }
-                if (pergyra_ast_type_to_c_copy_in_ctx(ctx,
-                        param->type,
-                        arg_type_buf,
-                        sizeof(arg_type_buf))) {
-                    arg_type = arg_type_buf;
+                    if (transpiler_require_type_name_c_type_copy(ctx,
+                            param_type_name,
+                            "spawn wrapper MIR argument",
+                            arg_type_buf,
+                            sizeof(arg_type_buf))) {
+                        arg_type = arg_type_buf;
+                    }
+                } else {
+                    char *rendered_param_type =
+                        render_type_name_in_ctx(ctx, param->type);
+                    if (transpiler_spawn_reject_worker_storage(ctx,
+                            function_name, i, rendered_param_type)) {
+                        free(rendered_param_type);
+                        return NULL;
+                    }
+                    free(rendered_param_type);
+                    if (pergyra_ast_type_to_c_copy_in_ctx(ctx,
+                            param->type,
+                            arg_type_buf,
+                            sizeof(arg_type_buf))) {
+                        arg_type = arg_type_buf;
+                    }
                 }
             } else if (call != NULL) {
                 const char *inferred_arg_type = infer_expression_type_name(

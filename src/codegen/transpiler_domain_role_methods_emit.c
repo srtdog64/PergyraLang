@@ -144,7 +144,25 @@ emit_role_vtable_instance(const char *role_name, ASTNode *impl, TranspilerCtx *c
 
     for (size_t j = 0; j < ast_impl_ability_method_count(impl); j++) {
         ASTNode *method = ast_impl_ability_method(impl, j);
-        const char *method_name = ast_declaration_name(method);
+        const MIRDeclMethod *method_meta = NULL;
+        const char *method_name;
+        if (transpiler_active_has_mir(ctx)) {
+            const char *ast_method_name = method != NULL
+                ? ast_declaration_name(method) : NULL;
+            method_meta = transpiler_find_host_method_metadata_in_context(
+                ctx, role_name, ast_method_name);
+            if (method_meta == NULL) {
+                transpiler_set_mir_inventory_missing(
+                    ctx,
+                    "MIR-only C path missing role vtable method metadata for role '%s'",
+                    role_name != NULL ? role_name : "(anonymous-role)");
+                return;
+            }
+            method = transpiler_mir_decl_method_source_ast(method_meta);
+        }
+        method_name = method_meta != NULL
+            ? transpiler_mir_decl_method_name(method_meta)
+            : ast_declaration_name(method);
         if (method == NULL || method->type != AST_FUNC_DECL) {
             transpiler_set_mir_inventory_missing(
                 ctx,
@@ -307,6 +325,13 @@ emit_role_operator_aliases(ASTNode *role, TranspilerCtx *ctx)
                         sizeof(ret_type_storage))) {
                     ret_type = ret_type_storage;
                 }
+            } else if (method_meta != NULL
+                       && return_type != NULL
+                       && return_type->type != AST_EVENT_HANDLER_TYPE) {
+                transpiler_set_mir_inventory_missing(ctx,
+                    "MIR-only C path missing role operator return type-name metadata for role '%s'",
+                    role_name != NULL ? role_name : "(anonymous-role)");
+                return;
             } else if (return_type != NULL
                 && pergyra_ast_type_to_c_copy_in_ctx(ctx,
                     return_type, ret_type_storage,
@@ -329,6 +354,15 @@ emit_role_operator_aliases(ASTNode *role, TranspilerCtx *ctx)
                 ctx, rhs_param_type_name, surface_desc,
                 rhs_type_storage, sizeof(rhs_type_storage))) {
             rhs_type = rhs_type_storage;
+        } else if (method_meta != NULL
+                   && rhs_param_type_name == NULL
+                   && rhs_param != NULL
+                   && rhs_param->type != NULL
+                   && rhs_param->type->type != AST_EVENT_HANDLER_TYPE) {
+            transpiler_set_mir_inventory_missing(ctx,
+                "MIR-only C path missing role operator parameter type-name metadata for role '%s'",
+                role_name != NULL ? role_name : "(anonymous-role)");
+            return;
         } else if (rhs_param_type_name == NULL
             && transpiler_require_ast_c_type_copy(
                 ctx,

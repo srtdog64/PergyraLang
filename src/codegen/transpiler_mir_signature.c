@@ -120,6 +120,17 @@ transpiler_mir_routine_signature_supported(TranspilerCtx *ctx,
     if (return_type_name != NULL) {
         if (!transpiler_mir_type_name_supported(ctx, return_type_name))
             return false;
+    } else if (has_signature
+               && mir_routine_return_type(routine) != NULL
+               && mir_routine_return_type(routine)->type
+                   != AST_EVENT_HANDLER_TYPE) {
+        transpiler_set_mir_inventory_missing(
+            ctx,
+            "MIR-only C path missing function signature return type-name metadata for '%s'",
+            ast_declaration_name(func_decl) != NULL
+                ? ast_declaration_name(func_decl)
+                : "(anonymous)");
+        return false;
     } else if (!transpiler_mir_ast_type_supported(
                    ctx, ast_func_return_type(func_decl))) {
         return false;
@@ -141,6 +152,17 @@ transpiler_mir_routine_signature_supported(TranspilerCtx *ctx,
             if (!transpiler_mir_type_name_supported(ctx, param_type_name))
                 return false;
             continue;
+        }
+        if (has_signature
+            && param->type != NULL
+            && param->type->type != AST_EVENT_HANDLER_TYPE) {
+            transpiler_set_mir_inventory_missing(
+                ctx,
+                "MIR-only C path missing function signature parameter type-name metadata for '%s'",
+                ast_declaration_name(func_decl) != NULL
+                    ? ast_declaration_name(func_decl)
+                    : "(anonymous)");
+            return false;
         }
         if (param->type == NULL)
             continue;

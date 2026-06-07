@@ -313,7 +313,7 @@ llvm_emit_mir_block_with_exprs(const MIRBasicBlock *mir_block,
                                LLVMGenCtx *ctx,
                                LLVMBasicBlockRef *llvm_block_heads,
                                LLVMBasicBlockRef *llvm_block_tails,
-                               LLVMMirVar *vars, size_t var_count, ASTNode *func_decl,
+                               LLVMMirVar *vars, size_t var_count,
                                LLVMClassTypeEntry *owner_cls, LLVMFuncEntry *owner_sync,
                                const char *owner_name)
 {
@@ -354,11 +354,9 @@ llvm_emit_mir_block_with_exprs(const MIRBasicBlock *mir_block,
         return;
     if (!llvm_mir_emit_for_in_body_binding(routine, mir_block, ctx))
         return;
-    if (!llvm_mir_remap_active_match_bindings(routine, mir_block, func_decl,
-                                              ctx))
+    if (!llvm_mir_remap_active_match_bindings(routine, mir_block, ctx))
         return;
-    if (!llvm_mir_emit_match_case_body_binding(routine, mir_block, func_decl,
-                                               ctx))
+    if (!llvm_mir_emit_match_case_body_binding(routine, mir_block, ctx))
         return;
 
     for (size_t i = 0; i < mir_block->instruction_count; i++) {
@@ -435,9 +433,7 @@ llvm_emit_mir_block_with_exprs(const MIRBasicBlock *mir_block,
                     || inst->branch_shape == MIR_BRANCH_FOR_IN) {
                     cond = llvm_mir_emit_for_loop_condition(inst, ctx);
                 } else if (inst->branch_shape == MIR_BRANCH_MATCH_CASE) {
-                    cond = llvm_mir_emit_match_case_condition(func_decl,
-                                                              inst,
-                                                              ctx);
+                    cond = llvm_mir_emit_match_case_condition(inst, ctx);
                 } else if (inst->branch_shape == MIR_BRANCH_SELECT_DISPATCH) {
                     cond = llvm_mir_emit_select_dispatch_condition(
                         source_payload, routine, mir_block->succ_true, ctx);

@@ -129,6 +129,9 @@ mir_add_terminator_instruction(MIRRoutine *routine,
     if (inst.kind == MIR_INST_BRANCH
         && inst.branch_shape == MIR_BRANCH_EXPR)
         inst.expr0 = terminator_condition;
+    else if (inst.kind == MIR_INST_BRANCH
+        && inst.branch_shape == MIR_BRANCH_MATCH_CASE)
+        inst.expr0 = terminator_value;
     else if (inst.kind == MIR_INST_RETURN)
         inst.expr0 = terminator_value;
     if (inst.kind == MIR_INST_BRANCH

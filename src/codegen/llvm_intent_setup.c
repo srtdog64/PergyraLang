@@ -40,15 +40,20 @@ void
 llvm_emit_intent_entry_bindings(LLVMGenCtx *ctx,
                                 ASTNode *node,
                                 LLVMValueRef fn,
-                                const char **binding_kinds,
-                                const char **binding_aliases,
-                                const char **binding_types,
-                                size_t mir_binding_count,
+                                const IntentBindingMetadataView *bindings_view,
                                 size_t param_count,
                                 bool mir_only_intent,
                                 LLVMValueRef *subjects_ptr_out,
                                 size_t *subject_count_out)
 {
+    const char **binding_kinds =
+        bindings_view != NULL ? bindings_view->kinds : NULL;
+    const char **binding_aliases =
+        bindings_view != NULL ? bindings_view->aliases : NULL;
+    const char **binding_types =
+        bindings_view != NULL ? bindings_view->types : NULL;
+    size_t mir_binding_count =
+        bindings_view != NULL ? bindings_view->count : 0;
     size_t subject_count = 0;
     LLVMValueRef subjects_ptr;
 

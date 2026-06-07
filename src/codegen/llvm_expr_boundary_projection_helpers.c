@@ -114,21 +114,71 @@ llvm_build_boundary_call_args(LLVMGenCtx *ctx, ASTNode *decl,
 {
     LLVMValueRef *args;
     unsigned emitted_count = 0;
+    const MIRRoutine *routine = NULL;
+    bool routine_has_signature = false;
+    const char *decl_name = NULL;
+    bool decl_is_generic = false;
+    size_t param_count;
 
     if (out_count != NULL)
         *out_count = 0;
     if (ctx == NULL || decl == NULL || decl->type != AST_FUNC_DECL)
         return NULL;
-    size_t param_count = ast_func_param_count(decl);
+
+    decl_name = ast_declaration_name(decl);
+    decl_is_generic =
+        ast_generic_param_count(ast_declaration_generic_params(decl)) > 0;
+    if (llvm_active_has_mir(ctx) && !decl_is_generic) {
+        routine = llvm_active_function_routine_for_source_ast(ctx, decl);
+        if (routine == NULL) {
+            llvm_set_mir_inventory_missing(ctx,
+                "MIR-only LLVM path missing boundary call routine for '%s'",
+                decl_name != NULL ? decl_name : "(anonymous-function)");
+            return NULL;
+        }
+        if (!llvm_mir_routine_has_signature(routine)) {
+            llvm_set_mir_inventory_missing(ctx,
+                "MIR-only LLVM path missing boundary call signature metadata for '%s'",
+                decl_name != NULL ? decl_name : "(anonymous-function)");
+            return NULL;
+        }
+        routine_has_signature = true;
+    }
+
+    param_count = routine_has_signature
+        ? llvm_mir_routine_param_count(routine)
+        : ast_func_param_count(decl);
     if (argc != param_count)
         return llvm_boundary_args_error(ctx, decl,
             "LLVM boundary call source argument count does not match function signature");
 
     for (size_t i = 0; i < param_count; i++) {
         bool is_secure = false;
-        FuncParam *p = ast_func_param(decl, i);
+        FuncParam *p = routine_has_signature
+            ? llvm_mir_routine_param(routine, i)
+            : ast_func_param(decl, i);
+        const char *param_type_name = routine_has_signature
+            ? llvm_mir_routine_param_type_name(routine, i)
+            : NULL;
+        const char *inner = NULL;
+        if (routine_has_signature
+            && p != NULL
+            && p->type != NULL
+            && p->type->type != AST_EVENT_HANDLER_TYPE
+            && param_type_name == NULL) {
+            llvm_set_mir_inventory_missing(ctx,
+                "MIR-only LLVM path missing boundary call parameter type-name metadata for '%s'",
+                decl_name != NULL ? decl_name : "(anonymous-function)");
+            return NULL;
+        }
         emitted_count++;
-        if (llvm_boundary_slot_inner_name(ctx, p, &is_secure) != NULL && is_secure)
+        inner = param_type_name != NULL
+            ? llvm_boundary_slot_inner_name_from_type_name(ctx, p,
+                param_type_name, &is_secure)
+            : llvm_boundary_slot_inner_name(ctx, p, &is_secure);
+        if (ctx->has_error)
+            return NULL;
+        if (inner != NULL && is_secure)
             emitted_count++;
     }
 
@@ -142,10 +192,23 @@ llvm_build_boundary_call_args(LLVMGenCtx *ctx, ASTNode *decl,
     unsigned emitted_idx = 0;
     for (size_t i = 0; i < param_count && arg_idx < argc; i++) {
         bool is_secure = false;
-        FuncParam *p = ast_func_param(decl, i);
-        const char *inner = llvm_boundary_slot_inner_name(ctx, p, &is_secure);
+        FuncParam *p = routine_has_signature
+            ? llvm_mir_routine_param(routine, i)
+            : ast_func_param(decl, i);
+        const char *param_type_name = routine_has_signature
+            ? llvm_mir_routine_param_type_name(routine, i)
+            : NULL;
+        const char *inner = param_type_name != NULL
+            ? llvm_boundary_slot_inner_name_from_type_name(ctx, p,
+                param_type_name, &is_secure)
+            : llvm_boundary_slot_inner_name(ctx, p, &is_secure);
         ASTNode *arg_node = arg_nodes[arg_idx++];
-        bool pointer_self = llvm_boundary_param_uses_pointer_self(ctx, p);
+        bool pointer_self = param_type_name != NULL
+            ? llvm_type_name_uses_pointer_self(ctx, param_type_name)
+            : llvm_boundary_param_uses_pointer_self(ctx, p);
+
+        if (ctx->has_error)
+            return NULL;
 
         if (inner != NULL && arg_node != NULL && arg_node->type == AST_IDENTIFIER) {
             const char *source_name = ast_identifier_name(arg_node);
@@ -197,10 +260,12 @@ llvm_build_boundary_call_args(LLVMGenCtx *ctx, ASTNode *decl,
 
         {
             LLVMTypeRef saved_ret = ctx->current_ret_type;
-            LLVMTypeRef expected_ty = p != NULL && p->type != NULL
+            LLVMTypeRef expected_ty = param_type_name != NULL
+                ? pergyra_type_to_llvm(ctx, param_type_name)
+                : (p != NULL && p->type != NULL
                 && !llvm_boundary_type_mentions_generic_param(decl, p->type)
                 ? ast_type_to_llvm(ctx, p->type)
-                : NULL;
+                : NULL);
             if (ctx->has_error) {
                 ctx->current_ret_type = saved_ret;
                 return llvm_boundary_args_error(ctx, arg_node,

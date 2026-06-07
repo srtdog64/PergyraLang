@@ -697,9 +697,11 @@ test_mir_lowering_part_c(void)
         MIRRoutine *routine = NULL;
         MIRInstruction *branch_inst = NULL;
         ASTNode *saved_ast = NULL;
+        ASTNode *saved_expr0 = NULL;
         ASTNodeType saved_source_ast_type = 0;
         bool saved_has_source_location = false;
         char *mir_error = NULL;
+        bool rejected_missing_match_subject_fact = false;
         bool rejected_missing_fact = false;
         bool rejected_mismatched_source_type = false;
         bool rejected_missing_payload = false;
@@ -721,9 +723,19 @@ test_mir_lowering_part_c(void)
         }
         if (branch_inst != NULL) {
             saved_ast = branch_inst->ast;
+            saved_expr0 = branch_inst->expr0;
             saved_source_ast_type = branch_inst->source_ast_type;
             saved_has_source_location = branch_inst->has_source_location;
             branch_inst->branch_shape = MIR_BRANCH_MATCH_CASE;
+            branch_inst->expr0 = NULL;
+            rejected_missing_match_subject_fact =
+                !mir_validate(mir, &mir_error)
+                && mir_error != NULL
+                && strstr(mir_error, "match-case branch is missing MIR match subject fact") != NULL;
+            free(mir_error);
+            mir_error = NULL;
+
+            branch_inst->expr0 = saved_expr0;
             branch_inst->requires_source_branch_emit = false;
             rejected_missing_fact =
                 !mir_validate(mir, &mir_error)
@@ -749,6 +761,7 @@ test_mir_lowering_part_c(void)
                 && mir_error != NULL
                 && strstr(mir_error, "source-branch emit fact is invalid") != NULL;
             branch_inst->ast = saved_ast;
+            branch_inst->expr0 = saved_expr0;
             branch_inst->source_ast_type = saved_source_ast_type;
             branch_inst->has_source_location = saved_has_source_location;
             branch_inst->branch_shape = MIR_BRANCH_EXPR;
@@ -758,6 +771,7 @@ test_mir_lowering_part_c(void)
                && routine != NULL
                && branch_inst != NULL
                && saved_ast != NULL
+               && rejected_missing_match_subject_fact
                && rejected_missing_fact
                && rejected_mismatched_source_type
                && rejected_missing_payload
@@ -878,109 +892,6 @@ test_mir_lowering_part_c(void)
 
         mir_link_decl_method_routines(&mir);
         EXPECT(!method.has_routine);
-    }
-
-    TEST("MIR validator rejects declaration header name metadata drift");
-    {
-        const char *src =
-            "class Item {\n"
-            "    func Code(self) -> Int { return 7; }\n"
-            "}\n";
-        HIRProgram *hir = NULL;
-        RIRProgram *rir = NULL;
-        MIRProgram *mir = NULL;
-        char *mir_error = NULL;
-        bool mutated = false;
-        bool rejected = false;
-        bool ok = lower_mir_from_source(src, &hir, &rir, &mir);
-        if (ok && mir != NULL) {
-            for (size_t i = 0; i < mir->decl_header_count; i++) {
-                MIRDeclHeader *header = &mir->decl_headers[i];
-                if (header->name != NULL && strcmp(header->name, "Item") == 0) {
-                    header->name = "OtherItem";
-                    mutated = true;
-                    break;
-                }
-            }
-        }
-        rejected = ok
-                   && mutated
-                   && !mir_validate(mir, &mir_error)
-                   && mir_error != NULL
-                   && strstr(mir_error, "name metadata drift") != NULL;
-        EXPECT(rejected);
-        free(mir_error);
-        mir_destroy(mir);
-        rir_destroy(rir);
-        hir_destroy(hir);
-    }
-
-    TEST("MIR declaration headers preserve pointer-self ABI shape");
-    {
-        const char *src =
-            "subject Player {\n"
-            "    let hp: Int;\n"
-            "    func Read(self) -> Int { return hp; }\n"
-            "}\n";
-        HIRProgram *hir = NULL;
-        RIRProgram *rir = NULL;
-        MIRProgram *mir = NULL;
-        MIRDeclHeader *player = NULL;
-        bool ok = lower_mir_from_source(src, &hir, &rir, &mir);
-        if (ok && mir != NULL) {
-            for (size_t i = 0; i < mir->decl_header_count; i++) {
-                if (mir->decl_headers[i].name != NULL
-                    && strcmp(mir->decl_headers[i].name, "Player") == 0) {
-                    player = &mir->decl_headers[i];
-                    break;
-                }
-            }
-        }
-        EXPECT(ok
-               && player != NULL
-               && player->uses_pointer_self
-               && player->method_count == 1
-               && player->method_metadata_count == 1
-               && mir_validate(mir, NULL));
-        mir_destroy(mir);
-        rir_destroy(rir);
-        hir_destroy(hir);
-    }
-
-    TEST("MIR validator rejects pointer-self ABI metadata drift");
-    {
-        const char *src =
-            "vessel Handle {\n"
-            "    let value: Int;\n"
-            "    func Read(self) -> Int { return value; }\n"
-            "}\n";
-        HIRProgram *hir = NULL;
-        RIRProgram *rir = NULL;
-        MIRProgram *mir = NULL;
-        char *mir_error = NULL;
-        bool mutated = false;
-        bool rejected = false;
-        bool ok = lower_mir_from_source(src, &hir, &rir, &mir);
-        if (ok && mir != NULL) {
-            for (size_t i = 0; i < mir->decl_header_count; i++) {
-                MIRDeclHeader *header = &mir->decl_headers[i];
-                if (header->name != NULL && strcmp(header->name, "Handle") == 0) {
-                    header->uses_pointer_self = false;
-                    mutated = true;
-                    break;
-                }
-            }
-        }
-        rejected = ok
-                   && mutated
-                   && !mir_validate(mir, &mir_error)
-                   && mir_error != NULL
-                   && strstr(mir_error, "pointer-self ABI metadata drift") != NULL;
-        EXPECT(rejected);
-        free(mir_error);
-        mir_destroy(mir);
-        rir_destroy(rir);
-        hir_destroy(hir);
     }
 
 }

@@ -238,6 +238,35 @@ test_hir_lowering(void)
         hir_destroy(hir);
     }
 
+    TEST("HIR records with alias as a CFG local def");
+    {
+        const char *src =
+            "func UseWith() -> Int {\n"
+            "    with slot<Int> as s {\n"
+            "        return 1;\n"
+            "    }\n"
+            "    return 0;\n"
+            "}\n";
+        HIRProgram *hir = lower_from_source(src);
+        const HIRRoutine *use_with =
+            hir_find_routine(hir, "UseWith", HIR_TOPLEVEL_FUNCTION);
+        bool found_alias_def = false;
+        if (use_with != NULL && use_with->has_cfg) {
+            for (size_t i = 0; i < use_with->cfg.block_count; i++) {
+                const HIRBasicBlock *block = &use_with->cfg.blocks[i];
+                for (size_t j = 0; j < block->local_def_count; j++) {
+                    if (strcmp(block->local_defs[j], "s") == 0)
+                        found_alias_def = true;
+                }
+            }
+        }
+        EXPECT(hir != NULL
+               && use_with != NULL
+               && use_with->has_cfg
+               && found_alias_def);
+        hir_destroy(hir);
+    }
+
     TEST("HIR preserves pin block region metadata across CFG blocks");
     {
         const char *src =
@@ -635,6 +664,7 @@ test_hir_lowering(void)
         HIRProgram *hir = lower_from_source(src);
         const HIRRoutine *routine = hir_find_routine(hir, "MatchEdges", HIR_TOPLEVEL_FUNCTION);
         bool found_match_dispatch = false;
+        bool found_match_subject_fact = false;
         bool found_case_return = false;
         bool found_case_join = false;
         bool found_default_join = false;
@@ -645,6 +675,12 @@ test_hir_lowering(void)
                     && block->terminator_condition != NULL
                     && block->terminator_condition->type == AST_MATCH_CASE) {
                     found_match_dispatch = true;
+                    if (block->terminator_value != NULL
+                        && block->terminator_value->type == AST_IDENTIFIER
+                        && strcmp(block->terminator_value->data.identifier.name,
+                                  "value") == 0) {
+                        found_match_subject_fact = true;
+                    }
                 }
                 if (block->terminator_kind == HIR_BLOCK_RETURN) {
                     for (size_t j = 0; j < block->statement_count; j++) {
@@ -684,6 +720,7 @@ test_hir_lowering(void)
                && routine != NULL
                && routine->has_cfg
                && found_match_dispatch
+               && found_match_subject_fact
                && found_case_return
                && found_case_join
                && found_default_join);

@@ -655,9 +655,14 @@ fi
 for match_subject_consumer in \
     "$ROOT_DIR/src/codegen/llvm_mir_match_condition.c" \
     "$ROOT_DIR/src/codegen/transpiler_mir_match_condition_emit.c"; do
-    if ! grep -Fq 'pgy_codegen_match_subject_for_case(func_decl, case_node)' \
+    if ! grep -Fq 'pgy_codegen_match_subject_for_branch(' \
         "$match_subject_consumer"; then
-        echo "[build-source-inventory] MIR match condition must consume codegen match-subject owner: $match_subject_consumer" >&2
+        echo "[build-source-inventory] MIR match condition must consume MIR branch match-subject fact owner: $match_subject_consumer" >&2
+        missing=1
+    fi
+    if grep -Fq 'pgy_codegen_match_subject_for_case(func_decl, case_node)' \
+        "$match_subject_consumer"; then
+        echo "[build-source-inventory] backend MIR match condition regressed to AST case match-subject fallback: $match_subject_consumer" >&2
         missing=1
     fi
     if grep -Fq 'ast_find_match_subject_for_case(ast_func_body(func_decl)' \
@@ -666,9 +671,20 @@ for match_subject_consumer in \
         missing=1
     fi
 done
-if ! grep -Fq 'ast_find_match_subject_for_case(ast_func_body(func_decl)' \
+if ! grep -Fq 'match-case branch is missing MIR match subject fact' \
+    "$ROOT_DIR/src/compiler/mir_fact_terminator_validate.c"; then
+    echo "[build-source-inventory] MIR validator must gate match-case subject facts" >&2
+    missing=1
+fi
+if grep -Fq 'pgy_codegen_match_subject_for_case' \
+    "$ROOT_DIR/src/codegen/codegen_match_subject_lookup.c" \
+    "$ROOT_DIR/src/codegen/codegen_match_subject_lookup.h"; then
+    echo "[build-source-inventory] match-subject owner must not retain AST case compatibility fallback" >&2
+    missing=1
+fi
+if grep -Fq 'ast_find_match_subject_for_case(ast_func_body(func_decl)' \
     "$ROOT_DIR/src/codegen/codegen_match_subject_lookup.c"; then
-    echo "[build-source-inventory] match-subject owner must keep the compatibility AST accessor seam" >&2
+    echo "[build-source-inventory] match-subject owner must consume MIR branch facts only" >&2
     missing=1
 fi
 if ! grep -Fq '$(CODEGEN_DIR)/codegen_match_subject_lookup.c' \
@@ -1129,6 +1145,61 @@ grep -Fq "emit_builtin_file_open" \
     echo "[build-source-inventory] I/O builtin lowering must stay in its compiled owner" >&2
     missing=1
 }
+
+for builtin_fact in \
+    '{ "Contains", "Bool"' \
+    '{ "MapSize", "Int"' \
+    '{ "QueueEmpty", "Bool"' \
+    '{ "QueueSize", "Int"' \
+    '{ "SetHas", "Bool"' \
+    '{ "SetSize", "Int"' \
+    '{ "StringReplace", "String"' \
+    '{ "StringSplit", "Array<String>"' \
+    '{ "StringTrim", "String"' \
+    '{ "Substring", "String"' \
+    '{ "ToLower", "String"' \
+    '{ "ToUpper", "String"'; do
+    if ! grep -Fq "$builtin_fact" \
+        "$ROOT_DIR/src/codegen/transpiler_builtin_type_table.c"; then
+        echo "[build-source-inventory] fixed-return collection builtin type fact missing: $builtin_fact" >&2
+        missing=1
+    fi
+done
+
+for dynamic_numeric in \
+    '{ "Clamp",' \
+    '{ "Max",' \
+    '{ "Min",'; do
+    if grep -Fq "$dynamic_numeric" \
+        "$ROOT_DIR/src/codegen/transpiler_builtin_type_table.c"; then
+        echo "[build-source-inventory] dynamic numeric builtin must not be fixed-return typed: $dynamic_numeric" >&2
+        missing=1
+    fi
+done
+
+for fixed_return_policy_leak in \
+    'TRANS_INFER_CALL_RETURNS_STRING' \
+    'TRANS_INFER_CALL_E' \
+    'TRANS_INFER_CALL_PI' \
+    'TRANS_INFER_CALL_MEASURE' \
+    'TRANS_INFER_CALL_QUBIT_STATE'; do
+    if grep -Fq "$fixed_return_policy_leak" \
+        "$ROOT_DIR/src/codegen/transpiler_expr_type_infer_call_policy.h" \
+        "$ROOT_DIR/src/codegen/transpiler_expr_type_infer_call_policy.c"; then
+        echo "[build-source-inventory] C call inference policy must not own fixed-return builtin fact: $fixed_return_policy_leak" >&2
+        missing=1
+    fi
+done
+
+if grep -R -F "llvm_stmt_call_returns_collection_size" \
+    "$ROOT_DIR/src/codegen" >/dev/null \
+    || grep -R -F "llvm_stmt_call_returns_collection_bool" \
+        "$ROOT_DIR/src/codegen" >/dev/null \
+    || grep -R -F "llvm_stmt_call_returns_domain_bool" \
+        "$ROOT_DIR/src/codegen" >/dev/null; then
+    echo "[build-source-inventory] LLVM type inference regressed to local fixed-return builtin tables" >&2
+    missing=1
+fi
 
 grep -Fq "emit_binary" \
     "$ROOT_DIR/src/codegen/transpiler_expr_core_emit.c" || {

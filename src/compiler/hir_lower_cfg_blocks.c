@@ -111,6 +111,17 @@ hir_cfg_set_branch(HIRBasicBlock *block,
                    size_t succ_true,
                    size_t succ_false)
 {
+    return hir_cfg_set_branch_with_value(block, condition, NULL,
+                                         succ_true, succ_false);
+}
+
+bool
+hir_cfg_set_branch_with_value(HIRBasicBlock *block,
+                              ASTNode *condition,
+                              ASTNode *value,
+                              size_t succ_true,
+                              size_t succ_false)
+{
     if (block == NULL)
         return false;
     block->terminator_kind = HIR_BLOCK_BRANCH;
@@ -119,7 +130,7 @@ hir_cfg_set_branch(HIRBasicBlock *block,
     block->succ_false = succ_false;
     block->has_succ_true = true;
     block->has_succ_false = true;
-    block->terminator_value = NULL;
+    block->terminator_value = value;
     return true;
 }
 

@@ -21,6 +21,7 @@
 #include "transpiler_mir_pending_uses.h"
 #include "transpiler_mir_pin_emit.h"
 #include "transpiler_mir_resource_hook_emit.h"
+#include "transpiler_mir_resource_op_emit.h"
 #include "transpiler_mir_ssa_contract.h"
 #include "transpiler_mir_ssa_entry.h"
 #include "transpiler_mir_ssa_lookup.h"
@@ -136,6 +137,17 @@ emit_func_decl_from_mir_named(ASTNode *node, const MIRRoutine *mir_routine,
         : NULL;
     if (return_type_name != NULL) {
         transpiler_set_current_return_type_local(ctx, return_type_name);
+    } else if (routine_has_signature
+               && return_type != NULL
+               && return_type->type != AST_EVENT_HANDLER_TYPE) {
+        transpiler_set_mir_inventory_missing(
+            ctx,
+            "MIR-only C path missing function body return type-name metadata for '%s'",
+            name != NULL ? name : "(anonymous)");
+        codebuf_destroy(params_sig);
+        transpiler_restore_mir_emit_state_from_snapshot_local(ctx,
+            &saved_emit_state);
+        return;
     } else if (return_type != NULL) {
         char *rendered = render_type_name_in_ctx(ctx, return_type);
         transpiler_set_current_return_type_local(ctx, rendered);
@@ -184,6 +196,20 @@ emit_func_decl_from_mir_named(ASTNode *node, const MIRRoutine *mir_routine,
         }
         event_handler_param =
             p->type != NULL && p->type->type == AST_EVENT_HANDLER_TYPE;
+        if (routine_has_signature
+            && !event_handler_param
+            && type_name == NULL
+            && p->type != NULL) {
+            transpiler_set_mir_inventory_missing(
+                ctx,
+                "MIR-only C path missing function body parameter type-name metadata for '%s'",
+                name != NULL ? name : "(anonymous)");
+            codebuf_destroy(params_sig);
+            free(header_decl);
+            transpiler_restore_mir_emit_state_from_snapshot_local(ctx,
+                &saved_emit_state);
+            return;
+        }
         if (!event_handler_param && type_name != NULL) {
             if (transpiler_require_type_name_c_type_copy(ctx,
                     type_name, "MIR function parameter",
@@ -417,7 +443,8 @@ emit_func_decl_from_mir_named(ASTNode *node, const MIRRoutine *mir_routine,
             free(owned_type_name);
         }
     }
-    transpiler_register_explicit_local_bindings_in_block(ctx, node,
+    transpiler_register_mir_with_slot_claim_facts(ctx, mir_routine);
+    transpiler_register_ast_compat_local_bindings_in_block(ctx, node,
         ast_func_body(node));
 
     if (!transpiler_emit_mir_func_ssa_local_decls(ctx, node, mir_routine, name)) {
@@ -491,7 +518,7 @@ emit_func_decl_from_mir_named(ASTNode *node, const MIRRoutine *mir_routine,
             transpiler_ssa_name_map_set(&block_ssa_map, "self", "self");
         }
         if (!transpiler_emit_mir_explicit_terminator(
-                node, mir_routine, block, i, name, ctx, &block_ssa_map,
+                mir_routine, block, i, name, ctx, &block_ssa_map,
                 &terminator_emitted, block_reason, sizeof(block_reason))) {
             transpiler_ssa_map_clear(&block_ssa_map);
             transpiler_defer_scope_pop(ctx);

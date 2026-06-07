@@ -12,6 +12,7 @@ typedef enum TranspilerMIRAssignmentEmitResult {
 TranspilerMIRAssignmentEmitResult
 transpiler_emit_mir_assignment_def_inst(CodeBuf *buf,
                                         const ASTNode *func_decl,
+                                        const MIRRoutine *mir_routine,
                                         const MIRBasicBlock *block,
                                         const MIRInstruction *inst,
                                         size_t inst_index,

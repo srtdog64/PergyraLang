@@ -14,6 +14,8 @@
 #include "../parser/ast_api.h"
 #include "transpiler_context.h"
 #include "transpiler_decl_lookup.h"
+#include "transpiler_inventory_view.h"
+#include "transpiler_mir_inventory_intent_collect.h"
 #include "transpiler_mir_local_binding.h"
 #include "transpiler_mir_ssa_map.h"
 #include "transpiler_mir_ssa_utils.h"
@@ -42,6 +44,52 @@ transpiler_ssa_strdup_fmt(const char *fmt, ...)
         vsnprintf(buf, (size_t)n + 1, fmt, ap2);
     va_end(ap2);
     return buf;
+}
+
+static bool
+transpiler_mir_routine_has_local_name(const MIRRoutine *routine,
+                                      const char *base_name)
+{
+    if (routine == NULL || base_name == NULL)
+        return false;
+    if (mir_routine_has_signature(routine)) {
+        for (size_t i = 0; i < mir_routine_param_count(routine); i++) {
+            FuncParam *param = mir_routine_param(routine, i);
+            if (param != NULL
+                && param->name != NULL
+                && strcmp(param->name, base_name) == 0) {
+                return true;
+            }
+        }
+    }
+    for (size_t i = 0; i < routine->block_count; i++) {
+        const MIRBasicBlock *block = &routine->blocks[i];
+        if (block == NULL)
+            continue;
+        for (size_t j = 0; j < block->source_local_def_count; j++) {
+            const char *name = block->source_local_defs[j];
+            if (name != NULL && strcmp(name, base_name) == 0)
+                return true;
+        }
+    }
+    return false;
+}
+
+static bool
+transpiler_current_function_has_local_binding(TranspilerCtx *ctx,
+                                              const char *base_name)
+{
+    const MIRRoutine *routine;
+
+    if (ctx == NULL || ctx->current_func_decl == NULL || base_name == NULL)
+        return false;
+    routine = transpiler_find_mir_function(ctx, ctx->current_func_decl);
+    if (routine != NULL)
+        return transpiler_mir_routine_has_local_name(routine, base_name);
+    if (transpiler_active_has_mir(ctx))
+        return false;
+    return transpiler_has_explicit_local_binding(ctx->current_func_decl,
+        base_name);
 }
 
 static bool
@@ -134,8 +182,7 @@ transpiler_is_implicit_field(TranspilerCtx *ctx, const char *base_name)
         return false;
     if (strcmp(base_name, "self") == 0)
         return false;
-    if (ctx->current_func_decl != NULL
-        && transpiler_has_explicit_local_binding(ctx->current_func_decl, base_name))
+    if (transpiler_current_function_has_local_binding(ctx, base_name))
         return false;
     host_decl = transpiler_current_host_decl_local(ctx);
     in_zone_context = (host_decl != NULL && host_decl->type == AST_ZONE_DECL);

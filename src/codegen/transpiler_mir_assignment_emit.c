@@ -37,9 +37,62 @@ transpiler_mir_assignment_target_is_field(TranspilerCtx *ctx,
         || transpiler_current_world_has_field(ctx, target_name);
 }
 
+static bool
+transpiler_mir_routine_has_source_local_name(const MIRRoutine *routine,
+                                             const char *base_name)
+{
+    if (routine == NULL || base_name == NULL)
+        return false;
+    for (size_t i = 0; i < routine->block_count; i++) {
+        const MIRBasicBlock *block = &routine->blocks[i];
+        for (size_t j = 0; j < block->source_local_def_count; j++) {
+            const char *name = block->source_local_defs[j];
+            if (name != NULL && strcmp(name, base_name) == 0)
+                return true;
+        }
+    }
+    return false;
+}
+
+static bool
+transpiler_mir_routine_has_param_name(const MIRRoutine *routine,
+                                      const char *base_name)
+{
+    if (routine == NULL || base_name == NULL
+        || !mir_routine_has_signature(routine)) {
+        return false;
+    }
+    for (size_t i = 0; i < mir_routine_param_count(routine); i++) {
+        FuncParam *param = mir_routine_param(routine, i);
+        if (param != NULL
+            && param->name != NULL
+            && strcmp(param->name, base_name) == 0) {
+            return true;
+        }
+    }
+    return false;
+}
+
+static bool
+transpiler_mir_assignment_target_is_local(const ASTNode *func_decl,
+                                          const MIRRoutine *routine,
+                                          const char *target_name)
+{
+    if (target_name == NULL)
+        return false;
+    if (transpiler_mir_routine_has_param_name(routine, target_name)
+        || transpiler_mir_routine_has_source_local_name(routine, target_name)) {
+        return true;
+    }
+    if (routine != NULL)
+        return false;
+    return transpiler_has_explicit_local_binding(func_decl, target_name);
+}
+
 TranspilerMIRAssignmentEmitResult
 transpiler_emit_mir_assignment_def_inst(CodeBuf *buf,
                                         const ASTNode *func_decl,
+                                        const MIRRoutine *mir_routine,
                                         const MIRBasicBlock *block,
                                         const MIRInstruction *inst,
                                         size_t inst_index,
@@ -100,8 +153,8 @@ transpiler_emit_mir_assignment_def_inst(CodeBuf *buf,
         return TRANSPILE_MIR_ASSIGNMENT_FAILED;
     }
 
-    is_local_binding = transpiler_has_explicit_local_binding(func_decl,
-                                                             target_name);
+    is_local_binding = transpiler_mir_assignment_target_is_local(
+        func_decl, mir_routine, target_name);
     if (!is_local_binding)
         target_is_field = transpiler_mir_assignment_target_is_field(ctx,
                                                                     target_name);
