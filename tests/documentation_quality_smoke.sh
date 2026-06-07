@@ -46,8 +46,10 @@ forbid_text() {
 
 forbid_mojibake_text() {
     local rel="$1"
+    local pattern
 
-    if grep -Eq '留|遺|援|怨|鍮|媛|洹|몄|뺤|쒕|꾩|댄' "$ROOT_DIR/$rel"; then
+    pattern="$(printf '%b' '\357\247\215|\351\201\272|\346\217\264|\346\200\250|\351\215\256|\345\252\233|\346\264\271|\353\252\204|\353\272\244|\354\222\225|\352\276\251|\353\214\204')"
+    if LC_ALL=C grep -Eq "$pattern" "$ROOT_DIR/$rel"; then
         fail "$rel contains likely mojibake text"
     fi
 }

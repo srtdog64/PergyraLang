@@ -227,7 +227,7 @@ emit_enum_decl_stmt(ASTNode *node, TranspilerCtx *ctx)
         codebuf_write(ctx->out, ")\n{\n");
         transpiler_emit_host_method_body_local(
             ctx,
-            transpiler_find_decl_in_inventory_local(ctx, AST_ENUM_DECL, ename),
+            transpiler_find_named_decl_local(ctx, AST_ENUM_DECL, ename),
             ename,
             method,
             NULL,

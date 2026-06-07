@@ -2,6 +2,45 @@
 #include "type_checker_ownership_consumers_internal.h"
 #include "diag_codes.h"
 #include "type_checker_flow_internal.h"
+#include "../parser/ast_analysis.h"
+
+static bool
+parallel_reject_shared_collection_capture(ASTNode *task,
+                                          SemanticContext *ctx)
+{
+    if (task == NULL || ctx == NULL)
+        return false;
+
+    for (Scope *scope = ctx->scope; scope != NULL; scope = scope->parent) {
+        for (size_t i = 0; i < scope->symbol_count; i++) {
+            Symbol *sym = scope->symbols[i];
+            const char *kind = sym != NULL
+                ? worker_boundary_storage_display_name(sym->type)
+                : NULL;
+            if (kind == NULL || sym->name == NULL)
+                continue;
+            if (!ast_contains_free_identifier_ref(task, sym->name))
+                continue;
+
+            semantic_error_with_hints(ctx,
+                PGY_CODE_SEM_BORROW_ESCAPE,
+                PGY_CAUSE_BORROW_ESCAPE,
+                PGY_FIX_SERIALIZE_OUTSIDE_PARALLEL,
+                task,
+                "Parallel task cannot capture mutable collection '%s' (%s<T>) by shared pointer.\n"
+                "Reason:\n"
+                "- Array/Slice/List/Queue/Set/HashMap storage can grow, rehash, or alias during task execution\n"
+                "- concurrent worker access would make the generated C/LLVM pointer handoff undefined behavior\n"
+                "Fix:\n"
+                "- copy the collection before entering parallel\n"
+                "- or send values through a channel/result boundary",
+                sym->name,
+                kind);
+            return true;
+        }
+    }
+    return false;
+}
 
 bool
 type_check_parallel_block(ASTNode *node, SemanticContext *ctx)
@@ -92,6 +131,8 @@ type_check_parallel_block_flow(ASTNode *node, SemanticContext *ctx)
     for (size_t i = 0; i < ast_parallel_task_count(node); i++) {
         ASTNode *task = ast_parallel_task(node, i);
         ResourceConsumeSnapshot task_snap = {0};
+        if (parallel_reject_shared_collection_capture(task, ctx))
+            break;
         restore_resource_states(&base);
         scope_enter(&ctx->scope, SCOPE_BLOCK);
         (void)type_check_statement_flow(task, ctx, NULL);

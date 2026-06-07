@@ -10,6 +10,7 @@
 #include "scheduler.h"
 #include "fiber.h"
 #include "concurrent_queue.h"
+#include "../pgy_runtime_panic_contract.h"
 
 static void
 scheduler_ops_warn(const char* op, const char* reason, Scheduler* scheduler)
@@ -131,7 +132,10 @@ void SchedulerUnblock(Fiber* fiber)
             scheduler_ops_warn("unblock", "scheduler global queue is null", scheduler);
             return;
         }
-        ConcurrentQueuePush(scheduler->globalRunQueue, fiber);
+        if (!ConcurrentQueuePush(scheduler->globalRunQueue, fiber)) {
+            PGY_RUNTIME_PANIC(PGY_RUNTIME_PANIC_CLASS_INTERNAL_INVARIANT,
+                              "scheduler failed to unblock fiber");
+        }
         
         /* Wake a parked worker */
         if (atomic_load(&scheduler->parkedWorkers) > 0) {
@@ -169,7 +173,10 @@ bool SchedulerStealWork(WorkerThread* thief)
     /* Try to steal from victim's local queue */
     void* stolen = ConcurrentQueuePop(victim->localRunQueue);
     if (stolen != NULL) {
-        ConcurrentQueuePush(thief->localRunQueue, stolen);
+        if (!ConcurrentQueuePush(thief->localRunQueue, stolen)) {
+            PGY_RUNTIME_PANIC(PGY_RUNTIME_PANIC_CLASS_INTERNAL_INVARIANT,
+                              "scheduler failed to enqueue stolen fiber");
+        }
         atomic_fetch_add(&thief->stealSuccesses, 1);
         return true;
     }

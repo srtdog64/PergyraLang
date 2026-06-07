@@ -18,7 +18,7 @@ emit_roster_decl(ASTNode *node, TranspilerCtx *ctx)
 
     if (name == NULL)
         return;
-    inventory_decl = transpiler_find_decl_in_inventory_local(
+    inventory_decl = transpiler_find_named_decl_local(
         ctx, AST_ROSTER_DECL, name);
     if (inventory_decl != NULL)
         node = inventory_decl;

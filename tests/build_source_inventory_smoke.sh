@@ -28,6 +28,70 @@ inventory="$(
         | grep -Ev '^make\[[0-9]+\]: (Entering|Leaving) directory '
 )"
 missing=0
+PGY_RG_BIN=""
+if command -v rg >/dev/null 2>&1; then
+    pgy_rg_candidate="$(command -v rg)"
+    if "$pgy_rg_candidate" --version >/dev/null 2>&1; then
+        PGY_RG_BIN="$pgy_rg_candidate"
+    fi
+fi
+PGY_GIT_AVAILABLE=0
+if command -v git >/dev/null 2>&1 \
+    && git -C "$ROOT_DIR" rev-parse --is-inside-work-tree >/dev/null 2>&1; then
+    PGY_GIT_AVAILABLE=1
+fi
+
+pgy_normalize_scan_paths()
+{
+    sed 's#\\#/#g'
+}
+
+pgy_git_scan_E()
+{
+    local ext_pattern="$1"
+    local pattern="$2"
+    shift 2
+
+    (
+        cd "$ROOT_DIR"
+        git grep -nE "$pattern" -- "$@" || true
+        git ls-files --others --exclude-standard -- "$@" \
+            | grep -E "$ext_pattern" \
+            | xargs -r grep -InE "$pattern" || true
+    ) | pgy_normalize_scan_paths
+}
+
+pgy_scan_ch_E()
+{
+    local pattern="$1"
+    shift
+
+    if [[ -n "$PGY_RG_BIN" ]]; then
+        (cd "$ROOT_DIR" && "$PGY_RG_BIN" -n --glob '*.c' --glob '*.h' -e "$pattern" "$@" || true) \
+            | pgy_normalize_scan_paths
+    elif [[ "$PGY_GIT_AVAILABLE" == "1" ]]; then
+        pgy_git_scan_E '\.(c|h)$' "$pattern" "$@"
+    else
+        (cd "$ROOT_DIR" && grep -RInE "$pattern" "$@" --include='*.c' --include='*.h' || true) \
+            | pgy_normalize_scan_paths
+    fi
+}
+
+pgy_scan_sh_E()
+{
+    local pattern="$1"
+    shift
+
+    if [[ -n "$PGY_RG_BIN" ]]; then
+        (cd "$ROOT_DIR" && "$PGY_RG_BIN" -n --glob '*.sh' -e "$pattern" "$@" || true) \
+            | pgy_normalize_scan_paths
+    elif [[ "$PGY_GIT_AVAILABLE" == "1" ]]; then
+        pgy_git_scan_E '\.sh$' "$pattern" "$@"
+    else
+        (cd "$ROOT_DIR" && grep -RInE "$pattern" "$@" --include='*.sh' || true) \
+            | pgy_normalize_scan_paths
+    fi
+}
 
 if ! grep -Fq 'pgy_mkdir_p = $(BASH) -c "mkdir -p $(1)"' \
     "$ROOT_DIR/Makefile"; then
@@ -124,9 +188,7 @@ if command -v git >/dev/null 2>&1 \
 fi
 
 typo_tokens="$(
-    grep -RInE '\b(retun|stncmp|retun_type|infer_spawn_retun)\b' \
-        "$ROOT_DIR/src" \
-        --include='*.c' --include='*.h' || true
+    pgy_scan_ch_E '\b(retun|stncmp|retun_type|infer_spawn_retun)\b' src
 )"
 typo_tokens="$(
     printf '%s\n' "$typo_tokens" \
@@ -140,9 +202,7 @@ if [[ -n "$typo_tokens" ]]; then
 fi
 
 local_windows_path_helpers="$(
-    cd "$ROOT_DIR"
-    grep -RInE 'cygpath[[:space:]]+-(m|w)|wslpath[[:space:]]+-(m|w)' tests \
-        --include='*.sh' || true
+    pgy_scan_sh_E 'cygpath[[:space:]]+-(m|w)|wslpath[[:space:]]+-(m|w)' tests
 )"
 local_windows_path_helpers="$(
     printf '%s\n' "$local_windows_path_helpers" \
@@ -155,9 +215,7 @@ if [[ -n "$local_windows_path_helpers" ]]; then
 fi
 
 portable_grep_violations="$(
-    cd "$ROOT_DIR"
-    grep -RInE 'grep[[:space:]][^;&|]*-[A-Za-z]*P' tests \
-        --include='*.sh' \
+    pgy_scan_sh_E 'grep[[:space:]][^;&|]*-[A-Za-z]*P' tests \
         | grep -v '^tests/build_source_inventory_smoke.sh:' || true
 )"
 if [[ -n "$portable_grep_violations" ]]; then
@@ -167,9 +225,7 @@ if [[ -n "$portable_grep_violations" ]]; then
 fi
 
 hardcoded_usr_bin_tools="$(
-    cd "$ROOT_DIR"
-    grep -RInE '/usr/bin/(time|bash|python|python3)' tests \
-        --include='*.sh' \
+    pgy_scan_sh_E '/usr/bin/(time|bash|python|python3)' tests \
         | grep -v '^tests/build_source_inventory_smoke.sh:' || true
 )"
 if [[ -n "$hardcoded_usr_bin_tools" ]]; then
@@ -179,9 +235,7 @@ if [[ -n "$hardcoded_usr_bin_tools" ]]; then
 fi
 
 legacy_c_declarator_consumers="$(
-    cd "$ROOT_DIR"
-    grep -RInE 'pergyra_(ast_typed_declarator|func_pointer_declarator_from_decl)\(' \
-        src/codegen --include='*.c' --include='*.h' \
+    pgy_scan_ch_E 'pergyra_(ast_typed_declarator|func_pointer_declarator_from_decl)\(' src/codegen \
         | grep -v '^src/codegen/transpiler_type_declarator\.[ch]:' || true
 )"
 if [[ -n "$legacy_c_declarator_consumers" ]]; then
@@ -191,9 +245,7 @@ if [[ -n "$legacy_c_declarator_consumers" ]]; then
 fi
 
 legacy_c_type_copy_consumers="$(
-    cd "$ROOT_DIR"
-    grep -RInE 'pergyra_ast_type_to_c_copy\(' \
-        src/codegen --include='*.c' --include='*.h' \
+    pgy_scan_ch_E 'pergyra_ast_type_to_c_copy\(' src/codegen \
         | grep -v '^src/codegen/transpiler_type_render\.[ch]:' || true
 )"
 if [[ -n "$legacy_c_type_copy_consumers" ]]; then
@@ -203,9 +255,7 @@ if [[ -n "$legacy_c_type_copy_consumers" ]]; then
 fi
 
 legacy_type_name_render_consumers="$(
-    cd "$ROOT_DIR"
-    grep -RInE '(^|[^_[:alnum:]])render_type_name\(' \
-        src/codegen --include='*.c' --include='*.h' \
+    pgy_scan_ch_E '(^|[^_[:alnum:]])render_type_name\(' src/codegen \
         | grep -v '^src/codegen/transpiler_type_render\.[ch]:' || true
 )"
 if [[ -n "$legacy_type_name_render_consumers" ]]; then
@@ -250,9 +300,7 @@ if [[ -n "$c_type_requirement_owner_violations" ]]; then
 fi
 
 raw_c_type_copy_consumers="$(
-    cd "$ROOT_DIR"
-    grep -RIn 'pergyra_type_to_c_copy(' \
-        src/codegen --include='*.c' --include='*.h' \
+    pgy_scan_ch_E 'pergyra_type_to_c_copy\(' src/codegen \
         | grep -v '^src/codegen/transpiler\.h:' \
         | grep -v '^src/codegen/transpiler_type_mapping\.[ch]:' \
         | grep -v '^src/codegen/transpiler_type_render\.c:' \
@@ -265,14 +313,11 @@ if [[ -n "$raw_c_type_copy_consumers" ]]; then
 fi
 
 direct_option_result_vocabulary="$(
-    cd "$ROOT_DIR"
     {
-        grep -RIn 'strcmp(' src/parser src/semantic src/codegen \
-            --include='*.c' --include='*.h' \
+        pgy_scan_ch_E 'strcmp\(' src/parser src/semantic src/codegen \
             | grep -E '"(Some|None|Ok|Err)"' || true
-        grep -RInE '\{[[:space:]]*"(Some|None|Ok|Err)"' \
-            src/parser src/semantic src/codegen \
-            --include='*.c' --include='*.h' || true
+        pgy_scan_ch_E '\{[[:space:]]*"(Some|None|Ok|Err)"' \
+            src/parser src/semantic src/codegen || true
     } | grep -v '^src/common/match_variant_policy\.[ch]:' \
         | grep -v '^src/codegen/codegen_match_variant_policy\.[ch]:' || true
 )"
@@ -282,9 +327,7 @@ if [[ -n "$direct_option_result_vocabulary" ]]; then
     missing=1
 fi
 direct_option_result_tag_spelling="$(
-    cd "$ROOT_DIR"
-    grep -RInE 'Pgy(Option(Some|None)|Result(Ok|Err))' src/codegen \
-        --include='*.c' --include='*.h' \
+    pgy_scan_ch_E 'Pgy(Option(Some|None)|Result(Ok|Err))' src/codegen \
         | grep -v '^src/codegen/codegen_match_variant_policy\.[ch]:' \
         | grep -v '^src/codegen/transpiler_specialization_registry\.c:' || true
 )"
@@ -339,6 +382,17 @@ if ! grep -Fq 'run_windows_native_binary_fallback' "$ROOT_DIR/tests/compare_back
     echo "[build-source-inventory] backend compare must keep Windows native 126/127 fallback" >&2
     missing=1
 fi
+for make_term in \
+    'PGY_WINDOWS_MSYS_BASH_CANDIDATES' \
+    '/usr/bin/bash.exe' \
+    'PGY_WINDOWS_BASH_IS_MSYS' \
+    'ci-windows requires MSYS2 bash'
+do
+    if ! grep -Fq "$make_term" "$ROOT_DIR/Makefile"; then
+        echo "[build-source-inventory] Windows CI shell source-of-truth missing Makefile term: $make_term" >&2
+        missing=1
+    fi
+done
 if ! grep -Fq 'pgy_binary_is_runnable_here()' "$ROOT_DIR/tests/pgy_binary_path_helpers.sh"; then
     echo "[build-source-inventory] shared path helper must classify current-host runnable compiler binaries" >&2
     missing=1
@@ -377,6 +431,11 @@ if ! grep -Fq 'pgy_powershell_quote' "$ROOT_DIR/tests/compare_backends.sh"; then
 fi
 if ! grep -Fq 'pgy_powershell_quote()' "$ROOT_DIR/tests/pgy_binary_path_helpers.sh"; then
     echo "[build-source-inventory] PowerShell path quoting must live in the shared binary path helper" >&2
+    missing=1
+fi
+if ! grep -Fq 'pgy_windows_powershell_path_prefix_from_current_path()' "$ROOT_DIR/tests/pgy_binary_path_helpers.sh" \
+    || ! grep -Fq 'pgy_windows_powershell_path_prefix_from_current_path' "$ROOT_DIR/tests/compare_backends.sh"; then
+    echo "[build-source-inventory] backend compare PowerShell fallback must consume the current Bash launch PATH" >&2
     missing=1
 fi
 if ! grep -Fq 'pgy_windows_path_is_git_runtime()' "$ROOT_DIR/tests/pgy_binary_path_helpers.sh" \
@@ -421,6 +480,13 @@ if ! grep -Fq 'PGY_BACKEND_COMPARE_PRECHECK ?= 1' "$ROOT_DIR/Makefile" \
     echo "[build-source-inventory] backend compare precheck must remain overrideable and default-on" >&2
     missing=1
 fi
+if ! grep -Fq 'PGY_BACKEND_COMPARE_START_INDEX' "$ROOT_DIR/tests/compare_backends.sh" \
+    || ! grep -Fq 'PGY_BACKEND_COMPARE_MAX_CASES' "$ROOT_DIR/tests/compare_backends.sh" \
+    || ! grep -Fq 'PGY_BACKEND_COMPARE_START_INDEX="$(PGY_BACKEND_COMPARE_START_INDEX)"' "$ROOT_DIR/Makefile" \
+    || ! grep -Fq 'PGY_BACKEND_COMPARE_MAX_CASES="$(PGY_BACKEND_COMPARE_MAX_CASES)"' "$ROOT_DIR/Makefile"; then
+    echo "[build-source-inventory] backend compare must keep deterministic range/limit selection wired" >&2
+    missing=1
+fi
 if ! grep -Fq 'backend-compare-linux:' "$ROOT_DIR/.github/workflows/ci.yml" \
     || ! grep -Fq 'PGY_BACKEND_COMPARE_PRECHECK=0' "$ROOT_DIR/.github/workflows/ci.yml" \
     || ! grep -Fq 'PGY_BACKEND_COMPARE_SHARD_TOTAL=20' "$ROOT_DIR/.github/workflows/ci.yml" \
@@ -435,8 +501,7 @@ if [[ -d "$ROOT_DIR/src/self_hosted/parity" ]]; then
 fi
 
 bash4_only_smoke_terms="$(
-    cd "$ROOT_DIR"
-    grep -RInE '(^|[^A-Za-z0-9_])(mapfile|readarray)([^A-Za-z0-9_]|$)|(^|[[:space:]])(declare|typeset)[[:space:]]+-A([^A-Za-z0-9_]|$)|\$\{[^}]+(,,|\^\^)[^}]*\}' "${bash4_lint_dirs[@]}" --include='*.sh' \
+    pgy_scan_sh_E '(^|[^A-Za-z0-9_])(mapfile|readarray)([^A-Za-z0-9_]|$)|(^|[[:space:]])(declare|typeset)[[:space:]]+-A([^A-Za-z0-9_]|$)|\$\{[^}]+(,,|\^\^)[^}]*\}' "${bash4_lint_dirs[@]}" \
         | grep -v '^tests/build_source_inventory_smoke.sh:' || true
 )"
 if [[ -n "$bash4_only_smoke_terms" ]]; then
@@ -446,8 +511,7 @@ if [[ -n "$bash4_only_smoke_terms" ]]; then
 fi
 
 multiline_case_continuations="$(
-    cd "$ROOT_DIR"
-    grep -RInE '\|\\$' "${bash4_lint_dirs[@]}" --include='*.sh' \
+    pgy_scan_sh_E '\|\\$' "${bash4_lint_dirs[@]}" \
         | grep -v '^tests/build_source_inventory_smoke.sh:' || true
 )"
 if [[ -n "$multiline_case_continuations" ]]; then
@@ -457,9 +521,7 @@ if [[ -n "$multiline_case_continuations" ]]; then
 fi
 
 semantic_self_include_leaks="$(
-    cd "$ROOT_DIR"
-    grep -RIn '#include "\.\./semantic/' src/semantic \
-        --include='*.c' --include='*.h' || true
+    pgy_scan_ch_E '#include "\.\./semantic/' src/semantic
 )"
 if [[ -n "$semantic_self_include_leaks" ]]; then
     printf '%s\n' "$semantic_self_include_leaks" >&2
@@ -468,9 +530,7 @@ if [[ -n "$semantic_self_include_leaks" ]]; then
 fi
 
 rir_program_root_bridge="$(
-    cd "$ROOT_DIR"
-    grep -RInE 'g_rir_program_root|rir_set_program_root|rir_program_root\(\)' src/compiler \
-        --include='*.c' --include='*.h' || true
+    pgy_scan_ch_E 'g_rir_program_root|rir_set_program_root|rir_program_root\(\)' src/compiler
 )"
 if [[ -n "$rir_program_root_bridge" ]]; then
     printf '%s\n' "$rir_program_root_bridge" >&2
@@ -489,9 +549,7 @@ if ! grep -Fq 'ASTNode         *program_root;' "$ROOT_DIR/src/compiler/rir.h"; t
 fi
 
 lsp_ast_payload_leaks="$(
-    cd "$ROOT_DIR"
-    grep -RInE 'data\.program|data\.(func_decl|class_decl|ability_decl|role_decl|party_decl|roster_decl|world_decl|relation_decl|effect_decl|zone_decl|enum_decl|type_alias)\.name' src/lsp \
-        --include='*.c' --include='*.h' || true
+    pgy_scan_ch_E 'data\.program|data\.(func_decl|class_decl|ability_decl|role_decl|party_decl|roster_decl|world_decl|relation_decl|effect_decl|zone_decl|enum_decl|type_alias)\.name' src/lsp
 )"
 if [[ -n "$lsp_ast_payload_leaks" ]]; then
     printf '%s\n' "$lsp_ast_payload_leaks" >&2
@@ -500,9 +558,7 @@ if [[ -n "$lsp_ast_payload_leaks" ]]; then
 fi
 
 lsp_unclamped_offsets="$(
-    cd "$ROOT_DIR"
-    grep -RInE 'off[[:space:]]*\+=[[:space:]]*\(size_t\)n|if[[:space:]]*\(n[[:space:]]*>[[:space:]]*0\)[[:space:]]*off[[:space:]]*\+=' src/lsp \
-        --include='*.c' --include='*.h' || true
+    pgy_scan_ch_E 'off[[:space:]]*\+=[[:space:]]*\(size_t\)n|if[[:space:]]*\(n[[:space:]]*>[[:space:]]*0\)[[:space:]]*off[[:space:]]*\+=' src/lsp
 )"
 if [[ -n "$lsp_unclamped_offsets" ]]; then
     printf '%s\n' "$lsp_unclamped_offsets" >&2
@@ -511,9 +567,7 @@ if [[ -n "$lsp_unclamped_offsets" ]]; then
 fi
 
 lsp_ignored_offset_status="$(
-    cd "$ROOT_DIR"
-    grep -RInE '^[[:space:]]*lsp_advance_json_offset[[:space:]]*\([^;]*\);' src/lsp \
-        --include='*.c' --include='*.h' || true
+    pgy_scan_ch_E '^[[:space:]]*lsp_advance_json_offset[[:space:]]*\([^;]*\);' src/lsp
 )"
 if [[ -n "$lsp_ignored_offset_status" ]]; then
     printf '%s\n' "$lsp_ignored_offset_status" >&2
@@ -521,30 +575,28 @@ if [[ -n "$lsp_ignored_offset_status" ]]; then
     missing=1
 fi
 
-if grep -RInq 'json_find_string(' "$ROOT_DIR/src/lsp" \
-    --include='*.c' --include='*.h'; then
-    grep -RIn 'json_find_string(' "$ROOT_DIR/src/lsp" \
-        --include='*.c' --include='*.h' >&2 || true
+json_find_string_uses="$(pgy_scan_ch_E 'json_find_string\(' src/lsp)"
+if [[ -n "$json_find_string_uses" ]]; then
+    printf '%s\n' "$json_find_string_uses" >&2
     echo "[build-source-inventory] LSP string extraction must use copy/dup ownership lanes" >&2
     missing=1
 fi
 for lsp_json_term in \
     "json_find_string_copy" \
     "json_find_string_dup"; do
-    if ! grep -RInq "$lsp_json_term" "$ROOT_DIR/src/lsp" \
-        --include='*.c' --include='*.h'; then
+    if [[ -z "$(pgy_scan_ch_E "$lsp_json_term" src/lsp)" ]]; then
         echo "[build-source-inventory] LSP missing JSON string ownership lane: $lsp_json_term" >&2
         missing=1
     fi
 done
-if grep -RInq 'atoi(' "$ROOT_DIR/src/lsp" --include='*.c' --include='*.h'; then
-    grep -RIn 'atoi(' "$ROOT_DIR/src/lsp" --include='*.c' --include='*.h' >&2 || true
+lsp_atoi_uses="$(pgy_scan_ch_E 'atoi\(' src/lsp)"
+if [[ -n "$lsp_atoi_uses" ]]; then
+    printf '%s\n' "$lsp_atoi_uses" >&2
     echo "[build-source-inventory] LSP external numeric parsing must use checked strtol-style parsing, not atoi" >&2
     missing=1
 fi
 unchecked_atoi_uses="$(
-    cd "$ROOT_DIR"
-    grep -RIn 'atoi(' src --include='*.c' --include='*.h' || true
+    pgy_scan_ch_E 'atoi\(' src
 )"
 if [[ -n "$unchecked_atoi_uses" ]]; then
     printf '%s\n' "$unchecked_atoi_uses" >&2
@@ -552,10 +604,8 @@ if [[ -n "$unchecked_atoi_uses" ]]; then
     missing=1
 fi
 unchecked_numeric_parse_uses="$(
-    cd "$ROOT_DIR"
-    grep -RInE 'strtol\(|strtoul\(|strtoll\(|strtoull\(' \
+    pgy_scan_ch_E 'strtol\(|strtoul\(|strtoll\(|strtoull\(' \
         src/compiler src/parser src/lsp src/codegen src/semantic \
-        --include='*.c' --include='*.h' \
         | grep -v '^src/common/numeric_parse.c:' || true
 )"
 if [[ -n "$unchecked_numeric_parse_uses" ]]; then
@@ -565,10 +615,8 @@ if [[ -n "$unchecked_numeric_parse_uses" ]]; then
 fi
 
 mutable_static_char_arrays="$(
-    cd "$ROOT_DIR"
-    grep -RInE 'static[[:space:]]+char[[:space:]]+[A-Za-z0-9_]+[[:space:]]*\[[^]]+\]' \
-        src/codegen src/semantic src/compiler src/lsp \
-        --include='*.c' --include='*.h' || true
+    pgy_scan_ch_E 'static[[:space:]]+char[[:space:]]+[A-Za-z0-9_]+[[:space:]]*\[[^]]+\]' \
+        src/codegen src/semantic src/compiler src/lsp
 )"
 unexpected_static_char_arrays="$(
     printf '%s\n' "$mutable_static_char_arrays" \
@@ -581,10 +629,8 @@ if [[ -n "$unexpected_static_char_arrays" ]]; then
     missing=1
 fi
 mutable_static_char_pointers="$(
-    cd "$ROOT_DIR"
-    grep -RInE 'static[[:space:]]+char[[:space:]]+\*[[:space:]]*[A-Za-z0-9_]+[[:space:]]*(=|;)' \
-        src/codegen src/semantic src/compiler src/lsp \
-        --include='*.c' --include='*.h' || true
+    pgy_scan_ch_E 'static[[:space:]]+char[[:space:]]+\*[[:space:]]*[A-Za-z0-9_]+[[:space:]]*(=|;)' \
+        src/codegen src/semantic src/compiler src/lsp
 )"
 if [[ -n "$mutable_static_char_pointers" ]]; then
     printf '%s\n' "$mutable_static_char_pointers" >&2
@@ -592,10 +638,8 @@ if [[ -n "$mutable_static_char_pointers" ]]; then
     missing=1
 fi
 top_level_mutable_statics="$(
-    cd "$ROOT_DIR"
-    grep -RInE '^static[[:space:]]+[A-Za-z_][A-Za-z0-9_[:space:]]*\*?[[:space:]]*[A-Za-z_][A-Za-z0-9_]*(\[[^]]+\])?[[:space:]]*(=|;)' \
+    pgy_scan_ch_E '^static[[:space:]]+[A-Za-z_][A-Za-z0-9_[:space:]]*\*?[[:space:]]*[A-Za-z_][A-Za-z0-9_]*(\[[^]]+\])?[[:space:]]*(=|;)' \
         src/codegen src/semantic src/compiler src/lsp \
-        --include='*.c' --include='*.h' \
         | grep -Ev '^([^:]+:){2}static[[:space:]]+(const|inline)([[:space:]]|$)' || true
 )"
 unexpected_top_level_mutable_statics="$(
@@ -654,8 +698,7 @@ for select_atomic_term in \
 done
 
 if grep -Fq 'pgy_detect_c_compiler' "$ROOT_DIR/src/compiler/compiler_toolchain.h" \
-    || grep -RInq 'pgy_cc_extra_target_flag' "$ROOT_DIR/src/compiler" \
-        --include='*.c' --include='*.h'; then
+    || [[ -n "$(pgy_scan_ch_E 'pgy_cc_extra_target_flag' src/compiler)" ]]; then
     echo "[build-source-inventory] compiler toolchain selection must use caller-owned PgyCCompilerSelection" >&2
     missing=1
 fi
@@ -671,9 +714,8 @@ if awk '
 fi
 
 local_compiler_file_readers="$(
-    cd "$ROOT_DIR"
-    grep -RInE 'fseek\(|ftell\(|fread\(buf' \
-        src/compiler/debugger.c src/compiler/fmt_io.c || true
+    pgy_scan_ch_E 'fseek\(|ftell\(|fread\(buf' \
+        src/compiler/debugger.c src/compiler/fmt_io.c
 )"
 if [[ -n "$local_compiler_file_readers" ]]; then
     printf '%s\n' "$local_compiler_file_readers" >&2
@@ -780,9 +822,8 @@ grep -Fq "transpiler_collect_mir_intent_who_aliases" \
     missing=1
 }
 
-if grep -RIn "ASTNode \\*subject_type = ast_intent_involves_subject_type(involves);" \
-    "$ROOT_DIR/src/codegen" \
-    --include='*.c' --include='*.h'; then
+if [[ -n "$(pgy_scan_ch_E 'ASTNode \*subject_type = ast_intent_involves_subject_type\(involves\);' \
+    src/codegen)" ]]; then
     echo "[build-source-inventory] intent participant accessors must check involves before reading subject_type" >&2
     missing=1
 fi
@@ -797,9 +838,8 @@ for intent_zone_slot_term in \
     }
 done
 
-if grep -RIn "resolve_intent_zone_slot_name_for_zone_with_metadata\\|intent_zone_binding_type_name_with_metadata" \
-    "$ROOT_DIR/src/codegen" \
-    --include='*.c' --include='*.h'; then
+if [[ -n "$(pgy_scan_ch_E 'resolve_intent_zone_slot_name_for_zone_with_metadata|intent_zone_binding_type_name_with_metadata' \
+    src/codegen)" ]]; then
     echo "[build-source-inventory] legacy participant-array intent zone-slot metadata API must not reappear" >&2
     missing=1
 fi

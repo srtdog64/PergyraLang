@@ -49,23 +49,25 @@ llvm_domain_forward_operator_name(char *out,
 
 const char *
 llvm_domain_method_name_metadata_first(const MIRDeclMethod *method_meta,
-                                       ASTNode *method)
+                                       ASTNode *method,
+                                       bool allow_ast_compat)
 {
     const char *name = llvm_mir_decl_method_name(method_meta);
     if (name != NULL)
         return name;
-    if (method != NULL && method->type == AST_FUNC_DECL)
+    if (allow_ast_compat && method != NULL && method->type == AST_FUNC_DECL)
         return ast_declaration_name(method);
     return NULL;
 }
 
 size_t
 llvm_domain_method_param_count_metadata_first(const MIRDeclMethod *method_meta,
-                                              ASTNode *method)
+                                              ASTNode *method,
+                                              bool allow_ast_compat)
 {
     if (method_meta != NULL)
         return llvm_mir_decl_method_param_count(method_meta);
-    if (method != NULL && method->type == AST_FUNC_DECL)
+    if (allow_ast_compat && method != NULL && method->type == AST_FUNC_DECL)
         return ast_func_param_count(method);
     return 0;
 }
@@ -73,12 +75,13 @@ llvm_domain_method_param_count_metadata_first(const MIRDeclMethod *method_meta,
 FuncParam *
 llvm_domain_method_param_metadata_first(const MIRDeclMethod *method_meta,
                                         ASTNode *method,
-                                        size_t index)
+                                        size_t index,
+                                        bool allow_ast_compat)
 {
     FuncParam *param = llvm_mir_decl_method_param(method_meta, index);
     if (param != NULL)
         return param;
-    if (method != NULL && method->type == AST_FUNC_DECL)
+    if (allow_ast_compat && method != NULL && method->type == AST_FUNC_DECL)
         return ast_func_param(method, index);
     return NULL;
 }
@@ -87,13 +90,19 @@ const char *
 llvm_domain_method_param_type_name_metadata_first(
     const MIRDeclMethod *method_meta,
     ASTNode *method,
-    size_t index)
+    size_t index,
+    bool allow_ast_compat)
 {
     const char *type_name =
         llvm_mir_decl_method_param_type_name(method_meta, index);
     if (type_name != NULL)
         return type_name;
-    if (method != NULL && method->type == AST_FUNC_DECL) {
+    if (method_meta != NULL) {
+        FuncParam *param = llvm_mir_decl_method_param(method_meta, index);
+        if (param != NULL && param->type != NULL)
+            return ast_type_name(param->type);
+    }
+    if (allow_ast_compat && method != NULL && method->type == AST_FUNC_DECL) {
         FuncParam *param = ast_func_param(method, index);
         if (param != NULL && param->type != NULL)
             return ast_type_name(param->type);
@@ -103,12 +112,13 @@ llvm_domain_method_param_type_name_metadata_first(
 
 ASTNode *
 llvm_domain_method_return_type_metadata_first(const MIRDeclMethod *method_meta,
-                                              ASTNode *method)
+                                              ASTNode *method,
+                                              bool allow_ast_compat)
 {
     ASTNode *return_type = llvm_mir_decl_method_return_type(method_meta);
     if (return_type != NULL)
         return return_type;
-    if (method != NULL && method->type == AST_FUNC_DECL)
+    if (allow_ast_compat && method != NULL && method->type == AST_FUNC_DECL)
         return ast_func_return_type(method);
     return NULL;
 }
@@ -116,13 +126,19 @@ llvm_domain_method_return_type_metadata_first(const MIRDeclMethod *method_meta,
 const char *
 llvm_domain_method_return_type_name_metadata_first(
     const MIRDeclMethod *method_meta,
-    ASTNode *method)
+    ASTNode *method,
+    bool allow_ast_compat)
 {
     const char *type_name =
         llvm_mir_decl_method_return_type_name(method_meta);
     if (type_name != NULL)
         return type_name;
-    if (method != NULL && method->type == AST_FUNC_DECL) {
+    if (method_meta != NULL) {
+        ASTNode *return_type = llvm_mir_decl_method_return_type(method_meta);
+        if (return_type != NULL)
+            return ast_type_name(return_type);
+    }
+    if (allow_ast_compat && method != NULL && method->type == AST_FUNC_DECL) {
         ASTNode *return_type = ast_func_return_type(method);
         if (return_type != NULL)
             return ast_type_name(return_type);
@@ -206,6 +222,7 @@ llvm_emit_domain_method_forward_decls(LLVMGenCtx *ctx,
         const MIRDeclMethod *method_meta =
             llvm_hosted_method_view_metadata(methods, j);
         ASTNode *method = llvm_hosted_method_view_source_ast(methods, j);
+        bool allow_ast_compat = method_meta == NULL;
         const char *mname;
         ASTNode *return_type;
         const char *return_type_name;
@@ -227,14 +244,17 @@ llvm_emit_domain_method_forward_decls(LLVMGenCtx *ctx,
         if (method_meta == NULL && (method == NULL || method->type != AST_FUNC_DECL))
             continue;
 
-        mname = llvm_domain_method_name_metadata_first(method_meta, method);
-        pc = llvm_domain_method_param_count_metadata_first(method_meta, method);
+        mname = llvm_domain_method_name_metadata_first(
+            method_meta, method, allow_ast_compat);
+        pc = llvm_domain_method_param_count_metadata_first(
+            method_meta, method, allow_ast_compat);
         ret = ctx->type_void;
         return_type_name =
             llvm_domain_method_return_type_name_metadata_first(
-                method_meta, method);
+                method_meta, method, allow_ast_compat);
         return_type =
-            llvm_domain_method_return_type_metadata_first(method_meta, method);
+            llvm_domain_method_return_type_metadata_first(
+                method_meta, method, allow_ast_compat);
         if (return_type_name != NULL) {
             ret = pergyra_type_to_llvm(ctx, return_type_name);
             if (ctx->has_error || ret == NULL)
@@ -247,7 +267,8 @@ llvm_emit_domain_method_forward_decls(LLVMGenCtx *ctx,
 
         for (size_t k = 0; k < pc; k++) {
             FuncParam *p =
-                llvm_domain_method_param_metadata_first(method_meta, method, k);
+                llvm_domain_method_param_metadata_first(
+                    method_meta, method, k, allow_ast_compat);
             if (!llvm_param_is_implicit_self_local(p))
                 user_pc++;
         }
@@ -264,10 +285,11 @@ llvm_emit_domain_method_forward_decls(LLVMGenCtx *ctx,
         ptypes[0] = LLVMPointerType(struct_ty, 0);
         for (size_t k = 0; k < pc; k++) {
             FuncParam *p =
-                llvm_domain_method_param_metadata_first(method_meta, method, k);
+                llvm_domain_method_param_metadata_first(
+                    method_meta, method, k, allow_ast_compat);
             const char *type_name =
                 llvm_domain_method_param_type_name_metadata_first(
-                    method_meta, method, k);
+                    method_meta, method, k, allow_ast_compat);
             LLVMClassTypeEntry *param_cls = NULL;
             if (llvm_param_is_implicit_self_local(p))
                 continue;

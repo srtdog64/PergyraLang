@@ -73,8 +73,19 @@ AsyncScope* AsyncScopeCreate(AsyncScope* parent)
     }
     
     /* Initialize mutex */
-    pthread_mutex_init(&scope->fiberListMutex, NULL);
-    pthread_mutex_init(&scope->disposeMutex, NULL);
+    if (pthread_mutex_init(&scope->fiberListMutex, NULL) != 0) {
+        async_scope_warn("create", "fiber-list mutex initialization failed", scope);
+        free(scope->fibers);
+        free(scope);
+        return NULL;
+    }
+    if (pthread_mutex_init(&scope->disposeMutex, NULL) != 0) {
+        async_scope_warn("create", "dispose mutex initialization failed", scope);
+        pthread_mutex_destroy(&scope->fiberListMutex);
+        free(scope->fibers);
+        free(scope);
+        return NULL;
+    }
     
     /* Set parent scope */
     scope->parentScope = parent;
@@ -100,14 +111,17 @@ void AsyncScopeDestroy(AsyncScope* scope)
     }
     
     scope->isDisposed = true;
+    pthread_mutex_unlock(&scope->disposeMutex);
     
+    /* Do not hold disposeMutex while waiting: a running child may attempt a
+     * same-scope spawn, observe isDisposed, and return. Holding the lifecycle
+     * lock here would deadlock that child against Destroy/WaitAll. */
+
     /* Cancel all fibers */
     AsyncScopeCancel(scope);
     
     /* Wait for all fibers to complete */
     AsyncScopeWaitAll(scope);
-    
-    pthread_mutex_unlock(&scope->disposeMutex);
     
     /* Clean up resources */
     pthread_mutex_destroy(&scope->fiberListMutex);
@@ -216,23 +230,28 @@ typedef struct ScopedFiberData {
 static void ScopedFiberWrapper(void* arg)
 {
     ScopedFiberData* data = (ScopedFiberData*)arg;
-    AsyncScope* scope = data->scope;
-    FiberStartRoutine routine = data->originalRoutine;
-    void* originalArg = data->originalArg;
+    AsyncScope* scope;
+    FiberStartRoutine routine;
+    void* originalArg;
+    Fiber* currentFiber;
+
+    if (data == NULL)
+        return;
+
+    scope = data->scope;
+    routine = data->originalRoutine;
+    originalArg = data->originalArg;
     
     /* Free wrapper data */
     free(data);
-    
-    /* Check cancellation before starting */
-    if (AsyncScopeIsCancelled(scope)) {
-        return;
-    }
-    
-    /* Execute the original routine */
-    routine(originalArg);
-    
-    /* Remove from scope when done */
-    Fiber* currentFiber = FiberGetCurrent();
+
+    currentFiber = FiberGetCurrent();
+
+    /* Remove from scope on every exit path; cancel-before-start must not hang
+     * AsyncScopeDestroy/WaitAll. */
+    if (!AsyncScopeIsCancelled(scope) && routine != NULL)
+        routine(originalArg);
+
     AsyncScopeRemoveFiber(scope, currentFiber);
 }
 
@@ -243,26 +262,37 @@ Fiber* AsyncScopeSpawn(AsyncScope* scope, FiberStartRoutine work, void* arg)
 
 Fiber* AsyncScopeSpawnWithPriority(AsyncScope* scope, FiberStartRoutine work, void* arg, uint32_t priority)
 {
-    if (scope == NULL || work == NULL || scope->isDisposed) {
+    Scheduler* scheduler;
+    ScopedFiberData* data;
+    Fiber* fiber;
+
+    if (scope == NULL || work == NULL) {
         if (scope == NULL) {
             async_scope_warn("spawn", "scope is null", scope);
-        } else if (work == NULL) {
-            async_scope_warn("spawn", "work routine is null", scope);
         } else {
-            async_scope_warn("spawn", "scope is disposed", scope);
+            async_scope_warn("spawn", "work routine is null", scope);
         }
+        return NULL;
+    }
+
+    pthread_mutex_lock(&scope->disposeMutex);
+    if (scope->isDisposed) {
+        pthread_mutex_unlock(&scope->disposeMutex);
+        async_scope_warn("spawn", "scope is disposed", scope);
         return NULL;
     }
     
     /* Check if already cancelled */
     if (AsyncScopeIsCancelled(scope)) {
+        pthread_mutex_unlock(&scope->disposeMutex);
         async_scope_warn("spawn", "scope is cancelled", scope);
         return NULL;
     }
     
     /* Create wrapper data */
-    ScopedFiberData* data = (ScopedFiberData*)malloc(sizeof(ScopedFiberData));
+    data = (ScopedFiberData*)malloc(sizeof(ScopedFiberData));
     if (data == NULL) {
+        pthread_mutex_unlock(&scope->disposeMutex);
         async_scope_warn("spawn", "wrapper allocation failed", scope);
         return NULL;
     }
@@ -272,18 +302,20 @@ Fiber* AsyncScopeSpawnWithPriority(AsyncScope* scope, FiberStartRoutine work, vo
     data->originalArg = arg;
     
     /* Get current scheduler */
-    Scheduler* scheduler = SchedulerGetCurrent();
+    scheduler = SchedulerGetCurrent();
     if (scheduler == NULL) {
         async_scope_warn("spawn", "no current scheduler", scope);
         free(data);
+        pthread_mutex_unlock(&scope->disposeMutex);
         return NULL;
     }
     
     /* Create fiber through scheduler */
-    Fiber* fiber = FiberCreate(ScopedFiberWrapper, data);
+    fiber = FiberCreate(ScopedFiberWrapper, data);
     if (fiber == NULL) {
         async_scope_warn("spawn", "fiber creation failed", scope);
         free(data);
+        pthread_mutex_unlock(&scope->disposeMutex);
         return NULL;
     }
     
@@ -298,6 +330,7 @@ Fiber* AsyncScopeSpawnWithPriority(AsyncScope* scope, FiberStartRoutine work, vo
         async_scope_warn("spawn", "scope tracking failed", scope);
         FiberDestroy(fiber);
         free(data);
+        pthread_mutex_unlock(&scope->disposeMutex);
         return NULL;
     }
     
@@ -307,9 +340,11 @@ Fiber* AsyncScopeSpawnWithPriority(AsyncScope* scope, FiberStartRoutine work, vo
         AsyncScopeForgetFiber(scope, fiber);
         FiberDestroy(fiber);
         free(data);
+        pthread_mutex_unlock(&scope->disposeMutex);
         return NULL;
     }
     
+    pthread_mutex_unlock(&scope->disposeMutex);
     return fiber;
 }
 
@@ -416,12 +451,28 @@ bool AsyncScopeWaitAllWithTimeout(AsyncScope* scope, uint64_t timeoutNs)
 
 bool AsyncScopeHasError(AsyncScope* scope)
 {
-    return scope != NULL && scope->hasError;
+    bool hasError;
+
+    if (scope == NULL)
+        return false;
+
+    pthread_mutex_lock(&scope->fiberListMutex);
+    hasError = scope->hasError;
+    pthread_mutex_unlock(&scope->fiberListMutex);
+    return hasError;
 }
 
 const char* AsyncScopeGetFirstError(AsyncScope* scope)
 {
-    return scope != NULL ? scope->firstError : NULL;
+    const char* firstError;
+
+    if (scope == NULL)
+        return NULL;
+
+    pthread_mutex_lock(&scope->fiberListMutex);
+    firstError = scope->firstError;
+    pthread_mutex_unlock(&scope->fiberListMutex);
+    return firstError;
 }
 
 AsyncScope* AsyncScopeCreateNested(AsyncScope* parent)

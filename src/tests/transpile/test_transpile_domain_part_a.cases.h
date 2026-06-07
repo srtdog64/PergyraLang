@@ -130,6 +130,7 @@ test_ability_role_emit(void)
 
         ASTNode *abilities[1] = { &ability_node };
         ASTNode *roles[1] = { &role_node };
+        char *impl_param_type_names[1] = { "Int" };
         MIRProgram mir; memset(&mir, 0, sizeof(mir));
         MIRRoutine routine; memset(&routine, 0, sizeof(routine));
         MIRDeclHeader role_header; memset(&role_header, 0, sizeof(role_header));
@@ -143,14 +144,22 @@ test_ability_role_emit(void)
         routine.ast = &impl_method;
         routine.owner_name = "CourierRoute";
         routine.owner_ast_type = AST_ROLE_DECL;
+        routine.has_signature = true;
+        routine.params = impl_params;
+        routine.param_type_names = impl_param_type_names;
+        routine.param_count = 1;
+        routine.return_type = impl_method.data.func_decl.return_type;
+        routine.return_type_name = "String";
         mir.routines = &routine;
         mir.routine_count = 1;
         role_method.source_ast = &impl_method;
         role_method.name = "BatchMark";
         role_method.owner_name = "CourierRoute";
         role_method.params = impl_params;
+        role_method.param_type_names = impl_param_type_names;
         role_method.param_count = 1;
         role_method.return_type = impl_method.data.func_decl.return_type;
+        role_method.return_type_name = "String";
         role_method.has_routine = true;
         role_method.routine_index = 0;
         role_header.name = "CourierRoute";

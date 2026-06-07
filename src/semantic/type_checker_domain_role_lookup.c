@@ -36,8 +36,14 @@ role_lookup_find_decl_by_name(ASTNode *program, const char *role_name)
 ASTNode *
 semantic_find_role_decl_by_name(SemanticContext *ctx, const char *role_name)
 {
+    ASTNode *decl;
+
     if (ctx == NULL || role_name == NULL)
         return NULL;
+    decl = semantic_host_index_find_decl_by_name(ctx, AST_ROLE_DECL,
+                                                 role_name);
+    if (decl != NULL || ctx->host_decl_index.count > 0)
+        return decl;
     return role_lookup_find_decl_by_name(role_lookup_program(ctx), role_name);
 }
 

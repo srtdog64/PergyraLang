@@ -1,6 +1,12 @@
 #ifndef PGY_RUNTIME_LIST_GENERIC_INLINE_H
 #define PGY_RUNTIME_LIST_GENERIC_INLINE_H
 
+/* Growable runtime storage is not a synchronization boundary.
+ * The semantic layer must reject raw Array/Slice/List/Queue/Set/HashMap
+ * transport across parallel/async/worker boundaries unless an explicit copy or
+ * pinned read-only view owner is used.
+ */
+
 #define PGY_LIST_DEFINE(SuffixName, CType) \
 typedef struct \
 { \

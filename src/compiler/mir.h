@@ -225,11 +225,13 @@ typedef struct
     ASTNode           *ast;
     bool               is_action_like;
     bool               has_signature;
+    size_t             generic_param_count;
     FuncParam        **params;
     char             **param_type_names;
     size_t             param_count;
     ASTNode           *return_type;
     char              *return_type_name;
+    const char        *within_zone;
     const HIRRoutine  *hir_routine;
     const RIRScope    *rir_scope;
     MIRBasicBlock     *blocks;
@@ -330,10 +332,22 @@ typedef struct
 
 typedef struct
 {
+    /* Source compatibility/provenance only; generic inventory lives below. */
+    GenericParam *source_param;
+    const char   *name;
+    ASTNode      *bound_ast;
+    ASTNode      *default_arg_ast;
+} MIRDeclGenericParam;
+
+typedef struct
+{
     /* Source compatibility/provenance only; declaration inventory lives below. */
     ASTNode     *source_ast;
     ASTNodeType  ast_type;
     const char  *name;
+    size_t       generic_param_count;
+    MIRDeclGenericParam *generic_metadata;
+    size_t       generic_metadata_count;
     size_t       method_count;
     MIRDeclMethod *method_metadata;
     size_t       method_metadata_count;
@@ -342,6 +356,12 @@ typedef struct
     size_t       field_metadata_count;
     bool         uses_pointer_self;
 } MIRDeclHeader;
+
+typedef struct
+{
+    const MIRDeclHeader *headers;
+    size_t               count;
+} MIRDeclHeaderInventory;
 
 struct MIRProgram
 {
@@ -497,14 +517,26 @@ void        mir_routine_inventory_from_program(
 const MIRRoutine *mir_routine_inventory_get(
                 const MIRRoutineInventory *inventory,
                 size_t index);
+void        mir_decl_header_inventory_from_program(
+                const MIRProgram *mir,
+                MIRDeclHeaderInventory *inventory);
+const MIRDeclHeader *mir_decl_header_inventory_get(
+                const MIRDeclHeaderInventory *inventory,
+                size_t index);
 ASTNode    *mir_routine_source_ast(const MIRRoutine *routine);
+MIRScopeKind mir_routine_kind(const MIRRoutine *routine);
+const char *mir_routine_name(const MIRRoutine *routine);
+const char *mir_routine_owner_name(const MIRRoutine *routine);
+ASTNodeType mir_routine_owner_ast_type(const MIRRoutine *routine);
 bool        mir_routine_has_signature(const MIRRoutine *routine);
+size_t      mir_routine_generic_param_count(const MIRRoutine *routine);
 size_t      mir_routine_param_count(const MIRRoutine *routine);
 FuncParam  *mir_routine_param(const MIRRoutine *routine, size_t index);
 const char *mir_routine_param_type_name(const MIRRoutine *routine,
                                         size_t index);
 ASTNode    *mir_routine_return_type(const MIRRoutine *routine);
 const char *mir_routine_return_type_name(const MIRRoutine *routine);
+const char *mir_routine_within_zone(const MIRRoutine *routine);
 void        mir_mutable_routine_inventory_from_program(
                 MIRProgram *mir,
                 MIRMutableRoutineInventory *inventory);
@@ -513,6 +545,10 @@ MIRRoutine *mir_mutable_routine_inventory_get(
                 size_t index);
 ASTNode     *mir_find_function_decl(const MIRProgram *mir, const char *name);
 const MIRDeclHeader *mir_find_decl_header(const MIRProgram *mir, const char *name);
+const MIRDeclHeader *mir_find_decl_header_of_type(
+                const MIRProgram *mir,
+                ASTNodeType ast_type,
+                const char *name);
 bool        mir_program_has_main_function(const MIRProgram *mir);
 const char *mir_program_main_function_name(const MIRProgram *mir);
 bool        mir_program_has_top_level_exec(const MIRProgram *mir);

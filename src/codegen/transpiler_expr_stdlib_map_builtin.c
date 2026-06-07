@@ -95,6 +95,25 @@ transpiler_map_emit_arg(TranspilerCtx *ctx,
     return NULL;
 }
 
+static const char *
+transpiler_map_require_supported_key(TranspilerCtx *ctx,
+                                     const char *builtin_name,
+                                     const char *key_name)
+{
+    const char *infix = pgy_hashmap_key_c_infix(key_name);
+
+    if (infix != NULL)
+        return infix;
+    transpiler_set_backend_error_with_hints(
+        ctx,
+        PGY_CODE_C_TYPE_UNSUPPORTED,
+        PGY_CAUSE_C_TYPE_UNSUPPORTED,
+        PGY_FIX_ANNOTATE_CONCRETE_TYPE,
+        "C backend: map builtin %s requires stable HashMap<Bool|Int|Long|String, T> key metadata",
+        builtin_name != NULL ? builtin_name : "(unknown)");
+    return NULL;
+}
+
 char *
 emit_call_stdlib_map_builtin(const char *fn, ASTNode *call, TranspilerCtx *ctx)
 {
@@ -152,9 +171,15 @@ emit_call_stdlib_map_builtin(const char *fn, ASTNode *call, TranspilerCtx *ctx)
         char value_buf[64];
         const char *key = NULL;
         const char *value = NULL;
+        const char *key_infix;
         if (!transpiler_require_hashmap_type(ctx, map_type, "MapSet",
                 key_buf, sizeof(key_buf), value_buf, sizeof(value_buf),
                 &key, &value)) {
+            free(m); free(k); free(v);
+            return NULL;
+        }
+        key_infix = transpiler_map_require_supported_key(ctx, "MapSet", key);
+        if (key_infix == NULL) {
             free(m); free(k); free(v);
             return NULL;
         }
@@ -163,7 +188,7 @@ emit_call_stdlib_map_builtin(const char *fn, ASTNode *call, TranspilerCtx *ctx)
         collection_runtime_suffix_copy(value, suffix_buf, sizeof(suffix_buf));
         char *result = strdup_fmt(
             "pgy_map_set%s_%s(&%s, %s, %s)",
-            pgy_hashmap_key_c_infix(key),
+            key_infix,
             suffix_buf, m, k, v);
         free(m); free(k); free(v);
         return result;
@@ -188,9 +213,15 @@ emit_call_stdlib_map_builtin(const char *fn, ASTNode *call, TranspilerCtx *ctx)
         char value_buf[64];
         const char *key = NULL;
         const char *value = NULL;
+        const char *key_infix;
         if (!transpiler_require_hashmap_type(ctx, map_type, "MapGet",
                 key_buf, sizeof(key_buf), value_buf, sizeof(value_buf),
                 &key, &value)) {
+            free(m); free(k);
+            return NULL;
+        }
+        key_infix = transpiler_map_require_supported_key(ctx, "MapGet", key);
+        if (key_infix == NULL) {
             free(m); free(k);
             return NULL;
         }
@@ -199,7 +230,7 @@ emit_call_stdlib_map_builtin(const char *fn, ASTNode *call, TranspilerCtx *ctx)
         collection_runtime_suffix_copy(value, suffix_buf, sizeof(suffix_buf));
         char *result = strdup_fmt(
             "pgy_map_get%s_%s(&%s, %s)",
-            pgy_hashmap_key_c_infix(key),
+            key_infix,
             suffix_buf, m, k);
         free(m); free(k);
         return result;
@@ -224,9 +255,15 @@ emit_call_stdlib_map_builtin(const char *fn, ASTNode *call, TranspilerCtx *ctx)
         char value_buf[64];
         const char *key = NULL;
         const char *value = NULL;
+        const char *key_infix;
         if (!transpiler_require_hashmap_type(ctx, map_type, "MapHas",
                 key_buf, sizeof(key_buf), value_buf, sizeof(value_buf),
                 &key, &value)) {
+            free(m); free(k);
+            return NULL;
+        }
+        key_infix = transpiler_map_require_supported_key(ctx, "MapHas", key);
+        if (key_infix == NULL) {
             free(m); free(k);
             return NULL;
         }
@@ -235,7 +272,7 @@ emit_call_stdlib_map_builtin(const char *fn, ASTNode *call, TranspilerCtx *ctx)
         collection_runtime_suffix_copy(value, suffix_buf, sizeof(suffix_buf));
         char *result = strdup_fmt(
             "pgy_map_has%s_%s(&%s, %s)",
-            pgy_hashmap_key_c_infix(key),
+            key_infix,
             suffix_buf, m, k);
         free(m); free(k);
         return result;
@@ -260,9 +297,15 @@ emit_call_stdlib_map_builtin(const char *fn, ASTNode *call, TranspilerCtx *ctx)
         char value_buf[64];
         const char *key = NULL;
         const char *value = NULL;
+        const char *key_infix;
         if (!transpiler_require_hashmap_type(ctx, map_type, "MapRemove",
                 key_buf, sizeof(key_buf), value_buf, sizeof(value_buf),
                 &key, &value)) {
+            free(m); free(k);
+            return NULL;
+        }
+        key_infix = transpiler_map_require_supported_key(ctx, "MapRemove", key);
+        if (key_infix == NULL) {
             free(m); free(k);
             return NULL;
         }
@@ -271,7 +314,7 @@ emit_call_stdlib_map_builtin(const char *fn, ASTNode *call, TranspilerCtx *ctx)
         collection_runtime_suffix_copy(value, suffix_buf, sizeof(suffix_buf));
         char *result = strdup_fmt(
             "pgy_map_remove%s_%s(&%s, %s)",
-            pgy_hashmap_key_c_infix(key),
+            key_infix,
             suffix_buf, m, k);
         free(m); free(k);
         return result;
@@ -317,9 +360,15 @@ emit_call_stdlib_map_builtin(const char *fn, ASTNode *call, TranspilerCtx *ctx)
         char value_buf[64];
         const char *key = NULL;
         const char *value = NULL;
+        const char *key_infix;
         if (!transpiler_require_hashmap_type(ctx, map_type, "MapKeys",
                 key_buf, sizeof(key_buf), value_buf, sizeof(value_buf),
                 &key, &value)) {
+            free(m);
+            return NULL;
+        }
+        key_infix = transpiler_map_require_supported_key(ctx, "MapKeys", key);
+        if (key_infix == NULL) {
             free(m);
             return NULL;
         }
@@ -328,7 +377,7 @@ emit_call_stdlib_map_builtin(const char *fn, ASTNode *call, TranspilerCtx *ctx)
         collection_runtime_suffix_copy(value, suffix_buf, sizeof(suffix_buf));
         char *result = strdup_fmt(
             "pgy_map_keys%s_%s(&%s)",
-            pgy_hashmap_key_c_infix(key),
+            key_infix,
             suffix_buf, m);
         free(m);
         return result;

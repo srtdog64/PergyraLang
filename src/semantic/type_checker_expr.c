@@ -309,15 +309,20 @@ type_check_expression(ASTNode *expr, SemanticContext *ctx)
         {
             ASTNode *awaited = ast_await_expression(expr);
             Type *future_type = type_check_expression(awaited, ctx);
+            bool is_local_future = future_type != NULL
+                && type_equals(type_constructed_constructor(future_type),
+                    TYPE_FUTURE);
+            bool is_remote_future = future_type != NULL
+                && type_equals(type_constructed_constructor(future_type),
+                    TYPE_REMOTE_FUTURE);
             if (future_type != NULL
-                && (type_equals(type_constructed_constructor(future_type), TYPE_FUTURE)
-                    || type_equals(type_constructed_constructor(future_type), TYPE_REMOTE_FUTURE))
+                && (is_local_future || is_remote_future)
                 && type_constructed_arg_count(future_type) == 1) {
                 Type *inner = type_constructed_arg(future_type, 0);
                 /* RemoteFuture<T> -> Result<T>: remote operations can fail
                  * (network partition, timeout, etc.) so the result must be
                  * explicitly handled. Local Future<T> -> T as before. */
-                if (type_equals(type_constructed_constructor(future_type), TYPE_REMOTE_FUTURE)) {
+                if (is_remote_future) {
                     if (type_equals(inner, TYPE_VOID)) {
                         semantic_error_with_hints(ctx,
                             PGY_CODE_SEM_REMOTE_FUTURE_MISUSE,
@@ -330,8 +335,18 @@ type_check_expression(ASTNode *expr, SemanticContext *ctx)
                             "Result<Void> ABI is frozen");
                         return TYPE_UNKNOWN;
                     }
+                    Symbol *awaited_sym = lookup_identifier_symbol(awaited, ctx);
+                    if (awaited_sym != NULL) {
+                        awaited_sym->is_consumed = true;
+                        awaited_sym->is_used = true;
+                    }
                     Type *result_args[1] = { inner };
                     return type_create_constructed(TYPE_RESULT, result_args, 1);
+                }
+                Symbol *awaited_sym = lookup_identifier_symbol(awaited, ctx);
+                if (awaited_sym != NULL) {
+                    awaited_sym->is_consumed = true;
+                    awaited_sym->is_used = true;
                 }
                 return inner;
             }

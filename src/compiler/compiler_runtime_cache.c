@@ -96,8 +96,13 @@ compiler_runtime_cache_is_fresh(const char *cache_obj_path)
         PGY_RUNTIME_DIR "/pgy_runtime_lib_channel_quantum_exports.h",
         PGY_RUNTIME_DIR "/pgy_runtime_lib_channel_int_exports.h",
         PGY_RUNTIME_DIR "/pgy_runtime_lib_channel_string_exports.h",
+        PGY_RUNTIME_DIR "/pgy_runtime_lib_channel_string_result_exports.h",
         PGY_RUNTIME_DIR "/pgy_runtime_lib_qubit_state_exports.h",
         PGY_RUNTIME_DIR "/pgy_runtime_lib_quantum_exports.h",
+        PGY_RUNTIME_DIR "/pgy_parallel.h",
+        PGY_RUNTIME_DIR "/pgy_parallel_blocking.h",
+        PGY_RUNTIME_DIR "/pgy_parallel_coroutine.h",
+        PGY_RUNTIME_DIR "/pgy_parallel_run.h",
         PGY_RUNTIME_DIR "/pgy_runtime_platform_io_core.h",
         PGY_RUNTIME_DIR "/pgy_runtime_process_exit.h",
         PGY_RUNTIME_DIR "/pgy_runtime_inline_core.h",
@@ -121,6 +126,7 @@ compiler_runtime_cache_is_fresh(const char *cache_obj_path)
         PGY_RUNTIME_DIR "/pgy_runtime_zone_result_option_inline.h",
         PGY_RUNTIME_DIR "/pgy_runtime_channel_inline.h",
         PGY_RUNTIME_DIR "/pgy_runtime_channel_string_inline.h",
+        PGY_RUNTIME_DIR "/pgy_runtime_channel_string_result_inline.h",
         PGY_RUNTIME_DIR "/pgy_runtime_io_qubit_inline.h",
         NULL
     };

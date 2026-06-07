@@ -8,9 +8,11 @@
 #include "../parser/ast_api.h"
 
 #include "codegen_slot_type_policy.h"
+#include "transpiler_context.h"
 #include "transpiler_decl_lookup.h"
 #include "transpiler_expr_type_infer.h"
 #include "transpiler_let_slot_emit.h"
+#include "transpiler_inventory_view.h"
 #include "transpiler_mir_effective_type.h"
 #include "transpiler_nominal.h"
 #include "transpiler_symbols.h"
@@ -42,6 +44,63 @@ const char *
 transpiler_find_local_type_name(TranspilerCtx *ctx,
                                 const ASTNode *func_decl,
                                 const char *base_name);
+
+static const MIRRoutine *
+transpiler_find_active_function_routine_for_call(TranspilerCtx *ctx,
+                                                const ASTNode *callee_decl,
+                                                const char *callee_name)
+{
+    TranspilerMIRRoutineInventory inventory;
+
+    if (ctx == NULL || !transpiler_active_has_mir(ctx)
+        || callee_decl == NULL || callee_name == NULL) {
+        return NULL;
+    }
+
+    transpiler_active_routine_inventory(ctx, &inventory);
+    for (size_t i = 0; i < inventory.count; i++) {
+        const MIRRoutine *routine =
+            transpiler_routine_inventory_get(&inventory, i);
+        const char *routine_name = transpiler_mir_routine_name(routine);
+        if (routine == NULL
+            || transpiler_mir_routine_kind(routine) != MIR_SCOPE_FUNCTION)
+            continue;
+        if (transpiler_mir_routine_source_ast(routine)
+            == (ASTNode *)callee_decl) {
+            return routine;
+        }
+        if (transpiler_mir_routine_owner_name(routine) == NULL
+            && routine_name != NULL
+            && strcmp(routine_name, callee_name) == 0) {
+            return routine;
+        }
+    }
+
+    return NULL;
+}
+
+static const MIRRoutine *
+transpiler_find_active_routine_for_source_ast(TranspilerCtx *ctx,
+                                             const ASTNode *source_ast)
+{
+    TranspilerMIRRoutineInventory inventory;
+
+    if (ctx == NULL || !transpiler_active_has_mir(ctx) || source_ast == NULL)
+        return NULL;
+
+    transpiler_active_routine_inventory(ctx, &inventory);
+    for (size_t i = 0; i < inventory.count; i++) {
+        const MIRRoutine *routine =
+            transpiler_routine_inventory_get(&inventory, i);
+        if (routine != NULL
+            && transpiler_mir_routine_source_ast(routine)
+                == (ASTNode *)source_ast) {
+            return routine;
+        }
+    }
+
+    return NULL;
+}
 
 const char *
 transpiler_infer_local_type_name_from_expr(TranspilerCtx *ctx,
@@ -152,7 +211,8 @@ transpiler_infer_local_type_name_from_expr(TranspilerCtx *ctx,
                         ctx, method_return_type_name);
                 method_return_type =
                     transpiler_mir_decl_method_return_type(method_meta);
-                if (method_return_type == NULL && method_meta == NULL) {
+                if (method_return_type == NULL && method_meta == NULL
+                    && !transpiler_active_has_mir(ctx)) {
                     method_decl = find_nominal_host_method_decl(
                         ctx, receiver_type, method_name);
                     method_return_type = ast_func_return_type(method_decl);
@@ -175,10 +235,36 @@ transpiler_infer_local_type_name_from_expr(TranspilerCtx *ctx,
             ASTNode *callee_return_type;
             if (callee_decl != NULL && callee_decl->type == AST_INTENT_DECL)
                 return "Bool";
-            callee_return_type = callee_decl != NULL
-                && callee_decl->type == AST_FUNC_DECL
-                    ? ast_func_return_type(callee_decl)
-                    : NULL;
+            if (callee_decl != NULL && callee_decl->type == AST_FUNC_DECL
+                && transpiler_active_has_mir(ctx)) {
+                const MIRRoutine *callee_routine =
+                    transpiler_find_active_function_routine_for_call(
+                        ctx, callee_decl, callee_name);
+                const char *return_type_name =
+                    transpiler_mir_routine_return_type_name(callee_routine);
+                if (return_type_name != NULL)
+                    return transpiler_mir_arena_copy_type_name(
+                        ctx, return_type_name);
+                callee_return_type =
+                    transpiler_mir_routine_return_type(callee_routine);
+                if (callee_return_type == NULL
+                    && callee_routine != NULL
+                    && !transpiler_mir_routine_has_signature(
+                        callee_routine)) {
+                    transpiler_set_mir_inventory_missing(
+                        ctx,
+                        "MIR-only C path missing function call return signature metadata for '%s'",
+                        callee_name);
+                    return NULL;
+                }
+            } else if (!transpiler_active_has_mir(ctx)) {
+                callee_return_type = callee_decl != NULL
+                    && callee_decl->type == AST_FUNC_DECL
+                        ? ast_func_return_type(callee_decl)
+                        : NULL;
+            } else {
+                callee_return_type = NULL;
+            }
             if (callee_return_type != NULL) {
                 char *rendered = render_type_name_in_ctx(ctx,
                     callee_return_type);
@@ -492,22 +578,67 @@ transpiler_find_local_type_name(TranspilerCtx *ctx,
     }
     if (func_decl == NULL || func_decl->type != AST_FUNC_DECL)
         return transpiler_lookup_current_owner_member_type_name(ctx, base_name);
-    size_t param_count = ast_func_param_count(func_decl);
-    for (size_t i = 0; i < param_count; i++) {
-        FuncParam *p = ast_func_param(func_decl, i);
-        if (p != NULL && p->name != NULL && strcmp(p->name, base_name) == 0 && p->type != NULL) {
-            char *owned_param =
-                transpiler_render_effective_local_type_name(ctx, p->type);
-            const char *rendered_param =
-                transpiler_mir_arena_copy_type_name(ctx, owned_param);
-            if (rendered_param == NULL) {
-                free(owned_param);
-                return NULL;
+    const MIRRoutine *routine =
+        transpiler_find_active_routine_for_source_ast(ctx, func_decl);
+    if (routine != NULL) {
+        if (!transpiler_mir_routine_has_signature(routine)) {
+            transpiler_set_mir_inventory_missing(
+                ctx,
+                "MIR-only C path missing local parameter signature metadata for '%s'",
+                ast_declaration_name(func_decl));
+            return NULL;
+        }
+        for (size_t i = 0;
+             i < transpiler_mir_routine_param_count(routine);
+             i++) {
+            FuncParam *p = transpiler_mir_routine_param(routine, i);
+            const char *param_type_name =
+                transpiler_mir_routine_param_type_name(routine, i);
+            if (p == NULL || p->name == NULL
+                || strcmp(p->name, base_name) != 0) {
+                continue;
             }
-            free(owned_param);
-            if (ctx != NULL)
-                register_typed_var(ctx, base_name, rendered_param);
-            return rendered_param;
+            if (param_type_name != NULL && param_type_name[0] != '\0') {
+                const char *rendered_param =
+                    transpiler_mir_arena_copy_type_name(ctx, param_type_name);
+                if (ctx != NULL && rendered_param != NULL)
+                    register_typed_var(ctx, base_name, rendered_param);
+                return rendered_param;
+            }
+            if (p->type != NULL) {
+                char *owned_param =
+                    transpiler_render_effective_local_type_name(ctx, p->type);
+                const char *rendered_param =
+                    transpiler_mir_arena_copy_type_name(ctx, owned_param);
+                if (rendered_param == NULL) {
+                    free(owned_param);
+                    return NULL;
+                }
+                free(owned_param);
+                if (ctx != NULL)
+                    register_typed_var(ctx, base_name, rendered_param);
+                return rendered_param;
+            }
+        }
+    } else if (!transpiler_active_has_mir(ctx)) {
+        size_t param_count = ast_func_param_count(func_decl);
+        for (size_t i = 0; i < param_count; i++) {
+            FuncParam *p = ast_func_param(func_decl, i);
+            if (p != NULL && p->name != NULL
+                && strcmp(p->name, base_name) == 0 && p->type != NULL) {
+                char *owned_param =
+                    transpiler_render_effective_local_type_name(ctx, p->type);
+                const char *rendered_param =
+                    transpiler_mir_arena_copy_type_name(ctx, owned_param);
+                if (rendered_param == NULL) {
+                    free(owned_param);
+                    return NULL;
+                }
+                free(owned_param);
+                if (ctx != NULL)
+                    register_typed_var(ctx, base_name, rendered_param);
+                return rendered_param;
+            }
         }
     }
     typed_name = transpiler_find_local_type_name_in_block(ctx, func_decl,

@@ -37,15 +37,19 @@ llvm_emit_role_method_forward_decls_metadata_first(
         const MIRDeclMethod *method_meta =
             llvm_hosted_method_view_metadata(methods, j);
         ASTNode *method = llvm_hosted_method_view_source_ast(methods, j);
+        bool allow_ast_compat = method_meta == NULL;
         const char *mname =
-            llvm_domain_method_name_metadata_first(method_meta, method);
+            llvm_domain_method_name_metadata_first(
+                method_meta, method, allow_ast_compat);
         size_t pc =
-            llvm_domain_method_param_count_metadata_first(method_meta, method);
+            llvm_domain_method_param_count_metadata_first(
+                method_meta, method, allow_ast_compat);
         const char *return_type_name =
             llvm_domain_method_return_type_name_metadata_first(
-                method_meta, method);
+                method_meta, method, allow_ast_compat);
         ASTNode *return_type =
-            llvm_domain_method_return_type_metadata_first(method_meta, method);
+            llvm_domain_method_return_type_metadata_first(
+                method_meta, method, allow_ast_compat);
         LLVMTypeRef ret = ctx->type_void;
         size_t user_pc = 0;
         LLVMTypeRef *ptypes;
@@ -81,7 +85,8 @@ llvm_emit_role_method_forward_decls_metadata_first(
 
         for (size_t k = 0; k < pc; k++) {
             FuncParam *p =
-                llvm_domain_method_param_metadata_first(method_meta, method, k);
+                llvm_domain_method_param_metadata_first(
+                    method_meta, method, k, allow_ast_compat);
             if (!llvm_param_is_implicit_self_local(p))
                 user_pc++;
         }
@@ -98,10 +103,11 @@ llvm_emit_role_method_forward_decls_metadata_first(
         ptypes[0] = ctx->type_i8ptr;
         for (size_t k = 0; k < pc; k++) {
             FuncParam *p =
-                llvm_domain_method_param_metadata_first(method_meta, method, k);
+                llvm_domain_method_param_metadata_first(
+                    method_meta, method, k, allow_ast_compat);
             const char *param_type_name =
                 llvm_domain_method_param_type_name_metadata_first(
-                    method_meta, method, k);
+                    method_meta, method, k, allow_ast_compat);
             LLVMClassTypeEntry *param_cls = param_type_name != NULL
                 ? llvm_lookup_class(ctx, param_type_name)
                 : NULL;
@@ -159,7 +165,8 @@ llvm_emit_role_operator_forward_decl(LLVMGenCtx *ctx,
 
     if (suffix == NULL || method_meta == NULL)
         return true;
-    if (llvm_domain_method_name_metadata_first(method_meta, method) == NULL) {
+    if (llvm_domain_method_name_metadata_first(
+            method_meta, method, false) == NULL) {
         llvm_set_mir_inventory_missing(ctx,
             "MIR-only LLVM path missing role operator forward name metadata");
         return false;
@@ -176,10 +183,12 @@ llvm_emit_role_operator_forward_decl(LLVMGenCtx *ctx,
         return true;
 
     for (size_t pj = 0;
-         pj < llvm_domain_method_param_count_metadata_first(method_meta, method);
+         pj < llvm_domain_method_param_count_metadata_first(
+             method_meta, method, false);
          pj++) {
         FuncParam *p =
-            llvm_domain_method_param_metadata_first(method_meta, method, pj);
+            llvm_domain_method_param_metadata_first(
+                method_meta, method, pj, false);
         if (!llvm_param_is_implicit_self_local(p)) {
             rhs_param = p;
             rhs_param_count++;
@@ -194,14 +203,16 @@ llvm_emit_role_operator_forward_decl(LLVMGenCtx *ctx,
     {
         const char *rhs_type_name = NULL;
         for (size_t pj = 0;
-             pj < llvm_domain_method_param_count_metadata_first(method_meta, method);
+             pj < llvm_domain_method_param_count_metadata_first(
+                 method_meta, method, false);
              pj++) {
             FuncParam *p =
-                llvm_domain_method_param_metadata_first(method_meta, method, pj);
+                llvm_domain_method_param_metadata_first(
+                    method_meta, method, pj, false);
             if (p == rhs_param) {
                 rhs_type_name =
                     llvm_domain_method_param_type_name_metadata_first(
-                        method_meta, method, pj);
+                        method_meta, method, pj, false);
                 break;
             }
         }
@@ -215,9 +226,10 @@ llvm_emit_role_operator_forward_decl(LLVMGenCtx *ctx,
     {
         const char *return_type_name =
             llvm_domain_method_return_type_name_metadata_first(
-                method_meta, method);
+                method_meta, method, false);
         ASTNode *return_type =
-            llvm_domain_method_return_type_metadata_first(method_meta, method);
+            llvm_domain_method_return_type_metadata_first(
+                method_meta, method, false);
         ret = return_type_name != NULL
             ? pergyra_type_to_llvm(ctx, return_type_name)
             : return_type != NULL

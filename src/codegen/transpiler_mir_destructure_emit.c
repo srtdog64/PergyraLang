@@ -14,7 +14,6 @@
 #include "transpiler_expr_type_infer.h"
 #include "transpiler_let_slot_emit.h"
 #include "transpiler_mir_expr_ssa.h"
-#include "transpiler_mir_local_type_lookup.h"
 #include "transpiler_mir_reason.h"
 #include "transpiler_mir_ssa_names.h"
 #include "transpiler_symbols.h"
@@ -181,10 +180,8 @@ transpiler_emit_mir_let_destructure_stmt(CodeBuf *buf,
     if ((init_type_name == NULL || strcmp(init_type_name, "Unknown") == 0)
         && init != NULL
         && init->type == AST_IDENTIFIER
-        && ast_identifier_name(init) != NULL
-        && ctx->current_func_decl != NULL) {
-        const char *resolved = transpiler_find_local_type_name(
-            ctx, ctx->current_func_decl, ast_identifier_name(init));
+        && ast_identifier_name(init) != NULL) {
+        const char *resolved = lookup_typed_var(ctx, ast_identifier_name(init));
         if (resolved != NULL)
             init_type_name = resolved;
     }

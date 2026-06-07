@@ -8,7 +8,9 @@
 
 #include "transpiler_func_forward_metadata.h"
 #include "transpiler_decl_lookup.h"
+#include "transpiler_context.h"
 #include "transpiler_host_self_policy.h"
+#include "transpiler_inventory_view.h"
 #include "transpiler_type_render.h"
 #include "transpiler_type_require.h"
 
@@ -29,19 +31,36 @@ emit_hosted_method_forward_decl_from_metadata(const char *host_name,
 
     if (host_name == NULL || buf == NULL || ctx == NULL)
         return;
-    if (method_meta == NULL
-        && (method == NULL || method->type != AST_FUNC_DECL))
-        return;
+    if (method_meta == NULL) {
+        if (transpiler_active_has_mir(ctx)) {
+            transpiler_set_mir_inventory_missing(ctx,
+                "MIR-only C path missing hosted method forward metadata for '%s'",
+                host_name != NULL ? host_name : "(anonymous-host)");
+            return;
+        }
+        if (method == NULL || method->type != AST_FUNC_DECL)
+            return;
+    }
 
-    method_name = transpiler_mir_decl_method_name(method_meta);
-    return_type_name = transpiler_mir_decl_method_return_type_name(method_meta);
-    return_type = transpiler_mir_decl_method_return_type(method_meta);
-    param_count = transpiler_mir_decl_method_param_count(method_meta);
+    method_name = method_meta != NULL
+        ? transpiler_mir_decl_method_name(method_meta)
+        : NULL;
+    return_type_name = method_meta != NULL
+        ? transpiler_mir_decl_method_return_type_name(method_meta)
+        : NULL;
+    return_type = method_meta != NULL
+        ? transpiler_mir_decl_method_return_type(method_meta)
+        : NULL;
+    param_count = method_meta != NULL
+        ? transpiler_mir_decl_method_param_count(method_meta)
+        : 0;
     if (method_name == NULL && method != NULL)
         method_name = ast_declaration_name(method);
-    if (return_type == NULL && method_meta == NULL && method != NULL)
+    if (return_type == NULL && method_meta == NULL && method != NULL
+        && !transpiler_active_has_mir(ctx))
         return_type = ast_func_return_type(method);
-    if (param_count == 0 && method_meta == NULL && method != NULL)
+    if (param_count == 0 && method_meta == NULL && method != NULL
+        && !transpiler_active_has_mir(ctx))
         param_count = ast_func_param_count(method);
     if (method_name == NULL)
         return;
@@ -75,7 +94,8 @@ emit_hosted_method_forward_decl_from_metadata(const char *host_name,
         char pt[256];
         char surface_desc[256];
 
-        if (p == NULL && method_meta == NULL && method != NULL)
+        if (p == NULL && method_meta == NULL && method != NULL
+            && !transpiler_active_has_mir(ctx))
             p = ast_func_param(method, j);
         if (p == NULL || p->name == NULL)
             continue;

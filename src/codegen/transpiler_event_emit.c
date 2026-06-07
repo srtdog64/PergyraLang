@@ -70,7 +70,9 @@ emit_event_decl(ASTNode *node, TranspilerCtx *ctx)
     codebuf_write(ctx->out, "static inline void %s_SUBSCRIBE(%s* e, %s_Handler h) {\n", name, event_type, name);
     codebuf_write(ctx->out, "    if (e->count < PGY_EVENT_MAX_HANDLERS) {\n");
     codebuf_write(ctx->out, "        e->handlers[e->count++] = h;\n");
+    codebuf_write(ctx->out, "        return;\n");
     codebuf_write(ctx->out, "    }\n");
+    codebuf_write(ctx->out, "    PGY_RUNTIME_PANIC(PGY_RUNTIME_PANIC_CLASS_INTERNAL_INVARIANT, \"event handler capacity exceeded\");\n");
     codebuf_write(ctx->out, "}\n");
 
     codebuf_write(ctx->out, "static inline void %s_UNSUBSCRIBE(%s* e, %s_Handler h) {\n", name, event_type, name);

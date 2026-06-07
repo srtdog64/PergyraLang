@@ -11,16 +11,17 @@ typedef struct
     bool requires_hir_routine;
     bool requires_hir_cfg;
     bool requires_rir_boundary;
+    const char *mir_pin_cleanup_source_name;
 } AIRBoundaryEvidencePolicy;
 
 static const AIRBoundaryEvidencePolicy kBoundaryEvidencePolicies[] = {
-    [AIR_BOUNDARY_UNKNOWN] = { false, false, false },
-    [AIR_BOUNDARY_ZONE] = { true, false, true },
-    [AIR_BOUNDARY_WORLD] = { true, false, true },
-    [AIR_BOUNDARY_PARALLEL] = { true, true, true },
-    [AIR_BOUNDARY_IO] = { true, true, true },
-    [AIR_BOUNDARY_CHANNEL] = { true, true, true },
-    [AIR_BOUNDARY_EXECUTION] = { true, true, false },
+    [AIR_BOUNDARY_UNKNOWN] = { false, false, false, NULL },
+    [AIR_BOUNDARY_ZONE] = { true, false, true, NULL },
+    [AIR_BOUNDARY_WORLD] = { true, false, true, NULL },
+    [AIR_BOUNDARY_PARALLEL] = { true, true, true, NULL },
+    [AIR_BOUNDARY_IO] = { true, true, true, NULL },
+    [AIR_BOUNDARY_CHANNEL] = { true, true, true, NULL },
+    [AIR_BOUNDARY_EXECUTION] = { true, true, false, "pin" },
 };
 
 static const AIRBoundaryEvidencePolicy *
@@ -83,7 +84,14 @@ air_boundary_requires_rir_evidence(const AIRBoundaryNode *boundary)
 bool
 air_boundary_requires_mir_pin_cleanup_evidence(const AIRBoundaryNode *boundary)
 {
+    const AIRBoundaryEvidencePolicy *policy;
+
+    if (boundary == NULL)
+        return false;
+    policy = air_boundary_evidence_policy(boundary->kind);
     return boundary != NULL
-        && boundary->kind == AIR_BOUNDARY_EXECUTION
-        && air_name_matches(boundary->source_name, "pin");
+        && policy != NULL
+        && !air_name_is_empty(policy->mir_pin_cleanup_source_name)
+        && air_name_matches(boundary->source_name,
+                            policy->mir_pin_cleanup_source_name);
 }

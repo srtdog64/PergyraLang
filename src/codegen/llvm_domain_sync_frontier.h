@@ -12,6 +12,9 @@ void llvm_emit_frontier_overflow_abort(LLVMGenCtx *ctx, const char *reason);
 void llvm_finish_domain_sync_emit(LLVMGenCtx *ctx,
                                   LLVMValueRef saved_fn,
                                   LLVMTypeRef saved_ret,
+                                  LLVMTypeRef saved_function_ret,
+                                  const char *saved_return_type_name,
+                                  ASTNode *saved_return_callable_type,
                                   ASTNode *saved_host_decl,
                                   LLVMBasicBlockRef saved_bb);
 

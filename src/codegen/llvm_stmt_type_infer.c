@@ -1,5 +1,6 @@
 #ifdef PGY_LLVM_ENABLED
 #include "llvm_internal.h"
+#include "llvm_internal_api.h"
 #include "llvm_inventory_host_methods.h"
 #include "llvm_stmt_type_infer_helpers.h"
 #include "codegen_match_variant_policy.h"
@@ -66,6 +67,13 @@ llvm_stmt_host_method_return_type(LLVMGenCtx *ctx, const char *host_type_name,
     }
     ret_ty = llvm_mir_decl_method_return_type(method_meta);
     if (ret_ty == NULL && method_meta == NULL) {
+        if (llvm_active_has_mir(ctx)) {
+            llvm_set_mir_inventory_missing(ctx,
+                "MIR-only LLVM path missing method return metadata for '%s.%s'",
+                host_type_name != NULL ? host_type_name : "(anonymous)",
+                method_name != NULL ? method_name : "(anonymous)");
+            return NULL;
+        }
         ASTNode *method_decl = llvm_find_nominal_host_method_decl(
             ctx, host_type_name, method_name);
         if (method_decl != NULL && method_decl->type == AST_FUNC_DECL)
@@ -97,6 +105,96 @@ llvm_stmt_callable_entry_return_type(LLVMGenCtx *ctx,
     if (return_type == NULL)
         return ctx->type_void;
     return ast_type_to_llvm(ctx, return_type);
+}
+
+static LLVMTypeRef
+llvm_stmt_contextual_option_type(LLVMGenCtx *ctx)
+{
+    LLVMTypeRef candidate = NULL;
+
+    if (ctx == NULL)
+        return NULL;
+
+    if (ctx->expected_type_name != NULL
+        && pgy_classify_type(ctx->expected_type_name) == PGY_TK_OPTION) {
+        candidate = pergyra_type_to_llvm(ctx, ctx->expected_type_name);
+        if (candidate != NULL)
+            return candidate;
+    }
+
+    candidate = ctx->current_ret_type;
+    if (candidate != NULL
+        && LLVMGetTypeKind(candidate) == LLVMStructTypeKind
+        && LLVMCountStructElementTypes(candidate) == 2
+        && LLVMStructGetTypeAtIndex(candidate, 0) == ctx->type_i32) {
+        return candidate;
+    }
+    return NULL;
+}
+
+static LLVMTypeRef
+llvm_stmt_contextual_result_type(LLVMGenCtx *ctx)
+{
+    LLVMTypeRef candidate = NULL;
+
+    if (ctx == NULL)
+        return NULL;
+
+    if (ctx->expected_type_name != NULL
+        && pgy_classify_type(ctx->expected_type_name) == PGY_TK_RESULT) {
+        candidate = pergyra_type_to_llvm(ctx, ctx->expected_type_name);
+        if (candidate != NULL)
+            return candidate;
+    }
+
+    candidate = ctx->current_ret_type;
+    if (candidate != NULL
+        && LLVMGetTypeKind(candidate) == LLVMStructTypeKind
+        && LLVMCountStructElementTypes(candidate) == 3
+        && LLVMStructGetTypeAtIndex(candidate, 0) == ctx->type_i32) {
+        return candidate;
+    }
+    return NULL;
+}
+
+static LLVMTypeRef
+llvm_stmt_infer_scalar_math_return_type(LLVMGenCtx *ctx, ASTNode *call,
+                                        const char *callee)
+{
+    LLVMTypeRef ty0;
+    LLVMTypeRef ty1;
+    LLVMTypeRef ty2;
+    size_t argc;
+
+    if (ctx == NULL || call == NULL || call->type != AST_CALL
+        || callee == NULL) {
+        return NULL;
+    }
+
+    argc = ast_call_arg_count(call);
+    if (strcmp(callee, "Abs") == 0 && argc == 1)
+        return llvm_stmt_infer_expr_type(ctx, ast_call_argument(call, 0));
+
+    if ((strcmp(callee, "Min") == 0 || strcmp(callee, "Max") == 0)
+        && argc == 2) {
+        ty0 = llvm_stmt_infer_expr_type(ctx, ast_call_argument(call, 0));
+        ty1 = llvm_stmt_infer_expr_type(ctx, ast_call_argument(call, 1));
+        return llvm_stmt_promote_numeric_type(ctx, ty0, ty1);
+    }
+
+    if (strcmp(callee, "Clamp") == 0 && argc == 3) {
+        ty0 = llvm_stmt_infer_expr_type(ctx, ast_call_argument(call, 0));
+        ty1 = llvm_stmt_infer_expr_type(ctx, ast_call_argument(call, 1));
+        ty2 = llvm_stmt_infer_expr_type(ctx, ast_call_argument(call, 2));
+        return llvm_stmt_promote_numeric_type(ctx,
+            llvm_stmt_promote_numeric_type(ctx, ty0, ty1), ty2);
+    }
+
+    if ((strcmp(callee, "E") == 0 || strcmp(callee, "PI") == 0)
+        && argc == 0) {
+        return ctx->type_f32;
+    }
+    return NULL;
 }
 
 LLVMTypeRef
@@ -178,6 +276,38 @@ llvm_stmt_infer_expr_type(LLVMGenCtx *ctx, ASTNode *expr)
         memcpy(suffix_buf, suffix, strlen(suffix) + 1);
         suffix = suffix_buf;
         return llvm_array_struct_type(ctx, suffix);
+    }
+    case AST_TUPLE_LITERAL: {
+        size_t count = ast_tuple_literal_count(expr);
+        LLVMTypeRef *fields;
+
+        if (count < 2)
+            return llvm_stmt_unknown_expr_type(ctx, expr,
+                "tuple literal requires at least two elements");
+        if (count > UINT_MAX)
+            return llvm_stmt_unknown_expr_type(ctx, expr,
+                "tuple literal exceeds LLVM struct field limit");
+        if (count > SIZE_MAX / sizeof(*fields))
+            return llvm_stmt_unknown_expr_type(ctx, expr,
+                "tuple literal field allocation would overflow");
+        fields = pgy_arena_calloc(&ctx->scratch, count * sizeof(*fields));
+        if (fields == NULL)
+            return llvm_stmt_unknown_expr_type(ctx, expr,
+                "tuple literal field allocation failed");
+        for (size_t i = 0; i < count; i++) {
+            fields[i] = llvm_stmt_infer_expr_type(ctx,
+                ast_tuple_literal_element(expr, i));
+            if (ctx->has_error || fields[i] == NULL)
+                return NULL;
+        }
+        return LLVMStructTypeInContext(ctx->context, fields,
+            (unsigned)count, 0);
+    }
+    case AST_LAMBDA_EXPR: {
+        LLVMTypeRef lambda_type = llvm_stmt_lambda_signature_type(ctx, expr);
+        if (ctx->has_error || lambda_type == NULL)
+            return NULL;
+        return lambda_type;
     }
     case AST_ARRAY_ACCESS: {
         ASTNode *array = ast_array_access_array(expr);
@@ -362,6 +492,27 @@ llvm_stmt_infer_expr_type(LLVMGenCtx *ctx, ASTNode *expr)
                         return method_ret;
                 }
             }
+            if (receiver_name == NULL) {
+                const char *recv_class =
+                    llvm_stmt_infer_nominal_name_from_init(ctx, receiver);
+                if (recv_class == NULL) {
+                    LLVMTypeRef recv_ty =
+                        llvm_stmt_infer_expr_type(ctx, receiver);
+                    LLVMClassTypeEntry *recv_cls =
+                        !ctx->has_error && recv_ty != NULL
+                            ? llvm_stmt_lookup_class_by_type(ctx, recv_ty)
+                            : NULL;
+                    if (recv_cls != NULL)
+                        recv_class = recv_cls->class_name;
+                }
+                if (recv_class != NULL) {
+                    LLVMTypeRef method_ret =
+                        llvm_stmt_host_method_return_type(
+                            ctx, recv_class, method_name);
+                    if (method_ret != NULL)
+                        return method_ret;
+                }
+            }
             if (receiver_name == NULL
                 && receiver->type == AST_MEMBER_ACCESS) {
                 const char *recv_class =
@@ -379,6 +530,32 @@ llvm_stmt_infer_expr_type(LLVMGenCtx *ctx, ASTNode *expr)
             && ast_call_callee(expr)->type == AST_IDENTIFIER
             && ast_identifier_name(ast_call_callee(expr)) != NULL) {
             const char *callee = ast_identifier_name(ast_call_callee(expr));
+            PgyCodegenMatchVariantKind match_variant =
+                pgy_codegen_match_variant_lookup(callee);
+            if (match_variant == PGY_MATCH_VARIANT_SOME
+                || match_variant == PGY_MATCH_VARIANT_NONE_CTOR) {
+                LLVMTypeRef option_ty = llvm_stmt_contextual_option_type(ctx);
+                if (option_ty != NULL)
+                    return option_ty;
+            }
+            if (match_variant == PGY_MATCH_VARIANT_OK
+                || match_variant == PGY_MATCH_VARIANT_ERR) {
+                LLVMTypeRef result_ty = llvm_stmt_contextual_result_type(ctx);
+                if (result_ty != NULL)
+                    return result_ty;
+            }
+            {
+                LLVMEnumVariantEntry *variant =
+                    llvm_lookup_enum_variant(ctx, callee);
+                if (variant != NULL) {
+                    LLVMClassTypeEntry *enum_cls =
+                        llvm_lookup_class(ctx, variant->enum_name);
+                    if (enum_cls != NULL && enum_cls->struct_type != NULL)
+                        return enum_cls->struct_type;
+                    if (llvm_enum_type_exists(ctx, variant->enum_name))
+                        return ctx->type_i32;
+                }
+            }
             if (strcmp(callee, "SliceCopy") == 0
                 && ast_call_arg_count(expr) == 1) {
                 LLVMTypeRef slice_ty = llvm_stmt_infer_expr_type(ctx,
@@ -410,6 +587,12 @@ llvm_stmt_infer_expr_type(LLVMGenCtx *ctx, ASTNode *expr)
                     return pergyra_type_to_llvm(ctx, inner);
                 if (inner != NULL)
                     return ctx->type_void;
+            }
+            {
+                LLVMTypeRef builtin_type =
+                    llvm_stmt_infer_scalar_builtin_type(ctx, callee);
+                if (builtin_type != NULL)
+                    return builtin_type;
             }
             if (llvm_current_host_class_name(ctx) != NULL) {
                 LLVMTypeRef method_ret = llvm_stmt_host_method_return_type(
@@ -448,10 +631,10 @@ llvm_stmt_infer_expr_type(LLVMGenCtx *ctx, ASTNode *expr)
             if (llvm_find_intent_decl(ctx, callee) != NULL)
                 return ctx->type_i1;
             {
-                LLVMTypeRef builtin_type =
-                    llvm_stmt_infer_scalar_builtin_type(ctx, callee);
-                if (builtin_type != NULL)
-                    return builtin_type;
+                LLVMTypeRef math_type =
+                    llvm_stmt_infer_scalar_math_return_type(ctx, expr, callee);
+                if (math_type != NULL)
+                    return math_type;
             }
             if (llvm_stmt_call_returns_collection_value(callee)
                 && ast_call_arg_count(expr) >= 1
@@ -505,6 +688,19 @@ llvm_stmt_infer_expr_type(LLVMGenCtx *ctx, ASTNode *expr)
         PgyTokenType op = ast_binary_operator(expr).type;
         LLVMTypeRef left_ty = NULL;
         LLVMTypeRef right_ty = NULL;
+        if (op == TOKEN_COALESCE) {
+            LLVMTypeRef fields[2];
+            left_ty = llvm_stmt_infer_expr_type(ctx, ast_binary_left(expr));
+            if (ctx->has_error || left_ty == NULL)
+                return NULL;
+            if (LLVMGetTypeKind(left_ty) == LLVMStructTypeKind
+                && LLVMCountStructElementTypes(left_ty) == 2) {
+                LLVMGetStructElementTypes(left_ty, fields);
+                return fields[1];
+            }
+            return llvm_stmt_unknown_expr_type(ctx, expr,
+                "coalesce operator requires concrete Option<T> left operand");
+        }
         if (op == TOKEN_EQUAL || op == TOKEN_NOT_EQUAL
             || op == TOKEN_LESS || op == TOKEN_LESS_EQUAL
             || op == TOKEN_GREATER || op == TOKEN_GREATER_EQUAL

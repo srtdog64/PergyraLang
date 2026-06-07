@@ -16,6 +16,8 @@
 #include <pthread.h>
 #include <stdio.h>
 
+#include "pgy_runtime_panic_contract.h"
+
 #ifndef PGY_COROUTINES_AVAILABLE
 #ifdef _WIN32
 #define PGY_COROUTINES_AVAILABLE 1
@@ -91,8 +93,8 @@ pgy_cancel_node_create(PgyCancelNode *parent)
 {
     PgyCancelNode *node = (PgyCancelNode *)calloc(1, sizeof(PgyCancelNode));
     if (node == NULL) {
-        pgy_parallel_warn("cancel-node", "allocation failed");
-        return NULL;
+        PGY_RUNTIME_PANIC(PGY_RUNTIME_PANIC_CLASS_OOM,
+                          PGY_RUNTIME_PANIC_REASON_ALLOCATION_FAILED);
     }
     node->parent = parent;
     atomic_init(&node->refcount, 1);
@@ -149,6 +151,25 @@ typedef struct {
     void *task;                 /* PgyTask* or coroutine task header */
 } PgyTaskHandle;
 
+static inline bool
+pgy_task_sync_init(PgyTask *task, const char *op)
+{
+    if (task == NULL) {
+        pgy_parallel_warn(op, "task sync init target is null");
+        return false;
+    }
+    if (pthread_mutex_init(&task->mutex, NULL) != 0) {
+        pgy_parallel_warn(op, "task mutex initialization failed");
+        return false;
+    }
+    if (pthread_cond_init(&task->cond, NULL) != 0) {
+        pgy_parallel_warn(op, "task condition initialization failed");
+        pthread_mutex_destroy(&task->mutex);
+        return false;
+    }
+    return true;
+}
+
 /* =================================================================
  * Thread pool runtime for `parallel`
  * ================================================================= */
@@ -179,8 +200,17 @@ pgy_worker_loop(void *arg)
 
     for (;;) {
         pthread_mutex_lock(&pool->queue_mutex);
-        while (pool->queue_head == NULL && !pool->shutdown)
-            pthread_cond_wait(&pool->queue_cond, &pool->queue_mutex);
+        while (pool->queue_head == NULL && !pool->shutdown) {
+            if (pthread_cond_wait(&pool->queue_cond,
+                                  &pool->queue_mutex) != 0) {
+                pgy_parallel_warn("worker-loop",
+                                  "worker condition wait failed");
+                pool->shutdown = true;
+                pthread_cond_broadcast(&pool->queue_cond);
+                pthread_mutex_unlock(&pool->queue_mutex);
+                return NULL;
+            }
+        }
 
         if (pool->shutdown && pool->queue_head == NULL) {
             pthread_mutex_unlock(&pool->queue_mutex);
@@ -246,8 +276,19 @@ pgy_pool_init(size_t worker_count)
 
     memset(&g_pgy_pool, 0, sizeof(g_pgy_pool));
     g_pgy_pool.worker_count = worker_count;
-    pthread_mutex_init(&g_pgy_pool.queue_mutex, NULL);
-    pthread_cond_init(&g_pgy_pool.queue_cond, NULL);
+    if (pthread_mutex_init(&g_pgy_pool.queue_mutex, NULL) != 0) {
+        pgy_parallel_warn("pool-init", "queue mutex initialization failed");
+        memset(&g_pgy_pool, 0, sizeof(g_pgy_pool));
+        pthread_mutex_unlock(&g_pgy_pool_lifecycle_mutex);
+        return;
+    }
+    if (pthread_cond_init(&g_pgy_pool.queue_cond, NULL) != 0) {
+        pgy_parallel_warn("pool-init", "queue condition initialization failed");
+        pthread_mutex_destroy(&g_pgy_pool.queue_mutex);
+        memset(&g_pgy_pool, 0, sizeof(g_pgy_pool));
+        pthread_mutex_unlock(&g_pgy_pool_lifecycle_mutex);
+        return;
+    }
 
     g_pgy_pool.workers = (pthread_t *)calloc(worker_count, sizeof(pthread_t));
     if (g_pgy_pool.workers == NULL) {
@@ -359,15 +400,15 @@ pgy_spawn(void *(*fn)(void *), void *arg)
         task->model = PGY_TASK_MODEL_THREAD;
         task->fn = fn;
         task->arg = arg;
+        if (!pgy_task_sync_init(task, "spawn")) {
+            free(task);
+            return handle;
+        }
         task->cancel_node = pgy_cancel_node_create(pgy_current_cancel_node());
-        if (task->cancel_node == NULL)
-            pgy_parallel_warn("spawn", "cancellation disabled because cancel node allocation failed");
         task->result = pgy_cancel_is_requested(task->cancel_node)
             ? NULL
             : (fn != NULL ? fn(arg) : NULL);
         task->state = PGY_TASK_DONE;
-        pthread_mutex_init(&task->mutex, NULL);
-        pthread_cond_init(&task->cond, NULL);
         handle.task = task;
         return handle;
     }
@@ -384,10 +425,12 @@ pgy_spawn(void *(*fn)(void *), void *arg)
     task->arg = arg;
     task->state = PGY_TASK_PENDING;
     task->cancel_node = pgy_cancel_node_create(pgy_current_cancel_node());
-    if (task->cancel_node == NULL)
-        pgy_parallel_warn("spawn", "cancellation disabled because cancel node allocation failed");
-    pthread_mutex_init(&task->mutex, NULL);
-    pthread_cond_init(&task->cond, NULL);
+    if (!pgy_task_sync_init(task, "spawn")) {
+        pgy_cancel_release(task->cancel_node);
+        free(task);
+        pthread_mutex_unlock(&g_pgy_pool_lifecycle_mutex);
+        return handle;
+    }
     handle.task = task;
 
     pthread_mutex_lock(&g_pgy_pool.queue_mutex);
@@ -452,8 +495,10 @@ static inline void *
 pgy_await(PgyTaskHandle handle)
 {
     PgyTaskHeader *header = (PgyTaskHeader *)handle.task;
-    if (header == NULL)
-        return NULL;
+    if (header == NULL) {
+        PGY_RUNTIME_PANIC(PGY_RUNTIME_PANIC_CLASS_INTERNAL_INVARIANT,
+                          "await task handle is null");
+    }
 
 #if PGY_COROUTINES_AVAILABLE
     if (header->model == PGY_TASK_MODEL_COROUTINE) {
@@ -490,7 +535,11 @@ pgy_await(PgyTaskHandle handle)
             pgy_async_yield();
             pthread_mutex_lock(&task->mutex);
         } else {
-            pthread_cond_wait(&task->cond, &task->mutex);
+            if (pthread_cond_wait(&task->cond, &task->mutex) != 0) {
+                pthread_mutex_unlock(&task->mutex);
+                PGY_RUNTIME_PANIC(PGY_RUNTIME_PANIC_CLASS_INTERNAL_INVARIANT,
+                                  "await condition wait failed");
+            }
         }
     }
     void *result = task->result;
@@ -507,7 +556,11 @@ pgy_await(PgyTaskHandle handle)
 #define pgy_await_take(handle, CType) \
     ({ \
         CType *_pgy_result_ptr = (CType *)pgy_await((handle)); \
-        CType _pgy_value = _pgy_result_ptr != NULL ? *_pgy_result_ptr : (CType)0; \
+        if (_pgy_result_ptr == NULL) { \
+            PGY_RUNTIME_PANIC(PGY_RUNTIME_PANIC_CLASS_INTERNAL_INVARIANT, \
+                              "Future await returned null result"); \
+        } \
+        CType _pgy_value = *_pgy_result_ptr; \
         free(_pgy_result_ptr); \
         _pgy_value; \
     })
@@ -515,64 +568,6 @@ pgy_await(PgyTaskHandle handle)
 #define pgy_await_void(handle) \
     ((void)pgy_await((handle)))
 
-/* =================================================================
- * Parallel block helpers
- * ================================================================= */
-
-typedef struct {
-    void (*fn)(void);
-} PgyParallelArg;
-
-static void *
-pgy_parallel_wrapper(void *raw)
-{
-    PgyParallelArg *parg = (PgyParallelArg *)raw;
-    if (parg != NULL && parg->fn != NULL)
-        parg->fn();
-    return NULL;
-}
-
-static inline void
-pgy_parallel_run(void (**tasks)(void), size_t count)
-{
-    if (count == 0)
-        return;
-    if (tasks == NULL) {
-        pgy_parallel_warn("parallel-run", "task array is null");
-        return;
-    }
-
-    if (count == 1) {
-        if (tasks[0] != NULL)
-            tasks[0]();
-        return;
-    }
-
-    if (!pgy_parallel_array_fits(count, sizeof(PgyTaskHandle))
-        || !pgy_parallel_array_fits(count, sizeof(PgyParallelArg))) {
-        pgy_parallel_warn("parallel-run", "task array size overflow");
-        return;
-    }
-
-    PgyTaskHandle *handles = (PgyTaskHandle *)calloc(count, sizeof(PgyTaskHandle));
-    PgyParallelArg *args = (PgyParallelArg *)calloc(count, sizeof(PgyParallelArg));
-    if (handles == NULL || args == NULL) {
-        free(handles);
-        free(args);
-        pgy_parallel_warn("parallel-run", "task array allocation failed");
-        return;
-    }
-
-    for (size_t i = 0; i < count; i++) {
-        args[i].fn = tasks[i];
-        handles[i] = pgy_spawn(pgy_parallel_wrapper, &args[i]);
-    }
-
-    for (size_t i = 0; i < count; i++)
-        pgy_await(handles[i]);
-
-    free(handles);
-    free(args);
-}
+#include "runtime/pgy_parallel_run.h"
 
 #endif /* PERGYRA_RUNTIME_PGY_PARALLEL_H */

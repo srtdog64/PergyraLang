@@ -30,6 +30,33 @@ llvm_stmt_expected_array_elem_type(LLVMGenCtx *ctx)
 }
 
 static LLVMTypeRef
+llvm_stmt_array_elem_type_from_collection_type(LLVMGenCtx *ctx,
+                                               LLVMTypeRef type)
+{
+    const char *struct_name;
+    const char *suffix = NULL;
+
+    if (ctx == NULL || type == NULL)
+        return NULL;
+    if (LLVMGetTypeKind(type) != LLVMStructTypeKind)
+        return NULL;
+
+    struct_name = LLVMGetStructName(type);
+    if (struct_name == NULL)
+        return NULL;
+    if (strncmp(struct_name, "PgyArray_", 9) == 0) {
+        suffix = struct_name + 9;
+    } else if (strncmp(struct_name, "PgySlice_", 9) == 0) {
+        suffix = struct_name + 9;
+    }
+    if (suffix == NULL || suffix[0] == '\0'
+        || strcmp(suffix, "Unknown") == 0) {
+        return NULL;
+    }
+    return pergyra_type_to_llvm(ctx, suffix);
+}
+
+static LLVMTypeRef
 llvm_stmt_array_elem_type_from_declared_return(LLVMGenCtx *ctx, ASTNode *call)
 {
     ASTNode *decl;
@@ -131,29 +158,62 @@ static LLVMTypeRef
 llvm_stmt_array_elem_type_from_scope_entry(LLVMGenCtx *ctx, const char *name)
 {
     LLVMVarEntry var;
-    const char *struct_name;
-    const char *suffix = NULL;
 
     if (ctx == NULL || name == NULL)
         return NULL;
     if (!llvm_scope_lookup_snapshot(ctx, name, &var) || var.type == NULL)
         return NULL;
-    if (LLVMGetTypeKind(var.type) != LLVMStructTypeKind)
+    return llvm_stmt_array_elem_type_from_collection_type(ctx, var.type);
+}
+
+static LLVMTypeRef
+llvm_stmt_array_elem_type_from_current_field(LLVMGenCtx *ctx,
+                                             const char *name)
+{
+    const char *host_name;
+    LLVMClassTypeEntry *host_cls;
+    int field_idx;
+
+    if (ctx == NULL || name == NULL || strcmp(name, "self") == 0)
         return NULL;
 
-    struct_name = LLVMGetStructName(var.type);
-    if (struct_name == NULL)
+    host_name = llvm_current_host_class_name(ctx);
+    host_cls = host_name != NULL ? llvm_lookup_class(ctx, host_name) : NULL;
+    field_idx = host_cls != NULL ? llvm_class_field_index(host_cls, name) : -1;
+    if (field_idx < 0)
         return NULL;
-    if (strncmp(struct_name, "PgyArray_", 9) == 0) {
-        suffix = struct_name + 9;
-    } else if (strncmp(struct_name, "PgySlice_", 9) == 0) {
-        suffix = struct_name + 9;
-    }
-    if (suffix == NULL || suffix[0] == '\0'
-        || strcmp(suffix, "Unknown") == 0) {
+    return llvm_stmt_array_elem_type_from_collection_type(
+        ctx, llvm_class_field_type_at_index(host_cls, field_idx));
+}
+
+static LLVMTypeRef
+llvm_stmt_array_elem_type_from_member_access(LLVMGenCtx *ctx, ASTNode *expr)
+{
+    ASTNode *object;
+    const char *base_name;
+    LLVMClassTypeEntry *base_cls;
+    int field_idx;
+
+    if (ctx == NULL || expr == NULL || expr->type != AST_MEMBER_ACCESS
+        || ast_member_name(expr) == NULL) {
         return NULL;
     }
-    return pergyra_type_to_llvm(ctx, suffix);
+
+    object = ast_member_object(expr);
+    if (object != NULL && object->type == AST_IDENTIFIER
+        && ast_identifier_name(object) != NULL
+        && strcmp(ast_identifier_name(object), "self") == 0) {
+        base_name = llvm_current_host_class_name(ctx);
+    } else {
+        base_name = llvm_stmt_infer_nominal_name_from_init(ctx, object);
+    }
+    base_cls = base_name != NULL ? llvm_lookup_class(ctx, base_name) : NULL;
+    field_idx = base_cls != NULL
+        ? llvm_class_field_index(base_cls, ast_member_name(expr)) : -1;
+    if (field_idx < 0)
+        return NULL;
+    return llvm_stmt_array_elem_type_from_collection_type(
+        ctx, llvm_class_field_type_at_index(base_cls, field_idx));
 }
 
 LLVMTypeRef
@@ -178,6 +238,10 @@ llvm_stmt_resolve_array_elem_type(LLVMGenCtx *ctx, ASTNode *expr,
             ctx, ast_identifier_name(expr));
         if (inferred != NULL)
             return inferred;
+        inferred = llvm_stmt_array_elem_type_from_current_field(
+            ctx, ast_identifier_name(expr));
+        if (inferred != NULL)
+            return inferred;
     }
 
     if (expr->type == AST_ARRAY_LITERAL
@@ -194,6 +258,10 @@ llvm_stmt_resolve_array_elem_type(LLVMGenCtx *ctx, ASTNode *expr,
         return inferred;
 
     inferred = llvm_stmt_array_elem_type_from_declared_return(ctx, expr);
+    if (inferred != NULL)
+        return inferred;
+
+    inferred = llvm_stmt_array_elem_type_from_member_access(ctx, expr);
     if (inferred != NULL)
         return inferred;
 

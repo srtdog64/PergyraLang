@@ -313,7 +313,7 @@ emit_class_decl(ASTNode *node, TranspilerCtx *ctx)
 
         transpiler_emit_host_method_body_local(
             ctx,
-            transpiler_find_decl_in_inventory_local(ctx, AST_CLASS_DECL, name),
+            transpiler_find_named_decl_local(ctx, AST_CLASS_DECL, name),
             name,
             method,
             NULL,

@@ -151,17 +151,28 @@ llvm_await_task_handle(LLVMGenCtx *ctx, ASTNode *node, LLVMValueRef task,
 
     {
         LLVMValueRef is_null;
-        LLVMValueRef null_value = LLVMConstNull(inner_ty);
         LLVMValueRef phi;
         LLVMValueRef null_ptr = LLVMConstNull(ctx->type_i8ptr);
         LLVMValueRef current_fn = LLVMGetBasicBlockParent(
             LLVMGetInsertBlock(ctx->builder));
+        LLVMFuncEntry *panic_fn = llvm_lookup_function(ctx,
+            "pgy_runtime_panic_internal_invariant_export");
         LLVMBasicBlockRef ok_bb = LLVMAppendBasicBlockInContext(
             ctx->context, current_fn, "await.local.ok");
         LLVMBasicBlockRef null_bb = LLVMAppendBasicBlockInContext(
             ctx->context, current_fn, "await.local.null");
         LLVMBasicBlockRef merge_bb = LLVMAppendBasicBlockInContext(
             ctx->context, current_fn, "await.local.merge");
+
+        if (panic_fn == NULL) {
+            llvm_set_error_at_with_hints(ctx, node,
+                PGY_CODE_LLVM_TYPE_UNSUPPORTED,
+                PGY_CAUSE_LLVM_TYPE_UNSUPPORTED,
+                PGY_FIX_INSPECT_MIR_INVENTORY,
+                "LLVM await expression requires registered runtime function '%s'",
+                "pgy_runtime_panic_internal_invariant_export");
+            return NULL;
+        }
 
         is_null = LLVMBuildICmp(ctx->builder, LLVMIntEQ, raw,
             null_ptr, llvm_tmp_name(ctx));
@@ -188,15 +199,20 @@ llvm_await_task_handle(LLVMGenCtx *ctx, ASTNode *node, LLVMValueRef task,
         ok_bb = LLVMGetInsertBlock(ctx->builder);
 
         LLVMPositionBuilderAtEnd(ctx->builder, null_bb);
-        LLVMBuildBr(ctx->builder, merge_bb);
-        null_bb = LLVMGetInsertBlock(ctx->builder);
+        {
+            LLVMValueRef reason = LLVMBuildGlobalStringPtr(ctx->builder,
+                "Future await returned null result", llvm_tmp_name(ctx));
+            LLVMBuildCall2(ctx->builder, panic_fn->fn_type,
+                panic_fn->fn, &reason, 1, "");
+            LLVMBuildUnreachable(ctx->builder);
+        }
 
         LLVMPositionBuilderAtEnd(ctx->builder, merge_bb);
         phi = LLVMBuildPhi(ctx->builder, inner_ty, llvm_tmp_name(ctx));
         {
-            LLVMValueRef incoming_vals[] = { value, null_value };
-            LLVMBasicBlockRef incoming_bbs[] = { ok_bb, null_bb };
-            LLVMAddIncoming(phi, incoming_vals, incoming_bbs, 2);
+            LLVMValueRef incoming_vals[] = { value };
+            LLVMBasicBlockRef incoming_bbs[] = { ok_bb };
+            LLVMAddIncoming(phi, incoming_vals, incoming_bbs, 1);
         }
         return phi;
     }

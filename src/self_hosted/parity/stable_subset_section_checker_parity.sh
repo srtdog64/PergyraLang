@@ -103,12 +103,13 @@ cleanup_neg_root() {
 }
 trap cleanup_neg_root EXIT
 mkdir -p "$NEG_ROOT/docs"
+mkdir -p "$NEG_ROOT/.tmp"
 # Drop the "## 3. Ownership Stable Subset" anchor and its trailing space.
 grep -v '^## 3\. Ownership Stable Subset$' \
     "$ROOT_DIR/$MANIFEST_PATH" > "$NEG_ROOT/$MANIFEST_PATH"
 
 set +e
-NEG_OUT="$(cd "$NEG_ROOT" && "$PGY" "$PERGYRA_TOOL" --run 2>/dev/null)"
+NEG_OUT="$(cd "$NEG_ROOT" && "$PGY" "$PERGYRA_TOOL" --run 2>&1)"
 NEG_RC=$?
 set -e
 if [[ "$NEG_RC" -ne 1 ]]; then

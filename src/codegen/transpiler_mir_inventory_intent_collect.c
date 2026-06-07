@@ -8,6 +8,7 @@
 #include <string.h>
 
 #include "transpiler_mir_inventory_intent_collect.h"
+#include "transpiler_inventory_view.h"
 
 static bool
 transpiler_collect_next_capacity(size_t capacity,
@@ -49,19 +50,21 @@ transpiler_find_mir_function(const TranspilerCtx *ctx,
     for (size_t i = 0; i < inventory.count; i++) {
         const MIRRoutine *routine =
             transpiler_routine_inventory_get(&inventory, i);
+        const char *routine_name = transpiler_mir_routine_name(routine);
         size_t name_len;
 
-        if (routine == NULL || routine->kind != MIR_SCOPE_FUNCTION
-            || routine->name == NULL) {
+        if (routine == NULL
+            || transpiler_mir_routine_kind(routine) != MIR_SCOPE_FUNCTION
+            || routine_name == NULL) {
             continue;
         }
-        if (strcmp(routine->name, target) == 0)
+        if (strcmp(routine_name, target) == 0)
             return routine;
 
         name_len = strlen(target);
-        if (strncmp(routine->name, target, name_len) == 0
-            && (routine->name[name_len] == '_'
-                || routine->name[name_len] == '\0')) {
+        if (strncmp(routine_name, target, name_len) == 0
+            && (routine_name[name_len] == '_'
+                || routine_name[name_len] == '\0')) {
             return routine;
         }
     }
@@ -85,11 +88,12 @@ transpiler_find_mir_intent(const TranspilerCtx *ctx,
     for (size_t i = 0; i < inventory.count; i++) {
         const MIRRoutine *routine =
             transpiler_routine_inventory_get(&inventory, i);
+        const char *routine_name = transpiler_mir_routine_name(routine);
         if (routine == NULL)
             continue;
-        if (routine->kind != MIR_SCOPE_INTENT
-            || routine->name == NULL
-            || strcmp(routine->name,
+        if (transpiler_mir_routine_kind(routine) != MIR_SCOPE_INTENT
+            || routine_name == NULL
+            || strcmp(routine_name,
                       ast_intent_decl_name(intent_decl)) != 0) {
             continue;
         }

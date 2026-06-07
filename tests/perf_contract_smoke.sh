@@ -207,7 +207,11 @@ grep -Fq "LLVM scope registry capacity overflow" \
     "$ROOT_DIR/src/codegen/llvm_registry.c"
 grep -Fq "LLVM scope registry allocation overflow" \
     "$ROOT_DIR/src/codegen/llvm_registry.c"
-grep -Fq "The returned entry is borrowed from the active scope frame" \
+grep -Fq "static LLVMVarEntry *" \
+    "$ROOT_DIR/src/codegen/llvm_registry.c"
+grep -Fq "llvm_scope_lookup(LLVMGenCtx *ctx, const char *name)" \
+    "$ROOT_DIR/src/codegen/llvm_registry.c"
+! grep -Fq "LLVMVarEntry *llvm_scope_lookup" \
     "$ROOT_DIR/src/codegen/llvm_internal_api.h"
 grep -Fq "llvm_scope_lookup_snapshot" \
     "$ROOT_DIR/src/codegen/llvm_internal_api.h"
@@ -425,15 +429,12 @@ scope_mixed_files=$(
             continue
         fi
         rel=${file#"$ROOT_DIR"/}
-        case "$rel" in
-            src/codegen/llvm_registry.c|\
-            src/codegen/llvm_internal_api.h|\
-            src/codegen/llvm_stmt_parallel_async.c)
-                ;;
-            *)
-                printf '%s\n' "$rel"
-                ;;
-        esac
+        if [ "$rel" = "src/codegen/llvm_registry.c" ] \
+            || [ "$rel" = "src/codegen/llvm_internal_api.h" ] \
+            || [ "$rel" = "src/codegen/llvm_stmt_parallel_async.c" ]; then
+            continue
+        fi
+        printf '%s\n' "$rel"
     done
 )
 if [ -n "$scope_mixed_files" ]; then
@@ -791,7 +792,9 @@ grep -Fq "bsearch(name" "$ROOT_DIR/src/codegen/codegen_slot_type_policy.c"
 grep -Fq "PgyCodegenSlotCallSpec specs[]" "$ROOT_DIR/src/codegen/codegen_slot_type_policy.c"
 grep -Fq "pgy_codegen_slot_call_spec_compare" "$ROOT_DIR/src/codegen/codegen_slot_type_policy.c"
 grep -Fq "pgy_hashmap_key_spec_compare" "$ROOT_DIR/src/codegen/codegen_hashmap_key_policy.c"
-grep -Fq "bsearch(effective_name" "$ROOT_DIR/src/codegen/codegen_hashmap_key_policy.c"
+grep -Fq "if (name == NULL || name[0] == '\\0')" \
+    "$ROOT_DIR/src/codegen/codegen_hashmap_key_policy.c"
+grep -Fq "bsearch(name" "$ROOT_DIR/src/codegen/codegen_hashmap_key_policy.c"
 grep -Fq "codegen_match_variant_policy.c" "$ROOT_DIR/Makefile"
 grep -Fq "pgy_codegen_match_variant_lookup" "$ROOT_DIR/src/codegen/codegen_match_variant_policy.c"
 grep -Fq "pgy_match_variant_lookup(name)" "$ROOT_DIR/src/codegen/codegen_match_variant_policy.c"
@@ -3178,13 +3181,27 @@ grep -Fq "pgy_codegen_call_name_is_read(callee_name)" "$ROOT_DIR/src/codegen/llv
 ! grep -Fq 'strcmp(callee_name, "Write")' "$ROOT_DIR/src/codegen/llvm_stmt_let_helpers.c"
 ! grep -Fq 'strcmp(callee_name, "Release")' "$ROOT_DIR/src/codegen/llvm_stmt_let_helpers.c"
 ! grep -A60 -F "llvm_infer_spawn_future_inner" "$ROOT_DIR/src/codegen/llvm_stmt_let_helpers.c" | grep -Fq "static char buf"
-grep -Fq "ctx->expected_type_name = llvm_stmt_render_type_annotation_copy" "$ROOT_DIR/src/codegen/llvm_stmt.c"
+grep -Fq "ctx->expected_type_name = ctx->current_return_type_name" "$ROOT_DIR/src/codegen/llvm_stmt.c"
+grep -Fq "ctx->expected_callable_type = ctx->current_return_callable_type" "$ROOT_DIR/src/codegen/llvm_stmt.c"
 grep -Fq "llvm_stmt_render_type_annotation_copy(ctx" "$ROOT_DIR/src/codegen/llvm_stmt_let_with.c"
 grep -Fq "suffix_buf" "$ROOT_DIR/src/codegen/llvm_stmt_type_infer.c"
+grep -Fq "llvm_stmt_contextual_option_type" "$ROOT_DIR/src/codegen/llvm_stmt_type_infer.c"
+grep -Fq "llvm_stmt_contextual_result_type" "$ROOT_DIR/src/codegen/llvm_stmt_type_infer.c"
+grep -Fq "llvm_stmt_infer_scalar_math_return_type" "$ROOT_DIR/src/codegen/llvm_stmt_type_infer.c"
+grep -Fq "op == TOKEN_COALESCE" "$ROOT_DIR/src/codegen/llvm_stmt_type_infer.c"
+grep -Fq "llvm_stmt_infer_nominal_name_from_init(ctx, receiver)" "$ROOT_DIR/src/codegen/llvm_stmt_type_infer.c"
+grep -Fq "llvm_lookup_enum_variant(ctx, callee)" "$ROOT_DIR/src/codegen/llvm_stmt_type_infer.c"
+grep -Fq '{ "IsOk", "Bool", PGY_BUILTIN_FLAG_NONE }' "$ROOT_DIR/src/codegen/transpiler_builtin_type_table.c"
+grep -Fq '{ "IsErr", "Bool", PGY_BUILTIN_FLAG_NONE }' "$ROOT_DIR/src/codegen/transpiler_builtin_type_table.c"
+grep -Fq '{ "IsSome", "Bool", PGY_BUILTIN_FLAG_NONE }' "$ROOT_DIR/src/codegen/transpiler_builtin_type_table.c"
+grep -Fq '{ "IsNone", "Bool", PGY_BUILTIN_FLAG_NONE }' "$ROOT_DIR/src/codegen/transpiler_builtin_type_table.c"
+grep -Fq '{ "StringLength", "Int", PGY_BUILTIN_FLAG_NONE }' "$ROOT_DIR/src/codegen/transpiler_builtin_type_table.c"
 grep -Fq "llvm_stmt_name_in_sorted_table" "$ROOT_DIR/src/codegen/llvm_stmt_type_infer_helpers.c"
 grep -Fq "kLLVMCollectionGetSpecs" "$ROOT_DIR/src/codegen/llvm_stmt_type_infer_helpers.c"
 grep -Fq "llvm_stmt_collection_get_spec_compare" "$ROOT_DIR/src/codegen/llvm_stmt_type_infer_helpers.c"
 grep -Fq "bsearch(" "$ROOT_DIR/src/codegen/llvm_stmt_type_infer_helpers.c"
+grep -Fq '"SetHas"' "$ROOT_DIR/src/codegen/llvm_stmt_type_infer_helpers.c"
+grep -Fq '"SetSize"' "$ROOT_DIR/src/codegen/llvm_stmt_type_infer_helpers.c"
 ! grep -Fq "strcmp(callee, specs[i].name)" "$ROOT_DIR/src/codegen/llvm_stmt_type_infer_helpers.c"
 llvm_stmt_collection_get_names="$(
     sed -n '/static const LLVMCollectionGetSpec kLLVMCollectionGetSpecs\[\]/,/^    };/p' \
@@ -3217,8 +3234,17 @@ grep -Fq "transpiler_lambda_expected_param_type" "$ROOT_DIR/src/codegen/transpil
 grep -Fq "transpiler_restore_local_binding_counts_local(" "$ROOT_DIR/src/codegen/transpiler_lambda_emit.c"
 ! grep -Fq "ctx->typed_var_count = saved_typed_var_count" "$ROOT_DIR/src/codegen/transpiler_lambda_emit.c"
 grep -Fq "transpiler_func_current_return_callable_type" "$ROOT_DIR/src/codegen/transpiler_func_flow_policy.c"
+grep -Fq "transpiler_mir_return_callable_type" "$ROOT_DIR/src/codegen/transpiler_mir_terminator_emit.c"
+grep -Fq "transpiler_mir_routine_return_type(mir_routine)" "$ROOT_DIR/src/codegen/transpiler_mir_terminator_emit.c"
+grep -Fq "ASTNode *return_callable_type" "$ROOT_DIR/src/codegen/transpiler_mir_terminator_emit.c"
 grep -Fq "transpiler_func_current_return_callable_type(ctx);" "$ROOT_DIR/src/codegen/transpiler_func_class_flow_emit.c"
 grep -Fq "transpiler_func_current_return_callable_type(ctx);" "$ROOT_DIR/src/codegen/transpiler_mir_terminator_emit.c"
+grep -Fq "llvm_mir_return_callable_type" "$ROOT_DIR/src/codegen/llvm_mir_block_emit.c"
+grep -Fq "llvm_mir_routine_return_type(routine)" "$ROOT_DIR/src/codegen/llvm_mir_block_emit.c"
+grep -Fq "llvm_stmt_lambda_signature_type(ctx, expr)" "$ROOT_DIR/src/codegen/llvm_stmt_type_infer.c"
+grep -B12 -F "llvm_stmt_require_non_void_value(ctx, return_expr" \
+    "$ROOT_DIR/src/codegen/llvm_mir_block_emit.c" | \
+    grep -Fq "ctx->expected_callable_type = mir_callable_type;"
 grep -Fq "ctx->expected_callable_type = callable_type" "$ROOT_DIR/src/codegen/transpiler_let_emit.c"
 grep -Fq "ctx->expected_callable_type = let_type" "$ROOT_DIR/src/codegen/transpiler_mir_preserved_let_emit.c"
 grep -Fq "type_node->type == AST_EVENT_HANDLER_TYPE" "$ROOT_DIR/src/compiler/mir_type_helpers.c"
@@ -3228,9 +3254,11 @@ grep -A4 -F "type_node->type == AST_EVENT_HANDLER_TYPE" \
 ! grep -A4 -F "type_node->type == AST_EVENT_HANDLER_TYPE" \
     "$ROOT_DIR/src/compiler/mir_type_helpers.c" | \
     grep -Fq 'pergyra_strdup("Int")'
+grep -Fq "mir_render_tuple_type_name(ASTNode *type_node)" \
+    "$ROOT_DIR/src/compiler/mir_type_helpers.c"
 grep -A4 -F "ast_type_tuple_element_count(type_node) > 0" \
     "$ROOT_DIR/src/compiler/mir_type_helpers.c" | \
-    grep -Fq "return NULL;"
+    grep -Fq "return mir_render_tuple_type_name(type_node);"
 ! grep -A4 -F "ast_type_tuple_element_count(type_node) > 0" \
     "$ROOT_DIR/src/compiler/mir_type_helpers.c" | \
     grep -Fq 'pergyra_strdup("Tuple")'
@@ -3430,7 +3458,7 @@ grep -Fq "llvm_register_mono(ctx, mangled);" \
     "$ROOT_DIR/src/codegen/llvm_expr_spawn_generic.c"
 if awk '
     /llvm_register_mono\(ctx, mangled\);/ { seen_register = 1 }
-    /gp = ast_func_generic_params\(generic_ast\);/ && seen_register { bad = 1 }
+    /gp = ast_declaration_generic_params\(generic_ast\);/ && seen_register { bad = 1 }
     END { exit bad ? 0 : 1 }
 ' "$ROOT_DIR/src/codegen/llvm_expr_spawn_generic.c"; then
     echo "[perf-contract] LLVM generic monomorphization registered before preflight" >&2
@@ -3665,7 +3693,7 @@ grep -Fq "llvm_stmt_lambda_expected_param_type" \
     "$ROOT_DIR/src/codegen/llvm_stmt_let_helpers.c"
 grep -Fq "llvm_stmt_current_return_callable_type" \
     "$ROOT_DIR/src/codegen/llvm_stmt_let_helpers.c"
-grep -Fq "llvm_stmt_current_return_callable_type(ctx);" \
+grep -Fq "ctx->expected_callable_type = ctx->current_return_callable_type" \
     "$ROOT_DIR/src/codegen/llvm_stmt.c"
 grep -Fq "llvm_stmt_current_return_callable_type(ctx);" \
     "$ROOT_DIR/src/codegen/llvm_mir_block_emit.c"
@@ -4145,13 +4173,13 @@ grep -Fq "transpiler_capture_reject_shared_collection" \
     "$ROOT_DIR/src/codegen/transpiler_async_parallel_emit.c"
 grep -Fq "cannot share mutable collection" \
     "$ROOT_DIR/src/codegen/transpiler_async_parallel_emit.c"
-grep -Fq "transpiler_find_local_type_ast(ctx" \
+grep -Fq "capture_typed_type_asts" \
     "$ROOT_DIR/src/codegen/transpiler_async_parallel_emit.c"
-if grep -Fq "transpiler_find_local_let_type_node" \
-    "$ROOT_DIR/src/codegen/transpiler_parallel_capture.c" \
-    "$ROOT_DIR/src/codegen/transpiler_parallel_capture.h" \
+grep -Fq "transpiler_current_local_type_ast" \
+    "$ROOT_DIR/src/codegen/transpiler_parallel_capture.c"
+if grep -Fq "transpiler_find_local_type_ast" \
     "$ROOT_DIR/src/codegen/transpiler_async_parallel_emit.c"; then
-    echo "[perf-contract] C parallel capture reintroduced a local type-AST walker" >&2
+    echo "[perf-contract] C parallel/async emit reintroduced direct local type-AST lookup" >&2
     exit 1
 fi
 if grep -Fq "transpiler_find_local_type_name(ctx" \
@@ -4159,9 +4187,9 @@ if grep -Fq "transpiler_find_local_type_name(ctx" \
     echo "[perf-contract] C parallel/async emit reintroduced capture type fallback lookup" >&2
     exit 1
 fi
-grep -Fq "transpiler_type_name_is_hashmap(type_name)" \
+grep -Fq "codegen_worker_boundary_storage_kind_from_type_name(type_name, false)" \
     "$ROOT_DIR/src/codegen/transpiler_async_parallel_emit.c"
-grep -Fq "transpiler_type_name_is_slice(type_name)" \
+grep -Fq "codegen_worker_boundary_storage_kind_from_type_name(type_name, true)" \
     "$ROOT_DIR/src/codegen/transpiler_async_parallel_emit.c"
 grep -Fq "LLVM async capture requires storage-backed binding" \
     "$ROOT_DIR/src/codegen/llvm_stmt_parallel_async.c"
@@ -4242,8 +4270,10 @@ grep -Fq "pgy_host_decl_compat_types(&host_type_count)" "$ROOT_DIR/src/codegen/l
 grep -Fq "host_types[i]" "$ROOT_DIR/src/codegen/llvm_inventory_decl_lookup.c"
 ! grep -Fq "kLLVMHostDeclTypes" "$ROOT_DIR/src/codegen/llvm_inventory_decl_lookup.c"
 ! grep -Fq "llvm_host_decl_type_count()" "$ROOT_DIR/src/codegen/llvm_inventory_decl_lookup.c"
-grep -Fq "mir_decl_header_ast_type_or(" "$ROOT_DIR/src/codegen/llvm_inventory_decl_lookup.c"
-grep -Fq "mir_decl_header_ast_type_or(" "$ROOT_DIR/src/codegen/transpiler_decl_lookup.c"
+grep -Fq "mir_find_decl_header_of_type(ctx->mir, decl_type, name)" \
+    "$ROOT_DIR/src/codegen/llvm_inventory_decl_lookup.c"
+grep -Fq "mir_decl_header_ast_type_or(" \
+    "$ROOT_DIR/src/codegen/transpiler_decl_method_view.c"
 grep -Fq "AST_PARTY_DECL" "$ROOT_DIR/src/codegen/host_decl_compat.c"
 grep -Fq "AST_ROLE_DECL" "$ROOT_DIR/src/codegen/host_decl_compat.c"
 grep -Fq "AST_ROSTER_DECL" "$ROOT_DIR/src/codegen/host_decl_compat.c"
@@ -4783,7 +4813,7 @@ grep -A14 -F "llvm_stmt_lookup_visible_function(ctx, callee)" "$ROOT_DIR/src/cod
     grep -Fq "llvm_stmt_lookup_declared_call_return_type(ctx, callee)"
 grep -A12 -F "Domain helper calls can be emitted" "$ROOT_DIR/src/codegen/llvm_stmt_type_infer.c" | \
     grep -Fq "ctx->expected_type_name"
-grep -A28 -F "case AST_BINARY" "$ROOT_DIR/src/codegen/llvm_stmt_type_infer.c" | \
+grep -A48 -F "case AST_BINARY" "$ROOT_DIR/src/codegen/llvm_stmt_type_infer.c" | \
     grep -Fq "unsupported binary operator has no inferred LLVM type"
 grep -Fq "llvm_stmt_expected_array_elem_type" "$ROOT_DIR/src/codegen/llvm_stmt_array_type_infer.c"
 grep -A10 -F "llvm_stmt_resolve_array_elem_type" "$ROOT_DIR/src/codegen/llvm_stmt_array_type_infer.c" | \

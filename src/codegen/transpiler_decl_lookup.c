@@ -122,11 +122,9 @@ transpiler_find_named_decl_local(TranspilerCtx *ctx, ASTNodeType decl_type,
 
     if (ctx == NULL || name == NULL)
         return NULL;
-    decl_header = transpiler_active_decl_header(ctx, name);
+    decl_header = transpiler_active_decl_header_of_type(ctx, decl_type, name);
     if (decl_header != NULL)
-        return mir_decl_header_ast_type_or(decl_header, AST_PROGRAM) == decl_type
-            ? mir_decl_header_source_ast(decl_header)
-            : NULL;
+        return mir_decl_header_source_ast(decl_header);
     transpiler_active_inventory(ctx, decl_type, &decls, &decl_count);
     if (decls == NULL)
         return NULL;
@@ -148,7 +146,7 @@ transpiler_find_decl_field_metadata(const TranspilerCtx *ctx,
 
     if (ctx == NULL || host_name == NULL || field_name == NULL)
         return NULL;
-    header = transpiler_active_decl_header(ctx, host_name);
+    header = transpiler_active_host_decl_header(ctx, host_name);
     for (size_t i = 0; header != NULL
          && i < mir_decl_header_field_count(header); i++) {
         const MIRDeclField *field = mir_decl_header_field(header, i);
@@ -249,7 +247,7 @@ ASTNode *
 transpiler_find_projection_nominal_decl_local(TranspilerCtx *ctx,
                                               const char *name)
 {
-    return transpiler_find_decl_in_inventory_local(ctx, AST_CLASS_DECL, name);
+    return transpiler_find_named_decl_local(ctx, AST_CLASS_DECL, name);
 }
 
 ASTNode *

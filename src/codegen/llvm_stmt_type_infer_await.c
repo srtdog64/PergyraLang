@@ -46,6 +46,15 @@ llvm_stmt_infer_await_expr_type(LLVMGenCtx *ctx, ASTNode *expr)
     if (operand == NULL)
         return llvm_stmt_await_unknown_type(ctx, expr,
             "missing Future<T> operand");
+    if (operand->type == AST_SPAWN_EXPR) {
+        inner = llvm_infer_spawn_future_inner(ctx, operand);
+        if (inner == NULL || inner[0] == '\0') {
+            return llvm_stmt_await_unknown_type(ctx, expr,
+                "inline spawn operand has no concrete Future<T> metadata");
+        }
+        inner_ty = pergyra_type_to_llvm(ctx, inner);
+        return ctx->has_error ? NULL : inner_ty;
+    }
     if (operand->type != AST_IDENTIFIER)
         return llvm_stmt_await_unknown_type(ctx, expr,
             "operand must be a named Future<T> binding");

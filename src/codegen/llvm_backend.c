@@ -65,6 +65,10 @@ llvm_ctx_create(const char *module_name)
     ctx->enum_variant_count = 0;
     ctx->loop_depth = 0;
     ctx->current_ret_type = ctx->type_i32;
+    ctx->current_function_ret_type = ctx->type_i32;
+    ctx->current_return_type_name = NULL;
+    ctx->current_return_callable_type = NULL;
+    ctx->current_within_zone_name = NULL;
     ctx->result_spec_count = 0;
     ctx->expected_type_name = NULL;
 

@@ -11,6 +11,9 @@
  *   int32_t v = pgy_channel_recv_Int(&ch);  // blocks if empty
  *   pgy_channel_close_Int(&ch);
  *   pgy_channel_destroy_Int(&ch);
+ *
+ * Destroy is quiescent-only: close/drain/join producers and consumers before
+ * freeing the backing buffer and destroying mutex/condvar state.
  * ================================================================= */
 
 #include "pgy_runtime_channel_status.h"
@@ -54,9 +57,30 @@ pgy_channel_init_##SuffixName(PgyChannel_##SuffixName *ch, size_t capacity) \
     ch->tail   = 0; \
     ch->count  = 0; \
     ch->closed = false; \
-    pthread_mutex_init(&ch->mutex, NULL); \
-    pthread_cond_init(&ch->cond_not_full, NULL); \
-    pthread_cond_init(&ch->cond_not_empty, NULL); \
+    if (pthread_mutex_init(&ch->mutex, NULL) != 0) { \
+        pgy_runtime_warn_invalid_channel("init_" #SuffixName, "mutex initialization failed"); \
+        free(ch->buf); \
+        ch->buf = NULL; \
+        ch->cap = 0; \
+        return; \
+    } \
+    if (pthread_cond_init(&ch->cond_not_full, NULL) != 0) { \
+        pgy_runtime_warn_invalid_channel("init_" #SuffixName, "not-full condition initialization failed"); \
+        pthread_mutex_destroy(&ch->mutex); \
+        free(ch->buf); \
+        ch->buf = NULL; \
+        ch->cap = 0; \
+        return; \
+    } \
+    if (pthread_cond_init(&ch->cond_not_empty, NULL) != 0) { \
+        pgy_runtime_warn_invalid_channel("init_" #SuffixName, "not-empty condition initialization failed"); \
+        pthread_cond_destroy(&ch->cond_not_full); \
+        pthread_mutex_destroy(&ch->mutex); \
+        free(ch->buf); \
+        ch->buf = NULL; \
+        ch->cap = 0; \
+        return; \
+    } \
 } \
 \
 static inline void \
@@ -104,7 +128,12 @@ pgy_channel_send_##SuffixName(PgyChannel_##SuffixName *ch, CType value) \
             pgy_async_yield(); \
             pthread_mutex_lock(&ch->mutex); \
         } else { \
-            pthread_cond_wait(&ch->cond_not_full, &ch->mutex); \
+            if (pthread_cond_wait(&ch->cond_not_full, &ch->mutex) != 0) { \
+                pgy_runtime_warn_invalid_channel("send_" #SuffixName, \
+                    "not-full condition wait failed"); \
+                pthread_mutex_unlock(&ch->mutex); \
+                return false; \
+            } \
         } \
     } \
     if (ch->closed) { \
@@ -180,10 +209,17 @@ pgy_channel_send_timeout_##SuffixName(PgyChannel_##SuffixName *ch, \
     struct timespec deadline = pgy_timespec_after_ns(timeout_ns); \
     pthread_mutex_lock(&ch->mutex); \
     while (ch->count >= ch->cap && !ch->closed) { \
-        if (pthread_cond_timedwait(&ch->cond_not_full, &ch->mutex, &deadline) \
-            == ETIMEDOUT && ch->count >= ch->cap && !ch->closed) { \
+        int wait_status = \
+            pthread_cond_timedwait(&ch->cond_not_full, &ch->mutex, &deadline); \
+        if (wait_status == ETIMEDOUT && ch->count >= ch->cap && !ch->closed) { \
             pgy_runtime_warn_invalid_channel("send_timeout_" #SuffixName, \
                 "deadline reached while channel remained full"); \
+            pthread_mutex_unlock(&ch->mutex); \
+            return false; \
+        } \
+        if (wait_status != 0) { \
+            pgy_runtime_warn_invalid_channel("send_timeout_" #SuffixName, \
+                "not-full condition timed wait failed"); \
             pthread_mutex_unlock(&ch->mutex); \
             return false; \
         } \
@@ -211,10 +247,17 @@ pgy_channel_send_timeout_status_##SuffixName(PgyChannel_##SuffixName *ch, \
     struct timespec deadline = pgy_timespec_after_ns(timeout_ns); \
     pthread_mutex_lock(&ch->mutex); \
     while (ch->count >= ch->cap && !ch->closed) { \
-        if (pthread_cond_timedwait(&ch->cond_not_full, &ch->mutex, &deadline) \
-            == ETIMEDOUT && ch->count >= ch->cap && !ch->closed) { \
+        int wait_status = \
+            pthread_cond_timedwait(&ch->cond_not_full, &ch->mutex, &deadline); \
+        if (wait_status == ETIMEDOUT && ch->count >= ch->cap && !ch->closed) { \
             pthread_mutex_unlock(&ch->mutex); \
             return None_Bool(); \
+        } \
+        if (wait_status != 0) { \
+            pgy_runtime_warn_invalid_channel("send_timeout_status_" #SuffixName, \
+                "not-full condition timed wait failed"); \
+            pthread_mutex_unlock(&ch->mutex); \
+            return Some_Bool(false); \
         } \
     } \
     if (ch->closed) { \
@@ -248,7 +291,12 @@ pgy_channel_recv_##SuffixName(PgyChannel_##SuffixName *ch, CType *out) \
             pthread_mutex_unlock(&ch->mutex); \
             if (!pgy_async_progress_one()) { \
                 pthread_mutex_lock(&ch->mutex); \
-                pthread_cond_wait(&ch->cond_not_empty, &ch->mutex); \
+                if (pthread_cond_wait(&ch->cond_not_empty, &ch->mutex) != 0) { \
+                    pgy_runtime_warn_invalid_channel("recv_" #SuffixName, \
+                        "not-empty condition wait failed"); \
+                    pthread_mutex_unlock(&ch->mutex); \
+                    return false; \
+                } \
             } else { \
                 pthread_mutex_lock(&ch->mutex); \
             } \
@@ -288,10 +336,17 @@ pgy_channel_recv_timeout_##SuffixName(PgyChannel_##SuffixName *ch, \
             pthread_mutex_unlock(&ch->mutex); \
             if (!pgy_async_progress_one()) { \
                 pthread_mutex_lock(&ch->mutex); \
-                if (pthread_cond_timedwait(&ch->cond_not_empty, &ch->mutex, &deadline) \
-                    == ETIMEDOUT && ch->count == 0 && !ch->closed) { \
+                int wait_status = pthread_cond_timedwait( \
+                    &ch->cond_not_empty, &ch->mutex, &deadline); \
+                if (wait_status == ETIMEDOUT && ch->count == 0 && !ch->closed) { \
                     pgy_runtime_warn_invalid_channel("recv_timeout_" #SuffixName, \
                         "deadline reached while channel remained empty"); \
+                    pthread_mutex_unlock(&ch->mutex); \
+                    return false; \
+                } \
+                if (wait_status != 0) { \
+                    pgy_runtime_warn_invalid_channel("recv_timeout_" #SuffixName, \
+                        "not-empty condition timed wait failed"); \
                     pthread_mutex_unlock(&ch->mutex); \
                     return false; \
                 } \

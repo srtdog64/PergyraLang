@@ -335,4 +335,55 @@ test_parallel_context_semantics(void)
         parser_destroy(parser);
         lexer_destroy(lexer);
     }
+
+    TEST("parallel-rejected: collection mutators stay serialized");
+    {
+        SemanticContext *ctx = semantic_context_create();
+        Type *array_args[1] = { TYPE_INT };
+        Type *array_type = type_create_constructed(TYPE_ARRAY, array_args, 1);
+        ASTNode *call_args[2] = {
+            make_identifier("items", 1),
+            make_number(1, 1)
+        };
+        ASTNode *call = make_call("ArrayPush", call_args, 2, 1);
+
+        scope_enter(&ctx->scope, SCOPE_GLOBAL);
+        ctx->in_parallel = true;
+        scope_declare(ctx->scope,
+            symbol_create_variable("items", array_type, 1, 1));
+
+        type_check_expression(call, ctx);
+        EXPECT(ctx->has_error);
+        EXPECT(ctx_has_diagnostic_substring(ctx,
+            "does not permit collection mutator 'ArrayPush'"));
+
+        semantic_context_destroy(ctx);
+        ast_destroy(call);
+    }
+
+    TEST("parallel-rejected: map mutators stay serialized");
+    {
+        SemanticContext *ctx = semantic_context_create();
+        Type *map_args[2] = { TYPE_INT, TYPE_INT };
+        Type *map_type = type_create_constructed(TYPE_HASHMAP, map_args, 2);
+        ASTNode *call_args[3] = {
+            make_identifier("table", 1),
+            make_number(1, 1),
+            make_number(2, 1)
+        };
+        ASTNode *call = make_call("MapSet", call_args, 3, 1);
+
+        scope_enter(&ctx->scope, SCOPE_GLOBAL);
+        ctx->in_parallel = true;
+        scope_declare(ctx->scope,
+            symbol_create_variable("table", map_type, 1, 1));
+
+        type_check_expression(call, ctx);
+        EXPECT(ctx->has_error);
+        EXPECT(ctx_has_diagnostic_substring(ctx,
+            "does not permit map mutator 'MapSet'"));
+
+        semantic_context_destroy(ctx);
+        ast_destroy(call);
+    }
 }

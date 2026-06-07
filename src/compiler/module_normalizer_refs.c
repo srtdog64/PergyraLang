@@ -133,7 +133,8 @@ module_normalizer_normalize_node_refs(ASTNode *node,
             return;
 
         case AST_FUNC_DECL: {
-            GenericParams *generic_params = ast_func_generic_params(node);
+            GenericParams *generic_params =
+                ast_declaration_generic_params(node);
             normalize_generic_params(generic_params, scope, shadow);
             size_t saved = shadow->count;
             size_t generic_count = ast_generic_param_count(generic_params);
@@ -157,7 +158,8 @@ module_normalizer_normalize_node_refs(ASTNode *node,
         }
 
         case AST_CLASS_DECL:
-            normalize_generic_params(ast_class_generic_params(node), scope, shadow);
+            normalize_generic_params(
+                ast_declaration_generic_params(node), scope, shadow);
             size_t field_count = 0;
             ClassField **fields = ast_class_fields(node, &field_count);
             for (size_t i = 0; i < field_count; i++) {
@@ -174,7 +176,8 @@ module_normalizer_normalize_node_refs(ASTNode *node,
             return;
 
         case AST_ABILITY_DECL:
-            normalize_generic_params(ast_ability_generic_params(node), scope, shadow);
+            normalize_generic_params(
+                ast_declaration_generic_params(node), scope, shadow);
             for (size_t i = 0; i < ast_ability_require_field_count(node); i++)
                 module_normalizer_normalize_node_refs(
                     ast_ability_require_field(node, i), scope, shadow);
@@ -184,7 +187,8 @@ module_normalizer_normalize_node_refs(ASTNode *node,
 
         case AST_ROLE_DECL:
             module_normalizer_normalize_node_refs(ast_role_for_type(node), scope, shadow);
-            normalize_generic_params(ast_role_generic_params(node), scope, shadow);
+            normalize_generic_params(
+                ast_declaration_generic_params(node), scope, shadow);
             for (size_t i = 0; i < ast_role_include_count(node); i++)
                 module_normalizer_normalize_node_refs(ast_role_include(node, i), scope, shadow);
             for (size_t i = 0; i < ast_role_impl_count(node); i++)
@@ -195,7 +199,8 @@ module_normalizer_normalize_node_refs(ASTNode *node,
         case AST_PARTY_DECL:
             module_normalizer_normalize_node_refs(
                 ast_party_extends(node), scope, shadow);
-            normalize_generic_params(ast_party_generic_params(node), scope, shadow);
+            normalize_generic_params(
+                ast_declaration_generic_params(node), scope, shadow);
             for (size_t i = 0; i < ast_party_role_count(node); i++)
                 module_normalizer_normalize_node_refs(ast_party_role(node, i), scope, shadow);
             for (size_t i = 0; i < ast_party_shared_count(node); i++)
@@ -205,7 +210,8 @@ module_normalizer_normalize_node_refs(ASTNode *node,
             return;
 
         case AST_ROSTER_DECL:
-            normalize_generic_params(ast_roster_generic_params(node), scope, shadow);
+            normalize_generic_params(
+                ast_declaration_generic_params(node), scope, shadow);
             for (size_t i = 0; i < ast_roster_party_count(node); i++)
                 module_normalizer_normalize_node_refs(ast_roster_party(node, i), scope, shadow);
             for (size_t i = 0; i < ast_roster_shared_count(node); i++)

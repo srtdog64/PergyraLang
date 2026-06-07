@@ -74,12 +74,54 @@ source-of-truth rule for Pergyra lowering: if the compiler cannot prove
 worker-local ownership, lock/phase separation, atomic access, or immutable
 snapshot publication, the boundary must stay rejected or be marked `unsafe`.
 
+Implementation checkpoint: `src/common/worker_boundary_storage_policy.{h,c}`
+owns the list of growable or synchronization-backed storage that cannot cross
+worker boundaries by raw pointer. Semantic analysis, C lowering, and LLVM
+lowering consume that shared policy instead of rebuilding local lists.
+`make worker-boundary-ub-test-smoke` pins the owner and requires semantic
+regressions for Array, Slice, HashMap, and Channel worker-boundary rejection.
+
 Implementation checkpoint: `src/runtime/party_runtime_stats.c` treats the
 process-global fiber stats table as a shared registry. `UpdateFiberStats`,
 `GetFiberStats`, and `party_runtime_dump_fiber_stats` all acquire the same
 registry mutex before touching the open-addressed index, and dump output uses
 a deep-copied snapshot before printing outside the lock. A shallow pointer
 snapshot would re-open the same rehash/lifetime UB class this section forbids.
+`GetFiberStats` returns the numeric counters by value, but its `roleId` field
+is a registry-owned borrowed string; callers must not free or cache it as an
+independent allocation. Use `party_runtime_dump_fiber_stats` or an explicit
+copy when a durable cross-thread stats snapshot is needed.
+
+Implementation checkpoint: `src/runtime/party_runtime_scheduler.c` treats the
+process-global scheduler registry as mutex-owned state. `RegisterScheduler`,
+`GetSchedulerForTag`, and `DumpFiberMaps` acquire `g_schedulerRegistryMutex`
+before reading or mutating `g_schedulerRegistry`, `g_schedulerByTag`, or
+`g_schedulerCount`. A direct worker-id or tag lookup without that lock would
+re-open the shared-cache race this section forbids.
+
+Implementation checkpoint: `src/runtime/async/concurrent_queue.c` treats queue
+node links as mutex-owned FIFO state and exposes the queue size as an atomic
+observation only. Size updates use compare-exchange RMW loops with saturation
+instead of load-plus-store arithmetic, so future worker paths cannot wrap or
+lose count updates if the queue implementation becomes less strictly
+mutex-backed. Queue payload pointers are non-null by contract because
+`ConcurrentQueuePop` uses `NULL` as the empty/failure sentinel; accepting a
+`NULL` item would make a queued task indistinguishable from an empty queue.
+
+World/roster async execution is a borrowed-handle surface for beta.
+`ExecuteRosterAsync` does not deep-copy `RosterContext`, `DispatcherConfig`,
+`PartyContext`, or `FiberMap` graphs. Those objects must remain immutable and
+live until `WaitForRoster` returns a completed result. A timeout from
+`WaitForRoster` does not consume or free the handle; the caller must call
+`WaitForRoster` again later to join and release it. This keeps the runtime from
+pretending that a shallow graph snapshot is safe across worker threads.
+
+Party dispatch follows the same rule. `DispatchParallel` borrows the
+`FiberMap` and `PartyContext` graph for the duration of the dispatch, so callers
+must not mutate or free that graph until all worker threads have joined. The
+returned `DispatchResult` owns its role-id strings and must be released with
+`FreeDispatchResult`; this keeps generated `FiberMap` convenience paths from
+returning pointers into a freed dispatch graph.
 
 ### Zone Generation Counter — Atomic Contract (2026-05-17)
 
@@ -121,8 +163,27 @@ contract owners.
   authority-bearing tokens.
 - `ChannelClose(Channel<T>)` is copy-only for beta; ownership-bearing queued
   payload channels must be drained explicitly before close.
+- `ChannelDestroy(Channel<T>)` is quiescent-only. It may free the backing
+  buffer and destroy mutex/condvar state, so all producers, consumers, and
+  waiters must have stopped or joined before destroy. Use `ChannelClose` to
+  publish shutdown; use destroy only after the join/drain boundary.
+- A condition-variable wait failure is not a normal wakeup. Channel send/recv
+  owners must warn, unlock, and return failure instead of continuing with a
+  possibly-invalid wait state.
 - Channel buffering/fairness beyond current FIFO/runtime behavior is
   out-of-beta unless covered by a named backend-compare fixture.
+
+## Future Await Contract
+
+- `await` is a completion join, but the named `Future<T>` or
+  `RemoteFuture<T>` handle is consumed by the join. The runtime frees the task
+  handle on await, so the semantic checker marks a named awaited handle
+  consumed and rejects double-await / await-after-cancel reuse through the
+  normal move/release diagnostic path.
+- Inline `await spawn Worker(args...)` is valid because the temporary handle is
+  consumed immediately and never creates a reusable binding.
+- A task condition-variable wait failure is an internal invariant violation;
+  `await` must not continue as if the task completed normally.
 
 ## Cancellation Contract
 

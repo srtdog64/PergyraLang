@@ -144,7 +144,6 @@ collect_slot_escapes(ASTNode *node, SlotEscapeEntry **entries,
     case AST_CALL: {
         ASTNode *callee_decl = NULL;
         size_t param_count = 0;
-        FuncParam **params = NULL;
         ASTNode *body = NULL;
         ASTNode *callee = ast_call_callee(node);
 
@@ -157,13 +156,8 @@ collect_slot_escapes(ASTNode *node, SlotEscapeEntry **entries,
             callee_decl = slot_analyzer_find_function_decl(
                 program_root, ast_identifier_name(callee));
             if (callee_decl != NULL) {
-                if (callee_decl->is_async_decl) {
-                    params = ast_async_func_params(callee_decl, &param_count);
-                    body = ast_async_func_body(callee_decl);
-                } else {
-                    param_count = ast_func_param_count(callee_decl);
-                    body = ast_func_body(callee_decl);
-                }
+                param_count = ast_func_param_count(callee_decl);
+                body = ast_func_body(callee_decl);
             }
         }
 
@@ -175,9 +169,7 @@ collect_slot_escapes(ASTNode *node, SlotEscapeEntry **entries,
                 bool handled = false;
 
                 if (body != NULL && i < param_count) {
-                    FuncParam *param = params != NULL
-                        ? params[i]
-                        : ast_func_param(callee_decl, i);
+                    FuncParam *param = ast_func_param(callee_decl, i);
                     if (param != NULL && param->name != NULL) {
                         if (param->mode == PARAM_MODE_REF) {
                             unsigned callee_mask = slot_param_summary_in_program(

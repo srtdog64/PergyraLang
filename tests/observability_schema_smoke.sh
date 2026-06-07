@@ -44,6 +44,8 @@ for required in \
     "IntentHistory*" \
     "IntentActive*" \
     "IntentRecent*" \
+    "Active registry aggregate queries use the active registry index" \
+    "Active step field queries use a stable active intent handle" \
     "runtime-borrowed strings" \
     "authority-token-mismatch" \
     "newest-first" \

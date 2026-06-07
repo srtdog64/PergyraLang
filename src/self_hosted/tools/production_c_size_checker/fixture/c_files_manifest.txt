@@ -683,6 +683,8 @@ src/semantic/type_checker_helpers_effects.c
 src/semantic/type_checker_helpers_late.c
 src/semantic/type_checker_helpers_resources.c
 src/semantic/type_checker_host_helpers.c
+src/semantic/type_checker_host_index.c
+src/semantic/type_checker_host_lookup.c
 src/semantic/type_checker_host_overlay.c
 src/semantic/type_checker_host_resource.c
 src/semantic/type_checker_intent_ability.c

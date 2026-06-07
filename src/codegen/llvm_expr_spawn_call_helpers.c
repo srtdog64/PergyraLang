@@ -10,7 +10,157 @@
 #include <limits.h>
 #include <stdint.h>
 
+#include "llvm_backend_type_map_internal.h"
 #include "llvm_internal_api.h"
+#include "transpiler_type_mapping.h"
+
+static LLVMFuncEntry *
+llvm_spawn_required_panic_fn(LLVMGenCtx *ctx, ASTNode *node)
+{
+    LLVMFuncEntry *panic_fn = llvm_lookup_function(ctx,
+        "pgy_runtime_panic_internal_invariant_export");
+    if (panic_fn == NULL && ctx != NULL && !ctx->has_error) {
+        llvm_set_error_at_with_hints(ctx, node,
+            PGY_CODE_LLVM_TYPE_UNSUPPORTED,
+            PGY_CAUSE_LLVM_TYPE_UNSUPPORTED,
+            PGY_FIX_INSPECT_MIR_INVENTORY,
+            "LLVM spawn expression requires registered runtime function '%s'",
+            "pgy_runtime_panic_internal_invariant_export");
+    }
+    return panic_fn;
+}
+
+static bool
+llvm_spawn_emit_nonnull_guard(LLVMGenCtx *ctx, ASTNode *node,
+                              LLVMValueRef ptr,
+                              LLVMFuncEntry *panic_fn,
+                              LLVMFuncEntry *free_fn,
+                              LLVMValueRef cleanup_ptr,
+                              const char *reason)
+{
+    LLVMValueRef is_null;
+    LLVMBasicBlockRef fail_bb;
+    LLVMBasicBlockRef cont_bb;
+
+    if (ctx == NULL || ptr == NULL || panic_fn == NULL)
+        return false;
+    if (ctx->current_function == NULL) {
+        llvm_set_error_at_with_hints(ctx, node,
+            PGY_CODE_LLVM_TYPE_UNSUPPORTED,
+            PGY_CAUSE_LLVM_TYPE_UNSUPPORTED,
+            PGY_FIX_INSPECT_MIR_INVENTORY,
+            "LLVM spawn expression null guard requires an active function");
+        return false;
+    }
+
+    is_null = LLVMBuildICmp(ctx->builder, LLVMIntEQ, ptr,
+        LLVMConstNull(ctx->type_i8ptr), llvm_tmp_name(ctx));
+    fail_bb = LLVMAppendBasicBlockInContext(ctx->context,
+        ctx->current_function, "pgy.spawn.fail");
+    cont_bb = LLVMAppendBasicBlockInContext(ctx->context,
+        ctx->current_function, "pgy.spawn.cont");
+    LLVMBuildCondBr(ctx->builder, is_null, fail_bb, cont_bb);
+
+    LLVMPositionBuilderAtEnd(ctx->builder, fail_bb);
+    if (cleanup_ptr != NULL && free_fn != NULL) {
+        LLVMValueRef free_args[] = { cleanup_ptr };
+        LLVMBuildCall2(ctx->builder, free_fn->fn_type, free_fn->fn,
+            free_args, 1, "");
+    }
+    {
+        LLVMValueRef reason_arg = LLVMBuildGlobalStringPtr(ctx->builder,
+            reason != NULL ? reason : "LLVM spawn expression failed",
+            llvm_tmp_name(ctx));
+        LLVMBuildCall2(ctx->builder, panic_fn->fn_type, panic_fn->fn,
+            &reason_arg, 1, "");
+    }
+    LLVMBuildUnreachable(ctx->builder);
+
+    LLVMPositionBuilderAtEnd(ctx->builder, cont_bb);
+    return true;
+}
+
+static const char *
+llvm_spawn_worker_storage_kind(LLVMGenCtx *ctx, const char *name)
+{
+    if (ctx == NULL || name == NULL)
+        return NULL;
+    if (llvm_lookup_array_var(ctx, name) != NULL)
+        return codegen_worker_boundary_storage_kind_from_constructor_name(
+            "Array/Slice", true, true);
+    if (llvm_lookup_list_inner(ctx, name) != NULL)
+        return codegen_worker_boundary_storage_kind_from_constructor_name(
+            "List", true, false);
+    if (llvm_lookup_queue_inner(ctx, name) != NULL)
+        return codegen_worker_boundary_storage_kind_from_constructor_name(
+            "Queue", true, false);
+    if (llvm_lookup_set_inner(ctx, name) != NULL)
+        return codegen_worker_boundary_storage_kind_from_constructor_name(
+            "Set", true, false);
+    if (llvm_lookup_map_value(ctx, name) != NULL)
+        return codegen_worker_boundary_storage_kind_from_constructor_name(
+            "HashMap", true, false);
+    if (llvm_lookup_channel_inner(ctx, name) != NULL)
+        return codegen_worker_boundary_storage_kind_from_constructor_name(
+            "Channel", true, false);
+    return NULL;
+}
+
+static bool
+llvm_spawn_reject_worker_storage_param(LLVMGenCtx *ctx, ASTNode *site,
+                                       FuncParam *param, size_t index,
+                                       const char *callee_name)
+{
+    char *type_name;
+    const char *kind;
+
+    if (ctx == NULL || param == NULL || param->type == NULL)
+        return false;
+
+    type_name = llvm_render_type_name_scratch_in_ctx(ctx, param->type,
+                                                     &ctx->scratch);
+    kind = codegen_worker_boundary_storage_kind_from_type_name(type_name, true);
+    if (kind == NULL)
+        return false;
+
+    llvm_set_error_at_with_hints(ctx, site,
+        PGY_CODE_LLVM_TYPE_UNSUPPORTED,
+        PGY_CAUSE_BORROW_ESCAPE,
+        PGY_FIX_SERIALIZE_OUTSIDE_PARALLEL,
+        "LLVM spawn parameter %zu for '%s' cannot transport %s<T> storage across a worker boundary; semantic/CFG should reject this path before lowering",
+        index + 1,
+        callee_name != NULL ? callee_name : "<function>",
+        kind);
+    return true;
+}
+
+static bool
+llvm_spawn_reject_worker_storage_arg(LLVMGenCtx *ctx, ASTNode *site,
+                                     ASTNode *arg, size_t index,
+                                     const char *callee_name)
+{
+    const char *name;
+    const char *kind;
+
+    if (arg == NULL || arg->type != AST_IDENTIFIER)
+        return false;
+
+    name = ast_identifier_name(arg);
+    kind = llvm_spawn_worker_storage_kind(ctx, name);
+    if (kind == NULL)
+        return false;
+
+    llvm_set_error_at_with_hints(ctx, site,
+        PGY_CODE_LLVM_TYPE_UNSUPPORTED,
+        PGY_CAUSE_BORROW_ESCAPE,
+        PGY_FIX_SERIALIZE_OUTSIDE_PARALLEL,
+        "LLVM spawn argument %zu for '%s' cannot transport %s<T> storage '%s' across a worker boundary; semantic/CFG should reject this path before lowering",
+        index + 1,
+        callee_name != NULL ? callee_name : "<function>",
+        kind,
+        name != NULL ? name : "<argument>");
+    return true;
+}
 
 LLVMValueRef
 llvm_emit_spawn_expr(ASTNode *node, LLVMGenCtx *ctx)
@@ -21,6 +171,7 @@ llvm_emit_spawn_expr(ASTNode *node, LLVMGenCtx *ctx)
     const char *callee_name = NULL;
     size_t argc = 0;
     LLVMValueRef *args = NULL;
+    ASTNode *callee_decl = NULL;
     LLVMFuncEntry *callee_entry = NULL;
     LLVMValueRef callee_fn = NULL;
     LLVMTypeRef callee_fn_type = NULL;
@@ -28,6 +179,7 @@ llvm_emit_spawn_expr(ASTNode *node, LLVMGenCtx *ctx)
     LLVMFuncEntry *spawn_fn = NULL;
     LLVMFuncEntry *malloc_fn = NULL;
     LLVMFuncEntry *free_fn = NULL;
+    LLVMFuncEntry *panic_fn = NULL;
     int wrapper_id = ++ctx->tmp_counter;
 
     if (target == NULL) {
@@ -57,6 +209,7 @@ llvm_emit_spawn_expr(ASTNode *node, LLVMGenCtx *ctx)
             "LLVM spawn expression requires an identifier target");
         return NULL;
     }
+    callee_decl = llvm_find_function_decl(ctx, callee_name);
 
     if (argc > 0) {
         if (argc > (size_t)UINT_MAX || argc > SIZE_MAX / sizeof(LLVMValueRef)) {
@@ -77,7 +230,19 @@ llvm_emit_spawn_expr(ASTNode *node, LLVMGenCtx *ctx)
             return NULL;
         }
         for (size_t i = 0; i < argc; i++) {
-            args[i] = llvm_emit_expression(ast_call_argument(call, i), ctx);
+            ASTNode *arg = ast_call_argument(call, i);
+            FuncParam *param = callee_decl != NULL && callee_decl->type == AST_FUNC_DECL
+                ? ast_func_param(callee_decl, i)
+                : NULL;
+            if (llvm_spawn_reject_worker_storage_param(ctx, node, param, i,
+                    callee_name)) {
+                return NULL;
+            }
+            if (llvm_spawn_reject_worker_storage_arg(ctx, node, arg, i,
+                    callee_name)) {
+                return NULL;
+            }
+            args[i] = llvm_emit_expression(arg, ctx);
             if (args[i] == NULL) {
                 llvm_set_error_at_with_hints(ctx, node,
                     PGY_CODE_LLVM_TYPE_UNSUPPORTED,
@@ -98,12 +263,14 @@ llvm_emit_spawn_expr(ASTNode *node, LLVMGenCtx *ctx)
             : "pgy_async_spawn_export");
     malloc_fn = llvm_lookup_function(ctx, "malloc");
     free_fn = llvm_lookup_function(ctx, "free");
-    if (spawn_fn == NULL || malloc_fn == NULL || free_fn == NULL) {
+    panic_fn = llvm_spawn_required_panic_fn(ctx, node);
+    if (spawn_fn == NULL || malloc_fn == NULL || free_fn == NULL
+        || panic_fn == NULL) {
         llvm_set_error_at_with_hints(ctx, node,
             PGY_CODE_LLVM_TYPE_UNSUPPORTED,
             PGY_CAUSE_LLVM_TYPE_UNSUPPORTED,
             PGY_FIX_INSPECT_MIR_INVENTORY,
-            "LLVM spawn expression requires registered runtime functions '%s', 'malloc', and 'free'",
+            "LLVM spawn expression requires registered runtime functions '%s', 'malloc', 'free', and panic",
             ast_spawn_is_blocking(node)
                 ? "pgy_spawn_blocking_export"
                 : "pgy_async_spawn_export");
@@ -125,6 +292,9 @@ llvm_emit_spawn_expr(ASTNode *node, LLVMGenCtx *ctx)
     {
         LLVMValueRef saved_fn = ctx->current_function;
         LLVMTypeRef saved_ret = ctx->current_ret_type;
+        LLVMTypeRef saved_function_ret = ctx->current_function_ret_type;
+        const char *saved_return_type_name = ctx->current_return_type_name;
+        ASTNode *saved_return_callable_type = ctx->current_return_callable_type;
         LLVMBasicBlockRef saved_bb = LLVMGetInsertBlock(ctx->builder);
         LLVMLexicalRegistrySnapshot lexical_snapshot =
             llvm_lexical_registry_snapshot(ctx);
@@ -182,6 +352,9 @@ llvm_emit_spawn_expr(ASTNode *node, LLVMGenCtx *ctx)
 
         ctx->current_function = wrapper_fn;
         ctx->current_ret_type = ctx->type_i8ptr;
+        ctx->current_function_ret_type = ctx->type_i8ptr;
+        ctx->current_return_type_name = NULL;
+        ctx->current_return_callable_type = NULL;
         entry = LLVMAppendBasicBlockInContext(ctx->context, wrapper_fn, "entry");
         LLVMPositionBuilderAtEnd(ctx->builder, entry);
         llvm_scope_push(ctx);
@@ -189,6 +362,9 @@ llvm_emit_spawn_expr(ASTNode *node, LLVMGenCtx *ctx)
             llvm_lexical_registry_restore(ctx, lexical_snapshot);
             ctx->current_function = saved_fn;
             ctx->current_ret_type = saved_ret;
+            ctx->current_function_ret_type = saved_function_ret;
+            ctx->current_return_type_name = saved_return_type_name;
+            ctx->current_return_callable_type = saved_return_callable_type;
             if (saved_bb != NULL)
                 LLVMPositionBuilderAtEnd(ctx->builder, saved_bb);
             return NULL;
@@ -240,6 +416,9 @@ llvm_emit_spawn_expr(ASTNode *node, LLVMGenCtx *ctx)
         llvm_lexical_registry_restore(ctx, lexical_snapshot);
         ctx->current_function = saved_fn;
         ctx->current_ret_type = saved_ret;
+        ctx->current_function_ret_type = saved_function_ret;
+        ctx->current_return_type_name = saved_return_type_name;
+        ctx->current_return_callable_type = saved_return_callable_type;
         if (saved_bb != NULL)
             LLVMPositionBuilderAtEnd(ctx->builder, saved_bb);
 
@@ -251,6 +430,11 @@ llvm_emit_spawn_expr(ASTNode *node, LLVMGenCtx *ctx)
 
             raw_spawn_arg = LLVMBuildCall2(ctx->builder, malloc_fn->fn_type,
                 malloc_fn->fn, malloc_args, 1, llvm_tmp_name(ctx));
+            if (!llvm_spawn_emit_nonnull_guard(ctx, node, raw_spawn_arg,
+                    panic_fn, NULL, NULL,
+                    "LLVM spawn argument allocation failed")) {
+                return NULL;
+            }
             typed_arg = LLVMBuildBitCast(ctx->builder, raw_spawn_arg,
                 LLVMPointerType(arg_struct_type, 0), llvm_tmp_name(ctx));
             for (size_t i = 0; i < argc; i++) {
@@ -266,6 +450,15 @@ llvm_emit_spawn_expr(ASTNode *node, LLVMGenCtx *ctx)
         spawn_args[1] = raw_spawn_arg;
         handle = LLVMBuildCall2(ctx->builder, spawn_fn->fn_type, spawn_fn->fn,
             spawn_args, 2, llvm_tmp_name(ctx));
+        {
+            LLVMValueRef task = LLVMBuildExtractValue(ctx->builder, handle, 0,
+                llvm_tmp_name(ctx));
+            if (!llvm_spawn_emit_nonnull_guard(ctx, node, task,
+                    panic_fn, free_fn, raw_spawn_arg,
+                    "LLVM spawn task creation failed")) {
+                return NULL;
+            }
+        }
 
         return handle;
     }

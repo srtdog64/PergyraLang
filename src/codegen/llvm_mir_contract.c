@@ -37,7 +37,8 @@ llvm_validate_mir_for_codegen(const MIRProgram *mir)
                 PGY_CAUSE_MIR_TOPOLOGY_INVALID,
                 PGY_FIX_INSPECT_HIR_TO_MIR_LOWERING);
         }
-        if (routine->name == NULL) {
+        const char *routine_name = llvm_mir_routine_name(routine);
+        if (routine_name == NULL) {
             return llvm_result_error_with_hints("MIR routine is missing name",
                 PGY_CODE_MIR_TOPOLOGY_INVALID,
                 PGY_CAUSE_MIR_TOPOLOGY_INVALID,
@@ -51,7 +52,7 @@ llvm_validate_mir_for_codegen(const MIRProgram *mir)
                     PGY_CAUSE_MIR_TOPOLOGY_INVALID,
                     PGY_FIX_INSPECT_HIR_TO_MIR_LOWERING,
                     "MIR routine '%s' emission topology invalid: %s",
-                    routine->name != NULL ? routine->name : "(anonymous)",
+                    routine_name != NULL ? routine_name : "(anonymous)",
                     topology_error)
                 : llvm_result_error_with_hints(
                     "MIR emission topology validation failed",
@@ -70,9 +71,9 @@ bool
 llvm_mir_validate_cleanup_contract(const MIRRoutine *routine,
                                    LLVMGenCtx *ctx)
 {
-    const char *routine_name = routine != NULL && routine->name != NULL
-        ? routine->name
-        : "<routine>";
+    const char *routine_name = llvm_mir_routine_name(routine);
+    if (routine_name == NULL)
+        routine_name = "<routine>";
 
     if (routine == NULL)
         return false;

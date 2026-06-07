@@ -151,12 +151,13 @@ run_pergyra_output_compare() {
 
     tri_fixture="$tri_root/src/self_hosted/tools/backend_output_comparator/fixture"
     mkdir -p "$tri_fixture"
+    mkdir -p "$tri_root/.tmp"
     cp "$expected" "$tri_fixture/expected.txt"
     cp "$actual" "$tri_fixture/actual.txt"
 
     tri_tool_arg="$(pgy_path_for_compiler "$PGY" "$tri_tool")"
     set +e
-    tri_out="$(cd "$tri_root" && "$PGY" "$tri_tool_arg" --run 2>/dev/null)"
+    tri_out="$(cd "$tri_root" && "$PGY" "$tri_tool_arg" --run 2>&1)"
     tri_rc=$?
     set -e
     if [[ "$tri_rc" -ne 0 ]]; then

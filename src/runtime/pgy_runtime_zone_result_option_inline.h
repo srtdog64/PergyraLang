@@ -28,11 +28,31 @@
 typedef pthread_rwlock_t PgyZoneLock;
 
 #define PGY_ZONE_LOCK_FIELD    PgyZoneLock __zone_lock;
-#define PGY_ZONE_LOCK_INIT(z)  pthread_rwlock_init(&(z)->__zone_lock, NULL)
-#define PGY_ZONE_LOCK_DESTROY(z) pthread_rwlock_destroy(&(z)->__zone_lock)
-#define PGY_ZONE_RDLOCK(z)     pthread_rwlock_rdlock(&(z)->__zone_lock)
-#define PGY_ZONE_WRLOCK(z)     pthread_rwlock_wrlock(&(z)->__zone_lock)
-#define PGY_ZONE_UNLOCK(z)     pthread_rwlock_unlock(&(z)->__zone_lock)
+#define PGY_ZONE_LOCK_INIT(z) do { \
+    if (pthread_rwlock_init(&(z)->__zone_lock, NULL) != 0) \
+        PGY_RUNTIME_PANIC(PGY_RUNTIME_PANIC_CLASS_INTERNAL_INVARIANT, \
+                          "zone lock initialization failed"); \
+} while (0)
+#define PGY_ZONE_LOCK_DESTROY(z) do { \
+    if (pthread_rwlock_destroy(&(z)->__zone_lock) != 0) \
+        PGY_RUNTIME_PANIC(PGY_RUNTIME_PANIC_CLASS_INTERNAL_INVARIANT, \
+                          "zone lock destroy failed"); \
+} while (0)
+#define PGY_ZONE_RDLOCK(z) do { \
+    if (pthread_rwlock_rdlock(&(z)->__zone_lock) != 0) \
+        PGY_RUNTIME_PANIC(PGY_RUNTIME_PANIC_CLASS_INTERNAL_INVARIANT, \
+                          "zone read lock failed"); \
+} while (0)
+#define PGY_ZONE_WRLOCK(z) do { \
+    if (pthread_rwlock_wrlock(&(z)->__zone_lock) != 0) \
+        PGY_RUNTIME_PANIC(PGY_RUNTIME_PANIC_CLASS_INTERNAL_INVARIANT, \
+                          "zone write lock failed"); \
+} while (0)
+#define PGY_ZONE_UNLOCK(z) do { \
+    if (pthread_rwlock_unlock(&(z)->__zone_lock) != 0) \
+        PGY_RUNTIME_PANIC(PGY_RUNTIME_PANIC_CLASS_INTERNAL_INVARIANT, \
+                          "zone unlock failed"); \
+} while (0)
 
 #else /* single-threaded: zero cost */
 

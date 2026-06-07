@@ -55,9 +55,10 @@ llvm_emit_domain_ability_vtables(LLVMGenCtx *ctx,
 
             {
                 const char *mname =
-                    llvm_domain_method_name_metadata_first(NULL, method);
+                    llvm_domain_method_name_metadata_first(NULL, method, true);
                 ASTNode *return_type =
-                    llvm_domain_method_return_type_metadata_first(NULL, method);
+                    llvm_domain_method_return_type_metadata_first(
+                        NULL, method, true);
 
                 ret = ctx->type_void;
                 if (return_type != NULL) {
@@ -66,10 +67,12 @@ llvm_emit_domain_ability_vtables(LLVMGenCtx *ctx,
                         return;
                 }
 
-                pc = llvm_domain_method_param_count_metadata_first(NULL, method);
+                pc = llvm_domain_method_param_count_metadata_first(
+                    NULL, method, true);
                 for (size_t k = 0; k < pc; k++) {
                     FuncParam *p =
-                        llvm_domain_method_param_metadata_first(NULL, method, k);
+                        llvm_domain_method_param_metadata_first(
+                            NULL, method, k, true);
                     if (!llvm_param_is_implicit_self_local(p))
                         user_pc++;
                 }
@@ -85,7 +88,8 @@ llvm_emit_domain_ability_vtables(LLVMGenCtx *ctx,
                 ptypes[0] = ctx->type_i8ptr;
                 for (size_t k = 0; k < pc; k++) {
                     FuncParam *p =
-                        llvm_domain_method_param_metadata_first(NULL, method, k);
+                        llvm_domain_method_param_metadata_first(
+                            NULL, method, k, true);
                     if (llvm_param_is_implicit_self_local(p))
                         continue;
                     LLVMTypeRef pt = llvm_domain_forward_required_param_type(
@@ -115,7 +119,8 @@ llvm_emit_domain_ability_vtables(LLVMGenCtx *ctx,
                 ASTNode *method = ast_ability_method(stmt, j);
                 if (method != NULL && method->type == AST_FUNC_DECL)
                     llvm_class_add_field(entry,
-                        llvm_domain_method_name_metadata_first(NULL, method),
+                        llvm_domain_method_name_metadata_first(
+                            NULL, method, true),
                         LLVMStructGetTypeAtIndex(vt_struct, (unsigned)j),
                         (int)j);
             }

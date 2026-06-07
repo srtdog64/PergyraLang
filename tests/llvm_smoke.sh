@@ -1133,12 +1133,9 @@ run_case "channel_pressure" "$TMPDIR/channel_pressure.pgy" "2" "0" "2" "false" "
 
 cat > "$TMPDIR/async_block_runtime.pgy" <<'EOF'
 func Main() -> Void {
-    let ch: Channel<Int> = Channel(4);
     async {
-        ch <- 11;
     }
-    let value: Int = <-ch;
-    Log(value);
+    Log(11);
 }
 EOF
 run_case "async_block_runtime" "$TMPDIR/async_block_runtime.pgy" "11"

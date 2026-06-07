@@ -34,7 +34,7 @@ ast_print_indent(int level)
     }
 }
 
-// ============= AST 異쒕젰 (?붾쾭源낆슜) =============
+// ============= AST debug output =============
 
 static void
 print_func_params(FuncParam** params, size_t count, int indent)

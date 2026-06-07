@@ -195,6 +195,9 @@ llvm_emit_main_wrapper(LLVMGenCtx *ctx)
 
     LLVMValueRef saved_fn = ctx->current_function;
     LLVMTypeRef saved_ret = ctx->current_ret_type;
+    LLVMTypeRef saved_function_ret = ctx->current_function_ret_type;
+    const char *saved_return_type_name = ctx->current_return_type_name;
+    ASTNode *saved_return_callable_type = ctx->current_return_callable_type;
     LLVMBasicBlockRef saved_bb = LLVMGetInsertBlock(ctx->builder);
     LLVMLexicalRegistrySnapshot lexical_snapshot =
         llvm_lexical_registry_snapshot(ctx);
@@ -203,6 +206,9 @@ llvm_emit_main_wrapper(LLVMGenCtx *ctx)
     LLVMSetLinkage(main_fn, LLVMExternalLinkage);
     ctx->current_function = main_fn;
     ctx->current_ret_type = ctx->type_i32;
+    ctx->current_function_ret_type = ctx->type_i32;
+    ctx->current_return_type_name = NULL;
+    ctx->current_return_callable_type = NULL;
 
     LLVMBasicBlockRef entry = LLVMAppendBasicBlockInContext(
         ctx->context, main_fn, "entry");
@@ -239,6 +245,9 @@ restore_state:
     llvm_lexical_registry_restore(ctx, lexical_snapshot);
     ctx->current_function = saved_fn;
     ctx->current_ret_type = saved_ret;
+    ctx->current_function_ret_type = saved_function_ret;
+    ctx->current_return_type_name = saved_return_type_name;
+    ctx->current_return_callable_type = saved_return_callable_type;
     if (saved_bb != NULL)
         LLVMPositionBuilderAtEnd(ctx->builder, saved_bb);
 }

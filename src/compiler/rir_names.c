@@ -43,6 +43,7 @@ rir_resource_kind_name(RIRResourceKind kind)
         case RIR_RESOURCE_TOBJECT_SLOT: return "TObjectSlot";
         case RIR_RESOURCE_VESSEL_SLOT: return "VesselSlot";
         case RIR_RESOURCE_QUBIT_HANDLE: return "QubitHandle";
+        case RIR_RESOURCE_LOCAL_FUTURE_HANDLE: return "LocalFutureHandle";
         case RIR_RESOURCE_REMOTE_FUTURE_HANDLE: return "RemoteFutureHandle";
         case RIR_RESOURCE_PROJECTION_OBJECT: return "ProjectionObject";
         case RIR_RESOURCE_PROJECTION_TOBJECT: return "ProjectionTObject";
@@ -99,6 +100,7 @@ rir_op_kind_name(RIROpKind kind)
         case RIR_OP_LINK_RELATION: return "LinkRelation";
         case RIR_OP_UNLINK_RELATION: return "UnlinkRelation";
         case RIR_OP_AUTHORIZE: return "Authorize";
+        case RIR_OP_AWAIT_LOCAL: return "AwaitLocal";
         case RIR_OP_AWAIT_REMOTE: return "AwaitRemote";
         case RIR_OP_SPAWN: return "Spawn";
         case RIR_OP_ASYNC: return "Async";

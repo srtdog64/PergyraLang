@@ -23,12 +23,22 @@ transpiler_routine_inventory_get(
 
 ASTNode *transpiler_mir_routine_source_ast(const MIRRoutine *routine);
 
+MIRScopeKind transpiler_mir_routine_kind(const MIRRoutine *routine);
+
+const char *transpiler_mir_routine_name(const MIRRoutine *routine);
+
+const char *transpiler_mir_routine_owner_name(const MIRRoutine *routine);
+
+ASTNodeType transpiler_mir_routine_owner_ast_type(const MIRRoutine *routine);
+
 ASTNode *transpiler_mir_routine_source_ast_of_type(
     const MIRRoutine *routine,
     MIRScopeKind expected_kind,
     ASTNodeType expected_ast_type);
 
 bool transpiler_mir_routine_has_signature(const MIRRoutine *routine);
+
+size_t transpiler_mir_routine_generic_param_count(const MIRRoutine *routine);
 
 size_t transpiler_mir_routine_param_count(const MIRRoutine *routine);
 
@@ -44,6 +54,8 @@ ASTNode *transpiler_mir_routine_return_type(const MIRRoutine *routine);
 
 const char *transpiler_mir_routine_return_type_name(
     const MIRRoutine *routine);
+const char *transpiler_mir_routine_within_zone(
+    const MIRRoutine *routine);
 
 size_t transpiler_active_routine_count(const TranspilerCtx *ctx);
 
@@ -53,7 +65,11 @@ transpiler_active_inventory(const TranspilerCtx *ctx,
                             ASTNode ***nodes_out,
                             size_t *count_out);
 
-const MIRDeclHeader *transpiler_active_decl_header(
+const MIRDeclHeader *transpiler_active_decl_header_of_type(
+    const TranspilerCtx *ctx,
+    ASTNodeType decl_type,
+    const char *name);
+const MIRDeclHeader *transpiler_active_host_decl_header(
     const TranspilerCtx *ctx,
     const char *name);
 

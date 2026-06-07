@@ -30,7 +30,7 @@ transpiler_hosted_method_view(const TranspilerCtx *ctx,
     view.requires_mir_metadata =
         transpiler_active_has_mir(ctx) && ast_compat_count > 0;
 
-    header = transpiler_active_decl_header(ctx, host_name);
+    header = transpiler_active_host_decl_header(ctx, host_name);
     if (header != NULL
         && transpiler_is_host_decl_type(mir_decl_header_ast_type_or(
             header, AST_PROGRAM))) {
@@ -75,7 +75,7 @@ transpiler_find_host_method_metadata_in_context(
     if (ctx == NULL || host_type_name == NULL || method_name == NULL)
         return NULL;
 
-    header = transpiler_active_decl_header(ctx, host_type_name);
+    header = transpiler_active_host_decl_header(ctx, host_type_name);
     for (size_t i = 0; header != NULL
          && i < mir_decl_header_method_count(header); i++) {
         const MIRDeclMethod *method = mir_decl_header_method(header, i);

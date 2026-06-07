@@ -3,6 +3,7 @@ subject Buyer {
     action Verify(self) -> Void {
         let current: Int = IntentCurrentHandle();
         Log(ToString(current >= 0));
+        Log(ToString(IntentActiveStepCount(0) == 1));
         Log(IntentActiveStepName(current, 0));
         Log(IntentActiveStepZone(current, 0));
         Log(IntentActiveStepParticipant(current, 0));

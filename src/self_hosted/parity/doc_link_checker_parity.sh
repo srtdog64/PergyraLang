@@ -97,13 +97,14 @@ cleanup_neg_root() {
 }
 trap cleanup_neg_root EXIT
 mkdir -p "$NEG_ROOT/docs"
+mkdir -p "$NEG_ROOT/.tmp"
 # Mirror the docs subtree minimally - we only need INDEX.md + at least one
 # real doc to exist so the tool sees a mix of live + dead links.
 sed 's|](100_beta_readiness_checklist.md)|](XX_NONEXISTENT_FAKE_DRIFT.md)|' \
     "$ROOT_DIR/$INDEX_PATH" > "$NEG_ROOT/$INDEX_PATH"
 
 set +e
-NEG_OUT="$(cd "$NEG_ROOT" && "$PGY" "$PERGYRA_TOOL" --run 2>/dev/null)"
+NEG_OUT="$(cd "$NEG_ROOT" && "$PGY" "$PERGYRA_TOOL" --run 2>&1)"
 NEG_RC=$?
 set -e
 if [[ "$NEG_RC" -ne 1 ]]; then

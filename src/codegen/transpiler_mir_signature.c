@@ -8,6 +8,8 @@
 #include <stdlib.h>
 #include <string.h>
 
+#include "transpiler_context.h"
+#include "transpiler_inventory_view.h"
 #include "transpiler_type_require.h"
 #include "transpiler_type_render.h"
 
@@ -101,6 +103,16 @@ transpiler_mir_routine_signature_supported(TranspilerCtx *ctx,
 
     if (func_decl == NULL || func_decl->type != AST_FUNC_DECL)
         return false;
+
+    if (routine != NULL
+        && transpiler_active_has_mir(ctx)
+        && !has_signature) {
+        transpiler_set_mir_inventory_missing(
+            ctx,
+            "MIR-only C path missing function signature eligibility metadata for '%s'",
+            ast_declaration_name(func_decl));
+        return false;
+    }
 
     const char *return_type_name = has_signature
         ? mir_routine_return_type_name(routine)

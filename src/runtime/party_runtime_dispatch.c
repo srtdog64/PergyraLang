@@ -9,6 +9,7 @@
 
 #include <stdatomic.h>
 #include <stdlib.h>
+#include <string.h>
 
 #ifdef _WIN32
 #include <windows.h>
@@ -119,6 +120,57 @@ party_dispatch_array_fits(size_t count, size_t elem_size)
     return elem_size != 0 && count <= SIZE_MAX / elem_size;
 }
 
+static char*
+party_dispatch_strdup(const char* text)
+{
+    size_t length;
+    char* copy;
+
+    if (text == NULL)
+        return NULL;
+
+    length = strlen(text);
+    if (length > SIZE_MAX - 1U)
+        return NULL;
+    length++;
+    copy = (char*)malloc(length);
+    if (copy == NULL)
+        return NULL;
+
+    memcpy(copy, text, length);
+    return copy;
+}
+
+static void
+party_dispatch_copy_role_id(FiberResult* result, const char* roleId)
+{
+    if (result == NULL || roleId == NULL)
+        return;
+
+    result->roleId = party_dispatch_strdup(roleId);
+    if (result->roleId == NULL)
+        party_runtime_warn("dispatch_parallel", "role id allocation failed");
+}
+
+void
+FreeDispatchResult(DispatchResult* result)
+{
+    if (result == NULL)
+        return;
+
+    if (result->results != NULL) {
+        for (size_t i = 0; i < result->resultCount; i++) {
+            free((void*)result->results[i].roleId);
+            result->results[i].roleId = NULL;
+        }
+    }
+    free(result->results);
+    result->results = NULL;
+    result->resultCount = 0;
+    result->allSucceeded = false;
+    result->totalExecutionTimeNs = 0;
+}
+
 DispatchResult
 DispatchParallel(FiberMap* map,
                  PartyContext* context,
@@ -153,7 +205,8 @@ DispatchParallel(FiberMap* map,
         party_runtime_warn("dispatch_parallel",
                            "JOIN_CUSTOM is unsupported without a custom join contract");
         for (size_t i = 0; i < map->entryCount; i++) {
-            result.results[i].roleId = map->entries[i].roleId;
+            party_dispatch_copy_role_id(&result.results[i],
+                                        map->entries[i].roleId);
             result.results[i].success = false;
             result.results[i].error =
                 "JOIN_CUSTOM unsupported: no custom join contract configured";
@@ -188,7 +241,7 @@ DispatchParallel(FiberMap* map,
 
     for (size_t i = 0; i < map->entryCount; i++) {
         FiberMapEntry* entry = &map->entries[i];
-        result.results[i].roleId = entry->roleId;
+        party_dispatch_copy_role_id(&result.results[i], entry->roleId);
         result.results[i].success = false;
 
         void* roleInstance = party_context_role_instance_by_slot(context, entry->instanceSlotId);
@@ -304,7 +357,7 @@ DispatchParallel(FiberMap* map,
     result.totalExecutionTimeNs = GetTimeNanos() - dispatchStartTime;
 
     for (size_t i = 0; i < map->entryCount; i++) {
-        UpdateFiberStats(result.results[i].roleId, &result.results[i]);
+        UpdateFiberStats(map->entries[i].roleId, &result.results[i]);
     }
 
     free(threads);
@@ -313,5 +366,19 @@ DispatchParallel(FiberMap* map,
     free(completedFlags);
     free(threadData);
 
+    return result;
+}
+
+DispatchResult
+DispatchGeneratedFiberMap(const char* partyType,
+                          const PartyRoleBinding* roleBindings,
+                          size_t bindingCount,
+                          PartyContext* context,
+                          JoinStrategy joinStrategy,
+                          DispatcherConfig* config)
+{
+    FiberMap* map = GenerateFiberMap(partyType, roleBindings, bindingCount);
+    DispatchResult result = DispatchParallel(map, context, joinStrategy, config);
+    FreeFiberMap(map);
     return result;
 }

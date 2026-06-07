@@ -35,22 +35,14 @@ transpiler_func_copy_current_return_type(TranspilerCtx *ctx,
         return false;
 
     memcpy(ctx->current_return_type, type_name, len + 1);
+    ctx->current_return_callable_type = NULL;
     return true;
 }
 
 ASTNode *
 transpiler_func_current_return_callable_type(TranspilerCtx *ctx)
 {
-    ASTNode *return_type;
-
-    if (ctx == NULL || ctx->current_func_decl == NULL
-        || ctx->current_func_decl->type != AST_FUNC_DECL)
-        return NULL;
-
-    return_type = ast_func_return_type((ASTNode *)ctx->current_func_decl);
-    if (return_type == NULL || return_type->type != AST_EVENT_HANDLER_TYPE)
-        return NULL;
-    return return_type;
+    return ctx != NULL ? ctx->current_return_callable_type : NULL;
 }
 
 bool

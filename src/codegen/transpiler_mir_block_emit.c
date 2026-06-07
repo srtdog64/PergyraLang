@@ -14,8 +14,6 @@
 #include "transpiler_mir_cfg_control_emit.h"
 #include "transpiler_mir_destructure_emit.h"
 #include "transpiler_mir_expr_ssa.h"
-#include "transpiler_mir_local_type_ast_lookup.h"
-#include "transpiler_mir_local_type_lookup.h"
 #include "transpiler_mir_match_condition_emit.h"
 #include "transpiler_mir_pending_uses.h"
 #include "transpiler_mir_pin_emit.h"
@@ -29,7 +27,6 @@
 #include "transpiler_mir_ssa_names.h"
 #include "transpiler_mir_ssa_utils.h"
 #include "transpiler_mir_stmt_emit.h"
-#include "transpiler_specialization_registry.h"
 #include "transpiler_symbols.h"
 
 bool
@@ -169,21 +166,13 @@ transpiler_emit_mir_block_statements(CodeBuf *buf, const ASTNode *func_decl,
             && stmt != NULL
             && !mir_instruction_uses_source_statement_emit(inst)
             && inst->result_name != NULL) {
-            ASTNode *binding_type_ast = NULL;
             char *lhs = NULL;
             char *rhs = NULL;
             const char *binding_name = inst->arg0;
             const char *value_type = NULL;
 
             if (binding_name != NULL)
-                binding_type_ast =
-                    transpiler_find_local_type_ast(ctx, func_decl, binding_name);
-            if (binding_type_ast != NULL) {
-                ensure_type_specializations_from_ast_to(ctx, ctx->decls,
-                                                        binding_type_ast);
-                value_type = transpiler_find_local_type_name(ctx, func_decl,
-                                                             binding_name);
-            }
+                value_type = lookup_typed_var(ctx, binding_name);
             if (value_type == NULL || strcmp(value_type, "Unknown") == 0)
                 value_type = infer_expression_type_name(ctx, stmt);
 

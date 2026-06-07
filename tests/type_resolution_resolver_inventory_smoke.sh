@@ -59,6 +59,7 @@ fi
   [ -n "$path" ] || continue
   if [ "$path" = "src/semantic/type_checker_decls_domain_helpers.c" ] ||
      [ "$path" = "src/semantic/type_checker_host_helpers.c" ] ||
+     [ "$path" = "src/semantic/type_checker_host_lookup.c" ] ||
      [ "$path" = "src/semantic/type_checker_internal.h" ]; then
     continue
   fi
@@ -176,6 +177,11 @@ fi
 
 if grep -q 'find_domain_decl_by_name' src/semantic/type_checker_resolution_stage_domain.c; then
   echo "[type-resolution-resolver-inventory] DAG domain stage must consume semantic domain lookup seams" >&2
+  exit 1
+fi
+
+if grep -q 'ast_program_statement_count(program)' src/semantic/type_checker_resolution_helpers.c; then
+  echo "[type-resolution-resolver-inventory] type-alias lookup must consume the host declaration index, not program-root scans" >&2
   exit 1
 fi
 

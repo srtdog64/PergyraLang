@@ -73,7 +73,11 @@ RosterExecutionResult ExecuteRoster(
     DispatcherConfig* config
 );
 
-/* Async execution */
+/* Async execution.
+ * Borrowed-handle contract: ExecuteRosterAsync does not deep-copy the roster,
+ * dispatcher config, party contexts, or fiber maps. Keep those graphs live and
+ * immutable until WaitForRoster returns a completed result. A timeout does not
+ * consume/free the handle; call WaitForRoster again later to join/release. */
 typedef struct RosterHandle RosterHandle;
 
 RosterHandle* ExecuteRosterAsync(

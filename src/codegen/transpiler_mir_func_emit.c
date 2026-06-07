@@ -12,6 +12,7 @@
 #include "transpiler_context.h"
 #include "transpiler_expr_type_infer.h"
 #include "transpiler_host_self_policy.h"
+#include "transpiler_inventory_view.h"
 #include "transpiler_mir_cfg_control_emit.h"
 #include "transpiler_mir_emit_state.h"
 #include "transpiler_mir_local_binding.h"
@@ -45,9 +46,13 @@ emit_func_decl_from_mir_named(ASTNode *node, const MIRRoutine *mir_routine,
     CodeBuf *params_sig = codebuf_create();
     char *header_decl = NULL;
     bool is_method = mir_routine != NULL
-        && mir_routine->kind == MIR_SCOPE_METHOD;
-    const char *owner_name = is_method ? mir_routine->owner_name : NULL;
-    ASTNodeType owner_ast_type = is_method ? mir_routine->owner_ast_type : AST_PROGRAM;
+        && transpiler_mir_routine_kind(mir_routine) == MIR_SCOPE_METHOD;
+    const char *owner_name = is_method
+        ? transpiler_mir_routine_owner_name(mir_routine)
+        : NULL;
+    ASTNodeType owner_ast_type = is_method
+        ? transpiler_mir_routine_owner_ast_type(mir_routine)
+        : AST_PROGRAM;
     const char *owner_role_subject_name = NULL;
     char owner_role_subject_c_type_buf[256];
     const char *owner_role_subject_c_type = NULL;
@@ -62,6 +67,15 @@ emit_func_decl_from_mir_named(ASTNode *node, const MIRRoutine *mir_routine,
         transpiler_mir_routine_has_signature(mir_routine);
     ASTNode *return_type = NULL;
     size_t func_param_count = 0;
+
+    if (mir_routine != NULL && transpiler_active_has_mir(ctx)
+        && !routine_has_signature) {
+        transpiler_set_mir_inventory_missing(ctx,
+            "MIR-only C path missing function body signature metadata for '%s'",
+            name != NULL ? name : "(anonymous)");
+        codebuf_destroy(params_sig);
+        return;
+    }
 
     if (is_method && owner_name == NULL) {
         transpiler_set_mir_topology_invalid(
@@ -129,6 +143,10 @@ emit_func_decl_from_mir_named(ASTNode *node, const MIRRoutine *mir_routine,
     } else {
         transpiler_set_current_return_type_local(ctx, "Void");
     }
+    ctx->current_return_callable_type =
+        return_type != NULL && return_type->type == AST_EVENT_HANDLER_TYPE
+            ? return_type
+            : NULL;
 
     if (owner_name != NULL) {
         if (owner_is_role) {
@@ -179,9 +197,10 @@ emit_func_decl_from_mir_named(ASTNode *node, const MIRRoutine *mir_routine,
         } else if (p->name != NULL
                  && strcmp(p->name, "self") == 0
                  && mir_routine != NULL
-                 && mir_routine->owner_name != NULL) {
-            pt = mir_routine->owner_name;
-            owned_type_name = pergyra_strdup(mir_routine->owner_name);
+                 && transpiler_mir_routine_owner_name(mir_routine) != NULL) {
+            pt = transpiler_mir_routine_owner_name(mir_routine);
+            owned_type_name = pergyra_strdup(
+                transpiler_mir_routine_owner_name(mir_routine));
             type_name = owned_type_name;
         }
         if (!event_handler_param && pt == NULL) {
@@ -354,9 +373,10 @@ emit_func_decl_from_mir_named(ASTNode *node, const MIRRoutine *mir_routine,
         if (p->type == NULL
             && strcmp(p->name, "self") == 0
             && mir_routine != NULL
-            && mir_routine->owner_name != NULL) {
+            && transpiler_mir_routine_owner_name(mir_routine) != NULL) {
             free(owned_type_name);
-            owned_type_name = pergyra_strdup(mir_routine->owner_name);
+            owned_type_name = pergyra_strdup(
+                transpiler_mir_routine_owner_name(mir_routine));
             type_name = owned_type_name;
         }
         if (type_name == NULL)

@@ -308,6 +308,9 @@ llvm_emit_collection_extended_call(ASTNode *node, LLVMGenCtx *ctx,
             return true;
         key_name = llvm_lookup_map_key(ctx, ast_identifier_name(map_arg));
         array_ty = llvm_hashmap_key_array_type(ctx, key_name);
+        if (array_ty == NULL)
+            return llvm_collection_extended_error_out(ctx, node, out,
+                "LLVM MapKeys requires stable HashMap<Bool|Int|Long|String, T> key metadata");
         tmp = llvm_create_entry_alloca(ctx, array_ty, llvm_tmp_name(ctx));
         if (tmp == NULL)
             return llvm_collection_extended_error_out(ctx, node, out,

@@ -58,9 +58,15 @@ mir_add_resource_instruction(MIRRoutine *routine,
         inst.expr0 = mir_resource_write_value_expr_from_call(op->ast);
     if (op->kind == RIR_OP_CLAIM)
         claim_type_name = mir_claim_abi_type_name_from_ast(op->ast);
-    abi_type_name = claim_type_name != NULL
-        ? claim_type_name
-        : (op->arg0 != NULL ? op->arg0 : op->subject);
+    if (op->kind == RIR_OP_AWAIT_LOCAL) {
+        abi_type_name = "Future";
+    } else if (op->kind == RIR_OP_AWAIT_REMOTE) {
+        abi_type_name = "RemoteFuture";
+    } else {
+        abi_type_name = claim_type_name != NULL
+            ? claim_type_name
+            : (op->arg0 != NULL ? op->arg0 : op->subject);
+    }
     inst.type_layout = mir_abi_lookup(abi_type_name);
     free(claim_type_name);
     return mir_commit_instruction(routine, block, &inst);

@@ -65,6 +65,42 @@ mir_type_append_owned(char **dst, const char *suffix)
     return true;
 }
 
+static char *
+mir_render_tuple_type_name(ASTNode *type_node)
+{
+    size_t element_count;
+    char *result;
+
+    if (type_node == NULL)
+        return NULL;
+    element_count = ast_type_tuple_element_count(type_node);
+    if (element_count == 0)
+        return NULL;
+
+    result = pergyra_strdup("(");
+    if (result == NULL)
+        return NULL;
+    for (size_t i = 0; i < element_count; i++) {
+        char *inner = mir_render_type_name(ast_type_tuple_element(type_node, i));
+        if (inner == NULL) {
+            free(result);
+            return NULL;
+        }
+        if ((i > 0 && !mir_type_append_owned(&result, ","))
+            || !mir_type_append_owned(&result, inner)) {
+            free(inner);
+            free(result);
+            return NULL;
+        }
+        free(inner);
+    }
+    if (!mir_type_append_owned(&result, ")")) {
+        free(result);
+        return NULL;
+    }
+    return result;
+}
+
 static bool
 mir_type_node_is_slot_like(const ASTNode *type_node)
 {
@@ -197,7 +233,7 @@ mir_render_type_name(ASTNode *type_node)
         return NULL;
     if (type_node->type == AST_TYPE
         && ast_type_tuple_element_count(type_node) > 0)
-        return NULL;
+        return mir_render_tuple_type_name(type_node);
     if (type_node->type == AST_TYPE) {
         GenericParams *generic_args = ast_type_generic_args(type_node);
         const char *type_name = ast_type_name(type_node);

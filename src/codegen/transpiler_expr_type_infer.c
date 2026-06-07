@@ -20,6 +20,7 @@
 #include "transpiler_expr_type_infer_call_policy.h"
 #include "transpiler_future_type_query.h"
 #include "transpiler_generic_param_query.h"
+#include "transpiler_inventory_view.h"
 #include "transpiler_nominal.h"
 #include "transpiler_symbols.h"
 #include "transpiler_type_mapping.h"
@@ -301,7 +302,8 @@ infer_expression_type_name(TranspilerCtx *ctx, ASTNode *expr)
                         ctx, method_return_type_name);
                 method_return_type =
                     transpiler_mir_decl_method_return_type(method_meta);
-                if (method_return_type == NULL && method_meta == NULL) {
+                if (method_return_type == NULL && method_meta == NULL
+                    && !transpiler_active_has_mir(ctx)) {
                     method_decl = find_nominal_host_method_decl(
                         ctx, receiver_type, method_name);
                     method_return_type = ast_func_return_type(method_decl);

@@ -148,7 +148,7 @@ transpiler_constructor_find_mir_channel_field(TranspilerCtx *ctx,
         return NULL;
 
     host_name = transpiler_decl_name_local(decl);
-    header = transpiler_active_decl_header(ctx, host_name);
+    header = transpiler_active_host_decl_header(ctx, host_name);
     for (size_t i = 0; header != NULL
          && i < mir_decl_header_field_count(header); i++) {
         const MIRDeclField *field = mir_decl_header_field(header, i);

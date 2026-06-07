@@ -90,7 +90,7 @@ transpiler_hosted_world_roster_slot_view_from_decl(const TranspilerCtx *ctx,
     view.requires_mir_metadata =
         transpiler_active_has_mir(ctx) && compat_count > 0;
 
-    header = transpiler_active_decl_header(ctx, host_name);
+    header = transpiler_active_host_decl_header(ctx, host_name);
     if (header != NULL
         && mir_decl_header_ast_type_or(header, AST_PROGRAM)
             == AST_WORLD_DECL) {
@@ -208,7 +208,7 @@ transpiler_hosted_roster_slot_view_from_decl(const TranspilerCtx *ctx,
     view.requires_mir_metadata =
         transpiler_active_has_mir(ctx) && compat_count > 0;
 
-    header = transpiler_active_decl_header(ctx, host_name);
+    header = transpiler_active_host_decl_header(ctx, host_name);
     if (header != NULL
         && mir_decl_header_ast_type_or(header, AST_PROGRAM)
             == AST_ROSTER_DECL) {
@@ -322,7 +322,7 @@ transpiler_hosted_role_slot_view_from_decl(const TranspilerCtx *ctx,
     view.requires_mir_metadata =
         transpiler_active_has_mir(ctx) && compat_count > 0;
 
-    header = transpiler_active_decl_header(ctx, host_name);
+    header = transpiler_active_host_decl_header(ctx, host_name);
     if (header != NULL
         && mir_decl_header_ast_type_or(header, AST_PROGRAM)
             == AST_PARTY_DECL) {

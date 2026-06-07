@@ -22,7 +22,7 @@ transpiler_find_generic_param_index(ASTNode *decl, const char *name)
     if (!transpiler_func_has_generic_params(decl) || name == NULL)
         return -1;
 
-    generic_params = ast_func_generic_params(decl);
+    generic_params = ast_declaration_generic_params(decl);
     generic_count = ast_generic_param_count(generic_params);
     for (size_t i = 0; i < generic_count; i++) {
         GenericParam *param = ast_generic_param_at(generic_params, i);
@@ -52,7 +52,7 @@ transpiler_infer_generic_call_bindings(TranspilerCtx *ctx,
         return false;
     }
 
-    generic_params = ast_func_generic_params(decl);
+    generic_params = ast_declaration_generic_params(decl);
     generic_count = ast_generic_param_count(generic_params);
     memset(bindings, 0, sizeof(GenericBindingEntry) * generic_count);
 

@@ -1,4 +1,5 @@
 #include "type_checker_internal.h"
+#include "../common/worker_boundary_storage_policy.h"
 
 #include <string.h>
 
@@ -158,6 +159,40 @@ type_is_capability_bearing(const Type *type)
 {
     return (type_is_owned_slot_handle(type) && type_slot_is_secure(type))
         || type_is_constructed_named(type, "Token");
+}
+
+const char *
+worker_boundary_storage_display_name(const Type *type)
+{
+    Type *constructor = type_constructed_constructor(type);
+    PgyWorkerBoundaryStorageKind kind;
+
+    kind = pgy_worker_boundary_storage_kind_from_constructor_name(
+        constructor != NULL ? constructor->name : NULL, false, false);
+    return pgy_worker_boundary_storage_kind_name(kind);
+}
+
+bool
+type_is_worker_boundary_unsafe_storage(const Type *type)
+{
+    return worker_boundary_storage_display_name(type) != NULL;
+}
+
+const char *
+detached_worker_boundary_storage_display_name(const Type *type)
+{
+    Type *constructor = type_constructed_constructor(type);
+    PgyWorkerBoundaryStorageKind kind;
+
+    kind = pgy_worker_boundary_storage_kind_from_constructor_name(
+        constructor != NULL ? constructor->name : NULL, true, false);
+    return pgy_worker_boundary_storage_kind_name(kind);
+}
+
+bool
+type_is_detached_worker_boundary_unsafe_storage(const Type *type)
+{
+    return detached_worker_boundary_storage_display_name(type) != NULL;
 }
 
 const char *

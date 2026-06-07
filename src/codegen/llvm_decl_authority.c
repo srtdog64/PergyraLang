@@ -59,11 +59,9 @@ llvm_decl_emit_zone_authority_check(LLVMGenCtx *ctx)
 
     zone_decl = llvm_decl_find_current_zone_decl(ctx);
     if (zone_decl == NULL) {
-        if (ctx->current_func_decl != NULL
-            && ctx->current_func_decl->type == AST_FUNC_DECL
-            && ast_func_within_zone(ctx->current_func_decl) != NULL) {
+        if (ctx->current_within_zone_name != NULL) {
             llvm_decl_zone_authority_backend_error(ctx, ctx->current_func_decl,
-                ast_func_within_zone(ctx->current_func_decl), NULL,
+                ctx->current_within_zone_name, NULL,
                 "current function declares a zone boundary but the zone declaration is missing from LLVM inventory");
         }
         return;

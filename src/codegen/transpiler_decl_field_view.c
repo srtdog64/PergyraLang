@@ -74,7 +74,7 @@ transpiler_hosted_class_field_view_from_decl(const TranspilerCtx *ctx,
     view.requires_mir_metadata =
         transpiler_active_has_mir(ctx) && compat.count > 0;
 
-    header = transpiler_active_decl_header(ctx, host_name);
+    header = transpiler_active_host_decl_header(ctx, host_name);
     if (header != NULL
         && mir_decl_header_ast_type_or(header, AST_PROGRAM) == AST_CLASS_DECL) {
         view.decl_header = header;
@@ -206,7 +206,7 @@ transpiler_hosted_shared_field_view_from_decl(const TranspilerCtx *ctx,
     view.requires_mir_metadata =
         transpiler_active_has_mir(ctx) && compat.count > 0;
 
-    header = transpiler_active_decl_header(ctx, host_name);
+    header = transpiler_active_host_decl_header(ctx, host_name);
     if (header != NULL
         && transpiler_is_host_decl_type(mir_decl_header_ast_type_or(
             header, AST_PROGRAM))) {

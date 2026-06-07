@@ -174,6 +174,15 @@ emit_for_loop(ASTNode *node, TranspilerCtx *ctx)
     int saved_typed_count = ctx->typed_var_count;
     int saved_alias_count = ctx->alias_var_count;
 
+    if (loop_slot >= TRANSPILE_MAX_LOOP_DEPTH) {
+        transpiler_set_backend_error_with_hints(ctx,
+            PGY_CODE_C_TYPE_UNSUPPORTED,
+            PGY_CAUSE_C_TYPE_UNSUPPORTED,
+            PGY_FIX_USE_LLVM_BACKEND_OR_EXTEND_TRANSPILER,
+            "C backend loop registry exceeded TRANSPILE_MAX_LOOP_DEPTH while lowering for-loop");
+        return;
+    }
+
     if (loop_slot < TRANSPILE_MAX_LOOP_DEPTH) {
         ctx->loop_labels[loop_slot] = ast_for_label(node);
         if (!transpiler_loop_label_name(ctx->loop_break_labels[loop_slot],
@@ -362,6 +371,15 @@ emit_while_loop(ASTNode *node, TranspilerCtx *ctx)
 
     if (cond == NULL)
         return;
+    if (loop_slot >= TRANSPILE_MAX_LOOP_DEPTH) {
+        transpiler_set_backend_error_with_hints(ctx,
+            PGY_CODE_C_TYPE_UNSUPPORTED,
+            PGY_CAUSE_C_TYPE_UNSUPPORTED,
+            PGY_FIX_USE_LLVM_BACKEND_OR_EXTEND_TRANSPILER,
+            "C backend loop registry exceeded TRANSPILE_MAX_LOOP_DEPTH while lowering while-loop");
+        free(cond);
+        return;
+    }
 
     if (loop_slot < TRANSPILE_MAX_LOOP_DEPTH) {
         ctx->loop_labels[loop_slot] = ast_while_label(node);

@@ -3,6 +3,402 @@
 > Split from `docs/100_beta_readiness_checklist.md` on 2026-05-29.
 > Keep active blocker edits in the shard that owns the relevant closure track.
 
+## Progress Log - 2026-06-06 C/LLVM Function Signature Fail-Closed
+
+- C and LLVM function forward declarations and MIR body emission now fail
+  closed when an active MIR routine row exists without signature metadata. The
+  fallback to source AST function parameters and return types remains available
+  only for no-MIR compatibility paths.
+- C forward eligibility policy and C forward emission both report
+  `MIR-only C path missing function forward signature metadata` instead of
+  silently reopening AST function signatures.
+- LLVM early-forward eligibility and LLVM function forward declaration emission
+  both report `MIR-only LLVM path missing function forward signature metadata`
+  for the same active-MIR defect.
+- C and LLVM MIR function body emission now report `MIR-only C path missing
+  function body signature metadata` and `MIR-only LLVM path missing function
+  body signature metadata` before attempting any AST signature fallback.
+- C MIR SSA-local declaration emission and LLVM MIR parameter-allocation
+  emission now apply the same active-MIR signature guard. Missing signature
+  metadata is reported as `MIR-only C path missing function SSA local signature
+  metadata` or `MIR-only LLVM path missing function parameter signature
+  metadata` instead of reopening source AST parameters inside helper-level
+  lowering.
+- C MIR signature eligibility policy now fails closed before checking source
+  AST parameter and return shapes when an active MIR routine exists without
+  signature metadata. This keeps the C "can emit from MIR" decision behind the
+  MIR routine row instead of using AST as a silent compatibility substitute.
+- C MIR local type lookup now resolves direct function-call return types from
+  active MIR routine signature metadata when available. Source AST callable
+  return fallback is limited to no-MIR compatibility mode, and the transpile
+  fixture for generic ability specialization now supplies explicit MIR
+  signature metadata instead of relying on source AST fallback.
+- C MIR local parameter type lookup now consumes active routine signature
+  metadata before consulting source AST parameters. If an active MIR routine row
+  exists without signature metadata, local parameter lookup reports
+  `MIR-only C path missing local parameter signature metadata` instead of
+  silently using source AST parameter types.
+- `MIRRoutine` kind/name/owner metadata now has a core accessor surface
+  (`mir_routine_kind`, `mir_routine_name`, `mir_routine_owner_name`,
+  `mir_routine_owner_ast_type`) with C and LLVM backend inventory wrappers.
+  C/LLVM MIR function and parameter emission now consume those accessors in
+  the closed slice instead of reopening selected routine fields directly.
+- The accessor contract now covers the C/LLVM codegen routine lookup and
+  contract owners as well: LLVM function inventory, intent flow, MIR contract
+  validation, C intent routine collection, C MIR local type lookup, C MIR
+  mapping precheck, and C MIR resource-op emission. A `src/codegen` scan for
+  direct `routine->kind/name/owner_*` reads returns no hits.
+- `build_source_inventory_smoke.sh` now normalizes scanner output paths to
+  forward slashes at the scan owner. This keeps Git Bash/Windows `rg` output
+  from bypassing allowlists as `src/codegen\...` false positives while leaving
+  the C/LLVM owner checks unchanged.
+- C/LLVM backend-compare evidence was extended on the deterministic default
+  order after the path-normalization fix. With ABI precheck disabled for the
+  targeted oracle run, ranges `0..11`, `12..35`, and `36..71` passed
+  (`84/84`) across slot/secure-slot, arrays/slices, tuples, enum/match,
+  generics, class methods, lexical shadowing, dynamic scope capture,
+  Option same-binding regressions, loop control, and recursive calls. This is
+  evidence for the registered support matrix prefix, not a full-suite claim.
+- LLVM statement type inference now owns the `SetHas -> Bool` and
+  `SetSize -> Int` collection facts alongside existing List/Map/Queue facts.
+  This closes the `set_intersection_manual` C/LLVM compare gap where lowering
+  knew `SetHas` but condition type inference still demanded registered
+  function metadata. Targeted evidence: `set_intersection_manual` passed, and
+  range `72..119` passed (`48/48`) with `PGY_BIN=/e/PergyraLang/bin/pgy.exe`
+  and ABI precheck disabled.
+- Additional C/LLVM backend-compare evidence now covers deterministic ranges
+  `120..143` (`24/24`), `144..165` (`22/22`), `166..167` (`2/2`), and
+  `168..191` (`24/24`) with the same explicit `PGY_BIN` and ABI precheck
+  disabled. These ranges extend parity coverage through string/array/map/set/
+  queue algorithms, sorting/search loops, recursive numeric helpers, and
+  pipeline-style collection fixtures without requiring a new compatibility
+  fallback.
+- Range `192..215` also passed (`24/24`) under the same backend-compare
+  settings, extending C/LLVM parity evidence across short-circuit call chains,
+  nested loop joins, unary long arithmetic, substring/string formatting
+  helpers, and enum payload/no-payload match lowering.
+- Ranges `216..239`, `240..263`, and `264..287` also passed (`72/72`) with
+  explicit `PGY_BIN` and ABI precheck disabled. This extends evidence across
+  enum/result pipelines, generic boxes, scalar math/runtime conversion, file
+  handle I/O, device slot runtime, string interpolation/split/join predicates,
+  module namespace/export visibility, role/operator overloads, and recursion.
+  No new compatibility fallback was added for these slices.
+- Range `288..311` passed (`24/24`) with the same settings, covering nested
+  calls, host-method returns, subject-method recursion with defer, branch/loop
+  defer cleanup, boilerplate-reduction surface fixtures, intent trace/failure/
+  rollback/authority observability, cross-world transfer, handoff frontier
+  sync, zone mutation, and zone host-method ABI fixtures.
+- Ranges `312..335`, `336..359`, and `360..383` passed (`72/72`) with the
+  same settings. These slices cover subject/class/action projection dispatch,
+  ownership forwarding, generic future/spawn specialization, default generic
+  contracts, nested generic containers, ability/role/party/roster host methods,
+  Result method chains, Option/coalesce class chains, intent header
+  interleaving, map/list mutation and lookup, and for-in lowering over arrays
+  and lists.
+- Range `384..407` passed (`24/24`) with the same settings. This slice covers
+  queue/set operations, Rc/Weak lifecycle, typed pin read/write views,
+  secure-slot pin views, pin cleanup across successor/return/branch/break/
+  continue paths, unsafe lexical boundary, and world/zone projection mutation
+  fixtures.
+- Ranges `408..431`, `432..455`, and `456..479` passed (`72/72`) with the
+  same settings. These slices cover world/zone embedded action frontiers,
+  relation/effect propagation and projection sync, authority failure surfaces,
+  higher-order/lambda/event handlers, async spawn/await and future annotations,
+  cancellation propagation, string spawn, channel pressure/status/select
+  fairness, parallel channel communication, class-heavy method composition,
+  nested class fields, enum fields, and algorithmic array/class fixtures.
+- Range `480..503` passed (`24/24`) with the same settings. This extends the
+  verified prefix through multi-match collision handling, nested branching,
+  deeper Option class-chain and map-lookup fixtures, range method tests, Result
+  class fields, chained class methods, string-carrying Result payloads, and
+  nested Result propagation.
+- Ranges `504..527`, `528..551`, and `552..575` passed (`72/72`) with the
+  same settings. These slices cover Result pipelines, string-array tagging,
+  class/stat composition, while/class method returns, array binary search,
+  balanced split, inversion/counting/sliding-window algorithms, in-place array
+  mutation and sorting, enum array dispatch, match payload destructuring,
+  match branches with loops/breaks/lets/returns, same-binding multi-match, and
+  Option composition/counting loops.
+- Range `576..599` passed (`24/24`) with the same settings. This extends the
+  verified prefix through Option loop consumption, complex Option match
+  branches, default arguments, Result class propagation, string extraction/
+  Caesar/reverse/repeat/run-length/split/strip/window helpers, triangle checks,
+  triple function composition, and chained class factory fixtures.
+- Range `600..623` passed (`24/24`) with the same settings after closing the
+  LLVM indexed collection source-of-truth seam for current-host class fields.
+  `nums[i]` inside class methods now resolves the field's registered
+  `PgyArray_*`/`PgySlice_*` LLVM type to element metadata instead of requiring
+  a local Array variable registration fallback. Evidence run:
+  `mingw32-make pgy`, targeted `class_field_array_method`, range `600..623`,
+  `backend_fail_closed_smoke.sh`, `perf_contract_smoke.sh`, and
+  `documentation_quality_smoke.sh` passed.
+- Ranges `624..647`, `648..671`, `672..695`, `696..719`, `720..743`,
+  `744..767`, `768..791`, and `792..794` passed (`171/171`) with the same
+  explicit `PGY_BIN` and ABI precheck disabled. This completes the
+  deterministic default-order backend compare prefix through all `795/795`
+  registered cases for this local Windows/Git-Bash LLVM-enabled build. The
+  tail slices cover class-heavy factory/field/method chains, nested class and
+  recursive traversal patterns, for-range fixtures, HashMap/List/Set basics,
+  intent/zone/world fixtures, probes, slots, subject methods, string helpers,
+  tree recursion, and zone/subject-slot fixtures. This is backend parity
+  evidence for the current default registered case set, not a proof that every
+  language surface is complete.
+- The same local build also passed `backend_compare_llvm_coverage_smoke.sh`,
+  `build_source_inventory_smoke.sh`, and `llvm_smoke.sh`. These gates keep the
+  compare coverage allowlist, Makefile source inventory, and LLVM smoke surface
+  aligned with the completed default-order compare evidence.
+- The Korean/UTF hygiene scan found no current common Latin-1 mojibake payload
+  in source docs/tests. `slot???` remains an intentional forbidden sentinel in
+  `formal_semantics_smoke.sh`, not user-facing broken Korean. Evidence:
+  `documentation_quality_smoke.sh` passed.
+- `mir-declaration-inventory-test-smoke` now freezes the active-MIR signature
+  guard across C policy, C forward/body/SSA-local emission, LLVM policy, and
+  LLVM forward/body/parameter emission, plus C MIR signature eligibility,
+  C MIR local function-call return and parameter lookup, and the selected
+  `MIRRoutine` metadata accessor contract. Evidence run:
+  `git diff --check`, `mir_declaration_inventory_smoke.sh`, WSL `make pgy`,
+  WSL `make llvm-test-smoke`, and WSL `make test-transpile` (`898/0`) passed.
+
+## Progress Log - 2026-06-06 LLVM Domain Forward AST Compatibility Flag
+
+- LLVM domain/role method forward declaration helpers now require an explicit
+  `allow_ast_compat` flag before falling back from `MIRDeclMethod` metadata to
+  source AST method names, parameters, or return types.
+- Hosted domain/role method forward declarations pass `allow_ast_compat` only
+  for no-MIR compatibility rows (`method_meta == NULL`). MIR-backed method rows
+  consume MIR method metadata and fail through existing inventory diagnostics
+  instead of silently reopening source AST.
+- Ability vtable emission remains explicitly AST-compatible because that path
+  still owns an AST-only declaration surface. Role operator forward emission is
+  explicitly metadata-only.
+- `mir-declaration-inventory-test-smoke` now freezes the flag contract for the
+  shared method signature helpers and the domain/role/ability call sites.
+  Evidence run: `git diff --check`, `mir_declaration_inventory_smoke.sh`, WSL
+  `make pgy`, and WSL `make llvm-test-smoke` passed.
+
+## Progress Log - 2026-06-06 C/LLVM Method Return Metadata Fallback Tightening
+
+- LLVM method return inference now treats missing `MIRDeclMethod` return
+  metadata as a MIR inventory defect when MIR is active, instead of reopening
+  source AST method return types.
+- C method return inference, member-call post-sync wrapping, and hosted-method
+  forward declaration emission keep AST method return/parameter fallback only
+  for no-MIR compatibility mode. MIR-active C inference no longer reopens
+  source AST method return types and falls through to the existing
+  unknown/concrete-type failure path; hosted forward declarations fail closed
+  when MIR method rows are missing.
+- LLVM identifier-call inference now consumes scalar builtin return facts before
+  current-host method fallback. This prevents standard calls such as
+  `ChannelClosed(ch)` inside a class method from being misclassified as
+  `CurrentHost.ChannelClosed`.
+- `mir-declaration-inventory-test-smoke` now requires the active-MIR guards
+  around these return/forward-metadata fallbacks and freezes the
+  builtin-before-host dispatch order. Evidence run: `git diff --check`,
+  `mir_declaration_inventory_smoke.sh`, `backend_fail_closed_smoke.sh`, WSL
+  `make pgy`, WSL `make llvm-test-smoke`, and WSL `make test-transpile`
+  (`898/0`) passed.
+
+## Progress Log - 2026-06-06 LLVM Member Call Metadata Fail-Closed
+
+- LLVM general member-call lowering now applies the same MIR-active
+  `MIRDeclMethod` requirement as hosted self-call lowering. If a member-call
+  method row is missing while a MIR program is active, LLVM reports a MIR
+  inventory-missing diagnostic instead of reopening source AST method lookup.
+- The AST method fallback remains available only for no-MIR compatibility mode.
+  This keeps legacy AST-only emission usable while preventing MIR-driven LLVM
+  member calls from bypassing declaration metadata.
+- `mir-declaration-inventory-test-smoke` now requires the LLVM member-call
+  MIR-active guard and inventory-missing diagnostic. Evidence run:
+  `git diff --check`, `mir_declaration_inventory_smoke.sh`,
+  `backend_fail_closed_smoke.sh`, and WSL `make llvm-test-smoke` passed.
+
+## Progress Log - 2026-06-06 C/LLVM Hosted Member Call Metadata Fail-Closed
+
+- LLVM hosted self-call lowering now requires `MIRDeclMethod` metadata when a
+  MIR program is active. Missing hosted-method metadata reports a MIR
+  inventory-missing diagnostic instead of falling back to the current source
+  host declaration.
+- C nominal member-call lowering now applies the same policy: AST method lookup
+  remains available only in no-MIR compatibility mode, while MIR-active mode
+  fails closed if the member-call method row is absent from declaration
+  metadata.
+- `mir-declaration-inventory-test-smoke` now requires the MIR-active guards and
+  inventory-missing diagnostics in both call sites. Evidence run:
+  `git diff --check`, `mir_declaration_inventory_smoke.sh`,
+  `backend_fail_closed_smoke.sh`, WSL `make pgy`, WSL `make test-transpile`
+  (`898/0`), and WSL `make llvm-test-smoke` passed.
+
+## Progress Log - 2026-06-06 C Return Callable Context Metadata Owner
+
+- C backend return-expression lowering now consumes
+  `TranspilerCtx.current_return_callable_type` instead of reopening
+  `ast_func_return_type((ASTNode *)ctx->current_func_decl)` to recover an
+  event-handler return contract.
+- Function and MIR routine emission set the callable return context explicitly.
+  The C MIR emit-state snapshot now saves/restores that context, and generated
+  Bool/Void-style owners clear it when setting their return type so stale
+  function metadata cannot leak into wrapper emission.
+- `backend-fail-closed-test-smoke` rejects reintroducing the AST current-func
+  return fallback in the C return policy owner and requires the context fact to
+  stay wired. Evidence run: `git diff --check`, `backend_fail_closed_smoke.sh`,
+  WSL `make pgy`, WSL `make test-transpile` (`898/0`), and WSL `make test-mir`
+  (`78/0`) passed.
+
+## Progress Log - 2026-06-06 C/LLVM Method Boundary Metadata Fail-Closed
+
+- Zone action and world-effect synchronization now treat `MIRDeclMethod`
+  metadata as required when a MIR program is active. If the method row is
+  missing in MIR-active mode, C and LLVM set the MIR inventory-missing
+  diagnostic instead of reopening the source AST method contract.
+- AST method fallback remains only for no-MIR compatibility mode. This keeps
+  legacy AST-only emission usable while preventing MIR-driven backends from
+  silently bypassing the declaration metadata source of truth.
+- `mir-declaration-inventory-test-smoke` now requires the MIR-active guard near
+  each method-metadata fallback branch. Evidence run: `git diff --check`,
+  `backend_fail_closed_smoke.sh`, `mir_declaration_inventory_smoke.sh`, and WSL
+  `make llvm-test-smoke` passed.
+
+## Progress Log - 2026-06-06 LLVM Zone Boundary Context Metadata Owner
+
+- LLVM zone authority checks and current-host declaration lookup now consume
+  `LLVMGenCtx.current_within_zone_name` instead of reopening
+  `ast_func_within_zone(ctx->current_func_decl)` at the point of use.
+- AST function emission sets the context fact directly. MIR routine emission
+  consumes `MIRRoutine.within_zone` through the LLVM routine inventory view, so
+  MIR codegen no longer reopens source AST to recover the active zone boundary.
+- `backend-fail-closed-test-smoke` rejects reintroducing the AST current-func
+  zone fallback in `llvm_decl_authority.c`, `llvm_inventory_decl_lookup.c`, and
+  `llvm_mir_emit.c`. `mir-declaration-inventory-test-smoke` freezes the
+  `MIRRoutine.within_zone` accessor surface for C and LLVM inventory consumers.
+
+## Progress Log - 2026-06-06 LLVM Return Context Metadata Owner
+
+- LLVM function, MIR routine, lambda, intent, main-wrapper, sync-wrapper,
+  parallel/async wrapper, spawn-wrapper, and role-operator emission now keep
+  function return metadata in `LLVMGenCtx` as explicit context facts:
+  `current_function_ret_type`, `current_return_type_name`, and
+  `current_return_callable_type`.
+- Return statement lowering, Result suffix inference, callable return context,
+  and the `?` operator no longer reopen
+  `ast_func_return_type(ctx->current_func_decl)` to recover the active
+  function return contract. Generated wrapper functions explicitly clear the
+  source-level return name/callable metadata to prevent stale caller metadata
+  from leaking across LLVM function emission.
+- `backend-fail-closed-test-smoke` now rejects reintroducing the AST return
+  fallback in LLVM return/Result lowering owners and requires the new context
+  facts to remain wired.
+- Evidence run: `backend_fail_closed_smoke.sh` passed under Git Bash,
+  `git diff --check` passed for the touched LLVM return-context slice, and
+  WSL `make llvm-test-smoke` passed with the Linux LLVM-18 toolchain.
+
+## Progress Log - 2026-06-06 C Parallel Capture Metadata Owner
+
+- Moved C parallel/async event-handler capture type discovery behind
+  `transpiler_parallel_capture`. The C emitter now consumes captured type AST
+  metadata instead of directly calling the local type-AST lookup from
+  `transpiler_async_parallel_emit.c`.
+- `backend-fail-closed-test-smoke` now rejects reintroducing that direct lookup
+  in the emitter while requiring the capture owner to carry the type metadata.
+- Evidence run: MinGW `gcc -fsyntax-only` on
+  `transpiler_parallel_capture.c` and `transpiler_async_parallel_emit.c`,
+  `git diff --check` for the touched files, and
+  `make backend-fail-closed-test-smoke` passed locally.
+
+## Progress Log - 2026-06-06 C MIR Residual DEF Type Registry
+
+- C MIR residual `MIR_INST_DEF` emission now reads local binding type names
+  from the active typed registry before expression inference. The block emitter
+  no longer reopens function-body local type AST/name lookup for this path.
+- `cfg-body-dataflow-test-smoke` now rejects reintroducing
+  `transpiler_find_local_type_ast(ctx, ...)` or
+  `transpiler_find_local_type_name(ctx, ...)` in
+  `transpiler_mir_block_emit.c`.
+- Evidence run: MinGW `gcc -fsyntax-only` on
+  `transpiler_mir_block_emit.c`, `git diff --check` for the touched slice, and
+  `make cfg-body-dataflow-test-smoke` passed locally.
+
+## Progress Log - 2026-06-06 C MIR Destructure Type Registry
+
+- C MIR destructuring now recovers identifier initializer types from the active
+  typed registry before requiring a concrete lowered type. It no longer calls
+  `transpiler_find_local_type_name(ctx, ctx->current_func_decl, ...)` from the
+  destructure emitter.
+- `cfg-body-dataflow-test-smoke` now rejects reintroducing that direct local
+  type lookup in `transpiler_mir_destructure_emit.c`.
+- Evidence run: MinGW `gcc -fsyntax-only` on
+  `transpiler_mir_destructure_emit.c`, `git diff --check` for the touched
+  slice, and `make cfg-body-dataflow-test-smoke` passed locally.
+
+## Progress Log - 2026-06-06 C/LLVM Generic Declaration Metadata Seam
+
+- Removed the remaining declaration-specific generic parameter consumers from
+  `src/codegen` and `src/compiler/module_normalizer_refs.c`. C forward policy,
+  LLVM forward policy, LLVM routine declaration inventory, C generic binding
+  queries, LLVM generic spawn specialization, C generic class/ability lowering,
+  and module import-name normalization now read generic parameters through
+  `ast_declaration_generic_params(...)`.
+- Tightened `mir-declaration-inventory-test-smoke` so codegen cannot reintroduce
+  declaration-specific generic metadata reads. `semantic-core-shape` now applies
+  the same rule to module normalization. This keeps generic eligibility,
+  generic specialization, and import-name normalization attached to the
+  declaration metadata seam rather than backend/local AST rediscovery.
+- Evidence run: `make mir-declaration-inventory-test-smoke`, `make pgy`,
+  `make llvm-test-smoke`, `make test-transpile` (`898/0`),
+  `make perf-contract-test-smoke`, and `make semantic-core-shape-test-smoke`
+  passed locally under WSL.
+- Follow-up source-of-truth tightening: `MIRRoutine` now materializes
+  `generic_param_count`, and C/LLVM forward-declaration policy consumes that
+  routine metadata before the AST compatibility fallback. `MIRDeclHeader` also
+  materializes declaration generic parameter rows (`name`, `constraint`,
+  `default_type`) for hosted/domain declarations and abilities; LLVM generic
+  formal-default resolution now reads those header rows before the AST fallback.
+  `MIRDeclHeaderInventory` and `LLVMMIRDeclHeaderInventory` now expose the
+  declaration header list through an explicit inventory view, so the LLVM
+  type-map MIR-present path iterates header rows without direct `ctx->mir`
+  probing. Function declarations are now also recorded as declaration headers,
+  so generic formal-default lookup no longer reopens AST function inventory in
+  the MIR-present path; the AST inventory loop remains only for the no-MIR
+  compatibility path.
+  Declaration-header lookup also now has a typed public query
+  (`mir_find_decl_header_of_type`) with matching C/LLVM inventory wrappers, so
+  adding function headers cannot make a name-only lookup shadow a different
+  declaration kind.
+  `mir-declaration-inventory-test-smoke` freezes these contracts, including the
+  ban on raw backend `ctx->mir` reads outside inventory owners. Evidence for the
+  follow-up slice: `make pgy`, `make mir-declaration-inventory-test-smoke`,
+  `make test-mir` (`78/0`), and `make llvm-test-smoke` passed under WSL;
+  changed C files also pass local MinGW `gcc -fsyntax-only`.
+
+## Progress Log - 2026-06-06 Worker Boundary UB Source-Of-Truth
+
+- Centralized growable/synchronization-backed worker-boundary storage
+  classification behind `src/common/worker_boundary_storage_policy.{h,c}`.
+  Semantic analysis, C lowering, and LLVM lowering consume that owner instead
+  of carrying separate Array/Slice/List/Queue/Set/HashMap/Channel display
+  vocabularies.
+- Tightened the policy to classify both concrete generic names
+  (`HashMap<String, Int>`, `Channel<Int>`) and raw constructor names
+  (`HashMap`, `Channel`) as unsafe worker-boundary storage. Missing or
+  partially rendered generic metadata can no longer make a storage type look
+  safe by losing its type arguments.
+- Added semantic regressions for borrowed `Slice<T>` and `HashMap<K, V>`
+  capture/transport across `parallel` and `spawn`, and pinned the regression
+  names in `worker-boundary-ub-test-smoke`.
+- Evidence run: `make test-semantic`, `make test-transpile`,
+  `make worker-boundary-ub-test-smoke`,
+  `make memory-concurrency-model-test-smoke`,
+  `make backend-fail-closed-test-smoke`,
+  `make mir-declaration-inventory-test-smoke`,
+  `make runtime-frontier-contract-test-smoke runtime-frontier-policy-test-smoke`,
+  `make build-source-inventory-test-smoke`, targeted backend compare for
+  `await_inline_spawn`, and backend compare shards 1/20 and 2/20 all passed
+  locally under WSL.
+- Follow-up: `tests/build_source_inventory_smoke.sh` now routes repeated
+  recursive source scans through an executable `rg` fast path, a `git grep`
+  fallback that also scans untracked files, and only then portable `grep -R`.
+  This keeps the source-of-truth sentinel broad without forcing every local/CI
+  check to pay repeated full-tree traversal cost.
+
 ## Progress Log - 2026-06-05 Backend Fail-Closed Hardening
 
 - Promoted backend fail-open guards into the frozen smoke surface:
@@ -950,6 +1346,109 @@
   `make type-resolution-dag-test-smoke`, `air-drift-test-smoke`,
   `intent_compression_contract_smoke.sh`.
 
+## Progress Log - 2026-06-06 MIR Host Declaration Header Lookup
+
+- Function declaration headers are now part of the MIR declaration-header
+  inventory, so host metadata lookups must not use name-only header lookup.
+  A function and a host declaration can legally share a name at different AST
+  kinds; host metadata must select by host declaration kind.
+- LLVM `llvm_find_host_decl_header_in_context` now iterates
+  `pgy_host_decl_compat_types` and resolves through typed declaration-header
+  lookup. The C backend has the matching
+  `transpiler_active_host_decl_header` owner and hosted field/method/slot
+  metadata consumers now use it.
+- The C/LLVM codegen-level name-only declaration-header wrappers were removed;
+  codegen callers must use typed declaration-header lookup or the host-specific
+  owner. The MIR core still keeps `mir_find_decl_header` for direct MIR tests.
+- The smoke gate now requires typed declaration-header lookup for C and LLVM
+  host metadata and keeps the backend from falling back to partial hard-coded
+  host-kind chains.
+- Verified locally with `gcc -fsyntax-only` on the changed C slices,
+  `make pgy mir-declaration-inventory-test-smoke test-mir`, and
+  `make llvm-test-smoke`.
+- Full `llvm-test-backend-compare` is still too large for the current
+  interactive 15-minute window: the last run reached `570/795` PASS with no
+  mismatch before timeout. Treat it as a long-running parity gate, not as a
+  failed parity case; use the existing `PGY_BACKEND_COMPARE_SHARD_TOTAL` /
+  `PGY_BACKEND_COMPARE_SHARD_INDEX` path for interactive or CI shard runs.
+
+## Progress Log - 2026-06-06 Backend Compare Range Gate
+
+- C/LLVM parity work no longer has to choose between one explicit fixture and
+  the full 795-case backend compare. `tests/compare_backends.sh` now accepts
+  deterministic `PGY_BACKEND_COMPARE_START_INDEX` and
+  `PGY_BACKEND_COMPARE_MAX_CASES` controls after shard selection.
+- The CI shard matrix remains the full source of truth for broad coverage.
+  The range gate is a developer feedback loop for fixing a narrow C/LLVM seam
+  without re-running hundreds of unrelated fixtures on every edit.
+- Makefile forwards the range controls through `llvm-test-backend-compare` and
+  `air-strict-backend-compare-test-smoke`, and the source-inventory smoke gate
+  now keeps that wiring from regressing.
+- Verified locally with `make build-source-inventory-test-smoke`,
+  `PGY_BACKEND_COMPARE_PRECHECK=0 PGY_BACKEND_COMPARE_MAX_CASES=3 make
+  llvm-test-backend-compare`, and direct non-zero range execution
+  (`START_INDEX=1`, `MAX_CASES=1`).
+- Additional direct C/LLVM evidence with `bin/pgy`: first 20 default fixtures
+  pass with `PGY_BACKEND_COMPARE_MAX_CASES=20`, and the known same-name
+  binding/scope-collision set (`option_same_binding_guard`,
+  `option_multi_same_binding_loop`, `option_nested_same_binding_shadow`,
+  `match_nested_same_binding_shadow`, `lexical_shadow_class_method`,
+  `llvm_dynamic_scope_capture`, `list_shadow_scope_metadata`) passes 7/7.
+
+## Progress Log - 2026-06-06 AIR Strict Evidence Policy Tightening
+
+- AIR boundary evidence policy now owns the pin-cleanup requirement shape:
+  `AIR_BOUNDARY_EXECUTION` carries `mir_pin_cleanup_source_name = "pin"` in
+  `kBoundaryEvidencePolicies` instead of re-stating the source-name rule in
+  verification code.
+- AIR global verification now consumes data-driven strict evidence requirement
+  tables for MIR counter proofs, DAG counter proofs, and runtime singleton
+  evidence. Summary counters remain observability only; `EvidenceNode` inventory
+  is the proof source of truth.
+- `air-drift-test-smoke` now gates the policy tables so future AIR evidence
+  kinds are added by extending the requirement owners rather than by copying
+  ad-hoc strict-evidence checks.
+- Verified locally with `gcc -fsyntax-only` for the touched AIR owners,
+  `make air-drift-test-smoke`, `make air-json-schema-test-smoke`,
+  `make backend-fail-closed-test-smoke`, and
+  `make build-source-inventory-test-smoke`.
+
+## Progress Log - 2026-06-06 C Projection Nominal Lookup Tightening
+
+- C `transpiler_find_projection_nominal_decl_local(...)` now consumes
+  `transpiler_find_named_decl_local(ctx, AST_CLASS_DECL, name)`, matching the
+  LLVM path's typed declaration-header-first lookup. This removes one
+  inventory-first compatibility seam from projection nominal recovery.
+- `mir-declaration-inventory-test-smoke` now rejects returning the projection
+  nominal owner to `transpiler_find_decl_in_inventory_local(...)`.
+- Verified locally with `make mir-declaration-inventory-test-smoke`, targeted
+  projection/zone compare fixtures (`probe_record`, `probe_field_index`,
+  `probe_zone_chain`, `zone_with_subject_slot`) and actual projection fixtures
+  (`subject_projection`, `relation_effect_projection_sync`,
+  `world_zone_projection_visibility`,
+  `world_embedded_branch_projection_visibility`).
+
+## Progress Log - 2026-06-06 C Typed Declaration Recovery Tightening
+
+- C backend type-specific declaration recovery no longer calls
+  `transpiler_find_decl_in_inventory_local(ctx, AST_*_DECL, ...)` directly
+  outside the declaration-lookup owner. Class/enum host method body lookup,
+  nominal host lookup, relation/effect/party/roster/world/zone declaration
+  emitters, overlay relation/effect bind, world-zone projection recovery,
+  intent zone lookup, effect sync lookup, MIR SSA zone recovery, and function
+  forward world checks now go through `transpiler_find_named_decl_local(...)`,
+  which prefers typed MIR declaration headers before AST inventory fallback.
+- `mir-declaration-inventory-test-smoke` now rejects reintroduced literal
+  `AST_*_DECL` direct inventory recovery under `src/codegen`.
+- Verified locally with `gcc -fsyntax-only` on the touched C backend owners,
+  `make mir-declaration-inventory-test-smoke`, and targeted C/LLVM fixture
+  batches: class/enum/world/projection baseline (`8/8`) plus declaration/
+  overlay/world-zone coverage (`role_operator`, `zone_host_method_abi_combo`,
+  `relation_effect_projection_sync`, `world_with_zones`,
+  `world_zone_cross_queries`, `world_zone_projection_visibility`,
+  `zone_action_effect_runtime`, `zone_layer_projection_runtime`) with `10/10`
+  passing.
+
 ## Progress Log - 2026-05-02 Intent Single-Subject Who Inference
 
 - Closed the first safe Intent-Compress `who` rule: a step with omitted `who`
@@ -989,10 +1488,11 @@
   command exceeded the 15 minute execution window; the CI target groups were
   run in slices instead.
 
-## Progress Log — 2026-04-24 Parser/Lexer Diagnostic Routing
+## Progress Log - 2026-04-24 Parser/Lexer Diagnostic Routing
 
-- `parser_error`와 lexer error token이 stage code, reason, fix를 갖도록 1차 routing gate를 닫았다.
-- 새 코드: `PGY_PARSE_SYNTAX`, `PGY_LEX_INVALID_TOKEN`.
-- 새 gate: `make parser-lexer-diagnostic-test-smoke`.
-- CI 연결: `ci-linux`가 parser/lexer diagnostic gate를 실행한다.
-- 남은 beta debt: parse/lex baseline message surface와 JSON diagnostic object routing은 닫혔다. 남은 것은 parser-specific code split과 multi-error accumulation이다.
+- `parser_error` and lexer error-token paths now route stage code, reason, and
+  fix metadata through the first diagnostic-routing gate.
+- Stable codes: `PGY_PARSE_SYNTAX`, `PGY_LEX_INVALID_TOKEN`.
+- Gate: `make parser-lexer-diagnostic-test-smoke`.
+- CI wiring: `ci-linux` runs the parser/lexer diagnostic gate.
+- Remaining beta debt: parser-specific code split and multi-error accumulation.

@@ -54,6 +54,10 @@ bool semantic_reject_active_slot_view_boundary(ASTNode *site,
                                                const char *fix_action);
 bool type_is_general_boundary_type(const Type *type, SemanticContext *ctx);
 bool type_is_capability_bearing(const Type *type);
+bool type_is_worker_boundary_unsafe_storage(const Type *type);
+const char *worker_boundary_storage_display_name(const Type *type);
+bool type_is_detached_worker_boundary_unsafe_storage(const Type *type);
+const char *detached_worker_boundary_storage_display_name(const Type *type);
 bool type_is_subject_type(const Type *type, SemanticContext *ctx);
 bool type_is_class_object_type(const Type *type, SemanticContext *ctx);
 bool type_requires_boundary_borrow_tracking(const Type *type, SemanticContext *ctx);
@@ -178,6 +182,14 @@ bool identifier_is_borrowed_boundary_param(ASTNode *expr, SemanticContext *ctx);
  * declaration for `ctx`.  Visibility/access helpers use this through an
  * explicit owner seam rather than include-order coupling. */
 ASTNode *current_host_decl(SemanticContext *ctx);
+bool semantic_build_host_decl_index(SemanticContext *ctx, ASTNode *program);
+ASTNode *semantic_host_index_find_decl_by_name(SemanticContext *ctx,
+                                               ASTNodeType decl_type,
+                                               const char *name);
+ASTNode *semantic_host_index_find_top_level_decl_by_label(
+    SemanticContext *ctx,
+    const char *label,
+    TypeResolutionNodeKind kind);
 ASTNode *semantic_find_type_alias_decl_by_name(SemanticContext *ctx,
                                                const char *name);
 ASTNode *semantic_find_zone_decl_by_name(SemanticContext *ctx,

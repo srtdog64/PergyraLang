@@ -39,6 +39,12 @@ typedef struct
     size_t            count;
 } LLVMMIRRoutineInventory;
 
+typedef struct
+{
+    const MIRDeclHeader *headers;
+    size_t               count;
+} LLVMMIRDeclHeaderInventory;
+
 void llvm_active_routine_inventory(const LLVMGenCtx *ctx,
                                    LLVMMIRRoutineInventory *inventory);
 void llvm_mir_routine_inventory_from_program(const MIRProgram *mir,
@@ -46,17 +52,29 @@ void llvm_mir_routine_inventory_from_program(const MIRProgram *mir,
 const MIRRoutine *llvm_routine_inventory_get(
     const LLVMMIRRoutineInventory *inventory,
     size_t index);
+void llvm_active_decl_header_inventory(
+    const LLVMGenCtx *ctx,
+    LLVMMIRDeclHeaderInventory *inventory);
+const MIRDeclHeader *llvm_decl_header_inventory_get(
+    const LLVMMIRDeclHeaderInventory *inventory,
+    size_t index);
 ASTNode *llvm_mir_routine_source_ast(const MIRRoutine *routine);
+MIRScopeKind llvm_mir_routine_kind(const MIRRoutine *routine);
+const char *llvm_mir_routine_name(const MIRRoutine *routine);
+const char *llvm_mir_routine_owner_name(const MIRRoutine *routine);
+ASTNodeType llvm_mir_routine_owner_ast_type(const MIRRoutine *routine);
 ASTNode *llvm_mir_routine_source_ast_of_type(const MIRRoutine *routine,
                                              MIRScopeKind expected_kind,
                                              ASTNodeType expected_ast_type);
 bool llvm_mir_routine_has_signature(const MIRRoutine *routine);
+size_t llvm_mir_routine_generic_param_count(const MIRRoutine *routine);
 size_t llvm_mir_routine_param_count(const MIRRoutine *routine);
 FuncParam *llvm_mir_routine_param(const MIRRoutine *routine, size_t index);
 const char *llvm_mir_routine_param_type_name(const MIRRoutine *routine,
                                              size_t index);
 ASTNode *llvm_mir_routine_return_type(const MIRRoutine *routine);
 const char *llvm_mir_routine_return_type_name(const MIRRoutine *routine);
+const char *llvm_mir_routine_within_zone(const MIRRoutine *routine);
 void llvm_active_domain_inventory(const LLVMGenCtx *ctx,
                                   LLVMDomainInventory *inventory);
 void llvm_active_executables(const LLVMGenCtx *ctx,

@@ -83,12 +83,13 @@ cleanup_neg_root() {
 }
 trap cleanup_neg_root EXIT
 mkdir -p "$NEG_ROOT/src/self_hosted/tools/backend_output_comparator/fixture"
+mkdir -p "$NEG_ROOT/.tmp"
 cp "$FIXTURE_EXPECTED" "$NEG_ROOT/src/self_hosted/tools/backend_output_comparator/fixture/expected.txt"
 sed 's/gamma/GAMMA-DRIFT/' "$FIXTURE_ACTUAL" \
     > "$NEG_ROOT/src/self_hosted/tools/backend_output_comparator/fixture/actual.txt"
 
 set +e
-NEG_OUT="$(cd "$NEG_ROOT" && "$PGY" "$PERGYRA_TOOL" --run 2>/dev/null)"
+NEG_OUT="$(cd "$NEG_ROOT" && "$PGY" "$PERGYRA_TOOL" --run 2>&1)"
 NEG_RC=$?
 set -e
 if [[ "$NEG_RC" -ne 1 ]]; then
@@ -116,10 +117,11 @@ fi
 MISS_ROOT="$(mktemp -d "${TMPDIR:-/tmp}/pgy-selfhost-cmp-miss.XXXXXX")"
 trap "rm -rf '$NEG_ROOT' '$MISS_ROOT'" EXIT
 mkdir -p "$MISS_ROOT/src/self_hosted/tools/backend_output_comparator/fixture"
+mkdir -p "$MISS_ROOT/.tmp"
 cp "$FIXTURE_EXPECTED" "$MISS_ROOT/src/self_hosted/tools/backend_output_comparator/fixture/expected.txt"
 
 set +e
-MISS_OUT="$(cd "$MISS_ROOT" && "$PGY" "$PERGYRA_TOOL" --run 2>/dev/null)"
+MISS_OUT="$(cd "$MISS_ROOT" && "$PGY" "$PERGYRA_TOOL" --run 2>&1)"
 MISS_RC=$?
 set -e
 if [[ "$MISS_RC" -ne 1 ]]; then

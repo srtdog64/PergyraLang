@@ -9,6 +9,13 @@ ASTNode *mir_decl_header_source_ast(const MIRDeclHeader *header);
 ASTNodeType mir_decl_header_ast_type_or(const MIRDeclHeader *header,
                                         ASTNodeType fallback);
 const char *mir_decl_header_name(const MIRDeclHeader *header);
+size_t mir_decl_header_generic_param_count(const MIRDeclHeader *header);
+const MIRDeclGenericParam *mir_decl_header_generic_param(
+    const MIRDeclHeader *header,
+    size_t index);
+const char *mir_decl_generic_param_name(const MIRDeclGenericParam *param);
+ASTNode *mir_decl_generic_param_constraint(const MIRDeclGenericParam *param);
+ASTNode *mir_decl_generic_param_default_type(const MIRDeclGenericParam *param);
 size_t mir_decl_header_method_count(const MIRDeclHeader *header);
 const MIRDeclMethod *mir_decl_header_method(const MIRDeclHeader *header,
                                             size_t index);

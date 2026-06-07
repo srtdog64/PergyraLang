@@ -28,8 +28,9 @@ pgy_hashmap_key_spec_compare(const void *key, const void *entry)
 static const PgyHashMapKeySpec *
 pgy_hashmap_key_find_spec(const char *name)
 {
-    const char *effective_name = name != NULL ? name : "String";
-    return bsearch(effective_name,
+    if (name == NULL || name[0] == '\0')
+        return NULL;
+    return bsearch(name,
                    pgy_hashmap_key_specs,
                    sizeof(pgy_hashmap_key_specs) / sizeof(pgy_hashmap_key_specs[0]),
                    sizeof(pgy_hashmap_key_specs[0]),
@@ -51,7 +52,7 @@ pgy_hashmap_key_c_infix(const char *key_name)
     const PgyHashMapKeySpec *spec = pgy_hashmap_key_find_spec(key_name);
     if (spec != NULL)
         return spec->c_infix;
-    return "";
+    return NULL;
 }
 
 bool
@@ -61,12 +62,16 @@ pgy_hashmap_key_raw_export_name(const char *operation,
                                 size_t out_size)
 {
     int written;
+    const PgyHashMapKeySpec *spec;
 
     if (operation == NULL || out == NULL || out_size == 0)
         return false;
+    spec = pgy_hashmap_key_find_spec(key_name);
+    if (spec == NULL)
+        return false;
 
     written = snprintf(out, out_size, "pgy_map_%s_raw%s_export",
-                       operation, pgy_hashmap_key_c_infix(key_name));
+                       operation, spec->c_infix);
     return written >= 0 && (size_t)written < out_size;
 }
 
@@ -77,11 +82,15 @@ pgy_hashmap_key_raw_string_value_export_name(const char *operation,
                                              size_t out_size)
 {
     int written;
+    const PgyHashMapKeySpec *spec;
 
     if (operation == NULL || out == NULL || out_size == 0)
         return false;
+    spec = pgy_hashmap_key_find_spec(key_name);
+    if (spec == NULL)
+        return false;
 
     written = snprintf(out, out_size, "pgy_map_%s_string_value_raw%s_export",
-                       operation, pgy_hashmap_key_c_infix(key_name));
+                       operation, spec->c_infix);
     return written >= 0 && (size_t)written < out_size;
 }

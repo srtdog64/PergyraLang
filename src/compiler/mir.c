@@ -408,8 +408,24 @@ mir_lower(const HIRProgram *hir, const RIRProgram *rir, char **error_message)
 
 #undef MIR_COPY_AST_LIST
 
+    for (size_t i = 0; i < hir->function_count; i++) {
+        if (!mir_record_decl_header(mir, hir->functions[i])) {
+            if (error_message != NULL)
+                *error_message = pergyra_strdup("out of memory");
+            mir_destroy(mir);
+            return NULL;
+        }
+    }
     for (size_t i = 0; i < hir->type_count; i++) {
         if (!mir_record_decl_header(mir, hir->types[i])) {
+            if (error_message != NULL)
+                *error_message = pergyra_strdup("out of memory");
+            mir_destroy(mir);
+            return NULL;
+        }
+    }
+    for (size_t i = 0; i < hir->ability_count; i++) {
+        if (!mir_record_decl_header(mir, hir->abilities[i])) {
             if (error_message != NULL)
                 *error_message = pergyra_strdup("out of memory");
             mir_destroy(mir);
@@ -496,9 +512,12 @@ mir_lower(const HIRProgram *hir, const RIRProgram *rir, char **error_message)
         routine.ast = hir_routine->ast;
         routine.is_action_like = hir_routine->is_action_like;
         if (routine.ast != NULL && routine.ast->type == AST_FUNC_DECL) {
+            routine.generic_param_count = ast_generic_param_count(
+                ast_declaration_generic_params(routine.ast));
             routine.params =
                 ast_func_params(routine.ast, &routine.param_count);
             routine.return_type = ast_func_return_type(routine.ast);
+            routine.within_zone = ast_func_within_zone(routine.ast);
             routine.has_signature = true;
             if (!mir_routine_signature_type_names_capture(&routine)) {
                 mir_routine_signature_type_names_clear(&routine);

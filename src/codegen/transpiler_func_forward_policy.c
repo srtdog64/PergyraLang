@@ -9,7 +9,9 @@
 #include <string.h>
 
 #include "transpiler.h"
+#include "transpiler_context.h"
 #include "transpiler_decl_lookup.h"
+#include "transpiler_inventory_view.h"
 #include "transpiler_mir_inventory_intent_collect.h"
 #include "../parser/ast_api.h"
 
@@ -94,12 +96,23 @@ transpiler_can_forward_declare_func_early(TranspilerCtx *ctx, ASTNode *func)
 
     if (ctx == NULL || func == NULL || func->type != AST_FUNC_DECL)
         return false;
-    GenericParams *generic_params = ast_func_generic_params(func);
-    if (ast_generic_param_count(generic_params) > 0)
-        return false;
 
     routine = transpiler_find_mir_function(ctx, func);
     routine_has_signature = transpiler_mir_routine_has_signature(routine);
+    if (routine != NULL && transpiler_active_has_mir(ctx)
+        && !routine_has_signature) {
+        transpiler_set_mir_inventory_missing(ctx,
+            "MIR-only C path missing function forward signature metadata for '%s'",
+            ast_declaration_name(func) != NULL
+                ? ast_declaration_name(func)
+                : "(anonymous)");
+        return false;
+    }
+    size_t generic_param_count = routine_has_signature
+        ? transpiler_mir_routine_generic_param_count(routine)
+        : ast_generic_param_count(ast_declaration_generic_params(func));
+    if (generic_param_count > 0)
+        return false;
 
     const char *return_type_name = routine_has_signature
         ? transpiler_mir_routine_return_type_name(routine)
@@ -155,8 +168,7 @@ transpiler_can_forward_declare_type_after_zones(TranspilerCtx *ctx,
         return false;
 
     name = ast_type_name(type_node);
-    if (transpiler_find_decl_in_inventory_local(ctx, AST_WORLD_DECL,
-                                                name) != NULL)
+    if (transpiler_find_named_decl_local(ctx, AST_WORLD_DECL, name) != NULL)
         return false;
     return transpiler_has_known_nominal_type(ctx, name);
 }
@@ -169,8 +181,7 @@ transpiler_can_forward_declare_type_name_after_zones(TranspilerCtx *ctx,
         return true;
     if (transpiler_can_forward_declare_type_name_early(ctx, type_name))
         return true;
-    if (transpiler_find_decl_in_inventory_local(ctx, AST_WORLD_DECL,
-                                                type_name) != NULL)
+    if (transpiler_find_named_decl_local(ctx, AST_WORLD_DECL, type_name) != NULL)
         return false;
     return transpiler_has_known_nominal_type(ctx, type_name);
 }
@@ -184,12 +195,23 @@ transpiler_can_forward_declare_func_after_zones(TranspilerCtx *ctx,
 
     if (ctx == NULL || func == NULL || func->type != AST_FUNC_DECL)
         return false;
-    GenericParams *generic_params = ast_func_generic_params(func);
-    if (ast_generic_param_count(generic_params) > 0)
-        return false;
 
     routine = transpiler_find_mir_function(ctx, func);
     routine_has_signature = transpiler_mir_routine_has_signature(routine);
+    if (routine != NULL && transpiler_active_has_mir(ctx)
+        && !routine_has_signature) {
+        transpiler_set_mir_inventory_missing(ctx,
+            "MIR-only C path missing function forward signature metadata for '%s'",
+            ast_declaration_name(func) != NULL
+                ? ast_declaration_name(func)
+                : "(anonymous)");
+        return false;
+    }
+    size_t generic_param_count = routine_has_signature
+        ? transpiler_mir_routine_generic_param_count(routine)
+        : ast_generic_param_count(ast_declaration_generic_params(func));
+    if (generic_param_count > 0)
+        return false;
 
     const char *return_type_name = routine_has_signature
         ? transpiler_mir_routine_return_type_name(routine)

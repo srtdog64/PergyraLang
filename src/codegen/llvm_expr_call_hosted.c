@@ -71,17 +71,29 @@ llvm_emit_hosted_self_call(ASTNode *node, LLVMGenCtx *ctx,
 {
     ASTNode *host_decl = llvm_current_host_decl(ctx);
     const char *host_name = llvm_decl_node_name(host_decl);
-    const MIRDeclMethod *method_meta =
-        llvm_find_host_method_metadata_in_context(ctx, host_name, callee_name);
-    ASTNode *host_method = llvm_mir_decl_method_source_ast(method_meta);
+    const MIRDeclMethod *method_meta = NULL;
+    ASTNode *host_method = NULL;
     size_t argc = ast_call_arg_count(node);
     char full_name[256];
     LLVMFuncEntry *fn = NULL;
     LLVMValueRef *args = NULL;
 
-    if (host_method == NULL && method_meta == NULL)
+    if (host_name == NULL)
+        return NULL;
+    method_meta =
+        llvm_find_host_method_metadata_in_context(ctx, host_name, callee_name);
+    host_method = llvm_mir_decl_method_source_ast(method_meta);
+    if (host_method == NULL && method_meta == NULL) {
+        if (llvm_active_has_mir(ctx)) {
+            llvm_set_mir_inventory_missing(ctx,
+                "MIR-only LLVM path missing hosted self-call method metadata for '%s.%s'",
+                host_name != NULL ? host_name : "(anonymous)",
+                callee_name != NULL ? callee_name : "(anonymous)");
+            return NULL;
+        }
         host_method = llvm_current_host_method_decl(ctx, callee_name);
-    if (host_name == NULL || (method_meta == NULL && host_method == NULL))
+    }
+    if (method_meta == NULL && host_method == NULL)
         return NULL;
 
     snprintf(full_name, sizeof(full_name), "%s_%s", host_name, callee_name);

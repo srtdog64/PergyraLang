@@ -14,6 +14,8 @@ ast_func_param_count(const ASTNode *node)
 {
     if (node == NULL || node->type != AST_FUNC_DECL)
         return 0;
+    if (node->is_async_decl)
+        return node->data.async_func_decl.param_count;
     return node->data.func_decl.param_count;
 }
 
@@ -24,6 +26,8 @@ ast_func_params(const ASTNode *node, size_t *count_out)
         *count_out = ast_func_param_count(node);
     if (node == NULL || node->type != AST_FUNC_DECL)
         return NULL;
+    if (node->is_async_decl)
+        return node->data.async_func_decl.params;
     return node->data.func_decl.params;
 }
 
@@ -32,6 +36,13 @@ ast_func_param(const ASTNode *node, size_t index)
 {
     if (node == NULL || node->type != AST_FUNC_DECL)
         return NULL;
+    if (node->is_async_decl) {
+        if (index >= node->data.async_func_decl.param_count)
+            return NULL;
+        return node->data.async_func_decl.params != NULL
+            ? node->data.async_func_decl.params[index]
+            : NULL;
+    }
     if (index >= node->data.func_decl.param_count)
         return NULL;
     return node->data.func_decl.params != NULL
@@ -44,6 +55,8 @@ ast_func_generic_params(const ASTNode *node)
 {
     if (node == NULL || node->type != AST_FUNC_DECL)
         return NULL;
+    if (node->is_async_decl)
+        return node->data.async_func_decl.generic_params;
     return node->data.func_decl.generic_params;
 }
 
@@ -52,6 +65,8 @@ ast_func_where_clause(const ASTNode *node)
 {
     if (node == NULL || node->type != AST_FUNC_DECL)
         return NULL;
+    if (node->is_async_decl)
+        return node->data.async_func_decl.where_clause;
     return node->data.func_decl.where_clause;
 }
 
@@ -60,6 +75,8 @@ ast_func_return_type(const ASTNode *node)
 {
     if (node == NULL || node->type != AST_FUNC_DECL)
         return NULL;
+    if (node->is_async_decl)
+        return node->data.async_func_decl.return_type;
     return node->data.func_decl.return_type;
 }
 
@@ -68,16 +85,25 @@ ast_func_body(const ASTNode *node)
 {
     if (node == NULL || node->type != AST_FUNC_DECL)
         return NULL;
+    if (node->is_async_decl)
+        return node->data.async_func_decl.body;
     return node->data.func_decl.body;
 }
 
 bool
 ast_func_attach_body(ASTNode *node, ASTNode *body)
 {
-    if (node == NULL || node->type != AST_FUNC_DECL
-        || node->data.func_decl.body != NULL) {
+    if (node == NULL || node->type != AST_FUNC_DECL) {
         return false;
     }
+    if (node->is_async_decl) {
+        if (node->data.async_func_decl.body != NULL)
+            return false;
+        node->data.async_func_decl.body = body;
+        return true;
+    }
+    if (node->data.func_decl.body != NULL)
+        return false;
     node->data.func_decl.body = body;
     return true;
 }
@@ -89,6 +115,11 @@ ast_func_detach_body(ASTNode *node)
 
     if (node == NULL || node->type != AST_FUNC_DECL)
         return NULL;
+    if (node->is_async_decl) {
+        body = node->data.async_func_decl.body;
+        node->data.async_func_decl.body = NULL;
+        return body;
+    }
     body = node->data.func_decl.body;
     node->data.func_decl.body = NULL;
     return body;
@@ -98,6 +129,7 @@ bool
 ast_func_is_action(const ASTNode *node)
 {
     return node != NULL && node->type == AST_FUNC_DECL
+        && !node->is_async_decl
         && node->data.func_decl.is_action;
 }
 
@@ -106,21 +138,29 @@ ast_func_access(const ASTNode *node)
 {
     if (node == NULL || node->type != AST_FUNC_DECL)
         return ACCESS_PUBLIC;
+    if (node->is_async_decl)
+        return node->data.async_func_decl.access;
     return node->data.func_decl.access;
 }
 
 bool
 ast_func_has_explicit_access(const ASTNode *node)
 {
-    return node != NULL && node->type == AST_FUNC_DECL
-        && node->data.func_decl.has_explicit_access;
+    if (node == NULL || node->type != AST_FUNC_DECL)
+        return false;
+    if (node->is_async_decl)
+        return node->has_explicit_access;
+    return node->data.func_decl.has_explicit_access;
 }
 
 bool
 ast_func_has_effects_clause(const ASTNode *node)
 {
-    return node != NULL && node->type == AST_FUNC_DECL
-        && node->data.func_decl.has_effects_clause;
+    if (node == NULL || node->type != AST_FUNC_DECL)
+        return false;
+    if (node->is_async_decl)
+        return node->data.async_func_decl.has_effects_clause;
+    return node->data.func_decl.has_effects_clause;
 }
 
 uint32_t
@@ -128,6 +168,8 @@ ast_func_declared_effects(const ASTNode *node)
 {
     if (node == NULL || node->type != AST_FUNC_DECL)
         return 0;
+    if (node->is_async_decl)
+        return node->data.async_func_decl.declared_effects;
     return node->data.func_decl.declared_effects;
 }
 
@@ -136,6 +178,8 @@ ast_func_doc_comment(const ASTNode *node)
 {
     if (node == NULL || node->type != AST_FUNC_DECL)
         return NULL;
+    if (node->is_async_decl)
+        return node->data.async_func_decl.doc_comment;
     return node->data.func_decl.doc_comment;
 }
 
@@ -143,6 +187,8 @@ size_t
 ast_func_required_ability_count(const ASTNode *node)
 {
     if (node == NULL || node->type != AST_FUNC_DECL)
+        return 0;
+    if (node->is_async_decl)
         return 0;
     return node->data.func_decl.required_ability_count;
 }
@@ -154,6 +200,8 @@ ast_func_required_abilities(const ASTNode *node, size_t *count_out)
         *count_out = ast_func_required_ability_count(node);
     if (node == NULL || node->type != AST_FUNC_DECL)
         return NULL;
+    if (node->is_async_decl)
+        return NULL;
     return node->data.func_decl.required_abilities;
 }
 
@@ -161,6 +209,7 @@ ASTNode *
 ast_func_required_ability(const ASTNode *node, size_t index)
 {
     if (node == NULL || node->type != AST_FUNC_DECL
+        || node->is_async_decl
         || index >= node->data.func_decl.required_ability_count) {
         return NULL;
     }
@@ -174,6 +223,8 @@ ast_func_within_zone(const ASTNode *node)
 {
     if (node == NULL || node->type != AST_FUNC_DECL)
         return NULL;
+    if (node->is_async_decl)
+        return NULL;
     return node->data.func_decl.within_zone;
 }
 
@@ -183,6 +234,8 @@ ast_func_set_within_zone_copy(ASTNode *node, const char *within_zone)
     char *copy = NULL;
 
     if (node == NULL || node->type != AST_FUNC_DECL)
+        return false;
+    if (node->is_async_decl)
         return false;
     if (within_zone != NULL) {
         copy = pergyra_strdup(within_zone);
@@ -200,6 +253,8 @@ ast_func_causes_effect(const ASTNode *node)
 {
     if (node == NULL || node->type != AST_FUNC_DECL)
         return NULL;
+    if (node->is_async_decl)
+        return NULL;
     return node->data.func_decl.causes_effect;
 }
 
@@ -208,6 +263,8 @@ ast_func_authorized_by_count(const ASTNode *node)
 {
     if (node == NULL || node->type != AST_FUNC_DECL)
         return 0;
+    if (node->is_async_decl)
+        return 0;
     return node->data.func_decl.authorized_by_count;
 }
 
@@ -215,6 +272,7 @@ const char *
 ast_func_authorized_by(const ASTNode *node, size_t index)
 {
     if (node == NULL || node->type != AST_FUNC_DECL
+        || node->is_async_decl
         || node->data.func_decl.authorized_by == NULL
         || index >= node->data.func_decl.authorized_by_count) {
         return NULL;

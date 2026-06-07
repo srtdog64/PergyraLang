@@ -18,17 +18,6 @@ spawn_direct_callee_name(ASTNode *spawned)
     return ast_identifier_name(callee);
 }
 
-static FuncParam *
-spawn_callable_param_at(ASTNode *decl, size_t index)
-{
-    if (decl == NULL || decl->type != AST_FUNC_DECL)
-        return NULL;
-    if (decl->is_async_decl) {
-        return ast_async_func_param(decl, index);
-    }
-    return ast_func_param(decl, index);
-}
-
 static bool
 semantic_channel_type_is_token(const Type *type);
 
@@ -53,6 +42,78 @@ semantic_type_ref_names_token(ASTNode *type_ref)
 }
 
 static bool
+semantic_report_worker_storage_boundary(ASTNode *site,
+                                        SemanticContext *ctx,
+                                        const Type *type,
+                                        const char *boundary_name,
+                                        const char *value_label)
+{
+    const char *kind = detached_worker_boundary_storage_display_name(type);
+
+    if (kind == NULL)
+        return false;
+
+    semantic_error_with_hints(ctx,
+        PGY_CODE_SEM_BORROW_ESCAPE,
+        PGY_CAUSE_BORROW_ESCAPE,
+        PGY_FIX_SERIALIZE_OUTSIDE_PARALLEL,
+        site,
+        "%s cannot transport %s '%s' across a worker boundary.\n"
+        "Reason:\n"
+        "- %s<T> currently lowers to runtime storage, a borrowed view, or synchronization state\n"
+        "- shallow-copying that storage into another task can alias, rehash, grow, or copy lock state\n"
+        "- this would make generated C/LLVM behavior depend on undefined behavior\n"
+        "Fix:\n"
+        "- pass scalar/projected values instead\n"
+        "- or copy into an explicitly owned snapshot before crossing the boundary",
+        boundary_name != NULL ? boundary_name : "Worker boundary",
+        kind,
+        value_label != NULL ? value_label : "<value>",
+        kind);
+    return true;
+}
+
+static bool
+semantic_validate_spawn_storage_boundary(ASTNode *expr, SemanticContext *ctx)
+{
+    ASTNode *spawned;
+    const char *callee_name;
+    ASTNode *decl;
+    bool rejected = false;
+
+    if (expr == NULL || ctx == NULL)
+        return false;
+
+    spawned = ast_spawn_function(expr);
+    callee_name = spawn_direct_callee_name(spawned);
+    if (callee_name == NULL)
+        return false;
+
+    decl = semantic_find_callable_decl_by_name(ctx, callee_name);
+    if (decl == NULL || decl->type != AST_FUNC_DECL)
+        return false;
+
+    for (size_t i = 0; i < ast_call_arg_count(spawned); i++) {
+        ASTNode *arg = ast_call_argument(spawned, i);
+        FuncParam *param = ast_func_param(decl, i);
+        Type *param_type;
+        const char *arg_label = "<argument>";
+
+        if (arg == NULL || param == NULL)
+            continue;
+        if (arg->type == AST_IDENTIFIER && ast_identifier_name(arg) != NULL)
+            arg_label = ast_identifier_name(arg);
+
+        param_type = type_check_func_resolve_param_type(param, ctx);
+        if (semantic_report_worker_storage_boundary(
+                arg, ctx, param_type, "Spawn argument", arg_label)) {
+            rejected = true;
+        }
+    }
+    return rejected;
+}
+
+static bool
 semantic_validate_spawn_token_boundary(ASTNode *expr, SemanticContext *ctx)
 {
     ASTNode *spawned;
@@ -74,7 +135,7 @@ semantic_validate_spawn_token_boundary(ASTNode *expr, SemanticContext *ctx)
 
     for (size_t i = 0; i < ast_call_arg_count(spawned); i++) {
         ASTNode *arg = ast_call_argument(spawned, i);
-        FuncParam *param = spawn_callable_param_at(decl, i);
+        FuncParam *param = ast_func_param(decl, i);
         Type *param_type = NULL;
         bool param_is_token;
 
@@ -132,7 +193,7 @@ semantic_validate_spawn_ref_boundary(ASTNode *expr,
 
     for (size_t i = 0; i < ast_call_arg_count(spawned); i++) {
         ASTNode *arg = ast_call_argument(spawned, i);
-        FuncParam *param = spawn_callable_param_at(decl, i);
+        FuncParam *param = ast_func_param(decl, i);
         Type *param_type;
         OwnershipTypeClass ownership_class;
         const char *arg_label;
@@ -240,6 +301,10 @@ type_check_spawn_expr(ASTNode *expr, SemanticContext *ctx)
     inner = async_channel_normalize_type(
         type_check_expression(ast_spawn_function(expr), ctx));
     semantic_validate_spawn_ref_boundary(expr, ctx, inner);
+    if (semantic_validate_spawn_storage_boundary(expr, ctx)) {
+        args[0] = TYPE_UNKNOWN;
+        return type_create_constructed(TYPE_FUTURE, args, 1);
+    }
     args[0] = inner;
     return type_create_constructed(TYPE_FUTURE, args, 1);
 }
@@ -308,6 +373,20 @@ type_check_channel_send(ASTNode *expr, SemanticContext *ctx)
             "- beta slice transport needs explicit owner/copy/pin evidence before it can be trusted",
             "send an owning Array<T> copy or projection/value result instead\n"
             "- keep Slice<T> use local to the current synchronous boundary");
+        return TYPE_VOID;
+    }
+
+    if (type_is_detached_worker_boundary_unsafe_storage(element_type)
+        || type_is_detached_worker_boundary_unsafe_storage(value_type)) {
+        const Type *unsafe_type =
+            type_is_detached_worker_boundary_unsafe_storage(value_type)
+                ? value_type : element_type;
+        const char *value_label = value != NULL
+            && value->type == AST_IDENTIFIER
+            && ast_identifier_name(value) != NULL
+                ? ast_identifier_name(value) : "payload";
+        semantic_report_worker_storage_boundary(
+            value, ctx, unsafe_type, "Channel send", value_label);
         return TYPE_VOID;
     }
 
@@ -447,6 +526,11 @@ type_check_channel_recv(ASTNode *expr, SemanticContext *ctx)
             "- beta slice transport needs explicit owner/copy/pin evidence before it can be trusted",
             "receive an owning Array<T> copy or projection/value result instead\n"
             "- keep Slice<T> use local to the producing synchronous boundary");
+        return TYPE_UNKNOWN;
+    }
+    if (type_is_detached_worker_boundary_unsafe_storage(element_type)) {
+        semantic_report_worker_storage_boundary(
+            channel, ctx, element_type, "Channel receive", "payload");
         return TYPE_UNKNOWN;
     }
     return element_type;

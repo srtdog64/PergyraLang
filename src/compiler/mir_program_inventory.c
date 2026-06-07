@@ -42,16 +42,73 @@ mir_routine_inventory_get(const MIRRoutineInventory *inventory, size_t index)
     return &inventory->routines[index];
 }
 
+void
+mir_decl_header_inventory_from_program(const MIRProgram *mir,
+                                       MIRDeclHeaderInventory *inventory)
+{
+    if (inventory == NULL)
+        return;
+    inventory->headers = NULL;
+    inventory->count = 0;
+    if (mir != NULL) {
+        inventory->headers = mir->decl_headers;
+        inventory->count = mir->decl_header_count;
+    }
+}
+
+const MIRDeclHeader *
+mir_decl_header_inventory_get(const MIRDeclHeaderInventory *inventory,
+                              size_t index)
+{
+    if (inventory == NULL || inventory->headers == NULL
+        || index >= inventory->count) {
+        return NULL;
+    }
+    return &inventory->headers[index];
+}
+
 ASTNode *
 mir_routine_source_ast(const MIRRoutine *routine)
 {
     return routine != NULL ? routine->ast : NULL;
 }
 
+MIRScopeKind
+mir_routine_kind(const MIRRoutine *routine)
+{
+    return routine != NULL ? routine->kind : MIR_SCOPE_FUNCTION;
+}
+
+const char *
+mir_routine_name(const MIRRoutine *routine)
+{
+    return routine != NULL ? routine->name : NULL;
+}
+
+const char *
+mir_routine_owner_name(const MIRRoutine *routine)
+{
+    return routine != NULL ? routine->owner_name : NULL;
+}
+
+ASTNodeType
+mir_routine_owner_ast_type(const MIRRoutine *routine)
+{
+    return routine != NULL ? routine->owner_ast_type : AST_PROGRAM;
+}
+
 bool
 mir_routine_has_signature(const MIRRoutine *routine)
 {
     return routine != NULL && routine->has_signature;
+}
+
+size_t
+mir_routine_generic_param_count(const MIRRoutine *routine)
+{
+    return mir_routine_has_signature(routine)
+        ? routine->generic_param_count
+        : 0;
 }
 
 size_t
@@ -90,6 +147,12 @@ const char *
 mir_routine_return_type_name(const MIRRoutine *routine)
 {
     return mir_routine_has_signature(routine) ? routine->return_type_name : NULL;
+}
+
+const char *
+mir_routine_within_zone(const MIRRoutine *routine)
+{
+    return mir_routine_has_signature(routine) ? routine->within_zone : NULL;
 }
 
 void

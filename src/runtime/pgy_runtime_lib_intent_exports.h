@@ -105,7 +105,7 @@ pgy_intent_active_entry_by_index_locked_export(int32_t index)
 }
 
 static inline PgyIntentActiveEntry *
-pgy_intent_active_entry_by_handle_export(int32_t handle)
+pgy_intent_active_entry_by_handle_locked_export(int32_t handle)
 {
     return pgy_intent_find_active_entry_locked_export(handle);
 }
@@ -129,10 +129,11 @@ pgy_intent_recent_entry_by_index_locked_export(int32_t index)
 }
 
 static PgyIntentHistoryStep *
-pgy_intent_active_step_by_index_locked_export(int32_t intent_index,
-                                              int32_t step_index)
+pgy_intent_active_step_by_handle_locked_export(int32_t intent_handle,
+                                               int32_t step_index)
 {
-    PgyIntentActiveEntry *entry = pgy_intent_active_entry_by_handle_export(intent_index);
+    PgyIntentActiveEntry *entry =
+        pgy_intent_active_entry_by_handle_locked_export(intent_handle);
     if (entry == NULL)
         return NULL;
     if (step_index < 0 || step_index >= entry->step_count) {
@@ -330,7 +331,8 @@ pgy_intent_active_step_count_export(int32_t index)
     int32_t result = 0;
 
     pthread_mutex_lock(&pgy_intent_registry_mutex);
-    PgyIntentActiveEntry *entry = pgy_intent_active_entry_by_handle_export(index);
+    PgyIntentActiveEntry *entry =
+        pgy_intent_active_entry_by_index_locked_export(index);
     if (entry != NULL)
         result = entry->step_count;
     pthread_mutex_unlock(&pgy_intent_registry_mutex);
@@ -371,7 +373,7 @@ pgy_intent_active_step_name_export(int32_t intent_index, int32_t step_index)
     char *result = "";
     pthread_mutex_lock(&pgy_intent_registry_mutex);
     PgyIntentHistoryStep *step =
-        pgy_intent_active_step_by_index_locked_export(intent_index, step_index);
+        pgy_intent_active_step_by_handle_locked_export(intent_index, step_index);
     if (step != NULL && step->name != NULL)
         result = pgy_intent_borrowed_snapshot_export(step->name);
     pthread_mutex_unlock(&pgy_intent_registry_mutex);
@@ -385,7 +387,7 @@ fn_name(int32_t intent_index, int32_t step_index) \
     char *result = ""; \
     pthread_mutex_lock(&pgy_intent_registry_mutex); \
     PgyIntentHistoryStep *step = \
-        pgy_intent_active_step_by_index_locked_export(intent_index, step_index); \
+        pgy_intent_active_step_by_handle_locked_export(intent_index, step_index); \
     if (step != NULL && step->field_name != NULL) \
         result = pgy_intent_borrowed_snapshot_export(step->field_name); \
     pthread_mutex_unlock(&pgy_intent_registry_mutex); \
@@ -408,7 +410,7 @@ pgy_intent_active_step_ok_export(int32_t intent_index, int32_t step_index)
     bool result = false;
     pthread_mutex_lock(&pgy_intent_registry_mutex);
     PgyIntentHistoryStep *step =
-        pgy_intent_active_step_by_index_locked_export(intent_index, step_index);
+        pgy_intent_active_step_by_handle_locked_export(intent_index, step_index);
     if (step != NULL)
         result = step->ok;
     pthread_mutex_unlock(&pgy_intent_registry_mutex);

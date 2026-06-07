@@ -146,6 +146,8 @@ resource_kind_from_type(ASTNode *program_root, ASTNode *type_node)
         return RIR_RESOURCE_DEVICE_SLOT;
     if (strcmp(name, "QubitSlot") == 0)
         return RIR_RESOURCE_QUBIT_HANDLE;
+    if (strcmp(name, "Future") == 0)
+        return RIR_RESOURCE_LOCAL_FUTURE_HANDLE;
     if (strcmp(name, "RemoteFuture") == 0)
         return RIR_RESOURCE_REMOTE_FUTURE_HANDLE;
     return rir_nominal_kind_from_name(program_root, name);
@@ -164,6 +166,9 @@ rir_default_state_for_kind(RIRResourceKind kind)
         case RIR_RESOURCE_OBJECT_SLOT:
         case RIR_RESOURCE_TOBJECT_SLOT:
             return RIR_STATE_UNINIT;
+        case RIR_RESOURCE_LOCAL_FUTURE_HANDLE:
+        case RIR_RESOURCE_REMOTE_FUTURE_HANDLE:
+            return RIR_STATE_REMOTE_PENDING;
         case RIR_RESOURCE_EFFECT_INSTANCE:
         case RIR_RESOURCE_RELATION_INSTANCE:
             return RIR_STATE_DETACHED;
@@ -203,6 +208,11 @@ add_resource_fact(RIRScope *scope,
                                                    type_node);
     if (kind == RIR_RESOURCE_UNKNOWN)
         return true;
+    if ((kind == RIR_RESOURCE_LOCAL_FUTURE_HANDLE
+         || kind == RIR_RESOURCE_REMOTE_FUTURE_HANDLE)
+        && state == RIR_STATE_UNINIT) {
+        state = RIR_STATE_REMOTE_PENDING;
+    }
 
     RIRFact fact;
     memset(&fact, 0, sizeof(fact));

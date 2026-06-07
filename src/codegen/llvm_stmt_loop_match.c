@@ -80,6 +80,16 @@ llvm_for_in_error(ASTNode *node, LLVMGenCtx *ctx, const char *message)
 void
 llvm_emit_while_loop(ASTNode *node, LLVMGenCtx *ctx)
 {
+    if (ctx == NULL)
+        return;
+    if (ctx->loop_depth >= MAX_SCOPE_DEPTH) {
+        llvm_set_error_at_with_hints(ctx, node,
+            PGY_CODE_LLVM_SCOPE_LIMIT,
+            PGY_CAUSE_LLVM_SCOPE_CAPACITY,
+            PGY_FIX_REFACTOR_OR_RAISE_LIMIT,
+            "LLVM loop registry exceeded MAX_SCOPE_DEPTH while lowering while-loop");
+        return;
+    }
     LLVMValueRef fn = ctx->current_function;
     LLVMBasicBlockRef cond_bb = LLVMAppendBasicBlockInContext(
         ctx->context, fn, "while.cond");
@@ -144,6 +154,16 @@ llvm_emit_while_loop(ASTNode *node, LLVMGenCtx *ctx)
 void
 llvm_emit_for_loop(ASTNode *node, LLVMGenCtx *ctx)
 {
+    if (ctx == NULL)
+        return;
+    if (ctx->loop_depth >= MAX_SCOPE_DEPTH) {
+        llvm_set_error_at_with_hints(ctx, node,
+            PGY_CODE_LLVM_SCOPE_LIMIT,
+            PGY_CAUSE_LLVM_SCOPE_CAPACITY,
+            PGY_FIX_REFACTOR_OR_RAISE_LIMIT,
+            "LLVM loop registry exceeded MAX_SCOPE_DEPTH while lowering for-loop");
+        return;
+    }
     const char *var_name = ast_for_variable(node);
     ASTNode *iterable_node = ast_for_iterable(node);
     ASTNode *body_node = ast_for_body(node);

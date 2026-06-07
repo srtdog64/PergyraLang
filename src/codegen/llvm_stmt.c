@@ -39,7 +39,10 @@ llvm_emit_return_stmt(ASTNode *node, LLVMGenCtx *ctx)
     llvm_emit_defers_from(ctx, 0);
 
     if (value != NULL) {
-        if (ctx->current_ret_type == ctx->type_void) {
+        LLVMTypeRef function_ret_type = ctx->current_function_ret_type;
+        if (function_ret_type == NULL)
+            function_ret_type = ctx->current_ret_type;
+        if (function_ret_type == ctx->type_void) {
             llvm_set_error_at_with_hints(ctx, node,
                 PGY_CODE_LLVM_TYPE_UNSUPPORTED,
                 PGY_CAUSE_LLVM_TYPE_UNSUPPORTED,
@@ -54,13 +57,10 @@ llvm_emit_return_stmt(ASTNode *node, LLVMGenCtx *ctx)
         const char *saved_expected_type_name = ctx->expected_type_name;
         ASTNode *saved_expected_callable_type = ctx->expected_callable_type;
         LLVMValueRef val;
-        if (ctx->current_func_decl != NULL
-            && ctx->current_func_decl->type == AST_FUNC_DECL
-            && ast_func_return_type(ctx->current_func_decl) != NULL) {
-            ctx->expected_type_name = llvm_stmt_render_type_annotation_copy(ctx,
-                ast_func_return_type(ctx->current_func_decl));
-            ctx->expected_callable_type =
-                llvm_stmt_current_return_callable_type(ctx);
+        if (ctx->current_return_type_name != NULL
+            || ctx->current_return_callable_type != NULL) {
+            ctx->expected_type_name = ctx->current_return_type_name;
+            ctx->expected_callable_type = ctx->current_return_callable_type;
         }
         val = llvm_emit_expression(value, ctx);
         ctx->expected_callable_type = saved_expected_callable_type;
@@ -68,7 +68,7 @@ llvm_emit_return_stmt(ASTNode *node, LLVMGenCtx *ctx)
         if (val != NULL) {
             /* Coerce to expected return type */
             LLVMTypeRef val_type = LLVMTypeOf(val);
-            LLVMTypeRef ret_type = ctx->current_ret_type;
+            LLVMTypeRef ret_type = function_ret_type;
             if (ret_type != val_type && ret_type != ctx->type_void) {
                 bool ret_is_int = (ret_type == ctx->type_i32 || ret_type == ctx->type_i64);
                 bool ret_is_fp  = (ret_type == ctx->type_f32 || ret_type == ctx->type_f64);
@@ -103,7 +103,10 @@ llvm_emit_return_stmt(ASTNode *node, LLVMGenCtx *ctx)
                 LLVMBuildUnreachable(ctx->builder);
         }
     } else {
-        if (ctx->current_ret_type == ctx->type_void)
+        LLVMTypeRef function_ret_type = ctx->current_function_ret_type;
+        if (function_ret_type == NULL)
+            function_ret_type = ctx->current_ret_type;
+        if (function_ret_type == ctx->type_void)
             LLVMBuildRetVoid(ctx->builder);
         else {
             if (ctx != NULL && !ctx->has_error) {

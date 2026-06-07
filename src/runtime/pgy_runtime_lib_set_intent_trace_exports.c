@@ -242,8 +242,11 @@ pgy_intent_handle_is_current_ancestor_export(int32_t handle)
 static void
 pgy_intent_push_current_handle_export(int32_t handle)
 {
-    if (handle == 0 || pgy_intent_current_depth >= PGY_INTENT_ACTIVE_MAX)
+    if (handle == 0)
         return;
+    if (pgy_intent_current_depth >= PGY_INTENT_ACTIVE_MAX)
+        PGY_RUNTIME_PANIC(PGY_RUNTIME_PANIC_CLASS_INTERNAL_INVARIANT,
+                          "intent current stack depth exceeded");
     pgy_intent_current_stack[pgy_intent_current_depth++] = handle;
 }
 

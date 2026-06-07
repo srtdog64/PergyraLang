@@ -296,8 +296,17 @@ ensure_collection_specialization_to(TranspilerCtx *ctx, CodeBuf *dst,
         }
     }
 
-    if (ctx->collection_spec_count >= MAX_COLLECTION_SPECIALIZATIONS)
+    if (ctx->collection_spec_count >= MAX_COLLECTION_SPECIALIZATIONS) {
+        transpiler_set_backend_error_with_hints(
+            ctx,
+            PGY_CODE_C_TYPE_UNSUPPORTED,
+            PGY_CAUSE_C_TYPE_UNSUPPORTED,
+            PGY_FIX_USE_LLVM_BACKEND_OR_EXTEND_TRANSPILER,
+            "C backend collection specialization registry exceeded MAX_COLLECTION_SPECIALIZATIONS while lowering %s<%s>",
+            kind,
+            inner_type);
         return;
+    }
 
     if (!transpiler_require_type_name_c_type_copy(ctx, inner_type,
             "collection specialization element", ctype_buf,

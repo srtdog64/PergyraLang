@@ -49,6 +49,19 @@ llvm_mir_def_uses_select_receive_statement_emit(const MIRInstruction *inst)
         && llvm_mir_instruction_has_source_ast_payload(inst);
 }
 
+static ASTNode *
+llvm_mir_return_callable_type(LLVMGenCtx *ctx, const MIRRoutine *routine)
+{
+    ASTNode *return_type = llvm_mir_routine_return_type(routine);
+
+    if (return_type != NULL) {
+        if (return_type->type == AST_EVENT_HANDLER_TYPE)
+            return return_type;
+        return NULL;
+    }
+    return llvm_stmt_current_return_callable_type(ctx);
+}
+
 static bool
 llvm_mir_stmt_instruction_is_cfg_container(const MIRInstruction *inst)
 {
@@ -324,6 +337,9 @@ llvm_emit_mir_block_with_exprs(const MIRBasicBlock *mir_block,
     LLVMBasicBlockRef llvm_block = llvm_block_heads[mir_block->id];
     LLVMPositionBuilderAtEnd(ctx->builder, llvm_block);
     bool emitted_terminator = false;
+    LLVMTypeRef function_ret_type = ctx->current_function_ret_type;
+    if (function_ret_type == NULL)
+        function_ret_type = ctx->current_ret_type;
     llvm_block_tails[mir_block->id] = llvm_block;
 
     if (!llvm_mir_emit_pin_enter(mir_block, ctx))
@@ -468,8 +484,14 @@ llvm_emit_mir_block_with_exprs(const MIRBasicBlock *mir_block,
                 const char *saved_expected_type_name = ctx->expected_type_name;
                 ASTNode *saved_expected_callable_type =
                     ctx->expected_callable_type;
+                const char *mir_return_type_name =
+                    llvm_mir_routine_return_type_name(routine);
+                ASTNode *mir_return_type =
+                    llvm_mir_routine_return_type(routine);
+                ASTNode *mir_callable_type =
+                    llvm_mir_return_callable_type(ctx, routine);
                 LLVMValueRef val;
-                if (ctx->current_ret_type == ctx->type_void) {
+                if (function_ret_type == ctx->type_void) {
                     llvm_set_error_at_with_hints(ctx, return_expr,
                         PGY_CODE_LLVM_TYPE_UNSUPPORTED,
                         PGY_CAUSE_LLVM_TYPE_UNSUPPORTED,
@@ -477,18 +499,19 @@ llvm_emit_mir_block_with_exprs(const MIRBasicBlock *mir_block,
                         "LLVM MIR void function return must not carry a value expression");
                     return;
                 }
+                if (mir_return_type_name != NULL) {
+                    ctx->expected_type_name = mir_return_type_name;
+                } else if (mir_return_type != NULL) {
+                    ctx->expected_type_name =
+                        llvm_stmt_render_type_annotation_copy(ctx, mir_return_type);
+                }
+                if (mir_callable_type != NULL)
+                    ctx->expected_callable_type = mir_callable_type;
                 if (!llvm_stmt_require_non_void_value(ctx, return_expr,
                         "LLVM MIR return cannot consume a Void expression value")) {
+                    ctx->expected_callable_type = saved_expected_callable_type;
+                    ctx->expected_type_name = saved_expected_type_name;
                     return;
-                }
-                if (ctx->current_func_decl != NULL
-                    && ctx->current_func_decl->type == AST_FUNC_DECL
-                    && ast_func_return_type(ctx->current_func_decl) != NULL) {
-                    ctx->expected_type_name =
-                        llvm_stmt_render_type_annotation_copy(ctx,
-                            ast_func_return_type(ctx->current_func_decl));
-                    ctx->expected_callable_type =
-                        llvm_stmt_current_return_callable_type(ctx);
                 }
                 val = llvm_emit_expression(return_expr, ctx);
                 ctx->expected_callable_type = saved_expected_callable_type;
@@ -517,7 +540,7 @@ llvm_emit_mir_block_with_exprs(const MIRBasicBlock *mir_block,
             } else {
                 if (!llvm_mir_emit_pin_exit(mir_block, ctx))
                     return;
-                if (ctx->current_ret_type == ctx->type_void) {
+                if (function_ret_type == ctx->type_void) {
                     LLVMBuildRetVoid(ctx->builder);
                 } else {
                     llvm_set_error_at_with_hints(ctx,
@@ -604,7 +627,7 @@ llvm_emit_mir_block_with_exprs(const MIRBasicBlock *mir_block,
             llvm_mir_emit_owner_sync_exit(ctx, owner_cls, owner_sync, owner_name);
             if (!llvm_mir_emit_pin_exit(mir_block, ctx))
                 return;
-            if (ctx->current_ret_type == ctx->type_void) {
+            if (function_ret_type == ctx->type_void) {
                 LLVMBuildRetVoid(ctx->builder);
             } else {
                 /* Closure #74: when a block has no successors AND no return

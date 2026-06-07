@@ -26,6 +26,13 @@ Stable intent query families:
 - `IntentActive*`: currently executing intent registry.
 - `IntentRecent*`: recent completed intent ring.
 
+Active registry aggregate queries use the active registry index: for example,
+`IntentActiveName(i)`, `IntentActiveHandle(i)`, and
+`IntentActiveStepCount(i)`. Active step field queries use a stable active intent handle plus a step index: for example,
+`IntentActiveStepName(handle, step)` and `IntentActiveStepOk(handle, step)`.
+Use `IntentCurrentHandle()` when querying the currently executing intent from
+inside an intent step.
+
 Stable fields:
 
 - `name`

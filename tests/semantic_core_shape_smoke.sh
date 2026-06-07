@@ -37,6 +37,7 @@ while IFS=: read -r path line text; do
     if [ "$path" = "src/semantic/type_checker_call_contract_helpers.c" ] ||
        [ "$path" = "src/semantic/type_checker_domain_role_lookup.c" ] ||
        [ "$path" = "src/semantic/type_checker_host_helpers.c" ] ||
+       [ "$path" = "src/semantic/type_checker_host_lookup.c" ] ||
        [ "$path" = "src/semantic/type_checker_program.c" ] ||
        [ "$path" = "src/semantic/type_checker_resolution_helpers.c" ] ||
        [ "$path" = "src/semantic/type_checker_resolution_stage_lookup.c" ]; then
@@ -578,6 +579,13 @@ grep -q 'semantic_role_for_type_name' src/semantic/type_checker_domain_role_look
 grep -q 'role_lookup_find_decl_by_name' src/semantic/type_checker_domain_role_lookup.c \
     || fail "private role declaration lookup helper must live in domain role lookup owner"
 
+grep -q 'semantic_host_index_find_decl_by_name(ctx, AST_ROLE_DECL' \
+    src/semantic/type_checker_domain_role_lookup.c \
+    || fail "role declaration name lookup must consume the host declaration index first"
+
+grep -q 'case AST_ROLE_DECL:' src/semantic/type_checker_host_index.c \
+    || fail "host declaration index must include role declarations"
+
 if grep -q 'semantic_find_role_decl(ASTNode \*program' \
     src/semantic/type_checker_decls_a_helpers_internal.h; then
     fail "role declaration lookup must expose only SemanticContext-backed wrappers"
@@ -996,11 +1004,20 @@ grep -q 'semantic_host_decl_for_type(ctx, resolved_type)' \
 grep -q 'role_lookup_program(ctx)' src/semantic/type_checker_domain_role_lookup.c \
     || fail "semantic role lookup owner must centralize context program access"
 
-grep -q 'resolution_helper_program(ctx)' src/semantic/type_checker_resolution_helpers.c \
-    || fail "type-alias resolution owner must centralize context program access"
+grep -q 'semantic_find_type_alias_decl_by_name(SemanticContext \*ctx' \
+    src/semantic/type_checker_host_lookup.c \
+    || fail "type-alias lookup must live behind the semantic host lookup seam"
 
 grep -q 'stage_lookup_program(ctx)' src/semantic/type_checker_resolution_stage_lookup.c \
     || fail "DAG stage lookup owner must centralize context program access"
+
+grep -q 'semantic_host_index_find_top_level_decl_by_label(ctx, label, kind)' \
+    src/semantic/type_checker_resolution_stage_lookup.c \
+    || fail "DAG stage context lookup must consume the host declaration index first"
+
+grep -q 'semantic_host_index_find_top_level_decl_by_label(' \
+    src/semantic/type_checker_host_index.c \
+    || fail "host declaration index must expose DAG top-level label lookup"
 
 grep -q 'legacy_ast_param_summary_program(ctx)' \
     src/semantic/type_checker_call_contract_helpers.c \
@@ -1041,11 +1058,13 @@ if grep -q 'ASTNode \*.*(ASTNode \*program' \
 fi
 
 if grep -RInE '(^|[^A-Za-z0-9_])(find_type_decl_by_name|find_ability_decl_by_name|find_callable_decl_by_name)\(' \
-    src/semantic >/dev/null; then
+    src/semantic \
+    | grep -v 'src/semantic/type_checker_host_lookup.c' >/dev/null; then
     fail "raw class/ability/callable program-root lookup helpers must stay private to host helper owner names"
 fi
 
-if grep -RInE '(^|[^A-Za-z0-9_])find_domain_decl_by_name\(' src/semantic >/dev/null; then
+if grep -RInE '(^|[^A-Za-z0-9_])find_domain_decl_by_name\(' src/semantic \
+    | grep -v 'src/semantic/type_checker_host_lookup.c' >/dev/null; then
     fail "raw domain declaration lookup helper must stay private to host helper owner names"
 fi
 
@@ -1054,14 +1073,27 @@ if grep -q 'find_type_alias_decl(ASTNode \*program' \
     fail "type-alias declaration lookup must expose only the SemanticContext-backed resolver seam"
 fi
 
+grep -q 'semantic_build_host_decl_index(ctx, program)' \
+    src/semantic/type_checker_program.c \
+    || fail "semantic program owner must build the host declaration index before DAG precollect"
+
+grep -q 'semantic_host_index_find_decl_by_name(ctx, AST_TYPE_ALIAS' \
+    src/semantic/type_checker_host_lookup.c \
+    || fail "type-alias lookup must consume the host declaration index"
+
+if grep -q 'ast_program_statement_count(program)' \
+    src/semantic/type_checker_resolution_helpers.c; then
+    fail "resolution helpers must not rescan program root for type-alias declarations"
+fi
+
 for host_lookup in \
     host_find_type_decl_by_name \
     host_find_ability_decl_by_name \
     host_find_callable_decl_by_name \
     host_find_enum_decl_by_name \
     host_find_function_decl_by_name; do
-    grep -q "$host_lookup" src/semantic/type_checker_host_helpers.c \
-        || fail "host helper owner missing private lookup seam: $host_lookup"
+    grep -q "$host_lookup" src/semantic/type_checker_host_lookup.c \
+        || fail "host lookup owner missing private lookup seam: $host_lookup"
 done
 
 if grep -RIn 'find_subject_host_decl_by_name' src/semantic >/dev/null; then
@@ -1153,10 +1185,10 @@ grep -q 'semantic_find_callable_decl_by_name(ctx, callee_name)' \
     src/semantic/type_checker_async_channel.c \
     || fail "spawn token-boundary validation must consume semantic callable lookup seam"
 
-grep -q 'ast_async_func_name(stmt)' src/semantic/type_checker_host_helpers.c \
+grep -q 'ast_async_func_name(stmt)' src/semantic/type_checker_host_lookup.c \
     || fail "semantic callable lookup must include async function declarations"
 
-grep -q 'host_helper_program(ctx)' src/semantic/type_checker_host_helpers.c \
+grep -q 'host_lookup_program(ctx)' src/semantic/type_checker_host_lookup.c \
     || fail "semantic host lookup owner must centralize context program access"
 
 if grep -q 'program = ctx->program_root' src/semantic/type_checker_async_channel.c; then
@@ -2246,6 +2278,11 @@ grep -q 'ast_replace_declaration_name_copy(stmt, final_name)' src/compiler/modul
 
 grep -q 'ast_replace_identifier_name_copy' src/compiler/module_normalizer_refs.c \
     || fail "module_normalizer_refs.c identifier rewrite must use the AST identifier-name mutator"
+
+if grep -R -E "ast_(func|class|ability|role|party|roster)_generic_params[(]" \
+    src/compiler/module_normalizer_refs.c >/dev/null; then
+    fail "module normalizer must consume declaration-level generic metadata"
+fi
 
 grep -q 'Intentional AST mutation seam' src/compiler/module_normalizer_refs.c \
     || fail "module_normalizer_refs.c world-roster rewrite must stay documented as an AST mutation seam"

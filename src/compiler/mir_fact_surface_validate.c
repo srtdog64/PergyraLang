@@ -174,6 +174,27 @@ mir_validate_instruction_surface_usage(const MIRRoutine *routine,
                 return false;
             }
         }
+        if (inst->kind == MIR_INST_RESOURCE_OP
+            && inst->rir_op != NULL
+            && (inst->rir_op->kind == RIR_OP_AWAIT_LOCAL
+                || inst->rir_op->kind == RIR_OP_AWAIT_REMOTE)) {
+            const char *expected = inst->rir_op->kind == RIR_OP_AWAIT_LOCAL
+                ? "Future"
+                : "RemoteFuture";
+            const char *actual = inst->type_layout != NULL
+                ? inst->type_layout->abi_type_name
+                : NULL;
+            if (actual == NULL || strcmp(actual, expected) != 0) {
+                if (error_message != NULL) {
+                    *error_message = mir_strdup_fmt(
+                        "MIR routine '%s' block[%zu] instruction[%zu] await resource op has invalid MIR ABI type layout fact",
+                        routine->name != NULL ? routine->name : "(anonymous)",
+                        block_index,
+                        i);
+                }
+                return false;
+            }
+        }
         if (inst->requires_source_statement_emit
             && (inst->kind != MIR_INST_DEF
                 || mir_instruction_source_payload(inst) == NULL

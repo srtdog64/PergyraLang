@@ -181,6 +181,7 @@ typedef struct
     bool  suppress_slot_auto_read;
 
     char  current_return_type[128];
+    ASTNode *current_return_callable_type;
 
     /* Defer counter for unique defer IDs */
     int   defer_counter;

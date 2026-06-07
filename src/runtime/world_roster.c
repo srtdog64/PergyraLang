@@ -104,14 +104,7 @@ void world_roster_sleep_ms(uint64_t timeoutMs)
 
 static void world_roster_free_dispatch_result(DispatchResult* result)
 {
-    if (result == NULL) {
-        return;
-    }
-    free(result->results);
-    result->results = NULL;
-    result->resultCount = 0;
-    result->allSucceeded = false;
-    result->totalExecutionTimeNs = 0;
+    FreeDispatchResult(result);
 }
 
 static void world_roster_free_execution_result(RosterExecutionResult* result)
@@ -277,7 +270,8 @@ ExecuteRoster(RosterContext* roster,
             dispatch.resultCount = 1;
             dispatch.allSucceeded = false;
             if (dispatch.results != NULL) {
-                dispatch.results[0].roleId = roster->partySlots[i].slotName;
+                dispatch.results[0].roleId =
+                    world_roster_strdup(roster->partySlots[i].slotName);
                 dispatch.results[0].success = false;
                 dispatch.results[0].error = context == NULL
                                                 ? "Party context missing"

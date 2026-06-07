@@ -122,6 +122,7 @@ cleanup_neg_root() {
 }
 trap cleanup_neg_root EXIT
 mkdir -p "$NEG_ROOT/src/codegen"
+mkdir -p "$NEG_ROOT/.tmp"
 cp "$ROOT_DIR/$C_DISPATCH" "$NEG_ROOT/$C_DISPATCH"
 # Delete enough `"stdlib ` lines in LLVM dispatch to push raw drift above
 # the tool's tolerance band (currently 5). Strip 12 to be safely past.
@@ -129,7 +130,7 @@ awk 'BEGIN{stripped=0} /"stdlib /{ if(stripped<12){stripped++; next} } {print}' 
     "$ROOT_DIR/$LLVM_DISPATCH" > "$NEG_ROOT/$LLVM_DISPATCH"
 
 set +e
-NEG_OUT="$(cd "$NEG_ROOT" && "$PGY" "$PERGYRA_TOOL" --run 2>/dev/null)"
+NEG_OUT="$(cd "$NEG_ROOT" && "$PGY" "$PERGYRA_TOOL" --run 2>&1)"
 NEG_RC=$?
 set -e
 if [[ "$NEG_RC" -ne 1 ]]; then

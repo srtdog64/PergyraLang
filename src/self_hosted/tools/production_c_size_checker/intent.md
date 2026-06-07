@@ -2,16 +2,16 @@
 
 **Status:** *rung-2 minimal* (2026-05-27). Sister tool to the production
 header size checker, but covering production `.c` translation units against
-the same 600-LOC split-review threshold (`TODO.md 짠0. 肄붿뼱 洹쒖튃`).
+the 900-LOC hard cap. The 600-LOC line remains a split-review signal, not a
+mechanical failure threshold for coherent `.c` owners.
 
 ## Intent
 
-The 600-LOC split-review threshold is a beta-closure invariant that applies
-to *both* production `.h` owners (gated by tool 8 + the C-side
-`production_header_size_smoke.sh`) and production `.c` translation units
-(historically only spot-checked during review). This tool extends the
-structured per-file verdict from `.h` to `.c` so reviewers can sort `.c`
-violations the same way they already sort `.h` violations.
+The 600-LOC split-review threshold is a beta-closure review signal for
+production owners. Production `.h` owners still use the stricter 600-LOC
+hard gate because header fan-out amplifies compile-time and include-boundary
+debt. Production `.c` translation units use a 900-LOC hard cap so coherent
+implementation owners are not mechanically split into helper buckets.
 
 ## Input Contract
 
@@ -33,7 +33,7 @@ JSON document on stdout, conforming to schema
   "ok": true,
   "source": {
     "manifest_owner": "src/self_hosted/tools/production_c_size_checker/fixture/c_files_manifest.txt",
-    "cap_lines": 600
+    "cap_lines": 900
   },
   "counts": {
     "c_files": 0,
@@ -54,7 +54,7 @@ Exit code: `0` on `ok:true`, `1` on `ok:false`.
 ## Oracle
 
 The shell drift detector is `wc -l` per manifest entry. There is no
-existing C-side smoke for the `.c` cap today (TODO 짠0 calls it a
+existing C-side smoke for the `.c` cap today (TODO Section 0 calls it a
 "split-review threshold" for `.c`); the Pergyra origin is the primary
 implementation and the shell `find + wc -l + awk` is the auxiliary parity
 backend.

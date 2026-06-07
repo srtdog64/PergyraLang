@@ -118,6 +118,7 @@ RIR는 단순 "맵"이 아니다. 최소한 아래 연산은 표면 sugar가 아
 - `LinkRelation`
 - `UnlinkRelation`
 - `Authorize`
+- `AwaitLocal`
 - `AwaitRemote`
 - `CommitIntent`
 - `AbortIntent`

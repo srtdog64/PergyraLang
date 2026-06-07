@@ -1,6 +1,6 @@
 # Pergyra Source-Of-Truth Spine
 
-Last updated: 2026-06-04
+Last updated: 2026-06-06
 
 This document freezes the compiler ownership spine for beta closure. It exists
 to stop A -> B -> A refactoring loops. When a future change is unclear, use this
@@ -230,6 +230,14 @@ Current beta closure snapshot:
   `src/codegen/llvm_expr_spawn_names.c`. Generic spawn specialization may append
   mangled type suffixes through that owner, but boundary projection helpers must
   not carry spawn naming utilities.
+- Worker-boundary growable-storage classification names live in
+  `src/common/worker_boundary_storage_policy.c`. Semantic may decide from
+  `Type *`, and C/LLVM may decide from rendered type names or backend
+  registries, but all user-facing storage kind names, constructor-name
+  normalization, and rendered type-name prefix classification must consume the
+  common policy owner. Do not restate local
+  `Array` / `Slice` / `List` / `Queue` / `Set` / `HashMap` / `Channel` display
+  strings in semantic or backend boundary diagnostics.
 - C backend subject and projection host declaration checks consume
   `find_subject_host_decl(...)` or
   `transpiler_find_projection_nominal_decl_local(...)`.
@@ -294,6 +302,12 @@ Current beta closure snapshot:
   local MinGW/Git Bash builds; `tests/build_source_inventory_smoke.sh` owns
   the drift alarm for this because a stalled helper prevents compiler gates
   from running at all.
+- `ci-windows` must run executable MinGW tests only across a real MSYS2 bash
+  runtime boundary. Git Bash can remain a local direct-target fallback, but it
+  is not equivalent to MSYS2 for MinGW compiler invocations and must fail fast
+  in the Windows CI preflight instead of surfacing as a later silent `gcc`
+  compile failure. `Makefile` owns the shell selection order, and
+  `tests/build_source_inventory_smoke.sh` gates the MSYS2-first terms.
 - Windows/MSYS executable smokes must call `pgy_prepend_windows_runtime_paths`
   before probing built `.exe` binaries. A missing DLL path is an environment
   setup problem, not a successful skip when the binary was explicitly built.
@@ -332,6 +346,11 @@ Current beta closure snapshot:
   `...\Git\usr\bin`) are not MinGW/LLVM runtime evidence. Bash and PowerShell
   launch helpers may leave existing Git Bash PATH entries later in `PATH`, but
   they must not prepend those mounts ahead of explicit LLVM/MSYS2/MinGW roots.
+- Backend-compare PowerShell fallbacks must derive their launch prefix from the
+  current Bash `PATH` after `setup_windows_launch_path(...)` has added the
+  compiler, generated binary, and toolchain directories. A fallback that only
+  consumes the static LLVM/MSYS candidate prefix can re-open Windows exit-127
+  drift even when the direct Bash launch path was prepared correctly.
 - `tests/compare_backends.sh` owns C/LLVM backend-compare case inventory. A
   fixture under `tests/cases/backend_compare/**/main.pgy` must either be in
   the default case array or be run through an explicit targeted command; the
@@ -546,6 +565,13 @@ field metadata replaces AST-carried class fields.
 
 AST owns raw parse structure, source spans, and user-facing syntax provenance.
 AST does not own semantic truth after lowering begins.
+
+Function declaration payload access is still an AST owner responsibility.
+`AST_FUNC_DECL` covers both sync and `async func` declarations; consumers must
+use `ast_func_*` accessors for shared declaration facts such as name, params,
+return type, generic params, where clause, effects, body, access, and doc
+comments. They must not rely on sync/async union field layout or add local
+spawn/callable parameter dispatch.
 
 Allowed AST use after semantic/lowering:
 

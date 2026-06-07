@@ -129,6 +129,10 @@ Rules:
 
 - split by responsibility and evidence owner, not line count alone;
 - avoid `_helpers` modules except for truly cross-feature infrastructure;
+- keep cross-layer policy vocabulary in explicit common owners. For example,
+  worker-boundary growable-storage names are owned by
+  `worker_boundary_storage_policy`, while semantic and C/LLVM only decide
+  whether a local fact maps to that policy;
 - every pass has an intent-verification pair: named intent, input contract,
   output contract, oracle, and negative fixture;
 - every generated artifact has deterministic ordering;

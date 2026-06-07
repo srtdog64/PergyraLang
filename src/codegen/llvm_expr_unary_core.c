@@ -101,15 +101,9 @@ llvm_emit_unary(ASTNode *node, LLVMGenCtx *ctx)
         }
 
         LLVMPositionBuilderAtEnd(ctx->builder, err_bb);
-        LLVMTypeRef fn_ret_type = ctx->current_ret_type;
-        if (ctx->current_func_decl != NULL
-            && ctx->current_func_decl->type == AST_FUNC_DECL
-            && ast_func_return_type(ctx->current_func_decl) != NULL) {
-            LLVMTypeRef declared = ast_type_to_llvm(ctx,
-                ast_func_return_type(ctx->current_func_decl));
-            if (declared != NULL)
-                fn_ret_type = declared;
-        }
+        LLVMTypeRef fn_ret_type = ctx->current_function_ret_type;
+        if (fn_ret_type == NULL)
+            fn_ret_type = ctx->current_ret_type;
         if (fn_ret_type == result_ty) {
             LLVMBuildRet(ctx->builder, result);
         } else if (fn_ret_type != NULL

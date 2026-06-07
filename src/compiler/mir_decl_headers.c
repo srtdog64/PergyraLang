@@ -66,6 +66,41 @@ mir_decl_method_metadata_clear(MIRDeclMethod *meta)
     meta->return_type_name = NULL;
 }
 
+static bool
+mir_decl_header_set_generics(MIRDeclHeader *header, ASTNode *decl)
+{
+    GenericParams *params;
+    size_t count;
+
+    if (header == NULL)
+        return false;
+
+    params = ast_declaration_generic_params(decl);
+    count = ast_generic_param_count(params);
+    header->generic_param_count = count;
+    header->generic_metadata = NULL;
+    header->generic_metadata_count = 0;
+
+    if (count == 0)
+        return true;
+    if (count > SIZE_MAX / sizeof(MIRDeclGenericParam))
+        return false;
+    header->generic_metadata = calloc(count, sizeof(MIRDeclGenericParam));
+    if (header->generic_metadata == NULL)
+        return false;
+
+    for (size_t i = 0; i < count; i++) {
+        GenericParam *param = ast_generic_param_at(params, i);
+        MIRDeclGenericParam *meta = &header->generic_metadata[i];
+        meta->source_param = param;
+        meta->name = ast_generic_param_name(param);
+        meta->bound_ast = ast_generic_param_constraint(param);
+        meta->default_arg_ast = ast_generic_param_default_type(param);
+    }
+    header->generic_metadata_count = count;
+    return true;
+}
+
 static void
 mir_decl_method_metadata_capture_type_names(MIRDeclMethod *meta)
 {
@@ -501,6 +536,9 @@ mir_record_decl_header(MIRProgram *mir, ASTNode *decl)
     header.ast_type = decl->type;
 
     switch (decl->type) {
+    case AST_FUNC_DECL:
+        header.name = ast_declaration_name(decl);
+        break;
     case AST_CLASS_DECL:
         header.name = ast_class_name(decl);
         methods = ast_class_methods(decl, &method_count);
@@ -511,6 +549,9 @@ mir_record_decl_header(MIRProgram *mir, ASTNode *decl)
     case AST_ENUM_DECL:
         header.name = ast_enum_name(decl);
         methods = ast_enum_methods(decl, &method_count);
+        break;
+    case AST_ABILITY_DECL:
+        header.name = ast_ability_name(decl);
         break;
     case AST_PARTY_DECL:
         header.name = ast_party_name(decl);
@@ -546,11 +587,16 @@ mir_record_decl_header(MIRProgram *mir, ASTNode *decl)
             return true;
         if (!mir_decl_header_set_fields(&header, decl))
             return false;
+        if (!mir_decl_header_set_generics(&header, decl)) {
+            free(header.field_metadata);
+            return false;
+        }
         if (!mir_decl_header_set_role_impl_methods(&header, decl)) {
             for (size_t i = 0; i < header.method_metadata_count; i++)
                 mir_decl_method_metadata_clear(&header.method_metadata[i]);
             free(header.method_metadata);
             free(header.field_metadata);
+            free(header.generic_metadata);
             return false;
         }
         if (!mir_append_decl_header(mir, header)) {
@@ -558,6 +604,7 @@ mir_record_decl_header(MIRProgram *mir, ASTNode *decl)
                 mir_decl_method_metadata_clear(&header.method_metadata[i]);
             free(header.method_metadata);
             free(header.field_metadata);
+            free(header.generic_metadata);
             return false;
         }
         return true;
@@ -574,7 +621,12 @@ mir_record_decl_header(MIRProgram *mir, ASTNode *decl)
         return true;
     if (!mir_decl_header_set_fields(&header, decl))
         return false;
+    if (!mir_decl_header_set_generics(&header, decl)) {
+        free(header.field_metadata);
+        return false;
+    }
     if (!mir_decl_header_set_methods(&header, methods, method_count)) {
+        free(header.generic_metadata);
         free(header.field_metadata);
         return false;
     }
@@ -583,6 +635,7 @@ mir_record_decl_header(MIRProgram *mir, ASTNode *decl)
             mir_decl_method_metadata_clear(&header.method_metadata[i]);
         free(header.method_metadata);
         free(header.field_metadata);
+        free(header.generic_metadata);
         return false;
     }
     return true;

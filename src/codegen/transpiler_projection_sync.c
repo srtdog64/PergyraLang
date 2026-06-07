@@ -12,6 +12,7 @@
 #include "transpiler_context.h"
 #include "transpiler_decl_lookup.h"
 #include "transpiler_domain_receiver_query.h"
+#include "transpiler_inventory_view.h"
 #include "transpiler_overlay_zone_bind.h"
 #include "transpiler_projection.h"
 
@@ -67,6 +68,11 @@ emit_zone_action_effect_runtime(CodeBuf *out, ASTNode *call, TranspilerCtx *ctx)
     method_within_zone = transpiler_mir_decl_method_within_zone(method_meta);
     effect_name = transpiler_mir_decl_method_causes_effect(method_meta);
     if (method_meta == NULL) {
+        if (transpiler_active_has_mir(ctx)) {
+            transpiler_set_mir_inventory_missing(ctx,
+                "MIR-only C path missing zone action method metadata");
+            return;
+        }
         method_decl = transpiler_find_subject_host_method_decl(ctx,
             receiver_type_name, method_name);
         method_is_async = method_decl != NULL && method_decl->is_async_decl;
@@ -148,6 +154,11 @@ emit_world_embedded_action_effect_sync(TranspilerCtx *ctx,
     method_within_zone = transpiler_mir_decl_method_within_zone(method_meta);
     effect_name = transpiler_mir_decl_method_causes_effect(method_meta);
     if (method_meta == NULL) {
+        if (transpiler_active_has_mir(ctx)) {
+            transpiler_set_mir_inventory_missing(ctx,
+                "MIR-only C path missing world effect sync method metadata");
+            return NULL;
+        }
         method_is_async = method_decl != NULL && method_decl->is_async_decl;
         method_is_action = ast_func_is_action(method_decl);
         method_within_zone = ast_func_within_zone(method_decl);
@@ -175,8 +186,8 @@ emit_world_embedded_action_effect_sync(TranspilerCtx *ctx,
     if (zone_decl == NULL || zone_decl->type != AST_ZONE_DECL)
         return NULL;
 
-    effect_decl = transpiler_find_decl_in_inventory_local(ctx, AST_EFFECT_DECL,
-                                                          effect_name);
+    effect_decl = transpiler_find_named_decl_local(ctx, AST_EFFECT_DECL,
+                                                   effect_name);
     if (effect_decl == NULL || effect_decl->type != AST_EFFECT_DECL)
         return NULL;
     effect_type_name = transpiler_decl_name_local(effect_decl);

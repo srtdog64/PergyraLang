@@ -74,6 +74,42 @@ grep -Fq "slot_ref_expr fails closed on missing slot expression" \
     "$ROOT_DIR/src/tests/transpile/test_transpile_core_part_0.cases.h"
 grep -Fq "C backend slot reference requires a lowered slot expression" \
     "$ROOT_DIR/src/codegen/transpiler_symbols.c"
+grep -Fq "C backend slot registry exceeded MAX_SLOT_VARS" \
+    "$ROOT_DIR/src/codegen/transpiler_symbols.c"
+grep -Fq "C backend typed registry exceeded MAX_SLOT_VARS" \
+    "$ROOT_DIR/src/codegen/transpiler_symbols.c"
+grep -Fq "C backend alias registry exceeded MAX_ALIAS_VARS" \
+    "$ROOT_DIR/src/codegen/transpiler_symbols.c"
+grep -Fq "C backend collection specialization registry exceeded MAX_COLLECTION_SPECIALIZATIONS" \
+    "$ROOT_DIR/src/codegen/transpiler_specialization_registry.c"
+grep -Fq "C backend generic function specialization registry exceeded MAX_GENERIC_SPECIALIZATIONS" \
+    "$ROOT_DIR/src/codegen/transpiler_generic_specialization_emit.c"
+grep -Fq "C backend generic class specialization registry exceeded MAX_GENERIC_CLASS_SPECIALIZATIONS" \
+    "$ROOT_DIR/src/codegen/transpiler_generic_class_specialization_emit.c"
+grep -Fq "C backend generic binding registry exceeded MAX_GENERIC_BINDINGS" \
+    "$ROOT_DIR/src/codegen/transpiler_generic_specialization_emit.c"
+grep -Fq "C backend generic binding registry exceeded MAX_GENERIC_BINDINGS" \
+    "$ROOT_DIR/src/codegen/transpiler_generic_class_specialization_emit.c"
+grep -Fq "C backend generic ability binding registry exceeded MAX_GENERIC_BINDINGS" \
+    "$ROOT_DIR/src/codegen/transpiler_domain_role_ability_emit.c"
+grep -Fq "C backend ability vtable specialization registry exceeded MAX_ABILITY_VTABLE_SPECIALIZATIONS" \
+    "$ROOT_DIR/src/codegen/transpiler_domain_role_ability_emit.c"
+grep -Fq "C backend collection specialization name is too long" \
+    "$ROOT_DIR/src/codegen/transpiler_expr_stdlib_collection_support.c"
+grep -Fq "C backend loop registry exceeded TRANSPILE_MAX_LOOP_DEPTH" \
+    "$ROOT_DIR/src/codegen/transpiler_control_flow_emit.c"
+grep -Fq "C backend defer registry exceeded TRANSPILE_MAX_DEFER_PER_SCOPE" \
+    "$ROOT_DIR/src/codegen/transpiler_defer_emit.c"
+grep -Fq "LLVM loop registry exceeded MAX_SCOPE_DEPTH" \
+    "$ROOT_DIR/src/codegen/llvm_stmt_loop_match.c"
+grep -Fq "LLVM defer registry exceeded MAX_DEFER_PER_SCOPE" \
+    "$ROOT_DIR/src/codegen/llvm_stmt_defer_scope.c"
+grep -Fq "event handler capacity exceeded" \
+    "$ROOT_DIR/src/codegen/transpiler_event_emit.c"
+grep -Fq "event handler capacity exceeded" \
+    "$ROOT_DIR/src/codegen/llvm_domain_event.c"
+grep -Fq "event.subscribe.overflow" \
+    "$ROOT_DIR/src/codegen/llvm_domain_event.c"
 grep -Fq "C backend: slot builtin expression formatting failed" \
     "$ROOT_DIR/src/codegen/transpiler_slot_builtin_emit.c"
 grep -Fq "C backend: slot builtin expression allocation failed" \
@@ -115,6 +151,52 @@ if grep -F 'pgy_result_type_ident_char' \
     echo "[backend-fail-closed] LLVM Result layout reintroduced local Unknown token policy" >&2
     exit 1
 fi
+if grep -n -F 'ast_func_return_type(ctx->current_func_decl)' \
+    "$ROOT_DIR/src/codegen/llvm_stmt.c" \
+    "$ROOT_DIR/src/codegen/llvm_expr_unary_core.c" \
+    "$ROOT_DIR/src/codegen/llvm_type.c" \
+    "$ROOT_DIR/src/codegen/llvm_stmt_let_helpers.c" >/dev/null; then
+    echo "[backend-fail-closed] LLVM return lowering reintroduced AST return-type fallback" >&2
+    exit 1
+fi
+if grep -n -F 'ast_func_return_type((ASTNode *)ctx->current_func_decl)' \
+    "$ROOT_DIR/src/codegen/transpiler_func_flow_policy.c" >/dev/null; then
+    echo "[backend-fail-closed] C return callable context reintroduced AST current-func fallback" >&2
+    exit 1
+fi
+grep -Fq "current_function_ret_type" "$ROOT_DIR/src/codegen/llvm_expr_unary_core.c"
+grep -Fq "current_return_type_name" "$ROOT_DIR/src/codegen/llvm_type.c"
+grep -Fq "current_return_callable_type" "$ROOT_DIR/src/codegen/llvm_stmt_let_helpers.c"
+grep -Fq "current_return_callable_type" "$ROOT_DIR/src/codegen/transpiler_func_flow_policy.c"
+grep -Fq "current_return_callable_type" "$ROOT_DIR/src/codegen/transpiler_mir_func_emit.c"
+if grep -n -F 'ast_func_within_zone(ctx->current_func_decl)' \
+    "$ROOT_DIR/src/codegen/llvm_decl_authority.c" \
+    "$ROOT_DIR/src/codegen/llvm_inventory_decl_lookup.c" >/dev/null; then
+    echo "[backend-fail-closed] LLVM zone boundary lookup reintroduced AST current-func fallback" >&2
+    exit 1
+fi
+if grep -n -F 'ast_func_within_zone(func_decl)' \
+    "$ROOT_DIR/src/codegen/llvm_mir_emit.c" >/dev/null; then
+    echo "[backend-fail-closed] LLVM MIR emission reintroduced source-AST within-zone fallback" >&2
+    exit 1
+fi
+grep -Fq "current_within_zone_name" "$ROOT_DIR/src/codegen/llvm_decl_authority.c"
+grep -Fq "current_within_zone_name" "$ROOT_DIR/src/codegen/llvm_inventory_decl_lookup.c"
+grep -Fq "llvm_mir_routine_within_zone(routine)" "$ROOT_DIR/src/codegen/llvm_mir_emit.c"
+for llvm_generated_owner in \
+    "$ROOT_DIR/src/codegen/llvm_main_wrapper.c" \
+    "$ROOT_DIR/src/codegen/llvm_intent.c" \
+    "$ROOT_DIR/src/codegen/llvm_domain_projection_sync_helpers.c" \
+    "$ROOT_DIR/src/codegen/llvm_domain_zone_sync.c" \
+    "$ROOT_DIR/src/codegen/llvm_domain_world_sync.c" \
+    "$ROOT_DIR/src/codegen/llvm_stmt_parallel_async.c" \
+    "$ROOT_DIR/src/codegen/llvm_expr_spawn_call_helpers.c"; do
+    grep -Fq "ctx->current_return_type_name = NULL;" \
+        "$llvm_generated_owner" || {
+        echo "[backend-fail-closed] LLVM generated function owner does not clear source return metadata: $llvm_generated_owner" >&2
+        exit 1
+    }
+done
 if grep -E 'codebuf_write\([^,]+, "void \*"\)|: "int32_t"|declarator_strdup_fmt' \
     "$ROOT_DIR/src/codegen/transpiler_type_declarator.c" >/dev/null; then
     echo "[backend-fail-closed] C declarator owner reintroduced type fallback" >&2
@@ -141,6 +223,24 @@ fi
 if grep -E 'pergyra_strdup\("Int"\)|inner != NULL \? inner : "Int"|arg_text != NULL \? arg_text : "Int"|: "Int"' \
     "$ROOT_DIR/src/compiler/dir.c" >/dev/null; then
     echo "[backend-fail-closed] DIR type rendering reintroduced Int fallback" >&2
+    exit 1
+fi
+
+grep -Fq "return node->data.async_func_decl.param_count" \
+    "$ROOT_DIR/src/parser/ast_func_accessors.c"
+grep -Fq "return node->data.async_func_decl.params" \
+    "$ROOT_DIR/src/parser/ast_func_accessors.c"
+grep -Fq "return node->data.async_func_decl.return_type" \
+    "$ROOT_DIR/src/parser/ast_func_accessors.c"
+if grep -F 'spawn_callable_param_at' \
+    "$ROOT_DIR/src/semantic/type_checker_async_channel.c" >/dev/null; then
+    echo "[backend-fail-closed] async spawn boundary reintroduced local callable parameter dispatch" >&2
+    exit 1
+fi
+if grep -F 'ast_async_func_params' \
+        "$ROOT_DIR/src/semantic/slot_analyzer_access.c" \
+        "$ROOT_DIR/src/semantic/slot_analyzer_escape.c" >/dev/null; then
+    echo "[backend-fail-closed] slot analyzer reintroduced async-specific parameter dispatch" >&2
     exit 1
 fi
 
@@ -259,6 +359,12 @@ if grep -Fq "llvm_stmt_find_with_slot_inner_in_body" \
     echo "[backend-fail-closed] LLVM call type inference reintroduced with-slot AST body rescan" >&2
     exit 1
 fi
+grep -Fq "llvm_stmt_array_elem_type_from_collection_type" \
+    "$ROOT_DIR/src/codegen/llvm_stmt_array_type_infer.c"
+grep -Fq "llvm_stmt_array_elem_type_from_current_field" \
+    "$ROOT_DIR/src/codegen/llvm_stmt_array_type_infer.c"
+grep -Fq "llvm_class_field_type_at_index(host_cls, field_idx)" \
+    "$ROOT_DIR/src/codegen/llvm_stmt_array_type_infer.c"
 if grep -Fq "llvm_find_local_let_type_in_block" \
         "$ROOT_DIR/src/codegen/llvm_expr_common.c" \
         || grep -Fq "llvm_infer_local_let_type_in_block" \
@@ -275,6 +381,17 @@ if grep -Fq "llvm_scope_lookup(ctx, callee_name)" \
     echo "[backend-fail-closed] LLVM callable variable call reintroduced borrowed scope lookup" >&2
     exit 1
 fi
+if grep -Fq "LLVMVarEntry *llvm_scope_lookup" \
+        "$ROOT_DIR/src/codegen/llvm_internal_api.h"; then
+    echo "[backend-fail-closed] LLVM internal API re-exposed borrowed scope lookup" >&2
+    exit 1
+fi
+grep -Fq "struct LLVMGenCtx *owner_ctx" \
+    "$ROOT_DIR/src/codegen/llvm_internal.h"
+grep -Fq "LLVM class field registry exceeded MAX_CLASS_FIELDS" \
+    "$ROOT_DIR/src/codegen/llvm_registry.c"
+grep -Fq "entry->owner_ctx   = ctx" \
+    "$ROOT_DIR/src/codegen/llvm_registry.c"
 if grep -Fq "ast_func_param_count(current_decl)" \
         "$ROOT_DIR/src/codegen/llvm_expr_call_variable.c"; then
     echo "[backend-fail-closed] LLVM callable variable call reintroduced AST parameter rescan" >&2
@@ -282,11 +399,97 @@ if grep -Fq "ast_func_param_count(current_decl)" \
 fi
 grep -Fq "async block cannot capture Slot<T> local" \
     "$ROOT_DIR/src/codegen/transpiler_async_parallel_emit.c"
+grep -Fq "async block cannot capture Channel<T> local" \
+    "$ROOT_DIR/src/codegen/transpiler_async_parallel_emit.c"
 grep -Fq "async block cannot capture non-Channel local" \
+    "$ROOT_DIR/src/codegen/transpiler_async_parallel_emit.c"
+grep -Fq "capture_typed_type_asts" \
+    "$ROOT_DIR/src/codegen/transpiler_async_parallel_emit.c"
+grep -Fq "transpiler_current_local_type_ast" \
+    "$ROOT_DIR/src/codegen/transpiler_parallel_capture.c"
+if grep -Fq "transpiler_find_local_type_ast" \
+        "$ROOT_DIR/src/codegen/transpiler_async_parallel_emit.c"; then
+    echo "[backend-fail-closed] C parallel emitter reintroduced direct local type AST lookup" >&2
+    exit 1
+fi
+grep -Fq "codegen_worker_boundary_storage_kind_from_type_name(type_name, false)" \
+    "$ROOT_DIR/src/codegen/transpiler_async_parallel_emit.c"
+grep -Fq "codegen_worker_boundary_storage_kind_from_type_name(type_name, true)" \
     "$ROOT_DIR/src/codegen/transpiler_async_parallel_emit.c"
 grep -Fq "LLVM async block cannot capture Slot<T> local" \
     "$ROOT_DIR/src/codegen/llvm_stmt_parallel_async.c"
+grep -Fq "LLVM async block cannot capture Channel<T> local" \
+    "$ROOT_DIR/src/codegen/llvm_stmt_parallel_async.c"
 grep -Fq "LLVM async block cannot capture non-Channel local" \
     "$ROOT_DIR/src/codegen/llvm_stmt_parallel_async.c"
+grep -Fq "codegen_worker_boundary_storage_kind_from_constructor_name" \
+    "$ROOT_DIR/src/codegen/llvm_stmt_parallel_async.c"
+grep -Fq "\"Array/Slice\", false, true" \
+    "$ROOT_DIR/src/codegen/llvm_stmt_parallel_async.c"
+grep -Fq "transpiler_spawn_reject_worker_storage" \
+    "$ROOT_DIR/src/codegen/transpiler_spawn_channel_emit.c"
+grep -Fq "codegen_worker_boundary_storage_kind_from_type_name(type_name, true)" \
+    "$ROOT_DIR/src/codegen/transpiler_spawn_channel_emit.c"
+grep -Fq "C backend: spawn argument %llu" \
+    "$ROOT_DIR/src/codegen/transpiler_spawn_channel_emit.c"
+grep -Fq "codegen_worker_boundary_storage_kind_from_type_name" \
+    "$ROOT_DIR/src/codegen/transpiler_type_mapping.c"
+if grep -R -n -E 'return "(Array/Slice|Array|Slice|List|Queue|Set|HashMap|Channel)"' \
+        "$ROOT_DIR/src/codegen" --include='*.c' --include='*.h'; then
+    echo "[backend-fail-closed] worker-boundary storage display strings must stay in common policy owner" >&2
+    exit 1
+fi
+grep -Fq "pgy_worker_boundary_storage_kind_name" \
+    "$ROOT_DIR/src/common/worker_boundary_storage_policy.c"
+grep -Fq "pgy_worker_boundary_storage_kind_from_type_name" \
+    "$ROOT_DIR/src/common/worker_boundary_storage_policy.c"
+grep -Fq "llvm_spawn_reject_worker_storage_arg" \
+    "$ROOT_DIR/src/codegen/llvm_expr_spawn_call_helpers.c"
+grep -Fq "llvm_spawn_reject_worker_storage_param" \
+    "$ROOT_DIR/src/codegen/llvm_expr_spawn_call_helpers.c"
+grep -Fq "codegen_worker_boundary_storage_kind_from_type_name(type_name, true)" \
+    "$ROOT_DIR/src/codegen/llvm_expr_spawn_call_helpers.c"
+grep -Fq "codegen_worker_boundary_storage_kind_from_constructor_name" \
+    "$ROOT_DIR/src/codegen/llvm_expr_spawn_call_helpers.c"
+grep -Fq "\"Array/Slice\", true, true" \
+    "$ROOT_DIR/src/codegen/llvm_expr_spawn_call_helpers.c"
+grep -Fq "LLVM spawn argument %zu" \
+    "$ROOT_DIR/src/codegen/llvm_expr_spawn_call_helpers.c"
+grep -Fq "parallel capture registry exceeded MAX_SLOT_VARS while capturing Slot<T> local" \
+    "$ROOT_DIR/src/codegen/transpiler_parallel_capture.c"
+grep -Fq "parallel capture registry exceeded MAX_SLOT_VARS while capturing local" \
+    "$ROOT_DIR/src/codegen/transpiler_parallel_capture.c"
+grep -Fq "parallel capture registry exceeded MAX_SLOT_VARS while capturing inferred local" \
+    "$ROOT_DIR/src/codegen/transpiler_parallel_capture.c"
+if grep -Fq "_pgy_async_ctx_" \
+        "$ROOT_DIR/src/codegen/transpiler_async_parallel_emit.c"; then
+    echo "[backend-fail-closed] C detached async reintroduced capture context emission" >&2
+    exit 1
+fi
+if grep -Fq "LLVM async capture field allocation" \
+        "$ROOT_DIR/src/codegen/llvm_stmt_parallel_async.c"; then
+    echo "[backend-fail-closed] LLVM detached async reintroduced capture context emission" >&2
+    exit 1
+fi
+grep -Fq "if (name == NULL || name[0] == '\\0')" \
+    "$ROOT_DIR/src/codegen/codegen_hashmap_key_policy.c"
+awk '/pgy_hashmap_key_c_infix/,/^}/ { print }' \
+    "$ROOT_DIR/src/codegen/codegen_hashmap_key_policy.c" \
+    | grep -Fq "return NULL;"
+for fn in \
+    "pgy_hashmap_key_raw_export_name" \
+    "pgy_hashmap_key_raw_string_value_export_name"; do
+    awk "/${fn}/,/^}/ { print }" \
+        "$ROOT_DIR/src/codegen/codegen_hashmap_key_policy.c" \
+        | grep -Fq "if (spec == NULL)"
+done
+grep -Fq "transpiler_map_require_supported_key" \
+    "$ROOT_DIR/src/codegen/transpiler_expr_stdlib_map_builtin.c"
+grep -Fq "LLVM MapKeys requires stable HashMap<Bool|Int|Long|String, T> key metadata" \
+    "$ROOT_DIR/src/codegen/llvm_expr_call_collections_extended.c"
+grep -Fq 'Do not let detached `async { ... }` capture local storage by pointer' \
+    "$ROOT_DIR/AGENTS.md"
+grep -Fq '`Channel<T>` is a mutex/condvar-backed value today' \
+    "$ROOT_DIR/AGENTS.md"
 
 echo "[backend-fail-closed] C/LLVM fail-open fallback guards ok"

@@ -76,7 +76,7 @@ ensure_generic_class_specialization(TranspilerCtx *ctx,
                                      ASTNode *class_decl,
                                      ASTNode *ann)
 {
-    GenericParams *gp = ast_class_generic_params(class_decl);
+    GenericParams *gp = ast_declaration_generic_params(class_decl);
     GenericParams *ga = ast_type_generic_args(ann);
     bool has_effective_args = false;
     const char *base_class_name = transpiler_decl_name_local(class_decl);
@@ -114,8 +114,27 @@ ensure_generic_class_specialization(TranspilerCtx *ctx,
     }
 
     if (ctx->generic_class_spec_count >= MAX_GENERIC_CLASS_SPECIALIZATIONS) {
+        transpiler_set_backend_error_with_hints(
+            ctx,
+            PGY_CODE_C_TYPE_UNSUPPORTED,
+            PGY_CAUSE_C_TYPE_UNSUPPORTED,
+            PGY_FIX_USE_LLVM_BACKEND_OR_EXTEND_TRANSPILER,
+            "C backend generic class specialization registry exceeded MAX_GENERIC_CLASS_SPECIALIZATIONS while lowering '%s'",
+            base_class_name != NULL ? base_class_name : "(anonymous)");
         free(specialization_name);
-        return base_class_name;
+        return NULL;
+    }
+    if (formal_count > MAX_GENERIC_BINDINGS
+        || ctx->generic_binding_count > (int)(MAX_GENERIC_BINDINGS - formal_count)) {
+        transpiler_set_backend_error_with_hints(
+            ctx,
+            PGY_CODE_C_TYPE_UNSUPPORTED,
+            PGY_CAUSE_C_TYPE_UNSUPPORTED,
+            PGY_FIX_USE_LLVM_BACKEND_OR_EXTEND_TRANSPILER,
+            "C backend generic binding registry exceeded MAX_GENERIC_BINDINGS while lowering class '%s'",
+            base_class_name != NULL ? base_class_name : "(anonymous)");
+        free(specialization_name);
+        return NULL;
     }
 
     TranspilerGenericClassSpecSnapshot spec_snapshot =
@@ -145,8 +164,6 @@ ensure_generic_class_specialization(TranspilerCtx *ctx,
         GenericParam *garg = ast_generic_param_at(ga, i);
         char *effective_name = NULL;
 
-        if (ctx->generic_binding_count >= MAX_GENERIC_BINDINGS)
-            break;
         GenericBindingEntry *b = &ctx->generic_bindings[ctx->generic_binding_count++];
         if (!transpiler_generic_class_copy_name(
                 b->name, sizeof(b->name),

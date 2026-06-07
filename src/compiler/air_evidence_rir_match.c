@@ -104,7 +104,8 @@ air_rir_parallel_op_matches_boundary(const RIROp *op,
     if (op == NULL || boundary == NULL || boundary->kind != AIR_BOUNDARY_PARALLEL)
         return false;
     if (air_name_matches(boundary->source_name, "await"))
-        return op->kind == RIR_OP_AWAIT_REMOTE
+        return (op->kind == RIR_OP_AWAIT_LOCAL
+                || op->kind == RIR_OP_AWAIT_REMOTE)
             && air_rir_op_matches_boundary_ast(op, boundary);
     if (air_name_matches(boundary->source_name, "spawn"))
         return op->kind == RIR_OP_SPAWN

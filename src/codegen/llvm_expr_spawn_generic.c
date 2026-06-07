@@ -96,6 +96,9 @@ llvm_resolve_callee_entry(LLVMGenCtx *ctx, const char *callee_name,
         LLVMLexicalRegistrySnapshot lexical_snapshot;
         LLVMValueRef saved_fn;
         LLVMTypeRef saved_ret;
+        LLVMTypeRef saved_function_ret;
+        const char *saved_return_type_name;
+        ASTNode *saved_return_callable_type;
         LLVMTypeRef ret = ctx->type_void;
         size_t pc;
         LLVMTypeRef *ptypes;
@@ -104,7 +107,7 @@ llvm_resolve_callee_entry(LLVMGenCtx *ctx, const char *callee_name,
         LLVMValueRef mono_fn;
         LLVMBasicBlockRef entry;
 
-        gp = ast_func_generic_params(generic_ast);
+        gp = ast_declaration_generic_params(generic_ast);
         saved_subst = ctx->type_subst_count;
         ctx->type_subst_count = 0;
         size_t generic_count = ast_generic_param_count(gp);
@@ -143,6 +146,9 @@ llvm_resolve_callee_entry(LLVMGenCtx *ctx, const char *callee_name,
         saved_bb = LLVMGetInsertBlock(ctx->builder);
         saved_fn = ctx->current_function;
         saved_ret = ctx->current_ret_type;
+        saved_function_ret = ctx->current_function_ret_type;
+        saved_return_type_name = ctx->current_return_type_name;
+        saved_return_callable_type = ctx->current_return_callable_type;
         lexical_snapshot = llvm_lexical_registry_snapshot(ctx);
 
         ASTNode *return_type = ast_func_return_type(generic_ast);
@@ -195,6 +201,14 @@ llvm_resolve_callee_entry(LLVMGenCtx *ctx, const char *callee_name,
         llvm_register_function(ctx, mangled, mono_fn, ft, ret);
         ctx->current_function = mono_fn;
         ctx->current_ret_type = ret;
+        ctx->current_function_ret_type = ret;
+        ctx->current_return_type_name = return_type != NULL
+            ? llvm_stmt_render_type_annotation_copy(ctx, return_type)
+            : NULL;
+        ctx->current_return_callable_type =
+            return_type != NULL && return_type->type == AST_EVENT_HANDLER_TYPE
+                ? return_type
+                : NULL;
         entry = LLVMAppendBasicBlockInContext(ctx->context, mono_fn, "entry");
         LLVMPositionBuilderAtEnd(ctx->builder, entry);
         llvm_scope_push(ctx);
@@ -203,6 +217,9 @@ llvm_resolve_callee_entry(LLVMGenCtx *ctx, const char *callee_name,
             ctx->type_subst_count = saved_subst;
             ctx->current_function = saved_fn;
             ctx->current_ret_type = saved_ret;
+            ctx->current_function_ret_type = saved_function_ret;
+            ctx->current_return_type_name = saved_return_type_name;
+            ctx->current_return_callable_type = saved_return_callable_type;
             if (saved_bb != NULL)
                 LLVMPositionBuilderAtEnd(ctx->builder, saved_bb);
             return NULL;
@@ -227,6 +244,10 @@ llvm_resolve_callee_entry(LLVMGenCtx *ctx, const char *callee_name,
                     ctx->type_subst_count = saved_subst;
                     ctx->current_function = saved_fn;
                     ctx->current_ret_type = saved_ret;
+                    ctx->current_function_ret_type = saved_function_ret;
+                    ctx->current_return_type_name = saved_return_type_name;
+                    ctx->current_return_callable_type =
+                        saved_return_callable_type;
                     if (saved_bb != NULL)
                         LLVMPositionBuilderAtEnd(ctx->builder, saved_bb);
                     return NULL;
@@ -249,6 +270,12 @@ llvm_resolve_callee_entry(LLVMGenCtx *ctx, const char *callee_name,
                             ctx->type_subst_count = saved_subst;
                             ctx->current_function = saved_fn;
                             ctx->current_ret_type = saved_ret;
+                            ctx->current_function_ret_type =
+                                saved_function_ret;
+                            ctx->current_return_type_name =
+                                saved_return_type_name;
+                            ctx->current_return_callable_type =
+                                saved_return_callable_type;
                             if (saved_bb != NULL)
                                 LLVMPositionBuilderAtEnd(ctx->builder, saved_bb);
                             return NULL;
@@ -304,6 +331,9 @@ llvm_resolve_callee_entry(LLVMGenCtx *ctx, const char *callee_name,
         ctx->type_subst_count = saved_subst;
         ctx->current_function = saved_fn;
         ctx->current_ret_type = saved_ret;
+        ctx->current_function_ret_type = saved_function_ret;
+        ctx->current_return_type_name = saved_return_type_name;
+        ctx->current_return_callable_type = saved_return_callable_type;
         if (saved_bb != NULL)
             LLVMPositionBuilderAtEnd(ctx->builder, saved_bb);
     }

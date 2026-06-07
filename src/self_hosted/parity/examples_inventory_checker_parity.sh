@@ -122,6 +122,7 @@ cleanup_neg_root() {
 }
 trap cleanup_neg_root EXIT
 mkdir -p "$NEG_ROOT/examples"
+mkdir -p "$NEG_ROOT/.tmp"
 mkdir -p "$NEG_ROOT/$(dirname "$MANIFEST_REL")"
 # Pick the first manifest entry to omit.
 DROP_TARGET="$(head -n 1 "$MANIFEST_FILE")"
@@ -139,7 +140,7 @@ while IFS= read -r path; do
 done < "$MANIFEST_FILE"
 
 set +e
-NEG_OUT="$(cd "$NEG_ROOT" && "$PGY" "$PERGYRA_TOOL" --run 2>/dev/null)"
+NEG_OUT="$(cd "$NEG_ROOT" && "$PGY" "$PERGYRA_TOOL" --run 2>&1)"
 NEG_RC=$?
 set -e
 if [[ "$NEG_RC" -ne 1 ]]; then

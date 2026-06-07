@@ -86,7 +86,7 @@ emit_zone_bind_effect_layer(CodeBuf *out, ASTNode *zone,
         return;
     }
 
-    effect_decl = transpiler_find_decl_in_inventory_local(
+    effect_decl = transpiler_find_named_decl_local(
         ctx, AST_EFFECT_DECL, effect_type_name);
     if (effect_decl == NULL)
         return;

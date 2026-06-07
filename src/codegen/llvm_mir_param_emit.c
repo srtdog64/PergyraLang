@@ -33,8 +33,9 @@ llvm_emit_mir_param_allocas(const MIRRoutine *routine, ASTNode *func_decl,
                             bool is_method, LLVMClassTypeEntry *owner_cls,
                             const char *owner_name, size_t param_count)
 {
+    const char *routine_name = llvm_mir_routine_name(routine);
     bool owner_is_role = is_method && routine != NULL
-        && routine->owner_ast_type == AST_ROLE_DECL;
+        && llvm_mir_routine_owner_ast_type(routine) == AST_ROLE_DECL;
     const char **binding_kinds = NULL;
     const char **binding_aliases = NULL;
     const char **binding_types = NULL;
@@ -45,7 +46,7 @@ llvm_emit_mir_param_allocas(const MIRRoutine *routine, ASTNode *func_decl,
         if (param_count > 0 && mir_binding_count != param_count) {
             llvm_set_mir_inventory_missing(ctx,
                 "MIR-only LLVM path missing ordered intent binding metadata for '%s'",
-                routine->name != NULL ? routine->name : "(anonymous)");
+                routine_name != NULL ? routine_name : "(anonymous)");
             return;
         }
         if (param_count > 0
@@ -53,7 +54,7 @@ llvm_emit_mir_param_allocas(const MIRRoutine *routine, ASTNode *func_decl,
                 || binding_types == NULL)) {
             llvm_set_mir_inventory_missing(ctx,
                 "MIR-only LLVM path has incomplete ordered intent binding metadata for '%s'",
-                routine->name != NULL ? routine->name : "(anonymous)");
+                routine_name != NULL ? routine_name : "(anonymous)");
             return;
         }
         for (size_t i = 0; i < mir_binding_count; i++) {
@@ -61,10 +62,17 @@ llvm_emit_mir_param_allocas(const MIRRoutine *routine, ASTNode *func_decl,
                 || binding_types[i] == NULL) {
                 llvm_set_mir_inventory_missing(ctx,
                     "MIR-only LLVM path has incomplete ordered intent binding metadata for '%s'",
-                    routine->name != NULL ? routine->name : "(anonymous)");
+                    routine_name != NULL ? routine_name : "(anonymous)");
                 return;
             }
         }
+    }
+    if (!is_intent && routine != NULL && llvm_active_has_mir(ctx)
+        && !llvm_mir_routine_has_signature(routine)) {
+        llvm_set_mir_inventory_missing(ctx,
+            "MIR-only LLVM path missing function parameter signature metadata for '%s'",
+            routine_name != NULL ? routine_name : "(anonymous)");
+        return;
     }
     if (!is_intent) {
         size_t emitted_index = 0;
@@ -195,7 +203,7 @@ llvm_emit_mir_param_allocas(const MIRRoutine *routine, ASTNode *func_decl,
                 } else {
                     llvm_set_mir_inventory_missing(ctx,
                         "MIR-only LLVM path missing intent participant type metadata for '%s'",
-                        routine->name != NULL ? routine->name : "(anonymous)");
+                        routine_name != NULL ? routine_name : "(anonymous)");
                     return;
                 }
             } else if (kind != NULL && strcmp(kind, "value") == 0) {
@@ -208,19 +216,19 @@ llvm_emit_mir_param_allocas(const MIRRoutine *routine, ASTNode *func_decl,
                 } else {
                     llvm_set_mir_inventory_missing(ctx,
                         "MIR-only LLVM path missing intent value type metadata for '%s'",
-                        routine->name != NULL ? routine->name : "(anonymous)");
+                        routine_name != NULL ? routine_name : "(anonymous)");
                     return;
                 }
             } else {
                 llvm_set_mir_inventory_missing(ctx,
                     "MIR-only LLVM path missing intent parameter metadata for '%s'",
-                    routine->name != NULL ? routine->name : "(anonymous)");
+                    routine_name != NULL ? routine_name : "(anonymous)");
                 return;
             }
             if (pt == NULL) {
                 llvm_set_mir_inventory_missing(ctx,
                     "MIR-only LLVM path missing intent parameter type metadata for '%s'",
-                    routine->name != NULL ? routine->name : "(anonymous)");
+                    routine_name != NULL ? routine_name : "(anonymous)");
                 return;
             }
             if (pointer_param)

@@ -62,7 +62,15 @@
 #define PGY_RUNTIME_PANIC_REASON_OPTION_UNWRAP_NONE \
     "Option unwrap on None value"
 
-static inline void
+#if defined(__STDC_VERSION__) && __STDC_VERSION__ >= 201112L
+#  define PGY_RUNTIME_NORETURN _Noreturn
+#elif defined(__GNUC__) || defined(__clang__)
+#  define PGY_RUNTIME_NORETURN __attribute__((noreturn))
+#else
+#  define PGY_RUNTIME_NORETURN
+#endif
+
+static inline PGY_RUNTIME_NORETURN void
 pgy_runtime_panic_emit(const char *panic_class, const char *reason,
                        const char *file, int line)
 {

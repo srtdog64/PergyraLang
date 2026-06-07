@@ -167,6 +167,7 @@ cleanup_neg_root() {
 }
 trap cleanup_neg_root EXIT
 mkdir -p "$NEG_ROOT/src/semantic" "$NEG_ROOT/docs"
+mkdir -p "$NEG_ROOT/.tmp"
 cp "$ROOT_DIR/src/semantic/diag_codes.h" "$NEG_ROOT/src/semantic/diag_codes.h"
 cp "$ROOT_DIR/docs/72_diagnostic_codes.md" "$NEG_ROOT/docs/72_diagnostic_codes.md"
 cat >> "$NEG_ROOT/src/semantic/diag_codes.h" <<'EOF'
@@ -174,7 +175,7 @@ cat >> "$NEG_ROOT/src/semantic/diag_codes.h" <<'EOF'
 EOF
 
 set +e
-NEG_OUT="$(cd "$NEG_ROOT" && "$PGY" "$PERGYRA_TOOL_ARG" --run 2>/dev/null)"
+NEG_OUT="$(cd "$NEG_ROOT" && "$PGY" "$PERGYRA_TOOL_ARG" --run 2>&1)"
 NEG_RC=$?
 set -e
 if [[ "$NEG_RC" -ne 1 ]]; then
@@ -199,10 +200,11 @@ cleanup_input_root() {
 }
 trap 'cleanup_neg_root; cleanup_input_root' EXIT
 mkdir -p "$INPUT_ROOT/src/semantic" "$INPUT_ROOT/docs"
+mkdir -p "$INPUT_ROOT/.tmp"
 cp "$ROOT_DIR/docs/72_diagnostic_codes.md" "$INPUT_ROOT/docs/72_diagnostic_codes.md"
 
 set +e
-INPUT_OUT="$(cd "$INPUT_ROOT" && "$PGY" "$PERGYRA_TOOL_ARG" --run 2>/dev/null)"
+INPUT_OUT="$(cd "$INPUT_ROOT" && "$PGY" "$PERGYRA_TOOL_ARG" --run 2>&1)"
 INPUT_RC=$?
 set -e
 if [[ "$INPUT_RC" -ne 1 ]]; then

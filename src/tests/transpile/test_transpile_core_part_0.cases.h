@@ -95,6 +95,20 @@ test_type_mapping(void)
             "Result<Int, UnknownError>"));
     }
 
+    TEST("worker-boundary policy rejects raw storage constructor names");
+    {
+        EXPECT(strcmp(codegen_worker_boundary_storage_kind_from_type_name(
+            "Array", false), "Array") == 0);
+        EXPECT(strcmp(codegen_worker_boundary_storage_kind_from_type_name(
+            "Slice", false), "Slice") == 0);
+        EXPECT(strcmp(codegen_worker_boundary_storage_kind_from_type_name(
+            "HashMap", true), "HashMap") == 0);
+        EXPECT(strcmp(codegen_worker_boundary_storage_kind_from_type_name(
+            "Channel", true), "Channel") == 0);
+        EXPECT(codegen_worker_boundary_storage_kind_from_type_name(
+            "Channel", false) == NULL);
+    }
+
     TEST("missing primitive type name fails closed");
     EXPECT(pergyra_primitive_to_c(NULL) == NULL);
 

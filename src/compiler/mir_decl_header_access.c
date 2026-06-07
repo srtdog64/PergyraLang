@@ -19,6 +19,40 @@ mir_decl_header_name(const MIRDeclHeader *header)
 }
 
 size_t
+mir_decl_header_generic_param_count(const MIRDeclHeader *header)
+{
+    return header != NULL ? header->generic_metadata_count : 0;
+}
+
+const MIRDeclGenericParam *
+mir_decl_header_generic_param(const MIRDeclHeader *header, size_t index)
+{
+    if (header == NULL || header->generic_metadata == NULL
+        || index >= header->generic_metadata_count) {
+        return NULL;
+    }
+    return &header->generic_metadata[index];
+}
+
+const char *
+mir_decl_generic_param_name(const MIRDeclGenericParam *param)
+{
+    return param != NULL ? param->name : NULL;
+}
+
+ASTNode *
+mir_decl_generic_param_constraint(const MIRDeclGenericParam *param)
+{
+    return param != NULL ? param->bound_ast : NULL;
+}
+
+ASTNode *
+mir_decl_generic_param_default_type(const MIRDeclGenericParam *param)
+{
+    return param != NULL ? param->default_arg_ast : NULL;
+}
+
+size_t
 mir_decl_header_method_count(const MIRDeclHeader *header)
 {
     return header != NULL ? header->method_metadata_count : 0;

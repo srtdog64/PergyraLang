@@ -83,8 +83,10 @@ test_rir_lowering(void)
         RIRProgram *rir = NULL;
         const char *src =
             "func Worker() -> Int { return 1; }\n"
-            "func ParallelOps() -> Void {\n"
+            "async func ParallelOps() -> Void {\n"
             "    let f: Future<Int> = spawn Worker();\n"
+            "    let first: Int = await f;\n"
+            "    let second: Int = await spawn Worker();\n"
             "    async { Log(1); }\n"
             "    parallel {\n"
             "        Log(2);\n"
@@ -93,12 +95,47 @@ test_rir_lowering(void)
             "}\n";
         bool ok = lower_rir_from_source(src, &hir, &rir);
         const RIRScope *flow = find_scope(rir, "ParallelOps", RIR_SCOPE_FUNCTION);
+        const RIRStateSummary *future = scope_find_state_summary(flow, "f");
         EXPECT(ok
                && rir_validate(rir, NULL)
                && flow != NULL
                && scope_has_op_subject(flow, RIR_OP_SPAWN, "spawn")
+               && scope_has_op_subject(flow, RIR_OP_AWAIT_LOCAL, "f")
+               && scope_has_op_subject(flow, RIR_OP_AWAIT_LOCAL, "spawn")
+               && scope_has_resource_fact(flow,
+                                          "f",
+                                          RIR_RESOURCE_LOCAL_FUTURE_HANDLE)
+               && future != NULL
+               && future->initial_state == RIR_STATE_REMOTE_PENDING
+               && future->final_state == RIR_STATE_RELEASED
                && scope_has_op_subject(flow, RIR_OP_ASYNC, "async")
                && scope_has_op_subject(flow, RIR_OP_PARALLEL, "parallel"));
+        rir_destroy(rir);
+        hir_destroy(hir);
+    }
+
+    TEST("RIR await consumes remote Future handles");
+    {
+        HIRProgram *hir = NULL;
+        RIRProgram *rir = NULL;
+        const char *src =
+            "async func JoinRemote(pending: RemoteFuture<Int>) -> Void {\n"
+            "    let result = await pending;\n"
+            "}\n";
+        bool ok = lower_rir_from_source(src, &hir, &rir);
+        const RIRScope *flow = find_scope(rir, "JoinRemote", RIR_SCOPE_FUNCTION);
+        const RIRStateSummary *pending =
+            scope_find_state_summary(flow, "pending");
+        EXPECT(ok
+               && rir_validate(rir, NULL)
+               && flow != NULL
+               && scope_has_op_subject(flow, RIR_OP_AWAIT_REMOTE, "pending")
+               && scope_has_resource_fact(flow,
+                                          "pending",
+                                          RIR_RESOURCE_REMOTE_FUTURE_HANDLE)
+               && pending != NULL
+               && pending->initial_state == RIR_STATE_REMOTE_PENDING
+               && pending->final_state == RIR_STATE_RELEASED);
         rir_destroy(rir);
         hir_destroy(hir);
     }

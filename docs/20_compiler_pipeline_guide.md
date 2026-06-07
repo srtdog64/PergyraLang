@@ -261,6 +261,7 @@
   - `LinkRelation`
   - `UnlinkRelation`
   - `Authorize`
+  - `AwaitLocal`
   - `AwaitRemote`
   - `CommitIntent`
   - `AbortIntent`

@@ -3,12 +3,12 @@
 **Status:** *rung-2 minimal* (2026-05-27). Reads a committed manifest of
 production header paths
 (`fixture/headers_manifest.txt`), iterates each, reads the file content,
-counts newlines, asserts ??600 LOC per the BDFL split-review threshold.
+counts newlines, asserts <= 600 LOC per the BDFL split-review threshold.
 Reports any over-cap headers in `findings[]`.
 
 ## Intent
 
-The 600-LOC split-review threshold (`TODO.md 짠0. 肄붿뼱 洹쒖튃`) is a beta-
+The 600-LOC split-review threshold (`TODO.md Section 0 Core Rules`) is a beta-
 closure invariant. The shell-side `tests/production_header_size_smoke.sh`
 already gates this for production `.h` owners, but only as a binary
 pass/fail. This tool is the *first* Pergyra-origin gate that emits a

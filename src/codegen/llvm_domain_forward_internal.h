@@ -17,24 +17,30 @@ bool llvm_domain_forward_operator_name(char *out,
                                        const char *type_name);
 const char *llvm_domain_method_name_metadata_first(
     const MIRDeclMethod *method_meta,
-    ASTNode *method);
+    ASTNode *method,
+    bool allow_ast_compat);
 size_t llvm_domain_method_param_count_metadata_first(
     const MIRDeclMethod *method_meta,
-    ASTNode *method);
+    ASTNode *method,
+    bool allow_ast_compat);
 FuncParam *llvm_domain_method_param_metadata_first(
     const MIRDeclMethod *method_meta,
     ASTNode *method,
-    size_t index);
+    size_t index,
+    bool allow_ast_compat);
 const char *llvm_domain_method_param_type_name_metadata_first(
     const MIRDeclMethod *method_meta,
     ASTNode *method,
-    size_t index);
+    size_t index,
+    bool allow_ast_compat);
 ASTNode *llvm_domain_method_return_type_metadata_first(
     const MIRDeclMethod *method_meta,
-    ASTNode *method);
+    ASTNode *method,
+    bool allow_ast_compat);
 const char *llvm_domain_method_return_type_name_metadata_first(
     const MIRDeclMethod *method_meta,
-    ASTNode *method);
+    ASTNode *method,
+    bool allow_ast_compat);
 LLVMTypeRef llvm_domain_forward_required_param_type(
     LLVMGenCtx *ctx,
     ASTNode *owner,

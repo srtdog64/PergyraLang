@@ -47,6 +47,16 @@ for path in "$PERGYRA_TOOL_SOURCE" "$EXPECTED_JSON_FILE" "$FIXTURE_FILE" "$AIR_S
     fi
 done
 
+pgy_selfhost_tmp_root() {
+    local tmp_root="${TMPDIR:-/tmp}"
+    case "$tmp_root" in
+        /*|[A-Za-z]:/*) ;;
+        *) tmp_root="$ROOT_DIR/$tmp_root" ;;
+    esac
+    mkdir -p "$tmp_root"
+    printf '%s\n' "$tmp_root"
+}
+
 mkdir -p "$PERGYRA_TOOL_BUILD_DIR"
 cp "$PERGYRA_TOOL_SOURCE" "$PERGYRA_TOOL"
 
@@ -113,7 +123,8 @@ fi
 # Drift guard - committed fixture must still match live pgy --air-json output.
 # Some sandboxed shells (MSYS / Git-Bash) cannot launch the pgy subprocess
 # directly; treat that as a SKIP for the drift rung rather than a hard fail.
-LIVE_AIR_JSON_DIR="$(mktemp -d "${TMPDIR:-/tmp}/pgy-selfhost-air-live.XXXXXX")"
+SELFHOST_TMP_ROOT="$(pgy_selfhost_tmp_root)"
+LIVE_AIR_JSON_DIR="$(mktemp -d "$SELFHOST_TMP_ROOT/pgy-selfhost-air-live.XXXXXX")"
 cleanup_live_air() {
     rm -rf "$LIVE_AIR_JSON_DIR"
 }
@@ -142,19 +153,20 @@ if [[ "$LIVE_RC" -eq 0 && -s "$LIVE_AIR_JSON" ]]; then
 fi
 
 # Negative fixture - synthetic missing-key (strip top-level "summary":{...}).
-NEG_ROOT="$(mktemp -d "${TMPDIR:-/tmp}/pgy-selfhost-air-neg.XXXXXX")"
+NEG_ROOT="$(mktemp -d "$SELFHOST_TMP_ROOT/pgy-selfhost-air-neg.XXXXXX")"
 cleanup_neg_root() {
     rm -rf "$NEG_ROOT"
     cleanup_live_air
 }
 trap cleanup_neg_root EXIT
 mkdir -p "$NEG_ROOT/src/self_hosted/tools/air_graph_json_validator/fixture"
+mkdir -p "$NEG_ROOT/.tmp"
 # Strip the "summary":{...}, segment - simple sed that matches the live shape.
 sed -E 's/"summary":\{[^}]*\},//' "$FIXTURE_FILE" \
     > "$NEG_ROOT/src/self_hosted/tools/air_graph_json_validator/fixture/sample.json"
 
 set +e
-NEG_OUT="$(cd "$NEG_ROOT" && "$PGY" "$PERGYRA_TOOL" --run 2>/dev/null)"
+NEG_OUT="$(cd "$NEG_ROOT" && "$PGY" "$PERGYRA_TOOL" --run 2>&1)"
 NEG_RC=$?
 set -e
 if [[ "$NEG_RC" -ne 1 ]]; then

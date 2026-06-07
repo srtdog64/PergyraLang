@@ -63,6 +63,7 @@ emit_intent_decl(ASTNode *node, CodeBuf *buf, TranspilerCtx *ctx)
     transpiler_capture_mir_emit_state_local(ctx, &saved_emit_state);
     ctx->out = buf;
     transpiler_set_current_return_type_local(ctx, "Bool");
+    ctx->current_return_callable_type = NULL;
     emit_cleanup_from_mir =
         transpiler_active_can_emit_intent_cleanup_from_mir(ctx, node);
     mir_requires_routine = transpiler_active_has_mir(ctx) && decl_step_count > 0;

@@ -60,7 +60,8 @@ for rel in \
     "src/runtime/pgy_runtime_lib_intent_exports.h"; do
     path="$ROOT_DIR/$rel"
     require_term "$path" "pgy_intent_active_entry_by_index_locked_export(index)"
-    require_term "$path" "pgy_intent_active_entry_by_handle_export(intent_index)"
+    require_term "$path" "pgy_intent_active_entry_by_handle_locked_export(intent_handle)"
+    require_term "$path" "pgy_intent_active_step_by_handle_locked_export(intent_index, step_index)"
 
     for fn in \
         pgy_intent_active_name_export \
@@ -70,12 +71,13 @@ for rel in \
         pgy_intent_active_trace_export \
         pgy_intent_active_parent_handle_export \
         pgy_intent_active_subject_count_export \
+        pgy_intent_active_step_count_export \
         pgy_intent_active_failed_export \
         pgy_intent_active_failure_export; do
         awk -v fn="$fn" '
             $0 ~ fn "\\(int32_t index\\)" { in_fn = 1 }
             in_fn && /}/ { in_fn = 0 }
-            in_fn && /pgy_intent_active_entry_by_handle_export\(index\)/ { bad = 1 }
+            in_fn && /pgy_intent_active_entry_by_handle_locked_export\(index\)/ { bad = 1 }
             END { exit bad ? 1 : 0 }
         ' "$path" || fail "$rel: $fn must use active index lookup, not handle lookup"
     done
@@ -100,6 +102,7 @@ require_term "$ROOT_DIR/src/runtime/pgy_runtime_intent_trace_inline.h" "pgy_inte
 require_term "$ROOT_DIR/src/runtime/pgy_runtime_intent_trace_inline.h" "pgy_intent_next_unused_handle"
 require_term "$ROOT_DIR/src/runtime/pgy_runtime_intent_trace_inline.h" "pgy_intent_find_active_entry_locked(candidate) == NULL"
 require_term "$ROOT_DIR/src/runtime/pgy_runtime_intent_trace_inline.h" "intent handle space exhausted"
+require_term "$ROOT_DIR/src/runtime/pgy_runtime_intent_trace_inline.h" "intent current stack depth exceeded"
 require_term "$ROOT_DIR/src/runtime/pgy_runtime_intent_trace_inline.h" "pgy_intent_next_positive_counter(&pgy_intent_next_trace_id)"
 require_term "$ROOT_DIR/src/runtime/pgy_runtime_intent_trace_inline.h" "name = PGY_INTENT_OBSERVABILITY_ENABLED"
 
@@ -107,6 +110,7 @@ require_term "$ROOT_DIR/src/runtime/pgy_runtime_lib_set_intent_trace_exports.c" 
 require_term "$ROOT_DIR/src/runtime/pgy_runtime_lib_set_intent_trace_exports.c" "pgy_intent_next_unused_handle_export"
 require_term "$ROOT_DIR/src/runtime/pgy_runtime_lib_set_intent_trace_exports.c" "pgy_intent_find_active_entry_locked_export(candidate) == NULL"
 require_term "$ROOT_DIR/src/runtime/pgy_runtime_lib_set_intent_trace_exports.c" "intent handle space exhausted"
+require_term "$ROOT_DIR/src/runtime/pgy_runtime_lib_set_intent_trace_exports.c" "intent current stack depth exceeded"
 require_term "$ROOT_DIR/src/runtime/pgy_runtime_lib_set_intent_trace_exports.c" "pgy_intent_next_positive_counter_export(&pgy_intent_next_trace_id)"
 require_term "$ROOT_DIR/src/runtime/pgy_runtime_lib_set_intent_trace_exports.c" "(size_t)subject_count > SIZE_MAX / sizeof(void *)"
 require_term "$ROOT_DIR/src/runtime/pgy_runtime_lib_set_intent_trace_exports.c" "name = PGY_INTENT_OBSERVABILITY_ENABLED"

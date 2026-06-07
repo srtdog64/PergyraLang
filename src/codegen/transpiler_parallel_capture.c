@@ -5,6 +5,8 @@
 
 #include "../common/string_compat.h"
 #include "../parser/ast_analysis.h"
+#include "../semantic/diag_codes.h"
+#include "transpiler_mir_local_type_ast_lookup.h"
 #include "transpiler_mir_local_type_lookup.h"
 #include "transpiler_symbols.h"
 
@@ -14,6 +16,15 @@ transpiler_current_local_type_name(TranspilerCtx *ctx, const char *name)
     if (ctx == NULL || name == NULL || ctx->current_func_decl == NULL)
         return NULL;
     return transpiler_find_local_type_name(ctx, ctx->current_func_decl, name);
+}
+
+static ASTNode *
+transpiler_current_local_type_ast(TranspilerCtx *ctx, const char *name)
+{
+    if (ctx == NULL || name == NULL || ctx->current_func_decl == NULL)
+        return NULL;
+
+    return transpiler_find_local_type_ast(ctx, ctx->current_func_decl, name);
 }
 
 static bool
@@ -36,17 +47,30 @@ transpiler_parallel_add_capture_name(TranspilerCtx *ctx,
                                      char slot_names[MAX_SLOT_VARS][64],
                                      int *slot_count,
                                      char typed_names[MAX_SLOT_VARS][64],
+                                     ASTNode *typed_type_asts[MAX_SLOT_VARS],
+                                     bool typed_is_event_handler[MAX_SLOT_VARS],
                                      int *typed_count)
 {
     if (ctx == NULL || name == NULL || name[0] == '\0'
         || strcmp(name, "self") == 0) {
         return;
     }
+    if (ctx->backend_error != NULL)
+        return;
 
     if (is_slot_var(ctx, name)) {
         if (!transpiler_parallel_capture_has_name(slot_names,
                 slot_count != NULL ? *slot_count : 0, name)
-            && slot_count != NULL && *slot_count < MAX_SLOT_VARS) {
+            && slot_count != NULL) {
+            if (*slot_count >= MAX_SLOT_VARS) {
+                transpiler_set_backend_error_with_hints(ctx,
+                    PGY_CODE_C_TYPE_UNSUPPORTED,
+                    PGY_CAUSE_C_TYPE_UNSUPPORTED,
+                    PGY_FIX_SERIALIZE_OUTSIDE_PARALLEL,
+                    "parallel capture registry exceeded MAX_SLOT_VARS while capturing Slot<T> local '%s'; split the parallel block or pass values through an explicit boundary",
+                    name);
+                return;
+            }
             pergyra_str_copy(slot_names[*slot_count],
                 sizeof(slot_names[*slot_count]), name);
             (*slot_count)++;
@@ -67,9 +91,29 @@ transpiler_parallel_add_capture_name(TranspilerCtx *ctx,
                 slot_count != NULL ? *slot_count : 0, name)
             && !transpiler_parallel_capture_has_name(typed_names,
                 typed_count != NULL ? *typed_count : 0, name)
-            && typed_count != NULL && *typed_count < MAX_SLOT_VARS) {
+            && typed_count != NULL) {
+            if (*typed_count >= MAX_SLOT_VARS) {
+                transpiler_set_backend_error_with_hints(ctx,
+                    PGY_CODE_C_TYPE_UNSUPPORTED,
+                    PGY_CAUSE_C_TYPE_UNSUPPORTED,
+                    PGY_FIX_SERIALIZE_OUTSIDE_PARALLEL,
+                    "parallel capture registry exceeded MAX_SLOT_VARS while capturing local '%s'; split the parallel block or pass values through an explicit boundary",
+                    name);
+                return;
+            }
             pergyra_str_copy(typed_names[*typed_count],
                 sizeof(typed_names[*typed_count]), name);
+            if (typed_type_asts != NULL) {
+                typed_type_asts[*typed_count] =
+                    transpiler_current_local_type_ast(ctx, name);
+            }
+            if (typed_is_event_handler != NULL) {
+                ASTNode *type_node = typed_type_asts != NULL
+                    ? typed_type_asts[*typed_count]
+                    : transpiler_current_local_type_ast(ctx, name);
+                typed_is_event_handler[*typed_count] =
+                    type_node != NULL && type_node->type == AST_EVENT_HANDLER_TYPE;
+            }
             (*typed_count)++;
         }
     } else {
@@ -80,10 +124,30 @@ transpiler_parallel_add_capture_name(TranspilerCtx *ctx,
                     slot_count != NULL ? *slot_count : 0, name)
             && !transpiler_parallel_capture_has_name(typed_names,
                     typed_count != NULL ? *typed_count : 0, name)
-            && typed_count != NULL && *typed_count < MAX_SLOT_VARS) {
+            && typed_count != NULL) {
+            if (*typed_count >= MAX_SLOT_VARS) {
+                transpiler_set_backend_error_with_hints(ctx,
+                    PGY_CODE_C_TYPE_UNSUPPORTED,
+                    PGY_CAUSE_C_TYPE_UNSUPPORTED,
+                    PGY_FIX_SERIALIZE_OUTSIDE_PARALLEL,
+                    "parallel capture registry exceeded MAX_SLOT_VARS while capturing inferred local '%s'; split the parallel block or pass values through an explicit boundary",
+                    name);
+                return;
+            }
             register_typed_var(ctx, name, type_name);
             pergyra_str_copy(typed_names[*typed_count],
                 sizeof(typed_names[*typed_count]), name);
+            if (typed_type_asts != NULL) {
+                typed_type_asts[*typed_count] =
+                    transpiler_current_local_type_ast(ctx, name);
+            }
+            if (typed_is_event_handler != NULL) {
+                ASTNode *type_node = typed_type_asts != NULL
+                    ? typed_type_asts[*typed_count]
+                    : transpiler_current_local_type_ast(ctx, name);
+                typed_is_event_handler[*typed_count] =
+                    type_node != NULL && type_node->type == AST_EVENT_HANDLER_TYPE;
+            }
             (*typed_count)++;
         }
     }
@@ -95,6 +159,8 @@ transpiler_parallel_collect_stmt_captures(ASTNode *node,
                                           char slot_names[MAX_SLOT_VARS][64],
                                           int *slot_count,
                                           char typed_names[MAX_SLOT_VARS][64],
+                                          ASTNode *typed_type_asts[MAX_SLOT_VARS],
+                                          bool typed_is_event_handler[MAX_SLOT_VARS],
                                           int *typed_count)
 {
     if (node == NULL || ctx == NULL)
@@ -104,7 +170,8 @@ transpiler_parallel_collect_stmt_captures(ASTNode *node,
         const char *name = ctx->slot_vars[i].name;
         if (ast_contains_free_identifier_ref(node, name)) {
             transpiler_parallel_add_capture_name(ctx, name, slot_names,
-                slot_count, typed_names, typed_count);
+                slot_count, typed_names, typed_type_asts,
+                typed_is_event_handler, typed_count);
         }
     }
 
@@ -112,7 +179,8 @@ transpiler_parallel_collect_stmt_captures(ASTNode *node,
         const char *name = ctx->typed_vars[i].name;
         if (ast_contains_free_identifier_ref(node, name)) {
             transpiler_parallel_add_capture_name(ctx, name, slot_names,
-                slot_count, typed_names, typed_count);
+                slot_count, typed_names, typed_type_asts,
+                typed_is_event_handler, typed_count);
         }
     }
 }

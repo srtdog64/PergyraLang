@@ -15,8 +15,10 @@ ASTNode *llvm_find_decl_in_active_inventory(const LLVMGenCtx *ctx,
                                             const char *name);
 bool llvm_param_is_implicit_self(const FuncParam *param);
 bool llvm_is_host_decl_type(ASTNodeType decl_type);
-const MIRDeclHeader *llvm_find_decl_header_in_context(const LLVMGenCtx *ctx,
-                                                      const char *name);
+const MIRDeclHeader *llvm_find_decl_header_in_context_of_type(
+    const LLVMGenCtx *ctx,
+    ASTNodeType decl_type,
+    const char *name);
 const MIRDeclHeader *llvm_find_host_decl_header_in_context(
     const LLVMGenCtx *ctx,
     const char *name);

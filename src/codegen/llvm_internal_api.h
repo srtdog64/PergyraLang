@@ -25,12 +25,8 @@ void          llvm_scope_push(LLVMGenCtx *ctx);
 void          llvm_scope_pop(LLVMGenCtx *ctx);
 void          llvm_scope_declare(LLVMGenCtx *ctx, const char *name,
                                   LLVMValueRef alloca, LLVMTypeRef type);
-/*
- * The returned entry is borrowed from the active scope frame. Any subsequent
- * llvm_scope_push/pop/declare can invalidate it because declarations may grow
- * the frame storage. Snapshot alloca/type/name before mutating scope state.
- */
-LLVMVarEntry *llvm_scope_lookup(LLVMGenCtx *ctx, const char *name);
+/* Scope entries are owned by llvm_registry.c; callers must snapshot because
+ * push/pop/declare can invalidate frame storage and shadowing caches. */
 bool          llvm_scope_contains(LLVMGenCtx *ctx, const char *name);
 bool          llvm_scope_lookup_snapshot(LLVMGenCtx *ctx, const char *name,
                                          LLVMVarEntry *out);

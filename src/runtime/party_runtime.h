@@ -58,7 +58,15 @@ typedef struct {
     bool isContinuous;               /* true for continuous, false for periodic */
 } FiberMapEntry;
 
-/* Complete FiberMap for a party */
+/*
+ * Complete FiberMap for a party.
+ *
+ * Concurrency contract: DispatchParallel borrows this graph. Callers must not
+ * mutate or free the FiberMap, its entries, or the attached PartyContext until
+ * the dispatch result has joined. The runtime intentionally avoids a shallow
+ * snapshot here because that would hide pointer/rehash races behind a copy that
+ * is not semantically owned.
+ */
 typedef struct {
     const char* partyTypeName;       /* Party type (e.g., "DungeonParty") */
     FiberMapEntry* entries;          /* Array of fiber entries */
@@ -151,7 +159,7 @@ typedef struct {
 
 /* Dispatch result for join strategies */
 typedef struct {
-    const char* roleId;
+    const char* roleId;              /* DispatchResult-owned; free via FreeDispatchResult */
     bool success;
     void* result;                    /* Role-specific result data */
     uint64_t executionTimeNs;
@@ -174,7 +182,13 @@ typedef bool (*CustomJoinFunction)(
     void* userData
 );
 
-/* Main dispatcher function */
+/*
+ * Main dispatcher function.
+ *
+ * Dispatch is quiescent-borrowed: map/context storage remains caller-owned and
+ * immutable for the full dispatch. Use a copied plan or a channel/result
+ * boundary if another thread can mutate the source graph.
+ */
 typedef struct {
     FiberResult* results;
     size_t resultCount;
@@ -188,6 +202,17 @@ DispatchResult DispatchParallel(
     JoinStrategy joinStrategy,
     DispatcherConfig* config
 );
+
+DispatchResult DispatchGeneratedFiberMap(
+    const char* partyType,
+    const PartyRoleBinding* roleBindings,
+    size_t bindingCount,
+    PartyContext* context,
+    JoinStrategy joinStrategy,
+    DispatcherConfig* config
+);
+
+void FreeDispatchResult(DispatchResult* result);
 
 /* ============= Context API (for roles) ============= */
 
@@ -262,8 +287,10 @@ void DumpFiberMaps(void);
 
 /* Quick dispatcher for simple cases */
 #define DISPATCH_PARTY(party, join) \
-    DispatchParallel( \
-        GenerateFiberMap(#party, party##_bindings, party##_binding_count), \
+    DispatchGeneratedFiberMap( \
+        #party, \
+        party##_bindings, \
+        party##_binding_count, \
         &party##_context, \
         JOIN_##join, \
         NULL \

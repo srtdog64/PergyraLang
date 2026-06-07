@@ -581,7 +581,7 @@ C:    pgy_intent_commit(__intent_handle);
 | 10 | RIR Secure | `RIR_OP_CLAIM(Secure)` | MIR Inst | `MIR_INST_RESOURCE_OP(SecureClaim)` | 중간 |
 | 11 | RIR Projection | `RIR_OP_PROJECT_REFRESH` | MIR Inst | `MIR_INST_CALL(refresh)` | 높음 |
 | 12 | RIR Authority | `RIR_OP_AUTHORIZE` | MIR Inst | `MIR_INST_CALL(authorize)` | 높음 |
-| 13 | RIR Remote | `RIR_OP_AWAIT_REMOTE` | MIR Inst | `MIR_INST_CALL(await)` | 높음 |
+| 13 | RIR Await | `RIR_OP_AWAIT_LOCAL` / `RIR_OP_AWAIT_REMOTE` | MIR Inst | `MIR_INST_CALL(await)` | 높음 |
 | 14 | RIR Compensate | `RIR_OP_COMPENSATE_INTENT_STEP` | MIR Inst | `MIR_INST_CALL(compensate)` | 높음 |
 
 ---

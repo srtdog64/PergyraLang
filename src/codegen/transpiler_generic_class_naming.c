@@ -106,7 +106,7 @@ transpiler_generic_class_specialization_name(TranspilerCtx *ctx,
     if (class_decl == NULL || ann == NULL)
         return NULL;
 
-    gp = ast_class_generic_params(class_decl);
+    gp = ast_declaration_generic_params(class_decl);
     ga = ast_type_generic_args(ann);
     base_class_name = transpiler_decl_name_local(class_decl);
     if (gp == NULL || base_class_name == NULL)

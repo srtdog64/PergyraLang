@@ -7,6 +7,7 @@
 #include "transpiler_control_flow_emit.h"
 #include "transpiler_defer_emit.h"
 #include "transpiler_func_flow_policy.h"
+#include "transpiler_inventory_view.h"
 #include "transpiler_mir_cfg_control_emit.h"
 #include "transpiler_mir_phi_emit.h"
 #include "transpiler_mir_pin_emit.h"
@@ -28,6 +29,20 @@ transpiler_mir_set_pin_cleanup_error(TranspilerCtx *ctx,
         block_reason != NULL && block_reason[0] != '\0'
             ? block_reason
             : "unknown reason");
+}
+
+static ASTNode *
+transpiler_mir_return_callable_type(TranspilerCtx *ctx,
+                                    const MIRRoutine *mir_routine)
+{
+    ASTNode *return_type = transpiler_mir_routine_return_type(mir_routine);
+
+    if (return_type != NULL) {
+        if (return_type->type == AST_EVENT_HANDLER_TYPE)
+            return return_type;
+        return NULL;
+    }
+    return transpiler_func_current_return_callable_type(ctx);
 }
 
 static bool
@@ -89,6 +104,7 @@ transpiler_emit_mir_branch_terminator(ASTNode *node,
 
 static bool
 transpiler_emit_mir_return_terminator(const MIRBasicBlock *block,
+                                      const MIRRoutine *mir_routine,
                                       const MIRInstruction *inst,
                                       const char *name,
                                       TranspilerCtx *ctx,
@@ -102,12 +118,14 @@ transpiler_emit_mir_return_terminator(const MIRBasicBlock *block,
     if (inst->expr0 != NULL) {
         const char *saved_expected_type = ctx->expected_type;
         ASTNode *saved_expected_callable_type = ctx->expected_callable_type;
+        ASTNode *return_callable_type =
+            transpiler_mir_return_callable_type(ctx, mir_routine);
+        if (return_callable_type != NULL)
+            ctx->expected_callable_type = return_callable_type;
         if (ctx->current_return_type[0] != '\0'
             && strcmp(ctx->current_return_type, "Void") != 0
             && strcmp(ctx->current_return_type, "void") != 0) {
             ctx->expected_type = ctx->current_return_type;
-            ctx->expected_callable_type =
-                transpiler_func_current_return_callable_type(ctx);
         }
         ret_expr = emit_expression_with_ssa_map(inst->expr0, ctx, block_ssa_map);
         ctx->expected_callable_type = saved_expected_callable_type;
@@ -182,7 +200,7 @@ transpiler_emit_mir_explicit_terminator(ASTNode *node,
         }
         if (inst->kind == MIR_INST_RETURN) {
             if (!transpiler_emit_mir_return_terminator(
-                    block, inst, name, ctx, block_ssa_map,
+                    block, mir_routine, inst, name, ctx, block_ssa_map,
                     block_reason, block_reason_cap)) {
                 return false;
             }

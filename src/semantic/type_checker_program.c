@@ -74,6 +74,9 @@ type_check_program(ASTNode *program, SemanticContext *ctx)
         return false;
 
     ctx->program_root = program;
+    if (!semantic_build_host_decl_index(ctx, program))
+        return program_report_resolution_oom(ctx, program,
+            "host declaration index");
     semantic_type_resolution_precollect_program(program, ctx);
 
     /*

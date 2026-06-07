@@ -170,11 +170,20 @@ llvm_emit_domain_role_method_bodies(LLVMGenCtx *ctx,
 
                     LLVMValueRef saved_fn = ctx->current_function;
                     LLVMTypeRef saved_ret = ctx->current_ret_type;
+                    LLVMTypeRef saved_function_ret =
+                        ctx->current_function_ret_type;
+                    const char *saved_return_type_name =
+                        ctx->current_return_type_name;
+                    ASTNode *saved_return_callable_type =
+                        ctx->current_return_callable_type;
                     LLVMBasicBlockRef saved_bb =
                         LLVMGetInsertBlock(ctx->builder);
                     LLVMTypeRef op_ret_type = op_entry->ret_type;
                     ctx->current_function = op_entry->fn;
                     ctx->current_ret_type = op_ret_type;
+                    ctx->current_function_ret_type = op_ret_type;
+                    ctx->current_return_type_name = NULL;
+                    ctx->current_return_callable_type = NULL;
 
                     LLVMBasicBlockRef bb = LLVMAppendBasicBlockInContext(
                         ctx->context, op_entry->fn, "entry");
@@ -205,6 +214,10 @@ llvm_emit_domain_role_method_bodies(LLVMGenCtx *ctx,
 
                     ctx->current_function = saved_fn;
                     ctx->current_ret_type = saved_ret;
+                    ctx->current_function_ret_type = saved_function_ret;
+                    ctx->current_return_type_name = saved_return_type_name;
+                    ctx->current_return_callable_type =
+                        saved_return_callable_type;
                     if (saved_bb != NULL)
                         LLVMPositionBuilderAtEnd(ctx->builder, saved_bb);
                 }

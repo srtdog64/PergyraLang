@@ -72,11 +72,17 @@ void
 llvm_finish_domain_sync_emit(LLVMGenCtx *ctx,
                              LLVMValueRef saved_fn,
                              LLVMTypeRef saved_ret,
+                             LLVMTypeRef saved_function_ret,
+                             const char *saved_return_type_name,
+                             ASTNode *saved_return_callable_type,
                              ASTNode *saved_host_decl,
                              LLVMBasicBlockRef saved_bb)
 {
     ctx->current_function = saved_fn;
     ctx->current_ret_type = saved_ret;
+    ctx->current_function_ret_type = saved_function_ret;
+    ctx->current_return_type_name = saved_return_type_name;
+    ctx->current_return_callable_type = saved_return_callable_type;
     llvm_restore_current_host_decl(ctx, saved_host_decl);
 
     if (saved_bb != NULL)

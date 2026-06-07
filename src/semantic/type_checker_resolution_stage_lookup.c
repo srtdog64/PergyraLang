@@ -88,8 +88,13 @@ semantic_find_top_level_decl_by_label_in_context(SemanticContext *ctx,
                                                  const char *label,
                                                  TypeResolutionNodeKind kind)
 {
+    ASTNode *decl;
+
     if (ctx == NULL)
         return NULL;
+    decl = semantic_host_index_find_top_level_decl_by_label(ctx, label, kind);
+    if (decl != NULL || ctx->host_decl_index.count > 0)
+        return decl;
     return semantic_find_top_level_decl_by_label(stage_lookup_program(ctx),
                                                  label, kind);
 }

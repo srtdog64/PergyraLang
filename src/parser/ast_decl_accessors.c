@@ -16,6 +16,8 @@ ast_declaration_name_slot(ASTNode* node)
 
     switch (node->type) {
     case AST_FUNC_DECL:
+        if (node->is_async_decl)
+            return &node->data.async_func_decl.name;
         return &node->data.func_decl.name;
     case AST_CLASS_DECL:
         return &node->data.class_decl.name;
@@ -63,6 +65,8 @@ ast_declaration_generic_params(const ASTNode* node)
 
     switch (node->type) {
     case AST_FUNC_DECL:
+        if (node->is_async_decl)
+            return node->data.async_func_decl.generic_params;
         return node->data.func_decl.generic_params;
     case AST_CLASS_DECL:
         return node->data.class_decl.generic_params;

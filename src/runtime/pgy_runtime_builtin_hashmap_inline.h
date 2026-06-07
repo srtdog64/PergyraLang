@@ -3,6 +3,12 @@
  * HashMap<Bool, T> -- stable key subset over open-addressing
  * ================================================================= */
 
+/* Growable runtime storage is not a synchronization boundary.
+ * The semantic layer must reject raw Array/Slice/List/Queue/Set/HashMap
+ * transport across parallel/async/worker boundaries unless an explicit copy or
+ * pinned read-only view owner is used.
+ */
+
 #define PGY_HASHMAP_INIT_CAP 16
 #define PGY_HASHMAP_LOAD_FACTOR 0.75
 #define PGY_HASHMAP_EMPTY 0u

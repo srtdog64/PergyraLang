@@ -148,6 +148,7 @@ typedef enum
 
 typedef struct
 {
+    struct LLVMGenCtx *owner_ctx;
     const char        *class_name;
     LLVMTypeRef        struct_type;
     bool               is_subject;
@@ -343,6 +344,10 @@ typedef struct LLVMGenCtx
 
     LLVMValueRef    current_function;
     LLVMTypeRef     current_ret_type;
+    LLVMTypeRef     current_function_ret_type;
+    const char     *current_return_type_name;
+    ASTNode        *current_return_callable_type;
+    const char     *current_within_zone_name;
     ASTNode        *current_func_decl;
     ASTNode        *current_host_decl;
     const char     *current_class_name;

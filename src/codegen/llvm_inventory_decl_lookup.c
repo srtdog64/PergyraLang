@@ -93,12 +93,9 @@ llvm_find_decl_in_active_inventory(const LLVMGenCtx *ctx,
         return NULL;
 
     if (ctx->mir != NULL) {
-        decl_header = mir_find_decl_header(ctx->mir, name);
+        decl_header = mir_find_decl_header_of_type(ctx->mir, decl_type, name);
         if (decl_header != NULL)
-            return mir_decl_header_ast_type_or(
-                       decl_header, AST_PROGRAM) == decl_type
-                ? mir_decl_header_source_ast(decl_header)
-                : NULL;
+            return mir_decl_header_source_ast(decl_header);
     }
 
     llvm_active_inventory(ctx, decl_type, &nodes, &count);
@@ -131,25 +128,32 @@ llvm_is_host_decl_type(ASTNodeType decl_type)
 }
 
 const MIRDeclHeader *
-llvm_find_decl_header_in_context(const LLVMGenCtx *ctx, const char *name)
+llvm_find_decl_header_in_context_of_type(const LLVMGenCtx *ctx,
+                                         ASTNodeType decl_type,
+                                         const char *name)
 {
     if (ctx == NULL || ctx->mir == NULL || name == NULL)
         return NULL;
-    return mir_find_decl_header(ctx->mir, name);
+    return mir_find_decl_header_of_type(ctx->mir, decl_type, name);
 }
 
 const MIRDeclHeader *
 llvm_find_host_decl_header_in_context(const LLVMGenCtx *ctx, const char *name)
 {
-    const MIRDeclHeader *decl_header =
-        llvm_find_decl_header_in_context(ctx, name);
+    const ASTNodeType *host_types = NULL;
+    size_t host_type_count = 0;
 
-    if (decl_header == NULL
-        || !llvm_is_host_decl_type(mir_decl_header_ast_type_or(
-            decl_header, AST_PROGRAM))) {
+    if (ctx == NULL || ctx->mir == NULL || name == NULL)
         return NULL;
+
+    host_types = pgy_host_decl_compat_types(&host_type_count);
+    for (size_t i = 0; host_types != NULL && i < host_type_count; i++) {
+        const MIRDeclHeader *decl_header =
+            llvm_find_decl_header_in_context_of_type(ctx, host_types[i], name);
+        if (decl_header != NULL)
+            return decl_header;
     }
-    return decl_header;
+    return NULL;
 }
 
 const MIRDeclField *
@@ -222,11 +226,9 @@ llvm_current_host_decl(const LLVMGenCtx *ctx)
     if (ctx->current_host_decl != NULL)
         return ctx->current_host_decl;
 
-    if (ctx->current_func_decl != NULL
-        && ctx->current_func_decl->type == AST_FUNC_DECL
-        && ast_func_within_zone(ctx->current_func_decl) != NULL) {
+    if (ctx->current_within_zone_name != NULL) {
         decl = llvm_find_decl_in_active_inventory(
-            ctx, AST_ZONE_DECL, ast_func_within_zone(ctx->current_func_decl));
+            ctx, AST_ZONE_DECL, ctx->current_within_zone_name);
         if (decl != NULL)
             return decl;
     }
@@ -244,12 +246,7 @@ llvm_current_host_decl_name(const LLVMGenCtx *ctx)
 
     decl = llvm_current_host_decl(ctx);
     if (decl == NULL) {
-        if (ctx->current_func_decl != NULL
-            && ctx->current_func_decl->type == AST_FUNC_DECL
-            && ast_func_within_zone(ctx->current_func_decl) != NULL) {
-            return ast_func_within_zone(ctx->current_func_decl);
-        }
-        return NULL;
+        return ctx->current_within_zone_name;
     }
 
     return llvm_is_host_decl_type(decl->type)

@@ -41,9 +41,17 @@ register_slot_var(TranspilerCtx *ctx, const char *name,
 {
     SlotVarEntry *e;
 
-    if (ctx == NULL || name == NULL || inner_type == NULL
-        || ctx->slot_var_count >= MAX_SLOT_VARS)
+    if (ctx == NULL || name == NULL || inner_type == NULL)
         return;
+    if (ctx->slot_var_count >= MAX_SLOT_VARS) {
+        transpiler_set_backend_error_with_hints(ctx,
+            PGY_CODE_C_TYPE_UNSUPPORTED,
+            PGY_CAUSE_C_TYPE_UNSUPPORTED,
+            PGY_FIX_USE_LLVM_BACKEND_OR_EXTEND_TRANSPILER,
+            "C backend slot registry exceeded MAX_SLOT_VARS while registering '%s'",
+            name);
+        return;
+    }
 
     e = &ctx->slot_vars[ctx->slot_var_count++];
     ctx->last_slot_var_index = ctx->slot_var_count - 1;
@@ -248,9 +256,17 @@ register_typed_var(TranspilerCtx *ctx, const char *name, const char *type_name)
 {
     TypedVarEntry *e;
 
-    if (ctx == NULL || name == NULL || type_name == NULL
-        || ctx->typed_var_count >= MAX_SLOT_VARS)
+    if (ctx == NULL || name == NULL || type_name == NULL)
         return;
+    if (ctx->typed_var_count >= MAX_SLOT_VARS) {
+        transpiler_set_backend_error_with_hints(ctx,
+            PGY_CODE_C_TYPE_UNSUPPORTED,
+            PGY_CAUSE_C_TYPE_UNSUPPORTED,
+            PGY_FIX_USE_LLVM_BACKEND_OR_EXTEND_TRANSPILER,
+            "C backend typed registry exceeded MAX_SLOT_VARS while registering '%s'",
+            name);
+        return;
+    }
 
     if (ctx->last_typed_var_index >= 0
         && ctx->last_typed_var_index < ctx->typed_var_count
@@ -278,9 +294,17 @@ register_alias_var(TranspilerCtx *ctx, const char *name, ASTNode *target_expr)
 {
     AliasVarEntry *e;
 
-    if (ctx == NULL || name == NULL || target_expr == NULL
-        || ctx->alias_var_count >= MAX_ALIAS_VARS)
+    if (ctx == NULL || name == NULL || target_expr == NULL)
         return;
+    if (ctx->alias_var_count >= MAX_ALIAS_VARS) {
+        transpiler_set_backend_error_with_hints(ctx,
+            PGY_CODE_C_TYPE_UNSUPPORTED,
+            PGY_CAUSE_C_TYPE_UNSUPPORTED,
+            PGY_FIX_USE_LLVM_BACKEND_OR_EXTEND_TRANSPILER,
+            "C backend alias registry exceeded MAX_ALIAS_VARS while registering '%s'",
+            name);
+        return;
+    }
 
     e = &ctx->alias_vars[ctx->alias_var_count++];
     ctx->last_alias_var_index = ctx->alias_var_count - 1;
@@ -361,9 +385,17 @@ register_view_like_var(TranspilerCtx *ctx, const char *name, const char *type_na
 {
     TypedVarEntry *e;
 
-    if (ctx == NULL || name == NULL || type_name == NULL
-        || ctx->typed_var_count >= MAX_SLOT_VARS)
+    if (ctx == NULL || name == NULL || type_name == NULL)
         return;
+    if (ctx->typed_var_count >= MAX_SLOT_VARS) {
+        transpiler_set_backend_error_with_hints(ctx,
+            PGY_CODE_C_TYPE_UNSUPPORTED,
+            PGY_CAUSE_C_TYPE_UNSUPPORTED,
+            PGY_FIX_USE_LLVM_BACKEND_OR_EXTEND_TRANSPILER,
+            "C backend typed registry exceeded MAX_SLOT_VARS while registering view-like '%s'",
+            name);
+        return;
+    }
 
     e = &ctx->typed_vars[ctx->typed_var_count++];
     memset(e, 0, sizeof(*e));
@@ -385,9 +417,17 @@ register_projection_borrow_var(TranspilerCtx *ctx, const char *name,
 {
     TypedVarEntry *e;
 
-    if (ctx == NULL || name == NULL || type_name == NULL || source_name == NULL
-        || ctx->typed_var_count >= MAX_SLOT_VARS)
+    if (ctx == NULL || name == NULL || type_name == NULL || source_name == NULL)
         return;
+    if (ctx->typed_var_count >= MAX_SLOT_VARS) {
+        transpiler_set_backend_error_with_hints(ctx,
+            PGY_CODE_C_TYPE_UNSUPPORTED,
+            PGY_CAUSE_C_TYPE_UNSUPPORTED,
+            PGY_FIX_USE_LLVM_BACKEND_OR_EXTEND_TRANSPILER,
+            "C backend typed registry exceeded MAX_SLOT_VARS while registering projection borrow '%s'",
+            name);
+        return;
+    }
 
     e = &ctx->typed_vars[ctx->typed_var_count++];
     memset(e, 0, sizeof(*e));

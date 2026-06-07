@@ -124,6 +124,20 @@ llvm_emit_expression(ASTNode *node, LLVMGenCtx *ctx)
             const char *inner = NULL;
             bool is_remote = false;
 
+            if (inner_expr->type == AST_SPAWN_EXPR) {
+                inner = llvm_infer_spawn_future_inner(ctx, inner_expr);
+                if (inner == NULL || inner[0] == '\0') {
+                    llvm_set_error_at_with_hints(ctx, node,
+                        PGY_CODE_LLVM_TYPE_UNSUPPORTED,
+                        PGY_CAUSE_LLVM_TYPE_UNSUPPORTED,
+                        PGY_FIX_ANNOTATE_CONCRETE_TYPE,
+                        "LLVM await spawn expression requires concrete Future<T> result metadata");
+                    return NULL;
+                }
+                LLVMValueRef task = llvm_emit_spawn_expr(inner_expr, ctx);
+                return llvm_await_task_handle(ctx, node, task, inner, false);
+            }
+
             if (inner_expr->type != AST_IDENTIFIER) {
                 llvm_set_error_at_with_hints(ctx, node,
                     PGY_CODE_LLVM_TYPE_UNSUPPORTED,
@@ -188,11 +202,29 @@ llvm_emit_expression(ASTNode *node, LLVMGenCtx *ctx)
         LLVMBasicBlockRef saved_bb = LLVMGetInsertBlock(ctx->builder);
         LLVMValueRef saved_fn = ctx->current_function;
         LLVMTypeRef saved_ret = ctx->current_ret_type;
+        LLVMTypeRef saved_function_ret = ctx->current_function_ret_type;
+        const char *saved_return_type_name = ctx->current_return_type_name;
+        ASTNode *saved_return_callable_type =
+            ctx->current_return_callable_type;
         LLVMLexicalRegistrySnapshot lexical_snapshot =
             llvm_lexical_registry_snapshot(ctx);
 
         ctx->current_function = lfn;
         ctx->current_ret_type = ret_type;
+        ctx->current_function_ret_type = ret_type;
+        {
+            ASTNode *lambda_return_type = ast_lambda_return_type(node);
+            ctx->current_return_type_name =
+                lambda_return_type != NULL
+                    ? llvm_stmt_render_type_annotation_copy(ctx,
+                        lambda_return_type)
+                    : NULL;
+            ctx->current_return_callable_type =
+                lambda_return_type != NULL
+                && lambda_return_type->type == AST_EVENT_HANDLER_TYPE
+                    ? lambda_return_type
+                    : NULL;
+        }
 
         LLVMBasicBlockRef entry = LLVMAppendBasicBlockInContext(
             ctx->context, lfn, "entry");
@@ -253,6 +285,9 @@ llvm_emit_expression(ASTNode *node, LLVMGenCtx *ctx)
 
         ctx->current_function = saved_fn;
         ctx->current_ret_type = saved_ret;
+        ctx->current_function_ret_type = saved_function_ret;
+        ctx->current_return_type_name = saved_return_type_name;
+        ctx->current_return_callable_type = saved_return_callable_type;
         if (saved_bb != NULL)
             LLVMPositionBuilderAtEnd(ctx->builder, saved_bb);
 

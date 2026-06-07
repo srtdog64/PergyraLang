@@ -103,8 +103,16 @@ run_literal_air_drift_smoke() {
     require_literal "src/compiler/air_boundary.c" "air_boundary_declares_authority_name"
     require_literal "src/compiler/air_verify_global.c" "strict AIR requires graph-backed type evidence"
     require_literal "src/compiler/air_verify_global.c" "missing DAG evidence node"
+    require_literal "src/compiler/air_verify_global.c" "AIRStrictCounterRequirement"
+    require_literal "src/compiler/air_verify_global.c" "AIRStrictGlobalEvidenceRequirement"
+    require_literal "src/compiler/air_verify_global.c" "kMirCounterRequirements"
+    require_literal "src/compiler/air_verify_global.c" "kDagCounterRequirements"
+    require_literal "src/compiler/air_verify_global.c" "kRuntimeGlobalRequirements"
+    require_literal "src/compiler/air_verify_global.c" "air_strict_require_counter_proofs"
     require_literal "src/compiler/air_verify.c" "strict AIR requires lowered boundary evidence"
     require_literal "src/compiler/air_boundary_evidence_policy.c" "kBoundaryEvidencePolicies"
+    require_literal "src/compiler/air_boundary_evidence_policy.c" "mir_pin_cleanup_source_name"
+    require_literal "src/compiler/air_boundary_evidence_policy.c" "[AIR_BOUNDARY_EXECUTION] = { true, true, false, \"pin\" }"
     require_literal "src/compiler/air_boundary_evidence_policy.c" "air_boundary_requires_hir_routine_evidence"
     require_literal "src/compiler/air_boundary_evidence_policy.c" "air_boundary_requires_hir_evidence"
     require_literal "src/compiler/air_boundary_evidence_policy.c" "air_boundary_requires_rir_evidence"
@@ -590,6 +598,7 @@ required_impl_terms = [
     "AST_AWAIT_EXPR",
     "AST_TASK_GROUP",
     "task-group",
+    "RIR_OP_AWAIT_LOCAL",
     "RIR_OP_AWAIT_REMOTE",
     "RIR_OP_SPAWN",
     "RIR_OP_ASYNC",

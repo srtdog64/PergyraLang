@@ -9,7 +9,7 @@ pgy_intent_active_step_ok_export(int32_t intent_index, int32_t step_index)
     bool result = false;
     pthread_mutex_lock(&pgy_intent_registry_mutex);
     PgyIntentHistoryStep *step =
-        pgy_intent_active_step_by_index_locked_export(intent_index, step_index);
+        pgy_intent_active_step_by_handle_locked_export(intent_index, step_index);
     if (step != NULL)
         result = step->ok;
     pthread_mutex_unlock(&pgy_intent_registry_mutex);

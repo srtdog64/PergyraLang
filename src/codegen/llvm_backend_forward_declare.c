@@ -81,12 +81,23 @@ llvm_can_forward_declare_func_early(LLVMGenCtx *ctx, ASTNode *func)
 
     if (ctx == NULL || func == NULL || func->type != AST_FUNC_DECL)
         return false;
-    GenericParams *generic_params = ast_func_generic_params(func);
-    if (ast_generic_param_count(generic_params) > 0)
-        return false;
 
     routine = llvm_find_mir_function_for_forward_decl(ctx, func);
     routine_has_signature = llvm_mir_routine_has_signature(routine);
+    if (routine != NULL && llvm_active_has_mir(ctx)
+        && !routine_has_signature) {
+        llvm_set_mir_inventory_missing(ctx,
+            "MIR-only LLVM path missing function forward signature metadata for '%s'",
+            ast_declaration_name(func) != NULL
+                ? ast_declaration_name(func)
+                : "(anonymous)");
+        return false;
+    }
+    size_t generic_param_count = routine_has_signature
+        ? llvm_mir_routine_generic_param_count(routine)
+        : ast_generic_param_count(ast_declaration_generic_params(func));
+    if (generic_param_count > 0)
+        return false;
 
     const char *return_type_name = routine_has_signature
         ? llvm_mir_routine_return_type_name(routine)

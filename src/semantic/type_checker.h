@@ -2,7 +2,7 @@
  * Copyright (c) 2025 Pergyra Language Project
  * All rights reserved.
  *
- * Type Checker — expression type inference and rule validation
+ * Type Checker: expression type inference and rule validation
  */
 
 #ifndef PERGYRA_TYPE_CHECKER_H
@@ -71,7 +71,7 @@ struct TypeResolutionGraph
 };
 
 /*
- * Semantic analysis context — passed through all check functions
+ * Semantic analysis context - passed through all check functions
  */
 struct SemanticContext
 {
@@ -136,6 +136,18 @@ struct SemanticContext
         size_t capacity;
         size_t index_capacity;
     } type_resolution_metadata;
+
+    /* Top-level declaration lookup index (non-owning).
+     * Built once from the AST program before DAG precollection so host,
+     * alias, and domain lookup consumers do not rescan the program root. */
+    struct {
+        ASTNode **decls;
+        const char **names;
+        ASTNodeType *types;
+        size_t count;
+        size_t capacity;
+    } host_decl_index;
+
     size_t type_resolution_metadata_hits;
     size_t type_resolution_metadata_misses;
     size_t type_resolution_metadata_dead_ends;
@@ -169,7 +181,7 @@ void semantic_error(SemanticContext* ctx, const ASTNode* node,
                     const char* fmt, ...) PGY_PRINTF_LIKE(3, 4);
 
 /* Emit an error with a stable diagnostic code for downstream consumers.
- * `code` must be a string literal (e.g. "PGY_SEM_TYPE_MISMATCH") — its
+ * `code` must be a string literal (e.g. "PGY_SEM_TYPE_MISMATCH") - its
  * lifetime is assumed to be static. Meaning is frozen once shipped. */
 void semantic_error_code(SemanticContext* ctx, const char* code,
                          const ASTNode* node, const char* fmt, ...)
@@ -276,7 +288,7 @@ bool type_check_with_stmt(ASTNode* node, SemanticContext* ctx);
 bool type_check_parallel_block(ASTNode* node, SemanticContext* ctx);
 
 /* -----------------------------------------------------------------
- * Expression checkers — return inferred Type* (NULL on error)
+ * Expression checkers - return inferred Type* (NULL on error)
  * ----------------------------------------------------------------- */
 
 Type* type_check_expression(ASTNode* expr, SemanticContext* ctx);
@@ -298,14 +310,14 @@ Type* type_check_assignment(ASTNode* expr, SemanticContext* ctx);
  * ----------------------------------------------------------------- */
 
 /*
- * ClaimSlot<T>() → validates T is a known type, returns Slot<T>
- * ClaimSecureSlot<T>(level) → returns (SecureSlot<T>, SecurityToken)
+ * ClaimSlot<T>() - validates T is a known type, returns Slot<T>
+ * ClaimSecureSlot<T>(level) - returns (SecureSlot<T>, SecurityToken)
  */
 Type* type_check_claim_slot(ASTNode* call, SemanticContext* ctx);
 
 /*
- * Write(slot, value)            — plain Slot<T>
- * Write(slot, value, token)     — SecureSlot<T>
+ * Write(slot, value)            - plain Slot<T>
+ * Write(slot, value, token)     - SecureSlot<T>
  *
  * Rules enforced:
  *   R1: value type must match Slot inner type
@@ -316,16 +328,16 @@ Type* type_check_claim_slot(ASTNode* call, SemanticContext* ctx);
 bool type_check_write_slot(ASTNode* call, SemanticContext* ctx);
 
 /*
- * Read(slot)         — plain Slot<T>, returns T
- * Read(slot, token)  — SecureSlot<T>, returns T
+ * Read(slot)         - plain Slot<T>, returns T
+ * Read(slot, token)  - SecureSlot<T>, returns T
  *
  * Same rules as Write except no value argument.
  */
 Type* type_check_read_slot(ASTNode* call, SemanticContext* ctx);
 
 /*
- * Release(slot)         — plain Slot<T>
- * Release(slot, token)  — SecureSlot<T>
+ * Release(slot)         - plain Slot<T>
+ * Release(slot, token)  - SecureSlot<T>
  *
  * Marks slot as RELEASED in symbol table.
  * Emits error if slot is already RELEASED.
@@ -347,7 +359,7 @@ Type* type_check_builtin_call(ASTNode* call, BuiltinKind kind,
  * ----------------------------------------------------------------- */
 
 /*
- * Check two types are compatible for assignment (from → to).
+ * Check two types are compatible for assignment (from -> to).
  * Emits a semantic_error if not.
  */
 bool require_assignable(Type* from, Type* to,

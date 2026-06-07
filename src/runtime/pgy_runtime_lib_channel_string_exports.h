@@ -1,6 +1,9 @@
 #include <pthread.h>
 #include "pgy_runtime_channel_status.h"
 
+/* Destroy is quiescent-only: close/drain/join producers and consumers before
+ * freeing the backing buffer and destroying mutex/condvar state. */
+
 typedef struct {
     char **buffer;
     size_t capacity;
@@ -69,9 +72,30 @@ void pgy_channel_init_String(PgyChannel_String_RT *ch, size_t cap)
     ch->tail = 0;
     ch->count = 0;
     ch->closed = false;
-    pthread_mutex_init(&ch->mutex, NULL);
-    pthread_cond_init(&ch->cond_not_full, NULL);
-    pthread_cond_init(&ch->cond_not_empty, NULL);
+    if (pthread_mutex_init(&ch->mutex, NULL) != 0) {
+        pgy_runtime_warn_invalid_channel("init_String", "mutex initialization failed");
+        free(ch->buffer);
+        ch->buffer = NULL;
+        ch->capacity = 0;
+        return;
+    }
+    if (pthread_cond_init(&ch->cond_not_full, NULL) != 0) {
+        pgy_runtime_warn_invalid_channel("init_String", "not-full condition initialization failed");
+        pthread_mutex_destroy(&ch->mutex);
+        free(ch->buffer);
+        ch->buffer = NULL;
+        ch->capacity = 0;
+        return;
+    }
+    if (pthread_cond_init(&ch->cond_not_empty, NULL) != 0) {
+        pgy_runtime_warn_invalid_channel("init_String", "not-empty condition initialization failed");
+        pthread_cond_destroy(&ch->cond_not_full);
+        pthread_mutex_destroy(&ch->mutex);
+        free(ch->buffer);
+        ch->buffer = NULL;
+        ch->capacity = 0;
+        return;
+    }
 }
 
 void pgy_channel_destroy_String(PgyChannel_String_RT *ch)
@@ -109,8 +133,14 @@ bool pgy_channel_send_String(PgyChannel_String_RT *ch, char *v)
         return false;
     }
     pthread_mutex_lock(&ch->mutex);
-    while (ch->count >= ch->capacity && !ch->closed)
-        pthread_cond_wait(&ch->cond_not_full, &ch->mutex);
+    while (ch->count >= ch->capacity && !ch->closed) {
+        if (pthread_cond_wait(&ch->cond_not_full, &ch->mutex) != 0) {
+            pgy_runtime_warn_invalid_channel("send_String",
+                "not-full condition wait failed");
+            pthread_mutex_unlock(&ch->mutex);
+            return false;
+        }
+    }
     if (ch->closed) {
         pgy_runtime_warn_invalid_channel("send_String", "channel is closed");
         pthread_mutex_unlock(&ch->mutex);
@@ -215,9 +245,16 @@ bool pgy_channel_send_timeout_String(PgyChannel_String_RT *ch, char *v,
     struct timespec deadline = pgy_runtime_deadline_after_ns(timeout_ns);
     pthread_mutex_lock(&ch->mutex);
     while (ch->count >= ch->capacity && !ch->closed) {
-        if (pthread_cond_timedwait(&ch->cond_not_full, &ch->mutex, &deadline)
-            == ETIMEDOUT && ch->count >= ch->capacity && !ch->closed) {
+        int wait_status =
+            pthread_cond_timedwait(&ch->cond_not_full, &ch->mutex, &deadline);
+        if (wait_status == ETIMEDOUT && ch->count >= ch->capacity && !ch->closed) {
             pgy_runtime_warn_invalid_channel("send_timeout_String", "deadline reached while channel remained full");
+            pthread_mutex_unlock(&ch->mutex);
+            return false;
+        }
+        if (wait_status != 0) {
+            pgy_runtime_warn_invalid_channel("send_timeout_String",
+                "not-full condition timed wait failed");
             pthread_mutex_unlock(&ch->mutex);
             return false;
         }
@@ -253,10 +290,17 @@ PgyOption_Bool pgy_channel_send_timeout_status_String(
     struct timespec deadline = pgy_runtime_deadline_after_ns(timeout_ns);
     pthread_mutex_lock(&ch->mutex);
     while (ch->count >= ch->capacity && !ch->closed) {
-        if (pthread_cond_timedwait(&ch->cond_not_full, &ch->mutex, &deadline)
-            == ETIMEDOUT && ch->count >= ch->capacity && !ch->closed) {
+        int wait_status =
+            pthread_cond_timedwait(&ch->cond_not_full, &ch->mutex, &deadline);
+        if (wait_status == ETIMEDOUT && ch->count >= ch->capacity && !ch->closed) {
             pthread_mutex_unlock(&ch->mutex);
             return None_Bool();
+        }
+        if (wait_status != 0) {
+            pgy_runtime_warn_invalid_channel("send_timeout_status_String",
+                "not-full condition timed wait failed");
+            pthread_mutex_unlock(&ch->mutex);
+            return Some_Bool(false);
         }
     }
     if (ch->closed) {
@@ -310,7 +354,12 @@ bool pgy_channel_recv_String(PgyChannel_String_RT *ch, char **out)
             pthread_mutex_unlock(&ch->mutex);
             if (!pgy_async_progress_one()) {
                 pthread_mutex_lock(&ch->mutex);
-                pthread_cond_wait(&ch->cond_not_empty, &ch->mutex);
+                if (pthread_cond_wait(&ch->cond_not_empty, &ch->mutex) != 0) {
+                    pgy_runtime_warn_invalid_channel("recv_String",
+                        "not-empty condition wait failed");
+                    pthread_mutex_unlock(&ch->mutex);
+                    return false;
+                }
             } else {
                 pthread_mutex_lock(&ch->mutex);
             }
@@ -354,9 +403,16 @@ bool pgy_channel_recv_timeout_String(PgyChannel_String_RT *ch, char **out,
             pthread_mutex_unlock(&ch->mutex);
             if (!pgy_async_progress_one()) {
                 pthread_mutex_lock(&ch->mutex);
-                if (pthread_cond_timedwait(&ch->cond_not_empty, &ch->mutex, &deadline)
-                    == ETIMEDOUT && ch->count == 0 && !ch->closed) {
+                int wait_status = pthread_cond_timedwait(
+                    &ch->cond_not_empty, &ch->mutex, &deadline);
+                if (wait_status == ETIMEDOUT && ch->count == 0 && !ch->closed) {
                     pgy_runtime_warn_invalid_channel("recv_timeout_String", "deadline reached while channel remained empty");
+                    pthread_mutex_unlock(&ch->mutex);
+                    return false;
+                }
+                if (wait_status != 0) {
+                    pgy_runtime_warn_invalid_channel("recv_timeout_String",
+                        "not-empty condition timed wait failed");
                     pthread_mutex_unlock(&ch->mutex);
                     return false;
                 }
@@ -406,102 +462,6 @@ bool pgy_channel_try_recv_String(PgyChannel_String_RT *ch, char **out)
     pthread_cond_signal(&ch->cond_not_full);
     pthread_mutex_unlock(&ch->mutex);
     return true;
-}
-
-bool pgy_channel_closed_String(PgyChannel_String_RT *ch);
-
-PgyRuntimeChannelStringResult
-pgy_channel_recv_result_String(PgyChannel_String_RT *ch)
-{
-    PgyRuntimeChannelStringResult result;
-    char *out = NULL;
-
-    if (ch == NULL) {
-        result.tag = PGY_RUNTIME_CHANNEL_RESULT_ERR;
-        result.err = pgy_runtime_channel_failure_from_status(
-            PGY_RUNTIME_CHANNEL_STATUS_NULL_CHANNEL, "recv_String");
-        return result;
-    }
-    if (ch->buffer == NULL || ch->capacity == 0) {
-        result.tag = PGY_RUNTIME_CHANNEL_RESULT_ERR;
-        result.err = pgy_runtime_channel_failure_from_status(
-            PGY_RUNTIME_CHANNEL_STATUS_UNINITIALIZED, "recv_String");
-        return result;
-    }
-    if (!pgy_channel_recv_String(ch, &out)) {
-        result.tag = PGY_RUNTIME_CHANNEL_RESULT_ERR;
-        result.err = pgy_runtime_channel_failure_from_status(
-            PGY_RUNTIME_CHANNEL_STATUS_CLOSED_EMPTY, "recv_String");
-        return result;
-    }
-    result.tag = PGY_RUNTIME_CHANNEL_RESULT_OK;
-    result.ok = out;
-    return result;
-}
-
-PgyRuntimeChannelStringResult
-pgy_channel_try_recv_result_String(PgyChannel_String_RT *ch)
-{
-    PgyRuntimeChannelStringResult result;
-    char *out = NULL;
-
-    if (ch == NULL) {
-        result.tag = PGY_RUNTIME_CHANNEL_RESULT_ERR;
-        result.err = pgy_runtime_channel_failure_from_status(
-            PGY_RUNTIME_CHANNEL_STATUS_NULL_CHANNEL, "try_recv_String");
-        return result;
-    }
-    if (ch->buffer == NULL || ch->capacity == 0) {
-        result.tag = PGY_RUNTIME_CHANNEL_RESULT_ERR;
-        result.err = pgy_runtime_channel_failure_from_status(
-            PGY_RUNTIME_CHANNEL_STATUS_UNINITIALIZED, "try_recv_String");
-        return result;
-    }
-    if (!pgy_channel_try_recv_String(ch, &out)) {
-        result.tag = PGY_RUNTIME_CHANNEL_RESULT_ERR;
-        result.err = pgy_runtime_channel_failure_from_status(
-            pgy_channel_closed_String(ch)
-                ? PGY_RUNTIME_CHANNEL_STATUS_CLOSED_EMPTY
-                : PGY_RUNTIME_CHANNEL_STATUS_EMPTY,
-            "try_recv_String");
-        return result;
-    }
-    result.tag = PGY_RUNTIME_CHANNEL_RESULT_OK;
-    result.ok = out;
-    return result;
-}
-
-PgyRuntimeChannelStringResult
-pgy_channel_recv_timeout_result_String(PgyChannel_String_RT *ch,
-                                       uint64_t timeout_ns)
-{
-    PgyRuntimeChannelStringResult result;
-    char *out = NULL;
-
-    if (ch == NULL) {
-        result.tag = PGY_RUNTIME_CHANNEL_RESULT_ERR;
-        result.err = pgy_runtime_channel_failure_from_status(
-            PGY_RUNTIME_CHANNEL_STATUS_NULL_CHANNEL, "recv_timeout_String");
-        return result;
-    }
-    if (ch->buffer == NULL || ch->capacity == 0) {
-        result.tag = PGY_RUNTIME_CHANNEL_RESULT_ERR;
-        result.err = pgy_runtime_channel_failure_from_status(
-            PGY_RUNTIME_CHANNEL_STATUS_UNINITIALIZED, "recv_timeout_String");
-        return result;
-    }
-    if (!pgy_channel_recv_timeout_String(ch, &out, timeout_ns)) {
-        result.tag = PGY_RUNTIME_CHANNEL_RESULT_ERR;
-        result.err = pgy_runtime_channel_failure_from_status(
-            pgy_channel_closed_String(ch)
-                ? PGY_RUNTIME_CHANNEL_STATUS_CLOSED_EMPTY
-                : PGY_RUNTIME_CHANNEL_STATUS_TIMEOUT,
-            "recv_timeout_String");
-        return result;
-    }
-    result.tag = PGY_RUNTIME_CHANNEL_RESULT_OK;
-    result.ok = out;
-    return result;
 }
 
 bool pgy_channel_ready_String(PgyChannel_String_RT *ch)
@@ -585,9 +545,4 @@ bool pgy_channel_closed_String(PgyChannel_String_RT *ch)
     return closed;
 }
 
-char *pgy_channel_recv_val_String(PgyChannel_String_RT *ch)
-{
-    PgyRuntimeChannelStringResult result =
-        pgy_channel_recv_result_String(ch);
-    return result.tag == PGY_RUNTIME_CHANNEL_RESULT_OK ? result.ok : NULL;
-}
+#include "pgy_runtime_lib_channel_string_result_exports.h"

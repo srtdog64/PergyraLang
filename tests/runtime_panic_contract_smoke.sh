@@ -39,12 +39,15 @@ run_literal_contract_smoke() {
         "src/runtime/pgy_runtime_memory_array_slot_inline.h"
         "src/runtime/pgy_runtime_lib_authority_file_core.h"
         "src/runtime/pgy_runtime_lib_intent_slot_core_exports.h"
+        "src/runtime/pgy_runtime_slot_macros.h"
         "src/runtime/pgy_runtime_lib_slot_exports.h"
         "src/runtime/pgy_runtime_lib_device_slot_exports.h"
         "src/runtime/pgy_runtime_lib_secure_slot_exports.h"
         "src/runtime/pgy_runtime_lib_slot_array_io_string_exports.h"
         "src/runtime/pgy_runtime_lib_array_map_exports.h"
         "src/runtime/pgy_runtime_panic_checked_inline.h"
+        "src/runtime/pgy_parallel.h"
+        "src/runtime/pgy_parallel_run.h"
         "src/runtime/pgy_runtime_process_exit.h"
         "src/runtime/pgy_runtime_result_option_inline.h"
         "src/runtime/async/fiber.c"
@@ -96,12 +99,25 @@ run_literal_contract_smoke() {
     require_literal "src/runtime/pgy_runtime_lib_authority_file_core.h" "pgy_runtime_panic_contract.h"
     require_literal "src/runtime/pgy_runtime_memory_array_slot_inline.h" "PGY_RUNTIME_PANIC_CLASS_INTERNAL_INVARIANT"
     require_literal "src/runtime/pgy_runtime_lib_intent_slot_core_exports.h" "PGY_RUNTIME_PANIC_CLASS_RELEASED_SLOT"
+    require_literal "src/runtime/pgy_runtime_slot_macros.h" "pgy_runtime_panic_contract.h"
+    require_literal "src/runtime/pgy_runtime_slot_macros.h" "device slot read spawn failed"
     require_literal "src/runtime/pgy_runtime_lib_slot_exports.h" "PGY_RUNTIME_PANIC_CLASS_DOUBLE_RELEASE"
+    require_literal "src/runtime/pgy_runtime_lib_device_slot_exports.h" "pgy_runtime_panic_contract.h"
     require_literal "src/runtime/pgy_runtime_lib_device_slot_exports.h" "PGY_RUNTIME_PANIC_REASON_RELEASED_DEVICE_SLOT_WRITE"
+    require_literal "src/runtime/pgy_runtime_lib_device_slot_exports.h" "device slot read spawn failed"
     require_literal "src/runtime/pgy_runtime_lib_secure_slot_exports.h" "PGY_RUNTIME_PANIC_REASON_INVALID_SECURE_TOKEN_WRITE"
     require_literal "src/runtime/pgy_runtime_result_option_inline.h" "PGY_RUNTIME_PANIC_REASON_RESULT_UNWRAP_ERR"
     require_literal "src/runtime/pgy_runtime_result_option_inline.h" "PGY_RUNTIME_PANIC_REASON_OPTION_UNWRAP_NONE"
     require_literal "src/runtime/pgy_runtime_panic_checked_inline.h" "PGY_RUNTIME_PANIC_CLASS_DIVIDE_BY_ZERO"
+    require_literal "src/runtime/pgy_parallel.h" "pgy_runtime_panic_contract.h"
+    require_literal "src/runtime/pgy_parallel_run.h" "parallel task array is null"
+    require_literal "src/runtime/pgy_parallel_run.h" "parallel task spawn failed"
+    require_literal "src/runtime/pgy_parallel.h" "await task handle is null"
+    require_literal "src/runtime/pgy_parallel.h" "Future await returned null result"
+    require_literal "src/runtime/pgy_parallel.h" "pgy_cancel_node_create"
+    require_literal "src/runtime/pgy_parallel_coroutine.h" "detach task handle is null"
+    forbid_literal "src/runtime/pgy_parallel.h" "cancellation disabled because cancel node allocation failed"
+    forbid_literal "src/runtime/pgy_parallel_blocking.h" "cancellation disabled because cancel node allocation failed"
     require_literal "src/runtime/async/fiber.c" "pgy_runtime_panic_contract.h"
     require_literal "src/runtime/async/fiber.c" "fiber returned after completion"
     forbid_literal "src/runtime/async/fiber.c" "assert("
@@ -149,9 +165,12 @@ inline_panic = root / "src" / "runtime" / "pgy_runtime_memory_array_slot_inline.
 allocator_inline = root / "src" / "runtime" / "pgy_runtime_allocator_inline.h"
 result_option_inline = root / "src" / "runtime" / "pgy_runtime_result_option_inline.h"
 process_exit_h = root / "src" / "runtime" / "pgy_runtime_process_exit.h"
+parallel_h = root / "src" / "runtime" / "pgy_parallel.h"
+parallel_coroutine_h = root / "src" / "runtime" / "pgy_parallel_coroutine.h"
 fiber_c = root / "src" / "runtime" / "async" / "fiber.c"
 lib_top = root / "src" / "runtime" / "pgy_runtime_lib_authority_file_core.h"
 slot_c = root / "src" / "runtime" / "pgy_runtime_lib_intent_slot_core_exports.h"
+slot_macros = root / "src" / "runtime" / "pgy_runtime_slot_macros.h"
 slot_export = root / "src" / "runtime" / "pgy_runtime_lib_slot_exports.h"
 slot_array_export = root / "src" / "runtime" / "pgy_runtime_lib_slot_array_io_string_exports.h"
 device_slot_export = root / "src" / "runtime" / "pgy_runtime_lib_device_slot_exports.h"
@@ -215,6 +234,39 @@ for path in [inline_top, lib_top]:
     text = path.read_text(encoding="utf-8")
     if "pgy_runtime_panic_contract.h" not in text:
         raise SystemExit(f"{path.relative_to(root)} does not include panic contract")
+
+for path in [slot_macros, device_slot_export]:
+    text = path.read_text(encoding="utf-8")
+    for token in [
+        "pgy_runtime_panic_contract.h",
+        "PGY_RUNTIME_PANIC_REASON_ALLOCATION_FAILED",
+        "device slot read spawn failed",
+    ]:
+        if token not in text:
+            raise SystemExit(f"{path.relative_to(root)} missing DeviceSlot submit panic contract token: {token}")
+
+parallel_text = parallel_h.read_text(encoding="utf-8")
+for token in [
+    "pgy_runtime_panic_contract.h",
+    "parallel task array is null",
+    "parallel task is null",
+    "parallel task spawn failed",
+    "await task handle is null",
+    "Future await returned null result",
+    "PGY_RUNTIME_PANIC_CLASS_OOM",
+    "PGY_RUNTIME_PANIC_REASON_ALLOCATION_FAILED",
+]:
+    if token not in parallel_text:
+        raise SystemExit(f"parallel runtime missing fail-closed token: {token}")
+if "cancellation disabled because cancel node allocation failed" in parallel_text:
+    raise SystemExit("parallel runtime must not silently disable cancellation on OOM")
+blocking_text = (root / "src" / "runtime" / "pgy_parallel_blocking.h").read_text(encoding="utf-8")
+if "cancellation disabled because cancel node allocation failed" in blocking_text:
+    raise SystemExit("blocking parallel runtime must not silently disable cancellation on OOM")
+
+parallel_coroutine_text = parallel_coroutine_h.read_text(encoding="utf-8")
+if "detach task handle is null" not in parallel_coroutine_text:
+    raise SystemExit("parallel coroutine runtime must panic on null detach handle")
 
 fiber_text = fiber_c.read_text(encoding="utf-8")
 if "pgy_runtime_panic_contract.h" not in fiber_text:

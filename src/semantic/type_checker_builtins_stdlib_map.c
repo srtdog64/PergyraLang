@@ -72,6 +72,37 @@ stdlib_map_builtin_kind(const char *name)
     return match != NULL ? match->kind : STDLIB_MAP_BUILTIN_UNKNOWN;
 }
 
+static bool
+stdlib_map_builtin_mutates_storage(StdlibMapBuiltinKind kind)
+{
+    return kind == STDLIB_MAP_BUILTIN_SET
+        || kind == STDLIB_MAP_BUILTIN_REMOVE;
+}
+
+static bool
+stdlib_map_reject_parallel_mutation(ASTNode *expr,
+                                    const char *name,
+                                    SemanticContext *ctx,
+                                    StdlibMapBuiltinKind kind)
+{
+    if (ctx == NULL || !ctx->in_parallel)
+        return false;
+    if (!stdlib_map_builtin_mutates_storage(kind))
+        return false;
+    semantic_error_with_hints(ctx, PGY_CODE_SEM_PARALLEL_SLOT_CONFLICT,
+        PGY_CAUSE_PARALLEL_RESOURCE_CONFLICT,
+        PGY_FIX_SERIALIZE_OUTSIDE_PARALLEL, expr,
+        "Parallel context does not permit map mutator '%s'.\n"
+        "Reason:\n"
+        "- HashMap storage may rehash while another task observes it\n"
+        "- generated C/LLVM workers cannot safely share mutable map storage by raw pointer\n"
+        "Fix:\n"
+        "- mutate the map before or after parallel\n"
+        "- or send immutable values through a channel/result boundary",
+        name != NULL ? name : "<map builtin>");
+    return true;
+}
+
 static void
 report_unsupported_map_key(ASTNode *expr, const char *name, Type *map_type,
                            SemanticContext *ctx)
@@ -116,6 +147,9 @@ type_check_stdlib_map_call(ASTNode *expr, const char *name,
 
     if (handled_out != NULL)
         *handled_out = true;
+
+    if (stdlib_map_reject_parallel_mutation(expr, name, ctx, kind))
+        return TYPE_UNKNOWN;
 
     if (kind == STDLIB_MAP_BUILTIN_NEW) {
         if (!check_call_arity(expr, 0, name, ctx))

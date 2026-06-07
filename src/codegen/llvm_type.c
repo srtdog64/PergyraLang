@@ -299,14 +299,10 @@ llvm_result_suffix_from_context(LLVMGenCtx *ctx,
 
     /* Candidate source-level type names, priority order:
      * 1. let-binding annotation (expected_type_name)
-     * 2. enclosing function's declared return type */
+     * 2. active function return metadata fixed at function-entry lowering */
     const char *candidates[2];
     candidates[0] = ctx->expected_type_name;
-    candidates[1] = NULL;
-    ASTNode *current_return_type = ast_func_return_type(ctx->current_func_decl);
-    if (current_return_type != NULL && current_return_type->type == AST_TYPE) {
-        candidates[1] = ast_type_name(current_return_type);
-    }
+    candidates[1] = ctx->current_return_type_name;
 
     char inner[256];
     const char *picked = NULL;

@@ -171,6 +171,7 @@ llvm_stmt_call_returns_collection_size(const char *callee)
         "ListSize",
         "MapSize",
         "QueueSize",
+        "SetSize",
     };
     return llvm_stmt_name_in_sorted_table(callee, calls, PGY_ARRAY_COUNT(calls));
 }
@@ -181,6 +182,7 @@ llvm_stmt_call_returns_collection_bool(const char *callee)
     static const char *const calls[] = {
         "MapHas",
         "QueueEmpty",
+        "SetHas",
     };
     return llvm_stmt_name_in_sorted_table(callee, calls, PGY_ARRAY_COUNT(calls));
 }

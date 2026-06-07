@@ -128,6 +128,11 @@ llvm_emit_world_embedded_action_effect_sync(LLVMGenCtx *ctx,
     method_within_zone = llvm_mir_decl_method_within_zone(method_meta);
     effect_name = llvm_mir_decl_method_causes_effect(method_meta);
     if (method_meta == NULL) {
+        if (llvm_active_has_mir(ctx)) {
+            llvm_set_mir_inventory_missing(ctx,
+                "MIR-only LLVM path missing world effect sync method metadata");
+            return;
+        }
         method_is_async = method_decl != NULL && method_decl->is_async_decl;
         method_is_action = ast_func_is_action(method_decl);
         method_within_zone = ast_func_within_zone(method_decl);

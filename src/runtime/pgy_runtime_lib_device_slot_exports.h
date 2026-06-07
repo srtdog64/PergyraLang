@@ -2,6 +2,7 @@
  * Device Slot operations - extern wrappers for LLVM linker
  * ================================================================= */
 
+#include "pgy_runtime_panic_contract.h"
 #include "pgy_runtime_slot_status.h"
 
 #define PGY_DEFINE_DEVICE_SLOT_EXPORTS(Suffix, CType, ZeroExpr)                 \
@@ -129,12 +130,17 @@ PgyTaskHandle pgy_submit_device_read_##Suffix(PgyDeviceSlot_##Suffix *s)        
 {                                                                               \
     PgyDeviceReadTaskArg_##Suffix *arg =                                        \
         (PgyDeviceReadTaskArg_##Suffix *)malloc(sizeof(PgyDeviceReadTaskArg_##Suffix)); \
-    if (arg == NULL) {                                                          \
-        PgyTaskHandle empty = {0};                                              \
-        return empty;                                                           \
-    }                                                                           \
+    if (arg == NULL)                                                            \
+        PGY_RUNTIME_PANIC(PGY_RUNTIME_PANIC_CLASS_OOM,                          \
+                          PGY_RUNTIME_PANIC_REASON_ALLOCATION_FAILED);          \
     arg->slot = s;                                                              \
-    return pgy_spawn(pgy_device_read_task_##Suffix, arg);                       \
+    PgyTaskHandle handle = pgy_spawn(pgy_device_read_task_##Suffix, arg);       \
+    if (handle.task == NULL) {                                                  \
+        free(arg);                                                              \
+        PGY_RUNTIME_PANIC(PGY_RUNTIME_PANIC_CLASS_INTERNAL_INVARIANT,           \
+                          "device slot read spawn failed");                    \
+    }                                                                           \
+    return handle;                                                              \
 }
 
 PGY_DEFINE_DEVICE_SLOT_EXPORTS(Int, int32_t, 0)

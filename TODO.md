@@ -28,6 +28,15 @@ English anchor for tooling/doc gates:
   CFG/body safety source-of-truth, AIR abstraction-boundary verification,
   DAG recursive compatibility seam removal, MIR/LLVM declaration bootstrap parity,
   and ABI/Slot/Pin ownership freeze.
+- Windows CI shell source-of-truth: `ci-windows` now prefers the active MSYS2
+  bash runtime and fail-fasts if a Windows-hosted MinGW build is routed through
+  Git Bash. `build-source-inventory-test-smoke` gates the MSYS2-first Makefile
+  terms so this does not regress into silent first-`gcc` failures.
+- MIR declaration generic metadata source-of-truth: `MIRDeclGenericParam`
+  no longer reuses raw AST storage field names for bound/default metadata.
+  Capture and validation still consume parser-owned `ast_generic_param_*`
+  accessors, while compiler/codegen inventory smoke now proves raw
+  `->constraint` / `->default_type` reads stay out of compiler/codegen.
 - Honest weakness ledger: beta messaging and work selection must keep five
   real costs visible instead of hiding them behind safety language. (1) Runtime
   Slot/authority validation can trade memory corruption for availability loss;

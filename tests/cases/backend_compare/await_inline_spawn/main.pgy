@@ -1,0 +1,9 @@
+async func Inc(x: Int) -> Int {
+    return x + 1;
+}
+
+async func Main() -> Void {
+    let value: Int = await spawn Inc(4);
+    Log(value);
+    Log(await spawn Inc(9));
+}

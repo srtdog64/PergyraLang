@@ -36,6 +36,73 @@ test_mir_lowering_part_a(void)
         rir_destroy(rir);
         hir_destroy(hir);
     }
+
+    TEST("MIR carries await Future ABI layouts from RIR ops");
+    {
+        const char *src =
+            "func Worker() -> Int { return 1; }\n"
+            "async func AwaitKinds(pending: RemoteFuture<Int>) -> Void {\n"
+            "    let f: Future<Int> = spawn Worker();\n"
+            "    let localValue = await f;\n"
+            "    let remoteValue = await pending;\n"
+            "}\n";
+        HIRProgram *hir = NULL;
+        RIRProgram *rir = NULL;
+        MIRProgram *mir = NULL;
+        MIRRoutine *routine = NULL;
+        MIRInstruction *local_inst = NULL;
+        const MIRTypeLayout *saved_local_layout = NULL;
+        char *mir_error = NULL;
+        bool local_layout_ok = false;
+        bool remote_layout_ok = false;
+        bool rejected_invalid_local_layout = false;
+        bool ok = lower_mir_from_source(src, &hir, &rir, &mir);
+        if (ok)
+            routine = find_mir_routine_mut(mir, "AwaitKinds", MIR_SCOPE_FUNCTION);
+        if (routine != NULL) {
+            for (size_t bi = 0; bi < routine->block_count; bi++) {
+                MIRBasicBlock *block = &routine->blocks[bi];
+                for (size_t ii = 0; ii < block->instruction_count; ii++) {
+                    MIRInstruction *inst = &block->instructions[ii];
+                    if (inst->kind != MIR_INST_RESOURCE_OP
+                        || inst->name == NULL
+                        || inst->type_layout == NULL
+                        || inst->type_layout->abi_type_name == NULL) {
+                        continue;
+                    }
+                    if (strcmp(inst->name, "AwaitLocal") == 0
+                        && strcmp(inst->type_layout->abi_type_name, "Future") == 0) {
+                        local_layout_ok = true;
+                        local_inst = inst;
+                    }
+                    if (strcmp(inst->name, "AwaitRemote") == 0
+                        && strcmp(inst->type_layout->abi_type_name, "RemoteFuture") == 0)
+                        remote_layout_ok = true;
+                }
+            }
+        }
+        if (local_inst != NULL) {
+            saved_local_layout = local_inst->type_layout;
+            local_inst->type_layout = mir_abi_lookup("RemoteFuture");
+            rejected_invalid_local_layout =
+                !mir_validate(mir, &mir_error)
+                && mir_error != NULL
+                && strstr(mir_error,
+                          "await resource op has invalid MIR ABI type layout fact") != NULL;
+            local_inst->type_layout = saved_local_layout;
+        }
+        EXPECT(ok
+               && mir_validate(mir, NULL)
+               && routine != NULL
+               && local_layout_ok
+               && remote_layout_ok
+               && rejected_invalid_local_layout);
+        free(mir_error);
+        mir_destroy(mir);
+        rir_destroy(rir);
+        hir_destroy(hir);
+    }
+
     TEST("MIR builds cleanup block for intent compensation");
     {
         const char *src =

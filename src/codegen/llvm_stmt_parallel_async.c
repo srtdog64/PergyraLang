@@ -1,6 +1,7 @@
 #ifdef PGY_LLVM_ENABLED
 #include "llvm_internal.h"
 #include "llvm_stmt_parallel_names.h"
+#include "transpiler_type_mapping.h"
 #include "../parser/ast_analysis.h"
 #include "../parser/ast_api.h"
 
@@ -31,15 +32,20 @@ llvm_capture_shared_collection_kind(LLVMGenCtx *ctx, const char *name)
     if (ctx == NULL || name == NULL)
         return NULL;
     if (llvm_lookup_array_var(ctx, name) != NULL)
-        return "Array/Slice";
+        return codegen_worker_boundary_storage_kind_from_constructor_name(
+            "Array/Slice", false, true);
     if (llvm_lookup_list_inner(ctx, name) != NULL)
-        return "List";
+        return codegen_worker_boundary_storage_kind_from_constructor_name(
+            "List", false, false);
     if (llvm_lookup_queue_inner(ctx, name) != NULL)
-        return "Queue";
+        return codegen_worker_boundary_storage_kind_from_constructor_name(
+            "Queue", false, false);
     if (llvm_lookup_set_inner(ctx, name) != NULL)
-        return "Set";
+        return codegen_worker_boundary_storage_kind_from_constructor_name(
+            "Set", false, false);
     if (llvm_lookup_map_value(ctx, name) != NULL)
-        return "HashMap";
+        return codegen_worker_boundary_storage_kind_from_constructor_name(
+            "HashMap", false, false);
     return NULL;
 }
 
@@ -60,6 +66,59 @@ llvm_capture_reject_shared_collection(LLVMGenCtx *ctx, ASTNode *site,
         boundary != NULL ? boundary : "worker",
         name != NULL ? name : "<binding>",
         kind);
+    return true;
+}
+
+static bool
+llvm_emit_task_handle_nonnull_guard(LLVMGenCtx *ctx, ASTNode *site,
+                                    LLVMValueRef handle, const char *reason)
+{
+    LLVMFuncEntry *panic_fn;
+    LLVMValueRef task;
+    LLVMValueRef is_null;
+    LLVMBasicBlockRef fail_bb;
+    LLVMBasicBlockRef cont_bb;
+
+    if (ctx == NULL || handle == NULL)
+        return false;
+    if (ctx->current_function == NULL) {
+        llvm_set_error_at_with_hints(ctx, site,
+            PGY_CODE_LLVM_TYPE_UNSUPPORTED,
+            PGY_CAUSE_LLVM_TYPE_UNSUPPORTED,
+            PGY_FIX_INSPECT_MIR_INVENTORY,
+            "LLVM task handle guard requires an active function");
+        return false;
+    }
+
+    panic_fn = llvm_lookup_function(ctx,
+        "pgy_runtime_panic_internal_invariant_export");
+    if (panic_fn == NULL) {
+        llvm_set_error_at_with_hints(ctx, site,
+            PGY_CODE_LLVM_TYPE_UNSUPPORTED,
+            PGY_CAUSE_LLVM_TYPE_UNSUPPORTED,
+            PGY_FIX_INSPECT_MIR_INVENTORY,
+            "LLVM task handle guard requires registered runtime function '%s'",
+            "pgy_runtime_panic_internal_invariant_export");
+        return false;
+    }
+
+    task = LLVMBuildExtractValue(ctx->builder, handle, 0, llvm_tmp_name(ctx));
+    is_null = LLVMBuildICmp(ctx->builder, LLVMIntEQ, task,
+        LLVMConstNull(ctx->type_i8ptr), llvm_tmp_name(ctx));
+    fail_bb = LLVMAppendBasicBlockInContext(ctx->context,
+        ctx->current_function, "pgy.task.spawn.fail");
+    cont_bb = LLVMAppendBasicBlockInContext(ctx->context,
+        ctx->current_function, "pgy.task.spawn.cont");
+    LLVMBuildCondBr(ctx->builder, is_null, fail_bb, cont_bb);
+
+    LLVMPositionBuilderAtEnd(ctx->builder, fail_bb);
+    LLVMValueRef reason_arg = LLVMBuildGlobalStringPtr(ctx->builder,
+        reason != NULL ? reason : "task spawn failed", llvm_tmp_name(ctx));
+    LLVMBuildCall2(ctx->builder, panic_fn->fn_type, panic_fn->fn,
+        &reason_arg, 1, "");
+    LLVMBuildUnreachable(ctx->builder);
+
+    LLVMPositionBuilderAtEnd(ctx->builder, cont_bb);
     return true;
 }
 
@@ -201,6 +260,9 @@ llvm_emit_parallel_block(ASTNode *node, LLVMGenCtx *ctx)
 
     LLVMValueRef saved_fn = ctx->current_function;
     LLVMTypeRef saved_ret = ctx->current_ret_type;
+    LLVMTypeRef saved_function_ret = ctx->current_function_ret_type;
+    const char *saved_return_type_name = ctx->current_return_type_name;
+    ASTNode *saved_return_callable_type = ctx->current_return_callable_type;
     LLVMBasicBlockRef saved_bb = LLVMGetInsertBlock(ctx->builder);
 
     LLVMTypeRef wrapper_params[] = { ctx->type_i8ptr };
@@ -236,6 +298,9 @@ llvm_emit_parallel_block(ASTNode *node, LLVMGenCtx *ctx)
 
         ctx->current_function = fn;
         ctx->current_ret_type = ctx->type_i8ptr;
+        ctx->current_function_ret_type = ctx->type_i8ptr;
+        ctx->current_return_type_name = NULL;
+        ctx->current_return_callable_type = NULL;
 
         LLVMLexicalRegistrySnapshot lexical_snapshot =
             llvm_lexical_registry_snapshot(ctx);
@@ -280,6 +345,9 @@ llvm_emit_parallel_block(ASTNode *node, LLVMGenCtx *ctx)
 
     ctx->current_function = saved_fn;
     ctx->current_ret_type = saved_ret;
+    ctx->current_function_ret_type = saved_function_ret;
+    ctx->current_return_type_name = saved_return_type_name;
+    ctx->current_return_callable_type = saved_return_callable_type;
     if (saved_bb != NULL)
         LLVMPositionBuilderAtEnd(ctx->builder, saved_bb);
 
@@ -305,6 +373,10 @@ llvm_emit_parallel_block(ASTNode *node, LLVMGenCtx *ctx)
         handles[i] = LLVMBuildCall2(ctx->builder, spawn_fn->fn_type,
                                      spawn_fn->fn, args, 2,
                                      llvm_tmp_name(ctx));
+        if (!llvm_emit_task_handle_nonnull_guard(ctx, node, handles[i],
+                "LLVM parallel task spawn failed")) {
+            return;
+        }
     }
 
     for (size_t i = 0; i < count; i++) {
@@ -332,53 +404,11 @@ llvm_emit_async_block(ASTNode *node, LLVMGenCtx *ctx)
 
     LLVMValueRef saved_fn = ctx->current_function;
     LLVMTypeRef saved_ret = ctx->current_ret_type;
+    LLVMTypeRef saved_function_ret = ctx->current_function_ret_type;
+    const char *saved_return_type_name = ctx->current_return_type_name;
+    ASTNode *saved_return_callable_type = ctx->current_return_callable_type;
     LLVMBasicBlockRef saved_bb = LLVMGetInsertBlock(ctx->builder);
 
-    typedef struct {
-        const char *name;
-        LLVMValueRef alloca;
-        LLVMTypeRef type;
-        const char *channel_inner;
-        const char *future_inner;
-        const char *slot_inner;
-        bool future_is_remote;
-        bool slot_is_secure;
-    } CapturedVar;
-    CapturedVar *captured = NULL;
-    size_t capture_count = 0;
-    size_t n_captured = 0;
-    for (int i = 0; i < ctx->scope_depth; i++) {
-        LLVMScopeFrame *frame = &ctx->scopes[i];
-        for (int j = 0; j < frame->count; j++) {
-            if (!llvm_capture_entry_is_required(ctx, node, frame, j))
-                continue;
-            if (capture_count == SIZE_MAX) {
-                llvm_set_error(ctx,
-                    "LLVM async capture registry capacity overflow");
-                return;
-            }
-            capture_count++;
-        }
-    }
-    if (capture_count > UINT_MAX) {
-        llvm_set_error(ctx,
-            "LLVM async capture registry exceeds LLVM struct field limit");
-        return;
-    }
-    if (capture_count > SIZE_MAX / sizeof(*captured)) {
-        llvm_set_error(ctx,
-            "LLVM async capture registry allocation overflow");
-        return;
-    }
-    if (capture_count > 0) {
-        captured = pgy_arena_calloc(&ctx->scratch,
-            capture_count * sizeof(*captured));
-        if (captured == NULL) {
-            llvm_set_error(ctx,
-                "out of memory allocating LLVM async capture registry");
-            return;
-        }
-    }
     for (int i = 0; i < ctx->scope_depth; i++) {
         LLVMScopeFrame *frame = &ctx->scopes[i];
         for (int j = 0; j < frame->count; j++) {
@@ -410,6 +440,15 @@ llvm_emit_async_block(ASTNode *node, LLVMGenCtx *ctx)
                     name != NULL ? name : "<binding>");
                 return;
             }
+            if (channel_inner != NULL) {
+                llvm_set_error_at_with_hints(ctx, node,
+                    PGY_CODE_LLVM_TYPE_UNSUPPORTED,
+                    PGY_CAUSE_LLVM_TYPE_UNSUPPORTED,
+                    PGY_FIX_INSPECT_MIR_INVENTORY,
+                    "LLVM async block cannot capture Channel<T> local '%s' by pointer; use parallel or a named task boundary with explicit handoff",
+                    name != NULL ? name : "<binding>");
+                return;
+            }
             if (llvm_capture_reject_shared_collection(ctx, node, "async",
                     name)) {
                 return;
@@ -423,54 +462,9 @@ llvm_emit_async_block(ASTNode *node, LLVMGenCtx *ctx)
                     name != NULL ? name : "<binding>");
                 return;
             }
-            captured[n_captured++] = (CapturedVar){
-                name,
-                frame->entries[j].alloca,
-                frame->entries[j].type,
-                channel_inner,
-                llvm_lookup_future_inner(ctx, frame->entries[j].name),
-                slot_inner,
-                llvm_lookup_future_is_remote(ctx, frame->entries[j].name),
-                llvm_lookup_slot_is_secure(ctx, frame->entries[j].name)
-            };
         }
     }
-    bool has_captures = n_captured > 0;
-    LLVMValueRef ctx_alloca = NULL;
-    LLVMTypeRef ctx_struct_type = NULL;
-
-    if (has_captures) {
-        LLVMTypeRef *fields;
-        if (n_captured > SIZE_MAX / sizeof(*fields)) {
-            llvm_set_error(ctx,
-                "LLVM async capture field allocation overflow");
-            return;
-        }
-        fields = pgy_arena_calloc(&ctx->scratch,
-            n_captured * sizeof(*fields));
-        if (fields == NULL) {
-            llvm_set_error(ctx,
-                "out of memory allocating LLVM async capture field types");
-            return;
-        }
-        for (size_t i = 0; i < n_captured; i++)
-            fields[i] = ctx->type_i8ptr;
-        ctx_struct_type = LLVMStructCreateNamed(ctx->context, llvm_tmp_name(ctx));
-        LLVMStructSetBody(ctx_struct_type, fields, (unsigned)n_captured, 0);
-
-        ctx_alloca = LLVMBuildAlloca(ctx->builder, ctx_struct_type, "_actx");
-        for (size_t i = 0; i < n_captured; i++) {
-            LLVMValueRef gep = LLVMBuildStructGEP2(ctx->builder, ctx_struct_type,
-                ctx_alloca, (unsigned)i, llvm_tmp_name(ctx));
-            LLVMValueRef cast = LLVMBuildBitCast(ctx->builder, captured[i].alloca,
-                ctx->type_i8ptr, llvm_tmp_name(ctx));
-            LLVMBuildStore(ctx->builder, cast, gep);
-        }
-    }
-
-    LLVMValueRef ctx_i8ptr = has_captures
-        ? LLVMBuildBitCast(ctx->builder, ctx_alloca, ctx->type_i8ptr, llvm_tmp_name(ctx))
-        : LLVMConstNull(ctx->type_i8ptr);
+    LLVMValueRef ctx_i8ptr = LLVMConstNull(ctx->type_i8ptr);
 
     LLVMTypeRef wrapper_params[] = { ctx->type_i8ptr };
     LLVMTypeRef wrapper_type = LLVMFunctionType(ctx->type_i8ptr, wrapper_params, 1, 0);
@@ -484,34 +478,13 @@ llvm_emit_async_block(ASTNode *node, LLVMGenCtx *ctx)
     LLVMPositionBuilderAtEnd(ctx->builder, entry);
     ctx->current_function = fn;
     ctx->current_ret_type = ctx->type_i8ptr;
+    ctx->current_function_ret_type = ctx->type_i8ptr;
+    ctx->current_return_type_name = NULL;
+    ctx->current_return_callable_type = NULL;
     LLVMLexicalRegistrySnapshot lexical_snapshot =
         llvm_lexical_registry_snapshot(ctx);
     llvm_scope_push(ctx);
-    if (has_captures) {
-        LLVMValueRef arg0 = LLVMGetParam(fn, 0);
-        LLVMValueRef ctx_ptr = LLVMBuildBitCast(ctx->builder, arg0,
-            LLVMPointerType(ctx_struct_type, 0), "_actx");
-        for (size_t i = 0; i < n_captured; i++) {
-            LLVMValueRef field_ptr = LLVMBuildStructGEP2(ctx->builder, ctx_struct_type,
-                ctx_ptr, (unsigned)i, llvm_tmp_name(ctx));
-            LLVMValueRef var_ptr_i8 = LLVMBuildLoad2(ctx->builder, ctx->type_i8ptr,
-                field_ptr, llvm_tmp_name(ctx));
-            LLVMValueRef var_ptr = LLVMBuildBitCast(ctx->builder, var_ptr_i8,
-                LLVMPointerType(captured[i].type, 0), llvm_tmp_name(ctx));
-            llvm_scope_declare(ctx, captured[i].name, var_ptr, captured[i].type);
-            if (captured[i].channel_inner != NULL)
-                llvm_register_channel_var_binding(ctx, captured[i].name,
-                    var_ptr, captured[i].channel_inner);
-            if (captured[i].future_inner != NULL)
-                llvm_register_future_var_binding(ctx, captured[i].name,
-                    var_ptr, captured[i].future_inner,
-                    captured[i].future_is_remote);
-            if (captured[i].slot_inner != NULL)
-                llvm_register_slot_var_binding(ctx, captured[i].name,
-                    var_ptr, captured[i].slot_inner,
-                    captured[i].slot_is_secure);
-        }
-    }
+    (void)LLVMGetParam(fn, 0);
     for (size_t i = 0; i < statement_count; i++)
         llvm_emit_statement(statements[i], ctx);
     if (LLVMGetBasicBlockTerminator(LLVMGetInsertBlock(ctx->builder)) == NULL)
@@ -521,6 +494,9 @@ llvm_emit_async_block(ASTNode *node, LLVMGenCtx *ctx)
 
     ctx->current_function = saved_fn;
     ctx->current_ret_type = saved_ret;
+    ctx->current_function_ret_type = saved_function_ret;
+    ctx->current_return_type_name = saved_return_type_name;
+    ctx->current_return_callable_type = saved_return_callable_type;
     if (saved_bb != NULL)
         LLVMPositionBuilderAtEnd(ctx->builder, saved_bb);
 
@@ -528,6 +504,10 @@ llvm_emit_async_block(ASTNode *node, LLVMGenCtx *ctx)
     LLVMValueRef spawn_args[] = { fn_ptr, ctx_i8ptr };
     LLVMValueRef handle = LLVMBuildCall2(ctx->builder, spawn_fn->fn_type, spawn_fn->fn,
         spawn_args, 2, llvm_tmp_name(ctx));
+    if (!llvm_emit_task_handle_nonnull_guard(ctx, node, handle,
+            "LLVM async block spawn failed")) {
+        return;
+    }
     LLVMValueRef detach_args[] = { handle };
     LLVMBuildCall2(ctx->builder, detach_fn->fn_type, detach_fn->fn, detach_args, 1, "");
 }

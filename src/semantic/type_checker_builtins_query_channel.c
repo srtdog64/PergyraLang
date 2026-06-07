@@ -40,6 +40,8 @@ static Type *
 channel_builtin_recv_result(Type *element_type, const char *name,
                             ASTNode *site, SemanticContext *ctx)
 {
+    const char *storage_kind;
+
     if (type_is_constructed_named(element_type, "Token")) {
         char message[256];
         snprintf(message, sizeof(message),
@@ -60,6 +62,23 @@ channel_builtin_recv_result(Type *element_type, const char *name,
             "- beta slice transport needs explicit owner/copy/pin evidence before it can be trusted",
             "receive an owning Array<T> copy or projection/value result instead\n"
             "- keep Slice<T> use local to the producing synchronous boundary");
+        return TYPE_UNKNOWN;
+    }
+    storage_kind = detached_worker_boundary_storage_display_name(element_type);
+    if (storage_kind != NULL) {
+        char message[256];
+        char reason[256];
+        snprintf(message, sizeof(message),
+            "%s cannot yield %s storage yet", name, storage_kind);
+        snprintf(reason, sizeof(reason),
+            "%s<T> currently lowers to runtime storage, a borrowed view, "
+            "or synchronization state; yielding it through this channel "
+            "surface would shallow-copy boundary-owned storage",
+            storage_kind);
+        semantic_report_channel_transport_policy(
+            site, ctx, message, reason,
+            "receive scalar/projected values instead\n"
+            "- or wait for an explicit owned snapshot/channel-handle ABI");
         return TYPE_UNKNOWN;
     }
     OwnershipTypeClass element_ownership =
@@ -146,6 +165,33 @@ type_check_channel_send_builtin(ASTNode *expr, const char *name,
             "- beta slice transport needs explicit owner/copy/pin evidence before it can be trusted",
             "send an owning Array<T> copy or projection/value result instead\n"
             "- keep Slice<T> use local to the current synchronous boundary");
+        return detailed_status ? wrap_constructed(TYPE_OPTION, TYPE_BOOL)
+                               : TYPE_BOOL;
+    }
+
+    if (type_is_detached_worker_boundary_unsafe_storage(element_type)
+        || type_is_detached_worker_boundary_unsafe_storage(value_type)) {
+        const Type *unsafe_type =
+            type_is_detached_worker_boundary_unsafe_storage(value_type)
+                ? value_type : element_type;
+        const char *storage_kind =
+            detached_worker_boundary_storage_display_name(unsafe_type);
+        char message[256];
+        char reason[320];
+        snprintf(message, sizeof(message),
+            "%s cannot transport %s storage yet",
+            name,
+            storage_kind != NULL ? storage_kind : "runtime");
+        snprintf(reason, sizeof(reason),
+            "%s<T> currently lowers to runtime storage, a borrowed view, "
+            "or synchronization state\n"
+            "- shallow-copying it into another worker can alias, rehash, "
+            "grow, or copy lock state",
+            storage_kind != NULL ? storage_kind : "runtime storage");
+        semantic_report_channel_transport_policy(
+            ast_call_argument(expr, 1), ctx, message, reason,
+            "send scalar/projected values instead\n"
+            "- or copy into an explicitly owned snapshot before sending");
         return detailed_status ? wrap_constructed(TYPE_OPTION, TYPE_BOOL)
                                : TYPE_BOOL;
     }

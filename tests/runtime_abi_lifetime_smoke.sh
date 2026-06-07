@@ -274,7 +274,7 @@ for term in \
     "pthread_mutex_lock(&pgy_intent_registry_mutex)" \
     "pgy_intent_active_entry_by_index_locked_export" \
     "pgy_intent_recent_entry_by_index_locked_export" \
-    "pgy_intent_active_step_by_index_locked_export" \
+    "pgy_intent_active_step_by_handle_locked_export" \
     "pgy_intent_find_active_entry_locked(" \
     "pgy_intent_history_step_name_export" \
     "pgy_intent_recent_name_export"; do
@@ -303,7 +303,7 @@ for term in \
     "pthread_mutex_lock(&pgy_intent_registry_mutex)" \
     "pgy_intent_active_entry_by_index_locked_export" \
     "pgy_intent_recent_entry_by_index_locked_export" \
-    "pgy_intent_active_step_by_index_locked_export" \
+    "pgy_intent_active_step_by_handle_locked_export" \
     "pgy_intent_find_active_entry_locked_export(" \
     "pgy_intent_history_step_name_export" \
     "pgy_intent_recent_name_export"; do
@@ -698,10 +698,15 @@ for term in \
     "scheduler global queue is null" \
     "worker or local queue is null" \
     "scheduler worker array is not initialized" \
-    "victim local queue is null"; do
+    "victim local queue is null" \
+    "scheduler failed to unblock fiber" \
+    "scheduler failed to enqueue stolen fiber"; do
     grep -Fq "$term" "$ROOT_DIR/src/runtime/async/scheduler_fiber_ops.c" ||
         fail "async scheduler fiber ops must guard queues/workers: $term"
 done
+grep -Fq "scheduler failed to requeue ready fiber" \
+    "$ROOT_DIR/src/runtime/async/scheduler.c" ||
+    fail "async scheduler worker loop must fail closed on ready-fiber requeue failure"
 for term in \
     "pgy_parallel_array_fits" \
     "atomic_bool   g_pgy_pool_active" \
@@ -711,12 +716,19 @@ for term in \
     "pthread_t *workers = g_pgy_pool.workers" \
     "atomic_load_explicit(&g_pgy_pool_active" \
     "atomic_store_explicit(&g_pgy_pool_active" \
-    "\"parallel-run\", \"task array is null\"" \
-    "PgyTaskHandle *handles = (PgyTaskHandle *)calloc(count, sizeof(PgyTaskHandle))" \
-    "PgyParallelArg *args = (PgyParallelArg *)calloc(count, sizeof(PgyParallelArg))" \
     "worker array size overflow"; do
     grep -Fq "$term" "$ROOT_DIR/src/runtime/pgy_parallel.h" ||
         fail "parallel runtime task/worker arrays must guard null and allocation sizes: $term"
+done
+for term in \
+    "parallel task array is null" \
+    "parallel task spawn failed" \
+    "PgyTaskHandle *handles =" \
+    "(PgyTaskHandle *)calloc(count, sizeof(PgyTaskHandle))" \
+    "PgyParallelArg *args =" \
+    "(PgyParallelArg *)calloc(count, sizeof(PgyParallelArg))"; do
+    grep -Fq "$term" "$ROOT_DIR/src/runtime/pgy_parallel_run.h" ||
+        fail "parallel block runner must guard null and allocation sizes: $term"
 done
 for term in \
     "atomic_bool   g_pgy_blocking_pool_active" \

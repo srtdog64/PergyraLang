@@ -224,6 +224,29 @@ pgy_windows_powershell_path_prefix() {
     printf '%s' "${prefix}C:\\Program Files\\LLVM\\bin;C:\\ProgramData\\mingw64\\mingw64\\bin;C:\\msys64\\mingw64\\bin;"
 }
 
+pgy_windows_powershell_path_prefix_from_current_path() {
+    local prefix=""
+    local old_ifs="$IFS"
+    local candidate
+    local win_candidate
+    local -a path_entries=()
+
+    IFS=':'
+    read -r -a path_entries <<< "${PATH:-}"
+    IFS="$old_ifs"
+
+    for candidate in "${path_entries[@]}"; do
+        [[ -n "$candidate" && -d "$candidate" ]] || continue
+        win_candidate="$(pgy_path_for_windows_tool "$candidate")"
+        if pgy_windows_path_is_git_runtime "$win_candidate"; then
+            continue
+        fi
+        prefix="${prefix}${win_candidate};"
+    done
+
+    printf '%s' "${prefix}$(pgy_windows_powershell_path_prefix)"
+}
+
 pgy_path_for_windows_tool() {
     local path="$1"
 

@@ -640,3 +640,17 @@ def lower_op(op, fact, abi_spec):
 - [ ] C 출력 코드가 기존 `pgy_runtime.h` 함수 시그니처와 일치하는가?
 - [ ] Slot lifecycle 순서(CLAIM → READ/WRITE → RELEASE)가 RIR state machine과 일치하는가?
 - [ ] Channel이 Zone 내부에서 생성되고 Zone 밖으로 escape하지 않는가?
+
+---
+
+## 8. ASCII Correction Notes
+
+These notes override older remote-only wording above where encoding drift makes
+the original table hard to edit safely.
+
+- RIR resource facts distinguish `LOCAL_FUTURE_HANDLE` from
+  `REMOTE_FUTURE_HANDLE`.
+- Rule 15 covers both `AWAIT_LOCAL` and `AWAIT_REMOTE`.
+- `AWAIT_LOCAL` consumes `Future<T>` handles.
+- `AWAIT_REMOTE` consumes `RemoteFuture<T>` handles.
+- In both cases, the RIR state transition is `REMOTE_PENDING -> RELEASED`.

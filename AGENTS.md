@@ -23,6 +23,10 @@ cosmetic reshuffling.
   `Queue`, `Set`, `HashMap`) across `parallel` / `async` / worker boundaries by
   raw pointer. Use a channel/result boundary, an explicit copy, or a documented
   pinned read-only view owner. Rehash/grow plus concurrent read is UB.
+- Do not let detached `async { ... }` capture local storage by pointer,
+  including `Channel<T>`. `Channel<T>` is a mutex/condvar-backed value today,
+  not a copyable shared handle. Use `parallel`, `async func`, or an explicit
+  handoff boundary instead.
 
 ## Default Work Loop
 

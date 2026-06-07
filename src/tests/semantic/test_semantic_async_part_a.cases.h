@@ -358,6 +358,29 @@ test_parallel_execution_semantics(void)
         lexer_destroy(lexer);
     }
 
+    TEST("detached async block rejects local capture");
+    {
+        const char *source =
+            "func Main() -> Void {\n"
+            "    let value: Int = 7;\n"
+            "    async { Log(value); }\n"
+            "}\n";
+        Lexer *lexer = lexer_create(source);
+        Parser *parser = parser_create(lexer);
+        ASTNode *program = parser_parse_program(parser);
+        SemanticResult *result = semantic_analyze(program);
+
+        EXPECT(!parser_has_error(parser));
+        EXPECT(result != NULL && result->error_count > 0);
+        EXPECT(result != NULL && ctx_has_diagnostic_substring_from_result(result,
+            "Detached async block cannot capture local 'value' by pointer"));
+
+        semantic_result_destroy(result);
+        ast_destroy(program);
+        parser_destroy(parser);
+        lexer_destroy(lexer);
+    }
+
     TEST("channel send accepts plain value payload");
     {
         SemanticContext *ctx = semantic_context_create();
@@ -568,7 +591,7 @@ test_parallel_execution_semantics(void)
         EXPECT(ctx->has_error);
         EXPECT(t == TYPE_UNKNOWN);
         EXPECT(ctx_has_diagnostic_substring(ctx,
-            "RecvTimeout does not support boundary value channels yet"));
+            "RecvTimeout cannot yield Array storage yet"));
 
         semantic_context_destroy(ctx);
         ast_destroy(call);
@@ -600,6 +623,37 @@ test_parallel_execution_semantics(void)
         EXPECT(type_equals(t, TYPE_VOID));
         EXPECT(ctx_has_diagnostic_substring(ctx,
             "Channel send does not support borrowed Slice transport yet"));
+
+        semantic_context_destroy(ctx);
+        ast_destroy(send);
+        ast_destroy(program);
+    }
+
+    TEST("channel send rejects Array storage payload");
+    {
+        SemanticContext *ctx = semantic_context_create();
+        ASTNode *program = ast_create_program();
+        scope_enter(&ctx->scope, SCOPE_GLOBAL);
+        ctx->program_root = program;
+
+        Type *array_args[1] = { TYPE_INT };
+        Type *array_type = type_create_constructed(TYPE_ARRAY, array_args, 1);
+        Type *channel_args[1] = { array_type };
+        Type *channel_type = type_create_constructed(TYPE_CHANNEL, channel_args, 1);
+        scope_declare(ctx->scope,
+            symbol_create_variable("ch", channel_type, 1, 1));
+        scope_declare(ctx->scope,
+            symbol_create_variable("items", array_type, 1, 1));
+
+        ASTNode *send = ast_create_channel_send(
+            make_identifier("ch", 1), make_identifier("items", 1));
+        send->line = 1; send->column = 1;
+
+        Type *t = type_check_expression(send, ctx);
+        EXPECT(ctx->has_error);
+        EXPECT(type_equals(t, TYPE_VOID));
+        EXPECT(ctx_has_diagnostic_substring(ctx,
+            "Channel send cannot transport Array"));
 
         semantic_context_destroy(ctx);
         ast_destroy(send);

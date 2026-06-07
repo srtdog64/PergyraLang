@@ -71,16 +71,77 @@ llvm_routine_inventory_get(const LLVMMIRRoutineInventory *inventory,
     return &inventory->routines[index];
 }
 
+void
+llvm_active_decl_header_inventory(
+    const LLVMGenCtx *ctx,
+    LLVMMIRDeclHeaderInventory *inventory)
+{
+    MIRDeclHeaderInventory mir_inventory;
+
+    if (inventory == NULL)
+        return;
+    inventory->headers = NULL;
+    inventory->count = 0;
+    if (ctx == NULL || ctx->mir == NULL)
+        return;
+
+    mir_decl_header_inventory_from_program(ctx->mir, &mir_inventory);
+    inventory->headers = mir_inventory.headers;
+    inventory->count = mir_inventory.count;
+}
+
+const MIRDeclHeader *
+llvm_decl_header_inventory_get(
+    const LLVMMIRDeclHeaderInventory *inventory,
+    size_t index)
+{
+    if (inventory == NULL || inventory->headers == NULL
+        || index >= inventory->count) {
+        return NULL;
+    }
+    return &inventory->headers[index];
+}
+
 ASTNode *
 llvm_mir_routine_source_ast(const MIRRoutine *routine)
 {
     return mir_routine_source_ast(routine);
 }
 
+MIRScopeKind
+llvm_mir_routine_kind(const MIRRoutine *routine)
+{
+    return mir_routine_kind(routine);
+}
+
+const char *
+llvm_mir_routine_name(const MIRRoutine *routine)
+{
+    return mir_routine_name(routine);
+}
+
+const char *
+llvm_mir_routine_owner_name(const MIRRoutine *routine)
+{
+    return mir_routine_owner_name(routine);
+}
+
+ASTNodeType
+llvm_mir_routine_owner_ast_type(const MIRRoutine *routine)
+{
+    return mir_routine_owner_ast_type(routine);
+}
+
 bool
 llvm_mir_routine_has_signature(const MIRRoutine *routine)
 {
     return mir_routine_has_signature(routine);
+}
+
+size_t
+llvm_mir_routine_generic_param_count(const MIRRoutine *routine)
+{
+    return mir_routine_generic_param_count(routine);
 }
 
 size_t
@@ -113,6 +174,12 @@ llvm_mir_routine_return_type_name(const MIRRoutine *routine)
     return mir_routine_return_type_name(routine);
 }
 
+const char *
+llvm_mir_routine_within_zone(const MIRRoutine *routine)
+{
+    return mir_routine_within_zone(routine);
+}
+
 ASTNode *
 llvm_mir_routine_source_ast_of_type(const MIRRoutine *routine,
                                     MIRScopeKind expected_kind,
@@ -120,7 +187,7 @@ llvm_mir_routine_source_ast_of_type(const MIRRoutine *routine,
 {
     ASTNode *source_ast = llvm_mir_routine_source_ast(routine);
 
-    if (routine == NULL || routine->kind != expected_kind)
+    if (routine == NULL || llvm_mir_routine_kind(routine) != expected_kind)
         return NULL;
     if (source_ast == NULL || source_ast->type != expected_ast_type)
         return NULL;

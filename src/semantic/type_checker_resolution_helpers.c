@@ -5,41 +5,6 @@
 #include "diag_codes.h"
 #include "../common/string_compat.h"
 
-static ASTNode *
-resolution_helper_program(SemanticContext *ctx)
-{
-    return ctx != NULL ? ctx->program_root : NULL;
-}
-
-static ASTNode *
-resolution_find_type_alias_decl(ASTNode *program, const char *name)
-{
-    if (program == NULL || program->type != AST_PROGRAM || name == NULL)
-        return NULL;
-
-    for (size_t i = 0; i < ast_program_statement_count(program); i++) {
-        ASTNode *stmt = ast_program_statement(program, i);
-        const char *alias_name = ast_type_alias_name(stmt);
-        if (stmt == NULL || stmt->type != AST_TYPE_ALIAS
-            || alias_name == NULL) {
-            continue;
-        }
-        if (strcmp(alias_name, name) == 0)
-            return stmt;
-    }
-
-    return NULL;
-}
-
-ASTNode *
-semantic_find_type_alias_decl_by_name(SemanticContext *ctx, const char *name)
-{
-    if (ctx == NULL || name == NULL)
-        return NULL;
-    return resolution_find_type_alias_decl(resolution_helper_program(ctx),
-                                           name);
-}
-
 bool
 name_looks_qualified(const char *name)
 {

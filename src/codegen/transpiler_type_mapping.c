@@ -4,6 +4,7 @@
 #include <string.h>
 
 #include "../common/string_compat.h"
+#include "../common/worker_boundary_storage_policy.h"
 
 #include "codegen_channel_runtime_abi.h"
 #include "codegen_slot_type_policy.h"
@@ -257,6 +258,30 @@ bool
 transpiler_type_name_is_hashmap(const char *type_name)
 {
     return type_name != NULL && strncmp(type_name, "HashMap<", 8) == 0;
+}
+
+const char *
+codegen_worker_boundary_storage_kind_from_constructor_name(
+    const char *constructor_name,
+    bool include_channel,
+    bool include_array_slice_alias)
+{
+    PgyWorkerBoundaryStorageKind kind =
+        pgy_worker_boundary_storage_kind_from_constructor_name(
+            constructor_name, include_channel, include_array_slice_alias);
+
+    return pgy_worker_boundary_storage_kind_name(kind);
+}
+
+const char *
+codegen_worker_boundary_storage_kind_from_type_name(const char *type_name,
+                                                    bool include_channel)
+{
+    PgyWorkerBoundaryStorageKind kind =
+        pgy_worker_boundary_storage_kind_from_type_name(type_name,
+                                                        include_channel);
+
+    return pgy_worker_boundary_storage_kind_name(kind);
 }
 
 bool

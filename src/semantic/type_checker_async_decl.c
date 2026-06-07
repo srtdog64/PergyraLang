@@ -1,11 +1,57 @@
 #include "type_checker_internal.h"
 #include "type_checker_flow_internal.h"
 #include "diag_codes.h"
+#include "../parser/ast_analysis.h"
 
 static Type *
 async_decl_normalize_type(Type *type)
 {
     return type != NULL ? type : TYPE_UNKNOWN;
+}
+
+static bool
+async_symbol_is_local_storage(const Symbol *sym)
+{
+    return sym != NULL
+        && (sym->kind == SYMBOL_VARIABLE
+            || sym->kind == SYMBOL_SLOT
+            || sym->kind == SYMBOL_TOKEN);
+}
+
+static bool
+semantic_reject_detached_async_capture(ASTNode *node, SemanticContext *ctx)
+{
+    if (node == NULL || ctx == NULL)
+        return false;
+
+    for (Scope *scope = ctx->scope; scope != NULL; scope = scope->parent) {
+        if (scope->kind == SCOPE_GLOBAL)
+            continue;
+        for (size_t i = 0; i < scope->symbol_count; i++) {
+            Symbol *sym = scope->symbols[i];
+            if (!async_symbol_is_local_storage(sym)
+                || sym->name == NULL
+                || !ast_contains_free_identifier_ref(node, sym->name)) {
+                continue;
+            }
+            semantic_error_with_hints(ctx,
+                PGY_CODE_SEM_BORROW_ESCAPE,
+                PGY_CAUSE_BORROW_ESCAPE,
+                PGY_FIX_MOVE_INTO_ASYNC_FUNCTION,
+                node,
+                "Detached async block cannot capture local '%s' by pointer.\n"
+                "Reason:\n"
+                "- async block may continue after the current synchronous frame advances\n"
+                "- beta detached async has no closed closure-capture ownership model yet\n"
+                "- generated C/LLVM must not depend on shallow-copied local storage\n"
+                "Fix:\n"
+                "- move the body into a named async function with explicit parameters\n"
+                "- or pass a copied value through an explicit handoff boundary",
+                sym->name);
+            return true;
+        }
+    }
+    return false;
 }
 
 bool
@@ -19,6 +65,8 @@ type_check_async_block(ASTNode *node, SemanticContext *ctx)
             "move async block")) {
         return false;
     }
+    if (semantic_reject_detached_async_capture(node, ctx))
+        return false;
 
     ctx->in_async_func = true;
 

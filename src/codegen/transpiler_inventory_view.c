@@ -4,6 +4,7 @@
  */
 
 #include "transpiler.h"
+#include "host_decl_compat.h"
 #include "intent_observability_usage.h"
 #include "thread_pool_usage.h"
 
@@ -55,6 +56,30 @@ transpiler_mir_routine_source_ast(const MIRRoutine *routine)
     return mir_routine_source_ast(routine);
 }
 
+MIRScopeKind
+transpiler_mir_routine_kind(const MIRRoutine *routine)
+{
+    return mir_routine_kind(routine);
+}
+
+const char *
+transpiler_mir_routine_name(const MIRRoutine *routine)
+{
+    return mir_routine_name(routine);
+}
+
+const char *
+transpiler_mir_routine_owner_name(const MIRRoutine *routine)
+{
+    return mir_routine_owner_name(routine);
+}
+
+ASTNodeType
+transpiler_mir_routine_owner_ast_type(const MIRRoutine *routine)
+{
+    return mir_routine_owner_ast_type(routine);
+}
+
 ASTNode *
 transpiler_mir_routine_source_ast_of_type(
     const MIRRoutine *routine,
@@ -63,7 +88,7 @@ transpiler_mir_routine_source_ast_of_type(
 {
     ASTNode *source_ast = transpiler_mir_routine_source_ast(routine);
 
-    if (routine == NULL || routine->kind != expected_kind)
+    if (routine == NULL || transpiler_mir_routine_kind(routine) != expected_kind)
         return NULL;
     if (source_ast == NULL || source_ast->type != expected_ast_type)
         return NULL;
@@ -74,6 +99,12 @@ bool
 transpiler_mir_routine_has_signature(const MIRRoutine *routine)
 {
     return mir_routine_has_signature(routine);
+}
+
+size_t
+transpiler_mir_routine_generic_param_count(const MIRRoutine *routine)
+{
+    return mir_routine_generic_param_count(routine);
 }
 
 size_t
@@ -106,6 +137,12 @@ transpiler_mir_routine_return_type_name(const MIRRoutine *routine)
     return mir_routine_return_type_name(routine);
 }
 
+const char *
+transpiler_mir_routine_within_zone(const MIRRoutine *routine)
+{
+    return mir_routine_within_zone(routine);
+}
+
 size_t
 transpiler_active_routine_count(const TranspilerCtx *ctx)
 {
@@ -133,11 +170,32 @@ transpiler_active_inventory(const TranspilerCtx *ctx,
 }
 
 const MIRDeclHeader *
-transpiler_active_decl_header(const TranspilerCtx *ctx, const char *name)
+transpiler_active_decl_header_of_type(const TranspilerCtx *ctx,
+                                      ASTNodeType decl_type,
+                                      const char *name)
 {
     if (ctx == NULL || ctx->mir == NULL || name == NULL)
         return NULL;
-    return mir_find_decl_header(ctx->mir, name);
+    return mir_find_decl_header_of_type(ctx->mir, decl_type, name);
+}
+
+const MIRDeclHeader *
+transpiler_active_host_decl_header(const TranspilerCtx *ctx, const char *name)
+{
+    const ASTNodeType *host_types = NULL;
+    size_t host_type_count = 0;
+
+    if (ctx == NULL || ctx->mir == NULL || name == NULL)
+        return NULL;
+
+    host_types = pgy_host_decl_compat_types(&host_type_count);
+    for (size_t i = 0; host_types != NULL && i < host_type_count; i++) {
+        const MIRDeclHeader *header = transpiler_active_decl_header_of_type(
+            ctx, host_types[i], name);
+        if (header != NULL)
+            return header;
+    }
+    return NULL;
 }
 
 void

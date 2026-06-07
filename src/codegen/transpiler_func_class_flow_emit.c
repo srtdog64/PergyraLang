@@ -59,9 +59,10 @@ emit_func_decl_named(ASTNode *node, const char *emitted_name,
     transpiler_capture_mir_emit_state_local(ctx, &saved_emit_state);
     ctx->out = buf;
     if (ast_func_return_type(node) != NULL) {
+        ASTNode *return_type = ast_func_return_type(node);
         {
             char *rendered = render_type_name_in_ctx(
-                ctx, ast_func_return_type(node));
+                ctx, return_type);
             if (rendered == NULL
                 || !transpiler_func_copy_current_return_type(ctx, rendered)) {
                 free(rendered);
@@ -70,11 +71,14 @@ emit_func_decl_named(ASTNode *node, const char *emitted_name,
             }
             free(rendered);
         }
+        ctx->current_return_callable_type =
+            return_type->type == AST_EVENT_HANDLER_TYPE ? return_type : NULL;
     } else {
         if (!transpiler_func_copy_current_return_type(ctx, "Void")) {
             transpiler_func_format_too_long(ctx, "function return type");
             goto emit_func_decl_named_fail;
         }
+        ctx->current_return_callable_type = NULL;
     }
 
     for (size_t i = 0; i < ast_func_param_count(node); i++) {

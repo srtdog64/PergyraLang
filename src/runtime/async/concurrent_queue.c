@@ -57,8 +57,30 @@ queue_size_increment(ConcurrentQueue *queue)
     if (queue == NULL)
         return;
     current = atomic_load_explicit(&queue->size, memory_order_acquire);
-    if (current != SIZE_MAX)
-        atomic_fetch_add_explicit(&queue->size, 1, memory_order_acq_rel);
+    while (current != SIZE_MAX) {
+        if (atomic_compare_exchange_weak_explicit(
+                &queue->size, &current, current + 1,
+                memory_order_acq_rel, memory_order_acquire)) {
+            return;
+        }
+    }
+}
+
+static void
+queue_size_increment_by(ConcurrentQueue *queue, size_t count)
+{
+    size_t current;
+    size_t next;
+
+    if (queue == NULL || count == 0)
+        return;
+
+    current = atomic_load_explicit(&queue->size, memory_order_acquire);
+    do {
+        next = (SIZE_MAX - current < count) ? SIZE_MAX : current + count;
+    } while (!atomic_compare_exchange_weak_explicit(
+        &queue->size, &current, next,
+        memory_order_acq_rel, memory_order_acquire));
 }
 
 static void
@@ -69,8 +91,24 @@ queue_size_decrement(ConcurrentQueue *queue)
     if (queue == NULL)
         return;
     current = atomic_load_explicit(&queue->size, memory_order_acquire);
-    if (current > 0)
-        atomic_fetch_sub_explicit(&queue->size, 1, memory_order_acq_rel);
+    while (current > 0) {
+        if (atomic_compare_exchange_weak_explicit(
+                &queue->size, &current, current - 1,
+                memory_order_acq_rel, memory_order_acquire)) {
+            return;
+        }
+    }
+}
+
+static void
+queue_node_destroy_chain(QueueNode *node)
+{
+    while (node != NULL) {
+        QueueNode *next = (QueueNode *)(intptr_t)
+            atomic_load_explicit(&node->next, memory_order_acquire);
+        free(node);
+        node = next;
+    }
 }
 
 ConcurrentQueue *
@@ -100,7 +138,13 @@ ConcurrentQueueCreate(void)
         return NULL;
     }
 
-    pthread_mutex_init(&state->mutex, NULL);
+    if (pthread_mutex_init(&state->mutex, NULL) != 0) {
+        concurrent_queue_warn("create", "mutex initialization failed", queue);
+        free(sentinel);
+        free(state);
+        free(queue);
+        return NULL;
+    }
     state->head = sentinel;
     state->tail = sentinel;
 
@@ -152,6 +196,10 @@ ConcurrentQueuePush(ConcurrentQueue *queue, void *data)
 
     if (state == NULL) {
         concurrent_queue_warn("push", "queue state is null", queue);
+        return false;
+    }
+    if (data == NULL) {
+        concurrent_queue_warn("push", "NULL payload is reserved as the empty sentinel", queue);
         return false;
     }
 
@@ -236,20 +284,63 @@ ConcurrentQueueIsEmpty(ConcurrentQueue *queue)
     return ConcurrentQueueSize(queue) == 0;
 }
 
-void
+bool
 ConcurrentQueuePushBatch(ConcurrentQueue *queue, void **items, size_t count)
 {
+    ConcurrentQueueState *state = queue_state(queue);
+    QueueNode *first = NULL;
+    QueueNode *last = NULL;
+
     if (queue == NULL) {
         concurrent_queue_warn("push-batch", "queue is null", queue);
-        return;
+        return false;
+    }
+    if (state == NULL) {
+        concurrent_queue_warn("push-batch", "queue state is null", queue);
+        return false;
     }
     if (items == NULL && count > 0) {
         concurrent_queue_warn("push-batch", "items buffer is null", queue);
-        return;
+        return false;
+    }
+    if (count == 0)
+        return true;
+
+    for (size_t i = 0; i < count; i++) {
+        QueueNode *node;
+
+        if (items[i] == NULL) {
+            queue_node_destroy_chain(first);
+            concurrent_queue_warn("push-batch", "NULL payload is reserved as the empty sentinel", queue);
+            return false;
+        }
+        node = queue_node_create(items[i]);
+        if (node == NULL) {
+            queue_node_destroy_chain(first);
+            concurrent_queue_warn("push-batch", "node allocation failed", queue);
+            return false;
+        }
+        if (last != NULL)
+            atomic_store_explicit(&last->next, (intptr_t)node,
+                                  memory_order_release);
+        else
+            first = node;
+        last = node;
     }
 
-    for (size_t i = 0; i < count; i++)
-        ConcurrentQueuePush(queue, items[i]);
+    pthread_mutex_lock(&state->mutex);
+    if (state->tail == NULL) {
+        pthread_mutex_unlock(&state->mutex);
+        queue_node_destroy_chain(first);
+        concurrent_queue_warn("push-batch", "queue tail is null", queue);
+        return false;
+    }
+    atomic_store_explicit(&state->tail->next, (intptr_t)first,
+                          memory_order_release);
+    state->tail = last;
+    queue_size_increment_by(queue, count);
+    pthread_mutex_unlock(&state->mutex);
+    return true;
 }
 
 size_t

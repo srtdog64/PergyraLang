@@ -7,6 +7,7 @@
 
 #include "transpiler_decl_lookup.h"
 #include "transpiler_enum.h"
+#include "transpiler_inventory_view.h"
 #include "transpiler_mir_pin_emit.h"
 #include "transpiler_mir_reason.h"
 #include "transpiler_mir_resource_name_helpers.h"
@@ -41,7 +42,8 @@ transpiler_emit_mir_resource_op_inst(CodeBuf *buf,
         if (value_expr != NULL) {
             if (!transpiler_expr_identifiers_mapped(
                     ctx, value_expr, (const TranspilerSSANameMap *)ssa_map_out,
-                    mir_routine->name, map_reason, sizeof(map_reason))) {
+                    transpiler_mir_routine_name(mir_routine),
+                    map_reason, sizeof(map_reason))) {
                 return TRANSPILE_MIR_INST_HANDLED;
             }
             if (!transpiler_seed_expr_identifier_mappings(

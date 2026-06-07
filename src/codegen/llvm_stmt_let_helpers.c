@@ -1,5 +1,6 @@
 #ifdef PGY_LLVM_ENABLED
 #include "llvm_internal.h"
+#include "llvm_internal_api.h"
 #include "codegen_slot_type_policy.h"
 #include "parser/ast_api.h"
 
@@ -23,15 +24,7 @@ llvm_stmt_lambda_expected_return_type(LLVMGenCtx *ctx, ASTNode *lambda)
 ASTNode *
 llvm_stmt_current_return_callable_type(LLVMGenCtx *ctx)
 {
-    ASTNode *return_type;
-
-    if (ctx == NULL || ctx->current_func_decl == NULL
-        || ctx->current_func_decl->type != AST_FUNC_DECL)
-        return NULL;
-    return_type = ast_func_return_type(ctx->current_func_decl);
-    if (return_type == NULL || return_type->type != AST_EVENT_HANDLER_TYPE)
-        return NULL;
-    return return_type;
+    return ctx != NULL ? ctx->current_return_callable_type : NULL;
 }
 
 static ASTNode *
@@ -390,6 +383,13 @@ llvm_simple_expr_type_name(LLVMGenCtx *ctx, ASTNode *expr)
                     if (method_return_type_name != NULL)
                         return method_return_type_name;
                     if (method_return_type == NULL && method_meta == NULL) {
+                        if (llvm_active_has_mir(ctx)) {
+                            llvm_set_mir_inventory_missing(ctx,
+                                "MIR-only LLVM path missing let method return metadata for '%s.%s'",
+                                receiver_type != NULL ? receiver_type : "(anonymous)",
+                                method_name != NULL ? method_name : "(anonymous)");
+                            return NULL;
+                        }
                         method_decl = llvm_find_host_method_decl_in_context(
                             ctx, receiver_type, method_name);
                         method_return_type = ast_func_return_type(method_decl);

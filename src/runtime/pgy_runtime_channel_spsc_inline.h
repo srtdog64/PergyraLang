@@ -4,6 +4,9 @@
  * For the common case where one producer feeds one consumer, this
  * avoids all mutex overhead. Uses atomic load/store with appropriate
  * memory ordering on head (consumer) and tail (producer).
+ *
+ * Destroy is quiescent-only: the single producer and single consumer must have
+ * stopped before the backing buffer is freed.
  * ================================================================= */
 
 #ifndef __STDC_NO_ATOMICS__

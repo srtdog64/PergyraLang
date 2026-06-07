@@ -20,8 +20,8 @@ llvm_mir_debug_stage(const char *stage, const MIRRoutine *routine)
     if (!llvm_debug_stage_enabled() || stage == NULL)
         return;
     fprintf(stderr, "[llvm stage] %s", stage);
-    if (routine != NULL && routine->name != NULL)
-        fprintf(stderr, ":%s", routine->name);
+    if (llvm_mir_routine_name(routine) != NULL)
+        fprintf(stderr, ":%s", llvm_mir_routine_name(routine));
     fputc('\n', stderr);
 }
 
@@ -123,8 +123,10 @@ llvm_emit_func_from_mir(const MIRRoutine *routine, LLVMGenCtx *ctx)
     ASTNode *func_decl = NULL;
     const char *fn_name = NULL;
     char qualified_name[256];
+    const char *routine_name = NULL;
     if (routine == NULL || ctx == NULL)
         return NULL;
+    routine_name = llvm_mir_routine_name(routine);
     func_decl = llvm_mir_routine_source_ast(routine);
     if (func_decl == NULL)
         return NULL;
@@ -145,7 +147,7 @@ llvm_emit_func_from_mir(const MIRRoutine *routine, LLVMGenCtx *ctx)
                 || binding_types == NULL)) {
             llvm_set_mir_inventory_missing(ctx,
                 "MIR-only LLVM path has incomplete ordered intent binding metadata for '%s'",
-                routine->name != NULL ? routine->name : "(anonymous)");
+                routine_name != NULL ? routine_name : "(anonymous)");
             return NULL;
         }
         for (size_t i = 0; i < mir_binding_count; i++) {
@@ -153,25 +155,36 @@ llvm_emit_func_from_mir(const MIRRoutine *routine, LLVMGenCtx *ctx)
                 || binding_types[i] == NULL) {
                 llvm_set_mir_inventory_missing(ctx,
                     "MIR-only LLVM path has incomplete ordered intent binding metadata for '%s'",
-                    routine->name != NULL ? routine->name : "(anonymous)");
+                    routine_name != NULL ? routine_name : "(anonymous)");
                 return NULL;
             }
             if (strcmp(binding_kinds[i], "participant") != 0
                 && strcmp(binding_kinds[i], "value") != 0) {
                 llvm_set_mir_inventory_missing(ctx,
                     "MIR-only LLVM path has invalid ordered intent binding metadata for '%s'",
-                    routine->name != NULL ? routine->name : "(anonymous)");
+                    routine_name != NULL ? routine_name : "(anonymous)");
                 return NULL;
             }
         }
     }
-    is_method = (!is_intent && routine->kind == MIR_SCOPE_METHOD);
-    owner_is_role = is_method && routine->owner_ast_type == AST_ROLE_DECL;
-    owner_name = routine->owner_name;
+    is_method = (!is_intent
+        && llvm_mir_routine_kind(routine) == MIR_SCOPE_METHOD);
+    owner_is_role = is_method
+        && llvm_mir_routine_owner_ast_type(routine) == AST_ROLE_DECL;
+    owner_name = llvm_mir_routine_owner_name(routine);
+    if (!is_intent && llvm_active_has_mir(ctx)
+        && !llvm_mir_routine_has_signature(routine)) {
+        llvm_set_mir_inventory_missing(ctx,
+            "MIR-only LLVM path missing function body signature metadata for '%s'",
+            llvm_mir_routine_name(routine) != NULL
+                ? llvm_mir_routine_name(routine)
+                : "(anonymous)");
+        return NULL;
+    }
     if (is_method && owner_name == NULL) {
         llvm_set_mir_topology_invalid(ctx,
             "MIR-only LLVM path missing owner metadata for method '%s'",
-            routine->name != NULL ? routine->name : "(anonymous)");
+            routine_name != NULL ? routine_name : "(anonymous)");
         return NULL;
     }
     owner_cls = (is_method && owner_name != NULL)
@@ -209,7 +222,7 @@ llvm_emit_func_from_mir(const MIRRoutine *routine, LLVMGenCtx *ctx)
     if (param_types == NULL) {
         llvm_set_mir_memory_exhausted(ctx,
             "LLVM MIR routine '%s' parameter type allocation failed",
-            routine->name != NULL ? routine->name : "(anonymous)");
+            routine_name != NULL ? routine_name : "(anonymous)");
         return NULL;
     }
     for (size_t i = 0; i < param_count; i++) {
@@ -228,7 +241,7 @@ llvm_emit_func_from_mir(const MIRRoutine *routine, LLVMGenCtx *ctx)
                 } else {
                     llvm_set_mir_inventory_missing(ctx,
                         "MIR-only LLVM path missing intent participant type metadata for '%s'",
-                        routine->name != NULL ? routine->name : "(anonymous)");
+                        routine_name != NULL ? routine_name : "(anonymous)");
                     return NULL;
                 }
             } else if (kind != NULL && strcmp(kind, "value") == 0) {
@@ -239,13 +252,13 @@ llvm_emit_func_from_mir(const MIRRoutine *routine, LLVMGenCtx *ctx)
                 } else {
                     llvm_set_mir_inventory_missing(ctx,
                         "MIR-only LLVM path missing intent value type metadata for '%s'",
-                        routine->name != NULL ? routine->name : "(anonymous)");
+                        routine_name != NULL ? routine_name : "(anonymous)");
                     return NULL;
                 }
             } else {
                 llvm_set_mir_inventory_missing(ctx,
                     "MIR-only LLVM path missing intent parameter metadata for '%s'",
-                    routine->name != NULL ? routine->name : "(anonymous)");
+                    routine_name != NULL ? routine_name : "(anonymous)");
                 return NULL;
             }
         } else if (is_method && i == 0) {
@@ -327,11 +340,12 @@ llvm_emit_func_from_mir(const MIRRoutine *routine, LLVMGenCtx *ctx)
             }
         }
     }
+    const char *return_type_name = NULL;
+    ASTNode *return_type = NULL;
     LLVMTypeRef ret_type = is_intent ? ctx->type_i1 : ctx->type_i32;
     if (!is_intent) {
-        const char *return_type_name =
-            llvm_mir_routine_return_type_name(routine);
-        ASTNode *return_type = llvm_mir_routine_return_type(routine);
+        return_type_name = llvm_mir_routine_return_type_name(routine);
+        return_type = llvm_mir_routine_return_type(routine);
         if (return_type == NULL && !llvm_mir_routine_has_signature(routine))
             return_type = ast_func_return_type(func_decl);
         if (return_type_name != NULL)
@@ -343,9 +357,9 @@ llvm_emit_func_from_mir(const MIRRoutine *routine, LLVMGenCtx *ctx)
         return NULL;
 
     LLVMTypeRef func_type = LLVMFunctionType(ret_type, param_types, (unsigned)param_count, 0);
-    fn_name = routine->name;
-    if (is_method && owner_name != NULL && routine->name != NULL) {
-        snprintf(qualified_name, sizeof(qualified_name), "%s_%s", owner_name, routine->name);
+    fn_name = llvm_mir_routine_name(routine);
+    if (is_method && owner_name != NULL && fn_name != NULL) {
+        snprintf(qualified_name, sizeof(qualified_name), "%s_%s", owner_name, fn_name);
         fn_name = qualified_name;
     }
     LLVMFuncEntry *entry = llvm_lookup_function(ctx, fn_name);
@@ -367,6 +381,10 @@ llvm_emit_func_from_mir(const MIRRoutine *routine, LLVMGenCtx *ctx)
     llvm_mir_debug_stage("emit_func_from_mir:fn_ready", routine);
     LLVMValueRef saved_fn = ctx->current_function;
     LLVMTypeRef saved_ret = ctx->current_ret_type;
+    LLVMTypeRef saved_function_ret = ctx->current_function_ret_type;
+    const char *saved_return_type_name = ctx->current_return_type_name;
+    ASTNode *saved_return_callable_type = ctx->current_return_callable_type;
+    const char *saved_within_zone_name = ctx->current_within_zone_name;
     ASTNode *saved_func_decl = ctx->current_func_decl;
     LLVMBasicBlockRef saved_bb = LLVMGetInsertBlock(ctx->builder);
     LLVMLexicalRegistrySnapshot lexical_snapshot =
@@ -381,7 +399,7 @@ llvm_emit_func_from_mir(const MIRRoutine *routine, LLVMGenCtx *ctx)
     if (vars == NULL) {
         llvm_set_mir_memory_exhausted(ctx,
             "LLVM MIR routine '%s' local registry allocation failed",
-            routine->name != NULL ? routine->name : "(anonymous)");
+            routine_name != NULL ? routine_name : "(anonymous)");
         return NULL;
     }
     size_t var_count = 0;
@@ -398,7 +416,7 @@ llvm_emit_func_from_mir(const MIRRoutine *routine, LLVMGenCtx *ctx)
         || llvm_block_tails == NULL) {
         llvm_set_mir_memory_exhausted(ctx,
             "LLVM MIR routine '%s' block registry allocation failed",
-            routine->name != NULL ? routine->name : "(anonymous)");
+            routine_name != NULL ? routine_name : "(anonymous)");
         return NULL;
     }
     for (size_t i = 0; i < routine->block_count; i++) {
@@ -412,6 +430,17 @@ llvm_emit_func_from_mir(const MIRRoutine *routine, LLVMGenCtx *ctx)
 
     ctx->current_function = fn;
     ctx->current_ret_type = ret_type;
+    ctx->current_function_ret_type = ret_type;
+    ctx->current_return_type_name = return_type_name != NULL
+        ? return_type_name
+        : (return_type != NULL
+            ? llvm_stmt_render_type_annotation_copy(ctx, return_type)
+            : NULL);
+    ctx->current_return_callable_type =
+        return_type != NULL && return_type->type == AST_EVENT_HANDLER_TYPE
+            ? return_type
+            : NULL;
+    ctx->current_within_zone_name = llvm_mir_routine_within_zone(routine);
     ctx->current_func_decl = func_decl;
     if (is_method)
         saved_host_decl = llvm_bind_current_host_decl(
@@ -484,9 +513,7 @@ llvm_emit_func_from_mir(const MIRRoutine *routine, LLVMGenCtx *ctx)
                     PGY_CAUSE_CFG_MISSING_RETURN,
                     PGY_FIX_ADD_RETURN_ON_ALL_PATHS,
                     "LLVM MIR routine '%s' reached backend without a terminal return value",
-                    routine != NULL && routine->name != NULL
-                        ? routine->name
-                        : "<anonymous>");
+                    routine_name != NULL ? routine_name : "<anonymous>");
             }
             LLVMBuildUnreachable(ctx->builder);
         }
@@ -518,6 +545,10 @@ restore_state:
     llvm_lexical_registry_restore(ctx, lexical_snapshot);
     ctx->current_function = saved_fn;
     ctx->current_ret_type = saved_ret;
+    ctx->current_function_ret_type = saved_function_ret;
+    ctx->current_return_type_name = saved_return_type_name;
+    ctx->current_return_callable_type = saved_return_callable_type;
+    ctx->current_within_zone_name = saved_within_zone_name;
     ctx->current_func_decl = saved_func_decl;
     if (saved_bb != NULL)
         LLVMPositionBuilderAtEnd(ctx->builder, saved_bb);

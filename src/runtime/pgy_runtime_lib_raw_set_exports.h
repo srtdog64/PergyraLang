@@ -18,6 +18,12 @@
 #include <stdlib.h>
 #include <string.h>
 
+/* Growable runtime storage is not a synchronization boundary.
+ * The semantic layer must reject raw Array/Slice/List/Queue/Set/HashMap
+ * transport across parallel/async/worker boundaries unless an explicit copy or
+ * pinned read-only view owner is used.
+ */
+
 typedef struct {
     void    *data;
     uint8_t *occupied;

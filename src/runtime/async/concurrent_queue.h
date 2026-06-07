@@ -29,9 +29,11 @@ typedef struct ConcurrentQueue {
 
 /* Queue operations - BSD style with PascalCase */
 ConcurrentQueue* ConcurrentQueueCreate(void);
+/* Destroy is quiescent-only: callers must stop producers/consumers first. */
 void ConcurrentQueueDestroy(ConcurrentQueue* queue);
 
-/* Enqueue/Dequeue */
+/* Enqueue/Dequeue.
+ * NULL payloads are rejected: Pop uses NULL as the empty/failure sentinel. */
 bool ConcurrentQueuePush(ConcurrentQueue* queue, void* data);
 void* ConcurrentQueuePop(ConcurrentQueue* queue);
 void* ConcurrentQueueTryPop(ConcurrentQueue* queue);
@@ -40,8 +42,9 @@ void* ConcurrentQueueTryPop(ConcurrentQueue* queue);
 size_t ConcurrentQueueSize(ConcurrentQueue* queue);
 bool ConcurrentQueueIsEmpty(ConcurrentQueue* queue);
 
-/* Batch operations for efficiency */
-void ConcurrentQueuePushBatch(ConcurrentQueue* queue, void** items, size_t count);
+/* Batch operations for efficiency.
+ * PushBatch is all-or-nothing: allocation failure enqueues no items. */
+bool ConcurrentQueuePushBatch(ConcurrentQueue* queue, void** items, size_t count);
 size_t ConcurrentQueuePopBatch(ConcurrentQueue* queue, void** buffer, size_t maxCount);
 
 #endif /* PERGYRA_CONCURRENT_QUEUE_H */

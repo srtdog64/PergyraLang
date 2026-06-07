@@ -277,6 +277,9 @@ Stable:
 - Memory/concurrency model is defined in
   `docs/113_memory_concurrency_model.md` and gated by
   `make memory-concurrency-model-test-smoke`.
+- Worker-boundary UB hygiene is gated by
+  `make worker-boundary-ub-test-smoke` so growable runtime storage and borrowed
+  LLVM scope entries cannot cross their source-of-truth owners unnoticed.
 
 Beta-complete gate:
 
@@ -302,5 +305,6 @@ Beta-complete gate:
 - `make beta-test-suite-freeze-test-smoke`
 - `make observability-schema-test-smoke`
 - `make memory-concurrency-model-test-smoke`
+- `make worker-boundary-ub-test-smoke`
 - `make tooling-conformance-test-smoke`
 - `make perf-contract-test-smoke`

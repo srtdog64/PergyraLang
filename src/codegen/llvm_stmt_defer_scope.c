@@ -4,8 +4,16 @@
 void
 llvm_defer_scope_push(LLVMGenCtx *ctx)
 {
-    if (ctx->defer_scope_depth >= MAX_SCOPE_DEPTH)
+    if (ctx == NULL)
         return;
+    if (ctx->defer_scope_depth >= MAX_SCOPE_DEPTH) {
+        llvm_set_error_with_hints(ctx,
+            PGY_CODE_LLVM_SCOPE_LIMIT,
+            PGY_CAUSE_LLVM_SCOPE_CAPACITY,
+            PGY_FIX_REFACTOR_OR_RAISE_LIMIT,
+            "LLVM defer scope registry exceeded MAX_SCOPE_DEPTH");
+        return;
+    }
     ctx->defer_body_counts[ctx->defer_scope_depth++] = 0;
 }
 
@@ -21,12 +29,26 @@ llvm_defer_scope_pop(LLVMGenCtx *ctx)
 void
 llvm_register_defer(ASTNode *body, LLVMGenCtx *ctx)
 {
-    if (body == NULL || ctx->defer_scope_depth <= 0)
+    if (ctx == NULL || body == NULL)
         return;
+    if (ctx->defer_scope_depth <= 0) {
+        llvm_set_error_with_hints(ctx,
+            PGY_CODE_LLVM_SCOPE_LIMIT,
+            PGY_CAUSE_LLVM_SCOPE_CAPACITY,
+            PGY_FIX_REFACTOR_OR_RAISE_LIMIT,
+            "LLVM defer statement has no active defer scope");
+        return;
+    }
     int scope = ctx->defer_scope_depth - 1;
     int count = ctx->defer_body_counts[scope];
-    if (count >= MAX_DEFER_PER_SCOPE)
+    if (count >= MAX_DEFER_PER_SCOPE) {
+        llvm_set_error_with_hints(ctx,
+            PGY_CODE_LLVM_SCOPE_LIMIT,
+            PGY_CAUSE_LLVM_SCOPE_CAPACITY,
+            PGY_FIX_REFACTOR_OR_RAISE_LIMIT,
+            "LLVM defer registry exceeded MAX_DEFER_PER_SCOPE");
         return;
+    }
     ctx->defer_bodies[scope][count] = body;
     ctx->defer_body_counts[scope]++;
 }

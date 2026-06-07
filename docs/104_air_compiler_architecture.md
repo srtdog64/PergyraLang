@@ -468,9 +468,9 @@ sixth compiler core and the architecture is wrong.
   parallel / channel / execution boundary from being hidden behind a container
   node that only exists to carry a payload.
 - `await` evidence is operation-specific: AIR accepts await boundary evidence
-  only when RIR exposes the exact `AwaitRemote` operation for the same AST
-  boundary. A generic intent scope named `await` or an unrelated await operation
-  does not satisfy the proof.
+  only when RIR exposes the exact `AwaitLocal` or `AwaitRemote` operation for
+  the same AST boundary. A generic intent scope named `await` or an unrelated
+  await operation does not satisfy the proof.
 - IO evidence is operation-specific for the beta-stable IO builtin set.
   RIR materializes `IO` operations for `FileOpen`, `FileExists`, `FileRead`,
   `FileWrite`, `FileClose`, `ReadFile`, `WriteFile`, `Input`, `ReadLine`,
@@ -488,10 +488,10 @@ sixth compiler core and the architecture is wrong.
   parsed-source fixture that lowers `ch <-`, `<- ch`, and `select` into those
   RIR operations before AIR consumes them.
 - Parallel boundary evidence is operation-specific for the beta-stable parallel
-  surface. RIR materializes `AwaitRemote`, `Spawn`, `Async`, `Parallel`, and
-  `TaskGroup` operations; AIR accepts a parallel boundary only when the matching
-  same-AST operation exists and HIR CFG evidence also reaches the boundary.
-  `task-group` is no longer treated as HIR-only.
+  surface. RIR materializes `AwaitLocal`, `AwaitRemote`, `Spawn`, `Async`,
+  `Parallel`, and `TaskGroup` operations; AIR accepts a parallel boundary only
+  when the matching same-AST operation exists and HIR CFG evidence also reaches
+  the boundary. `task-group` is no longer treated as HIR-only.
 - `parallel`, IO, and channel boundaries do not fall back to scope-name RIR
   evidence when their AIR boundary lacks source AST provenance. These
   operation-specific boundaries remain unproven until the owning layer attaches

@@ -54,25 +54,19 @@ slot_access_record_function_aliases(ASTNode *call, ASTNode *func_decl,
                                     ASTNode *program_root, int depth)
 {
     size_t param_count = 0;
-    FuncParam **params = NULL;
     ASTNode *body = NULL;
 
     if (call == NULL || func_decl == NULL)
         return;
 
-    if (func_decl->is_async_decl) {
-        params = ast_async_func_params(func_decl, &param_count);
-        body = ast_async_func_body(func_decl);
-    } else {
-        param_count = ast_func_param_count(func_decl);
-        body = ast_func_body(func_decl);
-    }
+    param_count = ast_func_param_count(func_decl);
+    body = ast_func_body(func_decl);
 
     if (body == NULL)
         return;
 
     for (size_t i = 0; i < param_count && i < ast_call_arg_count(call); i++) {
-        FuncParam *param = params != NULL ? params[i] : ast_func_param(func_decl, i);
+        FuncParam *param = ast_func_param(func_decl, i);
         ASTNode *arg = ast_call_argument(call, i);
         unsigned mask = 0;
 
@@ -226,22 +220,13 @@ slot_access_mask_for_named_symbol(ASTNode *node, const char *symbol_name,
             } else if (program_root != NULL) {
                 ASTNode *callee_decl = slot_analyzer_find_function_decl(program_root, name);
                 size_t param_count = 0;
-                FuncParam **params = NULL;
                 ASTNode *body = NULL;
                 if (callee_decl != NULL) {
-                    if (callee_decl->is_async_decl) {
-                        params = ast_async_func_params(callee_decl,
-                            &param_count);
-                        body = ast_async_func_body(callee_decl);
-                    } else {
-                        param_count = ast_func_param_count(callee_decl);
-                        body = ast_func_body(callee_decl);
-                    }
+                    param_count = ast_func_param_count(callee_decl);
+                    body = ast_func_body(callee_decl);
                     if (body != NULL) {
                         for (size_t i = 0; i < param_count && i < ast_call_arg_count(node); i++) {
-                            FuncParam *param = params != NULL
-                                ? params[i]
-                                : ast_func_param(callee_decl, i);
+                            FuncParam *param = ast_func_param(callee_decl, i);
                             ASTNode *arg = ast_call_argument(node, i);
                             if (param == NULL || param->name == NULL || arg == NULL
                                 || arg->type != AST_IDENTIFIER

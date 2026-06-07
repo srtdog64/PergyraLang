@@ -122,6 +122,7 @@ cleanup_neg_root() {
 trap cleanup_neg_root EXIT
 # Build the synthetic 701-line header at a path that the tool will read.
 mkdir -p "$NEG_ROOT/src/runtime"
+mkdir -p "$NEG_ROOT/.tmp"
 {
     for k in $(seq 1 701); do
         echo "// synthetic line $k"
@@ -132,7 +133,7 @@ mkdir -p "$NEG_ROOT/$(dirname "$MANIFEST_REL")"
 echo "src/runtime/pgy_runtime_synthetic_drift.h" > "$NEG_ROOT/$MANIFEST_REL"
 
 set +e
-NEG_OUT="$(cd "$NEG_ROOT" && "$PGY" "$PERGYRA_TOOL_ARG" --run 2>/dev/null)"
+NEG_OUT="$(cd "$NEG_ROOT" && "$PGY" "$PERGYRA_TOOL_ARG" --run 2>&1)"
 NEG_RC=$?
 set -e
 if [[ "$NEG_RC" -ne 1 ]]; then

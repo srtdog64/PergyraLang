@@ -71,6 +71,7 @@ mandatory_targets=(
     "observability-schema-test-smoke"
     "async-model-positioning-test-smoke"
     "memory-concurrency-model-test-smoke"
+    "worker-boundary-ub-test-smoke"
     "documentation-quality-test-smoke"
     "self-host-preparation-test-smoke"
     "tooling-conformance-test-smoke"

@@ -36,5 +36,11 @@ bool transpiler_type_name_is_box(const char *type_name);
 bool transpiler_type_name_is_box_array(const char *type_name);
 bool transpiler_type_name_is_rc(const char *type_name);
 bool transpiler_type_name_is_weak(const char *type_name);
+const char *codegen_worker_boundary_storage_kind_from_constructor_name(
+    const char *constructor_name,
+    bool include_channel,
+    bool include_array_slice_alias);
+const char *codegen_worker_boundary_storage_kind_from_type_name(
+    const char *type_name, bool include_channel);
 
 #endif /* PERGYRA_TRANSPILER_TYPE_MAPPING_H */

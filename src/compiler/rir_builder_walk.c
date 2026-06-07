@@ -97,6 +97,32 @@ rir_walk_call(RIRScope *scope, ASTNode *node)
     return true;
 }
 
+static RIROpKind
+rir_await_op_kind_for_operand(RIRScope *scope, ASTNode *operand)
+{
+    const char *name;
+    const RIRFact *fact;
+
+    if (operand != NULL && operand->type == AST_SPAWN_EXPR)
+        return RIR_OP_AWAIT_LOCAL;
+
+    name = expr_name(operand);
+    fact = rir_scope_find_fact_by_name_kind(scope, RIR_FACT_RESOURCE, name);
+    if (fact != NULL
+        && fact->resource_kind == RIR_RESOURCE_LOCAL_FUTURE_HANDLE) {
+        return RIR_OP_AWAIT_LOCAL;
+    }
+    return RIR_OP_AWAIT_REMOTE;
+}
+
+static const char *
+rir_await_subject_for_operand(ASTNode *operand)
+{
+    if (operand != NULL && operand->type == AST_SPAWN_EXPR)
+        return "spawn";
+    return expr_name(operand);
+}
+
 bool
 rir_walk_node(RIRScope *scope, ASTNode *node)
 {
@@ -189,8 +215,12 @@ rir_walk_node(RIRScope *scope, ASTNode *node)
             return rir_walk_node(scope, ast_assignment_value(node));
 
         case AST_AWAIT_EXPR:
-            if (!add_op(scope, RIR_OP_AWAIT_REMOTE,
-                        expr_name(ast_await_expression(node)),
+            if (!add_op(scope,
+                        rir_await_op_kind_for_operand(
+                            scope,
+                            ast_await_expression(node)),
+                        rir_await_subject_for_operand(
+                            ast_await_expression(node)),
                         NULL, NULL, node))
                 return false;
             return rir_walk_node(scope, ast_await_expression(node));

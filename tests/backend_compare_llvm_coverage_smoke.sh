@@ -30,6 +30,14 @@ require_term "tests/compare_backends.sh" \
     'if ! run_compiler_backend "$source_arg" "c" "$c_bin_arg" "$c_compile_log"; then'
 require_term "tests/compare_backends.sh" \
     'if ! run_compiler_backend "$source_arg" "llvm" "$llvm_bin_arg" "$llvm_compile_log"; then'
+require_term "tests/compare_backends.sh" \
+    'source_compiler_arg="$(pgy_path_for_compiler "$PGY_BIN" "$source_arg")"'
+require_term "tests/compare_backends.sh" \
+    'output_compiler_arg="$(pgy_path_for_compiler "$PGY_BIN" "$output_arg")"'
+require_term "tests/compare_backends.sh" \
+    'source_native="$(pgy_path_for_compiler "$PGY_BIN" "$source_arg")"'
+require_term "tests/compare_backends.sh" \
+    'output_native="$(pgy_path_for_compiler "$PGY_BIN" "$output_arg")"'
 
 sed -n 's/^run_case "\([^"]*\)".*/\1/p' \
     "$ROOT_DIR/tests/llvm_smoke.sh" \

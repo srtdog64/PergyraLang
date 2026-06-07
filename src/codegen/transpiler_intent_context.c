@@ -99,8 +99,7 @@ intent_action_metadata_has_only_self(const MIRDeclMethod *method)
 ASTNode *
 find_zone_decl_in_program_view(TranspilerCtx *ctx, const char *zone_name)
 {
-    return transpiler_find_decl_in_inventory_local(ctx, AST_ZONE_DECL,
-                                                   zone_name);
+    return transpiler_find_named_decl_local(ctx, AST_ZONE_DECL, zone_name);
 }
 
 const char *

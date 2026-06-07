@@ -1915,17 +1915,18 @@ Operational mode:
 - 2026-04-29 AIR await-boundary update:
   `await` is now synthesized as a stable AIR `parallel` boundary source instead
   of being only recursively scanned through its operand. Strict AIR accepts RIR
-  evidence only from the exact `AwaitRemote` operation attached to the same AST
-  boundary; a generic scope named `await` is rejected. It still requires HIR/CFG
-  evidence for the implementation boundary.
+  evidence only from the exact `AwaitLocal` or `AwaitRemote` operation attached
+  to the same AST boundary; a generic scope named `await` is rejected. It still
+  requires HIR/CFG evidence for the implementation boundary.
   The AIR boundary AST walk now lives in `src/compiler/air_boundary_walk.c`,
   leaving `src/compiler/air_boundary.c` focused on boundary taxonomy/policy.
 - 2026-04-29 AIR task-group boundary update:
   `AST_TASK_GROUP` is now synthesized as a stable AIR `parallel` boundary source
   named `task-group`. Strict AIR now requires both HIR/CFG evidence and matching
   same-AST RIR operation evidence for every stable parallel boundary. RIR
-  materializes `AwaitRemote`, `Spawn`, `Async`, `Parallel`, and `TaskGroup`, so
-  local grouped-task orchestration is no longer a HIR-only exception.
+  materializes `AwaitLocal`, `AwaitRemote`, `Spawn`, `Async`, `Parallel`, and
+  `TaskGroup`, so local grouped-task orchestration is no longer a HIR-only
+  exception.
 - 2026-04-29 AIR world-transfer evidence update:
   world handoff evidence is now same-AST specific when the AIR boundary has
   source provenance. A matching RIR `Move` / `Claim` must carry the same AST as
@@ -1937,8 +1938,8 @@ Operational mode:
   channel AST boundaries. AIR channel strict evidence consumes those exact
   same-AST ops instead of treating a same-owner/same-name RIR scope as enough.
   This keeps channel evidence aligned with the already tightened `await`
-  `AwaitRemote` policy. `make test-rir` now gates parsed-source channel send,
-  receive, and select lowering into the same operations.
+  `AwaitLocal` / `AwaitRemote` policy. `make test-rir` now gates parsed-source
+  channel send, receive, and select lowering into the same operations.
 - 2026-04-29 AIR IO evidence update:
   RIR now materializes beta-stable IO calls as `IO` ops, and AIR IO strict
   evidence consumes only a matching source/provenance op. The parsed-source

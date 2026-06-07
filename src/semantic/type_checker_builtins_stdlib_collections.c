@@ -95,6 +95,47 @@ stdlib_collection_builtin_kind(const char *name)
     return match != NULL ? match->kind : STDLIB_COLLECTION_UNKNOWN;
 }
 
+static bool
+stdlib_collection_builtin_mutates_storage(StdlibCollectionBuiltinKind kind)
+{
+    return kind == STDLIB_COLLECTION_LIST_PUSH
+        || kind == STDLIB_COLLECTION_LIST_SET
+        || kind == STDLIB_COLLECTION_LIST_REMOVE
+        || kind == STDLIB_COLLECTION_SET_ADD
+        || kind == STDLIB_COLLECTION_SET_REMOVE
+        || kind == STDLIB_COLLECTION_QUEUE_PUSH
+        || kind == STDLIB_COLLECTION_QUEUE_POP
+        || kind == STDLIB_COLLECTION_ARRAY_PUSH
+        || kind == STDLIB_COLLECTION_ARRAY_SET
+        || kind == STDLIB_COLLECTION_ARRAY_POP
+        || kind == STDLIB_COLLECTION_ARRAY_SORT
+        || kind == STDLIB_COLLECTION_ARRAY_REVERSE;
+}
+
+static bool
+stdlib_collection_reject_parallel_mutation(ASTNode *expr,
+                                           const char *name,
+                                           SemanticContext *ctx,
+                                           StdlibCollectionBuiltinKind kind)
+{
+    if (ctx == NULL || !ctx->in_parallel)
+        return false;
+    if (!stdlib_collection_builtin_mutates_storage(kind))
+        return false;
+    semantic_error_with_hints(ctx, PGY_CODE_SEM_PARALLEL_SLOT_CONFLICT,
+        PGY_CAUSE_PARALLEL_RESOURCE_CONFLICT,
+        PGY_FIX_SERIALIZE_OUTSIDE_PARALLEL, expr,
+        "Parallel context does not permit collection mutator '%s'.\n"
+        "Reason:\n"
+        "- growable collection storage may reallocate, rehash, or alias while another task observes it\n"
+        "- generated C/LLVM workers cannot safely share mutable collection storage by raw pointer\n"
+        "Fix:\n"
+        "- mutate the collection before or after parallel\n"
+        "- or send immutable values through a channel/result boundary",
+        name != NULL ? name : "<collection builtin>");
+    return true;
+}
+
 Type *
 type_check_stdlib_collection_call(ASTNode *expr,
                                   const char *name,
@@ -111,6 +152,9 @@ type_check_stdlib_collection_call(ASTNode *expr,
 
     if (handled_out != NULL)
         *handled_out = true;
+
+    if (stdlib_collection_reject_parallel_mutation(expr, name, ctx, kind))
+        return TYPE_UNKNOWN;
 
     ASTNode *arg0 = ast_call_argument(expr, 0);
     ASTNode *arg1 = ast_call_argument(expr, 1);

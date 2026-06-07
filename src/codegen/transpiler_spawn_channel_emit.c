@@ -41,6 +41,29 @@ transpiler_spawn_channel_emit_expr(TranspilerCtx *ctx,
     return NULL;
 }
 
+static bool
+transpiler_spawn_reject_worker_storage(TranspilerCtx *ctx,
+                                       const char *function_name,
+                                       size_t arg_index,
+                                       const char *type_name)
+{
+    const char *kind =
+        codegen_worker_boundary_storage_kind_from_type_name(type_name, true);
+
+    if (kind == NULL)
+        return false;
+
+    transpiler_set_backend_error_with_hints(ctx,
+        PGY_CODE_C_TYPE_UNSUPPORTED,
+        PGY_CAUSE_BORROW_ESCAPE,
+        PGY_FIX_SERIALIZE_OUTSIDE_PARALLEL,
+        "C backend: spawn argument %llu for '%s' cannot transport %s<T> storage across a worker boundary; semantic/CFG should reject this path before lowering",
+        (unsigned long long)(arg_index + 1),
+        function_name != NULL ? function_name : "<function>",
+        kind);
+    return true;
+}
+
 char *
 emit_spawn_expr(ASTNode *node, TranspilerCtx *ctx)
 {
@@ -130,8 +153,23 @@ emit_spawn_expr(ASTNode *node, TranspilerCtx *ctx)
                         transpiler_render_type_name_with_bindings(ctx,
                         param->type, bindings, binding_count);
                     if (bound_type == NULL || bound_type[0] == '\0'
-                        || strcmp(bound_type, "Unknown") == 0
-                        || !transpiler_require_type_name_c_type_copy(ctx,
+                        || strcmp(bound_type, "Unknown") == 0) {
+                        transpiler_set_backend_error_with_hints(ctx,
+                            PGY_CODE_C_TYPE_UNSUPPORTED,
+                            PGY_CAUSE_C_TYPE_UNSUPPORTED,
+                            PGY_FIX_ANNOTATE_CONCRETE_TYPE,
+                            "C spawn wrapper argument %llu requires concrete parameter metadata for call '%s'",
+                            (unsigned long long)i,
+                            function_name != NULL ? function_name : "<function>");
+                        free(bound_type);
+                        return NULL;
+                    }
+                    if (transpiler_spawn_reject_worker_storage(ctx,
+                            function_name, i, bound_type)) {
+                        free(bound_type);
+                        return NULL;
+                    }
+                    if (!transpiler_require_type_name_c_type_copy(ctx,
                             bound_type,
                             "spawn wrapper generic argument",
                             arg_type_buf,
@@ -151,6 +189,16 @@ emit_spawn_expr(ASTNode *node, TranspilerCtx *ctx)
                     free(bound_type);
                     continue;
                 }
+                {
+                    char *param_type_name =
+                        render_type_name_in_ctx(ctx, param->type);
+                    if (transpiler_spawn_reject_worker_storage(ctx,
+                            function_name, i, param_type_name)) {
+                        free(param_type_name);
+                        return NULL;
+                    }
+                    free(param_type_name);
+                }
                 if (pergyra_ast_type_to_c_copy_in_ctx(ctx,
                         param->type,
                         arg_type_buf,
@@ -160,6 +208,10 @@ emit_spawn_expr(ASTNode *node, TranspilerCtx *ctx)
             } else if (call != NULL) {
                 const char *inferred_arg_type = infer_expression_type_name(
                     ctx, ast_call_argument(call, i));
+                if (transpiler_spawn_reject_worker_storage(ctx,
+                        function_name, i, inferred_arg_type)) {
+                    return NULL;
+                }
                 if (inferred_arg_type != NULL
                     && transpiler_require_type_name_c_type_copy(ctx,
                         inferred_arg_type,
@@ -243,7 +295,11 @@ emit_spawn_expr(ASTNode *node, TranspilerCtx *ctx)
         const char *spawn_fn = ast_spawn_is_blocking(node)
             ? "pgy_spawn_blocking" : "pgy_async_spawn";
         if (args_type_name == NULL) {
-            codebuf_write(expr, "%s(%s, NULL)", spawn_fn, wrapper_name);
+            codebuf_write(expr,
+                "({ PgyTaskHandle _pgy_spawn_h = %s(%s, NULL); "
+                "if (_pgy_spawn_h.task == NULL) { PGY_RUNTIME_PANIC(PGY_RUNTIME_PANIC_CLASS_INTERNAL_INVARIANT, \"spawn task creation failed\"); } "
+                "_pgy_spawn_h; })",
+                spawn_fn, wrapper_name);
         } else {
             codebuf_write(expr,
                 "({ %s *_pgy_args = (%s *)malloc(sizeof(%s)); "
@@ -259,7 +315,11 @@ emit_spawn_expr(ASTNode *node, TranspilerCtx *ctx)
                 codebuf_write(expr, "_pgy_args->arg%zu = %s; ", i, arg);
                 free(arg);
             }
-            codebuf_write(expr, "%s(%s, _pgy_args); })", spawn_fn, wrapper_name);
+            codebuf_write(expr,
+                "PgyTaskHandle _pgy_spawn_h = %s(%s, _pgy_args); "
+                "if (_pgy_spawn_h.task == NULL) { free(_pgy_args); PGY_RUNTIME_PANIC(PGY_RUNTIME_PANIC_CLASS_INTERNAL_INVARIANT, \"spawn task creation failed\"); } "
+                "_pgy_spawn_h; })",
+                spawn_fn, wrapper_name);
         }
     }
 

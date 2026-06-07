@@ -295,8 +295,10 @@ static inline void
 pgy_async_detach(PgyTaskHandle handle)
 {
     PgyTaskHeader *header = (PgyTaskHeader *)handle.task;
-    if (header == NULL)
-        return;
+    if (header == NULL) {
+        PGY_RUNTIME_PANIC(PGY_RUNTIME_PANIC_CLASS_INTERNAL_INVARIANT,
+                          "detach task handle is null");
+    }
 
     if (header->model == PGY_TASK_MODEL_COROUTINE) {
         PgyCoroTask *task = (PgyCoroTask *)handle.task;
@@ -352,7 +354,12 @@ pgy_async_yield(void)
 static inline void
 pgy_async_detach(PgyTaskHandle handle)
 {
-    (void)handle;
+    if (handle.task == NULL) {
+        PGY_RUNTIME_PANIC(PGY_RUNTIME_PANIC_CLASS_INTERNAL_INVARIANT,
+                          "detach task handle is null");
+    }
+    PGY_RUNTIME_PANIC(PGY_RUNTIME_PANIC_CLASS_INTERNAL_INVARIANT,
+                      "detached async requires coroutine runtime support");
 }
 #endif /* PGY_COROUTINES_AVAILABLE */
 

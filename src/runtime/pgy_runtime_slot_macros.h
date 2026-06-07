@@ -1,6 +1,8 @@
 #ifndef PGY_RUNTIME_SLOT_MACROS_H
 #define PGY_RUNTIME_SLOT_MACROS_H
 
+#include "pgy_runtime_panic_contract.h"
+
 /*
  * Inline Slot ABI note:
  *
@@ -145,12 +147,17 @@ pgy_submit_device_read_##SuffixName(PgyDeviceSlot_##SuffixName *s) \
 { \
     PgyDeviceReadTaskArg_##SuffixName *arg = \
         (PgyDeviceReadTaskArg_##SuffixName *)malloc(sizeof(PgyDeviceReadTaskArg_##SuffixName)); \
-    if (arg == NULL) { \
-        PgyTaskHandle empty = {0}; \
-        return empty; \
-    } \
+    if (arg == NULL) \
+        PGY_RUNTIME_PANIC(PGY_RUNTIME_PANIC_CLASS_OOM, \
+                          PGY_RUNTIME_PANIC_REASON_ALLOCATION_FAILED); \
     arg->slot = s; \
-    return pgy_spawn(pgy_device_read_task_##SuffixName, arg); \
+    PgyTaskHandle handle = pgy_spawn(pgy_device_read_task_##SuffixName, arg); \
+    if (handle.task == NULL) { \
+        free(arg); \
+        PGY_RUNTIME_PANIC(PGY_RUNTIME_PANIC_CLASS_INTERNAL_INVARIANT, \
+                          "device slot read spawn failed"); \
+    } \
+    return handle; \
 }
 
 /* =================================================================

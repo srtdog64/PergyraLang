@@ -160,8 +160,7 @@ transpiler_is_implicit_field(TranspilerCtx *ctx, const char *base_name)
         return true;
     if (!in_zone_context && host_name != NULL) {
         ASTNode *zone_decl =
-            transpiler_find_decl_in_inventory_local(ctx, AST_ZONE_DECL,
-                                                    host_name);
+            transpiler_find_named_decl_local(ctx, AST_ZONE_DECL, host_name);
         if (zone_decl != NULL) {
             TranspilerHostedDomainSlotView slot_view =
                 transpiler_hosted_domain_slot_view_from_decl(ctx, host_name,

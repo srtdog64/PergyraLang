@@ -47,8 +47,21 @@ pgy_blocking_pool_init(size_t worker_count)
 
     memset(&g_pgy_blocking_pool, 0, sizeof(g_pgy_blocking_pool));
     g_pgy_blocking_pool.worker_count = worker_count;
-    pthread_mutex_init(&g_pgy_blocking_pool.queue_mutex, NULL);
-    pthread_cond_init(&g_pgy_blocking_pool.queue_cond, NULL);
+    if (pthread_mutex_init(&g_pgy_blocking_pool.queue_mutex, NULL) != 0) {
+        pgy_parallel_warn("blocking-pool-init",
+                          "queue mutex initialization failed");
+        memset(&g_pgy_blocking_pool, 0, sizeof(g_pgy_blocking_pool));
+        pthread_mutex_unlock(&g_pgy_blocking_pool_lifecycle_mutex);
+        return;
+    }
+    if (pthread_cond_init(&g_pgy_blocking_pool.queue_cond, NULL) != 0) {
+        pgy_parallel_warn("blocking-pool-init",
+                          "queue condition initialization failed");
+        pthread_mutex_destroy(&g_pgy_blocking_pool.queue_mutex);
+        memset(&g_pgy_blocking_pool, 0, sizeof(g_pgy_blocking_pool));
+        pthread_mutex_unlock(&g_pgy_blocking_pool_lifecycle_mutex);
+        return;
+    }
 
     g_pgy_blocking_pool.workers =
         (pthread_t *)calloc(worker_count, sizeof(pthread_t));
@@ -178,10 +191,12 @@ pgy_spawn_blocking(void *(*fn)(void *), void *arg)
     task->arg = arg;
     task->state = PGY_TASK_PENDING;
     task->cancel_node = pgy_cancel_node_create(pgy_current_cancel_node());
-    if (task->cancel_node == NULL)
-        pgy_parallel_warn("spawn-blocking", "cancellation disabled because cancel node allocation failed");
-    pthread_mutex_init(&task->mutex, NULL);
-    pthread_cond_init(&task->cond, NULL);
+    if (!pgy_task_sync_init(task, "spawn-blocking")) {
+        pgy_cancel_release(task->cancel_node);
+        free(task);
+        pthread_mutex_unlock(&g_pgy_blocking_pool_lifecycle_mutex);
+        return handle;
+    }
     handle.task = task;
 
     pthread_mutex_lock(&g_pgy_blocking_pool.queue_mutex);

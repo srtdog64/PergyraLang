@@ -16,6 +16,7 @@
 #include "transpiler_expr_type_infer.h"
 #include "transpiler_format.h"
 #include "transpiler_host_self_policy.h"
+#include "transpiler_inventory_view.h"
 #include "transpiler_nominal.h"
 #include "transpiler_overlay_host_fields.h"
 #include "transpiler_overlay_projection.h"
@@ -116,9 +117,18 @@ emit_call_member_style(ASTNode *call, ASTNode *callee, TranspilerCtx *ctx)
                         ctx, owned_type_name, method);
                 ASTNode *method_decl =
                     transpiler_mir_decl_method_source_ast(method_meta);
-                if (method_decl == NULL && method_meta == NULL)
+                if (method_decl == NULL && method_meta == NULL) {
+                    if (transpiler_active_has_mir(ctx)) {
+                        transpiler_set_mir_inventory_missing(ctx,
+                            "MIR-only C path missing member-call method metadata for '%s.%s'",
+                            owned_type_name != NULL ? owned_type_name : "(anonymous)",
+                            method != NULL ? method : "(anonymous)");
+                        codebuf_destroy(args_buf);
+                        return NULL;
+                    }
                     method_decl = find_nominal_host_method_decl(
                         ctx, owned_type_name, method);
+                }
 
                 if (!pergyra_str_copy(stable_type_name,
                         sizeof(stable_type_name), owned_type_name)) {
@@ -197,7 +207,8 @@ emit_call_member_style(ASTNode *call, ASTNode *callee, TranspilerCtx *ctx)
                                 pass_by_ptr = true;
                             free(owned_ptn);
                         }
-                    } else if (method_meta == NULL && method_decl != NULL) {
+                    } else if (method_meta == NULL && method_decl != NULL
+                        && !transpiler_active_has_mir(ctx)) {
                         size_t param_index = i;
                         if (ast_func_param_count(method_decl) > 0) {
                             FuncParam *first = ast_func_param(method_decl, 0);
@@ -278,7 +289,7 @@ emit_call_member_style(ASTNode *call, ASTNode *callee, TranspilerCtx *ctx)
                             && zone_subject_type_name != NULL
                             && strcmp(zone_subject_type_name, owned_type_name) == 0) {
                             ASTNode *zone_decl =
-                                transpiler_find_decl_in_inventory_local(
+                                transpiler_find_named_decl_local(
                                     ctx, AST_ZONE_DECL, zone_type_name);
                             if (zone_decl != NULL)
                                 transpiler_bind_current_host_decl_local(ctx, zone_decl);
@@ -322,7 +333,8 @@ emit_call_member_style(ASTNode *call, ASTNode *callee, TranspilerCtx *ctx)
                                 ret_type_name =
                                     pergyra_strdup(ret_type_name_fact);
                             } else if (ret_type == NULL && method_meta == NULL
-                                && method_decl != NULL)
+                                && method_decl != NULL
+                                && !transpiler_active_has_mir(ctx))
                                 ret_type = ast_func_return_type(method_decl);
                             if (ret_type_name == NULL && ret_type != NULL)
                                 ret_type_name =

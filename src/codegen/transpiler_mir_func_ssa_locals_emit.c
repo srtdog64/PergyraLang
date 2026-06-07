@@ -9,6 +9,7 @@
 #include "transpiler_channel_type_query.h"
 #include "transpiler_context.h"
 #include "transpiler_format.h"
+#include "transpiler_inventory_view.h"
 #include "transpiler_mir_block_emit_helpers.h"
 #include "transpiler_mir_effective_type.h"
 #include "transpiler_mir_local_type_ast_lookup.h"
@@ -177,6 +178,17 @@ transpiler_emit_mir_func_ssa_local_decls(TranspilerCtx *ctx,
 {
     const char *declared_versioned_names[4096];
     size_t declared_versioned_count = 0;
+
+    if (ctx != NULL && node != NULL && node->type == AST_FUNC_DECL
+        && mir_routine != NULL && transpiler_active_has_mir(ctx)
+        && !transpiler_mir_routine_has_signature(mir_routine)) {
+        transpiler_set_mir_inventory_missing(ctx,
+            "MIR-only C path missing function SSA local signature metadata for '%s'",
+            ast_declaration_name(node) != NULL
+                ? ast_declaration_name(node)
+                : "(anonymous)");
+        return false;
+    }
 
     for (size_t i = 0; i < mir_routine->block_count; i++) {
         const MIRBasicBlock *block = &mir_routine->blocks[i];

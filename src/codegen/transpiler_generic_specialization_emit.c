@@ -85,6 +85,25 @@ ensure_generic_specialization(TranspilerCtx *ctx, ASTNode *decl, ASTNode *call)
     }
 
     if (ctx->generic_specialization_count >= MAX_GENERIC_SPECIALIZATIONS) {
+        transpiler_set_backend_error_with_hints(
+            ctx,
+            PGY_CODE_C_TYPE_UNSUPPORTED,
+            PGY_CAUSE_C_TYPE_UNSUPPORTED,
+            PGY_FIX_USE_LLVM_BACKEND_OR_EXTEND_TRANSPILER,
+            "C backend generic function specialization registry exceeded MAX_GENERIC_SPECIALIZATIONS while lowering '%s'",
+            decl_name);
+        codebuf_destroy(name_buf);
+        return NULL;
+    }
+    if (binding_count > MAX_GENERIC_BINDINGS
+        || ctx->generic_binding_count > (int)(MAX_GENERIC_BINDINGS - binding_count)) {
+        transpiler_set_backend_error_with_hints(
+            ctx,
+            PGY_CODE_C_TYPE_UNSUPPORTED,
+            PGY_CAUSE_C_TYPE_UNSUPPORTED,
+            PGY_FIX_USE_LLVM_BACKEND_OR_EXTEND_TRANSPILER,
+            "C backend generic binding registry exceeded MAX_GENERIC_BINDINGS while lowering '%s'",
+            decl_name);
         codebuf_destroy(name_buf);
         return NULL;
     }
@@ -104,8 +123,7 @@ ensure_generic_specialization(TranspilerCtx *ctx, ASTNode *decl, ASTNode *call)
     codebuf_destroy(name_buf);
 
     generic_binding_snapshot = transpiler_generic_binding_snapshot(ctx);
-    for (size_t i = 0; i < binding_count
-         && ctx->generic_binding_count < MAX_GENERIC_BINDINGS; i++) {
+    for (size_t i = 0; i < binding_count; i++) {
         ctx->generic_bindings[ctx->generic_binding_count++] = bindings[i];
     }
 

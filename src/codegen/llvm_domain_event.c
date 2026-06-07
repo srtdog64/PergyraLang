@@ -170,6 +170,13 @@ llvm_emit_domain_event_helpers(LLVMGenCtx *ctx,
 
             LLVMValueRef e_ptr = LLVMGetParam(sub_fn, 0);
             LLVMValueRef h_ptr = LLVMGetParam(sub_fn, 1);
+            LLVMFuncEntry *panic_fn = llvm_lookup_function(ctx,
+                "pgy_runtime_panic_internal_invariant_export");
+            if (panic_fn == NULL) {
+                llvm_set_error(ctx,
+                    "event subscribe overflow requires registered panic runtime");
+                goto restore_state;
+            }
 
             /* count_ptr = GEP(e, 0, 1), the i64 count field */
             LLVMValueRef count_ptr = LLVMBuildStructGEP2(ctx->builder,
@@ -185,9 +192,11 @@ llvm_emit_domain_event_helpers(LLVMGenCtx *ctx,
 
             LLVMBasicBlockRef then_bb = LLVMAppendBasicBlockInContext(
                 ctx->context, sub_fn, "then");
+            LLVMBasicBlockRef fail_bb = LLVMAppendBasicBlockInContext(
+                ctx->context, sub_fn, "event.subscribe.overflow");
             LLVMBasicBlockRef end_bb = LLVMAppendBasicBlockInContext(
                 ctx->context, sub_fn, "end");
-            LLVMBuildCondBr(ctx->builder, cmp, then_bb, end_bb);
+            LLVMBuildCondBr(ctx->builder, cmp, then_bb, fail_bb);
 
             LLVMPositionBuilderAtEnd(ctx->builder, then_bb);
             /* handlers_ptr = GEP(e, 0, 0, count) */
@@ -205,6 +214,15 @@ llvm_emit_domain_event_helpers(LLVMGenCtx *ctx,
                 count, LLVMConstInt(ctx->type_i64, 1, 0), "new_count");
             LLVMBuildStore(ctx->builder, new_count, count_ptr);
             LLVMBuildBr(ctx->builder, end_bb);
+
+            LLVMPositionBuilderAtEnd(ctx->builder, fail_bb);
+            {
+                LLVMValueRef reason = LLVMBuildGlobalStringPtr(ctx->builder,
+                    "event handler capacity exceeded", "event.overflow.reason");
+                LLVMBuildCall2(ctx->builder, panic_fn->fn_type, panic_fn->fn,
+                    &reason, 1, "");
+                LLVMBuildUnreachable(ctx->builder);
+            }
 
             LLVMPositionBuilderAtEnd(ctx->builder, end_bb);
             LLVMBuildRetVoid(ctx->builder);

@@ -214,9 +214,10 @@ llvm_collect_mir_intent_bindings(const MIRRoutine *routine,
             continue;
         for (size_t ii = 0; ii < block->instruction_count; ii++) {
             const MIRInstruction *inst = &block->instructions[ii];
+            const char *payload = mir_instruction_intent_payload(inst);
             if (!mir_instruction_is_intent_stmt(inst, "IntentBinding"))
                 continue;
-            if (inst->slot_anchor == NULL || inst->arg0 == NULL
+            if (inst->slot_anchor == NULL || payload == NULL
                 || inst->arg1 == NULL) {
                 continue;
             }
@@ -239,14 +240,15 @@ llvm_collect_mir_intent_bindings(const MIRRoutine *routine,
             continue;
         for (size_t ii = 0; ii < block->instruction_count; ii++) {
             const MIRInstruction *inst = &block->instructions[ii];
+            const char *payload = mir_instruction_intent_payload(inst);
             if (!mir_instruction_is_intent_stmt(inst, "IntentBinding"))
                 continue;
-            if (inst->slot_anchor == NULL || inst->arg0 == NULL
+            if (inst->slot_anchor == NULL || payload == NULL
                 || inst->arg1 == NULL) {
                 continue;
             }
             kinds[count] = inst->slot_anchor;
-            aliases[count] = inst->arg0;
+            aliases[count] = payload;
             types[count] = inst->arg1;
             count++;
         }

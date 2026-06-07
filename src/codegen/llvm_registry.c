@@ -139,7 +139,7 @@ llvm_scope_declare(LLVMGenCtx *ctx, const char *name,
     frame->count++;
 }
 
-LLVMVarEntry *
+static LLVMVarEntry *
 llvm_scope_lookup(LLVMGenCtx *ctx, const char *name)
 {
     if (ctx == NULL || name == NULL)
@@ -400,6 +400,7 @@ llvm_register_class(LLVMGenCtx *ctx, const char *class_name,
                           ctx->class_type_capacity, LLVMClassTypeEntry);
 
     LLVMClassTypeEntry *entry = &ctx->class_types[ctx->class_type_count++];
+    entry->owner_ctx   = ctx;
     entry->class_name  = class_name;
     entry->struct_type = struct_type;
     entry->is_subject  = is_subject;
@@ -424,8 +425,20 @@ llvm_class_add_field_ex(LLVMClassTypeEntry *entry, const char *field_name,
                         LLVMTypeRef field_type, int index,
                         bool is_subject_slot)
 {
-    if (entry->field_count >= MAX_CLASS_FIELDS)
+    if (entry == NULL)
         return;
+    if (entry->field_count >= MAX_CLASS_FIELDS) {
+        if (entry->owner_ctx != NULL) {
+            llvm_set_error_with_hints(entry->owner_ctx,
+                PGY_CODE_LLVM_SCOPE_LIMIT,
+                PGY_CAUSE_LLVM_SCOPE_CAPACITY,
+                PGY_FIX_REFACTOR_OR_RAISE_LIMIT,
+                "LLVM class field registry exceeded MAX_CLASS_FIELDS while registering '%s.%s'",
+                entry->class_name != NULL ? entry->class_name : "<class>",
+                field_name != NULL ? field_name : "<field>");
+        }
+        return;
+    }
 
     entry->fields[entry->field_count].field_name = field_name;
     entry->fields[entry->field_count].field_type = field_type;

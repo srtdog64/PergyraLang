@@ -110,6 +110,7 @@ mir_decl_ast_field_count(ASTNode *ast)
 static bool
 mir_decl_header_ast_shape(const MIRDeclHeader *header,
                           const char **name_out,
+                          size_t *generic_count_out,
                           size_t *method_count_out,
                           size_t *field_count_out,
                           bool *uses_pointer_self_out)
@@ -118,6 +119,8 @@ mir_decl_header_ast_shape(const MIRDeclHeader *header,
 
     if (name_out != NULL)
         *name_out = NULL;
+    if (generic_count_out != NULL)
+        *generic_count_out = 0;
     if (method_count_out != NULL)
         *method_count_out = 0;
     if (field_count_out != NULL)
@@ -127,8 +130,16 @@ mir_decl_header_ast_shape(const MIRDeclHeader *header,
     ast = mir_decl_header_source_ast(header);
     if (header == NULL || ast == NULL)
         return false;
+    if (generic_count_out != NULL) {
+        GenericParams *params = ast_declaration_generic_params(ast);
+        *generic_count_out = ast_generic_param_count(params);
+    }
 
     switch (ast->type) {
+    case AST_FUNC_DECL:
+        if (name_out != NULL)
+            *name_out = ast_declaration_name(ast);
+        return true;
     case AST_CLASS_DECL:
         if (name_out != NULL)
             *name_out = ast_class_name(ast);
@@ -148,6 +159,10 @@ mir_decl_header_ast_shape(const MIRDeclHeader *header,
             (void) ast_enum_methods(ast, method_count_out);
         if (field_count_out != NULL)
             *field_count_out = mir_decl_ast_field_count(ast);
+        return true;
+    case AST_ABILITY_DECL:
+        if (name_out != NULL)
+            *name_out = ast_ability_name(ast);
         return true;
     case AST_PARTY_DECL:
         if (name_out != NULL)
@@ -232,6 +247,7 @@ mir_validate_decl_header_ast_compat(const MIRDeclHeader *header,
                                     char **error_message)
 {
     const char *ast_name = NULL;
+    size_t ast_generic_count = 0;
     size_t ast_method_count = 0;
     size_t ast_field_count = 0;
     bool ast_uses_pointer_self = false;
@@ -259,7 +275,7 @@ mir_validate_decl_header_ast_compat(const MIRDeclHeader *header,
         return false;
     }
     if (!mir_decl_header_ast_shape(
-            header, &ast_name, &ast_method_count, &ast_field_count,
+            header, &ast_name, &ast_generic_count, &ast_method_count, &ast_field_count,
             &ast_uses_pointer_self)) {
         if (error_message != NULL) {
             *error_message = mir_strdup_fmt(
@@ -283,6 +299,15 @@ mir_validate_decl_header_ast_compat(const MIRDeclHeader *header,
         if (error_message != NULL) {
             *error_message = mir_strdup_fmt(
                 "MIR declaration header[%zu] '%s' AST method-count compatibility drift",
+                header_index,
+                header->name != NULL ? header->name : "(anonymous)");
+        }
+        return false;
+    }
+    if (header->generic_param_count != ast_generic_count) {
+        if (error_message != NULL) {
+            *error_message = mir_strdup_fmt(
+                "MIR declaration header[%zu] '%s' AST generic-count compatibility drift",
                 header_index,
                 header->name != NULL ? header->name : "(anonymous)");
         }
@@ -388,6 +413,49 @@ mir_validate_decl_method_metadata(const MIRProgram *mir,
                 header->field_count);
         }
         return false;
+    }
+
+    if (header->generic_metadata_count > 0
+        && header->generic_metadata == NULL) {
+        if (error_message != NULL) {
+            *error_message = mir_strdup_fmt(
+                "MIR declaration header[%zu] '%s' has %zu generic metadata row(s) but no storage",
+                header_index,
+                header->name != NULL ? header->name : "(anonymous)",
+                header->generic_metadata_count);
+        }
+        return false;
+    }
+
+    if (header->generic_metadata_count != header->generic_param_count) {
+        if (error_message != NULL) {
+            *error_message = mir_strdup_fmt(
+                "MIR declaration header[%zu] '%s' generic metadata count %zu does not match AST compatibility count %zu",
+                header_index,
+                header->name != NULL ? header->name : "(anonymous)",
+                header->generic_metadata_count,
+                header->generic_param_count);
+        }
+        return false;
+    }
+
+    for (size_t i = 0; i < header->generic_metadata_count; i++) {
+        const MIRDeclGenericParam *generic = &header->generic_metadata[i];
+        GenericParams *ast_params =
+            ast_declaration_generic_params(header->source_ast);
+        GenericParam *ast_param = ast_generic_param_at(ast_params, i);
+        const char *ast_name_at = ast_generic_param_name(ast_param);
+        if (generic->source_param != ast_param
+            || generic->name != ast_name_at
+            || generic->bound_ast != ast_generic_param_constraint(ast_param)
+            || generic->default_arg_ast != ast_generic_param_default_type(ast_param)) {
+            if (error_message != NULL) {
+                *error_message = mir_strdup_fmt(
+                    "MIR declaration header[%zu] generic[%zu] metadata drift",
+                    header_index, i);
+            }
+            return false;
+        }
     }
 
     for (size_t i = 0; i < header->field_metadata_count; i++) {

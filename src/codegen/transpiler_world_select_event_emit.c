@@ -25,7 +25,7 @@ transpiler_frontier_zone_member_count(void *ctx, const char *zone_name)
     if (transpiler_ctx == NULL || zone_name == NULL)
         return 0;
 
-    zone_decl = transpiler_find_decl_in_inventory_local(
+    zone_decl = transpiler_find_named_decl_local(
         transpiler_ctx, AST_ZONE_DECL, zone_name);
     if (zone_decl == NULL || zone_decl->type != AST_ZONE_DECL)
         return 0;
@@ -62,7 +62,7 @@ emit_world_decl(ASTNode *node, TranspilerCtx *ctx)
 
     if (name == NULL)
         return;
-    inventory_decl = transpiler_find_decl_in_inventory_local(
+    inventory_decl = transpiler_find_named_decl_local(
         ctx, AST_WORLD_DECL, name);
     if (inventory_decl != NULL)
         node = inventory_decl;

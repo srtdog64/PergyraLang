@@ -27,6 +27,7 @@ run_literal_doc_contract_smoke() {
         "src/semantic/type_checker_flow_internal.h"
         "src/semantic/type_checker_flow_resources.h"
         "src/semantic/type_checker_flow_parallel.c"
+        "src/semantic/type_checker_helpers_resources.c"
         "src/semantic/type_checker_flow_branch.c"
         "src/semantic/type_checker_async_decl.c"
         "src/semantic/type_checker_lambda_capture.c"
@@ -156,6 +157,23 @@ run_literal_doc_contract_smoke() {
     require_literal "src/semantic/type_checker_flow.c" "case AST_SELECT_STMT"
     require_literal "src/semantic/type_checker_flow.c" "case AST_NAMESPACE_DECL"
     require_literal "src/semantic/type_checker_flow.c" "type_check_namespace_flow"
+    require_literal "AGENTS.md" "Do not pass growable runtime container storage"
+    require_literal "src/semantic/type_checker_helpers_resources.c" "worker_boundary_storage_display_name"
+    require_literal "src/semantic/type_checker_helpers_resources.c" "detached_worker_boundary_storage_display_name"
+    require_literal "src/semantic/type_checker_flow_parallel.c" "Parallel task cannot capture mutable collection"
+    require_literal "src/semantic/type_checker_flow_parallel.c" "generated C/LLVM pointer handoff undefined behavior"
+    require_literal "src/semantic/type_checker_async_channel.c" "semantic_report_worker_storage_boundary"
+    require_literal "src/semantic/type_checker_async_channel.c" "generated C/LLVM behavior depend on undefined behavior"
+    require_literal "src/tests/semantic/test_semantic_misc_a_part_b.cases.h" "CFG parallel rejects shared collection capture"
+    require_literal "src/tests/semantic/test_semantic_misc_a_part_b.cases.h" "CFG parallel allows task-local collection shadowing"
+    require_literal "src/runtime/pgy_runtime_lib_raw_map_exports.h" "Growable runtime storage is not a synchronization boundary"
+    require_literal "src/runtime/pgy_runtime_lib_raw_set_exports.h" "Growable runtime storage is not a synchronization boundary"
+    require_literal "src/runtime/pgy_runtime_lib_raw_queue_exports.h" "Growable runtime storage is not a synchronization boundary"
+    require_literal "src/runtime/pgy_runtime_lib_list_raw_exports.h" "Growable runtime storage is not a synchronization boundary"
+    require_literal "src/runtime/pgy_runtime_builtin_hashmap_inline.h" "Growable runtime storage is not a synchronization boundary"
+    require_literal "src/runtime/pgy_runtime_list_generic_inline.h" "Growable runtime storage is not a synchronization boundary"
+    require_literal "src/semantic/type_checker_async_decl.c" "Detached async block cannot capture local"
+    require_literal "src/tests/semantic/test_semantic_async_part_a.cases.h" "detached async block rejects local capture"
     if grep -n "type_check_statement(node, ctx)" "$ROOT_DIR/src/semantic/type_checker_flow.c"; then
         echo "CFG body flow must not fall back to the broad statement dispatcher" >&2
         exit 1
@@ -339,7 +357,7 @@ run_literal_doc_contract_smoke() {
     require_literal "src/codegen/llvm_mir_block_emit.c" "llvm_mir_emit_borrow_view_alias(inst, ctx)"
     require_literal "Makefile" '$(CODEGEN_DIR)/llvm_mir_resource_view.c'
     require_literal "src/codegen/llvm_mir_block_emit.c" "llvm_emit_statement(source_payload, ctx)"
-    require_literal "src/codegen/llvm_mir_block_emit.c" "LLVMConstInt(LLVMInt1TypeInContext(ctx->context), 0, 0)"
+    require_literal "src/codegen/llvm_mir_block_emit.c" "llvm_mir_emit_with_claim_only(inst, ctx)"
     require_literal "tests/llvm_smoke.sh" "select_fairness"
     require_literal "tests/llvm_smoke.sh" "case v = <-a:"
     require_literal "tests/llvm_smoke.sh" "case v = <-b:"
@@ -363,6 +381,18 @@ run_literal_doc_contract_smoke() {
     fi
     if grep -R "transpiler_find_let_decl_by_name" "$ROOT_DIR/src/codegen" >/dev/null; then
         echo "C MIR emission reintroduced name-based function-body let lookup" >&2
+        exit 1
+    fi
+    if grep -Fq "transpiler_find_local_type_ast(ctx" \
+            "$ROOT_DIR/src/codegen/transpiler_mir_block_emit.c" \
+        || grep -Fq "transpiler_find_local_type_name(ctx" \
+            "$ROOT_DIR/src/codegen/transpiler_mir_block_emit.c"; then
+        echo "C MIR block emitter reintroduced local type AST/name lookup; use typed registry or MIR metadata" >&2
+        exit 1
+    fi
+    if grep -Fq "transpiler_find_local_type_name(ctx" \
+            "$ROOT_DIR/src/codegen/transpiler_mir_destructure_emit.c"; then
+        echo "C MIR destructure emitter reintroduced local type lookup; use typed registry or MIR metadata" >&2
         exit 1
     fi
     if grep -RIn -- 'inst->ast\|resource_inst->ast' "$ROOT_DIR/src/codegen" >/dev/null; then
@@ -433,6 +463,12 @@ run_literal_doc_contract_smoke() {
     require_literal "src/semantic/type_checker_flow_branch.c" "restore_resource_states(&base)"
     require_literal "src/semantic/type_checker_flow_loops.c" "restore_resource_states(&merged)"
     require_literal "src/semantic/type_checker_flow_parallel.c" "restore_resource_states(&base)"
+    require_literal "src/semantic/type_checker_helpers_resources.c" "worker_boundary_storage_display_name"
+    require_literal "src/semantic/type_checker_helpers_resources.c" "detached_worker_boundary_storage_display_name"
+    require_literal "src/semantic/type_checker_flow_parallel.c" "worker_boundary_storage_display_name(sym->type)"
+    require_literal "src/semantic/type_checker_async_channel.c" "semantic_validate_spawn_storage_boundary"
+    require_literal "src/semantic/type_checker_async_channel.c" "type_is_detached_worker_boundary_unsafe_storage"
+    require_literal "src/semantic/type_checker_builtins_query_channel.c" "type_is_detached_worker_boundary_unsafe_storage"
     require_literal "src/tests/semantic/test_semantic_misc_a_part_a.cases.h" "CFG body flow accepts while-true all-path return"
     require_literal "src/tests/semantic/test_semantic_misc_a_part_a.cases.h" "CFG body flow accepts static single-iteration for all-path return"
     require_literal "src/tests/semantic/test_semantic_misc_a_part_a.cases.h" "CFG body flow keeps zero-iteration for as fallthrough"
@@ -512,6 +548,7 @@ flow_loop_snapshot_path = root / "src" / "semantic" / "type_checker_flow_loop_sn
 flow_loops_header_path = root / "src" / "semantic" / "type_checker_flow_loops.h"
 flow_loops_path = root / "src" / "semantic" / "type_checker_flow_loops.c"
 flow_parallel_path = root / "src" / "semantic" / "type_checker_flow_parallel.c"
+helpers_resources_path = root / "src" / "semantic" / "type_checker_helpers_resources.c"
 mir_cleanup_path = root / "src" / "compiler" / "mir_cleanup.c"
 mir_intent_path = root / "src" / "compiler" / "mir_intent.c"
 mir_cleanup_fact_names_path = root / "src" / "compiler" / "mir_cleanup_fact_names.h"
@@ -566,6 +603,7 @@ mir_test_case_paths = [
     root / "src" / "tests" / "mir" / "test_mir_lowering_part_c.cases.h",
     root / "src" / "tests" / "mir" / "test_mir_lowering_part_d.cases.h",
     root / "src" / "tests" / "mir" / "test_mir_lowering_part_e.cases.h",
+    root / "src" / "tests" / "mir" / "test_mir_lowering_part_f.cases.h",
 ]
 async_channel_path = root / "src" / "semantic" / "type_checker_async_channel.c"
 helpers_effects_path = root / "src" / "semantic" / "type_checker_helpers_effects.c"
@@ -607,6 +645,7 @@ for path in (
     flow_loops_header_path,
     flow_loops_path,
     flow_parallel_path,
+    helpers_resources_path,
     mir_cleanup_path,
     mir_intent_path,
     mir_cleanup_fact_names_path,
@@ -706,6 +745,8 @@ flow = (
     + flow_loops_path.read_text(encoding="utf-8")
     + "\n"
     + flow_parallel_path.read_text(encoding="utf-8")
+    + "\n"
+    + helpers_resources_path.read_text(encoding="utf-8")
     + "\n"
     + async_channel_path.read_text(encoding="utf-8")
     + "\n"
@@ -1225,6 +1266,12 @@ required_flow_terms = [
     "Cancel does not support",
     "cannot yield Token values yet",
     "PGY_CODE_SEM_BORROW_ESCAPE",
+    "worker_boundary_storage_display_name",
+    "type_is_worker_boundary_unsafe_storage",
+    "detached_worker_boundary_storage_display_name",
+    "type_is_detached_worker_boundary_unsafe_storage",
+    "semantic_validate_spawn_storage_boundary",
+    "shallow-copying that storage",
     "SlotState",
     "ResourceConsumeSnapshot before_defer",
     "valid",
@@ -1431,10 +1478,14 @@ for term in [
     "CFG parallel tasks reject double own subject consume",
     "CFG parallel tasks reject ref and own subject boundary conflict",
     "CFG parallel tasks allow shared ref subject boundary reads",
+    "CFG parallel rejects shared collection capture",
+    "CFG parallel allows task-local collection shadowing",
     "CFG spawn rejects borrowed subject boundary crossing",
     "CFG spawn allows copy ref boundary crossing",
     "CFG spawn rejects authority Token boundary crossing",
     "CFG spawn rejects borrowed Slice boundary crossing",
+    "CFG spawn rejects Array storage boundary crossing",
+    "CFG spawn rejects Channel storage boundary crossing",
     "ref Slice return escape suggests SliceCopy snapshot",
     "CFG spawn rejects anonymous async body until capture lifetime is closed",
     "CFG parallel channel send consumes resource after join",
@@ -1447,6 +1498,7 @@ for term in [
     "TryRecv rejects anchored slot-handle channel payloads",
     "RecvTimeout rejects boundary-value channel payloads",
     "channel send rejects borrowed Slice payload",
+    "channel send rejects Array storage payload",
     "channel recv rejects borrowed Slice payload",
     "TrySend rejects borrowed Slice channel payloads",
     "SendTimeout rejects borrowed Slice channel payloads",
@@ -1482,6 +1534,8 @@ for term in [
     "async block with active ReadView uses pin boundary diagnostic",
     "parallel with active ReadView uses pin conflict diagnostic",
     "ViewRead inside parallel task is rejected by pin conflict diagnostic",
+    "parallel-rejected: collection mutators stay serialized",
+    "parallel-rejected: map mutators stay serialized",
     "ViewRead rejects QubitSlot with pin qubit diagnostic",
     "WriteView requires exclusive slot view access",
     "ReadView after WriteView is rejected by exclusive view gate",
@@ -1661,6 +1715,7 @@ if grep -RIn "inst->arg0 != NULL ? inst->arg0 : inst->name" \
     exit 1
 fi
 if grep -RIn "inst->arg0" \
+    "$ROOT_DIR/src/codegen/transpiler_mir_inventory_intent_alias_collect.c" \
     "$ROOT_DIR/src/codegen/transpiler_mir_inventory_intent_collect.c" \
     "$ROOT_DIR/src/codegen/llvm_intent_mir_meta.c"; then
     echo "MIR intent metadata readers must consume payloads through mir_instruction_intent_payload" >&2
@@ -1676,6 +1731,7 @@ require_literal "src/codegen/transpiler_mir_inventory_intent_collect.c" "mir_ins
 require_literal "src/codegen/llvm_intent_flow.c" "mir_instruction_intent_step_name(inst)"
 require_literal "src/codegen/transpiler_mir_inventory_intent_collect.c" "mir_instruction_intent_phase_matches(inst, phase_name)"
 require_literal "src/codegen/llvm_intent_flow.c" "mir_instruction_intent_phase_matches(inst, phase_name)"
+require_literal "src/codegen/transpiler_mir_inventory_intent_alias_collect.c" "mir_instruction_intent_payload(inst)"
 require_literal "src/codegen/transpiler_mir_inventory_intent_collect.c" "mir_instruction_intent_payload(inst)"
 require_literal "src/codegen/llvm_intent_mir_meta.c" "mir_instruction_intent_payload(inst)"
 require_literal "src/codegen/transpiler_mir_intent_query.c" "mir_instruction_intent_payload(inst)"

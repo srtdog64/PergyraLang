@@ -7,6 +7,7 @@
 #include "../semantic/diag_codes.h"
 #include "transpiler_context.h"
 #include "transpiler_host_self_policy.h"
+#include "transpiler_inventory_view.h"
 #include "transpiler_type_declarator.h"
 #include "transpiler_type_mapping.h"
 #include "transpiler_type_require.h"
@@ -22,6 +23,15 @@ emit_func_forward_decl_named(ASTNode *node, const char *emitted_name,
     const MIRRoutine *mir_routine = transpiler_find_mir_function(ctx, node);
     bool routine_has_signature =
         transpiler_mir_routine_has_signature(mir_routine);
+    if (mir_routine != NULL && transpiler_active_has_mir(ctx)
+        && !routine_has_signature) {
+        transpiler_set_mir_inventory_missing(ctx,
+            "MIR-only C path missing function forward signature metadata for '%s'",
+            name != NULL ? name : "(anonymous)");
+        if (params_sig != NULL)
+            codebuf_destroy(params_sig);
+        return;
+    }
     ASTNode *return_type = routine_has_signature
         ? transpiler_mir_routine_return_type(mir_routine)
         : ast_func_return_type(node);

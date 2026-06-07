@@ -5,6 +5,7 @@
 
 #include "../compiler/mir.h"
 #include "../parser/ast_api.h"
+#include "transpiler_inventory_view.h"
 #include "transpiler_mir_inventory_intent_collect.h"
 #include "transpiler_mir_local_binding.h"
 #include "transpiler_mir_pending_uses.h"
@@ -85,8 +86,9 @@ transpiler_has_mapping_for_all_emitted_blocks(const TranspilerCtx *ctx,
                                              char *reason,
                                              size_t reason_cap)
 {
-    const char *routine_name =
-        routine != NULL && routine->name != NULL ? routine->name : "<routine>";
+    const char *routine_name = transpiler_mir_routine_name(routine);
+    if (routine_name == NULL)
+        routine_name = "<routine>";
     if (routine == NULL || routine->blocks == NULL)
         return false;
     for (size_t i = 0; i < routine->block_count; i++) {

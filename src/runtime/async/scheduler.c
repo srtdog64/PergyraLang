@@ -24,6 +24,7 @@
 #include "scheduler.h"
 #include "fiber.h"
 #include "concurrent_queue.h"
+#include "../pgy_runtime_panic_contract.h"
 
 /* Thread-local current scheduler */
 static __thread Scheduler* tlsCurrentScheduler = NULL;
@@ -54,6 +55,21 @@ scheduler_workers_valid(Scheduler* scheduler, const char* op)
         return false;
     }
     return true;
+}
+
+static void
+scheduler_stat_decrement_nonzero(atomic_uint_least64_t* counter)
+{
+    uint_least64_t current;
+
+    if (counter == NULL)
+        return;
+
+    current = atomic_load(counter);
+    while (current > 0) {
+        if (atomic_compare_exchange_weak(counter, &current, current - 1))
+            return;
+    }
 }
 
 /* Worker thread main function */
@@ -90,7 +106,17 @@ static void* WorkerThreadMain(void* arg)
             atomic_fetch_add(&scheduler->parkedWorkers, 1);
             
             /* Wait for work or stop signal */
-            pthread_cond_wait(&scheduler->parkCondition, &scheduler->parkMutex);
+            if (pthread_cond_wait(&scheduler->parkCondition,
+                                  &scheduler->parkMutex) != 0) {
+                scheduler_warn("worker_park",
+                               "park condition wait failed",
+                               scheduler);
+                atomic_store(&worker->shouldStop, true);
+                atomic_store(&worker->isParked, false);
+                atomic_fetch_sub(&scheduler->parkedWorkers, 1);
+                pthread_mutex_unlock(&scheduler->parkMutex);
+                break;
+            }
             
             atomic_store(&worker->isParked, false);
             atomic_fetch_sub(&scheduler->parkedWorkers, 1);
@@ -113,13 +139,17 @@ static void* WorkerThreadMain(void* arg)
         switch (fiber->state) {
             case FIBER_STATE_READY:
                 /* Re-queue for execution */
-                ConcurrentQueuePush(worker->localRunQueue, fiber);
+                if (!ConcurrentQueuePush(worker->localRunQueue, fiber)) {
+                    PGY_RUNTIME_PANIC(PGY_RUNTIME_PANIC_CLASS_INTERNAL_INVARIANT,
+                                      "scheduler failed to requeue ready fiber");
+                }
                 break;
                 
             case FIBER_STATE_DONE:
             case FIBER_STATE_ERROR:
                 /* Update statistics */
-                atomic_fetch_add(&scheduler->totalFibers, -1);
+                scheduler_stat_decrement_nonzero(&scheduler->totalFibers);
+                scheduler_stat_decrement_nonzero(&scheduler->activeFibers);
                 atomic_fetch_add(&worker->tasksExecuted, 1);
                 
                 /* Clean up fiber */
@@ -229,8 +259,25 @@ Scheduler* SchedulerCreate(const SchedulerConfig* config)
 #endif
     
     /* Initialize parking */
-    pthread_mutex_init(&scheduler->parkMutex, NULL);
-    pthread_cond_init(&scheduler->parkCondition, NULL);
+    if (pthread_mutex_init(&scheduler->parkMutex, NULL) != 0) {
+        scheduler_warn("create", "park mutex initialization failed", scheduler);
+#ifndef _WIN32
+        close(scheduler->epollFd);
+#endif
+        ConcurrentQueueDestroy(scheduler->globalRunQueue);
+        free(scheduler);
+        return NULL;
+    }
+    if (pthread_cond_init(&scheduler->parkCondition, NULL) != 0) {
+        scheduler_warn("create", "park condition initialization failed", scheduler);
+#ifndef _WIN32
+        close(scheduler->epollFd);
+#endif
+        ConcurrentQueueDestroy(scheduler->globalRunQueue);
+        pthread_mutex_destroy(&scheduler->parkMutex);
+        free(scheduler);
+        return NULL;
+    }
     
     /* Allocate workers */
     if (!scheduler_array_fits(scheduler->numWorkers, sizeof(WorkerThread))) {
@@ -432,4 +479,112 @@ Scheduler* SchedulerGetCurrent(void)
 void SchedulerSetCurrent(Scheduler* scheduler)
 {
     tlsCurrentScheduler = scheduler;
+}
+
+void SchedulerRegisterIoEvent(Scheduler* scheduler, int fd, uint32_t events,
+                              Fiber* fiber)
+{
+    if (scheduler == NULL || fiber == NULL || fd < 0) {
+        scheduler_warn("register_io", "scheduler, fiber, or fd is invalid",
+            scheduler);
+        return;
+    }
+#ifndef _WIN32
+    if (scheduler->epollFd < 0) {
+        scheduler_warn("register_io", "epoll is not initialized", scheduler);
+        return;
+    }
+    struct epoll_event event;
+    memset(&event, 0, sizeof(event));
+    event.events = events;
+    event.data.ptr = fiber;
+    if (epoll_ctl(scheduler->epollFd, EPOLL_CTL_ADD, fd, &event) != 0) {
+        if (errno == EEXIST
+            && epoll_ctl(scheduler->epollFd, EPOLL_CTL_MOD, fd, &event) == 0) {
+            return;
+        }
+        scheduler_warn("register_io", "epoll_ctl add/mod failed", scheduler);
+    }
+#else
+    (void)events;
+    scheduler_warn("register_io", "I/O event registration is unavailable on Windows",
+        scheduler);
+#endif
+}
+
+void SchedulerUnregisterIoEvent(Scheduler* scheduler, int fd)
+{
+    if (scheduler == NULL || fd < 0) {
+        scheduler_warn("unregister_io", "scheduler or fd is invalid", scheduler);
+        return;
+    }
+#ifndef _WIN32
+    if (scheduler->epollFd < 0) {
+        scheduler_warn("unregister_io", "epoll is not initialized", scheduler);
+        return;
+    }
+    if (epoll_ctl(scheduler->epollFd, EPOLL_CTL_DEL, fd, NULL) != 0
+        && errno != ENOENT) {
+        scheduler_warn("unregister_io", "epoll_ctl delete failed", scheduler);
+    }
+#else
+    scheduler_warn("unregister_io", "I/O event registration is unavailable on Windows",
+        scheduler);
+#endif
+}
+
+void SchedulerScheduleTimer(Scheduler* scheduler, uint64_t deadlineNs,
+                            Fiber* fiber)
+{
+    (void)scheduler;
+    (void)deadlineNs;
+    (void)fiber;
+    PGY_RUNTIME_PANIC(PGY_RUNTIME_PANIC_CLASS_INTERNAL_INVARIANT,
+                      "scheduler timer support is not implemented");
+}
+
+void SchedulerSetDeterministicMode(Scheduler* scheduler, bool enabled,
+                                   uint32_t seed)
+{
+    if (scheduler == NULL) {
+        scheduler_warn("set_deterministic", "scheduler is null", scheduler);
+        return;
+    }
+    scheduler->config.isDeterministic = enabled;
+    scheduler->config.randomSeed = seed;
+}
+
+void SchedulerGetStats(Scheduler* scheduler, SchedulerStats* stats)
+{
+    uint64_t completed = 0;
+    uint64_t stealAttempts = 0;
+    uint64_t stealSuccesses = 0;
+    uint64_t active;
+
+    if (stats == NULL) {
+        scheduler_warn("get_stats", "stats output is null", scheduler);
+        return;
+    }
+    memset(stats, 0, sizeof(*stats));
+    if (scheduler == NULL) {
+        scheduler_warn("get_stats", "scheduler is null", scheduler);
+        return;
+    }
+
+    if (scheduler->workers != NULL) {
+        for (uint32_t i = 0; i < scheduler->numWorkers; i++) {
+            completed += atomic_load(&scheduler->workers[i].tasksExecuted);
+            stealAttempts += atomic_load(&scheduler->workers[i].stealAttempts);
+            stealSuccesses += atomic_load(&scheduler->workers[i].stealSuccesses);
+        }
+    }
+    active = atomic_load(&scheduler->activeFibers);
+    stats->totalFibersCompleted = completed;
+    stats->totalFibersCreated = (UINT64_MAX - completed < active)
+        ? UINT64_MAX
+        : completed + active;
+    stats->totalStealAttempts = stealAttempts;
+    stats->totalStealSuccesses = stealSuccesses;
+    stats->totalContextSwitches = completed;
+    stats->totalIoEvents = 0;
 }

@@ -195,7 +195,7 @@ void
 emit_ability_decl(ASTNode *node, TranspilerCtx *ctx)
 {
     const char *name = ast_ability_name(node);
-    GenericParams *generic_params = ast_ability_generic_params(node);
+    GenericParams *generic_params = ast_declaration_generic_params(node);
 
     if (ast_generic_param_count(generic_params) > 0) {
         codebuf_write(ctx->out,
@@ -382,7 +382,7 @@ emit_party_decl(ASTNode *node, TranspilerCtx *ctx)
 
     if (name == NULL)
         return;
-    inventory_decl = transpiler_find_decl_in_inventory_local(
+    inventory_decl = transpiler_find_named_decl_local(
         ctx, AST_PARTY_DECL, name);
     if (inventory_decl != NULL)
         node = inventory_decl;

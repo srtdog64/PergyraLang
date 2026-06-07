@@ -29,6 +29,111 @@
         lexer_destroy(lexer);
     }
 
+    TEST("CFG parallel rejects shared collection capture");
+    {
+        const char *source =
+            "func Main() -> Void {\n"
+            "    let items: Array<Int> = [1, 2, 3];\n"
+            "    parallel {\n"
+            "        Log(ArrayLength(items));\n"
+            "        Log(1);\n"
+            "    }\n"
+            "}\n";
+        Lexer *lexer = lexer_create(source);
+        Parser *parser = parser_create(lexer);
+        ASTNode *program = parser_parse_program(parser);
+        SemanticResult *result = semantic_analyze(program);
+
+        EXPECT(!parser_has_error(parser));
+        EXPECT(result != NULL && result->error_count > 0);
+        EXPECT(ctx_has_diagnostic_substring_from_result(result,
+            "cannot capture mutable collection"));
+
+        semantic_result_destroy(result);
+        ast_destroy(program);
+        parser_destroy(parser);
+        lexer_destroy(lexer);
+    }
+
+    TEST("CFG parallel rejects borrowed Slice capture");
+    {
+        const char *source =
+            "func Words() -> Array<Int> {\n"
+            "    return [1, 2, 3];\n"
+            "}\n"
+            "func Main() -> Void {\n"
+            "    let view: Slice<Int> = Words().Slice(0, 2);\n"
+            "    parallel {\n"
+            "        Log(ArrayLength(view));\n"
+            "        Log(1);\n"
+            "    }\n"
+            "}\n";
+        Lexer *lexer = lexer_create(source);
+        Parser *parser = parser_create(lexer);
+        ASTNode *program = parser_parse_program(parser);
+        SemanticResult *result = semantic_analyze(program);
+
+        EXPECT(!parser_has_error(parser));
+        EXPECT(result != NULL && result->error_count > 0);
+        EXPECT(ctx_has_diagnostic_substring_from_result(result,
+            "cannot capture mutable collection"));
+
+        semantic_result_destroy(result);
+        ast_destroy(program);
+        parser_destroy(parser);
+        lexer_destroy(lexer);
+    }
+
+    TEST("CFG parallel rejects HashMap storage capture");
+    {
+        const char *source =
+            "func Main() -> Void {\n"
+            "    let items: HashMap<String, Int> = MapNew();\n"
+            "    parallel {\n"
+            "        Log(MapSize(items));\n"
+            "        Log(1);\n"
+            "    }\n"
+            "}\n";
+        Lexer *lexer = lexer_create(source);
+        Parser *parser = parser_create(lexer);
+        ASTNode *program = parser_parse_program(parser);
+        SemanticResult *result = semantic_analyze(program);
+
+        EXPECT(!parser_has_error(parser));
+        EXPECT(result != NULL && result->error_count > 0);
+        EXPECT(ctx_has_diagnostic_substring_from_result(result,
+            "cannot capture mutable collection"));
+
+        semantic_result_destroy(result);
+        ast_destroy(program);
+        parser_destroy(parser);
+        lexer_destroy(lexer);
+    }
+
+    TEST("CFG parallel allows task-local collection shadowing");
+    {
+        const char *source =
+            "func Main() -> Void {\n"
+            "    let items: Array<Int> = [1, 2, 3];\n"
+            "    parallel {\n"
+            "        let f: func(Int) -> Int = (items: Int) => items + 1;\n"
+            "        Log(1);\n"
+            "    }\n"
+            "}\n";
+        Lexer *lexer = lexer_create(source);
+        Parser *parser = parser_create(lexer);
+        ASTNode *program = parser_parse_program(parser);
+        SemanticResult *result = semantic_analyze(program);
+
+        EXPECT(!parser_has_error(parser));
+        EXPECT(result != NULL && result->error_count == 0);
+
+        semantic_result_destroy(result);
+        ast_destroy(program);
+        parser_destroy(parser);
+        lexer_destroy(lexer);
+    }
+
     TEST("CFG spawn rejects borrowed subject boundary crossing");
     {
         const char *source =
@@ -144,6 +249,84 @@
             "borrowed Slice view"));
         EXPECT(ctx_has_diagnostic_substring_from_result(result,
             "SliceCopy(view)"));
+
+        semantic_result_destroy(result);
+        ast_destroy(program);
+        parser_destroy(parser);
+        lexer_destroy(lexer);
+    }
+
+    TEST("CFG spawn rejects Array storage boundary crossing");
+    {
+        const char *source =
+            "func Inspect(items: Array<Int>) -> Void {\n"
+            "    Log(ArrayLength(items));\n"
+            "}\n"
+            "func Main() -> Void with effects remote {\n"
+            "    let items: Array<Int> = [1, 2, 3];\n"
+            "    let pending: Future<Void> = spawn Inspect(items);\n"
+            "}\n";
+        Lexer *lexer = lexer_create(source);
+        Parser *parser = parser_create(lexer);
+        ASTNode *program = parser_parse_program(parser);
+        SemanticResult *result = semantic_analyze(program);
+
+        EXPECT(!parser_has_error(parser));
+        EXPECT(result != NULL && result->error_count > 0);
+        EXPECT(ctx_has_diagnostic_substring_from_result(result,
+            "Spawn argument cannot transport Array"));
+
+        semantic_result_destroy(result);
+        ast_destroy(program);
+        parser_destroy(parser);
+        lexer_destroy(lexer);
+    }
+
+    TEST("CFG spawn rejects HashMap storage boundary crossing");
+    {
+        const char *source =
+            "func Worker(items: HashMap<String, Int>) -> Void {\n"
+            "    Log(MapSize(items));\n"
+            "}\n"
+            "func Main() -> Void with effects remote {\n"
+            "    let items: HashMap<String, Int> = MapNew();\n"
+            "    let pending: Future<Void> = spawn Worker(items);\n"
+            "}\n";
+        Lexer *lexer = lexer_create(source);
+        Parser *parser = parser_create(lexer);
+        ASTNode *program = parser_parse_program(parser);
+        SemanticResult *result = semantic_analyze(program);
+
+        EXPECT(!parser_has_error(parser));
+        EXPECT(result != NULL && result->error_count > 0);
+        EXPECT(ctx_has_diagnostic_substring_from_result(result,
+            "Spawn argument cannot transport HashMap"));
+
+        semantic_result_destroy(result);
+        ast_destroy(program);
+        parser_destroy(parser);
+        lexer_destroy(lexer);
+    }
+
+    TEST("CFG spawn rejects Channel storage boundary crossing");
+    {
+        const char *source =
+            "func Worker(ch: Channel<Int>) -> Void {\n"
+            "    Log(ChannelLength(ch));\n"
+            "}\n"
+            "func Main() -> Void with effects remote {\n"
+            "    let ch: Channel<Int> = Channel(2);\n"
+            "    let pending: Future<Void> = spawn Worker(ch);\n"
+            "}\n";
+        Lexer *lexer = lexer_create(source);
+        Parser *parser = parser_create(lexer);
+        ASTNode *program = parser_parse_program(parser);
+        SemanticResult *result = semantic_analyze(program);
+
+        EXPECT(!parser_has_error(parser));
+        EXPECT(result != NULL && result->error_count > 0);
+        EXPECT(ctx_has_diagnostic_substring_from_result(result,
+            "Spawn argument cannot transport Channel"));
 
         semantic_result_destroy(result);
         ast_destroy(program);
@@ -344,6 +527,36 @@
 
         semantic_context_destroy(ctx);
         ast_destroy(await_expr);
+    }
+
+    TEST("await consumes a named local Future handle");
+    {
+        SemanticContext *ctx = semantic_context_create();
+        scope_enter(&ctx->scope, SCOPE_GLOBAL);
+        ctx->in_async_func = true;
+
+        Type *args[1] = { TYPE_INT };
+        Type *future_type = type_create_constructed(TYPE_FUTURE, args, 1);
+        scope_declare(ctx->scope,
+            symbol_create_variable("pending", future_type, 1, 1));
+
+        ASTNode *first =
+            ast_create_await_expression(make_identifier("pending", 1));
+        Type *first_type = type_check_expression(first, ctx);
+        EXPECT(!ctx->has_error);
+        EXPECT(first_type == TYPE_INT);
+
+        ASTNode *second =
+            ast_create_await_expression(make_identifier("pending", 2));
+        Type *second_type = type_check_expression(second, ctx);
+        EXPECT(ctx->has_error);
+        EXPECT(second_type == TYPE_UNKNOWN);
+        EXPECT(ctx_has_diagnostic_substring(ctx,
+            "was moved or released and cannot be used again"));
+
+        semantic_context_destroy(ctx);
+        ast_destroy(first);
+        ast_destroy(second);
     }
 
     TEST("await on RemoteFuture<Int> returns Result<Int>");

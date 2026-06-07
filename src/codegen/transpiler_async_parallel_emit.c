@@ -7,7 +7,6 @@
 #include "../parser/ast_api.h"
 #include "../semantic/diag_codes.h"
 #include "transpiler_context.h"
-#include "transpiler_mir_local_type_ast_lookup.h"
 #include "transpiler_mir_ssa_names.h"
 #include "transpiler_symbols.h"
 #include "transpiler_parallel_capture.h"
@@ -50,16 +49,16 @@ transpiler_capture_reject_shared_collection(TranspilerCtx *ctx,
                                             const char *capture_name,
                                             const char *type_name)
 {
+    const char *storage_kind;
+
     if (type_name == NULL)
         return false;
-    if (!transpiler_type_name_is_array(type_name)
-        && !transpiler_type_name_is_slice(type_name)
-        && !transpiler_type_name_is_list(type_name)
-        && !transpiler_type_name_is_queue(type_name)
-        && !transpiler_type_name_is_set(type_name)
-        && !transpiler_type_name_is_hashmap(type_name)) {
+
+    storage_kind =
+        codegen_worker_boundary_storage_kind_from_type_name(type_name, false);
+    if (storage_kind == NULL)
         return false;
-    }
+
     transpiler_set_backend_error_with_hints(ctx,
         PGY_CODE_C_TYPE_UNSUPPORTED,
         PGY_CAUSE_C_TYPE_UNSUPPORTED,
@@ -169,13 +168,17 @@ emit_parallel_block(ASTNode *node, TranspilerCtx *ctx)
      * --------------------------------------------------------------- */
     char capture_slot_names[MAX_SLOT_VARS][64] = {{0}};
     char capture_typed_names[MAX_SLOT_VARS][64] = {{0}};
+    ASTNode *capture_typed_type_asts[MAX_SLOT_VARS] = {0};
+    bool capture_typed_is_event_handler[MAX_SLOT_VARS] = {false};
     int capture_slot_count = 0;
     int capture_typed_count = 0;
 
     for (size_t i = 0; i < count; i++) {
         transpiler_parallel_collect_stmt_captures(ast_parallel_task(node, i), ctx,
             capture_slot_names, &capture_slot_count,
-            capture_typed_names, &capture_typed_count);
+            capture_typed_names, capture_typed_type_asts,
+            capture_typed_is_event_handler,
+            &capture_typed_count);
     }
 
     bool has_captures = (capture_slot_count > 0 || capture_typed_count > 0);
@@ -225,19 +228,14 @@ emit_parallel_block(ASTNode *node, TranspilerCtx *ctx)
             /* Function-typed locals need a pointer-to-function-pointer
              * declarator so `(*_pctx->name)` inside the wrapper yields the
              * function pointer (not a primitive deref). */
-            ASTNode *local_type_node = ctx->current_func_decl != NULL
-                ? transpiler_find_local_type_ast(ctx,
-                      ctx->current_func_decl, capture_typed_names[i])
-                : NULL;
-            if (local_type_node != NULL
-                && local_type_node->type == AST_EVENT_HANDLER_TYPE) {
+            if (capture_typed_is_event_handler[i]) {
                 char ptr_name[sizeof(capture_typed_names[i]) + 1];
                 ptr_name[0] = '*';
                 memcpy(ptr_name + 1, capture_typed_names[i],
                        sizeof(capture_typed_names[i]));
                 ptr_name[sizeof(ptr_name) - 1] = '\0';
                 char *decl = pergyra_ast_typed_declarator_in_ctx(
-                    ctx, local_type_node, ptr_name);
+                    ctx, capture_typed_type_asts[i], ptr_name);
                 if (decl != NULL) {
                     codebuf_write(ctx->helpers, "    %s;\n", decl);
                     free(decl);
@@ -330,6 +328,10 @@ emit_parallel_block(ASTNode *node, TranspilerCtx *ctx)
                 "PgyTaskHandle _ph_%zu = pgy_spawn(_pgy_par_%zu_%u, NULL);\n",
                 i, i, pid);
         }
+        write_indent(ctx);
+        codebuf_write(ctx->out,
+            "if (_ph_%zu.task == NULL) PGY_RUNTIME_PANIC(PGY_RUNTIME_PANIC_CLASS_INTERNAL_INVARIANT, \"parallel task spawn failed\");\n",
+            i);
     }
     for (size_t i = 0; i < count; i++) {
         write_indent(ctx);
@@ -347,16 +349,18 @@ emit_async_block(ASTNode *node, TranspilerCtx *ctx)
     unsigned int pid = ctx->parallel_id++;
     char capture_slot_names[MAX_SLOT_VARS][64] = {{0}};
     char capture_typed_names[MAX_SLOT_VARS][64] = {{0}};
+    ASTNode *capture_typed_type_asts[MAX_SLOT_VARS] = {0};
+    bool capture_typed_is_event_handler[MAX_SLOT_VARS] = {false};
     int capture_slot_count = 0;
     int capture_typed_count = 0;
 
     for (size_t i = 0; i < ast_async_block_statement_count(node); i++) {
         transpiler_parallel_collect_stmt_captures(ast_async_block_statement(node, i), ctx,
             capture_slot_names, &capture_slot_count,
-            capture_typed_names, &capture_typed_count);
+            capture_typed_names, capture_typed_type_asts,
+            capture_typed_is_event_handler,
+            &capture_typed_count);
     }
-
-    bool has_captures = (capture_slot_count > 0 || capture_typed_count > 0);
 
     if (capture_slot_count > 0) {
         transpiler_set_backend_error_with_hints(ctx,
@@ -367,85 +371,33 @@ emit_async_block(ASTNode *node, TranspilerCtx *ctx)
             capture_slot_names[0]);
         return;
     }
-
-    if (has_captures) {
-        codebuf_write(ctx->helpers, "typedef struct {\n");
-        for (int i = 0; i < capture_slot_count; i++) {
-            const char *name = capture_slot_names[i];
-            char inner_buf[128];
-            const char *inner = NULL;
-            bool secure = lookup_slot_is_secure(ctx, name);
-            if (lookup_slot_type_copy(ctx, name, inner_buf,
-                    sizeof(inner_buf))) {
-                inner = inner_buf;
-            }
-            if (inner == NULL || inner[0] == '\0') {
-                transpiler_set_backend_error_with_hints(ctx,
-                    PGY_CODE_C_TYPE_UNSUPPORTED,
-                    PGY_CAUSE_C_TYPE_UNSUPPORTED,
-                    PGY_FIX_ANNOTATE_CONCRETE_TYPE,
-                    "async capture '%s' requires concrete Slot<T> metadata",
-                    name);
-                return;
-            }
-            codebuf_write(ctx->helpers, secure
-                ? "    PgySecureSlot_%s *%s;\n"
-                : "    PgySlot_%s *%s;\n",
-                inner, name);
+    if (capture_typed_count > 0) {
+        TypedVarEntry *entry = lookup_typed_entry(ctx, capture_typed_names[0]);
+        const char *type_name = entry != NULL ? entry->type_name : NULL;
+        const char *storage_kind =
+            codegen_worker_boundary_storage_kind_from_type_name(type_name, true);
+        if (storage_kind != NULL
+            && strcmp(storage_kind, "Channel") == 0) {
+            transpiler_set_backend_error_with_hints(ctx,
+                PGY_CODE_C_TYPE_UNSUPPORTED,
+                PGY_CAUSE_C_TYPE_UNSUPPORTED,
+                PGY_FIX_USE_MOVE_OR_RETAIN_BINDING,
+                "async block cannot capture Channel<T> local '%s' by pointer; use parallel or a named task boundary with explicit handoff",
+                capture_typed_names[0]);
+            return;
         }
-        for (int i = 0; i < capture_typed_count; i++) {
-            TypedVarEntry *entry = lookup_typed_entry(ctx, capture_typed_names[i]);
-            char surface_desc[256];
-            char c_type_buf[128];
-            const char *c_type = NULL;
-            const char *type_name = entry != NULL ? entry->type_name : NULL;
-            if (!transpiler_capture_surface_desc(surface_desc,
-                    sizeof(surface_desc), "async",
-                    capture_typed_names[i])) {
-                transpiler_capture_surface_desc_too_long(ctx, "async");
-                return;
-            }
-            if (transpiler_capture_reject_shared_collection(ctx, "async",
-                    capture_typed_names[i], type_name)) {
-                return;
-            }
-            if (!transpiler_type_name_is_channel(type_name)) {
-                transpiler_set_backend_error_with_hints(ctx,
-                    PGY_CODE_C_TYPE_UNSUPPORTED,
-                    PGY_CAUSE_C_TYPE_UNSUPPORTED,
-                    PGY_FIX_USE_MOVE_OR_RETAIN_BINDING,
-                    "async block cannot capture non-Channel local '%s' of type '%s' by pointer; use a named task boundary or explicit value handoff",
-                    capture_typed_names[i],
-                    type_name != NULL ? type_name : "Unknown");
-                return;
-            }
-            if (transpiler_require_type_name_c_type_copy(
-                ctx,
-                type_name,
-                surface_desc,
-                c_type_buf,
-                sizeof(c_type_buf))) {
-                c_type = c_type_buf;
-            }
-            if (c_type == NULL)
-                return;
-            codebuf_write(ctx->helpers, "    %s *%s;\n",
-                c_type,
-                capture_typed_names[i]);
-        }
-        codebuf_write(ctx->helpers, "} _pgy_async_ctx_%u;\n\n", pid);
+        transpiler_set_backend_error_with_hints(ctx,
+            PGY_CODE_C_TYPE_UNSUPPORTED,
+            PGY_CAUSE_C_TYPE_UNSUPPORTED,
+            PGY_FIX_USE_MOVE_OR_RETAIN_BINDING,
+            "async block cannot capture non-Channel local '%s' of type '%s' by pointer; use a named task boundary or explicit value handoff",
+            capture_typed_names[0],
+            type_name != NULL ? type_name : "Unknown");
+        return;
     }
 
     codebuf_write(ctx->helpers, "static void *_pgy_async_%u(void *_arg) {\n", pid);
-    if (has_captures) {
-        codebuf_write(ctx->helpers,
-            "    _pgy_async_ctx_%u *_pctx = (_pgy_async_ctx_%u *)_arg;\n",
-            pid, pid);
-        codebuf_write(ctx->helpers,
-            "    if (_pctx == NULL) return NULL;\n");
-    } else {
-        codebuf_write(ctx->helpers, "    (void)_arg;\n");
-    }
+    codebuf_write(ctx->helpers, "    (void)_arg;\n");
 
     TranspilerParallelWrapperState wrapper_state;
     transpiler_parallel_wrapper_state_enter(
@@ -457,47 +409,19 @@ emit_async_block(ASTNode *node, TranspilerCtx *ctx)
 
     transpiler_parallel_wrapper_state_restore(ctx, &wrapper_state);
 
-    if (has_captures)
-        codebuf_write(ctx->helpers, "    free(_pctx);\n");
     codebuf_write(ctx->helpers, "    return NULL;\n}\n\n");
 
     write_indent(ctx);
     codebuf_write(ctx->out, "{\n");
     ctx->indent++;
-    if (has_captures) {
-        write_indent(ctx);
-        codebuf_write(ctx->out,
-            "_pgy_async_ctx_%u *_pctx%u = (_pgy_async_ctx_%u *)malloc(sizeof(_pgy_async_ctx_%u));\n",
-            pid, pid, pid, pid);
-        write_indent(ctx);
-        codebuf_write(ctx->out,
-            "if (_pctx%u == NULL) { PGY_PANIC(\"async capture allocation failed\"); }\n",
-            pid);
-        write_indent(ctx);
-        codebuf_write(ctx->out, "*_pctx%u = (_pgy_async_ctx_%u){ ", pid, pid);
-        bool first = true;
-        for (int i = 0; i < capture_slot_count; i++) {
-            if (!first) codebuf_write(ctx->out, ", ");
-            transpiler_write_capture_address(ctx, capture_slot_names[i]);
-            first = false;
-        }
-        for (int i = 0; i < capture_typed_count; i++) {
-            if (!first) codebuf_write(ctx->out, ", ");
-            transpiler_write_capture_address(ctx, capture_typed_names[i]);
-            first = false;
-        }
-        codebuf_write(ctx->out, " };\n");
-    }
     write_indent(ctx);
-    if (has_captures) {
-        codebuf_write(ctx->out,
-            "PgyTaskHandle _ah_%u = pgy_async_spawn(_pgy_async_%u, _pctx%u);\n",
-            pid, pid, pid);
-    } else {
-        codebuf_write(ctx->out,
-            "PgyTaskHandle _ah_%u = pgy_async_spawn(_pgy_async_%u, NULL);\n",
-            pid, pid);
-    }
+    codebuf_write(ctx->out,
+        "PgyTaskHandle _ah_%u = pgy_async_spawn(_pgy_async_%u, NULL);\n",
+        pid, pid);
+    write_indent(ctx);
+    codebuf_write(ctx->out,
+        "if (_ah_%u.task == NULL) PGY_RUNTIME_PANIC(PGY_RUNTIME_PANIC_CLASS_INTERNAL_INVARIANT, \"async block spawn failed\");\n",
+        pid);
     write_indent(ctx);
     codebuf_write(ctx->out, "pgy_async_detach(_ah_%u);\n", pid);
     ctx->indent--;

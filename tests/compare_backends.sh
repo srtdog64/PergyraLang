@@ -76,7 +76,6 @@ PY
 
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 source "$ROOT_DIR/tests/pgy_binary_path_helpers.sh"
-PGY_WINDOWS_PS_PATH_PREFIX="$(pgy_windows_powershell_path_prefix)"
 case "$(uname -s 2>/dev/null || echo unknown)" in
     MINGW*|MSYS*|CYGWIN*)
         TMP_BASE="${TMPDIR:-${TEMP:-/tmp}}"
@@ -217,7 +216,7 @@ run_windows_abi_pipeline_precheck_fallback() {
     abi_dir_win="$(pgy_path_for_windows_tool "$abi_dir")"
     abi_native="$(pgy_path_for_windows_tool "$abi_native")"
     abi_native_ps="$(pgy_powershell_quote "$abi_native")"
-    path_prefix_ps="$(pgy_powershell_quote "${abi_dir_win};${PGY_WINDOWS_PS_PATH_PREFIX}")"
+    path_prefix_ps="$(pgy_powershell_quote "${abi_dir_win};$(pgy_windows_powershell_path_prefix_from_current_path)")"
 
     powershell.exe -NoProfile -ExecutionPolicy Bypass -Command \
         "\$env:PATH=${path_prefix_ps} + \$env:PATH; \$env:PGY_ABI_PIPELINE_SAME_PROCESS='1'; \$env:PGY_ABI_PIPELINE_BACKEND='llvm'; & ${abi_native_ps}; exit \$LASTEXITCODE"
@@ -327,6 +326,7 @@ run_windows_native_binary_fallback() {
     local err_native
     local cwd_native
     local timeout_ms
+    local path_prefix_ps
 
     case "$(uname -s 2>/dev/null || echo unknown)" in
         MINGW*|MSYS*|CYGWIN*) ;;
@@ -340,9 +340,10 @@ run_windows_native_binary_fallback() {
     cwd_native="$(pgy_path_for_windows_tool "$PWD")"
 
     timeout_ms=$((RUN_TIMEOUT_SECONDS * 1000))
+    path_prefix_ps="$(pgy_powershell_quote "$(pgy_windows_powershell_path_prefix_from_current_path)")"
 
     powershell.exe -NoProfile -ExecutionPolicy Bypass -Command \
-        "\$env:PATH='${PGY_WINDOWS_PS_PATH_PREFIX}' + \$env:PATH; Set-Location -LiteralPath $(pgy_powershell_quote "$cwd_native"); \$p = Start-Process -FilePath $(pgy_powershell_quote "$bin_native") -NoNewWindow -PassThru -RedirectStandardOutput $(pgy_powershell_quote "$out_native") -RedirectStandardError $(pgy_powershell_quote "$err_native"); if (\$p -eq \$null) { exit 127 }; if (-not \$p.WaitForExit(${timeout_ms})) { Stop-Process -Id \$p.Id -Force; exit 124 }; exit \$p.ExitCode"
+        "\$env:PATH=${path_prefix_ps} + \$env:PATH; Set-Location -LiteralPath $(pgy_powershell_quote "$cwd_native"); \$p = Start-Process -FilePath $(pgy_powershell_quote "$bin_native") -NoNewWindow -PassThru -RedirectStandardOutput $(pgy_powershell_quote "$out_native") -RedirectStandardError $(pgy_powershell_quote "$err_native"); if (\$p -eq \$null) { exit 127 }; if (-not \$p.WaitForExit(${timeout_ms})) { Stop-Process -Id \$p.Id -Force; exit 124 }; exit \$p.ExitCode"
 }
 
 run_windows_compiler_backend_fallback() {
@@ -352,7 +353,10 @@ run_windows_compiler_backend_fallback() {
     local log="$4"
     local pgy_native
     local root_native
+    local source_native
+    local output_native
     local log_native
+    local path_prefix_ps
 
     case "$(uname -s 2>/dev/null || echo unknown)" in
         MINGW*|MSYS*|CYGWIN*) ;;
@@ -362,10 +366,13 @@ run_windows_compiler_backend_fallback() {
 
     pgy_native="$(pgy_path_for_windows_tool "$PGY_BIN")"
     root_native="$(pgy_path_for_windows_tool "$ROOT_DIR")"
+    source_native="$(pgy_path_for_compiler "$PGY_BIN" "$source_arg")"
+    output_native="$(pgy_path_for_compiler "$PGY_BIN" "$output_arg")"
     log_native="$(pgy_path_for_windows_tool "$log")"
+    path_prefix_ps="$(pgy_powershell_quote "$(pgy_windows_powershell_path_prefix_from_current_path)")"
 
     powershell.exe -NoProfile -ExecutionPolicy Bypass -Command \
-        "\$env:PATH='${PGY_WINDOWS_PS_PATH_PREFIX}' + \$env:PATH; Set-Location -LiteralPath $(pgy_powershell_quote "$root_native"); & $(pgy_powershell_quote "$pgy_native") $(pgy_powershell_quote "$source_arg") $(pgy_powershell_quote "--backend=${backend}") '-o' $(pgy_powershell_quote "$output_arg") > $(pgy_powershell_quote "$log_native") 2>&1; exit \$LASTEXITCODE"
+        "\$env:PATH=${path_prefix_ps} + \$env:PATH; Set-Location -LiteralPath $(pgy_powershell_quote "$root_native"); & $(pgy_powershell_quote "$pgy_native") $(pgy_powershell_quote "$source_native") $(pgy_powershell_quote "--backend=${backend}") '-o' $(pgy_powershell_quote "$output_native") > $(pgy_powershell_quote "$log_native") 2>&1; exit \$LASTEXITCODE"
 }
 
 run_compiler_backend() {
@@ -373,10 +380,15 @@ run_compiler_backend() {
     local backend="$2"
     local output_arg="$3"
     local log="$4"
+    local source_compiler_arg
+    local output_compiler_arg
     local rc
 
+    source_compiler_arg="$(pgy_path_for_compiler "$PGY_BIN" "$source_arg")"
+    output_compiler_arg="$(pgy_path_for_compiler "$PGY_BIN" "$output_arg")"
+
     set +e
-    (cd "$ROOT_DIR" && "$PGY_BIN" "$source_arg" "--backend=${backend}" -o "$output_arg") \
+    (cd "$ROOT_DIR" && "$PGY_BIN" "$source_compiler_arg" "--backend=${backend}" -o "$output_compiler_arg") \
         >"$log" 2>&1
     rc=$?
     if [[ "$rc" -eq 126 || "$rc" -eq 127 ]]; then
@@ -931,6 +943,7 @@ main() {
         "tests/cases/backend_compare/event_lambda_handler"
         "tests/cases/backend_compare/async_func_decl"
         "tests/cases/backend_compare/async_spawn_await"
+        "tests/cases/backend_compare/await_inline_spawn"
         "tests/cases/backend_compare/async_block_runtime"
         "tests/cases/backend_compare/future_annotation"
         "tests/cases/backend_compare/future_cancel_state"
@@ -1372,6 +1385,37 @@ main() {
         done
         echo "backend-compare: shard ${shard_index}/${shard_total} selected ${#sharded_cases[@]}/${#cases[@]} cases"
         cases=("${sharded_cases[@]}")
+    fi
+
+    local range_start="${PGY_BACKEND_COMPARE_START_INDEX:-0}"
+    local range_max="${PGY_BACKEND_COMPARE_MAX_CASES:-0}"
+    if [[ ! "$range_start" =~ ^[0-9]+$ ]]; then
+        echo "backend-compare: PGY_BACKEND_COMPARE_START_INDEX must be a non-negative integer" >&2
+        return 1
+    fi
+    if [[ ! "$range_max" =~ ^[0-9]+$ ]]; then
+        echo "backend-compare: PGY_BACKEND_COMPARE_MAX_CASES must be a non-negative integer" >&2
+        return 1
+    fi
+    if (( range_start > 0 || range_max > 0 )); then
+        local range_total=${#cases[@]}
+        if (( range_start >= range_total )); then
+            echo "backend-compare: PGY_BACKEND_COMPARE_START_INDEX ${range_start} is outside ${range_total} selected cases" >&2
+            return 1
+        fi
+
+        local range_end=$range_total
+        if (( range_max > 0 && range_start + range_max < range_end )); then
+            range_end=$((range_start + range_max))
+        fi
+
+        local -a ranged_cases=()
+        local range_index
+        for (( range_index = range_start; range_index < range_end; range_index++ )); do
+            ranged_cases+=("${cases[$range_index]}")
+        done
+        echo "backend-compare: range start ${range_start} max ${range_max} selected ${#ranged_cases[@]}/${range_total} cases"
+        cases=("${ranged_cases[@]}")
     fi
 
     local -a failed=()

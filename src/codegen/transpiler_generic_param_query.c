@@ -13,19 +13,23 @@
 bool
 transpiler_func_has_generic_params(ASTNode *node)
 {
-    return node != NULL
-        && node->type == AST_FUNC_DECL
-        && ast_func_generic_params(node) != NULL
-        && ast_func_generic_params(node)->count > 0;
+    GenericParams *generic_params;
+
+    if (node == NULL || node->type != AST_FUNC_DECL)
+        return false;
+    generic_params = ast_declaration_generic_params(node);
+    return ast_generic_param_count(generic_params) > 0;
 }
 
 bool
 transpiler_class_has_generic_params(ASTNode *node)
 {
-    return node != NULL
-        && node->type == AST_CLASS_DECL
-        && ast_class_generic_params(node) != NULL
-        && ast_generic_param_count(ast_class_generic_params(node)) > 0;
+    GenericParams *generic_params;
+
+    if (node == NULL || node->type != AST_CLASS_DECL)
+        return false;
+    generic_params = ast_declaration_generic_params(node);
+    return ast_generic_param_count(generic_params) > 0;
 }
 
 char *

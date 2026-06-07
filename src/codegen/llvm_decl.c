@@ -137,6 +137,13 @@ llvm_forward_declare_func_with_signature(ASTNode *node,
 {
     const char *name = ast_declaration_name(node);
     bool routine_has_signature = llvm_mir_routine_has_signature(routine);
+    if (routine != NULL && llvm_active_has_mir(ctx)
+        && !routine_has_signature) {
+        llvm_set_mir_inventory_missing(ctx,
+            "MIR-only LLVM path missing function forward signature metadata for '%s'",
+            name != NULL ? name : "(anonymous)");
+        return;
+    }
     size_t param_count = routine_has_signature
         ? llvm_mir_routine_param_count(routine)
         : ast_func_param_count(node);
@@ -252,6 +259,11 @@ llvm_emit_func_decl(ASTNode *node, LLVMGenCtx *ctx)
     /* Save context */
     LLVMValueRef saved_fn       = ctx->current_function;
     LLVMTypeRef  saved_ret_type = ctx->current_ret_type;
+    LLVMTypeRef  saved_function_ret_type = ctx->current_function_ret_type;
+    const char  *saved_return_type_name = ctx->current_return_type_name;
+    ASTNode     *saved_return_callable_type =
+        ctx->current_return_callable_type;
+    const char  *saved_within_zone_name = ctx->current_within_zone_name;
     ASTNode     *saved_func_decl = ctx->current_func_decl;
     LLVMBasicBlockRef saved_bb = LLVMGetInsertBlock(ctx->builder);
     LLVMLexicalRegistrySnapshot lexical_snapshot =
@@ -259,7 +271,20 @@ llvm_emit_func_decl(ASTNode *node, LLVMGenCtx *ctx)
 
     ctx->current_function = fn;
     ctx->current_ret_type = ret_type;
+    ctx->current_function_ret_type = ret_type;
+    ctx->current_within_zone_name = ast_func_within_zone(node);
     ctx->current_func_decl = node;
+    {
+        ASTNode *return_type = ast_func_return_type(node);
+        ctx->current_return_type_name =
+            return_type != NULL
+                ? llvm_stmt_render_type_annotation_copy(ctx, return_type)
+                : NULL;
+        ctx->current_return_callable_type =
+            return_type != NULL && return_type->type == AST_EVENT_HANDLER_TYPE
+                ? return_type
+                : NULL;
+    }
 
     /* Create entry block */
     LLVMBasicBlockRef bb = LLVMAppendBasicBlockInContext(
@@ -356,6 +381,10 @@ cleanup:
     /* Restore context */
     ctx->current_function = saved_fn;
     ctx->current_ret_type = saved_ret_type;
+    ctx->current_function_ret_type = saved_function_ret_type;
+    ctx->current_return_type_name = saved_return_type_name;
+    ctx->current_return_callable_type = saved_return_callable_type;
+    ctx->current_within_zone_name = saved_within_zone_name;
     ctx->current_func_decl = saved_func_decl;
 
     /* Position builder back to the exact calling context. */

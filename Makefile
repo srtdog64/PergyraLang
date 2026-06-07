@@ -28,22 +28,27 @@
 # POSSIBILITY OF SUCH DAMAGE.
 
 ifneq ($(or $(filter Windows_NT,$(OS)),$(MSYSTEM)),)
-# Prefer the Git Bash launcher wrapper (bin/bash.exe) because it sets up
-# PATH for coreutils before running shell scripts. The 8.3 short path is
-# still space-free, so SHELL can use it directly without quoting. Without
-# this, the long-path Git Bash detected later (/c/Program Files/Git/bin/bash)
-# sets SHELL to a value containing a space and every recipe's
-# `$(SHELL) -c "..."` splits on the space, breaking the CI build.
+# Prefer the active MSYS2 bash when a MinGW/MSYS2 toolchain is driving the
+# build. Git Bash can run POSIX shell scripts, but it is not the same runtime
+# boundary as MSYS2 MinGW and can strip compiler-definition quotes before gcc
+# sees them. Git Bash remains a fallback for local direct targets, but
+# ci-windows fail-fasts unless it sees the MSYS2 runtime boundary.
+PGY_WINDOWS_MSYS_BASH_CANDIDATES := \
+    /usr/bin/bash.exe \
+    /usr/bin/bash \
+    C:/msys64/usr/bin/bash.exe \
+    C:/msys64/usr/bin/bash
 PGY_WINDOWS_GIT_BASH_CANDIDATES := \
     C:/Progra~1/Git/bin/bash.exe \
     C:/Progra~2/Git/bin/bash.exe \
     C:/Progra~1/Git/usr/bin/bash.exe \
     C:/Progra~2/Git/usr/bin/bash.exe
-PGY_WINDOWS_GIT_BASH := $(firstword $(wildcard $(PGY_WINDOWS_GIT_BASH_CANDIDATES)))
-ifneq ($(PGY_WINDOWS_GIT_BASH),)
-BASH := $(PGY_WINDOWS_GIT_BASH)
+PGY_WINDOWS_BASH := $(firstword $(wildcard $(PGY_WINDOWS_MSYS_BASH_CANDIDATES) $(PGY_WINDOWS_GIT_BASH_CANDIDATES)))
+ifneq ($(PGY_WINDOWS_BASH),)
+BASH := $(PGY_WINDOWS_BASH)
 SHELL := $(BASH)
 endif
+PGY_WINDOWS_BASH_IS_MSYS := $(if $(filter $(PGY_WINDOWS_MSYS_BASH_CANDIDATES),$(PGY_WINDOWS_BASH)),1,0)
 endif
 
 CC      = gcc
@@ -104,7 +109,7 @@ CI_LINUX_CC := $(or $(shell command -v cc 2>/dev/null),$(shell command -v gcc 2>
 CI_WINDOWS_CROSS_CC := $(shell command -v x86_64-w64-mingw32-gcc 2>/dev/null)
 CI_WINDOWS_CC := $(if $(MSYSTEM),$(CC),$(or $(CI_WINDOWS_CROSS_CC),$(CC)))
 CI_WINDOWS_CC_MACHINE := $(shell $(CI_WINDOWS_CC) -dumpmachine 2>/dev/null || echo unknown)
-CI_WINDOWS_RUNNABLE := $(if $(MSYSTEM),1,0)
+CI_WINDOWS_RUNNABLE := $(if $(and $(MSYSTEM),$(filter 1,$(PGY_WINDOWS_BASH_IS_MSYS))),1,0)
 CI_LINUX_BUILD_DIR := $(TMPDIR_CI)/pgy-ci-linux-build
 CI_LINUX_BIN_DIR   := $(TMPDIR_CI)/pgy-ci-linux-bin
 CI_WINDOWS_BUILD_DIR := $(TMPDIR_CI)/pgy-ci-windows-build
@@ -115,6 +120,8 @@ CI_MACOS_BIN_DIR   := $(TMPDIR_CI)/pgy-ci-macos-bin
 PGY_BACKEND_COMPARE_SHARD_TOTAL ?= 0
 PGY_BACKEND_COMPARE_SHARD_INDEX ?= 0
 PGY_BACKEND_COMPARE_PRECHECK ?= 1
+PGY_BACKEND_COMPARE_START_INDEX ?= 0
+PGY_BACKEND_COMPARE_MAX_CASES ?= 0
 CI_BACKEND_COMPARE_SHARD_TOTAL ?= 20
 CI_BACKEND_COMPARE_SHARD_INDEX ?= 0
 ifeq ($(strip $(BASH)),)
@@ -214,7 +221,8 @@ COMMON_SOURCES   = $(COMMON_DIR)/arena.c \
                    $(COMMON_DIR)/env_flags.c \
                    $(COMMON_DIR)/intent_observability_names.c \
                    $(COMMON_DIR)/match_variant_policy.c \
-                   $(COMMON_DIR)/numeric_parse.c
+                   $(COMMON_DIR)/numeric_parse.c \
+                   $(COMMON_DIR)/worker_boundary_storage_policy.c
 LEXER_SOURCES    = $(LEXER_DIR)/lexer.c \
                    $(LEXER_DIR)/lexer_keywords.c \
                    $(LEXER_DIR)/lexer_token_debug.c
@@ -381,6 +389,8 @@ SEMANTIC_SOURCES = $(SEMANTIC_DIR)/type_system.c \
                    $(SEMANTIC_DIR)/type_checker_enum_decl.c \
                    $(SEMANTIC_DIR)/type_checker_host_overlay.c \
                    $(SEMANTIC_DIR)/type_checker_host_helpers.c \
+                   $(SEMANTIC_DIR)/type_checker_host_index.c \
+                   $(SEMANTIC_DIR)/type_checker_host_lookup.c \
                    $(SEMANTIC_DIR)/type_checker_host_resource.c \
                    $(SEMANTIC_DIR)/type_checker_program.c \
                    $(SEMANTIC_DIR)/type_checker_program_stats.c \
@@ -1115,6 +1125,7 @@ BUILD_CONTRACT_INVENTORY_FILES = \
                    $(RUNTIME_DIR)/pgy_runtime_lib_array_map_exports.h \
                    $(RUNTIME_DIR)/pgy_runtime_lib_channel_int_exports.h \
                    $(RUNTIME_DIR)/pgy_runtime_lib_channel_string_exports.h \
+                   $(RUNTIME_DIR)/pgy_runtime_lib_channel_string_result_exports.h \
                    $(RUNTIME_DIR)/pgy_runtime_lib_device_slot_exports.h \
                    $(RUNTIME_DIR)/pgy_runtime_lib_io_string_exports.h \
                    $(RUNTIME_DIR)/pgy_runtime_process_exit.h \
@@ -1596,6 +1607,9 @@ perf-contract-test-smoke:
 backend-fail-closed-test-smoke:
 	"$(BASH)" tests/backend_fail_closed_smoke.sh
 
+worker-boundary-ub-test-smoke:
+	"$(BASH)" tests/worker_boundary_ub_smoke.sh
+
 perf-c-baseline-test-smoke: $(PGY)
 	PGY_BIN="$(PGY)" CC="$(CC)" "$(BASH)" tests/perf_c_baseline_smoke.sh
 
@@ -1780,19 +1794,19 @@ documentation-quality-test-smoke:
 self-host-preparation-test-smoke: $(PGY)
 	"$(BASH)" tests/self_host_preparation_smoke.sh
 	"$(BASH)" tests/self_hosted_scaffold_smoke.sh
-	"$(BASH)" src/self_hosted/parity/air_graph_json_validator_parity.sh
-	"$(BASH)" src/self_hosted/parity/backend_output_comparator_parity.sh
-	"$(BASH)" src/self_hosted/parity/backend_output_tri_compare_parity.sh
-	"$(BASH)" src/self_hosted/parity/diagnostic_catalog_checker_parity.sh
-	"$(BASH)" src/self_hosted/parity/doc_link_checker_parity.sh
-	"$(BASH)" src/self_hosted/parity/examples_inventory_checker_parity.sh
-	"$(BASH)" src/self_hosted/parity/lexer_parity.sh
-	"$(BASH)" src/self_hosted/parity/parser_parity.sh
-	"$(BASH)" src/self_hosted/parity/module_manifest_resolver_parity.sh
-	"$(BASH)" src/self_hosted/parity/production_c_size_checker_parity.sh
-	"$(BASH)" src/self_hosted/parity/production_header_size_checker_parity.sh
-	"$(BASH)" src/self_hosted/parity/stable_subset_section_checker_parity.sh
-	"$(BASH)" src/self_hosted/parity/stdlib_dispatch_inventory_checker_parity.sh
+	PGY_BIN="$(abspath $(PGY))" "$(BASH)" src/self_hosted/parity/air_graph_json_validator_parity.sh
+	PGY_BIN="$(abspath $(PGY))" "$(BASH)" src/self_hosted/parity/backend_output_comparator_parity.sh
+	PGY_BIN="$(abspath $(PGY))" "$(BASH)" src/self_hosted/parity/backend_output_tri_compare_parity.sh
+	PGY_BIN="$(abspath $(PGY))" "$(BASH)" src/self_hosted/parity/diagnostic_catalog_checker_parity.sh
+	PGY_BIN="$(abspath $(PGY))" "$(BASH)" src/self_hosted/parity/doc_link_checker_parity.sh
+	PGY_BIN="$(abspath $(PGY))" "$(BASH)" src/self_hosted/parity/examples_inventory_checker_parity.sh
+	PGY_BIN="$(abspath $(PGY))" "$(BASH)" src/self_hosted/parity/lexer_parity.sh
+	PGY_BIN="$(abspath $(PGY))" "$(BASH)" src/self_hosted/parity/parser_parity.sh
+	PGY_BIN="$(abspath $(PGY))" "$(BASH)" src/self_hosted/parity/module_manifest_resolver_parity.sh
+	PGY_BIN="$(abspath $(PGY))" "$(BASH)" src/self_hosted/parity/production_c_size_checker_parity.sh
+	PGY_BIN="$(abspath $(PGY))" "$(BASH)" src/self_hosted/parity/production_header_size_checker_parity.sh
+	PGY_BIN="$(abspath $(PGY))" "$(BASH)" src/self_hosted/parity/stable_subset_section_checker_parity.sh
+	PGY_BIN="$(abspath $(PGY))" "$(BASH)" src/self_hosted/parity/stdlib_dispatch_inventory_checker_parity.sh
 
 self-host-diagnostic-catalog-parity-test-smoke: $(PGY)
 	"$(BASH)" src/self_hosted/parity/diagnostic_catalog_checker_parity.sh
@@ -1989,6 +2003,8 @@ llvm-test-backend-compare: $(if $(filter 0,$(PGY_BACKEND_COMPARE_PRECHECK)),,$(A
 	PGY_BACKEND_COMPARE_PRECHECK_SAME_PROCESS="$(PGY_BACKEND_COMPARE_PRECHECK)" \
 	PGY_BACKEND_COMPARE_SHARD_TOTAL="$(PGY_BACKEND_COMPARE_SHARD_TOTAL)" \
 	PGY_BACKEND_COMPARE_SHARD_INDEX="$(PGY_BACKEND_COMPARE_SHARD_INDEX)" \
+	PGY_BACKEND_COMPARE_START_INDEX="$(PGY_BACKEND_COMPARE_START_INDEX)" \
+	PGY_BACKEND_COMPARE_MAX_CASES="$(PGY_BACKEND_COMPARE_MAX_CASES)" \
 	"$(BASH)" tests/compare_backends.sh
 
 air-strict-backend-compare-test-smoke: $(if $(filter 0,$(PGY_BACKEND_COMPARE_PRECHECK)),,$(ABI_PIPELINE_TEST))
@@ -2001,6 +2017,8 @@ air-strict-backend-compare-test-smoke: $(if $(filter 0,$(PGY_BACKEND_COMPARE_PRE
 	PGY_BACKEND_COMPARE_PRECHECK_SAME_PROCESS="$(PGY_BACKEND_COMPARE_PRECHECK)" \
 	PGY_BACKEND_COMPARE_SHARD_TOTAL="$(PGY_BACKEND_COMPARE_SHARD_TOTAL)" \
 	PGY_BACKEND_COMPARE_SHARD_INDEX="$(PGY_BACKEND_COMPARE_SHARD_INDEX)" \
+	PGY_BACKEND_COMPARE_START_INDEX="$(PGY_BACKEND_COMPARE_START_INDEX)" \
+	PGY_BACKEND_COMPARE_MAX_CASES="$(PGY_BACKEND_COMPARE_MAX_CASES)" \
 	"$(BASH)" tests/compare_backends.sh
 
 example-test-smoke:
@@ -2056,19 +2074,6 @@ check-build-tools:
 		echo "hint: install gcc/clang, or set CC=/path/to/compiler." >&2; \
 		exit 1; \
 	fi
-	@tmp_c="$$(mktemp "$${TMPDIR:-/tmp}/pgy-cc-probe.XXXXXX.c")"; \
-	tmp_o="$$(mktemp "$${TMPDIR:-/tmp}/pgy-cc-probe.XXXXXX.o")"; \
-	printf 'int main(void){return 0;}\n' > "$$tmp_c"; \
-	if ! "$(BASH)" -lc '$(CC) -x c -c "$$0" -o "$$1"' "$$tmp_c" "$$tmp_o" >/dev/null 2>&1; then \
-		rm -f "$$tmp_c" "$$tmp_o"; \
-		echo "build preflight requires CC to be runnable from the configured bash shell." >&2; \
-		echo "current BASH: $(BASH)" >&2; \
-		echo "current CC: $(CC)" >&2; \
-		echo "hint: run from MSYS2/MinGW bash, set BASH=/path/to/bash with matching Unix tools," >&2; \
-		echo "      or put compatible Unix tools before cmd tools in PATH." >&2; \
-		exit 1; \
-	fi; \
-	rm -f "$$tmp_c" "$$tmp_o"
 	@if [ "$(LLVM_ENABLED)" != "0" ]; then \
 		if [ -n "$(LLVM_CONFIG)" ] && "$(LLVM_CONFIG)" --version >/dev/null 2>&1; then \
 			exit 0; \
@@ -2112,6 +2117,7 @@ ci-linux:
 	$(MAKE) build-source-inventory-test-smoke
 	$(MAKE) source-utf8-test-smoke
 	$(MAKE) backend-fail-closed-test-smoke
+	$(MAKE) worker-boundary-ub-test-smoke
 	$(MAKE) CC="$(CI_LINUX_CC)" BUILD_DIR="$(CI_LINUX_BUILD_DIR)" BIN_DIR="$(CI_LINUX_BIN_DIR)" clean
 	$(MAKE) CC="$(CI_LINUX_CC)" BUILD_DIR="$(CI_LINUX_BUILD_DIR)" BIN_DIR="$(CI_LINUX_BIN_DIR)" test-all
 	$(MAKE) CC="$(CI_LINUX_CC)" BUILD_DIR="$(CI_LINUX_BUILD_DIR)" BIN_DIR="$(CI_LINUX_BIN_DIR)" llvm-test-smoke
@@ -2193,6 +2199,7 @@ ci-macos:
 	$(MAKE) build-source-inventory-test-smoke
 	$(MAKE) source-utf8-test-smoke
 	$(MAKE) backend-fail-closed-test-smoke
+	$(MAKE) worker-boundary-ub-test-smoke
 	$(MAKE) CC="$(CI_MACOS_CC)" LLVM_ENABLED=0 BUILD_DIR="$(CI_MACOS_BUILD_DIR)" BIN_DIR="$(CI_MACOS_BIN_DIR)" clean
 	$(MAKE) CC="$(CI_MACOS_CC)" LLVM_ENABLED=0 BUILD_DIR="$(CI_MACOS_BUILD_DIR)" BIN_DIR="$(CI_MACOS_BIN_DIR)" test-all
 	PGY_STDLIB_BACKENDS=c $(MAKE) CC="$(CI_MACOS_CC)" LLVM_ENABLED=0 BUILD_DIR="$(CI_MACOS_BUILD_DIR)" BIN_DIR="$(CI_MACOS_BIN_DIR)" fmt-test-smoke
@@ -2230,6 +2237,18 @@ ci-macos:
 
 check-windows-toolchain:
 	@cc_machine="$$( $(CI_WINDOWS_CC) -dumpmachine 2>/dev/null || true )"; \
+	if [ -n "$${MSYSTEM:-}" ] && [ "$(PGY_WINDOWS_BASH_IS_MSYS)" != "1" ]; then \
+		echo "ci-windows requires MSYS2 bash when MSYSTEM is set." >&2; \
+		echo "selected bash: $(BASH)" >&2; \
+		echo "hint: run from an MSYS2 shell, not Git Bash with a synthetic MSYSTEM." >&2; \
+		exit 1; \
+	fi; \
+	if [ -n "$(PGY_WINDOWS_BASH)" ] && [ "$(PGY_WINDOWS_BASH_IS_MSYS)" != "1" ] && echo "$$cc_machine" | grep -qi 'mingw'; then \
+		echo "ci-windows requires MSYS2 bash for Windows-hosted MinGW builds." >&2; \
+		echo "selected bash: $(BASH)" >&2; \
+		echo "hint: install/run from MSYS2, or run ci-windows as a cross build from a POSIX host." >&2; \
+		exit 1; \
+	fi; \
 	if [ -n "$${MSYSTEM:-}" ] || echo "$$cc_machine" | grep -qi 'mingw'; then \
 		exit 0; \
 	fi; \
@@ -2246,10 +2265,20 @@ ci-windows:
 	$(MAKE) build-source-inventory-test-smoke
 	$(MAKE) source-utf8-test-smoke
 	$(MAKE) backend-fail-closed-test-smoke
+	$(MAKE) worker-boundary-ub-test-smoke
 	$(MAKE) CC="$(CI_WINDOWS_CC)" LLVM_ENABLED=0 BUILD_DIR="$(CI_WINDOWS_BUILD_DIR)" BIN_DIR="$(CI_WINDOWS_BIN_DIR)" clean
+ifeq ($(CI_WINDOWS_RUNNABLE),1)
+	@echo "ci-windows: native MSYS2 runtime detected; running core executable tests"
+	MAKEFLAGS= $(MAKE) CC="$(CI_WINDOWS_CC)" LLVM_ENABLED=0 BUILD_DIR="$(CI_WINDOWS_BUILD_DIR)" BIN_DIR="$(CI_WINDOWS_BIN_DIR)" test-all
+else ifneq ($(findstring mingw,$(CI_WINDOWS_CC_MACHINE)),)
+	@echo "ci-windows: cross MinGW toolchain detected; running build-only smoke"
+	MAKEFLAGS= $(MAKE) CC="$(CI_WINDOWS_CC)" LLVM_ENABLED=0 BUILD_DIR="$(CI_WINDOWS_BUILD_DIR)" BIN_DIR="$(CI_WINDOWS_BIN_DIR)" windows-build-smoke
+else
+	@echo "ci-windows: unable to run or cross-build Windows artifacts with CC=$(CI_WINDOWS_CC)"
+	@exit 1
+endif
 	$(MAKE) beta-test-suite-freeze-test-smoke
 	$(MAKE) documentation-quality-test-smoke
-	$(MAKE) self-host-preparation-test-smoke
 	$(MAKE) debug-hygiene-test-smoke
 	$(MAKE) memory-string-safety-test-smoke
 	$(MAKE) security-portability-contract-test-smoke
@@ -2259,36 +2288,28 @@ ci-windows:
 	$(MAKE) transpile-strict-source-test-smoke
 	$(MAKE) mir-declaration-inventory-test-smoke
 	$(MAKE) CC="$(CI_WINDOWS_CC)" source-test-harness-compile-test-smoke
-	@if [ "$(CI_WINDOWS_RUNNABLE)" = "1" ]; then \
-		echo "ci-windows: native MSYS2 runtime detected; running executable smoke/tests"; \
-		$(MAKE) CC="$(CI_WINDOWS_CC)" LLVM_ENABLED=0 BUILD_DIR="$(CI_WINDOWS_BUILD_DIR)" BIN_DIR="$(CI_WINDOWS_BIN_DIR)" test-all; \
-		PGY_STDLIB_BACKENDS=c $(MAKE) CC="$(CI_WINDOWS_CC)" LLVM_ENABLED=0 BUILD_DIR="$(CI_WINDOWS_BUILD_DIR)" BIN_DIR="$(CI_WINDOWS_BIN_DIR)" fmt-test-smoke; \
-		PGY_STDLIB_BACKENDS=c $(MAKE) CC="$(CI_WINDOWS_CC)" LLVM_ENABLED=0 BUILD_DIR="$(CI_WINDOWS_BUILD_DIR)" BIN_DIR="$(CI_WINDOWS_BIN_DIR)" stdlib-test-smoke; \
-		$(MAKE) CC="$(CI_WINDOWS_CC)" LLVM_ENABLED=0 BUILD_DIR="$(CI_WINDOWS_BUILD_DIR)" BIN_DIR="$(CI_WINDOWS_BIN_DIR)" dogfood-webgl-test-smoke; \
-		$(MAKE) CC="$(CI_WINDOWS_CC)" LLVM_ENABLED=0 BUILD_DIR="$(CI_WINDOWS_BUILD_DIR)" BIN_DIR="$(CI_WINDOWS_BIN_DIR)" runtime-none-contract-test-smoke; \
-		$(MAKE) CC="$(CI_WINDOWS_CC)" LLVM_ENABLED=0 BUILD_DIR="$(CI_WINDOWS_BUILD_DIR)" BIN_DIR="$(CI_WINDOWS_BIN_DIR)" raw-escape-contract-test-smoke; \
-		$(MAKE) CC="$(CI_WINDOWS_CC)" LLVM_ENABLED=0 BUILD_DIR="$(CI_WINDOWS_BUILD_DIR)" BIN_DIR="$(CI_WINDOWS_BIN_DIR)" air-drift-test-smoke; \
-		$(MAKE) CC="$(CI_WINDOWS_CC)" LLVM_ENABLED=0 BUILD_DIR="$(CI_WINDOWS_BUILD_DIR)" BIN_DIR="$(CI_WINDOWS_BIN_DIR)" air-json-schema-test-smoke; \
-		$(MAKE) CC="$(CI_WINDOWS_CC)" LLVM_ENABLED=0 BUILD_DIR="$(CI_WINDOWS_BUILD_DIR)" BIN_DIR="$(CI_WINDOWS_BIN_DIR)" cfg-body-dataflow-test-smoke; \
-		$(MAKE) CC="$(CI_WINDOWS_CC)" LLVM_ENABLED=0 BUILD_DIR="$(CI_WINDOWS_BUILD_DIR)" BIN_DIR="$(CI_WINDOWS_BIN_DIR)" semantic-fixture-isolation-test-smoke; \
-		PGY_EXAMPLE_BACKENDS=c $(MAKE) CC="$(CI_WINDOWS_CC)" LLVM_ENABLED=0 BUILD_DIR="$(CI_WINDOWS_BUILD_DIR)" BIN_DIR="$(CI_WINDOWS_BIN_DIR)" example-test-smoke; \
-		$(MAKE) test-inc-size-test-smoke; \
-	elif echo "$(CI_WINDOWS_CC_MACHINE)" | grep -qi 'mingw'; then \
-		echo "ci-windows: cross MinGW toolchain detected; running build-only smoke"; \
-		$(MAKE) CC="$(CI_WINDOWS_CC)" LLVM_ENABLED=0 BUILD_DIR="$(CI_WINDOWS_BUILD_DIR)" BIN_DIR="$(CI_WINDOWS_BIN_DIR)" windows-build-smoke; \
-	else \
-		echo "ci-windows: unable to run or cross-build Windows artifacts with CC=$(CI_WINDOWS_CC)"; \
-		exit 1; \
-	fi
-	@if [ "$(CI_WINDOWS_RUNNABLE)" = "1" ]; then \
-		if [ "$(WINDOWS_LLVM_READY)" = "1" ]; then \
-			echo "ci-windows: LLVM toolchain detected; running LLVM smoke and backend compare"; \
-			$(MAKE) CC="$(CI_WINDOWS_CC)" LLVM_ENABLED=1 BUILD_DIR="$(CI_WINDOWS_BUILD_DIR)" BIN_DIR="$(CI_WINDOWS_BIN_DIR)" llvm-test-smoke; \
-			PGY_BACKEND_COMPARE_SHARD_TOTAL="$(CI_BACKEND_COMPARE_SHARD_TOTAL)" PGY_BACKEND_COMPARE_SHARD_INDEX="$(CI_BACKEND_COMPARE_SHARD_INDEX)" $(MAKE) CC="$(CI_WINDOWS_CC)" LLVM_ENABLED=1 BUILD_DIR="$(CI_WINDOWS_BUILD_DIR)" BIN_DIR="$(CI_WINDOWS_BIN_DIR)" llvm-test-backend-compare; \
-		else \
-			echo "ci-windows: LLVM toolchain not detected; skipping Windows LLVM smoke/backend compare"; \
-		fi; \
-	fi
+ifeq ($(CI_WINDOWS_RUNNABLE),1)
+	@echo "ci-windows: native MSYS2 runtime detected; running executable contract smokes"
+	PGY_STDLIB_BACKENDS=c $(MAKE) CC="$(CI_WINDOWS_CC)" LLVM_ENABLED=0 BUILD_DIR="$(CI_WINDOWS_BUILD_DIR)" BIN_DIR="$(CI_WINDOWS_BIN_DIR)" fmt-test-smoke
+	PGY_STDLIB_BACKENDS=c $(MAKE) CC="$(CI_WINDOWS_CC)" LLVM_ENABLED=0 BUILD_DIR="$(CI_WINDOWS_BUILD_DIR)" BIN_DIR="$(CI_WINDOWS_BIN_DIR)" stdlib-test-smoke
+	$(MAKE) CC="$(CI_WINDOWS_CC)" LLVM_ENABLED=0 BUILD_DIR="$(CI_WINDOWS_BUILD_DIR)" BIN_DIR="$(CI_WINDOWS_BIN_DIR)" dogfood-webgl-test-smoke
+	$(MAKE) CC="$(CI_WINDOWS_CC)" LLVM_ENABLED=0 BUILD_DIR="$(CI_WINDOWS_BUILD_DIR)" BIN_DIR="$(CI_WINDOWS_BIN_DIR)" runtime-none-contract-test-smoke
+	$(MAKE) CC="$(CI_WINDOWS_CC)" LLVM_ENABLED=0 BUILD_DIR="$(CI_WINDOWS_BUILD_DIR)" BIN_DIR="$(CI_WINDOWS_BIN_DIR)" raw-escape-contract-test-smoke
+	$(MAKE) CC="$(CI_WINDOWS_CC)" LLVM_ENABLED=0 BUILD_DIR="$(CI_WINDOWS_BUILD_DIR)" BIN_DIR="$(CI_WINDOWS_BIN_DIR)" air-drift-test-smoke
+	$(MAKE) CC="$(CI_WINDOWS_CC)" LLVM_ENABLED=0 BUILD_DIR="$(CI_WINDOWS_BUILD_DIR)" BIN_DIR="$(CI_WINDOWS_BIN_DIR)" air-json-schema-test-smoke
+	$(MAKE) CC="$(CI_WINDOWS_CC)" LLVM_ENABLED=0 BUILD_DIR="$(CI_WINDOWS_BUILD_DIR)" BIN_DIR="$(CI_WINDOWS_BIN_DIR)" cfg-body-dataflow-test-smoke
+	$(MAKE) CC="$(CI_WINDOWS_CC)" LLVM_ENABLED=0 BUILD_DIR="$(CI_WINDOWS_BUILD_DIR)" BIN_DIR="$(CI_WINDOWS_BIN_DIR)" semantic-fixture-isolation-test-smoke
+	PGY_EXAMPLE_BACKENDS=c $(MAKE) CC="$(CI_WINDOWS_CC)" LLVM_ENABLED=0 BUILD_DIR="$(CI_WINDOWS_BUILD_DIR)" BIN_DIR="$(CI_WINDOWS_BIN_DIR)" example-test-smoke
+	$(MAKE) test-inc-size-test-smoke
+ifeq ($(WINDOWS_LLVM_READY),1)
+	@echo "ci-windows: LLVM toolchain detected; running LLVM smoke and backend compare"
+	$(MAKE) CC="$(CI_WINDOWS_CC)" LLVM_ENABLED=1 BUILD_DIR="$(CI_WINDOWS_BUILD_DIR)" BIN_DIR="$(CI_WINDOWS_BIN_DIR)" llvm-test-smoke
+	PGY_BACKEND_COMPARE_SHARD_TOTAL="$(CI_BACKEND_COMPARE_SHARD_TOTAL)" PGY_BACKEND_COMPARE_SHARD_INDEX="$(CI_BACKEND_COMPARE_SHARD_INDEX)" $(MAKE) CC="$(CI_WINDOWS_CC)" LLVM_ENABLED=1 BUILD_DIR="$(CI_WINDOWS_BUILD_DIR)" BIN_DIR="$(CI_WINDOWS_BIN_DIR)" llvm-test-backend-compare
+else
+	@echo "ci-windows: LLVM toolchain not detected; skipping Windows LLVM smoke/backend compare"
+endif
+endif
+	$(MAKE) self-host-preparation-test-smoke
 
 # -----------------------------------------------------------------
 # pgy driver convenience targets
@@ -2312,10 +2333,10 @@ emit-llvm-%:
 # Maintenance
 # -----------------------------------------------------------------
 clean:
-	rm -rf $(BUILD_DIR) $(BIN_DIR)
+	"$(BASH)" -c "rm -rf '$(BUILD_DIR)' '$(BIN_DIR)'"
 
 clean-objects:
-	rm -f $(BUILD_ARTIFACT_GLOBS)
+	"$(BASH)" -c "rm -f $(BUILD_ARTIFACT_GLOBS)"
 
 # Force a full rebuild from scratch.  Use when source edits aren't
 # reflected (stale .o, broken .d, CONFIG_STAMP mismatch, etc).
@@ -2342,7 +2363,7 @@ lsp: $(PGY_LSP)
 
 .PHONY: all clean clean-objects rebuild debug release analyze format memcheck \
         test test-parser test-datastructures test-security test-semantic test-transpile test-memory test-abi test-concurrency test-dir test-air test-rir test-mir test-hir test-all \
-llvm-test llvm-test-parser llvm-test-semantic llvm-test-transpile llvm-test-memory llvm-test-concurrency llvm-test-dir llvm-test-rir llvm-test-mir llvm-test-hir backend-compare-inventory-test-smoke backend-compare-llvm-coverage-test-smoke llvm-test-backend-compare llvm-test-all llvm-test-smoke tooling-conformance-test-smoke stdlib-test-smoke module-test-smoke module-taxonomy-test-smoke package-module-resolver-test-smoke unicode-policy-test-smoke beta-test-suite-freeze-test-smoke build-source-inventory-test-smoke observability-schema-test-smoke memory-concurrency-model-test-smoke async-model-positioning-test-smoke documentation-quality-test-smoke self-host-preparation-test-smoke self-host-diagnostic-catalog-parity-test-smoke self-host-backend-tri-compare-test-smoke self-host-backend-tri-compare-extended-test-smoke self-host-lex-minimal-parity-test-smoke debug-hygiene-test-smoke memory-string-safety-test-smoke security-portability-contract-test-smoke llvm-campaign-projection-test-smoke llvm-dnd-campaign-test-smoke beta-readiness-checklist-test-smoke dogfood-webgl-test-smoke formal-semantics-test-smoke air-drift-test-smoke air-json-schema-test-smoke air-backend-nonimpact-test-smoke air-backend-nonimpact-full-test-smoke air-strict-backend-compare-test-smoke codegen-determinism-test-smoke runtime-none-contract-test-smoke raw-escape-contract-test-smoke semantic-inc-size-test-smoke semantic-tu-size-test-smoke production-header-size-test-smoke production-c-size-test-smoke examples-inventory-test-smoke backend-inc-size-test-smoke test-inc-size-test-smoke transpile-strict-source-test-smoke source-test-harness-compile-test-smoke semantic-core-shape-test-smoke type-resolution-dag-test-smoke type-resolution-resolver-inventory-test-smoke semantic-fixture-isolation-test-smoke diagnostic-registry-test-smoke layered-diagnostics-contract-test-smoke intent-compression-contract-test-smoke runtime-authority-contract-test-smoke runtime-panic-contract-test-smoke runtime-panic-abi-test-smoke runtime-panic-codegen-test-smoke projection-diagnostic-contract-test-smoke runtime-abi-lifetime-test-smoke abi-ownership-shape-test-smoke runtime-frontier-contract-test-smoke runtime-frontier-policy-test-smoke runtime-intent-observability-contract-test-smoke parallel-core-contract-test-smoke perf-contract-test-smoke backend-fail-closed-test-smoke perf-c-baseline-test-smoke parser-lexer-diagnostic-test-smoke diagnostics-json-test-smoke cfg-body-dataflow-test-smoke mir-declaration-inventory-test-smoke example-test-smoke ast-dispatch-test-smoke ci-linux ci-macos ci-windows check-build-tools check-security-toolchain check-linux-toolchain check-macos-toolchain check-windows-toolchain \
+llvm-test llvm-test-parser llvm-test-semantic llvm-test-transpile llvm-test-memory llvm-test-concurrency llvm-test-dir llvm-test-rir llvm-test-mir llvm-test-hir backend-compare-inventory-test-smoke backend-compare-llvm-coverage-test-smoke llvm-test-backend-compare llvm-test-all llvm-test-smoke tooling-conformance-test-smoke stdlib-test-smoke module-test-smoke module-taxonomy-test-smoke package-module-resolver-test-smoke unicode-policy-test-smoke beta-test-suite-freeze-test-smoke build-source-inventory-test-smoke observability-schema-test-smoke memory-concurrency-model-test-smoke async-model-positioning-test-smoke documentation-quality-test-smoke self-host-preparation-test-smoke self-host-diagnostic-catalog-parity-test-smoke self-host-backend-tri-compare-test-smoke self-host-backend-tri-compare-extended-test-smoke self-host-lex-minimal-parity-test-smoke debug-hygiene-test-smoke memory-string-safety-test-smoke security-portability-contract-test-smoke llvm-campaign-projection-test-smoke llvm-dnd-campaign-test-smoke beta-readiness-checklist-test-smoke dogfood-webgl-test-smoke formal-semantics-test-smoke air-drift-test-smoke air-json-schema-test-smoke air-backend-nonimpact-test-smoke air-backend-nonimpact-full-test-smoke air-strict-backend-compare-test-smoke codegen-determinism-test-smoke runtime-none-contract-test-smoke raw-escape-contract-test-smoke semantic-inc-size-test-smoke semantic-tu-size-test-smoke production-header-size-test-smoke production-c-size-test-smoke examples-inventory-test-smoke backend-inc-size-test-smoke test-inc-size-test-smoke transpile-strict-source-test-smoke source-test-harness-compile-test-smoke semantic-core-shape-test-smoke type-resolution-dag-test-smoke type-resolution-resolver-inventory-test-smoke semantic-fixture-isolation-test-smoke diagnostic-registry-test-smoke layered-diagnostics-contract-test-smoke intent-compression-contract-test-smoke runtime-authority-contract-test-smoke runtime-panic-contract-test-smoke runtime-panic-abi-test-smoke runtime-panic-codegen-test-smoke projection-diagnostic-contract-test-smoke runtime-abi-lifetime-test-smoke abi-ownership-shape-test-smoke runtime-frontier-contract-test-smoke runtime-frontier-policy-test-smoke runtime-intent-observability-contract-test-smoke parallel-core-contract-test-smoke perf-contract-test-smoke backend-fail-closed-test-smoke worker-boundary-ub-test-smoke perf-c-baseline-test-smoke parser-lexer-diagnostic-test-smoke diagnostics-json-test-smoke cfg-body-dataflow-test-smoke mir-declaration-inventory-test-smoke example-test-smoke ast-dispatch-test-smoke ci-linux ci-macos ci-windows check-build-tools check-security-toolchain check-linux-toolchain check-macos-toolchain check-windows-toolchain \
         example-hello example-slots llvm emit-llvm-% lsp
 
 ifeq ($(filter clean clean-objects,$(MAKECMDGOALS)),)

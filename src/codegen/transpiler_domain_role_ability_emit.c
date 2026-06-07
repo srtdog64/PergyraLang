@@ -25,7 +25,8 @@ build_ability_ref_bindings(ASTNode *ability_decl,
                            size_t *binding_count)
 {
     size_t out = 0;
-    GenericParams *ability_generics = ast_ability_generic_params(ability_decl);
+    GenericParams *ability_generics =
+        ast_declaration_generic_params(ability_decl);
 
     if (binding_count != NULL)
         *binding_count = 0;
@@ -38,14 +39,22 @@ build_ability_ref_bindings(ASTNode *ability_decl,
 
     size_t ability_generic_count = ast_generic_param_count(ability_generics);
     GenericParams *actual_args = ast_type_generic_args(ability_ref);
-    for (size_t i = 0;
-         i < ability_generic_count && out < MAX_GENERIC_BINDINGS;
-         i++) {
+    for (size_t i = 0; i < ability_generic_count; i++) {
         GenericParam *formal = ast_generic_param_at(ability_generics, i);
         GenericParam *actual = NULL;
         ASTNode *actual_type = NULL;
         char *rendered = NULL;
 
+        if (out >= MAX_GENERIC_BINDINGS) {
+            transpiler_set_backend_error_with_hints(ctx,
+                PGY_CODE_C_TYPE_UNSUPPORTED,
+                PGY_CAUSE_C_TYPE_UNSUPPORTED,
+                PGY_FIX_USE_LLVM_BACKEND_OR_EXTEND_TRANSPILER,
+                "C backend generic ability binding registry exceeded MAX_GENERIC_BINDINGS while lowering ability '%s'",
+                ast_ability_name(ability_decl) != NULL
+                    ? ast_ability_name(ability_decl) : "<ability>");
+            return;
+        }
         if (ast_generic_param_name(formal) == NULL)
             continue;
         actual = ast_generic_param_at(actual_args, i);
@@ -102,7 +111,8 @@ render_effective_ability_ref_vtable_tag(ASTNode *ability_decl,
     char *rendered = NULL;
     char suffix[128];
     size_t len;
-    GenericParams *ability_generics = ast_ability_generic_params(ability_decl);
+    GenericParams *ability_generics =
+        ast_declaration_generic_params(ability_decl);
 
     if (ability_ref == NULL)
         return NULL;
@@ -209,7 +219,7 @@ ensure_ability_ref_vtable_decl(ASTNode *ability_ref, TranspilerCtx *ctx)
     if (ability_decl == NULL || ability_decl->type != AST_ABILITY_DECL)
         return;
 
-    ability_generics = ast_ability_generic_params(ability_decl);
+    ability_generics = ast_declaration_generic_params(ability_decl);
     if (ast_generic_param_count(ability_generics) == 0)
         return;
 
@@ -234,20 +244,28 @@ ensure_ability_ref_vtable_decl(ASTNode *ability_ref, TranspilerCtx *ctx)
         return;
     }
 
-    if (ctx->ability_vtable_spec_count < MAX_ABILITY_VTABLE_SPECIALIZATIONS) {
-        if (!transpiler_role_ability_copy_name(
-                ctx->ability_vtable_specs[ctx->ability_vtable_spec_count].name,
-                sizeof(ctx->ability_vtable_specs[0].name), tag)) {
-            transpiler_set_backend_error_with_hints(ctx,
-                PGY_CODE_C_TYPE_UNSUPPORTED,
-                PGY_CAUSE_C_TYPE_UNSUPPORTED,
-                PGY_FIX_USE_LLVM_BACKEND_OR_EXTEND_TRANSPILER,
-                "C backend: ability vtable specialization name is too long");
-            free(tag);
-            return;
-        }
-        ctx->ability_vtable_spec_count++;
+    if (ctx->ability_vtable_spec_count >= MAX_ABILITY_VTABLE_SPECIALIZATIONS) {
+        transpiler_set_backend_error_with_hints(ctx,
+            PGY_CODE_C_TYPE_UNSUPPORTED,
+            PGY_CAUSE_C_TYPE_UNSUPPORTED,
+            PGY_FIX_USE_LLVM_BACKEND_OR_EXTEND_TRANSPILER,
+            "C backend ability vtable specialization registry exceeded MAX_ABILITY_VTABLE_SPECIALIZATIONS while lowering ability '%s'",
+            ability_name != NULL ? ability_name : "<ability>");
+        free(tag);
+        return;
     }
+    if (!transpiler_role_ability_copy_name(
+            ctx->ability_vtable_specs[ctx->ability_vtable_spec_count].name,
+            sizeof(ctx->ability_vtable_specs[0].name), tag)) {
+        transpiler_set_backend_error_with_hints(ctx,
+            PGY_CODE_C_TYPE_UNSUPPORTED,
+            PGY_CAUSE_C_TYPE_UNSUPPORTED,
+            PGY_FIX_USE_LLVM_BACKEND_OR_EXTEND_TRANSPILER,
+            "C backend: ability vtable specialization name is too long");
+        free(tag);
+        return;
+    }
+    ctx->ability_vtable_spec_count++;
 
     if (!ability_ref_vtable_typedef_name(ability_ref, typedef_name,
             sizeof(typedef_name), ctx)) {

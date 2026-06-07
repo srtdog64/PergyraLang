@@ -37,7 +37,7 @@ emit_zone_bind_relation_layer(CodeBuf *out,
         return;
     }
 
-    relation_decl = transpiler_find_decl_in_inventory_local(
+    relation_decl = transpiler_find_named_decl_local(
         ctx, AST_RELATION_DECL, relation_type_name);
     if (relation_decl == NULL)
         return;

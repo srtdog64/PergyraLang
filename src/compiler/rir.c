@@ -188,9 +188,16 @@ rir_apply_op_to_summary(RIRScope *scope, RIRStateSummary *summary, const RIROp *
             }
             return;
 
+        case RIR_OP_AWAIT_LOCAL:
+            if (summary->resource_kind == RIR_RESOURCE_LOCAL_FUTURE_HANDLE)
+                summary->final_state = RIR_STATE_RELEASED;
+            else
+                rir_state_mark_error(scope, summary, op->kind);
+            return;
+
         case RIR_OP_AWAIT_REMOTE:
             if (summary->resource_kind == RIR_RESOURCE_REMOTE_FUTURE_HANDLE)
-                summary->final_state = RIR_STATE_REMOTE_PENDING;
+                summary->final_state = RIR_STATE_RELEASED;
             else
                 rir_state_mark_error(scope, summary, op->kind);
             return;
@@ -394,9 +401,18 @@ rir_apply_op_to_state(RIRResourceKind resource_kind,
                 return;
             }
             return;
+        case RIR_OP_AWAIT_LOCAL:
+            if (resource_kind == RIR_RESOURCE_LOCAL_FUTURE_HANDLE) {
+                *state = RIR_STATE_RELEASED;
+                return;
+            }
+            *state = RIR_STATE_INVALID;
+            if (had_error != NULL)
+                *had_error = true;
+            return;
         case RIR_OP_AWAIT_REMOTE:
             if (resource_kind == RIR_RESOURCE_REMOTE_FUTURE_HANDLE) {
-                *state = RIR_STATE_REMOTE_PENDING;
+                *state = RIR_STATE_RELEASED;
                 return;
             }
             *state = RIR_STATE_INVALID;

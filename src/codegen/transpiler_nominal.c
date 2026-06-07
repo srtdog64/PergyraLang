@@ -10,6 +10,7 @@
 #include "../parser/ast_api.h"
 #include "transpiler_context.h"
 #include "transpiler_decl_lookup.h"
+#include "transpiler_inventory_view.h"
 #include "transpiler_mir_ssa_names.h"
 #include "transpiler_nominal.h"
 #include "transpiler_projection.h"
@@ -425,7 +426,8 @@ transpiler_resolve_nominal_host_expr_type_name(TranspilerCtx *ctx, ASTNode *expr
             }
             ASTNode *ret_type =
                 transpiler_mir_decl_method_return_type(method_meta);
-            if (ret_type == NULL && method_meta == NULL) {
+            if (ret_type == NULL && method_meta == NULL
+                && !transpiler_active_has_mir(ctx)) {
                 ASTNode *method_decl = find_nominal_host_method_decl(
                     ctx, recv_type, method_name);
                 if (method_decl != NULL)
