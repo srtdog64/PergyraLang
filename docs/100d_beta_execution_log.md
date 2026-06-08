@@ -169,7 +169,8 @@
   compare coverage allowlist, Makefile source inventory, and LLVM smoke surface
   aligned with the completed default-order compare evidence.
 - The Korean/UTF hygiene scan found no current common Latin-1 mojibake payload
-  in source docs/tests. `slot???` remains an intentional forbidden sentinel in
+  in source docs/tests. The literal `slot` + three U+003F question marks
+  remains an intentional forbidden sentinel in
   `formal_semantics_smoke.sh`, not user-facing broken Korean. Evidence:
   `documentation_quality_smoke.sh` passed.
 - `mir-declaration-inventory-test-smoke` now freezes the active-MIR signature
