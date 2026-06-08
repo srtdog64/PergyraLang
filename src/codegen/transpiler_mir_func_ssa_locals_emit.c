@@ -152,7 +152,15 @@ transpiler_emit_mir_func_ssa_local_decls(TranspilerCtx *ctx,
                                                 &version)) {
             continue;
         }
-        if (transpiler_is_implicit_field(ctx, base))
+        /* A versioned SSA local (base.N with N > 0) is always a function-
+         * local introduced by let-decl or assignment LHS and must get a
+         * declaration here, even when the host class declares a field of
+         * the same name. Skipping its declaration leaves later
+         * `_pgy_ssa_base_N` references undeclared in the emitted C. The
+         * `transpiler_is_implicit_field` short-circuit was only ever
+         * meant for the version==0 case where the name truly resolves
+         * to `self->base`. */
+        if (version == 0 && transpiler_is_implicit_field(ctx, base))
             continue;
         owned_type_name = transpiler_mir_ssa_local_find_versioned_type_name(
             ctx, node, mir_routine, versioned_name);

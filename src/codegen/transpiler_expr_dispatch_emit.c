@@ -103,7 +103,18 @@ emit_expression(ASTNode *node, TranspilerCtx *ctx)
                     return strdup_fmt("(*_pctx->%s)", id_name);
             }
         }
+        /* When the same identifier is both an active SSA local (let-decl
+         * or assignment LHS in the current scope) AND a field of the
+         * enclosing host class/zone/party/etc., the local must win.
+         * Otherwise `let heated = ...` inside a zone method silently
+         * resolves the right-hand `heated` to `self->heated` and the
+         * `_pgy_ssa_heated_N` local goes unused, breaking the C build
+         * with "heated undeclared". Skip every implicit-field promotion
+         * branch when the SSA resolver has a binding for this name. */
+        const bool ident_has_active_ssa =
+            transpiler_resolve_active_ssa_name(ctx, id_name) != NULL;
         if (strcmp(id_name, "self") != 0
+            && !ident_has_active_ssa
             && lookup_typed_var(ctx, id_name) == NULL
             && !is_slot_var(ctx, id_name)
             && current_class_has_field(ctx, id_name)) {
@@ -112,6 +123,7 @@ emit_expression(ASTNode *node, TranspilerCtx *ctx)
                 : "self.%s", id_name);
         }
         if (strcmp(id_name, "self") != 0
+            && !ident_has_active_ssa
             && lookup_typed_var(ctx, id_name) == NULL
             && !is_slot_var(ctx, id_name)
             && (current_party_has_field(ctx, id_name)
@@ -119,24 +131,28 @@ emit_expression(ASTNode *node, TranspilerCtx *ctx)
             return strdup_fmt("self->%s", id_name);
         }
         if (strcmp(id_name, "self") != 0
+            && !ident_has_active_ssa
             && lookup_typed_var(ctx, id_name) == NULL
             && !is_slot_var(ctx, id_name)
             && current_relation_has_field(ctx, id_name)) {
             return strdup_fmt("self->%s", id_name);
         }
         if (strcmp(id_name, "self") != 0
+            && !ident_has_active_ssa
             && lookup_typed_var(ctx, id_name) == NULL
             && !is_slot_var(ctx, id_name)
             && current_effect_has_field(ctx, id_name)) {
             return strdup_fmt("self->%s", id_name);
         }
         if (strcmp(id_name, "self") != 0
+            && !ident_has_active_ssa
             && lookup_typed_var(ctx, id_name) == NULL
             && !is_slot_var(ctx, id_name)
             && current_zone_has_field(ctx, id_name)) {
             return strdup_fmt("self->%s", id_name);
         }
         if (strcmp(id_name, "self") != 0
+            && !ident_has_active_ssa
             && lookup_typed_var(ctx, id_name) == NULL
             && !is_slot_var(ctx, id_name)
             && transpiler_current_world_has_field(ctx, id_name)) {

@@ -129,15 +129,24 @@ transpiler_resolve_active_ssa_name(const TranspilerCtx *ctx,
     const char *resolved;
     if (ctx == NULL || ctx->active_ssa_map == NULL || base_name == NULL)
         return NULL;
-    if (transpiler_is_implicit_field((TranspilerCtx *)ctx, base_name))
-        return NULL;
-    if (is_slot_var((TranspilerCtx *)ctx, base_name))
-        return NULL;
+    /* Resolve from the active SSA map FIRST. The implicit-field /
+     * slot-var short-circuits below only apply when there is no live
+     * SSA mapping for this name: if both an SSA local and a host field
+     * share a name (e.g. zone AssemblyZone declares `heated: Int` and
+     * `Tick` does `let heated = ...`), the local must win. The previous
+     * short-circuits returned NULL even when the SSA map had a binding,
+     * and the caller then fell back to implicit-field promotion, which
+     * silently rewrote the local read as `self->heated` and left the
+     * `_pgy_ssa_heated_N` symbol unused. */
     resolved = transpiler_resolve_ssa_name(
         (const TranspilerSSANameMap *)ctx->active_ssa_map,
         base_name);
     if (resolved != NULL)
         return resolved;
+    if (transpiler_is_implicit_field((TranspilerCtx *)ctx, base_name))
+        return NULL;
+    if (is_slot_var((TranspilerCtx *)ctx, base_name))
+        return NULL;
     if (ctx->match_binding_alias_map != NULL) {
         resolved = transpiler_resolve_ssa_name(
             (const TranspilerSSANameMap *)ctx->match_binding_alias_map,
@@ -160,6 +169,24 @@ transpiler_make_c_ssa_name(TranspilerCtx *ctx, const char *versioned_name)
         return NULL;
     if (!transpiler_parse_versioned_name(versioned_name, base, sizeof(base), &version))
         return pergyra_strdup(versioned_name);
+    /* SSA-versioned name (base.N with N > 0) always denotes a local SSA
+     * value introduced by a let-decl or assignment inside the function
+     * body. It must NOT be rewritten to `self->base` even when the host
+     * class happens to declare a field of the same name -- doing so
+     * silently shadows the local with the field and breaks code like:
+     *
+     *     let heated = furnace.Heat(...);     // local `heated`
+     *     self.heated = self.heated + heated; // zone field also named
+     *                                         // `heated`; right-hand
+     *                                         // `heated` must read the
+     *                                         // local, not the field.
+     *
+     * `transpiler_is_implicit_field` is only the right answer when the
+     * source identifier appears WITHOUT a version, since unversioned
+     * references inside a host method body do legitimately resolve to
+     * `self.field`. */
+    if (version > 0)
+        return transpiler_ssa_strdup_fmt("_pgy_ssa_%s_%zu", base, version);
     if (ctx != NULL && transpiler_is_implicit_field(ctx, base)) {
         if (current_class_has_field(ctx, base)) {
             return transpiler_ssa_strdup_fmt(current_class_uses_self_cell(ctx)
@@ -268,9 +295,19 @@ transpiler_render_ssa_name(TranspilerCtx *ctx, const char *versioned_name)
     char base[128];
     size_t version = 0;
 
+    /* Same invariant as transpiler_make_c_ssa_name: a name with a
+     * non-zero SSA version is a locally-introduced SSA value (let-decl
+     * LHS or assignment LHS inside the function body). Rewriting it to
+     * `self->base` because the host class declares a field of the same
+     * name silently turns `let heated = ...` into a field assignment
+     * and leaves the matching `_pgy_ssa_heated_N` local undeclared --
+     * the C compiler then fails on every right-hand reference to
+     * `heated`. Only treat unversioned references as candidates for
+     * implicit-field promotion. */
     if (ctx != NULL
         && versioned_name != NULL
         && transpiler_parse_versioned_name(versioned_name, base, sizeof(base), &version)
+        && version == 0
         && transpiler_is_implicit_field(ctx, base)) {
         if (current_class_has_field(ctx, base)) {
             return transpiler_ssa_strdup_fmt(current_class_uses_self_cell(ctx)
