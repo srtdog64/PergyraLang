@@ -62,6 +62,22 @@ mir_resource_layout_from_fact(const RIRFact *fact)
         type_node = ast_let_type(fact->ast);
     else if (fact->ast->type == AST_WITH_STMT)
         type_node = ast_with_slot_type(fact->ast);
+    else if (fact->ast->type == AST_FUNC_DECL && fact->name != NULL) {
+        /* Closure #85: function-parameter resource facts carry the
+         * function AST as their `ast`, not a let/with. Walk the param
+         * list to recover the parameter's type node so pin-on-param
+         * (pin_secure_param_read_view_block) can lower its view-backed
+         * Write/Read to a typed runtime layout. */
+        for (size_t pi = 0; pi < ast_func_param_count(fact->ast); pi++) {
+            FuncParam *param = ast_func_param(fact->ast, pi);
+            if (param == NULL || param->name == NULL)
+                continue;
+            if (strcmp(param->name, fact->name) == 0) {
+                type_node = param->type;
+                break;
+            }
+        }
+    }
     if (type_node == NULL)
         return NULL;
     type_name = mir_render_type_name(type_node);

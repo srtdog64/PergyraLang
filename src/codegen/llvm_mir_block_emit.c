@@ -627,12 +627,20 @@ llvm_emit_mir_block_with_exprs(const MIRBasicBlock *mir_block,
             if (function_ret_type == ctx->type_void) {
                 LLVMBuildRetVoid(ctx->builder);
             } else {
-                /* Closure #74: when a block has no successors AND no return
-                 * was emitted in the block body, MIR is telling us the path
-                 * was already terminated via earlier branches (e.g. match
-                 * with all-returning cases). Emit unreachable to keep the IR
-                 * valid; the verifier will reject if the path is actually
-                 * live. Erroring here breaks legitimate exhaustive matches. */
+                /* Closure #74: a non-void block with no successors and no
+                 * return instruction is either (a) the dead post-merge of
+                 * an exhaustive match where every case returned, or (b) a
+                 * genuinely missing return in user code. The two cases are
+                 * not distinguishable from this position alone because the
+                 * exhaustive-match merge has the same shape as the missing-
+                 * return case once MIR has lowered match dispatch into
+                 * BRANCH-shaped predecessors. We emit `unreachable` so the
+                 * exhaustive-match case compiles; for the missing-return
+                 * case the LLVM verifier may or may not complain depending
+                 * on how the path is reached. See the risk audit entry in
+                 * this doc for the trade-off and the planned MIR-side fix
+                 * (mark dead post-match blocks unreachable upstream so this
+                 * site can be strict again). */
                 LLVMBuildUnreachable(ctx->builder);
             }
         }

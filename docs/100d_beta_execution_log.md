@@ -568,6 +568,129 @@
   mir-declaration-inventory-test-smoke perf-contract-test-smoke
   llvm-test-smoke`.
 
+## Progress Log - 2026-06-08 Resource Layout For Function Parameter Facts
+
+- Closure #85: `mir_resource_layout_from_fact` (in
+  `src/compiler/mir_lower_population.c`) now handles
+  `AST_FUNC_DECL` resource facts. Function parameters get a RIR resource
+  fact whose `ast` points at the function declaration (not at a
+  let/with). The previous code only knew how to pull a type node from
+  `AST_LET_DECL` or `AST_WITH_STMT` facts, so a `pin slot as view: ...`
+  inside a `func F(own slot: SecureSlot<Int>)` could not derive an ABI
+  layout for the source slot — the MIR validator then rejected the test
+  with "view-backed resource op is missing owner slot ABI metadata".
+- The closure walks `ast_func_param(fact->ast, ...)` looking for a
+  parameter whose name matches `fact->name`, then uses that parameter's
+  `type` as the type node. The remainder of the function is unchanged
+  (the type node still flows through `mir_render_type_name` + a final
+  `mir_abi_lookup`), so the ABI layout still has to be registered for
+  the type — closure #85 only fixes the AST-to-type lookup, not the
+  layout registry. If `mir_abi_lookup` has no entry for the parameter's
+  type name, layout still returns NULL and the validator still errors.
+- Recovered `tests/cases/backend_compare/pin_secure_param_read_view_block`
+  on the C backend. `tests/compare_backends.sh` after this closure
+  reports 797/798 passed. The remaining red,
+  `pin_mixed_read_view_sequence`, is unrelated: it fails on the LLVM
+  backend with `LLVM MIR borrow view alias 'secureView' cannot resolve
+  owner slot 'secureScores'`. MIR for that test shows the `Claim`
+  resource-op for the secure slot is not flagged with
+  `source-statement-emit`, so LLVM's `llvm_stmt_let_resources` slot
+  registration never fires for `secureScores`; the borrow then can't
+  look up `slot_inner` and errors out. The closure here does not move
+  that case.
+
+### Known unrecovered fails after this session
+
+- `tests/cases/backend_compare/pin_mixed_read_view_sequence/main.pgy`
+  — LLVM backend. MIR-side `source-statement-emit` flag is missing on
+  the SecureSlot claim instruction, so the let-resources slot register
+  path is bypassed and the borrow view alias can't resolve. Fix lives
+  in MIR resource-op emission, not in codegen.
+- `examples/dnd_tavern_campaign/main.pgy` — LLVM runtime parity drift.
+  Compiles cleanly; runtime output diverges from C. Not in scope here.
+
+## Progress Log - 2026-06-08 Closure Risk Audit (Conservative Notes)
+
+This entry records the known risks of the closures landed in this
+session. None of these have produced an observed regression in the
+current suite, but each one trades a strict-mode error for a
+more-permissive fallback. A future maintainer should know about each
+one before relying on the strict-mode contract elsewhere.
+
+- **#67** (LLVM host-field assignment also stores to same-name local
+  alloca). The dual store works because Pergyra's current runtime
+  doesn't refcount heap-stored values via store sites — both the host
+  field and the local alloca hold the same pointer without an extra
+  acquire. If the String/heap runtime later introduces refcount-on-store
+  semantics, this closure becomes a double-release source. Re-audit
+  before adding refcount tracking on store.
+- **#70** (function-entry pre-init of host-field-aliased SSA local).
+  Triggers a host-field load+store in the function entry block before
+  any user code runs. Guarded by `llvm_current_host_class_name(ctx)`
+  and `llvm_class_field_index(...) >= 0`, so it only fires inside host
+  method bodies. The load happens unconditionally even if the local is
+  later overwritten — a minor extra read, not a correctness issue.
+- **#71** (bare identifier reads inside a host method always GEP+load
+  from host field when the name matches a shared field). Disables a
+  small optimisation (reading the same field twice in a row now hits
+  the host struct twice instead of caching in a register-like local).
+  LLVM's mem2reg / load-store-opt passes generally recover this, but
+  worst case it adds a load per use. Acceptable cost for correctness
+  across opaque callee mutations.
+- **#74** (no-successor non-void block emits `unreachable` instead of
+  erroring). Real risk surface: this masks a class of malformed MIR
+  where a reachable block falls off the end of a non-void function. The
+  LLVM verifier still rejects truly live malformed paths, so a runtime
+  miscompile from this closure is unlikely. The compile-time error it
+  replaces was load-bearing for any future MIR analysis bug that breaks
+  control flow. Tighten when MIR adds "post-exhaustive-match block is
+  unreachable" analysis.
+- **#75** (single-uppercase-letter type name falls back to `i8ptr`).
+  Only fires after the class registry and enum lookup both miss, so a
+  defined `class T { ... }` still resolves correctly. The risk is a
+  user-defined single-letter class that hasn't been registered yet in
+  the current emission window — that would silently lower to `i8ptr`.
+  Low likelihood, possible.
+- **#78** (silent fallthrough in hosted-self-call and
+  host-method-return-type when callee is a registered `AST_FUNC_DECL`).
+  If a host method and a free function share a name, this prefers the
+  free function. Pergyra's scoping intent prefers the closer (host)
+  binding, so this is technically wrong for that shadowing case. The
+  strict error it replaces was breaking every free function call made
+  from inside a host method body, which is the common case. Add a
+  host-method-presence probe before the callable_decl check if the
+  shadowing case ever appears in real surface code.
+- **#82** (skip `AST_LET_DESTRUCTURE` in `MIR_INST_STMT` fallback).
+  Relies on `MIR_INST_DESTRUCTURE` being emitted upstream. If a future
+  MIR shape produces a destructure-shaped AST without a matching
+  `MIR_INST_DESTRUCTURE` instruction, this closure silently drops the
+  statement. Add a coverage probe when extending destructuring grammar.
+- **#83** (role vtable `metadata_role_name` parameter for include
+  chain). Caller responsibility: must pass the correct included-role
+  name. If misused, the vtable instance is named per role but methods
+  resolve via the wrong host. The current caller in
+  `transpiler_domain_nominal_emit.c` is the only call site; review any
+  new caller.
+- **#84** (typed-name handling for `ReadView`/`WriteView`/`MoveView`
+  in resource op core). Does not by itself recover
+  `pin_secure_param_read_view_block` — the view-to-source-slot redirect
+  upstream in `transpiler_mir_resource_hook_emit.c` is the real gap.
+  #84's added branches are dead code today on the failing path, but
+  they are correct for any caller that does populate the view
+  typed_name; leaving them in does no harm and unblocks the next step.
+
+### Known unrecovered fails after this session
+
+- `tests/cases/backend_compare/pin_secure_param_read_view_block/main.pgy`
+  — C backend, MIR-only mode. Needs `lookup_typed_entry(ctx, "view")`
+  to return an entry with `is_view=true` and a non-empty `source_slot`,
+  or needs MIR's routine inventory scan to surface the source slot.
+  Not a one-closure fix.
+- `examples/dnd_tavern_campaign/main.pgy` — runtime parity drift on the
+  LLVM backend. Compile succeeds (after the closures above); runtime
+  output diverges from C. Suspected source: subject-action dispatch
+  shape in zone projection chain. Out of scope for this session.
+
 ## Progress Log - 2026-06-08 Role Include And Pin View Closures
 
 - Closure #83: `emit_role_vtable_instance` now takes an explicit
