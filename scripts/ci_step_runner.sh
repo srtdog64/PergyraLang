@@ -13,27 +13,38 @@ set -uo pipefail
 
 CI_NAME="${PGY_CI_NAME:-ci}"
 STEPS_FILE="${1:?usage: $0 <steps-file>}"
+# PGY_CI_FAIL_FAST=1 reverts to abort-on-first-failure. The default is
+# collect-mode: run every step, then summarize the failures at the end.
+# Collect-mode is what an operator wants when a single CI run takes 20+
+# minutes: stopping at step 3 means a second push is needed to see what
+# else is broken; running every step surfaces every failure in one run.
+PGY_CI_FAIL_FAST="${PGY_CI_FAIL_FAST:-0}"
 
 STEP_NUM=0
 STEP_NAME=""
+FAILED_STEPS=()
 
-# Explicit if/then on `eval` rather than `set -e` + trap ERR: errexit's
-# interaction with function context + sourced files + eval is not portable,
-# and an ERR trap fired from inside a function may not propagate the
-# intended exit code. Check the eval status directly and exit with a
-# labeled message so the last log line names the failing step.
 run() {
     STEP_NUM=$((STEP_NUM + 1))
     STEP_NAME="$1"
     printf '\n========== [%s step %d] %s ==========\n' \
         "$CI_NAME" "$STEP_NUM" "$STEP_NAME" >&2
     local rc=0
-    eval "$1" || rc=$?
+    # Subshell isolation: if the step command contains `exit N`, that
+    # exits the subshell, not the runner. The runner captures the
+    # subshell's rc and decides whether to abort (fail-fast) or
+    # continue (collect mode).
+    ( eval "$1" ) || rc=$?
     if [[ $rc -ne 0 ]]; then
         local fail_rc=$rc
-        printf '\n[%s FAILED at step %d: %s] rc=%d\n' \
-            "$CI_NAME" "$STEP_NUM" "$STEP_NAME" "$fail_rc" >&2
-        exit "$fail_rc"
+        if [[ "$PGY_CI_FAIL_FAST" == "1" ]]; then
+            printf '\n[%s FAILED at step %d: %s] rc=%d\n' \
+                "$CI_NAME" "$STEP_NUM" "$STEP_NAME" "$fail_rc" >&2
+            exit "$fail_rc"
+        fi
+        FAILED_STEPS+=("step $STEP_NUM rc=$fail_rc: $STEP_NAME")
+        printf '\n[%s step %d FAILED rc=%d] continuing to surface further failures\n' \
+            "$CI_NAME" "$STEP_NUM" "$fail_rc" >&2
     fi
 }
 
@@ -45,4 +56,14 @@ fi
 # shellcheck disable=SC1090
 . "$STEPS_FILE"
 
-printf '\n[%s] all %d steps ok\n' "$CI_NAME" "$STEP_NUM" >&2
+if [[ ${#FAILED_STEPS[@]} -eq 0 ]]; then
+    printf '\n[%s] all %d steps ok\n' "$CI_NAME" "$STEP_NUM" >&2
+    exit 0
+fi
+
+printf '\n========== [%s SUMMARY] %d/%d steps FAILED ==========\n' \
+    "$CI_NAME" "${#FAILED_STEPS[@]}" "$STEP_NUM" >&2
+for entry in "${FAILED_STEPS[@]}"; do
+    printf '  - %s\n' "$entry" >&2
+done
+exit 1
