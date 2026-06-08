@@ -6,6 +6,8 @@
 #include "transpiler_mir_assignment_emit.h"
 
 #include <stdlib.h>
+
+#include "transpiler_format.h"
 #include <string.h>
 
 #include "../parser/ast_api.h"
@@ -183,8 +185,36 @@ transpiler_emit_mir_assignment_def_inst(CodeBuf *buf,
                     prior_ssa);
             }
         }
-        field_lhs = emit_expression_with_ssa_map(
-            target, ctx, ssa_map_out);
+        /* Build the LHS directly as `self->base` (or `self.base` for
+         * self-cell hosts). Routing through emit_expression_with_ssa_map
+         * lets the identifier emit path consult the SSA map and rewrite
+         * `hp` to `_pgy_ssa_hp_N` -- which would land the field
+         * assignment on a parallel local instead of the actual field.
+         *
+         * RHS still goes through emit_expression_with_ssa_map so prior
+         * SSA values feed in correctly. */
+        {
+            const char *base = target_name;
+            bool host_field =
+                base != NULL
+                && (current_class_has_field(ctx, base)
+                    || current_party_has_field(ctx, base)
+                    || current_roster_has_field(ctx, base)
+                    || current_relation_has_field(ctx, base)
+                    || current_effect_has_field(ctx, base)
+                    || current_zone_has_field(ctx, base)
+                    || transpiler_current_world_has_field(ctx, base));
+            if (host_field && current_class_has_field(ctx, base)) {
+                field_lhs = strdup_fmt(
+                    current_class_uses_self_cell(ctx)
+                        ? "self->%s" : "self.%s", base);
+            } else if (host_field) {
+                field_lhs = strdup_fmt("self->%s", base);
+            } else {
+                field_lhs = emit_expression_with_ssa_map(
+                    target, ctx, ssa_map_out);
+            }
+        }
         field_rhs = emit_expression_with_ssa_map(
             value, ctx, ssa_map_out);
         if (field_lhs == NULL || field_rhs == NULL) {
@@ -200,6 +230,26 @@ transpiler_emit_mir_assignment_def_inst(CodeBuf *buf,
         }
         write_indent_to(buf, ctx->indent);
         codebuf_write(buf, "%s = %s;\n", field_lhs, field_rhs);
+        /* Snapshot the post-write value into `_pgy_ssa_base_N`. MIR
+         * versioned the assignment for SSA tracking, and downstream
+         * phi merges / cross-block uses reference the versioned name.
+         * Without this sync, those reads see the 0-init local
+         * instead of the value the field now holds. */
+        if (inst->result_name != NULL) {
+            char ssa_base[128];
+            size_t ssa_version = 0;
+            if (transpiler_parse_versioned_name(inst->result_name,
+                    ssa_base, sizeof(ssa_base), &ssa_version)
+                && ssa_version > 0) {
+                char *ssa_lhs = transpiler_render_ssa_name(ctx,
+                    inst->result_name);
+                if (ssa_lhs != NULL) {
+                    write_indent_to(buf, ctx->indent);
+                    codebuf_write(buf, "%s = %s;\n", ssa_lhs, field_lhs);
+                    free(ssa_lhs);
+                }
+            }
+        }
         free(field_lhs);
         free(field_rhs);
         return TRANSPILE_MIR_ASSIGNMENT_HANDLED;
