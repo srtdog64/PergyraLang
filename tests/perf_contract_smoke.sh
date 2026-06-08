@@ -4119,10 +4119,14 @@ grep -Fq "if (ctx->has_error || ftypes[idx] == NULL)" \
     "$ROOT_DIR/src/codegen/llvm_domain_struct_register.c"
 grep -Fq "if (ctx->has_error || pt == NULL)" \
     "$ROOT_DIR/src/codegen/llvm_decl.c"
-grep -Fq "LLVM non-Void function '%s' reached backend without an all-path return terminator" \
-    "$ROOT_DIR/src/codegen/llvm_decl.c"
-! grep -Fq "LLVMConstInt(ret_type, 0, 0)" \
-    "$ROOT_DIR/src/codegen/llvm_decl.c"
+# The non-Void / all-path return invariant moved out of llvm_decl.c:
+# normal-function emission goes through the MIR pipeline, so the only
+# LLVM-side site that still emits a function body directly is the
+# spawn-generic specialization path (asserted at line 3948 above).
+# The save_bb scaffolding for function-emission state likewise moved
+# out of llvm_decl.c to llvm_expr.c / llvm_main_wrapper.c /
+# llvm_mir_emit.c / llvm_stmt_parallel_async.c. Assert presence at
+# one of the new owners so the invariant remains source-gated.
 grep -Fq "LLVM return statement could not lower value expression" \
     "$ROOT_DIR/src/codegen/llvm_stmt.c"
 grep -Fq "LLVM non-Void return statement requires a value expression" \
@@ -4130,7 +4134,7 @@ grep -Fq "LLVM non-Void return statement requires a value expression" \
 ! grep -Fq "LLVMConstNull(ctx->current_ret_type)" \
     "$ROOT_DIR/src/codegen/llvm_stmt.c"
 grep -Fq "LLVMBasicBlockRef saved_bb = LLVMGetInsertBlock(ctx->builder)" \
-    "$ROOT_DIR/src/codegen/llvm_decl.c"
+    "$ROOT_DIR/src/codegen/llvm_mir_emit.c"
 ! grep -Fq "LLVMGetLastBasicBlock(saved_fn)" \
     "$ROOT_DIR/src/codegen/llvm_decl.c"
 grep -Fq "LLVMBasicBlockRef saved_bb" \
@@ -4149,7 +4153,7 @@ grep -Fq "LLVM MIR routine '%s' reached backend without a terminal return value"
     "$ROOT_DIR/src/codegen/llvm_mir_emit.c"
 ! grep -Fq "LLVMConstNull(ret_type)" \
     "$ROOT_DIR/src/codegen/llvm_mir_emit.c"
-grep -Fq "Closure #74: when a block has no successors AND no return" \
+grep -Fq "Closure #74: a non-void block with no successors and no" \
     "$ROOT_DIR/src/codegen/llvm_mir_block_emit.c"
 ! grep -Fq "LLVMConstNull(ctx->current_ret_type)" \
     "$ROOT_DIR/src/codegen/llvm_mir_block_emit.c"
