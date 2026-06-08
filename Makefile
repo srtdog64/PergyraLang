@@ -114,6 +114,17 @@ CI_LINUX_BUILD_DIR := $(TMPDIR_CI)/pgy-ci-linux-build
 CI_LINUX_BIN_DIR   := $(TMPDIR_CI)/pgy-ci-linux-bin
 CI_WINDOWS_BUILD_DIR := $(TMPDIR_CI)/pgy-ci-windows-build
 CI_WINDOWS_BIN_DIR   := $(TMPDIR_CI)/pgy-ci-windows-bin
+# CI #391 follow-up: under MSYS2/UCRT64 with gcc 16.1.0, putting an MSYS path
+# (e.g. /tmp/...) into the link response file makes the native ld.exe fail to
+# locate the .o files compiled to the same MSYS path -- gcc converts the path
+# for its own write but ld does not auto-convert when reading the .rsp. Force
+# CI_WINDOWS_BUILD_DIR / CI_WINDOWS_BIN_DIR to the cygpath -m mixed form
+# (Windows native drive letter with forward slashes) so the .rsp content is
+# already native and ld picks the files up regardless of MSYS path handling.
+ifneq ($(MSYSTEM),)
+CI_WINDOWS_BUILD_DIR := $(shell cygpath -m "$(CI_WINDOWS_BUILD_DIR)" 2>/dev/null)
+CI_WINDOWS_BIN_DIR   := $(shell cygpath -m "$(CI_WINDOWS_BIN_DIR)" 2>/dev/null)
+endif
 CI_MACOS_CC := $(or $(shell command -v cc 2>/dev/null),$(CC))
 CI_MACOS_BUILD_DIR := $(TMPDIR_CI)/pgy-ci-macos-build
 CI_MACOS_BIN_DIR   := $(TMPDIR_CI)/pgy-ci-macos-bin
