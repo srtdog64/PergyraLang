@@ -129,23 +129,25 @@ transpiler_resolve_active_ssa_name(const TranspilerCtx *ctx,
     const char *resolved;
     if (ctx == NULL || ctx->active_ssa_map == NULL || base_name == NULL)
         return NULL;
-    /* Resolve from the active SSA map FIRST. The implicit-field /
-     * slot-var short-circuits below only apply when there is no live
-     * SSA mapping for this name: if both an SSA local and a host field
-     * share a name (e.g. zone AssemblyZone declares `heated: Int` and
-     * `Tick` does `let heated = ...`), the local must win. The previous
-     * short-circuits returned NULL even when the SSA map had a binding,
-     * and the caller then fell back to implicit-field promotion, which
-     * silently rewrote the local read as `self->heated` and left the
-     * `_pgy_ssa_heated_N` symbol unused. */
+    /* Slot variables (Slot<T> / SecureSlot<T> / DeviceSlot<T>) carry
+     * their own backing alloca and skip SSA renaming entirely -- the
+     * runtime reads/writes through `pgy_read_<T>(&base)` etc. and we
+     * must not rewrite them to `_pgy_ssa_base_N`. Keep the slot-var
+     * short-circuit first.
+     *
+     * For non-slot names we now check the SSA map BEFORE the
+     * implicit-field short-circuit: when a `let heated = ...` inside a
+     * zone method shares its name with a zone field, the SSA local
+     * must win so the right-hand `heated` resolves to
+     * `_pgy_ssa_heated_N` rather than `self->heated`. */
+    if (is_slot_var((TranspilerCtx *)ctx, base_name))
+        return NULL;
     resolved = transpiler_resolve_ssa_name(
         (const TranspilerSSANameMap *)ctx->active_ssa_map,
         base_name);
     if (resolved != NULL)
         return resolved;
     if (transpiler_is_implicit_field((TranspilerCtx *)ctx, base_name))
-        return NULL;
-    if (is_slot_var((TranspilerCtx *)ctx, base_name))
         return NULL;
     if (ctx->match_binding_alias_map != NULL) {
         resolved = transpiler_resolve_ssa_name(
