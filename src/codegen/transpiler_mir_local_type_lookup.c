@@ -653,14 +653,12 @@ transpiler_find_local_type_name(TranspilerCtx *ctx,
             }
         }
     }
-    if (!transpiler_active_has_mir(ctx)) {
-        typed_name = transpiler_find_local_type_name_in_block(ctx, func_decl,
-            ast_func_body(func_decl), base_name);
-        if (typed_name != NULL) {
-            if (ctx != NULL)
-                register_typed_var(ctx, base_name, typed_name);
-            return typed_name;
-        }
+    typed_name = transpiler_find_local_type_name_in_block(ctx, func_decl,
+        ast_func_body(func_decl), base_name);
+    if (typed_name != NULL) {
+        if (ctx != NULL)
+            register_typed_var(ctx, base_name, typed_name);
+        return typed_name;
     }
 
     return transpiler_lookup_current_owner_member_type_name(ctx, base_name);

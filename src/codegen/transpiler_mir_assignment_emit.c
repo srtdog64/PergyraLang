@@ -78,10 +78,14 @@ transpiler_mir_routine_has_param_name(const MIRRoutine *routine,
 static bool
 transpiler_mir_assignment_target_is_local(const ASTNode *func_decl,
                                           const MIRRoutine *routine,
-                                          const char *target_name)
+                                          const char *target_name,
+                                          TranspilerCtx *ctx)
 {
     if (target_name == NULL)
         return false;
+    if (transpiler_mir_assignment_target_is_field(ctx, target_name)) {
+        return false;
+    }
     if (transpiler_mir_routine_has_param_name(routine, target_name)
         || transpiler_mir_routine_has_source_local_name(routine, target_name)) {
         return true;
@@ -156,7 +160,7 @@ transpiler_emit_mir_assignment_def_inst(CodeBuf *buf,
     }
 
     is_local_binding = transpiler_mir_assignment_target_is_local(
-        func_decl, mir_routine, target_name);
+        func_decl, mir_routine, target_name, ctx);
     if (!is_local_binding)
         target_is_field = transpiler_mir_assignment_target_is_field(ctx,
                                                                     target_name);

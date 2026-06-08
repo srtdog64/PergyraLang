@@ -290,74 +290,26 @@ mir_populate_stmt_instructions(MIRRoutine *routine)
             }
             if (mir_stmt_is_def_source(stmt)) {
                 const char *stmt_name = mir_stmt_def_name(stmt);
-                /* Find the next DEF from old instructions */
+                /* Find the matching DEF from old instructions */
                 size_t saved_cursor = def_cursor;
-                while (def_cursor < old_count
-                       && old_insts[def_cursor].kind != MIR_INST_DEF)
-                    def_cursor++;
-                if (def_cursor < old_count) {
-                    MIRInstruction def_inst = old_insts[def_cursor];
-                    const char *def_name = def_inst.arg0 != NULL
-                        ? def_inst.arg0
-                        : def_inst.slot_anchor;
-                    if (stmt_name == NULL || def_name == NULL
-                        || strcmp(stmt_name, def_name) != 0) {
-                        bool owned_by_later_def =
-                            stmt_name != NULL
-                            && stmt != NULL
-                            && stmt->type == AST_LET_DECL
-                            && mir_routine_has_def_for_name(routine, stmt_name);
-
-                        def_cursor = saved_cursor;
-                        if (mir_stmt_requires_source_local_preservation(stmt)) {
-                            bool handled = false;
-                            if (!mir_append_matching_def_for_stmt(
-                                    new_insts, new_cap, &new_count,
-                                    old_insts, old_count, copied_flags,
-                                    block, stmt, s, &handled)) {
-                                free(copied_flags);
-                                free(new_insts);
-                                return false;
-                            }
-                            if (!handled) {
-                                MIRInstruction inst =
-                                    mir_make_source_stmt_instruction(routine, stmt, s);
-                                if (!mir_stmt_population_append(new_insts,
-                                                                new_cap,
-                                                                &new_count,
-                                                                inst)) {
-                                    free(copied_flags);
-                                    free(new_insts);
-                                    return false;
-                                }
-                            }
-                            continue;
+                size_t match_cursor = def_cursor;
+                bool found = false;
+                while (match_cursor < old_count) {
+                    if (old_insts[match_cursor].kind == MIR_INST_DEF) {
+                        const char *def_name = old_insts[match_cursor].arg0 != NULL
+                            ? old_insts[match_cursor].arg0
+                            : old_insts[match_cursor].slot_anchor;
+                        if (def_name != NULL && stmt_name != NULL
+                            && strcmp(stmt_name, def_name) == 0) {
+                            found = true;
+                            break;
                         }
-                        if (owned_by_later_def) {
-                            /* The CFG/SSA path already materializes this
-                             * binding in another block. Do not resurrect the
-                             * original source let/assignment as a fallback
-                             * STMT here, or C/LLVM backends will emit the
-                             * declaration twice (plain AST stmt + SSA DEF). */
-                            continue;
-                        }
-                        memset(&def_inst, 0, sizeof(def_inst));
-                        def_inst =
-                            stmt != NULL && stmt->type == AST_ASSIGNMENT
-                                ? mir_make_assignment_instruction(routine, stmt, s)
-                                : (stmt != NULL && stmt->type == AST_LET_DESTRUCTURE
-                                    ? mir_make_destructure_instruction(routine, stmt, s)
-                                    : mir_make_source_stmt_instruction(routine, stmt, s));
-                        if (!mir_stmt_population_append(new_insts,
-                                                        new_cap,
-                                                        &new_count,
-                                                        def_inst)) {
-                            free(copied_flags);
-                            free(new_insts);
-                            return false;
-                        }
-                        continue;
                     }
+                    match_cursor++;
+                }
+                if (found) {
+                    def_cursor = match_cursor;
+                    MIRInstruction def_inst = old_insts[def_cursor];
                     /* Attach the full statement AST so LLVM emitter can
                      * extract both the type annotation and the initializer. */
                     if (def_inst.ast == NULL)
@@ -376,9 +328,13 @@ mir_populate_stmt_instructions(MIRRoutine *routine)
                     copied_flags[def_cursor] = true;
                     def_cursor++;
                 } else {
-                    /* No matching DEF (SSA had no local_defs for this var).
-                     * Emit the let/assignment as a regular STMT so it still
-                     * generates code. */
+                    def_cursor = saved_cursor;
+                    bool owned_by_later_def =
+                        stmt_name != NULL
+                        && stmt != NULL
+                        && stmt->type == AST_LET_DECL
+                        && mir_routine_has_def_for_name(routine, stmt_name);
+
                     if (mir_stmt_requires_source_local_preservation(stmt)) {
                         bool handled = false;
                         if (!mir_append_matching_def_for_stmt(
@@ -403,14 +359,14 @@ mir_populate_stmt_instructions(MIRRoutine *routine)
                         }
                         continue;
                     }
-                    if (stmt_name != NULL
-                        && stmt != NULL
-                        && stmt->type == AST_LET_DECL
-                        && mir_routine_has_def_for_name(routine, stmt_name)) {
-                        def_cursor = saved_cursor;
+                    if (owned_by_later_def) {
+                        /* The CFG/SSA path already materializes this
+                         * binding in another block. Do not resurrect the
+                         * original source let/assignment as a fallback
+                         * STMT here, or C/LLVM backends will emit the
+                         * declaration twice (plain AST stmt + SSA DEF). */
                         continue;
                     }
-                    def_cursor = saved_cursor;
                     MIRInstruction inst =
                         stmt != NULL && stmt->type == AST_ASSIGNMENT
                             ? mir_make_assignment_instruction(routine, stmt, s)

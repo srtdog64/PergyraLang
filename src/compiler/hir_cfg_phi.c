@@ -45,6 +45,37 @@ hir_stmt_collect_local_defs(ASTNode *node,
                                                ast_with_alias(node))) {
                 return false;
             }
+            if (ast_with_body(node) != NULL) {
+                ASTNode *body = ast_with_body(node);
+                if (body->type == AST_BLOCK) {
+                    size_t stmt_count = 0;
+                    ASTNode **stmts = ast_block_statements(body, &stmt_count);
+                    for (size_t i = 0; i < stmt_count; i++) {
+                        if (!hir_stmt_collect_local_defs(stmts[i], names, count, capacity))
+                            return false;
+                    }
+                } else {
+                    if (!hir_stmt_collect_local_defs(body, names, count, capacity))
+                        return false;
+                }
+            }
+            return true;
+
+        case AST_UNSAFE_BLOCK:
+            if (ast_unsafe_block_body(node) != NULL) {
+                ASTNode *body = ast_unsafe_block_body(node);
+                if (body->type == AST_BLOCK) {
+                    size_t stmt_count = 0;
+                    ASTNode **stmts = ast_block_statements(body, &stmt_count);
+                    for (size_t i = 0; i < stmt_count; i++) {
+                        if (!hir_stmt_collect_local_defs(stmts[i], names, count, capacity))
+                            return false;
+                    }
+                } else {
+                    if (!hir_stmt_collect_local_defs(body, names, count, capacity))
+                        return false;
+                }
+            }
             return true;
 
         default:
@@ -69,6 +100,40 @@ hir_stmt_collect_phi_seed_names(ASTNode *node,
                                                   count,
                                                   capacity,
                                                   ast_identifier_name(ast_assignment_target(node)));
+            }
+            return true;
+
+        case AST_WITH_STMT:
+            if (ast_with_body(node) != NULL) {
+                ASTNode *body = ast_with_body(node);
+                if (body->type == AST_BLOCK) {
+                    size_t stmt_count = 0;
+                    ASTNode **stmts = ast_block_statements(body, &stmt_count);
+                    for (size_t i = 0; i < stmt_count; i++) {
+                        if (!hir_stmt_collect_phi_seed_names(stmts[i], names, count, capacity))
+                            return false;
+                    }
+                } else {
+                    if (!hir_stmt_collect_phi_seed_names(body, names, count, capacity))
+                        return false;
+                }
+            }
+            return true;
+
+        case AST_UNSAFE_BLOCK:
+            if (ast_unsafe_block_body(node) != NULL) {
+                ASTNode *body = ast_unsafe_block_body(node);
+                if (body->type == AST_BLOCK) {
+                    size_t stmt_count = 0;
+                    ASTNode **stmts = ast_block_statements(body, &stmt_count);
+                    for (size_t i = 0; i < stmt_count; i++) {
+                        if (!hir_stmt_collect_phi_seed_names(stmts[i], names, count, capacity))
+                            return false;
+                    }
+                } else {
+                    if (!hir_stmt_collect_phi_seed_names(body, names, count, capacity))
+                        return false;
+                }
             }
             return true;
 

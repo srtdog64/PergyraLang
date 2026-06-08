@@ -33,6 +33,7 @@
 #include "transpiler_symbols.h"
 #include "transpiler_type_mapping.h"
 #include "transpiler_type_require.h"
+#include "transpiler_mir_local_binding.h"
 
 static char *
 transpiler_dispatch_emit_part(TranspilerCtx *ctx,
@@ -54,6 +55,25 @@ transpiler_dispatch_emit_part(TranspilerCtx *ctx,
         owner != NULL ? owner : "expression",
         role != NULL ? role : "operand");
     return NULL;
+}
+
+static bool
+transpiler_identifier_is_true_local(TranspilerCtx *ctx,
+                                    const ASTNode *func_decl,
+                                    const char *id_name)
+{
+    if (id_name == NULL || func_decl == NULL)
+        return false;
+    (void)ctx;
+    if (func_decl->type == AST_FUNC_DECL) {
+        size_t param_count = ast_func_param_count(func_decl);
+        for (size_t i = 0; i < param_count; i++) {
+            FuncParam *p = ast_func_param(func_decl, i);
+            if (p != NULL && p->name != NULL && strcmp(p->name, id_name) == 0)
+                return true;
+        }
+    }
+    return transpiler_has_explicit_local_binding(func_decl, id_name);
 }
 
 char *
@@ -111,8 +131,20 @@ emit_expression(ASTNode *node, TranspilerCtx *ctx)
          * `_pgy_ssa_heated_N` local goes unused, breaking the C build
          * with "heated undeclared". Skip every implicit-field promotion
          * branch when the SSA resolver has a binding for this name. */
-        const bool ident_has_active_ssa =
+        bool ident_has_active_ssa =
             transpiler_resolve_active_ssa_name(ctx, id_name) != NULL;
+        if (ident_has_active_ssa && ctx->current_func_decl != NULL) {
+            bool is_field = current_class_has_field(ctx, id_name)
+                || current_party_has_field(ctx, id_name)
+                || current_roster_has_field(ctx, id_name)
+                || current_relation_has_field(ctx, id_name)
+                || current_effect_has_field(ctx, id_name)
+                || current_zone_has_field(ctx, id_name)
+                || transpiler_current_world_has_field(ctx, id_name);
+            if (is_field && !transpiler_identifier_is_true_local(ctx, ctx->current_func_decl, id_name)) {
+                ident_has_active_ssa = false;
+            }
+        }
         if (strcmp(id_name, "self") != 0
             && !ident_has_active_ssa
             && lookup_typed_var(ctx, id_name) == NULL
