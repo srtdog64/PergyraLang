@@ -1728,7 +1728,6 @@ if awk '
     exit 1
 fi
 for rel in \
-    "src/codegen/llvm_decl.c" \
     "src/codegen/llvm_mir_emit.c" \
     "src/codegen/llvm_stmt.c" \
     "src/codegen/llvm_stmt_loop_match.c" \
