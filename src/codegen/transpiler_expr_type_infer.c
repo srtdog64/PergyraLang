@@ -560,10 +560,18 @@ infer_expression_type_name(TranspilerCtx *ctx, ASTNode *expr)
                     host_return_type =
                         transpiler_mir_decl_method_return_type(
                             host_method_meta);
-                    if (host_method_meta == NULL
-                        && !transpiler_active_has_mir(ctx)) {
+                    /* If no hosted-method metadata is registered for this
+                     * name (e.g. a world's method that the MIR decl
+                     * header never enumerated), fall back to the AST
+                     * lookup unconditionally -- otherwise the caller
+                     * sees "Unknown" and the C-emit chain trips on the
+                     * MIR local's missing type. Restricting this
+                     * fallback to `!active_has_mir(ctx)` left a dead
+                     * hole in raid_graph_fsm and similar hosts. */
+                    if (host_method_meta == NULL) {
                         host_method = current_host_method_decl(ctx, name);
-                        host_return_type = ast_func_return_type(host_method);
+                        if (host_method != NULL)
+                            host_return_type = ast_func_return_type(host_method);
                     }
                     if (host_return_type != NULL) {
                         char *resolved = render_type_name_in_ctx(ctx,
