@@ -3,6 +3,20 @@ build/
 build*/
 bin/
 .tmp/
+
+# Ad-hoc debug dumps emitted by --emit-c / --emit-mir / --emit-hir
+# directly into the repo root (these are large per-example artifacts,
+# not source). Keep them out of the index so debug sessions don't dirty
+# the worktree.
+/dnd_*.txt
+/dnd_*.c
+/raid_*.txt
+/raid_*.c
+/fsm_*.txt
+/subject_*.txt
+/*_mir.txt
+/*_hir.txt
+/*_air.txt
 *.o
 *.d
 *.exe
