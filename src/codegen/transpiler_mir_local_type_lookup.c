@@ -188,6 +188,46 @@ transpiler_infer_local_type_name_from_expr(TranspilerCtx *ctx,
             const char *callee_name = ast_identifier_name(ast_call_callee(expr));
             ASTNode *callee_decl = find_callable_decl(ctx, callee_name);
             ASTNode *callee_return_type = NULL;
+            /* Unqualified call inside a host method body (e.g.
+             * `let gained = TakeLoot(...)` inside world RaidWorld where
+             * TakeLoot is a method on the world) needs the host-method
+             * lookup, not just the global callable. Try it before
+             * falling through to the unresolved branch. */
+            if (callee_decl == NULL) {
+                ASTNode *host_decl = transpiler_current_host_decl_local(ctx);
+                const char *host_name = host_decl != NULL
+                    ? ast_declaration_name(host_decl) : NULL;
+                if (host_name != NULL && callee_name != NULL) {
+                    const MIRDeclMethod *method_meta =
+                        transpiler_find_host_method_metadata_in_context(
+                            ctx, host_name, callee_name);
+                    if (method_meta != NULL) {
+                        const char *method_return_type_name =
+                            transpiler_mir_decl_method_return_type_name(
+                                method_meta);
+                        if (method_return_type_name != NULL)
+                            return transpiler_mir_arena_copy_type_name(
+                                ctx, method_return_type_name);
+                    }
+                    if (!transpiler_active_has_mir(ctx)) {
+                        ASTNode *method_decl =
+                            find_nominal_host_method_decl(
+                                ctx, host_name, callee_name);
+                        if (method_decl != NULL) {
+                            ASTNode *ret = ast_func_return_type(method_decl);
+                            if (ret != NULL) {
+                                char *rendered =
+                                    render_type_name_in_ctx(ctx, ret);
+                                const char *copied =
+                                    transpiler_mir_arena_copy_type_name(
+                                        ctx, rendered);
+                                free(rendered);
+                                return copied;
+                            }
+                        }
+                    }
+                }
+            }
             if (callee_decl != NULL && callee_decl->type == AST_INTENT_DECL)
                 return "Bool";
             bool generic_call = callee_decl != NULL
