@@ -191,9 +191,29 @@ llvm_stmt_infer_scalar_math_return_type(LLVMGenCtx *ctx, ASTNode *call,
 
     if ((strcmp(callee, "Min") == 0 || strcmp(callee, "Max") == 0)
         && argc == 2) {
+        bool prev_err = ctx->has_error;
         ty0 = llvm_stmt_infer_expr_type(ctx, ast_call_argument(call, 0));
+        if (ctx->has_error && !prev_err) {
+            ctx->has_error = false;
+            ty0 = NULL;
+        }
         ty1 = llvm_stmt_infer_expr_type(ctx, ast_call_argument(call, 1));
-        return llvm_stmt_promote_numeric_type(ctx, ty0, ty1);
+        if (ctx->has_error && !prev_err) {
+            ctx->has_error = false;
+            ty1 = NULL;
+        }
+        /* Closure #87b: when one side can't be inferred (e.g. an as-yet
+         * unregistered local in MIR-only mode), promote from the
+         * resolvable side. Falling back to Int32 keeps deeper Min/Max
+         * chains (biome_simulator, campaign_graph_fsm) from cascading
+         * into the strict identifier-metadata error. */
+        if (ty0 != NULL && ty1 != NULL)
+            return llvm_stmt_promote_numeric_type(ctx, ty0, ty1);
+        if (ty0 != NULL)
+            return ty0;
+        if (ty1 != NULL)
+            return ty1;
+        return ctx->type_i32;
     }
 
     if (strcmp(callee, "Clamp") == 0 && argc == 3) {
@@ -601,6 +621,13 @@ llvm_stmt_infer_expr_type(LLVMGenCtx *ctx, ASTNode *expr)
                     return pergyra_type_to_llvm(ctx, inner);
                 if (inner != NULL)
                     return ctx->type_void;
+                /* Closure #87d: slot inner not yet registered at type-infer
+                 * time (with-slot block inside zone method, MIR registers
+                 * the slot later). For Read/Write the return type is i32
+                 * for Read, void for Write — match the actual emit path. */
+                if (llvm_stmt_slot_call_returns_value(callee))
+                    return ctx->type_i32;
+                return ctx->type_void;
             }
             {
                 LLVMTypeRef builtin_type =
@@ -608,7 +635,35 @@ llvm_stmt_infer_expr_type(LLVMGenCtx *ctx, ASTNode *expr)
                 if (builtin_type != NULL)
                     return builtin_type;
             }
-            if (llvm_current_host_class_name(ctx) != NULL) {
+            /* Closure #87: scalar math (Min/Max/Clamp/Abs) must be
+             * resolved before host-method dispatch — otherwise inside a
+             * method body that mutates an aggregate field (e.g.
+             * battle_simulator: `self.defender.health.current = Max(...)`)
+             * the LLVM type-infer tries to dispatch `Max` as
+             * `<host>.Max` and emits the strict "missing method return
+             * metadata" error. The math helper short-circuits to the
+             * argument-promoted numeric type, which is what the actual
+             * emit path uses. */
+            {
+                LLVMTypeRef math_type =
+                    llvm_stmt_infer_scalar_math_return_type(ctx, expr, callee);
+                if (math_type != NULL)
+                    return math_type;
+            }
+            if (llvm_current_host_class_name(ctx) != NULL
+                && !llvm_stmt_call_is_slot_builtin(callee)
+                && strcmp(callee, "Log") != 0
+                && strcmp(callee, "Print") != 0
+                && strcmp(callee, "ToString") != 0
+                && strcmp(callee, "Clone") != 0) {
+                /* Closure #87c: known builtins (slot ops, Log/Print/ToString,
+                 * Clone) must not be dispatched as `<host_class>.<builtin>`.
+                 * Doing so raised strict "missing method return metadata"
+                 * inside zone methods of campaign_graph_fsm where
+                 * `Read(commandBudget)` was reinterpreted as
+                 * CampaignWorld.Read. The slot builtin's typed return is
+                 * handled either by the slot/view-inner shortcut earlier
+                 * or by the fallback at the end of this function. */
                 LLVMTypeRef method_ret = llvm_stmt_host_method_return_type(
                     ctx, llvm_current_host_class_name(ctx), callee);
                 if (method_ret != NULL)

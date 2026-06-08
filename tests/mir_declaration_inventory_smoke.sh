@@ -5169,7 +5169,7 @@ require_each_following_term "src/codegen/llvm_stmt_type_infer.c" \
 require_each_following_term "src/codegen/llvm_stmt_type_infer.c" \
     "llvm_stmt_infer_scalar_builtin_type(ctx, callee)" \
     "llvm_current_host_class_name(ctx)" \
-    8
+    24
 if grep -Fq "llvm_decl_current_nominal_name" \
     "$ROOT_DIR/src/codegen/llvm_decl.c"; then
     fail "LLVM implicit self lowering must use the shared current host-name helper"

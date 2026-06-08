@@ -115,8 +115,34 @@ llvm_mir_bind_versioned_local_scope(LLVMGenCtx *ctx,
         return;
     }
     entry = llvm_mir_get_var_entry(vars, var_count, versioned_name);
-    if (entry == NULL)
+    if (entry == NULL) {
+        /* Closure #88: phi-result versioned name has no alloca of its
+         * own. MIR routine reports `phi=N` in its meta header but
+         * doesn't emit explicit phi instructions, so the bb-entry
+         * scope-seed step finds nothing to bind. If we leave the
+         * previous block's binding in place, the next consumer of the
+         * base identifier loads from a sibling-block-only alloca that
+         * the current path never wrote to — that's the uninitialized
+         * stack memory that shows up as `"findings":[<garbage>]}` in
+         * the air_graph_json_validator self-host CI smoke. Rebind the
+         * base name to the FIRST SSA-versioned alloca for that slot
+         * (e.g. `findings.1`); upstream MIR keeps that first version's
+         * alloca in sync with the merged value at every branch
+         * exit (each branch stores its new value to `%findings.1`
+         * before copying to its versioned snapshot). */
+        char first_ver[128];
+        int written = snprintf(first_ver, sizeof(first_ver), "%s.1",
+            base_name);
+        if (written > 0 && (size_t)written < sizeof(first_ver)) {
+            LLVMMirVar *base_entry =
+                llvm_mir_get_var_entry(vars, var_count, first_ver);
+            if (base_entry != NULL && base_entry->alloca != NULL) {
+                llvm_mir_bind_base_local_scope(ctx, base_name,
+                    base_entry->alloca, base_entry->type, type_name);
+            }
+        }
         return;
+    }
     if (strcmp(base_name, versioned_name) != 0
         && llvm_lookup_channel_inner(ctx, base_name) != NULL) {
         return;

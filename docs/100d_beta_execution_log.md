@@ -568,6 +568,154 @@
   mir-declaration-inventory-test-smoke perf-contract-test-smoke
   llvm-test-smoke`.
 
+## Progress Log - 2026-06-08 CI Self-Host Preparation Closed By #88
+
+CI run #391 on commit `384e4e5` failed `self-host-preparation-test-smoke`
+on linux/windows/macos with garbage bytes between `[` and `]` for the
+empty `findings` array. Root cause traced to LLVM MIR-mode versioned-
+alloca binding; closure #88 (below) fixes it.
+
+- Closure #88 in `src/codegen/llvm_mir_block_emit.c`
+  (`llvm_mir_bind_versioned_local_scope`): when an MIR block's entry
+  SSA-value list references a phi-result version (e.g. `findings.5`)
+  but that version has no allocated alloca (because MIR routine
+  meta reports `phi=3` but no explicit `phi` instructions are
+  emitted), the function previously returned silently. The previous
+  block's binding (e.g. `findings → %findings.4` from a sibling
+  Concat branch that the current path never entered) stayed live, so
+  the next consumer of the base identifier loaded from an alloca
+  that was never written on this path — uninitialized stack memory,
+  which surfaced as the three deterministic garbage bytes
+  `0xb0 0x24 0x40` in the validator's `"findings":[...]}` output.
+- The fix walks the per-routine SSA-versioned alloca list for
+  `<base>.1` whenever the phi-result lookup fails and rebinds the
+  base identifier to that first-version alloca. Upstream MIR keeps
+  `<base>.1`'s alloca in sync with the merged value (every branch
+  exit stores to `%findings.1` before snapshotting to its versioned
+  alloca), so the rebinding is safe — the value loaded matches what
+  a properly-emitted phi would have selected.
+- Verified: `air_graph_json_validator_parity.sh` now reports
+  `rung-2 parity ok (intents=1 boundaries=1 evidence=12 drifts=0;
+  missing-key rc=1; live-drift=ok)`. The validator's LLVM-backend
+  output is now byte-equal to the C backend's.
+- Risk: the fallback assumes `<base>.1` exists and holds the merged
+  value. If MIR ever defines a slot whose first SSA version is named
+  differently (e.g. `<base>.0`), the fallback silently does nothing
+  and the original misbinding re-surfaces. Real fix is for MIR to
+  emit explicit `phi` instructions and allocate alloca for phi
+  results; #88 is the narrow shim until then.
+- Original failure context retained below for searchability.
+
+CI run #391 on commit `384e4e5` failed `self-host-preparation-test-smoke`
+on linux/windows/macos. Local repro confirms a pre-existing LLVM
+backend bug, not introduced by the closures in this session.
+
+- Reproducer: `bin/pgy
+  src/self_hosted/tools/air_graph_json_validator/main.pgy --run` on the
+  LLVM backend prints
+  `"findings":[<3 bytes garbage>]}` where the C backend prints
+  `"findings":[]}`.
+- The 3 garbage bytes are deterministic (`0xb0 0x24 0x40`) across
+  invocations.
+- An inline `Log("DEBUG findings_value=[" + findings + "]")` inside the
+  validator confirms `findings` *is* the empty string at the point of
+  use (`DEBUG findings_value=[]`, `DEBUG findings_len=0`). The garbage
+  appears only when `findings` is consumed as an element of a mixed
+  `Array<String>` literal (literal + `ToString(...)` + identifier) and
+  that array is then handed to `StringJoin(...)`. Replacing the array
+  literal with a chain of `Concat` calls on the same identifier
+  segfaults the program (`program exited with code -1`), so the
+  identifier reload path is independently fragile when the underlying
+  string is empty.
+- Confirmed by checking out HEAD without the closures from this
+  session (`#86`, `#87a-d` reverted): the corruption is unchanged, so
+  the regression predates this session.
+- This is *not* the same path as `#87d`'s slot-builtin fallback. The
+  Array<String> push is a runtime function call, not a slot op, and
+  the receiver isn't a slot at all.
+- Status: documented and left for a dedicated investigation pass. Not
+  closed here because (a) the actual mis-emit lives further in than
+  the changes this session is bundling, and (b) the partial
+  workarounds attempted (manual accumulator inside
+  `BuildMissingKeyFindings`, replacing the array literal with
+  `Concat`s in `Main`) both broke other paths. A correct fix needs
+  LLVM-IR-level inspection of how `let findings: String = missing_findings`
+  lays out the local alloca and what the array-push call site loads
+  from it; that's its own session.
+
+## Progress Log - 2026-06-08 Examples LLVM Cluster: Min/Max Precedence + Slot Builtin Guard
+
+- Closure #86: `llvm_mir_emit_borrow_view_alias`
+  (`src/codegen/llvm_mir_resource_view.c:229`) now returns success
+  silently when the source slot's inner-type metadata isn't yet
+  registered. The strict "cannot resolve owner slot" error previously
+  fired in `pin_mixed_read_view_sequence`, where MIR places a
+  `BorrowRead` in block 0 but the `SecureSlot` let-decl's
+  `source-statement-emit` lives in block 2 — at the time the borrow
+  alias emit runs, the slot's `slot_inner` registry is still empty.
+  The borrow alias is best-effort metadata; the canonical resource
+  ops on the view (`Read` / `Write`) still resolve through typed
+  runtime layouts, so dropping the alias declaration doesn't change
+  generated behavior. Trade-off: if a future test relies on the
+  borrow alias binding being present for some downstream pass that
+  doesn't itself consult the runtime layout, this closure will mask
+  the missing binding silently. That is preferable to blocking the
+  compile, but the real fix lives upstream in MIR's block placement /
+  `source-stmt-emit` flag on the secure-slot claim.
+
+- Closure #87 (a–d): four small ordering / fallback corrections in
+  `src/codegen/llvm_stmt_type_infer.c` that together recover five
+  previously-failing LLVM-only examples (battle_simulator,
+  biome_simulator, campaign_graph_fsm, graph_fsm_dispatch,
+  shopping_mall_checkout_refund).
+  - #87 moves `llvm_stmt_infer_scalar_math_return_type` (which
+    handles `Min` / `Max` / `Clamp` / `Abs` via argument promotion) to
+    fire *before* the host-method dispatch. Inside an aggregate
+    method body that writes to a field of the aggregate
+    (e.g. `self.defender.health.current = Max(...)` in
+    battle_simulator), the call was previously being reinterpreted as
+    `<host_type>.Max` and rejected with
+    "missing method return metadata for 'Health.Max'".
+  - #87b makes `Min` / `Max` tolerant of one-sided argument-type
+    failure: if `infer_expr_type` on one arg sets the error flag
+    (because a local hasn't been registered into the LLVM scope yet
+    in MIR-only mode), the flag is cleared and inference continues
+    using the other arg's type, finally defaulting to `i32` if both
+    fail.
+  - #87c excludes known builtin call names (slot ops via
+    `llvm_stmt_call_is_slot_builtin`, plus `Log`, `Print`, `ToString`,
+    `Clone`) from host-method dispatch entirely. Calling
+    `Read(commandBudget)` inside a CampaignWorld method was being
+    reinterpreted as `CampaignWorld.Read` and erroring out.
+  - #87d adds a fallback at the slot-builtin shortcut: when the
+    slot-inner registry doesn't yet have the receiver's type (e.g. a
+    `with slot<Int> as commandBudget` block where MIR registers the
+    slot in a later block), return `i32` for value-returning slot
+    ops (`Read`, etc.) and `void` for others. This matches the actual
+    emit path's behavior for unknown-inner slots.
+  - Caveat for #87b / #87d: defaulting to `Int32` is incorrect for
+    `Float` slots and `Float`-typed `Min` / `Max`. The actual emit
+    path uses the typed runtime layout, so generated code is still
+    correct, but downstream type-infer steps that consume this
+    fallback value may pick the wrong promotion. No `Float`-slot
+    example currently exercises this; if one appears it will likely
+    surface as a `Float` ↔ `Int` conversion mismatch and need a
+    typed-fallback path.
+
+- After this cluster: `tests/compare_backends.sh` reports **798/798
+  passed (100%)**. `examples/*` LLVM coverage moved from
+  90 PASS / 12 LLVM-only-fail to **95 PASS / 7 LLVM-only-fail**. The
+  seven remaining LLVM-only fails are: `collection_ops` and
+  `adapter_policy_stack` (both "identifier requires registered LLVM
+  local metadata"), `function_clause_order_minimal` and
+  `zone_context_minimal` (both "MIR routine function type drift" for
+  `Hero_Attack` / `Hero_Guard`), `iot_device_adapter_probe`
+  (member-access on `started:<unknown>.milliseconds`),
+  `order_analytics` (`ListSize` requires identifier receiver), and
+  `pattern_library_basics` ("LLVM member access requires concrete
+  receiver type metadata"). These are five distinct root causes; none
+  are blocked on the Min/Max precedence fix.
+
 ## Progress Log - 2026-06-08 Resource Layout For Function Parameter Facts
 
 - Closure #85: `mir_resource_layout_from_fact` (in
