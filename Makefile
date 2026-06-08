@@ -203,6 +203,14 @@ ifneq ($(LLVM_ENABLED),0)
   else ifneq ($(LLVM_MONOLITHIC_SONAME),)
     CFLAGS  += -DPGY_LLVM_ENABLED -I$(LLVM_INCLUDEDIR_FALLBACK)
     LDFLAGS_LLVM = -L$(LLVM_MONOLITHIC_DIR) -l:$(LLVM_MONOLITHIC_NAME)
+  else ifneq ($(findstring darwin,$(CC_MACHINE)),)
+    # macOS: never fall through to the Windows LLVM_INSTALL path. If
+    # neither LLVM_CONFIG nor LLVM_MONOLITHIC_SONAME points at a real
+    # macOS LLVM, disable the LLVM backend rather than poisoning
+    # LDFLAGS with `C:/Program Files/LLVM/lib`. ci-macos already
+    # passes LLVM_ENABLED=0 to its sub-makes; sub-makes that omit
+    # LLVM_ENABLED would otherwise inherit the Windows fallback and
+    # the link command would fail with `library 'LLVM-C' not found`.
   else
     CFLAGS  += -DPGY_LLVM_ENABLED -I$(LLVM_DIR)
     LDFLAGS_LLVM = -L"$(LLVM_INSTALL)/lib" -lLLVM-C
