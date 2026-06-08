@@ -46,7 +46,17 @@ if [[ -z "$PYTHON_BIN" ]]; then
 fi
 
 tmp_dir="$(mktemp -d "${TMP_BASE%/}/pgy-dnd-campaign.XXXXXX")"
-# No trap to avoid exit code hijacking on Windows
+# Earlier revisions stripped the EXIT trap because MSYS2 bash appeared
+# to mutate the script's exit code when the trap fired on Windows. The
+# real culprit isn't the trap itself -- it's that an unguarded handler
+# inherits whatever rc the cleanup commands return. Pin the original
+# exit code explicitly so the cleanup can't override it.
+on_exit() {
+    local rc=$?
+    rm -rf "$tmp_dir"
+    exit "$rc"
+}
+trap on_exit EXIT
 
 c_output="$("$PGY" "$(pgy_path_for_compiler "$PGY" "$ROOT_DIR/examples/dnd_tavern_campaign/main.pgy")" \
     --run --backend=c -o "$(pgy_path_for_compiler "$PGY" "$tmp_dir/dnd-c")" 2>&1)"
