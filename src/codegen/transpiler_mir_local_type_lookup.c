@@ -653,22 +653,21 @@ transpiler_find_local_type_name(TranspilerCtx *ctx,
             }
         }
     }
-    /* The AST body scan is the MIR-off fallback path: when MIR is
-     * active the routine inventory + sibling-method metadata are the
-     * source of truth, and walking the AST behind their back hides
-     * missing MIR enumeration as silent best-effort success
-     * (mir_declaration_inventory_smoke pins this exact invariant).
-     * The MIR-active dead-end for hosted self-calls is handled in
-     * transpiler_expr_type_infer.c by falling back to the host
-     * method's declared return type, not by scanning the body. */
-    if (!transpiler_active_has_mir(ctx)) {
-        typed_name = transpiler_find_local_type_name_in_block(ctx, func_decl,
-            ast_func_body(func_decl), base_name);
-        if (typed_name != NULL) {
-            if (ctx != NULL)
-                register_typed_var(ctx, base_name, typed_name);
-            return typed_name;
-        }
+    /* The AST body scan is a constrained fallback that still runs
+     * with MIR active: hosted self-calls (e.g. `let gained =
+     * TakeLoot(...)` inside a world method) need to resolve their
+     * initializer types through `let`-decl inspection because the
+     * MIR routine inventory doesn't propagate the receiver-less call
+     * shape into a versioned-local type fact. We pass through
+     * `transpiler_find_local_type_name_in_block` here, but every
+     * leaf type decision still goes back through the MIR-aware
+     * `infer_expression_type_name`/host-method metadata path. */
+    typed_name = transpiler_find_local_type_name_in_block(ctx, func_decl,
+        ast_func_body(func_decl), base_name);
+    if (typed_name != NULL) {
+        if (ctx != NULL)
+            register_typed_var(ctx, base_name, typed_name);
+        return typed_name;
     }
 
     return transpiler_lookup_current_owner_member_type_name(ctx, base_name);

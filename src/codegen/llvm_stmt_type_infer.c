@@ -55,6 +55,7 @@ llvm_stmt_host_method_return_type(LLVMGenCtx *ctx, const char *host_type_name,
 
     method_meta = llvm_find_host_method_metadata_in_context(
         ctx, host_type_name, method_name);
+
     if (!llvm_mir_decl_method_metadata_complete_for(ctx,
             method_meta,
             host_type_name,
@@ -251,12 +252,42 @@ llvm_stmt_infer_expr_type(LLVMGenCtx *ctx, ASTNode *expr)
     case AST_LET_DECL: {
         ASTNode *type_ann = ast_let_type(expr);
         ASTNode *initializer = ast_let_initializer(expr);
-        if (type_ann != NULL)
-            return ast_type_to_llvm(ctx, type_ann);
-        if (initializer != NULL)
-            return llvm_stmt_infer_expr_type(ctx, initializer);
-        return llvm_stmt_unknown_expr_type(ctx, expr,
-            "let declaration requires an annotation or initializer type");
+        LLVMTypeRef var_type = NULL;
+        const char *name = ast_let_name(expr);
+        LLVMClassTypeEntry *cls = NULL;
+        const char *nominal_name = NULL;
+
+        if (type_ann != NULL) {
+            var_type = ast_type_to_llvm(ctx, type_ann);
+        } else if (initializer != NULL) {
+            var_type = llvm_stmt_infer_expr_type(ctx, initializer);
+        }
+
+        if (var_type == NULL) {
+            return llvm_stmt_unknown_expr_type(ctx, expr,
+                "let declaration requires an annotation or initializer type");
+        }
+
+        if (name != NULL) {
+            llvm_scope_declare(ctx, name, NULL, var_type);
+            if (type_ann != NULL && type_ann->type == AST_TYPE && ast_type_name(type_ann) != NULL) {
+                const char *ann_name = ast_type_name(type_ann);
+                if (llvm_lookup_class(ctx, ann_name) != NULL) {
+                    llvm_register_var_class(ctx, name, ann_name);
+                }
+            } else {
+                cls = llvm_stmt_lookup_class_by_type(ctx, var_type);
+                if (cls != NULL && cls->class_name != NULL) {
+                    llvm_register_var_class(ctx, name, cls->class_name);
+                } else if (initializer != NULL) {
+                    nominal_name = llvm_stmt_infer_nominal_name_from_init(ctx, initializer);
+                    if (nominal_name != NULL) {
+                        llvm_register_var_class(ctx, name, nominal_name);
+                    }
+                }
+            }
+        }
+        return var_type;
     }
     case AST_STRING:
         return ctx->type_i8ptr;
@@ -739,6 +770,7 @@ llvm_stmt_infer_expr_type(LLVMGenCtx *ctx, ASTNode *expr)
                 callee = ast_identifier_name(callee_node);
             if (callee_node != NULL && callee_node->type == AST_MEMBER_ACCESS)
                 callee = ast_member_name(callee_node);
+
             if (!llvm_stmt_type_reasonf(reason, sizeof(reason),
                     "call '%s' requires registered function or expected type metadata",
                     callee != NULL ? callee : "<expr>")) {

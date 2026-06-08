@@ -12,6 +12,7 @@ llvm_emit_let_decl(ASTNode *node, LLVMGenCtx *ctx)
     ASTNode *init     = ast_let_initializer(node);
     const char *spawn_future_inner = NULL;
 
+
     if (llvm_stmt_emit_claim_slot_let(node, ctx))
         return;
 
@@ -155,22 +156,25 @@ llvm_emit_let_decl(ASTNode *node, LLVMGenCtx *ctx)
 
     {
         LLVMClassTypeEntry *value_cls = llvm_stmt_lookup_class_by_type(ctx, var_type);
-        if (value_cls != NULL)
+        if (value_cls != NULL) {
             llvm_register_var_class(ctx, name, value_cls->class_name);
+        }
     }
 
     if (type_ann != NULL && type_ann->type == AST_TYPE
         && ast_type_name(type_ann) != NULL) {
         const char *ann_name = ast_type_name(type_ann);
         LLVMClassTypeEntry *ann_cls = llvm_lookup_class(ctx, ann_name);
-        if (ann_cls != NULL)
+        if (ann_cls != NULL) {
             llvm_register_var_class(ctx, name, ann_name);
+        }
     } else if (init != NULL) {
         const char *inferred_nominal = llvm_stmt_infer_nominal_name_from_init(ctx, init);
         LLVMClassTypeEntry *inferred_cls = inferred_nominal != NULL
             ? llvm_lookup_class(ctx, inferred_nominal) : NULL;
-        if (inferred_cls != NULL)
+        if (inferred_cls != NULL) {
             llvm_register_var_class(ctx, name, inferred_nominal);
+        }
     }
 
     if (type_ann != NULL && type_ann->type == AST_TYPE

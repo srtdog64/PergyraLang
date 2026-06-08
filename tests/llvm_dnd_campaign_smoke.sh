@@ -46,7 +46,7 @@ if [[ -z "$PYTHON_BIN" ]]; then
 fi
 
 tmp_dir="$(mktemp -d "${TMP_BASE%/}/pgy-dnd-campaign.XXXXXX")"
-trap 'rm -rf "$tmp_dir"' EXIT
+# No trap to avoid exit code hijacking on Windows
 
 c_output="$("$PGY" "$(pgy_path_for_compiler "$PGY" "$ROOT_DIR/examples/dnd_tavern_campaign/main.pgy")" \
     --run --backend=c -o "$(pgy_path_for_compiler "$PGY" "$tmp_dir/dnd-c")" 2>&1)"
@@ -84,6 +84,7 @@ if [[ -z "$PYTHON_BIN" ]]; then
     exit 0
 fi
 
+set +e
 "$PYTHON_BIN" - "$tmp_dir/c.raw.out" "$tmp_dir/llvm.raw.out" <<'PY'
 import difflib
 import pathlib
@@ -112,17 +113,28 @@ if c_lines != llvm_lines:
         lineterm="",
     ):
         print(line, file=sys.stderr)
-    raise SystemExit(1)
+    sys.exit(1)
 
 choice_count = sum(1 for line in llvm_lines if line.startswith("[Choice] "))
 if choice_count != 5:
-    raise SystemExit(
+    sys.exit(
         f"[llvm-dnd-campaign] expected exactly 5 choice lines, got {choice_count}"
     )
 if sum(1 for line in llvm_lines if line == "== EPILOGUE ==") != 1:
-    raise SystemExit("[llvm-dnd-campaign] expected exactly one epilogue")
+    sys.exit("[llvm-dnd-campaign] expected exactly one epilogue")
 if "ready=true/true" not in llvm_lines:
-    raise SystemExit("[llvm-dnd-campaign] missing final ready=true/true projection state")
+    sys.exit("[llvm-dnd-campaign] missing final ready=true/true projection state")
 
 print("[llvm-dnd-campaign] dnd_tavern_campaign C/LLVM parity ok")
+sys.exit(0)
 PY
+PY_EXIT=$?
+set -e
+
+rm -rf "$tmp_dir" || true
+
+if [ $PY_EXIT -ne 0 ]; then
+    exit $PY_EXIT
+fi
+
+exit 0

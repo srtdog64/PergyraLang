@@ -539,6 +539,12 @@ llvm_emit_mir_local_allocas(const MIRRoutine *routine, LLVMGenCtx *ctx,
                     llvm_register_array_var_binding(ctx, base_name,
                         vars[var_count].alloca, elem_type, -1);
                 }
+                if (has_base_name) {
+                    LLVMClassTypeEntry *value_cls = llvm_stmt_lookup_class_by_type(ctx, vars[var_count].type);
+                    if (value_cls != NULL) {
+                        llvm_register_var_class(ctx, base_name, value_cls->class_name);
+                    }
+                }
                 var_count++;
             }
         }

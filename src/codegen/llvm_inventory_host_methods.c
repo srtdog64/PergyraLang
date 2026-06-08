@@ -21,6 +21,8 @@ llvm_find_host_method_metadata_in_context(const LLVMGenCtx *ctx,
         return NULL;
 
     decl_header = llvm_find_host_decl_header_in_context(ctx, host_type_name);
+    if (decl_header == NULL)
+        return NULL;
     method_count = mir_decl_header_method_count(decl_header);
     for (size_t i = 0; i < method_count; i++) {
         const char *candidate = llvm_mir_decl_method_name(

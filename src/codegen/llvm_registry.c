@@ -464,6 +464,9 @@ llvm_lookup_class_by_struct_type(LLVMGenCtx *ctx, LLVMTypeRef struct_type)
 {
     if (ctx == NULL || struct_type == NULL)
         return NULL;
+    if (LLVMGetTypeKind(struct_type) == LLVMPointerTypeKind) {
+        struct_type = LLVMGetElementType(struct_type);
+    }
     for (int i = 0; i < ctx->class_type_count; i++) {
         if (ctx->class_types[i].struct_type == struct_type)
             return &ctx->class_types[i];

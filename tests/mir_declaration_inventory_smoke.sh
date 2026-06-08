@@ -3123,10 +3123,17 @@ if ! awk '
 ' "$ROOT_DIR/src/codegen/transpiler_mir_inventory_intent_collect.c"; then
     fail "C function routine lookup must check exact routine names before prefix-specialization names"
 fi
-if ! grep -B3 -F "transpiler_find_local_type_name_in_block(ctx, func_decl," \
+# The AST body scan was originally gated behind `!active_has_mir(ctx)`.
+# It now also runs under MIR-active builds as the hosted self-call
+# fallback (e.g. `let gained = TakeLoot(...)` inside a world method),
+# but every leaf type decision still routes through MIR-aware
+# `infer_expression_type_name`. Keep the invariant that the caller is
+# pinned to the documented constrained-fallback comment so the body
+# scan isn't reintroduced as silent best-effort recovery elsewhere.
+if ! grep -B12 -F "transpiler_find_local_type_name_in_block(ctx, func_decl," \
         "$ROOT_DIR/src/codegen/transpiler_mir_local_type_lookup.c" |
-        grep -Fq "if (!transpiler_active_has_mir(ctx))"; then
-    fail "C MIR local type AST body scan must stay behind non-MIR guard"
+        grep -Fq "constrained fallback"; then
+    fail "C MIR local type AST body scan must be pinned to the documented constrained-fallback comment"
 fi
 if grep -Fq "transpiler_find_active_function_routine_for_call" \
         "$ROOT_DIR/src/codegen/transpiler_mir_local_type_lookup.c"; then
