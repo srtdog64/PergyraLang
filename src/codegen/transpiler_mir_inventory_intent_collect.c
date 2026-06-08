@@ -51,7 +51,6 @@ transpiler_find_mir_function(const TranspilerCtx *ctx,
         const MIRRoutine *routine =
             transpiler_routine_inventory_get(&inventory, i);
         const char *routine_name = transpiler_mir_routine_name(routine);
-        size_t name_len;
 
         if (routine == NULL
             || transpiler_mir_routine_kind(routine) != MIR_SCOPE_FUNCTION
@@ -60,6 +59,18 @@ transpiler_find_mir_function(const TranspilerCtx *ctx,
         }
         if (strcmp(routine_name, target) == 0)
             return routine;
+    }
+    for (size_t i = 0; i < inventory.count; i++) {
+        const MIRRoutine *routine =
+            transpiler_routine_inventory_get(&inventory, i);
+        const char *routine_name = transpiler_mir_routine_name(routine);
+        size_t name_len;
+
+        if (routine == NULL
+            || transpiler_mir_routine_kind(routine) != MIR_SCOPE_FUNCTION
+            || routine_name == NULL) {
+            continue;
+        }
 
         name_len = strlen(target);
         if (strncmp(routine_name, target, name_len) == 0

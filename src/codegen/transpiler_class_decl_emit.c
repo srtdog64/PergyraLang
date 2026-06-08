@@ -174,13 +174,6 @@ emit_class_decl(ASTNode *node, TranspilerCtx *ctx)
             transpiler_hosted_method_view_metadata(&method_view, i);
         ASTNode *method =
             transpiler_hosted_method_view_source_ast(&method_view, i);
-        if (transpiler_hosted_method_view_missing_mir_method_row(&method_view, i)) {
-            transpiler_set_mir_inventory_missing(
-                ctx,
-                "MIR-only C path has invalid method declaration metadata row for class '%s'",
-                name != NULL ? name : "(anonymous-class)");
-            return;
-        }
         if (method == NULL) {
             const MIRRoutine *mir_method =
                 transpiler_mir_decl_method_routine(ctx, method_meta);
@@ -197,13 +190,6 @@ emit_class_decl(ASTNode *node, TranspilerCtx *ctx)
         ASTNode *method =
             transpiler_hosted_method_view_source_ast(&method_view, i);
         bool use_self_cell = is_pointer_self_host_type_name(ctx, name);
-        if (transpiler_hosted_method_view_missing_mir_method_row(&method_view, i)) {
-            transpiler_set_mir_inventory_missing(
-                ctx,
-                "MIR-only C path has invalid method declaration metadata row for class '%s'",
-                name != NULL ? name : "(anonymous-class)");
-            return;
-        }
         if (method_meta == NULL
             && (method == NULL || method->type != AST_FUNC_DECL)) {
             continue;
@@ -220,13 +206,6 @@ emit_class_decl(ASTNode *node, TranspilerCtx *ctx)
         bool use_self_cell = is_pointer_self_host_type_name(ctx, name);
         const MIRRoutine *mir_method;
         const char *method_name;
-        if (transpiler_hosted_method_view_missing_mir_method_row(&method_view, i)) {
-            transpiler_set_mir_inventory_missing(
-                ctx,
-                "MIR-only C path has invalid method declaration metadata row for class '%s'",
-                name != NULL ? name : "(anonymous-class)");
-            return;
-        }
         method_name = transpiler_mir_decl_method_name(method_meta);
         mir_method = transpiler_mir_decl_method_routine(ctx, method_meta);
         if (method == NULL && mir_method != NULL)

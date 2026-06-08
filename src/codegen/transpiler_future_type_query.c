@@ -15,6 +15,7 @@
 #include "transpiler_generic_binding_query.h"
 #include "transpiler_generic_param_query.h"
 #include "transpiler_inventory_view.h"
+#include "transpiler_mir_signature.h"
 #include "transpiler_mir_inventory_intent_collect.h"
 #include "transpiler_symbols.h"
 #include "transpiler_type_mapping.h"
@@ -77,28 +78,19 @@ infer_spawn_return_type_name_scratch(TranspilerCtx *ctx, ASTNode *spawn_expr)
                     function_name != NULL ? function_name : "<function>");
                 return "Unknown";
             }
-            if (routine != NULL
-                && !transpiler_mir_routine_has_signature(routine)) {
-                transpiler_set_mir_inventory_missing(ctx,
+            if (!transpiler_mir_routine_signature_metadata_complete_for(ctx,
+                    routine, decl,
+                    TRANSPILER_MIR_SIGNATURE_REQUIRE_RETURN_TYPE_NAME,
                     "MIR-only C path missing spawn return signature metadata for '%s'",
-                    function_name != NULL ? function_name : "<function>");
+                    "MIR-only C path missing spawn return type-name metadata for '%s'",
+                    NULL)) {
                 return "Unknown";
             }
-            if (routine != NULL
-                && transpiler_mir_routine_has_signature(routine)) {
-                const char *return_type_name =
-                    transpiler_mir_routine_return_type_name(routine);
-                if (return_type_name != NULL)
-                    return transpiler_scratch_strdup(ctx, return_type_name);
-                return_type = transpiler_mir_routine_return_type(routine);
-                if (return_type != NULL
-                    && return_type->type != AST_EVENT_HANDLER_TYPE) {
-                    transpiler_set_mir_inventory_missing(ctx,
-                        "MIR-only C path missing spawn return type-name metadata for '%s'",
-                        function_name != NULL ? function_name : "<function>");
-                    return "Unknown";
-                }
-            }
+            const char *return_type_name =
+                transpiler_mir_routine_return_type_name(routine);
+            if (return_type_name != NULL)
+                return transpiler_scratch_strdup(ctx, return_type_name);
+            return_type = transpiler_mir_routine_return_type(routine);
         } else {
             return_type = ast_func_return_type(decl);
         }

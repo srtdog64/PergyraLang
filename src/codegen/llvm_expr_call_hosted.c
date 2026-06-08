@@ -14,8 +14,6 @@ static LLVMValueRef
 llvm_emit_hosted_self_arg(ASTNode *arg_node, LLVMGenCtx *ctx,
                           FuncParam *param,
                           const char *param_type_name,
-                          bool require_type_name,
-                          const char *callee_name,
                           LLVMValueRef fallback)
 {
     LLVMClassTypeEntry *param_class = NULL;
@@ -24,14 +22,6 @@ llvm_emit_hosted_self_arg(ASTNode *arg_node, LLVMGenCtx *ctx,
         return fallback;
 
     if (param_type_name == NULL) {
-        if (require_type_name
-            && param->type != NULL
-            && param->type->type != AST_EVENT_HANDLER_TYPE) {
-            llvm_set_mir_inventory_missing(ctx,
-                "MIR-only LLVM path missing hosted self-call parameter type-name metadata for '%s'",
-                callee_name != NULL ? callee_name : "(anonymous-method)");
-            return NULL;
-        }
         if (param->type == NULL || param->type->type != AST_TYPE)
             return fallback;
         param_type_name = ast_type_name(param->type);
@@ -122,6 +112,15 @@ llvm_emit_hosted_self_call(ASTNode *node, LLVMGenCtx *ctx,
     }
     if (method_meta == NULL && host_method == NULL)
         return NULL;
+    if (!llvm_mir_decl_method_metadata_complete_for(ctx,
+            method_meta,
+            host_name,
+            callee_name,
+            LLVM_MIR_DECL_METHOD_REQUIRE_PARAM_TYPE_NAMES,
+            NULL,
+            "MIR-only LLVM path missing hosted self-call parameter type-name metadata for '%s.%s'")) {
+        return NULL;
+    }
 
     snprintf(full_name, sizeof(full_name), "%s_%s", host_name, callee_name);
     fn = llvm_lookup_function(ctx, full_name);
@@ -161,7 +160,7 @@ llvm_emit_hosted_self_call(ASTNode *node, LLVMGenCtx *ctx,
         }
         arg_value = llvm_emit_expression(arg_node, ctx);
         arg_value = llvm_emit_hosted_self_arg(arg_node, ctx, param,
-            param_type_name, method_meta != NULL, callee_name, arg_value);
+            param_type_name, arg_value);
         if (ctx->has_error)
             return NULL;
         if (arg_value == NULL)

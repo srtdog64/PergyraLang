@@ -293,6 +293,14 @@ ensure_generic_class_specialization(TranspilerCtx *ctx,
         transpiler_generic_class_spec_rollback(ctx, spec_snapshot);
         return NULL;
     }
+    if (!transpiler_require_hosted_method_view_rows(
+            ctx,
+            &method_view,
+            "MIR-only C path has invalid method declaration metadata row for generic class specialization '%s'",
+            spec_name != NULL ? spec_name : "(anonymous-specialization)")) {
+        transpiler_generic_class_spec_rollback(ctx, spec_snapshot);
+        return NULL;
+    }
 
     for (size_t i = 0; i < method_view.count; i++) {
         const MIRDeclMethod *method_meta =
@@ -300,15 +308,6 @@ ensure_generic_class_specialization(TranspilerCtx *ctx,
         ASTNode *method =
             transpiler_hosted_method_view_source_ast(&method_view, i);
         bool use_self_cell = is_pointer_self_host_type_name(ctx, spec_name);
-        if (transpiler_hosted_method_view_missing_mir_method_row(&method_view, i)) {
-            transpiler_set_mir_inventory_missing(
-                ctx,
-                "MIR-only C path has invalid method declaration metadata row for generic class '%s' specialization '%s'",
-                base_class_name != NULL ? base_class_name : "(anonymous-class)",
-                spec_name != NULL ? spec_name : "(anonymous-specialization)");
-            transpiler_generic_class_spec_rollback(ctx, spec_snapshot);
-            return NULL;
-        }
         if (method_meta == NULL
             && (method == NULL || method->type != AST_FUNC_DECL)) {
             continue;
@@ -325,15 +324,6 @@ ensure_generic_class_specialization(TranspilerCtx *ctx,
         bool use_self_cell = is_pointer_self_host_type_name(ctx, spec_name);
         const char *method_name;
         const MIRRoutine *mir_method;
-        if (transpiler_hosted_method_view_missing_mir_method_row(&method_view, i)) {
-            transpiler_set_mir_inventory_missing(
-                ctx,
-                "MIR-only C path has invalid method declaration metadata row for generic class '%s' specialization '%s'",
-                base_class_name != NULL ? base_class_name : "(anonymous-class)",
-                spec_name != NULL ? spec_name : "(anonymous-specialization)");
-            transpiler_generic_class_spec_rollback(ctx, spec_snapshot);
-            return NULL;
-        }
         method_name = transpiler_mir_decl_method_name(method_meta);
         mir_method = transpiler_mir_decl_method_routine(ctx, method_meta);
         if (method == NULL && mir_method != NULL)

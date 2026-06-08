@@ -47,6 +47,11 @@ llvm_emit_domain_role_method_bodies(LLVMGenCtx *ctx,
                 role_name != NULL ? role_name : "(anonymous-role)");
             return false;
         }
+        if (!llvm_require_hosted_method_view_rows(ctx, &method_view,
+                "MIR-only LLVM path has invalid method declaration metadata row for role '%s'",
+                role_name != NULL ? role_name : "(anonymous-role)")) {
+            return false;
+        }
 
         for (size_t j = 0; j < method_view.count; j++) {
             const MIRDeclMethod *method_meta =
@@ -56,14 +61,7 @@ llvm_emit_domain_role_method_bodies(LLVMGenCtx *ctx,
             const char *method_name = llvm_mir_decl_method_name(method_meta);
             const MIRRoutine *mir_method = NULL;
             char fname[256];
-            LLVMFuncEntry *fentry;
 
-            if (llvm_hosted_method_view_missing_mir_method_row(&method_view, j)) {
-                llvm_set_mir_inventory_missing(ctx,
-                    "MIR-only LLVM path has invalid method declaration metadata row for role '%s'",
-                    role_name != NULL ? role_name : "(anonymous-role)");
-                return false;
-            }
             if (method_name == NULL && method != NULL
                 && method->type == AST_FUNC_DECL)
                 method_name = llvm_role_method_name_from_ast(method);
@@ -77,14 +75,6 @@ llvm_emit_domain_role_method_bodies(LLVMGenCtx *ctx,
             if (!llvm_role_method_symbol_name(fname, sizeof(fname),
                     role_name, method_name)) {
                 llvm_set_error(ctx, "role method name is too long");
-                return false;
-            }
-            fentry = llvm_lookup_function(ctx, fname);
-            if (fentry == NULL) {
-                llvm_set_mir_inventory_missing(ctx,
-                    "MIR-only LLVM path missing registered function for role method '%s.%s'",
-                    role_name != NULL ? role_name : "(anonymous-role)",
-                    method_name != NULL ? method_name : "(anonymous)");
                 return false;
             }
 

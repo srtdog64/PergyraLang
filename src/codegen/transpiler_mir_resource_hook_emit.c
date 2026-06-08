@@ -9,12 +9,146 @@
 #include <string.h>
 
 #include "../semantic/diag_codes.h"
+#include "../parser/ast_api.h"
+#include "../compiler/mir_type_helpers.h"
 #include "transpiler_context.h"
+#include "transpiler_inventory_view.h"
+#include "transpiler_mir_effective_type.h"
 #include "transpiler_mir_expr_ssa.h"
 #include "transpiler_mir_resource_name_helpers.h"
 #include "transpiler_mir_resource_op_core.h"
 #include "transpiler_mir_ssa_map.h"
 #include "transpiler_symbols.h"
+
+static bool
+transpiler_mir_name_matches_slot(const char *name, const char *slot)
+{
+    char base[128];
+    size_t version = 0;
+
+    if (name == NULL || slot == NULL)
+        return false;
+    if (strcmp(name, slot) == 0)
+        return true;
+    return transpiler_parse_versioned_name(name, base, sizeof(base), &version)
+        && strcmp(base, slot) == 0;
+}
+
+static const MIRTypeLayout *
+transpiler_mir_layout_from_type_annotation(TranspilerCtx *ctx,
+                                           ASTNode *type_node)
+{
+    const MIRTypeLayout *layout = NULL;
+    char *type_name = NULL;
+
+    if (ctx == NULL || type_node == NULL)
+        return NULL;
+
+    type_name = transpiler_render_effective_local_type_name(ctx, type_node);
+    if (type_name == NULL)
+        type_name = mir_render_type_name(type_node);
+    if (type_name != NULL)
+        layout = mir_abi_lookup(type_name);
+    free(type_name);
+    return layout;
+}
+
+static ASTNode *
+transpiler_mir_def_type_annotation(const MIRInstruction *inst)
+{
+    ASTNode *source;
+
+    if (inst == NULL || inst->kind != MIR_INST_DEF)
+        return NULL;
+    if (inst->expr1 != NULL)
+        return inst->expr1;
+    source = mir_instruction_source_payload(inst);
+    if (mir_instruction_source_is_local_decl(inst) && source != NULL)
+        return ast_let_type(source);
+    return NULL;
+}
+
+static const MIRTypeLayout *
+transpiler_mir_find_prior_resource_layout_for_slot(TranspilerCtx *ctx,
+                                                   const MIRInstruction *before,
+                                                   const char *slot)
+{
+    TranspilerMIRRoutineInventory inventory;
+
+    if (ctx == NULL || before == NULL || slot == NULL || slot[0] == '\0')
+        return NULL;
+
+    transpiler_active_routine_inventory(ctx, &inventory);
+    for (size_t ri = 0; ri < inventory.count; ri++) {
+        const MIRRoutine *routine =
+            transpiler_routine_inventory_get(&inventory, ri);
+        const MIRTypeLayout *layout = NULL;
+        if (routine == NULL)
+            continue;
+        for (size_t bi = 0; bi < routine->block_count; bi++) {
+            const MIRBasicBlock *block = &routine->blocks[bi];
+            for (size_t ii = 0; ii < block->instruction_count; ii++) {
+                const MIRInstruction *candidate = &block->instructions[ii];
+                if (candidate == before)
+                    return layout;
+                if (candidate->kind == MIR_INST_RESOURCE_OP
+                    && candidate->type_layout != NULL
+                    && transpiler_mir_name_matches_slot(candidate->slot_anchor, slot)) {
+                    layout = candidate->type_layout;
+                } else if (candidate->kind == MIR_INST_DEF
+                           && candidate->type_layout != NULL
+                           && transpiler_mir_name_matches_slot(candidate->result_name, slot)) {
+                    layout = candidate->type_layout;
+                } else if (candidate->kind == MIR_INST_DEF
+                           && transpiler_mir_name_matches_slot(candidate->result_name, slot)) {
+                    layout = transpiler_mir_layout_from_type_annotation(
+                        ctx, transpiler_mir_def_type_annotation(candidate));
+                }
+            }
+        }
+    }
+    return NULL;
+}
+
+static const char *
+transpiler_mir_find_prior_borrow_source_for_view(TranspilerCtx *ctx,
+                                                 const MIRInstruction *before,
+                                                 const char *view_name)
+{
+    TranspilerMIRRoutineInventory inventory;
+
+    if (ctx == NULL || before == NULL || view_name == NULL
+        || view_name[0] == '\0') {
+        return NULL;
+    }
+
+    transpiler_active_routine_inventory(ctx, &inventory);
+    for (size_t ri = 0; ri < inventory.count; ri++) {
+        const MIRRoutine *routine =
+            transpiler_routine_inventory_get(&inventory, ri);
+        const char *source_slot = NULL;
+        if (routine == NULL)
+            continue;
+        for (size_t bi = 0; bi < routine->block_count; bi++) {
+            const MIRBasicBlock *block = &routine->blocks[bi];
+            for (size_t ii = 0; ii < block->instruction_count; ii++) {
+                const MIRInstruction *candidate = &block->instructions[ii];
+                TranspilerMIRResourceOp candidate_op =
+                    transpiler_mir_resource_op_lookup(candidate->name);
+                if (candidate == before)
+                    return source_slot;
+                if (candidate->kind == MIR_INST_RESOURCE_OP
+                    && (candidate_op == TRANS_MIR_RESOURCE_OP_BORROW_READ
+                        || candidate_op == TRANS_MIR_RESOURCE_OP_BORROW_WRITE)
+                    && transpiler_mir_name_matches_slot(candidate->arg1, view_name)
+                    && candidate->arg0 != NULL) {
+                    source_slot = candidate->arg0;
+                }
+            }
+        }
+    }
+    return NULL;
+}
 
 bool
 transpiler_emit_mir_resource_hook(TranspilerCtx *ctx,
@@ -97,39 +231,40 @@ transpiler_emit_mir_resource_hook(TranspilerCtx *ctx,
             && op == TRANS_MIR_RESOURCE_OP_WRITE
             && inst->slot_anchor != NULL) {
             TypedVarEntry *view_entry = lookup_typed_entry(ctx, inst->slot_anchor);
-            const char *view_source_slot = NULL;
+            const char *view_source_slot = inst->resource_owner_slot_anchor;
+            const MIRTypeLayout *source_layout = inst->type_layout;
 
-            if (view_entry != NULL
+            if (transpiler_active_has_mir(ctx)
+                && inst->resource_owner_requires_metadata
+                && ((view_source_slot == NULL || view_source_slot[0] == '\0')
+                    || source_layout == NULL)) {
+                transpiler_set_backend_error_with_hints(
+                    ctx,
+                    PGY_CODE_C_TYPE_UNSUPPORTED,
+                    PGY_CAUSE_C_TYPE_UNSUPPORTED,
+                    PGY_FIX_USE_LLVM_BACKEND_OR_EXTEND_TRANSPILER,
+                    "MIR view-backed resource op '%s' is missing owner slot ABI metadata",
+                    inst->name != NULL ? inst->name : "<op>");
+                free(write_value_expr);
+                return false;
+            }
+            if ((view_source_slot == NULL || view_source_slot[0] == '\0')
+                && transpiler_active_has_mir(ctx)) {
+                view_source_slot = transpiler_mir_find_prior_borrow_source_for_view(
+                    ctx, inst, inst->slot_anchor);
+            }
+            if ((view_source_slot == NULL || view_source_slot[0] == '\0')
+                && view_entry != NULL
                 && view_entry->is_view
                 && view_entry->source_slot[0] != '\0') {
                 view_source_slot = view_entry->source_slot;
-            } else if (transpiler_active_has_mir(ctx)) {
-                TranspilerMIRRoutineInventory inventory;
-                transpiler_active_routine_inventory(ctx, &inventory);
-                for (size_t ri = 0; ri < inventory.count && view_source_slot == NULL; ri++) {
-                    const MIRRoutine *routine =
-                        transpiler_routine_inventory_get(&inventory, ri);
-                    if (routine == NULL)
-                        continue;
-                    for (size_t bi = 0; bi < routine->block_count && view_source_slot == NULL; bi++) {
-                        const MIRBasicBlock *block = &routine->blocks[bi];
-                        for (size_t ii = 0; ii < block->instruction_count; ii++) {
-                            const MIRInstruction *candidate = &block->instructions[ii];
-                            TranspilerMIRResourceOp candidate_op =
-                                transpiler_mir_resource_op_lookup(candidate->name);
-                            if (candidate == inst)
-                                break;
-                            if (candidate->kind == MIR_INST_RESOURCE_OP
-                                && (candidate_op == TRANS_MIR_RESOURCE_OP_BORROW_READ
-                                    || candidate_op == TRANS_MIR_RESOURCE_OP_BORROW_WRITE)
-                                && candidate->arg1 != NULL
-                                && strcmp(candidate->arg1, inst->slot_anchor) == 0
-                                && candidate->arg0 != NULL) {
-                                view_source_slot = candidate->arg0;
-                            }
-                        }
-                    }
-                }
+            }
+            if (source_layout == NULL
+                && view_source_slot != NULL
+                && view_source_slot[0] != '\0'
+                && transpiler_active_has_mir(ctx)) {
+                source_layout = transpiler_mir_find_prior_resource_layout_for_slot(
+                    ctx, inst, view_source_slot);
             }
 
             if (view_source_slot != NULL && view_source_slot[0] != '\0') {
@@ -140,9 +275,11 @@ transpiler_emit_mir_resource_hook(TranspilerCtx *ctx,
                 }
                 inst_copy.slot_anchor = view_source_slot;
                 inst_copy.arg0 = view_source_slot;
-                inst_copy.type_layout = source_type_name != NULL
+                inst_copy.type_layout = source_layout != NULL
+                    ? source_layout
+                    : (source_type_name != NULL
                     ? mir_abi_lookup(source_type_name)
-                    : NULL;
+                    : NULL);
                 redirected_view_resource = true;
             }
         }

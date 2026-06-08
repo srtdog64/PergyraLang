@@ -207,6 +207,11 @@ llvm_emit_domain_method_forward_decls(LLVMGenCtx *ctx,
             decl_name != NULL ? decl_name : "(anonymous-domain)");
         return;
     }
+    if (!llvm_require_hosted_method_view_rows(ctx, methods,
+            "MIR-only LLVM path has invalid method forward metadata row for domain '%s'",
+            decl_name != NULL ? decl_name : "(anonymous-domain)")) {
+        return;
+    }
 
     for (size_t j = 0; j < methods->count; j++) {
         const MIRDeclMethod *method_meta =
@@ -225,12 +230,6 @@ llvm_emit_domain_method_forward_decls(LLVMGenCtx *ctx,
         char fname[256];
         LLVMValueRef fn;
 
-        if (llvm_hosted_method_view_missing_mir_method_row(methods, j)) {
-            llvm_set_mir_inventory_missing(ctx,
-                "MIR-only LLVM path has invalid method forward metadata row for domain '%s'",
-                decl_name != NULL ? decl_name : "(anonymous-domain)");
-            return;
-        }
         if (method_meta == NULL && (method == NULL || method->type != AST_FUNC_DECL))
             continue;
 
@@ -245,18 +244,19 @@ llvm_emit_domain_method_forward_decls(LLVMGenCtx *ctx,
         return_type =
             llvm_domain_method_return_type_metadata_first(
                 method_meta, method, allow_ast_compat);
+        if (!llvm_mir_decl_method_metadata_complete_for(ctx,
+                method_meta,
+                decl_name,
+                mname,
+                LLVM_MIR_DECL_METHOD_REQUIRE_ALL_TYPE_NAMES,
+                "MIR-only LLVM path missing domain method forward return type-name metadata for '%s.%s'",
+                "MIR-only LLVM path missing domain method forward parameter type-name metadata for '%s.%s'")) {
+            return;
+        }
         if (return_type_name != NULL) {
             ret = pergyra_type_to_llvm(ctx, return_type_name);
             if (ctx->has_error || ret == NULL)
                 return;
-        } else if (method_meta != NULL
-                   && return_type != NULL
-                   && return_type->type != AST_EVENT_HANDLER_TYPE) {
-            llvm_set_mir_inventory_missing(ctx,
-                "MIR-only LLVM path missing domain method forward return type-name metadata for '%s.%s'",
-                decl_name != NULL ? decl_name : "(anonymous-domain)",
-                mname != NULL ? mname : "(anonymous)");
-            return;
         } else if (return_type != NULL) {
             ret = ast_type_to_llvm(ctx, return_type);
             if (ctx->has_error || ret == NULL)
@@ -291,17 +291,6 @@ llvm_emit_domain_method_forward_decls(LLVMGenCtx *ctx,
             LLVMClassTypeEntry *param_cls = NULL;
             if (llvm_param_is_implicit_self_local(p))
                 continue;
-            if (method_meta != NULL
-                && type_name == NULL
-                && p != NULL
-                && p->type != NULL
-                && p->type->type != AST_EVENT_HANDLER_TYPE) {
-                llvm_set_mir_inventory_missing(ctx,
-                    "MIR-only LLVM path missing domain method forward parameter type-name metadata for '%s.%s'",
-                    decl_name != NULL ? decl_name : "(anonymous-domain)",
-                    mname != NULL ? mname : "(anonymous)");
-                return;
-            }
             param_cls = type_name != NULL ? llvm_lookup_class(ctx, type_name) : NULL;
             if (param_cls != NULL && param_cls->is_pointer_self_host) {
                 ptypes[pidx++] = LLVMPointerType(param_cls->struct_type, 0);

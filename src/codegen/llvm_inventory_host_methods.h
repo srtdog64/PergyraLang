@@ -13,6 +13,15 @@ typedef struct
     bool               requires_mir_metadata;
 } LLVMHostedMethodView;
 
+typedef enum LLVMMIRDeclMethodRequirement
+{
+    LLVM_MIR_DECL_METHOD_REQUIRE_RETURN_TYPE_NAME = 1u << 0,
+    LLVM_MIR_DECL_METHOD_REQUIRE_PARAM_TYPE_NAMES = 1u << 1,
+    LLVM_MIR_DECL_METHOD_REQUIRE_ALL_TYPE_NAMES =
+        LLVM_MIR_DECL_METHOD_REQUIRE_RETURN_TYPE_NAME
+        | LLVM_MIR_DECL_METHOD_REQUIRE_PARAM_TYPE_NAMES
+} LLVMMIRDeclMethodRequirement;
+
 const MIRDeclMethod *llvm_find_host_method_metadata_in_context(
     const LLVMGenCtx *ctx,
     const char *host_type_name,
@@ -39,6 +48,14 @@ LLVMHostedMethodView llvm_hosted_method_view_from_decl(
 const MIRDeclMethod *llvm_hosted_method_view_metadata(
     const LLVMHostedMethodView *view,
     size_t index);
+bool llvm_mir_decl_method_metadata_complete_for(
+    LLVMGenCtx *ctx,
+    const MIRDeclMethod *method,
+    const char *host_name,
+    const char *method_name,
+    unsigned requirements,
+    const char *missing_return_type_fmt,
+    const char *missing_param_type_fmt);
 ASTNode *llvm_hosted_method_view_source_ast(
     const LLVMHostedMethodView *view,
     size_t index);

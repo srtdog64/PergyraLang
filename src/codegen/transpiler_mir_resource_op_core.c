@@ -136,6 +136,30 @@ transpiler_emit_mir_resource_op(TranspilerCtx *ctx,
                 if (slot_inner_type_name_copy(typed_name, inner_name_buf,
                         sizeof(inner_name_buf)))
                     inner_name = inner_name_buf;
+            } else if (strncmp(typed_name, "ReadView<", 9) == 0
+                       || strncmp(typed_name, "WriteView<", 10) == 0
+                       || strncmp(typed_name, "MoveView<", 9) == 0) {
+                /* Closure #84: pinned views carry the slot inner type as
+                 * their generic parameter. Without this branch a `view`
+                 * anchor on a Write/Read op was rejected with "missing
+                 * typed runtime layout" (pin_secure_param_read_view_block)
+                 * because the lookup only knew how to extract from raw
+                 * Slot/SecureSlot/DeviceSlot type names. */
+                if (slot_inner_type_name_copy(typed_name, inner_name_buf,
+                        sizeof(inner_name_buf)))
+                    inner_name = inner_name_buf;
+                if (strncmp(typed_name, "Read", 4) == 0
+                    || strncmp(typed_name, "Write", 5) == 0) {
+                    /* view source slot might still be SecureSlot — detect
+                     * via lookup if the underlying slot binding is secure. */
+                    for (int i = 0; i < ctx->slot_var_count; i++) {
+                        if (strcmp(ctx->slot_vars[i].name, slot_anchor) == 0) {
+                            if (ctx->slot_vars[i].is_secure)
+                                is_secure_slot = true;
+                            break;
+                        }
+                    }
+                }
             }
         }
         if (inner_name != NULL) {

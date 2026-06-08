@@ -8,6 +8,7 @@
 #include "transpiler_context.h"
 #include "transpiler_host_self_policy.h"
 #include "transpiler_inventory_view.h"
+#include "transpiler_mir_signature.h"
 #include "transpiler_type_declarator.h"
 #include "transpiler_type_mapping.h"
 #include "transpiler_type_require.h"
@@ -21,34 +22,33 @@ emit_func_forward_decl_named(ASTNode *node, const char *emitted_name,
     CodeBuf *params_sig = codebuf_create();
     char *header_decl = NULL;
     const MIRRoutine *mir_routine = transpiler_find_mir_function(ctx, node);
-    bool routine_has_signature =
-        transpiler_mir_routine_has_signature(mir_routine);
-    if (mir_routine != NULL && transpiler_active_has_mir(ctx)
-        && !routine_has_signature) {
+    bool routine_has_signature = false;
+    bool generic_func =
+        ast_generic_param_count(ast_declaration_generic_params(node)) > 0;
+    if (transpiler_active_has_mir(ctx) && mir_routine == NULL
+        && !generic_func) {
         transpiler_set_mir_inventory_missing(ctx,
-            "MIR-only C path missing function forward signature metadata for '%s'",
+            "MIR-only C path missing function forward routine for '%s'",
             name != NULL ? name : "(anonymous)");
         if (params_sig != NULL)
             codebuf_destroy(params_sig);
         return;
     }
+    if (!transpiler_mir_routine_signature_metadata_complete_for(ctx,
+            mir_routine,
+            node,
+            TRANSPILER_MIR_SIGNATURE_REQUIRE_ALL_TYPE_NAMES,
+            "MIR-only C path missing function forward signature metadata for '%s'",
+            "MIR-only C path missing function forward return type-name metadata for '%s'",
+            "MIR-only C path missing function forward parameter type-name metadata for '%s'")) {
+        if (params_sig != NULL)
+            codebuf_destroy(params_sig);
+        return;
+    }
+    routine_has_signature = mir_routine != NULL && transpiler_active_has_mir(ctx);
     ASTNode *return_type = routine_has_signature
         ? transpiler_mir_routine_return_type(mir_routine)
         : ast_func_return_type(node);
-    const char *return_type_name = routine_has_signature
-        ? transpiler_mir_routine_return_type_name(mir_routine)
-        : NULL;
-    if (routine_has_signature
-        && return_type_name == NULL
-        && return_type != NULL
-        && return_type->type != AST_EVENT_HANDLER_TYPE) {
-        transpiler_set_mir_inventory_missing(ctx,
-            "MIR-only C path missing function forward return type-name metadata for '%s'",
-            name != NULL ? name : "(anonymous)");
-        if (params_sig != NULL)
-            codebuf_destroy(params_sig);
-        return;
-    }
     size_t param_count = routine_has_signature
         ? transpiler_mir_routine_param_count(mir_routine)
         : ast_func_param_count(node);
@@ -73,18 +73,6 @@ emit_func_forward_decl_named(ASTNode *node, const char *emitted_name,
             ensure_type_specializations_from_ast(ctx, p->type);
         event_handler_param =
             p->type != NULL && p->type->type == AST_EVENT_HANDLER_TYPE;
-        if (routine_has_signature
-            && !event_handler_param
-            && type_name == NULL
-            && p->type != NULL) {
-            transpiler_set_mir_inventory_missing(ctx,
-                "MIR-only C path missing function forward parameter type-name metadata for '%s'",
-                name != NULL ? name : "(anonymous)");
-            if (params_sig != NULL)
-                codebuf_destroy(params_sig);
-            free(header_decl);
-            return;
-        }
         if (!event_handler_param && type_name != NULL) {
             char surface_desc[256];
             snprintf(surface_desc, sizeof(surface_desc),

@@ -144,39 +144,6 @@ intent_zone_binding_type_name(ASTNode *intent, const char *alias)
     return NULL;
 }
 
-bool
-intent_binding_metadata_view_is_active(
-    const IntentBindingMetadataView *bindings)
-{
-    return bindings != NULL
-        && (bindings->kinds != NULL || bindings->aliases != NULL
-            || bindings->types != NULL || bindings->count > 0);
-}
-
-const char *
-intent_binding_type_name_from_metadata(
-    const IntentBindingMetadataView *bindings,
-    const char *alias,
-    const char *required_kind)
-{
-    if (!intent_binding_metadata_view_is_active(bindings))
-        return NULL;
-    if (alias == NULL || required_kind == NULL || bindings->kinds == NULL
-        || bindings->aliases == NULL || bindings->types == NULL) {
-        return NULL;
-    }
-    for (size_t i = 0; i < bindings->count; i++) {
-        if (bindings->kinds[i] != NULL
-            && bindings->aliases[i] != NULL
-            && bindings->types[i] != NULL
-            && strcmp(bindings->kinds[i], required_kind) == 0
-            && strcmp(bindings->aliases[i], alias) == 0) {
-            return bindings->types[i];
-        }
-    }
-    return NULL;
-}
-
 const char *
 intent_zone_binding_type_name_with_bindings(
     ASTNode *intent,

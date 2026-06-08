@@ -1,7 +1,8 @@
 extern "c" {
-    func pgy_external_probe(s: String) -> Int;
+    func pgy_now_ms() -> Int;
 }
 
 func Main() -> Void {
+    let ignored = pgy_now_ms();
     Log(1);
 }

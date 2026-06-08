@@ -22,6 +22,7 @@
 #include "transpiler_mir_pin_emit.h"
 #include "transpiler_mir_resource_hook_emit.h"
 #include "transpiler_mir_resource_op_emit.h"
+#include "transpiler_mir_signature.h"
 #include "transpiler_mir_ssa_contract.h"
 #include "transpiler_mir_ssa_entry.h"
 #include "transpiler_mir_ssa_lookup.h"
@@ -64,16 +65,26 @@ emit_func_decl_from_mir_named(ASTNode *node, const MIRRoutine *mir_routine,
     bool owner_is_world = owner_ast_type == AST_WORLD_DECL;
     bool pointer_self = false;
     ASTNode *resolved_host_decl = NULL;
-    bool routine_has_signature =
-        transpiler_mir_routine_has_signature(mir_routine);
+    bool routine_has_signature = true;
     ASTNode *return_type = NULL;
     size_t func_param_count = 0;
 
-    if (mir_routine != NULL && transpiler_active_has_mir(ctx)
-        && !routine_has_signature) {
-        transpiler_set_mir_inventory_missing(ctx,
+    if (ctx != NULL && transpiler_active_has_mir(ctx) && mir_routine == NULL) {
+        transpiler_set_mir_inventory_missing(
+            ctx,
+            "MIR-only C path missing function body routine for '%s'",
+            name != NULL ? name : "<function>");
+        codebuf_destroy(params_sig);
+        return;
+    }
+
+    if (!transpiler_mir_routine_signature_metadata_complete_for(ctx,
+            mir_routine,
+            node,
+            TRANSPILER_MIR_SIGNATURE_REQUIRE_ALL_TYPE_NAMES,
             "MIR-only C path missing function body signature metadata for '%s'",
-            name != NULL ? name : "(anonymous)");
+            "MIR-only C path missing function body return type-name metadata for '%s'",
+            "MIR-only C path missing function body parameter type-name metadata for '%s'")) {
         codebuf_destroy(params_sig);
         return;
     }
@@ -137,17 +148,6 @@ emit_func_decl_from_mir_named(ASTNode *node, const MIRRoutine *mir_routine,
         : NULL;
     if (return_type_name != NULL) {
         transpiler_set_current_return_type_local(ctx, return_type_name);
-    } else if (routine_has_signature
-               && return_type != NULL
-               && return_type->type != AST_EVENT_HANDLER_TYPE) {
-        transpiler_set_mir_inventory_missing(
-            ctx,
-            "MIR-only C path missing function body return type-name metadata for '%s'",
-            name != NULL ? name : "(anonymous)");
-        codebuf_destroy(params_sig);
-        transpiler_restore_mir_emit_state_from_snapshot_local(ctx,
-            &saved_emit_state);
-        return;
     } else if (return_type != NULL) {
         char *rendered = render_type_name_in_ctx(ctx, return_type);
         transpiler_set_current_return_type_local(ctx, rendered);
@@ -196,20 +196,6 @@ emit_func_decl_from_mir_named(ASTNode *node, const MIRRoutine *mir_routine,
         }
         event_handler_param =
             p->type != NULL && p->type->type == AST_EVENT_HANDLER_TYPE;
-        if (routine_has_signature
-            && !event_handler_param
-            && type_name == NULL
-            && p->type != NULL) {
-            transpiler_set_mir_inventory_missing(
-                ctx,
-                "MIR-only C path missing function body parameter type-name metadata for '%s'",
-                name != NULL ? name : "(anonymous)");
-            codebuf_destroy(params_sig);
-            free(header_decl);
-            transpiler_restore_mir_emit_state_from_snapshot_local(ctx,
-                &saved_emit_state);
-            return;
-        }
         if (!event_handler_param && type_name != NULL) {
             if (transpiler_require_type_name_c_type_copy(ctx,
                     type_name, "MIR function parameter",

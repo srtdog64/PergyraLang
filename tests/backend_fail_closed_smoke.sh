@@ -613,7 +613,31 @@ grep -Fq "transpiler_decl_is_extern_function(ctx, decl)" \
 grep -Fq "transpiler_decl_is_extern_function(ctx, decl)" \
     "$ROOT_DIR/src/codegen/transpiler_future_type_query.c"
 grep -Fq "transpiler_decl_is_extern_function(ctx, decl)" \
+    "$ROOT_DIR/src/codegen/transpiler_let_emit.c"
+grep -Fq "transpiler_decl_is_extern_function(ctx, decl)" \
+    "$ROOT_DIR/src/codegen/transpiler_expr_type_infer.c"
+grep -Fq "transpiler_decl_is_extern_function(ctx, decl)" \
     "$ROOT_DIR/src/codegen/transpiler_expr_call_user_emit.c"
+grep -Fq "transpiler_decl_is_extern_function(ctx, callee_decl)" \
+    "$ROOT_DIR/src/codegen/transpiler_mir_local_type_lookup.c"
+grep -Fq "transpiler_decl_is_extern_function(ctx, fn_decl)" \
+    "$ROOT_DIR/src/codegen/transpiler_nominal.c"
+grep -Fq "llvm_decl_is_extern_function(ctx, decl)" \
+    "$ROOT_DIR/src/codegen/llvm_expr_call_dispatch.c"
+grep -Fq "llvm_decl_is_extern_function(ctx, decl)" \
+    "$ROOT_DIR/src/codegen/llvm_stmt_type_infer_helpers.c"
+grep -Fq "llvm_decl_is_extern_function(ctx, decl)" \
+    "$ROOT_DIR/src/codegen/llvm_stmt_let_callable.c"
+grep -Fq "llvm_decl_is_extern_function(ctx, decl)" \
+    "$ROOT_DIR/src/codegen/llvm_stmt_let_helpers.c"
+grep -Fq "llvm_decl_is_extern_function(ctx, decl)" \
+    "$ROOT_DIR/src/codegen/llvm_stmt_array_type_infer.c"
+grep -Fq "llvm_decl_is_extern_function(ctx, decl)" \
+    "$ROOT_DIR/src/codegen/llvm_expr_boundary_projection_helpers.c"
+grep -Fq "llvm_decl_is_extern_function(ctx, decl)" \
+    "$ROOT_DIR/src/codegen/llvm_mir_match_condition.c"
+grep -Fq "llvm_decl_is_extern_function(ctx, callee_decl)" \
+    "$ROOT_DIR/src/codegen/llvm_expr_spawn_call_helpers.c"
 grep -Fq "MIR-only C path missing user-call routine" \
     "$ROOT_DIR/src/codegen/transpiler_expr_call_user_emit.c"
 grep -Fq "MIR-only C path missing user-call signature metadata" \

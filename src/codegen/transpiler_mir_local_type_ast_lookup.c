@@ -10,6 +10,7 @@
 #include "transpiler_context.h"
 #include "transpiler_decl_lookup.h"
 #include "transpiler_mir_inventory_intent_collect.h"
+#include "transpiler_mir_signature.h"
 #include "../parser/ast_api.h"
 
 static ASTNode *
@@ -28,10 +29,13 @@ transpiler_event_handler_return_type_from_decl(TranspilerCtx *ctx,
                 callee_name != NULL ? callee_name : "(anonymous)");
             return NULL;
         }
-        if (!transpiler_mir_routine_has_signature(routine)) {
-            transpiler_set_mir_inventory_missing(ctx,
+        if (!transpiler_mir_routine_signature_metadata_complete_for(ctx,
+                routine,
+                decl,
+                0u,
                 "MIR-only C path missing local EventHandler signature metadata for '%s'",
-                callee_name != NULL ? callee_name : "(anonymous)");
+                NULL,
+                NULL)) {
             return NULL;
         }
         return_type = transpiler_mir_routine_return_type(routine);

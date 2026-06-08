@@ -2,21 +2,22 @@
 
 English anchor for tooling/doc gates:
 
-- Current beta progress: feature-surface feel remains about 70%, and
-  strict beta readiness is now about 75% after current CFG body-dataflow,
+- Current beta progress: feature-surface feel is about 85%, and
+  strict beta readiness is now about 82% after current CFG body-dataflow,
   MIR executable tests, AIR drift/schema, DAG resolver-inventory/metadata,
   runtime-frontier, semantic domain-owner seams, and LLVM backend-compare
   inventory/coverage plus full local backend-compare shard sweep pass locally.
   Windows-bash
   tooling and raw-escape gates now reach
-  executable probes instead of skipping after path helper setup. The 75% line
+  executable probes instead of skipping after path helper setup. The 82% line
   is now backed by binding-aware resource/collection metadata parity for
   shadowed `List<T>`, `DeviceSlot<T>`, and `Channel<T>` locals, plus complete
   backend-compare fixture inventory registration. The default backend-compare
   suite is now large enough that CI runs deterministic shards rather than a
-  single full 794-case pass. Do not call this 80% until
-  consumer-completeness lands across CFG/AIR plus
-  MIR/LLVM declaration bootstrap parity and ABI/Slot/Pin ownership freeze.
+  single full-suite pass. Do not call this beta-complete until current
+  full-suite evidence is refreshed and consumer-completeness lands across
+  CFG/AIR plus MIR/LLVM declaration bootstrap parity, compatibility-fallback
+  tightening, and ABI/Slot/Pin ownership freeze.
   Current C/LLVM backend-compare cleanup closed the shard-0 failures for
   subject-slot boundary refs, for-in variables inside match/if nested blocks,
   and inline class constructor calls over Array<T> parameters. The fixes are
@@ -1655,9 +1656,10 @@ English anchor for tooling/doc gates:
   `compare_backends.sh` is now `181/181`, the non-experimental LLVM smoke
   surface is guarded by `backend-compare-llvm-coverage-test-smoke`, and the
   only allowlisted LLVM-only fixture is `qubit_slot` (out of beta). This
-  strengthens the MIR/LLVM parity evidence, but it does not raise the project
-  to 80% by itself because CFG/AIR consumer-completeness, declaration
-  bootstrap shape, and ABI/Slot/Pin freeze are still open.
+  strengthens the MIR/LLVM parity evidence, but it does not make the project
+  beta-complete by itself because CFG/AIR consumer-completeness, declaration
+  bootstrap shape, compatibility-fallback tightening, and ABI/Slot/Pin freeze
+  are still open.
 - Runtime panic ABI smoke no longer treats a local Windows shell compile
   failure as a successful skip unless `PGY_RUNTIME_PANIC_ABI_ALLOW_LOCAL_SKIP=1`
   is set explicitly. The default beta path now fails closed and the local
@@ -9414,8 +9416,8 @@ section anchors so the tracker cannot silently rot.
 
 **확정 순서 — BDFL 결정:**
 
-1. **BETA closure** — 현재 (§0a 참조). 기능 체감 약 70% /
-   strict beta readiness 약 75%
+1. **BETA closure** — 현재 (§0a 참조). 기능 체감 약 85% /
+   strict beta readiness 약 82%
    → 100% 신뢰도까지 닫기
 2. **dogfood (compiler-adjacent first)** — §0-selfhost 의 첫 dogfood
    원칙: diagnostic catalog checker, AIR graph JSON validator, MIR dump
@@ -9591,10 +9593,11 @@ is the longer execution plan.
 
 ## 0a. Strict Beta Closure Order — 2026-05-01 재고정
 
-**현재 판정:** 기능 구현률은 약 70%로 본다. strict beta readiness는
-약 75%다. 차이는 기능 수가 아니라 CFG/AIR/DAG/MIR/ABI가 실제
-source-of-truth로 소비되는 깊이다. 75%는 CFG/AIR consumer-completeness,
-MIR/LLVM declaration bootstrap, ABI/Slot/Pin freeze가 모두 닫힌 뒤
+**현재 판정:** 기능 구현률은 약 85%로 본다. strict beta readiness는
+약 82%다. 차이는 기능 수가 아니라 CFG/AIR/DAG/MIR/ABI가 실제
+source-of-truth로 소비되는 깊이다. beta-complete는 CFG/AIR
+consumer-completeness, MIR/LLVM declaration bootstrap, compatibility-fallback
+tightening, ABI/Slot/Pin freeze가 모두 현재 full-suite evidence로 닫힌 뒤
 재평가한다.
 
 **명시적 제외:** quantum full model, Rust급 lifetime/borrow checker, HKT/FP,
@@ -10097,11 +10100,12 @@ Intent-Compress는 척추 변경이므로 "며칠 컷"으로 고정하지 않는
 
 ## UTF-8 Progress Note - 2026-05-01 - Dogfood-first WebGL Bridge Gate
 
-2026-05-01 update:
+2026-06-08 update:
 - Beta progress is tracked as two numbers: user-visible feature progress is
-  about 70%, while strict beta readiness is about 75%. The delta to 80% is
-  CFG/AIR consumer-completeness, MIR/LLVM declaration bootstrap, and
-  ABI/Slot/Pin freeze, not missing surface syntax.
+  about 85%, while strict beta readiness is about 82%. The delta to
+  beta-complete is CFG/AIR consumer-completeness, MIR/LLVM declaration
+  bootstrap, compatibility-fallback tightening, and ABI/Slot/Pin freeze, not
+  missing surface syntax.
 - WebGL/WASM is no longer framed as "native LLVM wasm before beta". The beta
   dogfood entry path is `Pergyra -> C backend --emit-c -> optional Emscripten`.
   Native LLVM wasm and richer render modules stay beta+1.
@@ -13289,7 +13293,7 @@ not marketing claims.
   - Type-resolution DAG가 아직 semantic source-of-truth가 아니므로 declaration order / module contract / generic consumer path drift 위험이 남아 있다
   - 장기 모듈화 stop condition도 아직 멀다. semantic 800 LOC 초과 `.inc` 조건과 runtime/codegen/compiler 1,000 LOC 초과 `.inc` 조건은 닫혔지만, 여러 split은 아직 include-order 보존 상태라 실제 owner/TU extraction 부채가 남아 있다
   - Historical note: this old 60% readiness anchor is superseded by the current
-    top-of-file source-of-truth range, strict beta readiness about 75%.
+    top-of-file source-of-truth range, strict beta readiness about 82%.
 
 ## Beta taxonomy freeze: core / foundation / style
 
@@ -17053,9 +17057,10 @@ Local verification for this debt refresh:
 - Rechecked the beta status anchors after the current source-of-truth gates:
   `docs/100_beta_readiness_checklist.md`,
   `docs/70_beta_closure_master_board.md`, and this TODO now use the same
-  strict beta readiness range: about 75%, not 80%. The remaining 80% line is
-  explicitly CFG/AIR consumer-completeness, MIR/LLVM declaration bootstrap, and
-  ABI/Slot/Pin freeze. Also tightened the C call emitter receiver-type copy:
+  strict beta readiness range: about 82%, not beta-complete. The remaining
+  beta-complete line is explicitly CFG/AIR consumer-completeness, MIR/LLVM
+  declaration bootstrap, compatibility-fallback tightening, and ABI/Slot/Pin
+  freeze. Also tightened the C call emitter receiver-type copy:
   method-style nominal calls now reject overlong receiver type names instead of
   silently truncating the dispatch type. Local verification:
   `make pgy`, `test-transpile` (`770/0`),
@@ -17171,9 +17176,9 @@ Local verification for this debt refresh:
   `abi-ownership-shape-test-smoke`, `runtime-panic-abi-test-smoke` (Windows
   local compiler probe skips, CI still owns the executable gate), and
   `test-abi` (`58/0` plus C ABI pipeline fixtures). This keeps the ABI axis
-  stable but does not close the 80% line by itself; the remaining blocker is
-  still consumer-completeness across CFG/AIR and MIR/LLVM declaration bootstrap
-  parity.
+  stable but does not close beta-complete by itself; the remaining blocker is
+  still consumer-completeness across CFG/AIR, MIR/LLVM declaration bootstrap
+  parity, and compatibility-fallback tightening.
 - Repaired CFG/body-dataflow smoke ownership drift after recent owner splits:
   source-statement index attachment is now gated in
   `mir_stmt_population_resource_ops.c`, surface-usage validation diagnostics are

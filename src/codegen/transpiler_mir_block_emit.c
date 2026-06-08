@@ -268,7 +268,14 @@ transpiler_emit_mir_block_statements(CodeBuf *buf, const ASTNode *func_decl,
         if (stmt != NULL && stmt->type == AST_DEFER_STMT)
             transpiler_register_defer(inst->expr0, ctx);
         if (stmt == NULL || stmt->type == AST_BLOCK || stmt->type == AST_RETURN
-            || stmt->type == AST_DEFER_STMT) {
+            || stmt->type == AST_DEFER_STMT
+            || stmt->type == AST_LET_DESTRUCTURE) {
+            /* Closure #82: AST_LET_DESTRUCTURE is already lowered by
+             * MIR_INST_DESTRUCTURE above (transpiler_emit_mir_let_destructure_stmt).
+             * Falling through to emit_statement here re-runs the non-MIR
+             * destructure emit which redeclares the same C locals with a
+             * type prefix, producing gcc "previous definition" errors on
+             * destructure_array, destructure_tuple_return, tuple_literal_local. */
             continue;
         }
         if (!mir_instruction_source_stmt_fallback_is_allowed(inst)) {

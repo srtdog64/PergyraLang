@@ -35,10 +35,7 @@ emit_intent_decl(ASTNode *node, CodeBuf *buf, TranspilerCtx *ctx)
     ASTNode **step_nodes = NULL;
     const char **mir_step_names = NULL;
     size_t step_count = 0;
-    const char **binding_kinds = NULL;
-    const char **binding_aliases = NULL;
-    const char **binding_types = NULL;
-    IntentBindingMetadataView binding_metadata;
+    IntentBindingMetadataView binding_metadata = {0};
     size_t mir_binding_count = 0;
     const MIRRoutine *mir_routine = NULL;
     bool emit_cleanup_from_mir = false;
@@ -55,11 +52,6 @@ emit_intent_decl(ASTNode *node, CodeBuf *buf, TranspilerCtx *ctx)
     intent_name = ast_intent_decl_name(node);
     decl_steps = ast_intent_decl_steps(node, &decl_step_count);
     rollback_policy = ast_intent_decl_rollback_policy(node);
-    binding_metadata.kinds = NULL;
-    binding_metadata.aliases = NULL;
-    binding_metadata.types = NULL;
-    binding_metadata.count = 0;
-
     transpiler_capture_mir_emit_state_local(ctx, &saved_emit_state);
     ctx->out = buf;
     transpiler_set_current_return_type_local(ctx, "Bool");
@@ -79,11 +71,7 @@ emit_intent_decl(ASTNode *node, CodeBuf *buf, TranspilerCtx *ctx)
                 "MIR-only C path missing intent success check carrier");
         }
         mir_binding_count = transpiler_collect_mir_intent_bindings(
-            mir_routine, &binding_kinds, &binding_aliases, &binding_types);
-        binding_metadata.kinds = binding_kinds;
-        binding_metadata.aliases = binding_aliases;
-        binding_metadata.types = binding_types;
-        binding_metadata.count = mir_binding_count;
+            mir_routine, &binding_metadata);
         step_count = transpiler_collect_mir_intent_step_names(
             mir_routine, &mir_step_names);
         mir_steps = transpiler_build_mir_intent_step_sources(
@@ -104,8 +92,7 @@ emit_intent_decl(ASTNode *node, CodeBuf *buf, TranspilerCtx *ctx)
             intent_name != NULL ? intent_name : "(anonymous-intent)");
         transpiler_free_intent_emit_metadata(
             mir_steps, NULL, NULL,
-            NULL, NULL, binding_kinds, binding_aliases,
-            binding_types, mir_step_names);
+            NULL, NULL, &binding_metadata, mir_step_names);
         transpiler_restore_mir_emit_state_from_snapshot_local(ctx, &saved_emit_state);
         return;
     }
@@ -116,8 +103,7 @@ emit_intent_decl(ASTNode *node, CodeBuf *buf, TranspilerCtx *ctx)
             intent_name != NULL ? intent_name : "(anonymous-intent)");
         transpiler_free_intent_emit_metadata(
             mir_steps, NULL, NULL,
-            NULL, NULL, binding_kinds, binding_aliases,
-            binding_types, mir_step_names);
+            NULL, NULL, &binding_metadata, mir_step_names);
         transpiler_restore_mir_emit_state_from_snapshot_local(ctx, &saved_emit_state);
         return;
     }
@@ -133,39 +119,36 @@ emit_intent_decl(ASTNode *node, CodeBuf *buf, TranspilerCtx *ctx)
                     : "(anonymous-step)");
             transpiler_free_intent_emit_metadata(
                 mir_steps, NULL, NULL,
-                NULL, NULL, binding_kinds, binding_aliases,
-                binding_types, mir_step_names);
+                NULL, NULL, &binding_metadata, mir_step_names);
             transpiler_restore_mir_emit_state_from_snapshot_local(ctx, &saved_emit_state);
             return;
         }
     }
     if (mir_only_intent && mir_binding_count > 0) {
         for (size_t i = 0; i < mir_binding_count; i++) {
-            if (binding_kinds == NULL || binding_aliases == NULL
-                || binding_types == NULL || binding_kinds[i] == NULL
-                || binding_aliases[i] == NULL || binding_types[i] == NULL) {
+            if (!intent_binding_metadata_view_has_complete_row(
+                    &binding_metadata, i)) {
                 transpiler_set_mir_inventory_missing(
                     ctx,
                     "MIR-only C path has incomplete ordered intent binding metadata for '%s'",
                     intent_name != NULL ? intent_name : "(anonymous-intent)");
                 transpiler_free_intent_emit_metadata(
                     mir_steps, NULL, NULL,
-                    NULL, NULL, binding_kinds, binding_aliases,
-                    binding_types, mir_step_names);
+                    NULL, NULL, &binding_metadata, mir_step_names);
                 transpiler_restore_mir_emit_state_from_snapshot_local(ctx,
                     &saved_emit_state);
                 return;
             }
-            if (strcmp(binding_kinds[i], "participant") != 0
-                && strcmp(binding_kinds[i], "value") != 0) {
+            if (!intent_binding_metadata_kind_is_supported(
+                    intent_binding_metadata_view_kind_at(
+                        &binding_metadata, i))) {
                 transpiler_set_mir_inventory_missing(
                     ctx,
                     "MIR-only C path has invalid ordered intent binding metadata for '%s'",
                     intent_name != NULL ? intent_name : "(anonymous-intent)");
                 transpiler_free_intent_emit_metadata(
                     mir_steps, NULL, NULL,
-                    NULL, NULL, binding_kinds, binding_aliases,
-                    binding_types, mir_step_names);
+                    NULL, NULL, &binding_metadata, mir_step_names);
                 transpiler_restore_mir_emit_state_from_snapshot_local(ctx,
                     &saved_emit_state);
                 return;
@@ -614,8 +597,7 @@ emit_intent_decl(ASTNode *node, CodeBuf *buf, TranspilerCtx *ctx)
     codebuf_write(ctx->out, "}\n");
     transpiler_free_intent_emit_metadata(
         mir_steps, NULL, NULL,
-        NULL, NULL, binding_kinds, binding_aliases,
-        binding_types, mir_step_names);
+        NULL, NULL, &binding_metadata, mir_step_names);
     transpiler_restore_mir_emit_state_from_snapshot_local(ctx, &saved_emit_state);
     return;
 
@@ -625,7 +607,6 @@ intent_emit_fail:
 #undef PGY_RESTORE_INTENT_STEP_CONTEXT
     transpiler_free_intent_emit_metadata(
         mir_steps, NULL, NULL,
-        NULL, NULL, binding_kinds, binding_aliases,
-        binding_types, mir_step_names);
+        NULL, NULL, &binding_metadata, mir_step_names);
     transpiler_restore_mir_emit_state_from_snapshot_local(ctx, &saved_emit_state);
 }

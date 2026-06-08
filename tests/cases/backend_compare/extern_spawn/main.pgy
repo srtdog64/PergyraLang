@@ -1,0 +1,9 @@
+extern "c" {
+    func pgy_checked_div_i32_export(lhs: Int, rhs: Int) -> Int;
+}
+
+async func Main() -> Void {
+    let task: Future<Int> = spawn pgy_checked_div_i32_export(42, 7);
+    let value: Int = await task;
+    Log(value);
+}

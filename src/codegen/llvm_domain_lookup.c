@@ -10,6 +10,35 @@
 #include "llvm_inventory_decl_lookup.h"
 #include "parser/ast_api.h"
 
+static ASTNode *
+llvm_find_extern_function_decl(LLVMGenCtx *ctx, const char *function_name)
+{
+    ASTNode **externs = NULL;
+    size_t extern_count = 0;
+
+    if (ctx == NULL || function_name == NULL)
+        return NULL;
+
+    llvm_active_externs(ctx, &externs, &extern_count);
+    for (size_t i = 0; externs != NULL && i < extern_count; i++) {
+        ASTNode *block = externs[i];
+        size_t block_decl_count = 0;
+        if (block == NULL || block->type != AST_EXTERN_BLOCK)
+            continue;
+        (void)ast_extern_block_declarations(block, &block_decl_count);
+        for (size_t j = 0; j < block_decl_count; j++) {
+            ASTNode *decl = ast_extern_block_declaration(block, j);
+            const char *decl_name = ast_declaration_name(decl);
+            if (decl != NULL && decl->type == AST_FUNC_DECL
+                && decl_name != NULL
+                && strcmp(decl_name, function_name) == 0) {
+                return decl;
+            }
+        }
+    }
+    return NULL;
+}
+
 ASTNode *
 llvm_find_named_domain_decl(LLVMGenCtx *ctx, ASTNodeType decl_type,
                             const char *name)
@@ -51,7 +80,34 @@ llvm_find_function_decl(LLVMGenCtx *ctx, const char *name)
     decl = llvm_find_decl_in_active_inventory(ctx, AST_FUNC_DECL, name);
     if (decl != NULL)
         return decl;
+    decl = llvm_find_extern_function_decl(ctx, name);
+    if (decl != NULL)
+        return decl;
     return llvm_lookup_generic_template(ctx, name);
+}
+
+bool
+llvm_decl_is_extern_function(LLVMGenCtx *ctx, const ASTNode *decl)
+{
+    ASTNode **externs = NULL;
+    size_t extern_count = 0;
+
+    if (ctx == NULL || decl == NULL || decl->type != AST_FUNC_DECL)
+        return false;
+
+    llvm_active_externs(ctx, &externs, &extern_count);
+    for (size_t i = 0; externs != NULL && i < extern_count; i++) {
+        ASTNode *block = externs[i];
+        size_t block_decl_count = 0;
+        if (block == NULL || block->type != AST_EXTERN_BLOCK)
+            continue;
+        (void)ast_extern_block_declarations(block, &block_decl_count);
+        for (size_t j = 0; j < block_decl_count; j++) {
+            if (ast_extern_block_declaration(block, j) == decl)
+                return true;
+        }
+    }
+    return false;
 }
 
 ASTNode *

@@ -296,7 +296,7 @@ bool          llvm_mir_emit_channel_receive_def(const MIRInstruction *inst,
                                                 LLVMValueRef mir_alloca);
 void          llvm_mir_emit_with_claim_only(const MIRInstruction *inst,
                                             LLVMGenCtx *ctx);
-void          llvm_mir_emit_borrow_view_alias(const MIRInstruction *inst,
+bool          llvm_mir_emit_borrow_view_alias(const MIRInstruction *inst,
                                               LLVMGenCtx *ctx);
 bool          llvm_mir_emit_pin_enter(const MIRBasicBlock *block,
                                       LLVMGenCtx *ctx);
@@ -486,6 +486,7 @@ ASTNode *llvm_find_named_domain_decl(LLVMGenCtx *ctx, ASTNodeType decl_type,
 ASTNode *llvm_find_domain_constructor_decl(LLVMGenCtx *ctx,
                                            const char *name);
 ASTNode *llvm_find_function_decl(LLVMGenCtx *ctx, const char *name);
+bool llvm_decl_is_extern_function(LLVMGenCtx *ctx, const ASTNode *decl);
 ASTNode *llvm_find_intent_decl(LLVMGenCtx *ctx, const char *name);
 ASTNode *llvm_find_callable_decl(LLVMGenCtx *ctx, const char *name);
 ASTNode *llvm_find_projection_nominal_decl(LLVMGenCtx *ctx,
@@ -557,7 +558,6 @@ void llvm_forward_declare_func(ASTNode *node, LLVMGenCtx *ctx);
 void llvm_forward_declare_func_from_mir(const MIRRoutine *routine,
                                         ASTNode *node,
                                         LLVMGenCtx *ctx);
-void llvm_emit_func_decl(ASTNode *node, LLVMGenCtx *ctx);
 LLVMValueRef llvm_emit_func_from_mir(const MIRRoutine *routine, LLVMGenCtx *ctx);
 bool llvm_forward_declare_function_routines_from_inventory(
     LLVMGenCtx *ctx,

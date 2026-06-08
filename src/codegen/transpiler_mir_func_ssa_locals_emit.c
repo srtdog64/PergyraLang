@@ -16,6 +16,7 @@
 #include "transpiler_mir_effective_type.h"
 #include "transpiler_mir_local_type_ast_lookup.h"
 #include "transpiler_mir_local_type_lookup.h"
+#include "transpiler_mir_signature.h"
 #include "transpiler_mir_ssa_local_facts.h"
 #include "transpiler_mir_ssa_map.h"
 #include "transpiler_mir_ssa_names.h"
@@ -48,14 +49,25 @@ transpiler_emit_mir_func_ssa_local_decls(TranspilerCtx *ctx,
     const char *declared_versioned_names[4096];
     size_t declared_versioned_count = 0;
 
+    if (mir_routine == NULL) {
+        if (ctx != NULL) {
+            transpiler_set_mir_inventory_missing(
+                ctx,
+                "MIR-only C path missing function SSA local routine for '%s'",
+                name != NULL ? name : "<function>");
+        }
+        return false;
+    }
+
     if (ctx != NULL && node != NULL && node->type == AST_FUNC_DECL
-        && mir_routine != NULL && transpiler_active_has_mir(ctx)
-        && !transpiler_mir_routine_has_signature(mir_routine)) {
-        transpiler_set_mir_inventory_missing(ctx,
+        && mir_routine != NULL
+        && !transpiler_mir_routine_signature_metadata_complete_for(ctx,
+            mir_routine,
+            node,
+            0u,
             "MIR-only C path missing function SSA local signature metadata for '%s'",
-            ast_declaration_name(node) != NULL
-                ? ast_declaration_name(node)
-                : "(anonymous)");
+            NULL,
+            NULL)) {
         return false;
     }
 

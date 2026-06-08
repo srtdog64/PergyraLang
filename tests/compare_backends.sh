@@ -174,6 +174,39 @@ cleanup() {
 }
 trap cleanup EXIT
 
+case_filter_contains() {
+    local selected="$1"
+    local case_path="$2"
+    local case_name="${case_path##*/}"
+    local item
+    local -a _pgy_case_filter_items=()
+
+    IFS=',' read -r -a _pgy_case_filter_items <<< "$selected"
+    for item in "${_pgy_case_filter_items[@]}"; do
+        item="${item#"${item%%[![:space:]]*}"}"
+        item="${item%"${item##*[![:space:]]}"}"
+        [[ -n "$item" ]] || continue
+        if [[ "$item" == "$case_path" || "$item" == "$case_name" ]]; then
+            return 0
+        fi
+    done
+    return 1
+}
+
+filter_cases_by_name() {
+    local selected="${PGY_BACKEND_COMPARE_CASES:-}"
+    local filtered=()
+    local case_path
+
+    [[ -n "$selected" ]] || return 0
+    for case_path in "${cases[@]}"; do
+        if case_filter_contains "$selected" "$case_path"; then
+            filtered+=("$case_path")
+        fi
+    done
+    cases=("${filtered[@]}")
+}
+
 setup_windows_launch_path() {
     local tool="$1"
     local cc_path=""
@@ -517,6 +550,7 @@ main() {
         "tests/cases/backend_compare/basic"
         "tests/cases/backend_compare/entry_lowercase_main"
         "tests/cases/backend_compare/extern_fn"
+        "tests/cases/backend_compare/extern_spawn"
         "tests/cases/backend_compare/slot_basic"
         "tests/cases/backend_compare/slot_sugar"
         "tests/cases/backend_compare/slot_subject_cell"
@@ -562,6 +596,8 @@ main() {
         "tests/cases/backend_compare/long_subtract_workaround"
         "tests/cases/backend_compare/bool_to_string_concat"
         "tests/cases/backend_compare/map_function_helper"
+        "tests/cases/backend_compare/function_routine_prefix_collision"
+        "tests/cases/backend_compare/method_routine_prefix_collision"
         "tests/cases/backend_compare/generic_identity_multi"
         "tests/cases/backend_compare/set_string_ops"
         "tests/cases/backend_compare/class_method_self_access"
@@ -1364,6 +1400,12 @@ main() {
         cases=("$@")
     fi
 
+    filter_cases_by_name
+    if [[ -n "${PGY_BACKEND_COMPARE_CASES:-}" && "${#cases[@]}" -eq 0 ]]; then
+        echo "backend-compare: PGY_BACKEND_COMPARE_CASES selected no cases" >&2
+        return 1
+    fi
+
     local shard_total="${PGY_BACKEND_COMPARE_SHARD_TOTAL:-${PGY_BACKEND_COMPARE_SHARD_COUNT:-0}}"
     local shard_index="${PGY_BACKEND_COMPARE_SHARD_INDEX:-}"
     if (( use_default_cases )) && [[ "$shard_total" != "0" ]]; then
@@ -1435,7 +1477,7 @@ main() {
     local total=${#cases[@]}
     local fail_count=${#failed[@]}
     echo ""
-    echo "backend-compare: summary — ${passed}/${total} passed, ${fail_count} failed"
+    echo "backend-compare: summary -- ${passed}/${total} passed, ${fail_count} failed"
     if (( fail_count > 0 )); then
         echo "backend-compare: failures:"
         for f in "${failed[@]}"; do

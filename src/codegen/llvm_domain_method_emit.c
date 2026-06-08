@@ -60,6 +60,11 @@ llvm_emit_domain_sync_and_method_bodies(LLVMGenCtx *ctx,
                     decl_name != NULL ? decl_name : "(anonymous-domain)");
                 return false;
             }
+            if (!llvm_require_hosted_method_view_rows(ctx, &method_view,
+                    "MIR-only LLVM path has invalid method declaration metadata row for domain '%s'",
+                    decl_name != NULL ? decl_name : "(anonymous-domain)")) {
+                return false;
+            }
             for (size_t j = 0; j < method_view.count; j++) {
                 const MIRDeclMethod *method_meta =
                     llvm_hosted_method_view_metadata(&method_view, j);
@@ -67,12 +72,6 @@ llvm_emit_domain_sync_and_method_bodies(LLVMGenCtx *ctx,
                     llvm_hosted_method_view_source_ast(&method_view, j);
                 const char *method_name = llvm_mir_decl_method_name(method_meta);
                 const MIRRoutine *mir_method = NULL;
-                if (llvm_hosted_method_view_missing_mir_method_row(&method_view, j)) {
-                    llvm_set_mir_inventory_missing(ctx,
-                        "MIR-only LLVM path has invalid method declaration metadata row for domain '%s'",
-                        decl_name != NULL ? decl_name : "(anonymous-domain)");
-                    return false;
-                }
                 if (method_name == NULL && method != NULL
                     && method->type == AST_FUNC_DECL)
                     method_name = ast_declaration_name(method);
@@ -134,18 +133,17 @@ llvm_emit_class_method_bodies_from_inventory(LLVMGenCtx *ctx)
         }
         if (!method_view.uses_mir_metadata)
             continue;
+        if (!llvm_require_hosted_method_view_rows(ctx, &method_view,
+                "MIR-only LLVM path has invalid method declaration metadata row for class '%s'",
+                cls_name != NULL ? cls_name : "(anonymous-class)")) {
+            return false;
+        }
         for (size_t j = 0; j < method_view.count; j++) {
             const MIRDeclMethod *method_meta =
                 llvm_hosted_method_view_metadata(&method_view, j);
             const char *method_name;
             const MIRRoutine *mir_method;
 
-            if (llvm_hosted_method_view_missing_mir_method_row(&method_view, j)) {
-                llvm_set_mir_inventory_missing(ctx,
-                    "MIR-only LLVM path has invalid method declaration metadata row for class '%s'",
-                    cls_name != NULL ? cls_name : "(anonymous-class)");
-                return false;
-            }
             method_name = llvm_mir_decl_method_name(method_meta);
             mir_method = llvm_mir_decl_method_routine(ctx, method_meta);
             if (mir_method != NULL) {

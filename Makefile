@@ -120,6 +120,7 @@ CI_MACOS_BIN_DIR   := $(TMPDIR_CI)/pgy-ci-macos-bin
 PGY_BACKEND_COMPARE_SHARD_TOTAL ?= 0
 PGY_BACKEND_COMPARE_SHARD_INDEX ?= 0
 PGY_BACKEND_COMPARE_PRECHECK ?= 1
+PGY_BACKEND_COMPARE_CASES ?=
 PGY_BACKEND_COMPARE_START_INDEX ?= 0
 PGY_BACKEND_COMPARE_MAX_CASES ?= 0
 CI_BACKEND_COMPARE_SHARD_TOTAL ?= 20
@@ -543,6 +544,7 @@ CODEGEN_SOURCES  = $(CODEGEN_DIR)/transpiler_allocator_builtin_emit.c \
                    $(CODEGEN_DIR)/codegen_slot_type_policy.c \
                    $(CODEGEN_DIR)/domain_frontier_policy.c \
                    $(CODEGEN_DIR)/host_decl_compat.c \
+                   $(CODEGEN_DIR)/intent_binding_metadata_view.c \
                    $(CODEGEN_DIR)/intent_observability_usage.c \
                    $(CODEGEN_DIR)/transpiler_intent_observability_builtin_emit.c \
                    $(CODEGEN_DIR)/transpiler_builtin_type_table.c \
@@ -898,6 +900,7 @@ ifneq ($(LLVM_ENABLED),0)
                           $(CODEGEN_DIR)/llvm_runtime_task_memory_decl.c \
                         $(CODEGEN_DIR)/llvm_event.c \
                         $(CODEGEN_DIR)/llvm_mir_contract.c \
+                        $(CODEGEN_DIR)/llvm_mir_signature.c \
                         $(CODEGEN_DIR)/llvm_mir_emit.c \
                         $(CODEGEN_DIR)/llvm_mir_block_emit.c \
                         $(CODEGEN_DIR)/llvm_mir_pin_region.c \
@@ -2006,6 +2009,7 @@ llvm-test-backend-compare: $(if $(filter 0,$(PGY_BACKEND_COMPARE_PRECHECK)),,$(A
 	PGY_BACKEND_COMPARE_PRECHECK_SAME_PROCESS="$(PGY_BACKEND_COMPARE_PRECHECK)" \
 	PGY_BACKEND_COMPARE_SHARD_TOTAL="$(PGY_BACKEND_COMPARE_SHARD_TOTAL)" \
 	PGY_BACKEND_COMPARE_SHARD_INDEX="$(PGY_BACKEND_COMPARE_SHARD_INDEX)" \
+	PGY_BACKEND_COMPARE_CASES="$(PGY_BACKEND_COMPARE_CASES)" \
 	PGY_BACKEND_COMPARE_START_INDEX="$(PGY_BACKEND_COMPARE_START_INDEX)" \
 	PGY_BACKEND_COMPARE_MAX_CASES="$(PGY_BACKEND_COMPARE_MAX_CASES)" \
 	"$(BASH)" tests/compare_backends.sh
@@ -2020,6 +2024,7 @@ air-strict-backend-compare-test-smoke: $(if $(filter 0,$(PGY_BACKEND_COMPARE_PRE
 	PGY_BACKEND_COMPARE_PRECHECK_SAME_PROCESS="$(PGY_BACKEND_COMPARE_PRECHECK)" \
 	PGY_BACKEND_COMPARE_SHARD_TOTAL="$(PGY_BACKEND_COMPARE_SHARD_TOTAL)" \
 	PGY_BACKEND_COMPARE_SHARD_INDEX="$(PGY_BACKEND_COMPARE_SHARD_INDEX)" \
+	PGY_BACKEND_COMPARE_CASES="$(PGY_BACKEND_COMPARE_CASES)" \
 	PGY_BACKEND_COMPARE_START_INDEX="$(PGY_BACKEND_COMPARE_START_INDEX)" \
 	PGY_BACKEND_COMPARE_MAX_CASES="$(PGY_BACKEND_COMPARE_MAX_CASES)" \
 	"$(BASH)" tests/compare_backends.sh

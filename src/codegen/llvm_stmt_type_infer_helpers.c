@@ -1,6 +1,7 @@
 #ifdef PGY_LLVM_ENABLED
 #include "llvm_stmt_type_infer_helpers.h"
 #include "codegen_slot_type_policy.h"
+#include "llvm_mir_signature.h"
 #include "transpiler_builtin_type_table.h"
 
 #include <stdlib.h>
@@ -13,6 +14,7 @@ typedef const char *(*LLVMCollectionInnerLookup)(LLVMGenCtx *ctx,
 typedef struct
 {
     const char *name;
+    const char *fixed_type_name;
     LLVMCollectionInnerLookup lookup;
 } LLVMCollectionGetSpec;
 
@@ -129,6 +131,7 @@ llvm_stmt_lookup_declared_call_return_type(LLVMGenCtx *ctx, const char *callee)
     ASTNode *decl;
     ASTNode *return_type;
     bool decl_is_generic;
+    bool decl_is_extern;
 
     if (ctx == NULL || callee == NULL)
         return NULL;
@@ -137,7 +140,8 @@ llvm_stmt_lookup_declared_call_return_type(LLVMGenCtx *ctx, const char *callee)
         return NULL;
     decl_is_generic =
         ast_generic_param_count(ast_declaration_generic_params(decl)) > 0;
-    if (llvm_active_has_mir(ctx) && !decl_is_generic) {
+    decl_is_extern = llvm_decl_is_extern_function(ctx, decl);
+    if (llvm_active_has_mir(ctx) && !decl_is_generic && !decl_is_extern) {
         const MIRRoutine *routine =
             llvm_active_function_routine_for_source_ast(ctx, decl);
         const char *return_type_name = NULL;
@@ -147,23 +151,18 @@ llvm_stmt_lookup_declared_call_return_type(LLVMGenCtx *ctx, const char *callee)
                 callee);
             return NULL;
         }
-        if (!llvm_mir_routine_has_signature(routine)) {
-            llvm_set_mir_inventory_missing(ctx,
+        if (!llvm_mir_routine_signature_metadata_complete_for(ctx,
+                routine, decl,
+                LLVM_MIR_SIGNATURE_REQUIRE_RETURN_TYPE_NAME,
                 "MIR-only LLVM path missing declared call return signature metadata for '%s'",
-                callee);
+                "MIR-only LLVM path missing declared call return type-name metadata for '%s'",
+                NULL)) {
             return NULL;
         }
         return_type = llvm_mir_routine_return_type(routine);
         return_type_name = llvm_mir_routine_return_type_name(routine);
         if (return_type_name != NULL)
             return pergyra_type_to_llvm(ctx, return_type_name);
-        if (return_type != NULL
-            && return_type->type != AST_EVENT_HANDLER_TYPE) {
-            llvm_set_mir_inventory_missing(ctx,
-                "MIR-only LLVM path missing declared call return type-name metadata for '%s'",
-                callee);
-            return NULL;
-        }
     } else {
         return_type = ast_func_return_type(decl);
     }
@@ -206,6 +205,8 @@ llvm_stmt_call_returns_collection_value(const char *callee)
         "ListGet",
         "MapGet",
         "QueuePop",
+        "SetHas",
+        "SetSize",
     };
     return llvm_stmt_name_in_sorted_table(callee, calls, PGY_ARRAY_COUNT(calls));
 }
@@ -217,9 +218,11 @@ llvm_stmt_lookup_collection_get_inner(LLVMGenCtx *ctx, const char *callee,
     if (ctx == NULL || callee == NULL || collection == NULL)
         return NULL;
     static const LLVMCollectionGetSpec kLLVMCollectionGetSpecs[] = {
-        { "ListGet", llvm_lookup_list_inner },
-        { "MapGet", llvm_lookup_map_value },
-        { "QueuePop", llvm_lookup_queue_inner },
+        { "ListGet", NULL, llvm_lookup_list_inner },
+        { "MapGet", NULL, llvm_lookup_map_value },
+        { "QueuePop", NULL, llvm_lookup_queue_inner },
+        { "SetHas", "Bool", NULL },
+        { "SetSize", "Int", NULL },
     };
     const LLVMCollectionGetSpec *spec =
         (const LLVMCollectionGetSpec *)bsearch(&callee,
@@ -228,7 +231,11 @@ llvm_stmt_lookup_collection_get_inner(LLVMGenCtx *ctx, const char *callee,
             sizeof(kLLVMCollectionGetSpecs[0]),
             llvm_stmt_collection_get_spec_compare);
 
-    return spec != NULL ? spec->lookup(ctx, collection) : NULL;
+    if (spec == NULL)
+        return NULL;
+    if (spec->fixed_type_name != NULL)
+        return spec->fixed_type_name;
+    return spec->lookup != NULL ? spec->lookup(ctx, collection) : NULL;
 }
 
 const char *

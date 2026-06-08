@@ -48,6 +48,80 @@ mir_claim_abi_type_is_slot_family(const MIRInstruction *inst)
 }
 
 static bool
+mir_resource_kind_is_borrow_view(const MIRInstruction *inst)
+{
+    return inst != NULL
+        && inst->kind == MIR_INST_RESOURCE_OP
+        && inst->rir_op != NULL
+        && (inst->rir_op->kind == RIR_OP_BORROW_READ
+            || inst->rir_op->kind == RIR_OP_BORROW_WRITE);
+}
+
+static bool
+mir_resource_kind_consumes_view(const MIRInstruction *inst)
+{
+    return inst != NULL
+        && inst->kind == MIR_INST_RESOURCE_OP
+        && inst->rir_op != NULL
+        && (inst->rir_op->kind == RIR_OP_READ
+            || inst->rir_op->kind == RIR_OP_WRITE
+            || inst->rir_op->kind == RIR_OP_MOVE);
+}
+
+static bool
+mir_resource_borrow_targets_view(const MIRInstruction *inst,
+                                 const char *view_name)
+{
+    if (inst == NULL || view_name == NULL || view_name[0] == '\0')
+        return false;
+    return inst->arg1 != NULL && strcmp(inst->arg1, view_name) == 0;
+}
+
+static const char *
+mir_prior_borrow_source_for_view(const MIRRoutine *routine,
+                                 size_t before_block,
+                                 size_t before_inst,
+                                 const char *view_name)
+{
+    const char *source_slot = NULL;
+
+    if (routine == NULL || view_name == NULL || view_name[0] == '\0')
+        return NULL;
+
+    for (size_t bi = 0; bi < routine->block_count; bi++) {
+        const MIRBasicBlock *block = &routine->blocks[bi];
+        if (block == NULL)
+            continue;
+        for (size_t ii = 0; ii < block->instruction_count; ii++) {
+            const MIRInstruction *candidate = &block->instructions[ii];
+            if (bi == before_block && ii == before_inst)
+                return source_slot;
+            if (mir_resource_kind_is_borrow_view(candidate)
+                && mir_resource_borrow_targets_view(candidate, view_name)
+                && (candidate->resource_owner_slot_anchor != NULL
+                    || candidate->arg0 != NULL)) {
+                source_slot = candidate->resource_owner_slot_anchor != NULL
+                    ? candidate->resource_owner_slot_anchor
+                    : candidate->arg0;
+            }
+        }
+    }
+    return NULL;
+}
+
+static bool
+mir_resource_owner_layout_is_slot_family(const MIRInstruction *inst)
+{
+    const char *abi_name = inst != NULL && inst->type_layout != NULL
+        ? inst->type_layout->abi_type_name
+        : NULL;
+    return abi_name != NULL
+        && (strncmp(abi_name, "Slot<", 5) == 0
+            || strncmp(abi_name, "SecureSlot<", 11) == 0
+            || strncmp(abi_name, "DeviceSlot<", 11) == 0);
+}
+
+static bool
 mir_instruction_has_surface_payload_or_shape(const MIRInstruction *inst)
 {
     return inst != NULL
@@ -112,6 +186,27 @@ mir_validate_instruction_surface_usage(const MIRRoutine *routine,
                     i);
             }
             return false;
+        }
+        if (inst->kind == MIR_INST_RESOURCE_OP) {
+            const char *expected_owner = mir_resource_kind_consumes_view(inst)
+                ? mir_prior_borrow_source_for_view(
+                    routine, block_index, i, inst->slot_anchor)
+                : NULL;
+            if (expected_owner != NULL || inst->resource_owner_requires_metadata) {
+                if (inst->resource_owner_slot_anchor == NULL
+                    || (expected_owner != NULL
+                        && strcmp(inst->resource_owner_slot_anchor, expected_owner) != 0)
+                    || !mir_resource_owner_layout_is_slot_family(inst)) {
+                    if (error_message != NULL) {
+                        *error_message = mir_strdup_fmt(
+                            "MIR routine '%s' block[%zu] instruction[%zu] view-backed resource op is missing owner slot ABI metadata",
+                            routine->name != NULL ? routine->name : "(anonymous)",
+                            block_index,
+                            i);
+                    }
+                    return false;
+                }
+            }
         }
         if (inst->kind == MIR_INST_STMT
             && mir_instruction_source_is_defer_stmt(inst)

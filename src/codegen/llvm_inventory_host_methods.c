@@ -124,6 +124,67 @@ llvm_require_hosted_method_view_rows(
     return true;
 }
 
+bool
+llvm_mir_decl_method_metadata_complete_for(
+    LLVMGenCtx *ctx,
+    const MIRDeclMethod *method,
+    const char *host_name,
+    const char *method_name,
+    unsigned requirements,
+    const char *missing_return_type_fmt,
+    const char *missing_param_type_fmt)
+{
+    const char *host_display =
+        host_name != NULL ? host_name : "(anonymous-host)";
+    const char *resolved_method_name = method_name != NULL
+        ? method_name
+        : llvm_mir_decl_method_name(method);
+    const char *method_display = resolved_method_name != NULL
+        ? resolved_method_name
+        : "(anonymous)";
+
+    if (method == NULL || !llvm_active_has_mir(ctx))
+        return true;
+
+    if ((requirements & LLVM_MIR_DECL_METHOD_REQUIRE_RETURN_TYPE_NAME) != 0
+        && llvm_mir_decl_method_return_type_name(method) == NULL) {
+        ASTNode *return_type = llvm_mir_decl_method_return_type(method);
+        if (return_type != NULL
+            && return_type->type != AST_EVENT_HANDLER_TYPE) {
+            llvm_set_mir_inventory_missing(ctx,
+                missing_return_type_fmt != NULL
+                    ? missing_return_type_fmt
+                    : "MIR-only LLVM path missing hosted method return type-name metadata for '%s.%s'",
+                host_display,
+                method_display);
+            return false;
+        }
+    }
+
+    if ((requirements & LLVM_MIR_DECL_METHOD_REQUIRE_PARAM_TYPE_NAMES) != 0) {
+        for (size_t i = 0; i < llvm_mir_decl_method_param_count(method); i++) {
+            FuncParam *param = llvm_mir_decl_method_param(method, i);
+            if (param == NULL
+                || llvm_param_is_implicit_self_local(param)
+                || llvm_mir_decl_method_param_type_name(method, i) != NULL) {
+                continue;
+            }
+            if (param->type != NULL
+                && param->type->type != AST_EVENT_HANDLER_TYPE) {
+                llvm_set_mir_inventory_missing(ctx,
+                    missing_param_type_fmt != NULL
+                        ? missing_param_type_fmt
+                        : "MIR-only LLVM path missing hosted method parameter type-name metadata for '%s.%s'",
+                    host_display,
+                    method_display);
+                return false;
+            }
+        }
+    }
+
+    return true;
+}
+
 ASTNode *
 llvm_hosted_method_view_source_ast(const LLVMHostedMethodView *view,
                                    size_t index)

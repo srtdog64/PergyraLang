@@ -37,10 +37,112 @@ mir_resource_write_value_expr_from_call(ASTNode *call)
     return NULL;
 }
 
+typedef struct
+{
+    const char *view_name;
+    const char *source_slot;
+    const MIRTypeLayout *source_layout;
+} MIRResourceBorrowLoweringFact;
+
+static const MIRTypeLayout *
+mir_resource_layout_from_fact(const RIRFact *fact)
+{
+    const MIRTypeLayout *layout;
+    ASTNode *type_node = NULL;
+    char *type_name = NULL;
+
+    if (fact == NULL)
+        return NULL;
+    layout = fact->arg0 != NULL ? mir_abi_lookup(fact->arg0) : NULL;
+    if (layout != NULL)
+        return layout;
+    if (fact->ast == NULL)
+        return NULL;
+    if (fact->ast->type == AST_LET_DECL)
+        type_node = ast_let_type(fact->ast);
+    else if (fact->ast->type == AST_WITH_STMT)
+        type_node = ast_with_slot_type(fact->ast);
+    if (type_node == NULL)
+        return NULL;
+    type_name = mir_render_type_name(type_node);
+    if (type_name == NULL)
+        return NULL;
+    layout = mir_abi_lookup(type_name);
+    free(type_name);
+    return layout;
+}
+
+static const MIRTypeLayout *
+mir_resource_layout_for_slot_fact(const RIRScope *rir_scope,
+                                  const char *slot_name)
+{
+    if (rir_scope == NULL || slot_name == NULL || slot_name[0] == '\0')
+        return NULL;
+    for (size_t i = 0; i < rir_scope_fact_count(rir_scope); i++) {
+        const RIRFact *fact = rir_scope_fact_at(rir_scope, i);
+        if (fact == NULL || fact->kind != RIR_FACT_RESOURCE
+            || fact->arg0 == NULL) {
+            continue;
+        }
+        if ((fact->name != NULL && strcmp(fact->name, slot_name) == 0)
+            || (fact->slot_anchor != NULL
+                && strcmp(fact->slot_anchor, slot_name) == 0)) {
+            return mir_resource_layout_from_fact(fact);
+        }
+    }
+    return NULL;
+}
+
+static const MIRResourceBorrowLoweringFact *
+mir_resource_borrow_fact_for_view(
+    const MIRResourceBorrowLoweringFact *facts,
+    size_t fact_count,
+    const char *view_name)
+{
+    if (facts == NULL || view_name == NULL || view_name[0] == '\0')
+        return NULL;
+    for (size_t i = fact_count; i > 0; i--) {
+        const MIRResourceBorrowLoweringFact *fact = &facts[i - 1];
+        if (fact->view_name != NULL && strcmp(fact->view_name, view_name) == 0)
+            return fact;
+    }
+    return NULL;
+}
+
+static void
+mir_resource_record_borrow_fact(MIRResourceBorrowLoweringFact *facts,
+                                size_t max_facts,
+                                size_t *fact_count,
+                                const char *view_name,
+                                const char *source_slot,
+                                const MIRTypeLayout *source_layout)
+{
+    if (facts == NULL || fact_count == NULL || view_name == NULL
+        || source_slot == NULL) {
+        return;
+    }
+    for (size_t i = *fact_count; i > 0; i--) {
+        MIRResourceBorrowLoweringFact *fact = &facts[i - 1];
+        if (fact->view_name != NULL && strcmp(fact->view_name, view_name) == 0) {
+            fact->source_slot = source_slot;
+            fact->source_layout = source_layout;
+            return;
+        }
+    }
+    if (*fact_count >= max_facts)
+        return;
+    facts[*fact_count].view_name = view_name;
+    facts[*fact_count].source_slot = source_slot;
+    facts[*fact_count].source_layout = source_layout;
+    (*fact_count)++;
+}
+
 static bool
 mir_add_resource_instruction(MIRRoutine *routine,
                              MIRBasicBlock *block,
-                             const RIROp *op)
+                             const RIROp *op,
+                             const char *resource_owner_slot_anchor,
+                             const MIRTypeLayout *resource_owner_layout)
 {
     MIRInstruction inst;
     char *claim_type_name = NULL;
@@ -50,6 +152,8 @@ mir_add_resource_instruction(MIRRoutine *routine,
     inst.kind = MIR_INST_RESOURCE_OP;
     inst.name = rir_op_kind_name(op->kind);
     inst.slot_anchor = op->slot_anchor;
+    inst.resource_owner_slot_anchor = resource_owner_slot_anchor;
+    inst.resource_owner_requires_metadata = resource_owner_slot_anchor != NULL;
     inst.arg0 = op->subject;
     inst.arg1 = op->arg0;
     inst.rir_op = op;
@@ -67,7 +171,9 @@ mir_add_resource_instruction(MIRRoutine *routine,
             ? claim_type_name
             : (op->arg0 != NULL ? op->arg0 : op->subject);
     }
-    inst.type_layout = mir_abi_lookup(abi_type_name);
+    inst.type_layout = resource_owner_layout != NULL
+        ? resource_owner_layout
+        : mir_abi_lookup(abi_type_name);
     free(claim_type_name);
     return mir_commit_instruction(routine, block, &inst);
 }
@@ -79,6 +185,9 @@ mir_populate_instructions(MIRRoutine *routine)
     MIRBasicBlock *entry;
     MIRBasicBlock *rollback;
     MIRBasicBlock *invalidation;
+    MIRResourceBorrowLoweringFact *borrow_facts = NULL;
+    size_t borrow_fact_count = 0;
+    size_t op_count = 0;
     bool appended_intent_steps = false;
 
     if (routine == NULL || routine->block_count == 0)
@@ -99,25 +208,68 @@ mir_populate_instructions(MIRRoutine *routine)
     if (rir_scope == NULL)
         return true;
 
-    for (size_t i = 0; i < rir_scope_op_count(rir_scope); i++) {
+    op_count = rir_scope_op_count(rir_scope);
+    if (op_count > 0) {
+        borrow_facts = calloc(op_count, sizeof(*borrow_facts));
+        if (borrow_facts == NULL)
+            return false;
+    }
+
+    for (size_t i = 0; i < op_count; i++) {
         const RIROp *op = rir_scope_op_at(rir_scope, i);
+        const char *resource_owner_slot_anchor = NULL;
+        const MIRTypeLayout *resource_owner_layout = NULL;
+        const MIRResourceBorrowLoweringFact *borrow_fact = NULL;
         if (op == NULL)
             continue;
+        if (op->kind == RIR_OP_BORROW_READ
+            || op->kind == RIR_OP_BORROW_WRITE) {
+            resource_owner_slot_anchor = op->subject;
+            resource_owner_layout =
+                mir_resource_layout_for_slot_fact(rir_scope, op->subject);
+        } else if (op->kind == RIR_OP_READ
+                   || op->kind == RIR_OP_WRITE
+                   || op->kind == RIR_OP_RELEASE
+                   || op->kind == RIR_OP_MOVE) {
+            borrow_fact = mir_resource_borrow_fact_for_view(
+                borrow_facts, borrow_fact_count, op->subject);
+            if (borrow_fact != NULL) {
+                resource_owner_slot_anchor = borrow_fact->source_slot;
+                resource_owner_layout = borrow_fact->source_layout;
+            }
+        }
         switch (op->kind) {
         case RIR_OP_ABORT_INTENT:
         case RIR_OP_COMPENSATE_INTENT_STEP:
             if (rollback != NULL) {
-                if (!mir_add_cleanup_instruction(routine, rollback, op))
+                if (!mir_add_cleanup_instruction(routine, rollback, op)) {
+                    free(borrow_facts);
                     return false;
+                }
                 break;
             }
             /* fallthrough */
         default:
-            if (!mir_add_resource_instruction(routine, entry, op))
+            if (!mir_add_resource_instruction(routine, entry, op,
+                    resource_owner_slot_anchor, resource_owner_layout)) {
+                free(borrow_facts);
                 return false;
+            }
+            if (op->kind == RIR_OP_BORROW_READ
+                || op->kind == RIR_OP_BORROW_WRITE) {
+                mir_resource_record_borrow_fact(
+                    borrow_facts,
+                    op_count,
+                    &borrow_fact_count,
+                    op->arg0,
+                    op->subject,
+                    resource_owner_layout);
+            }
             break;
         }
     }
+    free(borrow_facts);
+    borrow_facts = NULL;
 
     if (invalidation != NULL) {
         for (size_t i = 0; i < rir_scope_fact_count(rir_scope); i++) {

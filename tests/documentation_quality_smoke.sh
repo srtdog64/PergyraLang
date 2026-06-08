@@ -701,8 +701,8 @@ for term in "${beta_io_boundary_terms[@]}"; do
 done
 
 beta_progress_terms=(
-    "strict beta readiness is now about 75%"
-    "Do not call this 80% until"
+    "strict beta readiness is now about 82%"
+    "Do not call this beta-complete until"
     "The five closure targets are:"
     "CFG/body safety source-of-truth"
     "AIR abstraction-boundary verification"
@@ -725,6 +725,7 @@ for rel in \
     forbid_text "$rel" 'strict beta readiness `약 70-72%`'
     forbid_text "$rel" "strict beta readiness 약 70-72%"
     forbid_text "$rel" "about 70-72%"
+    forbid_text "$rel" "strict beta readiness is now about 75%"
     forbid_text "$rel" "약 70-72%"
 done
 for rel in "TODO.md" "docs/100_beta_readiness_checklist.md"; do

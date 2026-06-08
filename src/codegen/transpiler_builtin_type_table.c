@@ -24,12 +24,12 @@ pgy_builtin_entries(size_t *count)
 {
     static const PgyBuiltinInfo entries[] = {
         { "Acos", "Float", PGY_BUILTIN_FLAG_NONE },
-        { "Asin", "Float", PGY_BUILTIN_FLAG_NONE },
-        { "Atan", "Float", PGY_BUILTIN_FLAG_NONE },
-        { "Atan2", "Float", PGY_BUILTIN_FLAG_NONE },
         { "ArrayPop", "Void", PGY_BUILTIN_FLAG_NONE },
         { "ArrayPush", "Void", PGY_BUILTIN_FLAG_NONE },
         { "ArraySet", "Void", PGY_BUILTIN_FLAG_NONE },
+        { "Asin", "Float", PGY_BUILTIN_FLAG_NONE },
+        { "Atan", "Float", PGY_BUILTIN_FLAG_NONE },
+        { "Atan2", "Float", PGY_BUILTIN_FLAG_NONE },
         { "Cancel", "Bool", PGY_BUILTIN_FLAG_NONE },
         { "Ceil", "Float", PGY_BUILTIN_FLAG_NONE },
         { "ChannelCapacity", "Int", PGY_BUILTIN_FLAG_NONE },

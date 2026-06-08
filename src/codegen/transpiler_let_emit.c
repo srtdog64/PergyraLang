@@ -23,6 +23,7 @@
 #include "transpiler_let_slot_emit.h"
 #include "transpiler_let_type_register_emit.h"
 #include "transpiler_mir_inventory_intent_collect.h"
+#include "transpiler_mir_signature.h"
 #include "transpiler_mir_ssa_utils.h"
 #include "transpiler_specialization_registry.h"
 #include "transpiler_symbols.h"
@@ -114,10 +115,10 @@ emit_let_decl(ASTNode *node, TranspilerCtx *ctx)
                     free(ann_type_name);
                     return;
                 }
-                if (!transpiler_mir_routine_has_signature(routine)) {
-                    transpiler_set_mir_inventory_missing(ctx,
+                if (!transpiler_mir_routine_signature_metadata_complete_for(ctx,
+                        routine, decl, 0,
                         "MIR-only C path missing callable let return signature metadata for '%s'",
-                        ast_identifier_name(ast_call_callee(init)));
+                        NULL, NULL)) {
                     free(ann_type_name);
                     return;
                 }

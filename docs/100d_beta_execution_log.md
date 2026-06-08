@@ -3,6 +3,27 @@
 > Split from `docs/100_beta_readiness_checklist.md` on 2026-05-29.
 > Keep active blocker edits in the shard that owns the relevant closure track.
 
+## Progress Log - 2026-06-08 Readiness Reanchor And Documentation Sync
+
+- The live readiness anchor now separates implementation surface from strict
+  beta trust: feature-surface feel is about 85%, and strict beta readiness is
+  now about 82%. The older 70% / 75% wording was stale for the current codebase
+  and is no longer used by the source-of-truth docs.
+- The low-80% line is still not beta-complete. The remaining closure is current
+  full-suite evidence plus source-of-truth consumer completion across CFG/AIR,
+  guarded compatibility-fallback tightening, MIR/LLVM declaration bootstrap,
+  and ABI/Slot/Pin freeze.
+- Documentation source-of-truth was aligned across
+  `docs/100_beta_readiness_checklist.md`,
+  `docs/100a_beta_active_status.md`, `docs/50_language_completion_board.md`,
+  `docs/70_beta_closure_master_board.md`, `docs/README_ko.md`,
+  `docs/98_beta_closure_readiness_report.md`, and `TODO.md`.
+- The document gates now require the 82% wording and reject reintroducing the
+  stale `strict beta readiness is now about 75%` phrase in current-status
+  surfaces. Evidence run: `mingw32-make
+  beta-readiness-checklist-test-smoke documentation-quality-test-smoke
+  air-drift-test-smoke` passed, with `test-air` at `119 passed, 0 failed`.
+
 ## Progress Log - 2026-06-06 C/LLVM Function Signature Fail-Closed
 
 - C and LLVM function forward declarations and MIR body emission now fail
@@ -546,6 +567,58 @@
   gates: `make backend-fail-closed-test-smoke
   mir-declaration-inventory-test-smoke perf-contract-test-smoke
   llvm-test-smoke`.
+
+## Progress Log - 2026-06-08 Role Include And Pin View Closures
+
+- Closure #83: `emit_role_vtable_instance` now takes an explicit
+  `metadata_role_name` parameter that's used for MIR host-method lookup
+  while the original `role_name` continues to drive the emitted symbol
+  names. The canonical caller is `role X { include BaseRole; }`: the
+  vtable instance is named per `X`, but MIR registers the included
+  ability methods under `BaseRole`, so the lookup must walk to the
+  inclusion target. Recovered `tests/cases/backend_compare/role_include_methods`
+  on the C backend.
+- Closure #84 (partial): `transpiler_emit_mir_resource_op` learned how
+  to extract a typed inner from `ReadView<T>`/`WriteView<T>`/`MoveView<T>`
+  typed-var bindings, mirroring the existing `Slot<T>` / `SecureSlot<T>`
+  / `DeviceSlot<T>` extraction. The pin-redirect path in
+  `transpiler_mir_resource_hook_emit.c` still has to surface the view's
+  source slot via either the `TypedVarEntry::is_view`/`source_slot`
+  channel or a MIR routine inventory scan, and that's the remaining gap
+  on `pin_secure_param_read_view_block` — the view binding isn't
+  promoted into `lookup_typed_entry` with the right `is_view` shape in
+  this MIR shape, so the redirect doesn't fire and the core resource-op
+  emitter ends up looking at the view typed_name without a registered
+  source slot to anchor it.
+- Backend evidence after #83 + #84: `tests/compare_backends.sh` reports
+  794/795 passed (`pin_secure_param_read_view_block` is the single
+  remaining red on a real-language surface, scoped to MIR-side view
+  registration). All five probes and the three BETA gating smokes stay
+  RC=0.
+
+## Progress Log - 2026-06-08 C-Backend MIR Destructure Duplicate Decl Closure
+
+- Closure #82: `transpiler_mir_block_emit.c` now treats
+  `AST_LET_DESTRUCTURE` as already-handled in the `MIR_INST_STMT`
+  fallback (same shape as `AST_BLOCK`/`AST_RETURN`/`AST_DEFER_STMT`),
+  skipping the non-MIR `emit_let_destructure_statement` rerun. Without
+  this guard MIR-only mode emitted the destructure twice: once through
+  `MIR_INST_DESTRUCTURE` via `transpiler_emit_mir_let_destructure_stmt`
+  (assignment to a pre-declared SSA name) and once through the
+  source-statement fallback's `emit_statement` dispatch (full
+  `<c_type> <name> = ...;` declaration). gcc rejected the redefinition
+  with `previous definition of '_pgy_ssa_X_N' with type 'char *'`.
+- Recovered 4 backend-compare cases at once:
+  `destructure_array`, `destructure_tuple_return`, `tuple_literal_local`,
+  `slice_surface`. `tests/compare_backends.sh` reports 793/795 passed
+  (the two remaining fails are unrelated user-side surface: a
+  `pin_secure_param_read_view_block` resource-op runtime-layout gap and
+  the long-standing `role_include_methods` vtable inventory issue).
+- Sanity smokes after #82: `probe_record`, `probe_intent_array`,
+  `probe_field_index`, `probe_zone_chain`, `intent_header_interleaved`
+  all pass byte-equal. `beta-readiness-checklist-test-smoke`,
+  `mir-declaration-inventory-test-smoke`,
+  `intent-compression-contract-test-smoke` all RC=0.
 
 ## Progress Log - 2026-06-05 ArraySort LLVM Lowering
 

@@ -96,6 +96,10 @@ typedef struct
     MIRInstKind      kind;
     const char      *name;
     const char      *slot_anchor;
+    /* Runtime owner slot for view-backed resource ops. The surface
+     * slot_anchor remains matched to RIR for validation. */
+    const char      *resource_owner_slot_anchor;
+    bool             resource_owner_requires_metadata;
     const char      *arg0;
     const char      *arg1;
     const char      *result_name;

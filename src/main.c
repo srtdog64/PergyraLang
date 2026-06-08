@@ -37,8 +37,8 @@ main(int argc, char *argv[])
     (void)argc;
     (void)argv;
 
-    const char *testCode = 
-        "// Pergyra 언어 테스트\n"
+    const char *testCode =
+        "// Pergyra language smoke test\n"
         "let slot = ClaimSlot<Int>();\n"
         "Write(slot, 42);\n"
         "let val = Read(slot);\n"
@@ -59,13 +59,13 @@ main(int argc, char *argv[])
     Token  token;
     int    tokenCount = 0;
     
-    printf("=== Pergyra 토크나이저 테스트 ===\n");
-    printf("소스 코드:\n%s\n", testCode);
-    printf("\n=== 토큰 분석 결과 ===\n");
+    printf("=== Pergyra lexer smoke test ===\n");
+    printf("Source code:\n%s\n", testCode);
+    printf("\n=== Token analysis result ===\n");
     
     lexer = lexer_create(testCode);
     if (lexer == NULL) {
-        fprintf(stderr, "렉서 생성 실패\n");
+        fprintf(stderr, "Failed to create lexer\n");
         return 1;
     }
     
@@ -84,9 +84,9 @@ main(int argc, char *argv[])
     } while (token.type != TOKEN_EOF && token.type != TOKEN_ERROR);
     
     if (lexer_has_error(lexer)) {
-        printf("\n렉서 에러 발생: %s\n", lexer_get_error(lexer));
+        printf("\nLexer error: %s\n", lexer_get_error(lexer));
     } else {
-        printf("\n총 %d개의 토큰이 성공적으로 분석되었습니다.\n", tokenCount);
+        printf("\nSuccessfully analyzed %d tokens.\n", tokenCount);
     }
     
     lexer_destroy(lexer);

@@ -44,6 +44,13 @@ transpiler_emit_hosted_methods_from_mir_or_error(
             host_name != NULL ? host_name : anonymous_host_name);
         return;
     }
+    if (!transpiler_require_hosted_method_view_rows(
+            ctx,
+            method_view,
+            "MIR-only C path has invalid method declaration metadata row for hosted method '%s'",
+            host_name != NULL ? host_name : anonymous_host_name)) {
+        return;
+    }
 
     for (size_t i = 0; i < method_count; i++) {
         const MIRDeclMethod *method_meta =
@@ -53,14 +60,6 @@ transpiler_emit_hosted_methods_from_mir_or_error(
         const char *method_name = NULL;
         char emitted_name[256];
 
-        if (transpiler_hosted_method_view_missing_mir_method_row(method_view, i)) {
-            transpiler_set_mir_inventory_missing(
-                ctx,
-                "MIR-only C path has invalid method declaration metadata row for %s '%s'",
-                host_kind != NULL ? host_kind : "host",
-                host_name != NULL ? host_name : anonymous_host_name);
-            return;
-        }
         method_name = transpiler_mir_decl_method_name(method_meta);
 
         mir_method = transpiler_mir_decl_method_routine(ctx, method_meta);

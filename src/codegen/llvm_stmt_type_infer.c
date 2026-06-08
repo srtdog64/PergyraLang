@@ -55,6 +55,15 @@ llvm_stmt_host_method_return_type(LLVMGenCtx *ctx, const char *host_type_name,
 
     method_meta = llvm_find_host_method_metadata_in_context(
         ctx, host_type_name, method_name);
+    if (!llvm_mir_decl_method_metadata_complete_for(ctx,
+            method_meta,
+            host_type_name,
+            method_name,
+            LLVM_MIR_DECL_METHOD_REQUIRE_RETURN_TYPE_NAME,
+            "MIR-only LLVM path missing method type inference return type-name metadata for '%s.%s'",
+            NULL)) {
+        return NULL;
+    }
     {
         const char *ret_name =
             llvm_mir_decl_method_return_type_name(method_meta);
@@ -83,15 +92,6 @@ llvm_stmt_host_method_return_type(LLVMGenCtx *ctx, const char *host_type_name,
             ctx, host_type_name, method_name);
         if (method_decl != NULL && method_decl->type == AST_FUNC_DECL)
             ret_ty = ast_func_return_type(method_decl);
-    }
-    if (method_meta != NULL
-        && ret_ty != NULL
-        && ret_ty->type != AST_EVENT_HANDLER_TYPE) {
-        llvm_set_mir_inventory_missing(ctx,
-            "MIR-only LLVM path missing method type inference return type-name metadata for '%s.%s'",
-            host_type_name != NULL ? host_type_name : "(anonymous)",
-            method_name != NULL ? method_name : "(anonymous)");
-        return NULL;
     }
     if (ret_ty != NULL) {
         LLVMTypeRef llvm_ret = ast_type_to_llvm(ctx, ret_ty);

@@ -76,21 +76,42 @@ llvm_active_function_routine_for_source_ast(const LLVMGenCtx *ctx,
                                             const ASTNode *func_decl)
 {
     LLVMMIRRoutineInventory inventory;
+    const char *target;
+    size_t name_len;
 
     if (ctx == NULL || func_decl == NULL
-        || func_decl->type != AST_FUNC_DECL) {
+        || func_decl->type != AST_FUNC_DECL
+        || ast_declaration_name((ASTNode *)func_decl) == NULL) {
         return NULL;
     }
 
+    target = ast_declaration_name((ASTNode *)func_decl);
+    name_len = strlen(target);
     llvm_active_routine_inventory(ctx, &inventory);
     for (size_t i = 0; i < inventory.count; i++) {
         const MIRRoutine *routine = llvm_routine_inventory_get(&inventory, i);
+        const char *routine_name = llvm_mir_routine_name(routine);
         if (routine == NULL
-            || llvm_mir_routine_kind(routine) != MIR_SCOPE_FUNCTION) {
+            || llvm_mir_routine_kind(routine) != MIR_SCOPE_FUNCTION
+            || routine_name == NULL) {
             continue;
         }
-        if (llvm_mir_routine_source_ast(routine) == func_decl)
+        if (strcmp(routine_name, target) == 0)
             return routine;
+    }
+    for (size_t i = 0; i < inventory.count; i++) {
+        const MIRRoutine *routine = llvm_routine_inventory_get(&inventory, i);
+        const char *routine_name = llvm_mir_routine_name(routine);
+        if (routine == NULL
+            || llvm_mir_routine_kind(routine) != MIR_SCOPE_FUNCTION
+            || routine_name == NULL) {
+            continue;
+        }
+        if (strncmp(routine_name, target, name_len) == 0
+            && (routine_name[name_len] == '_'
+                || routine_name[name_len] == '\0')) {
+            return routine;
+        }
     }
     return NULL;
 }

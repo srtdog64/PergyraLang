@@ -12,6 +12,7 @@
 #include "llvm_boundary_slot_param.h"
 #include "llvm_expr_member_lvalue.h"
 #include "llvm_internal_api.h"
+#include "llvm_mir_signature.h"
 
 static LLVMValueRef
 llvm_boundary_slot_runtime_arg(LLVMGenCtx *ctx, LLVMVarEntry *slot_var)
@@ -118,6 +119,7 @@ llvm_build_boundary_call_args(LLVMGenCtx *ctx, ASTNode *decl,
     bool routine_has_signature = false;
     const char *decl_name = NULL;
     bool decl_is_generic = false;
+    bool decl_is_extern = false;
     size_t param_count;
 
     if (out_count != NULL)
@@ -128,7 +130,8 @@ llvm_build_boundary_call_args(LLVMGenCtx *ctx, ASTNode *decl,
     decl_name = ast_declaration_name(decl);
     decl_is_generic =
         ast_generic_param_count(ast_declaration_generic_params(decl)) > 0;
-    if (llvm_active_has_mir(ctx) && !decl_is_generic) {
+    decl_is_extern = llvm_decl_is_extern_function(ctx, decl);
+    if (llvm_active_has_mir(ctx) && !decl_is_generic && !decl_is_extern) {
         routine = llvm_active_function_routine_for_source_ast(ctx, decl);
         if (routine == NULL) {
             llvm_set_mir_inventory_missing(ctx,
@@ -136,10 +139,12 @@ llvm_build_boundary_call_args(LLVMGenCtx *ctx, ASTNode *decl,
                 decl_name != NULL ? decl_name : "(anonymous-function)");
             return NULL;
         }
-        if (!llvm_mir_routine_has_signature(routine)) {
-            llvm_set_mir_inventory_missing(ctx,
+        if (!llvm_mir_routine_signature_metadata_complete_for(ctx,
+                routine, decl,
+                LLVM_MIR_SIGNATURE_REQUIRE_PARAM_TYPE_NAMES,
                 "MIR-only LLVM path missing boundary call signature metadata for '%s'",
-                decl_name != NULL ? decl_name : "(anonymous-function)");
+                NULL,
+                "MIR-only LLVM path missing boundary call parameter type-name metadata for '%s'")) {
             return NULL;
         }
         routine_has_signature = true;
@@ -161,16 +166,6 @@ llvm_build_boundary_call_args(LLVMGenCtx *ctx, ASTNode *decl,
             ? llvm_mir_routine_param_type_name(routine, i)
             : NULL;
         const char *inner = NULL;
-        if (routine_has_signature
-            && p != NULL
-            && p->type != NULL
-            && p->type->type != AST_EVENT_HANDLER_TYPE
-            && param_type_name == NULL) {
-            llvm_set_mir_inventory_missing(ctx,
-                "MIR-only LLVM path missing boundary call parameter type-name metadata for '%s'",
-                decl_name != NULL ? decl_name : "(anonymous-function)");
-            return NULL;
-        }
         emitted_count++;
         inner = param_type_name != NULL
             ? llvm_boundary_slot_inner_name_from_type_name(ctx, p,

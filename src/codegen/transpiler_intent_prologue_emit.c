@@ -85,19 +85,16 @@ transpiler_emit_intent_signature_and_entry(ASTNode *node,
         }
         mir_binding_count = bindings_view != NULL ? bindings_view->count : 0;
         for (size_t i = 0; i < mir_binding_count; i++) {
-            if (bindings_view == NULL || bindings_view->kinds == NULL
-                || bindings_view->aliases == NULL || bindings_view->types == NULL
-                || bindings_view->kinds[i] == NULL
-                || bindings_view->aliases[i] == NULL
-                || bindings_view->types[i] == NULL) {
+            if (!intent_binding_metadata_view_has_complete_row(
+                    bindings_view, i)) {
                 transpiler_set_mir_inventory_missing(
                     ctx,
                     "MIR-backed C intent prologue has incomplete ordered binding metadata for '%s'",
                     intent_name != NULL ? intent_name : "(anonymous-intent)");
                 return false;
             }
-            if (strcmp(bindings_view->kinds[i], "participant") != 0
-                && strcmp(bindings_view->kinds[i], "value") != 0) {
+            if (!intent_binding_metadata_view_has_supported_row(
+                    bindings_view, i)) {
                 transpiler_set_mir_inventory_missing(
                     ctx,
                     "MIR-backed C intent prologue has invalid ordered binding metadata for '%s'",
@@ -142,11 +139,15 @@ transpiler_emit_intent_signature_and_entry(ASTNode *node,
             if (i > 0)
                 codebuf_write(ctx->out, ", ");
 
-            if (mir_routine != NULL && bindings_view != NULL
-                && strcmp(bindings_view->kinds[i], "participant") == 0) {
-                const char *participant_type = bindings_view->types[i];
-                alias = bindings_view->aliases[i] != NULL
-                    ? bindings_view->aliases[i] : "participant";
+            if (mir_routine != NULL
+                && intent_binding_metadata_view_row_is_kind(
+                    bindings_view, i, "participant")) {
+                const char *participant_type =
+                    intent_binding_metadata_view_type_at(bindings_view, i);
+                alias = intent_binding_metadata_view_alias_at(
+                    bindings_view, i);
+                if (alias == NULL)
+                    alias = "participant";
                 if (!transpiler_intent_prologue_surface_desc(surface_desc,
                         sizeof(surface_desc), "intent participant", alias,
                         intent_name)) {
@@ -202,12 +203,13 @@ transpiler_emit_intent_signature_and_entry(ASTNode *node,
                 participant_index++;
             } else {
                 const char *value_type_name = mir_routine != NULL
-                    ? (bindings_view != NULL ? bindings_view->types[i] : NULL)
+                    ? intent_binding_metadata_view_type_at(bindings_view, i)
                     : NULL;
                 ASTNode *value_type = NULL;
                 (void)value_index;
-                if (mir_routine != NULL && bindings_view != NULL
-                    && strcmp(bindings_view->kinds[i], "value") != 0) {
+                if (mir_routine != NULL
+                    && !intent_binding_metadata_view_row_is_kind(
+                        bindings_view, i, "value")) {
                     transpiler_set_mir_inventory_missing(
                         ctx,
                         "MIR-backed C intent prologue has invalid ordered binding metadata for '%s'",
@@ -215,10 +217,11 @@ transpiler_emit_intent_signature_and_entry(ASTNode *node,
                     return false;
                 }
                 alias = mir_routine != NULL
-                    ? (bindings_view != NULL && bindings_view->aliases[i] != NULL
-                        ? bindings_view->aliases[i] : "value")
+                    ? intent_binding_metadata_view_alias_at(bindings_view, i)
                     : ((binding != NULL && ast_intent_value_alias(binding) != NULL)
                         ? ast_intent_value_alias(binding) : "value");
+                if (alias == NULL)
+                    alias = "value";
                 if (!transpiler_intent_prologue_surface_desc(surface_desc,
                         sizeof(surface_desc), "intent value", alias,
                         intent_name)) {
@@ -277,10 +280,11 @@ transpiler_emit_intent_signature_and_entry(ASTNode *node,
     }
     if (mir_routine != NULL) {
         for (size_t i = 0; i < mir_binding_count; i++) {
-            if (strcmp(bindings_view->kinds[i], "participant") != 0)
-                continue;
-            if (intent_type_name_is_subject_participant(ctx,
-                    bindings_view->types[i])) {
+            if (intent_binding_metadata_view_row_is_kind(
+                    bindings_view, i, "participant")
+                && intent_type_name_is_subject_participant(ctx,
+                    intent_binding_metadata_view_type_at(
+                        bindings_view, i))) {
                 subject_count++;
             }
         }
@@ -304,15 +308,20 @@ transpiler_emit_intent_signature_and_entry(ASTNode *node,
                 ASTNode *involves = mir_routine != NULL
                     ? NULL : involves_nodes[i];
                 const char *alias = mir_routine != NULL
-                    ? bindings_view->aliases[i]
+                    ? intent_binding_metadata_view_alias_at(
+                        bindings_view, i)
                     : ((involves != NULL
                         && ast_intent_involves_alias(involves) != NULL)
                         ? ast_intent_involves_alias(involves) : "participant");
                 bool is_subject = mir_routine != NULL
-                    ? (strcmp(bindings_view->kinds[i], "participant") == 0
+                    ? (intent_binding_metadata_view_row_is_kind(
+                            bindings_view, i, "participant")
                         && intent_type_name_is_subject_participant(ctx,
-                            bindings_view->types[i]))
+                            intent_binding_metadata_view_type_at(
+                                bindings_view, i)))
                     : intent_involves_is_subject_participant(ctx, involves);
+                if (alias == NULL)
+                    alias = "participant";
                 if (!is_subject)
                     continue;
                 write_indent(ctx);

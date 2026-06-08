@@ -374,7 +374,8 @@ llvm_emit_mir_block_with_exprs(const MIRBasicBlock *mir_block,
             if (mir_instruction_is_with_slot_claim(inst)) {
                 llvm_mir_emit_with_claim_only(inst, ctx);
             }
-            llvm_mir_emit_borrow_view_alias(inst, ctx);
+            if (!llvm_mir_emit_borrow_view_alias(inst, ctx))
+                return;
             break;
         case MIR_INST_DEF:
             if (inst->result_name != NULL) {

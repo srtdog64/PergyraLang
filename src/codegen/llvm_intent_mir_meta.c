@@ -200,6 +200,7 @@ llvm_collect_mir_intent_bindings(const MIRRoutine *routine,
         bindings_out->aliases = NULL;
         bindings_out->types = NULL;
         bindings_out->count = 0;
+        bindings_out->owns_storage = false;
     }
     if (routine == NULL || ctx == NULL || bindings_out == NULL) {
         return 0;
@@ -255,6 +256,7 @@ llvm_collect_mir_intent_bindings(const MIRRoutine *routine,
     bindings_out->aliases = aliases;
     bindings_out->types = types;
     bindings_out->count = count;
+    bindings_out->owns_storage = false;
     return count;
 }
 

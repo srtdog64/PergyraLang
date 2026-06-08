@@ -1,0 +1,17 @@
+class Box {
+    let value: Int;
+
+    func Get_Value(self) -> Int {
+        return 99;
+    }
+
+    func Get(self) -> Int {
+        return value;
+    }
+}
+
+func Main() -> Void {
+    let box = Box(7);
+    Log(box.Get());
+    Log(box.Get_Value());
+}

@@ -7,6 +7,7 @@
 #include "llvm_expr_spawn_call_helpers.h"
 #include "llvm_expr_spawn_names.h"
 #include "llvm_expr_spawn_worker_boundary.h"
+#include "llvm_mir_signature.h"
 
 #include <limits.h>
 #include <stdint.h>
@@ -93,6 +94,7 @@ llvm_emit_spawn_expr(ASTNode *node, LLVMGenCtx *ctx)
     const MIRRoutine *callee_routine = NULL;
     bool callee_has_mir_signature = false;
     bool callee_is_generic_func = false;
+    bool callee_is_extern_func = false;
     LLVMValueRef callee_fn = NULL;
     LLVMTypeRef callee_fn_type = NULL;
     LLVMTypeRef callee_ret_type = NULL;
@@ -134,7 +136,9 @@ llvm_emit_spawn_expr(ASTNode *node, LLVMGenCtx *ctx)
         callee_is_generic_func =
             ast_generic_param_count(
                 ast_declaration_generic_params(callee_decl)) > 0;
-        if (!callee_is_generic_func && llvm_active_has_mir(ctx)) {
+        callee_is_extern_func = llvm_decl_is_extern_function(ctx, callee_decl);
+        if (!callee_is_generic_func && !callee_is_extern_func
+            && llvm_active_has_mir(ctx)) {
             callee_routine =
                 llvm_active_function_routine_for_source_ast(ctx, callee_decl);
             if (callee_routine == NULL) {
@@ -143,8 +147,15 @@ llvm_emit_spawn_expr(ASTNode *node, LLVMGenCtx *ctx)
                     callee_name != NULL ? callee_name : "<function>");
                 return NULL;
             }
-            callee_has_mir_signature =
-                llvm_mir_routine_has_signature(callee_routine);
+            if (!llvm_mir_routine_signature_metadata_complete_for(ctx,
+                    callee_routine, callee_decl,
+                    LLVM_MIR_SIGNATURE_REQUIRE_PARAM_TYPE_NAMES,
+                    "MIR-only LLVM path missing spawn signature metadata for '%s'",
+                    NULL,
+                    "MIR-only LLVM path missing spawn parameter type-name metadata for '%s'")) {
+                return NULL;
+            }
+            callee_has_mir_signature = true;
         }
     }
 
@@ -175,14 +186,6 @@ llvm_emit_spawn_expr(ASTNode *node, LLVMGenCtx *ctx)
                     param = llvm_mir_routine_param(callee_routine, i);
                     param_type_name =
                         llvm_mir_routine_param_type_name(callee_routine, i);
-                }
-                if (param != NULL && param->type != NULL
-                    && param->type->type != AST_EVENT_HANDLER_TYPE
-                    && param_type_name == NULL) {
-                    llvm_set_mir_inventory_missing(ctx,
-                        "MIR-only LLVM path missing spawn parameter type-name metadata for '%s'",
-                        callee_name != NULL ? callee_name : "<function>");
-                    return NULL;
                 }
             } else if (callee_decl != NULL
                        && callee_decl->type == AST_FUNC_DECL) {

@@ -11,6 +11,7 @@ void emit_role_method_impl(const char *role_name,
                            ASTNode *method,
                            TranspilerCtx *ctx);
 void emit_role_vtable_instance(const char *role_name,
+                               const char *metadata_role_name,
                                ASTNode *impl,
                                TranspilerCtx *ctx);
 void emit_role_operator_aliases(ASTNode *role, TranspilerCtx *ctx);

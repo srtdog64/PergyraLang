@@ -12,6 +12,7 @@
 #include "llvm_intent_internal.h"
 #include "llvm_mir_vars.h"
 #include "llvm_mir_phi.h"
+#include "llvm_mir_signature.h"
 #include "llvm_mir_type_helpers.h"
 
 static void
@@ -115,9 +116,6 @@ llvm_emit_func_from_mir(const MIRRoutine *routine, LLVMGenCtx *ctx)
     bool owner_is_role = false;
     const char *owner_name = NULL;
     IntentBindingMetadataView binding_metadata = {0};
-    const char **binding_kinds = NULL;
-    const char **binding_aliases = NULL;
-    const char **binding_types = NULL;
     size_t mir_binding_count = 0;
     LLVMClassTypeEntry *owner_cls = NULL;
     LLVMFuncEntry *owner_sync = NULL;
@@ -143,27 +141,17 @@ llvm_emit_func_from_mir(const MIRRoutine *routine, LLVMGenCtx *ctx)
     if (is_intent) {
         mir_binding_count = llvm_collect_mir_intent_bindings(
             routine, ctx, &binding_metadata);
-        binding_kinds = binding_metadata.kinds;
-        binding_aliases = binding_metadata.aliases;
-        binding_types = binding_metadata.types;
-        if (mir_binding_count > 0
-            && (binding_kinds == NULL || binding_aliases == NULL
-                || binding_types == NULL)) {
-            llvm_set_mir_inventory_missing(ctx,
-                "MIR-only LLVM path has incomplete ordered intent binding metadata for '%s'",
-                routine_name != NULL ? routine_name : "(anonymous)");
-            return NULL;
-        }
         for (size_t i = 0; i < mir_binding_count; i++) {
-            if (binding_kinds[i] == NULL || binding_aliases[i] == NULL
-                || binding_types[i] == NULL) {
+            if (!intent_binding_metadata_view_has_complete_row(
+                    &binding_metadata, i)) {
                 llvm_set_mir_inventory_missing(ctx,
                     "MIR-only LLVM path has incomplete ordered intent binding metadata for '%s'",
                     routine_name != NULL ? routine_name : "(anonymous)");
                 return NULL;
             }
-            if (strcmp(binding_kinds[i], "participant") != 0
-                && strcmp(binding_kinds[i], "value") != 0) {
+            if (!intent_binding_metadata_kind_is_supported(
+                    intent_binding_metadata_view_kind_at(
+                        &binding_metadata, i))) {
                 llvm_set_mir_inventory_missing(ctx,
                     "MIR-only LLVM path has invalid ordered intent binding metadata for '%s'",
                     routine_name != NULL ? routine_name : "(anonymous)");
@@ -176,33 +164,17 @@ llvm_emit_func_from_mir(const MIRRoutine *routine, LLVMGenCtx *ctx)
     owner_is_role = is_method
         && llvm_mir_routine_owner_ast_type(routine) == AST_ROLE_DECL;
     owner_name = llvm_mir_routine_owner_name(routine);
-    if (!is_intent && llvm_active_has_mir(ctx)
-        && !llvm_mir_routine_has_signature(routine)) {
-        llvm_set_mir_inventory_missing(ctx,
+    if (!is_intent
+        && !llvm_mir_routine_signature_metadata_complete(ctx,
+            routine,
+            func_decl,
             "MIR-only LLVM path missing function body signature metadata for '%s'",
-            llvm_mir_routine_name(routine) != NULL
-                ? llvm_mir_routine_name(routine)
-                : "(anonymous)");
+            "MIR-only LLVM path missing function body return type-name metadata for '%s'",
+            "MIR-only LLVM path missing function body parameter type-name metadata for '%s'")) {
         return NULL;
     }
-    if (!is_intent && llvm_mir_routine_has_signature(routine)) {
-        size_t func_param_count = llvm_mir_routine_param_count(routine);
-        for (size_t i = 0; i < func_param_count; i++) {
-            FuncParam *param = llvm_mir_routine_param(routine, i);
-            const char *param_type_name =
-                llvm_mir_routine_param_type_name(routine, i);
-            if (param == NULL || llvm_param_is_implicit_self_local(param))
-                continue;
-            if (param_type_name == NULL
-                && param->type != NULL
-                && param->type->type != AST_EVENT_HANDLER_TYPE) {
-                llvm_set_mir_inventory_missing(ctx,
-                    "MIR-only LLVM path missing function body parameter type-name metadata for '%s'",
-                    routine_name != NULL ? routine_name : "(anonymous)");
-                return NULL;
-            }
-        }
-    }
+    const bool routine_has_signature =
+        !is_intent && routine != NULL && llvm_active_has_mir(ctx);
     if (is_method && owner_name == NULL) {
         llvm_set_mir_topology_invalid(ctx,
             "MIR-only LLVM path missing owner metadata for method '%s'",
@@ -222,11 +194,11 @@ llvm_emit_func_from_mir(const MIRRoutine *routine, LLVMGenCtx *ctx)
         ? mir_binding_count
         : (is_method ? 1 : 0);
     if (!is_intent) {
-        size_t func_param_count = llvm_mir_routine_has_signature(routine)
+        size_t func_param_count = routine_has_signature
             ? llvm_mir_routine_param_count(routine)
             : ast_func_param_count(func_decl);
         for (size_t i = 0; i < func_param_count; i++) {
-            FuncParam *p = llvm_mir_routine_has_signature(routine)
+            FuncParam *p = routine_has_signature
                 ? llvm_mir_routine_param(routine, i)
                 : ast_func_param(func_decl, i);
             if (is_method && llvm_param_is_implicit_self_local(p)) {
@@ -249,9 +221,10 @@ llvm_emit_func_from_mir(const MIRRoutine *routine, LLVMGenCtx *ctx)
     }
     for (size_t i = 0; i < param_count; i++) {
         if (is_intent) {
-            const char *kind = binding_kinds != NULL ? binding_kinds[i] : NULL;
-            const char *type_name = binding_types != NULL ? binding_types[i] : NULL;
-            (void)binding_aliases;
+            const char *kind =
+                intent_binding_metadata_view_kind_at(&binding_metadata, i);
+            const char *type_name =
+                intent_binding_metadata_view_type_at(&binding_metadata, i);
 
             if (kind != NULL && strcmp(kind, "participant") == 0) {
                 if (type_name != NULL) {
@@ -298,14 +271,14 @@ llvm_emit_func_from_mir(const MIRRoutine *routine, LLVMGenCtx *ctx)
             size_t seen = 0;
             FuncParam *p = NULL;
             size_t source_param_index = (size_t)-1;
-            size_t func_param_count = llvm_mir_routine_has_signature(routine)
+            size_t func_param_count = routine_has_signature
                 ? llvm_mir_routine_param_count(routine)
                 : ast_func_param_count(func_decl);
             for (size_t param_index = 0;
                 param_index < func_param_count;
                  param_index++) {
                 FuncParam *candidate =
-                    llvm_mir_routine_has_signature(routine)
+                    routine_has_signature
                         ? llvm_mir_routine_param(routine, param_index)
                         : ast_func_param(func_decl, param_index);
                 if (llvm_param_is_implicit_self_local(candidate)) {
@@ -321,7 +294,7 @@ llvm_emit_func_from_mir(const MIRRoutine *routine, LLVMGenCtx *ctx)
             bool is_secure_slot = false;
             const char *param_type_name =
                 source_param_index != (size_t)-1
-                    && llvm_mir_routine_has_signature(routine)
+                    && routine_has_signature
                     ? llvm_mir_routine_param_type_name(routine,
                         source_param_index)
                     : NULL;
@@ -368,18 +341,10 @@ llvm_emit_func_from_mir(const MIRRoutine *routine, LLVMGenCtx *ctx)
     if (!is_intent) {
         return_type_name = llvm_mir_routine_return_type_name(routine);
         return_type = llvm_mir_routine_return_type(routine);
-        if (return_type == NULL && !llvm_mir_routine_has_signature(routine))
+        if (return_type == NULL && !routine_has_signature)
             return_type = ast_func_return_type(func_decl);
         if (return_type_name != NULL)
             ret_type = pergyra_type_to_llvm(ctx, return_type_name);
-        else if (llvm_mir_routine_has_signature(routine)
-                 && return_type != NULL
-                 && return_type->type != AST_EVENT_HANDLER_TYPE) {
-            llvm_set_mir_inventory_missing(ctx,
-                "MIR-only LLVM path missing function body return type-name metadata for '%s'",
-                routine_name != NULL ? routine_name : "(anonymous)");
-            return NULL;
-        }
         else if (return_type != NULL)
             ret_type = llvm_mir_type_from_ast(ctx, return_type);
     }

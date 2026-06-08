@@ -32,6 +32,11 @@ llvm_emit_role_method_forward_decls_metadata_first(
             role_name != NULL ? role_name : "(anonymous-role)");
         return;
     }
+    if (!llvm_require_hosted_method_view_rows(ctx, methods,
+            "MIR-only LLVM path has invalid method forward metadata row for role '%s'",
+            role_name != NULL ? role_name : "(anonymous-role)")) {
+        return;
+    }
 
     for (size_t j = 0; j < methods->count; j++) {
         const MIRDeclMethod *method_meta =
@@ -58,12 +63,6 @@ llvm_emit_role_method_forward_decls_metadata_first(
         char fname[256];
         LLVMValueRef fn;
 
-        if (llvm_hosted_method_view_missing_mir_method_row(methods, j)) {
-            llvm_set_mir_inventory_missing(ctx,
-                "MIR-only LLVM path has invalid method forward metadata row for role '%s'",
-                role_name != NULL ? role_name : "(anonymous-role)");
-            return;
-        }
         if (method_meta == NULL
             && (method == NULL || method->type != AST_FUNC_DECL))
             continue;
@@ -73,18 +72,19 @@ llvm_emit_role_method_forward_decls_metadata_first(
                 role_name != NULL ? role_name : "(anonymous-role)");
             return;
         }
+        if (!llvm_mir_decl_method_metadata_complete_for(ctx,
+                method_meta,
+                role_name,
+                mname,
+                LLVM_MIR_DECL_METHOD_REQUIRE_ALL_TYPE_NAMES,
+                "MIR-only LLVM path missing role method forward return type-name metadata for '%s.%s'",
+                "MIR-only LLVM path missing role method forward parameter type-name metadata for '%s.%s'")) {
+            return;
+        }
         if (return_type_name != NULL) {
             ret = pergyra_type_to_llvm(ctx, return_type_name);
             if (ctx->has_error || ret == NULL)
                 return;
-        } else if (method_meta != NULL
-                   && return_type != NULL
-                   && return_type->type != AST_EVENT_HANDLER_TYPE) {
-            llvm_set_mir_inventory_missing(ctx,
-                "MIR-only LLVM path missing role method forward return type-name metadata for '%s.%s'",
-                role_name != NULL ? role_name : "(anonymous-role)",
-                mname != NULL ? mname : "(anonymous)");
-            return;
         } else if (return_type != NULL) {
             ret = ast_type_to_llvm(ctx, return_type);
             if (ctx->has_error || ret == NULL)
@@ -122,17 +122,6 @@ llvm_emit_role_method_forward_decls_metadata_first(
             LLVMTypeRef pt;
             if (llvm_param_is_implicit_self_local(p))
                 continue;
-            if (method_meta != NULL
-                && param_type_name == NULL
-                && p != NULL
-                && p->type != NULL
-                && p->type->type != AST_EVENT_HANDLER_TYPE) {
-                llvm_set_mir_inventory_missing(ctx,
-                    "MIR-only LLVM path missing role method forward parameter type-name metadata for '%s.%s'",
-                    role_name != NULL ? role_name : "(anonymous-role)",
-                    mname != NULL ? mname : "(anonymous)");
-                return;
-            }
             if (param_type_name != NULL)
                 pt = pergyra_type_to_llvm(ctx, param_type_name);
             else
@@ -201,6 +190,16 @@ llvm_emit_role_operator_forward_decl(LLVMGenCtx *ctx,
     if (llvm_lookup_function(ctx, opname) != NULL)
         return true;
 
+    if (!llvm_mir_decl_method_metadata_complete_for(ctx,
+            method_meta,
+            llvm_decl_node_name(role),
+            opname,
+            LLVM_MIR_DECL_METHOD_REQUIRE_ALL_TYPE_NAMES,
+            "MIR-only LLVM path missing role operator forward return type-name metadata for '%s.%s'",
+            "MIR-only LLVM path missing role operator forward parameter type-name metadata for '%s.%s'")) {
+        return false;
+    }
+
     for (size_t pj = 0;
          pj < llvm_domain_method_param_count_metadata_first(
              method_meta, method, false);
@@ -237,12 +236,6 @@ llvm_emit_role_operator_forward_decl(LLVMGenCtx *ctx,
         }
         if (rhs_type_name != NULL) {
             rhs_type = pergyra_type_to_llvm(ctx, rhs_type_name);
-        } else if (rhs_param != NULL
-                   && rhs_param->type != NULL
-                   && rhs_param->type->type != AST_EVENT_HANDLER_TYPE) {
-            llvm_set_mir_inventory_missing(ctx,
-                "MIR-only LLVM path missing role operator forward parameter type-name metadata");
-            rhs_type = NULL;
         } else {
             rhs_type = llvm_domain_forward_required_param_type(
                 ctx, method, rhs_param, "role operator", opname);
@@ -259,11 +252,6 @@ llvm_emit_role_operator_forward_decl(LLVMGenCtx *ctx,
                 method_meta, method, false);
         if (return_type_name != NULL) {
             ret = pergyra_type_to_llvm(ctx, return_type_name);
-        } else if (return_type != NULL
-                   && return_type->type != AST_EVENT_HANDLER_TYPE) {
-            llvm_set_mir_inventory_missing(ctx,
-                "MIR-only LLVM path missing role operator forward return type-name metadata");
-            ret = NULL;
         } else {
             ret = return_type != NULL
                 ? ast_type_to_llvm(ctx, return_type)

@@ -11,10 +11,12 @@
 #include "transpiler_context.h"
 #include "transpiler_decl_lookup.h"
 #include "transpiler_expr_type_infer.h"
+#include "transpiler_generic_param_query.h"
 #include "transpiler_let_slot_emit.h"
 #include "transpiler_inventory_view.h"
 #include "transpiler_mir_effective_type.h"
 #include "transpiler_mir_inventory_intent_collect.h"
+#include "transpiler_mir_signature.h"
 #include "transpiler_nominal.h"
 #include "transpiler_symbols.h"
 #include "transpiler_type_mapping.h"
@@ -148,6 +150,15 @@ transpiler_infer_local_type_name_from_expr(TranspilerCtx *ctx,
                 const char *method_return_type_name = NULL;
                 method_meta = transpiler_find_host_method_metadata_in_context(
                     ctx, receiver_type, method_name);
+                if (!transpiler_mir_decl_method_metadata_complete_for(ctx,
+                        method_meta,
+                        receiver_type,
+                        method_name,
+                        TRANSPILER_MIR_DECL_METHOD_REQUIRE_RETURN_TYPE_NAME,
+                        "MIR-only C path missing MIR local member-call return type-name metadata for '%s.%s'",
+                        NULL)) {
+                    return NULL;
+                }
                 method_return_type_name =
                     transpiler_mir_decl_method_return_type_name(method_meta);
                 if (method_return_type_name != NULL)
@@ -160,15 +171,6 @@ transpiler_infer_local_type_name_from_expr(TranspilerCtx *ctx,
                     method_decl = find_nominal_host_method_decl(
                         ctx, receiver_type, method_name);
                     method_return_type = ast_func_return_type(method_decl);
-                }
-                if (method_meta != NULL
-                    && method_return_type != NULL
-                    && method_return_type->type != AST_EVENT_HANDLER_TYPE) {
-                    transpiler_set_mir_inventory_missing(ctx,
-                        "MIR-only C path missing MIR local member-call return type-name metadata for '%s.%s'",
-                        receiver_type != NULL ? receiver_type : "(anonymous)",
-                        method_name != NULL ? method_name : "(anonymous)");
-                    return NULL;
                 }
             }
             if (method_return_type != NULL) {
@@ -188,8 +190,16 @@ transpiler_infer_local_type_name_from_expr(TranspilerCtx *ctx,
             ASTNode *callee_return_type = NULL;
             if (callee_decl != NULL && callee_decl->type == AST_INTENT_DECL)
                 return "Bool";
+            bool generic_call = callee_decl != NULL
+                && callee_decl->type == AST_FUNC_DECL
+                && transpiler_func_has_generic_params(callee_decl);
+            bool extern_func = callee_decl != NULL
+                && callee_decl->type == AST_FUNC_DECL
+                && transpiler_decl_is_extern_function(ctx, callee_decl);
             if (callee_decl != NULL && callee_decl->type == AST_FUNC_DECL
-                && transpiler_active_has_mir(ctx)) {
+                && transpiler_active_has_mir(ctx)
+                && !generic_call
+                && !extern_func) {
                 const MIRRoutine *callee_routine =
                     transpiler_find_mir_function(ctx, callee_decl);
                 if (callee_routine == NULL) {
@@ -199,11 +209,14 @@ transpiler_infer_local_type_name_from_expr(TranspilerCtx *ctx,
                         callee_name);
                     return NULL;
                 }
-                if (!transpiler_mir_routine_has_signature(callee_routine)) {
-                    transpiler_set_mir_inventory_missing(
+                if (!transpiler_mir_routine_signature_metadata_complete_for(
                         ctx,
+                        callee_routine,
+                        callee_decl,
+                        TRANSPILER_MIR_SIGNATURE_REQUIRE_RETURN_TYPE_NAME,
                         "MIR-only C path missing function call return signature metadata for '%s'",
-                        callee_name);
+                        "MIR-only C path missing function call return type-name metadata for '%s'",
+                        NULL)) {
                     return NULL;
                 }
                 const char *return_type_name =
@@ -213,15 +226,8 @@ transpiler_infer_local_type_name_from_expr(TranspilerCtx *ctx,
                         ctx, return_type_name);
                 callee_return_type =
                     transpiler_mir_routine_return_type(callee_routine);
-                if (callee_return_type != NULL
-                    && callee_return_type->type != AST_EVENT_HANDLER_TYPE) {
-                    transpiler_set_mir_inventory_missing(
-                        ctx,
-                        "MIR-only C path missing function call return type-name metadata for '%s'",
-                        callee_name);
-                    return NULL;
-                }
-            } else if (!transpiler_active_has_mir(ctx)) {
+            } else if (!transpiler_active_has_mir(ctx)
+                       || generic_call || extern_func) {
                 callee_return_type = callee_decl != NULL
                     && callee_decl->type == AST_FUNC_DECL
                         ? ast_func_return_type(callee_decl)
@@ -545,11 +551,13 @@ transpiler_find_local_type_name(TranspilerCtx *ctx,
     const MIRRoutine *routine =
         transpiler_find_mir_function(ctx, func_decl);
     if (routine != NULL) {
-        if (!transpiler_mir_routine_has_signature(routine)) {
-            transpiler_set_mir_inventory_missing(
-                ctx,
+        if (!transpiler_mir_routine_signature_metadata_complete_for(ctx,
+                routine,
+                func_decl,
+                TRANSPILER_MIR_SIGNATURE_REQUIRE_PARAM_TYPE_NAMES,
                 "MIR-only C path missing local parameter signature metadata for '%s'",
-                ast_declaration_name(func_decl));
+                NULL,
+                "MIR-only C path missing local parameter type-name metadata for '%s'")) {
             return NULL;
         }
         for (size_t i = 0;
@@ -568,17 +576,6 @@ transpiler_find_local_type_name(TranspilerCtx *ctx,
                 if (ctx != NULL && rendered_param != NULL)
                     register_typed_var(ctx, base_name, rendered_param);
                 return rendered_param;
-            }
-            if (transpiler_active_has_mir(ctx)
-                && p->type != NULL
-                && p->type->type != AST_EVENT_HANDLER_TYPE) {
-                transpiler_set_mir_inventory_missing(
-                    ctx,
-                    "MIR-only C path missing local parameter type-name metadata for '%s'",
-                    ast_declaration_name(func_decl) != NULL
-                        ? ast_declaration_name(func_decl)
-                        : "(anonymous)");
-                return NULL;
             }
             if (p->type != NULL) {
                 char *owned_param =

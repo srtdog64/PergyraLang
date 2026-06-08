@@ -429,8 +429,6 @@ require_literal "src/codegen/llvm_stmt_let_names.c" \
     "llvm_let_with_token_name"
 require_literal "src/codegen/llvm_stmt_let_names.c" \
     "llvm_let_with_slot_write_name"
-require_literal "src/codegen/llvm_decl.c" \
-    "llvm_decl_token_param_name"
 require_literal "src/codegen/llvm_stmt_let_collections.c" \
     "llvm_stmt_collection_runtime_name"
 require_literal "src/codegen/llvm_stmt.c" \

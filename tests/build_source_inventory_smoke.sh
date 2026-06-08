@@ -487,6 +487,13 @@ if ! grep -Fq 'PGY_BACKEND_COMPARE_START_INDEX' "$ROOT_DIR/tests/compare_backend
     echo "[build-source-inventory] backend compare must keep deterministic range/limit selection wired" >&2
     missing=1
 fi
+if ! grep -Fq 'PGY_BACKEND_COMPARE_CASES' "$ROOT_DIR/tests/compare_backends.sh" \
+    || ! grep -Fq 'filter_cases_by_name' "$ROOT_DIR/tests/compare_backends.sh" \
+    || ! grep -Fq 'PGY_BACKEND_COMPARE_CASES ?=' "$ROOT_DIR/Makefile" \
+    || ! grep -Fq 'PGY_BACKEND_COMPARE_CASES="$(PGY_BACKEND_COMPARE_CASES)"' "$ROOT_DIR/Makefile"; then
+    echo "[build-source-inventory] backend compare must keep deterministic case-name selection wired" >&2
+    missing=1
+fi
 if ! grep -Fq 'backend-compare-linux:' "$ROOT_DIR/.github/workflows/ci.yml" \
     || ! grep -Fq 'PGY_BACKEND_COMPARE_PRECHECK=0' "$ROOT_DIR/.github/workflows/ci.yml" \
     || ! grep -Fq 'PGY_BACKEND_COMPARE_SHARD_TOTAL=20' "$ROOT_DIR/.github/workflows/ci.yml" \

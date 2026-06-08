@@ -62,6 +62,8 @@ LLVMValueRef
 llvm_member_call_adjust_pointer_self_arg(LLVMGenCtx *ctx,
                                          const MIRDeclMethod *method_meta,
                                          ASTNode *method_decl,
+                                         const char *class_name,
+                                         const char *method_name,
                                          size_t logical_index,
                                          ASTNode *arg_node,
                                          LLVMValueRef arg_val)
@@ -71,6 +73,15 @@ llvm_member_call_adjust_pointer_self_arg(LLVMGenCtx *ctx,
     if (method_meta == NULL
         && (method_decl == NULL || method_decl->type != AST_FUNC_DECL))
         return arg_val;
+    if (!llvm_mir_decl_method_metadata_complete_for(ctx,
+            method_meta,
+            class_name,
+            method_name,
+            LLVM_MIR_DECL_METHOD_REQUIRE_PARAM_TYPE_NAMES,
+            NULL,
+            "MIR-only LLVM path missing member-call parameter type-name metadata for '%s.%s'")) {
+        return NULL;
+    }
 
     size_t method_param_count = method_meta != NULL
         ? llvm_mir_decl_method_param_count(method_meta)
@@ -95,17 +106,6 @@ llvm_member_call_adjust_pointer_self_arg(LLVMGenCtx *ctx,
         ptn = method_meta != NULL
             ? llvm_mir_decl_method_param_type_name(method_meta, pk)
             : NULL;
-        if (method_meta != NULL
-            && ptn == NULL
-            && p->type != NULL
-            && p->type->type != AST_EVENT_HANDLER_TYPE) {
-            llvm_set_mir_inventory_missing(ctx,
-                "MIR-only LLVM path missing member-call parameter type-name metadata for '%s'",
-                llvm_mir_decl_method_name(method_meta) != NULL
-                    ? llvm_mir_decl_method_name(method_meta)
-                    : "(anonymous-method)");
-            return NULL;
-        }
         if (method_meta == NULL
             && ptn == NULL && p->type != NULL && p->type->type == AST_TYPE)
             ptn = ast_type_name(p->type);

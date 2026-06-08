@@ -25,6 +25,8 @@ LLVMValueRef llvm_member_call_adjust_pointer_self_arg(
     LLVMGenCtx *ctx,
     const MIRDeclMethod *method_meta,
     ASTNode *method_decl,
+    const char *class_name,
+    const char *method_name,
     size_t logical_index,
     ASTNode *arg_node,
     LLVMValueRef arg_val);

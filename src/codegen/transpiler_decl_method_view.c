@@ -117,6 +117,71 @@ transpiler_require_hosted_method_view_rows(
     return true;
 }
 
+bool
+transpiler_mir_decl_method_metadata_complete_for(
+    TranspilerCtx *ctx,
+    const MIRDeclMethod *method,
+    const char *host_name,
+    const char *method_name,
+    unsigned requirements,
+    const char *missing_return_type_fmt,
+    const char *missing_param_type_fmt)
+{
+    const char *host_display =
+        host_name != NULL ? host_name : "(anonymous-host)";
+    const char *resolved_method_name = method_name != NULL
+        ? method_name
+        : transpiler_mir_decl_method_name(method);
+    const char *method_display = resolved_method_name != NULL
+        ? resolved_method_name
+        : "(anonymous)";
+
+    if (method == NULL || !transpiler_active_has_mir(ctx))
+        return true;
+
+    if ((requirements
+            & TRANSPILER_MIR_DECL_METHOD_REQUIRE_RETURN_TYPE_NAME) != 0
+        && transpiler_mir_decl_method_return_type_name(method) == NULL) {
+        ASTNode *return_type = transpiler_mir_decl_method_return_type(method);
+        if (return_type != NULL
+            && return_type->type != AST_EVENT_HANDLER_TYPE) {
+            transpiler_set_mir_inventory_missing(ctx,
+                missing_return_type_fmt != NULL
+                    ? missing_return_type_fmt
+                    : "MIR-only C path missing hosted method return type-name metadata for '%s.%s'",
+                host_display,
+                method_display);
+            return false;
+        }
+    }
+
+    if ((requirements
+            & TRANSPILER_MIR_DECL_METHOD_REQUIRE_PARAM_TYPE_NAMES) != 0) {
+        for (size_t i = 0; i < transpiler_mir_decl_method_param_count(method);
+             i++) {
+            FuncParam *param = transpiler_mir_decl_method_param(method, i);
+            if (param == NULL || param->name == NULL
+                || strcmp(param->name, "self") == 0
+                || transpiler_mir_decl_method_param_type_name(method, i)
+                    != NULL) {
+                continue;
+            }
+            if (param->type != NULL
+                && param->type->type != AST_EVENT_HANDLER_TYPE) {
+                transpiler_set_mir_inventory_missing(ctx,
+                    missing_param_type_fmt != NULL
+                        ? missing_param_type_fmt
+                        : "MIR-only C path missing hosted method parameter type-name metadata for '%s.%s'",
+                    host_display,
+                    method_display);
+                return false;
+            }
+        }
+    }
+
+    return true;
+}
+
 const char *
 transpiler_mir_decl_method_name(const MIRDeclMethod *method)
 {

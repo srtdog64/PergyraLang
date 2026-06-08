@@ -37,6 +37,141 @@ test_mir_lowering_part_a(void)
         hir_destroy(hir);
     }
 
+    TEST("MIR records view-backed resource owner slot");
+    {
+        const char *src =
+            "func Flow() -> Void {\n"
+            "    let scores: Slot<Int> = ClaimSlot<Int>();\n"
+            "    let view: WriteView<Int> = ViewWrite(scores);\n"
+            "    Write(view, 1);\n"
+            "}\n";
+        HIRProgram *hir = NULL;
+        RIRProgram *rir = NULL;
+        MIRProgram *mir = NULL;
+        const MIRRoutine *flow = NULL;
+        bool found_borrow_owner = false;
+        bool found_write_owner = false;
+        bool ok = lower_mir_from_source(src, &hir, &rir, &mir);
+        if (ok)
+            flow = (MIRRoutine *)find_mir_routine(mir, "Flow", MIR_SCOPE_FUNCTION);
+        if (flow != NULL) {
+            for (size_t bi = 0; bi < flow->block_count; bi++) {
+                const MIRBasicBlock *block = &flow->blocks[bi];
+                for (size_t ii = 0; ii < block->instruction_count; ii++) {
+                    const MIRInstruction *inst = &block->instructions[ii];
+                    const char *abi_name = inst->type_layout != NULL
+                        ? inst->type_layout->abi_type_name
+                        : NULL;
+                    if (inst->kind != MIR_INST_RESOURCE_OP || inst->name == NULL)
+                        continue;
+                    if (strcmp(inst->name, "BorrowWrite") == 0
+                        && inst->resource_owner_slot_anchor != NULL
+                        && strcmp(inst->resource_owner_slot_anchor, "scores") == 0
+                        && inst->resource_owner_requires_metadata
+                        && abi_name != NULL
+                        && strcmp(abi_name, "Slot<Int>") == 0) {
+                        found_borrow_owner = true;
+                    }
+                    if (strcmp(inst->name, "Write") == 0
+                        && inst->slot_anchor != NULL
+                        && strcmp(inst->slot_anchor, "view") == 0
+                        && inst->resource_owner_slot_anchor != NULL
+                        && strcmp(inst->resource_owner_slot_anchor, "scores") == 0
+                        && inst->resource_owner_requires_metadata
+                        && abi_name != NULL
+                        && strcmp(abi_name, "Slot<Int>") == 0) {
+                        found_write_owner = true;
+                    }
+                }
+            }
+        }
+        EXPECT(ok
+               && mir_validate(mir, NULL)
+               && flow != NULL
+               && found_borrow_owner
+               && found_write_owner);
+        mir_destroy(mir);
+        rir_destroy(rir);
+        hir_destroy(hir);
+    }
+
+    TEST("MIR validator rejects view-backed resource owner metadata drift");
+    {
+        const char *src =
+            "func Flow() -> Void {\n"
+            "    let scores: Slot<Int> = ClaimSlot<Int>();\n"
+            "    let view: WriteView<Int> = ViewWrite(scores);\n"
+            "    Write(view, 1);\n"
+            "}\n";
+        HIRProgram *hir = NULL;
+        RIRProgram *rir = NULL;
+        MIRProgram *mir = NULL;
+        MIRRoutine *flow = NULL;
+        MIRInstruction *borrow_inst = NULL;
+        MIRInstruction *write_inst = NULL;
+        const char *saved_borrow_owner = NULL;
+        const char *saved_write_owner = NULL;
+        char *mir_error = NULL;
+        bool rejected_missing_borrow_owner = false;
+        bool rejected_missing_owner = false;
+        bool ok = lower_mir_from_source(src, &hir, &rir, &mir);
+        if (ok)
+            flow = (MIRRoutine *)find_mir_routine(mir, "Flow", MIR_SCOPE_FUNCTION);
+        if (flow != NULL) {
+            for (size_t bi = 0; bi < flow->block_count
+                    && (borrow_inst == NULL || write_inst == NULL); bi++) {
+                MIRBasicBlock *block = &flow->blocks[bi];
+                for (size_t ii = 0; ii < block->instruction_count; ii++) {
+                    MIRInstruction *inst = &block->instructions[ii];
+                    if (inst->kind != MIR_INST_RESOURCE_OP || inst->name == NULL)
+                        continue;
+                    if (strcmp(inst->name, "BorrowWrite") == 0
+                        && inst->slot_anchor != NULL
+                        && strcmp(inst->slot_anchor, "scores") == 0) {
+                        borrow_inst = inst;
+                    }
+                    if (strcmp(inst->name, "Write") == 0
+                        && inst->slot_anchor != NULL
+                        && strcmp(inst->slot_anchor, "view") == 0) {
+                        write_inst = inst;
+                    }
+                    if (borrow_inst != NULL && write_inst != NULL)
+                        break;
+                }
+            }
+        }
+        if (borrow_inst != NULL) {
+            saved_borrow_owner = borrow_inst->resource_owner_slot_anchor;
+            borrow_inst->resource_owner_slot_anchor = NULL;
+            rejected_missing_borrow_owner = !mir_validate(mir, &mir_error)
+                && mir_error != NULL
+                && strstr(mir_error, "view-backed resource op is missing owner slot ABI metadata") != NULL;
+            free(mir_error);
+            mir_error = NULL;
+            borrow_inst->resource_owner_slot_anchor = saved_borrow_owner;
+        }
+        if (write_inst != NULL) {
+            saved_write_owner = write_inst->resource_owner_slot_anchor;
+            write_inst->resource_owner_slot_anchor = NULL;
+            rejected_missing_owner = !mir_validate(mir, &mir_error)
+                && mir_error != NULL
+                && strstr(mir_error, "view-backed resource op is missing owner slot ABI metadata") != NULL;
+            free(mir_error);
+            mir_error = NULL;
+            write_inst->resource_owner_slot_anchor = saved_write_owner;
+        }
+        EXPECT(ok
+               && flow != NULL
+               && borrow_inst != NULL
+               && write_inst != NULL
+               && rejected_missing_borrow_owner
+               && rejected_missing_owner
+               && mir_validate(mir, NULL));
+        mir_destroy(mir);
+        rir_destroy(rir);
+        hir_destroy(hir);
+    }
+
     TEST("MIR carries await Future ABI layouts from RIR ops");
     {
         const char *src =

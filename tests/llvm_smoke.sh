@@ -1380,6 +1380,44 @@ EOF
 run_case "nested_calls" "$TMPDIR/nested_calls.pgy" "26"
 
 # ---------------------------------------------------------------------------
+# Function routine exact lookup before prefix specialization fallback
+# ---------------------------------------------------------------------------
+cat > "$TMPDIR/function_prefix_exact_lookup.pgy" <<'EOF'
+func Pick_Value() -> Int { return 99; }
+func Pick() -> Int { return 7; }
+
+func Main() -> Void {
+    Log(Pick());
+    Log(Pick_Value());
+}
+EOF
+run_case "function_routine_prefix_collision" "$TMPDIR/function_prefix_exact_lookup.pgy" "7" "99"
+
+# ---------------------------------------------------------------------------
+# Hosted method routine exact lookup before prefix specialization fallback
+# ---------------------------------------------------------------------------
+cat > "$TMPDIR/method_prefix_exact_lookup.pgy" <<'EOF'
+class Box {
+    let value: Int;
+
+    func Get_Value(self) -> Int {
+        return 99;
+    }
+
+    func Get(self) -> Int {
+        return value;
+    }
+}
+
+func Main() -> Void {
+    let box = Box(7);
+    Log(box.Get());
+    Log(box.Get_Value());
+}
+EOF
+run_case "method_routine_prefix_collision" "$TMPDIR/method_prefix_exact_lookup.pgy" "7" "99"
+
+# ---------------------------------------------------------------------------
 # String concatenation
 # ---------------------------------------------------------------------------
 cat > "$TMPDIR/string_concat.pgy" <<'EOF'
@@ -1634,14 +1672,28 @@ run_compile_fails_case "channel_field_default_constructor_reject" \
 # ---------------------------------------------------------------------------
 cat > "$TMPDIR/extern_fn.pgy" <<'EOF'
 extern "c" {
-    func puts(s: String) -> Int;
+    func pgy_now_ms() -> Int;
 }
 
 func Main() -> Void {
+    let ignored = pgy_now_ms();
     Log(1);
 }
 EOF
 run_case "extern_fn" "$TMPDIR/extern_fn.pgy" "1"
+
+cat > "$TMPDIR/extern_spawn.pgy" <<'EOF'
+extern "c" {
+    func pgy_checked_div_i32_export(lhs: Int, rhs: Int) -> Int;
+}
+
+async func Main() -> Void {
+    let task: Future<Int> = spawn pgy_checked_div_i32_export(42, 7);
+    let value: Int = await task;
+    Log(value);
+}
+EOF
+run_case "extern_spawn" "$TMPDIR/extern_spawn.pgy" "6"
 
 echo ""
 echo "[llvm-smoke] all tests passed"

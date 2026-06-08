@@ -8,6 +8,7 @@
 #include "llvm_backend.h"
 #include "llvm_backend_type_map_internal.h"
 #include "llvm_internal.h"
+#include "llvm_mir_signature.h"
 
 #include <stdbool.h>
 
@@ -69,19 +70,31 @@ llvm_can_forward_declare_func_early(LLVMGenCtx *ctx, ASTNode *func)
         return false;
 
     routine = llvm_active_function_routine_for_source_ast(ctx, func);
-    routine_has_signature = llvm_mir_routine_has_signature(routine);
-    if (routine != NULL && llvm_active_has_mir(ctx)
-        && !routine_has_signature) {
+    size_t generic_param_count =
+        ast_generic_param_count(ast_declaration_generic_params(func));
+    if (generic_param_count > 0)
+        return false;
+    if (llvm_active_has_mir(ctx) && routine == NULL) {
         llvm_set_mir_inventory_missing(ctx,
-            "MIR-only LLVM path missing function forward signature metadata for '%s'",
+            "MIR-only LLVM path missing function forward routine for '%s'",
             ast_declaration_name(func) != NULL
                 ? ast_declaration_name(func)
                 : "(anonymous)");
         return false;
     }
-    size_t generic_param_count = routine_has_signature
+    if (!llvm_mir_routine_signature_metadata_complete(
+            ctx,
+            routine,
+            func,
+            "MIR-only LLVM path missing function forward signature metadata for '%s'",
+            "MIR-only LLVM path missing function forward return type-name metadata for '%s'",
+            "MIR-only LLVM path missing function forward parameter type-name metadata for '%s'")) {
+        return false;
+    }
+    routine_has_signature = routine != NULL && llvm_active_has_mir(ctx);
+    generic_param_count = routine_has_signature
         ? llvm_mir_routine_generic_param_count(routine)
-        : ast_generic_param_count(ast_declaration_generic_params(func));
+        : generic_param_count;
     if (generic_param_count > 0)
         return false;
 
@@ -91,16 +104,6 @@ llvm_can_forward_declare_func_early(LLVMGenCtx *ctx, ASTNode *func)
     if (return_type_name != NULL) {
         if (!llvm_can_forward_declare_type_name_early(ctx, return_type_name))
             return false;
-    } else if (routine_has_signature
-               && llvm_mir_routine_return_type(routine) != NULL
-               && llvm_mir_routine_return_type(routine)->type
-                   != AST_EVENT_HANDLER_TYPE) {
-        llvm_set_mir_inventory_missing(ctx,
-            "MIR-only LLVM path missing function forward return type-name metadata for '%s'",
-            ast_declaration_name(func) != NULL
-                ? ast_declaration_name(func)
-                : "(anonymous)");
-        return false;
     } else if (!llvm_can_forward_declare_type_early(ctx,
             ast_func_return_type(func))) {
         return false;
@@ -124,16 +127,6 @@ llvm_can_forward_declare_func_early(LLVMGenCtx *ctx, ASTNode *func)
                 return false;
             }
             continue;
-        }
-        if (routine_has_signature
-            && param->type != NULL
-            && param->type->type != AST_EVENT_HANDLER_TYPE) {
-            llvm_set_mir_inventory_missing(ctx,
-                "MIR-only LLVM path missing function forward parameter type-name metadata for '%s'",
-                ast_declaration_name(func) != NULL
-                    ? ast_declaration_name(func)
-                    : "(anonymous)");
-            return false;
         }
         if (param->type == NULL)
             continue;

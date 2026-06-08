@@ -19,9 +19,6 @@ llvm_emit_intent_decl(ASTNode *node, LLVMGenCtx *ctx)
     ASTNode **step_nodes = NULL;
     const char **mir_step_names = NULL;
     IntentBindingMetadataView binding_metadata = {0};
-    const char **binding_kinds = NULL;
-    const char **binding_aliases = NULL;
-    const char **binding_types = NULL;
     LLVMFuncEntry *entry;
     LLVMFuncEntry *enter_fn;
     LLVMFuncEntry *exit_fn;
@@ -137,22 +134,19 @@ llvm_emit_intent_decl(ASTNode *node, LLVMGenCtx *ctx)
     if (mir_routine != NULL) {
         mir_binding_count = llvm_collect_mir_intent_bindings(
             mir_routine, ctx, &binding_metadata);
-        binding_kinds = binding_metadata.kinds;
-        binding_aliases = binding_metadata.aliases;
-        binding_types = binding_metadata.types;
     }
     if (mir_only_intent) {
         for (size_t i = 0; i < mir_binding_count; i++) {
-            if (binding_kinds == NULL || binding_aliases == NULL
-                || binding_types == NULL || binding_kinds[i] == NULL
-                || binding_aliases[i] == NULL || binding_types[i] == NULL) {
+            if (!intent_binding_metadata_view_has_complete_row(
+                    &binding_metadata, i)) {
                 llvm_set_mir_inventory_missing(ctx,
                     "MIR-only LLVM path has incomplete ordered intent binding metadata for entry setup '%s'",
                     intent_name != NULL ? intent_name : "(anonymous)");
                 return;
             }
-            if (strcmp(binding_kinds[i], "participant") != 0
-                && strcmp(binding_kinds[i], "value") != 0) {
+            if (!intent_binding_metadata_kind_is_supported(
+                    intent_binding_metadata_view_kind_at(
+                        &binding_metadata, i))) {
                 llvm_set_mir_inventory_missing(ctx,
                     "MIR-only LLVM path has invalid ordered intent binding metadata for entry setup '%s'",
                     intent_name != NULL ? intent_name : "(anonymous)");

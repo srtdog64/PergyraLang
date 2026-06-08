@@ -8,11 +8,28 @@
 
 #include "transpiler.h"
 
+typedef enum TranspilerMIRSignatureRequirement
+{
+    TRANSPILER_MIR_SIGNATURE_REQUIRE_RETURN_TYPE_NAME = 1u << 0,
+    TRANSPILER_MIR_SIGNATURE_REQUIRE_PARAM_TYPE_NAMES = 1u << 1,
+    TRANSPILER_MIR_SIGNATURE_REQUIRE_ALL_TYPE_NAMES =
+        TRANSPILER_MIR_SIGNATURE_REQUIRE_RETURN_TYPE_NAME
+        | TRANSPILER_MIR_SIGNATURE_REQUIRE_PARAM_TYPE_NAMES
+} TranspilerMIRSignatureRequirement;
+
 bool transpiler_mir_type_supported(const char *type_name);
 bool transpiler_mir_ast_type_supported(TranspilerCtx *ctx,
                                        const ASTNode *type_node);
 bool transpiler_mir_type_name_supported(TranspilerCtx *ctx,
                                         const char *type_name);
+bool transpiler_mir_routine_signature_metadata_complete_for(
+    TranspilerCtx *ctx,
+    const MIRRoutine *routine,
+    const ASTNode *func_decl,
+    unsigned requirements,
+    const char *missing_signature_fmt,
+    const char *missing_return_type_fmt,
+    const char *missing_param_type_fmt);
 bool transpiler_mir_routine_signature_supported(TranspilerCtx *ctx,
                                                 const MIRRoutine *routine,
                                                 const ASTNode *func_decl);

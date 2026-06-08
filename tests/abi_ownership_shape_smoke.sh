@@ -39,8 +39,14 @@ for rel in \
     "src/test_memory_layout.c" \
     "src/test_security.c" \
     "src/codegen/transpiler_mir_pin_emit.h" \
+    "src/codegen/transpiler_mir_resource_hook_emit.c" \
     "src/codegen/transpiler_block_emit.h" \
+    "src/compiler/mir.h" \
+    "src/compiler/mir_lower_population.c" \
     "src/codegen/llvm_runtime.c" \
+    "src/codegen/llvm_internal_api.h" \
+    "src/codegen/llvm_mir_block_emit.c" \
+    "src/codegen/llvm_mir_resource_view.c" \
     "src/codegen/llvm_runtime_secure_slot_decl.c" \
     "src/codegen/llvm_mir_block_emit.h" \
     "src/compiler/mir_cfg_contract_pin.h" \
@@ -97,6 +103,23 @@ require_term "src/runtime/pgy_runtime_lib_secure_slot_exports.h" "pgy_secure_pin
 
 require_term "src/codegen/transpiler_mir_pin_emit.c" "pgy_pin_%s_%s"
 require_term "src/codegen/transpiler_mir_pin_emit.c" "pgy_unpin_%s(&%s);"
+require_term "src/compiler/mir.h" "resource_owner_slot_anchor"
+require_term "src/compiler/mir.h" "resource_owner_requires_metadata"
+require_term "src/compiler/mir_lower_population.c" "MIRResourceBorrowLoweringFact"
+require_term "src/compiler/mir_lower_population.c" "mir_resource_record_borrow_fact"
+require_term "src/compiler/mir_lower_population.c" "inst.resource_owner_requires_metadata = resource_owner_slot_anchor != NULL"
+require_term "src/compiler/mir_fact_surface_validate.c" "inst->resource_owner_requires_metadata"
+require_term "src/compiler/mir_fact_surface_validate.c" "return inst->arg1 != NULL && strcmp(inst->arg1, view_name) == 0"
+require_term "src/compiler/mir_fact_surface_validate.c" "view-backed resource op is missing owner slot ABI metadata"
+require_term "src/tests/mir/test_mir_lowering_part_a.cases.h" "MIR validator rejects view-backed resource owner metadata drift"
+require_term "src/codegen/transpiler_mir_resource_hook_emit.c" "inst->resource_owner_slot_anchor"
+require_term "src/codegen/transpiler_mir_resource_hook_emit.c" "inst->resource_owner_requires_metadata"
+require_term "src/codegen/transpiler_mir_resource_hook_emit.c" "MIR view-backed resource op '%s' is missing owner slot ABI metadata"
+require_term "src/codegen/llvm_internal_api.h" "bool          llvm_mir_emit_borrow_view_alias"
+require_term "src/codegen/llvm_mir_block_emit.c" "if (!llvm_mir_emit_borrow_view_alias(inst, ctx))"
+require_term "src/codegen/llvm_mir_resource_view.c" "inst->resource_owner_slot_anchor"
+require_term "src/codegen/llvm_mir_resource_view.c" "inst->resource_owner_requires_metadata"
+require_term "src/codegen/llvm_mir_resource_view.c" "LLVM MIR borrow view alias '%s' is missing owner slot ABI metadata"
 require_term "src/codegen/transpiler_block_emit.c" "__attribute__((cleanup(pgy_unpin_cleanup_%s)))"
 require_term "src/codegen/llvm_runtime.c" "llvm_runtime_slot_name"
 require_term "src/codegen/llvm_runtime.c" "pin_read"

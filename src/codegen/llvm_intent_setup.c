@@ -46,12 +46,6 @@ llvm_emit_intent_entry_bindings(LLVMGenCtx *ctx,
                                 LLVMValueRef *subjects_ptr_out,
                                 size_t *subject_count_out)
 {
-    const char **binding_kinds =
-        bindings_view != NULL ? bindings_view->kinds : NULL;
-    const char **binding_aliases =
-        bindings_view != NULL ? bindings_view->aliases : NULL;
-    const char **binding_types =
-        bindings_view != NULL ? bindings_view->types : NULL;
     size_t mir_binding_count =
         bindings_view != NULL ? bindings_view->count : 0;
     size_t subject_count = 0;
@@ -78,15 +72,15 @@ llvm_emit_intent_entry_bindings(LLVMGenCtx *ctx,
 
     if (mir_only_intent) {
         for (size_t i = 0; i < mir_binding_count; i++) {
-            if (binding_kinds == NULL || binding_aliases == NULL
-                || binding_types == NULL || binding_kinds[i] == NULL
-                || binding_aliases[i] == NULL || binding_types[i] == NULL) {
+            if (!intent_binding_metadata_view_has_complete_row(
+                    bindings_view, i)) {
                 llvm_set_mir_inventory_missing(ctx,
                     "MIR-only LLVM path has incomplete ordered intent entry binding metadata");
                 return;
             }
-            if (strcmp(binding_kinds[i], "participant") != 0
-                && strcmp(binding_kinds[i], "value") != 0) {
+            if (!intent_binding_metadata_kind_is_supported(
+                    intent_binding_metadata_view_kind_at(
+                        bindings_view, i))) {
                 llvm_set_mir_inventory_missing(ctx,
                     "MIR-only LLVM path has invalid ordered intent entry binding metadata");
                 return;
@@ -108,9 +102,10 @@ llvm_emit_intent_entry_bindings(LLVMGenCtx *ctx,
                         ? values[i - involve_count]
                         : NULL)));
         if (mir_only_intent
-            && strcmp(binding_kinds[i], "participant") == 0) {
-            alias = binding_aliases[i];
-            type_name = binding_types[i];
+            && intent_binding_metadata_view_row_is_kind(
+                bindings_view, i, "participant")) {
+            alias = intent_binding_metadata_view_alias_at(bindings_view, i);
+            type_name = intent_binding_metadata_view_type_at(bindings_view, i);
             pt = pergyra_type_to_llvm(ctx, type_name);
             if (ctx->has_error || pt == NULL)
                 return;
@@ -136,9 +131,10 @@ llvm_emit_intent_entry_bindings(LLVMGenCtx *ctx,
                     pt = LLVMPointerType(pt, 0);
             }
         } else if (mir_only_intent
-                   && strcmp(binding_kinds[i], "value") == 0) {
-            alias = binding_aliases[i];
-            type_name = binding_types[i];
+                   && intent_binding_metadata_view_row_is_kind(
+                       bindings_view, i, "value")) {
+            alias = intent_binding_metadata_view_alias_at(bindings_view, i);
+            type_name = intent_binding_metadata_view_type_at(bindings_view, i);
             pt = pergyra_type_to_llvm(ctx, type_name);
             if (ctx->has_error || pt == NULL)
                 return;
@@ -171,10 +167,13 @@ llvm_emit_intent_entry_bindings(LLVMGenCtx *ctx,
 
     if (mir_only_intent) {
         for (size_t i = 0; i < mir_binding_count; i++) {
-            if (strcmp(binding_kinds[i], "participant") != 0)
-                continue;
-            if (llvm_intent_type_is_subject_participant(ctx, binding_types[i]))
+            if (intent_binding_metadata_view_row_is_kind(
+                    bindings_view, i, "participant")
+                && llvm_intent_type_is_subject_participant(
+                    ctx, intent_binding_metadata_view_type_at(
+                        bindings_view, i))) {
                 subject_count++;
+            }
         }
     } else {
         for (size_t i = 0; i < involve_count; i++) {
@@ -198,13 +197,16 @@ llvm_emit_intent_entry_bindings(LLVMGenCtx *ctx,
         size_t participant_loop_count = mir_only_intent
             ? mir_binding_count : involve_count;
         for (size_t i = 0; i < participant_loop_count; i++) {
+            bool is_mir_participant = mir_only_intent
+                && intent_binding_metadata_view_row_is_kind(
+                    bindings_view, i, "participant");
             ASTNode *involves = mir_only_intent || i >= involve_count
                 ? NULL : involves_nodes[i];
             const char *alias = mir_only_intent
-                ? binding_aliases[i]
+                ? intent_binding_metadata_view_alias_at(bindings_view, i)
                 : (involves != NULL ? ast_intent_involves_alias(involves) : NULL);
             const char *type_name = mir_only_intent
-                ? binding_types[i]
+                ? intent_binding_metadata_view_type_at(bindings_view, i)
                 : (involves != NULL ? llvm_intent_involves_type_name(involves) : NULL);
             LLVMVarEntry participant_var;
             bool has_participant_var = llvm_scope_lookup_snapshot(ctx,
@@ -217,7 +219,7 @@ llvm_emit_intent_entry_bindings(LLVMGenCtx *ctx,
                 ? LLVMBuildLoad2(ctx->builder, participant_var.type,
                     participant_var.alloca, llvm_tmp_name(ctx))
                 : LLVMConstPointerNull(ctx->type_i8ptr);
-            if (mir_only_intent && strcmp(binding_kinds[i], "participant") != 0)
+            if (mir_only_intent && !is_mir_participant)
                 continue;
             if (!llvm_intent_type_is_subject_participant(ctx, type_name))
                 continue;

@@ -2,6 +2,7 @@
 #include "llvm_internal.h"
 #include "llvm_internal_api.h"
 #include "codegen_slot_type_policy.h"
+#include "llvm_mir_signature.h"
 #include "parser/ast_api.h"
 
 const char *
@@ -62,6 +63,7 @@ llvm_stmt_declared_return_type_name(LLVMGenCtx *ctx, const char *name)
     ASTNode *decl;
     ASTNode *return_type;
     bool generic_func;
+    bool extern_func;
 
     if (ctx == NULL || name == NULL)
         return NULL;
@@ -71,7 +73,8 @@ llvm_stmt_declared_return_type_name(LLVMGenCtx *ctx, const char *name)
         return NULL;
     generic_func =
         ast_generic_param_count(ast_declaration_generic_params(decl)) > 0;
-    if (llvm_active_has_mir(ctx) && !generic_func) {
+    extern_func = llvm_decl_is_extern_function(ctx, decl);
+    if (llvm_active_has_mir(ctx) && !generic_func && !extern_func) {
         const MIRRoutine *routine =
             llvm_active_function_routine_for_source_ast(ctx, decl);
         const char *return_type_name = NULL;
@@ -81,23 +84,17 @@ llvm_stmt_declared_return_type_name(LLVMGenCtx *ctx, const char *name)
                 name);
             return NULL;
         }
-        if (!llvm_mir_routine_has_signature(routine)) {
-            llvm_set_mir_inventory_missing(ctx,
+        if (!llvm_mir_routine_signature_metadata_complete_for(ctx,
+                routine, decl,
+                LLVM_MIR_SIGNATURE_REQUIRE_RETURN_TYPE_NAME,
                 "MIR-only LLVM path missing declared return inference signature metadata for '%s'",
-                name);
+                "MIR-only LLVM path missing declared return inference return type-name metadata for '%s'",
+                NULL)) {
             return NULL;
         }
         return_type_name = llvm_mir_routine_return_type_name(routine);
         if (return_type_name != NULL)
             return return_type_name;
-        return_type = llvm_mir_routine_return_type(routine);
-        if (return_type != NULL
-            && return_type->type != AST_EVENT_HANDLER_TYPE) {
-            llvm_set_mir_inventory_missing(ctx,
-                "MIR-only LLVM path missing declared return inference return type-name metadata for '%s'",
-                name);
-            return NULL;
-        }
         return NULL;
     }
 
@@ -175,6 +172,15 @@ llvm_simple_expr_type_name(LLVMGenCtx *ctx, ASTNode *expr)
                     const MIRDeclMethod *method_meta =
                         llvm_find_host_method_metadata_in_context(
                             ctx, receiver_type, method_name);
+                    if (!llvm_mir_decl_method_metadata_complete_for(ctx,
+                            method_meta,
+                            receiver_type,
+                            method_name,
+                            LLVM_MIR_DECL_METHOD_REQUIRE_RETURN_TYPE_NAME,
+                            "MIR-only LLVM path missing let method return type-name metadata for '%s.%s'",
+                            NULL)) {
+                        return NULL;
+                    }
                     const char *method_return_type_name =
                         llvm_mir_decl_method_return_type_name(method_meta);
                     ASTNode *method_return_type =
@@ -192,15 +198,6 @@ llvm_simple_expr_type_name(LLVMGenCtx *ctx, ASTNode *expr)
                         method_decl = llvm_find_host_method_decl_in_context(
                             ctx, receiver_type, method_name);
                         method_return_type = ast_func_return_type(method_decl);
-                    }
-                    if (method_meta != NULL
-                        && method_return_type != NULL
-                        && method_return_type->type != AST_EVENT_HANDLER_TYPE) {
-                        llvm_set_mir_inventory_missing(ctx,
-                            "MIR-only LLVM path missing let method return type-name metadata for '%s.%s'",
-                            receiver_type != NULL ? receiver_type : "(anonymous)",
-                            method_name != NULL ? method_name : "(anonymous)");
-                        return NULL;
                     }
                     if (method_return_type != NULL
                         && ast_type_name(method_return_type) != NULL) {
@@ -257,6 +254,7 @@ llvm_infer_spawn_future_inner(LLVMGenCtx *ctx, ASTNode *spawn_expr)
     ASTNode *return_type;
     const char *ret_name;
     bool generic_func;
+    bool extern_func;
     const MIRRoutine *routine = NULL;
     bool use_mir_signature = false;
 
@@ -274,7 +272,8 @@ llvm_infer_spawn_future_inner(LLVMGenCtx *ctx, ASTNode *spawn_expr)
         return NULL;
     generic_func =
         ast_generic_param_count(ast_declaration_generic_params(decl)) > 0;
-    if (llvm_active_has_mir(ctx) && !generic_func) {
+    extern_func = llvm_decl_is_extern_function(ctx, decl);
+    if (llvm_active_has_mir(ctx) && !generic_func && !extern_func) {
         routine = llvm_active_function_routine_for_source_ast(ctx, decl);
         if (routine == NULL) {
             llvm_set_mir_inventory_missing(ctx,
@@ -282,22 +281,16 @@ llvm_infer_spawn_future_inner(LLVMGenCtx *ctx, ASTNode *spawn_expr)
                 callee_name);
             return NULL;
         }
-        if (!llvm_mir_routine_has_signature(routine)) {
-            llvm_set_mir_inventory_missing(ctx,
+        if (!llvm_mir_routine_signature_metadata_complete_for(ctx,
+                routine, decl,
+                LLVM_MIR_SIGNATURE_REQUIRE_ALL_TYPE_NAMES,
                 "MIR-only LLVM path missing spawn future inference signature metadata for '%s'",
-                callee_name);
+                "MIR-only LLVM path missing spawn future inference return type-name metadata for '%s'",
+                "MIR-only LLVM path missing spawn future inference parameter type-name metadata for '%s'")) {
             return NULL;
         }
         ret_name = llvm_mir_routine_return_type_name(routine);
         return_type = llvm_mir_routine_return_type(routine);
-        if (ret_name == NULL
-            && return_type != NULL
-            && return_type->type != AST_EVENT_HANDLER_TYPE) {
-            llvm_set_mir_inventory_missing(ctx,
-                "MIR-only LLVM path missing spawn future inference return type-name metadata for '%s'",
-                callee_name);
-            return NULL;
-        }
         use_mir_signature = true;
     } else {
         return_type = ast_func_return_type(decl);
@@ -324,15 +317,6 @@ llvm_infer_spawn_future_inner(LLVMGenCtx *ctx, ASTNode *spawn_expr)
             : (param != NULL ? ast_type_name(param->type) : NULL);
         if (param == NULL)
             continue;
-        if (use_mir_signature
-            && param_type_name == NULL
-            && param->type != NULL
-            && param->type->type != AST_EVENT_HANDLER_TYPE) {
-            llvm_set_mir_inventory_missing(ctx,
-                "MIR-only LLVM path missing spawn future inference parameter type-name metadata for '%s'",
-                callee_name);
-            return NULL;
-        }
         if (param_type_name == NULL)
             continue;
         if (strcmp(param_type_name, ret_name) == 0) {

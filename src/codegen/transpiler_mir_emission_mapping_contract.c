@@ -23,14 +23,17 @@
  * materialization to lower without falling back to AST traversal.
  */
 static bool
-transpiler_seed_aliases_from_mir_metadata(TranspilerSSANameMap *ssa_map,
-                                          const char **aliases,
-                                          size_t alias_count)
+transpiler_seed_aliases_from_mir_metadata(
+    TranspilerSSANameMap *ssa_map,
+    const IntentBindingMetadataView *bindings)
 {
     if (ssa_map == NULL)
         return false;
-    for (size_t i = 0; i < alias_count; i++) {
-        const char *alias = aliases != NULL ? aliases[i] : NULL;
+    if (bindings == NULL)
+        return false;
+    for (size_t i = 0; i < bindings->count; i++) {
+        const char *alias =
+            intent_binding_metadata_view_alias_at(bindings, i);
         if (alias == NULL)
             return false;
         if (!transpiler_ssa_name_map_set(ssa_map, alias, alias))
@@ -44,9 +47,7 @@ transpiler_seed_intent_aliases_for_mapping(TranspilerSSANameMap *ssa_map,
                                            const MIRRoutine *routine,
                                            const ASTNode *intent_decl)
 {
-    const char **binding_kinds = NULL;
-    const char **binding_aliases = NULL;
-    const char **binding_types = NULL;
+    IntentBindingMetadataView binding_metadata = {0};
     size_t mir_binding_count;
     bool ok = true;
 
@@ -56,25 +57,20 @@ transpiler_seed_intent_aliases_for_mapping(TranspilerSSANameMap *ssa_map,
     }
 
     mir_binding_count = transpiler_collect_mir_intent_bindings(
-        routine, &binding_kinds, &binding_aliases, &binding_types);
+        routine, &binding_metadata);
 
     for (size_t i = 0; i < mir_binding_count; i++) {
-        if (binding_kinds == NULL || binding_aliases == NULL
-            || binding_types == NULL || binding_kinds[i] == NULL
-            || binding_aliases[i] == NULL || binding_types[i] == NULL
-            || (strcmp(binding_kinds[i], "participant") != 0
-                && strcmp(binding_kinds[i], "value") != 0)) {
+        if (!intent_binding_metadata_view_has_supported_row(
+                &binding_metadata, i)) {
             ok = false;
             goto cleanup;
         }
     }
     ok = transpiler_seed_aliases_from_mir_metadata(
-        ssa_map, binding_aliases, mir_binding_count);
+        ssa_map, &binding_metadata);
 
 cleanup:
-    free((void *)binding_kinds);
-    free((void *)binding_aliases);
-    free((void *)binding_types);
+    intent_binding_metadata_view_dispose(&binding_metadata);
     return ok;
 }
 

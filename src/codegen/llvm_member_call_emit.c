@@ -171,8 +171,8 @@ llvm_emit_member_call(ASTNode *node, LLVMGenCtx *ctx)
                         LLVMValueRef arg_val = llvm_emit_expression(
                             arg_node, ctx);
                         arg_val = llvm_member_call_adjust_pointer_self_arg(
-                            ctx, method_meta, method_decl, i, arg_node,
-                            arg_val);
+                            ctx, method_meta, method_decl, class_name,
+                            method_name, i, arg_node, arg_val);
                         if (!llvm_member_call_store_arg(ctx, node, class_name,
                                 method_name, args, i, arg_val))
                             return NULL;
@@ -324,7 +324,8 @@ llvm_emit_member_call(ASTNode *node, LLVMGenCtx *ctx)
                     LLVMValueRef arg_val = llvm_emit_expression(
                         arg_node, ctx);
                     arg_val = llvm_member_call_adjust_pointer_self_arg(
-                        ctx, method_meta, method_decl, i, arg_node, arg_val);
+                        ctx, method_meta, method_decl, class_name,
+                        method_name, i, arg_node, arg_val);
                     if (!llvm_member_call_store_arg(ctx, node, class_name,
                             method_name, args, i, arg_val))
                         return NULL;
@@ -418,7 +419,8 @@ llvm_emit_member_call(ASTNode *node, LLVMGenCtx *ctx)
                     LLVMValueRef arg_val = llvm_emit_expression(
                         arg_node, ctx);
                     arg_val = llvm_member_call_adjust_pointer_self_arg(
-                        ctx, method_meta, method_decl, i, arg_node, arg_val);
+                        ctx, method_meta, method_decl, class_name,
+                        method_name, i, arg_node, arg_val);
                     if (!llvm_member_call_store_arg(ctx, node, class_name,
                             method_name, args, i, arg_val))
                         return NULL;

@@ -20,6 +20,15 @@ typedef struct
     bool               requires_mir_metadata;
 } TranspilerHostedMethodView;
 
+typedef enum TranspilerMIRDeclMethodRequirement
+{
+    TRANSPILER_MIR_DECL_METHOD_REQUIRE_RETURN_TYPE_NAME = 1u << 0,
+    TRANSPILER_MIR_DECL_METHOD_REQUIRE_PARAM_TYPE_NAMES = 1u << 1,
+    TRANSPILER_MIR_DECL_METHOD_REQUIRE_ALL_TYPE_NAMES =
+        TRANSPILER_MIR_DECL_METHOD_REQUIRE_RETURN_TYPE_NAME
+        | TRANSPILER_MIR_DECL_METHOD_REQUIRE_PARAM_TYPE_NAMES
+} TranspilerMIRDeclMethodRequirement;
+
 typedef struct
 {
     const MIRDeclHeader *decl_header;
@@ -122,6 +131,14 @@ const MIRDeclMethod *transpiler_find_host_method_metadata_in_context(
     const TranspilerCtx *ctx,
     const char *host_type_name,
     const char *method_name);
+bool transpiler_mir_decl_method_metadata_complete_for(
+    TranspilerCtx *ctx,
+    const MIRDeclMethod *method,
+    const char *host_name,
+    const char *method_name,
+    unsigned requirements,
+    const char *missing_return_type_fmt,
+    const char *missing_param_type_fmt);
 const char *transpiler_mir_decl_method_name(const MIRDeclMethod *method);
 ASTNode *transpiler_mir_decl_method_source_ast(const MIRDeclMethod *method);
 size_t transpiler_mir_decl_method_param_count(const MIRDeclMethod *method);

@@ -23,6 +23,7 @@
 #include "llvm_expr_spawn_call_helpers.h"
 #include "llvm_expr_stdlib_scalar_io_calls.h"
 #include "llvm_expr_task_channel_calls.h"
+#include "llvm_mir_signature.h"
 #include "llvm_intent_internal.h"
 #include "llvm_internal_api.h"
 #include "llvm_inventory_decl_lookup.h"
@@ -233,18 +234,18 @@ llvm_emit_call(ASTNode *node, LLVMGenCtx *ctx)
     LLVMFuncEntry *predeclared_func = NULL;
     const MIRRoutine *intent_routine = NULL;
     IntentBindingMetadataView binding_metadata = {0};
-    const char **binding_kinds = NULL;
-    const char **binding_aliases = NULL;
-    const char **binding_types = NULL;
     size_t mir_binding_count = 0;
     size_t intent_step_count = 0;
     bool decl_is_generic_func = false;
+    bool decl_is_extern_func = false;
     bool mir_requires_routine = false;
     bool mir_only_intent = false;
+    LLVMValueRef result = NULL;
 
     if (decl != NULL) {
         decl_is_generic_func =
             ast_generic_param_count(ast_declaration_generic_params(decl)) > 0;
+        decl_is_extern_func = llvm_decl_is_extern_function(ctx, decl);
     }
 
     if (intent_decl != NULL) {
@@ -255,32 +256,29 @@ llvm_emit_call(ASTNode *node, LLVMGenCtx *ctx)
             llvm_set_mir_inventory_missing(ctx,
                 "MIR-only LLVM path missing intent routine for call target '%s'",
                 callee_name != NULL ? callee_name : "(anonymous-intent)");
-            return NULL;
+            goto cleanup;
         }
         mir_only_intent = intent_routine != NULL;
         if (intent_routine != NULL) {
             mir_binding_count = llvm_collect_mir_intent_bindings(
                 intent_routine, ctx, &binding_metadata);
-            binding_kinds = binding_metadata.kinds;
-            binding_aliases = binding_metadata.aliases;
-            binding_types = binding_metadata.types;
         }
         if (mir_only_intent) {
             for (size_t i = 0; i < mir_binding_count; i++) {
-                if (binding_kinds == NULL || binding_aliases == NULL
-                    || binding_types == NULL || binding_kinds[i] == NULL
-                    || binding_aliases[i] == NULL || binding_types[i] == NULL) {
+                if (!intent_binding_metadata_view_has_complete_row(
+                        &binding_metadata, i)) {
                     llvm_set_mir_inventory_missing(ctx,
                         "MIR-only LLVM path has incomplete ordered intent binding metadata for call target '%s'",
                         callee_name != NULL ? callee_name : "(anonymous-intent)");
-                    return NULL;
+                    goto cleanup;
                 }
-                if (strcmp(binding_kinds[i], "participant") != 0
-                    && strcmp(binding_kinds[i], "value") != 0) {
+                if (!intent_binding_metadata_kind_is_supported(
+                        intent_binding_metadata_view_kind_at(
+                            &binding_metadata, i))) {
                     llvm_set_mir_inventory_missing(ctx,
                         "MIR-only LLVM path has invalid ordered intent binding metadata for call target '%s'",
                         callee_name != NULL ? callee_name : "(anonymous-intent)");
-                    return NULL;
+                    goto cleanup;
                 }
             }
             if (argc != mir_binding_count) {
@@ -292,7 +290,7 @@ llvm_emit_call(ASTNode *node, LLVMGenCtx *ctx)
                     callee_name != NULL ? callee_name : "(anonymous-intent)",
                     mir_binding_count,
                     argc);
-                return NULL;
+                goto cleanup;
             }
         }
     }
@@ -300,9 +298,11 @@ llvm_emit_call(ASTNode *node, LLVMGenCtx *ctx)
     if (decl != NULL)
         args = llvm_build_boundary_call_args(ctx, decl, call_args,
             argc, &emitted_argc);
-    if (args == NULL && decl != NULL && ctx->has_error)
-        return llvm_call_error_recovery(ctx, node,
+    if (args == NULL && decl != NULL && ctx->has_error) {
+        result = llvm_call_error_recovery(ctx, node,
             "LLVM boundary call argument lowering failed");
+        goto cleanup;
+    }
     if (args == NULL && intent_decl != NULL) {
         args = pgy_arena_calloc(&ctx->scratch,
             (argc > 0 ? argc : 1) * sizeof(LLVMValueRef));
@@ -317,22 +317,25 @@ llvm_emit_call(ASTNode *node, LLVMGenCtx *ctx)
                     ASTNode *binding = NULL;
 
                     if (mir_only_intent) {
-                        if (i >= mir_binding_count || binding_kinds == NULL
-                            || binding_types == NULL) {
+                        if (i >= mir_binding_count) {
                             llvm_set_mir_inventory_missing(ctx,
                                 "MIR-only LLVM path missing ordered intent binding metadata for call target '%s'",
                                 callee_name != NULL ? callee_name : "(anonymous-intent)");
-                            return NULL;
+                            goto cleanup;
                         }
-                        if (strcmp(binding_kinds[i], "participant") == 0) {
-                            type_name = binding_types[i];
-                        } else if (strcmp(binding_kinds[i], "value") == 0) {
-                            type_name = binding_types[i];
+                        if (intent_binding_metadata_view_row_is_kind(
+                                &binding_metadata, i, "participant")) {
+                            type_name = intent_binding_metadata_view_type_at(
+                                &binding_metadata, i);
+                        } else if (intent_binding_metadata_view_row_is_kind(
+                                       &binding_metadata, i, "value")) {
+                            type_name = intent_binding_metadata_view_type_at(
+                                &binding_metadata, i);
                         } else {
                             llvm_set_mir_inventory_missing(ctx,
                                 "MIR-only LLVM path has invalid ordered intent binding metadata for call target '%s'",
                                 callee_name != NULL ? callee_name : "(anonymous-intent)");
-                            return NULL;
+                            goto cleanup;
                         }
                     } else {
                         binding = llvm_intent_call_binding_at(
@@ -404,14 +407,14 @@ llvm_emit_call(ASTNode *node, LLVMGenCtx *ctx)
                             PGY_FIX_BIND_TO_NAMED_VARIABLE_BEFORE_MOVE,
                             "LLVM intent subject argument %zu for '%s' requires addressable storage",
                             i + 1, callee_name != NULL ? callee_name : "<intent>");
-                        return NULL;
+                        goto cleanup;
                     }
                 }
                 if (args[i] == NULL) {
                     LLVMTypeRef arg_type = llvm_stmt_infer_expr_type(ctx,
                         arg_node);
                     if (ctx->has_error)
-                        return NULL;
+                        goto cleanup;
                     if (arg_type == ctx->type_void) {
                         llvm_set_error_at_with_hints(ctx, arg_node,
                             PGY_CODE_LLVM_TYPE_UNSUPPORTED,
@@ -420,13 +423,15 @@ llvm_emit_call(ASTNode *node, LLVMGenCtx *ctx)
                             "LLVM intent call '%s' cannot consume a Void expression as argument %zu",
                             callee_name != NULL ? callee_name : "<intent>",
                             i + 1);
-                        return NULL;
+                        goto cleanup;
                     }
                     args[i] = llvm_emit_expression(arg_node, ctx);
                 }
-                if (args[i] == NULL)
-                    return llvm_call_arg_error_recovery(ctx, node,
+                if (args[i] == NULL) {
+                    result = llvm_call_arg_error_recovery(ctx, node,
                         callee_name, i);
+                    goto cleanup;
+                }
             }
             emitted_argc = (unsigned)argc;
         }
@@ -436,16 +441,18 @@ llvm_emit_call(ASTNode *node, LLVMGenCtx *ctx)
     if (args == NULL) {
         args = pgy_arena_calloc(&ctx->scratch,
             (argc > 0 ? argc : 1) * sizeof(LLVMValueRef));
-        if (args == NULL)
-            return llvm_call_error_recovery(ctx, node,
+        if (args == NULL) {
+            result = llvm_call_error_recovery(ctx, node,
                 "LLVM call argument allocation failed");
+            goto cleanup;
+        }
         for (size_t i = 0; i < argc; i++) {
             LLVMTypeRef saved_ret = ctx->current_ret_type;
             LLVMTypeRef expected_ty = NULL;
             ASTNode *arg_node = ast_call_argument(node, i);
             LLVMTypeRef arg_type = llvm_stmt_infer_expr_type(ctx, arg_node);
             if (ctx->has_error)
-                return NULL;
+                goto cleanup;
             if (arg_type == ctx->type_void) {
                 llvm_set_error_at_with_hints(ctx, arg_node,
                     PGY_CODE_LLVM_TYPE_UNSUPPORTED,
@@ -454,7 +461,7 @@ llvm_emit_call(ASTNode *node, LLVMGenCtx *ctx)
                     "LLVM call '%s' cannot consume a Void expression as argument %zu",
                     callee_name != NULL ? callee_name : "<call>",
                     i + 1);
-                return NULL;
+                goto cleanup;
             }
             if (predeclared_func != NULL
                 && i < LLVMCountParams(predeclared_func->fn)) {
@@ -467,9 +474,11 @@ llvm_emit_call(ASTNode *node, LLVMGenCtx *ctx)
             }
             args[i] = llvm_emit_expression(arg_node, ctx);
             ctx->current_ret_type = saved_ret;
-            if (args[i] == NULL)
-                return llvm_call_arg_error_recovery(ctx, node,
+            if (args[i] == NULL) {
+                result = llvm_call_arg_error_recovery(ctx, node,
                     callee_name, i);
+                goto cleanup;
+            }
         }
         emitted_argc = (unsigned)argc;
     }
@@ -477,20 +486,23 @@ llvm_emit_call(ASTNode *node, LLVMGenCtx *ctx)
     const MIRRoutine *callee_routine = NULL;
     LLVMFuncEntry *func = llvm_resolve_callee_entry(ctx, callee_name, args, argc);
     if (func == NULL && decl != NULL && decl->type == AST_FUNC_DECL) {
-        if (llvm_active_has_mir(ctx) && !decl_is_generic_func) {
+        if (llvm_active_has_mir(ctx)
+            && !decl_is_generic_func
+            && !decl_is_extern_func) {
             callee_routine =
                 llvm_active_function_routine_for_source_ast(ctx, decl);
             if (callee_routine == NULL) {
                 llvm_set_mir_inventory_missing(ctx,
                     "MIR-only LLVM path missing user-call routine for '%s'",
                     callee_name != NULL ? callee_name : "(anonymous-function)");
-                return NULL;
+                goto cleanup;
             }
-            if (!llvm_mir_routine_has_signature(callee_routine)) {
-                llvm_set_mir_inventory_missing(ctx,
+            if (!llvm_mir_routine_signature_metadata_complete(ctx,
+                    callee_routine, decl,
                     "MIR-only LLVM path missing user-call signature metadata for '%s'",
-                    callee_name != NULL ? callee_name : "(anonymous-function)");
-                return NULL;
+                    "MIR-only LLVM path missing user-call return type-name metadata for '%s'",
+                    "MIR-only LLVM path missing user-call parameter type-name metadata for '%s'")) {
+                goto cleanup;
             }
         }
         if (callee_routine != NULL)
@@ -498,13 +510,13 @@ llvm_emit_call(ASTNode *node, LLVMGenCtx *ctx)
         else
             llvm_forward_declare_func(decl, ctx);
         if (ctx->has_error)
-            return NULL;
+            goto cleanup;
         func = llvm_lookup_function(ctx, callee_name);
         if (func == NULL && callee_routine != NULL) {
             llvm_set_mir_inventory_missing(ctx,
                 "MIR-only LLVM path missing registered function call target '%s'",
                 callee_name != NULL ? callee_name : "(anonymous-function)");
-            return NULL;
+            goto cleanup;
         }
     }
     if (func == NULL && intent_decl != NULL) {
@@ -522,8 +534,9 @@ llvm_emit_call(ASTNode *node, LLVMGenCtx *ctx)
             param_types = pgy_arena_calloc(&ctx->scratch,
                 forward_param_count * sizeof(LLVMTypeRef));
             if (param_types == NULL) {
-                return llvm_call_error_recovery(ctx, node,
+                result = llvm_call_error_recovery(ctx, node,
                     "LLVM intent forward declaration parameter allocation failed");
+                goto cleanup;
             }
             for (size_t i = 0; i < forward_param_count; i++) {
                 LLVMTypeRef pt = NULL;
@@ -534,19 +547,23 @@ llvm_emit_call(ASTNode *node, LLVMGenCtx *ctx)
                 ASTNode *binding_type = NULL;
 
                 if (mir_only_intent) {
-                    if (binding_kinds == NULL || binding_types == NULL
-                        || i >= mir_binding_count || binding_types[i] == NULL) {
+                    if (!intent_binding_metadata_view_has_complete_row(
+                            &binding_metadata, i)) {
                         llvm_set_mir_inventory_missing(ctx,
                             "MIR-only LLVM path missing ordered intent binding metadata for call target '%s'",
                             callee_name != NULL ? callee_name : "(anonymous-intent)");
-                        return NULL;
+                        goto cleanup;
                     }
-                    type_name = binding_types[i];
+                    type_name = intent_binding_metadata_view_type_at(
+                        &binding_metadata, i);
                     pt = pergyra_type_to_llvm(ctx, type_name);
-                    if (ctx->has_error || pt == NULL)
-                        return llvm_call_error_recovery(ctx, node,
+                    if (ctx->has_error || pt == NULL) {
+                        result = llvm_call_error_recovery(ctx, node,
                             "LLVM intent forward declaration could not lower ordered binding type");
-                    if (strcmp(binding_kinds[i], "participant") == 0) {
+                        goto cleanup;
+                    }
+                    if (intent_binding_metadata_view_row_is_kind(
+                            &binding_metadata, i, "participant")) {
                         if (llvm_type_name_uses_pointer_self(ctx, type_name))
                             pt = LLVMPointerType(pt, 0);
                         else if (type_name != NULL) {
@@ -559,11 +576,13 @@ llvm_emit_call(ASTNode *node, LLVMGenCtx *ctx)
                                 pt = LLVMPointerType(pt, 0);
                             }
                         }
-                    } else if (strcmp(binding_kinds[i], "value") != 0) {
+                    } else if (!intent_binding_metadata_kind_is_supported(
+                                   intent_binding_metadata_view_kind_at(
+                                       &binding_metadata, i))) {
                         llvm_set_mir_inventory_missing(ctx,
                             "MIR-only LLVM path has invalid ordered intent binding metadata for call target '%s'",
                             callee_name != NULL ? callee_name : "(anonymous-intent)");
-                        return NULL;
+                        goto cleanup;
                     }
                 } else if (binding != NULL && binding->type == AST_INTENT_INVOLVES) {
                     if (ast_intent_involves_subject_type(binding) != NULL
@@ -572,9 +591,11 @@ llvm_emit_call(ASTNode *node, LLVMGenCtx *ctx)
                         type_name = ast_type_name(binding_type);
                         pt = ast_type_to_llvm(ctx, binding_type);
                     }
-                    if (ctx->has_error || pt == NULL)
-                        return llvm_call_error_recovery(ctx, node,
+                    if (ctx->has_error || pt == NULL) {
+                        result = llvm_call_error_recovery(ctx, node,
                             "LLVM intent forward declaration could not lower participant type");
+                        goto cleanup;
+                    }
                     if (llvm_type_name_uses_pointer_self(ctx, type_name)) {
                         pt = LLVMPointerType(pt, 0);
                     } else if (type_name != NULL) {
@@ -593,13 +614,16 @@ llvm_emit_call(ASTNode *node, LLVMGenCtx *ctx)
                             type_name = ast_type_name(binding_type);
                         pt = ast_type_to_llvm(ctx, binding_type);
                     }
-                    if (ctx->has_error || pt == NULL)
-                        return llvm_call_error_recovery(ctx, node,
+                    if (ctx->has_error || pt == NULL) {
+                        result = llvm_call_error_recovery(ctx, node,
                             "LLVM intent forward declaration could not lower value type");
+                        goto cleanup;
+                    }
                 }
                 if (pt == NULL) {
-                    return llvm_call_error_recovery(ctx, node,
+                    result = llvm_call_error_recovery(ctx, node,
                         "LLVM intent forward declaration requires binding type metadata; silent i8ptr fallback is not allowed");
+                    goto cleanup;
                 }
                 param_types[i] = pt;
             }
@@ -614,16 +638,18 @@ llvm_emit_call(ASTNode *node, LLVMGenCtx *ctx)
             llvm_set_mir_inventory_missing(ctx,
                 "MIR-only LLVM path missing registered intent call target '%s'",
                 callee_name != NULL ? callee_name : "(anonymous-intent)");
-            return NULL;
+            goto cleanup;
         }
     }
     if (func == NULL) {
         LLVMValueRef callable_result = llvm_emit_callable_variable_call(
             node, ctx, callee_name, args, emitted_argc);
         if (ctx->has_error)
-            return NULL;
-        if (callable_result != NULL)
-            return callable_result;
+            goto cleanup;
+        if (callable_result != NULL) {
+            result = callable_result;
+            goto cleanup;
+        }
 
         if (ctx != NULL && !ctx->has_error) {
             llvm_set_error_at_with_hints(ctx, node,
@@ -633,7 +659,7 @@ llvm_emit_call(ASTNode *node, LLVMGenCtx *ctx)
                 "LLVM call target '%s' is not declared in the backend function registry",
                 callee_name != NULL ? callee_name : "<unknown>");
         }
-        return NULL;
+        goto cleanup;
     }
 
     for (size_t i = 0; decl == NULL && i < argc; i++) {
@@ -654,9 +680,11 @@ llvm_emit_call(ASTNode *node, LLVMGenCtx *ctx)
                     if (callable_entry != NULL) {
                         LLVMTypeRef callable_sig =
                             llvm_function_signature_from_callable_entry(ctx, callable_entry);
-                        if (ctx->has_error || callable_sig == NULL)
-                            return llvm_call_error_recovery(ctx, node,
+                        if (ctx->has_error || callable_sig == NULL) {
+                            result = llvm_call_error_recovery(ctx, node,
                                 "LLVM callable argument could not lower callable signature");
+                            goto cleanup;
+                        }
                         LLVMTypeRef callable_ptr_ty =
                             LLVMPointerType(callable_sig, 0);
                         args[i] = LLVMBuildLoad2(ctx->builder, callable_ptr_ty,
@@ -681,7 +709,6 @@ llvm_emit_call(ASTNode *node, LLVMGenCtx *ctx)
         }
     }
 
-    LLVMValueRef result;
     if (func->ret_type == ctx->type_void) {
         LLVMBuildCall2(ctx->builder, func->fn_type, func->fn,
                        args, emitted_argc, "");
@@ -692,6 +719,8 @@ llvm_emit_call(ASTNode *node, LLVMGenCtx *ctx)
                                 args, emitted_argc, llvm_tmp_name(ctx));
     }
 
+cleanup:
+    intent_binding_metadata_view_dispose(&binding_metadata);
     return result;
 }
 

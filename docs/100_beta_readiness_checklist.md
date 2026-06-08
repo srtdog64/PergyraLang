@@ -4,11 +4,13 @@ This file is now the lightweight index for the beta closure checklist. The
 checklist body was split on 2026-05-29 because the single file had become too
 large to review safely.
 
-Current strict beta readiness is about **75%**. Do not call this 80% until the
-P0 source-of-truth closures below have consumer-completeness and smoke
-evidence. The 75% line is backed by binding-aware resource/collection metadata
-parity for shadowed `List<T>`, `DeviceSlot<T>`, and `Channel<T>` locals, plus
-complete backend-compare fixture inventory registration.
+Current implementation/beta split (2026-06-08): feature-surface feel is about
+85%, and strict beta readiness is now about 82%. Do not call this beta-complete until the P0 source-of-truth closures below have current full-suite evidence
+and no remaining compatibility fallback decides a beta-stable path. Do not
+raise it beyond the low-80% band on feature count alone. The 82% line is backed
+by green semantic/HIR/RIR/MIR/AIR/C-transpile/LLVM smoke gates, backend-compare
+fixture inventory registration, backend-compare range evidence, MIR declaration
+inventory guards, and ABI/Slot/Pin ownership smokes.
 
 ## Shards
 

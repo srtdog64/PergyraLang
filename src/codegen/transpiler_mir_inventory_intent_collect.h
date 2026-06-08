@@ -6,6 +6,7 @@
 #ifndef PERGYRA_TRANSPILER_MIR_INVENTORY_INTENT_COLLECT_H
 #define PERGYRA_TRANSPILER_MIR_INVENTORY_INTENT_COLLECT_H
 
+#include "intent_binding_metadata_view.h"
 #include "transpiler.h"
 
 const MIRRoutine *transpiler_find_mir_function(const TranspilerCtx *ctx,
@@ -42,9 +43,7 @@ size_t transpiler_collect_mir_intent_authorized_aliases(
     const char ***aliases_out);
 size_t transpiler_collect_mir_intent_bindings(
     const MIRRoutine *routine,
-    const char ***kinds_out,
-    const char ***aliases_out,
-    const char ***types_out);
+    IntentBindingMetadataView *bindings_out);
 size_t transpiler_collect_mir_intent_dispatch_aliases(
     const MIRRoutine *routine,
     const char *step_name,

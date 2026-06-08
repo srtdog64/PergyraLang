@@ -22,12 +22,6 @@ ASTNode *find_zone_decl_in_program_view(TranspilerCtx *ctx,
 const char *intent_participant_type_name(ASTNode *intent, const char *alias);
 const char *intent_step_effective_zone_alias(ASTNode *step);
 const char *intent_zone_binding_type_name(ASTNode *intent, const char *alias);
-bool intent_binding_metadata_view_is_active(
-    const IntentBindingMetadataView *bindings);
-const char *intent_binding_type_name_from_metadata(
-    const IntentBindingMetadataView *bindings,
-    const char *alias,
-    const char *required_kind);
 const char *intent_zone_binding_type_name_with_bindings(
     ASTNode *intent,
     const char *alias,

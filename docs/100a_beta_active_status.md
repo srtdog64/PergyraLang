@@ -28,22 +28,21 @@ runtime portability claims, documentation/implementation drift, and anchored
 ownership failure coverage. These items must be closed with diagnostics and
 smoke gates, not by broad marketing claims.
 
-Current status (2026-05-25): this checklist is the beta execution contract.
+Current status (2026-06-08): this checklist is the beta execution contract.
 The criterion is not feature count; it is **surface trust + structural
 sustainability + C/LLVM parity + CFG-backed body safety + AIR-backed
-abstraction safety + dogfood-first path**. Feature feel is about 70%, while
-strict beta readiness is now about 75%. The prior 67% anchor was held until
-source-of-truth closures had smoke evidence; current local gates show CFG body
-dataflow, MIR executable tests, AIR drift/schema, DAG resolver inventory, DAG
-metadata stats, runtime frontier contracts, semantic domain-owner seams, and
-local LLVM smoke/backend-compare parity are green. Current Windows-bash gates
-also run the explicit-binary example/tooling/observability/memory-concurrency/
-LLVM campaign and raw-escape executable probes instead of skipping them.
-The 75% line is now backed by binding-aware resource/collection metadata
-parity for shadowed `List<T>`, `DeviceSlot<T>`, and `Channel<T>` locals, plus
-complete backend-compare fixture inventory registration. Do not call this 80%
-yet: the remaining closure is consumer-completeness across CFG/AIR plus
-MIR/LLVM declaration bootstrap and ABI/Slot/Pin freeze.
+abstraction safety + dogfood-first path**. Feature feel is about 85%, while
+strict beta readiness is now about 82%. The older 75% anchor is no longer
+accurate for the current implementation surface: current gates cover broad
+semantic, HIR, RIR, MIR, AIR, C transpile, LLVM smoke, backend inventory,
+ABI/Slot/Pin ownership, worker-boundary, memory-concurrency, diagnostics,
+debug-hygiene, and CFG body-dataflow contracts. The low-80% line is still not
+beta-complete: current full-suite evidence must be refreshed after each closure
+slice, and remaining compatibility fallbacks must not decide beta-stable paths.
+The active closure work is now to finish the last source-of-truth consumers
+across CFG/AIR, remove guarded backend compatibility scans from MIR-owned
+resource/declaration paths where possible, and keep MIR/LLVM declaration
+bootstrap plus ABI/Slot/Pin contracts frozen by smoke gates.
 
 The five closure targets are:
 
@@ -539,7 +538,7 @@ incomplete, documentation alone does not count as closure.
 
 마지막 업데이트: 2026-05-25
 
-이 문서는 베타 진입 전 반드시 닫아야 하는 실행 체크리스트다. 기준은 기능 개수가 아니라 **surface trust + 구조 지속 가능성 + C/LLVM parity + CFG-backed body safety + AIR-backed abstraction safety + dogfood-first path**다. 현재 표기는 두 개로 분리한다: 기능 체감 진행도는 약 70%, strict beta readiness는 약 75%다. CFG/AIR consumer-completeness, MIR/LLVM declaration bootstrap, ABI/Slot/Pin freeze가 모두 닫히면 80% 범위로 재평가한다. 아직 80%로 올리지 않는다.
+이 문서는 베타 진입 전 반드시 닫아야 하는 실행 체크리스트다. 기준은 기능 개수가 아니라 **surface trust + 구조 지속 가능성 + C/LLVM parity + CFG-backed body safety + AIR-backed abstraction safety + dogfood-first path**다. 현재 표기는 두 개로 분리한다: 기능 체감 진행도는 약 85%, strict beta readiness는 약 82%다. 75% 표기는 현재 구현 표면보다 낮게 잡힌 과거 anchor로 본다. 다만 beta-complete나 90%대 준비도는 아니다. CFG/AIR의 마지막 consumer-completeness, MIR-owned resource/declaration 경로의 호환 fallback 축소, MIR/LLVM declaration bootstrap, ABI/Slot/Pin freeze를 현재 full-suite evidence로 다시 고정해야 한다.
 
 베타 진입 목표는 1년간 코어 문법과 의미론을 멈추고 생태계(`pgy.compat.*`, `pgy.kit.*`, `pgy.std.*`, `pgy.accel.spray`, `pgy.render.skia` 등)를 분리해도 되는 지점을 만드는 것이다. 따라서 beta closure는 **"이 코어가 1년 동안 자력으로 버틸 수 있는가"**를 기준으로 본다. 새 표면을 늘리는 작업은 AIR/CFG/runtime invariant가 닫힌 뒤로 미루며, 문서 합의만으로 완료된 것으로 보지 않는다.
 

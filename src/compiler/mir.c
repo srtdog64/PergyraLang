@@ -573,18 +573,15 @@ mir_lower(const HIRProgram *hir, const RIRProgram *rir, char **error_message)
             return NULL;
         }
 
-        if (debug_mir_lower != NULL && debug_mir_lower[0] != '\0'
-            && routine.kind == MIR_SCOPE_INTENT) {
+        if (debug_mir_lower != NULL && debug_mir_lower[0] != '\0' && routine.kind == MIR_SCOPE_INTENT) {
             fprintf(stdout,
                 "[MIR LOWER] Intent '%s' after build: has_cleanup=%d, blocks=%zu\n",
                 routine.name ? routine.name : "(null)",
-                routine.has_cleanup_block,
-                routine.block_count);
+                routine.has_cleanup_block, routine.block_count);
             for (size_t b = 0; b < routine.block_count; b++) {
                 fprintf(stdout,
                     "  block[%zu] has_cleanup_succ=%d has_rollback_succ=%d has_invalidation_succ=%d\n",
-                    b,
-                    routine.blocks[b].has_cleanup_succ,
+                    b, routine.blocks[b].has_cleanup_succ,
                     routine.blocks[b].has_rollback_succ,
                     routine.blocks[b].has_invalidation_succ);
             }

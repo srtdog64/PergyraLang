@@ -17,6 +17,7 @@
 #include "transpiler_generic_param_query.h"
 #include "transpiler_generic_specialization_emit.h"
 #include "transpiler_inventory_view.h"
+#include "transpiler_mir_signature.h"
 #include "transpiler_mir_inventory_intent_collect.h"
 #include "transpiler_symbols.h"
 #include "transpiler_type_mapping.h"
@@ -154,14 +155,15 @@ emit_spawn_expr(ASTNode *node, TranspilerCtx *ctx)
                 function_name != NULL ? function_name : "<function>");
             return NULL;
         }
-        callee_has_mir_signature =
-            transpiler_mir_routine_has_signature(callee_routine);
-        if (!callee_has_mir_signature) {
-            transpiler_set_mir_inventory_missing(ctx,
+        if (!transpiler_mir_routine_signature_metadata_complete_for(ctx,
+                callee_routine, decl,
+                TRANSPILER_MIR_SIGNATURE_REQUIRE_PARAM_TYPE_NAMES,
                 "MIR-only C path missing spawn signature metadata for '%s'",
-                function_name != NULL ? function_name : "<function>");
+                NULL,
+                "MIR-only C path missing spawn parameter type-name metadata for '%s'")) {
             return NULL;
         }
+        callee_has_mir_signature = true;
     }
     if (arg_count > 0)
         args_type_name = transpiler_scratch_fmt(ctx,
@@ -181,14 +183,6 @@ emit_spawn_expr(ASTNode *node, TranspilerCtx *ctx)
                     param_type_name =
                         transpiler_mir_routine_param_type_name(
                             callee_routine, i);
-                }
-                if (param != NULL && param->type != NULL
-                    && param->type->type != AST_EVENT_HANDLER_TYPE
-                    && param_type_name == NULL) {
-                    transpiler_set_mir_inventory_missing(ctx,
-                        "MIR-only C path missing spawn parameter type-name metadata for '%s'",
-                        function_name != NULL ? function_name : "<function>");
-                    return NULL;
                 }
             } else {
                 param = ast_func_param(decl, i);

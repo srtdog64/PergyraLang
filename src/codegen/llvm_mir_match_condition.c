@@ -12,6 +12,7 @@
 #include "llvm_internal.h"
 #include "llvm_mir_match_pattern.h"
 #include "llvm_mir_match_region.h"
+#include "llvm_mir_signature.h"
 #include "parser/ast_api.h"
 
 #include <stdint.h>
@@ -271,8 +272,12 @@ llvm_mir_case_payload_type(LLVMGenCtx *ctx,
         bool decl_is_generic = decl != NULL
             && ast_generic_param_count(
                 ast_declaration_generic_params(decl)) > 0;
+        bool decl_is_extern = decl != NULL
+            && llvm_decl_is_extern_function(ctx, decl);
         if (decl != NULL && decl->type == AST_FUNC_DECL
-            && llvm_active_has_mir(ctx) && !decl_is_generic) {
+            && llvm_active_has_mir(ctx)
+            && !decl_is_generic
+            && !decl_is_extern) {
             const MIRRoutine *routine =
                 llvm_active_function_routine_for_source_ast(ctx, decl);
             if (routine == NULL) {
@@ -281,22 +286,16 @@ llvm_mir_case_payload_type(LLVMGenCtx *ctx,
                     callee != NULL ? callee : "(anonymous-function)");
                 return NULL;
             }
-            if (!llvm_mir_routine_has_signature(routine)) {
-                llvm_set_mir_inventory_missing(ctx,
+            if (!llvm_mir_routine_signature_metadata_complete_for(ctx,
+                    routine, decl,
+                    LLVM_MIR_SIGNATURE_REQUIRE_RETURN_TYPE_NAME,
                     "MIR-only LLVM path missing match subject signature metadata for '%s'",
-                    callee != NULL ? callee : "(anonymous-function)");
+                    "MIR-only LLVM path missing match subject return type-name metadata for '%s'",
+                    NULL)) {
                 return NULL;
             }
             ret = llvm_mir_routine_return_type(routine);
             return_type_name = llvm_mir_routine_return_type_name(routine);
-            if (return_type_name == NULL
-                && ret != NULL
-                && ret->type != AST_EVENT_HANDLER_TYPE) {
-                llvm_set_mir_inventory_missing(ctx,
-                    "MIR-only LLVM path missing match subject return type-name metadata for '%s'",
-                    callee != NULL ? callee : "(anonymous-function)");
-                return NULL;
-            }
             if (return_type_name != NULL) {
                 subject_ty = pergyra_type_to_llvm(ctx, return_type_name);
                 if (ctx->has_error)

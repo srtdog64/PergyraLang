@@ -34,9 +34,6 @@ llvm_forward_declare_intent(ASTNode *node, LLVMGenCtx *ctx)
     LLVMTypeRef fn_type;
     LLVMValueRef fn;
     IntentBindingMetadataView binding_metadata = {0};
-    const char **binding_kinds = NULL;
-    const char **binding_aliases = NULL;
-    const char **binding_types = NULL;
     size_t mir_binding_count = 0;
     size_t param_count = 0;
     bool mir_only_intent = false;
@@ -67,9 +64,6 @@ llvm_forward_declare_intent(ASTNode *node, LLVMGenCtx *ctx)
     if (mir_routine != NULL) {
         mir_binding_count = llvm_collect_mir_intent_bindings(
             mir_routine, ctx, &binding_metadata);
-        binding_kinds = binding_metadata.kinds;
-        binding_aliases = binding_metadata.aliases;
-        binding_types = binding_metadata.types;
     } else {
         bindings = ast_intent_decl_bindings(node, &binding_count);
         involves = ast_intent_decl_involves(node, &involve_count);
@@ -77,16 +71,16 @@ llvm_forward_declare_intent(ASTNode *node, LLVMGenCtx *ctx)
     }
     if (mir_only_intent) {
         for (size_t i = 0; i < mir_binding_count; i++) {
-            if (binding_kinds == NULL || binding_aliases == NULL
-                || binding_types == NULL || binding_kinds[i] == NULL
-                || binding_aliases[i] == NULL || binding_types[i] == NULL) {
+            if (!intent_binding_metadata_view_has_complete_row(
+                    &binding_metadata, i)) {
                 llvm_set_mir_inventory_missing(ctx,
                     "MIR-only LLVM path has incomplete ordered intent binding metadata for forward declaration '%s'",
                     name != NULL ? name : "(anonymous)");
                 return;
             }
-            if (strcmp(binding_kinds[i], "participant") != 0
-                && strcmp(binding_kinds[i], "value") != 0) {
+            if (!intent_binding_metadata_kind_is_supported(
+                    intent_binding_metadata_view_kind_at(
+                        &binding_metadata, i))) {
                 llvm_set_mir_inventory_missing(ctx,
                     "MIR-only LLVM path has invalid ordered intent binding metadata for forward declaration '%s'",
                     name != NULL ? name : "(anonymous)");
@@ -120,8 +114,12 @@ llvm_forward_declare_intent(ASTNode *node, LLVMGenCtx *ctx)
                         : (i - involve_count < value_count
                             ? values[i - involve_count]
                             : NULL)));
-            if (mir_only_intent && strcmp(binding_kinds[i], "participant") == 0) {
-                const char *type_name = binding_types[i];
+            if (mir_only_intent
+                && intent_binding_metadata_view_row_is_kind(
+                    &binding_metadata, i, "participant")) {
+                const char *type_name =
+                    intent_binding_metadata_view_type_at(
+                        &binding_metadata, i);
                 pt = pergyra_type_to_llvm(ctx, type_name);
                 if (ctx->has_error || pt == NULL)
                     return;
@@ -137,8 +135,12 @@ llvm_forward_declare_intent(ASTNode *node, LLVMGenCtx *ctx)
                     if (llvm_intent_involves_uses_pointer_self(ctx, binding))
                         pt = LLVMPointerType(pt, 0);
                 }
-            } else if (mir_only_intent && strcmp(binding_kinds[i], "value") == 0) {
-                const char *value_type_name = binding_types[i];
+            } else if (mir_only_intent
+                       && intent_binding_metadata_view_row_is_kind(
+                           &binding_metadata, i, "value")) {
+                const char *value_type_name =
+                    intent_binding_metadata_view_type_at(
+                        &binding_metadata, i);
                 pt = pergyra_type_to_llvm(ctx, value_type_name);
                 if (ctx->has_error || pt == NULL)
                     return;

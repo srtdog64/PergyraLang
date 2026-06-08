@@ -199,27 +199,46 @@ llvm_mir_bind_resource_view_def_alias(const MIRInstruction *inst,
     return true;
 }
 
-void
+bool
 llvm_mir_emit_borrow_view_alias(const MIRInstruction *inst, LLVMGenCtx *ctx)
 {
     LLVMVarEntry source_entry;
+    const char *source_name;
     const char *inner;
     bool is_secure;
     TranspilerMIRResourceOp op;
 
     if (inst == NULL || ctx == NULL || inst->name == NULL
         || inst->arg0 == NULL || inst->arg1 == NULL)
-        return;
+        return true;
     op = transpiler_mir_resource_op_lookup(inst->name);
     if (op != TRANS_MIR_RESOURCE_OP_BORROW_READ
         && op != TRANS_MIR_RESOURCE_OP_BORROW_WRITE)
-        return;
+        return true;
 
-    inner = llvm_lookup_slot_inner(ctx, inst->arg0);
-    is_secure = llvm_lookup_slot_is_secure(ctx, inst->arg0);
-    if (!llvm_scope_lookup_snapshot(ctx, inst->arg0, &source_entry)
-        || inner == NULL)
-        return;
+    source_name = inst->resource_owner_slot_anchor != NULL
+        ? inst->resource_owner_slot_anchor
+        : inst->arg0;
+    if ((source_name == NULL || source_name[0] == '\0')
+        && inst->resource_owner_requires_metadata) {
+        llvm_set_mir_inventory_missing(ctx,
+            "LLVM MIR borrow view alias '%s' is missing owner slot ABI metadata",
+            inst->arg1);
+        return false;
+    }
+    inner = llvm_lookup_slot_inner(ctx, source_name);
+    is_secure = llvm_lookup_slot_is_secure(ctx, source_name);
+    if (!llvm_scope_lookup_snapshot(ctx, source_name, &source_entry)
+        || inner == NULL) {
+        if (inst->resource_owner_requires_metadata) {
+            llvm_set_mir_inventory_missing(ctx,
+                "LLVM MIR borrow view alias '%s' cannot resolve owner slot '%s'",
+                inst->arg1,
+                source_name != NULL ? source_name : "<slot>");
+            return false;
+        }
+        return true;
+    }
     LLVMValueRef source_alloca = source_entry.alloca;
     LLVMTypeRef source_type = source_entry.type;
 
@@ -234,7 +253,7 @@ llvm_mir_emit_borrow_view_alias(const MIRInstruction *inst, LLVMGenCtx *ctx)
         LLVMVarEntry token_entry;
 
         snprintf(source_token_name, sizeof(source_token_name), "%s_token",
-                 inst->arg0);
+                 source_name);
         snprintf(view_token_name, sizeof(view_token_name), "%s_token",
                  inst->arg1);
         if (llvm_scope_lookup_snapshot(ctx, source_token_name, &token_entry)) {
@@ -246,6 +265,7 @@ llvm_mir_emit_borrow_view_alias(const MIRInstruction *inst, LLVMGenCtx *ctx)
             }
         }
     }
+    return !ctx->has_error;
 }
 
 #endif /* PGY_LLVM_ENABLED */
