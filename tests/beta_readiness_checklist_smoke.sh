@@ -530,6 +530,9 @@ observability-schema-test-smoke:
 memory-concurrency-model-test-smoke:
 dogfood-webgl-test-smoke:
 self-host-preparation-test-smoke:
+EOF
+
+require_terms "scripts/ci_windows_steps.sh" <<'EOF'
 ci-windows: LLVM toolchain detected; running LLVM smoke and backend compare
 ci-windows: LLVM toolchain not detected; skipping Windows LLVM smoke/backend compare
 EOF
