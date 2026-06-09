@@ -75,6 +75,21 @@ cleanup() {
 }
 trap cleanup EXIT
 
+# Probe LLVM backend availability. macOS C-only CI builds pgy with
+# LLVM_ENABLED=0, and a pgy that lacks the LLVM backend cannot satisfy this
+# tri-compare contract. SKIP gracefully so the parity script does not turn a
+# build configuration into a self-host smoke failure.
+LLVM_PROBE_SRC="$WORK_DIR/_pgy_llvm_probe.pgy"
+LLVM_PROBE_BIN="$WORK_DIR/_pgy_llvm_probe_bin"
+printf 'func Main() -> Void {}\n' > "$LLVM_PROBE_SRC"
+LLVM_PROBE_REL="${LLVM_PROBE_SRC#"$ROOT_DIR/"}"
+LLVM_PROBE_BIN_REL="${LLVM_PROBE_BIN#"$ROOT_DIR/"}"
+if ! (cd "$ROOT_DIR" && "$PGY" "$LLVM_PROBE_REL" --backend=llvm \
+        -o "$LLVM_PROBE_BIN_REL") >/dev/null 2>&1; then
+    echo "[self-host-parity:backend-tri-compare] SKIP: LLVM backend unavailable in this pgy build"
+    exit 0
+fi
+
 pgy_quote_ps() {
     local value="${1//\'/\'\'}"
     printf "'%s'" "$value"
