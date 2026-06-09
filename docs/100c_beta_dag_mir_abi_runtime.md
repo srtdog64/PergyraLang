@@ -1248,8 +1248,20 @@ split, and the active 1,000+ production `.c` owner queue is now AST-only:
   paired capability token symbol is not reachable in the current scope. This
   closes the previous gap where invalid-token pin only failed at runtime ABI.
   Runtime hard-fail remains the deeper backstop.
+- Backend-compare parity for pin block lowering now also covers
+  nested-if-in-pin (`pin_nested_if_in_block`), nested-pin over two distinct
+  slots (`pin_nested_two_slots`), and pin inside a `for` loop
+  (`pin_inside_for_loop`). C/LLVM both emit the same pin enter / per-iteration
+  unpin sequence for these patterns.
 - 남은 blocker는 MIR cleanup fact를 LLVM/MIR backend explicit pin/unpin call로
   낮추는 lowering parity (broader exceptional/cancellation all-exit coverage).
+- 별도 issue: `pin` inside a `while` loop is currently blocked by a C backend
+  MIR-mapping bug where the loop body's first iteration drops its `Log(...)`
+  call when the loop reads from a `Slot<T>` (`probe5` minimal reproducer:
+  `let v: Int = Read(counter); Log(v);` inside `while Read(counter) < N`
+  prints only iterations 1..N-1, not 0..N-1; LLVM backend is correct). This is
+  not pin-specific; the fix path belongs to the C-side MIR while-loop /
+  Slot-read lowering owner, not §4.
 - Option C ownership lift keeps Pin/Lease narrow: `pin slot as view { ... }`
   and `PinnedView<T>` are §4 ABI ownership blockers only after §0b proves
   cleanup/escape facts. User-facing raw `void *` remains rejected; only typed

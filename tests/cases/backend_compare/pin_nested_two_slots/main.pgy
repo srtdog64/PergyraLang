@@ -1,0 +1,15 @@
+func Main() -> Void {
+    let alpha: Slot<Int> = ClaimSlot();
+    let beta: Slot<Int> = ClaimSlot();
+    Write(alpha, 11);
+    Write(beta, 22);
+    pin alpha as av: ReadView<Int> {
+        let a: Int = Read(av);
+        pin beta as bv: ReadView<Int> {
+            let b: Int = Read(bv);
+            Log(a + b);
+        }
+        Log(a);
+    }
+    Log(999);
+}
