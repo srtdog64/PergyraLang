@@ -372,6 +372,37 @@ if [ "$alias_diagnostic_cycle_unresolved" -ne "$alias_diagnostic_unresolved" ]; 
   exit 1
 fi
 
+# P0 #3 DAG maintenance: lock the alias and stage evidence floors that
+# silently shrink to zero would otherwise hide a regression. Each floor is
+# strictly below the current production measurement; bump them in a
+# dedicated commit when the DAG owner intentionally raises the surface.
+DAG_ALIAS_MATERIALIZED_FLOOR=6
+DAG_ALIAS_DIAG_UNRESOLVED_FLOOR=78
+DAG_GENERIC_PARAM_NODES_FLOOR=100
+DAG_GENERIC_CONTRACT_EVIDENCE_FLOOR=160
+DAG_ABILITY_CONSUMER_EVIDENCE_FLOOR=70
+
+if [ "$alias_materialized" -lt "$DAG_ALIAS_MATERIALIZED_FLOOR" ]; then
+  echo "alias_materialized $alias_materialized < floor $DAG_ALIAS_MATERIALIZED_FLOOR" >&2
+  exit 1
+fi
+if [ "$alias_diagnostic_unresolved" -lt "$DAG_ALIAS_DIAG_UNRESOLVED_FLOOR" ]; then
+  echo "alias_diagnostic_unresolved $alias_diagnostic_unresolved < floor $DAG_ALIAS_DIAG_UNRESOLVED_FLOOR" >&2
+  exit 1
+fi
+if [ "$generic_param_nodes" -lt "$DAG_GENERIC_PARAM_NODES_FLOOR" ]; then
+  echo "generic_param_nodes $generic_param_nodes < floor $DAG_GENERIC_PARAM_NODES_FLOOR" >&2
+  exit 1
+fi
+if [ "$dag_generic_contract_evidence" -lt "$DAG_GENERIC_CONTRACT_EVIDENCE_FLOOR" ]; then
+  echo "dag_generic_contract_evidence $dag_generic_contract_evidence < floor $DAG_GENERIC_CONTRACT_EVIDENCE_FLOOR" >&2
+  exit 1
+fi
+if [ "$dag_ability_consumer_evidence" -lt "$DAG_ABILITY_CONSUMER_EVIDENCE_FLOOR" ]; then
+  echo "dag_ability_consumer_evidence $dag_ability_consumer_evidence < floor $DAG_ABILITY_CONSUMER_EVIDENCE_FLOOR" >&2
+  exit 1
+fi
+
 grep -a -q 'topo_ok=1' "$log" || {
   echo "DAG topo validation did not report topo_ok=1" >&2
   exit 1
