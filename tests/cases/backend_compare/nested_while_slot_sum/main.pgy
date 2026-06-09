@@ -1,0 +1,16 @@
+func Main() -> Void {
+    let total: Slot<Int> = ClaimSlot();
+    Write(total, 0);
+    let outer: Slot<Int> = ClaimSlot();
+    Write(outer, 0);
+    while Read(outer) < 3 {
+        let inner: Slot<Int> = ClaimSlot();
+        Write(inner, 0);
+        while Read(inner) < 3 {
+            Write(total, Read(total) + 1);
+            Write(inner, Read(inner) + 1);
+        }
+        Write(outer, Read(outer) + 1);
+    }
+    Log(Read(total));
+}
