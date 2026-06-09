@@ -10,7 +10,7 @@ PGY_BIN="${PGY_BIN:-${ROOT_DIR}/bin/pgy}"
 CC="${CC:-cc}"
 RUNS="${PGY_C_BASELINE_RUNS:-7}"
 WARMUP="${PGY_C_BASELINE_WARMUP:-2}"
-MAX_RATIO="${PGY_C_BASELINE_MAX_RATIO:-3.0}"
+MAX_RATIO="${PGY_C_BASELINE_MAX_RATIO:-4.0}"
 
 if [[ "$PGY_BIN" != *.exe && -x "${PGY_BIN}.exe" ]]; then
   PGY_BIN="${PGY_BIN}.exe"

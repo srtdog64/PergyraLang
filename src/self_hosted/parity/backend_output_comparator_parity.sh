@@ -70,8 +70,12 @@ if [[ "$CLEAN_JSON" != "$EXPECTED_JSON" ]]; then
     exit 1
 fi
 
-# Shell drift detector for clean -- diff -q must agree.
-if ! diff -q "$FIXTURE_EXPECTED" "$FIXTURE_ACTUAL" >/dev/null 2>&1; then
+# Shell drift detector for clean -- diff -q must agree. Strip trailing
+# CR so MSYS2 / Git-for-Windows checkouts (where text fixtures can land
+# with CRLF endings depending on autocrlf and .gitattributes ordering)
+# don't disagree with the Pergyra tool, which compares line-by-line
+# after normalization.
+if ! diff -q --strip-trailing-cr "$FIXTURE_EXPECTED" "$FIXTURE_ACTUAL" >/dev/null 2>&1; then
     echo "[self-host-parity:backend-output-comparator] shell diff -q disagrees with Pergyra (clean)" >&2
     exit 1
 fi
