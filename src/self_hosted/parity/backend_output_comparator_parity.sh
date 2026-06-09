@@ -87,16 +87,35 @@ EXPECTED_NORM="$CMP_TMP/expected.norm"
 ACTUAL_NORM="$CMP_TMP/actual.norm"
 tr -d '\r' < "$FIXTURE_EXPECTED" > "$EXPECTED_NORM"
 tr -d '\r' < "$FIXTURE_ACTUAL"   > "$ACTUAL_NORM"
-if ! diff -q "$EXPECTED_NORM" "$ACTUAL_NORM" >/dev/null 2>&1; then
+# Capture rc explicitly. `diff -q` returns 0 (same), 1 (different),
+# or 2 (error -- missing file, permission, etc.); the previous
+# `if ! diff ...` form treated rc=2 the same as rc=1 and reported
+# "disagrees with Pergyra" when in fact diff just couldn't run.
+# In a recent ci-windows run the od dump showed both fixtures
+# byte-identical (size=23, same chars) yet the diff arm still
+# fired -- the only explanation is diff returning a non-{0,1} rc
+# that the previous `!` form silently lumped into "different".
+diff_rc=0
+diff -q "$EXPECTED_NORM" "$ACTUAL_NORM" >/dev/null 2>&1 || diff_rc=$?
+if [[ "$diff_rc" -eq 1 ]]; then
     echo "[self-host-parity:backend-output-comparator] shell diff -q disagrees with Pergyra (clean)" >&2
-    # Surface the exact bytes that diverged so the next debug run
-    # has a concrete trace instead of just the error line.
+    # Surface the exact bytes that diverged so a future run has a
+    # concrete trace instead of just the error line.
     {
         echo "--- expected (size=$(wc -c <"$FIXTURE_EXPECTED")) ---"
         od -c "$FIXTURE_EXPECTED" | head -5
         echo "--- actual   (size=$(wc -c <"$FIXTURE_ACTUAL")) ---"
         od -c "$FIXTURE_ACTUAL" | head -5
     } >&2
+    exit 1
+elif [[ "$diff_rc" -ne 0 ]]; then
+    # diff itself errored out (rc=2: missing file / permission /
+    # tool not found). Don't claim Pergyra is in disagreement --
+    # log the rc + the normalized paths so the operator can see
+    # which side the runtime is failing on.
+    echo "[self-host-parity:backend-output-comparator] shell diff -q errored rc=$diff_rc (not a Pergyra disagreement)" >&2
+    echo "  expected_norm=$EXPECTED_NORM (size=$(wc -c <"$EXPECTED_NORM" 2>/dev/null || echo '?'))" >&2
+    echo "  actual_norm=$ACTUAL_NORM   (size=$(wc -c <"$ACTUAL_NORM" 2>/dev/null || echo '?'))" >&2
     exit 1
 fi
 
