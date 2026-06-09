@@ -1043,6 +1043,29 @@ grep -q 'BODY_SUMMARY_MAY_ESCAPE_REF' \
     src/semantic/type_checker_call_contract_helpers.c \
     || fail "call contract summary owner must preserve the ref-escape body-summary bit"
 
+# P0 #1 PR1: body-summary prove-helper family must stay co-located with the
+# canonical owner and stay co-declared in the internal header, so consumer
+# migration can read body_summary bits through a single named seam instead
+# of re-walking the callee body in every analyzer.
+for prove in \
+    semantic_callable_summary_proves_no_drop_resource \
+    semantic_callable_summary_proves_no_spawn_task \
+    semantic_callable_summary_proves_no_send_channel \
+    semantic_callable_summary_proves_no_zone_requirement; do
+    grep -q "$prove" src/semantic/type_checker_call_contract_helpers.c \
+        || fail "body-summary prove helper '$prove' must live in the call contract owner"
+    grep -q "$prove" src/semantic/type_checker_internal.h \
+        || fail "body-summary prove helper '$prove' must be declared in the semantic internal header"
+done
+for body_bit in \
+    BODY_SUMMARY_DROPS_RESOURCE \
+    BODY_SUMMARY_SPAWNS_TASK \
+    BODY_SUMMARY_SENDS_CHANNEL \
+    BODY_SUMMARY_REQUIRES_ZONE; do
+    grep -q "$body_bit" src/semantic/type_checker_call_contract_helpers.c \
+        || fail "call contract owner must preserve the '$body_bit' body-summary bit through its prove helper"
+done
+
 if grep -RIn 'semantic_legacy_ast_callable_param_escape_summary' src/semantic >/dev/null; then
     fail "call contract escape summary must not reintroduce the legacy AST public seam name"
 fi

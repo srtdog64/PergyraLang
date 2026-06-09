@@ -142,12 +142,22 @@ semantic_callable_param_escape_summary(ASTNode *callee_decl,
     if (semantic_callable_summary_proves_no_ref_escape(ctx, callee_decl))
         return 0u;
 
-    return slot_analyze_legacy_ast_param_summary_in_program(
+    unsigned mask = slot_analyze_legacy_ast_param_summary_in_program(
         ast_func_body(callee_decl),
         ast_func_param(callee_decl, arg_index) != NULL
             ? ast_func_param(callee_decl, arg_index)->name
             : NULL,
         legacy_ast_param_summary_program(ctx));
+
+    /* P0 #1 PR2 consumer migration: when the callee's body-summary
+     * inventory positively proves no channel send happens, strip the
+     * legacy AST analyzer's CHANNEL_ESCAPE bit. The legacy analyzer
+     * can over-approximate on channel-receive-only call shapes; the
+     * body-summary inventory is more precise on this dimension. */
+    if (semantic_callable_summary_proves_no_send_channel(ctx, callee_decl))
+        mask &= ~SLOT_PARAM_SUMMARY_CHANNEL_ESCAPE;
+
+    return mask;
 }
 
 bool
