@@ -23,6 +23,7 @@ PGY_CI_FAIL_FAST="${PGY_CI_FAIL_FAST:-0}"
 STEP_NUM=0
 STEP_NAME=""
 FAILED_STEPS=()
+KNOWN_FAILED_STEPS=()
 
 run() {
     STEP_NUM=$((STEP_NUM + 1))
@@ -48,6 +49,31 @@ run() {
     fi
 }
 
+# run_known_fail: a step that is allowed to fail without turning the whole
+# CI run red. Use it for fails tracked in docs/100d as "known unrecovered"
+# -- they still produce log noise that operators can grep for, but they
+# don't gate the rest of the run. Pass the issue tag as $2 so the summary
+# names what's being tolerated. SUCCESS on a known-fail step is silently
+# upgraded to a normal pass (the registry just expected a *possible*
+# failure, not a guaranteed one).
+run_known_fail() {
+    STEP_NUM=$((STEP_NUM + 1))
+    STEP_NAME="$1"
+    local issue="${2:-unspecified}"
+    printf '\n========== [%s step %d] %s (known-fail: %s) ==========\n' \
+        "$CI_NAME" "$STEP_NUM" "$STEP_NAME" "$issue" >&2
+    local rc=0
+    ( eval "$1" ) || rc=$?
+    if [[ $rc -ne 0 ]]; then
+        KNOWN_FAILED_STEPS+=("step $STEP_NUM rc=$rc ($issue): $STEP_NAME")
+        printf '\n[%s step %d KNOWN-FAIL rc=%d (%s)] continuing\n' \
+            "$CI_NAME" "$STEP_NUM" "$rc" "$issue" >&2
+    else
+        printf '\n[%s step %d known-fail step now passing (%s)]\n' \
+            "$CI_NAME" "$STEP_NUM" "$issue" >&2
+    fi
+}
+
 if [[ ! -r "$STEPS_FILE" ]]; then
     printf '[%s] step list not readable: %s\n' "$CI_NAME" "$STEPS_FILE" >&2
     exit 2
@@ -55,6 +81,14 @@ fi
 
 # shellcheck disable=SC1090
 . "$STEPS_FILE"
+
+if [[ ${#KNOWN_FAILED_STEPS[@]} -gt 0 ]]; then
+    printf '\n========== [%s] %d known-fail step(s) (informational, does not gate CI) ==========\n' \
+        "$CI_NAME" "${#KNOWN_FAILED_STEPS[@]}" >&2
+    for entry in "${KNOWN_FAILED_STEPS[@]}"; do
+        printf '  - %s\n' "$entry" >&2
+    done
+fi
 
 if [[ ${#FAILED_STEPS[@]} -eq 0 ]]; then
     printf '\n[%s] all %d steps ok\n' "$CI_NAME" "$STEP_NUM" >&2
