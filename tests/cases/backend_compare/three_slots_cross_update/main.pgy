@@ -1,0 +1,14 @@
+func Main() -> Void {
+    let a: Slot<Int> = ClaimSlot();
+    let b: Slot<Int> = ClaimSlot();
+    let c: Slot<Int> = ClaimSlot();
+    Write(a, 5);
+    Write(b, 10);
+    Write(c, 20);
+    Write(a, Read(b) + Read(c));
+    Write(b, Read(a) + Read(c));
+    Write(c, Read(a) + Read(b));
+    Log(Read(a));
+    Log(Read(b));
+    Log(Read(c));
+}

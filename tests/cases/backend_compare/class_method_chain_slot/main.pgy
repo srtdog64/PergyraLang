@@ -1,0 +1,18 @@
+class Counter {
+    let value: Int;
+
+    func Bumped(self) -> Counter {
+        return Counter(self.value + 1);
+    }
+}
+
+func Main() -> Void {
+    let acc: Slot<Int> = ClaimSlot();
+    Write(acc, 0);
+    let c1: Counter = Counter(0);
+    let c2: Counter = c1.Bumped();
+    let c3: Counter = c2.Bumped();
+    let c4: Counter = c3.Bumped();
+    Write(acc, c4.value);
+    Log(Read(acc));
+}
