@@ -277,6 +277,23 @@ llvm_mir_copy_source_def_to_versioned_local(const MIRInstruction *inst,
         llvm_register_channel_var_binding(ctx, base_name, active_alloca,
             source_channel_inner);
     }
+    /* P0 #4: lift the var-class registration that llvm_emit_let_decl
+     * normally performs on the AST-driven path into the MIR-driven
+     * path. Without this, hosted-method receivers like
+     * `let weapon: WeaponCard = ...; weapon.BossBurn(...)` fall
+     * through to the struct-type lookup, which doesn't work under
+     * LLVM 15+ opaque pointers. With var-class registered here, the
+     * receiver class lookup in llvm_stmt_infer_expr_type's
+     * MEMBER_ACCESS branch hits on the first try. The eager
+     * function-entry registration in llvm_mir_emit.c covers the
+     * dry-pre-pass ordering window before this point. */
+    if (type_ann != NULL
+        && type_ann->type == AST_TYPE
+        && ast_type_name(type_ann) != NULL) {
+        const char *ann_name = ast_type_name(type_ann);
+        if (llvm_lookup_class(ctx, ann_name) != NULL)
+            llvm_register_var_class(ctx, base_name, ann_name);
+    }
     return !ctx->has_error;
 }
 

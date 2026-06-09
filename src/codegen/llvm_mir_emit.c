@@ -26,6 +26,64 @@ llvm_mir_debug_stage(const char *stage, const MIRRoutine *routine)
     fputc('\n', stderr);
 }
 
+/* P0 #4 helper: recursively walk an AST subtree and pre-register every
+ * `let name: ClassName = ...` binding into the var-class registry so the
+ * type-infer dry pass that precedes the real emit can resolve the
+ * receiver class. See the caller at the bottom of the local-allocas
+ * setup for the motivation. */
+static void
+llvm_mir_preregister_let_var_classes(LLVMGenCtx *ctx, ASTNode *node)
+{
+    if (ctx == NULL || node == NULL)
+        return;
+    switch (node->type) {
+    case AST_LET_DECL: {
+        const char *let_name = ast_let_name(node);
+        ASTNode *let_ty = ast_let_type(node);
+        if (let_name != NULL && let_ty != NULL
+            && let_ty->type == AST_TYPE
+            && ast_type_name(let_ty) != NULL) {
+            const char *ty_name = ast_type_name(let_ty);
+            if (llvm_lookup_class(ctx, ty_name) != NULL)
+                llvm_register_var_class(ctx, let_name, ty_name);
+        }
+        return;
+    }
+    case AST_BLOCK: {
+        size_t n = ast_block_statement_count(node);
+        for (size_t i = 0; i < n; i++)
+            llvm_mir_preregister_let_var_classes(ctx,
+                ast_block_statement(node, i));
+        return;
+    }
+    case AST_IF_STMT:
+        llvm_mir_preregister_let_var_classes(ctx, ast_if_then_branch(node));
+        llvm_mir_preregister_let_var_classes(ctx, ast_if_else_branch(node));
+        return;
+    case AST_WHILE_LOOP:
+        llvm_mir_preregister_let_var_classes(ctx, ast_while_body(node));
+        return;
+    case AST_FOR_LOOP:
+        llvm_mir_preregister_let_var_classes(ctx, ast_for_body(node));
+        return;
+    case AST_WITH_STMT:
+        llvm_mir_preregister_let_var_classes(ctx, ast_with_body(node));
+        return;
+    case AST_MATCH_STMT: {
+        size_t n = ast_match_case_count(node);
+        for (size_t i = 0; i < n; i++) {
+            ASTNode *c = ast_match_case_at(node, i);
+            if (c != NULL && c->type == AST_MATCH_CASE)
+                llvm_mir_preregister_let_var_classes(ctx,
+                    ast_match_case_body(c));
+        }
+        return;
+    }
+    default:
+        return;
+    }
+}
+
 static void
 llvm_mir_mark_owner_dirty_for_exit(LLVMGenCtx *ctx,
                                    LLVMClassTypeEntry *owner_cls,
@@ -452,6 +510,27 @@ llvm_emit_func_from_mir(const MIRRoutine *routine, LLVMGenCtx *ctx)
                                 owner_cls, owner_name, param_count);
     llvm_emit_mir_local_allocas(routine, ctx, &vars, &var_capacity, &var_count);
     llvm_mir_debug_stage("emit_func_from_mir:locals_ready", routine);
+
+    /* P0 #4 eager var-class registration: walk the function body
+     * (recursively into nested blocks) and pre-register
+     * `let name: ClassName = ...` bindings into the var-class
+     * registry. Otherwise the first call to
+     * `llvm_stmt_infer_expr_type` for a member-access expression like
+     * `weapon.BossBurn(...)` happens BEFORE
+     * `llvm_mir_copy_source_def_to_versioned_local` has had a chance
+     * to register `weapon -> WeaponCard` (the type-infer pass runs as
+     * a dry pre-pass before the real emit). The lookup misses, the
+     * receiver class fallback chain runs out of options under LLVM
+     * opaque pointers, and the LLVM compile fails on calls that the
+     * C backend handled cleanly. Eager registration sidesteps the
+     * order dependency without touching MIR routine inventory.
+     *
+     * Walks nested AST_BLOCK / AST_IF_STMT / AST_FOR_LOOP /
+     * AST_WHILE_LOOP / AST_MATCH_STMT / AST_WITH_STMT bodies so
+     * lets declared inside conditionals also get registered. */
+    if (func_decl != NULL && func_decl->type == AST_FUNC_DECL) {
+        llvm_mir_preregister_let_var_classes(ctx, ast_func_body(func_decl));
+    }
 
     LLVMPositionBuilderAtEnd(ctx->builder, llvm_blocks[routine->entry_block]);
     if (owner_sync != NULL) {
