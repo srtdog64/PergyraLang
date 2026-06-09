@@ -1,0 +1,16 @@
+func Max(a: Int, b: Int) -> Int {
+    if a > b {
+        return a;
+    }
+    return b;
+}
+
+func Main() -> Void {
+    let acc: Slot<Int> = ClaimSlot();
+    Write(acc, 0);
+    Write(acc, Max(Read(acc), 5));
+    Write(acc, Max(Read(acc), 3));
+    Write(acc, Max(Read(acc), 8));
+    Write(acc, Max(Read(acc), 1));
+    Log(Read(acc));
+}

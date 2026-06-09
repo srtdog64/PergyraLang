@@ -1,0 +1,15 @@
+func Fib(n: Int) -> Int {
+    if n < 2 {
+        return n;
+    }
+    return Fib(n - 1) + Fib(n - 2);
+}
+
+func Main() -> Void {
+    let acc: Slot<Int> = ClaimSlot();
+    Write(acc, 0);
+    for i in 0..10 {
+        Write(acc, Read(acc) + Fib(i));
+    }
+    Log(Read(acc));
+}
