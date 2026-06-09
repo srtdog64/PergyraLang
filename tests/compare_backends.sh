@@ -968,6 +968,8 @@ main() {
         "tests/cases/backend_compare/defer_after_slot_log"
         "tests/cases/backend_compare/while_match_default_slot"
         "tests/cases/backend_compare/helper_local_while_slot"
+        "tests/cases/backend_compare/multi_spawn_accumulator"
+        "tests/cases/backend_compare/channel_drain_while"
         "tests/cases/backend_compare/unsafe_lexical_boundary"
         "tests/cases/backend_compare/world_zone_projection_visibility"
         "tests/cases/backend_compare/world_zone_cross_queries"

@@ -1,0 +1,16 @@
+async func Worker(n: Int) -> Int {
+    return n * n;
+}
+
+async func Main() -> Void {
+    let acc: Slot<Int> = ClaimSlot();
+    Write(acc, 0);
+    let f1: Future<Int> = spawn Worker(2);
+    let f2: Future<Int> = spawn Worker(3);
+    let f3: Future<Int> = spawn Worker(4);
+    let v1: Int = await f1;
+    let v2: Int = await f2;
+    let v3: Int = await f3;
+    Write(acc, v1 + v2 + v3);
+    Log(Read(acc));
+}
