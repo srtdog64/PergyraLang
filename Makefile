@@ -1015,6 +1015,7 @@ ifneq ($(LLVM_ENABLED),0)
                         $(CODEGEN_DIR)/llvm_stmt_defer_scope.c \
                         $(CODEGEN_DIR)/llvm_stmt_array_type_infer.c \
                         $(CODEGEN_DIR)/llvm_stmt_type_infer.c \
+                        $(CODEGEN_DIR)/llvm_stmt_source_local_fallback.c \
                         $(CODEGEN_DIR)/llvm_stmt_type_infer_nominal.c \
                         $(CODEGEN_DIR)/llvm_stmt_type_infer_await.c \
                         $(CODEGEN_DIR)/llvm_stmt_type_infer_helpers.c \

@@ -2,6 +2,7 @@
 #include "llvm_internal.h"
 #include "llvm_internal_api.h"
 #include "llvm_inventory_host_methods.h"
+#include "llvm_stmt_source_local_fallback.h"
 #include "llvm_stmt_type_infer_helpers.h"
 #include "codegen_match_variant_policy.h"
 #include "../parser/ast_api.h"
@@ -489,26 +490,12 @@ llvm_stmt_infer_expr_type(LLVMGenCtx *ctx, ASTNode *expr)
             ctx, ast_member_object(expr));
         LLVMClassTypeEntry *base_cls = base_name != NULL
             ? llvm_lookup_class(ctx, base_name) : NULL;
-        /* P0 #4 full: same AST-walk fallback as the MEMBER_ACCESS
-         * call branch. If the nominal-name probe missed, walk the
-         * current function body for a matching `let receiver:
-         * ClassName = ...` annotation. dnd_tavern_campaign hits
-         * this on `strategy.aggression` after BossBurn unblocks. */
+        /* P0 #4 fallback split into llvm_stmt_source_local_fallback.c. */
         if (base_cls == NULL) {
-            ASTNode *recv = ast_member_object(expr);
-            if (recv != NULL && recv->type == AST_IDENTIFIER
-                && ast_identifier_name(recv) != NULL
-                && ctx->current_func_decl != NULL
-                && ctx->current_func_decl->type == AST_FUNC_DECL) {
-                const char *ann = mir_source_local_type_name_in_ast(
-                    ast_func_body(ctx->current_func_decl),
-                    ast_identifier_name(recv));
-                if (ann != NULL) {
-                    base_cls = llvm_lookup_class(ctx, ann);
-                    if (base_cls != NULL)
-                        base_name = ann;
-                }
-            }
+            base_cls = llvm_stmt_source_local_class(ctx,
+                ast_member_object(expr));
+            if (base_cls != NULL)
+                base_name = base_cls->class_name;
         }
         if (base_cls != NULL) {
             int field_idx = llvm_class_field_index(base_cls, ast_member_name(expr));
@@ -570,20 +557,12 @@ llvm_stmt_infer_expr_type(LLVMGenCtx *ctx, ASTNode *expr)
                         receiver_name);
                 if (class_name == NULL)
                     class_name = llvm_expr_custom_type_name(receiver, ctx);
-                /* P0 #4 full: lazy AST-walk fallback. If every
-                 * registered map missed (the dry-pre-pass ordering
-                 * window we saw with dnd_tavern_campaign's BossBurn),
-                 * walk the current function body for a matching
-                 * `let receiver_name: TypeName = ...` annotation. As
-                 * long as that TypeName is a registered class, the
-                 * caller's host-method metadata path picks up. */
-                if (class_name == NULL && ctx->current_func_decl != NULL
-                    && ctx->current_func_decl->type == AST_FUNC_DECL) {
-                    const char *ann = mir_source_local_type_name_in_ast(
-                        ast_func_body(ctx->current_func_decl),
-                        receiver_name);
-                    if (ann != NULL && llvm_lookup_class(ctx, ann) != NULL)
-                        class_name = ann;
+                /* P0 #4 fallback split into llvm_stmt_source_local_fallback.c. */
+                if (class_name == NULL) {
+                    LLVMClassTypeEntry *e =
+                        llvm_stmt_source_local_class(ctx, receiver);
+                    if (e != NULL && e->class_name != NULL)
+                        class_name = e->class_name;
                 }
                 if (class_name == NULL) {
                     /* Last-resort: the var-class registry didn't pick up

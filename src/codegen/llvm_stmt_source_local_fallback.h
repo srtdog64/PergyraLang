@@ -1,0 +1,11 @@
+/*
+ * Copyright (c) 2026 Pergyra Language Project
+ * P0 #4 AST-walk fallback declaration.
+ */
+#ifndef PGY_LLVM_STMT_SOURCE_LOCAL_FALLBACK_H
+#define PGY_LLVM_STMT_SOURCE_LOCAL_FALLBACK_H
+#ifdef PGY_LLVM_ENABLED
+#include "llvm_internal.h"
+LLVMClassTypeEntry *llvm_stmt_source_local_class(LLVMGenCtx *ctx, ASTNode *recv);
+#endif
+#endif
