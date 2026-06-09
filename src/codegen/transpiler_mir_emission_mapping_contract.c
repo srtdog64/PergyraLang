@@ -15,6 +15,7 @@
 #include "transpiler_mir_ssa_lookup.h"
 #include "transpiler_mir_ssa_map.h"
 #include "transpiler_mir_pin_emit.h"
+#include "transpiler_mir_stmt_emit.h"
 
 /*
  * C backend MIR emission mapping precheck.
@@ -196,7 +197,20 @@ transpiler_has_mapping_for_all_emitted_blocks(const TranspilerCtx *ctx,
                     && transpiler_mir_resource_op_lookup(inst->name)
                         == TRANS_MIR_RESOURCE_OP_WRITE)) {
                 ASTNode *payload_expr = inst->expr0;
+                /* Resource ops attributed to the SSA def-block by upstream MIR
+                 * lowering may carry an expr0 whose identifiers are only mapped
+                 * in their owning use-block. Skip the mapping contract for a
+                 * Write resource op whose paired MIR_INST_STMT lives elsewhere
+                 * -- the C-side emit policy (transpiler_emit_mir_resource_hook)
+                 * already routes that op to export-only, so the def-block does
+                 * not need to resolve identifiers that get their SSA version
+                 * inside the use-block stmt. */
+                bool skip_resource_mapping =
+                    inst->kind == MIR_INST_RESOURCE_OP
+                    && !transpiler_mir_resource_has_mirroring_stmt_in_block(
+                            block, inst);
                 if (payload_expr != NULL
+                    && !skip_resource_mapping
                     && !transpiler_expr_identifiers_mapped(ctx, payload_expr,
                                                           &ssa_map,
                                                           routine_name,
