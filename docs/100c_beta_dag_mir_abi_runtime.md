@@ -1265,9 +1265,18 @@ split, and the active 1,000+ production `.c` owner queue is now AST-only:
   This mirrors the LLVM backend, where resource ops are never the canonical
   emit site for the runtime call, and closes the C-only parity drift where
   the def-block side of the SSA flow doubled the runtime call.
-- 남은 blocker는 MIR cleanup fact를 LLVM/MIR backend explicit pin/unpin call로
-  낮추는 lowering parity (broader exceptional/cancellation all-exit coverage,
-  e.g. invoke/landingpad-style LLVM pin cleanup on panic exit).
+- Exceptional/cancellation exit closure: cancellation paths
+  (`Cancel(Future<T>)`, `await`, `spawn`, `async`, `channel send/recv`,
+  `defer`) are rejected at the source level while a typed view is live by
+  `PGY_SEM_PIN_AWAIT_BOUNDARY` / `PGY_SEM_PIN_PARALLEL_CONFLICT`, so cancel
+  flow never enters a pin region in the stable beta subset. Panic exit is
+  process abort: `pgy_runtime_panic_*` exports terminate the process and the
+  OS reclaims pin storage, so no explicit unpin lowering is required on that
+  path. C source-block emission already binds GCC `__attribute__((cleanup))`
+  to its typed wrapper local for any local scope exit. The remaining §4
+  blockers (raw-escape unsafe surface, scoped capability-evidence for
+  system-tier raw pointer, and DeviceSlot pin mapping failure classes) stay
+  out of beta scope.
 - Option C ownership lift keeps Pin/Lease narrow: `pin slot as view { ... }`
   and `PinnedView<T>` are §4 ABI ownership blockers only after §0b proves
   cleanup/escape facts. User-facing raw `void *` remains rejected; only typed
