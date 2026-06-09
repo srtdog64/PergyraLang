@@ -115,7 +115,7 @@ transpiler_emit_mir_claim_prepass(CodeBuf *buf,
             continue;
         }
         if (!transpiler_emit_mir_resource_hook(ctx, buf, ctx->indent,
-                                               inst, "0", false)) {
+                                               block, inst, "0", false)) {
             if (reason != NULL && reason_cap > 0) {
                 transpiler_mir_reasonf(reason, reason_cap,
                          "MIR block %zu emission failed: unable to emit claim op for '%s'",

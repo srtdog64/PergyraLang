@@ -1,0 +1,9 @@
+func Main() -> Void {
+    let counter: Slot<Int> = ClaimSlot();
+    Write(counter, 0);
+    while Read(counter) < 3 {
+        Log(Read(counter));
+        Write(counter, Read(counter) + 1);
+    }
+    Log(999);
+}

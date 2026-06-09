@@ -11,6 +11,34 @@
 #include "transpiler_symbols.h"
 
 bool
+transpiler_mir_resource_has_mirroring_stmt_in_block(
+    const MIRBasicBlock *block,
+    const MIRInstruction *resource_inst)
+{
+    ASTNode *resource_stmt;
+
+    if (block == NULL || resource_inst == NULL)
+        return false;
+    if (resource_inst->kind != MIR_INST_RESOURCE_OP)
+        return false;
+    if (mir_instruction_resource_op_keeps_residual_statement_emit(resource_inst))
+        return false;
+    resource_stmt = mir_instruction_source_payload(resource_inst);
+    if (resource_stmt == NULL)
+        return false;
+    for (size_t i = 0; i < block->instruction_count; i++) {
+        const MIRInstruction *cand = &block->instructions[i];
+        if (cand == resource_inst)
+            continue;
+        if (cand->kind != MIR_INST_STMT)
+            continue;
+        if (mir_instruction_source_payload(cand) == resource_stmt)
+            return true;
+    }
+    return false;
+}
+
+bool
 transpiler_mir_stmt_is_mirrored_resource(TranspilerCtx *ctx,
                                          const MIRBasicBlock *block,
                                          ASTNode *stmt)

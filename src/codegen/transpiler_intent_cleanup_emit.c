@@ -36,7 +36,8 @@ transpiler_emit_intent_mir_resource_block(ASTNode *node,
         const MIRInstruction *inst = &block->instructions[i];
         if (inst->kind == MIR_INST_CLEANUP_EDGE || inst->kind == MIR_INST_RESOURCE_OP) {
             if (!transpiler_emit_mir_resource_hook(
-                    ctx, ctx->out, ctx->indent, inst, "__intent_handle", true)) {
+                    ctx, ctx->out, ctx->indent, block, inst,
+                    "__intent_handle", true)) {
                 return false;
             }
         }

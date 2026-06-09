@@ -6,6 +6,7 @@
 bool transpiler_emit_mir_resource_hook(TranspilerCtx *ctx,
                                        CodeBuf *out,
                                        int indent,
+                                       const MIRBasicBlock *owning_block,
                                        const MIRInstruction *inst,
                                        const char *handle_expr,
                                        bool cleanup_hook);

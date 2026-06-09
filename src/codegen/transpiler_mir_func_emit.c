@@ -543,7 +543,8 @@ emit_func_decl_from_mir_named(ASTNode *node, const MIRRoutine *mir_routine,
             for (size_t j = 0; j < block->instruction_count; j++) {
                 const MIRInstruction *inst = &block->instructions[j];
                 if (inst->kind == MIR_INST_CLEANUP_EDGE) {
-                    if (!transpiler_emit_mir_resource_hook(ctx, ctx->out, ctx->indent, inst,
+                    if (!transpiler_emit_mir_resource_hook(ctx, ctx->out, ctx->indent,
+                                                           block, inst,
                                                            cleanup_handle, true)) {
             transpiler_defer_scope_pop(ctx);
             transpiler_restore_mir_emit_state_from_snapshot_local(ctx, &saved_emit_state);

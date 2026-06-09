@@ -1,0 +1,14 @@
+func Main() -> Void {
+    let counter: Slot<Int> = ClaimSlot();
+    let scores: Slot<Int> = ClaimSlot();
+    Write(counter, 0);
+    Write(scores, 3);
+    while Read(counter) < 3 {
+        pin scores as view: ReadView<Int> {
+            let v: Int = Read(view);
+            Log(v + Read(counter));
+        }
+        Write(counter, Read(counter) + 1);
+    }
+    Log(999);
+}

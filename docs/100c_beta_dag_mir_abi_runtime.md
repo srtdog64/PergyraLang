@@ -1250,18 +1250,24 @@ split, and the active 1,000+ production `.c` owner queue is now AST-only:
   Runtime hard-fail remains the deeper backstop.
 - Backend-compare parity for pin block lowering now also covers
   nested-if-in-pin (`pin_nested_if_in_block`), nested-pin over two distinct
-  slots (`pin_nested_two_slots`), and pin inside a `for` loop
-  (`pin_inside_for_loop`). C/LLVM both emit the same pin enter / per-iteration
-  unpin sequence for these patterns.
+  slots (`pin_nested_two_slots`), pin inside a `for` loop
+  (`pin_inside_for_loop`), pin inside a `while` loop
+  (`pin_inside_while_loop`), and a no-pin `while` loop reading through a
+  `Slot<T>` (`while_loop_slot_read`). C/LLVM both emit the same pin
+  enter / per-iteration unpin sequence and run identical iteration counts.
+- C MIR resource-op emission is now block-local. The
+  `transpiler_emit_mir_resource_hook` decision tree only marks a Write,
+  Release, or Move resource op for concrete runtime emission when the same
+  block also carries the paired `MIR_INST_STMT` source AST. When the SSA
+  def-block carries a use-block's resource flow (e.g. a while-loop body
+  Write attributed to the slot def block), the def-block stays
+  observability-only and the use-block stmt owns the concrete runtime call.
+  This mirrors the LLVM backend, where resource ops are never the canonical
+  emit site for the runtime call, and closes the C-only parity drift where
+  the def-block side of the SSA flow doubled the runtime call.
 - 남은 blocker는 MIR cleanup fact를 LLVM/MIR backend explicit pin/unpin call로
-  낮추는 lowering parity (broader exceptional/cancellation all-exit coverage).
-- 별도 issue: `pin` inside a `while` loop is currently blocked by a C backend
-  MIR-mapping bug where the loop body's first iteration drops its `Log(...)`
-  call when the loop reads from a `Slot<T>` (`probe5` minimal reproducer:
-  `let v: Int = Read(counter); Log(v);` inside `while Read(counter) < N`
-  prints only iterations 1..N-1, not 0..N-1; LLVM backend is correct). This is
-  not pin-specific; the fix path belongs to the C-side MIR while-loop /
-  Slot-read lowering owner, not §4.
+  낮추는 lowering parity (broader exceptional/cancellation all-exit coverage,
+  e.g. invoke/landingpad-style LLVM pin cleanup on panic exit).
 - Option C ownership lift keeps Pin/Lease narrow: `pin slot as view { ... }`
   and `PinnedView<T>` are §4 ABI ownership blockers only after §0b proves
   cleanup/escape facts. User-facing raw `void *` remains rejected; only typed

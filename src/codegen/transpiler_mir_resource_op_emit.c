@@ -126,7 +126,7 @@ transpiler_emit_mir_resource_op_inst(CodeBuf *buf,
     }
     if (op == TRANS_MIR_RESOURCE_OP_CLAIM)
         transpiler_mir_register_with_slot_claim_fact(ctx, inst);
-    if (!transpiler_emit_mir_resource_hook(ctx, buf, ctx->indent, inst, "0", false)) {
+    if (!transpiler_emit_mir_resource_hook(ctx, buf, ctx->indent, block, inst, "0", false)) {
         if (reason != NULL && reason_cap > 0) {
             transpiler_mir_reasonf(reason, reason_cap,
                      "MIR block %llu emission failed: unable to emit resource op '%s'",

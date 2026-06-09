@@ -955,6 +955,8 @@ main() {
         "tests/cases/backend_compare/pin_nested_if_in_block"
         "tests/cases/backend_compare/pin_nested_two_slots"
         "tests/cases/backend_compare/pin_inside_for_loop"
+        "tests/cases/backend_compare/pin_inside_while_loop"
+        "tests/cases/backend_compare/while_loop_slot_read"
         "tests/cases/backend_compare/unsafe_lexical_boundary"
         "tests/cases/backend_compare/world_zone_projection_visibility"
         "tests/cases/backend_compare/world_zone_cross_queries"

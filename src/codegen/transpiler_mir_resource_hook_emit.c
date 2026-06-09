@@ -18,6 +18,7 @@
 #include "transpiler_mir_resource_name_helpers.h"
 #include "transpiler_mir_resource_op_core.h"
 #include "transpiler_mir_ssa_map.h"
+#include "transpiler_mir_stmt_emit.h"
 #include "transpiler_symbols.h"
 
 static bool
@@ -154,6 +155,7 @@ bool
 transpiler_emit_mir_resource_hook(TranspilerCtx *ctx,
                                   CodeBuf *out,
                                   int indent,
+                                  const MIRBasicBlock *owning_block,
                                   const MIRInstruction *inst,
                                   const char *handle_expr,
                                   bool cleanup_hook)
@@ -286,9 +288,19 @@ transpiler_emit_mir_resource_hook(TranspilerCtx *ctx,
         if (transpiler_active_has_mir(ctx) && !cleanup_hook) {
             bool slot_is_secure = emit_inst->slot_anchor != NULL
                 && lookup_slot_is_secure(ctx, emit_inst->slot_anchor);
+            /* Non-secure Write/Release/Move resource ops only become a concrete
+             * runtime call when the paired MIR_INST_STMT lives in this same
+             * block. When the SSA def-block carries a use-block's resource flow
+             * (e.g. while-loop body Write attributed to the slot def block),
+             * the canonical concrete emit belongs to the use-block stmt; this
+             * block stays observability-only to keep C/LLVM backend parity. */
+            bool has_local_mirror_stmt =
+                transpiler_mir_resource_has_mirroring_stmt_in_block(
+                    owning_block, inst);
             if (is_claim_op
                 || redirected_view_resource
-                || ((op == TRANS_MIR_RESOURCE_OP_WRITE
+                || (has_local_mirror_stmt
+                    && (op == TRANS_MIR_RESOURCE_OP_WRITE
                         || op == TRANS_MIR_RESOURCE_OP_RELEASE
                         || op == TRANS_MIR_RESOURCE_OP_MOVE)
                     && !slot_is_secure)) {
