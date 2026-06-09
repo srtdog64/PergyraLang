@@ -8,7 +8,7 @@ Status: historical snapshot. The live beta-readiness source of truth is
 Anti-hype correction (2026-04-29): this report is a readiness audit, not a
 marketing snapshot. Current source-of-truth docs (`docs/100` and `TODO.md`)
 now separate feature-completeness from strict beta readiness: feature feel is
-about **85%**, and strict beta readiness is currently **about 82%**. This
+about **85%**, and strict beta readiness is currently **about 83%**. This
 report is older than that policy update, so
 older progress-log entries below may mention the previous 50% line or older
 `.inc` inventories. The current `.inc` source of truth is the zero-inventory
@@ -125,7 +125,7 @@ PergyraLang is no longer blocked by broad surface absence. The remaining beta ri
 - arena/lifetime rules are mostly settled but a few owner/runtime ABI boundaries remain.
 
 Current beta readiness for this historical report was approximately **50%**.
-Current live policy is **about 82% strict beta readiness**; see
+Current live policy is **about 83% strict beta readiness**; see
 `docs/100_beta_readiness_checklist.md`.
 
 This is intentionally lower than a feature-count reading. Many core and foundation surfaces are already implemented, tested, and documented, but strict beta readiness depends on the trust of the underlying closure mechanisms. Until function body safety is CFG/dataflow-backed, until type-resolution DAG becomes the source of truth for frozen-subset dependency ordering, and until long-term modularization reaches stable owner boundaries, the project should not be described as 90%+ beta-ready.

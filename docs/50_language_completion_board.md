@@ -15,7 +15,7 @@ Live source of truth:
 
 ## Current Readiness
 
-Feature-surface feel is about 85%. Strict beta readiness is about 82%.
+Feature-surface feel is about 85%. Strict beta readiness is about 83%.
 Do not raise the official number beyond the low-80% band until the remaining
 source-of-truth closures below are consumed by implementation and current
 full-suite gates, not just by docs.

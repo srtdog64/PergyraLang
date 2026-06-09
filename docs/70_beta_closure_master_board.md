@@ -3,7 +3,7 @@
 Current status anchor (2026-06-10):
 
 - Feature-surface feel is about 85%.
-- Strict beta readiness is now about 82% after source-of-truth gates for
+- Strict beta readiness is now about 83% after source-of-truth gates for
   CFG body dataflow, MIR executable tests, AIR drift/schema, DAG resolver
   inventory/metadata stats, runtime frontier contracts, semantic domain-owner
   seams, MIR declaration inventory, ABI/Slot/Pin ownership smokes, and local
@@ -48,11 +48,11 @@ Current status anchor (2026-06-10):
 ## 현재 판정
 
 - 현재 단계: `late-stage alpha / beta-closure sprint`
-- 베타 readiness 추정: 기능 체감 `약 85%`, strict beta readiness `약 82%`
+- 베타 readiness 추정: 기능 체감 `약 85%`, strict beta readiness `약 83%`
 - 판정 방식:
   - 기능 표면 성숙도만 보면 다수 core/foundation surface가 구현되어 더 높게 보인다
   - 그러나 strict beta는 `function body CFG/dataflow source-of-truth`, `DAG source-of-truth`, `runtime propagation generalization`, `MIR declaration inventory`, `arena/lifetime`, `장기 모듈화 stop condition`까지 함께 요구한다
-  - 따라서 현재 공식 수치는 기능 개수 기준이 아니라 **strict beta readiness 약 82%**로 둔다. beta-complete는 CFG/AIR consumer-completeness, MIR/LLVM declaration bootstrap, ABI/Slot/Pin freeze, 남은 compatibility fallback 축소가 현재 full-suite evidence로 닫힌 뒤 재평가한다
+  - 따라서 현재 공식 수치는 기능 개수 기준이 아니라 **strict beta readiness 약 83%**로 둔다. beta-complete는 CFG/AIR consumer-completeness, MIR/LLVM declaration bootstrap, ABI/Slot/Pin freeze, 남은 compatibility fallback 축소가 현재 full-suite evidence로 닫힌 뒤 재평가한다
 - 핵심 판단:
   - 표현력 부족보다 `closure depth`와 `surface trust`가 남은 문제다
   - 베타 차단축은 키워드 수가 아니라 `B0 의미론 + function body CFG/dataflow closure + declaration-side MIR-only debt + type-resolution DAG closure + memory/lifetime debt + 장기 모듈화 debt`다

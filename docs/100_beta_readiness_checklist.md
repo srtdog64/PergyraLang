@@ -5,9 +5,9 @@ checklist body was split on 2026-05-29 because the single file had become too
 large to review safely.
 
 Current implementation/beta split (2026-06-08): feature-surface feel is about
-85%, and strict beta readiness is now about 82%. Do not call this beta-complete until the P0 source-of-truth closures below have current full-suite evidence
+85%, and strict beta readiness is now about 83%. Do not call this beta-complete until the P0 source-of-truth closures below have current full-suite evidence
 and no remaining compatibility fallback decides a beta-stable path. Do not
-raise it beyond the low-80% band on feature count alone. The 82% line is backed
+raise it beyond the low-80% band on feature count alone. The 83% line is backed
 by green semantic/HIR/RIR/MIR/AIR/C-transpile/LLVM smoke gates, backend-compare
 fixture inventory registration, backend-compare range evidence, MIR declaration
 inventory guards, and ABI/Slot/Pin ownership smokes.

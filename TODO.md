@@ -3,13 +3,13 @@
 English anchor for tooling/doc gates:
 
 - Current beta progress: feature-surface feel is about 85%, and
-  strict beta readiness is now about 82% after current CFG body-dataflow,
+  strict beta readiness is now about 83% after current CFG body-dataflow,
   MIR executable tests, AIR drift/schema, DAG resolver-inventory/metadata,
   runtime-frontier, semantic domain-owner seams, and LLVM backend-compare
   inventory/coverage plus full local backend-compare shard sweep pass locally.
   Windows-bash
   tooling and raw-escape gates now reach
-  executable probes instead of skipping after path helper setup. The 82% line
+  executable probes instead of skipping after path helper setup. The 83% line
   is now backed by binding-aware resource/collection metadata parity for
   shadowed `List<T>`, `DeviceSlot<T>`, and `Channel<T>` locals, plus complete
   backend-compare fixture inventory registration. The default backend-compare
@@ -9417,7 +9417,7 @@ section anchors so the tracker cannot silently rot.
 **확정 순서 — BDFL 결정:**
 
 1. **BETA closure** — 현재 (§0a 참조). 기능 체감 약 85% /
-   strict beta readiness 약 82%
+   strict beta readiness 약 83%
    → 100% 신뢰도까지 닫기
 2. **dogfood (compiler-adjacent first)** — §0-selfhost 의 첫 dogfood
    원칙: diagnostic catalog checker, AIR graph JSON validator, MIR dump
@@ -9594,7 +9594,7 @@ is the longer execution plan.
 ## 0a. Strict Beta Closure Order — 2026-05-01 재고정
 
 **현재 판정:** 기능 구현률은 약 85%로 본다. strict beta readiness는
-약 82%다. 차이는 기능 수가 아니라 CFG/AIR/DAG/MIR/ABI가 실제
+약 83%다. 차이는 기능 수가 아니라 CFG/AIR/DAG/MIR/ABI가 실제
 source-of-truth로 소비되는 깊이다. beta-complete는 CFG/AIR
 consumer-completeness, MIR/LLVM declaration bootstrap, compatibility-fallback
 tightening, ABI/Slot/Pin freeze가 모두 현재 full-suite evidence로 닫힌 뒤
@@ -10102,7 +10102,7 @@ Intent-Compress는 척추 변경이므로 "며칠 컷"으로 고정하지 않는
 
 2026-06-08 update:
 - Beta progress is tracked as two numbers: user-visible feature progress is
-  about 85%, while strict beta readiness is about 82%. The delta to
+  about 85%, while strict beta readiness is about 83%. The delta to
   beta-complete is CFG/AIR consumer-completeness, MIR/LLVM declaration
   bootstrap, compatibility-fallback tightening, and ABI/Slot/Pin freeze, not
   missing surface syntax.
@@ -13293,7 +13293,7 @@ not marketing claims.
   - Type-resolution DAG가 아직 semantic source-of-truth가 아니므로 declaration order / module contract / generic consumer path drift 위험이 남아 있다
   - 장기 모듈화 stop condition도 아직 멀다. semantic 800 LOC 초과 `.inc` 조건과 runtime/codegen/compiler 1,000 LOC 초과 `.inc` 조건은 닫혔지만, 여러 split은 아직 include-order 보존 상태라 실제 owner/TU extraction 부채가 남아 있다
   - Historical note: this old 60% readiness anchor is superseded by the current
-    top-of-file source-of-truth range, strict beta readiness about 82%.
+    top-of-file source-of-truth range, strict beta readiness about 83%.
 
 ## Beta taxonomy freeze: core / foundation / style
 
@@ -17057,7 +17057,7 @@ Local verification for this debt refresh:
 - Rechecked the beta status anchors after the current source-of-truth gates:
   `docs/100_beta_readiness_checklist.md`,
   `docs/70_beta_closure_master_board.md`, and this TODO now use the same
-  strict beta readiness range: about 82%, not beta-complete. The remaining
+  strict beta readiness range: about 83%, not beta-complete. The remaining
   beta-complete line is explicitly CFG/AIR consumer-completeness, MIR/LLVM
   declaration bootstrap, compatibility-fallback tightening, and ABI/Slot/Pin
   freeze. Also tightened the C call emitter receiver-type copy:

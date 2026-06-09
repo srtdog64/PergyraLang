@@ -75,7 +75,7 @@
 
 - The live readiness anchor now separates implementation surface from strict
   beta trust: feature-surface feel is about 85%, and strict beta readiness is
-  now about 82%. The older 70% / 75% wording was stale for the current codebase
+  now about 83%. The older 70% / 75% wording was stale for the current codebase
   and is no longer used by the source-of-truth docs.
 - The low-80% line is still not beta-complete. The remaining closure is current
   full-suite evidence plus source-of-truth consumer completion across CFG/AIR,
@@ -86,7 +86,7 @@
   `docs/100a_beta_active_status.md`, `docs/50_language_completion_board.md`,
   `docs/70_beta_closure_master_board.md`, `docs/README_ko.md`,
   `docs/98_beta_closure_readiness_report.md`, and `TODO.md`.
-- The document gates now require the 82% wording and reject reintroducing the
+- The document gates now require the 83% wording and reject reintroducing the
   stale `strict beta readiness is now about 75%` phrase in current-status
   surfaces. Evidence run: `mingw32-make
   beta-readiness-checklist-test-smoke documentation-quality-test-smoke

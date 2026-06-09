@@ -452,7 +452,7 @@ if missing_air:
     raise SystemExit("AIR architecture doc missing term(s): " + ", ".join(missing_air))
 
 required_checklist_terms = [
-    "strict beta readiness is now about 82%",
+    "strict beta readiness is now about 83%",
     "## 0f. AIR Abstraction Safety Closure",
     "Source of truth: `docs/104_air_compiler_architecture.md`",
     "Status: `BLOCKER`",
@@ -469,7 +469,7 @@ if missing_checklist:
     raise SystemExit("beta checklist missing AIR term(s): " + ", ".join(missing_checklist))
 
 required_todo_terms = [
-    "strict beta readiness is now about 82%",
+    "strict beta readiness is now about 83%",
     "AIR abstraction safety는 Phase 1 데이터 구조 / synthesis / drift checker baseline",
     "strict evidence는 기본값으로 승격됐다",
     "PGY_AIR_STRICT_EVIDENCE=0",
