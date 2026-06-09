@@ -3,6 +3,47 @@
 > Split from `docs/100_beta_readiness_checklist.md` on 2026-05-29.
 > Keep active blocker edits in the shard that owns the relevant closure track.
 
+## Progress Log - 2026-06-10 Anchor Bump To 83% + Additional Backend Coverage
+
+- The live readiness anchor moves 82% -> 83% strict beta readiness
+  after the closures listed below in the same day's earlier entry.
+  Feature-surface feel stays at 85%. All eleven source-of-truth
+  surfaces (docs/100, /100a, /100d, /50, /70, /98, README_ko, TODO,
+  and the three smokes that gate the wording) were updated in a
+  single sweep; `beta-readiness-checklist-test-smoke`,
+  `documentation-quality-test-smoke`, and `air-drift-test-smoke`
+  pass against the new wording.
+- `backend_compare` default registry grew further: multi_spawn_
+  accumulator (3-way fan-out), channel_drain_while,
+  option_for_match_slot, result_for_match_slot,
+  class_method_chain_slot, bool_helper_while_slot,
+  three_slots_cross_update, max_reduction_slot, recursive_fib_slot,
+  and early_return_while_slot. Each pins a distinct Slot+control-flow
+  shape against the SSA def-block resource-op policy; default count
+  is now 824.
+- DAG smoke locks five additional invariants
+  (alias_materialized >= 6, alias_diagnostic_unresolved >= 78,
+  generic_param_nodes >= 100, dag_generic_contract_evidence >= 160,
+  dag_ability_consumer_evidence >= 70). Each floor is strictly below
+  the current production measurement (6/78/102/165/76 respectively);
+  bump in a dedicated commit when the DAG owner intentionally raises
+  the surface.
+- TODO §0b interprocedural body-summary bullet rolled forward to name
+  the PR1+PR2 prove-helper closure and the named next migration
+  targets (zone authority spawn detection, intent control async/
+  channel detection, C/LLVM lowering consuming the bits).
+- C-only backend bug surfaced during probes (recorded but not fixed):
+  nesting two `while` loops over a shared Slot counter where the
+  second loop contains `let v: Int = <- ch;` triggers "MIR contract
+  breach: unresolved identifier `v` (expected SSA-mapped local)" on
+  the C path. The MIR dump shows the second loop's
+  `Write(sum, Read(sum) + v)` resource op is attributed to block 0
+  (the slot def-block) with `v.0` instead of `v.1`, while block 5
+  (the second loop body) is correct. The fix path belongs to the
+  C-side MIR SSA renaming owner; the fixture `channel_drain_while`
+  includes the single-loop variant that does parity-stably compile
+  and run.
+
 ## Progress Log - 2026-06-10 Backend Parity, P0 #1 Read-Seam, And Cross-Lane CI Closure
 
 - C backend `transpiler_emit_mir_resource_hook` now gates concrete runtime
