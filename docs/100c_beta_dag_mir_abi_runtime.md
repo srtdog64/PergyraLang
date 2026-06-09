@@ -1232,7 +1232,14 @@ split, and the active 1,000+ production `.c` owner queue is now AST-only:
   share the same runtime-owned handle audit as file descriptors. Remaining
   numeric-handle audit targets are scoped to any new export that returns a
   runtime-owned slot index in the future.
-- runtime query/diagnostic string이 scratch teardown 이후에도 안전한지 회귀가 더 필요하다.
+- Runtime query/diagnostic string scratch-teardown safety is now smoke-gated.
+  `runtime-abi-lifetime-test-smoke` confirms the intent borrowed-string surface
+  copies values into thread-local snapshot slots (`static _Thread_local char
+  *snapshots`) backed by a registry mutex, and explicitly rejects raw registry
+  pointer returns (`result = entry->name;` etc.). Because the snapshot store
+  is thread-local and decoupled from the scratch arena, scratch reset cannot
+  dangle a previously-returned query string; the same query slot is only
+  reused on a subsequent call from the same thread.
 - Slot Pin/Lease는 runtime primitive baseline, source-level typed-view block
   syntax, existing `WriteView<T>` exclusive semantic gate, return escape
   diagnostic, QubitSlot reject, await/spawn/async/callback/channel/cancel
