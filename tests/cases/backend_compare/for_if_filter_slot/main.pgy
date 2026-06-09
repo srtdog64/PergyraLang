@@ -1,0 +1,10 @@
+func Main() -> Void {
+    let acc: Slot<Int> = ClaimSlot();
+    Write(acc, 0);
+    for i in 0..10 {
+        if i % 2 == 0 {
+            Write(acc, Read(acc) + i);
+        }
+    }
+    Log(Read(acc));
+}

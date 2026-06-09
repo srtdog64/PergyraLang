@@ -961,6 +961,8 @@ main() {
         "tests/cases/backend_compare/helper_ref_slot_in_while"
         "tests/cases/backend_compare/if_else_in_while_slot"
         "tests/cases/backend_compare/match_slot_helper"
+        "tests/cases/backend_compare/channel_send_in_while_slot"
+        "tests/cases/backend_compare/for_if_filter_slot"
         "tests/cases/backend_compare/unsafe_lexical_boundary"
         "tests/cases/backend_compare/world_zone_projection_visibility"
         "tests/cases/backend_compare/world_zone_cross_queries"

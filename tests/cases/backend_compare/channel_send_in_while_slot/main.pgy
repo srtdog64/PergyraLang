@@ -1,0 +1,13 @@
+func Main() -> Void {
+    let ch: Channel<Int> = Channel(5);
+    let i: Slot<Int> = ClaimSlot();
+    Write(i, 0);
+    while Read(i) < 3 {
+        ch <- Read(i) * 10;
+        Write(i, Read(i) + 1);
+    }
+    let a: Int = <- ch;
+    let b: Int = <- ch;
+    let c: Int = <- ch;
+    Log(a + b + c);
+}
