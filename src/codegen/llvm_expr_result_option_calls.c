@@ -1,3 +1,5 @@
+#ifdef PGY_LLVM_ENABLED
+
 #include "llvm_internal.h"
 #include "codegen_match_variant_policy.h"
 
@@ -486,3 +488,5 @@ llvm_emit_result_option_call(ASTNode *node, LLVMGenCtx *ctx, const char *callee_
 
     return NULL;
 }
+
+#endif /* PGY_LLVM_ENABLED */

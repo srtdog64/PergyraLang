@@ -1,3 +1,5 @@
+#ifdef PGY_LLVM_ENABLED
+
 #include "llvm_internal.h"
 
 #include <stdlib.h>
@@ -380,3 +382,5 @@ llvm_emit_rc_builtin_call(ASTNode *node, LLVMGenCtx *ctx,
 
     return false;
 }
+
+#endif /* PGY_LLVM_ENABLED */
