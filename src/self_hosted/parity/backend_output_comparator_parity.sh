@@ -70,13 +70,33 @@ if [[ "$CLEAN_JSON" != "$EXPECTED_JSON" ]]; then
     exit 1
 fi
 
-# Shell drift detector for clean -- diff -q must agree. Strip trailing
-# CR so MSYS2 / Git-for-Windows checkouts (where text fixtures can land
-# with CRLF endings depending on autocrlf and .gitattributes ordering)
-# don't disagree with the Pergyra tool, which compares line-by-line
-# after normalization.
-if ! diff -q --strip-trailing-cr "$FIXTURE_EXPECTED" "$FIXTURE_ACTUAL" >/dev/null 2>&1; then
+# Shell drift detector for clean -- diff -q must agree. MSYS2 /
+# Git-for-Windows checkouts can land text fixtures with CRLF endings
+# depending on autocrlf and .gitattributes ordering (we saw
+# --strip-trailing-cr still disagree in one Windows run, which means
+# at least one byte is escaping that flag's normalization). The
+# Pergyra tool already compares line-by-line after its own
+# normalization, so we mirror that more aggressively here: strip all
+# CRs (not just trailing-CR-per-line) from both files via tr before
+# the shell diff. That matches what the Pergyra tool's
+# line-iteration accepts.
+CMP_TMP="$(mktemp -d "${TMPDIR:-/tmp}/pgy-selfhost-bocparity.XXXXXX")"
+trap_cmp_cleanup() { rm -rf "$CMP_TMP"; }
+trap trap_cmp_cleanup EXIT
+EXPECTED_NORM="$CMP_TMP/expected.norm"
+ACTUAL_NORM="$CMP_TMP/actual.norm"
+tr -d '\r' < "$FIXTURE_EXPECTED" > "$EXPECTED_NORM"
+tr -d '\r' < "$FIXTURE_ACTUAL"   > "$ACTUAL_NORM"
+if ! diff -q "$EXPECTED_NORM" "$ACTUAL_NORM" >/dev/null 2>&1; then
     echo "[self-host-parity:backend-output-comparator] shell diff -q disagrees with Pergyra (clean)" >&2
+    # Surface the exact bytes that diverged so the next debug run
+    # has a concrete trace instead of just the error line.
+    {
+        echo "--- expected (size=$(wc -c <"$FIXTURE_EXPECTED")) ---"
+        od -c "$FIXTURE_EXPECTED" | head -5
+        echo "--- actual   (size=$(wc -c <"$FIXTURE_ACTUAL")) ---"
+        od -c "$FIXTURE_ACTUAL" | head -5
+    } >&2
     exit 1
 fi
 
