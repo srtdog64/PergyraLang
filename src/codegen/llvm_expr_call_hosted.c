@@ -97,11 +97,6 @@ llvm_emit_hosted_self_call(ASTNode *node, LLVMGenCtx *ctx,
         llvm_find_host_method_metadata_in_context(ctx, host_name, callee_name);
     host_method = llvm_mir_decl_method_source_ast(method_meta);
     if (host_method == NULL && method_meta == NULL) {
-        /* P0 #4 follow-up: try the nominal-host AST decl even when MIR
-         * is active. The MIR decl-header inventory doesn't always
-         * enumerate every world/class method (dnd_tavern_campaign's
-         * TavernCampaignWorld.TavernRecruitment landed here). Helper is
-         * in llvm_stmt_source_local_fallback.c. */
         host_method = llvm_stmt_host_method_ast_decl(ctx, host_name,
             callee_name);
         if (host_method == NULL && llvm_active_has_mir(ctx)) {

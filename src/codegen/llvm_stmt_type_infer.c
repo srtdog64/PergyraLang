@@ -78,15 +78,8 @@ llvm_stmt_host_method_return_type(LLVMGenCtx *ctx, const char *host_type_name,
     }
     ret_ty = llvm_mir_decl_method_return_type(method_meta);
     if (ret_ty == NULL && method_meta == NULL) {
-        /* P0 #4 follow-up: try the AST host-method decl even when MIR
-         * is active. Mirrors df9a6737's C-side fallback; helper lives
-         * in llvm_stmt_source_local_fallback.c so this TU stays under
-         * the production-c-size cap. Returns NULL for global callables
-         * (let the function-metadata path resolve those). */
-        ASTNode *m = llvm_stmt_host_method_ast_decl(ctx, host_type_name,
-            method_name);
-        if (m != NULL)
-            ret_ty = ast_func_return_type(m);
+        ASTNode *m = llvm_stmt_host_method_ast_decl(ctx, host_type_name, method_name);
+        if (m != NULL) ret_ty = ast_func_return_type(m);
         if (ret_ty == NULL && llvm_active_has_mir(ctx)) {
             if (llvm_find_callable_decl(ctx, method_name) != NULL)
                 return NULL;
