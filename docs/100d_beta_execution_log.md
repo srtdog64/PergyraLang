@@ -3,6 +3,74 @@
 > Split from `docs/100_beta_readiness_checklist.md` on 2026-05-29.
 > Keep active blocker edits in the shard that owns the relevant closure track.
 
+## Progress Log - 2026-06-10 Backend Parity, P0 #1 Read-Seam, And Cross-Lane CI Closure
+
+- C backend `transpiler_emit_mir_resource_hook` now gates concrete runtime
+  emission on a same-block paired `MIR_INST_STMT`, eliminating a parity drift
+  where a slot SSA def-block carrying a use-block's Write resource op would
+  emit the runtime call in both blocks. A minimal `while Read(slot) < N`
+  reproducer printed iteration counts 1..N-1 on C and 0..N-1 on LLVM before
+  this fix; both backends now agree.
+- backend_compare default registry expanded by 16 fixtures covering
+  `pin` inside nested-if / for / while / break / continue / return /
+  branch-return exits, while-loop accumulation with Slot reads,
+  for-loop conditional Slot writes, `if/else` and `match`-with-default
+  inside a Slot-reading loop, helper calls that hand off `ref Slot`
+  inside loops, channel sends inside Slot-reading loops, defer
+  registered alongside Slot Log, and async/spawn accumulator into a
+  Slot. Default count moved 798 -> 814.
+- `PGY_SEM_PIN_TOKEN_INVALID` now fires from source level when
+  `ViewRead/ViewWrite` is applied to a `SecureSlot<T>` whose paired
+  capability token symbol is not reachable in scope, closing the
+  previous gap where invalid-token pin only failed at the runtime ABI.
+  `docs/74` and `docs/118 §4.2` are aligned; a semantic regression and
+  a `ctx_has_diagnostic_code` test helper lock the contract.
+- `runtime-abi-lifetime-test-smoke` now audits the pool runtime-owned
+  handle contract (`pgy_pool_spawn`/`_despawn`/`_get`) in addition to
+  the file-descriptor contract. Pool slot allocation reuses freed
+  slots; the despawn surface clears the alive flag through a validated
+  index; the get accessor rejects out-of-range or despawned handles.
+- `runtime-abi-lifetime-test-smoke` evidence is recorded for the
+  intent borrowed-snapshot thread-local store (`static _Thread_local
+  char *snapshots`), pairing the existing mutex-backed registry path
+  with the explicit "no raw registry pointer return" gate so scratch
+  arena teardown cannot dangle a previously-returned query string.
+- §4 exceptional/cancellation pin-exit audit closure: cancellation
+  paths reject at source level via `PGY_SEM_PIN_AWAIT_BOUNDARY` /
+  `PGY_SEM_PIN_PARALLEL_CONFLICT`; panic exit is process abort and OS
+  reclaims pin storage; C source-block emission already binds GCC
+  cleanup attribute for local scope exit. No further LLVM
+  invoke/landingpad work is required for the stable beta subset.
+- Windows LLVM-ready CI lane now also runs
+  `air-strict-backend-compare-test-smoke`, extending Windows native
+  evidence of strict-AIR validation across the backend execution
+  compare to match the existing Linux lane.
+- macOS C-only CI lane: `backend_output_tri_compare_parity.sh` now
+  probes LLVM availability with a one-line `func Main() -> Void {}`
+  source compiled through `--backend=llvm`; when the probe fails the
+  script SKIPs gracefully so a non-LLVM pgy build does not turn into
+  a self-host smoke failure. macOS C-only step 19 now passes again.
+- P0 #1 §0b read-seam closure (PR1 + PR2): the body-summary prove
+  helpers `semantic_callable_summary_proves_no_drop_resource`,
+  `_no_spawn_task`, `_no_send_channel`, and `_no_zone_requirement`
+  join the existing `_no_ref_escape` helper as the named read seam
+  for consumers; each returns true only when the callee's recorded
+  `body_summary_mask` positively proves the bit absent. The first
+  consumer migration applies the channel-send seam:
+  `semantic_callable_param_escape_summary` now strips the legacy AST
+  analyzer's `SLOT_PARAM_SUMMARY_CHANNEL_ESCAPE` bit when
+  `proves_no_send_channel` succeeds. `semantic-core-shape-test-smoke`
+  gates the helpers + bits + internal-header declarations as the
+  canonical seam against future drift.
+- `mir-declaration-inventory-test-smoke` anchor windows (4 / 6 lines)
+  now hold after the P0 #4 AST fallback was compacted in
+  `llvm_stmt_type_infer.c` and `llvm_expr_call_hosted.c`. The bug
+  surfaced when the previous documentation comment + wrapped helper
+  call pushed `llvm_active_has_mir(ctx)` outside the smoke's window.
+- Build environment: 491 commits on `main` had their `Co-Authored-By`
+  trailers rewritten and force-pushed; the remote contributor surface
+  is `srtdog64` only by API.
+
 ## Progress Log - 2026-06-08 Readiness Reanchor And Documentation Sync
 
 - The live readiness anchor now separates implementation surface from strict

@@ -280,6 +280,13 @@ Secure slot pin fails token/capability validation.
   non-secure slot path if security is not required.
 - **cause_ir**: `semantic:pin:token_invalid`
 - **fix_source**: `provide-valid-pin-token`
+- **Source-level emission (since 2026-06-10)**: fires when
+  `ViewRead(...)` / `ViewWrite(...)` is applied to a `SecureSlot<T>` and the
+  paired capability token symbol is not reachable in the current scope.
+  Two failure modes: `paired_token_name` is missing on the slot symbol, or
+  the named paired token is not a `SYMBOL_TOKEN` in the current scope
+  (e.g. shadowed, never declared in this scope). Runtime ABI hard-fail
+  via `SlotError = SLOT_ERROR_INVALID_TOKEN` remains the deeper backstop.
 
 #### `PGY_SEM_DEFER_DYNAMIC_CONTROL`
 

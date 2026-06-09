@@ -28,7 +28,7 @@ runtime portability claims, documentation/implementation drift, and anchored
 ownership failure coverage. These items must be closed with diagnostics and
 smoke gates, not by broad marketing claims.
 
-Current status (2026-06-08): this checklist is the beta execution contract.
+Current status (2026-06-10): this checklist is the beta execution contract.
 The criterion is not feature count; it is **surface trust + structural
 sustainability + C/LLVM parity + CFG-backed body safety + AIR-backed
 abstraction safety + dogfood-first path**. Feature feel is about 85%, while
@@ -43,6 +43,47 @@ The active closure work is now to finish the last source-of-truth consumers
 across CFG/AIR, remove guarded backend compatibility scans from MIR-owned
 resource/declaration paths where possible, and keep MIR/LLVM declaration
 bootstrap plus ABI/Slot/Pin contracts frozen by smoke gates.
+
+C-backend parity tightening (2026-06-10): the C transpiler MIR resource-op
+emitter now gates concrete runtime calls on a same-block paired
+`MIR_INST_STMT`. Previously the SSA def-block could carry a use-block's
+Write resource op (e.g. a while-loop body Write attributed to the slot
+def block) and the C path emitted the runtime call in both blocks, while
+LLVM emitted it only in the use-block. C/LLVM parity is now block-local
+on this dimension. The default `backend_compare` registry grew by 16
+fixtures (798 -> 814) covering nested-if / for / while / break / continue
+/ return / branch-return pin exits, while-loop Slot reads, conditional
+loop Slot writes, `if/else` and `match`-with-default inside Slot-reading
+loops, `ref Slot` helper handoffs inside loops, channel sends inside
+loops, defer alongside Slot Log, and async/spawn accumulator into a Slot.
+
+ABI/Slot/Pin §4 partial closures (2026-06-10): source-level
+`PGY_SEM_PIN_TOKEN_INVALID` now fires when `ViewRead/ViewWrite` is
+applied to a `SecureSlot<T>` whose paired capability token symbol is
+not reachable in the current scope (runtime ABI hard-fail remains the
+deeper backstop); `runtime-abi-lifetime-test-smoke` audits the pool
+runtime-owned handle contract
+(`pgy_pool_spawn`/`_despawn`/`_get`) alongside the file-descriptor
+contract; the intent borrowed-snapshot thread-local store is
+explicitly recorded as scratch-teardown-safe; and the exceptional /
+cancellation pin-exit blocker is closed by audit (cancellation
+rejected at source level, panic = process abort with OS cleanup, C
+local-scope exit already cleaned through GCC cleanup attribute).
+
+P0 #1 §0b read-seam closure (2026-06-10): the body-summary prove
+helpers `semantic_callable_summary_proves_no_drop_resource`,
+`_no_spawn_task`, `_no_send_channel`, and `_no_zone_requirement` join
+the existing `_no_ref_escape` helper as the named read seam for
+consumers; the first consumer migration applies the channel-send seam
+to `semantic_callable_param_escape_summary`;
+`semantic-core-shape-test-smoke` gates the helpers + bits + internal
+header declarations.
+
+Cross-lane CI (2026-06-10): Windows LLVM-ready CI runs
+`air-strict-backend-compare-test-smoke`; macOS C-only CI gracefully
+SKIPs `backend_output_tri_compare_parity` when pgy lacks the LLVM
+backend, instead of failing the entire `self-host-preparation-test-smoke`
+step.
 
 The five closure targets are:
 
