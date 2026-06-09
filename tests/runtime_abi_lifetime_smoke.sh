@@ -454,6 +454,46 @@ grep -Fq "free(resolved)" <<< "$read_file_body" ||
 grep -Fq "free(resolved)" <<< "$write_file_body" ||
     fail "pgy_try_write_file_result must release resolved paths on all exits"
 
+# Pool object handles share the runtime-owned handle contract: pgy_pool_spawn
+# returns a numeric int32_t slot index that the runtime owns until
+# pgy_pool_despawn releases it. Like file descriptors, the slot allocator must
+# reuse freed slots (no monotonic-growth bug) and the release surface must
+# clear the alive flag through a validated index check.
+pool_text="$TMP_DIR/pool_text.txt"
+concat_runtime_text "$pool_text" \
+    "src/runtime/pgy_runtime_pool_fsm_timer_inline.h"
+pool_spawn_body="$(extract_function_body "$pool_text" pgy_pool_spawn)"
+pool_despawn_body="$(extract_function_body "$pool_text" pgy_pool_despawn)"
+pool_get_body="$(extract_function_body "$pool_text" pgy_pool_get)"
+[[ -n "$pool_spawn_body" ]] || fail "missing pgy_pool_spawn"
+[[ -n "$pool_despawn_body" ]] || fail "missing pgy_pool_despawn"
+[[ -n "$pool_get_body" ]] || fail "missing pgy_pool_get"
+for term in \
+    "p == NULL || item == NULL || p->data == NULL || p->alive == NULL" \
+    "for (size_t i = 0; i < p->capacity; i++)" \
+    "if (!p->alive[i])" \
+    "p->alive[i] = 1" \
+    "p->count++" \
+    "return (int32_t)i" \
+    "return -1"; do
+    grep -Fq "$term" <<< "$pool_spawn_body" ||
+        fail "pgy_pool_spawn must reuse freed slots as runtime-owned handles; missing $term"
+done
+for term in \
+    "p == NULL || p->alive == NULL" \
+    "(size_t)index < p->capacity && p->alive[index]" \
+    "p->alive[index] = 0" \
+    "p->count--"; do
+    grep -Fq "$term" <<< "$pool_despawn_body" ||
+        fail "pgy_pool_despawn must release the runtime-owned handle slot; missing $term"
+done
+for term in \
+    "p == NULL || p->data == NULL || p->alive == NULL" \
+    "(size_t)index >= p->capacity || !p->alive[index]"; do
+    grep -Fq "$term" <<< "$pool_get_body" ||
+        fail "pgy_pool_get must validate the runtime-owned handle before access; missing $term"
+done
+
 for term in \
     "raw_len > (size_t)INT32_MAX" \
     "size_t count = 0" \

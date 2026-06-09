@@ -1209,18 +1209,29 @@ split, and the active 1,000+ production `.c` owner queue is now AST-only:
 - stable file descriptors are `runtime-owned handle` ABI values: callers receive
   numeric handles, while the runtime owns the backing `FILE *` table slot until
   `pgy_file_close` releases it for reuse.
+- pool object handles share the same `runtime-owned handle` ABI contract:
+  `pgy_pool_spawn(...)` returns a numeric `int32_t` slot index that the runtime
+  owns until `pgy_pool_despawn(...)` releases it. `pgy_pool_get(...)` validates
+  the handle against the `alive` flag before returning a pointer into runtime
+  storage, so a despawned or out-of-range handle cannot expose dangling memory.
 - `runtime-abi-lifetime-test-smoke` also gates result-owned string and
   string-array helpers so they allocate/copy payloads instead of returning
   borrowed input pointers, stack buffers, or string literals.
 - `runtime-abi-lifetime-test-smoke` gates runtime-owned file handles so
   `pgy_file_open` reuses closed slots and `pgy_file_close` clears the runtime
   table entry.
+- `runtime-abi-lifetime-test-smoke` also gates the pool runtime-owned handle
+  contract so `pgy_pool_spawn` reuses freed slots, `pgy_pool_despawn` actually
+  clears the alive flag, and `pgy_pool_get` rejects despawned or out-of-range
+  handles instead of exposing dangling pointers.
 
 남은 것:
 
 - owner shell과 runtime ABI contract가 섞인 helper가 남아 있다.
-- runtime-owned handle return helpers beyond file descriptors still need the
-  same ownership audit.
+- pool object handles (`pgy_pool_spawn`/`pgy_pool_despawn`/`pgy_pool_get`) now
+  share the same runtime-owned handle audit as file descriptors. Remaining
+  numeric-handle audit targets are scoped to any new export that returns a
+  runtime-owned slot index in the future.
 - runtime query/diagnostic string이 scratch teardown 이후에도 안전한지 회귀가 더 필요하다.
 - Slot Pin/Lease는 runtime primitive baseline, source-level typed-view block
   syntax, existing `WriteView<T>` exclusive semantic gate, return escape
