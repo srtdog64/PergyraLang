@@ -1,0 +1,18 @@
+enum Phase { Init, Run, Done }
+
+func Main() -> Void {
+    let acc: Slot<Int> = ClaimSlot();
+    let p: Slot<Int> = ClaimSlot();
+    Write(acc, 0);
+    Write(p, 0);
+    while Read(p) < 3 {
+        match Read(p) {
+            case 0: Write(acc, Read(acc) + 1);
+            case 1: Write(acc, Read(acc) + 10);
+            case 2: Write(acc, Read(acc) + 100);
+            default: Write(acc, Read(acc));
+        }
+        Write(p, Read(p) + 1);
+    }
+    Log(Read(acc));
+}

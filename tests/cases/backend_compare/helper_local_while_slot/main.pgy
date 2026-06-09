@@ -1,0 +1,15 @@
+func Reduce(ref s: Slot<Int>, n: Int) -> Void {
+    let i: Slot<Int> = ClaimSlot();
+    Write(i, 0);
+    while Read(i) < n {
+        Write(s, Read(s) + Read(i));
+        Write(i, Read(i) + 1);
+    }
+}
+
+func Main() -> Void {
+    let total: Slot<Int> = ClaimSlot();
+    Write(total, 0);
+    Reduce(total, 5);
+    Log(Read(total));
+}
