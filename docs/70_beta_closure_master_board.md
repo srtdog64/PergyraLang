@@ -1,6 +1,6 @@
 # Pergyra Beta Closure Master Board
 
-Current status anchor (2026-06-08):
+Current status anchor (2026-06-10):
 
 - Feature-surface feel is about 85%.
 - Strict beta readiness is now about 82% after source-of-truth gates for
@@ -11,6 +11,21 @@ Current status anchor (2026-06-08):
   beta-complete; that line requires current full-suite evidence and the
   remaining CFG/AIR consumer-completeness, compatibility-fallback tightening,
   MIR/LLVM declaration bootstrap, and ABI/Slot/Pin freeze.
+- 2026-06-10 closures since the last anchor: C transpiler MIR resource-op
+  emitter gates concrete runtime calls on a same-block paired
+  `MIR_INST_STMT` (closes a C-only while-loop + Slot parity drift); the
+  default `backend_compare` registry grew by 16 fixtures (798 -> 814)
+  covering nested-if / for / while / break / continue / return /
+  branch-return pin exits and Slot+control-flow loops with helper /
+  channel / defer / async; `PGY_SEM_PIN_TOKEN_INVALID` fires from
+  source level; the pool runtime-owned handle contract joins the file
+  descriptor contract in `runtime-abi-lifetime-test-smoke`; the
+  exceptional / cancellation pin-exit blocker is closed by audit; the
+  Windows LLVM-ready CI lane adds `air-strict-backend-compare`; the
+  macOS C-only CI lane gracefully SKIPs `backend-output-tri-compare`
+  when pgy lacks the LLVM backend; the body-summary prove-helper
+  family (P0 #1 §0b PR1+PR2) is the named read seam for consumers and
+  has its first migration in `semantic_callable_param_escape_summary`.
 - The authoritative beta execution contract is
   `docs/100_beta_readiness_checklist.md`; this board is a historical working
   ledger and may contain older Korean text that is being migrated.
