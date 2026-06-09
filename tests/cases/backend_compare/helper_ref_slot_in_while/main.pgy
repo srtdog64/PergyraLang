@@ -1,0 +1,12 @@
+func Bump(ref slot: Slot<Int>) -> Void {
+    Write(slot, Read(slot) + 1);
+}
+
+func Main() -> Void {
+    let counter: Slot<Int> = ClaimSlot();
+    Write(counter, 0);
+    while Read(counter) < 3 {
+        Bump(counter);
+        Log(Read(counter));
+    }
+}

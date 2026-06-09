@@ -1,0 +1,15 @@
+func Main() -> Void {
+    let s: Slot<Int> = ClaimSlot();
+    Write(s, 0);
+    let i: Slot<Int> = ClaimSlot();
+    Write(i, 0);
+    while Read(i) < 5 {
+        if Read(i) % 2 == 0 {
+            Write(s, Read(s) + 10);
+        } else {
+            Write(s, Read(s) + 1);
+        }
+        Write(i, Read(i) + 1);
+    }
+    Log(Read(s));
+}

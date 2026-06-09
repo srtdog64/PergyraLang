@@ -1,0 +1,18 @@
+enum Op { Add, Sub, Mul }
+
+func Apply(ref s: Slot<Int>, op: Op, v: Int) -> Void {
+    match op {
+        case Op.Add: Write(s, Read(s) + v);
+        case Op.Sub: Write(s, Read(s) - v);
+        case Op.Mul: Write(s, Read(s) * v);
+    }
+}
+
+func Main() -> Void {
+    let acc: Slot<Int> = ClaimSlot();
+    Write(acc, 1);
+    Apply(acc, Op.Add, 4);
+    Apply(acc, Op.Mul, 3);
+    Apply(acc, Op.Sub, 5);
+    Log(Read(acc));
+}
