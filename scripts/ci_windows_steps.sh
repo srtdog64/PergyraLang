@@ -51,6 +51,7 @@ if [[ "$CI_WINDOWS_RUNNABLE" == "1" ]]; then
         echo "ci-windows: LLVM toolchain detected; running LLVM smoke and backend compare"
         run 'make CC="$CI_WINDOWS_CC" LLVM_ENABLED=1 BUILD_DIR="$CI_WINDOWS_BUILD_DIR" BIN_DIR="$CI_WINDOWS_BIN_DIR" llvm-test-smoke'
         run 'PGY_BACKEND_COMPARE_SHARD_TOTAL="$CI_BACKEND_COMPARE_SHARD_TOTAL" PGY_BACKEND_COMPARE_SHARD_INDEX="$CI_BACKEND_COMPARE_SHARD_INDEX" make CC="$CI_WINDOWS_CC" LLVM_ENABLED=1 BUILD_DIR="$CI_WINDOWS_BUILD_DIR" BIN_DIR="$CI_WINDOWS_BIN_DIR" llvm-test-backend-compare'
+        run 'PGY_BACKEND_COMPARE_SHARD_TOTAL="$CI_BACKEND_COMPARE_SHARD_TOTAL" PGY_BACKEND_COMPARE_SHARD_INDEX="$CI_BACKEND_COMPARE_SHARD_INDEX" make CC="$CI_WINDOWS_CC" LLVM_ENABLED=1 BUILD_DIR="$CI_WINDOWS_BUILD_DIR" BIN_DIR="$CI_WINDOWS_BIN_DIR" air-strict-backend-compare-test-smoke'
     else
         echo "ci-windows: LLVM toolchain not detected; skipping Windows LLVM smoke/backend compare"
     fi
