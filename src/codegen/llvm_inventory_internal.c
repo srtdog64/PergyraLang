@@ -1,7 +1,18 @@
 /*
  * Copyright (c) 2026 Pergyra Language Project
  * LLVM backend active MIR/DIR inventory accessors.
+ *
+ * Like every other llvm_*.c TU, this file is conditional on
+ * PGY_LLVM_ENABLED. Without the guard, ci-macos-c-only (and any
+ * other LLVM_ENABLED=0 build) tries to compile against LLVMGenCtx /
+ * LLVMMIRDeclHeaderInventory which only exist under
+ * llvm_internal.h's own PGY_LLVM_ENABLED block, and the build
+ * fails at self-host-preparation-test-smoke with "unknown type
+ * name 'LLVMGenCtx'". The other llvm_mir_*.c TUs already wear
+ * this guard for the same reason.
  */
+
+#ifdef PGY_LLVM_ENABLED
 
 #include <string.h>
 
@@ -349,3 +360,5 @@ llvm_active_uses_thread_pool(const LLVMGenCtx *ctx)
         return false;
     return pgy_mir_program_uses_thread_pool(ctx->mir);
 }
+
+#endif /* PGY_LLVM_ENABLED */
