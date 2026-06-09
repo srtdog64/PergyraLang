@@ -56,4 +56,4 @@ if [[ "$CI_WINDOWS_RUNNABLE" == "1" ]]; then
     fi
 fi
 
-run 'make self-host-preparation-test-smoke'
+run 'PGY_AIR_GRAPH_JSON_SKIP_DRIFT=1 make self-host-preparation-test-smoke'

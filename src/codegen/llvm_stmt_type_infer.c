@@ -549,6 +549,32 @@ llvm_stmt_infer_expr_type(LLVMGenCtx *ctx, ASTNode *expr)
                         receiver_name);
                 if (class_name == NULL)
                     class_name = llvm_expr_custom_type_name(receiver, ctx);
+                if (class_name == NULL) {
+                    /* Last-resort: the var-class registry didn't pick up
+                     * this local (e.g. dnd_tavern_campaign's
+                     * `let weapon: WeaponCard = MemberWeapon(seat)` --
+                     * the MIR emit path doesn't always re-enter the AST
+                     * LET_DECL inference seam that calls
+                     * llvm_register_var_class). Fall back to inferring
+                     * the receiver expression's LLVM type and looking
+                     * the class up by struct type. Swallow a transient
+                     * has_error from the inner inference so a failed
+                     * recovery doesn't trash a still-recoverable
+                     * outer call. */
+                    bool prev_err = ctx->has_error;
+                    LLVMTypeRef recv_ty = llvm_stmt_infer_expr_type(ctx,
+                        receiver);
+                    if (ctx->has_error && !prev_err) {
+                        ctx->has_error = false;
+                        recv_ty = NULL;
+                    }
+                    if (recv_ty != NULL) {
+                        LLVMClassTypeEntry *recv_cls =
+                            llvm_stmt_lookup_class_by_type(ctx, recv_ty);
+                        if (recv_cls != NULL && recv_cls->class_name != NULL)
+                            class_name = recv_cls->class_name;
+                    }
+                }
                 if (class_name != NULL) {
                     LLVMTypeRef method_ret =
                         llvm_stmt_host_method_return_type(

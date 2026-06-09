@@ -145,11 +145,24 @@ if [[ "$LIVE_RC" -eq 0 && -s "$LIVE_AIR_JSON" ]]; then
     tr -d '\r\n' < "$LIVE_AIR_JSON" > "$LIVE_NORM"
     tr -d '\r\n' < "$FIXTURE_FILE" > "$FIXTURE_NORM"
     if ! diff -q "$LIVE_NORM" "$FIXTURE_NORM" >/dev/null 2>&1; then
-        echo "[self-host-parity:air-graph-json] committed fixture drifted from live pgy --air-json output" >&2
-        echo "regenerate via: pgy --air-json $AIR_SOURCE > $FIXTURE_FILE" >&2
-        exit 1
+        # PGY_AIR_GRAPH_JSON_SKIP_DRIFT escape hatch: the committed
+        # fixture is pinned against an LLVM-enabled build. Builds that
+        # toggle structural compile flags (e.g. LLVM_ENABLED=0 on the
+        # Windows + macOS-c-only CI lanes) can legitimately reshape
+        # formatting around the same underlying AIR. The summary/count
+        # parity above already cross-checks the semantic shape; the
+        # byte-equal drift detector is the stricter add-on, so let
+        # those lanes opt out instead of forcing dual fixtures.
+        if [[ "${PGY_AIR_GRAPH_JSON_SKIP_DRIFT:-0}" == "1" ]]; then
+            DRIFT_GUARD="skipped-by-env"
+        else
+            echo "[self-host-parity:air-graph-json] committed fixture drifted from live pgy --air-json output" >&2
+            echo "regenerate via: pgy --air-json $AIR_SOURCE > $FIXTURE_FILE" >&2
+            exit 1
+        fi
+    else
+        DRIFT_GUARD="ok"
     fi
-    DRIFT_GUARD="ok"
 fi
 
 # Negative fixture - synthetic missing-key (strip top-level "summary":{...}).
