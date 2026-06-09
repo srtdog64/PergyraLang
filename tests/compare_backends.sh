@@ -977,6 +977,7 @@ main() {
         "tests/cases/backend_compare/three_slots_cross_update"
         "tests/cases/backend_compare/max_reduction_slot"
         "tests/cases/backend_compare/recursive_fib_slot"
+        "tests/cases/backend_compare/early_return_while_slot"
         "tests/cases/backend_compare/unsafe_lexical_boundary"
         "tests/cases/backend_compare/world_zone_projection_visibility"
         "tests/cases/backend_compare/world_zone_cross_queries"

@@ -1,0 +1,18 @@
+func FirstGreater(ref s: Slot<Int>, threshold: Int) -> Int {
+    let i: Slot<Int> = ClaimSlot();
+    Write(i, 0);
+    while Read(i) < 10 {
+        if Read(s) + Read(i) > threshold {
+            return Read(i);
+        }
+        Write(i, Read(i) + 1);
+    }
+    return -1;
+}
+
+func Main() -> Void {
+    let base: Slot<Int> = ClaimSlot();
+    Write(base, 5);
+    Log(FirstGreater(base, 9));
+    Log(FirstGreater(base, 30));
+}
