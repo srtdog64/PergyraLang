@@ -1,0 +1,21 @@
+enum MathErr { DivZero }
+
+func SafeDiv(a: Int, b: Int) -> Result<Int, MathErr> {
+    if b == 0 {
+        return Err(MathErr.DivZero);
+    }
+    return Ok(a / b);
+}
+
+func Main() -> Void {
+    let acc: Slot<Int> = ClaimSlot();
+    Write(acc, 0);
+    for i in 1..5 {
+        let r: Result<Int, MathErr> = SafeDiv(100, i);
+        match r {
+            case Ok(v): Write(acc, Read(acc) + v);
+            case Err(_): Write(acc, Read(acc));
+        }
+    }
+    Log(Read(acc));
+}

@@ -1,0 +1,19 @@
+func Safe(n: Int) -> Option<Int> {
+    if n > 0 {
+        return Some(n * 2);
+    }
+    return None;
+}
+
+func Main() -> Void {
+    let acc: Slot<Int> = ClaimSlot();
+    Write(acc, 0);
+    for i in -2..4 {
+        let r: Option<Int> = Safe(i);
+        match r {
+            case Some(v): Write(acc, Read(acc) + v);
+            case None: Write(acc, Read(acc));
+        }
+    }
+    Log(Read(acc));
+}
