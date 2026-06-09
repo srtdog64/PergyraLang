@@ -470,6 +470,13 @@ test_type_checker_slot_rules(void)
         Symbol *slot_sym = symbol_create_slot(
             "ss", type_create_slot(TYPE_INT, true), true, "ss_token", 1, 1);
         scope_declare(ctx->scope, slot_sym);
+        Symbol *token_sym = symbol_create_token("ss_token", "ss", 1, 1);
+        if (token_sym != NULL) {
+            Type *token_args[1] = { TYPE_INT };
+            token_sym->type =
+                type_create_constructed(TYPE_TOKEN, token_args, 1);
+        }
+        scope_declare(ctx->scope, token_sym);
 
         ASTNode *decl = ast_create_let_declaration("srv");
         ASTNode *view_args[1] = { make_identifier("ss", 1) };
@@ -486,6 +493,46 @@ test_type_checker_slot_rules(void)
         semantic_context_destroy(ctx);
         ast_destroy(decl);
         ast_destroy(read_call);
+    }
+
+    TEST("ViewRead on SecureSlot<T> without paired token in scope is rejected");
+    {
+        SemanticContext *ctx = semantic_context_create();
+        Symbol *slot_sym = symbol_create_slot(
+            "ss", type_create_slot(TYPE_INT, true), true, "ss_token", 1, 1);
+        scope_declare(ctx->scope, slot_sym);
+
+        ASTNode *decl = ast_create_let_declaration("srv");
+        ASTNode *view_args[1] = { make_identifier("ss", 1) };
+        decl->data.let_decl.type = make_generic_type("ReadView", "Int");
+        decl->data.let_decl.initializer = make_call("ViewRead", view_args, 1, 1);
+        type_check_let_decl(decl, ctx);
+        EXPECT(ctx->has_error);
+        EXPECT(ctx_has_diagnostic_code(ctx, PGY_CODE_SEM_PIN_TOKEN_INVALID));
+        EXPECT(ctx_has_diagnostic_substring(ctx,
+            "no reachable paired token"));
+
+        semantic_context_destroy(ctx);
+        ast_destroy(decl);
+    }
+
+    TEST("ViewWrite on SecureSlot<T> without paired token in scope is rejected");
+    {
+        SemanticContext *ctx = semantic_context_create();
+        Symbol *slot_sym = symbol_create_slot(
+            "ss", type_create_slot(TYPE_INT, true), true, "ss_token", 1, 1);
+        scope_declare(ctx->scope, slot_sym);
+
+        ASTNode *decl = ast_create_let_declaration("swv");
+        ASTNode *view_args[1] = { make_identifier("ss", 1) };
+        decl->data.let_decl.type = make_generic_type("WriteView", "Int");
+        decl->data.let_decl.initializer = make_call("ViewWrite", view_args, 1, 1);
+        type_check_let_decl(decl, ctx);
+        EXPECT(ctx->has_error);
+        EXPECT(ctx_has_diagnostic_code(ctx, PGY_CODE_SEM_PIN_TOKEN_INVALID));
+
+        semantic_context_destroy(ctx);
+        ast_destroy(decl);
     }
 
     TEST("MoveToken<T> materializes into a new owning Slot<T>");

@@ -293,7 +293,7 @@ explicit backend lowering through `PgyPinnedView` / `PergyraSlotPin` /
 | `pin` parallel conflict | `PGY_SEM_PIN_PARALLEL_CONFLICT` | Active through source-level and constructor view boundary/acquisition checks |
 | `pin` of `QubitSlot` | `PGY_SEM_PIN_QUBIT_REJECT` | Active through `ViewRead/ViewWrite(QubitSlot)` semantic regression |
 | source-level `pin` read/write parity for `Slot<T>` / `SecureSlot<T>` | backend compare | Active through `pin_read_view_block`, `pin_secure_read_view_block`, `pin_mixed_read_view_sequence`, `pin_write_view_block`, and `pin_secure_write_view_block` C/LLVM compare fixtures |
-| `pin` token capability check | `PGY_SEM_PIN_TOKEN_INVALID` | Code registered; runtime ABI baseline exists, but secure-token source syntax is not exposed |
+| `pin` token capability check | `PGY_SEM_PIN_TOKEN_INVALID` | Source-level emission: `ViewRead/ViewWrite` over a `SecureSlot<T>` whose paired capability token symbol is not reachable in scope is rejected before runtime; runtime ABI hard-fail remains the deeper backstop |
 
 This separation still matters. Public communication may now say that
 source-level typed-view pin blocks reject suspension and transport boundaries.

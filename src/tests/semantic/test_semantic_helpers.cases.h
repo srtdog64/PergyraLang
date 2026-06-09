@@ -20,6 +20,7 @@
 #include "semantic/symbol_table.h"
 #include "semantic/type_checker.h"
 #include "semantic/type_checker_internal.h"
+#include "semantic/diag_codes.h"
 #include "semantic/semantic.h"
 
 /* -----------------------------------------------------------------
@@ -205,6 +206,23 @@ ctx_has_diagnostic_substring(const SemanticContext *ctx, const char *needle)
         Diagnostic *diag = ctx->diagnostics[i];
         if (diag != NULL && diag->message != NULL
             && strstr(diag->message, needle) != NULL) {
+            return true;
+        }
+    }
+
+    return false;
+}
+
+static bool
+ctx_has_diagnostic_code(const SemanticContext *ctx, const char *code)
+{
+    if (ctx == NULL || code == NULL)
+        return false;
+
+    for (size_t i = 0; i < ctx->diagnostic_count; i++) {
+        Diagnostic *diag = ctx->diagnostics[i];
+        if (diag != NULL && diag->code != NULL
+            && strcmp(diag->code, code) == 0) {
             return true;
         }
     }

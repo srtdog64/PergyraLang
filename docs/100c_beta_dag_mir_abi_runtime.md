@@ -1231,9 +1231,14 @@ split, and the active 1,000+ production `.c` owner queue is now AST-only:
   Box resource-handle payload reject, HIR/MIR pin-region metadata,
   MIR `pin-unpin-cleanup-edge` metadata, generated inline pin wrapper ABI, C
   source-block cleanup emission, and
-  parallel boundary/acquisition reject가 닫혔다. 남은
-  blocker는 MIR cleanup fact를 LLVM/MIR backend explicit pin/unpin call로 낮추는 lowering parity and
-  secure-token source diagnostic이다.
+  parallel boundary/acquisition reject가 닫혔다.
+- Source-level `PGY_SEM_PIN_TOKEN_INVALID` now fires when
+  `ViewRead(...)` / `ViewWrite(...)` is applied to a `SecureSlot<T>` and the
+  paired capability token symbol is not reachable in the current scope. This
+  closes the previous gap where invalid-token pin only failed at runtime ABI.
+  Runtime hard-fail remains the deeper backstop.
+- 남은 blocker는 MIR cleanup fact를 LLVM/MIR backend explicit pin/unpin call로
+  낮추는 lowering parity (broader exceptional/cancellation all-exit coverage).
 - Option C ownership lift keeps Pin/Lease narrow: `pin slot as view { ... }`
   and `PinnedView<T>` are §4 ABI ownership blockers only after §0b proves
   cleanup/escape facts. User-facing raw `void *` remains rejected; only typed

@@ -211,12 +211,15 @@ Current implementation note:
 
 - Block syntax is active at the parser/semantic layer and lowers to a lexical
   block containing `let view: ReadView<T>|WriteView<T> = ViewRead/ViewWrite(slot)`.
-- Four of the five semantic codes above are active on both the source-level
+- All five semantic codes above are active on both the source-level
   `pin ... as ... { ... }` block and the existing `ViewRead(...)` /
-  `ViewWrite(...)` surface; their user-facing JSON routing is covered by
+  `ViewWrite(...)` surface; the first four are covered by
   `make diagnostics-json-test-smoke`.
-- `PGY_SEM_PIN_TOKEN_INVALID` remains a runtime/API capability-path diagnostic
-  until secure-token source syntax is added.
+- `PGY_SEM_PIN_TOKEN_INVALID` now fires from the source-level surface when
+  `ViewRead(...)` / `ViewWrite(...)` is applied to a `SecureSlot<T>` and the
+  paired capability token symbol is not reachable in the current scope. The
+  runtime ABI capability hard-fail remains the deeper backstop, but the
+  source-level diagnostic catches token-missing pins before runtime.
 
 Every diagnostic must include `Reason:` and `Fix:`. Projection/source/target
 style provenance is not enough here; the message also needs the slot type, view
