@@ -1,0 +1,14 @@
+async func Compute(x: Int) -> Int {
+    return x * 3;
+}
+
+async func Main() -> Void {
+    let acc: Slot<Int> = ClaimSlot();
+    Write(acc, 0);
+    let f1: Future<Int> = spawn Compute(2);
+    let f2: Future<Int> = spawn Compute(5);
+    let v1: Int = await f1;
+    let v2: Int = await f2;
+    Write(acc, v1 + v2);
+    Log(Read(acc));
+}

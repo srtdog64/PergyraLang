@@ -1,0 +1,12 @@
+func Square(n: Int) -> Int {
+    return n * n;
+}
+
+func Main() -> Void {
+    let acc: Slot<Int> = ClaimSlot();
+    Write(acc, 0);
+    for i in 1..6 {
+        Write(acc, Read(acc) + Square(i));
+    }
+    Log(Read(acc));
+}
