@@ -1,7 +1,11 @@
-# Build artifacts
-build/
-build*/
-bin/
+# Build artifacts (root-level only -- the unanchored `build*/`
+# previously matched paths like
+# tests/cases/backend_compare/build_phase_advance/ and silently
+# kept their main.pgy out of the index, which made CI's shard-zero
+# precheck fail with "missing case" on every push).
+/build/
+/build*/
+/bin/
 .tmp/
 
 # Ad-hoc debug dumps emitted by --emit-c / --emit-mir / --emit-hir

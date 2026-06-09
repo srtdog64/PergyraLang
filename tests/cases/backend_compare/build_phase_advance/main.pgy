@@ -1,0 +1,29 @@
+class Build {
+    let stage: Int;
+    let acc: Int;
+}
+
+enum Phase { Init, Mid, Done }
+
+func Advance(b: Build, p: Phase, v: Int) -> Build {
+    match p {
+        case Init: return Build(1, v);
+        case Mid: return Build(b.stage + 1, b.acc + v);
+        case Done: return Build(b.stage + 1, b.acc * v);
+    }
+}
+
+func ResultOf(b: Build) -> Int {
+    return b.stage * 100 + b.acc;
+}
+
+func Main() -> Void {
+    let b0: Build = Build(0, 0);
+    let b1: Build = Advance(b0, Init, 5);
+    let b2: Build = Advance(b1, Mid, 10);
+    let b3: Build = Advance(b2, Done, 3);
+    Log(ResultOf(b0));
+    Log(ResultOf(b1));
+    Log(ResultOf(b2));
+    Log(ResultOf(b3));
+}
