@@ -420,8 +420,22 @@ Remaining:
   are stored on the lambda function type and do not leak into the enclosing
   routine before the lambda is called; function-typed lambda bindings propagate
   those facts through the same callee-summary path as named functions. The
-  remaining blocker is making zone/effect/runtime/codegen consumers use those
-  bits instead of local rediscovery.
+  prove-helper family (`semantic_callable_summary_proves_no_ref_escape`,
+  `proves_no_drop_resource`, `proves_no_spawn_task`,
+  `proves_no_send_channel`, `proves_no_zone_requirement`) is now the named
+  read seam for consumers: each returns true when the callee's recorded
+  `body_summary_mask` positively proves the bit absent and false when the
+  inventory is missing, so a consumer that has no fast-path falls back to
+  its existing AST walk. The first consumer migration applies the
+  channel-send seam: `semantic_callable_param_escape_summary` strips the
+  legacy AST analyzer's `SLOT_PARAM_SUMMARY_CHANNEL_ESCAPE` bit when
+  `proves_no_send_channel` succeeds. `semantic-core-shape-test-smoke`
+  gates the prove helpers as the canonical body-summary read seam on
+  `src/semantic/type_checker_call_contract_helpers.c` and its declaration
+  in `type_checker_internal.h`. Remaining work is migrating additional
+  zone/effect/runtime/codegen consumers (e.g. zone authority spawn
+  detection, intent control async/channel detection) onto the same prove
+  helpers instead of repeated AST walks.
 - Diagnostics must report path provenance with branch/join edge, previous state, `Reason`, and `Fix`.
 - C and LLVM must lower the frozen subset from the same CFG/dataflow facts and be covered by backend compare.
 - Option C ownership lift now has the block-scoped
