@@ -159,6 +159,64 @@
         ast_destroy(func);
     }
 
+    TEST("callable summary prove helpers read body_summary bits directly");
+    {
+        SemanticContext *ctx = semantic_context_create();
+        ASTNode *program = ast_create_program();
+        /* Quiet callee: no effects, no spawn, no channel send, no zone, no drop. */
+        ASTNode *quiet = ast_create_function("Quiet");
+        /* Active callee: spawns task, sends channel, drops resource, requires zone. */
+        ASTNode *active = ast_create_function("Active");
+        Symbol *qsym;
+        Symbol *asym;
+
+        ctx->program_root = program;
+
+        quiet->data.func_decl.return_type = ast_create_type("Void");
+        quiet->data.func_decl.body = ast_create_block();
+        ast_add_statement(program, quiet);
+        type_check_func_decl(quiet, ctx);
+
+        active->data.func_decl.return_type = ast_create_type("Void");
+        active->data.func_decl.body = ast_create_block();
+        ast_add_statement(program, active);
+        type_check_func_decl(active, ctx);
+
+        /* Synthetically set body_summary_mask bits on the Active callee's
+         * function type so the prove helpers exercise each named bit. */
+        asym = scope_lookup(ctx->scope, "Active");
+        if (asym != NULL && asym->type != NULL
+            && asym->type->kind == TYPE_KIND_FUNCTION) {
+            asym->type->data.function.has_body_summary_facts = true;
+            asym->type->data.function.body_summary_mask =
+                BODY_SUMMARY_DROPS_RESOURCE
+                | BODY_SUMMARY_SPAWNS_TASK
+                | BODY_SUMMARY_SENDS_CHANNEL
+                | BODY_SUMMARY_REQUIRES_ZONE;
+        }
+        qsym = scope_lookup(ctx->scope, "Quiet");
+        if (qsym != NULL && qsym->type != NULL
+            && qsym->type->kind == TYPE_KIND_FUNCTION) {
+            qsym->type->data.function.has_body_summary_facts = true;
+            qsym->type->data.function.body_summary_mask = BODY_SUMMARY_NONE;
+        }
+
+        /* Quiet callee positively proves every bit absent. */
+        EXPECT(semantic_callable_summary_proves_no_drop_resource(ctx, quiet));
+        EXPECT(semantic_callable_summary_proves_no_spawn_task(ctx, quiet));
+        EXPECT(semantic_callable_summary_proves_no_send_channel(ctx, quiet));
+        EXPECT(semantic_callable_summary_proves_no_zone_requirement(ctx, quiet));
+
+        /* Active callee proves none of the bits absent. */
+        EXPECT(!semantic_callable_summary_proves_no_drop_resource(ctx, active));
+        EXPECT(!semantic_callable_summary_proves_no_spawn_task(ctx, active));
+        EXPECT(!semantic_callable_summary_proves_no_send_channel(ctx, active));
+        EXPECT(!semantic_callable_summary_proves_no_zone_requirement(ctx, active));
+
+        semantic_context_destroy(ctx);
+        ast_destroy(program);
+    }
+
     TEST("direct function call records callable declaration boundary summary");
     {
         SemanticContext *ctx = semantic_context_create();

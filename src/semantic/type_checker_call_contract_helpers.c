@@ -56,6 +56,56 @@ semantic_callable_summary_proves_no_ref_escape(SemanticContext *ctx,
         && (summary & BODY_SUMMARY_MAY_ESCAPE_REF) == 0;
 }
 
+/* True when the callee's body-summary inventory positively proves the named
+ * fact bit is NOT in the callee's body. Returns false when summary inventory
+ * is absent (so the caller must fall back to AST walk or the legacy summary).
+ * The shape mirrors `semantic_callable_summary_proves_no_ref_escape` so
+ * consumers can read body-summary bits through one stable seam instead of
+ * re-walking the callee body in every analyzer. */
+bool
+semantic_callable_summary_proves_no_drop_resource(SemanticContext *ctx,
+                                                  ASTNode *callee_decl)
+{
+    Type *function_type = semantic_callable_decl_function_type(ctx, callee_decl);
+    uint32_t summary = type_function_body_summary(function_type);
+
+    return type_function_has_body_summary(function_type)
+        && (summary & BODY_SUMMARY_DROPS_RESOURCE) == 0;
+}
+
+bool
+semantic_callable_summary_proves_no_spawn_task(SemanticContext *ctx,
+                                               ASTNode *callee_decl)
+{
+    Type *function_type = semantic_callable_decl_function_type(ctx, callee_decl);
+    uint32_t summary = type_function_body_summary(function_type);
+
+    return type_function_has_body_summary(function_type)
+        && (summary & BODY_SUMMARY_SPAWNS_TASK) == 0;
+}
+
+bool
+semantic_callable_summary_proves_no_send_channel(SemanticContext *ctx,
+                                                 ASTNode *callee_decl)
+{
+    Type *function_type = semantic_callable_decl_function_type(ctx, callee_decl);
+    uint32_t summary = type_function_body_summary(function_type);
+
+    return type_function_has_body_summary(function_type)
+        && (summary & BODY_SUMMARY_SENDS_CHANNEL) == 0;
+}
+
+bool
+semantic_callable_summary_proves_no_zone_requirement(SemanticContext *ctx,
+                                                     ASTNode *callee_decl)
+{
+    Type *function_type = semantic_callable_decl_function_type(ctx, callee_decl);
+    uint32_t summary = type_function_body_summary(function_type);
+
+    return type_function_has_body_summary(function_type)
+        && (summary & BODY_SUMMARY_REQUIRES_ZONE) == 0;
+}
+
 ASTNode *
 semantic_lookup_function_param_contract(SemanticContext *ctx,
                                         const char *display_name,

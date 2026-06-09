@@ -38,6 +38,19 @@ unsigned semantic_callable_param_escape_summary(
     ASTNode *callee_decl,
     size_t arg_index,
     SemanticContext *ctx);
+/* Body-summary inventory readers. Each returns true when the callee's
+ * recorded body_summary_mask positively proves the named fact bit is absent
+ * from the callee body. False means inventory is missing or the bit is set,
+ * so the caller must fall back to its existing analyzer path. Consumers
+ * should use these helpers instead of re-walking the callee body. */
+bool semantic_callable_summary_proves_no_drop_resource(SemanticContext *ctx,
+                                                       ASTNode *callee_decl);
+bool semantic_callable_summary_proves_no_spawn_task(SemanticContext *ctx,
+                                                    ASTNode *callee_decl);
+bool semantic_callable_summary_proves_no_send_channel(SemanticContext *ctx,
+                                                      ASTNode *callee_decl);
+bool semantic_callable_summary_proves_no_zone_requirement(SemanticContext *ctx,
+                                                          ASTNode *callee_decl);
 bool semantic_param_summary_has_any_escape(unsigned summary_mask);
 bool semantic_param_summary_has_return_escape(unsigned summary_mask);
 bool semantic_param_summary_has_channel_escape(unsigned summary_mask);
