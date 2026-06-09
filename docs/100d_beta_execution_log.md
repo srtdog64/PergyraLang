@@ -32,17 +32,26 @@
   the PR1+PR2 prove-helper closure and the named next migration
   targets (zone authority spawn detection, intent control async/
   channel detection, C/LLVM lowering consuming the bits).
-- C-only backend bug surfaced during probes (recorded but not fixed):
-  nesting two `while` loops over a shared Slot counter where the
-  second loop contains `let v: Int = <- ch;` triggers "MIR contract
-  breach: unresolved identifier `v` (expected SSA-mapped local)" on
-  the C path. The MIR dump shows the second loop's
-  `Write(sum, Read(sum) + v)` resource op is attributed to block 0
-  (the slot def-block) with `v.0` instead of `v.1`, while block 5
-  (the second loop body) is correct. The fix path belongs to the
-  C-side MIR SSA renaming owner; the fixture `channel_drain_while`
-  includes the single-loop variant that does parity-stably compile
-  and run.
+- C-only backend bug surfaced during probes and then fixed in the
+  same session: nesting two `while` loops over a shared Slot
+  counter where the second loop contains
+  `let v: Int = <- ch; Write(sum, Read(sum) + v);` previously
+  triggered "MIR contract breach: unresolved identifier `v`
+  (expected SSA-mapped local)" on the C path. Root cause: the
+  upstream MIR lowering attributes every routine slot Write
+  resource op to the slot's SSA def-block flow, so block 0
+  carries a copy of the second-loop-body Write whose `v` is
+  `v.0` (undef) instead of `v.1` (defined in block 5). The C
+  emit policy
+  (`transpiler_emit_mir_resource_hook`) was already routing that
+  copy to the observability-only path, but the *mapping precheck*
+  in `transpiler_mir_emission_mapping_contract.c` ran *before* the
+  emit policy and failed the contract on the undef `v.0`. Fix:
+  the mapping precheck now consults the same
+  `transpiler_mir_resource_has_mirroring_stmt_in_block` seam as
+  the emit policy and skips the contract for a Write resource op
+  whose paired stmt lives outside the current block. Regression
+  fixture `nested_while_channel_let` pins the reproducer.
 
 ## Progress Log - 2026-06-10 Backend Parity, P0 #1 Read-Seam, And Cross-Lane CI Closure
 
