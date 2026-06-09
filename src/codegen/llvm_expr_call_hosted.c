@@ -1,6 +1,7 @@
 #ifdef PGY_LLVM_ENABLED
 
 #include "llvm_expr_call_dispatch.h"
+#include "llvm_stmt_source_local_fallback.h"
 
 #include <stdio.h>
 #include <string.h>
@@ -96,11 +97,15 @@ llvm_emit_hosted_self_call(ASTNode *node, LLVMGenCtx *ctx,
         llvm_find_host_method_metadata_in_context(ctx, host_name, callee_name);
     host_method = llvm_mir_decl_method_source_ast(method_meta);
     if (host_method == NULL && method_meta == NULL) {
-        if (llvm_active_has_mir(ctx)) {
-            /* If a global function is registered, the callee is a free
-             * function and the dispatcher should fall through to that path. */
-            ASTNode *cd = llvm_find_callable_decl(ctx, callee_name);
-            if (cd != NULL && cd->type == AST_FUNC_DECL)
+        /* P0 #4 follow-up: try the nominal-host AST decl even when MIR
+         * is active. The MIR decl-header inventory doesn't always
+         * enumerate every world/class method (dnd_tavern_campaign's
+         * TavernCampaignWorld.TavernRecruitment landed here). Helper is
+         * in llvm_stmt_source_local_fallback.c. */
+        host_method = llvm_stmt_host_method_ast_decl(ctx, host_name,
+            callee_name);
+        if (host_method == NULL && llvm_active_has_mir(ctx)) {
+            if (llvm_find_callable_decl(ctx, callee_name) != NULL)
                 return NULL;
             llvm_set_mir_inventory_missing(ctx,
                 "MIR-only LLVM path missing hosted self-call method metadata for '%s.%s'",
@@ -108,7 +113,8 @@ llvm_emit_hosted_self_call(ASTNode *node, LLVMGenCtx *ctx,
                 callee_name != NULL ? callee_name : "(anonymous)");
             return NULL;
         }
-        host_method = llvm_current_host_method_decl(ctx, callee_name);
+        if (host_method == NULL)
+            host_method = llvm_current_host_method_decl(ctx, callee_name);
     }
     if (method_meta == NULL && host_method == NULL)
         return NULL;
