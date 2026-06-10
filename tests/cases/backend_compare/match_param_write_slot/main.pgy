@@ -1,0 +1,16 @@
+func Process(v: Int) -> Int {
+    let s: Slot<Int> = ClaimSlot();
+    Write(s, v);
+    match v {
+        case 0: Write(s, 100);
+        case 1: Write(s, 200);
+        default: Write(s, Read(s) + 1);
+    }
+    return Read(s);
+}
+
+func Main() -> Void {
+    Log(Process(0));
+    Log(Process(1));
+    Log(Process(7));
+}
