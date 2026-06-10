@@ -1,0 +1,49 @@
+Program:
+  Function: ComputeSum
+    Parameters:
+      limit: Int
+    Returns: Int
+    Body:
+      Block:
+        Let: acc : Slot<Int: Int> = ClaimSlot()
+        Write(acc, 0)
+        For: i in 0..limit
+          Block:
+            Let: cur : Int = Read(acc)
+            Write(acc, (cur + i))
+        Let: result : Int = Read(acc)
+        Release(acc)
+        Return: result
+  Function: DemoWith
+    Parameters:
+    Returns: Void
+    Body:
+      Block:
+        With slot<Int> as counter
+          Block:
+            Write(counter, 100)
+            Log(Read(counter))
+  Function: DemoParallel
+    Parameters:
+    Returns: Void
+    Body:
+      Block:
+        Let: a : Slot<Int: Int> = ClaimSlot()
+        Let: b : Slot<Int: Int> = ClaimSlot()
+        Parallel:
+          Write(a, 10)
+          Write(b, 20)
+        Let: sum : Int = (Read(a) + Read(b))
+        Log(sum)
+        Release(a)
+        Release(b)
+  Function: Main
+    Parameters:
+    Returns: Void
+    Body:
+      Block:
+        Let: total : Int = ComputeSum(10)
+        Log(total)
+        DemoWith()
+        DemoParallel()
+

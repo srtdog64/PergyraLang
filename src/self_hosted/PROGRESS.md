@@ -26,18 +26,42 @@ Refresh:
 `bash src/self_hosted/parity/parser_scale_probe.sh`. 7 of the 117
 examples fail under `pgy --ast` itself (C-skip).
 
-**Rung-1 parity (2026-06-10):** the committed `parser_parity.sh`
-`SOURCE_PAIRS` array now exercises **127 sources** vs `pgy --ast`
-(was 83 on 2026-05-29). The +44 fixture surface added on
-2026-06-10 covers Option/Result destructure, slot sugar, transfer
-short syntax, array literal, common collection algorithms (queue,
-stack, deque, heap, linked_list, hash_map, union_find, graph_bfs),
-string + stdlib + io + math builtin surfaces, async/spawn/select/
-defer/for control flow, walrus surface, pipe + try operator,
-ownership / concurrency / event_basic demos,
-notebook style analysis, and tagged_union. The self-host parser
-already handles each addition byte-equally — the additions extend
-rung-1 parity coverage, not the parser grammar.
+**Rung-1 parity (2026-06-10, end of session):** the committed
+`parser_parity.sh` `SOURCE_PAIRS` array now exercises **186
+sources** vs `pgy --ast` (was 83 on 2026-05-29; +103 in one
+session). The added fixture surface covers Option/Result
+destructure, slot sugar, transfer short syntax, array literal,
+common collection algorithms (queue, stack, deque, heap,
+linked_list, hash_map, union_find, graph_bfs), string + stdlib +
+io + math builtin surfaces, async/spawn/select/defer/for control
+flow, walrus surface, pipe + try operator, ownership /
+concurrency / event demos (event_basic, event_minimal,
+event_lambda, event_lambda_full, event_closure_probe),
+notebook_style_analysis, tagged_union, battle_*, calendar_*,
+beta_*, intent contract minimal shapes, authority contract,
+action contract inheritance, generic ability requires, four
+ad-hoc bsd_test fixtures and the full 11-file bsd_test{,2..11}
+family, qubit_test, qubit_quantum_ext, RemoteFuture, for_in_array,
+generic_class, subject_object_tobject, vessel_method_test,
+test_parallel, eda/etl workflows, channel_parallel,
+producer_consumer, projection_*, collections_closure_probe,
+class_method_test, channel_test, spawn_blocking_test,
+import_test, slots, and slots_simple. The self-host parser
+already handles each addition byte-equally — the additions
+extend rung-1 parity coverage, not the parser grammar.
+
+Examples that **cannot** be added as fixtures (current state):
+- `pgy --ast` itself fails (skipped):
+  `role_ability_demo`, `world_roster_city`, `party_system_demo`,
+  `parallel`, `secure_slots`, `structured_comments`,
+  `vessel_action_design`.
+- Self-host parser byte-drifts vs live `pgy --ast`:
+  `composite_intent_orchestration_compressed`,
+  `composite_intent_orchestration_explicit`,
+  `function_clause_order_minimal`,
+  `surface_compression_maximal`.
+- Self-host parser crashes:
+  `six_item_alignment_demo`.
 
 Reading this honestly: the self-host journey has *just started*. The
 first compiler-internal substitute (`src/self_hosted/lexer/`) lands a

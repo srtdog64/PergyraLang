@@ -1,0 +1,32 @@
+Program:
+  Function: DemoWith
+    Parameters:
+    Returns: Void
+    Body:
+      Block:
+        With slot<Int> as counter
+          Block:
+            Write(counter, 100)
+            Log(Read(counter))
+  Function: DemoParallel
+    Parameters:
+    Returns: Void
+    Body:
+      Block:
+        Let: a : Slot<Int: Int> = ClaimSlot()
+        Let: b : Slot<Int: Int> = ClaimSlot()
+        Parallel:
+          Write(a, 10)
+          Write(b, 20)
+        Let: sum : Int = (Read(a) + Read(b))
+        Log(sum)
+        Release(a)
+        Release(b)
+  Function: Main
+    Parameters:
+    Returns: Void
+    Body:
+      Block:
+        DemoWith()
+        DemoParallel()
+

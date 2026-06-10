@@ -236,6 +236,8 @@ SOURCE_PAIRS=(
     "src/self_hosted/parser/fixture/projection_bind_group_minimal.pgy:projection_bind_group_minimal"
     "src/self_hosted/parser/fixture/projection_refresh_publish_group_minimal.pgy:projection_refresh_publish_group_minimal"
     "src/self_hosted/parser/fixture/collections_closure_probe.pgy:collections_closure_probe"
+    "src/self_hosted/parser/fixture/slots.pgy:slots"
+    "src/self_hosted/parser/fixture/slots_simple.pgy:slots_simple"
 )
 
 cleanup_source_override() {

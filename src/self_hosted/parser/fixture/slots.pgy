@@ -1,0 +1,52 @@
+// slots.pgy — Slot system feature showcase
+//
+// Demonstrates:
+//   - Plain Slot<T>: ClaimSlot, Write, Read, Release
+//   - with block: auto-release on scope exit
+//   - parallel block: concurrent writes to independent slots
+//   - for loop
+
+func ComputeSum(limit: Int) -> Int {
+    let acc: Slot<Int> = ClaimSlot<Int>();
+    Write(acc, 0);
+
+    for i in 0..limit {
+        let cur: Int = Read(acc);
+        Write(acc, cur + i);
+    }
+
+    let result: Int = Read(acc);
+    Release(acc);
+    return result;
+}
+
+func DemoWith() -> Void {
+    with slot<Int> as counter {
+        Write(counter, 100);
+        Log(Read(counter));
+    }
+}
+
+func DemoParallel() -> Void {
+    let a: Slot<Int> = ClaimSlot<Int>();
+    let b: Slot<Int> = ClaimSlot<Int>();
+
+    parallel {
+        Write(a, 10);
+        Write(b, 20);
+    }
+
+    let sum: Int = Read(a) + Read(b);
+    Log(sum);
+
+    Release(a);
+    Release(b);
+}
+
+func Main() -> Void {
+    let total: Int = ComputeSum(10);
+    Log(total);
+
+    DemoWith();
+    DemoParallel();
+}
