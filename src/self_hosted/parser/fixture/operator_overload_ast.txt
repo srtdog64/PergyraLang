@@ -1,0 +1,26 @@
+Program:
+  [export] Ability: Arithmetic
+    Function: Add
+      Parameters:
+        self
+        rhs: Int
+      Returns: Int
+  Role: IntMath for Int
+    Impl ability: Arithmetic
+      Function: Add
+        Parameters:
+          self
+          rhs: Int
+        Returns: Int
+        Body:
+          Block:
+            Return: 123
+  Function: Main
+    Parameters:
+    Returns: Void
+    Body:
+      Block:
+        Let: a : Int = 1
+        Let: b : Int = 2
+        Log((a + b))
+

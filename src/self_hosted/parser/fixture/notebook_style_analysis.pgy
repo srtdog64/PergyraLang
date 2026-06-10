@@ -1,0 +1,57 @@
+// notebook_style_analysis.pgy - 노트북 스타일 분석 패턴
+class Calculator {
+    func Add(a: Float, b: Float) -> Float { return a + b; }
+}
+
+subject DataSet {
+    let values: Array<Float>;
+    let name: String;
+}
+
+object FilteredView {
+    let values: Array<Float>;
+    let count: Int;
+}
+
+object Statistics {
+    let mean: Float;
+    let sum: Float;
+}
+
+tobject AnalysisResult {
+    let datasetName: String;
+    let resultMean: Float;
+}
+
+zone AnalysisZone {
+    subject slot data: DataSet
+    object slot currentView: FilteredView
+}
+
+intent RunAnalysis(zone: AnalysisZone, data: DataSet, calc: Calculator) {
+    exclusive;
+    step Filter {
+        where: AnalysisZone;
+        using: zone;
+        who: data;
+        expect: true;
+    }
+    step Compute {
+        where: AnalysisZone;
+        using: zone;
+        who: data;
+        expect: true;
+    }
+    step Report {
+        where: AnalysisZone;
+        using: zone;
+        who: data;
+        expect: true;
+    }
+    success: true;
+    failure: false;
+}
+
+func Main() -> Void {
+    Log("Notebook-style analysis pattern");
+}

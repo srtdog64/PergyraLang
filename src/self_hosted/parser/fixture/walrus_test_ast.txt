@@ -1,0 +1,6 @@
+Program:
+  Let: a = 10
+  Let: b = 20
+  Log(ToString(a))
+  Log(ToString(b))
+

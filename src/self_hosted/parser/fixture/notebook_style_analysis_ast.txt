@@ -1,0 +1,57 @@
+Program:
+  Class: Calculator
+    Methods:
+      Function: Add
+        Parameters:
+          a: Float
+          b: Float
+        Returns: Float
+        Body:
+          Block:
+            Return: (a + b)
+  Subject: DataSet
+    Fields:
+      values: Array<Float: Float>
+      name: String
+  Object: FilteredView
+    Fields:
+      values: Array<Float: Float>
+      count: Int
+  Object: Statistics
+    Fields:
+      mean: Float
+      sum: Float
+  TObject: AnalysisResult
+    Fields:
+      datasetName: String
+      resultMean: Float
+  Zone: AnalysisZone
+    SubjectSlot: data: DataSet
+    ObjectSlot: currentView: FilteredView
+  Intent: RunAnalysis
+    IntentMode: exclusive
+    IntentRollback: full
+    IntentInvolves: zone: AnalysisZone
+    IntentInvolves: data: DataSet
+    IntentValue: calc: Calculator
+    IntentStep: Filter where AnalysisZone using zone
+      Who: data
+      Using: zone
+      Expect: true
+    IntentStep: Compute where AnalysisZone using zone
+      Who: data
+      Using: zone
+      Expect: true
+    IntentStep: Report where AnalysisZone using zone
+      Who: data
+      Using: zone
+      Expect: true
+    IntentSuccess: true
+    IntentFailure: false
+  Function: Main
+    Parameters:
+    Returns: Void
+    Body:
+      Block:
+        Log("Notebook-style analysis pattern")
+

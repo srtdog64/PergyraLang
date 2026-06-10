@@ -1,0 +1,5 @@
+Program:
+  Let: y = 10
+  Let: x = 42
+  Log(ToString(x))
+

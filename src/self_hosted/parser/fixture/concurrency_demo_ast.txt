@@ -1,0 +1,28 @@
+Program:
+  Function: Worker
+    Parameters:
+      id: Int
+    Returns: Int
+    Body:
+      Block:
+        Log(id)
+        Return: (id * 10)
+  Function: Main
+    Parameters:
+    Returns: Void
+    Body:
+      Block:
+        Let: a : Slot<Int: Int> = ClaimSlot()
+        Let: b : Slot<Int: Int> = ClaimSlot()
+        Let: c : Slot<Int: Int> = ClaimSlot()
+        Parallel:
+          Write(a, 100)
+          Write(b, 200)
+          Write(c, 300)
+        Log(Read(a))
+        Log(Read(b))
+        Log(Read(c))
+        Release(a)
+        Release(b)
+        Release(c)
+

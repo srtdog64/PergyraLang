@@ -1,0 +1,48 @@
+// pipe_and_try.pgy — 파이프 연산자 |> + ? 연산자 + 문자열 보간
+//
+// |> : 왼쪽 값을 오른쪽 함수의 첫 인수로 전달
+// ?  : Result<T>에서 에러면 즉시 반환, 성공이면 값 추출
+// ${}:  문자열 안에 변수를 삽입
+
+func Double(x: Int) -> Int {
+    return x * 2;
+}
+
+func AddTen(x: Int) -> Int {
+    return x + 10;
+}
+
+func Validate(x: Int) -> Result<Int> {
+    if x > 100 {
+        return Err("too large");
+    }
+    return Ok(x);
+}
+
+func Process(x: Int) -> Result<Int> {
+    let doubled: Int = x |> Double;
+    let validated: Int = Validate(doubled)?;
+    return Ok(validated |> AddTen);
+}
+
+func Main() -> Void {
+    // 파이프: 5 → Double(5)=10 → AddTen(10)=20
+    let piped: Int = 5 |> Double |> AddTen;
+    Log(piped);   // 20
+
+    // ?: 성공 경로
+    let r1: Result<Int> = Process(10);
+    if IsOk(r1) {
+        Log(Unwrap(r1));  // 10*2=20, Validate(20)=Ok, +10=30
+    }
+
+    // ?: 에러 전파
+    let r2: Result<Int> = Process(60);
+    if IsErr(r2) {
+        Log(0);  // 60*2=120 > 100 → Err 전파
+    }
+
+    // 문자열 보간
+    let lang: String = "Pergyra";
+    Log("hello ${lang}!");
+}

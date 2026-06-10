@@ -1,0 +1,55 @@
+Program:
+  Function: Double
+    Parameters:
+      x: Int
+    Returns: Int
+    Body:
+      Block:
+        Return: (x * 2)
+  Function: AddTen
+    Parameters:
+      x: Int
+    Returns: Int
+    Body:
+      Block:
+        Return: (x + 10)
+  Function: Validate
+    Parameters:
+      x: Int
+    Returns: Result<Int: Int>
+    Body:
+      Block:
+        If: (x > 100)
+          Then:
+            Block:
+              Return: Err("too large")
+        Return: Ok(x)
+  Function: Process
+    Parameters:
+      x: Int
+    Returns: Result<Int: Int>
+    Body:
+      Block:
+        Let: doubled : Int = Double(x)
+        Let: validated : Int = (?Validate(doubled))
+        Return: Ok(AddTen(validated))
+  Function: Main
+    Parameters:
+    Returns: Void
+    Body:
+      Block:
+        Let: piped : Int = AddTen(Double(5))
+        Log(piped)
+        Let: r1 : Result<Int: Int> = Process(10)
+        If: IsOk(r1)
+          Then:
+            Block:
+              Log(Unwrap(r1))
+        Let: r2 : Result<Int: Int> = Process(60)
+        If: IsErr(r2)
+          Then:
+            Block:
+              Log(0)
+        Let: lang : String = "Pergyra"
+        Log((("hello " + ToString(lang)) + "!"))
+

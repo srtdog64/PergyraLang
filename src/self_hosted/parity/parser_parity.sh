@@ -171,6 +171,14 @@ SOURCE_PAIRS=(
     "src/self_hosted/parser/fixture/zone_lifecycle.pgy:zone_lifecycle"
     "src/self_hosted/parser/fixture/tagged_union.pgy:tagged_union"
     "src/self_hosted/parser/fixture/graph_bfs.pgy:graph_bfs"
+    "src/self_hosted/parser/fixture/ownership_demo.pgy:ownership_demo"
+    "src/self_hosted/parser/fixture/concurrency_demo.pgy:concurrency_demo"
+    "src/self_hosted/parser/fixture/event_basic.pgy:event_basic"
+    "src/self_hosted/parser/fixture/pipe_and_try.pgy:pipe_and_try"
+    "src/self_hosted/parser/fixture/walrus_test.pgy:walrus_test"
+    "src/self_hosted/parser/fixture/walrus_test2.pgy:walrus_test2"
+    "src/self_hosted/parser/fixture/operator_overload.pgy:operator_overload"
+    "src/self_hosted/parser/fixture/notebook_style_analysis.pgy:notebook_style_analysis"
 )
 
 cleanup_source_override() {

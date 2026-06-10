@@ -1,0 +1,11 @@
+Program:
+  Function: Main
+    Parameters:
+    Returns: Void
+    Body:
+      Block:
+        Let: s : Slot<Int: Int> = ClaimSlot()
+        Write(s, 42)
+        Log(Read(s))
+        Release(s)
+
