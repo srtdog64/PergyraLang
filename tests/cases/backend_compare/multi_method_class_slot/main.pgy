@@ -1,0 +1,14 @@
+class Counter {
+    let value: Int;
+
+    func Get(self) -> Int { return self.value; }
+    func Doubled(self) -> Int { return self.value * 2; }
+    func Tripled(self) -> Int { return self.value * 3; }
+}
+
+func Main() -> Void {
+    let acc: Slot<Int> = ClaimSlot();
+    let c: Counter = Counter(7);
+    Write(acc, c.Get() + c.Doubled() + c.Tripled());
+    Log(Read(acc));
+}

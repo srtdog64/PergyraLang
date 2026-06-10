@@ -993,6 +993,7 @@ main() {
         "tests/cases/backend_compare/match_param_write_slot"
         "tests/cases/backend_compare/three_params_defer_slot"
         "tests/cases/backend_compare/nested_helper_defer_slot"
+        "tests/cases/backend_compare/multi_method_class_slot"
         "tests/cases/backend_compare/unsafe_lexical_boundary"
         "tests/cases/backend_compare/world_zone_projection_visibility"
         "tests/cases/backend_compare/world_zone_cross_queries"
