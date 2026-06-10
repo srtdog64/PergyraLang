@@ -1,0 +1,15 @@
+func Worker(start: Int) -> Int {
+    return start * 3;
+}
+
+async func Main() -> Void {
+    let total: Slot<Int> = ClaimSlot();
+    Write(total, 0);
+    let h1: Future<Int> = spawn Worker(1);
+    let h2: Future<Int> = spawn Worker(2);
+    let h3: Future<Int> = spawn Worker(3);
+    Write(total, await h1);
+    Write(total, Read(total) + await h2);
+    Write(total, Read(total) + await h3);
+    Log(Read(total));
+}

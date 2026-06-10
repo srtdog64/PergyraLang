@@ -987,6 +987,7 @@ main() {
         "tests/cases/backend_compare/option_helper_while_slot"
         "tests/cases/backend_compare/result_enum_err_while_slot"
         "tests/cases/backend_compare/nested_class_member_access"
+        "tests/cases/backend_compare/spawn_future_await_slot"
         "tests/cases/backend_compare/unsafe_lexical_boundary"
         "tests/cases/backend_compare/world_zone_projection_visibility"
         "tests/cases/backend_compare/world_zone_cross_queries"
