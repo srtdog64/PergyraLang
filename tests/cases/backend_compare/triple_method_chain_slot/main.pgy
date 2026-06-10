@@ -1,0 +1,22 @@
+class Score {
+    let value: Int;
+
+    func Bumped(self) -> Score {
+        return Score(self.value + 1);
+    }
+
+    func Doubled(self) -> Score {
+        return Score(self.value * 2);
+    }
+
+    func Get(self) -> Int {
+        return self.value;
+    }
+}
+
+func Main() -> Void {
+    let acc: Slot<Int> = ClaimSlot();
+    let s: Score = Score(3);
+    Write(acc, s.Bumped().Doubled().Get());
+    Log(Read(acc));
+}
