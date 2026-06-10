@@ -1,0 +1,14 @@
+func Make(a: Int, b: Int, c: Int) -> Int {
+    let s: Slot<Int> = ClaimSlot();
+    Write(s, a);
+    defer { Log(100); };
+    Write(s, Read(s) + b);
+    defer { Log(200); };
+    Write(s, Read(s) * c);
+    return Read(s);
+}
+
+func Main() -> Void {
+    let r: Int = Make(2, 3, 4);
+    Log(r);
+}

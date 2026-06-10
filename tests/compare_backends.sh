@@ -989,6 +989,7 @@ main() {
         "tests/cases/backend_compare/nested_class_member_access"
         "tests/cases/backend_compare/spawn_future_await_slot"
         "tests/cases/backend_compare/defer_with_param_write"
+        "tests/cases/backend_compare/multi_defer_param_write"
         "tests/cases/backend_compare/unsafe_lexical_boundary"
         "tests/cases/backend_compare/world_zone_projection_visibility"
         "tests/cases/backend_compare/world_zone_cross_queries"
