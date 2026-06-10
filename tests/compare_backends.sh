@@ -983,6 +983,7 @@ main() {
         "tests/cases/backend_compare/while_helper_let_slot"
         "tests/cases/backend_compare/enum_match_while_slot"
         "tests/cases/backend_compare/enum_helper_apply"
+        "tests/cases/backend_compare/class_helper_method_chain"
         "tests/cases/backend_compare/unsafe_lexical_boundary"
         "tests/cases/backend_compare/world_zone_projection_visibility"
         "tests/cases/backend_compare/world_zone_cross_queries"

@@ -1,0 +1,28 @@
+class Pair {
+    let lo: Int;
+    let hi: Int;
+
+    func Span(self) -> Int {
+        return self.hi - self.lo;
+    }
+}
+
+func MakePair(a: Int, b: Int) -> Pair {
+    if a < b {
+        return Pair(a, b);
+    }
+    return Pair(b, a);
+}
+
+func Main() -> Void {
+    let acc: Slot<Int> = ClaimSlot();
+    Write(acc, 0);
+    let i: Slot<Int> = ClaimSlot();
+    Write(i, 0);
+    while Read(i) < 4 {
+        let p: Pair = MakePair(Read(i), Read(i) * 3);
+        Write(acc, Read(acc) + p.Span());
+        Write(i, Read(i) + 1);
+    }
+    Log(Read(acc));
+}
