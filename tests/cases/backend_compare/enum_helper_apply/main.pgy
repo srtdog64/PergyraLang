@@ -1,0 +1,25 @@
+enum Op { Inc, Dec }
+
+func Pick(n: Int) -> Op {
+    if n % 2 == 0 { return Op.Inc; }
+    return Op.Dec;
+}
+
+func Apply(ref acc: Slot<Int>, op: Op) -> Void {
+    match op {
+        case Op.Inc: Write(acc, Read(acc) + 1);
+        case Op.Dec: Write(acc, Read(acc) - 1);
+    }
+}
+
+func Main() -> Void {
+    let acc: Slot<Int> = ClaimSlot();
+    Write(acc, 0);
+    let i: Slot<Int> = ClaimSlot();
+    Write(i, 0);
+    while Read(i) < 6 {
+        Apply(acc, Pick(Read(i)));
+        Write(i, Read(i) + 1);
+    }
+    Log(Read(acc));
+}
