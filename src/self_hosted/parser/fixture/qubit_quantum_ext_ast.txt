@@ -1,0 +1,22 @@
+Program:
+  Function: Main
+    Parameters:
+    Returns: Void
+    Body:
+      Block:
+        Let: a : QubitSlot = ClaimQubit()
+        Let: b : QubitSlot = ClaimQubit()
+        Let: c : QubitSlot = ClaimQubit()
+        Entangle(a, b)
+        Entangle(b, c)
+        Let: ra : Int = Measure(a)
+        Let: rb : Int = Measure(b)
+        Let: rc : Int = Measure(c)
+        Log(ra)
+        Log(rb)
+        Log(rc)
+        Let: classical_a : Bool = IntoClassical(a)
+        Log(classical_a)
+        ReleaseQubit(b)
+        ReleaseQubit(c)
+

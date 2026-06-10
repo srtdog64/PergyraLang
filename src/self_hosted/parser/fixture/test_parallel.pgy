@@ -1,0 +1,15 @@
+func Main() -> Void {
+    let a: Slot<Int> = ClaimSlot<Int>();
+    let b: Slot<Int> = ClaimSlot<Int>();
+
+    parallel {
+        Write(a, 10);
+        Write(b, 20);
+    }
+
+    Log(Read(a));
+    Log(Read(b));
+
+    Release(a);
+    Release(b);
+}

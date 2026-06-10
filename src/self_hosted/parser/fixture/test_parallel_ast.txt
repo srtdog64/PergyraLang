@@ -1,0 +1,16 @@
+Program:
+  Function: Main
+    Parameters:
+    Returns: Void
+    Body:
+      Block:
+        Let: a : Slot<Int: Int> = ClaimSlot()
+        Let: b : Slot<Int: Int> = ClaimSlot()
+        Parallel:
+          Write(a, 10)
+          Write(b, 20)
+        Log(Read(a))
+        Log(Read(b))
+        Release(a)
+        Release(b)
+

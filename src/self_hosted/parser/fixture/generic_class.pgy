@@ -1,9 +1,25 @@
+// generic_class.pgy
+// Pergyra generic class monomorphization demo
+
 class Pair<T> {
     let first: T;
+    let second: T;
+
+    func GetFirst(self) -> T {
+        return self.first;
+    }
+
+    func GetSecond(self) -> T {
+        return self.second;
+    }
 }
 
-subject Box<U> {
-    let val: U;
-}
+func Main() -> Void {
+    let p: Pair<Int> = Pair(3, 7);
+    Log(p.GetFirst());
+    Log(p.GetSecond());
 
-func Main() -> Void { Log("ok"); }
+    let s: Pair<String> = Pair("hello", "world");
+    Log(s.GetFirst());
+    Log(s.GetSecond());
+}

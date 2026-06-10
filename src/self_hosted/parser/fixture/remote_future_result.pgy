@@ -1,0 +1,16 @@
+// remote_future_result.pgy - RemoteFuture<T> -> await -> Result<T>
+//
+// Remote/device completion is fallible by contract. Awaiting a
+// RemoteFuture<T> returns Result<T>, while awaiting a local Future<T> returns T.
+
+async func Main() -> Void {
+    let gpu: DeviceSlot<Int> = ClaimDeviceSlot();
+    DeviceWrite(gpu, 42);
+
+    let pending: RemoteFuture<Int> = SubmitDeviceRead(gpu);
+    let result: Result<Int> = await pending;
+    ReleaseDeviceSlot(gpu);
+
+    let value: Int = Unwrap(result);
+    Log(value);
+}

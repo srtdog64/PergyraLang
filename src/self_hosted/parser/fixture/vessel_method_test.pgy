@@ -1,0 +1,32 @@
+vessel HP
+{
+    current: Int;
+    max: Int;
+
+    func IsAlive(self) -> Bool
+    {
+        return current > 0;
+    }
+
+    func IsExhausted(self) -> Bool
+    {
+        return current <= 0;
+    }
+}
+
+subject Fighter
+{
+    let name: String;
+    vessel hp: HP;
+
+    func IsOperational(self) -> Bool
+    {
+        let alive: Bool = hp.IsAlive();
+        let rested: Bool = !hp.IsExhausted();
+        return alive && rested;
+    }
+}
+
+let hero = Fighter("Hero", HP(100, 100));
+let ok: Bool = hero.IsOperational();
+Log(ToString(ok));

@@ -1,0 +1,30 @@
+Program:
+  Subject: Player
+    Fields:
+      name: String
+      hp: Int
+      level: Int
+      score: Int
+  Object: PlayerView
+    Fields:
+      name: String
+      hp: Int
+  TObject: PlayerSummary
+    Fields:
+      name: String
+      level: Int
+  Function: Main
+    Parameters:
+    Returns: Void
+    Body:
+      Block:
+        Let: p : Player = Player("Alice", 100, 5, 2500)
+        Log(p.name)
+        Log(p.hp)
+        Let: view : PlayerView = ToObject(PlayerView, p)
+        Log(view.name)
+        Log(view.hp)
+        Let: summary : PlayerSummary = ToTObject(PlayerSummary, p)
+        Log(summary.name)
+        Log(summary.level)
+

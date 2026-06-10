@@ -1,0 +1,24 @@
+Program:
+  Function: Main
+    Parameters:
+    Returns: Void
+    Body:
+      Block:
+        Let: q : QubitSlot = ClaimQubit()
+        Log(QubitState(q))
+        Let: result : Int = Measure(q)
+        Log(result)
+        Log(QubitState(q))
+        Let: again : Int = Measure(q)
+        Log(again)
+        ReleaseQubit(q)
+        Let: a : QubitSlot = ClaimQubit()
+        Let: b : QubitSlot = ClaimQubit()
+        Entangle(a, b)
+        Let: ra : Int = Measure(a)
+        Let: rb : Int = Measure(b)
+        Log(ra)
+        Log(rb)
+        ReleaseQubit(a)
+        ReleaseQubit(b)
+

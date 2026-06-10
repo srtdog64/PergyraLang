@@ -187,6 +187,14 @@ SOURCE_PAIRS=(
     "src/self_hosted/parser/fixture/class_method_test.pgy:class_method_test"
     "src/self_hosted/parser/fixture/channel_test.pgy:channel_test"
     "src/self_hosted/parser/fixture/spawn_blocking_test.pgy:spawn_blocking_test"
+    "src/self_hosted/parser/fixture/qubit_test.pgy:qubit_test"
+    "src/self_hosted/parser/fixture/qubit_quantum_ext.pgy:qubit_quantum_ext"
+    "src/self_hosted/parser/fixture/remote_future_result.pgy:remote_future_result"
+    "src/self_hosted/parser/fixture/for_in_array.pgy:for_in_array"
+    "src/self_hosted/parser/fixture/generic_class.pgy:generic_class"
+    "src/self_hosted/parser/fixture/subject_object_tobject.pgy:subject_object_tobject"
+    "src/self_hosted/parser/fixture/vessel_method_test.pgy:vessel_method_test"
+    "src/self_hosted/parser/fixture/test_parallel.pgy:test_parallel"
 )
 
 cleanup_source_override() {

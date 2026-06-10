@@ -1,0 +1,33 @@
+// Quantum Extensions Demo — GHZ state + IntoClassical
+//
+// 1. GHZ 상태: 3-큐비트 얽힘 (Entanglement Pool)
+//    Entangle(a,b) + Entangle(b,c) → 풀 {a,b,c} 자동 병합
+//    Measure(a) → b, c 모두 동일 값으로 붕괴
+//
+// 2. IntoClassical: 붕괴된 큐비트를 고전 Bool로 변환
+//    Measure → COLLAPSED → IntoClassical → Bool
+
+func Main() -> Void {
+    // --- GHZ 3-qubit entanglement ---
+    let a: QubitSlot = ClaimQubit();
+    let b: QubitSlot = ClaimQubit();
+    let c: QubitSlot = ClaimQubit();
+
+    Entangle(a, b);
+    Entangle(b, c);   // pools merge: {a,b} + {b,c} → {a,b,c}
+
+    let ra: Int = Measure(a);  // collapses entire pool
+    let rb: Int = Measure(b);  // already collapsed, same value
+    let rc: Int = Measure(c);  // already collapsed, same value
+
+    Log(ra);  // 0 or 1
+    Log(rb);  // same as ra
+    Log(rc);  // same as ra
+
+    // --- IntoClassical: quantum → classical ---
+    let classical_a: Bool = IntoClassical(a);
+    Log(classical_a);  // true if ra==1, false if ra==0
+
+    ReleaseQubit(b);
+    ReleaseQubit(c);
+}

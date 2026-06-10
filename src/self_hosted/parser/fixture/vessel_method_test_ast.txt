@@ -1,0 +1,38 @@
+Program:
+  Vessel: HP
+    Fields:
+      current: Int
+      max: Int
+    Methods:
+      Function: IsAlive
+        Parameters:
+          self
+        Returns: Bool
+        Body:
+          Block:
+            Return: (current > 0)
+      Function: IsExhausted
+        Parameters:
+          self
+        Returns: Bool
+        Body:
+          Block:
+            Return: (current <= 0)
+  Subject: Fighter
+    Fields:
+      name: String
+      hp: HP
+    Methods:
+      Function: IsOperational
+        Parameters:
+          self
+        Returns: Bool
+        Body:
+          Block:
+            Let: alive : Bool = hp.IsAlive()
+            Let: rested : Bool = (!hp.IsExhausted())
+            Return: (alive && rested)
+  Let: hero = Fighter("Hero", HP(100, 100))
+  Let: ok : Bool = hero.IsOperational()
+  Log(ToString(ok))
+

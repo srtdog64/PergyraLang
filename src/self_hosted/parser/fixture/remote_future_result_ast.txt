@@ -1,0 +1,14 @@
+Program:
+  Function: Main
+    Parameters:
+    Returns: Void
+    Body:
+      Block:
+        Let: gpu : DeviceSlot<Int: Int> = ClaimDeviceSlot()
+        DeviceWrite(gpu, 42)
+        Let: pending : RemoteFuture<Int: Int> = SubmitDeviceRead(gpu)
+        Let: result : Result<Int: Int> = await pending
+        ReleaseDeviceSlot(gpu)
+        Let: value : Int = Unwrap(result)
+        Log(value)
+

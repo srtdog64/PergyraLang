@@ -3,14 +3,31 @@ Program:
     Generic params: <T>
     Fields:
       first: T
-  Subject: Box
-    Generic params: <U>
-    Fields:
-      val: U
+      second: T
+    Methods:
+      Function: GetFirst
+        Parameters:
+          self
+        Returns: T
+        Body:
+          Block:
+            Return: self.first
+      Function: GetSecond
+        Parameters:
+          self
+        Returns: T
+        Body:
+          Block:
+            Return: self.second
   Function: Main
     Parameters:
     Returns: Void
     Body:
       Block:
-        Log("ok")
+        Let: p : Pair<Int: Int> = Pair(3, 7)
+        Log(p.GetFirst())
+        Log(p.GetSecond())
+        Let: s : Pair<String: String> = Pair("hello", "world")
+        Log(s.GetFirst())
+        Log(s.GetSecond())
 

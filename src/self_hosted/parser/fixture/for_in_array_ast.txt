@@ -1,0 +1,15 @@
+Program:
+  Function: Main
+    Parameters:
+    Returns: Void
+    Body:
+      Block:
+        Let: nums : Array<Int: Int> = [10, 20, 30, 40, 50]
+        For: n in (null)..(null)
+          Block:
+            Log(n)
+        Let: names : Array<String: String> = ["Alice", "Bob", "Charlie"]
+        For: name in (null)..(null)
+          Block:
+            Log(name)
+
