@@ -1,0 +1,22 @@
+enum DivErr { DivByZero, Negative }
+
+func SafeDiv(a: Int, b: Int) -> Result<Int, DivErr> {
+    if b == 0 { return Err(DivErr.DivByZero); }
+    if b < 0 { return Err(DivErr.Negative); }
+    return Ok(a / b);
+}
+
+func Main() -> Void {
+    let acc: Slot<Int> = ClaimSlot();
+    Write(acc, 0);
+    let i: Slot<Int> = ClaimSlot();
+    Write(i, 1);
+    while Read(i) <= 4 {
+        match SafeDiv(40, Read(i)) {
+            case Ok(q): Write(acc, Read(acc) + q);
+            case Err(_): Write(acc, Read(acc) - 1);
+        }
+        Write(i, Read(i) + 1);
+    }
+    Log(Read(acc));
+}
