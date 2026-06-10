@@ -1,0 +1,15 @@
+func Factorial(n: Int) -> Int {
+    if n <= 1 { return 1; }
+    return n * Factorial(n - 1);
+}
+
+func SumFact(upto: Int) -> Int {
+    if upto < 0 { return 0; }
+    return Factorial(upto) + SumFact(upto - 1);
+}
+
+func Main() -> Void {
+    let acc: Slot<Int> = ClaimSlot();
+    Write(acc, SumFact(5));
+    Log(Read(acc));
+}

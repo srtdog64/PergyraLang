@@ -998,6 +998,7 @@ main() {
         "tests/cases/backend_compare/method_with_params_slot"
         "tests/cases/backend_compare/break_continue_while_slot"
         "tests/cases/backend_compare/match_helper_chain_slot"
+        "tests/cases/backend_compare/recursive_helper_pair_slot"
         "tests/cases/backend_compare/unsafe_lexical_boundary"
         "tests/cases/backend_compare/world_zone_projection_visibility"
         "tests/cases/backend_compare/world_zone_cross_queries"
