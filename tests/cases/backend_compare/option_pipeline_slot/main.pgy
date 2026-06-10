@@ -1,0 +1,32 @@
+func Half(n: Int) -> Option<Int> {
+    if n % 2 != 0 { return None; }
+    return Some(n / 2);
+}
+
+func DoubleSafe(n: Int) -> Option<Int> {
+    if n > 100 { return None; }
+    return Some(n * 2);
+}
+
+func Pipeline(seed: Int) -> Option<Int> {
+    let h: Option<Int> = Half(seed);
+    match h {
+        case Some(v): return DoubleSafe(v);
+        case None: return None;
+    }
+}
+
+func Main() -> Void {
+    let acc: Slot<Int> = ClaimSlot();
+    Write(acc, 0);
+    let count: Slot<Int> = ClaimSlot();
+    Write(count, 0);
+    while Read(count) < 12 {
+        match Pipeline(Read(count)) {
+            case Some(v): Write(acc, Read(acc) + v);
+            case None: Write(acc, Read(acc));
+        }
+        Write(count, Read(count) + 1);
+    }
+    Log(Read(acc));
+}
