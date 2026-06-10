@@ -1,0 +1,20 @@
+class Adder {
+    let base: Int;
+
+    func Add(self, x: Int) -> Int {
+        return self.base + x;
+    }
+
+    func AddBoth(self, x: Int, y: Int) -> Int {
+        return self.base + x + y;
+    }
+}
+
+func Main() -> Void {
+    let acc: Slot<Int> = ClaimSlot();
+    let a: Adder = Adder(10);
+    Write(acc, 0);
+    Write(acc, Read(acc) + a.Add(5));
+    Write(acc, Read(acc) + a.AddBoth(3, 4));
+    Log(Read(acc));
+}
