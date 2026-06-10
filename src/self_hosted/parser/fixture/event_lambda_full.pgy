@@ -1,0 +1,12 @@
+event OnHit(damage: Int);
+
+func handleHit(damage: Int) -> Void {
+    Log(damage);
+}
+
+func Main() -> Void {
+    OnHit += handleHit;
+    OnHit(42);
+    OnHit -= handleHit;
+    OnHit(7);
+}

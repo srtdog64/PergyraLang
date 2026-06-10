@@ -1,0 +1,25 @@
+Program:
+  Subject: Player
+    Fields:
+      hp: Int
+      name: String
+  Object: PlayerView
+    Fields:
+      hp: Int
+  TObject: PlayerDto
+    Fields:
+      hp: Int
+      name: String
+  Zone: BattleZone
+    SubjectSlot: player: Player
+    ObjectSlot: playerView: PlayerView
+    TObjectSlot: snapshot: PlayerDto
+    Bind: playerView from player
+    Bind: snapshot from player
+  Function: Main
+    Parameters:
+    Returns: Void
+    Body:
+      Block:
+        Log("projection bind group minimal")
+

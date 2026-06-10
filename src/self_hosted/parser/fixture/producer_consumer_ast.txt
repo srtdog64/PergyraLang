@@ -1,0 +1,27 @@
+Program:
+  Function: Main
+    Parameters:
+    Returns: Void
+    Body:
+      Block:
+        Let: ch : Channel<Int: Int> = Channel(8)
+        Let: result : Slot<Int: Int> = ClaimSlot()
+        Parallel:
+          ChannelSend: ch <- 10
+          ChannelSend: ch <- 20
+          ChannelSend: ch <- 30
+        Let: a : Int = <-ch
+        Let: b : Int = <-ch
+        Let: c : Int = <-ch
+        Write(result, ((a + b) + c))
+        Log(Read(result))
+        Release(result)
+        If: ChannelReady(ch)
+          Then:
+            Block:
+              Log(1)
+        If: (ChannelReady(ch) == false)
+          Then:
+            Block:
+              Log(0)
+

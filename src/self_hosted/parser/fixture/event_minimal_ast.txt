@@ -1,0 +1,11 @@
+Program:
+  Event: OnHit
+    Parameters:
+      Let: damage : Int = (null)
+  Function: Main
+    Parameters:
+    Returns: Void
+    Body:
+      Block:
+        OnHit(42)
+

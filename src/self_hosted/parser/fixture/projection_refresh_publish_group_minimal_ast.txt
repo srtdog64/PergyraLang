@@ -1,0 +1,36 @@
+Program:
+  Subject: Player
+    Fields:
+      hp: Int
+      name: String
+  Object: PlayerView
+    Fields:
+      hp: Int
+  Object: PlayerCard
+    Fields:
+      hp: Int
+  TObject: PlayerDto
+    Fields:
+      hp: Int
+      name: String
+  TObject: PlayerPacket
+    Fields:
+      hp: Int
+      name: String
+  Zone: BattleZone
+    SubjectSlot: player: Player
+    ObjectSlot: playerView: PlayerView
+    ObjectSlot: playerCard: PlayerCard
+    TObjectSlot: snapshot: PlayerDto
+    TObjectSlot: packet: PlayerPacket
+    Refresh: playerView from player by player
+    Refresh: playerCard from player by player
+    Publish: snapshot from player by player
+    Publish: packet from player by player
+  Function: Main
+    Parameters:
+    Returns: Void
+    Body:
+      Block:
+        Log("projection refresh publish group minimal")
+

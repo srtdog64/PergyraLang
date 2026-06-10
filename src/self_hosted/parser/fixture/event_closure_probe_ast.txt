@@ -1,0 +1,21 @@
+Program:
+  Event: OnScore
+    Parameters:
+      Let: points : Int = (null)
+  Function: RecordScore
+    Parameters:
+      points: Int
+    Returns: Void
+    Body:
+      Block:
+        Log(("event.score=" + ToString(points)))
+  Function: Main
+    Parameters:
+    Returns: Void
+    Body:
+      Block:
+        EventSubscribe: OnScore += RecordScore
+        OnScore(42)
+        EventUnsubscribe: OnScore -= RecordScore
+        Log("event.closure=ok")
+

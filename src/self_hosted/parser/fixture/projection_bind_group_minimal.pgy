@@ -1,0 +1,24 @@
+subject Player {
+    let hp: Int;
+    let name: String;
+}
+
+object PlayerView {
+    hp: Int;
+}
+
+tobject PlayerDto {
+    hp: Int;
+    name: String;
+}
+
+zone BattleZone {
+    subject slot player: Player
+    object slot playerView: PlayerView
+    tobject slot snapshot: PlayerDto
+    bind [playerView, snapshot] from player
+}
+
+func Main() -> Void {
+    Log("projection bind group minimal");
+}

@@ -226,6 +226,16 @@ SOURCE_PAIRS=(
     "src/self_hosted/parser/fixture/bsd_test9.pgy:bsd_test9"
     "src/self_hosted/parser/fixture/bsd_test10.pgy:bsd_test10"
     "src/self_hosted/parser/fixture/bsd_test11.pgy:bsd_test11"
+    "src/self_hosted/parser/fixture/channel_parallel.pgy:channel_parallel"
+    "src/self_hosted/parser/fixture/event_minimal.pgy:event_minimal"
+    "src/self_hosted/parser/fixture/event_lambda.pgy:event_lambda"
+    "src/self_hosted/parser/fixture/event_lambda_full.pgy:event_lambda_full"
+    "src/self_hosted/parser/fixture/event_closure_probe.pgy:event_closure_probe"
+    "src/self_hosted/parser/fixture/import_test.pgy:import_test"
+    "src/self_hosted/parser/fixture/producer_consumer.pgy:producer_consumer"
+    "src/self_hosted/parser/fixture/projection_bind_group_minimal.pgy:projection_bind_group_minimal"
+    "src/self_hosted/parser/fixture/projection_refresh_publish_group_minimal.pgy:projection_refresh_publish_group_minimal"
+    "src/self_hosted/parser/fixture/collections_closure_probe.pgy:collections_closure_probe"
 )
 
 cleanup_source_override() {

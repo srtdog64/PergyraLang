@@ -1,0 +1,26 @@
+Program:
+  Function: Main
+    Parameters:
+    Returns: Void
+    Body:
+      Block:
+        Let: items : List<Int: Int> = ListNew()
+        ListPush(items, 3)
+        ListPush(items, 4)
+        Let: seen : Set<Int: Int> = SetNew()
+        SetAdd(seen, 3)
+        SetAdd(seen, 9)
+        Let: table : HashMap<Int: Int, Int: Int> = MapNew()
+        MapSet(table, 3, 30)
+        MapSet(table, 4, 40)
+        Log(("list.sum=" + ToString((ListGet(items, 0) + ListGet(items, 1)))))
+        If: SetHas(seen, 3)
+          Then:
+            Block:
+              Log("set.has3=true")
+          Else:
+            Block:
+              Log("set.has3=false")
+        Log(("map.sum=" + ToString((MapGet(table, 3) + MapGet(table, 4)))))
+        Log(((((("sizes=" + ToString(ListSize(items))) + "/") + ToString(SetSize(seen))) + "/") + ToString(MapSize(table))))
+

@@ -1,0 +1,12 @@
+event OnScore(points: Int);
+
+func RecordScore(points: Int) -> Void {
+    Log("event.score=" + ToString(points));
+}
+
+func Main() -> Void {
+    OnScore += RecordScore;
+    OnScore(42);
+    OnScore -= RecordScore;
+    Log("event.closure=ok");
+}

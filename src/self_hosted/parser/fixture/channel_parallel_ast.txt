@@ -1,0 +1,14 @@
+Program:
+  Function: Main
+    Parameters:
+    Returns: Void
+    Body:
+      Block:
+        Let: ch : Channel<Int: Int> = Channel(4)
+        Let: result : Slot<Int: Int> = ClaimSlot()
+        Parallel:
+          ChannelSend: ch <- 77
+          Write(result, <-ch)
+        Log(Read(result))
+        Release(result)
+

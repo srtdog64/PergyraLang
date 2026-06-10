@@ -1,0 +1,21 @@
+Program:
+  Event: OnHit
+    Parameters:
+      Let: damage : Int = (null)
+  Function: handleHit
+    Parameters:
+      damage: Int
+    Returns: Void
+    Body:
+      Block:
+        Log(damage)
+  Function: Main
+    Parameters:
+    Returns: Void
+    Body:
+      Block:
+        EventSubscribe: OnHit += handleHit
+        OnHit(42)
+        EventUnsubscribe: OnHit -= handleHit
+        OnHit(7)
+
