@@ -1,0 +1,12 @@
+func Add3(a: Int, b: Int, c: Int) -> Int {
+    let s: Slot<Int> = ClaimSlot();
+    Write(s, a);
+    Write(s, Read(s) + b);
+    Write(s, Read(s) + c);
+    defer { Log(99); };
+    return Read(s);
+}
+
+func Main() -> Void {
+    Log(Add3(10, 20, 30));
+}
