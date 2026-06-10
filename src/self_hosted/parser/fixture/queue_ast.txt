@@ -1,0 +1,38 @@
+Program:
+  Function: Main
+    Parameters:
+    Returns: Void
+    Body:
+      Block:
+        Let: data : Array<Int: Int> = [0, 0, 0, 0, 0, 0, 0, 0]
+        Let: cap : Int = 8
+        Let: head : Int = 0
+        Let: tail : Int = 0
+        Let: count : Int = 0
+        ArraySet(data, tail, 10)
+        Assign: tail = ((tail + 1) % cap)
+        Assign: count = (count + 1)
+        ArraySet(data, tail, 20)
+        Assign: tail = ((tail + 1) % cap)
+        Assign: count = (count + 1)
+        ArraySet(data, tail, 30)
+        Assign: tail = ((tail + 1) % cap)
+        Assign: count = (count + 1)
+        Log(data[head])
+        Assign: head = ((head + 1) % cap)
+        Assign: count = (count - 1)
+        Log(data[head])
+        Assign: head = ((head + 1) % cap)
+        Assign: count = (count - 1)
+        ArraySet(data, tail, 40)
+        Assign: tail = ((tail + 1) % cap)
+        Assign: count = (count + 1)
+        ArraySet(data, tail, 50)
+        Assign: tail = ((tail + 1) % cap)
+        Assign: count = (count + 1)
+        While: (count > 0)
+          Block:
+            Log(data[head])
+            Assign: head = ((head + 1) % cap)
+            Assign: count = (count - 1)
+

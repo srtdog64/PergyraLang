@@ -1,0 +1,28 @@
+// stack.pgy — 배열 기반 Stack
+//
+// Pergyra에서는 배열을 소유한 스코프가 자료구조 전체를 관리한다.
+// 포인터 없이 Array<Int> 하나로 push/pop/top을 표현한다.
+
+func Main() -> Void {
+    let values: Array<Int> = [];
+
+    // push
+    ArrayPush(values, 10);
+    ArrayPush(values, 20);
+    ArrayPush(values, 30);
+
+    // top
+    let top_index: Int = ArrayLength(values) - 1;
+    Log(values[top_index]);   // 30
+
+    // pop
+    let popped: Int = values[ArrayLength(values) - 1];
+    Log(popped);              // 30
+    ArrayPop(values);
+
+    // next top
+    Log(values[ArrayLength(values) - 1]);  // 20
+
+    // size
+    Log(ArrayLength(values));              // 2
+}

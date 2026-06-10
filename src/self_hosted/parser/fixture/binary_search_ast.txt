@@ -1,0 +1,54 @@
+Program:
+  Function: Main
+    Parameters:
+    Returns: Void
+    Body:
+      Block:
+        Let: values : Array<Int: Int> = [3, 5, 8, 13, 21, 34, 55]
+        Let: left : Int = 0
+        Let: right : Int = (ArrayLength(values) - 1)
+        Let: target : Int = 21
+        Let: found : Int = (-1)
+        While: (left <= right)
+          Block:
+            Let: mid : Int = ((left + right) / 2)
+            Let: probe : Int = values[mid]
+            If: (probe == target)
+              Then:
+                Block:
+                  Assign: found = mid
+                  Break
+              Else:
+                Block:
+                  If: (probe < target)
+                    Then:
+                      Block:
+                        Assign: left = (mid + 1)
+                    Else:
+                      Block:
+                        Assign: right = (mid - 1)
+        Log(found)
+        Assign: left = 0
+        Assign: right = (ArrayLength(values) - 1)
+        Let: missing_target : Int = 7
+        Let: missing : Int = (-1)
+        While: (left <= right)
+          Block:
+            Let: mid2 : Int = ((left + right) / 2)
+            Let: probe2 : Int = values[mid2]
+            If: (probe2 == missing_target)
+              Then:
+                Block:
+                  Assign: missing = mid2
+                  Break
+              Else:
+                Block:
+                  If: (probe2 < missing_target)
+                    Then:
+                      Block:
+                        Assign: left = (mid2 + 1)
+                    Else:
+                      Block:
+                        Assign: right = (mid2 - 1)
+        Log(missing)
+

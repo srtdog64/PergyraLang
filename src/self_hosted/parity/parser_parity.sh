@@ -139,6 +139,10 @@ SOURCE_PAIRS=(
     "src/self_hosted/parser/fixture/array_literal.pgy:array_literal"
     "src/self_hosted/parser/fixture/slot_sugar.pgy:slot_sugar"
     "src/self_hosted/parser/fixture/transfer_move_minimal.pgy:transfer_move_minimal"
+    "src/self_hosted/parser/fixture/result_test.pgy:result_test"
+    "src/self_hosted/parser/fixture/queue.pgy:queue"
+    "src/self_hosted/parser/fixture/stack.pgy:stack"
+    "src/self_hosted/parser/fixture/binary_search.pgy:binary_search"
 )
 
 cleanup_source_override() {

@@ -1,0 +1,18 @@
+Program:
+  Function: Main
+    Parameters:
+    Returns: Void
+    Body:
+      Block:
+        Let: values : Array<Int: Int> = []
+        ArrayPush(values, 10)
+        ArrayPush(values, 20)
+        ArrayPush(values, 30)
+        Let: top_index : Int = (ArrayLength(values) - 1)
+        Log(values[top_index])
+        Let: popped : Int = values[(ArrayLength(values) - 1)]
+        Log(popped)
+        ArrayPop(values)
+        Log(values[(ArrayLength(values) - 1)])
+        Log(ArrayLength(values))
+

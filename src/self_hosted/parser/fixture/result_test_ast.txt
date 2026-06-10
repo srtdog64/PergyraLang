@@ -1,0 +1,23 @@
+Program:
+  Function: SafeDiv
+    Parameters:
+      a: Int
+      b: Int
+    Returns: Result<Int: Int>
+    Body:
+      Block:
+        If: (b == 0)
+          Then:
+            Block:
+              Return: Err("division by zero")
+        Return: Ok((a / b))
+  Function: Main
+    Parameters:
+    Returns: Void
+    Body:
+      Block:
+        Let: r1 : Result<Int: Int> = SafeDiv(10, 2)
+        Let: r2 : Result<Int: Int> = SafeDiv(10, 0)
+        Log(Unwrap(r1))
+        Log(UnwrapOr(r2, (-1)))
+
