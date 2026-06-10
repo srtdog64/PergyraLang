@@ -1,0 +1,17 @@
+Program:
+  Function: Identity
+    Generic params: <T>
+    Parameters:
+      x: T
+    Returns: T
+    Body:
+      Block:
+        Return: x
+  Function: Main
+    Parameters:
+    Returns: Void
+    Body:
+      Block:
+        Let: a : Int = Identity(42)
+        Log(a)
+

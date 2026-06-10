@@ -148,6 +148,11 @@ SOURCE_PAIRS=(
     "src/self_hosted/parser/fixture/hash_map.pgy:hash_map"
     "src/self_hosted/parser/fixture/linked_list.pgy:linked_list"
     "src/self_hosted/parser/fixture/word_count.pgy:word_count"
+    "src/self_hosted/parser/fixture/math_lib.pgy:math_lib"
+    "src/self_hosted/parser/fixture/match_test.pgy:match_test"
+    "src/self_hosted/parser/fixture/enum_test.pgy:enum_test"
+    "src/self_hosted/parser/fixture/minimal.pgy:minimal"
+    "src/self_hosted/parser/fixture/generic_test.pgy:generic_test"
 )
 
 cleanup_source_override() {

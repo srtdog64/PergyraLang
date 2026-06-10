@@ -1,0 +1,23 @@
+Program:
+  Enum: Direction { North, East, South, West }
+  Function: Main
+    Parameters:
+    Returns: Void
+    Body:
+      Block:
+        Let: d : Int = Direction.South
+        Log(d)
+        Match: d
+          Case: 0
+            Block:
+              Log(100)
+          Case: 1
+            Block:
+              Log(200)
+          Case: 2
+            Block:
+              Log(300)
+          Case: 3
+            Block:
+              Log(400)
+

@@ -1,0 +1,21 @@
+Program:
+  Function: Main
+    Parameters:
+    Returns: Void
+    Body:
+      Block:
+        Let: x : Int = 3
+        Match: x
+          Case: 1
+            Block:
+              Log(10)
+          Case: 2
+            Block:
+              Log(20)
+          Case: 3
+            Block:
+              Log(30)
+          Default:
+            Block:
+              Log(0)
+

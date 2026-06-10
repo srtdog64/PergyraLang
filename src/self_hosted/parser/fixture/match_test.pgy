@@ -1,0 +1,9 @@
+func Main() -> Void {
+    let x: Int = 3;
+    match x {
+        case 1: Log(10);
+        case 2: Log(20);
+        case 3: Log(30);
+        default: Log(0);
+    }
+}
