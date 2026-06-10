@@ -1,0 +1,18 @@
+func Main() -> Void {
+    let acc: Slot<Int> = ClaimSlot();
+    Write(acc, 0);
+    let i: Slot<Int> = ClaimSlot();
+    Write(i, 0);
+    while Read(i) < 20 {
+        if Read(i) == 15 {
+            break;
+        }
+        if Read(i) % 2 == 0 {
+            Write(i, Read(i) + 1);
+            continue;
+        }
+        Write(acc, Read(acc) + Read(i));
+        Write(i, Read(i) + 1);
+    }
+    Log(Read(acc));
+}
