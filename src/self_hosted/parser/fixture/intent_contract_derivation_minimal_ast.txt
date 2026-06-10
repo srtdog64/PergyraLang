@@ -1,0 +1,33 @@
+Program:
+  Subject: Buyer
+    Fields:
+      hp: Int
+    Methods:
+      Action: Promote
+        Parameters:
+          self
+        Returns: Void
+        Body:
+          Block:
+            Assign: self.hp = (self.hp + 1)
+  Zone: CartZone
+    SubjectSlot: buyer: Buyer
+  Zone: PaymentZone
+    SubjectSlot: buyer: Buyer
+  Intent: Checkout
+    IntentMode: exclusive
+    IntentRollback: full
+    IntentInvolves: cart: CartZone
+    IntentInvolves: payment: PaymentZone
+    IntentInvolves: buyer: Buyer
+    IntentStep: Promote transfer cart -> payment
+      Transfer: cart -> payment
+      On: buyer.Promote()
+      Expect: true
+  Function: Main
+    Parameters:
+    Returns: Void
+    Body:
+      Block:
+        Log("intent contract derivation minimal")
+

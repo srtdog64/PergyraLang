@@ -1,0 +1,34 @@
+Program:
+  Function: __imp0_Math_HiddenAdd
+    Parameters:
+      a: Int
+      b: Int
+    Returns: Int
+    Body:
+      Block:
+        Return: (a + b)
+  [export] Function: Math_Add
+    Parameters:
+      a: Int
+      b: Int
+    Returns: Int
+    Body:
+      Block:
+        Return: __imp0_Math_HiddenAdd(a, b)
+  Function: Identity
+    Generic params: <T>
+    Parameters:
+      x: T
+    Returns: T
+    Body:
+      Block:
+        Return: x
+  Function: Main
+    Parameters:
+    Returns: Void
+    Body:
+      Block:
+        Let: sum : Int = Math.Add(2, 5)
+        Let: echoed : Int = Identity(sum)
+        Log(echoed)
+

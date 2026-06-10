@@ -1,0 +1,38 @@
+Program:
+  Subject: Buyer
+    Fields:
+      hp: Int
+    Methods:
+      Action: Pay
+        Parameters:
+          self
+        Returns: Void
+        Body:
+          Block:
+  Zone: CheckoutZone
+    SubjectSlot: buyer: Buyer
+  Intent: Checkout
+    IntentMode: exclusive
+    IntentRollback: full
+    IntentInvolves: checkout: CheckoutZone
+    IntentInvolves: buyer: Buyer
+    IntentValue: price: Int
+    IntentValue: adjustments: Array<Int: Int>
+    IntentStep: pay where CheckoutZone using checkout
+      Who: buyer
+      Using: checkout
+      On: buyer.Pay()
+      Guard: (price > 0)
+      Expect: (ArrayLength(adjustments) == 2)
+    IntentSuccess: true
+    IntentFailure: false
+  Function: Main
+    Parameters:
+    Returns: Void
+    Body:
+      Block:
+        Let: buyer : Buyer = Buyer(3)
+        Let: checkout : CheckoutZone = CheckoutZone(buyer)
+        Log("intent value params minimal")
+        Log(Checkout(checkout, buyer, 7, [1, 2]))
+

@@ -1,0 +1,56 @@
+// action_contract_inheritance_minimal.pgy
+//
+// 현재 구현된 action contract reuse 예제:
+// - action within -> step where
+// - action requires -> step requires
+// - action authorized by -> step authorized by
+// - action causes -> step causes
+
+ability Prepared {
+    func Ready() -> Bool;
+}
+
+subject Hero {
+    let hp: Int;
+
+    action Guard(self) -> Void
+        requires Prepared
+        within BattleZone
+        authorized by self
+        causes Guarded
+    {
+        self.hp = self.hp + 1;
+    }
+}
+
+role HeroPrepared for Hero
+{
+    impl ability Prepared
+    {
+        func Ready() -> Bool
+        {
+            return true;
+        }
+    }
+}
+
+effect Guarded for bearer: Hero {
+}
+
+zone BattleZone {
+    subject slot hero: Hero
+    effect slot guarded: Guarded
+    authority hero requires Prepared
+}
+
+intent Patrol(battle: BattleZone, hero: Hero) {
+    step Guard {
+        using: battle;
+        on: hero.Guard();
+        expect: true;
+    }
+}
+
+func Main() -> Void {
+    Log("action contract reuse minimal");
+}

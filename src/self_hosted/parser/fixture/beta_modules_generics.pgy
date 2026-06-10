@@ -1,0 +1,12 @@
+// Beta representative example: stable modules + namespace/export + generics.
+import "beta_math_lib.pgy";
+
+func Identity<T>(x: T) -> T {
+    return x;
+}
+
+func Main() -> Void {
+    let sum: Int = Math.Add(2, 5);
+    let echoed: Int = Identity(sum);
+    Log(echoed);
+}

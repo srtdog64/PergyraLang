@@ -1,0 +1,41 @@
+Program:
+  [export] Ability: BatchReady<T>
+    Function: BatchMark
+      Parameters:
+        value: T
+      Returns: String
+  Subject: Courier
+    Fields:
+      staged: Int
+    Methods:
+      Action: Stage
+        Parameters:
+          self
+          qty: Int
+        Returns: Void
+        Requires: BatchReady<Int: Int>
+        Within: LoadingZone
+        Authorized by: self
+        Body:
+          Block:
+            Assign: self.staged = (self.staged + qty)
+  Role: CourierBatchReady for Courier
+    Impl ability: BatchReady<Int: Int>
+      Function: BatchMark
+        Parameters:
+          value: Int
+        Returns: String
+        Body:
+          Block:
+            Return: ("batch-" + ToString(value))
+  Zone: LoadingZone
+    SubjectSlot: courier: Courier
+    Authority: courier
+      Requires: BatchReady<Int: Int>
+  Function: Main
+    Parameters:
+    Returns: Void
+    Body:
+      Block:
+        Log("generic-ability-requires-minimal")
+

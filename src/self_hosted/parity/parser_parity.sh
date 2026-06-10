@@ -195,6 +195,16 @@ SOURCE_PAIRS=(
     "src/self_hosted/parser/fixture/subject_object_tobject.pgy:subject_object_tobject"
     "src/self_hosted/parser/fixture/vessel_method_test.pgy:vessel_method_test"
     "src/self_hosted/parser/fixture/test_parallel.pgy:test_parallel"
+    "src/self_hosted/parser/fixture/beta_math_lib.pgy:beta_math_lib"
+    "src/self_hosted/parser/fixture/beta_modules_generics.pgy:beta_modules_generics"
+    "src/self_hosted/parser/fixture/beta_qubit_experimental.pgy:beta_qubit_experimental"
+    "src/self_hosted/parser/fixture/beta_resource_slots.pgy:beta_resource_slots"
+    "src/self_hosted/parser/fixture/intent_contract_derivation_minimal.pgy:intent_contract_derivation_minimal"
+    "src/self_hosted/parser/fixture/intent_contract_pair_minimal.pgy:intent_contract_pair_minimal"
+    "src/self_hosted/parser/fixture/intent_value_params_minimal.pgy:intent_value_params_minimal"
+    "src/self_hosted/parser/fixture/generic_ability_requires_minimal.pgy:generic_ability_requires_minimal"
+    "src/self_hosted/parser/fixture/authority_contract_pair_minimal.pgy:authority_contract_pair_minimal"
+    "src/self_hosted/parser/fixture/action_contract_inheritance_minimal.pgy:action_contract_inheritance_minimal"
 )
 
 cleanup_source_override() {

@@ -1,0 +1,28 @@
+subject Buyer {
+    let hp: Int;
+    action Pay(self) -> Void { }
+}
+
+zone CheckoutZone {
+    subject slot buyer: Buyer
+}
+
+intent Checkout(checkout: CheckoutZone, buyer: Buyer, price: Int, adjustments: Array<Int>) {
+    step pay {
+        where: CheckoutZone;
+        using: checkout;
+        who: buyer;
+        guard: price > 0;
+        expect: ArrayLength(adjustments) == 2;
+        on: buyer.Pay();
+    }
+    success: true;
+    failure: false;
+}
+
+func Main() -> Void {
+    let buyer: Buyer = Buyer(3);
+    let checkout: CheckoutZone = CheckoutZone(buyer);
+    Log("intent value params minimal");
+    Log(Checkout(checkout, buyer, 7, [1, 2]));
+}

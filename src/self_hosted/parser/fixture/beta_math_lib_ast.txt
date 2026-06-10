@@ -1,0 +1,18 @@
+Program:
+  Function: Math_HiddenAdd
+    Parameters:
+      a: Int
+      b: Int
+    Returns: Int
+    Body:
+      Block:
+        Return: (a + b)
+  [export] Function: Math_Add
+    Parameters:
+      a: Int
+      b: Int
+    Returns: Int
+    Body:
+      Block:
+        Return: Math_HiddenAdd(a, b)
+

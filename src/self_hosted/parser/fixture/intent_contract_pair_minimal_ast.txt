@@ -1,0 +1,64 @@
+Program:
+  [export] Ability: Prepared
+    Function: Ready
+      Parameters:
+      Returns: Bool
+  Subject: Hero
+    Fields:
+      hp: Int
+    Methods:
+      Action: Guard
+        Parameters:
+          self
+        Returns: Void
+        Requires: Prepared
+        Within: BattleZone
+        Causes: Guarded
+        Authorized by: self
+        Body:
+          Block:
+            Assign: self.hp = (self.hp + 1)
+  Role: HeroPrepared for Hero
+    Impl ability: Prepared
+      Function: Ready
+        Parameters:
+        Returns: Bool
+        Body:
+          Block:
+            Return: true
+  Effect: Guarded
+    SubjectSlot: bearer: Hero
+  Zone: BattleZone
+    SubjectSlot: hero: Hero
+    EffectSlot: guarded: Guarded
+    Authority: hero
+      Requires: Prepared
+  Intent: PatrolVerbose
+    IntentMode: exclusive
+    IntentRollback: full
+    IntentInvolves: battle: BattleZone
+    IntentInvolves: hero: Hero
+    IntentStep: Guard where BattleZone using battle
+      Who: hero
+      Using: battle
+      On: hero.Guard()
+      Requires: Prepared
+      AuthorizedBy: hero
+      Causes: Guarded
+      Expect: true
+  Intent: PatrolCompressed
+    IntentMode: exclusive
+    IntentRollback: full
+    IntentInvolves: battle: BattleZone
+    IntentInvolves: hero: Hero
+    IntentStep: Guard using battle
+      Using: battle
+      On: hero.Guard()
+      Expect: true
+  Function: Main
+    Parameters:
+    Returns: Void
+    Body:
+      Block:
+        Log("intent-contract-pair-minimal")
+

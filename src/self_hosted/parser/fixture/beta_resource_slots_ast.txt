@@ -1,0 +1,13 @@
+Program:
+  Function: Main
+    Parameters:
+    Returns: Void
+    Body:
+      Block:
+        Let: counter : Slot<Int: Int> = 41
+        Assign: counter = (counter + 1)
+        Log(counter)
+        Let: values : Array<Int: Int> = [4, 7, 9]
+        Log(values[1])
+        Log(ArrayLength(values))
+
