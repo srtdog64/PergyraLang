@@ -1,0 +1,48 @@
+// transfer_contract_pair_minimal.pgy
+//
+// Compile-smoke covered example.
+//
+// Same semantics, two authoring styles:
+// 1. MoveVerbose repeats `where` and `using`.
+// 2. MoveCompressed relies on transfer target derivation pack:
+//    where / using <- transfer target.
+
+subject Courier {
+    let level: Int;
+
+    action Promote(self) -> Void {
+        self.level = self.level + 1;
+    }
+}
+
+zone LoadingZone {
+    subject slot courier: Courier
+}
+
+zone DeliveryZone {
+    subject slot courier: Courier
+}
+
+intent MoveVerbose(load: LoadingZone, deliver: DeliveryZone, courier: Courier) {
+    step Promote {
+        who: courier;
+        where: DeliveryZone;
+        using: deliver;
+        transfer: load -> deliver;
+        on: courier.Promote();
+        expect: true;
+    }
+}
+
+intent MoveCompressed(load: LoadingZone, deliver: DeliveryZone, courier: Courier) {
+    step Promote {
+        who: courier;
+        transfer: load -> deliver;
+        on: courier.Promote();
+        expect: true;
+    }
+}
+
+func Main() -> Void {
+    Log("transfer-contract-pair-minimal");
+}

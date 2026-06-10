@@ -179,6 +179,14 @@ SOURCE_PAIRS=(
     "src/self_hosted/parser/fixture/walrus_test2.pgy:walrus_test2"
     "src/self_hosted/parser/fixture/operator_overload.pgy:operator_overload"
     "src/self_hosted/parser/fixture/notebook_style_analysis.pgy:notebook_style_analysis"
+    "src/self_hosted/parser/fixture/battle_minimal.pgy:battle_minimal"
+    "src/self_hosted/parser/fixture/transfer_move_typed_minimal.pgy:transfer_move_typed_minimal"
+    "src/self_hosted/parser/fixture/transfer_contract_pair_minimal.pgy:transfer_contract_pair_minimal"
+    "src/self_hosted/parser/fixture/zone_context_minimal.pgy:zone_context_minimal"
+    "src/self_hosted/parser/fixture/class_test.pgy:class_test"
+    "src/self_hosted/parser/fixture/class_method_test.pgy:class_method_test"
+    "src/self_hosted/parser/fixture/channel_test.pgy:channel_test"
+    "src/self_hosted/parser/fixture/spawn_blocking_test.pgy:spawn_blocking_test"
 )
 
 cleanup_source_override() {

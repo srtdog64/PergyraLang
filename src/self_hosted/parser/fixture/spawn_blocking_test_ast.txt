@@ -1,0 +1,22 @@
+Program:
+  Function: HeavyCompute
+    Parameters:
+      n: Int
+    Returns: Int
+    Body:
+      Block:
+        Let: result : Int = 0
+        For: i in 0..n
+          Block:
+            Assign: result = (result + i)
+        Return: result
+  Function: Main
+    Parameters:
+    Returns: Void
+    Body:
+      Block:
+        Let: heavy : Future<Int: Int> = spawn HeavyCompute(1000)
+        Log("computing in background...")
+        Let: result : Int = await heavy
+        Log(result)
+

@@ -1,0 +1,46 @@
+Program:
+  Subject: Courier
+    Fields:
+      level: Int
+    Methods:
+      Action: Promote
+        Parameters:
+          self
+        Returns: Void
+        Body:
+          Block:
+            Assign: self.level = (self.level + 1)
+  Zone: LoadingZone
+    SubjectSlot: courier: Courier
+  Zone: DeliveryZone
+    SubjectSlot: courier: Courier
+  Intent: MoveVerbose
+    IntentMode: exclusive
+    IntentRollback: full
+    IntentInvolves: load: LoadingZone
+    IntentInvolves: deliver: DeliveryZone
+    IntentInvolves: courier: Courier
+    IntentStep: Promote where DeliveryZone using deliver transfer load -> deliver
+      Who: courier
+      Using: deliver
+      Transfer: load -> deliver
+      On: courier.Promote()
+      Expect: true
+  Intent: MoveCompressed
+    IntentMode: exclusive
+    IntentRollback: full
+    IntentInvolves: load: LoadingZone
+    IntentInvolves: deliver: DeliveryZone
+    IntentInvolves: courier: Courier
+    IntentStep: Promote transfer load -> deliver
+      Who: courier
+      Transfer: load -> deliver
+      On: courier.Promote()
+      Expect: true
+  Function: Main
+    Parameters:
+    Returns: Void
+    Body:
+      Block:
+        Log("transfer-contract-pair-minimal")
+

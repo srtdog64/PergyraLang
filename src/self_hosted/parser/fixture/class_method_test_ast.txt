@@ -1,0 +1,21 @@
+Program:
+  Class: Vec2
+    Fields:
+      x: Int
+      y: Int
+    Methods:
+      Function: Length
+        Parameters:
+          self
+        Returns: Int
+        Body:
+          Block:
+            Return: (self.x + self.y)
+  Function: Main
+    Parameters:
+    Returns: Void
+    Body:
+      Block:
+        Let: v : Vec2 = Vec2(3, 7)
+        Log(v.Length())
+

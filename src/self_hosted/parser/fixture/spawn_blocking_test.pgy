@@ -1,0 +1,21 @@
+// spawn_blocking_test.pgy - blocking worker sketch.
+//
+// This is a legacy concurrency sketch. The beta-stable task-producing surface
+// remains named spawn with explicit await.
+
+func HeavyCompute(n: Int) -> Int {
+    let result: Int = 0;
+    for i in 0..n {
+        result = result + i;
+    }
+    return result;
+}
+
+async func Main() -> Void {
+    let heavy: Future<Int> = spawn blocking HeavyCompute(1000);
+
+    Log("computing in background...");
+
+    let result: Int = await heavy;
+    Log(result);
+}

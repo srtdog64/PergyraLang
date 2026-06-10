@@ -1,0 +1,11 @@
+func Main() -> Void {
+    let ch: Channel<Int> = Channel(4);
+    let result: Slot<Int> = ClaimSlot<Int>();
+
+    ch <- 99;
+    let val: Int = <- ch;
+    Write(result, val);
+
+    Log(Read(result));
+    Release(result);
+}

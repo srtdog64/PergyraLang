@@ -1,0 +1,24 @@
+// battle_minimal.pgy -- minimal vessel + subject test
+
+vessel HealthState {
+    current: Int;
+    max: Int;
+
+    func IsDead(self) -> Bool {
+        return current <= 0;
+    }
+}
+
+subject Player {
+    let name: String;
+    vessel health: HealthState;
+
+    action Greet(self) -> Void {
+        Log("Hello, I am " + name);
+    }
+}
+
+let hp = HealthState(100, 100);
+let hero = Player("Hero", hp);
+hero.Greet();
+Log(ToString(hero.health.current));

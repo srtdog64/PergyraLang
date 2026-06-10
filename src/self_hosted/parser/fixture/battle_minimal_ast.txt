@@ -1,0 +1,30 @@
+Program:
+  Vessel: HealthState
+    Fields:
+      current: Int
+      max: Int
+    Methods:
+      Function: IsDead
+        Parameters:
+          self
+        Returns: Bool
+        Body:
+          Block:
+            Return: (current <= 0)
+  Subject: Player
+    Fields:
+      name: String
+      health: HealthState
+    Methods:
+      Action: Greet
+        Parameters:
+          self
+        Returns: Void
+        Body:
+          Block:
+            Log(("Hello, I am " + name))
+  Let: hp = HealthState(100, 100)
+  Let: hero = Player("Hero", hp)
+  hero.Greet()
+  Log(ToString(hero.health.current))
+

@@ -1,0 +1,15 @@
+Program:
+  Struct: Point
+    Fields:
+      x: Int
+      y: Int
+  Function: Main
+    Parameters:
+    Returns: Void
+    Body:
+      Block:
+        Let: p : Point = Point()
+        Assign: p.x = 10
+        Assign: p.y = 32
+        Log((p.x + p.y))
+

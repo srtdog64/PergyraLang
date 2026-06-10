@@ -1,0 +1,23 @@
+Program:
+  Subject: Hero
+    Fields:
+      hp: Int
+    Methods:
+      Action: Guard
+        Parameters:
+          self
+        Within: BattleZone
+        Authorized by: self
+        Body:
+          Block:
+            Assign: self.hp = (self.hp + 1)
+  Zone: BattleZone
+    SubjectSlot: hero: Hero
+    Authority: hero
+  Function: Main
+    Parameters:
+    Returns: Void
+    Body:
+      Block:
+        Log("zone context minimal")
+
