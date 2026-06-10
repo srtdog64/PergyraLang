@@ -1,0 +1,53 @@
+// Beta-stable async/concurrency example.
+//
+// This example intentionally demonstrates coloring decomposition:
+// - spawn creates named tasks,
+// - await joins checked futures,
+// - RemoteFuture joins as Result,
+// - parallel owns structured execution,
+// - Channel owns streaming transport,
+// - Cancel owns cooperative cancellation.
+//
+// Capture-bearing anonymous async blocks are intentionally not used here:
+// the beta-stable task-producing surface is named spawn.
+
+async func Inc(x: Int) -> Int {
+    return x + 1;
+}
+
+func Work(x: Int) -> Int {
+    return x * 2;
+}
+
+async func Main() -> Void {
+    Log("async beta decomposition");
+
+    let task: Future<Int> = spawn Inc(4);
+    let localValue: Int = await task;
+    Log(localValue);
+
+    let dev: DeviceSlot<Int> = ClaimDeviceSlot();
+    DeviceWrite(dev, 11);
+    let pendingRemote: RemoteFuture<Int> = SubmitDeviceRead(dev);
+    let remoteResult: Result<Int> = await pendingRemote;
+    ReleaseDeviceSlot(dev);
+    let remoteValue: Int = Unwrap(remoteResult);
+    Log(remoteValue);
+
+    let ch: Channel<Int> = Channel(4);
+    parallel {
+        ch <- Work(3);
+        ch <- Work(4);
+    }
+    let a: Int = <- ch;
+    let b: Int = <- ch;
+    Log(a + b);
+
+    let secondTask: Future<Int> = spawn Inc(8);
+    let secondValue: Int = await secondTask;
+    Log(secondValue);
+
+    let cancellable: Future<Int> = spawn Inc(40);
+    let requested: Bool = Cancel(cancellable);
+    Log(requested);
+}

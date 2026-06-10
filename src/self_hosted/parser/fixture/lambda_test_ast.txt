@@ -1,0 +1,12 @@
+Program:
+  Event: OnHit
+    Parameters:
+      Let: damage : Int = (null)
+  Function: Main
+    Parameters:
+    Returns: Void
+    Body:
+      Block:
+        EventSubscribe: OnHit += lambda(let d: Int)
+        OnHit(77)
+

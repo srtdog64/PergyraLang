@@ -1,0 +1,45 @@
+Program:
+  Function: Inc
+    Parameters:
+      x: Int
+    Returns: Int
+    Body:
+      Block:
+        Return: (x + 1)
+  Function: Work
+    Parameters:
+      x: Int
+    Returns: Int
+    Body:
+      Block:
+        Return: (x * 2)
+  Function: Main
+    Parameters:
+    Returns: Void
+    Body:
+      Block:
+        Log("async beta decomposition")
+        Let: task : Future<Int: Int> = spawn Inc(4)
+        Let: localValue : Int = await task
+        Log(localValue)
+        Let: dev : DeviceSlot<Int: Int> = ClaimDeviceSlot()
+        DeviceWrite(dev, 11)
+        Let: pendingRemote : RemoteFuture<Int: Int> = SubmitDeviceRead(dev)
+        Let: remoteResult : Result<Int: Int> = await pendingRemote
+        ReleaseDeviceSlot(dev)
+        Let: remoteValue : Int = Unwrap(remoteResult)
+        Log(remoteValue)
+        Let: ch : Channel<Int: Int> = Channel(4)
+        Parallel:
+          ChannelSend: ch <- Work(3)
+          ChannelSend: ch <- Work(4)
+        Let: a : Int = <-ch
+        Let: b : Int = <-ch
+        Log((a + b))
+        Let: secondTask : Future<Int: Int> = spawn Inc(8)
+        Let: secondValue : Int = await secondTask
+        Log(secondValue)
+        Let: cancellable : Future<Int: Int> = spawn Inc(40)
+        Let: requested : Bool = Cancel(cancellable)
+        Log(requested)
+

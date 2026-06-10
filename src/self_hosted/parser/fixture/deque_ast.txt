@@ -1,0 +1,35 @@
+Program:
+  Function: Main
+    Parameters:
+    Returns: Void
+    Body:
+      Block:
+        Let: data : Array<Int: Int> = [0, 0, 0, 0, 0, 0, 0, 0]
+        Let: cap : Int = 8
+        Let: front : Int = 0
+        Let: size : Int = 0
+        Let: back_index : Int = ((front + size) % cap)
+        ArraySet(data, back_index, 10)
+        Assign: size = (size + 1)
+        Let: back_index2 : Int = ((front + size) % cap)
+        ArraySet(data, back_index2, 20)
+        Assign: size = (size + 1)
+        Assign: front = (((front - 1) + cap) % cap)
+        ArraySet(data, front, 5)
+        Assign: size = (size + 1)
+        Assign: front = (((front - 1) + cap) % cap)
+        ArraySet(data, front, 1)
+        Assign: size = (size + 1)
+        Log(data[front])
+        Assign: front = ((front + 1) % cap)
+        Assign: size = (size - 1)
+        Let: tail_index : Int = (((front + size) - 1) % cap)
+        Log(data[tail_index])
+        Assign: size = (size - 1)
+        Let: i : Int = 0
+        While: (i < size)
+          Block:
+            Let: idx : Int = ((front + i) % cap)
+            Log(data[idx])
+            Assign: i = (i + 1)
+

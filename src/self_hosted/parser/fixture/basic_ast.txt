@@ -1,0 +1,31 @@
+Program:
+  Function: Fibonacci
+    Parameters:
+      n: Int
+    Returns: Int
+    Body:
+      Block:
+        If: (n <= 1)
+          Then:
+            Block:
+              Return: n
+        Let: previous : Int = 0
+        Let: current : Int = 1
+        Let: index : Int = 2
+        While: (index <= n)
+          Block:
+            Let: next : Int = (previous + current)
+            Assign: previous = current
+            Assign: current = next
+            Assign: index = (index + 1)
+        Return: current
+  Function: Main
+    Parameters:
+    Returns: Void
+    Body:
+      Block:
+        Let: name : String = "Pergyra"
+        Let: value : Int = Fibonacci(10)
+        Log((("Hello, " + name) + "!"))
+        Log(("fib(10)=" + ToString(value)))
+

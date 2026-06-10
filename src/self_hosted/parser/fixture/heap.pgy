@@ -1,0 +1,92 @@
+// heap.pgy — 배열 기반 Max Heap
+//
+// 힙은 포인터 트리가 아니라 배열 인덱스 관계로 표현된다.
+// parent = (i - 1) / 2
+// left   = 2*i + 1
+// right  = 2*i + 2
+
+func Main() -> Void {
+    let heap: Array<Int> = [];
+
+    // push 10
+    ArrayPush(heap, 10);
+
+    // push 4
+    ArrayPush(heap, 4);
+    let i: Int = ArrayLength(heap) - 1;
+    while i > 0 {
+        let p: Int = (i - 1) / 2;
+        if heap[p] >= heap[i] {
+            break;
+        }
+        let tmp: Int = heap[p];
+        ArraySet(heap, p, heap[i]);
+        ArraySet(heap, i, tmp);
+        i = p;
+    }
+
+    // push 15
+    ArrayPush(heap, 15);
+    i = ArrayLength(heap) - 1;
+    while i > 0 {
+        let p: Int = (i - 1) / 2;
+        if heap[p] >= heap[i] {
+            break;
+        }
+        let tmp: Int = heap[p];
+        ArraySet(heap, p, heap[i]);
+        ArraySet(heap, i, tmp);
+        i = p;
+    }
+
+    // push 20
+    ArrayPush(heap, 20);
+    i = ArrayLength(heap) - 1;
+    while i > 0 {
+        let p: Int = (i - 1) / 2;
+        if heap[p] >= heap[i] {
+            break;
+        }
+        let tmp: Int = heap[p];
+        ArraySet(heap, p, heap[i]);
+        ArraySet(heap, i, tmp);
+        i = p;
+    }
+
+    // current max
+    Log(heap[0]);  // 20
+
+    // pop max once
+    let last_index: Int = ArrayLength(heap) - 1;
+    let root: Int = heap[0];
+    Log(root);     // 20
+    ArraySet(heap, 0, heap[last_index]);
+    ArrayPop(heap);
+
+    // sift down
+    let cur: Int = 0;
+    let size: Int = ArrayLength(heap);
+    while true {
+        let left: Int = cur * 2 + 1;
+        let right: Int = cur * 2 + 2;
+        let largest: Int = cur;
+
+        if left < size && heap[left] > heap[largest] {
+            largest = left;
+        }
+        if right < size && heap[right] > heap[largest] {
+            largest = right;
+        }
+        if largest == cur {
+            break;
+        }
+
+        let tmp2: Int = heap[cur];
+        ArraySet(heap, cur, heap[largest]);
+        ArraySet(heap, largest, tmp2);
+        cur = largest;
+    }
+
+    Log(heap[0]);          // 15
+    Log(ArrayLength(heap)); // 3
+}

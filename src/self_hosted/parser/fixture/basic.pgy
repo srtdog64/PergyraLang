@@ -1,0 +1,32 @@
+// basic.pgy - basic ordinary-value syntax.
+//
+// This file intentionally avoids Slot lifecycle APIs. Slot is the explicit
+// resource-boundary model, not the default value model. See slots_simple.pgy
+// for Slot examples and hello.pgy for the smallest runnable program.
+
+func Fibonacci(n: Int) -> Int {
+    if n <= 1 {
+        return n;
+    }
+
+    let previous: Int = 0;
+    let current: Int = 1;
+    let index: Int = 2;
+
+    while index <= n {
+        let next: Int = previous + current;
+        previous = current;
+        current = next;
+        index = index + 1;
+    }
+
+    return current;
+}
+
+func Main() -> Void {
+    let name: String = "Pergyra";
+    let value: Int = Fibonacci(10);
+
+    Log("Hello, " + name + "!");
+    Log("fib(10)=" + ToString(value));
+}

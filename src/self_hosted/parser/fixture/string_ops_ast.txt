@@ -1,0 +1,15 @@
+Program:
+  Function: Main
+    Parameters:
+    Returns: Void
+    Body:
+      Block:
+        Let: s : String = "Hello, World!"
+        Log(StringLength(s))
+        Log(ToUpper(s))
+        Log(ToLower(s))
+        Log(StringTrim("  trimmed  "))
+        Log(StringReplace(s, "World", "Pergyra"))
+        Log(Substring(s, 0, 5))
+        Log(("foo" + "bar"))
+

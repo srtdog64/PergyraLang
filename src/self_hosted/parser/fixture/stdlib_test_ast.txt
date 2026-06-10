@@ -1,0 +1,11 @@
+Program:
+  Function: Main
+    Parameters:
+    Returns: Void
+    Body:
+      Block:
+        Log(Abs((-42)))
+        Log(Min(10, 3))
+        Log(Max(10, 3))
+        Log(StringLength("hello"))
+

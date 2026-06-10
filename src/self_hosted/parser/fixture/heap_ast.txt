@@ -1,0 +1,79 @@
+Program:
+  Function: Main
+    Parameters:
+    Returns: Void
+    Body:
+      Block:
+        Let: heap : Array<Int: Int> = []
+        ArrayPush(heap, 10)
+        ArrayPush(heap, 4)
+        Let: i : Int = (ArrayLength(heap) - 1)
+        While: (i > 0)
+          Block:
+            Let: p : Int = ((i - 1) / 2)
+            If: (heap[p] >= heap[i])
+              Then:
+                Block:
+                  Break
+            Let: tmp : Int = heap[p]
+            ArraySet(heap, p, heap[i])
+            ArraySet(heap, i, tmp)
+            Assign: i = p
+        ArrayPush(heap, 15)
+        Assign: i = (ArrayLength(heap) - 1)
+        While: (i > 0)
+          Block:
+            Let: p : Int = ((i - 1) / 2)
+            If: (heap[p] >= heap[i])
+              Then:
+                Block:
+                  Break
+            Let: tmp : Int = heap[p]
+            ArraySet(heap, p, heap[i])
+            ArraySet(heap, i, tmp)
+            Assign: i = p
+        ArrayPush(heap, 20)
+        Assign: i = (ArrayLength(heap) - 1)
+        While: (i > 0)
+          Block:
+            Let: p : Int = ((i - 1) / 2)
+            If: (heap[p] >= heap[i])
+              Then:
+                Block:
+                  Break
+            Let: tmp : Int = heap[p]
+            ArraySet(heap, p, heap[i])
+            ArraySet(heap, i, tmp)
+            Assign: i = p
+        Log(heap[0])
+        Let: last_index : Int = (ArrayLength(heap) - 1)
+        Let: root : Int = heap[0]
+        Log(root)
+        ArraySet(heap, 0, heap[last_index])
+        ArrayPop(heap)
+        Let: cur : Int = 0
+        Let: size : Int = ArrayLength(heap)
+        While: true
+          Block:
+            Let: left : Int = ((cur * 2) + 1)
+            Let: right : Int = ((cur * 2) + 2)
+            Let: largest : Int = cur
+            If: ((left < size) && (heap[left] > heap[largest]))
+              Then:
+                Block:
+                  Assign: largest = left
+            If: ((right < size) && (heap[right] > heap[largest]))
+              Then:
+                Block:
+                  Assign: largest = right
+            If: (largest == cur)
+              Then:
+                Block:
+                  Break
+            Let: tmp2 : Int = heap[cur]
+            ArraySet(heap, cur, heap[largest])
+            ArraySet(heap, largest, tmp2)
+            Assign: cur = largest
+        Log(heap[0])
+        Log(ArrayLength(heap))
+

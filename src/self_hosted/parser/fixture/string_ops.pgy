@@ -1,0 +1,11 @@
+// 문자열 연산
+func Main() -> Void {
+    let s: String = "Hello, World!";
+    Log(StringLength(s));                       // 13
+    Log(ToUpper(s));                            // HELLO, WORLD!
+    Log(ToLower(s));                            // hello, world!
+    Log(StringTrim("  trimmed  "));             // trimmed
+    Log(StringReplace(s, "World", "Pergyra"));  // Hello, Pergyra!
+    Log(Substring(s, 0, 5));                    // Hello
+    Log("foo" + "bar");                         // foobar
+}

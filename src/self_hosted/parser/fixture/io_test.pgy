@@ -1,0 +1,21 @@
+// I/O 빌트인
+func Main() -> Void {
+    // 파일 전체 쓰기/읽기
+    WriteFile("/tmp/pgy_hello.txt", "Hello from Pergyra!");
+    let content: String = ReadFile("/tmp/pgy_hello.txt");
+    Log(content);  // Hello from Pergyra!
+
+    // 파일 핸들 기반
+    let fd: Int = FileOpen("/tmp/pgy_lines.txt", "w");
+    FileWrite(fd, "Line 1\n");
+    FileWrite(fd, "Line 2\n");
+    FileClose(fd);
+
+    let fd2: Int = FileOpen("/tmp/pgy_lines.txt", "r");
+    Log(FileRead(fd2));  // Line 1
+    Log(FileRead(fd2));  // Line 2
+    FileClose(fd2);
+
+    Print("No newline");
+    Print(" here\n");
+}

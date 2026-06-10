@@ -153,6 +153,16 @@ SOURCE_PAIRS=(
     "src/self_hosted/parser/fixture/enum_test.pgy:enum_test"
     "src/self_hosted/parser/fixture/minimal.pgy:minimal"
     "src/self_hosted/parser/fixture/generic_test.pgy:generic_test"
+    "src/self_hosted/parser/fixture/basic.pgy:basic"
+    "src/self_hosted/parser/fixture/async_demo.pgy:async_demo"
+    "src/self_hosted/parser/fixture/string_ops.pgy:string_ops"
+    "src/self_hosted/parser/fixture/string_utils.pgy:string_utils"
+    "src/self_hosted/parser/fixture/io_test.pgy:io_test"
+    "src/self_hosted/parser/fixture/stdlib_test.pgy:stdlib_test"
+    "src/self_hosted/parser/fixture/math_builtins.pgy:math_builtins"
+    "src/self_hosted/parser/fixture/lambda_test.pgy:lambda_test"
+    "src/self_hosted/parser/fixture/deque.pgy:deque"
+    "src/self_hosted/parser/fixture/heap.pgy:heap"
 )
 
 cleanup_source_override() {

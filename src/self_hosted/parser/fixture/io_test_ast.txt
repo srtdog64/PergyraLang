@@ -1,0 +1,20 @@
+Program:
+  Function: Main
+    Parameters:
+    Returns: Void
+    Body:
+      Block:
+        WriteFile("/tmp/pgy_hello.txt", "Hello from Pergyra!")
+        Let: content : String = ReadFile("/tmp/pgy_hello.txt")
+        Log(content)
+        Let: fd : Int = FileOpen("/tmp/pgy_lines.txt", "w")
+        FileWrite(fd, "Line 1\n")
+        FileWrite(fd, "Line 2\n")
+        FileClose(fd)
+        Let: fd2 : Int = FileOpen("/tmp/pgy_lines.txt", "r")
+        Log(FileRead(fd2))
+        Log(FileRead(fd2))
+        FileClose(fd2)
+        Print("No newline")
+        Print(" here\n")
+
