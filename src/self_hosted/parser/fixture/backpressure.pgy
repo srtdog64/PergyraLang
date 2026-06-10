@@ -1,0 +1,30 @@
+// backpressure.pgy — ChannelSpace/ChannelFull/ChannelClosed로 배압 관리
+
+func Main() -> Void {
+    let ch: Channel<Int> = Channel(4);
+
+    // producer: 채널 용량을 확인하며 전송
+    let i: Int = 0;
+    while i < 10 {
+        if ChannelFull(ch) {
+            Log("channel full, consuming first");
+            let overflow: Int = <- ch;
+            Log(overflow);
+        }
+        ch <- i;
+        let space: Int = ChannelSpace(ch);
+        Log(space);
+        i = i + 1;
+    }
+
+    // consumer: 닫힘 여부 확인하며 수신
+    ChannelClose(ch);
+
+    if ChannelClosed(ch) {
+        Log("channel is closed");
+    }
+
+    // 닫힌 채널에서도 남은 데이터는 수신 가능
+    let remaining: Int = ChannelLength(ch);
+    Log(remaining);
+}

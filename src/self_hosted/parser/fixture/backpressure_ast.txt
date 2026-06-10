@@ -1,0 +1,28 @@
+Program:
+  Function: Main
+    Parameters:
+    Returns: Void
+    Body:
+      Block:
+        Let: ch : Channel<Int: Int> = Channel(4)
+        Let: i : Int = 0
+        While: (i < 10)
+          Block:
+            If: ChannelFull(ch)
+              Then:
+                Block:
+                  Log("channel full, consuming first")
+                  Let: overflow : Int = <-ch
+                  Log(overflow)
+            ChannelSend: ch <- i
+            Let: space : Int = ChannelSpace(ch)
+            Log(space)
+            Assign: i = (i + 1)
+        ChannelClose(ch)
+        If: ChannelClosed(ch)
+          Then:
+            Block:
+              Log("channel is closed")
+        Let: remaining : Int = ChannelLength(ch)
+        Log(remaining)
+

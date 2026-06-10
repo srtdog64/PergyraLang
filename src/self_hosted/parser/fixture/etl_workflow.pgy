@@ -1,0 +1,34 @@
+// etl_workflow.pgy
+
+subject SourceBatch {
+    let sourceId: String;
+}
+
+zone EtlZone {
+    subject slot batch: SourceBatch
+}
+
+object ExtractedRows {
+    let count: Int;
+}
+
+tobject LoadPacket {
+    let targetTable: String;
+    let recordCount: Int;
+}
+
+intent RunCustomerEtl(zone: EtlZone, batch: SourceBatch) {
+    exclusive;
+    step Extract {
+        where: EtlZone;
+        using: zone;
+        who: batch;
+        expect: true;
+    }
+    success: true;
+    failure: false;
+}
+
+func Main() -> Void {
+    Log("ETL Workflow Pattern");
+}

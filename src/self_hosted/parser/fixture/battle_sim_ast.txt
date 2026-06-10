@@ -1,0 +1,131 @@
+Program:
+  Subject: Fighter
+    Fields:
+      name: String
+      hp: Int
+      hp_max: Int
+      power: Int
+      defense: Int
+      crit_chance: Int
+    Methods:
+      Function: IsAlive
+        Parameters:
+          self
+        Returns: Bool
+        Body:
+          Block:
+            Return: (hp > 0)
+      Function: RollDamage
+        Parameters:
+          self
+          target_def: Int
+        Returns: Int
+        Body:
+          Block:
+            Let: base = (power - target_def)
+            If: (base < 1)
+              Then:
+                Block:
+                  Assign: base = 1
+            Let: variance = Random(((base / 2) + 1))
+            Return: (base + variance)
+      Function: IsCrit
+        Parameters:
+          self
+        Returns: Bool
+        Body:
+          Block:
+            Return: (Random(100) < crit_chance)
+      Action: Attack
+        Parameters:
+          self
+          target: Fighter
+        Returns: Int
+        Body:
+          Block:
+            Let: dmg = self.RollDamage(target.defense)
+            Let: crit : Bool = self.IsCrit()
+            If: crit
+              Then:
+                Block:
+                  Assign: dmg = (dmg * 2)
+            Assign: target.hp = (target.hp - dmg)
+            If: (target.hp < 0)
+              Then:
+                Block:
+                  Assign: target.hp = 0
+            Return: dmg
+  Function: ShowHP
+    Parameters:
+      f: Fighter
+    Returns: Void
+    Body:
+      Block:
+        Log(((((("  " + f.name) + " HP:") + ToString(f.hp)) + "/") + ToString(f.hp_max)))
+  Function: DoTurn
+    Parameters:
+      attacker: Fighter
+      defender: Fighter
+    Returns: Void
+    Body:
+      Block:
+        Let: dmg = attacker.Attack(defender)
+        Let: crit : Bool = attacker.IsCrit()
+        If: crit
+          Then:
+            Block:
+              Log((((((("  CRIT! " + attacker.name) + " -> ") + defender.name) + " for ") + ToString(dmg)) + "!"))
+          Else:
+            Block:
+              Log(((((("  " + attacker.name) + " -> ") + defender.name) + " for ") + ToString(dmg)))
+  Function: RunBattle
+    Parameters:
+      a: Fighter
+      b: Fighter
+    Returns: Void
+    Body:
+      Block:
+        Log("========================================")
+        Log(((("  " + a.name) + " vs ") + b.name))
+        Log("========================================")
+        ShowHP(a)
+        ShowHP(b)
+        Log("")
+        Let: turn = 1
+        Let: going = true
+        While: going
+          Block:
+            Log((("-- Turn " + ToString(turn)) + " --"))
+            DoTurn(a, b)
+            If: (!b.IsAlive())
+              Then:
+                Block:
+                  ShowHP(a)
+                  ShowHP(b)
+                  Log("")
+                  Log(((">>> " + a.name) + " WINS! <<<"))
+                  Assign: going = false
+              Else:
+                Block:
+                  DoTurn(b, a)
+                  ShowHP(a)
+                  ShowHP(b)
+                  Log("")
+                  If: (!a.IsAlive())
+                    Then:
+                      Block:
+                        Log(((">>> " + b.name) + " WINS! <<<"))
+                        Assign: going = false
+            Assign: turn = (turn + 1)
+        Log((("  Battle ended in " + ToString((turn - 1))) + " turns."))
+        Log("========================================")
+  Log("=== Pergyra Battle Simulator ===")
+  Log("")
+  Let: hero = Fighter("Hero", 100, 100, 25, 10, 20)
+  Let: goblin = Fighter("Goblin", 80, 80, 18, 8, 15)
+  RunBattle(hero, goblin)
+  Log("")
+  Let: knight = Fighter("Knight", 120, 120, 22, 20, 25)
+  Let: dragon = Fighter("Dragon", 150, 150, 30, 15, 10)
+  RunBattle(knight, dragon)
+

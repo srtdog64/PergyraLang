@@ -1,0 +1,46 @@
+Program:
+  Class: Profiler
+    Methods:
+      Function: CountNulls
+        Parameters:
+          values: Array<Float: Float>
+        Returns: Int
+        Body:
+          Block:
+            Return: 0
+  Subject: RawDataset
+    Fields:
+      name: String
+  Zone: AnalysisSession
+    SubjectSlot: data: RawDataset
+  Object: SchemaView
+    Fields:
+      columns: Int
+  Object: MissingStats
+    Fields:
+      totalRows: Int
+  TObject: EdaReport
+    Fields:
+      summary: String
+  Intent: ExploreData
+    IntentMode: exclusive
+    IntentRollback: full
+    IntentInvolves: zone: AnalysisSession
+    IntentInvolves: data: RawDataset
+    IntentStep: InspectSchema where AnalysisSession using zone
+      Who: data
+      Using: zone
+      Expect: true
+    IntentStep: AnalyzeMissing where AnalysisSession using zone
+      Who: data
+      Using: zone
+      Expect: true
+    IntentSuccess: true
+    IntentFailure: false
+  Function: Main
+    Parameters:
+    Returns: Void
+    Body:
+      Block:
+        Log("EDA Workflow Pattern")
+

@@ -1,0 +1,31 @@
+Program:
+  Subject: SourceBatch
+    Fields:
+      sourceId: String
+  Zone: EtlZone
+    SubjectSlot: batch: SourceBatch
+  Object: ExtractedRows
+    Fields:
+      count: Int
+  TObject: LoadPacket
+    Fields:
+      targetTable: String
+      recordCount: Int
+  Intent: RunCustomerEtl
+    IntentMode: exclusive
+    IntentRollback: full
+    IntentInvolves: zone: EtlZone
+    IntentInvolves: batch: SourceBatch
+    IntentStep: Extract where EtlZone using zone
+      Who: batch
+      Using: zone
+      Expect: true
+    IntentSuccess: true
+    IntentFailure: false
+  Function: Main
+    Parameters:
+    Returns: Void
+    Body:
+      Block:
+        Log("ETL Workflow Pattern")
+

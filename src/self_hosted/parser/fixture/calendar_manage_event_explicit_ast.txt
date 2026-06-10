@@ -1,0 +1,106 @@
+Program:
+  [export] Ability: CalendarOwnerCap
+    Function: CanManage
+      Parameters:
+      Returns: Bool
+  Subject: CalendarOwner
+    Fields:
+      revision: Int
+    Methods:
+      Action: CreateEvent
+        Parameters:
+          self
+        Returns: Void
+        Requires: CalendarOwnerCap
+        Within: CalendarZone
+        Causes: EventCreated
+        Authorized by: self
+        Body:
+          Block:
+            Assign: self.revision = (self.revision + 1)
+      Action: EditEvent
+        Parameters:
+          self
+        Returns: Void
+        Requires: CalendarOwnerCap
+        Within: EventEditZone
+        Causes: EventEdited
+        Authorized by: self
+        Body:
+          Block:
+            Assign: self.revision = (self.revision + 1)
+      Action: DeleteEvent
+        Parameters:
+          self
+        Returns: Void
+        Requires: CalendarOwnerCap
+        Within: CalendarZone
+        Causes: EventDeleted
+        Authorized by: self
+        Body:
+          Block:
+            Assign: self.revision = (self.revision + 1)
+  Role: OwnerCalendarCap for CalendarOwner
+    Impl ability: CalendarOwnerCap
+      Function: CanManage
+        Parameters:
+        Returns: Bool
+        Body:
+          Block:
+            Return: true
+  Effect: EventCreated
+    SubjectSlot: bearer: CalendarOwner
+  Effect: EventEdited
+    SubjectSlot: bearer: CalendarOwner
+  Effect: EventDeleted
+    SubjectSlot: bearer: CalendarOwner
+  Zone: CalendarZone
+    SubjectSlot: owner: CalendarOwner
+    EffectSlot: created: EventCreated
+    EffectSlot: deleted: EventDeleted
+    Authority: owner
+      Requires: CalendarOwnerCap
+  Zone: EventEditZone
+    SubjectSlot: owner: CalendarOwner
+    EffectSlot: edited: EventEdited
+    Authority: owner
+      Requires: CalendarOwnerCap
+  Intent: ManageCalendarExplicit
+    IntentMode: exclusive
+    IntentRollback: full
+    IntentInvolves: calendar: CalendarZone
+    IntentInvolves: editor: EventEditZone
+    IntentInvolves: owner: CalendarOwner
+    IntentStep: CreateEvent where CalendarZone using calendar
+      Who: owner
+      Using: calendar
+      On: owner.CreateEvent()
+      Requires: CalendarOwnerCap
+      AuthorizedBy: owner
+      Causes: EventCreated
+      Expect: true
+    IntentStep: EditEvent where EventEditZone using editor
+      Who: owner
+      Using: editor
+      On: owner.EditEvent()
+      Requires: CalendarOwnerCap
+      AuthorizedBy: owner
+      Causes: EventEdited
+      Expect: true
+    IntentStep: DeleteEvent where CalendarZone using calendar
+      Who: owner
+      Using: calendar
+      On: owner.DeleteEvent()
+      Requires: CalendarOwnerCap
+      AuthorizedBy: owner
+      Causes: EventDeleted
+      Expect: true
+  Function: Main
+    Parameters:
+    Returns: Void
+    Body:
+      Block:
+        Log("calendar-manage-explicit")
+        Log("mode=explicit")
+        Log("steps=3")
+

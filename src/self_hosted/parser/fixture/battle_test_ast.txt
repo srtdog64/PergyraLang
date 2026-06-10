@@ -1,0 +1,34 @@
+Program:
+  Vessel: HP
+    Fields:
+      current: Int
+      max: Int
+    Methods:
+      Function: IsAlive
+        Parameters:
+          self
+        Returns: Bool
+        Body:
+          Block:
+            Return: (current > 0)
+      Function: Hit
+        Parameters:
+          self
+          dmg: Int
+        Returns: Void
+        Body:
+          Block:
+            Assign: current = (current - dmg)
+  Let: a = HP(100, 100)
+  a.Hit(30)
+  Let: alive : Bool = a.IsAlive()
+  Log(ToString(a.current))
+  If: alive
+    Then:
+      Block:
+        Log("still alive")
+  If: (!alive)
+    Then:
+      Block:
+        Log("dead")
+

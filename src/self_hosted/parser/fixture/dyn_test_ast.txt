@@ -1,0 +1,41 @@
+Program:
+  Subject: Fighter
+    Fields:
+      power: Int
+  [export] Ability: Combatable
+    Function: Attack
+      Parameters:
+        self
+      Returns: Int
+  Role: Warrior for Fighter
+    Impl ability: Combatable
+      Function: Attack
+        Parameters:
+          self
+        Returns: Int
+        Body:
+          Block:
+            Return: 10
+  Role: Archer for Fighter
+    Impl ability: Combatable
+      Function: Attack
+        Parameters:
+          self
+        Returns: Int
+        Body:
+          Block:
+            Return: 20
+  Party: Team
+    RoleSlot: fighter requires Combatable
+    Shared: hp: Int
+  Function: Main
+    Parameters:
+    Returns: Void
+    Body:
+      Block:
+        Let: team : Team = Team()
+        BindStmt: team.fighter = Warrior
+        Log(team.fighter.Attack())
+        BindStmt: team.fighter = Archer
+        Log(team.fighter.Attack())
+

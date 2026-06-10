@@ -1,0 +1,113 @@
+// battle_sim.pgy -- Pergyra Battle Simulator
+// Demonstrates: subject with func+action, subject as parameter, Random
+
+// ============================================================
+// Subject -- active orchestrator with func (private) + action (public)
+// ============================================================
+
+subject Fighter {
+    let name: String;
+    let hp: Int;
+    let hp_max: Int;
+    let power: Int;
+    let defense: Int;
+    let crit_chance: Int;
+
+    // func = private internal computation (audience can't see)
+    func IsAlive(self) -> Bool {
+        return hp > 0;
+    }
+
+    func RollDamage(self, target_def: Int) -> Int {
+        let base = power - target_def;
+        if base < 1 { base = 1; }
+        let variance = Random(base / 2 + 1);
+        return base + variance;
+    }
+
+    func IsCrit(self) -> Bool {
+        return Random(100) < crit_chance;
+    }
+
+    // action = public plot behavior (audience sees, zone/effect aware)
+    action Attack(self, target: Fighter) -> Int {
+        let dmg = self.RollDamage(target.defense);
+        let crit: Bool = self.IsCrit();
+        if crit { dmg = dmg * 2; }
+        target.hp = target.hp - dmg;
+        if target.hp < 0 { target.hp = 0; }
+        return dmg;
+    }
+}
+
+// ============================================================
+// Free functions -- subject passed by reference automatically
+// ============================================================
+
+func ShowHP(f: Fighter) -> Void {
+    Log("  " + f.name + " HP:" + ToString(f.hp) + "/" + ToString(f.hp_max));
+}
+
+func DoTurn(attacker: Fighter, defender: Fighter) -> Void {
+    let dmg = attacker.Attack(defender);
+    let crit: Bool = attacker.IsCrit();
+    if crit {
+        Log("  CRIT! " + attacker.name + " -> " + defender.name + " for " + ToString(dmg) + "!");
+    } else {
+        Log("  " + attacker.name + " -> " + defender.name + " for " + ToString(dmg));
+    }
+}
+
+func RunBattle(a: Fighter, b: Fighter) -> Void {
+    Log("========================================");
+    Log("  " + a.name + " vs " + b.name);
+    Log("========================================");
+    ShowHP(a);
+    ShowHP(b);
+    Log("");
+
+    let turn = 1;
+    let going = true;
+
+    while going {
+        Log("-- Turn " + ToString(turn) + " --");
+
+        DoTurn(a, b);
+        if !b.IsAlive() {
+            ShowHP(a);
+            ShowHP(b);
+            Log("");
+            Log(">>> " + a.name + " WINS! <<<");
+            going = false;
+        } else {
+            DoTurn(b, a);
+            ShowHP(a);
+            ShowHP(b);
+            Log("");
+            if !a.IsAlive() {
+                Log(">>> " + b.name + " WINS! <<<");
+                going = false;
+            }
+        }
+        turn = turn + 1;
+    }
+    Log("  Battle ended in " + ToString(turn - 1) + " turns.");
+    Log("========================================");
+}
+
+// ============================================================
+// Main
+// ============================================================
+
+Log("=== Pergyra Battle Simulator ===");
+Log("");
+
+let hero   = Fighter("Hero",     100, 100, 25, 10, 20);
+let goblin = Fighter("Goblin",    80,  80, 18,  8, 15);
+RunBattle(hero, goblin);
+
+Log("");
+
+let knight = Fighter("Knight",   120, 120, 22, 20, 25);
+let dragon = Fighter("Dragon",   150, 150, 30, 15, 10);
+RunBattle(knight, dragon);

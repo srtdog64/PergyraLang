@@ -1,0 +1,109 @@
+// calendar_manage_event_compressed.pgy
+//
+// Large canonical compressed example.
+// The same workflow is also provided as an explicit companion example:
+// - calendar_manage_event_explicit.pgy
+//
+// Compression used here:
+// - action contract reuse for who/where/requires/authorized by/causes
+// - repeated step-local contract 제거
+//
+// Read this file in this order:
+// 1. intent ManageCalendarCompressed
+// 2. CalendarZone / EventEditZone boundary contract
+// 3. CalendarOwner action support surface
+
+ability CalendarOwnerCap {
+    func CanManage() -> Bool;
+}
+
+subject CalendarOwner {
+    let revision: Int;
+
+    action CreateEvent(self) -> Void
+        requires CalendarOwnerCap
+        within CalendarZone
+        authorized by self
+        causes EventCreated
+    {
+        self.revision = self.revision + 1;
+    }
+
+    action EditEvent(self) -> Void
+        requires CalendarOwnerCap
+        within EventEditZone
+        authorized by self
+        causes EventEdited
+    {
+        self.revision = self.revision + 1;
+    }
+
+    action DeleteEvent(self) -> Void
+        requires CalendarOwnerCap
+        within CalendarZone
+        authorized by self
+        causes EventDeleted
+    {
+        self.revision = self.revision + 1;
+    }
+}
+
+role OwnerCalendarCap for CalendarOwner {
+    impl ability CalendarOwnerCap {
+        func CanManage() -> Bool {
+            return true;
+        }
+    }
+}
+
+effect EventCreated for bearer: CalendarOwner {
+}
+
+effect EventEdited for bearer: CalendarOwner {
+}
+
+effect EventDeleted for bearer: CalendarOwner {
+}
+
+zone CalendarZone {
+    subject slot owner: CalendarOwner
+    effect slot created: EventCreated
+    effect slot deleted: EventDeleted
+    authority owner requires CalendarOwnerCap
+}
+
+zone EventEditZone {
+    subject slot owner: CalendarOwner
+    effect slot edited: EventEdited
+    authority owner requires CalendarOwnerCap
+}
+
+intent ManageCalendarCompressed(calendar: CalendarZone,
+                                editor: EventEditZone,
+                                owner: CalendarOwner) {
+    exclusive;
+
+    step CreateEvent {
+        using: calendar;
+        on: owner.CreateEvent();
+        expect: true;
+    }
+
+    step EditEvent {
+        using: editor;
+        on: owner.EditEvent();
+        expect: true;
+    }
+
+    step DeleteEvent {
+        using: calendar;
+        on: owner.DeleteEvent();
+        expect: true;
+    }
+}
+
+func Main() -> Void {
+    Log("calendar-manage-compressed");
+    Log("mode=compressed");
+    Log("steps=3");
+}

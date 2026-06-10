@@ -1,0 +1,39 @@
+Program:
+  Function: Double
+    Parameters:
+      x: Int
+    Returns: Int
+    Body:
+      Block:
+        Return: (x * 2)
+  Function: IsEven
+    Parameters:
+      x: Int
+    Returns: Bool
+    Body:
+      Block:
+        Return: ((x % 2) == 0)
+  Function: Main
+    Parameters:
+    Returns: Void
+    Body:
+      Block:
+        Let: nums : Array<Int: Int> = [5, 3, 1, 4, 2]
+        Let: sorted : Array<Int: Int> = ArraySort(nums)
+        For: n in (null)..(null)
+          Block:
+            Log(n)
+        Let: doubled : Array<Int: Int> = ArrayMap(nums, Double)
+        For: d in (null)..(null)
+          Block:
+            Log(d)
+        Let: evens : Array<Int: Int> = ArrayFilter(nums, IsEven)
+        For: e in (null)..(null)
+          Block:
+            Log(e)
+        Let: parts : Array<String: String> = Split("hello world foo", " ")
+        AST node type 6
+        Log(first)
+        Log(second)
+        Log(third)
+

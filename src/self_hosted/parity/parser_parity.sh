@@ -205,6 +205,16 @@ SOURCE_PAIRS=(
     "src/self_hosted/parser/fixture/generic_ability_requires_minimal.pgy:generic_ability_requires_minimal"
     "src/self_hosted/parser/fixture/authority_contract_pair_minimal.pgy:authority_contract_pair_minimal"
     "src/self_hosted/parser/fixture/action_contract_inheritance_minimal.pgy:action_contract_inheritance_minimal"
+    "src/self_hosted/parser/fixture/backpressure.pgy:backpressure"
+    "src/self_hosted/parser/fixture/battle_sim.pgy:battle_sim"
+    "src/self_hosted/parser/fixture/battle_test.pgy:battle_test"
+    "src/self_hosted/parser/fixture/battle_test2.pgy:battle_test2"
+    "src/self_hosted/parser/fixture/calendar_manage_event_compressed.pgy:calendar_manage_event_compressed"
+    "src/self_hosted/parser/fixture/calendar_manage_event_explicit.pgy:calendar_manage_event_explicit"
+    "src/self_hosted/parser/fixture/collection_ops.pgy:collection_ops"
+    "src/self_hosted/parser/fixture/dyn_test.pgy:dyn_test"
+    "src/self_hosted/parser/fixture/eda_workflow.pgy:eda_workflow"
+    "src/self_hosted/parser/fixture/etl_workflow.pgy:etl_workflow"
 )
 
 cleanup_source_override() {
