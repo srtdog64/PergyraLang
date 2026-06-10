@@ -163,6 +163,14 @@ SOURCE_PAIRS=(
     "src/self_hosted/parser/fixture/lambda_test.pgy:lambda_test"
     "src/self_hosted/parser/fixture/deque.pgy:deque"
     "src/self_hosted/parser/fixture/heap.pgy:heap"
+    "src/self_hosted/parser/fixture/spawn_test.pgy:spawn_test"
+    "src/self_hosted/parser/fixture/select_test.pgy:select_test"
+    "src/self_hosted/parser/fixture/defer_test.pgy:defer_test"
+    "src/self_hosted/parser/fixture/for_test.pgy:for_test"
+    "src/self_hosted/parser/fixture/union_find.pgy:union_find"
+    "src/self_hosted/parser/fixture/zone_lifecycle.pgy:zone_lifecycle"
+    "src/self_hosted/parser/fixture/tagged_union.pgy:tagged_union"
+    "src/self_hosted/parser/fixture/graph_bfs.pgy:graph_bfs"
 )
 
 cleanup_source_override() {

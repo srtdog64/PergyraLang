@@ -1,0 +1,32 @@
+Program:
+  Function: Main
+    Parameters:
+    Returns: Void
+    Body:
+      Block:
+        Let: adj : Array<Int: Int> = [0, 1, 1, 0, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0, 0]
+        Let: n : Int = 4
+        Let: visited : Array<Int: Int> = [0, 0, 0, 0]
+        Let: queue : Array<Int: Int> = [0, 0, 0, 0]
+        Let: head : Int = 0
+        Let: tail : Int = 0
+        ArraySet(queue, tail, 0)
+        Assign: tail = (tail + 1)
+        ArraySet(visited, 0, 1)
+        While: (head < tail)
+          Block:
+            Let: v : Int = queue[head]
+            Assign: head = (head + 1)
+            Log(v)
+            Let: to : Int = 0
+            While: (to < n)
+              Block:
+                Let: edge_index : Int = ((v * n) + to)
+                If: ((adj[edge_index] == 1) && (visited[to] == 0))
+                  Then:
+                    Block:
+                      ArraySet(visited, to, 1)
+                      ArraySet(queue, tail, to)
+                      Assign: tail = (tail + 1)
+                Assign: to = (to + 1)
+

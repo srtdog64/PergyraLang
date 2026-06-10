@@ -1,0 +1,23 @@
+Program:
+  Function: Main
+    Parameters:
+    Returns: Void
+    Body:
+      Block:
+        Let: ch1 : Channel<Int: Int> = Channel(4)
+        Let: ch2 : Channel<Int: Int> = Channel(4)
+        ChannelSend: ch1 <- 10
+        ChannelSend: ch2 <- 20
+        If: ChannelReady(ch1)
+          Then:
+            Block:
+              Let: v : Int = <-ch1
+              Log(v)
+        If: ChannelReady(ch2)
+          Then:
+            Block:
+              Let: v : Int = <-ch2
+              Log(v)
+        ChannelClose(ch1)
+        ChannelClose(ch2)
+

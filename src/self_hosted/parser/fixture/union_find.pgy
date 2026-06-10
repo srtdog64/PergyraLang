@@ -1,0 +1,66 @@
+// union_find.pgy — 배열 기반 Disjoint Set Union
+//
+// parent[i]와 rank[i]를 스코프가 소유한다.
+// 포인터 트리 대신 인덱스 트리를 사용한다.
+
+func Main() -> Void {
+    let parent: Array<Int> = [0, 1, 2, 3, 4, 5];
+    let rank: Array<Int> = [0, 0, 0, 0, 0, 0];
+
+    // union(0, 1)
+    let ra: Int = parent[0];
+    let rb: Int = parent[1];
+    if ra != rb {
+        if rank[ra] < rank[rb] {
+            ArraySet(parent, ra, rb);
+        } else {
+            if rank[ra] > rank[rb] {
+                ArraySet(parent, rb, ra);
+            } else {
+                ArraySet(parent, rb, ra);
+                ArraySet(rank, ra, rank[ra] + 1);
+            }
+        }
+    }
+
+    // union(1, 2)
+    let r1: Int = parent[1];
+    let r2: Int = parent[2];
+    if r1 != r2 {
+        if rank[r1] < rank[r2] {
+            ArraySet(parent, r1, r2);
+        } else {
+            if rank[r1] > rank[r2] {
+                ArraySet(parent, r2, r1);
+            } else {
+                ArraySet(parent, r2, r1);
+                ArraySet(rank, r1, rank[r1] + 1);
+            }
+        }
+    }
+
+    // union(3, 4)
+    let r3: Int = parent[3];
+    let r4: Int = parent[4];
+    if r3 != r4 {
+        if rank[r3] < rank[r4] {
+            ArraySet(parent, r3, r4);
+        } else {
+            if rank[r3] > rank[r4] {
+                ArraySet(parent, r4, r3);
+            } else {
+                ArraySet(parent, r4, r3);
+                ArraySet(rank, r3, rank[r3] + 1);
+            }
+        }
+    }
+
+    // connectivity checks
+    let c01: Bool = parent[0] == parent[2];
+    let c02: Bool = parent[0] == parent[4];
+    let c03: Bool = parent[3] == parent[4];
+
+    if c01 { Log(1); } else { Log(0); }  // 1
+    if c02 { Log(1); } else { Log(0); }  // 0
+    if c03 { Log(1); } else { Log(0); }  // 1
+}

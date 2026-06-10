@@ -1,0 +1,15 @@
+Program:
+  Enum: Shape { Circle, Rect, None }
+  Function: Main
+    Parameters:
+    Returns: Void
+    Body:
+      Block:
+        Let: c : Shape = Circle(10)
+        Let: r : Shape = Rect(4, 5)
+        Log(c.Circle._0)
+        Log(r.Rect._0)
+        Log(r.Rect._1)
+        Let: x : Shape = Circle(7)
+        Log(x.Circle._0)
+

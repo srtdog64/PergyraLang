@@ -1,0 +1,18 @@
+Program:
+  Function: Greet
+    Parameters:
+    Returns: Void
+    Body:
+      Block:
+        Log("entering")
+        Defer:
+          Block:
+            Log("exiting")
+        Log("working")
+  Function: Main
+    Parameters:
+    Returns: Void
+    Body:
+      Block:
+        Greet()
+

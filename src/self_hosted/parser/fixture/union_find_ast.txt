@@ -1,0 +1,90 @@
+Program:
+  Function: Main
+    Parameters:
+    Returns: Void
+    Body:
+      Block:
+        Let: parent : Array<Int: Int> = [0, 1, 2, 3, 4, 5]
+        Let: rank : Array<Int: Int> = [0, 0, 0, 0, 0, 0]
+        Let: ra : Int = parent[0]
+        Let: rb : Int = parent[1]
+        If: (ra != rb)
+          Then:
+            Block:
+              If: (rank[ra] < rank[rb])
+                Then:
+                  Block:
+                    ArraySet(parent, ra, rb)
+                Else:
+                  Block:
+                    If: (rank[ra] > rank[rb])
+                      Then:
+                        Block:
+                          ArraySet(parent, rb, ra)
+                      Else:
+                        Block:
+                          ArraySet(parent, rb, ra)
+                          ArraySet(rank, ra, (rank[ra] + 1))
+        Let: r1 : Int = parent[1]
+        Let: r2 : Int = parent[2]
+        If: (r1 != r2)
+          Then:
+            Block:
+              If: (rank[r1] < rank[r2])
+                Then:
+                  Block:
+                    ArraySet(parent, r1, r2)
+                Else:
+                  Block:
+                    If: (rank[r1] > rank[r2])
+                      Then:
+                        Block:
+                          ArraySet(parent, r2, r1)
+                      Else:
+                        Block:
+                          ArraySet(parent, r2, r1)
+                          ArraySet(rank, r1, (rank[r1] + 1))
+        Let: r3 : Int = parent[3]
+        Let: r4 : Int = parent[4]
+        If: (r3 != r4)
+          Then:
+            Block:
+              If: (rank[r3] < rank[r4])
+                Then:
+                  Block:
+                    ArraySet(parent, r3, r4)
+                Else:
+                  Block:
+                    If: (rank[r3] > rank[r4])
+                      Then:
+                        Block:
+                          ArraySet(parent, r4, r3)
+                      Else:
+                        Block:
+                          ArraySet(parent, r4, r3)
+                          ArraySet(rank, r3, (rank[r3] + 1))
+        Let: c01 : Bool = (parent[0] == parent[2])
+        Let: c02 : Bool = (parent[0] == parent[4])
+        Let: c03 : Bool = (parent[3] == parent[4])
+        If: c01
+          Then:
+            Block:
+              Log(1)
+          Else:
+            Block:
+              Log(0)
+        If: c02
+          Then:
+            Block:
+              Log(1)
+          Else:
+            Block:
+              Log(0)
+        If: c03
+          Then:
+            Block:
+              Log(1)
+          Else:
+            Block:
+              Log(0)
+

@@ -1,0 +1,23 @@
+Program:
+  Subject: Player
+    Fields:
+      name: String
+      hp: Int
+  Effect: Poisoned
+    SubjectSlot: bearer: Player
+    Shared: damage: Int
+  Relation: Alliance
+    SubjectSlot: source: Player
+    SubjectSlot: dest: Player
+    Shared: trust_level: Int
+  Zone: BattleZone
+    SubjectSlot: attacker: Player
+    SubjectSlot: defender: Player
+    EffectSlot: poison: Poisoned
+    RelationSlot: alliance: Alliance
+    Apply: poison -> defender by attacker
+    Link: alliance between attacker, defender by attacker
+    Authority: attacker
+    State: poisoned: effect poison on defender
+    State: allied: relation alliance between attacker, defender
+

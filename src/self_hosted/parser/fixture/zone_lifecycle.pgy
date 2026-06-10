@@ -1,0 +1,30 @@
+// zone_lifecycle.pgy — relation/effect/zone 도메인 계층
+
+subject Player {
+    let name: String;
+    let hp: Int;
+}
+
+effect Poisoned for bearer: Player {
+    shared damage: Int;
+}
+
+relation Alliance for source: Player, dest: Player {
+    shared trust_level: Int;
+}
+
+zone BattleZone {
+    subject slot attacker: Player;
+    subject slot defender: Player;
+
+    effect slot poison: Poisoned;
+    relation slot alliance: Alliance;
+
+    authority attacker;
+
+    apply poison to defender by attacker;
+    link alliance between attacker, defender by attacker;
+
+    state poisoned: effect poison on defender;
+    state allied: relation alliance between attacker, defender;
+}

@@ -1,0 +1,19 @@
+Program:
+  Function: Compute
+    Parameters:
+      x: Int
+    Returns: Int
+    Body:
+      Block:
+        Return: (x * x)
+  Function: Main
+    Parameters:
+    Returns: Void
+    Body:
+      Block:
+        Let: result : Slot<Int: Int> = ClaimSlot()
+        Parallel:
+          Write(result, 42)
+        Log(Read(result))
+        Release(result)
+
