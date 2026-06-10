@@ -1,0 +1,26 @@
+class Inner {
+    let val: Int;
+
+    func Bumped(self) -> Inner {
+        return Inner(self.val + 1);
+    }
+}
+
+class Outer {
+    let label: Int;
+    let inner: Inner;
+
+    func InnerVal(self) -> Int {
+        return self.inner.val;
+    }
+}
+
+func Main() -> Void {
+    let acc: Slot<Int> = ClaimSlot();
+    Write(acc, 0);
+    let o1: Outer = Outer(1, Inner(10));
+    Write(acc, Read(acc) + o1.InnerVal());
+    let o2: Outer = Outer(2, o1.inner.Bumped());
+    Write(acc, Read(acc) + o2.InnerVal());
+    Log(Read(acc));
+}
