@@ -1,0 +1,26 @@
+Program:
+  Function: Main
+    Parameters:
+    Returns: Void
+    Body:
+      Block:
+        For: i in 1..101
+          Block:
+            If: ((i % 15) == 0)
+              Then:
+                Block:
+                  Log("FizzBuzz")
+              Else:
+                If: ((i % 3) == 0)
+                  Then:
+                    Block:
+                      Log("Fizz")
+                  Else:
+                    If: ((i % 5) == 0)
+                      Then:
+                        Block:
+                          Log("Buzz")
+                      Else:
+                        Block:
+                          Log(i)
+

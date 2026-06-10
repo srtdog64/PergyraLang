@@ -1,0 +1,135 @@
+// hash_map.pgy — Slot 의미론 기반 Hash Map (Int → Int)
+//
+// 개방 주소법(open addressing) + 선형 탐사(linear probing)
+// 고정 버킷 배열에 키-값 쌍을 저장한다.
+//
+// Pergyra의 Slot 철학:
+// - 포인터 없이 배열 인덱스로 자원을 관리
+// - 배열이 곧 메모리 풀이며, 소유자 스코프가 수명을 보장
+// - 모든 조작은 소유자 안에서 직접 수행
+
+func Main() -> Void {
+    // ---- 해시맵 구조 ----
+    // 버킷 수 = 16 (2의 거듭제곱)
+    // keys[i]   = i번째 버킷의 키
+    // vals[i]   = i번째 버킷의 값
+    // used[i]   = i번째 버킷 사용 여부 (1 = used, 0 = empty)
+    let keys: Array<Int> = [0,0,0,0, 0,0,0,0, 0,0,0,0, 0,0,0,0];
+    let vals: Array<Int> = [0,0,0,0, 0,0,0,0, 0,0,0,0, 0,0,0,0];
+    let used: Array<Int> = [0,0,0,0, 0,0,0,0, 0,0,0,0, 0,0,0,0];
+    let cap: Int = 16;
+
+    // ---- PUT: 키-값 삽입 ----
+    // put(42, 100)
+    let k1: Int = 42;
+    let v1: Int = 100;
+    let h1: Int = k1 % cap;
+    // 선형 탐사: 빈 버킷을 찾을 때까지
+    while used[h1] == 1 {
+        if keys[h1] == k1 {
+            break;  // 이미 존재 → 덮어쓰기
+        }
+        h1 = (h1 + 1) % cap;
+    }
+    ArraySet(keys, h1, k1);
+    ArraySet(vals, h1, v1);
+    ArraySet(used, h1, 1);
+
+    // put(7, 200)
+    let k2: Int = 7;
+    let v2: Int = 200;
+    let h2: Int = k2 % cap;
+    while used[h2] == 1 {
+        if keys[h2] == k2 {
+            break;
+        }
+        h2 = (h2 + 1) % cap;
+    }
+    ArraySet(keys, h2, k2);
+    ArraySet(vals, h2, v2);
+    ArraySet(used, h2, 1);
+
+    // put(23, 300) — 23 % 16 = 7, 충돌! 선형 탐사로 다음 슬롯
+    let k3: Int = 23;
+    let v3: Int = 300;
+    let h3: Int = k3 % cap;
+    while used[h3] == 1 {
+        if keys[h3] == k3 {
+            break;
+        }
+        h3 = (h3 + 1) % cap;
+    }
+    ArraySet(keys, h3, k3);
+    ArraySet(vals, h3, v3);
+    ArraySet(used, h3, 1);
+
+    // ---- GET: 키로 값 검색 ----
+    // get(42) → 100
+    let gk: Int = 42;
+    let gi: Int = gk % cap;
+    let gval: Int = -1;
+    while used[gi] == 1 {
+        if keys[gi] == gk {
+            gval = vals[gi];
+            break;
+        }
+        gi = (gi + 1) % cap;
+    }
+    Log(gval);  // 기대: 100
+
+    // get(23) → 300 (충돌 해결 후 찾기)
+    gk = 23;
+    gi = gk % cap;
+    gval = -1;
+    while used[gi] == 1 {
+        if keys[gi] == gk {
+            gval = vals[gi];
+            break;
+        }
+        gi = (gi + 1) % cap;
+    }
+    Log(gval);  // 기대: 300
+
+    // get(99) → -1 (존재하지 않음)
+    gk = 99;
+    gi = gk % cap;
+    gval = -1;
+    let probe: Int = 0;
+    while used[gi] == 1 {
+        if keys[gi] == gk {
+            gval = vals[gi];
+            break;
+        }
+        gi = (gi + 1) % cap;
+        probe = probe + 1;
+        if probe >= cap {
+            break;  // 전체 탐사 완료
+        }
+    }
+    Log(gval);  // 기대: -1
+
+    // ---- 덮어쓰기 ----
+    // put(42, 999) → 기존 값 덮어쓰기
+    gk = 42;
+    gi = gk % cap;
+    while used[gi] == 1 {
+        if keys[gi] == gk {
+            ArraySet(vals, gi, 999);
+            break;
+        }
+        gi = (gi + 1) % cap;
+    }
+
+    // get(42) → 999
+    gk = 42;
+    gi = gk % cap;
+    gval = -1;
+    while used[gi] == 1 {
+        if keys[gi] == gk {
+            gval = vals[gi];
+            break;
+        }
+        gi = (gi + 1) % cap;
+    }
+    Log(gval);  // 기대: 999
+}

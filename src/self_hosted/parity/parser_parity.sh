@@ -143,6 +143,11 @@ SOURCE_PAIRS=(
     "src/self_hosted/parser/fixture/queue.pgy:queue"
     "src/self_hosted/parser/fixture/stack.pgy:stack"
     "src/self_hosted/parser/fixture/binary_search.pgy:binary_search"
+    "src/self_hosted/parser/fixture/fizzbuzz.pgy:fizzbuzz"
+    "src/self_hosted/parser/fixture/insertion_sort.pgy:insertion_sort"
+    "src/self_hosted/parser/fixture/hash_map.pgy:hash_map"
+    "src/self_hosted/parser/fixture/linked_list.pgy:linked_list"
+    "src/self_hosted/parser/fixture/word_count.pgy:word_count"
 )
 
 cleanup_source_override() {

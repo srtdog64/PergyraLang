@@ -1,0 +1,15 @@
+// fizzbuzz.pgy — 고전 FizzBuzz
+
+func Main() -> Void {
+    for i in 1..101 {
+        if i % 15 == 0 {
+            Log("FizzBuzz");
+        } else if i % 3 == 0 {
+            Log("Fizz");
+        } else if i % 5 == 0 {
+            Log("Buzz");
+        } else {
+            Log(i);
+        }
+    }
+}

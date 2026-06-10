@@ -1,0 +1,25 @@
+Program:
+  Function: Main
+    Parameters:
+    Returns: Void
+    Body:
+      Block:
+        Let: values : Array<Int: Int> = [5, 1, 4, 2, 8]
+        Let: n : Int = ArrayLength(values)
+        Let: i : Int = 1
+        While: (i < n)
+          Block:
+            Let: key : Int = values[i]
+            Let: j : Int = (i - 1)
+            While: ((j >= 0) && (values[j] > key))
+              Block:
+                ArraySet(values, (j + 1), values[j])
+                Assign: j = (j - 1)
+            ArraySet(values, (j + 1), key)
+            Assign: i = (i + 1)
+        Let: k : Int = 0
+        While: (k < n)
+          Block:
+            Log(values[k])
+            Assign: k = (k + 1)
+

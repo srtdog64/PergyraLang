@@ -1,0 +1,22 @@
+// word_count.pgy - string split, for-in, and destructuring sketch.
+
+func CountWords(text: String) -> Int {
+    let words: Array<String> = Split(text, " ");
+    return ArrayLength(words);
+}
+
+func Main() -> Void {
+    let text: String = "the quick brown fox jumps over the lazy dog";
+    let count: Int = CountWords(text);
+    Log(count);
+
+    let words: Array<String> = Split(text, " ");
+    for word in words {
+        Log(word);
+    }
+
+    let (first, second, third) = words;
+    Log(first);
+    Log(second);
+    Log(third);
+}

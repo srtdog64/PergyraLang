@@ -1,0 +1,26 @@
+Program:
+  Function: CountWords
+    Parameters:
+      text: String
+    Returns: Int
+    Body:
+      Block:
+        Let: words : Array<String: String> = Split(text, " ")
+        Return: ArrayLength(words)
+  Function: Main
+    Parameters:
+    Returns: Void
+    Body:
+      Block:
+        Let: text : String = "the quick brown fox jumps over the lazy dog"
+        Let: count : Int = CountWords(text)
+        Log(count)
+        Let: words : Array<String: String> = Split(text, " ")
+        For: word in (null)..(null)
+          Block:
+            Log(word)
+        AST node type 6
+        Log(first)
+        Log(second)
+        Log(third)
+

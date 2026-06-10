@@ -1,0 +1,114 @@
+Program:
+  Function: Main
+    Parameters:
+    Returns: Void
+    Body:
+      Block:
+        Let: keys : Array<Int: Int> = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
+        Let: vals : Array<Int: Int> = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
+        Let: used : Array<Int: Int> = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
+        Let: cap : Int = 16
+        Let: k1 : Int = 42
+        Let: v1 : Int = 100
+        Let: h1 : Int = (k1 % cap)
+        While: (used[h1] == 1)
+          Block:
+            If: (keys[h1] == k1)
+              Then:
+                Block:
+                  Break
+            Assign: h1 = ((h1 + 1) % cap)
+        ArraySet(keys, h1, k1)
+        ArraySet(vals, h1, v1)
+        ArraySet(used, h1, 1)
+        Let: k2 : Int = 7
+        Let: v2 : Int = 200
+        Let: h2 : Int = (k2 % cap)
+        While: (used[h2] == 1)
+          Block:
+            If: (keys[h2] == k2)
+              Then:
+                Block:
+                  Break
+            Assign: h2 = ((h2 + 1) % cap)
+        ArraySet(keys, h2, k2)
+        ArraySet(vals, h2, v2)
+        ArraySet(used, h2, 1)
+        Let: k3 : Int = 23
+        Let: v3 : Int = 300
+        Let: h3 : Int = (k3 % cap)
+        While: (used[h3] == 1)
+          Block:
+            If: (keys[h3] == k3)
+              Then:
+                Block:
+                  Break
+            Assign: h3 = ((h3 + 1) % cap)
+        ArraySet(keys, h3, k3)
+        ArraySet(vals, h3, v3)
+        ArraySet(used, h3, 1)
+        Let: gk : Int = 42
+        Let: gi : Int = (gk % cap)
+        Let: gval : Int = (-1)
+        While: (used[gi] == 1)
+          Block:
+            If: (keys[gi] == gk)
+              Then:
+                Block:
+                  Assign: gval = vals[gi]
+                  Break
+            Assign: gi = ((gi + 1) % cap)
+        Log(gval)
+        Assign: gk = 23
+        Assign: gi = (gk % cap)
+        Assign: gval = (-1)
+        While: (used[gi] == 1)
+          Block:
+            If: (keys[gi] == gk)
+              Then:
+                Block:
+                  Assign: gval = vals[gi]
+                  Break
+            Assign: gi = ((gi + 1) % cap)
+        Log(gval)
+        Assign: gk = 99
+        Assign: gi = (gk % cap)
+        Assign: gval = (-1)
+        Let: probe : Int = 0
+        While: (used[gi] == 1)
+          Block:
+            If: (keys[gi] == gk)
+              Then:
+                Block:
+                  Assign: gval = vals[gi]
+                  Break
+            Assign: gi = ((gi + 1) % cap)
+            Assign: probe = (probe + 1)
+            If: (probe >= cap)
+              Then:
+                Block:
+                  Break
+        Log(gval)
+        Assign: gk = 42
+        Assign: gi = (gk % cap)
+        While: (used[gi] == 1)
+          Block:
+            If: (keys[gi] == gk)
+              Then:
+                Block:
+                  ArraySet(vals, gi, 999)
+                  Break
+            Assign: gi = ((gi + 1) % cap)
+        Assign: gk = 42
+        Assign: gi = (gk % cap)
+        Assign: gval = (-1)
+        While: (used[gi] == 1)
+          Block:
+            If: (keys[gi] == gk)
+              Then:
+                Block:
+                  Assign: gval = vals[gi]
+                  Break
+            Assign: gi = ((gi + 1) % cap)
+        Log(gval)
+

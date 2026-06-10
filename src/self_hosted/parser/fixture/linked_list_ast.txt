@@ -1,0 +1,44 @@
+Program:
+  Function: Main
+    Parameters:
+    Returns: Void
+    Body:
+      Block:
+        Let: values : Array<Int: Int> = []
+        Let: nexts : Array<Int: Int> = []
+        Let: head : Int = (-1)
+        ArrayPush(values, 10)
+        ArrayPush(nexts, head)
+        Assign: head = (ArrayLength(values) - 1)
+        ArrayPush(values, 20)
+        ArrayPush(nexts, head)
+        Assign: head = (ArrayLength(values) - 1)
+        ArrayPush(values, 30)
+        ArrayPush(nexts, head)
+        Assign: head = (ArrayLength(values) - 1)
+        Let: cur : Int = head
+        While: (cur != (-1))
+          Block:
+            Log(values[cur])
+            Assign: cur = nexts[cur]
+        Let: count : Int = 0
+        Assign: cur = head
+        While: (cur != (-1))
+          Block:
+            Assign: count = (count + 1)
+            Assign: cur = nexts[cur]
+        Log(count)
+        Let: found : Bool = false
+        Assign: cur = head
+        While: (cur != (-1))
+          Block:
+            If: (values[cur] == 20)
+              Then:
+                Block:
+                  Assign: found = true
+            Assign: cur = nexts[cur]
+        If: found
+          Then:
+            Block:
+              Log(1)
+
