@@ -1,0 +1,19 @@
+Program:
+  Function: Main
+    Parameters:
+    Returns: Void
+    Body:
+      Block:
+        Let: val : Option<Int: Int> = Some(42)
+        If: IsSome(val)
+          Then:
+            Block:
+              Log(UnwrapOption(val))
+        Match: val
+          Case: Some(v)
+            Block:
+              Log(v)
+          Case: None
+            Block:
+              Log(0)
+

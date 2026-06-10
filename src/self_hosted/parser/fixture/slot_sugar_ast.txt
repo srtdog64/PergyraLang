@@ -1,0 +1,11 @@
+Program:
+  Function: Main
+    Parameters:
+    Returns: Void
+    Body:
+      Block:
+        Let: x : Slot<Int: Int> = 42
+        Log(x)
+        Assign: x = 99
+        Log(x)
+
