@@ -5,7 +5,7 @@ The number that matters is *how much of the C/LLVM compiler has been
 substituted by Pergyra-written equivalents* -- not how many peripheral
 audit tools exist.
 
-Last updated: 2026-05-28
+Last updated: 2026-06-10
 
 ## Headline Number
 
@@ -14,15 +14,30 @@ C LOC across `src/lexer/`, `src/parser/`, `src/semantic/`, `src/codegen/`,
 `src/runtime/`, `src/compiler/`, `src/lsp/`). The combined parser+lexer
 substitute crossed **3,000 LOC**.
 
-**Parser at scale (2026-05-29):** the Pergyra-origin parser produces
-byte-equal output vs `pgy --ast` on **86 of 117** committed
-`examples/*.pgy` files (73.5%). Four files byte-drift on deferred
-semantic rewrites (intra-namespace call mangling, string interpolation,
-plus one new intent edge case). Previous: 83 → 80 → 79 → 77 → 72 →
+**Parser at scale (2026-05-31):** the Pergyra-origin parser produces
+byte-equal output vs `pgy --ast` on **105 of 117** committed
+`examples/*.pgy` files (89.7%). Four files byte-drift on deferred
+semantic rewrites (intra-namespace call mangling in `composite_intent_*`
++ `function_clause_order_minimal` + `surface_compression_maximal`),
+one file crashes the self-host parser
+(`six_item_alignment_demo`). Previous: 86 → 83 → 80 → 79 → 77 → 72 →
 72 → 63 → 59 → 58 → 57 → 53 → 48 → 46 → 43 → 37 → 25 → 11.
 Refresh:
 `bash src/self_hosted/parity/parser_scale_probe.sh`. 7 of the 117
 examples fail under `pgy --ast` itself (C-skip).
+
+**Rung-1 parity (2026-06-10):** the committed `parser_parity.sh`
+`SOURCE_PAIRS` array now exercises **127 sources** vs `pgy --ast`
+(was 83 on 2026-05-29). The +44 fixture surface added on
+2026-06-10 covers Option/Result destructure, slot sugar, transfer
+short syntax, array literal, common collection algorithms (queue,
+stack, deque, heap, linked_list, hash_map, union_find, graph_bfs),
+string + stdlib + io + math builtin surfaces, async/spawn/select/
+defer/for control flow, walrus surface, pipe + try operator,
+ownership / concurrency / event_basic demos,
+notebook style analysis, and tagged_union. The self-host parser
+already handles each addition byte-equally — the additions extend
+rung-1 parity coverage, not the parser grammar.
 
 Reading this honestly: the self-host journey has *just started*. The
 first compiler-internal substitute (`src/self_hosted/lexer/`) lands a
