@@ -54,33 +54,50 @@ ASTNode *
 semantic_host_decl_for_type(SemanticContext *ctx, const Type *type)
 {
     ASTNode *decl;
+    const char *lookup_name;
+    /* For generic-instantiated types like `Box<Int>`, the type->name is the
+     * instantiated form ("Box<Int>") which never matches a declared host name.
+     * Fall back to the base constructor's name ("Box") so that
+     * `Box(7).Get()` and similar method calls find the original class decl. */
+    const Type *constructor;
 
     if (ctx == NULL || type == NULL || type->name == NULL)
         return NULL;
     if (type->kind == TYPE_KIND_ENUM)
         return semantic_find_enum_decl_by_name(ctx, type->name);
-    if (type->kind != TYPE_KIND_CLASS)
+    if (type->kind != TYPE_KIND_CLASS
+        && type->kind != TYPE_KIND_CONSTRUCTED)
         return NULL;
 
-    decl = semantic_find_class_decl_by_name(ctx, type->name);
+    lookup_name = type->name;
+    constructor = type_constructed_constructor(type);
+    if (constructor != NULL && constructor != type
+        && constructor->name != NULL
+        && constructor->name[0] != '\0') {
+        decl = semantic_find_class_decl_by_name(ctx, type->name);
+        if (decl != NULL)
+            return decl;
+        lookup_name = constructor->name;
+    }
+    decl = semantic_find_class_decl_by_name(ctx, lookup_name);
     if (decl != NULL)
         return decl;
-    decl = semantic_find_party_decl_by_name(ctx, type->name);
+    decl = semantic_find_party_decl_by_name(ctx, lookup_name);
     if (decl != NULL)
         return decl;
-    decl = semantic_find_roster_decl_by_name(ctx, type->name);
+    decl = semantic_find_roster_decl_by_name(ctx, lookup_name);
     if (decl != NULL)
         return decl;
-    decl = semantic_find_world_decl_by_name(ctx, type->name);
+    decl = semantic_find_world_decl_by_name(ctx, lookup_name);
     if (decl != NULL)
         return decl;
-    decl = semantic_find_zone_decl_by_name(ctx, type->name);
+    decl = semantic_find_zone_decl_by_name(ctx, lookup_name);
     if (decl != NULL)
         return decl;
-    decl = semantic_find_relation_decl_by_name(ctx, type->name);
+    decl = semantic_find_relation_decl_by_name(ctx, lookup_name);
     if (decl != NULL)
         return decl;
-    return semantic_find_effect_decl_by_name(ctx, type->name);
+    return semantic_find_effect_decl_by_name(ctx, lookup_name);
 }
 
 ASTNode **
