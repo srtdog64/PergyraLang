@@ -481,14 +481,25 @@ llvm_stmt_infer_expr_type(LLVMGenCtx *ctx, ASTNode *expr)
         return llvm_stmt_unknown_expr_type(ctx, expr,
             "channel receive requires registered Channel<T> metadata");
     case AST_MEMBER_ACCESS: {
+        ASTNode *obj_node = ast_member_object(expr);
+        const char *field_name = ast_member_name(expr);
+        /* Enum-qualified variant access (`Mode.Add`): if the base
+         * identifier resolves to a registered enum variant, return the
+         * variant's i32 type (matches the emit path in
+         * llvm_emit_member_access, which lowers it to LLVMConstInt i32). */
+        if (obj_node != NULL && field_name != NULL
+            && llvm_is_upper_ident(obj_node)
+            && llvm_lookup_enum_variant_qualified(ctx,
+                ast_identifier_name(obj_node), field_name) != NULL) {
+            return ctx->type_i32;
+        }
         const char *base_name = llvm_stmt_infer_nominal_name_from_init(
-            ctx, ast_member_object(expr));
+            ctx, obj_node);
         LLVMClassTypeEntry *base_cls = base_name != NULL
             ? llvm_lookup_class(ctx, base_name) : NULL;
         /* P0 #4 fallback split into llvm_stmt_source_local_fallback.c. */
         if (base_cls == NULL) {
-            base_cls = llvm_stmt_source_local_class(ctx,
-                ast_member_object(expr));
+            base_cls = llvm_stmt_source_local_class(ctx, obj_node);
             if (base_cls != NULL)
                 base_name = base_cls->class_name;
         }
