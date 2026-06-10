@@ -1,0 +1,21 @@
+Program:
+  Let: running = true
+  Let: turn = 1
+  While: running
+    Block:
+      Let: event = Random(4)
+      If: (event == 0)
+        Then:
+          Block:
+            Log("zero")
+      If: (event == 1)
+        Then:
+          Block:
+            Log("one")
+      Assign: turn = (turn + 1)
+      If: (turn >= 3)
+        Then:
+          Block:
+            Assign: running = false
+  Log("done")
+

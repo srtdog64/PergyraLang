@@ -1,0 +1,7 @@
+Program:
+  Let: ok : Bool = true
+  If: (!ok)
+    Then:
+      Block:
+        Log("not ok")
+

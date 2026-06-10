@@ -1,0 +1,7 @@
+Program:
+  Let: x = 10
+  If: (x > 5)
+    Then:
+      Block:
+        Log("big")
+

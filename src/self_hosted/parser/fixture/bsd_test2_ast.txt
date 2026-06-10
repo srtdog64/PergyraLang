@@ -1,0 +1,18 @@
+Program:
+  Function: Greet
+    Parameters:
+      name: String
+    Returns: Void
+    Body:
+      Block:
+        Log(("Hello " + name))
+  Let: x = 10
+  While: (x > 0)
+    Block:
+      If: (x == 5)
+        Then:
+          Block:
+            Log("halfway")
+      Assign: x = (x - 1)
+  Greet("World")
+

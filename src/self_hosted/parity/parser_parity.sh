@@ -215,6 +215,17 @@ SOURCE_PAIRS=(
     "src/self_hosted/parser/fixture/dyn_test.pgy:dyn_test"
     "src/self_hosted/parser/fixture/eda_workflow.pgy:eda_workflow"
     "src/self_hosted/parser/fixture/etl_workflow.pgy:etl_workflow"
+    "src/self_hosted/parser/fixture/bsd_test.pgy:bsd_test"
+    "src/self_hosted/parser/fixture/bsd_test2.pgy:bsd_test2"
+    "src/self_hosted/parser/fixture/bsd_test3.pgy:bsd_test3"
+    "src/self_hosted/parser/fixture/bsd_test4.pgy:bsd_test4"
+    "src/self_hosted/parser/fixture/bsd_test5.pgy:bsd_test5"
+    "src/self_hosted/parser/fixture/bsd_test6.pgy:bsd_test6"
+    "src/self_hosted/parser/fixture/bsd_test7.pgy:bsd_test7"
+    "src/self_hosted/parser/fixture/bsd_test8.pgy:bsd_test8"
+    "src/self_hosted/parser/fixture/bsd_test9.pgy:bsd_test9"
+    "src/self_hosted/parser/fixture/bsd_test10.pgy:bsd_test10"
+    "src/self_hosted/parser/fixture/bsd_test11.pgy:bsd_test11"
 )
 
 cleanup_source_override() {

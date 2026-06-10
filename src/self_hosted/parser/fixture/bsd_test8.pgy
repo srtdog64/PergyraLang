@@ -1,0 +1,16 @@
+let x = 1;
+let running = true;
+while running
+{
+    if x == 0
+    {
+        Log("zero");
+    }
+
+    if x == 1
+    {
+        Log("one");
+    }
+
+    running = false;
+}

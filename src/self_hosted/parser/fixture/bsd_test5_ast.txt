@@ -1,0 +1,7 @@
+Program:
+  Let: running = true
+  While: running
+    Block:
+      Log("tick")
+      Assign: running = false
+

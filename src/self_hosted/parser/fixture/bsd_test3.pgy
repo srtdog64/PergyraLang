@@ -1,0 +1,5 @@
+let ok: Bool = true;
+if !ok
+{
+    Log("not ok");
+}
