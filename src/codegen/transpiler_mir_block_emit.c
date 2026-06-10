@@ -92,6 +92,35 @@ transpiler_emit_mir_block_statements(CodeBuf *buf, const ASTNode *func_decl,
         ctx->active_ssa_map = saved_active_ssa_map;
         return false;
     }
+    /* Seed function parameter names into the per-block SSA name map so that
+     * resource-op emit-time identifier resolution (via
+     * `transpiler_expr_identifiers_mapped`) treats a function parameter as
+     * mapped. Without this seeding, a Write resource op whose value expression
+     * references a parameter (e.g. `Write(slot, seed)`) silently fails the
+     * mapping precheck, returns HANDLED, and is dropped from the C output --
+     * while the paired residual stmt is also skipped under the mirrored-
+     * resource rule, leaving the entire Write call missing. The per-block
+     * map is regenerated from MIR SSA entry values by
+     * `transpiler_emit_mir_block_with_ssa_map` above, so we must seed
+     * parameters AFTER that regeneration and BEFORE instruction emission. */
+    if (func_decl != NULL && func_decl->type == AST_FUNC_DECL) {
+        bool routine_has_signature = mir_routine_has_signature(mir_routine);
+        size_t pcnt = routine_has_signature
+            ? mir_routine_param_count(mir_routine)
+            : ast_func_param_count(func_decl);
+        for (size_t p = 0; p < pcnt; p++) {
+            FuncParam *fp = routine_has_signature
+                ? mir_routine_param(mir_routine, p)
+                : ast_func_param(func_decl, p);
+            if (fp != NULL && fp->name != NULL
+                && transpiler_resolve_ssa_name(ssa_map_out, fp->name) == NULL) {
+                transpiler_ssa_name_map_set(ssa_map_out, fp->name, fp->name);
+            }
+        }
+        if (transpiler_resolve_ssa_name(ssa_map_out, "self") == NULL) {
+            transpiler_ssa_name_map_set(ssa_map_out, "self", "self");
+        }
+    }
     source_order_mode = !transpiler_mir_routine_has_explicit_cfg(mir_routine)
         && transpiler_mir_block_has_source_order_metadata(block)
         && block->instruction_count > 0;
