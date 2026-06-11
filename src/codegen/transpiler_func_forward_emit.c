@@ -22,7 +22,7 @@ emit_func_forward_decl_named(ASTNode *node, const char *emitted_name,
     CodeBuf *params_sig = codebuf_create();
     char *header_decl = NULL;
     const MIRRoutine *mir_routine = transpiler_find_mir_function(ctx, node);
-    bool routine_has_signature = false;
+    bool use_mir_signature = false;
     bool generic_func =
         ast_generic_param_count(ast_declaration_generic_params(node)) > 0;
     if (transpiler_active_has_mir(ctx) && mir_routine == NULL
@@ -45,21 +45,21 @@ emit_func_forward_decl_named(ASTNode *node, const char *emitted_name,
             codebuf_destroy(params_sig);
         return;
     }
-    routine_has_signature = mir_routine != NULL && transpiler_active_has_mir(ctx);
-    ASTNode *return_type = routine_has_signature
+    use_mir_signature = mir_routine != NULL;
+    ASTNode *return_type = use_mir_signature
         ? transpiler_mir_routine_return_type(mir_routine)
         : ast_func_return_type(node);
-    size_t param_count = routine_has_signature
+    size_t param_count = use_mir_signature
         ? transpiler_mir_routine_param_count(mir_routine)
         : ast_func_param_count(node);
     ensure_type_specializations_from_ast(ctx, return_type);
     for (size_t i = 0; i < param_count; i++) {
-        FuncParam *p = routine_has_signature
+        FuncParam *p = use_mir_signature
             ? transpiler_mir_routine_param(mir_routine, i)
             : ast_func_param(node, i);
         const char *pt = NULL;
         char pt_buf[256];
-        const char *type_name = routine_has_signature
+        const char *type_name = use_mir_signature
             ? transpiler_mir_routine_param_type_name(mir_routine, i)
             : NULL;
         char *owned_type_name = NULL;

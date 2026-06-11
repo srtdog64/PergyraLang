@@ -93,7 +93,7 @@ bool
 transpiler_can_forward_declare_func_early(TranspilerCtx *ctx, ASTNode *func)
 {
     const MIRRoutine *routine;
-    bool routine_has_signature;
+    bool use_mir_signature;
 
     if (ctx == NULL || func == NULL || func->type != AST_FUNC_DECL)
         return false;
@@ -111,7 +111,7 @@ transpiler_can_forward_declare_func_early(TranspilerCtx *ctx, ASTNode *func)
                 : "(anonymous)");
         return false;
     }
-    routine_has_signature = false;
+    use_mir_signature = false;
     if (!transpiler_mir_routine_signature_metadata_complete_for(ctx,
             routine,
             func,
@@ -121,14 +121,14 @@ transpiler_can_forward_declare_func_early(TranspilerCtx *ctx, ASTNode *func)
             "MIR-only C path missing function forward parameter type-name metadata for '%s'")) {
         return false;
     }
-    routine_has_signature = routine != NULL && transpiler_active_has_mir(ctx);
-    generic_param_count = routine_has_signature
+    use_mir_signature = routine != NULL;
+    generic_param_count = use_mir_signature
         ? transpiler_mir_routine_generic_param_count(routine)
         : generic_param_count;
     if (generic_param_count > 0)
         return false;
 
-    const char *return_type_name = routine_has_signature
+    const char *return_type_name = use_mir_signature
         ? transpiler_mir_routine_return_type_name(routine)
         : NULL;
     if (return_type_name != NULL) {
@@ -141,14 +141,14 @@ transpiler_can_forward_declare_func_early(TranspilerCtx *ctx, ASTNode *func)
         return false;
     }
 
-    size_t param_count = routine_has_signature
+    size_t param_count = use_mir_signature
         ? transpiler_mir_routine_param_count(routine)
         : ast_func_param_count(func);
     for (size_t i = 0; i < param_count; i++) {
-        FuncParam *p = routine_has_signature
+        FuncParam *p = use_mir_signature
             ? transpiler_mir_routine_param(routine, i)
             : ast_func_param(func, i);
-        const char *param_type_name = routine_has_signature
+        const char *param_type_name = use_mir_signature
             ? transpiler_mir_routine_param_type_name(routine, i)
             : NULL;
         if (p == NULL)
@@ -205,7 +205,7 @@ transpiler_can_forward_declare_func_after_zones(TranspilerCtx *ctx,
                                                 ASTNode *func)
 {
     const MIRRoutine *routine;
-    bool routine_has_signature;
+    bool use_mir_signature;
 
     if (ctx == NULL || func == NULL || func->type != AST_FUNC_DECL)
         return false;
@@ -223,7 +223,7 @@ transpiler_can_forward_declare_func_after_zones(TranspilerCtx *ctx,
                 : "(anonymous)");
         return false;
     }
-    routine_has_signature = false;
+    use_mir_signature = false;
     if (!transpiler_mir_routine_signature_metadata_complete_for(ctx,
             routine,
             func,
@@ -233,14 +233,14 @@ transpiler_can_forward_declare_func_after_zones(TranspilerCtx *ctx,
             "MIR-only C path missing function forward parameter type-name metadata for '%s'")) {
         return false;
     }
-    routine_has_signature = routine != NULL && transpiler_active_has_mir(ctx);
-    generic_param_count = routine_has_signature
+    use_mir_signature = routine != NULL;
+    generic_param_count = use_mir_signature
         ? transpiler_mir_routine_generic_param_count(routine)
         : generic_param_count;
     if (generic_param_count > 0)
         return false;
 
-    const char *return_type_name = routine_has_signature
+    const char *return_type_name = use_mir_signature
         ? transpiler_mir_routine_return_type_name(routine)
         : NULL;
     if (return_type_name != NULL) {
@@ -253,14 +253,14 @@ transpiler_can_forward_declare_func_after_zones(TranspilerCtx *ctx,
         return false;
     }
 
-    size_t param_count = routine_has_signature
+    size_t param_count = use_mir_signature
         ? transpiler_mir_routine_param_count(routine)
         : ast_func_param_count(func);
     for (size_t i = 0; i < param_count; i++) {
-        FuncParam *p = routine_has_signature
+        FuncParam *p = use_mir_signature
             ? transpiler_mir_routine_param(routine, i)
             : ast_func_param(func, i);
-        const char *param_type_name = routine_has_signature
+        const char *param_type_name = use_mir_signature
             ? transpiler_mir_routine_param_type_name(routine, i)
             : NULL;
         if (p == NULL)

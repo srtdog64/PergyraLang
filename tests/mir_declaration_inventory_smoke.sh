@@ -606,6 +606,7 @@ for term in \
     "transpiler_find_mir_function(ctx, func)" \
     "transpiler_mir_routine_signature_metadata_complete_for(ctx" \
     "TRANSPILER_MIR_SIGNATURE_REQUIRE_ALL_TYPE_NAMES" \
+    "use_mir_signature = routine != NULL" \
     "transpiler_mir_routine_generic_param_count(routine)" \
     "transpiler_mir_routine_return_type_name(routine)" \
     "transpiler_mir_routine_param_type_name(routine, i)" \
@@ -619,6 +620,10 @@ if grep -Fq "if (!transpiler_mir_routine_has_signature" \
     "$ROOT_DIR/src/codegen/transpiler_func_forward_policy.c"; then
     fail "C forward policy must consume transpiler_mir_signature owner"
 fi
+if grep -Fq "routine != NULL && transpiler_active_has_mir(ctx)" \
+    "$ROOT_DIR/src/codegen/transpiler_func_forward_policy.c"; then
+    fail "C forward policy must use MIR signature facts whenever a routine exists"
+fi
 if grep -Fq "ast_func_generic_params(func)" \
     "$ROOT_DIR/src/codegen/transpiler_func_forward_policy.c"; then
     fail "C forward policy must consume declaration-level generic metadata"
@@ -629,6 +634,7 @@ if grep -Fq "p == NULL || p->type == NULL" \
 fi
 for term in \
     "llvm_active_function_routine_for_source_ast(ctx, func)" \
+    "use_mir_signature = routine != NULL" \
     "llvm_mir_routine_generic_param_count(routine)" \
     "llvm_mir_routine_return_type_name(routine)" \
     "llvm_mir_routine_param_type_name(routine, i)" \
@@ -643,6 +649,10 @@ if grep -Fq "llvm_find_mir_function_for_forward_decl" \
     "$ROOT_DIR/src/codegen/llvm_backend_forward_declare.c"; then
     fail "LLVM forward policy reintroduced owner-local MIR routine lookup"
 fi
+if grep -Fq "routine != NULL && llvm_active_has_mir(ctx)" \
+    "$ROOT_DIR/src/codegen/llvm_backend_forward_declare.c"; then
+    fail "LLVM forward policy must use MIR signature facts whenever a routine exists"
+fi
 require_term "src/codegen/llvm_inventory_internal.c" \
     "llvm_active_function_routine_for_source_ast"
 for term in \
@@ -651,12 +661,15 @@ for term in \
     "LLVM_MIR_SIGNATURE_REQUIRE_RETURN_TYPE_NAME" \
     "LLVM_MIR_SIGNATURE_REQUIRE_PARAM_TYPE_NAMES" \
     "LLVM_MIR_SIGNATURE_REQUIRE_ALL_TYPE_NAMES" \
-    "llvm_active_has_mir(ctx)" \
     "llvm_mir_routine_has_signature(routine)" \
     "llvm_mir_routine_return_type_name(routine)" \
     "llvm_mir_routine_param_type_name(routine, i)"; do
     require_term "src/codegen/llvm_mir_signature.c" "$term"
 done
+if grep -Fq "routine == NULL || !llvm_active_has_mir(ctx)" \
+        "$ROOT_DIR/src/codegen/llvm_mir_signature.c"; then
+    fail "LLVM MIR signature owner must require metadata for any MIR routine, not only active-MIR builds"
+fi
 require_term "src/codegen/llvm_mir_signature.h" \
     "llvm_mir_routine_signature_metadata_complete"
 require_term "src/codegen/llvm_mir_signature.h" \
@@ -669,9 +682,14 @@ done
 for term in \
     "llvm_mir_routine_signature_metadata_complete_for(ctx" \
     "LLVM_MIR_SIGNATURE_REQUIRE_PARAM_TYPE_NAMES" \
+    "use_mir_signature = routine != NULL" \
     "MIR-only LLVM path missing boundary call signature metadata"; do
     require_term "src/codegen/llvm_expr_boundary_projection_helpers.c" "$term"
 done
+if grep -Fq "routine_has_signature" \
+        "$ROOT_DIR/src/codegen/llvm_expr_boundary_projection_helpers.c"; then
+    fail "LLVM boundary call lowering must use explicit MIR signature facts, not routine_has_signature fallback naming"
+fi
 for term in \
     "llvm_mir_routine_signature_metadata_complete_for(ctx" \
     "LLVM_MIR_SIGNATURE_REQUIRE_RETURN_TYPE_NAME" \
@@ -2924,12 +2942,15 @@ for term in \
     "TRANSPILER_MIR_SIGNATURE_REQUIRE_PARAM_TYPE_NAMES" \
     "TRANSPILER_MIR_SIGNATURE_REQUIRE_ALL_TYPE_NAMES" \
     "transpiler_mir_routine_signature_supported" \
-    "transpiler_active_has_mir(ctx)" \
     "MIR-only C path missing function signature eligibility metadata" \
     "mir_routine_return_type_name(routine)" \
     "mir_routine_param_type_name(routine, i)"; do
     require_term "src/codegen/transpiler_mir_signature.c" "$term"
 done
+if grep -Fq "routine == NULL || !transpiler_active_has_mir(ctx)" \
+        "$ROOT_DIR/src/codegen/transpiler_mir_signature.c"; then
+    fail "C MIR signature owner must require metadata for any MIR routine, not only active-MIR builds"
+fi
 require_term "src/codegen/transpiler_mir_signature.h" \
     "transpiler_mir_routine_signature_supported"
 require_term "src/codegen/transpiler_mir_signature.h" \
@@ -2977,7 +2998,6 @@ for rel in \
     fi
 done
 for term in \
-    "bool routine_has_signature = true" \
     "transpiler_mir_routine_signature_metadata_complete_for(ctx" \
     "TRANSPILER_MIR_SIGNATURE_REQUIRE_ALL_TYPE_NAMES" \
     "MIR-only C path missing function body routine" \
@@ -2994,6 +3014,19 @@ if grep -Fq "if (!transpiler_mir_routine_has_signature" \
     "$ROOT_DIR/src/codegen/transpiler_mir_func_emit.c"; then
     fail "C MIR function body emission must consume transpiler_mir_signature owner"
 fi
+for rel in \
+    "src/codegen/transpiler_mir_func_emit.c" \
+    "src/codegen/transpiler_mir_block_emit.c" \
+    "src/codegen/transpiler_mir_emission_mapping_contract.c"; do
+    if grep -Eq 'routine_has_signature|ast_func_param_count\((node|func_decl)\)|ast_func_param\((node|func_decl)' \
+        "$ROOT_DIR/$rel"; then
+        fail "$rel must seed and emit MIR parameters from MIR routine signature facts"
+    fi
+done
+if grep -Fq "ast_func_return_type(node)" \
+    "$ROOT_DIR/src/codegen/transpiler_mir_func_emit.c"; then
+    fail "C MIR function body emission must render return type from MIR routine signature facts"
+fi
 if grep -R -n -F "transpiler_register_explicit_local_bindings_in_block" \
         "$ROOT_DIR/src/codegen" \
         --include='*.c' --include='*.h' >/dev/null; then
@@ -3003,7 +3036,7 @@ for term in \
     "transpiler_find_mir_function(ctx, node)" \
     "transpiler_mir_routine_signature_metadata_complete_for(ctx" \
     "TRANSPILER_MIR_SIGNATURE_REQUIRE_ALL_TYPE_NAMES" \
-    "routine_has_signature = mir_routine != NULL && transpiler_active_has_mir(ctx)" \
+    "use_mir_signature = mir_routine != NULL" \
     "MIR-only C path missing function forward routine" \
     "MIR-only C path missing function forward signature metadata" \
     "transpiler_mir_routine_param_count(mir_routine)" \
@@ -3015,6 +3048,10 @@ done
 if grep -Fq "if (!transpiler_mir_routine_has_signature" \
     "$ROOT_DIR/src/codegen/transpiler_func_forward_emit.c"; then
     fail "C function forward emission must consume transpiler_mir_signature owner"
+fi
+if grep -Fq "mir_routine != NULL && transpiler_active_has_mir(ctx)" \
+    "$ROOT_DIR/src/codegen/transpiler_func_forward_emit.c"; then
+    fail "C function forward emission must use MIR signature facts whenever a routine exists"
 fi
 for term in \
     "transpiler_mir_routine_signature_metadata_complete_for(ctx" \
@@ -3223,7 +3260,6 @@ if grep -Fq "transpiler_has_local_binding_in_block" \
     fail "C MIR local-binding AST block scan must stay private to its non-MIR compatibility owner"
 fi
 for term in \
-    "mir_routine_has_signature(routine)" \
     "mir_routine_param_count(routine)" \
     "mir_routine_param(routine, p)"; do
     require_term "src/codegen/transpiler_mir_emission_mapping_contract.c" "$term"
@@ -3390,7 +3426,7 @@ fi
 for term in \
     "llvm_forward_declare_func_from_mir" \
     "llvm_forward_declare_func_with_signature" \
-    "routine_has_signature = routine != NULL && llvm_active_has_mir(ctx)" \
+    "use_mir_signature = routine != NULL" \
     "llvm_mir_routine_signature_metadata_complete(" \
     "MIR-only LLVM path missing function forward routine" \
     "MIR-only LLVM path missing function forward signature metadata" \
@@ -3401,8 +3437,10 @@ for term in \
     "llvm_mir_routine_return_type_name(routine)"; do
     require_term "src/codegen/llvm_decl.c" "$term"
 done
-require_term "src/codegen/llvm_mir_signature.c" \
-    "llvm_active_has_mir(ctx)"
+if grep -Fq "routine != NULL && llvm_active_has_mir(ctx)" \
+    "$ROOT_DIR/src/codegen/llvm_decl.c"; then
+    fail "LLVM function declaration emission must use MIR signature facts whenever a routine exists"
+fi
 require_term "src/codegen/llvm_boundary_slot_param.h" \
     "llvm_boundary_slot_inner_name_from_type_name"
 require_term "src/codegen/llvm_boundary_slot_param.c" \

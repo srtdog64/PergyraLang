@@ -104,14 +104,9 @@ transpiler_emit_mir_block_statements(CodeBuf *buf, const ASTNode *func_decl,
      * `transpiler_emit_mir_block_with_ssa_map` above, so we must seed
      * parameters AFTER that regeneration and BEFORE instruction emission. */
     if (func_decl != NULL && func_decl->type == AST_FUNC_DECL) {
-        bool routine_has_signature = mir_routine_has_signature(mir_routine);
-        size_t pcnt = routine_has_signature
-            ? mir_routine_param_count(mir_routine)
-            : ast_func_param_count(func_decl);
+        size_t pcnt = mir_routine_param_count(mir_routine);
         for (size_t p = 0; p < pcnt; p++) {
-            FuncParam *fp = routine_has_signature
-                ? mir_routine_param(mir_routine, p)
-                : ast_func_param(func_decl, p);
+            FuncParam *fp = mir_routine_param(mir_routine, p);
             if (fp != NULL && fp->name != NULL
                 && transpiler_resolve_ssa_name(ssa_map_out, fp->name) == NULL) {
                 transpiler_ssa_name_map_set(ssa_map_out, fp->name, fp->name);

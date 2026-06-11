@@ -9,17 +9,17 @@ llvm_function_emitted_param_count(LLVMGenCtx *ctx, ASTNode *node,
                                   const MIRRoutine *routine)
 {
     unsigned count = 0;
-    bool routine_has_signature = routine != NULL && llvm_active_has_mir(ctx);
-    size_t param_count = routine_has_signature
+    bool use_mir_signature = routine != NULL;
+    size_t param_count = use_mir_signature
         ? llvm_mir_routine_param_count(routine)
         : ast_func_param_count(node);
 
     for (size_t i = 0; i < param_count; i++) {
         bool is_secure = false;
-        FuncParam *p = routine_has_signature
+        FuncParam *p = use_mir_signature
             ? llvm_mir_routine_param(routine, i)
             : ast_func_param(node, i);
-        const char *param_type_name = routine_has_signature
+        const char *param_type_name = use_mir_signature
             ? llvm_mir_routine_param_type_name(routine, i)
             : NULL;
         const char *slot_inner = NULL;
@@ -111,7 +111,7 @@ llvm_forward_declare_func_with_signature(ASTNode *node,
                                          LLVMGenCtx *ctx)
 {
     const char *name = ast_declaration_name(node);
-    bool routine_has_signature = false;
+    bool use_mir_signature = false;
     bool generic_func =
         ast_generic_param_count(ast_declaration_generic_params(node)) > 0;
     bool extern_func = llvm_decl_is_extern_function(ctx, node);
@@ -131,8 +131,8 @@ llvm_forward_declare_func_with_signature(ASTNode *node,
             "MIR-only LLVM path missing function declaration parameter type-name metadata for '%s'")) {
         return;
     }
-    routine_has_signature = routine != NULL && llvm_active_has_mir(ctx);
-    size_t param_count = routine_has_signature
+    use_mir_signature = routine != NULL;
+    size_t param_count = use_mir_signature
         ? llvm_mir_routine_param_count(routine)
         : ast_func_param_count(node);
     unsigned emitted_param_count =
@@ -140,10 +140,10 @@ llvm_forward_declare_func_with_signature(ASTNode *node,
 
     /* Return type */
     LLVMTypeRef ret_type = ctx->type_void;
-    const char *return_type_name = routine_has_signature
+    const char *return_type_name = use_mir_signature
         ? llvm_mir_routine_return_type_name(routine)
         : NULL;
-    ASTNode *return_type = routine_has_signature
+    ASTNode *return_type = use_mir_signature
         ? llvm_mir_routine_return_type(routine)
         : ast_func_return_type(node);
     if (return_type_name != NULL) {
@@ -171,10 +171,10 @@ llvm_forward_declare_func_with_signature(ASTNode *node,
         unsigned pidx = 0;
         for (size_t i = 0; i < param_count; i++) {
             bool is_secure = false;
-            FuncParam *p = routine_has_signature
+            FuncParam *p = use_mir_signature
                 ? llvm_mir_routine_param(routine, i)
                 : ast_func_param(node, i);
-            const char *param_type_name = routine_has_signature
+            const char *param_type_name = use_mir_signature
                 ? llvm_mir_routine_param_type_name(routine, i)
                 : NULL;
             const char *slot_inner = NULL;

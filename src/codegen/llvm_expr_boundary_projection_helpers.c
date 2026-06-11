@@ -116,7 +116,7 @@ llvm_build_boundary_call_args(LLVMGenCtx *ctx, ASTNode *decl,
     LLVMValueRef *args;
     unsigned emitted_count = 0;
     const MIRRoutine *routine = NULL;
-    bool routine_has_signature = false;
+    bool use_mir_signature = false;
     const char *decl_name = NULL;
     bool decl_is_generic = false;
     bool decl_is_extern = false;
@@ -147,10 +147,10 @@ llvm_build_boundary_call_args(LLVMGenCtx *ctx, ASTNode *decl,
                 "MIR-only LLVM path missing boundary call parameter type-name metadata for '%s'")) {
             return NULL;
         }
-        routine_has_signature = true;
     }
+    use_mir_signature = routine != NULL;
 
-    param_count = routine_has_signature
+    param_count = use_mir_signature
         ? llvm_mir_routine_param_count(routine)
         : ast_func_param_count(decl);
     if (argc != param_count)
@@ -159,10 +159,10 @@ llvm_build_boundary_call_args(LLVMGenCtx *ctx, ASTNode *decl,
 
     for (size_t i = 0; i < param_count; i++) {
         bool is_secure = false;
-        FuncParam *p = routine_has_signature
+        FuncParam *p = use_mir_signature
             ? llvm_mir_routine_param(routine, i)
             : ast_func_param(decl, i);
-        const char *param_type_name = routine_has_signature
+        const char *param_type_name = use_mir_signature
             ? llvm_mir_routine_param_type_name(routine, i)
             : NULL;
         const char *inner = NULL;
@@ -187,10 +187,10 @@ llvm_build_boundary_call_args(LLVMGenCtx *ctx, ASTNode *decl,
     unsigned emitted_idx = 0;
     for (size_t i = 0; i < param_count && arg_idx < argc; i++) {
         bool is_secure = false;
-        FuncParam *p = routine_has_signature
+        FuncParam *p = use_mir_signature
             ? llvm_mir_routine_param(routine, i)
             : ast_func_param(decl, i);
-        const char *param_type_name = routine_has_signature
+        const char *param_type_name = use_mir_signature
             ? llvm_mir_routine_param_type_name(routine, i)
             : NULL;
         const char *inner = param_type_name != NULL

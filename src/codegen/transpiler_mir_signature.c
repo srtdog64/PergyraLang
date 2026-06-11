@@ -109,7 +109,7 @@ transpiler_mir_routine_signature_metadata_complete_for(
             ? ast_declaration_name((ASTNode *)func_decl)
             : "(anonymous)";
 
-    if (routine == NULL || !transpiler_active_has_mir(ctx))
+    if (routine == NULL)
         return true;
 
     if (!mir_routine_has_signature(routine)) {

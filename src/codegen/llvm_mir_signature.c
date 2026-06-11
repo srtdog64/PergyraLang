@@ -29,7 +29,7 @@ llvm_mir_routine_signature_metadata_complete_for(
 {
     const char *func_name = llvm_signature_decl_name(func_decl);
 
-    if (routine == NULL || !llvm_active_has_mir(ctx))
+    if (routine == NULL)
         return true;
 
     if (!llvm_mir_routine_has_signature(routine)) {

@@ -65,7 +65,6 @@ emit_func_decl_from_mir_named(ASTNode *node, const MIRRoutine *mir_routine,
     bool owner_is_world = owner_ast_type == AST_WORLD_DECL;
     bool pointer_self = false;
     ASTNode *resolved_host_decl = NULL;
-    bool routine_has_signature = true;
     ASTNode *return_type = NULL;
     size_t func_param_count = 0;
 
@@ -140,12 +139,9 @@ emit_func_decl_from_mir_named(ASTNode *node, const MIRRoutine *mir_routine,
 
     ensure_collection_specializations_from_stmt_to(ctx, ctx->decls, node);
 
-    return_type = routine_has_signature
-        ? transpiler_mir_routine_return_type(mir_routine)
-        : ast_func_return_type(node);
-    const char *return_type_name = routine_has_signature
-        ? transpiler_mir_routine_return_type_name(mir_routine)
-        : NULL;
+    return_type = transpiler_mir_routine_return_type(mir_routine);
+    const char *return_type_name =
+        transpiler_mir_routine_return_type_name(mir_routine);
     if (return_type_name != NULL) {
         transpiler_set_current_return_type_local(ctx, return_type_name);
     } else if (return_type != NULL) {
@@ -171,18 +167,13 @@ emit_func_decl_from_mir_named(ASTNode *node, const MIRRoutine *mir_routine,
         }
     }
 
-    func_param_count = routine_has_signature
-        ? transpiler_mir_routine_param_count(mir_routine)
-        : ast_func_param_count(node);
+    func_param_count = transpiler_mir_routine_param_count(mir_routine);
     for (size_t i = 0; i < func_param_count; i++) {
-        FuncParam *p = routine_has_signature
-            ? transpiler_mir_routine_param(mir_routine, i)
-            : ast_func_param(node, i);
+        FuncParam *p = transpiler_mir_routine_param(mir_routine, i);
         char pt_buf[256];
         const char *pt = NULL;
-        const char *type_name = routine_has_signature
-            ? transpiler_mir_routine_param_type_name(mir_routine, i)
-            : NULL;
+        const char *type_name =
+            transpiler_mir_routine_param_type_name(mir_routine, i);
         char *owned_type_name = NULL;
         char *decl = NULL;
         bool boundary_slot = false;
@@ -367,12 +358,9 @@ emit_func_decl_from_mir_named(ASTNode *node, const MIRRoutine *mir_routine,
         }
     }
     for (size_t i = 0; i < func_param_count; i++) {
-        FuncParam *p = routine_has_signature
-            ? transpiler_mir_routine_param(mir_routine, i)
-            : ast_func_param(node, i);
-        const char *type_name = routine_has_signature
-            ? transpiler_mir_routine_param_type_name(mir_routine, i)
-            : NULL;
+        FuncParam *p = transpiler_mir_routine_param(mir_routine, i);
+        const char *type_name =
+            transpiler_mir_routine_param_type_name(mir_routine, i);
         char *owned_type_name = NULL;
         if (p == NULL || p->name == NULL)
             continue;
@@ -490,9 +478,7 @@ emit_func_decl_from_mir_named(ASTNode *node, const MIRRoutine *mir_routine,
 
         /* Ensure function parameters are in SSA map for expression resolution in branches/returns */
         for (size_t p = 0; p < func_param_count; p++) {
-            FuncParam *param = routine_has_signature
-                ? transpiler_mir_routine_param(mir_routine, p)
-                : ast_func_param(node, p);
+            FuncParam *param = transpiler_mir_routine_param(mir_routine, p);
             if (param != NULL && param->name != NULL) {
                 if (transpiler_resolve_ssa_name(&block_ssa_map, param->name) == NULL) {
                     transpiler_ssa_name_map_set(&block_ssa_map, param->name, param->name);

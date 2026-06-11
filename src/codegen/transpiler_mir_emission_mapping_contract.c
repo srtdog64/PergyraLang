@@ -108,15 +108,9 @@ transpiler_has_mapping_for_all_emitted_blocks(const TranspilerCtx *ctx,
         }
         if (func_decl != NULL) {
             if (func_decl->type == AST_FUNC_DECL) {
-                bool routine_has_signature =
-                    mir_routine_has_signature(routine);
-                size_t param_count = routine_has_signature
-                    ? mir_routine_param_count(routine)
-                    : ast_func_param_count(func_decl);
+                size_t param_count = mir_routine_param_count(routine);
                 for (size_t p = 0; p < param_count; p++) {
-                    FuncParam *param = routine_has_signature
-                        ? mir_routine_param(routine, p)
-                        : ast_func_param(func_decl, p);
+                    FuncParam *param = mir_routine_param(routine, p);
                     if (param != NULL && param->name != NULL)
                         transpiler_ssa_name_map_set(&ssa_map,
                             param->name, param->name);
