@@ -4918,6 +4918,10 @@ if grep -RIn "PGY_CODE_MIR_INTENT_CARRIER_MISSING" \
 fi
 require_term "src/codegen/transpiler_mir_emit_state.c" \
     "transpiler_set_mir_inventory_missing("
+require_term "src/codegen/transpiler_mir_emit_state.c" \
+    "MIR-only C path attempted AST hosted method body emission"
+require_term "src/codegen/transpiler_mir_emit_state.c" \
+    "transpiler_active_has_mir(ctx)"
 require_term "src/codegen/transpiler_mir_func_emit.c" \
     "transpiler_set_mir_topology_invalid("
 require_term "src/codegen/transpiler_mir_terminator_emit.c" \

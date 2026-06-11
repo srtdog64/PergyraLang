@@ -8,6 +8,7 @@
 #include "transpiler_decl_lookup.h"
 #include "transpiler_context.h"
 #include "transpiler_host_self_policy.h"
+#include "transpiler_inventory_view.h"
 #include "transpiler_symbols.h"
 #include "transpiler_type_render.h"
 #include "semantic/diag_codes.h"
@@ -114,6 +115,16 @@ transpiler_emit_host_method_body_local(TranspilerCtx *ctx, ASTNode *host_decl,
 
     if (ctx == NULL || method == NULL || self_type_name == NULL)
         return;
+
+    if (transpiler_active_has_mir(ctx)) {
+        transpiler_set_mir_inventory_missing(
+            ctx,
+            "MIR-only C path attempted AST hosted method body emission for '%s.%s'",
+            self_type_name,
+            method->type == AST_FUNC_DECL && ast_declaration_name(method) != NULL
+                ? ast_declaration_name(method) : "<method>");
+        return;
+    }
 
     if (host_decl == NULL) {
         transpiler_set_mir_inventory_missing(
