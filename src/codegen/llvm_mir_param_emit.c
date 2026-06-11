@@ -79,8 +79,6 @@ llvm_emit_mir_param_allocas(const MIRRoutine *routine, ASTNode *func_decl,
             "MIR-only LLVM path missing function parameter type-name metadata for '%s'")) {
         return;
     }
-    const bool routine_has_signature =
-        !is_intent && routine != NULL && llvm_active_has_mir(ctx);
     if (!is_intent) {
         size_t emitted_index = 0;
         if (is_method) {
@@ -102,22 +100,16 @@ llvm_emit_mir_param_allocas(const MIRRoutine *routine, ASTNode *func_decl,
             emitted_index = 1;
         }
 
-        size_t func_param_count = routine_has_signature
-            ? llvm_mir_routine_param_count(routine)
-            : ast_func_param_count(func_decl);
+        size_t func_param_count = llvm_mir_routine_param_count(routine);
         for (size_t param_index = 0; param_index < func_param_count;
              param_index++) {
-            FuncParam *p = routine_has_signature
-                ? llvm_mir_routine_param(routine, param_index)
-                : ast_func_param(func_decl, param_index);
+            FuncParam *p = llvm_mir_routine_param(routine, param_index);
             bool is_secure_slot = false;
             const char *slot_inner;
             LLVMTypeRef pt;
             LLVMValueRef alloca;
             const char *param_type_name =
-                routine_has_signature
-                    ? llvm_mir_routine_param_type_name(routine, param_index)
-                    : NULL;
+                llvm_mir_routine_param_type_name(routine, param_index);
 
             if (p == NULL || (is_method && llvm_param_is_implicit_self_local(p))) {
                 continue;
@@ -276,15 +268,12 @@ llvm_emit_mir_param_allocas(const MIRRoutine *routine, ASTNode *func_decl,
                 size_t seen = 0;
                 FuncParam *p = NULL;
                 size_t source_param_index = (size_t)-1;
-                size_t func_param_count = routine_has_signature
-                    ? llvm_mir_routine_param_count(routine)
-                    : ast_func_param_count(func_decl);
+                size_t func_param_count =
+                    llvm_mir_routine_param_count(routine);
                 for (size_t param_index = 0; param_index < func_param_count;
                      param_index++) {
                     FuncParam *candidate =
-                        routine_has_signature
-                            ? llvm_mir_routine_param(routine, param_index)
-                            : ast_func_param(func_decl, param_index);
+                        llvm_mir_routine_param(routine, param_index);
                     if (llvm_param_is_implicit_self_local(candidate)) {
                         continue;
                     }
@@ -299,7 +288,6 @@ llvm_emit_mir_param_allocas(const MIRRoutine *routine, ASTNode *func_decl,
                     continue;
                 const char *param_type_name =
                     source_param_index != (size_t)-1
-                        && routine_has_signature
                         ? llvm_mir_routine_param_type_name(routine,
                             source_param_index)
                         : NULL;

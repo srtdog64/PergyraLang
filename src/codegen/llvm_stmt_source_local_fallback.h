@@ -1,6 +1,6 @@
 /*
  * Copyright (c) 2026 Pergyra Language Project
- * P0 #4 AST-walk fallback declaration.
+ * P0 #4 source-local MIR owner and non-MIR compatibility declarations.
  */
 #ifndef PGY_LLVM_STMT_SOURCE_LOCAL_FALLBACK_H
 #define PGY_LLVM_STMT_SOURCE_LOCAL_FALLBACK_H

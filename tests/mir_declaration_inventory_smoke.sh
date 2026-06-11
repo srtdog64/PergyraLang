@@ -3123,18 +3123,74 @@ if ! awk '
 ' "$ROOT_DIR/src/codegen/transpiler_mir_inventory_intent_collect.c"; then
     fail "C function routine lookup must check exact routine names before prefix-specialization names"
 fi
-# The AST body scan was originally gated behind `!active_has_mir(ctx)`.
-# It now also runs under MIR-active builds as the hosted self-call
-# fallback (e.g. `let gained = TakeLoot(...)` inside a world method),
-# but every leaf type decision still routes through MIR-aware
-# `infer_expression_type_name`. Keep the invariant that the caller is
-# pinned to the documented constrained-fallback comment so the body
-# scan isn't reintroduced as silent best-effort recovery elsewhere.
-if ! grep -B12 -F "transpiler_find_local_type_name_in_block(ctx, func_decl," \
+require_term "src/codegen/transpiler_mir_local_type_lookup.c" \
+    "transpiler_mir_routine_source_local_type_name("
+if ! grep -B3 -F "transpiler_find_local_type_name_in_block(ctx, func_decl," \
         "$ROOT_DIR/src/codegen/transpiler_mir_local_type_lookup.c" |
-        grep -Fq "constrained fallback"; then
-    fail "C MIR local type AST body scan must be pinned to the documented constrained-fallback comment"
+        grep -Fq "Non-MIR compatibility fallback"; then
+    fail "C MIR local type AST body scan must remain behind non-MIR compatibility fallback"
 fi
+if grep -B12 -F "transpiler_find_local_type_name_in_block(ctx, func_decl," \
+        "$ROOT_DIR/src/codegen/transpiler_mir_local_type_lookup.c" |
+        grep -Fq "with MIR active"; then
+    fail "C MIR local type lookup must not document MIR-active AST body scan"
+fi
+require_term "src/codegen/llvm_stmt_source_local_fallback.c" \
+    "llvm_active_function_routine_for_source_ast(ctx, ctx->current_func_decl)"
+require_term "src/codegen/llvm_stmt_source_local_fallback.c" \
+    "routine == NULL && llvm_active_has_mir(ctx)"
+require_term "src/codegen/llvm_stmt_source_local_fallback.c" \
+    "mir_routine_source_local_type_name(routine,"
+require_term "src/codegen/llvm_stmt_source_local_fallback.c" \
+    "legacy non-MIR callers fall back"
+require_term "src/codegen/llvm_stmt_source_local_fallback.c" \
+    "non-MIR host-method return-type compatibility lookup"
+require_term "src/codegen/llvm_stmt_source_local_fallback.c" \
+    "if (llvm_active_has_mir(ctx))"
+require_term "src/codegen/llvm_mir_emit.c" \
+    "llvm_mir_preregister_source_local_classes(ctx, routine)"
+require_term "src/codegen/llvm_mir_emit.c" \
+    "routine->source_local_type_count"
+if grep -Fq "llvm_mir_preregister_let_var_classes" \
+        "$ROOT_DIR/src/codegen/llvm_mir_emit.c"; then
+    fail "LLVM MIR eager var-class registration must consume MIR source-local facts, not AST let walks"
+fi
+if grep -B3 -F "llvm_mir_preregister_source_local_classes(ctx, routine)" \
+        "$ROOT_DIR/src/codegen/llvm_mir_emit.c" |
+        grep -Fq "ast_func_body"; then
+    fail "LLVM MIR eager var-class registration reintroduced function-body AST walking"
+fi
+if grep -A18 -F "mir_routine_source_local_type_name(const MIRRoutine *routine," \
+        "$ROOT_DIR/src/compiler/mir_program_inventory.c" |
+        grep -Fq "mir_routine_source_local_walk"; then
+    fail "MIR routine source-local type lookup must be fact-only, not AST fallback"
+fi
+if grep -Fq "mir_source_local_type_name_in_ast(ASTNode *body" \
+        "$ROOT_DIR/src/compiler/mir_program_inventory.c"; then
+    fail "MIR program inventory must not own source-local AST compatibility lookup"
+fi
+require_term "src/compiler/mir.h" "MIRSourceLocalType"
+require_term "src/compiler/mir.h" "source_local_types"
+if grep -Fq "mir_source_local_type_name_in_ast" \
+        "$ROOT_DIR/src/compiler/mir.h"; then
+    fail "MIR public inventory header must not expose source-local AST compatibility lookup"
+fi
+require_term "src/compiler/mir_source_local_types.h" \
+    "mir_source_local_type_name_in_ast"
+require_term "src/compiler/mir_source_local_types.c" \
+    "mir_source_local_type_capture_node"
+require_term "src/compiler/mir_source_local_types.c" \
+    "mir_source_local_type_name_in_ast(ASTNode *body"
+require_term "src/compiler/mir.c" \
+    "mir_routine_source_local_type_names_capture(&routine)"
+require_term "src/compiler/mir_program_validate.c" \
+    "without source-local type inventory"
+require_term "src/compiler/mir_program_validate.c" \
+    "source-local type fact[%zu] is incomplete"
+require_term "src/tests/mir/test_mir_lowering_part_c.cases.h" \
+    "MIR validator rejects missing source-local type inventory"
+require_term "src/tests/mir/test_mir_lowering_part_c.cases.h" \
+    "MIR validator rejects invalid source-local type fact"
 if grep -Fq "transpiler_find_active_function_routine_for_call" \
         "$ROOT_DIR/src/codegen/transpiler_mir_local_type_lookup.c"; then
     fail "C MIR local type lookup reintroduced owner-local routine scan"
@@ -3266,7 +3322,6 @@ for term in \
     "llvm_mir_routine_name(routine)" \
     "llvm_mir_routine_owner_name(routine)" \
     "llvm_mir_routine_owner_ast_type(routine)" \
-    "const bool routine_has_signature =" \
     "llvm_mir_routine_signature_metadata_complete(ctx" \
     "MIR-only LLVM path missing function body signature metadata" \
     "llvm_mir_routine_param_count(routine)" \
@@ -3281,6 +3336,14 @@ if grep -Fq "!is_intent && llvm_active_has_mir(ctx)" \
     "$ROOT_DIR/src/codegen/llvm_mir_emit.c"; then
     fail "LLVM MIR body emission must consume llvm_mir_signature owner"
 fi
+for rel in \
+    "src/codegen/llvm_mir_emit.c" \
+    "src/codegen/llvm_mir_param_emit.c"; do
+    if grep -Eq 'ast_func_(return_type|param_count|param)\(' \
+        "$ROOT_DIR/$rel"; then
+        fail "$rel must not reopen source-AST function signature fallback"
+    fi
+done
 for rel in \
     "src/codegen/llvm_decl_routines.c" \
     "src/codegen/llvm_intent_flow.c" \
@@ -3353,7 +3416,6 @@ require_term "src/codegen/llvm_mir_signature.c" \
 for term in \
     "llvm_mir_routine_signature_metadata_complete_for(ctx" \
     "LLVM_MIR_SIGNATURE_REQUIRE_PARAM_TYPE_NAMES" \
-    "const bool routine_has_signature =" \
     "MIR-only LLVM path missing function parameter routine" \
     "MIR-only LLVM path missing function parameter signature metadata" \
     "llvm_mir_routine_param_count(routine)" \

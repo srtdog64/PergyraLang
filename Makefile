@@ -806,7 +806,9 @@ COMPILER_SOURCES = $(COMPILER_DIR)/compiler.c \
                    $(COMPILER_DIR)/hir_routine_cfg.c \
                    $(COMPILER_DIR)/hir_callgraph.c \
                    $(COMPILER_DIR)/mir.c \
+                   $(COMPILER_DIR)/mir_signature_metadata.c \
                    $(COMPILER_DIR)/mir_source_shape.c \
+                   $(COMPILER_DIR)/mir_source_local_types.c \
                    $(COMPILER_DIR)/mir_names.c \
                    $(COMPILER_DIR)/mir_lifecycle.c \
                    $(COMPILER_DIR)/mir_base_helpers.c \
@@ -1252,7 +1254,9 @@ AIR_CORE_OBJECTS = $(BUILD_DIR)/compiler/air_names.o \
                    $(BUILD_DIR)/compiler/air_evidence_runtime.o \
                    $(BUILD_DIR)/compiler/air_evidence_dag.o \
                    $(BUILD_DIR)/compiler/mir_program_inventory.o \
+                   $(BUILD_DIR)/compiler/mir_signature_metadata.o \
                    $(BUILD_DIR)/compiler/mir_source_shape.o \
+                   $(BUILD_DIR)/compiler/mir_source_local_types.o \
                    $(BUILD_DIR)/compiler/mir_intent_fact.o \
                    $(BUILD_DIR)/compiler/mir_stmt_source.o \
                    $(BUILD_DIR)/compiler/mir_cleanup_fact_names.o \
@@ -1274,7 +1278,9 @@ AIR_CORE_OBJECTS = $(BUILD_DIR)/compiler/air_names.o \
                    $(BUILD_DIR)/compiler/air_verify.o \
                    $(BUILD_DIR)/compiler/air_verify_provenance.o
 MIR_CORE_OBJECTS = $(BUILD_DIR)/compiler/mir.o \
+                   $(BUILD_DIR)/compiler/mir_signature_metadata.o \
                    $(BUILD_DIR)/compiler/mir_source_shape.o \
+                   $(BUILD_DIR)/compiler/mir_source_local_types.o \
                    $(BUILD_DIR)/compiler/mir_names.o \
                    $(BUILD_DIR)/compiler/mir_lifecycle.o \
                    $(BUILD_DIR)/compiler/mir_base_helpers.o \

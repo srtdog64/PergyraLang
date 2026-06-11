@@ -12,7 +12,8 @@
 #include "../parser/ast_api.h"
 #include "mir_lower_population.h"
 #include "mir_public_surface.h"
-#include "mir_type_helpers.h"
+#include "mir_signature_metadata.h"
+#include "mir_source_local_types.h"
 
 static MIRBranchShape
 mir_branch_shape_from_ast(const ASTNode *node)
@@ -28,46 +29,6 @@ mir_branch_shape_from_ast(const ASTNode *node)
     if (node->type == AST_BLOCK)
         return MIR_BRANCH_SELECT_DISPATCH;
     return MIR_BRANCH_EXPR;
-}
-
-static void
-mir_routine_signature_type_names_clear(MIRRoutine *routine)
-{
-    if (routine == NULL)
-        return;
-    if (routine->param_type_names != NULL) {
-        for (size_t i = 0; i < routine->param_count; i++)
-            free(routine->param_type_names[i]);
-    }
-    free(routine->param_type_names);
-    routine->param_type_names = NULL;
-    free(routine->return_type_name);
-    routine->return_type_name = NULL;
-}
-
-static bool
-mir_routine_signature_type_names_capture(MIRRoutine *routine)
-{
-    if (routine == NULL || !routine->has_signature)
-        return true;
-
-    if (routine->param_count > 0) {
-        if (routine->param_count > SIZE_MAX / sizeof(char *))
-            return false;
-        routine->param_type_names = calloc(routine->param_count, sizeof(char *));
-        if (routine->param_type_names == NULL)
-            return false;
-        for (size_t i = 0; i < routine->param_count; i++) {
-            FuncParam *param =
-                routine->params != NULL ? routine->params[i] : NULL;
-            if (param != NULL && param->type != NULL)
-                routine->param_type_names[i] =
-                    mir_render_type_name(param->type);
-        }
-    }
-    if (routine->return_type != NULL)
-        routine->return_type_name = mir_render_type_name(routine->return_type);
-    return true;
 }
 
 #include "mir_base_helpers.h"
@@ -523,6 +484,15 @@ mir_lower(const HIRProgram *hir, const RIRProgram *rir, char **error_message)
             routine.within_zone = ast_func_within_zone(routine.ast);
             routine.has_signature = true;
             if (!mir_routine_signature_type_names_capture(&routine)) {
+                mir_routine_signature_type_names_clear(&routine);
+                pgy_arena_destroy(&routine.scratch);
+                if (error_message != NULL)
+                    *error_message = pergyra_strdup("out of memory");
+                mir_destroy(mir);
+                return NULL;
+            }
+            if (!mir_routine_source_local_type_names_capture(&routine)) {
+                mir_routine_source_local_type_names_clear(&routine);
                 mir_routine_signature_type_names_clear(&routine);
                 pgy_arena_destroy(&routine.scratch);
                 if (error_message != NULL)

@@ -1,5 +1,7 @@
 #include "mir.h"
 #include "mir_base_helpers.h"
+#include "mir_signature_metadata.h"
+#include "mir_source_local_types.h"
 
 #include <stdint.h>
 #include <stdio.h>
@@ -62,12 +64,8 @@ mir_destroy(MIRProgram *mir)
                     free((void *)routine->value_summaries[j].name);
             }
             free(routine->value_summaries);
-            if (routine->param_type_names != NULL) {
-                for (size_t j = 0; j < routine->param_count; j++)
-                    free(routine->param_type_names[j]);
-            }
-            free(routine->param_type_names);
-            free(routine->return_type_name);
+            mir_routine_signature_type_names_clear(routine);
+            mir_routine_source_local_type_names_clear(routine);
             free(routine->blocks);
             pgy_arena_destroy(&routine->scratch);
         }

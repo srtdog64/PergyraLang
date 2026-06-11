@@ -221,6 +221,12 @@ typedef struct
 
 typedef struct
 {
+    char *name;
+    char *type_name;
+} MIRSourceLocalType;
+
+typedef struct
+{
     size_t             id;
     MIRScopeKind       kind;
     const char        *owner_name;
@@ -260,6 +266,9 @@ typedef struct
     bool               used_non_cfg_body_fallback;
     bool               has_liveness;
     bool               has_dce;
+    MIRSourceLocalType *source_local_types;
+    size_t             source_local_type_count;
+    size_t             source_local_type_capacity;
     MIRValueSummary   *value_summaries;
     size_t             value_summary_count;
     size_t             value_summary_capacity;
@@ -540,22 +549,10 @@ const char *mir_routine_param_type_name(const MIRRoutine *routine,
                                         size_t index);
 ASTNode    *mir_routine_return_type(const MIRRoutine *routine);
 const char *mir_routine_return_type_name(const MIRRoutine *routine);
-/* P0 #4: source local type-name lookup. Walks the AST body
- * (recursively into nested AST_BLOCK / AST_IF_STMT / AST_FOR_LOOP /
- * AST_WHILE_LOOP / AST_WITH_STMT / AST_MATCH_STMT subtrees) and
- * returns the type-annotation string of the first
- * `let local_name: TypeName = ...` that matches. NULL if no match
- * or no annotation. This is the lazy form of
- * `source_local_type_names[]` -- it avoids growing the MIRRoutine
- * struct while still letting the LLVM backend resolve a hosted-
- * method receiver's class without waiting for
- * `llvm_mir_copy_source_def_to_versioned_local` to run.
- *
- * The `_in_ast` form takes any AST subtree (LLVM-side callers pass
- * ctx->current_func_decl's body directly); the routine form is a
- * convenience that pulls the body from routine->ast. */
-const char *mir_source_local_type_name_in_ast(ASTNode *body,
-                                              const char *local_name);
+/* P0 #4: source local type-name lookup. MIR lowering materializes
+ * `let local_name: TypeName = ...` annotations into
+ * MIRRoutine::source_local_types so backends do not rescan the
+ * function body to answer source-local class questions. */
 const char *mir_routine_source_local_type_name(
     const MIRRoutine *routine, const char *local_name);
 const char *mir_routine_within_zone(const MIRRoutine *routine);

@@ -1,7 +1,6 @@
 #include <string.h>
 
 #include "mir.h"
-#include "../parser/ast_api.h"
 
 bool
 mir_program_has_main_function(const MIRProgram *mir)
@@ -152,87 +151,20 @@ mir_routine_return_type_name(const MIRRoutine *routine)
     return mir_routine_has_signature(routine) ? routine->return_type_name : NULL;
 }
 
-static const char *
-mir_routine_source_local_walk(ASTNode *node, const char *local_name)
-{
-    if (node == NULL || local_name == NULL)
-        return NULL;
-    switch (node->type) {
-    case AST_LET_DECL: {
-        const char *name = ast_let_name(node);
-        if (name != NULL && strcmp(name, local_name) == 0) {
-            ASTNode *ty = ast_let_type(node);
-            if (ty != NULL && ty->type == AST_TYPE)
-                return ast_type_name(ty);
-        }
-        return NULL;
-    }
-    case AST_BLOCK: {
-        size_t n = ast_block_statement_count(node);
-        for (size_t i = 0; i < n; i++) {
-            const char *t = mir_routine_source_local_walk(
-                ast_block_statement(node, i), local_name);
-            if (t != NULL)
-                return t;
-        }
-        return NULL;
-    }
-    case AST_IF_STMT: {
-        const char *t = mir_routine_source_local_walk(
-            ast_if_then_branch(node), local_name);
-        if (t != NULL)
-            return t;
-        return mir_routine_source_local_walk(
-            ast_if_else_branch(node), local_name);
-    }
-    case AST_WHILE_LOOP:
-        return mir_routine_source_local_walk(
-            ast_while_body(node), local_name);
-    case AST_FOR_LOOP:
-        return mir_routine_source_local_walk(
-            ast_for_body(node), local_name);
-    case AST_WITH_STMT:
-        return mir_routine_source_local_walk(
-            ast_with_body(node), local_name);
-    case AST_MATCH_STMT: {
-        size_t n = ast_match_case_count(node);
-        for (size_t i = 0; i < n; i++) {
-            ASTNode *c = ast_match_case_at(node, i);
-            if (c == NULL || c->type != AST_MATCH_CASE)
-                continue;
-            const char *t = mir_routine_source_local_walk(
-                ast_match_case_body(c), local_name);
-            if (t != NULL)
-                return t;
-        }
-        return NULL;
-    }
-    default:
-        return NULL;
-    }
-}
-
-const char *
-mir_source_local_type_name_in_ast(ASTNode *body, const char *local_name)
-{
-    return mir_routine_source_local_walk(body, local_name);
-}
-
 const char *
 mir_routine_source_local_type_name(const MIRRoutine *routine,
                                    const char *local_name)
 {
     if (routine == NULL || local_name == NULL)
         return NULL;
-    ASTNode *src = routine->ast;
-    if (src == NULL)
-        return NULL;
-    ASTNode *body = NULL;
-    if (src->type == AST_FUNC_DECL)
-        body = ast_func_body(src);
-    if (body == NULL)
-        return NULL;
-    return mir_routine_source_local_walk(body, local_name);
+    for (size_t i = 0; i < routine->source_local_type_count; i++) {
+        const MIRSourceLocalType *entry = &routine->source_local_types[i];
+        if (entry->name != NULL && entry->type_name != NULL
+            && strcmp(entry->name, local_name) == 0) {
+            return entry->type_name;
+        }
+    }
+    return NULL;
 }
 
 const char *

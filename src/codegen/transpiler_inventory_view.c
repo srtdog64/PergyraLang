@@ -138,6 +138,13 @@ transpiler_mir_routine_return_type_name(const MIRRoutine *routine)
 }
 
 const char *
+transpiler_mir_routine_source_local_type_name(const MIRRoutine *routine,
+                                              const char *local_name)
+{
+    return mir_routine_source_local_type_name(routine, local_name);
+}
+
+const char *
 transpiler_mir_routine_within_zone(const MIRRoutine *routine)
 {
     return mir_routine_within_zone(routine);

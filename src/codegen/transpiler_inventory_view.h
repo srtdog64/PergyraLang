@@ -54,6 +54,9 @@ ASTNode *transpiler_mir_routine_return_type(const MIRRoutine *routine);
 
 const char *transpiler_mir_routine_return_type_name(
     const MIRRoutine *routine);
+const char *transpiler_mir_routine_source_local_type_name(
+    const MIRRoutine *routine,
+    const char *local_name);
 const char *transpiler_mir_routine_within_zone(
     const MIRRoutine *routine);
 

@@ -26,61 +26,21 @@ llvm_mir_debug_stage(const char *stage, const MIRRoutine *routine)
     fputc('\n', stderr);
 }
 
-/* P0 #4 helper: recursively walk an AST subtree and pre-register every
- * `let name: ClassName = ...` binding into the var-class registry so the
- * type-infer dry pass that precedes the real emit can resolve the
- * receiver class. See the caller at the bottom of the local-allocas
- * setup for the motivation. */
+/* P0 #4: pre-register source-local class facts materialized by MIR lowering
+ * so the type-infer dry pass that precedes real emit can resolve receiver
+ * classes without rescanning the source AST body. */
 static void
-llvm_mir_preregister_let_var_classes(LLVMGenCtx *ctx, ASTNode *node)
+llvm_mir_preregister_source_local_classes(LLVMGenCtx *ctx,
+                                          const MIRRoutine *routine)
 {
-    if (ctx == NULL || node == NULL)
+    if (ctx == NULL || routine == NULL)
         return;
-    switch (node->type) {
-    case AST_LET_DECL: {
-        const char *let_name = ast_let_name(node);
-        ASTNode *let_ty = ast_let_type(node);
-        if (let_name != NULL && let_ty != NULL
-            && let_ty->type == AST_TYPE
-            && ast_type_name(let_ty) != NULL) {
-            const char *ty_name = ast_type_name(let_ty);
-            if (llvm_lookup_class(ctx, ty_name) != NULL)
-                llvm_register_var_class(ctx, let_name, ty_name);
+    for (size_t i = 0; i < routine->source_local_type_count; i++) {
+        const MIRSourceLocalType *fact = &routine->source_local_types[i];
+        if (fact->name != NULL && fact->type_name != NULL
+            && llvm_lookup_class(ctx, fact->type_name) != NULL) {
+            llvm_register_var_class(ctx, fact->name, fact->type_name);
         }
-        return;
-    }
-    case AST_BLOCK: {
-        size_t n = ast_block_statement_count(node);
-        for (size_t i = 0; i < n; i++)
-            llvm_mir_preregister_let_var_classes(ctx,
-                ast_block_statement(node, i));
-        return;
-    }
-    case AST_IF_STMT:
-        llvm_mir_preregister_let_var_classes(ctx, ast_if_then_branch(node));
-        llvm_mir_preregister_let_var_classes(ctx, ast_if_else_branch(node));
-        return;
-    case AST_WHILE_LOOP:
-        llvm_mir_preregister_let_var_classes(ctx, ast_while_body(node));
-        return;
-    case AST_FOR_LOOP:
-        llvm_mir_preregister_let_var_classes(ctx, ast_for_body(node));
-        return;
-    case AST_WITH_STMT:
-        llvm_mir_preregister_let_var_classes(ctx, ast_with_body(node));
-        return;
-    case AST_MATCH_STMT: {
-        size_t n = ast_match_case_count(node);
-        for (size_t i = 0; i < n; i++) {
-            ASTNode *c = ast_match_case_at(node, i);
-            if (c != NULL && c->type == AST_MATCH_CASE)
-                llvm_mir_preregister_let_var_classes(ctx,
-                    ast_match_case_body(c));
-        }
-        return;
-    }
-    default:
-        return;
     }
 }
 
@@ -231,8 +191,6 @@ llvm_emit_func_from_mir(const MIRRoutine *routine, LLVMGenCtx *ctx)
             "MIR-only LLVM path missing function body parameter type-name metadata for '%s'")) {
         return NULL;
     }
-    const bool routine_has_signature =
-        !is_intent && routine != NULL && llvm_active_has_mir(ctx);
     if (is_method && owner_name == NULL) {
         llvm_set_mir_topology_invalid(ctx,
             "MIR-only LLVM path missing owner metadata for method '%s'",
@@ -252,13 +210,9 @@ llvm_emit_func_from_mir(const MIRRoutine *routine, LLVMGenCtx *ctx)
         ? mir_binding_count
         : (is_method ? 1 : 0);
     if (!is_intent) {
-        size_t func_param_count = routine_has_signature
-            ? llvm_mir_routine_param_count(routine)
-            : ast_func_param_count(func_decl);
+        size_t func_param_count = llvm_mir_routine_param_count(routine);
         for (size_t i = 0; i < func_param_count; i++) {
-            FuncParam *p = routine_has_signature
-                ? llvm_mir_routine_param(routine, i)
-                : ast_func_param(func_decl, i);
+            FuncParam *p = llvm_mir_routine_param(routine, i);
             if (is_method && llvm_param_is_implicit_self_local(p)) {
                 continue;
             }
@@ -329,16 +283,12 @@ llvm_emit_func_from_mir(const MIRRoutine *routine, LLVMGenCtx *ctx)
             size_t seen = 0;
             FuncParam *p = NULL;
             size_t source_param_index = (size_t)-1;
-            size_t func_param_count = routine_has_signature
-                ? llvm_mir_routine_param_count(routine)
-                : ast_func_param_count(func_decl);
+            size_t func_param_count = llvm_mir_routine_param_count(routine);
             for (size_t param_index = 0;
                 param_index < func_param_count;
                  param_index++) {
                 FuncParam *candidate =
-                    routine_has_signature
-                        ? llvm_mir_routine_param(routine, param_index)
-                        : ast_func_param(func_decl, param_index);
+                    llvm_mir_routine_param(routine, param_index);
                 if (llvm_param_is_implicit_self_local(candidate)) {
                     continue;
                 }
@@ -352,7 +302,6 @@ llvm_emit_func_from_mir(const MIRRoutine *routine, LLVMGenCtx *ctx)
             bool is_secure_slot = false;
             const char *param_type_name =
                 source_param_index != (size_t)-1
-                    && routine_has_signature
                     ? llvm_mir_routine_param_type_name(routine,
                         source_param_index)
                     : NULL;
@@ -399,8 +348,6 @@ llvm_emit_func_from_mir(const MIRRoutine *routine, LLVMGenCtx *ctx)
     if (!is_intent) {
         return_type_name = llvm_mir_routine_return_type_name(routine);
         return_type = llvm_mir_routine_return_type(routine);
-        if (return_type == NULL && !routine_has_signature)
-            return_type = ast_func_return_type(func_decl);
         if (return_type_name != NULL)
             ret_type = pergyra_type_to_llvm(ctx, return_type_name);
         else if (return_type != NULL)
@@ -511,10 +458,9 @@ llvm_emit_func_from_mir(const MIRRoutine *routine, LLVMGenCtx *ctx)
     llvm_emit_mir_local_allocas(routine, ctx, &vars, &var_capacity, &var_count);
     llvm_mir_debug_stage("emit_func_from_mir:locals_ready", routine);
 
-    /* P0 #4 eager var-class registration: walk the function body
-     * (recursively into nested blocks) and pre-register
-     * `let name: ClassName = ...` bindings into the var-class
-     * registry. Otherwise the first call to
+    /* P0 #4 eager var-class registration: consume MIR source-local type
+     * facts and pre-register `let name: ClassName = ...` bindings into
+     * the var-class registry. Otherwise the first call to
      * `llvm_stmt_infer_expr_type` for a member-access expression like
      * `weapon.BossBurn(...)` happens BEFORE
      * `llvm_mir_copy_source_def_to_versioned_local` has had a chance
@@ -522,15 +468,8 @@ llvm_emit_func_from_mir(const MIRRoutine *routine, LLVMGenCtx *ctx)
      * a dry pre-pass before the real emit). The lookup misses, the
      * receiver class fallback chain runs out of options under LLVM
      * opaque pointers, and the LLVM compile fails on calls that the
-     * C backend handled cleanly. Eager registration sidesteps the
-     * order dependency without touching MIR routine inventory.
-     *
-     * Walks nested AST_BLOCK / AST_IF_STMT / AST_FOR_LOOP /
-     * AST_WHILE_LOOP / AST_MATCH_STMT / AST_WITH_STMT bodies so
-     * lets declared inside conditionals also get registered. */
-    if (func_decl != NULL && func_decl->type == AST_FUNC_DECL) {
-        llvm_mir_preregister_let_var_classes(ctx, ast_func_body(func_decl));
-    }
+     * C backend handled cleanly. */
+    llvm_mir_preregister_source_local_classes(ctx, routine);
 
     LLVMPositionBuilderAtEnd(ctx->builder, llvm_blocks[routine->entry_block]);
     if (owner_sync != NULL) {

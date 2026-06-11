@@ -632,6 +632,13 @@ transpiler_find_local_type_name(TranspilerCtx *ctx,
                 return rendered_param;
             }
         }
+        typed_name = transpiler_mir_routine_source_local_type_name(
+            routine, base_name);
+        if (typed_name != NULL && typed_name[0] != '\0') {
+            if (ctx != NULL)
+                register_typed_var(ctx, base_name, typed_name);
+            return typed_name;
+        }
     } else if (!transpiler_active_has_mir(ctx)) {
         size_t param_count = ast_func_param_count(func_decl);
         for (size_t i = 0; i < param_count; i++) {
@@ -653,15 +660,10 @@ transpiler_find_local_type_name(TranspilerCtx *ctx,
             }
         }
     }
-    /* The AST body scan is a constrained fallback that still runs
-     * with MIR active: hosted self-calls (e.g. `let gained =
-     * TakeLoot(...)` inside a world method) need to resolve their
-     * initializer types through `let`-decl inspection because the
-     * MIR routine inventory doesn't propagate the receiver-less call
-     * shape into a versioned-local type fact. We pass through
-     * `transpiler_find_local_type_name_in_block` here, but every
-     * leaf type decision still goes back through the MIR-aware
-     * `infer_expression_type_name`/host-method metadata path. */
+    if (transpiler_active_has_mir(ctx))
+        return transpiler_lookup_current_owner_member_type_name(ctx, base_name);
+    /* Non-MIR compatibility fallback: MIR-active local annotations are
+     * materialized into MIRRoutine::source_local_types above. */
     typed_name = transpiler_find_local_type_name_in_block(ctx, func_decl,
         ast_func_body(func_decl), base_name);
     if (typed_name != NULL) {

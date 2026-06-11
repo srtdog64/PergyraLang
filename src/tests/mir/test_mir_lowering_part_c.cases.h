@@ -233,6 +233,49 @@ test_mir_lowering_part_c(void)
         free(mir_error);
     }
 
+    TEST("MIR validator rejects missing source-local type inventory");
+    {
+        MIRRoutine routine = { 0 };
+        MIRProgram mir = { 0 };
+        char *mir_error = NULL;
+        bool rejected;
+
+        routine.name = "MissingSourceLocalTypes";
+        routine.source_local_type_count = 1;
+        routine.source_local_type_capacity = 1;
+        routine.source_local_types = NULL;
+        mir.routine_count = 1;
+        mir.routines = &routine;
+
+        rejected = !mir_validate(&mir, &mir_error)
+            && mir_error != NULL
+            && strstr(mir_error, "without source-local type inventory") != NULL;
+        EXPECT(rejected);
+        free(mir_error);
+    }
+
+    TEST("MIR validator rejects invalid source-local type fact");
+    {
+        MIRSourceLocalType facts[1] = { { "local", NULL } };
+        MIRRoutine routine = { 0 };
+        MIRProgram mir = { 0 };
+        char *mir_error = NULL;
+        bool rejected;
+
+        routine.name = "InvalidSourceLocalTypes";
+        routine.source_local_type_count = 1;
+        routine.source_local_type_capacity = 1;
+        routine.source_local_types = facts;
+        mir.routine_count = 1;
+        mir.routines = &routine;
+
+        rejected = !mir_validate(&mir, &mir_error)
+            && mir_error != NULL
+            && strstr(mir_error, "source-local type fact[0] is incomplete") != NULL;
+        EXPECT(rejected);
+        free(mir_error);
+    }
+
     TEST("MIR validator rejects invalid source-statement emit fact");
     {
         const char *src =

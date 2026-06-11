@@ -90,6 +90,39 @@ mir_validate_program_inventory_shape(const MIRProgram *mir,
             }
             return false;
         }
+        if (routine->source_local_type_count
+            > routine->source_local_type_capacity) {
+            if (error_message != NULL) {
+                *error_message = mir_strdup_fmt(
+                    "MIR routine '%s' records %zu source-local type facts above capacity %zu",
+                    routine->name != NULL ? routine->name : "(anonymous)",
+                    routine->source_local_type_count,
+                    routine->source_local_type_capacity);
+            }
+            return false;
+        }
+        if (routine->source_local_type_count > 0
+            && routine->source_local_types == NULL) {
+            if (error_message != NULL) {
+                *error_message = mir_strdup_fmt(
+                    "MIR routine '%s' records %zu source-local type facts without source-local type inventory",
+                    routine->name != NULL ? routine->name : "(anonymous)",
+                    routine->source_local_type_count);
+            }
+            return false;
+        }
+        for (size_t j = 0; j < routine->source_local_type_count; j++) {
+            const MIRSourceLocalType *fact = &routine->source_local_types[j];
+            if (fact->name == NULL || fact->type_name == NULL) {
+                if (error_message != NULL) {
+                    *error_message = mir_strdup_fmt(
+                        "MIR routine '%s' source-local type fact[%zu] is incomplete",
+                        routine->name != NULL ? routine->name : "(anonymous)",
+                        j);
+                }
+                return false;
+            }
+        }
     }
     return true;
 }
