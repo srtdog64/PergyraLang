@@ -141,6 +141,7 @@ Type *expr_host_method_function_type(SemanticContext *ctx,
 Type *expr_type_check_host_method_call_on_host(ASTNode *expr,
                                                ASTNode *host_decl,
                                                ASTNode *method,
+                                               const Type *receiver_type,
                                                SemanticContext *ctx);
 Type *expr_type_check_host_method_call(ASTNode *expr,
                                        ASTNode *method,

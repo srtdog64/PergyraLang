@@ -597,5 +597,4 @@ const char *mir_branch_shape_name(MIRBranchShape shape);
 /* ABI Type Layout Lookup: backends use this instead of inventing layouts. */
 const MIRTypeLayout *mir_abi_lookup(const char *pergyra_type_name);
 void                 mir_abi_table_init(void);
-
 #endif

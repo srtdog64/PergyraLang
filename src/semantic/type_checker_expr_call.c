@@ -424,7 +424,7 @@ type_check_call(ASTNode *expr, SemanticContext *ctx)
                                 return TYPE_UNKNOWN;
                             }
                             return expr_type_check_host_method_call_on_host(
-                                expr, host_decl, method, ctx);
+                                expr, host_decl, method, object_type, ctx);
                         }
                     }
                     expr_call_report_unknown_member(ctx, expr, object_type,

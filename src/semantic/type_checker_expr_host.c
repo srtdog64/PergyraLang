@@ -166,10 +166,84 @@ expr_host_method_function_type(SemanticContext *ctx,
     return sym->type;
 }
 
+/* Deep-substitute a method's declared type, replacing each generic param
+ * (matched by the host class's generic-parameter order) with the receiver's
+ * instantiation argument. Recurses through constructed types so `Array<T>`
+ * becomes `Array<Int>` and `Map<K, V>` becomes `Map<Int, String>`. Returns
+ * the original type when no substitution applies. */
+static Type *
+expr_host_subst_generics(Type *type, ASTNode *host_decl,
+                         const Type *receiver_type)
+{
+    if (type == NULL || host_decl == NULL
+        || host_decl->type != AST_CLASS_DECL || receiver_type == NULL
+        || receiver_type->kind != TYPE_KIND_CONSTRUCTED)
+        return type;
+
+    if (type->kind == TYPE_KIND_GENERIC && type->name != NULL) {
+        GenericParams *gp = ast_class_generic_params(host_decl);
+        size_t gpc = ast_generic_param_count(gp);
+        size_t argc = type_constructed_arg_count(receiver_type);
+        for (size_t i = 0; i < gpc && i < argc; i++) {
+            const char *pn =
+                ast_generic_param_name(ast_generic_param_at(gp, i));
+            if (pn != NULL && strcmp(pn, type->name) == 0) {
+                Type *sub = type_constructed_arg(receiver_type, i);
+                return sub != NULL ? sub : type;
+            }
+        }
+        return type;
+    }
+
+    if (type->kind == TYPE_KIND_CONSTRUCTED) {
+        size_t n = type_constructed_arg_count(type);
+        Type *ctor = type_constructed_constructor(type);
+        Type **new_args = n > 0 ? calloc(n, sizeof(Type *)) : NULL;
+        bool changed = false;
+        if (n > 0 && new_args == NULL)
+            return type;
+        for (size_t i = 0; i < n; i++) {
+            Type *orig = type_constructed_arg(type, i);
+            Type *subst =
+                expr_host_subst_generics(orig, host_decl, receiver_type);
+            new_args[i] = subst;
+            if (subst != orig)
+                changed = true;
+        }
+        if (changed) {
+            Type *result = type_create_constructed(ctor, new_args, n);
+            free(new_args);
+            return result != NULL ? result : type;
+        }
+        free(new_args);
+        return type;
+    }
+
+    return type;
+}
+
+static bool
+expr_host_type_contains_generic(const Type *type)
+{
+    if (type == NULL)
+        return false;
+    if (type->kind == TYPE_KIND_GENERIC)
+        return true;
+    if (type->kind == TYPE_KIND_CONSTRUCTED) {
+        size_t n = type_constructed_arg_count(type);
+        for (size_t i = 0; i < n; i++)
+            if (expr_host_type_contains_generic(
+                    type_constructed_arg(type, i)))
+                return true;
+    }
+    return false;
+}
+
 Type *
 expr_type_check_host_method_call_on_host(ASTNode *expr,
                                          ASTNode *host_decl,
                                          ASTNode *method,
+                                         const Type *receiver_type,
                                          SemanticContext *ctx)
 {
     size_t implicit_self = 0;
@@ -245,7 +319,10 @@ expr_type_check_host_method_call_on_host(ASTNode *expr,
         Type *param_type = expr_host_resolve_func_param_type(param, ctx);
         Type *arg_type = expr_host_normalize_type(
             type_check_expression(arg, ctx));
+        param_type = expr_host_subst_generics(
+            param_type, host_decl, receiver_type);
         if (param_type != NULL
+            && !expr_host_type_contains_generic(param_type)
             && !type_is_assignable(arg_type, param_type)) {
             semantic_error_with_hints(ctx, PGY_CODE_SEM_TYPE_MISMATCH,
                 PGY_CAUSE_CALL_ARG_TYPE_MISMATCH, PGY_FIX_ALIGN_ARG_TYPE,
@@ -268,7 +345,7 @@ expr_type_check_host_method_call(ASTNode *expr,
                                  SemanticContext *ctx)
 {
     return expr_type_check_host_method_call_on_host(
-        expr, current_host_decl(ctx), method, ctx);
+        expr, current_host_decl(ctx), method, NULL, ctx);
 }
 
 bool
