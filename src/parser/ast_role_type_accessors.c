@@ -94,6 +94,19 @@ ast_ability_method(const ASTNode* node, size_t index)
     return node->data.ability_decl.methods[index];
 }
 
+ASTNode**
+ast_ability_methods(const ASTNode* node, size_t* method_count)
+{
+    if (node == NULL || node->type != AST_ABILITY_DECL) {
+        if (method_count != NULL)
+            *method_count = 0;
+        return NULL;
+    }
+    if (method_count != NULL)
+        *method_count = node->data.ability_decl.method_count;
+    return node->data.ability_decl.methods;
+}
+
 const char*
 ast_role_name(const ASTNode* node)
 {

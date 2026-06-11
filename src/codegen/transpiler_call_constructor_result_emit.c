@@ -1,5 +1,7 @@
 #include "transpiler_call_constructor_result_emit.h"
 
+#include <string.h>
+
 #include "../parser/ast.h"
 #include "../parser/ast_api.h"
 #include "transpiler_decl_lookup.h"
@@ -19,14 +21,28 @@ emit_call_domain_constructor(ASTNode *call, ASTNode *callee, TranspilerCtx *ctx)
     if (class_decl != NULL && class_decl->type == AST_CLASS_DECL) {
         const char *ctor_type = fn;
         if (transpiler_class_has_generic_params(class_decl)) {
-            ASTNode *synthetic_type = ast_create_type(fn);
-            if (synthetic_type != NULL) {
-                const char *spec_name =
-                    ensure_generic_class_specialization(
-                        ctx, class_decl, synthetic_type);
-                if (spec_name != NULL)
-                    ctor_type = spec_name;
-                ast_destroy(synthetic_type);
+            const char *type_hint = ctx != NULL && ctx->expected_type != NULL
+                ? ctx->expected_type
+                : (ctx != NULL ? ctx->active_type_hint : NULL);
+            ASTNode *hint_base = type_hint != NULL
+                ? transpiler_generic_class_spec_base_decl(ctx, type_hint)
+                : NULL;
+            const char *hint_base_name = hint_base != NULL
+                ? transpiler_decl_name_local(hint_base)
+                : NULL;
+            if (hint_base_name != NULL && fn != NULL
+                && strcmp(hint_base_name, fn) == 0) {
+                ctor_type = type_hint;
+            } else {
+                ASTNode *synthetic_type = ast_create_type(fn);
+                if (synthetic_type != NULL) {
+                    const char *spec_name =
+                        ensure_generic_class_specialization(
+                            ctx, class_decl, synthetic_type);
+                    if (spec_name != NULL)
+                        ctor_type = spec_name;
+                    ast_destroy(synthetic_type);
+                }
             }
         }
         return transpiler_emit_class_constructor_with_type(

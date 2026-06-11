@@ -130,20 +130,20 @@ llvm_stmt_lookup_declared_call_return_type(LLVMGenCtx *ctx, const char *callee)
 {
     ASTNode *decl;
     ASTNode *return_type;
-    bool decl_is_generic;
     bool decl_is_extern;
+    const MIRRoutine *routine = NULL;
+    bool decl_is_generic = false;
 
     if (ctx == NULL || callee == NULL)
         return NULL;
     decl = llvm_stmt_find_function_decl_by_name(ctx, callee);
     if (decl == NULL || decl->type != AST_FUNC_DECL)
         return NULL;
-    decl_is_generic =
-        ast_generic_param_count(ast_declaration_generic_params(decl)) > 0;
     decl_is_extern = llvm_decl_is_extern_function(ctx, decl);
+    if (llvm_active_has_mir(ctx) && !decl_is_extern)
+        routine = llvm_active_function_routine_for_source_ast(ctx, decl);
+    decl_is_generic = llvm_mir_or_ast_function_is_generic(routine, decl);
     if (llvm_active_has_mir(ctx) && !decl_is_generic && !decl_is_extern) {
-        const MIRRoutine *routine =
-            llvm_active_function_routine_for_source_ast(ctx, decl);
         const char *return_type_name = NULL;
         if (routine == NULL) {
             llvm_set_mir_inventory_missing(ctx,

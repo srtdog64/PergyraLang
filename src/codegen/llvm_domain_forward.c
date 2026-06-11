@@ -9,6 +9,7 @@
 
 #include "llvm_domain_forward_internal.h"
 #include "llvm_inventory_host_methods.h"
+#include "llvm_inventory_internal.h"
 
 bool
 llvm_domain_forward_suffix_name(char *out,
@@ -217,7 +218,7 @@ llvm_emit_domain_method_forward_decls(LLVMGenCtx *ctx,
         const MIRDeclMethod *method_meta =
             llvm_hosted_method_view_metadata(methods, j);
         ASTNode *method = llvm_hosted_method_view_source_ast(methods, j);
-        bool allow_ast_compat = method_meta == NULL;
+        bool allow_ast_compat = method_meta == NULL && !llvm_active_has_mir(ctx);
         const char *mname;
         ASTNode *return_type;
         const char *return_type_name;
@@ -230,11 +231,23 @@ llvm_emit_domain_method_forward_decls(LLVMGenCtx *ctx,
         char fname[256];
         LLVMValueRef fn;
 
+        if (method_meta == NULL && llvm_active_has_mir(ctx)) {
+            llvm_set_mir_inventory_missing(ctx,
+                "MIR-only LLVM path missing method forward metadata row for domain '%s'",
+                decl_name != NULL ? decl_name : "(anonymous-domain)");
+            return;
+        }
         if (method_meta == NULL && (method == NULL || method->type != AST_FUNC_DECL))
             continue;
 
         mname = llvm_domain_method_name_metadata_first(
             method_meta, method, allow_ast_compat);
+        if (mname == NULL) {
+            llvm_set_mir_inventory_missing(ctx,
+                "MIR-only LLVM path missing method forward name metadata for domain '%s'",
+                decl_name != NULL ? decl_name : "(anonymous-domain)");
+            return;
+        }
         pc = llvm_domain_method_param_count_metadata_first(
             method_meta, method, allow_ast_compat);
         ret = ctx->type_void;
@@ -309,8 +322,6 @@ llvm_emit_domain_method_forward_decls(LLVMGenCtx *ctx,
         }
 
         ft = LLVMFunctionType(ret, ptypes, (unsigned)(user_pc + 1), 0);
-        if (mname == NULL)
-            continue;
         if (!llvm_domain_forward_join_name(fname, sizeof(fname), decl_name,
                 mname)) {
             llvm_set_error(ctx,

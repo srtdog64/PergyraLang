@@ -269,17 +269,20 @@ llvm_mir_case_payload_type(LLVMGenCtx *ctx,
         ASTNode *decl = llvm_stmt_find_function_decl_by_name(ctx, callee);
         ASTNode *ret = NULL;
         const char *return_type_name = NULL;
-        bool decl_is_generic = decl != NULL
-            && ast_generic_param_count(
-                ast_declaration_generic_params(decl)) > 0;
         bool decl_is_extern = decl != NULL
             && llvm_decl_is_extern_function(ctx, decl);
+        const MIRRoutine *routine = NULL;
+        bool decl_is_generic = false;
+        if (decl != NULL && decl->type == AST_FUNC_DECL
+            && llvm_active_has_mir(ctx)
+            && !decl_is_extern) {
+            routine = llvm_active_function_routine_for_source_ast(ctx, decl);
+        }
+        decl_is_generic = llvm_mir_or_ast_function_is_generic(routine, decl);
         if (decl != NULL && decl->type == AST_FUNC_DECL
             && llvm_active_has_mir(ctx)
             && !decl_is_generic
             && !decl_is_extern) {
-            const MIRRoutine *routine =
-                llvm_active_function_routine_for_source_ast(ctx, decl);
             if (routine == NULL) {
                 llvm_set_mir_inventory_missing(ctx,
                     "MIR-only LLVM path missing match subject routine for '%s'",

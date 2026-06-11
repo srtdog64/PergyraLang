@@ -593,6 +593,12 @@ emit_party_decl(ASTNode *node, TranspilerCtx *ctx)
             transpiler_hosted_method_view_metadata(&method_view, i);
         ASTNode *method =
             transpiler_hosted_method_view_source_ast(&method_view, i);
+        if (method_meta == NULL && transpiler_active_has_mir(ctx)) {
+            transpiler_set_mir_inventory_missing(ctx,
+                "MIR-only C path missing hosted method forward metadata row for party '%s'",
+                name != NULL ? name : "(anonymous-party)");
+            return;
+        }
         if (method_meta == NULL
             && (method == NULL || method->type != AST_FUNC_DECL)) {
             continue;

@@ -115,6 +115,14 @@ static ASTNode* parse_function_like_declaration(Parser* parser, bool is_action) 
             mode = PARAM_MODE_OWN;
         else if (parser_match(parser, TOKEN_REF))
             mode = PARAM_MODE_REF;
+        else if (parser_match(parser, TOKEN_AMP)) {
+            /* &self / &mut self -- borrow receiver (Rust-style). */
+            mode = PARAM_MODE_REF;
+            if (parser_check(parser, TOKEN_IDENTIFIER)
+                && parser->current_token.text != NULL
+                && strcmp(parser->current_token.text, "mut") == 0)
+                parser_advance(parser);
+        }
 
         // 파라미터 이름
         Token param_name = consume_binding_name_token(parser, "Expected parameter name");
@@ -177,6 +185,14 @@ static ASTNode* parse_function_like_declaration(Parser* parser, bool is_action) 
         return func;
     }
 
+    // In abstract contexts (ability signatures), a missing body without a
+    // trailing ';' is also a declaration-only signature.
+    if (parser->in_abstract_method_context
+        && !parser_check(parser, TOKEN_LBRACE)) {
+        func->data.func_decl.body = NULL;
+        return func;
+    }
+
     // 함수 본문
     parser_consume(parser, TOKEN_LBRACE, "Expected '{' before function body");
     func->data.func_decl.body = parser_parse_block(parser);
@@ -216,6 +232,44 @@ ASTNode* parse_object_declaration(Parser* parser) {
 
 ASTNode* parse_tobject_declaration(Parser* parser) {
     return parse_type_declaration(parser, NOMINAL_DECL_TOBJECT);
+}
+
+/* type X = { field: Type, ... } -- anonymous record type alias desugars to
+ * a struct named X so it flows through the existing nominal struct path. */
+ASTNode* parse_record_type_alias_struct(Parser* parser, Token name) {
+    ASTNode* st = ast_create_struct(name.text);
+    if (st != NULL) {
+        st->line = name.line;
+        st->column = name.column;
+    }
+
+    parser_consume(parser, TOKEN_LBRACE, "Expected '{' for record type body");
+
+    while (!parser_check(parser, TOKEN_RBRACE) && !parser_is_at_end(parser)) {
+        Token field_name = parser_consume(parser, TOKEN_IDENTIFIER,
+            "Expected field name in record type");
+        parser_consume(parser, TOKEN_COLON,
+            "Expected ':' after record field name");
+        ASTNode* field_type = parse_type(parser);
+
+        ClassField* field = calloc(1, sizeof(ClassField));
+        field->name = pergyra_strdup(field_name.text);
+        field->type = field_type;
+        field->access = ACCESS_PUBLIC;
+        field->has_explicit_access = false;
+        field->is_vessel_field = false;
+        parser_append_class_field(parser, st, field);
+
+        if (!parser_match(parser, TOKEN_SEMICOLON)
+            && !parser_match(parser, TOKEN_COMMA)
+            && !parser_check(parser, TOKEN_RBRACE)) {
+            parser_consume(parser, TOKEN_SEMICOLON,
+                "Expected ',' or ';' after record field");
+        }
+    }
+
+    parser_consume(parser, TOKEN_RBRACE, "Expected '}' after record type body");
+    return st;
 }
 
 // 클래스/구조체 선언 공통 파싱
@@ -342,7 +396,14 @@ ASTNode* parse_type_declaration(Parser* parser, NominalDeclKind decl_kind) {
 
             parser_append_class_field(parser, class_decl, field);
 
-            parser_consume(parser, TOKEN_SEMICOLON, "Expected ';' after field declaration");
+            /* Field terminator: ';' or ',' separator, or a trailing field
+             * directly before the closing '}'. */
+            if (!parser_match(parser, TOKEN_SEMICOLON)
+                && !parser_match(parser, TOKEN_COMMA)
+                && !parser_check(parser, TOKEN_RBRACE)) {
+                parser_consume(parser, TOKEN_SEMICOLON,
+                    "Expected ';' or ',' after field declaration");
+            }
             parser_discard_pending_doc_comment(parser);
         } else if (parser_match(parser, TOKEN_FUNC)) {
             // 메서드

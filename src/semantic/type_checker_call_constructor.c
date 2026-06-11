@@ -47,6 +47,25 @@ constructor_decl_field_type_at(ASTNode *decl,
     return overlay_field_decl_at(decl, index, field_name_out);
 }
 
+static ASTNode *
+constructor_decl_field_type_by_name(ASTNode *decl, const char *name,
+                                    size_t field_count,
+                                    const char **field_name_out)
+{
+    for (size_t i = 0; i < field_count; i++) {
+        const char *fn = NULL;
+        ASTNode *ft = constructor_decl_field_type_at(decl, i, &fn);
+        if (fn != NULL && name != NULL && strcmp(fn, name) == 0) {
+            if (field_name_out != NULL)
+                *field_name_out = fn;
+            return ft;
+        }
+    }
+    if (field_name_out != NULL)
+        *field_name_out = NULL;
+    return NULL;
+}
+
 static bool
 constructor_decl_has_channel_field(ASTNode *decl,
                                    SemanticContext *ctx,
@@ -181,13 +200,31 @@ type_check_constructor_symbol_call(ASTNode *expr,
                     for (size_t i = 0; i < provided; i++) {
                         const char *field_name = NULL;
                         ASTNode *field_type_node = NULL;
-                        field_type_node = constructor_decl_field_type_at(
-                            decl, i, &field_name);
+                        ASTNode *arg = ast_call_argument(expr, i);
+                        const char *arg_nm =
+                            ast_call_argument_name(expr, i);
+                        if (arg_nm != NULL) {
+                            field_type_node =
+                                constructor_decl_field_type_by_name(
+                                    decl, arg_nm, field_count, &field_name);
+                            if (field_type_node == NULL) {
+                                semantic_error_with_hints(ctx,
+                                    PGY_CODE_SEM_CLASS_CONTRACT_INVALID,
+                                    PGY_CAUSE_CLASS_CONTRACT,
+                                    PGY_FIX_SATISFY_GENERIC_BOUND_OR_WIDEN,
+                                    arg,
+                                    "Constructor '%s' has no field named '%s'",
+                                    display_name, arg_nm);
+                                continue;
+                            }
+                        } else {
+                            field_type_node = constructor_decl_field_type_at(
+                                decl, i, &field_name);
+                        }
                         if (field_type_node == NULL)
                             continue;
                         Type *field_type = semantic_host_resolve_type_ref(
                             field_type_node, ctx);
-                        ASTNode *arg = ast_call_argument(expr, i);
                         Type *arg_type = constructor_call_normalize_type(
                             type_check_expression(arg, ctx));
                         if (type_equals(arg_type, TYPE_VOID)) {

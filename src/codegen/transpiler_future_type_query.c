@@ -13,7 +13,6 @@
 #include "transpiler_decl_lookup.h"
 #include "transpiler_context.h"
 #include "transpiler_generic_binding_query.h"
-#include "transpiler_generic_param_query.h"
 #include "transpiler_inventory_view.h"
 #include "transpiler_mir_signature.h"
 #include "transpiler_mir_inventory_intent_collect.h"
@@ -66,12 +65,12 @@ infer_spawn_return_type_name_scratch(TranspilerCtx *ctx, ASTNode *spawn_expr)
     ASTNode *decl = find_function_decl(ctx, function_name);
     if (decl != NULL) {
         ASTNode *return_type = NULL;
+        const MIRRoutine *routine =
+            transpiler_find_mir_function(ctx, decl);
         bool generic_call = call != NULL
-            && transpiler_func_has_generic_params(decl);
+            && transpiler_mir_or_ast_function_is_generic(routine, decl);
         bool extern_func = transpiler_decl_is_extern_function(ctx, decl);
         if (!generic_call && !extern_func && transpiler_active_has_mir(ctx)) {
-            const MIRRoutine *routine =
-                transpiler_find_mir_function(ctx, decl);
             if (routine == NULL) {
                 transpiler_set_mir_inventory_missing(ctx,
                     "MIR-only C path missing spawn return routine for '%s'",

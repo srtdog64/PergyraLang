@@ -91,6 +91,9 @@ semantic_host_decl_for_type(SemanticContext *ctx, const Type *type)
     decl = semantic_find_effect_decl_by_name(ctx, type->name);
     if (decl != NULL)
         return decl;
+    decl = semantic_find_ability_decl_by_name(ctx, type->name);
+    if (decl != NULL)
+        return decl;
 
     constructor = type_constructed_constructor(type);
     if (constructor == NULL || constructor == type
@@ -145,6 +148,8 @@ semantic_host_decl_methods(ASTNode *decl, size_t *method_count)
         return ast_relation_methods(decl, method_count);
     case AST_EFFECT_DECL:
         return ast_effect_methods(decl, method_count);
+    case AST_ABILITY_DECL:
+        return ast_ability_methods(decl, method_count);
     default:
         return NULL;
     }

@@ -15,6 +15,7 @@
 #include "transpiler_domain_receiver_query.h"
 #include "transpiler_expr_type_infer.h"
 #include "transpiler_format.h"
+#include "transpiler_generic_class_specialization.h"
 #include "transpiler_host_self_policy.h"
 #include "transpiler_inventory_view.h"
 #include "transpiler_nominal.h"
@@ -75,8 +76,15 @@ emit_call_member_style(ASTNode *call, ASTNode *callee, TranspilerCtx *ctx)
                         ctx, party_decl, slot_name, method);
 
                 if (ability_name != NULL) {
-                    CodeBuf *args_buf = codebuf_create();
-                    codebuf_write(args_buf, "%s.%s", party_var, slot_name);
+                    char *party_expr = emit_expression(party_node, ctx);
+                    CodeBuf *args_buf;
+                    char *result;
+                    if (party_expr == NULL) {
+                        free(ability_name);
+                        return NULL;
+                    }
+                    args_buf = codebuf_create();
+                    codebuf_write(args_buf, "%s.%s", party_expr, slot_name);
                     for (size_t i = 0; i < ast_call_arg_count(call); i++) {
                         char *arg = transpiler_member_call_emit_part(ctx,
                             ast_call_argument(call, i), method,
@@ -84,17 +92,19 @@ emit_call_member_style(ASTNode *call, ASTNode *callee, TranspilerCtx *ctx)
                         if (arg == NULL) {
                             codebuf_destroy(args_buf);
                             free(ability_name);
+                            free(party_expr);
                             return NULL;
                         }
                         codebuf_write(args_buf, ", %s", arg);
                         free(arg);
                     }
 
-                    char *result = strdup_fmt("%s.%s_%s_vt->%s(%s)",
-                                              party_var, slot_name, ability_name,
-                                              method, args_buf->data);
+                    result = strdup_fmt("%s.%s_%s_vt->%s(%s)",
+                                        party_expr, slot_name, ability_name,
+                                        method, args_buf->data);
                     codebuf_destroy(args_buf);
                     free(ability_name);
+                    free(party_expr);
                     return result;
                 }
             }
@@ -115,6 +125,18 @@ emit_call_member_style(ASTNode *call, ASTNode *callee, TranspilerCtx *ctx)
                 const MIRDeclMethod *method_meta =
                     transpiler_find_host_method_metadata_in_context(
                         ctx, owned_type_name, method);
+                if (method_meta == NULL) {
+                    ASTNode *spec_base =
+                        transpiler_generic_class_spec_base_decl(ctx,
+                            owned_type_name);
+                    const char *spec_base_name = spec_base != NULL
+                        ? transpiler_decl_name_local(spec_base)
+                        : NULL;
+                    if (spec_base_name != NULL)
+                        method_meta =
+                            transpiler_find_host_method_metadata_in_context(
+                                ctx, spec_base_name, method);
+                }
                 ASTNode *method_decl =
                     transpiler_mir_decl_method_source_ast(method_meta);
                 if (method_decl == NULL && method_meta == NULL) {

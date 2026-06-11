@@ -96,6 +96,14 @@ ASTNode* parser_parse_async_function(Parser* parser)
             mode = PARAM_MODE_OWN;
         else if (parser_match(parser, TOKEN_REF))
             mode = PARAM_MODE_REF;
+        else if (parser_match(parser, TOKEN_AMP)) {
+            /* &self / &mut self -- borrow receiver (Rust-style). */
+            mode = PARAM_MODE_REF;
+            if (parser_check(parser, TOKEN_IDENTIFIER)
+                && parser->current_token.text != NULL
+                && strcmp(parser->current_token.text, "mut") == 0)
+                parser_advance(parser);
+        }
 
         Token param_name = consume_binding_name_token(parser, "Expected parameter name");
 

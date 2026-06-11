@@ -62,8 +62,9 @@ llvm_stmt_declared_return_type_name(LLVMGenCtx *ctx, const char *name)
 {
     ASTNode *decl;
     ASTNode *return_type;
-    bool generic_func;
     bool extern_func;
+    const MIRRoutine *routine = NULL;
+    bool generic_func = false;
 
     if (ctx == NULL || name == NULL)
         return NULL;
@@ -71,12 +72,11 @@ llvm_stmt_declared_return_type_name(LLVMGenCtx *ctx, const char *name)
     decl = llvm_stmt_find_function_decl_by_name(ctx, name);
     if (decl == NULL || decl->type != AST_FUNC_DECL)
         return NULL;
-    generic_func =
-        ast_generic_param_count(ast_declaration_generic_params(decl)) > 0;
     extern_func = llvm_decl_is_extern_function(ctx, decl);
+    if (llvm_active_has_mir(ctx) && !extern_func)
+        routine = llvm_active_function_routine_for_source_ast(ctx, decl);
+    generic_func = llvm_mir_or_ast_function_is_generic(routine, decl);
     if (llvm_active_has_mir(ctx) && !generic_func && !extern_func) {
-        const MIRRoutine *routine =
-            llvm_active_function_routine_for_source_ast(ctx, decl);
         const char *return_type_name = NULL;
         if (routine == NULL) {
             llvm_set_mir_inventory_missing(ctx,
@@ -253,9 +253,9 @@ llvm_infer_spawn_future_inner(LLVMGenCtx *ctx, ASTNode *spawn_expr)
     ASTNode *decl;
     ASTNode *return_type;
     const char *ret_name;
-    bool generic_func;
     bool extern_func;
     const MIRRoutine *routine = NULL;
+    bool generic_func = false;
     bool use_mir_signature = false;
 
     if (target != NULL && target->type == AST_CALL) {
@@ -270,11 +270,11 @@ llvm_infer_spawn_future_inner(LLVMGenCtx *ctx, ASTNode *spawn_expr)
     decl = llvm_stmt_find_function_decl_by_name(ctx, callee_name);
     if (decl == NULL || decl->type != AST_FUNC_DECL)
         return NULL;
-    generic_func =
-        ast_generic_param_count(ast_declaration_generic_params(decl)) > 0;
     extern_func = llvm_decl_is_extern_function(ctx, decl);
-    if (llvm_active_has_mir(ctx) && !generic_func && !extern_func) {
+    if (llvm_active_has_mir(ctx) && !extern_func)
         routine = llvm_active_function_routine_for_source_ast(ctx, decl);
+    generic_func = llvm_mir_or_ast_function_is_generic(routine, decl);
+    if (llvm_active_has_mir(ctx) && !generic_func && !extern_func) {
         if (routine == NULL) {
             llvm_set_mir_inventory_missing(ctx,
                 "MIR-only LLVM path missing spawn future inference routine for '%s'",

@@ -39,6 +39,14 @@ examples/*.c
 examples/**/*.c
 
 # Compiled example binaries and build artifacts
+# Root-level compiled examples are extensionless by default (`examples/foo`
+# next to `examples/foo.pgy`). Ignore those products while keeping source,
+# docs, expected outputs, and subdirectories visible.
+examples/*
+!examples/**/
+!examples/*.pgy
+!examples/*.md
+!examples/*.txt
 examples/*.exe
 examples/**/*.exe
 examples/**/*.o
@@ -112,6 +120,7 @@ review/*
 !review/README.md
 
 # Debug
+/SESSION_CHANGES.md
 *.dSYM/
 core
 vgcore.*

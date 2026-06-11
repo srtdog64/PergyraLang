@@ -32,7 +32,7 @@ run 'make layered-diagnostics-contract-test-smoke'
 run 'make intent-compression-contract-test-smoke'
 run 'make transpile-strict-source-test-smoke'
 run 'make mir-declaration-inventory-test-smoke'
-run 'make CC="$CI_WINDOWS_CC" source-test-harness-compile-test-smoke'
+run 'make CC="$CI_WINDOWS_CC" LLVM_ENABLED=0 BUILD_DIR="$CI_WINDOWS_BUILD_DIR" BIN_DIR="$CI_WINDOWS_BIN_DIR" source-test-harness-compile-test-smoke'
 
 if [[ "$CI_WINDOWS_RUNNABLE" == "1" ]]; then
     echo "ci-windows: native MSYS2 runtime detected; running executable contract smokes"
@@ -57,4 +57,4 @@ if [[ "$CI_WINDOWS_RUNNABLE" == "1" ]]; then
     fi
 fi
 
-run 'PGY_AIR_GRAPH_JSON_SKIP_DRIFT=1 make self-host-preparation-test-smoke'
+run 'PGY_AIR_GRAPH_JSON_SKIP_DRIFT=1 make CC="$CI_WINDOWS_CC" LLVM_ENABLED=0 BUILD_DIR="$CI_WINDOWS_BUILD_DIR" BIN_DIR="$CI_WINDOWS_BIN_DIR" self-host-preparation-test-smoke'

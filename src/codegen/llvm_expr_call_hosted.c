@@ -99,9 +99,11 @@ llvm_emit_hosted_self_call(ASTNode *node, LLVMGenCtx *ctx,
     if (host_method == NULL && method_meta == NULL) {
         host_method = llvm_stmt_host_method_ast_decl(ctx, host_name,
             callee_name);
-        if (host_method == NULL && llvm_active_has_mir(ctx)) {
-            if (llvm_find_callable_decl(ctx, callee_name) != NULL)
+        if (llvm_active_has_mir(ctx)) {
+            if (host_method == NULL
+                && llvm_find_callable_decl(ctx, callee_name) != NULL) {
                 return NULL;
+            }
             llvm_set_mir_inventory_missing(ctx,
                 "MIR-only LLVM path missing hosted self-call method metadata for '%s.%s'",
                 host_name != NULL ? host_name : "(anonymous)",

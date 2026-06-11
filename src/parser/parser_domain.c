@@ -356,7 +356,10 @@ ASTNode* parse_ability_declaration(Parser* parser, bool is_innate) {
 
         } else if (parser_match(parser, TOKEN_FUNC)) {
             /* Method declaration (may have body or be abstract) */
+            bool saved_abstract_ctx = parser->in_abstract_method_context;
+            parser->in_abstract_method_context = true;
             ASTNode* method = parser_finalize_statement(parser, parse_function_declaration(parser));
+            parser->in_abstract_method_context = saved_abstract_ctx;
 
             append_child_node(&ability->data.ability_decl.methods,
                 &ability->data.ability_decl.method_count,

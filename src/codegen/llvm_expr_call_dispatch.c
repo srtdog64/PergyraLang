@@ -243,9 +243,13 @@ llvm_emit_call(ASTNode *node, LLVMGenCtx *ctx)
     LLVMValueRef result = NULL;
 
     if (decl != NULL) {
-        decl_is_generic_func =
-            ast_generic_param_count(ast_declaration_generic_params(decl)) > 0;
         decl_is_extern_func = llvm_decl_is_extern_function(ctx, decl);
+        decl_is_generic_func =
+            llvm_mir_or_ast_function_is_generic(
+                llvm_active_has_mir(ctx) && !decl_is_extern_func
+                    ? llvm_active_function_routine_for_source_ast(ctx, decl)
+                    : NULL,
+                decl);
     }
 
     if (intent_decl != NULL) {

@@ -102,12 +102,13 @@ emit_let_decl(ASTNode *node, TranspilerCtx *ctx)
             ast_identifier_name(ast_call_callee(init)));
         if (decl != NULL && decl->type == AST_FUNC_DECL) {
             ASTNode *return_type = NULL;
-            bool generic_call = transpiler_func_has_generic_params(decl);
+            const MIRRoutine *routine =
+                transpiler_find_mir_function(ctx, decl);
+            bool generic_call =
+                transpiler_mir_or_ast_function_is_generic(routine, decl);
             bool extern_func = transpiler_decl_is_extern_function(ctx, decl);
             if (!generic_call && !extern_func
                 && transpiler_active_has_mir(ctx)) {
-                const MIRRoutine *routine =
-                    transpiler_find_mir_function(ctx, decl);
                 if (routine == NULL) {
                     transpiler_set_mir_inventory_missing(ctx,
                         "MIR-only C path missing callable let return routine for '%s'",

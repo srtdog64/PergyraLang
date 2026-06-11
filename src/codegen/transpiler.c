@@ -18,8 +18,8 @@
 #include "transpiler_enum.h"
 #include "transpiler_extern.h"
 #include "transpiler_func_forward_helpers.h"
-#include "transpiler_generic_param_query.h"
 #include "transpiler_log_normalize.h"
+#include "transpiler_mir_signature.h"
 #include "transpiler_nominal.h"
 #include "transpiler_operator.h"
 #include "transpiler_program.h"
@@ -338,7 +338,8 @@ emit_program(TranspilerCtx *ctx)
         emit_event_decl(events[i], ctx);
 
     for (size_t i = 0; i < function_count; i++) {
-        if (!transpiler_func_has_generic_params(functions[i]))
+        if (!transpiler_mir_or_ast_function_is_generic(
+                transpiler_find_mir_function(ctx, functions[i]), functions[i]))
             emit_func_forward_decl_named(
                 functions[i],
                 transpiler_c_executable_emitted_name(
@@ -360,7 +361,9 @@ emit_program(TranspilerCtx *ctx)
         CodeBuf *saved_out = ctx->out;
         ctx->out = func_buf;
         for (size_t i = 0; i < function_count; i++) {
-            if (!transpiler_func_has_generic_params(functions[i]))
+            if (!transpiler_mir_or_ast_function_is_generic(
+                    transpiler_find_mir_function(ctx, functions[i]),
+                    functions[i]))
                 emit_func_decl_named(
                     functions[i],
                     transpiler_c_executable_emitted_name(

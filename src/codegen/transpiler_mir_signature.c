@@ -213,6 +213,18 @@ transpiler_mir_routine_signature_supported(TranspilerCtx *ctx,
 }
 
 bool
+transpiler_mir_or_ast_function_is_generic(const MIRRoutine *routine,
+                                          const ASTNode *func_decl)
+{
+    if (mir_routine_has_signature(routine))
+        return transpiler_mir_routine_generic_param_count(routine) > 0;
+    if (func_decl == NULL || func_decl->type != AST_FUNC_DECL)
+        return false;
+    return ast_generic_param_count(
+               ast_declaration_generic_params((ASTNode *)func_decl)) > 0;
+}
+
+bool
 transpiler_mir_function_signature_supported(TranspilerCtx *ctx,
                                             const ASTNode *func_decl)
 {

@@ -386,6 +386,7 @@ llvm_emit_func_from_mir(const MIRRoutine *routine, LLVMGenCtx *ctx)
     ASTNode *saved_return_callable_type = ctx->current_return_callable_type;
     const char *saved_within_zone_name = ctx->current_within_zone_name;
     ASTNode *saved_func_decl = ctx->current_func_decl;
+    const MIRRoutine *saved_mir_routine = ctx->current_mir_routine;
     LLVMBasicBlockRef saved_bb = LLVMGetInsertBlock(ctx->builder);
     LLVMLexicalRegistrySnapshot lexical_snapshot =
         llvm_lexical_registry_snapshot(ctx);
@@ -442,6 +443,7 @@ llvm_emit_func_from_mir(const MIRRoutine *routine, LLVMGenCtx *ctx)
             : NULL;
     ctx->current_within_zone_name = llvm_mir_routine_within_zone(routine);
     ctx->current_func_decl = func_decl;
+    ctx->current_mir_routine = routine;
     if (is_method)
         saved_host_decl = llvm_bind_current_host_decl(
             ctx, llvm_find_host_decl_in_active_inventory(ctx, owner_name));
@@ -563,6 +565,7 @@ restore_state:
     ctx->current_return_callable_type = saved_return_callable_type;
     ctx->current_within_zone_name = saved_within_zone_name;
     ctx->current_func_decl = saved_func_decl;
+    ctx->current_mir_routine = saved_mir_routine;
     if (saved_bb != NULL)
         LLVMPositionBuilderAtEnd(ctx->builder, saved_bb);
     if (is_method)

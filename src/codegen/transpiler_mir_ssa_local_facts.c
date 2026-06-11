@@ -274,6 +274,23 @@ transpiler_mir_ssa_local_find_versioned_type_name(
             if (inst->kind == MIR_INST_DEF
                 && inst->result_name != NULL
                 && strcmp(inst->result_name, versioned_name) == 0) {
+                ASTNode *source = mir_instruction_source_payload(inst);
+                if (source != NULL && source->type == AST_LET_DECL) {
+                    ASTNode *let_type = ast_let_type(source);
+                    ASTNode *init = ast_let_initializer(source);
+                    const char *inferred;
+
+                    if (let_type != NULL)
+                        return transpiler_render_effective_local_type_name(
+                            ctx, let_type);
+                    inferred = transpiler_infer_local_type_name_from_expr(
+                        ctx, func_decl, init);
+                    if (inferred != NULL
+                        && inferred[0] != '\0'
+                        && strcmp(inferred, "Unknown") != 0) {
+                        return pergyra_strdup(inferred);
+                    }
+                }
                 if (inst->expr1 != NULL
                     && inst->expr1->type == AST_TYPE) {
                     return transpiler_render_effective_local_type_name(
@@ -285,6 +302,15 @@ transpiler_mir_ssa_local_find_versioned_type_name(
                     return pergyra_strdup(inst->arg1);
                 }
             }
+        }
+    }
+    {
+        const char *source_type =
+            transpiler_mir_routine_source_local_type_name(routine, base_name);
+        if (source_type != NULL
+            && source_type[0] != '\0'
+            && strcmp(source_type, "Unknown") != 0) {
+            return pergyra_strdup(source_type);
         }
     }
     for (size_t i = 0; i < routine->block_count; i++) {

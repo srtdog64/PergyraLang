@@ -127,11 +127,12 @@ run_reserved_object_initializer_diagnostic_test(void)
     ASTNode *ast = parser != NULL ? parser_parse_program(parser) : NULL;
     const char *error = parser != NULL ? parser_get_error(parser) : NULL;
 
-    printf("\n=== Test: Reserved Object Initializer Diagnostic ===\n");
+    printf("\n=== Test: Object Initializer Parses ===\n");
 
-    if (parser == NULL || !parser_has_error(parser)
-        || error == NULL || strstr(error, "Object initializer syntax") == NULL) {
-        printf("[FAIL] expected reserved object initializer diagnostic, got: %s\n",
+    /* Object initializer `Type { field: value }` is now implemented and
+     * lowers to a named-argument constructor call, so it must parse cleanly. */
+    if (parser == NULL || parser_has_error(parser) || ast == NULL) {
+        printf("[FAIL] expected object initializer to parse, got: %s\n",
             error != NULL ? error : "<none>");
         failed = 1;
     }

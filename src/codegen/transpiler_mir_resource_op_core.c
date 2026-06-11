@@ -12,6 +12,8 @@
 #include "transpiler_type_mapping.h"
 #include "transpiler_type_require.h"
 
+#include "../semantic/diag_codes.h"
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -54,6 +56,7 @@ transpiler_emit_mir_resource_op(TranspilerCtx *ctx,
     char runtime_fn_buf[160];
     char inner_name_buf[128];
     const char *slot_anchor;
+    const char *effective_abi_type_name = NULL;
     const char *typed_name = NULL;
     const char *inner_name = NULL;
     const char *inner_c = NULL;
@@ -64,22 +67,28 @@ transpiler_emit_mir_resource_op(TranspilerCtx *ctx,
     TranspilerMIRResourceOp op;
     char anchor_expr_buf[128];
     const char *anchor_expr = NULL;
+    bool mir_active = transpiler_active_has_mir(ctx);
 
     if (out == NULL || inst == NULL)
         return false;
 
     slot_anchor = inst->slot_anchor;
+    effective_abi_type_name = inst->abi_type_name;
     op_name = inst->name;
     op = transpiler_mir_resource_op_lookup(op_name);
 
     if (effective_layout == NULL) {
-        const char *abi_key = inst->arg0 != NULL ? inst->arg0 : inst->slot_anchor;
+        const char *abi_key = effective_abi_type_name != NULL
+            ? effective_abi_type_name
+            : (inst->arg0 != NULL ? inst->arg0 : inst->slot_anchor);
         if (abi_key != NULL)
             effective_layout = mir_abi_lookup(abi_key);
     }
 
     if (effective_layout != NULL && effective_layout->runtime_fn != NULL) {
         const char *layout_fn = effective_layout->runtime_fn;
+        if (effective_layout->abi_type_name != NULL)
+            effective_abi_type_name = effective_layout->abi_type_name;
         suffix = transpiler_extract_type_suffix_from_fn(layout_fn);
         if (strncmp(layout_fn, "pgy_claim_secure_", 17) == 0
             || strncmp(layout_fn, "pgy_secure_", 11) == 0) {
@@ -100,8 +109,26 @@ transpiler_emit_mir_resource_op(TranspilerCtx *ctx,
                 inner_name = inner_name_buf;
         }
     }
+    if (effective_abi_type_name != NULL) {
+        if (strncmp(effective_abi_type_name, "SecureSlot<", 11) == 0) {
+            is_secure_slot = true;
+        } else if (strncmp(effective_abi_type_name, "DeviceSlot<", 11) == 0) {
+            is_device_slot = true;
+        }
+        if (inner_name == NULL
+            && (strncmp(effective_abi_type_name, "Slot<", 5) == 0
+                || strncmp(effective_abi_type_name, "SecureSlot<", 11) == 0
+                || strncmp(effective_abi_type_name, "DeviceSlot<", 11) == 0)) {
+            if (slot_inner_type_name_copy(effective_abi_type_name,
+                    inner_name_buf, sizeof(inner_name_buf)))
+                inner_name = inner_name_buf;
+        }
+    }
 
-    if (fn == NULL && ctx != NULL && slot_anchor != NULL) {
+    if (ctx != NULL && slot_anchor != NULL && mir_active)
+        anchor_is_indirect = lookup_slot_is_indirect(ctx, slot_anchor);
+
+    if (fn == NULL && ctx != NULL && slot_anchor != NULL && !mir_active) {
         typed_name = lookup_typed_var(ctx, slot_anchor);
         for (int i = 0; i < ctx->slot_var_count; i++) {
             if (strcmp(ctx->slot_vars[i].name, slot_anchor) == 0) {
@@ -162,26 +189,37 @@ transpiler_emit_mir_resource_op(TranspilerCtx *ctx,
                 }
             }
         }
-        if (inner_name != NULL) {
-            char inner_c_buf[128];
-            if (transpiler_require_type_name_c_type_copy(ctx, inner_name,
-                    "MIR resource operation payload", inner_c_buf,
-                    sizeof(inner_c_buf))) {
-                inner_c = inner_c_buf;
-            }
-            if (inner_c != NULL && inner_c[0] != '\0') {
-                if (transpiler_format_slot_runtime_fn(
-                        op_name, is_secure_slot, is_device_slot, inner_name,
-                        runtime_fn_buf, sizeof(runtime_fn_buf))) {
-                    fn = runtime_fn_buf;
-                    suffix = inner_name;
-                }
+    }
+
+    if (inner_name != NULL) {
+        char inner_c_buf[128];
+        if (transpiler_require_type_name_c_type_copy(ctx, inner_name,
+                "MIR resource operation payload", inner_c_buf,
+                sizeof(inner_c_buf))) {
+            inner_c = inner_c_buf;
+        }
+        if (inner_c != NULL && inner_c[0] != '\0') {
+            if (transpiler_format_slot_runtime_fn(
+                    op_name, is_secure_slot, is_device_slot, inner_name,
+                    runtime_fn_buf, sizeof(runtime_fn_buf))) {
+                fn = runtime_fn_buf;
+                suffix = inner_name;
             }
         }
     }
 
-    if (fn == NULL)
+    if (fn == NULL) {
+        if (mir_active) {
+            transpiler_set_backend_error_with_hints(
+                ctx,
+                PGY_CODE_C_TYPE_UNSUPPORTED,
+                PGY_CAUSE_C_TYPE_UNSUPPORTED,
+                PGY_FIX_USE_LLVM_BACKEND_OR_EXTEND_TRANSPILER,
+                "MIR resource op '%s' is missing runtime ABI layout metadata",
+                op_name != NULL ? op_name : "<op>");
+        }
         return false;
+    }
 
     if (slot_anchor == NULL)
         slot_anchor = inst->slot_anchor;

@@ -24,7 +24,7 @@ emit_func_forward_decl_named(ASTNode *node, const char *emitted_name,
     const MIRRoutine *mir_routine = transpiler_find_mir_function(ctx, node);
     bool use_mir_signature = false;
     bool generic_func =
-        ast_generic_param_count(ast_declaration_generic_params(node)) > 0;
+        transpiler_mir_or_ast_function_is_generic(mir_routine, node);
     if (transpiler_active_has_mir(ctx) && mir_routine == NULL
         && !generic_func) {
         transpiler_set_mir_inventory_missing(ctx,

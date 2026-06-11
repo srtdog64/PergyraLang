@@ -184,6 +184,12 @@ emit_relation_decl(ASTNode *node, TranspilerCtx *ctx)
             transpiler_hosted_method_view_metadata(&method_view, i);
         ASTNode *method =
             transpiler_hosted_method_view_source_ast(&method_view, i);
+        if (method_meta == NULL && transpiler_active_has_mir(ctx)) {
+            transpiler_set_mir_inventory_missing(ctx,
+                "MIR-only C path missing hosted method forward metadata row for relation '%s'",
+                name != NULL ? name : "(anonymous-relation)");
+            return;
+        }
         if (method_meta == NULL
             && (method == NULL || method->type != AST_FUNC_DECL)) {
             continue;
@@ -337,6 +343,12 @@ emit_effect_decl(ASTNode *node, TranspilerCtx *ctx)
             transpiler_hosted_method_view_metadata(&method_view, i);
         ASTNode *method =
             transpiler_hosted_method_view_source_ast(&method_view, i);
+        if (method_meta == NULL && transpiler_active_has_mir(ctx)) {
+            transpiler_set_mir_inventory_missing(ctx,
+                "MIR-only C path missing hosted method forward metadata row for effect '%s'",
+                name != NULL ? name : "(anonymous-effect)");
+            return;
+        }
         if (method_meta == NULL
             && (method == NULL || method->type != AST_FUNC_DECL)) {
             continue;

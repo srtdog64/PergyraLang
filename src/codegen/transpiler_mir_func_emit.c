@@ -38,6 +38,18 @@
 #include "transpiler_type_require.h"
 #include "transpiler_mir_block_emit.h"
 
+static const char *
+resolve_generic_class_self_type_name(const TranspilerCtx *ctx,
+                                     const char *owner_name)
+{
+    if (ctx != NULL && owner_name != NULL
+        && ctx->active_generic_class_base_name != NULL
+        && ctx->active_generic_class_spec_name != NULL
+        && strcmp(owner_name, ctx->active_generic_class_base_name) == 0)
+        return ctx->active_generic_class_spec_name;
+    return owner_name;
+}
+
 void
 emit_func_decl_from_mir_named(ASTNode *node, const MIRRoutine *mir_routine,
                               const char *emitted_name, CodeBuf *buf,
@@ -163,7 +175,9 @@ emit_func_decl_from_mir_named(ASTNode *node, const MIRRoutine *mir_routine,
         pointer_self = owner_is_zone || owner_is_relation
             || owner_is_effect || owner_is_world
             || is_pointer_self_host_type_name(ctx, owner_name);
-        codebuf_write(params_sig, "%s%s", owner_name, pointer_self ? " *self" : " self");
+        codebuf_write(params_sig, "%s%s",
+            resolve_generic_class_self_type_name(ctx, owner_name),
+            pointer_self ? " *self" : " self");
         }
     }
 

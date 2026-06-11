@@ -34,6 +34,9 @@ bool llvm_mir_routine_signature_metadata_complete(
     const char *missing_return_type_fmt,
     const char *missing_param_type_fmt);
 
+bool llvm_mir_or_ast_function_is_generic(const MIRRoutine *routine,
+                                         const ASTNode *func_decl);
+
 #endif /* PGY_LLVM_ENABLED */
 
 #endif /* PGY_LLVM_MIR_SIGNATURE_H */

@@ -48,23 +48,32 @@ transpiler_emit_class_constructor_with_type(ASTNode *call,
         return NULL;
     }
 
-    for (size_t i = 0; i < argc && i < field_count; i++) {
+    bool named = ast_call_has_named_arguments(call);
+    size_t emitted = 0;
+    for (size_t i = 0; i < field_count; i++) {
         ASTNode *field_type =
             transpiler_hosted_field_view_type(&field_view, i);
         const char *field_name =
             transpiler_hosted_field_view_name(&field_view, i);
-        char *arg = transpiler_emit_ctor_arg_with_expected_type(ctx,
-            field_type, field_name, ast_call_argument(call, i));
+        ASTNode *arg_node = named
+            ? ast_call_find_named_argument(call, field_name)
+            : (i < argc ? ast_call_argument(call, i) : NULL);
+        char *arg;
+        if (arg_node == NULL)
+            continue;
+        arg = transpiler_emit_ctor_arg_with_expected_type(ctx,
+            field_type, field_name, arg_node);
         if (arg == NULL) {
             codebuf_destroy(fields);
             return NULL;
         }
-        if (i > 0)
+        if (emitted > 0)
             codebuf_write(fields, ", ");
         codebuf_write(fields, ".%s = %s",
             field_name != NULL ? field_name : "field",
             arg);
         free(arg);
+        emitted++;
     }
 
     if (fields->len > 0)

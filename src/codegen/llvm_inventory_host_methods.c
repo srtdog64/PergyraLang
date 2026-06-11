@@ -293,13 +293,41 @@ llvm_find_host_method_decl_in_context(const LLVMGenCtx *ctx,
                                       const char *method_name)
 {
     const MIRDeclMethod *method = NULL;
+    ASTNode *method_source = NULL;
+    ASTNode *decl = NULL;
+    LLVMHostedMethodView method_view;
 
     if (ctx == NULL || host_type_name == NULL || method_name == NULL)
         return NULL;
 
     method = llvm_find_host_method_metadata_in_context(
         ctx, host_type_name, method_name);
-    return llvm_mir_decl_method_source_ast(method);
+    method_source = llvm_mir_decl_method_source_ast(method);
+    if (method_source != NULL)
+        return method_source;
+    if (llvm_active_has_mir(ctx))
+        return NULL;
+
+    decl = llvm_find_host_decl_in_active_inventory(ctx, host_type_name);
+    if (decl == NULL && ctx->current_host_decl != NULL) {
+        const char *current_name = llvm_decl_node_name(ctx->current_host_decl);
+        if (current_name != NULL && strcmp(current_name, host_type_name) == 0)
+            decl = ctx->current_host_decl;
+    }
+
+    method_view = llvm_hosted_method_view_from_decl(ctx, host_type_name, decl);
+    for (size_t i = 0; i < method_view.count; i++) {
+        ASTNode *candidate =
+            llvm_hosted_method_view_source_ast(&method_view, i);
+        const char *candidate_name = llvm_decl_node_name(candidate);
+        if (candidate != NULL && candidate->type == AST_FUNC_DECL
+            && candidate_name != NULL
+            && strcmp(candidate_name, method_name) == 0) {
+            return candidate;
+        }
+    }
+
+    return NULL;
 }
 
 #endif /* PGY_LLVM_ENABLED */

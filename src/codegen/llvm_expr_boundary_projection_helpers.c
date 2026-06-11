@@ -128,11 +128,11 @@ llvm_build_boundary_call_args(LLVMGenCtx *ctx, ASTNode *decl,
         return NULL;
 
     decl_name = ast_declaration_name(decl);
-    decl_is_generic =
-        ast_generic_param_count(ast_declaration_generic_params(decl)) > 0;
     decl_is_extern = llvm_decl_is_extern_function(ctx, decl);
-    if (llvm_active_has_mir(ctx) && !decl_is_generic && !decl_is_extern) {
+    if (llvm_active_has_mir(ctx) && !decl_is_extern)
         routine = llvm_active_function_routine_for_source_ast(ctx, decl);
+    decl_is_generic = llvm_mir_or_ast_function_is_generic(routine, decl);
+    if (llvm_active_has_mir(ctx) && !decl_is_generic && !decl_is_extern) {
         if (routine == NULL) {
             llvm_set_mir_inventory_missing(ctx,
                 "MIR-only LLVM path missing boundary call routine for '%s'",

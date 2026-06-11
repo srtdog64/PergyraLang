@@ -11,20 +11,20 @@ llvm_stmt_register_callable_from_function_decl(LLVMGenCtx *ctx,
     ASTNode **param_types = NULL;
     ASTNode *return_type = NULL;
     size_t param_count = 0;
-    bool generic_func;
     bool extern_func;
+    const MIRRoutine *routine = NULL;
+    bool generic_func = false;
 
     if (ctx == NULL || name == NULL || decl == NULL
         || decl->type != AST_FUNC_DECL) {
         return true;
     }
 
-    generic_func =
-        ast_generic_param_count(ast_declaration_generic_params(decl)) > 0;
     extern_func = llvm_decl_is_extern_function(ctx, decl);
+    if (llvm_active_has_mir(ctx) && !extern_func)
+        routine = llvm_active_function_routine_for_source_ast(ctx, decl);
+    generic_func = llvm_mir_or_ast_function_is_generic(routine, decl);
     if (llvm_active_has_mir(ctx) && !generic_func && !extern_func) {
-        const MIRRoutine *routine =
-            llvm_active_function_routine_for_source_ast(ctx, decl);
         if (routine == NULL) {
             llvm_set_mir_inventory_missing(ctx,
                 "MIR-only LLVM path missing callable let routine for '%s'",
@@ -129,13 +129,14 @@ llvm_stmt_register_callable_let_binding(ASTNode *node, LLVMGenCtx *ctx)
             ast_identifier_name(ast_call_callee(init)));
         if (decl != NULL && decl->type == AST_FUNC_DECL) {
             ASTNode *return_type = NULL;
-            bool generic_func =
-                ast_generic_param_count(
-                    ast_declaration_generic_params(decl)) > 0;
             bool extern_func = llvm_decl_is_extern_function(ctx, decl);
+            const MIRRoutine *routine = NULL;
+            bool generic_func = false;
+            if (llvm_active_has_mir(ctx) && !extern_func)
+                routine = llvm_active_function_routine_for_source_ast(ctx,
+                    decl);
+            generic_func = llvm_mir_or_ast_function_is_generic(routine, decl);
             if (llvm_active_has_mir(ctx) && !generic_func && !extern_func) {
-                const MIRRoutine *routine =
-                    llvm_active_function_routine_for_source_ast(ctx, decl);
                 if (routine == NULL) {
                     llvm_set_mir_inventory_missing(ctx,
                         "MIR-only LLVM path missing callable call-return routine for '%s'",

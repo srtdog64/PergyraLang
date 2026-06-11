@@ -11,7 +11,6 @@
 #include "transpiler_context.h"
 #include "transpiler_decl_lookup.h"
 #include "transpiler_expr_type_infer.h"
-#include "transpiler_generic_param_query.h"
 #include "transpiler_let_slot_emit.h"
 #include "transpiler_inventory_view.h"
 #include "transpiler_mir_effective_type.h"
@@ -230,9 +229,14 @@ transpiler_infer_local_type_name_from_expr(TranspilerCtx *ctx,
             }
             if (callee_decl != NULL && callee_decl->type == AST_INTENT_DECL)
                 return "Bool";
+            const MIRRoutine *callee_routine =
+                callee_decl != NULL && callee_decl->type == AST_FUNC_DECL
+                    ? transpiler_find_mir_function(ctx, callee_decl)
+                    : NULL;
             bool generic_call = callee_decl != NULL
                 && callee_decl->type == AST_FUNC_DECL
-                && transpiler_func_has_generic_params(callee_decl);
+                && transpiler_mir_or_ast_function_is_generic(callee_routine,
+                    callee_decl);
             bool extern_func = callee_decl != NULL
                 && callee_decl->type == AST_FUNC_DECL
                 && transpiler_decl_is_extern_function(ctx, callee_decl);
@@ -240,8 +244,6 @@ transpiler_infer_local_type_name_from_expr(TranspilerCtx *ctx,
                 && transpiler_active_has_mir(ctx)
                 && !generic_call
                 && !extern_func) {
-                const MIRRoutine *callee_routine =
-                    transpiler_find_mir_function(ctx, callee_decl);
                 if (callee_routine == NULL) {
                     transpiler_set_mir_inventory_missing(
                         ctx,

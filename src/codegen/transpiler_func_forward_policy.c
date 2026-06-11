@@ -99,10 +99,6 @@ transpiler_can_forward_declare_func_early(TranspilerCtx *ctx, ASTNode *func)
         return false;
 
     routine = transpiler_find_mir_function(ctx, func);
-    size_t generic_param_count =
-        ast_generic_param_count(ast_declaration_generic_params(func));
-    if (generic_param_count > 0)
-        return false;
     if (transpiler_active_has_mir(ctx) && routine == NULL) {
         transpiler_set_mir_inventory_missing(ctx,
             "MIR-only C path missing function forward routine for '%s'",
@@ -122,10 +118,7 @@ transpiler_can_forward_declare_func_early(TranspilerCtx *ctx, ASTNode *func)
         return false;
     }
     use_mir_signature = routine != NULL;
-    generic_param_count = use_mir_signature
-        ? transpiler_mir_routine_generic_param_count(routine)
-        : generic_param_count;
-    if (generic_param_count > 0)
+    if (transpiler_mir_or_ast_function_is_generic(routine, func))
         return false;
 
     const char *return_type_name = use_mir_signature
@@ -211,10 +204,6 @@ transpiler_can_forward_declare_func_after_zones(TranspilerCtx *ctx,
         return false;
 
     routine = transpiler_find_mir_function(ctx, func);
-    size_t generic_param_count =
-        ast_generic_param_count(ast_declaration_generic_params(func));
-    if (generic_param_count > 0)
-        return false;
     if (transpiler_active_has_mir(ctx) && routine == NULL) {
         transpiler_set_mir_inventory_missing(ctx,
             "MIR-only C path missing function forward routine for '%s'",
@@ -234,10 +223,7 @@ transpiler_can_forward_declare_func_after_zones(TranspilerCtx *ctx,
         return false;
     }
     use_mir_signature = routine != NULL;
-    generic_param_count = use_mir_signature
-        ? transpiler_mir_routine_generic_param_count(routine)
-        : generic_param_count;
-    if (generic_param_count > 0)
+    if (transpiler_mir_or_ast_function_is_generic(routine, func))
         return false;
 
     const char *return_type_name = use_mir_signature

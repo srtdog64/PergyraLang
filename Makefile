@@ -1257,6 +1257,7 @@ AIR_CORE_OBJECTS = $(BUILD_DIR)/compiler/air_names.o \
                    $(BUILD_DIR)/compiler/mir_signature_metadata.o \
                    $(BUILD_DIR)/compiler/mir_source_shape.o \
                    $(BUILD_DIR)/compiler/mir_source_local_types.o \
+                   $(BUILD_DIR)/compiler/mir_type_helpers.o \
                    $(BUILD_DIR)/compiler/mir_intent_fact.o \
                    $(BUILD_DIR)/compiler/mir_stmt_source.o \
                    $(BUILD_DIR)/compiler/mir_cleanup_fact_names.o \
@@ -2163,7 +2164,7 @@ ci-macos:
 
 check-windows-toolchain:
 	@cc_machine="$$( $(CI_WINDOWS_CC) -dumpmachine 2>/dev/null || true )"; \
-	if [ -n "$${MSYSTEM:-}" ] && [ "$(PGY_WINDOWS_BASH_IS_MSYS)" != "1" ]; then \
+	if [ -n "$(MSYSTEM)" ] && [ "$(PGY_WINDOWS_BASH_IS_MSYS)" != "1" ]; then \
 		echo "ci-windows requires MSYS2 bash when MSYSTEM is set." >&2; \
 		echo "selected bash: $(BASH)" >&2; \
 		echo "hint: run from an MSYS2 shell, not Git Bash with a synthetic MSYSTEM." >&2; \

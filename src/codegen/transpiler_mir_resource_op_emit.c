@@ -30,12 +30,11 @@ transpiler_mir_register_with_slot_claim_fact(TranspilerCtx *ctx,
 
     if (ctx == NULL || inst == NULL
         || !mir_instruction_is_with_slot_claim(inst)
-        || inst->type_layout == NULL
-        || inst->type_layout->abi_type_name == NULL) {
+        || inst->abi_type_name == NULL) {
         return;
     }
     alias = inst->slot_anchor != NULL ? inst->slot_anchor : inst->arg0;
-    type_name = inst->type_layout->abi_type_name;
+    type_name = inst->abi_type_name;
     if (alias == NULL || alias[0] == '\0')
         return;
     if (lookup_typed_var(ctx, alias) != NULL

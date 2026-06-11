@@ -33,6 +33,8 @@ bool transpiler_mir_routine_signature_metadata_complete_for(
 bool transpiler_mir_routine_signature_supported(TranspilerCtx *ctx,
                                                 const MIRRoutine *routine,
                                                 const ASTNode *func_decl);
+bool transpiler_mir_or_ast_function_is_generic(const MIRRoutine *routine,
+                                               const ASTNode *func_decl);
 bool transpiler_mir_function_signature_supported(TranspilerCtx *ctx,
                                                  const ASTNode *func_decl);
 

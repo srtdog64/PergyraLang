@@ -17,11 +17,12 @@ llvm_mir_claim_inner_type_name(const MIRInstruction *inst,
     const char *close;
     size_t len;
 
-    if (inst == NULL || inst->type_layout == NULL || buf == NULL
-        || buf_size == 0) {
+    if (inst == NULL || buf == NULL || buf_size == 0) {
         return NULL;
     }
-    abi_name = inst->type_layout->abi_type_name;
+    abi_name = inst->abi_type_name != NULL
+        ? inst->abi_type_name
+        : (inst->type_layout != NULL ? inst->type_layout->abi_type_name : NULL);
     if (abi_name == NULL)
         return NULL;
     open = strchr(abi_name, '<');
@@ -39,9 +40,11 @@ llvm_mir_claim_inner_type_name(const MIRInstruction *inst,
 static bool
 llvm_mir_claim_is_secure(const MIRInstruction *inst)
 {
-    const char *abi_name = inst != NULL && inst->type_layout != NULL
-        ? inst->type_layout->abi_type_name
-        : NULL;
+    const char *abi_name = inst != NULL && inst->abi_type_name != NULL
+        ? inst->abi_type_name
+        : (inst != NULL && inst->type_layout != NULL
+            ? inst->type_layout->abi_type_name
+            : NULL);
     if (abi_name != NULL && strncmp(abi_name, "SecureSlot<", 11) == 0)
         return true;
     return inst != NULL && inst->arg1 != NULL

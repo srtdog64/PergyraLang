@@ -264,10 +264,9 @@ llvm_mir_copy_source_def_to_versioned_local(const MIRInstruction *inst,
     if (type_ann != NULL)
         llvm_register_typed_var_binding(ctx, base_name, active_alloca,
             type_ann);
-    else if (inst->type_layout != NULL
-             && inst->type_layout->abi_type_name != NULL) {
+    else if (inst->abi_type_name != NULL) {
         llvm_register_typed_var_abi_binding(ctx, base_name, active_alloca,
-            inst->type_layout->abi_type_name);
+            inst->abi_type_name);
     } else if (source_future_inner != NULL
                && source_future_inner[0] != '\0') {
         llvm_register_future_var_binding(ctx, base_name, active_alloca,

@@ -63,9 +63,17 @@ type_check_call(ASTNode *expr, SemanticContext *ctx)
         return TYPE_UNKNOWN;
     }
 
+    bool callee_is_nominal_ctor = false;
+    if (callee->type == AST_IDENTIFIER) {
+        const char *ctor_name = ast_identifier_name(callee);
+        callee_is_nominal_ctor = ctor_name != NULL
+            && (semantic_find_class_decl_by_name(ctx, ctor_name) != NULL
+                || semantic_find_party_decl_by_name(ctx, ctor_name) != NULL);
+    }
+
     for (size_t i = 0; i < arg_count; i++) {
         const char *arg_name = ast_call_argument_name(expr, i);
-        if (arg_name != NULL) {
+        if (arg_name != NULL && !callee_is_nominal_ctor) {
             semantic_error_with_hints(ctx,
                 PGY_CODE_SEM_BUILTIN_ARGS_INVALID,
                 PGY_CAUSE_BUILTIN_SIGNATURE_MISMATCH,

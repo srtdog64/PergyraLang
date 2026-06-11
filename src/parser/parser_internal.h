@@ -113,6 +113,7 @@ ASTNode *parse_tobject_declaration(Parser *parser);
 ASTNode *parse_action_declaration(Parser *parser);
 ASTNode *parse_type_declaration(Parser *parser, NominalDeclKind decl_kind);
 ASTNode *parse_type_alias_declaration(Parser *parser);
+ASTNode *parse_record_type_alias_struct(Parser *parser, Token name);
 ASTNode *parse_extern_block(Parser *parser);
 
 /* --- Domain types (parser_domain.c) --- */

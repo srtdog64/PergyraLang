@@ -1,5 +1,6 @@
 #ifdef PGY_LLVM_ENABLED
 #include "llvm_internal.h"
+#include "llvm_mir_signature.h"
 
 static bool
 llvm_decl_mir_routine_has_instructions(const MIRRoutine *routine)
@@ -45,19 +46,6 @@ llvm_decl_require_function_source_ast(LLVMGenCtx *ctx,
     return true;
 }
 
-static bool
-llvm_decl_function_is_generic(const MIRRoutine *routine, ASTNode *func_decl)
-{
-    GenericParams *generic_params;
-
-    if (llvm_mir_routine_has_signature(routine))
-        return llvm_mir_routine_generic_param_count(routine) > 0;
-    if (func_decl == NULL)
-        return false;
-    generic_params = ast_declaration_generic_params(func_decl);
-    return ast_generic_param_count(generic_params) > 0;
-}
-
 bool
 llvm_forward_declare_function_routines_from_inventory(
     LLVMGenCtx *ctx,
@@ -78,7 +66,7 @@ llvm_forward_declare_function_routines_from_inventory(
             return false;
         if (func_decl == NULL)
             continue;
-        if (llvm_decl_function_is_generic(routine, func_decl)) {
+        if (llvm_mir_or_ast_function_is_generic(routine, func_decl)) {
             if (!llvm_register_generic_template_decl(ctx, func_decl))
                 return false;
             continue;
@@ -110,7 +98,7 @@ llvm_emit_function_routines_from_inventory(
         if (!llvm_decl_require_function_source_ast(ctx, routine, &func_decl))
             return false;
         if (func_decl == NULL
-            || llvm_decl_function_is_generic(routine, func_decl)) {
+            || llvm_mir_or_ast_function_is_generic(routine, func_decl)) {
             continue;
         }
         if (llvm_decl_mir_routine_has_instructions(routine))
@@ -140,7 +128,7 @@ llvm_validate_function_routine_bodies_from_inventory(
         if (!llvm_decl_require_function_source_ast(ctx, routine, &func_decl))
             return false;
         if (func_decl == NULL
-            || llvm_decl_function_is_generic(routine, func_decl)) {
+            || llvm_mir_or_ast_function_is_generic(routine, func_decl)) {
             continue;
         }
         if (llvm_decl_mir_routine_has_instructions(routine))

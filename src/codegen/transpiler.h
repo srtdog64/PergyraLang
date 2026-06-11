@@ -217,6 +217,12 @@ typedef struct
     GenericClassSpecEntry generic_class_specs[MAX_GENERIC_CLASS_SPECIALIZATIONS];
     int                   generic_class_spec_count;
 
+    /* While emitting a monomorphized generic class method body, map the
+     * base generic class name to its active specialization name so the
+     * self parameter renders the concrete struct type. */
+    const char *active_generic_class_base_name;
+    const char *active_generic_class_spec_name;
+
     /* Runtime collection helper specializations (List/Queue) emitted on demand. */
     CollectionSpecEntry collection_specs[MAX_COLLECTION_SPECIALIZATIONS];
     int                 collection_spec_count;

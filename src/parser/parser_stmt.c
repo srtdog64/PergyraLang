@@ -71,6 +71,17 @@ parser_append_match_case(Parser *parser, ASTNode *match, ASTNode *match_case)
  *   for x in start..end { }    range loop
  *   for item in collection { } for-in collection loop
  */
+static ASTNode *
+parse_condition_expression(Parser *parser)
+{
+    ASTNode *expr;
+    bool saved_nsl = parser->no_struct_literal;
+    parser->no_struct_literal = true;
+    expr = parser_parse_expression(parser);
+    parser->no_struct_literal = saved_nsl;
+    return expr;
+}
+
 ASTNode* parse_for_loop(Parser* parser) {
     ASTNode* for_loop = ast_create_for_loop();
 
@@ -79,7 +90,7 @@ ASTNode* parse_for_loop(Parser* parser) {
 
     parser_consume(parser, TOKEN_IN, "Expected 'in' in for loop");
 
-    ASTNode* first = parser_parse_expression(parser);
+    ASTNode* first = parse_condition_expression(parser);
 
     if (parser_check(parser, TOKEN_DOT)
         && parser->current_token.length == 2
@@ -104,7 +115,7 @@ ASTNode* parse_while_statement(Parser* parser) {
     while_loop->line = parser->previous_token.line;
     while_loop->column = parser->previous_token.column;
 
-    while_loop->data.while_loop.condition = parser_parse_expression(parser);
+    while_loop->data.while_loop.condition = parse_condition_expression(parser);
 
     parser_consume(parser, TOKEN_LBRACE, "Expected '{' after while condition");
     while_loop->data.while_loop.body = parser_parse_block(parser);
@@ -117,7 +128,7 @@ ASTNode* parse_match_statement(Parser* parser) {
     match->line = parser->previous_token.line;
     match->column = parser->previous_token.column;
 
-    match->data.match_stmt.subject = parser_parse_expression(parser);
+    match->data.match_stmt.subject = parse_condition_expression(parser);
 
     parser_consume(parser, TOKEN_LBRACE, "Expected '{' after match expression");
 
@@ -183,7 +194,7 @@ ASTNode* parse_match_statement(Parser* parser) {
 ASTNode* parse_if_statement(Parser* parser) {
     ASTNode* if_stmt = ast_create_if_statement();
 
-    if_stmt->data.if_stmt.condition = parser_parse_expression(parser);
+    if_stmt->data.if_stmt.condition = parse_condition_expression(parser);
 
     parser_consume(parser, TOKEN_LBRACE, "Expected '{' after if condition");
     if_stmt->data.if_stmt.then_branch = parser_parse_block(parser);

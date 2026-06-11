@@ -187,6 +187,8 @@ size_t ast_call_arg_count(const ASTNode* node);
 ASTNode** ast_call_arguments(const ASTNode* node, size_t* count_out);
 ASTNode* ast_call_argument(const ASTNode* node, size_t index);
 const char* ast_call_argument_name(const ASTNode* node, size_t index);
+bool ast_call_has_named_arguments(const ASTNode* node);
+ASTNode* ast_call_find_named_argument(const ASTNode* node, const char* field_name);
 void ast_init_call_borrowed_view(ASTNode* node, ASTNode* callee,
                                  ASTNode** arguments, size_t arg_count);
 

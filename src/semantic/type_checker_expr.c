@@ -491,6 +491,27 @@ type_check_member_access(ASTNode *expr, SemanticContext *ctx)
                 }
             }
 
+            if (decl->type == AST_PARTY_DECL) {
+                size_t party_role_count = ast_party_role_count(decl);
+                for (size_t i = 0; i < party_role_count; i++) {
+                    ASTNode *slot = ast_party_role(decl, i);
+                    const char *party_slot_name = ast_role_slot_name(slot);
+                    if (party_slot_name == NULL
+                        || strcmp(party_slot_name, field_name) != 0)
+                        continue;
+                    if (ast_role_slot_required_ability_count(slot) > 0) {
+                        ASTNode *ability_ref =
+                            ast_role_slot_required_ability(slot, 0);
+                        const char *ability_name = ability_ref != NULL
+                            ? ast_type_name(ability_ref)
+                            : NULL;
+                        if (ability_name != NULL)
+                            return create_overlay_nominal_type(ability_name);
+                    }
+                    return TYPE_UNKNOWN;
+                }
+            }
+
             for (size_t fi = 0; fi < overlay_field_count(decl); fi++) {
                 const char *overlay_field_name = NULL;
                 ASTNode *field_type_node = overlay_field_decl_at(decl, fi,

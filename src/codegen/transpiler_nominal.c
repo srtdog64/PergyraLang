@@ -401,12 +401,14 @@ transpiler_resolve_nominal_host_expr_type_name(TranspilerCtx *ctx, ASTNode *expr
             ASTNode *fn_decl = find_function_decl(ctx, callee_name);
             if (fn_decl != NULL) {
                 ASTNode *ret_type = ast_func_return_type(fn_decl);
-                bool generic_call = transpiler_func_has_generic_params(fn_decl);
+                const MIRRoutine *routine =
+                    transpiler_find_mir_function(ctx, fn_decl);
+                bool generic_call =
+                    transpiler_mir_or_ast_function_is_generic(routine,
+                        fn_decl);
                 bool extern_func = transpiler_decl_is_extern_function(ctx, fn_decl);
                 if (!generic_call && !extern_func
                     && transpiler_active_has_mir(ctx)) {
-                    const MIRRoutine *routine =
-                        transpiler_find_mir_function(ctx, fn_decl);
                     const char *ret_name = NULL;
                     if (routine == NULL) {
                         transpiler_set_mir_inventory_missing(ctx,

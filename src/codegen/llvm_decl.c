@@ -112,15 +112,16 @@ llvm_forward_declare_func_with_signature(ASTNode *node,
 {
     const char *name = ast_declaration_name(node);
     bool use_mir_signature = false;
-    bool generic_func =
-        ast_generic_param_count(ast_declaration_generic_params(node)) > 0;
+    bool generic_func = false;
     bool extern_func = llvm_decl_is_extern_function(ctx, node);
-    if (llvm_active_has_mir(ctx) && routine == NULL
-        && !generic_func && !extern_func) {
-        llvm_set_mir_inventory_missing(ctx,
-            "MIR-only LLVM path missing function forward routine for '%s'",
-            name != NULL ? name : "(anonymous)");
-        return;
+    if (routine == NULL) {
+        generic_func = llvm_mir_or_ast_function_is_generic(NULL, node);
+        if (llvm_active_has_mir(ctx) && !generic_func && !extern_func) {
+            llvm_set_mir_inventory_missing(ctx,
+                "MIR-only LLVM path missing function forward routine for '%s'",
+                name != NULL ? name : "(anonymous)");
+            return;
+        }
     }
     if (!llvm_mir_routine_signature_metadata_complete(
             ctx,

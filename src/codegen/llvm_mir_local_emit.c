@@ -484,11 +484,10 @@ llvm_emit_mir_local_allocas(const MIRRoutine *routine, LLVMGenCtx *ctx,
                     llvm_register_typed_var_binding(ctx, base_name,
                         vars[var_count].alloca, type_expr);
                 } else if (has_base_name
-                           && inst->type_layout != NULL
-                           && inst->type_layout->abi_type_name != NULL) {
+                           && inst->abi_type_name != NULL) {
                     llvm_register_typed_var_abi_binding(ctx, base_name,
                         vars[var_count].alloca,
-                        inst->type_layout->abi_type_name);
+                        inst->abi_type_name);
                 }
                 if (has_base_name
                     && value_expr != NULL

@@ -232,14 +232,25 @@ transpiler_emit_mir_resource_hook(TranspilerCtx *ctx,
             && ctx != NULL
             && op == TRANS_MIR_RESOURCE_OP_WRITE
             && inst->slot_anchor != NULL) {
-            TypedVarEntry *view_entry = lookup_typed_entry(ctx, inst->slot_anchor);
+            bool mir_active = transpiler_active_has_mir(ctx);
+            TypedVarEntry *view_entry = mir_active
+                ? NULL
+                : lookup_typed_entry(ctx, inst->slot_anchor);
             const char *view_source_slot = inst->resource_owner_slot_anchor;
             const MIRTypeLayout *source_layout = inst->type_layout;
+            const char *expected_owner_slot = mir_active
+                ? transpiler_mir_find_prior_borrow_source_for_view(
+                    ctx, inst, inst->slot_anchor)
+                : NULL;
 
-            if (transpiler_active_has_mir(ctx)
-                && inst->resource_owner_requires_metadata
+            if (mir_active
+                && (inst->resource_owner_requires_metadata
+                    || (expected_owner_slot != NULL && expected_owner_slot[0] != '\0'))
                 && ((view_source_slot == NULL || view_source_slot[0] == '\0')
-                    || source_layout == NULL)) {
+                    || source_layout == NULL
+                    || (expected_owner_slot != NULL
+                        && expected_owner_slot[0] != '\0'
+                        && strcmp(view_source_slot, expected_owner_slot) != 0))) {
                 transpiler_set_backend_error_with_hints(
                     ctx,
                     PGY_CODE_C_TYPE_UNSUPPORTED,
@@ -251,26 +262,28 @@ transpiler_emit_mir_resource_hook(TranspilerCtx *ctx,
                 return false;
             }
             if ((view_source_slot == NULL || view_source_slot[0] == '\0')
-                && transpiler_active_has_mir(ctx)) {
-                view_source_slot = transpiler_mir_find_prior_borrow_source_for_view(
-                    ctx, inst, inst->slot_anchor);
+                && mir_active) {
+                view_source_slot = expected_owner_slot;
             }
             if ((view_source_slot == NULL || view_source_slot[0] == '\0')
                 && view_entry != NULL
                 && view_entry->is_view
-                && view_entry->source_slot[0] != '\0') {
+                && view_entry->source_slot[0] != '\0'
+                && !mir_active) {
                 view_source_slot = view_entry->source_slot;
             }
             if (source_layout == NULL
                 && view_source_slot != NULL
                 && view_source_slot[0] != '\0'
-                && transpiler_active_has_mir(ctx)) {
+                && mir_active) {
                 source_layout = transpiler_mir_find_prior_resource_layout_for_slot(
                     ctx, inst, view_source_slot);
             }
 
             if (view_source_slot != NULL && view_source_slot[0] != '\0') {
-                const char *source_type_name = lookup_typed_var(ctx, view_source_slot);
+                const char *source_type_name = source_layout == NULL && !mir_active
+                    ? lookup_typed_var(ctx, view_source_slot)
+                    : NULL;
                 if (emit_inst != &inst_copy) {
                     inst_copy = *emit_inst;
                     emit_inst = &inst_copy;

@@ -28,8 +28,11 @@ llvm_stmt_source_local_class(LLVMGenCtx *ctx, ASTNode *recv)
         || ctx->current_func_decl->type != AST_FUNC_DECL) {
         return NULL;
     }
-    const MIRRoutine *routine =
-        llvm_active_function_routine_for_source_ast(ctx, ctx->current_func_decl);
+    const MIRRoutine *routine = ctx->current_mir_routine;
+    if (routine == NULL) {
+        routine = llvm_active_function_routine_for_source_ast(
+            ctx, ctx->current_func_decl);
+    }
     if (routine == NULL && llvm_active_has_mir(ctx))
         return NULL;
     const char *ann = routine != NULL

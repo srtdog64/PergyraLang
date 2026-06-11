@@ -190,6 +190,19 @@ emit_class_decl(ASTNode *node, TranspilerCtx *ctx)
         ASTNode *method =
             transpiler_hosted_method_view_source_ast(&method_view, i);
         bool use_self_cell = is_pointer_self_host_type_name(ctx, name);
+        if (method_meta == NULL && transpiler_active_has_mir(ctx)) {
+            transpiler_set_mir_inventory_missing(ctx,
+                "MIR-only C path missing hosted method forward metadata row for class '%s'",
+                name != NULL ? name : "(anonymous-class)");
+            return;
+        }
+        if (method_meta == NULL && transpiler_active_has_mir(ctx)) {
+            transpiler_set_mir_inventory_missing(
+                ctx,
+                "MIR-only C path missing method body metadata row for class '%s'",
+                name != NULL ? name : "(anonymous-class)");
+            return;
+        }
         if (method_meta == NULL
             && (method == NULL || method->type != AST_FUNC_DECL)) {
             continue;

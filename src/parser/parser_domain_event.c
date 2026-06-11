@@ -13,6 +13,9 @@ ASTNode* parse_event_declaration(Parser* parser) {
         event_decl->is_exported = false;
     }
 
+    /* Optional ':' before the parameter signature: event Name: (params). */
+    parser_match(parser, TOKEN_COLON);
+
     parser_consume(parser, TOKEN_LPAREN, "Expected '(' after event name");
 
     while (!parser_check(parser, TOKEN_RPAREN) && !parser_is_at_end(parser)) {

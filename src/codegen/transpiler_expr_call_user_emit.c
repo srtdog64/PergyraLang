@@ -11,7 +11,6 @@
 #include "transpiler_decl_lookup.h"
 #include "transpiler_expr_type_infer.h"
 #include "transpiler_format.h"
-#include "transpiler_generic_param_query.h"
 #include "transpiler_generic_specialization_emit.h"
 #include "transpiler_inventory_view.h"
 #include "transpiler_mir_signature.h"
@@ -107,8 +106,14 @@ emit_call_user_function(ASTNode *call, ASTNode *callee, TranspilerCtx *ctx)
     bool mir_requires_routine = false;
     bool mir_only_intent = false;
     if (callee->type == AST_IDENTIFIER) {
+        if (decl != NULL && decl->type == AST_FUNC_DECL) {
+            callee_routine = transpiler_find_mir_function(ctx, decl);
+            callee_is_generic_func =
+                transpiler_mir_or_ast_function_is_generic(callee_routine,
+                    decl);
+        }
         if (decl != NULL && decl->type == AST_FUNC_DECL
-            && transpiler_func_has_generic_params(decl)) {
+            && callee_is_generic_func) {
             callee_is_generic_func = true;
             const char *specialized_name =
                 ensure_generic_specialization(ctx, decl, call);
@@ -128,7 +133,6 @@ emit_call_user_function(ASTNode *call, ASTNode *callee, TranspilerCtx *ctx)
     if (decl != NULL && decl->type == AST_FUNC_DECL
         && !callee_is_generic_func && !callee_is_extern_func
         && transpiler_active_has_mir(ctx)) {
-        callee_routine = transpiler_find_mir_function(ctx, decl);
         if (callee_routine == NULL) {
             transpiler_set_mir_inventory_missing(ctx,
                 "MIR-only C path missing user-call routine for '%s'",

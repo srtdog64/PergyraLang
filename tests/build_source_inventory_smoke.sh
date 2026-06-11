@@ -119,6 +119,16 @@ if ! grep -Fq 'ifneq ($(ENABLE_ASM_FASTPATH),1)' "$ROOT_DIR/Makefile"; then
     echo "[build-source-inventory] runtime asm objects must stay disabled by default" >&2
     missing=1
 fi
+if ! grep -Fq 'LLVM_ENABLED=0 BUILD_DIR="$CI_WINDOWS_BUILD_DIR" BIN_DIR="$CI_WINDOWS_BIN_DIR" source-test-harness-compile-test-smoke' \
+    "$ROOT_DIR/scripts/ci_windows_steps.sh"; then
+    echo "[build-source-inventory] Windows source harness smoke must use the isolated CI build/bin dirs" >&2
+    missing=1
+fi
+if ! grep -Fq 'LLVM_ENABLED=0 BUILD_DIR="$CI_WINDOWS_BUILD_DIR" BIN_DIR="$CI_WINDOWS_BIN_DIR" self-host-preparation-test-smoke' \
+    "$ROOT_DIR/scripts/ci_windows_steps.sh"; then
+    echo "[build-source-inventory] Windows self-host preparation smoke must use the isolated CI build/bin dirs" >&2
+    missing=1
+fi
 
 duplicate_sources="$(
     printf '%s\n' "$inventory" \
@@ -780,6 +790,16 @@ fi
 
 if ! grep -Fq '$(BUILD_DIR)/compiler/mir_cfg_contract_validate_cleanup.o' "$ROOT_DIR/Makefile"; then
     echo "[build-source-inventory] MIR cleanup validator object is not linked by MIR_CORE_OBJECTS" >&2
+    missing=1
+fi
+
+if ! awk '
+    /^AIR_CORE_OBJECTS[[:space:]]*=/ { in_air = 1 }
+    /^MIR_CORE_OBJECTS[[:space:]]*=/ { in_air = 0 }
+    in_air && /\$\(BUILD_DIR\)\/compiler\/mir_type_helpers[.]o/ { found = 1 }
+    END { exit found ? 0 : 1 }
+' "$ROOT_DIR/Makefile"; then
+    echo "[build-source-inventory] MIR type helper object is not linked by AIR_CORE_OBJECTS" >&2
     missing=1
 fi
 

@@ -11,6 +11,7 @@
 #include "llvm_domain_role_helpers.h"
 #include "llvm_inventory_decl_lookup.h"
 #include "llvm_inventory_host_methods.h"
+#include "llvm_inventory_internal.h"
 #include "llvm_mir_type_helpers.h"
 
 static void
@@ -42,7 +43,7 @@ llvm_emit_role_method_forward_decls_metadata_first(
         const MIRDeclMethod *method_meta =
             llvm_hosted_method_view_metadata(methods, j);
         ASTNode *method = llvm_hosted_method_view_source_ast(methods, j);
-        bool allow_ast_compat = method_meta == NULL;
+        bool allow_ast_compat = method_meta == NULL && !llvm_active_has_mir(ctx);
         const char *mname =
             llvm_domain_method_name_metadata_first(
                 method_meta, method, allow_ast_compat);
@@ -63,6 +64,12 @@ llvm_emit_role_method_forward_decls_metadata_first(
         char fname[256];
         LLVMValueRef fn;
 
+        if (method_meta == NULL && llvm_active_has_mir(ctx)) {
+            llvm_set_mir_inventory_missing(ctx,
+                "MIR-only LLVM path missing method forward metadata row for role '%s'",
+                role_name != NULL ? role_name : "(anonymous-role)");
+            return;
+        }
         if (method_meta == NULL
             && (method == NULL || method->type != AST_FUNC_DECL))
             continue;

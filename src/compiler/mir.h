@@ -129,9 +129,13 @@ typedef struct
     bool             requires_select_receive_statement_emit;
     bool             requires_source_branch_emit;
     MIRBranchShape   branch_shape;
-    /* ABI type layout: backends read this instead of inventing layouts. */
+    /* Canonical ABI type name and layout: backends read these instead of
+     * inventing layouts. abi_type_name remains populated for dynamic nominal
+     * layouts such as Slot<Vec2> even when the static layout table has no
+     * MIRTypeLayout entry. */
     ASTNode         *expr0;
     ASTNode         *expr1;
+    const char      *abi_type_name;
     const MIRTypeLayout *type_layout;
 } MIRInstruction;
 

@@ -308,6 +308,21 @@ ensure_generic_class_specialization(TranspilerCtx *ctx,
         ASTNode *method =
             transpiler_hosted_method_view_source_ast(&method_view, i);
         bool use_self_cell = is_pointer_self_host_type_name(ctx, spec_name);
+        if (method_meta == NULL && transpiler_active_has_mir(ctx)) {
+            transpiler_set_mir_inventory_missing(ctx,
+                "MIR-only C path missing hosted method forward metadata row for generic class '%s'",
+                spec_name != NULL ? spec_name : "(anonymous-generic-class)");
+            transpiler_generic_class_spec_rollback(ctx, spec_snapshot);
+            return NULL;
+        }
+        if (method_meta == NULL && transpiler_active_has_mir(ctx)) {
+            transpiler_set_mir_inventory_missing(
+                ctx,
+                "MIR-only C path missing method body metadata row for generic class '%s'",
+                spec_name != NULL ? spec_name : "(anonymous-generic-class)");
+            transpiler_generic_class_spec_rollback(ctx, spec_snapshot);
+            return NULL;
+        }
         if (method_meta == NULL
             && (method == NULL || method->type != AST_FUNC_DECL)) {
             continue;
@@ -365,8 +380,12 @@ ensure_generic_class_specialization(TranspilerCtx *ctx,
                 transpiler_generic_class_spec_rollback(ctx, spec_snapshot);
                 return NULL;
             }
+            ctx->active_generic_class_base_name = base_class_name;
+            ctx->active_generic_class_spec_name = spec_name;
             emit_func_decl_from_mir_named(method, mir_method, emitted_name,
                 ctx->helpers, ctx);
+            ctx->active_generic_class_base_name = NULL;
+            ctx->active_generic_class_spec_name = NULL;
             continue;
         }
 
@@ -428,4 +447,19 @@ ensure_generic_class_specialization(TranspilerCtx *ctx,
     transpiler_generic_class_spec_commit(ctx, spec_snapshot);
 
     return spec_name;
+}
+
+ASTNode *
+transpiler_generic_class_spec_base_decl(const TranspilerCtx *ctx,
+                                        const char *specialized_name)
+{
+    if (ctx == NULL || specialized_name == NULL)
+        return NULL;
+
+    for (int i = 0; i < ctx->generic_class_spec_count; i++) {
+        if (strcmp(ctx->generic_class_specs[i].specialized_name,
+                specialized_name) == 0)
+            return (ASTNode *)ctx->generic_class_specs[i].class_decl;
+    }
+    return NULL;
 }

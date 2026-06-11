@@ -62,6 +62,13 @@ llvm_emit_domain_role_method_bodies(LLVMGenCtx *ctx,
             const MIRRoutine *mir_method = NULL;
             char fname[256];
 
+            if (method_meta == NULL && llvm_active_has_mir(ctx)) {
+                llvm_set_mir_inventory_missing(ctx,
+                    "MIR-only LLVM path missing method body metadata row for role '%s'",
+                    role_name != NULL ? role_name : "(anonymous-role)");
+                return false;
+            }
+
             if (method_name == NULL && method != NULL
                 && method->type == AST_FUNC_DECL)
                 method_name = llvm_role_method_name_from_ast(method);
@@ -119,8 +126,20 @@ llvm_emit_domain_role_method_bodies(LLVMGenCtx *ctx,
                     const MIRDeclMethod *method_meta =
                         llvm_find_role_operator_method_metadata(
                             ctx, stmt, ops[oi], 0);
+                    ASTNode *method = NULL;
                     const char *method_name =
                         llvm_mir_decl_method_name(method_meta);
+                    if (method_meta == NULL) {
+                        method = llvm_find_role_operator_method(
+                            ctx, stmt, ops[oi], 0);
+                        if (method != NULL && llvm_active_has_mir(ctx)) {
+                            llvm_set_mir_inventory_missing(ctx,
+                                "MIR-only LLVM path missing role operator method metadata for role '%s'",
+                                role_name);
+                            return false;
+                        }
+                        method_name = llvm_role_method_name_from_ast(method);
+                    }
                     if (suffix == NULL || method_meta == NULL)
                         continue;
                     if (method_name == NULL) {

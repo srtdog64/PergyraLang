@@ -64,13 +64,31 @@ transpiler_emit_hosted_methods_from_mir_or_error(
 
         mir_method = transpiler_mir_decl_method_routine(ctx, method_meta);
         method = transpiler_hosted_method_view_source_ast(method_view, i);
+        if (method_meta == NULL && transpiler_active_has_mir(ctx)) {
+            transpiler_set_mir_inventory_missing(
+                ctx,
+                "MIR-only C path missing method body metadata row for %s '%s'",
+                host_kind != NULL ? host_kind : "host",
+                host_name != NULL ? host_name : anonymous_host_name);
+            return;
+        }
         if (method == NULL && mir_method != NULL)
             method = transpiler_mir_routine_source_ast_of_type(
                 mir_method, MIR_SCOPE_METHOD, AST_FUNC_DECL);
         if (method_name == NULL && method != NULL)
             method_name = ast_declaration_name(method);
-        if (method == NULL || method->type != AST_FUNC_DECL)
+        if (method == NULL || method->type != AST_FUNC_DECL) {
+            if (transpiler_active_has_mir(ctx)) {
+                transpiler_set_mir_inventory_missing(
+                    ctx,
+                    "MIR-only C path missing method body source metadata for %s method '%s.%s'",
+                    host_kind != NULL ? host_kind : "host",
+                    host_name != NULL ? host_name : anonymous_host_name,
+                    method_name != NULL ? method_name : "(anonymous)");
+                return;
+            }
             continue;
+        }
 
         if (mir_method == NULL) {
             transpiler_set_mir_inventory_missing(

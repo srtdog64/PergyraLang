@@ -50,6 +50,8 @@ typedef struct
     bool    in_async_context;
     bool    in_select_statement;
     bool    in_extern_block;
+    bool    in_abstract_method_context;
+    bool    no_struct_literal;
     bool    next_decl_exported;
     bool    last_func_decl_async;
     int     scope_depth;

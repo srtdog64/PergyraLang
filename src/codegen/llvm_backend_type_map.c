@@ -6,6 +6,7 @@
 #ifdef PGY_LLVM_ENABLED
 
 #include "codegen_channel_runtime_abi.h"
+#include "host_decl_compat.h"
 #include "llvm_backend.h"
 #include "llvm_backend_type_map_internal.h"
 #include "llvm_internal.h"
@@ -217,19 +218,35 @@ llvm_find_generic_default_in_compat_inventory(LLVMGenCtx *ctx,
 {
     ASTNode *candidate = NULL;
     ASTNode *resolved = NULL;
-    ASTNodeType decl_types[] = {
+    const ASTNodeType direct_decl_types[] = {
         AST_FUNC_DECL,
-        AST_CLASS_DECL,
-        AST_ABILITY_DECL,
-        AST_ROLE_DECL,
-        AST_PARTY_DECL,
-        AST_ROSTER_DECL
+        AST_ABILITY_DECL
     };
+    const ASTNodeType *host_decl_types = NULL;
+    size_t host_decl_type_count = 0;
 
-    for (size_t kind = 0; kind < sizeof(decl_types) / sizeof(decl_types[0]); kind++) {
+    for (size_t kind = 0;
+         kind < sizeof(direct_decl_types) / sizeof(direct_decl_types[0]);
+         kind++) {
         ASTNode **nodes = NULL;
         size_t count = 0;
-        llvm_active_inventory(ctx, decl_types[kind], &nodes, &count);
+        llvm_active_inventory(ctx, direct_decl_types[kind], &nodes, &count);
+        for (size_t i = 0; i < count; i++) {
+            resolved = llvm_generic_default_from_context_decl(
+                ctx, nodes != NULL ? nodes[i] : NULL, type_name);
+            if (resolved == NULL)
+                continue;
+            if (!llvm_generic_default_candidate_keep(ctx, &candidate, resolved))
+                return NULL;
+        }
+    }
+
+    host_decl_types = pgy_host_decl_compat_types(&host_decl_type_count);
+    for (size_t kind = 0; host_decl_types != NULL
+         && kind < host_decl_type_count; kind++) {
+        ASTNode **nodes = NULL;
+        size_t count = 0;
+        llvm_active_inventory(ctx, host_decl_types[kind], &nodes, &count);
         for (size_t i = 0; i < count; i++) {
             resolved = llvm_generic_default_from_context_decl(
                 ctx, nodes != NULL ? nodes[i] : NULL, type_name);
@@ -251,13 +268,25 @@ llvm_find_generic_default_in_inventory(LLVMGenCtx *ctx, const char *type_name)
     if (ctx == NULL || type_name == NULL)
         return NULL;
 
+    if (llvm_active_has_mir(ctx)) {
+        if (ctx->current_host_decl != NULL) {
+            const char *decl_name =
+                llvm_decl_node_name(ctx->current_host_decl);
+            const MIRDeclHeader *header =
+                llvm_find_decl_header_in_context_of_type(
+                    ctx, ctx->current_host_decl->type, decl_name);
+            resolved = llvm_generic_default_from_header(header, type_name);
+            if (resolved != NULL)
+                return resolved;
+        }
+        return llvm_find_generic_default_in_mir_inventory(ctx, type_name);
+    }
+
     resolved = llvm_generic_default_from_context_decl(
         ctx, ctx->current_host_decl, type_name);
     if (resolved != NULL)
         return resolved;
 
-    if (llvm_active_has_mir(ctx))
-        return llvm_find_generic_default_in_mir_inventory(ctx, type_name);
     return llvm_find_generic_default_in_compat_inventory(ctx, type_name);
 }
 

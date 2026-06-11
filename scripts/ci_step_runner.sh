@@ -25,6 +25,15 @@ STEP_NAME=""
 FAILED_STEPS=()
 KNOWN_FAILED_STEPS=()
 
+if ! command -v make >/dev/null 2>&1 \
+    && command -v mingw32-make >/dev/null 2>&1; then
+    PGY_CI_MINGW32_MAKE="$(command -v mingw32-make)"
+    PGY_CI_MINGW32_BIN_DIR="${PGY_CI_MINGW32_MAKE%/*}"
+    make() {
+        PATH="$PGY_CI_MINGW32_BIN_DIR:$PATH" MSYSTEM= mingw32-make "$@"
+    }
+fi
+
 run() {
     STEP_NUM=$((STEP_NUM + 1))
     STEP_NAME="$1"

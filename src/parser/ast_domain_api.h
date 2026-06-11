@@ -20,6 +20,7 @@ size_t ast_ability_require_field_count(const ASTNode* node);
 ASTNode* ast_ability_require_field(const ASTNode* node, size_t index);
 size_t ast_ability_method_count(const ASTNode* node);
 ASTNode* ast_ability_method(const ASTNode* node, size_t index);
+ASTNode** ast_ability_methods(const ASTNode* node, size_t* method_count);
 ASTNode* ast_create_role_declaration(const char* name);
 const char* ast_role_name(const ASTNode* node);
 ASTNode* ast_create_include_statement(const char* role_name);

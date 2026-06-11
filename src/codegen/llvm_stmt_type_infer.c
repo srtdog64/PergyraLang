@@ -79,9 +79,8 @@ llvm_stmt_host_method_return_type(LLVMGenCtx *ctx, const char *host_type_name,
     ret_ty = llvm_mir_decl_method_return_type(method_meta);
     if (ret_ty == NULL && method_meta == NULL) {
         ASTNode *m = llvm_stmt_host_method_ast_decl(ctx, host_type_name, method_name);
-        if (m != NULL) ret_ty = ast_func_return_type(m);
-        if (ret_ty == NULL && llvm_active_has_mir(ctx)) {
-            if (llvm_find_callable_decl(ctx, method_name) != NULL)
+        if (llvm_active_has_mir(ctx)) {
+            if (m == NULL && llvm_find_callable_decl(ctx, method_name) != NULL)
                 return NULL;
             llvm_set_mir_inventory_missing(ctx,
                 "MIR-only LLVM path missing method return metadata for '%s.%s'",
@@ -89,6 +88,7 @@ llvm_stmt_host_method_return_type(LLVMGenCtx *ctx, const char *host_type_name,
                 method_name != NULL ? method_name : "(anonymous)");
             return NULL;
         }
+        if (m != NULL) ret_ty = ast_func_return_type(m);
     }
     if (ret_ty != NULL) {
         LLVMTypeRef llvm_ret = ast_type_to_llvm(ctx, ret_ty);
@@ -188,22 +188,25 @@ llvm_stmt_infer_scalar_math_return_type(LLVMGenCtx *ctx, ASTNode *call,
 
     if ((strcmp(callee, "Min") == 0 || strcmp(callee, "Max") == 0)
         && argc == 2) {
+        bool active_mir = llvm_active_has_mir(ctx);
         bool prev_err = ctx->has_error;
         ty0 = llvm_stmt_infer_expr_type(ctx, ast_call_argument(call, 0));
         if (ctx->has_error && !prev_err) {
+            if (active_mir)
+                return NULL;
             ctx->has_error = false;
             ty0 = NULL;
         }
         ty1 = llvm_stmt_infer_expr_type(ctx, ast_call_argument(call, 1));
         if (ctx->has_error && !prev_err) {
+            if (active_mir)
+                return NULL;
             ctx->has_error = false;
             ty1 = NULL;
         }
-        /* Closure #87b: when one side can't be inferred (e.g. an as-yet
-         * unregistered local in MIR-only mode), promote from the
-         * resolvable side. Falling back to Int32 keeps deeper Min/Max
-         * chains (biome_simulator, campaign_graph_fsm) from cascading
-         * into the strict identifier-metadata error. */
+        /* Non-MIR compatibility: when one side can't be inferred,
+         * promote from the resolvable side. Active MIR must fail
+         * closed instead of clearing the source-of-truth diagnostic. */
         if (ty0 != NULL && ty1 != NULL)
             return llvm_stmt_promote_numeric_type(ctx, ty0, ty1);
         if (ty0 != NULL)
@@ -571,17 +574,17 @@ llvm_stmt_infer_expr_type(LLVMGenCtx *ctx, ASTNode *expr)
                         class_name = e->class_name;
                 }
                 if (class_name == NULL) {
-                    /* Last-resort: the var-class registry didn't pick up
-                     * this local (e.g. dnd_tavern_campaign's
-                     * `let weapon: WeaponCard = MemberWeapon(seat)` --
-                     * the MIR emit path doesn't always re-enter the AST
-                     * LET_DECL inference seam that calls
-                     * llvm_register_var_class). Fall back to inferring
-                     * the receiver expression's LLVM type and looking
-                     * the class up by struct type. Swallow a transient
-                     * has_error from the inner inference so a failed
-                     * recovery doesn't trash a still-recoverable
-                     * outer call. */
+                    if (llvm_active_has_mir(ctx)) {
+                        llvm_set_mir_inventory_missing(ctx,
+                            "MIR-only LLVM path missing member-call receiver type metadata for '%s.%s'",
+                            receiver_name != NULL ? receiver_name : "(anonymous)",
+                            method_name != NULL ? method_name : "(anonymous)");
+                        return NULL;
+                    }
+                    /* Non-MIR compatibility path: infer the receiver
+                     * expression's LLVM type and look the class up by
+                     * struct type when the var-class registry did not
+                     * record this local. */
                     bool prev_err = ctx->has_error;
                     LLVMTypeRef recv_ty = llvm_stmt_infer_expr_type(ctx,
                         receiver);

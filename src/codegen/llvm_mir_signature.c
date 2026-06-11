@@ -95,4 +95,18 @@ llvm_mir_routine_signature_metadata_complete(
         missing_param_type_fmt);
 }
 
+bool
+llvm_mir_or_ast_function_is_generic(const MIRRoutine *routine,
+                                    const ASTNode *func_decl)
+{
+    GenericParams *generic_params;
+
+    if (llvm_mir_routine_has_signature(routine))
+        return llvm_mir_routine_generic_param_count(routine) > 0;
+    if (func_decl == NULL || func_decl->type != AST_FUNC_DECL)
+        return false;
+    generic_params = ast_declaration_generic_params((ASTNode *)func_decl);
+    return ast_generic_param_count(generic_params) > 0;
+}
+
 #endif /* PGY_LLVM_ENABLED */

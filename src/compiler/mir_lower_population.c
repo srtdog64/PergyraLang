@@ -41,27 +41,31 @@ typedef struct
 {
     const char *view_name;
     const char *source_slot;
+    const char *source_abi_type_name;
     const MIRTypeLayout *source_layout;
 } MIRResourceBorrowLoweringFact;
 
-static const MIRTypeLayout *
-mir_resource_layout_from_fact(const RIRFact *fact)
+static const char *
+mir_resource_abi_type_name_from_fact(MIRRoutine *routine, const RIRFact *fact)
 {
-    const MIRTypeLayout *layout;
     ASTNode *type_node = NULL;
     char *type_name = NULL;
+    const char *result = NULL;
 
-    if (fact == NULL)
+    if (routine == NULL || fact == NULL)
         return NULL;
-    layout = fact->arg0 != NULL ? mir_abi_lookup(fact->arg0) : NULL;
-    if (layout != NULL)
-        return layout;
     if (fact->ast == NULL)
         return NULL;
-    if (fact->ast->type == AST_LET_DECL)
+    if (fact->ast->type == AST_WITH_STMT) {
+        type_name = mir_claim_abi_type_name_from_ast(fact->ast);
+    } else if (fact->ast->type == AST_LET_DECL) {
         type_node = ast_let_type(fact->ast);
-    else if (fact->ast->type == AST_WITH_STMT)
-        type_node = ast_with_slot_type(fact->ast);
+        if (type_node != NULL)
+            type_name = mir_render_type_name(type_node);
+        if (type_name == NULL)
+            type_name = mir_claim_abi_type_name_from_ast(
+                ast_let_initializer(fact->ast));
+    }
     else if (fact->ast->type == AST_FUNC_DECL && fact->name != NULL) {
         /* Closure #85: function-parameter resource facts carry the
          * function AST as their `ast`, not a let/with. Walk the param
@@ -77,21 +81,40 @@ mir_resource_layout_from_fact(const RIRFact *fact)
                 break;
             }
         }
+        if (type_node != NULL)
+            type_name = mir_render_type_name(type_node);
     }
-    if (type_node == NULL)
-        return NULL;
-    type_name = mir_render_type_name(type_node);
-    if (type_name == NULL)
-        return NULL;
-    layout = mir_abi_lookup(type_name);
+    if (type_name != NULL)
+        result = pgy_arena_strdup(&routine->scratch, type_name);
+    else if (fact->arg0 != NULL)
+        result = pgy_arena_strdup(&routine->scratch, fact->arg0);
     free(type_name);
-    return layout;
+    return result;
 }
 
 static const MIRTypeLayout *
-mir_resource_layout_for_slot_fact(const RIRScope *rir_scope,
-                                  const char *slot_name)
+mir_resource_layout_from_fact(MIRRoutine *routine,
+                              const RIRFact *fact,
+                              const char **abi_type_name_out)
 {
+    const char *abi_type_name;
+
+    if (abi_type_name_out != NULL)
+        *abi_type_name_out = NULL;
+    abi_type_name = mir_resource_abi_type_name_from_fact(routine, fact);
+    if (abi_type_name_out != NULL)
+        *abi_type_name_out = abi_type_name;
+    return mir_abi_lookup(abi_type_name);
+}
+
+static const MIRTypeLayout *
+mir_resource_layout_for_slot_fact(MIRRoutine *routine,
+                                  const RIRScope *rir_scope,
+                                  const char *slot_name,
+                                  const char **abi_type_name_out)
+{
+    if (abi_type_name_out != NULL)
+        *abi_type_name_out = NULL;
     if (rir_scope == NULL || slot_name == NULL || slot_name[0] == '\0')
         return NULL;
     for (size_t i = 0; i < rir_scope_fact_count(rir_scope); i++) {
@@ -103,8 +126,46 @@ mir_resource_layout_for_slot_fact(const RIRScope *rir_scope,
         if ((fact->name != NULL && strcmp(fact->name, slot_name) == 0)
             || (fact->slot_anchor != NULL
                 && strcmp(fact->slot_anchor, slot_name) == 0)) {
-            return mir_resource_layout_from_fact(fact);
+            return mir_resource_layout_from_fact(routine, fact,
+                abi_type_name_out);
         }
+    }
+    return NULL;
+}
+
+static const MIRTypeLayout *
+mir_resource_layout_for_prior_claim(MIRRoutine *routine,
+                                    const RIRScope *rir_scope,
+                                    size_t op_index,
+                                    const char *slot_name,
+                                    const char **abi_type_name_out)
+{
+    char *type_name = NULL;
+    const char *abi_type_name = NULL;
+
+    if (abi_type_name_out != NULL)
+        *abi_type_name_out = NULL;
+    if (routine == NULL || rir_scope == NULL
+        || slot_name == NULL || slot_name[0] == '\0')
+        return NULL;
+    for (size_t i = op_index; i > 0; i--) {
+        const RIROp *claim = rir_scope_op_at(rir_scope, i - 1);
+        if (claim == NULL || claim->kind != RIR_OP_CLAIM)
+            continue;
+        if ((claim->subject == NULL || strcmp(claim->subject, slot_name) != 0)
+            && (claim->slot_anchor == NULL
+                || strcmp(claim->slot_anchor, slot_name) != 0)) {
+            continue;
+        }
+        type_name = mir_claim_abi_type_name_from_ast(claim->ast);
+        if (type_name != NULL)
+            abi_type_name = pgy_arena_strdup(&routine->scratch, type_name);
+        else if (claim->arg0 != NULL)
+            abi_type_name = pgy_arena_strdup(&routine->scratch, claim->arg0);
+        free(type_name);
+        if (abi_type_name_out != NULL)
+            *abi_type_name_out = abi_type_name;
+        return mir_abi_lookup(abi_type_name);
     }
     return NULL;
 }
@@ -131,6 +192,7 @@ mir_resource_record_borrow_fact(MIRResourceBorrowLoweringFact *facts,
                                 size_t *fact_count,
                                 const char *view_name,
                                 const char *source_slot,
+                                const char *source_abi_type_name,
                                 const MIRTypeLayout *source_layout)
 {
     if (facts == NULL || fact_count == NULL || view_name == NULL
@@ -141,6 +203,7 @@ mir_resource_record_borrow_fact(MIRResourceBorrowLoweringFact *facts,
         MIRResourceBorrowLoweringFact *fact = &facts[i - 1];
         if (fact->view_name != NULL && strcmp(fact->view_name, view_name) == 0) {
             fact->source_slot = source_slot;
+            fact->source_abi_type_name = source_abi_type_name;
             fact->source_layout = source_layout;
             return;
         }
@@ -149,6 +212,7 @@ mir_resource_record_borrow_fact(MIRResourceBorrowLoweringFact *facts,
         return;
     facts[*fact_count].view_name = view_name;
     facts[*fact_count].source_slot = source_slot;
+    facts[*fact_count].source_abi_type_name = source_abi_type_name;
     facts[*fact_count].source_layout = source_layout;
     (*fact_count)++;
 }
@@ -158,6 +222,7 @@ mir_add_resource_instruction(MIRRoutine *routine,
                              MIRBasicBlock *block,
                              const RIROp *op,
                              const char *resource_owner_slot_anchor,
+                             const char *resource_owner_abi_type_name,
                              const MIRTypeLayout *resource_owner_layout)
 {
     MIRInstruction inst;
@@ -185,11 +250,20 @@ mir_add_resource_instruction(MIRRoutine *routine,
     } else {
         abi_type_name = claim_type_name != NULL
             ? claim_type_name
-            : (op->arg0 != NULL ? op->arg0 : op->subject);
+            : (resource_owner_abi_type_name != NULL
+                ? resource_owner_abi_type_name
+                : (op->arg0 != NULL ? op->arg0 : op->subject));
+    }
+    if (abi_type_name != NULL) {
+        inst.abi_type_name = pgy_arena_strdup(&routine->scratch, abi_type_name);
+        if (inst.abi_type_name == NULL) {
+            free(claim_type_name);
+            return false;
+        }
     }
     inst.type_layout = resource_owner_layout != NULL
         ? resource_owner_layout
-        : mir_abi_lookup(abi_type_name);
+        : mir_abi_lookup(inst.abi_type_name);
     free(claim_type_name);
     return mir_commit_instruction(routine, block, &inst);
 }
@@ -234,6 +308,7 @@ mir_populate_instructions(MIRRoutine *routine)
     for (size_t i = 0; i < op_count; i++) {
         const RIROp *op = rir_scope_op_at(rir_scope, i);
         const char *resource_owner_slot_anchor = NULL;
+        const char *resource_owner_abi_type_name = NULL;
         const MIRTypeLayout *resource_owner_layout = NULL;
         const MIRResourceBorrowLoweringFact *borrow_fact = NULL;
         if (op == NULL)
@@ -242,7 +317,12 @@ mir_populate_instructions(MIRRoutine *routine)
             || op->kind == RIR_OP_BORROW_WRITE) {
             resource_owner_slot_anchor = op->subject;
             resource_owner_layout =
-                mir_resource_layout_for_slot_fact(rir_scope, op->subject);
+                mir_resource_layout_for_slot_fact(routine, rir_scope,
+                    op->subject, &resource_owner_abi_type_name);
+        } else if (op->kind == RIR_OP_CLAIM) {
+            resource_owner_layout =
+                mir_resource_layout_for_slot_fact(routine, rir_scope,
+                    op->subject, &resource_owner_abi_type_name);
         } else if (op->kind == RIR_OP_READ
                    || op->kind == RIR_OP_WRITE
                    || op->kind == RIR_OP_RELEASE
@@ -251,7 +331,17 @@ mir_populate_instructions(MIRRoutine *routine)
                 borrow_facts, borrow_fact_count, op->subject);
             if (borrow_fact != NULL) {
                 resource_owner_slot_anchor = borrow_fact->source_slot;
+                resource_owner_abi_type_name = borrow_fact->source_abi_type_name;
                 resource_owner_layout = borrow_fact->source_layout;
+            } else {
+                resource_owner_layout =
+                    mir_resource_layout_for_slot_fact(routine, rir_scope,
+                        op->subject, &resource_owner_abi_type_name);
+                if (resource_owner_abi_type_name == NULL) {
+                    resource_owner_layout =
+                        mir_resource_layout_for_prior_claim(routine, rir_scope,
+                            i, op->subject, &resource_owner_abi_type_name);
+                }
             }
         }
         switch (op->kind) {
@@ -267,7 +357,8 @@ mir_populate_instructions(MIRRoutine *routine)
             /* fallthrough */
         default:
             if (!mir_add_resource_instruction(routine, entry, op,
-                    resource_owner_slot_anchor, resource_owner_layout)) {
+                    resource_owner_slot_anchor, resource_owner_abi_type_name,
+                    resource_owner_layout)) {
                 free(borrow_facts);
                 return false;
             }
@@ -279,6 +370,7 @@ mir_populate_instructions(MIRRoutine *routine)
                     &borrow_fact_count,
                     op->arg0,
                     op->subject,
+                    resource_owner_abi_type_name,
                     resource_owner_layout);
             }
             break;

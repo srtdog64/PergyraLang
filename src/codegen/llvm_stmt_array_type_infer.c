@@ -90,8 +90,9 @@ llvm_stmt_array_elem_type_from_declared_return(LLVMGenCtx *ctx, ASTNode *call)
     GenericParam *gp;
     const char *ret_name;
     const char *callee_name;
-    bool generic_func;
     bool extern_func;
+    const MIRRoutine *routine = NULL;
+    bool generic_func = false;
 
     if (ctx == NULL || call == NULL || call->type != AST_CALL
         || ast_call_callee(call) == NULL
@@ -104,12 +105,11 @@ llvm_stmt_array_elem_type_from_declared_return(LLVMGenCtx *ctx, ASTNode *call)
     decl = llvm_stmt_find_function_decl_by_name(ctx, callee_name);
     if (decl == NULL || decl->type != AST_FUNC_DECL)
         return NULL;
-    generic_func =
-        ast_generic_param_count(ast_declaration_generic_params(decl)) > 0;
     extern_func = llvm_decl_is_extern_function(ctx, decl);
+    if (llvm_active_has_mir(ctx) && !extern_func)
+        routine = llvm_active_function_routine_for_source_ast(ctx, decl);
+    generic_func = llvm_mir_or_ast_function_is_generic(routine, decl);
     if (llvm_active_has_mir(ctx) && !generic_func && !extern_func) {
-        const MIRRoutine *routine =
-            llvm_active_function_routine_for_source_ast(ctx, decl);
         const char *return_type_name = NULL;
         if (routine == NULL) {
             llvm_set_mir_inventory_missing(ctx,

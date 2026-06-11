@@ -60,13 +60,64 @@ parser_desugar_slice_call(Parser *parser, ASTNode *receiver,
     return call;
 }
 
+/* Two-token lookahead: current token is '{'; an object initializer body
+ * begins with `identifier :`. Blocks (parallel/spawn/with/control bodies)
+ * never do, so this distinguishes `Type { f: v }` from a statement block. */
+static bool
+parser_struct_literal_body_ahead(Parser *parser)
+{
+    Lexer saved = *parser->lexer;
+    Token first = lexer_next_token(parser->lexer);
+    Token second = lexer_next_token(parser->lexer);
+    *parser->lexer = saved;
+    return first.type == TOKEN_IDENTIFIER && second.type == TOKEN_COLON;
+}
+
+static ASTNode *
+parser_parse_object_literal(Parser *parser, ASTNode *type_expr)
+{
+    ASTNode *call = ast_create_call(type_expr);
+    bool saved_nsl = parser->no_struct_literal;
+    if (call != NULL && type_expr != NULL) {
+        call->line = type_expr->line;
+        call->column = type_expr->column;
+    }
+
+    parser_consume(parser, TOKEN_LBRACE,
+        "Expected '{' to begin object initializer");
+    parser->no_struct_literal = false;
+    if (!parser_check(parser, TOKEN_RBRACE)) {
+        do {
+            Token field = parser_consume(parser, TOKEN_IDENTIFIER,
+                "Expected field name in object initializer");
+            ASTNode *value;
+            parser_consume(parser, TOKEN_COLON,
+                "Expected ':' after field name in object initializer");
+            value = parser_parse_expression(parser);
+            if (!parser_append_call_argument(parser, call, field.text, value)) {
+                ast_destroy(value);
+                break;
+            }
+        } while (parser_match(parser, TOKEN_COMMA));
+    }
+    parser->no_struct_literal = saved_nsl;
+    parser_consume(parser, TOKEN_RBRACE,
+        "Expected '}' after object initializer");
+    return call;
+}
+
 ASTNode *
 parser_parse_call(Parser *parser)
 {
     ASTNode *expr = parser_parse_primary(parser);
 
     while (true) {
-        if (parser_match(parser, TOKEN_LPAREN)) {
+        if (parser_check(parser, TOKEN_LBRACE)
+            && !parser->no_struct_literal
+            && expr != NULL && expr->type == AST_IDENTIFIER
+            && parser_struct_literal_body_ahead(parser)) {
+            expr = parser_parse_object_literal(parser, expr);
+        } else if (parser_match(parser, TOKEN_LPAREN)) {
             expr = finish_call(parser, expr);
         } else if (parser_check(parser, TOKEN_DOT) &&
                    parser->current_token.length == 1 &&
@@ -142,6 +193,8 @@ finish_call(Parser *parser, ASTNode *callee)
         parser->pending_call_generic_args = NULL;
     }
 
+    bool saved_nsl = parser->no_struct_literal;
+    parser->no_struct_literal = false;
     if (!parser_check(parser, TOKEN_RPAREN)) {
         do {
             const char *arg_name = NULL;
@@ -160,6 +213,7 @@ finish_call(Parser *parser, ASTNode *callee)
         } while (parser_match(parser, TOKEN_COMMA));
     }
 
+    parser->no_struct_literal = saved_nsl;
     parser_consume(parser, TOKEN_RPAREN, "Expected ')' after arguments");
     return call;
 }

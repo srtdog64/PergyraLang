@@ -133,14 +133,15 @@ llvm_emit_spawn_expr(ASTNode *node, LLVMGenCtx *ctx)
     }
     callee_decl = llvm_find_function_decl(ctx, callee_name);
     if (callee_decl != NULL && callee_decl->type == AST_FUNC_DECL) {
-        callee_is_generic_func =
-            ast_generic_param_count(
-                ast_declaration_generic_params(callee_decl)) > 0;
         callee_is_extern_func = llvm_decl_is_extern_function(ctx, callee_decl);
-        if (!callee_is_generic_func && !callee_is_extern_func
-            && llvm_active_has_mir(ctx)) {
+        if (!callee_is_extern_func && llvm_active_has_mir(ctx)) {
             callee_routine =
                 llvm_active_function_routine_for_source_ast(ctx, callee_decl);
+        }
+        callee_is_generic_func =
+            llvm_mir_or_ast_function_is_generic(callee_routine, callee_decl);
+        if (!callee_is_generic_func && !callee_is_extern_func
+            && llvm_active_has_mir(ctx)) {
             if (callee_routine == NULL) {
                 llvm_set_mir_inventory_missing(ctx,
                     "MIR-only LLVM path missing spawn routine for '%s'",

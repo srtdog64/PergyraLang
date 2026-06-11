@@ -312,18 +312,23 @@ mir_claim_abi_type_name_from_ast(const ASTNode *ast)
         && ast_call_callee(ast)->type == AST_IDENTIFIER
         && ast_identifier_name(ast_call_callee(ast)) != NULL) {
         const char *callee = ast_identifier_name(ast_call_callee(ast));
-        if (ast_call_arg_count(ast) >= 1 && ast_call_argument(ast, 0) != NULL) {
-            const MIRClaimKindSpec *claim = mir_claim_kind_from_callee(callee);
-            char *inner = mir_render_type_name(ast_call_argument(ast, 0));
-            char *result = NULL;
-            if (claim != NULL && inner != NULL) {
-                result = mir_type_strdup_fmt("%s<%s>",
-                                             claim->abi_prefix,
-                                             inner);
-            }
-            free(inner);
-            return result;
+        const MIRClaimKindSpec *claim = mir_claim_kind_from_callee(callee);
+        char *inner = NULL;
+        char *result = NULL;
+
+        if (claim == NULL)
+            return NULL;
+        if (ast_call_generic_arg_count(ast) >= 1) {
+            GenericParam *type_arg = ast_call_generic_arg(ast, 0);
+            inner = mir_render_type_name(ast_generic_param_constraint(type_arg));
+        } else if (ast_call_arg_count(ast) >= 1
+                   && ast_call_argument(ast, 0) != NULL) {
+            inner = mir_render_type_name(ast_call_argument(ast, 0));
         }
+        if (inner != NULL)
+            result = mir_type_strdup_fmt("%s<%s>", claim->abi_prefix, inner);
+        free(inner);
+        return result;
     }
     return NULL;
 }

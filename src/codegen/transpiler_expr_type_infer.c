@@ -560,16 +560,16 @@ infer_expression_type_name(TranspilerCtx *ctx, ASTNode *expr)
                     host_return_type =
                         transpiler_mir_decl_method_return_type(
                             host_method_meta);
-                    /* If no hosted-method metadata is registered for this
-                     * name (e.g. a world's method that the MIR decl
-                     * header never enumerated), fall back to the AST
-                     * lookup unconditionally -- otherwise the caller
-                     * sees "Unknown" and the C-emit chain trips on the
-                     * MIR local's missing type. Restricting this
-                     * fallback to `!active_has_mir(ctx)` left a dead
-                     * hole in raid_graph_fsm and similar hosts. */
                     if (host_method_meta == NULL) {
                         host_method = current_host_method_decl(ctx, name);
+                        if (host_method != NULL
+                            && transpiler_active_has_mir(ctx)) {
+                            transpiler_set_mir_inventory_missing(ctx,
+                                "MIR-only C path missing hosted self-call inference method metadata for '%s.%s'",
+                                host_name != NULL ? host_name : "(anonymous-host)",
+                                name != NULL ? name : "(anonymous)");
+                            return "Unknown";
+                        }
                         if (host_method != NULL)
                             host_return_type = ast_func_return_type(host_method);
                     }
@@ -589,12 +589,14 @@ infer_expression_type_name(TranspilerCtx *ctx, ASTNode *expr)
                     return "Unknown";
                 {
                     ASTNode *return_type = NULL;
-                    bool generic_call = transpiler_func_has_generic_params(decl);
+                    const MIRRoutine *routine =
+                        transpiler_find_mir_function(ctx, decl);
+                    bool generic_call =
+                        transpiler_mir_or_ast_function_is_generic(routine,
+                            decl);
                     bool extern_func = transpiler_decl_is_extern_function(ctx, decl);
                     if (!generic_call && !extern_func
                         && transpiler_active_has_mir(ctx)) {
-                        const MIRRoutine *routine =
-                            transpiler_find_mir_function(ctx, decl);
                         const char *return_type_name = NULL;
                         if (routine == NULL) {
                             transpiler_set_mir_inventory_missing(ctx,

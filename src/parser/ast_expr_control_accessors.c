@@ -85,6 +85,35 @@ ast_call_argument_name(const ASTNode* node, size_t index)
 }
 
 bool
+ast_call_has_named_arguments(const ASTNode* node)
+{
+    if (node == NULL || node->type != AST_CALL
+        || node->data.call.arg_names == NULL) {
+        return false;
+    }
+    for (size_t i = 0; i < node->data.call.arg_count; i++) {
+        if (node->data.call.arg_names[i] != NULL)
+            return true;
+    }
+    return false;
+}
+
+ASTNode*
+ast_call_find_named_argument(const ASTNode* node, const char* field_name)
+{
+    if (node == NULL || node->type != AST_CALL
+        || node->data.call.arg_names == NULL || field_name == NULL) {
+        return NULL;
+    }
+    for (size_t i = 0; i < node->data.call.arg_count; i++) {
+        const char* nm = node->data.call.arg_names[i];
+        if (nm != NULL && strcmp(nm, field_name) == 0)
+            return node->data.call.arguments[i];
+    }
+    return NULL;
+}
+
+bool
 ast_replace_identifier_name_copy(ASTNode* node, const char* name)
 {
     char *copy;

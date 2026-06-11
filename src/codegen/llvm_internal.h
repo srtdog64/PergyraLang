@@ -349,6 +349,7 @@ typedef struct LLVMGenCtx
     ASTNode        *current_return_callable_type;
     const char     *current_within_zone_name;
     ASTNode        *current_func_decl;
+    const MIRRoutine *current_mir_routine;
     ASTNode        *current_host_decl;
     const char     *current_class_name;
     bool            uses_intent_observability;

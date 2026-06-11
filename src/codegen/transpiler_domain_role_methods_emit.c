@@ -238,9 +238,19 @@ emit_role_operator_aliases(ASTNode *role, TranspilerCtx *ctx)
         const char *method_name =
             transpiler_mir_decl_method_name(method_meta);
         char fn_name[256];
-        if (method_meta == NULL && !transpiler_active_has_mir(ctx)) {
+        if (method_meta == NULL) {
             method = find_role_operator_method_decl(ctx, role, op, 0);
-            method_name = ast_declaration_name(method);
+            if (method != NULL && !transpiler_active_has_mir(ctx)) {
+                method_name = ast_declaration_name(method);
+            } else if (method != NULL) {
+                transpiler_set_mir_inventory_missing(
+                    ctx,
+                    "MIR-only C path missing role operator method metadata for role '%s'",
+                    role_name != NULL ? role_name : "(anonymous-role)");
+                return;
+            } else {
+                method_name = NULL;
+            }
         }
         if (method_meta != NULL && method_name == NULL) {
             transpiler_set_mir_inventory_missing(
@@ -250,7 +260,6 @@ emit_role_operator_aliases(ASTNode *role, TranspilerCtx *ctx)
             return;
         }
         if (suffix == NULL
-            || (method_meta == NULL && transpiler_active_has_mir(ctx))
             || (method_meta == NULL
                 && (method == NULL || method->type != AST_FUNC_DECL))) {
             continue;

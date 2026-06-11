@@ -3516,7 +3516,7 @@ grep -Fq "llvm_mir_recv_expr_channel(inst->expr0)" "$ROOT_DIR/src/codegen/llvm_m
 grep -Fq "llvm_mir_declare_recv_target(inst->arg0, inst->expr0, ctx)" "$ROOT_DIR/src/codegen/llvm_mir_cfg_control.c"
 ! grep -Fq "llvm_mir_declare_assignment_recv_target(inst->ast" "$ROOT_DIR/src/codegen/llvm_mir_block_emit.c"
 grep -Fq "llvm_mir_claim_inner_type_name(inst" "$ROOT_DIR/src/codegen/llvm_mir_resource_claim.c"
-grep -Fq "inst->type_layout->abi_type_name" "$ROOT_DIR/src/codegen/llvm_mir_resource_claim.c"
+grep -Fq "inst->abi_type_name" "$ROOT_DIR/src/codegen/llvm_mir_resource_claim.c"
 grep -Fq '$(CODEGEN_DIR)/llvm_mir_resource_claim.c' "$ROOT_DIR/Makefile"
 grep -Fq "llvm_mir_emit_borrow_view_alias(inst, ctx)" "$ROOT_DIR/src/codegen/llvm_mir_block_emit.c"
 grep -Fq '$(CODEGEN_DIR)/llvm_mir_resource_view.c' "$ROOT_DIR/Makefile"

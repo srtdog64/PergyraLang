@@ -352,7 +352,7 @@ run_literal_doc_contract_smoke() {
     require_literal "src/compiler/mir_source_shape.c" "mir_instruction_source_is_with_slot_claim"
     require_literal "src/codegen/llvm_mir_block_emit.c" "mir_instruction_is_with_slot_claim(inst)"
     require_literal "src/codegen/transpiler_mir_resource_op_emit.c" "mir_instruction_is_with_slot_claim(inst)"
-    require_literal "src/codegen/llvm_mir_resource_claim.c" "inst->type_layout->abi_type_name"
+    require_literal "src/codegen/llvm_mir_resource_claim.c" "inst->abi_type_name"
     require_literal "Makefile" '$(CODEGEN_DIR)/llvm_mir_resource_claim.c'
     require_literal "src/codegen/llvm_mir_block_emit.c" "llvm_mir_emit_borrow_view_alias(inst, ctx)"
     require_literal "Makefile" '$(CODEGEN_DIR)/llvm_mir_resource_view.c'

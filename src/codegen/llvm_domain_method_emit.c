@@ -75,6 +75,12 @@ llvm_emit_domain_sync_and_method_bodies(LLVMGenCtx *ctx,
                 if (method_name == NULL && method != NULL
                     && method->type == AST_FUNC_DECL)
                     method_name = ast_declaration_name(method);
+                if (method_meta == NULL && llvm_active_has_mir(ctx)) {
+                    llvm_set_mir_inventory_missing(ctx,
+                        "MIR-only LLVM path missing method body metadata row for domain '%s'",
+                        decl_name != NULL ? decl_name : "(anonymous-domain)");
+                    return false;
+                }
                 if (method_meta == NULL
                     && (method == NULL || method->type != AST_FUNC_DECL)) {
                     continue;

@@ -14,7 +14,6 @@
 #include "transpiler_format.h"
 #include "transpiler_future_type_query.h"
 #include "transpiler_generic_binding_query.h"
-#include "transpiler_generic_param_query.h"
 #include "transpiler_generic_specialization_emit.h"
 #include "transpiler_inventory_view.h"
 #include "transpiler_mir_signature.h"
@@ -137,7 +136,10 @@ emit_spawn_expr(ASTNode *node, TranspilerCtx *ctx)
     decl = find_function_decl(ctx, function_name);
     emitted_function_name = function_name;
     callee_is_extern_func = transpiler_decl_is_extern_function(ctx, decl);
-    callee_is_generic_func = transpiler_func_has_generic_params(decl);
+    if (decl != NULL && decl->type == AST_FUNC_DECL)
+        callee_routine = transpiler_find_mir_function(ctx, decl);
+    callee_is_generic_func =
+        transpiler_mir_or_ast_function_is_generic(callee_routine, decl);
     if (call != NULL && callee_is_generic_func
         && transpiler_infer_generic_call_bindings(ctx, decl, call, bindings,
             &binding_count)) {
@@ -148,7 +150,6 @@ emit_spawn_expr(ASTNode *node, TranspilerCtx *ctx)
     if (!callee_is_generic_func && !callee_is_extern_func
         && decl != NULL && decl->type == AST_FUNC_DECL
         && transpiler_active_has_mir(ctx)) {
-        callee_routine = transpiler_find_mir_function(ctx, decl);
         if (callee_routine == NULL) {
             transpiler_set_mir_inventory_missing(ctx,
                 "MIR-only C path missing spawn routine for '%s'",

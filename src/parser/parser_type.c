@@ -400,6 +400,11 @@ ASTNode* parse_type(Parser* parser) {
 ASTNode* parse_type_alias_declaration(Parser *parser) {
     Token name = parser_consume(parser, TOKEN_IDENTIFIER, "Expected alias name after 'type'");
     parser_consume(parser, TOKEN_ASSIGN, "Expected '=' after alias name");
+    if (parser_check(parser, TOKEN_LBRACE)) {
+        ASTNode *record = parse_record_type_alias_struct(parser, name);
+        parser_match(parser, TOKEN_SEMICOLON);
+        return record;
+    }
     ASTNode *target_type = parse_type(parser);
     parser_consume(parser, TOKEN_SEMICOLON, "Expected ';' after type alias");
 
