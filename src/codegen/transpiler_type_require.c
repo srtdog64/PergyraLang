@@ -29,6 +29,57 @@ transpiler_bound_type_name(TranspilerCtx *ctx, const char *type_name)
     return type_name;
 }
 
+/* Token-wise substitution of active generic-parameter names inside a type
+ * name string, so `Array<T>` becomes `Array<Int>`, `Map<K, V>` becomes
+ * `Map<Int, String>`, recursing naturally over nested `<...>`. */
+static bool
+transpiler_subst_generics_in_type_name(TranspilerCtx *ctx, const char *in,
+                                       char *out, size_t out_size)
+{
+    size_t oi = 0;
+    size_t i = 0;
+
+    if (ctx == NULL || in == NULL || out == NULL || out_size == 0)
+        return false;
+    while (in[i] != '\0') {
+        char c = in[i];
+        if ((c >= 'A' && c <= 'Z') || (c >= 'a' && c <= 'z') || c == '_') {
+            size_t start = i;
+            char tok[128];
+            size_t len;
+            const char *bound;
+            const char *rep;
+            while (in[i] != '\0'
+                && ((in[i] >= 'A' && in[i] <= 'Z')
+                    || (in[i] >= 'a' && in[i] <= 'z')
+                    || (in[i] >= '0' && in[i] <= '9') || in[i] == '_'))
+                i++;
+            len = i - start;
+            if (len >= sizeof(tok)) {
+                for (size_t k = 0; k < len; k++) {
+                    if (oi + 1 >= out_size) return false;
+                    out[oi++] = in[start + k];
+                }
+                continue;
+            }
+            memcpy(tok, in + start, len);
+            tok[len] = '\0';
+            bound = transpiler_bound_type_name(ctx, tok);
+            rep = (bound != NULL && bound != tok) ? bound : tok;
+            for (size_t k = 0; rep[k] != '\0'; k++) {
+                if (oi + 1 >= out_size) return false;
+                out[oi++] = rep[k];
+            }
+        } else {
+            if (oi + 1 >= out_size) return false;
+            out[oi++] = c;
+            i++;
+        }
+    }
+    out[oi] = '\0';
+    return true;
+}
+
 bool
 transpiler_require_ast_c_type_copy(TranspilerCtx *ctx,
                                    ASTNode *type_ast,
@@ -94,7 +145,15 @@ transpiler_require_type_name_c_type_copy(TranspilerCtx *ctx,
         return false;
     }
 
-    const char *resolved_type_name = transpiler_bound_type_name(ctx, type_name);
+    char subst_buf[256];
+    const char *eff_type_name = type_name;
+    if (ctx != NULL && ctx->generic_binding_count > 0
+        && transpiler_subst_generics_in_type_name(ctx, type_name,
+               subst_buf, sizeof(subst_buf)))
+        eff_type_name = subst_buf;
+
+    const char *resolved_type_name =
+        transpiler_bound_type_name(ctx, eff_type_name);
 
     if (resolved_type_name[0] >= 'A' && resolved_type_name[0] <= 'Z'
         && resolved_type_name[1] == '\0') {

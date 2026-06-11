@@ -220,6 +220,17 @@ emit_func_decl_from_mir_named(ASTNode *node, const MIRRoutine *mir_routine,
                 transpiler_mir_routine_owner_name(mir_routine));
             type_name = owned_type_name;
         }
+        if (ctx != NULL && ctx->generic_binding_count > 0
+            && !event_handler_param && p->type != NULL) {
+            char pt_ast_buf[256];
+            if (pergyra_ast_type_to_c_copy_in_ctx(ctx, p->type,
+                    pt_ast_buf, sizeof(pt_ast_buf))
+                && pt_ast_buf[0] != '\0'
+                && strcmp(pt_ast_buf, "Unknown") != 0) {
+                pergyra_str_copy(pt_buf, sizeof(pt_buf), pt_ast_buf);
+                pt = pt_buf;
+            }
+        }
         if (!event_handler_param && pt == NULL) {
             transpiler_set_backend_error_with_hints(
                 ctx,

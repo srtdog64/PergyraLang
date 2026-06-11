@@ -534,6 +534,33 @@ pergyra_type_to_c_copy(const char *name, char *out, size_t out_size)
         return out[0] != '\0';
     }
 
+    {
+        const char *lt = strchr(name, '<');
+        if (lt != NULL) {
+            /* User generic instantiation Base<Args> -> Base_Args, matching
+             * the specialization naming convention (e.g. Wrap<Int> ->
+             * Wrap_Int, Wrap<Wrap<Int>> -> Wrap_Wrap_Int_). */
+            size_t base_len = (size_t)(lt - name);
+            const char *gt = strrchr(name, '>');
+            size_t args_len = (gt != NULL && gt > lt + 1)
+                ? (size_t)(gt - lt - 1) : 0;
+            if (base_len > 0 && base_len + 1 < out_size) {
+                char inner_args[160];
+                char sane[160];
+                memcpy(out, name, base_len);
+                out[base_len] = '\0';
+                if (args_len > 0 && args_len < sizeof(inner_args)) {
+                    memcpy(inner_args, lt + 1, args_len);
+                    inner_args[args_len] = '\0';
+                    sanitize_c_suffix(inner_args, sane, sizeof(sane));
+                    pergyra_str_append(out, out_size, "_");
+                    pergyra_str_append(out, out_size, sane);
+                }
+                return out[0] != '\0';
+            }
+        }
+    }
+
     mapped = pergyra_primitive_to_c(name);
     if (mapped == NULL)
         return false;

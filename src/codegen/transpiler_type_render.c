@@ -108,7 +108,13 @@ append_type_name_in_ctx(TranspilerCtx *ctx, CodeBuf *buf, ASTNode *type_node)
                         ast_generic_param_constraint(param)))
                     return false;
             } else if (ast_generic_param_name(param) != NULL) {
-                codebuf_write(buf, "%s", ast_generic_param_name(param));
+                const char *arg_name = ast_generic_param_name(param);
+                const char *arg_bound = ctx != NULL
+                    ? transpiler_type_render_lookup_generic_binding(
+                          ctx, arg_name)
+                    : NULL;
+                codebuf_write(buf, "%s",
+                    arg_bound != NULL ? arg_bound : arg_name);
             } else {
                 return false;
             }

@@ -336,7 +336,10 @@ expr_type_check_host_method_call_on_host(ASTNode *expr,
         }
     }
 
-    return expr_host_resolve_func_return_type(method, ctx);
+    {
+        Type *ret = expr_host_resolve_func_return_type(method, ctx);
+        return expr_host_subst_generics(ret, host_decl, receiver_type);
+    }
 }
 
 Type *

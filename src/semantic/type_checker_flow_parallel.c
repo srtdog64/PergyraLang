@@ -1,8 +1,58 @@
+#include <string.h>
 #include "type_checker_internal.h"
 #include "type_checker_ownership_consumers_internal.h"
 #include "diag_codes.h"
 #include "type_checker_flow_internal.h"
 #include "../parser/ast_analysis.h"
+
+static ASTNode *
+parallel_assign_target_root(ASTNode *target)
+{
+    while (target != NULL) {
+        if (target->type == AST_MEMBER_ACCESS)
+            target = ast_member_object(target);
+        else if (target->type == AST_ARRAY_ACCESS)
+            target = ast_array_access_array(target);
+        else
+            break;
+    }
+    return target;
+}
+
+static bool
+parallel_task_assigns_name(ASTNode *node, const char *name)
+{
+    if (node == NULL || name == NULL)
+        return false;
+    switch (node->type) {
+    case AST_ASSIGNMENT: {
+        ASTNode *root =
+            parallel_assign_target_root(ast_assignment_target(node));
+        if (root != NULL && root->type == AST_IDENTIFIER) {
+            const char *tn = ast_identifier_name(root);
+            if (tn != NULL && strcmp(tn, name) == 0)
+                return true;
+        }
+        return parallel_task_assigns_name(ast_assignment_value(node), name);
+    }
+    case AST_BLOCK: {
+        size_t n = ast_block_statement_count(node);
+        for (size_t i = 0; i < n; i++)
+            if (parallel_task_assigns_name(ast_block_statement(node, i), name))
+                return true;
+        return false;
+    }
+    case AST_IF_STMT:
+        return parallel_task_assigns_name(ast_if_then_branch(node), name)
+            || parallel_task_assigns_name(ast_if_else_branch(node), name);
+    case AST_WHILE_LOOP:
+        return parallel_task_assigns_name(ast_while_body(node), name);
+    case AST_FOR_LOOP:
+        return parallel_task_assigns_name(ast_for_body(node), name);
+    default:
+        return false;
+    }
+}
 
 static bool
 parallel_reject_shared_collection_capture(ASTNode *task,
@@ -133,6 +183,25 @@ type_check_parallel_block_flow(ASTNode *node, SemanticContext *ctx)
         ResourceConsumeSnapshot task_snap = {0};
         if (parallel_reject_shared_collection_capture(task, ctx))
             break;
+        for (Scope *dr_scope = ctx->scope; dr_scope != NULL;
+             dr_scope = dr_scope->parent) {
+            for (size_t si = 0; si < dr_scope->symbol_count; si++) {
+                Symbol *dsym = dr_scope->symbols[si];
+                const char *tname;
+                if (dsym == NULL || dsym->name == NULL)
+                    continue;
+                tname = dsym->type != NULL ? dsym->type->name : NULL;
+                if (tname != NULL && strncmp(tname, "Channel", 7) == 0)
+                    continue;
+                if (!parallel_task_assigns_name(task, dsym->name))
+                    continue;
+                semantic_warning_code(ctx,
+                    PGY_CODE_SEM_PARALLEL_SLOT_RACE_RISK,
+                    task,
+                    "Parallel task writes shared captured variable '%s'; concurrent tasks mutating shared state is a data race. Send updates through a channel or give each task a disjoint owner.",
+                    dsym->name);
+            }
+        }
         restore_resource_states(&base);
         scope_enter(&ctx->scope, SCOPE_BLOCK);
         (void)type_check_statement_flow(task, ctx, NULL);

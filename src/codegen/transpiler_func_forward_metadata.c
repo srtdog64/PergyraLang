@@ -3,6 +3,7 @@
  * C backend hosted-method forward declaration emission.
  */
 
+#include "../common/string_compat.h"
 #include <stdio.h>
 #include <string.h>
 
@@ -127,6 +128,16 @@ emit_hosted_method_forward_decl_from_metadata(const char *host_name,
             if (!transpiler_require_ast_c_type_copy(ctx,
                     p->type, surface_desc, pt, sizeof(pt))) {
                 return;
+            }
+        }
+        if (ctx->generic_binding_count > 0 && p->type != NULL) {
+            /* Specialization: re-render via the binding-aware AST path so
+             * nested generic args (Array<T>, Map<K, V>) substitute. */
+            char pt_ast[256];
+            if (transpiler_require_ast_c_type_copy(ctx, p->type,
+                    surface_desc, pt_ast, sizeof(pt_ast))
+                && pt_ast[0] != '\0') {
+                pergyra_str_copy(pt, sizeof(pt), pt_ast);
             }
         }
         {
