@@ -1398,6 +1398,7 @@ main() {
         "tests/cases/backend_compare/llvm_toplevel_script_entry"
         "tests/cases/backend_compare/llvm_unannotated_let_from_call"
         "tests/cases/backend_compare/llvm_dyn_role_vtable_swap"
+        "tests/cases/backend_compare/llvm_lambda_first_class"
     )
 
     local use_default_cases=0

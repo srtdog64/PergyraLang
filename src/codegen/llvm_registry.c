@@ -576,8 +576,19 @@ llvm_register_var_class(LLVMGenCtx *ctx, const char *var_name,
     PGY_DYNARR_ENSURE(ctx->var_classes, ctx->var_class_count,
                       ctx->var_class_capacity, LLVMVarClassEntry);
 
-    ctx->var_classes[ctx->var_class_count].var_name   = var_name;
-    ctx->var_classes[ctx->var_class_count].class_name = class_name;
+    /* Copy both names into the persistent arena. Callers may pass stack
+     * buffers (e.g. a rendered `Pair<Int>` scratch name), so storing the raw
+     * pointers would dangle once the caller's scope ends and corrupt every
+     * later lookup (stack-use-after-scope), as flagged by AddressSanitizer. */
+    {
+        const char *owned_var = pgy_arena_strdup(&ctx->persistent, var_name);
+        const char *owned_class =
+            pgy_arena_strdup(&ctx->persistent, class_name);
+        if (owned_var == NULL || owned_class == NULL)
+            return;
+        ctx->var_classes[ctx->var_class_count].var_name   = owned_var;
+        ctx->var_classes[ctx->var_class_count].class_name = owned_class;
+    }
     ctx->var_class_count++;
 }
 

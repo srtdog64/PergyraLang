@@ -1,0 +1,9 @@
+func Double(x: Int) -> Int { return x * 2; }
+func Apply(f: func(Int) -> Int, x: Int) -> Int { return f(x); }
+func Main() -> Void {
+    let dbl: func(Int) -> Int = (x: Int) => x * 2;
+    let named: func(Int) -> Int = Double;
+    Log(Apply(dbl, 5));
+    Log(Apply(named, 7));
+    Log(Apply((x: Int) => x + 10, 3));
+}

@@ -32,8 +32,10 @@ llvm_emit_callable_variable_call(ASTNode *node,
         return NULL;
 
     callable_entry = llvm_lookup_callable_entry(ctx, callee_name);
-    if (LLVMGetTypeKind(callee_var.type) == LLVMPointerTypeKind)
-        fn_type = LLVMGetElementType(callee_var.type);
+    /* LLVM-15 opaque pointers: a function-typed variable is just `ptr`, so the
+     * function type cannot be read back from it via LLVMGetElementType (that
+     * dereferences a null pointee and crashes). Recover the signature from the
+     * callable entry's recorded metadata instead. */
     if (fn_type == NULL || LLVMGetTypeKind(fn_type) != LLVMFunctionTypeKind) {
         if (callable_entry != NULL) {
             fn_type = llvm_function_signature_from_callable_entry(ctx, callable_entry);

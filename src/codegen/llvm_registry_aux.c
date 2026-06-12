@@ -54,9 +54,19 @@ void
 llvm_register_callable_var(LLVMGenCtx *ctx, const char *var_name,
                            ASTNode *type_node)
 {
+    const char *owned_var;
+
+    if (ctx == NULL || var_name == NULL)
+        return;
+    owned_var = pgy_arena_strdup(&ctx->persistent, var_name);
+    if (owned_var == NULL) {
+        llvm_set_error(ctx,
+            "out of memory registering callable variable name");
+        return;
+    }
     PGY_DYNARR_ENSURE(ctx->callable_vars, ctx->callable_var_count,
                       ctx->callable_var_capacity, LLVMCallableVarEntry);
-    ctx->callable_vars[ctx->callable_var_count].var_name = var_name;
+    ctx->callable_vars[ctx->callable_var_count].var_name = owned_var;
     ctx->callable_vars[ctx->callable_var_count].type_node = type_node;
     ctx->callable_vars[ctx->callable_var_count].param_types = NULL;
     ctx->callable_vars[ctx->callable_var_count].param_count = 0;
@@ -86,9 +96,17 @@ llvm_register_callable_signature(LLVMGenCtx *ctx, const char *var_name,
             stored_param_types[i] = param_types != NULL ? param_types[i] : NULL;
     }
 
-    PGY_DYNARR_ENSURE(ctx->callable_vars, ctx->callable_var_count,
-                      ctx->callable_var_capacity, LLVMCallableVarEntry);
-    ctx->callable_vars[ctx->callable_var_count].var_name = var_name;
+    {
+        const char *owned_var = pgy_arena_strdup(&ctx->persistent, var_name);
+        if (owned_var == NULL) {
+            llvm_set_error(ctx,
+                "out of memory registering callable variable name");
+            return;
+        }
+        PGY_DYNARR_ENSURE(ctx->callable_vars, ctx->callable_var_count,
+                          ctx->callable_var_capacity, LLVMCallableVarEntry);
+        ctx->callable_vars[ctx->callable_var_count].var_name = owned_var;
+    }
     ctx->callable_vars[ctx->callable_var_count].type_node = NULL;
     ctx->callable_vars[ctx->callable_var_count].param_types = stored_param_types;
     ctx->callable_vars[ctx->callable_var_count].param_count = param_count;
