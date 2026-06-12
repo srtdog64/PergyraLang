@@ -425,8 +425,15 @@ llvm_stmt_infer_expr_type(LLVMGenCtx *ctx, ASTNode *expr)
                     return ty;
             }
         }
-        return llvm_stmt_unknown_expr_type(ctx, expr,
-            "identifier requires registered LLVM local metadata");
+        {
+            char reason[160];
+            if (!llvm_stmt_type_reasonf(reason, sizeof(reason),
+                    "identifier '%s' requires registered LLVM local metadata",
+                    name != NULL ? name : "<null>"))
+                return llvm_stmt_unknown_expr_type(ctx, expr,
+                    "identifier requires registered LLVM local metadata");
+            return llvm_stmt_unknown_expr_type(ctx, expr, reason);
+        }
     }
     case AST_ASSIGNMENT:
         if (ast_assignment_target(expr) != NULL

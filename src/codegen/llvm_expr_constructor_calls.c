@@ -364,6 +364,21 @@ llvm_emit_class_constructor(ASTNode *node, LLVMGenCtx *ctx, const char *callee_n
 {
     LLVMClassTypeEntry *cls = llvm_lookup_class(ctx, callee_name);
     ASTNode *host_decl = llvm_find_domain_constructor_decl(ctx, callee_name);
+
+    /* If the binding context expects a specialized generic instantiation of
+     * this class (e.g. Pair<Int>), construct that concrete entry rather than
+     * the type-erased base, so field storage types match the arguments. */
+    if (ctx != NULL && ctx->current_ret_type != NULL && callee_name != NULL) {
+        LLVMClassTypeEntry *spec =
+            llvm_lookup_class_by_struct_type(ctx, ctx->current_ret_type);
+        size_t base_len = strlen(callee_name);
+        if (spec != NULL && spec != cls && spec->class_name != NULL
+            && strncmp(spec->class_name, callee_name, base_len) == 0
+            && spec->class_name[base_len] == '<') {
+            cls = spec;
+        }
+    }
+
     if (cls == NULL)
         return NULL;
 

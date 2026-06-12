@@ -302,6 +302,7 @@ typedef struct {
     ASTNode** methods;
     size_t method_count;
     size_t method_capacity;
+    bool forbids_unsafe;
     StructuredComment* doc_comment;
 } ASTZoneDeclData;
 

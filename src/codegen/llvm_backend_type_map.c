@@ -416,6 +416,129 @@ llvm_tuple_type_from_rendered_name(LLVMGenCtx *ctx, const char *type_name)
     return LLVMStructTypeInContext(ctx->context, fields, (unsigned)count, 0);
 }
 
+/*
+ * On-demand monomorphization of a user generic class type reference, e.g.
+ * Pair<Int>. The C backend emits a specialized struct per instantiation; this
+ * mirrors that for the LLVM type map. The base generic class decl is located in
+ * the active inventory, each type parameter is bound to the corresponding
+ * instantiation argument through the existing type-substitution stack, and the
+ * fields are resolved under that substitution to build and register a concrete
+ * named struct keyed by the raw instantiation name so later lookups hit it.
+ */
+static LLVMTypeRef
+llvm_specialize_generic_class_type(LLVMGenCtx *ctx, const char *type_name)
+{
+    const char *lt = type_name != NULL ? strchr(type_name, '<') : NULL;
+    size_t base_len;
+    char base[128];
+    ASTNode *tmpl;
+    GenericParams *gp;
+    size_t gpc;
+    int saved_subst;
+    LLVMHostedFieldView fv;
+    size_t fc;
+    LLVMTypeRef *ftypes;
+    LLVMTypeRef struct_ty;
+    NominalDeclKind nk;
+    bool is_subject;
+    bool is_ptr_self;
+
+    if (lt == NULL)
+        return NULL;
+    {
+        LLVMClassTypeEntry *cached = llvm_lookup_class(ctx, type_name);
+        if (cached != NULL)
+            return cached->struct_type;
+    }
+    base_len = (size_t)(lt - type_name);
+    if (base_len == 0 || base_len >= sizeof(base))
+        return NULL;
+    memcpy(base, type_name, base_len);
+    base[base_len] = '\0';
+
+    tmpl = llvm_find_decl_in_active_inventory(ctx, AST_CLASS_DECL, base);
+    if (tmpl == NULL)
+        return NULL;
+    gp = ast_class_generic_params(tmpl);
+    gpc = ast_generic_param_count(gp);
+    if (gpc == 0 || gpc > MAX_TYPE_SUBST)
+        return NULL;
+
+    saved_subst = ctx->type_subst_count;
+    for (size_t gi = 0; gi < gpc; gi++) {
+        GenericParam *p = ast_generic_param_at(gp, gi);
+        const char *pname = ast_generic_param_name(p);
+        char arg_buf[256];
+        LLVMTypeRef arg_ty;
+        if (pname == NULL
+            || !llvm_required_constructed_arg_name_copy(ctx, type_name, gi,
+                   base, arg_buf, sizeof(arg_buf))) {
+            ctx->type_subst_count = saved_subst;
+            return NULL;
+        }
+        /* Only monomorphize on concrete arguments. An unbound type parameter
+         * (a single uppercase letter with no active substitution) must stay
+         * type-erased to preserve the generic-ability / slot surface that
+         * relies on i8ptr handles rather than inline specialized storage. */
+        if (arg_buf[0] >= 'A' && arg_buf[0] <= 'Z' && arg_buf[1] == '\0') {
+            bool bound = false;
+            for (int si = 0; si < ctx->type_subst_count; si++) {
+                if (ctx->type_subst[si].param_name != NULL
+                    && strcmp(ctx->type_subst[si].param_name, arg_buf) == 0) {
+                    bound = true;
+                    break;
+                }
+            }
+            if (!bound) {
+                ctx->type_subst_count = saved_subst;
+                return NULL;
+            }
+        }
+        arg_ty = pergyra_type_to_llvm(ctx, arg_buf);
+        if (arg_ty == NULL || ctx->type_subst_count >= MAX_TYPE_SUBST) {
+            ctx->type_subst_count = saved_subst;
+            return NULL;
+        }
+        ctx->type_subst[ctx->type_subst_count].param_name = pname;
+        ctx->type_subst[ctx->type_subst_count].llvm_type = arg_ty;
+        ctx->type_subst[ctx->type_subst_count].type_name =
+            pergyra_strdup(arg_buf);
+        ctx->type_subst_count++;
+    }
+
+    fv = llvm_hosted_class_field_view_from_decl(ctx, base, tmpl);
+    if (llvm_hosted_field_view_missing_mir_metadata(&fv)) {
+        ctx->type_subst_count = saved_subst;
+        return NULL;
+    }
+    fc = fv.count;
+    ftypes = pgy_arena_calloc(&ctx->scratch,
+        (fc > 0 ? fc : 1) * sizeof(LLVMTypeRef));
+    if (ftypes == NULL) {
+        ctx->type_subst_count = saved_subst;
+        return NULL;
+    }
+    for (size_t j = 0; j < fc; j++) {
+        ASTNode *ft = llvm_hosted_field_view_type(&fv, j);
+        ftypes[j] = ast_type_to_llvm(ctx, ft);
+        if (ctx->has_error || ftypes[j] == NULL) {
+            ctx->type_subst_count = saved_subst;
+            return NULL;
+        }
+    }
+
+    struct_ty = LLVMStructCreateNamed(ctx->context, type_name);
+    LLVMStructSetBody(struct_ty, ftypes, (unsigned)fc, 0);
+    nk = ast_class_nominal_kind(tmpl);
+    is_subject = nk == NOMINAL_DECL_SUBJECT;
+    is_ptr_self = is_subject || nk == NOMINAL_DECL_VESSEL;
+    llvm_register_class(ctx, pergyra_strdup(type_name), struct_ty,
+        is_subject, is_ptr_self);
+
+    ctx->type_subst_count = saved_subst;
+    return struct_ty;
+}
+
 LLVMTypeRef
 pergyra_type_to_llvm(LLVMGenCtx *ctx, const char *type_name)
 {
@@ -647,6 +770,15 @@ pergyra_type_to_llvm(LLVMGenCtx *ctx, const char *type_name)
 
     if (llvm_find_enum_decl(ctx, type_name) != NULL)
         return ctx->type_i32;
+
+    {
+        LLVMTypeRef specialized =
+            llvm_specialize_generic_class_type(ctx, type_name);
+        if (specialized != NULL)
+            return specialized;
+        if (ctx != NULL && ctx->has_error)
+            return NULL;
+    }
 
     /* Closure #75: unresolved generic placeholder names (single uppercase
      * letter — T, K, V, ...) fall through to type-erased i8ptr. Generic

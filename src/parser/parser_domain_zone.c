@@ -61,6 +61,15 @@ ASTNode* parse_zone_declaration(Parser* parser) {
     while (!parser_check(parser, TOKEN_RBRACE) && !parser_is_at_end(parser)) {
         parser_collect_doc_comments(parser);
 
+        if (parser_match_identifier_keyword(parser, "forbids")) {
+            parser_consume(parser, TOKEN_UNSAFE,
+                "Expected 'unsafe' after 'forbids' in zone");
+            zone->data.zone_decl.forbids_unsafe = true;
+            parser_match(parser, TOKEN_SEMICOLON);
+            parser_discard_pending_doc_comment(parser);
+            continue;
+        }
+
         DomainSlotGroupKind slot_group = parser_match_domain_slot_group_kind(parser);
         if (slot_group != DOMAIN_GROUP_NONE) {
             bool is_subject = (slot_group == DOMAIN_GROUP_SUBJECTS);

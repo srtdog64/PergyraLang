@@ -153,6 +153,9 @@ ASTNode* parser_parse_statement(Parser* parser) {
             "Expected string path after 'import'");
         parser_consume(parser, TOKEN_SEMICOLON, "Expected ';' after import");
         /* Strip quotes from string literal */
+        if (path.type != TOKEN_STRING || path.text == NULL || path.length < 2) {
+            return parser_finalize_statement(parser, NULL);
+        }
         char *raw = pergyra_strndup(path.text + 1, path.length - 2);
         ASTNode *imp = ast_create_import_declaration(raw);
         free(raw);

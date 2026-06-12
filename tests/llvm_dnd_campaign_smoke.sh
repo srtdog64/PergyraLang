@@ -58,10 +58,18 @@ on_exit() {
 }
 trap on_exit EXIT
 
-c_output="$("$PGY" "$(pgy_path_for_compiler "$PGY" "$ROOT_DIR/examples/dnd_tavern_campaign/main.pgy")" \
-    --run --backend=c -o "$(pgy_path_for_compiler "$PGY" "$tmp_dir/dnd-c")" 2>&1)"
-llvm_output="$("$PGY" "$(pgy_path_for_compiler "$PGY" "$ROOT_DIR/examples/dnd_tavern_campaign/main.pgy")" \
-    --run --backend=llvm -o "$(pgy_path_for_compiler "$PGY" "$tmp_dir/dnd-llvm")" 2>&1)"
+if ! c_output="$("$PGY" "$(pgy_path_for_compiler "$PGY" "$ROOT_DIR/examples/dnd_tavern_campaign/main.pgy")" \
+    --run --backend=c -o "$(pgy_path_for_compiler "$PGY" "$tmp_dir/dnd-c")" 2>&1)"; then
+    printf '%s\n' "$c_output" >&2
+    echo "[llvm-dnd-campaign] C campaign compile/run failed" >&2
+    exit 1
+fi
+if ! llvm_output="$("$PGY" "$(pgy_path_for_compiler "$PGY" "$ROOT_DIR/examples/dnd_tavern_campaign/main.pgy")" \
+    --run --backend=llvm -o "$(pgy_path_for_compiler "$PGY" "$tmp_dir/dnd-llvm")" 2>&1)"; then
+    printf '%s\n' "$llvm_output" >&2
+    echo "[llvm-dnd-campaign] LLVM campaign compile/run failed" >&2
+    exit 1
+fi
 printf '%s\n' "$c_output" > "$tmp_dir/c.raw.out"
 printf '%s\n' "$llvm_output" > "$tmp_dir/llvm.raw.out"
 

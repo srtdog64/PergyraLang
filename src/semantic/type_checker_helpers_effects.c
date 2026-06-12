@@ -86,6 +86,8 @@ effect_mask_to_string(uint32_t mask, char *buf, size_t buf_size)
         append_effect_name(buf, buf_size, "nondeterministic", &first);
     if (type_effect_mask_has(mask, EFFECT_COLLAPSE))
         append_effect_name(buf, buf_size, "collapse", &first);
+    if (type_effect_mask_has(mask, EFFECT_UNSAFE))
+        append_effect_name(buf, buf_size, "unsafe", &first);
 }
 
 static uint32_t

@@ -55,6 +55,8 @@ typedef struct
     bool    next_decl_exported;
     bool    last_func_decl_async;
     int     scope_depth;
+    int     recursion_depth;
+    int     binary_op_count;
     StructuredComment *pending_doc_comment;
     const char *source_path;
     char   **decl_hint_names;

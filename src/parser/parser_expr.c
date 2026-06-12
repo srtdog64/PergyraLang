@@ -2,6 +2,30 @@
 #include "../common/match_variant_policy.h"
 
 ASTNode* parse_pipe(Parser* parser);
+
+/*
+ * Operator-chain cap. Left-associative binary chains (a < b < c < ...) build a
+ * left-deep AST iteratively; the later recursive tree walks (semantic check,
+ * codegen, destroy) would overflow the native stack on a pathologically long
+ * chain. parser->binary_op_count is reset per top-level expression and capped
+ * here so the deep node is never built.
+ */
+#define PARSER_MAX_EXPR_OPERATORS 4096
+
+static ASTNode*
+parser_chain_binary(Parser* parser, ASTNode* left, Token op, ASTNode* right)
+{
+    if (parser->binary_op_count >= PARSER_MAX_EXPR_OPERATORS) {
+        if (!parser->has_error) {
+            parser_error(parser,
+                "Expression has too many chained operators (limit is 4096); "
+                "split it into smaller subexpressions");
+        }
+        return left;
+    }
+    parser->binary_op_count++;
+    return ast_create_binary(left, op, right);
+}
 static int
 parser_name_table_compare(const void *key, const void *entry)
 {
@@ -50,7 +74,14 @@ parser_name_is_builtin_like_identifier(const char *name)
 }
 
 ASTNode* parser_parse_expression(Parser* parser) {
-    return parser_parse_assignment(parser);
+    ASTNode* result;
+    if (parser->recursion_depth == 0)
+        parser->binary_op_count = 0;
+    if (!parser_enter_recursion(parser))
+        return NULL;
+    result = parser_parse_assignment(parser);
+    parser_leave_recursion(parser);
+    return result;
 }
 
 ASTNode* parser_parse_assignment(Parser* parser) {
@@ -83,7 +114,7 @@ parse_coalescing(Parser *parser)
     while (parser_match(parser, TOKEN_COALESCE)) {
         Token op = parser->previous_token;
         ASTNode *fallback = parse_logical_or(parser);
-        expr = ast_create_binary(expr, op, fallback);
+        expr = parser_chain_binary(parser, expr, op, fallback);
     }
 
     return expr;
@@ -95,6 +126,10 @@ ASTNode* parse_pipe(Parser* parser) {
     while (parser_match(parser, TOKEN_PIPE_ARROW)) {
         Token op = parser->previous_token;
         ASTNode* right = parse_coalescing(parser);
+        if (right == NULL) {
+            ast_destroy(expr);
+            return NULL;
+        }
         if (right->type == AST_CALL) {
             if (!parser_prepend_call_argument(parser, right, expr)) {
                 ast_destroy(expr);
@@ -116,7 +151,7 @@ ASTNode* parse_pipe(Parser* parser) {
             call->data.call.arg_capacity = 1;
             expr = call;
         } else {
-            expr = ast_create_binary(expr, op, right);
+            expr = parser_chain_binary(parser, expr, op, right);
         }
     }
 
@@ -129,7 +164,7 @@ ASTNode* parse_logical_or(Parser* parser) {
     while (parser_match(parser, TOKEN_OR)) {
         Token op = parser->previous_token;
         ASTNode* right = parse_logical_and(parser);
-        expr = ast_create_binary(expr, op, right);
+        expr = parser_chain_binary(parser, expr, op, right);
     }
 
     return expr;
@@ -141,7 +176,7 @@ ASTNode* parse_logical_and(Parser* parser) {
     while (parser_match(parser, TOKEN_AND)) {
         Token op = parser->previous_token;
         ASTNode* right = parse_equality(parser);
-        expr = ast_create_binary(expr, op, right);
+        expr = parser_chain_binary(parser, expr, op, right);
     }
 
     return expr;
@@ -154,7 +189,7 @@ ASTNode* parse_equality(Parser* parser) {
            parser_match(parser, TOKEN_NOT_EQUAL)) {
         Token op = parser->previous_token;
         ASTNode* right = parse_comparison(parser);
-        expr = ast_create_binary(expr, op, right);
+        expr = parser_chain_binary(parser, expr, op, right);
     }
 
     return expr;
@@ -169,7 +204,7 @@ ASTNode* parse_comparison(Parser* parser) {
            parser_match(parser, TOKEN_GREATER_EQUAL)) {
         Token op = parser->previous_token;
         ASTNode* right = parse_addition(parser);
-        expr = ast_create_binary(expr, op, right);
+        expr = parser_chain_binary(parser, expr, op, right);
     }
 
     return expr;
@@ -182,7 +217,7 @@ ASTNode* parse_addition(Parser* parser) {
            parser_match(parser, TOKEN_MINUS)) {
         Token op = parser->previous_token;
         ASTNode* right = parse_multiplication(parser);
-        expr = ast_create_binary(expr, op, right);
+        expr = parser_chain_binary(parser, expr, op, right);
     }
 
     return expr;
@@ -196,7 +231,7 @@ ASTNode* parse_multiplication(Parser* parser) {
            parser_match(parser, TOKEN_PERCENT)) {
         Token op = parser->previous_token;
         ASTNode* right = parse_unary(parser);
-        expr = ast_create_binary(expr, op, right);
+        expr = parser_chain_binary(parser, expr, op, right);
     }
 
     return expr;

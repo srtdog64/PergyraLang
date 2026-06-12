@@ -278,7 +278,18 @@ WhereClause* parse_where_clause(Parser* parser) {
 }
 
 // 타입 파싱: Type<T, U>
+static ASTNode* parse_type_guarded(Parser* parser);
+
 ASTNode* parse_type(Parser* parser) {
+    ASTNode* result;
+    if (!parser_enter_recursion(parser))
+        return NULL;
+    result = parse_type_guarded(parser);
+    parser_leave_recursion(parser);
+    return result;
+}
+
+static ASTNode* parse_type_guarded(Parser* parser) {
     if (parser_match(parser, TOKEN_FUNC)) {
         ASTNode *handler_type = ast_create_event_handler_type();
 

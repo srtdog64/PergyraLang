@@ -45,7 +45,8 @@ typedef enum
     EFFECT_SECURE           = 1u << 0,
     EFFECT_REMOTE           = 1u << 1,
     EFFECT_NONDETERMINISTIC = 1u << 2,
-    EFFECT_COLLAPSE         = 1u << 3
+    EFFECT_COLLAPSE         = 1u << 3,
+    EFFECT_UNSAFE           = 1u << 4
 } EffectMask;
 
 typedef enum

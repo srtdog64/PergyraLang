@@ -13,6 +13,14 @@ ast_zone_name(const ASTNode* node)
     return node->data.zone_decl.name;
 }
 
+bool
+ast_zone_forbids_unsafe(const ASTNode* node)
+{
+    if (node == NULL || node->type != AST_ZONE_DECL)
+        return false;
+    return node->data.zone_decl.forbids_unsafe;
+}
+
 ASTNode**
 ast_zone_slots(const ASTNode* node, size_t* count_out)
 {

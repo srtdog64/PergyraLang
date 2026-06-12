@@ -50,6 +50,10 @@ parser_effect_mask_from_token(Token tok, uint32_t *mask_out)
         *mask_out = EFFECT_NONE;
         return true;
     }
+    if (tok.type == TOKEN_UNSAFE) {
+        *mask_out = EFFECT_UNSAFE;
+        return true;
+    }
 
     if (tok.text == NULL)
         return false;
@@ -106,7 +110,8 @@ parse_optional_effect_clause(Parser *parser, bool *has_clause_out,
             || parser_check(parser, TOKEN_REMOTE)
             || parser_check(parser, TOKEN_NONDETERMINISTIC)
             || parser_check(parser, TOKEN_COLLAPSE)
-            || parser_check(parser, TOKEN_LOCAL))
+            || parser_check(parser, TOKEN_LOCAL)
+            || parser_check(parser, TOKEN_UNSAFE))
             tok = parser_advance(parser);
         else {
             parser_error(parser,

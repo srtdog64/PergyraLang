@@ -1,6 +1,7 @@
 #include "type_checker_internal.h"
 #include "type_checker_flow_internal.h"
 #include "type_checker_flow_effects.h"
+#include "diag_codes.h"
 
 FlowFlags
 type_check_with_stmt_flow(ASTNode *node, SemanticContext *ctx,
@@ -45,6 +46,19 @@ type_check_unsafe_block_flow(ASTNode *node, SemanticContext *ctx,
 
     if (node == NULL || node->type != AST_UNSAFE_BLOCK)
         return FLOW_FALLTHROUGH;
+
+    semantic_record_effect(ctx, EFFECT_UNSAFE);
+    if (ctx != NULL && ctx->in_parallel) {
+        semantic_error_with_hints(ctx,
+            PGY_CODE_SEM_PARALLEL_SECURE_FORBIDDEN,
+            PGY_CAUSE_PARALLEL_SECURE_IN_TASK,
+            PGY_FIX_SERIALIZE_OUTSIDE_PARALLEL,
+            node,
+            "Unsafe block is not permitted inside a parallel task; raw memory "
+            "operations across concurrent tasks compound undefined behavior. "
+            "Serialize the unsafe work outside the parallel block.");
+        return FLOW_FALLTHROUGH;
+    }
 
     body = ast_unsafe_block_body(node);
     return body != NULL

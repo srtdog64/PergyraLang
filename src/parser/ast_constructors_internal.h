@@ -9,5 +9,6 @@
 #include "ast.h"
 
 ASTNode *ast_create_node(ASTNodeType type);
+void ast_reset_node_budget(void);
 
 #endif /* PERGYRA_AST_CONSTRUCTORS_INTERNAL_H */

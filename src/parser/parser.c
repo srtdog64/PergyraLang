@@ -8,10 +8,44 @@
 #include "../common/string_compat.h"
 #include <stdint.h>
 
+/*
+ * Recursive-descent depth guard. The grammar recurses on nested types
+ * (Wrap<Wrap<...>>), parenthesized expressions, and nested blocks; without a
+ * bound a deeply nested input overflows the native call stack (SIGSEGV).
+ * The chokepoint functions (parse_type, parser_parse_expression,
+ * parser_parse_block) call parser_enter_recursion on entry and
+ * parser_leave_recursion on exit through thin wrappers.
+ */
+#define PARSER_MAX_RECURSION_DEPTH 400
+
+bool
+parser_enter_recursion(Parser *parser)
+{
+    if (parser == NULL)
+        return false;
+    if (parser->recursion_depth >= PARSER_MAX_RECURSION_DEPTH) {
+        parser_error(parser,
+            "Expression, type, or block nesting is too deep (limit is "
+            "400); refactor the deeply nested construct");
+        return false;
+    }
+    parser->recursion_depth++;
+    return true;
+}
+
+void
+parser_leave_recursion(Parser *parser)
+{
+    if (parser != NULL && parser->recursion_depth > 0)
+        parser->recursion_depth--;
+}
+
 // 파서 생성
 Parser* parser_create(Lexer* lexer) {
     Parser* parser = calloc(1, sizeof(Parser));
     if (!parser) return NULL;
+
+    ast_reset_node_budget();
 
     parser->lexer = lexer;
     parser->has_error = false;
@@ -369,7 +403,9 @@ ASTNode* parser_parse_with_statement(Parser* parser) {
             "Expected 'slot' or 'SecureSlot' after 'with'"
         );
 
-        if (strcmp(slot_kind.text, "SecureSlot") == 0) {
+        if (slot_kind.text == NULL) {
+            parser_error(parser, "Expected 'slot' or 'SecureSlot' after 'with'");
+        } else if (strcmp(slot_kind.text, "SecureSlot") == 0) {
             with_stmt->data.with_stmt.is_secure = true;
         } else if (strcmp(slot_kind.text, "slot") != 0) {
             parser_error(parser, "Expected 'slot' or 'SecureSlot' after 'with'");
@@ -429,6 +465,10 @@ ASTNode* parser_parse_parallel_block(Parser* parser) {
 ASTNode* parser_parse_block(Parser* parser) {
     ASTNode* block = ast_create_block();
 
+    if (!parser_enter_recursion(parser)) {
+        return block;
+    }
+
     parser->scope_depth++;
 
     while (!parser_check(parser, TOKEN_RBRACE) && !parser_is_at_end(parser)) {
@@ -445,6 +485,7 @@ ASTNode* parser_parse_block(Parser* parser) {
 
     parser_consume(parser, TOKEN_RBRACE, "Expected '}' after block");
 
+    parser_leave_recursion(parser);
     return block;
 }
 

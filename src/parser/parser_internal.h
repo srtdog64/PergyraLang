@@ -18,6 +18,10 @@
 #include <stdarg.h>
 #include <assert.h>
 
+bool parser_enter_recursion(Parser *parser);
+void parser_leave_recursion(Parser *parser);
+void ast_reset_node_budget(void);
+
 /* --- Generic / type utilities --- */
 GenericParams  *parse_generic_params(Parser *parser);
 GenericParams  *parse_type_arguments(Parser *parser);

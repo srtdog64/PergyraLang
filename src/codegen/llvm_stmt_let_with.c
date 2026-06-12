@@ -32,14 +32,38 @@ llvm_emit_let_decl(ASTNode *node, LLVMGenCtx *ctx)
         const char *callee = ast_identifier_name(ast_call_callee(init));
         LLVMClassTypeEntry *cls = llvm_lookup_class(ctx, callee);
         if (cls != NULL) {
-            LLVMValueRef alloca_val = llvm_create_entry_alloca(
-                ctx, cls->struct_type, name);
-            LLVMValueRef init_val = llvm_emit_expression(init, ctx);
+            /* If the binding is annotated with a specialized generic
+             * instantiation (e.g. Pair<Int>), construct that concrete type
+             * rather than the type-erased base, and expose it through
+             * current_ret_type so the constructor selects the specialized
+             * field layout. */
+            LLVMTypeRef construct_type = cls->struct_type;
+            const char *construct_class = callee;
+            LLVMTypeRef saved_ret = ctx->current_ret_type;
+            LLVMValueRef alloca_val;
+            LLVMValueRef init_val;
+            if (type_ann != NULL) {
+                LLVMTypeRef ann = ast_type_to_llvm(ctx, type_ann);
+                if (ctx->has_error)
+                    return;
+                if (ann != NULL && ann != cls->struct_type) {
+                    LLVMClassTypeEntry *spec =
+                        llvm_lookup_class_by_struct_type(ctx, ann);
+                    if (spec != NULL && spec->class_name != NULL) {
+                        construct_type = ann;
+                        construct_class = spec->class_name;
+                    }
+                }
+            }
+            alloca_val = llvm_create_entry_alloca(ctx, construct_type, name);
+            ctx->current_ret_type = construct_type;
+            init_val = llvm_emit_expression(init, ctx);
+            ctx->current_ret_type = saved_ret;
             if (init_val != NULL)
                 LLVMBuildStore(ctx->builder, init_val, alloca_val);
 
-            llvm_scope_declare(ctx, name, alloca_val, cls->struct_type);
-            llvm_register_var_class(ctx, name, callee);
+            llvm_scope_declare(ctx, name, alloca_val, construct_type);
+            llvm_register_var_class(ctx, name, construct_class);
             return;
         }
     }

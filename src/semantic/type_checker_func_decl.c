@@ -306,6 +306,30 @@ type_check_func_decl(ASTNode *node, SemanticContext *ctx)
         type_function_set_effects(func_type,
             type_effect_mask_join(declared_effects, derived_effects));
 
+        {
+            const char *within_zone = ast_func_within_zone(node);
+            uint32_t effect_closure = type_function_effects(func_type);
+            if (within_zone != NULL
+                && type_effect_mask_has(effect_closure, EFFECT_UNSAFE)) {
+                ASTNode *forbidding_zone =
+                    semantic_find_zone_decl_by_name(ctx, within_zone);
+                if (forbidding_zone != NULL
+                    && ast_zone_forbids_unsafe(forbidding_zone)) {
+                    semantic_error_with_hints(ctx,
+                        PGY_CODE_SEM_EFFECT_CONFLICT,
+                        PGY_CAUSE_EFFECT_INCOMPATIBLE_COMBO,
+                        PGY_FIX_SPLIT_EFFECT_FAMILIES,
+                        node,
+                        "Function '%s' performs unsafe work, but zone '%s' "
+                        "forbids unsafe; raw-memory operations may not be "
+                        "contained within a zone that declares 'forbids unsafe'. "
+                        "Move the unsafe work outside the zone boundary.",
+                        name != NULL ? name : "<anonymous>",
+                        within_zone);
+                }
+            }
+        }
+
         if (type_effect_mask_conflicts(type_function_effects(func_type),
                                        type_function_effects(func_type))) {
             effect_mask_to_string(type_function_effects(func_type),

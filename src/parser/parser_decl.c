@@ -246,6 +246,8 @@ ASTNode* parse_record_type_alias_struct(Parser* parser, Token name) {
     parser_consume(parser, TOKEN_LBRACE, "Expected '{' for record type body");
 
     while (!parser_check(parser, TOKEN_RBRACE) && !parser_is_at_end(parser)) {
+        uint32_t prev_line = parser->current_token.line;
+        uint32_t prev_column = parser->current_token.column;
         Token field_name = parser_consume(parser, TOKEN_IDENTIFIER,
             "Expected field name in record type");
         parser_consume(parser, TOKEN_COLON,
@@ -253,6 +255,10 @@ ASTNode* parse_record_type_alias_struct(Parser* parser, Token name) {
         ASTNode* field_type = parse_type(parser);
 
         ClassField* field = calloc(1, sizeof(ClassField));
+        if (field == NULL) {
+            parser_error(parser, "Out of memory while parsing record field");
+            break;
+        }
         field->name = pergyra_strdup(field_name.text);
         field->type = field_type;
         field->access = ACCESS_PUBLIC;
@@ -265,6 +271,11 @@ ASTNode* parse_record_type_alias_struct(Parser* parser, Token name) {
             && !parser_check(parser, TOKEN_RBRACE)) {
             parser_consume(parser, TOKEN_SEMICOLON,
                 "Expected ',' or ';' after record field");
+        }
+
+        if (parser->current_token.line == prev_line
+            && parser->current_token.column == prev_column) {
+            parser_advance(parser);
         }
     }
 
@@ -332,7 +343,22 @@ ASTNode* parse_type_declaration(Parser* parser, NominalDeclKind decl_kind) {
     }
 
     // 클래스 멤버들
+    uint32_t member_prev_line = 0;
+    uint32_t member_prev_column = 0;
+    bool member_first = true;
     while (!parser_check(parser, TOKEN_RBRACE) && !parser_is_at_end(parser)) {
+        uint32_t member_cur_line = parser->current_token.line;
+        uint32_t member_cur_column = parser->current_token.column;
+        if (!member_first
+            && member_cur_line == member_prev_line
+            && member_cur_column == member_prev_column) {
+            parser_error(parser, "Unexpected token in type body");
+            parser_advance(parser);
+            continue;
+        }
+        member_first = false;
+        member_prev_line = member_cur_line;
+        member_prev_column = member_cur_column;
         parser_collect_doc_comments(parser);
 
         // 접근 제어자
@@ -451,12 +477,18 @@ ASTNode* parse_extern_block(Parser* parser) {
     parser->in_extern_block = true;
 
     while (!parser_check(parser, TOKEN_RBRACE) && !parser_is_at_end(parser)) {
+        uint32_t prev_line = parser->current_token.line;
+        uint32_t prev_column = parser->current_token.column;
         parser_collect_doc_comments(parser);
         parser_consume(parser, TOKEN_FUNC,
             "Expected 'func' declaration inside extern block");
         ASTNode* decl = parser_finalize_statement(parser, parse_function_declaration(parser));
         if (decl) {
             ast_add_statement(block, decl);
+        }
+        if (parser->current_token.line == prev_line
+            && parser->current_token.column == prev_column) {
+            parser_advance(parser);
         }
     }
 

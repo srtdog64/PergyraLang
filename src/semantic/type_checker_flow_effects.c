@@ -39,6 +39,9 @@ flow_effect_mask_to_string(uint32_t mask, char *buf, size_t buf_size)
     if (type_effect_mask_has(closed, EFFECT_COLLAPSE))
         off = pergyra_str_appendf(buf, buf_size,
                                   "%scollapse", off > 0 ? ", " : "");
+    if (type_effect_mask_has(closed, EFFECT_UNSAFE))
+        off = pergyra_str_appendf(buf, buf_size,
+                                  "%sunsafe", off > 0 ? ", " : "");
 }
 
 void

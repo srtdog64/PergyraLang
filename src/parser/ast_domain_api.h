@@ -198,6 +198,7 @@ ASTNode** ast_effect_shared_fields(const ASTNode* node, size_t* count_out);
 ASTNode** ast_effect_methods(const ASTNode* node, size_t* count_out);
 ASTNode* ast_create_zone_declaration(const char* name);
 const char* ast_zone_name(const ASTNode* node);
+bool ast_zone_forbids_unsafe(const ASTNode* node);
 ASTNode** ast_zone_slots(const ASTNode* node, size_t* count_out);
 ASTNode** ast_zone_layer_slots(const ASTNode* node, size_t* count_out);
 ASTNode** ast_zone_shared_fields(const ASTNode* node, size_t* count_out);

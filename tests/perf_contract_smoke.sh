@@ -3431,7 +3431,7 @@ grep -Fq "transpiler_type_name_is_option(subject_type)" "$ROOT_DIR/src/codegen/t
 grep -Fq "lookup_future_inner_type_copy(ctx" "$ROOT_DIR/src/codegen/transpiler_expr_dispatch_emit.c"
 grep -Fq "transpiler_require_type_name_c_type_copy" "$ROOT_DIR/src/codegen/transpiler_type_require.c"
 grep -Fq "transpiler_require_ast_c_type_copy" "$ROOT_DIR/src/codegen/transpiler_type_require.c"
-grep -Fq "transpiler_bound_type_name(ctx, type_name)" "$ROOT_DIR/src/codegen/transpiler_type_require.c"
+grep -Fq "transpiler_bound_type_name(ctx, eff_type_name)" "$ROOT_DIR/src/codegen/transpiler_type_require.c"
 grep -Fq "ctx->generic_bindings[i].concrete_type" "$ROOT_DIR/src/codegen/transpiler_type_require.c"
 grep -Fq "pergyra_type_to_c_copy(resolved_type_name, out" "$ROOT_DIR/src/codegen/transpiler_type_require.c"
 ! grep -A8 -F "type_name[0] >= 'A'" "$ROOT_DIR/src/codegen/transpiler_type_require.c" | \

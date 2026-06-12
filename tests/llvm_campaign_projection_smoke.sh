@@ -44,8 +44,12 @@ if [[ -z "$PYTHON_BIN" ]]; then
     fi
 fi
 
-output="$("$PGY" "$(pgy_path_for_compiler "$PGY" "$ROOT_DIR/examples/campaign_graph_fsm/main.pgy")" \
-    --run --backend=llvm -o "$(pgy_path_for_compiler "$PGY" "${TMP_BASE%/}/pgy-campaign-projection-llvm")" 2>&1)"
+if ! output="$("$PGY" "$(pgy_path_for_compiler "$PGY" "$ROOT_DIR/examples/campaign_graph_fsm/main.pgy")" \
+    --run --backend=llvm -o "$(pgy_path_for_compiler "$PGY" "${TMP_BASE%/}/pgy-campaign-projection-llvm")" 2>&1)"; then
+    printf '%s\n' "$output" >&2
+    echo "[llvm-campaign-projection] LLVM campaign compile/run failed" >&2
+    exit 1
+fi
 
 if [[ -z "$PYTHON_BIN" ]]; then
     tmp_dir="$(mktemp -d "${TMP_BASE%/}/pgy-campaign-projection.XXXXXX")"

@@ -8,6 +8,7 @@
 
 #include <stdlib.h>
 #include <string.h>
+#include <stdio.h>
 static char *
 ast_strdup_range(const char *src, size_t len)
 {
@@ -60,9 +61,37 @@ ast_unescape_string_literal(const char *value)
     return out;
 }
 
+/*
+ * Per-parse AST-node budget. A pathologically malformed input (e.g. tens of
+ * thousands of injected braces interacting with later constructs) can drive the
+ * recursive-descent parser to allocate tens of millions of nodes and exhaust
+ * memory. The budget is reset for each parser (ast_reset_node_budget, called
+ * from parser_create) and caps a single parse at a generous limit far above any
+ * real program; exceeding it is a defined, bounded refusal rather than an
+ * out-of-memory kill.
+ */
+#define AST_NODE_BUDGET_MAX 1000000u
+static size_t g_ast_node_budget_used = 0;
+
+void
+ast_reset_node_budget(void)
+{
+    g_ast_node_budget_used = 0;
+}
+
 ASTNode* ast_create_node(ASTNodeType type) {
+    if (++g_ast_node_budget_used > AST_NODE_BUDGET_MAX) {
+        fprintf(stderr,
+            "pgy: fatal: AST node budget exceeded; input is too large or "
+            "pathologically nested\n");
+        exit(1);
+    }
     ASTNode* node = calloc(1, sizeof(ASTNode));
-    if (!node) return NULL;
+    if (!node) {
+        fprintf(stderr,
+            "pgy: fatal: out of memory allocating AST node; aborting\n");
+        abort();
+    }
     node->type = type;
     node->access = ACCESS_PUBLIC;
     node->has_explicit_access = false;
