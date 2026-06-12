@@ -75,6 +75,14 @@ struct ASTNode
             bool           is_struct;
             NominalDeclKind nominal_kind;
             StructuredComment* doc_comment;  /* Attached documentation */
+            /* Class-body destructuring field groups: each entry is an
+             * AST_LET_DESTRUCTURE node (names[] + initializer). The placeholder
+             * fields for each name also live in `fields`; semantic resolves
+             * their types from the initializer's tuple, and the constructor
+             * evaluates each initializer once and assigns the elements. */
+            ASTNode**      field_destructures;
+            size_t         field_destructure_count;
+            size_t         field_destructure_capacity;
         } class_decl;
 
         /* extern "C" { func ...; } */

@@ -5,6 +5,7 @@
 
 #include "ast_constructors_internal.h"
 #include <stdint.h>
+#include <stdlib.h>
 #include <string.h>
 
 const char*
@@ -248,6 +249,47 @@ ast_class_fields(const ASTNode* node, size_t* count_out)
     if (count_out != NULL)
         *count_out = node->data.class_decl.field_count;
     return node->data.class_decl.fields;
+}
+
+size_t
+ast_class_field_destructure_count(const ASTNode* node)
+{
+    if (node == NULL || node->type != AST_CLASS_DECL)
+        return 0;
+    return node->data.class_decl.field_destructure_count;
+}
+
+ASTNode*
+ast_class_field_destructure_at(const ASTNode* node, size_t index)
+{
+    if (node == NULL || node->type != AST_CLASS_DECL
+        || index >= node->data.class_decl.field_destructure_count)
+        return NULL;
+    return node->data.class_decl.field_destructures[index];
+}
+
+bool
+ast_class_append_field_destructure(ASTNode* node, ASTNode* destructure)
+{
+    size_t cap;
+    ASTNode **grown;
+
+    if (node == NULL || node->type != AST_CLASS_DECL || destructure == NULL)
+        return false;
+    if (node->data.class_decl.field_destructure_count
+            == node->data.class_decl.field_destructure_capacity) {
+        cap = node->data.class_decl.field_destructure_capacity == 0
+            ? 2 : node->data.class_decl.field_destructure_capacity * 2;
+        grown = realloc(node->data.class_decl.field_destructures,
+                        cap * sizeof(ASTNode *));
+        if (grown == NULL)
+            return false;
+        node->data.class_decl.field_destructures = grown;
+        node->data.class_decl.field_destructure_capacity = cap;
+    }
+    node->data.class_decl.field_destructures
+        [node->data.class_decl.field_destructure_count++] = destructure;
+    return true;
 }
 
 ASTNode**

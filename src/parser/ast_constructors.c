@@ -178,6 +178,9 @@ ASTNode* ast_create_class(const char* name) {
     node->data.class_decl.where_clause = NULL;
     node->data.class_decl.is_struct = false;
     node->data.class_decl.nominal_kind = NOMINAL_DECL_CLASS;
+    node->data.class_decl.field_destructures = NULL;
+    node->data.class_decl.field_destructure_count = 0;
+    node->data.class_decl.field_destructure_capacity = 0;
     return node;
 }
 

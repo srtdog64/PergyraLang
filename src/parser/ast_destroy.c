@@ -111,6 +111,11 @@ void ast_destroy(ASTNode* node) {
                 ast_destroy(node->data.class_decl.methods[i]);
             }
             free(node->data.class_decl.methods);
+            for (size_t i = 0;
+                 i < node->data.class_decl.field_destructure_count; i++) {
+                ast_destroy(node->data.class_decl.field_destructures[i]);
+            }
+            free(node->data.class_decl.field_destructures);
             ast_destroy_generic_params(node->data.class_decl.generic_params);
             ast_destroy_where_clause(node->data.class_decl.where_clause);
             ast_destroy_structured_comment(node->data.class_decl.doc_comment);

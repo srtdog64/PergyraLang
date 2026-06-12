@@ -32,6 +32,20 @@ parser_append_func_param(Parser *parser, ASTNode *func, FuncParam *param)
 
 #include <stdint.h>
 
+/* A class/struct field may be terminated by ';' or ',', or simply end where the
+ * next member begins (newline-separated style). Treat a new-member-start token
+ * or the closing '}' as a valid implicit terminator. */
+static bool
+parser_at_member_boundary(Parser *parser)
+{
+    return parser_check(parser, TOKEN_RBRACE)
+        || parser_check(parser, TOKEN_PUBLIC)
+        || parser_check(parser, TOKEN_PRIVATE)
+        || parser_check(parser, TOKEN_LET)
+        || parser_check(parser, TOKEN_VESSEL)
+        || parser_check(parser, TOKEN_FUNC);
+}
+
 static bool
 parser_append_class_field(Parser *parser, ASTNode *class_decl, ClassField *field)
 {
@@ -396,16 +410,73 @@ ASTNode* parse_type_declaration(Parser* parser, NominalDeclKind decl_kind) {
                 return class_decl;
             }
 
-            /* Destructuring field declarations like
-             *     private let (slot, token) = ClaimSecureSlot<Int>(lvl);
-             * are not yet supported. Emit a targeted error with a fix hint
-             * instead of the generic "Expected field name". */
+            /* Class-body destructuring: `[access] let (a, b) = <expr>`.
+             * Build an AST_LET_DESTRUCTURE node (names + initializer), register
+             * a placeholder field for each name (type resolved in semantic from
+             * the initializer's tuple), and record the group on the class so the
+             * constructor evaluates the initializer once and assigns each
+             * element. */
             if (has_let && parser_check(parser, TOKEN_LPAREN)) {
-                parser_error(parser,
-                    "class-body destructuring field is not yet supported; "
-                    "declare each field separately and initialize them in a "
-                    "constructor/init method");
-                return class_decl;
+                ASTNode *destructure;
+
+                parser_advance(parser); /* consume '(' */
+                destructure = calloc(1, sizeof(ASTNode));
+                if (destructure == NULL) {
+                    parser_error(parser,
+                        "Out of memory parsing class destructuring");
+                    return class_decl;
+                }
+                destructure->type = AST_LET_DESTRUCTURE;
+                destructure->line = parser->previous_token.line;
+                destructure->column = parser->previous_token.column;
+                destructure->data.let_destructure.names = NULL;
+                destructure->data.let_destructure.name_count = 0;
+                destructure->data.let_destructure.name_capacity = 0;
+                destructure->data.let_destructure.initializer = NULL;
+
+                while (!parser_check(parser, TOKEN_RPAREN)
+                       && !parser_is_at_end(parser)) {
+                    Token var = consume_binding_name_token(parser,
+                        "Expected field name in class destructuring");
+                    if (!parser_append_destructure_name(parser, destructure,
+                            var.text))
+                        break;
+                    if (!parser_match(parser, TOKEN_COMMA))
+                        break;
+                }
+                parser_consume(parser, TOKEN_RPAREN,
+                    "Expected ')' after class destructuring names");
+                parser_consume(parser, TOKEN_ASSIGN,
+                    "Expected '=' in class destructuring field");
+                destructure->data.let_destructure.initializer =
+                    parser_parse_expression(parser);
+
+                for (size_t di = 0;
+                     di < destructure->data.let_destructure.name_count; di++) {
+                    ClassField *df = calloc(1, sizeof(ClassField));
+                    if (df == NULL) {
+                        parser_error(parser,
+                            "Out of memory parsing class destructuring fields");
+                        ast_destroy(destructure);
+                        return class_decl;
+                    }
+                    df->name = pergyra_strdup(
+                        destructure->data.let_destructure.names[di]);
+                    df->type = NULL;
+                    df->access = access;
+                    df->has_explicit_access = explicit_access;
+                    parser_append_class_field(parser, class_decl, df);
+                }
+                ast_class_append_field_destructure(class_decl, destructure);
+
+                if (!parser_match(parser, TOKEN_SEMICOLON)
+                    && !parser_match(parser, TOKEN_COMMA)
+                    && !parser_at_member_boundary(parser)) {
+                    parser_consume(parser, TOKEN_SEMICOLON,
+                        "Expected ';' or ',' after class destructuring field");
+                }
+                parser_discard_pending_doc_comment(parser);
+                continue;
             }
 
             // 필드
@@ -426,7 +497,7 @@ ASTNode* parse_type_declaration(Parser* parser, NominalDeclKind decl_kind) {
              * directly before the closing '}'. */
             if (!parser_match(parser, TOKEN_SEMICOLON)
                 && !parser_match(parser, TOKEN_COMMA)
-                && !parser_check(parser, TOKEN_RBRACE)) {
+                && !parser_at_member_boundary(parser)) {
                 parser_consume(parser, TOKEN_SEMICOLON,
                     "Expected ';' or ',' after field declaration");
             }
