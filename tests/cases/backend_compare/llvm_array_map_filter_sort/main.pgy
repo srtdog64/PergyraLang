@@ -1,0 +1,11 @@
+func Double(x: Int) -> Int { return x * 2; }
+func IsEven(x: Int) -> Bool { return x % 2 == 0; }
+func Main() -> Void {
+    let nums: Array<Int> = [5, 3, 1, 4, 2];
+    let sorted: Array<Int> = ArraySort(nums);
+    for n in sorted { Log(n); }
+    let doubled: Array<Int> = ArrayMap(nums, Double);
+    for d in doubled { Log(d); }
+    let evens: Array<Int> = ArrayFilter(nums, IsEven);
+    for e in evens { Log(e); }
+}

@@ -4835,7 +4835,7 @@ fi
 grep -Fq "llvm_stmt_lookup_declared_call_return_type" "$ROOT_DIR/src/codegen/llvm_stmt_type_infer_helpers.c"
 grep -A14 -F "llvm_stmt_lookup_visible_function(ctx, callee)" "$ROOT_DIR/src/codegen/llvm_stmt_type_infer.c" | \
     grep -Fq "llvm_stmt_lookup_declared_call_return_type(ctx, callee)"
-grep -A12 -F "Domain helper calls can be emitted" "$ROOT_DIR/src/codegen/llvm_stmt_type_infer.c" | \
+grep -A12 -F "Domain helper result types are owned by typed inference" "$ROOT_DIR/src/codegen/llvm_stmt_type_infer.c" | \
     grep -Fq "ctx->expected_type_name"
 grep -A48 -F "case AST_BINARY" "$ROOT_DIR/src/codegen/llvm_stmt_type_infer.c" | \
     grep -Fq "unsupported binary operator has no inferred LLVM type"
@@ -5379,5 +5379,34 @@ if [ -n "$slot_inner_escape_matches" ]; then
     echo "[perf-contract] C backend direct slot_inner_type_name call escaped copy seam" >&2
     exit 1
 fi
+if grep -Fq "slot inner not yet registered" \
+    "$ROOT_DIR/src/codegen/llvm_stmt_type_infer.c"; then
+    echo "[perf-contract] LLVM slot type inference must not invent i32 for missing slot metadata" >&2
+    exit 1
+fi
+if grep -A16 -F "llvm_stmt_lookup_slot_or_view_inner(" \
+    "$ROOT_DIR/src/codegen/llvm_stmt_type_infer.c" \
+    | grep -Fq "return ctx->type_i32"; then
+    echo "[perf-contract] LLVM slot Read must fail closed when slot/view metadata is absent" >&2
+    exit 1
+fi
+grep -Fq "llvm_type_subst_restore_owned" \
+    "$ROOT_DIR/src/codegen/llvm_backend_generic.c" || {
+    echo "[perf-contract] LLVM generic type-substitution restore owner disappeared" >&2
+    exit 1
+}
+for rel in \
+    "src/codegen/llvm_backend_type_map.c" \
+    "src/codegen/llvm_member_call_specialize.c"; do
+    if grep -Fq "ctx->type_subst_count = saved_subst" "$ROOT_DIR/$rel"; then
+        echo "[perf-contract] $rel bypassed owned type-substitution restore" >&2
+        exit 1
+    fi
+    grep -Fq "llvm_type_subst_restore_owned(ctx, saved_subst)" \
+        "$ROOT_DIR/$rel" || {
+        echo "[perf-contract] $rel must restore owned type substitutions through the generic owner" >&2
+        exit 1
+    }
+done
 
 echo "[perf-contract] perf summary contract is smoke-gated"

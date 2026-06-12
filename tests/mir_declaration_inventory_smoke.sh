@@ -3307,7 +3307,7 @@ require_term "src/compiler/mir_source_local_types.c" \
 require_term "src/compiler/mir_source_local_types.c" \
     "mir_source_local_type_name_in_ast(ASTNode *body"
 require_term "src/compiler/mir.c" \
-    "mir_routine_source_local_type_names_capture(&routine)"
+    "mir_routine_source_local_type_names_capture(mir, &routine)"
 require_term "src/codegen/transpiler_mir_ssa_local_facts.c" \
     "transpiler_mir_routine_source_local_type_name(routine, base_name)"
 require_term "src/codegen/transpiler_mir_ssa_local_facts.c" \

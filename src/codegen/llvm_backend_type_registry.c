@@ -349,6 +349,19 @@ llvm_register_typed_var_binding(LLVMGenCtx *ctx, const char *var_name,
         return;
     }
 
+    {
+        /* Prefer the specialized generic instantiation name (Pair<Int>) over
+         * the type-erased base (Pair), so member calls resolve to the
+         * monomorphized method (Pair<Int>_GetFirst) rather than the base. */
+        char *rendered = llvm_render_type_name_scratch_in_ctx(ctx, type_node,
+            &ctx->scratch);
+        if (rendered != NULL && rendered[0] != '\0'
+            && strchr(rendered, '<') != NULL
+            && llvm_lookup_class(ctx, rendered) != NULL) {
+            llvm_register_var_class(ctx, var_name, rendered);
+            return;
+        }
+    }
     if (llvm_lookup_class(ctx, type_name) != NULL
         || llvm_find_enum_decl(ctx, type_name) != NULL)
         llvm_register_var_class(ctx, var_name, type_name);

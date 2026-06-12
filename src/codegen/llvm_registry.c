@@ -464,9 +464,11 @@ llvm_lookup_class_by_struct_type(LLVMGenCtx *ctx, LLVMTypeRef struct_type)
 {
     if (ctx == NULL || struct_type == NULL)
         return NULL;
-    if (LLVMGetTypeKind(struct_type) == LLVMPointerTypeKind) {
-        struct_type = LLVMGetElementType(struct_type);
-    }
+    /* LLVM 15+ opaque pointers carry no pointee type; LLVMGetElementType
+     * on a `ptr` is invalid and crashes. A class can only be matched by its
+     * concrete struct type, so opaque pointers never resolve to a class. */
+    if (LLVMGetTypeKind(struct_type) == LLVMPointerTypeKind)
+        return NULL;
     for (int i = 0; i < ctx->class_type_count; i++) {
         if (ctx->class_types[i].struct_type == struct_type)
             return &ctx->class_types[i];
@@ -585,12 +587,23 @@ llvm_lookup_var_class(LLVMGenCtx *ctx, const char *var_name)
     if (ctx == NULL || var_name == NULL)
         return NULL;
 
-    for (int i = ctx->var_class_count - 1; i >= 0; i--) {
-        if (ctx->var_classes[i].var_name != NULL
-            && strcmp(ctx->var_classes[i].var_name, var_name) == 0)
-            return ctx->var_classes[i].class_name;
+    {
+        /* Prefer a specialized generic registration (Pair<Int>) over the
+         * type-erased base (Pair) for the same variable, regardless of which
+         * registration site ran last, so member calls monomorphize. */
+        const char *base_match = NULL;
+        for (int i = ctx->var_class_count - 1; i >= 0; i--) {
+            if (ctx->var_classes[i].var_name == NULL
+                || strcmp(ctx->var_classes[i].var_name, var_name) != 0)
+                continue;
+            if (ctx->var_classes[i].class_name != NULL
+                && strchr(ctx->var_classes[i].class_name, '<') != NULL)
+                return ctx->var_classes[i].class_name;
+            if (base_match == NULL)
+                base_match = ctx->var_classes[i].class_name;
+        }
+        return base_match;
     }
-    return NULL;
 }
 
 #endif

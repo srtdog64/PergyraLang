@@ -1,3 +1,5 @@
+#ifndef PGY_RUNTIME_ARRAY_SORT_INLINE_H
+#define PGY_RUNTIME_ARRAY_SORT_INLINE_H
 /* =================================================================
  * AlphaDev-optimized sort kernels (sort3, sort4, sort5)
  *
@@ -111,3 +113,5 @@ static inline void pgy_array_sort_String(char **arr, size_t n) {
     if (n <= 1) return;
     qsort(arr, n, sizeof(char *), pgy_cmp_String);
 }
+
+#endif /* PGY_RUNTIME_ARRAY_SORT_INLINE_H */

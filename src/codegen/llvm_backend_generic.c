@@ -88,6 +88,22 @@ llvm_register_mono(LLVMGenCtx *ctx, const char *mangled)
     ctx->mono_count++;
 }
 
+void
+llvm_type_subst_restore_owned(LLVMGenCtx *ctx, int saved_count)
+{
+    if (ctx == NULL)
+        return;
+    while (ctx->type_subst_count > saved_count) {
+        int index = --ctx->type_subst_count;
+        free((char *)ctx->type_subst[index].type_name);
+        ctx->type_subst[index].param_name = NULL;
+        ctx->type_subst[index].llvm_type = NULL;
+        ctx->type_subst[index].type_name = NULL;
+    }
+    if (ctx->type_subst_count < saved_count)
+        ctx->type_subst_count = saved_count;
+}
+
 const char *
 llvm_type_to_suffix(LLVMGenCtx *ctx, LLVMTypeRef ty)
 {

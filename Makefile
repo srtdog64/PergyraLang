@@ -991,6 +991,7 @@ ifneq ($(LLVM_ENABLED),0)
                         $(CODEGEN_DIR)/llvm_expr_identifier_slot_helpers.c \
                         $(CODEGEN_DIR)/llvm_expr_call_inline_policy.c \
                         $(CODEGEN_DIR)/llvm_member_call_emit.c \
+                        $(CODEGEN_DIR)/llvm_member_call_specialize.c \
                         $(CODEGEN_DIR)/llvm_member_call_support.c \
                         $(CODEGEN_DIR)/llvm_expr_intent_observability_calls.c \
                         $(CODEGEN_DIR)/llvm_expr_log_calls.c \

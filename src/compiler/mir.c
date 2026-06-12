@@ -475,6 +475,12 @@ mir_lower(const HIRProgram *hir, const RIRProgram *rir, char **error_message)
         routine.name = hir_routine->name;
         routine.ast = hir_routine->ast;
         routine.is_action_like = hir_routine->is_action_like;
+        routine.hir_routine = hir_routine;
+        routine.rir_scope = mir_find_matching_rir_scope(rir, hir_routine);
+        routine.owner_name = routine.rir_scope != NULL
+            ? routine.rir_scope->owner_name
+            : hir_routine->owner_name;
+        routine.owner_ast_type = hir_routine->owner_ast_type;
         if (routine.ast != NULL && routine.ast->type == AST_FUNC_DECL) {
             routine.generic_param_count = ast_generic_param_count(
                 ast_declaration_generic_params(routine.ast));
@@ -491,7 +497,7 @@ mir_lower(const HIRProgram *hir, const RIRProgram *rir, char **error_message)
                 mir_destroy(mir);
                 return NULL;
             }
-            if (!mir_routine_source_local_type_names_capture(&routine)) {
+            if (!mir_routine_source_local_type_names_capture(mir, &routine)) {
                 mir_routine_source_local_type_names_clear(&routine);
                 mir_routine_signature_type_names_clear(&routine);
                 pgy_arena_destroy(&routine.scratch);
@@ -501,12 +507,6 @@ mir_lower(const HIRProgram *hir, const RIRProgram *rir, char **error_message)
                 return NULL;
             }
         }
-        routine.hir_routine = hir_routine;
-        routine.rir_scope = mir_find_matching_rir_scope(rir, hir_routine);
-        routine.owner_name = routine.rir_scope != NULL
-            ? routine.rir_scope->owner_name
-            : hir_routine->owner_name;
-        routine.owner_ast_type = hir_routine->owner_ast_type;
         cfg_blocks_before =
             hir_routine->has_cfg ? hir_routine->cfg.blocks : NULL;
         cfg_block_count_before =

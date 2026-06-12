@@ -23,6 +23,33 @@ llvm_vtable_dispatch_error(ASTNode *node, LLVMGenCtx *ctx,
     return NULL;
 }
 
+/* Every role implementing an ability shares one method signature, so any
+ * registered `<Role>_<Method>` impl yields the function type for dispatch.
+ * Needed because LLVM-15 opaque pointers hide the vtable slot's pointee. */
+static LLVMFuncEntry *
+llvm_lookup_role_method_impl(LLVMGenCtx *ctx, const char *method_name)
+{
+    size_t mlen;
+
+    if (ctx == NULL || method_name == NULL)
+        return NULL;
+    mlen = strlen(method_name);
+    for (int i = 0; i < ctx->func_count; i++) {
+        const char *name = ctx->functions[i].name;
+        size_t nlen;
+
+        if (name == NULL)
+            continue;
+        nlen = strlen(name);
+        if (nlen <= mlen + 1)
+            continue;
+        if (name[nlen - mlen - 1] == '_'
+            && strcmp(name + nlen - mlen, method_name) == 0)
+            return &ctx->functions[i];
+    }
+    return NULL;
+}
+
 LLVMValueRef
 llvm_emit_member_call_vtable_dispatch(ASTNode *node, LLVMGenCtx *ctx,
                                       ASTNode *obj_node,
@@ -100,7 +127,19 @@ llvm_emit_member_call_vtable_dispatch(ASTNode *node, LLVMGenCtx *ctx,
                         fn_ptr_field = LLVMBuildStructGEP2(ctx->builder,
                             vt_cls->struct_type, vt_typed,
                             (unsigned)method_idx, llvm_tmp_name(ctx));
-                        fn_type = LLVMGetElementType(fn_ptr_ty);
+                        /* LLVM-15 opaque pointers: the vtable slot is `ptr`,
+                         * so the function type is recovered from a registered
+                         * role implementation rather than the slot pointee. */
+                        {
+                            LLVMFuncEntry *rep =
+                                llvm_lookup_role_method_impl(ctx, method_name);
+                            if (rep == NULL || rep->fn_type == NULL) {
+                                return llvm_vtable_dispatch_error(node, ctx,
+                                    method_name,
+                                    "requires a registered role implementation");
+                            }
+                            fn_type = rep->fn_type;
+                        }
                         ret_type = LLVMGetReturnType(fn_type);
                         fn_ptr = LLVMBuildLoad2(ctx->builder, fn_ptr_ty,
                             fn_ptr_field, llvm_tmp_name(ctx));

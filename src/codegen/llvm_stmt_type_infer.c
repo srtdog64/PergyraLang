@@ -204,9 +204,7 @@ llvm_stmt_infer_scalar_math_return_type(LLVMGenCtx *ctx, ASTNode *call,
             ctx->has_error = false;
             ty1 = NULL;
         }
-        /* Non-MIR compatibility: when one side can't be inferred,
-         * promote from the resolvable side. Active MIR must fail
-         * closed instead of clearing the source-of-truth diagnostic. */
+        /* Non-MIR compatibility promotes from the resolvable side. */
         if (ty0 != NULL && ty1 != NULL)
             return llvm_stmt_promote_numeric_type(ctx, ty0, ty1);
         if (ty0 != NULL)
@@ -425,6 +423,23 @@ llvm_stmt_infer_expr_type(LLVMGenCtx *ctx, ASTNode *expr)
                     return ty;
             }
         }
+        /* Unannotated local (`let x = <call>`) with no scope alloca yet in the
+         * pre-pass: recover its type by inferring the let initializer. */
+        {
+            static int s_local_init_depth;
+            ASTNode *local_init = llvm_stmt_source_local_let_init(ctx, name);
+            if (local_init != NULL && s_local_init_depth < 8) {
+                bool prev_err = ctx->has_error;
+                LLVMTypeRef ty;
+                s_local_init_depth++;
+                ty = llvm_stmt_infer_expr_type(ctx, local_init);
+                s_local_init_depth--;
+                if (ctx->has_error && !prev_err)
+                    ctx->has_error = false;
+                else if (ty != NULL)
+                    return ty;
+            }
+        }
         {
             char reason[160];
             if (!llvm_stmt_type_reasonf(reason, sizeof(reason),
@@ -478,9 +493,7 @@ llvm_stmt_infer_expr_type(LLVMGenCtx *ctx, ASTNode *expr)
                 return llvm_stmt_unknown_expr_type(ctx, expr, reason);
             }
         }
-        /* If the enclosing let/return already supplied a concrete expected
-         * value type, consume it. Otherwise a Channel<T> receive without
-         * channel metadata is a source-of-truth gap, not an implicit Int. */
+        /* Missing channel metadata is a source-of-truth gap. */
         if (ctx->expected_type_name != NULL
             && pgy_classify_type(ctx->expected_type_name) != PGY_TK_CHANNEL) {
             LLVMTypeRef expected = pergyra_type_to_llvm(
@@ -493,10 +506,7 @@ llvm_stmt_infer_expr_type(LLVMGenCtx *ctx, ASTNode *expr)
     case AST_MEMBER_ACCESS: {
         ASTNode *obj_node = ast_member_object(expr);
         const char *field_name = ast_member_name(expr);
-        /* Enum-qualified variant access (`Mode.Add`): if the base
-         * identifier resolves to a registered enum variant, return the
-         * variant's i32 type (matches the emit path in
-         * llvm_emit_member_access, which lowers it to LLVMConstInt i32). */
+        /* Enum-qualified variants use the enum carrier type. */
         if (obj_node != NULL && field_name != NULL
             && llvm_is_upper_ident(obj_node)
             && llvm_lookup_enum_variant_qualified(ctx,
@@ -588,10 +598,7 @@ llvm_stmt_infer_expr_type(LLVMGenCtx *ctx, ASTNode *expr)
                             method_name != NULL ? method_name : "(anonymous)");
                         return NULL;
                     }
-                    /* Non-MIR compatibility path: infer the receiver
-                     * expression's LLVM type and look the class up by
-                     * struct type when the var-class registry did not
-                     * record this local. */
+                    /* Non-MIR compatibility recovers receiver class by type. */
                     bool prev_err = ctx->has_error;
                     LLVMTypeRef recv_ty = llvm_stmt_infer_expr_type(ctx,
                         receiver);
@@ -709,13 +716,18 @@ llvm_stmt_infer_expr_type(LLVMGenCtx *ctx, ASTNode *expr)
                     return pergyra_type_to_llvm(ctx, inner);
                 if (inner != NULL)
                     return ctx->type_void;
-                /* Closure #87d: slot inner not yet registered at type-infer
-                 * time (with-slot block inside zone method, MIR registers
-                 * the slot later). For Read/Write the return type is i32
-                 * for Read, void for Write — match the actual emit path. */
-                if (llvm_stmt_slot_call_returns_value(callee))
-                    return ctx->type_i32;
-                return ctx->type_void;
+                /* Missing slot/view metadata is a source-of-truth failure.
+                 * Only an expected typed context may resolve this expression. */
+                if (ctx->expected_type_name != NULL) {
+                    LLVMTypeRef expected =
+                        pergyra_type_to_llvm(ctx, ctx->expected_type_name);
+                    if (expected != NULL)
+                        return expected;
+                }
+                return llvm_stmt_unknown_expr_type(ctx, expr,
+                    llvm_stmt_slot_call_returns_value(callee)
+                        ? "slot Read requires registered Slot<T>/view metadata"
+                        : "slot operation requires registered Slot<T>/view metadata");
             }
             {
                 LLVMTypeRef builtin_type =
@@ -744,23 +756,13 @@ llvm_stmt_infer_expr_type(LLVMGenCtx *ctx, ASTNode *expr)
                 && strcmp(callee, "Print") != 0
                 && strcmp(callee, "ToString") != 0
                 && strcmp(callee, "Clone") != 0) {
-                /* Closure #87c: known builtins (slot ops, Log/Print/ToString,
-                 * Clone) must not be dispatched as `<host_class>.<builtin>`.
-                 * Doing so raised strict "missing method return metadata"
-                 * inside zone methods of campaign_graph_fsm where
-                 * `Read(commandBudget)` was reinterpreted as
-                 * CampaignWorld.Read. The slot builtin's typed return is
-                 * handled either by the slot/view-inner shortcut earlier
-                 * or by the fallback at the end of this function. */
+                /* Known builtins must not dispatch as host methods. */
                 LLVMTypeRef method_ret = llvm_stmt_host_method_return_type(
                     ctx, llvm_current_host_class_name(ctx), callee);
                 if (method_ret != NULL)
                     return method_ret;
             }
-            /* Closure #73: Clone(x) returns x's type (identity pass-through
-             * matches llvm_expr_call_dispatch.c:92). Without this fallthrough
-             * tightened-mode type inference fails with "concrete type required"
-             * even though emit lowers Clone to its argument verbatim. */
+            /* Clone is identity pass-through for type inference. */
             if (strcmp(callee, "Clone") == 0 && ast_call_arg_count(expr) >= 1
                 && ast_call_argument(expr, 0) != NULL) {
                 LLVMTypeRef arg_type = llvm_stmt_infer_expr_type(ctx,
@@ -809,10 +811,7 @@ llvm_stmt_infer_expr_type(LLVMGenCtx *ctx, ASTNode *expr)
                     return cls->struct_type;
             }
         }
-        /* Domain helper calls can be emitted before their final lowered helper
-         * entry is visible in the LLVM function inventory. Prefer the
-         * enclosing concrete let/return context when it exists; otherwise fail
-         * through the typed inference seam instead of inventing Int. */
+        /* Domain helper result types are owned by typed inference. */
         if (ctx->expected_type_name != NULL) {
             LLVMTypeRef expected = pergyra_type_to_llvm(
                 ctx, ctx->expected_type_name);

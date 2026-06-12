@@ -351,19 +351,16 @@ LLVMClassTypeEntry *llvm_stmt_lookup_class_by_type(LLVMGenCtx *ctx,
 const char   *llvm_stmt_infer_nominal_name_from_init(LLVMGenCtx *ctx,
                                                      ASTNode *init);
 
-/* =================================================================
- * Generic monomorphization helpers (llvm_backend_generic.c)
- * ================================================================= */
+/* Generic monomorphization helpers (llvm_backend_generic.c). */
 ASTNode    *llvm_lookup_generic_template(LLVMGenCtx *ctx, const char *name);
 bool        llvm_register_generic_template_decl(LLVMGenCtx *ctx,
                                                 ASTNode *func_decl);
 bool        llvm_mono_already_emitted(LLVMGenCtx *ctx, const char *mangled);
 void        llvm_register_mono(LLVMGenCtx *ctx, const char *mangled);
+void        llvm_type_subst_restore_owned(LLVMGenCtx *ctx, int saved_count);
 const char *llvm_type_to_suffix(LLVMGenCtx *ctx, LLVMTypeRef ty);
 
-/* =================================================================
- * Error reporting helpers (llvm_backend.c)
- * ================================================================= */
+/* Error reporting helpers (llvm_backend.c). */
 void llvm_set_error(LLVMGenCtx *ctx, const char *fmt, ...);
 void llvm_set_error_at(LLVMGenCtx *ctx, ASTNode *node, const char *fmt, ...);
 void llvm_set_error_with_code(LLVMGenCtx *ctx, const char *code,
@@ -494,6 +491,9 @@ ASTNode *llvm_find_projection_nominal_decl(LLVMGenCtx *ctx,
 ASTNode *llvm_find_nominal_host_method_decl(LLVMGenCtx *ctx,
                                             const char *host_type_name,
                                             const char *method_name);
+bool llvm_emit_specialized_method_ondemand(LLVMGenCtx *ctx,
+                                           const char *class_name,
+                                           const char *method_name);
 ASTNode *llvm_find_zone_state_decl(LLVMGenCtx *ctx, ASTNode *zone_decl,
                                    const char *state_name);
 ASTNode *llvm_find_world_state_decl(LLVMGenCtx *ctx, ASTNode *world_decl,

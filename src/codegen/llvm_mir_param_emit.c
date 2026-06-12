@@ -14,8 +14,30 @@
 #include "llvm_internal_api.h"
 #include "llvm_mir_signature.h"
 #include "llvm_mir_type_helpers.h"
+#include "llvm_domain_role_helpers.h"
+#include "llvm_inventory_decl_lookup.h"
 #include "parser/ast_api.h"
 #include "../common/string_compat.h"
+
+/* The var-class for `self` is the host class for plain methods, but for a role
+ * method (`role R for Subject`) it must be the subject so nominal inference of
+ * `self.field...` resolves. Mirrors the C backend's owner_role_subject_name. */
+static const char *
+llvm_mir_self_var_class(LLVMGenCtx *ctx, const char *owner_name,
+                        bool owner_is_role)
+{
+    if (owner_name == NULL)
+        return NULL;
+    if (owner_is_role) {
+        ASTNode *role_decl =
+            llvm_find_host_decl_in_active_inventory(ctx, owner_name);
+        const char *subject = role_decl != NULL
+            ? llvm_role_for_type_name(role_decl) : NULL;
+        if (subject != NULL)
+            return subject;
+    }
+    return owner_name;
+}
 
 static void
 llvm_register_callable_param_if_needed(LLVMGenCtx *ctx, FuncParam *param)
@@ -95,8 +117,12 @@ llvm_emit_mir_param_allocas(const MIRRoutine *routine, ASTNode *func_decl,
                     ? "self.addr" : "self");
             LLVMBuildStore(ctx->builder, LLVMGetParam(fn, 0), alloca);
             llvm_scope_declare(ctx, "self", alloca, self_type);
-            if (owner_name != NULL)
-                llvm_register_var_class(ctx, "self", owner_name);
+            {
+                const char *self_class = llvm_mir_self_var_class(
+                    ctx, owner_name, owner_is_role);
+                if (self_class != NULL)
+                    llvm_register_var_class(ctx, "self", self_class);
+            }
             emitted_index = 1;
         }
 
@@ -261,8 +287,12 @@ llvm_emit_mir_param_allocas(const MIRRoutine *routine, ASTNode *func_decl,
                         ? "self.addr" : "self");
                 LLVMBuildStore(ctx->builder, LLVMGetParam(fn, 0), alloca);
                 llvm_scope_declare(ctx, "self", alloca, self_type);
-                if (owner_name != NULL)
-                    llvm_register_var_class(ctx, "self", owner_name);
+                {
+                    const char *self_class = llvm_mir_self_var_class(
+                        ctx, owner_name, owner_is_role);
+                    if (self_class != NULL)
+                        llvm_register_var_class(ctx, "self", self_class);
+                }
             } else {
                 size_t logical_index = is_method ? (i - 1) : i;
                 size_t seen = 0;

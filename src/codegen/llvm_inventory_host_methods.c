@@ -8,6 +8,7 @@
 #include "host_decl_compat.h"
 #include "llvm_internal.h"
 #include "../compiler/mir_decl_headers.h"
+#include <string.h>
 
 const MIRDeclMethod *
 llvm_find_host_method_metadata_in_context(const LLVMGenCtx *ctx,
@@ -21,6 +22,21 @@ llvm_find_host_method_metadata_in_context(const LLVMGenCtx *ctx,
         return NULL;
 
     decl_header = llvm_find_host_decl_header_in_context(ctx, host_type_name);
+    if (decl_header == NULL) {
+        /* A specialized generic instantiation (Pair<Int>) carries its method
+         * metadata on the base generic decl (Pair); strip the arguments and
+         * retry so monomorphized member calls resolve. */
+        const char *lt = strchr(host_type_name, '<');
+        if (lt != NULL) {
+            char base[128];
+            size_t base_len = (size_t)(lt - host_type_name);
+            if (base_len > 0 && base_len < sizeof(base)) {
+                memcpy(base, host_type_name, base_len);
+                base[base_len] = '\0';
+                decl_header = llvm_find_host_decl_header_in_context(ctx, base);
+            }
+        }
+    }
     if (decl_header == NULL)
         return NULL;
     method_count = mir_decl_header_method_count(decl_header);

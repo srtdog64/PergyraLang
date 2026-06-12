@@ -13,10 +13,70 @@
 
 #ifdef PGY_LLVM_ENABLED
 
+#include <string.h>
+
 #include "llvm_internal.h"
 #include "../compiler/mir.h"
 #include "../compiler/mir_source_local_types.h"
 #include "../parser/ast_api.h"
+
+/* Locate the initializer of `let <name> = <init>` within a statement subtree.
+ * Used to recover the type of an unannotated local during the type-inference
+ * pre-pass, when the variable has no scope alloca and no source-local-type
+ * fact (the fact capture only records explicit annotations). */
+static ASTNode *
+llvm_find_let_init_in_node(ASTNode *node, const char *name)
+{
+    if (node == NULL || name == NULL)
+        return NULL;
+    switch (node->type) {
+    case AST_LET_DECL:
+        /* Only unannotated lets need initializer-based recovery; an annotated
+         * let (e.g. a function type) is resolved through its annotation, and
+         * inferring its initializer here can recurse into unsupported forms. */
+        if (ast_let_name(node) != NULL
+            && strcmp(ast_let_name(node), name) == 0
+            && ast_let_type(node) == NULL)
+            return ast_let_initializer(node);
+        return NULL;
+    case AST_BLOCK: {
+        size_t n = ast_block_statement_count(node);
+        for (size_t i = 0; i < n; i++) {
+            ASTNode *hit = llvm_find_let_init_in_node(
+                ast_block_statement(node, i), name);
+            if (hit != NULL)
+                return hit;
+        }
+        return NULL;
+    }
+    case AST_IF_STMT: {
+        ASTNode *hit = llvm_find_let_init_in_node(
+            ast_if_then_branch(node), name);
+        if (hit != NULL)
+            return hit;
+        return llvm_find_let_init_in_node(ast_if_else_branch(node), name);
+    }
+    case AST_WHILE_LOOP:
+        return llvm_find_let_init_in_node(ast_while_body(node), name);
+    case AST_FOR_LOOP:
+        return llvm_find_let_init_in_node(ast_for_body(node), name);
+    case AST_WITH_STMT:
+        return llvm_find_let_init_in_node(ast_with_body(node), name);
+    default:
+        return NULL;
+    }
+}
+
+ASTNode *
+llvm_stmt_source_local_let_init(LLVMGenCtx *ctx, const char *name)
+{
+    if (ctx == NULL || name == NULL
+        || ctx->current_func_decl == NULL
+        || ctx->current_func_decl->type != AST_FUNC_DECL)
+        return NULL;
+    return llvm_find_let_init_in_node(
+        ast_func_body(ctx->current_func_decl), name);
+}
 
 LLVMClassTypeEntry *
 llvm_stmt_source_local_class(LLVMGenCtx *ctx, ASTNode *recv)

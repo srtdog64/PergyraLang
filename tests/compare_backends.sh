@@ -1393,6 +1393,11 @@ main() {
         "tests/cases/backend_compare/world_with_zones"
         "tests/cases/backend_compare/zone_minimal"
         "tests/cases/backend_compare/zone_with_subject_slot"
+        "tests/cases/backend_compare/llvm_array_map_filter_sort"
+        "tests/cases/backend_compare/llvm_role_self_nested_field"
+        "tests/cases/backend_compare/llvm_toplevel_script_entry"
+        "tests/cases/backend_compare/llvm_unannotated_let_from_call"
+        "tests/cases/backend_compare/llvm_dyn_role_vtable_swap"
     )
 
     local use_default_cases=0

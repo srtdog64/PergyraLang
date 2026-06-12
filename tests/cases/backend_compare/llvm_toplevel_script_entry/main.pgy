@@ -1,0 +1,4 @@
+let x: Int = 5;
+Log(x * 2);
+let y: Int = x + 3;
+Log(y);

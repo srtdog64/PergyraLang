@@ -330,6 +330,21 @@ hir_append_synthetic_executable_routine(HIRProgram *hir, char **error_message)
         return false;
     }
 
+    /* The synthetic entry returns Void. Without an explicit return type the
+     * backends disagree on the signature (the forward declaration normalizes
+     * to Void while body emission defaults elsewhere), so set it here. */
+    {
+        ASTNode *void_type = ast_create_type("Void");
+        if (void_type == NULL || !ast_func_set_return_type(func, void_type)) {
+            ast_destroy(void_type);
+            ast_destroy(func);
+            ast_destroy(body);
+            if (error_message != NULL)
+                *error_message = pergyra_strdup("Out of memory");
+            return false;
+        }
+    }
+
     for (size_t i = 0; i < hir->executable_count; i++)
         ast_add_statement(body, hir->executables[i]);
     if (!ast_func_attach_body(func, body)) {
@@ -340,6 +355,17 @@ hir_append_synthetic_executable_routine(HIRProgram *hir, char **error_message)
         return false;
     }
     hir->synthetic_executable_func = func;
+
+    /* Also register the synthetic entry among the regular functions so the
+     * downstream MIR program exposes it via the function inventory: this is
+     * what sets has_top_level_exec and lets the backends find the routine to
+     * call from the generated main() wrapper. */
+    if (!append_ast(&hir->functions, &hir->function_count,
+            &hir->function_capacity, func)) {
+        if (error_message != NULL)
+            *error_message = pergyra_strdup("Out of memory");
+        return false;
+    }
 
     memset(&item, 0, sizeof(item));
     item.kind = HIR_TOPLEVEL_EXECUTABLE;

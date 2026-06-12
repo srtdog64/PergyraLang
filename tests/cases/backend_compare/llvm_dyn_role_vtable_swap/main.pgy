@@ -1,0 +1,12 @@
+subject Fighter { let power: Int; }
+ability Combatable { func Attack(self) -> Int; }
+role Warrior for Fighter { impl Combatable { func Attack(self) -> Int { return 10; } } }
+role Archer for Fighter { impl Combatable { func Attack(self) -> Int { return 20; } } }
+party Team { dyn role slot fighter: Combatable; shared hp: Int; }
+func Main() -> Void {
+    let team: Team = Team();
+    bind team.fighter = Warrior;
+    Log(team.fighter.Attack());
+    bind team.fighter = Archer;
+    Log(team.fighter.Attack());
+}

@@ -449,15 +449,27 @@ llvm_register_nominal_decl(LLVMGenCtx *ctx, ASTNode *stmt)
             if (llvm_param_is_implicit_self(p))
                 continue;
             if (param_type_name != NULL) {
-                param_types[pidx++] =
+                param_types[pidx] =
                     pergyra_type_to_llvm(ctx, param_type_name);
             } else {
-                param_types[pidx++] = llvm_register_required_ast_type(
+                param_types[pidx] = llvm_register_required_ast_type(
                     ctx, method, p != NULL ? p->type : NULL,
                     "class method parameter");
             }
-            if (ctx->has_error || param_types[pidx - 1] == NULL)
+            if (ctx->has_error || param_types[pidx] == NULL)
                 return;
+            /* Match the body emit (llvm_emit_func_from_mir): a subject-typed
+             * parameter is passed by pointer. Without this the registered
+             * forward signature drifts from the emitted body signature. */
+            if (param_type_name != NULL
+                ? llvm_type_name_uses_pointer_self(ctx, param_type_name)
+                : (p != NULL && p->type != NULL
+                    && ast_type_name(p->type) != NULL
+                    && llvm_type_name_uses_pointer_self(ctx,
+                        ast_type_name(p->type)))) {
+                param_types[pidx] = LLVMPointerType(param_types[pidx], 0);
+            }
+            pidx++;
         }
 
         LLVMTypeRef ft = LLVMFunctionType(ret_type, param_types, (unsigned)(user_pc + 1), 0);

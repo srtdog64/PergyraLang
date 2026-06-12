@@ -432,6 +432,7 @@ llvm_specialize_generic_class_type(LLVMGenCtx *ctx, const char *type_name)
     size_t base_len;
     char base[128];
     ASTNode *tmpl;
+    const MIRDeclHeader *generic_header;
     GenericParams *gp;
     size_t gpc;
     int saved_subst;
@@ -459,21 +460,32 @@ llvm_specialize_generic_class_type(LLVMGenCtx *ctx, const char *type_name)
     tmpl = llvm_find_decl_in_active_inventory(ctx, AST_CLASS_DECL, base);
     if (tmpl == NULL)
         return NULL;
-    gp = ast_class_generic_params(tmpl);
-    gpc = ast_generic_param_count(gp);
+    generic_header = llvm_find_decl_header_in_context_of_type(ctx,
+        AST_CLASS_DECL, base);
+    gp = generic_header == NULL ? ast_declaration_generic_params(tmpl) : NULL;
+    gpc = generic_header != NULL
+        ? mir_decl_header_generic_param_count(generic_header)
+        : ast_generic_param_count(gp);
     if (gpc == 0 || gpc > MAX_TYPE_SUBST)
         return NULL;
 
     saved_subst = ctx->type_subst_count;
     for (size_t gi = 0; gi < gpc; gi++) {
-        GenericParam *p = ast_generic_param_at(gp, gi);
-        const char *pname = ast_generic_param_name(p);
+        const MIRDeclGenericParam *meta = generic_header != NULL
+            ? mir_decl_header_generic_param(generic_header, gi)
+            : NULL;
+        GenericParam *p = generic_header == NULL
+            ? ast_generic_param_at(gp, gi)
+            : NULL;
+        const char *pname = meta != NULL
+            ? mir_decl_generic_param_name(meta)
+            : ast_generic_param_name(p);
         char arg_buf[256];
         LLVMTypeRef arg_ty;
         if (pname == NULL
             || !llvm_required_constructed_arg_name_copy(ctx, type_name, gi,
                    base, arg_buf, sizeof(arg_buf))) {
-            ctx->type_subst_count = saved_subst;
+            llvm_type_subst_restore_owned(ctx, saved_subst);
             return NULL;
         }
         /* Only monomorphize on concrete arguments. An unbound type parameter
@@ -490,13 +502,13 @@ llvm_specialize_generic_class_type(LLVMGenCtx *ctx, const char *type_name)
                 }
             }
             if (!bound) {
-                ctx->type_subst_count = saved_subst;
+                llvm_type_subst_restore_owned(ctx, saved_subst);
                 return NULL;
             }
         }
         arg_ty = pergyra_type_to_llvm(ctx, arg_buf);
         if (arg_ty == NULL || ctx->type_subst_count >= MAX_TYPE_SUBST) {
-            ctx->type_subst_count = saved_subst;
+            llvm_type_subst_restore_owned(ctx, saved_subst);
             return NULL;
         }
         ctx->type_subst[ctx->type_subst_count].param_name = pname;
@@ -508,21 +520,21 @@ llvm_specialize_generic_class_type(LLVMGenCtx *ctx, const char *type_name)
 
     fv = llvm_hosted_class_field_view_from_decl(ctx, base, tmpl);
     if (llvm_hosted_field_view_missing_mir_metadata(&fv)) {
-        ctx->type_subst_count = saved_subst;
+        llvm_type_subst_restore_owned(ctx, saved_subst);
         return NULL;
     }
     fc = fv.count;
     ftypes = pgy_arena_calloc(&ctx->scratch,
         (fc > 0 ? fc : 1) * sizeof(LLVMTypeRef));
     if (ftypes == NULL) {
-        ctx->type_subst_count = saved_subst;
+        llvm_type_subst_restore_owned(ctx, saved_subst);
         return NULL;
     }
     for (size_t j = 0; j < fc; j++) {
         ASTNode *ft = llvm_hosted_field_view_type(&fv, j);
         ftypes[j] = ast_type_to_llvm(ctx, ft);
         if (ctx->has_error || ftypes[j] == NULL) {
-            ctx->type_subst_count = saved_subst;
+            llvm_type_subst_restore_owned(ctx, saved_subst);
             return NULL;
         }
     }
@@ -532,10 +544,19 @@ llvm_specialize_generic_class_type(LLVMGenCtx *ctx, const char *type_name)
     nk = ast_class_nominal_kind(tmpl);
     is_subject = nk == NOMINAL_DECL_SUBJECT;
     is_ptr_self = is_subject || nk == NOMINAL_DECL_VESSEL;
-    llvm_register_class(ctx, pergyra_strdup(type_name), struct_ty,
-        is_subject, is_ptr_self);
+    {
+        LLVMClassTypeEntry *spec_entry = llvm_register_class(ctx,
+            pergyra_strdup(type_name), struct_ty, is_subject, is_ptr_self);
+        if (spec_entry != NULL) {
+            for (size_t j = 0; j < fc; j++) {
+                const char *fname = llvm_hosted_field_view_name(&fv, j);
+                if (fname != NULL)
+                    llvm_class_add_field(spec_entry, fname, ftypes[j], (int)j);
+            }
+        }
+    }
 
-    ctx->type_subst_count = saved_subst;
+    llvm_type_subst_restore_owned(ctx, saved_subst);
     return struct_ty;
 }
 

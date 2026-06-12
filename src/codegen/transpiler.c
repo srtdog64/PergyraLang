@@ -267,6 +267,8 @@ emit_program(TranspilerCtx *ctx)
     /* Pass 2.6: early forward declarations for standalone functions so
      * class/domain hosted methods can call file-scope helpers declared later. */
     for (size_t i = 0; i < function_count; i++) {
+        if (functions[i] == synthetic_executable_func)
+            continue;
         if (transpiler_can_forward_declare_func_early(ctx, functions[i])) {
             emit_func_forward_decl_named(
                 functions[i],
@@ -314,6 +316,8 @@ emit_program(TranspilerCtx *ctx)
             emit_intent_forward_decl(intents[i], ctx->out, ctx);
     }
     for (size_t i = 0; i < function_count; i++) {
+        if (functions[i] == synthetic_executable_func)
+            continue;
         if (!transpiler_can_forward_declare_func_early(ctx, functions[i])
             && transpiler_can_forward_declare_func_after_zones(ctx, functions[i])) {
             emit_func_forward_decl_named(
@@ -361,6 +365,8 @@ emit_program(TranspilerCtx *ctx)
         CodeBuf *saved_out = ctx->out;
         ctx->out = func_buf;
         for (size_t i = 0; i < function_count; i++) {
+            if (functions[i] == synthetic_executable_func)
+                continue;
             if (!transpiler_mir_or_ast_function_is_generic(
                     transpiler_find_mir_function(ctx, functions[i]),
                     functions[i]))

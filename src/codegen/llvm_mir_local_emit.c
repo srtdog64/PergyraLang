@@ -13,6 +13,7 @@
 #include "llvm_mir_async_fact.h"
 #include "llvm_mir_slice_fact.h"
 #include "llvm_mir_type_helpers.h"
+#include "codegen_slot_type_policy.h"
 #include "parser/ast_api.h"
 #include "../common/string_compat.h"
 
@@ -114,6 +115,93 @@ llvm_mir_local_type_from_vars(LLVMMirVar *vars, size_t var_count,
     }
 
     return NULL;
+}
+
+static LLVMTypeRef
+llvm_mir_local_type_from_source_fact(const MIRRoutine *routine,
+                                     LLVMGenCtx *ctx,
+                                     const char *name)
+{
+    const char *type_name;
+
+    if (routine == NULL || ctx == NULL || name == NULL)
+        return NULL;
+    type_name = mir_routine_source_local_type_name(routine, name);
+    return type_name != NULL ? pergyra_type_to_llvm(ctx, type_name) : NULL;
+}
+
+static void
+llvm_mir_bind_source_local_base(const MIRRoutine *routine,
+                                LLVMGenCtx *ctx,
+                                const MIRInstruction *inst,
+                                const char *name,
+                                LLVMValueRef alloca,
+                                LLVMTypeRef type)
+{
+    const char *type_name;
+    char *owned_name;
+
+    if (routine == NULL || ctx == NULL || inst == NULL || name == NULL
+        || alloca == NULL || type == NULL)
+        return;
+    type_name = mir_routine_source_local_type_name(routine, name);
+    if (type_name == NULL && !mir_instruction_uses_source_local_decl_emit(inst))
+        return;
+    owned_name = pgy_arena_strdup(&ctx->persistent, name);
+    if (owned_name == NULL) {
+        llvm_set_mir_topology_invalid(ctx,
+            "LLVM MIR local source fact scope binding out of memory");
+        return;
+    }
+    llvm_scope_declare(ctx, owned_name, alloca, type);
+    if (type_name != NULL) {
+        llvm_register_typed_var_abi_binding(ctx, owned_name, alloca,
+            type_name);
+        if (llvm_lookup_class(ctx, type_name) != NULL)
+            llvm_register_var_class(ctx, owned_name, type_name);
+    } else {
+        LLVMClassTypeEntry *class_entry =
+            llvm_lookup_class_by_struct_type(ctx, type);
+        if (class_entry != NULL && class_entry->class_name != NULL)
+            llvm_register_var_class(ctx, owned_name,
+                class_entry->class_name);
+    }
+}
+
+static LLVMTypeRef
+llvm_mir_local_type_from_assignment_target(const MIRRoutine *routine,
+                                           LLVMGenCtx *ctx,
+                                           ASTNode *expr,
+                                           LLVMMirVar *vars,
+                                           size_t var_count)
+{
+    ASTNode *target;
+    const char *name;
+    LLVMClassTypeEntry *host_cls;
+    int field_idx;
+
+    if (ctx == NULL || expr == NULL || expr->type != AST_ASSIGNMENT)
+        return NULL;
+    target = ast_assignment_target(expr);
+    if (target == NULL || target->type != AST_IDENTIFIER)
+        return NULL;
+    name = ast_identifier_name(target);
+    if (name == NULL)
+        return NULL;
+
+    LLVMTypeRef local_type =
+        llvm_mir_local_type_from_vars(vars, var_count, name);
+    if (local_type != NULL)
+        return local_type;
+
+    const char *host_name = llvm_current_host_class_name(ctx);
+    if (host_name == NULL)
+        host_name = mir_routine_owner_name(routine);
+    host_cls = host_name != NULL ? llvm_lookup_class(ctx, host_name) : NULL;
+    field_idx = host_cls != NULL ? llvm_class_field_index(host_cls, name) : -1;
+    if (field_idx < 0)
+        return NULL;
+    return llvm_class_field_type_at_index(host_cls, field_idx);
 }
 
 static ASTNode *llvm_mir_local_initializer_expr(ASTNode *expr);
@@ -286,6 +374,45 @@ llvm_mir_local_type_from_slice_copy_fact(const MIRRoutine *routine,
     return NULL;
 }
 
+static LLVMTypeRef
+llvm_mir_local_type_from_slot_read_fact(const MIRRoutine *routine,
+                                        LLVMGenCtx *ctx,
+                                        const MIRInstruction *inst)
+{
+    char receiver_name[128];
+    char inner_name[256];
+    const char *receiver_type;
+
+    if (routine == NULL || ctx == NULL || inst == NULL
+        || inst->arg1 == NULL || strcmp(inst->arg1, "Read") != 0
+        || inst->use_count == 0 || inst->uses == NULL
+        || inst->uses[0] == NULL) {
+        return NULL;
+    }
+    if (!llvm_mir_base_name_from_versioned(inst->uses[0],
+            receiver_name, sizeof(receiver_name))) {
+        size_t receiver_len = strlen(inst->uses[0]);
+        if (receiver_len >= sizeof(receiver_name))
+            return NULL;
+        memcpy(receiver_name, inst->uses[0], receiver_len + 1);
+    }
+    receiver_type = mir_routine_source_local_type_name(routine,
+        receiver_name);
+    if (receiver_type == NULL
+        || (!pgy_codegen_type_name_is_slot_family(receiver_type)
+            && strncmp(receiver_type, "PinnedSlotView<", 15) != 0
+            && strncmp(receiver_type, "PinnedSecureSlotView<", 21) != 0)) {
+        return NULL;
+    }
+    if (!llvm_constructed_arg_name_copy(receiver_type, 0,
+            inner_name, sizeof(inner_name))
+        || inner_name[0] == '\0'
+        || strcmp(inner_name, "Unknown") == 0) {
+        return NULL;
+    }
+    return pergyra_type_to_llvm(ctx, inner_name);
+}
+
 static ASTNode *
 llvm_mir_local_initializer_expr(ASTNode *expr)
 {
@@ -317,8 +444,17 @@ llvm_mir_local_type_from_instruction_fact(const MIRRoutine *routine,
             return type;
     }
 
+    type = llvm_mir_local_type_from_assignment_target(routine, ctx,
+        inst->expr0, vars, var_count);
+    if (type != NULL)
+        return type;
+
     type = llvm_mir_local_type_from_slice_copy_fact(routine, ctx, inst,
         vars, var_count, depth);
+    if (ctx->has_error || type != NULL)
+        return type;
+
+    type = llvm_mir_local_type_from_slot_read_fact(routine, ctx, inst);
     if (ctx->has_error || type != NULL)
         return type;
 
@@ -406,6 +542,12 @@ llvm_emit_mir_local_allocas(const MIRRoutine *routine, LLVMGenCtx *ctx,
                                                         type_expr);
                     }
                 } else if (value_expr != NULL) {
+                    if (has_base_name) {
+                        alloca_type = llvm_mir_local_type_from_source_fact(
+                            routine, ctx, base_name);
+                        if (ctx->has_error)
+                            return;
+                    }
                     if (inst->arg1 != NULL
                         && strcmp(inst->arg1, "SliceCopy") == 0) {
                         alloca_type =
@@ -488,6 +630,12 @@ llvm_emit_mir_local_allocas(const MIRRoutine *routine, LLVMGenCtx *ctx,
                     llvm_register_typed_var_abi_binding(ctx, base_name,
                         vars[var_count].alloca,
                         inst->abi_type_name);
+                } else if (has_base_name) {
+                    llvm_mir_bind_source_local_base(routine, ctx, inst,
+                        base_name, vars[var_count].alloca,
+                        vars[var_count].type);
+                    if (ctx->has_error)
+                        return;
                 }
                 if (has_base_name
                     && value_expr != NULL

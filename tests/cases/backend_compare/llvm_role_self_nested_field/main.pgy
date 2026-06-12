@@ -1,0 +1,14 @@
+vessel Skills { engineering: Int; medical: Int; }
+subject Crew { let name: String; vessel skills: Skills; }
+ability Repairable { func GetRepairPower(self) -> Int; }
+role Engineer for Crew {
+    impl Repairable {
+        func GetRepairPower(self) -> Int { return self.skills.engineering * 2; }
+    }
+}
+func ShowPower(member: Crew) -> Void { Log(member.skills.engineering * 2); }
+func Main() -> Void {
+    let c: Crew = Crew("Kim", Skills(9, 2));
+    ShowPower(c);
+    Log(c.skills.medical);
+}

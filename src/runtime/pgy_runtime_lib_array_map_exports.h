@@ -175,6 +175,36 @@ PGY_DEFINE_ARRAY_EXPORTS(Double, double)
 PGY_DEFINE_ARRAY_EXPORTS(Bool, bool)
 PGY_DEFINE_ARRAY_EXPORTS(String, char *)
 
+/* ArraySort extern symbols for the LLVM linker. The C backend emits a
+ * self-contained translation unit and uses the static-inline kernels in
+ * pgy_runtime_array_sort_inline.h; the LLVM backend links these standalone
+ * definitions instead, mirroring how pgy_array_new/pgy_array_push export. */
+static int pgy_array_sort_export_cmp_Int(const void *a, const void *b)
+{ int32_t x = *(const int32_t *)a, y = *(const int32_t *)b;
+  return (x > y) - (x < y); }
+static int pgy_array_sort_export_cmp_Long(const void *a, const void *b)
+{ int64_t x = *(const int64_t *)a, y = *(const int64_t *)b;
+  return (x > y) - (x < y); }
+static int pgy_array_sort_export_cmp_Float(const void *a, const void *b)
+{ float x = *(const float *)a, y = *(const float *)b;
+  return (x > y) - (x < y); }
+static int pgy_array_sort_export_cmp_Double(const void *a, const void *b)
+{ double x = *(const double *)a, y = *(const double *)b;
+  return (x > y) - (x < y); }
+static int pgy_array_sort_export_cmp_String(const void *a, const void *b)
+{ return strcmp(*(const char *const *)a, *(const char *const *)b); }
+
+void pgy_array_sort_Int(int32_t *arr, size_t n)
+{ if (n > 1) qsort(arr, n, sizeof(int32_t), pgy_array_sort_export_cmp_Int); }
+void pgy_array_sort_Long(int64_t *arr, size_t n)
+{ if (n > 1) qsort(arr, n, sizeof(int64_t), pgy_array_sort_export_cmp_Long); }
+void pgy_array_sort_Float(float *arr, size_t n)
+{ if (n > 1) qsort(arr, n, sizeof(float), pgy_array_sort_export_cmp_Float); }
+void pgy_array_sort_Double(double *arr, size_t n)
+{ if (n > 1) qsort(arr, n, sizeof(double), pgy_array_sort_export_cmp_Double); }
+void pgy_array_sort_String(char **arr, size_t n)
+{ if (n > 1) qsort(arr, n, sizeof(char *), pgy_array_sort_export_cmp_String); }
+
 void
 pgy_map_keys_raw_export(void *map_ptr, void *out_array_ptr)
 {

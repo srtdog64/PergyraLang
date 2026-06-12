@@ -352,6 +352,11 @@ llvm_emit_func_from_mir(const MIRRoutine *routine, LLVMGenCtx *ctx)
             ret_type = pergyra_type_to_llvm(ctx, return_type_name);
         else if (return_type != NULL)
             ret_type = llvm_mir_type_from_ast(ctx, return_type);
+        else if (is_method)
+            /* A method/action with no return-type metadata is Void, matching
+             * the registered forward signature (which normalizes it to Void).
+             * Defaulting to i32 here drifts from the registration. */
+            ret_type = ctx->type_void;
     }
     if (ctx->has_error || ret_type == NULL)
         return NULL;

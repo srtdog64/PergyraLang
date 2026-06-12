@@ -91,6 +91,13 @@ llvm_emit_member_call(ASTNode *node, LLVMGenCtx *ctx)
                     node, class_name, method_name);
                 if (full_name == NULL)
                     return NULL;
+                if (llvm_lookup_function(ctx, full_name) == NULL
+                    && strchr(class_name, '<') != NULL) {
+                    llvm_emit_specialized_method_ondemand(ctx, class_name,
+                        method_name);
+                    if (ctx->has_error)
+                        return NULL;
+                }
                 fn = llvm_lookup_function(ctx, full_name);
                 fn_value = fn != NULL ? fn->fn
                     : LLVMGetNamedFunction(ctx->module, full_name);

@@ -248,6 +248,36 @@ llvm_stmt_array_elem_type_from_member_access(LLVMGenCtx *ctx, ASTNode *expr)
         ctx, llvm_class_field_type_at_index(base_cls, field_idx));
 }
 
+/* Stdlib builtins that yield Array<T> have no FuncDecl, so map the callee
+ * name directly to its element type for destructuring/element inference. */
+static const char *
+llvm_stmt_array_builtin_elem_type_name(const char *callee)
+{
+    static const struct { const char *name; const char *elem; } kTable[] = {
+        { "Split", "String" },
+    };
+    if (callee == NULL)
+        return NULL;
+    for (size_t i = 0; i < sizeof(kTable) / sizeof(kTable[0]); i++)
+        if (strcmp(callee, kTable[i].name) == 0)
+            return kTable[i].elem;
+    return NULL;
+}
+
+static LLVMTypeRef
+llvm_stmt_array_elem_type_from_builtin_call(LLVMGenCtx *ctx, ASTNode *expr)
+{
+    if (expr == NULL || expr->type != AST_CALL
+        || ast_call_callee(expr) == NULL
+        || ast_call_callee(expr)->type != AST_IDENTIFIER)
+        return NULL;
+    const char *elem_name = llvm_stmt_array_builtin_elem_type_name(
+        ast_identifier_name(ast_call_callee(expr)));
+    if (elem_name == NULL)
+        return NULL;
+    return pergyra_type_to_llvm(ctx, elem_name);
+}
+
 LLVMTypeRef
 llvm_stmt_resolve_array_elem_type(LLVMGenCtx *ctx, ASTNode *expr,
                                   LLVMValueRef data_ptr)
@@ -294,6 +324,10 @@ llvm_stmt_resolve_array_elem_type(LLVMGenCtx *ctx, ASTNode *expr,
         return inferred;
 
     inferred = llvm_stmt_array_elem_type_from_member_access(ctx, expr);
+    if (inferred != NULL)
+        return inferred;
+
+    inferred = llvm_stmt_array_elem_type_from_builtin_call(ctx, expr);
     if (inferred != NULL)
         return inferred;
 

@@ -1,0 +1,10 @@
+func RollDie(seed: Int, offset: Int) -> Int { return (seed + offset) % 6 + 1; }
+func RollStat(seed: Int) -> Int {
+    let a = RollDie(seed, 0);
+    let b = RollDie(seed, 1);
+    let c = RollDie(seed, 2);
+    let d = RollDie(seed, 3);
+    let low = Min(Min(a, b), Min(c, d));
+    return a + b + c + d - low;
+}
+func Main() -> Void { Log(RollStat(10)); Log(RollStat(20)); }

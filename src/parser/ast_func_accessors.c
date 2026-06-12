@@ -91,6 +91,23 @@ ast_func_body(const ASTNode *node)
 }
 
 bool
+ast_func_set_return_type(ASTNode *node, ASTNode *return_type)
+{
+    if (node == NULL || node->type != AST_FUNC_DECL)
+        return false;
+    if (node->is_async_decl) {
+        if (node->data.async_func_decl.return_type != NULL)
+            return false;
+        node->data.async_func_decl.return_type = return_type;
+        return true;
+    }
+    if (node->data.func_decl.return_type != NULL)
+        return false;
+    node->data.func_decl.return_type = return_type;
+    return true;
+}
+
+bool
 ast_func_attach_body(ASTNode *node, ASTNode *body)
 {
     if (node == NULL || node->type != AST_FUNC_DECL) {
