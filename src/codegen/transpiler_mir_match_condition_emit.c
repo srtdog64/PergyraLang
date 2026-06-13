@@ -87,19 +87,19 @@ transpiler_mir_remap_case_bindings(TranspilerCtx *ctx,
         const char *enum_vname = NULL;
         const char *enum_ename = NULL;
         const char **enum_bindings = NULL;
-        ASTNode **enum_binding_types = NULL;
+        const char **enum_binding_type_names = NULL;
         size_t enum_bind_count = 0;
         const char *enum_bindings_buf[8];
-        ASTNode *enum_binding_types_buf[8];
+        const char *enum_binding_type_names_buf[8];
         if (transpiler_match_is_enum_variant_destructor(pattern_node, ctx,
                 &enum_vname, &enum_ename, &enum_bindings,
-                &enum_binding_types, &enum_bind_count,
-                enum_bindings_buf, enum_binding_types_buf,
+                &enum_binding_type_names, &enum_bind_count,
+                enum_bindings_buf, enum_binding_type_names_buf,
                 sizeof(enum_bindings_buf)
                     / sizeof(enum_bindings_buf[0]))) {
             (void)enum_vname;
             (void)enum_ename;
-            (void)enum_binding_types;
+            (void)enum_binding_type_names;
             for (size_t i = 0; i < enum_bind_count; i++) {
                 if (enum_bindings == NULL)
                     continue;
@@ -182,14 +182,14 @@ transpiler_mir_emit_match_case_body_binding(CodeBuf *buf,
         const char *enum_vname = NULL;
         const char *enum_ename = NULL;
         const char **enum_bindings = NULL;
-        ASTNode **enum_binding_types = NULL;
+        const char **enum_binding_type_names = NULL;
         size_t enum_bind_count = 0;
         const char *enum_bindings_buf[8];
-        ASTNode *enum_binding_types_buf[8];
+        const char *enum_binding_type_names_buf[8];
         if (transpiler_match_is_enum_variant_destructor(pattern_node, ctx,
                 &enum_vname, &enum_ename, &enum_bindings,
-                &enum_binding_types, &enum_bind_count,
-                enum_bindings_buf, enum_binding_types_buf,
+                &enum_binding_type_names, &enum_bind_count,
+                enum_bindings_buf, enum_binding_type_names_buf,
                 sizeof(enum_bindings_buf)
                     / sizeof(enum_bindings_buf[0]))) {
             (void)enum_ename;
@@ -203,10 +203,10 @@ transpiler_mir_emit_match_case_body_binding(CodeBuf *buf,
                 binding_name = enum_bindings[b];
                 if (strcmp(binding_name, "_") == 0)
                     continue;
-                if (enum_binding_types != NULL
-                    && enum_binding_types[b] != NULL) {
-                    if (!transpiler_require_ast_c_type_copy(
-                            ctx, enum_binding_types[b],
+                if (enum_binding_type_names != NULL
+                    && enum_binding_type_names[b] != NULL) {
+                    if (!transpiler_require_type_name_c_type_copy(
+                            ctx, enum_binding_type_names[b],
                             "MIR enum match payload binding",
                             bt_buf, sizeof(bt_buf))) {
                         free(subject);
@@ -389,14 +389,14 @@ transpiler_mir_render_match_case_condition(const MIRInstruction *inst,
             const char *enum_vname = NULL;
             const char *enum_ename = NULL;
             const char **enum_bindings = NULL;
-            ASTNode **enum_binding_types = NULL;
+            const char **enum_binding_type_names = NULL;
             size_t enum_bind_count = 0;
             const char *enum_bindings_buf[8];
-            ASTNode *enum_binding_types_buf[8];
+            const char *enum_binding_type_names_buf[8];
             if (transpiler_match_is_enum_variant_destructor(pattern_node, ctx,
                     &enum_vname, &enum_ename, &enum_bindings,
-                    &enum_binding_types, &enum_bind_count,
-                    enum_bindings_buf, enum_binding_types_buf,
+                    &enum_binding_type_names, &enum_bind_count,
+                    enum_bindings_buf, enum_binding_type_names_buf,
                     sizeof(enum_bindings_buf)
                         / sizeof(enum_bindings_buf[0]))) {
                 for (size_t b = 0; b < enum_bind_count; b++) {
@@ -404,10 +404,10 @@ transpiler_mir_render_match_case_condition(const MIRInstruction *inst,
                         continue;
                     char bt_buf[256];
                     const char *bt_c_type = "int32_t";
-                    if (enum_binding_types != NULL
-                        && enum_binding_types[b] != NULL) {
-                        if (!transpiler_require_ast_c_type_copy(
-                                ctx, enum_binding_types[b],
+                    if (enum_binding_type_names != NULL
+                        && enum_binding_type_names[b] != NULL) {
+                        if (!transpiler_require_type_name_c_type_copy(
+                                ctx, enum_binding_type_names[b],
                                 "MIR enum match payload binding",
                                 bt_buf, sizeof(bt_buf))) {
                             free(subject);

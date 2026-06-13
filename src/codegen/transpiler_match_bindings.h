@@ -24,10 +24,10 @@ bool transpiler_match_is_enum_variant_destructor(
     const char **variant_name_out,
     const char **enum_name_out,
     const char ***bindings_out,
-    ASTNode ***binding_types_out,
+    const char ***binding_type_names_out,
     size_t *binding_count_out,
     const char **bindings_buf,
-    ASTNode **binding_types_buf,
+    const char **binding_type_names_buf,
     size_t binding_cap);
 
 void transpiler_emit_builtin_match_binding(ASTNode *pattern_node,

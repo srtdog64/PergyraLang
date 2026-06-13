@@ -92,8 +92,13 @@ mir_destroy(MIRProgram *mir)
             free(mir->decl_headers[i].field_metadata);
             for (size_t v = 0;
                  v < mir->decl_headers[i].variant_metadata_count; v++) {
-                free((void *)
-                    mir->decl_headers[i].variant_metadata[v].param_type_names);
+                const MIRDeclEnumVariant *variant =
+                    &mir->decl_headers[i].variant_metadata[v];
+                if (variant->param_type_names != NULL) {
+                    for (size_t p = 0; p < variant->param_count; p++)
+                        free((void *)variant->param_type_names[p]);
+                }
+                free((void *)variant->param_type_names);
             }
             free(mir->decl_headers[i].variant_metadata);
         }

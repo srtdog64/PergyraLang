@@ -7,6 +7,7 @@
 
 #include <string.h>
 
+#include "../compiler/mir_decl_headers.h"
 #include "../parser/ast_api.h"
 #include "../semantic/diag_codes.h"
 #include "codegen_match_variant_policy.h"
@@ -110,10 +111,10 @@ transpiler_match_is_enum_variant_destructor(
     const char **variant_name_out,
     const char **enum_name_out,
     const char ***bindings_out,
-    ASTNode ***binding_types_out,
+    const char ***binding_type_names_out,
     size_t *binding_count_out,
     const char **bindings_buf,
-    ASTNode **binding_types_buf,
+    const char **binding_type_names_buf,
     size_t binding_cap)
 {
     const char *name = NULL;
@@ -148,8 +149,10 @@ transpiler_match_is_enum_variant_destructor(
 
     if (name == NULL)
         return false;
-    if (bindings_buf == NULL || binding_types_buf == NULL || binding_cap == 0)
+    if (bindings_buf == NULL || binding_type_names_buf == NULL
+        || binding_cap == 0) {
         return false;
+    }
 
     size_t type_count = 0;
     ASTNode **types = NULL;
@@ -159,14 +162,39 @@ transpiler_match_is_enum_variant_destructor(
 
     for (size_t i = 0; i < type_count; i++) {
         ASTNode *stmt = types[i];
+        const MIRDeclHeader *enum_header = NULL;
+        bool use_mir_variants = false;
+        const char *enum_name = NULL;
         size_t variant_count = 0;
-        char **variants;
+        char **variants = NULL;
         if (stmt == NULL || stmt->type != AST_ENUM_DECL)
             continue;
+        enum_name = transpiler_decl_name_local(stmt);
+        if (enum_name == NULL)
+            return false;
+        enum_header = transpiler_active_decl_header_of_type(
+            ctx, AST_ENUM_DECL, enum_name);
+        if (transpiler_active_has_mir(ctx) && enum_header == NULL) {
+            transpiler_set_mir_inventory_missing(
+                ctx,
+                "MIR-only C path missing enum match variant metadata for '%s'",
+                enum_name);
+            return false;
+        }
+        use_mir_variants = enum_header != NULL;
         bool has_data = false;
-        variants = ast_enum_variants(stmt, &variant_count);
+        if (use_mir_variants) {
+            variant_count = mir_decl_header_enum_variant_count(enum_header);
+        } else {
+            variants = ast_enum_variants(stmt, &variant_count);
+        }
         for (size_t j = 0; j < variant_count; j++) {
-            if (ast_enum_variant_param_count(stmt, j) > 0) {
+            const MIRDeclEnumVariant *variant_meta = use_mir_variants
+                ? mir_decl_header_enum_variant(enum_header, j) : NULL;
+            size_t param_count = use_mir_variants
+                ? mir_decl_enum_variant_param_count(variant_meta)
+                : ast_enum_variant_param_count(stmt, j);
+            if (param_count > 0) {
                 has_data = true;
                 break;
             }
@@ -175,11 +203,15 @@ transpiler_match_is_enum_variant_destructor(
             continue;
 
         for (size_t j = 0; j < variant_count; j++) {
-            const char *variant = variants != NULL ? variants[j] : NULL;
+            const MIRDeclEnumVariant *variant_meta = use_mir_variants
+                ? mir_decl_header_enum_variant(enum_header, j) : NULL;
+            const char *variant = use_mir_variants
+                ? mir_decl_enum_variant_name(variant_meta)
+                : (variants != NULL ? variants[j] : NULL);
             if (variant != NULL && strcmp(variant, name) == 0) {
-                const char *enum_name = transpiler_decl_name_local(stmt);
-                if (enum_name == NULL)
-                    return false;
+                size_t param_count = use_mir_variants
+                    ? mir_decl_enum_variant_param_count(variant_meta)
+                    : ast_enum_variant_param_count(stmt, j);
                 *variant_name_out = name;
                 *enum_name_out = enum_name;
                 *binding_count_out = 0;
@@ -189,15 +221,31 @@ transpiler_match_is_enum_variant_destructor(
                         && arg->type == AST_IDENTIFIER)
                         ? ast_identifier_name(arg)
                         : NULL;
-                    binding_types_buf[k] =
-                        (k < ast_enum_variant_param_count(stmt, j))
-                        ? ast_enum_variant_param(stmt, j, k)
-                        : NULL;
+                    if (k < param_count) {
+                        if (use_mir_variants) {
+                            binding_type_names_buf[k] =
+                                mir_decl_enum_variant_param_type_name(
+                                    variant_meta, k);
+                            if (binding_type_names_buf[k] == NULL) {
+                                transpiler_set_mir_inventory_missing(
+                                    ctx,
+                                    "MIR-only C path missing enum match payload type-name metadata for '%s.%s'",
+                                    enum_name, variant);
+                                return false;
+                            }
+                        } else {
+                            binding_type_names_buf[k] =
+                                transpiler_render_type_name_local(ctx,
+                                    ast_enum_variant_param(stmt, j, k));
+                        }
+                    } else {
+                        binding_type_names_buf[k] = NULL;
+                    }
                     (*binding_count_out)++;
                 }
                 *bindings_out = bindings_buf;
-                if (binding_types_out != NULL)
-                    *binding_types_out = binding_types_buf;
+                if (binding_type_names_out != NULL)
+                    *binding_type_names_out = binding_type_names_buf;
                 return true;
             }
         }
@@ -357,13 +405,13 @@ transpiler_emit_enum_match_bindings(ASTNode *pattern_node,
 
     const char *vn2 = NULL, *en2 = NULL;
     const char **bs2 = NULL;
-    ASTNode **bt2 = NULL;
+    const char **bt2 = NULL;
     size_t bc2 = 0;
     const char *bindings_buf[8];
-    ASTNode *binding_types_buf[8];
+    const char *binding_type_names_buf[8];
     if (!transpiler_match_is_enum_variant_destructor(pattern_node, ctx,
             &vn2, &en2, &bs2, &bt2, &bc2,
-            bindings_buf, binding_types_buf,
+            bindings_buf, binding_type_names_buf,
             sizeof(bindings_buf) / sizeof(bindings_buf[0]))) {
         return;
     }
@@ -374,8 +422,8 @@ transpiler_emit_enum_match_bindings(ASTNode *pattern_node,
         char bt_buf[256];
         const char *bt_c_type = "int32_t";
         if (bt2 != NULL && bt2[b] != NULL
-            && pergyra_ast_type_to_c_copy_in_ctx(ctx, bt2[b],
-                bt_buf, sizeof(bt_buf))) {
+            && transpiler_require_type_name_c_type_copy(ctx, bt2[b],
+                "enum match payload binding", bt_buf, sizeof(bt_buf))) {
             bt_c_type = bt_buf;
         }
         write_indent(ctx);

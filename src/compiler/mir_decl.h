@@ -7,7 +7,7 @@
  * MIR-owned structured records for declaration kinds (methods, fields,
  * generic parameters, and the per-declaration header). Split out of mir.h so
  * the declaration IR has its own home to grow as backend consumers migrate
- * off the AST-carried inventory. source_ast/* fields remain provenance only;
+ * off the AST-carried inventory. The source_ast pointers remain provenance only;
  * semantic facts live in the structured metadata below.
  */
 

@@ -133,14 +133,14 @@ emit_match_stmt(ASTNode *node, TranspilerCtx *ctx)
         } else {
             const char *vname = NULL, *ename = NULL;
             const char **bindings = NULL;
-            ASTNode **binding_types = NULL;
+            const char **binding_type_names = NULL;
             size_t bind_count = 0;
             const char *bindings_buf[8];
-            ASTNode *binding_types_buf[8];
+            const char *binding_type_names_buf[8];
             if (transpiler_match_is_enum_variant_destructor(pattern_node, ctx,
                     &vname, &ename, &bindings,
-                    &binding_types, &bind_count,
-                    bindings_buf, binding_types_buf,
+                    &binding_type_names, &bind_count,
+                    bindings_buf, binding_type_names_buf,
                     sizeof(bindings_buf) / sizeof(bindings_buf[0]))) {
                 codebuf_write(ctx->out,
                     i == 0 ? "if (__match_%d.tag == %s_TAG_%s"

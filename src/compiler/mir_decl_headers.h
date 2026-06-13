@@ -22,6 +22,13 @@ const MIRDeclMethod *mir_decl_header_method(const MIRDeclHeader *header,
 size_t mir_decl_header_field_count(const MIRDeclHeader *header);
 const MIRDeclField *mir_decl_header_field(const MIRDeclHeader *header,
                                           size_t index);
+size_t mir_decl_header_variant_count(const MIRDeclHeader *header);
+const MIRDeclEnumVariant *mir_decl_header_variant(const MIRDeclHeader *header,
+                                                  size_t index);
+const char *mir_decl_variant_name(const MIRDeclEnumVariant *variant);
+size_t mir_decl_variant_param_count(const MIRDeclEnumVariant *variant);
+const char *mir_decl_variant_param_type_name(
+    const MIRDeclEnumVariant *variant, size_t index);
 ASTNode *mir_decl_method_source_ast(const MIRDeclMethod *method);
 const char *mir_decl_method_name(const MIRDeclMethod *method);
 size_t mir_decl_method_param_count(const MIRDeclMethod *method);
