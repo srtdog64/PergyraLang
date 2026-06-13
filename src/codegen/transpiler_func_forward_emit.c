@@ -22,7 +22,7 @@ emit_func_forward_decl_named(ASTNode *node, const char *emitted_name,
     CodeBuf *params_sig = codebuf_create();
     char *header_decl = NULL;
     const MIRRoutine *mir_routine = transpiler_find_mir_function(ctx, node);
-    bool use_ast_signature = false;
+    bool allow_ast_compat = false;
     bool generic_func =
         transpiler_mir_or_ast_function_is_generic(mir_routine, node);
     if (transpiler_active_has_mir(ctx) && mir_routine == NULL
@@ -45,10 +45,10 @@ emit_func_forward_decl_named(ASTNode *node, const char *emitted_name,
             codebuf_destroy(params_sig);
         return;
     }
-    use_ast_signature = mir_routine == NULL;
+    allow_ast_compat = mir_routine == NULL;
     ASTNode *return_type;
     size_t param_count;
-    if (use_ast_signature) {
+    if (allow_ast_compat) {
         return_type = ast_func_return_type(node);
         param_count = ast_func_param_count(node);
     } else {
@@ -67,7 +67,7 @@ emit_func_forward_decl_named(ASTNode *node, const char *emitted_name,
         bool secure_slot = false;
         bool event_handler_param = false;
 
-        if (use_ast_signature) {
+        if (allow_ast_compat) {
             p = ast_func_param(node, i);
             type_name = NULL;
         } else {

@@ -9,10 +9,10 @@ llvm_function_emitted_param_count(LLVMGenCtx *ctx, ASTNode *node,
                                   const MIRRoutine *routine)
 {
     unsigned count = 0;
-    bool use_ast_signature = routine == NULL;
+    bool allow_ast_compat = routine == NULL;
     size_t param_count;
 
-    if (use_ast_signature)
+    if (allow_ast_compat)
         param_count = ast_func_param_count(node);
     else
         param_count = llvm_mir_routine_param_count(routine);
@@ -23,7 +23,7 @@ llvm_function_emitted_param_count(LLVMGenCtx *ctx, ASTNode *node,
         const char *param_type_name;
         const char *slot_inner = NULL;
 
-        if (use_ast_signature) {
+        if (allow_ast_compat) {
             p = ast_func_param(node, i);
             param_type_name = NULL;
         } else {
@@ -118,7 +118,7 @@ llvm_forward_declare_func_with_signature(ASTNode *node,
                                          LLVMGenCtx *ctx)
 {
     const char *name = ast_declaration_name(node);
-    bool use_ast_signature = false;
+    bool allow_ast_compat = false;
     bool generic_func = false;
     bool extern_func = llvm_decl_is_extern_function(ctx, node);
     if (routine == NULL) {
@@ -139,9 +139,9 @@ llvm_forward_declare_func_with_signature(ASTNode *node,
             "MIR-only LLVM path missing function declaration parameter type-name metadata for '%s'")) {
         return;
     }
-    use_ast_signature = routine == NULL;
+    allow_ast_compat = routine == NULL;
     size_t param_count;
-    if (use_ast_signature)
+    if (allow_ast_compat)
         param_count = ast_func_param_count(node);
     else
         param_count = llvm_mir_routine_param_count(routine);
@@ -152,7 +152,7 @@ llvm_forward_declare_func_with_signature(ASTNode *node,
     LLVMTypeRef ret_type = ctx->type_void;
     const char *return_type_name = NULL;
     ASTNode *return_type = NULL;
-    if (use_ast_signature) {
+    if (allow_ast_compat) {
         return_type = ast_func_return_type(node);
     } else {
         return_type_name = llvm_mir_routine_return_type_name(routine);
@@ -187,7 +187,7 @@ llvm_forward_declare_func_with_signature(ASTNode *node,
             const char *param_type_name;
             const char *slot_inner = NULL;
 
-            if (use_ast_signature) {
+            if (allow_ast_compat) {
                 p = ast_func_param(node, i);
                 param_type_name = NULL;
             } else {

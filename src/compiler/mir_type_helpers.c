@@ -292,6 +292,16 @@ mir_render_type_name(ASTNode *type_node)
 }
 
 char *
+mir_capture_type_name(ASTNode *type_node, const char *type_name)
+{
+    if (type_node != NULL)
+        return mir_render_type_name(type_node);
+    if (type_name == NULL || type_name[0] == '\0')
+        return NULL;
+    return pergyra_strdup(type_name);
+}
+
+char *
 mir_claim_abi_type_name_from_ast(const ASTNode *ast)
 {
     if (ast == NULL)

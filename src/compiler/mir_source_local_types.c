@@ -57,7 +57,7 @@ mir_source_local_type_append_name(MIRRoutine *routine,
         routine->source_local_type_capacity = next;
     }
 
-    char *type_name_copy = pergyra_strdup(type_name);
+    char *type_name_copy = mir_capture_type_name(NULL, type_name);
     if (type_name_copy == NULL)
         return false;
     char *name_copy = pergyra_strdup(name);
@@ -86,7 +86,7 @@ mir_source_local_type_append(MIRRoutine *routine,
         return true;
     }
 
-    rendered = mir_render_type_name(type_node);
+    rendered = mir_capture_type_name(type_node, NULL);
     if (rendered == NULL)
         return false;
     ok = mir_source_local_type_append_name(routine, name, rendered);

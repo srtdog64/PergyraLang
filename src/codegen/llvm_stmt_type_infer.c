@@ -598,6 +598,7 @@ llvm_stmt_infer_expr_type(LLVMGenCtx *ctx, ASTNode *expr)
                             "MIR-only LLVM path missing member-call receiver type metadata for '%s.%s'",
                             receiver_name != NULL ? receiver_name : "(anonymous)",
                             method_name != NULL ? method_name : "(anonymous)");
+                        /* Keep MIR-active inference closed instead of clearing the source-of-truth diagnostic. */
                         return NULL;
                     }
                     /* Non-MIR compatibility recovers receiver class by type. */

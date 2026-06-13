@@ -38,10 +38,11 @@ mir_routine_signature_type_names_capture(MIRRoutine *routine)
                 routine->params != NULL ? routine->params[i] : NULL;
             if (param != NULL && param->type != NULL)
                 routine->param_type_names[i] =
-                    mir_render_type_name(param->type);
+                    mir_capture_type_name(param->type, NULL);
         }
     }
     if (routine->return_type != NULL)
-        routine->return_type_name = mir_render_type_name(routine->return_type);
+        routine->return_type_name =
+            mir_capture_type_name(routine->return_type, NULL);
     return true;
 }

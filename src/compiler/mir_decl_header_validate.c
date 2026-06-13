@@ -246,6 +246,35 @@ mir_decl_header_ast_shape(const MIRDeclHeader *header,
     }
 }
 
+static char *
+mir_decl_field_expected_type_name(const MIRDeclField *field)
+{
+    ASTNode *source;
+
+    if (field == NULL)
+        return NULL;
+    if (field->type != NULL)
+        return mir_capture_type_name(field->type, NULL);
+
+    source = field->source_ast;
+    if (source == NULL)
+        return NULL;
+
+    switch (field->kind) {
+    case MIR_DECL_FIELD_ROSTER_SLOT:
+        return mir_capture_type_name(NULL, ast_roster_slot_party_type(source));
+    case MIR_DECL_FIELD_WORLD_ROSTER_SLOT:
+        return mir_capture_type_name(NULL, ast_world_roster_type_name(source));
+    case MIR_DECL_FIELD_WORLD_ZONE_SLOT:
+        return mir_capture_type_name(NULL, ast_world_zone_type_name(source));
+    case MIR_DECL_FIELD_ZONE_LAYER_SLOT:
+        return mir_capture_type_name(NULL,
+            ast_zone_layer_slot_layer_type(source));
+    default:
+        return NULL;
+    }
+}
+
 static bool
 mir_validate_decl_header_ast_compat(const MIRDeclHeader *header,
                                     size_t header_index,
@@ -498,7 +527,7 @@ mir_validate_decl_method_metadata(const MIRProgram *mir,
             for (size_t p = 0; p < variant->param_count; p++) {
                 ASTNode *ast_param =
                     ast_enum_variant_param(header->source_ast, i, p);
-                char *rendered = mir_render_type_name(ast_param);
+                char *rendered = mir_capture_type_name(ast_param, NULL);
                 bool matches = rendered != NULL
                     && variant->param_type_names != NULL
                     && variant->param_type_names[p] != NULL
@@ -535,6 +564,23 @@ mir_validate_decl_method_metadata(const MIRProgram *mir,
                     header_index, i);
             }
             return false;
+        }
+        {
+            char *expected_type_name =
+                mir_decl_field_expected_type_name(field);
+            bool matches = expected_type_name == NULL
+                ? field->type_name == NULL
+                : field->type_name != NULL
+                    && strcmp(field->type_name, expected_type_name) == 0;
+            free(expected_type_name);
+            if (!matches) {
+                if (error_message != NULL) {
+                    *error_message = mir_strdup_fmt(
+                        "MIR declaration header[%zu] field[%zu] type metadata drift",
+                        header_index, i);
+                }
+                return false;
+            }
         }
     }
 

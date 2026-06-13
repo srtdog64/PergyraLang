@@ -257,7 +257,7 @@ llvm_infer_spawn_future_inner(LLVMGenCtx *ctx, ASTNode *spawn_expr)
     bool extern_func;
     const MIRRoutine *routine = NULL;
     bool generic_func = false;
-    bool use_ast_signature = false;
+    bool allow_ast_compat = false;
 
     if (target != NULL && target->type == AST_CALL) {
         call = target;
@@ -293,7 +293,7 @@ llvm_infer_spawn_future_inner(LLVMGenCtx *ctx, ASTNode *spawn_expr)
         ret_name = llvm_mir_routine_return_type_name(routine);
         return_type = llvm_mir_routine_return_type(routine);
     } else {
-        use_ast_signature = true;
+        allow_ast_compat = true;
         return_type = ast_func_return_type(decl);
         ret_name = ast_type_name(return_type);
     }
@@ -306,14 +306,14 @@ llvm_infer_spawn_future_inner(LLVMGenCtx *ctx, ASTNode *spawn_expr)
     if (call == NULL)
         return NULL;
 
-    size_t param_count = use_ast_signature
+    size_t param_count = allow_ast_compat
         ? ast_func_param_count(decl)
         : llvm_mir_routine_param_count(routine);
     for (size_t i = 0; i < param_count && i < ast_call_arg_count(call); i++) {
-        FuncParam *param = use_ast_signature
+        FuncParam *param = allow_ast_compat
             ? ast_func_param(decl, i)
             : llvm_mir_routine_param(routine, i);
-        const char *param_type_name = use_ast_signature
+        const char *param_type_name = allow_ast_compat
             ? (param != NULL ? ast_type_name(param->type) : NULL)
             : llvm_mir_routine_param_type_name(routine, i);
         if (param == NULL)

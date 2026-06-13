@@ -89,6 +89,13 @@ mir_destroy(MIRProgram *mir)
             }
             free(mir->decl_headers[i].generic_metadata);
             free(mir->decl_headers[i].method_metadata);
+            if (mir->decl_headers[i].field_metadata != NULL) {
+                for (size_t j = 0;
+                     j < mir->decl_headers[i].field_metadata_count;
+                     j++) {
+                    free(mir->decl_headers[i].field_metadata[j].type_name);
+                }
+            }
             free(mir->decl_headers[i].field_metadata);
             for (size_t v = 0;
                  v < mir->decl_headers[i].variant_metadata_count; v++) {

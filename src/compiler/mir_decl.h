@@ -55,7 +55,7 @@ typedef struct
     const char      *owner_name;
     const char      *name;
     ASTNode         *type;
-    const char      *type_name;
+    char            *type_name;
     MIRDeclFieldKind kind;
     bool             is_dynamic;
     bool             is_subject_like;
@@ -77,8 +77,7 @@ typedef struct
 
 typedef struct
 {
-    /* name/param_type_names are provenance-backed (AST-owned) like MIRDeclField;
-     * the arrays are owned by the header and freed with it. */
+    /* name is provenance-backed; param_type_names are MIR-owned captures. */
     const char  *name;
     size_t       param_count;
     const char **param_type_names;
@@ -112,4 +111,3 @@ typedef struct
 } MIRDeclHeaderInventory;
 
 #endif /* PERGYRA_MIR_DECL_H */
-

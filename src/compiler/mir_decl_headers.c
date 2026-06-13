@@ -66,6 +66,27 @@ mir_decl_method_metadata_clear(MIRDeclMethod *meta)
     meta->return_type_name = NULL;
 }
 
+static void
+mir_decl_field_metadata_clear(MIRDeclField *meta)
+{
+    if (meta == NULL)
+        return;
+    free(meta->type_name);
+    meta->type_name = NULL;
+}
+
+static void
+mir_decl_header_free_fields(MIRDeclHeader *header)
+{
+    if (header == NULL || header->field_metadata == NULL)
+        return;
+    for (size_t i = 0; i < header->field_metadata_count; i++)
+        mir_decl_field_metadata_clear(&header->field_metadata[i]);
+    free(header->field_metadata);
+    header->field_metadata = NULL;
+    header->field_metadata_count = 0;
+}
+
 static bool
 mir_decl_header_set_generics(MIRDeclHeader *header, ASTNode *decl)
 {
@@ -114,12 +135,13 @@ mir_decl_method_metadata_capture_type_names(MIRDeclMethod *meta)
                 FuncParam *param = meta->params != NULL ? meta->params[i] : NULL;
                 if (param != NULL && param->type != NULL)
                     meta->param_type_names[i] =
-                        mir_render_type_name(param->type);
+                        mir_capture_type_name(param->type, NULL);
             }
         }
     }
     if (meta->return_type != NULL)
-        meta->return_type_name = mir_render_type_name(meta->return_type);
+        meta->return_type_name =
+            mir_capture_type_name(meta->return_type, NULL);
 }
 
 static void
@@ -228,7 +250,7 @@ mir_decl_field_metadata_init(MIRDeclField *meta,
     meta->owner_name = header->name;
     meta->name = name;
     meta->type = type;
-    meta->type_name = type_name;
+    meta->type_name = mir_capture_type_name(type, type_name);
     meta->kind = kind;
 }
 
@@ -313,7 +335,7 @@ mir_decl_field_metadata_init_domain_slot(MIRDeclField *meta,
     mir_decl_field_metadata_init(
         meta, header, slot, ast_domain_slot_name(slot),
         ast_domain_slot_type(slot),
-        ast_type_name(ast_domain_slot_type(slot)),
+        NULL,
         MIR_DECL_FIELD_DOMAIN_SLOT);
     meta->is_subject_like = ast_domain_slot_is_subject(slot);
     meta->is_tobject_like = ast_domain_slot_is_tobject(slot);
@@ -580,7 +602,7 @@ mir_decl_header_set_variants(MIRDeclHeader *header, ASTNode *decl)
         for (size_t p = 0; p < pc; p++) {
             ASTNode *pt = ast_enum_variant_param(decl, i, p);
             meta[i].param_type_names[p] =
-                pt != NULL ? mir_render_type_name(pt) : NULL;
+                mir_capture_type_name(pt, NULL);
             if (meta[i].param_type_names[p] == NULL) {
                 for (size_t k = 0; k <= i; k++)
                     mir_decl_enum_variant_metadata_clear(&meta[k]);
@@ -664,14 +686,14 @@ mir_record_decl_header(MIRProgram *mir, ASTNode *decl)
         if (!mir_decl_header_set_fields(&header, decl))
             return false;
         if (!mir_decl_header_set_generics(&header, decl)) {
-            free(header.field_metadata);
+            mir_decl_header_free_fields(&header);
             return false;
         }
         if (!mir_decl_header_set_role_impl_methods(&header, decl)) {
             for (size_t i = 0; i < header.method_metadata_count; i++)
                 mir_decl_method_metadata_clear(&header.method_metadata[i]);
             free(header.method_metadata);
-            free(header.field_metadata);
+            mir_decl_header_free_fields(&header);
             free(header.generic_metadata);
             return false;
         }
@@ -679,7 +701,7 @@ mir_record_decl_header(MIRProgram *mir, ASTNode *decl)
             for (size_t i = 0; i < header.method_metadata_count; i++)
                 mir_decl_method_metadata_clear(&header.method_metadata[i]);
             free(header.method_metadata);
-            free(header.field_metadata);
+            mir_decl_header_free_fields(&header);
             free(header.generic_metadata);
             return false;
         }
@@ -698,12 +720,12 @@ mir_record_decl_header(MIRProgram *mir, ASTNode *decl)
     if (!mir_decl_header_set_fields(&header, decl))
         return false;
     if (!mir_decl_header_set_generics(&header, decl)) {
-        free(header.field_metadata);
+        mir_decl_header_free_fields(&header);
         return false;
     }
     if (!mir_decl_header_set_methods(&header, methods, method_count)) {
         free(header.generic_metadata);
-        free(header.field_metadata);
+        mir_decl_header_free_fields(&header);
         return false;
     }
     if (!mir_decl_header_set_variants(&header, decl)) {
@@ -711,14 +733,14 @@ mir_record_decl_header(MIRProgram *mir, ASTNode *decl)
             mir_decl_method_metadata_clear(&header.method_metadata[i]);
         free(header.method_metadata);
         free(header.generic_metadata);
-        free(header.field_metadata);
+        mir_decl_header_free_fields(&header);
         return false;
     }
     if (!mir_append_decl_header(mir, header)) {
         for (size_t i = 0; i < header.method_metadata_count; i++)
             mir_decl_method_metadata_clear(&header.method_metadata[i]);
         free(header.method_metadata);
-        free(header.field_metadata);
+        mir_decl_header_free_fields(&header);
         free(header.generic_metadata);
         mir_decl_header_free_variants(&header);
         return false;

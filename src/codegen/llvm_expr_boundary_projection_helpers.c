@@ -116,7 +116,7 @@ llvm_build_boundary_call_args(LLVMGenCtx *ctx, ASTNode *decl,
     LLVMValueRef *args;
     unsigned emitted_count = 0;
     const MIRRoutine *routine = NULL;
-    bool use_ast_signature = false;
+    bool allow_ast_compat = false;
     const char *decl_name = NULL;
     bool decl_is_generic = false;
     bool decl_is_extern = false;
@@ -148,9 +148,9 @@ llvm_build_boundary_call_args(LLVMGenCtx *ctx, ASTNode *decl,
             return NULL;
         }
     }
-    use_ast_signature = routine == NULL;
+    allow_ast_compat = routine == NULL;
 
-    if (use_ast_signature)
+    if (allow_ast_compat)
         param_count = ast_func_param_count(decl);
     else
         param_count = llvm_mir_routine_param_count(routine);
@@ -164,7 +164,7 @@ llvm_build_boundary_call_args(LLVMGenCtx *ctx, ASTNode *decl,
         const char *param_type_name;
         const char *inner = NULL;
 
-        if (use_ast_signature) {
+        if (allow_ast_compat) {
             p = ast_func_param(decl, i);
             param_type_name = NULL;
         } else {
@@ -198,7 +198,7 @@ llvm_build_boundary_call_args(LLVMGenCtx *ctx, ASTNode *decl,
         ASTNode *arg_node = arg_nodes[arg_idx++];
         bool pointer_self = false;
 
-        if (use_ast_signature) {
+        if (allow_ast_compat) {
             p = ast_func_param(decl, i);
             param_type_name = NULL;
         } else {

@@ -732,13 +732,17 @@ for term in \
     "llvm_mir_routine_signature_metadata_complete_for(ctx" \
     "LLVM_MIR_SIGNATURE_REQUIRE_PARAM_TYPE_NAMES" \
     "llvm_mir_or_ast_function_is_generic(routine, decl)" \
-    "use_ast_signature = routine == NULL" \
+    "allow_ast_compat = routine == NULL" \
     "MIR-only LLVM path missing boundary call signature metadata"; do
     require_term "src/codegen/llvm_expr_boundary_projection_helpers.c" "$term"
 done
 if grep -Fq "routine_has_signature" \
         "$ROOT_DIR/src/codegen/llvm_expr_boundary_projection_helpers.c"; then
     fail "LLVM boundary call lowering must use explicit MIR signature facts, not routine_has_signature fallback naming"
+fi
+if grep -RIn "use_ast_signature" "$ROOT_DIR/src/codegen" >/dev/null 2>&1; then
+    grep -RIn "use_ast_signature" "$ROOT_DIR/src/codegen" >&2 || true
+    fail "backend AST compatibility gates must use the single allow_ast_compat name"
 fi
 for term in \
     "llvm_mir_routine_signature_metadata_complete_for(ctx" \
@@ -3126,7 +3130,7 @@ for term in \
     "transpiler_find_mir_function(ctx, node)" \
     "transpiler_mir_routine_signature_metadata_complete_for(ctx" \
     "TRANSPILER_MIR_SIGNATURE_REQUIRE_ALL_TYPE_NAMES" \
-    "use_ast_signature = mir_routine == NULL" \
+    "allow_ast_compat = mir_routine == NULL" \
     "MIR-only C path missing function forward routine" \
     "MIR-only C path missing function forward signature metadata" \
     "transpiler_mir_routine_param_count(mir_routine)" \
@@ -3539,7 +3543,7 @@ fi
 for term in \
     "llvm_forward_declare_func_from_mir" \
     "llvm_forward_declare_func_with_signature" \
-    "use_ast_signature = routine == NULL" \
+    "allow_ast_compat = routine == NULL" \
     "llvm_mir_routine_signature_metadata_complete(" \
     "MIR-only LLVM path missing function forward routine" \
     "MIR-only LLVM path missing function forward signature metadata" \
@@ -4617,7 +4621,7 @@ fi
 require_term "src/compiler/mir_decl_headers.c" \
     "meta[i].param_type_names[p] ="
 require_term "src/compiler/mir_decl_headers.c" \
-    "mir_render_type_name(pt)"
+    "mir_capture_type_name(pt, NULL)"
 require_term "src/compiler/mir_lifecycle.c" \
     "variant->param_type_names[p]"
 require_term "src/compiler/mir_decl_header_validate.c" \
@@ -6054,8 +6058,8 @@ for term in \
 done
 for term in \
     "mir_decl_method_metadata_capture_type_names" \
-    "mir_render_type_name(param->type)" \
-    "mir_render_type_name(meta->return_type)"; do
+    "mir_capture_type_name(param->type, NULL)" \
+    "mir_capture_type_name(meta->return_type, NULL)"; do
     require_term "src/compiler/mir_decl_headers.c" "$term"
 done
 for rel in \
@@ -6077,8 +6081,29 @@ for rel in \
     require_term "$rel" "mir_decl_method_param_type_name"
     require_term "$rel" "mir_decl_method_return_type_name"
 done
-require_term "src/compiler/mir_decl_headers.c" \
-    "ast_type_name(ast_domain_slot_type(slot))"
+for term in \
+    "mir_capture_type_name(ASTNode *type_node, const char *type_name)" \
+    "return mir_render_type_name(type_node)" \
+    "return pergyra_strdup(type_name)"; do
+    require_term "src/compiler/mir_type_helpers.c" "$term"
+done
+for rel in \
+    "src/compiler/mir_decl_headers.c" \
+    "src/compiler/mir_signature_metadata.c" \
+    "src/compiler/mir_source_local_types.c"; do
+    require_term "$rel" "mir_capture_type_name("
+    if grep -Fq "mir_render_type_name(" "$ROOT_DIR/$rel"; then
+        fail "$rel must capture stored MIR type-name facts through mir_capture_type_name"
+    fi
+done
+if grep -Fq "meta->type_name = type_name" \
+        "$ROOT_DIR/src/compiler/mir_decl_headers.c"; then
+    fail "MIRDeclField type_name must be a MIR-owned capture, not a borrowed AST string"
+fi
+require_term "src/compiler/mir_decl_header_validate.c" \
+    "mir_decl_field_expected_type_name"
+require_term "src/compiler/mir_decl_header_validate.c" \
+    "field[%zu] type metadata drift"
 for term in \
     "mir_validate_decl_header_ast_compat" \
     "mir_validate_decl_header_metadata" \
