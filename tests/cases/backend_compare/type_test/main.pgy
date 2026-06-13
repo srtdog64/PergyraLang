@@ -1,0 +1,26 @@
+func Probe(value: Int) -> Int
+{
+    let isInt: Bool = value is Int
+    if isInt {
+        return 1
+    }
+    return 0
+}
+
+func Main() -> Void
+{
+    let i: Int = 9
+    let f: Float = 7.5
+    let b: Bool = true
+    let n: Long = 42
+
+    Log(i is Int)
+    Log(i is Float)
+    Log(f is Float)
+    Log(f is Int)
+    Log(b is Bool)
+    Log(b is Int)
+    Log(n is Long)
+    Log(n is Int)
+    Log(Probe(i))
+}

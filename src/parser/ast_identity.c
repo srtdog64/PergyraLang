@@ -287,6 +287,9 @@ ast_assign_node(ASTNode *node, uint32_t *next_id)
     case AST_CAST:
         ast_assign_node(node->data.cast.operand, next_id);
         break;
+    case AST_TYPE_TEST:
+        ast_assign_node(node->data.type_test.operand, next_id);
+        break;
     case AST_ASSIGNMENT:
         ast_assign_node(node->data.assignment.target, next_id);
         ast_assign_node(node->data.assignment.value, next_id);

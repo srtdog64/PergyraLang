@@ -112,6 +112,8 @@ typedef struct
 {
     uint8_t  *primaryData;
     uint8_t  *shadowData;
+    uint8_t   primaryAuthTag[16];
+    uint8_t   shadowAuthTag[16];
     uint8_t   primaryMac[32];
     uint8_t   shadowMac[32];
     uint8_t   nonce[16];

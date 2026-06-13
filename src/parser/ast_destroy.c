@@ -299,6 +299,11 @@ void ast_destroy(ASTNode* node) {
             free(node->data.cast.target_type);
             break;
 
+        case AST_TYPE_TEST:
+            ast_destroy(node->data.type_test.operand);
+            free(node->data.type_test.target_type);
+            break;
+
         case AST_STRING:
             free(node->data.string.value);
             break;

@@ -483,13 +483,19 @@ void test_sealed_storage_and_shadow_recovery()
 {
     SlotManager *manager;
     SlotHandle handle;
+    SlotHandle otherHandle;
     TokenCapability token;
+    TokenCapability otherToken;
     SlotEntry *entry = NULL;
+    SlotEntry *otherEntry = NULL;
+    SecureSlotPolicy savedPolicy;
     int testValue = 0x12345678;
+    int otherValue = 0x55667788;
     int readValue = 0;
     size_t bytesRead = 0;
     size_t i;
     SlotError result;
+    SecurityError secResult;
 
     printf("\n=== Test 10: Sealed Storage And Shadow Recovery ===\n");
 
@@ -523,6 +529,73 @@ void test_sealed_storage_and_shadow_recovery()
                        &testValue, sizeof(testValue)) != 0,
                 "In-memory shadow payload is obfuscated");
 
+    savedPolicy = entry->securePayload.policy;
+    entry->securePayload.policy.obfuscateInMemory =
+        !entry->securePayload.policy.obfuscateInMemory;
+    result = SlotReadSecure(manager, &handle, &readValue, sizeof(readValue),
+                            &bytesRead, &token);
+    TEST_SECURITY_VIOLATION(result != SLOT_SUCCESS,
+                            "Sealed payload MAC rejects policy tamper");
+    entry->securePayload.policy = savedPolicy;
+
+    secResult = SecureSealedPayloadOpen(manager->securityContext,
+                                        handle.slotId,
+                                        handle.generation + 1u,
+                                        &entry->securePayload,
+                                        &readValue,
+                                        sizeof(readValue),
+                                        &bytesRead,
+                                        NULL);
+    TEST_SECURITY_VIOLATION(secResult == SECURITY_ERROR_INVALID_TOKEN,
+                            "Sealed payload MAC rejects generation mismatch");
+
+    entry->securePayload.primaryAuthTag[0] ^= 0x11u;
+    result = SlotReadSecure(manager, &handle, &readValue, sizeof(readValue), &bytesRead, &token);
+    TEST_ASSERT(result == SLOT_SUCCESS && readValue == testValue,
+                "Shadow copy recovers primary provider auth tag tamper");
+
+    result = SlotClaimSecure(manager, TYPE_INT, SECURITY_LEVEL_HARDWARE,
+                             &otherHandle, &otherToken);
+    TEST_ASSERT(result == SLOT_SUCCESS, "Sealed payload transplant target claim");
+    result = SlotWriteSecure(manager, &otherHandle, &otherValue, sizeof(otherValue),
+                             &otherToken);
+    TEST_ASSERT(result == SLOT_SUCCESS, "Sealed payload transplant target write");
+    for (i = 0; i < manager->tableSize; i++) {
+        if (manager->slotTable[i].occupied &&
+            manager->slotTable[i].slotId == otherHandle.slotId) {
+            otherEntry = &manager->slotTable[i];
+            break;
+        }
+    }
+    TEST_ASSERT(otherEntry != NULL, "Sealed payload transplant target lookup");
+    if (entry != NULL && otherEntry != NULL &&
+        entry->securePayload.size == otherEntry->securePayload.size) {
+        memcpy(otherEntry->securePayload.nonce, entry->securePayload.nonce,
+               sizeof(otherEntry->securePayload.nonce));
+        memcpy(otherEntry->securePayload.primaryData,
+               entry->securePayload.primaryData,
+               entry->securePayload.size);
+        memcpy(otherEntry->securePayload.primaryAuthTag,
+               entry->securePayload.primaryAuthTag,
+               sizeof(otherEntry->securePayload.primaryAuthTag));
+        memcpy(otherEntry->securePayload.primaryMac,
+               entry->securePayload.primaryMac,
+               sizeof(otherEntry->securePayload.primaryMac));
+        memcpy(otherEntry->securePayload.shadowData,
+               entry->securePayload.shadowData,
+               entry->securePayload.size);
+        memcpy(otherEntry->securePayload.shadowAuthTag,
+               entry->securePayload.shadowAuthTag,
+               sizeof(otherEntry->securePayload.shadowAuthTag));
+        memcpy(otherEntry->securePayload.shadowMac,
+               entry->securePayload.shadowMac,
+               sizeof(otherEntry->securePayload.shadowMac));
+    }
+    result = SlotReadSecure(manager, &otherHandle, &readValue, sizeof(readValue),
+                            &bytesRead, &otherToken);
+    TEST_SECURITY_VIOLATION(result != SLOT_SUCCESS,
+                            "Sealed payload transplant across slots is rejected");
+
     ((uint8_t *)SecureSealedPayloadPrimaryBytes(&entry->securePayload))[0] ^= 0x5a;
 
     result = SlotReadSecure(manager, &handle, &readValue, sizeof(readValue), &bytesRead, &token);
@@ -536,6 +609,7 @@ void test_sealed_storage_and_shadow_recovery()
     TEST_SECURITY_VIOLATION(result != SLOT_SUCCESS,
                             "Read fails when primary and shadow copies are both corrupted");
 
+    SlotReleaseSecure(manager, &otherHandle, &otherToken);
     SlotReleaseSecure(manager, &handle, &token);
     SlotManagerDestroySecure(manager);
 }

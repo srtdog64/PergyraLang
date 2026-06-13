@@ -386,6 +386,45 @@ ast_cast_target_type(const ASTNode* node)
     return node->data.cast.target_type;
 }
 
+ASTNode*
+ast_type_test_operand(const ASTNode* node)
+{
+    if (node == NULL || node->type != AST_TYPE_TEST)
+        return NULL;
+    return node->data.type_test.operand;
+}
+
+const char*
+ast_type_test_target_type(const ASTNode* node)
+{
+    if (node == NULL || node->type != AST_TYPE_TEST)
+        return NULL;
+    return node->data.type_test.target_type;
+}
+
+/*
+ * Canonical scalar name shared by semantic analysis and both backends so the
+ * `expr is Type` predicate folds to an identical boolean on the C and LLVM
+ * paths.  Returns one of "Int", "Long", "Float", "Bool", or NULL when the name
+ * is not a lowered scalar.  Float and Double collapse to "Float" to match the
+ * scalar set the cast lowering already accepts.
+ */
+const char*
+ast_type_name_canonical_scalar(const char* name)
+{
+    if (name == NULL)
+        return NULL;
+    if (strcmp(name, "Int") == 0)
+        return "Int";
+    if (strcmp(name, "Long") == 0)
+        return "Long";
+    if (strcmp(name, "Float") == 0 || strcmp(name, "Double") == 0)
+        return "Float";
+    if (strcmp(name, "Bool") == 0)
+        return "Bool";
+    return NULL;
+}
+
 const char*
 ast_break_label(const ASTNode* node)
 {

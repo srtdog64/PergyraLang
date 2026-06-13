@@ -407,6 +407,33 @@ emit_expression(ASTNode *node, TranspilerCtx *ctx)
         return result;
     }
 
+    case AST_TYPE_TEST: {
+        const char *target = ast_type_test_target_type(node);
+        ASTNode *operand_node = ast_type_test_operand(node);
+        const char *tgt_canon = ast_type_name_canonical_scalar(target);
+        const char *src_canon;
+        char *operand;
+        char *result;
+        if (tgt_canon == NULL) {
+            transpiler_set_backend_error_with_hints(ctx,
+                PGY_CODE_C_TYPE_UNSUPPORTED, PGY_CAUSE_C_TYPE_UNSUPPORTED,
+                PGY_FIX_ANNOTATE_CONCRETE_TYPE,
+                "C backend: type-test to '%s' is not lowered (Int/Long/Float/Bool only)",
+                target != NULL ? target : "<type>");
+            return NULL;
+        }
+        src_canon = ast_type_name_canonical_scalar(
+            infer_expression_type_name(ctx, operand_node));
+        operand = emit_expression(operand_node, ctx);
+        if (operand == NULL)
+            return NULL;
+        result = strdup_fmt("((void)(%s), %s)", operand,
+            (src_canon != NULL && strcmp(src_canon, tgt_canon) == 0)
+                ? "true" : "false");
+        free(operand);
+        return result;
+    }
+
     case AST_ASSIGNMENT: {
         ASTNode *target_node = ast_assignment_target(node);
         ASTNode *value_node = ast_assignment_value(node);

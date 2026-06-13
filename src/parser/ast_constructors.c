@@ -360,6 +360,17 @@ ASTNode* ast_create_cast(ASTNode* operand, const char* target_type) {
     return node;
 }
 
+ASTNode* ast_create_type_test(ASTNode* operand, const char* target_type) {
+    ASTNode* node = ast_create_node(AST_TYPE_TEST);
+    if (node == NULL)
+        return NULL;
+    node->data.type_test.operand = operand;
+    node->data.type_test.target_type = target_type != NULL
+        ? pergyra_strdup(target_type)
+        : NULL;
+    return node;
+}
+
 ASTNode* ast_create_defer_statement(ASTNode* body) {
     ASTNode* node = ast_create_node(AST_DEFER_STMT);
     node->data.defer_stmt.body = body;

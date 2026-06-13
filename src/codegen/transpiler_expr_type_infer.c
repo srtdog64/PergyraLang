@@ -132,6 +132,8 @@ infer_expression_type_name(TranspilerCtx *ctx, ASTNode *expr)
         const char *target = ast_cast_target_type(expr);
         return target != NULL ? target : "Unknown";
     }
+    case AST_TYPE_TEST:
+        return "Bool";
     case AST_MAP_LITERAL: {
         const char *k = "Unknown";
         const char *v = "Unknown";

@@ -66,6 +66,8 @@ ast_uses_thread_pool_surface(const ASTNode *node)
                 node->data.map_literal.values, node->data.map_literal.count);
     case AST_CAST:
         return ast_uses_thread_pool_surface(node->data.cast.operand);
+    case AST_TYPE_TEST:
+        return ast_uses_thread_pool_surface(node->data.type_test.operand);
     case AST_IF_STMT:
         return ast_uses_thread_pool_surface(node->data.if_stmt.condition)
             || ast_uses_thread_pool_surface(node->data.if_stmt.then_branch)

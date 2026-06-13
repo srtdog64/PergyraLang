@@ -56,7 +56,7 @@ that layer.
 ## Existing Regression Coverage
 
 `make test-security` covers the following enumerated cases (currently
-175/175 passing):
+182/182 passing):
 
 - Stale-generation read/write/pin/release rejection
 - Stale `SlotIsValid` returning false
@@ -74,6 +74,9 @@ that layer.
   treat a capability as live
 - SHA-256 and AES-256-CTR/HMAC known-answer vectors, including authentication
   tag tamper rejection
+- Sealed payload provider AES/HMAC coverage: generation-bound MAC rejection,
+  primary provider auth-tag tamper recovery through a verified shadow copy,
+  policy tamper rejection, and cross-slot sealed-payload transplant rejection
 - Security portability smoke checks that the crypto owner uses standard
   provider APIs and does not reintroduce the removed self-contained AES/SHA
   implementation path
@@ -139,6 +142,12 @@ Adversarial techniques to enumerate:
     transfer fields without reissuing the token. Must reject.
 13. **Provider drift** - remove the required platform crypto provider or
     reintroduce custom AES/SHA/RNG code. Must fail preflight or smoke.
+14. **Sealed payload transplant** - copy ciphertext, nonce, auth tag, and MAC
+    from slot A to slot B. Must reject because the HMAC binds slot id,
+    generation, policy, shadow flag, provider auth tag, and payload bytes.
+15. **Sealed payload policy tamper** - flip the stored sealed payload policy
+    after a valid write. Must reject before returning ciphertext as plaintext
+    or accepting a mismatched shadow policy.
 
 ## Known Limits - Not Covered By This Audit
 

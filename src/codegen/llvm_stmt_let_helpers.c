@@ -129,6 +129,7 @@ llvm_simple_expr_type_name(LLVMGenCtx *ctx, ASTNode *expr)
         return ast_number_is_float(expr) ? "Float" : "Int";
     case AST_STRING: return "String";
     case AST_BOOLEAN: return "Bool";
+    case AST_TYPE_TEST: return "Bool";
     case AST_IDENTIFIER: {
         LLVMVarEntry entry;
         if (llvm_scope_lookup_snapshot(ctx, ast_identifier_name(expr), &entry))

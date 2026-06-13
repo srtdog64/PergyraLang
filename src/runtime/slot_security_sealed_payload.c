@@ -30,86 +30,53 @@ slot_sealed_payload_warn(const char *op, SecurityError err, const char *reason)
 }
 
 static SecurityError
-SecureDeriveMaskBlock(SecurityContext *context, uint32_t slotId,
-                      uint32_t generation, const uint8_t nonce[16],
-                      uint32_t counter, uint8_t out[32])
-{
-    uint8_t material[64];
-    size_t offset = 0;
-
-    if (context == NULL || context->masterKey == NULL || nonce == NULL || out == NULL)
-        return SECURITY_ERROR_CONTEXT_NOT_INITIALIZED;
-
-    if (context->keySize + 28 > sizeof(material)) {
-        return SECURITY_ERROR_CRYPTOGRAPHY_FAILED;
-    }
-
-    memcpy(material + offset, context->masterKey, context->keySize);
-    offset += context->keySize;
-    memcpy(material + offset, nonce, 16);
-    offset += 16;
-    memcpy(material + offset, &slotId, sizeof(slotId));
-    offset += sizeof(slotId);
-    memcpy(material + offset, &generation, sizeof(generation));
-    offset += sizeof(generation);
-    memcpy(material + offset, &counter, sizeof(counter));
-    offset += sizeof(counter);
-
-    return SecureHashSHA256(material, offset, out);
-}
-
-static SecurityError
-SecureXorPayload(SecurityContext *context, uint32_t slotId, uint32_t generation,
-                 const uint8_t nonce[16], const uint8_t *input, uint8_t *output,
-                 size_t size)
-{
-    uint8_t mask[32];
-    size_t offset = 0;
-    uint32_t counter = 0;
-
-    while (offset < size) {
-        size_t blockSize;
-        if (SecureDeriveMaskBlock(context, slotId, generation, nonce, counter, mask) !=
-            SECURITY_SUCCESS) {
-            return SECURITY_ERROR_CRYPTOGRAPHY_FAILED;
-        }
-
-        blockSize = (size - offset) < sizeof(mask) ? (size - offset) : sizeof(mask);
-        for (size_t i = 0; i < blockSize; i++)
-            output[offset + i] = input[offset + i] ^ mask[i];
-
-        offset += blockSize;
-        counter++;
-    }
-
-    return SECURITY_SUCCESS;
-}
-
-static SecurityError
 SecureComputePayloadMac(SecurityContext *context, uint32_t slotId,
                         uint32_t generation, bool shadowCopy,
-                        const uint8_t nonce[16], const uint8_t *payload,
-                        size_t size, uint8_t outMac[32])
+                        const uint8_t nonce[16], const uint8_t authTag[16],
+                        const SecureSlotPolicy *policy,
+                        const uint8_t *payload, size_t size,
+                        uint8_t outMac[32])
 {
     uint8_t *material;
     size_t totalSize;
     size_t offset = 0;
     uint8_t shadowFlag = shadowCopy ? 1u : 0u;
+    uint8_t obfuscateFlag;
+    uint8_t policyShadowFlag;
+    uint8_t isolateFlag;
+    uint8_t auditFlag;
+    uint32_t storageMode;
+    size_t policyFlagSize;
 
     if (context == NULL || context->masterKey == NULL || nonce == NULL ||
-        payload == NULL || outMac == NULL) {
+        authTag == NULL || policy == NULL || (payload == NULL && size > 0) ||
+        outMac == NULL) {
         return SECURITY_ERROR_CONTEXT_NOT_INITIALIZED;
     }
 
-    totalSize = context->keySize + 16 + sizeof(slotId) + sizeof(generation) +
-                sizeof(shadowFlag) + sizeof(size) + size;
+    storageMode = (uint32_t)policy->storageMode;
+    obfuscateFlag = policy->obfuscateInMemory ? 1u : 0u;
+    policyShadowFlag = policy->shadowCopy ? 1u : 0u;
+    isolateFlag = policy->isolateShadowCopy ? 1u : 0u;
+    auditFlag = policy->auditReads ? 1u : 0u;
+    policyFlagSize = sizeof(obfuscateFlag) + sizeof(policyShadowFlag) +
+                     sizeof(isolateFlag) + sizeof(auditFlag);
+
+    if (size > SIZE_MAX - (16 + 16 + sizeof(slotId) + sizeof(generation) +
+                           sizeof(shadowFlag) + sizeof(storageMode) +
+                           policyFlagSize + sizeof(size)))
+        return SECURITY_ERROR_CRYPTOGRAPHY_FAILED;
+
+    totalSize = 16 + 16 + sizeof(slotId) + sizeof(generation) +
+                sizeof(shadowFlag) + sizeof(storageMode) + policyFlagSize +
+                sizeof(size) + size;
     material = malloc(totalSize);
     if (material == NULL)
         return SECURITY_ERROR_CRYPTOGRAPHY_FAILED;
 
-    memcpy(material + offset, context->masterKey, context->keySize);
-    offset += context->keySize;
     memcpy(material + offset, nonce, 16);
+    offset += 16;
+    memcpy(material + offset, authTag, 16);
     offset += 16;
     memcpy(material + offset, &slotId, sizeof(slotId));
     offset += sizeof(slotId);
@@ -117,12 +84,21 @@ SecureComputePayloadMac(SecurityContext *context, uint32_t slotId,
     offset += sizeof(generation);
     memcpy(material + offset, &shadowFlag, sizeof(shadowFlag));
     offset += sizeof(shadowFlag);
+    memcpy(material + offset, &storageMode, sizeof(storageMode));
+    offset += sizeof(storageMode);
+    material[offset++] = obfuscateFlag;
+    material[offset++] = policyShadowFlag;
+    material[offset++] = isolateFlag;
+    material[offset++] = auditFlag;
     memcpy(material + offset, &size, sizeof(size));
     offset += sizeof(size);
-    memcpy(material + offset, payload, size);
-    offset += size;
+    if (size > 0) {
+        memcpy(material + offset, payload, size);
+        offset += size;
+    }
 
-    if (SecureHashSHA256(material, offset, outMac) != SECURITY_SUCCESS) {
+    if (SecureHmacSHA256(context->masterKey, context->keySize,
+                         material, offset, outMac) != SECURITY_SUCCESS) {
         SecureMemoryWipe(material, totalSize);
         free(material);
         return SECURITY_ERROR_CRYPTOGRAPHY_FAILED;
@@ -136,13 +112,16 @@ SecureComputePayloadMac(SecurityContext *context, uint32_t slotId,
 static SecurityError
 SecureVerifyPayloadMac(SecurityContext *context, uint32_t slotId,
                        uint32_t generation, bool shadowCopy,
-                       const uint8_t nonce[16], const uint8_t *payload,
-                       size_t size, const uint8_t expectedMac[32])
+                       const uint8_t nonce[16], const uint8_t authTag[16],
+                       const SecureSlotPolicy *policy,
+                       const uint8_t *payload, size_t size,
+                       const uint8_t expectedMac[32])
 {
     uint8_t computed[32];
 
     if (SecureComputePayloadMac(context, slotId, generation, shadowCopy, nonce,
-                                payload, size, computed) != SECURITY_SUCCESS) {
+                                authTag, policy, payload, size, computed) !=
+        SECURITY_SUCCESS) {
         return SECURITY_ERROR_CRYPTOGRAPHY_FAILED;
     }
 
@@ -245,6 +224,7 @@ SecureSealedPayloadSeal(SecurityContext *context, uint32_t slotId,
                                  "primary payload allocation failed");
         return SECURITY_ERROR_CRYPTOGRAPHY_FAILED;
     }
+    payload->size = size;
 
     if (effectivePolicy.shadowCopy) {
         payload->shadowData = malloc(size);
@@ -264,20 +244,20 @@ SecureSealedPayloadSeal(SecurityContext *context, uint32_t slotId,
     }
 
     if (effectivePolicy.obfuscateInMemory) {
-        result = SecureXorPayload(context, slotId, generation, payload->nonce,
-                                  input, payload->primaryData, size);
+        result = AES256Encrypt(context->masterKey, payload->nonce, input, size,
+                               payload->primaryData, payload->primaryAuthTag);
         if (result != SECURITY_SUCCESS) {
             slot_sealed_payload_warn("sealed-payload-seal", result,
-                                     "primary payload obfuscation failed");
+                                     "primary payload encryption failed");
             SecureSealedPayloadDestroy(payload);
             return result;
         }
         if (payload->shadowData != NULL) {
-            result = SecureXorPayload(context, slotId, generation, payload->nonce,
-                                      input, payload->shadowData, size);
+            result = AES256Encrypt(context->masterKey, payload->nonce, input, size,
+                                   payload->shadowData, payload->shadowAuthTag);
             if (result != SECURITY_SUCCESS) {
                 slot_sealed_payload_warn("sealed-payload-seal", result,
-                                         "shadow payload obfuscation failed");
+                                         "shadow payload encryption failed");
                 SecureSealedPayloadDestroy(payload);
                 return result;
             }
@@ -289,8 +269,9 @@ SecureSealedPayloadSeal(SecurityContext *context, uint32_t slotId,
     }
 
     if (SecureComputePayloadMac(context, slotId, generation, false, payload->nonce,
-                                payload->primaryData, size,
-                                payload->primaryMac) != SECURITY_SUCCESS) {
+                                payload->primaryAuthTag, &effectivePolicy,
+                                payload->primaryData, size, payload->primaryMac) !=
+        SECURITY_SUCCESS) {
         slot_sealed_payload_warn("sealed-payload-seal", SECURITY_ERROR_CRYPTOGRAPHY_FAILED,
                                  "primary payload mac computation failed");
         SecureSealedPayloadDestroy(payload);
@@ -299,15 +280,15 @@ SecureSealedPayloadSeal(SecurityContext *context, uint32_t slotId,
 
     if (payload->shadowData != NULL &&
         SecureComputePayloadMac(context, slotId, generation, true, payload->nonce,
-                                payload->shadowData, size,
-                                payload->shadowMac) != SECURITY_SUCCESS) {
+                                payload->shadowAuthTag, &effectivePolicy,
+                                payload->shadowData, size, payload->shadowMac) !=
+        SECURITY_SUCCESS) {
         slot_sealed_payload_warn("sealed-payload-seal", SECURITY_ERROR_CRYPTOGRAPHY_FAILED,
                                  "shadow payload mac computation failed");
         SecureSealedPayloadDestroy(payload);
         return SECURITY_ERROR_CRYPTOGRAPHY_FAILED;
     }
 
-    payload->size = size;
     payload->policy = effectivePolicy;
     payload->initialized = true;
     return SECURITY_SUCCESS;
@@ -335,13 +316,17 @@ SecureSealedPayloadOpen(SecurityContext *context, uint32_t slotId,
     }
 
     result = SecureVerifyPayloadMac(context, slotId, generation, false,
-                                    payload->nonce, payload->primaryData,
+                                    payload->nonce, payload->primaryAuthTag,
+                                    &payload->policy,
+                                    payload->primaryData,
                                     payload->size, payload->primaryMac);
     verifiedPrimary = (result == SECURITY_SUCCESS);
 
     if (!verifiedPrimary && payload->shadowData != NULL) {
         result = SecureVerifyPayloadMac(context, slotId, generation, true,
-                                        payload->nonce, payload->shadowData,
+                                        payload->nonce, payload->shadowAuthTag,
+                                        &payload->policy,
+                                        payload->shadowData,
                                         payload->size, payload->shadowMac);
         verifiedShadow = (result == SECURITY_SUCCESS);
         if (!verifiedShadow) {
@@ -351,6 +336,8 @@ SecureSealedPayloadOpen(SecurityContext *context, uint32_t slotId,
         }
 
         memcpy(payload->primaryData, payload->shadowData, payload->size);
+        memcpy(payload->primaryAuthTag, payload->shadowAuthTag,
+               sizeof(payload->primaryAuthTag));
         memcpy(payload->primaryMac, payload->shadowMac, sizeof(payload->primaryMac));
         if (usedShadowRecovery != NULL)
             *usedShadowRecovery = true;
@@ -370,11 +357,12 @@ SecureSealedPayloadOpen(SecurityContext *context, uint32_t slotId,
     }
 
     if (payload->policy.obfuscateInMemory) {
-        result = SecureXorPayload(context, slotId, generation, payload->nonce,
-                                  payload->primaryData, plain, payload->size);
+        result = AES256Decrypt(context->masterKey, payload->nonce,
+                               payload->primaryData, payload->size,
+                               payload->primaryAuthTag, plain);
         if (result != SECURITY_SUCCESS) {
             slot_sealed_payload_warn("sealed-payload-open", result,
-                                     "payload deobfuscation failed");
+                                     "payload decrypt failed");
             SecureMemoryWipe(plain, payload->size);
             free(plain);
             return result;

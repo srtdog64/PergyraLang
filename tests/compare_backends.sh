@@ -559,6 +559,7 @@ main() {
         "tests/cases/backend_compare/enum_tagged_union"
         "tests/cases/backend_compare/map_literal"
         "tests/cases/backend_compare/cast_numeric"
+        "tests/cases/backend_compare/type_test"
         "tests/cases/backend_compare/unsafe_scoped"
         "tests/cases/backend_compare/slice_open"
         "tests/cases/backend_compare/secure_slot_subject_bot"
@@ -1539,4 +1540,13 @@ main() {
     echo ""
     echo "backend-compare: summary -- ${passed}/${total} passed, ${fail_count} failed"
     if (( fail_count > 0 )); then
-     
+        echo "backend-compare: failures:"
+        for f in "${failed[@]}"; do
+            echo "  - $f"
+        done
+        return 1
+    fi
+    return 0
+}
+
+main "$@"

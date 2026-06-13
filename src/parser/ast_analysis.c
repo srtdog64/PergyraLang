@@ -232,6 +232,8 @@ ast_contains_identifier_call(const ASTNode *node,
             node->data.map_literal.values, node->data.map_literal.count, predicate, userdata);
     case AST_CAST:
         return ast_contains_identifier_call(node->data.cast.operand, predicate, userdata);
+    case AST_TYPE_TEST:
+        return ast_contains_identifier_call(node->data.type_test.operand, predicate, userdata);
     case AST_ASSIGNMENT:
         return ast_contains_identifier_call(node->data.assignment.target, predicate, userdata)
             || ast_contains_identifier_call(node->data.assignment.value, predicate, userdata);

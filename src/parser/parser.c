@@ -272,15 +272,6 @@ parser_finalize_statement(Parser *parser, ASTNode *node)
     return node;
 }
 
-static bool
-parser_check_contextual_is(Parser *parser)
-{
-    return parser != NULL
-        && parser_check(parser, TOKEN_IDENTIFIER)
-        && parser->current_token.text != NULL
-        && strcmp(parser->current_token.text, "is") == 0;
-}
-
 void
 parser_reject_reserved_cast_after_expression(Parser *parser)
 {
@@ -292,16 +283,6 @@ parser_reject_reserved_cast_after_expression(Parser *parser)
             "Cast syntax 'expr as Type' is reserved but not implemented.\n"
             "Reason: implicit cast/type-test lowering is not frozen across semantic, ABI, and backend diagnostics.\n"
             "Fix: use an explicit conversion helper.");
-        (void)parse_type(parser);
-        return;
-    }
-
-    if (parser_check_contextual_is(parser)) {
-        parser_advance(parser);
-        parser_error(parser,
-            "Type-test syntax 'expr is Type' is reserved but not implemented.\n"
-            "Reason: runtime type-test semantics are not frozen for the beta subset.\n"
-            "Fix: use an explicit predicate helper.");
         (void)parse_type(parser);
         return;
     }

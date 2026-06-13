@@ -290,6 +290,8 @@ llvm_stmt_infer_expr_type(LLVMGenCtx *ctx, ASTNode *expr)
         return ctx->type_i8ptr;
     case AST_BOOLEAN:
         return ctx->type_i1;
+    case AST_TYPE_TEST:
+        return ctx->type_i1;
     case AST_NUMBER: {
         double val = ast_number_value(expr);
         if (ast_number_is_long(expr))

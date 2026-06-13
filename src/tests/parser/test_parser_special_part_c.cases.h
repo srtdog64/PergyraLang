@@ -71,11 +71,42 @@ run_reserved_cast_type_test_diagnostic_test(void)
     ASTNode *ast = parser != NULL ? parser_parse_program(parser) : NULL;
     const char *error = parser != NULL ? parser_get_error(parser) : NULL;
 
-    printf("\n=== Test: Reserved Cast Type-Test Diagnostic ===\n");
+    printf("\n=== Test: Cast Expression Parses ===\n");
 
-    if (parser == NULL || !parser_has_error(parser)
-        || error == NULL || strstr(error, "Cast syntax 'expr as Type' is reserved") == NULL) {
-        printf("[FAIL] expected reserved cast diagnostic, got: %s\n",
+    /* `expr as Type` is now implemented and builds an AST_CAST node; the
+     * parser must accept it (semantic analysis validates the target). */
+    if (parser == NULL || parser_has_error(parser) || ast == NULL) {
+        printf("[FAIL] expected cast expression to parse, got: %s\n",
+            error != NULL ? error : "<none>");
+        failed = 1;
+    }
+
+    ast_destroy(ast);
+    parser_destroy(parser);
+    lexer_destroy(lexer);
+    return failed;
+}
+
+static int
+run_type_test_expression_parses_test(void)
+{
+    const char *code =
+        "func Main() -> Void {\n"
+        "    let i: Int = 5;\n"
+        "    let b = i is Int;\n"
+        "}\n";
+    int failed = 0;
+    Lexer *lexer = lexer_create(code);
+    Parser *parser = lexer != NULL ? parser_create(lexer) : NULL;
+    ASTNode *ast = parser != NULL ? parser_parse_program(parser) : NULL;
+    const char *error = parser != NULL ? parser_get_error(parser) : NULL;
+
+    printf("\n=== Test: Type-Test Expression Parses ===\n");
+
+    /* `expr is Type` is now implemented and builds an AST_TYPE_TEST node; the
+     * parser must accept it (semantic analysis validates the target). */
+    if (parser == NULL || parser_has_error(parser) || ast == NULL) {
+        printf("[FAIL] expected type-test expression to parse, got: %s\n",
             error != NULL ? error : "<none>");
         failed = 1;
     }
@@ -99,11 +130,12 @@ run_reserved_object_literal_diagnostic_test(void)
     ASTNode *ast = parser != NULL ? parser_parse_program(parser) : NULL;
     const char *error = parser != NULL ? parser_get_error(parser) : NULL;
 
-    printf("\n=== Test: Reserved Object Literal Diagnostic ===\n");
+    printf("\n=== Test: Map Literal Parses ===\n");
 
-    if (parser == NULL || !parser_has_error(parser)
-        || error == NULL || strstr(error, "Object/map literal syntax") == NULL) {
-        printf("[FAIL] expected reserved object literal diagnostic, got: %s\n",
+    /* Bare `{ key: value }` is now implemented and builds an AST_MAP_LITERAL
+     * node, so the parser must accept it. */
+    if (parser == NULL || parser_has_error(parser) || ast == NULL) {
+        printf("[FAIL] expected map literal to parse, got: %s\n",
             error != NULL ? error : "<none>");
         failed = 1;
     }
@@ -158,13 +190,12 @@ run_reserved_scoped_unsafe_diagnostic_test(void)
     ASTNode *ast = parser != NULL ? parser_parse_program(parser) : NULL;
     const char *error = parser != NULL ? parser_get_error(parser) : NULL;
 
-    printf("\n=== Test: Reserved Scoped Unsafe Diagnostic ===\n");
+    printf("\n=== Test: Scoped Unsafe Parses ===\n");
 
-    if (parser == NULL || !parser_has_error(parser)
-        || error == NULL
-        || strstr(error, "Scoped unsafe capability syntax") == NULL
-        || strstr(error, "not a universal mode bit") == NULL) {
-        printf("[FAIL] expected scoped unsafe diagnostic, got: %s\n",
+    /* `unsafe(capability) { ... }` is now implemented and builds an
+     * AST_UNSAFE_BLOCK node carrying the capability label. */
+    if (parser == NULL || parser_has_error(parser) || ast == NULL) {
+        printf("[FAIL] expected scoped unsafe block to parse, got: %s\n",
             error != NULL ? error : "<none>");
         failed = 1;
     }
@@ -190,13 +221,12 @@ run_reserved_labeled_unsafe_diagnostic_test(void)
     ASTNode *ast = parser != NULL ? parser_parse_program(parser) : NULL;
     const char *error = parser != NULL ? parser_get_error(parser) : NULL;
 
-    printf("\n=== Test: Reserved Labeled Unsafe Diagnostic ===\n");
+    printf("\n=== Test: Labeled Unsafe Parses ===\n");
 
-    if (parser == NULL || !parser_has_error(parser)
-        || error == NULL
-        || strstr(error, "Scoped unsafe capability label syntax") == NULL
-        || strstr(error, "not to a loose parser shortcut") == NULL) {
-        printf("[FAIL] expected labeled unsafe diagnostic, got: %s\n",
+    /* `unsafe capability { ... }` is now implemented and builds an
+     * AST_UNSAFE_BLOCK node carrying the capability label. */
+    if (parser == NULL || parser_has_error(parser) || ast == NULL) {
+        printf("[FAIL] expected labeled unsafe block to parse, got: %s\n",
             error != NULL ? error : "<none>");
         failed = 1;
     }

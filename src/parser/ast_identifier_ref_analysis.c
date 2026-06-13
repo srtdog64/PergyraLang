@@ -247,6 +247,8 @@ ast_contains_identifier_ref(const ASTNode *node,
             node->data.map_literal.values, node->data.map_literal.count, predicate, userdata);
     case AST_CAST:
         return ast_contains_identifier_ref(node->data.cast.operand, predicate, userdata);
+    case AST_TYPE_TEST:
+        return ast_contains_identifier_ref(node->data.type_test.operand, predicate, userdata);
     case AST_ASSIGNMENT:
         return ast_contains_identifier_ref(node->data.assignment.target, predicate, userdata)
             || ast_contains_identifier_ref(node->data.assignment.value, predicate, userdata);
@@ -364,6 +366,8 @@ ast_contains_free_identifier_ref(const ASTNode *node, const char *name)
             node->data.map_literal.values, node->data.map_literal.count, name);
     case AST_CAST:
         return ast_contains_free_identifier_ref(node->data.cast.operand, name);
+    case AST_TYPE_TEST:
+        return ast_contains_free_identifier_ref(node->data.type_test.operand, name);
     case AST_ASSIGNMENT:
         return ast_contains_free_identifier_ref(node->data.assignment.target, name)
             || ast_contains_free_identifier_ref(node->data.assignment.value, name);

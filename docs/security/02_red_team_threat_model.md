@@ -200,7 +200,7 @@ Current evidence:
 |---|---|---|---|
 | Presented capability integrity | `TokenValidate` | Can field mutation keep authority? | HMAC-backed checksum, tamper tests |
 | Stored authority integrity | `SlotValidateToken` | Can stored token mutation be ignored? | decrypt plus constant-time compare |
-| Payload integrity | `SecureSealedPayloadOpen` | Can payload bytes be changed silently? | primary/shadow MAC tests |
+| Payload integrity | `SecureSealedPayloadOpen` | Can payload bytes or policy be changed silently or transplanted? | provider AES plus HMAC-bound primary/shadow tests |
 | Replay and revocation | `SlotRefreshToken`, `SlotRevokeToken` | Can old token still act? | refresh/revoke tests |
 | Provider policy | `check-security-toolchain` | Can build fall back to custom crypto? | provider preflight and smoke |
 | Scope split | docs/security contracts | Are claims scoped to the real surface? | source-of-truth split gates |
@@ -241,7 +241,8 @@ Before beta freeze, the red-team bar for P0-1 is:
 
 - `make test-security` passes and includes presented capability tamper, stored
   authority tamper, refresh replay, revoke rejection, stale handle rejection,
-  provider KATs, and sealed payload corruption.
+  provider KATs, sealed payload corruption, policy tamper, auth-tag tamper,
+  generation mismatch, and cross-slot transplant rejection.
 - `security-portability-contract-test-smoke` gates provider crypto, no custom
   AES/SHA/RNG reintroduction, stored-token compare, and scoped docs wording.
 - At least one audit log under `docs/security/audits/` records the exhausted

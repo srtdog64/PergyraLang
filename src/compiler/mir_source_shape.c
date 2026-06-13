@@ -109,6 +109,7 @@ mir_source_ast_type_name(ASTNodeType type)
     case AST_TUPLE_LITERAL: return "AST_TUPLE_LITERAL";
     case AST_MAP_LITERAL: return "AST_MAP_LITERAL";
     case AST_CAST: return "AST_CAST";
+    case AST_TYPE_TEST: return "AST_TYPE_TEST";
     case AST_ASSIGNMENT: return "AST_ASSIGNMENT";
     case AST_AWAIT_EXPR: return "AST_AWAIT_EXPR";
     case AST_CHANNEL_SEND: return "AST_CHANNEL_SEND";

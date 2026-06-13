@@ -50,7 +50,7 @@ Closed now:
   unissued-token read/write/pin/release rejection, pinned-handle release
   rejection, and pin non-eviction.
 - Linux CI now installs `coq`, so `make formal-semantics-test-smoke` type-checks `docs/semantics/proofs/SlotCalculus.v` in CI instead of only checking proof-pack text.
-- Slot capability runtime evidence was rechecked with `make test-security` (175/175 passed): stale-generation read/write/pin/release rejection, stale `SlotIsValid` false, zero-id sentinel and slot-id wrap tombstone before ABA reuse, tampered-view generation unpin rejection, double-unpin rejection, release-while-pinned, TTL cleanup skip while pinned, invalid secure token rejection, invalid `SecurityLevel` rejection, capability metadata tamper rejection, expired-token rejection, token-refresh replay rejection, stored encrypted token tamper rejection, SHA-256 and AES-256-CTR/HMAC known-answer vectors, revoked-token rejection, raw secure-slot release rejection, concurrent secure write rejection, and release-after-unpin are covered.
+- Slot capability runtime evidence was rechecked with `make test-security` (182/182 passed): stale-generation read/write/pin/release rejection, stale `SlotIsValid` false, zero-id sentinel and slot-id wrap tombstone before ABA reuse, tampered-view generation unpin rejection, double-unpin rejection, release-while-pinned, TTL cleanup skip while pinned, invalid secure token rejection, invalid `SecurityLevel` rejection, capability metadata tamper rejection, expired-token rejection, token-refresh replay rejection, stored encrypted token tamper rejection, sealed payload policy/generation/auth-tag/transplant rejection, SHA-256 and AES-256-CTR/HMAC known-answer vectors, revoked-token rejection, raw secure-slot release rejection, concurrent secure write rejection, and release-after-unpin are covered.
 - `runtime-panic-abi-test-smoke` now covers forged zero-token read/write/release
   rejection for inline C and exported C/LLVM-linkable secure-slot entrypoints.
 - SecureSlot token ABI is now build-mode stable: inline C, exported runtime, and
@@ -73,7 +73,7 @@ Closed now:
 - Authority token mismatch now has a shared runtime contract code/reason
   (`authority-token-mismatch`), queryable runtime state, C/LLVM ABI coverage in
   `authority_failure_abi`, backend-compare coverage in `authority_failure_surface`,
-  and direct runtime coverage in `make test-security` (175/175 passed).
+  and direct runtime coverage in `make test-security` (182/182 passed).
 
 Remaining:
 

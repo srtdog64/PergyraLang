@@ -213,6 +213,7 @@ main(void)
     failures += run_reserved_slice_expression_diagnostic_test();
     printf("\n");
     failures += run_reserved_cast_type_test_diagnostic_test();
+    failures += run_type_test_expression_parses_test();
     printf("\n");
     failures += run_reserved_object_literal_diagnostic_test();
     printf("\n");

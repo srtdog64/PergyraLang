@@ -43,7 +43,8 @@ SlotManagerDisableSecurity(SlotManager *manager)
     for (i = 0; i < manager->tableSize; i++) {
         SlotEntry *entry = &manager->slotTable[i];
         SecureMemoryWipe(&entry->writeToken, sizeof(entry->writeToken));
-        SecureSealedPayloadDestroy(&entry->securePayload);
+        if (entry->occupied && entry->securePayload.initialized)
+            SecureSealedPayloadDestroy(&entry->securePayload);
         entry->securityEnabled = false;
         entry->tokenGeneration = 0;
         entry->securityLevel = SECURITY_LEVEL_BASIC;

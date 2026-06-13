@@ -47,6 +47,7 @@ llvm_emit_expression(ASTNode *node, LLVMGenCtx *ctx)
     case AST_ARRAY_LITERAL: return llvm_emit_array_literal_expr(node, ctx);
     case AST_MAP_LITERAL:   return llvm_emit_map_literal_expr(node, ctx);
     case AST_CAST:          return llvm_emit_cast_expr(node, ctx);
+    case AST_TYPE_TEST:     return llvm_emit_type_test_expr(node, ctx);
     case AST_ARRAY_ACCESS:  return llvm_emit_array_access_expr(node, ctx);
 
     case AST_CONTEXT_ACCESS: {

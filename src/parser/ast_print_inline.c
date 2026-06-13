@@ -378,6 +378,12 @@ ast_print_compact(ASTNode* node)
                 ? node->data.cast.target_type : "?");
             break;
 
+        case AST_TYPE_TEST:
+            ast_print_compact(node->data.type_test.operand);
+            printf(" is %s", node->data.type_test.target_type != NULL
+                ? node->data.type_test.target_type : "?");
+            break;
+
         case AST_LAMBDA_EXPR:
             printf("%slambda(", node->data.lambda_expr.is_async ? "async " : "");
             for (size_t i = 0; i < node->data.lambda_expr.param_count; i++) {

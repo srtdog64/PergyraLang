@@ -258,6 +258,48 @@ llvm_emit_cast_expr(ASTNode *node, LLVMGenCtx *ctx)
         "LLVM backend: cast target is not lowered (numeric Int/Float only)");
 }
 
+/*
+ * Scalar name for an LLVM value's type, matching ast_type_name_canonical_scalar
+ * so the `expr is Type` predicate folds to the same boolean as the C backend.
+ */
+static const char *
+llvm_value_canonical_scalar(LLVMGenCtx *ctx, LLVMValueRef value)
+{
+    LLVMTypeRef type = LLVMTypeOf(value);
+
+    if (type == ctx->type_i32)
+        return "Int";
+    if (type == ctx->type_i64)
+        return "Long";
+    if (type == ctx->type_f32 || type == ctx->type_f64)
+        return "Float";
+    if (type == ctx->type_i1)
+        return "Bool";
+    return NULL;
+}
+
+LLVMValueRef
+llvm_emit_type_test_expr(ASTNode *node, LLVMGenCtx *ctx)
+{
+    const char *target = ast_type_test_target_type(node);
+    const char *tgt_canon = ast_type_name_canonical_scalar(target);
+    LLVMValueRef v;
+    const char *src_canon;
+    int result;
+
+    if (tgt_canon == NULL)
+        return llvm_expression_error(ctx, node,
+            "LLVM backend: type-test target is not lowered "
+            "(Int/Long/Float/Bool only)");
+    /* Evaluate the operand so any side effects run before the folded result. */
+    v = llvm_emit_expression(ast_type_test_operand(node), ctx);
+    if (v == NULL)
+        return NULL;
+    src_canon = llvm_value_canonical_scalar(ctx, v);
+    result = (src_canon != NULL && strcmp(src_canon, tgt_canon) == 0) ? 1 : 0;
+    return LLVMConstInt(ctx->type_i1, (unsigned long long)result, 0);
+}
+
 LLVMValueRef
 llvm_emit_array_access_expr(ASTNode *node, LLVMGenCtx *ctx)
 {

@@ -1894,4 +1894,36 @@ if [[ -z "$claim_line" || -z "$read_line" || "$claim_line" -ge "$read_line" ]]; 
     exit 1
 fi
 
+# Corpus-wide non-CFG fallback invariant.  Every routine kind --- plain
+# function, class method, intent, role method, party method, event handler
+# --- must lower through the CFG path.  The AST body fallback
+# (mir_append_non_cfg_body_statements) must never fire.  A non-zero count
+# here means a construct stopped emitting CFG and silently regressed to
+# AST-driven body population, which breaks the MIR source-of-truth contract.
+NON_CFG_CORPUS=(
+    "examples/surface_compression_maximal.pgy"
+    "examples/composite_intent_orchestration_compressed.pgy"
+    "examples/lambda_test.pgy"
+    "examples/dnd_tavern_campaign/combat_cards.pgy"
+    "examples/dnd_tavern_campaign/events.pgy"
+    "examples/space_station/abilities.pgy"
+)
+NON_CFG_CORPUS_MIR="$WORK_DIR/non_cfg_corpus_mir.txt"
+for corpus_rel in "${NON_CFG_CORPUS[@]}"; do
+    corpus_src="$ROOT_DIR/$corpus_rel"
+    if [[ ! -f "$corpus_src" ]]; then
+        echo "non-cfg fallback corpus member missing: $corpus_rel" >&2
+        exit 1
+    fi
+    corpus_src_for_pgy="$(to_native_path_for_pgy "$corpus_src")"
+    "$PGY" "$corpus_src_for_pgy" --mir > "$NON_CFG_CORPUS_MIR"
+    if ! grep -Fq "noncfg-fallbacks: total=0 routines=0 recorded=yes" \
+        "$NON_CFG_CORPUS_MIR"; then
+        echo "non-cfg fallback regression in $corpus_rel:" >&2
+        grep -F "noncfg-fallbacks:" "$NON_CFG_CORPUS_MIR" >&2 || true
+        exit 1
+    fi
+done
+echo "non-cfg fallback corpus invariant: PASS (${#NON_CFG_CORPUS[@]} programs, all routine kinds)"
+
 echo "cfg-body-dataflow smoke: PASS $EXAMPLE"

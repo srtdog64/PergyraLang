@@ -299,12 +299,56 @@ parser_build_cast(Parser* parser, ASTNode* expr, ASTNode* type_node)
     return cast;
 }
 
+/* `is` is a contextual keyword: an identifier token with the text "is". */
+static bool
+parser_peek_contextual_is(Parser* parser)
+{
+    return parser != NULL
+        && parser_check(parser, TOKEN_IDENTIFIER)
+        && parser->current_token.text != NULL
+        && strcmp(parser->current_token.text, "is") == 0;
+}
+
+/* `expr is Type` builds an AST_TYPE_TEST node carrying the target type name.
+ * The predicate folds to a Bool on both backends; scalar targets (Int, Long,
+ * Float, Bool) are lowered, other targets are rejected during semantic
+ * analysis. */
+static ASTNode*
+parser_build_type_test(Parser* parser, ASTNode* expr, ASTNode* type_node)
+{
+    const char* type_name = type_node != NULL ? ast_type_name(type_node) : NULL;
+    ASTNode* test;
+
+    if (type_name == NULL) {
+        parser_error(parser, "Expected a type name after 'is'");
+        ast_destroy(type_node);
+        return expr;
+    }
+    test = ast_create_type_test(expr, type_name);
+    ast_destroy(type_node);
+    if (test == NULL) {
+        parser_error(parser, "Out of memory while parsing type-test expression");
+        return expr;
+    }
+    return test;
+}
+
 ASTNode* parse_cast(Parser* parser) {
     ASTNode* expr = parse_unary(parser);
 
-    while (!parser->no_cast && parser_match(parser, TOKEN_AS)) {
-        ASTNode* type_node = parse_type(parser);
-        expr = parser_build_cast(parser, expr, type_node);
+    while (!parser->no_cast) {
+        if (parser_match(parser, TOKEN_AS)) {
+            ASTNode* type_node = parse_type(parser);
+            expr = parser_build_cast(parser, expr, type_node);
+            continue;
+        }
+        if (parser_peek_contextual_is(parser)) {
+            parser_advance(parser);
+            ASTNode* type_node = parse_type(parser);
+            expr = parser_build_type_test(parser, expr, type_node);
+            continue;
+        }
+        break;
     }
 
     return expr;

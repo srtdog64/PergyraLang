@@ -557,11 +557,4 @@ struct ASTNode
         /* bind party.slot = RoleName; */
         struct {
             char* party_var;         /* "team" */
-            char* slot_name;         /* "fighter" */
-            char* role_name;         /* "Warrior" */
-        } bind_stmt;
-    } data;
-};
-
-#include "ast_api.h"
-#endif /* PERGYRA_AST_H */
+            char* slot_name;         /* "fighter" *

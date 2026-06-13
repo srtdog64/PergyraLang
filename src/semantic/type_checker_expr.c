@@ -301,6 +301,23 @@ type_check_expression(ASTNode *expr, SemanticContext *ctx)
         return TYPE_UNKNOWN;
     }
 
+    case AST_TYPE_TEST: {
+        const char *target = ast_type_test_target_type(expr);
+        /* Evaluate the operand so its own errors surface; the result of the
+         * predicate is a scalar test folded by both backends. */
+        (void)expr_normalize_type(
+            type_check_expression(ast_type_test_operand(expr), ctx));
+        if (ast_type_name_canonical_scalar(target) == NULL) {
+            semantic_error_with_hints(ctx, PGY_CODE_SEM_TYPE_MISMATCH,
+                PGY_CAUSE_BUILTIN_SIGNATURE_MISMATCH,
+                PGY_FIX_MATCH_BUILTIN_SIGNATURE, expr,
+                "Type-test 'expr is %s' is supported only for Int, Long, Float, and Bool targets",
+                target != NULL ? target : "<type>");
+            return TYPE_UNKNOWN;
+        }
+        return TYPE_BOOL;
+    }
+
     case AST_TUPLE_LITERAL: {
         size_t n = ast_tuple_literal_count(expr);
         if (n == 0)
