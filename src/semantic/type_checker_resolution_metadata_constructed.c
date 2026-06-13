@@ -2,6 +2,7 @@
 #include <stdlib.h>
 #include <string.h>
 
+#include "diag_codes.h"
 #include "type_checker_internal.h"
 #include "type_checker_collection_policy.h"
 #include "type_checker_resolution_metadata_internal.h"
@@ -194,6 +195,21 @@ try_record_generic_class_constructed_type(SemanticContext *ctx,
         resolved_args[i] = semantic_type_resolution_lookup_metadata_type_ref(
             ctx, effective_args[i]);
         if (resolved_args[i] == NULL) {
+            free(resolved_args);
+            free(effective_args);
+            return;
+        }
+        /* Void cannot be a generic type argument: a field, slot, or return of
+         * type Void has no value representation. Fail closed with a diagnostic
+         * rather than recording a degenerate constructed type. */
+        if (type_equals(resolved_args[i], TYPE_VOID)) {
+            semantic_error_with_hints(ctx, PGY_CODE_SEM_BUILTIN_ARGS_INVALID,
+                PGY_CAUSE_BUILTIN_SIGNATURE_MISMATCH,
+                PGY_FIX_MATCH_BUILTIN_SIGNATURE,
+                effective_args[i] != NULL ? effective_args[i] : type_node,
+                "Generic type argument %zu of '%s' resolved to Void; "
+                "Void is not a valid generic type argument",
+                i + 1, name);
             free(resolved_args);
             free(effective_args);
             return;

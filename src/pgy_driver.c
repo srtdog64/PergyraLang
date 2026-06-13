@@ -40,6 +40,7 @@ static const DriverOptionSpec k_driver_options[] = {
     { "--backend=c", DRIVER_OPTION_BACKEND, 0, BACKEND_C },
     { "--backend=llvm", DRIVER_OPTION_BACKEND, 0, BACKEND_LLVM },
     { "--compile", DRIVER_OPTION_NOOP, 0, 0 },
+    { "--debug-lines", DRIVER_OPTION_BOOL, offsetof(DriverFlags, emit_debug_lines), true },
     { "--dir", DRIVER_OPTION_BOOL, offsetof(DriverFlags, dump_dir), true },
     { "--emit-c", DRIVER_OPTION_BOOL, offsetof(DriverFlags, emit_c_only), true },
     { "--emit-llvm", DRIVER_OPTION_BOOL, offsetof(DriverFlags, emit_llvm_ir), true },

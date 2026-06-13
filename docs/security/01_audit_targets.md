@@ -23,14 +23,14 @@ These contracts are load-bearing for marketing claims and cannot ship to a
 
 | ID | Contract | Source | Doc / Gate |
 |---|---|---|---|
-| P0-1 | Secure slot token unforgeability | `src/runtime/slot_security.c`, `src/runtime/slot_security_crypto.c`, `src/runtime/slot_security_sealed_payload.c`, `src/runtime/slot_manager.c` | [contracts/secure_slot_token_unforgeability.md](contracts/secure_slot_token_unforgeability.md) |
+| P0-1 | Secure slot token unforgeability | `src/runtime/slot_security.c`, `src/runtime/slot_security_crypto.c`, `src/runtime/slot_security_sealed_payload.c`, `src/runtime/slot_manager.c` | [contracts/secure_slot_token_unforgeability.md](contracts/secure_slot_token_unforgeability.md), [02_red_team_threat_model.md](02_red_team_threat_model.md) |
 | P0-2 | Slot generation stale-handle rejection | `src/runtime/slot_manager.c` | (TBD) |
 | P0-3 | Authority transfer single-owner | `src/runtime/pgy_authority_runtime.c` (or equivalent) | (TBD) |
 | P0-4 | TTL cleanup vs pin-state interaction | `src/runtime/slot_manager.c` | (TBD) |
 | P0-5 | Release-while-pinned rejection | `src/runtime/slot_manager.c` | (TBD) |
 | P0-6 | Slot id exhaustion availability / tombstone flooding | `src/runtime/slot_manager_core_ops.c`, `src/runtime/slot_manager.h`, `src/tests/security/test_security_runtime.cases.h`, `docs/74_slot_pinning_caching.md` | `security-portability-contract-test-smoke`, `make test-security` |
 
-Existing regression: `make test-security` 171/171 + `make runtime-panic-abi-test-smoke`.
+Existing regression: `make test-security` 175/175 + `make runtime-panic-abi-test-smoke`.
 Audit covers unenumerated edge cases beyond those executable regressions.
 
 ## P1 - Strongly Recommended Before Beta

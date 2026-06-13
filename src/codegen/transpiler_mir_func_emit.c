@@ -75,16 +75,20 @@ field_slot_paired_token(ASTNode *host, const char *slot_name)
 static void
 register_class_field_slots(TranspilerCtx *ctx, ASTNode *host)
 {
-    size_t field_count = 0;
-    ClassField **fields;
+    TranspilerHostedFieldView fields_view;
 
     if (ctx == NULL || host == NULL || host->type != AST_CLASS_DECL)
         return;
 
-    fields = ast_class_fields(host, &field_count);
-    for (size_t i = 0; i < field_count; i++)
+    /* Route class-field access through the declaration inventory field view
+     * instead of reopening the field array directly (declaration
+     * source-of-truth). */
+    fields_view = transpiler_hosted_class_field_view_from_decl(
+        ctx, transpiler_decl_name_local(host), host);
+    for (size_t i = 0; i < fields_view.ast_compat_count; i++)
     {
-        ClassField *field = fields != NULL ? fields[i] : NULL;
+        ClassField *field = fields_view.ast_compat_fields != NULL
+            ? fields_view.ast_compat_fields[i] : NULL;
         const char *head;
         GenericParams *args;
         bool is_secure;

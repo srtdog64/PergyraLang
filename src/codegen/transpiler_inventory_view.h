@@ -90,6 +90,7 @@ ASTNode *transpiler_active_synthetic_executable_func(
     const TranspilerCtx *ctx);
 
 bool transpiler_active_has_mir(const TranspilerCtx *ctx);
+const char *transpiler_active_source_path(const TranspilerCtx *ctx);
 
 const MIRProgram *transpiler_active_mir_identity(const TranspilerCtx *ctx);
 

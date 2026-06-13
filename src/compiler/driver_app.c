@@ -325,6 +325,10 @@ driver_run_pipeline_timed(const DriverFlags *flags, DriverPhaseTimings *timings)
             "MIR lowering failed", hir_error);
         goto cleanup;
     }
+    /* Opt-in debug line directives: hand the source path to the backend only
+     * when --debug-lines is set; NULL keeps generated output unchanged. */
+    if (flags->emit_debug_lines)
+        mir->source_path = flags->source_path;
     driver_debug_stage("mir_validate");
     phase_start = driver_now_seconds();
     if (!mir_validate(mir, &hir_error)) {

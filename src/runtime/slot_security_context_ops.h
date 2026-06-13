@@ -24,7 +24,7 @@ HardwareFingerprintHash(const HardwareFingerprint *fingerprint)
 SecurityError
 SecurityContextInitialize(SecurityContext *context)
 {
-    uint8_t keyMaterial[64];
+    SecurityError result;
     SecurityError lockResult;
 
     if (context == NULL) {
@@ -58,18 +58,12 @@ SecurityContextInitialize(SecurityContext *context)
         }
     }
 
-    memcpy(keyMaterial, &context->hwFingerprint, sizeof(HardwareFingerprint));
-    memcpy(keyMaterial + sizeof(HardwareFingerprint), SECURITY_MAGIC,
-           sizeof(SECURITY_MAGIC));
-    if (SecureHashSHA256(keyMaterial, sizeof(keyMaterial), context->masterKey) !=
-        SECURITY_SUCCESS) {
-        SecureMemoryWipe(keyMaterial, sizeof(keyMaterial));
+    result = SecurityContextDeriveMasterKey(context);
+    if (result != SECURITY_SUCCESS) {
         slot_security_warn("context-initialize", SECURITY_ERROR_CRYPTOGRAPHY_FAILED,
                            "master key derivation failed");
         return SECURITY_ERROR_CRYPTOGRAPHY_FAILED;
     }
-
-    SecureMemoryWipe(keyMaterial, sizeof(keyMaterial));
     if (!context->masterKeyLocked) {
         lockResult = SecureMemoryLock(context->masterKey, context->keySize);
         context->masterKeyLocked = (lockResult == SECURITY_SUCCESS);
@@ -109,6 +103,7 @@ TokenRefresh(SecurityContext *context, TokenCapability *capability)
     bool canRead;
     bool canWrite;
     bool canTransfer;
+    SecurityError result;
 
     if (context == NULL || capability == NULL)
         return SECURITY_ERROR_CONTEXT_NOT_INITIALIZED;
@@ -125,7 +120,7 @@ TokenRefresh(SecurityContext *context, TokenCapability *capability)
     capability->canRead = canRead;
     capability->canWrite = canWrite;
     capability->canTransfer = canTransfer;
-    capability->token.checksum = TokenCapabilityChecksum(
+    result = TokenCapabilityChecksum(
         context,
         capability->slotId,
         capability->level,
@@ -133,9 +128,10 @@ TokenRefresh(SecurityContext *context, TokenCapability *capability)
         capability->canRead,
         capability->canWrite,
         capability->canTransfer,
-        capability->expiryTime
+        capability->expiryTime,
+        &capability->token.checksum
     );
-    return SECURITY_SUCCESS;
+    return result;
 }
 
 void

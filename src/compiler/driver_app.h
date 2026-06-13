@@ -66,6 +66,7 @@ typedef struct
     HIRDumpMode hir_dump_mode;
     bool        verbose;
     bool        repl;
+    bool        emit_debug_lines;  /* --debug-lines: #line directives in C */
     BackendKind backend;
     PgyOptProfile opt_profile;
     DiagnosticFormat diag_format;  /* --error-format=text|json (default text) */

@@ -423,8 +423,8 @@ struct MIRProgram
     bool        has_top_level_exec;
     bool        has_main_function;
     const char *main_function_name;
+    const char *source_path;  /* non-owning; NULL disables debug-line output */
 };
-
 MIRProgram *mir_lower(const HIRProgram *hir, const RIRProgram *rir, char **error_message);
 void        mir_instruction_record_surface_usage(MIRInstruction *inst);
 bool        mir_instruction_is_intent_stmt(const MIRInstruction *inst,

@@ -258,7 +258,7 @@ panic class.
 Current evidence:
 
 - Runtime slot manager stores generation counters and rejects stale handles.
-- `make test-security` (171/171 passed locally) covers stale-generation
+- `make test-security` (175/175 passed locally) covers stale-generation
   read/write/pin/release rejection, released-slot id recycle with generation
   advance, and `SlotIsValid` false for stale-generation handles.
 - The current C ABI is a 32-bit `slotId` / `generation` handle, so ABA safety
@@ -296,7 +296,9 @@ Current evidence:
   hard-fail or explicit rejection, not silent fallback.
 - Authority failure snapshots do not expose secret token material.
 - Runtime token validation is bound to the current `SlotEntry` generation and
-  stored token generation, so stale handles and revoked tokens are rejected.
+  the decrypted stored token, compared in constant time with the presented
+  token, so stale handles, stored-token tampering, and revoked tokens are
+  rejected.
 - `make test-security` covers revoked-token read/write/pin/release rejection.
 - Raw `SlotRelease` cannot release secure slots; successful secure release must
   use `SlotReleaseSecure` after token validation.

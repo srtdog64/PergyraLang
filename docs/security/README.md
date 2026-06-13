@@ -68,7 +68,7 @@ For Pergyra specifically:
   `docs/118_slot_model_rigor_audit.md` §4.4) are the safety net that
   Tier 1/Tier 2 static rules fall back on. Their soundness is
   incompletely proven; only enumerated edge cases are regression-tested
-  (currently `make test-security` 171/171). Adversarial audit covers
+  (currently `make test-security` 175/175). Adversarial audit covers
   unenumerated edge cases.
 - Dual C/LLVM parity gates provide an automatic oracle: backends that
   produce different observable output are confirmed bugs.
@@ -89,7 +89,13 @@ For Pergyra specifically:
   with regression-test reference.
 - [`templates/`](templates/) — Audit log and finding templates.
 
+- [`02_red_team_threat_model.md`](02_red_team_threat_model.md) - Attacker
+  tiers, kill-chain families, defense matrix, and beta exit bar.
+
 ## Cross-References
+
+- `docs/security/02_red_team_threat_model.md` - red-team attack model and
+  claim rules for current security surfaces.
 
 - `docs/118_slot_model_rigor_audit.md` — Tier 3 invariants are the
   primary audit targets here.

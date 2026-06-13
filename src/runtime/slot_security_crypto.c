@@ -38,10 +38,10 @@ slot_crypto_ctr_increment(uint8_t ctr[16])
 }
 
 #ifdef _WIN32
-static SecurityError
-slot_crypto_hmac_sha256(const uint8_t *key, size_t keyLen,
-                        const uint8_t *message, size_t messageLen,
-                        uint8_t output[32])
+SecurityError
+SecureHmacSHA256(const uint8_t *key, size_t keyLen,
+                 const uint8_t *message, size_t messageLen,
+                 uint8_t output[32])
 {
     BCRYPT_ALG_HANDLE alg = NULL;
     BCRYPT_HASH_HANDLE hash = NULL;
@@ -167,10 +167,10 @@ cleanup:
     return result;
 }
 #else
-static SecurityError
-slot_crypto_hmac_sha256(const uint8_t *key, size_t keyLen,
-                        const uint8_t *message, size_t messageLen,
-                        uint8_t output[32])
+SecurityError
+SecureHmacSHA256(const uint8_t *key, size_t keyLen,
+                 const uint8_t *message, size_t messageLen,
+                 uint8_t output[32])
 {
     unsigned int outLen = 0;
 
@@ -241,7 +241,7 @@ AES256Encrypt(const uint8_t key[32], const uint8_t iv[16],
         return SECURITY_ERROR_CRYPTOGRAPHY_FAILED;
     memcpy(authData, iv, 16);
     memcpy(authData + 16, ciphertext, plaintextSize);
-    err = slot_crypto_hmac_sha256(key, 32, authData, 16 + plaintextSize, digest);
+    err = SecureHmacSHA256(key, 32, authData, 16 + plaintextSize, digest);
     SecureMemoryWipe(authData, 16 + plaintextSize);
     free(authData);
     if (err != SECURITY_SUCCESS) {
@@ -275,7 +275,7 @@ AES256Decrypt(const uint8_t key[32], const uint8_t iv[16],
         return SECURITY_ERROR_CRYPTOGRAPHY_FAILED;
     memcpy(authData, iv, 16);
     memcpy(authData + 16, ciphertext, ciphertextSize);
-    err = slot_crypto_hmac_sha256(key, 32, authData, 16 + ciphertextSize, digest);
+    err = SecureHmacSHA256(key, 32, authData, 16 + ciphertextSize, digest);
     SecureMemoryWipe(authData, 16 + ciphertextSize);
     free(authData);
     if (err != SECURITY_SUCCESS) {

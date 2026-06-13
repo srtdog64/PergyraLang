@@ -53,6 +53,8 @@ void test_token_operations()
 
     TokenCapability token;
     TokenCapability invalidLevelToken;
+    TokenCapability tamperedToken;
+    TokenCapability expiredToken;
     SecurityError result = TokenGenerate(context, 123, SECURITY_LEVEL_HARDWARE, &token);
     TEST_ASSERT(result == SECURITY_SUCCESS, "Token generation");
     TEST_ASSERT(token.slotId == 123, "Token slot ID assignment");
@@ -77,6 +79,18 @@ void test_token_operations()
     result = TokenValidate(context, 123, &invalidLevelToken);
     TEST_SECURITY_VIOLATION(result == SECURITY_ERROR_INVALID_TOKEN,
                             "Token validation rejects invalid security level");
+
+    tamperedToken = token;
+    tamperedToken.canTransfer = !tamperedToken.canTransfer;
+    result = TokenValidate(context, 123, &tamperedToken);
+    TEST_SECURITY_VIOLATION(result == SECURITY_ERROR_INVALID_TOKEN,
+                            "Token validation rejects capability metadata tamper");
+
+    expiredToken = token;
+    expiredToken.expiryTime = SecureTimestamp() - 1u;
+    result = TokenValidate(context, 123, &expiredToken);
+    TEST_SECURITY_VIOLATION(result == SECURITY_ERROR_TOKEN_EXPIRED,
+                            "Token validation rejects expired token");
 
     SecurityContextDestroy(context);
 }
@@ -174,6 +188,9 @@ void test_secure_slot_manager()
     SlotHandle handle;
     TokenCapability token;
     TokenCapability oldToken;
+    SlotEntry *entry = NULL;
+    EncryptedToken savedWriteToken;
+    size_t i;
     SlotError result = SlotClaimSecure(manager, TYPE_INT, SECURITY_LEVEL_HARDWARE,
                                      &handle, &token);
     TEST_ASSERT(result == SLOT_SUCCESS, "Secure slot claiming");
@@ -201,6 +218,24 @@ void test_secure_slot_manager()
     result = SlotReadSecure(manager, &handle, &readValue, sizeof(readValue),
                           &bytesRead, &token);
     TEST_ASSERT(result == SLOT_SUCCESS, "Refreshed secure slot accepts new token");
+
+    for (i = 0; i < manager->tableSize; i++) {
+        if (manager->slotTable[i].occupied &&
+            manager->slotTable[i].slotId == handle.slotId) {
+            entry = &manager->slotTable[i];
+            break;
+        }
+    }
+    TEST_ASSERT(entry != NULL, "Secure slot stored token lookup");
+    if (entry != NULL) {
+        savedWriteToken = entry->writeToken;
+        entry->writeToken.authTag[0] ^= 0x01u;
+        result = SlotReadSecure(manager, &handle, &readValue, sizeof(readValue),
+                              &bytesRead, &token);
+        TEST_SECURITY_VIOLATION(result == SLOT_ERROR_PERMISSION_DENIED,
+                                "Stored secure token tamper rejects valid capability");
+        entry->writeToken = savedWriteToken;
+    }
 
     result = SlotClaimSecure(manager, TYPE_INT, (SecurityLevel)99, &handle, &oldToken);
     TEST_SECURITY_VIOLATION(result == SLOT_ERROR_INVALID_HANDLE,

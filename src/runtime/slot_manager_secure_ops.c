@@ -150,6 +150,7 @@ SlotValidateToken(SlotManager *manager, const SlotHandle *handle,
                   const TokenCapability *token)
 {
     SlotEntry *entry;
+    SecureToken storedToken;
     bool valid = false;
 
     if (manager == NULL || handle == NULL || token == NULL)
@@ -164,9 +165,15 @@ SlotValidateToken(SlotManager *manager, const SlotHandle *handle,
 
     pthread_mutex_lock(manager_mutex(manager));
     entry = find_slot_entry_locked(manager, handle);
-    if (entry != NULL && entry->securityEnabled && entry->tokenGeneration != 0 &&
-        entry->tokenGeneration == token->token.generation)
-        valid = true;
+    if (entry != NULL && entry->securityEnabled &&
+        entry->securityLevel == token->level &&
+        entry->tokenGeneration != 0 &&
+        entry->tokenGeneration == token->token.generation &&
+        TokenDecrypt(manager->securityContext, &entry->writeToken,
+                     &storedToken) == SECURITY_SUCCESS) {
+        valid = TokenCompareSecure(&storedToken, &token->token);
+        SecureMemoryWipe(&storedToken, sizeof(storedToken));
+    }
     pthread_mutex_unlock(manager_mutex(manager));
     return valid;
 }

@@ -88,6 +88,7 @@ void llvm_active_externs(const LLVMGenCtx *ctx,
                          size_t *count_out);
 ASTNode *llvm_active_synthetic_executable_func(const LLVMGenCtx *ctx);
 bool llvm_active_has_mir(const LLVMGenCtx *ctx);
+const char *llvm_active_source_path(const LLVMGenCtx *ctx);
 bool llvm_active_has_main_function(const LLVMGenCtx *ctx);
 const char *llvm_active_main_function_name(const LLVMGenCtx *ctx);
 bool llvm_active_has_top_level_exec(const LLVMGenCtx *ctx);

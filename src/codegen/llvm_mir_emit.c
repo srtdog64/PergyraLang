@@ -383,6 +383,12 @@ llvm_emit_func_from_mir(const MIRRoutine *routine, LLVMGenCtx *ctx)
     LLVMValueRef fn = entry != NULL ? entry->fn : NULL;
     if (fn == NULL)
         return NULL;
+    {
+        unsigned di_line = routine->block_count > 0
+            ? mir_block_source_line(&routine->blocks[routine->entry_block])
+            : 0;
+        llvm_debug_begin_function(ctx, fn_name, fn, di_line);
+    }
     llvm_mir_debug_stage("emit_func_from_mir:fn_ready", routine);
     LLVMValueRef saved_fn = ctx->current_function;
     LLVMTypeRef saved_ret = ctx->current_ret_type;

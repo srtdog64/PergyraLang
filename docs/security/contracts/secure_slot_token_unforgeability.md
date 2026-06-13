@@ -56,7 +56,7 @@ that layer.
 ## Existing Regression Coverage
 
 `make test-security` covers the following enumerated cases (currently
-171/171 passing):
+175/175 passing):
 
 - Stale-generation read/write/pin/release rejection
 - Stale `SlotIsValid` returning false
@@ -68,7 +68,10 @@ that layer.
 - Invalid (zero) secure-token rejection on read/write/pin/release
 - Invalid `SecurityLevel` rejection at context, token, and secure-claim entry
   points
+- Capability metadata tamper and expired token rejection
 - Token-refresh replay rejection for the old token
+- Stored encrypted token tamper rejection before read/write/release/pin can
+  treat a capability as live
 - SHA-256 and AES-256-CTR/HMAC known-answer vectors, including authentication
   tag tamper rejection
 - Security portability smoke checks that the crypto owner uses standard
@@ -90,6 +93,10 @@ These together are the **enumerated** test surface. The audit's job is
 to find counterexamples *outside* this enumeration.
 
 ## Adversarial Input Shape
+
+Use `../02_red_team_threat_model.md` as the red-team source of truth for
+attacker tiers, kill-chain families, and claim limits. This contract lists the
+P0-1 operation families that must be enumerated for token unforgeability.
 
 Operations the AI Validator may sequence:
 
@@ -125,6 +132,13 @@ Adversarial techniques to enumerate:
    time, but runtime must reject if hand-crafted.
 10. **Backend-divergent** - does C backend and LLVM backend handle
     forgery identically? (Use backend-compare as oracle.)
+11. **Stored authority tamper** - mutate `entry->writeToken` or
+    `entry->tokenGeneration` while presenting an otherwise valid capability.
+    Must reject before read/write/release/pin treats the capability as live.
+12. **Capability metadata tamper** - mutate permissions, expiry, level, or
+    transfer fields without reissuing the token. Must reject.
+13. **Provider drift** - remove the required platform crypto provider or
+    reintroduce custom AES/SHA/RNG code. Must fail preflight or smoke.
 
 ## Known Limits - Not Covered By This Audit
 

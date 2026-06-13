@@ -179,6 +179,9 @@ SecurityError TokenDecrypt(SecurityContext *context, const EncryptedToken *encry
 SecurityError SecureRandomGenerate(uint8_t *buffer, size_t size);
 SecurityError SecureHashSHA256(const uint8_t *input, size_t inputSize,
                               uint8_t output[32]);
+SecurityError SecureHmacSHA256(const uint8_t *key, size_t keySize,
+                              const uint8_t *input, size_t inputSize,
+                              uint8_t output[32]);
 SecurityError SecureMemoryLock(void *addr, size_t size);
 SecurityError SecureMemoryUnlock(void *addr, size_t size);
 void          SecureMemoryWipe(void *addr, size_t size);

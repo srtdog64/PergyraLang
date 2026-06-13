@@ -6,6 +6,7 @@
 
 #include "../parser/ast_api.h"
 #include "transpiler_context.h"
+#include "transpiler_inventory_view.h"
 #include "transpiler_defer_emit.h"
 #include "transpiler_expr_type_infer.h"
 #include "transpiler_mir_assignment_emit.h"
@@ -28,6 +29,26 @@
 #include "transpiler_mir_ssa_utils.h"
 #include "transpiler_mir_stmt_emit.h"
 #include "transpiler_symbols.h"
+
+/* Emit a C preprocessor `#line N "path"` directive at column 0 so the C
+ * compiler's debug line table (DWARF/CodeView) maps generated code back to the
+ * Pergyra source. The path is escaped for backslash and quote. */
+static void
+transpiler_emit_c_line_directive(CodeBuf *buf, uint32_t line, const char *path)
+{
+    const char *p;
+
+    if (buf == NULL || path == NULL || line == 0)
+        return;
+    codebuf_write(buf, "#line %u \"", (unsigned)line);
+    for (p = path; *p != '\0'; p++) {
+        if (*p == '\\' || *p == '\"')
+            codebuf_write(buf, "\\%c", *p);
+        else
+            codebuf_write(buf, "%c", *p);
+    }
+    codebuf_write(buf, "\"\n");
+}
 
 bool
 transpiler_emit_mir_block_statements(CodeBuf *buf, const ASTNode *func_decl,
@@ -134,10 +155,21 @@ transpiler_emit_mir_block_statements(CodeBuf *buf, const ASTNode *func_decl,
         return false;
     }
 
+    uint32_t debug_last_line = 0;
+    const char *debug_source_path = transpiler_active_source_path(ctx);
     for (size_t i = 0; i < block->instruction_count; i++) {
         size_t inst_index = source_order_mode ? inst_order[i] : i;
         const MIRInstruction *inst = &block->instructions[inst_index];
         ASTNode *stmt = transpiler_mir_find_stmt_for_inst(inst);
+
+        if (debug_source_path != NULL) {
+            uint32_t debug_line = mir_instruction_source_line(inst);
+            if (debug_line != 0 && debug_line != debug_last_line) {
+                transpiler_emit_c_line_directive(buf, debug_line,
+                                                 debug_source_path);
+                debug_last_line = debug_line;
+            }
+        }
 
         if (!transpiler_materialize_pending_inst_uses(buf, ctx, func_decl, block,
                                                       inst, ssa_map_out, ctx->indent,

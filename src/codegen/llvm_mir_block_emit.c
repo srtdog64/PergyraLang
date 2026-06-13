@@ -404,6 +404,7 @@ llvm_emit_mir_block_with_exprs(const MIRBasicBlock *mir_block,
     for (size_t i = 0; i < mir_block->instruction_count; i++) {
         const MIRInstruction *inst = &mir_block->instructions[i];
         ASTNode *source_payload = mir_instruction_source_payload(inst);
+        llvm_debug_set_line(ctx, mir_instruction_source_line(inst));
         if (llvm_debug_detail_enabled()) {
             fprintf(stderr,
                 "[llvm inst] block=%zu inst=%zu kind=%d ast=%d result=%s\n",

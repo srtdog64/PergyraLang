@@ -22,6 +22,7 @@
 #include <stdbool.h>
 
 #include <llvm-c/Core.h>
+#include <llvm-c/DebugInfo.h>
 #include <llvm-c/Analysis.h>
 #include <llvm-c/Target.h>
 #include <llvm-c/TargetMachine.h>
@@ -338,6 +339,14 @@ typedef struct LLVMGenCtx
     LLVMBuilderRef  builder;
     LLVMContextRef  context;
 
+    /* Opt-in debug info (gated on mir->source_path). di_scope is the current
+     * function's DISubprogram, used as the scope for per-statement locations. */
+    LLVMDIBuilderRef di_builder;
+    LLVMMetadataRef  di_file;
+    LLVMMetadataRef  di_cu;
+    LLVMMetadataRef  di_scope;
+    bool             di_enabled;
+
     /* Scope stack: fixed depth, dynamic entries per scope. */
     LLVMScopeFrame  scopes[MAX_SCOPE_DEPTH];
     int             scope_depth;
@@ -565,6 +574,11 @@ typedef struct LLVMGenCtx
      * registry-backed arrays that must not be scratch-owned. */
     PgyArena        persistent;
 } LLVMGenCtx;
+
+/* Opt-in debug info (DWARF via DILocation); no-ops unless mir->source_path. */
+void llvm_debug_begin_function(LLVMGenCtx *ctx, const char *name,
+                               LLVMValueRef fn, unsigned line);
+void llvm_debug_set_line(LLVMGenCtx *ctx, unsigned line);
 
 #include "llvm_inventory_internal.h"
 #include "llvm_internal_api.h"

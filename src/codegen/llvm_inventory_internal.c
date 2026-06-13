@@ -325,6 +325,12 @@ llvm_active_has_mir(const LLVMGenCtx *ctx)
     return ctx != NULL && ctx->mir != NULL;
 }
 
+const char *
+llvm_active_source_path(const LLVMGenCtx *ctx)
+{
+    return (ctx != NULL && ctx->mir != NULL) ? ctx->mir->source_path : NULL;
+}
+
 bool
 llvm_active_has_main_function(const LLVMGenCtx *ctx)
 {

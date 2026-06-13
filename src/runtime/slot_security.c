@@ -60,34 +60,50 @@ SecurityLevelIsValid(SecurityLevel level)
         || level == SECURITY_LEVEL_ENCRYPTED;
 }
 
-static uint32_t
-SecurityChecksumBytes(const uint8_t *data, size_t size)
+static SecurityError
+SecurityContextDeriveMasterKey(SecurityContext *context)
 {
-    uint32_t checksum = 0;
-    size_t i;
+    uint8_t randomSeed[32];
+    uint8_t keyMaterial[sizeof(randomSeed) + sizeof(HardwareFingerprint) +
+                        sizeof(SECURITY_MAGIC)];
+    size_t offset = 0;
+    SecurityError result;
 
-    for (i = 0; i < size; i++) {
-        checksum = (checksum << 5) | (checksum >> 27);
-        checksum ^= data[i];
-        checksum += data[i];
-    }
+    if (context == NULL || context->masterKey == NULL || context->keySize != 32)
+        return SECURITY_ERROR_CONTEXT_NOT_INITIALIZED;
 
-    return checksum;
+    result = SecureRandomGenerate(randomSeed, sizeof(randomSeed));
+    if (result != SECURITY_SUCCESS)
+        return result;
+
+    memcpy(keyMaterial + offset, randomSeed, sizeof(randomSeed));
+    offset += sizeof(randomSeed);
+    memcpy(keyMaterial + offset, &context->hwFingerprint,
+           sizeof(context->hwFingerprint));
+    offset += sizeof(context->hwFingerprint);
+    memcpy(keyMaterial + offset, SECURITY_MAGIC, sizeof(SECURITY_MAGIC));
+    offset += sizeof(SECURITY_MAGIC);
+
+    result = SecureHashSHA256(keyMaterial, offset, context->masterKey);
+    SecureMemoryWipe(randomSeed, sizeof(randomSeed));
+    SecureMemoryWipe(keyMaterial, sizeof(keyMaterial));
+    return result;
 }
 
-static uint32_t
+static SecurityError
 TokenCapabilityChecksum(SecurityContext *context, uint32_t slotId,
                         SecurityLevel level, const SecureToken *token,
                         bool canRead, bool canWrite, bool canTransfer,
-                        uint64_t expiryTime)
+                        uint64_t expiryTime, uint32_t *outChecksum)
 {
     uint8_t material[64];
     uint8_t digest[32];
     size_t offset = 0;
     uint32_t hwHash;
 
-    if (context == NULL || token == NULL)
-        return 0;
+    if (context == NULL || context->masterKey == NULL || token == NULL ||
+        outChecksum == NULL)
+        return SECURITY_ERROR_CONTEXT_NOT_INITIALIZED;
 
     hwHash = HardwareFingerprintHash(&context->hwFingerprint);
 
@@ -107,11 +123,19 @@ TokenCapabilityChecksum(SecurityContext *context, uint32_t slotId,
     memcpy(material + offset, &hwHash, sizeof(hwHash));
     offset += sizeof(hwHash);
 
-    if (SecureHashSHA256(material, offset, digest) != SECURITY_SUCCESS)
-        return SecurityChecksumBytes(material, offset);
+    if (SecureHmacSHA256(context->masterKey, context->keySize,
+                         material, offset, digest) != SECURITY_SUCCESS) {
+        SecureMemoryWipe(material, sizeof(material));
+        return SECURITY_ERROR_CRYPTOGRAPHY_FAILED;
+    }
 
-    return ((uint32_t)digest[0] << 24) | ((uint32_t)digest[1] << 16) |
-           ((uint32_t)digest[2] << 8) | (uint32_t)digest[3];
+    *outChecksum = ((uint32_t)digest[0] << 24) |
+                   ((uint32_t)digest[1] << 16) |
+                   ((uint32_t)digest[2] << 8) |
+                   (uint32_t)digest[3];
+    SecureMemoryWipe(material, sizeof(material));
+    SecureMemoryWipe(digest, sizeof(digest));
+    return SECURITY_SUCCESS;
 }
 
 /*
@@ -158,24 +182,14 @@ SecurityContextCreate(SecurityLevel defaultLevel)
         return NULL;
     }
     
-    /* Derive master key from hardware fingerprint and compile-time constants */
-    uint8_t keyMaterial[64];
-    memcpy(keyMaterial, &context->hwFingerprint, sizeof(HardwareFingerprint));
-    memcpy(keyMaterial + sizeof(HardwareFingerprint), SECURITY_MAGIC, 
-           sizeof(SECURITY_MAGIC));
-    
-    if (SecureHashSHA256(keyMaterial, sizeof(keyMaterial), context->masterKey)
-        != SECURITY_SUCCESS) {
+    result = SecurityContextDeriveMasterKey(context);
+    if (result != SECURITY_SUCCESS) {
         slot_security_warn("context-create", SECURITY_ERROR_CRYPTOGRAPHY_FAILED,
                            "master key derivation failed");
-        SecureMemoryWipe(keyMaterial, sizeof(keyMaterial));
         free(context->masterKey);
         free(context);
         return NULL;
     }
-    
-    /* Securely wipe key material */
-    SecureMemoryWipe(keyMaterial, sizeof(keyMaterial));
     
     /* Lock master key in memory where the platform permits it. */
     result = SecureMemoryLock(context->masterKey, context->keySize);
@@ -287,7 +301,7 @@ TokenGenerate(SecurityContext *context, uint32_t slotId,
     
     /* Set token generation and checksum */
     capability->token.generation = ++context->tokensIssued;
-    capability->token.checksum = TokenCapabilityChecksum(
+    result = TokenCapabilityChecksum(
         context,
         slotId,
         level,
@@ -295,8 +309,14 @@ TokenGenerate(SecurityContext *context, uint32_t slotId,
         capability->canRead,
         capability->canWrite,
         capability->canTransfer,
-        capability->expiryTime
+        capability->expiryTime,
+        &capability->token.checksum
     );
+    if (result != SECURITY_SUCCESS) {
+        SecureMemoryWipe(tokenMaterial, sizeof(tokenMaterial));
+        SecureMemoryWipe(capability, sizeof(*capability));
+        return result;
+    }
     
     /* Securely wipe token material */
     SecureMemoryWipe(tokenMaterial, sizeof(tokenMaterial));
@@ -309,6 +329,7 @@ TokenValidate(SecurityContext *context, uint32_t slotId,
              const TokenCapability *capability)
 {
     uint32_t expectedChecksum;
+    SecurityError result;
 
     if (context == NULL || !context->initialized || capability == NULL)
         return SECURITY_ERROR_CONTEXT_NOT_INITIALIZED;
@@ -338,18 +359,21 @@ TokenValidate(SecurityContext *context, uint32_t slotId,
     /* Validate hardware binding for HARDWARE level and above */
     if (capability->level >= SECURITY_LEVEL_HARDWARE) {
         HardwareFingerprint currentFingerprint;
-        SecurityError result = HardwareFingerprintGenerate(&currentFingerprint);
-        if (result != SECURITY_SUCCESS)
+        result = HardwareFingerprintGenerate(&currentFingerprint);
+        if (result != SECURITY_SUCCESS) {
+            context->validationFailures++;
             return result;
+        }
         
         if (!HardwareFingerprintCompare(&context->hwFingerprint, &currentFingerprint)) {
+            context->validationFailures++;
             context->securityViolations++;
             return SECURITY_ERROR_HARDWARE_MISMATCH;
         }
     }
     
     /* Validate token checksum */
-    expectedChecksum = TokenCapabilityChecksum(
+    result = TokenCapabilityChecksum(
         context,
         slotId,
         capability->level,
@@ -357,8 +381,14 @@ TokenValidate(SecurityContext *context, uint32_t slotId,
         capability->canRead,
         capability->canWrite,
         capability->canTransfer,
-        capability->expiryTime
+        capability->expiryTime,
+        &expectedChecksum
     );
+    if (result != SECURITY_SUCCESS) {
+        context->validationFailures++;
+        context->securityViolations++;
+        return result;
+    }
 
     if (capability->token.checksum != expectedChecksum) {
         context->validationFailures++;

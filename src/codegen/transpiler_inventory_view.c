@@ -253,6 +253,12 @@ transpiler_active_has_mir(const TranspilerCtx *ctx)
     return ctx != NULL && ctx->mir != NULL;
 }
 
+const char *
+transpiler_active_source_path(const TranspilerCtx *ctx)
+{
+    return (ctx != NULL && ctx->mir != NULL) ? ctx->mir->source_path : NULL;
+}
+
 const MIRProgram *
 transpiler_active_mir_identity(const TranspilerCtx *ctx)
 {

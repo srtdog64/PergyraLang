@@ -13,6 +13,7 @@
 #include "llvm_boundary_slot_param.h"
 #include "llvm_internal_api.h"
 #include "llvm_mir_signature.h"
+#include "llvm_inventory_decl_lookup.h"
 #include "llvm_mir_type_helpers.h"
 #include "llvm_domain_role_helpers.h"
 #include "llvm_inventory_decl_lookup.h"
@@ -137,8 +138,7 @@ llvm_register_class_field_slots(LLVMGenCtx *ctx, const char *owner_name)
     ASTNode *host;
     LLVMClassTypeEntry *cls;
     LLVMValueRef self_base;
-    size_t field_count = 0;
-    ClassField **fields;
+    LLVMHostedFieldView fields_view;
 
     if (ctx == NULL || owner_name == NULL)
         return;
@@ -152,10 +152,14 @@ llvm_register_class_field_slots(LLVMGenCtx *ctx, const char *owner_name)
     if (self_base == NULL)
         return;
 
-    fields = ast_class_fields(host, &field_count);
-    for (size_t i = 0; i < field_count; i++)
+    /* Route class-field access through the declaration inventory field view
+     * instead of reopening the field array directly (declaration
+     * source-of-truth). */
+    fields_view = llvm_hosted_class_field_view_from_decl(ctx, owner_name, host);
+    for (size_t i = 0; i < fields_view.ast_compat_count; i++)
         llvm_register_one_field_slot(ctx, host, cls, self_base,
-            fields != NULL ? fields[i] : NULL);
+            fields_view.ast_compat_fields != NULL
+                ? fields_view.ast_compat_fields[i] : NULL);
 }
 
 void

@@ -156,6 +156,8 @@ HardwareFingerprintGenerate(HardwareFingerprint *fingerprint)
         fingerprint->macAddress = 0;
 
     fingerprint->platformHash = 0;
+#else
+    return SECURITY_ERROR_UNSUPPORTED_PLATFORM;
 #endif
 
     SecurityFillFallbackIdentity(fingerprint);
