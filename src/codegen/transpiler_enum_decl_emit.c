@@ -24,17 +24,26 @@ emit_enum_decl_stmt(ASTNode *node, TranspilerCtx *ctx)
 {
     const char *ename = transpiler_decl_name_local(node);
     size_t variant_count = 0;
-    const MIRDeclHeader *enum_header;
+    char **variants = NULL;
+    const MIRDeclHeader *enum_header = NULL;
+    bool use_mir_variants = false;
     if (ename == NULL)
         return;
-    enum_header = transpiler_active_decl_header_of_type(ctx, node->type, ename);
-    if (enum_header == NULL) {
-        transpiler_set_mir_inventory_missing(ctx,
-            "MIR-only C path missing declaration metadata for enum variants '%s'",
+    enum_header = transpiler_active_decl_header_of_type(
+        ctx, AST_ENUM_DECL, ename);
+    if (transpiler_active_has_mir(ctx) && enum_header == NULL) {
+        transpiler_set_mir_inventory_missing(
+            ctx,
+            "MIR-only C path missing enum variant metadata for '%s'",
             ename);
         return;
     }
-    variant_count = mir_decl_header_variant_count(enum_header);
+    use_mir_variants = enum_header != NULL;
+    if (use_mir_variants) {
+        variant_count = mir_decl_header_variant_count(enum_header);
+    } else {
+        variants = ast_enum_variants(node, &variant_count);
+    }
     TranspilerHostedMethodView method_view =
         transpiler_hosted_method_view_from_decl(ctx, ename, node);
     if (transpiler_hosted_method_view_missing_mir_metadata(&method_view)) {
@@ -54,8 +63,12 @@ emit_enum_decl_stmt(ASTNode *node, TranspilerCtx *ctx)
 
     bool has_data = false;
     for (size_t i = 0; i < variant_count; i++) {
-        if (mir_decl_variant_param_count(
-                mir_decl_header_variant(enum_header, i)) > 0) {
+        const MIRDeclEnumVariant *variant_meta = use_mir_variants
+            ? mir_decl_header_variant(enum_header, i) : NULL;
+        size_t param_count = use_mir_variants
+            ? mir_decl_variant_param_count(variant_meta)
+            : ast_enum_variant_param_count(node, i);
+        if (param_count > 0) {
             has_data = true;
             break;
         }
@@ -64,9 +77,20 @@ emit_enum_decl_stmt(ASTNode *node, TranspilerCtx *ctx)
     if (!has_data) {
         codebuf_write(ctx->out, "typedef enum {\n");
         for (size_t i = 0; i < variant_count; i++) {
+            const MIRDeclEnumVariant *variant_meta = use_mir_variants
+                ? mir_decl_header_variant(enum_header, i) : NULL;
+            const char *vname = use_mir_variants
+                ? mir_decl_variant_name(variant_meta)
+                : (variants != NULL ? variants[i] : NULL);
+            if (vname == NULL) {
+                transpiler_set_mir_inventory_missing(
+                    ctx,
+                    "MIR-only C path has invalid enum variant metadata row for '%s'",
+                    ename);
+                return;
+            }
             codebuf_write(ctx->out, "    %s_%s = %zu",
-                ename, mir_decl_variant_name(
-                    mir_decl_header_variant(enum_header, i)), i);
+                ename, vname, i);
             if (i + 1 < variant_count)
                 codebuf_write(ctx->out, ",");
             codebuf_write(ctx->out, "\n");
@@ -75,9 +99,20 @@ emit_enum_decl_stmt(ASTNode *node, TranspilerCtx *ctx)
     } else {
         codebuf_write(ctx->out, "typedef enum {\n");
         for (size_t i = 0; i < variant_count; i++) {
+            const MIRDeclEnumVariant *variant_meta = use_mir_variants
+                ? mir_decl_header_variant(enum_header, i) : NULL;
+            const char *vname = use_mir_variants
+                ? mir_decl_variant_name(variant_meta)
+                : (variants != NULL ? variants[i] : NULL);
+            if (vname == NULL) {
+                transpiler_set_mir_inventory_missing(
+                    ctx,
+                    "MIR-only C path has invalid enum variant metadata row for '%s'",
+                    ename);
+                return;
+            }
             codebuf_write(ctx->out, "    %s_TAG_%s = %zu",
-                ename, mir_decl_variant_name(
-                    mir_decl_header_variant(enum_header, i)), i);
+                ename, vname, i);
             if (i + 1 < variant_count)
                 codebuf_write(ctx->out, ",");
             codebuf_write(ctx->out, "\n");
@@ -88,31 +123,65 @@ emit_enum_decl_stmt(ASTNode *node, TranspilerCtx *ctx)
         codebuf_write(ctx->out, "    %s_Tag tag;\n", ename);
         codebuf_write(ctx->out, "    union {\n");
         for (size_t i = 0; i < variant_count; i++) {
-            const MIRDeclEnumVariant *v =
-                mir_decl_header_variant(enum_header, i);
-            size_t pc = mir_decl_variant_param_count(v);
+            const MIRDeclEnumVariant *v = use_mir_variants
+                ? mir_decl_header_variant(enum_header, i) : NULL;
+            const char *vname = use_mir_variants
+                ? mir_decl_variant_name(v)
+                : (variants != NULL ? variants[i] : NULL);
+            size_t pc = use_mir_variants
+                ? mir_decl_variant_param_count(v)
+                : ast_enum_variant_param_count(node, i);
             if (pc == 0)
                 continue;
+            if (vname == NULL) {
+                transpiler_set_mir_inventory_missing(
+                    ctx,
+                    "MIR-only C path has invalid enum variant metadata row for '%s'",
+                    ename);
+                return;
+            }
             codebuf_write(ctx->out, "        struct { ");
             for (size_t p = 0; p < pc; p++) {
-                const char *ptn = mir_decl_variant_param_type_name(v, p);
                 char ctype[256];
-                if (!transpiler_require_type_name_c_type_copy(ctx, ptn,
-                        "enum variant payload field", ctype, sizeof(ctype))) {
-                    return;
+                if (use_mir_variants) {
+                    const char *ptn =
+                        mir_decl_variant_param_type_name(v, p);
+                    if (!transpiler_require_type_name_c_type_copy(ctx, ptn,
+                            "enum variant payload field",
+                            ctype, sizeof(ctype))) {
+                        return;
+                    }
+                } else {
+                    ASTNode *pt = ast_enum_variant_param(node, i, p);
+                    if (!transpiler_require_ast_c_type_copy(ctx, pt,
+                            "enum variant payload field",
+                            ctype, sizeof(ctype))) {
+                        return;
+                    }
                 }
                 codebuf_write(ctx->out, "%s _%zu; ", ctype, p);
             }
-            codebuf_write(ctx->out, "} %s;\n", mir_decl_variant_name(v));
+            codebuf_write(ctx->out, "} %s;\n", vname);
         }
         codebuf_write(ctx->out, "    };\n");
         codebuf_write(ctx->out, "} %s;\n\n", ename);
 
         for (size_t i = 0; i < variant_count; i++) {
-            const MIRDeclEnumVariant *v =
-                mir_decl_header_variant(enum_header, i);
-            size_t pc = mir_decl_variant_param_count(v);
-            const char *vname = mir_decl_variant_name(v);
+            const MIRDeclEnumVariant *v = use_mir_variants
+                ? mir_decl_header_variant(enum_header, i) : NULL;
+            size_t pc = use_mir_variants
+                ? mir_decl_variant_param_count(v)
+                : ast_enum_variant_param_count(node, i);
+            const char *vname = use_mir_variants
+                ? mir_decl_variant_name(v)
+                : (variants != NULL ? variants[i] : NULL);
+            if (vname == NULL) {
+                transpiler_set_mir_inventory_missing(
+                    ctx,
+                    "MIR-only C path has invalid enum variant metadata row for '%s'",
+                    ename);
+                return;
+            }
             if (pc == 0) {
                 /* Payload-less variant of a tagged union is a constant value,
                  * referenced bare as `Enum.Variant` (no call). */
@@ -123,12 +192,22 @@ emit_enum_decl_stmt(ASTNode *node, TranspilerCtx *ctx)
                 codebuf_write(ctx->out,
                     "static inline %s %s_%s(", ename, ename, vname);
                 for (size_t p = 0; p < pc; p++) {
-                    const char *ptn = mir_decl_variant_param_type_name(v, p);
                     char ctype[256];
-                    if (!transpiler_require_type_name_c_type_copy(ctx, ptn,
-                            "enum variant constructor parameter",
-                            ctype, sizeof(ctype))) {
-                        return;
+                    if (use_mir_variants) {
+                        const char *ptn =
+                            mir_decl_variant_param_type_name(v, p);
+                        if (!transpiler_require_type_name_c_type_copy(ctx, ptn,
+                                "enum variant constructor parameter",
+                                ctype, sizeof(ctype))) {
+                            return;
+                        }
+                    } else {
+                        ASTNode *pt = ast_enum_variant_param(node, i, p);
+                        if (!transpiler_require_ast_c_type_copy(ctx, pt,
+                                "enum variant constructor parameter",
+                                ctype, sizeof(ctype))) {
+                            return;
+                        }
                     }
                     if (p > 0)
                         codebuf_write(ctx->out, ", ");

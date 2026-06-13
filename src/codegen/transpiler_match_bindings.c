@@ -184,15 +184,15 @@ transpiler_match_is_enum_variant_destructor(
         use_mir_variants = enum_header != NULL;
         bool has_data = false;
         if (use_mir_variants) {
-            variant_count = mir_decl_header_enum_variant_count(enum_header);
+            variant_count = mir_decl_header_variant_count(enum_header);
         } else {
             variants = ast_enum_variants(stmt, &variant_count);
         }
         for (size_t j = 0; j < variant_count; j++) {
             const MIRDeclEnumVariant *variant_meta = use_mir_variants
-                ? mir_decl_header_enum_variant(enum_header, j) : NULL;
+                ? mir_decl_header_variant(enum_header, j) : NULL;
             size_t param_count = use_mir_variants
-                ? mir_decl_enum_variant_param_count(variant_meta)
+                ? mir_decl_variant_param_count(variant_meta)
                 : ast_enum_variant_param_count(stmt, j);
             if (param_count > 0) {
                 has_data = true;
@@ -204,13 +204,13 @@ transpiler_match_is_enum_variant_destructor(
 
         for (size_t j = 0; j < variant_count; j++) {
             const MIRDeclEnumVariant *variant_meta = use_mir_variants
-                ? mir_decl_header_enum_variant(enum_header, j) : NULL;
+                ? mir_decl_header_variant(enum_header, j) : NULL;
             const char *variant = use_mir_variants
-                ? mir_decl_enum_variant_name(variant_meta)
+                ? mir_decl_variant_name(variant_meta)
                 : (variants != NULL ? variants[j] : NULL);
             if (variant != NULL && strcmp(variant, name) == 0) {
                 size_t param_count = use_mir_variants
-                    ? mir_decl_enum_variant_param_count(variant_meta)
+                    ? mir_decl_variant_param_count(variant_meta)
                     : ast_enum_variant_param_count(stmt, j);
                 *variant_name_out = name;
                 *enum_name_out = enum_name;
@@ -224,7 +224,7 @@ transpiler_match_is_enum_variant_destructor(
                     if (k < param_count) {
                         if (use_mir_variants) {
                             binding_type_names_buf[k] =
-                                mir_decl_enum_variant_param_type_name(
+                                mir_decl_variant_param_type_name(
                                     variant_meta, k);
                             if (binding_type_names_buf[k] == NULL) {
                                 transpiler_set_mir_inventory_missing(

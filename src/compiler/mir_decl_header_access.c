@@ -85,13 +85,13 @@ mir_decl_header_field(const MIRDeclHeader *header, size_t index)
 }
 
 size_t
-mir_decl_header_variant_count(const MIRDeclHeader *header)
+mir_decl_header_enum_variant_count(const MIRDeclHeader *header)
 {
     return header != NULL ? header->variant_metadata_count : 0;
 }
 
 const MIRDeclEnumVariant *
-mir_decl_header_variant(const MIRDeclHeader *header, size_t index)
+mir_decl_header_enum_variant(const MIRDeclHeader *header, size_t index)
 {
     if (header == NULL || header->variant_metadata == NULL
         || index >= header->variant_metadata_count) {
@@ -101,19 +101,20 @@ mir_decl_header_variant(const MIRDeclHeader *header, size_t index)
 }
 
 const char *
-mir_decl_variant_name(const MIRDeclEnumVariant *variant)
+mir_decl_enum_variant_name(const MIRDeclEnumVariant *variant)
 {
     return variant != NULL ? variant->name : NULL;
 }
 
 size_t
-mir_decl_variant_param_count(const MIRDeclEnumVariant *variant)
+mir_decl_enum_variant_param_count(const MIRDeclEnumVariant *variant)
 {
     return variant != NULL ? variant->param_count : 0;
 }
 
 const char *
-mir_decl_variant_param_type_name(const MIRDeclEnumVariant *variant, size_t index)
+mir_decl_enum_variant_param_type_name(const MIRDeclEnumVariant *variant,
+                                      size_t index)
 {
     if (variant == NULL || variant->param_type_names == NULL
         || index >= variant->param_count) {

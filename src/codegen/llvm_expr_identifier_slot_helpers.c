@@ -5,6 +5,8 @@
 #ifdef PGY_LLVM_ENABLED
 
 #include "llvm_expr_identifier_slot_helpers.h"
+#include "llvm_inventory_decl_lookup.h"
+#include "../compiler/mir_decl_headers.h"
 
 #include <stdio.h>
 #include <string.h>
@@ -223,15 +225,37 @@ llvm_emit_identifier(ASTNode *node, LLVMGenCtx *ctx)
              * payload-less) lower to i32 tag, so returning struct would
              * mismatch function signatures.
              */
-            ASTNode *enum_decl = llvm_find_enum_decl(ctx, variant->enum_name);
+            const MIRDeclHeader *enum_header =
+                llvm_find_decl_header_in_context_of_type(
+                    ctx, AST_ENUM_DECL, variant->enum_name);
             bool has_data = false;
-            if (enum_decl != NULL) {
-                size_t vc = 0;
-                (void)ast_enum_variants(enum_decl, &vc);
+            if (llvm_active_has_mir(ctx) && enum_header == NULL) {
+                llvm_set_mir_inventory_missing(ctx,
+                    "MIR-only LLVM path missing enum variant metadata for identifier '%s'",
+                    name != NULL ? name : "<anonymous-variant>");
+                return NULL;
+            }
+            if (enum_header != NULL) {
+                size_t vc = mir_decl_header_variant_count(enum_header);
                 for (size_t i = 0; i < vc; i++) {
-                    if (ast_enum_variant_param_count(enum_decl, i) > 0) {
+                    const MIRDeclEnumVariant *variant_meta =
+                        mir_decl_header_variant(enum_header, i);
+                    if (mir_decl_variant_param_count(variant_meta) > 0) {
                         has_data = true;
                         break;
+                    }
+                }
+            } else {
+                ASTNode *enum_decl = llvm_find_enum_decl(ctx,
+                    variant->enum_name);
+                if (enum_decl != NULL) {
+                    size_t vc = 0;
+                    (void)ast_enum_variants(enum_decl, &vc);
+                    for (size_t i = 0; i < vc; i++) {
+                        if (ast_enum_variant_param_count(enum_decl, i) > 0) {
+                            has_data = true;
+                            break;
+                        }
                     }
                 }
             }

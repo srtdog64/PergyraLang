@@ -1,5 +1,6 @@
 #include "mir_fact_validate.h"
 #include "mir_decl_headers.h"
+#include "mir_type_helpers.h"
 
 #include <stdarg.h>
 #include <stdio.h>
@@ -455,6 +456,59 @@ mir_validate_decl_method_metadata(const MIRProgram *mir,
                     header_index, i);
             }
             return false;
+        }
+    }
+
+    if (header->ast_type == AST_ENUM_DECL && header->source_ast != NULL) {
+        size_t ast_variant_count = 0;
+        char **ast_variants = ast_enum_variants(
+            header->source_ast,
+            &ast_variant_count);
+        if (header->variant_metadata_count != ast_variant_count) {
+            if (error_message != NULL) {
+                *error_message = mir_strdup_fmt(
+                    "MIR declaration header[%zu] enum variant metadata count %zu does not match AST compatibility count %zu",
+                    header_index,
+                    header->variant_metadata_count,
+                    ast_variant_count);
+            }
+            return false;
+        }
+        for (size_t i = 0; i < header->variant_metadata_count; i++) {
+            const MIRDeclEnumVariant *variant =
+                &header->variant_metadata[i];
+            const char *ast_name =
+                ast_variants != NULL ? ast_variants[i] : NULL;
+            size_t ast_param_count =
+                ast_enum_variant_param_count(header->source_ast, i);
+            if ((variant->name == NULL || ast_name == NULL
+                    || strcmp(variant->name, ast_name) != 0)
+                || variant->param_count != ast_param_count) {
+                if (error_message != NULL) {
+                    *error_message = mir_strdup_fmt(
+                        "MIR declaration header[%zu] enum variant[%zu] metadata drift",
+                        header_index, i);
+                }
+                return false;
+            }
+            for (size_t p = 0; p < variant->param_count; p++) {
+                ASTNode *ast_param =
+                    ast_enum_variant_param(header->source_ast, i, p);
+                char *rendered = mir_render_type_name(ast_param);
+                bool matches = rendered != NULL
+                    && variant->param_type_names != NULL
+                    && variant->param_type_names[p] != NULL
+                    && strcmp(variant->param_type_names[p], rendered) == 0;
+                free(rendered);
+                if (!matches) {
+                    if (error_message != NULL) {
+                        *error_message = mir_strdup_fmt(
+                            "MIR declaration header[%zu] enum variant[%zu] payload[%zu] type metadata drift",
+                            header_index, i, p);
+                    }
+                    return false;
+                }
+            }
         }
     }
 

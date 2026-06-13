@@ -4599,6 +4599,62 @@ for rel in \
         fail "$rel must consume transpiler_decl_name_local for enum host names"
     fi
 done
+for term in \
+    "mir_decl_header_enum_variant_count" \
+    "mir_decl_header_enum_variant(" \
+    "mir_decl_enum_variant_name" \
+    "mir_decl_enum_variant_param_count" \
+    "mir_decl_enum_variant_param_type_name"; do
+    require_term "src/compiler/mir_decl_headers.h" "$term"
+    require_term "src/compiler/mir_decl_header_access.c" "$term"
+done
+require_term "src/compiler/mir_decl_headers.c" \
+    "meta[i].param_type_names[p] ="
+require_term "src/compiler/mir_decl_headers.c" \
+    "mir_render_type_name(pt)"
+require_term "src/compiler/mir_lifecycle.c" \
+    "variant->param_type_names[p]"
+require_term "src/compiler/mir_decl_header_validate.c" \
+    "enum variant metadata count"
+require_term "src/compiler/mir_decl_header_validate.c" \
+    "enum variant[%zu] payload[%zu] type metadata drift"
+for rel in \
+    "src/codegen/transpiler_enum.c" \
+    "src/codegen/transpiler_enum_decl_emit.c" \
+    "src/codegen/transpiler_match_bindings.c"; do
+    require_term "$rel" "transpiler_active_decl_header_of_type("
+    require_term "$rel" "mir_decl_header_enum_variant_count("
+    require_term "$rel" "mir_decl_enum_variant_param_count("
+    require_term "$rel" "transpiler_active_has_mir(ctx) && enum_header == NULL"
+done
+for rel in \
+    "src/codegen/transpiler_enum_decl_emit.c" \
+    "src/codegen/transpiler_match_bindings.c"; do
+    require_term "$rel" "mir_decl_enum_variant_param_type_name("
+    require_term "$rel" "transpiler_require_type_name_c_type_copy(ctx"
+done
+if grep -Fq "ASTNode ***binding_types_out" \
+        "$ROOT_DIR/src/codegen/transpiler_match_bindings.h"; then
+    fail "C enum match destructor must expose payload type names, not AST type nodes"
+fi
+for rel in \
+    "src/codegen/llvm_register.c" \
+    "src/codegen/llvm_expr_identifier_slot_helpers.c"; do
+    require_term "$rel" "llvm_find_decl_header_in_context_of_type("
+    require_term "$rel" "mir_decl_header_enum_variant_count("
+    require_term "$rel" "mir_decl_enum_variant_param_count("
+    require_term "$rel" "llvm_active_has_mir(ctx) && enum_header == NULL"
+done
+require_term "src/codegen/llvm_expr_constructor_calls.c" \
+    "llvm_find_decl_header_in_context_of_type("
+require_term "src/codegen/llvm_expr_constructor_calls.c" \
+    "mir_decl_header_enum_variant("
+require_term "src/codegen/llvm_expr_constructor_calls.c" \
+    "mir_decl_enum_variant_param_count("
+require_term "src/codegen/llvm_expr_constructor_calls.c" \
+    "llvm_active_has_mir(ctx) && enum_header == NULL"
+require_term "src/codegen/llvm_register.c" \
+    "mir_decl_enum_variant_param_type_name("
 if grep -Fq "ast_enum_name(stmt)" "$ROOT_DIR/src/codegen/llvm_expr_common.c"; then
     fail "LLVM enum declaration lookup must consume llvm_decl_node_name"
 fi

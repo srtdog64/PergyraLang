@@ -16,6 +16,7 @@
 #include "llvm_backend_type_map_internal.h"
 #include "llvm_domain_projection_count_helpers.h"
 #include "llvm_inventory_decl_lookup.h"
+#include "../compiler/mir_decl_headers.h"
 #include "llvm_internal_api.h"
 #include "parser/ast_api.h"
 
@@ -151,7 +152,25 @@ llvm_emit_enum_variant_constructor(ASTNode *node, LLVMGenCtx *ctx,
             "LLVM enum variant constructor requires enum declaration and class metadata");
 
     size_t variant_index = (size_t)variant->value;
-    size_t param_count = ast_enum_variant_param_count(enum_decl, variant_index);
+    const MIRDeclHeader *enum_header = llvm_find_decl_header_in_context_of_type(
+        ctx, AST_ENUM_DECL, variant->enum_name);
+    if (llvm_active_has_mir(ctx) && enum_header == NULL) {
+        llvm_set_mir_inventory_missing(ctx,
+            "MIR-only LLVM path missing enum constructor variant metadata for '%s'",
+            variant->enum_name != NULL ? variant->enum_name : "<anonymous-enum>");
+        return NULL;
+    }
+    const MIRDeclEnumVariant *variant_meta = enum_header != NULL
+        ? mir_decl_header_variant(enum_header, variant_index) : NULL;
+    if (enum_header != NULL && variant_meta == NULL) {
+        llvm_set_mir_inventory_missing(ctx,
+            "MIR-only LLVM path has invalid enum constructor variant metadata for '%s'",
+            variant->enum_name != NULL ? variant->enum_name : "<anonymous-enum>");
+        return NULL;
+    }
+    size_t param_count = enum_header != NULL
+        ? mir_decl_variant_param_count(variant_meta)
+        : ast_enum_variant_param_count(enum_decl, variant_index);
     LLVMValueRef enum_val = LLVMGetUndef(enum_cls->struct_type);
     enum_val = LLVMBuildInsertValue(ctx->builder, enum_val,
         LLVMConstInt(ctx->type_i32, (unsigned long long)variant->value, 0),
