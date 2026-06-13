@@ -141,6 +141,10 @@ mir_decl_header_ast_shape(const MIRDeclHeader *header,
         if (name_out != NULL)
             *name_out = ast_declaration_name(ast);
         return true;
+    case AST_TYPE_ALIAS:
+        if (name_out != NULL)
+            *name_out = ast_type_alias_name(ast);
+        return true;
     case AST_CLASS_DECL:
         if (name_out != NULL)
             *name_out = ast_class_name(ast);

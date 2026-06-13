@@ -236,11 +236,11 @@ llvm_emit_identifier(ASTNode *node, LLVMGenCtx *ctx)
                 return NULL;
             }
             if (enum_header != NULL) {
-                size_t vc = mir_decl_header_variant_count(enum_header);
+                size_t vc = mir_decl_header_enum_variant_count(enum_header);
                 for (size_t i = 0; i < vc; i++) {
                     const MIRDeclEnumVariant *variant_meta =
-                        mir_decl_header_variant(enum_header, i);
-                    if (mir_decl_variant_param_count(variant_meta) > 0) {
+                        mir_decl_header_enum_variant(enum_header, i);
+                    if (mir_decl_enum_variant_param_count(variant_meta) > 0) {
                         has_data = true;
                         break;
                     }

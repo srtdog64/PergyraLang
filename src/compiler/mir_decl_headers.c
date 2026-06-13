@@ -612,6 +612,9 @@ mir_record_decl_header(MIRProgram *mir, ASTNode *decl)
     case AST_FUNC_DECL:
         header.name = ast_declaration_name(decl);
         break;
+    case AST_TYPE_ALIAS:
+        header.name = ast_type_alias_name(decl);
+        break;
     case AST_CLASS_DECL:
         header.name = ast_class_name(decl);
         methods = ast_class_methods(decl, &method_count);

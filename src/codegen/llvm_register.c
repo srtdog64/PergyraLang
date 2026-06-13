@@ -97,7 +97,7 @@ llvm_register_enum_decl(LLVMGenCtx *ctx, ASTNode *stmt)
     }
     use_mir_variants = enum_header != NULL;
     if (use_mir_variants) {
-        variant_count = mir_decl_header_variant_count(enum_header);
+        variant_count = mir_decl_header_enum_variant_count(enum_header);
     } else {
         variants = ast_enum_variants(stmt, &variant_count);
     }
@@ -105,12 +105,12 @@ llvm_register_enum_decl(LLVMGenCtx *ctx, ASTNode *stmt)
     bool has_data = false;
     for (size_t j = 0; j < variant_count; j++) {
         const MIRDeclEnumVariant *variant_meta = use_mir_variants
-            ? mir_decl_header_variant(enum_header, j) : NULL;
+            ? mir_decl_header_enum_variant(enum_header, j) : NULL;
         const char *variant_name = use_mir_variants
-            ? mir_decl_variant_name(variant_meta)
+            ? mir_decl_enum_variant_name(variant_meta)
             : (variants != NULL ? variants[j] : NULL);
         size_t param_count = use_mir_variants
-            ? mir_decl_variant_param_count(variant_meta)
+            ? mir_decl_enum_variant_param_count(variant_meta)
             : ast_enum_variant_param_count(stmt, j);
         if (param_count > 0) {
             has_data = true;
@@ -152,12 +152,12 @@ llvm_register_enum_decl(LLVMGenCtx *ctx, ASTNode *stmt)
 
         for (size_t j = 0; j < variant_count; j++) {
             const MIRDeclEnumVariant *variant_meta = use_mir_variants
-                ? mir_decl_header_variant(enum_header, j) : NULL;
+                ? mir_decl_header_enum_variant(enum_header, j) : NULL;
             const char *variant_name = use_mir_variants
-                ? mir_decl_variant_name(variant_meta)
+                ? mir_decl_enum_variant_name(variant_meta)
                 : (variants != NULL ? variants[j] : NULL);
             size_t param_count = use_mir_variants
-                ? mir_decl_variant_param_count(variant_meta)
+                ? mir_decl_enum_variant_param_count(variant_meta)
                 : ast_enum_variant_param_count(stmt, j);
 
             if (param_count == 0) {
@@ -184,7 +184,7 @@ llvm_register_enum_decl(LLVMGenCtx *ctx, ASTNode *stmt)
             for (size_t p = 0; p < param_count; p++) {
                 if (use_mir_variants) {
                     const char *ptn =
-                        mir_decl_variant_param_type_name(
+                        mir_decl_enum_variant_param_type_name(
                             variant_meta, p);
                     payload_fields[p] = ptn != NULL
                         ? pergyra_type_to_llvm(ctx, ptn)

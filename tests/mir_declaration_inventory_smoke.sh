@@ -4608,6 +4608,12 @@ for term in \
     require_term "src/compiler/mir_decl_headers.h" "$term"
     require_term "src/compiler/mir_decl_header_access.c" "$term"
 done
+if grep -RInE 'mir_decl_header_variant(_count)?\(|mir_decl_variant_(name|param_count|param_type_name)\(' \
+        "$ROOT_DIR/src" >/dev/null 2>&1; then
+    grep -RInE 'mir_decl_header_variant(_count)?\(|mir_decl_variant_(name|param_count|param_type_name)\(' \
+        "$ROOT_DIR/src" >&2 || true
+    fail "MIR enum variant metadata must use the single enum-specific accessor family"
+fi
 require_term "src/compiler/mir_decl_headers.c" \
     "meta[i].param_type_names[p] ="
 require_term "src/compiler/mir_decl_headers.c" \
