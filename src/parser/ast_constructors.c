@@ -529,3 +529,38 @@ ASTNode* ast_create_type(const char* name) {
     node->data.type.tuple_element_count = 0;
     return node;
 }
+
+/* Build `name<inner_type>` where inner_type is an owned AST_TYPE node. The
+ * returned node takes ownership of inner_type. On allocation failure the
+ * bare `name` type (no generic argument) is returned so the caller still has
+ * a usable type reference. */
+ASTNode* ast_create_generic_type(const char* name, ASTNode* inner_type) {
+    ASTNode* node = ast_create_type(name);
+    GenericParams* args;
+    GenericParam** slots;
+    GenericParam* param;
+
+    if (node == NULL || inner_type == NULL)
+        return node;
+
+    args = calloc(1, sizeof(GenericParams));
+    slots = calloc(1, sizeof(GenericParam*));
+    param = calloc(1, sizeof(GenericParam));
+    if (args == NULL || slots == NULL || param == NULL)
+    {
+        free(args);
+        free(slots);
+        free(param);
+        return node;
+    }
+
+    param->name = inner_type->data.type.name != NULL
+        ? pergyra_strdup(inner_type->data.type.name) : NULL;
+    param->constraint = inner_type;
+    slots[0] = param;
+    args->params = slots;
+    args->count = 1;
+    args->capacity = 1;
+    node->data.type.generic_args = args;
+    return node;
+}

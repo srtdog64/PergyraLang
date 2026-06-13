@@ -69,6 +69,7 @@ typedef struct
     bool is_secure;        /* SecureSlot?                    */
     bool is_indirect;      /* passed/stored as slot pointer  */
     bool released;         /* explicit Release() was called  */
+    bool is_self_field;    /* slot lives in self->name (object field) */
 } SlotVarEntry;
 
 typedef struct

@@ -43,7 +43,8 @@ parser_at_member_boundary(Parser *parser)
         || parser_check(parser, TOKEN_PRIVATE)
         || parser_check(parser, TOKEN_LET)
         || parser_check(parser, TOKEN_VESSEL)
-        || parser_check(parser, TOKEN_FUNC);
+        || parser_check(parser, TOKEN_FUNC)
+        || parser->current_token.line > parser->previous_token.line;
 }
 
 static bool

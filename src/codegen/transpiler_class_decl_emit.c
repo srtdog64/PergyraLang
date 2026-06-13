@@ -77,6 +77,53 @@ transpiler_class_format_too_long(TranspilerCtx *ctx, const char *surface_kind)
         surface_kind != NULL ? surface_kind : "class generated name");
 }
 
+static void
+emit_one_field_slot_claim(TranspilerCtx *ctx, ASTNode *group)
+{
+    ASTNode *init;
+    const char *callee;
+    const char *slot;
+    const char *suffix;
+
+    if (group == NULL || ast_let_destructure_name_count(group) < 1)
+        return;
+    init = ast_let_destructure_initializer(group);
+    if (init == NULL || ast_call_callee(init) == NULL)
+        return;
+
+    callee = ast_identifier_name(ast_call_callee(init));
+    slot = ast_let_destructure_name(group, 0);
+    suffix = ast_call_generic_arg_count(init) > 0
+        ? ast_generic_param_name(ast_call_generic_arg(init, 0)) : "Int";
+    if (callee != NULL && strcmp(callee, "ClaimSecureSlot") == 0
+        && ast_let_destructure_name_count(group) >= 2)
+        codebuf_write(ctx->out,
+            "    self.%s = pgy_claim_secure_%s(&self.%s);\n",
+            slot, suffix, ast_let_destructure_name(group, 1));
+    else if (callee != NULL && strcmp(callee, "ClaimSlot") == 0)
+        codebuf_write(ctx->out,
+            "    self.%s = pgy_claim_%s();\n", slot, suffix);
+}
+
+/* Emit a constructor helper that claims the class's destructure slot fields so
+ * a freshly-built object has live (occupied) secure/plain slots instead of a
+ * `{0}` cell that would panic on first Write. */
+static void
+emit_class_field_slot_initializer(TranspilerCtx *ctx, ASTNode *node,
+                                  const char *name)
+{
+    size_t group_count = ast_class_field_destructure_count(node);
+
+    if (group_count == 0 || name == NULL)
+        return;
+
+    codebuf_write(ctx->out,
+        "\nstatic %s %s__pgy_field_slot_init(%s self)\n{\n", name, name, name);
+    for (size_t gi = 0; gi < group_count; gi++)
+        emit_one_field_slot_claim(ctx, ast_class_field_destructure_at(node, gi));
+    codebuf_write(ctx->out, "    return self;\n}\n");
+}
+
 void
 emit_class_decl(ASTNode *node, TranspilerCtx *ctx)
 {
@@ -168,6 +215,8 @@ emit_class_decl(ASTNode *node, TranspilerCtx *ctx)
         name, name,
         name, name,
         name, name);
+
+    emit_class_field_slot_initializer(ctx, node, name);
 
     for (size_t i = 0; i < method_view.count; i++) {
         const MIRDeclMethod *method_meta =

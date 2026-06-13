@@ -442,6 +442,12 @@ pergyra_type_to_c_copy(const char *name, char *out, size_t out_size)
             return false;
         return transpiler_type_name_join(out, out_size, "PgySecureSlot_", inner);
     }
+    if (strncmp(name, "Token<", 6) == 0) {
+        slot_inner_type_name_copy(name, inner, sizeof(inner));
+        if (type_arg_name_is_unknown(inner))
+            return false;
+        return transpiler_type_name_join(out, out_size, "PgyToken_", inner);
+    }
     if (pgy_codegen_type_name_is_read_view(name)
         || pgy_codegen_type_name_is_write_view(name)) {
         slot_inner_type_name_copy(name, inner, sizeof(inner));

@@ -126,6 +126,21 @@ Token parser_consume(Parser* parser, PgyTokenType type, const char* message) {
     return parser->current_token;
 }
 
+/* Consume a statement terminator. A ';' always terminates; otherwise, in the
+ * newline-terminated style a statement may end where the next token begins on a
+ * later line or closes the block / ends input. Only when none of those hold is
+ * the missing ';' a real error. This avoids same-line ambiguity (no automatic
+ * insertion mid-line) while accepting the common newline-separated form. */
+void parser_consume_statement_terminator(Parser* parser, const char* message) {
+    if (parser_match(parser, TOKEN_SEMICOLON))
+        return;
+    if (parser_is_at_end(parser)
+        || parser_check(parser, TOKEN_RBRACE)
+        || parser->current_token.line > parser->previous_token.line)
+        return;
+    parser_consume(parser, TOKEN_SEMICOLON, message);
+}
+
 // 에러 처리
 void parser_error(Parser* parser, const char* format, ...) {
     if (parser == NULL)
@@ -365,7 +380,7 @@ ASTNode* parser_parse_let_declaration(Parser* parser) {
         parser_consume(parser, TOKEN_ASSIGN, "Expected '=' in let destructuring");
         node->data.let_destructure.initializer = parser_parse_expression(parser);
         parser_reject_reserved_cast_after_expression(parser);
-        parser_consume(parser, TOKEN_SEMICOLON, "Expected ';' after let destructuring");
+        parser_consume_statement_terminator(parser, "Expected ';' after let destructuring");
         return node;
     }
 
@@ -384,7 +399,7 @@ ASTNode* parser_parse_let_declaration(Parser* parser) {
     let_decl->data.let_decl.initializer = parser_parse_expression(parser);
     parser_reject_reserved_cast_after_expression(parser);
 
-    parser_consume(parser, TOKEN_SEMICOLON, "Expected ';' after let declaration");
+    parser_consume_statement_terminator(parser, "Expected ';' after let declaration");
 
     return let_decl;
 }
@@ -493,6 +508,6 @@ ASTNode* parser_parse_block(Parser* parser) {
 ASTNode* parser_parse_expression_statement(Parser* parser) {
     ASTNode* expr = parser_parse_expression(parser);
     parser_reject_reserved_cast_after_expression(parser);
-    parser_consume(parser, TOKEN_SEMICOLON, "Expected ';' after expression");
+    parser_consume_statement_terminator(parser, "Expected ';' after expression");
     return expr;
 }

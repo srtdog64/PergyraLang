@@ -81,5 +81,14 @@ transpiler_emit_class_constructor_with_type(ASTNode *call,
     else
         result = strdup_fmt("(%s){0}", ctor_type);
     codebuf_destroy(fields);
+
+    /* Route a class with destructure slot fields through its claim helper so the
+     * built object's slots are live before any method writes to them. */
+    if (result != NULL && ast_class_field_destructure_count(class_decl) > 0) {
+        char *claimed = strdup_fmt("%s__pgy_field_slot_init(%s)",
+                                   ctor_type, result);
+        free(result);
+        result = claimed;
+    }
     return result;
 }

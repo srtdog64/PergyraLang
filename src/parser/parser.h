@@ -121,6 +121,7 @@ bool  parser_match(Parser *parser, PgyTokenType type);
 bool  parser_check(Parser *parser, PgyTokenType type);
 Token parser_advance(Parser *parser);
 Token parser_consume(Parser *parser, PgyTokenType type, const char *message);
+void parser_consume_statement_terminator(Parser *parser, const char *message);
 
 /*
  * Error handling functions

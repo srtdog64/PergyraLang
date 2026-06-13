@@ -352,11 +352,12 @@ ASTNode* parser_parse_statement(Parser* parser) {
     // break
     if (parser_match(parser, TOKEN_BREAK)) {
         char *label = NULL;
-        if (parser_check(parser, TOKEN_IDENTIFIER)) {
+        if (parser_check(parser, TOKEN_IDENTIFIER)
+            && parser->current_token.line == parser->previous_token.line) {
             Token label_tok = parser_advance(parser);
             label = pergyra_strndup(label_tok.text, label_tok.length);
         }
-        parser_consume(parser, TOKEN_SEMICOLON, "Expected ';' after break");
+        parser_consume_statement_terminator(parser, "Expected ';' after break");
         ASTNode *node = calloc(1, sizeof(ASTNode));
         node->type = AST_BREAK;
         node->line = parser->previous_token.line;
@@ -367,11 +368,12 @@ ASTNode* parser_parse_statement(Parser* parser) {
     // continue
     if (parser_match(parser, TOKEN_CONTINUE)) {
         char *label = NULL;
-        if (parser_check(parser, TOKEN_IDENTIFIER)) {
+        if (parser_check(parser, TOKEN_IDENTIFIER)
+            && parser->current_token.line == parser->previous_token.line) {
             Token label_tok = parser_advance(parser);
             label = pergyra_strndup(label_tok.text, label_tok.length);
         }
-        parser_consume(parser, TOKEN_SEMICOLON, "Expected ';' after continue");
+        parser_consume_statement_terminator(parser, "Expected ';' after continue");
         ASTNode *node = calloc(1, sizeof(ASTNode));
         node->type = AST_CONTINUE;
         node->line = parser->previous_token.line;

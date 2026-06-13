@@ -50,6 +50,62 @@ resolve_generic_class_self_type_name(const TranspilerCtx *ctx,
     return owner_name;
 }
 
+/* For a destructured secure slot field, the paired token field is the second
+ * name of the `ClaimSecureSlot` group whose first name is the slot. */
+static const char *
+field_slot_paired_token(ASTNode *host, const char *slot_name)
+{
+    size_t group_count = ast_class_field_destructure_count(host);
+
+    for (size_t gi = 0; gi < group_count; gi++)
+    {
+        ASTNode *group = ast_class_field_destructure_at(host, gi);
+        if (group == NULL || ast_let_destructure_name_count(group) < 2)
+            continue;
+        if (ast_let_destructure_name(group, 0) == NULL
+            || strcmp(ast_let_destructure_name(group, 0), slot_name) != 0)
+            continue;
+        return ast_let_destructure_name(group, 1);
+    }
+    return NULL;
+}
+
+/* Register every `Slot<T>` / `SecureSlot<T>` field of the method's owning class
+ * as a `self->field` slot so its Write / Read / Release lower like a local. */
+static void
+register_class_field_slots(TranspilerCtx *ctx, ASTNode *host)
+{
+    size_t field_count = 0;
+    ClassField **fields;
+
+    if (ctx == NULL || host == NULL || host->type != AST_CLASS_DECL)
+        return;
+
+    fields = ast_class_fields(host, &field_count);
+    for (size_t i = 0; i < field_count; i++)
+    {
+        ClassField *field = fields != NULL ? fields[i] : NULL;
+        const char *head;
+        GenericParams *args;
+        bool is_secure;
+
+        if (field == NULL || field->name == NULL || field->type == NULL)
+            continue;
+        head = ast_type_name(field->type);
+        if (head == NULL
+            || (strcmp(head, "Slot") != 0 && strcmp(head, "SecureSlot") != 0))
+            continue;
+
+        is_secure = strcmp(head, "SecureSlot") == 0;
+        args = ast_type_generic_args(field->type);
+        register_self_field_slot_var(ctx, field->name,
+            ast_generic_param_count(args) > 0
+                ? ast_generic_param_name(ast_generic_param_at(args, 0)) : "Int",
+            is_secure,
+            is_secure ? field_slot_paired_token(host, field->name) : NULL);
+    }
+}
+
 void
 emit_func_decl_from_mir_named(ASTNode *node, const MIRRoutine *mir_routine,
                               const char *emitted_name, CodeBuf *buf,
@@ -442,6 +498,8 @@ emit_func_decl_from_mir_named(ASTNode *node, const MIRRoutine *mir_routine,
             free(owned_type_name);
         }
     }
+    if (is_method && resolved_host_decl != NULL)
+        register_class_field_slots(ctx, resolved_host_decl);
     transpiler_register_mir_with_slot_claim_facts(ctx, mir_routine);
     transpiler_register_ast_compat_local_bindings_in_block(ctx, node,
         ast_func_body(node));

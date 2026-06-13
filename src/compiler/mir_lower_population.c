@@ -66,6 +66,24 @@ mir_resource_abi_type_name_from_fact(MIRRoutine *routine, const RIRFact *fact)
             type_name = mir_claim_abi_type_name_from_ast(
                 ast_let_initializer(fact->ast));
     }
+    else if (fact->ast->type == AST_CLASS_DECL && fact->name != NULL) {
+        /* Field-slot resource fact: the owning class node is carried as the
+         * fact `ast`; recover the named field's type so a method's
+         * Write/Read/Release on `self->field` renders the full
+         * `SecureSlot<Int>` ABI name the runtime layout lookup expects. */
+        size_t field_count = 0;
+        ClassField **fields = ast_class_fields(fact->ast, &field_count);
+        for (size_t fi = 0; fi < field_count; fi++) {
+            ClassField *field = fields != NULL ? fields[fi] : NULL;
+            if (field == NULL || field->name == NULL)
+                continue;
+            if (strcmp(field->name, fact->name) == 0) {
+                if (field->type != NULL)
+                    type_name = mir_render_type_name(field->type);
+                break;
+            }
+        }
+    }
     else if (fact->ast->type == AST_FUNC_DECL && fact->name != NULL) {
         /* Closure #85: function-parameter resource facts carry the
          * function AST as their `ast`, not a let/with. Walk the param

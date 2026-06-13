@@ -813,6 +813,14 @@ pergyra_type_to_llvm(LLVMGenCtx *ctx, const char *type_name)
         return ctx->type_i8ptr;
     }
 
+    if (type_name != NULL && strncmp(type_name, "Token<", 6) == 0) {
+        char inner_buf[256];
+        if (!llvm_required_constructed_arg_name_copy(ctx, type_name, 0,
+                "Token<T>", inner_buf, sizeof(inner_buf)))
+            return NULL;
+        return llvm_secure_token_type(ctx, inner_buf);
+    }
+
     if (ctx != NULL && !ctx->has_error) {
         llvm_set_error_with_hints(ctx,
             PGY_CODE_LLVM_TYPE_UNSUPPORTED,

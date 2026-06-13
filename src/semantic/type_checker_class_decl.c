@@ -6,6 +6,106 @@
 #include "type_checker_internal.h"
 #include "diag_codes.h"
 
+static void
+class_declare_field_symbol(SemanticContext *ctx, ClassField *field,
+                           Type *field_type, ASTNode *node)
+{
+    Symbol *field_sym;
+
+    /* A `Slot<T>` / `SecureSlot<T>` typed field is an owning slot, not a plain
+     * value: declare it as a slot symbol so Release / Write / Read recognize it
+     * the same way a function-local slot binding is recognized. */
+    if (field_type != NULL && field_type->kind == TYPE_KIND_SLOT)
+    {
+        Symbol *slot_sym = symbol_create_slot(field->name, field_type,
+            type_slot_is_secure(field_type), NULL,
+            node->line, node->column);
+        if (slot_sym == NULL)
+            return;
+
+        scope_declare(ctx->scope, slot_sym);
+        scope_register_slot(ctx->scope, slot_sym);
+        return;
+    }
+
+    field_sym = symbol_create_variable(field->name, field_type,
+        node->line, node->column);
+    if (field_sym != NULL)
+        scope_declare(ctx->scope, field_sym);
+}
+
+static const char *
+destructure_field_shell_name(const char *callee, size_t index)
+{
+    if (callee == NULL)
+        return NULL;
+    if (strcmp(callee, "ClaimSecureSlot") == 0)
+        return index == 0 ? "SecureSlot" : "Token";
+    if (strcmp(callee, "ClaimSlot") == 0)
+        return index == 0 ? "Slot" : NULL;
+    return NULL;
+}
+
+/* Resolve the type-less placeholder field for `field_name` to `shell<inner>`
+ * (e.g. `SecureSlot<Int>`). The struct member emission and the RIR field-slot
+ * fact seeding both read ClassField->type, so this is what lets a destructured
+ * `(slot, token)` field reach both backends. */
+static void
+class_assign_field_type_ref(ASTNode *node, const char *field_name,
+                            const char *shell, ASTNode *inner_node)
+{
+    size_t field_count = 0;
+    ClassField **fields;
+
+    if (shell == NULL || field_name == NULL)
+        return;
+
+    fields = ast_class_fields(node, &field_count);
+    for (size_t i = 0; i < field_count; i++)
+    {
+        ClassField *field = fields != NULL ? fields[i] : NULL;
+        if (field == NULL || field->name == NULL || field->type != NULL)
+            continue;
+        if (strcmp(field->name, field_name) != 0)
+            continue;
+
+        field->type = ast_create_generic_type(shell,
+            inner_node != NULL ? ast_clone(inner_node) : NULL);
+        return;
+    }
+}
+
+static void
+class_set_destructure_field_types(ASTNode *node)
+{
+    size_t group_count = ast_class_field_destructure_count(node);
+
+    for (size_t gi = 0; gi < group_count; gi++)
+    {
+        ASTNode *group = ast_class_field_destructure_at(node, gi);
+        ASTNode *init;
+        const char *callee;
+        ASTNode *inner_node = NULL;
+
+        if (group == NULL)
+            continue;
+        init = ast_let_destructure_initializer(group);
+        if (init == NULL || init->type != AST_CALL
+            || ast_call_callee(init) == NULL)
+            continue;
+
+        callee = ast_identifier_name(ast_call_callee(init));
+        if (ast_call_generic_arg_count(init) >= 1)
+            inner_node = ast_generic_param_constraint(
+                ast_call_generic_arg(init, 0));
+
+        for (size_t ni = 0; ni < ast_let_destructure_name_count(group); ni++)
+            class_assign_field_type_ref(node,
+                ast_let_destructure_name(group, ni),
+                destructure_field_shell_name(callee, ni), inner_node);
+    }
+}
+
 bool
 type_check_class_decl(ASTNode *node, SemanticContext *ctx)
 {
@@ -122,7 +222,6 @@ type_check_class_decl(ASTNode *node, SemanticContext *ctx)
     for (size_t i = 0; i < field_count; i++) {
         ClassField *field = fields != NULL ? fields[i] : NULL;
         Type *field_type;
-        Symbol *field_sym;
 
         if (field == NULL || field->name == NULL || field->type == NULL)
             continue;
@@ -140,11 +239,33 @@ type_check_class_decl(ASTNode *node, SemanticContext *ctx)
                     field->name != NULL ? field->name : "<field>");
             }
         }
-        field_sym = symbol_create_variable(field->name, field_type,
-            node->line, node->column);
-        if (field_sym != NULL)
-            scope_declare(ctx->scope, field_sym);
+        class_declare_field_symbol(ctx, field, field_type, node);
     }
+
+    /* Class-body destructuring groups (`let (a, b) = ClaimSecureSlot<T>(...)`).
+     * Reuse the statement-level destructure checker so the bound names enter
+     * the class scope as the correct slot / token / value symbols, exactly as
+     * a function body would. Methods are checked below in this same scope, so
+     * `Write(_healthSlot, v, _healthToken)` then resolves against real slot and
+     * token symbols instead of the type-less placeholder fields. */
+    {
+        size_t destructure_count = ast_class_field_destructure_count(node);
+        for (size_t di = 0; di < destructure_count; di++)
+        {
+            ASTNode *destructure = ast_class_field_destructure_at(node, di);
+            if (destructure == NULL)
+                continue;
+
+            type_check_let_destructure_stmt(destructure, ctx);
+        }
+    }
+
+    /* Resolve the placeholder field types for the destructured names so the
+     * struct members emit and the backends can lower field-slot resource ops.
+     * Done after the scope pre-pass so the field loop above never re-declares
+     * these names (their placeholder type was still NULL during that loop). */
+    class_set_destructure_field_types(node);
+
     /* struct declarations cannot have methods — use class or object */
     size_t method_count = 0;
     ASTNode **methods = ast_class_methods(node, &method_count);

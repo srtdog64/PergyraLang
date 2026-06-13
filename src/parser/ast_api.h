@@ -173,6 +173,7 @@ ASTNode* ast_create_identifier(const char* name);
 const char* ast_identifier_name(const ASTNode* node);
 bool ast_replace_identifier_name_copy(ASTNode* node, const char* name);
 ASTNode* ast_create_type(const char* name);
+ASTNode* ast_create_generic_type(const char* name, ASTNode* inner_type);
 const char* ast_type_name(const ASTNode* node);
 GenericParams* ast_type_generic_args(const ASTNode* node);
 size_t ast_generic_param_count(const GenericParams* params);

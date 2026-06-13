@@ -148,7 +148,8 @@ emit_expression(ASTNode *node, TranspilerCtx *ctx)
         if (strcmp(id_name, "self") != 0
             && !ident_has_active_ssa
             && lookup_typed_var(ctx, id_name) == NULL
-            && !is_slot_var(ctx, id_name)
+            && (!is_slot_var(ctx, id_name)
+                || lookup_slot_is_self_field(ctx, id_name))
             && current_class_has_field(ctx, id_name)) {
             return strdup_fmt(current_class_uses_self_cell(ctx)
                 ? "self->%s"

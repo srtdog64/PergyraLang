@@ -11,6 +11,7 @@ static bool
 rir_collect_func_scope(RIRProgram *rir,
                        RIRScopeKind kind,
                        const char *owner_name,
+                       ASTNode *owner_decl,
                        ASTNode *func)
 {
     RIRScope scope;
@@ -28,6 +29,24 @@ rir_collect_func_scope(RIRProgram *rir,
         if (!add_param_resource_fact(&scope, param->name, param->type, func))
             goto oom;
     }
+
+    /* Seed resource facts for the enclosing class's owning slot fields so a
+     * method body's Write / Read / Release on `self->_slot` finds the same
+     * runtime ABI layout that a function-local slot binding would. Non-slot
+     * fields produce no fact (add_resource_fact skips unknown kinds). */
+    if (owner_decl != NULL && owner_decl->type == AST_CLASS_DECL) {
+        size_t field_count = 0;
+        ClassField **fields = ast_class_fields(owner_decl, &field_count);
+        for (size_t i = 0; i < field_count; i++) {
+            ClassField *field = fields != NULL ? fields[i] : NULL;
+            if (field == NULL || field->name == NULL || field->type == NULL)
+                continue;
+            if (!add_resource_fact(&scope, field->name, field->type,
+                                   RIR_STATE_OWNED, owner_decl))
+                goto oom;
+        }
+    }
+
     if (!rir_walk_node(&scope, ast_func_body(func))) {
 oom:
         free(scope.facts);
@@ -219,7 +238,7 @@ rir_collect_zone_like_scope(RIRProgram *rir, ASTNode *node, RIRScopeKind kind, c
         goto oom_no_scope;
 
     for (size_t i = 0; i < method_count; i++) {
-        if (!rir_collect_func_scope(rir, RIR_SCOPE_METHOD, name, methods[i]))
+        if (!rir_collect_func_scope(rir, RIR_SCOPE_METHOD, name, NULL, methods[i]))
             return false;
     }
     return true;
@@ -260,6 +279,7 @@ rir_lower(ASTNode *annotated_ast, char **error_message)
                 ok = rir_collect_func_scope(rir,
                                             ast_func_is_action(node) ? RIR_SCOPE_METHOD : RIR_SCOPE_FUNCTION,
                                             NULL,
+                                            NULL,
                                             node);
                 break;
             case AST_CLASS_DECL:
@@ -269,6 +289,7 @@ rir_lower(ASTNode *annotated_ast, char **error_message)
                 for (size_t j = 0; ok && j < method_count; j++) {
                     ok = rir_collect_func_scope(rir, RIR_SCOPE_METHOD,
                                                 ast_class_name(node),
+                                                node,
                                                 methods != NULL ? methods[j] : NULL);
                 }
                 break;

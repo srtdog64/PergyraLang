@@ -64,6 +64,42 @@ register_slot_var(TranspilerCtx *ctx, const char *name,
     }
     e->is_secure = is_secure;
     e->is_indirect = is_indirect;
+    e->is_self_field = false;
+}
+
+/* Register an object-field slot (`self->name`). The slot is looked up by its
+ * bare field name, but its address and paired token render through `self->`.
+ * token_field is the paired token field name for a secure slot, or NULL. */
+void
+register_self_field_slot_var(TranspilerCtx *ctx, const char *name,
+                             const char *inner_type, bool is_secure,
+                             const char *token_field)
+{
+    SlotVarEntry *e;
+
+    if (ctx == NULL || name == NULL || inner_type == NULL)
+        return;
+    if (ctx->slot_var_count >= MAX_SLOT_VARS) {
+        transpiler_set_backend_error_with_hints(ctx,
+            PGY_CODE_C_TYPE_UNSUPPORTED,
+            PGY_CAUSE_C_TYPE_UNSUPPORTED,
+            PGY_FIX_USE_LLVM_BACKEND_OR_EXTEND_TRANSPILER,
+            "C backend slot registry exceeded MAX_SLOT_VARS while registering '%s'",
+            name);
+        return;
+    }
+
+    e = &ctx->slot_vars[ctx->slot_var_count++];
+    ctx->last_slot_var_index = ctx->slot_var_count - 1;
+    pergyra_str_copy(e->name, sizeof(e->name), name);
+    pergyra_str_copy(e->inner_type, sizeof(e->inner_type), inner_type);
+    if (is_secure && token_field != NULL && token_field[0] != '\0')
+        snprintf(e->token_name, sizeof(e->token_name), "self->%s", token_field);
+    else
+        e->token_name[0] = '\0';
+    e->is_secure = is_secure;
+    e->is_indirect = false;
+    e->is_self_field = true;
 }
 
 void
@@ -212,6 +248,18 @@ lookup_slot_is_indirect(TranspilerCtx *ctx, const char *var_name)
             ctx->last_slot_var_index = i;
             return ctx->slot_vars[i].is_indirect;
         }
+    }
+    return false;
+}
+
+bool
+lookup_slot_is_self_field(TranspilerCtx *ctx, const char *var_name)
+{
+    if (ctx == NULL || var_name == NULL)
+        return false;
+    for (int i = 0; i < ctx->slot_var_count; i++) {
+        if (strcmp(ctx->slot_vars[i].name, var_name) == 0)
+            return ctx->slot_vars[i].is_self_field;
     }
     return false;
 }

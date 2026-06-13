@@ -225,9 +225,22 @@ transpiler_emit_mir_resource_op(TranspilerCtx *ctx,
         slot_anchor = inst->slot_anchor;
     if (slot_anchor == NULL)
         slot_anchor = "slot";
-    if (!transpiler_mir_resource_format_addr(anchor_expr_buf,
-            sizeof(anchor_expr_buf), anchor_is_indirect, slot_anchor))
-        return false;
+    {
+        /* An object-field slot is addressed through `self->name`; the registry
+         * is still keyed by the bare field name, so render the address form
+         * separately here. */
+        const char *addr_anchor = slot_anchor;
+        char self_field_buf[160];
+        if (ctx != NULL && lookup_slot_is_self_field(ctx, slot_anchor)) {
+            if (!transpiler_mir_resource_format(self_field_buf,
+                    sizeof(self_field_buf), "self->%s", slot_anchor))
+                return false;
+            addr_anchor = self_field_buf;
+        }
+        if (!transpiler_mir_resource_format_addr(anchor_expr_buf,
+                sizeof(anchor_expr_buf), anchor_is_indirect, addr_anchor))
+            return false;
+    }
     anchor_expr = anchor_expr_buf;
 
     if (op == TRANS_MIR_RESOURCE_OP_CLAIM) {

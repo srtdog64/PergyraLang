@@ -234,18 +234,22 @@ ASTNode* parse_unsafe_block(Parser* parser) {
 ASTNode* parse_defer_statement(Parser* parser) {
     parser_consume(parser, TOKEN_LBRACE, "Expected '{' after defer");
     ASTNode* body = parser_parse_block(parser);
-    parser_consume(parser, TOKEN_SEMICOLON, "Expected ';' after defer block");
+    parser_consume_statement_terminator(parser, "Expected ';' after defer block");
     return ast_create_defer_statement(body);
 }
 
 ASTNode* parse_return_statement(Parser* parser) {
     ASTNode* return_stmt = ast_create_return_statement();
 
-    if (!parser_check(parser, TOKEN_SEMICOLON))
+    /* A return value is present only when it follows on the same line; a bare
+     * `return` may end at a newline or '}' (newline-terminated style). */
+    if (!parser_check(parser, TOKEN_SEMICOLON)
+        && !parser_check(parser, TOKEN_RBRACE)
+        && parser->current_token.line == parser->previous_token.line)
         return_stmt->data.return_stmt.value = parser_parse_expression(parser);
 
     parser_reject_reserved_cast_after_expression(parser);
-    parser_consume(parser, TOKEN_SEMICOLON, "Expected ';' after return statement");
+    parser_consume_statement_terminator(parser, "Expected ';' after return statement");
 
     return return_stmt;
 }

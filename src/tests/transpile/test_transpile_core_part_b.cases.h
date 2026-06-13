@@ -320,26 +320,11 @@ test_statement_emit(void)
         ast_destroy(program);
     }
 
-    TEST("class-body destructuring field emits targeted unsupported error");
-    {
-        const char *source =
-            "class Foo {\n"
-            "    private let (slot, token) = ClaimSecureSlot<Int>(1);\n"
-            "}\n";
-        ASTNode *program = NULL;
-        HIRProgram *hir = NULL;
-        RIRProgram *rir = NULL;
-        MIRProgram *mir = NULL;
-        bool ok = lower_pipeline_from_source_quiet(source, &program, &hir, &rir, &mir);
-        /* Parser should reject with a targeted error, not the generic
-         * "Expected field name". */
-        EXPECT(!ok);
-
-        mir_destroy(mir);
-        rir_destroy(rir);
-        hir_destroy(hir);
-        ast_destroy(program);
-    }
+    /* Class-body destructuring (`let (a, b) = expr`) is now an accepted
+     * surface: the parser builds placeholder fields + a destructure group, and
+     * semantic/codegen lower it. A positive end-to-end parity case lives in the
+     * backend-compare suite; the old "rejected with targeted error" guard was
+     * removed when the feature was implemented. */
 
     TEST("MIR secure slot identifier auto-read uses secure read for non-destructure claim");
     {
