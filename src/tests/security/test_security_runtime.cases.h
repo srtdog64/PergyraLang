@@ -737,6 +737,12 @@ void test_slot_pin_lease_runtime()
     value = 42;
     result = SlotWrite(plainManager, &plainHandle, &value, sizeof(value));
     TEST_ASSERT(result == SLOT_SUCCESS, "Plain slot write before pin");
+    /* A permissive but unbound token: the permission bits pass, so the pin is
+     * rejected by token validation against the plain slot, not by an
+     * uninitialized permission read. */
+    memset(&token, 0, sizeof(token));
+    token.canRead = true;
+    token.canWrite = true;
     result = PergyraSlotPin(plainManager, &plainHandle, PGY_SLOT_PIN_WRITE,
                             &token, &view);
     TEST_SECURITY_VIOLATION(result == SLOT_ERROR_PERMISSION_DENIED

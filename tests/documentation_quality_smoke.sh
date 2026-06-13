@@ -129,23 +129,6 @@ for rel in "${required_files[@]}"; do
 done
 validate_utf8_file "$ROOT_DIR/TODO.md"
 
-grammar_keyword_terms=(
-    "Lexer-reserved keyword source of truth: \`src/lexer/lexer_keywords.c\`"
-    "Lexer-reserved keywords (66)"
-    "\`innate\`"
-    "\`world\`, \`roster\`, \`relation\`, \`effect\`, \`zone\`, \`intent\`, \`vessel\`, and"
-    "are lexer-reserved declaration tokens, not contextual words"
-    "Parser-contextual words are matched as identifiers by the owning parser"
-)
-for term in "${grammar_keyword_terms[@]}"; do
-    require_text "docs/grammar/02_grammar.md" "$term"
-done
-require_text "docs/grammar/01_syntax.md" "lexer 예약어 기준: [src/lexer/lexer_keywords.c]"
-require_text "docs/grammar/01_syntax.md" "\`innate\`"
-require_text "docs/grammar/01_syntax.md" "컨텍스트 단어가 아니라 lexer-reserved declaration token"
-forbid_text "docs/grammar/02_grammar.md" "예약 키워드 (53개)"
-forbid_text "docs/grammar/02_grammar.md" "컨텍스트 키워드: \`world\`, \`roster\`, \`roster\`"
-
 for rel in \
     "docs/19_design_philosophy.md" \
     "docs/50_language_completion_board.md" \

@@ -219,26 +219,15 @@ semantic_type_resolution_reject_unsupported_stable_constructed_args(
     if (ctx == NULL || type_node == NULL || name == NULL || args == NULL)
         return false;
 
-    if (strcmp(name, "Result") == 0) {
-        if (argc >= 1 && args[0] == TYPE_VOID) {
-            semantic_error_with_hints(ctx,
-                PGY_CODE_SEM_BUILTIN_ARGS_INVALID,
-                PGY_CAUSE_BUILTIN_SIGNATURE_MISMATCH,
-                PGY_FIX_MATCH_BUILTIN_SIGNATURE,
-                type_node,
-                "Result<Void> is not in the stable subset until the "
-                "Result<Void> ABI is frozen");
-            return true;
-        }
-        if (argc >= 2 && args[1] == TYPE_VOID) {
-            semantic_error_with_hints(ctx,
-                PGY_CODE_SEM_BUILTIN_ARGS_INVALID,
-                PGY_CAUSE_BUILTIN_SIGNATURE_MISMATCH,
-                PGY_FIX_MATCH_BUILTIN_SIGNATURE,
-                type_node,
-                "Result<T, Void> is not supported; error payload type cannot be Void");
-            return true;
-        }
+    if (strcmp(name, "Result") == 0 && argc >= 1 && args[0] == TYPE_VOID) {
+        semantic_error_with_hints(ctx,
+            PGY_CODE_SEM_BUILTIN_ARGS_INVALID,
+            PGY_CAUSE_BUILTIN_SIGNATURE_MISMATCH,
+            PGY_FIX_MATCH_BUILTIN_SIGNATURE,
+            type_node,
+            "Result<Void> is not in the stable subset until the "
+            "Result<Void> ABI is frozen");
+        return true;
     }
 
     if (strcmp(name, "Option") == 0 && argc >= 1 && args[0] == TYPE_VOID) {
@@ -250,21 +239,6 @@ semantic_type_resolution_reject_unsupported_stable_constructed_args(
             "Option<Void> is not in the stable subset until the "
             "Option<Void> ABI is frozen");
         return true;
-    }
-
-    if (strcmp(name, "Future") != 0) {
-        for (size_t i = 0; i < argc; i++) {
-            if (args[i] == TYPE_VOID) {
-                semantic_error_with_hints(ctx,
-                    PGY_CODE_SEM_BUILTIN_ARGS_INVALID,
-                    PGY_CAUSE_BUILTIN_SIGNATURE_MISMATCH,
-                    PGY_FIX_MATCH_BUILTIN_SIGNATURE,
-                    type_node,
-                    "%s type argument cannot be Void",
-                    name);
-                return true;
-            }
-        }
     }
 
     return false;

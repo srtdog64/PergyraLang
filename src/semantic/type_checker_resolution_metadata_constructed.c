@@ -2,7 +2,6 @@
 #include <stdlib.h>
 #include <string.h>
 
-#include "diag_codes.h"
 #include "type_checker_internal.h"
 #include "type_checker_collection_policy.h"
 #include "type_checker_resolution_metadata_internal.h"
@@ -199,18 +198,6 @@ try_record_generic_class_constructed_type(SemanticContext *ctx,
             free(effective_args);
             return;
         }
-        if (resolved_args[i] == TYPE_VOID) {
-            semantic_error_with_hints(ctx,
-                PGY_CODE_SEM_BUILTIN_ARGS_INVALID,
-                PGY_CAUSE_BUILTIN_SIGNATURE_MISMATCH,
-                PGY_FIX_MATCH_BUILTIN_SIGNATURE,
-                type_node,
-                "Generic class '%s' type argument cannot be Void",
-                name);
-            free(resolved_args);
-            free(effective_args);
-            return;
-        }
     }
 
     result = type_create_constructed(sym->type, resolved_args, argc);
@@ -249,12 +236,6 @@ semantic_type_resolution_try_record_stable_constructed_type(SemanticContext *ctx
         if (inner == NULL)
             return;
         args[0] = inner;
-        if (semantic_type_resolution_reject_unsupported_stable_constructed_args(
-                ctx, type_node,
-                type_node->type == AST_CHANNEL_TYPE ? "Channel" : "Future",
-                args, 1)) {
-            return;
-        }
         shell = type_create_constructed(
             type_node->type == AST_CHANNEL_TYPE ? TYPE_CHANNEL : TYPE_FUTURE,
             args,
@@ -329,16 +310,6 @@ semantic_type_resolution_try_record_stable_constructed_type(SemanticContext *ctx
                 free(elements);
                 return;
             }
-            if (elements[i] == TYPE_VOID) {
-                semantic_error_with_hints(ctx,
-                    PGY_CODE_SEM_BUILTIN_ARGS_INVALID,
-                    PGY_CAUSE_BUILTIN_SIGNATURE_MISMATCH,
-                    PGY_FIX_MATCH_BUILTIN_SIGNATURE,
-                    type_node,
-                    "Tuple element type cannot be Void");
-                free(elements);
-                return;
-            }
         }
         shell = type_create_tuple(elements, element_count);
         free(elements);
@@ -365,11 +336,6 @@ semantic_type_resolution_try_record_stable_constructed_type(SemanticContext *ctx
                                                ast_generic_param_at(args_node, 0));
         if (inner == NULL)
             return;
-
-        if (semantic_type_resolution_reject_unsupported_stable_constructed_args(
-                ctx, type_node, ast_type_name(type_node), &inner, 1)) {
-            return;
-        }
 
         slot_type = stable_slot_shell_create(slot_spec, inner);
         if (slot_type != NULL)

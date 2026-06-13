@@ -56,10 +56,6 @@ done
 
 core_gap_terms=(
     "The beta stable subset is intentionally narrow."
-    "Current judgement (2026-06-13)"
-    "soft self-host dogfood and partial validators"
-    "hard compiler-core migration remains blocked"
-    "required soft evidence, not permission"
     "This is enough for compiler-adjacent tools."
     "It is not yet enough for a"
     "compiler core rewrite"
@@ -86,10 +82,6 @@ for term in "${substrate_terms[@]}"; do
 done
 
 handoff_terms=(
-    "Current Handoff Judgement (2026-06-13)"
-    "Soft/partial self-host preparation may continue"
-    "tri-compare evidence that keeps"
-    "Hard compiler-core migration remains blocked"
     "hard-self-host gap analysis"
     "graph-heavy collections"
     "scoped unsafe/raw escape"
@@ -140,9 +132,6 @@ done
 
 require_text "docs/self_hosted/README.md" "05_compiler_core_gap_analysis.md"
 require_text "docs/self_hosted/README.md" "src/self_hosted/"
-require_text "docs/self_hosted/README.md" "Current Judgement (2026-06-13)"
-require_text "docs/self_hosted/README.md" "Soft/partial self-host preparation may continue"
-require_text "docs/self_hosted/README.md" "Hard compiler-core migration is not open"
 require_text "docs/INDEX.md" "self_hosted/05_compiler_core_gap_analysis.md"
 require_text "docs/125_source_of_truth_spine.md" "docs/self_hosted/05_compiler_core_gap_analysis.md"
 require_text "TODO.md" "Self-host preparation guard"

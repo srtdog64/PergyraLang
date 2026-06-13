@@ -418,7 +418,6 @@ llvm_emit_one_field_claim(LLVMGenCtx *ctx, LLVMClassTypeEntry *cls,
         (unsigned)slot_idx, llvm_tmp_name(ctx));
     return true;
 }
-
 /* Claim each destructure slot field at construction so the built object has
  * live (occupied) slots, mirroring the C backend's __pgy_field_slot_init. */
 static bool

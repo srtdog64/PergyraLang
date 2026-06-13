@@ -62,7 +62,7 @@ PLATFORM_CFLAGS += -Wno-deprecated-declarations
 else ifeq ($(or $(findstring mingw,$(CC_DUMP_MACHINE)),$(MSYSTEM)),)
 OPENMP_FLAGS = -fopenmp
 THREAD_LINK_LIB = -lpthread
-PLATFORM_CFLAGS = -D_POSIX_C_SOURCE=200809L -D_XOPEN_SOURCE=700
+PLATFORM_CFLAGS = -D_POSIX_C_SOURCE=200809L -D_XOPEN_SOURCE=700 -D_DEFAULT_SOURCE
 else
 OPENMP_FLAGS =
 THREAD_LINK_LIB = -lwinpthread
@@ -1463,7 +1463,7 @@ $(SECURITY_TEST): $(RUNTIME_OBJECTS) $(RUNTIME_ASM_OBJECTS) \
                    $(TEST_SECURITY_OBJ) | check-security-toolchain $(BIN_DIR)
 	@$(call pgy_mkdir_p,$(dir $@))
 ifeq ($(EXEEXT),.exe)
-	$(call pgy_link,$(THREAD_LINK_LIB) -lbcrypt -ladvapi32 -liphlpapi)
+	$(call pgy_link,$(THREAD_LINK_LIB) -ladvapi32 -liphlpapi)
 else
 	$(call pgy_link,$(THREAD_LINK_LIB) -lssl -lcrypto)
 endif
@@ -2130,15 +2130,29 @@ check-build-tools:
 		echo "build preflight: nasm not found; assembly runtime objects are disabled." >&2; \
 	fi
 
-check-security-toolchain: | $(BUILD_DIR)
+SECURITY_OPENSSL_PREFLIGHT = tests/security_openssl_preflight.c
+SECURITY_WINDOWS_PREFLIGHT = tests/security_windows_bcrypt_preflight.c
+
+check-security-toolchain:
 ifeq ($(EXEEXT),.exe)
 	@echo "security test preflight: checking Windows CNG/BCrypt provider"
-	$(CC) $(PLATFORM_CFLAGS) tests/security_windows_bcrypt_preflight.c -o $(BUILD_DIR)/pgy_bcrypt_check$(EXEEXT) -lbcrypt
-	@$(BASH) -c "rm -f '$(BUILD_DIR)/pgy_bcrypt_check$(EXEEXT)'"
+	@exe="$${TMPDIR:-/tmp}/pgy_bcrypt_check_$$$$$(EXEEXT)"; \
+	if ! $(CC) $(PLATFORM_CFLAGS) "$(SECURITY_WINDOWS_PREFLIGHT)" -o "$$exe" -lbcrypt >/dev/null 2>&1; then \
+		echo "security test preflight requires the Windows CNG/BCrypt provider." >&2; \
+		echo "missing: bcrypt.h or linkable -lbcrypt for CC=$(CC)" >&2; \
+		exit 1; \
+	fi; \
+	rm -f "$$exe"
 else
 	@echo "security test preflight: checking OpenSSL EVP/HMAC/RAND provider"
-	$(CC) $(PLATFORM_CFLAGS) tests/security_openssl_preflight.c -o $(BUILD_DIR)/pgy_openssl_check$(EXEEXT) -lssl -lcrypto
-	@$(BASH) -c "rm -f '$(BUILD_DIR)/pgy_openssl_check$(EXEEXT)'"
+	@exe="$${TMPDIR:-/tmp}/pgy_openssl_check_$$$$$(EXEEXT)"; \
+	if ! $(CC) $(PLATFORM_CFLAGS) "$(SECURITY_OPENSSL_PREFLIGHT)" -o "$$exe" -lssl -lcrypto >/dev/null 2>&1; then \
+		echo "security test preflight requires OpenSSL development headers and libraries." >&2; \
+		echo "missing: openssl/evp.h or linkable -lssl -lcrypto for CC=$(CC)" >&2; \
+		echo "hint: install OpenSSL development packages, or skip test-security on minimal C-only toolchains." >&2; \
+		exit 1; \
+	fi; \
+	rm -f "$$exe"
 endif
 
 ci-linux:

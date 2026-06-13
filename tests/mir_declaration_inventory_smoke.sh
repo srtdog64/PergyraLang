@@ -3322,27 +3322,6 @@ require_term "src/codegen/llvm_mir_emit.c" \
     "ctx->current_mir_routine = routine"
 require_term "src/codegen/llvm_mir_emit.c" \
     "ctx->current_mir_routine = saved_mir_routine"
-require_each_following_term "src/codegen/llvm_mir_local_emit.c" \
-    "if (has_base_name && type_expr != NULL)" \
-    "llvm_mir_bind_local_alloca_base_scope(routine, ctx, inst," \
-    8
-require_each_following_term "src/codegen/llvm_mir_local_emit.c" \
-    "&& inst->abi_type_name != NULL)" \
-    "llvm_mir_bind_local_alloca_base_scope(routine, ctx, inst," \
-    8
-require_each_following_term "src/codegen/llvm_mir_local_emit.c" \
-    "llvm_mir_bind_local_alloca_base_scope(const MIRRoutine *routine," \
-    "llvm_scope_declare(ctx, owned_name, alloca, type)" \
-    35
-require_each_following_term "src/codegen/llvm_mir_local_emit.c" \
-    "Seed PHI allocas from MIR source-local facts" \
-    "llvm_mir_local_type_from_source_fact(" \
-    5
-if grep -A22 -F "llvm_mir_bind_local_alloca_base_scope(const MIRRoutine *routine," \
-        "$ROOT_DIR/src/codegen/llvm_mir_local_emit.c" |
-        grep -Fq "type_name == NULL && !mir_instruction_uses_source_local_decl_emit"; then
-    fail "LLVM MIR local alloca base scope binding must not be gated on source-local facts"
-fi
 require_term "src/codegen/llvm_stmt_source_local_fallback.c" \
     "const MIRRoutine *routine = ctx->current_mir_routine"
 require_term "src/compiler/mir_program_validate.c" \

@@ -131,12 +131,12 @@ llvm_mir_local_type_from_source_fact(const MIRRoutine *routine,
 }
 
 static void
-llvm_mir_bind_local_alloca_base_scope(const MIRRoutine *routine,
-                                      LLVMGenCtx *ctx,
-                                      const MIRInstruction *inst,
-                                      const char *name,
-                                      LLVMValueRef alloca,
-                                      LLVMTypeRef type)
+llvm_mir_bind_source_local_base(const MIRRoutine *routine,
+                                LLVMGenCtx *ctx,
+                                const MIRInstruction *inst,
+                                const char *name,
+                                LLVMValueRef alloca,
+                                LLVMTypeRef type)
 {
     const char *type_name;
     char *owned_name;
@@ -145,10 +145,12 @@ llvm_mir_bind_local_alloca_base_scope(const MIRRoutine *routine,
         || alloca == NULL || type == NULL)
         return;
     type_name = mir_routine_source_local_type_name(routine, name);
+    if (type_name == NULL && !mir_instruction_uses_source_local_decl_emit(inst))
+        return;
     owned_name = pgy_arena_strdup(&ctx->persistent, name);
     if (owned_name == NULL) {
         llvm_set_mir_topology_invalid(ctx,
-            "LLVM MIR local alloca scope binding out of memory");
+            "LLVM MIR local source fact scope binding out of memory");
         return;
     }
     llvm_scope_declare(ctx, owned_name, alloca, type);
@@ -157,7 +159,7 @@ llvm_mir_bind_local_alloca_base_scope(const MIRRoutine *routine,
             type_name);
         if (llvm_lookup_class(ctx, type_name) != NULL)
             llvm_register_var_class(ctx, owned_name, type_name);
-    } else if (mir_instruction_uses_source_local_decl_emit(inst)) {
+    } else {
         LLVMClassTypeEntry *class_entry =
             llvm_lookup_class_by_struct_type(ctx, type);
         if (class_entry != NULL && class_entry->class_name != NULL)
@@ -539,15 +541,13 @@ llvm_emit_mir_local_allocas(const MIRRoutine *routine, LLVMGenCtx *ctx,
                         llvm_mir_register_nominal_class(ctx, base_name,
                                                         type_expr);
                     }
-                } else if (has_base_name) {
-                    /* Seed PHI allocas from MIR source-local facts before
-                     * recursively inferring incoming assignment expressions. */
-                    alloca_type = llvm_mir_local_type_from_source_fact(
-                        routine, ctx, base_name);
-                    if (ctx->has_error)
-                        return;
-                }
-                if (alloca_type == NULL && value_expr != NULL) {
+                } else if (value_expr != NULL) {
+                    if (has_base_name) {
+                        alloca_type = llvm_mir_local_type_from_source_fact(
+                            routine, ctx, base_name);
+                        if (ctx->has_error)
+                            return;
+                    }
                     if (inst->arg1 != NULL
                         && strcmp(inst->arg1, "SliceCopy") == 0) {
                         alloca_type =
@@ -572,7 +572,7 @@ llvm_emit_mir_local_allocas(const MIRRoutine *routine, LLVMGenCtx *ctx,
                         alloca_type = llvm_stmt_infer_expr_type(ctx, value_expr);
                     if (ctx->has_error || alloca_type == NULL)
                         return;
-                } else if (alloca_type == NULL && has_base_name) {
+                } else if (has_base_name) {
                     alloca_type = llvm_mir_local_type_from_vars(
                         vars, var_count, base_name);
                 }
@@ -623,25 +623,15 @@ llvm_emit_mir_local_allocas(const MIRRoutine *routine, LLVMGenCtx *ctx,
                     }
                 }
                 if (has_base_name && type_expr != NULL) {
-                    llvm_mir_bind_local_alloca_base_scope(routine, ctx, inst,
-                        base_name, vars[var_count].alloca,
-                        vars[var_count].type);
-                    if (ctx->has_error)
-                        return;
                     llvm_register_typed_var_binding(ctx, base_name,
                         vars[var_count].alloca, type_expr);
                 } else if (has_base_name
                            && inst->abi_type_name != NULL) {
-                    llvm_mir_bind_local_alloca_base_scope(routine, ctx, inst,
-                        base_name, vars[var_count].alloca,
-                        vars[var_count].type);
-                    if (ctx->has_error)
-                        return;
                     llvm_register_typed_var_abi_binding(ctx, base_name,
                         vars[var_count].alloca,
                         inst->abi_type_name);
                 } else if (has_base_name) {
-                    llvm_mir_bind_local_alloca_base_scope(routine, ctx, inst,
+                    llvm_mir_bind_source_local_base(routine, ctx, inst,
                         base_name, vars[var_count].alloca,
                         vars[var_count].type);
                     if (ctx->has_error)

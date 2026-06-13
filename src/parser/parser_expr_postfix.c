@@ -60,34 +60,6 @@ parser_desugar_slice_call(Parser *parser, ASTNode *receiver,
     return call;
 }
 
-/* Open-ended slice bound: `ArrayLength(<clone of receiver>)`, used to fill the
- * omitted end of `xs[..]`, `xs[a..]`, and `xs[..]`. */
-static ASTNode *
-parser_slice_length_of(Parser *parser, ASTNode *receiver)
-{
-    ASTNode *receiver_clone = ast_clone(receiver);
-    ASTNode *callee;
-    ASTNode *call;
-
-    if (receiver_clone == NULL) {
-        parser_error(parser, "Out of memory while parsing open slice bound");
-        return ast_create_number("0");
-    }
-    callee = ast_create_identifier("ArrayLength");
-    call = ast_create_call(callee);
-    if (call == NULL || callee == NULL
-        || !parser_append_call_argument(parser, call, NULL, receiver_clone)) {
-        parser_error(parser, "Out of memory while parsing open slice bound");
-        ast_destroy(call);
-        if (call == NULL) {
-            ast_destroy(callee);
-            ast_destroy(receiver_clone);
-        }
-        return ast_create_number("0");
-    }
-    return call;
-}
-
 /* Two-token lookahead: current token is '{'; an object initializer body
  * begins with `identifier :`. Blocks (parallel/spawn/with/control bodies)
  * never do, so this distinguishes `Type { f: v }` from a statement block. */
@@ -148,6 +120,34 @@ parser_parse_object_literal(Parser *parser, ASTNode *type_expr)
     parser->no_struct_literal = saved_nsl;
     parser_consume(parser, TOKEN_RBRACE,
         "Expected '}' after object initializer");
+    return call;
+}
+
+/* Open-ended slice bound: `ArrayLength(<clone of receiver>)`, used to fill the
+ * omitted end of `xs[..]`, `xs[a..]`, and `xs[..]`. */
+static ASTNode *
+parser_slice_length_of(Parser *parser, ASTNode *receiver)
+{
+    ASTNode *receiver_clone = ast_clone(receiver);
+    ASTNode *callee;
+    ASTNode *call;
+
+    if (receiver_clone == NULL) {
+        parser_error(parser, "Out of memory while parsing open slice bound");
+        return ast_create_number("0");
+    }
+    callee = ast_create_identifier("ArrayLength");
+    call = ast_create_call(callee);
+    if (call == NULL || callee == NULL
+        || !parser_append_call_argument(parser, call, NULL, receiver_clone)) {
+        parser_error(parser, "Out of memory while parsing open slice bound");
+        ast_destroy(call);
+        if (call == NULL) {
+            ast_destroy(callee);
+            ast_destroy(receiver_clone);
+        }
+        return ast_create_number("0");
+    }
     return call;
 }
 

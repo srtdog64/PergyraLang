@@ -12,8 +12,10 @@
 
 #ifdef _WIN32
 #include <windows.h>
-#elif defined(__linux__)
+#elif defined(__linux__) || defined(__APPLE__) || defined(__unix__) \
+    || defined(__unix) || defined(BSD)
 #include <sys/mman.h>
+#define PGY_HAVE_POSIX_MEMLOCK 1
 #endif
 
 SecurityError
@@ -25,7 +27,9 @@ SecureMemoryLock(void *addr, size_t size)
 #ifdef _WIN32
     return VirtualLock(addr, size) ? SECURITY_SUCCESS :
                                      SECURITY_ERROR_CRYPTOGRAPHY_FAILED;
-#elif defined(__linux__)
+#elif defined(PGY_HAVE_POSIX_MEMLOCK)
+    /* mlock is POSIX.1-2001 and available on Linux, macOS, and the BSDs;
+     * memory protection is no longer limited to Linux. */
     return (mlock(addr, size) == 0) ? SECURITY_SUCCESS :
                                       SECURITY_ERROR_CRYPTOGRAPHY_FAILED;
 #else
@@ -42,7 +46,7 @@ SecureMemoryUnlock(void *addr, size_t size)
 #ifdef _WIN32
     return VirtualUnlock(addr, size) ? SECURITY_SUCCESS :
                                        SECURITY_ERROR_CRYPTOGRAPHY_FAILED;
-#elif defined(__linux__)
+#elif defined(PGY_HAVE_POSIX_MEMLOCK)
     return (munlock(addr, size) == 0) ? SECURITY_SUCCESS :
                                         SECURITY_ERROR_CRYPTOGRAPHY_FAILED;
 #else
