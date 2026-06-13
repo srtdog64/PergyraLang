@@ -5,6 +5,7 @@
 #include <string.h>
 
 #include "llvm_expr_projection_path_helpers.h"
+#include "llvm_expr_constructor_calls.h"
 #include "llvm_internal_api.h"
 
 static LLVMValueRef
@@ -32,12 +33,19 @@ llvm_emit_member_access(ASTNode *node, LLVMGenCtx *ctx)
             "LLVM member access requires an object and field name");
 
     if (llvm_is_upper_ident(obj_node)) {
+        const char *enum_name = ast_identifier_name(obj_node);
         LLVMEnumVariantEntry *variant =
-            llvm_lookup_enum_variant_qualified(ctx,
-                ast_identifier_name(obj_node), field_name);
-        if (variant != NULL)
+            llvm_lookup_enum_variant_qualified(ctx, enum_name, field_name);
+        if (variant != NULL) {
+            /* A payload-less variant of a tagged enum (struct representation)
+             * is the full struct value, not the bare i32 tag. */
+            LLVMClassTypeEntry *ecls = llvm_lookup_class(ctx, enum_name);
+            if (ecls != NULL && ecls->struct_type != NULL
+                && LLVMGetTypeKind(ecls->struct_type) == LLVMStructTypeKind)
+                return llvm_emit_constructor_call(node, ctx, field_name);
             return LLVMConstInt(ctx->type_i32,
                 (unsigned long long)variant->value, 0);
+        }
     }
 
     {

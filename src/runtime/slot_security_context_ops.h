@@ -25,6 +25,7 @@ SecurityError
 SecurityContextInitialize(SecurityContext *context)
 {
     uint8_t keyMaterial[64];
+    SecurityError lockResult;
 
     if (context == NULL) {
         slot_security_warn("context-initialize", SECURITY_ERROR_CONTEXT_NOT_INITIALIZED,
@@ -34,6 +35,12 @@ SecurityContextInitialize(SecurityContext *context)
 
     if (context->initialized)
         return SECURITY_SUCCESS;
+
+    if (!SecurityLevelIsValid(context->defaultLevel)) {
+        slot_security_warn("context-initialize", SECURITY_ERROR_INVALID_TOKEN,
+                           "invalid default security level");
+        return SECURITY_ERROR_INVALID_TOKEN;
+    }
 
     if (HardwareFingerprintGenerate(&context->hwFingerprint) != SECURITY_SUCCESS) {
         slot_security_warn("context-initialize", SECURITY_ERROR_CRYPTOGRAPHY_FAILED,
@@ -63,6 +70,14 @@ SecurityContextInitialize(SecurityContext *context)
     }
 
     SecureMemoryWipe(keyMaterial, sizeof(keyMaterial));
+    if (!context->masterKeyLocked) {
+        lockResult = SecureMemoryLock(context->masterKey, context->keySize);
+        context->masterKeyLocked = (lockResult == SECURITY_SUCCESS);
+        if (!context->masterKeyLocked) {
+            slot_security_warn("context-initialize", lockResult,
+                               "master key memory lock unavailable");
+        }
+    }
     context->initialized = true;
     return SECURITY_SUCCESS;
 }

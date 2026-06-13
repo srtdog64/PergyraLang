@@ -128,6 +128,31 @@ infer_expression_type_name(TranspilerCtx *ctx, ASTNode *expr)
             inner = "Unknown";
         return transpiler_infer_arena_format_type_name(ctx, "Array", inner);
     }
+    case AST_CAST: {
+        const char *target = ast_cast_target_type(expr);
+        return target != NULL ? target : "Unknown";
+    }
+    case AST_MAP_LITERAL: {
+        const char *k = "Unknown";
+        const char *v = "Unknown";
+        if (ast_map_literal_count(expr) > 0) {
+            k = infer_expression_type_name(ctx, ast_map_literal_key(expr, 0));
+            v = infer_expression_type_name(ctx, ast_map_literal_value(expr, 0));
+        } else if (ctx != NULL && ctx->expected_type != NULL
+                   && transpiler_type_name_is_hashmap(ctx->expected_type)) {
+            char *kept = pgy_arena_fmt(&ctx->arena, "%s", ctx->expected_type);
+            return kept != NULL ? kept : "Unknown";
+        }
+        if (k == NULL || k[0] == '\0')
+            k = "Unknown";
+        if (v == NULL || v[0] == '\0')
+            v = "Unknown";
+        {
+            char *formatted = pgy_arena_fmt(&ctx->arena,
+                "HashMap<%s, %s>", k, v);
+            return formatted != NULL ? formatted : "Unknown";
+        }
+    }
     case AST_ARRAY_ACCESS: {
         const char *array_type = infer_expression_type_name(ctx, ast_array_access_array(expr));
         if (transpiler_type_name_is_array_or_slice(array_type))

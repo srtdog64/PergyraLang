@@ -60,6 +60,34 @@ parser_desugar_slice_call(Parser *parser, ASTNode *receiver,
     return call;
 }
 
+/* Open-ended slice bound: `ArrayLength(<clone of receiver>)`, used to fill the
+ * omitted end of `xs[..]`, `xs[a..]`, and `xs[..]`. */
+static ASTNode *
+parser_slice_length_of(Parser *parser, ASTNode *receiver)
+{
+    ASTNode *receiver_clone = ast_clone(receiver);
+    ASTNode *callee;
+    ASTNode *call;
+
+    if (receiver_clone == NULL) {
+        parser_error(parser, "Out of memory while parsing open slice bound");
+        return ast_create_number("0");
+    }
+    callee = ast_create_identifier("ArrayLength");
+    call = ast_create_call(callee);
+    if (call == NULL || callee == NULL
+        || !parser_append_call_argument(parser, call, NULL, receiver_clone)) {
+        parser_error(parser, "Out of memory while parsing open slice bound");
+        ast_destroy(call);
+        if (call == NULL) {
+            ast_destroy(callee);
+            ast_destroy(receiver_clone);
+        }
+        return ast_create_number("0");
+    }
+    return call;
+}
+
 /* Two-token lookahead: current token is '{'; an object initializer body
  * begins with `identifier :`. Blocks (parallel/spawn/with/control bodies)
  * never do, so this distinguishes `Type { f: v }` from a statement block. */
@@ -69,8 +97,13 @@ parser_struct_literal_body_ahead(Parser *parser)
     Lexer saved = *parser->lexer;
     Token first = lexer_next_token(parser->lexer);
     Token second = lexer_next_token(parser->lexer);
+    bool first_is_name = first.type == TOKEN_IDENTIFIER
+        || (first.text != NULL
+            && ((first.text[0] >= 'a' && first.text[0] <= 'z')
+                || (first.text[0] >= 'A' && first.text[0] <= 'Z')
+                || first.text[0] == '_'));
     *parser->lexer = saved;
-    return first.type == TOKEN_IDENTIFIER && second.type == TOKEN_COLON;
+    return first_is_name && second.type == TOKEN_COLON;
 }
 
 static ASTNode *
@@ -88,8 +121,20 @@ parser_parse_object_literal(Parser *parser, ASTNode *type_expr)
     parser->no_struct_literal = false;
     if (!parser_check(parser, TOKEN_RBRACE)) {
         do {
-            Token field = parser_consume(parser, TOKEN_IDENTIFIER,
-                "Expected field name in object initializer");
+            /* Field names may be keywords with an identifier-shaped spelling
+             * (e.g. `type:`), so accept any name-like token here. */
+            Token field;
+            if (!parser_check(parser, TOKEN_IDENTIFIER)
+                && parser->current_token.text != NULL
+                && ((parser->current_token.text[0] >= 'a'
+                        && parser->current_token.text[0] <= 'z')
+                    || (parser->current_token.text[0] >= 'A'
+                        && parser->current_token.text[0] <= 'Z')
+                    || parser->current_token.text[0] == '_'))
+                field = parser_advance(parser);
+            else
+                field = parser_consume(parser, TOKEN_IDENTIFIER,
+                    "Expected field name in object initializer");
             ASTNode *value;
             parser_consume(parser, TOKEN_COLON,
                 "Expected ':' after field name in object initializer");
@@ -127,6 +172,14 @@ parser_parse_call(Parser *parser)
             name = consume_member_name_token(parser,
                 "Expected property name after '.'");
             expr = ast_create_member_access(expr, name.text);
+            /* Generic method call `obj.Method<TypeArgs>(args)`: stash the type
+             * arguments so the following call attaches them. The lookahead
+             * keeps `obj.field < x` (comparison) from being misparsed. */
+            if (parser_check(parser, TOKEN_LESS)
+                && parser_generic_call_args_ahead(parser)) {
+                parser->pending_call_generic_args =
+                    parse_type_arguments(parser);
+            }
         } else if (parser_match(parser, TOKEN_OPTIONAL_CHAIN)) {
             Token name = consume_member_name_token(parser,
                 "Expected property name after '?.'");
@@ -138,22 +191,30 @@ parser_parse_call(Parser *parser)
         } else if (parser_match(parser, TOKEN_LBRACKET)) {
             ASTNode *index;
             if (parser_token_is_range_separator(parser->current_token)) {
-                parser_error(parser,
-                    "Slicing 'xs[..]' is reserved but not implemented.\n"
-                    "Reason: public slice ABI and ownership policy are not frozen for beta.\n"
-                    "Fix: use explicit slice helper functions.");
+                /* Leading range separator: `xs[..]` (full) or `xs[..end]`
+                 * (prefix). The omitted start is 0; a full slice uses the
+                 * receiver length for the end. */
+                ASTNode *start = ast_create_number("0");
+                ASTNode *end;
                 parser_advance(parser);
-                if (!parser_check(parser, TOKEN_RBRACKET))
-                    (void)parser_parse_expression(parser);
+                if (parser_check(parser, TOKEN_RBRACKET))
+                    end = parser_slice_length_of(parser, expr);
+                else
+                    end = parser_parse_expression(parser);
                 parser_consume(parser, TOKEN_RBRACKET,
                     "Expected ']' after slice expression");
+                expr = parser_desugar_slice_call(parser, expr, start, end);
                 continue;
             }
             index = parser_parse_expression(parser);
             if (parser_token_is_range_separator(parser->current_token)) {
                 ASTNode *end;
                 parser_advance(parser);
-                end = parser_parse_expression(parser);
+                /* `xs[a..]` (suffix) uses the receiver length for the end. */
+                if (parser_check(parser, TOKEN_RBRACKET))
+                    end = parser_slice_length_of(parser, expr);
+                else
+                    end = parser_parse_expression(parser);
                 parser_consume(parser, TOKEN_RBRACKET,
                     "Expected ']' after slice expression");
                 expr = parser_desugar_slice_call(parser, expr, index, end);

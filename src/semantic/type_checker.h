@@ -298,6 +298,7 @@ Type* type_check_call(ASTNode* expr, SemanticContext* ctx);
 Type* type_check_member_access(ASTNode* expr, SemanticContext* ctx);
 Type* type_check_array_access(ASTNode* expr, SemanticContext* ctx);
 Type* type_check_array_literal(ASTNode* expr, SemanticContext* ctx);
+Type* type_check_map_literal(ASTNode* expr, SemanticContext* ctx);
 Type* type_check_assignment(ASTNode* expr, SemanticContext* ctx);
 
 /* -----------------------------------------------------------------

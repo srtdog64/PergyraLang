@@ -13,7 +13,6 @@ llvm_stmt_type_reasonf(char *out, size_t out_size, const char *fmt, ...)
 {
     va_list ap;
     int written;
-
     if (out == NULL || out_size == 0 || fmt == NULL)
         return false;
     va_start(ap, fmt);
@@ -27,7 +26,6 @@ llvm_stmt_lookup_class_by_type(LLVMGenCtx *ctx, LLVMTypeRef type)
 {
     return llvm_lookup_class_by_struct_type(ctx, type);
 }
-
 LLVMTypeRef
 llvm_stmt_unknown_expr_type(LLVMGenCtx *ctx, ASTNode *expr, const char *reason)
 {
@@ -98,7 +96,6 @@ llvm_stmt_host_method_return_type(LLVMGenCtx *ctx, const char *host_type_name,
     }
     return NULL;
 }
-
 static LLVMTypeRef
 llvm_stmt_callable_entry_return_type(LLVMGenCtx *ctx,
                                      const LLVMCallableVarEntry *entry)
@@ -598,7 +595,7 @@ llvm_stmt_infer_expr_type(LLVMGenCtx *ctx, ASTNode *expr)
                             method_name != NULL ? method_name : "(anonymous)");
                         return NULL;
                     }
-                    /* Non-MIR compatibility recovers receiver class by type. */
+                    /* Non-MIR compatibility recovers receiver class by type; MIR stays closed instead of clearing the source-of-truth diagnostic. */
                     bool prev_err = ctx->has_error;
                     LLVMTypeRef recv_ty = llvm_stmt_infer_expr_type(ctx,
                         receiver);

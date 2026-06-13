@@ -61,6 +61,7 @@ ASTNode *parse_equality(Parser *parser);
 ASTNode *parse_comparison(Parser *parser);
 ASTNode *parse_addition(Parser *parser);
 ASTNode *parse_multiplication(Parser *parser);
+ASTNode *parse_cast(Parser *parser);
 ASTNode *parse_unary(Parser *parser);
 ASTNode *finish_call(Parser *parser, ASTNode *callee);
 bool     parser_prepend_call_argument(Parser *parser, ASTNode *call,
@@ -69,6 +70,8 @@ bool     parser_append_call_argument(Parser *parser, ASTNode *call,
                                      const char *arg_name, ASTNode *arg);
 bool     parser_is_lambda_start(Parser *parser);
 ASTNode *parse_lambda_expression(Parser *parser);
+ASTNode *parse_pipe_lambda_expression(Parser *parser);
+bool parser_generic_call_args_ahead(Parser *parser);
 bool     parser_append_expr_node_with_capacity(Parser *parser,
                                                ASTNode ***items,
                                                size_t *count,

@@ -285,11 +285,35 @@ ASTNode* parse_type(Parser* parser) {
     if (!parser_enter_recursion(parser))
         return NULL;
     result = parse_type_guarded(parser);
+    /* Bare arrow function type `A -> B`: the parsed type becomes the single
+     * parameter and the type after `->` is the return type. */
+    if (result != NULL && parser_match(parser, TOKEN_ARROW)) {
+        ASTNode *handler = ast_create_event_handler_type();
+        if (handler != NULL) {
+            parser_append_type_node_with_capacity(parser,
+                &handler->data.event_handler_type.param_types,
+                &handler->data.event_handler_type.param_count,
+                &handler->data.event_handler_type.param_capacity,
+                result);
+            handler->data.event_handler_type.return_type = parse_type(parser);
+            result = handler;
+        }
+    }
     parser_leave_recursion(parser);
     return result;
 }
 
 static ASTNode* parse_type_guarded(Parser* parser) {
+    /* Borrow type prefix `&T` / `&mut T`: the borrow is erased at the parse
+     * level; the underlying type carries through. */
+    if (parser_check(parser, TOKEN_AMP)) {
+        parser_advance(parser);  /* consume '&' */
+        if (parser->current_token.text != NULL
+            && strcmp(parser->current_token.text, "mut") == 0)
+            parser_advance(parser);  /* consume 'mut' */
+        return parse_type(parser);
+    }
+
     if (parser_match(parser, TOKEN_FUNC)) {
         ASTNode *handler_type = ast_create_event_handler_type();
 
@@ -362,6 +386,26 @@ static ASTNode* parse_type_guarded(Parser* parser) {
         return ast_create_type("Void");
     }
 
+    /* Lowercase `slot<T>` keyword used as a type spells the `Slot<T>` type. */
+    if (parser_check(parser, TOKEN_SLOT)) {
+        ASTNode *slot_node = ast_create_type("Slot");
+        parser_advance(parser);
+        if (parser_check(parser, TOKEN_LESS))
+            slot_node->data.type.generic_args = parse_type_arguments(parser);
+        return slot_node;
+    }
+
+    /* Existential type modifiers `any T` / `impl T`: parse `T`; the existential
+     * bound is erased at the parse level (the concrete type carries the
+     * contract). */
+    if (parser->current_token.text != NULL
+        && strcmp(parser->current_token.text, "any") == 0
+        && parser_peek_next(parser).type == TOKEN_IDENTIFIER) {
+        parser_advance(parser);  /* consume 'any' */
+    } else if (parser_check(parser, TOKEN_IMPL)) {
+        parser_advance(parser);  /* consume 'impl' */
+    }
+
     Token type_name = parser_consume(parser, TOKEN_IDENTIFIER, "Expected type name");
     if (parser_token_is_placeholder_type(type_name)) {
         parser_error(parser,
@@ -417,7 +461,7 @@ ASTNode* parse_type_alias_declaration(Parser *parser) {
         return record;
     }
     ASTNode *target_type = parse_type(parser);
-    parser_consume(parser, TOKEN_SEMICOLON, "Expected ';' after type alias");
+    parser_match(parser, TOKEN_SEMICOLON);
 
     ASTNode *alias = ast_create_type_alias(name.text, target_type);
     if (alias != NULL) {

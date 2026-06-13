@@ -225,6 +225,13 @@ ast_contains_identifier_call(const ASTNode *node,
     case AST_TUPLE_LITERAL:
         return ast_array_contains_identifier_call(
             node->data.tuple_literal.elements, node->data.tuple_literal.count, predicate, userdata);
+    case AST_MAP_LITERAL:
+        return ast_array_contains_identifier_call(
+            node->data.map_literal.keys, node->data.map_literal.count, predicate, userdata)
+            || ast_array_contains_identifier_call(
+            node->data.map_literal.values, node->data.map_literal.count, predicate, userdata);
+    case AST_CAST:
+        return ast_contains_identifier_call(node->data.cast.operand, predicate, userdata);
     case AST_ASSIGNMENT:
         return ast_contains_identifier_call(node->data.assignment.target, predicate, userdata)
             || ast_contains_identifier_call(node->data.assignment.value, predicate, userdata);

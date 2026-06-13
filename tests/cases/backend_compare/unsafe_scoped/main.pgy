@@ -1,0 +1,8 @@
+func Main() -> Void
+{
+    let total: Int = 0
+    unsafe { Log(total + 10) }
+    unsafe(raw) { Log(total + 20) }
+    unsafe raw { Log(total + 30) }
+    unsafe(ffi, raw) { Log(total + 40) }
+}

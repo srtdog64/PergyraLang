@@ -212,3 +212,13 @@ class SecureBankAccount {
 - 토큰이 없는 SecureSlot 접근은 언어 규칙과 런타임 검증의 대상이다.
 - 하드웨어 지문과 암호화는 보안 레벨에 따라 선택적으로 적용된다.
 - 공격 대응 범위는 구현과 테스트에 포함된 시나리오 기준으로만 해석해야 한다.
+> Status note (2026-06-13): This is a historical/imported implementation
+> snapshot with encoding damage. Do not use it as the current beta source of
+> truth. Current security claims must distinguish the generated `SecureSlot<T>`
+> ABI (`src/runtime/pgy_abi_spec.h`,
+> `src/runtime/pgy_runtime_slot_macros.h`,
+> `src/runtime/pgy_runtime_lib_secure_slot_exports.h`) from the separate
+> `SlotManager` secure runtime API (`src/runtime/slot_security*.c/.h`,
+> `src/runtime/slot_manager_secure_ops.c`). See
+> `docs/03_security_mode_design.md` and
+> `docs/security/contracts/secure_slot_token_unforgeability.md`.

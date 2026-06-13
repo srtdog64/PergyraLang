@@ -1,0 +1,8 @@
+subject MySubjectContainer<T> {
+    let val: T;
+}
+
+func Main() -> Void {
+    let b: MySubjectContainer<Void> = MySubjectContainer<Void>();
+    Log(1);
+}

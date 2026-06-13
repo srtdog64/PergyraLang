@@ -129,8 +129,18 @@ transpiler_match_is_enum_variant_destructor(
         && callee->type == AST_IDENTIFIER) {
         name = ast_identifier_name(callee);
         argc = ast_call_arg_count(pat);
+    } else if (pat->type == AST_CALL
+        && callee != NULL
+        && callee->type == AST_MEMBER_ACCESS) {
+        /* Qualified variant pattern `Enum.Variant(bindings)`. */
+        name = ast_member_name(callee);
+        argc = ast_call_arg_count(pat);
     } else if (pat->type == AST_IDENTIFIER) {
         name = ast_identifier_name(pat);
+        argc = 0;
+    } else if (pat->type == AST_MEMBER_ACCESS) {
+        /* Qualified payload-less variant pattern `Enum.Variant`. */
+        name = ast_member_name(pat);
         argc = 0;
     } else {
         return false;

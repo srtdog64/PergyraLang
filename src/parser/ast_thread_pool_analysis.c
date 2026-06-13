@@ -59,6 +59,13 @@ ast_uses_thread_pool_surface(const ASTNode *node)
     case AST_TUPLE_LITERAL:
         return ast_array_uses_thread_pool_surface(
             node->data.tuple_literal.elements, node->data.tuple_literal.count);
+    case AST_MAP_LITERAL:
+        return ast_array_uses_thread_pool_surface(
+                node->data.map_literal.keys, node->data.map_literal.count)
+            || ast_array_uses_thread_pool_surface(
+                node->data.map_literal.values, node->data.map_literal.count);
+    case AST_CAST:
+        return ast_uses_thread_pool_surface(node->data.cast.operand);
     case AST_IF_STMT:
         return ast_uses_thread_pool_surface(node->data.if_stmt.condition)
             || ast_uses_thread_pool_surface(node->data.if_stmt.then_branch)

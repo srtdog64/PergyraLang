@@ -73,36 +73,47 @@ field_slot_paired_token(ASTNode *host, const char *slot_name)
 /* Register every `Slot<T>` / `SecureSlot<T>` field of the method's owning class
  * as a `self->field` slot so its Write / Read / Release lower like a local. */
 static void
-register_class_field_slots(TranspilerCtx *ctx, ASTNode *host)
+register_class_field_slots(TranspilerCtx *ctx, const char *owner_name,
+                           ASTNode *host)
 {
-    size_t field_count = 0;
-    ClassField **fields;
+    TranspilerHostedFieldView fields;
 
-    if (ctx == NULL || host == NULL || host->type != AST_CLASS_DECL)
+    if (ctx == NULL || owner_name == NULL
+        || host == NULL || host->type != AST_CLASS_DECL)
         return;
 
-    fields = ast_class_fields(host, &field_count);
-    for (size_t i = 0; i < field_count; i++)
+    fields = transpiler_hosted_class_field_view_from_decl(
+        ctx, owner_name, host);
+    if (transpiler_hosted_field_view_missing_mir_metadata(&fields)) {
+        transpiler_set_mir_inventory_missing(ctx,
+            "MIR C backend missing class-field slot metadata for '%s'",
+            owner_name);
+        return;
+    }
+    for (size_t i = 0; i < fields.count; i++)
     {
-        ClassField *field = fields != NULL ? fields[i] : NULL;
+        const char *field_name =
+            transpiler_hosted_field_view_name(&fields, i);
+        ASTNode *field_type =
+            transpiler_hosted_field_view_type(&fields, i);
         const char *head;
         GenericParams *args;
         bool is_secure;
 
-        if (field == NULL || field->name == NULL || field->type == NULL)
+        if (field_name == NULL || field_type == NULL)
             continue;
-        head = ast_type_name(field->type);
+        head = ast_type_name(field_type);
         if (head == NULL
             || (strcmp(head, "Slot") != 0 && strcmp(head, "SecureSlot") != 0))
             continue;
 
         is_secure = strcmp(head, "SecureSlot") == 0;
-        args = ast_type_generic_args(field->type);
-        register_self_field_slot_var(ctx, field->name,
+        args = ast_type_generic_args(field_type);
+        register_self_field_slot_var(ctx, field_name,
             ast_generic_param_count(args) > 0
                 ? ast_generic_param_name(ast_generic_param_at(args, 0)) : "Int",
             is_secure,
-            is_secure ? field_slot_paired_token(host, field->name) : NULL);
+            is_secure ? field_slot_paired_token(host, field_name) : NULL);
     }
 }
 
@@ -499,7 +510,7 @@ emit_func_decl_from_mir_named(ASTNode *node, const MIRRoutine *mir_routine,
         }
     }
     if (is_method && resolved_host_decl != NULL)
-        register_class_field_slots(ctx, resolved_host_decl);
+        register_class_field_slots(ctx, owner_name, resolved_host_decl);
     transpiler_register_mir_with_slot_claim_facts(ctx, mir_routine);
     transpiler_register_ast_compat_local_bindings_in_block(ctx, node,
         ast_func_body(node));

@@ -21,6 +21,17 @@ will be judged by a three-way comparison: C oracle output, LLVM oracle output,
 and Pergyra-written tool/pass output. If C and LLVM still disagree, a
 self-hosted result cannot be trusted as the deciding value.
 
+## Current Judgement (2026-06-13)
+
+Soft/partial self-host preparation may continue. The active work should stay on
+compiler-adjacent tools, stable JSON/dump validators, lexer/parser parity
+expansion, and C/LLVM/Pergyra comparator evidence.
+
+Hard compiler-core migration is not open. The current substitution progress in
+`src/self_hosted/PROGRESS.md` is still early, and semantic/codegen/compiler-core
+substitutes have not started. Treat self-host output as the third comparison
+value after C and LLVM, never as the source that decides which oracle is right.
+
 The executable soft self-host scaffolds live in `src/self_hosted/`. This
 `docs/self_hosted/` folder is the contract and handoff documentation;
 `src/self_hosted/` is where Pergyra-language tool stubs, expected JSON, and

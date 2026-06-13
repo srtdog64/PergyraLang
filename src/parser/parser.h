@@ -52,6 +52,7 @@ typedef struct
     bool    in_extern_block;
     bool    in_abstract_method_context;
     bool    no_struct_literal;
+    bool    no_cast;
     bool    next_decl_exported;
     bool    last_func_decl_async;
     int     scope_depth;

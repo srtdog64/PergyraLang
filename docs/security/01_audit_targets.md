@@ -1,6 +1,6 @@
 # Prioritized Audit Targets
 
-Last updated: 2026-06-01
+Last updated: 2026-06-13
 
 This document lists Pergyra runtime safety contracts in priority order for AI
 Validator audit. Priority reflects:
@@ -30,7 +30,7 @@ These contracts are load-bearing for marketing claims and cannot ship to a
 | P0-5 | Release-while-pinned rejection | `src/runtime/slot_manager.c` | (TBD) |
 | P0-6 | Slot id exhaustion availability / tombstone flooding | `src/runtime/slot_manager_core_ops.c`, `src/runtime/slot_manager.h`, `src/tests/security/test_security_runtime.cases.h`, `docs/74_slot_pinning_caching.md` | `security-portability-contract-test-smoke`, `make test-security` |
 
-Existing regression: `make test-security` 160/160 + `make runtime-panic-abi-test-smoke`.
+Existing regression: `make test-security` 171/171 + `make runtime-panic-abi-test-smoke`.
 Audit covers unenumerated edge cases beyond those executable regressions.
 
 ## P1 - Strongly Recommended Before Beta

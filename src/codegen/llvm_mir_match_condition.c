@@ -145,9 +145,16 @@ llvm_mir_emit_match_case_condition(const MIRInstruction *inst,
                 if (callee != NULL && callee->type == AST_IDENTIFIER) {
                     variant_name = ast_identifier_name(callee);
                     variant_argc = ast_call_arg_count(pattern_node);
+                } else if (callee != NULL
+                    && callee->type == AST_MEMBER_ACCESS) {
+                    variant_name = ast_member_name(callee);
+                    variant_argc = ast_call_arg_count(pattern_node);
                 }
             } else if (pattern_node->type == AST_IDENTIFIER) {
                 variant_name = ast_identifier_name(pattern_node);
+                variant_argc = 0;
+            } else if (pattern_node->type == AST_MEMBER_ACCESS) {
+                variant_name = ast_member_name(pattern_node);
                 variant_argc = 0;
             }
             if (variant_name != NULL) {
@@ -580,10 +587,11 @@ llvm_mir_emit_match_case_body_binding(const MIRRoutine *routine,
 
     if (pattern_node->type == AST_CALL) {
         ASTNode *callee = ast_call_callee(pattern_node);
-        const char *variant_name = callee != NULL
-            && callee->type == AST_IDENTIFIER
-            ? ast_identifier_name(callee)
-            : NULL;
+        const char *variant_name = NULL;
+        if (callee != NULL && callee->type == AST_IDENTIFIER)
+            variant_name = ast_identifier_name(callee);
+        else if (callee != NULL && callee->type == AST_MEMBER_ACCESS)
+            variant_name = ast_member_name(callee);
         LLVMEnumVariantEntry *variant = variant_name != NULL
             ? llvm_lookup_enum_variant(ctx, variant_name)
             : NULL;

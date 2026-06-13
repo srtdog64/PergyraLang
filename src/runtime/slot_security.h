@@ -84,6 +84,7 @@ typedef struct
     size_t              keySize;        /* Master key size */
     SecurityLevel       defaultLevel;   /* Default security level */
     bool                initialized;    /* Context initialization status */
+    bool                masterKeyLocked;/* Master key is locked in RAM */
     
     /* Security statistics */
     uint64_t           tokensIssued;
@@ -139,6 +140,7 @@ typedef enum
 /*
  * Security context management
  */
+bool             SecurityLevelIsValid(SecurityLevel level);
 SecurityContext *SecurityContextCreate(SecurityLevel defaultLevel);
 void             SecurityContextDestroy(SecurityContext *context);
 SecurityError    SecurityContextInitialize(SecurityContext *context);
@@ -184,9 +186,10 @@ void          SecureMemoryWipe(void *addr, size_t size);
 /*
  * AES-256-CTR encryption with HMAC-SHA256 authentication.
  *
- * Implementation: FIPS 197 AES-256 block cipher in CTR mode.
+ * Provider-owned AES/HMAC/SHA-256 primitives:
+ * Windows CNG/BCrypt on Windows, OpenSSL EVP/HMAC/RAND elsewhere.
+ * The runtime owns only the CTR counter composition and token auth layout.
  * Auth tag: HMAC-SHA256(key, iv || ciphertext) truncated to 128 bits (RFC 2104).
- * No external dependencies — self-contained AES, HMAC uses OpenSSL EVP SHA-256.
  */
 SecurityError AES256Encrypt(const uint8_t key[32], const uint8_t iv[16],
                             const uint8_t *plaintext, size_t plaintextSize,

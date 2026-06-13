@@ -258,7 +258,7 @@ panic class.
 Current evidence:
 
 - Runtime slot manager stores generation counters and rejects stale handles.
-- `make test-security` (160/160 passed locally) covers stale-generation
+- `make test-security` (171/171 passed locally) covers stale-generation
   read/write/pin/release rejection, released-slot id recycle with generation
   advance, and `SlotIsValid` false for stale-generation handles.
 - The current C ABI is a 32-bit `slotId` / `generation` handle, so ABA safety

@@ -1,0 +1,20 @@
+func BuildScores() -> HashMap<String, Int>
+{
+    let scores: HashMap<String, Int> = { "alpha": 10, "beta": 20, "gamma": 30 }
+    return scores;
+}
+
+func Main() -> Void
+{
+    let scores: HashMap<String, Int> = BuildScores();
+    Log(MapGet(scores, "alpha"));
+    Log(MapGet(scores, "beta"));
+    Log(MapGet(scores, "gamma"));
+    Log(MapSize(scores));
+
+    let codes: HashMap<Int, String> = { 1: "one", 2: "two" };
+    Log(MapSize(codes));
+
+    let blank: HashMap<String, Int> = {};
+    Log(MapSize(blank));
+}

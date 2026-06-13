@@ -391,7 +391,8 @@ ASTNode* parse_type_declaration(Parser* parser, NominalDeclKind decl_kind) {
         if (parser_check(parser, TOKEN_LET) ||
             (decl_kind == NOMINAL_DECL_SUBJECT
              && parser_check(parser, TOKEN_VESSEL)) ||
-            (is_struct && parser_check(parser, TOKEN_IDENTIFIER))) {
+            (is_struct && parser_check_binding_name_token(parser)
+             && parser_peek_next(parser).type == TOKEN_COLON)) {
             bool has_let = parser_match(parser, TOKEN_LET);
             bool is_vessel_field = false;
             if (!has_let && decl_kind == NOMINAL_DECL_SUBJECT) {
@@ -481,7 +482,7 @@ ASTNode* parse_type_declaration(Parser* parser, NominalDeclKind decl_kind) {
             }
 
             // 필드
-            Token field_name = parser_consume(parser, TOKEN_IDENTIFIER, "Expected field name");
+            Token field_name = consume_binding_name_token(parser, "Expected field name");
             parser_consume(parser, TOKEN_COLON, "Expected ':' after field name");
             ASTNode* field_type = parse_type(parser);
 

@@ -12,13 +12,14 @@ those belong to post-beta module ecosystem work. The smoke uses the shared
 Windows/MSYS path helper; missing `emcc` may skip only the optional wasm link,
 not the emitted-C bridge check.
 
-Self-host boundary (2026-05-24, clarified 2026-05-26): hard self-host does not
-start from the compiler core with the current beta stable subset. Self-hosting
-is a post-beta consumer of the language spine, not a beta source-of-truth owner.
-Compiler-adjacent tools may remain as dogfood evidence, but beta closure order
-is CFG/AIR/DAG/MIR/ABI language trust first. Substrate gaps are tracked in
+Self-host boundary (2026-05-24, clarified 2026-05-26, reviewed 2026-06-13):
+hard self-host does not start from the compiler core with the current beta
+stable subset. Self-hosting is a post-beta consumer of the language spine, not a beta source-of-truth owner. Compiler-adjacent tools may remain as dogfood
+evidence, and soft/partial self-host preparation may continue, but beta closure
+order is CFG/AIR/DAG/MIR/ABI language trust first. Substrate gaps are tracked in
 `docs/self_hosted/05_compiler_core_gap_analysis.md`; they are handoff material,
-not the current priority. Gate: `make self-host-preparation-test-smoke`.
+not permission to rewrite parser, semantic, MIR, codegen, or runtime owners.
+Gate: `make self-host-preparation-test-smoke`.
 
 External review intake (2026-05-08): beta readiness now explicitly tracks
 operational and trust risks that are not new language features:

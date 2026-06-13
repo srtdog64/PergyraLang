@@ -88,13 +88,13 @@ def gen_program(rng):
 
 def compile_and_run(pgy, backend, src_path, out_bin):
     comp = subprocess.run([pgy, src_path, "--backend=" + backend, "-o", out_bin],
-                          capture_output=True, text=True, timeout=60)
+                          capture_output=True, text=True, encoding="utf-8", timeout=60)
     if comp.returncode != 0:
         return ("COMPILE_FAIL", comp.returncode, comp.stdout + comp.stderr)
     if not os.path.exists(out_bin):
         cand = out_bin + ".exe"
         out_bin = cand if os.path.exists(cand) else out_bin
-    run = subprocess.run([out_bin], capture_output=True, text=True, timeout=30)
+    run = subprocess.run([out_bin], capture_output=True, text=True, encoding="utf-8", timeout=30)
     return ("OK", run.returncode, run.stdout)
 
 

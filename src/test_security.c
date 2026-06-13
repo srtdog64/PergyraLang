@@ -150,6 +150,7 @@ int main(int argc, char *argv[])
     test_security_context_lifecycle();
     test_hardware_fingerprint();
     test_token_operations();
+    test_crypto_known_vectors();
     test_secure_slot_manager();
     test_security_violations();
     test_scope_based_slots();

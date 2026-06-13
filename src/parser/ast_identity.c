@@ -278,6 +278,15 @@ ast_assign_node(ASTNode *node, uint32_t *next_id)
         ast_assign_array(node->data.tuple_literal.elements,
                          node->data.tuple_literal.count, next_id);
         break;
+    case AST_MAP_LITERAL:
+        ast_assign_array(node->data.map_literal.keys,
+                         node->data.map_literal.count, next_id);
+        ast_assign_array(node->data.map_literal.values,
+                         node->data.map_literal.count, next_id);
+        break;
+    case AST_CAST:
+        ast_assign_node(node->data.cast.operand, next_id);
+        break;
     case AST_ASSIGNMENT:
         ast_assign_node(node->data.assignment.target, next_id);
         ast_assign_node(node->data.assignment.value, next_id);

@@ -192,6 +192,39 @@ ASTNode* parse_match_statement(Parser* parser) {
 }
 
 ASTNode* parse_if_statement(Parser* parser) {
+    /* if-let: `if let <pattern> = <expr> { then } [else { else }]` desugars
+     * to a single-case match on <expr> with a default for the else branch. */
+    if (parser_check(parser, TOKEN_LET)) {
+        parser_advance(parser);  /* consume 'let' */
+        /* Parse the pattern without assignment precedence so the `=` that
+         * follows is not swallowed as an assignment expression. */
+        ASTNode* pattern = parse_unary(parser);
+        parser_consume(parser, TOKEN_ASSIGN, "Expected '=' in if-let binding");
+        ASTNode* subject = parse_condition_expression(parser);
+        parser_consume(parser, TOKEN_LBRACE, "Expected '{' after if-let");
+        ASTNode* then_block = parser_parse_block(parser);
+
+        ASTNode* match = ast_create_match_statement();
+        match->data.match_stmt.subject = subject;
+
+        ASTNode* mc = ast_create_match_case();
+        mc->data.match_case.pattern = pattern;
+        mc->data.match_case.patterns = calloc(1, sizeof(ASTNode *));
+        if (mc->data.match_case.patterns != NULL) {
+            mc->data.match_case.patterns[0] = pattern;
+            mc->data.match_case.pattern_count = 1;
+            mc->data.match_case.pattern_capacity = 1;
+        }
+        mc->data.match_case.body = then_block;
+        parser_append_match_case(parser, match, mc);
+
+        if (parser_match(parser, TOKEN_ELSE)) {
+            parser_consume(parser, TOKEN_LBRACE, "Expected '{' after else");
+            match->data.match_stmt.default_body = parser_parse_block(parser);
+        }
+        return match;
+    }
+
     ASTNode* if_stmt = ast_create_if_statement();
 
     if_stmt->data.if_stmt.condition = parse_condition_expression(parser);
@@ -211,24 +244,47 @@ ASTNode* parse_if_statement(Parser* parser) {
     return if_stmt;
 }
 
+/* Scoped unsafe capability forms lower to the same unsafe-block model as plain
+ * `unsafe { }`; the capability label is recorded on the node and the body is
+ * lowered identically. Both `unsafe(cap[, cap]*) { }` and `unsafe label { }`
+ * are accepted. */
+static char* parse_unsafe_capability_label(Parser* parser) {
+    char* label = NULL;
+
+    if (parser_match(parser, TOKEN_LPAREN)) {
+        if (parser_check(parser, TOKEN_IDENTIFIER)) {
+            Token cap = parser_advance(parser);
+            label = pergyra_strdup(cap.text);
+        }
+        while (parser_match(parser, TOKEN_COMMA)) {
+            if (parser_check(parser, TOKEN_IDENTIFIER))
+                parser_advance(parser);
+        }
+        parser_consume(parser, TOKEN_RPAREN,
+            "Expected ')' after unsafe capability list");
+        return label;
+    }
+    if (parser_check(parser, TOKEN_IDENTIFIER)
+        && parser_peek_next(parser).type == TOKEN_LBRACE) {
+        Token cap = parser_advance(parser);
+        label = pergyra_strdup(cap.text);
+    }
+    return label;
+}
+
 ASTNode* parse_unsafe_block(Parser* parser) {
-    if (parser_check(parser, TOKEN_LPAREN)) {
-        parser_error(parser,
-            "Scoped unsafe capability syntax 'unsafe(...) { ... }' is reserved but not implemented.\n"
-            "Reason: unsafe must be a named lexical capability scope, not a universal mode bit.\n"
-            "Fix: use plain 'unsafe { ... }' only as today's boundary marker, or wait for scoped unsafe(raw)/unsafe(ffi) gates.");
-        return ast_create_unsafe_block(ast_create_block());
-    }
-    if (parser_check(parser, TOKEN_IDENTIFIER)) {
-        parser_error(parser,
-            "Scoped unsafe capability label syntax 'unsafe raw { ... }' is reserved but not implemented.\n"
-            "Reason: unsafe labels must lower to the same capability-scope model as unsafe(raw), not to a loose parser shortcut.\n"
-            "Fix: use plain 'unsafe { ... }' only as today's boundary marker, or wait for scoped unsafe capability gates.");
-        return ast_create_unsafe_block(ast_create_block());
-    }
+    char* capability = parse_unsafe_capability_label(parser);
+    ASTNode* body;
+    ASTNode* node;
+
     parser_consume(parser, TOKEN_LBRACE, "Expected '{' after unsafe");
-    ASTNode* body = parser_parse_block(parser);
-    return ast_create_unsafe_block(body);
+    body = parser_parse_block(parser);
+    node = ast_create_unsafe_block(body);
+    if (node != NULL)
+        node->data.unsafe_block.capability = capability;
+    else
+        free(capability);
+    return node;
 }
 
 ASTNode* parse_defer_statement(Parser* parser) {

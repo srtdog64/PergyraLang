@@ -98,6 +98,8 @@ parser_check_binding_name_token(Parser *parser)
     case TOKEN_ROSTER:
     case TOKEN_RELATION:
     case TOKEN_EFFECT:
+    case TOKEN_ROLE:
+    case TOKEN_PARTY:
         return true;
     default:
         return false;

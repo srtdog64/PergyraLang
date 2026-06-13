@@ -285,6 +285,20 @@ void ast_destroy(ASTNode* node) {
             free(node->data.tuple_literal.elements);
             break;
 
+        case AST_MAP_LITERAL:
+            for (size_t i = 0; i < node->data.map_literal.count; i++) {
+                ast_destroy(node->data.map_literal.keys[i]);
+                ast_destroy(node->data.map_literal.values[i]);
+            }
+            free(node->data.map_literal.keys);
+            free(node->data.map_literal.values);
+            break;
+
+        case AST_CAST:
+            ast_destroy(node->data.cast.operand);
+            free(node->data.cast.target_type);
+            break;
+
         case AST_STRING:
             free(node->data.string.value);
             break;
@@ -381,6 +395,7 @@ void ast_destroy(ASTNode* node) {
 
         case AST_UNSAFE_BLOCK:
             ast_destroy(node->data.unsafe_block.body);
+            free(node->data.unsafe_block.capability);
             break;
 
         case AST_DEFER_STMT:

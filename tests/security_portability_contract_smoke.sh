@@ -16,21 +16,79 @@ require_term() {
         fail "$rel missing term: $term"
 }
 
+forbid_term() {
+    local rel="$1"
+    local term="$2"
+
+    if grep -Fq -- "$term" "$ROOT_DIR/$rel"; then
+        fail "$rel must not contain term: $term"
+    fi
+}
+
 require_term "Makefile" "check-security-toolchain:"
-require_term "Makefile" "openssl/evp.h"
+require_term "Makefile" "security_windows_bcrypt_preflight.c"
+require_term "Makefile" "-lbcrypt"
+require_term "Makefile" "security test preflight: checking Windows CNG/BCrypt provider"
+require_term "Makefile" "security_openssl_preflight.c"
 require_term "Makefile" "-lssl -lcrypto"
-require_term "Makefile" "security test preflight requires OpenSSL development headers"
+require_term "Makefile" "security test preflight: checking OpenSSL EVP/HMAC/RAND provider"
+
+require_term "tests/security_windows_bcrypt_preflight.c" "bcrypt.h"
+require_term "tests/security_windows_bcrypt_preflight.c" "BCryptGenRandom"
+require_term "tests/security_openssl_preflight.c" "openssl/evp.h"
+require_term "tests/security_openssl_preflight.c" "EVP_sha256"
+
+require_term "src/runtime/slot_security_crypto_ops.h" "BCryptGenRandom"
+require_term "src/runtime/slot_security_crypto_ops.h" "EVP_DigestInit_ex"
+require_term "src/runtime/slot_security_crypto.c" "BCryptOpenAlgorithmProvider"
+require_term "src/runtime/slot_security_crypto.c" "EVP_aes_256_ctr"
+require_term "src/runtime/slot_security_crypto.c" "HMAC(EVP_sha256()"
+forbid_term "src/runtime/slot_security_crypto.c" "aes_sbox_compute"
+forbid_term "src/runtime/slot_security_crypto.c" "gf256_mul"
+forbid_term "src/runtime/slot_security_crypto_ops.h" "sha256_transform"
+forbid_term "src/runtime/slot_security_crypto_ops.h" "sha256_k"
+forbid_term "src/runtime/slot_security_crypto_ops.h" "/dev/urandom"
+forbid_term "src/runtime/slot_security_crypto_ops.h" "CryptAcquireContext"
+forbid_term "src/runtime/slot_security_crypto_ops.h" "wincrypt.h"
 
 require_term "docs/03_security_mode_design.md" "not a completed third-party cryptographic audit"
 require_term "docs/03_security_mode_design.md" "make check-security-toolchain"
+require_term "docs/03_security_mode_design.md" "Windows builds"
+require_term "docs/03_security_mode_design.md" "CNG/BCrypt"
+require_term "docs/03_security_mode_design.md" "non-Windows builds"
 require_term "docs/03_security_mode_design.md" "Platform claims must be tied to CI evidence"
+require_term "docs/03_security_mode_design.md" "Source-of-truth split"
+require_term "docs/03_security_mode_design.md" "generated SecureSlot ABI"
+require_term "docs/03_security_mode_design.md" 'The `SlotManager` secure API'
+require_term "docs/03_security_mode_design.md" '`SECURITY_LEVEL_*` arguments are parsed and retained'
+
+require_term "docs/security/README.md" "Current Security Source Of Truth"
+require_term "docs/security/README.md" "historical/imported"
+require_term "docs/security/README.md" "Windows uses CNG/BCrypt"
+require_term "docs/security/README.md" "non-Windows"
+require_term "docs/security/README.md" "OpenSSL EVP/HMAC/RAND"
+require_term "docs/security/README.md" "do not describe BASIC/HARDWARE/ENCRYPTED as active"
+
+require_term "docs/security/contracts/secure_slot_token_unforgeability.md" "Scope Note"
+require_term "docs/security/contracts/secure_slot_token_unforgeability.md" 'Generated `PgySecureSlot_*` ABI'
+require_term "docs/security/contracts/secure_slot_token_unforgeability.md" '`SlotManager` secure runtime API'
+require_term "docs/security/contracts/secure_slot_token_unforgeability.md" "171/171"
+require_term "docs/security/contracts/secure_slot_token_unforgeability.md" 'Invalid `SecurityLevel` rejection'
+require_term "docs/security/contracts/secure_slot_token_unforgeability.md" "Token-refresh replay rejection"
+require_term "docs/security/contracts/secure_slot_token_unforgeability.md" "known-answer vectors"
+require_term "docs/security/contracts/secure_slot_token_unforgeability.md" "Windows routes random generation"
+require_term "docs/security/contracts/secure_slot_token_unforgeability.md" "non-Windows routes them through"
+require_term "docs/security/contracts/secure_slot_token_unforgeability.md" "not self-contained AES or SHA implementations"
+require_term "docs/security/contracts/secure_slot_token_unforgeability.md" "standard"
+require_term "docs/security/contracts/secure_slot_token_unforgeability.md" "provider APIs"
+forbid_term "src/runtime/slot_security_fingerprint.c" "SecureRandomGenerate((uint8_t *)&entropy"
 
 require_term "docs/security/01_audit_targets.md" "Slot id exhaustion availability / tombstone flooding"
 require_term "docs/security/01_audit_targets.md" "Runtime panic DoS boundary policy"
 require_term "docs/security/01_audit_targets.md" "Zone-bound handle escape decision and diagnostics"
 require_term "docs/security/01_audit_targets.md" "security-portability-contract-test-smoke"
 require_term "docs/security/01_audit_targets.md" "make test-security"
-require_term "docs/security/01_audit_targets.md" "160/160"
+require_term "docs/security/01_audit_targets.md" "171/171"
 require_term "docs/security/01_audit_targets.md" "Slot / DeviceSlot / SecureSlot"
 require_term "docs/security/01_audit_targets.md" "Do not claim a 128-bit Slot handle"
 require_term "docs/security/01_audit_targets.md" "Recovery is a boundary"

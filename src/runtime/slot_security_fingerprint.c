@@ -33,11 +33,13 @@ SecurityHashBytes64(const void *data, size_t size)
     return hash;
 }
 
+#if defined(__linux__)
 static uint64_t
 SecurityHashString64(const char *text)
 {
     return text != NULL ? SecurityHashBytes64(text, strlen(text)) : 0ULL;
 }
+#endif
 
 static void
 SecurityFillFallbackIdentity(HardwareFingerprint *fingerprint)
@@ -105,9 +107,14 @@ SecurityFillFallbackIdentity(HardwareFingerprint *fingerprint)
 #endif
 
     if (fingerprint->cpuId == 0) {
-        uint64_t entropy = 0;
-        (void)SecureRandomGenerate((uint8_t *)&entropy, sizeof(entropy));
-        fingerprint->cpuId = entropy != 0 ? entropy : 0x43505546414c4c42ULL;
+        uint64_t material[4];
+        material[0] = fingerprint->boardId;
+        material[1] = fingerprint->macAddress;
+        material[2] = (uint64_t)fingerprint->platformHash;
+        material[3] = 0x43505546414c4c42ULL; /* "CPUFALLB" */
+        fingerprint->cpuId = SecurityHashBytes64(material, sizeof(material));
+        if (fingerprint->cpuId == 0)
+            fingerprint->cpuId = material[3];
     }
 }
 

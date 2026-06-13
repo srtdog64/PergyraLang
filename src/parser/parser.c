@@ -384,10 +384,20 @@ ASTNode* parser_parse_let_declaration(Parser* parser) {
         return node;
     }
 
+    // 선택적 가변 수정자: let mut name = ...
+    bool let_is_mutable = false;
+    if (parser->current_token.text != NULL
+        && strcmp(parser->current_token.text, "mut") == 0
+        && parser_peek_next(parser).type == TOKEN_IDENTIFIER) {
+        parser_advance(parser);  /* consume 'mut' */
+        let_is_mutable = true;
+    }
+
     // 변수 이름
     Token name = consume_binding_name_token(parser, "Expected variable name");
 
     ASTNode* let_decl = ast_create_let_declaration(name.text);
+    let_decl->data.let_decl.is_mutable = let_is_mutable;
 
     // 타입 어노테이션 (선택적)
     if (parser_match(parser, TOKEN_COLON)) {
@@ -456,6 +466,32 @@ ASTNode* parser_parse_with_statement(Parser* parser) {
 // parallel 블록 파싱
 ASTNode* parser_parse_parallel_block(Parser* parser) {
     ASTNode* parallel = ast_create_parallel_block();
+
+    /* `parallel (collection) [join with <mode>]`: a parallel-join directive
+     * over a collection with no following block body. */
+    if (parser_check(parser, TOKEN_LPAREN)) {
+        parser_advance(parser);  /* '(' */
+        ast_destroy(parser_parse_expression(parser));
+        parser_consume(parser, TOKEN_RPAREN,
+            "Expected ')' after parallel target");
+        if (parser->current_token.text != NULL
+            && strcmp(parser->current_token.text, "join") == 0) {
+            parser_advance(parser);  /* join */
+            if (parser->current_token.text != NULL
+                && strcmp(parser->current_token.text, "with") == 0)
+                parser_advance(parser);  /* with */
+            if (parser_check(parser, TOKEN_IDENTIFIER))
+                parser_advance(parser);  /* mode: all / any / ... */
+        }
+        if (parser_match(parser, TOKEN_LBRACE)) {
+            parser->in_parallel_block = true;
+            ASTNode* body = parser_parse_block(parser);
+            parser->in_parallel_block = false;
+            if (body != NULL)
+                ast_add_parallel_task(parallel, body);
+        }
+        return parallel;
+    }
 
     parser_consume(parser, TOKEN_LBRACE, "Expected '{' after 'parallel'");
 

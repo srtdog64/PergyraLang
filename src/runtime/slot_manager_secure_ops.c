@@ -17,6 +17,9 @@ SlotManagerEnableSecurity(SlotManager *manager, SecurityLevel level)
     if (manager == NULL)
         return SLOT_ERROR_INVALID_HANDLE;
 
+    if (!SecurityLevelIsValid(level))
+        return SLOT_ERROR_INVALID_HANDLE;
+
     if (manager->securityContext == NULL) {
         manager->securityContext = SecurityContextCreate(level);
         if (manager->securityContext == NULL)
@@ -70,6 +73,9 @@ SlotManagerSetDefaultSecurityLevel(SlotManager *manager, SecurityLevel level)
     if (manager == NULL)
         return SLOT_ERROR_INVALID_HANDLE;
 
+    if (!SecurityLevelIsValid(level))
+        return SLOT_ERROR_INVALID_HANDLE;
+
     manager->defaultSecurityLevel = level;
     if (manager->securityContext != NULL)
         manager->securityContext->defaultLevel = level;
@@ -103,6 +109,9 @@ SlotClaimSecure(SlotManager *manager, TypeTag type, SecurityLevel level,
     SecurityError secResult;
 
     if (manager == NULL || handle == NULL || token == NULL)
+        return SLOT_ERROR_INVALID_HANDLE;
+
+    if (!SecurityLevelIsValid(level))
         return SLOT_ERROR_INVALID_HANDLE;
 
     if (!SlotManagerIsSecurityEnabled(manager))

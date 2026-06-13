@@ -99,8 +99,10 @@ emit_enum_decl_stmt(ASTNode *node, TranspilerCtx *ctx)
             size_t pc = ast_enum_variant_param_count(node, i);
             const char *vname = variants != NULL ? variants[i] : NULL;
             if (pc == 0) {
+                /* Payload-less variant of a tagged union is a constant value,
+                 * referenced bare as `Enum.Variant` (no call). */
                 codebuf_write(ctx->out,
-                    "#define %s_%s() ((%s){ .tag = %s_TAG_%s })\n",
+                    "#define %s_%s ((%s){ .tag = %s_TAG_%s })\n",
                     ename, vname, ename, ename, vname);
             } else {
                 codebuf_write(ctx->out,

@@ -5,6 +5,7 @@
 #include <string.h>
 
 #include "llvm_expr_call_methods_domain_slice.h"
+#include "llvm_expr_constructor_calls.h"
 #include "llvm_expr_call_methods_vtable_dispatch.h"
 #include "llvm_expr_call_methods_world_effect_sync.h"
 #include "llvm_expr_call_projection_sync.h"
@@ -26,6 +27,17 @@ llvm_emit_member_call(ASTNode *node, LLVMGenCtx *ctx)
         ? ast_member_name(callee_node)
         : NULL;
     LLVMValueRef handled;
+
+    /* Qualified enum-variant construction `Enum.Variant(args)`: the receiver
+     * names an enum and the member is one of its variants, so build the enum
+     * value instead of dispatching a method call. */
+    if (obj_node != NULL && obj_node->type == AST_IDENTIFIER
+        && ast_identifier_name(obj_node) != NULL && method_name != NULL
+        && llvm_find_enum_decl(ctx, ast_identifier_name(obj_node)) != NULL
+        && llvm_lookup_enum_variant_qualified(ctx,
+               ast_identifier_name(obj_node), method_name) != NULL) {
+        return llvm_emit_constructor_call(node, ctx, method_name);
+    }
 
     handled = llvm_emit_member_call_vtable_dispatch(node, ctx, obj_node, method_name);
     if (ctx->has_error)

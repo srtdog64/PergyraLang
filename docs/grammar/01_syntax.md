@@ -4,6 +4,7 @@
 설계 초안이나 미래 문법은 넣지 않는다.
 
 구현 근거:
+- lexer 예약어 기준: [src/lexer/lexer_keywords.c](/mnt/e/PergyraLang/src/lexer/lexer_keywords.c)
 - 파서 테스트: [src/test_parser.c](/mnt/e/PergyraLang/src/test_parser.c)
 - 시맨틱 테스트: [src/test_semantic.c](/mnt/e/PergyraLang/src/test_semantic.c)
 - 예제 모음: [examples](/mnt/e/PergyraLang/examples)
@@ -47,10 +48,13 @@
 | 타입 수식 | `own`, `ref`, `dyn`, `where`, `as`, `type`, `extends`, `impl` |
 | 안전 / effect | `unsafe`, `defer`, `secure`, `remote`, `nondeterministic`, `collapse`, `local` |
 | 도메인 | `slot`, `shared`, `bind`, `include`, `fields`, `override` |
-| 블록 | `with`, `parallel`, `private`, `public` |
+| 블록 / 접근 | `with`, `parallel`, `private`, `public`, `innate` |
 | 리터럴 | `true`, `false` |
 
-### 컨텍스트 키워드 (contextual — 선언 위치에서만 키워드, 그 외에는 식별자)
+### 컨텍스트 문법 단어 (contextual — owning parser가 식별자로 읽는 단어)
+
+`world`, `roster`, `relation`, `effect`, `zone`, `intent`, `vessel`, `event`는
+컨텍스트 단어가 아니라 lexer-reserved declaration token이다.
 
 | 키워드 | 용도 |
 |--------|------|
@@ -612,7 +616,10 @@ with SecureSlot<Int>(SECURITY_LEVEL_HARDWARE) as hp {
 ```
 
 주의:
-- `SECURITY_LEVEL_*`는 현재 파싱만 되며 시맨틱 의미는 적용되지 않는다.
+- `SECURITY_LEVEL_*`는 현재 `with SecureSlot<T>(...)` 문법에서 파싱/보존만
+  되며, 생성 C/LLVM `SecureSlot<T>` ABI의 BASIC/HARDWARE/ENCRYPTED 정책
+  선택으로는 연결되지 않는다. `SlotManager` C 런타임의 보안 레벨은 별도
+  API 계층이다.
 
 ### 6.3 view / move
 

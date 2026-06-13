@@ -194,15 +194,17 @@ ASTNode* parser_parse_async_block(Parser* parser)
 }
 
 // Parse await expression
+//
+// Async-context enforcement is the semantic layer's responsibility
+// (type_check rejects await when ctx->in_async_func is false, with its own
+// regression case), so the parser does not duplicate that gate here. Keeping
+// it out of the parser lets entry points and inline async blocks parse, then
+// be validated where async provenance is actually modeled.
 ASTNode* parser_parse_await_expression(Parser* parser)
 {
-    if (!parser->in_async_context) {
-        parser_error(parser, "'await' can only be used in async context");
-    }
-    
     // 'await' keyword already consumed
     ASTNode* expression = parser_parse_expression(parser);
-    
+
     return ast_create_await_expression(expression);
 }
 

@@ -36,6 +36,18 @@ Self-host preparation may begin after all of these are true:
 - A dogfood path exists through emitted C and at least one compiler-adjacent
   tool candidate has a concrete input/output contract.
 
+## Current Handoff Judgement (2026-06-13)
+
+Soft/partial self-host preparation may continue after the current smoke gates
+pass. The allowed scope is compiler-adjacent tooling, stable JSON or dump
+validators, lexer/parser parity expansion, and tri-compare evidence that keeps
+C and LLVM as the expected-value pair.
+
+Hard compiler-core migration remains blocked. Do not rewrite the parser, type
+checker, MIR lowering, C backend, LLVM backend, or runtime until the stable
+subset has current beta-closure evidence and the C/LLVM oracle pair is green or
+explicitly unsupported for every frozen support-matrix row.
+
 ## First Work Package
 
 The first self-host work package should be the **Diagnostic Catalog Checker**.

@@ -6,6 +6,11 @@ for soft and partial self-hosting.
 
 ## Current Reality
 
+Current judgement (2026-06-13): soft self-host dogfood and partial validators
+may continue, but hard compiler-core migration remains blocked. Passing
+`self-host-preparation-test-smoke` is required soft evidence, not permission to
+replace the parser, semantic checker, MIR lowering, codegen, or runtime.
+
 The beta stable subset is intentionally narrow. It is designed to freeze the
 core language contract, not to rewrite a large compiler immediately.
 

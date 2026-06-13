@@ -16,8 +16,10 @@
 #include <wincrypt.h>
 #include <iphlpapi.h>
 #include <intrin.h>
+#ifdef _MSC_VER
 #pragma comment(lib, "advapi32.lib")
 #pragma comment(lib, "iphlpapi.lib")
+#endif
 #elif defined(__linux__)
 #include <cpuid.h>
 #include <ifaddrs.h>

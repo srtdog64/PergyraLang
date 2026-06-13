@@ -211,10 +211,15 @@ ASTNode* parse_party_declaration(Parser* parser) {
         party->data.party_decl.extends = parse_type(parser);
     }
 
+    /* Optional where clause */
+    party->data.party_decl.where_clause = parse_where_clause(parser);
+
     parser_consume(parser, TOKEN_LBRACE, "Expected '{' after party header");
 
     while (!parser_check(parser, TOKEN_RBRACE) && !parser_is_at_end(parser)) {
         parser_collect_doc_comments(parser);
+        if (!parser_match(parser, TOKEN_PUBLIC))
+            parser_match(parser, TOKEN_PRIVATE);
         bool is_dyn = parser_match(parser, TOKEN_DYN);
 
         if (is_dyn || parser_match(parser, TOKEN_ROLE)) {
@@ -385,6 +390,62 @@ ASTNode* parse_ability_declaration(Parser* parser, bool is_innate) {
  *     override func GetHealth() -> Int { super.GetHealth() + bonus; }
  * }
  */
+/* Reactive concurrency block in a role/subject body:
+ *   parallel [on (thread)] { [every (N[unit]) { ... } | stmt]* }
+ * Parsed structurally; the schedule metadata is currently erased. */
+static ASTNode*
+parse_reactive_parallel_block(Parser* parser)
+{
+    ASTNode* blk = ast_create_parallel_block();
+
+    parser_consume(parser, TOKEN_PARALLEL, "Expected 'parallel'");
+    if (parser->current_token.text != NULL
+        && strcmp(parser->current_token.text, "on") == 0) {
+        parser_advance(parser);
+        parser_consume(parser, TOKEN_LPAREN, "Expected '(' after 'on'");
+        ast_destroy(parser_parse_expression(parser));
+        parser_consume(parser, TOKEN_RPAREN, "Expected ')' after 'on' target");
+    }
+
+    parser_consume(parser, TOKEN_LBRACE, "Expected '{' for parallel block");
+    bool saved_async = parser->in_async_context;
+    parser->in_parallel_block = true;
+    parser->in_async_context = true;
+    while (!parser_check(parser, TOKEN_RBRACE) && !parser_is_at_end(parser)) {
+        if (parser->current_token.text != NULL
+            && strcmp(parser->current_token.text, "every") == 0) {
+            parser_advance(parser);
+            parser_consume(parser, TOKEN_LPAREN, "Expected '(' after 'every'");
+            ast_destroy(parser_parse_expression(parser));  /* duration count */
+            if (parser_check(parser, TOKEN_IDENTIFIER))
+                parser_advance(parser);  /* unit suffix: ms / s / ... */
+            parser_consume(parser, TOKEN_RPAREN, "Expected ')' after duration");
+            parser_consume(parser, TOKEN_LBRACE, "Expected '{' for every block");
+            ASTNode* body = parser_parse_block(parser);
+            if (body != NULL)
+                ast_add_parallel_task(blk, body);
+        } else if (parser->current_token.text != NULL
+            && strcmp(parser->current_token.text, "continuous") == 0
+            && parser_peek_next(parser).type == TOKEN_LBRACE) {
+            parser_advance(parser);
+            parser_consume(parser, TOKEN_LBRACE, "Expected '{' for continuous block");
+            ASTNode* body = parser_parse_block(parser);
+            if (body != NULL)
+                ast_add_parallel_task(blk, body);
+        } else {
+            ASTNode* stmt = parser_parse_statement(parser);
+            if (stmt != NULL)
+                ast_add_parallel_task(blk, stmt);
+        }
+        if (parser->has_error)
+            parser_synchronize(parser);
+    }
+    parser->in_parallel_block = false;
+    parser->in_async_context = saved_async;
+    parser_consume(parser, TOKEN_RBRACE, "Expected '}' after parallel block");
+    return blk;
+}
+
 ASTNode* parse_role_declaration(Parser* parser) {
     Token name = parser_consume(parser, TOKEN_IDENTIFIER, "Expected role name");
     ASTNode* role = ast_create_role_declaration(name.text);
@@ -398,6 +459,20 @@ ASTNode* parse_role_declaration(Parser* parser) {
     /* 'for' TargetType (reuse TOKEN_FOR) */
     if (parser_match(parser, TOKEN_FOR)) {
         role->data.role_decl.for_type = parse_type(parser);
+    }
+
+    /* Optional `impl Ability [, Ability]*` contract in the role header; the
+     * implementing methods follow in the role body. */
+    if (parser_match(parser, TOKEN_IMPL)) {
+        do {
+            Token ab = parser_consume(parser, TOKEN_IDENTIFIER,
+                "Expected ability name after 'impl' in role header");
+            ASTNode* ability_ref = ast_create_identifier(ab.text);
+            ASTNode* impl = ast_create_impl_ability(ability_ref);
+            append_child_node(&role->data.role_decl.impl_abilities,
+                &role->data.role_decl.impl_count,
+                &role->data.role_decl.impl_capacity, impl);
+        } while (parser_match(parser, TOKEN_COMMA));
     }
 
     /* Optional where clause */
@@ -490,6 +565,9 @@ ASTNode* parse_role_declaration(Parser* parser) {
                 &role->data.role_decl.impl_count,
                 &role->data.role_decl.impl_capacity, impl);
 
+        } else if (parser_check(parser, TOKEN_PARALLEL)) {
+            role->data.role_decl.parallel_block =
+                parse_reactive_parallel_block(parser);
         } else {
             parser_discard_pending_doc_comment(parser);
             parser_error(parser,

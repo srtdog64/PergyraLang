@@ -344,6 +344,13 @@ Token lexer_next_token(Lexer* lexer) {
         }
         return scan_identifier(lexer);
     }
+
+    // Interpolated string with a `$"..."` prefix.
+    if (c == '$' && !is_at_end(lexer) && peek(lexer) == '"') {
+        advance(lexer); // consume the "
+        const char* str_start = lexer->current - 1; // point to "
+        return scan_interpolated_string(lexer, str_start);
+    }
     
     // Numbers
     if (isdigit(c)) {

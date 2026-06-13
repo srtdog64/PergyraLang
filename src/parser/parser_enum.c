@@ -187,6 +187,13 @@ parser_parse_enum_declaration_after_keyword(Parser *parser)
             size_t pcap = 0;
             while (!parser_check(parser, TOKEN_RPAREN)
                    && !parser_is_at_end(parser)) {
+                /* Optional `name:` label on a variant parameter; the field
+                 * name is erased and only the type is retained. */
+                if (parser_check(parser, TOKEN_IDENTIFIER)
+                    && parser_peek_next(parser).type == TOKEN_COLON) {
+                    parser_advance(parser);
+                    parser_advance(parser);
+                }
                 ASTNode *ptype = parse_type(parser);
                 if (!parser_append_enum_variant_param(parser, node, idx, &pcap, ptype)) {
                     ast_destroy(ptype);
@@ -201,8 +208,9 @@ parser_parse_enum_declaration_after_keyword(Parser *parser)
         }
 
         parser_commit_enum_variant(node);
-        if (!parser_match(parser, TOKEN_COMMA))
-            break;
+        /* Variants may be separated by commas or by newlines; the loop
+         * condition terminates the list at '}'. */
+        parser_match(parser, TOKEN_COMMA);
     }
 
     parser_consume(parser, TOKEN_RBRACE, "Expected '}' after enum variants");

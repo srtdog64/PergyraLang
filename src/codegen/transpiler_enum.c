@@ -52,15 +52,13 @@ lookup_enum_variant_qualified_name_copy(TranspilerCtx *ctx,
                     return false;
                 size_t pc = ast_enum_variant_param_count(stmt, j);
                 int written;
-                if (pc == 0 && enum_has_data) {
-                    /* Tagged union with payload-less variant uses macro form. */
-                    written = snprintf(out, out_size, "%s_%s()",
-                        enum_name, candidate);
-                } else {
-                    /* Plain enum or payload variant uses bare identifier. */
-                    written = snprintf(out, out_size, "%s_%s",
-                        enum_name, candidate);
-                }
+                (void)pc;
+                (void)enum_has_data;
+                /* Payload-less tagged variant is a value-style macro constant,
+                 * so every variant -- plain, payload, or payload-less tagged --
+                 * is referenced by its bare `Enum_Variant` name. */
+                written = snprintf(out, out_size, "%s_%s",
+                    enum_name, candidate);
                 if (written < 0 || (size_t)written >= out_size) {
                     out[0] = '\0';
                     return false;

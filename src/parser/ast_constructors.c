@@ -345,6 +345,18 @@ ASTNode* ast_create_namespace_declaration(const char* name) {
 ASTNode* ast_create_unsafe_block(ASTNode* body) {
     ASTNode* node = ast_create_node(AST_UNSAFE_BLOCK);
     node->data.unsafe_block.body = body;
+    node->data.unsafe_block.capability = NULL;
+    return node;
+}
+
+ASTNode* ast_create_cast(ASTNode* operand, const char* target_type) {
+    ASTNode* node = ast_create_node(AST_CAST);
+    if (node == NULL)
+        return NULL;
+    node->data.cast.operand = operand;
+    node->data.cast.target_type = target_type != NULL
+        ? pergyra_strdup(target_type)
+        : NULL;
     return node;
 }
 

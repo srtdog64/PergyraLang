@@ -1,0 +1,10 @@
+func Main() -> Void
+{
+    let xs: Array<Int> = [10, 20, 30, 40, 50];
+    let full: Slice<Int> = xs[..];
+    let pre: Slice<Int> = xs[..3];
+    let suf: Slice<Int> = xs[2..];
+    Log(ArrayLength(full));
+    Log(ArrayLength(pre));
+    Log(ArrayLength(suf));
+}

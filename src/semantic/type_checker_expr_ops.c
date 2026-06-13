@@ -373,6 +373,64 @@ type_check_array_literal(ASTNode *expr, SemanticContext *ctx)
     return wrap_constructed(TYPE_ARRAY, elem_type);
 }
 
+static void
+map_literal_unify_entry(SemanticContext *ctx, ASTNode *expr, size_t i,
+                        Type **key_type, Type **value_type,
+                        Type *k, Type *v)
+{
+    if (k == NULL)
+        k = TYPE_UNKNOWN;
+    if (v == NULL)
+        v = TYPE_UNKNOWN;
+    if (i == 0) {
+        *key_type = k;
+        *value_type = v;
+        return;
+    }
+    if (!type_is_assignable(k, *key_type) && !type_is_assignable(*key_type, k)) {
+        semantic_error_with_hints(ctx, PGY_CODE_SEM_TYPE_MISMATCH,
+            PGY_CAUSE_ARRAY_LITERAL_ELEMENT_TYPE_MISMATCH,
+            PGY_FIX_ALIGN_ARRAY_ELEMENT_TYPES, ast_map_literal_key(expr, i),
+            "Map literal key type mismatch: expected '%s', got '%s'",
+            type_name_or_unknown(*key_type), type_name_or_unknown(k));
+        *key_type = TYPE_UNKNOWN;
+    }
+    if (!type_is_assignable(v, *value_type)
+        && !type_is_assignable(*value_type, v)) {
+        semantic_error_with_hints(ctx, PGY_CODE_SEM_TYPE_MISMATCH,
+            PGY_CAUSE_ARRAY_LITERAL_ELEMENT_TYPE_MISMATCH,
+            PGY_FIX_ALIGN_ARRAY_ELEMENT_TYPES, ast_map_literal_value(expr, i),
+            "Map literal value type mismatch: expected '%s', got '%s'",
+            type_name_or_unknown(*value_type), type_name_or_unknown(v));
+        *value_type = TYPE_UNKNOWN;
+    }
+}
+
+Type *
+type_check_map_literal(ASTNode *expr, SemanticContext *ctx)
+{
+    size_t n = ast_map_literal_count(expr);
+    Type *key_type = TYPE_UNKNOWN;
+    Type *value_type = TYPE_UNKNOWN;
+    Type *args[2];
+
+    /* An empty `{}` carries no entry types; defer to the binding annotation
+     * by reporting Unknown, which is assignable to any HashMap<K, V>. */
+    if (n == 0)
+        return TYPE_UNKNOWN;
+
+    for (size_t i = 0; i < n; i++) {
+        Type *k = expr_ops_normalize_type(
+            type_check_expression(ast_map_literal_key(expr, i), ctx));
+        Type *v = expr_ops_normalize_type(
+            type_check_expression(ast_map_literal_value(expr, i), ctx));
+        map_literal_unify_entry(ctx, expr, i, &key_type, &value_type, k, v);
+    }
+    args[0] = key_type;
+    args[1] = value_type;
+    return type_create_constructed(TYPE_HASHMAP, args, 2);
+}
+
 Type *
 type_check_array_access(ASTNode *expr, SemanticContext *ctx)
 {

@@ -340,6 +340,7 @@ ast_destroy_domain_node(ASTNode* node) {
             free(node->data.party_decl.methods);
             ast_destroy(node->data.party_decl.extends);
             ast_destroy_generic_params(node->data.party_decl.generic_params);
+            ast_destroy_where_clause(node->data.party_decl.where_clause);
             ast_destroy_structured_comment(node->data.party_decl.doc_comment);
             break;
 

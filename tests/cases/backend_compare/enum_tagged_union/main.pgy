@@ -1,0 +1,19 @@
+enum Token {
+    Ident(Int),
+    Number(Int),
+    Eof
+}
+
+func Describe(t: Token) -> Int {
+    match t {
+        case Token.Number(n): return n;
+        case Token.Ident(s): return s + 1000;
+        default: return -1;
+    }
+}
+
+func Main() -> Void {
+    Log(Describe(Token.Number(42)));
+    Log(Describe(Token.Ident(7)));
+    Log(Describe(Token.Eof));
+}

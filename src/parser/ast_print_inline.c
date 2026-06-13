@@ -360,6 +360,24 @@ ast_print_compact(ASTNode* node)
             printf("]");
             break;
 
+        case AST_MAP_LITERAL:
+            printf("{");
+            for (size_t i = 0; i < node->data.map_literal.count; i++) {
+                if (i > 0)
+                    printf(", ");
+                ast_print_compact(node->data.map_literal.keys[i]);
+                printf(": ");
+                ast_print_compact(node->data.map_literal.values[i]);
+            }
+            printf("}");
+            break;
+
+        case AST_CAST:
+            ast_print_compact(node->data.cast.operand);
+            printf(" as %s", node->data.cast.target_type != NULL
+                ? node->data.cast.target_type : "?");
+            break;
+
         case AST_LAMBDA_EXPR:
             printf("%slambda(", node->data.lambda_expr.is_async ? "async " : "");
             for (size_t i = 0; i < node->data.lambda_expr.param_count; i++) {

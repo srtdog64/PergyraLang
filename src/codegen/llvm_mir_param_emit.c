@@ -93,7 +93,7 @@ llvm_register_field_token(LLVMGenCtx *ctx, ASTNode *host,
 static void
 llvm_register_one_field_slot(LLVMGenCtx *ctx, ASTNode *host,
                              LLVMClassTypeEntry *cls, LLVMValueRef self_base,
-                             ClassField *field)
+                             const char *field_name, ASTNode *field_type)
 {
     const char *head;
     GenericParams *args;
@@ -103,29 +103,29 @@ llvm_register_one_field_slot(LLVMGenCtx *ctx, ASTNode *host,
     LLVMValueRef gep;
     LLVMTypeRef slot_ty;
 
-    if (field == NULL || field->name == NULL || field->type == NULL)
+    if (field_name == NULL || field_type == NULL)
         return;
-    head = ast_type_name(field->type);
+    head = ast_type_name(field_type);
     if (head == NULL
         || (strcmp(head, "Slot") != 0 && strcmp(head, "SecureSlot") != 0))
         return;
 
     is_secure = strcmp(head, "SecureSlot") == 0;
-    args = ast_type_generic_args(field->type);
+    args = ast_type_generic_args(field_type);
     inner = ast_generic_param_count(args) > 0
         ? ast_generic_param_name(ast_generic_param_at(args, 0)) : "Int";
-    idx = llvm_class_field_index(cls, field->name);
+    idx = llvm_class_field_index(cls, field_name);
     if (idx < 0)
         return;
 
     gep = LLVMBuildStructGEP2(ctx->builder, cls->struct_type, self_base,
-        (unsigned)idx, field->name);
+        (unsigned)idx, field_name);
     slot_ty = is_secure ? llvm_secure_slot_struct_type(ctx, inner)
                         : llvm_slot_struct_type(ctx, inner);
-    llvm_scope_declare(ctx, field->name, gep, slot_ty);
-    llvm_register_slot_var_binding(ctx, field->name, gep, inner, is_secure);
+    llvm_scope_declare(ctx, field_name, gep, slot_ty);
+    llvm_register_slot_var_binding(ctx, field_name, gep, inner, is_secure);
     if (is_secure)
-        llvm_register_field_token(ctx, host, cls, self_base, field->name, inner);
+        llvm_register_field_token(ctx, host, cls, self_base, field_name, inner);
 }
 
 /* Mirror of the C backend register_class_field_slots: bind each owning slot
@@ -137,8 +137,7 @@ llvm_register_class_field_slots(LLVMGenCtx *ctx, const char *owner_name)
     ASTNode *host;
     LLVMClassTypeEntry *cls;
     LLVMValueRef self_base;
-    size_t field_count = 0;
-    ClassField **fields;
+    LLVMHostedFieldView fields;
 
     if (ctx == NULL || owner_name == NULL)
         return;
@@ -152,10 +151,17 @@ llvm_register_class_field_slots(LLVMGenCtx *ctx, const char *owner_name)
     if (self_base == NULL)
         return;
 
-    fields = ast_class_fields(host, &field_count);
-    for (size_t i = 0; i < field_count; i++)
+    fields = llvm_hosted_class_field_view_from_decl(ctx, owner_name, host);
+    if (llvm_hosted_field_view_missing_mir_metadata(&fields)) {
+        llvm_set_mir_inventory_missing(ctx,
+            "MIR-only LLVM path missing class-field slot metadata for '%s'",
+            owner_name);
+        return;
+    }
+    for (size_t i = 0; i < fields.count; i++)
         llvm_register_one_field_slot(ctx, host, cls, self_base,
-            fields != NULL ? fields[i] : NULL);
+            llvm_hosted_field_view_name(&fields, i),
+            llvm_hosted_field_view_type(&fields, i));
 }
 
 void

@@ -31,14 +31,41 @@ Beta portability note (2026-05-08):
 
 - The current security implementation is runtime validation plus targeted
   regression evidence. It is not a completed third-party cryptographic audit.
-- `make test-security` requires OpenSSL development headers and linkable
-  `-lssl -lcrypto`. Minimal C-only toolchains should run
-  `make check-security-toolchain` first so missing dependencies fail as an
-  explicit preflight diagnostic instead of a partial compile error.
+- `make test-security` uses standard platform crypto providers: Windows builds
+  require CNG/BCrypt headers and linkable `-lbcrypt`; non-Windows builds
+  require OpenSSL development headers and linkable `-lssl -lcrypto`. Minimal
+  C-only toolchains should run `make check-security-toolchain` first so missing
+  dependencies fail as an explicit preflight diagnostic instead of a partial
+  compile error.
 - Platform claims must be tied to CI evidence. Linux/Windows secure-slot
   evidence is accepted only where the toolchain can build and execute the
   security regression suite; macOS remains support-matrix evidence work until
   CI runs the same contract.
+
+Source-of-truth split (2026-06-13):
+
+- The generated source-level `SecureSlot<T>` ABI is the current stable language
+  surface. Its source of truth is `src/runtime/pgy_abi_spec.h`,
+  `src/runtime/pgy_runtime_slot_macros.h`, and
+  `src/runtime/pgy_runtime_lib_secure_slot_exports.h`. This surface uses
+  `PgySecureSlot_*` plus `PgyToken_* { id, can_write, can_read }`; it is a
+  generated SecureSlot ABI, not the full `TokenCapability` runtime manager API.
+- The `SlotManager` secure API is a separate C runtime layer. Its source of
+  truth is `src/runtime/slot_security.h`, `src/runtime/slot_security.c`,
+  `src/runtime/slot_security_crypto.c`,
+  `src/runtime/slot_security_sealed_payload.c`, and
+  `src/runtime/slot_manager_secure_ops.c`. That layer owns
+  `SecurityLevel`, `SecureToken`, `TokenCapability`, `HardwareFingerprint`,
+  sealed payload policy, and the AES/HMAC/SHA-256 provider binding.
+- `SECURITY_LEVEL_*` arguments are parsed and retained for compatibility with
+  the design direction, but generated C/LLVM `SecureSlot<T>` code does not yet
+  select BASIC/HARDWARE/ENCRYPTED storage policy from those arguments. Treat
+  security-level semantics as `SlotManager` runtime API evidence until a named
+  lowering owner connects the language surface to that policy.
+- `docs/16_security_implementation_report.md` is a historical/imported
+  implementation snapshot. Use this document, `docs/security/01_audit_targets.md`,
+  `docs/security/contracts/secure_slot_token_unforgeability.md`, and the
+  runtime source files above for current beta-facing security claims.
 
 ## Core Design: Security as a Type Parameter
 

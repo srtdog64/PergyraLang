@@ -13,15 +13,21 @@
 #include <string.h>
 #include <time.h>
 #include <stdio.h>
+#include <limits.h>
 
 #ifdef _WIN32
 #include <windows.h>
-#include <wincrypt.h>
-#pragma comment(lib, "advapi32.lib")
+#include <bcrypt.h>
 #elif defined(__linux__)
+#include <errno.h>
 #include <unistd.h>
 #include <fcntl.h>
 #include <sys/mman.h>
+#include <openssl/evp.h>
+#include <openssl/rand.h>
+#else
+#include <openssl/evp.h>
+#include <openssl/rand.h>
 #endif
 
 static void
@@ -45,6 +51,14 @@ static const uint8_t SECURITY_MAGIC[] = {
 static const uint32_t SECURITY_VERSION = 0x00010002;  /* bumped: IV 8→12 bytes */
 
 #define SECURITY_IV_SIZE 12
+
+bool
+SecurityLevelIsValid(SecurityLevel level)
+{
+    return level == SECURITY_LEVEL_BASIC
+        || level == SECURITY_LEVEL_HARDWARE
+        || level == SECURITY_LEVEL_ENCRYPTED;
+}
 
 static uint32_t
 SecurityChecksumBytes(const uint8_t *data, size_t size)
@@ -107,6 +121,13 @@ SecurityContext *
 SecurityContextCreate(SecurityLevel defaultLevel)
 {
     SecurityContext *context;
+    SecurityError result;
+
+    if (!SecurityLevelIsValid(defaultLevel)) {
+        slot_security_warn("context-create", SECURITY_ERROR_INVALID_TOKEN,
+                           "invalid default security level");
+        return NULL;
+    }
     
     context = malloc(sizeof(SecurityContext));
     if (context == NULL) {
@@ -143,13 +164,26 @@ SecurityContextCreate(SecurityLevel defaultLevel)
     memcpy(keyMaterial + sizeof(HardwareFingerprint), SECURITY_MAGIC, 
            sizeof(SECURITY_MAGIC));
     
-    SecureHashSHA256(keyMaterial, sizeof(keyMaterial), context->masterKey);
+    if (SecureHashSHA256(keyMaterial, sizeof(keyMaterial), context->masterKey)
+        != SECURITY_SUCCESS) {
+        slot_security_warn("context-create", SECURITY_ERROR_CRYPTOGRAPHY_FAILED,
+                           "master key derivation failed");
+        SecureMemoryWipe(keyMaterial, sizeof(keyMaterial));
+        free(context->masterKey);
+        free(context);
+        return NULL;
+    }
     
     /* Securely wipe key material */
     SecureMemoryWipe(keyMaterial, sizeof(keyMaterial));
     
-    /* Lock master key in memory */
-    SecureMemoryLock(context->masterKey, context->keySize);
+    /* Lock master key in memory where the platform permits it. */
+    result = SecureMemoryLock(context->masterKey, context->keySize);
+    context->masterKeyLocked = (result == SECURITY_SUCCESS);
+    if (!context->masterKeyLocked) {
+        slot_security_warn("context-create", result,
+                           "master key memory lock unavailable");
+    }
     
     context->initialized = true;
     return context;
@@ -163,7 +197,8 @@ SecurityContextDestroy(SecurityContext *context)
     
     if (context->masterKey != NULL) {
         SecureMemoryWipe(context->masterKey, context->keySize);
-        SecureMemoryUnlock(context->masterKey, context->keySize);
+        if (context->masterKeyLocked)
+            SecureMemoryUnlock(context->masterKey, context->keySize);
         free(context->masterKey);
     }
     
@@ -180,11 +215,16 @@ TokenGenerate(SecurityContext *context, uint32_t slotId,
              SecurityLevel level, TokenCapability *capability)
 {
     SecurityError result;
+    uint8_t tokenMaterial[64];
 
     if (context == NULL || !context->initialized || capability == NULL)
         return SECURITY_ERROR_CONTEXT_NOT_INITIALIZED;
+
+    if (!SecurityLevelIsValid(level))
+        return SECURITY_ERROR_INVALID_TOKEN;
     
     memset(capability, 0, sizeof(TokenCapability));
+    memset(tokenMaterial, 0, sizeof(tokenMaterial));
     
     capability->slotId = slotId;
     capability->level = level;
@@ -204,6 +244,9 @@ TokenGenerate(SecurityContext *context, uint32_t slotId,
             capability->expiryTime = capability->issuedTime + 
                                    (SECURITY_DEFAULT_TOKEN_TTL_MS * 200);
             break;
+        default:
+            SecureMemoryWipe(capability, sizeof(*capability));
+            return SECURITY_ERROR_INVALID_TOKEN;
     }
     
     /* Set default permissions */
@@ -212,8 +255,6 @@ TokenGenerate(SecurityContext *context, uint32_t slotId,
     capability->canTransfer = false;
     
     /* Generate secure token */
-    uint8_t tokenMaterial[64];
-    
     /* Hardware fingerprint */
     memcpy(tokenMaterial, &context->hwFingerprint, sizeof(HardwareFingerprint));
     
@@ -228,15 +269,21 @@ TokenGenerate(SecurityContext *context, uint32_t slotId,
         64 - sizeof(HardwareFingerprint) - sizeof(uint32_t) - sizeof(uint64_t)
     );
     
-    if (result != SECURITY_SUCCESS)
+    if (result != SECURITY_SUCCESS) {
+        SecureMemoryWipe(tokenMaterial, sizeof(tokenMaterial));
+        SecureMemoryWipe(capability, sizeof(*capability));
         return result;
+    }
     
     /* Hash the token material */
     result = SecureHashSHA256(tokenMaterial, sizeof(tokenMaterial), 
                             capability->token.tokenData);
     
-    if (result != SECURITY_SUCCESS)
+    if (result != SECURITY_SUCCESS) {
+        SecureMemoryWipe(tokenMaterial, sizeof(tokenMaterial));
+        SecureMemoryWipe(capability, sizeof(*capability));
         return result;
+    }
     
     /* Set token generation and checksum */
     capability->token.generation = ++context->tokensIssued;
@@ -265,6 +312,12 @@ TokenValidate(SecurityContext *context, uint32_t slotId,
 
     if (context == NULL || !context->initialized || capability == NULL)
         return SECURITY_ERROR_CONTEXT_NOT_INITIALIZED;
+
+    if (!SecurityLevelIsValid(capability->level)) {
+        context->validationFailures++;
+        context->securityViolations++;
+        return SECURITY_ERROR_INVALID_TOKEN;
+    }
     
     context->tokensValidated++;
     

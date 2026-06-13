@@ -12,9 +12,22 @@
 
 - 키워드는 소문자 기준이다.
   예: `let`, `func`, `with`, `parallel`, `if`, `for`, `async`, `await`
-- 예약 키워드 (53개): `let`, `func`, `class`, `struct`, `subject`, `enum`, `ability`, `role`, `party`, `if`, `else`, `for`, `in`, `while`, `match`, `case`, `default`, `return`, `break`, `continue`, `async`, `await`, `spawn`, `select`, `channel`, `import`, `use`, `export`, `namespace`, `extern`, `own`, `ref`, `dyn`, `where`, `as`, `type`, `extends`, `impl`, `unsafe`, `defer`, `secure`, `slot`, `shared`, `bind`, `include`, `override`, `with`, `parallel`, `private`, `public`, `true`, `false`, `tobject`, `object`
-- 컨텍스트 키워드: `world`, `roster`, `roster`, `zone`, `relation`, `effect`, `intent`, `vessel`, `event`, `action`, `requires`, `within`, `causes`, `authorized`, `by`, `involves`, `step`, `who`, `expect`, `success`, `failure`
-  선언 위치에서는 키워드처럼 동작하지만, 지역 변수와 일반 표현식 자리에서는 식별자로 쓸 수 있다.
+- Lexer-reserved keyword source of truth: `src/lexer/lexer_keywords.c`.
+- Lexer-reserved keywords (66): `ability`, `as`, `async`, `await`, `bind`,
+  `break`, `case`, `channel`, `class`, `collapse`, `continue`, `default`,
+  `defer`, `dyn`, `effect`, `else`, `enum`, `event`, `export`, `extends`,
+  `extern`, `false`, `for`, `func`, `if`, `impl`, `import`, `in`, `include`,
+  `innate`, `intent`, `let`, `local`, `match`, `namespace`,
+  `nondeterministic`, `object`, `override`, `own`, `parallel`, `party`,
+  `private`, `public`, `ref`, `relation`, `remote`, `return`, `role`,
+  `roster`, `secure`, `select`, `shared`, `slot`, `spawn`, `struct`,
+  `subject`, `tobject`, `true`, `type`, `unsafe`, `use`, `vessel`, `where`,
+  `while`, `with`, `world`, `zone`.
+- `world`, `roster`, `relation`, `effect`, `zone`, `intent`, `vessel`, and
+  `event` are lexer-reserved declaration tokens, not contextual words.
+- Parser-contextual words are matched as identifiers by the owning parser.
+  Examples include `action`, `requires`, `within`, `causes`, `authorized`,
+  `by`, `involves`, `step`, `who`, `expect`, `success`, and `failure`.
 - `context`는 현재 ordinary identifier다.
 - 내장 API와 타입은 PascalCase 기준이다.
   예: `Int`, `String`, `ClaimSlot`, `Read`, `Write`, `Release`
@@ -502,7 +515,10 @@ with SecureSlot<Int>(SECURITY_LEVEL_HARDWARE) as hp {
 ```
 
 주의:
-- `SECURITY_LEVEL_*`는 현재 **파싱만** 되며 시맨틱 의미는 적용되지 않는다.
+- `SECURITY_LEVEL_*`는 현재 `with SecureSlot<T>(...)` 문법에서 **파싱/보존만**
+  되며, 생성 C/LLVM `SecureSlot<T>` ABI의 BASIC/HARDWARE/ENCRYPTED 정책
+  선택으로는 연결되지 않는다. `SlotManager` C 런타임의 보안 레벨은 별도
+  API 계층이다.
 
 ### 6.3 View / Move
 

@@ -1,6 +1,6 @@
 # Contract - Secure Slot Token Unforgeability (P0-1)
 
-Last updated: 2026-04-27
+Last updated: 2026-06-13
 Audit priority: P0 (must audit before beta freeze)
 
 ## Invariant Statement
@@ -18,6 +18,30 @@ Equivalent informal phrasing:
 > legitimate token. The set of legitimate tokens for a slot is exactly
 > the set the runtime issued for that slot's current generation.*
 
+## Scope Note
+
+This contract covers two related but distinct implementation surfaces:
+
+- Generated `PgySecureSlot_*` ABI: `src/runtime/pgy_abi_spec.h`,
+  `src/runtime/pgy_runtime_slot_macros.h`, and
+  `src/runtime/pgy_runtime_lib_secure_slot_exports.h` use
+  `PgyToken_* { id, can_write, can_read }` and hard-fail or return typed
+  `PgyRuntimeSlotStatus` on wrong-token access.
+- `SlotManager` secure runtime API: `src/runtime/slot_security.h`,
+  `src/runtime/slot_security.c`, `src/runtime/slot_security_crypto.c`,
+  `src/runtime/slot_security_sealed_payload.c`, and
+  `src/runtime/slot_manager_secure_ops.c` use `TokenCapability`,
+  `SecureToken`, hardware fingerprinting, sealed payload policy, and crypto
+  provider bindings. Windows routes random generation, SHA-256, HMAC-SHA256,
+  and AES primitives through CNG/BCrypt; non-Windows routes them through
+  OpenSSL EVP/HMAC/RAND. The runtime owns CTR counter composition and token
+  authentication layout, not self-contained AES or SHA implementations.
+
+`SECURITY_LEVEL_*` is not yet the generated language ABI's storage-policy
+selector. Treat BASIC/HARDWARE/ENCRYPTED policy claims as `SlotManager`
+runtime API claims until a named lowering owner wires source-level syntax to
+that layer.
+
 ## Source Files Governed
 
 - `src/runtime/slot_security.c`
@@ -25,11 +49,14 @@ Equivalent informal phrasing:
 - `src/runtime/slot_security_sealed_payload.c`
 - `src/runtime/slot_security.h`
 - `src/runtime/slot_manager.c` (interaction surface)
+- `src/runtime/pgy_abi_spec.h`
+- `src/runtime/pgy_runtime_slot_macros.h`
+- `src/runtime/pgy_runtime_lib_secure_slot_exports.h`
 
 ## Existing Regression Coverage
 
 `make test-security` covers the following enumerated cases (currently
-142/142 passing):
+171/171 passing):
 
 - Stale-generation read/write/pin/release rejection
 - Stale `SlotIsValid` returning false
@@ -39,6 +66,14 @@ Equivalent informal phrasing:
 - Release-while-pinned rejection
 - TTL cleanup skip while pinned
 - Invalid (zero) secure-token rejection on read/write/pin/release
+- Invalid `SecurityLevel` rejection at context, token, and secure-claim entry
+  points
+- Token-refresh replay rejection for the old token
+- SHA-256 and AES-256-CTR/HMAC known-answer vectors, including authentication
+  tag tamper rejection
+- Security portability smoke checks that the crypto owner uses standard
+  provider APIs and does not reintroduce the removed self-contained AES/SHA
+  implementation path
 - Revoked-token rejection
 - Raw secure-slot release rejection
 - Concurrent secure-write rejection

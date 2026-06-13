@@ -227,6 +227,19 @@ struct ASTNode
             size_t    count;
         } tuple_literal;
 
+        /* Map literal { key: value, ... } */
+        struct {
+            ASTNode** keys;
+            ASTNode** values;
+            size_t    count;
+        } map_literal;
+
+        /* Cast expr as Type */
+        struct {
+            ASTNode* operand;
+            char*    target_type;
+        } cast;
+
         /* enum Color { Red, Green, Blue }
          * enum Shape { Circle(Int), Rect(Int, Int), None }  — tagged union */
         struct {
@@ -524,9 +537,10 @@ struct ASTNode
             size_t   capacity;
         } namespace_decl;
 
-        /* unsafe { ... } */
+        /* unsafe { ... } / unsafe(cap) { ... } / unsafe label { ... } */
         struct {
             ASTNode* body;           /* Block */
+            char*    capability;     /* optional capability label, else NULL */
         } unsafe_block;
 
         /* defer { ... }; or defer <expr>; */

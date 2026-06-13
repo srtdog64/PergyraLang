@@ -82,7 +82,10 @@ parser_parse_pin_block(Parser *parser)
         return NULL;
     }
 
+    bool saved_no_cast = parser->no_cast;
+    parser->no_cast = true;
     slot_expr = parser_parse_expression(parser);
+    parser->no_cast = saved_no_cast;
     if (slot_expr == NULL || slot_expr->type != AST_IDENTIFIER) {
         ast_destroy(slot_expr);
         parser_error(parser,

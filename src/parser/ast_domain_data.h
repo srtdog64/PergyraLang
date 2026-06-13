@@ -23,6 +23,7 @@ typedef struct {
     size_t method_capacity;
     ASTNode* extends;
     GenericParams* generic_params;
+    WhereClause* where_clause;
     StructuredComment* doc_comment;
 } ASTPartyDeclData;
 

@@ -240,6 +240,13 @@ ast_contains_identifier_ref(const ASTNode *node,
     case AST_TUPLE_LITERAL:
         return ast_array_contains_identifier_ref(
             node->data.tuple_literal.elements, node->data.tuple_literal.count, predicate, userdata);
+    case AST_MAP_LITERAL:
+        return ast_array_contains_identifier_ref(
+            node->data.map_literal.keys, node->data.map_literal.count, predicate, userdata)
+            || ast_array_contains_identifier_ref(
+            node->data.map_literal.values, node->data.map_literal.count, predicate, userdata);
+    case AST_CAST:
+        return ast_contains_identifier_ref(node->data.cast.operand, predicate, userdata);
     case AST_ASSIGNMENT:
         return ast_contains_identifier_ref(node->data.assignment.target, predicate, userdata)
             || ast_contains_identifier_ref(node->data.assignment.value, predicate, userdata);
@@ -350,6 +357,13 @@ ast_contains_free_identifier_ref(const ASTNode *node, const char *name)
     case AST_TUPLE_LITERAL:
         return ast_array_contains_free_identifier_ref(
             node->data.tuple_literal.elements, node->data.tuple_literal.count, name);
+    case AST_MAP_LITERAL:
+        return ast_array_contains_free_identifier_ref(
+            node->data.map_literal.keys, node->data.map_literal.count, name)
+            || ast_array_contains_free_identifier_ref(
+            node->data.map_literal.values, node->data.map_literal.count, name);
+    case AST_CAST:
+        return ast_contains_free_identifier_ref(node->data.cast.operand, name);
     case AST_ASSIGNMENT:
         return ast_contains_free_identifier_ref(node->data.assignment.target, name)
             || ast_contains_free_identifier_ref(node->data.assignment.value, name);

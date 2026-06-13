@@ -5,6 +5,8 @@
 #include <string.h>
 
 #include "llvm_expr_emit_support.h"
+#include "llvm_expr_call_collections_map_exports.h"
+#include "llvm_internal_api.h"
 
 LLVMValueRef
 llvm_emit_tuple_literal_expr(ASTNode *node, LLVMGenCtx *ctx)
@@ -123,6 +125,137 @@ llvm_emit_array_literal_expr(ASTNode *node, LLVMGenCtx *ctx)
         LLVMBuildCall2(ctx->builder, push_fn->fn_type, push_fn->fn, args, 2, "");
     }
     return LLVMBuildLoad2(ctx->builder, array_type, tmp, llvm_tmp_name(ctx));
+}
+
+static bool
+llvm_map_literal_emit_entry(LLVMGenCtx *ctx, ASTNode *node, size_t i,
+                            LLVMValueRef map_alloca, const char *key_name,
+                            const char *value_name, LLVMTypeRef value_ty)
+{
+    LLVMValueRef key = llvm_emit_expression(ast_map_literal_key(node, i), ctx);
+    LLVMValueRef value = llvm_emit_expression(ast_map_literal_value(node, i), ctx);
+    LLVMFuncEntry *fn;
+    LLVMValueRef vtmp;
+
+    if (key == NULL || value == NULL) {
+        llvm_expression_error(ctx, node,
+            "LLVM map literal could not lower an entry key or value");
+        return false;
+    }
+    if (value_name != NULL && strcmp(value_name, "String") == 0) {
+        fn = llvm_required_hashmap_raw_string_value_export(ctx, node,
+            "map literal", "set", key_name);
+        if (fn == NULL)
+            return false;
+        LLVMValueRef args[] = {
+            LLVMBuildBitCast(ctx->builder, map_alloca, ctx->type_i8ptr,
+                llvm_tmp_name(ctx)),
+            key, value
+        };
+        LLVMBuildCall2(ctx->builder, fn->fn_type, fn->fn, args, 3, "");
+        return true;
+    }
+    vtmp = llvm_create_entry_alloca(ctx, value_ty, llvm_tmp_name(ctx));
+    if (vtmp == NULL) {
+        llvm_expression_error(ctx, node,
+            "LLVM map literal could not allocate value temporary");
+        return false;
+    }
+    LLVMBuildStore(ctx->builder, value, vtmp);
+    fn = llvm_required_hashmap_raw_export(ctx, node, "map literal", "set",
+        key_name);
+    if (fn == NULL)
+        return false;
+    LLVMValueRef args[] = {
+        LLVMBuildBitCast(ctx->builder, map_alloca, ctx->type_i8ptr,
+            llvm_tmp_name(ctx)),
+        key,
+        LLVMBuildBitCast(ctx->builder, vtmp, ctx->type_i8ptr,
+            llvm_tmp_name(ctx)),
+        llvm_sizeof_type_i64(ctx, value_ty)
+    };
+    LLVMBuildCall2(ctx->builder, fn->fn_type, fn->fn, args, 4, "");
+    return true;
+}
+
+LLVMValueRef
+llvm_emit_map_literal_expr(ASTNode *node, LLVMGenCtx *ctx)
+{
+    size_t count = ast_map_literal_count(node);
+    const char *map_type = ctx->expected_type_name;
+    char key_buf[128];
+    char value_buf[128];
+    LLVMTypeRef map_ty;
+    LLVMTypeRef value_ty;
+    LLVMValueRef tmp;
+    LLVMFuncEntry *new_fn;
+
+    if (map_type == NULL || strncmp(map_type, "HashMap<", 8) != 0
+        || !llvm_constructed_arg_name_copy(map_type, 0, key_buf, sizeof(key_buf))
+        || !llvm_constructed_arg_name_copy(map_type, 1, value_buf,
+                sizeof(value_buf))) {
+        llvm_expr_set_missing_type_error(ctx, node, "map literal expression");
+        return NULL;
+    }
+    map_ty = llvm_hashmap_struct_type(ctx, value_buf);
+    value_ty = pergyra_type_to_llvm(ctx, value_buf);
+    if (ctx->has_error || map_ty == NULL || value_ty == NULL)
+        return llvm_expression_error(ctx, node,
+            "LLVM map literal could not lower HashMap<K, V> type");
+    tmp = llvm_create_entry_alloca(ctx, map_ty, llvm_tmp_name(ctx));
+    if (tmp == NULL)
+        return llvm_expression_error(ctx, node,
+            "LLVM map literal could not allocate map temporary");
+    new_fn = llvm_lookup_function(ctx, "pgy_map_new_raw_export");
+    if (new_fn == NULL)
+        return llvm_expression_error(ctx, node,
+            "LLVM map literal requires registered runtime function 'pgy_map_new_raw_export'");
+    {
+        LLVMValueRef args[] = {
+            LLVMBuildBitCast(ctx->builder, tmp, ctx->type_i8ptr,
+                llvm_tmp_name(ctx)),
+            llvm_sizeof_type_i64(ctx, value_ty)
+        };
+        LLVMBuildCall2(ctx->builder, new_fn->fn_type, new_fn->fn, args, 2, "");
+    }
+    for (size_t i = 0; i < count; i++) {
+        if (!llvm_map_literal_emit_entry(ctx, node, i, tmp, key_buf,
+                value_buf, value_ty))
+            return NULL;
+    }
+    return LLVMBuildLoad2(ctx->builder, map_ty, tmp, llvm_tmp_name(ctx));
+}
+
+LLVMValueRef
+llvm_emit_cast_expr(ASTNode *node, LLVMGenCtx *ctx)
+{
+    const char *target = ast_cast_target_type(node);
+    LLVMValueRef v = llvm_emit_expression(ast_cast_operand(node), ctx);
+    LLVMTypeRef src;
+
+    if (v == NULL)
+        return NULL;
+    src = LLVMTypeOf(v);
+    if (target != NULL && strcmp(target, "Int") == 0) {
+        if (src == ctx->type_f32 || src == ctx->type_f64)
+            return LLVMBuildFPToSI(ctx->builder, v, ctx->type_i32,
+                llvm_tmp_name(ctx));
+        if (src == ctx->type_i64)
+            return LLVMBuildTrunc(ctx->builder, v, ctx->type_i32,
+                llvm_tmp_name(ctx));
+        return v;
+    }
+    if (target != NULL && strcmp(target, "Float") == 0) {
+        if (src == ctx->type_i32 || src == ctx->type_i64)
+            return LLVMBuildSIToFP(ctx->builder, v, ctx->type_f32,
+                llvm_tmp_name(ctx));
+        if (src == ctx->type_f64)
+            return LLVMBuildFPTrunc(ctx->builder, v, ctx->type_f32,
+                llvm_tmp_name(ctx));
+        return v;
+    }
+    return llvm_expression_error(ctx, node,
+        "LLVM backend: cast target is not lowered (numeric Int/Float only)");
 }
 
 LLVMValueRef

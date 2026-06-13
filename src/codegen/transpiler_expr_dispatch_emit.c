@@ -379,7 +379,33 @@ emit_expression(ASTNode *node, TranspilerCtx *ctx)
 
     case AST_TUPLE_LITERAL:
     case AST_ARRAY_LITERAL:
+    case AST_MAP_LITERAL:
         return emit_composite_literal_expression(node, ctx);
+
+    case AST_CAST: {
+        const char *target = ast_cast_target_type(node);
+        char *operand = emit_expression(ast_cast_operand(node), ctx);
+        const char *c_cast = NULL;
+        char *result;
+        if (operand == NULL)
+            return NULL;
+        if (target != NULL && strcmp(target, "Int") == 0)
+            c_cast = "int32_t";
+        else if (target != NULL && strcmp(target, "Float") == 0)
+            c_cast = "float";
+        if (c_cast == NULL) {
+            free(operand);
+            transpiler_set_backend_error_with_hints(ctx,
+                PGY_CODE_C_TYPE_UNSUPPORTED, PGY_CAUSE_C_TYPE_UNSUPPORTED,
+                PGY_FIX_ANNOTATE_CONCRETE_TYPE,
+                "C backend: cast to '%s' is not lowered (numeric Int/Float only)",
+                target != NULL ? target : "<type>");
+            return NULL;
+        }
+        result = strdup_fmt("((%s)(%s))", c_cast, operand);
+        free(operand);
+        return result;
+    }
 
     case AST_ASSIGNMENT: {
         ASTNode *target_node = ast_assignment_target(node);

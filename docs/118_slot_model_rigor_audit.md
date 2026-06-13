@@ -260,7 +260,7 @@ These rejections fire at compile time today, with regression evidence.
 
 | Rule | Diagnostic | Evidence |
 |---|---|---|
-| Channel cross-World transfer outside channel | semantic reject | `make test-security` 142/142 |
+| Channel cross-World transfer outside channel | semantic reject | `make test-security` 171/171 |
 | Token<T> spawn / channel send / cancel payload | semantic reject | semantic + `make test-semantic` |
 | Anchored slot branch/join consume conflict | CFG snapshot | `docs/100` §0b closed items |
 | Authority-bearing token spawn boundary | semantic reject | `make test-semantic` |

@@ -344,6 +344,48 @@ ast_tuple_literal_element(const ASTNode* node, size_t index)
     return node->data.tuple_literal.elements[index];
 }
 
+size_t
+ast_map_literal_count(const ASTNode* node)
+{
+    if (node == NULL || node->type != AST_MAP_LITERAL)
+        return 0;
+    return node->data.map_literal.count;
+}
+
+ASTNode*
+ast_map_literal_key(const ASTNode* node, size_t index)
+{
+    if (node == NULL || node->type != AST_MAP_LITERAL
+        || index >= node->data.map_literal.count)
+        return NULL;
+    return node->data.map_literal.keys[index];
+}
+
+ASTNode*
+ast_map_literal_value(const ASTNode* node, size_t index)
+{
+    if (node == NULL || node->type != AST_MAP_LITERAL
+        || index >= node->data.map_literal.count)
+        return NULL;
+    return node->data.map_literal.values[index];
+}
+
+ASTNode*
+ast_cast_operand(const ASTNode* node)
+{
+    if (node == NULL || node->type != AST_CAST)
+        return NULL;
+    return node->data.cast.operand;
+}
+
+const char*
+ast_cast_target_type(const ASTNode* node)
+{
+    if (node == NULL || node->type != AST_CAST)
+        return NULL;
+    return node->data.cast.target_type;
+}
+
 const char*
 ast_break_label(const ASTNode* node)
 {

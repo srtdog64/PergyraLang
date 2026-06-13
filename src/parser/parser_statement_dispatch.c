@@ -297,7 +297,10 @@ ASTNode* parser_parse_statement(Parser* parser) {
         && parser->current_token.text != NULL
         && strcmp(parser->current_token.text, "using") == 0) {
         parser_advance(parser);  // consume contextual 'using'
+        bool saved_no_cast = parser->no_cast;
+        parser->no_cast = true;
         ASTNode *aliased_expr = parser_parse_expression(parser);
+        parser->no_cast = saved_no_cast;
         parser_consume(parser, TOKEN_AS, "Expected 'as' after aliased expression");
         Token alias_name = consume_binding_name_token(parser,
             "Expected alias name after 'as'");
@@ -332,6 +335,19 @@ ASTNode* parser_parse_statement(Parser* parser) {
     // while 루프
     if (parser_match(parser, TOKEN_WHILE)) {
         return parser_finalize_statement(parser, parse_while_statement(parser));
+    }
+
+    /* `loop { body }` infinite loop, desugared to `while true { body }`. */
+    if (parser->current_token.type == TOKEN_IDENTIFIER
+        && parser->current_token.text != NULL
+        && strcmp(parser->current_token.text, "loop") == 0
+        && parser_peek_next(parser).type == TOKEN_LBRACE) {
+        ASTNode* loop = ast_create_while_loop();
+        parser_advance(parser);  /* consume 'loop' */
+        loop->data.while_loop.condition = ast_create_boolean(true);
+        parser_consume(parser, TOKEN_LBRACE, "Expected '{' after 'loop'");
+        loop->data.while_loop.body = parser_parse_block(parser);
+        return parser_finalize_statement(parser, loop);
     }
 
     // match 문
@@ -440,7 +456,8 @@ ASTNode* parser_parse_statement(Parser* parser) {
     }
 
     // party 선언
-    if (parser_match(parser, TOKEN_PARTY)) {
+    if (parser_starts_named_declaration(parser, TOKEN_PARTY)) {
+        parser_advance(parser);
         return parser_finalize_statement(parser, parse_party_declaration(parser));
     }
 

@@ -3,10 +3,15 @@ void test_security_context_lifecycle()
     printf("\n=== Test 1: Security Context Lifecycle ===\n");
 
     SecurityContext *context = SecurityContextCreate(SECURITY_LEVEL_BASIC);
+    SecurityContext *invalidContext = SecurityContextCreate((SecurityLevel)99);
     TEST_ASSERT(context != NULL, "Security context creation");
     TEST_ASSERT(context->initialized, "Security context initialization");
     TEST_ASSERT(context->defaultLevel == SECURITY_LEVEL_BASIC,
                 "Default security level setting");
+    TEST_ASSERT(SecurityLevelIsValid(SECURITY_LEVEL_BASIC),
+                "Known security level is accepted");
+    TEST_SECURITY_VIOLATION(invalidContext == NULL,
+                            "Invalid default security level is rejected");
 
     SecurityContextDestroy(context);
     printf("Security context destroyed successfully\n");
@@ -47,6 +52,7 @@ void test_token_operations()
     TEST_ASSERT(context != NULL, "Security context for token tests");
 
     TokenCapability token;
+    TokenCapability invalidLevelToken;
     SecurityError result = TokenGenerate(context, 123, SECURITY_LEVEL_HARDWARE, &token);
     TEST_ASSERT(result == SECURITY_SUCCESS, "Token generation");
     TEST_ASSERT(token.slotId == 123, "Token slot ID assignment");
@@ -62,15 +68,100 @@ void test_token_operations()
     TEST_SECURITY_VIOLATION(result != SECURITY_SUCCESS,
                            "Token validation rejects wrong slot ID");
 
+    result = TokenGenerate(context, 123, (SecurityLevel)99, &invalidLevelToken);
+    TEST_SECURITY_VIOLATION(result == SECURITY_ERROR_INVALID_TOKEN,
+                            "Token generation rejects invalid security level");
+
+    invalidLevelToken = token;
+    invalidLevelToken.level = (SecurityLevel)99;
+    result = TokenValidate(context, 123, &invalidLevelToken);
+    TEST_SECURITY_VIOLATION(result == SECURITY_ERROR_INVALID_TOKEN,
+                            "Token validation rejects invalid security level");
+
     SecurityContextDestroy(context);
 }
 
 /*
- * Test 4: Secure slot manager operations
+ * Test 4: Cryptographic known-answer vectors
+ */
+void test_crypto_known_vectors()
+{
+    static const uint8_t expected_sha_abc[32] = {
+        0xba, 0x78, 0x16, 0xbf, 0x8f, 0x01, 0xcf, 0xea,
+        0x41, 0x41, 0x40, 0xde, 0x5d, 0xae, 0x22, 0x23,
+        0xb0, 0x03, 0x61, 0xa3, 0x96, 0x17, 0x7a, 0x9c,
+        0xb4, 0x10, 0xff, 0x61, 0xf2, 0x00, 0x15, 0xad
+    };
+    static const uint8_t expected_sha_empty[32] = {
+        0xe3, 0xb0, 0xc4, 0x42, 0x98, 0xfc, 0x1c, 0x14,
+        0x9a, 0xfb, 0xf4, 0xc8, 0x99, 0x6f, 0xb9, 0x24,
+        0x27, 0xae, 0x41, 0xe4, 0x64, 0x9b, 0x93, 0x4c,
+        0xa4, 0x95, 0x99, 0x1b, 0x78, 0x52, 0xb8, 0x55
+    };
+    static const uint8_t aes_key[32] = {
+        0x60, 0x3d, 0xeb, 0x10, 0x15, 0xca, 0x71, 0xbe,
+        0x2b, 0x73, 0xae, 0xf0, 0x85, 0x7d, 0x77, 0x81,
+        0x1f, 0x35, 0x2c, 0x07, 0x3b, 0x61, 0x08, 0xd7,
+        0x2d, 0x98, 0x10, 0xa3, 0x09, 0x14, 0xdf, 0xf4
+    };
+    static const uint8_t aes_iv[16] = {
+        0xf0, 0xf1, 0xf2, 0xf3, 0xf4, 0xf5, 0xf6, 0xf7,
+        0xf8, 0xf9, 0xfa, 0xfb, 0xfc, 0xfd, 0xfe, 0xff
+    };
+    static const uint8_t aes_plain[16] = {
+        0x6b, 0xc1, 0xbe, 0xe2, 0x2e, 0x40, 0x9f, 0x96,
+        0xe9, 0x3d, 0x7e, 0x11, 0x73, 0x93, 0x17, 0x2a
+    };
+    static const uint8_t expected_aes_cipher[16] = {
+        0x60, 0x1e, 0xc3, 0x13, 0x77, 0x57, 0x89, 0xa5,
+        0xb7, 0xa7, 0xf5, 0x04, 0xbb, 0xf3, 0xd2, 0x28
+    };
+
+    uint8_t hash[32];
+    uint8_t cipher[16];
+    uint8_t plain[16];
+    uint8_t tag[16];
+    uint8_t tamperedTag[16];
+    SecurityError result;
+
+    printf("\n=== Test 4: Cryptographic Known Vectors ===\n");
+
+    result = SecureHashSHA256((const uint8_t *)"abc", 3, hash);
+    TEST_ASSERT(result == SECURITY_SUCCESS
+                    && memcmp(hash, expected_sha_abc, sizeof(hash)) == 0,
+                "SHA-256 known vector for 'abc'");
+
+    result = SecureHashSHA256((const uint8_t *)"", 0, hash);
+    TEST_ASSERT(result == SECURITY_SUCCESS
+                    && memcmp(hash, expected_sha_empty, sizeof(hash)) == 0,
+                "SHA-256 known vector for empty input");
+
+    result = AES256Encrypt(aes_key, aes_iv, aes_plain, sizeof(aes_plain),
+                           cipher, tag);
+    TEST_ASSERT(result == SECURITY_SUCCESS
+                    && memcmp(cipher, expected_aes_cipher, sizeof(cipher)) == 0,
+                "AES-256-CTR known vector encryption");
+
+    memset(plain, 0, sizeof(plain));
+    result = AES256Decrypt(aes_key, aes_iv, cipher, sizeof(cipher), tag, plain);
+    TEST_ASSERT(result == SECURITY_SUCCESS
+                    && memcmp(plain, aes_plain, sizeof(plain)) == 0,
+                "AES-256-CTR authenticated decrypt round trip");
+
+    memcpy(tamperedTag, tag, sizeof(tamperedTag));
+    tamperedTag[0] ^= 0x01;
+    result = AES256Decrypt(aes_key, aes_iv, cipher, sizeof(cipher),
+                           tamperedTag, plain);
+    TEST_SECURITY_VIOLATION(result == SECURITY_ERROR_INVALID_TOKEN,
+                            "AES-256-CTR authentication tag tamper is rejected");
+}
+
+/*
+ * Test 5: Secure slot manager operations
  */
 void test_secure_slot_manager()
 {
-    printf("\n=== Test 4: Secure Slot Manager ===\n");
+    printf("\n=== Test 5: Secure Slot Manager ===\n");
 
     /* Create slot manager with security */
     SlotManager *manager = SlotManagerCreateSecure(1000, 64*1024, true,
@@ -82,6 +173,7 @@ void test_secure_slot_manager()
     /* Test secure slot claiming */
     SlotHandle handle;
     TokenCapability token;
+    TokenCapability oldToken;
     SlotError result = SlotClaimSecure(manager, TYPE_INT, SECURITY_LEVEL_HARDWARE,
                                      &handle, &token);
     TEST_ASSERT(result == SLOT_SUCCESS, "Secure slot claiming");
@@ -99,6 +191,21 @@ void test_secure_slot_manager()
     TEST_ASSERT(result == SLOT_SUCCESS, "Secure slot reading");
     TEST_ASSERT(readValue == testValue, "Data integrity verification");
 
+    oldToken = token;
+    result = SlotRefreshToken(manager, &handle, &token);
+    TEST_ASSERT(result == SLOT_SUCCESS, "Secure slot token refresh");
+    result = SlotReadSecure(manager, &handle, &readValue, sizeof(readValue),
+                          &bytesRead, &oldToken);
+    TEST_SECURITY_VIOLATION(result == SLOT_ERROR_PERMISSION_DENIED,
+                            "Refreshed secure slot rejects old token replay");
+    result = SlotReadSecure(manager, &handle, &readValue, sizeof(readValue),
+                          &bytesRead, &token);
+    TEST_ASSERT(result == SLOT_SUCCESS, "Refreshed secure slot accepts new token");
+
+    result = SlotClaimSecure(manager, TYPE_INT, (SecurityLevel)99, &handle, &oldToken);
+    TEST_SECURITY_VIOLATION(result == SLOT_ERROR_INVALID_HANDLE,
+                            "Secure slot claim rejects invalid security level");
+
     /* Test secure release */
     result = SlotReleaseSecure(manager, &handle, &token);
     TEST_ASSERT(result == SLOT_SUCCESS, "Secure slot release");
@@ -111,7 +218,7 @@ void test_secure_slot_manager()
  */
 void test_security_violations()
 {
-    printf("\n=== Test 5: Security Violation Detection ===\n");
+    printf("\n=== Test 6: Security Violation Detection ===\n");
 
     SlotManager *manager = SlotManagerCreateSecure(100, 8*1024, true,
                                                   SECURITY_LEVEL_ENCRYPTED);
@@ -169,7 +276,7 @@ void test_security_violations()
  */
 void test_scope_based_slots()
 {
-    printf("\n=== Test 6: Scope-based Slot Management ===\n");
+    printf("\n=== Test 7: Scope-based Slot Management ===\n");
 
     SlotManager *manager = SlotManagerCreateSecure(100, 8*1024, true,
                                                   SECURITY_LEVEL_BASIC);
@@ -229,7 +336,7 @@ void test_scope_based_slots()
  */
 void test_pergyra_api()
 {
-    printf("\n=== Test 7: Pergyra Language API ===\n");
+    printf("\n=== Test 8: Pergyra Language API ===\n");
 
     SlotManager *manager = SlotManagerCreateSecure(100, 8*1024, true,
                                                   SECURITY_LEVEL_HARDWARE);
@@ -276,7 +383,7 @@ void test_pergyra_api()
  */
 void test_performance()
 {
-    printf("\n=== Test 8: Performance Testing ===\n");
+    printf("\n=== Test 9: Performance Testing ===\n");
 
     SlotManager *manager = SlotManagerCreateSecure(10000, 1024*1024, true,
                                                   SECURITY_LEVEL_BASIC);
@@ -349,7 +456,7 @@ void test_sealed_storage_and_shadow_recovery()
     size_t i;
     SlotError result;
 
-    printf("\n=== Test 9: Sealed Storage And Shadow Recovery ===\n");
+    printf("\n=== Test 10: Sealed Storage And Shadow Recovery ===\n");
 
     manager = SlotManagerCreateSecure(32, 4096, true, SECURITY_LEVEL_HARDWARE);
 
@@ -412,7 +519,7 @@ void test_runtime_file_io_policy()
     char *content;
     int32_t fd;
 
-    printf("\n=== Test 10: Runtime File I/O Policy ===\n");
+    printf("\n=== Test 11: Runtime File I/O Policy ===\n");
 
     unlink(ok_path);
     unlink(abs_path);
@@ -490,7 +597,7 @@ void test_runtime_zone_authority_validation()
     int zone = 1;
     int participant = 7;
 
-    printf("\n=== Test 11: Runtime Zone Authority Validation ===\n");
+    printf("\n=== Test 12: Runtime Zone Authority Validation ===\n");
 
     TEST_ASSERT(pgy_zone_authority_validate(&zone, &participant,
                                             "BattleZone", "owner"),
@@ -598,7 +705,7 @@ void test_slot_pin_lease_runtime()
     size_t bytesRead = 0;
     SlotError result;
 
-    printf("\n=== Test 12: Slot Pin Lease Runtime ===\n");
+    printf("\n=== Test 13: Slot Pin Lease Runtime ===\n");
 
     plainManager = SlotManagerCreate(16, 4096);
     TEST_ASSERT(plainManager != NULL, "Plain slot manager for pin tests");
