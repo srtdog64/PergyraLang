@@ -135,6 +135,7 @@ void print_test_results()
  */
 
 #include "tests/security/test_security_runtime.cases.h"
+#include "tests/security/test_security_slot_pin_lease.cases.h"
 
 int main(int argc, char *argv[])
 {

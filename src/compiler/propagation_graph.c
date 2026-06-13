@@ -4,6 +4,7 @@
  */
 #include "propagation_graph.h"
 
+#include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 
@@ -305,4 +306,43 @@ propagation_graph_schedule(PropagationGraph *g)
 done:
     free(finish);
     return ok;
+}
+
+void
+propagation_graph_dump(const PropagationGraph *g, void *out_file,
+                       const char *label)
+{
+    FILE *out = (FILE *)out_file;
+
+    if (g == NULL || out == NULL)
+        return;
+    fprintf(out,
+        "[propagation-graph] %s: nodes=%zu edges=%zu %s depth=%zu pass_limit=%zu\n",
+        label != NULL ? label : "(anon)", g->node_count, g->edge_count,
+        g->has_cycle ? "cyclic" : "acyclic", g->chain_depth, g->pass_limit);
+    if (g->order_count > 0) {
+        fprintf(out, "  propagation order:");
+        for (size_t i = 0; i < g->order_count; i++)
+            fprintf(out, " %s", g->node_names[g->order[i]]);
+        fprintf(out, "\n");
+    }
+    for (size_t e = 0; e < g->edge_count; e++) {
+        fprintf(out, "  dep: %s <- %s\n",
+            g->node_names[g->edges[e].to], g->node_names[g->edges[e].from]);
+    }
+    if (g->has_cycle) {
+        for (size_t scc = 0; scc < g->scc_count; scc++) {
+            size_t members = 0;
+            for (size_t i = 0; i < g->node_count; i++)
+                if (g->scc_of[i] == scc)
+                    members++;
+            if (members <= 1)
+                continue;
+            fprintf(out, "  cycle (fixpoint cluster):");
+            for (size_t i = 0; i < g->node_count; i++)
+                if (g->scc_of[i] == scc)
+                    fprintf(out, " %s", g->node_names[i]);
+            fprintf(out, "\n");
+        }
+    }
 }

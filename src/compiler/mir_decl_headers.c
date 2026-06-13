@@ -1,4 +1,6 @@
 #include "mir_decl_headers.h"
+#include "mir_decl_header_shape.h"
+#include "mir_decl_header_variants.h"
 #include "mir_type_helpers.h"
 
 #include <stdint.h>
@@ -357,47 +359,6 @@ mir_decl_field_metadata_init_zone_layer(MIRDeclField *meta,
     meta->pool_capacity = ast_zone_layer_slot_pool_capacity(slot);
 }
 
-static size_t
-mir_decl_header_ast_field_count(ASTNode *decl)
-{
-    size_t count = 0;
-    size_t extra = 0;
-
-    if (decl == NULL)
-        return 0;
-    switch (decl->type) {
-    case AST_CLASS_DECL:
-        (void) ast_class_fields(decl, &count);
-        return count;
-    case AST_PARTY_DECL:
-        return ast_party_role_count(decl) + ast_party_shared_count(decl);
-    case AST_ROSTER_DECL:
-        return ast_roster_party_count(decl) + ast_roster_shared_count(decl);
-    case AST_WORLD_DECL:
-        (void) ast_world_rosters(decl, &count);
-        (void) ast_world_zones(decl, &extra);
-        count += extra;
-        (void) ast_world_shared_fields(decl, &extra);
-        return count + extra;
-    case AST_RELATION_DECL:
-        (void) ast_relation_slots(decl, &count);
-        (void) ast_relation_shared_fields(decl, &extra);
-        return count + extra;
-    case AST_EFFECT_DECL:
-        (void) ast_effect_slots(decl, &count);
-        (void) ast_effect_shared_fields(decl, &extra);
-        return count + extra;
-    case AST_ZONE_DECL:
-        (void) ast_zone_slots(decl, &count);
-        (void) ast_zone_layer_slots(decl, &extra);
-        count += extra;
-        (void) ast_zone_shared_fields(decl, &extra);
-        return count + extra;
-    default:
-        return 0;
-    }
-}
-
 static bool
 mir_decl_header_alloc_fields(MIRDeclHeader *header, size_t field_count)
 {
@@ -543,79 +504,6 @@ mir_decl_method_matches_routine(const MIRDeclMethod *method,
         && strcmp(routine->owner_name, method->owner_name) == 0;
 }
 
-static void
-mir_decl_enum_variant_metadata_clear(MIRDeclEnumVariant *meta)
-{
-    if (meta == NULL)
-        return;
-    if (meta->param_type_names != NULL) {
-        for (size_t p = 0; p < meta->param_count; p++)
-            free((void *)meta->param_type_names[p]);
-    }
-    free((void *)meta->param_type_names);
-    meta->param_type_names = NULL;
-    meta->param_count = 0;
-}
-
-static void
-mir_decl_header_free_variants(MIRDeclHeader *header)
-{
-    if (header == NULL || header->variant_metadata == NULL)
-        return;
-    for (size_t v = 0; v < header->variant_metadata_count; v++)
-        mir_decl_enum_variant_metadata_clear(&header->variant_metadata[v]);
-    free(header->variant_metadata);
-    header->variant_metadata = NULL;
-    header->variant_metadata_count = 0;
-}
-
-static bool
-mir_decl_header_set_variants(MIRDeclHeader *header, ASTNode *decl)
-{
-    size_t variant_count = 0;
-    char **names;
-    MIRDeclEnumVariant *meta;
-
-    if (header == NULL || decl == NULL || decl->type != AST_ENUM_DECL)
-        return true;
-    names = ast_enum_variants(decl, &variant_count);
-    header->variant_count = variant_count;
-    if (variant_count == 0)
-        return true;
-    meta = calloc(variant_count, sizeof(MIRDeclEnumVariant));
-    if (meta == NULL)
-        return false;
-    for (size_t i = 0; i < variant_count; i++) {
-        size_t pc = ast_enum_variant_param_count(decl, i);
-        meta[i].name = names != NULL ? names[i] : NULL;
-        meta[i].param_count = pc;
-        meta[i].param_type_names = NULL;
-        if (pc == 0)
-            continue;
-        meta[i].param_type_names = calloc(pc, sizeof(const char *));
-        if (meta[i].param_type_names == NULL) {
-            for (size_t k = 0; k < i; k++)
-                mir_decl_enum_variant_metadata_clear(&meta[k]);
-            free(meta);
-            return false;
-        }
-        for (size_t p = 0; p < pc; p++) {
-            ASTNode *pt = ast_enum_variant_param(decl, i, p);
-            meta[i].param_type_names[p] =
-                mir_capture_type_name(pt, NULL);
-            if (meta[i].param_type_names[p] == NULL) {
-                for (size_t k = 0; k <= i; k++)
-                    mir_decl_enum_variant_metadata_clear(&meta[k]);
-                free(meta);
-                return false;
-            }
-        }
-    }
-    header->variant_metadata = meta;
-    header->variant_metadata_count = variant_count;
-    return true;
-}
-
 bool
 mir_record_decl_header(MIRProgram *mir, ASTNode *decl)
 {
@@ -650,6 +538,9 @@ mir_record_decl_header(MIRProgram *mir, ASTNode *decl)
         break;
     case AST_ABILITY_DECL:
         header.name = ast_ability_name(decl);
+        break;
+    case AST_INTENT_DECL:
+        header.name = ast_intent_decl_name(decl);
         break;
     case AST_PARTY_DECL:
         header.name = ast_party_name(decl);

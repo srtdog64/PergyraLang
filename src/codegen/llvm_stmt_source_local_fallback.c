@@ -114,7 +114,7 @@ llvm_stmt_source_local_class(LLVMGenCtx *ctx, ASTNode *recv)
  *   - no nominal host-method decl exists for this host/name pair.
  *
  * Lives in this TU rather than inline in llvm_stmt_type_infer.c so the
- * type-infer TU stays under the production-c-size 900-line cap. */
+ * type-infer TU stays under the production-c-size 699-line cap. */
 ASTNode *
 llvm_stmt_host_method_ast_decl(LLVMGenCtx *ctx,
                                const char *host_type_name,

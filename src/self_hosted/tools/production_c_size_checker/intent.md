@@ -2,16 +2,17 @@
 
 **Status:** *rung-2 minimal* (2026-05-27). Sister tool to the production
 header size checker, but covering production `.c` translation units against
-the 900-LOC hard cap. The 600-LOC line remains a split-review signal, not a
+the 699-LOC hard cap. This is the highest value in the 600s and is a
 mechanical failure threshold for coherent `.c` owners.
 
 ## Intent
 
-The 600-LOC split-review threshold is a beta-closure review signal for
-production owners. Production `.h` owners still use the stricter 600-LOC
-hard gate because header fan-out amplifies compile-time and include-boundary
-debt. Production `.c` translation units use a 900-LOC hard cap so coherent
-implementation owners are not mechanically split into helper buckets.
+The 699-LOC hard cap is the beta-closure threshold for production `.c`
+owners. Production `.h` owners still use the stricter 600-LOC hard gate
+because header fan-out amplifies compile-time and include-boundary debt.
+Production `.c` translation units must stay in the 600s; coherent owners
+that grow past that line need a responsibility-named split, not a generic
+helper bucket.
 
 ## Input Contract
 
@@ -33,7 +34,7 @@ JSON document on stdout, conforming to schema
   "ok": true,
   "source": {
     "manifest_owner": "src/self_hosted/tools/production_c_size_checker/fixture/c_files_manifest.txt",
-    "cap_lines": 900
+    "cap_lines": 699
   },
   "counts": {
     "c_files": 0,

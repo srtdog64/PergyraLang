@@ -25,6 +25,7 @@ LLVMTypeRef llvm_stmt_infer_await_expr_type(LLVMGenCtx *ctx, ASTNode *expr);
 LLVMTypeRef llvm_stmt_unknown_expr_type(LLVMGenCtx *ctx,
                                         ASTNode *expr,
                                         const char *reason);
+LLVMTypeRef llvm_stmt_infer_call_expr_type(LLVMGenCtx *ctx, ASTNode *expr);
 
 #endif /* PGY_LLVM_ENABLED */
 

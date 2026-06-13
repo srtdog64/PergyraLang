@@ -45,5 +45,8 @@ size_t propagation_graph_intern_node(PropagationGraph *g, const char *name);
 bool   propagation_graph_add_edge(PropagationGraph *g, size_t from, size_t to);
 /* Computes SCCs, condensation topo order, chain depth, and pass limit. */
 bool   propagation_graph_schedule(PropagationGraph *g);
+/* Human-readable dependency/schedule trace for dogfood debugging. */
+void   propagation_graph_dump(const PropagationGraph *g, void *out_file,
+                            const char *label);
 
 #endif /* PERGYRA_PROPAGATION_GRAPH_H */

@@ -16,6 +16,7 @@
 #include "transpiler_expr_call_spawn_emit.h"
 #include "transpiler_expr_composite_literal_emit.h"
 #include "transpiler_expr_core_emit.h"
+#include "transpiler_expr_dispatch_operand.h"
 #include "transpiler_expr_literal_emit.h"
 #include "transpiler_expr_party_instance_emit.h"
 #include "transpiler_format.h"
@@ -34,28 +35,6 @@
 #include "transpiler_type_mapping.h"
 #include "transpiler_type_require.h"
 #include "transpiler_mir_local_binding.h"
-
-static char *
-transpiler_dispatch_emit_part(TranspilerCtx *ctx,
-                              ASTNode *expr,
-                              const char *owner,
-                              const char *role)
-{
-    char *rendered = emit_expression(expr, ctx);
-
-    if (rendered != NULL)
-        return rendered;
-
-    transpiler_set_backend_error_with_hints(
-        ctx,
-        PGY_CODE_C_TYPE_UNSUPPORTED,
-        PGY_CAUSE_C_TYPE_UNSUPPORTED,
-        PGY_FIX_USE_LLVM_BACKEND_OR_EXTEND_TRANSPILER,
-        "C backend: %s could not lower %s expression",
-        owner != NULL ? owner : "expression",
-        role != NULL ? role : "operand");
-    return NULL;
-}
 
 static bool
 transpiler_identifier_is_true_local(TranspilerCtx *ctx,

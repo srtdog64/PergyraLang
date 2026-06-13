@@ -121,7 +121,7 @@ keeps running fine with or without them.
 | `stdlib_dispatch_inventory_checker` | 103         | C/LLVM dispatch table count parity |
 | `doc_link_checker`                | 155           | docs/INDEX.md dead-link audit |
 | `production_header_size_checker`  | 133           | `.h` 600-LOC cap |
-| `production_c_size_checker`       | 130           | `.c` 600-LOC cap |
+| `production_c_size_checker`       | 130           | `.c` 699-LOC cap |
 | `examples_inventory_checker`      | 119           | examples/ presence + non-empty |
 | **Total peripheral**              | **1518**      | |
 

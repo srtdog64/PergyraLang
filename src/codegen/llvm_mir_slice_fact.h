@@ -14,6 +14,9 @@ LLVMTypeRef llvm_mir_slice_fact_elem_type_from_receiver(LLVMGenCtx *ctx,
                                                         ASTNode *receiver,
                                                         LLVMMirVar *vars,
                                                         size_t var_count);
+LLVMTypeRef llvm_mir_slice_fact_array_type_from_slice_type(
+    LLVMGenCtx *ctx,
+    LLVMTypeRef slice_type);
 
 #endif /* PGY_LLVM_ENABLED */
 

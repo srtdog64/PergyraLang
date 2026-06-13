@@ -3,7 +3,7 @@ set -euo pipefail
 
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 LIMIT="${TEST_CASE_INCLUDE_MAX_LINES:-990}"
-PRODUCTION_LIMIT="${PRODUCTION_OWNER_MAX_LINES:-900}"
+PRODUCTION_LIMIT="${PRODUCTION_OWNER_MAX_LINES:-699}"
 HELPER_LIMIT="${HELPER_OWNER_MAX_LINES:-500}"
 
 grep -Fq "Helper-layer escalation rule" "$ROOT_DIR/TODO.md"

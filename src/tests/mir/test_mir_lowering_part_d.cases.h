@@ -86,6 +86,45 @@ test_mir_lowering_part_d(void)
         hir_destroy(hir);
     }
 
+    TEST("MIR declaration headers include intent callables");
+    {
+        const char *src =
+            "subject Buyer { }\n"
+            "zone CheckoutZone {\n"
+            "    subject slot buyer: Buyer\n"
+            "}\n"
+            "intent Charge(checkout: CheckoutZone, buyer: Buyer) {\n"
+            "    step verify {\n"
+            "        where: CheckoutZone;\n"
+            "        using: checkout;\n"
+            "        who: buyer;\n"
+            "        expect: true;\n"
+            "    }\n"
+            "    success: true;\n"
+            "    failure: false;\n"
+            "}\n";
+        HIRProgram *hir = NULL;
+        RIRProgram *rir = NULL;
+        MIRProgram *mir = NULL;
+        const MIRDeclHeader *intent = NULL;
+        bool ok = lower_mir_from_source(src, &hir, &rir, &mir);
+        if (ok && mir != NULL) {
+            intent = mir_find_decl_header_of_type(
+                mir, AST_INTENT_DECL, "Charge");
+        }
+        EXPECT(ok
+               && intent != NULL
+               && mir_decl_header_source_ast(intent) != NULL
+               && mir_decl_header_ast_type_or(intent, AST_PROGRAM)
+                    == AST_INTENT_DECL
+               && mir_decl_header_name(intent) != NULL
+               && strcmp(mir_decl_header_name(intent), "Charge") == 0
+               && mir_validate(mir, NULL));
+        mir_destroy(mir);
+        rir_destroy(rir);
+        hir_destroy(hir);
+    }
+
     TEST("MIR validator rejects declaration field owner metadata drift");
     {
         const char *src =

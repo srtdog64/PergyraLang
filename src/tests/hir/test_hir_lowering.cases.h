@@ -14,8 +14,11 @@ test_hir_lowering(void)
         EXPECT(hir != NULL
                && hir->event_count == 1
                && hir->extern_count == 1
-               && hir->function_count == 1
+               && hir->function_count == 2
                && hir->executable_count == 1
+               && hir->synthetic_executable_func != NULL
+               && hir_find_routine(hir, "__pgy_top_level_exec",
+                                   HIR_TOPLEVEL_EXECUTABLE) != NULL
                && hir->has_main_function);
         hir_destroy(hir);
     }

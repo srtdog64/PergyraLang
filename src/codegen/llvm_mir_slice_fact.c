@@ -68,6 +68,27 @@ llvm_mir_slice_fact_elem_type_from_slice_type(LLVMGenCtx *ctx,
 }
 
 LLVMTypeRef
+llvm_mir_slice_fact_array_type_from_slice_type(LLVMGenCtx *ctx,
+                                               LLVMTypeRef slice_type)
+{
+    if (ctx == NULL || slice_type == NULL)
+        return NULL;
+    if (slice_type == ctx->slice_type_Int)
+        return ctx->array_type_Int;
+    if (slice_type == ctx->slice_type_Long)
+        return ctx->array_type_Long;
+    if (slice_type == ctx->slice_type_Float)
+        return ctx->array_type_Float;
+    if (slice_type == ctx->slice_type_Double)
+        return ctx->array_type_Double;
+    if (slice_type == ctx->slice_type_Bool)
+        return ctx->array_type_Bool;
+    if (slice_type == ctx->slice_type_String)
+        return ctx->array_type_String;
+    return NULL;
+}
+
+LLVMTypeRef
 llvm_mir_slice_fact_elem_type_from_receiver(LLVMGenCtx *ctx,
                                             ASTNode *receiver,
                                             LLVMMirVar *vars,

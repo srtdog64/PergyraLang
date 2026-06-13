@@ -5,6 +5,7 @@
 #include "llvm_expr_array_calls.h"
 #include "llvm_expr_boundary_projection_helpers.h"
 #include "llvm_expr_call_inline_policy.h"
+#include "llvm_expr_call_intent_policy.h"
 #include "llvm_expr_call_collections_extended.h"
 #include "llvm_expr_collection_base_calls.h"
 #include "llvm_expr_call_variable.h"
@@ -29,40 +30,6 @@
 #include "llvm_inventory_decl_lookup.h"
 #include "llvm_member_call_emit.h"
 #include "../parser/ast_api.h"
-
-static ASTNode *
-llvm_intent_call_binding_at(ASTNode *intent_decl, size_t index,
-                            size_t *binding_count_out)
-{
-    size_t binding_count = 0;
-    size_t involve_count = 0;
-    size_t value_count = 0;
-    ASTNode **bindings = ast_intent_decl_bindings(intent_decl, &binding_count);
-    ASTNode **involves = ast_intent_decl_involves(intent_decl, &involve_count);
-    ASTNode **values = ast_intent_decl_values(intent_decl, &value_count);
-
-    if (binding_count_out != NULL) {
-        *binding_count_out = binding_count > 0
-            ? binding_count
-            : (involve_count + value_count);
-    }
-    if (binding_count > 0)
-        return (bindings != NULL && index < binding_count) ? bindings[index] : NULL;
-    if (index < involve_count)
-        return involves != NULL ? involves[index] : NULL;
-    index -= involve_count;
-    return (values != NULL && index < value_count) ? values[index] : NULL;
-}
-
-static bool
-llvm_call_arg_can_take_subject_address(ASTNode *arg_node)
-{
-    if (arg_node == NULL)
-        return false;
-    return arg_node->type == AST_IDENTIFIER
-        || arg_node->type == AST_MEMBER_ACCESS
-        || arg_node->type == AST_ARRAY_ACCESS;
-}
 
 LLVMValueRef
 llvm_emit_call(ASTNode *node, LLVMGenCtx *ctx)
@@ -404,7 +371,8 @@ llvm_emit_call(ASTNode *node, LLVMGenCtx *ctx)
                         args[i] = llvm_emit_member_lvalue_ptr(arg_node, ctx, NULL);
                     }
                     if (args[i] == NULL
-                        && !llvm_call_arg_can_take_subject_address(arg_node)) {
+                        && !llvm_intent_call_arg_can_take_subject_address(
+                            arg_node)) {
                         llvm_set_error_at_with_hints(ctx, arg_node,
                             PGY_CODE_LLVM_TYPE_UNSUPPORTED,
                             PGY_CAUSE_LLVM_TYPE_UNSUPPORTED,

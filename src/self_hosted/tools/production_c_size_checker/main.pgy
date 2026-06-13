@@ -43,7 +43,7 @@ func MissingManifestJson(path: String) -> String {
         "{\"schema\":\"pgy.selfhost.production-c-size.v1\",\"ok\":false,",
         "\"source\":{\"manifest_owner\":\"",
         path,
-        "\",\"cap_lines\":900},",
+        "\",\"cap_lines\":699},",
         "\"counts\":{\"c_files\":0,\"violations\":0,\"max_lines\":0},",
         "\"findings\":[{\"kind\":\"missing_manifest\",\"path\":\"",
         path,
@@ -56,9 +56,9 @@ func MissingManifestJson(path: String) -> String {
 
 func Main() -> Void {
     let manifest_path: String = "src/self_hosted/tools/production_c_size_checker/fixture/c_files_manifest.txt";
-    // Temporary 900-line production C cap. The checker records current
-    // max_lines from the manifest so source-owner splits cannot drift silently.
-    let cap: Int = 900;
+    // Production C owners use the highest 600s hard cap. The checker records
+    // current max_lines from the manifest so source-owner splits cannot drift silently.
+    let cap: Int = 699;
 
     if !FileExists(manifest_path) {
         Log(MissingManifestJson(manifest_path));

@@ -396,6 +396,14 @@ mir_lower(const HIRProgram *hir, const RIRProgram *rir, char **error_message)
             return NULL;
         }
     }
+    for (size_t i = 0; i < hir->intent_count; i++) {
+        if (!mir_record_decl_header(mir, hir->intents[i])) {
+            if (error_message != NULL)
+                *error_message = pergyra_strdup("out of memory");
+            mir_destroy(mir);
+            return NULL;
+        }
+    }
     for (size_t i = 0; i < hir->party_count; i++) {
         if (!mir_record_decl_header(mir, hir->parties[i])) {
             if (error_message != NULL)

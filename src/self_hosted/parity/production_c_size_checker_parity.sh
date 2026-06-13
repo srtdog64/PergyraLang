@@ -78,7 +78,7 @@ SHELL_STATS="$(cd "$ROOT_DIR" && awk '
         close($0)
         if (n > max)
             max = n
-        if (n > 900)
+        if (n > 699)
             violations++
     }
     END { printf "%d %d\n", violations, max }

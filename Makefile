@@ -562,6 +562,7 @@ CODEGEN_SOURCES  = $(CODEGEN_DIR)/transpiler_allocator_builtin_emit.c \
                    $(CODEGEN_DIR)/codegen_scalar_arithmetic_policy.c \
                    $(CODEGEN_DIR)/codegen_slot_type_policy.c \
                    $(CODEGEN_DIR)/domain_frontier_policy.c \
+                   $(CODEGEN_DIR)/domain_frontier_graph.c \
                    $(CODEGEN_DIR)/host_decl_compat.c \
                    $(CODEGEN_DIR)/intent_binding_metadata_view.c \
                    $(CODEGEN_DIR)/intent_observability_usage.c \
@@ -608,6 +609,7 @@ CODEGEN_SOURCES  = $(CODEGEN_DIR)/transpiler_allocator_builtin_emit.c \
                    $(CODEGEN_DIR)/transpiler_expr_core_emit.c \
                    $(CODEGEN_DIR)/transpiler_expr_composite_literal_emit.c \
                    $(CODEGEN_DIR)/transpiler_expr_dispatch_emit.c \
+                   $(CODEGEN_DIR)/transpiler_expr_dispatch_operand.c \
                    $(CODEGEN_DIR)/transpiler_expr_call_user_emit.c \
                    $(CODEGEN_DIR)/transpiler_expr_domain_query_builtin.c \
                    $(CODEGEN_DIR)/transpiler_expr_io_builtin.c \
@@ -833,6 +835,8 @@ COMPILER_SOURCES = $(COMPILER_DIR)/compiler.c \
                    $(COMPILER_DIR)/mir_fact_validate.c \
                    $(COMPILER_DIR)/mir_fact_surface_validate.c \
                    $(COMPILER_DIR)/mir_fact_terminator_validate.c \
+                   $(COMPILER_DIR)/mir_decl_header_shape.c \
+                   $(COMPILER_DIR)/mir_decl_header_variants.c \
                    $(COMPILER_DIR)/mir_decl_header_validate.c \
                    $(COMPILER_DIR)/mir_decl_header_access.c \
                    $(COMPILER_DIR)/mir_decl_headers.c \
@@ -881,7 +885,9 @@ COMPILER_SOURCES = $(COMPILER_DIR)/compiler.c \
                    $(COMPILER_DIR)/fmt_layout.c \
                    $(COMPILER_DIR)/fmt.c \
                    $(COMPILER_DIR)/pkg.c \
-                   $(COMPILER_DIR)/debugger.c
+                   $(COMPILER_DIR)/debugger.c \
+                   $(COMPILER_DIR)/propagation_graph.c \
+                   $(COMPILER_DIR)/propagation_graph_build.c
 
 # LLVM backend sources (only compiled when LLVM_ENABLED=1)
 ifneq ($(LLVM_ENABLED),0)
@@ -890,6 +896,7 @@ ifneq ($(LLVM_ENABLED),0)
                    $(CODEGEN_DIR)/llvm_backend_forward_declare.c \
                    $(CODEGEN_DIR)/llvm_backend_type_render.c \
                    $(CODEGEN_DIR)/llvm_backend_type_map.c \
+                   $(CODEGEN_DIR)/llvm_backend_type_map_generics.c \
                         $(CODEGEN_DIR)/llvm_backend_type_registry.c \
                         $(CODEGEN_DIR)/llvm_boundary_slot_param.c \
                         $(CODEGEN_DIR)/llvm_debug_flags.c \
@@ -969,6 +976,7 @@ ifneq ($(LLVM_ENABLED),0)
                         $(CODEGEN_DIR)/llvm_expr_call_list_extended.c \
                         $(CODEGEN_DIR)/llvm_expr_call_collections_require.c \
                         $(CODEGEN_DIR)/llvm_expr_call_dispatch.c \
+                        $(CODEGEN_DIR)/llvm_expr_call_intent_policy.c \
                         $(CODEGEN_DIR)/llvm_expr_call_errors.c \
                         $(CODEGEN_DIR)/llvm_expr_call_hosted.c \
                         $(CODEGEN_DIR)/llvm_expr_call_variable.c \
@@ -1018,6 +1026,7 @@ ifneq ($(LLVM_ENABLED),0)
                         $(CODEGEN_DIR)/llvm_stmt_defer_scope.c \
                         $(CODEGEN_DIR)/llvm_stmt_array_type_infer.c \
                         $(CODEGEN_DIR)/llvm_stmt_type_infer.c \
+                        $(CODEGEN_DIR)/llvm_stmt_type_infer_call.c \
                         $(CODEGEN_DIR)/llvm_stmt_source_local_fallback.c \
                         $(CODEGEN_DIR)/llvm_stmt_type_infer_nominal.c \
                         $(CODEGEN_DIR)/llvm_stmt_type_infer_await.c \
@@ -1307,6 +1316,8 @@ MIR_CORE_OBJECTS = $(BUILD_DIR)/compiler/mir.o \
                    $(BUILD_DIR)/compiler/mir_fact_validate.o \
                    $(BUILD_DIR)/compiler/mir_fact_surface_validate.o \
                    $(BUILD_DIR)/compiler/mir_fact_terminator_validate.o \
+                   $(BUILD_DIR)/compiler/mir_decl_header_shape.o \
+                   $(BUILD_DIR)/compiler/mir_decl_header_variants.o \
                    $(BUILD_DIR)/compiler/mir_decl_header_validate.o \
                    $(BUILD_DIR)/compiler/mir_decl_header_access.o \
                    $(BUILD_DIR)/compiler/mir_decl_headers.o \
@@ -1601,7 +1612,7 @@ test-semantic: $(SEMANTIC_TEST)
 test-transpile: $(TRANSPILE_TEST)
 	@echo "=== C Backend Test ==="
 	@$(call pgy_mkdir_p,$(abspath $(BUILD_DIR)/tmp))
-	$(TRANSPILE_TEST)
+	PGY_TEST_TMPDIR="$(abspath $(BUILD_DIR)/tmp)" $(TRANSPILE_TEST)
 
 test-memory: $(MEMORY_TEST)
 	@echo "=== Memory Layout Test ==="

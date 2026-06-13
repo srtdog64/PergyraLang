@@ -324,26 +324,6 @@ llvm_mir_local_type_from_named_result(const MIRRoutine *routine,
 }
 
 static LLVMTypeRef
-llvm_mir_array_type_from_slice_type(LLVMGenCtx *ctx, LLVMTypeRef slice_type)
-{
-    if (ctx == NULL || slice_type == NULL)
-        return NULL;
-    if (slice_type == ctx->slice_type_Int)
-        return ctx->array_type_Int;
-    if (slice_type == ctx->slice_type_Long)
-        return ctx->array_type_Long;
-    if (slice_type == ctx->slice_type_Float)
-        return ctx->array_type_Float;
-    if (slice_type == ctx->slice_type_Double)
-        return ctx->array_type_Double;
-    if (slice_type == ctx->slice_type_Bool)
-        return ctx->array_type_Bool;
-    if (slice_type == ctx->slice_type_String)
-        return ctx->array_type_String;
-    return NULL;
-}
-
-static LLVMTypeRef
 llvm_mir_local_type_from_slice_copy_fact(const MIRRoutine *routine,
                                          LLVMGenCtx *ctx,
                                          const MIRInstruction *inst,
@@ -362,7 +342,8 @@ llvm_mir_local_type_from_slice_copy_fact(const MIRRoutine *routine,
 
     slice_type = llvm_mir_local_type_from_named_result(routine, ctx,
         inst->uses[0], vars, var_count, depth + 1);
-    array_type = llvm_mir_array_type_from_slice_type(ctx, slice_type);
+    array_type = llvm_mir_slice_fact_array_type_from_slice_type(ctx,
+        slice_type);
     if (array_type != NULL || slice_type == NULL || ctx == NULL
         || ctx->has_error) {
         return array_type;

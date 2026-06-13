@@ -244,10 +244,11 @@ ASTNode* parse_if_statement(Parser* parser) {
     return if_stmt;
 }
 
-/* Scoped unsafe capability forms lower to the same unsafe-block model as plain
- * `unsafe { }`; the capability label is recorded on the node and the body is
- * lowered identically. Both `unsafe(cap[, cap]*) { }` and `unsafe label { }`
- * are accepted. */
+/* Scoped unsafe capability syntax lowers to the same unsafe-block model as
+ * plain `unsafe { }`; the capability label is recorded on the node and the
+ * body is lowered identically. Scoped unsafe capability label syntax accepts
+ * `unsafe label { }`. This is not a universal mode bit: semantic raw escape
+ * remains explicitly gated. */
 static char* parse_unsafe_capability_label(Parser* parser) {
     char* label = NULL;
 

@@ -246,16 +246,15 @@ llvm_emit_identifier(ASTNode *node, LLVMGenCtx *ctx)
                     }
                 }
             } else {
-                ASTNode *enum_decl = llvm_find_enum_decl(ctx,
-                    variant->enum_name);
-                if (enum_decl != NULL) {
-                    size_t vc = 0;
-                    (void)ast_enum_variants(enum_decl, &vc);
-                    for (size_t i = 0; i < vc; i++) {
-                        if (ast_enum_variant_param_count(enum_decl, i) > 0) {
-                            has_data = true;
-                            break;
-                        }
+                const MIRDeclHeader *enum_header =
+                    llvm_find_decl_header_in_context_of_type(
+                        ctx, AST_ENUM_DECL, variant->enum_name);
+                size_t vc = mir_decl_header_enum_variant_count(enum_header);
+                for (size_t i = 0; i < vc; i++) {
+                    if (mir_decl_enum_variant_param_count(
+                            mir_decl_header_enum_variant(enum_header, i)) > 0) {
+                        has_data = true;
+                        break;
                     }
                 }
             }

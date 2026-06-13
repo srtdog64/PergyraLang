@@ -11,6 +11,8 @@
 #include "llvm_internal.h"
 
 LLVMTypeRef pergyra_type_to_llvm(LLVMGenCtx *ctx, const char *type_name);
+LLVMTypeRef llvm_resolve_generic_formal_default(LLVMGenCtx *ctx,
+                                                const char *type_name);
 
 char *llvm_render_type_name(ASTNode *type_node);
 char *llvm_render_type_name_scratch(ASTNode *type_node, PgyArena *arena);

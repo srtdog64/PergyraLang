@@ -7,6 +7,7 @@
 #include "../parser/ast_api.h"
 #include "../semantic/diag_codes.h"
 #include "domain_frontier_policy.h"
+#include "domain_frontier_graph.h"
 #include "transpiler_decl_lookup.h"
 #include "transpiler_domain_provenance_emit.h"
 #include "transpiler_func_forward_metadata.h"
@@ -311,8 +312,9 @@ emit_world_decl(ASTNode *node, TranspilerCtx *ctx)
     codebuf_write(ctx->out, "size_t _pgy_world_frontier_pass = 0;\n");
     write_indent(ctx);
     codebuf_write(ctx->out, "size_t _pgy_world_frontier_pass_limit = %zu;\n",
-        pgy_domain_world_transitive_frontier_pass_limit_from_counts(
-            zone_count, state_count, embedded_frontier_count));
+        pgy_codegen_world_frontier_graph_pass_limit(node,
+            pgy_domain_world_transitive_frontier_pass_limit_from_counts(
+                zone_count, state_count, embedded_frontier_count)));
     write_indent(ctx);
     codebuf_write(ctx->out, "bool _pgy_world_frontier_continue = true;\n");
     write_indent(ctx);
