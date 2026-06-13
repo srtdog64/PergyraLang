@@ -9,6 +9,7 @@
 #include "mir_base_helpers.h"
 #include "mir_cfg_contract_validate.h"
 #include "mir_dce.h"
+#include "mir_decl_headers.h"
 #include "mir_fact_validate.h"
 #include "mir_validation.h"
 
@@ -97,7 +98,15 @@ mir_count_non_cfg_body_fallback_inventory(const MIRProgram *mir,
 ASTNode *
 mir_find_function_decl(const MIRProgram *mir, const char *name)
 {
+    const MIRDeclHeader *decl_header;
+
     if (mir == NULL || name == NULL)
+        return NULL;
+
+    decl_header = mir_find_decl_header_of_type(mir, AST_FUNC_DECL, name);
+    if (decl_header != NULL)
+        return mir_decl_header_source_ast(decl_header);
+    if (mir->decl_header_count > 0)
         return NULL;
 
     for (size_t i = 0; i < mir->function_count; i++) {

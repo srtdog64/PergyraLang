@@ -13,23 +13,11 @@
 static ASTNode *
 llvm_find_zone_decl_by_name(LLVMGenCtx *ctx, const char *zone_type_name)
 {
-    ASTNode **zones = NULL;
-    size_t zone_count = 0;
-
     if (ctx == NULL || zone_type_name == NULL)
         return NULL;
 
-    llvm_active_inventory(ctx, AST_ZONE_DECL, &zones, &zone_count);
-    for (size_t i = 0; i < zone_count; i++) {
-        ASTNode *zone = zones[i];
-        const char *zone_name;
-        if (zone != NULL && zone->type == AST_ZONE_DECL
-            && (zone_name = llvm_decl_node_name(zone)) != NULL
-            && strcmp(zone_name, zone_type_name) == 0) {
-            return zone;
-        }
-    }
-    return NULL;
+    return llvm_find_decl_in_active_inventory(ctx, AST_ZONE_DECL,
+                                             zone_type_name);
 }
 
 static bool

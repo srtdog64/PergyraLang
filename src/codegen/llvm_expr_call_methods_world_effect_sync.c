@@ -15,23 +15,10 @@
 static ASTNode *
 llvm_call_find_domain_decl(LLVMGenCtx *ctx, ASTNodeType decl_type, const char *name)
 {
-    ASTNode **items = NULL;
-    size_t count = 0;
-
     if (ctx == NULL || name == NULL)
         return NULL;
 
-    llvm_active_inventory(ctx, decl_type, &items, &count);
-    for (size_t i = 0; i < count; i++) {
-        ASTNode *item = items[i];
-        const char *item_name = NULL;
-        if (item == NULL || item->type != decl_type)
-            continue;
-        item_name = llvm_decl_node_name(item);
-        if (item_name != NULL && strcmp(item_name, name) == 0)
-            return item;
-    }
-    return NULL;
+    return llvm_find_decl_in_active_inventory(ctx, decl_type, name);
 }
 
 static bool

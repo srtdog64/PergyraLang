@@ -64,7 +64,6 @@ bool
 llvm_can_forward_declare_func_early(LLVMGenCtx *ctx, ASTNode *func)
 {
     const MIRRoutine *routine;
-    bool use_mir_signature;
 
     if (ctx == NULL || func == NULL || func->type != AST_FUNC_DECL)
         return false;
@@ -89,31 +88,26 @@ llvm_can_forward_declare_func_early(LLVMGenCtx *ctx, ASTNode *func)
             "MIR-only LLVM path missing function forward parameter type-name metadata for '%s'")) {
         return false;
     }
-    use_mir_signature = routine != NULL;
     if (llvm_mir_or_ast_function_is_generic(routine, func))
         return false;
+    if (routine == NULL)
+        return false;
 
-    const char *return_type_name = use_mir_signature
-        ? llvm_mir_routine_return_type_name(routine)
-        : NULL;
+    const char *return_type_name =
+        llvm_mir_routine_return_type_name(routine);
     if (return_type_name != NULL) {
         if (!llvm_can_forward_declare_type_name_early(ctx, return_type_name))
             return false;
-    } else if (!llvm_can_forward_declare_type_early(ctx,
-            ast_func_return_type(func))) {
+    } else if (!llvm_can_forward_declare_type_early(
+            ctx, llvm_mir_routine_return_type(routine))) {
         return false;
     }
 
-    size_t param_count = use_mir_signature
-        ? llvm_mir_routine_param_count(routine)
-        : ast_func_param_count(func);
+    size_t param_count = llvm_mir_routine_param_count(routine);
     for (size_t i = 0; i < param_count; i++) {
-        FuncParam *param = use_mir_signature
-            ? llvm_mir_routine_param(routine, i)
-            : ast_func_param(func, i);
-        const char *param_type_name = use_mir_signature
-            ? llvm_mir_routine_param_type_name(routine, i)
-            : NULL;
+        FuncParam *param = llvm_mir_routine_param(routine, i);
+        const char *param_type_name =
+            llvm_mir_routine_param_type_name(routine, i);
         if (param == NULL)
             continue;
         if (param_type_name != NULL) {

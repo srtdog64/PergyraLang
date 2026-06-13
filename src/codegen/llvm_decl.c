@@ -9,20 +9,27 @@ llvm_function_emitted_param_count(LLVMGenCtx *ctx, ASTNode *node,
                                   const MIRRoutine *routine)
 {
     unsigned count = 0;
-    bool use_mir_signature = routine != NULL;
-    size_t param_count = use_mir_signature
-        ? llvm_mir_routine_param_count(routine)
-        : ast_func_param_count(node);
+    bool use_ast_signature = routine == NULL;
+    size_t param_count;
+
+    if (use_ast_signature)
+        param_count = ast_func_param_count(node);
+    else
+        param_count = llvm_mir_routine_param_count(routine);
 
     for (size_t i = 0; i < param_count; i++) {
         bool is_secure = false;
-        FuncParam *p = use_mir_signature
-            ? llvm_mir_routine_param(routine, i)
-            : ast_func_param(node, i);
-        const char *param_type_name = use_mir_signature
-            ? llvm_mir_routine_param_type_name(routine, i)
-            : NULL;
+        FuncParam *p;
+        const char *param_type_name;
         const char *slot_inner = NULL;
+
+        if (use_ast_signature) {
+            p = ast_func_param(node, i);
+            param_type_name = NULL;
+        } else {
+            p = llvm_mir_routine_param(routine, i);
+            param_type_name = llvm_mir_routine_param_type_name(routine, i);
+        }
         if (p == NULL || p->name == NULL) {
             llvm_set_error_at_with_hints(ctx, node,
                 PGY_CODE_LLVM_TYPE_UNSUPPORTED,
@@ -111,7 +118,7 @@ llvm_forward_declare_func_with_signature(ASTNode *node,
                                          LLVMGenCtx *ctx)
 {
     const char *name = ast_declaration_name(node);
-    bool use_mir_signature = false;
+    bool use_ast_signature = false;
     bool generic_func = false;
     bool extern_func = llvm_decl_is_extern_function(ctx, node);
     if (routine == NULL) {
@@ -132,21 +139,25 @@ llvm_forward_declare_func_with_signature(ASTNode *node,
             "MIR-only LLVM path missing function declaration parameter type-name metadata for '%s'")) {
         return;
     }
-    use_mir_signature = routine != NULL;
-    size_t param_count = use_mir_signature
-        ? llvm_mir_routine_param_count(routine)
-        : ast_func_param_count(node);
+    use_ast_signature = routine == NULL;
+    size_t param_count;
+    if (use_ast_signature)
+        param_count = ast_func_param_count(node);
+    else
+        param_count = llvm_mir_routine_param_count(routine);
     unsigned emitted_param_count =
         llvm_function_emitted_param_count(ctx, node, routine);
 
     /* Return type */
     LLVMTypeRef ret_type = ctx->type_void;
-    const char *return_type_name = use_mir_signature
-        ? llvm_mir_routine_return_type_name(routine)
-        : NULL;
-    ASTNode *return_type = use_mir_signature
-        ? llvm_mir_routine_return_type(routine)
-        : ast_func_return_type(node);
+    const char *return_type_name = NULL;
+    ASTNode *return_type = NULL;
+    if (use_ast_signature) {
+        return_type = ast_func_return_type(node);
+    } else {
+        return_type_name = llvm_mir_routine_return_type_name(routine);
+        return_type = llvm_mir_routine_return_type(routine);
+    }
     if (return_type_name != NULL) {
         ret_type = pergyra_type_to_llvm(ctx, return_type_name);
     } else if (return_type != NULL) {
@@ -172,13 +183,17 @@ llvm_forward_declare_func_with_signature(ASTNode *node,
         unsigned pidx = 0;
         for (size_t i = 0; i < param_count; i++) {
             bool is_secure = false;
-            FuncParam *p = use_mir_signature
-                ? llvm_mir_routine_param(routine, i)
-                : ast_func_param(node, i);
-            const char *param_type_name = use_mir_signature
-                ? llvm_mir_routine_param_type_name(routine, i)
-                : NULL;
+            FuncParam *p;
+            const char *param_type_name;
             const char *slot_inner = NULL;
+
+            if (use_ast_signature) {
+                p = ast_func_param(node, i);
+                param_type_name = NULL;
+            } else {
+                p = llvm_mir_routine_param(routine, i);
+                param_type_name = llvm_mir_routine_param_type_name(routine, i);
+            }
             if (p == NULL || p->name == NULL)
                 continue;
             LLVMTypeRef pt = llvm_decl_required_param_type_name_first(

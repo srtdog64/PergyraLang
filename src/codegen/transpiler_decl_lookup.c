@@ -125,6 +125,9 @@ transpiler_find_named_decl_local(TranspilerCtx *ctx, ASTNodeType decl_type,
     decl_header = transpiler_active_decl_header_of_type(ctx, decl_type, name);
     if (decl_header != NULL)
         return mir_decl_header_source_ast(decl_header);
+    if (transpiler_active_has_mir(ctx))
+        return NULL;
+
     transpiler_active_inventory(ctx, decl_type, &decls, &decl_count);
     if (decls == NULL)
         return NULL;
@@ -387,6 +390,8 @@ transpiler_find_decl_in_inventory_local(TranspilerCtx *ctx,
 
     if (ctx == NULL || name == NULL)
         return NULL;
+    if (transpiler_active_has_mir(ctx))
+        return transpiler_find_named_decl_local(ctx, decl_type, name);
 
     transpiler_active_inventory(ctx, decl_type, &decls, &decl_count);
     if (ctx->last_decl_lookup_result != NULL
@@ -422,6 +427,8 @@ transpiler_find_decl_in_active_inventory_only_local(TranspilerCtx *ctx,
 
     if (ctx == NULL || name == NULL)
         return NULL;
+    if (transpiler_active_has_mir(ctx))
+        return transpiler_find_named_decl_local(ctx, decl_type, name);
 
     transpiler_active_inventory(ctx, decl_type, &decls, &decl_count);
     if (ctx->last_decl_lookup_result != NULL

@@ -96,6 +96,7 @@ llvm_find_decl_in_active_inventory(const LLVMGenCtx *ctx,
         decl_header = mir_find_decl_header_of_type(ctx->mir, decl_type, name);
         if (decl_header != NULL)
             return mir_decl_header_source_ast(decl_header);
+        return NULL;
     }
 
     llvm_active_inventory(ctx, decl_type, &nodes, &count);

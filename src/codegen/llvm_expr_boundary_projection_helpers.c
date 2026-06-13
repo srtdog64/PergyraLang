@@ -116,7 +116,7 @@ llvm_build_boundary_call_args(LLVMGenCtx *ctx, ASTNode *decl,
     LLVMValueRef *args;
     unsigned emitted_count = 0;
     const MIRRoutine *routine = NULL;
-    bool use_mir_signature = false;
+    bool use_ast_signature = false;
     const char *decl_name = NULL;
     bool decl_is_generic = false;
     bool decl_is_extern = false;
@@ -148,24 +148,29 @@ llvm_build_boundary_call_args(LLVMGenCtx *ctx, ASTNode *decl,
             return NULL;
         }
     }
-    use_mir_signature = routine != NULL;
+    use_ast_signature = routine == NULL;
 
-    param_count = use_mir_signature
-        ? llvm_mir_routine_param_count(routine)
-        : ast_func_param_count(decl);
+    if (use_ast_signature)
+        param_count = ast_func_param_count(decl);
+    else
+        param_count = llvm_mir_routine_param_count(routine);
     if (argc != param_count)
         return llvm_boundary_args_error(ctx, decl,
             "LLVM boundary call source argument count does not match function signature");
 
     for (size_t i = 0; i < param_count; i++) {
         bool is_secure = false;
-        FuncParam *p = use_mir_signature
-            ? llvm_mir_routine_param(routine, i)
-            : ast_func_param(decl, i);
-        const char *param_type_name = use_mir_signature
-            ? llvm_mir_routine_param_type_name(routine, i)
-            : NULL;
+        FuncParam *p;
+        const char *param_type_name;
         const char *inner = NULL;
+
+        if (use_ast_signature) {
+            p = ast_func_param(decl, i);
+            param_type_name = NULL;
+        } else {
+            p = llvm_mir_routine_param(routine, i);
+            param_type_name = llvm_mir_routine_param_type_name(routine, i);
+        }
         emitted_count++;
         inner = param_type_name != NULL
             ? llvm_boundary_slot_inner_name_from_type_name(ctx, p,
@@ -187,18 +192,24 @@ llvm_build_boundary_call_args(LLVMGenCtx *ctx, ASTNode *decl,
     unsigned emitted_idx = 0;
     for (size_t i = 0; i < param_count && arg_idx < argc; i++) {
         bool is_secure = false;
-        FuncParam *p = use_mir_signature
-            ? llvm_mir_routine_param(routine, i)
-            : ast_func_param(decl, i);
-        const char *param_type_name = use_mir_signature
-            ? llvm_mir_routine_param_type_name(routine, i)
-            : NULL;
-        const char *inner = param_type_name != NULL
+        FuncParam *p;
+        const char *param_type_name;
+        const char *inner = NULL;
+        ASTNode *arg_node = arg_nodes[arg_idx++];
+        bool pointer_self = false;
+
+        if (use_ast_signature) {
+            p = ast_func_param(decl, i);
+            param_type_name = NULL;
+        } else {
+            p = llvm_mir_routine_param(routine, i);
+            param_type_name = llvm_mir_routine_param_type_name(routine, i);
+        }
+        inner = param_type_name != NULL
             ? llvm_boundary_slot_inner_name_from_type_name(ctx, p,
                 param_type_name, &is_secure)
             : llvm_boundary_slot_inner_name(ctx, p, &is_secure);
-        ASTNode *arg_node = arg_nodes[arg_idx++];
-        bool pointer_self = param_type_name != NULL
+        pointer_self = param_type_name != NULL
             ? llvm_type_name_uses_pointer_self(ctx, param_type_name)
             : llvm_boundary_param_uses_pointer_self(ctx, p);
 

@@ -618,8 +618,8 @@ for term in \
     "transpiler_find_mir_function(ctx, func)" \
     "transpiler_mir_routine_signature_metadata_complete_for(ctx" \
     "TRANSPILER_MIR_SIGNATURE_REQUIRE_ALL_TYPE_NAMES" \
-    "use_mir_signature = routine != NULL" \
     "transpiler_mir_or_ast_function_is_generic(routine, func)" \
+    "if (routine == NULL)" \
     "transpiler_mir_routine_return_type_name(routine)" \
     "transpiler_mir_routine_param_type_name(routine, i)" \
     "MIR-only C path missing function forward routine" \
@@ -654,10 +654,14 @@ if grep -Fq "p == NULL || p->type == NULL" \
     "$ROOT_DIR/src/codegen/transpiler_func_forward_policy.c"; then
     fail "C forward policy must not require AST param->type before MIR routine param_type_name"
 fi
+if grep -Eq 'ast_func_(return_type|param_count|param)\(func' \
+    "$ROOT_DIR/src/codegen/transpiler_func_forward_policy.c"; then
+    fail "C forward policy must not fall back to source-AST function signatures"
+fi
 for term in \
     "llvm_active_function_routine_for_source_ast(ctx, func)" \
-    "use_mir_signature = routine != NULL" \
     "llvm_mir_or_ast_function_is_generic(routine, func)" \
+    "if (routine == NULL)" \
     "llvm_mir_routine_return_type_name(routine)" \
     "llvm_mir_routine_param_type_name(routine, i)" \
     "llvm_mir_routine_signature_metadata_complete(" \
@@ -675,9 +679,13 @@ if grep -Fq "routine != NULL && llvm_active_has_mir(ctx)" \
     fail "LLVM forward policy must use MIR signature facts whenever a routine exists"
 fi
 require_each_following_term "src/codegen/llvm_backend_forward_declare.c" \
-    "use_mir_signature = routine != NULL" \
     "llvm_mir_or_ast_function_is_generic(routine, func)" \
+    "if (routine == NULL)" \
     4
+if grep -Eq 'ast_func_(return_type|param_count|param)\(func' \
+    "$ROOT_DIR/src/codegen/llvm_backend_forward_declare.c"; then
+    fail "LLVM forward policy must not fall back to source-AST function signatures"
+fi
 if awk '
     /bool generic_func =/ { seen_generic_decl = NR }
     /ast_generic_param_count\(ast_declaration_generic_params\(node\)\)/ && seen_generic_decl && NR - seen_generic_decl <= 3 { bad = 1 }
@@ -723,7 +731,7 @@ for term in \
     "llvm_mir_routine_signature_metadata_complete_for(ctx" \
     "LLVM_MIR_SIGNATURE_REQUIRE_PARAM_TYPE_NAMES" \
     "llvm_mir_or_ast_function_is_generic(routine, decl)" \
-    "use_mir_signature = routine != NULL" \
+    "use_ast_signature = routine == NULL" \
     "MIR-only LLVM path missing boundary call signature metadata"; do
     require_term "src/codegen/llvm_expr_boundary_projection_helpers.c" "$term"
 done
@@ -3117,7 +3125,7 @@ for term in \
     "transpiler_find_mir_function(ctx, node)" \
     "transpiler_mir_routine_signature_metadata_complete_for(ctx" \
     "TRANSPILER_MIR_SIGNATURE_REQUIRE_ALL_TYPE_NAMES" \
-    "use_mir_signature = mir_routine != NULL" \
+    "use_ast_signature = mir_routine == NULL" \
     "MIR-only C path missing function forward routine" \
     "MIR-only C path missing function forward signature metadata" \
     "transpiler_mir_routine_param_count(mir_routine)" \
@@ -3530,7 +3538,7 @@ fi
 for term in \
     "llvm_forward_declare_func_from_mir" \
     "llvm_forward_declare_func_with_signature" \
-    "use_mir_signature = routine != NULL" \
+    "use_ast_signature = routine == NULL" \
     "llvm_mir_routine_signature_metadata_complete(" \
     "MIR-only LLVM path missing function forward routine" \
     "MIR-only LLVM path missing function forward signature metadata" \
@@ -3648,6 +3656,36 @@ done
 for rel in "src/codegen/llvm_inventory_internal.c" "src/codegen/transpiler_inventory_view.c"; do
     require_term "$rel" "mir_active_externs(ctx->mir, &nodes, &count)"
 done
+require_each_following_term "src/codegen/llvm_inventory_decl_lookup.c" \
+    "decl_header = mir_find_decl_header_of_type(ctx->mir, decl_type, name);" \
+    "return NULL;" \
+    6
+require_each_following_term "src/codegen/transpiler_decl_lookup.c" \
+    "decl_header = transpiler_active_decl_header_of_type(ctx, decl_type, name);" \
+    "if (transpiler_active_has_mir(ctx))" \
+    6
+require_each_following_term "src/codegen/transpiler_decl_lookup.c" \
+    "decl_header = transpiler_active_decl_header_of_type(ctx, decl_type, name);" \
+    "return NULL;" \
+    8
+require_term "src/compiler/mir_public_surface.c" \
+    "decl_header = mir_find_decl_header_of_type(mir, AST_FUNC_DECL, name);"
+require_each_following_term "src/compiler/mir_public_surface.c" \
+    "decl_header = mir_find_decl_header_of_type(mir, AST_FUNC_DECL, name);" \
+    "if (mir->decl_header_count > 0)" \
+    8
+require_term "src/codegen/llvm_expr_call_methods_world_effect_sync.c" \
+    "return llvm_find_decl_in_active_inventory(ctx, decl_type, name);"
+if grep -Fq "llvm_active_inventory(ctx, decl_type, &items, &count)" \
+        "$ROOT_DIR/src/codegen/llvm_expr_call_methods_world_effect_sync.c"; then
+    fail "LLVM world-effect sync lookup must not reopen raw active inventory"
+fi
+require_term "src/codegen/llvm_intent_effect.c" \
+    "return llvm_find_decl_in_active_inventory(ctx, AST_ZONE_DECL,"
+if grep -Fq "llvm_active_inventory(ctx, AST_ZONE_DECL, &zones, &zone_count)" \
+        "$ROOT_DIR/src/codegen/llvm_intent_effect.c"; then
+    fail "LLVM intent effect zone lookup must not reopen raw active inventory"
+fi
 
 raw_ctx_mir_hits="$(
     grep -RIn 'ctx->mir' "$ROOT_DIR/src/codegen" |
@@ -4599,12 +4637,13 @@ if grep -Fq "llvm_active_inventory(ctx, AST_ENUM_DECL" \
 fi
 require_term "src/codegen/llvm_expr_common.c" \
     "return llvm_find_decl_in_active_inventory(ctx, AST_ENUM_DECL, enum_name)"
-require_term "src/codegen/llvm_intent_effect.c" "llvm_decl_node_name(zone)"
+require_term "src/codegen/llvm_intent_effect.c" \
+    "return llvm_find_decl_in_active_inventory(ctx, AST_ZONE_DECL,"
 if grep -Fq "ast_zone_name(zone)" "$ROOT_DIR/src/codegen/llvm_intent_effect.c"; then
     fail "LLVM intent effect zone lookup must consume llvm_decl_node_name"
 fi
 require_term "src/codegen/llvm_expr_call_methods_world_effect_sync.c" \
-    "llvm_decl_node_name(item)"
+    "return llvm_find_decl_in_active_inventory(ctx, decl_type, name);"
 require_term "src/codegen/llvm_expr_call_methods_world_effect_sync.c" \
     "llvm_decl_node_name(host_decl)"
 require_term "src/codegen/llvm_expr_call_projection_sync.c" \
