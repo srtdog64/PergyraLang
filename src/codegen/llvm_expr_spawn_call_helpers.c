@@ -189,7 +189,10 @@ llvm_emit_spawn_expr(ASTNode *node, LLVMGenCtx *ctx)
                         llvm_mir_routine_param_type_name(callee_routine, i);
                 }
             } else if (callee_decl != NULL
-                       && callee_decl->type == AST_FUNC_DECL) {
+                       && callee_decl->type == AST_FUNC_DECL
+                       && (!llvm_active_has_mir(ctx)
+                           || callee_is_generic_func
+                           || callee_is_extern_func)) {
                 param = ast_func_param(callee_decl, i);
             }
             if (llvm_spawn_reject_worker_storage_param(ctx, node, param,

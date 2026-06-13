@@ -90,8 +90,11 @@ infer_spawn_return_type_name_scratch(TranspilerCtx *ctx, ASTNode *spawn_expr)
             if (return_type_name != NULL)
                 return transpiler_scratch_strdup(ctx, return_type_name);
             return_type = transpiler_mir_routine_return_type(routine);
-        } else {
+        } else if (!transpiler_active_has_mir(ctx)
+                   || generic_call || extern_func) {
             return_type = ast_func_return_type(decl);
+        } else {
+            return_type = NULL;
         }
         if (return_type != NULL) {
             if (generic_call) {

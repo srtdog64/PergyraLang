@@ -124,8 +124,11 @@ emit_let_decl(ASTNode *node, TranspilerCtx *ctx)
                     return;
                 }
                 return_type = transpiler_mir_routine_return_type(routine);
-            } else {
+            } else if (!transpiler_active_has_mir(ctx)
+                       || generic_call || extern_func) {
                 return_type = ast_func_return_type(decl);
+            } else {
+                return_type = NULL;
             }
             if (return_type != NULL
                 && return_type->type == AST_EVENT_HANDLER_TYPE) {

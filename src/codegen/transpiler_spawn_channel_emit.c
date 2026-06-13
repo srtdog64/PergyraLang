@@ -185,7 +185,9 @@ emit_spawn_expr(ASTNode *node, TranspilerCtx *ctx)
                         transpiler_mir_routine_param_type_name(
                             callee_routine, i);
                 }
-            } else {
+            } else if (!transpiler_active_has_mir(ctx)
+                       || callee_is_generic_func
+                       || callee_is_extern_func) {
                 param = ast_func_param(decl, i);
             }
             if (param != NULL && param->type != NULL) {

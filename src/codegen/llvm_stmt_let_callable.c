@@ -60,22 +60,24 @@ llvm_stmt_register_callable_from_function_decl(LLVMGenCtx *ctx,
         return true;
     }
 
-    param_count = ast_func_param_count(decl);
-    if (param_count > 0) {
-        param_types = pgy_arena_calloc(&ctx->scratch,
-            param_count * sizeof(ASTNode *));
-        if (param_types == NULL) {
-            llvm_set_error(ctx,
-                "out of memory registering function callable");
-            return false;
+    if (!llvm_active_has_mir(ctx) || generic_func || extern_func) {
+        param_count = ast_func_param_count(decl);
+        if (param_count > 0) {
+            param_types = pgy_arena_calloc(&ctx->scratch,
+                param_count * sizeof(ASTNode *));
+            if (param_types == NULL) {
+                llvm_set_error(ctx,
+                    "out of memory registering function callable");
+                return false;
+            }
+            for (size_t i = 0; i < param_count; i++) {
+                FuncParam *p = ast_func_param(decl, i);
+                param_types[i] = p != NULL ? p->type : NULL;
+            }
         }
-        for (size_t i = 0; i < param_count; i++) {
-            FuncParam *p = ast_func_param(decl, i);
-            param_types[i] = p != NULL ? p->type : NULL;
-        }
+        llvm_register_callable_signature(ctx, name,
+            param_count, param_types, ast_func_return_type(decl));
     }
-    llvm_register_callable_signature(ctx, name,
-        param_count, param_types, ast_func_return_type(decl));
     return true;
 }
 
@@ -153,8 +155,11 @@ llvm_stmt_register_callable_let_binding(ASTNode *node, LLVMGenCtx *ctx)
                     return false;
                 }
                 return_type = llvm_mir_routine_return_type(routine);
-            } else {
+            } else if (!llvm_active_has_mir(ctx)
+                       || generic_func || extern_func) {
                 return_type = ast_func_return_type(decl);
+            } else {
+                return_type = NULL;
             }
             if (return_type != NULL
                 && return_type->type == AST_EVENT_HANDLER_TYPE) {

@@ -163,8 +163,11 @@ llvm_stmt_lookup_declared_call_return_type(LLVMGenCtx *ctx, const char *callee)
         return_type_name = llvm_mir_routine_return_type_name(routine);
         if (return_type_name != NULL)
             return pergyra_type_to_llvm(ctx, return_type_name);
-    } else {
+    } else if (!llvm_active_has_mir(ctx)
+               || decl_is_generic || decl_is_extern) {
         return_type = ast_func_return_type(decl);
+    } else {
+        return_type = NULL;
     }
     if (return_type == NULL)
         return NULL;

@@ -646,8 +646,11 @@ infer_expression_type_name(TranspilerCtx *ctx, ASTNode *expr)
                                 ctx, return_type_name);
                         }
                         return_type = transpiler_mir_routine_return_type(routine);
-                    } else {
+                    } else if (!transpiler_active_has_mir(ctx)
+                               || generic_call || extern_func) {
                         return_type = ast_func_return_type(decl);
+                    } else {
+                        return_type = NULL;
                     }
                     if (return_type != NULL) {
                         char *resolved = NULL;
