@@ -166,6 +166,11 @@ compiler_build_native(const CompilerIRBundle *bundle,
         compile_argv[ci++] = PGY_CFLAGS_THREAD_FLAG;
 #endif
         compile_argv[ci++] = opt_flag;
+        /* Define signed integer overflow as two's-complement wraparound so the
+         * C backend matches the LLVM backend (which wraps) instead of letting
+         * the optimizer assume overflow cannot happen. Without this the two
+         * backends diverge on overflowing integer arithmetic. */
+        compile_argv[ci++] = "-fwrapv";
 #if !defined(_WIN32) && !defined(__APPLE__)
         compile_argv[ci++] = "-fopenmp";
 #endif

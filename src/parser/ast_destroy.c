@@ -104,6 +104,7 @@ void ast_destroy(ASTNode* node) {
             for (size_t i = 0; i < node->data.class_decl.field_count; i++) {
                 free(node->data.class_decl.fields[i]->name);
                 ast_destroy(node->data.class_decl.fields[i]->type);
+                ast_destroy(node->data.class_decl.fields[i]->default_value);
                 free(node->data.class_decl.fields[i]);
             }
             free(node->data.class_decl.fields);

@@ -492,6 +492,10 @@ ASTNode* parse_type_declaration(Parser* parser, NominalDeclKind decl_kind) {
             field->has_explicit_access = explicit_access;
             field->is_vessel_field = is_vessel_field;
 
+            /* Optional field default: `name: Type = expr`. */
+            if (parser_match(parser, TOKEN_ASSIGN))
+                field->default_value = parser_parse_expression(parser);
+
             parser_append_class_field(parser, class_decl, field);
 
             /* Field terminator: ';' or ',' separator, or a trailing field

@@ -1,0 +1,16 @@
+class Vault
+{
+    private let (_coinSlot, _coinToken) = ClaimSecureSlot<Int>(SECURITY_LEVEL_ENCRYPTED)
+
+    public func Run() -> Void
+    {
+        Write(_coinSlot, 100, _coinToken)
+        Log(Read(_coinSlot, _coinToken))
+    }
+}
+
+func Main() -> Void
+{
+    let v: Vault = Vault()
+    v.Run()
+}

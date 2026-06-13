@@ -359,6 +359,110 @@ llvm_emit_class_constructor_world_dirty(LLVMGenCtx *ctx,
     }
 }
 
+static bool
+llvm_emit_one_field_claim(LLVMGenCtx *ctx, LLVMClassTypeEntry *cls,
+                          LLVMValueRef *object, const char *slot_name,
+                          const char *inner, bool is_secure,
+                          const char *token_field)
+{
+    static unsigned long long s_field_token_counter = 0xC0FFEE01ULL;
+    int slot_idx = llvm_class_field_index(cls, slot_name);
+    LLVMTypeRef i1 = LLVMInt1TypeInContext(ctx->context);
+    LLVMTypeRef slot_ty;
+    LLVMValueRef slot_val;
+
+    if (slot_idx < 0 || inner == NULL)
+        return true;
+
+    /* Inline the claim (mirrors the function-local LLVM claim) rather than
+     * calling the struct-returning runtime claim, whose by-value struct ABI
+     * does not match the LLVM aggregate type and corrupts the slot. */
+    slot_ty = is_secure ? llvm_secure_slot_struct_type(ctx, inner)
+                        : llvm_slot_struct_type(ctx, inner);
+    slot_val = LLVMConstNull(slot_ty);
+    slot_val = LLVMBuildInsertValue(ctx->builder, slot_val,
+        LLVMConstInt(i1, 1, 0), 1, llvm_tmp_name(ctx));
+
+    if (is_secure)
+    {
+        unsigned long long token_id = s_field_token_counter++;
+        LLVMTypeRef token_ty = llvm_secure_token_type(ctx, inner);
+        LLVMValueRef tok_val;
+
+        slot_val = LLVMBuildInsertValue(ctx->builder, slot_val,
+            LLVMConstInt(ctx->type_i64, token_id, 0), 2, llvm_tmp_name(ctx));
+        *object = LLVMBuildInsertValue(ctx->builder, *object, slot_val,
+            (unsigned)slot_idx, llvm_tmp_name(ctx));
+
+        if (token_field != NULL)
+        {
+            int tok_idx = llvm_class_field_index(cls, token_field);
+            if (tok_idx >= 0)
+            {
+                tok_val = LLVMConstNull(token_ty);
+                tok_val = LLVMBuildInsertValue(ctx->builder, tok_val,
+                    LLVMConstInt(ctx->type_i64, token_id, 0), 0,
+                    llvm_tmp_name(ctx));
+                tok_val = LLVMBuildInsertValue(ctx->builder, tok_val,
+                    LLVMConstInt(i1, 1, 0), 1, llvm_tmp_name(ctx));
+                tok_val = LLVMBuildInsertValue(ctx->builder, tok_val,
+                    LLVMConstInt(i1, 1, 0), 2, llvm_tmp_name(ctx));
+                *object = LLVMBuildInsertValue(ctx->builder, *object, tok_val,
+                    (unsigned)tok_idx, llvm_tmp_name(ctx));
+            }
+        }
+        return true;
+    }
+
+    *object = LLVMBuildInsertValue(ctx->builder, *object, slot_val,
+        (unsigned)slot_idx, llvm_tmp_name(ctx));
+    return true;
+}
+
+/* Claim each destructure slot field at construction so the built object has
+ * live (occupied) slots, mirroring the C backend's __pgy_field_slot_init. */
+static bool
+llvm_emit_field_slot_claims(LLVMGenCtx *ctx, ASTNode *host,
+                            LLVMClassTypeEntry *cls, LLVMValueRef *object)
+{
+    size_t group_count;
+
+    if (ctx == NULL || host == NULL || host->type != AST_CLASS_DECL
+        || cls == NULL || object == NULL)
+        return true;
+
+    group_count = ast_class_field_destructure_count(host);
+    for (size_t gi = 0; gi < group_count; gi++)
+    {
+        ASTNode *group = ast_class_field_destructure_at(host, gi);
+        ASTNode *init;
+        const char *callee;
+        const char *slot_name;
+        const char *inner;
+        bool is_secure;
+
+        if (group == NULL || ast_let_destructure_name_count(group) < 1)
+            continue;
+        init = ast_let_destructure_initializer(group);
+        if (init == NULL || ast_call_callee(init) == NULL)
+            continue;
+        callee = ast_identifier_name(ast_call_callee(init));
+        slot_name = ast_let_destructure_name(group, 0);
+        inner = ast_call_generic_arg_count(init) > 0
+            ? ast_generic_param_name(ast_call_generic_arg(init, 0)) : "Int";
+        is_secure = callee != NULL && strcmp(callee, "ClaimSecureSlot") == 0;
+        if (!is_secure
+            && !(callee != NULL && strcmp(callee, "ClaimSlot") == 0))
+            continue;
+        if (!llvm_emit_one_field_claim(ctx, cls, object, slot_name, inner,
+                is_secure,
+                (is_secure && ast_let_destructure_name_count(group) >= 2)
+                    ? ast_let_destructure_name(group, 1) : NULL))
+            return false;
+    }
+    return true;
+}
+
 static LLVMValueRef
 llvm_emit_class_constructor(ASTNode *node, LLVMGenCtx *ctx, const char *callee_name)
 {
@@ -443,6 +547,13 @@ llvm_emit_class_constructor(ASTNode *node, LLVMGenCtx *ctx, const char *callee_n
         }
         object = LLVMBuildInsertValue(ctx->builder, object, arg,
             (unsigned)field_index, llvm_tmp_name(ctx));
+    }
+
+    {
+        ASTNode *class_ast = llvm_find_decl_in_active_inventory(
+            ctx, AST_CLASS_DECL, callee_name);
+        if (!llvm_emit_field_slot_claims(ctx, class_ast, cls, &object))
+            return NULL;
     }
 
     ASTNode *relation_decl = host_decl != NULL

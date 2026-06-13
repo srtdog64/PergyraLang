@@ -555,6 +555,7 @@ main() {
         "tests/cases/backend_compare/slot_sugar"
         "tests/cases/backend_compare/slot_subject_cell"
         "tests/cases/backend_compare/secure_slot_subject_cell"
+        "tests/cases/backend_compare/secure_field_slot"
         "tests/cases/backend_compare/secure_slot_subject_bot"
         "tests/cases/backend_compare/slot_subject_boundary_ref"
         "tests/cases/backend_compare/secure_slot_subject_boundary_own"

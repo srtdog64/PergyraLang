@@ -50,6 +50,114 @@ llvm_register_callable_param_if_needed(LLVMGenCtx *ctx, FuncParam *param)
     llvm_register_callable_var(ctx, param->name, param->type);
 }
 
+static const char *
+llvm_field_slot_paired_token(ASTNode *host, const char *slot_name)
+{
+    size_t group_count = ast_class_field_destructure_count(host);
+
+    for (size_t gi = 0; gi < group_count; gi++)
+    {
+        ASTNode *group = ast_class_field_destructure_at(host, gi);
+        if (group == NULL || ast_let_destructure_name_count(group) < 2)
+            continue;
+        if (ast_let_destructure_name(group, 0) == NULL
+            || strcmp(ast_let_destructure_name(group, 0), slot_name) != 0)
+            continue;
+        return ast_let_destructure_name(group, 1);
+    }
+    return NULL;
+}
+
+static void
+llvm_register_field_token(LLVMGenCtx *ctx, ASTNode *host,
+                          LLVMClassTypeEntry *cls, LLVMValueRef self_base,
+                          const char *slot_name, const char *inner)
+{
+    const char *token_field = llvm_field_slot_paired_token(host, slot_name);
+    int tidx;
+    LLVMValueRef tgep;
+    char tname[256];
+
+    if (token_field == NULL)
+        return;
+    tidx = llvm_class_field_index(cls, token_field);
+    if (tidx < 0)
+        return;
+    tgep = LLVMBuildStructGEP2(ctx->builder, cls->struct_type, self_base,
+        (unsigned)tidx, token_field);
+    snprintf(tname, sizeof(tname), "%s_token", slot_name);
+    llvm_scope_declare(ctx, pergyra_strdup(tname), tgep,
+        llvm_secure_token_type(ctx, inner));
+}
+
+static void
+llvm_register_one_field_slot(LLVMGenCtx *ctx, ASTNode *host,
+                             LLVMClassTypeEntry *cls, LLVMValueRef self_base,
+                             ClassField *field)
+{
+    const char *head;
+    GenericParams *args;
+    const char *inner;
+    bool is_secure;
+    int idx;
+    LLVMValueRef gep;
+    LLVMTypeRef slot_ty;
+
+    if (field == NULL || field->name == NULL || field->type == NULL)
+        return;
+    head = ast_type_name(field->type);
+    if (head == NULL
+        || (strcmp(head, "Slot") != 0 && strcmp(head, "SecureSlot") != 0))
+        return;
+
+    is_secure = strcmp(head, "SecureSlot") == 0;
+    args = ast_type_generic_args(field->type);
+    inner = ast_generic_param_count(args) > 0
+        ? ast_generic_param_name(ast_generic_param_at(args, 0)) : "Int";
+    idx = llvm_class_field_index(cls, field->name);
+    if (idx < 0)
+        return;
+
+    gep = LLVMBuildStructGEP2(ctx->builder, cls->struct_type, self_base,
+        (unsigned)idx, field->name);
+    slot_ty = is_secure ? llvm_secure_slot_struct_type(ctx, inner)
+                        : llvm_slot_struct_type(ctx, inner);
+    llvm_scope_declare(ctx, field->name, gep, slot_ty);
+    llvm_register_slot_var_binding(ctx, field->name, gep, inner, is_secure);
+    if (is_secure)
+        llvm_register_field_token(ctx, host, cls, self_base, field->name, inner);
+}
+
+/* Mirror of the C backend register_class_field_slots: bind each owning slot
+ * field of the method's class as a `self->field` GEP so slot ops resolve their
+ * inner type and address through self instead of a local alloca. */
+void
+llvm_register_class_field_slots(LLVMGenCtx *ctx, const char *owner_name)
+{
+    ASTNode *host;
+    LLVMClassTypeEntry *cls;
+    LLVMValueRef self_base;
+    size_t field_count = 0;
+    ClassField **fields;
+
+    if (ctx == NULL || owner_name == NULL)
+        return;
+    host = llvm_find_host_decl_in_active_inventory(ctx, owner_name);
+    if (host == NULL || host->type != AST_CLASS_DECL)
+        return;
+    cls = llvm_lookup_class(ctx, owner_name);
+    if (cls == NULL)
+        return;
+    self_base = llvm_current_self_base_ptr(ctx, cls);
+    if (self_base == NULL)
+        return;
+
+    fields = ast_class_fields(host, &field_count);
+    for (size_t i = 0; i < field_count; i++)
+        llvm_register_one_field_slot(ctx, host, cls, self_base,
+            fields != NULL ? fields[i] : NULL);
+}
+
 void
 llvm_emit_mir_param_allocas(const MIRRoutine *routine, ASTNode *func_decl,
                             LLVMValueRef fn, LLVMGenCtx *ctx, bool is_intent,

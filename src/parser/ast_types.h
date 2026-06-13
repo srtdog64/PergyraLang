@@ -269,6 +269,7 @@ struct ClassField {
     bool           has_explicit_access;
     bool           is_mutable;
     bool           is_vessel_field;
+    ASTNode*       default_value;  /* optional `= expr` field default */
 };
 
 /*
