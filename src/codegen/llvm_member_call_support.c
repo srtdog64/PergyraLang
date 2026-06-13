@@ -6,6 +6,7 @@
 #include <string.h>
 
 #include "llvm_inventory_host_methods.h"
+#include "llvm_inventory_internal.h"
 
 LLVMValueRef
 llvm_member_call_error_recovery(LLVMGenCtx *ctx, ASTNode *node,
@@ -69,9 +70,12 @@ llvm_member_call_adjust_pointer_self_arg(LLVMGenCtx *ctx,
                                          LLVMValueRef arg_val)
 {
     size_t logical_idx = 0;
+    bool allow_ast_compat = method_meta == NULL && !llvm_active_has_mir(ctx);
 
     if (method_meta == NULL
-        && (method_decl == NULL || method_decl->type != AST_FUNC_DECL))
+        && (!allow_ast_compat
+            || method_decl == NULL
+            || method_decl->type != AST_FUNC_DECL))
         return arg_val;
     if (!llvm_mir_decl_method_metadata_complete_for(ctx,
             method_meta,
@@ -85,12 +89,12 @@ llvm_member_call_adjust_pointer_self_arg(LLVMGenCtx *ctx,
 
     size_t method_param_count = method_meta != NULL
         ? llvm_mir_decl_method_param_count(method_meta)
-        : ast_func_param_count(method_decl);
+        : (allow_ast_compat ? ast_func_param_count(method_decl) : 0);
 
     for (size_t pk = 0; pk < method_param_count; pk++) {
         FuncParam *p = method_meta != NULL
             ? llvm_mir_decl_method_param(method_meta, pk)
-            : ast_func_param(method_decl, pk);
+            : (allow_ast_compat ? ast_func_param(method_decl, pk) : NULL);
         const char *ptn = NULL;
         LLVMClassTypeEntry *param_cls = NULL;
 
@@ -106,7 +110,7 @@ llvm_member_call_adjust_pointer_self_arg(LLVMGenCtx *ctx,
         ptn = method_meta != NULL
             ? llvm_mir_decl_method_param_type_name(method_meta, pk)
             : NULL;
-        if (method_meta == NULL
+        if (allow_ast_compat
             && ptn == NULL && p->type != NULL && p->type->type == AST_TYPE)
             ptn = ast_type_name(p->type);
         param_cls = ptn != NULL ? llvm_lookup_class(ctx, ptn) : NULL;

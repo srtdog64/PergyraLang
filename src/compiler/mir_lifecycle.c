@@ -90,6 +90,12 @@ mir_destroy(MIRProgram *mir)
             free(mir->decl_headers[i].generic_metadata);
             free(mir->decl_headers[i].method_metadata);
             free(mir->decl_headers[i].field_metadata);
+            for (size_t v = 0;
+                 v < mir->decl_headers[i].variant_metadata_count; v++) {
+                free((void *)
+                    mir->decl_headers[i].variant_metadata[v].param_type_names);
+            }
+            free(mir->decl_headers[i].variant_metadata);
         }
     }
     free(mir->decl_headers);

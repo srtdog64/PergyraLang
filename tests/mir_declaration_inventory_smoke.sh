@@ -627,7 +627,7 @@ for term in \
     "transpiler_find_mir_function(ctx, func)" \
     "transpiler_mir_routine_signature_metadata_complete_for(ctx" \
     "TRANSPILER_MIR_SIGNATURE_REQUIRE_ALL_TYPE_NAMES" \
-    "use_mir_signature = routine != NULL" \
+    "if (routine == NULL)" \
     "transpiler_mir_or_ast_function_is_generic(routine, func)" \
     "transpiler_mir_routine_return_type_name(routine)" \
     "transpiler_mir_routine_param_type_name(routine, i)" \
@@ -665,7 +665,7 @@ if grep -Fq "p == NULL || p->type == NULL" \
 fi
 for term in \
     "llvm_active_function_routine_for_source_ast(ctx, func)" \
-    "use_mir_signature = routine != NULL" \
+    "if (routine == NULL)" \
     "llvm_mir_or_ast_function_is_generic(routine, func)" \
     "llvm_mir_routine_return_type_name(routine)" \
     "llvm_mir_routine_param_type_name(routine, i)" \
@@ -684,8 +684,8 @@ if grep -Fq "routine != NULL && llvm_active_has_mir(ctx)" \
     fail "LLVM forward policy must use MIR signature facts whenever a routine exists"
 fi
 require_each_following_term "src/codegen/llvm_backend_forward_declare.c" \
-    "use_mir_signature = routine != NULL" \
     "llvm_mir_or_ast_function_is_generic(routine, func)" \
+    "if (routine == NULL)" \
     4
 if awk '
     /bool generic_func =/ { seen_generic_decl = NR }
@@ -732,7 +732,7 @@ for term in \
     "llvm_mir_routine_signature_metadata_complete_for(ctx" \
     "LLVM_MIR_SIGNATURE_REQUIRE_PARAM_TYPE_NAMES" \
     "llvm_mir_or_ast_function_is_generic(routine, decl)" \
-    "use_mir_signature = routine != NULL" \
+    "use_ast_signature = routine == NULL" \
     "MIR-only LLVM path missing boundary call signature metadata"; do
     require_term "src/codegen/llvm_expr_boundary_projection_helpers.c" "$term"
 done
@@ -3126,7 +3126,7 @@ for term in \
     "transpiler_find_mir_function(ctx, node)" \
     "transpiler_mir_routine_signature_metadata_complete_for(ctx" \
     "TRANSPILER_MIR_SIGNATURE_REQUIRE_ALL_TYPE_NAMES" \
-    "use_mir_signature = mir_routine != NULL" \
+    "use_ast_signature = mir_routine == NULL" \
     "MIR-only C path missing function forward routine" \
     "MIR-only C path missing function forward signature metadata" \
     "transpiler_mir_routine_param_count(mir_routine)" \
@@ -3539,7 +3539,7 @@ fi
 for term in \
     "llvm_forward_declare_func_from_mir" \
     "llvm_forward_declare_func_with_signature" \
-    "use_mir_signature = routine != NULL" \
+    "use_ast_signature = routine == NULL" \
     "llvm_mir_routine_signature_metadata_complete(" \
     "MIR-only LLVM path missing function forward routine" \
     "MIR-only LLVM path missing function forward signature metadata" \
@@ -4608,12 +4608,12 @@ if grep -Fq "llvm_active_inventory(ctx, AST_ENUM_DECL" \
 fi
 require_term "src/codegen/llvm_expr_common.c" \
     "return llvm_find_decl_in_active_inventory(ctx, AST_ENUM_DECL, enum_name)"
-require_term "src/codegen/llvm_intent_effect.c" "llvm_decl_node_name(zone)"
+require_term "src/codegen/llvm_intent_effect.c" "llvm_decl_node_name(zone_decl)"
 if grep -Fq "ast_zone_name(zone)" "$ROOT_DIR/src/codegen/llvm_intent_effect.c"; then
     fail "LLVM intent effect zone lookup must consume llvm_decl_node_name"
 fi
 require_term "src/codegen/llvm_expr_call_methods_world_effect_sync.c" \
-    "llvm_decl_node_name(item)"
+    "llvm_decl_node_name(effect_decl)"
 require_term "src/codegen/llvm_expr_call_methods_world_effect_sync.c" \
     "llvm_decl_node_name(host_decl)"
 require_term "src/codegen/llvm_expr_call_projection_sync.c" \
@@ -5211,7 +5211,10 @@ fi
 for term in \
     "llvm_member_call_adjust_pointer_self_arg" \
     "llvm_mir_decl_method_param_count(method_meta)" \
-    "llvm_mir_decl_method_param(method_meta, pk)"; do
+    "llvm_mir_decl_method_param(method_meta, pk)" \
+    "bool allow_ast_compat = method_meta == NULL && !llvm_active_has_mir(ctx)" \
+    "allow_ast_compat ? ast_func_param_count(method_decl) : 0" \
+    "allow_ast_compat ? ast_func_param(method_decl, pk) : NULL"; do
     require_term "src/codegen/llvm_member_call_support.c" "$term"
 done
 for term in \
@@ -5268,7 +5271,8 @@ for term in \
     "host_method == NULL" \
     "llvm_find_callable_decl(ctx, callee_name)" \
     "method_meta == NULL && host_method == NULL" \
-    "llvm_hosted_self_logical_param("; do
+    "llvm_hosted_self_logical_param(" \
+    "method_meta == NULL && !llvm_active_has_mir(ctx)"; do
     require_term "src/codegen/llvm_expr_call_hosted.c" "$term"
 done
 require_each_following_term "src/codegen/llvm_expr_call_hosted.c" \

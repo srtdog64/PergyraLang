@@ -77,6 +77,15 @@ typedef struct
 
 typedef struct
 {
+    /* name/param_type_names are provenance-backed (AST-owned) like MIRDeclField;
+     * the arrays are owned by the header and freed with it. */
+    const char  *name;
+    size_t       param_count;
+    const char **param_type_names;
+} MIRDeclEnumVariant;
+
+typedef struct
+{
     /* Source compatibility/provenance only; declaration inventory lives below. */
     ASTNode     *source_ast;
     ASTNodeType  ast_type;
@@ -90,6 +99,9 @@ typedef struct
     size_t       field_count;
     MIRDeclField *field_metadata;
     size_t       field_metadata_count;
+    size_t       variant_count;
+    MIRDeclEnumVariant *variant_metadata;
+    size_t       variant_metadata_count;
     bool         uses_pointer_self;
 } MIRDeclHeader;
 

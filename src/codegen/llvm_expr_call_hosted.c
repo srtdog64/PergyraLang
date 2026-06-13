@@ -50,19 +50,20 @@ static FuncParam *
 llvm_hosted_self_logical_param(const MIRDeclMethod *method_meta,
                                ASTNode *host_method,
                                size_t arg_index,
+                               bool allow_ast_compat,
                                const char **type_name_out)
 {
     size_t logical_index = 0;
     size_t param_count = method_meta != NULL
         ? llvm_mir_decl_method_param_count(method_meta)
-        : ast_func_param_count(host_method);
+        : (allow_ast_compat ? ast_func_param_count(host_method) : 0);
 
     if (type_name_out != NULL)
         *type_name_out = NULL;
     for (size_t i = 0; i < param_count; i++) {
         FuncParam *param = method_meta != NULL
             ? llvm_mir_decl_method_param(method_meta, i)
-            : ast_func_param(host_method, i);
+            : (allow_ast_compat ? ast_func_param(host_method, i) : NULL);
         if (param == NULL || param->name == NULL)
             continue;
         if (param->type == NULL && strcmp(param->name, "self") == 0)
@@ -148,7 +149,11 @@ llvm_emit_hosted_self_call(ASTNode *node, LLVMGenCtx *ctx,
         LLVMValueRef arg_value;
         const char *param_type_name = NULL;
         FuncParam *param = llvm_hosted_self_logical_param(
-            method_meta, host_method, i, &param_type_name);
+            method_meta,
+            host_method,
+            i,
+            method_meta == NULL && !llvm_active_has_mir(ctx),
+            &param_type_name);
 
         if (ctx->has_error)
             return NULL;
