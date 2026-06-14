@@ -604,7 +604,18 @@ llvm_emit_mir_local_allocas(const MIRRoutine *routine, LLVMGenCtx *ctx,
                     }
                 }
                 if (has_base_name && type_expr != NULL) {
-                    llvm_register_typed_var_binding(ctx, base_name,
+                    char *owned_base =
+                        pgy_arena_strdup(&ctx->persistent, base_name);
+                    if (owned_base == NULL) {
+                        llvm_set_mir_topology_invalid(ctx,
+                            "LLVM MIR typed local scope binding out of memory");
+                        return;
+                    }
+                    llvm_scope_declare(ctx, owned_base,
+                        vars[var_count].alloca, vars[var_count].type);
+                    if (ctx->has_error)
+                        return;
+                    llvm_register_typed_var_binding(ctx, owned_base,
                         vars[var_count].alloca, type_expr);
                 } else if (has_base_name
                            && inst->abi_type_name != NULL) {

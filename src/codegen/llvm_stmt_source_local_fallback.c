@@ -78,6 +78,29 @@ llvm_stmt_source_local_let_init(LLVMGenCtx *ctx, const char *name)
         ast_func_body(ctx->current_func_decl), name);
 }
 
+LLVMTypeRef
+llvm_stmt_source_local_type(LLVMGenCtx *ctx, const char *name)
+{
+    const MIRRoutine *routine;
+    const char *type_name;
+
+    if (ctx == NULL || name == NULL
+        || ctx->current_func_decl == NULL
+        || ctx->current_func_decl->type != AST_FUNC_DECL)
+        return NULL;
+    routine = ctx->current_mir_routine;
+    if (routine == NULL)
+        routine = llvm_active_function_routine_for_source_ast(
+            ctx, ctx->current_func_decl);
+    if (routine == NULL && llvm_active_has_mir(ctx))
+        return NULL;
+    type_name = routine != NULL
+        ? mir_routine_source_local_type_name(routine, name)
+        : mir_source_local_type_name_in_ast(
+            ast_func_body(ctx->current_func_decl), name);
+    return type_name != NULL ? pergyra_type_to_llvm(ctx, type_name) : NULL;
+}
+
 LLVMClassTypeEntry *
 llvm_stmt_source_local_class(LLVMGenCtx *ctx, ASTNode *recv)
 {

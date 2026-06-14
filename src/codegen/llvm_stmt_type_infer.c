@@ -240,6 +240,12 @@ llvm_stmt_infer_expr_type(LLVMGenCtx *ctx, ASTNode *expr)
                     return ty;
             }
         }
+        {
+            LLVMTypeRef source_local_ty =
+                llvm_stmt_source_local_type(ctx, name);
+            if (source_local_ty != NULL || ctx->has_error)
+                return source_local_ty;
+        }
         /* Unannotated local (`let x = <call>`) with no scope alloca yet in the
          * pre-pass: recover its type by inferring the let initializer. */
         {
