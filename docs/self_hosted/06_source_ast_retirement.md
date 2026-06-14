@@ -54,8 +54,10 @@ inventory/slot-view hotspot is also 0. Dead slot-source accessors, shared-field
 source accessors, hosted-method source view accessors, the LLVM method body AST
 compatibility accessor, and thin C/LLVM routine source aliases are retired.
 LLVM generic class method specialization follows the MIRDeclMethod routine
-link; C method body compatibility still follows the MIRDeclMethod routine link
-through the remaining C body-emission bridge. LLVM generic function template
+link; C hosted method bodies now pass the linked MIRRoutine directly to the
+MIR body emitter instead of recovering the method source declaration. The
+remaining C method bridge is limited to lookup, projection invalidation, and
+collection-specialization compatibility scans. LLVM generic function template
 registration records MIRRoutine entries and specializes through that routine.
 LLVM MIR body emission consumes routine kind/signature/current-routine metadata
 without recovering a source declaration. Routine source declaration checks go through the
@@ -66,8 +68,8 @@ plumbing: the `MIRDeclHeader.source_ast` assignment and accessor. Method and fie
 dead `mir_decl_header_ast_shape` compatibility arm that recomputed header shape
 from the origin AST is deleted. The next slice removes the declaration-header
 payload boundary, now measured separately as source_decl 2/1. Routine source-decl compatibility is
-measured separately at 2 so method/body compatibility cannot grow while that
-payload boundary is retired.
+measured separately at 2 so lookup/projection/specialization compatibility
+cannot grow while that payload boundary is retired.
 
 src/self_hosted/parity/ast_read_surface_checker_parity.sh runs the same
 manifest through a Pergyra-written checker and compares the literal counts

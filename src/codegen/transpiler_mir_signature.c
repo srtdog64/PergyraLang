@@ -104,10 +104,14 @@ transpiler_mir_routine_signature_metadata_complete_for(
     const char *missing_return_type_fmt,
     const char *missing_param_type_fmt)
 {
-    const char *func_name =
-        ast_declaration_name((ASTNode *)func_decl) != NULL
-            ? ast_declaration_name((ASTNode *)func_decl)
-            : "(anonymous)";
+    const char *func_name = func_decl != NULL
+        ? ast_declaration_name((ASTNode *)func_decl)
+        : NULL;
+
+    if (func_name == NULL)
+        func_name = mir_routine_name(routine);
+    if (func_name == NULL)
+        func_name = "(anonymous)";
 
     if (routine == NULL)
         return true;

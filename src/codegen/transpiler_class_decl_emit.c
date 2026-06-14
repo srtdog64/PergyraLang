@@ -260,10 +260,16 @@ emit_class_decl(ASTNode *node, TranspilerCtx *ctx)
         const char *method_name;
         method_name = transpiler_mir_decl_method_name(method_meta);
         mir_method = transpiler_mir_decl_method_routine(ctx, method_meta);
-        if (method == NULL && mir_method != NULL)
-            method = transpiler_mir_decl_method_body_decl(ctx, method_meta);
         if (method_name == NULL && method != NULL)
             method_name = ast_declaration_name(method);
+        if (transpiler_active_has_mir(ctx) && method_name == NULL) {
+            transpiler_set_mir_inventory_missing(
+                ctx,
+                "MIR-only C path missing method name metadata for class method '%s.%s'",
+                name != NULL ? name : "(anonymous-class)",
+                "(anonymous)");
+            return;
+        }
         if (method_meta == NULL
             && (method == NULL || method->type != AST_FUNC_DECL)) {
             continue;
@@ -283,7 +289,7 @@ emit_class_decl(ASTNode *node, TranspilerCtx *ctx)
                 transpiler_class_format_too_long(ctx, "class method emitted name");
                 return;
             }
-            emit_func_decl_from_mir_named(method, mir_method, emitted_name,
+            emit_func_decl_from_mir_named(NULL, mir_method, emitted_name,
                                           ctx->out, ctx);
             continue;
         }

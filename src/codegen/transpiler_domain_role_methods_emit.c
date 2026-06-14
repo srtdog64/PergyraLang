@@ -41,8 +41,6 @@ emit_role_method_impl(const char *role_name,
         return;
 
     method_name = transpiler_mir_decl_method_name(method_meta);
-    if (method == NULL && mir_method != NULL)
-        method = transpiler_mir_decl_method_body_decl(ctx, method_meta);
     if (method_name == NULL && method != NULL)
         method_name = ast_declaration_name(method);
     if (transpiler_active_has_mir(ctx)
@@ -70,7 +68,8 @@ emit_role_method_impl(const char *role_name,
             method_name != NULL ? method_name : "(anonymous)");
         return;
     }
-    if (method == NULL || method->type != AST_FUNC_DECL)
+    if (!transpiler_active_has_mir(ctx)
+        && (method == NULL || method->type != AST_FUNC_DECL))
         return;
     if (mir_method != NULL) {
         char emitted_name[256];
@@ -85,10 +84,12 @@ emit_role_method_impl(const char *role_name,
                 method_name != NULL ? method_name : "(anonymous)");
             return;
         }
-        emit_func_decl_from_mir_named(method, mir_method, emitted_name,
+        emit_func_decl_from_mir_named(NULL, mir_method, emitted_name,
                                       ctx->out, ctx);
         return;
     }
+    if (!transpiler_active_has_mir(ctx))
+        return;
     transpiler_set_mir_inventory_missing(
         ctx,
         "MIR-only C path missing routine for role method '%s.%s'",

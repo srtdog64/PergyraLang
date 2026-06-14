@@ -337,10 +337,20 @@ ensure_generic_class_specialization(TranspilerCtx *ctx,
         const MIRRoutine *mir_method;
         method_name = transpiler_mir_decl_method_name(method_meta);
         mir_method = transpiler_mir_decl_method_routine(ctx, method_meta);
-        if (method == NULL && mir_method != NULL)
-            method = transpiler_mir_decl_method_body_decl(ctx, method_meta);
         if (method_name == NULL && method != NULL)
             method_name = ast_declaration_name(method);
+        if (transpiler_active_has_mir(ctx) && method_name == NULL) {
+            transpiler_set_mir_inventory_missing(
+                ctx,
+                "MIR-only C path missing method name metadata for generic class method '%s.%s' specialization '%s'",
+                base_class_name != NULL
+                    ? base_class_name
+                    : "(anonymous-class)",
+                "(anonymous)",
+                spec_name != NULL ? spec_name : "(anonymous-specialization)");
+            transpiler_generic_class_spec_rollback(ctx, spec_snapshot);
+            return NULL;
+        }
         if (method_meta == NULL
             && (method == NULL || method->type != AST_FUNC_DECL)) {
             continue;
@@ -377,7 +387,7 @@ ensure_generic_class_specialization(TranspilerCtx *ctx,
             }
             ctx->active_generic_class_base_name = base_class_name;
             ctx->active_generic_class_spec_name = spec_name;
-            emit_func_decl_from_mir_named(method, mir_method, emitted_name,
+            emit_func_decl_from_mir_named(NULL, mir_method, emitted_name,
                 ctx->helpers, ctx);
             ctx->active_generic_class_base_name = NULL;
             ctx->active_generic_class_spec_name = NULL;

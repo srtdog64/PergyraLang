@@ -65,9 +65,11 @@ transpiler_emit_mir_block_statements(CodeBuf *buf, const ASTNode *func_decl,
     bool source_order_mode = false;
     size_t *inst_order = NULL;
     bool ok = true;
+    const char *routine_name = NULL;
 
-    if (buf == NULL || func_decl == NULL || mir_routine == NULL || block == NULL || ctx == NULL)
+    if (buf == NULL || mir_routine == NULL || block == NULL || ctx == NULL)
         return false;
+    routine_name = transpiler_mir_routine_name(mir_routine);
     if (reason != NULL && reason_cap > 0)
         reason[0] = '\0';
 
@@ -77,9 +79,8 @@ transpiler_emit_mir_block_statements(CodeBuf *buf, const ASTNode *func_decl,
         if (reason != NULL && reason_cap > 0)
             transpiler_mir_reasonf(reason, reason_cap,
                      "MIR emission failed for block %llu in %s: missing SSA entry map",
-                     (unsigned long long) block->id, func_decl->type == AST_FUNC_DECL
-                     ? ast_declaration_name(func_decl)
-                     : ast_intent_decl_name(func_decl));
+                     (unsigned long long) block->id,
+                     routine_name != NULL ? routine_name : "<routine>");
         return false;
     }
     if (!transpiler_mir_emit_for_in_body_binding(buf, mir_routine, block, ctx,
@@ -124,7 +125,7 @@ transpiler_emit_mir_block_statements(CodeBuf *buf, const ASTNode *func_decl,
      * map is regenerated from MIR SSA entry values by
      * `transpiler_emit_mir_block_with_ssa_map` above, so we must seed
      * parameters AFTER that regeneration and BEFORE instruction emission. */
-    if (func_decl != NULL && func_decl->type == AST_FUNC_DECL) {
+    {
         size_t pcnt = mir_routine_param_count(mir_routine);
         for (size_t p = 0; p < pcnt; p++) {
             FuncParam *fp = mir_routine_param(mir_routine, p);

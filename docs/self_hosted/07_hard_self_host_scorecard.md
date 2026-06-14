@@ -27,7 +27,7 @@ field declaration back-pointers are removed,
 and MIR validation no longer compares generic, enum, method, or field metadata
 against original AST nodes. The remaining AST-returning declaration-header
 compatibility API is now separately ratcheted as source_decl codegen 2 /
-compiler 1, and routine source-decl compatibility is ratcheted at codegen 4.
+compiler 1, and routine source-decl compatibility is ratcheted at codegen 2.
 
 ## Tiers
 
@@ -123,9 +123,9 @@ specialization scans now reach method bodies through linked MIRRoutine
 provenance instead of the hosted-method source view, and the C/LLVM routine
 source thin aliases are retired. LLVM generic class method specialization now
 uses MIRDeclMethod routine metadata directly, and the LLVM method body AST
-compatibility accessor is retired. C method body compatibility still goes
-through a backend helper that follows the MIRDeclMethod routine link, so direct
-backend method source back-pointer reads are retired. C MIR emission-contract
+compatibility accessor is retired. C hosted method body emission now passes
+the linked MIRRoutine directly into the MIR body emitter, so direct backend
+method source back-pointer reads are retired. C MIR emission-contract
 compatibility now validates routine kind/name/signature facts without opening
 routine source_ast, and LLVM intent forward declarations now use MIR routine
 binding metadata directly. Non-generic LLVM function routine forward

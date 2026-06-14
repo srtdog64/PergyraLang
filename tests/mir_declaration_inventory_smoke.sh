@@ -4614,10 +4614,14 @@ for term in \
     "const MIRDeclMethod *method_meta" \
     "const MIRRoutine *mir_method" \
     "transpiler_mir_decl_method_name(method_meta)" \
-    "transpiler_mir_decl_method_body_decl(ctx, method_meta)" \
+    "emit_func_decl_from_mir_named(NULL, mir_method, emitted_name" \
     "MIR-only C path missing declaration metadata for role method"; do
     require_term "src/codegen/transpiler_domain_role_methods_emit.c" "$term"
 done
+if grep -Fq "transpiler_mir_decl_method_body_decl(ctx, method_meta)" \
+        "$ROOT_DIR/src/codegen/transpiler_domain_role_methods_emit.c"; then
+    fail "C role method body emission must pass linked MIRRoutine directly instead of recovering source AST"
+fi
 for term in \
     "mir_decl_method_routine_index(method, &routine_index)" \
     "mir_decl_header_ast_type_or(" \
@@ -5028,6 +5032,8 @@ if grep -Fq "host_name == NULL || method == NULL || buf == NULL || ctx == NULL" 
 fi
 require_term "src/codegen/transpiler_class_decl_emit.c" \
     "transpiler_mir_decl_method_body_decl(ctx, method_meta)"
+require_term "src/codegen/transpiler_class_decl_emit.c" \
+    "emit_func_decl_from_mir_named(NULL, mir_method, emitted_name"
 if grep -Fq "transpiler_hosted_method_view_source_ast(&method_view, i)" \
     "$ROOT_DIR/src/codegen/transpiler_class_decl_emit.c"; then
     fail "C class specialization scan must use linked MIRRoutine provenance instead of method source AST back-pointers"
@@ -5037,11 +5043,20 @@ for rel in \
     "src/codegen/transpiler_enum_decl_emit.c"; do
     require_term "$rel" "transpiler_hosted_method_view_from_decl(ctx"
     require_term "$rel" "transpiler_mir_decl_method_routine(ctx, method_meta)"
-    require_term "$rel" "transpiler_mir_decl_method_body_decl(ctx, method_meta)"
     require_term "$rel" "method_meta == NULL"
     require_term "$rel" "MIR-only C path missing hosted method forward metadata row"
     require_term "$rel" "emit_hosted_method_forward_decl_from_metadata"
 done
+require_term "src/codegen/transpiler_class_decl_emit.c" \
+    "transpiler_mir_decl_method_body_decl(ctx, method_meta)"
+require_term "src/codegen/transpiler_class_decl_emit.c" \
+    "emit_func_decl_from_mir_named(NULL, mir_method, emitted_name"
+require_term "src/codegen/transpiler_enum_decl_emit.c" \
+    "emit_func_decl_from_mir_named(NULL, mir_method, emitted_name"
+if grep -Fq "transpiler_mir_decl_method_body_decl(ctx, method_meta)" \
+        "$ROOT_DIR/src/codegen/transpiler_enum_decl_emit.c"; then
+    fail "C enum hosted-method bodies must pass linked MIRRoutine directly instead of recovering source AST"
+fi
 if grep -Fq "transpiler_hosted_method_view_source_ast(&method_view, i)" \
     "$ROOT_DIR/src/codegen/transpiler_enum_decl_emit.c"; then
     fail "C enum hosted-method bodies must use linked MIRRoutine provenance instead of method source AST back-pointers"
@@ -5060,11 +5075,15 @@ require_term "src/codegen/transpiler_generic_class_specialization_emit.c" \
 require_term "src/codegen/transpiler_generic_class_specialization_emit.c" \
     "transpiler_mir_decl_method_routine(ctx, method_meta)"
 require_term "src/codegen/transpiler_generic_class_specialization_emit.c" \
-    "transpiler_mir_decl_method_body_decl(ctx, method_meta)"
+    "emit_func_decl_from_mir_named(NULL, mir_method, emitted_name"
 require_term "src/codegen/transpiler_generic_class_specialization_emit.c" \
     "method_meta == NULL"
 require_term "src/codegen/transpiler_generic_class_specialization_emit.c" \
     "emit_hosted_method_forward_decl_from_metadata"
+if grep -Fq "transpiler_mir_decl_method_body_decl(ctx, method_meta)" \
+        "$ROOT_DIR/src/codegen/transpiler_generic_class_specialization_emit.c"; then
+    fail "C generic class hosted-method bodies must pass linked MIRRoutine directly instead of recovering source AST"
+fi
 if grep -Fq "transpiler_hosted_method_view_source_ast(&method_view, i)" \
     "$ROOT_DIR/src/codegen/transpiler_generic_class_specialization_emit.c"; then
     fail "C generic class hosted-method bodies must use linked MIRRoutine provenance instead of method source AST back-pointers"
@@ -5265,8 +5284,10 @@ require_term "src/codegen/transpiler_hosted_method_body_emit.c" \
     "transpiler_hosted_method_view_metadata(method_view, i)"
 require_term "src/codegen/transpiler_hosted_method_body_emit.c" \
     "transpiler_mir_decl_method_routine(ctx, method_meta)"
-require_term "src/codegen/transpiler_hosted_method_body_emit.c" \
-    "transpiler_mir_decl_method_body_decl(ctx, method_meta)"
+if grep -Fq "transpiler_mir_decl_method_body_decl(ctx, method_meta)" \
+        "$ROOT_DIR/src/codegen/transpiler_hosted_method_body_emit.c"; then
+    fail "hosted method body emission must pass linked MIRRoutine directly instead of recovering source AST"
+fi
 if grep -Eq 'emit_hosted_methods_from_mir_or_error_local\([^)]*ASTNode \*\*methods|emit_hosted_methods_from_mir_or_error_local\([^)]*size_t method_count' \
     "$ROOT_DIR/src/codegen/transpiler_domain_role_ability_emit.h"; then
     fail "hosted method body emission must accept TranspilerHostedMethodView, not AST method arrays"
@@ -5288,7 +5309,11 @@ require_term "src/codegen/transpiler_enum_decl_emit.c" \
 require_term "src/codegen/transpiler_enum_decl_emit.c" \
     "transpiler_hosted_method_view_missing_mir_metadata(&method_view)"
 require_term "src/codegen/transpiler_enum_decl_emit.c" \
-    "transpiler_mir_decl_method_body_decl(ctx, method_meta)"
+    "emit_func_decl_from_mir_named(NULL, mir_method, emitted_name"
+if grep -Fq "transpiler_mir_decl_method_body_decl(ctx, method_meta)" \
+        "$ROOT_DIR/src/codegen/transpiler_enum_decl_emit.c"; then
+    fail "C enum hosted-method bodies must pass linked MIRRoutine directly instead of recovering source AST"
+fi
 require_term "src/codegen/transpiler_enum_decl_emit.c" \
     "transpiler_set_mir_inventory_missing("
 require_term "src/codegen/transpiler_enum_decl_emit.c" \
@@ -5306,7 +5331,9 @@ require_term "src/codegen/transpiler_hosted_method_body_emit.c" \
 require_term "src/codegen/transpiler_hosted_method_body_emit.c" \
     "MIR-only C path missing method body metadata row for"
 require_term "src/codegen/transpiler_hosted_method_body_emit.c" \
-    "MIR-only C path missing method body source metadata for"
+    "MIR-only C path missing method name metadata for"
+require_term "src/codegen/transpiler_hosted_method_body_emit.c" \
+    "emit_func_decl_from_mir_named(NULL, mir_method, emitted_name"
 require_term "src/codegen/transpiler_hosted_method_body_emit.c" \
     "transpiler_set_mir_inventory_missing("
 transpiler_method_row_hits="$(

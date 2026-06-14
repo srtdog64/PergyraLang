@@ -214,7 +214,7 @@ for rel in \
 done
 grep -Fq "MIR-only C path missing method body metadata row for" \
     "$ROOT_DIR/src/codegen/transpiler_hosted_method_body_emit.c"
-grep -Fq "MIR-only C path missing method body source metadata for" \
+grep -Fq "MIR-only C path missing method name metadata for" \
     "$ROOT_DIR/src/codegen/transpiler_hosted_method_body_emit.c"
 grep -Fq "MIR-only C path missing role operator method metadata for role" \
     "$ROOT_DIR/src/codegen/transpiler_domain_role_methods_emit.c"

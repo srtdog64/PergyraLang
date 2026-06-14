@@ -115,7 +115,11 @@ emit_func_decl_from_mir_named(ASTNode *node, const MIRRoutine *mir_routine,
                               const char *emitted_name, CodeBuf *buf,
                               TranspilerCtx *ctx)
 {
-    const char *name = emitted_name != NULL ? emitted_name : ast_declaration_name(node);
+    const char *name = emitted_name != NULL
+        ? emitted_name
+        : (transpiler_mir_routine_name(mir_routine) != NULL
+            ? transpiler_mir_routine_name(mir_routine)
+            : (node != NULL ? ast_declaration_name(node) : NULL));
     TranspilerMirEmitState saved_emit_state;
     CodeBuf *params_sig = codebuf_create();
     char *header_decl = NULL;
@@ -209,7 +213,8 @@ emit_func_decl_from_mir_named(ASTNode *node, const MIRRoutine *mir_routine,
     ctx->out = buf;
     transpiler_bind_function_emit_host_local(ctx, resolved_host_decl, node);
 
-    ensure_collection_specializations_from_stmt_to(ctx, ctx->decls, node);
+    if (node != NULL)
+        ensure_collection_specializations_from_stmt_to(ctx, ctx->decls, node);
 
     return_type = transpiler_mir_routine_return_type(mir_routine);
     const char *return_type_name =
@@ -366,8 +371,26 @@ emit_func_decl_from_mir_named(ASTNode *node, const MIRRoutine *mir_routine,
         free(owned_type_name);
     }
 
-    header_decl = pergyra_func_signature_declarator_in_ctx(ctx, return_type,
-        name, params_sig != NULL ? params_sig->data : "void");
+    if (return_type_name != NULL) {
+        char return_c_type[256];
+        if (!transpiler_require_type_name_c_type_copy(ctx,
+                return_type_name,
+                "MIR function return",
+                return_c_type,
+                sizeof(return_c_type))) {
+            codebuf_destroy(params_sig);
+            transpiler_restore_mir_emit_state_from_snapshot_local(ctx,
+                &saved_emit_state);
+            return;
+        }
+        header_decl = pergyra_strdup_printf("%s %s(%s)",
+            return_c_type,
+            name != NULL ? name : "value",
+            params_sig != NULL ? params_sig->data : "void");
+    } else {
+        header_decl = pergyra_func_signature_declarator_in_ctx(ctx,
+            return_type, name, params_sig != NULL ? params_sig->data : "void");
+    }
     if (header_decl == NULL) {
         codebuf_destroy(params_sig);
         transpiler_restore_mir_emit_state_from_snapshot_local(ctx,
@@ -505,8 +528,9 @@ emit_func_decl_from_mir_named(ASTNode *node, const MIRRoutine *mir_routine,
     if (is_method && resolved_host_decl != NULL)
         register_class_field_slots(ctx, resolved_host_decl);
     transpiler_register_mir_with_slot_claim_facts(ctx, mir_routine);
-    transpiler_register_ast_compat_local_bindings_in_block(ctx, node,
-        ast_func_body(node));
+    if (node != NULL)
+        transpiler_register_ast_compat_local_bindings_in_block(ctx, node,
+            ast_func_body(node));
 
     if (!transpiler_emit_mir_func_ssa_local_decls(ctx, node, mir_routine, name)) {
         transpiler_restore_mir_emit_state_from_snapshot_local(ctx, &saved_emit_state);
