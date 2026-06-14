@@ -7,7 +7,6 @@
 #include "../compiler/mir_decl_headers.h"
 #include "../parser/ast_api.h"
 #include "transpiler_decl_lookup.h"
-#include "source_ast_fallback_probe.h"
 
 /* Local copies of static helpers needed by the moved view helpers. */
 static size_t
@@ -272,17 +271,12 @@ transpiler_hosted_roster_slot_view_name(
 {
     const MIRDeclField *field =
         transpiler_hosted_roster_slot_view_metadata(view, index);
-    ASTNode *slot;
 
     if (view == NULL || index >= view->count)
         return NULL;
     if (field != NULL)
         return mir_decl_field_name(field);
-    if (view->requires_mir_metadata)
-        return NULL;
-    PGY_SOURCE_AST_FALLBACK_FIRE(__func__);
-    slot = transpiler_hosted_roster_slot_view_source_ast(view, index);
-    return slot != NULL ? ast_roster_slot_name(slot) : NULL;
+    return NULL;
 }
 
 const char *
@@ -292,17 +286,12 @@ transpiler_hosted_roster_slot_view_type_name(
 {
     const MIRDeclField *field =
         transpiler_hosted_roster_slot_view_metadata(view, index);
-    ASTNode *slot;
 
     if (view == NULL || index >= view->count)
         return NULL;
     if (field != NULL)
         return mir_decl_field_type_name(field);
-    if (view->requires_mir_metadata)
-        return NULL;
-    PGY_SOURCE_AST_FALLBACK_FIRE(__func__);
-    slot = transpiler_hosted_roster_slot_view_source_ast(view, index);
-    return slot != NULL ? ast_roster_slot_party_type(slot) : NULL;
+    return NULL;
 }
 
 TranspilerHostedRoleSlotView
@@ -388,17 +377,12 @@ transpiler_hosted_role_slot_view_name(
 {
     const MIRDeclField *field =
         transpiler_hosted_role_slot_view_metadata(view, index);
-    ASTNode *slot;
 
     if (view == NULL || index >= view->count)
         return NULL;
     if (field != NULL)
         return mir_decl_field_name(field);
-    if (view->requires_mir_metadata)
-        return NULL;
-    PGY_SOURCE_AST_FALLBACK_FIRE(__func__);
-    slot = transpiler_hosted_role_slot_view_source_ast(view, index);
-    return slot != NULL ? ast_role_slot_name(slot) : NULL;
+    return NULL;
 }
 
 bool
@@ -408,17 +392,12 @@ transpiler_hosted_role_slot_view_is_dynamic(
 {
     const MIRDeclField *field =
         transpiler_hosted_role_slot_view_metadata(view, index);
-    ASTNode *slot;
 
     if (view == NULL || index >= view->count)
         return false;
     if (field != NULL)
         return mir_decl_field_is_dynamic(field);
-    if (view->requires_mir_metadata)
-        return false;
-    PGY_SOURCE_AST_FALLBACK_FIRE(__func__);
-    slot = transpiler_hosted_role_slot_view_source_ast(view, index);
-    return slot != NULL && ast_role_slot_is_dynamic(slot);
+    return false;
 }
 
 size_t
@@ -426,22 +405,28 @@ transpiler_hosted_role_slot_view_required_ability_count(
     const TranspilerHostedRoleSlotView *view,
     size_t index)
 {
-    ASTNode *slot =
-        transpiler_hosted_role_slot_view_source_ast(view, index);
+    const MIRDeclField *field =
+        transpiler_hosted_role_slot_view_metadata(view, index);
 
-    return slot != NULL ? ast_role_slot_required_ability_count(slot) : 0;
+    if (view == NULL || index >= view->count)
+        return 0;
+    if (field != NULL)
+        return mir_decl_field_required_ability_count(field);
+    return 0;
 }
 
-ASTNode *
-transpiler_hosted_role_slot_view_required_ability(
+const char *
+transpiler_hosted_role_slot_view_required_ability_type_name(
     const TranspilerHostedRoleSlotView *view,
     size_t index,
     size_t ability_index)
 {
-    ASTNode *slot =
-        transpiler_hosted_role_slot_view_source_ast(view, index);
+    const MIRDeclField *field =
+        transpiler_hosted_role_slot_view_metadata(view, index);
 
-    return slot != NULL
-        ? ast_role_slot_required_ability(slot, ability_index)
-        : NULL;
+    if (view == NULL || index >= view->count)
+        return NULL;
+    if (field != NULL)
+        return mir_decl_field_required_ability_type_name(field, ability_index);
+    return NULL;
 }

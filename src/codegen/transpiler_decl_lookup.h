@@ -341,7 +341,7 @@ bool transpiler_hosted_role_slot_view_is_dynamic(
 size_t transpiler_hosted_role_slot_view_required_ability_count(
     const TranspilerHostedRoleSlotView *view,
     size_t index);
-ASTNode *transpiler_hosted_role_slot_view_required_ability(
+const char *transpiler_hosted_role_slot_view_required_ability_type_name(
     const TranspilerHostedRoleSlotView *view,
     size_t index,
     size_t ability_index);

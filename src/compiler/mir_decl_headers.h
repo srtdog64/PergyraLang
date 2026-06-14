@@ -58,5 +58,8 @@ bool mir_decl_field_is_binding_like(const MIRDeclField *field);
 bool mir_decl_field_is_relation_layer(const MIRDeclField *field);
 bool mir_decl_field_is_pool_layer(const MIRDeclField *field);
 int mir_decl_field_pool_capacity(const MIRDeclField *field);
+size_t mir_decl_field_required_ability_count(const MIRDeclField *field);
+const char *mir_decl_field_required_ability_type_name(
+    const MIRDeclField *field, size_t index);
 
 #endif /* PGY_MIR_DECL_HEADERS_H */

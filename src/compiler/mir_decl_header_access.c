@@ -286,3 +286,19 @@ mir_decl_field_pool_capacity(const MIRDeclField *field)
 {
     return field != NULL ? field->pool_capacity : 0;
 }
+
+size_t
+mir_decl_field_required_ability_count(const MIRDeclField *field)
+{
+    return field != NULL ? field->required_ability_count : 0;
+}
+
+const char *
+mir_decl_field_required_ability_type_name(const MIRDeclField *field,
+                                          size_t index)
+{
+    if (field == NULL || field->required_ability_type_names == NULL
+        || index >= field->required_ability_count)
+        return NULL;
+    return field->required_ability_type_names[index];
+}

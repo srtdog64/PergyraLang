@@ -11,6 +11,7 @@
 #include "host_decl_compat.h"
 #include "transpiler_decl_lookup.h"
 #include "transpiler_domain_role_ability_emit.h"
+#include "transpiler_domain_role_ability_names.h"
 #include "transpiler_domain_role_methods_emit.h"
 #include "transpiler_func_forward_metadata.h"
 #include "transpiler_host_self_policy.h"
@@ -526,18 +527,13 @@ emit_party_decl(ASTNode *node, TranspilerCtx *ctx)
             transpiler_hosted_role_slot_view_is_dynamic(&role_view, i);
         codebuf_write(ctx->out, "    void *%s;\n", slot_name);
         for (size_t j = 0; j < ability_count; j++) {
-            ASTNode *ab =
-                transpiler_hosted_role_slot_view_required_ability(
+            const char *ability_name =
+                transpiler_hosted_role_slot_view_required_ability_type_name(
                     &role_view, i, j);
-            if (ab != NULL && ast_type_name(ab) != NULL) {
+            if (ability_name != NULL) {
                 char typedef_name[128];
-                char *vtable_tag = render_ability_ref_vtable_tag_in_ctx(ctx, ab);
-                ensure_ability_ref_vtable_decl(ab, ctx);
-                if (!ability_ref_vtable_typedef_name(ab, typedef_name,
-                        sizeof(typedef_name), ctx)) {
-                    free(vtable_tag);
-                    return;
-                }
+                char *vtable_tag =
+                    render_ability_type_name_vtable_tag(ability_name);
                 if (vtable_tag == NULL) {
                     transpiler_set_backend_error_with_hints(ctx,
                         PGY_CODE_C_TYPE_UNSUPPORTED,
@@ -546,6 +542,16 @@ emit_party_decl(ASTNode *node, TranspilerCtx *ctx)
                         "cannot render ability vtable tag for party '%s' slot '%s'",
                         name != NULL ? name : "<party>",
                         slot_name != NULL ? slot_name : "<slot>");
+                    return;
+                }
+                if (!transpiler_role_ability_vtable_typedef_name(
+                        typedef_name, sizeof(typedef_name), vtable_tag)) {
+                    free(vtable_tag);
+                    transpiler_set_backend_error_with_hints(ctx,
+                        PGY_CODE_C_TYPE_UNSUPPORTED,
+                        PGY_CAUSE_C_TYPE_UNSUPPORTED,
+                        PGY_FIX_USE_LLVM_BACKEND_OR_EXTEND_TRANSPILER,
+                        "C backend: ability vtable typedef name is too long");
                     return;
                 }
                 if (is_dyn) {
@@ -622,19 +628,14 @@ emit_party_decl(ASTNode *node, TranspilerCtx *ctx)
             transpiler_hosted_role_slot_view_required_ability_count(
                 &role_view, i);
         for (size_t j = 0; j < ability_count; j++) {
-            ASTNode *ab =
-                transpiler_hosted_role_slot_view_required_ability(
+            const char *ability_name =
+                transpiler_hosted_role_slot_view_required_ability_type_name(
                     &role_view, i, j);
-            if (ab == NULL || ast_type_name(ab) == NULL)
+            if (ability_name == NULL)
                 continue;
             char typedef_name[128];
-            char *vtable_tag = render_ability_ref_vtable_tag_in_ctx(ctx, ab);
-            ensure_ability_ref_vtable_decl(ab, ctx);
-            if (!ability_ref_vtable_typedef_name(ab, typedef_name,
-                    sizeof(typedef_name), ctx)) {
-                free(vtable_tag);
-                return;
-            }
+            char *vtable_tag =
+                render_ability_type_name_vtable_tag(ability_name);
             if (vtable_tag == NULL) {
                 transpiler_set_backend_error_with_hints(ctx,
                     PGY_CODE_C_TYPE_UNSUPPORTED,
@@ -643,6 +644,16 @@ emit_party_decl(ASTNode *node, TranspilerCtx *ctx)
                     "cannot render ability vtable tag for party '%s' bind helper slot '%s'",
                     name != NULL ? name : "<party>",
                     slot_name != NULL ? slot_name : "<slot>");
+                return;
+            }
+            if (!transpiler_role_ability_vtable_typedef_name(
+                    typedef_name, sizeof(typedef_name), vtable_tag)) {
+                free(vtable_tag);
+                transpiler_set_backend_error_with_hints(ctx,
+                    PGY_CODE_C_TYPE_UNSUPPORTED,
+                    PGY_CAUSE_C_TYPE_UNSUPPORTED,
+                    PGY_FIX_USE_LLVM_BACKEND_OR_EXTEND_TRANSPILER,
+                    "C backend: ability vtable typedef name is too long");
                 return;
             }
             codebuf_write(ctx->out,

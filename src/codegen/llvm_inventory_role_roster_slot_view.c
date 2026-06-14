@@ -9,7 +9,6 @@
 #include "llvm_internal.h"
 #include "../compiler/mir_decl_headers.h"
 #include "../parser/ast_api.h"
-#include "source_ast_fallback_probe.h"
 
 static size_t
 llvm_decl_header_field_count_by_kind(const MIRDeclHeader *header,
@@ -259,17 +258,12 @@ llvm_hosted_roster_slot_view_name(
 {
     const MIRDeclField *field =
         llvm_hosted_roster_slot_view_metadata(view, index);
-    ASTNode *slot;
 
     if (view == NULL || index >= view->count)
         return NULL;
     if (field != NULL)
         return mir_decl_field_name(field);
-    if (view->requires_mir_metadata)
-        return NULL;
-    PGY_SOURCE_AST_FALLBACK_FIRE(__func__);
-    slot = llvm_hosted_roster_slot_view_source_ast(view, index);
-    return slot != NULL ? ast_roster_slot_name(slot) : NULL;
+    return NULL;
 }
 
 const char *
@@ -279,17 +273,12 @@ llvm_hosted_roster_slot_view_type_name(
 {
     const MIRDeclField *field =
         llvm_hosted_roster_slot_view_metadata(view, index);
-    ASTNode *slot;
 
     if (view == NULL || index >= view->count)
         return NULL;
     if (field != NULL)
         return mir_decl_field_type_name(field);
-    if (view->requires_mir_metadata)
-        return NULL;
-    PGY_SOURCE_AST_FALLBACK_FIRE(__func__);
-    slot = llvm_hosted_roster_slot_view_source_ast(view, index);
-    return slot != NULL ? ast_roster_slot_party_type(slot) : NULL;
+    return NULL;
 }
 
 LLVMHostedRoleSlotView
@@ -377,17 +366,12 @@ llvm_hosted_role_slot_view_name(
 {
     const MIRDeclField *field =
         llvm_hosted_role_slot_view_metadata(view, index);
-    ASTNode *slot;
 
     if (view == NULL || index >= view->count)
         return NULL;
     if (field != NULL)
         return mir_decl_field_name(field);
-    if (view->requires_mir_metadata)
-        return NULL;
-    PGY_SOURCE_AST_FALLBACK_FIRE(__func__);
-    slot = llvm_hosted_role_slot_view_source_ast(view, index);
-    return slot != NULL ? ast_role_slot_name(slot) : NULL;
+    return NULL;
 }
 
 bool
@@ -397,17 +381,12 @@ llvm_hosted_role_slot_view_is_dynamic(
 {
     const MIRDeclField *field =
         llvm_hosted_role_slot_view_metadata(view, index);
-    ASTNode *slot;
 
     if (view == NULL || index >= view->count)
         return false;
     if (field != NULL)
         return mir_decl_field_is_dynamic(field);
-    if (view->requires_mir_metadata)
-        return false;
-    PGY_SOURCE_AST_FALLBACK_FIRE(__func__);
-    slot = llvm_hosted_role_slot_view_source_ast(view, index);
-    return slot != NULL && ast_role_slot_is_dynamic(slot);
+    return false;
 }
 
 size_t
@@ -415,22 +394,30 @@ llvm_hosted_role_slot_view_required_ability_count(
     const LLVMHostedRoleSlotView *view,
     size_t index)
 {
-    ASTNode *slot = llvm_hosted_role_slot_view_source_ast(view, index);
+    const MIRDeclField *field =
+        llvm_hosted_role_slot_view_metadata(view, index);
 
-    return slot != NULL ? ast_role_slot_required_ability_count(slot) : 0;
+    if (view == NULL || index >= view->count)
+        return 0;
+    if (field != NULL)
+        return mir_decl_field_required_ability_count(field);
+    return 0;
 }
 
-ASTNode *
-llvm_hosted_role_slot_view_required_ability(
+const char *
+llvm_hosted_role_slot_view_required_ability_type_name(
     const LLVMHostedRoleSlotView *view,
     size_t index,
     size_t ability_index)
 {
-    ASTNode *slot = llvm_hosted_role_slot_view_source_ast(view, index);
+    const MIRDeclField *field =
+        llvm_hosted_role_slot_view_metadata(view, index);
 
-    return slot != NULL
-        ? ast_role_slot_required_ability(slot, ability_index)
-        : NULL;
+    if (view == NULL || index >= view->count)
+        return NULL;
+    if (field != NULL)
+        return mir_decl_field_required_ability_type_name(field, ability_index);
+    return NULL;
 }
 
 #endif /* PGY_LLVM_ENABLED */

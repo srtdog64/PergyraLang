@@ -206,7 +206,6 @@ llvm_party_slot_first_ability_name(LLVMGenCtx *ctx,
     for (size_t i = 0; i < role_view.count; i++) {
         const char *role_slot_name =
             llvm_hosted_role_slot_view_name(&role_view, i);
-        ASTNode *ability_ref;
         const char *ability_name;
 
         if (role_slot_name == NULL
@@ -214,9 +213,9 @@ llvm_party_slot_first_ability_name(LLVMGenCtx *ctx,
             continue;
         }
 
-        ability_ref =
-            llvm_hosted_role_slot_view_required_ability(&role_view, i, 0);
-        ability_name = ast_type_name(ability_ref);
+        ability_name =
+            llvm_hosted_role_slot_view_required_ability_type_name(
+                &role_view, i, 0);
         return ability_name;
     }
 

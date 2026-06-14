@@ -399,7 +399,28 @@ mir_program_from_ast(ASTNode *program)
         }
     }
 
+    for (size_t i = 0; i < stmt_count; i++) {
+        ASTNode *stmt = stmts[i];
+        if (stmt != NULL && !mir_record_decl_header(mir, stmt)) {
+            mir_destroy(mir);
+            return NULL;
+        }
+    }
+
     return mir;
+}
+
+static MIRProgram *
+mir_program_from_decl_for_test(ASTNode *decl)
+{
+    ASTNode program;
+    ASTNode *stmts[1] = { decl };
+
+    memset(&program, 0, sizeof(program));
+    program.type = AST_PROGRAM;
+    program.data.program.statements = stmts;
+    program.data.program.count = decl != NULL ? 1 : 0;
+    return mir_program_from_ast(&program);
 }
 
 static TranspilerCtx *

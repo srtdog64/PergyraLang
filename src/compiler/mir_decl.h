@@ -64,6 +64,8 @@ typedef struct
     bool             is_relation_layer;
     bool             is_pool_layer;
     int              pool_capacity;
+    size_t           required_ability_count;
+    char           **required_ability_type_names;
 } MIRDeclField;
 
 typedef struct

@@ -60,6 +60,23 @@ render_ability_ref_vtable_tag(ASTNode *ability_ref)
     return render_ability_ref_vtable_tag_in_ctx(NULL, ability_ref);
 }
 
+char *
+render_ability_type_name_vtable_tag(const char *ability_type_name)
+{
+    char suffix[128];
+    size_t len;
+
+    if (ability_type_name == NULL)
+        return NULL;
+    sanitize_c_suffix(ability_type_name, suffix, sizeof(suffix));
+    len = strlen(suffix);
+    while (len > 0 && suffix[len - 1] == '_')
+        suffix[--len] = '\0';
+    if (len == 0)
+        return NULL;
+    return pergyra_strdup(suffix);
+}
+
 bool
 role_has_method(ASTNode *role, const char *method_name)
 {
@@ -112,11 +129,10 @@ transpiler_party_slot_first_ability_tag(TranspilerCtx *ctx,
             || strcmp(role_slot_name, slot_name) != 0) {
             continue;
         }
-        ASTNode *first_ability =
-            transpiler_hosted_role_slot_view_required_ability(&role_view, i, 0);
-        if (first_ability == NULL)
-            return NULL;
-        return render_ability_ref_vtable_tag(first_ability);
+        const char *first_ability_name =
+            transpiler_hosted_role_slot_view_required_ability_type_name(
+                &role_view, i, 0);
+        return render_ability_type_name_vtable_tag(first_ability_name);
     }
 
     return NULL;
@@ -156,16 +172,16 @@ transpiler_party_slot_method_ability_tag(TranspilerCtx *ctx,
                 &role_view, i);
 
         for (size_t j = 0; j < ability_count; j++) {
-            ASTNode *ability_ref =
-                transpiler_hosted_role_slot_view_required_ability(
-                    &role_view, i, j);
             ASTNode *ability_decl;
             bool has_method = false;
             char *ability_tag;
+            const char *ability_name =
+                transpiler_hosted_role_slot_view_required_ability_type_name(
+                    &role_view, i, j);
 
-            if (ability_ref == NULL || ast_type_name(ability_ref) == NULL)
+            if (ability_name == NULL)
                 continue;
-            ability_decl = find_ability_decl(ctx, ast_type_name(ability_ref));
+            ability_decl = find_ability_decl(ctx, ability_name);
             if (ability_decl != NULL) {
                 for (size_t mi = 0;
                      mi < ast_ability_method_count(ability_decl); mi++) {
@@ -180,7 +196,7 @@ transpiler_party_slot_method_ability_tag(TranspilerCtx *ctx,
                 }
             }
 
-            ability_tag = render_ability_ref_vtable_tag_in_ctx(ctx, ability_ref);
+            ability_tag = render_ability_type_name_vtable_tag(ability_name);
             if (has_method) {
                 free(fallback_tag);
                 return ability_tag;

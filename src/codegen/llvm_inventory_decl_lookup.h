@@ -278,10 +278,8 @@ bool llvm_hosted_role_slot_view_is_dynamic(
 size_t llvm_hosted_role_slot_view_required_ability_count(
     const LLVMHostedRoleSlotView *view,
     size_t index);
-ASTNode *llvm_hosted_role_slot_view_required_ability(
-    const LLVMHostedRoleSlotView *view,
-    size_t index,
-    size_t ability_index);
+const char *llvm_hosted_role_slot_view_required_ability_type_name(
+    const LLVMHostedRoleSlotView *view, size_t index, size_t ability_index);
 ASTNode *llvm_find_host_decl_in_active_inventory(const LLVMGenCtx *ctx,
                                                  const char *name);
 ASTNode *llvm_current_host_decl(const LLVMGenCtx *ctx);

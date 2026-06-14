@@ -24,6 +24,7 @@
 #include "semantic/semantic.h"
 #include "compiler/rir.h"
 #include "compiler/mir.h"
+#include "compiler/mir_decl_headers.h"
 #include "semantic/type_system.h"
 #include "semantic/type_checker.h"
 

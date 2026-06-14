@@ -170,6 +170,41 @@ domain-mobility frame this is the step that moves the role ability contract off
 its origin AST and into MIR, so the domain stops holding a back-pointer to the
 AST for ability data.
 
+## C ability vtable emission is generic-aware (design finding)
+
+The role ability reads split further than name versus node. Investigation of
+the C vtable path found three consumers of the required_ability node:
+
+The two transpiler_role_ability.c consumers reduce the ability to a string. The
+first builds a vtable tag through the ctx-NULL render path, where no generic
+bindings apply, so the captured type name is sufficient and it can migrate to
+required_ability_type_name. The second looks up find_ability_decl by name, but
+its tag goes through render_ability_ref_vtable_tag_in_ctx with a live ctx.
+
+The transpiler_domain_nominal_emit.c consumer emits the vtable struct and
+typedef through ensure_ability_ref_vtable_decl and ability_ref_vtable_typedef_name.
+
+Both ctx-based paths reach render_effective_ability_ref_vtable_tag, which calls
+build_ability_ref_bindings. That reads ast_type_generic_args(ability_ref): an
+ability reference can be generic, for example Ability<T>, and the vtable tag and
+bindings monomorphize the actual generic arguments under ctx. A captured type
+name therefore cannot reproduce the tag for a generic ability; the generic
+argument types are part of the identity.
+
+Consequence: only consumer one is safe to migrate on a captured name. The
+generic-aware vtable paths need the ability reference's full shape, name plus
+generic arguments, not a single string. Retiring them requires representing the
+generic ability reference in MIR, either as a structured ability-ref capture
+(name plus an ordered list of argument type names, recursively) or by moving the
+vtable tag derivation itself behind MIR metadata. This is the deeper tail of the
+role ability contract: in the domain-mobility frame, the ability contract is not
+just a name but a generic type reference, and moving it off the AST means moving
+that generic reference, not flattening it to a name.
+
+Recommended staging: migrate consumer one now for a small reduction; design a
+structured generic ability-ref capture for MIR before touching the vtable
+consumers; keep the node accessor until that capture exists.
+
 ## Staged deletion plan
 
 Each step ends with the full build and corpus verification.

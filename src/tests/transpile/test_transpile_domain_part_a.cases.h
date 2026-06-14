@@ -259,6 +259,8 @@ test_party_emit(void)
         party_node.data.party_decl.methods = NULL;
         party_node.data.party_decl.method_count = 0;
 
+        MIRProgram *mir = mir_program_from_decl_for_test(&party_node);
+        g_last_mir = mir;
         TranspilerCtx *ctx = transpiler_ctx_create();
         emit_party_decl(&party_node, ctx);
 
@@ -269,6 +271,7 @@ test_party_emit(void)
         EXPECT_STR_CONTAINS(ctx->out->data, "} DungeonTeam;");
 
         transpiler_ctx_destroy(ctx);
+        mir_destroy(mir);
     }
 
     TEST("party instance emits C compound literal");

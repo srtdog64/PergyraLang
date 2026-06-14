@@ -8,7 +8,6 @@
 #include "llvm_internal.h"
 #include "../compiler/mir_decl_headers.h"
 #include "../parser/ast_api.h"
-#include "source_ast_fallback_probe.h"
 
 static size_t
 llvm_decl_header_field_count_by_kind(const MIRDeclHeader *header,
@@ -333,17 +332,12 @@ llvm_hosted_domain_slot_view_name(const LLVMHostedDomainSlotView *view,
 {
     const MIRDeclField *field =
         llvm_hosted_domain_slot_view_metadata(view, index);
-    ASTNode *slot;
 
     if (view == NULL || index >= view->count)
         return NULL;
     if (field != NULL)
         return mir_decl_field_name(field);
-    if (view->requires_mir_metadata)
-        return NULL;
-    PGY_SOURCE_AST_FALLBACK_FIRE(__func__);
-    slot = llvm_hosted_domain_slot_view_source_ast(view, index);
-    return slot != NULL ? ast_domain_slot_name(slot) : NULL;
+    return NULL;
 }
 
 ASTNode *
@@ -352,17 +346,12 @@ llvm_hosted_domain_slot_view_type(const LLVMHostedDomainSlotView *view,
 {
     const MIRDeclField *field =
         llvm_hosted_domain_slot_view_metadata(view, index);
-    ASTNode *slot;
 
     if (view == NULL || index >= view->count)
         return NULL;
     if (field != NULL)
         return mir_decl_field_type(field);
-    if (view->requires_mir_metadata)
-        return NULL;
-    PGY_SOURCE_AST_FALLBACK_FIRE(__func__);
-    slot = llvm_hosted_domain_slot_view_source_ast(view, index);
-    return slot != NULL ? ast_domain_slot_type(slot) : NULL;
+    return NULL;
 }
 
 const char *
@@ -386,17 +375,12 @@ llvm_hosted_domain_slot_view_is_subject_like(
 {
     const MIRDeclField *field =
         llvm_hosted_domain_slot_view_metadata(view, index);
-    ASTNode *slot;
 
     if (view == NULL || index >= view->count)
         return false;
     if (field != NULL)
         return mir_decl_field_is_subject_like(field);
-    if (view->requires_mir_metadata)
-        return false;
-    PGY_SOURCE_AST_FALLBACK_FIRE(__func__);
-    slot = llvm_hosted_domain_slot_view_source_ast(view, index);
-    return slot != NULL && ast_domain_slot_is_subject(slot);
+    return false;
 }
 
 bool
@@ -406,17 +390,12 @@ llvm_hosted_domain_slot_view_is_tobject_like(
 {
     const MIRDeclField *field =
         llvm_hosted_domain_slot_view_metadata(view, index);
-    ASTNode *slot;
 
     if (view == NULL || index >= view->count)
         return false;
     if (field != NULL)
         return mir_decl_field_is_tobject_like(field);
-    if (view->requires_mir_metadata)
-        return false;
-    PGY_SOURCE_AST_FALLBACK_FIRE(__func__);
-    slot = llvm_hosted_domain_slot_view_source_ast(view, index);
-    return slot != NULL && ast_domain_slot_is_tobject(slot);
+    return false;
 }
 
 bool
@@ -426,17 +405,12 @@ llvm_hosted_domain_slot_view_is_binding_like(
 {
     const MIRDeclField *field =
         llvm_hosted_domain_slot_view_metadata(view, index);
-    ASTNode *slot;
 
     if (view == NULL || index >= view->count)
         return false;
     if (field != NULL)
         return mir_decl_field_is_binding_like(field);
-    if (view->requires_mir_metadata)
-        return false;
-    PGY_SOURCE_AST_FALLBACK_FIRE(__func__);
-    slot = llvm_hosted_domain_slot_view_source_ast(view, index);
-    return slot != NULL && ast_domain_slot_is_binding(slot);
+    return false;
 }
 
 LLVMHostedWorldZoneSlotView

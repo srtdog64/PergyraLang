@@ -94,6 +94,16 @@ mir_destroy(MIRProgram *mir)
                      j < mir->decl_headers[i].field_metadata_count;
                      j++) {
                     free(mir->decl_headers[i].field_metadata[j].type_name);
+                    {
+                        MIRDeclField *fm =
+                            &mir->decl_headers[i].field_metadata[j];
+                        if (fm->required_ability_type_names != NULL) {
+                            for (size_t a = 0;
+                                 a < fm->required_ability_count; a++)
+                                free(fm->required_ability_type_names[a]);
+                            free(fm->required_ability_type_names);
+                        }
+                    }
                 }
             }
             free(mir->decl_headers[i].field_metadata);

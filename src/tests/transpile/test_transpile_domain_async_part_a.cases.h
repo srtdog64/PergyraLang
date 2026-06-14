@@ -22,6 +22,8 @@ test_roster_world_emit(void)
         sys_node.data.roster_decl.methods = NULL;
         sys_node.data.roster_decl.method_count = 0;
 
+        MIRProgram *mir = mir_program_from_decl_for_test(&sys_node);
+        g_last_mir = mir;
         TranspilerCtx *ctx = transpiler_ctx_create();
         emit_roster_decl(&sys_node, ctx);
 
@@ -30,6 +32,7 @@ test_roster_world_emit(void)
         EXPECT_STR_CONTAINS(ctx->out->data, "} CombatSystem;");
 
         transpiler_ctx_destroy(ctx);
+        mir_destroy(mir);
     }
 
     TEST("world emits struct with roster and zone members");
@@ -59,6 +62,8 @@ test_roster_world_emit(void)
         world_node.data.world_decl.methods = NULL;
         world_node.data.world_decl.method_count = 0;
 
+        MIRProgram *mir = mir_program_from_decl_for_test(&world_node);
+        g_last_mir = mir;
         TranspilerCtx *ctx = transpiler_ctx_create();
         emit_world_decl(&world_node, ctx);
 
@@ -68,6 +73,7 @@ test_roster_world_emit(void)
         EXPECT_STR_CONTAINS(ctx->out->data, "} GameWorld;");
 
         transpiler_ctx_destroy(ctx);
+        mir_destroy(mir);
     }
 
     TEST("relation/effect declarations emit struct layers and projection sync helpers");
