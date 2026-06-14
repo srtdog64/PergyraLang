@@ -83,20 +83,16 @@ llvm_routine_inventory_get(const LLVMMIRRoutineInventory *inventory,
 }
 
 const MIRRoutine *
-llvm_active_function_routine_for_source_ast(const LLVMGenCtx *ctx,
-                                            const ASTNode *func_decl)
+llvm_active_function_routine_by_name(const LLVMGenCtx *ctx,
+                                     const char *target)
 {
     LLVMMIRRoutineInventory inventory;
-    const char *target;
     size_t name_len;
 
-    if (ctx == NULL || func_decl == NULL
-        || func_decl->type != AST_FUNC_DECL
-        || ast_declaration_name((ASTNode *)func_decl) == NULL) {
+    if (ctx == NULL || target == NULL) {
         return NULL;
     }
 
-    target = ast_declaration_name((ASTNode *)func_decl);
     name_len = strlen(target);
     llvm_active_routine_inventory(ctx, &inventory);
     for (size_t i = 0; i < inventory.count; i++) {

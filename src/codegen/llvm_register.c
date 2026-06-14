@@ -253,7 +253,6 @@ llvm_register_enum_decl(LLVMGenCtx *ctx, ASTNode *stmt)
     for (size_t j = 0; j < enum_method_view.count; j++) {
         const MIRDeclMethod *method_meta =
             llvm_hosted_method_view_metadata(&enum_method_view, j);
-        ASTNode *method = llvm_mir_decl_method_source_ast(method_meta);
         const char *method_name = NULL;
         size_t pc = 0;
         const char *return_type_name = NULL;
@@ -335,7 +334,7 @@ llvm_register_enum_decl(LLVMGenCtx *ctx, ASTNode *stmt)
                     pergyra_type_to_llvm(ctx, param_type_name);
             } else {
                 param_types[pidx++] = llvm_register_required_ast_type(
-                    ctx, method, p != NULL ? p->type : NULL,
+                    ctx, stmt, p != NULL ? p->type : NULL,
                     "enum method parameter");
             }
             if (ctx->has_error || param_types[pidx - 1] == NULL)
@@ -440,7 +439,6 @@ llvm_register_nominal_decl(LLVMGenCtx *ctx, ASTNode *stmt)
     for (size_t j = 0; j < class_method_view.count; j++) {
         const MIRDeclMethod *method_meta =
             llvm_hosted_method_view_metadata(&class_method_view, j);
-        ASTNode *method = llvm_mir_decl_method_source_ast(method_meta);
         const char *method_name = NULL;
         size_t pc = 0;
         const char *return_type_name = NULL;
@@ -504,7 +502,7 @@ llvm_register_nominal_decl(LLVMGenCtx *ctx, ASTNode *stmt)
                     pergyra_type_to_llvm(ctx, param_type_name);
             } else {
                 param_types[pidx] = llvm_register_required_ast_type(
-                    ctx, method, p != NULL ? p->type : NULL,
+                    ctx, stmt, p != NULL ? p->type : NULL,
                     "class method parameter");
             }
             if (ctx->has_error || param_types[pidx] == NULL)

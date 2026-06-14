@@ -56,8 +56,6 @@ llvm_emit_domain_role_method_bodies(LLVMGenCtx *ctx,
         for (size_t j = 0; j < method_view.count; j++) {
             const MIRDeclMethod *method_meta =
                 llvm_hosted_method_view_metadata(&method_view, j);
-            ASTNode *method =
-                llvm_hosted_method_view_source_ast(&method_view, j);
             const char *method_name = llvm_mir_decl_method_name(method_meta);
             const MIRRoutine *mir_method = NULL;
             char fname[256];
@@ -68,10 +66,9 @@ llvm_emit_domain_role_method_bodies(LLVMGenCtx *ctx,
                     role_name != NULL ? role_name : "(anonymous-role)");
                 return false;
             }
+            if (method_meta == NULL)
+                continue;
 
-            if (method_name == NULL && method != NULL
-                && method->type == AST_FUNC_DECL)
-                method_name = llvm_role_method_name_from_ast(method);
             if (method_name == NULL) {
                 llvm_set_mir_inventory_missing(ctx,
                     "MIR-only LLVM path missing method name metadata for role '%s'",
@@ -86,12 +83,6 @@ llvm_emit_domain_role_method_bodies(LLVMGenCtx *ctx,
             }
 
             mir_method = llvm_mir_decl_method_routine(ctx, method_meta);
-            if (method == NULL && mir_method != NULL)
-                method = llvm_mir_routine_source_ast_of_type(
-                    mir_method, MIR_SCOPE_METHOD, AST_FUNC_DECL);
-            if (method_name == NULL && method != NULL
-                && method->type == AST_FUNC_DECL)
-                method_name = llvm_role_method_name_from_ast(method);
             if (mir_method != NULL) {
                 llvm_emit_func_from_mir(mir_method, ctx);
                 if (ctx->has_error)
@@ -290,12 +281,12 @@ llvm_emit_domain_role_method_bodies(LLVMGenCtx *ctx,
                                 role_name);
                             return false;
                         }
-                        method = llvm_mir_decl_method_source_ast(method_meta);
                     }
                     method_name = method_meta != NULL
                         ? llvm_mir_decl_method_name(method_meta)
                         : llvm_role_method_name_from_ast(method);
-                    if (method == NULL || method->type != AST_FUNC_DECL) {
+                    if (method_meta == NULL
+                        && (method == NULL || method->type != AST_FUNC_DECL)) {
                         llvm_set_mir_inventory_missing(ctx,
                             "MIR-only LLVM path missing role vtable method source metadata for role '%s'",
                             role_name);

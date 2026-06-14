@@ -212,9 +212,9 @@ llvm_emit_call(ASTNode *node, LLVMGenCtx *ctx)
     if (decl != NULL) {
         decl_is_extern_func = llvm_decl_is_extern_function(ctx, decl);
         decl_is_generic_func =
-            llvm_mir_or_ast_function_is_generic(
+                llvm_mir_or_ast_function_is_generic(
                 llvm_active_has_mir(ctx) && !decl_is_extern_func
-                    ? llvm_active_function_routine_for_source_ast(ctx, decl)
+                    ? llvm_active_function_routine_by_name(ctx, callee_name)
                     : NULL,
                 decl);
     }
@@ -462,7 +462,7 @@ llvm_emit_call(ASTNode *node, LLVMGenCtx *ctx)
             && !decl_is_generic_func
             && !decl_is_extern_func) {
             callee_routine =
-                llvm_active_function_routine_for_source_ast(ctx, decl);
+                llvm_active_function_routine_by_name(ctx, callee_name);
             if (callee_routine == NULL) {
                 llvm_set_mir_inventory_missing(ctx,
                     "MIR-only LLVM path missing user-call routine for '%s'",

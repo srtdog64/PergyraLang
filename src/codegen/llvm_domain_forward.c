@@ -217,10 +217,8 @@ llvm_emit_domain_method_forward_decls(LLVMGenCtx *ctx,
     for (size_t j = 0; j < methods->count; j++) {
         const MIRDeclMethod *method_meta =
             llvm_hosted_method_view_metadata(methods, j);
-        ASTNode *method = llvm_hosted_method_view_source_ast(methods, j);
-        bool allow_ast_compat = method_meta == NULL && !llvm_active_has_mir(ctx);
         const char *mname;
-        ASTNode *return_type;
+        ASTNode *return_type = NULL;
         const char *return_type_name;
         size_t pc;
         LLVMTypeRef ret;
@@ -237,11 +235,11 @@ llvm_emit_domain_method_forward_decls(LLVMGenCtx *ctx,
                 decl_name != NULL ? decl_name : "(anonymous-domain)");
             return;
         }
-        if (method_meta == NULL && (method == NULL || method->type != AST_FUNC_DECL))
+        if (method_meta == NULL)
             continue;
 
         mname = llvm_domain_method_name_metadata_first(
-            method_meta, method, allow_ast_compat);
+            method_meta, NULL, false);
         if (mname == NULL) {
             llvm_set_mir_inventory_missing(ctx,
                 "MIR-only LLVM path missing method forward name metadata for domain '%s'",
@@ -249,14 +247,14 @@ llvm_emit_domain_method_forward_decls(LLVMGenCtx *ctx,
             return;
         }
         pc = llvm_domain_method_param_count_metadata_first(
-            method_meta, method, allow_ast_compat);
+            method_meta, NULL, false);
         ret = ctx->type_void;
         return_type_name =
             llvm_domain_method_return_type_name_metadata_first(
-                method_meta, method, allow_ast_compat);
+                method_meta, NULL, false);
         return_type =
             llvm_domain_method_return_type_metadata_first(
-                method_meta, method, allow_ast_compat);
+                method_meta, NULL, false);
         if (!llvm_mir_decl_method_metadata_complete_for(ctx,
                 method_meta,
                 decl_name,
@@ -279,7 +277,7 @@ llvm_emit_domain_method_forward_decls(LLVMGenCtx *ctx,
         for (size_t k = 0; k < pc; k++) {
             FuncParam *p =
                 llvm_domain_method_param_metadata_first(
-                    method_meta, method, k, allow_ast_compat);
+                    method_meta, NULL, k, false);
             if (!llvm_param_is_implicit_self_local(p))
                 user_pc++;
         }
@@ -297,10 +295,10 @@ llvm_emit_domain_method_forward_decls(LLVMGenCtx *ctx,
         for (size_t k = 0; k < pc; k++) {
             FuncParam *p =
                 llvm_domain_method_param_metadata_first(
-                    method_meta, method, k, allow_ast_compat);
+                    method_meta, NULL, k, false);
             const char *type_name =
                 llvm_domain_method_param_type_name_metadata_first(
-                    method_meta, method, k, allow_ast_compat);
+                    method_meta, NULL, k, false);
             LLVMClassTypeEntry *param_cls = NULL;
             if (llvm_param_is_implicit_self_local(p))
                 continue;
@@ -314,7 +312,7 @@ llvm_emit_domain_method_forward_decls(LLVMGenCtx *ctx,
                 ptypes[pidx++] = pt;
             } else {
                 LLVMTypeRef pt = llvm_domain_forward_required_param_type(
-                    ctx, method, p, "domain method", mname);
+                    ctx, NULL, p, "domain method", mname);
                 if (ctx->has_error || pt == NULL)
                     return;
                 ptypes[pidx++] = pt;

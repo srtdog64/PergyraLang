@@ -122,9 +122,8 @@ llvm_emit_member_call(ASTNode *node, LLVMGenCtx *ctx)
                 const MIRDeclMethod *method_meta =
                     llvm_find_host_method_metadata_in_context(ctx,
                         class_name, method_name);
-                ASTNode *method_decl =
-                    llvm_mir_decl_method_source_ast(method_meta);
-                if (method_decl == NULL && method_meta == NULL) {
+                ASTNode *method_decl = NULL;
+                if (method_meta == NULL) {
                     if (llvm_active_has_mir(ctx)) {
                         llvm_set_mir_inventory_missing(ctx,
                             "MIR-only LLVM path missing member-call method metadata for '%s.%s'",
@@ -297,8 +296,8 @@ llvm_emit_member_call(ASTNode *node, LLVMGenCtx *ctx)
                 : (fn_type != NULL ? LLVMGetReturnType(fn_type) : NULL);
             method_meta = llvm_find_host_method_metadata_in_context(ctx,
                 class_name, method_name);
-            method_decl = llvm_mir_decl_method_source_ast(method_meta);
-            if (method_decl == NULL && method_meta == NULL) {
+            method_decl = NULL;
+            if (method_meta == NULL) {
                 if (llvm_active_has_mir(ctx)) {
                     llvm_set_mir_inventory_missing(ctx,
                         "MIR-only LLVM path missing member-call method metadata for '%s.%s'",
@@ -413,9 +412,8 @@ llvm_emit_member_call(ASTNode *node, LLVMGenCtx *ctx)
                 const MIRDeclMethod *method_meta =
                     llvm_find_host_method_metadata_in_context(ctx,
                         class_name, method_name);
-                ASTNode *method_decl =
-                    llvm_mir_decl_method_source_ast(method_meta);
-                if (method_decl == NULL && method_meta == NULL) {
+                ASTNode *method_decl = NULL;
+                if (method_meta == NULL) {
                     if (llvm_active_has_mir(ctx)) {
                         llvm_set_mir_inventory_missing(ctx,
                             "MIR-only LLVM path missing member-call method metadata for '%s.%s'",

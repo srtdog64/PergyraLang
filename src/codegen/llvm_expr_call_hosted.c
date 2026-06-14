@@ -96,8 +96,7 @@ llvm_emit_hosted_self_call(ASTNode *node, LLVMGenCtx *ctx,
         return NULL;
     method_meta =
         llvm_find_host_method_metadata_in_context(ctx, host_name, callee_name);
-    host_method = llvm_mir_decl_method_source_ast(method_meta);
-    if (host_method == NULL && method_meta == NULL) {
+    if (method_meta == NULL) {
         host_method = llvm_stmt_host_method_ast_decl(ctx, host_name,
             callee_name);
         if (llvm_active_has_mir(ctx)) {

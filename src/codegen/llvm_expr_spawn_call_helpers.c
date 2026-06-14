@@ -136,7 +136,7 @@ llvm_emit_spawn_expr(ASTNode *node, LLVMGenCtx *ctx)
         callee_is_extern_func = llvm_decl_is_extern_function(ctx, callee_decl);
         if (!callee_is_extern_func && llvm_active_has_mir(ctx)) {
             callee_routine =
-                llvm_active_function_routine_for_source_ast(ctx, callee_decl);
+                llvm_active_function_routine_by_name(ctx, callee_name);
         }
         callee_is_generic_func =
             llvm_mir_or_ast_function_is_generic(callee_routine, callee_decl);

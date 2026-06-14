@@ -158,7 +158,7 @@ llvm_stmt_emit_zone_action_effect_runtime(ASTNode *call, LLVMGenCtx *ctx)
     ASTNode *callee;
     ASTNode *receiver;
     ASTNode *zone_decl;
-    ASTNode *method_decl;
+    ASTNode *method_decl = NULL;
     const MIRDeclMethod *method_meta;
     ASTNode *effect_decl;
     LLVMClassTypeEntry *zone_cls;
@@ -222,8 +222,6 @@ llvm_stmt_emit_zone_action_effect_runtime(ASTNode *call, LLVMGenCtx *ctx)
         method_within_zone = ast_func_within_zone(method_decl);
         effect_name = ast_func_causes_effect(method_decl);
         method_is_action = ast_func_is_action(method_decl);
-    } else {
-        method_decl = llvm_mir_decl_method_source_ast(method_meta);
     }
     if ((method_meta == NULL
             && (method_decl == NULL || method_decl->type != AST_FUNC_DECL))

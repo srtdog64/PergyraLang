@@ -52,9 +52,9 @@ void llvm_mir_routine_inventory_from_program(const MIRProgram *mir,
 const MIRRoutine *llvm_routine_inventory_get(
     const LLVMMIRRoutineInventory *inventory,
     size_t index);
-const MIRRoutine *llvm_active_function_routine_for_source_ast(
+const MIRRoutine *llvm_active_function_routine_by_name(
     const LLVMGenCtx *ctx,
-    const ASTNode *func_decl);
+    const char *name);
 void llvm_active_decl_header_inventory(
     const LLVMGenCtx *ctx,
     LLVMMIRDeclHeaderInventory *inventory);

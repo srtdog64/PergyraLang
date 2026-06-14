@@ -37,12 +37,22 @@ NULL MIR. This is the single precondition that makes the fallbacks dead; if the
 driver is ever changed to degrade to an AST-only path, this fails first.
 
 tests/ast_read_surface_smoke.sh ratchets the source_ast occurrence counts
-(codegen 123, compiler 73) so the surface can only shrink, never grow.
+(codegen 76, compiler 73) so the surface can only shrink, never grow.
 
 tests/source_ast_inventory.sh ranks the remaining readers per file so the
-cutover is driven hotspot first. The codegen frontier is 123, with the
-inventory/slot-view hotspot now at 27 reads after the dead slot-source
-accessors were removed.
+cutover is driven hotspot first. The codegen frontier is 76, with the
+inventory/slot-view hotspot now at 26 reads after the dead slot-source
+accessors were removed and LLVM domain/role method forward declarations moved
+to MIRDeclMethod metadata only. C hosted-method forward declarations now do
+the same; C/LLVM hosted-method bodies now use the linked MIRRoutine as their
+body provenance owner, and LLVM nominal method registry uses host-level
+diagnostic anchors instead of method source back-pointers. LLVM hosted self-call
+and member-call emitters now resolve method signatures from MIRDeclMethod
+metadata and only keep AST method lookups behind the no-MIR compatibility
+fallback. LLVM function routine lookup now keys off MIR routine names rather
+than source AST identity. C/LLVM zone action effect sync now reads action flags
+from MIRDeclMethod without method source back-pointers. Remaining method reads
+are lookup/provenance consumers.
 
 ## Empirical confirmation probe
 

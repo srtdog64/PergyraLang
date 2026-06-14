@@ -387,9 +387,7 @@ emit_role_decl(ASTNode *node, TranspilerCtx *ctx)
             transpiler_hosted_method_view_metadata(&method_view, i);
         const MIRRoutine *mir_method =
             transpiler_mir_decl_method_routine(ctx, method_meta);
-        ASTNode *method =
-            transpiler_hosted_method_view_source_ast(&method_view, i);
-        emit_role_method_impl(name, method_meta, mir_method, method, ctx);
+        emit_role_method_impl(name, method_meta, mir_method, NULL, ctx);
         if (ctx != NULL && ctx->backend_error != NULL)
             return;
     }
@@ -597,20 +595,17 @@ emit_party_decl(ASTNode *node, TranspilerCtx *ctx)
     for (size_t i = 0; i < method_view.count; i++) {
         const MIRDeclMethod *method_meta =
             transpiler_hosted_method_view_metadata(&method_view, i);
-        ASTNode *method =
-            transpiler_hosted_method_view_source_ast(&method_view, i);
         if (method_meta == NULL && transpiler_active_has_mir(ctx)) {
             transpiler_set_mir_inventory_missing(ctx,
                 "MIR-only C path missing hosted method forward metadata row for party '%s'",
                 name != NULL ? name : "(anonymous-party)");
             return;
         }
-        if (method_meta == NULL
-            && (method == NULL || method->type != AST_FUNC_DECL)) {
+        if (method_meta == NULL) {
             continue;
         }
         emit_hosted_method_forward_decl_from_metadata(name, method_meta,
-            method, true, ctx->out, ctx);
+            NULL, true, ctx->out, ctx);
     }
 
     transpiler_emit_hosted_methods_from_mir_or_error(name, "(anonymous-party)",

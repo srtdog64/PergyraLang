@@ -68,7 +68,8 @@ llvm_can_forward_declare_func_early(LLVMGenCtx *ctx, ASTNode *func)
     if (ctx == NULL || func == NULL || func->type != AST_FUNC_DECL)
         return false;
 
-    routine = llvm_active_function_routine_for_source_ast(ctx, func);
+    routine = llvm_active_function_routine_by_name(ctx,
+        ast_declaration_name(func));
     if (llvm_active_has_mir(ctx) && routine == NULL) {
         if (llvm_mir_or_ast_function_is_generic(NULL, func))
             return false;

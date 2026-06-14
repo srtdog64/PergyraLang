@@ -23,7 +23,7 @@ emit_zone_action_effect_runtime(CodeBuf *out, ASTNode *call, TranspilerCtx *ctx)
     ASTNode *receiver;
     ASTNode *host_decl;
     ASTNode *zone_decl;
-    ASTNode *method_decl;
+    ASTNode *method_decl = NULL;
     const MIRDeclMethod *method_meta;
     const char *method_name;
     const char *receiver_slot_name = NULL;
@@ -62,7 +62,6 @@ emit_zone_action_effect_runtime(CodeBuf *out, ASTNode *call, TranspilerCtx *ctx)
 
     method_meta = transpiler_find_host_method_metadata_in_context(ctx,
         receiver_type_name, method_name);
-    method_decl = transpiler_mir_decl_method_source_ast(method_meta);
     method_is_async = transpiler_mir_decl_method_is_async(method_meta);
     method_is_action = transpiler_mir_decl_method_is_action_like(method_meta);
     method_within_zone = transpiler_mir_decl_method_within_zone(method_meta);

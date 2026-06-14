@@ -63,7 +63,6 @@ transpiler_emit_hosted_methods_from_mir_or_error(
         method_name = transpiler_mir_decl_method_name(method_meta);
 
         mir_method = transpiler_mir_decl_method_routine(ctx, method_meta);
-        method = transpiler_hosted_method_view_source_ast(method_view, i);
         if (method_meta == NULL && transpiler_active_has_mir(ctx)) {
             transpiler_set_mir_inventory_missing(
                 ctx,

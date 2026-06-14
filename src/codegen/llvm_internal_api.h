@@ -403,9 +403,9 @@ LLVMGenResult *llvm_validate_mir_for_codegen(const MIRProgram *mir);
 bool llvm_emit_program_from_mir(const MIRProgram *mir, LLVMGenCtx *ctx);
 void llvm_declare_runtime(LLVMGenCtx *ctx);
 bool llvm_can_forward_declare_func_early(LLVMGenCtx *ctx, ASTNode *func);
-const MIRRoutine *llvm_active_function_routine_for_source_ast(
+const MIRRoutine *llvm_active_function_routine_by_name(
     const LLVMGenCtx *ctx,
-    const ASTNode *func_decl);
+    const char *name);
 bool llvm_nominal_uses_immutable_projection_storage(NominalDeclKind kind);
 bool llvm_nominal_is_boundary_transfer_contract(NominalDeclKind kind);
 void llvm_forward_declare_intent(ASTNode *node, LLVMGenCtx *ctx);

@@ -163,12 +163,12 @@ emit_role_vtable_instance(const char *role_name,
                     lookup_role_name != NULL ? lookup_role_name : "(anonymous-role)");
                 return;
             }
-            method = transpiler_mir_decl_method_source_ast(method_meta);
         }
         method_name = method_meta != NULL
             ? transpiler_mir_decl_method_name(method_meta)
             : ast_declaration_name(method);
-        if (method == NULL || method->type != AST_FUNC_DECL) {
+        if (method_meta == NULL
+            && (method == NULL || method->type != AST_FUNC_DECL)) {
             transpiler_set_mir_inventory_missing(
                 ctx,
                 "MIR-only C path missing role vtable method source metadata for role '%s'",
@@ -234,7 +234,7 @@ emit_role_operator_aliases(ASTNode *role, TranspilerCtx *ctx)
         const char *suffix = operator_overload_suffix(op);
         const MIRDeclMethod *method_meta =
             find_role_operator_method_metadata(ctx, role, op, 0);
-        ASTNode *method = transpiler_mir_decl_method_source_ast(method_meta);
+        ASTNode *method = NULL;
         const char *method_name =
             transpiler_mir_decl_method_name(method_meta);
         char fn_name[256];

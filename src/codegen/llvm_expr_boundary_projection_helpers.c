@@ -130,7 +130,7 @@ llvm_build_boundary_call_args(LLVMGenCtx *ctx, ASTNode *decl,
     decl_name = ast_declaration_name(decl);
     decl_is_extern = llvm_decl_is_extern_function(ctx, decl);
     if (llvm_active_has_mir(ctx) && !decl_is_extern)
-        routine = llvm_active_function_routine_for_source_ast(ctx, decl);
+        routine = llvm_active_function_routine_by_name(ctx, decl_name);
     decl_is_generic = llvm_mir_or_ast_function_is_generic(routine, decl);
     if (llvm_active_has_mir(ctx) && !decl_is_generic && !decl_is_extern) {
         if (routine == NULL) {

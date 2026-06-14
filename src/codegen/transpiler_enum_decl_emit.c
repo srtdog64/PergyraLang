@@ -228,8 +228,6 @@ emit_enum_decl_stmt(ASTNode *node, TranspilerCtx *ctx)
     for (size_t i = 0; i < method_view.count; i++) {
         const MIRDeclMethod *method_meta =
             transpiler_hosted_method_view_metadata(&method_view, i);
-        ASTNode *method =
-            transpiler_hosted_method_view_source_ast(&method_view, i);
         if (method_meta == NULL && transpiler_active_has_mir(ctx)) {
             transpiler_set_mir_inventory_missing(ctx,
                 "MIR-only C path missing hosted method forward metadata row for enum '%s'",
@@ -243,19 +241,17 @@ emit_enum_decl_stmt(ASTNode *node, TranspilerCtx *ctx)
                 ename != NULL ? ename : "(anonymous-enum)");
             return;
         }
-        if (method_meta == NULL
-            && (method == NULL || method->type != AST_FUNC_DECL)) {
+        if (method_meta == NULL) {
             continue;
         }
         emit_hosted_method_forward_decl_from_metadata(ename, method_meta,
-            method, false, ctx->out, ctx);
+            NULL, false, ctx->out, ctx);
     }
 
     for (size_t i = 0; i < method_view.count; i++) {
         const MIRDeclMethod *method_meta =
             transpiler_hosted_method_view_metadata(&method_view, i);
-        ASTNode *method =
-            transpiler_hosted_method_view_source_ast(&method_view, i);
+        ASTNode *method = NULL;
         const MIRRoutine *mir_method;
         const char *method_name;
         method_name = transpiler_mir_decl_method_name(method_meta);

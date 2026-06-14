@@ -236,8 +236,6 @@ emit_class_decl(ASTNode *node, TranspilerCtx *ctx)
     for (size_t i = 0; i < method_view.count; i++) {
         const MIRDeclMethod *method_meta =
             transpiler_hosted_method_view_metadata(&method_view, i);
-        ASTNode *method =
-            transpiler_hosted_method_view_source_ast(&method_view, i);
         bool use_self_cell = is_pointer_self_host_type_name(ctx, name);
         if (method_meta == NULL && transpiler_active_has_mir(ctx)) {
             transpiler_set_mir_inventory_missing(ctx,
@@ -252,19 +250,17 @@ emit_class_decl(ASTNode *node, TranspilerCtx *ctx)
                 name != NULL ? name : "(anonymous-class)");
             return;
         }
-        if (method_meta == NULL
-            && (method == NULL || method->type != AST_FUNC_DECL)) {
+        if (method_meta == NULL) {
             continue;
         }
-        emit_hosted_method_forward_decl_from_metadata(name, method_meta, method,
+        emit_hosted_method_forward_decl_from_metadata(name, method_meta, NULL,
             use_self_cell, ctx->out, ctx);
     }
 
     for (size_t i = 0; i < method_view.count; i++) {
         const MIRDeclMethod *method_meta =
             transpiler_hosted_method_view_metadata(&method_view, i);
-        ASTNode *method =
-            transpiler_hosted_method_view_source_ast(&method_view, i);
+        ASTNode *method = NULL;
         bool use_self_cell = is_pointer_self_host_type_name(ctx, name);
         const MIRRoutine *mir_method;
         const char *method_name;

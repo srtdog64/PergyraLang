@@ -28,7 +28,7 @@ ACTIVE means it is on the critical path and still in progress.
 | 2 | Collections + iteration | SUBSET | stdlib_surface_smoke | List/Set/HashMap exist over a key-type subset (String, Int, Long, Bool); MapKeys order is locked for stable key types; broaden symbol/record/handle keys and ordered set snapshots |
 | 3 | String/path/Unicode policy | READY | unicode_policy_smoke, source_utf8_smoke, memory_string_safety_smoke | stable comparison and normalization stance gated |
 | 4 | Arena/ownership ergonomics | SUBSET | verify_arena_closure, runtime_abi_lifetime_smoke, abi_ownership_shape_smoke | the allocation mechanism exists; the per-pass scratch/result/persistent lanes that remove manual boilerplate do not yet |
-| 5 | CFG/MIR body as SoT | ACTIVE | cfg_body_dataflow_smoke, ast_read_surface_smoke, mir_or_abort_invariant_smoke | non_cfg fallback locked at 0; dead slot-source accessors retired; source_ast readers remain at codegen 123, compiler 73. This is task 74 |
+| 5 | CFG/MIR body as SoT | ACTIVE | cfg_body_dataflow_smoke, ast_read_surface_smoke, mir_or_abort_invariant_smoke | non_cfg fallback locked at 0; dead slot-source accessors retired; source_ast readers remain at codegen 76, compiler 73. This is task 74 |
 | 6 | AIR as verifier | READY | air_json_schema_smoke, air_drift_smoke, air_backend_nonimpact_smoke | pgy.air.graph.v1 evidence export gated; drift count enforced at 0 |
 | 7 | DAG type resolution SoT | READY | type_resolution_dag_smoke, type_resolution_resolver_inventory_smoke | recursive resolver compat path retired; metadata_dead_ends enforced at 0 |
 | 8 | Scoped unsafe/raw escape | READY | raw_escape_contract_smoke | unsafe is scoped and capability-bound; raw pointers gated out of domain code |
@@ -74,10 +74,17 @@ none can be closed from a static pass alone.
 
 Capability 5 (CFG/MIR SoT, task 74). Mechanism mostly complete: non_cfg body
 facts are MIR-owned and locked at zero fallback, the source_ast ratchet is now
-codegen 123 / compiler 73, and the dead slot-source accessors have been
-deleted. The remaining work is deletion of the method/shared-field provenance
-and routine compatibility readers, then removal of the source_ast field and a
-ratchet ceiling of zero. Build-gated.
+codegen 76 / compiler 73, and the dead slot-source accessors have been
+deleted. LLVM domain/role and C hosted-method forward declarations now consume
+MIRDeclMethod metadata without source AST back-pointers, and C/LLVM hosted
+method bodies use the linked MIRRoutine as their body provenance owner. LLVM
+nominal method registry and LLVM hosted/member call emission also no longer
+read method source back-pointers in MIR-active paths. LLVM function routine
+lookup now keys off MIR routine names instead of source AST identity. The
+zone action effect-sync path also consumes MIRDeclMethod flags without method
+source back-pointers. The remaining work is deletion of method
+lookup/provenance, shared-field initializer, and routine compatibility readers,
+then removal of the source_ast field and a ratchet ceiling of zero. Build-gated.
 
 Capability 2 (collections). Measurement: integer keys are implemented
 (pgy_runtime_map_int_key_inline.h covers i32 and i64), and `MapKeys` now returns

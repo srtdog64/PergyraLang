@@ -182,20 +182,17 @@ emit_relation_decl(ASTNode *node, TranspilerCtx *ctx)
     for (size_t i = 0; i < method_view.count; i++) {
         const MIRDeclMethod *method_meta =
             transpiler_hosted_method_view_metadata(&method_view, i);
-        ASTNode *method =
-            transpiler_hosted_method_view_source_ast(&method_view, i);
         if (method_meta == NULL && transpiler_active_has_mir(ctx)) {
             transpiler_set_mir_inventory_missing(ctx,
                 "MIR-only C path missing hosted method forward metadata row for relation '%s'",
                 name != NULL ? name : "(anonymous-relation)");
             return;
         }
-        if (method_meta == NULL
-            && (method == NULL || method->type != AST_FUNC_DECL)) {
+        if (method_meta == NULL) {
             continue;
         }
         emit_hosted_method_forward_decl_from_metadata(name, method_meta,
-            method, true, ctx->out, ctx);
+            NULL, true, ctx->out, ctx);
     }
 
     transpiler_emit_hosted_methods_from_mir_or_error(name, "(anonymous-relation)",
@@ -341,20 +338,17 @@ emit_effect_decl(ASTNode *node, TranspilerCtx *ctx)
     for (size_t i = 0; i < method_view.count; i++) {
         const MIRDeclMethod *method_meta =
             transpiler_hosted_method_view_metadata(&method_view, i);
-        ASTNode *method =
-            transpiler_hosted_method_view_source_ast(&method_view, i);
         if (method_meta == NULL && transpiler_active_has_mir(ctx)) {
             transpiler_set_mir_inventory_missing(ctx,
                 "MIR-only C path missing hosted method forward metadata row for effect '%s'",
                 name != NULL ? name : "(anonymous-effect)");
             return;
         }
-        if (method_meta == NULL
-            && (method == NULL || method->type != AST_FUNC_DECL)) {
+        if (method_meta == NULL) {
             continue;
         }
         emit_hosted_method_forward_decl_from_metadata(name, method_meta,
-            method, true, ctx->out, ctx);
+            NULL, true, ctx->out, ctx);
     }
 
     transpiler_emit_hosted_methods_from_mir_or_error(name, "(anonymous-effect)",

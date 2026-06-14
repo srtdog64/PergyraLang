@@ -90,8 +90,8 @@ llvm_stmt_source_local_type(LLVMGenCtx *ctx, const char *name)
         return NULL;
     routine = ctx->current_mir_routine;
     if (routine == NULL)
-        routine = llvm_active_function_routine_for_source_ast(
-            ctx, ctx->current_func_decl);
+        routine = llvm_active_function_routine_by_name(
+            ctx, ast_declaration_name(ctx->current_func_decl));
     if (routine == NULL && llvm_active_has_mir(ctx))
         return NULL;
     type_name = routine != NULL
@@ -113,8 +113,8 @@ llvm_stmt_source_local_class(LLVMGenCtx *ctx, ASTNode *recv)
     }
     const MIRRoutine *routine = ctx->current_mir_routine;
     if (routine == NULL) {
-        routine = llvm_active_function_routine_for_source_ast(
-            ctx, ctx->current_func_decl);
+        routine = llvm_active_function_routine_by_name(
+            ctx, ast_declaration_name(ctx->current_func_decl));
     }
     if (routine == NULL && llvm_active_has_mir(ctx))
         return NULL;

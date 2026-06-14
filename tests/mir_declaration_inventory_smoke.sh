@@ -420,7 +420,7 @@ require_term "src/codegen/llvm_expr_call_dispatch.c" \
 require_term "src/codegen/llvm_expr_call_dispatch.c" \
     "llvm_forward_declare_func_from_mir(callee_routine, decl, ctx)"
 require_term "src/codegen/llvm_expr_call_dispatch.c" \
-    "llvm_active_function_routine_for_source_ast(ctx, decl)"
+    "llvm_active_function_routine_by_name(ctx,"
 if grep -Fq "ast_func_body(decl)" \
     "$ROOT_DIR/src/codegen/llvm_expr_call_dispatch.c"; then
     fail "LLVM call dispatch must use MIR routine inventory, not AST body presence, for registered target fail-closed policy"
@@ -664,7 +664,7 @@ if grep -Fq "p == NULL || p->type == NULL" \
     fail "C forward policy must not require AST param->type before MIR routine param_type_name"
 fi
 for term in \
-    "llvm_active_function_routine_for_source_ast(ctx, func)" \
+    "llvm_active_function_routine_by_name(ctx," \
     "if (routine == NULL)" \
     "llvm_mir_or_ast_function_is_generic(routine, func)" \
     "llvm_mir_routine_return_type_name(routine)" \
@@ -703,7 +703,7 @@ require_term "src/codegen/llvm_mir_signature.c" \
 require_term "src/codegen/llvm_decl_routines.c" \
     "llvm_mir_or_ast_function_is_generic(routine, func_decl)"
 require_term "src/codegen/llvm_inventory_internal.c" \
-    "llvm_active_function_routine_for_source_ast"
+    "llvm_active_function_routine_by_name"
 for term in \
     "llvm_mir_routine_signature_metadata_complete" \
     "llvm_mir_routine_signature_metadata_complete_for" \
@@ -2897,17 +2897,25 @@ for term in \
     require_term "src/codegen/llvm_inventory_internal.c" "$term"
 done
 for term in \
-    "target = ast_declaration_name((ASTNode *)func_decl)" \
+    "llvm_active_function_routine_by_name(const LLVMGenCtx *ctx," \
     "strcmp(routine_name, target) == 0" \
     "strncmp(routine_name, target, name_len) == 0"; do
     require_term "src/codegen/llvm_inventory_internal.c" "$term"
 done
+if grep -R -Fq "llvm_active_function_routine_for_source_ast" \
+        "$ROOT_DIR/src/codegen"; then
+    fail "LLVM function routine lookup must use MIR routine names, not source AST identity"
+fi
+if grep -Fq "ast_declaration_name((ASTNode *)func_decl)" \
+        "$ROOT_DIR/src/codegen/llvm_inventory_internal.c"; then
+    fail "LLVM function routine lookup must not derive the lookup key from a source AST node"
+fi
 if grep -Fq "llvm_mir_routine_source_ast(routine) == func_decl" \
         "$ROOT_DIR/src/codegen/llvm_inventory_internal.c"; then
     fail "LLVM function routine lookup must use MIR routine names, not source AST pointer identity"
 fi
 if ! awk '
-    /llvm_active_function_routine_for_source_ast/ { in_fn = 1 }
+    /llvm_active_function_routine_by_name/ { in_fn = 1 }
     in_fn && /strcmp\(routine_name, target\) == 0/ { exact = NR }
     in_fn && /strncmp\(routine_name, target, name_len\) == 0/ { prefix = NR }
     in_fn && /^}/ {
@@ -3274,7 +3282,7 @@ fi
 require_term "src/codegen/llvm_stmt_source_local_fallback.c" \
     "const MIRRoutine *routine = ctx->current_mir_routine"
 require_term "src/codegen/llvm_stmt_source_local_fallback.c" \
-    "routine = llvm_active_function_routine_for_source_ast("
+    "routine = llvm_active_function_routine_by_name("
 require_term "src/codegen/llvm_stmt_source_local_fallback.c" \
     "routine == NULL && llvm_active_has_mir(ctx)"
 require_term "src/codegen/llvm_stmt_source_local_fallback.c" \
@@ -4446,8 +4454,7 @@ for term in \
     "transpiler_mir_decl_method_routine(ctx, method_meta)" \
     "transpiler_mir_decl_method_metadata_complete_for(ctx" \
     "TRANSPILER_MIR_DECL_METHOD_REQUIRE_ALL_TYPE_NAMES" \
-    "transpiler_hosted_method_view_source_ast(&method_view, i)" \
-    "emit_role_method_impl(name, method_meta, mir_method, method, ctx)"; do
+    "emit_role_method_impl(name, method_meta, mir_method, NULL, ctx)"; do
     require_term "src/codegen/transpiler_domain_nominal_emit.c" "$term"
 done
 for term in \
@@ -4866,16 +4873,22 @@ if grep -Fq "host_name == NULL || method == NULL || buf == NULL || ctx == NULL" 
         "$ROOT_DIR/src/codegen/transpiler_func_forward_metadata.c"; then
     fail "C hosted method forward declarations must not require source AST when MIRDeclMethod metadata exists"
 fi
+require_term "src/codegen/transpiler_class_decl_emit.c" \
+    "transpiler_hosted_method_view_source_ast(&method_view, i)"
 for rel in \
     "src/codegen/transpiler_class_decl_emit.c" \
     "src/codegen/transpiler_enum_decl_emit.c"; do
     require_term "$rel" "transpiler_hosted_method_view_from_decl(ctx"
-    require_term "$rel" "transpiler_hosted_method_view_source_ast(&method_view, i)"
     require_term "$rel" "transpiler_mir_decl_method_routine(ctx, method_meta)"
+    require_term "$rel" "transpiler_mir_routine_source_ast_of_type("
     require_term "$rel" "method_meta == NULL"
     require_term "$rel" "MIR-only C path missing hosted method forward metadata row"
     require_term "$rel" "emit_hosted_method_forward_decl_from_metadata"
 done
+if grep -Fq "transpiler_hosted_method_view_source_ast(&method_view, i)" \
+    "$ROOT_DIR/src/codegen/transpiler_enum_decl_emit.c"; then
+    fail "C enum hosted-method bodies must use linked MIRRoutine provenance instead of method source AST back-pointers"
+fi
 for rel in \
     "src/codegen/transpiler_generic_class_specialization_emit.c" \
     "src/codegen/transpiler_domain_nominal_emit.c" \
@@ -4888,8 +4901,6 @@ done
 require_term "src/codegen/transpiler_generic_class_specialization_emit.c" \
     "transpiler_hosted_method_view_from_decl(ctx, base_class_name"
 require_term "src/codegen/transpiler_generic_class_specialization_emit.c" \
-    "transpiler_hosted_method_view_source_ast(&method_view, i)"
-require_term "src/codegen/transpiler_generic_class_specialization_emit.c" \
     "transpiler_mir_decl_method_routine(ctx, method_meta)"
 require_term "src/codegen/transpiler_generic_class_specialization_emit.c" \
     "transpiler_mir_routine_source_ast_of_type("
@@ -4897,6 +4908,10 @@ require_term "src/codegen/transpiler_generic_class_specialization_emit.c" \
     "method_meta == NULL"
 require_term "src/codegen/transpiler_generic_class_specialization_emit.c" \
     "emit_hosted_method_forward_decl_from_metadata"
+if grep -Fq "transpiler_hosted_method_view_source_ast(&method_view, i)" \
+    "$ROOT_DIR/src/codegen/transpiler_generic_class_specialization_emit.c"; then
+    fail "C generic class hosted-method bodies must use linked MIRRoutine provenance instead of method source AST back-pointers"
+fi
 if grep -Eq 'class_decl->data\.class_decl\.methods\[[^]]+\]' \
     "$ROOT_DIR/src/codegen/transpiler_generic_class_specialization_emit.c"; then
     fail "generic class specialization must consume TranspilerHostedMethodView, not index AST method arrays"
@@ -5000,10 +5015,13 @@ for rel in \
     "src/codegen/transpiler_domain_nominal_emit.c" \
     "src/codegen/transpiler_world_select_event_emit.c"; do
     require_term "$rel" "transpiler_hosted_method_view_from_decl(ctx"
-    require_term "$rel" "transpiler_hosted_method_view_source_ast(&method_view, i)"
     require_term "$rel" "transpiler_hosted_method_view_missing_mir_metadata(&method_view)"
     require_term "$rel" "emit_hosted_method_forward_decl_from_metadata"
 done
+if grep -Fq "transpiler_hosted_method_view_source_ast(&method_view, i)" \
+    "$ROOT_DIR/src/codegen/transpiler_world_select_event_emit.c"; then
+    fail "C world hosted-method forward declarations must consume MIRDeclMethod metadata without source AST back-pointers"
+fi
 for rel in \
     "src/codegen/transpiler_class_decl_emit.c" \
     "src/codegen/transpiler_enum_decl_emit.c" \
@@ -5019,9 +5037,11 @@ require_term "src/codegen/transpiler_zone_decl_emit.c" \
 require_term "src/codegen/transpiler_zone_decl_emit.c" \
     "transpiler_hosted_method_view_missing_mir_metadata(&method_view)"
 require_term "src/codegen/transpiler_zone_methods_emit.c" \
-    "transpiler_hosted_method_view_source_ast(method_view, i)"
-require_term "src/codegen/transpiler_zone_methods_emit.c" \
     "emit_hosted_method_forward_decl_from_metadata"
+if grep -Fq "transpiler_hosted_method_view_source_ast(method_view, i)" \
+    "$ROOT_DIR/src/codegen/transpiler_zone_methods_emit.c"; then
+    fail "C zone hosted-method forward declarations must consume MIRDeclMethod metadata without source AST back-pointers"
+fi
 require_term "src/codegen/transpiler_domain_nominal_emit.c" \
     "MIR-only C path missing method declaration metadata for party"
 require_term "src/codegen/transpiler_domain_nominal_emit.c" \
@@ -5311,10 +5331,13 @@ for term in \
 done
 for term in \
     "llvm_find_host_method_metadata_in_context(ctx," \
-    "llvm_mir_decl_method_source_ast(method_meta)" \
     "llvm_member_call_adjust_pointer_self_arg("; do
     require_term "src/codegen/llvm_member_call_emit.c" "$term"
 done
+if grep -Fq "llvm_mir_decl_method_source_ast(method_meta)" \
+    "$ROOT_DIR/src/codegen/llvm_member_call_emit.c"; then
+    fail "LLVM member-call emit must not recover method AST back-pointers from MIR metadata"
+fi
 if grep -Eq 'ast_func_param_count\(method_decl\)|ast_func_param\(method_decl' \
     "$ROOT_DIR/src/codegen/llvm_member_call_emit.c"; then
     fail "LLVM member-call emit must consume MIRDeclMethod metadata through llvm_member_call_adjust_pointer_self_arg"
@@ -5353,13 +5376,12 @@ require_each_following_term "src/codegen/llvm_expr_call_methods_world_effect_syn
     6
 for term in \
     "llvm_find_host_method_metadata_in_context(ctx, host_name, callee_name)" \
-    "llvm_mir_decl_method_source_ast(method_meta)" \
     "llvm_mir_decl_method_param_count(method_meta)" \
     "llvm_mir_decl_method_param(method_meta" \
     "llvm_active_has_mir(ctx)" \
     "llvm_set_mir_inventory_missing(ctx" \
     "MIR-only LLVM path missing hosted self-call method metadata" \
-    "host_method == NULL && method_meta == NULL" \
+    "method_meta == NULL && host_method == NULL" \
     "host_method == NULL" \
     "llvm_find_callable_decl(ctx, callee_name)" \
     "method_meta == NULL && host_method == NULL" \
@@ -5367,14 +5389,16 @@ for term in \
     "method_meta == NULL && !llvm_active_has_mir(ctx)"; do
     require_term "src/codegen/llvm_expr_call_hosted.c" "$term"
 done
+if grep -Fq "llvm_mir_decl_method_source_ast(method_meta)" \
+    "$ROOT_DIR/src/codegen/llvm_expr_call_hosted.c"; then
+    fail "LLVM hosted self-call emit must not recover method AST back-pointers from MIR metadata"
+fi
 require_each_following_term "src/codegen/llvm_expr_call_hosted.c" \
-    "if (host_method == NULL && method_meta == NULL) {" \
+    "if (method_meta == NULL) {" \
     "llvm_active_has_mir(ctx)" \
     6
 require_term "src/codegen/llvm_member_call_emit.c" \
     "obj_node, method_meta, method_decl"
-require_term "src/codegen/llvm_member_call_emit.c" \
-    "method_decl == NULL && method_meta == NULL"
 for term in \
     "llvm_active_has_mir(ctx)" \
     "llvm_set_mir_inventory_missing(ctx" \
@@ -5382,7 +5406,7 @@ for term in \
     require_term "src/codegen/llvm_member_call_emit.c" "$term"
 done
 require_each_following_term "src/codegen/llvm_member_call_emit.c" \
-    "if (method_decl == NULL && method_meta == NULL) {" \
+    "if (method_meta == NULL) {" \
     "llvm_active_has_mir(ctx)" \
     6
 for term in \
@@ -5567,7 +5591,6 @@ for term in \
     "llvm_hosted_method_view_metadata(&enum_method_view, j)" \
     "llvm_hosted_method_view_metadata(&class_method_view, j)" \
     "llvm_require_hosted_method_view_rows(" \
-    "llvm_mir_decl_method_source_ast(method_meta)" \
     "llvm_set_mir_inventory_missing(ctx" \
     "MIR-only LLVM path missing enum method declaration metadata" \
     "MIR-only LLVM path missing class method declaration metadata" \
@@ -5576,6 +5599,10 @@ for term in \
     "LLVM payload enum method self type requires registered enum metadata"; do
     require_term "src/codegen/llvm_register.c" "$term"
 done
+if grep -Fq "llvm_mir_decl_method_source_ast(method_meta)" \
+    "$ROOT_DIR/src/codegen/llvm_register.c"; then
+    fail "LLVM nominal method registry must consume MIRDeclMethod metadata without source AST back-pointers"
+fi
 if grep -Fq "return_type->type != AST_EVENT_HANDLER_TYPE" \
         "$ROOT_DIR/src/codegen/llvm_register.c" \
     || grep -Fq "p->type->type != AST_EVENT_HANDLER_TYPE" \
@@ -5622,15 +5649,12 @@ domain_method_forward_body="$(
         in_body { print }
     ' "$ROOT_DIR/src/codegen/llvm_domain_forward.c"
 )"
-for term in \
-    "bool allow_ast_compat" \
-    "allow_ast_compat && method != NULL" \
-    "bool allow_ast_compat = method_meta == NULL && !llvm_active_has_mir(ctx)"; do
-    require_term "src/codegen/llvm_domain_forward.c" "$term"
-done
-if grep -Fq "bool allow_ast_compat = method_meta == NULL;" \
+if grep -Fq "bool allow_ast_compat" <<<"$domain_method_forward_body"; then
+    fail "LLVM domain method forward declarations must not keep AST compatibility fallback state"
+fi
+if grep -Fq "llvm_hosted_method_view_source_ast(methods, j)" \
     "$ROOT_DIR/src/codegen/llvm_domain_forward.c"; then
-    fail "LLVM domain method forward AST compatibility must be disabled under active MIR"
+    fail "LLVM domain method forward declarations must consume MIRDeclMethod metadata without source AST back-pointers"
 fi
 for term in \
     "bool allow_ast_compat"; do
@@ -5667,11 +5691,13 @@ role_method_forward_body="$(
         in_body { print }
     ' "$ROOT_DIR/src/codegen/llvm_domain_forward_role.c"
 )"
-require_term "src/codegen/llvm_domain_forward_role.c" \
-    "bool allow_ast_compat = method_meta == NULL && !llvm_active_has_mir(ctx)"
-if grep -Fq "bool allow_ast_compat = method_meta == NULL;" \
+if grep -Fq "bool allow_ast_compat" \
     "$ROOT_DIR/src/codegen/llvm_domain_forward_role.c"; then
-    fail "LLVM role method forward AST compatibility must be disabled under active MIR"
+    fail "LLVM role method forward declarations must not keep AST compatibility fallback state"
+fi
+if grep -Fq "llvm_hosted_method_view_source_ast(methods, j)" \
+    "$ROOT_DIR/src/codegen/llvm_domain_forward_role.c"; then
+    fail "LLVM role method forward declarations must consume MIRDeclMethod metadata without source AST back-pointers"
 fi
 for term in \
     "llvm_mir_decl_method_metadata_complete_for(ctx" \
@@ -5714,6 +5740,10 @@ role_operator_body="$(
         in_body { print }
     ' "$ROOT_DIR/src/codegen/llvm_domain_forward_role.c"
 )"
+if grep -Fq "llvm_mir_decl_method_source_ast(method_meta)" \
+    <<<"$role_operator_body"; then
+    fail "LLVM role operator forward declarations must consume MIRDeclMethod metadata without source AST back-pointers"
+fi
 for body_name in ability_vtable_body role_operator_body; do
     body="${!body_name}"
     for term in \

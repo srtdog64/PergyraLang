@@ -728,8 +728,13 @@ grep -Fq "llvm_spawn_reject_worker_storage_param" \
     "$ROOT_DIR/src/codegen/llvm_expr_spawn_worker_boundary.c"
 grep -Fq "codegen_worker_boundary_storage_kind_from_type_name(" \
     "$ROOT_DIR/src/codegen/llvm_expr_spawn_worker_boundary.c"
-grep -Fq "llvm_active_function_routine_for_source_ast" \
+grep -Fq "llvm_active_function_routine_by_name" \
     "$ROOT_DIR/src/codegen/llvm_inventory_internal.c"
+if grep -R -Fq "llvm_active_function_routine_for_source_ast" \
+        "$ROOT_DIR/src/codegen"; then
+    echo "[backend-fail-closed] LLVM function routine lookup must not depend on source AST identity" >&2
+    exit 1
+fi
 grep -Fq "MIR-only LLVM path missing user-call routine" \
     "$ROOT_DIR/src/codegen/llvm_expr_call_dispatch.c"
 grep -Fq "MIR-only LLVM path missing user-call signature metadata" \

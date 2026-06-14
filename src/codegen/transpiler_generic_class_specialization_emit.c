@@ -305,8 +305,6 @@ ensure_generic_class_specialization(TranspilerCtx *ctx,
     for (size_t i = 0; i < method_view.count; i++) {
         const MIRDeclMethod *method_meta =
             transpiler_hosted_method_view_metadata(&method_view, i);
-        ASTNode *method =
-            transpiler_hosted_method_view_source_ast(&method_view, i);
         bool use_self_cell = is_pointer_self_host_type_name(ctx, spec_name);
         if (method_meta == NULL && transpiler_active_has_mir(ctx)) {
             transpiler_set_mir_inventory_missing(ctx,
@@ -323,19 +321,17 @@ ensure_generic_class_specialization(TranspilerCtx *ctx,
             transpiler_generic_class_spec_rollback(ctx, spec_snapshot);
             return NULL;
         }
-        if (method_meta == NULL
-            && (method == NULL || method->type != AST_FUNC_DECL)) {
+        if (method_meta == NULL) {
             continue;
         }
         emit_hosted_method_forward_decl_from_metadata(spec_name, method_meta,
-            method, use_self_cell, ctx->helpers, ctx);
+            NULL, use_self_cell, ctx->helpers, ctx);
     }
 
     for (size_t i = 0; i < method_view.count; i++) {
         const MIRDeclMethod *method_meta =
             transpiler_hosted_method_view_metadata(&method_view, i);
-        ASTNode *method =
-            transpiler_hosted_method_view_source_ast(&method_view, i);
+        ASTNode *method = NULL;
         bool use_self_cell = is_pointer_self_host_type_name(ctx, spec_name);
         const char *method_name;
         const MIRRoutine *mir_method;

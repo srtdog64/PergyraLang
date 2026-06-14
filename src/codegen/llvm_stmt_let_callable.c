@@ -22,7 +22,8 @@ llvm_stmt_register_callable_from_function_decl(LLVMGenCtx *ctx,
 
     extern_func = llvm_decl_is_extern_function(ctx, decl);
     if (llvm_active_has_mir(ctx) && !extern_func)
-        routine = llvm_active_function_routine_for_source_ast(ctx, decl);
+        routine = llvm_active_function_routine_by_name(ctx,
+            ast_declaration_name(decl));
     generic_func = llvm_mir_or_ast_function_is_generic(routine, decl);
     if (llvm_active_has_mir(ctx) && !generic_func && !extern_func) {
         if (routine == NULL) {
@@ -135,8 +136,8 @@ llvm_stmt_register_callable_let_binding(ASTNode *node, LLVMGenCtx *ctx)
             const MIRRoutine *routine = NULL;
             bool generic_func = false;
             if (llvm_active_has_mir(ctx) && !extern_func)
-                routine = llvm_active_function_routine_for_source_ast(ctx,
-                    decl);
+                routine = llvm_active_function_routine_by_name(ctx,
+                    ast_declaration_name(decl));
             generic_func = llvm_mir_or_ast_function_is_generic(routine, decl);
             if (llvm_active_has_mir(ctx) && !generic_func && !extern_func) {
                 if (routine == NULL) {

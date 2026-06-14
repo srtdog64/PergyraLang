@@ -283,7 +283,7 @@ llvm_mir_case_payload_type(LLVMGenCtx *ctx,
         if (decl != NULL && decl->type == AST_FUNC_DECL
             && llvm_active_has_mir(ctx)
             && !decl_is_extern) {
-            routine = llvm_active_function_routine_for_source_ast(ctx, decl);
+            routine = llvm_active_function_routine_by_name(ctx, callee);
         }
         decl_is_generic = llvm_mir_or_ast_function_is_generic(routine, decl);
         if (decl != NULL && decl->type == AST_FUNC_DECL
