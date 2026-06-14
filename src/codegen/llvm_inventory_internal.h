@@ -61,14 +61,10 @@ void llvm_active_decl_header_inventory(
 const MIRDeclHeader *llvm_decl_header_inventory_get(
     const LLVMMIRDeclHeaderInventory *inventory,
     size_t index);
-ASTNode *llvm_mir_routine_source_ast(const MIRRoutine *routine);
 MIRScopeKind llvm_mir_routine_kind(const MIRRoutine *routine);
 const char *llvm_mir_routine_name(const MIRRoutine *routine);
 const char *llvm_mir_routine_owner_name(const MIRRoutine *routine);
 ASTNodeType llvm_mir_routine_owner_ast_type(const MIRRoutine *routine);
-ASTNode *llvm_mir_routine_source_ast_of_type(const MIRRoutine *routine,
-                                             MIRScopeKind expected_kind,
-                                             ASTNodeType expected_ast_type);
 bool llvm_mir_routine_has_signature(const MIRRoutine *routine);
 size_t llvm_mir_routine_generic_param_count(const MIRRoutine *routine);
 size_t llvm_mir_routine_param_count(const MIRRoutine *routine);
@@ -86,7 +82,6 @@ void llvm_active_executables(const LLVMGenCtx *ctx,
 void llvm_active_externs(const LLVMGenCtx *ctx,
                          ASTNode ***nodes_out,
                          size_t *count_out);
-ASTNode *llvm_active_synthetic_executable_func(const LLVMGenCtx *ctx);
 bool llvm_active_has_mir(const LLVMGenCtx *ctx);
 const char *llvm_active_source_path(const LLVMGenCtx *ctx);
 bool llvm_active_has_main_function(const LLVMGenCtx *ctx);

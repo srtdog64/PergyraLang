@@ -95,7 +95,7 @@ llvm_find_decl_in_active_inventory(const LLVMGenCtx *ctx,
     if (ctx->mir != NULL) {
         decl_header = mir_find_decl_header_of_type(ctx->mir, decl_type, name);
         if (decl_header != NULL)
-            return mir_decl_header_source_ast(decl_header);
+            return mir_decl_header_source_decl(decl_header);
         return NULL;
     }
 
@@ -192,17 +192,10 @@ llvm_mir_decl_field_type_name(const MIRDeclField *field)
 ASTNode *
 llvm_find_host_decl_in_active_inventory(const LLVMGenCtx *ctx, const char *name)
 {
-    const MIRDeclHeader *decl_header = NULL;
     const ASTNodeType *host_types = NULL;
     size_t host_type_count = 0;
 
     if (ctx == NULL || name == NULL)
-        return NULL;
-
-    decl_header = llvm_find_host_decl_header_in_context(ctx, name);
-    if (decl_header != NULL)
-        return mir_decl_header_source_ast(decl_header);
-    if (ctx->mir != NULL)
         return NULL;
 
     host_types = pgy_host_decl_compat_types(&host_type_count);

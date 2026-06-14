@@ -1,4 +1,4 @@
-﻿static void
+static void
 test_mir_lowering_part_b(void)
 {
     TEST("MIR captures intent dispatch and causes metadata");
@@ -675,7 +675,7 @@ test_mir_lowering_part_b(void)
                 for (size_t ii = 0; ii < block->instruction_count; ii++) {
                     MIRInstruction *inst = &block->instructions[ii];
                     if (inst->kind == MIR_INST_STMT
-                        && inst->source_ast_type == AST_DEFER_STMT) {
+                        && inst->source_node_type == AST_DEFER_STMT) {
                         defer_inst = inst;
                         break;
                     }

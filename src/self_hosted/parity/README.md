@@ -1,6 +1,6 @@
 # Soft Self-Host Parity Harness
 
-Status: ten rung-2 parity harnesses plus two compiler-internal rung-1 harnesses active.
+Status: eleven rung-2 parity harnesses plus two compiler-internal rung-1 harnesses active.
 
 This folder holds oracle comparisons for soft self-host tools. The C compiler
 and existing shell/C smokes remain the source of truth until a tool can run in
@@ -11,6 +11,7 @@ The parity set currently covers:
 - `diagnostic_catalog_checker`
 - `stable_subset_section_checker`
 - `air_graph_json_validator`
+- `ast_read_surface_checker`
 - `backend_output_comparator`
 - `backend_output_tri_compare` (C/LLVM outputs checked by the Pergyra
   comparator; use `make self-host-backend-tri-compare-extended-test-smoke` for

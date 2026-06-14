@@ -152,7 +152,6 @@ test_ability_role_emit(void)
         routine.return_type_name = "String";
         mir.routines = &routine;
         mir.routine_count = 1;
-        role_method.source_ast = &impl_method;
         role_method.name = "BatchMark";
         role_method.owner_name = "CourierRoute";
         role_method.params = impl_params;

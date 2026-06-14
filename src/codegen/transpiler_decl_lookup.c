@@ -124,7 +124,7 @@ transpiler_find_named_decl_local(TranspilerCtx *ctx, ASTNodeType decl_type,
         return NULL;
     decl_header = transpiler_active_decl_header_of_type(ctx, decl_type, name);
     if (decl_header != NULL)
-        return mir_decl_header_source_ast(decl_header);
+        return mir_decl_header_source_decl(decl_header);
     if (transpiler_active_has_mir(ctx))
         return NULL;
 

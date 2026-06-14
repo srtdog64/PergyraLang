@@ -5,7 +5,7 @@
 
 bool mir_record_decl_header(MIRProgram *mir, ASTNode *decl);
 void mir_link_decl_method_routines(MIRProgram *mir);
-ASTNode *mir_decl_header_source_ast(const MIRDeclHeader *header);
+ASTNode *mir_decl_header_source_decl(const MIRDeclHeader *header);
 ASTNodeType mir_decl_header_ast_type_or(const MIRDeclHeader *header,
                                         ASTNodeType fallback);
 const char *mir_decl_header_name(const MIRDeclHeader *header);
@@ -30,7 +30,6 @@ const char *mir_decl_enum_variant_name(const MIRDeclEnumVariant *variant);
 size_t mir_decl_enum_variant_param_count(const MIRDeclEnumVariant *variant);
 const char *mir_decl_enum_variant_param_type_name(
     const MIRDeclEnumVariant *variant, size_t index);
-ASTNode *mir_decl_method_source_ast(const MIRDeclMethod *method);
 const char *mir_decl_method_name(const MIRDeclMethod *method);
 size_t mir_decl_method_param_count(const MIRDeclMethod *method);
 FuncParam *mir_decl_method_param(const MIRDeclMethod *method, size_t index);
@@ -44,7 +43,6 @@ const char *mir_decl_method_within_zone(const MIRDeclMethod *method);
 const char *mir_decl_method_causes_effect(const MIRDeclMethod *method);
 bool mir_decl_method_routine_index(const MIRDeclMethod *method,
                                    size_t *index_out);
-ASTNode *mir_decl_field_source_ast(const MIRDeclField *field);
 const char *mir_decl_field_owner_name(const MIRDeclField *field);
 const char *mir_decl_field_name(const MIRDeclField *field);
 ASTNode *mir_decl_field_type(const MIRDeclField *field);

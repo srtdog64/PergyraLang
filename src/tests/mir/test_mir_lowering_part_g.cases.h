@@ -18,7 +18,7 @@ test_mir_lowering_part_g(void)
             for (size_t i = 0; i < mir->decl_header_count; i++) {
                 MIRDeclHeader *header = &mir->decl_headers[i];
                 if (header->name != NULL && strcmp(header->name, "Item") == 0) {
-                    header->name = "OtherItem";
+                    header->name = NULL;
                     mutated = true;
                     break;
                 }
@@ -28,7 +28,7 @@ test_mir_lowering_part_g(void)
                    && mutated
                    && !mir_validate(mir, &mir_error)
                    && mir_error != NULL
-                   && strstr(mir_error, "name metadata drift") != NULL;
+                   && strstr(mir_error, "declaration name metadata") != NULL;
         EXPECT(rejected);
         free(mir_error);
         mir_destroy(mir);
@@ -71,9 +71,9 @@ test_mir_lowering_part_g(void)
     TEST("MIR validator rejects pointer-self ABI metadata drift");
     {
         const char *src =
-            "vessel Handle {\n"
-            "    let value: Int;\n"
-            "    func Read(self) -> Int { return value; }\n"
+            "subject Player { }\n"
+            "zone Handle {\n"
+            "    subject slot player: Player\n"
             "}\n";
         HIRProgram *hir = NULL;
         RIRProgram *rir = NULL;

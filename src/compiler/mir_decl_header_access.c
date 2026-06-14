@@ -1,7 +1,7 @@
 #include "mir_decl_headers.h"
 
 ASTNode *
-mir_decl_header_source_ast(const MIRDeclHeader *header)
+mir_decl_header_source_decl(const MIRDeclHeader *header)
 {
     return header != NULL ? header->source_ast : NULL;
 }
@@ -123,12 +123,6 @@ mir_decl_enum_variant_param_type_name(const MIRDeclEnumVariant *variant,
     return variant->param_type_names[index];
 }
 
-ASTNode *
-mir_decl_method_source_ast(const MIRDeclMethod *method)
-{
-    return method != NULL ? method->source_ast : NULL;
-}
-
 const char *
 mir_decl_method_name(const MIRDeclMethod *method)
 {
@@ -207,12 +201,6 @@ mir_decl_method_routine_index(const MIRDeclMethod *method, size_t *index_out)
     if (index_out != NULL)
         *index_out = method->routine_index;
     return true;
-}
-
-ASTNode *
-mir_decl_field_source_ast(const MIRDeclField *field)
-{
-    return field != NULL ? field->source_ast : NULL;
 }
 
 const char *

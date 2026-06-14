@@ -1,0 +1,16 @@
+enum|ast_enum_variant|17|src/codegen|src/codegen/llvm_expr_constructor_calls.c
+enum|ast_enum_variant|17|src/codegen|src/codegen/llvm_register.c
+enum|ast_enum_variant|17|src/codegen|src/codegen/transpiler_enum.c
+enum|ast_enum_variant|17|src/codegen|src/codegen/transpiler_enum_decl_emit.c
+enum|ast_enum_variant|17|src/codegen|src/codegen/transpiler_match_bindings.c
+source_ast_codegen|source_ast|0|src/codegen|
+source_ast_compiler|source_ast|2|src/compiler|src/compiler/mir_decl_header_access.c
+source_ast_compiler|source_ast|2|src/compiler|src/compiler/mir_decl_headers.c
+source_decl_codegen|mir_decl_header_source_decl|2|src/codegen|src/codegen/llvm_inventory_decl_lookup.c
+source_decl_codegen|mir_decl_header_source_decl|2|src/codegen|src/codegen/transpiler_decl_lookup.c
+source_decl_compiler|mir_decl_header_source_decl|1|src/compiler|src/compiler/mir_decl_header_access.c
+routine_source_decl_codegen|mir_routine_source_decl_of_type|5|src/codegen|src/codegen/llvm_decl_routines.c
+routine_source_decl_codegen|mir_routine_source_decl_of_type|5|src/codegen|src/codegen/llvm_intent_flow.c
+routine_source_decl_codegen|mir_routine_source_decl_of_type|5|src/codegen|src/codegen/llvm_inventory_host_methods.c
+routine_source_decl_codegen|mir_routine_source_decl_of_type|5|src/codegen|src/codegen/llvm_mir_emit.c
+routine_source_decl_codegen|mir_routine_source_decl_of_type|5|src/codegen|src/codegen/transpiler_decl_method_view.c

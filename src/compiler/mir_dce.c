@@ -138,7 +138,7 @@ mir_instruction_is_dead_stmt(const MIRInstruction *inst)
         return !mir_instruction_source_stmt_has_side_effect_hint(inst);
     if (mir_instruction_source_payload(inst) == NULL)
         return true;
-    return !mir_source_ast_stmt_has_side_effect_hint(
+    return !mir_source_node_stmt_has_side_effect_hint(
         mir_instruction_source_payload(inst));
 }
 

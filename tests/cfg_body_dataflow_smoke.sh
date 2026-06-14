@@ -142,7 +142,7 @@ run_literal_doc_contract_smoke() {
         exit 1
     fi
     if awk '
-        /^mir_source_ast_type_is_cfg_container\(ASTNodeType type\)/ { in_fn = 1; next }
+        /^mir_source_node_type_is_cfg_container\(ASTNodeType type\)/ { in_fn = 1; next }
         in_fn && /switch[[:space:]]*\(/ { print FNR ":" $0; bad = 1 }
         in_fn && /^}/ { in_fn = 0 }
         END { exit bad ? 0 : 1 }
@@ -290,7 +290,7 @@ run_literal_doc_contract_smoke() {
     require_literal "src/compiler/mir_fact_terminator_validate.c" "source-branch emit fact is invalid"
     require_literal "src/compiler/mir_source_shape.c" "mir_instruction_branch_requires_source_emit"
     require_literal "src/compiler/mir_source_shape.c" "mir_instruction_has_source_payload"
-    require_literal "src/compiler/mir_source_shape.c" "mir_source_ast_type_name"
+    require_literal "src/compiler/mir_source_shape.c" "mir_source_node_type_name"
     require_literal "src/compiler/mir_source_shape.c" "AST_BIND_STMT"
     require_literal "src/compiler/mir_source_shape.c" "mir_block_has_hir_source_mapping"
     require_literal "src/compiler/mir_source_shape.c" "mir_block_has_source_location"
@@ -427,7 +427,7 @@ run_literal_doc_contract_smoke() {
     fi
     local raw_source_shape_hits
     raw_source_shape_hits="$(
-        grep -RInE -- '(inst|block)->(source_ast_type|source_line|source_column|has_source_location)\b' \
+        grep -RInE -- '(inst|block)->(source_node_type|source_line|source_column|has_source_location)\b' \
             "$ROOT_DIR/src/compiler" "$ROOT_DIR/src/codegen" \
         | grep -v 'src/compiler/mir.c:' \
         | grep -v 'src/compiler/mir_public_surface.c:' \
@@ -1124,7 +1124,7 @@ required_mir_owner_terms = {
         "mir_remove_instruction",
         "mir_reset_routine_analysis",
         "mir_instruction_source_stmt_has_side_effect_hint(inst)",
-        "mir_source_ast_stmt_has_side_effect_hint",
+        "mir_source_node_stmt_has_side_effect_hint",
     ],
     "src/compiler/mir_call_fact.h": [
         "PERGYRA_MIR_CALL_FACT_H",
@@ -1590,10 +1590,10 @@ if "inst->has_source_location" in mir_dce:
         "instead of reopening raw source-location fields"
     )
 
-if "inst->source_ast_type" in mir_llvm_block_emit:
+if "inst->source_node_type" in mir_llvm_block_emit:
     raise SystemExit(
         "LLVM MIR block emission must consume MIR source-shape accessors "
-        "instead of reopening raw source_ast_type"
+        "instead of reopening raw source_node_type"
     )
 
 if "inst->has_source_location" in mir_llvm_block_emit:
@@ -1620,10 +1620,10 @@ if "inst->has_source_location" in mir_stmt_population_impl:
 mir_lifecycle_impl = (
     root / "src/compiler/mir_lifecycle.c"
 ).read_text(encoding="utf-8")
-if "inst->source_ast_type" in mir_lifecycle_impl:
+if "inst->source_node_type" in mir_lifecycle_impl:
     raise SystemExit(
         "MIR dump/lifecycle must consume source-shape accessors instead of "
-        "reopening raw instruction source_ast_type"
+        "reopening raw instruction source_node_type"
     )
 
 if "inst->source_line" in mir_lifecycle_impl:
@@ -1639,7 +1639,7 @@ if "block->source_line" in mir_lifecycle_impl:
     )
 
 raw_source_fields = (
-    "->source_ast_type",
+    "->source_node_type",
     "->has_source_location",
     "->source_line",
     "->source_column",
@@ -1670,7 +1670,7 @@ if raw_source_leaks:
     )
 
 if re.search(
-    r"has_source_location\s*&&\s*inst->source_ast_type\s*==\s*AST_WITH_STMT",
+    r"has_source_location\s*&&\s*inst->source_node_type\s*==\s*AST_WITH_STMT",
     mir_llvm_block_emit,
 ):
     raise SystemExit(
@@ -1688,7 +1688,7 @@ if re.search(
     )
 
 if re.search(
-    r"case\s+MIR_INST_STMT\s*:[\s\S]*?source_ast_type\s*==\s*AST_WITH_STMT",
+    r"case\s+MIR_INST_STMT\s*:[\s\S]*?source_node_type\s*==\s*AST_WITH_STMT",
     mir_llvm_block_emit,
 ):
     raise SystemExit(
@@ -1741,14 +1741,14 @@ if grep -RIn "inst->arg1 == NULL || strcmp(inst->arg1, step_name)" \
     echo "C intent helper must use MIR intent step matching API" >&2
     exit 1
 fi
-if grep -n "source_ast_type != AST_INTENT_STEP" \
+if grep -n "source_node_type != AST_INTENT_STEP" \
     "$ROOT_DIR/src/codegen/llvm_intent_flow.c"; then
-    echo "LLVM intent step collection must consume MIR intent-step facts, not source_ast_type filters" >&2
+    echo "LLVM intent step collection must consume MIR intent-step facts, not source_node_type filters" >&2
     exit 1
 fi
-if grep -n "source_ast_type != AST_INTENT_STEP" \
+if grep -n "source_node_type != AST_INTENT_STEP" \
     "$ROOT_DIR/src/codegen/transpiler_mir_inventory_intent_collect.c"; then
-    echo "C intent step collection must consume MIR intent-step facts, not source_ast_type filters" >&2
+    echo "C intent step collection must consume MIR intent-step facts, not source_node_type filters" >&2
     exit 1
 fi
 

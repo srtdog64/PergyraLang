@@ -25,6 +25,90 @@ llvm_forward_intent_involves_type_name(ASTNode *involves)
     return ast_type_name(subject_type);
 }
 
+static bool
+llvm_forward_declare_intent_from_mir_routine(LLVMGenCtx *ctx,
+                                             const MIRRoutine *routine)
+{
+    const char *name;
+    IntentBindingMetadataView binding_metadata = {0};
+    LLVMTypeRef *param_types = NULL;
+    LLVMTypeRef fn_type;
+    LLVMValueRef fn;
+    size_t param_count;
+
+    if (ctx == NULL || routine == NULL)
+        return false;
+    if (llvm_mir_routine_kind(routine) != MIR_SCOPE_INTENT)
+        return true;
+
+    name = llvm_mir_routine_name(routine);
+    if (name == NULL) {
+        llvm_set_mir_inventory_missing(ctx,
+            "MIR-only LLVM path has unnamed intent routine inventory row");
+        return false;
+    }
+    if (llvm_lookup_function(ctx, name) != NULL)
+        return true;
+
+    param_count = llvm_collect_mir_intent_bindings(
+        routine, ctx, &binding_metadata);
+    for (size_t i = 0; i < param_count; i++) {
+        if (!intent_binding_metadata_view_has_complete_row(
+                &binding_metadata, i)) {
+            llvm_set_mir_inventory_missing(ctx,
+                "MIR-only LLVM path has incomplete ordered intent binding metadata for forward declaration '%s'",
+                name);
+            return false;
+        }
+        if (!intent_binding_metadata_kind_is_supported(
+                intent_binding_metadata_view_kind_at(
+                    &binding_metadata, i))) {
+            llvm_set_mir_inventory_missing(ctx,
+                "MIR-only LLVM path has invalid ordered intent binding metadata for forward declaration '%s'",
+                name);
+            return false;
+        }
+    }
+
+    if (param_count > 0) {
+        param_types = pgy_arena_calloc(&ctx->scratch,
+            param_count * sizeof(LLVMTypeRef));
+        if (param_types == NULL) {
+            llvm_set_error(ctx,
+                "LLVM intent forward parameter allocation failed for '%s'",
+                name);
+            return false;
+        }
+        for (size_t i = 0; i < param_count; i++) {
+            const char *type_name =
+                intent_binding_metadata_view_type_at(&binding_metadata, i);
+            LLVMTypeRef pt = pergyra_type_to_llvm(ctx, type_name);
+            if (ctx->has_error || pt == NULL)
+                return false;
+            if (intent_binding_metadata_view_row_is_kind(
+                    &binding_metadata, i, "participant")
+                && llvm_type_name_uses_pointer_self(ctx, type_name)) {
+                pt = LLVMPointerType(pt, 0);
+            }
+            param_types[i] = pt;
+        }
+    }
+
+    fn_type = LLVMFunctionType(ctx->type_i1, param_types,
+        (unsigned)param_count, 0);
+    fn = LLVMAddFunction(ctx->module, name, fn_type);
+    {
+        unsigned attr_kind = LLVMGetEnumAttributeKindForName(
+            "no-stack-arg-probe", 18);
+        if (attr_kind != 0) {
+            LLVMAddAttributeAtIndex(fn, LLVMAttributeFunctionIndex,
+                LLVMCreateEnumAttribute(ctx->context, attr_kind, 0));
+        }
+    }
+    llvm_register_function(ctx, name, fn, fn_type, ctx->type_i1);
+    return !ctx->has_error;
+}
+
 void
 llvm_forward_declare_intent(ASTNode *node, LLVMGenCtx *ctx)
 {
@@ -195,14 +279,10 @@ llvm_forward_declare_intent_routines_from_inventory(
                 "MIR-only LLVM path has invalid intent routine inventory row");
             return;
         }
-        ASTNode *intent_decl = NULL;
-        if (!llvm_require_mir_intent_source_ast(ctx, routine, &intent_decl))
+        if (!llvm_forward_declare_intent_from_mir_routine(ctx, routine)
+            || ctx->has_error) {
             return;
-        if (intent_decl == NULL)
-            continue;
-        llvm_forward_declare_intent(intent_decl, ctx);
-        if (ctx->has_error)
-            return;
+        }
     }
 }
 

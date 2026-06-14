@@ -123,7 +123,7 @@ append_overlay_method_projection_invalidations(CodeBuf *buf,
                     transpiler_find_host_method_metadata_in_context(
                         ctx, field_type_name, method_name);
                 ASTNode *method_decl =
-                    transpiler_mir_decl_method_source_ast(method_meta);
+                    transpiler_mir_decl_method_body_decl(ctx, method_meta);
                 if (method_decl == NULL && method_meta == NULL) {
                     if (transpiler_active_has_mir(ctx)) {
                         transpiler_set_mir_inventory_missing(ctx,

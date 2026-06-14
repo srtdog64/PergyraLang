@@ -342,12 +342,6 @@ transpiler_can_emit_function_from_mir_with_reason(const TranspilerCtx *ctx,
             transpiler_mir_reasonf(reason, reason_cap, "function %s has wrong MIR kind: %d", ast_declaration_name(func_decl), transpiler_mir_routine_kind(routine));
         return false;
     }
-    if (transpiler_mir_routine_source_ast_of_type(
-            routine, MIR_SCOPE_FUNCTION, AST_FUNC_DECL) == NULL) {
-        if (reason != NULL && reason_cap > 0)
-            transpiler_mir_reasonf(reason, reason_cap, "function %s has no declaration AST in MIR", ast_declaration_name(func_decl));
-        return false;
-    }
     /* cleanup blocks are now fully supported - removed restriction */
     if (!transpiler_mir_routine_signature_supported((TranspilerCtx *)ctx,
             routine,
@@ -412,17 +406,13 @@ transpiler_can_emit_intent_cleanup_from_mir_with_reason(const TranspilerCtx *ctx
             transpiler_mir_reasonf(reason, reason_cap, "intent cannot lower to MIR: no matching MIR routine (found %llu routines)", (unsigned long long) transpiler_active_routine_count(ctx));
         return false;
     }
-    ASTNode *source_ast = transpiler_mir_routine_source_ast_of_type(
-        routine, MIR_SCOPE_INTENT, AST_INTENT_DECL);
     if (transpiler_mir_routine_kind(routine) != MIR_SCOPE_INTENT
-        || source_ast == NULL
         || !routine->has_cleanup_block) {
         if (reason != NULL && reason_cap > 0)
             transpiler_mir_reasonf(reason, reason_cap,
-                "intent %s has no MIR cleanup section (kind=%d, has_ast=%d, has_cleanup_block=%d)",
+                "intent %s has no MIR cleanup section (kind=%d, has_cleanup_block=%d)",
                 ast_intent_decl_name(intent_decl),
                 transpiler_mir_routine_kind(routine),
-                source_ast != NULL,
                 routine->has_cleanup_block);
         return false;
     }

@@ -70,9 +70,23 @@ mir_decl_header_inventory_get(const MIRDeclHeaderInventory *inventory,
 }
 
 ASTNode *
-mir_routine_source_ast(const MIRRoutine *routine)
+mir_routine_source_decl(const MIRRoutine *routine)
 {
     return routine != NULL ? routine->ast : NULL;
+}
+
+ASTNode *
+mir_routine_source_decl_of_type(const MIRRoutine *routine,
+                                MIRScopeKind expected_kind,
+                                ASTNodeType expected_ast_type)
+{
+    ASTNode *source = mir_routine_source_decl(routine);
+
+    if (routine == NULL || mir_routine_kind(routine) != expected_kind)
+        return NULL;
+    if (source == NULL || source->type != expected_ast_type)
+        return NULL;
+    return source;
 }
 
 MIRScopeKind

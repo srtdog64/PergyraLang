@@ -12,6 +12,7 @@
 #include "host_decl_compat.h"
 #include "../compiler/mir_decl_headers.h"
 #include "transpiler_context.h"
+#include "transpiler_inventory_view.h"
 
 TranspilerHostedMethodView
 transpiler_hosted_method_view(const TranspilerCtx *ctx,
@@ -188,14 +189,6 @@ transpiler_mir_decl_method_name(const MIRDeclMethod *method)
     return mir_decl_method_name(method);
 }
 
-ASTNode *
-transpiler_mir_decl_method_source_ast(const MIRDeclMethod *method)
-{
-    if (method != NULL)
-        return mir_decl_method_source_ast(method);
-    return NULL;
-}
-
 size_t
 transpiler_mir_decl_method_param_count(const MIRDeclMethod *method)
 {
@@ -266,6 +259,16 @@ transpiler_mir_decl_method_routine(const TranspilerCtx *ctx,
     return transpiler_routine_inventory_get(&inventory, routine_index);
 }
 
+ASTNode *
+transpiler_mir_decl_method_body_decl(const TranspilerCtx *ctx,
+                                     const MIRDeclMethod *method)
+{
+    const MIRRoutine *routine = transpiler_mir_decl_method_routine(ctx,
+        method);
+    return mir_routine_source_decl_of_type(
+        routine, MIR_SCOPE_METHOD, AST_FUNC_DECL);
+}
+
 TranspilerHostedMethodView
 transpiler_hosted_method_view_from_decl(const TranspilerCtx *ctx,
                                         const char *host_name,
@@ -276,23 +279,4 @@ transpiler_hosted_method_view_from_decl(const TranspilerCtx *ctx,
 
     return transpiler_hosted_method_view(ctx, host_name,
         compat.methods, compat.count);
-}
-
-ASTNode *
-transpiler_hosted_method_view_source_ast(
-    const TranspilerHostedMethodView *view,
-    size_t index)
-{
-    const MIRDeclMethod *method =
-        transpiler_hosted_method_view_metadata(view, index);
-
-    if (view == NULL || index >= view->count)
-        return NULL;
-    if (method != NULL)
-        return mir_decl_method_source_ast(method);
-    if (view->requires_mir_metadata)
-        return NULL;
-    return view->ast_compat_methods != NULL
-        ? view->ast_compat_methods[index]
-        : NULL;
 }

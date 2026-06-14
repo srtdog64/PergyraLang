@@ -19,8 +19,10 @@ transpiler_emit_zone_required_specializations(
             transpiler_hosted_shared_field_view_type(shared_view, i));
     }
     for (size_t i = 0; method_view != NULL && i < method_view->count; i++) {
+        const MIRDeclMethod *method_meta =
+            transpiler_hosted_method_view_metadata(method_view, i);
         ASTNode *method =
-            transpiler_hosted_method_view_source_ast(method_view, i);
+            transpiler_mir_decl_method_body_decl(ctx, method_meta);
         ensure_collection_specializations_from_stmt_to(ctx, ctx->out, method);
     }
 }

@@ -176,13 +176,13 @@ mir_copy_phi_nodes(MIRSourcePhiNode **dst, size_t *dst_count,
 }
 
 static void
-mir_block_record_source_location(MIRBasicBlock *block, const ASTNode *source_ast)
+mir_block_record_source_location(MIRBasicBlock *block, const ASTNode *source_node)
 {
     if (block == NULL)
         return;
-    block->has_source_location = source_ast != NULL;
-    block->source_line = source_ast != NULL ? source_ast->line : 0;
-    block->source_column = source_ast != NULL ? source_ast->column : 0;
+    block->has_source_location = source_node != NULL;
+    block->source_line = source_node != NULL ? source_node->line : 0;
+    block->source_column = source_node != NULL ? source_node->column : 0;
 }
 
 #include "mir_ssa_rename.h"
@@ -213,7 +213,7 @@ mir_build_blocks_from_hir(MIRRoutine *routine, const HIRRoutine *hir_routine)
     routine->entry_block = hir_routine->cfg.entry_block;
     for (size_t i = 0; i < hir_routine->cfg.block_count; i++) {
         const HIRBasicBlock *src = &hir_routine->cfg.blocks[i];
-        const ASTNode *source_ast = NULL;
+        const ASTNode *source_node = NULL;
         MIRBasicBlock block;
         memset(&block, 0, sizeof(block));
         block.id = i;
@@ -227,12 +227,12 @@ mir_build_blocks_from_hir(MIRRoutine *routine, const HIRRoutine *hir_routine)
         block.pin_block_ast = src->pin_block_ast;
         block.source_hir_block_id = src->id;
         if (src->statement_count > 0)
-            source_ast = src->statements[0];
+            source_node = src->statements[0];
         else if (src->terminator_condition != NULL)
-            source_ast = src->terminator_condition;
+            source_node = src->terminator_condition;
         else if (src->terminator_value != NULL)
-            source_ast = src->terminator_value;
-        mir_block_record_source_location(&block, source_ast);
+            source_node = src->terminator_value;
+        mir_block_record_source_location(&block, source_node);
         block.succ_true = src->succ_true;
         block.succ_false = src->succ_false;
         block.has_succ_true = src->has_succ_true;

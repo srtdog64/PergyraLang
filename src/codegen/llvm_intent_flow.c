@@ -77,13 +77,13 @@ llvm_mir_intent_routine_has_instructions(const MIRRoutine *routine)
 }
 
 bool
-llvm_require_mir_intent_source_ast(LLVMGenCtx *ctx,
-                                   const MIRRoutine *routine,
-                                   ASTNode **intent_decl_out)
+llvm_require_mir_intent_source_decl(LLVMGenCtx *ctx,
+                                    const MIRRoutine *routine,
+                                    ASTNode **intent_decl_out)
 {
     ASTNode *intent_decl;
 
-    intent_decl = llvm_mir_routine_source_ast_of_type(
+    intent_decl = mir_routine_source_decl_of_type(
         routine, MIR_SCOPE_INTENT, AST_INTENT_DECL);
     if (intent_decl_out != NULL)
         *intent_decl_out = intent_decl;
@@ -94,7 +94,7 @@ llvm_require_mir_intent_source_ast(LLVMGenCtx *ctx,
         && llvm_mir_intent_routine_has_instructions(routine)) {
         const char *routine_name = llvm_mir_routine_name(routine);
         llvm_set_mir_inventory_missing(ctx,
-            "MIR-only LLVM path missing intent source declaration metadata for routine '%s'",
+            "MIR-only LLVM path missing intent source declaration for routine '%s'",
             routine_name != NULL ? routine_name : "(anonymous)");
         return false;
     }

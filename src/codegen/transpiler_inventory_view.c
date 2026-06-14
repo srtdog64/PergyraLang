@@ -50,12 +50,6 @@ transpiler_routine_inventory_get(
     return &inventory->routines[index];
 }
 
-ASTNode *
-transpiler_mir_routine_source_ast(const MIRRoutine *routine)
-{
-    return mir_routine_source_ast(routine);
-}
-
 MIRScopeKind
 transpiler_mir_routine_kind(const MIRRoutine *routine)
 {
@@ -78,21 +72,6 @@ ASTNodeType
 transpiler_mir_routine_owner_ast_type(const MIRRoutine *routine)
 {
     return mir_routine_owner_ast_type(routine);
-}
-
-ASTNode *
-transpiler_mir_routine_source_ast_of_type(
-    const MIRRoutine *routine,
-    MIRScopeKind expected_kind,
-    ASTNodeType expected_ast_type)
-{
-    ASTNode *source_ast = transpiler_mir_routine_source_ast(routine);
-
-    if (routine == NULL || transpiler_mir_routine_kind(routine) != expected_kind)
-        return NULL;
-    if (source_ast == NULL || source_ast->type != expected_ast_type)
-        return NULL;
-    return source_ast;
 }
 
 bool
@@ -237,14 +216,6 @@ transpiler_active_executables(const TranspilerCtx *ctx,
         *nodes_out = nodes;
     if (count_out != NULL)
         *count_out = count;
-}
-
-ASTNode *
-transpiler_active_synthetic_executable_func(const TranspilerCtx *ctx)
-{
-    if (ctx != NULL && ctx->mir != NULL)
-        return mir_find_function_decl(ctx->mir, "__pgy_top_level_exec");
-    return NULL;
 }
 
 bool

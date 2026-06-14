@@ -117,6 +117,17 @@ transpiler_c_executable_emitted_name(const char *name)
     return name;
 }
 
+static bool
+transpiler_is_synthetic_executable_func(ASTNode *fn)
+{
+    const char *name;
+
+    if (fn == NULL || fn->type != AST_FUNC_DECL)
+        return false;
+    name = ast_declaration_name(fn);
+    return name != NULL && strcmp(name, "__pgy_top_level_exec") == 0;
+}
+
 /* -----------------------------------------------------------------
  * Program emitter
  * ----------------------------------------------------------------- */
@@ -158,15 +169,9 @@ emit_program(TranspilerCtx *ctx)
     if (!transpiler_active_has_mir(ctx))
         return;
 
-    synthetic_executable_func = transpiler_active_synthetic_executable_func(ctx);
     has_main_function = transpiler_active_has_main_function(ctx);
     main_function_name = transpiler_active_main_function_name(ctx);
     has_top_level_exec = transpiler_active_has_top_level_exec(ctx);
-    if (has_top_level_exec && synthetic_executable_func == NULL) {
-        transpiler_set_mir_inventory_missing(ctx,
-            "MIR-only C path missing synthetic top-level executable function '__pgy_top_level_exec'");
-        return;
-    }
     transpiler_active_inventory(ctx, AST_ABILITY_DECL, &abilities, &ability_count);
     transpiler_active_inventory(ctx, AST_CLASS_DECL, &types, &type_count);
     transpiler_active_externs(ctx, &externs, &exten_count);
@@ -180,9 +185,20 @@ emit_program(TranspilerCtx *ctx)
     transpiler_active_inventory(ctx, AST_ZONE_DECL, &zones, &zone_count);
     transpiler_active_inventory(ctx, AST_WORLD_DECL, &worlds, &world_count);
     transpiler_active_inventory(ctx, AST_EVENT_DECL, &events, &event_count);
+    for (size_t i = 0; i < function_count; i++) {
+        if (transpiler_is_synthetic_executable_func(functions[i])) {
+            synthetic_executable_func = functions[i];
+            break;
+        }
+    }
+    if (has_top_level_exec && synthetic_executable_func == NULL) {
+        transpiler_set_mir_inventory_missing(ctx,
+            "MIR-only C path missing synthetic top-level executable function '__pgy_top_level_exec'");
+        return;
+    }
     if (has_main_function
         && (main_function_name == NULL
-            || transpiler_find_named_decl_local(
+            || transpiler_active_decl_header_of_type(
                    ctx, AST_FUNC_DECL, main_function_name) == NULL)) {
         transpiler_set_mir_inventory_missing(ctx,
             "MIR-only C path missing registered executable function '%s'",
@@ -267,7 +283,7 @@ emit_program(TranspilerCtx *ctx)
     /* Pass 2.6: early forward declarations for standalone functions so
      * class/domain hosted methods can call file-scope helpers declared later. */
     for (size_t i = 0; i < function_count; i++) {
-        if (functions[i] == synthetic_executable_func)
+        if (transpiler_is_synthetic_executable_func(functions[i]))
             continue;
         if (transpiler_can_forward_declare_func_early(ctx, functions[i])) {
             emit_func_forward_decl_named(
@@ -316,7 +332,7 @@ emit_program(TranspilerCtx *ctx)
             emit_intent_forward_decl(intents[i], ctx->out, ctx);
     }
     for (size_t i = 0; i < function_count; i++) {
-        if (functions[i] == synthetic_executable_func)
+        if (transpiler_is_synthetic_executable_func(functions[i]))
             continue;
         if (!transpiler_can_forward_declare_func_early(ctx, functions[i])
             && transpiler_can_forward_declare_func_after_zones(ctx, functions[i])) {
@@ -365,7 +381,7 @@ emit_program(TranspilerCtx *ctx)
         CodeBuf *saved_out = ctx->out;
         ctx->out = func_buf;
         for (size_t i = 0; i < function_count; i++) {
-            if (functions[i] == synthetic_executable_func)
+            if (transpiler_is_synthetic_executable_func(functions[i]))
                 continue;
             if (!transpiler_mir_or_ast_function_is_generic(
                     transpiler_find_mir_function(ctx, functions[i]),

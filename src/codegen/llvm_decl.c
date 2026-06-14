@@ -117,10 +117,13 @@ llvm_forward_declare_func_with_signature(ASTNode *node,
                                          const MIRRoutine *routine,
                                          LLVMGenCtx *ctx)
 {
-    const char *name = ast_declaration_name(node);
+    const char *name = routine != NULL
+        ? llvm_mir_routine_name(routine)
+        : ast_declaration_name(node);
     bool allow_ast_compat = false;
     bool generic_func = false;
-    bool extern_func = llvm_decl_is_extern_function(ctx, node);
+    bool extern_func = routine == NULL
+        && llvm_decl_is_extern_function(ctx, node);
     if (routine == NULL) {
         generic_func = llvm_mir_or_ast_function_is_generic(NULL, node);
         if (llvm_active_has_mir(ctx) && !generic_func && !extern_func) {

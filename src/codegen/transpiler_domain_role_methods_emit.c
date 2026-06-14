@@ -42,8 +42,7 @@ emit_role_method_impl(const char *role_name,
 
     method_name = transpiler_mir_decl_method_name(method_meta);
     if (method == NULL && mir_method != NULL)
-        method = transpiler_mir_routine_source_ast_of_type(
-            mir_method, MIR_SCOPE_METHOD, AST_FUNC_DECL);
+        method = transpiler_mir_decl_method_body_decl(ctx, method_meta);
     if (method_name == NULL && method != NULL)
         method_name = ast_declaration_name(method);
     if (transpiler_active_has_mir(ctx)

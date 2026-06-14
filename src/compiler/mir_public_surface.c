@@ -26,13 +26,13 @@ mir_instruction_record_surface_usage(MIRInstruction *inst)
         inst->source_line = source_payload->line;
         inst->source_column = source_payload->column;
         inst->source_stable_id = ast_node_stable_id(source_payload);
-        inst->source_ast_type = source_payload->type;
+        inst->source_node_type = source_payload->type;
     } else {
         inst->has_source_location = false;
         inst->source_line = 0;
         inst->source_column = 0;
         inst->source_stable_id = 0;
-        inst->source_ast_type = 0;
+        inst->source_node_type = 0;
     }
     inst->has_surface_usage_facts = true;
     inst->uses_thread_pool_surface =
@@ -93,34 +93,6 @@ mir_count_non_cfg_body_fallback_inventory(const MIRProgram *mir,
         *fallback_total = total;
     if (fallback_routines != NULL)
         *fallback_routines = routines;
-}
-
-ASTNode *
-mir_find_function_decl(const MIRProgram *mir, const char *name)
-{
-    const MIRDeclHeader *decl_header;
-
-    if (mir == NULL || name == NULL)
-        return NULL;
-
-    decl_header = mir_find_decl_header_of_type(mir, AST_FUNC_DECL, name);
-    if (decl_header != NULL)
-        return mir_decl_header_source_ast(decl_header);
-    if (mir->decl_header_count > 0)
-        return NULL;
-
-    for (size_t i = 0; i < mir->function_count; i++) {
-        ASTNode *fn = mir->functions[i];
-        const char *fn_name = ast_declaration_name(fn);
-        if (fn == NULL || fn->type != AST_FUNC_DECL
-            || fn_name == NULL) {
-            continue;
-        }
-        if (strcmp(fn_name, name) == 0)
-            return fn;
-    }
-
-    return NULL;
 }
 
 void

@@ -28,9 +28,12 @@ llvm_mir_routine_signature_metadata_complete_for(
     const char *missing_param_type_fmt)
 {
     const char *func_name = llvm_signature_decl_name(func_decl);
+    const char *routine_name = llvm_mir_routine_name(routine);
 
     if (routine == NULL)
         return true;
+    if (routine_name != NULL)
+        func_name = routine_name;
 
     if (!llvm_mir_routine_has_signature(routine)) {
         llvm_set_mir_inventory_missing(ctx,

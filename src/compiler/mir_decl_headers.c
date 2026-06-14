@@ -134,7 +134,6 @@ mir_decl_method_metadata_init(MIRDeclMethod *meta,
     if (meta == NULL || header == NULL)
         return;
 
-    meta->source_ast = method;
     meta->owner_name = header->name;
     if (method == NULL || method->type != AST_FUNC_DECL)
         return;

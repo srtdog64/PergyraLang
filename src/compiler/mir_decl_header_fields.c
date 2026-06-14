@@ -110,7 +110,6 @@ mir_decl_header_free_fields(MIRDeclHeader *header)
 static void
 mir_decl_field_metadata_init(MIRDeclField *meta,
                              const MIRDeclHeader *header,
-                             ASTNode *source_ast,
                              const char *name,
                              ASTNode *type,
                              const char *type_name,
@@ -119,7 +118,6 @@ mir_decl_field_metadata_init(MIRDeclField *meta,
     if (meta == NULL || header == NULL)
         return;
 
-    meta->source_ast = source_ast;
     meta->owner_name = header->name;
     meta->name = name;
     meta->type = type;
@@ -138,7 +136,7 @@ mir_decl_field_metadata_init_class(MIRDeclField *meta,
     if (meta == NULL || field == NULL)
         return;
     mir_decl_field_metadata_init(
-        meta, header, NULL, field->name, field->type, NULL,
+        meta, header, field->name, field->type, NULL,
         MIR_DECL_FIELD_CLASS);
     meta->is_subject_like = field->is_vessel_field;
 }
@@ -151,7 +149,7 @@ mir_decl_field_metadata_init_shared(MIRDeclField *meta,
     if (meta == NULL || field == NULL)
         return;
     mir_decl_field_metadata_init(
-        meta, header, field, ast_party_shared_name(field),
+        meta, header, ast_party_shared_name(field),
         ast_party_shared_type(field), NULL, MIR_DECL_FIELD_SHARED);
     meta->initializer = ast_party_shared_initializer(field);
 }
@@ -164,7 +162,7 @@ mir_decl_field_metadata_init_role_slot(MIRDeclField *meta,
     if (meta == NULL || slot == NULL)
         return;
     mir_decl_field_metadata_init(
-        meta, header, slot, ast_role_slot_name(slot), NULL, NULL,
+        meta, header, ast_role_slot_name(slot), NULL, NULL,
         MIR_DECL_FIELD_ROLE_SLOT);
     meta->is_dynamic = ast_role_slot_is_dynamic(slot);
     {
@@ -193,7 +191,7 @@ mir_decl_field_metadata_init_roster_slot(MIRDeclField *meta,
     if (meta == NULL || slot == NULL)
         return;
     mir_decl_field_metadata_init(
-        meta, header, slot, ast_roster_slot_name(slot), NULL,
+        meta, header, ast_roster_slot_name(slot), NULL,
         ast_roster_slot_party_type(slot), MIR_DECL_FIELD_ROSTER_SLOT);
 }
 
@@ -215,7 +213,7 @@ mir_decl_field_metadata_init_world_slot(MIRDeclField *meta,
         name = ast_world_zone_slot_name(slot);
         type_name = ast_world_zone_type_name(slot);
     }
-    mir_decl_field_metadata_init(meta, header, slot, name, NULL, type_name, kind);
+    mir_decl_field_metadata_init(meta, header, name, NULL, type_name, kind);
 }
 
 static void
@@ -226,7 +224,7 @@ mir_decl_field_metadata_init_domain_slot(MIRDeclField *meta,
     if (meta == NULL || slot == NULL)
         return;
     mir_decl_field_metadata_init(
-        meta, header, slot, ast_domain_slot_name(slot),
+        meta, header, ast_domain_slot_name(slot),
         ast_domain_slot_type(slot),
         NULL,
         MIR_DECL_FIELD_DOMAIN_SLOT);
@@ -243,7 +241,7 @@ mir_decl_field_metadata_init_zone_layer(MIRDeclField *meta,
     if (meta == NULL || slot == NULL)
         return;
     mir_decl_field_metadata_init(
-        meta, header, slot, ast_zone_layer_slot_name(slot), NULL,
+        meta, header, ast_zone_layer_slot_name(slot), NULL,
         ast_zone_layer_slot_layer_type(slot), MIR_DECL_FIELD_ZONE_LAYER_SLOT);
     meta->is_relation_layer = ast_zone_layer_slot_is_relation(slot);
     meta->is_pool_layer = ast_zone_layer_slot_is_pool(slot);

@@ -9,12 +9,25 @@ each tier and the work that remains.
 ## Verdict
 
 Hard self-hosting cannot start today. The infrastructure is mature: every one
-of the ten capabilities has a gate, and the tree carries 72 smoke gates total.
+of the ten capabilities has a gate, and the tree carries 73 smoke gates total.
 The blocking distance is small and well bounded. Seven capabilities are ready,
 two have a working subset that needs substrate breadth, and one is the open
 item on the critical path. The process-argument tooling gap is closed by
 `Args() -> Array<String>`, but it does not change the hard-self-host verdict
 until compiler-internal substitution actually consumes it.
+
+As a planning estimate, hard self-host readiness is roughly 85-90%: seven
+capabilities are READY, two are SUBSET, and the only ACTIVE capability is now a
+compiler plumbing deletion task rather than an unknown design gap. The
+critical-path codegen SoT burn-down is closed: the codegen frontier went from
+127 original source_ast reads to 0. The compiler-side source_ast tail is now 2
+reads: the declaration-header payload assignment and accessor. Source-type/
+location scalar provenance has been split to source_node names, and method and
+field declaration back-pointers are removed,
+and MIR validation no longer compares generic, enum, method, or field metadata
+against original AST nodes. The remaining AST-returning declaration-header
+compatibility API is now separately ratcheted as source_decl codegen 2 /
+compiler 1, and routine source-decl compatibility is ratcheted at codegen 5.
 
 ## Tiers
 
@@ -25,10 +38,10 @@ ACTIVE means it is on the critical path and still in progress.
 | # | Capability | Tier | Gate | Remaining gap |
 |---|-----------|------|------|---------------|
 | 1 | Module/package resolver | READY | module_smoke, package_module_resolver_smoke, type_resolution_resolver_inventory_smoke | deterministic imports and cycle diagnostics gated; a resolver tool is already self-hosted |
-| 2 | Collections + iteration | SUBSET | stdlib_surface_smoke | List/Set/HashMap exist over a key-type subset (String, Int, Long, Bool); MapKeys order is locked for stable key types; broaden symbol/record/handle keys and ordered set snapshots |
+| 2 | Collections + iteration | SUBSET | stdlib_surface_smoke | List/Set/HashMap exist over a key-type subset (String, Int, Long, Bool); MapKeys order is locked for stable key types; add the Stage 4 deterministic-iteration gate, then broaden symbol/record/handle keys and ordered set snapshots |
 | 3 | String/path/Unicode policy | READY | unicode_policy_smoke, source_utf8_smoke, memory_string_safety_smoke | stable comparison and normalization stance gated |
 | 4 | Arena/ownership ergonomics | SUBSET | verify_arena_closure, runtime_abi_lifetime_smoke, abi_ownership_shape_smoke | the allocation mechanism exists; the per-pass scratch/result/persistent lanes that remove manual boilerplate do not yet |
-| 5 | CFG/MIR body as SoT | ACTIVE | cfg_body_dataflow_smoke, ast_read_surface_smoke, mir_or_abort_invariant_smoke | non_cfg fallback locked at 0; dead slot-source accessors retired; source_ast readers remain at codegen 58, compiler 73. This is task 74 |
+| 5 | CFG/MIR body as SoT | ACTIVE | cfg_body_dataflow_smoke, ast_read_surface_smoke, mir_or_abort_invariant_smoke, ast_read_surface_checker_parity | non_cfg fallback locked at 0; backend source_ast frontier locked at 0; compiler declaration-header payload remains at 2; source_decl is ratcheted at codegen 2 / compiler 1, and routine_source_decl_codegen is ratcheted at 5. This is task 74 |
 | 6 | AIR as verifier | READY | air_json_schema_smoke, air_drift_smoke, air_backend_nonimpact_smoke | pgy.air.graph.v1 evidence export gated; drift count enforced at 0 |
 | 7 | DAG type resolution SoT | READY | type_resolution_dag_smoke, type_resolution_resolver_inventory_smoke | recursive resolver compat path retired; metadata_dead_ends enforced at 0 |
 | 8 | Scoped unsafe/raw escape | READY | raw_escape_contract_smoke | unsafe is scoped and capability-bound; raw pointers gated out of domain code |
@@ -39,23 +52,35 @@ ACTIVE means it is on the critical path and still in progress.
 
 Capability 5 is the only ACTIVE item and the one true blocker. Its mechanism is
 mostly done: non_cfg body facts come from MIR and are locked at zero fallback,
-and the verified dead slot-source accessors have been removed. The work left is
-the deletion in 06: retire the remaining provenance/routine compatibility
-readers, remove the field when no consumer remains, and lower the ratchet to
-zero. Closing it makes CFG/MIR the unconditional source of truth, which the gap
-analysis names as the precondition that lets compiler passes be rewritten in
-the language.
+and backend source_ast readers are locked at zero. The work left is the
+compiler-side deletion in 06: remove the declaration-header source declaration
+payload boundary and the routine source-decl compatibility sites. Closing it makes CFG/MIR the unconditional source of truth, which
+the gap analysis names as the precondition that lets compiler passes be
+rewritten in the language.
 
 ## Next substrate work
 
 After capability 5, the two SUBSET items are the substrate maturity that turns
 soft self-hosting (compiler-adjacent tools, already real) into something that
 can carry a compiler pass. Capability 2 now has stable `MapKeys` order for the
-stable key subset, but still needs broader symbol/record/handle key types and
-ordered set snapshots. Capability 4 needs arena lanes that remove manual
-resource boilerplate from every pass. These are the axis the gap analysis calls
-systems substrate, distinct from the domain-oriented surface the language is
-already strong on.
+stable key subset, but still needs a Stage 4 deterministic-iteration gate that
+proves stable output across insertion orders and across C/LLVM/Pergyra
+comparison runs, then broader symbol/record/handle key types and ordered set
+snapshots. Capability 4 needs arena lanes that remove manual resource
+boilerplate from every pass.
+
+Three concrete hard-self-host substrate/tool lifts remain after the current SoT
+burn-down:
+
+- deterministic collection iteration as a Stage 4 gate, not just a runtime
+  convenience;
+- parser LLVM depth/type-inference parity, so parser dogfood is no longer
+  effectively C-backend-only;
+- deterministic filesystem directory walking, so self-hosted validators can
+  enumerate source trees without shell `find`/`grep` ownership.
+
+These are the axis the gap analysis calls systems substrate, distinct from the
+domain-oriented surface the language is already strong on.
 
 ## Sequencing
 
@@ -74,8 +99,13 @@ none can be closed from a static pass alone.
 
 Capability 5 (CFG/MIR SoT, task 74). Mechanism mostly complete: non_cfg body
 facts are MIR-owned and locked at zero fallback, the source_ast ratchet is now
-codegen 58 / compiler 73, and the dead slot-source accessors have been
-deleted. LLVM domain/role and C hosted-method forward declarations now consume
+codegen 0 / compiler 2, source_decl is ratcheted at codegen 2 / compiler 1,
+routine_source_decl_codegen is ratcheted at 5, and the shared ratchet manifest
+is verified by both the shell smoke and a
+Pergyra-written ast_read_surface_checker parity rung. The
+dead slot-source accessors have been deleted. Against the original codegen
+frontier of 127, all 127 reads are retired. LLVM domain/role and C
+hosted-method forward declarations now consume
 MIRDeclMethod metadata without source AST back-pointers, and C/LLVM hosted
 method bodies use the linked MIRRoutine as their body provenance owner. LLVM
 nominal method registry and LLVM hosted/member call emission also no longer
@@ -85,14 +115,34 @@ zone action effect-sync path also consumes MIRDeclMethod flags without method
 source back-pointers, and C member-call emission only loads an AST method body
 for the lazy projection-invalidation scan. Shared-field constructor defaults now
 consume MIRDeclField initializer metadata instead of recovering source AST
-nodes, and the unused shared-field source accessors are retired. C host-method
+nodes, and the unused shared-field source accessors are retired. C class/zone
+specialization scans now reach method bodies through linked MIRRoutine
+provenance instead of the hosted-method source view, and the C/LLVM routine
+source thin aliases are retired. C/LLVM method body compatibility now goes
+through backend helpers that follow the MIRDeclMethod routine link, so direct
+backend method source back-pointer reads are retired. C MIR emission-contract
+compatibility now validates routine kind/name/signature facts without opening
+routine source_ast, and LLVM intent forward declarations now use MIR routine
+binding metadata directly. Non-generic LLVM function routine forward
+declarations now use MIR routine signatures directly by passing no source
+declaration into the compatibility emitter; generic template registration
+remains a source-declaration compatibility boundary. LLVM function routine
+emit/validation now consumes MIR routine kind/name/generic facts without
+recovering source declarations; source-declaration compatibility diagnostics
+live at the body emit boundary. C host-method
 lookup now performs method-name matching from MIRDeclMethod metadata, while
 LLVM host-method lookup keeps its non-MIR fallback on the explicit compatibility
 array and the unused LLVM hosted method source accessor is retired, along with
-the thin LLVM MIR method source alias. The
-remaining work is deletion of method provenance and routine compatibility
-readers, then removal of the source_ast field and a ratchet ceiling of zero.
-Build-gated.
+the thin LLVM MIR method source alias. C/LLVM routine source thin aliases are
+retired, routine source declaration checks use compiler-owned
+`mir_routine_source_decl_of_type`, declaration lookup uses
+`mir_decl_header_source_decl`, and no backend `.c` file contains a source_ast
+read. The remaining work is removal of the routine source-decl compatibility
+sites and the compiler-side declaration header back-pointer after compatibility
+lookup stops returning origin AST declarations, followed by a compiler
+source_ast ratchet ceiling of zero. Method and field
+back-pointers are already removed, and the old header-shape AST recomputation
+arm is gone. Build-gated.
 
 Capability 2 (collections). Measurement: integer keys are implemented
 (pgy_runtime_map_int_key_inline.h covers i32 and i64), and `MapKeys` now returns

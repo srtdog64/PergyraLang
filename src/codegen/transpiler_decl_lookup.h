@@ -140,7 +140,6 @@ bool transpiler_mir_decl_method_metadata_complete_for(
     const char *missing_return_type_fmt,
     const char *missing_param_type_fmt);
 const char *transpiler_mir_decl_method_name(const MIRDeclMethod *method);
-ASTNode *transpiler_mir_decl_method_source_ast(const MIRDeclMethod *method);
 size_t transpiler_mir_decl_method_param_count(const MIRDeclMethod *method);
 FuncParam *transpiler_mir_decl_method_param(const MIRDeclMethod *method,
                                             size_t index);
@@ -159,13 +158,13 @@ const char *transpiler_mir_decl_method_causes_effect(
 const MIRRoutine *transpiler_mir_decl_method_routine(
     const TranspilerCtx *ctx,
     const MIRDeclMethod *method);
+ASTNode *transpiler_mir_decl_method_body_decl(
+    const TranspilerCtx *ctx,
+    const MIRDeclMethod *method);
 TranspilerHostedMethodView transpiler_hosted_method_view_from_decl(
     const TranspilerCtx *ctx,
     const char *host_name,
     ASTNode *decl);
-ASTNode *transpiler_hosted_method_view_source_ast(
-    const TranspilerHostedMethodView *view,
-    size_t index);
 TranspilerHostedFieldView transpiler_hosted_class_field_view_from_decl(
     const TranspilerCtx *ctx,
     const char *host_name,

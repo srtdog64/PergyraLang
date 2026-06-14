@@ -16,7 +16,7 @@
 #include "../parser/ast_api.h"
 
 static bool
-llvm_mir_instruction_has_source_ast_payload(const MIRInstruction *inst)
+llvm_mir_instruction_has_source_payload(const MIRInstruction *inst)
 {
     return mir_instruction_source_payload(inst) != NULL;
 }
@@ -25,28 +25,28 @@ static bool
 llvm_mir_def_uses_source_statement_emit(const MIRInstruction *inst)
 {
     return mir_instruction_uses_source_statement_emit(inst)
-        && llvm_mir_instruction_has_source_ast_payload(inst);
+        && llvm_mir_instruction_has_source_payload(inst);
 }
 
 static bool
 llvm_mir_def_uses_source_local_decl_emit(const MIRInstruction *inst)
 {
     return mir_instruction_uses_source_local_decl_emit(inst)
-        && llvm_mir_instruction_has_source_ast_payload(inst);
+        && llvm_mir_instruction_has_source_payload(inst);
 }
 
 static bool
 llvm_mir_def_uses_channel_receive_statement_emit(const MIRInstruction *inst)
 {
     return mir_instruction_uses_channel_receive_statement_emit(inst)
-        && llvm_mir_instruction_has_source_ast_payload(inst);
+        && llvm_mir_instruction_has_source_payload(inst);
 }
 
 static bool
 llvm_mir_def_uses_select_receive_statement_emit(const MIRInstruction *inst)
 {
     return mir_instruction_uses_select_receive_statement_emit(inst)
-        && llvm_mir_instruction_has_source_ast_payload(inst);
+        && llvm_mir_instruction_has_source_payload(inst);
 }
 
 static ASTNode *
@@ -407,9 +407,9 @@ llvm_emit_mir_block_with_exprs(const MIRBasicBlock *mir_block,
         llvm_debug_set_line(ctx, mir_instruction_source_line(inst));
         if (llvm_debug_detail_enabled()) {
             fprintf(stderr,
-                "[llvm inst] block=%zu inst=%zu kind=%d ast=%d result=%s\n",
+                "[llvm inst] block=%zu inst=%zu kind=%d line=%u result=%s\n",
                 mir_block->id, i, (int)inst->kind,
-                mir_instruction_source_ast_type_or(inst, -1),
+                mir_instruction_source_line(inst),
                 inst->result_name != NULL ? inst->result_name : "-");
         }
         switch (inst->kind) {

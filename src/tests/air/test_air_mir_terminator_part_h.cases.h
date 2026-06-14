@@ -199,7 +199,7 @@ test_air_collects_mir_select_receive_evidence(void)
     inst.kind = MIR_INST_DEF;
     inst.ast = &source_ast;
     inst.has_source_location = true;
-    inst.source_ast_type = source_ast.type;
+    inst.source_node_type = source_ast.type;
     inst.requires_source_statement_emit = true;
     inst.requires_channel_receive_statement_emit = true;
     inst.requires_select_receive_statement_emit = true;

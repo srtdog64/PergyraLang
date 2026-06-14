@@ -1,0 +1,221 @@
+// src/self_hosted/tools/ast_read_surface_checker/main.pgy
+//
+// Status: rung-2 minimal (2026-06-15). Reads the shared
+// tests/ast_read_surface_manifest.txt ratchet manifest, counts literal AST
+// read markers in the listed C files, and emits the same growth verdict as the
+// shell smoke. The shell parity harness owns directory coverage because the
+// current Pergyra subset has no directory walk primitive.
+//
+// Contract: see intent.md in the same directory.
+
+import "../../lib/text_scan.pgy";
+
+func SurfaceFinding(kind: String, reads: Int, ceiling: Int, scope: String) -> String {
+    let parts: Array<String> = [
+        "{\"kind\":\"surface_growth\",\"metric\":\"",
+        kind,
+        "\",\"reads\":",
+        ToString(reads),
+        ",\"ceiling\":",
+        ToString(ceiling),
+        ",\"location\":\"",
+        scope,
+        "\"}"
+    ];
+    return StringJoin(parts, "");
+}
+
+func InputErrorJson(error_kind: String, key: String, location: String) -> String {
+    let parts: Array<String> = [
+        "{\"schema\":\"pgy.selfhost.ast-read-surface.v1\",\"ok\":false,",
+        "\"source\":{\"manifest_owner\":\"tests/ast_read_surface_manifest.txt\"},",
+        "\"counts\":{\"enum\":0,\"source_ast_codegen\":0,\"source_ast_compiler\":0,",
+        "\"source_decl_codegen\":0,\"source_decl_compiler\":0,",
+        "\"routine_source_decl_codegen\":0,\"violations\":1},",
+        "\"findings\":[{\"kind\":\"",
+        error_kind,
+        "\",\"key\":\"",
+        key,
+        "\",\"location\":\"",
+        location,
+        "\"}]}"
+    ];
+    return StringJoin(parts, "");
+}
+
+func Main() -> Void {
+    let manifest_path: String = "tests/ast_read_surface_manifest.txt";
+
+    if !FileExists(manifest_path) {
+        Log(InputErrorJson("missing_manifest", manifest_path, manifest_path));
+        Exit(1);
+    }
+
+    let manifest: String = ReadFile(manifest_path);
+    let entries: Array<String> = Split(manifest, "\n");
+
+    let enum_reads: Int = 0;
+    let enum_cap: Int = 0;
+    let source_ast_codegen_reads: Int = 0;
+    let source_ast_codegen_cap: Int = 0;
+    let source_ast_compiler_reads: Int = 0;
+    let source_ast_compiler_cap: Int = 0;
+    let source_decl_codegen_reads: Int = 0;
+    let source_decl_codegen_cap: Int = 0;
+    let source_decl_compiler_reads: Int = 0;
+    let source_decl_compiler_cap: Int = 0;
+    let routine_source_decl_codegen_reads: Int = 0;
+    let routine_source_decl_codegen_cap: Int = 0;
+
+    let i: Int = 0;
+    let n: Int = ArrayLength(entries);
+    while i < n {
+        let line: String = entries[i];
+        if StringLength(line) > 0 {
+            let parts: Array<String> = Split(line, "|");
+            if ArrayLength(parts) < 5 {
+                Log(InputErrorJson("malformed_manifest", line, manifest_path));
+                Exit(1);
+            }
+
+            let kind: String = parts[0];
+            let pattern: String = parts[1];
+            let ceiling: Int = ToInt(parts[2]);
+            let scope: String = parts[3];
+            let path: String = parts[4];
+            let known: Int = 0;
+            let reads: Int = 0;
+
+            if StringLength(path) > 0 {
+                if !FileExists(path) {
+                    Log(InputErrorJson("missing_input", path, path));
+                    Exit(1);
+                }
+                reads = TextScan.CountOccurrences(ReadFile(path), pattern);
+            }
+
+            if kind == "enum" {
+                enum_reads = enum_reads + reads;
+                enum_cap = ceiling;
+                known = 1;
+            } else {
+                if kind == "source_ast_codegen" {
+                    source_ast_codegen_reads = source_ast_codegen_reads + reads;
+                    source_ast_codegen_cap = ceiling;
+                    known = 1;
+                } else {
+                    if kind == "source_ast_compiler" {
+                        source_ast_compiler_reads = source_ast_compiler_reads + reads;
+                        source_ast_compiler_cap = ceiling;
+                        known = 1;
+                    } else {
+                        if kind == "source_decl_codegen" {
+                            source_decl_codegen_reads = source_decl_codegen_reads + reads;
+                            source_decl_codegen_cap = ceiling;
+                            known = 1;
+                        } else {
+                            if kind == "source_decl_compiler" {
+                                source_decl_compiler_reads = source_decl_compiler_reads + reads;
+                                source_decl_compiler_cap = ceiling;
+                                known = 1;
+                            } else {
+                                if kind == "routine_source_decl_codegen" {
+                                    routine_source_decl_codegen_reads = routine_source_decl_codegen_reads + reads;
+                                    routine_source_decl_codegen_cap = ceiling;
+                                    known = 1;
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+
+            if known == 0 {
+                Log(InputErrorJson("unknown_metric", kind, scope));
+                Exit(1);
+            }
+        }
+        i = i + 1;
+    }
+
+    let violations: Int = 0;
+    let findings: Array<String> = [];
+    if enum_reads > enum_cap {
+        violations = violations + 1;
+        ArrayPush(findings, SurfaceFinding("enum", enum_reads, enum_cap, "src/codegen"));
+    }
+    if source_ast_codegen_reads > source_ast_codegen_cap {
+        violations = violations + 1;
+        ArrayPush(findings, SurfaceFinding(
+            "source_ast_codegen",
+            source_ast_codegen_reads,
+            source_ast_codegen_cap,
+            "src/codegen"));
+    }
+    if source_ast_compiler_reads > source_ast_compiler_cap {
+        violations = violations + 1;
+        ArrayPush(findings, SurfaceFinding(
+            "source_ast_compiler",
+            source_ast_compiler_reads,
+            source_ast_compiler_cap,
+            "src/compiler"));
+    }
+    if source_decl_codegen_reads > source_decl_codegen_cap {
+        violations = violations + 1;
+        ArrayPush(findings, SurfaceFinding(
+            "source_decl_codegen",
+            source_decl_codegen_reads,
+            source_decl_codegen_cap,
+            "src/codegen"));
+    }
+    if source_decl_compiler_reads > source_decl_compiler_cap {
+        violations = violations + 1;
+        ArrayPush(findings, SurfaceFinding(
+            "source_decl_compiler",
+            source_decl_compiler_reads,
+            source_decl_compiler_cap,
+            "src/compiler"));
+    }
+    if routine_source_decl_codegen_reads > routine_source_decl_codegen_cap {
+        violations = violations + 1;
+        ArrayPush(findings, SurfaceFinding(
+            "routine_source_decl_codegen",
+            routine_source_decl_codegen_reads,
+            routine_source_decl_codegen_cap,
+            "src/codegen"));
+    }
+
+    let ok_text: String = "true";
+    if violations > 0 {
+        ok_text = "false";
+    }
+
+    let json_parts: Array<String> = [
+        "{\"schema\":\"pgy.selfhost.ast-read-surface.v1\",\"ok\":",
+        ok_text,
+        ",\"source\":{\"manifest_owner\":\"",
+        manifest_path,
+        "\"},\"counts\":{\"enum\":",
+        ToString(enum_reads),
+        ",\"source_ast_codegen\":",
+        ToString(source_ast_codegen_reads),
+        ",\"source_ast_compiler\":",
+        ToString(source_ast_compiler_reads),
+        ",\"source_decl_codegen\":",
+        ToString(source_decl_codegen_reads),
+        ",\"source_decl_compiler\":",
+        ToString(source_decl_compiler_reads),
+        ",\"routine_source_decl_codegen\":",
+        ToString(routine_source_decl_codegen_reads),
+        ",\"violations\":",
+        ToString(violations),
+        "},\"findings\":[",
+        StringJoin(findings, ","),
+        "]}"
+    ];
+    Log(StringJoin(json_parts, ""));
+
+    if violations > 0 {
+        Exit(1);
+    }
+}

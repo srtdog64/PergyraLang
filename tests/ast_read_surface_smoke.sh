@@ -28,23 +28,68 @@ set -euo pipefail
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 cd "$ROOT_DIR"
 
+MANIFEST="tests/ast_read_surface_manifest.txt"
+if [ ! -f "$MANIFEST" ]; then
+    echo "[ast-read-surface] FAIL missing manifest: $MANIFEST" >&2
+    exit 1
+fi
+
+tmp_specs="$(mktemp "${TMPDIR:-/tmp}/pgy-ast-read-specs.XXXXXX")"
+tmp_listed="$(mktemp "${TMPDIR:-/tmp}/pgy-ast-read-listed.XXXXXX")"
+tmp_actual="$(mktemp "${TMPDIR:-/tmp}/pgy-ast-read-actual.XXXXXX")"
+cleanup_tmp() {
+    rm -f "$tmp_specs" "$tmp_listed" "$tmp_actual"
+}
+trap cleanup_tmp EXIT
+
+bad_line="$(awk -F'|' 'NF != 5 || $1 == "" || $2 == "" || $3 == "" || $4 == "" { print NR; exit }' "$MANIFEST")"
+if [ -n "$bad_line" ]; then
+    echo "[ast-read-surface] FAIL malformed manifest line ${bad_line}: $MANIFEST" >&2
+    exit 1
+fi
+
+awk -F'|' '{ printf "%s|%s|%s|%s\n", $1, $2, $3, $4 }' "$MANIFEST" | sort -u > "$tmp_specs"
+
 status=0
 while IFS='|' read -r kind pattern ceiling scope; do
     [ -n "$kind" ] || continue
-    [ -n "$scope" ] || scope="src/codegen"
-    count="$(grep -rho "$pattern" $scope --include=*.c 2>/dev/null | wc -l | tr -d ' ')"
+    : > "$tmp_listed"
+    count=0
+    while IFS='|' read -r row_kind row_pattern row_ceiling row_scope row_path; do
+        if [ "$row_kind" != "$kind" ] \
+            || [ "$row_pattern" != "$pattern" ] \
+            || [ "$row_ceiling" != "$ceiling" ] \
+            || [ "$row_scope" != "$scope" ]; then
+            continue
+        fi
+        [ -n "$row_path" ] || continue
+        if [ ! -f "$row_path" ]; then
+            echo "[ast-read-surface] FAIL ${kind}: manifest path is missing: ${row_path}" >&2
+            status=1
+            continue
+        fi
+        printf '%s\n' "$row_path" >> "$tmp_listed"
+        n="$((grep -F -o "$pattern" "$row_path" 2>/dev/null || true) \
+            | wc -l | tr -d ' ')"
+        count=$((count + n))
+    done < "$MANIFEST"
+
+    sort -u "$tmp_listed" -o "$tmp_listed"
+    grep -rlF "$pattern" "$scope" --include=*.c 2>/dev/null | sort > "$tmp_actual" || true
+    if ! diff -u "$tmp_listed" "$tmp_actual" >/dev/null; then
+        echo "[ast-read-surface] FAIL ${kind}: manifest coverage drift in ${scope}" >&2
+        diff -u "$tmp_listed" "$tmp_actual" >&2 || true
+        status=1
+    fi
+
     if [ "$count" -gt "$ceiling" ]; then
         echo "[ast-read-surface] FAIL ${kind}: ${count} AST reads > ceiling ${ceiling} in ${scope} (surface grew)" >&2
-        grep -rn "$pattern" $scope --include=*.c | sed 's/^/    /' >&2
+        grep -rnF "$pattern" "$scope" --include=*.c | sed 's/^/    /' >&2
         status=1
     else
-        echo "[ast-read-surface] ${kind}: ${count}/${ceiling} AST reads (ratchet ok)"
+        echo "[ast-read-surface] ${kind}: ${count}/${ceiling} reads (ratchet ok)"
     fi
-done <<'RATCHET_CEILINGS'
-enum|ast_enum_variant|17|src/codegen
-source_ast_codegen|source_ast|58|src/codegen
-source_ast_compiler|source_ast|73|src/compiler
-RATCHET_CEILINGS
+done < "$tmp_specs"
 
 if [ "$status" -eq 0 ]; then
     echo "[ast-read-surface] backend AST-read surface within ratchet ceilings"

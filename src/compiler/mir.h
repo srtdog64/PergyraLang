@@ -114,7 +114,7 @@ typedef struct
     uint32_t         source_line;
     uint32_t         source_column;
     uint32_t         source_stable_id;
-    ASTNodeType      source_ast_type;
+    ASTNodeType      source_node_type;
     HIRBlockTerminatorKind source_terminator_kind;
     bool             has_source_terminator_kind;
     bool             source_terminator_has_value;
@@ -357,9 +357,9 @@ bool        mir_instruction_resource_op_is_write(const MIRInstruction *inst);
 bool        mir_instruction_has_source_payload(const MIRInstruction *inst);
 ASTNode    *mir_instruction_source_payload(const MIRInstruction *inst);
 bool        mir_instruction_has_source_location(const MIRInstruction *inst);
-int         mir_instruction_source_ast_type_or(const MIRInstruction *inst,
+int         mir_instruction_source_node_type_or(const MIRInstruction *inst,
                                                int fallback_type);
-const char *mir_source_ast_type_name(ASTNodeType type);
+const char *mir_source_node_type_name(ASTNodeType type);
 bool        mir_instruction_source_location_matches_node(
                 const MIRInstruction *inst,
                 const ASTNode *node);
@@ -402,7 +402,7 @@ bool        mir_instruction_source_is_local_destructure(
 bool        mir_instruction_source_is_assignment(const MIRInstruction *inst);
 bool        mir_instruction_source_is_defer_stmt(const MIRInstruction *inst);
 bool        mir_instruction_source_is_intent_step(const MIRInstruction *inst);
-bool        mir_source_ast_type_is_cfg_container(ASTNodeType type);
+bool        mir_source_node_type_is_cfg_container(ASTNodeType type);
 bool        mir_instruction_source_is_cfg_container(const MIRInstruction *inst);
 bool        mir_instruction_source_is_cfg_owned_control(
                 const MIRInstruction *inst);
@@ -412,10 +412,10 @@ bool        mir_instruction_source_stmt_fallback_is_allowed(
                 const MIRInstruction *inst);
 bool        mir_instruction_resource_op_keeps_residual_statement_emit(
                 const MIRInstruction *inst);
-bool        mir_source_ast_type_stmt_has_side_effect_hint(
+bool        mir_source_node_type_stmt_has_side_effect_hint(
                 ASTNodeType type,
                 const char *callee_name);
-bool        mir_source_ast_stmt_has_side_effect_hint(const ASTNode *stmt);
+bool        mir_source_node_stmt_has_side_effect_hint(const ASTNode *stmt);
 bool        mir_instruction_source_matches_ast_type(
                 const MIRInstruction *inst,
                 ASTNodeType expected_type);
@@ -459,7 +459,10 @@ void        mir_decl_header_inventory_from_program(
 const MIRDeclHeader *mir_decl_header_inventory_get(
                 const MIRDeclHeaderInventory *inventory,
                 size_t index);
-ASTNode    *mir_routine_source_ast(const MIRRoutine *routine);
+ASTNode    *mir_routine_source_decl(const MIRRoutine *routine);
+ASTNode    *mir_routine_source_decl_of_type(const MIRRoutine *routine,
+                                            MIRScopeKind expected_kind,
+                                            ASTNodeType expected_ast_type);
 MIRScopeKind mir_routine_kind(const MIRRoutine *routine);
 const char *mir_routine_name(const MIRRoutine *routine);
 const char *mir_routine_owner_name(const MIRRoutine *routine);
@@ -485,7 +488,6 @@ void        mir_mutable_routine_inventory_from_program(
 MIRRoutine *mir_mutable_routine_inventory_get(
                 const MIRMutableRoutineInventory *inventory,
                 size_t index);
-ASTNode     *mir_find_function_decl(const MIRProgram *mir, const char *name);
 const MIRDeclHeader *mir_find_decl_header(const MIRProgram *mir, const char *name);
 const MIRDeclHeader *mir_find_decl_header_of_type(
                 const MIRProgram *mir,

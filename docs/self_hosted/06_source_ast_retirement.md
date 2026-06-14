@@ -1,8 +1,9 @@
 # source_ast Retirement (Phase 2 / Single Source of Truth)
 
-This note records why the backend source_ast readers are safe to retire, how
-their deadness is measured and locked, and the staged plan to remove them. It
-is the deletion-readiness evidence for the Phase 2 cutover.
+This note records why the backend source_ast readers were safe to retire, how
+their deadness is measured and locked, and the remaining compiler-side work to
+remove the provenance back-pointers. It is the deletion-readiness evidence for
+the Phase 2 cutover.
 
 ## Finding
 
@@ -36,66 +37,45 @@ tests/mir_or_abort_invariant_smoke.sh asserts the driver still aborts on a
 NULL MIR. This is the single precondition that makes the fallbacks dead; if the
 driver is ever changed to degrade to an AST-only path, this fails first.
 
-tests/ast_read_surface_smoke.sh ratchets the source_ast occurrence counts
-(codegen 58, compiler 73) so the surface can only shrink, never grow.
+tests/ast_read_surface_smoke.sh ratchets the source_ast occurrence counts. The
+codegen frontier is locked at 0 and the compiler declaration-header payload
+boundary is locked at 2, so the surface can only shrink, never grow. The scalar
+source-node type/location provenance has been split out of this metric. The ratchet values and
+covered files live in tests/ast_read_surface_manifest.txt, which is consumed by
+both the shell smoke and the self-hosted ast_read_surface_checker parity rung.
+The same manifest now also tracks the AST-returning declaration-header
+compatibility boundary: `mir_decl_header_source_decl` is locked at codegen 2
+and compiler 1 until that API is removed. Routine source-decl compatibility is
+tracked separately as `routine_source_decl_codegen`, locked at 5.
 
 tests/source_ast_inventory.sh ranks the remaining readers per file so the
-cutover is driven hotspot first. The codegen frontier is 58, with the
-inventory/slot-view hotspot now at 19 reads after the dead slot-source
-accessors were removed and LLVM domain/role method forward declarations moved
-to MIRDeclMethod metadata only. C hosted-method forward declarations now do
-the same; C/LLVM hosted-method bodies now use the linked MIRRoutine as their
-body provenance owner, and LLVM nominal method registry uses host-level
-diagnostic anchors instead of method source back-pointers. LLVM hosted self-call
-and member-call emitters now resolve method signatures from MIRDeclMethod
-metadata and only keep AST method lookups behind the no-MIR compatibility
-fallback. LLVM function routine lookup now keys off MIR routine names rather
-than source AST identity. C/LLVM zone action effect sync now reads action flags
-from MIRDeclMethod without method source back-pointers. Remaining method reads
-are lookup/provenance consumers. C member-call emission no longer eagerly
-recovers method source back-pointers when MIR method metadata is present; it
-only asks for an AST method body in the lazy projection-invalidation path that
-still scans method statements. C/LLVM constructor defaults for shared fields
-now read the initializer expression from MIRDeclField metadata instead of
-recovering the shared-field source node and reopening ast_party_shared_initializer.
-The now-unused C/LLVM shared-field source accessors have also been removed.
-C host-method lookup now matches method names through MIRDeclMethod metadata;
-only the final compatibility return still recovers the AST method node. LLVM
-host-method lookup already matched through MIRDeclMethod and now keeps its
-non-MIR fallback on the explicit compatibility array. The unused LLVM hosted
-method source accessor has been removed, along with the thin LLVM MIR method
-source alias.
+cutover is driven hotspot first. The codegen frontier is now 0 and the
+inventory/slot-view hotspot is also 0. Dead slot-source accessors, shared-field
+source accessors, hosted-method source view accessors, and thin C/LLVM routine
+source aliases are retired. C/LLVM method body compatibility follows the
+MIRDeclMethod routine link, routine source declaration checks go through the
+compiler-owned `mir_routine_source_decl_of_type`, and declaration lookup uses
+`mir_decl_header_source_decl`. No backend `.c` file now contains a `source_ast`
+read. The remaining 2 occurrences are compiler-owned declaration-header payload
+plumbing: the `MIRDeclHeader.source_ast` assignment and accessor. Method and field declaration back-pointers are retired, and the
+dead `mir_decl_header_ast_shape` compatibility arm that recomputed header shape
+from the origin AST is deleted. The next slice removes the declaration-header
+payload boundary, now measured separately as source_decl 2/1. Routine source-decl compatibility is
+measured separately at 5 so method/body compatibility cannot grow while that
+payload boundary is retired.
+
+src/self_hosted/parity/ast_read_surface_checker_parity.sh runs the same
+manifest through a Pergyra-written checker and compares the literal counts
+against shell grep. The shell smoke still owns directory coverage; the
+self-hosted checker proves the manifest/cap verdict from inside the language,
+including a synthetic source_ast growth fixture that must fail.
 
 ## Empirical confirmation probe
 
-src/codegen/source_ast_fallback_probe.h provides a compiled-out fire marker.
-The static argument (driver aborts on NULL MIR) is confirmed empirically by
-instrumenting the fallback arms and observing zero fires across the corpus,
-matching the evidence already gathered for the enum and non_cfg fallbacks.
-
-To apply the probe, in each of the four hotspot files:
-
-1. Add the include:
-
-       #include "source_ast_fallback_probe.h"
-
-2. Immediately before every fallback line that matches
-
-       slot = <prefix>_slot_view_source_ast(view, index);
-
-   inside a public accessor (the arm reached only after the MIR path and the
-   requires_mir_metadata guard), insert:
-
-       PGY_SOURCE_AST_FALLBACK_FIRE(__func__);
-
-3. Build with the probe flag and run the corpus:
-
-       make clean && make CFLAGS_EXTRA=-DPGY_PROBE_SOURCE_AST_FALLBACK
-       # run the example and parity corpus, capturing stderr
-       grep -c '\[source-ast-fallback\]' corpus_stderr.log
-
-   A count of zero confirms the fallbacks never fire. The marker string is
-   absent from the release binary because the flag is off by default.
+The compiled-out probe that marked source_ast fallback fires was used during
+the deletion phase and has now been removed with the fallback arms. The
+recorded result remains part of the evidence: the instrumented C and LLVM
+corpus runs observed zero fires, matching the MIR-or-abort invariant.
 
 ## Two classes of source_ast read
 
@@ -108,9 +88,8 @@ transpiler_decl_role_roster_slot_view, llvm_inventory_role_roster_slot_view).
 These were AST-fallback arms reached only after the MIR path and the
 requires_mir_metadata guard, so they were dead whenever MIR was present. The
 probe was wired into all eighteen of these sites, and the corpus run gave a
-complete zero-fire proof for this class. The unused slot-source accessors have
-now been deleted; the remaining reads are method/shared-field provenance and
-routine compatibility seams.
+complete zero-fire proof for this class. The unused slot-source accessors and
+all remaining backend source_ast readers have now been deleted.
 
 The provenance class lives in the method and field view files
 (transpiler_decl_method_view, transpiler_decl_field_view,
@@ -118,25 +97,25 @@ llvm_inventory_field_view, llvm_inventory_host_methods). These reads are
 mir_decl_method_source_ast and mir_decl_field_source_ast, the back-pointer the
 MIR metadata keeps to the ASTNode it was lowered from. They are not fallbacks
 and do not fire conditionally; they are consumed wherever a caller still needs
-the origin AST. The probe does not apply. Retiring this class means migrating
-each consumer off the back-pointer, after which the source_ast field on the MIR
-metadata can be dropped. This is the broader, slower part of the codegen 127.
+the origin AST. The probe does not apply. Retiring this class meant migrating
+each backend consumer off the back-pointer. At the start of this phase the
+codegen frontier had 127 source_ast reads. The current ratchet is 0, so all
+127 codegen reads have been retired. The compiler-side ratchet is now 50.
+Generic, enum, method, and field validation is metadata-owned; method and field
+back-pointers are gone; and header shape is no longer recomputed from
+`header->source_ast`. The remaining payload boundary is the declaration header
+source declaration accessor used by compatibility lookup, plus source-type/
+location scalar names.
 
-One special case sits inside the fallback class. The role view accessors
-required_ability_count and required_ability call the source_ast helper with no
-MIR-first guard, because MIRDeclField carries no ability metadata. These are not
-dead fallbacks but un-migrated reads, and they are deliberately left
-un-instrumented. They need ability metadata added to MIRDeclField before they
-can be retired.
-
-This was verified, not assumed. Stubbing the two ability accessors to their
-default return and rebuilding changes emitted output: dyn_test.pgy, which
-compiled to 119 lines of C at baseline, instead fails compilation with "cannot
+One special case sat inside the fallback class. The role view accessors
+required_ability_count and required_ability originally called the source_ast
+helper with no MIR-first guard, because MIRDeclField carried no ability
+metadata. This was verified, not assumed: stubbing the two ability accessors to
+their default return changed emitted output and broke dyn_test.pgy with "cannot
 resolve required ability tag for party slot 'Team.fighter' while emitting bind
-statement." The reads are consumed by transpiler_role_ability.c and
-llvm_domain_role_lookup.c to emit dynamic dispatch, so they are load-bearing.
-Removing them before MIRDeclField carries ability metadata is a regression that
-breaks every role-ability bind program, not a safe deletion.
+statement." The reads were load-bearing, so they were migrated by adding
+structured `MIRAbilityRef` metadata to role-slot fields before the source_ast
+accessors were retired.
 
 ## Probe result (recorded)
 
@@ -146,10 +125,10 @@ The C backend ran sixty programs (thirty-three compiling clean) and the LLVM
 backend ran sixty programs (thirty-one compiling clean). The fallback marker
 fired zero times on either backend. This confirms empirically what the
 MIR-or-abort invariant predicts: the eighteen dead-fallback arms are never
-reached, so they can be removed. The role required_ability reads remain a
-separate un-migrated case as noted above.
+reached, so they can be removed. The role required_ability reads were a
+separate load-bearing case and are now migrated through `MIRAbilityRef`.
 
-## Ability metadata migration (unblocks the role required_ability reads)
+## Ability metadata migration (role required_ability reads retired)
 
 The role required_ability reads could not be deleted until MIRDeclField carried
 the ability data. Investigation pinned down exactly what the consumers needed,
@@ -283,11 +262,10 @@ byte-identical against a generic-ability program, not only dyn_test, before the
 node accessor is removed. If a divergence appears, the host's monomorphization
 binding must be threaded into the capture or the arguments kept as a node form.
 
-Staging. Add MIRAbilityRef capture alongside the existing name capture, build
-green with nothing reading it, then introduce the string-based tag renderer and
-repoint the consumers one at a time, verifying byte-identical after each,
-including a generic-ability test. Remove the node accessor and source_ast read
-only after all three consumers are migrated and verified.
+This migration is complete for the backend source_ast burn-down: the role
+ability consumers no longer keep the codegen ratchet above zero. Any further
+ability-ref work is now ordinary metadata fidelity work, not a source_ast
+retirement blocker.
 
 ## Staged deletion plan
 
@@ -296,13 +274,19 @@ Each step ends with the full build and corpus verification.
 Step 1: instrument with the probe, run the corpus, confirm zero fires.
 
 Step 2: remove the AST fallback arms and the `*_slot_view_source_ast` helpers
-from the four hotspot files, then the remaining codegen readers. The unused
-slot-source helpers and shared-field source helpers are now gone; the next
-slice is the remaining method provenance and routine compatibility readers.
+from the four hotspot files, then the remaining codegen readers. This is done:
+the current codegen frontier is 0 reads and backend source declaration
+compatibility is routed through compiler-owned MIR accessors.
 
-Step 3: remove the source_ast field from MIRDeclField and MIRDeclHeader once no
-codegen reader remains. The compiler plumbing (set on capture, freed in
-lifecycle, walked by the provenance shape) empties at this step.
+Step 3: remove the source_ast field from MIRDeclField and MIRDeclHeader after
+validator drift checks stop reading generic, enum, method, and field facts from
+the original AST nodes. MIRDeclField and MIRDeclMethod are done; validation no
+longer reopens generic, enum, method, or field origin nodes; and the
+`mir_decl_header_ast_shape` compatibility arm is deleted. The remaining payload
+part of the compiler tail is `MIRDeclHeader.source_ast` and
+`mir_decl_header_source_decl`.
 
-Step 4: lower the ast_read_surface ratchet ceilings to zero and delete the
-probe header.
+Step 4: lower the compiler ast_read_surface ratchet ceiling to zero after the
+payload field is removed. The source-node type/location scalar provenance has
+already been split into non-AST names. The codegen ceiling is
+already zero and the probe header is deleted.

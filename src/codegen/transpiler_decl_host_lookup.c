@@ -230,7 +230,7 @@ current_host_method_decl(TranspilerCtx *ctx, const char *method_name)
     if (transpiler_decl_header_is_nominal_host(header)) {
         const MIRDeclMethod *method_meta =
             transpiler_find_method_metadata_in_header(header, method_name);
-        return transpiler_mir_decl_method_source_ast(method_meta);
+        return transpiler_mir_decl_method_body_decl(ctx, method_meta);
     }
 
     method_view = transpiler_hosted_method_view_from_decl(ctx, host_name, decl);
@@ -244,7 +244,7 @@ current_host_method_decl(TranspilerCtx *ctx, const char *method_name)
             candidate_name = transpiler_mir_decl_method_name(method_meta);
             if (candidate_name != NULL
                 && strcmp(candidate_name, method_name) == 0) {
-                return transpiler_mir_decl_method_source_ast(method_meta);
+                return transpiler_mir_decl_method_body_decl(ctx, method_meta);
             }
             continue;
         }
@@ -285,7 +285,8 @@ find_nominal_host_method_decl(TranspilerCtx *ctx, const char *host_type_name,
     if (transpiler_decl_header_is_nominal_host(header)) {
         const MIRDeclMethod *method_meta =
             transpiler_find_method_metadata_in_header(header, method_name);
-        method_from_mir = transpiler_mir_decl_method_source_ast(method_meta);
+        method_from_mir = transpiler_mir_decl_method_body_decl(ctx,
+            method_meta);
         if (method_from_mir == NULL)
             return NULL;
         transpiler_cache_nominal_method_decl(ctx, host_type_name,
@@ -305,7 +306,8 @@ find_nominal_host_method_decl(TranspilerCtx *ctx, const char *host_type_name,
             candidate_name = transpiler_mir_decl_method_name(method_meta);
             if (candidate_name != NULL
                 && strcmp(candidate_name, method_name) == 0) {
-                method = transpiler_mir_decl_method_source_ast(method_meta);
+                method = transpiler_mir_decl_method_body_decl(ctx,
+                    method_meta);
                 if (method == NULL)
                     return NULL;
                 transpiler_cache_nominal_method_decl(ctx, host_type_name,

@@ -80,6 +80,12 @@ src/self_hosted/
   `compiler/parser/parse_minimal/` nesting was flattened to mirror
   C-side `src/<component>/` exactly. This is rung-1 only: it proves the
   side-by-side substitution loop, not full compiler parity.
+- **2026-06-15** -- soft self-host track now contains **11 rung-2 tools**.
+  `tools/ast_read_surface_checker/` reads the shared
+  `tests/ast_read_surface_manifest.txt` ratchet and proves the same
+  enum/source_ast/source_decl/routine-source-decl counts as the shell smoke,
+  including a synthetic growth fixture. This strengthens capability 5 evidence
+  but remains peripheral audit tooling, not compiler-core substitution.
 
 ## Non-Negotiable Rules
 

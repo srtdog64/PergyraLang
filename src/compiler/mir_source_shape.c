@@ -38,7 +38,7 @@ mir_instruction_source_matches_ast_type(const MIRInstruction *inst,
 {
     return inst != NULL
         && inst->has_source_location
-        && inst->source_ast_type == expected_type;
+        && inst->source_node_type == expected_type;
 }
 
 bool
@@ -68,16 +68,16 @@ mir_instruction_has_source_location(const MIRInstruction *inst)
 }
 
 int
-mir_instruction_source_ast_type_or(const MIRInstruction *inst,
+mir_instruction_source_node_type_or(const MIRInstruction *inst,
                                    int fallback_type)
 {
     if (!mir_instruction_has_source_location(inst))
         return fallback_type;
-    return (int)inst->source_ast_type;
+    return (int)inst->source_node_type;
 }
 
 const char *
-mir_source_ast_type_name(ASTNodeType type)
+mir_source_node_type_name(ASTNodeType type)
 {
     switch (type) {
     case AST_PROGRAM: return "AST_PROGRAM";
@@ -362,7 +362,7 @@ mir_instruction_source_is_intent_step(const MIRInstruction *inst)
 }
 
 bool
-mir_source_ast_type_is_cfg_container(ASTNodeType type)
+mir_source_node_type_is_cfg_container(ASTNodeType type)
 {
     return mir_stmt_ast_type_is_cfg_container(type);
 }
@@ -370,10 +370,10 @@ mir_source_ast_type_is_cfg_container(ASTNodeType type)
 bool
 mir_instruction_source_is_cfg_container(const MIRInstruction *inst)
 {
-    int source_type = mir_instruction_source_ast_type_or(inst, -1);
+    int source_type = mir_instruction_source_node_type_or(inst, -1);
 
     return source_type >= 0
-        && mir_source_ast_type_is_cfg_container((ASTNodeType)source_type);
+        && mir_source_node_type_is_cfg_container((ASTNodeType)source_type);
 }
 
 bool
@@ -383,7 +383,7 @@ mir_instruction_source_is_cfg_owned_control(const MIRInstruction *inst)
 
     if (inst == NULL)
         return false;
-    source_type = mir_instruction_source_ast_type_or(inst, -1);
+    source_type = mir_instruction_source_node_type_or(inst, -1);
     if (source_type >= 0)
         return mir_stmt_ast_type_is_cfg_owned_control(
             (ASTNodeType)source_type);
@@ -432,7 +432,7 @@ mir_source_call_is_pure_query(const char *callee)
 }
 
 bool
-mir_source_ast_type_stmt_has_side_effect_hint(ASTNodeType type,
+mir_source_node_type_stmt_has_side_effect_hint(ASTNodeType type,
                                               const char *callee_name)
 {
     if (mir_stmt_ast_type_is_cfg_owned_control(type))
@@ -464,7 +464,7 @@ mir_source_ast_type_stmt_has_side_effect_hint(ASTNodeType type,
 }
 
 bool
-mir_source_ast_stmt_has_side_effect_hint(const ASTNode *stmt)
+mir_source_node_stmt_has_side_effect_hint(const ASTNode *stmt)
 {
     const char *callee = NULL;
 
@@ -475,17 +475,17 @@ mir_source_ast_stmt_has_side_effect_hint(const ASTNode *stmt)
         && ast_call_callee(stmt)->type == AST_IDENTIFIER) {
         callee = ast_identifier_name(ast_call_callee(stmt));
     }
-    return mir_source_ast_type_stmt_has_side_effect_hint(stmt->type, callee);
+    return mir_source_node_type_stmt_has_side_effect_hint(stmt->type, callee);
 }
 
 bool
 mir_instruction_source_stmt_has_side_effect_hint(const MIRInstruction *inst)
 {
-    int source_type = mir_instruction_source_ast_type_or(inst, -1);
+    int source_type = mir_instruction_source_node_type_or(inst, -1);
 
     if (source_type < 0)
         return false;
-    return mir_source_ast_type_stmt_has_side_effect_hint(
+    return mir_source_node_type_stmt_has_side_effect_hint(
         (ASTNodeType)source_type, inst->arg0);
 }
 
@@ -503,7 +503,7 @@ mir_instruction_source_stmt_fallback_is_allowed(const MIRInstruction *inst)
         return false;
     if (mir_instruction_source_is_cfg_owned_control(inst))
         return false;
-    source_type = mir_instruction_source_ast_type_or(inst, -1);
+    source_type = mir_instruction_source_node_type_or(inst, -1);
     if (source_type == AST_LET_DECL
         || source_type == AST_LET_DESTRUCTURE
         || source_type == AST_ASSIGNMENT)

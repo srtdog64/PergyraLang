@@ -15,7 +15,7 @@ test_mir_lowering_part_c(void)
             insts[0].name = "stmt";
             insts[0].arg0 = "Log";
             insts[0].has_source_location = true;
-            insts[0].source_ast_type = AST_CALL;
+            insts[0].source_node_type = AST_CALL;
             insts[0].has_surface_usage_facts = true;
             block.instructions = insts;
             block.instruction_count = 1;
@@ -357,15 +357,15 @@ test_mir_lowering_part_c(void)
         inst.has_source_statement_index = true;
         inst.source_statement_index = 0;
 
-        inst.source_ast_type = AST_LET_DECL;
+        inst.source_node_type = AST_LET_DECL;
         rejects_let = !mir_instruction_source_stmt_fallback_is_allowed(&inst);
-        inst.source_ast_type = AST_LET_DESTRUCTURE;
+        inst.source_node_type = AST_LET_DESTRUCTURE;
         rejects_destructure =
             !mir_instruction_source_stmt_fallback_is_allowed(&inst);
-        inst.source_ast_type = AST_ASSIGNMENT;
+        inst.source_node_type = AST_ASSIGNMENT;
         rejects_assignment =
             !mir_instruction_source_stmt_fallback_is_allowed(&inst);
-        inst.source_ast_type = AST_CALL;
+        inst.source_node_type = AST_CALL;
         inst.arg0 = "Log";
         keeps_effect_call =
             mir_instruction_source_stmt_fallback_is_allowed(&inst);
@@ -401,7 +401,7 @@ test_mir_lowering_part_c(void)
                 for (size_t ii = 0; ii < block->instruction_count; ii++) {
                     MIRInstruction *inst = &block->instructions[ii];
                     if (inst->kind == MIR_INST_STMT
-                        && inst->source_ast_type == AST_DEFER_STMT) {
+                        && inst->source_node_type == AST_DEFER_STMT) {
                         stmt_inst = inst;
                         break;
                     }
@@ -607,7 +607,7 @@ test_mir_lowering_part_c(void)
                     if (inst->kind == MIR_INST_RESOURCE_OP
                         && inst->name != NULL
                         && strcmp(inst->name, "Claim") == 0
-                        && inst->source_ast_type == AST_WITH_STMT) {
+                        && inst->source_node_type == AST_WITH_STMT) {
                         claim_inst = inst;
                         break;
                     }
@@ -699,15 +699,15 @@ test_mir_lowering_part_c(void)
         free(mir_error);
         mir_error = NULL;
         if (other_def != NULL) {
-            saved_shape = other_def->source_ast_type;
+            saved_shape = other_def->source_node_type;
             saved_shape_valid = true;
-            other_def->source_ast_type = AST_ASSIGNMENT;
+            other_def->source_node_type = AST_ASSIGNMENT;
             rejected_invalid_shape =
                 !mir_validate(mir, &mir_error)
                 && mir_error != NULL
                 && strstr(mir_error,
                           "source-local-decl emit fact is invalid") != NULL;
-            other_def->source_ast_type = saved_shape;
+            other_def->source_node_type = saved_shape;
         }
         EXPECT(ok
                && routine != NULL
@@ -741,7 +741,7 @@ test_mir_lowering_part_c(void)
         MIRInstruction *branch_inst = NULL;
         ASTNode *saved_ast = NULL;
         ASTNode *saved_expr0 = NULL;
-        ASTNodeType saved_source_ast_type = 0;
+        ASTNodeType saved_source_node_type = 0;
         bool saved_has_source_location = false;
         char *mir_error = NULL;
         bool rejected_missing_match_subject_fact = false;
@@ -767,7 +767,7 @@ test_mir_lowering_part_c(void)
         if (branch_inst != NULL) {
             saved_ast = branch_inst->ast;
             saved_expr0 = branch_inst->expr0;
-            saved_source_ast_type = branch_inst->source_ast_type;
+            saved_source_node_type = branch_inst->source_node_type;
             saved_has_source_location = branch_inst->has_source_location;
             branch_inst->branch_shape = MIR_BRANCH_MATCH_CASE;
             branch_inst->expr0 = NULL;
@@ -790,7 +790,7 @@ test_mir_lowering_part_c(void)
             branch_inst->requires_source_branch_emit = true;
             branch_inst->ast = saved_ast;
             branch_inst->has_source_location = true;
-            branch_inst->source_ast_type = AST_BLOCK;
+            branch_inst->source_node_type = AST_BLOCK;
             rejected_mismatched_source_type =
                 !mir_validate(mir, &mir_error)
                 && mir_error != NULL
@@ -805,7 +805,7 @@ test_mir_lowering_part_c(void)
                 && strstr(mir_error, "source-branch emit fact is invalid") != NULL;
             branch_inst->ast = saved_ast;
             branch_inst->expr0 = saved_expr0;
-            branch_inst->source_ast_type = saved_source_ast_type;
+            branch_inst->source_node_type = saved_source_node_type;
             branch_inst->has_source_location = saved_has_source_location;
             branch_inst->branch_shape = MIR_BRANCH_EXPR;
             branch_inst->requires_source_branch_emit = false;
@@ -837,7 +837,7 @@ test_mir_lowering_part_c(void)
         RIRProgram *rir = NULL;
         MIRProgram *mir = NULL;
         MIRDeclMethod *mutated_method = NULL;
-        size_t saved_param_count = 0;
+        char **saved_param_type_names = NULL;
         char *mir_error = NULL;
         bool mutated = false;
         bool rejected = false;
@@ -849,8 +849,8 @@ test_mir_lowering_part_c(void)
                     && strcmp(header->name, "Status") == 0
                     && header->method_metadata_count > 0) {
                     mutated_method = &header->method_metadata[0];
-                    saved_param_count = mutated_method->param_count;
-                    mutated_method->param_count++;
+                    saved_param_type_names = mutated_method->param_type_names;
+                    mutated_method->param_type_names = NULL;
                     mutated = true;
                     break;
                 }
@@ -860,9 +860,9 @@ test_mir_lowering_part_c(void)
                    && mutated
                    && !mir_validate(mir, &mir_error)
                    && mir_error != NULL
-                   && strstr(mir_error, "signature metadata drift") != NULL;
+                   && strstr(mir_error, "type-name storage") != NULL;
         if (mutated_method != NULL)
-            mutated_method->param_count = saved_param_count;
+            mutated_method->param_type_names = saved_param_type_names;
         EXPECT(rejected);
         free(mir_error);
         mir_destroy(mir);

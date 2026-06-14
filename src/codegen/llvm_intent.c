@@ -561,7 +561,7 @@ llvm_emit_intent_routines_from_inventory(
             return;
         }
         ASTNode *intent_decl = NULL;
-        if (!llvm_require_mir_intent_source_ast(ctx, routine, &intent_decl))
+        if (!llvm_require_mir_intent_source_decl(ctx, routine, &intent_decl))
             return;
         if (intent_decl == NULL)
             continue;

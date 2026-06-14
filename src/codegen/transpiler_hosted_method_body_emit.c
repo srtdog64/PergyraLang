@@ -72,8 +72,7 @@ transpiler_emit_hosted_methods_from_mir_or_error(
             return;
         }
         if (method == NULL && mir_method != NULL)
-            method = transpiler_mir_routine_source_ast_of_type(
-                mir_method, MIR_SCOPE_METHOD, AST_FUNC_DECL);
+            method = transpiler_mir_decl_method_body_decl(ctx, method_meta);
         if (method_name == NULL && method != NULL)
             method_name = ast_declaration_name(method);
         if (method == NULL || method->type != AST_FUNC_DECL) {

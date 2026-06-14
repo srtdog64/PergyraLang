@@ -154,12 +154,6 @@ llvm_decl_header_inventory_get(
     return &inventory->headers[index];
 }
 
-ASTNode *
-llvm_mir_routine_source_ast(const MIRRoutine *routine)
-{
-    return mir_routine_source_ast(routine);
-}
-
 MIRScopeKind
 llvm_mir_routine_kind(const MIRRoutine *routine)
 {
@@ -232,20 +226,6 @@ llvm_mir_routine_within_zone(const MIRRoutine *routine)
     return mir_routine_within_zone(routine);
 }
 
-ASTNode *
-llvm_mir_routine_source_ast_of_type(const MIRRoutine *routine,
-                                    MIRScopeKind expected_kind,
-                                    ASTNodeType expected_ast_type)
-{
-    ASTNode *source_ast = llvm_mir_routine_source_ast(routine);
-
-    if (routine == NULL || llvm_mir_routine_kind(routine) != expected_kind)
-        return NULL;
-    if (source_ast == NULL || source_ast->type != expected_ast_type)
-        return NULL;
-    return source_ast;
-}
-
 void
 llvm_active_domain_inventory(const LLVMGenCtx *ctx,
                              LLVMDomainInventory *inventory)
@@ -305,14 +285,6 @@ llvm_active_externs(const LLVMGenCtx *ctx,
         *nodes_out = nodes;
     if (count_out != NULL)
         *count_out = count;
-}
-
-ASTNode *
-llvm_active_synthetic_executable_func(const LLVMGenCtx *ctx)
-{
-    if (ctx != NULL && ctx->mir != NULL)
-        return mir_find_function_decl(ctx->mir, "__pgy_top_level_exec");
-    return NULL;
 }
 
 bool

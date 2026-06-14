@@ -1,6 +1,5 @@
 #include "mir_fact_validate.h"
 #include "mir_decl_headers.h"
-#include "mir_decl_header_shape.h"
 #include "mir_type_helpers.h"
 
 #include <stdarg.h>
@@ -45,119 +44,59 @@ mir_decl_header_strdup_fmt(const char *fmt, ...)
 static char *
 mir_decl_field_expected_type_name(const MIRDeclField *field)
 {
-    ASTNode *source;
-
     if (field == NULL)
         return NULL;
     if (field->type != NULL)
         return mir_capture_type_name(field->type, NULL);
+    return field->type_name != NULL ? mir_strdup_fmt("%s", field->type_name) : NULL;
+}
 
-    source = field->source_ast;
-    if (source == NULL)
-        return NULL;
-
-    switch (field->kind) {
-    case MIR_DECL_FIELD_ROSTER_SLOT:
-        return mir_capture_type_name(NULL, ast_roster_slot_party_type(source));
-    case MIR_DECL_FIELD_WORLD_ROSTER_SLOT:
-        return mir_capture_type_name(NULL, ast_world_roster_type_name(source));
-    case MIR_DECL_FIELD_WORLD_ZONE_SLOT:
-        return mir_capture_type_name(NULL, ast_world_zone_type_name(source));
-    case MIR_DECL_FIELD_ZONE_LAYER_SLOT:
-        return mir_capture_type_name(NULL,
-            ast_zone_layer_slot_layer_type(source));
+static bool
+mir_decl_header_type_requires_pointer_self(ASTNodeType type)
+{
+    switch (type) {
+    case AST_PARTY_DECL:
+    case AST_ROSTER_DECL:
+    case AST_WORLD_DECL:
+    case AST_RELATION_DECL:
+    case AST_EFFECT_DECL:
+    case AST_ROLE_DECL:
+    case AST_ZONE_DECL:
+        return true;
     default:
-        return NULL;
+        return false;
     }
 }
 
 static bool
-mir_validate_decl_header_ast_compat(const MIRDeclHeader *header,
-                                    size_t header_index,
-                                    char **error_message)
+mir_validate_decl_header_shape_metadata(const MIRDeclHeader *header,
+                                        size_t header_index,
+                                        char **error_message)
 {
-    const char *ast_name = NULL;
-    size_t ast_generic_count = 0;
-    size_t ast_method_count = 0;
-    size_t ast_field_count = 0;
-    bool ast_uses_pointer_self = false;
-
     if (header == NULL)
         return false;
-    ASTNode *source_ast = mir_decl_header_source_ast(header);
-
-    if (source_ast == NULL) {
+    if (header->name == NULL) {
         if (error_message != NULL) {
             *error_message = mir_strdup_fmt(
-                "MIR declaration header[%zu] '%s' has no AST compatibility payload",
-                header_index,
-                header->name != NULL ? header->name : "(anonymous)");
-        }
-        return false;
-    }
-    if (header->ast_type != source_ast->type) {
-        if (error_message != NULL) {
-            *error_message = mir_strdup_fmt(
-                "MIR declaration header[%zu] '%s' AST type metadata drift",
-                header_index,
-                header->name != NULL ? header->name : "(anonymous)");
-        }
-        return false;
-    }
-    if (!mir_decl_header_ast_shape(
-            header, &ast_name, &ast_generic_count, &ast_method_count, &ast_field_count,
-            &ast_uses_pointer_self)) {
-        if (error_message != NULL) {
-            *error_message = mir_strdup_fmt(
-                "MIR declaration header[%zu] '%s' has unsupported declaration AST shape",
-                header_index,
-                header->name != NULL ? header->name : "(anonymous)");
-        }
-        return false;
-    }
-    if (header->name == NULL
-        || ast_name == NULL
-        || strcmp(header->name, ast_name) != 0) {
-        if (error_message != NULL) {
-            *error_message = mir_strdup_fmt(
-                "MIR declaration header[%zu] name metadata drift",
+                "MIR declaration header[%zu] has no declaration name metadata",
                 header_index);
         }
         return false;
     }
-    if (header->method_count != ast_method_count) {
+    if (header->ast_type == AST_PROGRAM) {
         if (error_message != NULL) {
             *error_message = mir_strdup_fmt(
-                "MIR declaration header[%zu] '%s' AST method-count compatibility drift",
-                header_index,
-                header->name != NULL ? header->name : "(anonymous)");
+                "MIR declaration header[%zu] '%s' has invalid declaration type metadata",
+                header_index, header->name);
         }
         return false;
     }
-    if (header->generic_param_count != ast_generic_count) {
-        if (error_message != NULL) {
-            *error_message = mir_strdup_fmt(
-                "MIR declaration header[%zu] '%s' AST generic-count compatibility drift",
-                header_index,
-                header->name != NULL ? header->name : "(anonymous)");
-        }
-        return false;
-    }
-    if (header->field_count != ast_field_count) {
-        if (error_message != NULL) {
-            *error_message = mir_strdup_fmt(
-                "MIR declaration header[%zu] '%s' AST field-count compatibility drift",
-                header_index,
-                header->name != NULL ? header->name : "(anonymous)");
-        }
-        return false;
-    }
-    if (header->uses_pointer_self != ast_uses_pointer_self) {
+    if (mir_decl_header_type_requires_pointer_self(header->ast_type)
+        && !header->uses_pointer_self) {
         if (error_message != NULL) {
             *error_message = mir_strdup_fmt(
                 "MIR declaration header[%zu] '%s' pointer-self ABI metadata drift",
-                header_index,
-                header->name != NULL ? header->name : "(anonymous)");
+                header_index, header->name);
         }
         return false;
     }
@@ -174,7 +113,7 @@ mir_validate_decl_method_metadata(const MIRProgram *mir,
     if (mir == NULL || header == NULL)
         return false;
 
-    if (!mir_validate_decl_header_ast_compat(header, header_index, error_message))
+    if (!mir_validate_decl_header_shape_metadata(header, header_index, error_message))
         return false;
 
     if (header->method_metadata_count > 0 && header->method_metadata == NULL) {
@@ -202,7 +141,7 @@ mir_validate_decl_method_metadata(const MIRProgram *mir,
     if (header->method_metadata_count != header->method_count) {
         if (error_message != NULL) {
             *error_message = mir_strdup_fmt(
-                "MIR declaration header[%zu] '%s' method metadata count %zu does not match AST compatibility count %zu",
+                "MIR declaration header[%zu] '%s' method metadata count %zu does not match declaration method count %zu",
                 header_index,
                 header->name != NULL ? header->name : "(anonymous)",
                 header->method_metadata_count,
@@ -236,7 +175,7 @@ mir_validate_decl_method_metadata(const MIRProgram *mir,
     if (header->field_metadata_count != header->field_count) {
         if (error_message != NULL) {
             *error_message = mir_strdup_fmt(
-                "MIR declaration header[%zu] '%s' field metadata count %zu does not match AST compatibility count %zu",
+                "MIR declaration header[%zu] '%s' field metadata count %zu does not match declaration field count %zu",
                 header_index,
                 header->name != NULL ? header->name : "(anonymous)",
                 header->field_metadata_count,
@@ -260,7 +199,7 @@ mir_validate_decl_method_metadata(const MIRProgram *mir,
     if (header->generic_metadata_count != header->generic_param_count) {
         if (error_message != NULL) {
             *error_message = mir_strdup_fmt(
-                "MIR declaration header[%zu] '%s' generic metadata count %zu does not match AST compatibility count %zu",
+                "MIR declaration header[%zu] '%s' generic metadata count %zu does not match declaration generic count %zu",
                 header_index,
                 header->name != NULL ? header->name : "(anonymous)",
                 header->generic_metadata_count,
@@ -271,72 +210,66 @@ mir_validate_decl_method_metadata(const MIRProgram *mir,
 
     for (size_t i = 0; i < header->generic_metadata_count; i++) {
         const MIRDeclGenericParam *generic = &header->generic_metadata[i];
-        GenericParams *ast_params =
-            ast_declaration_generic_params(header->source_ast);
-        GenericParam *ast_param = ast_generic_param_at(ast_params, i);
-        const char *ast_name_at = ast_generic_param_name(ast_param);
-        if (generic->source_param != ast_param
-            || generic->name != ast_name_at
-            || generic->bound_ast != ast_generic_param_constraint(ast_param)
-            || generic->default_arg_ast != ast_generic_param_default_type(ast_param)) {
+        if (generic->name == NULL) {
             if (error_message != NULL) {
                 *error_message = mir_strdup_fmt(
-                    "MIR declaration header[%zu] generic[%zu] metadata drift",
+                    "MIR declaration header[%zu] generic[%zu] has incomplete metadata",
                     header_index, i);
             }
             return false;
         }
     }
 
-    if (header->ast_type == AST_ENUM_DECL && header->source_ast != NULL) {
-        size_t ast_variant_count = 0;
-        char **ast_variants = ast_enum_variants(
-            header->source_ast,
-            &ast_variant_count);
-        if (header->variant_metadata_count != ast_variant_count) {
+    if (header->variant_metadata_count > 0
+        && header->variant_metadata == NULL) {
+        if (error_message != NULL) {
+            *error_message = mir_strdup_fmt(
+                "MIR declaration header[%zu] '%s' has %zu enum variant metadata row(s) but no storage",
+                header_index,
+                header->name,
+                header->variant_metadata_count);
+        }
+        return false;
+    }
+
+    if (header->variant_metadata_count != header->variant_count) {
+        if (error_message != NULL) {
+            *error_message = mir_strdup_fmt(
+                "MIR declaration header[%zu] enum variant metadata count %zu does not match declaration variant count %zu",
+                header_index,
+                header->variant_metadata_count,
+                header->variant_count);
+        }
+        return false;
+    }
+
+    for (size_t i = 0; i < header->variant_metadata_count; i++) {
+        const MIRDeclEnumVariant *variant =
+            &header->variant_metadata[i];
+        if (variant->name == NULL) {
             if (error_message != NULL) {
                 *error_message = mir_strdup_fmt(
-                    "MIR declaration header[%zu] enum variant metadata count %zu does not match AST compatibility count %zu",
-                    header_index,
-                    header->variant_metadata_count,
-                    ast_variant_count);
+                    "MIR declaration header[%zu] enum variant[%zu] has incomplete metadata",
+                    header_index, i);
             }
             return false;
         }
-        for (size_t i = 0; i < header->variant_metadata_count; i++) {
-            const MIRDeclEnumVariant *variant =
-                &header->variant_metadata[i];
-            const char *ast_name =
-                ast_variants != NULL ? ast_variants[i] : NULL;
-            size_t ast_param_count =
-                ast_enum_variant_param_count(header->source_ast, i);
-            if ((variant->name == NULL || ast_name == NULL
-                    || strcmp(variant->name, ast_name) != 0)
-                || variant->param_count != ast_param_count) {
+        if (variant->param_count > 0 && variant->param_type_names == NULL) {
+            if (error_message != NULL) {
+                *error_message = mir_strdup_fmt(
+                    "MIR declaration header[%zu] enum variant[%zu] has payload metadata count but no storage",
+                    header_index, i);
+            }
+            return false;
+        }
+        for (size_t p = 0; p < variant->param_count; p++) {
+            if (variant->param_type_names[p] == NULL) {
                 if (error_message != NULL) {
                     *error_message = mir_strdup_fmt(
-                        "MIR declaration header[%zu] enum variant[%zu] metadata drift",
-                        header_index, i);
+                        "MIR declaration header[%zu] enum variant[%zu] payload[%zu] has no type metadata",
+                        header_index, i, p);
                 }
                 return false;
-            }
-            for (size_t p = 0; p < variant->param_count; p++) {
-                ASTNode *ast_param =
-                    ast_enum_variant_param(header->source_ast, i, p);
-                char *rendered = mir_capture_type_name(ast_param, NULL);
-                bool matches = rendered != NULL
-                    && variant->param_type_names != NULL
-                    && variant->param_type_names[p] != NULL
-                    && strcmp(variant->param_type_names[p], rendered) == 0;
-                free(rendered);
-                if (!matches) {
-                    if (error_message != NULL) {
-                        *error_message = mir_strdup_fmt(
-                            "MIR declaration header[%zu] enum variant[%zu] payload[%zu] type metadata drift",
-                            header_index, i, p);
-                    }
-                    return false;
-                }
             }
         }
     }
@@ -384,7 +317,6 @@ mir_validate_decl_method_metadata(const MIRProgram *mir,
 
     for (size_t i = 0; i < header->method_metadata_count; i++) {
         const MIRDeclMethod *method = &header->method_metadata[i];
-        ASTNode *ast = mir_decl_method_source_ast(method);
 
         if (method->owner_name == NULL
             || header->name == NULL
@@ -433,27 +365,26 @@ mir_validate_decl_method_metadata(const MIRProgram *mir,
             }
         }
 
-        if (ast == NULL || ast->type != AST_FUNC_DECL)
-            continue;
-        const char *ast_name = ast_declaration_name(ast);
-        if (method->name != ast_name
-            && (method->name == NULL || ast_name == NULL
-                || strcmp(method->name, ast_name) != 0)) {
+        if (method->name == NULL) {
             if (error_message != NULL) {
                 *error_message = mir_strdup_fmt(
-                    "MIR declaration header[%zu] method[%zu] name metadata drift",
+                    "MIR declaration header[%zu] method[%zu] has no name metadata",
                     header_index, i);
             }
             return false;
         }
-        size_t ast_param_count = 0;
-        FuncParam **ast_params = ast_func_params(ast, &ast_param_count);
-        if (method->params != ast_params
-            || method->param_count != ast_param_count
-            || method->return_type != ast_func_return_type(ast)) {
+        if (method->param_count > 0 && method->params == NULL) {
             if (error_message != NULL) {
                 *error_message = mir_strdup_fmt(
-                    "MIR declaration header[%zu] method[%zu] signature metadata drift",
+                    "MIR declaration header[%zu] method[%zu] has parameter count but no parameter storage",
+                    header_index, i);
+            }
+            return false;
+        }
+        if (method->param_count > 0 && method->param_type_names == NULL) {
+            if (error_message != NULL) {
+                *error_message = mir_strdup_fmt(
+                    "MIR declaration header[%zu] method[%zu] has parameter count but no type-name storage",
                     header_index, i);
             }
             return false;

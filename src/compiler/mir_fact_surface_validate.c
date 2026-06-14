@@ -241,8 +241,8 @@ mir_validate_instruction_surface_usage(const MIRRoutine *routine,
                     routine->name != NULL ? routine->name : "(anonymous)",
                     block_index,
                     i,
-                    mir_source_ast_type_name((ASTNodeType)
-                        mir_instruction_source_ast_type_or(inst, AST_PROGRAM)));
+                    mir_source_node_type_name((ASTNodeType)
+                        mir_instruction_source_node_type_or(inst, AST_PROGRAM)));
             }
             return false;
         }

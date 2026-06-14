@@ -5,7 +5,7 @@ The number that matters is *how much of the C/LLVM compiler has been
 substituted by Pergyra-written equivalents* -- not how many peripheral
 audit tools exist.
 
-Last updated: 2026-06-10
+Last updated: 2026-06-15
 
 ## Headline Number
 
@@ -106,27 +106,28 @@ Notes:
 
 ## Peripheral Audit Tools (Not Counted In Coverage)
 
-These 10 tools live in `src/self_hosted/tools/` but do **not** count
+These 11 tools live in `src/self_hosted/tools/` but do **not** count
 toward compiler-internal substitution. They are dogfood validators
 that read text artifacts and emit drift verdicts; the C compiler
 keeps running fine with or without them.
 
 | Tool                              | LOC (Pergyra) | Function |
 |-----------------------------------|---------------|----------|
-| `diagnostic_catalog_checker`      | 282           | docs/72 vs diag_codes.h drift |
-| `stable_subset_section_checker`   | 133           | docs/107 canonical anchors |
-| `air_graph_json_validator`        | 180           | `pgy --air-json` shape gate |
-| `backend_output_comparator`       | 149           | paired text diff verdict |
-| `module_manifest_resolver`        | 134           | language_module_manifest.json |
-| `stdlib_dispatch_inventory_checker` | 103         | C/LLVM dispatch table count parity |
-| `doc_link_checker`                | 155           | docs/INDEX.md dead-link audit |
-| `production_header_size_checker`  | 133           | `.h` 600-LOC cap |
-| `production_c_size_checker`       | 130           | `.c` 699-LOC cap |
-| `examples_inventory_checker`      | 119           | examples/ presence + non-empty |
-| **Total peripheral**              | **1518**      | |
+| `diagnostic_catalog_checker`      | 266           | docs/72 vs diag_codes.h drift |
+| `stable_subset_section_checker`   | 122           | docs/107 canonical anchors |
+| `air_graph_json_validator`        | 165           | `pgy --air-json` shape gate |
+| `backend_output_comparator`       | 135           | paired text diff verdict |
+| `module_manifest_resolver`        | 121           | language_module_manifest.json |
+| `stdlib_dispatch_inventory_checker` | 105         | C/LLVM dispatch table count parity |
+| `doc_link_checker`                | 143           | docs/INDEX.md dead-link audit |
+| `production_header_size_checker`  | 121           | `.h` 600-LOC cap |
+| `production_c_size_checker`       | 120           | `.c` 699-LOC cap |
+| `examples_inventory_checker`      | 108           | examples/ presence + non-empty |
+| `ast_read_surface_checker`        | 146           | CFG/MIR SoT ratchet parity |
+| **Total peripheral**              | **1552**      | |
 
-Plus `src/self_hosted/lib/text_scan.pgy` (~47 LOC) shared across tools 5,
-6, 8, 9, 10.
+Plus `src/self_hosted/lib/text_scan.pgy` (~45 LOC) shared across scan-based
+tools.
 
 ## Substitution Roadmap (Honest Order)
 
@@ -199,6 +200,19 @@ beyond the lexer:
 - **Subprocess execution** -- needed for in-Pergyra drift guards that
   re-run the C compiler. Currently the parity scripts do this from
   bash; a Pergyra runner would need `Subprocess(...)`.
+- **Deterministic collection iteration** -- compiler passes need stable
+  output ordering, not just functional map/set lookup. `MapKeys` has a
+  stable key subset today, but hard self-host needs a Stage 4 gate that
+  compares insertion-order variants and C/LLVM/Pergyra outputs.
+- **Filesystem directory walk** -- self-hosted validators still rely on
+  shell-owned tree enumeration. A Pergyra-owned `DirWalk`/glob surface must
+  return a deterministic, sorted snapshot with explicit error reporting so
+  tools such as ast-read-surface and doc/example checkers can run without
+  shell `find`/`grep` as the inventory owner.
+- **Parser LLVM depth/type-inference parity** -- parser parity is byte-equal
+  over the current runner set, but hard self-host needs the same parser
+  fixtures to compile and run through both C and LLVM, including deep nested
+  type/depth inference cases that currently risk becoming C-only evidence.
 
 The remaining lifts are the candidate scope before step 3 of the substitution
 roadmap can start.

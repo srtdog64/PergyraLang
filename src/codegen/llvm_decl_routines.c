@@ -3,30 +3,24 @@
 #include "llvm_mir_signature.h"
 
 static bool
-llvm_decl_mir_routine_has_instructions(const MIRRoutine *routine)
+llvm_decl_function_routine_has_body_storage(const MIRRoutine *routine)
 {
     if (routine == NULL)
         return false;
-    if (routine->block_count > 0 && routine->blocks == NULL)
-        return true;
-    for (size_t i = 0; i < routine->block_count; i++) {
-        if (routine->blocks[i].instruction_count > 0)
-            return true;
-    }
-    return false;
+    return routine->block_count > 0 && routine->blocks != NULL;
 }
 
 static ASTNode *
 llvm_decl_function_from_routine(const MIRRoutine *routine)
 {
-    return llvm_mir_routine_source_ast_of_type(
+    return mir_routine_source_decl_of_type(
         routine, MIR_SCOPE_FUNCTION, AST_FUNC_DECL);
 }
 
 static bool
-llvm_decl_require_function_source_ast(LLVMGenCtx *ctx,
-                                      const MIRRoutine *routine,
-                                      ASTNode **func_decl_out)
+llvm_decl_require_function_source_decl(LLVMGenCtx *ctx,
+                                       const MIRRoutine *routine,
+                                       ASTNode **func_decl_out)
 {
     ASTNode *func_decl = llvm_decl_function_from_routine(routine);
 
@@ -36,10 +30,10 @@ llvm_decl_require_function_source_ast(LLVMGenCtx *ctx,
         return true;
     if (routine != NULL
         && llvm_mir_routine_kind(routine) == MIR_SCOPE_FUNCTION
-        && llvm_decl_mir_routine_has_instructions(routine)) {
+        && llvm_decl_function_routine_has_body_storage(routine)) {
         const char *routine_name = llvm_mir_routine_name(routine);
         llvm_set_mir_inventory_missing(ctx,
-            "MIR-only LLVM path missing function source declaration metadata for routine '%s'",
+            "MIR-only LLVM path missing function source declaration for routine '%s'",
             routine_name != NULL ? routine_name : "(anonymous)");
         return false;
     }
@@ -61,18 +55,28 @@ llvm_forward_declare_function_routines_from_inventory(
                 "MIR-only LLVM path has invalid function routine inventory row");
             return false;
         }
-        ASTNode *func_decl = NULL;
-        if (!llvm_decl_require_function_source_ast(ctx, routine, &func_decl))
-            return false;
-        if (func_decl == NULL)
+        if (llvm_mir_routine_kind(routine) != MIR_SCOPE_FUNCTION)
             continue;
-        if (llvm_mir_or_ast_function_is_generic(routine, func_decl)) {
+        const char *routine_name = llvm_mir_routine_name(routine);
+        if (routine_name == NULL) {
+            llvm_set_mir_inventory_missing(ctx,
+                "MIR-only LLVM path has unnamed function routine inventory row");
+            return false;
+        }
+        if (llvm_mir_or_ast_function_is_generic(routine, NULL)) {
+            ASTNode *func_decl = NULL;
+            if (!llvm_decl_require_function_source_decl(ctx, routine,
+                    &func_decl)) {
+                return false;
+            }
+            if (func_decl == NULL)
+                continue;
             if (!llvm_register_generic_template_decl(ctx, func_decl))
                 return false;
             continue;
         }
-        if (llvm_lookup_function(ctx, ast_declaration_name(func_decl)) == NULL)
-            llvm_forward_declare_func_from_mir(routine, func_decl, ctx);
+        if (llvm_lookup_function(ctx, routine_name) == NULL)
+            llvm_forward_declare_func_from_mir(routine, NULL, ctx);
         if (ctx->has_error)
             return false;
     }
@@ -94,15 +98,18 @@ llvm_emit_function_routines_from_inventory(
                 "MIR-only LLVM path has invalid function routine inventory row");
             return false;
         }
-        ASTNode *func_decl = NULL;
-        if (!llvm_decl_require_function_source_ast(ctx, routine, &func_decl))
-            return false;
-        if (func_decl == NULL
-            || llvm_mir_or_ast_function_is_generic(routine, func_decl)) {
+        if (llvm_mir_routine_kind(routine) != MIR_SCOPE_FUNCTION)
             continue;
+        if (llvm_mir_or_ast_function_is_generic(routine, NULL))
+            continue;
+        if (!llvm_decl_function_routine_has_body_storage(routine)) {
+            const char *routine_name = llvm_mir_routine_name(routine);
+            llvm_set_mir_inventory_missing(ctx,
+                "MIR-only LLVM path missing routine for function '%s'",
+                routine_name != NULL ? routine_name : "(anonymous)");
+            return false;
         }
-        if (llvm_decl_mir_routine_has_instructions(routine))
-            llvm_emit_func_from_mir(routine, ctx);
+        llvm_emit_func_from_mir(routine, ctx);
         if (ctx->has_error)
             return false;
     }
@@ -124,20 +131,21 @@ llvm_validate_function_routine_bodies_from_inventory(
                 "MIR-only LLVM path has invalid function routine inventory row");
             return false;
         }
-        ASTNode *func_decl = NULL;
-        if (!llvm_decl_require_function_source_ast(ctx, routine, &func_decl))
-            return false;
-        if (func_decl == NULL
-            || llvm_mir_or_ast_function_is_generic(routine, func_decl)) {
+        if (llvm_mir_routine_kind(routine) != MIR_SCOPE_FUNCTION)
             continue;
+        const char *routine_name = llvm_mir_routine_name(routine);
+        if (routine_name == NULL) {
+            llvm_set_mir_inventory_missing(ctx,
+                "MIR-only LLVM path has unnamed function routine inventory row");
+            return false;
         }
-        if (llvm_decl_mir_routine_has_instructions(routine))
+        if (llvm_mir_or_ast_function_is_generic(routine, NULL))
+            continue;
+        if (llvm_decl_function_routine_has_body_storage(routine))
             continue;
         llvm_set_mir_inventory_missing(ctx,
             "MIR-only LLVM path missing routine for function '%s'",
-            ast_declaration_name(func_decl) != NULL
-                ? ast_declaration_name(func_decl)
-                : "(anonymous)");
+            routine_name);
         return false;
     }
     return true;
