@@ -313,6 +313,7 @@ emit_world_decl(ASTNode *node, TranspilerCtx *ctx)
     write_indent(ctx);
     codebuf_write(ctx->out, "size_t _pgy_world_frontier_pass_limit = %zu;\n",
         pgy_codegen_world_frontier_graph_pass_limit(node,
+            name,
             pgy_domain_world_transitive_frontier_pass_limit_from_counts(
                 zone_count, state_count, embedded_frontier_count)));
     write_indent(ctx);

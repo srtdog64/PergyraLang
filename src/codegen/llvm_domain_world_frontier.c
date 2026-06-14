@@ -144,6 +144,7 @@ llvm_world_sync_emit_frontier(ASTNode *stmt, LLVMClassTypeEntry *decl_cls,
     frontier_limit_val = LLVMConstInt(ctx->type_i32,
         (unsigned long long)
             pgy_codegen_world_frontier_graph_pass_limit(stmt,
+                llvm_decl_node_name(stmt),
                 pgy_domain_world_transitive_frontier_pass_limit_from_counts(
                     zone_count, state_count, embedded_frontier_count)),
         0);

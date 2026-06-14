@@ -94,6 +94,7 @@ llvm_emit_zone_sync(ASTNode *stmt, const char *decl_name,
         "zone.frontier.continue.addr");
     LLVMValueRef frontier_limit_val = LLVMConstInt(ctx->type_i32,
         (unsigned long long)pgy_codegen_zone_frontier_graph_pass_limit(stmt,
+            decl_name,
             pgy_domain_zone_frontier_pass_limit_from_counts(
                 state_count, layer_view.count)), 0);
     LLVMBasicBlockRef frontier_check_bb = LLVMAppendBasicBlockInContext(ctx->context, sync_fn,

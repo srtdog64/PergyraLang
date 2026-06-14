@@ -3,6 +3,7 @@
  * Transitive frontier propagation dependency graph and schedule.
  */
 #include "propagation_graph.h"
+#include "../common/string_compat.h"
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -44,10 +45,9 @@ propagation_graph_intern_node(PropagationGraph *g, const char *name)
     if (grown == NULL)
         return (size_t)-1;
     g->node_names = grown;
-    copy = malloc(strlen(name) + 1);
+    copy = pergyra_strdup(name);
     if (copy == NULL)
         return (size_t)-1;
-    strcpy(copy, name);
     g->node_names[g->node_count] = copy;
     return g->node_count++;
 }

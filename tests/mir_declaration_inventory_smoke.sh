@@ -222,29 +222,29 @@ for term in \
 done
 require_term "src/parser/ast_api.h" \
     "GenericParams* ast_declaration_generic_params"
-require_term "src/codegen/llvm_backend_type_map.c" \
+require_term "src/codegen/llvm_backend_type_map_generics.c" \
     "llvm_generic_default_from_header"
-require_term "src/codegen/llvm_backend_type_map.c" \
+require_term "src/codegen/llvm_backend_type_map_generics.c" \
     "mir_decl_header_generic_param_count(header)"
-require_term "src/codegen/llvm_backend_type_map.c" \
+require_term "src/codegen/llvm_backend_type_map_generics.c" \
     "llvm_find_decl_header_in_context_of_type(ctx, decl->type, decl_name)"
-require_term "src/codegen/llvm_backend_type_map.c" \
+require_term "src/codegen/llvm_backend_type_map_generics.c" \
     "llvm_active_decl_header_inventory(ctx, &headers)"
-require_term "src/codegen/llvm_backend_type_map.c" \
+require_term "src/codegen/llvm_backend_type_map_generics.c" \
     "llvm_decl_header_inventory_get(&headers, i)"
-require_term "src/codegen/llvm_backend_type_map.c" \
+require_term "src/codegen/llvm_backend_type_map_generics.c" \
     "pgy_host_decl_compat_types(&host_decl_type_count)"
-require_term "src/codegen/llvm_backend_type_map.c" \
+require_term "src/codegen/llvm_backend_type_map_generics.c" \
     "llvm_active_has_mir(ctx)"
-require_term "src/codegen/llvm_backend_type_map.c" \
+require_term "src/codegen/llvm_backend_type_map_generics.c" \
     "ctx->current_host_decl->type"
-require_term "src/codegen/llvm_backend_type_map.c" \
+require_term "src/codegen/llvm_backend_type_map_generics.c" \
     "ast_declaration_generic_params(decl)"
-require_each_following_term "src/codegen/llvm_backend_type_map.c" \
+require_each_following_term "src/codegen/llvm_backend_type_map_generics.c" \
     "if (llvm_active_has_mir(ctx))" \
     "llvm_find_decl_header_in_context_of_type(" \
     10
-require_each_following_term "src/codegen/llvm_backend_type_map.c" \
+require_each_following_term "src/codegen/llvm_backend_type_map_generics.c" \
     "return llvm_find_generic_default_in_mir_inventory(ctx, type_name);" \
     "llvm_generic_default_from_context_decl(" \
     8
@@ -252,7 +252,7 @@ require_term "src/compiler/mir.c" \
     "mir_record_decl_header(mir, hir->functions[i])"
 require_term "src/compiler/mir_decl_headers.c" \
     "case AST_FUNC_DECL"
-require_term "src/compiler/mir_decl_header_validate.c" \
+require_term "src/compiler/mir_decl_header_shape.c" \
     "case AST_FUNC_DECL"
 require_term "src/compiler/mir.h" \
     "mir_find_decl_header_of_type"
@@ -1102,7 +1102,7 @@ require_term "src/codegen/llvm_mir_local_emit.c" \
     "inst->phi_incomings[i].value_name"
 require_term "src/codegen/llvm_stmt_type_infer.c" \
     "channel receive requires registered Channel<T> metadata"
-require_term "src/codegen/llvm_stmt_type_infer.c" \
+require_term "src/codegen/llvm_stmt_type_infer_call.c" \
     "call result requires registered function or expected type metadata"
 require_term "src/codegen/llvm_stmt_type_infer.c" \
     "identifier requires registered LLVM local metadata"
@@ -2293,7 +2293,7 @@ require_term "src/compiler/mir_decl_headers.h" \
     "mir_decl_field_is_binding_like"
 require_term "src/compiler/mir_decl_header_access.c" \
     "mir_decl_field_is_binding_like"
-require_term "src/compiler/mir_decl_headers.c" \
+require_term "src/compiler/mir_decl_header_fields.c" \
     "meta->is_binding_like = ast_domain_slot_is_binding(slot)"
 require_term "src/codegen/llvm_domain_struct_register.c" \
     "llvm_count_domain_projection_slots_in_view("
@@ -2640,7 +2640,7 @@ for term in \
 done
 require_term "src/compiler/mir.h" \
     "is_tobject_like"
-require_term "src/compiler/mir_decl_headers.c" \
+require_term "src/compiler/mir_decl_header_fields.c" \
     "meta->is_tobject_like = ast_domain_slot_is_tobject(slot)"
 for term in \
     "MIR declaration header[%zu] '%s' has %zu hosted field(s) without MIRDeclField metadata" \
@@ -2988,7 +2988,7 @@ for term in \
 done
 require_term "src/compiler/mir_decl_headers.c" \
     "case AST_ABILITY_DECL"
-require_term "src/compiler/mir_decl_header_validate.c" \
+require_term "src/compiler/mir_decl_header_shape.c" \
     "case AST_ABILITY_DECL"
 for term in \
     "transpiler_mir_routine_kind" \
@@ -4514,28 +4514,45 @@ if grep -Fq "llvm_find_named_domain_decl(ctx, AST_PARTY_DECL, callee_name)" \
 fi
 for term in \
     "transpiler_party_slot_first_ability_tag" \
-    "transpiler_party_slot_method_ability_tag"; do
+    "transpiler_party_slot_method_ability_tag" \
+    "render_mir_ability_ref_vtable_tag_in_ctx"; do
     require_term "src/codegen/transpiler_role_ability_helpers.h" "$term"
     require_term "src/codegen/transpiler_role_ability.c" "$term"
 done
+require_term "src/compiler/mir_decl.h" \
+    "MIRAbilityRef"
+require_term "src/compiler/mir_decl_header_fields.c" \
+    "mir_ability_ref_capture"
+require_term "src/compiler/mir_decl_headers.h" \
+    "mir_decl_field_required_ability_ref"
 require_term "src/codegen/transpiler_decl_lookup.h" \
     "TranspilerHostedRoleSlotView"
 require_term "src/codegen/transpiler_decl_lookup.h" \
     "transpiler_hosted_role_slot_view_from_decl"
 require_term "src/codegen/transpiler_decl_lookup.h" \
-    "transpiler_hosted_role_slot_view_required_ability"
+    "transpiler_hosted_role_slot_view_required_ability_ref"
+if grep -RInE 'required_ability_type_names|mir_decl_field_required_ability_type_name|transpiler_hosted_role_slot_view_required_ability_type_name|llvm_hosted_role_slot_view_required_ability_type_name' \
+    "$ROOT_DIR/src/compiler" \
+    "$ROOT_DIR/src/codegen" >/dev/null; then
+    fail "role-slot ability metadata must have one MIR SoT: MIRAbilityRef, not legacy type-name aliases"
+fi
 require_term "src/codegen/transpiler_domain_nominal_emit.c" \
     "transpiler_hosted_role_slot_view_from_decl(ctx, name, node)"
 require_term "src/codegen/transpiler_domain_nominal_emit.c" \
     "transpiler_hosted_role_slot_view_missing_mir_metadata(&role_view)"
 require_term "src/codegen/transpiler_domain_nominal_emit.c" \
-    "transpiler_hosted_role_slot_view_required_ability("
+    "transpiler_hosted_role_slot_view_required_ability_ref("
 require_term "src/codegen/transpiler_role_ability.c" \
     "transpiler_hosted_role_slot_view_from_decl(ctx, party_name, party_decl)"
 require_term "src/codegen/transpiler_role_ability.c" \
     "transpiler_hosted_role_slot_view_missing_mir_metadata(&role_view)"
 require_term "src/codegen/transpiler_role_ability.c" \
-    "transpiler_hosted_role_slot_view_required_ability("
+    "transpiler_hosted_role_slot_view_required_ability_ref("
+if grep -RIn "transpiler_hosted_role_slot_view_required_ability_type_name(" \
+    "$ROOT_DIR/src/codegen/transpiler_domain_nominal_emit.c" \
+    "$ROOT_DIR/src/codegen/transpiler_role_ability.c" >/dev/null; then
+    fail "C party role-slot ability consumers must read MIRAbilityRef, not compatibility type-name strings"
+fi
 require_term "src/codegen/transpiler_statement_dispatch.c" \
     "transpiler_party_slot_first_ability_tag(ctx,"
 require_term "src/codegen/transpiler_expr_call_member_emit.c" \
@@ -4618,9 +4635,9 @@ if grep -RInE 'mir_decl_header_variant(_count)?\(|mir_decl_variant_(name|param_c
         "$ROOT_DIR/src" >&2 || true
     fail "MIR enum variant metadata must use the single enum-specific accessor family"
 fi
-require_term "src/compiler/mir_decl_headers.c" \
+require_term "src/compiler/mir_decl_header_variants.c" \
     "meta[i].param_type_names[p] ="
-require_term "src/compiler/mir_decl_headers.c" \
+require_term "src/compiler/mir_decl_header_variants.c" \
     "mir_capture_type_name(pt, NULL)"
 require_term "src/compiler/mir_lifecycle.c" \
     "variant->param_type_names[p]"
@@ -5478,27 +5495,27 @@ require_each_following_term "src/codegen/llvm_stmt_let_helpers.c" \
     "method_return_type == NULL && method_meta == NULL" \
     "llvm_active_has_mir(ctx)" \
     4
-require_term "src/codegen/llvm_stmt_type_infer.c" \
+require_term "src/codegen/llvm_stmt_type_infer_call.c" \
     "llvm_find_host_method_metadata_in_context("
-require_term "src/codegen/llvm_stmt_type_infer.c" \
+require_term "src/codegen/llvm_stmt_type_infer_call.c" \
     "llvm_mir_decl_method_metadata_complete_for("
-require_term "src/codegen/llvm_stmt_type_infer.c" \
+require_term "src/codegen/llvm_stmt_type_infer_call.c" \
     "LLVM_MIR_DECL_METHOD_REQUIRE_RETURN_TYPE_NAME"
-require_term "src/codegen/llvm_stmt_type_infer.c" \
+require_term "src/codegen/llvm_stmt_type_infer_call.c" \
     "llvm_mir_decl_method_return_type("
-require_term "src/codegen/llvm_stmt_type_infer.c" \
+require_term "src/codegen/llvm_stmt_type_infer_call.c" \
     "llvm_mir_decl_method_return_type_name("
-require_term "src/codegen/llvm_stmt_type_infer.c" \
+require_term "src/codegen/llvm_stmt_type_infer_call.c" \
     "ret_ty == NULL && method_meta == NULL"
-require_term "src/codegen/llvm_stmt_type_infer.c" \
+require_term "src/codegen/llvm_stmt_type_infer_call.c" \
     "llvm_active_has_mir(ctx)"
-require_term "src/codegen/llvm_stmt_type_infer.c" \
+require_term "src/codegen/llvm_stmt_type_infer_call.c" \
     "MIR-only LLVM path missing method return metadata"
-require_each_following_term "src/codegen/llvm_stmt_type_infer.c" \
+require_each_following_term "src/codegen/llvm_stmt_type_infer_call.c" \
     "ret_ty == NULL && method_meta == NULL" \
     "llvm_active_has_mir(ctx)" \
     4
-require_each_following_term "src/codegen/llvm_stmt_type_infer.c" \
+require_each_following_term "src/codegen/llvm_stmt_type_infer_call.c" \
     "llvm_stmt_infer_scalar_builtin_type(ctx, callee)" \
     "llvm_current_host_class_name(ctx)" \
     24
@@ -5814,9 +5831,13 @@ require_term "src/codegen/transpiler_domain_role_methods_emit.c" \
 require_term "src/codegen/llvm_domain_role_emit.c" \
     "ast_impl_ability_name(impl)"
 require_term "src/codegen/llvm_domain_role_emit.c" \
+    "llvm_render_ast_ability_ref_vtable_tag(ctx, ability_ref)"
+require_term "src/codegen/llvm_domain_role_emit.c" \
     "ast_impl_ability_method(impl, j)"
 require_term "src/codegen/llvm_domain_role_helpers.h" \
-    "llvm_party_slot_first_ability_name"
+    "llvm_party_slot_first_ability_tag"
+require_term "src/codegen/llvm_domain_role_helpers.h" \
+    "llvm_render_mir_ability_ref_vtable_tag"
 require_term "src/codegen/llvm_domain_role_helpers.h" \
     "llvm_lookup_role_vtable_global"
 require_term "src/codegen/llvm_inventory_decl_lookup.h" \
@@ -5826,7 +5847,7 @@ require_term "src/codegen/llvm_inventory_decl_lookup.h" \
 require_term "src/codegen/llvm_inventory_decl_lookup.h" \
     "llvm_hosted_role_slot_view_is_dynamic"
 require_term "src/codegen/llvm_inventory_decl_lookup.h" \
-    "llvm_hosted_role_slot_view_required_ability"
+    "llvm_hosted_role_slot_view_required_ability_ref"
 require_term "src/codegen/llvm_domain_struct_register.c" \
     "llvm_hosted_role_slot_view_from_decl(ctx, decl_name, stmt)"
 require_term "src/codegen/llvm_domain_struct_register.c" \
@@ -5846,11 +5867,15 @@ require_term "src/codegen/llvm_domain_role_lookup.c" \
 require_term "src/codegen/llvm_domain_role_lookup.c" \
     "llvm_hosted_role_slot_view_from_decl("
 require_term "src/codegen/llvm_domain_role_lookup.c" \
-    "llvm_hosted_role_slot_view_required_ability("
+    "llvm_hosted_role_slot_view_required_ability_ref("
 require_term "src/codegen/llvm_stmt.c" \
-    "llvm_party_slot_first_ability_name("
+    "llvm_party_slot_first_ability_tag("
 require_term "src/codegen/llvm_stmt.c" \
     "llvm_lookup_role_vtable_global("
+if grep -RIn "llvm_party_slot_first_ability_name(" \
+    "$ROOT_DIR/src/codegen" >/dev/null; then
+    fail "LLVM role-slot ability lookup must expose MIRAbilityRef-derived tags, not compatibility ability names"
+fi
 require_term "src/codegen/transpiler_statement_dispatch.c" \
     "lookup_typed_var(ctx, pvar)"
 require_term "src/codegen/transpiler_statement_dispatch.c" \
@@ -5863,7 +5888,7 @@ require_term "src/parser/ast_domain_api.h" \
     "ast_role_impl_method_total_count"
 require_term "src/parser/ast_role_type_accessors.c" \
     "ast_role_impl_method_total_count"
-require_term "src/compiler/mir_decl_header_validate.c" \
+require_term "src/compiler/mir_decl_header_shape.c" \
     "ast_role_impl_method_total_count"
 if grep -R "data\.include_stmt" "$ROOT_DIR/src/codegen" >/dev/null; then
     fail "C/LLVM codegen include payload consumers must use AST include accessors"
@@ -5904,7 +5929,7 @@ if grep -Fq "strstr(gname, \"_vtable_instance\")" \
 fi
 if grep -Eq 'ast_party_role_count|ast_party_role\(|ast_role_slot_(name|required_ability)' \
     "$ROOT_DIR/src/codegen/llvm_stmt.c"; then
-    fail "LLVM bind lowering must consume llvm_party_slot_first_ability_name instead of scanning party role slots"
+    fail "LLVM bind lowering must consume llvm_party_slot_first_ability_tag instead of scanning party role slots"
 fi
 role_slot_consumer_hits="$(
     grep -RInE 'ast_party_role_count|ast_party_role\(|ast_role_slot_(name|is_dynamic)' \
@@ -6107,7 +6132,6 @@ require_term "src/compiler/mir_decl_header_validate.c" \
 for term in \
     "mir_validate_decl_header_ast_compat" \
     "mir_validate_decl_header_metadata" \
-    "ast_role_impl_method_total_count" \
     "AST method-count compatibility drift" \
     "name metadata drift" \
     "duplicates declaration header" \

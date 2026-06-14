@@ -404,8 +404,8 @@ llvm_hosted_role_slot_view_required_ability_count(
     return 0;
 }
 
-const char *
-llvm_hosted_role_slot_view_required_ability_type_name(
+const MIRAbilityRef *
+llvm_hosted_role_slot_view_required_ability_ref(
     const LLVMHostedRoleSlotView *view,
     size_t index,
     size_t ability_index)
@@ -416,7 +416,7 @@ llvm_hosted_role_slot_view_required_ability_type_name(
     if (view == NULL || index >= view->count)
         return NULL;
     if (field != NULL)
-        return mir_decl_field_required_ability_type_name(field, ability_index);
+        return mir_decl_field_required_ability_ref(field, ability_index);
     return NULL;
 }
 

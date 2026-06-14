@@ -41,6 +41,73 @@ test_mir_lowering_part_d(void)
         hir_destroy(hir);
     }
 
+    TEST("MIR declaration headers preserve role-slot ability refs");
+    {
+        const char *src =
+            "subject IntBag { let item: Int; }\n"
+            "subject TextBag { let item: String; }\n"
+            "ability Bufferable<T = Int> {\n"
+            "    func Put(self, value: T) -> Int;\n"
+            "}\n"
+            "role IntBuffer for IntBag {\n"
+            "    impl ability Bufferable {\n"
+            "        func Put(self, value: Int) -> Int { return value; }\n"
+            "    }\n"
+            "}\n"
+            "role TextBuffer for TextBag {\n"
+            "    impl ability Bufferable<String> {\n"
+            "        func Put(self, value: String) -> Int { return 1; }\n"
+            "    }\n"
+            "}\n"
+            "party StorageParty {\n"
+            "    role slot defaulted: Bufferable\n"
+            "    role slot explicit: Bufferable<String>\n"
+            "}\n";
+        HIRProgram *hir = NULL;
+        RIRProgram *rir = NULL;
+        MIRProgram *mir = NULL;
+        const MIRDeclHeader *party = NULL;
+        const MIRDeclField *defaulted = NULL;
+        const MIRDeclField *explicit_slot = NULL;
+        const MIRAbilityRef *default_ref = NULL;
+        const MIRAbilityRef *explicit_ref = NULL;
+        bool ok = lower_mir_from_source(src, &hir, &rir, &mir);
+        if (ok && mir != NULL)
+            party = mir_find_decl_header(mir, "StorageParty");
+        if (party != NULL) {
+            defaulted = mir_decl_header_field(party, 0);
+            explicit_slot = mir_decl_header_field(party, 1);
+        }
+        if (defaulted != NULL)
+            default_ref = mir_decl_field_required_ability_ref(defaulted, 0);
+        if (explicit_slot != NULL)
+            explicit_ref =
+                mir_decl_field_required_ability_ref(explicit_slot, 0);
+        EXPECT(ok
+               && party != NULL
+               && mir_decl_header_field_count(party) == 2
+               && default_ref != NULL
+               && explicit_ref != NULL
+               && mir_decl_field_required_ability_count(defaulted) == 1
+               && mir_ability_ref_base_name(default_ref) != NULL
+               && strcmp(mir_ability_ref_base_name(default_ref),
+                         "Bufferable") == 0
+               && mir_ability_ref_actual_arg_count(default_ref) == 0
+               && mir_ability_ref_base_name(explicit_ref) != NULL
+               && strcmp(mir_ability_ref_base_name(explicit_ref),
+                         "Bufferable") == 0
+               && mir_ability_ref_actual_arg_count(explicit_ref) == 1
+               && mir_ability_ref_actual_arg_type_name(explicit_ref, 0)
+                    != NULL
+               && strcmp(mir_ability_ref_actual_arg_type_name(
+                             explicit_ref, 0),
+                         "String") == 0
+               && mir_validate(mir, NULL));
+        mir_destroy(mir);
+        rir_destroy(rir);
+        hir_destroy(hir);
+    }
+
     TEST("MIR declaration headers preserve domain slot classification metadata");
     {
         const char *src =

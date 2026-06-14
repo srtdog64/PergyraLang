@@ -1,0 +1,25 @@
+subject Bag {
+    let item: Int;
+}
+
+ability Bufferable<T = Int> {
+    func Put(self, value: T) -> Int;
+}
+
+role IntBuffer for Bag {
+    impl ability Bufferable {
+        func Put(self, value: Int) -> Int {
+            return value + 5;
+        }
+    }
+}
+
+party StorageParty {
+    dyn role slot buffer: Bufferable
+}
+
+func Main() -> Void {
+    let storage: StorageParty = StorageParty();
+    bind storage.buffer = IntBuffer;
+    Log(storage.buffer.Put(7));
+}

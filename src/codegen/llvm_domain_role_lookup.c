@@ -6,9 +6,11 @@
 #ifdef PGY_LLVM_ENABLED
 
 #include "llvm_internal.h"
+#include "llvm_backend_type_map_internal.h"
 #include "llvm_domain_role_helpers.h"
 #include "llvm_inventory_decl_lookup.h"
 #include "llvm_inventory_host_methods.h"
+#include "../compiler/mir_decl_headers.h"
 
 bool
 llvm_role_method_symbol_name(char *out,
@@ -74,6 +76,274 @@ llvm_role_vtable_global_name(char *out,
     written = snprintf(out, out_size, "%s_%s_vtable_instance",
         role_name, ability_name);
     return written >= 0 && (size_t)written < out_size;
+}
+
+static void
+llvm_ability_tag_sanitize(const char *in, char *out, size_t out_size)
+{
+    size_t j = 0;
+    bool last_under = false;
+
+    if (out == NULL || out_size == 0)
+        return;
+    out[0] = '\0';
+    if (in == NULL)
+        return;
+    for (size_t i = 0; in[i] != '\0' && j + 1 < out_size; i++) {
+        char c = in[i];
+        bool keep = (c >= '0' && c <= '9')
+            || (c >= 'A' && c <= 'Z')
+            || (c >= 'a' && c <= 'z')
+            || c == '_';
+        if (keep) {
+            out[j++] = c;
+            last_under = c == '_';
+        } else if (!last_under) {
+            out[j++] = '_';
+            last_under = true;
+        }
+    }
+    while (j > 0 && out[j - 1] == '_')
+        j--;
+    out[j] = '\0';
+}
+
+static const char *
+llvm_ability_arg_bound_name(LLVMGenCtx *ctx, const char *name)
+{
+    if (ctx == NULL || name == NULL)
+        return NULL;
+    for (int i = ctx->type_subst_count - 1; i >= 0; i--) {
+        if (ctx->type_subst[i].param_name != NULL
+            && strcmp(ctx->type_subst[i].param_name, name) == 0) {
+            return ctx->type_subst[i].type_name;
+        }
+    }
+    return NULL;
+}
+
+static bool
+llvm_subst_ability_arg_type_name(LLVMGenCtx *ctx,
+                                 const char *in,
+                                 char *out,
+                                 size_t out_size)
+{
+    size_t oi = 0;
+    size_t i = 0;
+
+    if (ctx == NULL || in == NULL || out == NULL || out_size == 0)
+        return false;
+    while (in[i] != '\0') {
+        char c = in[i];
+        if ((c >= 'A' && c <= 'Z') || (c >= 'a' && c <= 'z') || c == '_') {
+            size_t start = i;
+            char tok[128];
+            size_t len;
+            const char *bound;
+            const char *rep;
+            while (in[i] != '\0'
+                && ((in[i] >= 'A' && in[i] <= 'Z')
+                    || (in[i] >= 'a' && in[i] <= 'z')
+                    || (in[i] >= '0' && in[i] <= '9') || in[i] == '_'))
+                i++;
+            len = i - start;
+            if (len >= sizeof(tok))
+                return false;
+            memcpy(tok, in + start, len);
+            tok[len] = '\0';
+            bound = llvm_ability_arg_bound_name(ctx, tok);
+            rep = bound != NULL ? bound : tok;
+            for (size_t k = 0; rep[k] != '\0'; k++) {
+                if (oi + 1 >= out_size)
+                    return false;
+                out[oi++] = rep[k];
+            }
+        } else {
+            if (oi + 1 >= out_size)
+                return false;
+            out[oi++] = c;
+            i++;
+        }
+    }
+    out[oi] = '\0';
+    return true;
+}
+
+static const char *
+llvm_keep_ability_tag(LLVMGenCtx *ctx, const char *rendered)
+{
+    char suffix[128];
+
+    if (ctx == NULL || rendered == NULL)
+        return NULL;
+    llvm_ability_tag_sanitize(rendered, suffix, sizeof(suffix));
+    if (suffix[0] == '\0')
+        return NULL;
+    return pgy_arena_strdup(&ctx->persistent, suffix);
+}
+
+static const char *
+llvm_render_ability_actual_name(LLVMGenCtx *ctx, const char *type_name)
+{
+    char subst[256];
+
+    if (ctx == NULL || type_name == NULL)
+        return NULL;
+    if (llvm_subst_ability_arg_type_name(
+            ctx, type_name, subst, sizeof(subst))) {
+        return pgy_arena_strdup(&ctx->scratch, subst);
+    }
+    return pgy_arena_strdup(&ctx->scratch, type_name);
+}
+
+static const char *
+llvm_render_ability_formal_fallback(LLVMGenCtx *ctx, GenericParam *formal)
+{
+    ASTNode *fallback;
+    char *rendered;
+
+    if (ctx == NULL || formal == NULL)
+        return NULL;
+    fallback = ast_generic_param_default_type(formal);
+    if (fallback == NULL)
+        fallback = ast_generic_param_constraint(formal);
+    if (fallback == NULL)
+        return NULL;
+    rendered = llvm_render_type_name_in_ctx(ctx, fallback);
+    return llvm_keep_rendered_persistent(
+        ctx, rendered, "LLVM ability generic fallback copy failed");
+}
+
+const char *
+llvm_render_mir_ability_ref_vtable_tag(LLVMGenCtx *ctx,
+                                       const MIRAbilityRef *ability_ref)
+{
+    const char *base_name;
+    ASTNode *ability_decl;
+    GenericParams *generics;
+    size_t generic_count;
+    size_t actual_count;
+    size_t rendered_count;
+    char rendered[512];
+    size_t offset = 0;
+
+    if (ctx == NULL || ability_ref == NULL)
+        return NULL;
+    base_name = mir_ability_ref_base_name(ability_ref);
+    if (base_name == NULL)
+        return NULL;
+    ability_decl = llvm_find_decl_in_active_inventory(
+        ctx, AST_ABILITY_DECL, base_name);
+    generics = ability_decl != NULL && ability_decl->type == AST_ABILITY_DECL
+        ? ast_declaration_generic_params(ability_decl) : NULL;
+    generic_count = ast_generic_param_count(generics);
+    actual_count = mir_ability_ref_actual_arg_count(ability_ref);
+    rendered_count = generic_count > actual_count ? generic_count : actual_count;
+    if (rendered_count == 0)
+        return llvm_keep_ability_tag(ctx, base_name);
+
+    {
+        int written = snprintf(rendered, sizeof(rendered), "%s<", base_name);
+        if (written < 0 || (size_t)written >= sizeof(rendered))
+            return NULL;
+        offset = (size_t)written;
+    }
+    for (size_t i = 0; i < rendered_count; i++) {
+        const char *arg = NULL;
+        int written;
+
+        if (i < actual_count) {
+            arg = llvm_render_ability_actual_name(
+                ctx, mir_ability_ref_actual_arg_type_name(ability_ref, i));
+        }
+        if (arg == NULL && i < generic_count) {
+            arg = llvm_render_ability_formal_fallback(
+                ctx, ast_generic_param_at(generics, i));
+        }
+        if (arg == NULL)
+            return llvm_keep_ability_tag(ctx, base_name);
+        written = snprintf(rendered + offset, sizeof(rendered) - offset,
+            "%s%s", i > 0 ? ", " : "", arg);
+        if (written < 0 || (size_t)written >= sizeof(rendered) - offset)
+            return NULL;
+        offset += (size_t)written;
+    }
+    if (offset + 2 > sizeof(rendered))
+        return NULL;
+    rendered[offset++] = '>';
+    rendered[offset] = '\0';
+    return llvm_keep_ability_tag(ctx, rendered);
+}
+
+const char *
+llvm_render_ast_ability_ref_vtable_tag(LLVMGenCtx *ctx, ASTNode *ability_ref)
+{
+    const char *base_name;
+    ASTNode *ability_decl;
+    GenericParams *generics;
+    GenericParams *actuals;
+    size_t generic_count;
+    size_t actual_count;
+    size_t rendered_count;
+    char rendered[512];
+    size_t offset;
+
+    if (ctx == NULL || ability_ref == NULL || ability_ref->type != AST_TYPE)
+        return NULL;
+    base_name = ast_type_name(ability_ref);
+    if (base_name == NULL)
+        return NULL;
+    ability_decl = llvm_find_decl_in_active_inventory(
+        ctx, AST_ABILITY_DECL, base_name);
+    generics = ability_decl != NULL && ability_decl->type == AST_ABILITY_DECL
+        ? ast_declaration_generic_params(ability_decl) : NULL;
+    actuals = ast_type_generic_args(ability_ref);
+    generic_count = ast_generic_param_count(generics);
+    actual_count = ast_generic_param_count(actuals);
+    rendered_count = generic_count > actual_count ? generic_count : actual_count;
+    if (rendered_count == 0)
+        return llvm_keep_ability_tag(ctx, base_name);
+
+    {
+        int written = snprintf(rendered, sizeof(rendered), "%s<", base_name);
+        if (written < 0 || (size_t)written >= sizeof(rendered))
+            return NULL;
+        offset = (size_t)written;
+    }
+    for (size_t i = 0; i < rendered_count; i++) {
+        const char *arg = NULL;
+        char *owned_arg = NULL;
+        int written;
+
+        if (i < actual_count) {
+            GenericParam *actual = ast_generic_param_at(actuals, i);
+            ASTNode *actual_type = ast_generic_param_constraint(actual);
+            if (actual_type != NULL) {
+                owned_arg = llvm_render_type_name_in_ctx(ctx, actual_type);
+                arg = llvm_render_ability_actual_name(ctx, owned_arg);
+            } else {
+                arg = llvm_render_ability_actual_name(
+                    ctx, ast_generic_param_name(actual));
+            }
+        }
+        if (arg == NULL && i < generic_count) {
+            arg = llvm_render_ability_formal_fallback(
+                ctx, ast_generic_param_at(generics, i));
+        }
+        free(owned_arg);
+        if (arg == NULL)
+            return llvm_keep_ability_tag(ctx, base_name);
+        written = snprintf(rendered + offset, sizeof(rendered) - offset,
+            "%s%s", i > 0 ? ", " : "", arg);
+        if (written < 0 || (size_t)written >= sizeof(rendered) - offset)
+            return NULL;
+        offset += (size_t)written;
+    }
+    if (offset + 2 > sizeof(rendered))
+        return NULL;
+    rendered[offset++] = '>';
+    rendered[offset] = '\0';
+    return llvm_keep_ability_tag(ctx, rendered);
 }
 
 ASTNode *
@@ -183,9 +453,9 @@ llvm_find_role_operator_method_metadata(LLVMGenCtx *ctx,
 }
 
 const char *
-llvm_party_slot_first_ability_name(LLVMGenCtx *ctx,
-                                   const char *party_type_name,
-                                   const char *slot_name)
+llvm_party_slot_first_ability_tag(LLVMGenCtx *ctx,
+                                  const char *party_type_name,
+                                  const char *slot_name)
 {
     ASTNode *party_decl;
     LLVMHostedRoleSlotView role_view;
@@ -206,17 +476,16 @@ llvm_party_slot_first_ability_name(LLVMGenCtx *ctx,
     for (size_t i = 0; i < role_view.count; i++) {
         const char *role_slot_name =
             llvm_hosted_role_slot_view_name(&role_view, i);
-        const char *ability_name;
 
         if (role_slot_name == NULL
             || strcmp(role_slot_name, slot_name) != 0) {
             continue;
         }
 
-        ability_name =
-            llvm_hosted_role_slot_view_required_ability_type_name(
-                &role_view, i, 0);
-        return ability_name;
+        return llvm_render_mir_ability_ref_vtable_tag(
+            ctx,
+            llvm_hosted_role_slot_view_required_ability_ref(
+                &role_view, i, 0));
     }
 
     return NULL;

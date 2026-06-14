@@ -527,13 +527,13 @@ emit_party_decl(ASTNode *node, TranspilerCtx *ctx)
             transpiler_hosted_role_slot_view_is_dynamic(&role_view, i);
         codebuf_write(ctx->out, "    void *%s;\n", slot_name);
         for (size_t j = 0; j < ability_count; j++) {
-            const char *ability_name =
-                transpiler_hosted_role_slot_view_required_ability_type_name(
+            const MIRAbilityRef *ability_ref =
+                transpiler_hosted_role_slot_view_required_ability_ref(
                     &role_view, i, j);
-            if (ability_name != NULL) {
+            if (ability_ref != NULL) {
                 char typedef_name[128];
                 char *vtable_tag =
-                    render_ability_type_name_vtable_tag(ability_name);
+                    render_mir_ability_ref_vtable_tag_in_ctx(ctx, ability_ref);
                 if (vtable_tag == NULL) {
                     transpiler_set_backend_error_with_hints(ctx,
                         PGY_CODE_C_TYPE_UNSUPPORTED,
@@ -628,14 +628,14 @@ emit_party_decl(ASTNode *node, TranspilerCtx *ctx)
             transpiler_hosted_role_slot_view_required_ability_count(
                 &role_view, i);
         for (size_t j = 0; j < ability_count; j++) {
-            const char *ability_name =
-                transpiler_hosted_role_slot_view_required_ability_type_name(
+            const MIRAbilityRef *ability_ref =
+                transpiler_hosted_role_slot_view_required_ability_ref(
                     &role_view, i, j);
-            if (ability_name == NULL)
+            if (ability_ref == NULL)
                 continue;
             char typedef_name[128];
             char *vtable_tag =
-                render_ability_type_name_vtable_tag(ability_name);
+                render_mir_ability_ref_vtable_tag_in_ctx(ctx, ability_ref);
             if (vtable_tag == NULL) {
                 transpiler_set_backend_error_with_hints(ctx,
                     PGY_CODE_C_TYPE_UNSUPPORTED,

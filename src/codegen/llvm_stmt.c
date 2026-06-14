@@ -468,9 +468,9 @@ llvm_emit_statement(ASTNode *node, LLVMGenCtx *ctx)
             break;
         }
 
-        const char *ability_name = llvm_party_slot_first_ability_name(
+        const char *ability_tag = llvm_party_slot_first_ability_tag(
             ctx, party_class_name, slot_name);
-        if (ability_name == NULL) {
+        if (ability_tag == NULL) {
             llvm_set_error_at_with_hints(ctx, node,
                 PGY_CODE_LLVM_TYPE_UNSUPPORTED,
                 PGY_CAUSE_LLVM_TYPE_UNSUPPORTED,
@@ -481,14 +481,14 @@ llvm_emit_statement(ASTNode *node, LLVMGenCtx *ctx)
         }
 
         LLVMValueRef vt_global = llvm_lookup_role_vtable_global(
-            ctx, role_name, ability_name);
+            ctx, role_name, ability_tag);
         if (vt_global == NULL) {
             llvm_set_error_at_with_hints(ctx, node,
                 PGY_CODE_LLVM_TYPE_UNSUPPORTED,
                 PGY_CAUSE_LLVM_TYPE_UNSUPPORTED,
                 PGY_FIX_ALIGN_ROLE_IMPL_WITH_ABILITY,
                 "LLVM bind emission cannot resolve role vtable global for '%s.%s'",
-                role_name, ability_name);
+                role_name, ability_tag);
             break;
         }
 

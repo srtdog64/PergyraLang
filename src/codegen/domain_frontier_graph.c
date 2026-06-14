@@ -11,6 +11,7 @@
 
 size_t
 pgy_codegen_world_frontier_graph_pass_limit(const ASTNode *world,
+                                            const char *world_name,
                                             size_t count_floor)
 {
     PropagationGraph *g = propagation_graph_create();
@@ -23,13 +24,14 @@ pgy_codegen_world_frontier_graph_pass_limit(const ASTNode *world,
         limit = g->pass_limit;
     }
     if (g != NULL && getenv("PGY_DUMP_PROPAGATION") != NULL)
-        propagation_graph_dump(g, stderr, ast_world_name(world));
+        propagation_graph_dump(g, stderr, world_name);
     propagation_graph_destroy(g);
     return limit;
 }
 
 size_t
 pgy_codegen_zone_frontier_graph_pass_limit(const ASTNode *zone,
+                                           const char *zone_name,
                                            size_t count_floor)
 {
     PropagationGraph *g = propagation_graph_create();
@@ -42,7 +44,7 @@ pgy_codegen_zone_frontier_graph_pass_limit(const ASTNode *zone,
         limit = g->pass_limit;
     }
     if (g != NULL && getenv("PGY_DUMP_PROPAGATION") != NULL)
-        propagation_graph_dump(g, stderr, ast_zone_name(zone));
+        propagation_graph_dump(g, stderr, zone_name);
     propagation_graph_destroy(g);
     return limit;
 }

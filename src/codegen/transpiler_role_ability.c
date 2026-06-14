@@ -5,6 +5,7 @@
 #include <string.h>
 
 #include "../common/string_compat.h"
+#include "../compiler/mir_decl_headers.h"
 #include "transpiler_decl_lookup.h"
 #include "transpiler_role_ability_helpers.h"
 #include "transpiler_type_mapping.h"
@@ -77,6 +78,206 @@ render_ability_type_name_vtable_tag(const char *ability_type_name)
     return pergyra_strdup(suffix);
 }
 
+static bool
+ability_type_name_base_copy(const char *ability_type_name,
+                            char *out,
+                            size_t out_size)
+{
+    const char *generic_start;
+    size_t len;
+
+    if (out == NULL || out_size == 0)
+        return false;
+    out[0] = '\0';
+    if (ability_type_name == NULL)
+        return false;
+
+    generic_start = strchr(ability_type_name, '<');
+    len = generic_start != NULL
+        ? (size_t)(generic_start - ability_type_name)
+        : strlen(ability_type_name);
+    while (len > 0
+        && (ability_type_name[len - 1] == ' '
+            || ability_type_name[len - 1] == '\t')) {
+        len--;
+    }
+    if (len == 0 || len >= out_size)
+        return false;
+    memcpy(out, ability_type_name, len);
+    out[len] = '\0';
+    return true;
+}
+
+static const char *
+transpiler_ability_arg_bound_name(TranspilerCtx *ctx, const char *name)
+{
+    if (ctx == NULL || name == NULL)
+        return NULL;
+
+    for (int i = ctx->generic_binding_count - 1; i >= 0; i--) {
+        if (strcmp(ctx->generic_bindings[i].name, name) == 0)
+            return ctx->generic_bindings[i].concrete_type;
+    }
+    return NULL;
+}
+
+static bool
+transpiler_subst_ability_arg_type_name(TranspilerCtx *ctx,
+                                       const char *in,
+                                       char *out,
+                                       size_t out_size)
+{
+    size_t oi = 0;
+    size_t i = 0;
+
+    if (ctx == NULL || in == NULL || out == NULL || out_size == 0)
+        return false;
+    while (in[i] != '\0') {
+        char c = in[i];
+        if ((c >= 'A' && c <= 'Z') || (c >= 'a' && c <= 'z') || c == '_') {
+            size_t start = i;
+            char tok[128];
+            size_t len;
+            const char *bound;
+            const char *rep;
+            while (in[i] != '\0'
+                && ((in[i] >= 'A' && in[i] <= 'Z')
+                    || (in[i] >= 'a' && in[i] <= 'z')
+                    || (in[i] >= '0' && in[i] <= '9') || in[i] == '_'))
+                i++;
+            len = i - start;
+            if (len >= sizeof(tok))
+                return false;
+            memcpy(tok, in + start, len);
+            tok[len] = '\0';
+            bound = transpiler_ability_arg_bound_name(ctx, tok);
+            rep = bound != NULL ? bound : tok;
+            for (size_t k = 0; rep[k] != '\0'; k++) {
+                if (oi + 1 >= out_size)
+                    return false;
+                out[oi++] = rep[k];
+            }
+        } else {
+            if (oi + 1 >= out_size)
+                return false;
+            out[oi++] = c;
+            i++;
+        }
+    }
+    out[oi] = '\0';
+    return true;
+}
+
+static char *
+transpiler_render_ability_actual_name(TranspilerCtx *ctx,
+                                      const char *type_name)
+{
+    char subst[256];
+
+    if (type_name == NULL)
+        return NULL;
+    if (transpiler_subst_ability_arg_type_name(
+            ctx, type_name, subst, sizeof(subst))) {
+        return pergyra_strdup(subst);
+    }
+    return pergyra_strdup(type_name);
+}
+
+static char *
+transpiler_render_ability_formal_fallback(TranspilerCtx *ctx,
+                                          GenericParam *formal)
+{
+    ASTNode *fallback;
+
+    if (formal == NULL)
+        return NULL;
+    fallback = ast_generic_param_default_type(formal);
+    if (fallback == NULL)
+        fallback = ast_generic_param_constraint(formal);
+    return fallback != NULL ? render_type_name_in_ctx(ctx, fallback) : NULL;
+}
+
+static char *
+render_ability_ref_parts_vtable_tag_in_ctx(TranspilerCtx *ctx,
+                                           const char *base_name,
+                                           const MIRAbilityRef *ability_ref)
+{
+    ASTNode *ability_decl;
+    GenericParams *generics;
+    size_t generic_count;
+    size_t actual_count;
+    size_t rendered_count;
+    CodeBuf *buf;
+    char *tag;
+
+    if (ability_ref != NULL)
+        base_name = mir_ability_ref_base_name(ability_ref);
+    if (base_name == NULL)
+        return NULL;
+
+    ability_decl = ctx != NULL ? find_ability_decl(ctx, base_name) : NULL;
+    generics = ability_decl != NULL && ability_decl->type == AST_ABILITY_DECL
+        ? ast_declaration_generic_params(ability_decl) : NULL;
+    generic_count = ast_generic_param_count(generics);
+    actual_count = ability_ref != NULL
+        ? mir_ability_ref_actual_arg_count(ability_ref) : 0;
+    rendered_count = generic_count > actual_count ? generic_count : actual_count;
+    if (rendered_count == 0)
+        return render_ability_type_name_vtable_tag(base_name);
+
+    buf = codebuf_create();
+    if (buf == NULL)
+        return NULL;
+    codebuf_write(buf, "%s<", base_name);
+    for (size_t i = 0; i < rendered_count; i++) {
+        char *rendered = NULL;
+        if (ability_ref != NULL && i < actual_count) {
+            rendered = transpiler_render_ability_actual_name(
+                ctx, mir_ability_ref_actual_arg_type_name(ability_ref, i));
+        }
+        if (rendered == NULL && i < generic_count) {
+            rendered = transpiler_render_ability_formal_fallback(
+                ctx, ast_generic_param_at(generics, i));
+        }
+        if (rendered == NULL) {
+            codebuf_destroy(buf);
+            return render_ability_type_name_vtable_tag(base_name);
+        }
+        if (i > 0)
+            codebuf_write(buf, ", ");
+        codebuf_write(buf, "%s", rendered);
+        free(rendered);
+    }
+    codebuf_write(buf, ">");
+    tag = render_ability_type_name_vtable_tag(buf->data);
+    codebuf_destroy(buf);
+    return tag;
+}
+
+char *
+render_ability_type_name_vtable_tag_in_ctx(TranspilerCtx *ctx,
+                                           const char *ability_type_name)
+{
+    char base_name[128];
+
+    if (ability_type_name == NULL)
+        return NULL;
+    if (strchr(ability_type_name, '<') != NULL)
+        return render_ability_type_name_vtable_tag(ability_type_name);
+    if (!ability_type_name_base_copy(
+            ability_type_name, base_name, sizeof(base_name))) {
+        return NULL;
+    }
+    return render_ability_ref_parts_vtable_tag_in_ctx(ctx, base_name, NULL);
+}
+
+char *
+render_mir_ability_ref_vtable_tag_in_ctx(TranspilerCtx *ctx,
+                                         const MIRAbilityRef *ability_ref)
+{
+    return render_ability_ref_parts_vtable_tag_in_ctx(ctx, NULL, ability_ref);
+}
+
 bool
 role_has_method(ASTNode *role, const char *method_name)
 {
@@ -129,10 +330,10 @@ transpiler_party_slot_first_ability_tag(TranspilerCtx *ctx,
             || strcmp(role_slot_name, slot_name) != 0) {
             continue;
         }
-        const char *first_ability_name =
-            transpiler_hosted_role_slot_view_required_ability_type_name(
-                &role_view, i, 0);
-        return render_ability_type_name_vtable_tag(first_ability_name);
+        return render_mir_ability_ref_vtable_tag_in_ctx(
+            ctx,
+            transpiler_hosted_role_slot_view_required_ability_ref(
+                &role_view, i, 0));
     }
 
     return NULL;
@@ -175,9 +376,11 @@ transpiler_party_slot_method_ability_tag(TranspilerCtx *ctx,
             ASTNode *ability_decl;
             bool has_method = false;
             char *ability_tag;
-            const char *ability_name =
-                transpiler_hosted_role_slot_view_required_ability_type_name(
+            const MIRAbilityRef *ability_ref =
+                transpiler_hosted_role_slot_view_required_ability_ref(
                     &role_view, i, j);
+            const char *ability_name =
+                mir_ability_ref_base_name(ability_ref);
 
             if (ability_name == NULL)
                 continue;
@@ -196,7 +399,8 @@ transpiler_party_slot_method_ability_tag(TranspilerCtx *ctx,
                 }
             }
 
-            ability_tag = render_ability_type_name_vtable_tag(ability_name);
+            ability_tag = render_mir_ability_ref_vtable_tag_in_ctx(
+                ctx, ability_ref);
             if (has_method) {
                 free(fallback_tag);
                 return ability_tag;

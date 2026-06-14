@@ -290,15 +290,41 @@ mir_decl_field_pool_capacity(const MIRDeclField *field)
 size_t
 mir_decl_field_required_ability_count(const MIRDeclField *field)
 {
-    return field != NULL ? field->required_ability_count : 0;
+    return field != NULL ? field->required_ability_ref_count : 0;
+}
+
+const MIRAbilityRef *
+mir_decl_field_required_ability_ref(const MIRDeclField *field, size_t index)
+{
+    if (field == NULL || field->required_ability_refs == NULL
+        || index >= field->required_ability_ref_count)
+        return NULL;
+    return &field->required_ability_refs[index];
+}
+
+ASTNode *
+mir_ability_ref_source_ast(const MIRAbilityRef *ref)
+{
+    return ref != NULL ? ref->source_ast : NULL;
 }
 
 const char *
-mir_decl_field_required_ability_type_name(const MIRDeclField *field,
-                                          size_t index)
+mir_ability_ref_base_name(const MIRAbilityRef *ref)
 {
-    if (field == NULL || field->required_ability_type_names == NULL
-        || index >= field->required_ability_count)
+    return ref != NULL ? ref->base_name : NULL;
+}
+
+size_t
+mir_ability_ref_actual_arg_count(const MIRAbilityRef *ref)
+{
+    return ref != NULL ? ref->actual_arg_count : 0;
+}
+
+const char *
+mir_ability_ref_actual_arg_type_name(const MIRAbilityRef *ref, size_t index)
+{
+    if (ref == NULL || ref->actual_arg_type_names == NULL
+        || index >= ref->actual_arg_count)
         return NULL;
-    return field->required_ability_type_names[index];
+    return ref->actual_arg_type_names[index];
 }

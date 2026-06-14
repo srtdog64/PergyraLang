@@ -132,6 +132,7 @@ emit_zone_decl(ASTNode *node, TranspilerCtx *ctx)
     write_indent(ctx);
     codebuf_write(ctx->out, "size_t _pgy_zone_frontier_pass_limit = %zu;\n",
         pgy_codegen_zone_frontier_graph_pass_limit(node,
+            name,
             pgy_domain_zone_frontier_pass_limit_from_counts(
                 state_count, layer_view.count)));
     write_indent(ctx);

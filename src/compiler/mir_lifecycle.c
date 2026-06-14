@@ -97,11 +97,20 @@ mir_destroy(MIRProgram *mir)
                     {
                         MIRDeclField *fm =
                             &mir->decl_headers[i].field_metadata[j];
-                        if (fm->required_ability_type_names != NULL) {
+                        if (fm->required_ability_refs != NULL) {
                             for (size_t a = 0;
-                                 a < fm->required_ability_count; a++)
-                                free(fm->required_ability_type_names[a]);
-                            free(fm->required_ability_type_names);
+                                 a < fm->required_ability_ref_count; a++) {
+                                MIRAbilityRef *ref =
+                                    &fm->required_ability_refs[a];
+                                free(ref->base_name);
+                                if (ref->actual_arg_type_names != NULL) {
+                                    for (size_t ai = 0;
+                                         ai < ref->actual_arg_count; ai++)
+                                        free(ref->actual_arg_type_names[ai]);
+                                    free(ref->actual_arg_type_names);
+                                }
+                            }
+                            free(fm->required_ability_refs);
                         }
                     }
                 }

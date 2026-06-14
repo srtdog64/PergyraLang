@@ -50,6 +50,15 @@ typedef enum
 
 typedef struct
 {
+    /* Source compatibility/provenance only; semantic facts are copied below. */
+    ASTNode *source_ast;
+    char    *base_name;
+    size_t   actual_arg_count;
+    char   **actual_arg_type_names;
+} MIRAbilityRef;
+
+typedef struct
+{
     /* Source compatibility/provenance only; consumers must use the metadata. */
     ASTNode         *source_ast;
     const char      *owner_name;
@@ -64,8 +73,8 @@ typedef struct
     bool             is_relation_layer;
     bool             is_pool_layer;
     int              pool_capacity;
-    size_t           required_ability_count;
-    char           **required_ability_type_names;
+    MIRAbilityRef   *required_ability_refs;
+    size_t           required_ability_ref_count;
 } MIRDeclField;
 
 typedef struct

@@ -110,7 +110,10 @@ llvm_emit_domain_role_method_bodies(LLVMGenCtx *ctx,
             if (impl == NULL || impl->type != AST_IMPL_ABILITY)
                 continue;
 
+            ASTNode *ability_ref = ast_impl_ability_ref(impl);
             const char *ab_name = ast_impl_ability_name(impl);
+            const char *ab_tag =
+                llvm_render_ast_ability_ref_vtable_tag(ctx, ability_ref);
 
             {
                 PgyTokenType ops[] = {
@@ -234,7 +237,7 @@ llvm_emit_domain_role_method_bodies(LLVMGenCtx *ctx,
             }
 
             /* Create vtable global constant. */
-            if (ab_name == NULL) {
+            if (ab_name == NULL || ab_tag == NULL) {
                 llvm_set_mir_inventory_missing(ctx,
                     "MIR-only LLVM path missing role vtable ability name metadata for role '%s'",
                     role_name);
@@ -242,12 +245,21 @@ llvm_emit_domain_role_method_bodies(LLVMGenCtx *ctx,
             }
             char vt_type_name[256];
             if (!llvm_role_vtable_type_name(vt_type_name,
-                    sizeof(vt_type_name), ab_name)) {
+                    sizeof(vt_type_name), ab_tag)) {
                 llvm_set_error(ctx, "role vtable type name is too long");
                 return false;
             }
             LLVMClassTypeEntry *vt_cls = llvm_lookup_class(ctx,
                 vt_type_name);
+            if (vt_cls == NULL && strcmp(ab_tag, ab_name) != 0) {
+                char base_vt_type_name[256];
+                if (!llvm_role_vtable_type_name(base_vt_type_name,
+                        sizeof(base_vt_type_name), ab_name)) {
+                    llvm_set_error(ctx, "role vtable type name is too long");
+                    return false;
+                }
+                vt_cls = llvm_lookup_class(ctx, base_vt_type_name);
+            }
             if (vt_cls != NULL) {
                 size_t mc = ast_impl_ability_method_count(impl);
                 /*
@@ -260,7 +272,7 @@ llvm_emit_domain_role_method_bodies(LLVMGenCtx *ctx,
                     llvm_set_error(ctx,
                         "LLVM role vtable value allocation failed for '%s.%s'",
                         role_name != NULL ? role_name : "(anonymous-role)",
-                        ab_name != NULL ? ab_name : "(anonymous-ability)");
+                        ab_tag != NULL ? ab_tag : "(anonymous-ability)");
                     return false;
                 }
                 for (size_t j = 0; j < mc; j++) {
@@ -318,7 +330,7 @@ llvm_emit_domain_role_method_bodies(LLVMGenCtx *ctx,
 
                 char global_name[256];
                 if (!llvm_role_vtable_global_name(global_name,
-                        sizeof(global_name), role_name, ab_name)) {
+                        sizeof(global_name), role_name, ab_tag)) {
                     llvm_set_error(ctx,
                         "role vtable global name is too long");
                     return false;

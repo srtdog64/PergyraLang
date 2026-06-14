@@ -883,6 +883,7 @@ main() {
         "tests/cases/backend_compare/generic_spawn_multi"
         "tests/cases/backend_compare/generic_call"
         "tests/cases/backend_compare/generic_default_contracts"
+        "tests/cases/backend_compare/generic_default_ability_bind_dispatch"
         "tests/cases/backend_compare/generic_multi_bound_defaults"
         "tests/cases/backend_compare/nested_generic_containers"
         "tests/cases/backend_compare/forward_ability_order"

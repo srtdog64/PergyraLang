@@ -9,6 +9,12 @@ char *render_ability_ref_vtable_tag(ASTNode *ability_ref);
 char *render_ability_ref_vtable_tag_in_ctx(TranspilerCtx *ctx,
                                            ASTNode *ability_ref);
 char *render_ability_type_name_vtable_tag(const char *ability_type_name);
+char *render_ability_type_name_vtable_tag_in_ctx(
+    TranspilerCtx *ctx,
+    const char *ability_type_name);
+char *render_mir_ability_ref_vtable_tag_in_ctx(
+    TranspilerCtx *ctx,
+    const MIRAbilityRef *ability_ref);
 char *transpiler_party_slot_first_ability_tag(TranspilerCtx *ctx,
                                               ASTNode *party_decl,
                                               const char *slot_name);

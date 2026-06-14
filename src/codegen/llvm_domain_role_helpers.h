@@ -34,9 +34,16 @@ bool llvm_role_vtable_global_name(char *out,
                                   const char *role_name,
                                   const char *ability_name);
 
-const char *llvm_party_slot_first_ability_name(LLVMGenCtx *ctx,
-                                               const char *party_type_name,
-                                               const char *slot_name);
+const char *llvm_render_mir_ability_ref_vtable_tag(
+    LLVMGenCtx *ctx,
+    const MIRAbilityRef *ability_ref);
+const char *llvm_render_ast_ability_ref_vtable_tag(
+    LLVMGenCtx *ctx,
+    ASTNode *ability_ref);
+
+const char *llvm_party_slot_first_ability_tag(LLVMGenCtx *ctx,
+                                              const char *party_type_name,
+                                              const char *slot_name);
 
 LLVMValueRef llvm_lookup_role_vtable_global(LLVMGenCtx *ctx,
                                             const char *role_name,

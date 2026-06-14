@@ -7,19 +7,94 @@
 #include <stdlib.h>
 
 static void
+mir_ability_ref_clear(MIRAbilityRef *ref)
+{
+    if (ref == NULL)
+        return;
+    free(ref->base_name);
+    if (ref->actual_arg_type_names != NULL) {
+        for (size_t i = 0; i < ref->actual_arg_count; i++)
+            free(ref->actual_arg_type_names[i]);
+        free(ref->actual_arg_type_names);
+    }
+    ref->source_ast = NULL;
+    ref->base_name = NULL;
+    ref->actual_arg_count = 0;
+    ref->actual_arg_type_names = NULL;
+}
+
+static char *
+mir_capture_generic_actual_type_name(GenericParam *param)
+{
+    ASTNode *constraint;
+    const char *name;
+
+    if (param == NULL)
+        return NULL;
+    constraint = ast_generic_param_constraint(param);
+    if (constraint != NULL)
+        return mir_capture_type_name(constraint, NULL);
+    name = ast_generic_param_name(param);
+    return mir_capture_type_name(NULL, name);
+}
+
+static bool
+mir_ability_ref_capture(MIRAbilityRef *ref, ASTNode *ability)
+{
+    GenericParams *actuals;
+    size_t actual_count;
+
+    if (ref == NULL)
+        return false;
+    ref->source_ast = ability;
+    ref->base_name = NULL;
+    ref->actual_arg_count = 0;
+    ref->actual_arg_type_names = NULL;
+
+    if (ability == NULL || ability->type != AST_TYPE
+        || ast_type_name(ability) == NULL) {
+        return false;
+    }
+
+    ref->base_name = mir_capture_type_name(NULL, ast_type_name(ability));
+    if (ref->base_name == NULL)
+        return false;
+
+    actuals = ast_type_generic_args(ability);
+    actual_count = ast_generic_param_count(actuals);
+    if (actual_count == 0)
+        return true;
+    if (actual_count > SIZE_MAX / sizeof(char *))
+        return false;
+
+    ref->actual_arg_type_names = calloc(actual_count, sizeof(char *));
+    if (ref->actual_arg_type_names == NULL)
+        return false;
+    ref->actual_arg_count = actual_count;
+    for (size_t i = 0; i < actual_count; i++) {
+        ref->actual_arg_type_names[i] =
+            mir_capture_generic_actual_type_name(
+                ast_generic_param_at(actuals, i));
+        if (ref->actual_arg_type_names[i] == NULL)
+            return false;
+    }
+    return true;
+}
+
+static void
 mir_decl_field_metadata_clear(MIRDeclField *meta)
 {
     if (meta == NULL)
         return;
     free(meta->type_name);
-    if (meta->required_ability_type_names != NULL) {
-        for (size_t i = 0; i < meta->required_ability_count; i++)
-            free(meta->required_ability_type_names[i]);
-        free(meta->required_ability_type_names);
+    if (meta->required_ability_refs != NULL) {
+        for (size_t i = 0; i < meta->required_ability_ref_count; i++)
+            mir_ability_ref_clear(&meta->required_ability_refs[i]);
+        free(meta->required_ability_refs);
     }
     meta->type_name = NULL;
-    meta->required_ability_type_names = NULL;
-    meta->required_ability_count = 0;
+    meta->required_ability_refs = NULL;
+    meta->required_ability_ref_count = 0;
 }
 
 void
@@ -52,8 +127,8 @@ mir_decl_field_metadata_init(MIRDeclField *meta,
     meta->type = type;
     meta->type_name = mir_capture_type_name(type, type_name);
     meta->kind = kind;
-    meta->required_ability_count = 0;
-    meta->required_ability_type_names = NULL;
+    meta->required_ability_ref_count = 0;
+    meta->required_ability_refs = NULL;
 }
 
 static void
@@ -95,16 +170,16 @@ mir_decl_field_metadata_init_role_slot(MIRDeclField *meta,
     {
         size_t ability_count = ast_role_slot_required_ability_count(slot);
         if (ability_count > 0) {
-            meta->required_ability_type_names =
-                calloc(ability_count, sizeof(char *));
-            if (meta->required_ability_type_names != NULL) {
+            meta->required_ability_refs =
+                calloc(ability_count, sizeof(MIRAbilityRef));
+            if (meta->required_ability_refs != NULL) {
                 for (size_t a = 0; a < ability_count; a++) {
                     ASTNode *ability =
                         ast_role_slot_required_ability(slot, a);
-                    meta->required_ability_type_names[a] =
-                        mir_capture_type_name(ability, NULL);
+                    (void) mir_ability_ref_capture(
+                        &meta->required_ability_refs[a], ability);
                 }
-                meta->required_ability_count = ability_count;
+                meta->required_ability_ref_count = ability_count;
             }
         }
     }

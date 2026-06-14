@@ -205,6 +205,67 @@ Recommended staging: migrate consumer one now for a small reduction; design a
 structured generic ability-ref capture for MIR before touching the vtable
 consumers; keep the node accessor until that capture exists.
 
+## Structured generic ability-ref capture (design)
+
+This is the representation that moves the generic ability contract off the AST.
+It replaces the type-name-only capture for role abilities.
+
+Data model. Add a structured ability reference to the role-slot MIRDeclField:
+
+    typedef struct {
+        char   *base_name;              /* ability base type name */
+        size_t  generic_arg_count;
+        char  **generic_arg_type_names; /* one rendered name per generic arg */
+    } MIRAbilityRef;
+
+    /* on MIRDeclField, replacing required_ability_type_names: */
+    size_t         required_ability_count;
+    MIRAbilityRef *required_abilities;
+
+The argument list is flat here. If an argument is itself a generic type, the
+rendered name produced at lowering already carries the nested form as a string
+(for example Pair<Int, Bool>), so a flat string array is enough for tag
+derivation; a recursive node form is only needed if a later pass must take the
+arguments apart again, which the vtable path does not.
+
+Capture point and the lowering versus consumption split. The capture runs in
+mir_decl_field_metadata_init_role_slot, at MIR lowering. A subtlety: lowering
+cannot run find_ability_decl, which is a codegen function needing ctx, so the
+formal-parameter-to-default mapping cannot happen at capture time. Capture
+therefore records only what the ability reference itself carries: base_name from
+ast_type_name, and the actual generic arguments as written, by walking
+ast_type_generic_args and storing ast_type_name of each actual argument type.
+Default-argument filling, which build_ability_ref_bindings does by reading the
+ability declaration's formal params, stays at consumption, where find_ability_decl
+is available. The consumer looks up the declaration by base_name, then for each
+formal param uses the captured actual argument if present or the formal default
+otherwise. This keeps the cross-declaration resolution on the codegen side that
+owns it, and keeps the capture purely local to the ability reference node.
+
+Consumption. Provide a string-based tag renderer that takes a MIRAbilityRef
+rather than (ability_decl, ability_ref node): it reproduces
+render_effective_ability_ref_vtable_tag by concatenating base_name with the
+generic_arg_type_names in order using the same separator and sanitize rules.
+ensure_ability_ref_vtable_decl and ability_ref_vtable_typedef_name then consume
+the MIRAbilityRef, and the three required_ability node consumers move off the
+AST. The node accessor and its source_ast read are removed last.
+
+Caveat to verify. render_type_name_in_ctx is ctx-aware, while lowering capture
+uses ast_type_name. These diverge only when an ability argument is an outer type
+parameter being monomorphized by the enclosing generic host, for example
+role R<T> with slot Ability<T>. The existing name and type_name metadata capture
+the same way and are byte-identical on the corpus, which suggests this case does
+not arise for role ability slots in practice, but the migration must be verified
+byte-identical against a generic-ability program, not only dyn_test, before the
+node accessor is removed. If a divergence appears, the host's monomorphization
+binding must be threaded into the capture or the arguments kept as a node form.
+
+Staging. Add MIRAbilityRef capture alongside the existing name capture, build
+green with nothing reading it, then introduce the string-based tag renderer and
+repoint the consumers one at a time, verifying byte-identical after each,
+including a generic-ability test. Remove the node accessor and source_ast read
+only after all three consumers are migrated and verified.
+
 ## Staged deletion plan
 
 Each step ends with the full build and corpus verification.
