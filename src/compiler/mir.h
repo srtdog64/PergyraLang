@@ -481,6 +481,11 @@ const char *mir_routine_return_type_name(const MIRRoutine *routine);
  * function body to answer source-local class questions. */
 const char *mir_routine_source_local_type_name(
     const MIRRoutine *routine, const char *local_name);
+size_t      mir_routine_source_local_type_count(const MIRRoutine *routine);
+const char *mir_routine_source_local_name_at(const MIRRoutine *routine,
+                                             size_t index);
+const char *mir_routine_source_local_type_name_at(const MIRRoutine *routine,
+                                                  size_t index);
 const char *mir_routine_within_zone(const MIRRoutine *routine);
 void        mir_mutable_routine_inventory_from_program(
                 MIRProgram *mir,

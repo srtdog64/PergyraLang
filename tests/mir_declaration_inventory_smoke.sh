@@ -1315,6 +1315,14 @@ require_term "src/codegen/transpiler_zone_frontier_emit.c" \
     "transpiler_hosted_zone_layer_slot_view_name(layer_view, i)"
 require_term "src/codegen/transpiler_zone_specialization_emit.c" \
     "transpiler_hosted_shared_field_view_type(shared_view, i)"
+require_term "src/codegen/transpiler_zone_specialization_emit.c" \
+    "transpiler_mir_decl_method_routine(ctx, method_meta)"
+require_term "src/codegen/transpiler_zone_specialization_emit.c" \
+    "ensure_collection_specializations_from_mir_routine_to(ctx, ctx->out"
+if grep -Fq "transpiler_mir_decl_method_body_decl(ctx, method_meta)" \
+    "$ROOT_DIR/src/codegen/transpiler_zone_specialization_emit.c"; then
+    fail "C zone method specialization scan must consume linked MIRRoutine facts, not recover method source AST"
+fi
 if grep -Fq "pgy_host_shared_fields_compat_view_from_decl" \
     "$ROOT_DIR/src/codegen/transpiler_zone_decl_emit.c"; then
     fail "C zone declaration emission must consume TranspilerHostedSharedFieldView"
@@ -3386,6 +3394,22 @@ if grep -Fq "mir_source_local_type_name_in_ast(ASTNode *body" \
 fi
 require_term "src/compiler/mir.h" "MIRSourceLocalType"
 require_term "src/compiler/mir.h" "source_local_types"
+require_term "src/compiler/mir.h" \
+    "mir_routine_source_local_type_count"
+require_term "src/compiler/mir_program_inventory.c" \
+    "mir_routine_source_local_type_name_at"
+require_term "src/codegen/transpiler_inventory_view.c" \
+    "transpiler_mir_routine_source_local_type_name_at"
+for term in \
+    "ensure_type_specializations_from_type_name_to" \
+    "transpiler_mir_routine_return_type_name(routine)" \
+    "transpiler_mir_routine_param_type_name(routine, i)" \
+    "transpiler_mir_routine_source_local_type_name_at(routine, i)" \
+    "ensure_collection_specializations_from_mir_routine_to"; do
+    require_term "src/codegen/transpiler_specialization_type_name_scan.c" "$term"
+done
+require_term "Makefile" \
+    "\$(CODEGEN_DIR)/transpiler_specialization_type_name_scan.c"
 if grep -Fq "mir_source_local_type_name_in_ast" \
         "$ROOT_DIR/src/compiler/mir.h"; then
     fail "MIR public inventory header must not expose source-local AST compatibility lookup"
@@ -5031,7 +5055,13 @@ if grep -Fq "host_name == NULL || method == NULL || buf == NULL || ctx == NULL" 
     fail "C hosted method forward declarations must not require source AST when MIRDeclMethod metadata exists"
 fi
 require_term "src/codegen/transpiler_class_decl_emit.c" \
-    "transpiler_mir_decl_method_body_decl(ctx, method_meta)"
+    "ensure_collection_specializations_from_mir_routine_to(ctx, ctx->out"
+require_term "src/codegen/transpiler_class_decl_emit.c" \
+    "transpiler_mir_decl_method_routine(ctx, method_meta)"
+if grep -Fq "transpiler_mir_decl_method_body_decl(ctx, method_meta)" \
+    "$ROOT_DIR/src/codegen/transpiler_class_decl_emit.c"; then
+    fail "C class method specialization scan must consume linked MIRRoutine facts, not recover method source AST"
+fi
 require_term "src/codegen/transpiler_class_decl_emit.c" \
     "emit_func_decl_from_mir_named(NULL, mir_method, emitted_name"
 if grep -Fq "transpiler_hosted_method_view_source_ast(&method_view, i)" \
@@ -5048,7 +5078,7 @@ for rel in \
     require_term "$rel" "emit_hosted_method_forward_decl_from_metadata"
 done
 require_term "src/codegen/transpiler_class_decl_emit.c" \
-    "transpiler_mir_decl_method_body_decl(ctx, method_meta)"
+    "ensure_collection_specializations_from_mir_routine_to(ctx, ctx->out"
 require_term "src/codegen/transpiler_class_decl_emit.c" \
     "emit_func_decl_from_mir_named(NULL, mir_method, emitted_name"
 require_term "src/codegen/transpiler_enum_decl_emit.c" \
@@ -5297,7 +5327,7 @@ require_term "src/codegen/transpiler_class_decl_emit.c" \
 require_term "src/codegen/transpiler_class_decl_emit.c" \
     "transpiler_hosted_method_view_missing_mir_metadata(&method_view)"
 require_term "src/codegen/transpiler_class_decl_emit.c" \
-    "transpiler_mir_decl_method_body_decl(ctx, method_meta)"
+    "ensure_collection_specializations_from_mir_routine_to(ctx, ctx->out"
 require_term "src/codegen/transpiler_class_decl_emit.c" \
     "transpiler_set_mir_inventory_missing("
 require_term "src/codegen/transpiler_class_decl_emit.c" \

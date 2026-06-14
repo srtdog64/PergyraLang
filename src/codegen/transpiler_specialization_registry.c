@@ -68,7 +68,7 @@ transpiler_specialization_spec_name_too_long(TranspilerCtx *ctx,
         surface != NULL ? surface : "collection specialization");
 }
 
-static void
+void
 ensure_option_specialization_to(TranspilerCtx *ctx, CodeBuf *dst,
                                 const char *inner_type)
 {
@@ -252,7 +252,7 @@ ensure_result_specialization_to(TranspilerCtx *ctx, CodeBuf *dst,
         combined);
 }
 
-static void
+void
 ensure_collection_specialization_to(TranspilerCtx *ctx, CodeBuf *dst,
                                     const char *kind, const char *inner_type)
 {

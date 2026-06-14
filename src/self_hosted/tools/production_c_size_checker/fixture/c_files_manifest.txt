@@ -372,6 +372,7 @@ src/codegen/transpiler_slot_target.c
 src/codegen/transpiler_spawn_channel_emit.c
 src/codegen/transpiler_specialization_registry.c
 src/codegen/transpiler_specialization_scan.c
+src/codegen/transpiler_specialization_type_name_scan.c
 src/codegen/transpiler_statement_dispatch.c
 src/codegen/transpiler_symbols.c
 src/codegen/transpiler_thread_pool.c

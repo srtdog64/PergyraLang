@@ -123,6 +123,26 @@ transpiler_mir_routine_source_local_type_name(const MIRRoutine *routine,
     return mir_routine_source_local_type_name(routine, local_name);
 }
 
+size_t
+transpiler_mir_routine_source_local_type_count(const MIRRoutine *routine)
+{
+    return mir_routine_source_local_type_count(routine);
+}
+
+const char *
+transpiler_mir_routine_source_local_name_at(const MIRRoutine *routine,
+                                            size_t index)
+{
+    return mir_routine_source_local_name_at(routine, index);
+}
+
+const char *
+transpiler_mir_routine_source_local_type_name_at(const MIRRoutine *routine,
+                                                 size_t index)
+{
+    return mir_routine_source_local_type_name_at(routine, index);
+}
+
 const char *
 transpiler_mir_routine_within_zone(const MIRRoutine *routine)
 {

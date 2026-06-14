@@ -110,7 +110,10 @@ dead slot-source accessors have been deleted. Against the original codegen
 frontier of 127, all 127 reads are retired. LLVM domain/role and C
 hosted-method forward declarations now consume
 MIRDeclMethod metadata without source AST back-pointers, and C/LLVM hosted
-method bodies use the linked MIRRoutine as their body provenance owner. LLVM
+method bodies use the linked MIRRoutine as their body provenance owner. C
+class/zone collection-specialization scans consume MIR routine signature and
+source-local type facts, so they no longer recover method source declarations.
+LLVM
 nominal method registry and LLVM hosted/member call emission also no longer
 read method source back-pointers in MIR-active paths. LLVM function routine
 lookup now keys off MIR routine names instead of source AST identity. The

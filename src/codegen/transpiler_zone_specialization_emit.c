@@ -1,6 +1,7 @@
 #include "transpiler_zone_specialization_emit.h"
 
 #include "parser/ast_api.h"
+#include "transpiler_context.h"
 #include "transpiler_specialization_registry.h"
 
 void
@@ -21,8 +22,22 @@ transpiler_emit_zone_required_specializations(
     for (size_t i = 0; method_view != NULL && i < method_view->count; i++) {
         const MIRDeclMethod *method_meta =
             transpiler_hosted_method_view_metadata(method_view, i);
-        ASTNode *method =
-            transpiler_mir_decl_method_body_decl(ctx, method_meta);
-        ensure_collection_specializations_from_stmt_to(ctx, ctx->out, method);
+        const MIRRoutine *mir_method =
+            transpiler_mir_decl_method_routine(ctx, method_meta);
+        if (method_meta == NULL || mir_method == NULL) {
+            if (transpiler_active_has_mir(ctx)) {
+                transpiler_set_mir_inventory_missing(ctx,
+                    "MIR-only C path missing method specialization routine for zone");
+                return;
+            }
+            if (method_view->ast_compat_methods != NULL
+                && i < method_view->ast_compat_count) {
+                ensure_collection_specializations_from_stmt_to(ctx, ctx->out,
+                    method_view->ast_compat_methods[i]);
+            }
+            continue;
+        }
+        ensure_collection_specializations_from_mir_routine_to(ctx, ctx->out,
+            mir_method);
     }
 }

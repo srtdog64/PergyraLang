@@ -1,0 +1,205 @@
+/*
+ * Copyright (c) 2026 Pergyra Language Project
+ * C backend type-name and MIR-routine specialization scan owner.
+ */
+
+#include "transpiler_specialization_registry.h"
+
+#include <stdbool.h>
+#include <ctype.h>
+#include <stddef.h>
+#include <stdlib.h>
+#include <string.h>
+
+#include "../common/string_compat.h"
+#include "../parser/ast_api.h"
+#include "transpiler_decl_lookup.h"
+#include "transpiler_inventory_view.h"
+
+static char *
+transpiler_specialization_trim_copy(const char *begin, size_t len)
+{
+    const char *end;
+
+    if (begin == NULL)
+        return NULL;
+    end = begin + len;
+    while (begin < end && isspace((unsigned char)*begin))
+        begin++;
+    while (end > begin && isspace((unsigned char)*(end - 1)))
+        end--;
+    if (end == begin)
+        return NULL;
+    return pergyra_strndup(begin, (size_t)(end - begin));
+}
+
+static bool
+transpiler_specialization_type_name_has_base(const char *type_name,
+                                             const char *base)
+{
+    size_t base_len;
+
+    if (type_name == NULL || base == NULL)
+        return false;
+    base_len = strlen(base);
+    return strncmp(type_name, base, base_len) == 0
+        && type_name[base_len] == '<';
+}
+
+static char *
+transpiler_specialization_type_name_arg_copy(const char *type_name,
+                                             size_t wanted_index)
+{
+    const char *open;
+    const char *start;
+    size_t index = 0;
+    int depth = 0;
+
+    if (type_name == NULL)
+        return NULL;
+    open = strchr(type_name, '<');
+    if (open == NULL)
+        return NULL;
+    start = open + 1;
+    for (const char *p = start; *p != '\0'; p++) {
+        if (*p == '<') {
+            depth++;
+        } else if (*p == '>') {
+            if (depth == 0) {
+                return index == wanted_index
+                    ? transpiler_specialization_trim_copy(
+                        start, (size_t)(p - start))
+                    : NULL;
+            }
+            depth--;
+        } else if (*p == ',' && depth == 0) {
+            if (index == wanted_index) {
+                return transpiler_specialization_trim_copy(
+                    start, (size_t)(p - start));
+            }
+            index++;
+            start = p + 1;
+        }
+    }
+    return NULL;
+}
+
+static void
+transpiler_specialization_scan_type_name_args(TranspilerCtx *ctx,
+                                              CodeBuf *dst,
+                                              const char *type_name)
+{
+    for (size_t i = 0;; i++) {
+        char *arg = transpiler_specialization_type_name_arg_copy(type_name, i);
+        if (arg == NULL)
+            return;
+        ensure_type_specializations_from_type_name_to(ctx, dst, arg);
+        free(arg);
+    }
+}
+
+static bool
+transpiler_specialization_scan_type_alias(TranspilerCtx *ctx,
+                                          CodeBuf *dst,
+                                          const char *type_name)
+{
+    ASTNode *alias_decl;
+
+    if (ctx == NULL || type_name == NULL || strchr(type_name, '<') != NULL)
+        return false;
+    alias_decl = transpiler_find_type_alias_decl(ctx, type_name);
+    if (alias_decl == NULL || ast_type_alias_target_type(alias_decl) == NULL)
+        return false;
+    ensure_type_specializations_from_ast_to(
+        ctx, dst, ast_type_alias_target_type(alias_decl));
+    return true;
+}
+
+void
+ensure_type_specializations_from_type_name_to(TranspilerCtx *ctx,
+                                              CodeBuf *dst,
+                                              const char *type_name)
+{
+    if (ctx == NULL || dst == NULL || type_name == NULL
+        || type_name[0] == '\0') {
+        return;
+    }
+    if (transpiler_specialization_scan_type_alias(ctx, dst, type_name))
+        return;
+
+    transpiler_specialization_scan_type_name_args(ctx, dst, type_name);
+
+    if (transpiler_specialization_type_name_has_base(type_name, "List")) {
+        char *inner = transpiler_specialization_type_name_arg_copy(type_name, 0);
+        ensure_collection_specialization_to(ctx, dst, "List", inner);
+        free(inner);
+    } else if (transpiler_specialization_type_name_has_base(
+                   type_name, "Queue")) {
+        char *inner = transpiler_specialization_type_name_arg_copy(type_name, 0);
+        ensure_collection_specialization_to(ctx, dst, "Queue", inner);
+        free(inner);
+    } else if (transpiler_specialization_type_name_has_base(
+                   type_name, "HashMap")) {
+        char *value = transpiler_specialization_type_name_arg_copy(type_name, 1);
+        ensure_collection_specialization_to(ctx, dst, "Map", value);
+        free(value);
+    } else if (transpiler_specialization_type_name_has_base(
+                   type_name, "Result")) {
+        char *ok = transpiler_specialization_type_name_arg_copy(type_name, 0);
+        char *err = transpiler_specialization_type_name_arg_copy(type_name, 1);
+        ensure_result_specialization_to(ctx, dst, ok, err);
+        free(ok);
+        free(err);
+    } else if (transpiler_specialization_type_name_has_base(
+                   type_name, "Option")) {
+        char *inner = transpiler_specialization_type_name_arg_copy(type_name, 0);
+        ensure_option_specialization_to(ctx, dst, inner);
+        free(inner);
+    } else if (transpiler_specialization_type_name_has_base(
+                   type_name, "Array")) {
+        char *inner = transpiler_specialization_type_name_arg_copy(type_name, 0);
+        ensure_collection_specialization_to(ctx, dst, "Array", inner);
+        free(inner);
+    }
+}
+
+void
+ensure_collection_specializations_from_mir_routine_to(TranspilerCtx *ctx,
+                                                      CodeBuf *dst,
+                                                      const MIRRoutine *routine)
+{
+    if (ctx == NULL || dst == NULL || routine == NULL)
+        return;
+
+    const char *return_type_name =
+        transpiler_mir_routine_return_type_name(routine);
+    if (return_type_name != NULL) {
+        ensure_type_specializations_from_type_name_to(ctx, dst,
+            return_type_name);
+    } else {
+        ensure_type_specializations_from_ast_to(ctx, dst,
+            transpiler_mir_routine_return_type(routine));
+    }
+
+    for (size_t i = 0; i < transpiler_mir_routine_param_count(routine); i++) {
+        const char *param_type_name =
+            transpiler_mir_routine_param_type_name(routine, i);
+        if (param_type_name != NULL) {
+            ensure_type_specializations_from_type_name_to(ctx, dst,
+                param_type_name);
+        } else {
+            FuncParam *param = transpiler_mir_routine_param(routine, i);
+            if (param != NULL)
+                ensure_type_specializations_from_ast_to(ctx, dst, param->type);
+        }
+    }
+
+    for (size_t i = 0;
+         i < transpiler_mir_routine_source_local_type_count(routine);
+         i++) {
+        ensure_type_specializations_from_type_name_to(
+            ctx,
+            dst,
+            transpiler_mir_routine_source_local_type_name_at(routine, i));
+    }
+}

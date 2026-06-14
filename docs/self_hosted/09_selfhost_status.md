@@ -25,6 +25,9 @@ Single source of truth (capability 5) is nearly closed.
 - Codegen source_ast frontier is at 0, all 127 original reads retired.
 - Compiler-side source_ast is at 2, the declaration-header payload assignment
   and accessor, tracked by the ratchet.
+- C class/zone collection-specialization scans are MIR-routine based and no
+  longer recover method body AST; the remaining routine source-decl bridge is
+  lookup/projection compatibility.
 
 Substrate progress.
 

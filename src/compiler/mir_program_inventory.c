@@ -181,6 +181,32 @@ mir_routine_source_local_type_name(const MIRRoutine *routine,
     return NULL;
 }
 
+size_t
+mir_routine_source_local_type_count(const MIRRoutine *routine)
+{
+    return routine != NULL ? routine->source_local_type_count : 0;
+}
+
+const char *
+mir_routine_source_local_name_at(const MIRRoutine *routine, size_t index)
+{
+    if (routine == NULL || routine->source_local_types == NULL
+        || index >= routine->source_local_type_count) {
+        return NULL;
+    }
+    return routine->source_local_types[index].name;
+}
+
+const char *
+mir_routine_source_local_type_name_at(const MIRRoutine *routine, size_t index)
+{
+    if (routine == NULL || routine->source_local_types == NULL
+        || index >= routine->source_local_type_count) {
+        return NULL;
+    }
+    return routine->source_local_types[index].type_name;
+}
+
 const char *
 mir_routine_within_zone(const MIRRoutine *routine)
 {
