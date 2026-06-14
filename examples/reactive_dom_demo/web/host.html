@@ -1,0 +1,50 @@
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>Pergyra reactive DOM (WASM)</title>
+<style>
+body{font-family:system-ui;background:#0f1117;color:#e6e6e6;display:flex;flex-direction:column;align-items:center;justify-content:center;height:100vh;margin:0}
+#app{font-size:64px;font-weight:500;color:#7cc4ff}
+button{margin-top:24px;font-size:16px;padding:10px 22px;border:0;border-radius:8px;background:#7cc4ff;color:#0f1117;cursor:pointer}
+.tag{margin-top:16px;color:#6b7280;font-size:13px}
+</style>
+</head>
+<body>
+<div id="app">loading...</div>
+<button id="bump">slot counter += 1 (intent)</button>
+<div class="tag">reactivity runs in WASM; only the DOM write is JS glue</div>
+
+<!--
+  Interactive rung-2 host. Expects an emscripten build of a reactive demo that
+  exports these Pergyra entry points:
+    WebInit()   -> void   create the world (CounterApp)
+    WebBump()   -> void   call CounterApp_Bump (mutates source slot)
+    WebRender() -> char*  return the rendered view text (e.g. "count: 1")
+  Build with:
+    emcc demo.c -O2 -sMODULARIZE -sEXPORT_NAME=PgyModule \
+      -sEXPORTED_FUNCTIONS=_WebInit,_WebBump,_WebRender \
+      -sEXPORTED_RUNTIME_METHODS=ccall,cwrap -o demo.js
+  The Bump and projection _sync functions run unchanged in WASM; this page only
+  performs the DOM write, which is the single I/O call (pgy_log_string analogue).
+-->
+<script src="demo.js"></script>
+<script>
+PgyModule().then(function (mod) {
+  var webInit = mod.cwrap('WebInit', null, []);
+  var webBump = mod.cwrap('WebBump', null, []);
+  var webRender = mod.cwrap('WebRender', 'string', []);
+  var app = document.getElementById('app');
+  var btn = document.getElementById('bump');
+
+  webInit();
+  app.textContent = webRender();
+
+  btn.addEventListener('click', function () {
+    webBump();
+    app.textContent = webRender();
+  });
+});
+</script>
+</body>
+</html>

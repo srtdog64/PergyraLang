@@ -1,0 +1,32 @@
+subject Counter { let value: Int; }
+object CounterView { value: Int; }
+
+zone CounterZone {
+    subject slot counter: Counter
+    object slot view: CounterView
+    refresh view from counter by counter
+}
+
+world CounterApp {
+    zone app: CounterZone
+    state appLive: zone app
+    state appViewReady: zone app projection view
+    activate app
+    func Bump(self) -> Void {
+        app.counter.value = app.counter.value + 1;
+    }
+}
+
+// Reactive compute exported to JS: build world, Bump n times (each Bump drives
+// the projection refresh), return the reactively-refreshed view value.
+func ViewAfter(n: Int) -> Int {
+    let w = CounterApp(CounterZone(Counter(0), CounterView(0)));
+    let i = 0;
+    while i < n {
+        w.Bump();
+        i = i + 1;
+    }
+    return w.app.view.value;
+}
+
+func Main() -> Void { }

@@ -39,7 +39,7 @@ JSON document on stdout, conforming to schema
     "source_ast_compiler": 2,
     "source_decl_codegen": 2,
     "source_decl_compiler": 1,
-    "routine_source_decl_codegen": 3,
+    "routine_source_decl_codegen": 2,
     "violations": 0
   },
   "findings": []

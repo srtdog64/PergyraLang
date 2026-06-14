@@ -1,0 +1,3 @@
+func A() -> Void {}
+func B() -> Void {
+    Log("(unclosed");

@@ -142,27 +142,16 @@ llvm_emit_func_from_mir(const MIRRoutine *routine, LLVMGenCtx *ctx)
     char qualified_name[256];
     const char *routine_name = NULL;
     MIRScopeKind routine_kind = MIR_SCOPE_FUNCTION;
-    ASTNodeType expected_decl_type = AST_FUNC_DECL;
     if (routine == NULL || ctx == NULL)
         return NULL;
     routine_name = llvm_mir_routine_name(routine);
     routine_kind = mir_routine_kind(routine);
-    if (routine_kind == MIR_SCOPE_INTENT)
-        expected_decl_type = AST_INTENT_DECL;
-    func_decl = mir_routine_source_decl_of_type(
-        routine, routine_kind, expected_decl_type);
-    if (func_decl == NULL) {
-        llvm_set_mir_inventory_missing(ctx,
-            "MIR-only LLVM path missing function source declaration for routine '%s'",
-            routine_name != NULL ? routine_name : "(anonymous)");
-        return NULL;
-    }
     llvm_mir_debug_stage("emit_func_from_mir:begin", routine);
 
     if (!llvm_mir_validate_cleanup_contract(routine, ctx))
         return NULL;
 
-    is_intent = (func_decl->type == AST_INTENT_DECL);
+    is_intent = (routine_kind == MIR_SCOPE_INTENT);
     if (is_intent) {
         mir_binding_count = llvm_collect_mir_intent_bindings(
             routine, ctx, &binding_metadata);

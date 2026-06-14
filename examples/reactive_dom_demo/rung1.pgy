@@ -1,0 +1,50 @@
+// Reactive DOM thesis demo (rung-1): Pergyra-owned reactivity.
+// Tracks docs/web_dom_ownership_thesis.md.
+//
+// Verified on C and LLVM backends:
+//   [rung-1] initial DOM:            <div id="app">count: 0</div>
+//   [rung-1] DOM after intent Bump:  <div id="app">count: 1</div>
+//   [rung-1] DOM after intent Bump:  <div id="app">count: 2</div>
+//
+// What this proves: Bump() mutates only the source slot (counter). The view
+// slot is never assigned by hand; it refreshes through the zone projection and
+// the propagation graph because of `refresh view from counter` plus the world
+// `state appViewReady: zone app projection view`. The render turns the
+// refreshed view into a DOM snapshot. Reactivity is Pergyra-owned, not JS.
+//
+// Remaining for an in-browser version: a substrate (WASM via the LLVM backend,
+// or a thin JS glue) that performs the DOM call and routes a DOM event into a
+// world method. The reactivity itself is already owned by Pergyra here.
+
+subject Counter { let value: Int; }
+object CounterView { value: Int; }
+
+zone CounterZone {
+    subject slot counter: Counter
+    object slot view: CounterView
+    refresh view from counter by counter
+}
+
+world CounterApp {
+    zone app: CounterZone
+    state appLive: zone app
+    state appViewReady: zone app projection view
+    activate app
+
+    func Bump(self) -> Void {
+        app.counter.value = app.counter.value + 1;
+    }
+}
+
+func RenderDom(view: CounterView) -> String {
+    return "<div id=\"app\">count: " + ToString(view.value) + "</div>";
+}
+
+func Main() -> Void {
+    let w = CounterApp(CounterZone(Counter(0), CounterView(0)));
+    Log("[rung-1] initial DOM:            " + RenderDom(w.app.view));
+    w.Bump();
+    Log("[rung-1] DOM after intent Bump:  " + RenderDom(w.app.view));
+    w.Bump();
+    Log("[rung-1] DOM after intent Bump:  " + RenderDom(w.app.view));
+}

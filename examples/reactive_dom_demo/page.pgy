@@ -1,0 +1,38 @@
+// Reactive DOM thesis demo (rung-1 page).
+// Tracks docs/web_dom_ownership_thesis.md.
+//
+// Pergyra owns the zone/slot/view model and renders the full HTML page.
+// A thin JS glue performs the DOM event-to-update cycle (the intent-step
+// analogue in the browser): click -> update the bound text node.
+//
+// Run:  pgy examples/reactive_dom_demo/page.pgy -o /tmp/rp && /tmp/rp > index.html
+// Then open index.html in a browser.
+
+subject Counter {
+    let value: Int;
+}
+
+object CounterView {
+    value: Int;
+}
+
+zone CounterZone {
+    subject slot counter: Counter
+    object slot view: CounterView
+    refresh view from counter by counter
+}
+
+func RenderPage(view: CounterView) -> String {
+    let head: String = "<!doctype html><html><head><meta charset=\"utf-8\"><title>Pergyra reactive DOM</title><style>body{font-family:system-ui;background:#0f1117;color:#e6e6e6;display:flex;flex-direction:column;align-items:center;justify-content:center;height:100vh;margin:0}#app{font-size:64px;font-weight:700;color:#7cc4ff}button{margin-top:24px;font-size:18px;padding:10px 22px;border:0;border-radius:8px;background:#7cc4ff;color:#0f1117;cursor:pointer}.tag{margin-top:16px;color:#6b7280;font-size:13px}</style></head><body>";
+    let initial: String = ToString(view.value);
+    let dom: String = "<div id=\"app\">count: " + initial + "</div>";
+    let button: String = "<button onclick=\"window.__count=(window.__count||" + initial + ")+1;document.getElementById('app').textContent='count: '+window.__count\">slot counter += 1 (intent)</button>";
+    let tag: String = "<div class=\"tag\">zone CounterZone &middot; slot counter -&gt; refresh -&gt; view -&gt; DOM &middot; rendered by Pergyra</div>";
+    let tail: String = "</body></html>";
+    return head + dom + button + tag + tail;
+}
+
+func Main() -> Void {
+    let app = CounterZone(Counter(7), CounterView(7));
+    Log(RenderPage(app.view));
+}

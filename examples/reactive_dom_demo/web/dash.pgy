@@ -1,0 +1,37 @@
+// Pergyra dashboard logic, compiled to WASM. The browser calls these exported
+// functions for every KPI; the business math runs in Pergyra, not JS.
+
+func RevenueOf(scenario: Int) -> Int {
+    if scenario == 1 { return 164000; }
+    if scenario == 2 { return 29200; }
+    return 86800;
+}
+func OrdersOf(scenario: Int) -> Int {
+    if scenario == 1 { return 2980; }
+    if scenario == 2 { return 410; }
+    return 1240;
+}
+func VisitorsOf(scenario: Int) -> Int {
+    if scenario == 1 { return 31200; }
+    if scenario == 2 { return 18400; }
+    return 20100;
+}
+
+// derived KPIs computed in Pergyra
+func Aov(scenario: Int) -> Int {
+    let o: Int = OrdersOf(scenario);
+    if o == 0 { return 0; }
+    return RevenueOf(scenario) / o;
+}
+func ConversionBps(scenario: Int) -> Int {
+    let v: Int = VisitorsOf(scenario);
+    if v == 0 { return 0; }
+    return OrdersOf(scenario) * 10000 / v;
+}
+
+// 7-day revenue trend per scenario (deterministic shape from a seed)
+func TrendAt(scenario: Int, day: Int) -> Int {
+    let base: Int = RevenueOf(scenario) / 7;
+    let wave: Int = (day * 13 + scenario * 7) % 5;
+    return base + base * wave / 12;
+}

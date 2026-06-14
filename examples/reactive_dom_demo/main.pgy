@@ -1,0 +1,46 @@
+// Reactive DOM thesis demo (rung-0).
+//
+// Tracks docs/web_dom_ownership_thesis.md. This is the first runnable step of
+// the "writing a slot inside a zone drives the DOM" thesis.
+//
+// What this proves now (rung-0, verified on C and LLVM backends):
+//   - a zone declares source state (slot counter) and a derived view
+//     (slot view) bound by `refresh view from counter`
+//   - a render function turns the view slot into DOM text
+//   Output: <div id="app">count: 7</div>
+//
+// Key finding (recorded 2026-06): Pergyra reactivity is intent-orchestrated,
+// not imperative-eager. Writing a slot does not eagerly recompute the view;
+// the refresh fires when an intent step syncs the zone (on: zone.Sync(n)).
+// That shape maps cleanly onto the web event cycle:
+//   DOM event -> intent -> zone Sync -> projection refresh -> DOM update.
+// So the reactive trigger is an intent step, which is exactly how a reactive
+// web framework routes an event into a state update.
+//
+// Next rung: drive the refresh through an intent step so the view updates via
+// the propagation graph after a slot write, then bind the render output to a
+// real DOM node over a thin JS glue (or WASM) substrate.
+
+subject Counter {
+    let value: Int;
+}
+
+object CounterView {
+    value: Int;
+}
+
+zone CounterZone {
+    subject slot counter: Counter
+    object slot view: CounterView
+    refresh view from counter by counter
+}
+
+func RenderDom(view: CounterView) -> String {
+    return "<div id=\"app\">count: " + ToString(view.value) + "</div>";
+}
+
+func Main() -> Void {
+    let app = CounterZone(Counter(7), CounterView(7));
+    Log("[reactive-dom rung-0] render of view slot:");
+    Log(RenderDom(app.view));
+}

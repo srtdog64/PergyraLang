@@ -1,0 +1,75 @@
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>Pergyra WASM dashboard</title>
+<style>
+  :root{--bg:#0f1117;--card:#171a22;--line:#262a35;--fg:#e6e6e6;--mut:#8b93a7;--accent:#7cc4ff;}
+  *{box-sizing:border-box}
+  body{font-family:system-ui;background:var(--bg);color:var(--fg);margin:0;padding:32px;max-width:760px;margin:0 auto}
+  h1{font-size:18px;font-weight:600;margin:0 0 4px}
+  .sub{color:var(--mut);font-size:13px;margin:0 0 20px}
+  .scn{display:flex;gap:8px;align-items:center;margin-bottom:16px}
+  button{font-size:13px;padding:7px 16px;border:1px solid var(--line);border-radius:8px;background:transparent;color:var(--fg);cursor:pointer}
+  button.on{background:#143049;border-color:var(--accent)}
+  .right{margin-left:auto;color:var(--mut);font-size:12px}
+  .grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:12px}
+  .card{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:16px}
+  .label{font-size:13px;color:var(--mut)}
+  .val{font-size:26px;font-weight:600;margin-top:6px}
+  .trend{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:16px;margin-top:12px}
+</style>
+</head>
+<body>
+<h1>Sales dashboard</h1>
+<p class="sub">every KPI is computed by a Pergyra program compiled to WebAssembly (dash.wasm)</p>
+<div class="scn">
+  <span style="color:var(--mut);font-size:13px">scenario</span>
+  <button class="s on" data-s="0">Baseline</button>
+  <button class="s" data-s="1">Promo</button>
+  <button class="s" data-s="2">Outage</button>
+  <span class="right" id="src">computing in WASM...</span>
+</div>
+<div class="grid">
+  <div class="card"><div class="label">Revenue</div><div class="val" id="m-rev">-</div></div>
+  <div class="card"><div class="label">Orders</div><div class="val" id="m-ord">-</div></div>
+  <div class="card"><div class="label">Avg order value</div><div class="val" id="m-aov">-</div></div>
+  <div class="card"><div class="label">Conversion</div><div class="val" id="m-conv">-</div></div>
+</div>
+<div class="trend">
+  <div class="label" style="margin-bottom:8px">7-day revenue trend</div>
+  <svg viewBox="0 0 320 60" preserveAspectRatio="none" style="width:100%;height:60px;display:block">
+    <polyline id="spark" fill="none" stroke="#7cc4ff" stroke-width="2" points=""></polyline>
+  </svg>
+</div>
+<script>
+(async function(){
+  var $=function(id){return document.getElementById(id);};
+  var money=function(n){return '$'+Number(n).toLocaleString();};
+  try{
+    var bytes=await (await fetch('dash.wasm')).arrayBuffer();
+    var inst=(await WebAssembly.instantiate(bytes,{})).instance;
+    if(inst.exports._initialize)inst.exports._initialize();
+    var e=inst.exports, scn=0;
+    $('src').textContent='computed in WASM (dash.wasm)';
+    function draw(){
+      $('m-rev').textContent=money(e.RevenueOf(scn));
+      $('m-ord').textContent=Number(e.OrdersOf(scn)).toLocaleString();
+      $('m-aov').textContent=money(e.Aov(scn));
+      $('m-conv').textContent=(e.ConversionBps(scn)/100).toFixed(2)+'%';
+      var vals=[],i;for(i=0;i<7;i++)vals.push(e.TrendAt(scn,i));
+      var mn=Math.min.apply(null,vals),mx=Math.max.apply(null,vals),rng=(mx-mn)||1;
+      $('spark').setAttribute('points',vals.map(function(v,ix){
+        return (ix*320/6).toFixed(1)+','+(54-((v-mn)/rng)*48).toFixed(1);}).join(' '));
+    }
+    document.querySelectorAll('.s').forEach(function(b){b.addEventListener('click',function(){
+      scn=parseInt(b.getAttribute('data-s'),10);
+      document.querySelectorAll('.s').forEach(function(x){x.classList.remove('on');});
+      b.classList.add('on'); draw();
+    });});
+    draw();
+  }catch(x){ $('src').textContent='serve over http to load wasm'; }
+})();
+</script>
+</body>
+</html>

@@ -184,7 +184,7 @@ llvm_emit_mir_param_allocas(const MIRRoutine *routine, ASTNode *func_decl,
         return;
     }
 
-    if (is_intent && routine != NULL && func_decl != NULL) {
+    if (is_intent && routine != NULL) {
         mir_binding_count = llvm_collect_mir_intent_bindings(
             routine, ctx, &binding_metadata);
         if (param_count > 0 && mir_binding_count != param_count) {

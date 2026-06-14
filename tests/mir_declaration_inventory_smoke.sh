@@ -3928,10 +3928,17 @@ for term in \
     "llvm_emit_func_from_mir(&specialized, ctx)"; do
     require_term "src/codegen/llvm_expr_spawn_generic.c" "$term"
 done
-require_term "src/codegen/llvm_mir_emit.c" \
-    "MIR-only LLVM path missing function source declaration for routine"
-require_term "src/codegen/llvm_mir_emit.c" \
-    "mir_routine_source_decl_of_type("
+for term in \
+    "routine_kind = mir_routine_kind(routine)" \
+    "is_intent = (routine_kind == MIR_SCOPE_INTENT)" \
+    "llvm_mir_routine_signature_metadata_complete(ctx," \
+    "ctx->current_mir_routine = routine"; do
+    require_term "src/codegen/llvm_mir_emit.c" "$term"
+done
+if grep -Fq "mir_routine_source_decl_of_type(" \
+    "$ROOT_DIR/src/codegen/llvm_mir_emit.c"; then
+    fail "LLVM MIR body emitter must not recover source declarations; MIRRoutine metadata is the body source of truth"
+fi
 require_term "src/codegen/llvm_decl.c" '#include "llvm_decl_authority.h"'
 for term in \
     "llvm_decl_emit_zone_authority_check(LLVMGenCtx *ctx)" \

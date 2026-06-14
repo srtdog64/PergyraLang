@@ -1,0 +1,53 @@
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>Pergyra reactive DOM (live WASM)</title>
+<style>
+body{font-family:system-ui;background:#0f1117;color:#e6e6e6;display:flex;flex-direction:column;align-items:center;justify-content:center;height:100vh;margin:0}
+#app{font-size:64px;font-weight:500;color:#7cc4ff}
+button{margin-top:24px;font-size:16px;padding:10px 22px;border:0;border-radius:8px;background:#7cc4ff;color:#0f1117;cursor:pointer}
+.tag{margin-top:16px;color:#6b7280;font-size:13px}
+</style>
+</head>
+<body>
+<div id="app">loading wasm...</div>
+<button id="bump">Bump (calls wasm ViewAfter)</button>
+<div class="tag">reactive value computed in WASM by Pergyra; JS only writes the DOM</div>
+
+<!--
+  Live interactive demo. Loads webdemo.wasm (Pergyra compiled to WebAssembly)
+  and wires a click to the exported ViewAfter(n), which builds the world, calls
+  Bump n times (each Bump drives the zone projection refresh through the
+  propagation graph) and returns the reactively refreshed view value. JS only
+  decodes the click into n and writes the result to the DOM.
+
+  The wasm needs three trivial WASI imports (fd_write/fd_seek/fd_close), stubbed
+  to no-ops here because ViewAfter performs no I/O.
+
+  Serve this directory over http (browsers block file:// fetch of wasm), e.g.:
+    python3 -m http.server   then open  /examples/reactive_dom_demo/web/live.html
+-->
+<script>
+(async function(){
+  const app = document.getElementById('app');
+  const btn = document.getElementById('bump');
+  try {
+    const bytes = await (await fetch('webdemo.wasm')).arrayBuffer();
+    const stub = () => 0;
+    const imports = { wasi_snapshot_preview1: { fd_write: stub, fd_seek: stub, fd_close: stub } };
+    const { instance } = await WebAssembly.instantiate(bytes, imports);
+    if (instance.exports._initialize) instance.exports._initialize();
+    const ViewAfter = instance.exports.ViewAfter;
+    let n = 0;
+    const render = () => { app.textContent = 'count: ' + ViewAfter(n); };
+    render();
+    btn.addEventListener('click', () => { n += 1; render(); });
+  } catch (e) {
+    app.style.fontSize = '18px';
+    app.textContent = 'wasm load failed (serve over http): ' + e.message;
+  }
+})();
+</script>
+</body>
+</html>
