@@ -72,6 +72,7 @@ import "creatures.pgy";
 | **List** | `List<T>` | `ListNew`, `ListPush`, `ListGet`, `ListSet`, `ListSize`, `ListRemove` | 구현 |
 | **ReadLine** | `func` | `ReadLine() -> String` | 구현 |
 | **Args** | `func` | `Args() -> Array<String>` | 구현 |
+| **DirWalk** | `func` | `DirWalk(String) -> Array<String>` | 구현 |
 | **Print** | `func` | `Print(s)` (줄바꿈 없음, Log는 줄바꿈 있음) | 구현 |
 
 ### Tier 2 — 유틸리티 (빌트인)

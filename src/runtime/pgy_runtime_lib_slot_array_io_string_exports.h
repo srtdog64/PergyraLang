@@ -7,4 +7,5 @@
 #include "pgy_runtime_lib_device_slot_exports.h"
 #include "pgy_runtime_lib_array_map_exports.h"
 #include "pgy_runtime_lib_io_string_exports.h"
+#include "pgy_runtime_lib_dir_walk_exports.h"
 #include "pgy_runtime_process_args_exports.h"

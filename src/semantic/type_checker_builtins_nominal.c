@@ -107,6 +107,16 @@ type_check_builtin_call(ASTNode *call, BuiltinKind kind, SemanticContext *ctx)
         return type_check_has_zone_state_builtin(call, ctx);
     case BUILTIN_PARALLEL:
         return TYPE_VOID;
+    case BUILTIN_DIR_WALK:
+        if (check_call_arity(call, 1, "DirWalk", ctx)) {
+            require_assignable(type_check_expression(ast_call_argument(call, 0), ctx),
+                TYPE_STRING, ast_call_argument(call, 0), ctx);
+        }
+        {
+            Type *args[1] = { TYPE_STRING };
+            semantic_record_effect(ctx, EFFECT_NONDETERMINISTIC);
+            return type_create_constructed(TYPE_ARRAY, args, 1);
+        }
     case BUILTIN_FILE_EXISTS:
         if (check_call_arity(call, 1, "FileExists", ctx)) {
             require_assignable(type_check_expression(ast_call_argument(call, 0), ctx),
@@ -180,4 +190,3 @@ type_check_builtin_call(ASTNode *call, BuiltinKind kind, SemanticContext *ctx)
         return TYPE_UNKNOWN;
     }
 }
-

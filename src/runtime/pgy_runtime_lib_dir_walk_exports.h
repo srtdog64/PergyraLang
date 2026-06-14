@@ -1,0 +1,10 @@
+#ifndef PGY_RUNTIME_LIB_DIR_WALK_EXPORTS_H
+#define PGY_RUNTIME_LIB_DIR_WALK_EXPORTS_H
+
+#define PGY_RUNTIME_DIR_WALK_PUBLIC
+#define PGY_RUNTIME_DIR_WALK_STRDUP pgy_runtime_lib_strdup
+#include "pgy_runtime_dir_walk_core.h"
+#undef PGY_RUNTIME_DIR_WALK_STRDUP
+#undef PGY_RUNTIME_DIR_WALK_PUBLIC
+
+#endif /* PGY_RUNTIME_LIB_DIR_WALK_EXPORTS_H */

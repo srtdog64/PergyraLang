@@ -122,6 +122,7 @@ llvm_stdlib_string_file_runtime_call_lookup(const char *callee_name)
         { "Concat", "stdlib string", "StringConcat", 2 },
         { "Contains", "stdlib string", "StringContains", 2 },
         { "Cos", "stdlib scalar", "Cos", 1 },
+        { "DirWalk", "stdlib io", "pgy_dir_walk", 1 },
         { "Exit", "stdlib process", "pgy_exit", 1 },
         { "Exp", "stdlib scalar", "Exp", 1 },
         { "FileExists", "stdlib io", "pgy_file_exists", 1 },

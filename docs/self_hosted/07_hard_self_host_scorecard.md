@@ -39,7 +39,7 @@ ACTIVE means it is on the critical path and still in progress.
 |---|-----------|------|------|---------------|
 | 1 | Module/package resolver | READY | module_smoke, package_module_resolver_smoke, type_resolution_resolver_inventory_smoke | deterministic imports and cycle diagnostics gated; a resolver tool is already self-hosted |
 | 2 | Collections + iteration | SUBSET | stdlib_surface_smoke, stage4_determinism_smoke | List/Set/HashMap exist over a key-type subset (String, Int, Long, Bool); MapKeys order is locked for stable key types and Stage 4 insertion-order determinism is gated; broaden symbol/record/handle keys and ordered set snapshots |
-| 3 | String/path/Unicode policy | READY | unicode_policy_smoke, source_utf8_smoke, memory_string_safety_smoke | stable comparison and normalization stance gated |
+| 3 | String/path/Unicode policy | READY | unicode_policy_smoke, source_utf8_smoke, memory_string_safety_smoke, filesystem_directory_walk_smoke | stable comparison, normalization, and deterministic directory snapshot stance gated |
 | 4 | Arena/ownership ergonomics | SUBSET | verify_arena_closure, runtime_abi_lifetime_smoke, abi_ownership_shape_smoke | the allocation mechanism exists; the per-pass scratch/result/persistent lanes that remove manual boilerplate do not yet |
 | 5 | CFG/MIR body as SoT | ACTIVE | cfg_body_dataflow_smoke, ast_read_surface_smoke, mir_or_abort_invariant_smoke, ast_read_surface_checker_parity | non_cfg fallback locked at 0; backend source_ast frontier locked at 0; compiler declaration-header payload remains at 2; source_decl is ratcheted at codegen 2 / compiler 1, and routine_source_decl_codegen is ratcheted at 5. This is task 74 |
 | 6 | AIR as verifier | READY | air_json_schema_smoke, air_drift_smoke, air_backend_nonimpact_smoke | pgy.air.graph.v1 evidence export gated; drift count enforced at 0 |
@@ -76,8 +76,11 @@ burn-down:
 - parser LLVM depth/type-inference parity is now gated by compiling the
   self-host parser through both C and LLVM over the committed fixture set,
   including a deep nested generic type case;
-- deterministic filesystem directory walking, so self-hosted validators can
-  enumerate source trees without shell `find`/`grep` ownership.
+- deterministic filesystem directory walking is now gated by
+  `filesystem_directory_walk_smoke`: `DirWalk(String) -> Array<String>`
+  returns a sorted regular-file snapshot on C and LLVM, so validators can stop
+  relying on shell `find`/`grep` as the inventory owner. The next step is
+  repointing individual self-host parity tools to consume it directly.
 
 These are the axis the gap analysis calls systems substrate, distinct from the
 domain-oriented surface the language is already strong on.

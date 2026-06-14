@@ -18,6 +18,10 @@ WORK_DIR="$(mktemp -d "${TMP_BASE%/}/pgy_stdlib_smoke.XXXXXX")"
 trap 'rm -rf "$WORK_DIR"' EXIT
 IO_ROOT="$WORK_DIR/io_root"
 mkdir -p "$IO_ROOT"
+mkdir -p "$WORK_DIR/walk_root/a" "$WORK_DIR/walk_root/b"
+printf 'one\n' > "$WORK_DIR/walk_root/a/one.txt"
+printf 'two\n' > "$WORK_DIR/walk_root/b/two.txt"
+printf 'root\n' > "$WORK_DIR/walk_root/root.txt"
 
 FREEZE_DOC="$ROOT_DIR/docs/108_stdlib_beta_freeze.md"
 if [[ ! -f "$FREEZE_DOC" ]]; then
@@ -29,7 +33,7 @@ for required in \
     "beta-freeze-source-of-truth" \
     "Stable Builtin Stdlib Surface" \
     "\`FileOpen\`, \`FileRead\`, \`FileWrite\`, \`FileClose\`, \`ReadFile\`" \
-    "\`WriteFile\`, \`FileExists\`" \
+    "\`WriteFile\`, \`FileExists\`, \`DirWalk\`" \
     "\`Args\`" \
     "\`SliceCopy(Slice<T>) -> Array<T>\`" \
     "Stable \`use\` Modules" \
@@ -122,6 +126,14 @@ func Main() -> Void {
     let orderedBoolKeys: Array<Bool> = MapKeys(orderedBools);
     if orderedBoolKeys[0] == false && orderedBoolKeys[1] == true {
         Log(131);
+    }
+
+    let walked: Array<String> = DirWalk("walk_root");
+    Log(ArrayLength(walked));
+    if ArrayLength(walked) == 3 {
+        Log(walked[0]);
+        Log(walked[1]);
+        Log(walked[2]);
     }
 }
 EOF
@@ -216,7 +228,7 @@ run_backend() {
 
     output="$(cd "$WORK_DIR" && "$PGY" "$stable_arg" --backend="$backend" --run 2>&1)"
 
-    for expected in "42" "2" "3" "blue" "red" "8" "true" "false" "BYE there" "handle" "9" "113" "127" "131"; do
+    for expected in "42" "2" "3" "blue" "red" "8" "true" "false" "BYE there" "handle" "9" "113" "127" "131" "walk_root/a/one.txt" "walk_root/b/two.txt" "walk_root/root.txt"; do
         if ! grep -Fq "$expected" <<<"$output"; then
             echo "[stdlib-smoke] backend=$backend missing '$expected'" >&2
             echo "--- output ---" >&2

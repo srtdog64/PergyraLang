@@ -28,6 +28,7 @@ static const BuiltinEntry k_builtin_entries[] = {
     {"Clone", BUILTIN_CLONE},
     {"DeviceRead", BUILTIN_DEVICE_READ},
     {"DeviceWrite", BUILTIN_DEVICE_WRITE},
+    {"DirWalk", BUILTIN_DIR_WALK},
     {"Entangle", BUILTIN_NOT_BUILTIN},
     {"Exit", BUILTIN_EXIT},
     {"FileClose", BUILTIN_FILE_CLOSE},

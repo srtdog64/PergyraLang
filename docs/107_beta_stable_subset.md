@@ -64,7 +64,7 @@ Stable core:
   beta.
 - File I/O stable subset keeps both whole-file helpers
   (`ReadFile(String) -> String`, `WriteFile(String, String) -> Void`,
-  `FileExists(String) -> Bool`) and runtime-owned handle helpers
+  `FileExists(String) -> Bool`, `DirWalk(String) -> Array<String>`) and runtime-owned handle helpers
   (`FileOpen(String, String) -> Int`, `FileRead(Int) -> String`,
   `FileWrite(Int, String) -> Void`, `FileClose(Int) -> Void`). All stable file
   path entrypoints use the same runtime path policy; `FileExists` is the

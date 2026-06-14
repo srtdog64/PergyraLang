@@ -20,7 +20,9 @@ These are compiler/runtime builtins, not `use` modules:
 - Logging and console: `Log`, `LogBlock`, `LogBanner`, `LogRaw`, `Print`,
   `ReadLine`.
 - File IO: `FileOpen`, `FileRead`, `FileWrite`, `FileClose`, `ReadFile`,
-  `WriteFile`, `FileExists`.
+  `WriteFile`, `FileExists`, `DirWalk`. `DirWalk(String) -> Array<String>`
+  returns a deterministic, lexicographically sorted owned snapshot of regular
+  files under the requested directory, using `/` path separators.
 - Strings: `Concat`, `StringLength`, `Contains`, `StringIndexOf`, `Replace`,
   `Substring`, `Trim`, `Split`, `Join`, `Upper`, `Lower`, `ToString`.
 - Numeric helpers: `Abs`, `Min`, `Max`.

@@ -40,8 +40,8 @@ JSON document on stdout, conforming to schema
     "llvm_dispatch_owner": "src/codegen/llvm_expr_stdlib_scalar_io_calls.c"
   },
   "counts": {
-    "c_entries": 29,
-    "llvm_entries": 29,
+    "c_entries": 46,
+    "llvm_entries": 51,
     "drift": 0
   },
   "findings": []

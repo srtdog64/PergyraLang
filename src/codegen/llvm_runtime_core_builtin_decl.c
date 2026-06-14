@@ -270,6 +270,8 @@ llvm_declare_runtime_core_builtins(LLVMGenCtx *ctx)
               { 0 }, 0 },
             { "pgy_read_file", ctx->type_i8ptr,
               { ctx->type_i8ptr }, 1 },
+            { "pgy_dir_walk", ctx->array_type_String,
+              { ctx->type_i8ptr }, 1 },
             { "pgy_file_exists", ctx->type_i1,
               { ctx->type_i8ptr }, 1 },
             { "pgy_write_file", ctx->type_void,

@@ -279,6 +279,7 @@ FileOpen(String, String) -> Int
 FileRead(Int) -> String
 FileWrite(Int, String) -> Void
 FileClose(Int) -> Void
+DirWalk(String) -> Array<String>
 Intent / Zone / World / AIR Stable Subset
 Backend And Tooling Contract
 Async/concurrency stable subset is decomposition-based

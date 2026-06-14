@@ -45,6 +45,7 @@ pgy_builtin_entries(size_t *count)
         { "Contains", "Bool", PGY_BUILTIN_FLAG_NONE },
         { "CooldownNew", "Cooldown", PGY_BUILTIN_FLAG_NONE },
         { "Cos", "Float", PGY_BUILTIN_FLAG_NONE },
+        { "DirWalk", "Array<String>", PGY_BUILTIN_FLAG_NONE },
         { "E", "Float", PGY_BUILTIN_FLAG_NONE },
         { "Exit", "Void", PGY_BUILTIN_FLAG_NONE },
         { "Exp", "Float", PGY_BUILTIN_FLAG_NONE },

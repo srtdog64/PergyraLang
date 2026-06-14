@@ -214,6 +214,22 @@ emit_builtin_write_file(ASTNode *call, TranspilerCtx *ctx)
 }
 
 static char *
+emit_builtin_dir_walk(ASTNode *call, TranspilerCtx *ctx)
+{
+    if (ast_call_arg_count(call) < 1)
+        return io_builtin_unsupported(ctx,
+            "C backend: DirWalk requires root path");
+
+    char *root = io_builtin_emit_arg(ctx, ast_call_argument(call, 0),
+        "DirWalk", "root path");
+    if (root == NULL)
+        return NULL;
+    char *result = io_builtin_heap_fmt(ctx, "pgy_dir_walk(%s)", root);
+    free(root);
+    return result;
+}
+
+static char *
 emit_builtin_input(ASTNode *call, TranspilerCtx *ctx)
 {
     char *prompt = ast_call_arg_count(call) >= 1
@@ -262,6 +278,8 @@ char *
 emit_builtin_io(ASTNode *call, BuiltinKind bk, TranspilerCtx *ctx)
 {
     switch (bk) {
+    case BUILTIN_DIR_WALK:
+        return emit_builtin_dir_walk(call, ctx);
     case BUILTIN_FILE_EXISTS:
         return emit_builtin_file_exists(call, ctx);
     case BUILTIN_FILE_OPEN:

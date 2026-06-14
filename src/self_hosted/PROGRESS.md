@@ -206,11 +206,12 @@ beyond the lexer:
   now compares insertion-order variants for `HashMap<String|Int|Long|Bool, T>`
   through generated Pergyra programs on C and LLVM. Remaining collection lifts
   are symbol/record/handle keys and ordered set snapshots.
-- **Filesystem directory walk** -- self-hosted validators still rely on
-  shell-owned tree enumeration. A Pergyra-owned `DirWalk`/glob surface must
-  return a deterministic, sorted snapshot with explicit error reporting so
-  tools such as ast-read-surface and doc/example checkers can run without
-  shell `find`/`grep` as the inventory owner.
+- **Filesystem directory walk** -- `DirWalk(String) -> Array<String>` has landed
+  for generated binaries on C and LLVM. It returns a deterministic sorted
+  regular-file snapshot with `/` separators and is gated by
+  `filesystem_directory_walk_smoke`. The remaining lift is repointing
+  self-hosted validators such as ast-read-surface and doc/example checkers away
+  from shell-owned manifests so the Pergyra tool owns inventory enumeration.
 - **Parser LLVM depth/type-inference parity** -- `parser_parity.sh` now
   compiles the self-host parser through both C and LLVM and includes a deep
   nested generic type fixture. Remaining parser work is grammar breadth and
