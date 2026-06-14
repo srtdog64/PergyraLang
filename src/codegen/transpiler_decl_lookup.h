@@ -215,9 +215,6 @@ bool transpiler_hosted_zone_layer_slot_view_missing_mir_metadata(
 const MIRDeclField *transpiler_hosted_zone_layer_slot_view_metadata(
     const TranspilerHostedZoneLayerSlotView *view,
     size_t index);
-ASTNode *transpiler_hosted_zone_layer_slot_view_source_ast(
-    const TranspilerHostedZoneLayerSlotView *view,
-    size_t index);
 const char *transpiler_hosted_zone_layer_slot_view_name(
     const TranspilerHostedZoneLayerSlotView *view,
     size_t index);
@@ -243,9 +240,6 @@ transpiler_hosted_domain_slot_view_from_decl(const TranspilerCtx *ctx,
 bool transpiler_hosted_domain_slot_view_missing_mir_metadata(
     const TranspilerHostedDomainSlotView *view);
 const MIRDeclField *transpiler_hosted_domain_slot_view_metadata(
-    const TranspilerHostedDomainSlotView *view,
-    size_t index);
-ASTNode *transpiler_hosted_domain_slot_view_source_ast(
     const TranspilerHostedDomainSlotView *view,
     size_t index);
 const char *transpiler_hosted_domain_slot_view_name(
@@ -275,9 +269,6 @@ bool transpiler_hosted_world_zone_slot_view_missing_mir_metadata(
 const MIRDeclField *transpiler_hosted_world_zone_slot_view_metadata(
     const TranspilerHostedWorldZoneSlotView *view,
     size_t index);
-ASTNode *transpiler_hosted_world_zone_slot_view_source_ast(
-    const TranspilerHostedWorldZoneSlotView *view,
-    size_t index);
 const char *transpiler_hosted_world_zone_slot_view_name(
     const TranspilerHostedWorldZoneSlotView *view,
     size_t index);
@@ -291,9 +282,6 @@ transpiler_hosted_world_roster_slot_view_from_decl(const TranspilerCtx *ctx,
 bool transpiler_hosted_world_roster_slot_view_missing_mir_metadata(
     const TranspilerHostedWorldRosterSlotView *view);
 const MIRDeclField *transpiler_hosted_world_roster_slot_view_metadata(
-    const TranspilerHostedWorldRosterSlotView *view,
-    size_t index);
-ASTNode *transpiler_hosted_world_roster_slot_view_source_ast(
     const TranspilerHostedWorldRosterSlotView *view,
     size_t index);
 const char *transpiler_hosted_world_roster_slot_view_name(
@@ -311,9 +299,6 @@ bool transpiler_hosted_roster_slot_view_missing_mir_metadata(
 const MIRDeclField *transpiler_hosted_roster_slot_view_metadata(
     const TranspilerHostedRosterSlotView *view,
     size_t index);
-ASTNode *transpiler_hosted_roster_slot_view_source_ast(
-    const TranspilerHostedRosterSlotView *view,
-    size_t index);
 const char *transpiler_hosted_roster_slot_view_name(
     const TranspilerHostedRosterSlotView *view,
     size_t index);
@@ -327,9 +312,6 @@ TranspilerHostedRoleSlotView transpiler_hosted_role_slot_view_from_decl(
 bool transpiler_hosted_role_slot_view_missing_mir_metadata(
     const TranspilerHostedRoleSlotView *view);
 const MIRDeclField *transpiler_hosted_role_slot_view_metadata(
-    const TranspilerHostedRoleSlotView *view,
-    size_t index);
-ASTNode *transpiler_hosted_role_slot_view_source_ast(
     const TranspilerHostedRoleSlotView *view,
     size_t index);
 const char *transpiler_hosted_role_slot_view_name(

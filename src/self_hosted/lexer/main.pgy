@@ -16,11 +16,9 @@
 // Outputs the same text `pgy --tokens` does, byte-for-byte (with LF line
 // endings; the parity script normalizes CRLF on Windows).
 //
-// Each tool invocation lexes the file at the path given by
-// `fixture/source.txt` (one line, relative path) when present, else
-// defaults to `examples/hello.pgy`. The parity script writes
-// `fixture/source.txt` into a tmp scratch dir before each run, so the
-// same Pergyra binary can lex multiple sources without `Args()`.
+// Each tool invocation lexes the first process argument when present. The
+// legacy `fixture/source.txt` override remains as a local fallback for probes
+// that have not moved to argv yet.
 //
 // Contract: see intent.md in the same directory.
 
@@ -280,9 +278,12 @@ func TokenLine(idx: Int, ttype: String, text: String, line: Int, col: Int) -> St
 }
 
 func Main() -> Void {
+    let run_args: Array<String> = Args();
     let override_path: String = "src/self_hosted/lexer/fixture/source.txt";
     let source_path: String = "examples/hello.pgy";
-    if FileExists(override_path) {
+    if ArrayLength(run_args) > 0 {
+        source_path = run_args[0];
+    } else if FileExists(override_path) {
         let raw: String = ReadFile(override_path);
         let trimmed: String = StringTrim(raw);
         if StringLength(trimmed) > 0 {

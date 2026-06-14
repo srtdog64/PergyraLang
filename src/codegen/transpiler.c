@@ -404,17 +404,20 @@ emit_program(TranspilerCtx *ctx)
     }
 
     /* Check if a Main() function exists */
-    /* Generate int main(void) { ... } */
+    /* Generate int main(int argc, char **argv) { ... } */
     if (has_top_level_exec || has_main_function) {
         bool needs_thread_pool = transpiler_requires_thread_pool(ctx);
-        codebuf_write(ctx->out, "\nint\nmain(void)\n{\n");
+        codebuf_write(ctx->out, "\nint\nmain(int argc, char **argv)\n{\n");
         ctx->indent++;
 
         /* Initialize runtime */
+        write_indent(ctx);
+        codebuf_write(ctx->out, "pgy_args_init(argc, argv);\n");
         if (needs_thread_pool) {
             write_indent(ctx);
-            codebuf_write(ctx->out, "pgy_pool_init(0);\n\n");
+            codebuf_write(ctx->out, "pgy_pool_init(0);\n");
         }
+        codebuf_write(ctx->out, "\n");
 
         /* Emit top-level statements inside main() */
         if (synthetic_executable_func != NULL) {

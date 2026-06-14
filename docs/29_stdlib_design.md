@@ -71,6 +71,7 @@ import "creatures.pgy";
 | **HashMap** | `HashMap<K, V>` | `MapNew`, `MapSet`, `MapGet`, `MapHas`, `MapRemove`, `MapSize`, `MapKeys` | 구현 |
 | **List** | `List<T>` | `ListNew`, `ListPush`, `ListGet`, `ListSet`, `ListSize`, `ListRemove` | 구현 |
 | **ReadLine** | `func` | `ReadLine() -> String` | 구현 |
+| **Args** | `func` | `Args() -> Array<String>` | 구현 |
 | **Print** | `func` | `Print(s)` (줄바꿈 없음, Log는 줄바꿈 있음) | 구현 |
 
 ### Tier 2 — 유틸리티 (빌트인)
@@ -229,7 +230,7 @@ let has: Bool = MapHas(inventory, "shield");  // false
 
 현재 구현 메모:
 - `MapNew`, `MapSet`, `MapGet`, `MapHas`, `MapRemove`, `MapSize`는 연결돼 있다.
-- `MapKeys`는 현재 `HashMap<String, T>` / `HashMap<Int, T>` / `HashMap<Long, T>` / `HashMap<Bool, T>` stable subset에 대해 각각 `Array<String>` / `Array<Int>` / `Array<Long>` / `Array<Bool>`를 반환한다.
+- `MapKeys`는 현재 `HashMap<String, T>` / `HashMap<Int, T>` / `HashMap<Long, T>` / `HashMap<Bool, T>` stable subset에 대해 각각 `Array<String>` / `Array<Int>` / `Array<Long>` / `Array<Bool>`를 반환한다. 반환 배열은 해시 버킷 순서가 아니라 안정 정렬된 owned snapshot이다: 문자열은 사전순, 정수/Long은 오름차순, Bool은 `false`, `true` 순서다.
 
 ## List 설계
 

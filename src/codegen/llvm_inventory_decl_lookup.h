@@ -155,9 +155,6 @@ bool llvm_hosted_zone_layer_slot_view_missing_mir_metadata(
 const MIRDeclField *llvm_hosted_zone_layer_slot_view_metadata(
     const LLVMHostedZoneLayerSlotView *view,
     size_t index);
-ASTNode *llvm_hosted_zone_layer_slot_view_source_ast(
-    const LLVMHostedZoneLayerSlotView *view,
-    size_t index);
 const char *llvm_hosted_zone_layer_slot_view_name(
     const LLVMHostedZoneLayerSlotView *view,
     size_t index);
@@ -180,9 +177,6 @@ LLVMHostedDomainSlotView llvm_hosted_domain_slot_view_from_decl(
 bool llvm_hosted_domain_slot_view_missing_mir_metadata(
     const LLVMHostedDomainSlotView *view);
 const MIRDeclField *llvm_hosted_domain_slot_view_metadata(
-    const LLVMHostedDomainSlotView *view,
-    size_t index);
-ASTNode *llvm_hosted_domain_slot_view_source_ast(
     const LLVMHostedDomainSlotView *view,
     size_t index);
 const char *llvm_hosted_domain_slot_view_name(
@@ -212,9 +206,6 @@ bool llvm_hosted_world_zone_slot_view_missing_mir_metadata(
 const MIRDeclField *llvm_hosted_world_zone_slot_view_metadata(
     const LLVMHostedWorldZoneSlotView *view,
     size_t index);
-ASTNode *llvm_hosted_world_zone_slot_view_source_ast(
-    const LLVMHostedWorldZoneSlotView *view,
-    size_t index);
 const char *llvm_hosted_world_zone_slot_view_name(
     const LLVMHostedWorldZoneSlotView *view,
     size_t index);
@@ -228,9 +219,6 @@ LLVMHostedWorldRosterSlotView llvm_hosted_world_roster_slot_view_from_decl(
 bool llvm_hosted_world_roster_slot_view_missing_mir_metadata(
     const LLVMHostedWorldRosterSlotView *view);
 const MIRDeclField *llvm_hosted_world_roster_slot_view_metadata(
-    const LLVMHostedWorldRosterSlotView *view,
-    size_t index);
-ASTNode *llvm_hosted_world_roster_slot_view_source_ast(
     const LLVMHostedWorldRosterSlotView *view,
     size_t index);
 const char *llvm_hosted_world_roster_slot_view_name(
@@ -248,9 +236,6 @@ bool llvm_hosted_roster_slot_view_missing_mir_metadata(
 const MIRDeclField *llvm_hosted_roster_slot_view_metadata(
     const LLVMHostedRosterSlotView *view,
     size_t index);
-ASTNode *llvm_hosted_roster_slot_view_source_ast(
-    const LLVMHostedRosterSlotView *view,
-    size_t index);
 const char *llvm_hosted_roster_slot_view_name(
     const LLVMHostedRosterSlotView *view,
     size_t index);
@@ -264,9 +249,6 @@ LLVMHostedRoleSlotView llvm_hosted_role_slot_view_from_decl(
 bool llvm_hosted_role_slot_view_missing_mir_metadata(
     const LLVMHostedRoleSlotView *view);
 const MIRDeclField *llvm_hosted_role_slot_view_metadata(
-    const LLVMHostedRoleSlotView *view,
-    size_t index);
-ASTNode *llvm_hosted_role_slot_view_source_ast(
     const LLVMHostedRoleSlotView *view,
     size_t index);
 const char *llvm_hosted_role_slot_view_name(

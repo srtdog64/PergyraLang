@@ -114,25 +114,6 @@ llvm_hosted_world_roster_slot_view_metadata(
         view->decl_header, MIR_DECL_FIELD_WORLD_ROSTER_SLOT, index);
 }
 
-ASTNode *
-llvm_hosted_world_roster_slot_view_source_ast(
-    const LLVMHostedWorldRosterSlotView *view,
-    size_t index)
-{
-    const MIRDeclField *field =
-        llvm_hosted_world_roster_slot_view_metadata(view, index);
-
-    if (view == NULL || index >= view->count)
-        return NULL;
-    if (field != NULL)
-        return mir_decl_field_source_ast(field);
-    if (view->requires_mir_metadata)
-        return NULL;
-    if (view->ast_compat_slots != NULL)
-        return view->ast_compat_slots[index];
-    return NULL;
-}
-
 const char *
 llvm_hosted_world_roster_slot_view_name(
     const LLVMHostedWorldRosterSlotView *view,
@@ -230,27 +211,6 @@ llvm_hosted_roster_slot_view_metadata(
     return llvm_decl_header_roster_slot(view->decl_header, index);
 }
 
-ASTNode *
-llvm_hosted_roster_slot_view_source_ast(
-    const LLVMHostedRosterSlotView *view,
-    size_t index)
-{
-    const MIRDeclField *field =
-        llvm_hosted_roster_slot_view_metadata(view, index);
-
-    if (view == NULL || index >= view->count)
-        return NULL;
-    if (field != NULL)
-        return mir_decl_field_source_ast(field);
-    if (view->requires_mir_metadata)
-        return NULL;
-    if (view->ast_compat_decl != NULL
-        && view->ast_compat_decl->type == AST_ROSTER_DECL) {
-        return ast_roster_party(view->ast_compat_decl, index);
-    }
-    return NULL;
-}
-
 const char *
 llvm_hosted_roster_slot_view_name(
     const LLVMHostedRosterSlotView *view,
@@ -336,27 +296,6 @@ llvm_hosted_role_slot_view_metadata(
     }
     return llvm_decl_header_field_by_kind(
         view->decl_header, MIR_DECL_FIELD_ROLE_SLOT, index);
-}
-
-ASTNode *
-llvm_hosted_role_slot_view_source_ast(
-    const LLVMHostedRoleSlotView *view,
-    size_t index)
-{
-    const MIRDeclField *field =
-        llvm_hosted_role_slot_view_metadata(view, index);
-
-    if (view == NULL || index >= view->count)
-        return NULL;
-    if (field != NULL)
-        return mir_decl_field_source_ast(field);
-    if (view->requires_mir_metadata)
-        return NULL;
-    if (view->ast_compat_decl != NULL
-        && view->ast_compat_decl->type == AST_PARTY_DECL) {
-        return ast_party_role(view->ast_compat_decl, index);
-    }
-    return NULL;
 }
 
 const char *

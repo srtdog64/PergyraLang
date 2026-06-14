@@ -166,6 +166,20 @@ else
 EXEEXT :=
 endif
 
+ifeq ($(EXEEXT),.exe)
+PGY_WINDOWS_NATIVE_RUNTIME_PATH := /c/LLVM/bin:/c/Program Files/LLVM/bin:/c/ProgramData/mingw64/mingw64/bin:/c/msys64/ucrt64/bin:/c/msys64/clang64/bin:/c/msys64/mingw64/bin
+ifneq ($(and $(MSYSTEM_PREFIX),$(filter 1,$(PGY_WINDOWS_BASH_IS_MSYS))),)
+PGY_WINDOWS_NATIVE_RUNTIME_PATH := $(MSYSTEM_PREFIX)/bin:$(PGY_WINDOWS_NATIVE_RUNTIME_PATH)
+endif
+define pgy_run_native
+PATH="$(PGY_WINDOWS_NATIVE_RUNTIME_PATH):$$PATH" $(1)
+endef
+else
+define pgy_run_native
+$(1)
+endef
+endif
+
 # -----------------------------------------------------------------
 # LLVM backend (enabled by default)
 #   make                         - build with LLVM native backend (default)
@@ -1167,6 +1181,7 @@ BUILD_CONTRACT_INVENTORY_FILES = \
                    $(RUNTIME_DIR)/pgy_runtime_lib_channel_string_result_exports.h \
                    $(RUNTIME_DIR)/pgy_runtime_lib_device_slot_exports.h \
                    $(RUNTIME_DIR)/pgy_runtime_lib_io_string_exports.h \
+                   $(RUNTIME_DIR)/pgy_runtime_process_args_exports.h \
                    $(RUNTIME_DIR)/pgy_runtime_process_exit.h \
                    $(RUNTIME_DIR)/pgy_runtime_lib_qubit_state_exports.h \
                    $(RUNTIME_DIR)/pgy_runtime_lib_raw_collection_common_exports.h \
@@ -1593,36 +1608,36 @@ $(REPO_BIN_DIR):
 # -----------------------------------------------------------------
 test: $(LEXER_TEST)
 	@echo "=== Lexer Test ==="
-	$(LEXER_TEST)
+	$(call pgy_run_native,$(LEXER_TEST))
 
 test-parser: $(PARSER_TEST)
 	@echo "=== Parser Test ==="
-	$(PARSER_TEST)
+	$(call pgy_run_native,$(PARSER_TEST))
 
 test-datastructures: $(DATASTRUCTURES_TEST)
 	@echo "=== Data Structures Test ==="
-	$(DATASTRUCTURES_TEST)
+	$(call pgy_run_native,$(DATASTRUCTURES_TEST))
 
 test-security: $(SECURITY_TEST)
 	@echo "=== Security Test ==="
-	$(SECURITY_TEST)
+	$(call pgy_run_native,$(SECURITY_TEST))
 
 test-semantic: $(SEMANTIC_TEST)
 	@echo "=== Semantic Analyzer Test ==="
-	$(SEMANTIC_TEST)
+	$(call pgy_run_native,$(SEMANTIC_TEST))
 
 test-transpile: $(TRANSPILE_TEST)
 	@echo "=== C Backend Test ==="
 	@$(call pgy_mkdir_p,$(abspath $(BUILD_DIR)/tmp))
-	PGY_TEST_TMPDIR="$(abspath $(BUILD_DIR)/tmp)" $(TRANSPILE_TEST)
+	PGY_TEST_TMPDIR="$(abspath $(BUILD_DIR)/tmp)" $(call pgy_run_native,$(TRANSPILE_TEST))
 
 test-memory: $(MEMORY_TEST)
 	@echo "=== Memory Layout Test ==="
-	$(MEMORY_TEST)
+	$(call pgy_run_native,$(MEMORY_TEST))
 
 test-abi: $(ABI_TEST) $(PGY)
 	@echo "=== ABI Spec Validation ==="
-	$(ABI_TEST)
+	$(call pgy_run_native,$(ABI_TEST))
 	@echo "=== ABI Pipeline Smoke ==="
 	PGY_BIN="$(abspath $(PGY))" \
 	PGY_ABI_PIPELINE_BACKENDS="$(if $(filter 1,$(LLVM_ENABLED)),c llvm,c)" \
@@ -1642,7 +1657,7 @@ test-abi-perf: $(ABI_PIPELINE_TEST) abi-perf-runtime
 	@echo "=== ABI Pipeline Benchmark ==="
 	$(if $(ABI_PERF_LINKER_ENV),$(ABI_PERF_LINKER_ENV) )PGY_PREBUILT_RUNTIME_OBJ_RELEASE_OBS0="$(ABI_PERF_RUNTIME_RELEASE_OBS0)" \
 	PGY_PREBUILT_RUNTIME_OBJ_RELEASE_OBS1="$(ABI_PERF_RUNTIME_RELEASE_OBS1)" \
-	PGY_ABI_PERF_MODE=1 "$(ABI_PIPELINE_TEST)"
+	PGY_ABI_PERF_MODE=1 $(call pgy_run_native,"$(ABI_PIPELINE_TEST)")
 
 perf-summary:
 	@test -n "$(PERF_LOG)" || { echo "usage: make perf-summary PERF_LOG=/path/to/test-abi-perf.log" >&2; exit 1; }
@@ -1690,27 +1705,27 @@ timing: $(PGY)
 
 test-concurrency: $(CONCURRENCY_TEST)
 	@echo "=== Concurrency Test ==="
-	$(CONCURRENCY_TEST)
+	$(call pgy_run_native,$(CONCURRENCY_TEST))
 
 test-dir: $(DIR_TEST)
 	@echo "=== DIR Test ==="
-	$(DIR_TEST)
+	$(call pgy_run_native,$(DIR_TEST))
 
 test-air: $(AIR_TEST)
 	@echo "=== AIR Test ==="
-	$(AIR_TEST)
+	$(call pgy_run_native,$(AIR_TEST))
 
 test-rir: $(RIR_TEST)
 	@echo "=== RIR Test ==="
-	$(RIR_TEST)
+	$(call pgy_run_native,$(RIR_TEST))
 
 test-mir: $(MIR_TEST)
 	@echo "=== MIR Test ==="
-	$(MIR_TEST)
+	$(call pgy_run_native,$(MIR_TEST))
 
 test-hir: $(HIR_TEST)
 	@echo "=== HIR Test ==="
-	$(HIR_TEST)
+	$(call pgy_run_native,$(HIR_TEST))
 
 windows-build-smoke: $(PGY) $(LEXER_TEST) $(PARSER_TEST) $(DATASTRUCTURES_TEST) $(SEMANTIC_TEST) $(TRANSPILE_TEST) \
 	$(MEMORY_TEST) $(ABI_TEST) $(ABI_PIPELINE_TEST) $(CONCURRENCY_TEST) $(DIR_TEST) \

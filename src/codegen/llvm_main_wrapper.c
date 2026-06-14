@@ -17,6 +17,29 @@ llvm_main_requires_thread_pool(const LLVMGenCtx *ctx)
 }
 
 static bool
+llvm_main_emit_args_init(LLVMGenCtx *ctx,
+                         LLVMValueRef argc_value,
+                         LLVMValueRef argv_value)
+{
+    LLVMFuncEntry *args_init_fn = llvm_lookup_function(ctx, "pgy_args_init");
+
+    if (args_init_fn == NULL) {
+        llvm_set_error_at_with_hints(ctx, NULL,
+            PGY_CODE_LLVM_TYPE_UNSUPPORTED,
+            PGY_CAUSE_LLVM_TYPE_UNSUPPORTED,
+            PGY_FIX_INSPECT_MIR_INVENTORY,
+            "LLVM main wrapper requires registered runtime function '%s'",
+            "pgy_args_init");
+        return false;
+    }
+
+    LLVMValueRef args[] = { argc_value, argv_value };
+    LLVMBuildCall2(ctx->builder, args_init_fn->fn_type,
+                   args_init_fn->fn, args, 2, "");
+    return true;
+}
+
+static bool
 llvm_main_emit_thread_pool_init(LLVMGenCtx *ctx, bool needs_thread_pool)
 {
     if (!needs_thread_pool)
@@ -186,7 +209,12 @@ llvm_emit_main_wrapper(LLVMGenCtx *ctx)
     if (!has_top_level)
         return;
 
-    LLVMTypeRef main_type = LLVMFunctionType(ctx->type_i32, NULL, 0, 0);
+    LLVMTypeRef main_params[] = {
+        ctx->type_i32,
+        LLVMPointerType(ctx->type_i8ptr, 0),
+    };
+    LLVMTypeRef main_type = LLVMFunctionType(
+        ctx->type_i32, main_params, 2, 0);
     LLVMFuncEntry *main_entry = llvm_lookup_or_declare_function(
         ctx, "main", main_type, ctx->type_i32);
     LLVMValueRef main_fn = main_entry != NULL ? main_entry->fn : NULL;
@@ -213,6 +241,14 @@ llvm_emit_main_wrapper(LLVMGenCtx *ctx)
     LLVMBasicBlockRef entry = LLVMAppendBasicBlockInContext(
         ctx->context, main_fn, "entry");
     LLVMPositionBuilderAtEnd(ctx->builder, entry);
+
+    LLVMValueRef argc_value = LLVMGetParam(main_fn, 0);
+    LLVMValueRef argv_value = LLVMGetParam(main_fn, 1);
+    LLVMSetValueName(argc_value, "argc");
+    LLVMSetValueName(argv_value, "argv");
+
+    if (!llvm_main_emit_args_init(ctx, argc_value, argv_value))
+        goto restore_state;
 
     if (!llvm_main_emit_thread_pool_init(ctx, needs_thread_pool))
         goto restore_state;

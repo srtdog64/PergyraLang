@@ -17,7 +17,6 @@ mir_ability_ref_clear(MIRAbilityRef *ref)
             free(ref->actual_arg_type_names[i]);
         free(ref->actual_arg_type_names);
     }
-    ref->source_ast = NULL;
     ref->base_name = NULL;
     ref->actual_arg_count = 0;
     ref->actual_arg_type_names = NULL;
@@ -46,7 +45,6 @@ mir_ability_ref_capture(MIRAbilityRef *ref, ASTNode *ability)
 
     if (ref == NULL)
         return false;
-    ref->source_ast = ability;
     ref->base_name = NULL;
     ref->actual_arg_count = 0;
     ref->actual_arg_type_names = NULL;

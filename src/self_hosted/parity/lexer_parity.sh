@@ -30,7 +30,6 @@ PERGYRA_TOOL_SOURCE="$ROOT_DIR/src/self_hosted/lexer/main.pgy"
 PERGYRA_TOOL_BUILD_DIR="${PGY_SELFHOST_BUILD_DIR:-$ROOT_DIR/.tmp/self_hosted/lexer}"
 PERGYRA_TOOL="$PERGYRA_TOOL_BUILD_DIR/main.pgy"
 FIXTURE_DIR="$ROOT_DIR/src/self_hosted/lexer/fixture"
-SOURCE_OVERRIDE="$FIXTURE_DIR/source.txt"
 
 if [[ ! -f "$PERGYRA_TOOL_SOURCE" ]]; then
     echo "[self-host-parity:lexer] missing Pergyra tool: $PERGYRA_TOOL_SOURCE" >&2
@@ -40,10 +39,13 @@ fi
 mkdir -p "$PERGYRA_TOOL_BUILD_DIR"
 cp "$PERGYRA_TOOL_SOURCE" "$PERGYRA_TOOL"
 
+echo "[self-host-parity:lexer] compiling lexer..."
+(cd "$ROOT_DIR" && "$PGY" "$(pgy_path_for_compiler "$PGY" "$PERGYRA_TOOL")" \
+    -o "$(pgy_path_for_compiler "$PGY" "$PERGYRA_TOOL_BUILD_DIR/main.exe")" >/dev/null)
+
 # Sources to lex + their committed fixtures. Each entry is
 # "<source path relative to repo root>:<fixture filename>". The Pergyra
-# binary reads `fixture/source.txt` to decide which source to lex, so
-# the same binary handles multiple sources without `Args()`.
+# binary reads the source path from Args()[0].
 SOURCE_PAIRS=(
     "examples/hello.pgy:hello_tokens.txt"
     "examples/array_literal.pgy:array_literal_tokens.txt"
@@ -52,13 +54,6 @@ SOURCE_PAIRS=(
     "examples/heap.pgy:heap_tokens.txt"
     "examples/binary_search.pgy:binary_search_tokens.txt"
 )
-
-# Always restore source.txt on exit so committed state stays clean
-# (no fixture/source.txt should be tracked).
-cleanup_source_override() {
-    rm -f "$SOURCE_OVERRIDE"
-}
-trap cleanup_source_override EXIT
 
 ANY_DRIFT_GUARD_RAN="no"
 
@@ -76,11 +71,8 @@ for pair in "${SOURCE_PAIRS[@]}"; do
         exit 1
     fi
 
-    # Set the source override so the Pergyra binary lexes this file.
-    printf '%s' "$src" > "$SOURCE_OVERRIDE"
-
     set +e
-    PERGYRA_OUT="$(cd "$ROOT_DIR" && "$PGY" "$PERGYRA_TOOL" --run 2>/dev/null \
+    PERGYRA_OUT="$(cd "$ROOT_DIR" && "$PERGYRA_TOOL_BUILD_DIR/main.exe" "$src" 2>/dev/null \
         | tr -d '\r' \
         | sed '/^pgy: compiled /d')"
     P_RC=$?

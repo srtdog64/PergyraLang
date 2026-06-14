@@ -3,6 +3,20 @@
 #include <stdlib.h>
 #include <string.h>
 
+static inline void pgy_map_keys_sort_bool_array(PgyArray_Bool *out)
+{
+    size_t false_count = 0;
+
+    if (out == NULL || out->data == NULL || out->length <= 1)
+        return;
+    for (size_t i = 0; i < out->length; i++) {
+        if (!out->data[i])
+            false_count++;
+    }
+    for (size_t i = 0; i < out->length; i++)
+        out->data[i] = i >= false_count;
+}
+
 static inline bool pgy_map_string_capacity_fits(size_t capacity)
 {
     return capacity != 0
@@ -374,6 +388,7 @@ static inline PgyArray_String pgy_map_keys_##FuncSuffix(PgyHashMap_##TypeSuffix 
         } \
         pgy_array_push_String(&out, dup_key); \
     } \
+    pgy_array_sort_String(out.data, out.length); \
     return out; \
 } \
 \
@@ -398,6 +413,7 @@ static inline PgyArray_Int pgy_map_keys_i32_##FuncSuffix(PgyHashMap_##TypeSuffix
         } \
         pgy_array_push_Int(&out, (int32_t)parsed); \
     } \
+    pgy_array_sort_Int(out.data, out.length); \
     return out; \
 } \
 \
@@ -422,6 +438,7 @@ static inline PgyArray_Long pgy_map_keys_i64_##FuncSuffix(PgyHashMap_##TypeSuffi
         } \
         pgy_array_push_Long(&out, (int64_t)parsed); \
     } \
+    pgy_array_sort_Long(out.data, out.length); \
     return out; \
 } \
 \
@@ -448,6 +465,7 @@ static inline PgyArray_Bool pgy_map_keys_bool_##FuncSuffix(PgyHashMap_##TypeSuff
         } \
         pgy_array_push_Bool(&out, parsed); \
     } \
+    pgy_map_keys_sort_bool_array(&out); \
     return out; \
 }
 

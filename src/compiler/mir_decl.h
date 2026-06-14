@@ -50,8 +50,6 @@ typedef enum
 
 typedef struct
 {
-    /* Source compatibility/provenance only; semantic facts are copied below. */
-    ASTNode *source_ast;
     char    *base_name;
     size_t   actual_arg_count;
     char   **actual_arg_type_names;

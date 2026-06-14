@@ -278,6 +278,8 @@ emit_builtin_io(ASTNode *call, BuiltinKind bk, TranspilerCtx *ctx)
         return emit_builtin_write_file(call, ctx);
     case BUILTIN_INPUT:
         return emit_builtin_input(call, ctx);
+    case BUILTIN_ARGS:
+        return pergyra_strdup("pgy_args()");
     case BUILTIN_PRINT:
         return emit_builtin_print(call, ctx);
     case BUILTIN_READ_LINE:

@@ -1,8 +1,8 @@
 #!/usr/bin/env bash
 # Rung 1 parity for the minimal Pergyra-origin parser (2026-05-28).
 # Each source pair is committed under fixture/<source>.pgy +
-# fixture/<source>_ast.txt. The Pergyra binary reads `fixture/source.txt`
-# (one-line repo-relative path) to pick which source to parse.
+# fixture/<source>_ast.txt. The Pergyra binary reads Args()[0] to pick
+# which source to parse.
 # See src/self_hosted/parity/README.md.
 
 set -euo pipefail
@@ -31,7 +31,6 @@ PERGYRA_TOOL_SOURCE="$ROOT_DIR/src/self_hosted/parser/main.pgy"
 PERGYRA_TOOL_BUILD_DIR="${PGY_SELFHOST_BUILD_DIR:-$ROOT_DIR/.tmp/self_hosted/parser}"
 PERGYRA_TOOL="$PERGYRA_TOOL_BUILD_DIR/main.pgy"
 FIXTURE_DIR="$ROOT_DIR/src/self_hosted/parser/fixture"
-SOURCE_OVERRIDE="$FIXTURE_DIR/source.txt"
 EXPECTED_FILE="$ROOT_DIR/src/self_hosted/parser/expected/clean.txt"
 
 if [[ ! -f "$PERGYRA_TOOL_SOURCE" ]]; then
@@ -240,11 +239,6 @@ SOURCE_PAIRS=(
     "src/self_hosted/parser/fixture/slots_simple.pgy:slots_simple"
 )
 
-cleanup_source_override() {
-    rm -f "$SOURCE_OVERRIDE"
-}
-trap cleanup_source_override EXIT
-
 ANY_DRIFT_GUARD_RAN="no"
 
 for pair in "${SOURCE_PAIRS[@]}"; do
@@ -261,9 +255,8 @@ for pair in "${SOURCE_PAIRS[@]}"; do
         exit 1
     fi
 
-    printf '%s' "$src" > "$SOURCE_OVERRIDE"
-
-    PERGYRA_OUT="$(cd "$ROOT_DIR" && "$PERGYRA_TOOL_BUILD_DIR/main.exe" 2>/dev/null \
+    set +e
+    PERGYRA_OUT="$(cd "$ROOT_DIR" && "$PERGYRA_TOOL_BUILD_DIR/main.exe" "$src" 2>/dev/null \
         | tr -d '\r')"
     P_RC=$?
     set -e

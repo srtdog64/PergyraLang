@@ -37,12 +37,12 @@ NULL MIR. This is the single precondition that makes the fallbacks dead; if the
 driver is ever changed to degrade to an AST-only path, this fails first.
 
 tests/ast_read_surface_smoke.sh ratchets the source_ast occurrence counts
-(codegen 172, compiler 73) so the surface can only shrink, never grow.
+(codegen 123, compiler 73) so the surface can only shrink, never grow.
 
 tests/source_ast_inventory.sh ranks the remaining readers per file so the
-cutover is driven hotspot first. The codegen frontier is 172, of which 73 sit
-in four files: transpiler_decl_slot_view.c, transpiler_decl_role_roster_slot_view.c,
-llvm_inventory_slot_view.c, llvm_inventory_role_roster_slot_view.c.
+cutover is driven hotspot first. The codegen frontier is 123, with the
+inventory/slot-view hotspot now at 27 reads after the dead slot-source
+accessors were removed.
 
 ## Empirical confirmation probe
 
@@ -80,13 +80,15 @@ To apply the probe, in each of the four hotspot files:
 Instrumentation coverage analysis split the codegen source_ast reads into two
 classes that retire differently.
 
-The fallback class lives in the four slot and roster view files
+The fallback class lived in the four slot and roster view files
 (transpiler_decl_slot_view, llvm_inventory_slot_view,
 transpiler_decl_role_roster_slot_view, llvm_inventory_role_roster_slot_view).
-These are AST-fallback arms reached only after the MIR path and the
-requires_mir_metadata guard, so they are dead whenever MIR is present. The probe
-is wired into all eighteen of these sites, and the corpus run gives a complete
-zero-fire proof for this class. Retirement here is pure deletion.
+These were AST-fallback arms reached only after the MIR path and the
+requires_mir_metadata guard, so they were dead whenever MIR was present. The
+probe was wired into all eighteen of these sites, and the corpus run gave a
+complete zero-fire proof for this class. The unused slot-source accessors have
+now been deleted; the remaining reads are method/shared-field provenance and
+routine compatibility seams.
 
 The provenance class lives in the method and field view files
 (transpiler_decl_method_view, transpiler_decl_field_view,
@@ -96,7 +98,7 @@ MIR metadata keeps to the ASTNode it was lowered from. They are not fallbacks
 and do not fire conditionally; they are consumed wherever a caller still needs
 the origin AST. The probe does not apply. Retiring this class means migrating
 each consumer off the back-pointer, after which the source_ast field on the MIR
-metadata can be dropped. This is the broader, slower part of the codegen 172.
+metadata can be dropped. This is the broader, slower part of the codegen 127.
 
 One special case sits inside the fallback class. The role view accessors
 required_ability_count and required_ability call the source_ast helper with no
@@ -127,9 +129,9 @@ separate un-migrated case as noted above.
 
 ## Ability metadata migration (unblocks the role required_ability reads)
 
-The role required_ability reads cannot be deleted until MIRDeclField carries
-the ability data. Investigation pinned down exactly what the consumers need, so
-the migration is small and mirrors an existing pattern.
+The role required_ability reads could not be deleted until MIRDeclField carried
+the ability data. Investigation pinned down exactly what the consumers needed,
+so the migration uses a MIR-owned structured ability reference.
 
 Both consumers reduce the ability AST node to a single string. In
 transpiler_role_ability.c the node goes through render_ability_ref_vtable_tag,
@@ -143,8 +145,7 @@ which is the same shape as MIRDeclEnumVariant.param_type_names (char **). The
 migration steps:
 
 1. In mir_decl.h, add to the role-slot MIRDeclField a count and a MIR-owned
-   string array, for example size_t required_ability_count and
-   char **required_ability_type_names, alongside the existing field metadata.
+   `MIRAbilityRef` array alongside the existing field metadata.
 
 2. Where role-slot MIRDeclField values are populated during lowering, read
    ast_role_slot_required_ability_count and ast_role_slot_required_ability at
@@ -152,20 +153,20 @@ migration steps:
    strings into the MIR array. This is the one place the AST is still read, and
    it happens during lowering where the AST is legitimately present.
 
-3. Add accessors mir_decl_field_required_ability_count(field) and
-   mir_decl_field_required_ability_type_name(field, index).
+3. Add accessors `mir_decl_field_required_ability_count(field)` and
+   `mir_decl_field_required_ability_ref(field, index)`.
 
-4. Repoint the view accessors. required_ability_count returns the MIR count
-   MIR-first. Replace the node-returning required_ability with a type-name
-   returning path, and update the two consumers to take the string directly
-   rather than calling ast_type_name or render_type_name on a node.
+4. Repoint the view accessors. `required_ability_count` returns the MIR count
+   MIR-first. Replace the node-returning `required_ability` with a
+   `MIRAbilityRef` returning path, and update consumers to render tags from the
+   structured reference.
 
-5. Free the string array in mir_lifecycle alongside the other MIR-owned
-   captures.
+5. Free the structured reference array in mir_lifecycle alongside the other
+   MIR-owned captures.
 
 After this the required_ability reads are MIR-first like the rest, the
 source_ast helper calls in those accessors fall away, and the role-ability bind
-codegen keeps working because the type name it needs now travels in MIR. In the
+codegen keeps working because the ability contract now travels in MIR. In the
 domain-mobility frame this is the step that moves the role ability contract off
 its origin AST and into MIR, so the domain stops holding a back-pointer to the
 AST for ability data.
@@ -273,8 +274,9 @@ Each step ends with the full build and corpus verification.
 Step 1: instrument with the probe, run the corpus, confirm zero fires.
 
 Step 2: remove the AST fallback arms and the `*_slot_view_source_ast` helpers
-from the four hotspot files, then the remaining codegen readers. The
-requires_mir_metadata branches collapse to the MIR path plus a NULL return.
+from the four hotspot files, then the remaining codegen readers. The unused
+slot-source helpers are now gone; the next slice is the remaining
+method/shared-field provenance readers.
 
 Step 3: remove the source_ast field from MIRDeclField and MIRDeclHeader once no
 codegen reader remains. The compiler plumbing (set on capture, freed in

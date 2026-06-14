@@ -25,11 +25,15 @@ These are compiler/runtime builtins, not `use` modules:
   `Substring`, `Trim`, `Split`, `Join`, `Upper`, `Lower`, `ToString`.
 - Numeric helpers: `Abs`, `Min`, `Max`.
 - Time helpers: `Now`, `Sleep`.
-- Process/tooling helper: `Exit`.
+- Process/tooling helpers: `Args`, `Exit`. `Args() -> Array<String>` returns
+  the user arguments passed to the generated binary, excluding the executable
+  name, as an owned snapshot.
 - Collections frozen for beta: `Array<T>`, `Slice<T>`, `List<T>`, `Set<T>`,
   `Queue<T>`, `HashMap<String, T>`, `HashMap<Int, T>`, `HashMap<Long, T>`,
   `HashMap<Bool, T>`. `SliceCopy(Slice<T>) -> Array<T>` is the stable
-  borrowed-view to owned-snapshot escape hatch.
+  borrowed-view to owned-snapshot escape hatch. `MapKeys` returns a
+  deterministic owned snapshot: strings lexicographic, integers and longs
+  ascending, and booleans `false` before `true`.
 - Result/Option baseline: `Ok`, `Err`, `IsOk`, `IsErr`, `Unwrap`, `UnwrapOr`,
   `Some`, `None`, `IsSome`, `IsNone`, `UnwrapOption`.
 

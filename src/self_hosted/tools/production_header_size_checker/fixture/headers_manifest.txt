@@ -401,6 +401,7 @@ src/runtime/pgy_runtime_lib_intent_exports.h
 src/runtime/pgy_runtime_lib_intent_recent_exports.h
 src/runtime/pgy_runtime_lib_intent_slot_core_exports.h
 src/runtime/pgy_runtime_lib_io_string_exports.h
+src/runtime/pgy_runtime_process_args_exports.h
 src/runtime/pgy_runtime_lib_list_raw_exports.h
 src/runtime/pgy_runtime_lib_quantum_exports.h
 src/runtime/pgy_runtime_lib_qubit_state_exports.h
@@ -427,6 +428,7 @@ src/runtime/pgy_runtime_panic_contract.h
 src/runtime/pgy_runtime_plain_slot_inline.h
 src/runtime/pgy_runtime_platform_io_core.h
 src/runtime/pgy_runtime_pool_fsm_timer_inline.h
+src/runtime/pgy_runtime_process_args_inline.h
 src/runtime/pgy_runtime_qubit_inline.h
 src/runtime/pgy_runtime_queue_inline.h
 src/runtime/pgy_runtime_result_option_inline.h

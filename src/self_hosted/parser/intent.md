@@ -16,8 +16,8 @@ the same `pgy --ast` text-tree. Coverage grows tick by tick.
 ## Input Contract
 
 - **source_owner**: `examples/hello.pgy` by default. The parity harness
-  may write a single-line override into `fixture/source.txt` to point
-  the binary at a different source; see `src/self_hosted/parity/parser_parity.sh`.
+  passes the source path through `Args()[0]`; `fixture/source.txt` remains
+  only as a local fallback for older probes.
 - Current grammar surface (extends across ticks):
   - `(func IDENT((IDENT: IDENT,)*) -> IDENT { stmt* })+` — multi-function
   - `stmt = let IDENT: IDENT = expr ;`

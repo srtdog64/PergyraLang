@@ -126,25 +126,6 @@ llvm_hosted_zone_layer_slot_view_metadata(
         view->decl_header, MIR_DECL_FIELD_ZONE_LAYER_SLOT, index);
 }
 
-ASTNode *
-llvm_hosted_zone_layer_slot_view_source_ast(
-    const LLVMHostedZoneLayerSlotView *view,
-    size_t index)
-{
-    const MIRDeclField *field =
-        llvm_hosted_zone_layer_slot_view_metadata(view, index);
-
-    if (view == NULL || index >= view->count)
-        return NULL;
-    if (field != NULL)
-        return mir_decl_field_source_ast(field);
-    if (view->requires_mir_metadata)
-        return NULL;
-    if (view->ast_compat_slots != NULL)
-        return view->ast_compat_slots[index];
-    return NULL;
-}
-
 const char *
 llvm_hosted_zone_layer_slot_view_name(
     const LLVMHostedZoneLayerSlotView *view,
@@ -307,25 +288,6 @@ llvm_hosted_domain_slot_view_metadata(
         view->decl_header, MIR_DECL_FIELD_DOMAIN_SLOT, index);
 }
 
-ASTNode *
-llvm_hosted_domain_slot_view_source_ast(
-    const LLVMHostedDomainSlotView *view,
-    size_t index)
-{
-    const MIRDeclField *field =
-        llvm_hosted_domain_slot_view_metadata(view, index);
-
-    if (view == NULL || index >= view->count)
-        return NULL;
-    if (field != NULL)
-        return mir_decl_field_source_ast(field);
-    if (view->requires_mir_metadata)
-        return NULL;
-    if (view->ast_compat_slots != NULL)
-        return view->ast_compat_slots[index];
-    return NULL;
-}
-
 const char *
 llvm_hosted_domain_slot_view_name(const LLVMHostedDomainSlotView *view,
                                   size_t index)
@@ -469,25 +431,6 @@ llvm_hosted_world_zone_slot_view_metadata(
     }
     return llvm_decl_header_field_by_kind(
         view->decl_header, MIR_DECL_FIELD_WORLD_ZONE_SLOT, index);
-}
-
-ASTNode *
-llvm_hosted_world_zone_slot_view_source_ast(
-    const LLVMHostedWorldZoneSlotView *view,
-    size_t index)
-{
-    const MIRDeclField *field =
-        llvm_hosted_world_zone_slot_view_metadata(view, index);
-
-    if (view == NULL || index >= view->count)
-        return NULL;
-    if (field != NULL)
-        return mir_decl_field_source_ast(field);
-    if (view->requires_mir_metadata)
-        return NULL;
-    if (view->ast_compat_slots != NULL)
-        return view->ast_compat_slots[index];
-    return NULL;
 }
 
 const char *

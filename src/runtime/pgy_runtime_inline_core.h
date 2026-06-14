@@ -15,6 +15,7 @@
 #include "pgy_runtime_array_sort_inline.h"
 #include "pgy_runtime_scalar_std_inline.h"
 #include "pgy_runtime_builtin_storage_inline.h"
+#include "pgy_runtime_process_args_inline.h"
 #include "pgy_runtime_map_int_key_inline.h"
 #include "pgy_runtime_map_string_inline.h"
 #include "pgy_runtime_list_set_inline.h"

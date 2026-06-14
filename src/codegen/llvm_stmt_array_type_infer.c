@@ -258,6 +258,7 @@ static const char *
 llvm_stmt_array_builtin_elem_type_name(const char *callee)
 {
     static const struct { const char *name; const char *elem; } kTable[] = {
+        { "Args", "String" },
         { "Split", "String" },
     };
     if (callee == NULL)

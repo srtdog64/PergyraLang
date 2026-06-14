@@ -56,6 +56,13 @@ type_check_builtin_call(ASTNode *call, BuiltinKind kind, SemanticContext *ctx)
     case BUILTIN_RELEASE_DEVICE_SLOT:
     case BUILTIN_SUBMIT_DEVICE_READ:
         return type_check_stdlib_call(call, ast_identifier_name(ast_call_callee(call)), ctx);
+    case BUILTIN_ARGS: {
+        Type *args[1] = { TYPE_STRING };
+        if (!check_call_arity(call, 0, "Args", ctx))
+            return TYPE_UNKNOWN;
+        semantic_record_effect(ctx, EFFECT_NONDETERMINISTIC);
+        return type_create_constructed(TYPE_ARRAY, args, 1);
+    }
     case BUILTIN_LOG:
         for (size_t i = 0; i < ast_call_arg_count(call); i++)
             type_check_expression(ast_call_argument(call, i), ctx);

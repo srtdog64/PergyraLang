@@ -30,6 +30,7 @@ for required in \
     "Stable Builtin Stdlib Surface" \
     "\`FileOpen\`, \`FileRead\`, \`FileWrite\`, \`FileClose\`, \`ReadFile\`" \
     "\`WriteFile\`, \`FileExists\`" \
+    "\`Args\`" \
     "\`SliceCopy(Slice<T>) -> Array<T>\`" \
     "Stable \`use\` Modules" \
     "Known But Experimental Modules" \
@@ -96,6 +97,32 @@ func Main() -> Void {
     if c == Red {
         Log(9);
     }
+
+    let orderedLabels: HashMap<String, Int> = MapNew();
+    MapSet(orderedLabels, "zeta", 1);
+    MapSet(orderedLabels, "alpha", 2);
+    MapSet(orderedLabels, "mid", 3);
+    let orderedLabelKeys: Array<String> = MapKeys(orderedLabels);
+    if orderedLabelKeys[0] == "alpha" && orderedLabelKeys[1] == "mid" && orderedLabelKeys[2] == "zeta" {
+        Log(113);
+    }
+
+    let orderedNumbers: HashMap<Int, Int> = MapNew();
+    MapSet(orderedNumbers, 9, 90);
+    MapSet(orderedNumbers, 1, 10);
+    MapSet(orderedNumbers, 4, 40);
+    let orderedNumberKeys: Array<Int> = MapKeys(orderedNumbers);
+    if orderedNumberKeys[0] == 1 && orderedNumberKeys[1] == 4 && orderedNumberKeys[2] == 9 {
+        Log(127);
+    }
+
+    let orderedBools: HashMap<Bool, Int> = MapNew();
+    MapSet(orderedBools, true, 1);
+    MapSet(orderedBools, false, 0);
+    let orderedBoolKeys: Array<Bool> = MapKeys(orderedBools);
+    if orderedBoolKeys[0] == false && orderedBoolKeys[1] == true {
+        Log(131);
+    }
 }
 EOF
 
@@ -147,20 +174,49 @@ func Main() -> Void {
 }
 EOF
 
+cat > "$WORK_DIR/stable_args.pgy" <<'EOF'
+func Main() -> Void {
+    let args: Array<String> = Args();
+    Log(ArrayLength(args));
+    if ArrayLength(args) == 3 {
+        Log(args[0]);
+        Log(args[1]);
+        Log(args[2]);
+    }
+}
+EOF
+
+resolve_smoke_bin() {
+    local path="$1"
+    if [[ -x "$path" ]]; then
+        printf '%s\n' "$path"
+    elif [[ "$path" != *.exe && -x "${path}.exe" ]]; then
+        printf '%s\n' "${path}.exe"
+    else
+        printf '%s\n' "$path"
+    fi
+}
+
 run_backend() {
     local backend="$1"
     local output
     local stable_arg
     local modules_arg
     local io_root_arg
+    local args_arg
+    local args_bin
+    local args_bin_arg
 
     stable_arg="$(pgy_path_for_compiler "$PGY" "$WORK_DIR/stable_stdlib.pgy")"
     modules_arg="$(pgy_path_for_compiler "$PGY" "$WORK_DIR/stable_use_modules.pgy")"
     io_root_arg="$(pgy_path_for_compiler "$PGY" "$WORK_DIR/stable_io_root.pgy")"
+    args_arg="$(pgy_path_for_compiler "$PGY" "$WORK_DIR/stable_args.pgy")"
+    args_bin="$WORK_DIR/stable_args_${backend}"
+    args_bin_arg="$(pgy_path_for_compiler "$PGY" "$args_bin")"
 
     output="$(cd "$WORK_DIR" && "$PGY" "$stable_arg" --backend="$backend" --run 2>&1)"
 
-    for expected in "42" "2" "3" "blue" "red" "8" "true" "false" "BYE there" "handle" "9"; do
+    for expected in "42" "2" "3" "blue" "red" "8" "true" "false" "BYE there" "handle" "9" "113" "127" "131"; do
         if ! grep -Fq "$expected" <<<"$output"; then
             echo "[stdlib-smoke] backend=$backend missing '$expected'" >&2
             echo "--- output ---" >&2
@@ -186,6 +242,25 @@ run_backend() {
     for expected in "true" "rooted"; do
         if ! grep -Fq "$expected" <<<"$output"; then
             echo "[stdlib-smoke] IO root backend=$backend missing '$expected'" >&2
+            echo "--- output ---" >&2
+            echo "$output" >&2
+            echo "--------------" >&2
+            exit 1
+        fi
+    done
+
+    if ! output="$(cd "$WORK_DIR" && "$PGY" "$args_arg" --backend="$backend" -o "$args_bin_arg" 2>&1)"; then
+        echo "[stdlib-smoke] Args compile backend=$backend failed" >&2
+        echo "--- output ---" >&2
+        echo "$output" >&2
+        echo "--------------" >&2
+        exit 1
+    fi
+    args_bin="$(resolve_smoke_bin "$args_bin")"
+    output="$(cd "$WORK_DIR" && "$args_bin" alpha beta gamma 2>&1)"
+    for expected in "3" "alpha" "beta" "gamma"; do
+        if ! grep -Fq "$expected" <<<"$output"; then
+            echo "[stdlib-smoke] Args backend=$backend missing '$expected'" >&2
             echo "--- output ---" >&2
             echo "$output" >&2
             echo "--------------" >&2

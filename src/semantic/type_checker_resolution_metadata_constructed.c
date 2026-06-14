@@ -207,9 +207,9 @@ try_record_generic_class_constructed_type(SemanticContext *ctx,
                 PGY_CAUSE_BUILTIN_SIGNATURE_MISMATCH,
                 PGY_FIX_MATCH_BUILTIN_SIGNATURE,
                 effective_args[i] != NULL ? effective_args[i] : type_node,
-                "Generic type argument %zu of '%s' resolved to Void; "
+                "Generic type argument %llu of '%s' resolved to Void; "
                 "Void is not a valid generic type argument",
-                i + 1, name);
+                (unsigned long long)(i + 1), name);
             free(resolved_args);
             free(effective_args);
             return;

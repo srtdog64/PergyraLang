@@ -114,6 +114,7 @@ llvm_stdlib_string_file_runtime_call_lookup(const char *callee_name)
 {
     static const LLVMStdlibRuntimeCallSpec kLLVMStdlibStringFileRuntimeSpecs[] = {
         { "Acos", "stdlib scalar", "Acos", 1 },
+        { "Args", "stdlib process", "pgy_args", 0 },
         { "Asin", "stdlib scalar", "Asin", 1 },
         { "Atan", "stdlib scalar", "Atan", 1 },
         { "Atan2", "stdlib scalar", "Atan2", 2 },

@@ -183,9 +183,11 @@ Steps 1-2 are realistic this quarter. 3+ are post-beta.
 These Pergyra surface gaps will block compiler-internal substitution
 beyond the lexer:
 
-- **`Args() -> Array<String>`** -- so a Pergyra binary can be invoked
-  with arbitrary source paths. Currently every Pergyra tool hardcodes
-  its input path.
+- **Process arguments** -- `Args() -> Array<String>` has landed for generated
+  binaries, returning the user arguments as an owned snapshot. The lexer and
+  parser parity runners now pass source paths through argv, so the first
+  compiler-internal substitutes consume the same tool surface they need for
+  standalone dogfood runs.
 - **Struct-over-arbitrary-types** -- needed to model AST nodes. Pergyra
   has `subject`, `object`, `class` keywords, but the surface for nested
   trees with mixed-type children is not exercised yet by self-host code.
@@ -198,8 +200,8 @@ beyond the lexer:
   re-run the C compiler. Currently the parity scripts do this from
   bash; a Pergyra runner would need `Subprocess(...)`.
 
-The first three lifts are the candidate scope before step 3 of the
-substitution roadmap can start.
+The remaining lifts are the candidate scope before step 3 of the substitution
+roadmap can start.
 
 ## How to Update This Document
 

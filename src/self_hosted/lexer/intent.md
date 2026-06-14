@@ -20,9 +20,9 @@ output compared, rollback to C trivial".
 ## Input Contract
 
 - **source_owner**: `examples/hello.pgy` and `examples/array_literal.pgy`
-  (text, UTF-8). The parity script writes `fixture/source.txt` before
-  each run so the same Pergyra binary can lex both sources without
-  `Args()`.
+  (text, UTF-8). The parity script passes the source path through
+  `Args()[0]`; `fixture/source.txt` is retained only as a local fallback for
+  older probes.
 - The lexer subset handles only the token families needed by these
   fixtures: common keywords, identifiers, decimal integer literals,
   double-quoted string literals, punctuation, simple operators, `//`

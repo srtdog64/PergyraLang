@@ -302,12 +302,6 @@ mir_decl_field_required_ability_ref(const MIRDeclField *field, size_t index)
     return &field->required_ability_refs[index];
 }
 
-ASTNode *
-mir_ability_ref_source_ast(const MIRAbilityRef *ref)
-{
-    return ref != NULL ? ref->source_ast : NULL;
-}
-
 const char *
 mir_ability_ref_base_name(const MIRAbilityRef *ref)
 {

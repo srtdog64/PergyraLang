@@ -205,6 +205,21 @@ void pgy_array_sort_Double(double *arr, size_t n)
 void pgy_array_sort_String(char **arr, size_t n)
 { if (n > 1) qsort(arr, n, sizeof(char *), pgy_array_sort_export_cmp_String); }
 
+static void
+pgy_map_keys_sort_bool_export(PgyArray_Bool *out)
+{
+    size_t false_count = 0;
+
+    if (out == NULL || out->data == NULL || out->length <= 1)
+        return;
+    for (size_t i = 0; i < out->length; i++) {
+        if (!out->data[i])
+            false_count++;
+    }
+    for (size_t i = 0; i < out->length; i++)
+        out->data[i] = i >= false_count;
+}
+
 void
 pgy_map_keys_raw_export(void *map_ptr, void *out_array_ptr)
 {
@@ -236,6 +251,7 @@ pgy_map_keys_raw_export(void *map_ptr, void *out_array_ptr)
         }
         pgy_array_push_String(out, dup_key);
     }
+    pgy_array_sort_String(out->data, out->length);
 }
 
 void
@@ -270,6 +286,7 @@ pgy_map_keys_raw_i32_export(void *map_ptr, void *out_array_ptr)
         }
         pgy_array_push_Int(out, (int32_t)parsed);
     }
+    pgy_array_sort_Int(out->data, out->length);
 }
 
 void
@@ -304,6 +321,7 @@ pgy_map_keys_raw_i64_export(void *map_ptr, void *out_array_ptr)
         }
         pgy_array_push_Long(out, (int64_t)parsed);
     }
+    pgy_array_sort_Long(out->data, out->length);
 }
 
 void
@@ -340,4 +358,5 @@ pgy_map_keys_raw_bool_export(void *map_ptr, void *out_array_ptr)
         }
         pgy_array_push_Bool(out, parsed);
     }
+    pgy_map_keys_sort_bool_export(out);
 }

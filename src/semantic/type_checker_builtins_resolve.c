@@ -14,6 +14,7 @@ static const BuiltinEntry k_builtin_entries[] = {
     {"AllocatorPool", BUILTIN_ALLOCATOR_POOL},
     {"AllocatorSystem", BUILTIN_ALLOCATOR_SYSTEM},
     {"AllocatorTracing", BUILTIN_ALLOCATOR_TRACING},
+    {"Args", BUILTIN_ARGS},
     {"Box", BUILTIN_BOX},
     {"BoxArray", BUILTIN_BOX_ARRAY},
     {"BoxDrop", BUILTIN_BOX_DROP},

@@ -127,25 +127,6 @@ transpiler_hosted_world_roster_slot_view_metadata(
         view->decl_header, MIR_DECL_FIELD_WORLD_ROSTER_SLOT, index);
 }
 
-ASTNode *
-transpiler_hosted_world_roster_slot_view_source_ast(
-    const TranspilerHostedWorldRosterSlotView *view,
-    size_t index)
-{
-    const MIRDeclField *field =
-        transpiler_hosted_world_roster_slot_view_metadata(view, index);
-
-    if (view == NULL || index >= view->count)
-        return NULL;
-    if (field != NULL)
-        return mir_decl_field_source_ast(field);
-    if (view->requires_mir_metadata)
-        return NULL;
-    if (view->ast_compat_slots != NULL)
-        return view->ast_compat_slots[index];
-    return NULL;
-}
-
 const char *
 transpiler_hosted_world_roster_slot_view_name(
     const TranspilerHostedWorldRosterSlotView *view,
@@ -243,27 +224,6 @@ transpiler_hosted_roster_slot_view_metadata(
     return transpiler_decl_header_roster_slot(view->decl_header, index);
 }
 
-ASTNode *
-transpiler_hosted_roster_slot_view_source_ast(
-    const TranspilerHostedRosterSlotView *view,
-    size_t index)
-{
-    const MIRDeclField *field =
-        transpiler_hosted_roster_slot_view_metadata(view, index);
-
-    if (view == NULL || index >= view->count)
-        return NULL;
-    if (field != NULL)
-        return mir_decl_field_source_ast(field);
-    if (view->requires_mir_metadata)
-        return NULL;
-    if (view->ast_compat_decl != NULL
-        && view->ast_compat_decl->type == AST_ROSTER_DECL) {
-        return ast_roster_party(view->ast_compat_decl, index);
-    }
-    return NULL;
-}
-
 const char *
 transpiler_hosted_roster_slot_view_name(
     const TranspilerHostedRosterSlotView *view,
@@ -347,27 +307,6 @@ transpiler_hosted_role_slot_view_metadata(
         return NULL;
     }
     return transpiler_decl_header_role_slot(view->decl_header, index);
-}
-
-ASTNode *
-transpiler_hosted_role_slot_view_source_ast(
-    const TranspilerHostedRoleSlotView *view,
-    size_t index)
-{
-    const MIRDeclField *field =
-        transpiler_hosted_role_slot_view_metadata(view, index);
-
-    if (view == NULL || index >= view->count)
-        return NULL;
-    if (field != NULL)
-        return mir_decl_field_source_ast(field);
-    if (view->requires_mir_metadata)
-        return NULL;
-    if (view->ast_compat_decl != NULL
-        && view->ast_compat_decl->type == AST_PARTY_DECL) {
-        return ast_party_role(view->ast_compat_decl, index);
-    }
-    return NULL;
 }
 
 const char *
