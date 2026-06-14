@@ -539,6 +539,9 @@ mir_record_decl_header(MIRProgram *mir, ASTNode *decl)
     case AST_ABILITY_DECL:
         header.name = ast_ability_name(decl);
         break;
+    case AST_EVENT_DECL:
+        header.name = ast_event_name(decl);
+        break;
     case AST_INTENT_DECL:
         header.name = ast_intent_decl_name(decl);
         break;

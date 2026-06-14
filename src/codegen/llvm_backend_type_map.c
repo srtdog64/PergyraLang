@@ -96,6 +96,22 @@ llvm_resolve_inner_type(LLVMGenCtx *ctx, const char *type_name)
 }
 
 static LLVMTypeRef
+llvm_resolve_alias_type(LLVMGenCtx *ctx, const char *type_name)
+{
+    ASTNode *alias_decl;
+
+    if (ctx == NULL || type_name == NULL)
+        return NULL;
+
+    alias_decl = llvm_find_decl_in_active_inventory(ctx, AST_TYPE_ALIAS,
+        type_name);
+    if (alias_decl == NULL || ast_type_alias_target_type(alias_decl) == NULL)
+        return NULL;
+
+    return ast_type_to_llvm(ctx, ast_type_alias_target_type(alias_decl));
+}
+
+static LLVMTypeRef
 llvm_tuple_type_from_rendered_name(LLVMGenCtx *ctx, const char *type_name)
 {
     LLVMTypeRef fields[32];

@@ -9,6 +9,7 @@
 #include "llvm_internal.h"
 #include "../compiler/mir_decl_headers.h"
 #include "../parser/ast_api.h"
+#include "source_ast_fallback_probe.h"
 
 static size_t
 llvm_decl_header_field_count_by_kind(const MIRDeclHeader *header,
@@ -266,6 +267,7 @@ llvm_hosted_roster_slot_view_name(
         return mir_decl_field_name(field);
     if (view->requires_mir_metadata)
         return NULL;
+    PGY_SOURCE_AST_FALLBACK_FIRE(__func__);
     slot = llvm_hosted_roster_slot_view_source_ast(view, index);
     return slot != NULL ? ast_roster_slot_name(slot) : NULL;
 }
@@ -285,6 +287,7 @@ llvm_hosted_roster_slot_view_type_name(
         return mir_decl_field_type_name(field);
     if (view->requires_mir_metadata)
         return NULL;
+    PGY_SOURCE_AST_FALLBACK_FIRE(__func__);
     slot = llvm_hosted_roster_slot_view_source_ast(view, index);
     return slot != NULL ? ast_roster_slot_party_type(slot) : NULL;
 }
@@ -382,6 +385,7 @@ llvm_hosted_role_slot_view_name(
         return mir_decl_field_name(field);
     if (view->requires_mir_metadata)
         return NULL;
+    PGY_SOURCE_AST_FALLBACK_FIRE(__func__);
     slot = llvm_hosted_role_slot_view_source_ast(view, index);
     return slot != NULL ? ast_role_slot_name(slot) : NULL;
 }
@@ -401,6 +405,7 @@ llvm_hosted_role_slot_view_is_dynamic(
         return mir_decl_field_is_dynamic(field);
     if (view->requires_mir_metadata)
         return false;
+    PGY_SOURCE_AST_FALLBACK_FIRE(__func__);
     slot = llvm_hosted_role_slot_view_source_ast(view, index);
     return slot != NULL && ast_role_slot_is_dynamic(slot);
 }

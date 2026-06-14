@@ -132,6 +132,10 @@ mir_decl_header_ast_shape(const MIRDeclHeader *header,
         if (name_out != NULL)
             *name_out = ast_ability_name(ast);
         return true;
+    case AST_EVENT_DECL:
+        if (name_out != NULL)
+            *name_out = ast_event_name(ast);
+        return true;
     case AST_INTENT_DECL:
         if (name_out != NULL)
             *name_out = ast_intent_decl_name(ast);

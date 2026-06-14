@@ -125,6 +125,33 @@ test_mir_lowering_part_d(void)
         hir_destroy(hir);
     }
 
+    TEST("MIR declaration headers include event declarations");
+    {
+        const char *src =
+            "event OnScore(points: Int);\n"
+            "func Main() -> Void { }\n";
+        HIRProgram *hir = NULL;
+        RIRProgram *rir = NULL;
+        MIRProgram *mir = NULL;
+        const MIRDeclHeader *event = NULL;
+        bool ok = lower_mir_from_source(src, &hir, &rir, &mir);
+        if (ok && mir != NULL) {
+            event = mir_find_decl_header_of_type(
+                mir, AST_EVENT_DECL, "OnScore");
+        }
+        EXPECT(ok
+               && event != NULL
+               && mir_decl_header_source_ast(event) != NULL
+               && mir_decl_header_ast_type_or(event, AST_PROGRAM)
+                    == AST_EVENT_DECL
+               && mir_decl_header_name(event) != NULL
+               && strcmp(mir_decl_header_name(event), "OnScore") == 0
+               && mir_validate(mir, NULL));
+        mir_destroy(mir);
+        rir_destroy(rir);
+        hir_destroy(hir);
+    }
+
     TEST("MIR validator rejects declaration field owner metadata drift");
     {
         const char *src =

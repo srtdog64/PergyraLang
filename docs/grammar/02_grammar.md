@@ -715,11 +715,11 @@ Grammar-level classification for common patterns:
 | Parameters | typed function/async/lambda parameters, generic default type parameters | value default arguments in parameter lists |
 | Lambdas | `=>` expression/block bodies without outer local/resource capture | full closure environments and captured resource state |
 | Strings | normal strings, raw multiline strings, simple interpolation | nested interpolation protocol and format specifiers |
-| Collections | array literals, indexed access, `xs[a..b]`, `.Slice(start, len)`, `SliceCopy(view)` | list/set/map literals, open-ended slicing `xs[..]`, spread/rest `...` |
+| Collections | array literals, map literals, indexed access, `xs[a..b]`, `xs[a..]`, `xs[..]`, `.Slice(start, len)`, `SliceCopy(view)` | list/set literal lowering, spread/rest `...` |
 | Destructuring | positional `let (a, b) = value;` | named field destructuring |
 | Matching | match, guards, or-patterns | broad structural/list patterns |
 | Conversion | explicit helper calls | broad expression `as`/`is` conversion/type-test syntax |
-| Construction | constructors/factory calls and declaration initializers | C#/TS-style object initializers |
+| Construction | constructors/factory calls, declaration initializers, parser-level `Type { field: value }` initializer sugar | fully frozen object-initializer dispatch/partial-construction semantics |
 | Optionality | `Option<T>`, `Result<T,E>`, postfix `?` result propagation, `Option<T> ?? T` | `?.` |
 | Metadata | structured doc comments | `@` attributes/decorators |
 | Unsafe | `unsafe { ... }` boundary marker | raw pointer escape without a scoped unsafe capability contract such as `unsafe(raw) { ... }` |

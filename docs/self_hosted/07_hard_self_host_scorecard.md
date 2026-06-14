@@ -1,0 +1,97 @@
+# Hard Self-Host Readiness Scorecard
+
+This scorecard measures the ten non-negotiable capabilities from the gap
+analysis (05) against the current tree. Each capability is gated by a smoke
+test; tests/self_host_readiness_scorecard.sh verifies the gates are present and
+prints the tier without a build. This document records the reasoning behind
+each tier and the work that remains.
+
+## Verdict
+
+Hard self-hosting cannot start today. The infrastructure is mature: every one
+of the ten capabilities has a gate, and the tree carries 72 smoke gates total.
+The blocking distance is small and well bounded. Seven capabilities are ready,
+two have a working subset that needs substrate breadth, and one is the open
+item on the critical path.
+
+## Tiers
+
+READY means the capability is gated and its Phase 1 mechanism is complete.
+SUBSET means it works over a limited surface and substrate maturity remains.
+ACTIVE means it is on the critical path and still in progress.
+
+| # | Capability | Tier | Gate | Remaining gap |
+|---|-----------|------|------|---------------|
+| 1 | Module/package resolver | READY | module_smoke, package_module_resolver_smoke, type_resolution_resolver_inventory_smoke | deterministic imports and cycle diagnostics gated; a resolver tool is already self-hosted |
+| 2 | Collections + iteration | SUBSET | stdlib_surface_smoke | List/Set/HashMap exist over a key-type subset (String, Int, Long, Bool); broaden key types and lock stable iteration order |
+| 3 | String/path/Unicode policy | READY | unicode_policy_smoke, source_utf8_smoke, memory_string_safety_smoke | stable comparison and normalization stance gated |
+| 4 | Arena/ownership ergonomics | SUBSET | verify_arena_closure, runtime_abi_lifetime_smoke, abi_ownership_shape_smoke | the allocation mechanism exists; the per-pass scratch/result/persistent lanes that remove manual boilerplate do not yet |
+| 5 | CFG/MIR body as SoT | ACTIVE | cfg_body_dataflow_smoke, ast_read_surface_smoke, mir_or_abort_invariant_smoke | non_cfg fallback locked at 0; source_ast readers (codegen 172, compiler 73) proven dead but not yet retired. This is task 74 |
+| 6 | AIR as verifier | READY | air_json_schema_smoke, air_drift_smoke, air_backend_nonimpact_smoke | pgy.air.graph.v1 evidence export gated; drift count enforced at 0 |
+| 7 | DAG type resolution SoT | READY | type_resolution_dag_smoke, type_resolution_resolver_inventory_smoke | recursive resolver compat path retired; metadata_dead_ends enforced at 0 |
+| 8 | Scoped unsafe/raw escape | READY | raw_escape_contract_smoke | unsafe is scoped and capability-bound; raw pointers gated out of domain code |
+| 9 | Debug info Phase 1 | READY | debug_hygiene_smoke | C #line directives and LLVM DILocation implemented |
+| 10 | Runtime profile selection | READY | runtime_none_contract_smoke | runtime-none profile gated with diagnostics for unsupported features |
+
+## Critical path
+
+Capability 5 is the only ACTIVE item and the one true blocker. Its mechanism is
+done: non_cfg body facts come from MIR and are locked at zero fallback, and the
+remaining source_ast readers are proven dead by the MIR-or-abort invariant. The
+work left is the deletion in 06: instrument the fallbacks, confirm zero fires,
+remove the readers and the field, and lower the ratchet to zero. Closing it
+makes CFG/MIR the unconditional source of truth, which the gap analysis names
+as the precondition that lets compiler passes be rewritten in the language.
+
+## Next substrate work
+
+After capability 5, the two SUBSET items are the substrate maturity that turns
+soft self-hosting (compiler-adjacent tools, already real) into something that
+can carry a compiler pass. Capability 2 needs broader collection key types and
+guaranteed iteration order. Capability 4 needs arena lanes that remove manual
+resource boilerplate from every pass. These are the axis the gap analysis calls
+systems substrate, distinct from the domain-oriented surface the language is
+already strong on.
+
+## Sequencing
+
+The order that keeps each step verifiable is: close capability 5 (task 74);
+broaden capabilities 2 and 4; expand the self-hosted tool set from validators
+toward the MIR dump diff and resolver helpers named in 05; then, and only then,
+rewrite the first real compiler pass, starting with the lexer, against the C
+compiler as oracle. Starting with a parser, type checker, or backend rewrite is
+explicitly out of order.
+
+## Measured gaps (blocker burn-down)
+
+The three non-READY capabilities were measured against the tree to make each
+one actionable. Every remaining step needs the build loop, which is the reason
+none can be closed from a static pass alone.
+
+Capability 5 (CFG/MIR SoT, task 74). Mechanism complete: non_cfg body facts are
+MIR-owned and locked at zero fallback, and the source_ast readers are proven
+dead by the MIR-or-abort invariant. The remaining work is pure deletion, staged
+in 06: instrument the fallbacks with the probe, build with the probe flag and
+confirm zero fires across the corpus, remove the readers and the source_ast
+field, then lower the ratchet ceilings to zero. Build-gated.
+
+Capability 2 (collections). Measurement: integer keys are implemented
+(pgy_runtime_map_int_key_inline.h covers i32 and i64). The sharp gap is stable
+iteration order, for which there is no current guarantee in the runtime. A
+compiler depends on deterministic iteration for stable output, so this is the
+real blocker, ahead of broader key-type coverage. Closing it means defining and
+gating an iteration-order contract over the map and set types. Build-gated.
+
+Capability 4 (arena ergonomics). Measurement: the lanes already exist inside the
+compiler. Pass-local scratch arenas are present in HIR (hir.h), MIR (mir.h, used
+for SSA rename), semantic (semantic.c), and LLVM lowering (llvm_internal.h), and
+a persistent arena exists in the registry. The mechanism and the
+scratch-versus-persistent split are both in place. The remaining gap is narrow:
+exposing the same lane discipline ergonomically to code written in the language,
+so a rewritten pass does not hand-roll allocation boilerplate. This is the least
+distant of the three. Build-gated.
+
+The honest summary is that all three blockers are now mechanism-complete or
+narrowly scoped, and each remaining step is a build-loop change rather than a
+design question. The single critical-path item is capability 5; capabilities 2
+and 4 are substrate breadth that follows it.

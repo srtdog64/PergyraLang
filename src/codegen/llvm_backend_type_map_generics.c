@@ -6,6 +6,7 @@
 #ifdef PGY_LLVM_ENABLED
 
 #include "llvm_backend_type_map_internal.h"
+#include "host_decl_compat.h"
 #include "llvm_inventory_decl_lookup.h"
 #include "llvm_inventory_internal.h"
 #include "llvm_internal.h"
@@ -207,21 +208,6 @@ llvm_find_generic_default_in_inventory(LLVMGenCtx *ctx, const char *type_name)
         return resolved;
 
     return llvm_find_generic_default_in_compat_inventory(ctx, type_name);
-}
-
-static LLVMTypeRef
-llvm_resolve_alias_type(LLVMGenCtx *ctx, const char *type_name)
-{
-    ASTNode *alias_decl;
-
-    if (ctx == NULL || type_name == NULL)
-        return NULL;
-
-    alias_decl = llvm_find_decl_in_active_inventory(ctx, AST_TYPE_ALIAS, type_name);
-    if (alias_decl == NULL || ast_type_alias_target_type(alias_decl) == NULL)
-        return NULL;
-
-    return ast_type_to_llvm(ctx, ast_type_alias_target_type(alias_decl));
 }
 
 LLVMTypeRef

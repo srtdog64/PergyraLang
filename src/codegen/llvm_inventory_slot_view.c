@@ -8,6 +8,7 @@
 #include "llvm_internal.h"
 #include "../compiler/mir_decl_headers.h"
 #include "../parser/ast_api.h"
+#include "source_ast_fallback_probe.h"
 
 static size_t
 llvm_decl_header_field_count_by_kind(const MIRDeclHeader *header,
@@ -340,6 +341,7 @@ llvm_hosted_domain_slot_view_name(const LLVMHostedDomainSlotView *view,
         return mir_decl_field_name(field);
     if (view->requires_mir_metadata)
         return NULL;
+    PGY_SOURCE_AST_FALLBACK_FIRE(__func__);
     slot = llvm_hosted_domain_slot_view_source_ast(view, index);
     return slot != NULL ? ast_domain_slot_name(slot) : NULL;
 }
@@ -358,6 +360,7 @@ llvm_hosted_domain_slot_view_type(const LLVMHostedDomainSlotView *view,
         return mir_decl_field_type(field);
     if (view->requires_mir_metadata)
         return NULL;
+    PGY_SOURCE_AST_FALLBACK_FIRE(__func__);
     slot = llvm_hosted_domain_slot_view_source_ast(view, index);
     return slot != NULL ? ast_domain_slot_type(slot) : NULL;
 }
@@ -391,6 +394,7 @@ llvm_hosted_domain_slot_view_is_subject_like(
         return mir_decl_field_is_subject_like(field);
     if (view->requires_mir_metadata)
         return false;
+    PGY_SOURCE_AST_FALLBACK_FIRE(__func__);
     slot = llvm_hosted_domain_slot_view_source_ast(view, index);
     return slot != NULL && ast_domain_slot_is_subject(slot);
 }
@@ -410,6 +414,7 @@ llvm_hosted_domain_slot_view_is_tobject_like(
         return mir_decl_field_is_tobject_like(field);
     if (view->requires_mir_metadata)
         return false;
+    PGY_SOURCE_AST_FALLBACK_FIRE(__func__);
     slot = llvm_hosted_domain_slot_view_source_ast(view, index);
     return slot != NULL && ast_domain_slot_is_tobject(slot);
 }
@@ -429,6 +434,7 @@ llvm_hosted_domain_slot_view_is_binding_like(
         return mir_decl_field_is_binding_like(field);
     if (view->requires_mir_metadata)
         return false;
+    PGY_SOURCE_AST_FALLBACK_FIRE(__func__);
     slot = llvm_hosted_domain_slot_view_source_ast(view, index);
     return slot != NULL && ast_domain_slot_is_binding(slot);
 }

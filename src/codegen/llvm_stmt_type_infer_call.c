@@ -232,6 +232,7 @@ llvm_stmt_infer_member_call_type(LLVMGenCtx *ctx, ASTNode *expr)
         }
         if (class_name == NULL) {
             if (llvm_active_has_mir(ctx)) {
+                /* Fail closed instead of clearing the source-of-truth diagnostic. */
                 llvm_set_mir_inventory_missing(ctx,
                     "MIR-only LLVM path missing member-call receiver type metadata for '%s.%s'",
                     receiver_name != NULL ? receiver_name : "(anonymous)",
@@ -438,6 +439,7 @@ llvm_stmt_infer_call_expr_type(LLVMGenCtx *ctx, ASTNode *expr)
                 return cls->struct_type;
         }
     }
+    /* Domain helper result types are owned by typed inference. */
     if (ctx->expected_type_name != NULL) {
         LLVMTypeRef expected = pergyra_type_to_llvm(ctx, ctx->expected_type_name);
         if (expected != NULL)

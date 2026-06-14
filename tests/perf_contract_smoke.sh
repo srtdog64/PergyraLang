@@ -2646,7 +2646,7 @@ grep -Fq "C array literal could not lower element %zu" "$ROOT_DIR/src/codegen/tr
 ! grep -Fq "return pergyra_strdup(\"0\")" "$ROOT_DIR/src/codegen/transpiler_expr_composite_literal_emit.c"
 grep -Fq "C slot SSA auto-read requires concrete Slot<T> payload metadata" "$ROOT_DIR/src/codegen/transpiler_expr_dispatch_emit.c"
 grep -Fq "transpiler_dispatch_emit_part" "$ROOT_DIR/src/codegen/transpiler_expr_dispatch_emit.c"
-grep -Fq "C backend: %s could not lower %s expression" "$ROOT_DIR/src/codegen/transpiler_expr_dispatch_emit.c"
+grep -Fq "C backend: %s could not lower %s expression" "$ROOT_DIR/src/codegen/transpiler_expr_dispatch_operand.c"
 grep -Fq "C backend: expression lowering received a null AST node" "$ROOT_DIR/src/codegen/transpiler_expr_dispatch_emit.c"
 ! grep -Fq "return pergyra_strdup(\"0\")" "$ROOT_DIR/src/codegen/transpiler_expr_dispatch_emit.c"
 grep -Fq "\"array assignment\", \"index\"" "$ROOT_DIR/src/codegen/transpiler_expr_dispatch_emit.c"
@@ -3198,12 +3198,12 @@ grep -Fq "ctx->expected_type_name = ctx->current_return_type_name" "$ROOT_DIR/sr
 grep -Fq "ctx->expected_callable_type = ctx->current_return_callable_type" "$ROOT_DIR/src/codegen/llvm_stmt.c"
 grep -Fq "llvm_stmt_render_type_annotation_copy(ctx" "$ROOT_DIR/src/codegen/llvm_stmt_let_with.c"
 grep -Fq "suffix_buf" "$ROOT_DIR/src/codegen/llvm_stmt_type_infer.c"
-grep -Fq "llvm_stmt_contextual_option_type" "$ROOT_DIR/src/codegen/llvm_stmt_type_infer.c"
-grep -Fq "llvm_stmt_contextual_result_type" "$ROOT_DIR/src/codegen/llvm_stmt_type_infer.c"
-grep -Fq "llvm_stmt_infer_scalar_math_return_type" "$ROOT_DIR/src/codegen/llvm_stmt_type_infer.c"
+grep -Fq "llvm_stmt_contextual_option_type" "$ROOT_DIR/src/codegen/llvm_stmt_type_infer_call.c"
+grep -Fq "llvm_stmt_contextual_result_type" "$ROOT_DIR/src/codegen/llvm_stmt_type_infer_call.c"
+grep -Fq "llvm_stmt_infer_scalar_math_return_type" "$ROOT_DIR/src/codegen/llvm_stmt_type_infer_call.c"
 grep -Fq "op == TOKEN_COALESCE" "$ROOT_DIR/src/codegen/llvm_stmt_type_infer.c"
-grep -Fq "llvm_stmt_infer_nominal_name_from_init(ctx, receiver)" "$ROOT_DIR/src/codegen/llvm_stmt_type_infer.c"
-grep -Fq "llvm_lookup_enum_variant(ctx, callee)" "$ROOT_DIR/src/codegen/llvm_stmt_type_infer.c"
+grep -Fq "llvm_stmt_infer_nominal_name_from_init(ctx, receiver)" "$ROOT_DIR/src/codegen/llvm_stmt_type_infer_call.c"
+grep -Fq "llvm_lookup_enum_variant(ctx, callee)" "$ROOT_DIR/src/codegen/llvm_stmt_type_infer_call.c"
 grep -Fq '{ "IsOk", "Bool", PGY_BUILTIN_FLAG_NONE }' "$ROOT_DIR/src/codegen/transpiler_builtin_type_table.c"
 grep -Fq '{ "IsErr", "Bool", PGY_BUILTIN_FLAG_NONE }' "$ROOT_DIR/src/codegen/transpiler_builtin_type_table.c"
 grep -Fq '{ "IsSome", "Bool", PGY_BUILTIN_FLAG_NONE }' "$ROOT_DIR/src/codegen/transpiler_builtin_type_table.c"
@@ -3408,7 +3408,7 @@ grep -Fq "pergyra_ast_type_to_c_copy_in_ctx(ctx," "$ROOT_DIR/src/codegen/transpi
 grep -Fq "return_type, ret_type_storage" "$ROOT_DIR/src/codegen/transpiler_domain_role_methods_emit.c"
 grep -Fq "pergyra_ast_type_to_c_copy_in_ctx(ctx," "$ROOT_DIR/src/codegen/transpiler_generic_class_specialization_emit.c"
 grep -Fq "ast_func_return_type(method)" "$ROOT_DIR/src/codegen/transpiler_generic_class_specialization_emit.c"
-grep -Fq "pergyra_ast_type_to_c_copy_in_ctx(ctx, bt2[b]" "$ROOT_DIR/src/codegen/transpiler_match_bindings.c"
+grep -Fq "transpiler_require_type_name_c_type_copy(ctx, bt2[b]" "$ROOT_DIR/src/codegen/transpiler_match_bindings.c"
 grep -Fq "pergyra_ast_type_to_c_copy_in_ctx(ctx, type_ast, out" "$ROOT_DIR/src/codegen/transpiler_type_require.c"
 grep -Fq "transpiler_require_type_name_c_type_copy(ctx, participant_type" "$ROOT_DIR/src/codegen/transpiler_block_intent_rebind_helpers.c"
 grep -Fq "transpiler_require_type_name_c_type_copy(ctx, elem_names[j]" "$ROOT_DIR/src/codegen/transpiler_destructure_emit.c"
@@ -4786,13 +4786,13 @@ grep -Fq "C statement lowering could not lower expression statement" "$ROOT_DIR/
     "$ROOT_DIR/src/codegen/llvm_stmt_type_infer_await.c" | \
     grep -Fq "return ctx->type_i32"
 ! grep -Fq "poison i32 until Future<T>" "$ROOT_DIR/src/codegen/llvm_stmt_type_infer.c"
-grep -Fq "llvm_stmt_lookup_visible_function" "$ROOT_DIR/src/codegen/llvm_stmt_type_infer.c"
-grep -Fq "llvm_stmt_host_method_return_type" "$ROOT_DIR/src/codegen/llvm_stmt_type_infer.c"
+grep -Fq "llvm_stmt_lookup_visible_function" "$ROOT_DIR/src/codegen/llvm_stmt_type_infer_call.c"
+grep -Fq "llvm_stmt_host_method_return_type" "$ROOT_DIR/src/codegen/llvm_stmt_type_infer_call.c"
 ! grep -Fq "llvm_stmt_find_with_slot_inner_in_body" "$ROOT_DIR/src/codegen/llvm_stmt_type_infer.c"
-grep -Fq "llvm_find_host_method_metadata_in_context" "$ROOT_DIR/src/codegen/llvm_stmt_type_infer.c"
-grep -Fq "llvm_mir_decl_method_return_type" "$ROOT_DIR/src/codegen/llvm_stmt_type_infer.c"
-grep -Fq "llvm_current_field_class_name(ctx, receiver_name)" "$ROOT_DIR/src/codegen/llvm_stmt_type_infer.c"
-grep -Fq "llvm_current_zone_slot_type_name(ctx" "$ROOT_DIR/src/codegen/llvm_stmt_type_infer.c"
+grep -Fq "llvm_find_host_method_metadata_in_context" "$ROOT_DIR/src/codegen/llvm_stmt_type_infer_call.c"
+grep -Fq "llvm_mir_decl_method_return_type" "$ROOT_DIR/src/codegen/llvm_stmt_type_infer_call.c"
+grep -Fq "llvm_current_field_class_name(ctx, receiver_name)" "$ROOT_DIR/src/codegen/llvm_stmt_type_infer_call.c"
+grep -Fq "llvm_current_zone_slot_type_name(ctx" "$ROOT_DIR/src/codegen/llvm_stmt_type_infer_call.c"
 if grep -Fq "llvm_hosted_domain_slot_view_from_decl(ctx" "$ROOT_DIR/src/codegen/llvm_stmt_type_infer.c"; then
     echo "[perf-contract] LLVM stmt type inference reopened domain slot-view metadata directly" >&2
     exit 1
@@ -4833,9 +4833,9 @@ if grep -A12 -F "case AST_ARRAY_ACCESS" "$ROOT_DIR/src/codegen/llvm_stmt_type_in
     exit 1
 fi
 grep -Fq "llvm_stmt_lookup_declared_call_return_type" "$ROOT_DIR/src/codegen/llvm_stmt_type_infer_helpers.c"
-grep -A14 -F "llvm_stmt_lookup_visible_function(ctx, callee)" "$ROOT_DIR/src/codegen/llvm_stmt_type_infer.c" | \
+grep -A14 -F "llvm_stmt_lookup_visible_function(ctx, callee)" "$ROOT_DIR/src/codegen/llvm_stmt_type_infer_call.c" | \
     grep -Fq "llvm_stmt_lookup_declared_call_return_type(ctx, callee)"
-grep -A12 -F "Domain helper result types are owned by typed inference" "$ROOT_DIR/src/codegen/llvm_stmt_type_infer.c" | \
+grep -A12 -F "Domain helper result types are owned by typed inference" "$ROOT_DIR/src/codegen/llvm_stmt_type_infer_call.c" | \
     grep -Fq "ctx->expected_type_name"
 grep -A48 -F "case AST_BINARY" "$ROOT_DIR/src/codegen/llvm_stmt_type_infer.c" | \
     grep -Fq "unsupported binary operator has no inferred LLVM type"

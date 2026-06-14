@@ -427,9 +427,9 @@ grep -Fq "MIR-only LLVM path missing method body metadata row for role" \
 grep -Fq "MIR-only LLVM path missing member-call parameter type-name metadata" \
     "$ROOT_DIR/src/codegen/llvm_member_call_support.c"
 grep -Fq "MIR-only LLVM path missing member-call receiver type metadata" \
-    "$ROOT_DIR/src/codegen/llvm_stmt_type_infer.c"
+    "$ROOT_DIR/src/codegen/llvm_stmt_type_infer_call.c"
 grep -Fq "closed instead of clearing the source-of-truth diagnostic" \
-    "$ROOT_DIR/src/codegen/llvm_stmt_type_infer.c"
+    "$ROOT_DIR/src/codegen/llvm_stmt_type_infer_call.c"
 grep -Fq "MIR-only LLVM path missing hosted self-call parameter type-name metadata" \
     "$ROOT_DIR/src/codegen/llvm_expr_call_hosted.c"
 grep -Fq "MIR-only LLVM path missing hosted self-call method metadata" \
@@ -447,7 +447,7 @@ grep -Fq "MIR-only LLVM path missing match subject signature metadata" \
 grep -Fq "MIR-only LLVM path missing match subject return type-name metadata" \
     "$ROOT_DIR/src/codegen/llvm_mir_match_condition.c"
 grep -Fq "MIR-only LLVM path missing method type inference return type-name metadata" \
-    "$ROOT_DIR/src/codegen/llvm_stmt_type_infer.c"
+    "$ROOT_DIR/src/codegen/llvm_stmt_type_infer_call.c"
 grep -Fq "MIR-only LLVM path missing let method return type-name metadata" \
     "$ROOT_DIR/src/codegen/llvm_stmt_let_helpers.c"
 grep -Fq "MIR-only LLVM path missing declared return inference routine" \
@@ -573,9 +573,9 @@ grep -Fq 'run_case "lambda_expr"' "$ROOT_DIR/tests/llvm_smoke.sh"
 grep -Fq "llvm_register_callable_param_if_needed" \
     "$ROOT_DIR/src/codegen/llvm_mir_param_emit.c"
 grep -Fq "llvm_stmt_callable_entry_return_type" \
-    "$ROOT_DIR/src/codegen/llvm_stmt_type_infer.c"
+    "$ROOT_DIR/src/codegen/llvm_stmt_type_infer_call.c"
 grep -Fq "llvm_lookup_callable_entry(ctx, callee)" \
-    "$ROOT_DIR/src/codegen/llvm_stmt_type_infer.c"
+    "$ROOT_DIR/src/codegen/llvm_stmt_type_infer_call.c"
 grep -Fq "MIR-only LLVM path missing declared call return routine" \
     "$ROOT_DIR/src/codegen/llvm_stmt_type_infer_helpers.c"
 grep -Fq "MIR-only LLVM path missing declared call return signature metadata" \
@@ -583,7 +583,7 @@ grep -Fq "MIR-only LLVM path missing declared call return signature metadata" \
 grep -Fq "MIR-only LLVM path missing declared call return type-name metadata" \
     "$ROOT_DIR/src/codegen/llvm_stmt_type_infer_helpers.c"
 if grep -Fq "llvm_stmt_find_with_slot_inner_in_body" \
-        "$ROOT_DIR/src/codegen/llvm_stmt_type_infer.c"; then
+        "$ROOT_DIR/src/codegen/llvm_stmt_type_infer_call.c"; then
     echo "[backend-fail-closed] LLVM call type inference reintroduced with-slot AST body rescan" >&2
     exit 1
 fi
