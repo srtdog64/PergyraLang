@@ -127,20 +127,20 @@ transpiler_emit_party_constructor(ASTNode *call,
     }
 
     for (size_t i = 0; i < shared_count; i++) {
-        ASTNode *shared;
+        ASTNode *initializer;
         const char *field_name;
         char *init_expr;
         if (i < argc)
             continue;
-        shared = transpiler_hosted_shared_field_view_source_ast(
+        initializer = transpiler_hosted_shared_field_view_initializer(
             &shared_view, i);
-        if (shared == NULL || ast_party_shared_initializer(shared) == NULL)
+        if (initializer == NULL)
             continue;
         field_name = transpiler_hosted_shared_field_view_name(&shared_view, i);
         init_expr = transpiler_emit_ctor_arg_with_expected_type(ctx,
             transpiler_hosted_shared_field_view_type(&shared_view, i),
             field_name,
-            ast_party_shared_initializer(shared));
+            initializer);
         if (init_expr == NULL) {
             codebuf_destroy(fields);
             return NULL;
@@ -227,20 +227,20 @@ transpiler_emit_roster_constructor(ASTNode *call,
 
     for (size_t i = 0; i < shared_count; i++) {
         size_t absolute_index = roster_party_count + i;
-        ASTNode *shared;
+        ASTNode *initializer;
         const char *field_name;
         char *init_expr;
         if (absolute_index < argc)
             continue;
-        shared = transpiler_hosted_shared_field_view_source_ast(
+        initializer = transpiler_hosted_shared_field_view_initializer(
             &shared_view, i);
-        if (shared == NULL || ast_party_shared_initializer(shared) == NULL)
+        if (initializer == NULL)
             continue;
         field_name = transpiler_hosted_shared_field_view_name(&shared_view, i);
         init_expr = transpiler_emit_ctor_arg_with_expected_type(ctx,
             transpiler_hosted_shared_field_view_type(&shared_view, i),
             field_name,
-            ast_party_shared_initializer(shared));
+            initializer);
         if (init_expr == NULL) {
             codebuf_destroy(fields);
             return NULL;
@@ -330,20 +330,20 @@ transpiler_emit_relation_effect_constructor(ASTNode *call,
 
     for (size_t i = 0; i < shared_count; i++) {
         size_t absolute_index = slot_count + i;
-        ASTNode *shared;
+        ASTNode *initializer;
         const char *field_name;
         char *init_expr;
         if (absolute_index < argc)
             continue;
-        shared = transpiler_hosted_shared_field_view_source_ast(
+        initializer = transpiler_hosted_shared_field_view_initializer(
             &shared_view, i);
-        if (shared == NULL || ast_party_shared_initializer(shared) == NULL)
+        if (initializer == NULL)
             continue;
         field_name = transpiler_hosted_shared_field_view_name(&shared_view, i);
         init_expr = transpiler_emit_ctor_arg_with_expected_type(ctx,
             transpiler_hosted_shared_field_view_type(&shared_view, i),
             field_name,
-            ast_party_shared_initializer(shared));
+            initializer);
         if (init_expr == NULL) {
             codebuf_destroy(fields);
             return NULL;
@@ -445,20 +445,20 @@ transpiler_emit_zone_constructor(ASTNode *call,
 
     for (size_t i = 0; i < shared_count; i++) {
         size_t absolute_index = slot_count + i;
-        ASTNode *shared;
+        ASTNode *initializer;
         const char *field_name;
         char *init_expr;
         if (absolute_index < argc)
             continue;
-        shared = transpiler_hosted_shared_field_view_source_ast(
+        initializer = transpiler_hosted_shared_field_view_initializer(
             &shared_view, i);
-        if (shared == NULL || ast_party_shared_initializer(shared) == NULL)
+        if (initializer == NULL)
             continue;
         field_name = transpiler_hosted_shared_field_view_name(&shared_view, i);
         init_expr = transpiler_emit_ctor_arg_with_expected_type(ctx,
             transpiler_hosted_shared_field_view_type(&shared_view, i),
             field_name,
-            ast_party_shared_initializer(shared));
+            initializer);
         if (init_expr == NULL) {
             codebuf_destroy(fields);
             return NULL;
@@ -572,20 +572,20 @@ transpiler_emit_world_constructor(ASTNode *call,
 
     for (size_t i = 0; i < shared_count; i++) {
         size_t absolute_index = roster_count + zone_count + i;
-        ASTNode *shared;
+        ASTNode *initializer;
         const char *field_name;
         char *init_expr;
         if (absolute_index < argc)
             continue;
-        shared = transpiler_hosted_shared_field_view_source_ast(
+        initializer = transpiler_hosted_shared_field_view_initializer(
             &shared_view, i);
-        if (shared == NULL || ast_party_shared_initializer(shared) == NULL)
+        if (initializer == NULL)
             continue;
         field_name = transpiler_hosted_shared_field_view_name(&shared_view, i);
         init_expr = transpiler_emit_ctor_arg_with_expected_type(ctx,
             transpiler_hosted_shared_field_view_type(&shared_view, i),
             field_name,
-            ast_party_shared_initializer(shared));
+            initializer);
         if (init_expr == NULL) {
             codebuf_destroy(fields);
             return NULL;

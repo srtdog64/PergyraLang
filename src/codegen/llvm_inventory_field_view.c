@@ -235,25 +235,6 @@ llvm_hosted_shared_field_view_metadata(
     return llvm_decl_header_shared_field(view->decl_header, index);
 }
 
-ASTNode *
-llvm_hosted_shared_field_view_source_ast(
-    const LLVMHostedSharedFieldView *view,
-    size_t index)
-{
-    const MIRDeclField *field =
-        llvm_hosted_shared_field_view_metadata(view, index);
-
-    if (view == NULL || index >= view->count)
-        return NULL;
-    if (field != NULL)
-        return mir_decl_field_source_ast(field);
-    if (view->requires_mir_metadata)
-        return NULL;
-    if (view->ast_compat_fields != NULL)
-        return view->ast_compat_fields[index];
-    return NULL;
-}
-
 const char *
 llvm_hosted_shared_field_view_name(
     const LLVMHostedSharedFieldView *view,
@@ -292,6 +273,27 @@ llvm_hosted_shared_field_view_type(
     if (view->ast_compat_fields != NULL
         && view->ast_compat_fields[index] != NULL) {
         return ast_party_shared_type(view->ast_compat_fields[index]);
+    }
+    return NULL;
+}
+
+ASTNode *
+llvm_hosted_shared_field_view_initializer(
+    const LLVMHostedSharedFieldView *view,
+    size_t index)
+{
+    const MIRDeclField *field =
+        llvm_hosted_shared_field_view_metadata(view, index);
+
+    if (view == NULL || index >= view->count)
+        return NULL;
+    if (field != NULL)
+        return mir_decl_field_initializer(field);
+    if (view->requires_mir_metadata)
+        return NULL;
+    if (view->ast_compat_fields != NULL
+        && view->ast_compat_fields[index] != NULL) {
+        return ast_party_shared_initializer(view->ast_compat_fields[index]);
     }
     return NULL;
 }

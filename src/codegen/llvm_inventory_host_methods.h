@@ -56,11 +56,7 @@ bool llvm_mir_decl_method_metadata_complete_for(
     unsigned requirements,
     const char *missing_return_type_fmt,
     const char *missing_param_type_fmt);
-ASTNode *llvm_hosted_method_view_source_ast(
-    const LLVMHostedMethodView *view,
-    size_t index);
 const char *llvm_mir_decl_method_name(const MIRDeclMethod *method);
-ASTNode *llvm_mir_decl_method_source_ast(const MIRDeclMethod *method);
 size_t llvm_mir_decl_method_param_count(const MIRDeclMethod *method);
 FuncParam *llvm_mir_decl_method_param(const MIRDeclMethod *method,
                                       size_t index);

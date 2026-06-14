@@ -123,6 +123,7 @@ mir_decl_field_metadata_init(MIRDeclField *meta,
     meta->owner_name = header->name;
     meta->name = name;
     meta->type = type;
+    meta->initializer = NULL;
     meta->type_name = mir_capture_type_name(type, type_name);
     meta->kind = kind;
     meta->required_ability_ref_count = 0;
@@ -152,6 +153,7 @@ mir_decl_field_metadata_init_shared(MIRDeclField *meta,
     mir_decl_field_metadata_init(
         meta, header, field, ast_party_shared_name(field),
         ast_party_shared_type(field), NULL, MIR_DECL_FIELD_SHARED);
+    meta->initializer = ast_party_shared_initializer(field);
 }
 
 static void

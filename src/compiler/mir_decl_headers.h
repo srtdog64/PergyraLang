@@ -48,6 +48,7 @@ ASTNode *mir_decl_field_source_ast(const MIRDeclField *field);
 const char *mir_decl_field_owner_name(const MIRDeclField *field);
 const char *mir_decl_field_name(const MIRDeclField *field);
 ASTNode *mir_decl_field_type(const MIRDeclField *field);
+ASTNode *mir_decl_field_initializer(const MIRDeclField *field);
 const char *mir_decl_field_type_name(const MIRDeclField *field);
 MIRDeclFieldKind mir_decl_field_kind_or(const MIRDeclField *field,
                                         MIRDeclFieldKind fallback);

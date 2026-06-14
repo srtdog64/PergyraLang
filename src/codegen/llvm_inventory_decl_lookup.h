@@ -137,13 +137,13 @@ bool llvm_hosted_shared_field_view_missing_mir_metadata(
 const MIRDeclField *llvm_hosted_shared_field_view_metadata(
     const LLVMHostedSharedFieldView *view,
     size_t index);
-ASTNode *llvm_hosted_shared_field_view_source_ast(
-    const LLVMHostedSharedFieldView *view,
-    size_t index);
 const char *llvm_hosted_shared_field_view_name(
     const LLVMHostedSharedFieldView *view,
     size_t index);
 ASTNode *llvm_hosted_shared_field_view_type(
+    const LLVMHostedSharedFieldView *view,
+    size_t index);
+ASTNode *llvm_hosted_shared_field_view_initializer(
     const LLVMHostedSharedFieldView *view,
     size_t index);
 LLVMHostedZoneLayerSlotView llvm_hosted_zone_layer_slot_view_from_decl(

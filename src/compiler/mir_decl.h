@@ -62,6 +62,7 @@ typedef struct
     const char      *owner_name;
     const char      *name;
     ASTNode         *type;
+    ASTNode         *initializer;
     char            *type_name;
     MIRDeclFieldKind kind;
     bool             is_dynamic;

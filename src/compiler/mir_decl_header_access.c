@@ -233,6 +233,12 @@ mir_decl_field_type(const MIRDeclField *field)
     return field != NULL ? field->type : NULL;
 }
 
+ASTNode *
+mir_decl_field_initializer(const MIRDeclField *field)
+{
+    return field != NULL ? field->initializer : NULL;
+}
+
 const char *
 mir_decl_field_type_name(const MIRDeclField *field)
 {

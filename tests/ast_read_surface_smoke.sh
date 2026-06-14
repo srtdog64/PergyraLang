@@ -42,7 +42,7 @@ while IFS='|' read -r kind pattern ceiling scope; do
     fi
 done <<'RATCHET_CEILINGS'
 enum|ast_enum_variant|17|src/codegen
-source_ast_codegen|source_ast|76|src/codegen
+source_ast_codegen|source_ast|58|src/codegen
 source_ast_compiler|source_ast|73|src/compiler
 RATCHET_CEILINGS
 

@@ -1251,7 +1251,11 @@ require_term "src/codegen/llvm_expr_constructor_channel_guard.c" \
 require_term "src/codegen/llvm_expr_constructor_channel_guard.c" \
     "llvm_hosted_domain_slot_view_type(view, i)"
 require_term "src/codegen/llvm_expr_constructor_calls.c" \
-    "llvm_hosted_shared_field_view_source_ast(view, i)"
+    "llvm_hosted_shared_field_view_initializer(view, i)"
+if grep -Eq 'llvm_hosted_shared_field_view_source_ast\(|ast_party_shared_initializer\(' \
+    "$ROOT_DIR/src/codegen/llvm_expr_constructor_calls.c"; then
+    fail "LLVM constructor shared-field defaults must consume MIR-owned shared-field initializer metadata"
+fi
 if grep -Fq "pgy_host_shared_fields_compat_view_from_decl" \
     "$ROOT_DIR/src/codegen/llvm_expr_constructor_channel_guard.c"; then
     fail "LLVM constructor calls must consume LLVMHostedSharedFieldView"
@@ -1522,9 +1526,13 @@ require_term "src/codegen/transpiler_domain_constructor_emit.c" \
 require_term "src/codegen/transpiler_domain_constructor_emit.c" \
     "transpiler_hosted_shared_field_view_missing_mir_metadata(&shared_view)"
 require_term "src/codegen/transpiler_domain_constructor_emit.c" \
-    "transpiler_hosted_shared_field_view_source_ast("
+    "transpiler_hosted_shared_field_view_initializer("
 require_term "src/codegen/transpiler_domain_constructor_emit.c" \
     "transpiler_hosted_shared_field_view_type("
+if grep -Eq 'transpiler_hosted_shared_field_view_source_ast\(|ast_party_shared_initializer\(' \
+    "$ROOT_DIR/src/codegen/transpiler_domain_constructor_emit.c"; then
+    fail "C constructor shared-field defaults must consume MIR-owned shared-field initializer metadata"
+fi
 require_term "src/codegen/transpiler_projection.c" \
     "transpiler_domain_slot_view_is_projection_slot"
 require_term "src/codegen/transpiler_domain_constructor_emit.c" \
@@ -2454,6 +2462,15 @@ if [[ -n "$shared_field_compat_hits" ]]; then
     fail "shared-field compatibility views must stay behind declaration inventory owners:
 $shared_field_compat_hits"
 fi
+shared_field_source_accessor_hits="$(
+    grep -RIn "hosted_shared_field_view_source_ast" \
+        "$ROOT_DIR/src/codegen" \
+        --include='*.c' --include='*.h' || true
+)"
+if [[ -n "$shared_field_source_accessor_hits" ]]; then
+    fail "shared-field source AST accessors must stay retired:
+$shared_field_source_accessor_hits"
+fi
 zone_layer_slot_hits="$(
     grep -RIn "ast_zone_layer_slots" \
         "$ROOT_DIR/src/codegen" \
@@ -2560,11 +2577,9 @@ for term in \
     "llvm_find_host_method_metadata_in_context" \
     "llvm_hosted_method_view" \
     "llvm_hosted_method_view_metadata" \
-    "llvm_hosted_method_view_source_ast" \
     "llvm_find_host_method_decl_in_context" \
     "llvm_mir_decl_method_metadata_complete_for" \
     "llvm_mir_decl_method_name" \
-    "llvm_mir_decl_method_source_ast" \
     "llvm_mir_decl_method_param_count" \
     "llvm_mir_decl_method_param" \
     "llvm_mir_decl_method_return_type" \
@@ -2591,6 +2606,14 @@ fi
 if grep -RInE 'llvm_(hosted_method_view|mir_decl_method)_ast' \
     "$ROOT_DIR/src/codegen"; then
     fail "LLVM declaration method source compatibility accessors must use *_source_ast names"
+fi
+if grep -RIn "llvm_hosted_method_view_source_ast" \
+        "$ROOT_DIR/src/codegen" --include='*.c' --include='*.h'; then
+    fail "LLVM hosted method source accessor must stay retired; use MIRDeclMethod metadata first"
+fi
+if grep -RIn "llvm_mir_decl_method_source_ast" \
+        "$ROOT_DIR/src/codegen" --include='*.c' --include='*.h'; then
+    fail "LLVM MIR method source alias must stay retired; use MIR source accessors directly at the compatibility boundary"
 fi
 require_term "src/codegen/llvm_inventory_host_methods.h" "ast_compat_methods"
 require_term "src/codegen/llvm_inventory_host_methods.h" "ast_compat_count"
@@ -2630,6 +2653,7 @@ for term in \
     "mir_decl_field_owner_name" \
     "mir_decl_field_name" \
     "mir_decl_field_type" \
+    "mir_decl_field_initializer" \
     "mir_decl_field_type_name" \
     "mir_decl_field_kind_or" \
     "mir_decl_field_is_dynamic" \
@@ -2676,7 +2700,8 @@ for term in \
     "ast_party_shared_name(view->ast_compat_fields[index])" \
     "ast_party_shared_type(view->ast_compat_fields[index])" \
     "mir_decl_field_name(field)" \
-    "mir_decl_field_type(field)"; do
+    "mir_decl_field_type(field)" \
+    "mir_decl_field_initializer(field)"; do
     require_term "src/codegen/transpiler_decl_field_view.c" "$term"
 done
 for term in \
@@ -2684,8 +2709,8 @@ for term in \
     "transpiler_hosted_shared_field_view_from_decl(" \
     "transpiler_hosted_shared_field_view_missing_mir_metadata(" \
     "transpiler_hosted_shared_field_view_metadata(" \
-    "transpiler_hosted_shared_field_view_source_ast(" \
     "transpiler_hosted_shared_field_view_name(" \
+    "transpiler_hosted_shared_field_view_initializer(" \
     "transpiler_hosted_shared_field_view_type("; do
     require_term "src/codegen/transpiler_decl_lookup.h" "$term"
 done
@@ -2737,13 +2762,14 @@ for term in \
     "llvm_hosted_shared_field_view_from_decl" \
     "llvm_hosted_shared_field_view_missing_mir_metadata" \
     "llvm_hosted_shared_field_view_metadata" \
-    "llvm_hosted_shared_field_view_source_ast" \
     "llvm_hosted_shared_field_view_name" \
+    "llvm_hosted_shared_field_view_initializer" \
     "llvm_hosted_shared_field_view_type" \
     "pgy_host_shared_fields_compat_view_from_decl(decl)" \
     "MIR_DECL_FIELD_SHARED" \
     "return llvm_decl_header_shared_field(view->decl_header, index)" \
-    "mir_decl_field_name(field)"; do
+    "mir_decl_field_name(field)" \
+    "mir_decl_field_initializer(field)"; do
     require_term "src/codegen/llvm_inventory_field_view.c" "$term"
 done
 for term in \
@@ -2800,7 +2826,12 @@ require_term "src/codegen/llvm_inventory_host_methods.c" \
 require_term "src/codegen/llvm_inventory_host_methods.c" \
     "ctx->current_host_decl"
 require_term "src/codegen/llvm_inventory_host_methods.c" \
-    "llvm_hosted_method_view_source_ast(&method_view, i)"
+    "method_view.ast_compat_methods[i]"
+if awk '/llvm_find_host_method_decl_in_context\(/{in_fn=1} in_fn {print} /^}/{if (in_fn) exit}' \
+        "$ROOT_DIR/src/codegen/llvm_inventory_host_methods.c" \
+        | grep -Fq "llvm_hosted_method_view_source_ast(&method_view, i)"; then
+    fail "LLVM host-method lookup fallback must read compatibility methods directly after MIR metadata lookup"
+fi
 for term in \
     "view.decl_header = decl_header" \
     "view.count = mir_decl_header_method_count(decl_header)" \
@@ -4404,7 +4435,7 @@ if grep -Fq "host_decl->type == AST_PARTY_DECL" \
     fail "C self-member dispatch must consume host pointer-self policy instead of repeating domain host chains"
 fi
 for term in \
-    "transpiler_find_method_source_ast_in_mir_header" \
+    "transpiler_find_method_metadata_in_header" \
     "transpiler_decl_header_is_nominal_host(header)" \
     "transpiler_active_host_decl_header(ctx, host_type_name)" \
     "transpiler_active_mir_identity(ctx)" \
@@ -4417,9 +4448,13 @@ for term in \
     "mir_decl_header_method_count(header)" \
     "mir_decl_header_method(header, i)" \
     "transpiler_mir_decl_method_name(method)" \
-    "mir_decl_method_source_ast(method)"; do
+    "transpiler_mir_decl_method_source_ast(method_meta)"; do
     require_term "src/codegen/transpiler_decl_host_lookup.c" "$term"
 done
+if grep -Fq "transpiler_hosted_method_view_source_ast(&method_view, i)" \
+    "$ROOT_DIR/src/codegen/transpiler_decl_host_lookup.c"; then
+    fail "C host-method lookup must match method names through MIRDeclMethod metadata before compatibility AST recovery"
+fi
 if grep -Fq "static const TranspilerHostOwnerLookup kTranspilerHostOwnerLookups[]" \
     "$ROOT_DIR/src/codegen/transpiler_decl_host_lookup.c"; then
     fail "C host-owner lookup must consume host_decl_compat.c instead of reopening a local host-type table"
@@ -5439,17 +5474,21 @@ for term in \
     "transpiler_active_has_mir(ctx)" \
     "transpiler_set_mir_inventory_missing(ctx" \
     "MIR-only C path missing member-call method metadata" \
-    "method_decl == NULL && method_meta == NULL" \
+    "ASTNode *method_decl = NULL" \
     "method_meta == NULL && method_decl != NULL" \
     "method_decl == NULL && source_slot_name != NULL"; do
     require_term "src/codegen/transpiler_expr_call_member_emit.c" "$term"
 done
+if grep -Fq "transpiler_mir_decl_method_source_ast(method_meta)" \
+        "$ROOT_DIR/src/codegen/transpiler_expr_call_member_emit.c"; then
+    fail "C member-call emit must not eagerly recover method AST back-pointers from MIR metadata"
+fi
 if grep -Fq "AST_EVENT_HANDLER_TYPE" \
         "$ROOT_DIR/src/codegen/transpiler_expr_call_member_emit.c"; then
     fail "C member-call emission must let TranspilerHostedMethodView own type-name completeness checks"
 fi
 require_each_following_term "src/codegen/transpiler_expr_call_member_emit.c" \
-    "if (method_decl == NULL && method_meta == NULL) {" \
+    "ASTNode *method_decl = NULL;" \
     "transpiler_active_has_mir(ctx)" \
     6
 require_each_following_term "src/codegen/transpiler_expr_call_member_emit.c" \
@@ -6097,7 +6136,7 @@ for forbidden in \
 done
 
 require_term "src/codegen/llvm_inventory_host_methods.c" \
-    "if (view->requires_mir_metadata)"
+    "view->count != view->ast_compat_count"
 
 for term in \
     "MIRDeclMethod" \

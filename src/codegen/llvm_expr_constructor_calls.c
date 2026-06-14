@@ -248,14 +248,13 @@ llvm_emit_class_constructor_shared_defaults(ASTNode *node, LLVMGenCtx *ctx,
         return true;
 
     for (size_t i = 0; view != NULL && i < view->count; i++) {
-        ASTNode *shared = llvm_hosted_shared_field_view_source_ast(view, i);
         const char *shared_name =
             llvm_hosted_shared_field_view_name(view, i);
-        ASTNode *initializer = shared != NULL
-            ? ast_party_shared_initializer(shared) : NULL;
+        ASTNode *initializer =
+            llvm_hosted_shared_field_view_initializer(view, i);
         int field_idx;
         LLVMValueRef init_val;
-        if (shared == NULL || shared_name == NULL || initializer == NULL) {
+        if (shared_name == NULL || initializer == NULL) {
             continue;
         }
         field_idx = llvm_class_field_index(cls, shared_name);

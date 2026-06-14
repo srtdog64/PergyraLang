@@ -137,9 +137,8 @@ emit_call_member_style(ASTNode *call, ASTNode *callee, TranspilerCtx *ctx)
                             transpiler_find_host_method_metadata_in_context(
                                 ctx, spec_base_name, method);
                 }
-                ASTNode *method_decl =
-                    transpiler_mir_decl_method_source_ast(method_meta);
-                if (method_decl == NULL && method_meta == NULL) {
+                ASTNode *method_decl = NULL;
+                if (method_meta == NULL) {
                     if (transpiler_active_has_mir(ctx)) {
                         transpiler_set_mir_inventory_missing(ctx,
                             "MIR-only C path missing member-call method metadata for '%s.%s'",

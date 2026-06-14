@@ -37,11 +37,11 @@ NULL MIR. This is the single precondition that makes the fallbacks dead; if the
 driver is ever changed to degrade to an AST-only path, this fails first.
 
 tests/ast_read_surface_smoke.sh ratchets the source_ast occurrence counts
-(codegen 76, compiler 73) so the surface can only shrink, never grow.
+(codegen 58, compiler 73) so the surface can only shrink, never grow.
 
 tests/source_ast_inventory.sh ranks the remaining readers per file so the
-cutover is driven hotspot first. The codegen frontier is 76, with the
-inventory/slot-view hotspot now at 26 reads after the dead slot-source
+cutover is driven hotspot first. The codegen frontier is 58, with the
+inventory/slot-view hotspot now at 19 reads after the dead slot-source
 accessors were removed and LLVM domain/role method forward declarations moved
 to MIRDeclMethod metadata only. C hosted-method forward declarations now do
 the same; C/LLVM hosted-method bodies now use the linked MIRRoutine as their
@@ -52,7 +52,19 @@ metadata and only keep AST method lookups behind the no-MIR compatibility
 fallback. LLVM function routine lookup now keys off MIR routine names rather
 than source AST identity. C/LLVM zone action effect sync now reads action flags
 from MIRDeclMethod without method source back-pointers. Remaining method reads
-are lookup/provenance consumers.
+are lookup/provenance consumers. C member-call emission no longer eagerly
+recovers method source back-pointers when MIR method metadata is present; it
+only asks for an AST method body in the lazy projection-invalidation path that
+still scans method statements. C/LLVM constructor defaults for shared fields
+now read the initializer expression from MIRDeclField metadata instead of
+recovering the shared-field source node and reopening ast_party_shared_initializer.
+The now-unused C/LLVM shared-field source accessors have also been removed.
+C host-method lookup now matches method names through MIRDeclMethod metadata;
+only the final compatibility return still recovers the AST method node. LLVM
+host-method lookup already matched through MIRDeclMethod and now keeps its
+non-MIR fallback on the explicit compatibility array. The unused LLVM hosted
+method source accessor has been removed, along with the thin LLVM MIR method
+source alias.
 
 ## Empirical confirmation probe
 
@@ -285,8 +297,8 @@ Step 1: instrument with the probe, run the corpus, confirm zero fires.
 
 Step 2: remove the AST fallback arms and the `*_slot_view_source_ast` helpers
 from the four hotspot files, then the remaining codegen readers. The unused
-slot-source helpers are now gone; the next slice is the remaining
-method/shared-field provenance readers.
+slot-source helpers and shared-field source helpers are now gone; the next
+slice is the remaining method provenance and routine compatibility readers.
 
 Step 3: remove the source_ast field from MIRDeclField and MIRDeclHeader once no
 codegen reader remains. The compiler plumbing (set on capture, freed in

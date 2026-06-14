@@ -203,35 +203,10 @@ llvm_mir_decl_method_metadata_complete_for(
     return true;
 }
 
-ASTNode *
-llvm_hosted_method_view_source_ast(const LLVMHostedMethodView *view,
-                                   size_t index)
-{
-    const MIRDeclMethod *method = llvm_hosted_method_view_metadata(view, index);
-
-    if (view == NULL || index >= view->count)
-        return NULL;
-    if (method != NULL)
-        return mir_decl_method_source_ast(method);
-    if (view->requires_mir_metadata)
-        return NULL;
-    return view->ast_compat_methods != NULL
-        ? view->ast_compat_methods[index]
-        : NULL;
-}
-
 const char *
 llvm_mir_decl_method_name(const MIRDeclMethod *method)
 {
     return mir_decl_method_name(method);
-}
-
-ASTNode *
-llvm_mir_decl_method_source_ast(const MIRDeclMethod *method)
-{
-    if (method != NULL)
-        return mir_decl_method_source_ast(method);
-    return NULL;
 }
 
 size_t
@@ -318,7 +293,7 @@ llvm_find_host_method_decl_in_context(const LLVMGenCtx *ctx,
 
     method = llvm_find_host_method_metadata_in_context(
         ctx, host_type_name, method_name);
-    method_source = llvm_mir_decl_method_source_ast(method);
+    method_source = mir_decl_method_source_ast(method);
     if (method_source != NULL)
         return method_source;
     if (llvm_active_has_mir(ctx))
@@ -333,8 +308,9 @@ llvm_find_host_method_decl_in_context(const LLVMGenCtx *ctx,
 
     method_view = llvm_hosted_method_view_from_decl(ctx, host_type_name, decl);
     for (size_t i = 0; i < method_view.count; i++) {
-        ASTNode *candidate =
-            llvm_hosted_method_view_source_ast(&method_view, i);
+        ASTNode *candidate = method_view.ast_compat_methods != NULL
+            ? method_view.ast_compat_methods[i]
+            : NULL;
         const char *candidate_name = llvm_decl_node_name(candidate);
         if (candidate != NULL && candidate->type == AST_FUNC_DECL
             && candidate_name != NULL

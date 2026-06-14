@@ -197,13 +197,13 @@ bool transpiler_hosted_shared_field_view_missing_mir_metadata(
 const MIRDeclField *transpiler_hosted_shared_field_view_metadata(
     const TranspilerHostedSharedFieldView *view,
     size_t index);
-ASTNode *transpiler_hosted_shared_field_view_source_ast(
-    const TranspilerHostedSharedFieldView *view,
-    size_t index);
 const char *transpiler_hosted_shared_field_view_name(
     const TranspilerHostedSharedFieldView *view,
     size_t index);
 ASTNode *transpiler_hosted_shared_field_view_type(
+    const TranspilerHostedSharedFieldView *view,
+    size_t index);
+ASTNode *transpiler_hosted_shared_field_view_initializer(
     const TranspilerHostedSharedFieldView *view,
     size_t index);
 TranspilerHostedZoneLayerSlotView
