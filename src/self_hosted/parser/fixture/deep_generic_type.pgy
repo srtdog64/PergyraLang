@@ -1,0 +1,4 @@
+func Main() -> Void {
+    let buckets: HashMap<String, List<HashMap<Int, Array<String>>>> = MapNew();
+    let labels: Array<List<HashMap<String, Int>>> = [];
+}

@@ -73,8 +73,9 @@ burn-down:
 
 - broader deterministic collection iteration for symbol/record/handle keys and
   ordered set snapshots, beyond the Stage 4 HashMap key-subset gate;
-- parser LLVM depth/type-inference parity, so parser dogfood is no longer
-  effectively C-backend-only;
+- parser LLVM depth/type-inference parity is now gated by compiling the
+  self-host parser through both C and LLVM over the committed fixture set,
+  including a deep nested generic type case;
 - deterministic filesystem directory walking, so self-hosted validators can
   enumerate source trees without shell `find`/`grep` ownership.
 

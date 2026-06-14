@@ -45,9 +45,6 @@ fi
 mkdir -p "$PERGYRA_TOOL_BUILD_DIR"
 cp "$PERGYRA_TOOL_SOURCE" "$PERGYRA_TOOL"
 
-echo "[self-host-parity:parser] compiling parser..."
-(cd "$ROOT_DIR" && "$PGY" "$(pgy_path_for_compiler "$PGY" "$PERGYRA_TOOL")" -o "$(pgy_path_for_compiler "$PGY" "$PERGYRA_TOOL_BUILD_DIR/main.exe")" >/dev/null)
-
 # Sources: each pair is "<source.pgy path relative to repo root>:<fixture base>"
 # where fixture base resolves to fixture/<base>_ast.txt.
 SOURCE_PAIRS=(
@@ -95,6 +92,7 @@ SOURCE_PAIRS=(
     "src/self_hosted/parser/fixture/unary_neg.pgy:unary_neg"
     "src/self_hosted/parser/fixture/arr_literal.pgy:arr_literal"
     "src/self_hosted/parser/fixture/generic_type.pgy:generic_type"
+    "src/self_hosted/parser/fixture/deep_generic_type.pgy:deep_generic_type"
     "src/self_hosted/parser/fixture/let_inferred.pgy:let_inferred"
     "src/self_hosted/parser/fixture/member_access.pgy:member_access"
     "src/self_hosted/parser/fixture/toplevel_stmt.pgy:toplevel_stmt"
@@ -239,55 +237,99 @@ SOURCE_PAIRS=(
     "src/self_hosted/parser/fixture/slots_simple.pgy:slots_simple"
 )
 
-ANY_DRIFT_GUARD_RAN="no"
+check_live_fixture_drift() {
+    local any_drift_guard_ran="no"
 
-for pair in "${SOURCE_PAIRS[@]}"; do
-    src="${pair%%:*}"
-    base="${pair##*:}"
-    expected_fixture="$FIXTURE_DIR/${base}_ast.txt"
+    for pair in "${SOURCE_PAIRS[@]}"; do
+        local src="${pair%%:*}"
+        local base="${pair##*:}"
+        local expected_fixture="$FIXTURE_DIR/${base}_ast.txt"
 
-    if [[ ! -f "$ROOT_DIR/$src" ]]; then
-        echo "[self-host-parity:parser] missing source: $src" >&2
-        exit 1
-    fi
-    if [[ ! -f "$expected_fixture" ]]; then
-        echo "[self-host-parity:parser] missing AST fixture: $expected_fixture" >&2
-        exit 1
-    fi
-
-    set +e
-    PERGYRA_OUT="$(cd "$ROOT_DIR" && "$PERGYRA_TOOL_BUILD_DIR/main.exe" "$src" 2>/dev/null \
-        | tr -d '\r')"
-    P_RC=$?
-    set -e
-
-    if [[ "$P_RC" -ne 0 ]]; then
-        echo "[self-host-parity:parser] $src: exit-code FAIL (pergyra=$P_RC)" >&2
-        printf '%s\n' "$PERGYRA_OUT" >&2
-        exit 1
-    fi
-
-    EXPECTED_NORM="$(tr -d '\r' < "$expected_fixture")"
-    if [[ "$PERGYRA_OUT" != "$EXPECTED_NORM" ]]; then
-        echo "[self-host-parity:parser] $src: BYTE-DRIFT vs $expected_fixture" >&2
-        diff <(printf '%s\n' "$EXPECTED_NORM") <(printf '%s\n' "$PERGYRA_OUT") | head -30 >&2
-        exit 1
-    fi
-
-    # Live drift guard for this source pair.
-    set +e
-    LIVE_OUT="$(cd "$ROOT_DIR" && "$PGY" --ast "$src" 2>/dev/null)"
-    LIVE_RC=$?
-    set -e
-    if [[ "$LIVE_RC" -eq 0 && -n "$LIVE_OUT" ]]; then
-        LIVE_NORM="$(printf '%s' "$LIVE_OUT" | tr -d '\r')"
-        if [[ "$LIVE_NORM" != "$EXPECTED_NORM" ]]; then
-            echo "[self-host-parity:parser] $src: committed AST fixture drifted from live pgy --ast" >&2
-            echo "regenerate: pgy --ast $src > $expected_fixture" >&2
+        if [[ ! -f "$ROOT_DIR/$src" ]]; then
+            echo "[self-host-parity:parser] missing source: $src" >&2
             exit 1
         fi
-        ANY_DRIFT_GUARD_RAN="yes"
-    fi
+        if [[ ! -f "$expected_fixture" ]]; then
+            echo "[self-host-parity:parser] missing AST fixture: $expected_fixture" >&2
+            exit 1
+        fi
+
+        local expected_norm
+        expected_norm="$(tr -d '\r' < "$expected_fixture")"
+        local live_out
+        local live_rc
+        set +e
+        live_out="$(cd "$ROOT_DIR" && "$PGY" --ast "$src" 2>/dev/null)"
+        live_rc=$?
+        set -e
+        if [[ "$live_rc" -eq 0 && -n "$live_out" ]]; then
+            local live_norm
+            live_norm="$(printf '%s' "$live_out" | tr -d '\r')"
+            if [[ "$live_norm" != "$expected_norm" ]]; then
+                echo "[self-host-parity:parser] $src: committed AST fixture drifted from live pgy --ast" >&2
+                echo "regenerate: pgy --ast $src > $expected_fixture" >&2
+                exit 1
+            fi
+            any_drift_guard_ran="yes"
+        fi
+    done
+
+    printf '%s\n' "$any_drift_guard_ran"
+}
+
+compile_parser_backend() {
+    local backend="$1"
+    local tool_bin="$2"
+
+    echo "[self-host-parity:parser] compiling parser backend=$backend..."
+    (cd "$ROOT_DIR" && "$PGY" \
+        "$(pgy_path_for_compiler "$PGY" "$PERGYRA_TOOL")" \
+        --backend="$backend" \
+        -o "$(pgy_path_for_compiler "$PGY" "$tool_bin")" >/dev/null)
+}
+
+run_parser_backend() {
+    local backend="$1"
+    local tool_bin="$2"
+
+    for pair in "${SOURCE_PAIRS[@]}"; do
+        local src="${pair%%:*}"
+        local base="${pair##*:}"
+        local expected_fixture="$FIXTURE_DIR/${base}_ast.txt"
+        local pergyra_out
+        local p_rc
+
+        set +e
+        pergyra_out="$(cd "$ROOT_DIR" && "$tool_bin" "$src" 2>/dev/null \
+            | tr -d '\r')"
+        p_rc=$?
+        set -e
+
+        if [[ "$p_rc" -ne 0 ]]; then
+            echo "[self-host-parity:parser] backend=$backend $src: exit-code FAIL (pergyra=$p_rc)" >&2
+            printf '%s\n' "$pergyra_out" >&2
+            exit 1
+        fi
+
+        local expected_norm
+        expected_norm="$(tr -d '\r' < "$expected_fixture")"
+        if [[ "$pergyra_out" != "$expected_norm" ]]; then
+            echo "[self-host-parity:parser] backend=$backend $src: BYTE-DRIFT vs $expected_fixture" >&2
+            diff <(printf '%s\n' "$expected_norm") <(printf '%s\n' "$pergyra_out") | head -30 >&2
+            exit 1
+        fi
+    done
+
+    echo "[self-host-parity:parser] backend=$backend byte-equal (${#SOURCE_PAIRS[@]} sources)"
+}
+
+BACKENDS="${PGY_SELFHOST_PARSER_BACKENDS:-c llvm}"
+ANY_DRIFT_GUARD_RAN="$(check_live_fixture_drift)"
+
+for backend in $BACKENDS; do
+    tool_bin="$PERGYRA_TOOL_BUILD_DIR/main_${backend}.exe"
+    compile_parser_backend "$backend" "$tool_bin"
+    run_parser_backend "$backend" "$tool_bin"
 done
 
-echo "[self-host-parity:parser] rung-1 parity ok (${#SOURCE_PAIRS[@]} sources byte-equal; live-drift=$ANY_DRIFT_GUARD_RAN)"
+echo "[self-host-parity:parser] rung-1 parity ok (${#SOURCE_PAIRS[@]} sources byte-equal; backends=$BACKENDS; live-drift=$ANY_DRIFT_GUARD_RAN)"

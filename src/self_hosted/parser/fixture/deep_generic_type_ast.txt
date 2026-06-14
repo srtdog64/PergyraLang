@@ -1,0 +1,8 @@
+Program:
+  Function: Main
+    Parameters:
+    Returns: Void
+    Body:
+      Block:
+        Let: buckets : HashMap<String: String, List: List<HashMap: HashMap<Int: Int, Array: Array<String: String>>>> = MapNew()
+        Let: labels : Array<List: List<HashMap: HashMap<String: String, Int: Int>>> = []

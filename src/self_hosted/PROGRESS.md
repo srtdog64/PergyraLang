@@ -26,10 +26,10 @@ Refresh:
 `bash src/self_hosted/parity/parser_scale_probe.sh`. 7 of the 117
 examples fail under `pgy --ast` itself (C-skip).
 
-**Rung-1 parity (2026-06-10, end of session):** the committed
-`parser_parity.sh` `SOURCE_PAIRS` array now exercises **186
-sources** vs `pgy --ast` (was 83 on 2026-05-29; +103 in one
-session). The added fixture surface covers Option/Result
+**Rung-1 parity (2026-06-15):** the committed
+`parser_parity.sh` `SOURCE_PAIRS` array now exercises **187
+sources** vs `pgy --ast` on both generated C and LLVM parser binaries
+(was 83 on 2026-05-29; +104 overall). The added fixture surface covers Option/Result
 destructure, slot sugar, transfer short syntax, array literal,
 common collection algorithms (queue, stack, deque, heap,
 linked_list, hash_map, union_find, graph_bfs), string + stdlib +
@@ -46,9 +46,10 @@ generic_class, subject_object_tobject, vessel_method_test,
 test_parallel, eda/etl workflows, channel_parallel,
 producer_consumer, projection_*, collections_closure_probe,
 class_method_test, channel_test, spawn_blocking_test,
-import_test, slots, and slots_simple. The self-host parser
-already handles each addition byte-equally — the additions
-extend rung-1 parity coverage, not the parser grammar.
+import_test, slots, slots_simple, and a deep nested generic type fixture
+(`HashMap<String, List<HashMap<Int, Array<String>>>>`). The parser parity
+gate now compiles the Pergyra-origin parser through both C and LLVM before
+comparing each fixture byte-for-byte.
 
 Examples that **cannot** be added as fixtures (current state):
 - `pgy --ast` itself fails (skipped):
@@ -210,10 +211,10 @@ beyond the lexer:
   return a deterministic, sorted snapshot with explicit error reporting so
   tools such as ast-read-surface and doc/example checkers can run without
   shell `find`/`grep` as the inventory owner.
-- **Parser LLVM depth/type-inference parity** -- parser parity is byte-equal
-  over the current runner set, but hard self-host needs the same parser
-  fixtures to compile and run through both C and LLVM, including deep nested
-  type/depth inference cases that currently risk becoming C-only evidence.
+- **Parser LLVM depth/type-inference parity** -- `parser_parity.sh` now
+  compiles the self-host parser through both C and LLVM and includes a deep
+  nested generic type fixture. Remaining parser work is grammar breadth and
+  the scale-probe drift list, not C-only backend evidence.
 
 The remaining lifts are the candidate scope before step 3 of the substitution
 roadmap can start.

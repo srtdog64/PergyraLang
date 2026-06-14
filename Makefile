@@ -190,6 +190,7 @@ LLVM_INSTALL = C:/Program Files/LLVM
 LLVM_ENABLED ?= 1
 STDLIB_BACKENDS ?= $(if $(filter 0,$(LLVM_ENABLED)),c,c llvm)
 STAGE4_DETERMINISM_BACKENDS ?= $(if $(filter 0,$(LLVM_ENABLED)),c,c llvm)
+SELFHOST_PARSER_BACKENDS ?= $(if $(filter 0,$(LLVM_ENABLED)),c,c llvm)
 RUNTIME_PANIC_CODEGEN_BACKENDS ?= $(if $(filter 0,$(LLVM_ENABLED)),c,c llvm)
 AIR_NONIMPACT_BACKENDS ?= $(if $(filter 0,$(LLVM_ENABLED)),c,c llvm)
 AIR_NONIMPACT_CASE_LIMIT ?=
@@ -1870,6 +1871,7 @@ self-host-preparation-test-smoke: $(PGY)
 	PGY_BIN="$(abspath $(PGY))" "$(BASH)" src/self_hosted/parity/doc_link_checker_parity.sh
 	PGY_BIN="$(abspath $(PGY))" "$(BASH)" src/self_hosted/parity/examples_inventory_checker_parity.sh
 	PGY_BIN="$(abspath $(PGY))" "$(BASH)" src/self_hosted/parity/lexer_parity.sh
+	PGY_SELFHOST_PARSER_BACKENDS="$${PGY_SELFHOST_PARSER_BACKENDS:-$(SELFHOST_PARSER_BACKENDS)}" \
 	PGY_BIN="$(abspath $(PGY))" "$(BASH)" src/self_hosted/parity/parser_parity.sh
 	PGY_BIN="$(abspath $(PGY))" "$(BASH)" src/self_hosted/parity/module_manifest_resolver_parity.sh
 	PGY_BIN="$(abspath $(PGY))" "$(BASH)" src/self_hosted/parity/production_c_size_checker_parity.sh
@@ -1895,6 +1897,7 @@ self-host-lexer-parity-test-smoke: $(PGY)
 self-host-lex-minimal-parity-test-smoke: self-host-lexer-parity-test-smoke
 
 self-host-parser-parity-test-smoke: $(PGY)
+	PGY_SELFHOST_PARSER_BACKENDS="$${PGY_SELFHOST_PARSER_BACKENDS:-$(SELFHOST_PARSER_BACKENDS)}" \
 	"$(BASH)" src/self_hosted/parity/parser_parity.sh
 
 debug-hygiene-test-smoke:

@@ -504,10 +504,11 @@ func IsPrimitiveType(base_type: String) -> Bool {
     return false;
 }
 
-// Read a type annotation, supporting generic args like `Array<Int>` or
-// `Map<String, Int>`. The C parser's text-tree printer emits each type
-// argument twice with a `:` separator (e.g. `Array<Int: Int>`,
-// `Map<String: String, Int: Int>`), so we mirror that quirk exactly.
+// Read a type annotation, supporting nested generic args like
+// `HashMap<String, List<Int>>`. The C parser's text-tree printer emits each
+// type argument as `Label: FullType` (e.g. `Array<Int: Int>`,
+// `HashMap<String: String, List: List<Int: Int>>`), so we mirror that quirk
+// exactly.
 func ReadType(content: String, start: Int, cursor_out: Array<Int>) -> String {
     let i: Int = SkipWhitespaceAndComments(content, start);
     ArraySet(cursor_out, 0, i);
@@ -527,12 +528,18 @@ func ReadType(content: String, start: Int, cursor_out: Array<Int>) -> String {
     while true {
         i = SkipWhitespaceAndComments(content, i);
         ArraySet(cursor_out, 0, i);
-        let arg: String = ReadIdent(content, i, cursor_out);
+        let arg: String = ReadType(content, i, cursor_out);
         i = cursor_out[0];
         if StringLength(arg) == 0 {
             Exit(1);
         }
-        let printed: String = Concat(arg, Concat(": ", arg));
+        let label: String = "";
+        let label_i: Int = 0;
+        while label_i < StringLength(arg) && CharAt(arg, label_i) != "<" {
+            label = Concat(label, CharAt(arg, label_i));
+            label_i = label_i + 1;
+        }
+        let printed: String = Concat(label, Concat(": ", arg));
         if StringLength(args) == 0 {
             args = printed;
         } else {
