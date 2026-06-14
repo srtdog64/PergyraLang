@@ -1,0 +1,22 @@
+class Pair<T> {
+    let first: T;
+    let second: T;
+
+    func GetFirst(self) -> T {
+        return self.first;
+    }
+
+    func GetSecond(self) -> T {
+        return self.second;
+    }
+}
+
+func Main() -> Void {
+    let ints: Pair<Int> = Pair(3, 7);
+    Log(ints.GetFirst());
+    Log(ints.GetSecond());
+
+    let strings: Pair<String> = Pair("hello", "world");
+    Log(strings.GetFirst());
+    Log(strings.GetSecond());
+}

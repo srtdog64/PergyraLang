@@ -279,21 +279,11 @@ llvm_mir_decl_method_routine(const LLVMGenCtx *ctx,
 }
 
 ASTNode *
-llvm_mir_decl_method_body_decl(const LLVMGenCtx *ctx,
-                               const MIRDeclMethod *method)
-{
-    const MIRRoutine *routine = llvm_mir_decl_method_routine(ctx, method);
-    return mir_routine_source_decl_of_type(
-        routine, MIR_SCOPE_METHOD, AST_FUNC_DECL);
-}
-
-ASTNode *
 llvm_find_host_method_decl_in_context(const LLVMGenCtx *ctx,
                                       const char *host_type_name,
                                       const char *method_name)
 {
     const MIRDeclMethod *method = NULL;
-    ASTNode *method_source = NULL;
     ASTNode *decl = NULL;
     LLVMHostedMethodView method_view;
 
@@ -302,11 +292,10 @@ llvm_find_host_method_decl_in_context(const LLVMGenCtx *ctx,
 
     method = llvm_find_host_method_metadata_in_context(
         ctx, host_type_name, method_name);
-    method_source = llvm_mir_decl_method_body_decl(ctx, method);
-    if (method_source != NULL)
-        return method_source;
-    if (llvm_active_has_mir(ctx))
+    if (llvm_active_has_mir(ctx)) {
+        (void)method;
         return NULL;
+    }
 
     decl = llvm_find_host_decl_in_active_inventory(ctx, host_type_name);
     if (decl == NULL && ctx->current_host_decl != NULL) {

@@ -606,6 +606,7 @@ main() {
         "tests/cases/backend_compare/function_routine_prefix_collision"
         "tests/cases/backend_compare/method_routine_prefix_collision"
         "tests/cases/backend_compare/generic_identity_multi"
+        "tests/cases/backend_compare/generic_class_method"
         "tests/cases/backend_compare/set_string_ops"
         "tests/cases/backend_compare/class_method_self_access"
         "tests/cases/backend_compare/class_chain_methods"

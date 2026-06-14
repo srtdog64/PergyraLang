@@ -27,7 +27,7 @@ field declaration back-pointers are removed,
 and MIR validation no longer compares generic, enum, method, or field metadata
 against original AST nodes. The remaining AST-returning declaration-header
 compatibility API is now separately ratcheted as source_decl codegen 2 /
-compiler 1, and routine source-decl compatibility is ratcheted at codegen 5.
+compiler 1, and routine source-decl compatibility is ratcheted at codegen 4.
 
 ## Tiers
 
@@ -41,7 +41,7 @@ ACTIVE means it is on the critical path and still in progress.
 | 2 | Collections + iteration | SUBSET | stdlib_surface_smoke, stage4_determinism_smoke | List/Set/HashMap exist over a key-type subset (String, Int, Long, Bool); MapKeys order is locked for stable key types and Stage 4 insertion-order determinism is gated; broaden symbol/record/handle keys and ordered set snapshots |
 | 3 | String/path/Unicode policy | READY | unicode_policy_smoke, source_utf8_smoke, memory_string_safety_smoke, filesystem_directory_walk_smoke | stable comparison, normalization, and deterministic directory snapshot stance gated |
 | 4 | Arena/ownership ergonomics | SUBSET | verify_arena_closure, runtime_abi_lifetime_smoke, abi_ownership_shape_smoke | the allocation mechanism exists; the per-pass scratch/result/persistent lanes that remove manual boilerplate do not yet |
-| 5 | CFG/MIR body as SoT | ACTIVE | cfg_body_dataflow_smoke, ast_read_surface_smoke, mir_or_abort_invariant_smoke, ast_read_surface_checker_parity | non_cfg fallback locked at 0; backend source_ast frontier locked at 0; compiler declaration-header payload remains at 2; source_decl is ratcheted at codegen 2 / compiler 1, and routine_source_decl_codegen is ratcheted at 5. This is task 74 |
+| 5 | CFG/MIR body as SoT | ACTIVE | cfg_body_dataflow_smoke, ast_read_surface_smoke, mir_or_abort_invariant_smoke, ast_read_surface_checker_parity | non_cfg fallback locked at 0; backend source_ast frontier locked at 0; compiler declaration-header payload remains at 2; source_decl is ratcheted at codegen 2 / compiler 1, and routine_source_decl_codegen is ratcheted at 4. This is task 74 |
 | 6 | AIR as verifier | READY | air_json_schema_smoke, air_drift_smoke, air_backend_nonimpact_smoke | pgy.air.graph.v1 evidence export gated; drift count enforced at 0 |
 | 7 | DAG type resolution SoT | READY | type_resolution_dag_smoke, type_resolution_resolver_inventory_smoke | recursive resolver compat path retired; metadata_dead_ends enforced at 0 |
 | 8 | Scoped unsafe/raw escape | READY | raw_escape_contract_smoke | unsafe is scoped and capability-bound; raw pointers gated out of domain code |
@@ -103,7 +103,7 @@ none can be closed from a static pass alone.
 Capability 5 (CFG/MIR SoT, task 74). Mechanism mostly complete: non_cfg body
 facts are MIR-owned and locked at zero fallback, the source_ast ratchet is now
 codegen 0 / compiler 2, source_decl is ratcheted at codegen 2 / compiler 1,
-routine_source_decl_codegen is ratcheted at 5, and the shared ratchet manifest
+routine_source_decl_codegen is ratcheted at 4, and the shared ratchet manifest
 is verified by both the shell smoke and a
 Pergyra-written ast_read_surface_checker parity rung. The
 dead slot-source accessors have been deleted. Against the original codegen
@@ -121,8 +121,10 @@ consume MIRDeclField initializer metadata instead of recovering source AST
 nodes, and the unused shared-field source accessors are retired. C class/zone
 specialization scans now reach method bodies through linked MIRRoutine
 provenance instead of the hosted-method source view, and the C/LLVM routine
-source thin aliases are retired. C/LLVM method body compatibility now goes
-through backend helpers that follow the MIRDeclMethod routine link, so direct
+source thin aliases are retired. LLVM generic class method specialization now
+uses MIRDeclMethod routine metadata directly, and the LLVM method body AST
+compatibility accessor is retired. C method body compatibility still goes
+through a backend helper that follows the MIRDeclMethod routine link, so direct
 backend method source back-pointer reads are retired. C MIR emission-contract
 compatibility now validates routine kind/name/signature facts without opening
 routine source_ast, and LLVM intent forward declarations now use MIR routine

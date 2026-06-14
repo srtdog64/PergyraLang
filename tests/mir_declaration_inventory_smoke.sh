@@ -2585,8 +2585,7 @@ for term in \
     "llvm_mir_decl_method_is_action_like" \
     "llvm_mir_decl_method_within_zone" \
     "llvm_mir_decl_method_causes_effect" \
-    "llvm_mir_decl_method_routine" \
-    "llvm_mir_decl_method_body_decl"; do
+    "llvm_mir_decl_method_routine"; do
     require_term "src/codegen/llvm_inventory_host_methods.h" "$term"
 done
 if grep -Fq "llvm_hosted_method_view_routine" \
@@ -2617,7 +2616,12 @@ fi
 if grep -RIn "mir_decl_method_source_ast(" \
         "$ROOT_DIR/src/codegen"/llvm_*.c \
         "$ROOT_DIR/src/codegen"/llvm_*.h; then
-    fail "LLVM backend method body compatibility must go through llvm_mir_decl_method_body_decl"
+    fail "LLVM backend method body compatibility must stay retired; consume MIRDeclMethod metadata/routines"
+fi
+if grep -RIn "llvm_mir_decl_method_body_decl" \
+        "$ROOT_DIR/src/codegen"/llvm_*.c \
+        "$ROOT_DIR/src/codegen"/llvm_*.h; then
+    fail "LLVM method body AST compatibility accessor must stay retired"
 fi
 require_term "src/codegen/llvm_inventory_host_methods.h" "ast_compat_methods"
 require_term "src/codegen/llvm_inventory_host_methods.h" "ast_compat_count"
@@ -2811,8 +2815,6 @@ for rel in \
     "src/codegen/transpiler_decl_lookup.c"; do
     require_term "$rel" "mir_decl_header_source_decl("
 done
-require_term "src/codegen/llvm_inventory_host_methods.c" \
-    "llvm_mir_decl_method_body_decl("
 if grep -RIn "mir_decl_method_source_ast(" \
         "$ROOT_DIR/src/codegen"/transpiler_*.c \
         "$ROOT_DIR/src/codegen"/transpiler_*.h; then
@@ -2880,9 +2882,15 @@ for term in \
     "mir_decl_method_routine_index(method, &routine_index)" \
     "llvm_active_routine_inventory(ctx, &inventory)" \
     "llvm_routine_inventory_get(&inventory, routine_index)" \
-    "llvm_mir_decl_method_routine(" \
-    "llvm_mir_decl_method_body_decl("; do
+    "llvm_mir_decl_method_routine("; do
     require_term "src/codegen/llvm_inventory_host_methods.c" "$term"
+done
+for term in \
+    "llvm_find_host_method_metadata_in_context(ctx, base" \
+    "llvm_mir_decl_method_routine(ctx, method_meta)" \
+    "specialized.owner_name = class_name" \
+    "llvm_emit_func_from_mir(&specialized, ctx)"; do
+    require_term "src/codegen/llvm_member_call_specialize.c" "$term"
 done
 if grep -RInE 'method->(name|params|param_count|return_type|is_action_like|has_routine|routine_index)|methods\[[^]]+\]\.name' \
         "$ROOT_DIR/src/codegen/llvm_inventory_host_methods.c"; then
