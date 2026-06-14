@@ -10,7 +10,11 @@
 #include <string.h>
 
 #include "llvm_boundary_slot_param.h"
+#include "llvm_backend_generic.h"
+#include "llvm_inventory_decl_lookup.h"
 #include "llvm_internal_api.h"
+#include "llvm_mir_signature.h"
+#include "../compiler/mir_decl_headers.h"
 #include "../common/string_compat.h"
 #include "../parser/ast_api.h"
 
@@ -72,10 +76,21 @@ LLVMFuncEntry *
 llvm_resolve_callee_entry(LLVMGenCtx *ctx, const char *callee_name,
                           LLVMValueRef *args, size_t argc)
 {
-    ASTNode *generic_ast = llvm_lookup_generic_template(ctx, callee_name);
+    const LLVMGenericTemplate *generic_template =
+        llvm_lookup_generic_template_entry(ctx, callee_name);
+    ASTNode *generic_ast = generic_template != NULL
+        ? generic_template->ast
+        : NULL;
+    const MIRRoutine *generic_routine = generic_template != NULL
+        ? generic_template->routine
+        : NULL;
+    const MIRDeclHeader *generic_header = generic_routine != NULL
+        ? llvm_find_decl_header_in_context_of_type(ctx, AST_FUNC_DECL,
+            callee_name)
+        : NULL;
     char mangled[256];
 
-    if (generic_ast == NULL)
+    if (generic_template == NULL)
         return llvm_lookup_function(ctx, callee_name);
 
     if (!llvm_spawn_copy_name(ctx, generic_ast, mangled, sizeof(mangled),
@@ -92,28 +107,25 @@ llvm_resolve_callee_entry(LLVMGenCtx *ctx, const char *callee_name,
     if (!llvm_mono_already_emitted(ctx, mangled)) {
         GenericParams *gp;
         int saved_subst;
-        LLVMBasicBlockRef saved_bb;
-        LLVMLexicalRegistrySnapshot lexical_snapshot;
-        LLVMValueRef saved_fn;
-        LLVMTypeRef saved_ret;
-        LLVMTypeRef saved_function_ret;
-        const char *saved_return_type_name;
-        ASTNode *saved_return_callable_type;
-        LLVMTypeRef ret = ctx->type_void;
-        size_t pc;
-        LLVMTypeRef *ptypes;
-        size_t real_pc = 0;
-        LLVMTypeRef ft;
-        LLVMValueRef mono_fn;
-        LLVMBasicBlockRef entry;
 
-        gp = ast_declaration_generic_params(generic_ast);
+        gp = generic_header == NULL
+            ? ast_declaration_generic_params(generic_ast)
+            : NULL;
         saved_subst = ctx->type_subst_count;
         ctx->type_subst_count = 0;
-        size_t generic_count = ast_generic_param_count(gp);
+        size_t generic_count = generic_header != NULL
+            ? mir_decl_header_generic_param_count(generic_header)
+            : ast_generic_param_count(gp);
         for (size_t gi = 0; gi < generic_count && gi < 8; gi++) {
-            GenericParam *generic_param = ast_generic_param_at(gp, gi);
-            const char *param_name = ast_generic_param_name(generic_param);
+            const MIRDeclGenericParam *generic_meta = generic_header != NULL
+                ? mir_decl_header_generic_param(generic_header, gi)
+                : NULL;
+            GenericParam *generic_param = generic_header == NULL
+                ? ast_generic_param_at(gp, gi)
+                : NULL;
+            const char *param_name = generic_meta != NULL
+                ? mir_decl_generic_param_name(generic_meta)
+                : ast_generic_param_name(generic_param);
             const char *suffix;
             LLVMTypeRef concrete;
             if (param_name == NULL || gi >= argc || args == NULL
@@ -142,6 +154,117 @@ llvm_resolve_callee_entry(LLVMGenCtx *ctx, const char *callee_name,
             ctx->type_subst[ctx->type_subst_count].type_name = suffix;
             ctx->type_subst_count++;
         }
+
+        if (generic_routine != NULL) {
+            LLVMTypeRef ret = ctx->type_void;
+            const char *return_type_name =
+                llvm_mir_routine_return_type_name(generic_routine);
+            ASTNode *return_type =
+                llvm_mir_routine_return_type(generic_routine);
+            size_t pc;
+            LLVMTypeRef *ptypes;
+            size_t real_pc = 0;
+            LLVMTypeRef ft;
+            LLVMValueRef mono_fn;
+            MIRRoutine specialized;
+            LLVMValueRef emitted;
+
+            if (generic_header == NULL) {
+                llvm_set_mir_inventory_missing(ctx,
+                    "MIR-only LLVM path missing generic function header metadata for '%s'",
+                    callee_name != NULL ? callee_name : "(anonymous)");
+                ctx->type_subst_count = saved_subst;
+                return NULL;
+            }
+            if (!llvm_mir_routine_signature_metadata_complete(ctx,
+                    generic_routine,
+                    generic_ast,
+                    "MIR-only LLVM path missing generic function signature metadata for '%s'",
+                    "MIR-only LLVM path missing generic function return type-name metadata for '%s'",
+                    "MIR-only LLVM path missing generic function parameter type-name metadata for '%s'")) {
+                ctx->type_subst_count = saved_subst;
+                return NULL;
+            }
+            if (return_type_name != NULL)
+                ret = pergyra_type_to_llvm(ctx, return_type_name);
+            else if (return_type != NULL)
+                ret = ast_type_to_llvm(ctx, return_type);
+            if (ctx->has_error || ret == NULL) {
+                ctx->type_subst_count = saved_subst;
+                return NULL;
+            }
+
+            pc = llvm_mir_routine_param_count(generic_routine);
+            ptypes = pgy_arena_calloc(&ctx->scratch,
+                ((pc * 2) > 0 ? (pc * 2) : 1) * sizeof(LLVMTypeRef));
+            if (ptypes == NULL) {
+                llvm_set_error_at_with_hints(ctx, generic_ast,
+                    PGY_CODE_LLVM_TYPE_UNSUPPORTED,
+                    PGY_CAUSE_LLVM_TYPE_UNSUPPORTED,
+                    PGY_FIX_INSPECT_MIR_INVENTORY,
+                    "LLVM generic specialization parameter type allocation failed for '%s'",
+                    callee_name != NULL ? callee_name : "<anonymous>");
+                ctx->type_subst_count = saved_subst;
+                return NULL;
+            }
+            for (size_t k = 0; k < pc; k++) {
+                FuncParam *p = llvm_mir_routine_param(generic_routine, k);
+                const char *param_type_name =
+                    llvm_mir_routine_param_type_name(generic_routine, k);
+                bool is_secure = false;
+                const char *inner;
+                LLVMTypeRef pt;
+
+                if (llvm_param_is_implicit_self(p))
+                    continue;
+                if (p == NULL || p->name == NULL)
+                    continue;
+                inner = param_type_name != NULL
+                    ? llvm_boundary_slot_inner_name_from_type_name(ctx,
+                        p, param_type_name, &is_secure)
+                    : llvm_boundary_slot_inner_name(ctx, p, &is_secure);
+                pt = param_type_name != NULL
+                    ? pergyra_type_to_llvm(ctx, param_type_name)
+                    : llvm_spawn_required_param_type(ctx, generic_ast, p,
+                        callee_name);
+                if (ctx->has_error || pt == NULL) {
+                    ctx->type_subst_count = saved_subst;
+                    return NULL;
+                }
+                ptypes[real_pc++] =
+                    inner != NULL ? LLVMPointerType(pt, 0) : pt;
+                if (inner != NULL && is_secure)
+                    ptypes[real_pc++] = llvm_secure_token_type(ctx, inner);
+            }
+
+            ft = LLVMFunctionType(ret, ptypes, (unsigned)real_pc, 0);
+            llvm_register_mono(ctx, mangled);
+            mono_fn = LLVMAddFunction(ctx->module, mangled, ft);
+            llvm_register_function(ctx, mangled, mono_fn, ft, ret);
+
+            specialized = *generic_routine;
+            specialized.name = mangled;
+            emitted = llvm_emit_func_from_mir(&specialized, ctx);
+            ctx->type_subst_count = saved_subst;
+            if (emitted == NULL || ctx->has_error)
+                return NULL;
+            return llvm_lookup_function(ctx, mangled);
+        }
+
+        LLVMBasicBlockRef saved_bb;
+        LLVMLexicalRegistrySnapshot lexical_snapshot;
+        LLVMValueRef saved_fn;
+        LLVMTypeRef saved_ret;
+        LLVMTypeRef saved_function_ret;
+        const char *saved_return_type_name;
+        ASTNode *saved_return_callable_type;
+        LLVMTypeRef ret = ctx->type_void;
+        size_t pc;
+        LLVMTypeRef *ptypes;
+        size_t real_pc = 0;
+        LLVMTypeRef ft;
+        LLVMValueRef mono_fn;
+        LLVMBasicBlockRef entry;
 
         saved_bb = LLVMGetInsertBlock(ctx->builder);
         saved_fn = ctx->current_function;

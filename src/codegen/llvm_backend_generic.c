@@ -7,6 +7,8 @@
 
 #ifdef PGY_LLVM_ENABLED
 
+#include "llvm_backend_generic.h"
+#include "llvm_inventory_internal.h"
 #include "llvm_internal.h"
 
 const char *
@@ -18,27 +20,47 @@ llvm_tmp_name(LLVMGenCtx *ctx)
     return name != NULL ? name : "t";
 }
 
-ASTNode *
-llvm_lookup_generic_template(LLVMGenCtx *ctx, const char *name)
+const LLVMGenericTemplate *
+llvm_lookup_generic_template_entry(LLVMGenCtx *ctx, const char *name)
 {
+    if (ctx == NULL || name == NULL)
+        return NULL;
     for (int i = 0; i < ctx->generic_template_count; i++) {
         if (strcmp(ctx->generic_templates[i].name, name) == 0)
-            return ctx->generic_templates[i].ast;
+            return &ctx->generic_templates[i];
     }
     return NULL;
 }
 
-bool
-llvm_register_generic_template_decl(LLVMGenCtx *ctx, ASTNode *func_decl)
+ASTNode *
+llvm_lookup_generic_template(LLVMGenCtx *ctx, const char *name)
 {
-    if (ctx == NULL || func_decl == NULL || func_decl->type != AST_FUNC_DECL)
-        return false;
+    const LLVMGenericTemplate *entry =
+        llvm_lookup_generic_template_entry(ctx, name);
+    return entry != NULL ? entry->ast : NULL;
+}
 
-    const char *name = ast_declaration_name(func_decl);
+static bool
+llvm_register_generic_template_entry(LLVMGenCtx *ctx,
+                                     const char *name,
+                                     ASTNode *func_decl,
+                                     const MIRRoutine *routine)
+{
+    LLVMGenericTemplate *entry;
+
+    if (ctx == NULL)
+        return false;
     if (name == NULL)
         return false;
-    if (llvm_lookup_generic_template(ctx, name) != NULL)
+    entry = (LLVMGenericTemplate *)llvm_lookup_generic_template_entry(ctx,
+        name);
+    if (entry != NULL) {
+        if (entry->ast == NULL)
+            entry->ast = func_decl;
+        if (entry->routine == NULL)
+            entry->routine = routine;
         return true;
+    }
 
     if (ctx->generic_template_count >= ctx->generic_template_capacity) {
         int new_capacity = ctx->generic_template_capacity == 0
@@ -64,8 +86,32 @@ llvm_register_generic_template_decl(LLVMGenCtx *ctx, ASTNode *func_decl)
 
     ctx->generic_templates[ctx->generic_template_count].name = name;
     ctx->generic_templates[ctx->generic_template_count].ast = func_decl;
+    ctx->generic_templates[ctx->generic_template_count].routine = routine;
     ctx->generic_template_count++;
     return true;
+}
+
+bool
+llvm_register_generic_template_decl(LLVMGenCtx *ctx, ASTNode *func_decl)
+{
+    if (ctx == NULL || func_decl == NULL || func_decl->type != AST_FUNC_DECL)
+        return false;
+
+    return llvm_register_generic_template_entry(
+        ctx, ast_declaration_name(func_decl), func_decl, NULL);
+}
+
+bool
+llvm_register_generic_template_routine(LLVMGenCtx *ctx,
+                                       const MIRRoutine *routine)
+{
+    if (ctx == NULL || routine == NULL
+        || llvm_mir_routine_kind(routine) != MIR_SCOPE_FUNCTION) {
+        return false;
+    }
+
+    return llvm_register_generic_template_entry(
+        ctx, llvm_mir_routine_name(routine), NULL, routine);
 }
 
 bool

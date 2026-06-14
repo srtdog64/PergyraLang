@@ -1,0 +1,6 @@
+func Main() -> Void {
+	Log("hi");
+    // TODO: refactor this
+    // FIXME: finish this
+    let x: Int = 1;
+}

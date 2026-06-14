@@ -258,8 +258,9 @@ typedef struct
 /* Generic template entry (for lazy monomorphization) */
 typedef struct
 {
-    const char *name;
-    ASTNode    *ast;
+    const char       *name;
+    ASTNode          *ast;
+    const MIRRoutine *routine;
 } LLVMGenericTemplate;
 
 /* Monomorphized instance tracking */

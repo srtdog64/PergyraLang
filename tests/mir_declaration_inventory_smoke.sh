@@ -3827,11 +3827,20 @@ for rel in \
     fi
 done
 for term in \
+    "llvm_lookup_generic_template_entry(LLVMGenCtx *ctx, const char *name)" \
+    "llvm_register_generic_template_entry(LLVMGenCtx *ctx," \
+    "const MIRRoutine *routine)" \
+    "ctx->generic_templates[ctx->generic_template_count].routine = routine" \
     "llvm_register_generic_template_decl(LLVMGenCtx *ctx, ASTNode *func_decl)" \
-    "ctx->generic_templates[ctx->generic_template_count].name = name" \
-    "llvm_lookup_generic_template(ctx, name)"; do
+    "llvm_register_generic_template_routine(LLVMGenCtx *ctx," \
+    "llvm_mir_routine_kind(routine) != MIR_SCOPE_FUNCTION" \
+    "llvm_lookup_generic_template(LLVMGenCtx *ctx, const char *name)"; do
     require_term "src/codegen/llvm_backend_generic.c" "$term"
 done
+require_term "src/codegen/llvm_backend_generic.h" \
+    "llvm_lookup_generic_template_entry("
+require_term "src/codegen/llvm_internal.h" \
+    "const MIRRoutine *routine"
 if grep -Fq "ctx->generic_templates" \
     "$ROOT_DIR/src/codegen/llvm_pipeline.c"; then
     fail "LLVM pipeline must not mutate the generic-template registry directly"
@@ -3869,16 +3878,22 @@ for term in \
     "llvm_forward_declare_function_routines_from_inventory(" \
     "llvm_emit_function_routines_from_inventory(" \
     "llvm_validate_function_routine_bodies_from_inventory(" \
-    "llvm_decl_require_function_source_decl(" \
     "llvm_decl_function_routine_has_body_storage(" \
     "routine->block_count > 0 && routine->blocks != NULL" \
-    "mir_routine_source_decl_of_type(" \
-    "llvm_register_generic_template_decl(ctx, func_decl)" \
+    "llvm_register_generic_template_routine(ctx, routine)" \
     "llvm_emit_func_from_mir(routine, ctx)" \
     "MIR-only LLVM path missing routine for function" \
-    "MIR-only LLVM path missing function source declaration for routine" \
     "MIR-only LLVM path has invalid function routine inventory row"; do
     require_term "src/codegen/llvm_decl_routines.c" "$term"
+done
+for forbidden in \
+    "llvm_decl_require_function_source_decl(" \
+    "mir_routine_source_decl_of_type(" \
+    "llvm_register_generic_template_decl(ctx,"; do
+    if grep -Fq "$forbidden" \
+        "$ROOT_DIR/src/codegen/llvm_decl_routines.c"; then
+        fail "LLVM function routine inventory owner must not recover generic/source declarations through $forbidden"
+    fi
 done
 if awk '
     /llvm_validate_function_routine_bodies_from_inventory\(/ { in_fn = 1 }
@@ -3902,6 +3917,17 @@ if grep -Fq "instruction_count > 0" \
 fi
 require_term "src/codegen/llvm_decl_routines.c" \
     "llvm_mir_or_ast_function_is_generic(routine, NULL)"
+for term in \
+    "const LLVMGenericTemplate *generic_template =" \
+    "llvm_lookup_generic_template_entry(ctx, callee_name)" \
+    "generic_template->routine" \
+    "mir_decl_header_generic_param_count(generic_header)" \
+    "llvm_mir_routine_signature_metadata_complete(ctx," \
+    "specialized = *generic_routine" \
+    "specialized.name = mangled" \
+    "llvm_emit_func_from_mir(&specialized, ctx)"; do
+    require_term "src/codegen/llvm_expr_spawn_generic.c" "$term"
+done
 require_term "src/codegen/llvm_mir_emit.c" \
     "MIR-only LLVM path missing function source declaration for routine"
 require_term "src/codegen/llvm_mir_emit.c" \

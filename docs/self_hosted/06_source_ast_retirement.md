@@ -46,7 +46,7 @@ both the shell smoke and the self-hosted ast_read_surface_checker parity rung.
 The same manifest now also tracks the AST-returning declaration-header
 compatibility boundary: `mir_decl_header_source_decl` is locked at codegen 2
 and compiler 1 until that API is removed. Routine source-decl compatibility is
-tracked separately as `routine_source_decl_codegen`, locked at 4.
+tracked separately as `routine_source_decl_codegen`, locked at 3.
 
 tests/source_ast_inventory.sh ranks the remaining readers per file so the
 cutover is driven hotspot first. The codegen frontier is now 0 and the
@@ -55,7 +55,9 @@ source accessors, hosted-method source view accessors, the LLVM method body AST
 compatibility accessor, and thin C/LLVM routine source aliases are retired.
 LLVM generic class method specialization follows the MIRDeclMethod routine
 link; C method body compatibility still follows the MIRDeclMethod routine link
-through the remaining C body-emission bridge. Routine source declaration checks go through the
+through the remaining C body-emission bridge. LLVM generic function template
+registration records MIRRoutine entries and specializes through that routine.
+Routine source declaration checks go through the
 compiler-owned `mir_routine_source_decl_of_type`, and declaration lookup uses
 `mir_decl_header_source_decl`. No backend `.c` file now contains a `source_ast`
 read. The remaining 2 occurrences are compiler-owned declaration-header payload
@@ -63,7 +65,7 @@ plumbing: the `MIRDeclHeader.source_ast` assignment and accessor. Method and fie
 dead `mir_decl_header_ast_shape` compatibility arm that recomputed header shape
 from the origin AST is deleted. The next slice removes the declaration-header
 payload boundary, now measured separately as source_decl 2/1. Routine source-decl compatibility is
-measured separately at 4 so method/body compatibility cannot grow while that
+measured separately at 3 so method/body compatibility cannot grow while that
 payload boundary is retired.
 
 src/self_hosted/parity/ast_read_surface_checker_parity.sh runs the same

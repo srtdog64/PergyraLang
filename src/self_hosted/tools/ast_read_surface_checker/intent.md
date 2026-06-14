@@ -39,7 +39,7 @@ JSON document on stdout, conforming to schema
     "source_ast_compiler": 2,
     "source_decl_codegen": 2,
     "source_decl_compiler": 1,
-    "routine_source_decl_codegen": 4,
+    "routine_source_decl_codegen": 3,
     "violations": 0
   },
   "findings": []
@@ -64,6 +64,7 @@ The shell oracle is `tests/ast_read_surface_smoke.sh`. The parity rung asserts:
 ## Not In Scope
 
 - Classifying provenance vs semantic readers.
-- Directory walking in Pergyra; the shell parity harness keeps manifest
-  coverage closed.
+- Recursive repo discovery in this tool; the current checker consumes the
+  explicit shared manifest while the filesystem substrate owns deterministic
+  directory walks separately.
 - Changing the ratchet values without retiring readers first.

@@ -6,6 +6,7 @@
 #ifdef PGY_LLVM_ENABLED
 
 #include "host_decl_compat.h"
+#include "llvm_backend_generic.h"
 #include "llvm_internal.h"
 #include "llvm_inventory_decl_lookup.h"
 #include "parser/ast_api.h"

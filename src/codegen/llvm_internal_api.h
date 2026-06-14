@@ -352,9 +352,6 @@ const char   *llvm_stmt_infer_nominal_name_from_init(LLVMGenCtx *ctx,
                                                      ASTNode *init);
 
 /* Generic monomorphization helpers (llvm_backend_generic.c). */
-ASTNode    *llvm_lookup_generic_template(LLVMGenCtx *ctx, const char *name);
-bool        llvm_register_generic_template_decl(LLVMGenCtx *ctx,
-                                                ASTNode *func_decl);
 bool        llvm_mono_already_emitted(LLVMGenCtx *ctx, const char *mangled);
 void        llvm_register_mono(LLVMGenCtx *ctx, const char *mangled);
 void        llvm_type_subst_restore_owned(LLVMGenCtx *ctx, int saved_count);
