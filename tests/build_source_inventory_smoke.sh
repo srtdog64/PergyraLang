@@ -370,6 +370,7 @@ for smoke in \
     tests/runtime_frontier_contract_smoke.sh \
     tests/runtime_none_contract_smoke.sh \
     tests/runtime_panic_codegen_smoke.sh \
+    tests/stage4_determinism_smoke.sh \
     tests/stdlib_surface_smoke.sh \
     tests/tooling_conformance_smoke.sh \
     tests/unicode_policy_smoke.sh
@@ -423,6 +424,7 @@ for smoke in \
     tests/raw_escape_contract_smoke.sh \
     tests/runtime_none_contract_smoke.sh \
     tests/semantic_fixture_isolation_smoke.sh \
+    tests/stage4_determinism_smoke.sh \
     tests/stdlib_surface_smoke.sh
 do
     if ! grep -Fq 'pgy_require_runnable_binary_here' "$ROOT_DIR/$smoke"; then

@@ -35,7 +35,7 @@ check_gates() {
 echo "[scorecard] hard self-host non-negotiable capabilities"
 echo
 check_gates READY  "1 module/package resolver"    module_smoke.sh package_module_resolver_smoke.sh type_resolution_resolver_inventory_smoke.sh
-check_gates SUBSET "2 collections + iteration"     stdlib_surface_smoke.sh
+check_gates SUBSET "2 collections + iteration"     stdlib_surface_smoke.sh stage4_determinism_smoke.sh
 check_gates READY  "3 string/path/unicode policy"  unicode_policy_smoke.sh source_utf8_smoke.sh memory_string_safety_smoke.sh
 check_gates SUBSET "4 arena/ownership ergonomics"  verify_arena_closure.sh runtime_abi_lifetime_smoke.sh abi_ownership_shape_smoke.sh
 check_gates ACTIVE "5 CFG/MIR body as SoT"         cfg_body_dataflow_smoke.sh ast_read_surface_smoke.sh mir_or_abort_invariant_smoke.sh src/self_hosted/parity/ast_read_surface_checker_parity.sh

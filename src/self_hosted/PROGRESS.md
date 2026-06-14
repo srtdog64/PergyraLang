@@ -201,9 +201,10 @@ beyond the lexer:
   re-run the C compiler. Currently the parity scripts do this from
   bash; a Pergyra runner would need `Subprocess(...)`.
 - **Deterministic collection iteration** -- compiler passes need stable
-  output ordering, not just functional map/set lookup. `MapKeys` has a
-  stable key subset today, but hard self-host needs a Stage 4 gate that
-  compares insertion-order variants and C/LLVM/Pergyra outputs.
+  output ordering, not just functional map/set lookup. `stage4_determinism_smoke`
+  now compares insertion-order variants for `HashMap<String|Int|Long|Bool, T>`
+  through generated Pergyra programs on C and LLVM. Remaining collection lifts
+  are symbol/record/handle keys and ordered set snapshots.
 - **Filesystem directory walk** -- self-hosted validators still rely on
   shell-owned tree enumeration. A Pergyra-owned `DirWalk`/glob surface must
   return a deterministic, sorted snapshot with explicit error reporting so

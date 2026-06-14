@@ -38,7 +38,7 @@ ACTIVE means it is on the critical path and still in progress.
 | # | Capability | Tier | Gate | Remaining gap |
 |---|-----------|------|------|---------------|
 | 1 | Module/package resolver | READY | module_smoke, package_module_resolver_smoke, type_resolution_resolver_inventory_smoke | deterministic imports and cycle diagnostics gated; a resolver tool is already self-hosted |
-| 2 | Collections + iteration | SUBSET | stdlib_surface_smoke | List/Set/HashMap exist over a key-type subset (String, Int, Long, Bool); MapKeys order is locked for stable key types; add the Stage 4 deterministic-iteration gate, then broaden symbol/record/handle keys and ordered set snapshots |
+| 2 | Collections + iteration | SUBSET | stdlib_surface_smoke, stage4_determinism_smoke | List/Set/HashMap exist over a key-type subset (String, Int, Long, Bool); MapKeys order is locked for stable key types and Stage 4 insertion-order determinism is gated; broaden symbol/record/handle keys and ordered set snapshots |
 | 3 | String/path/Unicode policy | READY | unicode_policy_smoke, source_utf8_smoke, memory_string_safety_smoke | stable comparison and normalization stance gated |
 | 4 | Arena/ownership ergonomics | SUBSET | verify_arena_closure, runtime_abi_lifetime_smoke, abi_ownership_shape_smoke | the allocation mechanism exists; the per-pass scratch/result/persistent lanes that remove manual boilerplate do not yet |
 | 5 | CFG/MIR body as SoT | ACTIVE | cfg_body_dataflow_smoke, ast_read_surface_smoke, mir_or_abort_invariant_smoke, ast_read_surface_checker_parity | non_cfg fallback locked at 0; backend source_ast frontier locked at 0; compiler declaration-header payload remains at 2; source_decl is ratcheted at codegen 2 / compiler 1, and routine_source_decl_codegen is ratcheted at 5. This is task 74 |
@@ -63,17 +63,16 @@ rewritten in the language.
 After capability 5, the two SUBSET items are the substrate maturity that turns
 soft self-hosting (compiler-adjacent tools, already real) into something that
 can carry a compiler pass. Capability 2 now has stable `MapKeys` order for the
-stable key subset, but still needs a Stage 4 deterministic-iteration gate that
-proves stable output across insertion orders and across C/LLVM/Pergyra
-comparison runs, then broader symbol/record/handle key types and ordered set
-snapshots. Capability 4 needs arena lanes that remove manual resource
+stable key subset, and `stage4_determinism_smoke` proves stable output across
+insertion orders for C/LLVM-generated Pergyra programs. It still needs broader
+symbol/record/handle key types and ordered set snapshots. Capability 4 needs arena lanes that remove manual resource
 boilerplate from every pass.
 
 Three concrete hard-self-host substrate/tool lifts remain after the current SoT
 burn-down:
 
-- deterministic collection iteration as a Stage 4 gate, not just a runtime
-  convenience;
+- broader deterministic collection iteration for symbol/record/handle keys and
+  ordered set snapshots, beyond the Stage 4 HashMap key-subset gate;
 - parser LLVM depth/type-inference parity, so parser dogfood is no longer
   effectively C-backend-only;
 - deterministic filesystem directory walking, so self-hosted validators can

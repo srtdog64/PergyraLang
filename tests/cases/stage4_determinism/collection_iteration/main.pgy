@@ -1,0 +1,104 @@
+func CheckStringForward() -> Int {
+    let labels: HashMap<String, Int> = MapNew();
+    MapSet(labels, "zeta", 1);
+    MapSet(labels, "alpha", 2);
+    MapSet(labels, "mid", 3);
+    let keys: Array<String> = MapKeys(labels);
+    if ArrayLength(keys) == 3 && keys[0] == "alpha" && keys[1] == "mid" && keys[2] == "zeta" {
+        return 101;
+    }
+    return -101;
+}
+
+func CheckStringReverse() -> Int {
+    let labels: HashMap<String, Int> = MapNew();
+    MapSet(labels, "mid", 3);
+    MapSet(labels, "alpha", 2);
+    MapSet(labels, "zeta", 1);
+    let keys: Array<String> = MapKeys(labels);
+    if ArrayLength(keys) == 3 && keys[0] == "alpha" && keys[1] == "mid" && keys[2] == "zeta" {
+        return 102;
+    }
+    return -102;
+}
+
+func CheckIntForward() -> Int {
+    let numbers: HashMap<Int, Int> = MapNew();
+    MapSet(numbers, 9, 90);
+    MapSet(numbers, 1, 10);
+    MapSet(numbers, 4, 40);
+    let keys: Array<Int> = MapKeys(numbers);
+    if ArrayLength(keys) == 3 && keys[0] == 1 && keys[1] == 4 && keys[2] == 9 {
+        return 201;
+    }
+    return -201;
+}
+
+func CheckIntReverse() -> Int {
+    let numbers: HashMap<Int, Int> = MapNew();
+    MapSet(numbers, 4, 40);
+    MapSet(numbers, 1, 10);
+    MapSet(numbers, 9, 90);
+    let keys: Array<Int> = MapKeys(numbers);
+    if ArrayLength(keys) == 3 && keys[0] == 1 && keys[1] == 4 && keys[2] == 9 {
+        return 202;
+    }
+    return -202;
+}
+
+func CheckLongForward() -> Int {
+    let numbers: HashMap<Long, Int> = MapNew();
+    MapSet(numbers, 9L, 90);
+    MapSet(numbers, 1L, 10);
+    MapSet(numbers, 4L, 40);
+    let keys: Array<Long> = MapKeys(numbers);
+    if ArrayLength(keys) == 3 && keys[0] == 1L && keys[1] == 4L && keys[2] == 9L {
+        return 301;
+    }
+    return -301;
+}
+
+func CheckLongReverse() -> Int {
+    let numbers: HashMap<Long, Int> = MapNew();
+    MapSet(numbers, 4L, 40);
+    MapSet(numbers, 1L, 10);
+    MapSet(numbers, 9L, 90);
+    let keys: Array<Long> = MapKeys(numbers);
+    if ArrayLength(keys) == 3 && keys[0] == 1L && keys[1] == 4L && keys[2] == 9L {
+        return 302;
+    }
+    return -302;
+}
+
+func CheckBoolForward() -> Int {
+    let flags: HashMap<Bool, Int> = MapNew();
+    MapSet(flags, true, 1);
+    MapSet(flags, false, 0);
+    let keys: Array<Bool> = MapKeys(flags);
+    if ArrayLength(keys) == 2 && keys[0] == false && keys[1] == true {
+        return 401;
+    }
+    return -401;
+}
+
+func CheckBoolReverse() -> Int {
+    let flags: HashMap<Bool, Int> = MapNew();
+    MapSet(flags, false, 0);
+    MapSet(flags, true, 1);
+    let keys: Array<Bool> = MapKeys(flags);
+    if ArrayLength(keys) == 2 && keys[0] == false && keys[1] == true {
+        return 402;
+    }
+    return -402;
+}
+
+func Main() -> Void {
+    Log(CheckStringForward());
+    Log(CheckStringReverse());
+    Log(CheckIntForward());
+    Log(CheckIntReverse());
+    Log(CheckLongForward());
+    Log(CheckLongReverse());
+    Log(CheckBoolForward());
+    Log(CheckBoolReverse());
+}
