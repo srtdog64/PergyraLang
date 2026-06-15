@@ -8,6 +8,7 @@
 #include <string.h>
 
 #include "../common/string_compat.h"
+#include "../compiler/mir_decl_headers.h"
 #include "parser/ast_api.h"
 #include "transpiler_decl_lookup.h"
 #include "transpiler_inventory_view.h"
@@ -405,7 +406,14 @@ transpiler_resolve_world_zone_decl(TranspilerCtx *ctx, ASTNode *world_decl,
 bool
 is_subject_type_name(TranspilerCtx *ctx, const char *type_name)
 {
+    const MIRDeclHeader *header;
     ASTNode *decl = find_subject_host_decl(ctx, type_name);
+    header = transpiler_active_decl_header_of_type(
+        ctx, AST_CLASS_DECL, type_name);
+    if (header != NULL) {
+        return mir_decl_header_nominal_kind_or(
+            header, NOMINAL_DECL_CLASS) == NOMINAL_DECL_SUBJECT;
+    }
     if (decl != NULL && !ast_class_is_struct(decl))
         return ast_class_nominal_kind(decl) == NOMINAL_DECL_SUBJECT;
     for (int i = 0; ctx != NULL && i < ctx->generic_class_spec_count; i++) {
@@ -421,10 +429,26 @@ is_subject_type_name(TranspilerCtx *ctx, const char *type_name)
 bool
 is_nominal_host_type_name(TranspilerCtx *ctx, const char *type_name)
 {
+    const MIRDeclHeader *header;
     ASTNode *decl;
 
     if (ctx == NULL || type_name == NULL)
         return false;
+
+    header = transpiler_active_host_decl_header(ctx, type_name);
+    if (header != NULL) {
+        if (mir_decl_header_ast_type_or(header, AST_PROGRAM)
+            != AST_CLASS_DECL) {
+            return true;
+        }
+        switch (mir_decl_header_nominal_kind_or(
+            header, NOMINAL_DECL_CLASS)) {
+        case NOMINAL_DECL_STRUCT:
+            return false;
+        default:
+            return true;
+        }
+    }
 
     decl = transpiler_find_nominal_host_decl_local(ctx, type_name);
     if (decl != NULL && decl->type == AST_CLASS_DECL) {

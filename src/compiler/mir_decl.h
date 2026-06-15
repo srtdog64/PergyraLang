@@ -114,6 +114,7 @@ typedef struct
     size_t       variant_count;
     MIRDeclEnumVariant *variant_metadata;
     size_t       variant_metadata_count;
+    NominalDeclKind nominal_kind;
     bool         uses_pointer_self;
 } MIRDeclHeader;
 

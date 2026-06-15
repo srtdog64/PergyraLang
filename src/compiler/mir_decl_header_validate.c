@@ -100,6 +100,17 @@ mir_validate_decl_header_shape_metadata(const MIRDeclHeader *header,
         }
         return false;
     }
+    if (header->ast_type == AST_CLASS_DECL
+        && (header->nominal_kind == NOMINAL_DECL_SUBJECT
+            || header->nominal_kind == NOMINAL_DECL_VESSEL)
+        && !header->uses_pointer_self) {
+        if (error_message != NULL) {
+            *error_message = mir_strdup_fmt(
+                "MIR declaration header[%zu] '%s' nominal pointer-self metadata drift",
+                header_index, header->name);
+        }
+        return false;
+    }
     return true;
 }
 

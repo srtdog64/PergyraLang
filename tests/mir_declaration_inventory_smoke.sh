@@ -2663,6 +2663,8 @@ require_term "src/codegen/llvm_inventory_host_methods.c" \
     "view->count != view->ast_compat_count"
 for term in \
     "mir_decl_header_source_decl" \
+    "mir_decl_header_nominal_kind_or" \
+    "mir_decl_header_uses_pointer_self" \
     "mir_decl_method_name" \
     "mir_decl_method_param_count" \
     "mir_decl_method_param" \
@@ -2672,6 +2674,11 @@ for term in \
     require_term "src/compiler/mir_decl_headers.h" "$term"
     require_term "src/compiler/mir_decl_header_access.c" "$term"
 done
+require_term "src/compiler/mir_decl.h" "NominalDeclKind nominal_kind"
+require_term "src/compiler/mir_decl_headers.c" \
+    "header.nominal_kind = ast_class_nominal_kind(decl)"
+require_term "src/compiler/mir_decl_header_validate.c" \
+    "nominal pointer-self metadata drift"
 for term in \
     "MIRDeclField" \
     "MIRDeclFieldKind" \
@@ -4347,6 +4354,12 @@ for term in \
     "constructor_types[i]"; do
     require_term "src/codegen/transpiler_decl_lookup.c" "$term"
 done
+require_term "src/codegen/transpiler_host_self_policy.c" \
+    "mir_decl_header_uses_pointer_self(header)"
+require_term "src/codegen/transpiler_projection.c" \
+    "mir_decl_header_nominal_kind_or("
+require_term "src/codegen/llvm_domain_lookup.c" \
+    "mir_decl_header_uses_pointer_self(mir_decl)"
 if grep -RInE 'ASTNode \*find_(zone|world|relation|effect)_decl\(' \
         "$ROOT_DIR/src/codegen/transpiler_decl_lookup.c" \
         "$ROOT_DIR/src/codegen/transpiler_decl_lookup.h"; then

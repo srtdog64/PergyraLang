@@ -5,6 +5,7 @@
 
 #ifdef PGY_LLVM_ENABLED
 
+#include "../compiler/mir_decl_headers.h"
 #include "host_decl_compat.h"
 #include "llvm_backend_generic.h"
 #include "llvm_internal.h"
@@ -366,7 +367,7 @@ llvm_type_name_uses_pointer_self(LLVMGenCtx *ctx, const char *type_name)
 
     mir_decl = llvm_find_host_decl_header_in_context(ctx, type_name);
     if (mir_decl != NULL)
-        return mir_decl->uses_pointer_self;
+        return mir_decl_header_uses_pointer_self(mir_decl);
 
     host_decl = llvm_find_host_decl_in_active_inventory(ctx, type_name);
     if (host_decl != NULL)

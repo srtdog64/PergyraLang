@@ -258,9 +258,10 @@ mir_record_decl_header(MIRProgram *mir, ASTNode *decl)
     case AST_CLASS_DECL:
         header.name = ast_class_name(decl);
         methods = ast_class_methods(decl, &method_count);
+        header.nominal_kind = ast_class_nominal_kind(decl);
         header.uses_pointer_self =
-            ast_class_nominal_kind(decl) == NOMINAL_DECL_SUBJECT
-            || ast_class_nominal_kind(decl) == NOMINAL_DECL_VESSEL;
+            header.nominal_kind == NOMINAL_DECL_SUBJECT
+            || header.nominal_kind == NOMINAL_DECL_VESSEL;
         break;
     case AST_ENUM_DECL:
         header.name = ast_enum_name(decl);

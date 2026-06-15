@@ -18,6 +18,21 @@ mir_decl_header_name(const MIRDeclHeader *header)
     return header != NULL ? header->name : NULL;
 }
 
+NominalDeclKind
+mir_decl_header_nominal_kind_or(const MIRDeclHeader *header,
+                                NominalDeclKind fallback)
+{
+    return header != NULL && header->ast_type == AST_CLASS_DECL
+        ? header->nominal_kind
+        : fallback;
+}
+
+bool
+mir_decl_header_uses_pointer_self(const MIRDeclHeader *header)
+{
+    return header != NULL && header->uses_pointer_self;
+}
+
 size_t
 mir_decl_header_generic_param_count(const MIRDeclHeader *header)
 {
