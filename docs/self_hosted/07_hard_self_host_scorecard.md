@@ -161,7 +161,11 @@ read. Type-alias target names are now captured on `MIRDeclHeader`, validated by
 accessors, and consumed by LLVM alias mapping/rendering and MIR source-local
 type facts before any compatibility AST fallback. C/LLVM now compile and run the
 `type_alias_array_context` fixture, proving empty `Array<T>` alias contexts use
-the same canonical MIR fact. The remaining work is removal of the
+the same canonical MIR fact. C projection literal/source-path lowering now has a
+by-name entry point that consumes MIR declaration headers and `MIRDeclField`
+rows, so ToTObject, projection-borrow materialization, member access, and domain
+provenance refresh no longer need projection source declarations in MIR-active
+paths. The remaining work is removal of the
 declaration-header source_decl compatibility boundary and the compiler-side
 declaration header back-pointer after compatibility lookup stops returning
 origin AST declarations, followed by a compiler source_ast ratchet ceiling of

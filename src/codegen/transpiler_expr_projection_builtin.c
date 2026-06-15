@@ -31,8 +31,6 @@ emit_builtin_to_dto(ASTNode *call, TranspilerCtx *ctx)
 {
     ASTNode *target_arg;
     ASTNode *source_arg;
-    ASTNode *target_decl;
-    ASTNode *source_decl;
     const char *target_name;
     const char *source_type_name;
     char *source_expr;
@@ -55,22 +53,19 @@ emit_builtin_to_dto(ASTNode *call, TranspilerCtx *ctx)
         return totobject_unsupported(ctx,
             "C backend: ToTObject requires named subject source");
 
-    target_decl = transpiler_find_projection_nominal_decl_local(ctx, target_name);
-    if (target_decl == NULL || !ast_class_is_struct(target_decl))
+    if (!transpiler_projection_type_is_struct_like(ctx, target_name))
         return totobject_unsupported(ctx,
             "C backend: ToTObject target must be tobject/struct");
 
     source_type_name = transpiler_expr_infer_type_name(
         ctx, source_arg);
-    source_decl = transpiler_find_projection_nominal_decl_local(
-        ctx, source_type_name);
-    if (source_decl == NULL)
+    if (!is_nominal_host_type_name(ctx, source_type_name))
         return totobject_unsupported(ctx,
             "C backend: ToTObject source subject type not found");
 
     source_expr = emit_expression(source_arg, ctx);
-    result = emit_projection_literal(ctx, target_decl, source_decl, NULL,
-        target_name, source_expr);
+    result = emit_projection_literal_by_name(
+        ctx, target_name, source_type_name, NULL, source_expr);
     free(source_expr);
     return result;
 }

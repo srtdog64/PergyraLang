@@ -223,14 +223,12 @@ emit_expression(ASTNode *node, TranspilerCtx *ctx)
         }
         if (projection_entry != NULL && projection_entry->is_projection_borrow) {
             const char *source_type = lookup_typed_var(ctx, projection_entry->source_slot);
-            ASTNode *target_decl = transpiler_find_projection_nominal_decl_local(
-                ctx, projection_entry->type_name);
-            ASTNode *source_decl = source_type != NULL
-                ? transpiler_find_projection_nominal_decl_local(ctx, source_type)
-                : NULL;
-            if (target_decl != NULL && source_decl != NULL) {
-                return emit_projection_literal(ctx, target_decl, source_decl,
-                    NULL, projection_entry->type_name, projection_entry->source_slot);
+            if (transpiler_projection_type_is_struct_like(
+                    ctx, projection_entry->type_name)
+                && is_nominal_host_type_name(ctx, source_type)) {
+                return emit_projection_literal_by_name(
+                    ctx, projection_entry->type_name, source_type, NULL,
+                    projection_entry->source_slot);
             }
         }
         return pergyra_strdup(id_name);
@@ -255,14 +253,11 @@ emit_expression(ASTNode *node, TranspilerCtx *ctx)
                 ast_identifier_name(member_object));
             if (entry != NULL && entry->is_projection_borrow) {
                 const char *source_type = lookup_typed_var(ctx, entry->source_slot);
-                ASTNode *source_decl = source_type != NULL
-                    ? transpiler_find_projection_nominal_decl_local(ctx, source_type)
-                    : NULL;
                 char *source_path = NULL;
                 int source_status = 0;
-                if (source_decl != NULL) {
-                    source_status = resolve_projection_source_path_rec(
-                        ctx, source_decl, member_name, 0, &source_path);
+                if (is_nominal_host_type_name(ctx, source_type)) {
+                    source_status = resolve_projection_source_path_by_name(
+                        ctx, source_type, member_name, 0, &source_path);
                 }
                 if (source_status == 1 && source_path != NULL) {
                     TypedVarEntry *source_entry = lookup_typed_entry(ctx, entry->source_slot);

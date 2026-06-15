@@ -49,12 +49,24 @@ int resolve_projection_source_path_rec(TranspilerCtx *ctx,
                                        const char *field_name,
                                        unsigned depth,
                                        char **path_out);
+int resolve_projection_source_path_by_name(TranspilerCtx *ctx,
+                                           const char *source_type_name,
+                                           const char *field_name,
+                                           unsigned depth,
+                                           char **path_out);
 char *emit_projection_literal(TranspilerCtx *ctx,
                               ASTNode *target_decl,
                               ASTNode *source_decl,
                               ASTNode *refresh,
                               const char *target_type_name,
                               const char *source_expr);
+char *emit_projection_literal_by_name(TranspilerCtx *ctx,
+                                      const char *target_type_name,
+                                      const char *source_type_name,
+                                      ASTNode *refresh,
+                                      const char *source_expr);
+bool transpiler_projection_type_is_struct_like(TranspilerCtx *ctx,
+                                               const char *type_name);
 bool is_subject_type_name(TranspilerCtx *ctx, const char *type_name);
 bool is_nominal_host_type_name(TranspilerCtx *ctx, const char *type_name);
 

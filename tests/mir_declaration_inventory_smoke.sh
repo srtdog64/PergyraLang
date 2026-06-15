@@ -5170,13 +5170,25 @@ if ! awk '
     fail "C subject type classification must consume MIR declaration headers before AST nominal fallback"
 fi
 require_term "src/codegen/transpiler_projection_emit.c" \
-    "vessel_decl = transpiler_find_projection_nominal_decl_local("
+    "resolve_projection_source_path_by_name(TranspilerCtx *ctx"
+require_term "src/codegen/transpiler_projection_emit.c" \
+    "projection_class_field_view_by_name("
+require_term "src/codegen/transpiler_projection_emit.c" \
+    "mir_decl_header_nominal_kind_or("
+require_term "src/codegen/transpiler_projection_emit.c" \
+    "emit_projection_literal_by_name("
 require_term "src/codegen/transpiler_projection_field_path.c" \
     "transpiler_find_projection_nominal_decl_local("
 require_term "src/codegen/transpiler_projection_method_invalidation.c" \
     "transpiler_find_projection_nominal_decl_local("
 require_term "src/codegen/transpiler_expr_projection_builtin.c" \
-    "target_decl = transpiler_find_projection_nominal_decl_local(ctx, target_name)"
+    "transpiler_projection_type_is_struct_like(ctx, target_name)"
+require_term "src/codegen/transpiler_expr_projection_builtin.c" \
+    "emit_projection_literal_by_name("
+if grep -Fq "target_decl = transpiler_find_projection_nominal_decl_local(ctx, target_name)" \
+        "$ROOT_DIR/src/codegen/transpiler_expr_projection_builtin.c"; then
+    fail "C ToTObject lowering must consume projection type/header facts instead of recovering target source declarations"
+fi
 require_term "src/codegen/transpiler_overlay_projection.c" \
     "target_decl = transpiler_find_projection_nominal_decl_local("
 require_term "src/codegen/transpiler_overlay_projection.c" \
@@ -5200,7 +5212,16 @@ if grep -Eq 'ast_zone_slots|ast_domain_slot_(name|type|is_subject)\(' \
     fail "C intent zone-slot resolution must consume TranspilerHostedDomainSlotView"
 fi
 require_term "src/codegen/transpiler_domain_provenance_emit.c" \
-    "target_decl = transpiler_find_projection_nominal_decl_local("
+    "emit_projection_literal_by_name("
+if grep -Fq "target_decl = transpiler_find_projection_nominal_decl_local(" \
+        "$ROOT_DIR/src/codegen/transpiler_domain_provenance_emit.c"; then
+    fail "C domain provenance projection refresh must consume projection type/header facts instead of recovering target source declarations"
+fi
+for rel in \
+    "src/codegen/transpiler_expr_dispatch_emit.c" \
+    "src/codegen/transpiler_domain_provenance_emit.c"; do
+    require_term "$rel" "emit_projection_literal_by_name("
+done
 for rel in \
     "src/codegen/transpiler_domain_provenance_emit.c" \
     "src/codegen/transpiler_expr_dispatch_emit.c" \

@@ -160,8 +160,6 @@ emit_domain_projection_sync_loop_from_view(
         size_t source_index = 0;
         const char *target_type_name = NULL;
         const char *source_type_name = NULL;
-        ASTNode *target_decl = NULL;
-        ASTNode *source_decl = NULL;
         char *literal;
 
         if (refresh == NULL || refresh->type != AST_ZONE_REFRESH)
@@ -185,15 +183,11 @@ emit_domain_projection_sync_loop_from_view(
         if (target_type_name == NULL || source_type_name == NULL)
             continue;
 
-        target_decl = transpiler_find_projection_nominal_decl_local(
-            ctx, target_type_name);
-        source_decl = transpiler_find_projection_nominal_decl_local(
-            ctx, source_type_name);
         {
             const char *source_expr = transpiler_scratch_fmt(ctx, "self->%s",
                 source_slot_name);
-            literal = emit_projection_literal(ctx, target_decl, source_decl,
-                refresh, target_type_name, source_expr);
+            literal = emit_projection_literal_by_name(
+                ctx, target_type_name, source_type_name, refresh, source_expr);
         }
 
         write_indent(ctx);
