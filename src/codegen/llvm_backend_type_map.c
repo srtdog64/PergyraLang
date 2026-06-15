@@ -100,7 +100,6 @@ llvm_resolve_alias_type(LLVMGenCtx *ctx, const char *type_name)
 {
     const MIRDeclHeader *alias_header;
     const char *target_type_name;
-    ASTNode *alias_decl;
 
     if (ctx == NULL || type_name == NULL)
         return NULL;
@@ -114,12 +113,13 @@ llvm_resolve_alias_type(LLVMGenCtx *ctx, const char *type_name)
     if (llvm_active_has_mir(ctx))
         return NULL;
 
-    alias_decl = llvm_find_decl_in_active_inventory(ctx, AST_TYPE_ALIAS,
-        type_name);
-    if (alias_decl == NULL || ast_type_alias_target_type(alias_decl) == NULL)
-        return NULL;
-
-    return ast_type_to_llvm(ctx, ast_type_alias_target_type(alias_decl));
+    {
+        ASTNode *alias_decl = llvm_find_decl_in_active_inventory(
+            ctx, AST_TYPE_ALIAS, type_name);
+        if (alias_decl == NULL || ast_type_alias_target_type(alias_decl) == NULL)
+            return NULL;
+        return ast_type_to_llvm(ctx, ast_type_alias_target_type(alias_decl));
+    }
 }
 
 static LLVMTypeRef
@@ -233,7 +233,7 @@ llvm_specialize_generic_class_type(LLVMGenCtx *ctx, const char *type_name)
     const char *lt = type_name != NULL ? strchr(type_name, '<') : NULL;
     size_t base_len;
     char base[128];
-    ASTNode *tmpl;
+    ASTNode *tmpl = NULL;
     const MIRDeclHeader *generic_header;
     GenericParams *gp;
     size_t gpc;
@@ -259,11 +259,13 @@ llvm_specialize_generic_class_type(LLVMGenCtx *ctx, const char *type_name)
     memcpy(base, type_name, base_len);
     base[base_len] = '\0';
 
-    tmpl = llvm_find_decl_in_active_inventory(ctx, AST_CLASS_DECL, base);
-    if (tmpl == NULL)
-        return NULL;
     generic_header = llvm_find_decl_header_in_context_of_type(ctx,
         AST_CLASS_DECL, base);
+    if (generic_header == NULL) {
+        tmpl = llvm_find_decl_in_active_inventory(ctx, AST_CLASS_DECL, base);
+        if (tmpl == NULL)
+            return NULL;
+    }
     gp = generic_header == NULL ? ast_declaration_generic_params(tmpl) : NULL;
     gpc = generic_header != NULL
         ? mir_decl_header_generic_param_count(generic_header)
@@ -321,6 +323,13 @@ llvm_specialize_generic_class_type(LLVMGenCtx *ctx, const char *type_name)
     }
 
     fv = llvm_hosted_class_field_view_from_decl(ctx, base, tmpl);
+    if (generic_header != NULL && !fv.uses_mir_metadata) {
+        llvm_set_mir_inventory_missing(ctx,
+            "MIR-only LLVM generic class specialization missing field metadata for '%s'",
+            base);
+        llvm_type_subst_restore_owned(ctx, saved_subst);
+        return NULL;
+    }
     if (llvm_hosted_field_view_missing_mir_metadata(&fv)) {
         llvm_type_subst_restore_owned(ctx, saved_subst);
         return NULL;
@@ -333,8 +342,19 @@ llvm_specialize_generic_class_type(LLVMGenCtx *ctx, const char *type_name)
         return NULL;
     }
     for (size_t j = 0; j < fc; j++) {
-        ASTNode *ft = llvm_hosted_field_view_type(&fv, j);
-        ftypes[j] = ast_type_to_llvm(ctx, ft);
+        const MIRDeclField *field_meta =
+            llvm_hosted_field_view_metadata(&fv, j);
+        const char *field_type_name = field_meta != NULL
+            ? llvm_hosted_field_view_type_name(&fv, j)
+            : NULL;
+        ASTNode *field_type = NULL;
+
+        if (field_type_name != NULL) {
+            ftypes[j] = pergyra_type_to_llvm(ctx, field_type_name);
+        } else {
+            field_type = llvm_hosted_field_view_type(&fv, j);
+            ftypes[j] = ast_type_to_llvm(ctx, field_type);
+        }
         if (ctx->has_error || ftypes[j] == NULL) {
             llvm_type_subst_restore_owned(ctx, saved_subst);
             return NULL;
@@ -343,7 +363,9 @@ llvm_specialize_generic_class_type(LLVMGenCtx *ctx, const char *type_name)
 
     struct_ty = LLVMStructCreateNamed(ctx->context, type_name);
     LLVMStructSetBody(struct_ty, ftypes, (unsigned)fc, 0);
-    nk = ast_class_nominal_kind(tmpl);
+    nk = generic_header != NULL
+        ? mir_decl_header_nominal_kind_or(generic_header, NOMINAL_DECL_CLASS)
+        : ast_class_nominal_kind(tmpl);
     is_subject = nk == NOMINAL_DECL_SUBJECT;
     is_ptr_self = is_subject || nk == NOMINAL_DECL_VESSEL;
     {

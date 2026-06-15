@@ -37,6 +37,8 @@ Single source of truth (capability 5) is nearly closed.
   the same canonical source-local type fact for alias-backed collection
   contexts; `type_alias_array_context` proves empty `Array<T>` alias literals
   compile and run on both backends.
+- LLVM generic class specialization type mapping consumes `MIRDeclField`
+  type-name metadata before falling back to template AST compatibility.
 - C projection literal/source-path lowering has a by-name MIR header path for
   ToTObject, projection-borrow materialization, member access, and domain
   provenance refresh; the central declaration-header source_decl compatibility

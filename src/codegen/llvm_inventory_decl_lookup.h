@@ -51,6 +51,9 @@ const char *llvm_hosted_field_view_name(
 ASTNode *llvm_hosted_field_view_type(
     const LLVMHostedFieldView *view,
     size_t index);
+const char *llvm_hosted_field_view_type_name(
+    const LLVMHostedFieldView *view,
+    size_t index);
 bool llvm_hosted_field_view_find_index(
     const LLVMHostedFieldView *view,
     const char *field_name,

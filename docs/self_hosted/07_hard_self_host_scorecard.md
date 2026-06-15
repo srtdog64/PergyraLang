@@ -167,6 +167,8 @@ rows, so ToTObject, projection-borrow materialization, member access, and domain
 provenance refresh no longer need projection source declarations in MIR-active
 paths. LLVM projection-borrow materialization and member access now use the same
 by-name MIR header path instead of recovering projection source declarations.
+LLVM generic class specialization type mapping now reads hosted field type names
+from `MIRDeclField` metadata before any template-AST fallback.
 The remaining work is removal of the
 declaration-header source_decl compatibility boundary and the compiler-side
 declaration header back-pointer after compatibility lookup stops returning

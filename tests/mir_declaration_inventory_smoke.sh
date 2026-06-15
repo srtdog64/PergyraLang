@@ -274,6 +274,18 @@ require_term "src/codegen/llvm_backend_type_map.c" \
     "mir_decl_header_type_alias_target_type_name(alias_header)"
 require_term "src/codegen/llvm_backend_type_map.c" \
     "llvm_active_has_mir(ctx)"
+require_term "src/codegen/llvm_inventory_decl_lookup.h" \
+    "llvm_hosted_field_view_type_name("
+require_term "src/codegen/llvm_inventory_field_view.c" \
+    "llvm_hosted_field_view_type_name(const LLVMHostedFieldView *view"
+require_term "src/codegen/llvm_backend_type_map.c" \
+    "llvm_hosted_field_view_type_name(&fv, j)"
+require_term "src/codegen/llvm_backend_type_map.c" \
+    "generic_header != NULL && !fv.uses_mir_metadata"
+require_each_following_term "src/codegen/llvm_backend_type_map.c" \
+    "generic_header = llvm_find_decl_header_in_context_of_type(ctx," \
+    "tmpl = llvm_find_decl_in_active_inventory(ctx, AST_CLASS_DECL, base)" \
+    8
 require_term "src/codegen/llvm_backend_type_render.c" \
     "llvm_render_alias_target_type_name_from_headers"
 require_term "src/codegen/llvm_backend_type_render.c" \
