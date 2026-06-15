@@ -5,8 +5,10 @@
 
 #include <string.h>
 
+#include "../compiler/mir_decl_headers.h"
 #include "transpiler_intent_context.h"
 #include "transpiler_decl_lookup.h"
+#include "transpiler_inventory_view.h"
 
 ASTNode *
 find_intent_participant_local(ASTNode *intent, const char *alias)
@@ -58,16 +60,28 @@ find_subject_action_metadata(TranspilerCtx *ctx,
                              const char *subject_name,
                              const char *action_name)
 {
+    const MIRDeclHeader *header;
     ASTNode *decl;
     const MIRDeclMethod *method;
 
     if (ctx == NULL || subject_name == NULL || action_name == NULL)
         return NULL;
 
-    decl = find_subject_host_decl(ctx, subject_name);
-    if (decl == NULL || decl->type != AST_CLASS_DECL
-        || ast_class_nominal_kind(decl) != NOMINAL_DECL_SUBJECT) {
-        return NULL;
+    header = transpiler_active_decl_header_of_type(
+        ctx, AST_CLASS_DECL, subject_name);
+    if (header != NULL) {
+        if (mir_decl_header_nominal_kind_or(
+                header, NOMINAL_DECL_CLASS) != NOMINAL_DECL_SUBJECT) {
+            return NULL;
+        }
+    } else {
+        if (transpiler_active_has_mir(ctx))
+            return NULL;
+        decl = find_subject_host_decl(ctx, subject_name);
+        if (decl == NULL || decl->type != AST_CLASS_DECL
+            || ast_class_nominal_kind(decl) != NOMINAL_DECL_SUBJECT) {
+            return NULL;
+        }
     }
 
     method = transpiler_find_host_method_metadata_in_context(

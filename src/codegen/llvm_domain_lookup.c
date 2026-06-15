@@ -10,6 +10,7 @@
 #include "llvm_backend_generic.h"
 #include "llvm_internal.h"
 #include "llvm_inventory_decl_lookup.h"
+#include "llvm_inventory_internal.h"
 #include "parser/ast_api.h"
 
 static ASTNode *
@@ -368,6 +369,8 @@ llvm_type_name_uses_pointer_self(LLVMGenCtx *ctx, const char *type_name)
     mir_decl = llvm_find_host_decl_header_in_context(ctx, type_name);
     if (mir_decl != NULL)
         return mir_decl_header_uses_pointer_self(mir_decl);
+    if (llvm_active_has_mir(ctx))
+        return false;
 
     host_decl = llvm_find_host_decl_in_active_inventory(ctx, type_name);
     if (host_decl != NULL)

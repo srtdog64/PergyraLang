@@ -4356,10 +4356,20 @@ for term in \
 done
 require_term "src/codegen/transpiler_host_self_policy.c" \
     "mir_decl_header_uses_pointer_self(header)"
+require_term "src/codegen/transpiler_host_self_policy.c" \
+    "if (transpiler_active_has_mir(ctx))"
 require_term "src/codegen/transpiler_projection.c" \
     "mir_decl_header_nominal_kind_or("
+require_term "src/codegen/transpiler_projection.c" \
+    "if (transpiler_active_has_mir(ctx))"
+require_term "src/codegen/transpiler_intent_context.c" \
+    "mir_decl_header_nominal_kind_or("
+require_term "src/codegen/transpiler_intent_context.c" \
+    "if (transpiler_active_has_mir(ctx))"
 require_term "src/codegen/llvm_domain_lookup.c" \
     "mir_decl_header_uses_pointer_self(mir_decl)"
+require_term "src/codegen/llvm_domain_lookup.c" \
+    "if (llvm_active_has_mir(ctx))"
 if grep -RInE 'ASTNode \*find_(zone|world|relation|effect)_decl\(' \
         "$ROOT_DIR/src/codegen/transpiler_decl_lookup.c" \
         "$ROOT_DIR/src/codegen/transpiler_decl_lookup.h"; then
@@ -5016,8 +5026,18 @@ if grep -A4 -F "transpiler_find_projection_nominal_decl_local(TranspilerCtx *ctx
 fi
 require_term "src/codegen/transpiler_domain_receiver_query.c" \
     "decl = find_subject_host_decl(ctx, type_name)"
-require_term "src/codegen/transpiler_projection.c" \
-    "ASTNode *decl = find_subject_host_decl(ctx, type_name)"
+if ! awk '
+    /is_subject_type_name\(TranspilerCtx \*ctx/ { in_fn = 1 }
+    in_fn && /transpiler_active_decl_header_of_type\(/ { saw_header = NR }
+    in_fn && /find_subject_host_decl\(ctx, type_name\)/ { saw_ast = NR }
+    in_fn && /^}/ {
+        if (saw_header > 0 && saw_ast > saw_header) ok = 1
+        in_fn = 0
+    }
+    END { exit ok ? 0 : 1 }
+' "$ROOT_DIR/src/codegen/transpiler_projection.c"; then
+    fail "C subject type classification must consume MIR declaration headers before AST nominal fallback"
+fi
 require_term "src/codegen/transpiler_projection_emit.c" \
     "vessel_decl = transpiler_find_projection_nominal_decl_local("
 require_term "src/codegen/transpiler_projection_field_path.c" \
