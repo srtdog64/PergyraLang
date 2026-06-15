@@ -7,6 +7,7 @@
 #include "../parser/ast_api.h"
 #include "codegen_match_variant_policy.h"
 #include "transpiler_context.h"
+#include "transpiler_decl_lookup.h"
 #include "transpiler_expr_type_infer.h"
 #include "transpiler_inventory_view.h"
 #include "transpiler_mir_block_emit_helpers.h"
@@ -191,7 +192,12 @@ transpiler_emit_mir_source_local_let_def_inst(
     let_type = ast_let_type(stmt);
     let_init = ast_let_initializer(stmt);
 
-    if (mir_routine != NULL) {
+    if (mir_routine != NULL
+        && let_type != NULL
+        && let_type->type == AST_TYPE
+        && ast_type_name(let_type) != NULL
+        && transpiler_type_alias_target_type_name_from_headers(
+            ctx, ast_type_name(let_type)) != NULL) {
         const char *source_type =
             transpiler_mir_routine_source_local_type_name(
                 mir_routine, let_name);
@@ -204,6 +210,15 @@ transpiler_emit_mir_source_local_let_def_inst(
         rendered_type_hint =
             transpiler_render_effective_local_type_name(ctx, let_type);
         ctx->active_type_hint = rendered_type_hint;
+    }
+    if (rendered_type_hint == NULL && mir_routine != NULL) {
+        const char *source_type =
+            transpiler_mir_routine_source_local_type_name(
+                mir_routine, let_name);
+        if (source_type != NULL && source_type[0] != '\0') {
+            rendered_type_hint = pergyra_strdup(source_type);
+            ctx->active_type_hint = rendered_type_hint;
+        }
     }
     if (rendered_type_hint != NULL) {
         local_type_name_owned = pergyra_strdup(rendered_type_hint);

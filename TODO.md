@@ -821,13 +821,13 @@ English anchor for tooling/doc gates:
   `pergyra_ast_type_to_c_copy(...)` mapper, so unsupported payload types fail
   through the ctx-aware backend diagnostic seam instead of silently falling
   back to `int32_t`.
-- Backend owner-size gate tightening: `test_mir_lowering_part_c.cases.h` was
-  split back under the 990-LOC test-fragment cap by moving the intent
-  observability user-call case to part D, with `test-mir` and
-  `cfg-body-dataflow-test-smoke` still green. LLVM task/channel lowering also
-  keeps its explicit channel-variable requirement seam named
-  `llvm_required_channel_var(...)` instead of hiding the required Channel<T>
-  target check behind a generic arg helper.
+- Backend owner-size gate tightening: `test_mir_lowering_part_c.cases.h` now
+  stays in the 500-line range after moving the source-emit/channel/declaration
+  tail to `test_mir_lowering_part_h.cases.h`; both fragments stay well below
+  the test-fragment cap. LLVM task/channel lowering also keeps its explicit
+  channel-variable requirement seam named `llvm_required_channel_var(...)`
+  instead of hiding the required Channel<T> target check behind a generic arg
+  helper.
 - Perf-contract gate tightening: `tests/perf_contract_smoke.sh` now indexes
   `src` once and derives codegen/semantic/runtime/AIR-test slices for repeated
   negative scans, while direct-branch loops collapse into owner-level regex

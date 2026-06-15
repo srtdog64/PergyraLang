@@ -308,6 +308,7 @@ require_term "src/codegen/transpiler_inventory_view.c" \
     "mir_decl_header_inventory_from_program(ctx->mir, inventory)"
 for rel in \
     "src/codegen/transpiler_specialization_type_name_scan.c" \
+    "src/codegen/transpiler_specialization_registry.c" \
     "src/codegen/transpiler_channel_type_query.c" \
     "src/codegen/transpiler_expr_stdlib_builtin.c" \
     "src/codegen/transpiler_expr_stdlib_collection_support.c" \
@@ -323,6 +324,18 @@ require_term "src/codegen/transpiler_type_alias.c" \
     "ensure_type_specializations_from_type_name_to("
 require_term "src/codegen/transpiler_type_alias.c" \
     "transpiler_active_has_mir(ctx)"
+require_each_following_term "src/codegen/transpiler_mir_preserved_let_emit.c" \
+    "transpiler_render_effective_local_type_name(ctx, let_type)" \
+    "transpiler_mir_routine_source_local_type_name(" \
+    8
+require_term "src/codegen/transpiler_projection.c" \
+    "ctx->generic_class_specs[i].specialized_name"
+require_term "src/codegen/transpiler_projection.c" \
+    "transpiler_active_decl_header_of_type("
+require_term "src/codegen/transpiler_host_self_policy.c" \
+    "transpiler_generic_class_spec_base_decl("
+require_term "src/codegen/transpiler_host_self_policy.c" \
+    "mir_decl_header_uses_pointer_self(base_header)"
 require_each_following_term "src/codegen/llvm_backend_type_map_generics.c" \
     "if (llvm_active_has_mir(ctx))" \
     "llvm_find_decl_header_in_context_of_type(" \
@@ -6801,11 +6814,11 @@ if grep -Fq "header->ast_type != AST_ROLE_DECL" \
 fi
 require_term "src/compiler/mir_program_validate.c" \
     "mir_validate_decl_header_metadata(mir, error_message)"
-require_term "src/tests/mir/test_mir_lowering_part_c.cases.h" \
+require_term "src/tests/mir/test_mir_lowering_part_h.cases.h" \
     "MIR validator rejects hosted method signature metadata drift"
-require_term "src/tests/mir/test_mir_lowering_part_c.cases.h" \
+require_term "src/tests/mir/test_mir_lowering_part_h.cases.h" \
     "MIR validator rejects hosted method routine link metadata drift"
-require_term "src/tests/mir/test_mir_lowering_part_c.cases.h" \
+require_term "src/tests/mir/test_mir_lowering_part_h.cases.h" \
     "MIR method routine linker requires owner metadata"
 require_term "src/tests/mir/test_mir_lowering_part_g.cases.h" \
     "MIR validator rejects declaration header name metadata drift"

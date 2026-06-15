@@ -415,18 +415,27 @@ is_subject_type_name(TranspilerCtx *ctx, const char *type_name)
         return mir_decl_header_nominal_kind_or(
             header, NOMINAL_DECL_CLASS) == NOMINAL_DECL_SUBJECT;
     }
+    for (int i = 0; ctx != NULL && i < ctx->generic_class_spec_count; i++) {
+        if (strcmp(ctx->generic_class_specs[i].specialized_name, type_name) == 0) {
+            ASTNode *orig =
+                (ASTNode *)ctx->generic_class_specs[i].class_decl;
+            const char *base_name = transpiler_decl_name_local(orig);
+            const MIRDeclHeader *base_header =
+                transpiler_active_decl_header_of_type(
+                    ctx, AST_CLASS_DECL, base_name);
+            if (base_header != NULL) {
+                return mir_decl_header_nominal_kind_or(
+                    base_header, NOMINAL_DECL_CLASS) == NOMINAL_DECL_SUBJECT;
+            }
+            return orig != NULL && !ast_class_is_struct(orig)
+                && ast_class_nominal_kind(orig) == NOMINAL_DECL_SUBJECT;
+        }
+    }
     if (transpiler_active_has_mir(ctx))
         return false;
     decl = find_subject_host_decl(ctx, type_name);
     if (decl != NULL && !ast_class_is_struct(decl))
         return ast_class_nominal_kind(decl) == NOMINAL_DECL_SUBJECT;
-    for (int i = 0; ctx != NULL && i < ctx->generic_class_spec_count; i++) {
-        if (strcmp(ctx->generic_class_specs[i].specialized_name, type_name) == 0) {
-            const ASTNode *orig = ctx->generic_class_specs[i].class_decl;
-            return orig != NULL && !ast_class_is_struct(orig)
-                && ast_class_nominal_kind(orig) == NOMINAL_DECL_SUBJECT;
-        }
-    }
     return false;
 }
 
@@ -453,9 +462,29 @@ is_nominal_host_type_name(TranspilerCtx *ctx, const char *type_name)
             return true;
         }
     }
+    for (int i = 0; i < ctx->generic_class_spec_count; i++) {
+        if (strcmp(ctx->generic_class_specs[i].specialized_name, type_name) == 0) {
+            ASTNode *orig =
+                (ASTNode *)ctx->generic_class_specs[i].class_decl;
+            const char *base_name = transpiler_decl_name_local(orig);
+            const MIRDeclHeader *base_header =
+                transpiler_active_decl_header_of_type(
+                    ctx, AST_CLASS_DECL, base_name);
+            if (base_header != NULL) {
+                switch (mir_decl_header_nominal_kind_or(
+                    base_header, NOMINAL_DECL_CLASS)) {
+                case NOMINAL_DECL_STRUCT:
+                    return false;
+                default:
+                    return true;
+                }
+            }
+            return orig != NULL && !ast_class_is_struct(orig);
+        }
+    }
+
     if (transpiler_active_has_mir(ctx))
         return false;
-
     decl = transpiler_find_nominal_host_decl_local(ctx, type_name);
     if (decl != NULL && decl->type == AST_CLASS_DECL) {
         return !ast_class_is_struct(decl)
@@ -464,11 +493,5 @@ is_nominal_host_type_name(TranspilerCtx *ctx, const char *type_name)
     }
     if (decl != NULL)
         return true;
-    for (int i = 0; i < ctx->generic_class_spec_count; i++) {
-        if (strcmp(ctx->generic_class_specs[i].specialized_name, type_name) == 0) {
-            const ASTNode *orig = ctx->generic_class_specs[i].class_decl;
-            return orig != NULL && !ast_class_is_struct(orig);
-        }
-    }
     return false;
 }

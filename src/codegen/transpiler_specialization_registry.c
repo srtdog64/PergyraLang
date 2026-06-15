@@ -15,6 +15,7 @@
 #include "../semantic/diag_codes.h"
 #include "transpiler_context.h"
 #include "transpiler_decl_lookup.h"
+#include "transpiler_inventory_view.h"
 #include "transpiler_type_mapping.h"
 #include "transpiler_type_render.h"
 #include "transpiler_type_require.h"
@@ -491,13 +492,23 @@ ensure_type_specializations_from_ast_to(TranspilerCtx *ctx, CodeBuf *dst,
     }
 
     {
-        ASTNode *alias_decl = transpiler_find_type_alias_decl(
-            ctx, ast_type_name(type_node));
-        if (alias_decl != NULL
-            && ast_type_alias_target_type(alias_decl) != NULL) {
-            ensure_type_specializations_from_ast_to(ctx, dst,
-                ast_type_alias_target_type(alias_decl));
+        const char *target_type_name =
+            transpiler_type_alias_target_type_name_from_headers(
+                ctx, ast_type_name(type_node));
+        if (target_type_name != NULL) {
+            ensure_type_specializations_from_type_name_to(
+                ctx, dst, target_type_name);
             return;
+        }
+        if (!transpiler_active_has_mir(ctx)) {
+            ASTNode *alias_decl = transpiler_find_type_alias_decl(
+                ctx, ast_type_name(type_node));
+            if (alias_decl != NULL
+                && ast_type_alias_target_type(alias_decl) != NULL) {
+                ensure_type_specializations_from_ast_to(ctx, dst,
+                    ast_type_alias_target_type(alias_decl));
+                return;
+            }
         }
     }
 

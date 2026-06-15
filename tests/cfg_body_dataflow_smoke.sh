@@ -276,10 +276,10 @@ run_literal_doc_contract_smoke() {
     require_literal "src/compiler/mir_fact_surface_validate.c" "mir_instruction_source_is_with_slot_claim(inst)"
     require_literal "src/compiler/mir_intent_fact.c" "mir_instruction_source_is_intent_step(inst)"
     require_literal "src/tests/mir/test_mir_lowering_part_c.cases.h" "MIR validator rejects invalid source-statement emit fact"
-    require_literal "src/tests/mir/test_mir_lowering_part_c.cases.h" "MIR validator rejects missing channel receive emit fact"
-    require_literal "src/tests/mir/test_mir_lowering_part_c.cases.h" "MIR validator rejects invalid select receive emit fact"
-    require_literal "src/tests/mir/test_mir_lowering_part_c.cases.h" "MIR validator rejects invalid with-slot claim ABI fact"
-    require_literal "src/tests/mir/test_mir_lowering_part_c.cases.h" "MIR validator rejects invalid source-local-decl emit fact"
+    require_literal "src/tests/mir/test_mir_lowering_part_h.cases.h" "MIR validator rejects missing channel receive emit fact"
+    require_literal "src/tests/mir/test_mir_lowering_part_h.cases.h" "MIR validator rejects invalid select receive emit fact"
+    require_literal "src/tests/mir/test_mir_lowering_part_h.cases.h" "MIR validator rejects invalid with-slot claim ABI fact"
+    require_literal "src/tests/mir/test_mir_lowering_part_h.cases.h" "MIR validator rejects invalid source-local-decl emit fact"
     require_literal "src/tests/mir/test_mir_lowering_part_c.cases.h" "MIR validator rejects residual STMT without source inventory fact"
     require_literal "src/tests/mir/test_mir_lowering_part_c.cases.h" "MIR residual STMT policy rejects local dataflow statements"
     require_literal "src/compiler/mir_source_shape.c" "source_type == AST_LET_DECL"
@@ -326,7 +326,7 @@ run_literal_doc_contract_smoke() {
     require_literal "src/compiler/mir_dce.c" "mir_instruction_source_stmt_has_side_effect_hint(inst)"
     require_literal "src/compiler/mir_source_shape.c" "mir_instruction_source_branch_payload_matches_shape"
     require_literal "src/compiler/mir_source_shape.c" "mir_instruction_has_required_branch_condition_fact"
-    require_literal "src/tests/mir/test_mir_lowering_part_c.cases.h" "MIR validator rejects source-compatible branch without payload"
+    require_literal "src/tests/mir/test_mir_lowering_part_h.cases.h" "MIR validator rejects source-compatible branch without payload"
     require_literal "src/compiler/mir_lifecycle.c" "source-branch-emit"
     require_literal "src/codegen/llvm_mir_block_emit.c" "mir_instruction_has_required_branch_condition_fact(inst)"
     require_literal "src/codegen/transpiler_mir_cfg_control_emit.c" "mir_instruction_has_required_branch_condition_fact(inst)"
@@ -604,6 +604,7 @@ mir_test_case_paths = [
     root / "src" / "tests" / "mir" / "test_mir_lowering_part_d.cases.h",
     root / "src" / "tests" / "mir" / "test_mir_lowering_part_e.cases.h",
     root / "src" / "tests" / "mir" / "test_mir_lowering_part_f.cases.h",
+    root / "src" / "tests" / "mir" / "test_mir_lowering_part_h.cases.h",
 ]
 async_channel_path = root / "src" / "semantic" / "type_checker_async_channel.c"
 helpers_effects_path = root / "src" / "semantic" / "type_checker_helpers_effects.c"
