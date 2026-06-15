@@ -11,6 +11,12 @@ ASTNodeType mir_decl_header_ast_type_or(const MIRDeclHeader *header,
 const char *mir_decl_header_name(const MIRDeclHeader *header);
 const char *mir_decl_header_type_alias_target_type_name(
     const MIRDeclHeader *header);
+const char *mir_decl_header_inventory_resolve_type_alias_target_type_name(
+    const MIRDeclHeaderInventory *inventory,
+    const char *alias_name);
+const char *mir_decl_header_resolve_type_alias_target_type_name(
+    const MIRProgram *mir,
+    const char *alias_name);
 NominalDeclKind mir_decl_header_nominal_kind_or(
     const MIRDeclHeader *header,
     NominalDeclKind fallback);

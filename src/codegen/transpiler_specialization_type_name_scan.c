@@ -103,10 +103,21 @@ transpiler_specialization_scan_type_alias(TranspilerCtx *ctx,
                                           CodeBuf *dst,
                                           const char *type_name)
 {
+    const char *target_type_name;
     ASTNode *alias_decl;
 
     if (ctx == NULL || type_name == NULL || strchr(type_name, '<') != NULL)
         return false;
+    target_type_name =
+        transpiler_type_alias_target_type_name_from_headers(ctx, type_name);
+    if (target_type_name != NULL) {
+        ensure_type_specializations_from_type_name_to(
+            ctx, dst, target_type_name);
+        return true;
+    }
+    if (transpiler_active_has_mir(ctx))
+        return false;
+
     alias_decl = transpiler_find_type_alias_decl(ctx, type_name);
     if (alias_decl == NULL || ast_type_alias_target_type(alias_decl) == NULL)
         return false;

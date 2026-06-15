@@ -139,6 +139,7 @@ transpiler_emit_host_method_body_local(TranspilerCtx *ctx, ASTNode *host_decl,
     transpiler_capture_mir_emit_state_local(ctx, &saved_emit_state);
 
     transpiler_bind_current_host_decl_local(ctx, host_decl);
+    ctx->current_func_decl = method;
     if (body_out != NULL)
         ctx->out = body_out;
     register_typed_var(ctx, "self", self_type_name);

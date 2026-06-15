@@ -1,0 +1,10 @@
+type IntArray = Array<Int>;
+
+func Main() -> Void {
+    let values: IntArray = [];
+    ArrayPush(values, 3);
+    ArrayPush(values, 4);
+    Log("len=" + ToString(ArrayLength(values)));
+    Log(values[0]);
+    Log(values[1]);
+}

@@ -1,12 +1,55 @@
 #include "mir_source_local_types.h"
 
 #include <stdint.h>
+#include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 
 #include "../common/string_compat.h"
+#include "mir_decl_headers.h"
 #include "../parser/ast_api.h"
 #include "mir_type_helpers.h"
+
+#define MIR_SOURCE_LOCAL_TYPE_SCRATCH_COUNT 8
+#define MIR_SOURCE_LOCAL_TYPE_SCRATCH_SIZE 128
+
+typedef struct MIRSourceLocalTypeScratch
+{
+    char buffers[MIR_SOURCE_LOCAL_TYPE_SCRATCH_COUNT]
+                [MIR_SOURCE_LOCAL_TYPE_SCRATCH_SIZE];
+    size_t next;
+} MIRSourceLocalTypeScratch;
+
+static char *
+mir_source_local_type_scratch_next(MIRSourceLocalTypeScratch *scratch)
+{
+    char *buffer;
+
+    if (scratch == NULL)
+        return NULL;
+    buffer = scratch->buffers[scratch->next
+        % MIR_SOURCE_LOCAL_TYPE_SCRATCH_COUNT];
+    scratch->next++;
+    buffer[0] = '\0';
+    return buffer;
+}
+
+static const char *
+mir_source_local_type_scratch_format(MIRSourceLocalTypeScratch *scratch,
+                                     const char *outer,
+                                     const char *inner)
+{
+    char *buffer = mir_source_local_type_scratch_next(scratch);
+
+    if (buffer == NULL || outer == NULL || inner == NULL || inner[0] == '\0')
+        return NULL;
+    if (snprintf(buffer, MIR_SOURCE_LOCAL_TYPE_SCRATCH_SIZE, "%s<%s>",
+            outer, inner) >= MIR_SOURCE_LOCAL_TYPE_SCRATCH_SIZE) {
+        buffer[0] = '\0';
+        return NULL;
+    }
+    return buffer;
+}
 
 void
 mir_routine_source_local_type_names_clear(MIRRoutine *routine)
@@ -26,13 +69,23 @@ mir_routine_source_local_type_names_clear(MIRRoutine *routine)
 }
 
 static bool
-mir_source_local_type_append_name(MIRRoutine *routine,
+mir_source_local_type_append_name(const MIRProgram *program,
+                                  MIRRoutine *routine,
                                   const char *name,
                                   const char *type_name)
 {
+    const char *effective_type_name = type_name;
+
     if (routine == NULL || name == NULL || type_name == NULL
         || type_name[0] == '\0') {
         return true;
+    }
+    if (program != NULL) {
+        const char *alias_target =
+            mir_decl_header_resolve_type_alias_target_type_name(
+                program, type_name);
+        if (alias_target != NULL)
+            effective_type_name = alias_target;
     }
     for (size_t i = 0; i < routine->source_local_type_count; i++) {
         if (routine->source_local_types[i].name != NULL
@@ -57,7 +110,7 @@ mir_source_local_type_append_name(MIRRoutine *routine,
         routine->source_local_type_capacity = next;
     }
 
-    char *type_name_copy = mir_capture_type_name(NULL, type_name);
+    char *type_name_copy = mir_capture_type_name(NULL, effective_type_name);
     if (type_name_copy == NULL)
         return false;
     char *name_copy = pergyra_strdup(name);
@@ -74,7 +127,8 @@ mir_source_local_type_append_name(MIRRoutine *routine,
 }
 
 static bool
-mir_source_local_type_append(MIRRoutine *routine,
+mir_source_local_type_append(const MIRProgram *program,
+                             MIRRoutine *routine,
                              const char *name,
                              ASTNode *type_node)
 {
@@ -89,7 +143,7 @@ mir_source_local_type_append(MIRRoutine *routine,
     rendered = mir_capture_type_name(type_node, NULL);
     if (rendered == NULL)
         return false;
-    ok = mir_source_local_type_append_name(routine, name, rendered);
+    ok = mir_source_local_type_append_name(program, routine, name, rendered);
     free(rendered);
     return ok;
 }
@@ -206,18 +260,46 @@ mir_source_local_param_type_name(const MIRRoutine *routine, const char *name)
 }
 
 static const char *
+mir_source_local_routine_owner_name(const MIRRoutine *routine)
+{
+    if (routine == NULL)
+        return NULL;
+    if (routine->owner_name != NULL)
+        return routine->owner_name;
+    return routine->hir_routine != NULL ? routine->hir_routine->owner_name
+                                        : NULL;
+}
+
+static const char *
 mir_source_local_owner_field_type_name(const MIRProgram *program,
                                        const MIRRoutine *routine,
                                        const char *name)
 {
     const MIRDeclHeader *owner;
     const MIRDeclField *field;
+    const char *owner_name = mir_source_local_routine_owner_name(routine);
 
-    if (routine == NULL || name == NULL || routine->owner_name == NULL)
+    if (routine == NULL || name == NULL || owner_name == NULL)
         return NULL;
-    owner = mir_source_local_decl_header(program, routine->owner_name);
+    owner = mir_source_local_decl_header(program, owner_name);
     field = mir_source_local_header_field(owner, name);
     return field != NULL ? field->type_name : NULL;
+}
+
+static const char *
+mir_source_local_owner_method_return_type_name(const MIRProgram *program,
+                                               const MIRRoutine *routine,
+                                               const char *name)
+{
+    const MIRDeclHeader *owner;
+    const MIRDeclMethod *method;
+    const char *owner_name = mir_source_local_routine_owner_name(routine);
+
+    if (routine == NULL || name == NULL || owner_name == NULL)
+        return NULL;
+    owner = mir_source_local_decl_header(program, owner_name);
+    method = mir_source_local_header_method(owner, name);
+    return method != NULL ? method->return_type_name : NULL;
 }
 
 static const char *
@@ -239,6 +321,100 @@ mir_source_local_identifier_type_name(const MIRProgram *program,
 static const char *
 mir_source_local_expr_type_name(const MIRProgram *program,
                                 const MIRRoutine *routine,
+                                MIRSourceLocalTypeScratch *scratch,
+                                ASTNode *expr);
+
+static bool
+mir_source_local_builtin_returns_first_arg_type(const char *callee_name)
+{
+    return callee_name != NULL
+        && (strcmp(callee_name, "Abs") == 0
+            || strcmp(callee_name, "Clamp") == 0
+            || strcmp(callee_name, "Clone") == 0
+            || strcmp(callee_name, "Max") == 0
+            || strcmp(callee_name, "Min") == 0);
+}
+
+static const char *
+mir_source_local_read_call_type_name(const MIRProgram *program,
+                                     const MIRRoutine *routine,
+                                     MIRSourceLocalTypeScratch *scratch,
+                                     ASTNode *expr)
+{
+    const char *slot_type;
+    char *inner;
+
+    if (ast_call_arg_count(expr) < 1)
+        return NULL;
+    slot_type = mir_source_local_expr_type_name(program, routine, scratch,
+        ast_call_argument(expr, 0));
+    inner = mir_source_local_type_scratch_next(scratch);
+    if (inner == NULL
+        || !mir_source_local_unwrap_slot_like_type(slot_type, inner,
+            MIR_SOURCE_LOCAL_TYPE_SCRATCH_SIZE)) {
+        return NULL;
+    }
+    return inner;
+}
+
+static const char *
+mir_source_local_view_call_type_name(const MIRProgram *program,
+                                     const MIRRoutine *routine,
+                                     MIRSourceLocalTypeScratch *scratch,
+                                     ASTNode *expr,
+                                     const char *view_type_name)
+{
+    const char *slot_type;
+    char inner[MIR_SOURCE_LOCAL_TYPE_SCRATCH_SIZE];
+
+    if (ast_call_arg_count(expr) < 1)
+        return NULL;
+    slot_type = mir_source_local_expr_type_name(program, routine, scratch,
+        ast_call_argument(expr, 0));
+    if (!mir_source_local_unwrap_slot_like_type(slot_type, inner,
+            sizeof(inner))) {
+        return NULL;
+    }
+    return mir_source_local_type_scratch_format(scratch, view_type_name,
+        inner);
+}
+
+static const char *
+mir_source_local_builtin_call_type_name(const MIRProgram *program,
+                                        const MIRRoutine *routine,
+                                        MIRSourceLocalTypeScratch *scratch,
+                                        ASTNode *expr,
+                                        const char *callee_name)
+{
+    if (callee_name != NULL
+        && (strcmp(callee_name, "Read") == 0
+            || strcmp(callee_name, "DeviceRead") == 0)) {
+        return mir_source_local_read_call_type_name(program, routine,
+            scratch, expr);
+    }
+    if (callee_name != NULL && strcmp(callee_name, "ViewRead") == 0) {
+        return mir_source_local_view_call_type_name(program, routine, scratch,
+            expr, "ReadView");
+    }
+    if (callee_name != NULL && strcmp(callee_name, "ViewWrite") == 0) {
+        return mir_source_local_view_call_type_name(program, routine, scratch,
+            expr, "WriteView");
+    }
+    if (!mir_source_local_builtin_returns_first_arg_type(callee_name))
+        return NULL;
+    if (ast_call_arg_count(expr) >= 1) {
+        const char *arg_type = mir_source_local_expr_type_name(program,
+            routine, scratch, ast_call_argument(expr, 0));
+        if (arg_type != NULL)
+            return arg_type;
+    }
+    return "Int";
+}
+
+static const char *
+mir_source_local_expr_type_name(const MIRProgram *program,
+                                const MIRRoutine *routine,
+                                MIRSourceLocalTypeScratch *scratch,
                                 ASTNode *expr)
 {
     if (expr == NULL)
@@ -259,7 +435,7 @@ mir_source_local_expr_type_name(const MIRProgram *program,
         if (ast_unary_operator(expr).type == TOKEN_NOT)
             return "Bool";
         return mir_source_local_expr_type_name(program, routine,
-            ast_unary_operand(expr));
+            scratch, ast_unary_operand(expr));
     case AST_BINARY:
         switch (ast_binary_operator(expr).type) {
         case TOKEN_EQUAL:
@@ -273,11 +449,11 @@ mir_source_local_expr_type_name(const MIRProgram *program,
             return "Bool";
         default:
             return mir_source_local_expr_type_name(program, routine,
-                ast_binary_left(expr));
+                scratch, ast_binary_left(expr));
         }
     case AST_MEMBER_ACCESS: {
         const char *owner_type = mir_source_local_expr_type_name(program,
-            routine, ast_member_object(expr));
+            routine, scratch, ast_member_object(expr));
         const MIRDeclField *field = mir_source_local_header_field(
             mir_source_local_decl_header_for_value_type(program, owner_type),
             ast_member_name(expr));
@@ -287,7 +463,7 @@ mir_source_local_expr_type_name(const MIRProgram *program,
         ASTNode *callee = ast_call_callee(expr);
         if (callee != NULL && callee->type == AST_MEMBER_ACCESS) {
             const char *receiver_type = mir_source_local_expr_type_name(
-                program, routine, ast_member_object(callee));
+                program, routine, scratch, ast_member_object(callee));
             const MIRDeclMethod *method = mir_source_local_header_method(
                 mir_source_local_decl_header_for_value_type(program,
                     receiver_type),
@@ -295,12 +471,22 @@ mir_source_local_expr_type_name(const MIRProgram *program,
             return method != NULL ? method->return_type_name : NULL;
         }
         if (callee != NULL && callee->type == AST_IDENTIFIER) {
+            const char *callee_name = ast_identifier_name(callee);
             const MIRDeclMethod *fn = mir_source_local_header_method(
                 mir_source_local_decl_header(program,
-                    ast_identifier_name(callee)),
-                ast_identifier_name(callee));
+                    callee_name),
+                callee_name);
             if (fn != NULL)
                 return fn->return_type_name;
+            {
+                const char *owner_method_return =
+                    mir_source_local_owner_method_return_type_name(program,
+                        routine, callee_name);
+                if (owner_method_return != NULL)
+                    return owner_method_return;
+            }
+            return mir_source_local_builtin_call_type_name(program, routine,
+                scratch, expr, callee_name);
         }
         return NULL;
     }
@@ -319,12 +505,13 @@ mir_source_local_type_capture_node(const MIRProgram *program,
     switch (node->type) {
     case AST_LET_DECL: {
         ASTNode *type_node = ast_let_type(node);
+        MIRSourceLocalTypeScratch scratch = { 0 };
         if (type_node != NULL)
-            return mir_source_local_type_append(routine,
+            return mir_source_local_type_append(program, routine,
                 ast_let_name(node), type_node);
-        return mir_source_local_type_append_name(routine,
+        return mir_source_local_type_append_name(program, routine,
             ast_let_name(node),
-            mir_source_local_expr_type_name(program, routine,
+            mir_source_local_expr_type_name(program, routine, &scratch,
                 ast_let_initializer(node)));
     }
     case AST_BLOCK: {
@@ -353,7 +540,7 @@ mir_source_local_type_capture_node(const MIRProgram *program,
         char *claim_type = mir_claim_abi_type_name_from_ast(node);
         bool ok = true;
         if (alias != NULL && claim_type != NULL)
-            ok = mir_source_local_type_append_name(routine, alias,
+            ok = mir_source_local_type_append_name(program, routine, alias,
                 claim_type);
         free(claim_type);
         return ok && mir_source_local_type_capture_node(program, routine,

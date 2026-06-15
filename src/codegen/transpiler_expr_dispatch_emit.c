@@ -21,6 +21,7 @@
 #include "transpiler_expr_party_instance_emit.h"
 #include "transpiler_format.h"
 #include "transpiler_future_type_query.h"
+#include "transpiler_host_field_identifier.h"
 #include "transpiler_host_self_policy.h"
 #include "transpiler_mir_ssa_map.h"
 #include "transpiler_mir_ssa_names.h"
@@ -35,25 +36,6 @@
 #include "transpiler_type_mapping.h"
 #include "transpiler_type_require.h"
 #include "transpiler_mir_local_binding.h"
-
-static bool
-transpiler_identifier_is_true_local(TranspilerCtx *ctx,
-                                    const ASTNode *func_decl,
-                                    const char *id_name)
-{
-    if (id_name == NULL || func_decl == NULL)
-        return false;
-    (void)ctx;
-    if (func_decl->type == AST_FUNC_DECL) {
-        size_t param_count = ast_func_param_count(func_decl);
-        for (size_t i = 0; i < param_count; i++) {
-            FuncParam *p = ast_func_param(func_decl, i);
-            if (p != NULL && p->name != NULL && strcmp(p->name, id_name) == 0)
-                return true;
-        }
-    }
-    return transpiler_has_explicit_local_binding(func_decl, id_name);
-}
 
 char *
 emit_expression(ASTNode *node, TranspilerCtx *ctx)
@@ -102,6 +84,13 @@ emit_expression(ASTNode *node, TranspilerCtx *ctx)
                     return strdup_fmt("(*_pctx->%s)", id_name);
             }
         }
+        if (transpiler_current_function_has_self_receiver(ctx)
+            && transpiler_is_implicit_field(ctx, id_name)) {
+            char *field_expr =
+                transpiler_emit_current_host_field_identifier(ctx, id_name);
+            if (field_expr != NULL)
+                return field_expr;
+        }
         /* When the same identifier is both an active SSA local (let-decl
          * or assignment LHS in the current scope) AND a field of the
          * enclosing host class/zone/party/etc., the local must win.
@@ -112,63 +101,36 @@ emit_expression(ASTNode *node, TranspilerCtx *ctx)
          * branch when the SSA resolver has a binding for this name. */
         bool ident_has_active_ssa =
             transpiler_resolve_active_ssa_name(ctx, id_name) != NULL;
-        if (ident_has_active_ssa && ctx->current_func_decl != NULL) {
-            bool is_field = current_class_has_field(ctx, id_name)
-                || current_party_has_field(ctx, id_name)
-                || current_roster_has_field(ctx, id_name)
-                || current_relation_has_field(ctx, id_name)
-                || current_effect_has_field(ctx, id_name)
-                || current_zone_has_field(ctx, id_name)
-                || transpiler_current_world_has_field(ctx, id_name);
-            if (is_field && !transpiler_identifier_is_true_local(ctx, ctx->current_func_decl, id_name)) {
+        bool ident_is_stale_host_field_snapshot = false;
+        if (ident_has_active_ssa) {
+            ident_is_stale_host_field_snapshot =
+                transpiler_identifier_is_stale_host_field_snapshot(ctx,
+                    id_name);
+            if (ident_is_stale_host_field_snapshot) {
                 ident_has_active_ssa = false;
             }
         }
         if (strcmp(id_name, "self") != 0
-            && !ident_has_active_ssa
-            && lookup_typed_var(ctx, id_name) == NULL
-            && (!is_slot_var(ctx, id_name)
-                || lookup_slot_is_self_field(ctx, id_name))
-            && current_class_has_field(ctx, id_name)) {
-            return strdup_fmt(current_class_uses_self_cell(ctx)
-                ? "self->%s"
-                : "self.%s", id_name);
+            && ident_is_stale_host_field_snapshot) {
+            char *field_expr =
+                transpiler_emit_current_host_field_identifier(ctx, id_name);
+            if (field_expr != NULL)
+                return field_expr;
         }
         if (strcmp(id_name, "self") != 0
             && !ident_has_active_ssa
             && lookup_typed_var(ctx, id_name) == NULL
-            && !is_slot_var(ctx, id_name)
-            && (current_party_has_field(ctx, id_name)
-                || current_roster_has_field(ctx, id_name))) {
-            return strdup_fmt("self->%s", id_name);
-        }
-        if (strcmp(id_name, "self") != 0
-            && !ident_has_active_ssa
-            && lookup_typed_var(ctx, id_name) == NULL
-            && !is_slot_var(ctx, id_name)
-            && current_relation_has_field(ctx, id_name)) {
-            return strdup_fmt("self->%s", id_name);
-        }
-        if (strcmp(id_name, "self") != 0
-            && !ident_has_active_ssa
-            && lookup_typed_var(ctx, id_name) == NULL
-            && !is_slot_var(ctx, id_name)
-            && current_effect_has_field(ctx, id_name)) {
-            return strdup_fmt("self->%s", id_name);
-        }
-        if (strcmp(id_name, "self") != 0
-            && !ident_has_active_ssa
-            && lookup_typed_var(ctx, id_name) == NULL
-            && !is_slot_var(ctx, id_name)
-            && current_zone_has_field(ctx, id_name)) {
-            return strdup_fmt("self->%s", id_name);
-        }
-        if (strcmp(id_name, "self") != 0
-            && !ident_has_active_ssa
-            && lookup_typed_var(ctx, id_name) == NULL
-            && !is_slot_var(ctx, id_name)
-            && transpiler_current_world_has_field(ctx, id_name)) {
-            return strdup_fmt("self->%s", id_name);
+            && !transpiler_identifier_is_current_true_local(ctx, id_name)) {
+            bool id_is_slot = is_slot_var(ctx, id_name);
+            if (!id_is_slot
+                || (lookup_slot_is_self_field(ctx, id_name)
+                    && current_class_has_field(ctx, id_name))) {
+                char *field_expr =
+                    transpiler_emit_current_host_field_identifier(ctx,
+                        id_name);
+                if (field_expr != NULL)
+                    return field_expr;
+            }
         }
         const char *ssa_name = transpiler_resolve_active_ssa_name(ctx, id_name);
         if (ssa_name != NULL) {

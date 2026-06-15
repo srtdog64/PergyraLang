@@ -2,6 +2,7 @@
 #include "llvm_internal.h"
 #include "llvm_stmt_let_collection_policy.h"
 #include "parser/ast_api.h"
+#include "../common/string_compat.h"
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -345,8 +346,19 @@ llvm_stmt_emit_collection_like_let(ASTNode *node, LLVMGenCtx *ctx)
         LLVMTypeRef elem_type = NULL;
         char *owned_inner_name = NULL;
         const char *inner_name = NULL;
+        const char *source_type_name = ctx->current_mir_routine != NULL
+            ? mir_routine_source_local_type_name(ctx->current_mir_routine, name)
+            : NULL;
+        char source_inner_buf[128];
 
-        if (type_ann != NULL && type_ann->type == AST_TYPE
+        if (source_type_name != NULL
+            && pgy_classify_type(source_type_name) == PGY_TK_ARRAY
+            && llvm_constructed_arg_name_copy(source_type_name, 0,
+                source_inner_buf, sizeof(source_inner_buf))) {
+            owned_inner_name = pergyra_strdup(source_inner_buf);
+            inner_name = owned_inner_name;
+            elem_type = pergyra_type_to_llvm(ctx, inner_name);
+        } else if (type_ann != NULL && type_ann->type == AST_TYPE
             && ast_type_name(type_ann) != NULL
             && (strcmp(ast_type_name(type_ann), "Array") == 0
                 || strcmp(ast_type_name(type_ann), "Slice") == 0)

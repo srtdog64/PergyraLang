@@ -368,6 +368,9 @@ ASTNode *transpiler_find_projection_nominal_decl_local(TranspilerCtx *ctx,
                                                        const char *name);
 ASTNode *transpiler_find_type_alias_decl(TranspilerCtx *ctx,
                                          const char *alias_name);
+const char *transpiler_type_alias_target_type_name_from_headers(
+    TranspilerCtx *ctx,
+    const char *alias_name);
 ASTNode *resolve_type_alias_target(TranspilerCtx *ctx, ASTNode *type_node);
 ASTNode *find_subject_host_decl(TranspilerCtx *ctx, const char *subject_name);
 ASTNode *find_ability_decl(TranspilerCtx *ctx, const char *ability_name);

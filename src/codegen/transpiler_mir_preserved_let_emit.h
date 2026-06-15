@@ -24,6 +24,7 @@ bool transpiler_emit_mir_preserved_let_stmt(
 TranspilerMIRLocalLetEmitResult
 transpiler_emit_mir_source_local_let_def_inst(
     CodeBuf *buf,
+    const MIRRoutine *mir_routine,
     const MIRBasicBlock *block,
     const MIRInstruction *inst,
     ASTNode *stmt,

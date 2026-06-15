@@ -276,6 +276,96 @@ test_mir_lowering_part_c(void)
         free(mir_error);
     }
 
+    TEST("MIR captures builtin call return types for source locals");
+    {
+        const char *src =
+            "func BuiltinLocalFacts() -> Int {\n"
+            "    let low = Min(3, 9);\n"
+            "    let high = Max(low, 4);\n"
+            "    let limited = Clamp(high, 0, 10);\n"
+            "    let copied = Clone(limited);\n"
+            "    let ratio = Min(1.5, 2.5);\n"
+            "    with slot<Int> as cell {\n"
+            "        Write(cell, copied);\n"
+            "        let budget = Read(cell);\n"
+            "        return budget;\n"
+            "    }\n"
+            "    return copied;\n"
+            "}\n";
+        HIRProgram *hir = NULL;
+        RIRProgram *rir = NULL;
+        MIRProgram *mir = NULL;
+        const MIRRoutine *routine = NULL;
+        const char *low_type = NULL;
+        const char *high_type = NULL;
+        const char *limited_type = NULL;
+        const char *copied_type = NULL;
+        const char *ratio_type = NULL;
+        const char *cell_type = NULL;
+        const char *budget_type = NULL;
+        bool ok = lower_mir_from_source(src, &hir, &rir, &mir);
+        if (ok)
+            routine = find_mir_routine(mir, "BuiltinLocalFacts",
+                                       MIR_SCOPE_FUNCTION);
+        if (routine != NULL) {
+            low_type = mir_routine_source_local_type_name(routine, "low");
+            high_type = mir_routine_source_local_type_name(routine, "high");
+            limited_type = mir_routine_source_local_type_name(routine,
+                "limited");
+            copied_type = mir_routine_source_local_type_name(routine,
+                "copied");
+            ratio_type = mir_routine_source_local_type_name(routine,
+                "ratio");
+            cell_type = mir_routine_source_local_type_name(routine, "cell");
+            budget_type = mir_routine_source_local_type_name(routine,
+                "budget");
+        }
+        EXPECT(ok
+               && mir_validate(mir, NULL)
+               && routine != NULL
+               && low_type != NULL && strcmp(low_type, "Int") == 0
+               && high_type != NULL && strcmp(high_type, "Int") == 0
+               && limited_type != NULL && strcmp(limited_type, "Int") == 0
+               && copied_type != NULL && strcmp(copied_type, "Int") == 0
+               && ratio_type != NULL && strcmp(ratio_type, "Float") == 0
+               && cell_type != NULL && strcmp(cell_type, "Slot<Int>") == 0
+               && budget_type != NULL && strcmp(budget_type, "Int") == 0);
+        mir_destroy(mir);
+        rir_destroy(rir);
+        hir_destroy(hir);
+    }
+
+    TEST("MIR captures owner method call return types for source locals");
+    {
+        const char *src =
+            "world LocalMethodOwner {\n"
+            "    func Pick(self, seed: Int) -> Int { return seed + 1; }\n"
+            "    func Run(self) -> Int {\n"
+            "        let choice = Pick(4);\n"
+            "        return choice;\n"
+            "    }\n"
+            "}\n";
+        HIRProgram *hir = NULL;
+        RIRProgram *rir = NULL;
+        MIRProgram *mir = NULL;
+        const MIRRoutine *routine = NULL;
+        const char *choice_type = NULL;
+        bool ok = lower_mir_from_source(src, &hir, &rir, &mir);
+        if (ok)
+            routine = find_mir_routine(mir, "Run", MIR_SCOPE_METHOD);
+        if (routine != NULL)
+            choice_type = mir_routine_source_local_type_name(routine,
+                "choice");
+        EXPECT(ok
+               && mir_validate(mir, NULL)
+               && routine != NULL
+               && choice_type != NULL
+               && strcmp(choice_type, "Int") == 0);
+        mir_destroy(mir);
+        rir_destroy(rir);
+        hir_destroy(hir);
+    }
+
     TEST("MIR validator rejects invalid source-statement emit fact");
     {
         const char *src =

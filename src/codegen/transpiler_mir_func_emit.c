@@ -211,7 +211,9 @@ emit_func_decl_from_mir_named(ASTNode *node, const MIRRoutine *mir_routine,
 
     transpiler_capture_mir_emit_state_local(ctx, &saved_emit_state);
     ctx->out = buf;
-    transpiler_bind_function_emit_host_local(ctx, resolved_host_decl, node);
+    transpiler_bind_function_emit_host_local(ctx,
+        resolved_host_decl,
+        node != NULL ? node : (mir_routine != NULL ? mir_routine->ast : NULL));
 
     if (node != NULL)
         ensure_collection_specializations_from_stmt_to(ctx, ctx->decls, node);

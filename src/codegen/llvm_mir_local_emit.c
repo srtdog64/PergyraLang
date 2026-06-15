@@ -11,83 +11,12 @@
 
 #include "llvm_internal_api.h"
 #include "llvm_mir_async_fact.h"
+#include "llvm_mir_local_element_type.h"
 #include "llvm_mir_slice_fact.h"
 #include "llvm_mir_type_helpers.h"
 #include "codegen_slot_type_policy.h"
 #include "parser/ast_api.h"
 #include "../common/string_compat.h"
-
-static LLVMTypeRef
-llvm_mir_local_elem_type_from_layout(LLVMGenCtx *ctx,
-                                     const MIRTypeLayout *layout)
-{
-    char inner_name[256];
-
-    if (ctx == NULL || layout == NULL || layout->abi_type_name == NULL)
-        return NULL;
-    switch (pgy_classify_type(layout->abi_type_name)) {
-    case PGY_TK_ARRAY:
-    case PGY_TK_SLICE:
-        break;
-    default:
-        return NULL;
-    }
-    if (!llvm_constructed_arg_name_copy(layout->abi_type_name, 0,
-            inner_name, sizeof(inner_name))) {
-        return NULL;
-    }
-    if (inner_name[0] == '\0' || strcmp(inner_name, "Unknown") == 0)
-        return NULL;
-    return pergyra_type_to_llvm(ctx, inner_name);
-}
-
-static LLVMTypeRef
-llvm_mir_local_elem_type_from_type_ast(LLVMGenCtx *ctx, ASTNode *type_node)
-{
-    const char *type_name;
-    GenericParams *args;
-    GenericParam *first_arg;
-    const char *inner_name;
-
-    if (ctx == NULL || type_node == NULL || type_node->type != AST_TYPE)
-        return NULL;
-    type_name = ast_type_name(type_node);
-    if (type_name == NULL)
-        return NULL;
-    if (strcmp(type_name, "Array") != 0
-        && strcmp(type_name, "Slice") != 0
-        && strncmp(type_name, "Array<", 6) != 0
-        && strncmp(type_name, "Slice<", 6) != 0) {
-        return NULL;
-    }
-    args = ast_type_generic_args(type_node);
-    if (args == NULL || ast_generic_param_count(args) == 0)
-        return NULL;
-    first_arg = ast_generic_param_at(args, 0);
-    inner_name = ast_generic_param_name(first_arg);
-    if (inner_name == NULL || inner_name[0] == '\0')
-        return NULL;
-    return pergyra_type_to_llvm(ctx, inner_name);
-}
-
-static bool
-llvm_mir_local_require_elem_type(LLVMGenCtx *ctx, ASTNode *site,
-                                 LLVMTypeRef elem_type,
-                                 const char *surface)
-{
-    if (ctx != NULL && elem_type != NULL && !ctx->has_error)
-        return true;
-    if (ctx != NULL && !ctx->has_error) {
-        llvm_set_error_at_with_hints(ctx,
-            site,
-            PGY_CODE_LLVM_TYPE_UNSUPPORTED,
-            PGY_CAUSE_LLVM_TYPE_UNSUPPORTED,
-            PGY_FIX_INSPECT_MIR_INVENTORY,
-            "LLVM MIR local '%s' requires concrete Array<T>/Slice<T> element metadata",
-            surface != NULL ? surface : "<local>");
-    }
-    return false;
-}
 
 static LLVMTypeRef
 llvm_mir_local_type_from_vars(LLVMMirVar *vars, size_t var_count,
@@ -638,7 +567,15 @@ llvm_emit_mir_local_allocas(const MIRRoutine *routine, LLVMGenCtx *ctx,
                         elem_type = llvm_stmt_infer_expr_type(ctx,
                             ast_array_literal_element(value_expr, 0));
                     } else {
-                        if (type_expr != NULL) {
+                        const char *source_type_name =
+                            mir_routine_source_local_type_name(routine,
+                                                               base_name);
+                        if (source_type_name != NULL) {
+                            elem_type =
+                                llvm_mir_local_elem_type_from_type_name(
+                                    ctx, source_type_name);
+                        }
+                        if (elem_type == NULL && type_expr != NULL) {
                             elem_type = llvm_mir_local_elem_type_from_type_ast(
                                 ctx, type_expr);
                         }

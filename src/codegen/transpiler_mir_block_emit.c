@@ -195,7 +195,7 @@ transpiler_emit_mir_block_statements(CodeBuf *buf, const ASTNode *func_decl,
         {
             TranspilerMIRLocalLetEmitResult let_result =
                 transpiler_emit_mir_source_local_let_def_inst(
-                    buf, block, inst, stmt, ctx, ssa_map_out,
+                    buf, mir_routine, block, inst, stmt, ctx, ssa_map_out,
                     reason, reason_cap);
             if (let_result == TRANSPILE_MIR_LOCAL_LET_FAILED) {
                 ok = false;

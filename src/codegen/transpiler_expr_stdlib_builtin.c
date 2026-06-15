@@ -23,6 +23,7 @@
 #include "transpiler_expr_stdlib_scalar_builtin.h"
 #include "transpiler_expr_type_infer.h"
 #include "transpiler_format.h"
+#include "transpiler_inventory_view.h"
 #include "transpiler_type_mapping.h"
 #include "transpiler_type_render.h"
 #include "transpiler_type_require.h"
@@ -60,25 +61,43 @@ transpiler_resolve_unary_constructed_inner(TranspilerCtx *ctx,
         && !(family_len > 0
              && strncmp(resolved_type, family, family_len) == 0
              && resolved_type[family_len] == '<')) {
-        ASTNode *alias_decl = transpiler_find_type_alias_decl(ctx, resolved_type);
-        if (alias_decl != NULL && ast_type_alias_target_type(alias_decl) != NULL) {
-            ASTNode *target = resolve_type_alias_target(
-                ctx, ast_type_alias_target_type(alias_decl));
-            char *rendered = render_type_name_in_ctx(ctx, target);
-            if (rendered != NULL) {
-                bool copied = transpiler_stdlib_copy_type_name(
-                    resolved_buf, sizeof(resolved_buf), rendered);
-                free(rendered);
-                if (!copied) {
-                    transpiler_set_backend_error_with_hints(ctx,
-                        PGY_CODE_C_TYPE_UNSUPPORTED,
-                        PGY_CAUSE_C_TYPE_UNSUPPORTED,
-                        PGY_FIX_ANNOTATE_CONCRETE_TYPE,
-                        "C backend: resolved %s type is too long",
-                        family != NULL ? family : "constructed");
-                    return false;
+        const char *target_type_name =
+            transpiler_type_alias_target_type_name_from_headers(
+                ctx, resolved_type);
+        if (target_type_name != NULL) {
+            bool copied = transpiler_stdlib_copy_type_name(
+                resolved_buf, sizeof(resolved_buf), target_type_name);
+            if (!copied) {
+                transpiler_set_backend_error_with_hints(ctx,
+                    PGY_CODE_C_TYPE_UNSUPPORTED,
+                    PGY_CAUSE_C_TYPE_UNSUPPORTED,
+                    PGY_FIX_ANNOTATE_CONCRETE_TYPE,
+                    "C backend: resolved %s type is too long",
+                    family != NULL ? family : "constructed");
+                return false;
+            }
+            resolved_type = resolved_buf;
+        } else if (!transpiler_active_has_mir(ctx)) {
+            ASTNode *alias_decl = transpiler_find_type_alias_decl(ctx, resolved_type);
+            if (alias_decl != NULL && ast_type_alias_target_type(alias_decl) != NULL) {
+                ASTNode *target = resolve_type_alias_target(
+                    ctx, ast_type_alias_target_type(alias_decl));
+                char *rendered = render_type_name_in_ctx(ctx, target);
+                if (rendered != NULL) {
+                    bool copied = transpiler_stdlib_copy_type_name(
+                        resolved_buf, sizeof(resolved_buf), rendered);
+                    free(rendered);
+                    if (!copied) {
+                        transpiler_set_backend_error_with_hints(ctx,
+                            PGY_CODE_C_TYPE_UNSUPPORTED,
+                            PGY_CAUSE_C_TYPE_UNSUPPORTED,
+                            PGY_FIX_ANNOTATE_CONCRETE_TYPE,
+                            "C backend: resolved %s type is too long",
+                            family != NULL ? family : "constructed");
+                        return false;
+                    }
+                    resolved_type = resolved_buf;
                 }
-                resolved_type = resolved_buf;
             }
         }
     }

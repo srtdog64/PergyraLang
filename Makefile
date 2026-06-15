@@ -627,6 +627,7 @@ CODEGEN_SOURCES  = $(CODEGEN_DIR)/transpiler_allocator_builtin_emit.c \
                    $(CODEGEN_DIR)/transpiler_expr_composite_literal_emit.c \
                    $(CODEGEN_DIR)/transpiler_expr_dispatch_emit.c \
                    $(CODEGEN_DIR)/transpiler_expr_dispatch_operand.c \
+                   $(CODEGEN_DIR)/transpiler_host_field_identifier.c \
                    $(CODEGEN_DIR)/transpiler_expr_call_user_emit.c \
                    $(CODEGEN_DIR)/transpiler_expr_domain_query_builtin.c \
                    $(CODEGEN_DIR)/transpiler_expr_io_builtin.c \
@@ -956,6 +957,7 @@ ifneq ($(LLVM_ENABLED),0)
                         $(CODEGEN_DIR)/llvm_mir_resource_view.c \
                         $(CODEGEN_DIR)/llvm_mir_async_fact.c \
                         $(CODEGEN_DIR)/llvm_mir_local_emit.c \
+                        $(CODEGEN_DIR)/llvm_mir_local_element_type.c \
                         $(CODEGEN_DIR)/llvm_mir_slice_fact.c \
                         $(CODEGEN_DIR)/llvm_mir_param_emit.c \
                         $(CODEGEN_DIR)/llvm_mir_type_helpers.c \

@@ -60,7 +60,8 @@ emit_let_decl(ASTNode *node, TranspilerCtx *ctx)
     const char *name = ast_let_name(node);
     ASTNode    *init = ast_let_initializer(node);
     ASTNode    *ann  = ast_let_type(node);
-    ASTNode    *resolved_ann = resolve_type_alias_target(ctx, ann);
+    ASTNode    *resolved_ann = transpiler_active_has_mir(ctx)
+        ? ann : resolve_type_alias_target(ctx, ann);
     const char *ann_node_type_name = ast_type_name(ann);
     const char *resolved_ann_type_name = ast_type_name(resolved_ann);
     char       *ann_type_name = ann != NULL
@@ -68,6 +69,48 @@ emit_let_decl(ASTNode *node, TranspilerCtx *ctx)
     ASTNode    *callable_type = NULL;
     ASTNode    *callable_decl = NULL;
     const char *generic_class_spec_name = NULL;
+    if (ann_type_name != NULL) {
+        const char *target_type_name =
+            transpiler_type_alias_target_type_name_from_headers(
+                ctx, ann_type_name);
+        if (target_type_name != NULL) {
+            char *target_copy = pergyra_strdup(target_type_name);
+            if (target_copy == NULL) {
+                transpiler_set_backend_error_with_hints(ctx,
+                    PGY_CODE_C_TYPE_UNSUPPORTED,
+                    PGY_CAUSE_C_TYPE_UNSUPPORTED,
+                    PGY_FIX_USE_LLVM_BACKEND_OR_EXTEND_TRANSPILER,
+                    "C backend: type-alias annotation allocation failed for '%s'",
+                    name != NULL ? name : "<binding>");
+                free(ann_type_name);
+                return;
+            }
+            free(ann_type_name);
+            ann_type_name = target_copy;
+            if (strchr(ann_type_name, '<') == NULL
+                && strchr(ann_type_name, '(') == NULL) {
+                resolved_ann_type_name = ann_type_name;
+            }
+        }
+    }
+    if (ann_type_name != NULL
+        && !transpiler_active_has_mir(ctx)
+        && resolved_ann != NULL
+        && resolved_ann != ann) {
+        char *resolved_name = render_type_name_in_ctx(ctx, resolved_ann);
+        if (resolved_name == NULL) {
+            transpiler_set_backend_error_with_hints(ctx,
+                PGY_CODE_C_TYPE_UNSUPPORTED,
+                PGY_CAUSE_C_TYPE_UNSUPPORTED,
+                PGY_FIX_USE_LLVM_BACKEND_OR_EXTEND_TRANSPILER,
+                "C backend: type-alias annotation rendering failed for '%s'",
+                name != NULL ? name : "<binding>");
+            free(ann_type_name);
+            return;
+        }
+        free(ann_type_name);
+        ann_type_name = resolved_name;
+    }
     if (ast_let_is_alias(node)) {
         register_alias_var(ctx, name, init);
         if (ann_type_name != NULL) {

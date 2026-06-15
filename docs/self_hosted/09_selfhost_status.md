@@ -29,6 +29,14 @@ Single source of truth (capability 5) is nearly closed.
   and accessor, tracked by the ratchet.
 - C class/zone collection-specialization scans are MIR-routine based and no
   longer recover method body AST; routine_source_decl_codegen is ratcheted at 0.
+- C hosted method body emission binds the linked MIRRoutine body as current
+  function context, and `transpiler_host_field_identifier.c` owns current-host
+  field identifier lowering so stale field SSA snapshots and field/local
+  shadowing do not reopen AST/source-local fallback paths.
+- Type-alias target names are MIR declaration-header facts. C and LLVM now use
+  the same canonical source-local type fact for alias-backed collection
+  contexts; `type_alias_array_context` proves empty `Array<T>` alias literals
+  compile and run on both backends.
   The remaining bridge is declaration-header source_decl compatibility.
 
 Substrate progress.

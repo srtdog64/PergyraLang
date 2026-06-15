@@ -1,5 +1,7 @@
 #include "mir_decl_headers.h"
 
+#include <string.h>
+
 ASTNode *
 mir_decl_header_source_decl(const MIRDeclHeader *header)
 {
@@ -24,6 +26,55 @@ mir_decl_header_type_alias_target_type_name(const MIRDeclHeader *header)
     return header != NULL && header->ast_type == AST_TYPE_ALIAS
         ? header->type_alias_target_type_name
         : NULL;
+}
+
+const char *
+mir_decl_header_inventory_resolve_type_alias_target_type_name(
+    const MIRDeclHeaderInventory *inventory,
+    const char *alias_name)
+{
+    const char *current = alias_name;
+
+    if (inventory == NULL || alias_name == NULL)
+        return NULL;
+
+    for (size_t depth = 0; depth < 32; depth++) {
+        const MIRDeclHeader *alias_header = NULL;
+        const char *target_type_name;
+
+        for (size_t i = 0; i < inventory->count; i++) {
+            const MIRDeclHeader *header = &inventory->headers[i];
+            if (header->ast_type == AST_TYPE_ALIAS
+                && header->name != NULL
+                && strcmp(header->name, current) == 0) {
+                alias_header = header;
+                break;
+            }
+        }
+
+        target_type_name =
+            mir_decl_header_type_alias_target_type_name(alias_header);
+        if (target_type_name == NULL)
+            return depth == 0 ? NULL : current;
+        current = target_type_name;
+        if (strchr(current, '<') != NULL || strchr(current, '(') != NULL)
+            return current;
+    }
+
+    return current;
+}
+
+const char *
+mir_decl_header_resolve_type_alias_target_type_name(const MIRProgram *mir,
+                                                    const char *alias_name)
+{
+    MIRDeclHeaderInventory inventory;
+
+    if (mir == NULL)
+        return NULL;
+    mir_decl_header_inventory_from_program(mir, &inventory);
+    return mir_decl_header_inventory_resolve_type_alias_target_type_name(
+        &inventory, alias_name);
 }
 
 NominalDeclKind

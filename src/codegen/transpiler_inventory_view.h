@@ -64,6 +64,11 @@ const char *transpiler_mir_routine_within_zone(
 size_t transpiler_active_routine_count(const TranspilerCtx *ctx);
 
 void
+transpiler_active_decl_header_inventory(
+    const TranspilerCtx *ctx,
+    MIRDeclHeaderInventory *inventory);
+
+void
 transpiler_active_inventory(const TranspilerCtx *ctx,
                             ASTNodeType decl_type,
                             ASTNode ***nodes_out,

@@ -62,17 +62,47 @@ transpiler_mir_routine_has_local_name(const MIRRoutine *routine,
             }
         }
     }
-    for (size_t i = 0; i < routine->block_count; i++) {
-        const MIRBasicBlock *block = &routine->blocks[i];
-        if (block == NULL)
-            continue;
-        for (size_t j = 0; j < block->source_local_def_count; j++) {
-            const char *name = block->source_local_defs[j];
-            if (name != NULL && strcmp(name, base_name) == 0)
-                return true;
+    return false;
+}
+
+static const MIRRoutine *
+transpiler_find_current_mir_routine(const TranspilerCtx *ctx)
+{
+    TranspilerMIRRoutineInventory inventory;
+    const char *target_name;
+    const char *host_name;
+
+    if (ctx == NULL || ctx->current_func_decl == NULL)
+        return NULL;
+
+    transpiler_active_routine_inventory(ctx, &inventory);
+    for (size_t i = 0; i < inventory.count; i++) {
+        const MIRRoutine *routine =
+            transpiler_routine_inventory_get(&inventory, i);
+        if (routine != NULL && routine->ast == ctx->current_func_decl)
+            return routine;
+    }
+    target_name = ast_declaration_name(ctx->current_func_decl);
+    host_name = transpiler_decl_name_local(ctx->current_host_decl);
+    if (target_name != NULL && host_name != NULL) {
+        for (size_t i = 0; i < inventory.count; i++) {
+            const MIRRoutine *routine =
+                transpiler_routine_inventory_get(&inventory, i);
+            const char *routine_name = transpiler_mir_routine_name(routine);
+            const char *owner_name =
+                transpiler_mir_routine_owner_name(routine);
+            if (routine != NULL
+                && transpiler_mir_routine_kind(routine) == MIR_SCOPE_METHOD
+                && routine_name != NULL
+                && owner_name != NULL
+                && strcmp(routine_name, target_name) == 0
+                && strcmp(owner_name, host_name) == 0) {
+                return routine;
+            }
         }
     }
-    return false;
+
+    return transpiler_find_mir_function(ctx, ctx->current_func_decl);
 }
 
 static bool
@@ -83,11 +113,11 @@ transpiler_current_function_has_local_binding(TranspilerCtx *ctx,
 
     if (ctx == NULL || ctx->current_func_decl == NULL || base_name == NULL)
         return false;
-    routine = transpiler_find_mir_function(ctx, ctx->current_func_decl);
-    if (routine != NULL)
-        return transpiler_mir_routine_has_local_name(routine, base_name);
-    if (transpiler_active_has_mir(ctx))
-        return false;
+    routine = transpiler_find_current_mir_routine(ctx);
+    if (routine != NULL
+        && transpiler_mir_routine_has_local_name(routine, base_name)) {
+        return true;
+    }
     return transpiler_has_explicit_local_binding(ctx->current_func_decl,
         base_name);
 }

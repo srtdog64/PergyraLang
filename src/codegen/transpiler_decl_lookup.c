@@ -285,6 +285,19 @@ transpiler_find_type_alias_decl(TranspilerCtx *ctx, const char *alias_name)
     return transpiler_find_named_decl_local(ctx, AST_TYPE_ALIAS, alias_name);
 }
 
+const char *
+transpiler_type_alias_target_type_name_from_headers(TranspilerCtx *ctx,
+                                                    const char *alias_name)
+{
+    MIRDeclHeaderInventory inventory;
+
+    if (ctx == NULL || alias_name == NULL || !transpiler_active_has_mir(ctx))
+        return NULL;
+    transpiler_active_decl_header_inventory(ctx, &inventory);
+    return mir_decl_header_inventory_resolve_type_alias_target_type_name(
+        &inventory, alias_name);
+}
+
 ASTNode *
 resolve_type_alias_target(TranspilerCtx *ctx, ASTNode *type_node)
 {

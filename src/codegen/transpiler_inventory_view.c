@@ -158,6 +158,19 @@ transpiler_active_routine_count(const TranspilerCtx *ctx)
 }
 
 void
+transpiler_active_decl_header_inventory(
+    const TranspilerCtx *ctx,
+    MIRDeclHeaderInventory *inventory)
+{
+    if (inventory == NULL)
+        return;
+    inventory->headers = NULL;
+    inventory->count = 0;
+    if (ctx != NULL && ctx->mir != NULL)
+        mir_decl_header_inventory_from_program(ctx->mir, inventory);
+}
+
+void
 transpiler_active_inventory(const TranspilerCtx *ctx,
                             ASTNodeType decl_type,
                             ASTNode ***nodes_out,

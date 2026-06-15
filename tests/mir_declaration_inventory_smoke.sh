@@ -139,6 +139,8 @@ for rel in \
     "src/codegen/transpiler_domain_role_ability_emit.c" \
     "src/codegen/transpiler_domain_role_ability_emit.h" \
     "src/codegen/transpiler_generic_class_specialization_emit.c" \
+    "src/codegen/transpiler_host_field_identifier.c" \
+    "src/codegen/transpiler_host_field_identifier.h" \
     "src/codegen/transpiler_mir_ssa_names.h" \
     "src/codegen/transpiler_type_alias.c" \
     "src/compiler/mir.h" \
@@ -252,8 +254,16 @@ require_term "src/compiler/mir_decl.h" \
     "char        *type_alias_target_type_name"
 require_term "src/compiler/mir_decl_headers.h" \
     "mir_decl_header_type_alias_target_type_name"
+require_term "src/compiler/mir_decl_headers.h" \
+    "mir_decl_header_inventory_resolve_type_alias_target_type_name"
+require_term "src/compiler/mir_decl_headers.h" \
+    "mir_decl_header_resolve_type_alias_target_type_name"
 require_term "src/compiler/mir_decl_header_access.c" \
     "mir_decl_header_type_alias_target_type_name(const MIRDeclHeader *header)"
+require_term "src/compiler/mir_decl_header_access.c" \
+    "mir_decl_header_inventory_resolve_type_alias_target_type_name("
+require_term "src/compiler/mir_decl_header_access.c" \
+    "mir_decl_header_resolve_type_alias_target_type_name(const MIRProgram *mir"
 require_term "src/compiler/mir_decl_headers.c" \
     "header.type_alias_target_type_name ="
 require_term "src/compiler/mir_decl_header_validate.c" \
@@ -271,9 +281,32 @@ require_term "src/codegen/llvm_backend_type_render.c" \
 require_term "src/codegen/llvm_backend_type_render.c" \
     "llvm_active_has_mir(ctx)"
 require_term "src/codegen/transpiler_type_alias.c" \
+    "transpiler_type_alias_target_type_name_from_headers("
+require_term "src/codegen/transpiler_decl_lookup.h" \
     "transpiler_type_alias_target_type_name_from_headers"
-require_term "src/codegen/transpiler_type_alias.c" \
-    "mir_decl_header_type_alias_target_type_name(alias_header)"
+require_term "src/codegen/transpiler_decl_lookup.c" \
+    "transpiler_type_alias_target_type_name_from_headers(TranspilerCtx *ctx"
+require_term "src/codegen/transpiler_decl_lookup.c" \
+    "transpiler_active_decl_header_inventory(ctx, &inventory)"
+require_term "src/codegen/transpiler_decl_lookup.c" \
+    "mir_decl_header_inventory_resolve_type_alias_target_type_name("
+require_term "src/codegen/transpiler_inventory_view.h" \
+    "transpiler_active_decl_header_inventory"
+require_term "src/codegen/transpiler_inventory_view.c" \
+    "mir_decl_header_inventory_from_program(ctx->mir, inventory)"
+for rel in \
+    "src/codegen/transpiler_specialization_type_name_scan.c" \
+    "src/codegen/transpiler_channel_type_query.c" \
+    "src/codegen/transpiler_expr_stdlib_builtin.c" \
+    "src/codegen/transpiler_expr_stdlib_collection_support.c" \
+    "src/codegen/transpiler_let_emit.c"; do
+    require_term "$rel" \
+        "transpiler_type_alias_target_type_name_from_headers("
+    require_term "$rel" \
+        "transpiler_active_has_mir(ctx)"
+done
+require_term "src/compiler/mir_source_local_types.c" \
+    "mir_decl_header_resolve_type_alias_target_type_name("
 require_term "src/codegen/transpiler_type_alias.c" \
     "ensure_type_specializations_from_type_name_to("
 require_term "src/codegen/transpiler_type_alias.c" \
@@ -1633,17 +1666,17 @@ require_term "src/codegen/transpiler_mir_ssa_names.c" \
     "transpiler_hosted_zone_layer_slot_view_name("
 for term in \
     "transpiler_current_function_has_local_binding" \
-    "transpiler_find_mir_function(ctx, ctx->current_func_decl)" \
+    "transpiler_find_current_mir_routine" \
     "transpiler_mir_routine_has_local_name" \
     "mir_routine_param_count(routine)" \
-    "block->source_local_defs[j]" \
-    "transpiler_active_has_mir(ctx)"; do
+    "transpiler_mir_routine_kind(routine) == MIR_SCOPE_METHOD" \
+    "transpiler_mir_routine_owner_name(routine)" \
+    "return transpiler_has_explicit_local_binding(ctx->current_func_decl,"; do
     require_term "src/codegen/transpiler_mir_ssa_names.c" "$term"
 done
-if ! grep -B3 -F "return transpiler_has_explicit_local_binding(ctx->current_func_decl," \
-        "$ROOT_DIR/src/codegen/transpiler_mir_ssa_names.c" |
-        grep -Fq "if (transpiler_active_has_mir(ctx))"; then
-    fail "C MIR SSA implicit-field local detection must keep AST local-binding scan behind non-MIR guard"
+if grep -Fq "block->source_local_defs" \
+        "$ROOT_DIR/src/codegen/transpiler_mir_ssa_names.c"; then
+    fail "C MIR SSA implicit-field local detection must not treat source-local defs as lexical locals"
 fi
 if grep -Fq "ast_zone_layer_slots" \
     "$ROOT_DIR/src/codegen/transpiler_mir_ssa_names.c"; then
@@ -3406,6 +3439,12 @@ if ! awk '
 fi
 require_term "src/codegen/transpiler_mir_local_type_lookup.c" \
     "transpiler_mir_routine_source_local_type_name("
+require_term "src/codegen/transpiler_mir_preserved_let_emit.c" \
+    "transpiler_mir_routine_source_local_type_name("
+require_term "src/codegen/llvm_mir_local_emit.c" \
+    "mir_routine_source_local_type_name(routine,"
+require_term "src/codegen/llvm_stmt_let_collections.c" \
+    "mir_routine_source_local_type_name(ctx->current_mir_routine, name)"
 if ! grep -B3 -F "transpiler_find_local_type_name_in_block(ctx, func_decl," \
         "$ROOT_DIR/src/codegen/transpiler_mir_local_type_lookup.c" |
         grep -Fq "Non-MIR compatibility fallback"; then
@@ -3487,6 +3526,38 @@ require_term "src/compiler/mir_source_local_types.h" \
     "mir_source_local_type_name_in_ast"
 require_term "src/compiler/mir_source_local_types.c" \
     "mir_source_local_type_capture_node"
+require_term "src/compiler/mir_source_local_types.c" \
+    "mir_source_local_builtin_call_type_name"
+require_term "src/compiler/mir_source_local_types.c" \
+    "mir_source_local_read_call_type_name"
+require_term "src/compiler/mir_source_local_types.c" \
+    "mir_source_local_view_call_type_name"
+require_term "src/compiler/mir_source_local_types.c" \
+    "mir_source_local_routine_owner_name"
+require_term "src/compiler/mir_source_local_types.c" \
+    "routine->hir_routine->owner_name"
+require_term "src/compiler/mir_source_local_types.c" \
+    "mir_source_local_owner_method_return_type_name"
+require_each_following_term "src/compiler/mir_source_local_types.c" \
+    "mir_source_local_owner_method_return_type_name(program," \
+    "routine, callee_name" \
+    5
+require_term "src/compiler/mir_source_local_types.c" \
+    "mir_source_local_builtin_returns_first_arg_type"
+for term in \
+    "strcmp(callee_name, \"Clamp\") == 0" \
+    "strcmp(callee_name, \"DeviceRead\") == 0" \
+    "strcmp(callee_name, \"Max\") == 0" \
+    "strcmp(callee_name, \"Min\") == 0" \
+    "strcmp(callee_name, \"Read\") == 0" \
+    "strcmp(callee_name, \"ViewRead\") == 0" \
+    "strcmp(callee_name, \"ViewWrite\") == 0"; do
+    require_term "src/compiler/mir_source_local_types.c" "$term"
+done
+require_term "src/tests/mir/test_mir_lowering_part_c.cases.h" \
+    "MIR captures builtin call return types for source locals"
+require_term "src/tests/mir/test_mir_lowering_part_c.cases.h" \
+    "MIR captures owner method call return types for source locals"
 require_term "src/compiler/mir_source_local_types.c" \
     "mir_source_local_type_name_in_ast(ASTNode *body"
 require_term "src/compiler/mir.c" \
@@ -4681,6 +4752,30 @@ for term in \
 done
 require_term "src/codegen/transpiler_expr_dispatch_emit.c" \
     "transpiler_host_decl_uses_pointer_self(host_decl)"
+require_term "src/codegen/transpiler_host_field_identifier.h" \
+    "transpiler_identifier_is_stale_host_field_snapshot"
+require_term "src/codegen/transpiler_host_field_identifier.c" \
+    "transpiler_current_function_has_self_receiver"
+require_term "src/codegen/transpiler_host_field_identifier.c" \
+    "transpiler_emit_current_host_field_identifier"
+require_each_following_term "src/codegen/transpiler_host_field_identifier.c" \
+    "transpiler_emit_current_host_field_identifier(TranspilerCtx *ctx" \
+    "transpiler_current_world_has_field(ctx, id_name)" \
+    20
+require_each_following_term "src/codegen/transpiler_expr_dispatch_emit.c" \
+    "if (transpiler_current_function_has_self_receiver(ctx)" \
+    "transpiler_is_implicit_field(ctx, id_name)" \
+    3
+require_term "src/codegen/transpiler_expr_dispatch_emit.c" \
+    "ident_is_stale_host_field_snapshot"
+require_each_following_term "src/codegen/transpiler_expr_dispatch_emit.c" \
+    "ident_is_stale_host_field_snapshot =" \
+    "transpiler_identifier_is_stale_host_field_snapshot(ctx" \
+    3
+require_each_following_term "src/codegen/transpiler_expr_dispatch_emit.c" \
+    "&& ident_is_stale_host_field_snapshot" \
+    "transpiler_emit_current_host_field_identifier(ctx, id_name)" \
+    20
 if grep -Fq "host_decl->type == AST_PARTY_DECL" \
     "$ROOT_DIR/src/codegen/transpiler_expr_dispatch_emit.c"; then
     fail "C self-member dispatch must consume host pointer-self policy instead of repeating domain host chains"

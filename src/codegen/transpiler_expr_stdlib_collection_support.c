@@ -17,6 +17,7 @@
 #include "transpiler_decl_lookup.h"
 #include "transpiler_enum.h"
 #include "transpiler_format.h"
+#include "transpiler_inventory_view.h"
 #include "transpiler_nominal.h"
 #include "transpiler_projection.h"
 #include "transpiler_symbols.h"
@@ -71,25 +72,43 @@ transpiler_require_hashmap_type(TranspilerCtx *ctx, const char *map_type,
 
     if (resolved_type != NULL
         && !transpiler_type_name_is_hashmap(resolved_type)) {
-        ASTNode *alias_decl = transpiler_find_type_alias_decl(ctx, resolved_type);
-        if (alias_decl != NULL && ast_type_alias_target_type(alias_decl) != NULL) {
-            ASTNode *target = resolve_type_alias_target(
-                ctx, ast_type_alias_target_type(alias_decl));
-            char *rendered = render_type_name_in_ctx(ctx, target);
-            if (rendered != NULL) {
-                bool copied = transpiler_collection_copy_type_name(
-                    resolved_buf, sizeof(resolved_buf), rendered);
-                free(rendered);
-                if (!copied) {
-                    transpiler_set_backend_error_with_hints(ctx,
-                        PGY_CODE_C_TYPE_UNSUPPORTED,
-                        PGY_CAUSE_C_TYPE_UNSUPPORTED,
-                        PGY_FIX_ANNOTATE_CONCRETE_TYPE,
-                        "C backend: %s resolved HashMap type is too long",
-                        operation != NULL ? operation : "HashMap operation");
-                    return false;
+        const char *target_type_name =
+            transpiler_type_alias_target_type_name_from_headers(
+                ctx, resolved_type);
+        if (target_type_name != NULL) {
+            bool copied = transpiler_collection_copy_type_name(
+                resolved_buf, sizeof(resolved_buf), target_type_name);
+            if (!copied) {
+                transpiler_set_backend_error_with_hints(ctx,
+                    PGY_CODE_C_TYPE_UNSUPPORTED,
+                    PGY_CAUSE_C_TYPE_UNSUPPORTED,
+                    PGY_FIX_ANNOTATE_CONCRETE_TYPE,
+                    "C backend: %s resolved HashMap type is too long",
+                    operation != NULL ? operation : "HashMap operation");
+                return false;
+            }
+            resolved_type = resolved_buf;
+        } else if (!transpiler_active_has_mir(ctx)) {
+            ASTNode *alias_decl = transpiler_find_type_alias_decl(ctx, resolved_type);
+            if (alias_decl != NULL && ast_type_alias_target_type(alias_decl) != NULL) {
+                ASTNode *target = resolve_type_alias_target(
+                    ctx, ast_type_alias_target_type(alias_decl));
+                char *rendered = render_type_name_in_ctx(ctx, target);
+                if (rendered != NULL) {
+                    bool copied = transpiler_collection_copy_type_name(
+                        resolved_buf, sizeof(resolved_buf), rendered);
+                    free(rendered);
+                    if (!copied) {
+                        transpiler_set_backend_error_with_hints(ctx,
+                            PGY_CODE_C_TYPE_UNSUPPORTED,
+                            PGY_CAUSE_C_TYPE_UNSUPPORTED,
+                            PGY_FIX_ANNOTATE_CONCRETE_TYPE,
+                            "C backend: %s resolved HashMap type is too long",
+                            operation != NULL ? operation : "HashMap operation");
+                        return false;
+                    }
+                    resolved_type = resolved_buf;
                 }
-                resolved_type = resolved_buf;
             }
         }
     }
@@ -132,26 +151,45 @@ transpiler_require_unary_collection_type(TranspilerCtx *ctx,
         && !(family_len > 0
              && strncmp(resolved_type, family, family_len) == 0
              && resolved_type[family_len] == '<')) {
-        ASTNode *alias_decl = transpiler_find_type_alias_decl(ctx, resolved_type);
-        if (alias_decl != NULL && ast_type_alias_target_type(alias_decl) != NULL) {
-            ASTNode *target = resolve_type_alias_target(
-                ctx, ast_type_alias_target_type(alias_decl));
-            char *rendered = render_type_name_in_ctx(ctx, target);
-            if (rendered != NULL) {
-                bool copied = transpiler_collection_copy_type_name(
-                    resolved_buf, sizeof(resolved_buf), rendered);
-                free(rendered);
-                if (!copied) {
-                    transpiler_set_backend_error_with_hints(ctx,
-                        PGY_CODE_C_TYPE_UNSUPPORTED,
-                        PGY_CAUSE_C_TYPE_UNSUPPORTED,
-                        PGY_FIX_ANNOTATE_CONCRETE_TYPE,
-                        "C backend: %s resolved %s type is too long",
-                        operation != NULL ? operation : "collection operation",
-                        family != NULL ? family : "collection");
-                    return false;
+        const char *target_type_name =
+            transpiler_type_alias_target_type_name_from_headers(
+                ctx, resolved_type);
+        if (target_type_name != NULL) {
+            bool copied = transpiler_collection_copy_type_name(
+                resolved_buf, sizeof(resolved_buf), target_type_name);
+            if (!copied) {
+                transpiler_set_backend_error_with_hints(ctx,
+                    PGY_CODE_C_TYPE_UNSUPPORTED,
+                    PGY_CAUSE_C_TYPE_UNSUPPORTED,
+                    PGY_FIX_ANNOTATE_CONCRETE_TYPE,
+                    "C backend: %s resolved %s type is too long",
+                    operation != NULL ? operation : "collection operation",
+                    family != NULL ? family : "collection");
+                return false;
+            }
+            resolved_type = resolved_buf;
+        } else if (!transpiler_active_has_mir(ctx)) {
+            ASTNode *alias_decl = transpiler_find_type_alias_decl(ctx, resolved_type);
+            if (alias_decl != NULL && ast_type_alias_target_type(alias_decl) != NULL) {
+                ASTNode *target = resolve_type_alias_target(
+                    ctx, ast_type_alias_target_type(alias_decl));
+                char *rendered = render_type_name_in_ctx(ctx, target);
+                if (rendered != NULL) {
+                    bool copied = transpiler_collection_copy_type_name(
+                        resolved_buf, sizeof(resolved_buf), rendered);
+                    free(rendered);
+                    if (!copied) {
+                        transpiler_set_backend_error_with_hints(ctx,
+                            PGY_CODE_C_TYPE_UNSUPPORTED,
+                            PGY_CAUSE_C_TYPE_UNSUPPORTED,
+                            PGY_FIX_ANNOTATE_CONCRETE_TYPE,
+                            "C backend: %s resolved %s type is too long",
+                            operation != NULL ? operation : "collection operation",
+                            family != NULL ? family : "collection");
+                        return false;
+                    }
+                    resolved_type = resolved_buf;
                 }
-                resolved_type = resolved_buf;
             }
         }
     }

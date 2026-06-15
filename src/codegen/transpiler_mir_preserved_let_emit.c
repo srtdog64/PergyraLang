@@ -8,6 +8,7 @@
 #include "codegen_match_variant_policy.h"
 #include "transpiler_context.h"
 #include "transpiler_expr_type_infer.h"
+#include "transpiler_inventory_view.h"
 #include "transpiler_mir_block_emit_helpers.h"
 #include "transpiler_mir_effective_type.h"
 #include "transpiler_mir_local_type_lookup.h"
@@ -80,9 +81,16 @@ transpiler_emit_mir_preserved_let_stmt(CodeBuf *buf,
         ctx->expected_callable_type = saved_expected_callable_type;
 
         if (let_type != NULL) {
-            rendered_type = transpiler_render_effective_local_type_name(
-                ctx, let_type);
-            value_type = rendered_type;
+            const char *source_type =
+                transpiler_mir_routine_source_local_type_name(
+                    mir_routine, let_name);
+            if (source_type != NULL && source_type[0] != '\0') {
+                value_type = source_type;
+            } else {
+                rendered_type = transpiler_render_effective_local_type_name(
+                    ctx, let_type);
+                value_type = rendered_type;
+            }
         } else {
             value_type = transpiler_expr_infer_type_name(ctx, let_init);
         }
@@ -152,6 +160,7 @@ transpiler_emit_mir_preserved_let_stmt(CodeBuf *buf,
 TranspilerMIRLocalLetEmitResult
 transpiler_emit_mir_source_local_let_def_inst(
     CodeBuf *buf,
+    const MIRRoutine *mir_routine,
     const MIRBasicBlock *block,
     const MIRInstruction *inst,
     ASTNode *stmt,
@@ -182,7 +191,16 @@ transpiler_emit_mir_source_local_let_def_inst(
     let_type = ast_let_type(stmt);
     let_init = ast_let_initializer(stmt);
 
-    if (let_type != NULL) {
+    if (mir_routine != NULL) {
+        const char *source_type =
+            transpiler_mir_routine_source_local_type_name(
+                mir_routine, let_name);
+        if (source_type != NULL && source_type[0] != '\0') {
+            rendered_type_hint = pergyra_strdup(source_type);
+            ctx->active_type_hint = rendered_type_hint;
+        }
+    }
+    if (rendered_type_hint == NULL && let_type != NULL) {
         rendered_type_hint =
             transpiler_render_effective_local_type_name(ctx, let_type);
         ctx->active_type_hint = rendered_type_hint;
