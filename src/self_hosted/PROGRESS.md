@@ -123,12 +123,12 @@ keeps running fine with or without them.
 | `doc_link_checker`                | 143           | docs/INDEX.md dead-link audit |
 | `production_header_size_checker`  | 121           | `.h` 600-LOC cap |
 | `production_c_size_checker`       | 120           | `.c` 699-LOC cap |
-| `examples_inventory_checker`      | 108           | examples/ presence + non-empty |
+| `examples_inventory_checker`      | 122           | DirWalk-owned examples/ count + non-empty |
 | `ast_read_surface_checker`        | 146           | CFG/MIR SoT ratchet parity |
 | `linter`                          | 179           | LSP-style diagnostic JSON parity |
-| **Total peripheral**              | **1731**      | |
+| **Total peripheral**              | **1745**      | |
 
-Plus `src/self_hosted/lib/text_scan.pgy` (~45 LOC) shared across scan-based
+Plus `src/self_hosted/lib/text_scan.pgy` (~47 LOC) shared across scan-based
 tools.
 
 ## Substitution Roadmap (Honest Order)
@@ -217,9 +217,11 @@ beyond the lexer:
 - **Filesystem directory walk** -- `DirWalk(String) -> Array<String>` has landed
   for generated binaries on C and LLVM. It returns a deterministic sorted
   regular-file snapshot with `/` separators and is gated by
-  `filesystem_directory_walk_smoke`. The remaining lift is repointing
-  self-hosted validators such as ast-read-surface and doc/example checkers away
-  from shell-owned manifests so the Pergyra tool owns inventory enumeration.
+  `filesystem_directory_walk_smoke`. `examples_inventory_checker` now consumes
+  `DirWalk("examples")` directly, so the clean example inventory no longer has a
+  committed manifest alias. The remaining lift is repointing manifest-backed
+  source inventories such as ast-read-surface and production size checkers where
+  directory ownership is the real contract.
 - **Parser LLVM depth/type-inference parity** -- `parser_parity.sh` now
   compiles the self-host parser through both C and LLVM and includes a deep
   nested generic type fixture. Remaining parser work is grammar breadth and

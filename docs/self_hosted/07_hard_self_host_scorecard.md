@@ -78,9 +78,11 @@ burn-down:
   including a deep nested generic type case;
 - deterministic filesystem directory walking is now gated by
   `filesystem_directory_walk_smoke`: `DirWalk(String) -> Array<String>`
-  returns a sorted regular-file snapshot on C and LLVM, so validators can stop
-  relying on shell `find`/`grep` as the inventory owner. The next step is
-  repointing individual self-host parity tools to consume it directly.
+  returns a sorted regular-file snapshot on C and LLVM. The
+  `examples_inventory_checker` parity rung now consumes `DirWalk("examples")`
+  directly, removing the stale examples manifest alias; the next step is
+  repointing the remaining manifest-backed source inventories where directory
+  ownership is the actual contract.
 
 These are the axis the gap analysis calls systems substrate, distinct from the
 domain-oriented surface the language is already strong on.

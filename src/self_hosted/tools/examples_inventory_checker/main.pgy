@@ -1,8 +1,8 @@
 // src/self_hosted/tools/examples_inventory_checker/main.pgy
 //
-// Status: rung-2 minimal (2026-05-27). Reads fixture/examples_manifest.txt,
-// iterates each entry, verifies FileExists + content has at least one
-// line. Emits the schema, exits 1 on any missing or empty example.
+// Status: rung-2 DirWalk-owned (2026-06-15). Enumerates top-level
+// examples/*.pgy through DirWalk, verifies the expected inventory count and
+// non-empty content. Emits the schema, exits 1 on count drift or empty files.
 //
 // Cwd contract: the parity harness cd's into the repo root before running.
 //
@@ -26,32 +26,33 @@ func MissingFinding(kind: String, path: String) -> String {
     return StringJoin(parts, "");
 }
 
-func MissingManifestJson(path: String) -> String {
-    let parts: Array<String> = [
-        "{\"schema\":\"pgy.selfhost.examples-inventory.v1\",\"ok\":false,",
-        "\"source\":{\"manifest_owner\":\"",
-        path,
-        "\"},\"counts\":{\"examples\":0,\"missing\":0,\"empty\":0,",
-        "\"max_lines\":0},",
-        "\"findings\":[{\"kind\":\"missing_manifest\",\"path\":\"",
-        path,
-        "\",\"location\":\"",
-        path,
-        "\"}]}"
-    ];
-    return StringJoin(parts, "");
+func EndsWith(text: String, suffix: String) -> Bool {
+    let text_len: Int = StringLength(text);
+    let suffix_len: Int = StringLength(suffix);
+    if text_len < suffix_len {
+        return false;
+    }
+    return Substring(text, text_len - suffix_len, suffix_len) == suffix;
+}
+
+func IsTopLevelExample(path: String) -> Bool {
+    let prefix: String = "examples/";
+    let prefix_len: Int = StringLength(prefix);
+    let path_len: Int = StringLength(path);
+    if path_len <= prefix_len {
+        return false;
+    }
+    if Substring(path, 0, prefix_len) != prefix {
+        return false;
+    }
+    let rest: String = Substring(path, prefix_len, path_len - prefix_len);
+    return StringIndexOf(rest, "/") < 0 && EndsWith(path, ".pgy");
 }
 
 func Main() -> Void {
-    let manifest_path: String = "src/self_hosted/tools/examples_inventory_checker/fixture/examples_manifest.txt";
-
-    if !FileExists(manifest_path) {
-        Log(MissingManifestJson(manifest_path));
-        Exit(1);
-    }
-
-    let manifest: String = ReadFile(manifest_path);
-    let entries: Array<String> = Split(manifest, "\n");
+    let dirwalk_owner: String = "examples";
+    let expected_examples: Int = 118;
+    let entries: Array<String> = DirWalk(dirwalk_owner);
 
     let examples: Int = 0;
     let missing: Int = 0;
@@ -64,31 +65,31 @@ func Main() -> Void {
     let n: Int = ArrayLength(entries);
     while i < n {
         let path: String = entries[i];
-        if StringLength(path) > 0 {
-            if !FileExists(path) {
-                missing = missing + 1;
+        if IsTopLevelExample(path) {
+            examples = examples + 1;
+            let content: String = ReadFile(path);
+            let lines: Int = TextScan.CountLines(content);
+            if lines > max_lines {
+                max_lines = lines;
+            }
+            if lines == 0 {
+                empty = empty + 1;
                 if ArrayLength(findings) < findings_cap {
-                    ArrayPush(findings, MissingFinding("missing_example", path));
-                }
-            } else {
-                examples = examples + 1;
-                let content: String = ReadFile(path);
-                let lines: Int = TextScan.CountLines(content);
-                if lines > max_lines {
-                    max_lines = lines;
-                }
-                if lines == 0 {
-                    empty = empty + 1;
-                    if ArrayLength(findings) < findings_cap {
-                        ArrayPush(findings, MissingFinding("empty_example", path));
-                    }
+                    ArrayPush(findings, MissingFinding("empty_example", path));
                 }
             }
         }
         i = i + 1;
     }
+    if examples < expected_examples {
+        missing = expected_examples - examples;
+    }
+    if examples != expected_examples && ArrayLength(findings) < findings_cap {
+        ArrayPush(findings, MissingFinding("inventory_count_drift",
+            dirwalk_owner));
+    }
 
-    let ok: Bool = (missing == 0) && (empty == 0);
+    let ok: Bool = (examples == expected_examples) && (empty == 0);
     let ok_text: String = "true";
     if !ok {
         ok_text = "false";
@@ -97,9 +98,11 @@ func Main() -> Void {
     let json_parts: Array<String> = [
         "{\"schema\":\"pgy.selfhost.examples-inventory.v1\",\"ok\":",
         ok_text,
-        ",\"source\":{\"manifest_owner\":\"",
-        manifest_path,
-        "\"},\"counts\":{\"examples\":",
+        ",\"source\":{\"dirwalk_owner\":\"",
+        dirwalk_owner,
+        "\",\"expected_examples\":",
+        ToString(expected_examples),
+        "},\"counts\":{\"examples\":",
         ToString(examples),
         ",\"missing\":",
         ToString(missing),

@@ -1,8 +1,10 @@
 # Examples Inventory Checker -- Intent / Contract
 
-**Status:** *rung-2 minimal* (2026-05-27). Reads a committed manifest of
-`examples/*.pgy` paths, iterates each, verifies it exists and has at
-least one newline-terminated line. Reports empty / missing files as findings.
+**Status:** *rung-2 DirWalk-owned* (2026-06-15). Enumerates
+top-level `examples/*.pgy` paths through `DirWalk("examples")`, verifies the
+expected inventory count, and checks each file has at least one
+newline-terminated line. Reports empty files or inventory count drift as
+findings.
 
 ## Intent
 
@@ -15,10 +17,11 @@ non-emptiness per file.
 
 ## Input Contract
 
-- **manifest_owner**:
-  `src/self_hosted/tools/examples_inventory_checker/fixture/examples_manifest.txt`
-  (text, UTF-8, one repo-relative example path per line; produced by
-  `find examples -maxdepth 1 -name '*.pgy' -type f | sort`).
+- **dirwalk_owner**: `examples`. The tool calls `DirWalk("examples")`, filters
+  top-level `.pgy` files, and treats that sorted snapshot as the inventory
+  source of truth.
+- **expected_examples**: `118`. Count changes are intentional surface changes
+  and must update the tool expectation and clean fixture together.
 - Each example content is `ReadFile`d relative to repository root.
 
 ## Output Contract
@@ -31,7 +34,8 @@ JSON document on stdout, conforming to schema
   "schema": "pgy.selfhost.examples-inventory.v1",
   "ok": true,
   "source": {
-    "manifest_owner": "src/self_hosted/tools/examples_inventory_checker/fixture/examples_manifest.txt"
+    "dirwalk_owner": "examples",
+    "expected_examples": 118
   },
   "counts": {
     "examples": 0,
@@ -43,39 +47,39 @@ JSON document on stdout, conforming to schema
 }
 ```
 
-- `ok = (counts.missing == 0 && counts.empty == 0)`.
+- `ok = (counts.examples == source.expected_examples && counts.empty == 0)`.
 - `findings[]` carries one entry per drift, capped at 8:
-  `{ "kind": "missing_example" | "empty_example" | "missing_manifest",
+  `{ "kind": "inventory_count_drift" | "empty_example",
      "path": "examples/...", "location": "..." }`.
 
 Exit code: `0` on `ok:true`, `1` on `ok:false`.
 
 ## Oracle
 
-The shell drift detector is `find + wc -l` per manifest entry. There is
-no existing C-side smoke for the examples inventory contract today; the
-Pergyra origin is the primary implementation and the shell `find + wc`
-loop is the auxiliary parity backend.
+The Pergyra origin is the inventory owner: `DirWalk("examples")` supplies the
+sorted file snapshot and `TextScan.CountLines` supplies line counts. The shell
+harness only builds the tool, checks byte-equal clean JSON, and constructs a
+negative fixture; it no longer owns the clean inventory list.
 
 The parity rung (`src/self_hosted/parity/`) asserts:
 
 - The Pergyra origin exits `0` on the clean repo.
 - Emitted JSON byte-matches `expected/clean.json`.
-- `examples / missing / empty / max_lines` match shell ground truth.
-- A synthetic missing-example fixture (delete one manifest target's
-  file) yields `rc=1` with a `"kind":"missing_example"` finding.
+- A synthetic count-drift fixture (copy top-level examples and omit one
+  file) yields `rc=1` with a `"kind":"inventory_count_drift"` finding.
 
 ## Why Now
 
 This is the *tenth* soft self-host tool and the *third* consumer of
 `TextScan.CountLines` -- it triggered the `CountLines` lift from inline
 duplicates in tools 8 and 9 into `src/self_hosted/lib/text_scan.pgy`. The
-manifest-driven pattern is now well-validated across header (489),
-`.c` (793), and example (117) inventories.
+The earlier manifest-driven pattern was validated across header and `.c`
+inventories; this tool now proves the directory-walk substrate can own a
+real self-hosted inventory.
 
 ## Not In Scope
 
 - Compile-validation of each example (would require subprocess pgy).
 - `func Main()` presence check (some examples are library modules).
-- Recursive subdirectory scans (`examples/<game>/` campaigns not
-  covered here; would need ListDir).
+- Recursive campaign examples (`examples/<game>/`) are deliberately filtered
+  out; this checker owns the top-level user-facing example set.
