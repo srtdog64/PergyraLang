@@ -1,4 +1,4 @@
-﻿/*
+/*
  * Copyright (c) 2026 Pergyra Language Project
  * MIR lowering test suite
  */
@@ -487,8 +487,10 @@ find_value_summary_with_slot(const MIRRoutine *routine, const char *prefix, cons
     return NULL;
 }
 
-#include "tests/mir/test_mir_lowering_part_a.cases.h"
-#include "tests/mir/test_mir_lowering_part_b.cases.h"
+#include "tests/mir/test_mir_lowering_part_a_1.cases.h"
+#include "tests/mir/test_mir_lowering_part_a_2.cases.h"
+#include "tests/mir/test_mir_lowering_part_b_1.cases.h"
+#include "tests/mir/test_mir_lowering_part_b_2.cases.h"
 #include "tests/mir/test_mir_lowering_part_c.cases.h"
 #include "tests/mir/test_mir_lowering_part_d.cases.h"
 #include "tests/mir/test_mir_lowering_part_e.cases.h"

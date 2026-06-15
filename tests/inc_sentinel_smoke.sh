@@ -4,8 +4,8 @@ set -euo pipefail
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 # Test fragments are capped separately from production source. The current
 # count is intentional: test fragments are split to keep every .cases.h file
-# below the 990 LOC per-fragment gate enforced by test_inc_size_smoke.sh.
-MAX_TEST_CASE_INCLUDES="${PGY_MAX_TEST_CASE_INCLUDES:-92}"
+# below the 699 LOC per-fragment gate enforced by test_inc_size_smoke.sh.
+MAX_TEST_CASE_INCLUDES="${PGY_MAX_TEST_CASE_INCLUDES:-133}"
 violations=()
 
 cd "$ROOT_DIR"

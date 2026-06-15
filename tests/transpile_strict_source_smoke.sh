@@ -3,10 +3,15 @@ set -euo pipefail
 
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 TRANSPILE_DIR="$ROOT_DIR/src/tests/transpile"
-HELPERS="$TRANSPILE_DIR/test_transpile_helpers.cases.h"
+HELPERS="$TRANSPILE_DIR/test_transpile_helpers_1.cases.h"
+HELPERS_TAIL="$TRANSPILE_DIR/test_transpile_helpers_2.cases.h"
 
 if [[ ! -f "$HELPERS" ]]; then
     echo "[transpile-strict-source] missing helpers: $HELPERS" >&2
+    exit 1
+fi
+if [[ ! -f "$HELPERS_TAIL" ]]; then
+    echo "[transpile-strict-source] missing helper tail: $HELPERS_TAIL" >&2
     exit 1
 fi
 
@@ -56,7 +61,8 @@ parsed_fallback_matches="$(
             }
         ' "$file"
     done < <(find "$TRANSPILE_DIR" -name '*.cases.h' \
-        ! -name 'test_transpile_helpers.cases.h' -print0)
+        ! -name 'test_transpile_helpers_1.cases.h' \
+        ! -name 'test_transpile_helpers_2.cases.h' -print0)
 )"
 if [[ -n "$parsed_fallback_matches" ]]; then
     echo "[transpile-strict-source] parsed-source fixture lowers through fallback MIR:" >&2

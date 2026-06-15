@@ -64,7 +64,8 @@ run_literal_air_drift_smoke() {
         "src/tests/air/test_air_mir_terminator_part_h.cases.h"
         "src/tests/air/test_air_counter_strict_part_i.cases.h"
         "src/tests/air/test_air_rir_propagation_part_j.cases.h"
-        "src/tests/rir/test_rir_lowering.cases.h"
+        "src/tests/rir\test_rir_lowering_1.cases.h"
+        "src/tests/rir\test_rir_lowering_2.cases.h"
         "docs/72_diagnostic_codes.md"
         "tests/air_backend_nonimpact_smoke.sh"
         "tests/diagnostics_json_smoke.sh"
@@ -194,8 +195,10 @@ run_literal_air_drift_smoke() {
     require_literal "docs/72_diagnostic_codes.md" "PGY_SEM_INTENT_BOUNDARY_DRIFT"
     require_literal "src/test_air.c" "AIR strict evidence requires MIR pin cleanup"
     require_literal "src/test_air.c" "AIR who inference does not imply authority"
-    require_literal "src/tests/air/test_air_core_part_a.cases.h" "test_air_who_inference_does_not_imply_authority"
-    require_literal "src/tests/air/test_air_core_part_a.cases.h" "!air->boundaries[0].authority_required"
+    require_literal "src/tests/air\test_air_core_part_a_1.cases.h"
+        "src/tests/air\test_air_core_part_a_2.cases.h" "test_air_who_inference_does_not_imply_authority"
+    require_literal "src/tests/air\test_air_core_part_a_1.cases.h"
+        "src/tests/air\test_air_core_part_a_2.cases.h" "!air->boundaries[0].authority_required"
     require_literal "src/test_air.c" "AIR strict evidence rejects observability counter only"
     require_literal "src/test_air.c" "AIR strict evidence rejects frontier counter only"
     require_literal "src/test_air.c" "AIR ignores orphan MIR cleanup root evidence"
@@ -217,7 +220,8 @@ run_literal_air_drift_smoke() {
     require_literal "src/tests/air/test_air_mir_terminator_part_h.cases.h" "AIR MIR evidence has invalid routine inventory row[0]"
     require_literal "src/tests/air/test_air_mir_terminator_part_h.cases.h" "AIR MIR input has no CFG terminator evidence"
     require_literal "src/test_air.c" "AIR parsed transfer emits zone and world boundaries"
-    require_literal "src/tests/rir/test_rir_lowering.cases.h" "RIR_OP_SPAWN"
+    require_literal "src/tests/rir\test_rir_lowering_1.cases.h"
+        "src/tests/rir\test_rir_lowering_2.cases.h" "RIR_OP_SPAWN"
     require_literal "docs/72_diagnostic_codes.md" "PGY_SEM_INTENT_BOUNDARY_EVIDENCE_MISSING"
     require_literal "tests/air_backend_nonimpact_smoke.sh" "PGY_AIR_STRICT_EVIDENCE=0"
     require_literal "docs/semantics/07_air_abstraction_safety.md" "## Theorem: AIR Synthesis Read-Only"
@@ -300,15 +304,20 @@ air_verify_global_path = root / "src" / "compiler" / "air_verify_global.c"
 air_verify_path = root / "src" / "compiler" / "air_verify.c"
 air_test_path = root / "src" / "test_air.c"
 air_test_case_paths = [
-    root / "src" / "tests" / "air" / "test_air_core_part_a.cases.h",
-    root / "src" / "tests" / "air" / "test_air_evidence_part_b.cases.h",
-    root / "src" / "tests" / "air" / "test_air_cleanup_transfer_part_c.cases.h",
+    root / "src" / "tests" / "air" / "test_air_core_part_a_1.cases.h",
+    root / "src" / "tests" / "air" / "test_air_core_part_a_2.cases.h",
+    root / "src" / "tests" / "air" / "test_air_evidence_part_b_1.cases.h",
+    root / "src" / "tests" / "air" / "test_air_evidence_part_b_2.cases.h",
+    root / "src" / "tests" / "air" / "test_air_cleanup_transfer_part_c_1.cases.h",
+    root / "src" / "tests" / "air" / "test_air_cleanup_transfer_part_c_2.cases.h",
     root / "src" / "tests" / "air" / "test_air_cleanup_transfer_part_d.cases.h",
-    root / "src" / "tests" / "air" / "test_air_boundary_part_d.cases.h",
+    root / "src" / "tests" / "air" / "test_air_boundary_part_d_1.cases.h",
+    root / "src" / "tests" / "air" / "test_air_boundary_part_d_2.cases.h",
     root / "src" / "tests" / "air" / "test_air_boundary_part_e.cases.h",
     root / "src" / "tests" / "air" / "test_air_parsed_part_e.cases.h",
     root / "src" / "tests" / "air" / "test_air_strict_part_f.cases.h",
-    root / "src" / "tests" / "air" / "test_air_observability_pin_part_g.cases.h",
+    root / "src" / "tests" / "air" / "test_air_observability_pin_part_g_1.cases.h",
+    root / "src" / "tests" / "air" / "test_air_observability_pin_part_g_2.cases.h",
     root / "src" / "tests" / "air" / "test_air_core_part_h.cases.h",
     root / "src" / "tests" / "air" / "test_air_mir_terminator_part_h.cases.h",
     root / "src" / "tests" / "air" / "test_air_counter_strict_part_i.cases.h",
@@ -317,7 +326,8 @@ air_test_case_paths = [
 ]
 rir_test_path = root / "src" / "test_rir.c"
 rir_test_case_paths = [
-    root / "src" / "tests" / "rir" / "test_rir_lowering.cases.h",
+    root / "src" / "tests" / "rir" / "test_rir_lowering_1.cases.h",
+    root / "src" / "tests" / "rir" / "test_rir_lowering_2.cases.h",
 ]
 diag_docs_path = root / "docs" / "72_diagnostic_codes.md"
 air_backend_nonimpact_path = root / "tests" / "air_backend_nonimpact_smoke.sh"

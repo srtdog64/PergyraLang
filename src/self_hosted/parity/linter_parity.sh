@@ -81,7 +81,7 @@ LLVM_OUT="$(run_linter_backend llvm)"
 LLVM_RC=$?
 set -e
 if [[ "$LLVM_RC" -ne 0 ]]; then
-    if grep -Eiq 'llvm.*(not enabled|disabled|unavailable|unsupported|not built)' \
+    if grep -Eiq '(llvm.*(not enabled|disabled|unavailable|unsupported|not built)|without LLVM backend support)' \
             <<<"$LLVM_OUT"; then
         echo "[self-host-parity:linter] rung-1 parity ok (c rc=0; llvm skipped)"
         exit 0

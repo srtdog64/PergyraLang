@@ -1,0 +1,460 @@
+static void
+test_mir_lowering_part_a(void)
+{
+    printf("\n[mir]\n");
+
+    TEST("MIR lifts slot flow into routine instructions");
+    {
+        const char *src =
+            "func Flow() -> Void {\n"
+            "    let s: Slot<Int> = ClaimSlot<Int>();\n"
+            "    Write(s, 1);\n"
+            "    let v = Read(s);\n"
+            "    Release(s);\n"
+            "}\n";
+        HIRProgram *hir = NULL;
+        RIRProgram *rir = NULL;
+        MIRProgram *mir = NULL;
+        const MIRRoutine *flow = NULL;
+        const MIRValueSummary *value_summary = NULL;
+        bool ok = lower_mir_from_source(src, &hir, &rir, &mir);
+        if (ok)
+            flow = find_mir_routine(mir, "Flow", MIR_SCOPE_FUNCTION);
+        if (flow != NULL)
+            value_summary = find_value_summary_with_slot(flow, "s.", "s");
+        EXPECT(ok
+               && mir_validate(mir, NULL)
+               && flow != NULL
+               && flow->block_count >= 1
+               && flow->instruction_count >= 4
+               && block_has_inst_named_with_slot(&flow->blocks[flow->entry_block], "Claim", "s")
+               && block_has_inst_named_with_slot(&flow->blocks[flow->entry_block], "Write", "s")
+               && block_has_inst_named_with_slot(&flow->blocks[flow->entry_block], "Read", "s")
+               && block_has_inst_named_with_slot(&flow->blocks[flow->entry_block], "Release", "s")
+               && value_summary != NULL);
+        mir_destroy(mir);
+        rir_destroy(rir);
+        hir_destroy(hir);
+    }
+
+    TEST("MIR records view-backed resource owner slot");
+    {
+        const char *src =
+            "func Flow() -> Void {\n"
+            "    let scores: Slot<Int> = ClaimSlot<Int>();\n"
+            "    let view: WriteView<Int> = ViewWrite(scores);\n"
+            "    Write(view, 1);\n"
+            "}\n";
+        HIRProgram *hir = NULL;
+        RIRProgram *rir = NULL;
+        MIRProgram *mir = NULL;
+        const MIRRoutine *flow = NULL;
+        bool found_borrow_owner = false;
+        bool found_write_owner = false;
+        bool ok = lower_mir_from_source(src, &hir, &rir, &mir);
+        if (ok)
+            flow = (MIRRoutine *)find_mir_routine(mir, "Flow", MIR_SCOPE_FUNCTION);
+        if (flow != NULL) {
+            for (size_t bi = 0; bi < flow->block_count; bi++) {
+                const MIRBasicBlock *block = &flow->blocks[bi];
+                for (size_t ii = 0; ii < block->instruction_count; ii++) {
+                    const MIRInstruction *inst = &block->instructions[ii];
+                    const char *abi_name = inst->type_layout != NULL
+                        ? inst->type_layout->abi_type_name
+                        : NULL;
+                    if (inst->kind != MIR_INST_RESOURCE_OP || inst->name == NULL)
+                        continue;
+                    if (strcmp(inst->name, "BorrowWrite") == 0
+                        && inst->resource_owner_slot_anchor != NULL
+                        && strcmp(inst->resource_owner_slot_anchor, "scores") == 0
+                        && inst->resource_owner_requires_metadata
+                        && abi_name != NULL
+                        && strcmp(abi_name, "Slot<Int>") == 0) {
+                        found_borrow_owner = true;
+                    }
+                    if (strcmp(inst->name, "Write") == 0
+                        && inst->slot_anchor != NULL
+                        && strcmp(inst->slot_anchor, "view") == 0
+                        && inst->resource_owner_slot_anchor != NULL
+                        && strcmp(inst->resource_owner_slot_anchor, "scores") == 0
+                        && inst->resource_owner_requires_metadata
+                        && abi_name != NULL
+                        && strcmp(abi_name, "Slot<Int>") == 0) {
+                        found_write_owner = true;
+                    }
+                }
+            }
+        }
+        EXPECT(ok
+               && mir_validate(mir, NULL)
+               && flow != NULL
+               && found_borrow_owner
+               && found_write_owner);
+        mir_destroy(mir);
+        rir_destroy(rir);
+        hir_destroy(hir);
+    }
+
+    TEST("MIR validator rejects view-backed resource owner metadata drift");
+    {
+        const char *src =
+            "func Flow() -> Void {\n"
+            "    let scores: Slot<Int> = ClaimSlot<Int>();\n"
+            "    let view: WriteView<Int> = ViewWrite(scores);\n"
+            "    Write(view, 1);\n"
+            "}\n";
+        HIRProgram *hir = NULL;
+        RIRProgram *rir = NULL;
+        MIRProgram *mir = NULL;
+        MIRRoutine *flow = NULL;
+        MIRInstruction *borrow_inst = NULL;
+        MIRInstruction *write_inst = NULL;
+        const char *saved_borrow_owner = NULL;
+        const char *saved_write_owner = NULL;
+        char *mir_error = NULL;
+        bool rejected_missing_borrow_owner = false;
+        bool rejected_missing_owner = false;
+        bool ok = lower_mir_from_source(src, &hir, &rir, &mir);
+        if (ok)
+            flow = (MIRRoutine *)find_mir_routine(mir, "Flow", MIR_SCOPE_FUNCTION);
+        if (flow != NULL) {
+            for (size_t bi = 0; bi < flow->block_count
+                    && (borrow_inst == NULL || write_inst == NULL); bi++) {
+                MIRBasicBlock *block = &flow->blocks[bi];
+                for (size_t ii = 0; ii < block->instruction_count; ii++) {
+                    MIRInstruction *inst = &block->instructions[ii];
+                    if (inst->kind != MIR_INST_RESOURCE_OP || inst->name == NULL)
+                        continue;
+                    if (strcmp(inst->name, "BorrowWrite") == 0
+                        && inst->slot_anchor != NULL
+                        && strcmp(inst->slot_anchor, "scores") == 0) {
+                        borrow_inst = inst;
+                    }
+                    if (strcmp(inst->name, "Write") == 0
+                        && inst->slot_anchor != NULL
+                        && strcmp(inst->slot_anchor, "view") == 0) {
+                        write_inst = inst;
+                    }
+                    if (borrow_inst != NULL && write_inst != NULL)
+                        break;
+                }
+            }
+        }
+        if (borrow_inst != NULL) {
+            saved_borrow_owner = borrow_inst->resource_owner_slot_anchor;
+            borrow_inst->resource_owner_slot_anchor = NULL;
+            rejected_missing_borrow_owner = !mir_validate(mir, &mir_error)
+                && mir_error != NULL
+                && strstr(mir_error, "view-backed resource op is missing owner slot ABI metadata") != NULL;
+            free(mir_error);
+            mir_error = NULL;
+            borrow_inst->resource_owner_slot_anchor = saved_borrow_owner;
+        }
+        if (write_inst != NULL) {
+            saved_write_owner = write_inst->resource_owner_slot_anchor;
+            write_inst->resource_owner_slot_anchor = NULL;
+            rejected_missing_owner = !mir_validate(mir, &mir_error)
+                && mir_error != NULL
+                && strstr(mir_error, "view-backed resource op is missing owner slot ABI metadata") != NULL;
+            free(mir_error);
+            mir_error = NULL;
+            write_inst->resource_owner_slot_anchor = saved_write_owner;
+        }
+        EXPECT(ok
+               && flow != NULL
+               && borrow_inst != NULL
+               && write_inst != NULL
+               && rejected_missing_borrow_owner
+               && rejected_missing_owner
+               && mir_validate(mir, NULL));
+        mir_destroy(mir);
+        rir_destroy(rir);
+        hir_destroy(hir);
+    }
+
+    TEST("MIR carries await Future ABI layouts from RIR ops");
+    {
+        const char *src =
+            "func Worker() -> Int { return 1; }\n"
+            "async func AwaitKinds(pending: RemoteFuture<Int>) -> Void {\n"
+            "    let f: Future<Int> = spawn Worker();\n"
+            "    let localValue = await f;\n"
+            "    let remoteValue = await pending;\n"
+            "}\n";
+        HIRProgram *hir = NULL;
+        RIRProgram *rir = NULL;
+        MIRProgram *mir = NULL;
+        MIRRoutine *routine = NULL;
+        MIRInstruction *local_inst = NULL;
+        const MIRTypeLayout *saved_local_layout = NULL;
+        char *mir_error = NULL;
+        bool local_layout_ok = false;
+        bool remote_layout_ok = false;
+        bool rejected_invalid_local_layout = false;
+        bool ok = lower_mir_from_source(src, &hir, &rir, &mir);
+        if (ok)
+            routine = find_mir_routine_mut(mir, "AwaitKinds", MIR_SCOPE_FUNCTION);
+        if (routine != NULL) {
+            for (size_t bi = 0; bi < routine->block_count; bi++) {
+                MIRBasicBlock *block = &routine->blocks[bi];
+                for (size_t ii = 0; ii < block->instruction_count; ii++) {
+                    MIRInstruction *inst = &block->instructions[ii];
+                    if (inst->kind != MIR_INST_RESOURCE_OP
+                        || inst->name == NULL
+                        || inst->type_layout == NULL
+                        || inst->type_layout->abi_type_name == NULL) {
+                        continue;
+                    }
+                    if (strcmp(inst->name, "AwaitLocal") == 0
+                        && strcmp(inst->type_layout->abi_type_name, "Future") == 0) {
+                        local_layout_ok = true;
+                        local_inst = inst;
+                    }
+                    if (strcmp(inst->name, "AwaitRemote") == 0
+                        && strcmp(inst->type_layout->abi_type_name, "RemoteFuture") == 0)
+                        remote_layout_ok = true;
+                }
+            }
+        }
+        if (local_inst != NULL) {
+            saved_local_layout = local_inst->type_layout;
+            local_inst->type_layout = mir_abi_lookup("RemoteFuture");
+            rejected_invalid_local_layout =
+                !mir_validate(mir, &mir_error)
+                && mir_error != NULL
+                && strstr(mir_error,
+                          "await resource op has invalid MIR ABI type layout fact") != NULL;
+            local_inst->type_layout = saved_local_layout;
+        }
+        EXPECT(ok
+               && mir_validate(mir, NULL)
+               && routine != NULL
+               && local_layout_ok
+               && remote_layout_ok
+               && rejected_invalid_local_layout);
+        free(mir_error);
+        mir_destroy(mir);
+        rir_destroy(rir);
+        hir_destroy(hir);
+    }
+
+    TEST("MIR builds cleanup block for intent compensation");
+    {
+        const char *src =
+            "subject Buyer { let hp: Int; action Pay(self) -> Void { return; } }\n"
+            "ability Payable { func Pay() -> Void; }\n"
+            "role BuyerPay for Buyer {\n"
+            "    impl ability Payable { func Pay() -> Void { return; } }\n"
+            "}\n"
+            "object BuyerView { let hp: Int; }\n"
+            "zone PaymentZone {\n"
+            "    subject slot buyer: Buyer\n"
+            "    object slot view: BuyerView\n"
+            "    authority buyer requires Payable\n"
+            "    refresh view from buyer by buyer\n"
+            "}\n"
+            "intent Purchase(payment: PaymentZone, buyer: Buyer) {\n"
+            "    rollback: full;\n"
+            "    step pay {\n"
+            "        where: PaymentZone;\n"
+            "        using: payment;\n"
+            "        who: buyer;\n"
+            "        authorized by: buyer;\n"
+            "        requires: Payable;\n"
+            "        on: buyer.Pay();\n"
+            "        compensate: buyer.Pay();\n"
+            "    }\n"
+            "}\n";
+        HIRProgram *hir = NULL;
+        RIRProgram *rir = NULL;
+        MIRProgram *mir = NULL;
+        const MIRRoutine *purchase = NULL;
+        bool cleanup_has_compensate = false;
+        bool cleanup_has_policy = false;
+        bool cleanup_has_invalidation = false;
+        bool ok = lower_mir_from_source(src, &hir, &rir, &mir);
+        if (ok)
+            purchase = find_mir_routine(mir, "Purchase", MIR_SCOPE_INTENT);
+        if (purchase != NULL && purchase->has_rollback_block) {
+            const MIRBasicBlock *rollback = &purchase->blocks[purchase->rollback_block];
+            cleanup_has_compensate = block_has_inst_kind(rollback, MIR_INST_CLEANUP_EDGE)
+                                     && block_has_inst_named_with_slot(rollback, "CompensateIntentStep", "pay");
+            cleanup_has_policy = block_has_inst_named(rollback, "RollbackPolicy");
+        }
+        if (purchase != NULL && purchase->has_invalidation_block) {
+            const MIRBasicBlock *invalidation = &purchase->blocks[purchase->invalidation_block];
+            cleanup_has_invalidation = block_has_inst_named_with_slot(invalidation, "DetachInvalidation", "payment");
+        }
+        EXPECT(ok
+               && mir_validate(mir, NULL)
+               && purchase != NULL
+               && block_has_inst_named_with_slot(&purchase->blocks[purchase->entry_block],
+                   "IntentStep", "pay")
+               && block_has_inst_named_args(&purchase->blocks[purchase->entry_block],
+                   "IntentParticipant", "payment", "PaymentZone")
+               && block_has_inst_named_args(&purchase->blocks[purchase->entry_block],
+                   "IntentParticipant", "buyer", "Buyer")
+               && block_has_inst_named_args(&purchase->blocks[purchase->entry_block],
+                   "IntentZoneWhere", "PaymentZone", "pay")
+               && block_has_inst_named_args(&purchase->blocks[purchase->entry_block],
+                   "IntentZoneAlias", "payment", "pay")
+               && block_has_inst_named_args(&purchase->blocks[purchase->entry_block],
+                   "IntentInvalidationTarget", "payment", "pay")
+               && block_has_inst_named_args(&purchase->blocks[purchase->entry_block],
+                   "IntentWho", "buyer", "pay")
+               && block_has_inst_named_with_slot(&purchase->blocks[purchase->entry_block],
+                   "IntentAuthorizedBy", "pay")
+               && purchase->has_cleanup_block
+               && purchase->has_rollback_block
+               && purchase->has_invalidation_block
+               && purchase->cleanup_instruction_count >= 2
+               && purchase->cleanup_edge_count >= 1
+               && purchase->blocks[purchase->entry_block].has_cleanup_succ
+               && purchase->blocks[purchase->entry_block].cleanup_succ == purchase->cleanup_block
+               && purchase->blocks[purchase->cleanup_block].has_rollback_succ
+               && purchase->blocks[purchase->cleanup_block].rollback_succ == purchase->rollback_block
+               && purchase->blocks[purchase->cleanup_block].has_invalidation_succ
+               && purchase->blocks[purchase->cleanup_block].invalidation_succ == purchase->invalidation_block
+               && purchase->blocks[purchase->rollback_block].has_cleanup_succ
+               && purchase->blocks[purchase->rollback_block].cleanup_succ == purchase->invalidation_block
+               && block_has_inst_named_with_slot(&purchase->blocks[purchase->entry_block], "cleanup-edge", "cleanup")
+               && cleanup_has_compensate
+               && cleanup_has_policy
+               && cleanup_has_invalidation
+               && block_has_inst_named_with_slot(&purchase->blocks[purchase->rollback_block], "AbortIntent", "Purchase"));
+        mir_destroy(mir);
+        rir_destroy(rir);
+        hir_destroy(hir);
+    }
+
+    TEST("MIR validator rejects cleanup block with normal CFG successor");
+    {
+        const char *src =
+            "subject Buyer { let hp: Int; action Pay(self) -> Void { return; } }\n"
+            "ability Payable { func Pay() -> Void; }\n"
+            "role BuyerPay for Buyer {\n"
+            "    impl ability Payable { func Pay() -> Void { return; } }\n"
+            "}\n"
+            "object BuyerView { let hp: Int; }\n"
+            "zone PaymentZone {\n"
+            "    subject slot buyer: Buyer\n"
+            "    object slot view: BuyerView\n"
+            "    authority buyer requires Payable\n"
+            "    refresh view from buyer by buyer\n"
+            "}\n"
+            "intent Purchase(payment: PaymentZone, buyer: Buyer) {\n"
+            "    rollback: full;\n"
+            "    step pay {\n"
+            "        where: PaymentZone;\n"
+            "        using: payment;\n"
+            "        who: buyer;\n"
+            "        authorized by: buyer;\n"
+            "        requires: Payable;\n"
+            "        on: buyer.Pay();\n"
+            "        compensate: buyer.Pay();\n"
+            "    }\n"
+            "}\n";
+        HIRProgram *hir = NULL;
+        RIRProgram *rir = NULL;
+        MIRProgram *mir = NULL;
+        MIRRoutine *purchase = NULL;
+        char *mir_error = NULL;
+        bool rejected = false;
+        bool ok = lower_mir_from_source(src, &hir, &rir, &mir);
+        if (ok)
+            purchase = find_mir_routine_mut(mir, "Purchase", MIR_SCOPE_INTENT);
+        if (purchase != NULL && purchase->has_cleanup_block) {
+            MIRBasicBlock *cleanup = &purchase->blocks[purchase->cleanup_block];
+            cleanup->has_succ_true = true;
+            cleanup->succ_true = purchase->entry_block;
+        }
+        rejected = ok
+                   && purchase != NULL
+                   && purchase->has_cleanup_block
+                   && !mir_validate(mir, &mir_error)
+                   && mir_error != NULL
+                   && strstr(mir_error, "cleanup block") != NULL
+                   && strstr(mir_error, "normal CFG successors") != NULL;
+        EXPECT(rejected);
+        free(mir_error);
+        mir_destroy(mir);
+        rir_destroy(rir);
+        hir_destroy(hir);
+    }
+
+    TEST("MIR validator rejects predecessor without forward edge");
+    {
+        const char *src =
+            "subject Buyer { let hp: Int; action Pay(self) -> Void { return; } }\n"
+            "ability Payable { func Pay() -> Void; }\n"
+            "role BuyerPay for Buyer {\n"
+            "    impl ability Payable { func Pay() -> Void { return; } }\n"
+            "}\n"
+            "object BuyerView { let hp: Int; }\n"
+            "zone PaymentZone {\n"
+            "    subject slot buyer: Buyer\n"
+            "    object slot view: BuyerView\n"
+            "    authority buyer requires Payable\n"
+            "    refresh view from buyer by buyer\n"
+            "}\n"
+            "intent Purchase(payment: PaymentZone, buyer: Buyer) {\n"
+            "    rollback: full;\n"
+            "    step pay {\n"
+            "        where: PaymentZone;\n"
+            "        using: payment;\n"
+            "        who: buyer;\n"
+            "        authorized by: buyer;\n"
+            "        requires: Payable;\n"
+            "        on: buyer.Pay();\n"
+            "        compensate: buyer.Pay();\n"
+            "    }\n"
+            "}\n";
+        HIRProgram *hir = NULL;
+        RIRProgram *rir = NULL;
+        MIRProgram *mir = NULL;
+        MIRRoutine *purchase = NULL;
+        char *mir_error = NULL;
+        bool rejected = false;
+        bool corrupted = false;
+        bool ok = lower_mir_from_source(src, &hir, &rir, &mir);
+        if (ok)
+            purchase = find_mir_routine_mut(mir, "Purchase", MIR_SCOPE_INTENT);
+        if (purchase != NULL) {
+            for (size_t target = 0; target < purchase->block_count && !corrupted; target++) {
+                MIRBasicBlock *block = &purchase->blocks[target];
+                if (block->predecessor_count == 0)
+                    continue;
+                for (size_t pred = 0; pred < purchase->block_count; pred++) {
+                    size_t next_count;
+                    size_t *grown;
+                    if (pred == target)
+                        continue;
+                    if (!test_block_has_forward_edge_to(&purchase->blocks[pred], target)) {
+                        next_count = block->predecessor_count + 1;
+                        grown = realloc(block->predecessors,
+                                        next_count * sizeof(size_t));
+                        if (grown == NULL)
+                            break;
+                        block->predecessors = grown;
+                        block->predecessors[block->predecessor_count] = pred;
+                        block->predecessor_count = next_count;
+                        block->predecessor_capacity = next_count;
+                        corrupted = true;
+                        break;
+                    }
+                }
+            }
+        }
+        rejected = ok
+                   && purchase != NULL
+                   && corrupted
+                   && !mir_validate(mir, &mir_error)
+                   && mir_error != NULL
+                   && strstr(mir_error, "predecessor") != NULL
+                   && strstr(mir_error, "no matching forward edge") != NULL;
+        EXPECT(rejected);
+        free(mir_error);
+        mir_destroy(mir);
+        rir_destroy(rir);
+        hir_destroy(hir);
+    }

@@ -28,7 +28,7 @@ These contracts are load-bearing for marketing claims and cannot ship to a
 | P0-3 | Authority transfer single-owner | `src/runtime/pgy_authority_runtime.c` (or equivalent) | (TBD) |
 | P0-4 | TTL cleanup vs pin-state interaction | `src/runtime/slot_manager.c` | (TBD) |
 | P0-5 | Release-while-pinned rejection | `src/runtime/slot_manager.c` | (TBD) |
-| P0-6 | Slot id exhaustion availability / tombstone flooding | `src/runtime/slot_manager_core_ops.c`, `src/runtime/slot_manager.h`, `src/tests/security/test_security_runtime.cases.h`, `docs/74_slot_pinning_caching.md` | `security-portability-contract-test-smoke`, `make test-security` |
+| P0-6 | Slot id exhaustion availability / tombstone flooding | `src/runtime/slot_manager_core_ops.c`, `src/runtime/slot_manager.h`, `src/tests/security/test_security_runtime_1.cases.h`, `src/tests/security/test_security_runtime_2.cases.h`, `docs/74_slot_pinning_caching.md` | `security-portability-contract-test-smoke`, `make test-security` |
 
 Existing regression: `make test-security` 182/182 + `make runtime-panic-abi-test-smoke`.
 Audit covers unenumerated edge cases beyond those executable regressions.

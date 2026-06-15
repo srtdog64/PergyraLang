@@ -229,17 +229,17 @@ grep -Fq "source_from_action" \
 grep -Fq "source_from_transfer" \
     "$ROOT_DIR/src/compiler/air_dump.c"
 grep -Fq "intent step reuses intent-level who and where defaults" \
-    "$ROOT_DIR/src/tests/semantic/test_semantic_misc_b2_part_d.cases.h"
+    "$ROOT_DIR/src/tests/semantic/test_semantic_misc_b2_part_d_1.cases.h"
 grep -Fq "intent authority-bearing zone keeps explicit authorization for secure helper" \
-    "$ROOT_DIR/src/tests/semantic/test_semantic_misc_b2_part_c.cases.h"
+    "$ROOT_DIR/src/tests/semantic/test_semantic_misc_b2_part_c_2.cases.h"
 grep -Fq "intent transfer derives zone using but keeps authorization explicit" \
-    "$ROOT_DIR/src/tests/semantic/test_semantic_misc_b2_part_c.cases.h"
+    "$ROOT_DIR/src/tests/semantic/test_semantic_misc_b2_part_c_1.cases.h"
 grep -Fq "intent authority-bearing zone-action helper requires explicit authorization" \
-    "$ROOT_DIR/src/tests/semantic/test_semantic_misc_b2_part_c.cases.h"
+    "$ROOT_DIR/src/tests/semantic/test_semantic_misc_b2_part_c_2.cases.h"
 grep -Fq "intent step effect in authority-bearing zone keeps explicit authorization" \
-    "$ROOT_DIR/src/tests/semantic/test_semantic_effects_part_a.cases.h"
+    "$ROOT_DIR/src/tests/semantic/test_semantic_effects_part_a_1.cases.h"
 grep -Fq "intent step maps action parameter authority from on-call argument" \
-    "$ROOT_DIR/src/tests/semantic/test_semantic_intent_compression_part_a.cases.h"
+    "$ROOT_DIR/src/tests/semantic/test_semantic_intent_compression_part_a_1.cases.h"
 grep -Fq "test_air_parsed_on_receiver_action_contract_provenance" \
     "$ROOT_DIR/src/tests/air/test_air_parsed_part_e.cases.h"
 grep -Fq "rir_effect_propagation_required_count == 1" \
@@ -261,11 +261,11 @@ grep -Fq "air_collect_dag_evidence(air, sem" \
 grep -Fq "AIR parsed on-receiver action contract provenance" \
     "$ROOT_DIR/src/test_air.c"
 grep -Fq "intent step keeps parameter authority explicit across multiple on calls" \
-    "$ROOT_DIR/src/tests/semantic/test_semantic_intent_compression_part_a.cases.h"
+    "$ROOT_DIR/src/tests/semantic/test_semantic_intent_compression_part_a_2.cases.h"
 grep -Fq "intent step keeps parameter authority explicit for expression on argument" \
-    "$ROOT_DIR/src/tests/semantic/test_semantic_intent_compression_part_a.cases.h"
+    "$ROOT_DIR/src/tests/semantic/test_semantic_intent_compression_part_a_2.cases.h"
 grep -Fq "intent-level who default failure reports provenance" \
-    "$ROOT_DIR/src/tests/semantic/test_semantic_misc_b2_part_d.cases.h"
+    "$ROOT_DIR/src/tests/semantic/test_semantic_misc_b2_part_d_1.cases.h"
 grep -Fq "intent-level where default failure reports provenance" \
     "$ROOT_DIR/src/tests/semantic/test_semantic_misc_b2_part_g.cases.h"
 grep -Fq "this where value came from the intent-level where default" \
@@ -275,7 +275,7 @@ grep -Fq "intent using mismatch reports compressed derivation reason" \
 grep -Fq "using binding points to a different zone than the current where contract" \
     "$ROOT_DIR/src/tests/semantic/test_semantic_misc_b2_part_g.cases.h"
 grep -Fq "derived_using_from_where" \
-    "$ROOT_DIR/src/tests/semantic/test_semantic_intent_compression_part_a.cases.h"
+    "$ROOT_DIR/src/tests/semantic/test_semantic_intent_compression_part_a_1.cases.h"
 grep -Fq "derived using from zone type" \
     "$ROOT_DIR/src/parser/ast_print_intent.c"
 grep -Fq "using_derived_from_where" \
@@ -289,23 +289,23 @@ grep -Fq "step->where_derived_from_transfer" \
 grep -Fq "step->using_derived_from_transfer" \
     "$ROOT_DIR/src/tests/dir/test_dir_lowering.cases.h"
 grep -Fq "non-intent callees do not carry intent step provenance into AIR" \
-    "$ROOT_DIR/src/tests/semantic/test_semantic_misc_b2_part_d.cases.h"
+    "$ROOT_DIR/src/tests/semantic/test_semantic_misc_b2_part_d_2.cases.h"
 grep -Fq "declare the participant with 'who ghost: <Subject>;'" \
-    "$ROOT_DIR/src/tests/semantic/test_semantic_misc_b2_part_d.cases.h"
+    "$ROOT_DIR/src/tests/semantic/test_semantic_misc_b2_part_d_1.cases.h"
 grep -Fq "inherited_who_from_intent" \
-    "$ROOT_DIR/src/tests/semantic/test_semantic_misc_b2_part_d.cases.h"
+    "$ROOT_DIR/src/tests/semantic/test_semantic_misc_b2_part_d_1.cases.h"
 grep -Fq "inherited_where_from_intent" \
-    "$ROOT_DIR/src/tests/semantic/test_semantic_misc_b2_part_d.cases.h"
+    "$ROOT_DIR/src/tests/semantic/test_semantic_misc_b2_part_d_1.cases.h"
 grep -Fq ".who_inherited_from_intent = true" \
-    "$ROOT_DIR/src/tests/air/test_air_core_part_a.cases.h"
+    "$ROOT_DIR/src/tests/air/test_air_core_part_a_1.cases.h"
 grep -Fq ".where_inherited_from_intent = true" \
-    "$ROOT_DIR/src/tests/air/test_air_core_part_a.cases.h"
+    "$ROOT_DIR/src/tests/air/test_air_core_part_a_1.cases.h"
 grep -Fq "air->intents[0].who_from_intent_default" \
-    "$ROOT_DIR/src/tests/air/test_air_core_part_a.cases.h"
+    "$ROOT_DIR/src/tests/air/test_air_core_part_a_1.cases.h"
 grep -Fq "air->boundaries[0].source_from_intent_default" \
-    "$ROOT_DIR/src/tests/air/test_air_core_part_a.cases.h"
+    "$ROOT_DIR/src/tests/air/test_air_core_part_a_1.cases.h"
 grep -Fq "air->boundaries[0].source_from_transfer" \
-    "$ROOT_DIR/src/tests/air/test_air_cleanup_transfer_part_c.cases.h"
+    "$ROOT_DIR/src/tests/air/test_air_cleanup_transfer_part_c_2.cases.h"
 
 if grep -F "locally declared who on step" \
         "$ROOT_DIR/src/semantic/type_checker_intent_contract_summary.c" \

@@ -134,7 +134,8 @@ void print_test_results()
  * Test 1: Basic security context creation and destruction
  */
 
-#include "tests/security/test_security_runtime.cases.h"
+#include "tests/security/test_security_runtime_1.cases.h"
+#include "tests/security/test_security_runtime_2.cases.h"
 #include "tests/security/test_security_slot_pin_lease.cases.h"
 
 int main(int argc, char *argv[])

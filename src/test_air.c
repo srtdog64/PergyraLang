@@ -1,4 +1,4 @@
-﻿/*
+/*
  * Copyright (c) 2026 Pergyra Language Project
  * AIR synthesis and drift test suite
  */
@@ -82,18 +82,23 @@ lower_air_from_source(const char *source)
 }
 
 
-#include "tests/air/test_air_core_part_a.cases.h"
+#include "tests/air/test_air_core_part_a_1.cases.h"
+#include "tests/air/test_air_core_part_a_2.cases.h"
 #include "tests/air/test_air_core_evidence_part_k.cases.h"
 #include "tests/air/test_air_core_part_h.cases.h"
-#include "tests/air/test_air_evidence_part_b.cases.h"
-#include "tests/air/test_air_cleanup_transfer_part_c.cases.h"
+#include "tests/air/test_air_evidence_part_b_1.cases.h"
+#include "tests/air/test_air_evidence_part_b_2.cases.h"
+#include "tests/air/test_air_cleanup_transfer_part_c_1.cases.h"
+#include "tests/air/test_air_cleanup_transfer_part_c_2.cases.h"
 #include "tests/air/test_air_rir_propagation_part_j.cases.h"
 #include "tests/air/test_air_cleanup_transfer_part_d.cases.h"
-#include "tests/air/test_air_boundary_part_d.cases.h"
+#include "tests/air/test_air_boundary_part_d_1.cases.h"
+#include "tests/air/test_air_boundary_part_d_2.cases.h"
 #include "tests/air/test_air_boundary_part_e.cases.h"
 #include "tests/air/test_air_parsed_part_e.cases.h"
 #include "tests/air/test_air_strict_part_f.cases.h"
-#include "tests/air/test_air_observability_pin_part_g.cases.h"
+#include "tests/air/test_air_observability_pin_part_g_1.cases.h"
+#include "tests/air/test_air_observability_pin_part_g_2.cases.h"
 #include "tests/air/test_air_mir_terminator_part_h.cases.h"
 #include "tests/air/test_air_counter_strict_part_i.cases.h"
 

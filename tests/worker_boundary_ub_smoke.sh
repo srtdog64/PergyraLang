@@ -91,9 +91,9 @@ require_term "src/runtime/pgy_runtime_scalar_std_inline.h" "pthread_mutex_unlock
 require_term "src/runtime/pgy_runtime_lib_std_exports.h" "pthread_mutex_lock(&pgy_runtime_lib_rng_mutex)"
 require_term "src/runtime/pgy_runtime_lib_std_exports.h" "pthread_mutex_unlock(&pgy_runtime_lib_rng_mutex)"
 
-require_term "src/tests/semantic/test_semantic_misc_a_part_b.cases.h" "CFG parallel rejects borrowed Slice capture"
-require_term "src/tests/semantic/test_semantic_misc_a_part_b.cases.h" "CFG parallel rejects HashMap storage capture"
-require_term "src/tests/semantic/test_semantic_misc_a_part_b.cases.h" "CFG spawn rejects HashMap storage boundary crossing"
+require_term "src/tests/semantic/test_semantic_misc_a_part_b_1.cases.h" "CFG parallel rejects borrowed Slice capture"
+require_term "src/tests/semantic/test_semantic_misc_a_part_b_1.cases.h" "CFG parallel rejects HashMap storage capture"
+require_term "src/tests/semantic/test_semantic_misc_a_part_b_1.cases.h" "CFG spawn rejects HashMap storage boundary crossing"
 
 if grep -R -n --include='*.c' --include='*.h' \
         -E 'return "(Array/Slice|Array|Slice|List|Queue|Set|HashMap|Channel)"' \

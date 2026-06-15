@@ -92,13 +92,15 @@ count_blocks_pass(const HIRProgram *hir,
     return true;
 }
 
-#include "tests/hir/test_hir_lowering.cases.h"
+#include "tests/hir/test_hir_lowering_part_a.cases.h"
+#include "tests/hir/test_hir_lowering_part_b.cases.h"
 
 int
 main(void)
 {
     printf("=== Pergyra HIR Lowering Test Suite ===\n");
-    test_hir_lowering();
+    test_hir_lowering_part_a();
+    test_hir_lowering_part_b();
     printf("\n=== Results: %d passed, %d failed ===\n", g_pass, g_fail);
     return g_fail == 0 ? 0 : 1;
 }

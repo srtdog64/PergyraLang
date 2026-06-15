@@ -68,8 +68,8 @@ README_PATH="$ROOT_DIR/README.md"
 SLOT_COQ="$PROOF_DIR/proofs/SlotCalculus.v"
 EFFECT_SOURCE_PATH="$ROOT_DIR/src/semantic/type_effects.c"
 EFFECT_FLOW_PATH="$ROOT_DIR/src/semantic/type_checker_flow_effects.c"
-EFFECT_TEST_A_PATH="$ROOT_DIR/src/tests/semantic/test_semantic_effects_part_a.cases.h"
-EFFECT_TEST_B_PATH="$ROOT_DIR/src/tests/semantic/test_semantic_effects_part_b.cases.h"
+EFFECT_TEST_A_PATH="$ROOT_DIR/src/tests/semantic/test_semantic_effects_part_a_1.cases.h"
+EFFECT_TEST_B_PATH="$ROOT_DIR/src/tests/semantic/test_semantic_effects_part_b_2.cases.h"
 B0_PROVENANCE_TEST_PATH="$ROOT_DIR/src/tests/semantic/test_semantic_b0_provenance.cases.h"
 BUILTINS_STDLIB_BODY_PATH="$ROOT_DIR/src/semantic/type_checker_builtins_stdlib_body.c"
 FUNC_DECL_PATH="$ROOT_DIR/src/semantic/type_checker_func_decl.c"
@@ -87,8 +87,8 @@ require_file "$README_PATH" "README.md"
 require_file "$SLOT_COQ" "docs/semantics/proofs/SlotCalculus.v"
 require_file "$EFFECT_SOURCE_PATH" "src/semantic/type_effects.c"
 require_file "$EFFECT_FLOW_PATH" "src/semantic/type_checker_flow_effects.c"
-require_file "$EFFECT_TEST_A_PATH" "src/tests/semantic/test_semantic_effects_part_a.cases.h"
-require_file "$EFFECT_TEST_B_PATH" "src/tests/semantic/test_semantic_effects_part_b.cases.h"
+require_file "$EFFECT_TEST_A_PATH" "src/tests/semantic/test_semantic_effects_part_a_1.cases.h"
+require_file "$EFFECT_TEST_B_PATH" "src/tests/semantic/test_semantic_effects_part_b_2.cases.h"
 require_file "$B0_PROVENANCE_TEST_PATH" "src/tests/semantic/test_semantic_b0_provenance.cases.h"
 require_file "$BUILTINS_STDLIB_BODY_PATH" "src/semantic/type_checker_builtins_stdlib_body.c"
 require_file "$FUNC_DECL_PATH" "src/semantic/type_checker_func_decl.c"
@@ -175,7 +175,7 @@ Reason:
 Fix:
 TERMS
 
-require_terms "$EFFECT_TEST_A_PATH" "src/tests/semantic/test_semantic_effects_part_a.cases.h" <<'TERMS'
+require_terms "$EFFECT_TEST_A_PATH" "src/tests/semantic/test_semantic_effects_part_a_1.cases.h" <<'TERMS'
 effect-partial-order: collapse is a superset of nondeterministic by closure
 effect-partial-order: secure and remote are incomparable
 effect-partial-order: joined secure|remote is a superset of each side
@@ -184,7 +184,7 @@ type_effect_mask_touches_resource_boundary
 type_effect_mask_conflicts
 TERMS
 
-require_terms "$EFFECT_TEST_B_PATH" "src/tests/semantic/test_semantic_effects_part_b.cases.h" <<'TERMS'
+require_terms "$EFFECT_TEST_B_PATH" "src/tests/semantic/test_semantic_effects_part_b_2.cases.h" <<'TERMS'
 effect-partial-order: disjoint branch effects join into combined contract
 effect-conflict: secure and remote combination emits warning
 effect-conflict: secure and collapse combination emits warning

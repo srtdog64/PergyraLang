@@ -53,10 +53,11 @@ progress ledger, not a new language surface.
   `<stdbool.h>` include.
 - Test aggregator `.inc` shims have been removed from the semantic/transpile
   harnesses. `src/test_semantic.c` and `src/test_transpile.c` now include leaf
-  fixture parts directly, and `test_semantic_async.cases.h` was split into
-  `test_semantic_async_part_a.cases.h` /
+  fixture parts directly, and the async fixtures now live in
+  `test_semantic_async_part_a_1.cases.h`,
+  `test_semantic_async_part_a_2.cases.h`, and
   `test_semantic_async_part_b.cases.h` so every remaining test case include
-  stays below the 990 LOC cap.
+  stays below the 699 LOC cap.
 - C backend generated specialization registry logic no longer lives in a
   broad helper header. The implementation now lives in
   `src/codegen/transpiler_specialization_registry.c`, AST statement scanning

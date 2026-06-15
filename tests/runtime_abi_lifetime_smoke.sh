@@ -798,7 +798,8 @@ fi
 if grep -Fq "g_pergyraSlotManager" \
     "$ROOT_DIR/src/runtime/slot_manager_scope.c" \
     "$ROOT_DIR/src/test_security.c" \
-    "$ROOT_DIR/src/tests/security/test_security_runtime.cases.h"; then
+    "$ROOT_DIR/src/tests/security/test_security_runtime_1.cases.h" \
+    "$ROOT_DIR/src/tests/security/test_security_runtime_2.cases.h"; then
     fail "secure slot wrapper ownership must stay slot-carried, not process-global"
 fi
 for term in \

@@ -43,14 +43,15 @@ reject_regex() {
     fi
 }
 
-transpile_helpers="$ROOT_DIR/src/tests/transpile/test_transpile_helpers.cases.h"
+transpile_helpers="$ROOT_DIR/src/tests/transpile/test_transpile_helpers_1.cases.h"
 require_term "$transpile_helpers" "make_func_param"
 require_term "$transpile_helpers" "make_class_field"
 
 for fixture in \
     "$ROOT_DIR/src/tests/transpile/test_transpile_program_part_a.cases.h" \
     "$ROOT_DIR/src/tests/transpile/test_transpile_program_part_b.cases.h" \
-    "$ROOT_DIR/src/tests/transpile/test_transpile_stdlib_part_b.cases.h"; do
+    "$ROOT_DIR/src/tests/transpile/test_transpile_stdlib_part_b_1.cases.h" \
+    "$ROOT_DIR/src/tests/transpile/test_transpile_stdlib_part_b_2.cases.h"; do
     reject_regex "$fixture" 'FuncParam [A-Za-z_, ]+;' 'stack FuncParam in AST-owned program fixture'
     reject_regex "$fixture" 'ClassField [A-Za-z_, ]+;' 'stack ClassField in AST-owned program fixture'
 done
@@ -82,7 +83,7 @@ for src in "${test_sources[@]}"; do
         -std=c11 -O2 -g \
         -D__USE_MINGW_ANSI_STDIO=1 \
         -DPGY_PROJECT_ROOT="\"$ROOT_DIR\"" \
-        -DPGY_SRC_DIR="\"$ROOT_DIR/src\"" \
+        -DPGY_SRC_DIR="\"$ROOT_DIR/src/"" \
         -DPGY_RUNTIME_DIR="\"$ROOT_DIR/src/runtime\"" \
         -DPGY_RUNTIME_LIB_C="\"$ROOT_DIR/src/runtime/pgy_runtime_lib.c\"" \
         -I"$ROOT_DIR/src" \

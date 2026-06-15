@@ -1,4 +1,4 @@
-﻿/*
+/*
  * Copyright (c) 2025 Pergyra Language Project
  * Parser test driver
  */
@@ -154,13 +154,17 @@ run_parser_test(const TestCase *test)
 }
 
 #include "tests/parser/test_parser_special_part_a.cases.h"
-#include "tests/parser/test_parser_special_part_b.cases.h"
+#include "tests/parser/test_parser_special_part_b_1.cases.h"
+#include "tests/parser/test_parser_special_part_b_2.cases.h"
 #include "tests/parser/test_parser_special_part_c.cases.h"
 
 int
 main(void)
 {
-#include "tests/parser/test_parser_table.cases.h"
+    const TestCase tests[] = {
+#include "tests/parser/test_parser_table_part_a.cases.h"
+#include "tests/parser/test_parser_table_part_b.cases.h"
+    };
 
     int failures = 0;
     size_t num_tests = sizeof(tests) / sizeof(tests[0]);

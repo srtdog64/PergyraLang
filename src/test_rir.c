@@ -1,4 +1,4 @@
-﻿/*
+/*
  * Copyright (c) 2026 Pergyra Language Project
  * RIR lowering test suite
  */
@@ -247,7 +247,8 @@ scope_has_conservative_semantics(const RIRScope *scope, unsigned int flags)
     return scope != NULL && (scope->conservative_semantics & flags) == flags;
 }
 
-#include "tests/rir/test_rir_lowering.cases.h"
+#include "tests/rir/test_rir_lowering_1.cases.h"
+#include "tests/rir/test_rir_lowering_2.cases.h"
 
 int
 main(void)

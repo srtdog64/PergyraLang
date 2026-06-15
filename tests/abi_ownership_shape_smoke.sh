@@ -136,7 +136,7 @@ require_term "src/compiler/mir_lower_population.c" "inst.resource_owner_requires
 require_term "src/compiler/mir_fact_surface_validate.c" "inst->resource_owner_requires_metadata"
 require_term "src/compiler/mir_fact_surface_validate.c" "return inst->arg1 != NULL && strcmp(inst->arg1, view_name) == 0"
 require_term "src/compiler/mir_fact_surface_validate.c" "view-backed resource op is missing owner slot ABI metadata"
-require_term "src/tests/mir/test_mir_lowering_part_a.cases.h" "MIR validator rejects view-backed resource owner metadata drift"
+require_term "src/tests/mir/test_mir_lowering_part_a_1.cases.h" "MIR validator rejects view-backed resource owner metadata drift"
 require_term "src/codegen/transpiler_mir_resource_hook_emit.c" "inst->resource_owner_slot_anchor"
 require_term "src/codegen/transpiler_mir_resource_hook_emit.c" "inst->resource_owner_requires_metadata"
 require_term "src/codegen/transpiler_mir_resource_hook_emit.c" "expected_owner_slot"

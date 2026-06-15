@@ -1,4 +1,4 @@
-﻿/*
+/*
  * Copyright (c) 2025 Pergyra Language Project
  * All rights reserved.
  *
@@ -62,19 +62,25 @@ static MIRProgram *g_last_mir = NULL;
     } while (0)
 
 
-#include "tests/transpile/test_transpile_helpers.cases.h"
+#include "tests/transpile/test_transpile_helpers_1.cases.h"
+#include "tests/transpile/test_transpile_helpers_2.cases.h"
 #include "tests/transpile/test_transpile_core_part_0.cases.h"
-#include "tests/transpile/test_transpile_core_part_a.cases.h"
-#include "tests/transpile/test_transpile_core_part_b.cases.h"
+#include "tests/transpile/test_transpile_core_part_a_1.cases.h"
+#include "tests/transpile/test_transpile_core_part_a_2.cases.h"
+#include "tests/transpile/test_transpile_core_part_b_1.cases.h"
+#include "tests/transpile/test_transpile_core_part_b_2.cases.h"
 #include "tests/transpile/test_transpile_program_part_a.cases.h"
 #include "tests/transpile/test_transpile_program_part_b.cases.h"
 #include "tests/transpile/test_transpile_domain_part_a.cases.h"
 #include "tests/transpile/test_transpile_parallel_family.cases.h"
-#include "tests/transpile/test_transpile_domain_async_part_a.cases.h"
+#include "tests/transpile/test_transpile_domain_async_part_a_1.cases.h"
+#include "tests/transpile/test_transpile_domain_async_part_a_2.cases.h"
 #include "tests/transpile/test_transpile_domain_async_part_b.cases.h"
 #include "tests/transpile/test_transpile_stdlib_part_a.cases.h"
-#include "tests/transpile/test_transpile_stdlib_part_b.cases.h"
-#include "tests/transpile/test_transpile_mir_part_a.cases.h"
+#include "tests/transpile/test_transpile_stdlib_part_b_1.cases.h"
+#include "tests/transpile/test_transpile_stdlib_part_b_2.cases.h"
+#include "tests/transpile/test_transpile_mir_part_a_1.cases.h"
+#include "tests/transpile/test_transpile_mir_part_a_2.cases.h"
 #include "tests/transpile/test_transpile_mir_part_b.cases.h"
 #include "tests/transpile/test_transpile_mir_part_c.cases.h"
 #include "tests/transpile/test_transpile_mir_source_order.cases.h"

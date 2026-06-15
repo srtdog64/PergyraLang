@@ -164,8 +164,8 @@ run_literal_doc_contract_smoke() {
     require_literal "src/semantic/type_checker_flow_parallel.c" "generated C/LLVM pointer handoff undefined behavior"
     require_literal "src/semantic/type_checker_async_channel.c" "semantic_report_worker_storage_boundary"
     require_literal "src/semantic/type_checker_async_channel.c" "generated C/LLVM behavior depend on undefined behavior"
-    require_literal "src/tests/semantic/test_semantic_misc_a_part_b.cases.h" "CFG parallel rejects shared collection capture"
-    require_literal "src/tests/semantic/test_semantic_misc_a_part_b.cases.h" "CFG parallel allows task-local collection shadowing"
+    require_literal "src/tests/semantic/test_semantic_misc_a_part_b_1.cases.h" "CFG parallel rejects shared collection capture"
+    require_literal "src/tests/semantic/test_semantic_misc_a_part_b_1.cases.h" "CFG parallel allows task-local collection shadowing"
     require_literal "src/runtime/pgy_runtime_lib_raw_map_exports.h" "Growable runtime storage is not a synchronization boundary"
     require_literal "src/runtime/pgy_runtime_lib_raw_set_exports.h" "Growable runtime storage is not a synchronization boundary"
     require_literal "src/runtime/pgy_runtime_lib_raw_queue_exports.h" "Growable runtime storage is not a synchronization boundary"
@@ -173,7 +173,7 @@ run_literal_doc_contract_smoke() {
     require_literal "src/runtime/pgy_runtime_builtin_hashmap_inline.h" "Growable runtime storage is not a synchronization boundary"
     require_literal "src/runtime/pgy_runtime_list_generic_inline.h" "Growable runtime storage is not a synchronization boundary"
     require_literal "src/semantic/type_checker_async_decl.c" "Detached async block cannot capture local"
-    require_literal "src/tests/semantic/test_semantic_async_part_a.cases.h" "detached async block rejects local capture"
+    require_literal "src/tests/semantic/test_semantic_async_part_a_2.cases.h" "detached async block rejects local capture"
     if grep -n "type_check_statement(node, ctx)" "$ROOT_DIR/src/semantic/type_checker_flow.c"; then
         echo "CFG body flow must not fall back to the broad statement dispatcher" >&2
         exit 1
@@ -469,10 +469,14 @@ run_literal_doc_contract_smoke() {
     require_literal "src/semantic/type_checker_async_channel.c" "semantic_validate_spawn_storage_boundary"
     require_literal "src/semantic/type_checker_async_channel.c" "type_is_detached_worker_boundary_unsafe_storage"
     require_literal "src/semantic/type_checker_builtins_query_channel.c" "type_is_detached_worker_boundary_unsafe_storage"
-    require_literal "src/tests/semantic/test_semantic_misc_a_part_a.cases.h" "CFG body flow accepts while-true all-path return"
-    require_literal "src/tests/semantic/test_semantic_misc_a_part_a.cases.h" "CFG body flow accepts static single-iteration for all-path return"
-    require_literal "src/tests/semantic/test_semantic_misc_a_part_a.cases.h" "CFG body flow keeps zero-iteration for as fallthrough"
-    require_literal "src/tests/semantic/test_semantic_misc_a_part_a.cases.h" "CFG static false while does not merge unreachable resource state"
+    require_literal "src/tests/semantic\test_semantic_misc_a_part_a_1.cases.h"
+        "src/tests/semantic\test_semantic_misc_a_part_a_2.cases.h" "CFG body flow accepts while-true all-path return"
+    require_literal "src/tests/semantic\test_semantic_misc_a_part_a_1.cases.h"
+        "src/tests/semantic\test_semantic_misc_a_part_a_2.cases.h" "CFG body flow accepts static single-iteration for all-path return"
+    require_literal "src/tests/semantic\test_semantic_misc_a_part_a_1.cases.h"
+        "src/tests/semantic\test_semantic_misc_a_part_a_2.cases.h" "CFG body flow keeps zero-iteration for as fallthrough"
+    require_literal "src/tests/semantic\test_semantic_misc_a_part_a_1.cases.h"
+        "src/tests/semantic\test_semantic_misc_a_part_a_2.cases.h" "CFG static false while does not merge unreachable resource state"
     require_literal "src/codegen/transpiler_mir_emission_contract.c" "mir_block_has_expected_cleanup_edge_fact(routine, i)"
     require_literal "src/codegen/transpiler_mir_emission_contract.c" "mir_block_has_pin_cleanup_edge(block)"
     require_literal "src/codegen/transpiler_mir_emission_contract.c" "pin block %llu has no cleanup successor"
@@ -598,12 +602,14 @@ mir_llvm_for_in_control_path = root / "src" / "codegen" / "llvm_mir_for_in_contr
 mir_llvm_internal_api_path = root / "src" / "codegen" / "llvm_internal_api.h"
 mir_tests_path = root / "src" / "test_mir.c"
 mir_test_case_paths = [
-    root / "src" / "tests" / "mir" / "test_mir_lowering_part_a.cases.h",
-    root / "src" / "tests" / "mir" / "test_mir_lowering_part_b.cases.h",
+    root / "src" / "tests" / "mir" / "test_mir_lowering_part_a_1.cases.h",
+    root / "src" / "tests" / "mir" / "test_mir_lowering_part_a_2.cases.h",
+    root / "src" / "tests" / "mir" / "test_mir_lowering_part_b_1.cases.h",
+    root / "src" / "tests" / "mir" / "test_mir_lowering_part_b_2.cases.h",
     root / "src" / "tests" / "mir" / "test_mir_lowering_part_c.cases.h",
     root / "src" / "tests" / "mir" / "test_mir_lowering_part_d.cases.h",
     root / "src" / "tests" / "mir" / "test_mir_lowering_part_e.cases.h",
-    root / "src" / "tests" / "mir" / "test_mir_lowering_part_f.cases.h",
+    root / "src" / "tests" / "mir" / "test_mir_lowering_part_g.cases.h",
     root / "src" / "tests" / "mir" / "test_mir_lowering_part_h.cases.h",
 ]
 async_channel_path = root / "src" / "semantic" / "type_checker_async_channel.c"
@@ -618,13 +624,28 @@ diag_path = root / "src" / "semantic" / "diag_codes.h"
 diag_doc_path = root / "docs" / "72_diagnostic_codes.md"
 parser_path = root / "src" / "parser" / "parser.c"
 let_path = root / "src" / "semantic" / "type_checker_ownership_let.c"
-semantic_tests_part_a_path = root / "src" / "tests" / "semantic" / "test_semantic_misc_a_part_a.cases.h"
+semantic_tests_part_a_paths = [
+    root / "src" / "tests" / "semantic" / "test_semantic_misc_a_part_a_1.cases.h",
+    root / "src" / "tests" / "semantic" / "test_semantic_misc_a_part_a_2.cases.h",
+]
 semantic_tests_part_a2_path = root / "src" / "tests" / "semantic" / "test_semantic_misc_a_part_a2.cases.h"
-semantic_tests_part_b_path = root / "src" / "tests" / "semantic" / "test_semantic_misc_a_part_b.cases.h"
-semantic_async_tests_part_a_path = root / "src" / "tests" / "semantic" / "test_semantic_async_part_a.cases.h"
+semantic_tests_part_b_paths = [
+    root / "src" / "tests" / "semantic" / "test_semantic_misc_a_part_b_1.cases.h",
+    root / "src" / "tests" / "semantic" / "test_semantic_misc_a_part_b_2.cases.h",
+]
+semantic_async_tests_part_a_paths = [
+    root / "src" / "tests" / "semantic" / "test_semantic_async_part_a_1.cases.h",
+    root / "src" / "tests" / "semantic" / "test_semantic_async_part_a_2.cases.h",
+]
 semantic_async_tests_part_b_path = root / "src" / "tests" / "semantic" / "test_semantic_async_part_b.cases.h"
-semantic_effect_tests_part_a_path = root / "src" / "tests" / "semantic" / "test_semantic_effects_part_a.cases.h"
-semantic_effect_tests_part_b_path = root / "src" / "tests" / "semantic" / "test_semantic_effects_part_b.cases.h"
+semantic_effect_tests_part_a_paths = [
+    root / "src" / "tests" / "semantic" / "test_semantic_effects_part_a_1.cases.h",
+    root / "src" / "tests" / "semantic" / "test_semantic_effects_part_a_2.cases.h",
+]
+semantic_effect_tests_part_b_paths = [
+    root / "src" / "tests" / "semantic" / "test_semantic_effects_part_b_1.cases.h",
+    root / "src" / "tests" / "semantic" / "test_semantic_effects_part_b_2.cases.h",
+]
 semantic_parallel_context_tests_path = root / "src" / "tests" / "semantic" / "test_semantic_parallel_context.cases.h"
 
 for path in (
@@ -708,13 +729,13 @@ for path in (
     diag_doc_path,
     parser_path,
     let_path,
-    semantic_tests_part_a_path,
+    *semantic_tests_part_a_paths,
     semantic_tests_part_a2_path,
-    semantic_tests_part_b_path,
-    semantic_async_tests_part_a_path,
+    *semantic_tests_part_b_paths,
+    *semantic_async_tests_part_a_paths,
     semantic_async_tests_part_b_path,
-    semantic_effect_tests_part_a_path,
-    semantic_effect_tests_part_b_path,
+    *semantic_effect_tests_part_a_paths,
+    *semantic_effect_tests_part_b_paths,
     semantic_parallel_context_tests_path,
 ):
     if not path.exists():
@@ -856,19 +877,19 @@ diag_doc = diag_doc_path.read_text(encoding="utf-8")
 parser = parser_path.read_text(encoding="utf-8")
 let_checker = let_path.read_text(encoding="utf-8")
 semantic_tests = (
-    semantic_tests_part_a_path.read_text(encoding="utf-8")
+    "\n".join(path.read_text(encoding="utf-8") for path in semantic_tests_part_a_paths)
     + "\n"
     + semantic_tests_part_a2_path.read_text(encoding="utf-8")
     + "\n"
-    + semantic_tests_part_b_path.read_text(encoding="utf-8")
+    + "\n".join(path.read_text(encoding="utf-8") for path in semantic_tests_part_b_paths)
     + "\n"
-    + semantic_async_tests_part_a_path.read_text(encoding="utf-8")
+    + "\n".join(path.read_text(encoding="utf-8") for path in semantic_async_tests_part_a_paths)
     + "\n"
     + semantic_async_tests_part_b_path.read_text(encoding="utf-8")
     + "\n"
-    + semantic_effect_tests_part_a_path.read_text(encoding="utf-8")
+    + "\n".join(path.read_text(encoding="utf-8") for path in semantic_effect_tests_part_a_paths)
     + "\n"
-    + semantic_effect_tests_part_b_path.read_text(encoding="utf-8")
+    + "\n".join(path.read_text(encoding="utf-8") for path in semantic_effect_tests_part_b_paths)
     + "\n"
     + semantic_parallel_context_tests_path.read_text(encoding="utf-8")
 )

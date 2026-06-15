@@ -519,7 +519,8 @@ for required_semantic_await_consume_guard in \
     "await consumes a named local Future handle"; do
     if ! grep -Fq "$required_semantic_await_consume_guard" \
         "$ROOT_DIR/src/semantic/type_checker_expr.c" \
-        "$ROOT_DIR/src/tests/semantic/test_semantic_misc_a_part_b.cases.h"; then
+        "$ROOT_DIR/src/tests/semantic/test_semantic_misc_a_part_b_1.cases.h" \
+        "$ROOT_DIR/src/tests/semantic/test_semantic_misc_a_part_b_2.cases.h"; then
         echo "[memory-concurrency] semantic await must consume named Future handles: $required_semantic_await_consume_guard" >&2
         exit 1
     fi
@@ -531,7 +532,8 @@ for required_semantic_worker_boundary_guard in \
     "CFG spawn rejects borrowed Slice boundary crossing"; do
     if ! grep -Fq "$required_semantic_worker_boundary_guard" \
         "$ROOT_DIR/src/semantic/type_checker_async_channel.c" \
-        "$ROOT_DIR/src/tests/semantic/test_semantic_misc_a_part_b.cases.h"; then
+        "$ROOT_DIR/src/tests/semantic/test_semantic_misc_a_part_b_1.cases.h" \
+        "$ROOT_DIR/src/tests/semantic/test_semantic_misc_a_part_b_2.cases.h"; then
         echo "[memory-concurrency] semantic worker-boundary storage reject must stay source-owned: $required_semantic_worker_boundary_guard" >&2
         exit 1
     fi
@@ -543,7 +545,8 @@ for required_rir_await_consume_guard in \
     "pending->final_state == RIR_STATE_RELEASED"; do
     if ! grep -Fq "$required_rir_await_consume_guard" \
         "$ROOT_DIR/src/compiler/rir.h" \
-        "$ROOT_DIR/src/tests/rir/test_rir_lowering.cases.h"; then
+        "$ROOT_DIR/src/tests/rir/test_rir_lowering_1.cases.h" \
+        "$ROOT_DIR/src/tests/rir/test_rir_lowering_2.cases.h"; then
         echo "[memory-concurrency] RIR await must expose consumed Future handles: $required_rir_await_consume_guard" >&2
         exit 1
     fi
@@ -555,7 +558,8 @@ for required_mir_await_layout_guard in \
     "abi_type_name, \"RemoteFuture\""; do
     if ! grep -Fq "$required_mir_await_layout_guard" \
         "$ROOT_DIR/src/compiler/mir_lower_population.c" \
-        "$ROOT_DIR/src/tests/mir/test_mir_lowering_part_a.cases.h"; then
+        "$ROOT_DIR/src/tests/mir/test_mir_lowering_part_a_1.cases.h" \
+        "$ROOT_DIR/src/tests/mir/test_mir_lowering_part_a_2.cases.h"; then
         echo "[memory-concurrency] MIR await must carry Future ABI layout facts: $required_mir_await_layout_guard" >&2
         exit 1
     fi
