@@ -66,6 +66,7 @@ TODO_PATH="$ROOT_DIR/TODO.md"
 CI_PATH="$ROOT_DIR/.github/workflows/ci.yml"
 README_PATH="$ROOT_DIR/README.md"
 SLOT_COQ="$PROOF_DIR/proofs/SlotCalculus.v"
+LOSS_CONTRACT_PATH="$PROOF_DIR/09_abstraction_loss_contracts.md"
 EFFECT_SOURCE_PATH="$ROOT_DIR/src/semantic/type_effects.c"
 EFFECT_FLOW_PATH="$ROOT_DIR/src/semantic/type_checker_flow_effects.c"
 EFFECT_TEST_A_PATH="$ROOT_DIR/src/tests/semantic/test_semantic_effects_part_a_1.cases.h"
@@ -85,6 +86,7 @@ require_file "$TODO_PATH" "TODO.md"
 require_file "$CI_PATH" ".github/workflows/ci.yml"
 require_file "$README_PATH" "README.md"
 require_file "$SLOT_COQ" "docs/semantics/proofs/SlotCalculus.v"
+require_file "$LOSS_CONTRACT_PATH" "docs/semantics/09_abstraction_loss_contracts.md"
 require_file "$EFFECT_SOURCE_PATH" "src/semantic/type_effects.c"
 require_file "$EFFECT_FLOW_PATH" "src/semantic/type_checker_flow_effects.c"
 require_file "$EFFECT_TEST_A_PATH" "src/tests/semantic/test_semantic_effects_part_a_1.cases.h"
@@ -102,6 +104,7 @@ Regression tests, smoke tests, and backend compare runs are proof evidence, not 
 Borrow-checker-equivalent safety: only through the combined ownership
 Slot alone is not advertised as a borrow checker.
 08_slot_capability_calculus.md
+09_abstraction_loss_contracts.md
 proofs/SlotCalculus.v
 not beta-closure evidence unless a CI
 Generic contracts
@@ -110,9 +113,27 @@ Runtime observability
 Backends: MIR-equivalent C and LLVM behavior
 AIR abstraction safety
 Slot capability calculus
+Abstraction loss contracts
 Full quantum resource model.
 Higher-kinded types and full FP functor/applicative/monad laws.
 GPU/Spray, Skia/render graph
+TERMS
+
+require_terms "$LOSS_CONTRACT_PATH" "docs/semantics/09_abstraction_loss_contracts.md" <<'TERMS'
+Status: `beta-proof-obligation`
+Stable surface: compiler and tooling abstraction boundaries.
+Loss is not automatically a bug. Hidden loss is the bug.
+An abstraction loss contract has seven fields:
+Loss budget classes:
+`consumer forbidden_to_recover fact from source`
+### AST To HIR/DIR/RIR/MIR
+### MIR To AIR
+### MIR To C And LLVM
+### Self-Hosted Tool To C Oracle
+## Theorem: Loss Visibility
+## Theorem: Preservation Carry
+## Theorem: Bounded Approximation Soundness
+That syntax is a design sketch only.
 TERMS
 
 require_terms "$PROOF_DIR/00_proof_contract.md" "docs/semantics/00_proof_contract.md" <<'TERMS'
@@ -292,6 +313,7 @@ TERMS
 require_terms "$INDEX_PATH" "docs/102_formal_semantics_and_proof_obligations.md" <<'TERMS'
 docs/semantics/README.md
 docs/semantics/08_slot_capability_calculus.md
+docs/semantics/09_abstraction_loss_contracts.md
 docs/semantics/proofs/SlotCalculus.v
 docs/118_slot_model_rigor_audit.md
 TERMS

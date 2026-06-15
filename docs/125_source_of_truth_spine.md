@@ -1495,3 +1495,22 @@ artifact-generation changes, also answer:
    artifact, semantic equality, trace, or rendered output?
 
 If there is no answer, the change is probably another A -> B -> A loop.
+
+## 9. Loss Contract Rule
+
+Every abstraction boundary must also state its loss contract. The owner must
+answer:
+
+- what fact is intentionally lost;
+- what fact is preserved exactly;
+- what fact is preserved as bounded approximation;
+- what fact is runtime-checked rather than statically proven;
+- which later layer is forbidden from rereading the older source to recover the
+  lost fact;
+- which smoke, regression, diagnostic, trace, or invariant proves the loss
+  budget.
+
+The proof-pack owner is
+`docs/semantics/09_abstraction_loss_contracts.md`. This rule generalizes the AIR
+epsilon-loss isolation contract: AIR is one verifier of cross-layer loss, while
+CFG, DAG, RIR, MIR, ABI/runtime, and backend owners still keep their own facts.

@@ -50,6 +50,7 @@ and follow-up debt over older design notes.
 |---|---|
 | [`102_formal_semantics_and_proof_obligations.md`](102_formal_semantics_and_proof_obligations.md) | Formal proof entry point |
 | [`semantics/`](semantics/) | Split formal semantics and proof notes |
+| [`semantics/09_abstraction_loss_contracts.md`](semantics/09_abstraction_loss_contracts.md) | Abstraction loss contract rules for compiler and tooling boundaries |
 | [`103_cfg_body_dataflow_need.md`](103_cfg_body_dataflow_need.md) | Why CFG/body dataflow is required for beta-grade ownership and cleanup |
 | [`104_air_compiler_architecture.md`](104_air_compiler_architecture.md) | AIR architecture and abstraction drift model |
 | [`105_runtime_panic_contract.md`](105_runtime_panic_contract.md) | Runtime panic and hard-fail contract |

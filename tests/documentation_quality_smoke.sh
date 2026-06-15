@@ -100,6 +100,7 @@ required_files=(
     "docs/semantics/07_air_abstraction_safety.md"
     "docs/semantics/00_proof_contract.md"
     "docs/semantics/08_slot_capability_calculus.md"
+    "docs/semantics/09_abstraction_loss_contracts.md"
     "examples/remote_future_result.pgy"
     "docs/grammar/01_syntax.md"
     "docs/grammar/02_grammar.md"
@@ -756,10 +757,28 @@ air_architecture_terms=(
     "epsilon quarantine layer, not an epsilon elimination layer"
     "Semantic truth remains with the owning layer"
     "cross-layer boundary with explicit evidence"
+    "The general version of this rule is the abstraction loss contract"
 )
 for term in "${air_architecture_terms[@]}"; do
     require_text "docs/104_air_compiler_architecture.md" "$term"
 done
+
+loss_contract_terms=(
+    "Abstraction Loss Contracts"
+    "Loss is not automatically a bug. Hidden loss is the bug."
+    "An abstraction loss contract has seven fields:"
+    "Loss budget classes:"
+    "consumer forbidden_to_recover fact from source"
+    "Theorem: Loss Visibility"
+    "Theorem: Preservation Carry"
+    "Theorem: Bounded Approximation Soundness"
+    "That syntax is a design sketch only."
+)
+for term in "${loss_contract_terms[@]}"; do
+    require_text "docs/semantics/09_abstraction_loss_contracts.md" "$term"
+done
+require_text "docs/37_compiler_contracts.md" "### Loss Contracts"
+require_text "docs/125_source_of_truth_spine.md" "## 9. Loss Contract Rule"
 
 remote_future_terms=(
     "RemoteFuture<T> -> await -> Result<T>"

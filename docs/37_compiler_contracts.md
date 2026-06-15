@@ -50,6 +50,14 @@ collects HIR/RIR/MIR/DAG evidence and checks intent, zone, world, authority, and
 effect boundary drift. AIR must not change backend text. If AIR changes emitted
 C or LLVM, that is a design violation.
 
+### Loss Contracts
+
+Every abstraction boundary has a loss budget. A pass may discard source shape or
+representation details only when the boundary names the allowed loss, the facts
+that must be preserved, the owner that keeps the original truth, and the
+downstream reads that become forbidden after the cutover. `docs/semantics/09_abstraction_loss_contracts.md`
+is the proof-pack owner for this rule.
+
 ## 2. Compiler-Facing Orthogonality Rule
 
 Compiler-facing orthogonality rule:

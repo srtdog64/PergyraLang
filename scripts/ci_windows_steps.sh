@@ -24,6 +24,7 @@ fi
 
 run 'make beta-test-suite-freeze-test-smoke'
 run 'make documentation-quality-test-smoke'
+run 'make abstraction-loss-contract-test-smoke'
 run 'make debug-hygiene-test-smoke'
 run 'make memory-string-safety-test-smoke'
 run 'make security-portability-contract-test-smoke'

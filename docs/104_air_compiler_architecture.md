@@ -50,6 +50,12 @@ MIR owns cleanup/pin/codegen-shape facts, and ABI/runtime owners define physical
 representation and failure behavior. AIR verifies that those facts survive the
 cross-layer boundary with explicit evidence or rejects the drift.
 
+The general version of this rule is the abstraction loss contract in
+`docs/semantics/09_abstraction_loss_contracts.md`: every boundary must say what
+may be lost, what must be preserved, which owner keeps the original truth, which
+downstream reads are forbidden, and which evidence proves the loss budget. AIR
+is one consumer of that rule, not a special exception to it.
+
 2026-05-02 debt status:
 
 - AIR should be treated as the cross-layer verifier, not the owner of CFG, DAG,
