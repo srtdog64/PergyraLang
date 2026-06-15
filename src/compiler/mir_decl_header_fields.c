@@ -5,6 +5,7 @@
 
 #include <stdint.h>
 #include <stdlib.h>
+#include <string.h>
 
 static void
 mir_ability_ref_clear(MIRAbilityRef *ref)
@@ -95,16 +96,34 @@ mir_decl_field_metadata_clear(MIRDeclField *meta)
     meta->required_ability_ref_count = 0;
 }
 
+static void
+mir_decl_field_claim_clear(MIRDeclFieldClaim *claim)
+{
+    if (claim == NULL)
+        return;
+    free(claim->inner_type_name);
+    claim->inner_type_name = NULL;
+}
+
 void
 mir_decl_header_free_fields(MIRDeclHeader *header)
 {
-    if (header == NULL || header->field_metadata == NULL)
+    if (header == NULL)
         return;
-    for (size_t i = 0; i < header->field_metadata_count; i++)
+    for (size_t i = 0; header->field_metadata != NULL
+         && i < header->field_metadata_count; i++) {
         mir_decl_field_metadata_clear(&header->field_metadata[i]);
+    }
     free(header->field_metadata);
     header->field_metadata = NULL;
     header->field_metadata_count = 0;
+    for (size_t i = 0; header->field_claim_metadata != NULL
+         && i < header->field_claim_metadata_count; i++) {
+        mir_decl_field_claim_clear(&header->field_claim_metadata[i]);
+    }
+    free(header->field_claim_metadata);
+    header->field_claim_metadata = NULL;
+    header->field_claim_metadata_count = 0;
 }
 
 static void
@@ -265,6 +284,107 @@ mir_decl_header_alloc_fields(MIRDeclHeader *header, size_t field_count)
     return header->field_metadata != NULL;
 }
 
+static bool
+mir_class_field_claim_shape(ASTNode *group, bool *is_secure_out)
+{
+    ASTNode *init;
+    const char *callee;
+    bool is_secure;
+
+    if (is_secure_out != NULL)
+        *is_secure_out = false;
+    if (group == NULL || ast_let_destructure_name_count(group) < 1)
+        return false;
+    init = ast_let_destructure_initializer(group);
+    if (init == NULL || ast_call_callee(init) == NULL)
+        return false;
+    callee = ast_identifier_name(ast_call_callee(init));
+    is_secure = callee != NULL && strcmp(callee, "ClaimSecureSlot") == 0;
+    if (!is_secure && !(callee != NULL && strcmp(callee, "ClaimSlot") == 0))
+        return false;
+    if (is_secure_out != NULL)
+        *is_secure_out = is_secure;
+    return true;
+}
+
+static size_t
+mir_class_field_claim_count(ASTNode *decl)
+{
+    size_t count = 0;
+
+    if (decl == NULL || decl->type != AST_CLASS_DECL)
+        return 0;
+    for (size_t i = 0; i < ast_class_field_destructure_count(decl); i++) {
+        if (mir_class_field_claim_shape(
+                ast_class_field_destructure_at(decl, i), NULL)) {
+            count++;
+        }
+    }
+    return count;
+}
+
+static bool
+mir_decl_field_claim_capture(MIRDeclFieldClaim *claim,
+                             const MIRDeclHeader *header,
+                             ASTNode *group)
+{
+    ASTNode *init;
+    bool is_secure;
+
+    if (claim == NULL || header == NULL)
+        return false;
+    if (!mir_class_field_claim_shape(group, &is_secure))
+        return false;
+    init = ast_let_destructure_initializer(group);
+    claim->owner_name = header->name;
+    claim->slot_name = ast_let_destructure_name(group, 0);
+    claim->token_name = is_secure && ast_let_destructure_name_count(group) >= 2
+        ? ast_let_destructure_name(group, 1)
+        : NULL;
+    claim->is_secure = is_secure;
+    if (ast_call_generic_arg_count(init) > 0) {
+        claim->inner_type_name = mir_capture_generic_actual_type_name(
+            ast_call_generic_arg(init, 0));
+    } else {
+        claim->inner_type_name = mir_capture_type_name(NULL, "Int");
+    }
+    return claim->slot_name != NULL && claim->inner_type_name != NULL;
+}
+
+static bool
+mir_decl_header_set_class_field_claims(MIRDeclHeader *header, ASTNode *decl)
+{
+    size_t claim_count;
+    size_t out = 0;
+
+    if (header == NULL)
+        return false;
+    header->field_claim_count = 0;
+    header->field_claim_metadata = NULL;
+    header->field_claim_metadata_count = 0;
+    claim_count = mir_class_field_claim_count(decl);
+    header->field_claim_count = claim_count;
+    if (claim_count == 0)
+        return true;
+    if (claim_count > SIZE_MAX / sizeof(MIRDeclFieldClaim))
+        return false;
+    header->field_claim_metadata =
+        calloc(claim_count, sizeof(MIRDeclFieldClaim));
+    if (header->field_claim_metadata == NULL)
+        return false;
+    for (size_t i = 0; i < ast_class_field_destructure_count(decl); i++) {
+        ASTNode *group = ast_class_field_destructure_at(decl, i);
+        if (!mir_class_field_claim_shape(group, NULL))
+            continue;
+        if (!mir_decl_field_claim_capture(
+                &header->field_claim_metadata[out++], header, group)) {
+            return false;
+        }
+    }
+    header->field_claim_metadata_count = out;
+    return out == claim_count;
+}
+
 static void
 mir_decl_header_append_shared_fields(MIRDeclHeader *header,
                                      ASTNode **fields,
@@ -293,6 +413,8 @@ mir_decl_header_set_fields(MIRDeclHeader *header, ASTNode *decl)
         return false;
     field_count = mir_decl_header_ast_field_count(decl);
     if (!mir_decl_header_alloc_fields(header, field_count))
+        return false;
+    if (!mir_decl_header_set_class_field_claims(header, decl))
         return false;
 
     switch (decl != NULL ? decl->type : AST_PROGRAM) {

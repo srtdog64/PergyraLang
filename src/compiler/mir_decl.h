@@ -81,6 +81,15 @@ typedef struct
 
 typedef struct
 {
+    const char *owner_name;
+    const char *slot_name;
+    const char *token_name;
+    char       *inner_type_name;
+    bool        is_secure;
+} MIRDeclFieldClaim;
+
+typedef struct
+{
     /* Source compatibility/provenance only; generic inventory lives below. */
     GenericParam *source_param;
     const char   *name;
@@ -112,6 +121,9 @@ typedef struct
     size_t       field_count;
     MIRDeclField *field_metadata;
     size_t       field_metadata_count;
+    size_t       field_claim_count;
+    MIRDeclFieldClaim *field_claim_metadata;
+    size_t       field_claim_metadata_count;
     size_t       variant_count;
     MIRDeclEnumVariant *variant_metadata;
     size_t       variant_metadata_count;

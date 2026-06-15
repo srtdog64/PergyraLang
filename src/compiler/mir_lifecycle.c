@@ -119,6 +119,16 @@ mir_destroy(MIRProgram *mir)
                 }
             }
             free(mir->decl_headers[i].field_metadata);
+            if (mir->decl_headers[i].field_claim_metadata != NULL) {
+                for (size_t j = 0;
+                     j < mir->decl_headers[i].field_claim_metadata_count;
+                     j++) {
+                    free(mir->decl_headers[i]
+                             .field_claim_metadata[j]
+                             .inner_type_name);
+                }
+            }
+            free(mir->decl_headers[i].field_claim_metadata);
             for (size_t v = 0;
                  v < mir->decl_headers[i].variant_metadata_count; v++) {
                 const MIRDeclEnumVariant *variant =

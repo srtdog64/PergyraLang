@@ -457,6 +457,40 @@ llvm_emit_one_field_claim(LLVMGenCtx *ctx, LLVMClassTypeEntry *cls,
 /* Claim each destructure slot field at construction so the built object has
  * live (occupied) slots, mirroring the C backend's __pgy_field_slot_init. */
 static bool
+llvm_emit_one_field_claim_meta(LLVMGenCtx *ctx, LLVMClassTypeEntry *cls,
+                               LLVMValueRef *object,
+                               const MIRDeclFieldClaim *claim)
+{
+    return llvm_emit_one_field_claim(
+        ctx,
+        cls,
+        object,
+        mir_decl_field_claim_slot_name(claim),
+        mir_decl_field_claim_inner_type_name(claim),
+        mir_decl_field_claim_is_secure(claim),
+        mir_decl_field_claim_token_name(claim));
+}
+
+static bool
+llvm_emit_field_slot_claims_from_header(LLVMGenCtx *ctx,
+                                        const MIRDeclHeader *header,
+                                        LLVMClassTypeEntry *cls,
+                                        LLVMValueRef *object)
+{
+    size_t claim_count = mir_decl_header_field_claim_count(header);
+
+    if (ctx == NULL || cls == NULL || object == NULL)
+        return true;
+    for (size_t i = 0; i < claim_count; i++) {
+        if (!llvm_emit_one_field_claim_meta(
+                ctx, cls, object, mir_decl_header_field_claim(header, i))) {
+            return false;
+        }
+    }
+    return true;
+}
+
+static bool
 llvm_emit_field_slot_claims(LLVMGenCtx *ctx, ASTNode *host,
                             LLVMClassTypeEntry *cls, LLVMValueRef *object)
 {
@@ -537,8 +571,10 @@ llvm_emit_class_constructor(ASTNode *node, LLVMGenCtx *ctx, const char *callee_n
     int field_count = llvm_class_field_count(cls);
     for (size_t i = 0; i < ast_call_arg_count(node)
         && i < (size_t)field_count; i++) {
-        char *field_type_name = llvm_class_constructor_field_type_name_at(
-            ctx, callee_name, i);
+        char *field_type_name =
+            (host_decl == NULL || host_decl->type == AST_CLASS_DECL)
+                ? llvm_class_constructor_field_type_name_at(ctx, callee_name, i)
+                : NULL;
         const char *field_name = llvm_class_field_name_at(cls, (int)i);
         LLVMTypeRef expected_ty = llvm_class_field_type_at(cls, (int)i);
         int field_index = llvm_class_field_struct_index_at(cls, (int)i);
@@ -591,10 +627,28 @@ llvm_emit_class_constructor(ASTNode *node, LLVMGenCtx *ctx, const char *callee_n
     }
 
     {
-        ASTNode *class_ast = llvm_find_decl_in_active_inventory(
-            ctx, AST_CLASS_DECL, callee_name);
-        if (!llvm_emit_field_slot_claims(ctx, class_ast, cls, &object))
-            return NULL;
+        if (llvm_active_has_mir(ctx)) {
+            if (host_decl == NULL || host_decl->type == AST_CLASS_DECL) {
+                const MIRDeclHeader *class_header =
+                    llvm_find_decl_header_in_context_of_type(
+                        ctx, AST_CLASS_DECL, callee_name);
+                if (class_header == NULL) {
+                    llvm_set_mir_inventory_missing(ctx,
+                        "MIR-only LLVM path missing class field-claim metadata for '%s'",
+                        callee_name != NULL ? callee_name : "(anonymous-class)");
+                    return NULL;
+                }
+                if (!llvm_emit_field_slot_claims_from_header(
+                        ctx, class_header, cls, &object)) {
+                    return NULL;
+                }
+            }
+        } else {
+            ASTNode *class_ast = llvm_find_decl_in_active_inventory(
+                ctx, AST_CLASS_DECL, callee_name);
+            if (!llvm_emit_field_slot_claims(ctx, class_ast, cls, &object))
+                return NULL;
+        }
     }
 
     ASTNode *relation_decl = host_decl != NULL

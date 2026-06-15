@@ -7,6 +7,7 @@
 #include <string.h>
 
 #include "../compiler/mir.h"
+#include "../compiler/mir_decl_headers.h"
 #include "../parser/ast_api.h"
 #include "../semantic/diag_codes.h"
 #include "transpiler_context.h"
@@ -78,6 +79,25 @@ transpiler_class_format_too_long(TranspilerCtx *ctx, const char *surface_kind)
 }
 
 static void
+emit_one_field_slot_claim_meta(TranspilerCtx *ctx,
+                               const MIRDeclFieldClaim *claim)
+{
+    const char *slot = mir_decl_field_claim_slot_name(claim);
+    const char *suffix = mir_decl_field_claim_inner_type_name(claim);
+    const char *token = mir_decl_field_claim_token_name(claim);
+
+    if (slot == NULL || suffix == NULL)
+        return;
+    if (mir_decl_field_claim_is_secure(claim) && token != NULL)
+        codebuf_write(ctx->out,
+            "    self.%s = pgy_claim_secure_%s(&self.%s);\n",
+            slot, suffix, token);
+    else if (!mir_decl_field_claim_is_secure(claim))
+        codebuf_write(ctx->out,
+            "    self.%s = pgy_claim_%s();\n", slot, suffix);
+}
+
+static void
 emit_one_field_slot_claim(TranspilerCtx *ctx, ASTNode *group)
 {
     ASTNode *init;
@@ -112,16 +132,43 @@ static void
 emit_class_field_slot_initializer(TranspilerCtx *ctx, ASTNode *node,
                                   const char *name)
 {
-    size_t group_count = ast_class_field_destructure_count(node);
+    const MIRDeclHeader *header =
+        transpiler_active_decl_header_of_type(ctx, AST_CLASS_DECL, name);
+    size_t claim_count = mir_decl_header_field_claim_count(header);
 
-    if (group_count == 0 || name == NULL)
+    if (name == NULL)
         return;
+    if (transpiler_active_has_mir(ctx)) {
+        if (header == NULL) {
+            transpiler_set_mir_inventory_missing(ctx,
+                "MIR-only C path missing class field-claim metadata for '%s'",
+                name);
+            return;
+        }
+        if (claim_count == 0)
+            return;
+        codebuf_write(ctx->out,
+            "\nstatic %s %s__pgy_field_slot_init(%s self)\n{\n",
+            name, name, name);
+        for (size_t i = 0; i < claim_count; i++)
+            emit_one_field_slot_claim_meta(
+                ctx, mir_decl_header_field_claim(header, i));
+        codebuf_write(ctx->out, "    return self;\n}\n");
+        return;
+    }
 
-    codebuf_write(ctx->out,
-        "\nstatic %s %s__pgy_field_slot_init(%s self)\n{\n", name, name, name);
-    for (size_t gi = 0; gi < group_count; gi++)
-        emit_one_field_slot_claim(ctx, ast_class_field_destructure_at(node, gi));
-    codebuf_write(ctx->out, "    return self;\n}\n");
+    {
+        size_t group_count = ast_class_field_destructure_count(node);
+        if (group_count == 0)
+            return;
+        codebuf_write(ctx->out,
+            "\nstatic %s %s__pgy_field_slot_init(%s self)\n{\n",
+            name, name, name);
+        for (size_t gi = 0; gi < group_count; gi++)
+            emit_one_field_slot_claim(
+                ctx, ast_class_field_destructure_at(node, gi));
+        codebuf_write(ctx->out, "    return self;\n}\n");
+    }
 }
 
 void

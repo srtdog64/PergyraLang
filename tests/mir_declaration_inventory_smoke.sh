@@ -1369,6 +1369,24 @@ require_term "src/codegen/llvm_expr_constructor_calls.c" \
     "compat_decl = llvm_find_decl_in_active_inventory("
 require_term "src/codegen/llvm_expr_constructor_calls.c" \
     "const char *expected_type"
+require_term "src/compiler/mir_decl.h" \
+    "MIRDeclFieldClaim"
+require_term "src/compiler/mir_decl_header_fields.c" \
+    "mir_decl_header_set_class_field_claims"
+require_term "src/compiler/mir_decl_header_access.c" \
+    "mir_decl_header_field_claim_count"
+require_term "src/compiler/mir_decl_header_access.c" \
+    "mir_decl_field_claim_inner_type_name"
+require_term "src/codegen/transpiler_class_decl_emit.c" \
+    "emit_one_field_slot_claim_meta"
+require_term "src/codegen/transpiler_class_decl_emit.c" \
+    "mir_decl_header_field_claim_count(header)"
+require_term "src/codegen/transpiler_class_constructor_emit.c" \
+    "mir_decl_header_field_claim_count("
+require_term "src/codegen/llvm_expr_constructor_calls.c" \
+    "llvm_emit_field_slot_claims_from_header"
+require_term "src/codegen/llvm_expr_constructor_calls.c" \
+    "mir_decl_header_field_claim("
 if grep -Fq "llvm_class_constructor_field_type_at" \
         "$ROOT_DIR/src/codegen/llvm_expr_constructor_calls.c"; then
     fail "LLVM class constructor field arguments must consume field type names, not AST field type nodes"

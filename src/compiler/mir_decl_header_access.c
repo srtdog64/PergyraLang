@@ -159,6 +159,22 @@ mir_decl_header_field(const MIRDeclHeader *header, size_t index)
 }
 
 size_t
+mir_decl_header_field_claim_count(const MIRDeclHeader *header)
+{
+    return header != NULL ? header->field_claim_metadata_count : 0;
+}
+
+const MIRDeclFieldClaim *
+mir_decl_header_field_claim(const MIRDeclHeader *header, size_t index)
+{
+    if (header == NULL || header->field_claim_metadata == NULL
+        || index >= header->field_claim_metadata_count) {
+        return NULL;
+    }
+    return &header->field_claim_metadata[index];
+}
+
+size_t
 mir_decl_header_enum_variant_count(const MIRDeclHeader *header)
 {
     return header != NULL ? header->variant_metadata_count : 0;
@@ -424,6 +440,30 @@ mir_decl_field_required_ability_ref(const MIRDeclField *field, size_t index)
         || index >= field->required_ability_ref_count)
         return NULL;
     return &field->required_ability_refs[index];
+}
+
+const char *
+mir_decl_field_claim_slot_name(const MIRDeclFieldClaim *claim)
+{
+    return claim != NULL ? claim->slot_name : NULL;
+}
+
+const char *
+mir_decl_field_claim_token_name(const MIRDeclFieldClaim *claim)
+{
+    return claim != NULL ? claim->token_name : NULL;
+}
+
+const char *
+mir_decl_field_claim_inner_type_name(const MIRDeclFieldClaim *claim)
+{
+    return claim != NULL ? claim->inner_type_name : NULL;
+}
+
+bool
+mir_decl_field_claim_is_secure(const MIRDeclFieldClaim *claim)
+{
+    return claim != NULL && claim->is_secure;
 }
 
 const char *

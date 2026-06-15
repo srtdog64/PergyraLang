@@ -2,6 +2,7 @@
 
 #include <stdlib.h>
 
+#include "../compiler/mir_decl_headers.h"
 #include "parser/ast_api.h"
 #include "transpiler_constructor_channel_guard.h"
 #include "transpiler_context.h"
@@ -84,7 +85,12 @@ transpiler_emit_class_constructor_with_type(ASTNode *call,
 
     /* Route a class with destructure slot fields through its claim helper so the
      * built object's slots are live before any method writes to them. */
-    if (result != NULL && ast_class_field_destructure_count(class_decl) > 0) {
+    if (result != NULL
+        && (transpiler_active_has_mir(ctx)
+            ? mir_decl_header_field_claim_count(
+                transpiler_active_decl_header_of_type(
+                    ctx, AST_CLASS_DECL, decl_name)) > 0
+            : ast_class_field_destructure_count(class_decl) > 0)) {
         char *claimed = strdup_fmt("%s__pgy_field_slot_init(%s)",
                                    ctor_type, result);
         free(result);
