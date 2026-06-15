@@ -43,6 +43,9 @@ echo "[self-host-parity:lexer] compiling lexer..."
 (cd "$ROOT_DIR" && "$PGY" "$(pgy_path_for_compiler "$PGY" "$PERGYRA_TOOL")" \
     -o "$(pgy_path_for_compiler "$PGY" "$PERGYRA_TOOL_BUILD_DIR/main.exe")" >/dev/null)
 
+(cd "$ROOT_DIR" && "$PGY" "$(pgy_path_for_compiler "$PGY" "$PERGYRA_TOOL")" \
+    --backend=llvm -o "$(pgy_path_for_compiler "$PGY" "$PERGYRA_TOOL_BUILD_DIR/main_llvm.exe")" >/dev/null)
+
 # Sources to lex + their committed fixtures. Each entry is
 # "<source path relative to repo root>:<fixture filename>". The Pergyra
 # binary reads the source path from Args()[0].
@@ -90,6 +93,18 @@ for pair in "${SOURCE_PAIRS[@]}"; do
         exit 1
     fi
 
+    set +e
+    LLVM_LEX_OUT="$(cd "$ROOT_DIR" && "$PERGYRA_TOOL_BUILD_DIR/main_llvm.exe" "$src" 2>/dev/null \
+        | tr -d '\r' \
+        | sed '/^pgy: compiled /d')"
+    LLVM_LEX_RC=$?
+    set -e
+    if [[ "$LLVM_LEX_RC" -ne 0 || "$LLVM_LEX_OUT" != "$EXPECTED_OUT" ]]; then
+        echo "[self-host-parity:lexer] $src: LLVM-compiled lexer diverges from C/fixture" >&2
+        diff <(printf '%s\n' "$EXPECTED_OUT") <(printf '%s\n' "$LLVM_LEX_OUT") | head -20 >&2
+        exit 1
+    fi
+
     # Live C-lexer drift guard for this source pair.
     set +e
     LIVE_OUT="$(cd "$ROOT_DIR" && "$PGY" --tokens "$src" 2>/dev/null)"
@@ -105,4 +120,4 @@ for pair in "${SOURCE_PAIRS[@]}"; do
     fi
 done
 
-echo "[self-host-parity:lexer] rung-1 parity ok (${#SOURCE_PAIRS[@]} sources byte-equal; live-drift=$ANY_DRIFT_GUARD_RAN)"
+echo "[self-host-parity:lexer] rung-1 parity ok (${#SOURCE_PAIRS[@]} sources byte-equal; backends=c llvm; live-drift=$ANY_DRIFT_GUARD_RAN)"

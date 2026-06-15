@@ -13,6 +13,7 @@ set -euo pipefail
 
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/../../.." && pwd)"
 source "$ROOT_DIR/tests/pgy_binary_path_helpers.sh"
+source "$ROOT_DIR/src/self_hosted/parity/llvm_leg_helpers.sh"
 pgy_prepend_windows_runtime_paths
 
 PGY="${PGY_BIN:-$ROOT_DIR/bin/pgy}"
@@ -134,4 +135,5 @@ if ! grep -Fq '"kind":"missing_modules_key"' <<<"$NEG_OUT"; then
     exit 1
 fi
 
+assert_llvm_leg "self-host-parity:module-manifest-resolver" "$PERGYRA_TOOL" "$PERGYRA_TOOL_BUILD_DIR"
 echo "[self-host-parity:module-manifest-resolver] rung-2 parity ok (modules=$SHELL_MODULES blockers=$SHELL_BLOCKERS stable=$SHELL_STABLE; missing-modules-key rc=1)"

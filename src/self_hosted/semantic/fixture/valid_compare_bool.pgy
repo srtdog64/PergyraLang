@@ -1,0 +1,6 @@
+func Main() -> Bool {
+    let a: Int = 1;
+    let b: Int = 2;
+    let r: Bool = a < b;
+    return r;
+}

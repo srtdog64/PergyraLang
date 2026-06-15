@@ -15,6 +15,7 @@ set -euo pipefail
 
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/../../.." && pwd)"
 source "$ROOT_DIR/tests/pgy_binary_path_helpers.sh"
+source "$ROOT_DIR/src/self_hosted/parity/llvm_leg_helpers.sh"
 pgy_prepend_windows_runtime_paths
 
 PGY="${PGY_BIN:-$ROOT_DIR/bin/pgy}"
@@ -198,4 +199,5 @@ if ! grep -Fq '"missing_keys":1' <<<"$NEG_OUT"; then
     exit 1
 fi
 
+assert_llvm_leg "self-host-parity:air-graph-json" "$PERGYRA_TOOL" "$PERGYRA_TOOL_BUILD_DIR"
 echo "[self-host-parity:air-graph-json] rung-2 parity ok (intents=$SHELL_INTENTS boundaries=$SHELL_BOUNDARIES evidence=$SHELL_EVIDENCE drifts=$SHELL_DRIFTS; missing-key rc=1; live-drift=$DRIFT_GUARD)"

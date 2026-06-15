@@ -11,6 +11,7 @@ set -euo pipefail
 
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/../../.." && pwd)"
 source "$ROOT_DIR/tests/pgy_binary_path_helpers.sh"
+source "$ROOT_DIR/src/self_hosted/parity/llvm_leg_helpers.sh"
 pgy_prepend_windows_runtime_paths
 
 PGY="${PGY_BIN:-$ROOT_DIR/bin/pgy}"
@@ -158,4 +159,5 @@ if ! grep -Fq 'pgy_runtime_synthetic_c_drift.c' <<<"$NEG_OUT"; then
     exit 1
 fi
 
+assert_llvm_leg "self-host-parity:production-c-size" "$PERGYRA_TOOL_ARG" "$PERGYRA_TOOL_BUILD_DIR"
 echo "[self-host-parity:production-c-size] rung-2 parity ok (c_files=$SHELL_C violations=$SHELL_VIOLATIONS max=$SHELL_MAX; over-cap fixture rc=1)"

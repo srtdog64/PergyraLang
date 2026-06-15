@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Rung 1 parity for the first Pergyra-origin semantic substitution slice.
+# Rung 2 parity for the Pergyra-origin semantic substitution slice.
 # The Pergyra tool emits a bounded deterministic verdict while the C compiler
 # remains the accept/reject oracle for the same fixtures.
 
@@ -34,8 +34,18 @@ EXPECTED_DIR="$ROOT_DIR/src/self_hosted/semantic/expected"
 SOURCE_PAIRS=(
     "valid_int_return:ok"
     "valid_string_return:ok"
+    "valid_arith_int:ok"
+    "valid_compare_bool:ok"
+    "valid_call_int:ok"
     "bad_let_type:error"
     "bad_return_type:error"
+    "bad_arith_assign:error"
+    "bad_compare_return:error"
+    "bad_call_assign:error"
+    "bad_builtin_arg:error"
+    "bad_user_arg:error"
+    "valid_user_call:ok"
+    "valid_escaped_quote:ok"
 )
 
 mkdir -p "$PERGYRA_TOOL_BUILD_DIR"
@@ -134,4 +144,4 @@ for backend in $BACKENDS; do
     run_semantic_backend "$backend" "$tool_bin"
 done
 
-echo "[self-host-parity:semantic] rung-1 parity ok (${#SOURCE_PAIRS[@]} fixtures; backends=$BACKENDS)"
+echo "[self-host-parity:semantic] rung-2 parity ok (${#SOURCE_PAIRS[@]} fixtures; backends=$BACKENDS)"

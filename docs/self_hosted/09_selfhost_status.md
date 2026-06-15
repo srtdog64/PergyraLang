@@ -75,16 +75,42 @@ Substrate progress.
   checkers, module manifest resolver, production size checkers, AIR graph JSON
   validator, stable subset checker, and stdlib dispatch inventory checker all
   pass their current self-host preparation parity gates.
-- The first semantic substitution rung exists:
-  `src/self_hosted/semantic/main.pgy` checks a bounded typed `let` / return
-  subset, and `src/self_hosted/parity/semantic_parity.sh` compares its verdicts
-  with the C compiler accept/reject oracle on C and LLVM where available.
+- Every one of the 16 self-host tool parity gates now exercises both backends.
+  Previously 12 of them built and ran their Pergyra tool only with the default
+  (C) backend, leaving each tool's LLVM compilation ungated. Each now compiles
+  its tool with the C and the LLVM backend and asserts the two native binaries
+  produce byte-identical output, via the shared
+  `src/self_hosted/parity/llvm_leg_helpers.sh` (`assert_llvm_leg`) for the
+  `--run` tools and inline legs for the lexer and backend-output comparator. At
+  the time of writing all 16 pass, so the gap was harness coverage, not an LLVM
+  backend defect; the gates now hold the C/LLVM equality invariant for the whole
+  tool corpus.
+- The semantic substitution rung has reached rung-2:
+  `src/self_hosted/semantic/main.pgy` checks a bounded function-body subset and
+  now types expressions through unary not, top-level binary operators
+  (arithmetic yields Int, comparison and logical yield Bool), and function calls
+  resolved against a signature table seeded with built-ins and the program's own
+  `func` return types. It also checks call-argument types positionally against
+  each callee's parameter signature, emitting `call_arg_type_mismatch` when a
+  known argument type disagrees with the declared parameter type.
+  `src/self_hosted/parity/semantic_parity.sh` compares its verdicts with the C
+  compiler accept/reject oracle on C and LLVM across 14 committed fixtures
+  (typed let/return, arithmetic, comparison, call-return, and call-argument
+  cases), all byte-equal on both backends. The checker is sound on the committed
+  real sources: it returns `SEMANTIC OK` on the self-hosted lexer, parser,
+  linter, and on its own source, with backslash-escape-aware string scanning so
+  embedded quote literals do not desync operator detection.
+- Building the signature table reproduced the array value-semantics finding from
+  the linter: a helper that `ArrayPush`es into an `Array<T>` parameter mutates a
+  copy, so the table is built inline in the owning function until `&mut Array<T>`
+  borrow parameters land. This is the second dogfooded motivation for that
+  feature.
 
 ## Not yet self-hosted
 
 The middle and back of the compiler are still mostly C:
 
-- semantic analysis beyond the first typed `let` / return verdict slice,
+- semantic analysis beyond the typed let/return + operator/call verdict slice,
 - HIR/DIR/MIR lowering,
 - C and LLVM backend emission.
 
@@ -102,10 +128,12 @@ strings, handle-like identities are stable integer/long IDs, and
 pass-lane gap is also closed at the language surface: lane-named `Allocator`
 constructors are present on C and LLVM, and pass authors pair them with
 `defer { AllocatorDestroy(lane); }` for explicit cleanup. Semantic analysis
-has now started in that shape: a bounded subset runs beside the C type checker
-on committed fixtures. Expand it with expression operators, function-call
-typing, and diagnostic-code parity before moving into declaration-heavy
-semantic owners.
+now runs in that shape at rung-2: expression operators, function-call return
+typing, and positional call-argument typing are covered, and verdicts stay
+byte-equal beside the C type checker on 14 committed fixtures across both
+backends. The next increments are scoped block and branch typing, arity
+checking on calls, and a stable diagnostic-code catalog shared with the C
+oracle, before moving into declaration-heavy semantic owners.
 
 ## How to reproduce
 

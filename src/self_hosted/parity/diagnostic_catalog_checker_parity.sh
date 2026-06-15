@@ -10,6 +10,7 @@ set -euo pipefail
 
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/../../.." && pwd)"
 source "$ROOT_DIR/tests/pgy_binary_path_helpers.sh"
+source "$ROOT_DIR/src/self_hosted/parity/llvm_leg_helpers.sh"
 pgy_prepend_windows_runtime_paths
 
 PGY="${PGY_BIN:-$ROOT_DIR/bin/pgy}"
@@ -223,4 +224,5 @@ if [[ "$INPUT_JSON" != "$EXPECTED_INPUT_ERROR_JSON" ]]; then
     exit 1
 fi
 
+assert_llvm_leg "self-host-parity:diagnostic-catalog" "$PERGYRA_TOOL_ARG" "$PERGYRA_TOOL_BUILD_DIR"
 echo "[self-host-parity:diagnostic-catalog] rung-1 exit-code + rung-2 count/json parity ok (c=$C_RC pergyra=$P_RC codes=$SHELL_CODES documented=$SHELL_DOCUMENTED missing=0 duplicates=$SHELL_DUPLICATES orphans=$SHELL_ORPHANS; missing-fixture rc=$NEG_RC input-fixture rc=$INPUT_RC)"

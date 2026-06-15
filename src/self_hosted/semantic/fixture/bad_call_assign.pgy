@@ -1,0 +1,5 @@
+func Main() -> String {
+    let s: String = "hi";
+    let x: String = StringLength(s);
+    return x;
+}

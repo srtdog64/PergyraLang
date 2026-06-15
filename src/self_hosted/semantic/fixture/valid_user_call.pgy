@@ -1,0 +1,6 @@
+func Twice(x: Int) -> Int {
+    return x + x;
+}
+func Main() -> Int {
+    return Twice(21);
+}

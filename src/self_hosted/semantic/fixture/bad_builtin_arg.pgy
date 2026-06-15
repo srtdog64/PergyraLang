@@ -1,0 +1,4 @@
+func Main() -> Int {
+    let n: Int = StringLength(123);
+    return n;
+}

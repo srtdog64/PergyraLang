@@ -1,0 +1,1 @@
+SEMANTIC ERROR call_arg_type_mismatch func=Twice expected=Int actual=String

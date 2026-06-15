@@ -70,6 +70,19 @@ if [[ "$CLEAN_JSON" != "$EXPECTED_JSON" ]]; then
     exit 1
 fi
 
+(cd "$ROOT_DIR" && "$PGY" "$(pgy_path_for_compiler "$PGY" "$PERGYRA_TOOL")" --backend=llvm \
+    -o "$(pgy_path_for_compiler "$PGY" "$PERGYRA_TOOL_BUILD_DIR/main_llvm.exe")" >/dev/null)
+LLVM_CLEAN_OUT="$(cd "$ROOT_DIR" && "$PERGYRA_TOOL_BUILD_DIR/main_llvm.exe" 2>/dev/null)"
+LLVM_CLEAN_JSON="$(printf '%s\n' "$LLVM_CLEAN_OUT" \
+    | grep -F 'pgy.selfhost.backend-output-comparator.v1' \
+    | tail -n 1)"
+if [[ "$LLVM_CLEAN_JSON" != "$EXPECTED_JSON" ]]; then
+    echo "[self-host-parity:backend-output-comparator] LLVM backend JSON parity FAIL" >&2
+    echo "expected: $EXPECTED_JSON" >&2
+    echo "actual:   $LLVM_CLEAN_JSON" >&2
+    exit 1
+fi
+
 # Shell drift detector for clean -- diff -q must agree. MSYS2 /
 # Git-for-Windows checkouts can land text fixtures with CRLF endings
 # depending on autocrlf and .gitattributes ordering (we saw

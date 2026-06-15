@@ -1,0 +1,4 @@
+func Main() -> String {
+    let q: String = Concat("a", "\"");
+    return q;
+}

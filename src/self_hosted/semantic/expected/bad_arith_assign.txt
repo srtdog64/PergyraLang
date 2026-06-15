@@ -1,0 +1,1 @@
+SEMANTIC ERROR let_type_mismatch expected=Bool actual=Int
