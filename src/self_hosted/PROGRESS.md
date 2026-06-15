@@ -124,9 +124,9 @@ keeps running fine with or without them.
 | `production_header_size_checker`  | 119           | DirWalk-owned `.h` 600-LOC cap |
 | `production_c_size_checker`       | 139           | DirWalk-owned `.c` 699-LOC cap |
 | `examples_inventory_checker`      | 122           | DirWalk-owned examples/ count + non-empty |
-| `ast_read_surface_checker`        | 221           | CFG/MIR SoT ratchet parity |
+| `ast_read_surface_checker`        | 236           | CFG/MIR SoT ratchet parity |
 | `linter`                          | 193           | LSP-style diagnostic JSON parity |
-| **Total peripheral**              | **1943**      | |
+| **Total peripheral**              | **1958**      | |
 
 Plus `src/self_hosted/lib/text_scan.pgy` (~47 LOC) shared across scan-based
 tools.
@@ -221,10 +221,11 @@ beyond the lexer:
   `DirWalk("examples")` directly, so the clean example inventory no longer has a
   committed manifest alias. `production_header_size_checker` and
   `production_c_size_checker` now consume `DirWalk("src")` directly, so their
-  clean inventories no longer depend on committed file-list fixtures. The
-  remaining manifest-owned surfaces are document contracts and the
-  ast-read-surface ratchet manifest, not top-level example or production size
-  file lists.
+  clean inventories no longer depend on committed file-list fixtures.
+  `ast_read_surface_checker` now keeps only the metric/ceiling ratchet spec in
+  `tests/ast_read_surface_ratchet.txt` and owns live file discovery through
+  `DirWalk(scope)`. Remaining manifest-owned surfaces are document contracts,
+  not clean directory file lists.
 - **Parser LLVM depth/type-inference parity** -- `parser_parity.sh` now
   compiles the self-host parser through both C and LLVM and includes a deep
   nested generic type fixture. Remaining parser work is grammar breadth and

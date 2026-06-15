@@ -40,9 +40,9 @@ driver is ever changed to degrade to an AST-only path, this fails first.
 tests/ast_read_surface_smoke.sh ratchets the source_ast occurrence counts. The
 codegen and compiler frontiers are both locked at 0, so the surface can only
 stay closed. The scalar source-node type/location provenance has been split out
-of this metric. The ratchet values and covered files live in
-tests/ast_read_surface_manifest.txt, which is consumed by both the shell smoke
-and the self-hosted ast_read_surface_checker parity rung. The same manifest
+of this metric. The ratchet values and metric scopes live in
+tests/ast_read_surface_ratchet.txt, which is consumed by both the shell smoke
+and the self-hosted ast_read_surface_checker parity rung. The same ratchet spec
 also tracks source-decl compatibility: backend and compiler calls to
 `mir_decl_header_source_decl` are locked at 0, and
 `routine_source_decl_codegen` is locked at 0.

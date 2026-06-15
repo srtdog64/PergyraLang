@@ -1,10 +1,9 @@
 // src/self_hosted/tools/ast_read_surface_checker/main.pgy
 //
-// Status: rung-2 minimal (2026-06-15). Reads the shared
-// tests/ast_read_surface_manifest.txt ratchet manifest, counts literal AST
-// read markers in the listed C files, and emits the same growth verdict as the
-// shell smoke. The shell parity harness owns directory coverage because the
-// current Pergyra subset has no directory walk primitive.
+// Status: rung-2 DirWalk-owned (2026-06-15). Reads the shared
+// tests/ast_read_surface_ratchet.txt metric spec, counts literal AST read
+// markers by walking each metric scope with DirWalk, and emits the same growth
+// verdict as the shell smoke.
 //
 // Contract: see intent.md in the same directory.
 
@@ -28,7 +27,8 @@ func SurfaceFinding(kind: String, reads: Int, ceiling: Int, scope: String) -> St
 func InputErrorJson(error_kind: String, key: String, location: String) -> String {
     let parts: Array<String> = [
         "{\"schema\":\"pgy.selfhost.ast-read-surface.v1\",\"ok\":false,",
-        "\"source\":{\"manifest_owner\":\"tests/ast_read_surface_manifest.txt\"},",
+        "\"source\":{\"ratchet_owner\":\"tests/ast_read_surface_ratchet.txt\",",
+        "\"inventory_owner\":\"DirWalk(scope)\"},",
         "\"counts\":{\"enum\":0,\"source_ast_codegen\":0,\"source_ast_compiler\":0,",
         "\"source_decl_codegen\":0,\"source_decl_compiler\":0,",
         "\"routine_source_decl_codegen\":0,\"violations\":1},",
@@ -43,16 +43,40 @@ func InputErrorJson(error_kind: String, key: String, location: String) -> String
     return StringJoin(parts, "");
 }
 
-func Main() -> Void {
-    let manifest_path: String = "tests/ast_read_surface_manifest.txt";
+func EndsWith(text: String, suffix: String) -> Bool {
+    let text_len: Int = StringLength(text);
+    let suffix_len: Int = StringLength(suffix);
+    if text_len < suffix_len {
+        return false;
+    }
+    return Substring(text, text_len - suffix_len, suffix_len) == suffix;
+}
 
-    if !FileExists(manifest_path) {
-        Log(InputErrorJson("missing_manifest", manifest_path, manifest_path));
+func CountPatternInScope(pattern: String, scope: String) -> Int {
+    let entries: Array<String> = DirWalk(scope);
+    let reads: Int = 0;
+    let i: Int = 0;
+    let n: Int = ArrayLength(entries);
+    while i < n {
+        let path: String = entries[i];
+        if EndsWith(path, ".c") {
+            reads = reads + TextScan.CountOccurrences(ReadFile(path), pattern);
+        }
+        i = i + 1;
+    }
+    return reads;
+}
+
+func Main() -> Void {
+    let ratchet_path: String = "tests/ast_read_surface_ratchet.txt";
+
+    if !FileExists(ratchet_path) {
+        Log(InputErrorJson("missing_ratchet", ratchet_path, ratchet_path));
         Exit(1);
     }
 
-    let manifest: String = ReadFile(manifest_path);
-    let entries: Array<String> = Split(manifest, "\n");
+    let ratchet: String = ReadFile(ratchet_path);
+    let entries: Array<String> = Split(ratchet, "\n");
 
     let enum_reads: Int = 0;
     let enum_cap: Int = 0;
@@ -73,8 +97,8 @@ func Main() -> Void {
         let line: String = entries[i];
         if StringLength(line) > 0 {
             let parts: Array<String> = Split(line, "|");
-            if ArrayLength(parts) < 5 {
-                Log(InputErrorJson("malformed_manifest", line, manifest_path));
+            if ArrayLength(parts) < 4 {
+                Log(InputErrorJson("malformed_ratchet", line, ratchet_path));
                 Exit(1);
             }
 
@@ -82,17 +106,8 @@ func Main() -> Void {
             let pattern: String = parts[1];
             let ceiling: Int = ToInt(parts[2]);
             let scope: String = parts[3];
-            let path: String = parts[4];
             let known: Int = 0;
-            let reads: Int = 0;
-
-            if StringLength(path) > 0 {
-                if !FileExists(path) {
-                    Log(InputErrorJson("missing_input", path, path));
-                    Exit(1);
-                }
-                reads = TextScan.CountOccurrences(ReadFile(path), pattern);
-            }
+            let reads: Int = CountPatternInScope(pattern, scope);
 
             if kind == "enum" {
                 enum_reads = enum_reads + reads;
@@ -193,9 +208,9 @@ func Main() -> Void {
     let json_parts: Array<String> = [
         "{\"schema\":\"pgy.selfhost.ast-read-surface.v1\",\"ok\":",
         ok_text,
-        ",\"source\":{\"manifest_owner\":\"",
-        manifest_path,
-        "\"},\"counts\":{\"enum\":",
+        ",\"source\":{\"ratchet_owner\":\"",
+        ratchet_path,
+        "\",\"inventory_owner\":\"DirWalk(scope)\"},\"counts\":{\"enum\":",
         ToString(enum_reads),
         ",\"source_ast_codegen\":",
         ToString(source_ast_codegen_reads),

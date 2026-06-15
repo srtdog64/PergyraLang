@@ -82,8 +82,8 @@ burn-down:
   `examples_inventory_checker` parity rung now consumes `DirWalk("examples")`
   directly, and the production header/C size checkers consume `DirWalk("src")`
   directly. This removes the stale examples and production size file-list
-  aliases; remaining `manifest_owner` surfaces are document contracts or the
-  ast-read-surface ratchet manifest rather than clean directory inventories.
+  aliases; remaining `manifest_owner` surfaces are document contracts rather
+  than clean directory inventories.
 
 These are the axis the gap analysis calls systems substrate, distinct from the
 domain-oriented surface the language is already strong on.
@@ -106,8 +106,8 @@ can be closed from a static pass alone.
 Capability 5 (CFG/MIR SoT, task 74). Closed for the measured frontier: non_cfg
 body facts are MIR-owned and locked at zero fallback, the source_ast ratchet is
 now codegen 0 / compiler 0, source_decl is ratcheted at codegen 0 / compiler 0,
-routine_source_decl_codegen is ratcheted at 0, and the shared ratchet manifest
-is verified by both the shell smoke and a
+routine_source_decl_codegen is ratcheted at 0, and the shared ratchet spec is
+verified by both the shell smoke and a
 Pergyra-written ast_read_surface_checker parity rung. The
 dead slot-source accessors have been deleted. Against the original codegen
 frontier of 127, all 127 reads are retired. LLVM domain/role and C

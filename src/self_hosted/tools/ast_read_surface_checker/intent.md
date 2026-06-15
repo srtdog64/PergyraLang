@@ -1,6 +1,6 @@
 # AST Read Surface Checker -- Intent / Contract
 
-**Status:** *rung-2 minimal* (2026-06-15). This tool mirrors
+**Status:** *rung-2 DirWalk-owned* (2026-06-15). This tool mirrors
 `tests/ast_read_surface_smoke.sh` in Pergyra so the CFG/MIR source-of-truth
 ratchet is checked by both the shell gate and a self-hosted audit tool.
 
@@ -8,18 +8,16 @@ ratchet is checked by both the shell gate and a self-hosted audit tool.
 
 The source-of-truth migration should only move backend decisions from AST
 readers to MIR-owned facts. The AST-read surface may shrink, but it must not
-grow. The manifest owns the current ceilings and the C files that currently
-carry each measured marker.
+grow. The ratchet spec owns the current ceilings and metric scopes; live file
+enumeration is owned by `DirWalk(scope)`.
 
 ## Input Contract
 
-- **manifest_owner:** `tests/ast_read_surface_manifest.txt`
-- Format: one UTF-8 line per measured C file:
-  `metric|literal_pattern|ceiling|scope|repo_relative_path`
-- The Pergyra tool reads each listed file and counts literal, non-overlapping
-  occurrences of `literal_pattern`.
-- Directory coverage is checked by the shell parity harness because the current
-  Pergyra subset has no directory traversal primitive.
+- **ratchet_owner:** `tests/ast_read_surface_ratchet.txt`
+- Format: one UTF-8 line per measured metric:
+  `metric|literal_pattern|ceiling|scope`
+- The Pergyra tool calls `DirWalk(scope)`, filters `.c` files, and counts
+  literal, non-overlapping occurrences of `literal_pattern`.
 
 ## Output Contract
 
@@ -31,7 +29,8 @@ JSON document on stdout, conforming to schema
   "schema": "pgy.selfhost.ast-read-surface.v1",
   "ok": true,
   "source": {
-    "manifest_owner": "tests/ast_read_surface_manifest.txt"
+    "ratchet_owner": "tests/ast_read_surface_ratchet.txt",
+    "inventory_owner": "DirWalk(scope)"
   },
   "counts": {
     "enum": 17,
@@ -52,19 +51,16 @@ Exit code: `0` on `ok:true`, `1` on `ok:false`.
 
 The shell oracle is `tests/ast_read_surface_smoke.sh`. The parity rung asserts:
 
-- the shell smoke passes against the shared manifest;
+- the shell smoke passes against the shared ratchet spec;
 - the Pergyra tool exits `0` on the clean repo;
 - emitted JSON byte-matches `expected/clean.json`;
 - `enum`, `source_ast_codegen`, `source_ast_compiler`, `source_decl_codegen`,
   `source_decl_compiler`, and `routine_source_decl_codegen` counts match shell
-  literal grep over the same manifest entries;
+  recursive grep over the same metric scopes;
 - a synthetic source_ast growth fixture exits `1` with a
   `"kind":"surface_growth"` finding.
 
 ## Not In Scope
 
 - Classifying provenance vs semantic readers.
-- Recursive repo discovery in this tool; the current checker consumes the
-  explicit shared manifest while the filesystem substrate owns deterministic
-  directory walks separately.
 - Changing the ratchet values without retiring readers first.

@@ -1,9 +1,9 @@
 #!/usr/bin/env bash
 # Rung 2 parity for the AST read surface checker (2026-06-15).
 #
-# The shell smoke remains the coverage oracle: it verifies that the shared
-# manifest accounts for every file under each measured scope. The Pergyra tool
-# proves the same literal counts and ratchet verdict from the same manifest.
+# The shell smoke remains the coverage oracle over the shared ratchet spec.
+# The Pergyra tool proves the same literal counts by walking each metric scope
+# through DirWalk.
 
 set -euo pipefail
 
@@ -31,10 +31,10 @@ PERGYRA_TOOL_SOURCE="$ROOT_DIR/src/self_hosted/tools/ast_read_surface_checker/ma
 PERGYRA_TOOL_BUILD_DIR="${PGY_SELFHOST_BUILD_DIR:-$ROOT_DIR/.tmp/self_hosted/ast_read_surface_checker}"
 PERGYRA_TOOL="$PERGYRA_TOOL_BUILD_DIR/main.pgy"
 EXPECTED_JSON_FILE="$ROOT_DIR/src/self_hosted/tools/ast_read_surface_checker/expected/clean.json"
-MANIFEST_FILE="$ROOT_DIR/tests/ast_read_surface_manifest.txt"
-MANIFEST_REL="tests/ast_read_surface_manifest.txt"
+RATCHET_FILE="$ROOT_DIR/tests/ast_read_surface_ratchet.txt"
+RATCHET_REL="tests/ast_read_surface_ratchet.txt"
 
-for path in "$PERGYRA_TOOL_SOURCE" "$EXPECTED_JSON_FILE" "$MANIFEST_FILE"; do
+for path in "$PERGYRA_TOOL_SOURCE" "$EXPECTED_JSON_FILE" "$RATCHET_FILE"; do
     if [[ ! -f "$path" ]]; then
         echo "[self-host-parity:ast-read-surface] missing input: $path" >&2
         exit 1
@@ -67,28 +67,37 @@ if ! grep -Fq 'pgy.selfhost.ast-read-surface.v1' <<<"$PERGYRA_OUT"; then
     exit 1
 fi
 
-SHELL_STATS="$(cd "$ROOT_DIR" && awk -F'|' '
-    NF == 5 {
-        cmd = "grep -F -o \"" $2 "\" \"" $5 "\" 2>/dev/null | wc -l"
-        cmd | getline n
-        close(cmd)
-        gsub(/ /, "", n)
-        if ($1 == "enum")
-            enum_reads += n
-        else if ($1 == "source_ast_codegen")
-            codegen_reads += n
-        else if ($1 == "source_ast_compiler")
-            compiler_reads += n
-        else if ($1 == "source_decl_codegen")
-            source_decl_codegen_reads += n
-        else if ($1 == "source_decl_compiler")
-            source_decl_compiler_reads += n
-        else if ($1 == "routine_source_decl_codegen")
-            routine_source_decl_codegen_reads += n
-    }
-    END { printf "%d %d %d %d %d %d\n", enum_reads, codegen_reads, compiler_reads, source_decl_codegen_reads, source_decl_compiler_reads, routine_source_decl_codegen_reads }
-' "$MANIFEST_REL")"
-read -r SHELL_ENUM SHELL_CODEGEN SHELL_COMPILER SHELL_SOURCE_DECL_CODEGEN SHELL_SOURCE_DECL_COMPILER SHELL_ROUTINE_SOURCE_DECL_CODEGEN <<<"$SHELL_STATS"
+SHELL_ENUM=0
+SHELL_CODEGEN=0
+SHELL_COMPILER=0
+SHELL_SOURCE_DECL_CODEGEN=0
+SHELL_SOURCE_DECL_COMPILER=0
+SHELL_ROUTINE_SOURCE_DECL_CODEGEN=0
+while IFS='|' read -r kind pattern ceiling scope; do
+    [[ -n "$kind" ]] || continue
+    n="$((cd "$ROOT_DIR" && grep -R -F -o "$pattern" "$scope" --include='*.c' 2>/dev/null || true) \
+        | wc -l | tr -d ' ')"
+    case "$kind" in
+        enum)
+            SHELL_ENUM=$((SHELL_ENUM + n))
+            ;;
+        source_ast_codegen)
+            SHELL_CODEGEN=$((SHELL_CODEGEN + n))
+            ;;
+        source_ast_compiler)
+            SHELL_COMPILER=$((SHELL_COMPILER + n))
+            ;;
+        source_decl_codegen)
+            SHELL_SOURCE_DECL_CODEGEN=$((SHELL_SOURCE_DECL_CODEGEN + n))
+            ;;
+        source_decl_compiler)
+            SHELL_SOURCE_DECL_COMPILER=$((SHELL_SOURCE_DECL_COMPILER + n))
+            ;;
+        routine_source_decl_codegen)
+            SHELL_ROUTINE_SOURCE_DECL_CODEGEN=$((SHELL_ROUTINE_SOURCE_DECL_CODEGEN + n))
+            ;;
+    esac
+done < "$RATCHET_FILE"
 
 if ! grep -Fq "\"enum\":${SHELL_ENUM}," <<<"$PERGYRA_OUT"; then
     echo "[self-host-parity:ast-read-surface] enum parity FAIL (shell=${SHELL_ENUM})" >&2
@@ -145,7 +154,7 @@ mkdir -p "$NEG_ROOT/tests"
         echo "source_ast /* synthetic growth $k */"
     done
 } > "$NEG_ROOT/src/codegen/synthetic_source_ast.c"
-echo "source_ast_codegen|source_ast|0|src/codegen|src/codegen/synthetic_source_ast.c" > "$NEG_ROOT/$MANIFEST_REL"
+echo "source_ast_codegen|source_ast|0|src/codegen" > "$NEG_ROOT/$RATCHET_REL"
 
 set +e
 NEG_OUT="$(cd "$NEG_ROOT" && "$PGY" "$PERGYRA_TOOL_ARG" --run 2>&1)"

@@ -1,0 +1,6 @@
+enum|ast_enum_variant|17|src/codegen
+source_ast_codegen|source_ast|0|src/codegen
+source_ast_compiler|source_ast|0|src/compiler
+source_decl_codegen|mir_decl_header_source_decl|0|src/codegen
+source_decl_compiler|mir_decl_header_source_decl|0|src/compiler
+routine_source_decl_codegen|mir_routine_source_decl_of_type|0|src/codegen
