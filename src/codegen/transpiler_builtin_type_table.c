@@ -25,6 +25,7 @@ pgy_builtin_entries(size_t *count)
     static const PgyBuiltinInfo entries[] = {
         { "Acos", "Float", PGY_BUILTIN_FLAG_NONE },
         { "AllocatorDebug", "Allocator", PGY_BUILTIN_FLAG_NONE },
+        { "AllocatorDestroy", "Void", PGY_BUILTIN_FLAG_NONE },
         { "AllocatorPersistent", "Allocator", PGY_BUILTIN_FLAG_NONE },
         { "AllocatorPool", "Allocator", PGY_BUILTIN_FLAG_NONE },
         { "AllocatorResult", "Allocator", PGY_BUILTIN_FLAG_NONE },

@@ -184,6 +184,40 @@ type_check_allocator_builtin(ASTNode *call, SemanticContext *ctx,
 }
 
 static Type *
+type_check_allocator_destroy(ASTNode *call, SemanticContext *ctx)
+{
+    ASTNode *arg;
+    Type *arg_type;
+
+    if (ast_call_arg_count(call) != 1) {
+        semantic_error_with_hints(ctx, PGY_CODE_SEM_BUILTIN_ARGS_INVALID,
+            PGY_CAUSE_BUILTIN_SIGNATURE_MISMATCH, PGY_FIX_MATCH_BUILTIN_SIGNATURE,
+            call, "AllocatorDestroy requires exactly 1 Allocator argument");
+        return TYPE_UNKNOWN;
+    }
+
+    arg = ast_call_argument(call, 0);
+    if (arg == NULL || arg->type != AST_IDENTIFIER
+        || ast_identifier_name(arg) == NULL) {
+        semantic_error_with_hints(ctx, PGY_CODE_SEM_BUILTIN_ARGS_INVALID,
+            PGY_CAUSE_BUILTIN_SIGNATURE_MISMATCH, PGY_FIX_MATCH_BUILTIN_SIGNATURE,
+            call, "AllocatorDestroy requires a named Allocator local");
+        return TYPE_UNKNOWN;
+    }
+
+    arg_type = nominal_builtin_normalize_type(type_check_expression(arg, ctx));
+    if (!type_equals(arg_type, TYPE_ALLOCATOR)) {
+        semantic_error_with_hints(ctx, PGY_CODE_SEM_TYPE_MISMATCH,
+            PGY_CAUSE_BUILTIN_SIGNATURE_MISMATCH, PGY_FIX_MATCH_BUILTIN_SIGNATURE,
+            arg, "AllocatorDestroy argument must be Allocator, got '%s'",
+            type_name_or_unknown(arg_type));
+        return TYPE_UNKNOWN;
+    }
+
+    return TYPE_VOID;
+}
+
+static Type *
 type_check_box_builtin(ASTNode *call, SemanticContext *ctx)
 {
     Type *payload;
@@ -379,6 +413,8 @@ type_check_nominal_ownership_builtin(ASTNode *call,
     case BUILTIN_ALLOCATOR_RESULT:
     case BUILTIN_ALLOCATOR_PERSISTENT:
         return type_check_allocator_builtin(call, ctx, false);
+    case BUILTIN_ALLOCATOR_DESTROY:
+        return type_check_allocator_destroy(call, ctx);
     case BUILTIN_ALLOCATOR_POOL:
         return type_check_allocator_builtin(call, ctx, true);
     case BUILTIN_BOX:

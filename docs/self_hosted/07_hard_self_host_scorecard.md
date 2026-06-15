@@ -8,17 +8,17 @@ each tier and the work that remains.
 
 ## Verdict
 
-Hard self-hosting cannot start today as a full compiler rewrite. The
-infrastructure is mature: every one of the ten capabilities has a gate, and the
-tree carries 73 smoke gates total. The blocking distance is small and well
-bounded. Nine capabilities are ready, and one has a working subset that needs
-substrate ergonomics. The process-argument tooling gap is closed by
-`Args() -> Array<String>`, but it does not change the hard-self-host verdict
-until compiler-internal substitution actually consumes it.
+Hard self-hosting can now start as staged compiler-pass substitution, not as a
+single full compiler rewrite. The infrastructure is mature: every one of the
+ten capabilities has a gate, and the tree carries 73 smoke gates total. All ten
+substrate capabilities are READY. The process-argument tooling gap is closed by
+`Args() -> Array<String>`, and allocator pass lanes now have explicit
+`AllocatorDestroy(namedAllocator)` cleanup that works through C and LLVM.
 
-As a planning estimate, hard self-host readiness is roughly 94-96%: nine
-capabilities are READY, one is SUBSET, and there is no ACTIVE capability left
-on the SoT critical path. The critical-path codegen SoT burn-down is closed:
+As a planning estimate, hard self-host substrate readiness is effectively
+complete for the first pass-rewrite stage: ten capabilities are READY and no
+ACTIVE capability remains on the SoT critical path. The critical-path codegen
+SoT burn-down is closed:
 the codegen frontier went from 127 original source_ast reads to 0. The
 compiler-side source_ast tail is now 0; `MIRDeclHeader.source_ast` and
 `mir_decl_header_source_decl` are removed. Source-type/location scalar
@@ -38,7 +38,7 @@ ACTIVE means it is on the critical path and still in progress.
 | 1 | Module/package resolver | READY | module_smoke, package_module_resolver_smoke, type_resolution_resolver_inventory_smoke | deterministic imports and cycle diagnostics gated; a resolver tool is already self-hosted |
 | 2 | Collections + iteration | READY | stdlib_surface_smoke, stage4_determinism_smoke | List/Set/HashMap have stable scalar key forms (String, Int, Long, Bool); MapKeys and SetValues order are locked; compiler-facing symbol/record/handle-like keys are normalized to canonical scalar IDs rather than raw aggregate keys |
 | 3 | String/path/Unicode policy | READY | unicode_policy_smoke, source_utf8_smoke, memory_string_safety_smoke, filesystem_directory_walk_smoke | stable comparison, normalization, and deterministic directory snapshot stance gated |
-| 4 | Arena/ownership ergonomics | SUBSET | verify_arena_closure, runtime_abi_lifetime_smoke, abi_ownership_shape_smoke | `Allocator` is a single C/LLVM-backed value surface, `BoxArray` can consume a named allocator local, and scratch/result/persistent lane constructors now carry distinct runtime kinds; automatic pass-lane reset/cleanup ergonomics remain |
+| 4 | Arena/ownership ergonomics | READY | verify_arena_closure, runtime_abi_lifetime_smoke, abi_ownership_shape_smoke | `Allocator` is a single C/LLVM-backed value surface, `BoxArray` can consume a named allocator local, scratch/result/persistent lane constructors carry distinct runtime kinds, and `AllocatorDestroy(namedAllocator)` closes explicit pass-lane cleanup on C and LLVM |
 | 5 | CFG/MIR body as SoT | READY | cfg_body_dataflow_smoke, ast_read_surface_smoke, mir_or_abort_invariant_smoke, ast_read_surface_checker_parity | non_cfg fallback locked at 0; source_ast and source_decl are ratcheted at codegen 0 / compiler 0, and routine_source_decl_codegen is ratcheted at 0 |
 | 6 | AIR as verifier | READY | air_json_schema_smoke, air_drift_smoke, air_backend_nonimpact_smoke | pgy.air.graph.v1 evidence export gated; drift count enforced at 0 |
 | 7 | DAG type resolution SoT | READY | type_resolution_dag_smoke, type_resolution_resolver_inventory_smoke | recursive resolver compat path retired; metadata_dead_ends enforced at 0 |
@@ -51,14 +51,15 @@ ACTIVE means it is on the critical path and still in progress.
 Capability 5 is closed for the measured source_ast/source_decl frontier:
 non_cfg body facts come from MIR and are locked at zero fallback, backend and
 compiler source_ast/source_decl readers are locked at zero, and the self-hosted
-checker proves the same manifest. The remaining hard-self-host blocker is the
-SUBSET substrate capability for language-level arena ownership ergonomics.
+checker proves the same manifest. Capability 4 is also closed for the current
+compiler-pass substrate: named allocator lanes can be constructed, consumed by
+allocation-aware owners, and explicitly destroyed through the same C/LLVM value
+surface.
 
 ## Next substrate work
 
-After capability 5, the remaining SUBSET item is the substrate maturity that turns
-soft self-hosting (compiler-adjacent tools, already real) into something that
-can carry a compiler pass. Capability 2 now has stable `MapKeys` and
+After capability 5, the last substrate item was pass-lane allocator cleanup.
+Capability 2 now has stable `MapKeys` and
 `SetValues` order for the stable scalar subset, and
 `stage4_determinism_smoke` proves stable output across insertion orders for
 C/LLVM-generated Pergyra programs. Compiler-facing symbol/record/handle-like
@@ -67,15 +68,10 @@ Stage 4 collection fixture exercises those canonical key shapes. Capability 4
 now has a stable `Allocator` value surface on both C and LLVM, including
 `BoxArray(capacity, allocator)` lowering through a named allocator local and
 language-level `AllocatorScratch`, `AllocatorResult`, and `AllocatorPersistent`
-constructors with distinct runtime lane kinds. It still needs automatic
-pass-lane reset/cleanup ergonomics so compiler passes do not carry manual
-resource boilerplate.
-
-One concrete hard-self-host substrate lift remains after the SoT burn-down:
-
-- automatic reset/cleanup ergonomics for scratch/result/persistent compiler
-  pass lanes, beyond the current lane-named `Allocator` constructors and
-  `BoxArray(capacity, allocator)` surface.
+constructors with distinct runtime lane kinds. `AllocatorDestroy(namedAllocator)`
+is the explicit cleanup operation that pass authors pair with `defer`, so
+scratch/result/persistent compiler pass lanes no longer need an out-of-language
+cleanup convention.
 
 The previous filesystem and parser-backend substrate items are now evidence,
 not blockers: `filesystem_directory_walk_smoke` gates deterministic

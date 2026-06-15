@@ -33,13 +33,14 @@ These are compiler/runtime builtins, not `use` modules:
 - Allocation helpers: `AllocatorSystem`, `AllocatorPool`,
   `AllocatorDebug`, `AllocatorTracing`.
   `AllocatorScratch`, `AllocatorResult`, `AllocatorPersistent` are the stable
-  lane-named constructors. These produce the single stable `Allocator` value
-  used by allocation-aware runtime owners; LLVM lowers them through
-  pointer-initialized runtime exports to avoid platform-specific struct-return
-  ABI drift. The scratch/result/persistent helpers carry distinct runtime lane
-  kinds, not aliases of the same builtin flow. `BoxArray(capacity, allocator)`
-  accepts a named `Allocator` local on C and LLVM so fused array storage keeps a
-  stable owner.
+  lane-named constructors, and `AllocatorDestroy(allocator)` is the stable
+  named-local cleanup operation for those lanes. These produce and consume the
+  single stable `Allocator` value used by allocation-aware runtime owners; LLVM
+  lowers them through pointer-initialized runtime exports to avoid
+  platform-specific struct-return ABI drift. The scratch/result/persistent
+  helpers carry distinct runtime lane kinds, not aliases of the same builtin
+  flow. `BoxArray(capacity, allocator)` accepts a named `Allocator` local on C
+  and LLVM so fused array storage keeps a stable owner.
 - Collections frozen for beta: `Array<T>`, `Slice<T>`, `List<T>`, `Set<T>`,
   `Queue<T>`, `HashMap<String, T>`, `HashMap<Int, T>`, `HashMap<Long, T>`,
   `HashMap<Bool, T>`. `SliceCopy(Slice<T>) -> Array<T>` is the stable

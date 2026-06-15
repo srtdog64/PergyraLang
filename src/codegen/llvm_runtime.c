@@ -53,6 +53,7 @@ llvm_declare_runtime(LLVMGenCtx *ctx)
             bool has_capacity;
         } allocator_exports[] = {
             { "pgy_allocator_debug_init", false },
+            { "pgy_allocator_destroy_export", false },
             { "pgy_allocator_persistent_init", false },
             { "pgy_allocator_pool_init", true },
             { "pgy_allocator_result_init", false },

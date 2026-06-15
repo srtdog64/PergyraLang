@@ -94,14 +94,13 @@ compare output, expand coverage.
 Do not start a broad semantic rewrite yet. The deterministic collection gap is
 closed by the compiler-key policy: symbol/record-like identities are canonical
 strings, handle-like identities are stable integer/long IDs, and
-`stage4_determinism_smoke` verifies those shapes on C and LLVM. Close the
-remaining substrate gap next: automatic reset/cleanup ergonomics for
-scratch/result/persistent compiler pass lanes. The lane-named `Allocator`
-constructors are now present on C and LLVM, but pass authors still need the
-boilerplate removed. After that, semantic analysis should be staged like the
-parser: start with a bounded subset, run it beside the C type checker on
-committed fixtures, compare diagnostics or typed-AST output, and expand with
-the C type checker as oracle.
+`stage4_determinism_smoke` verifies those shapes on C and LLVM. The allocator
+pass-lane gap is also closed at the language surface: lane-named `Allocator`
+constructors are present on C and LLVM, and pass authors pair them with
+`defer { AllocatorDestroy(lane); }` for explicit cleanup. Semantic analysis
+should now be staged like the parser: start with a bounded subset, run it beside
+the C type checker on committed fixtures, compare diagnostics or typed-AST
+output, and expand with the C type checker as oracle.
 
 ## How to reproduce
 

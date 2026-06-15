@@ -1,0 +1,26 @@
+func UseScratchLane() -> Int {
+    let scratch: Allocator = AllocatorScratch();
+    defer {
+        AllocatorDestroy(scratch);
+    };
+
+    let scratchBox: Box<Array<Int>> = BoxArray(3, scratch);
+    Log(1201);
+    return 1202;
+}
+
+func UsePoolLane() -> Int {
+    let pool: Allocator = AllocatorPool(128);
+    defer {
+        AllocatorDestroy(pool);
+    };
+
+    let poolBox: Box<Array<Int>> = BoxArray(2, pool);
+    Log(1203);
+    return 1204;
+}
+
+func Main() -> Void {
+    Log(UseScratchLane());
+    Log(UsePoolLane());
+}

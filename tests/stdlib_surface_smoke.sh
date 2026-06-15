@@ -37,6 +37,7 @@ for required in \
     "\`Args\`" \
     "\`SliceCopy(Slice<T>) -> Array<T>\`" \
     "\`AllocatorScratch\`, \`AllocatorResult\`, \`AllocatorPersistent\`" \
+    "\`AllocatorDestroy(allocator)\`" \
     "Stable \`use\` Modules" \
     "Known But Experimental Modules" \
     "\`datetime\`" \
@@ -151,6 +152,14 @@ func Main() -> Void {
     let resultBox: Box<Array<Int>> = BoxArray(2, resultAlloc);
     let persistentBox: Box<Array<Int>> = BoxArray(2, persistentAlloc);
     Log(151);
+    AllocatorDestroy(persistentAlloc);
+    AllocatorDestroy(resultAlloc);
+    AllocatorDestroy(scratchAlloc);
+    AllocatorDestroy(poolAlloc);
+    AllocatorDestroy(tracingAlloc);
+    AllocatorDestroy(debugAlloc);
+    AllocatorDestroy(systemAlloc);
+    Log(153);
 
     let walked: Array<String> = DirWalk("walk_root");
     Log(ArrayLength(walked));
@@ -252,7 +261,7 @@ run_backend() {
 
     output="$(cd "$WORK_DIR" && "$PGY" "$stable_arg" --backend="$backend" --run 2>&1)"
 
-    for expected in "42" "2" "3" "blue" "red" "8" "true" "false" "BYE there" "handle" "9" "113" "127" "131" "137" "149" "151" "walk_root/a/one.txt" "walk_root/b/two.txt" "walk_root/root.txt"; do
+    for expected in "42" "2" "3" "blue" "red" "8" "true" "false" "BYE there" "handle" "9" "113" "127" "131" "137" "149" "151" "153" "walk_root/a/one.txt" "walk_root/b/two.txt" "walk_root/root.txt"; do
         if ! grep -Fq "$expected" <<<"$output"; then
             echo "[stdlib-smoke] backend=$backend missing '$expected'" >&2
             echo "--- output ---" >&2

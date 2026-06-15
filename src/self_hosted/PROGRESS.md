@@ -216,8 +216,10 @@ beyond the lexer:
   `Allocator` value on C and LLVM. The lane-named constructors carry distinct
   runtime kinds and lower through dedicated LLVM runtime init exports instead
   of aliases. `BoxArray(capacity, allocator)` consumes a named allocator local
-  so fused array storage keeps an owner with a valid lifetime. The remaining
-  lift is automatic reset/cleanup ergonomics for compiler pass lanes.
+  so fused array storage keeps an owner with a valid lifetime.
+  `AllocatorDestroy(namedAllocator)` is the stable cleanup operation, so
+  compiler pass lanes can use `defer { AllocatorDestroy(lane); }` instead of an
+  out-of-language cleanup convention.
 - **Filesystem directory walk** -- `DirWalk(String) -> Array<String>` has landed
   for generated binaries on C and LLVM. It returns a deterministic sorted
   regular-file snapshot with `/` separators and is gated by
@@ -235,8 +237,9 @@ beyond the lexer:
   nested generic type fixture. Remaining parser work is grammar breadth and
   the scale-probe drift list, not C-only backend evidence.
 
-The remaining lifts are the candidate scope before step 3 of the substitution
-roadmap can start.
+The remaining work before the next compiler-stage substitution is no longer
+substrate availability; it is actual semantic/codegen pass work against the C
+compiler oracle.
 
 ## How to Update This Document
 

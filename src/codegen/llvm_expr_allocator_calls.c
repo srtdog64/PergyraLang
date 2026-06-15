@@ -8,6 +8,7 @@
 typedef enum LLVMAllocatorOp {
     LLVM_ALLOCATOR_OP_NONE = 0,
     LLVM_ALLOCATOR_OP_DEBUG,
+    LLVM_ALLOCATOR_OP_DESTROY,
     LLVM_ALLOCATOR_OP_PERSISTENT,
     LLVM_ALLOCATOR_OP_POOL,
     LLVM_ALLOCATOR_OP_RESULT,
@@ -38,6 +39,8 @@ llvm_allocator_lookup(const char *callee_name)
     static const LLVMAllocatorSpec specs[] = {
         { "AllocatorDebug", "pgy_allocator_debug_init", 0,
           LLVM_ALLOCATOR_OP_DEBUG },
+        { "AllocatorDestroy", "pgy_allocator_destroy_export", 1,
+          LLVM_ALLOCATOR_OP_DESTROY },
         { "AllocatorPersistent", "pgy_allocator_persistent_init", 0,
           LLVM_ALLOCATOR_OP_PERSISTENT },
         { "AllocatorPool", "pgy_allocator_pool_init", 1,
@@ -84,6 +87,7 @@ llvm_emit_allocator_builtin_call(ASTNode *node, LLVMGenCtx *ctx,
 {
     const LLVMAllocatorSpec *spec;
     LLVMFuncEntry *fn;
+    LLVMVarEntry var;
     LLVMValueRef storage;
     LLVMValueRef args[2];
     size_t argc;
@@ -104,6 +108,24 @@ llvm_emit_allocator_builtin_call(ASTNode *node, LLVMGenCtx *ctx,
         "allocator", callee_name, spec->runtime_name);
     if (fn == NULL)
         return true;
+
+    if (spec->op == LLVM_ALLOCATOR_OP_DESTROY) {
+        ASTNode *arg = ast_call_argument(node, 0);
+        const char *name;
+
+        if (arg == NULL || arg->type != AST_IDENTIFIER
+            || ast_identifier_name(arg) == NULL)
+            return llvm_allocator_emit_error(node, ctx, callee_name,
+                "requires a named Allocator local", out);
+        name = ast_identifier_name(arg);
+        if (!llvm_scope_lookup_snapshot(ctx, name, &var)
+            || var.type != ctx->type_allocator)
+            return llvm_allocator_emit_error(node, ctx, callee_name,
+                "argument must be a named Allocator local", out);
+        args[0] = var.alloca;
+        *out = LLVMBuildCall2(ctx->builder, fn->fn_type, fn->fn, args, 1, "");
+        return true;
+    }
 
     storage = llvm_create_entry_alloca(ctx, ctx->type_allocator,
         llvm_tmp_name(ctx));
