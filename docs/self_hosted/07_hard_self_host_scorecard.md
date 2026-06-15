@@ -68,22 +68,19 @@ and LLVM, including `BoxArray(capacity, allocator)` lowering through a named
 allocator local; it still needs arena lanes that remove manual resource
 boilerplate from every pass.
 
-Three concrete hard-self-host substrate/tool lifts remain after the current SoT
-burn-down:
+Two concrete hard-self-host substrate lifts remain after the SoT burn-down:
 
 - broader deterministic collection iteration for symbol/record/handle keys,
   beyond the Stage 4 stable scalar MapKeys/SetValues gate;
-- parser LLVM depth/type-inference parity is now gated by compiling the
-  self-host parser through both C and LLVM over the committed fixture set,
-  including a deep nested generic type case;
-- deterministic filesystem directory walking is now gated by
-  `filesystem_directory_walk_smoke`: `DirWalk(String) -> Array<String>`
-  returns a sorted regular-file snapshot on C and LLVM. The
-  `examples_inventory_checker` parity rung now consumes `DirWalk("examples")`
-  directly, and the production header/C size checkers consume `DirWalk("src")`
-  directly. This removes the stale examples and production size file-list
-  aliases; remaining `manifest_owner` surfaces are document contracts rather
-  than clean directory inventories.
+- ergonomic scratch/result/persistent arena lanes for compiler passes, beyond
+  the current raw `Allocator` value and `BoxArray(capacity, allocator)` surface.
+
+The previous filesystem and parser-backend substrate items are now evidence,
+not blockers: `filesystem_directory_walk_smoke` gates deterministic
+`DirWalk(String) -> Array<String>` on C and LLVM; examples, production size,
+and ast-read-surface self-host tools consume that surface directly; and
+`parser_parity.sh` compiles the self-host parser through both C and LLVM over
+the committed fixture set, including a deep nested generic type case.
 
 These are the axis the gap analysis calls systems substrate, distinct from the
 domain-oriented surface the language is already strong on.

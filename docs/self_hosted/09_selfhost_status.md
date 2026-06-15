@@ -65,8 +65,11 @@ source_ast/source_decl frontier.
 Substrate progress.
 
 - DirWalk deterministic directory snapshot added (filesystem_directory_walk
-  gate) and verified on C and LLVM, removing one of the three self-host
-  substrate gaps.
+  gate) and verified on C and LLVM. Examples inventory, production size, and
+  ast-read-surface self-host tools now consume DirWalk directly, so their clean
+  file inventories no longer depend on committed file-list aliases.
+- Parser parity compiles the self-host parser through both C and LLVM, including
+  deep nested generic type inference fixtures.
 - The Pergyra linter, backend output comparator, backend tri-compare,
   AST-read-surface checker, diagnostics catalog checker, doc/example inventory
   checkers, module manifest resolver, production size checkers, AIR graph JSON
@@ -88,12 +91,12 @@ compare output, expand coverage.
 
 ## Recommended next pass
 
-Semantic analysis, staged like the parser: start with a bounded subset
-(name resolution or a single type rule), run it beside the C type checker on
-the committed fixtures, compare diagnostics or typed-AST output, expand. Keep
-the C type checker as the oracle and keep rollback trivial, per stage 3 of the
-roadmap. Do not start MIR lowering or backend emission in Pergyra before the
-semantic subset runs at parity.
+Do not start a broad semantic rewrite yet. Close the two remaining substrate
+gaps first: deterministic collection breadth for symbol/record/handle-like keys
+and ergonomic scratch/result/persistent arena lanes for compiler passes. After
+that, semantic analysis should be staged like the parser: start with a bounded
+subset, run it beside the C type checker on committed fixtures, compare
+diagnostics or typed-AST output, and expand with the C type checker as oracle.
 
 ## How to reproduce
 
