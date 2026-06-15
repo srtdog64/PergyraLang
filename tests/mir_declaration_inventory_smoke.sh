@@ -4585,7 +4585,9 @@ if grep -Eq 'llvm_(boundary_slot_param|expr_projection_path_helpers)\.h' \
     fail "LLVM boundary projection helper header must not re-export unrelated owner headers"
 fi
 require_term "src/codegen/llvm_domain_projection_sync_body_helpers.c" \
-    "llvm_find_projection_nominal_decl(ctx, source_type_name)"
+    "llvm_build_domain_projection_value(ctx, target_cls"
+require_term "src/codegen/llvm_domain_projection_sync_body_helpers.c" \
+    "source_cls, source_type_name, refresh, source_ptr)"
 require_term "src/codegen/llvm_domain_projection_sync_body_helpers.c" \
     "LLVMHostedDomainSlotView slot_view"
 require_term "src/codegen/llvm_domain_projection_sync_body_helpers.c" \
@@ -4606,6 +4608,14 @@ require_term "src/codegen/llvm_expr_projection_path_helpers.c" \
     "mir_decl_header_nominal_kind_or("
 require_term "src/codegen/llvm_expr_projection_path_helpers.c" \
     "llvm_load_projection_path_value_by_name("
+require_term "src/codegen/llvm_domain_projection_value_helpers.h" \
+    "llvm_load_domain_projection_path_value_by_name("
+require_term "src/codegen/llvm_domain_projection_value_helpers.c" \
+    "llvm_resolve_domain_projection_source_path_by_name("
+require_term "src/codegen/llvm_domain_projection_value_helpers.c" \
+    "llvm_domain_projection_field_view_by_name("
+require_term "src/codegen/llvm_domain_projection_value_helpers.c" \
+    "llvm_domain_projection_type_is_vessel("
 for rel in \
     "src/codegen/llvm_expr_host_spawn_literal_helpers.c" \
     "src/codegen/llvm_expr_member_access.c"; do
@@ -4615,6 +4625,10 @@ for rel in \
         fail "$rel must consume projection type/header facts instead of recovering source declarations"
     fi
 done
+if grep -Fq "llvm_find_projection_nominal_decl(ctx, source_type_name)" \
+        "$ROOT_DIR/src/codegen/llvm_domain_projection_sync_body_helpers.c"; then
+    fail "LLVM domain projection sync must pass source type names instead of recovering source declarations"
+fi
 for rel in \
     "src/codegen/llvm_domain_projection_value_helpers.c" \
     "src/codegen/llvm_expr_projection_path_helpers.c"; do

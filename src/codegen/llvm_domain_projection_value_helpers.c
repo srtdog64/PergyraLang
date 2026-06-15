@@ -13,14 +13,21 @@
 #include "llvm_internal_api.h"
 #include "llvm_inventory_decl_lookup.h"
 #include "../common/string_compat.h"
+#include "../compiler/mir_decl_headers.h"
 
 static LLVMHostedFieldView
-llvm_domain_projection_field_view(LLVMGenCtx *ctx, ASTNode *decl)
+llvm_domain_projection_field_view_by_name(LLVMGenCtx *ctx,
+                                          const char *decl_name)
 {
-    const char *decl_name = llvm_decl_node_name(decl);
     LLVMHostedFieldView view =
-        llvm_hosted_class_field_view_from_decl(ctx, decl_name, decl);
+        llvm_hosted_class_field_view_from_decl(ctx, decl_name, NULL);
 
+    if (llvm_active_has_mir(ctx) && !view.uses_mir_metadata) {
+        llvm_set_mir_inventory_missing(ctx,
+            "MIR-only LLVM path missing class-field domain projection metadata for '%s'",
+            decl_name != NULL ? decl_name : "(anonymous-class)");
+        return view;
+    }
     if (llvm_hosted_field_view_missing_mir_metadata(&view)) {
         llvm_set_mir_inventory_missing(ctx,
             "MIR-only LLVM path missing class-field domain projection metadata for '%s'",
@@ -29,39 +36,67 @@ llvm_domain_projection_field_view(LLVMGenCtx *ctx, ASTNode *decl)
     return view;
 }
 
+static bool
+llvm_domain_projection_type_is_vessel(LLVMGenCtx *ctx, const char *type_name)
+{
+    const MIRDeclHeader *header;
+    ASTNode *decl;
+
+    if (ctx == NULL || type_name == NULL)
+        return false;
+
+    header = llvm_find_decl_header_in_context_of_type(
+        ctx, AST_CLASS_DECL, type_name);
+    if (header != NULL) {
+        return mir_decl_header_nominal_kind_or(
+            header, NOMINAL_DECL_CLASS) == NOMINAL_DECL_VESSEL;
+    }
+    if (llvm_active_has_mir(ctx))
+        return false;
+
+    decl = llvm_find_projection_nominal_decl(ctx, type_name);
+    return decl != NULL
+        && decl->type == AST_CLASS_DECL
+        && ast_class_nominal_kind(decl) == NOMINAL_DECL_VESSEL;
+}
+
 static size_t
-llvm_domain_projection_field_count(LLVMGenCtx *ctx, ASTNode *decl)
+llvm_domain_projection_field_count_by_name(LLVMGenCtx *ctx,
+                                           const char *decl_name)
 {
     LLVMHostedFieldView view;
 
-    if (decl == NULL)
+    if (decl_name == NULL)
         return 0;
-    view = llvm_domain_projection_field_view(ctx, decl);
+    view = llvm_domain_projection_field_view_by_name(ctx, decl_name);
     return view.count;
 }
 
 static const char *
-llvm_domain_projection_field_name(LLVMGenCtx *ctx, ASTNode *decl, size_t index)
+llvm_domain_projection_field_name_by_name(LLVMGenCtx *ctx,
+                                          const char *decl_name,
+                                          size_t index)
 {
     LLVMHostedFieldView view;
 
-    if (decl == NULL)
+    if (decl_name == NULL)
         return NULL;
-    view = llvm_domain_projection_field_view(ctx, decl);
+    view = llvm_domain_projection_field_view_by_name(ctx, decl_name);
     return llvm_hosted_field_view_name(&view, index);
 }
 
 static const char *
-llvm_domain_projection_field_type_name(LLVMGenCtx *ctx, ASTNode *decl,
-                                       size_t index)
+llvm_domain_projection_field_type_name_by_name(LLVMGenCtx *ctx,
+                                               const char *decl_name,
+                                               size_t index)
 {
     const MIRDeclField *field;
     LLVMHostedFieldView view;
     ASTNode *type_node = NULL;
 
-    if (decl == NULL)
+    if (decl_name == NULL)
         return NULL;
-    view = llvm_domain_projection_field_view(ctx, decl);
+    view = llvm_domain_projection_field_view_by_name(ctx, decl_name);
     field = llvm_hosted_field_view_metadata(&view, index);
     if (field != NULL) {
         const char *type_name = llvm_mir_decl_field_type_name(field);
@@ -121,11 +156,11 @@ llvm_domain_projection_join_path(LLVMGenCtx *ctx,
 }
 
 static int
-llvm_resolve_domain_projection_source_path_rec(LLVMGenCtx *ctx,
-                                               ASTNode *source_decl,
-                                               const char *field_name,
-                                               unsigned depth,
-                                               char **path_out)
+llvm_resolve_domain_projection_source_path_by_name(LLVMGenCtx *ctx,
+                                                   const char *source_type_name,
+                                                   const char *field_name,
+                                                   unsigned depth,
+                                                   char **path_out)
 {
     size_t field_count;
     int match_count = 0;
@@ -133,13 +168,15 @@ llvm_resolve_domain_projection_source_path_rec(LLVMGenCtx *ctx,
 
     if (path_out != NULL)
         *path_out = NULL;
-    if (ctx == NULL || source_decl == NULL || field_name == NULL || depth > 8)
+    if (ctx == NULL || source_type_name == NULL || field_name == NULL
+        || depth > 8)
         return 0;
 
-    field_count = llvm_domain_projection_field_count(ctx, source_decl);
+    field_count = llvm_domain_projection_field_count_by_name(
+        ctx, source_type_name);
     for (size_t i = 0; i < field_count; i++) {
         const char *candidate_name =
-            llvm_domain_projection_field_name(ctx, source_decl, i);
+            llvm_domain_projection_field_name_by_name(ctx, source_type_name, i);
         if (candidate_name != NULL && strcmp(candidate_name, field_name) == 0) {
             if (path_out != NULL) {
                 size_t len = strlen(field_name) + 1;
@@ -154,11 +191,11 @@ llvm_resolve_domain_projection_source_path_rec(LLVMGenCtx *ctx,
     }
 
     for (size_t i = 0; i < field_count; i++) {
-        ASTNode *vessel_decl;
         const char *candidate_name =
-            llvm_domain_projection_field_name(ctx, source_decl, i);
+            llvm_domain_projection_field_name_by_name(ctx, source_type_name, i);
         const char *field_type_name =
-            llvm_domain_projection_field_type_name(ctx, source_decl, i);
+            llvm_domain_projection_field_type_name_by_name(
+                ctx, source_type_name, i);
         char *nested_path = NULL;
         char *prefixed_path;
         int nested_status;
@@ -167,15 +204,12 @@ llvm_resolve_domain_projection_source_path_rec(LLVMGenCtx *ctx,
             continue;
         }
 
-        vessel_decl = llvm_find_projection_nominal_decl(
-            ctx, field_type_name);
-        if (vessel_decl == NULL || vessel_decl->type != AST_CLASS_DECL
-            || ast_class_nominal_kind(vessel_decl) != NOMINAL_DECL_VESSEL) {
+        if (!llvm_domain_projection_type_is_vessel(ctx, field_type_name)) {
             continue;
         }
 
-        nested_status = llvm_resolve_domain_projection_source_path_rec(
-            ctx, vessel_decl, field_name, depth + 1, &nested_path);
+        nested_status = llvm_resolve_domain_projection_source_path_by_name(
+            ctx, field_type_name, field_name, depth + 1, &nested_path);
         if (nested_status != 1) {
             if (nested_status == 2)
                 match_count = 2;
@@ -204,21 +238,21 @@ llvm_resolve_domain_projection_source_path_rec(LLVMGenCtx *ctx,
 }
 
 LLVMValueRef
-llvm_load_domain_projection_path_value(LLVMGenCtx *ctx,
-                                       ASTNode *source_decl,
-                                       LLVMClassTypeEntry *source_cls,
-                                       LLVMValueRef source_ptr,
-                                       const char *field_name)
+llvm_load_domain_projection_path_value_by_name(LLVMGenCtx *ctx,
+                                               const char *source_type_name,
+                                               LLVMClassTypeEntry *source_cls,
+                                               LLVMValueRef source_ptr,
+                                               const char *field_name)
 {
     char *path = NULL;
     char *cursor;
-    ASTNode *current_decl;
+    const char *current_type_name;
     LLVMClassTypeEntry *current_cls;
     LLVMValueRef current_ptr;
 
     {
-        int path_status = llvm_resolve_domain_projection_source_path_rec(ctx,
-            source_decl, field_name, 0, &path);
+        int path_status = llvm_resolve_domain_projection_source_path_by_name(
+            ctx, source_type_name, field_name, 0, &path);
         if (path_status != 1 || path == NULL) {
             return llvm_domain_projection_value_error(ctx,
                 path_status == 2
@@ -231,7 +265,7 @@ llvm_load_domain_projection_path_value(LLVMGenCtx *ctx,
             "LLVM domain projection requires source class metadata and storage");
     }
 
-    current_decl = source_decl;
+    current_type_name = source_type_name;
     current_cls = source_cls;
     current_ptr = source_ptr;
     cursor = path;
@@ -263,25 +297,26 @@ llvm_load_domain_projection_path_value(LLVMGenCtx *ctx,
         }
 
         for (size_t i = 0;
-             i < llvm_domain_projection_field_count(ctx, current_decl);
+             i < llvm_domain_projection_field_count_by_name(
+                 ctx, current_type_name);
              i++) {
             const char *candidate_name =
-                llvm_domain_projection_field_name(ctx, current_decl, i);
+                llvm_domain_projection_field_name_by_name(
+                    ctx, current_type_name, i);
             const char *field_type_name =
-                llvm_domain_projection_field_type_name(ctx, current_decl, i);
+                llvm_domain_projection_field_type_name_by_name(
+                    ctx, current_type_name, i);
             if (candidate_name == NULL
                 || strcmp(candidate_name, segment) != 0
                 || field_type_name == NULL) {
                 continue;
             }
-            ASTNode *next_decl = llvm_find_projection_nominal_decl(
-                ctx, field_type_name);
             LLVMClassTypeEntry *next_cls = llvm_lookup_class(ctx,
                                                              field_type_name);
-            if (next_decl == NULL || next_cls == NULL)
+            if (next_cls == NULL)
                 return llvm_domain_projection_value_error(ctx,
                     "LLVM domain projection nested vessel metadata is missing");
-            current_decl = next_decl;
+            current_type_name = field_type_name;
             current_cls = next_cls;
             current_ptr = field_ptr;
             advanced = 1;
@@ -302,13 +337,14 @@ LLVMValueRef
 llvm_build_domain_projection_value(LLVMGenCtx *ctx,
                                    LLVMClassTypeEntry *target_cls,
                                    LLVMClassTypeEntry *source_cls,
-                                   ASTNode *source_decl,
+                                   const char *source_type_name,
                                    ASTNode *refresh,
                                    LLVMValueRef source_ptr)
 {
     LLVMValueRef projected;
 
-    if (ctx == NULL || target_cls == NULL || source_cls == NULL || source_ptr == NULL)
+    if (ctx == NULL || target_cls == NULL || source_cls == NULL
+        || source_type_name == NULL || source_ptr == NULL)
         return llvm_domain_projection_value_error(ctx,
             "LLVM domain projection requires target/source metadata and source storage");
 
@@ -338,8 +374,8 @@ llvm_build_domain_projection_value(LLVMGenCtx *ctx,
             }
         }
 
-        field_value = llvm_load_domain_projection_path_value(ctx, source_decl,
-            source_cls, source_ptr, source_field_name);
+        field_value = llvm_load_domain_projection_path_value_by_name(
+            ctx, source_type_name, source_cls, source_ptr, source_field_name);
         if (field_value == NULL)
             return NULL;
         projected = LLVMBuildInsertValue(ctx->builder, projected, field_value,
