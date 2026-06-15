@@ -245,7 +245,6 @@ mir_record_decl_header(MIRProgram *mir, ASTNode *decl)
         return true;
 
     memset(&header, 0, sizeof(header));  /* zero-inits variant_metadata too */
-    header.source_ast = decl;
     header.ast_type = decl->type;
 
     switch (decl->type) {

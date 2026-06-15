@@ -181,7 +181,6 @@ test_mir_lowering_part_d(void)
         }
         EXPECT(ok
                && intent != NULL
-               && mir_decl_header_source_decl(intent) != NULL
                && mir_decl_header_ast_type_or(intent, AST_PROGRAM)
                     == AST_INTENT_DECL
                && mir_decl_header_name(intent) != NULL
@@ -208,7 +207,6 @@ test_mir_lowering_part_d(void)
         }
         EXPECT(ok
                && event != NULL
-               && mir_decl_header_source_decl(event) != NULL
                && mir_decl_header_ast_type_or(event, AST_PROGRAM)
                     == AST_EVENT_DECL
                && mir_decl_header_name(event) != NULL

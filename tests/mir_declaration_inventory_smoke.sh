@@ -2798,7 +2798,6 @@ require_term "src/codegen/llvm_inventory_host_methods.h" "ast_compat_count"
 require_term "src/codegen/llvm_inventory_host_methods.c" \
     "view->count != view->ast_compat_count"
 for term in \
-    "mir_decl_header_source_decl" \
     "mir_decl_header_nominal_kind_or" \
     "mir_decl_header_uses_pointer_self" \
     "mir_decl_method_name" \
@@ -2859,6 +2858,11 @@ done
 if grep -RIn "mir_decl_method_source_ast\|mir_decl_field_source_ast" \
     "$ROOT_DIR/src/compiler" --include='*.c' --include='*.h'; then
     fail "MIR declaration method/field source AST accessors must stay retired"
+fi
+if grep -RIn "mir_decl_header_source_decl" \
+    "$ROOT_DIR/src/compiler" "$ROOT_DIR/src/codegen" \
+    --include='*.c' --include='*.h'; then
+    fail "MIR declaration header source_decl accessor must stay retired"
 fi
 if grep -RIn "mir_decl_header_ast_shape" \
     "$ROOT_DIR/src/compiler" --include='*.c' --include='*.h'; then
@@ -2987,10 +2991,6 @@ for term in \
     "llvm_mir_decl_field_type_name(field)"; do
     require_term "src/codegen/llvm_domain_projection_value_helpers.c" "$term"
 done
-if grep -RIn "mir_decl_header_source_decl(" \
-        "$ROOT_DIR/src/codegen" --include='*.c' --include='*.h'; then
-    fail "backend declaration lookup must not reopen declaration-header source_decl provenance"
-fi
 if grep -RIn "mir_decl_method_source_ast(" \
         "$ROOT_DIR/src/codegen"/transpiler_*.c \
         "$ROOT_DIR/src/codegen"/transpiler_*.h; then

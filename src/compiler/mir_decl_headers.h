@@ -5,7 +5,6 @@
 
 bool mir_record_decl_header(MIRProgram *mir, ASTNode *decl);
 void mir_link_decl_method_routines(MIRProgram *mir);
-ASTNode *mir_decl_header_source_decl(const MIRDeclHeader *header);
 ASTNodeType mir_decl_header_ast_type_or(const MIRDeclHeader *header,
                                         ASTNodeType fallback);
 const char *mir_decl_header_name(const MIRDeclHeader *header);

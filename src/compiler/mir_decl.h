@@ -7,9 +7,8 @@
  * MIR-owned structured records for declaration kinds (methods, fields,
  * generic parameters, and the per-declaration header). Split out of mir.h so
  * the declaration IR has its own home to grow as backend consumers migrate
- * off the AST-carried inventory. The declaration-header source pointer remains
- * compatibility/provenance only; semantic facts live in the structured metadata
- * below.
+ * off the AST-carried inventory. Semantic facts live in the structured
+ * metadata below.
  */
 
 #include <stdbool.h>
@@ -107,8 +106,6 @@ typedef struct
 
 typedef struct
 {
-    /* Source compatibility/provenance only; declaration inventory lives below. */
-    ASTNode     *source_ast;
     ASTNodeType  ast_type;
     const char  *name;
     char        *type_alias_target_type_name;

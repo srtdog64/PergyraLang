@@ -8,26 +8,24 @@ each tier and the work that remains.
 
 ## Verdict
 
-Hard self-hosting cannot start today. The infrastructure is mature: every one
-of the ten capabilities has a gate, and the tree carries 73 smoke gates total.
-The blocking distance is small and well bounded. Seven capabilities are ready,
-two have a working subset that needs substrate breadth, and one is the open
-item on the critical path. The process-argument tooling gap is closed by
+Hard self-hosting cannot start today as a full compiler rewrite. The
+infrastructure is mature: every one of the ten capabilities has a gate, and the
+tree carries 73 smoke gates total. The blocking distance is small and well
+bounded. Eight capabilities are ready, and two have a working subset that needs
+substrate breadth. The process-argument tooling gap is closed by
 `Args() -> Array<String>`, but it does not change the hard-self-host verdict
 until compiler-internal substitution actually consumes it.
 
-As a planning estimate, hard self-host readiness is roughly 85-90%: seven
-capabilities are READY, two are SUBSET, and the only ACTIVE capability is now a
-compiler plumbing deletion task rather than an unknown design gap. The
-critical-path codegen SoT burn-down is closed: the codegen frontier went from
-127 original source_ast reads to 0. The compiler-side source_ast tail is now 2
-reads: the declaration-header payload assignment and accessor. Source-type/
-location scalar provenance has been split to source_node names, and method and
-field declaration back-pointers are removed,
-and MIR validation no longer compares generic, enum, method, or field metadata
-against original AST nodes. The remaining AST-returning declaration-header
-compatibility API is now separately ratcheted as source_decl codegen 0 /
-compiler 1, and routine_source_decl_codegen is ratcheted at 0.
+As a planning estimate, hard self-host readiness is roughly 90-92%: eight
+capabilities are READY, two are SUBSET, and there is no ACTIVE capability left
+on the SoT critical path. The critical-path codegen SoT burn-down is closed:
+the codegen frontier went from 127 original source_ast reads to 0. The
+compiler-side source_ast tail is now 0; `MIRDeclHeader.source_ast` and
+`mir_decl_header_source_decl` are removed. Source-type/location scalar
+provenance has been split to source_node names, method and field declaration
+back-pointers are removed, and MIR validation no longer compares generic, enum,
+method, or field metadata against original AST nodes. Source_decl is ratcheted
+at codegen 0 / compiler 0, and routine_source_decl_codegen is ratcheted at 0.
 
 ## Tiers
 
@@ -41,7 +39,7 @@ ACTIVE means it is on the critical path and still in progress.
 | 2 | Collections + iteration | SUBSET | stdlib_surface_smoke, stage4_determinism_smoke | List/Set/HashMap exist over a key-type subset (String, Int, Long, Bool); MapKeys order is locked for stable key types and Stage 4 insertion-order determinism is gated; broaden symbol/record/handle keys and ordered set snapshots |
 | 3 | String/path/Unicode policy | READY | unicode_policy_smoke, source_utf8_smoke, memory_string_safety_smoke, filesystem_directory_walk_smoke | stable comparison, normalization, and deterministic directory snapshot stance gated |
 | 4 | Arena/ownership ergonomics | SUBSET | verify_arena_closure, runtime_abi_lifetime_smoke, abi_ownership_shape_smoke | the allocation mechanism exists; the per-pass scratch/result/persistent lanes that remove manual boilerplate do not yet |
-| 5 | CFG/MIR body as SoT | ACTIVE | cfg_body_dataflow_smoke, ast_read_surface_smoke, mir_or_abort_invariant_smoke, ast_read_surface_checker_parity | non_cfg fallback locked at 0; backend source_ast frontier locked at 0; compiler declaration-header payload remains at 2; source_decl is ratcheted at codegen 0 / compiler 1, and routine_source_decl_codegen is ratcheted at 0. This is task 74 |
+| 5 | CFG/MIR body as SoT | READY | cfg_body_dataflow_smoke, ast_read_surface_smoke, mir_or_abort_invariant_smoke, ast_read_surface_checker_parity | non_cfg fallback locked at 0; source_ast and source_decl are ratcheted at codegen 0 / compiler 0, and routine_source_decl_codegen is ratcheted at 0 |
 | 6 | AIR as verifier | READY | air_json_schema_smoke, air_drift_smoke, air_backend_nonimpact_smoke | pgy.air.graph.v1 evidence export gated; drift count enforced at 0 |
 | 7 | DAG type resolution SoT | READY | type_resolution_dag_smoke, type_resolution_resolver_inventory_smoke | recursive resolver compat path retired; metadata_dead_ends enforced at 0 |
 | 8 | Scoped unsafe/raw escape | READY | raw_escape_contract_smoke | unsafe is scoped and capability-bound; raw pointers gated out of domain code |
@@ -50,14 +48,12 @@ ACTIVE means it is on the critical path and still in progress.
 
 ## Critical path
 
-Capability 5 is the only ACTIVE item and the one true blocker. Its mechanism is
-mostly done: non_cfg body facts come from MIR and are locked at zero fallback,
-and backend source_ast readers are locked at zero. The work left is the
-compiler-side deletion in 06: remove the declaration-header source declaration
-payload boundary after lookup stops returning origin AST declarations. Closing
-it makes CFG/MIR the unconditional source of truth, which
-the gap analysis names as the precondition that lets compiler passes be
-rewritten in the language.
+Capability 5 is closed for the measured source_ast/source_decl frontier:
+non_cfg body facts come from MIR and are locked at zero fallback, backend and
+compiler source_ast/source_decl readers are locked at zero, and the self-hosted
+checker proves the same manifest. The remaining hard-self-host blockers are the
+two SUBSET substrate capabilities: deterministic collection breadth and
+language-level arena ownership ergonomics.
 
 ## Next substrate work
 
@@ -88,7 +84,7 @@ domain-oriented surface the language is already strong on.
 
 ## Sequencing
 
-The order that keeps each step verifiable is: close capability 5 (task 74);
+The order that keeps each step verifiable is: with capability 5 closed,
 broaden capabilities 2 and 4; expand the self-hosted tool set from validators
 toward the MIR dump diff and resolver helpers named in 05; then, and only then,
 rewrite the first real compiler pass, starting with the lexer, against the C
@@ -97,13 +93,13 @@ explicitly out of order.
 
 ## Measured gaps (blocker burn-down)
 
-The three non-READY capabilities were measured against the tree to make each
-one actionable. Every remaining step needs the build loop, which is the reason
-none can be closed from a static pass alone.
+The two non-READY capabilities were measured against the tree to make each one
+actionable. Every remaining step needs the build loop, which is the reason none
+can be closed from a static pass alone.
 
-Capability 5 (CFG/MIR SoT, task 74). Mechanism mostly complete: non_cfg body
-facts are MIR-owned and locked at zero fallback, the source_ast ratchet is now
-codegen 0 / compiler 2, source_decl is ratcheted at codegen 0 / compiler 1,
+Capability 5 (CFG/MIR SoT, task 74). Closed for the measured frontier: non_cfg
+body facts are MIR-owned and locked at zero fallback, the source_ast ratchet is
+now codegen 0 / compiler 0, source_decl is ratcheted at codegen 0 / compiler 0,
 routine_source_decl_codegen is ratcheted at 0, and the shared ratchet manifest
 is verified by both the shell smoke and a
 Pergyra-written ast_read_surface_checker parity rung. The
@@ -154,9 +150,10 @@ LLVM host-method lookup keeps its non-MIR fallback on the explicit compatibility
 array and the unused LLVM hosted method source accessor is retired, along with
 the thin LLVM MIR method source alias. C/LLVM routine source thin aliases are
 retired, routine source declaration checks no longer appear in codegen,
-`mir_routine_source_decl_of_type` is compiler-owned only, backend declaration
-lookup no longer calls `mir_decl_header_source_decl`, and no backend `.c` file
-contains a source_ast read. Type-alias target names are now captured on `MIRDeclHeader`, validated by
+`mir_routine_source_decl_of_type` is compiler-owned only,
+`MIRDeclHeader.source_ast` and `mir_decl_header_source_decl` are removed, and
+no compiler or backend `.c` file contains a source_ast declaration-header
+payload read. Type-alias target names are now captured on `MIRDeclHeader`, validated by
 `mir_decl_header_validate.c`, resolved through declaration-header inventory
 accessors, and consumed by LLVM alias mapping/rendering and MIR source-local
 type facts before any compatibility AST fallback. C/LLVM now compile and run the
@@ -181,11 +178,10 @@ declarations in MIR-active paths.
 C/LLVM declaration existence checks that only need a yes/no result now consume
 header-backed existence seams in MIR-active paths, so class/enum/function/
 intent/callable/constructor presence no longer recovers origin AST declarations.
-The remaining work is removal of the compiler-side declaration-header
-source_decl compatibility boundary and declaration header back-pointer,
-followed by a compiler source_ast ratchet ceiling of zero. Method and field
-back-pointers are already removed, and the old header-shape AST recomputation
-arm is gone. Build-gated.
+C/LLVM declaration payload compatibility now validates MIR declaration-header
+rows before active-inventory lookup instead of opening declaration-header
+source_decl provenance. Method and field back-pointers are already removed, and
+the old header-shape AST recomputation arm is gone. Build-gated.
 
 Capability 2 (collections). Measurement: integer keys are implemented
 (pgy_runtime_map_int_key_inline.h covers i32 and i64), and `MapKeys` now returns
@@ -203,7 +199,6 @@ exposing the same lane discipline ergonomically to code written in the language,
 so a rewritten pass does not hand-roll allocation boilerplate. This is the least
 distant of the three. Build-gated.
 
-The honest summary is that all three blockers are now mechanism-complete or
-narrowly scoped, and each remaining step is a build-loop change rather than a
-design question. The single critical-path item is capability 5; capabilities 2
-and 4 are substrate breadth that follows it.
+The honest summary is that the SoT blocker is closed and the remaining blockers
+are substrate breadth, not design unknowns. Capabilities 2 and 4 are the next
+critical path.

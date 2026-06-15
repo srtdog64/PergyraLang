@@ -2,12 +2,6 @@
 
 #include <string.h>
 
-ASTNode *
-mir_decl_header_source_decl(const MIRDeclHeader *header)
-{
-    return header != NULL ? header->source_ast : NULL;
-}
-
 ASTNodeType
 mir_decl_header_ast_type_or(const MIRDeclHeader *header, ASTNodeType fallback)
 {

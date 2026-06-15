@@ -162,7 +162,6 @@ test_ability_role_emit(void)
         role_method.has_routine = true;
         role_method.routine_index = 0;
         role_header.name = "CourierRoute";
-        role_header.source_ast = &role_node;
         role_header.ast_type = AST_ROLE_DECL;
         role_header.method_metadata = &role_method;
         role_header.method_metadata_count = 1;

@@ -36,9 +36,9 @@ JSON document on stdout, conforming to schema
   "counts": {
     "enum": 17,
     "source_ast_codegen": 0,
-    "source_ast_compiler": 2,
-    "source_decl_codegen": 2,
-    "source_decl_compiler": 1,
+    "source_ast_compiler": 0,
+    "source_decl_codegen": 0,
+    "source_decl_compiler": 0,
     "routine_source_decl_codegen": 0,
     "violations": 0
   },

@@ -22,11 +22,12 @@ Front-end self-hosts on both backends.
   produce byte-identical output. This is the core self-host correctness signal,
   the language compiles its own pass to the same result on both backends.
 
-Single source of truth (capability 5) is nearly closed.
+Single source of truth (capability 5) is closed for the measured
+source_ast/source_decl frontier.
 
 - Codegen source_ast frontier is at 0, all 127 original reads retired.
-- Compiler-side source_ast is at 2, the declaration-header payload assignment
-  and accessor, tracked by the ratchet.
+- Compiler-side source_ast is at 0. `MIRDeclHeader.source_ast` and
+  `mir_decl_header_source_decl` are removed, and the ratchet is locked at 0.
 - C class/zone collection-specialization scans are MIR-routine based and no
   longer recover method body AST; routine_source_decl_codegen is ratcheted at 0.
 - C hosted method body emission binds the linked MIRRoutine body as current
@@ -50,16 +51,16 @@ Single source of truth (capability 5) is nearly closed.
   header-backed `*_decl_exists*` seams in MIR-active paths. They no longer
   recover origin AST declarations just to test class, enum, function, intent,
   callable, or constructor presence.
-- C/LLVM declaration payload lookup no longer calls
-  `mir_decl_header_source_decl`; MIR-active compatibility first validates the
-  header row and then searches active inventory.
+- C/LLVM declaration payload lookup first validates the MIR declaration-header
+  row and then searches active inventory; it no longer has a
+  declaration-header source_decl accessor to call.
 - C projection literal/source-path lowering has a by-name MIR header path for
   ToTObject, projection-borrow materialization, member access, and domain
   provenance refresh.
 - LLVM projection-borrow materialization, member access, and domain projection
   value lowering use the same by-name MIR header path for source field paths.
-  The remaining bridge is compiler-side declaration-header source_ast payload
-  removal.
+  The remaining declaration work is broader dedicated declaration IR coverage,
+  not source_ast/source_decl payload retirement.
 
 Substrate progress.
 

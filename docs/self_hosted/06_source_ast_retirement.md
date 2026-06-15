@@ -38,16 +38,14 @@ NULL MIR. This is the single precondition that makes the fallbacks dead; if the
 driver is ever changed to degrade to an AST-only path, this fails first.
 
 tests/ast_read_surface_smoke.sh ratchets the source_ast occurrence counts. The
-codegen frontier is locked at 0 and the compiler declaration-header payload
-boundary is locked at 2, so the surface can only shrink, never grow. The scalar
-source-node type/location provenance has been split out of this metric. The ratchet values and
-covered files live in tests/ast_read_surface_manifest.txt, which is consumed by
-both the shell smoke and the self-hosted ast_read_surface_checker parity rung.
-The same manifest now also tracks the AST-returning declaration-header
-compatibility boundary: backend calls to `mir_decl_header_source_decl` are
-locked at codegen 0, and the compiler accessor is locked at 1 until that API is
-removed. Routine source-decl compatibility is tracked separately as
-`routine_source_decl_codegen`, locked at 0.
+codegen and compiler frontiers are both locked at 0, so the surface can only
+stay closed. The scalar source-node type/location provenance has been split out
+of this metric. The ratchet values and covered files live in
+tests/ast_read_surface_manifest.txt, which is consumed by both the shell smoke
+and the self-hosted ast_read_surface_checker parity rung. The same manifest
+also tracks source-decl compatibility: backend and compiler calls to
+`mir_decl_header_source_decl` are locked at 0, and
+`routine_source_decl_codegen` is locked at 0.
 
 tests/source_ast_inventory.sh ranks the remaining readers per file so the
 cutover is driven hotspot first. The codegen frontier is now 0 and the
@@ -69,16 +67,13 @@ from active declaration inventory and rejects MIR intent routines that have body
 storage but no declaration inventory row. Routine source declaration checks no
 longer appear in codegen; the compiler-owned
 `mir_routine_source_decl_of_type` remains compiler-side only. Backend
-declaration lookup no longer calls `mir_decl_header_source_decl`; MIR-active
-payload compatibility first validates the declaration header and then searches
-active inventory. No backend `.c` file now contains a `source_ast`
-read. The remaining 2 `source_ast` occurrences are compiler-owned declaration-header payload
-plumbing: the `MIRDeclHeader.source_ast` assignment and accessor. Method and field declaration back-pointers are retired, and the
+declaration lookup no longer has a `mir_decl_header_source_decl` accessor to
+call; MIR-active payload compatibility first validates the declaration header
+and then searches active inventory. No compiler or backend `.c` file now
+contains a `source_ast` declaration-header payload read. Method and field declaration back-pointers are retired, and the
 dead `mir_decl_header_ast_shape` compatibility arm that recomputed header shape
-from the origin AST is deleted. The next slice removes the declaration-header
-payload boundary, now measured separately as compiler source_decl 1. Routine source-decl compatibility is
-measured separately at 0 so lookup compatibility cannot grow while
-that payload boundary is retired.
+from the origin AST is deleted. Routine source-decl compatibility is measured
+separately at 0 so lookup compatibility cannot grow.
 
 src/self_hosted/parity/ast_read_surface_checker_parity.sh runs the same
 manifest through a Pergyra-written checker and compares the literal counts
@@ -115,13 +110,14 @@ MIR metadata keeps to the ASTNode it was lowered from. They are not fallbacks
 and do not fire conditionally; they are consumed wherever a caller still needs
 the origin AST. The probe does not apply. Retiring this class meant migrating
 each backend consumer off the back-pointer. At the start of this phase the
-codegen frontier had 127 source_ast reads. The current ratchet is 0, so all
-127 codegen reads have been retired. The compiler-side ratchet is now 50.
+codegen frontier had 127 source_ast reads. The current ratchet is 0 for both
+codegen and compiler declaration-header payloads, so all tracked reads have
+been retired.
 Generic, enum, method, and field validation is metadata-owned; method and field
 back-pointers are gone; and header shape is no longer recomputed from
-`header->source_ast`. The remaining payload boundary is the declaration header
-source declaration accessor used by compatibility lookup, plus source-type/
-location scalar names.
+`header->source_ast`. `MIRDeclHeader.source_ast` and
+`mir_decl_header_source_decl` have been removed; source-type/location scalar
+names remain outside the AST-read metric.
 
 One special case sat inside the fallback class. The role view accessors
 required_ability_count and required_ability originally called the source_ast
@@ -299,11 +295,10 @@ Step 3: remove the source_ast field from MIRDeclField and MIRDeclHeader after
 validator drift checks stop reading generic, enum, method, and field facts from
 the original AST nodes. MIRDeclField and MIRDeclMethod are done; validation no
 longer reopens generic, enum, method, or field origin nodes; and the
-`mir_decl_header_ast_shape` compatibility arm is deleted. The remaining payload
-part of the compiler tail is `MIRDeclHeader.source_ast` and
-`mir_decl_header_source_decl`.
+`mir_decl_header_ast_shape` compatibility arm is deleted. This is done:
+`MIRDeclHeader.source_ast` and `mir_decl_header_source_decl` are removed.
 
 Step 4: lower the compiler ast_read_surface ratchet ceiling to zero after the
-payload field is removed. The source-node type/location scalar provenance has
-already been split into non-AST names. The codegen ceiling is
-already zero and the probe header is deleted.
+payload field is removed. This is done. The source-node type/location scalar
+provenance has already been split into non-AST names, the codegen ceiling is
+already zero, and the probe header is deleted.
