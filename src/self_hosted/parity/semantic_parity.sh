@@ -1,0 +1,137 @@
+#!/usr/bin/env bash
+# Rung 1 parity for the first Pergyra-origin semantic substitution slice.
+# The Pergyra tool emits a bounded deterministic verdict while the C compiler
+# remains the accept/reject oracle for the same fixtures.
+
+set -euo pipefail
+
+ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/../../.." && pwd)"
+source "$ROOT_DIR/tests/pgy_binary_path_helpers.sh"
+pgy_prepend_windows_runtime_paths
+
+PGY="${PGY_BIN:-$ROOT_DIR/bin/pgy}"
+if [[ "$PGY" != *.exe ]] && pgy_binary_expects_windows_paths "${PGY}.exe"; then
+    PGY="${PGY}.exe"
+fi
+PGY_EXPLICIT=0
+[[ -n "${PGY_BIN:-}" ]] && PGY_EXPLICIT=1
+
+if [[ ! -x "$PGY" ]]; then
+    if [[ "$PGY_EXPLICIT" -eq 0 ]]; then
+        echo "[self-host-parity:semantic] SKIP missing compiler binary: $PGY"
+        exit 0
+    fi
+    echo "[self-host-parity:semantic] missing compiler binary: $PGY" >&2
+    exit 1
+fi
+
+PERGYRA_TOOL_SOURCE="$ROOT_DIR/src/self_hosted/semantic/main.pgy"
+PERGYRA_TOOL_BUILD_DIR="${PGY_SELFHOST_BUILD_DIR:-$ROOT_DIR/.tmp/self_hosted/semantic}"
+PERGYRA_TOOL="$PERGYRA_TOOL_BUILD_DIR/main.pgy"
+FIXTURE_DIR="$ROOT_DIR/src/self_hosted/semantic/fixture"
+EXPECTED_DIR="$ROOT_DIR/src/self_hosted/semantic/expected"
+
+SOURCE_PAIRS=(
+    "valid_int_return:ok"
+    "valid_string_return:ok"
+    "bad_let_type:error"
+    "bad_return_type:error"
+)
+
+mkdir -p "$PERGYRA_TOOL_BUILD_DIR"
+cp "$PERGYRA_TOOL_SOURCE" "$PERGYRA_TOOL"
+
+check_c_oracle() {
+    local base="$1"
+    local expected_class="$2"
+    local source="$FIXTURE_DIR/${base}.pgy"
+    local out="$PERGYRA_TOOL_BUILD_DIR/${base}.c-oracle.out"
+    local err="$PERGYRA_TOOL_BUILD_DIR/${base}.c-oracle.err"
+    local exe="$PERGYRA_TOOL_BUILD_DIR/${base}.c-oracle.exe"
+    local rc
+
+    set +e
+    (cd "$ROOT_DIR" && "$PGY" "$(pgy_path_for_compiler "$PGY" "$source")" \
+        --backend=c -o "$(pgy_path_for_compiler "$PGY" "$exe")" >"$out" 2>"$err")
+    rc=$?
+    set -e
+
+    if [[ "$expected_class" == "ok" && "$rc" -ne 0 ]]; then
+        echo "[self-host-parity:semantic] C oracle rejected valid fixture: $base" >&2
+        sed -n '1,40p' "$err" >&2
+        exit 1
+    fi
+    if [[ "$expected_class" == "error" && "$rc" -eq 0 ]]; then
+        echo "[self-host-parity:semantic] C oracle accepted invalid fixture: $base" >&2
+        exit 1
+    fi
+}
+
+compile_semantic_backend() {
+    local backend="$1"
+    local tool_bin="$2"
+
+    echo "[self-host-parity:semantic] compiling semantic backend=$backend..."
+    (cd "$ROOT_DIR" && "$PGY" \
+        "$(pgy_path_for_compiler "$PGY" "$PERGYRA_TOOL")" \
+        --backend="$backend" \
+        -o "$(pgy_path_for_compiler "$PGY" "$tool_bin")" >/dev/null)
+}
+
+run_semantic_backend() {
+    local backend="$1"
+    local tool_bin="$2"
+
+    for pair in "${SOURCE_PAIRS[@]}"; do
+        local base="${pair%%:*}"
+        local source="$FIXTURE_DIR/${base}.pgy"
+        local expected_file="$EXPECTED_DIR/${base}.txt"
+        local pergyra_out
+        local rc
+
+        if [[ ! -f "$source" ]]; then
+            echo "[self-host-parity:semantic] missing source: $source" >&2
+            exit 1
+        fi
+        if [[ ! -f "$expected_file" ]]; then
+            echo "[self-host-parity:semantic] missing expected: $expected_file" >&2
+            exit 1
+        fi
+
+        set +e
+        pergyra_out="$(cd "$ROOT_DIR" && "$tool_bin" \
+            "src/self_hosted/semantic/fixture/${base}.pgy" 2>/dev/null \
+            | tr -d '\r')"
+        rc=$?
+        set -e
+
+        if [[ "$rc" -ne 0 ]]; then
+            echo "[self-host-parity:semantic] backend=$backend $base: exit-code FAIL ($rc)" >&2
+            printf '%s\n' "$pergyra_out" >&2
+            exit 1
+        fi
+
+        local expected
+        expected="$(tr -d '\r' < "$expected_file")"
+        if [[ "$pergyra_out" != "$expected" ]]; then
+            echo "[self-host-parity:semantic] backend=$backend $base: verdict drift" >&2
+            diff <(printf '%s\n' "$expected") <(printf '%s\n' "$pergyra_out") | head -30 >&2
+            exit 1
+        fi
+    done
+
+    echo "[self-host-parity:semantic] backend=$backend verdicts ok (${#SOURCE_PAIRS[@]} fixtures)"
+}
+
+for pair in "${SOURCE_PAIRS[@]}"; do
+    check_c_oracle "${pair%%:*}" "${pair##*:}"
+done
+
+BACKENDS="${PGY_SELFHOST_SEMANTIC_BACKENDS:-c llvm}"
+for backend in $BACKENDS; do
+    tool_bin="$PERGYRA_TOOL_BUILD_DIR/main_${backend}.exe"
+    compile_semantic_backend "$backend" "$tool_bin"
+    run_semantic_backend "$backend" "$tool_bin"
+done
+
+echo "[self-host-parity:semantic] rung-1 parity ok (${#SOURCE_PAIRS[@]} fixtures; backends=$BACKENDS)"

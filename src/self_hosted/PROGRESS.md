@@ -9,10 +9,11 @@ Last updated: 2026-06-15
 
 ## Headline Number
 
-**Compiler-internal substitution: ~1.42%** (3,001 Pergyra LOC vs 211,294
+**Compiler-internal substitution: ~1.99%** (4,209 Pergyra LOC vs 211,294
 C LOC across `src/lexer/`, `src/parser/`, `src/semantic/`, `src/codegen/`,
-`src/runtime/`, `src/compiler/`, `src/lsp/`). The combined parser+lexer
-substitute crossed **3,000 LOC**.
+`src/runtime/`, `src/compiler/`, `src/lsp/`). The compiler-internal substitutes
+crossed **4,000 LOC**, and the first semantic verdict rung is now
+active.
 
 **Parser at scale (2026-05-31):** the Pergyra-origin parser produces
 byte-equal output vs `pgy --ast` on **105 of 117** committed
@@ -85,9 +86,9 @@ only observe text artifacts the C compiler produces. Their LOC is
 
 | Component       | C LOC   | Pergyra LOC | Coverage | Status            |
 |-----------------|---------|-------------|----------|-------------------|
-| `src/lexer/`    |     996 |         583 | **~97%** | **191 of 195 sources byte-equal** (115 examples + 80 backend_compare). Remaining 4 use string interpolation (`$"...{var}..."`) or `/** doc */` comments. 6 representative sources committed as parity fixtures. |
-| `src/parser/`   |   19024 |        2101 | ~52%     | `src/self_hosted/parser/` parses 83 fixtures byte-equal `pgy --ast` and **105 of 117** `examples/*.pgy` byte-equal at scale (89.7%; 2026-05-31). Top-level: `[async]? [export]? func<T,U>`, `subject`/`class`/`vessel`/`struct`/`object`/`tobject` with `<T,U>` and `func`/`action` methods, `enum`, `namespace`, `event`, `ability`, `role`/`impl`, `zone` (subject/object/tobject slots), `import "PATH.pgy";` (reads file relative to source dir, recursively parses, force-exports its funcs). Stmt: `let IDENT/(IDENTS)`, assign, `+=`/`-=`/`<-`, `return`, `if`/`else if`/`else`, `while`, `for`, `break`, `continue`, `defer`, `match`, `parallel`, `with slot<TYPE> as VAR { stmts }`. `expr`: `! - <- spawn[blocking] await` > `*/% > +- > \|> > cmp > && > \|\|`. Primaries: STRING/NUMBER/IDENT/`( )`/`[ ]`/lambda, postfix `(args)` / `[idx]` / `.member` / `?` / turbofish. |
-| `src/semantic/` |   45595 |           0 | 0%       | not started       |
+| `src/lexer/`    |     996 |         560 | **~97%** | **191 of 195 sources byte-equal** (115 examples + 80 backend_compare). Remaining 4 use string interpolation (`$"...{var}..."`) or `/** doc */` comments. 6 representative sources committed as parity fixtures. |
+| `src/parser/`   |   19024 |        3238 | ~52%     | `src/self_hosted/parser/` parses 83 fixtures byte-equal `pgy --ast` and **105 of 117** `examples/*.pgy` byte-equal at scale (89.7%; 2026-05-31). Top-level: `[async]? [export]? func<T,U>`, `subject`/`class`/`vessel`/`struct`/`object`/`tobject` with `<T,U>` and `func`/`action` methods, `enum`, `namespace`, `event`, `ability`, `role`/`impl`, `zone` (subject/object/tobject slots), `import "PATH.pgy";` (reads file relative to source dir, recursively parses, force-exports its funcs). Stmt: `let IDENT/(IDENTS)`, assign, `+=`/`-=`/`<-`, `return`, `if`/`else if`/`else`, `while`, `for`, `break`, `continue`, `defer`, `match`, `parallel`, `with slot<TYPE> as VAR { stmts }`. `expr`: `! - <- spawn[blocking] await` > `*/% > +- > \|> > cmp > && > \|\|`. Primaries: STRING/NUMBER/IDENT/`( )`/`[ ]`/lambda, postfix `(args)` / `[idx]` / `.member` / `?` / turbofish. |
+| `src/semantic/` |   45595 |         411 | <1%      | rung-1 verdict slice checks typed `let` and return mismatches for Int/String/Bool/Void against the C compiler oracle on C/LLVM-generated binaries |
 | `src/codegen/`  |   81815 |           0 | 0%       | not started       |
 | `src/runtime/`  |   28510 |           0 | 0%       | runtime stays C (target language hosts runtime) |
 | `src/compiler/` |   34282 |           0 | 0%       | not started       |
@@ -171,8 +172,11 @@ The realistic incremental path toward genuine self-host:
    `world`/`domain` keywords, intra-namespace call-site name mangling
    (`beta_math_lib.pgy` drifts because `HiddenAdd` should resolve to
    `Math_HiddenAdd` inside the same namespace).
-4. **Semantic subset** -- check `func`, `let`, basic types in Pergyra.
-   Compare against the C semantic verdict.
+4. **Semantic subset** -- started (2026-06-15). The first rung checks `func`,
+   typed `let`, basic literal/identifier types, and return typing in Pergyra,
+   then compares against the C compiler accept/reject oracle. Next expansion
+   should add expression operators and diagnostic-code parity before broadening
+   into declarations.
 5. **C-emit codegen subset** -- a Pergyra program that takes a tiny AST
    and emits valid C output. Round-trip: C-emit by Pergyra -> C-compile
    -> run -> stdout matches expected.
@@ -237,8 +241,8 @@ beyond the lexer:
   nested generic type fixture. Remaining parser work is grammar breadth and
   the scale-probe drift list, not C-only backend evidence.
 
-The remaining work before the next compiler-stage substitution is no longer
-substrate availability; it is actual semantic/codegen pass work against the C
+The remaining work is no longer substrate availability; it is actual semantic
+and codegen pass work against the C
 compiler oracle.
 
 ## How to Update This Document

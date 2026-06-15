@@ -75,12 +75,16 @@ Substrate progress.
   checkers, module manifest resolver, production size checkers, AIR graph JSON
   validator, stable subset checker, and stdlib dispatch inventory checker all
   pass their current self-host preparation parity gates.
+- The first semantic substitution rung exists:
+  `src/self_hosted/semantic/main.pgy` checks a bounded typed `let` / return
+  subset, and `src/self_hosted/parity/semantic_parity.sh` compares its verdicts
+  with the C compiler accept/reject oracle on C and LLVM where available.
 
 ## Not yet self-hosted
 
-The middle and back of the compiler are still C only:
+The middle and back of the compiler are still mostly C:
 
-- semantic analysis (type checking),
+- semantic analysis beyond the first typed `let` / return verdict slice,
 - HIR/DIR/MIR lowering,
 - C and LLVM backend emission.
 
@@ -98,9 +102,10 @@ strings, handle-like identities are stable integer/long IDs, and
 pass-lane gap is also closed at the language surface: lane-named `Allocator`
 constructors are present on C and LLVM, and pass authors pair them with
 `defer { AllocatorDestroy(lane); }` for explicit cleanup. Semantic analysis
-should now be staged like the parser: start with a bounded subset, run it beside
-the C type checker on committed fixtures, compare diagnostics or typed-AST
-output, and expand with the C type checker as oracle.
+has now started in that shape: a bounded subset runs beside the C type checker
+on committed fixtures. Expand it with expression operators, function-call
+typing, and diagnostic-code parity before moving into declaration-heavy
+semantic owners.
 
 ## How to reproduce
 

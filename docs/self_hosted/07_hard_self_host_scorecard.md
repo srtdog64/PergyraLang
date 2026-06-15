@@ -8,12 +8,14 @@ each tier and the work that remains.
 
 ## Verdict
 
-Hard self-hosting can now start as staged compiler-pass substitution, not as a
+Hard self-hosting has started as staged compiler-pass substitution, not as a
 single full compiler rewrite. The infrastructure is mature: every one of the
-ten capabilities has a gate, and the tree carries 73 smoke gates total. All ten
+ten capabilities has a gate, and the tree carries a broad smoke gate set. All ten
 substrate capabilities are READY. The process-argument tooling gap is closed by
 `Args() -> Array<String>`, and allocator pass lanes now have explicit
 `AllocatorDestroy(namedAllocator)` cleanup that works through C and LLVM.
+The first post-substrate slice is the semantic typed `let` / return verdict
+parity rung.
 
 As a planning estimate, hard self-host substrate readiness is effectively
 complete for the first pass-rewrite stage: ten capabilities are READY and no

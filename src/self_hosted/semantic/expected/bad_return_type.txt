@@ -1,0 +1,1 @@
+SEMANTIC ERROR return_type_mismatch expected=Int actual=String

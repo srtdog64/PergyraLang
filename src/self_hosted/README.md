@@ -34,7 +34,7 @@ src/self_hosted/
     main.pgy + fixture/ + expected/ + intent.md
   parser/                         -- mirrors C-side src/parser/
     main.pgy + fixture/ + expected/ + intent.md
-  semantic/                       -- mirrors C-side src/semantic/ (placeholder)
+  semantic/                       -- mirrors C-side src/semantic/
   codegen/                        -- mirrors C-side src/codegen/ (placeholder)
   air/  hir/  mir/                -- IR-stage placeholders
   compiler/                       -- driver placeholder, mirrors src/compiler/
@@ -86,6 +86,11 @@ src/self_hosted/
   enum/source_ast/source_decl/routine-source-decl counts as the shell smoke,
   including a synthetic growth fixture. This strengthens capability 5 evidence
   but remains peripheral audit tooling, not compiler-core substitution.
+- **2026-06-15** -- the first semantic compiler-internal rung lands under
+  `semantic/`. It checks a deliberately tiny typed `let` / return subset,
+  compiles through C and LLVM where available, and compares the same fixtures
+  against the C compiler accept/reject oracle. This starts semantic
+  substitution without pretending the full type checker is replaced.
 
 ## Non-Negotiable Rules
 

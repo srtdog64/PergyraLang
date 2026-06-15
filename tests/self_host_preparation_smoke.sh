@@ -48,6 +48,9 @@ required_files=(
     "src/self_hosted/tools/diagnostic_catalog_checker/expected/missing_input.json"
     "src/self_hosted/parity/README.md"
     "src/self_hosted/parity/diagnostic_catalog_checker_parity.sh"
+    "src/self_hosted/semantic/intent.md"
+    "src/self_hosted/semantic/main.pgy"
+    "src/self_hosted/parity/semantic_parity.sh"
 )
 
 for rel in "${required_files[@]}"; do
@@ -177,6 +180,14 @@ require_text "src/self_hosted/parity/diagnostic_catalog_checker_parity.sh" "coun
 require_text "src/self_hosted/parity/diagnostic_catalog_checker_parity.sh" "clean JSON parity"
 require_text "src/self_hosted/parity/diagnostic_catalog_checker_parity.sh" "missing-code fixture"
 require_text "src/self_hosted/parity/diagnostic_catalog_checker_parity.sh" "missing-input fixture"
+require_text "src/self_hosted/semantic/intent.md" "function return types"
+require_text "src/self_hosted/semantic/intent.md" "C compiler accept/reject oracle"
+require_text "src/self_hosted/semantic/main.pgy" "Status: rung-1 minimal"
+require_text "src/self_hosted/semantic/main.pgy" "SEMANTIC ERROR let_type_mismatch"
+require_text "src/self_hosted/semantic/main.pgy" "SEMANTIC ERROR return_type_mismatch"
+require_text "src/self_hosted/parity/semantic_parity.sh" "Rung 1 parity"
+require_text "src/self_hosted/parity/semantic_parity.sh" "C compiler"
+require_text "src/self_hosted/parity/semantic_parity.sh" "PGY_SELFHOST_SEMANTIC_BACKENDS"
 
 forbid_text "docs/self_hosted/05_compiler_core_gap_analysis.md" "hard self-host can start from the compiler core"
 forbid_text "TODO.md" "hard self-host can start from the compiler core"

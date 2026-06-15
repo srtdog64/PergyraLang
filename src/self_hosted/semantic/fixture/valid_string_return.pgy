@@ -1,0 +1,4 @@
+func Main() -> String {
+    let s: String = "ok";
+    return s;
+}
