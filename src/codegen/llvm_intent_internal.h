@@ -159,9 +159,6 @@ void        llvm_emit_intent_trace_failure(LLVMGenCtx *ctx,
                                            LLVMValueRef fail_reason_alloca);
 const MIRRoutine *llvm_find_mir_intent_routine(const LLVMGenCtx *ctx,
                                                ASTNode *intent_decl);
-bool        llvm_require_mir_intent_source_decl(LLVMGenCtx *ctx,
-                                                const MIRRoutine *routine,
-                                                ASTNode **intent_decl_out);
 void        llvm_emit_mir_resource_hook(LLVMGenCtx *ctx,
                                         const MIRInstruction *inst,
                                         LLVMValueRef handle,

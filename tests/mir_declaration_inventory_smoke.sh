@@ -4036,18 +4036,24 @@ if grep -Fq "llvm_require_mir_intent_source_decl(ctx, routine, &intent_decl)" \
 fi
 for term in \
     "llvm_emit_intent_routines_from_inventory(" \
-    "llvm_require_mir_intent_source_decl(ctx, routine, &intent_decl)" \
+    "llvm_active_inventory(ctx, AST_INTENT_DECL" \
+    "llvm_find_mir_intent_routine(ctx, node)" \
     "llvm_emit_intent_decl(intent_decl, ctx)" \
     "MIR-only LLVM path has invalid intent routine inventory row"; do
     require_term "src/codegen/llvm_intent.c" "$term"
 done
-for term in \
-    "llvm_require_mir_intent_source_decl(" \
-    "routine->block_count > 0 && routine->blocks == NULL" \
-    "mir_routine_source_decl_of_type(" \
-    "MIR-only LLVM path missing intent source declaration for routine"; do
-    require_term "src/codegen/llvm_intent_flow.c" "$term"
-done
+require_term "src/codegen/llvm_intent.c" \
+    "MIR-only LLVM path missing intent declaration inventory row for routine"
+if grep -Fq "llvm_require_mir_intent_source_decl(" \
+    "$ROOT_DIR/src/codegen/llvm_intent.c" \
+    "$ROOT_DIR/src/codegen/llvm_intent_flow.c" \
+    "$ROOT_DIR/src/codegen/llvm_intent_internal.h"; then
+    fail "LLVM intent body emission must start from active declaration inventory, not recover routine source declarations"
+fi
+if grep -Fq "mir_routine_source_decl_of_type(" \
+    "$ROOT_DIR/src/codegen/llvm_intent_flow.c"; then
+    fail "LLVM intent flow must not recover AST intent declarations from MIRRoutine payload"
+fi
 if grep -Fq "llvm_forward_declare_intent(stmt, ctx)" \
     "$ROOT_DIR/src/codegen/llvm_pipeline.c"; then
     fail "LLVM pipeline intent forward declaration must stay in the intent owner"
