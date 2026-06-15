@@ -16,6 +16,7 @@
 #include "llvm_backend_type_map_internal.h"
 #include "llvm_domain_projection_count_helpers.h"
 #include "llvm_inventory_decl_lookup.h"
+#include "../common/string_compat.h"
 #include "../compiler/mir_decl_headers.h"
 #include "llvm_internal_api.h"
 #include "parser/ast_api.h"
@@ -35,42 +36,64 @@ llvm_constructor_error(ASTNode *node, LLVMGenCtx *ctx, const char *message)
     return NULL;
 }
 
-static ASTNode *
-llvm_class_constructor_field_type_at(LLVMGenCtx *ctx,
-                                     const char *callee_name,
-                                     size_t index)
+static char *
+llvm_class_constructor_field_type_name_at(LLVMGenCtx *ctx,
+                                          const char *callee_name,
+                                          size_t index)
 {
-    ASTNode *class_decl;
+    ASTNode *compat_decl = NULL;
     LLVMHostedFieldView field_view;
+    const MIRDeclField *field_meta;
+    const char *field_type_name;
+    ASTNode *field_type;
 
     if (ctx == NULL || callee_name == NULL)
         return NULL;
 
-    class_decl = llvm_find_decl_in_active_inventory(
-        ctx, AST_CLASS_DECL, callee_name);
+    if (!llvm_active_has_mir(ctx)) {
+        compat_decl = llvm_find_decl_in_active_inventory(
+            ctx, AST_CLASS_DECL, callee_name);
+    }
     field_view = llvm_hosted_class_field_view_from_decl(
-        ctx, callee_name, class_decl);
+        ctx, callee_name, compat_decl);
+    if (llvm_active_has_mir(ctx) && !field_view.uses_mir_metadata) {
+        llvm_set_mir_inventory_missing(ctx,
+            "MIR-only LLVM path missing class-field constructor metadata for '%s'",
+            callee_name);
+        return NULL;
+    }
     if (llvm_hosted_field_view_missing_mir_metadata(&field_view)) {
         llvm_set_mir_inventory_missing(ctx,
             "MIR-only LLVM path missing class-field constructor metadata for '%s'",
             callee_name);
         return NULL;
     }
-    return llvm_hosted_field_view_type(&field_view, index);
+    field_meta = llvm_hosted_field_view_metadata(&field_view, index);
+    field_type_name = field_meta != NULL
+        ? llvm_mir_decl_field_type_name(field_meta)
+        : NULL;
+    if (field_type_name != NULL)
+        return pergyra_strdup(field_type_name);
+
+    field_type = field_meta != NULL
+        ? llvm_mir_decl_field_type(field_meta)
+        : llvm_hosted_field_view_type(&field_view, index);
+    return field_type != NULL
+        ? llvm_render_type_name_in_ctx(ctx, field_type)
+        : NULL;
 }
 
 static LLVMValueRef
 llvm_emit_constructor_field_arg(ASTNode *node,
                                 LLVMGenCtx *ctx,
-                                ASTNode *field_type,
+                                const char *expected_type,
                                 const char *field_name,
                                 ASTNode *arg)
 {
-    char *expected_type;
     const char *saved_expected_type_name;
     LLVMValueRef value;
 
-    if (field_type == NULL) {
+    if (expected_type == NULL) {
         LLVMTypeRef inferred = llvm_stmt_infer_expr_type(ctx, arg);
         if (ctx->has_error)
             return NULL;
@@ -95,10 +118,8 @@ llvm_emit_constructor_field_arg(ASTNode *node,
         return value;
     }
 
-    expected_type = llvm_render_type_name_in_ctx(ctx, field_type);
     if (pgy_classify_type(expected_type) == PGY_TK_CHANNEL) {
         llvm_constructor_reject_channel_field(node, ctx, field_name);
-        free(expected_type);
         return NULL;
     }
 
@@ -108,7 +129,6 @@ llvm_emit_constructor_field_arg(ASTNode *node,
         LLVMTypeRef inferred = llvm_stmt_infer_expr_type(ctx, arg);
         if (ctx->has_error) {
             ctx->expected_type_name = saved_expected_type_name;
-            free(expected_type);
             return NULL;
         }
         if (inferred == ctx->type_void) {
@@ -119,13 +139,11 @@ llvm_emit_constructor_field_arg(ASTNode *node,
                 "LLVM constructor field '%s' cannot consume a Void expression value",
                 field_name != NULL ? field_name : "<field>");
             ctx->expected_type_name = saved_expected_type_name;
-            free(expected_type);
             return NULL;
         }
     }
     value = llvm_emit_expression(arg, ctx);
     ctx->expected_type_name = saved_expected_type_name;
-    free(expected_type);
     if (value == NULL && !ctx->has_error) {
         llvm_set_error_at_with_hints(ctx, arg,
             PGY_CODE_LLVM_TYPE_UNSUPPORTED,
@@ -519,12 +537,17 @@ llvm_emit_class_constructor(ASTNode *node, LLVMGenCtx *ctx, const char *callee_n
     int field_count = llvm_class_field_count(cls);
     for (size_t i = 0; i < ast_call_arg_count(node)
         && i < (size_t)field_count; i++) {
-        ASTNode *field_type = llvm_class_constructor_field_type_at(
+        char *field_type_name = llvm_class_constructor_field_type_name_at(
             ctx, callee_name, i);
         const char *field_name = llvm_class_field_name_at(cls, (int)i);
         LLVMTypeRef expected_ty = llvm_class_field_type_at(cls, (int)i);
         int field_index = llvm_class_field_struct_index_at(cls, (int)i);
+        if (ctx->has_error) {
+            free(field_type_name);
+            return NULL;
+        }
         if (field_name == NULL || expected_ty == NULL || field_index < 0) {
+            free(field_type_name);
             return llvm_constructor_error(node, ctx,
                 "LLVM class constructor field metadata is incomplete");
         }
@@ -533,8 +556,9 @@ llvm_emit_class_constructor(ASTNode *node, LLVMGenCtx *ctx, const char *callee_n
             LLVMTypeRef saved_ret = ctx->current_ret_type;
             ctx->current_ret_type = expected_ty;
             arg = llvm_emit_constructor_field_arg(node, ctx,
-                field_type, field_name, ast_call_argument(node, i));
+                field_type_name, field_name, ast_call_argument(node, i));
             ctx->current_ret_type = saved_ret;
+            free(field_type_name);
         }
         if (arg == NULL)
             return llvm_constructor_error(node, ctx,

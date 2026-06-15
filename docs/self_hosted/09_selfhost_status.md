@@ -39,6 +39,8 @@ Single source of truth (capability 5) is nearly closed.
   compile and run on both backends.
 - LLVM generic class specialization type mapping consumes `MIRDeclField`
   type-name metadata before falling back to template AST compatibility.
+- LLVM class constructor field arguments consume `MIRDeclField` type-name
+  metadata for expected-type context before template AST compatibility.
 - C projection literal/source-path lowering has a by-name MIR header path for
   ToTObject, projection-borrow materialization, member access, and domain
   provenance refresh; the central declaration-header source_decl compatibility

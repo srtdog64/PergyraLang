@@ -1357,6 +1357,26 @@ require_term "src/codegen/llvm_expr_constructor_channel_guard.c" \
     "llvm_hosted_domain_slot_view_type(view, i)"
 require_term "src/codegen/llvm_expr_constructor_calls.c" \
     "llvm_hosted_shared_field_view_initializer(view, i)"
+require_term "src/codegen/llvm_expr_constructor_calls.c" \
+    "llvm_class_constructor_field_type_name_at("
+require_term "src/codegen/llvm_expr_constructor_calls.c" \
+    "llvm_hosted_class_field_view_from_decl("
+require_term "src/codegen/llvm_expr_constructor_calls.c" \
+    "llvm_mir_decl_field_type_name(field_meta)"
+require_term "src/codegen/llvm_expr_constructor_calls.c" \
+    "if (!llvm_active_has_mir(ctx))"
+require_term "src/codegen/llvm_expr_constructor_calls.c" \
+    "compat_decl = llvm_find_decl_in_active_inventory("
+require_term "src/codegen/llvm_expr_constructor_calls.c" \
+    "const char *expected_type"
+if grep -Fq "llvm_class_constructor_field_type_at" \
+        "$ROOT_DIR/src/codegen/llvm_expr_constructor_calls.c"; then
+    fail "LLVM class constructor field arguments must consume field type names, not AST field type nodes"
+fi
+if grep -Fq "ASTNode *field_type = llvm_class_constructor_field" \
+        "$ROOT_DIR/src/codegen/llvm_expr_constructor_calls.c"; then
+    fail "LLVM class constructor field argument lowering must not recover AST field type nodes"
+fi
 if grep -Eq 'llvm_hosted_shared_field_view_source_ast\(|ast_party_shared_initializer\(' \
     "$ROOT_DIR/src/codegen/llvm_expr_constructor_calls.c"; then
     fail "LLVM constructor shared-field defaults must consume MIR-owned shared-field initializer metadata"

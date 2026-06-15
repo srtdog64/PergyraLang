@@ -101,8 +101,10 @@ ASTNode* parser_parse_async_function(Parser* parser)
             mode = PARAM_MODE_REF;
             if (parser_check(parser, TOKEN_IDENTIFIER)
                 && parser->current_token.text != NULL
-                && strcmp(parser->current_token.text, "mut") == 0)
+                && strcmp(parser->current_token.text, "mut") == 0) {
+                mode = PARAM_MODE_MUT_REF;
                 parser_advance(parser);
+            }
         }
 
         Token param_name = consume_binding_name_token(parser, "Expected parameter name");

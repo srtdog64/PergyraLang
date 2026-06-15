@@ -171,6 +171,8 @@ LLVM domain projection value lowering also uses by-name MIR header source paths
 instead of recovering projection source declarations.
 LLVM generic class specialization type mapping now reads hosted field type names
 from `MIRDeclField` metadata before any template-AST fallback.
+LLVM class constructor argument lowering now consumes `MIRDeclField` type-name
+metadata for expected-type context before template-AST fallback.
 The remaining work is removal of the
 declaration-header source_decl compatibility boundary and the compiler-side
 declaration header back-pointer after compatibility lookup stops returning

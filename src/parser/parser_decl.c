@@ -135,8 +135,10 @@ static ASTNode* parse_function_like_declaration(Parser* parser, bool is_action) 
             mode = PARAM_MODE_REF;
             if (parser_check(parser, TOKEN_IDENTIFIER)
                 && parser->current_token.text != NULL
-                && strcmp(parser->current_token.text, "mut") == 0)
+                && strcmp(parser->current_token.text, "mut") == 0) {
+                mode = PARAM_MODE_MUT_REF;
                 parser_advance(parser);
+            }
         }
 
         // 파라미터 이름
