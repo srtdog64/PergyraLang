@@ -58,8 +58,9 @@ link; C hosted method bodies now pass the linked MIRRoutine directly to the
 MIR body emitter instead of recovering the method source declaration. C
 class/zone collection-specialization scans also consume the linked MIRRoutine
 signature and source-local type facts instead of recovering method bodies. The
-remaining C method bridge is limited to lookup and projection invalidation
-compatibility. LLVM generic function template registration records MIRRoutine
+remaining C method bridge is limited to lookup compatibility; C overlay
+projection invalidation now consumes MIRDeclMethod projection write/call facts
+instead of recovering method source declarations. LLVM generic function template registration records MIRRoutine
 entries and specializes through that routine.
 LLVM MIR body emission consumes routine kind/signature/current-routine metadata
 without recovering a source declaration. LLVM intent body emission now starts
@@ -72,7 +73,7 @@ plumbing: the `MIRDeclHeader.source_ast` assignment and accessor. Method and fie
 dead `mir_decl_header_ast_shape` compatibility arm that recomputed header shape
 from the origin AST is deleted. The next slice removes the declaration-header
 payload boundary, now measured separately as source_decl 2/1. Routine source-decl compatibility is
-measured separately at 1 so lookup/projection compatibility cannot grow while
+measured separately at 1 so lookup compatibility cannot grow while
 that payload boundary is retired.
 
 src/self_hosted/parity/ast_read_surface_checker_parity.sh runs the same

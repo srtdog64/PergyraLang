@@ -32,6 +32,12 @@ typedef struct
     const char *causes_effect;
     bool        has_routine;
     size_t      routine_index;
+    char      **projection_write_root_names;
+    char      **projection_write_member_names;
+    size_t      projection_write_count;
+    char      **projection_call_receiver_names;
+    char      **projection_call_method_names;
+    size_t      projection_call_count;
 } MIRDeclMethod;
 
 typedef enum

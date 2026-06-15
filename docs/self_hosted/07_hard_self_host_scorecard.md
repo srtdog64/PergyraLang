@@ -113,13 +113,15 @@ MIRDeclMethod metadata without source AST back-pointers, and C/LLVM hosted
 method bodies use the linked MIRRoutine as their body provenance owner. C
 class/zone collection-specialization scans consume MIR routine signature and
 source-local type facts, so they no longer recover method source declarations.
+C overlay projection invalidation consumes MIRDeclMethod projection write/call
+facts instead of recovering method source declarations for invalidation walks.
 LLVM
 nominal method registry and LLVM hosted/member call emission also no longer
 read method source back-pointers in MIR-active paths. LLVM function routine
 lookup now keys off MIR routine names instead of source AST identity. The
 zone action effect-sync path also consumes MIRDeclMethod flags without method
-source back-pointers, and C member-call emission only loads an AST method body
-for the lazy projection-invalidation scan. Shared-field constructor defaults now
+source back-pointers, and C member-call projection invalidation walks
+MIRDeclMethod projection facts. Shared-field constructor defaults now
 consume MIRDeclField initializer metadata instead of recovering source AST
 nodes, and the unused shared-field source accessors are retired. C class/zone
 specialization scans now reach method bodies through linked MIRRoutine

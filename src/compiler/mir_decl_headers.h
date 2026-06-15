@@ -43,6 +43,16 @@ const char *mir_decl_method_within_zone(const MIRDeclMethod *method);
 const char *mir_decl_method_causes_effect(const MIRDeclMethod *method);
 bool mir_decl_method_routine_index(const MIRDeclMethod *method,
                                    size_t *index_out);
+size_t mir_decl_method_projection_write_count(const MIRDeclMethod *method);
+const char *mir_decl_method_projection_write_root_name(
+    const MIRDeclMethod *method, size_t index);
+const char *mir_decl_method_projection_write_member_name(
+    const MIRDeclMethod *method, size_t index);
+size_t mir_decl_method_projection_call_count(const MIRDeclMethod *method);
+const char *mir_decl_method_projection_call_receiver_name(
+    const MIRDeclMethod *method, size_t index);
+const char *mir_decl_method_projection_call_method_name(
+    const MIRDeclMethod *method, size_t index);
 const char *mir_decl_field_owner_name(const MIRDeclField *field);
 const char *mir_decl_field_name(const MIRDeclField *field);
 ASTNode *mir_decl_field_type(const MIRDeclField *field);

@@ -259,6 +259,52 @@ transpiler_mir_decl_method_routine(const TranspilerCtx *ctx,
     return transpiler_routine_inventory_get(&inventory, routine_index);
 }
 
+size_t
+transpiler_mir_decl_method_projection_write_count(
+    const MIRDeclMethod *method)
+{
+    return mir_decl_method_projection_write_count(method);
+}
+
+const char *
+transpiler_mir_decl_method_projection_write_root_name(
+    const MIRDeclMethod *method,
+    size_t index)
+{
+    return mir_decl_method_projection_write_root_name(method, index);
+}
+
+const char *
+transpiler_mir_decl_method_projection_write_member_name(
+    const MIRDeclMethod *method,
+    size_t index)
+{
+    return mir_decl_method_projection_write_member_name(method, index);
+}
+
+size_t
+transpiler_mir_decl_method_projection_call_count(
+    const MIRDeclMethod *method)
+{
+    return mir_decl_method_projection_call_count(method);
+}
+
+const char *
+transpiler_mir_decl_method_projection_call_receiver_name(
+    const MIRDeclMethod *method,
+    size_t index)
+{
+    return mir_decl_method_projection_call_receiver_name(method, index);
+}
+
+const char *
+transpiler_mir_decl_method_projection_call_method_name(
+    const MIRDeclMethod *method,
+    size_t index)
+{
+    return mir_decl_method_projection_call_method_name(method, index);
+}
+
 ASTNode *
 transpiler_mir_decl_method_body_decl(const TranspilerCtx *ctx,
                                      const MIRDeclMethod *method)

@@ -2,6 +2,7 @@
 #include "mir_decl_header_fields.h"
 #include "mir_decl_header_shape.h"
 #include "mir_decl_header_variants.h"
+#include "mir_decl_method_projection.h"
 #include "mir_type_helpers.h"
 
 #include <stdint.h>
@@ -65,6 +66,7 @@ mir_decl_method_metadata_clear(MIRDeclMethod *meta)
     }
     free(meta->param_type_names);
     free(meta->return_type_name);
+    mir_decl_method_projection_metadata_clear(meta);
     meta->param_type_names = NULL;
     meta->return_type_name = NULL;
 }
@@ -146,6 +148,8 @@ mir_decl_method_metadata_init(MIRDeclMethod *meta,
     meta->is_action_like = ast_func_is_action(method);
     meta->within_zone = ast_func_within_zone(method);
     meta->causes_effect = ast_func_causes_effect(method);
+    (void)mir_decl_method_projection_metadata_capture(
+        meta, ast_func_body(method));
 }
 
 static bool

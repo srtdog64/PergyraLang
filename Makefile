@@ -858,6 +858,7 @@ COMPILER_SOURCES = $(COMPILER_DIR)/compiler.c \
                    $(COMPILER_DIR)/mir_decl_header_variants.c \
                    $(COMPILER_DIR)/mir_decl_header_validate.c \
                    $(COMPILER_DIR)/mir_decl_header_access.c \
+                   $(COMPILER_DIR)/mir_decl_method_projection.c \
                    $(COMPILER_DIR)/mir_decl_headers.c \
                    $(COMPILER_DIR)/mir_stmt_population.c \
                    $(COMPILER_DIR)/mir_stmt_population_resource_ops.c \
@@ -1344,6 +1345,7 @@ MIR_CORE_OBJECTS = $(BUILD_DIR)/compiler/mir.o \
                    $(BUILD_DIR)/compiler/mir_decl_header_variants.o \
                    $(BUILD_DIR)/compiler/mir_decl_header_validate.o \
                    $(BUILD_DIR)/compiler/mir_decl_header_access.o \
+                   $(BUILD_DIR)/compiler/mir_decl_method_projection.o \
                    $(BUILD_DIR)/compiler/mir_decl_headers.o \
                    $(BUILD_DIR)/compiler/mir_stmt_population.o \
                    $(BUILD_DIR)/compiler/mir_stmt_population_resource_ops.o \

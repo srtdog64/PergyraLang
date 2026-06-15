@@ -17,6 +17,73 @@
 #include "transpiler_projection_field_path.h"
 
 static void
+append_overlay_method_projection_invalidations_from_metadata(
+    CodeBuf *buf,
+    TranspilerCtx *ctx,
+    const char *source_slot_name,
+    const char *host_type_name,
+    const MIRDeclMethod *method_meta,
+    int depth)
+{
+    if (buf == NULL || ctx == NULL || source_slot_name == NULL
+        || host_type_name == NULL || method_meta == NULL || depth > 8) {
+        return;
+    }
+
+    for (size_t i = 0;
+         i < transpiler_mir_decl_method_projection_write_count(method_meta);
+         i++) {
+        const char *field_name = method_projection_write_field_name(
+            ctx,
+            host_type_name,
+            transpiler_mir_decl_method_projection_write_root_name(
+                method_meta, i),
+            transpiler_mir_decl_method_projection_write_member_name(
+                method_meta, i));
+        if (field_name != NULL) {
+            char *invalidation = emit_current_overlay_projection_invalidation(
+                ctx, source_slot_name, field_name);
+            if (invalidation != NULL) {
+                codebuf_write(buf, "%s", invalidation);
+                free(invalidation);
+            }
+        }
+    }
+
+    for (size_t i = 0;
+         i < transpiler_mir_decl_method_projection_call_count(method_meta);
+         i++) {
+        const char *receiver_name =
+            transpiler_mir_decl_method_projection_call_receiver_name(
+                method_meta, i);
+        const char *method_name =
+            transpiler_mir_decl_method_projection_call_method_name(
+                method_meta, i);
+        const char *field_type_name =
+            host_projection_subject_field_type_name(
+                ctx, host_type_name, receiver_name);
+        const MIRDeclMethod *nested_meta = field_type_name != NULL
+            ? transpiler_find_host_method_metadata_in_context(
+                ctx, field_type_name, method_name)
+            : NULL;
+
+        if (field_type_name != NULL && nested_meta == NULL
+            && transpiler_active_has_mir(ctx)) {
+            transpiler_set_mir_inventory_missing(ctx,
+                "MIR-only C path missing projection invalidation method metadata for '%s.%s'",
+                field_type_name,
+                method_name != NULL ? method_name : "(anonymous)");
+            return;
+        }
+        if (nested_meta != NULL) {
+            append_overlay_method_projection_invalidations_from_metadata(
+                buf, ctx, source_slot_name, field_type_name,
+                nested_meta, depth + 1);
+        }
+    }
+}
+
+static void
 append_overlay_method_projection_invalidations(CodeBuf *buf,
                                                TranspilerCtx *ctx,
                                                const char *source_slot_name,
@@ -122,32 +189,24 @@ append_overlay_method_projection_invalidations(CodeBuf *buf,
                 const MIRDeclMethod *method_meta =
                     transpiler_find_host_method_metadata_in_context(
                         ctx, field_type_name, method_name);
-                ASTNode *method_decl =
-                    transpiler_mir_decl_method_body_decl(ctx, method_meta);
-                if (method_decl == NULL && method_meta == NULL) {
-                    if (transpiler_active_has_mir(ctx)) {
-                        transpiler_set_mir_inventory_missing(ctx,
-                            "MIR-only C path missing projection invalidation method metadata for '%s.%s'",
-                            field_type_name != NULL ? field_type_name : "(anonymous)",
-                            method_name != NULL ? method_name : "(anonymous)");
-                        return;
-                    }
-                    method_decl = find_nominal_host_method_decl(
-                        ctx, field_type_name, method_name);
-                } else if (method_decl == NULL
-                           && method_meta != NULL
-                           && transpiler_active_has_mir(ctx)) {
+                if (method_meta != NULL && transpiler_active_has_mir(ctx)) {
+                    append_overlay_method_projection_invalidations_from_metadata(
+                        buf, ctx, source_slot_name,
+                        field_type_name, method_meta, depth + 1);
+                } else if (transpiler_active_has_mir(ctx)) {
                     transpiler_set_mir_inventory_missing(ctx,
-                        "MIR-only C path missing projection invalidation method source metadata for '%s.%s'",
+                        "MIR-only C path missing projection invalidation method metadata for '%s.%s'",
                         field_type_name != NULL ? field_type_name : "(anonymous)",
                         method_name != NULL ? method_name : "(anonymous)");
                     return;
-                }
-                if (method_decl != NULL) {
+                } else {
+                    ASTNode *method_decl = find_nominal_host_method_decl(
+                        ctx, field_type_name, method_name);
                     append_overlay_method_projection_invalidations(
                         buf, ctx, source_slot_name,
                         field_type_name,
-                        ast_func_body(method_decl), depth + 1);
+                        method_decl != NULL ? ast_func_body(method_decl) : NULL,
+                        depth + 1);
                 }
             }
         }
@@ -161,6 +220,7 @@ char *
 emit_current_overlay_method_projection_invalidation(TranspilerCtx *ctx,
                                                     const char *source_slot_name,
                                                     const char *host_type_name,
+                                                    const MIRDeclMethod *method_meta,
                                                     ASTNode *method_decl)
 {
     CodeBuf *buf;
@@ -168,6 +228,21 @@ emit_current_overlay_method_projection_invalidation(TranspilerCtx *ctx,
 
     if (ctx == NULL || source_slot_name == NULL || host_type_name == NULL)
         return NULL;
+
+    if (transpiler_active_has_mir(ctx) && method_meta != NULL) {
+        buf = codebuf_create();
+        append_overlay_method_projection_invalidations_from_metadata(
+            buf, ctx, source_slot_name, host_type_name, method_meta, 0);
+        if (ctx->backend_error != NULL || buf->len == 0) {
+            codebuf_destroy(buf);
+            return NULL;
+        }
+        {
+            char *result = pergyra_strdup(buf->data);
+            codebuf_destroy(buf);
+            return result;
+        }
+    }
 
     body = ast_func_body(method_decl);
     if (body == NULL)

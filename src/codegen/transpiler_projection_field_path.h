@@ -16,6 +16,10 @@ bool host_projection_relevant_field_exists(TranspilerCtx *ctx,
 const char *host_projection_subject_field_type_name(TranspilerCtx *ctx,
                                                    const char *host_type_name,
                                                    const char *field_name);
+const char *method_projection_write_field_name(TranspilerCtx *ctx,
+                                               const char *host_type_name,
+                                               const char *root_name,
+                                               const char *member_name);
 const char *method_assignment_projection_field_name(TranspilerCtx *ctx,
                                                    const char *host_type_name,
                                                    ASTNode *target);

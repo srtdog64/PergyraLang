@@ -158,6 +158,53 @@ host_projection_subject_field_type_name(TranspilerCtx *ctx,
 }
 
 const char *
+method_projection_write_field_name(TranspilerCtx *ctx,
+                                   const char *host_type_name,
+                                   const char *root_name,
+                                   const char *member_name)
+{
+    ASTNode *host_decl;
+
+    if (ctx == NULL || host_type_name == NULL || root_name == NULL)
+        return NULL;
+
+    host_decl = transpiler_find_projection_nominal_decl_local(
+        ctx, host_type_name);
+    if (host_decl == NULL || host_decl->type != AST_CLASS_DECL)
+        return NULL;
+
+    if (member_name == NULL
+        && host_projection_relevant_field_exists(
+            ctx, host_type_name, root_name)) {
+        return root_name;
+    }
+
+    {
+        const MIRDeclField *mir_field =
+            transpiler_find_decl_field_metadata(ctx, host_type_name,
+                                                root_name);
+        if (mir_field != NULL) {
+            if (transpiler_mir_decl_field_is_subject_like(mir_field))
+                return member_name;
+            return root_name;
+        }
+    }
+
+    {
+        TranspilerProjectionFieldInfo info =
+            host_projection_class_field_info(ctx, host_decl,
+                host_type_name, root_name);
+        if (info.exists) {
+            if (info.subject_like)
+                return member_name;
+            return root_name;
+        }
+    }
+
+    return NULL;
+}
+
+const char *
 method_assignment_projection_field_name(TranspilerCtx *ctx,
                                         const char *host_type_name,
                                         ASTNode *target)

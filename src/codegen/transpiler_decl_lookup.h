@@ -158,6 +158,22 @@ const char *transpiler_mir_decl_method_causes_effect(
 const MIRRoutine *transpiler_mir_decl_method_routine(
     const TranspilerCtx *ctx,
     const MIRDeclMethod *method);
+size_t transpiler_mir_decl_method_projection_write_count(
+    const MIRDeclMethod *method);
+const char *transpiler_mir_decl_method_projection_write_root_name(
+    const MIRDeclMethod *method,
+    size_t index);
+const char *transpiler_mir_decl_method_projection_write_member_name(
+    const MIRDeclMethod *method,
+    size_t index);
+size_t transpiler_mir_decl_method_projection_call_count(
+    const MIRDeclMethod *method);
+const char *transpiler_mir_decl_method_projection_call_receiver_name(
+    const MIRDeclMethod *method,
+    size_t index);
+const char *transpiler_mir_decl_method_projection_call_method_name(
+    const MIRDeclMethod *method,
+    size_t index);
 ASTNode *transpiler_mir_decl_method_body_decl(
     const TranspilerCtx *ctx,
     const MIRDeclMethod *method);

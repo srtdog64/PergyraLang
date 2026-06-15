@@ -343,7 +343,8 @@ emit_call_member_style(ASTNode *call, ASTNode *callee, TranspilerCtx *ctx)
                     }
                     invalidation =
                         emit_current_overlay_method_projection_invalidation(
-                            ctx, source_slot_name, owned_type_name, method_decl);
+                            ctx, source_slot_name, owned_type_name,
+                            method_meta, method_decl);
                     if (ctx->current_overlay_receiver_expr != NULL
                         && ctx->current_overlay_receiver_expr != saved_receiver_expr) {
                         free((char *)ctx->current_overlay_receiver_expr);

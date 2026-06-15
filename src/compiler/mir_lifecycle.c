@@ -1,5 +1,6 @@
 #include "mir.h"
 #include "mir_base_helpers.h"
+#include "mir_decl_method_projection.h"
 #include "mir_signature_metadata.h"
 #include "mir_source_local_types.h"
 
@@ -85,6 +86,7 @@ mir_destroy(MIRProgram *mir)
                     }
                     free(method->param_type_names);
                     free(method->return_type_name);
+                    mir_decl_method_projection_metadata_clear(method);
                 }
             }
             free(mir->decl_headers[i].generic_metadata);

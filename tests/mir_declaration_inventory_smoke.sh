@@ -143,6 +143,8 @@ for rel in \
     "src/compiler/mir_lower_public_api.h" \
     "src/compiler/mir_program_inventory.c" \
     "src/compiler/mir_public_surface.c" \
+    "src/compiler/mir_decl_method_projection.c" \
+    "src/compiler/mir_decl_method_projection.h" \
     "src/compiler/mir_decl_headers.c" \
     "src/compiler/mir_decl_headers.h" \
     "src/parser/ast_api.h" \
@@ -5026,9 +5028,65 @@ for term in \
     "transpiler_mir_decl_method_param_type_name" \
     "transpiler_mir_decl_method_return_type" \
     "transpiler_mir_decl_method_return_type_name" \
-    "transpiler_mir_decl_method_is_action_like"; do
+    "transpiler_mir_decl_method_is_action_like" \
+    "transpiler_mir_decl_method_projection_write_count" \
+    "transpiler_mir_decl_method_projection_write_root_name" \
+    "transpiler_mir_decl_method_projection_write_member_name" \
+    "transpiler_mir_decl_method_projection_call_count" \
+    "transpiler_mir_decl_method_projection_call_receiver_name" \
+    "transpiler_mir_decl_method_projection_call_method_name"; do
     require_term "src/codegen/transpiler_decl_lookup.h" "$term"
 done
+for term in \
+    "projection_write_root_names" \
+    "projection_write_member_names" \
+    "projection_write_count" \
+    "projection_call_receiver_names" \
+    "projection_call_method_names" \
+    "projection_call_count"; do
+    require_term "src/compiler/mir_decl.h" "$term"
+done
+require_term "Makefile" \
+    '$(COMPILER_DIR)/mir_decl_method_projection.c'
+require_term "Makefile" \
+    '$(BUILD_DIR)/compiler/mir_decl_method_projection.o'
+require_term "src/compiler/mir_decl_headers.c" \
+    "mir_decl_method_projection_metadata_capture"
+require_term "src/compiler/mir_decl_method_projection.h" \
+    "mir_decl_method_projection_metadata_clear"
+require_term "src/compiler/mir_decl_method_projection.c" \
+    "mir_decl_method_projection_append_write"
+require_term "src/compiler/mir_decl_method_projection.c" \
+    "mir_decl_method_projection_append_call"
+if grep -Fq "mir_decl_method_projection_append_write" \
+        "$ROOT_DIR/src/compiler/mir_decl_headers.c"; then
+    fail "MIR declaration headers must not own method projection fact capture"
+fi
+for term in \
+    "mir_decl_method_projection_write_count" \
+    "mir_decl_method_projection_write_root_name" \
+    "mir_decl_method_projection_write_member_name" \
+    "mir_decl_method_projection_call_count" \
+    "mir_decl_method_projection_call_receiver_name" \
+    "mir_decl_method_projection_call_method_name"; do
+    require_term "src/compiler/mir_decl_headers.h" "$term"
+    require_term "src/compiler/mir_decl_header_access.c" "$term"
+    require_term "src/codegen/transpiler_decl_method_view.c" "$term"
+done
+for term in \
+    "method_projection_write_field_name(" \
+    "transpiler_mir_decl_method_projection_write_count(method_meta)" \
+    "transpiler_mir_decl_method_projection_call_count(method_meta)" \
+    "append_overlay_method_projection_invalidations_from_metadata" \
+    "MIR-only C path missing projection invalidation method metadata"; do
+    require_term "src/codegen/transpiler_projection_method_invalidation.c" "$term"
+done
+require_term "src/codegen/transpiler_projection_field_path.c" \
+    "method_projection_write_field_name(TranspilerCtx *ctx"
+if grep -Fq "transpiler_mir_decl_method_body_decl(ctx, method_meta)" \
+        "$ROOT_DIR/src/codegen/transpiler_projection_method_invalidation.c"; then
+    fail "C projection method invalidation must consume MIRDeclMethod projection facts instead of recovering method source declarations"
+fi
 for term in \
     "emit_hosted_method_forward_decl_from_metadata" \
     "method_meta == NULL" \

@@ -561,10 +561,15 @@ grep -Fq "MIR-only LLVM path missing method forward name metadata for domain" \
     "$ROOT_DIR/src/codegen/llvm_domain_forward.c"
 grep -Fq "MIR-only LLVM path missing method forward metadata row for role" \
     "$ROOT_DIR/src/codegen/llvm_domain_forward_role.c"
-grep -Fq "MIR-only C path missing projection invalidation method source metadata" \
+grep -Fq "append_overlay_method_projection_invalidations_from_metadata" \
     "$ROOT_DIR/src/codegen/transpiler_projection_method_invalidation.c"
 grep -Fq "transpiler_find_host_method_metadata_in_context" \
     "$ROOT_DIR/src/codegen/transpiler_projection_method_invalidation.c"
+if grep -Fq "transpiler_mir_decl_method_body_decl(ctx, method_meta)" \
+        "$ROOT_DIR/src/codegen/transpiler_projection_method_invalidation.c"; then
+    echo "[backend-fail-closed] C projection invalidation reintroduced method source recovery" >&2
+    exit 1
+fi
 grep -Fq "C backend role operator method name metadata is missing" \
     "$ROOT_DIR/src/codegen/transpiler_domain_role_methods_emit.c"
 grep -Fq "LLVM destructuring let binding name metadata is missing" \

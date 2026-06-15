@@ -389,6 +389,47 @@ mir_validate_decl_method_metadata(const MIRProgram *mir,
             }
             return false;
         }
+        if (method->projection_write_count > 0
+            && (method->projection_write_root_names == NULL
+                || method->projection_write_member_names == NULL)) {
+            if (error_message != NULL) {
+                *error_message = mir_strdup_fmt(
+                    "MIR declaration header[%zu] method[%zu] has projection write metadata count but no storage",
+                    header_index, i);
+            }
+            return false;
+        }
+        for (size_t w = 0; w < method->projection_write_count; w++) {
+            if (method->projection_write_root_names[w] == NULL) {
+                if (error_message != NULL) {
+                    *error_message = mir_strdup_fmt(
+                        "MIR declaration header[%zu] method[%zu] projection write[%zu] has no root metadata",
+                        header_index, i, w);
+                }
+                return false;
+            }
+        }
+        if (method->projection_call_count > 0
+            && (method->projection_call_receiver_names == NULL
+                || method->projection_call_method_names == NULL)) {
+            if (error_message != NULL) {
+                *error_message = mir_strdup_fmt(
+                    "MIR declaration header[%zu] method[%zu] has projection call metadata count but no storage",
+                    header_index, i);
+            }
+            return false;
+        }
+        for (size_t c = 0; c < method->projection_call_count; c++) {
+            if (method->projection_call_receiver_names[c] == NULL
+                || method->projection_call_method_names[c] == NULL) {
+                if (error_message != NULL) {
+                    *error_message = mir_strdup_fmt(
+                        "MIR declaration header[%zu] method[%zu] projection call[%zu] has incomplete metadata",
+                        header_index, i, c);
+                }
+                return false;
+            }
+        }
     }
 
     return true;
