@@ -50,13 +50,16 @@ Single source of truth (capability 5) is nearly closed.
   header-backed `*_decl_exists*` seams in MIR-active paths. They no longer
   recover origin AST declarations just to test class, enum, function, intent,
   callable, or constructor presence.
+- C/LLVM declaration payload lookup no longer calls
+  `mir_decl_header_source_decl`; MIR-active compatibility first validates the
+  header row and then searches active inventory.
 - C projection literal/source-path lowering has a by-name MIR header path for
   ToTObject, projection-borrow materialization, member access, and domain
-  provenance refresh; the central declaration-header source_decl compatibility
-  accessor remains until the remaining projection/declaration consumers move.
+  provenance refresh.
 - LLVM projection-borrow materialization, member access, and domain projection
   value lowering use the same by-name MIR header path for source field paths.
-  The remaining bridge is declaration-header source_decl compatibility.
+  The remaining bridge is compiler-side declaration-header source_ast payload
+  removal.
 
 Substrate progress.
 

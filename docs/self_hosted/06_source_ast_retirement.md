@@ -44,9 +44,10 @@ source-node type/location provenance has been split out of this metric. The ratc
 covered files live in tests/ast_read_surface_manifest.txt, which is consumed by
 both the shell smoke and the self-hosted ast_read_surface_checker parity rung.
 The same manifest now also tracks the AST-returning declaration-header
-compatibility boundary: `mir_decl_header_source_decl` is locked at codegen 2
-and compiler 1 until that API is removed. Routine source-decl compatibility is
-tracked separately as `routine_source_decl_codegen`, locked at 0.
+compatibility boundary: backend calls to `mir_decl_header_source_decl` are
+locked at codegen 0, and the compiler accessor is locked at 1 until that API is
+removed. Routine source-decl compatibility is tracked separately as
+`routine_source_decl_codegen`, locked at 0.
 
 tests/source_ast_inventory.sh ranks the remaining readers per file so the
 cutover is driven hotspot first. The codegen frontier is now 0 and the
@@ -67,13 +68,15 @@ without recovering a source declaration. LLVM intent body emission now starts
 from active declaration inventory and rejects MIR intent routines that have body
 storage but no declaration inventory row. Routine source declaration checks no
 longer appear in codegen; the compiler-owned
-`mir_routine_source_decl_of_type` remains compiler-side only. Declaration lookup uses
-`mir_decl_header_source_decl`. No backend `.c` file now contains a `source_ast`
-read. The remaining 2 occurrences are compiler-owned declaration-header payload
+`mir_routine_source_decl_of_type` remains compiler-side only. Backend
+declaration lookup no longer calls `mir_decl_header_source_decl`; MIR-active
+payload compatibility first validates the declaration header and then searches
+active inventory. No backend `.c` file now contains a `source_ast`
+read. The remaining 2 `source_ast` occurrences are compiler-owned declaration-header payload
 plumbing: the `MIRDeclHeader.source_ast` assignment and accessor. Method and field declaration back-pointers are retired, and the
 dead `mir_decl_header_ast_shape` compatibility arm that recomputed header shape
 from the origin AST is deleted. The next slice removes the declaration-header
-payload boundary, now measured separately as source_decl 2/1. Routine source-decl compatibility is
+payload boundary, now measured separately as compiler source_decl 1. Routine source-decl compatibility is
 measured separately at 0 so lookup compatibility cannot grow while
 that payload boundary is retired.
 
@@ -290,7 +293,7 @@ Step 1: instrument with the probe, run the corpus, confirm zero fires.
 Step 2: remove the AST fallback arms and the `*_slot_view_source_ast` helpers
 from the four hotspot files, then the remaining codegen readers. This is done:
 the current codegen frontier is 0 reads and backend source declaration
-compatibility is routed through compiler-owned MIR accessors.
+compatibility no longer opens declaration-header source_decl provenance.
 
 Step 3: remove the source_ast field from MIRDeclField and MIRDeclHeader after
 validator drift checks stop reading generic, enum, method, and field facts from

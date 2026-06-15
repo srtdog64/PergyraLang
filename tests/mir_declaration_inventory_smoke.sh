@@ -2987,11 +2987,10 @@ for term in \
     "llvm_mir_decl_field_type_name(field)"; do
     require_term "src/codegen/llvm_domain_projection_value_helpers.c" "$term"
 done
-for rel in \
-    "src/codegen/llvm_inventory_decl_lookup.c" \
-    "src/codegen/transpiler_decl_lookup.c"; do
-    require_term "$rel" "mir_decl_header_source_decl("
-done
+if grep -RIn "mir_decl_header_source_decl(" \
+        "$ROOT_DIR/src/codegen" --include='*.c' --include='*.h'; then
+    fail "backend declaration lookup must not reopen declaration-header source_decl provenance"
+fi
 if grep -RIn "mir_decl_method_source_ast(" \
         "$ROOT_DIR/src/codegen"/transpiler_*.c \
         "$ROOT_DIR/src/codegen"/transpiler_*.h; then
