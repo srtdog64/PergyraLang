@@ -11,13 +11,13 @@ each tier and the work that remains.
 Hard self-hosting cannot start today as a full compiler rewrite. The
 infrastructure is mature: every one of the ten capabilities has a gate, and the
 tree carries 73 smoke gates total. The blocking distance is small and well
-bounded. Eight capabilities are ready, and two have a working subset that needs
-substrate breadth. The process-argument tooling gap is closed by
+bounded. Nine capabilities are ready, and one has a working subset that needs
+substrate ergonomics. The process-argument tooling gap is closed by
 `Args() -> Array<String>`, but it does not change the hard-self-host verdict
 until compiler-internal substitution actually consumes it.
 
-As a planning estimate, hard self-host readiness is roughly 90-92%: eight
-capabilities are READY, two are SUBSET, and there is no ACTIVE capability left
+As a planning estimate, hard self-host readiness is roughly 94-96%: nine
+capabilities are READY, one is SUBSET, and there is no ACTIVE capability left
 on the SoT critical path. The critical-path codegen SoT burn-down is closed:
 the codegen frontier went from 127 original source_ast reads to 0. The
 compiler-side source_ast tail is now 0; `MIRDeclHeader.source_ast` and
@@ -36,7 +36,7 @@ ACTIVE means it is on the critical path and still in progress.
 | # | Capability | Tier | Gate | Remaining gap |
 |---|-----------|------|------|---------------|
 | 1 | Module/package resolver | READY | module_smoke, package_module_resolver_smoke, type_resolution_resolver_inventory_smoke | deterministic imports and cycle diagnostics gated; a resolver tool is already self-hosted |
-| 2 | Collections + iteration | SUBSET | stdlib_surface_smoke, stage4_determinism_smoke | List/Set/HashMap exist over a key-type subset (String, Int, Long, Bool); MapKeys and SetValues order are locked for stable scalar keys and Stage 4 insertion-order determinism is gated; broaden symbol/record/handle keys |
+| 2 | Collections + iteration | READY | stdlib_surface_smoke, stage4_determinism_smoke | List/Set/HashMap have stable scalar key forms (String, Int, Long, Bool); MapKeys and SetValues order are locked; compiler-facing symbol/record/handle-like keys are normalized to canonical scalar IDs rather than raw aggregate keys |
 | 3 | String/path/Unicode policy | READY | unicode_policy_smoke, source_utf8_smoke, memory_string_safety_smoke, filesystem_directory_walk_smoke | stable comparison, normalization, and deterministic directory snapshot stance gated |
 | 4 | Arena/ownership ergonomics | SUBSET | verify_arena_closure, runtime_abi_lifetime_smoke, abi_ownership_shape_smoke | `Allocator` is a single C/LLVM-backed value surface, `BoxArray` can consume a named allocator local, and scratch/result/persistent lane constructors now carry distinct runtime kinds; automatic pass-lane reset/cleanup ergonomics remain |
 | 5 | CFG/MIR body as SoT | READY | cfg_body_dataflow_smoke, ast_read_surface_smoke, mir_or_abort_invariant_smoke, ast_read_surface_checker_parity | non_cfg fallback locked at 0; source_ast and source_decl are ratcheted at codegen 0 / compiler 0, and routine_source_decl_codegen is ratcheted at 0 |
@@ -51,29 +51,28 @@ ACTIVE means it is on the critical path and still in progress.
 Capability 5 is closed for the measured source_ast/source_decl frontier:
 non_cfg body facts come from MIR and are locked at zero fallback, backend and
 compiler source_ast/source_decl readers are locked at zero, and the self-hosted
-checker proves the same manifest. The remaining hard-self-host blockers are the
-two SUBSET substrate capabilities: deterministic collection breadth and
-language-level arena ownership ergonomics.
+checker proves the same manifest. The remaining hard-self-host blocker is the
+SUBSET substrate capability for language-level arena ownership ergonomics.
 
 ## Next substrate work
 
-After capability 5, the two SUBSET items are the substrate maturity that turns
+After capability 5, the remaining SUBSET item is the substrate maturity that turns
 soft self-hosting (compiler-adjacent tools, already real) into something that
 can carry a compiler pass. Capability 2 now has stable `MapKeys` and
 `SetValues` order for the stable scalar subset, and
 `stage4_determinism_smoke` proves stable output across insertion orders for
-C/LLVM-generated Pergyra programs. It still needs broader symbol/record/handle
-key types. Capability 4 now has a stable `Allocator` value surface on both C
-and LLVM, including `BoxArray(capacity, allocator)` lowering through a named
-allocator local and language-level `AllocatorScratch`, `AllocatorResult`, and
-`AllocatorPersistent` constructors with distinct runtime lane kinds. It still
-needs automatic pass-lane reset/cleanup ergonomics so compiler passes do not
-carry manual resource boilerplate.
+C/LLVM-generated Pergyra programs. Compiler-facing symbol/record/handle-like
+keys are now specified as canonical scalar IDs, not raw aggregate keys, and the
+Stage 4 collection fixture exercises those canonical key shapes. Capability 4
+now has a stable `Allocator` value surface on both C and LLVM, including
+`BoxArray(capacity, allocator)` lowering through a named allocator local and
+language-level `AllocatorScratch`, `AllocatorResult`, and `AllocatorPersistent`
+constructors with distinct runtime lane kinds. It still needs automatic
+pass-lane reset/cleanup ergonomics so compiler passes do not carry manual
+resource boilerplate.
 
-Two concrete hard-self-host substrate lifts remain after the SoT burn-down:
+One concrete hard-self-host substrate lift remains after the SoT burn-down:
 
-- broader deterministic collection iteration for symbol/record/handle keys,
-  beyond the Stage 4 stable scalar MapKeys/SetValues gate;
 - automatic reset/cleanup ergonomics for scratch/result/persistent compiler
   pass lanes, beyond the current lane-named `Allocator` constructors and
   `BoxArray(capacity, allocator)` surface.
@@ -99,9 +98,9 @@ explicitly out of order.
 
 ## Measured gaps (blocker burn-down)
 
-The two non-READY capabilities were measured against the tree to make each one
-actionable. Every remaining step needs the build loop, which is the reason none
-can be closed from a static pass alone.
+The non-READY capability was measured against the tree to make it actionable.
+Every remaining step needs the build loop, which is the reason none can be
+closed from a static pass alone.
 
 Capability 5 (CFG/MIR SoT, task 74). Closed for the measured frontier: non_cfg
 body facts are MIR-owned and locked at zero fallback, the source_ast ratchet is
@@ -189,12 +188,15 @@ rows before active-inventory lookup instead of opening declaration-header
 source_decl provenance. Method and field back-pointers are already removed, and
 the old header-shape AST recomputation arm is gone. Build-gated.
 
-Capability 2 (collections). Measurement: integer keys are implemented
+Capability 2 (collections). Closed for the hard-self-host substrate: integer keys are implemented
 (pgy_runtime_map_int_key_inline.h covers i32 and i64), and `MapKeys` /
 `SetValues` now return stable sorted snapshots for String, Int, Long, and Bool
-keys/values. The remaining gap is broader key-type coverage: a compiler needs
-symbol/record/handle-like keys and deterministic traversal for stable output.
-Build-gated.
+keys/values. The compiler-facing policy is to normalize symbol/record-like
+identities to canonical strings and handle-like identities to stable integer or
+long IDs before insertion. `stage4_determinism_smoke` exercises those canonical
+key shapes across forward and reverse insertion orders on C and LLVM. Raw
+aggregate keys remain out of beta rather than becoming a second collection
+truth.
 
 Capability 4 (arena ergonomics). Measurement: the lanes already exist inside the
 compiler. Pass-local scratch arenas are present in HIR (hir.h), MIR (mir.h, used
@@ -205,6 +207,6 @@ exposing the same lane discipline ergonomically to code written in the language,
 so a rewritten pass does not hand-roll allocation boilerplate. This is the least
 distant of the three. Build-gated.
 
-The honest summary is that the SoT blocker is closed and the remaining blockers
-are substrate breadth, not design unknowns. Capabilities 2 and 4 are the next
+The honest summary is that the SoT blocker and deterministic collection
+substrate are closed for hard-self-host planning. Capability 4 is the next
 critical path.

@@ -46,7 +46,11 @@ These are compiler/runtime builtins, not `use` modules:
   borrowed-view to owned-snapshot escape hatch. `MapKeys` returns a
   deterministic owned snapshot: strings lexicographic, integers and longs
   ascending, and booleans `false` before `true`. `SetValues` returns the same
-  deterministic owned snapshot for `Set<String|Int|Long|Bool>`.
+  deterministic owned snapshot for `Set<String|Int|Long|Bool>`. Compiler-facing
+  symbol, record, and handle keys must be normalized to these scalar key forms:
+  canonical strings for symbol/record identities and stable integer/long IDs for
+  handles. Raw aggregate keys are not part of the beta-stable collection
+  contract.
 - Result/Option baseline: `Ok`, `Err`, `IsOk`, `IsErr`, `Unwrap`, `UnwrapOr`,
   `Some`, `None`, `IsSome`, `IsNone`, `UnwrapOption`.
 

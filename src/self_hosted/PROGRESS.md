@@ -206,8 +206,10 @@ beyond the lexer:
   output ordering, not just functional map/set lookup. `stage4_determinism_smoke`
   now compares insertion-order variants for `HashMap<String|Int|Long|Bool, T>`
   `MapKeys` and `Set<String|Int|Long|Bool>` `SetValues` through generated
-  Pergyra programs on C and LLVM. Remaining collection lifts are
-  symbol/record/handle keys.
+  Pergyra programs on C and LLVM. Compiler-facing symbol/record-like identities
+  are canonical string keys, and handle-like identities are stable integer or
+  long IDs; the Stage 4 fixture exercises those canonical shapes instead of
+  introducing raw aggregate keys as a second collection truth.
 - **Allocator/arena ownership surface** -- `AllocatorSystem`,
   `AllocatorPool`, `AllocatorDebug`, `AllocatorTracing`, `AllocatorScratch`,
   `AllocatorResult`, and `AllocatorPersistent` now produce the single stable

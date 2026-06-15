@@ -186,6 +186,78 @@ func CheckSetBoolReverse() -> Int {
     return -802;
 }
 
+func CheckCanonicalSymbolKeysForward() -> Int {
+    let facts: HashMap<String, Int> = MapNew();
+    MapSet(facts, "sym:parser:ParseExpr", 10);
+    MapSet(facts, "sym:lexer:Tokenize", 20);
+    MapSet(facts, "sym:semantic:Check", 30);
+    let keys: Array<String> = MapKeys(facts);
+    if ArrayLength(keys) == 3 && keys[0] == "sym:lexer:Tokenize" && keys[1] == "sym:parser:ParseExpr" && keys[2] == "sym:semantic:Check" {
+        return 901;
+    }
+    return -901;
+}
+
+func CheckCanonicalSymbolKeysReverse() -> Int {
+    let facts: HashMap<String, Int> = MapNew();
+    MapSet(facts, "sym:semantic:Check", 30);
+    MapSet(facts, "sym:lexer:Tokenize", 20);
+    MapSet(facts, "sym:parser:ParseExpr", 10);
+    let keys: Array<String> = MapKeys(facts);
+    if ArrayLength(keys) == 3 && keys[0] == "sym:lexer:Tokenize" && keys[1] == "sym:parser:ParseExpr" && keys[2] == "sym:semantic:Check" {
+        return 902;
+    }
+    return -902;
+}
+
+func CheckCanonicalRecordKeysForward() -> Int {
+    let fields: HashMap<String, Int> = MapNew();
+    MapSet(fields, "record:ZoneState.hp:Int", 3);
+    MapSet(fields, "record:ZoneState.name:String", 5);
+    MapSet(fields, "record:ZoneState.active:Bool", 7);
+    let keys: Array<String> = MapKeys(fields);
+    if ArrayLength(keys) == 3 && keys[0] == "record:ZoneState.active:Bool" && keys[1] == "record:ZoneState.hp:Int" && keys[2] == "record:ZoneState.name:String" {
+        return 1001;
+    }
+    return -1001;
+}
+
+func CheckCanonicalRecordKeysReverse() -> Int {
+    let fields: HashMap<String, Int> = MapNew();
+    MapSet(fields, "record:ZoneState.name:String", 5);
+    MapSet(fields, "record:ZoneState.active:Bool", 7);
+    MapSet(fields, "record:ZoneState.hp:Int", 3);
+    let keys: Array<String> = MapKeys(fields);
+    if ArrayLength(keys) == 3 && keys[0] == "record:ZoneState.active:Bool" && keys[1] == "record:ZoneState.hp:Int" && keys[2] == "record:ZoneState.name:String" {
+        return 1002;
+    }
+    return -1002;
+}
+
+func CheckCanonicalHandleKeysForward() -> Int {
+    let handles: HashMap<Long, Int> = MapNew();
+    MapSet(handles, 9000000002L, 2);
+    MapSet(handles, 9000000001L, 1);
+    MapSet(handles, 9000000003L, 3);
+    let keys: Array<Long> = MapKeys(handles);
+    if ArrayLength(keys) == 3 && keys[0] == 9000000001L && keys[1] == 9000000002L && keys[2] == 9000000003L {
+        return 1101;
+    }
+    return -1101;
+}
+
+func CheckCanonicalHandleKeysReverse() -> Int {
+    let handles: HashMap<Long, Int> = MapNew();
+    MapSet(handles, 9000000003L, 3);
+    MapSet(handles, 9000000001L, 1);
+    MapSet(handles, 9000000002L, 2);
+    let keys: Array<Long> = MapKeys(handles);
+    if ArrayLength(keys) == 3 && keys[0] == 9000000001L && keys[1] == 9000000002L && keys[2] == 9000000003L {
+        return 1102;
+    }
+    return -1102;
+}
+
 func Main() -> Void {
     Log(CheckStringForward());
     Log(CheckStringReverse());
@@ -203,4 +275,10 @@ func Main() -> Void {
     Log(CheckSetLongReverse());
     Log(CheckSetBoolForward());
     Log(CheckSetBoolReverse());
+    Log(CheckCanonicalSymbolKeysForward());
+    Log(CheckCanonicalSymbolKeysReverse());
+    Log(CheckCanonicalRecordKeysForward());
+    Log(CheckCanonicalRecordKeysReverse());
+    Log(CheckCanonicalHandleKeysForward());
+    Log(CheckCanonicalHandleKeysReverse());
 }
