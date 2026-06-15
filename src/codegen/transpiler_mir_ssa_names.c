@@ -235,9 +235,17 @@ transpiler_is_implicit_field(TranspilerCtx *ctx, const char *base_name)
     if (transpiler_current_world_has_field(ctx, base_name))
         return true;
     if (!in_zone_context && host_name != NULL) {
-        ASTNode *zone_decl =
-            transpiler_find_named_decl_local(ctx, AST_ZONE_DECL, host_name);
-        if (zone_decl != NULL) {
+        ASTNode *zone_decl = NULL;
+        bool has_zone_decl = false;
+        if (transpiler_active_has_mir(ctx)) {
+            has_zone_decl = transpiler_active_decl_header_of_type(
+                ctx, AST_ZONE_DECL, host_name) != NULL;
+        } else {
+            zone_decl = transpiler_find_named_decl_local(
+                ctx, AST_ZONE_DECL, host_name);
+            has_zone_decl = zone_decl != NULL;
+        }
+        if (has_zone_decl) {
             TranspilerHostedDomainSlotView slot_view =
                 transpiler_hosted_domain_slot_view_from_decl(ctx, host_name,
                     zone_decl);

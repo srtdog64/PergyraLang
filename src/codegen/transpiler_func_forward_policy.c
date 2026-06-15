@@ -168,8 +168,15 @@ transpiler_can_forward_declare_type_after_zones(TranspilerCtx *ctx,
         return false;
 
     name = ast_type_name(type_node);
-    if (transpiler_find_named_decl_local(ctx, AST_WORLD_DECL, name) != NULL)
+    if (transpiler_active_has_mir(ctx)) {
+        if (transpiler_active_decl_header_of_type(
+                ctx, AST_WORLD_DECL, name) != NULL) {
+            return false;
+        }
+    } else if (transpiler_find_named_decl_local(
+                   ctx, AST_WORLD_DECL, name) != NULL) {
         return false;
+    }
     return transpiler_has_known_nominal_type(ctx, name);
 }
 
@@ -181,8 +188,15 @@ transpiler_can_forward_declare_type_name_after_zones(TranspilerCtx *ctx,
         return true;
     if (transpiler_can_forward_declare_type_name_early(ctx, type_name))
         return true;
-    if (transpiler_find_named_decl_local(ctx, AST_WORLD_DECL, type_name) != NULL)
+    if (transpiler_active_has_mir(ctx)) {
+        if (transpiler_active_decl_header_of_type(
+                ctx, AST_WORLD_DECL, type_name) != NULL) {
+            return false;
+        }
+    } else if (transpiler_find_named_decl_local(
+                   ctx, AST_WORLD_DECL, type_name) != NULL) {
         return false;
+    }
     return transpiler_has_known_nominal_type(ctx, type_name);
 }
 

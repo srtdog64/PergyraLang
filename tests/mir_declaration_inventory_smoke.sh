@@ -633,9 +633,33 @@ for term in \
     "transpiler_mir_routine_param_type_name(routine, i)" \
     "MIR-only C path missing function forward routine" \
     "MIR-only C path missing function forward signature metadata" \
+    "transpiler_active_decl_header_of_type(" \
     "transpiler_can_forward_declare_type_name_after_zones"; do
     require_term "src/codegen/transpiler_func_forward_policy.c" "$term"
 done
+require_term "src/codegen/transpiler_decl_lookup.c" \
+    "transpiler_active_decl_header_of_type("
+if awk '
+    /transpiler_has_known_nominal_type\(TranspilerCtx \*ctx/ { in_fn = 1 }
+    in_fn && /transpiler_find_decl_in_inventory_local\(/ { saw_ast_lookup = 1 }
+    in_fn && /transpiler_active_decl_header_of_type\(/ { saw_header = 1 }
+    in_fn && /^}/ {
+        if (saw_ast_lookup && !saw_header) bad = 1
+        in_fn = 0
+    }
+    END { exit bad ? 0 : 1 }
+' "$ROOT_DIR/src/codegen/transpiler_decl_lookup.c"; then
+    fail "C nominal type existence checks must consume MIR declaration headers before AST declaration lookup"
+fi
+if ! awk '
+    /transpiler_find_decl_in_inventory_local\(TranspilerCtx \*ctx/ { in_fn = 1 }
+    in_fn && /if \(transpiler_active_has_mir\(ctx\)\)/ { saw_active = NR }
+    in_fn && saw_active > 0 && NR == saw_active + 1 && /return NULL;/ { ok = 1 }
+    in_fn && /^}/ { in_fn = 0 }
+    END { exit ok ? 0 : 1 }
+' "$ROOT_DIR/src/codegen/transpiler_decl_lookup.c"; then
+    fail "C inactive-inventory lookup must return NULL in MIR-active mode"
+fi
 for term in \
     "transpiler_mir_or_ast_function_is_generic" \
     "mir_routine_has_signature(routine)" \
@@ -4510,13 +4534,29 @@ if grep -Fq "return find_zone_decl((TranspilerCtx *)ctx, zone_name)" \
     fail "C world frontier lookup must consume active inventory instead of direct AST lookup"
 fi
 require_term "src/codegen/transpiler_mir_ssa_names.c" \
-    "transpiler_find_named_decl_local(ctx, AST_ZONE_DECL, host_name)"
+    "transpiler_active_decl_header_of_type("
+if awk '
+    /transpiler_mir_ssa_base_name_is_host_field/ { in_fn = 1 }
+    in_fn && /transpiler_find_named_decl_local\(ctx, AST_ZONE_DECL, host_name\)/ { saw_ast = 1 }
+    in_fn && /transpiler_active_has_mir\(ctx\)/ { saw_active = 1 }
+    in_fn && /^}/ {
+        if (saw_ast && !saw_active) bad = 1
+        in_fn = 0
+    }
+    END { exit bad ? 0 : 1 }
+' "$ROOT_DIR/src/codegen/transpiler_mir_ssa_names.c"; then
+    fail "C MIR SSA zone recovery must use declaration headers before AST zone lookup"
+fi
 if grep -Fq "find_zone_decl(ctx, host_name)" \
     "$ROOT_DIR/src/codegen/transpiler_mir_ssa_names.c"; then
     fail "C MIR SSA host recovery must consume active inventory for zone lookup"
 fi
 require_term "src/codegen/transpiler_func_forward_policy.c" \
-    "transpiler_find_named_decl_local(ctx, AST_WORLD_DECL"
+    "transpiler_active_decl_header_of_type("
+if grep -Fq "transpiler_find_named_decl_local(ctx, AST_WORLD_DECL" \
+    "$ROOT_DIR/src/codegen/transpiler_func_forward_policy.c"; then
+    fail "C function forward policy world existence checks must consume declaration headers in MIR-active paths"
+fi
 if grep -Fq "find_world_decl(ctx, name)" \
     "$ROOT_DIR/src/codegen/transpiler_func_forward_policy.c"; then
     fail "C function forward policy must consume typed declaration lookup for world lookup"

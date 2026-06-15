@@ -342,6 +342,13 @@ transpiler_has_known_nominal_type(TranspilerCtx *ctx, const char *name)
         pgy_host_decl_compat_nominal_lookup_types(&host_lookup_type_count);
     for (size_t i = 0; host_lookup_types != NULL
          && i < host_lookup_type_count; i++) {
+        if (transpiler_active_has_mir(ctx)) {
+            if (transpiler_active_decl_header_of_type(
+                    ctx, host_lookup_types[i], name) != NULL) {
+                return true;
+            }
+            continue;
+        }
         if (transpiler_find_decl_in_inventory_local(
                 ctx, host_lookup_types[i], name)
             != NULL) {
@@ -391,7 +398,7 @@ transpiler_find_decl_in_inventory_local(TranspilerCtx *ctx,
     if (ctx == NULL || name == NULL)
         return NULL;
     if (transpiler_active_has_mir(ctx))
-        return transpiler_find_named_decl_local(ctx, decl_type, name);
+        return NULL;
 
     transpiler_active_inventory(ctx, decl_type, &decls, &decl_count);
     if (ctx->last_decl_lookup_result != NULL
