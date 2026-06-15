@@ -2,6 +2,7 @@
 
 #include "llvm_expr_call_collections_extended.h"
 
+#include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 
@@ -308,9 +309,14 @@ llvm_emit_collection_extended_call(ASTNode *node, LLVMGenCtx *ctx,
             return true;
         key_name = llvm_lookup_map_key(ctx, ast_identifier_name(map_arg));
         array_ty = llvm_hashmap_key_array_type(ctx, key_name);
-        if (array_ty == NULL)
+        if (array_ty == NULL) {
+            char message[128];
+            snprintf(message, sizeof(message),
+                "LLVM MapKeys requires stable %s key metadata",
+                pgy_hashmap_key_policy_type_text());
             return llvm_collection_extended_error_out(ctx, node, out,
-                "LLVM MapKeys requires stable HashMap<Bool|Int|Long|String, T> key metadata");
+                message);
+        }
         tmp = llvm_create_entry_alloca(ctx, array_ty, llvm_tmp_name(ctx));
         if (tmp == NULL)
             return llvm_collection_extended_error_out(ctx, node, out,

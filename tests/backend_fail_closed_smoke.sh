@@ -786,7 +786,9 @@ for fn in \
 done
 grep -Fq "transpiler_map_require_supported_key" \
     "$ROOT_DIR/src/codegen/transpiler_expr_stdlib_map_builtin.c"
-grep -Fq "LLVM MapKeys requires stable HashMap<Bool|Int|Long|String, T> key metadata" \
+grep -Fq "pgy_hashmap_key_policy_type_text" \
+    "$ROOT_DIR/src/codegen/codegen_hashmap_key_policy.c"
+grep -Fq "pgy_hashmap_key_policy_type_text()" \
     "$ROOT_DIR/src/codegen/llvm_expr_call_collections_extended.c"
 grep -Fq 'Do not let detached `async { ... }` capture local storage by pointer' \
     "$ROOT_DIR/AGENTS.md"

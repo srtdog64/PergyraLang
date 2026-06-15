@@ -109,8 +109,9 @@ transpiler_map_require_supported_key(TranspilerCtx *ctx,
         PGY_CODE_C_TYPE_UNSUPPORTED,
         PGY_CAUSE_C_TYPE_UNSUPPORTED,
         PGY_FIX_ANNOTATE_CONCRETE_TYPE,
-        "C backend: map builtin %s requires stable HashMap<Bool|Int|Long|String, T> key metadata",
-        builtin_name != NULL ? builtin_name : "(unknown)");
+        "C backend: map builtin %s requires stable %s key metadata",
+        builtin_name != NULL ? builtin_name : "(unknown)",
+        pgy_hashmap_key_policy_type_text());
     return NULL;
 }
 

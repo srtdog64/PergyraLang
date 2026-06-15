@@ -82,8 +82,9 @@ fi
 
 require_term "src/codegen/codegen_hashmap_key_policy.c" "if (name == NULL || name[0] == '\\0')"
 require_term "src/codegen/codegen_hashmap_key_policy.c" "pgy_hashmap_key_c_infix"
+require_term "src/codegen/codegen_hashmap_key_policy.c" "pgy_hashmap_key_policy_type_text"
 require_term "src/codegen/transpiler_expr_stdlib_map_builtin.c" "transpiler_map_require_supported_key"
-require_term "src/codegen/llvm_expr_call_collections_extended.c" "LLVM MapKeys requires stable HashMap<Bool|Int|Long|String, T> key metadata"
+require_term "src/codegen/llvm_expr_call_collections_extended.c" "pgy_hashmap_key_policy_type_text()"
 
 require_term "src/runtime/pgy_runtime_scalar_std_inline.h" "pthread_mutex_lock(&pgy_runtime_rng_mutex)"
 require_term "src/runtime/pgy_runtime_scalar_std_inline.h" "pthread_mutex_unlock(&pgy_runtime_rng_mutex)"

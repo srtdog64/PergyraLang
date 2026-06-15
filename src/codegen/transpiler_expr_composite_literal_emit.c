@@ -151,7 +151,8 @@ map_literal_resolve_policy(TranspilerCtx *ctx, const char *map_type,
         transpiler_set_backend_error_with_hints(ctx,
             PGY_CODE_C_TYPE_UNSUPPORTED, PGY_CAUSE_C_TYPE_UNSUPPORTED,
             PGY_FIX_ANNOTATE_CONCRETE_TYPE,
-            "C backend: map literal requires HashMap<Bool|Int|Long|String, T> key metadata");
+            "C backend: map literal requires %s key metadata",
+            pgy_hashmap_key_policy_type_text());
         return false;
     }
     transpiler_collection_ensure_specialization(ctx, "Map", value);

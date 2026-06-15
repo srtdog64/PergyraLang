@@ -24,8 +24,9 @@ llvm_required_hashmap_raw_export(LLVMGenCtx *ctx,
                 PGY_CODE_LLVM_TYPE_UNSUPPORTED,
                 PGY_CAUSE_LLVM_TYPE_UNSUPPORTED,
                 PGY_FIX_ANNOTATE_CONCRETE_TYPE,
-                "LLVM collection operation '%s' requires stable HashMap<Bool|Int|Long|String, T> key metadata",
-                callee_name != NULL ? callee_name : "HashMap operation");
+                "LLVM collection operation '%s' requires stable %s key metadata",
+                callee_name != NULL ? callee_name : "HashMap operation",
+                pgy_hashmap_key_policy_type_text());
         }
         return NULL;
     }
@@ -60,8 +61,9 @@ llvm_required_hashmap_raw_string_value_export(LLVMGenCtx *ctx,
                 PGY_CODE_LLVM_TYPE_UNSUPPORTED,
                 PGY_CAUSE_LLVM_TYPE_UNSUPPORTED,
                 PGY_FIX_ANNOTATE_CONCRETE_TYPE,
-                "LLVM collection operation '%s' requires stable HashMap<Bool|Int|Long|String, String> key metadata",
-                callee_name != NULL ? callee_name : "HashMap operation");
+                "LLVM collection operation '%s' requires stable %s key metadata",
+                callee_name != NULL ? callee_name : "HashMap operation",
+                pgy_hashmap_string_value_policy_type_text());
         }
         return NULL;
     }

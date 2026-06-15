@@ -55,6 +55,18 @@ pgy_hashmap_key_c_infix(const char *key_name)
     return NULL;
 }
 
+const char *
+pgy_hashmap_key_policy_type_text(void)
+{
+    return "HashMap<Bool|Int|Long|String, T>";
+}
+
+const char *
+pgy_hashmap_string_value_policy_type_text(void)
+{
+    return "HashMap<Bool|Int|Long|String, String>";
+}
+
 bool
 pgy_hashmap_key_raw_export_name(const char *operation,
                                 const char *key_name,

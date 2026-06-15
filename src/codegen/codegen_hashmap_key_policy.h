@@ -14,6 +14,8 @@ typedef enum PgyHashMapKeyKind {
 
 PgyHashMapKeyKind pgy_hashmap_key_kind_from_name(const char *name);
 const char *pgy_hashmap_key_c_infix(const char *key_name);
+const char *pgy_hashmap_key_policy_type_text(void);
+const char *pgy_hashmap_string_value_policy_type_text(void);
 bool pgy_hashmap_key_raw_export_name(const char *operation,
                                      const char *key_name,
                                      char *out,
