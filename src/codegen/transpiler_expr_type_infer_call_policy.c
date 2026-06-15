@@ -38,6 +38,7 @@ transpiler_infer_call_lookup(const char *name)
         { "Min", TRANS_INFER_CALL_MIN },
         { "RecvTimeout", TRANS_INFER_CALL_RECV_TIMEOUT },
         { "SendTimeoutStatus", TRANS_INFER_CALL_SEND_TIMEOUT_STATUS },
+        { "SetValues", TRANS_INFER_CALL_SET_VALUES },
         { "SubmitDeviceRead", TRANS_INFER_CALL_SUBMIT_DEVICE_READ },
         { "ToObject", TRANS_INFER_CALL_TO_OBJECT },
         { "ToTObject", TRANS_INFER_CALL_TO_TOBJECT },

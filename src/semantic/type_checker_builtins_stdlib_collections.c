@@ -3,6 +3,7 @@
 
 #include "type_checker_internal.h"
 #include "type_checker_builtins_internal.h"
+#include "type_checker_collection_policy.h"
 #include "diag_codes.h"
 
 typedef enum StdlibCollectionBuiltinKind {
@@ -18,6 +19,7 @@ typedef enum StdlibCollectionBuiltinKind {
     STDLIB_COLLECTION_SET_REMOVE,
     STDLIB_COLLECTION_SET_HAS,
     STDLIB_COLLECTION_SET_SIZE,
+    STDLIB_COLLECTION_SET_VALUES,
     STDLIB_COLLECTION_QUEUE_NEW,
     STDLIB_COLLECTION_QUEUE_PUSH,
     STDLIB_COLLECTION_QUEUE_POP,
@@ -83,6 +85,7 @@ stdlib_collection_builtin_kind(const char *name)
         { "SetNew", STDLIB_COLLECTION_SET_NEW },
         { "SetRemove", STDLIB_COLLECTION_SET_REMOVE },
         { "SetSize", STDLIB_COLLECTION_SET_SIZE },
+        { "SetValues", STDLIB_COLLECTION_SET_VALUES },
         { "SliceCopy", STDLIB_COLLECTION_SLICE_COPY }
     };
     const StdlibCollectionBuiltinSpec *match;
@@ -351,6 +354,36 @@ type_check_stdlib_collection_call(ASTNode *expr,
                 set_type->name != NULL ? set_type->name : "<type>");
         }
         return TYPE_INT;
+    }
+    if (kind == STDLIB_COLLECTION_SET_VALUES) {
+        Type *set_type;
+        Type *inner_type;
+        Type *args[1];
+        if (!check_call_arity(expr, 1, name, ctx))
+            return TYPE_UNKNOWN;
+        set_type = stdlib_collection_normalize_type(
+            type_check_expression(arg0, ctx));
+        if (type_is_constructed_named(set_type, "Set")
+            && type_constructed_arg_count(set_type) == 1) {
+            inner_type = type_constructed_arg(set_type, 0);
+            if (!type_checker_ordered_collection_key_supported(inner_type)) {
+                semantic_error_with_hints(ctx, PGY_CODE_SEM_BUILTIN_ARGS_INVALID,
+                    PGY_CAUSE_BUILTIN_SIGNATURE_MISMATCH,
+                    PGY_FIX_MATCH_BUILTIN_SIGNATURE, arg0,
+                    "SetValues currently supports only Set<String>, Set<Int>, Set<Long>, or Set<Bool>, got '%s'",
+                    set_type->name != NULL ? set_type->name : "<type>");
+            }
+            args[0] = inner_type != NULL ? inner_type : TYPE_UNKNOWN;
+            return type_create_constructed(TYPE_ARRAY, args, 1);
+        }
+        if (set_type != NULL && set_type != TYPE_UNKNOWN) {
+            semantic_error_with_hints(ctx, PGY_CODE_SEM_BUILTIN_ARGS_INVALID,
+                PGY_CAUSE_BUILTIN_SIGNATURE_MISMATCH,
+                PGY_FIX_MATCH_BUILTIN_SIGNATURE, arg0,
+                "SetValues expects Set<T> as first argument, got '%s'",
+                set_type->name != NULL ? set_type->name : "<type>");
+        }
+        return TYPE_UNKNOWN;
     }
     if (kind == STDLIB_COLLECTION_QUEUE_NEW) {
         if (!check_call_arity(expr, 0, name, ctx))

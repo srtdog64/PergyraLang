@@ -108,6 +108,7 @@ PGY_ARRAY_SORT_DEFINE(Int,    int32_t, pgy_cmp_Int)
 PGY_ARRAY_SORT_DEFINE(Long,   int64_t, pgy_cmp_Long)
 PGY_ARRAY_SORT_DEFINE(Float,  float,   pgy_cmp_Float)
 PGY_ARRAY_SORT_DEFINE(Double, double,  pgy_cmp_Double)
+PGY_ARRAY_SORT_DEFINE(Bool,   bool,    pgy_cmp_Bool)
 /* String sort uses qsort only (pointer comparison != strcmp) */
 static inline void pgy_array_sort_String(char **arr, size_t n) {
     if (n <= 1) return;

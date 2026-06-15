@@ -35,7 +35,8 @@ These are compiler/runtime builtins, not `use` modules:
   `HashMap<Bool, T>`. `SliceCopy(Slice<T>) -> Array<T>` is the stable
   borrowed-view to owned-snapshot escape hatch. `MapKeys` returns a
   deterministic owned snapshot: strings lexicographic, integers and longs
-  ascending, and booleans `false` before `true`.
+  ascending, and booleans `false` before `true`. `SetValues` returns the same
+  deterministic owned snapshot for `Set<String|Int|Long|Bool>`.
 - Result/Option baseline: `Ok`, `Err`, `IsOk`, `IsErr`, `Unwrap`, `UnwrapOr`,
   `Some`, `None`, `IsSome`, `IsNone`, `UnwrapOption`.
 

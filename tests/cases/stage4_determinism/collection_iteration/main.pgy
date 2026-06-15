@@ -92,6 +92,100 @@ func CheckBoolReverse() -> Int {
     return -402;
 }
 
+func CheckSetStringForward() -> Int {
+    let labels: Set<String> = SetNew();
+    SetAdd(labels, "zeta");
+    SetAdd(labels, "alpha");
+    SetAdd(labels, "mid");
+    let values: Array<String> = SetValues(labels);
+    if ArrayLength(values) == 3 && values[0] == "alpha" && values[1] == "mid" && values[2] == "zeta" {
+        return 501;
+    }
+    return -501;
+}
+
+func CheckSetStringReverse() -> Int {
+    let labels: Set<String> = SetNew();
+    SetAdd(labels, "mid");
+    SetAdd(labels, "alpha");
+    SetAdd(labels, "zeta");
+    let values: Array<String> = SetValues(labels);
+    if ArrayLength(values) == 3 && values[0] == "alpha" && values[1] == "mid" && values[2] == "zeta" {
+        return 502;
+    }
+    return -502;
+}
+
+func CheckSetIntForward() -> Int {
+    let numbers: Set<Int> = SetNew();
+    SetAdd(numbers, 9);
+    SetAdd(numbers, 1);
+    SetAdd(numbers, 4);
+    let values: Array<Int> = SetValues(numbers);
+    if ArrayLength(values) == 3 && values[0] == 1 && values[1] == 4 && values[2] == 9 {
+        return 601;
+    }
+    return -601;
+}
+
+func CheckSetIntReverse() -> Int {
+    let numbers: Set<Int> = SetNew();
+    SetAdd(numbers, 4);
+    SetAdd(numbers, 1);
+    SetAdd(numbers, 9);
+    let values: Array<Int> = SetValues(numbers);
+    if ArrayLength(values) == 3 && values[0] == 1 && values[1] == 4 && values[2] == 9 {
+        return 602;
+    }
+    return -602;
+}
+
+func CheckSetLongForward() -> Int {
+    let numbers: Set<Long> = SetNew();
+    SetAdd(numbers, 9L);
+    SetAdd(numbers, 1L);
+    SetAdd(numbers, 4L);
+    let values: Array<Long> = SetValues(numbers);
+    if ArrayLength(values) == 3 && values[0] == 1L && values[1] == 4L && values[2] == 9L {
+        return 701;
+    }
+    return -701;
+}
+
+func CheckSetLongReverse() -> Int {
+    let numbers: Set<Long> = SetNew();
+    SetAdd(numbers, 4L);
+    SetAdd(numbers, 1L);
+    SetAdd(numbers, 9L);
+    let values: Array<Long> = SetValues(numbers);
+    if ArrayLength(values) == 3 && values[0] == 1L && values[1] == 4L && values[2] == 9L {
+        return 702;
+    }
+    return -702;
+}
+
+func CheckSetBoolForward() -> Int {
+    let flags: Set<Bool> = SetNew();
+    SetAdd(flags, true);
+    SetAdd(flags, false);
+    let values: Array<Bool> = SetValues(flags);
+    if ArrayLength(values) == 2 && values[0] == false && values[1] == true {
+        return 801;
+    }
+    return -801;
+}
+
+func CheckSetBoolReverse() -> Int {
+    let flags: Set<Bool> = SetNew();
+    SetAdd(flags, false);
+    SetAdd(flags, true);
+    let values: Array<Bool> = SetValues(flags);
+    if ArrayLength(values) == 2 && values[0] == false && values[1] == true {
+        return 802;
+    }
+    return -802;
+}
+
 func Main() -> Void {
     Log(CheckStringForward());
     Log(CheckStringReverse());
@@ -101,4 +195,12 @@ func Main() -> Void {
     Log(CheckLongReverse());
     Log(CheckBoolForward());
     Log(CheckBoolReverse());
+    Log(CheckSetStringForward());
+    Log(CheckSetStringReverse());
+    Log(CheckSetIntForward());
+    Log(CheckSetIntReverse());
+    Log(CheckSetLongForward());
+    Log(CheckSetLongReverse());
+    Log(CheckSetBoolForward());
+    Log(CheckSetBoolReverse());
 }

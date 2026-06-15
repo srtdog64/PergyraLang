@@ -36,7 +36,7 @@ ACTIVE means it is on the critical path and still in progress.
 | # | Capability | Tier | Gate | Remaining gap |
 |---|-----------|------|------|---------------|
 | 1 | Module/package resolver | READY | module_smoke, package_module_resolver_smoke, type_resolution_resolver_inventory_smoke | deterministic imports and cycle diagnostics gated; a resolver tool is already self-hosted |
-| 2 | Collections + iteration | SUBSET | stdlib_surface_smoke, stage4_determinism_smoke | List/Set/HashMap exist over a key-type subset (String, Int, Long, Bool); MapKeys order is locked for stable key types and Stage 4 insertion-order determinism is gated; broaden symbol/record/handle keys and ordered set snapshots |
+| 2 | Collections + iteration | SUBSET | stdlib_surface_smoke, stage4_determinism_smoke | List/Set/HashMap exist over a key-type subset (String, Int, Long, Bool); MapKeys and SetValues order are locked for stable scalar keys and Stage 4 insertion-order determinism is gated; broaden symbol/record/handle keys |
 | 3 | String/path/Unicode policy | READY | unicode_policy_smoke, source_utf8_smoke, memory_string_safety_smoke, filesystem_directory_walk_smoke | stable comparison, normalization, and deterministic directory snapshot stance gated |
 | 4 | Arena/ownership ergonomics | SUBSET | verify_arena_closure, runtime_abi_lifetime_smoke, abi_ownership_shape_smoke | the allocation mechanism exists; the per-pass scratch/result/persistent lanes that remove manual boilerplate do not yet |
 | 5 | CFG/MIR body as SoT | READY | cfg_body_dataflow_smoke, ast_read_surface_smoke, mir_or_abort_invariant_smoke, ast_read_surface_checker_parity | non_cfg fallback locked at 0; source_ast and source_decl are ratcheted at codegen 0 / compiler 0, and routine_source_decl_codegen is ratcheted at 0 |
@@ -59,17 +59,18 @@ language-level arena ownership ergonomics.
 
 After capability 5, the two SUBSET items are the substrate maturity that turns
 soft self-hosting (compiler-adjacent tools, already real) into something that
-can carry a compiler pass. Capability 2 now has stable `MapKeys` order for the
-stable key subset, and `stage4_determinism_smoke` proves stable output across
-insertion orders for C/LLVM-generated Pergyra programs. It still needs broader
-symbol/record/handle key types and ordered set snapshots. Capability 4 needs arena lanes that remove manual resource
+can carry a compiler pass. Capability 2 now has stable `MapKeys` and
+`SetValues` order for the stable scalar subset, and
+`stage4_determinism_smoke` proves stable output across insertion orders for
+C/LLVM-generated Pergyra programs. It still needs broader symbol/record/handle
+key types. Capability 4 needs arena lanes that remove manual resource
 boilerplate from every pass.
 
 Three concrete hard-self-host substrate/tool lifts remain after the current SoT
 burn-down:
 
-- broader deterministic collection iteration for symbol/record/handle keys and
-  ordered set snapshots, beyond the Stage 4 HashMap key-subset gate;
+- broader deterministic collection iteration for symbol/record/handle keys,
+  beyond the Stage 4 stable scalar MapKeys/SetValues gate;
 - parser LLVM depth/type-inference parity is now gated by compiling the
   self-host parser through both C and LLVM over the committed fixture set,
   including a deep nested generic type case;
@@ -184,9 +185,9 @@ source_decl provenance. Method and field back-pointers are already removed, and
 the old header-shape AST recomputation arm is gone. Build-gated.
 
 Capability 2 (collections). Measurement: integer keys are implemented
-(pgy_runtime_map_int_key_inline.h covers i32 and i64), and `MapKeys` now returns
-stable sorted snapshots for String, Int, Long, and Bool keys. The remaining gap
-is broader key-type coverage and set iteration snapshots: a compiler needs
+(pgy_runtime_map_int_key_inline.h covers i32 and i64), and `MapKeys` /
+`SetValues` now return stable sorted snapshots for String, Int, Long, and Bool
+keys/values. The remaining gap is broader key-type coverage: a compiler needs
 symbol/record/handle-like keys and deterministic traversal for stable output.
 Build-gated.
 

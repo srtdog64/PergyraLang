@@ -205,8 +205,9 @@ beyond the lexer:
 - **Deterministic collection iteration** -- compiler passes need stable
   output ordering, not just functional map/set lookup. `stage4_determinism_smoke`
   now compares insertion-order variants for `HashMap<String|Int|Long|Bool, T>`
-  through generated Pergyra programs on C and LLVM. Remaining collection lifts
-  are symbol/record/handle keys and ordered set snapshots.
+  `MapKeys` and `Set<String|Int|Long|Bool>` `SetValues` through generated
+  Pergyra programs on C and LLVM. Remaining collection lifts are
+  symbol/record/handle keys.
 - **Filesystem directory walk** -- `DirWalk(String) -> Array<String>` has landed
   for generated binaries on C and LLVM. It returns a deterministic sorted
   regular-file snapshot with `/` separators and is gated by

@@ -35,6 +35,7 @@ typedef enum {
     LLVM_COLLECTION_BASE_OP_SET_NEW,
     LLVM_COLLECTION_BASE_OP_SET_REMOVE,
     LLVM_COLLECTION_BASE_OP_SET_SIZE,
+    LLVM_COLLECTION_BASE_OP_SET_VALUES,
 } LLVMCollectionBaseOp;
 
 typedef struct {
@@ -50,6 +51,7 @@ static const LLVMCollectionBaseSpec kLLVMCollectionBaseSpecs[] = {
     {"SetNew", 0, LLVM_COLLECTION_BASE_OP_SET_NEW},
     {"SetRemove", 2, LLVM_COLLECTION_BASE_OP_SET_REMOVE},
     {"SetSize", 1, LLVM_COLLECTION_BASE_OP_SET_SIZE},
+    {"SetValues", 1, LLVM_COLLECTION_BASE_OP_SET_VALUES},
 };
 
 static int
@@ -78,6 +80,22 @@ llvm_collection_base_lookup(const char *callee_name, size_t argc)
     if (spec->argc != argc)
         return LLVM_COLLECTION_BASE_OP_NONE;
     return spec->op;
+}
+
+static const char *
+llvm_set_values_raw_export_name(const char *inner_name)
+{
+    if (inner_name == NULL)
+        return NULL;
+    if (strcmp(inner_name, "Int") == 0)
+        return "pgy_set_values_raw_i32_export";
+    if (strcmp(inner_name, "Long") == 0)
+        return "pgy_set_values_raw_i64_export";
+    if (strcmp(inner_name, "Bool") == 0)
+        return "pgy_set_values_raw_bool_export";
+    if (strcmp(inner_name, "String") == 0)
+        return "pgy_set_values_raw_string_export";
+    return NULL;
 }
 
 bool
@@ -417,6 +435,49 @@ llvm_emit_collection_base_call(ASTNode *node, LLVMGenCtx *ctx,
                 LLVMBuildBitCast(ctx->builder, set_var.alloca, ctx->type_i8ptr, llvm_tmp_name(ctx))
             };
             *out = LLVMBuildCall2(ctx->builder, fn->fn_type, fn->fn, args, 1,
+                                  llvm_tmp_name(ctx));
+            return true;
+        }
+    }
+
+    if (op == LLVM_COLLECTION_BASE_OP_SET_VALUES) {
+        ASTNode *set_arg = ast_call_argument(node, 0);
+        LLVMVarEntry set_var;
+        const char *inner_name;
+        const char *export_name;
+        LLVMTypeRef array_ty;
+        LLVMValueRef tmp;
+        LLVMFuncEntry *fn;
+        if (!llvm_collection_required_receiver_var(ctx, node, set_arg,
+                callee_name, "collection", &set_var, out))
+            return true;
+        inner_name = llvm_lookup_set_inner(ctx, ast_identifier_name(set_arg));
+        export_name = llvm_set_values_raw_export_name(inner_name);
+        array_ty = export_name != NULL
+            ? llvm_array_struct_type(ctx, inner_name)
+            : NULL;
+        if (array_ty == NULL)
+            return llvm_collection_base_error_out(ctx, node, out,
+                "LLVM SetValues requires stable Set<Bool|Int|Long|String> element metadata");
+        tmp = llvm_create_entry_alloca(ctx, array_ty, llvm_tmp_name(ctx));
+        if (tmp == NULL)
+            return llvm_collection_base_error_out(ctx, node, out,
+                "LLVM SetValues could not allocate value array temporary");
+        LLVMBuildStore(ctx->builder, LLVMConstNull(array_ty), tmp);
+        fn = llvm_required_collection_function(ctx, node, callee_name,
+            export_name);
+        if (fn == NULL)
+            return llvm_collection_base_error_out(ctx, node, out,
+                "LLVM SetValues requires registered runtime function");
+        {
+            LLVMValueRef args[] = {
+                LLVMBuildBitCast(ctx->builder, set_var.alloca,
+                    ctx->type_i8ptr, llvm_tmp_name(ctx)),
+                LLVMBuildBitCast(ctx->builder, tmp, ctx->type_i8ptr,
+                    llvm_tmp_name(ctx))
+            };
+            LLVMBuildCall2(ctx->builder, fn->fn_type, fn->fn, args, 2, "");
+            *out = LLVMBuildLoad2(ctx->builder, array_ty, tmp,
                                   llvm_tmp_name(ctx));
             return true;
         }

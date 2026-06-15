@@ -13,7 +13,6 @@
 #include "../common/string_compat.h"
 #include "../parser/ast_api.h"
 #include "../semantic/diag_codes.h"
-#include "codegen_hashmap_key_policy.h"
 #include "transpiler_collection_runtime_suffix.h"
 #include "transpiler_context.h"
 #include "transpiler_decl_lookup.h"
@@ -44,6 +43,7 @@ typedef enum {
     TRANSPILER_COLLECTION_OP_SET_NEW,
     TRANSPILER_COLLECTION_OP_SET_REMOVE,
     TRANSPILER_COLLECTION_OP_SET_SIZE,
+    TRANSPILER_COLLECTION_OP_SET_VALUES,
 } TranspilerCollectionOp;
 
 typedef struct {
@@ -64,6 +64,7 @@ static const TranspilerCollectionSpec kTranspilerCollectionSpecs[] = {
     {"SetNew", (size_t)-1, TRANSPILER_COLLECTION_OP_SET_NEW},
     {"SetRemove", 2, TRANSPILER_COLLECTION_OP_SET_REMOVE},
     {"SetSize", 1, TRANSPILER_COLLECTION_OP_SET_SIZE},
+    {"SetValues", 1, TRANSPILER_COLLECTION_OP_SET_VALUES},
 };
 
 static int
@@ -114,6 +115,16 @@ transpiler_collection_emit_arg(TranspilerCtx *ctx,
         builtin_name != NULL ? builtin_name : "(unknown)",
         role != NULL ? role : "operand");
     return NULL;
+}
+
+static bool
+transpiler_collection_stable_set_values_supported(const char *inner)
+{
+    return inner != NULL
+        && (strcmp(inner, "Bool") == 0
+            || strcmp(inner, "Int") == 0
+            || strcmp(inner, "Long") == 0
+            || strcmp(inner, "String") == 0);
 }
 
 #include "transpiler_expr_stdlib_map_builtin.h"
@@ -429,6 +440,40 @@ emit_call_stdlib_collection_builtin(const char *fn, ASTNode *call, TranspilerCtx
         char suffix_buf[128];
         collection_runtime_suffix_copy(set_inner, suffix_buf, sizeof(suffix_buf));
         char *r = strdup_fmt("pgy_set_size_%s(&%s)",
+            suffix_buf, s);
+        free(s); return r;
+    }
+    if (op == TRANSPILER_COLLECTION_OP_SET_VALUES) {
+        ASTNode *set_arg = ast_call_argument(call, 0);
+        if (!transpiler_require_c_addressable_storage(ctx, set_arg,
+                "SetValues", "Set"))
+            return NULL;
+        const char *set_type = infer_expression_type_name(ctx, set_arg);
+        char inner_buf[64];
+        const char *set_inner = NULL;
+        char *s = transpiler_collection_emit_arg(ctx, set_arg,
+            "SetValues", "set");
+        if (s == NULL)
+            return NULL;
+        if (!transpiler_require_unary_collection_type(ctx, set_type,
+                "Set", "SetValues", inner_buf, sizeof(inner_buf), &set_inner)) {
+            free(s);
+            return NULL;
+        }
+        if (!transpiler_collection_stable_set_values_supported(set_inner)) {
+            transpiler_set_backend_error_with_hints(ctx,
+                PGY_CODE_C_TYPE_UNSUPPORTED,
+                PGY_CAUSE_C_TYPE_UNSUPPORTED,
+                PGY_FIX_ANNOTATE_CONCRETE_TYPE,
+                "C backend: SetValues requires stable Set<Bool|Int|Long|String> element metadata");
+            free(s);
+            return NULL;
+        }
+        ensure_collection_specialization(ctx, "Set", set_inner);
+        ensure_collection_specialization(ctx, "Array", set_inner);
+        char suffix_buf[128];
+        collection_runtime_suffix_copy(set_inner, suffix_buf, sizeof(suffix_buf));
+        char *r = strdup_fmt("pgy_set_values_%s(&%s)",
             suffix_buf, s);
         free(s); return r;
     }

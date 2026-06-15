@@ -348,6 +348,12 @@ ensure_collection_specialization_to(TranspilerCtx *ctx, CodeBuf *dst,
             "\n/* PGY_COLLECTION_SET_%s */\n"
             "PGY_SET_DEFINE(%s, %s)\n",
             suffix, suffix, ctype);
+        if (strcmp(inner_type, "Long") == 0
+            || strcmp(inner_type, "Bool") == 0) {
+            codebuf_write(dst,
+                "PGY_SET_VALUES_DEFINE(%s, %s, %s)\n",
+                suffix, ctype, suffix);
+        }
     } else if (strcmp(kind, "Array") == 0) {
         codebuf_write(dst,
             "\n/* PGY_COLLECTION_ARRAY_%s */\n"

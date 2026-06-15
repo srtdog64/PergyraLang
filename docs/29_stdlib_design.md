@@ -79,7 +79,7 @@ import "creatures.pgy";
 
 | 이름 | 타입 | 핵심 API | 상태 |
 |------|------|----------|------|
-| **Set** | `Set<T>` | `SetNew`, `SetAdd`, `SetHas`, `SetRemove`, `SetSize` | 구현 (C/LLVM 표면 연결) |
+| **Set** | `Set<T>` | `SetNew`, `SetAdd`, `SetHas`, `SetRemove`, `SetSize`, `SetValues` | 구현 (C/LLVM 표면 연결) |
 | **Queue** | `Queue<T>` | `QueueNew`, `QueuePush`, `QueuePop`, `QueueSize`, `QueueEmpty` | 구현 |
 | **Clock** | `func` | `Now() -> Int` (ms), `Sleep(ms)` | 구현 |
 | **Format** | `func` | `Format(template, args...)` | 미래 |
@@ -232,6 +232,7 @@ let has: Bool = MapHas(inventory, "shield");  // false
 현재 구현 메모:
 - `MapNew`, `MapSet`, `MapGet`, `MapHas`, `MapRemove`, `MapSize`는 연결돼 있다.
 - `MapKeys`는 현재 `HashMap<String, T>` / `HashMap<Int, T>` / `HashMap<Long, T>` / `HashMap<Bool, T>` stable subset에 대해 각각 `Array<String>` / `Array<Int>` / `Array<Long>` / `Array<Bool>`를 반환한다. 반환 배열은 해시 버킷 순서가 아니라 안정 정렬된 owned snapshot이다: 문자열은 사전순, 정수/Long은 오름차순, Bool은 `false`, `true` 순서다.
+- `SetValues`는 현재 `Set<String>` / `Set<Int>` / `Set<Long>` / `Set<Bool>` stable subset에 대해 각각 `Array<String>` / `Array<Int>` / `Array<Long>` / `Array<Bool>`를 반환한다. 반환 배열은 삽입/버킷 순서가 아니라 `MapKeys`와 같은 안정 정렬된 owned snapshot이다.
 
 ## List 설계
 

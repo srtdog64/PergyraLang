@@ -193,6 +193,8 @@ static int pgy_array_sort_export_cmp_Double(const void *a, const void *b)
   return (x > y) - (x < y); }
 static int pgy_array_sort_export_cmp_String(const void *a, const void *b)
 { return strcmp(*(const char *const *)a, *(const char *const *)b); }
+static int pgy_array_sort_export_cmp_Bool(const void *a, const void *b)
+{ return (int)(*(const bool *)a) - (int)(*(const bool *)b); }
 
 void pgy_array_sort_Int(int32_t *arr, size_t n)
 { if (n > 1) qsort(arr, n, sizeof(int32_t), pgy_array_sort_export_cmp_Int); }
@@ -204,21 +206,8 @@ void pgy_array_sort_Double(double *arr, size_t n)
 { if (n > 1) qsort(arr, n, sizeof(double), pgy_array_sort_export_cmp_Double); }
 void pgy_array_sort_String(char **arr, size_t n)
 { if (n > 1) qsort(arr, n, sizeof(char *), pgy_array_sort_export_cmp_String); }
-
-static void
-pgy_map_keys_sort_bool_export(PgyArray_Bool *out)
-{
-    size_t false_count = 0;
-
-    if (out == NULL || out->data == NULL || out->length <= 1)
-        return;
-    for (size_t i = 0; i < out->length; i++) {
-        if (!out->data[i])
-            false_count++;
-    }
-    for (size_t i = 0; i < out->length; i++)
-        out->data[i] = i >= false_count;
-}
+void pgy_array_sort_Bool(bool *arr, size_t n)
+{ if (n > 1) qsort(arr, n, sizeof(bool), pgy_array_sort_export_cmp_Bool); }
 
 void
 pgy_map_keys_raw_export(void *map_ptr, void *out_array_ptr)
@@ -358,5 +347,5 @@ pgy_map_keys_raw_bool_export(void *map_ptr, void *out_array_ptr)
         }
         pgy_array_push_Bool(out, parsed);
     }
-    pgy_map_keys_sort_bool_export(out);
+    pgy_array_sort_Bool(out->data, out->length);
 }

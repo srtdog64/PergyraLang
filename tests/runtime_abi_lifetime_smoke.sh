@@ -192,6 +192,7 @@ concat_runtime_text "$llvm_text" \
     "src/runtime/pgy_runtime_lib_secure_slot_exports.h" \
     "src/runtime/pgy_runtime_lib_device_slot_exports.h" \
     "src/runtime/pgy_runtime_lib_array_map_exports.h" \
+    "src/runtime/pgy_runtime_lib_array_set_exports.h" \
     "src/runtime/pgy_runtime_lib_io_string_exports.h" \
     "src/runtime/pgy_runtime_lib_std_exports.h" \
     "src/runtime/pgy_runtime_lib_channel_quantum_exports.h" \
@@ -204,6 +205,7 @@ concat_runtime_text "$inline_string_text" \
 concat_runtime_text "$llvm_string_text" \
     "src/runtime/pgy_runtime_lib_slot_array_io_string_exports.h" \
     "src/runtime/pgy_runtime_lib_array_map_exports.h" \
+    "src/runtime/pgy_runtime_lib_array_set_exports.h" \
     "src/runtime/pgy_runtime_lib_io_string_exports.h" \
     "src/runtime/pgy_runtime_lib_std_exports.h" \
     "src/runtime/pgy_runtime_lib_channel_quantum_exports.h"
@@ -402,6 +404,15 @@ grep -Fq '{ "StringSplit", ctx->array_type_String,' \
 grep -Fq "dup_key = pgy_runtime_strdup" \
     "$ROOT_DIR/src/runtime/pgy_runtime_map_string_inline.h" ||
     fail "inline MapKeys<String> must duplicate keys before pushing into Array<String>"
+grep -Fq "dup_value = pgy_runtime_strdup" \
+    "$ROOT_DIR/src/runtime/pgy_runtime_list_set_inline.h" ||
+    fail "inline SetValues<String> must duplicate values before pushing into Array<String>"
+for term in \
+    "pgy_set_values_raw_string_export" \
+    "pgy_array_push_String(out, value != NULL ? value : \"\")"; do
+    grep -Fq "$term" "$ROOT_DIR/src/runtime/pgy_runtime_lib_array_set_exports.h" ||
+        fail "LLVM SetValues<String> must keep result-owned string values; missing $term"
+done
 
 file_open_body="$(extract_function_body "$llvm_string_text" pgy_try_file_open_result)"
 file_close_body="$(extract_function_body "$llvm_string_text" pgy_file_close)"

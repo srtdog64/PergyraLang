@@ -391,6 +391,32 @@ static inline int32_t pgy_set_size_string(PgySet_String *s)
     return PGY_RUNTIME_STRING_SET_IS_INITIALIZED(s) ? (int32_t)s->count : 0;
 }
 
+static inline PgyArray_String pgy_set_values_string(PgySet_String *s)
+{
+    PgyArray_String out = pgy_array_new_String(s != NULL ? s->count : 0);
+
+    if (s == NULL) {
+        pgy_runtime_warn_invalid_collection("set_values_string", "null set");
+        return out;
+    }
+    if (!PGY_RUNTIME_STRING_SET_IS_INITIALIZED(s) || s->count == 0)
+        return out;
+    for (size_t i = 0; i < s->capacity; i++) {
+        char *dup_value;
+        if (s->occupied[i] != PGY_SET_INLINE_LIVE || s->keys[i] == NULL)
+            continue;
+        dup_value = pgy_runtime_strdup(s->keys[i]);
+        if (dup_value == NULL) {
+            pgy_runtime_warn_invalid_collection("set_values_string",
+                "value duplication failed");
+            continue;
+        }
+        pgy_array_push_String(&out, dup_value);
+    }
+    pgy_array_sort_String(out.data, out.length);
+    return out;
+}
+
 /* =================================================================
  * Set<T> — Generic hash set macro (value-based, no string conversion)
  *
@@ -521,8 +547,28 @@ static inline void pgy_set_remove_##SuffixName(PgySet_##SuffixName *s, CType val
 static inline int32_t pgy_set_size_##SuffixName(PgySet_##SuffixName *s) \
 { return PGY_RUNTIME_SET_IS_INITIALIZED(s, CType) ? (int32_t)s->count : 0; }
 
+#define PGY_SET_VALUES_DEFINE(SetSuffixName, CType, ArraySuffixName) \
+static inline PgyArray_##ArraySuffixName pgy_set_values_##SetSuffixName(PgySet_##SetSuffixName *s) \
+{ \
+    PgyArray_##ArraySuffixName out = pgy_array_new_##ArraySuffixName(s != NULL ? s->count : 0); \
+    if (s == NULL) { \
+        pgy_runtime_warn_invalid_collection("set_values_" #SetSuffixName, "null set"); \
+        return out; \
+    } \
+    if (!PGY_RUNTIME_SET_IS_INITIALIZED(s, CType) || s->count == 0) \
+        return out; \
+    for (size_t i = 0; i < s->capacity; i++) { \
+        if (s->occupied[i] != PGY_SET_INLINE_LIVE) \
+            continue; \
+        pgy_array_push_##ArraySuffixName(&out, s->data[i]); \
+    } \
+    pgy_array_sort_##ArraySuffixName(out.data, out.length); \
+    return out; \
+}
+
 /* Pre-instantiate Set<Int> (lowercase suffix to match collection_runtime_suffix) */
 PGY_SET_DEFINE(int, int32_t)
+PGY_SET_VALUES_DEFINE(int, int32_t, Int)
 
 /* =================================================================
  * Queue<Int> — ring buffer FIFO

@@ -221,6 +221,16 @@ llvm_declare_runtime_raw_collections(LLVMGenCtx *ctx)
       LLVMTypeRef ft = LLVMFunctionType(ctx->type_void, params, 2, 0);
       LLVMValueRef fn = LLVMAddFunction(ctx->module, "pgy_map_keys_raw_bool_export", ft);
       llvm_register_function(ctx, "pgy_map_keys_raw_bool_export", fn, ft, ctx->type_void); }
+    { LLVMTypeRef params[] = { ctx->type_i8ptr, ctx->type_i8ptr };
+      LLVMTypeRef ft = LLVMFunctionType(ctx->type_void, params, 2, 0);
+      LLVMValueRef fn = LLVMAddFunction(ctx->module, "pgy_set_values_raw_i32_export", ft);
+      llvm_register_function(ctx, "pgy_set_values_raw_i32_export", fn, ft, ctx->type_void);
+      fn = LLVMAddFunction(ctx->module, "pgy_set_values_raw_i64_export", ft);
+      llvm_register_function(ctx, "pgy_set_values_raw_i64_export", fn, ft, ctx->type_void);
+      fn = LLVMAddFunction(ctx->module, "pgy_set_values_raw_bool_export", ft);
+      llvm_register_function(ctx, "pgy_set_values_raw_bool_export", fn, ft, ctx->type_void);
+      fn = LLVMAddFunction(ctx->module, "pgy_set_values_raw_string_export", ft);
+      llvm_register_function(ctx, "pgy_set_values_raw_string_export", fn, ft, ctx->type_void); }
 }
 
 #endif /* PGY_LLVM_ENABLED */

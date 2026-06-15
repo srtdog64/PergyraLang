@@ -45,6 +45,7 @@ run_literal_contract_smoke() {
         "src/runtime/pgy_runtime_lib_secure_slot_exports.h"
         "src/runtime/pgy_runtime_lib_slot_array_io_string_exports.h"
         "src/runtime/pgy_runtime_lib_array_map_exports.h"
+        "src/runtime/pgy_runtime_lib_array_set_exports.h"
         "src/runtime/pgy_runtime_panic_checked_inline.h"
         "src/runtime/pgy_parallel.h"
         "src/runtime/pgy_parallel_run.h"
@@ -424,6 +425,7 @@ for token in [
 
 export_array_text = (root / "src" / "runtime" / "pgy_runtime_lib_slot_array_io_string_exports.h").read_text(encoding="utf-8")
 export_array_text += "\n" + (root / "src" / "runtime" / "pgy_runtime_lib_array_map_exports.h").read_text(encoding="utf-8")
+export_array_text += "\n" + (root / "src" / "runtime" / "pgy_runtime_lib_array_set_exports.h").read_text(encoding="utf-8")
 for token in [
     "PGY_RUNTIME_PANIC_CLASS_OOM",
     "PGY_RUNTIME_PANIC_REASON_ALLOCATION_FAILED",
@@ -563,6 +565,7 @@ compiler_text = "\n".join([
 for token in [
     'PGY_SRC_DIR "/common/string_compat.h"',
     'PGY_RUNTIME_DIR "/pgy_runtime_lib_slot_array_io_string_exports.h"',
+    'PGY_RUNTIME_DIR "/pgy_runtime_lib_array_set_exports.h"',
     'PGY_RUNTIME_DIR "/pgy_runtime_builtin_storage_inline.h"',
     'PGY_RUNTIME_DIR "/pgy_runtime_scalar_std_inline.h"',
     'PGY_RUNTIME_DIR "/pgy_runtime_map_int_key_inline.h"',

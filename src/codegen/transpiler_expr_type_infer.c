@@ -387,17 +387,20 @@ infer_expression_type_name(TranspilerCtx *ctx, ASTNode *expr)
                 }
                 return "Unknown";
             }
-            if (op == TRANS_INFER_CALL_MAP_KEYS && argc >= 1) {
-                const char *map_type = infer_expression_type_name(ctx,
-                    arg0);
-                if (transpiler_type_name_is_hashmap(map_type)) {
-                    char key_buf[64];
-                    copy_constructed_arg_name_at(map_type, 0,
-                        key_buf, sizeof(key_buf));
-                    if (key_buf[0] == '\0')
-                        return "Unknown";
-                    return transpiler_infer_arena_format_type_name(
-                        ctx, "Array", key_buf);
+            if ((op == TRANS_INFER_CALL_MAP_KEYS
+                 || op == TRANS_INFER_CALL_SET_VALUES)
+                && argc >= 1) {
+                const char *collection_type = infer_expression_type_name(ctx, arg0);
+                char inner_buf[64];
+                if ((op == TRANS_INFER_CALL_MAP_KEYS
+                     && transpiler_type_name_is_hashmap(collection_type))
+                    || (op == TRANS_INFER_CALL_SET_VALUES
+                        && transpiler_type_name_is_set(collection_type))) {
+                    copy_constructed_arg_name_at(collection_type, 0,
+                        inner_buf, sizeof(inner_buf));
+                    return inner_buf[0] != '\0'
+                        ? transpiler_infer_arena_format_type_name(ctx, "Array", inner_buf)
+                        : "Unknown";
                 }
                 return "Unknown";
             }

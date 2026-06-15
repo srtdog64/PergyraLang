@@ -280,6 +280,17 @@ llvm_stmt_array_elem_type_from_builtin_call(LLVMGenCtx *ctx, ASTNode *expr)
     const char *elem_name = llvm_stmt_array_builtin_elem_type_name(
         ast_identifier_name(ast_call_callee(expr)));
     if (elem_name == NULL)
+    {
+        const char *callee = ast_identifier_name(ast_call_callee(expr));
+        if (strcmp(callee, "SetValues") == 0
+            && ast_call_arg_count(expr) == 1
+            && ast_call_argument(expr, 0) != NULL
+            && ast_call_argument(expr, 0)->type == AST_IDENTIFIER) {
+            elem_name = llvm_lookup_set_inner(ctx,
+                ast_identifier_name(ast_call_argument(expr, 0)));
+        }
+    }
+    if (elem_name == NULL)
         return NULL;
     return pergyra_type_to_llvm(ctx, elem_name);
 }

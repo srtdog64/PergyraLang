@@ -351,6 +351,17 @@ llvm_stmt_infer_call_expr_type(LLVMGenCtx *ctx, ASTNode *expr)
             return llvm_stmt_unknown_expr_type(ctx, expr,
                 "SliceCopy requires concrete Slice<T> operand");
         }
+        if (strcmp(callee, "SetValues") == 0
+            && ast_call_arg_count(expr) == 1
+            && ast_call_argument(expr, 0) != NULL
+            && ast_call_argument(expr, 0)->type == AST_IDENTIFIER) {
+            const char *inner = llvm_lookup_set_inner(ctx,
+                ast_identifier_name(ast_call_argument(expr, 0)));
+            if (inner != NULL)
+                return llvm_array_struct_type(ctx, inner);
+            return llvm_stmt_unknown_expr_type(ctx, expr,
+                "SetValues requires registered Set<T> metadata");
+        }
         if (llvm_stmt_call_is_slot_builtin(callee)
             && ast_call_arg_count(expr) >= 1
             && ast_call_argument(expr, 0) != NULL
