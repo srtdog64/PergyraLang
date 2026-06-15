@@ -305,16 +305,6 @@ transpiler_mir_decl_method_projection_call_method_name(
     return mir_decl_method_projection_call_method_name(method, index);
 }
 
-ASTNode *
-transpiler_mir_decl_method_body_decl(const TranspilerCtx *ctx,
-                                     const MIRDeclMethod *method)
-{
-    const MIRRoutine *routine = transpiler_mir_decl_method_routine(ctx,
-        method);
-    return mir_routine_source_decl_of_type(
-        routine, MIR_SCOPE_METHOD, AST_FUNC_DECL);
-}
-
 TranspilerHostedMethodView
 transpiler_hosted_method_view_from_decl(const TranspilerCtx *ctx,
                                         const char *host_name,

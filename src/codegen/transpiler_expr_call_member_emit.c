@@ -332,11 +332,6 @@ emit_call_member_style(ASTNode *call, ASTNode *callee, TranspilerCtx *ctx)
                     }
 
                     if (method_decl == NULL && source_slot_name != NULL
-                        && method_meta != NULL) {
-                        method_decl = transpiler_mir_decl_method_body_decl(
-                            ctx, method_meta);
-                    }
-                    if (method_decl == NULL && source_slot_name != NULL
                         && !transpiler_active_has_mir(ctx)) {
                         method_decl = find_nominal_host_method_decl(
                             ctx, owned_type_name, method);

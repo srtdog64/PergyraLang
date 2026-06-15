@@ -2828,7 +2828,7 @@ done
 if grep -RIn "mir_decl_method_source_ast(" \
         "$ROOT_DIR/src/codegen"/transpiler_*.c \
         "$ROOT_DIR/src/codegen"/transpiler_*.h; then
-    fail "C backend method body compatibility must go through transpiler_mir_decl_method_body_decl"
+    fail "C backend method body compatibility must not expose method source AST"
 fi
 if grep -Fq "mir_decl_method_source_ast(" \
         "$ROOT_DIR/src/codegen/transpiler_decl_method_view.c"; then
@@ -4270,10 +4270,12 @@ if grep -RIn "transpiler_mir_routine_source_ast(const MIRRoutine \*routine)" \
 fi
 if grep -RIn "transpiler_mir_routine_source_ast_of_type" \
         "$ROOT_DIR/src/codegen" --include='*.c' --include='*.h'; then
-    fail "C routine source provenance must use compiler-owned mir_routine_source_decl_of_type"
+    fail "C routine source provenance compatibility aliases must stay retired"
 fi
-require_term "src/codegen/transpiler_decl_method_view.c" \
-    "mir_routine_source_decl_of_type("
+if grep -RIn "mir_routine_source_decl_of_type(" \
+        "$ROOT_DIR/src/codegen" --include='*.c' --include='*.h'; then
+    fail "C backend must not recover routine source declarations in codegen"
+fi
 for rel in \
     "src/codegen/transpiler_inventory_view.c" \
     "src/codegen/transpiler_mir_emission_contract.c"; do
@@ -4585,9 +4587,7 @@ if grep -Fq "host_decl->type == AST_PARTY_DECL" \
     fail "C self-member dispatch must consume host pointer-self policy instead of repeating domain host chains"
 fi
 for term in \
-    "transpiler_find_method_metadata_in_header" \
-    "transpiler_decl_header_is_nominal_host(header)" \
-    "transpiler_active_host_decl_header(ctx, host_type_name)" \
+    "transpiler_active_has_mir(ctx)" \
     "transpiler_active_mir_identity(ctx)" \
     "pgy_host_decl_compat_is_type(owner_ast_type)" \
     "owner_ast_type, owner_name" \
@@ -4595,12 +4595,13 @@ for term in \
     "host_lookup_types[i]" \
     "AST_ROLE_DECL" \
     "transpiler_hosted_method_view_from_decl(ctx, host_type_name, decl)" \
-    "mir_decl_header_method_count(header)" \
-    "mir_decl_header_method(header, i)" \
-    "transpiler_mir_decl_method_name(method)" \
-    "transpiler_mir_decl_method_body_decl(ctx, method_meta)"; do
+    "transpiler_mir_decl_method_name(method_meta)"; do
     require_term "src/codegen/transpiler_decl_host_lookup.c" "$term"
 done
+if grep -Fq "transpiler_mir_decl_method_body_decl" \
+        "$ROOT_DIR/src/codegen/transpiler_decl_host_lookup.c"; then
+    fail "C host-method AST lookup must not recover MIR routine source declarations"
+fi
 if grep -Fq "transpiler_hosted_method_view_source_ast(&method_view, i)" \
     "$ROOT_DIR/src/codegen/transpiler_decl_host_lookup.c"; then
     fail "C host-method lookup must match method names through MIRDeclMethod metadata before compatibility AST recovery"
@@ -5206,7 +5207,6 @@ for term in \
     "transpiler_mir_decl_method_within_zone(" \
     "transpiler_mir_decl_method_causes_effect(" \
     "transpiler_mir_decl_method_routine(" \
-    "transpiler_mir_decl_method_body_decl(" \
     "transpiler_hosted_method_view_from_decl(" \
     "transpiler_hosted_method_view_missing_mir_metadata(" \
     "transpiler_hosted_class_field_view_from_decl(" \

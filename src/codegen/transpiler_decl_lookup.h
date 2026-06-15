@@ -174,9 +174,6 @@ const char *transpiler_mir_decl_method_projection_call_receiver_name(
 const char *transpiler_mir_decl_method_projection_call_method_name(
     const MIRDeclMethod *method,
     size_t index);
-ASTNode *transpiler_mir_decl_method_body_decl(
-    const TranspilerCtx *ctx,
-    const MIRDeclMethod *method);
 TranspilerHostedMethodView transpiler_hosted_method_view_from_decl(
     const TranspilerCtx *ctx,
     const char *host_name,

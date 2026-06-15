@@ -5,38 +5,10 @@
  * Host and method declaration lookup helpers for the C backend.
  */
 
-#include <stdio.h>
 #include <string.h>
 
-#include "../compiler/mir_decl_headers.h"
 #include "host_decl_compat.h"
 #include "transpiler_decl_lookup.h"
-
-static bool
-transpiler_decl_header_is_nominal_host(const MIRDeclHeader *header)
-{
-    if (header == NULL)
-        return false;
-    return transpiler_is_host_decl_type(
-        mir_decl_header_ast_type_or(header, AST_PROGRAM));
-}
-
-static const MIRDeclMethod *
-transpiler_find_method_metadata_in_header(const MIRDeclHeader *header,
-                                          const char *method_name)
-{
-    if (header == NULL || method_name == NULL)
-        return NULL;
-
-    for (size_t i = 0; i < mir_decl_header_method_count(header); i++) {
-        const MIRDeclMethod *method = mir_decl_header_method(header, i);
-        const char *name = transpiler_mir_decl_method_name(method);
-        if (name != NULL && strcmp(name, method_name) == 0)
-            return method;
-    }
-
-    return NULL;
-}
 
 static bool
 transpiler_cache_name(char *dst, size_t dst_size, const char *src)
@@ -218,21 +190,15 @@ current_host_method_decl(TranspilerCtx *ctx, const char *method_name)
 {
     ASTNode *decl = NULL;
     const char *host_name = NULL;
-    const MIRDeclHeader *header = NULL;
     TranspilerHostedMethodView method_view;
 
     if (ctx == NULL || method_name == NULL)
         return NULL;
+    if (transpiler_active_has_mir(ctx))
+        return NULL;
 
     decl = transpiler_current_host_decl_local(ctx);
     host_name = transpiler_decl_name_local(decl);
-    header = transpiler_active_host_decl_header(ctx, host_name);
-    if (transpiler_decl_header_is_nominal_host(header)) {
-        const MIRDeclMethod *method_meta =
-            transpiler_find_method_metadata_in_header(header, method_name);
-        return transpiler_mir_decl_method_body_decl(ctx, method_meta);
-    }
-
     method_view = transpiler_hosted_method_view_from_decl(ctx, host_name, decl);
 
     for (size_t i = 0; i < method_view.count; i++) {
@@ -244,7 +210,7 @@ current_host_method_decl(TranspilerCtx *ctx, const char *method_name)
             candidate_name = transpiler_mir_decl_method_name(method_meta);
             if (candidate_name != NULL
                 && strcmp(candidate_name, method_name) == 0) {
-                return transpiler_mir_decl_method_body_decl(ctx, method_meta);
+                return NULL;
             }
             continue;
         }
@@ -267,11 +233,11 @@ find_nominal_host_method_decl(TranspilerCtx *ctx, const char *host_type_name,
                               const char *method_name)
 {
     ASTNode *decl = NULL;
-    const MIRDeclHeader *header = NULL;
-    ASTNode *method_from_mir = NULL;
     TranspilerHostedMethodView method_view;
 
     if (ctx == NULL || host_type_name == NULL || method_name == NULL)
+        return NULL;
+    if (transpiler_active_has_mir(ctx))
         return NULL;
 
     if (ctx->last_nominal_method_decl != NULL
@@ -279,19 +245,6 @@ find_nominal_host_method_decl(TranspilerCtx *ctx, const char *host_type_name,
         && strcmp(ctx->last_nominal_method_host_name, host_type_name) == 0
         && strcmp(ctx->last_nominal_method_name, method_name) == 0) {
         return ctx->last_nominal_method_decl;
-    }
-
-    header = transpiler_active_host_decl_header(ctx, host_type_name);
-    if (transpiler_decl_header_is_nominal_host(header)) {
-        const MIRDeclMethod *method_meta =
-            transpiler_find_method_metadata_in_header(header, method_name);
-        method_from_mir = transpiler_mir_decl_method_body_decl(ctx,
-            method_meta);
-        if (method_from_mir == NULL)
-            return NULL;
-        transpiler_cache_nominal_method_decl(ctx, host_type_name,
-            method_name, method_from_mir);
-        return method_from_mir;
     }
 
     decl = transpiler_find_nominal_host_decl_local(ctx, host_type_name);
@@ -306,13 +259,7 @@ find_nominal_host_method_decl(TranspilerCtx *ctx, const char *host_type_name,
             candidate_name = transpiler_mir_decl_method_name(method_meta);
             if (candidate_name != NULL
                 && strcmp(candidate_name, method_name) == 0) {
-                method = transpiler_mir_decl_method_body_decl(ctx,
-                    method_meta);
-                if (method == NULL)
-                    return NULL;
-                transpiler_cache_nominal_method_decl(ctx, host_type_name,
-                    method_name, method);
-                return method;
+                return NULL;
             }
             continue;
         }
