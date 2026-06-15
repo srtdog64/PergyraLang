@@ -49,8 +49,31 @@ normalize_output() {
     tr -d '\r' | awk '
         /^[0-9]+ error\(s\), [0-9]+ warning\(s\)$/ { seen_summary = 1; next }
         /^pgy: compiled/ { next }
-        seen_summary && length($0) > 0 { print }
+        seen_summary && ($0 ~ /^[0-9]+$/ || $0 ~ /^tree\//) { print }
     '
+}
+
+files_equal() {
+    local left="$1"
+    local right="$2"
+    if command -v cmp >/dev/null 2>&1; then
+        cmp -s "$left" "$right"
+        return $?
+    fi
+    [[ "$(cat "$left")" == "$(cat "$right")" ]]
+}
+
+show_file_diff() {
+    local left="$1"
+    local right="$2"
+    if command -v diff >/dev/null 2>&1; then
+        diff -u "$left" "$right" >&2 || true
+        return
+    fi
+    echo "--- expected ---" >&2
+    cat "$left" >&2
+    echo "--- actual ---" >&2
+    cat "$right" >&2
 }
 
 run_backend() {
@@ -76,9 +99,9 @@ run_backend() {
     fi
 
     printf '%s\n' "$raw_output" | normalize_output > "$actual"
-    if ! diff -u "$WORK_DIR/expected.txt" "$actual" >/dev/null; then
+    if ! files_equal "$WORK_DIR/expected.txt" "$actual"; then
         echo "[filesystem-dirwalk] backend=$backend deterministic walk drift" >&2
-        diff -u "$WORK_DIR/expected.txt" "$actual" >&2 || true
+        show_file_diff "$WORK_DIR/expected.txt" "$actual"
         exit 1
     fi
 

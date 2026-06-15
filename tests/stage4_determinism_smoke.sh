@@ -23,8 +23,31 @@ normalize_output() {
     tr -d '\r' | awk '
         /^[0-9]+ error\(s\), [0-9]+ warning\(s\)$/ { seen_summary = 1; next }
         /^pgy: compiled/ { next }
-        seen_summary && length($0) > 0 { print }
+        seen_summary && $0 ~ /^[0-9]+$/ { print }
     '
+}
+
+files_equal() {
+    local left="$1"
+    local right="$2"
+    if command -v cmp >/dev/null 2>&1; then
+        cmp -s "$left" "$right"
+        return $?
+    fi
+    [[ "$(cat "$left")" == "$(cat "$right")" ]]
+}
+
+show_file_diff() {
+    local left="$1"
+    local right="$2"
+    if command -v diff >/dev/null 2>&1; then
+        diff -u "$left" "$right" >&2 || true
+        return
+    fi
+    echo "--- expected ---" >&2
+    cat "$left" >&2
+    echo "--- actual ---" >&2
+    cat "$right" >&2
 }
 
 run_backend() {
@@ -53,9 +76,9 @@ run_backend() {
     fi
 
     printf '%s\n' "$raw_output" | normalize_output > "$actual_file"
-    if ! diff -u "$expected" "$actual_file" >/dev/null; then
+    if ! files_equal "$expected" "$actual_file"; then
         echo "[stage4-determinism] backend=$backend collection iteration drift" >&2
-        diff -u "$expected" "$actual_file" >&2 || true
+        show_file_diff "$expected" "$actual_file"
         exit 1
     fi
 

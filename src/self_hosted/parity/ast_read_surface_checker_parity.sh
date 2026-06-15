@@ -41,7 +41,7 @@ for path in "$PERGYRA_TOOL_SOURCE" "$EXPECTED_JSON_FILE" "$RATCHET_FILE"; do
     fi
 done
 
-"$ROOT_DIR/tests/ast_read_surface_smoke.sh" >/dev/null
+bash "$ROOT_DIR/tests/ast_read_surface_smoke.sh" >/dev/null
 
 mkdir -p "$PERGYRA_TOOL_BUILD_DIR"
 cp "$PERGYRA_TOOL_SOURCE" "$PERGYRA_TOOL"
