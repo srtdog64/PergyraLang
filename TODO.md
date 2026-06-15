@@ -9260,39 +9260,32 @@ substring scanning are expected to extend `lib/text_scan.pgy` (e.g.
 `ExtractIntField`, `ExtractDelimitedLiteral`, `ExtractLinkPath` are
 candidates for the next consumer to lift).
 
-**Self-host eighth tool (2026-05-27):** `production_header_size_checker`
-under `src/self_hosted/tools/`. Reads a committed
-`fixture/headers_manifest.txt` (489 production `.h` paths produced by
-`find src/codegen src/runtime src/compiler src/semantic src/parser src/lsp
--name '*.h' -type f | sort`), iterates each line, `ReadFile`s the header
-content, counts newlines via `Split + ArrayLength - trailing-empty`
-adjustment to mirror `wc -l`, and asserts each header is `<= 600` LOC.
-Emits `pgy.selfhost.production-header-size.v1` with
-`headers=489 violations=0 max_lines=578` on the clean repo. Parity rung 2
+**Self-host eighth tool (2026-05-27; inventory owner updated
+2026-06-15):** `production_header_size_checker` under
+`src/self_hosted/tools/`. It originally proved the per-file-I/O loop through a
+committed file list; the current contract is DirWalk-owned. The tool calls
+`DirWalk("src")`, filters the same production header scope as
+`tests/production_header_size_smoke.sh`, `ReadFile`s each header, counts
+newlines through `TextScan.CountLines`, and asserts each header is `<= 600`
+LOC. It emits `pgy.selfhost.production-header-size.v1` with
+`headers=540 violations=0 max_lines=596` on the clean repo. Parity rung 2
 asserts: clean exit, JSON byte-equal vs `expected/clean.json`,
-`headers/violations/max_lines` parity vs shell `wc -l` ground truth, and
-a synthetic over-cap fixture (701-line generated `.h` appended to a tmp
-manifest) yields `rc=1` with a `"kind":"header_over_cap"` finding
-carrying the synthetic path. The scaffold smoke now gates 8 tools.
-**New pattern**: manifest-driven per-file-I/O loop -- the 489-header
-manifest stress-tests `for line in lines` + `ReadFile` at realistic
-scale and proves the Pergyra surface scales beyond single-file tools.
-This is the first Pergyra origin tool that performs hundreds of
-`ReadFile` calls per invocation.
+`headers/violations/max_lines` parity vs shell `find + wc -l` ground truth, and
+a synthetic 701-line `.h` under `src/runtime` yields `rc=1` with a
+`"kind":"header_over_cap"` finding carrying the synthetic path.
 
-**Self-host ninth tool (2026-05-27):** `production_c_size_checker`
-under `src/self_hosted/tools/`. Sister to tool 8 -- same manifest-driven
-shape, but covering production `.c` translation units against the same
-600-LOC cap. Reads `fixture/c_files_manifest.txt` (793 paths produced by
-`find src/codegen src/runtime src/compiler src/semantic src/parser src/lsp
--name '*.c' -type f | sort`). Emits
-`pgy.selfhost.production-c-size.v1` with `c_files=793 violations=0
-max_lines=548` on the clean repo. Parity rung 2 asserts: clean exit,
-JSON byte-equal, `c_files/violations/max_lines` parity vs `wc -l` shell,
-and a synthetic 701-line over-cap fixture yields `rc=1` with a
-`"kind":"c_over_cap"` finding carrying the synthetic path. This was the
-ninth tool; the tenth tool later lifted the duplicated `CountLines` helper
-from tools 8 and 9 into `lib/text_scan.pgy`.
+**Self-host ninth tool (2026-05-27; inventory owner updated 2026-06-15):**
+`production_c_size_checker` under `src/self_hosted/tools/`. Sister to tool 8,
+but covering production `.c` translation units against the 699-LOC hard cap.
+The current contract is DirWalk-owned: it calls `DirWalk("src")`, filters the
+same production `.c` scope as `tests/test_inc_size_smoke.sh`, and emits
+`pgy.selfhost.production-c-size.v1` with `c_files=860 violations=0
+max_lines=699` on the clean repo. Parity rung 2 asserts: clean exit,
+JSON byte-equal, `c_files/violations/max_lines` parity vs shell `find + wc -l`,
+and a synthetic 1001-line `.c` under `src/runtime` yields `rc=1` with a
+`"kind":"c_over_cap"` finding carrying the synthetic path. This was the ninth
+tool; the tenth tool later lifted the duplicated `CountLines` helper from
+tools 8 and 9 into `lib/text_scan.pgy`.
 
 **Self-host status snapshot (2026-05-27, after 9 tools):** The Pergyra
 origin surface shipped 9 compiler-adjacent tools (catalog / section /
@@ -9305,21 +9298,23 @@ self-host preparation gate. This snapshot is superseded by the 10-tool snapshot
 below, but records the point where production C-size checking landed.
 
 **Self-host tenth tool + CountLines lib lift (2026-05-27):**
-`examples_inventory_checker` under `src/self_hosted/tools/`. Reads
-`fixture/examples_manifest.txt` (117 paths from
-`find examples -maxdepth 1 -name '*.pgy' -type f | sort`), iterates
-each, asserts `FileExists` + `TextScan.CountLines(content) > 0`.
+`examples_inventory_checker` under `src/self_hosted/tools/`. The original
+version read a committed file list; the current 2026-06-15 contract is
+DirWalk-owned. It calls `DirWalk("examples")`, filters top-level `.pgy` files,
+and asserts the expected count plus `TextScan.CountLines(content) > 0`.
 Emits `pgy.selfhost.examples-inventory.v1` with
-`examples=117 missing=0 empty=0 max_lines=544` on the clean repo.
+`examples=118 missing=0 empty=0 max_lines=544` on the clean repo.
 **Third consumer of `TextScan.CountLines`**, which triggered the lift
 of `CountLines` from inline duplicates in tools 8 and 9 into
 `src/self_hosted/lib/text_scan.pgy`. Tools 8 and 9 now `import
 "../../lib/text_scan.pgy"` and their parity scripts mirror the lib
 into `.tmp/lib/`. All 10 parity scripts green; scaffold gates 10
-tools. Total live scans per smoke pass: 1 catalog, 1 manifest, 1
+tools. The old 10-tool snapshot counted 1 catalog, 1 manifest, 1
 AIR JSON, 1 paired diff, 1 JSON manifest, 2 stdlib source files, 1
 doc index, 489 production headers, 793 production C files, 117
-examples -- 1406 file reads from the full self-host preparation gate.
+examples -- 1406 file reads from the full self-host preparation gate; current
+self-host preparation has 12 tools and the example/production inventories are
+DirWalk-owned rather than file-list owned.
 
 **Self-host Make-gate substitution (2026-05-27, BDFL direction shift):**
 The BDFL course-corrected the loop's focus from "build more peripheral
