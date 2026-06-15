@@ -354,6 +354,17 @@ bool transpiler_mir_decl_field_is_tobject_like(const MIRDeclField *field);
 ASTNode *transpiler_find_named_decl_local(TranspilerCtx *ctx,
                                           ASTNodeType decl_type,
                                           const char *name);
+bool transpiler_decl_exists_local(TranspilerCtx *ctx,
+                                  ASTNodeType decl_type,
+                                  const char *name);
+bool transpiler_function_decl_exists_local(TranspilerCtx *ctx,
+                                           const char *function_name);
+bool transpiler_callable_decl_exists_local(TranspilerCtx *ctx,
+                                           const char *name);
+bool transpiler_projection_nominal_decl_exists_local(TranspilerCtx *ctx,
+                                                     const char *name);
+bool transpiler_domain_constructor_decl_exists_local(TranspilerCtx *ctx,
+                                                    const char *name);
 ASTNode *find_role_decl(TranspilerCtx *ctx, const char *role_name);
 ASTNode *find_function_decl(TranspilerCtx *ctx, const char *function_name);
 bool transpiler_decl_is_extern_function(const TranspilerCtx *ctx,

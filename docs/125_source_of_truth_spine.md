@@ -218,12 +218,19 @@ Current beta closure snapshot:
   `llvm_find_intent_decl(...)`, and `llvm_find_callable_decl(...)`. Call
   dispatch consumes the callable owner once and then branches on the returned
   declaration kind; it must not rediscover function and intent declarations
-  separately. Boundary projection helpers may lower boundary call arguments,
-  but they must not own function/intent declaration recovery.
+  separately. Existence-only consumers use the header-backed
+  `llvm_*_decl_exists(...)` seams from the same owner, or
+  `llvm_decl_exists_in_context(...)` for a single declaration kind; they must
+  not recover origin AST declarations just to test presence. Boundary
+  projection helpers may lower boundary call arguments, but they must not own
+  function/intent declaration recovery.
 - C callable declaration lookup lives behind `find_callable_decl(...)`.
   User-call emission, expression type inference, and MIR local call-type
   inference consume that owner once and then branch on the returned declaration
-  kind. They must not reopen separate function/intent lookup chains.
+  kind. Existence-only C consumers use
+  `transpiler_*_decl_exists_local(...)` and stay on MIR declaration headers in
+  MIR-active paths. They must not reopen separate function/intent lookup chains
+  or recover source declarations just to test presence.
 - LLVM current-function declaration context lives in `LLVMGenCtx.current_func_decl`.
   Helpers that need the declaration of the function currently being emitted
   consume that field; they must not recover it by reading

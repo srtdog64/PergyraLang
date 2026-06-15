@@ -805,6 +805,16 @@ if ! awk '
     missing=1
 fi
 
+if ! awk '
+    /^AIR_CORE_OBJECTS[[:space:]]*=/ { in_air = 1 }
+    /^MIR_CORE_OBJECTS[[:space:]]*=/ { in_air = 0 }
+    in_air && /\$\(BUILD_DIR\)\/compiler\/mir_decl_header_access[.]o/ { found = 1 }
+    END { exit found ? 0 : 1 }
+' "$ROOT_DIR/Makefile"; then
+    echo "[build-source-inventory] MIR declaration header accessor object is not linked by AIR_CORE_OBJECTS" >&2
+    missing=1
+fi
+
 if ! grep -Fq '#include "transpiler_expr_party_instance_emit.h"' \
     "$ROOT_DIR/src/codegen/transpiler_expr_emitters.h"; then
     echo "[build-source-inventory] party-instance expression emitter is not linked by the C expression emitter include chain" >&2

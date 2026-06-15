@@ -1,7 +1,7 @@
 # Self-Host Status (verified snapshot)
 
-Branch codex/sot-selfhost-closure. This snapshot records what is verified to
-self-host right now, measured by building pgy and running
+Branch main. This snapshot records what is verified to self-host right now,
+measured by building pgy and running
 `make self-host-preparation-test-smoke` on 2026-06-15. The gate runs the
 self-hosted tools on C/LLVM where applicable and keeps the C compiler as the
 oracle.
@@ -46,6 +46,10 @@ Single source of truth (capability 5) is nearly closed.
 - C/LLVM role-slot ability tag rendering fills omitted generic actuals from
   `MIRDeclHeader` generic metadata instead of ability source declarations in
   MIR-active paths.
+- C/LLVM declaration existence checks that only need a yes/no answer now use
+  header-backed `*_decl_exists*` seams in MIR-active paths. They no longer
+  recover origin AST declarations just to test class, enum, function, intent,
+  callable, or constructor presence.
 - C projection literal/source-path lowering has a by-name MIR header path for
   ToTObject, projection-borrow materialization, member access, and domain
   provenance refresh; the central declaration-header source_decl compatibility

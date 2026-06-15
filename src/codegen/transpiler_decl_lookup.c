@@ -140,6 +140,28 @@ transpiler_find_named_decl_local(TranspilerCtx *ctx, ASTNodeType decl_type,
     return NULL;
 }
 
+bool
+transpiler_decl_exists_local(TranspilerCtx *ctx, ASTNodeType decl_type,
+                             const char *name)
+{
+    ASTNode **decls = NULL;
+    size_t decl_count = 0;
+
+    if (ctx == NULL || name == NULL)
+        return false;
+    if (transpiler_active_has_mir(ctx)) {
+        return transpiler_active_decl_header_of_type(ctx, decl_type, name)
+            != NULL;
+    }
+
+    transpiler_active_inventory(ctx, decl_type, &decls, &decl_count);
+    for (size_t i = 0; decls != NULL && i < decl_count; i++) {
+        if (transpiler_named_decl_matches(decls[i], decl_type, name))
+            return true;
+    }
+    return false;
+}
+
 const MIRDeclField *
 transpiler_find_decl_field_metadata(const TranspilerCtx *ctx,
                                     const char *host_name,
@@ -208,6 +230,17 @@ find_function_decl(TranspilerCtx *ctx, const char *function_name)
 }
 
 bool
+transpiler_function_decl_exists_local(TranspilerCtx *ctx,
+                                      const char *function_name)
+{
+    if (ctx == NULL || function_name == NULL)
+        return false;
+    if (transpiler_decl_exists_local(ctx, AST_FUNC_DECL, function_name))
+        return true;
+    return find_extern_function_decl(ctx, function_name) != NULL;
+}
+
+bool
 transpiler_decl_is_extern_function(const TranspilerCtx *ctx,
                                    const ASTNode *decl)
 {
@@ -248,6 +281,15 @@ find_callable_decl(TranspilerCtx *ctx, const char *name)
     return find_intent_decl(ctx, name);
 }
 
+bool
+transpiler_callable_decl_exists_local(TranspilerCtx *ctx, const char *name)
+{
+    if (ctx == NULL || name == NULL)
+        return false;
+    return transpiler_function_decl_exists_local(ctx, name)
+        || transpiler_decl_exists_local(ctx, AST_INTENT_DECL, name);
+}
+
 ASTNode *
 find_party_decl(TranspilerCtx *ctx, const char *party_name)
 {
@@ -277,6 +319,13 @@ transpiler_find_projection_nominal_decl_local(TranspilerCtx *ctx,
                                               const char *name)
 {
     return transpiler_find_named_decl_local(ctx, AST_CLASS_DECL, name);
+}
+
+bool
+transpiler_projection_nominal_decl_exists_local(TranspilerCtx *ctx,
+                                                const char *name)
+{
+    return transpiler_decl_exists_local(ctx, AST_CLASS_DECL, name);
 }
 
 ASTNode *
@@ -392,6 +441,27 @@ transpiler_find_domain_constructor_decl_local(TranspilerCtx *ctx,
             return decl;
     }
     return NULL;
+}
+
+bool
+transpiler_domain_constructor_decl_exists_local(TranspilerCtx *ctx,
+                                                const char *name)
+{
+    const ASTNodeType *constructor_types = NULL;
+    size_t constructor_type_count = 0;
+
+    if (ctx == NULL || name == NULL)
+        return false;
+
+    constructor_types =
+        pgy_host_decl_compat_constructor_domain_types(
+            &constructor_type_count);
+    for (size_t i = 0; constructor_types != NULL
+         && i < constructor_type_count; i++) {
+        if (transpiler_decl_exists_local(ctx, constructor_types[i], name))
+            return true;
+    }
+    return false;
 }
 
 bool

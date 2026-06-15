@@ -178,6 +178,9 @@ metadata instead of reopening class destructure AST in MIR-active paths.
 C/LLVM role-slot ability tag rendering now fills omitted generic actuals from
 `MIRDeclHeader` generic metadata instead of reopening ability source
 declarations in MIR-active paths.
+C/LLVM declaration existence checks that only need a yes/no result now consume
+header-backed existence seams in MIR-active paths, so class/enum/function/
+intent/callable/constructor presence no longer recovers origin AST declarations.
 The remaining work is removal of the
 declaration-header source_decl compatibility boundary and the compiler-side
 declaration header back-pointer after compatibility lookup stops returning

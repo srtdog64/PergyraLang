@@ -22,7 +22,8 @@ emit_call(ASTNode *call, TranspilerCtx *ctx)
         const char *callee_name = ast_identifier_name(callee);
         bk = builtin_resolve(callee_name);
         if ((bk == BUILTIN_BOX || bk == BUILTIN_RC_NEW)
-            && find_class_decl(ctx, callee_name) != NULL) {
+            && transpiler_projection_nominal_decl_exists_local(
+                ctx, callee_name)) {
             bk = BUILTIN_NOT_BUILTIN;
         }
     }

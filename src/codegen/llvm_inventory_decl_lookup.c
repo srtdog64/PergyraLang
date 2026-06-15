@@ -114,6 +114,34 @@ llvm_find_decl_in_active_inventory(const LLVMGenCtx *ctx,
 }
 
 bool
+llvm_decl_exists_in_context(const LLVMGenCtx *ctx,
+                            ASTNodeType decl_type,
+                            const char *name)
+{
+    ASTNode **nodes = NULL;
+    size_t count = 0;
+
+    if (ctx == NULL || name == NULL)
+        return false;
+    if (ctx->mir != NULL) {
+        return mir_find_decl_header_of_type(ctx->mir, decl_type, name)
+            != NULL;
+    }
+
+    llvm_active_inventory(ctx, decl_type, &nodes, &count);
+    for (size_t i = 0; i < count; i++) {
+        ASTNode *node = nodes != NULL ? nodes[i] : NULL;
+        const char *node_name;
+        if (node == NULL || node->type != decl_type)
+            continue;
+        node_name = llvm_decl_node_name(node);
+        if (node_name != NULL && strcmp(node_name, name) == 0)
+            return true;
+    }
+    return false;
+}
+
+bool
 llvm_param_is_implicit_self(const FuncParam *param)
 {
     return param != NULL

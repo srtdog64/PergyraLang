@@ -6,6 +6,7 @@
 #include <stdio.h>
 #include <string.h>
 
+#include "llvm_domain_lookup.h"
 #include "llvm_internal_api.h"
 #include "llvm_inventory_decl_lookup.h"
 #include "llvm_inventory_host_methods.h"
@@ -101,7 +102,7 @@ llvm_emit_hosted_self_call(ASTNode *node, LLVMGenCtx *ctx,
             callee_name);
         if (llvm_active_has_mir(ctx)) {
             if (host_method == NULL
-                && llvm_find_callable_decl(ctx, callee_name) != NULL) {
+                && llvm_callable_decl_exists(ctx, callee_name)) {
                 return NULL;
             }
             llvm_set_mir_inventory_missing(ctx,

@@ -71,7 +71,7 @@ transpiler_can_forward_declare_type_name_early(TranspilerCtx *ctx,
         return true;
     if (transpiler_forward_type_name_is_allowed(type_name))
         return true;
-    return find_class_decl(ctx, type_name) != NULL;
+    return transpiler_decl_exists_local(ctx, AST_CLASS_DECL, type_name);
 }
 
 bool

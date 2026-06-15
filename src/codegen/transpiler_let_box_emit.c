@@ -230,7 +230,8 @@ transpiler_try_emit_box_or_rc_let(TranspilerCtx *ctx,
     callee_name = ast_identifier_name(ast_call_callee(init));
     TranspilerBoxLetOp op = transpiler_box_let_lookup(callee_name);
     if ((op != TRANS_BOX_LET_OP_BOX && op != TRANS_BOX_LET_OP_RC)
-        || find_class_decl(ctx, callee_name) != NULL) {
+        || transpiler_projection_nominal_decl_exists_local(
+            ctx, callee_name)) {
         return false;
     }
 

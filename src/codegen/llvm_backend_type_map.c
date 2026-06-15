@@ -10,6 +10,7 @@
 #include "llvm_backend.h"
 #include "llvm_backend_type_map_internal.h"
 #include "llvm_internal.h"
+#include "llvm_inventory_decl_lookup.h"
 #include "../compiler/mir_decl_headers.h"
 #include <stdio.h>
 #include <stdlib.h>
@@ -613,7 +614,7 @@ pergyra_type_to_llvm(LLVMGenCtx *ctx, const char *type_name)
     if (cls != NULL)
         return cls->struct_type;
 
-    if (llvm_find_enum_decl(ctx, type_name) != NULL)
+    if (llvm_decl_exists_in_context(ctx, AST_ENUM_DECL, type_name))
         return ctx->type_i32;
 
     {

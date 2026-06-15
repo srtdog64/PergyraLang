@@ -13,6 +13,9 @@ const char *llvm_decl_node_name(ASTNode *node);
 ASTNode *llvm_find_decl_in_active_inventory(const LLVMGenCtx *ctx,
                                             ASTNodeType decl_type,
                                             const char *name);
+bool llvm_decl_exists_in_context(const LLVMGenCtx *ctx,
+                                 ASTNodeType decl_type,
+                                 const char *name);
 bool llvm_param_is_implicit_self(const FuncParam *param);
 bool llvm_is_host_decl_type(ASTNodeType decl_type);
 const MIRDeclHeader *llvm_find_decl_header_in_context_of_type(

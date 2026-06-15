@@ -285,9 +285,10 @@ transpiler_infer_local_type_name_from_expr(TranspilerCtx *ctx,
                 free(rendered);
                 return copied;
             }
-            if (find_class_decl(ctx, callee_name) != NULL
-                || transpiler_find_domain_constructor_decl_local(
-                    ctx, callee_name) != NULL) {
+            if (transpiler_projection_nominal_decl_exists_local(
+                    ctx, callee_name)
+                || transpiler_domain_constructor_decl_exists_local(
+                    ctx, callee_name)) {
                 return callee_name;
             }
         }

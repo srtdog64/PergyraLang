@@ -281,7 +281,7 @@ emit_role_operator_aliases(ASTNode *role, TranspilerCtx *ctx)
                 role_name != NULL ? role_name : "(anonymous)");
             return;
         }
-        if (find_callable_decl(ctx, fn_name) != NULL)
+        if (transpiler_callable_decl_exists_local(ctx, fn_name))
             continue;
 
         FuncParam *rhs_param = NULL;

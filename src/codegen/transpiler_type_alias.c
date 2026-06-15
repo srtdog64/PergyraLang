@@ -43,7 +43,7 @@ emit_type_alias_decl(ASTNode *node, TranspilerCtx *ctx)
             return;
         }
         ensure_type_specializations_from_type_name_to(
-            ctx, ctx->out, target_type_name);
+            ctx, ctx->decls, target_type_name);
         if (!transpiler_require_type_name_c_type_copy(
                 ctx, target_type_name, "type alias target",
                 target_c_type, sizeof(target_c_type))) {

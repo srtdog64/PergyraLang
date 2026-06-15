@@ -1293,6 +1293,7 @@ AIR_CORE_OBJECTS = $(BUILD_DIR)/compiler/air_names.o \
                    $(BUILD_DIR)/compiler/mir_signature_metadata.o \
                    $(BUILD_DIR)/compiler/mir_source_shape.o \
                    $(BUILD_DIR)/compiler/mir_source_local_types.o \
+                   $(BUILD_DIR)/compiler/mir_decl_header_access.o \
                    $(BUILD_DIR)/compiler/mir_type_helpers.o \
                    $(BUILD_DIR)/compiler/mir_intent_fact.o \
                    $(BUILD_DIR)/compiler/mir_stmt_source.o \

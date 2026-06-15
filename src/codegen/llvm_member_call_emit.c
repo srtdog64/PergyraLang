@@ -11,6 +11,7 @@
 #include "llvm_expr_call_projection_sync.h"
 #include "llvm_expr_member_lvalue.h"
 #include "llvm_internal_api.h"
+#include "llvm_inventory_decl_lookup.h"
 #include "llvm_inventory_host_methods.h"
 #include "llvm_member_call_internal.h"
 #include "parser/ast_api.h"
@@ -33,7 +34,8 @@ llvm_emit_member_call(ASTNode *node, LLVMGenCtx *ctx)
      * value instead of dispatching a method call. */
     if (obj_node != NULL && obj_node->type == AST_IDENTIFIER
         && ast_identifier_name(obj_node) != NULL && method_name != NULL
-        && llvm_find_enum_decl(ctx, ast_identifier_name(obj_node)) != NULL
+        && llvm_decl_exists_in_context(ctx, AST_ENUM_DECL,
+               ast_identifier_name(obj_node))
         && llvm_lookup_enum_variant_qualified(ctx,
                ast_identifier_name(obj_node), method_name) != NULL) {
         return llvm_emit_constructor_call(node, ctx, method_name);

@@ -2499,10 +2499,14 @@ require_term "src/codegen/transpiler_domain_nominal_emit.c" \
 require_term "src/codegen/transpiler_domain_role_methods_emit.c" \
     "role_name = transpiler_decl_name_local(role)"
 require_term "src/codegen/transpiler_domain_role_methods_emit.c" \
-    "find_callable_decl(ctx, fn_name)"
+    "transpiler_callable_decl_exists_local(ctx, fn_name)"
 if grep -Fq "find_function_decl(ctx, fn_name)" \
         "$ROOT_DIR/src/codegen/transpiler_domain_role_methods_emit.c"; then
-    fail "C role operator alias collision checks must consume find_callable_decl"
+    fail "C role operator alias collision checks must consume callable existence lookup"
+fi
+if grep -Fq "find_callable_decl(ctx, fn_name)" \
+        "$ROOT_DIR/src/codegen/transpiler_domain_role_methods_emit.c"; then
+    fail "C role operator alias collision checks must not recover callable source declarations"
 fi
 require_term "src/codegen/transpiler_overlay_projection.c" \
     "world_name = transpiler_decl_name_local(host_decl)"
@@ -4696,7 +4700,7 @@ fi
 require_term "src/codegen/transpiler_call_constructor_result_emit.c" \
     "transpiler_find_domain_constructor_decl_local(ctx, fn)"
 require_term "src/codegen/transpiler_mir_local_type_lookup.c" \
-    "transpiler_find_domain_constructor_decl_local("
+    "transpiler_domain_constructor_decl_exists_local("
 require_term "src/codegen/transpiler_let_emit.c" \
     "transpiler_find_domain_constructor_decl_local("
 if grep -Fq "find_party_decl(ctx, fn)" \
@@ -6006,12 +6010,16 @@ for term in \
     "MIR-only LLVM path missing hosted self-call method metadata" \
     "method_meta == NULL && host_method == NULL" \
     "host_method == NULL" \
-    "llvm_find_callable_decl(ctx, callee_name)" \
+    "llvm_callable_decl_exists(ctx, callee_name)" \
     "method_meta == NULL && host_method == NULL" \
     "llvm_hosted_self_logical_param(" \
     "method_meta == NULL && !llvm_active_has_mir(ctx)"; do
     require_term "src/codegen/llvm_expr_call_hosted.c" "$term"
 done
+if grep -Fq "llvm_find_callable_decl(ctx, callee_name)" \
+        "$ROOT_DIR/src/codegen/llvm_expr_call_hosted.c"; then
+    fail "LLVM hosted self-call callable guard must not recover callable source declarations"
+fi
 if grep -Fq "llvm_mir_decl_method_source_ast(method_meta)" \
     "$ROOT_DIR/src/codegen/llvm_expr_call_hosted.c"; then
     fail "LLVM hosted self-call emit must not recover method AST back-pointers from MIR metadata"

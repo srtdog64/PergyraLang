@@ -8,6 +8,7 @@
 #include "../compiler/mir_decl_headers.h"
 #include "host_decl_compat.h"
 #include "llvm_backend_generic.h"
+#include "llvm_domain_lookup.h"
 #include "llvm_internal.h"
 #include "llvm_inventory_decl_lookup.h"
 #include "llvm_inventory_internal.h"
@@ -51,6 +52,15 @@ llvm_find_named_domain_decl(LLVMGenCtx *ctx, ASTNodeType decl_type,
     return llvm_find_decl_in_active_inventory(ctx, decl_type, name);
 }
 
+bool
+llvm_named_domain_decl_exists(LLVMGenCtx *ctx, ASTNodeType decl_type,
+                              const char *name)
+{
+    if (ctx == NULL || name == NULL)
+        return false;
+    return llvm_decl_exists_in_context(ctx, decl_type, name);
+}
+
 ASTNode *
 llvm_find_domain_constructor_decl(LLVMGenCtx *ctx, const char *name)
 {
@@ -73,6 +83,28 @@ llvm_find_domain_constructor_decl(LLVMGenCtx *ctx, const char *name)
     return NULL;
 }
 
+bool
+llvm_domain_constructor_decl_exists(LLVMGenCtx *ctx, const char *name)
+{
+    const ASTNodeType *constructor_types = NULL;
+    size_t constructor_type_count = 0;
+
+    if (ctx == NULL || name == NULL)
+        return false;
+
+    constructor_types =
+        pgy_host_decl_compat_constructor_domain_types(
+            &constructor_type_count);
+    for (size_t i = 0; constructor_types != NULL
+         && i < constructor_type_count; i++) {
+        if (llvm_named_domain_decl_exists(
+                ctx, constructor_types[i], name)) {
+            return true;
+        }
+    }
+    return false;
+}
+
 ASTNode *
 llvm_find_function_decl(LLVMGenCtx *ctx, const char *name)
 {
@@ -87,6 +119,18 @@ llvm_find_function_decl(LLVMGenCtx *ctx, const char *name)
     if (decl != NULL)
         return decl;
     return llvm_lookup_generic_template(ctx, name);
+}
+
+bool
+llvm_function_decl_exists(LLVMGenCtx *ctx, const char *name)
+{
+    if (ctx == NULL || name == NULL)
+        return false;
+    if (llvm_decl_exists_in_context(ctx, AST_FUNC_DECL, name))
+        return true;
+    if (llvm_find_extern_function_decl(ctx, name) != NULL)
+        return true;
+    return llvm_lookup_generic_template(ctx, name) != NULL;
 }
 
 bool
@@ -121,6 +165,14 @@ llvm_find_intent_decl(LLVMGenCtx *ctx, const char *name)
     return llvm_find_decl_in_active_inventory(ctx, AST_INTENT_DECL, name);
 }
 
+bool
+llvm_intent_decl_exists(LLVMGenCtx *ctx, const char *name)
+{
+    if (ctx == NULL || name == NULL)
+        return false;
+    return llvm_decl_exists_in_context(ctx, AST_INTENT_DECL, name);
+}
+
 ASTNode *
 llvm_find_callable_decl(LLVMGenCtx *ctx, const char *name)
 {
@@ -128,6 +180,15 @@ llvm_find_callable_decl(LLVMGenCtx *ctx, const char *name)
     if (decl != NULL)
         return decl;
     return llvm_find_intent_decl(ctx, name);
+}
+
+bool
+llvm_callable_decl_exists(LLVMGenCtx *ctx, const char *name)
+{
+    if (ctx == NULL || name == NULL)
+        return false;
+    return llvm_function_decl_exists(ctx, name)
+        || llvm_intent_decl_exists(ctx, name);
 }
 
 ASTNode *
@@ -343,6 +404,12 @@ llvm_find_projection_nominal_decl(LLVMGenCtx *ctx, const char *name)
     if (ctx == NULL || name == NULL)
         return NULL;
     return llvm_find_decl_in_active_inventory(ctx, AST_CLASS_DECL, name);
+}
+
+bool
+llvm_projection_nominal_decl_exists(LLVMGenCtx *ctx, const char *name)
+{
+    return llvm_decl_exists_in_context(ctx, AST_CLASS_DECL, name);
 }
 
 static bool

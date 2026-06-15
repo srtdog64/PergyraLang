@@ -136,7 +136,9 @@ transpiler_expr_identifiers_mapped(const TranspilerCtx *ctx,
                 return true;
             }
         }
-        if (ctx != NULL && find_enum_decl((TranspilerCtx *)ctx, name) != NULL)
+        if (ctx != NULL
+            && transpiler_decl_exists_local((TranspilerCtx *)ctx,
+                AST_ENUM_DECL, name))
             return true;
         if (ctx != NULL) {
             char enum_variant[128];
@@ -145,7 +147,9 @@ transpiler_expr_identifiers_mapped(const TranspilerCtx *ctx,
                 return true;
             }
         }
-        if (ctx != NULL && find_function_decl((TranspilerCtx *)ctx, name) != NULL)
+        if (ctx != NULL
+            && transpiler_function_decl_exists_local(
+                (TranspilerCtx *)ctx, name))
             return true;
         if (reason != NULL && reason_cap > 0) {
             transpiler_mir_reasonf(reason, reason_cap,

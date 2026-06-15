@@ -7,6 +7,7 @@
 
 #include "llvm_backend_type_map_internal.h"
 #include "llvm_internal.h"
+#include "llvm_inventory_decl_lookup.h"
 
 #include <stdlib.h>
 #include <string.h>
@@ -363,7 +364,7 @@ llvm_register_typed_var_binding(LLVMGenCtx *ctx, const char *var_name,
         }
     }
     if (llvm_lookup_class(ctx, type_name) != NULL
-        || llvm_find_enum_decl(ctx, type_name) != NULL)
+        || llvm_decl_exists_in_context(ctx, AST_ENUM_DECL, type_name))
         llvm_register_var_class(ctx, var_name, type_name);
 }
 

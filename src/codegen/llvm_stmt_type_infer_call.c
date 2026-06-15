@@ -1,5 +1,6 @@
 #ifdef PGY_LLVM_ENABLED
 #include "llvm_internal.h"
+#include "llvm_domain_lookup.h"
 #include "llvm_internal_api.h"
 #include "llvm_inventory_host_methods.h"
 #include "llvm_stmt_source_local_fallback.h"
@@ -56,7 +57,7 @@ llvm_stmt_host_method_return_type(LLVMGenCtx *ctx, const char *host_type_name,
         ASTNode *m =
             llvm_stmt_host_method_ast_decl(ctx, host_type_name, method_name);
         if (llvm_active_has_mir(ctx)) {
-            if (m == NULL && llvm_find_callable_decl(ctx, method_name) != NULL)
+            if (m == NULL && llvm_callable_decl_exists(ctx, method_name))
                 return NULL;
             llvm_set_mir_inventory_missing(ctx,
                 "MIR-only LLVM path missing method return metadata for '%s.%s'",
@@ -422,7 +423,7 @@ llvm_stmt_infer_call_expr_type(LLVMGenCtx *ctx, ASTNode *expr)
             if (declared_type != NULL)
                 return declared_type;
         }
-        if (llvm_find_intent_decl(ctx, callee) != NULL)
+        if (llvm_intent_decl_exists(ctx, callee))
             return ctx->type_i1;
         if (llvm_stmt_call_returns_collection_value(callee)
             && ast_call_arg_count(expr) >= 1
