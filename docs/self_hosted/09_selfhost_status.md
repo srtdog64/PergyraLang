@@ -41,6 +41,9 @@ Single source of truth (capability 5) is nearly closed.
   ToTObject, projection-borrow materialization, member access, and domain
   provenance refresh; the central declaration-header source_decl compatibility
   accessor remains until the remaining projection/declaration consumers move.
+- LLVM projection-borrow materialization and member access use the same by-name
+  MIR header path for source field paths, leaving domain projection value
+  helpers as the next LLVM projection consumer to move.
   The remaining bridge is declaration-header source_decl compatibility.
 
 Substrate progress.

@@ -33,7 +33,6 @@ llvm_emit_projection_from_binding(ASTNode *node, LLVMGenCtx *ctx,
     const char *source_class_name;
     LLVMClassTypeEntry *target_cls;
     LLVMClassTypeEntry *source_cls;
-    ASTNode *source_decl;
     LLVMVarEntry source_var;
     bool has_source_var;
     LLVMValueRef source_base;
@@ -48,10 +47,8 @@ llvm_emit_projection_from_binding(ASTNode *node, LLVMGenCtx *ctx,
     source_class_name = llvm_lookup_var_class(ctx, source_name);
     source_cls = source_class_name != NULL
         ? llvm_lookup_class(ctx, source_class_name) : NULL;
-    source_decl = source_class_name != NULL
-        ? llvm_find_projection_nominal_decl(ctx, source_class_name) : NULL;
     if (target_cls == NULL || !has_source_var || source_cls == NULL
-        || source_decl == NULL) {
+        || source_class_name == NULL) {
         return llvm_projection_binding_error(node, ctx,
             "LLVM projection binding requires target/source metadata and source storage");
     }
@@ -69,8 +66,8 @@ llvm_emit_projection_from_binding(ASTNode *node, LLVMGenCtx *ctx,
         if (field_name == NULL || field_index < 0)
             return llvm_projection_binding_error(node, ctx,
                 "LLVM projection binding target field metadata is incomplete");
-        LLVMValueRef field_val = llvm_load_projection_path_value(ctx,
-            source_decl, source_cls, source_base, field_name);
+        LLVMValueRef field_val = llvm_load_projection_path_value_by_name(
+            ctx, source_class_name, source_cls, source_base, field_name, node);
         if (ctx->has_error || field_val == NULL)
             return NULL;
         projected = LLVMBuildInsertValue(ctx->builder, projected, field_val,

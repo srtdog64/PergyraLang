@@ -4584,6 +4584,25 @@ if grep -Eq 'ast_domain_slot_(name|type)\(|ASTNode \*\*slots|size_t slot_count' 
         "$ROOT_DIR/src/codegen/llvm_domain_projection_sync_body_helpers.c"; then
     fail "LLVM projection sync body must consume hosted domain-slot view for slot metadata"
 fi
+require_term "src/codegen/llvm_expr_projection_path_helpers.h" \
+    "llvm_load_projection_path_value_by_name("
+require_term "src/codegen/llvm_expr_projection_path_helpers.c" \
+    "llvm_resolve_projection_source_path_by_name(LLVMGenCtx *ctx"
+require_term "src/codegen/llvm_expr_projection_path_helpers.c" \
+    "llvm_projection_field_view_by_name("
+require_term "src/codegen/llvm_expr_projection_path_helpers.c" \
+    "mir_decl_header_nominal_kind_or("
+require_term "src/codegen/llvm_expr_projection_path_helpers.c" \
+    "llvm_load_projection_path_value_by_name("
+for rel in \
+    "src/codegen/llvm_expr_host_spawn_literal_helpers.c" \
+    "src/codegen/llvm_expr_member_access.c"; do
+    require_term "$rel" "llvm_load_projection_path_value_by_name("
+    if grep -Fq "llvm_find_projection_nominal_decl(ctx, source_class_name)" \
+            "$ROOT_DIR/$rel"; then
+        fail "$rel must consume projection type/header facts instead of recovering source declarations"
+    fi
+done
 for rel in \
     "src/codegen/llvm_domain_projection_value_helpers.c" \
     "src/codegen/llvm_expr_projection_path_helpers.c"; do

@@ -829,6 +829,7 @@ main() {
         "tests/cases/backend_compare/io_string_negative_paths"
         "tests/cases/backend_compare/string_interpolation"
         "tests/cases/backend_compare/string_utility_aliases"
+        "tests/cases/backend_compare/type_alias_array_context"
         "tests/cases/backend_compare/string_concat"
         "tests/cases/backend_compare/string_join"
         "tests/cases/backend_compare/string_split_count"

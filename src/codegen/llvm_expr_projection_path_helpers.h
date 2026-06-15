@@ -8,6 +8,13 @@ LLVMValueRef llvm_load_projection_path_value(LLVMGenCtx *ctx,
                                              LLVMClassTypeEntry *source_cls,
                                              LLVMValueRef source_ptr,
                                              const char *field_name);
+LLVMValueRef llvm_load_projection_path_value_by_name(
+    LLVMGenCtx *ctx,
+    const char *source_type_name,
+    LLVMClassTypeEntry *source_cls,
+    LLVMValueRef source_ptr,
+    const char *field_name,
+    ASTNode *diag_node);
 
 LLVMValueRef llvm_emit_subject_projection(ASTNode *node, LLVMGenCtx *ctx);
 

@@ -165,7 +165,9 @@ the same canonical MIR fact. C projection literal/source-path lowering now has a
 by-name entry point that consumes MIR declaration headers and `MIRDeclField`
 rows, so ToTObject, projection-borrow materialization, member access, and domain
 provenance refresh no longer need projection source declarations in MIR-active
-paths. The remaining work is removal of the
+paths. LLVM projection-borrow materialization and member access now use the same
+by-name MIR header path instead of recovering projection source declarations.
+The remaining work is removal of the
 declaration-header source_decl compatibility boundary and the compiler-side
 declaration header back-pointer after compatibility lookup stops returning
 origin AST declarations, followed by a compiler source_ast ratchet ceiling of
