@@ -464,6 +464,19 @@ test_allocator_features(void)
         EXPECT(a != NULL && b != NULL && a != b);
         pgy_allocator_destroy(&alloc);
     }
+
+    TEST("allocator lane constructors preserve lane kind");
+    {
+        PgyAllocator scratch = pgy_allocator_scratch();
+        PgyAllocator result = pgy_allocator_result();
+        PgyAllocator persistent = pgy_allocator_persistent();
+        EXPECT(scratch.kind == PGY_ALLOC_SCRATCH);
+        EXPECT(result.kind == PGY_ALLOC_RESULT);
+        EXPECT(persistent.kind == PGY_ALLOC_PERSISTENT);
+        pgy_allocator_destroy(&scratch);
+        pgy_allocator_destroy(&result);
+        pgy_allocator_destroy(&persistent);
+    }
 }
 
 static void

@@ -23,6 +23,12 @@ emit_builtin_allocator(ASTNode *call, BuiltinKind kind, TranspilerCtx *ctx)
         return pergyra_strdup("pgy_allocator_tracing()");
     case BUILTIN_ALLOCATOR_DEBUG:
         return pergyra_strdup("pgy_allocator_debug()");
+    case BUILTIN_ALLOCATOR_SCRATCH:
+        return pergyra_strdup("pgy_allocator_scratch()");
+    case BUILTIN_ALLOCATOR_RESULT:
+        return pergyra_strdup("pgy_allocator_result()");
+    case BUILTIN_ALLOCATOR_PERSISTENT:
+        return pergyra_strdup("pgy_allocator_persistent()");
     case BUILTIN_ALLOCATOR_POOL:
         if (ast_call_arg_count(call) != 1) {
             transpiler_set_backend_error_with_hints(

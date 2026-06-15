@@ -93,10 +93,12 @@ compare output, expand coverage.
 
 Do not start a broad semantic rewrite yet. Close the two remaining substrate
 gaps first: deterministic collection breadth for symbol/record/handle-like keys
-and ergonomic scratch/result/persistent arena lanes for compiler passes. After
-that, semantic analysis should be staged like the parser: start with a bounded
-subset, run it beside the C type checker on committed fixtures, compare
-diagnostics or typed-AST output, and expand with the C type checker as oracle.
+and automatic reset/cleanup ergonomics for scratch/result/persistent compiler
+pass lanes. The lane-named `Allocator` constructors are now present on C and
+LLVM, but pass authors still need the boilerplate removed. After that, semantic
+analysis should be staged like the parser: start with a bounded subset, run it
+beside the C type checker on committed fixtures, compare diagnostics or
+typed-AST output, and expand with the C type checker as oracle.
 
 ## How to reproduce
 

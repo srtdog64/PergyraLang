@@ -382,10 +382,13 @@ typedef struct {
  * ================================================================ */
 
 typedef enum {
-    PGY_ABI_ALLOC_SYSTEM  = 0,
-    PGY_ABI_ALLOC_TRACING = 1,
-    PGY_ABI_ALLOC_DEBUG   = 2,
-    PGY_ABI_ALLOC_POOL    = 3
+    PGY_ABI_ALLOC_SYSTEM     = 0,
+    PGY_ABI_ALLOC_TRACING    = 1,
+    PGY_ABI_ALLOC_DEBUG      = 2,
+    PGY_ABI_ALLOC_POOL       = 3,
+    PGY_ABI_ALLOC_SCRATCH    = 4,
+    PGY_ABI_ALLOC_RESULT     = 5,
+    PGY_ABI_ALLOC_PERSISTENT = 6
 } PgyAbiAllocatorKind;
 
 typedef struct {

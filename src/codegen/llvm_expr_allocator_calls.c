@@ -8,7 +8,10 @@
 typedef enum LLVMAllocatorOp {
     LLVM_ALLOCATOR_OP_NONE = 0,
     LLVM_ALLOCATOR_OP_DEBUG,
+    LLVM_ALLOCATOR_OP_PERSISTENT,
     LLVM_ALLOCATOR_OP_POOL,
+    LLVM_ALLOCATOR_OP_RESULT,
+    LLVM_ALLOCATOR_OP_SCRATCH,
     LLVM_ALLOCATOR_OP_SYSTEM,
     LLVM_ALLOCATOR_OP_TRACING,
 } LLVMAllocatorOp;
@@ -35,8 +38,14 @@ llvm_allocator_lookup(const char *callee_name)
     static const LLVMAllocatorSpec specs[] = {
         { "AllocatorDebug", "pgy_allocator_debug_init", 0,
           LLVM_ALLOCATOR_OP_DEBUG },
+        { "AllocatorPersistent", "pgy_allocator_persistent_init", 0,
+          LLVM_ALLOCATOR_OP_PERSISTENT },
         { "AllocatorPool", "pgy_allocator_pool_init", 1,
           LLVM_ALLOCATOR_OP_POOL },
+        { "AllocatorResult", "pgy_allocator_result_init", 0,
+          LLVM_ALLOCATOR_OP_RESULT },
+        { "AllocatorScratch", "pgy_allocator_scratch_init", 0,
+          LLVM_ALLOCATOR_OP_SCRATCH },
         { "AllocatorSystem", "pgy_allocator_system_init", 0,
           LLVM_ALLOCATOR_OP_SYSTEM },
         { "AllocatorTracing", "pgy_allocator_tracing_init", 0,

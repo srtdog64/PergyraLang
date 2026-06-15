@@ -209,11 +209,13 @@ beyond the lexer:
   Pergyra programs on C and LLVM. Remaining collection lifts are
   symbol/record/handle keys.
 - **Allocator/arena ownership surface** -- `AllocatorSystem`,
-  `AllocatorPool`, `AllocatorDebug`, and `AllocatorTracing` now produce the
-  single stable `Allocator` value on C and LLVM. `BoxArray(capacity,
-  allocator)` consumes a named allocator local so fused array storage keeps an
-  owner with a valid lifetime. The remaining lift is ergonomic
-  scratch/result/persistent arena lanes for compiler passes.
+  `AllocatorPool`, `AllocatorDebug`, `AllocatorTracing`, `AllocatorScratch`,
+  `AllocatorResult`, and `AllocatorPersistent` now produce the single stable
+  `Allocator` value on C and LLVM. The lane-named constructors carry distinct
+  runtime kinds and lower through dedicated LLVM runtime init exports instead
+  of aliases. `BoxArray(capacity, allocator)` consumes a named allocator local
+  so fused array storage keeps an owner with a valid lifetime. The remaining
+  lift is automatic reset/cleanup ergonomics for compiler pass lanes.
 - **Filesystem directory walk** -- `DirWalk(String) -> Array<String>` has landed
   for generated binaries on C and LLVM. It returns a deterministic sorted
   regular-file snapshot with `/` separators and is gated by

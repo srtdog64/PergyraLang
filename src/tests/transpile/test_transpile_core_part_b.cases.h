@@ -630,6 +630,16 @@ test_statement_emit(void)
         transpiler_ctx_destroy(ctx);
     }
 
+    TEST("let scratch: Allocator = AllocatorScratch() -> PgyAllocator scratch = pgy_allocator_scratch();");
+    {
+        ASTNode *node = make_let("scratch",
+                                 make_type_node("Allocator"),
+                                 make_call("AllocatorScratch", NULL, 0, 1), 1);
+        const char *out = emit_stmt_to_str(node, &ctx);
+        EXPECT_STR_CONTAINS(out, "PgyAllocator scratch = pgy_allocator_scratch();");
+        transpiler_ctx_destroy(ctx);
+    }
+
     TEST("let storage: Box<Array<Int>> = BoxArray(128) -> fused BoxArray allocation");
     {
         ASTNode *array_type = make_generic_type("Array", "Int");

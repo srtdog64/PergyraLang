@@ -375,6 +375,9 @@ type_check_nominal_ownership_builtin(ASTNode *call,
     case BUILTIN_ALLOCATOR_SYSTEM:
     case BUILTIN_ALLOCATOR_TRACING:
     case BUILTIN_ALLOCATOR_DEBUG:
+    case BUILTIN_ALLOCATOR_SCRATCH:
+    case BUILTIN_ALLOCATOR_RESULT:
+    case BUILTIN_ALLOCATOR_PERSISTENT:
         return type_check_allocator_builtin(call, ctx, false);
     case BUILTIN_ALLOCATOR_POOL:
         return type_check_allocator_builtin(call, ctx, true);

@@ -260,6 +260,7 @@ else
         "tests/cases/backend_compare/basic"
         "tests/cases/backend_compare/arith_grand_total"
         "tests/cases/backend_compare/array_builtins"
+        "tests/cases/backend_compare/allocator_lane_boxarray"
         "tests/cases/backend_compare/class_factory_field_method"
         "tests/cases/backend_compare/channel_send_recv_basic"
         "tests/cases/backend_compare/async_spawn_await"

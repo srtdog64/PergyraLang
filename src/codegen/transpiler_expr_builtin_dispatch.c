@@ -94,6 +94,9 @@ emit_call_builtin_dispatch(ASTNode *call,
     case BUILTIN_ALLOCATOR_SYSTEM:
     case BUILTIN_ALLOCATOR_TRACING:
     case BUILTIN_ALLOCATOR_DEBUG:
+    case BUILTIN_ALLOCATOR_SCRATCH:
+    case BUILTIN_ALLOCATOR_RESULT:
+    case BUILTIN_ALLOCATOR_PERSISTENT:
     case BUILTIN_ALLOCATOR_POOL:
         return emit_builtin_allocator(call, bk, ctx);
     case BUILTIN_DIR_WALK:

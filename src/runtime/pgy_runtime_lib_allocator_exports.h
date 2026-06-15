@@ -37,6 +37,27 @@ pgy_allocator_pool_init(PgyAllocator *out, size_t capacity)
 }
 
 void
+pgy_allocator_scratch_init(PgyAllocator *out)
+{
+    if (out != NULL)
+        *out = pgy_allocator_scratch();
+}
+
+void
+pgy_allocator_result_init(PgyAllocator *out)
+{
+    if (out != NULL)
+        *out = pgy_allocator_result();
+}
+
+void
+pgy_allocator_persistent_init(PgyAllocator *out)
+{
+    if (out != NULL)
+        *out = pgy_allocator_persistent();
+}
+
+void
 pgy_allocator_destroy_export(PgyAllocator *alloc)
 {
     pgy_allocator_destroy(alloc);

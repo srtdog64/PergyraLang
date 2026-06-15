@@ -35,6 +35,8 @@ for rel in \
     "src/runtime/pgy_runtime_lib_intent_slot_core_exports.h" \
     "src/runtime/pgy_runtime_lib_slot_array_io_string_exports.h" \
     "src/runtime/pgy_runtime_lib_secure_slot_exports.h" \
+    "src/runtime/pgy_runtime_allocator_inline.h" \
+    "src/runtime/pgy_runtime_lib_allocator_exports.h" \
     "src/test_abi_spec.c" \
     "src/test_memory_layout.c" \
     "src/test_security.c" \
@@ -44,6 +46,7 @@ for rel in \
     "src/compiler/mir.h" \
     "src/compiler/mir_lower_population.c" \
     "src/codegen/llvm_runtime.c" \
+    "src/codegen/llvm_expr_allocator_calls.c" \
     "src/codegen/llvm_internal_api.h" \
     "src/codegen/llvm_mir_block_emit.c" \
     "src/codegen/llvm_mir_resource_view.c" \
@@ -68,6 +71,28 @@ require_term "src/runtime/pgy_abi_spec.h" "pgy_abi_pinned_slot_view_int"
 require_term "src/runtime/pgy_abi_spec.h" "pgy_abi_pinned_secure_slot_view_int"
 require_term "src/test_abi_spec.c" "sizeof(PgyPinnedSlotView_Int) == sizeof(pgy_abi_pinned_slot_view_int)"
 require_term "src/test_abi_spec.c" "offsetof(PgyPinnedSecureSlotView_Int, token) == offsetof(pgy_abi_pinned_secure_slot_view_int, token)"
+
+require_term "src/runtime/pgy_abi_spec.h" "PGY_ABI_ALLOC_SCRATCH"
+require_term "src/runtime/pgy_abi_spec.h" "PGY_ABI_ALLOC_RESULT"
+require_term "src/runtime/pgy_abi_spec.h" "PGY_ABI_ALLOC_PERSISTENT"
+require_term "src/runtime/pgy_runtime_allocator_inline.h" "PGY_ALLOC_SCRATCH"
+require_term "src/runtime/pgy_runtime_allocator_inline.h" "PGY_ALLOC_RESULT"
+require_term "src/runtime/pgy_runtime_allocator_inline.h" "PGY_ALLOC_PERSISTENT"
+require_term "src/runtime/pgy_runtime_allocator_inline.h" "pgy_allocator_scratch(void)"
+require_term "src/runtime/pgy_runtime_allocator_inline.h" "pgy_allocator_result(void)"
+require_term "src/runtime/pgy_runtime_allocator_inline.h" "pgy_allocator_persistent(void)"
+require_term "src/runtime/pgy_runtime_lib_allocator_exports.h" "pgy_allocator_scratch_init"
+require_term "src/runtime/pgy_runtime_lib_allocator_exports.h" "pgy_allocator_result_init"
+require_term "src/runtime/pgy_runtime_lib_allocator_exports.h" "pgy_allocator_persistent_init"
+require_term "src/codegen/transpiler_allocator_builtin_emit.c" "pgy_allocator_scratch()"
+require_term "src/codegen/transpiler_allocator_builtin_emit.c" "pgy_allocator_result()"
+require_term "src/codegen/transpiler_allocator_builtin_emit.c" "pgy_allocator_persistent()"
+require_term "src/codegen/llvm_expr_allocator_calls.c" "pgy_allocator_scratch_init"
+require_term "src/codegen/llvm_expr_allocator_calls.c" "pgy_allocator_result_init"
+require_term "src/codegen/llvm_expr_allocator_calls.c" "pgy_allocator_persistent_init"
+require_term "src/codegen/llvm_runtime.c" "pgy_allocator_scratch_init"
+require_term "src/codegen/llvm_runtime.c" "pgy_allocator_result_init"
+require_term "src/codegen/llvm_runtime.c" "pgy_allocator_persistent_init"
 
 require_term "src/runtime/slot_manager.h" "PgyPinnedView"
 require_term "src/runtime/slot_manager.h" "User-facing language syntax must keep PgyPinnedView scope-bound."

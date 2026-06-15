@@ -174,6 +174,9 @@ type_infer_expression(const ASTNode *expr, TypeEnv *env)
             if (strcmp(callee, "AllocatorSystem") == 0
                 || strcmp(callee, "AllocatorTracing") == 0
                 || strcmp(callee, "AllocatorDebug") == 0
+                || strcmp(callee, "AllocatorScratch") == 0
+                || strcmp(callee, "AllocatorResult") == 0
+                || strcmp(callee, "AllocatorPersistent") == 0
                 || strcmp(callee, "AllocatorPool") == 0) {
                 return TYPE_ALLOCATOR;
             }

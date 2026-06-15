@@ -36,6 +36,7 @@ for required in \
     "\`WriteFile\`, \`FileExists\`, \`DirWalk\`" \
     "\`Args\`" \
     "\`SliceCopy(Slice<T>) -> Array<T>\`" \
+    "\`AllocatorScratch\`, \`AllocatorResult\`, \`AllocatorPersistent\`" \
     "Stable \`use\` Modules" \
     "Known But Experimental Modules" \
     "\`datetime\`" \
@@ -141,8 +142,14 @@ func Main() -> Void {
     let poolAlloc: Allocator = AllocatorPool(256);
     let debugAlloc: Allocator = AllocatorDebug();
     let tracingAlloc: Allocator = AllocatorTracing();
+    let scratchAlloc: Allocator = AllocatorScratch();
+    let resultAlloc: Allocator = AllocatorResult();
+    let persistentAlloc: Allocator = AllocatorPersistent();
     Log(149);
     let boxedInts: Box<Array<Int>> = BoxArray(2, poolAlloc);
+    let scratchBox: Box<Array<Int>> = BoxArray(2, scratchAlloc);
+    let resultBox: Box<Array<Int>> = BoxArray(2, resultAlloc);
+    let persistentBox: Box<Array<Int>> = BoxArray(2, persistentAlloc);
     Log(151);
 
     let walked: Array<String> = DirWalk("walk_root");

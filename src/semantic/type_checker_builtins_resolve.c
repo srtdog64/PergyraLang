@@ -11,7 +11,10 @@ typedef struct BuiltinEntry {
 
 static const BuiltinEntry k_builtin_entries[] = {
     {"AllocatorDebug", BUILTIN_ALLOCATOR_DEBUG},
+    {"AllocatorPersistent", BUILTIN_ALLOCATOR_PERSISTENT},
     {"AllocatorPool", BUILTIN_ALLOCATOR_POOL},
+    {"AllocatorResult", BUILTIN_ALLOCATOR_RESULT},
+    {"AllocatorScratch", BUILTIN_ALLOCATOR_SCRATCH},
     {"AllocatorSystem", BUILTIN_ALLOCATOR_SYSTEM},
     {"AllocatorTracing", BUILTIN_ALLOCATOR_TRACING},
     {"Args", BUILTIN_ARGS},

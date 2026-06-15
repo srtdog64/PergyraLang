@@ -1,0 +1,13 @@
+func Main() -> Void {
+    let scratch: Allocator = AllocatorScratch();
+    let result: Allocator = AllocatorResult();
+    let persistent: Allocator = AllocatorPersistent();
+
+    let scratchBox: Box<Array<Int>> = BoxArray(2, scratch);
+    let resultBox: Box<Array<Int>> = BoxArray(2, result);
+    let persistentBox: Box<Array<Int>> = BoxArray(2, persistent);
+
+    Log(401);
+    Log(402);
+    Log(403);
+}

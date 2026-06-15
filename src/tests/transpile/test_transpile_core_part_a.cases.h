@@ -491,6 +491,15 @@ test_expression_emit(void)
         transpiler_ctx_destroy(ctx);
     }
 
+    TEST("AllocatorScratch() -> pgy_allocator_scratch()");
+    {
+        ctx = transpiler_ctx_create();
+        result = emit_expression(make_call("AllocatorScratch", NULL, 0, 1), ctx);
+        EXPECT(strcmp(result, "pgy_allocator_scratch()") == 0);
+        free(result);
+        transpiler_ctx_destroy(ctx);
+    }
+
     TEST("AllocatorPool missing capacity fails closed");
     {
         ASTNode *call = make_call("AllocatorPool", NULL, 0, 1);

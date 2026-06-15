@@ -85,6 +85,26 @@ test_shared_memory_features(void)
         ast_destroy(call);
     }
 
+    TEST("allocator lane constructors return Allocator type");
+    {
+        const char *names[] = {
+            "AllocatorScratch",
+            "AllocatorResult",
+            "AllocatorPersistent",
+        };
+
+        for (size_t i = 0; i < sizeof(names) / sizeof(names[0]); i++) {
+            SemanticContext *ctx = semantic_context_create();
+            ASTNode *call = make_call(names[i], NULL, 0, 1);
+            Type *resolved = type_check_expression(call, ctx);
+
+            EXPECT(resolved == TYPE_ALLOCATOR && !ctx->has_error);
+
+            semantic_context_destroy(ctx);
+            ast_destroy(call);
+        }
+    }
+
     TEST("Box<Array<Int>> let declaration accepts BoxArray initializer");
     {
         SemanticContext *ctx = semantic_context_create();

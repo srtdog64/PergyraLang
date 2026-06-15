@@ -6,7 +6,10 @@ typedef enum {
     PGY_ALLOC_SYSTEM,
     PGY_ALLOC_TRACING,
     PGY_ALLOC_DEBUG,
-    PGY_ALLOC_POOL
+    PGY_ALLOC_POOL,
+    PGY_ALLOC_SCRATCH,
+    PGY_ALLOC_RESULT,
+    PGY_ALLOC_PERSISTENT
 } PgyAllocatorKind;
 
 typedef struct {
@@ -107,12 +110,36 @@ pgy_allocator_pool(size_t capacity)
     return alloc;
 }
 
+static inline PgyAllocator
+pgy_allocator_scratch(void)
+{
+    PgyAllocator alloc = pgy_allocator_system();
+    alloc.kind = PGY_ALLOC_SCRATCH;
+    return alloc;
+}
+
+static inline PgyAllocator
+pgy_allocator_result(void)
+{
+    PgyAllocator alloc = pgy_allocator_system();
+    alloc.kind = PGY_ALLOC_RESULT;
+    return alloc;
+}
+
+static inline PgyAllocator
+pgy_allocator_persistent(void)
+{
+    PgyAllocator alloc = pgy_allocator_system();
+    alloc.kind = PGY_ALLOC_PERSISTENT;
+    return alloc;
+}
+
 static inline void
 pgy_allocator_destroy(PgyAllocator *alloc)
 {
     if (alloc == NULL)
         return;
-    if (alloc->kind == PGY_ALLOC_POOL && alloc->pool != NULL) {
+    if (alloc->pool != NULL) {
         free(alloc->pool->buffer);
         free(alloc->pool);
         alloc->pool = NULL;
@@ -122,7 +149,7 @@ pgy_allocator_destroy(PgyAllocator *alloc)
 static inline void *
 pgy_alloc(PgyAllocator *alloc, size_t size, size_t align)
 {
-    if (alloc != NULL && alloc->kind == PGY_ALLOC_POOL) {
+    if (alloc != NULL && alloc->pool != NULL) {
         size_t align_mask;
         size_t offset;
         void *ptr;
@@ -164,7 +191,7 @@ pgy_alloc(PgyAllocator *alloc, size_t size, size_t align)
 static inline void *
 pgy_realloc(PgyAllocator *alloc, void *ptr, size_t old_size, size_t new_size)
 {
-    if (alloc != NULL && alloc->kind == PGY_ALLOC_POOL) {
+    if (alloc != NULL && alloc->pool != NULL) {
         if (ptr == NULL)
             return pgy_alloc(alloc, new_size, _Alignof(max_align_t));
         PGY_PANIC("Pool allocator does not support realloc");
@@ -191,7 +218,7 @@ pgy_free(PgyAllocator *alloc, void *ptr, size_t size)
     if (ptr == NULL)
         return;
 
-    if (alloc != NULL && alloc->kind == PGY_ALLOC_POOL) {
+    if (alloc != NULL && alloc->pool != NULL) {
         if (alloc->debug_enabled)
             memset(ptr, 0xDD, size);
         pgy_allocator_record_free(alloc, size);
