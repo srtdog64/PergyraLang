@@ -27,7 +27,7 @@ field declaration back-pointers are removed,
 and MIR validation no longer compares generic, enum, method, or field metadata
 against original AST nodes. The remaining AST-returning declaration-header
 compatibility API is now separately ratcheted as source_decl codegen 2 /
-compiler 1, and routine source-decl compatibility is ratcheted at codegen 2.
+compiler 1, and routine_source_decl_codegen is ratcheted at 0.
 
 ## Tiers
 
@@ -54,7 +54,8 @@ Capability 5 is the only ACTIVE item and the one true blocker. Its mechanism is
 mostly done: non_cfg body facts come from MIR and are locked at zero fallback,
 and backend source_ast readers are locked at zero. The work left is the
 compiler-side deletion in 06: remove the declaration-header source declaration
-payload boundary and the routine source-decl compatibility sites. Closing it makes CFG/MIR the unconditional source of truth, which
+payload boundary after lookup stops returning origin AST declarations. Closing
+it makes CFG/MIR the unconditional source of truth, which
 the gap analysis names as the precondition that lets compiler passes be
 rewritten in the language.
 
@@ -151,10 +152,13 @@ the thin LLVM MIR method source alias. C/LLVM routine source thin aliases are
 retired, routine source declaration checks no longer appear in codegen,
 `mir_routine_source_decl_of_type` is compiler-owned only, declaration lookup uses
 `mir_decl_header_source_decl`, and no backend `.c` file contains a source_ast
-read. The remaining work is removal of the routine source-decl compatibility
-sites and the compiler-side declaration header back-pointer after compatibility
-lookup stops returning origin AST declarations, followed by a compiler
-source_ast ratchet ceiling of zero. Method and field
+read. Type-alias target names are now captured on `MIRDeclHeader`, validated by
+`mir_decl_header_validate.c`, and consumed by LLVM alias mapping/rendering before
+any compatibility AST fallback. The remaining work is removal of the
+declaration-header source_decl compatibility boundary and the compiler-side
+declaration header back-pointer after compatibility lookup stops returning
+origin AST declarations, followed by a compiler source_ast ratchet ceiling of
+zero. Method and field
 back-pointers are already removed, and the old header-shape AST recomputation
 arm is gone. Build-gated.
 

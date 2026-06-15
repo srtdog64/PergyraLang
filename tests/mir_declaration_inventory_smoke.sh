@@ -117,6 +117,7 @@ for rel in \
     "src/codegen/llvm_domain_forward.c" \
     "src/codegen/llvm_domain_forward.h" \
     "src/codegen/llvm_backend_type_map.c" \
+    "src/codegen/llvm_backend_type_render.c" \
     "src/codegen/llvm_registry.c" \
     "src/codegen/llvm_decl_authority.c" \
     "src/codegen/llvm_decl_authority.h" \
@@ -139,14 +140,19 @@ for rel in \
     "src/codegen/transpiler_domain_role_ability_emit.h" \
     "src/codegen/transpiler_generic_class_specialization_emit.c" \
     "src/codegen/transpiler_mir_ssa_names.h" \
+    "src/codegen/transpiler_type_alias.c" \
     "src/compiler/mir.h" \
     "src/compiler/mir_lower_public_api.h" \
     "src/compiler/mir_program_inventory.c" \
     "src/compiler/mir_public_surface.c" \
     "src/compiler/mir_decl_method_projection.c" \
     "src/compiler/mir_decl_method_projection.h" \
+    "src/compiler/mir_decl.h" \
+    "src/compiler/mir_decl_header_access.c" \
+    "src/compiler/mir_decl_header_validate.c" \
     "src/compiler/mir_decl_headers.c" \
     "src/compiler/mir_decl_headers.h" \
+    "src/compiler/mir_lifecycle.c" \
     "src/parser/ast_api.h" \
     "src/parser/ast_decl_accessors.c" \
     "docs/100_beta_readiness_checklist.md" \
@@ -242,6 +248,36 @@ require_term "src/codegen/llvm_backend_type_map_generics.c" \
     "ctx->current_host_decl->type"
 require_term "src/codegen/llvm_backend_type_map_generics.c" \
     "ast_declaration_generic_params(decl)"
+require_term "src/compiler/mir_decl.h" \
+    "char        *type_alias_target_type_name"
+require_term "src/compiler/mir_decl_headers.h" \
+    "mir_decl_header_type_alias_target_type_name"
+require_term "src/compiler/mir_decl_header_access.c" \
+    "mir_decl_header_type_alias_target_type_name(const MIRDeclHeader *header)"
+require_term "src/compiler/mir_decl_headers.c" \
+    "header.type_alias_target_type_name ="
+require_term "src/compiler/mir_decl_header_validate.c" \
+    "type-alias target metadata drift"
+require_term "src/compiler/mir_lifecycle.c" \
+    "free(mir->decl_headers[i].type_alias_target_type_name)"
+require_term "src/codegen/llvm_backend_type_map.c" \
+    "mir_decl_header_type_alias_target_type_name(alias_header)"
+require_term "src/codegen/llvm_backend_type_map.c" \
+    "llvm_active_has_mir(ctx)"
+require_term "src/codegen/llvm_backend_type_render.c" \
+    "llvm_render_alias_target_type_name_from_headers"
+require_term "src/codegen/llvm_backend_type_render.c" \
+    "mir_decl_header_type_alias_target_type_name(alias_header)"
+require_term "src/codegen/llvm_backend_type_render.c" \
+    "llvm_active_has_mir(ctx)"
+require_term "src/codegen/transpiler_type_alias.c" \
+    "transpiler_type_alias_target_type_name_from_headers"
+require_term "src/codegen/transpiler_type_alias.c" \
+    "mir_decl_header_type_alias_target_type_name(alias_header)"
+require_term "src/codegen/transpiler_type_alias.c" \
+    "ensure_type_specializations_from_type_name_to("
+require_term "src/codegen/transpiler_type_alias.c" \
+    "transpiler_active_has_mir(ctx)"
 require_each_following_term "src/codegen/llvm_backend_type_map_generics.c" \
     "if (llvm_active_has_mir(ctx))" \
     "llvm_find_decl_header_in_context_of_type(" \

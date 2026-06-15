@@ -91,6 +91,15 @@ mir_validate_decl_header_shape_metadata(const MIRDeclHeader *header,
         }
         return false;
     }
+    if (header->ast_type == AST_TYPE_ALIAS
+        && header->type_alias_target_type_name == NULL) {
+        if (error_message != NULL) {
+            *error_message = mir_strdup_fmt(
+                "MIR declaration header[%zu] '%s' type-alias target metadata drift",
+                header_index, header->name);
+        }
+        return false;
+    }
     if (mir_decl_header_type_requires_pointer_self(header->ast_type)
         && !header->uses_pointer_self) {
         if (error_message != NULL) {

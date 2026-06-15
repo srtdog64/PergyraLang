@@ -254,6 +254,8 @@ mir_record_decl_header(MIRProgram *mir, ASTNode *decl)
         break;
     case AST_TYPE_ALIAS:
         header.name = ast_type_alias_name(decl);
+        header.type_alias_target_type_name =
+            mir_capture_type_name(ast_type_alias_target_type(decl), NULL);
         break;
     case AST_CLASS_DECL:
         header.name = ast_class_name(decl);
@@ -342,18 +344,23 @@ mir_record_decl_header(MIRProgram *mir, ASTNode *decl)
 
     if (header.name == NULL)
         return true;
-    if (!mir_decl_header_set_fields(&header, decl))
+    if (!mir_decl_header_set_fields(&header, decl)) {
+        free(header.type_alias_target_type_name);
         return false;
+    }
     if (!mir_decl_header_set_generics(&header, decl)) {
+        free(header.type_alias_target_type_name);
         mir_decl_header_free_fields(&header);
         return false;
     }
     if (!mir_decl_header_set_methods(&header, methods, method_count)) {
+        free(header.type_alias_target_type_name);
         free(header.generic_metadata);
         mir_decl_header_free_fields(&header);
         return false;
     }
     if (!mir_decl_header_set_variants(&header, decl)) {
+        free(header.type_alias_target_type_name);
         for (size_t i = 0; i < header.method_metadata_count; i++)
             mir_decl_method_metadata_clear(&header.method_metadata[i]);
         free(header.method_metadata);
@@ -362,6 +369,7 @@ mir_record_decl_header(MIRProgram *mir, ASTNode *decl)
         return false;
     }
     if (!mir_append_decl_header(mir, header)) {
+        free(header.type_alias_target_type_name);
         for (size_t i = 0; i < header.method_metadata_count; i++)
             mir_decl_method_metadata_clear(&header.method_metadata[i]);
         free(header.method_metadata);

@@ -1,8 +1,10 @@
 # Self-Host Status (verified snapshot)
 
 Branch codex/sot-selfhost-closure. This snapshot records what is verified to
-self-host right now, measured by building pgy and running the self-hosted
-passes on both backends against the C compiler as oracle.
+self-host right now, measured by building pgy and running
+`make self-host-preparation-test-smoke` on 2026-06-15. The gate runs the
+self-hosted tools on C/LLVM where applicable and keeps the C compiler as the
+oracle.
 
 ## Verified
 
@@ -10,12 +12,12 @@ Front-end self-hosts on both backends.
 
 - Lexer (src/self_hosted/lexer/main.pgy): compiles on C and LLVM. Token output
   is byte-identical to `pgy --tokens`.
-- Parser (src/self_hosted/parser/main.pgy, 3309 lines): compiles on C and LLVM.
-  It parses the domain grammar, not just generic constructs: it dispatches on
-  zone, world, party, role, and intent keywords, plus bind, if, within-zone,
-  and intent steps, with full expression precedence. Output is identical to a
-  committed fixture (multi_log) and matches `pgy --ast` on hello.pgy except for
-  one trailing blank line that the parity scripts normalize.
+- Parser (src/self_hosted/parser/main.pgy): compiles on C and LLVM and compares
+  byte-identical against `pgy --ast` on 187 committed source fixtures. It parses
+  the domain grammar, not just generic constructs: it dispatches on zone, world,
+  party, role, and intent keywords, plus bind, if, within-zone, and intent
+  steps, with full expression precedence. The parity set includes a deep nested
+  generic type fixture so LLVM depth/type-name handling is covered.
 - Backend parity: the parser compiled by the C backend and by the LLVM backend
   produce byte-identical output. This is the core self-host correctness signal,
   the language compiles its own pass to the same result on both backends.
@@ -26,13 +28,19 @@ Single source of truth (capability 5) is nearly closed.
 - Compiler-side source_ast is at 2, the declaration-header payload assignment
   and accessor, tracked by the ratchet.
 - C class/zone collection-specialization scans are MIR-routine based and no
-  longer recover method body AST; the remaining routine source-decl bridge is
-  lookup/projection compatibility.
+  longer recover method body AST; routine_source_decl_codegen is ratcheted at 0.
+  The remaining bridge is declaration-header source_decl compatibility.
 
 Substrate progress.
 
 - DirWalk deterministic directory snapshot added (filesystem_directory_walk
-  gate), removing one of the three self-host substrate gaps.
+  gate) and verified on C and LLVM, removing one of the three self-host
+  substrate gaps.
+- The Pergyra linter, backend output comparator, backend tri-compare,
+  AST-read-surface checker, diagnostics catalog checker, doc/example inventory
+  checkers, module manifest resolver, production size checkers, AIR graph JSON
+  validator, stable subset checker, and stdlib dispatch inventory checker all
+  pass their current self-host preparation parity gates.
 
 ## Not yet self-hosted
 
@@ -59,6 +67,4 @@ semantic subset runs at parity.
 ## How to reproduce
 
     make pgy
-    pgy src/self_hosted/lexer/main.pgy --emit-c   # and --emit-llvm
-    pgy src/self_hosted/parser/main.pgy --emit-c  # and --emit-llvm
-    # build each to native, run against pgy --tokens / pgy --ast, diff
+    make self-host-preparation-test-smoke

@@ -107,7 +107,7 @@ Notes:
 
 ## Peripheral Audit Tools (Not Counted In Coverage)
 
-These 11 tools live in `src/self_hosted/tools/` but do **not** count
+These 12 tools live in `src/self_hosted/tools/` but do **not** count
 toward compiler-internal substitution. They are dogfood validators
 that read text artifacts and emit drift verdicts; the C compiler
 keeps running fine with or without them.
@@ -125,7 +125,8 @@ keeps running fine with or without them.
 | `production_c_size_checker`       | 120           | `.c` 699-LOC cap |
 | `examples_inventory_checker`      | 108           | examples/ presence + non-empty |
 | `ast_read_surface_checker`        | 146           | CFG/MIR SoT ratchet parity |
-| **Total peripheral**              | **1552**      | |
+| `linter`                          | 179           | LSP-style diagnostic JSON parity |
+| **Total peripheral**              | **1731**      | |
 
 Plus `src/self_hosted/lib/text_scan.pgy` (~45 LOC) shared across scan-based
 tools.

@@ -9,6 +9,8 @@ ASTNode *mir_decl_header_source_decl(const MIRDeclHeader *header);
 ASTNodeType mir_decl_header_ast_type_or(const MIRDeclHeader *header,
                                         ASTNodeType fallback);
 const char *mir_decl_header_name(const MIRDeclHeader *header);
+const char *mir_decl_header_type_alias_target_type_name(
+    const MIRDeclHeader *header);
 NominalDeclKind mir_decl_header_nominal_kind_or(
     const MIRDeclHeader *header,
     NominalDeclKind fallback);

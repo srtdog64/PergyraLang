@@ -98,9 +98,20 @@ llvm_resolve_inner_type(LLVMGenCtx *ctx, const char *type_name)
 static LLVMTypeRef
 llvm_resolve_alias_type(LLVMGenCtx *ctx, const char *type_name)
 {
+    const MIRDeclHeader *alias_header;
+    const char *target_type_name;
     ASTNode *alias_decl;
 
     if (ctx == NULL || type_name == NULL)
+        return NULL;
+
+    alias_header = llvm_find_decl_header_in_context_of_type(
+        ctx, AST_TYPE_ALIAS, type_name);
+    target_type_name =
+        mir_decl_header_type_alias_target_type_name(alias_header);
+    if (target_type_name != NULL)
+        return pergyra_type_to_llvm(ctx, target_type_name);
+    if (llvm_active_has_mir(ctx))
         return NULL;
 
     alias_decl = llvm_find_decl_in_active_inventory(ctx, AST_TYPE_ALIAS,

@@ -18,6 +18,14 @@ mir_decl_header_name(const MIRDeclHeader *header)
     return header != NULL ? header->name : NULL;
 }
 
+const char *
+mir_decl_header_type_alias_target_type_name(const MIRDeclHeader *header)
+{
+    return header != NULL && header->ast_type == AST_TYPE_ALIAS
+        ? header->type_alias_target_type_name
+        : NULL;
+}
+
 NominalDeclKind
 mir_decl_header_nominal_kind_or(const MIRDeclHeader *header,
                                 NominalDeclKind fallback)
