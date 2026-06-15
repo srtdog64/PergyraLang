@@ -160,9 +160,10 @@ Current beta closure snapshot:
   Lookup predicates must call those owners rather than restating per-declaration
   name accessor switches.
 - Backend declaration generic-parameter recovery is centralized in
-  `ast_declaration_generic_params(...)`. LLVM type lowering may scan active
-  declaration inventories for generic defaults, but it must not restate a local
-  function/class/ability/role/party/roster generic-payload switch.
+  `MIRDeclHeader` generic metadata for MIR-active paths. C/LLVM consumers may
+  use `ast_declaration_generic_params(...)` only in non-MIR compatibility paths;
+  they must not restate a local function/class/ability/role/party/roster
+  generic-payload switch.
 - LLVM class field index/type recovery is centralized in the LLVM registry.
   Consumers that already resolved a struct field index may ask
   `llvm_class_field_type_at_index(...)` for the field type, but they must not

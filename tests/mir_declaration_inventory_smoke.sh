@@ -5031,6 +5031,26 @@ require_term "src/codegen/transpiler_role_ability.c" \
     "transpiler_hosted_role_slot_view_missing_mir_metadata(&role_view)"
 require_term "src/codegen/transpiler_role_ability.c" \
     "transpiler_hosted_role_slot_view_required_ability_ref("
+require_term "src/codegen/transpiler_role_ability.c" \
+    "transpiler_render_mir_ability_formal_fallback"
+require_term "src/codegen/transpiler_role_ability.c" \
+    "transpiler_active_decl_header_of_type("
+require_term "src/codegen/transpiler_role_ability.c" \
+    "ctx, AST_ABILITY_DECL, base_name"
+require_term "src/codegen/transpiler_role_ability.c" \
+    "mir_decl_header_generic_param_count(ability_header)"
+require_term "src/codegen/transpiler_role_ability.c" \
+    "ability_decl = !mir_active"
+require_term "src/codegen/llvm_domain_role_lookup.c" \
+    "llvm_render_mir_ability_formal_fallback"
+require_term "src/codegen/llvm_domain_role_lookup.c" \
+    "llvm_find_decl_header_in_context_of_type("
+require_term "src/codegen/llvm_domain_role_lookup.c" \
+    "ctx, AST_ABILITY_DECL, base_name"
+require_term "src/codegen/llvm_domain_role_lookup.c" \
+    "mir_decl_header_generic_param_count(ability_header)"
+require_term "src/codegen/llvm_domain_role_lookup.c" \
+    "ability_decl = !mir_active"
 if grep -RIn "transpiler_hosted_role_slot_view_required_ability_type_name(" \
     "$ROOT_DIR/src/codegen/transpiler_domain_nominal_emit.c" \
     "$ROOT_DIR/src/codegen/transpiler_role_ability.c" >/dev/null; then

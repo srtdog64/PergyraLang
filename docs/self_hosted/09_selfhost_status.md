@@ -43,6 +43,9 @@ Single source of truth (capability 5) is nearly closed.
   metadata for expected-type context before template AST compatibility.
 - C/LLVM class field-slot claim helpers consume `MIRDeclFieldClaim` metadata
   instead of class destructure AST in MIR-active paths.
+- C/LLVM role-slot ability tag rendering fills omitted generic actuals from
+  `MIRDeclHeader` generic metadata instead of ability source declarations in
+  MIR-active paths.
 - C projection literal/source-path lowering has a by-name MIR header path for
   ToTObject, projection-borrow materialization, member access, and domain
   provenance refresh; the central declaration-header source_decl compatibility

@@ -214,13 +214,34 @@ llvm_render_ability_formal_fallback(LLVMGenCtx *ctx, GenericParam *formal)
         ctx, rendered, "LLVM ability generic fallback copy failed");
 }
 
+static const char *
+llvm_render_mir_ability_formal_fallback(LLVMGenCtx *ctx,
+                                        const MIRDeclGenericParam *formal)
+{
+    ASTNode *fallback;
+    char *rendered;
+
+    if (ctx == NULL || formal == NULL)
+        return NULL;
+    fallback = mir_decl_generic_param_default_type(formal);
+    if (fallback == NULL)
+        fallback = mir_decl_generic_param_constraint(formal);
+    if (fallback == NULL)
+        return NULL;
+    rendered = llvm_render_type_name_in_ctx(ctx, fallback);
+    return llvm_keep_rendered_persistent(
+        ctx, rendered, "LLVM ability generic fallback copy failed");
+}
+
 const char *
 llvm_render_mir_ability_ref_vtable_tag(LLVMGenCtx *ctx,
                                        const MIRAbilityRef *ability_ref)
 {
     const char *base_name;
+    const MIRDeclHeader *ability_header = NULL;
     ASTNode *ability_decl;
     GenericParams *generics;
+    bool mir_active = llvm_active_has_mir(ctx);
     size_t generic_count;
     size_t actual_count;
     size_t rendered_count;
@@ -232,11 +253,18 @@ llvm_render_mir_ability_ref_vtable_tag(LLVMGenCtx *ctx,
     base_name = mir_ability_ref_base_name(ability_ref);
     if (base_name == NULL)
         return NULL;
-    ability_decl = llvm_find_decl_in_active_inventory(
-        ctx, AST_ABILITY_DECL, base_name);
+    if (mir_active) {
+        ability_header = llvm_find_decl_header_in_context_of_type(
+            ctx, AST_ABILITY_DECL, base_name);
+    }
+    ability_decl = !mir_active
+        ? llvm_find_decl_in_active_inventory(ctx, AST_ABILITY_DECL, base_name)
+        : NULL;
     generics = ability_decl != NULL && ability_decl->type == AST_ABILITY_DECL
         ? ast_declaration_generic_params(ability_decl) : NULL;
-    generic_count = ast_generic_param_count(generics);
+    generic_count = ability_header != NULL
+        ? mir_decl_header_generic_param_count(ability_header)
+        : ast_generic_param_count(generics);
     actual_count = mir_ability_ref_actual_arg_count(ability_ref);
     rendered_count = generic_count > actual_count ? generic_count : actual_count;
     if (rendered_count == 0)
@@ -257,8 +285,11 @@ llvm_render_mir_ability_ref_vtable_tag(LLVMGenCtx *ctx,
                 ctx, mir_ability_ref_actual_arg_type_name(ability_ref, i));
         }
         if (arg == NULL && i < generic_count) {
-            arg = llvm_render_ability_formal_fallback(
-                ctx, ast_generic_param_at(generics, i));
+            arg = ability_header != NULL
+                ? llvm_render_mir_ability_formal_fallback(
+                    ctx, mir_decl_header_generic_param(ability_header, i))
+                : llvm_render_ability_formal_fallback(
+                    ctx, ast_generic_param_at(generics, i));
         }
         if (arg == NULL)
             return llvm_keep_ability_tag(ctx, base_name);
@@ -279,9 +310,11 @@ const char *
 llvm_render_ast_ability_ref_vtable_tag(LLVMGenCtx *ctx, ASTNode *ability_ref)
 {
     const char *base_name;
+    const MIRDeclHeader *ability_header = NULL;
     ASTNode *ability_decl;
     GenericParams *generics;
     GenericParams *actuals;
+    bool mir_active = llvm_active_has_mir(ctx);
     size_t generic_count;
     size_t actual_count;
     size_t rendered_count;
@@ -293,12 +326,19 @@ llvm_render_ast_ability_ref_vtable_tag(LLVMGenCtx *ctx, ASTNode *ability_ref)
     base_name = ast_type_name(ability_ref);
     if (base_name == NULL)
         return NULL;
-    ability_decl = llvm_find_decl_in_active_inventory(
-        ctx, AST_ABILITY_DECL, base_name);
+    if (mir_active) {
+        ability_header = llvm_find_decl_header_in_context_of_type(
+            ctx, AST_ABILITY_DECL, base_name);
+    }
+    ability_decl = !mir_active
+        ? llvm_find_decl_in_active_inventory(ctx, AST_ABILITY_DECL, base_name)
+        : NULL;
     generics = ability_decl != NULL && ability_decl->type == AST_ABILITY_DECL
         ? ast_declaration_generic_params(ability_decl) : NULL;
     actuals = ast_type_generic_args(ability_ref);
-    generic_count = ast_generic_param_count(generics);
+    generic_count = ability_header != NULL
+        ? mir_decl_header_generic_param_count(ability_header)
+        : ast_generic_param_count(generics);
     actual_count = ast_generic_param_count(actuals);
     rendered_count = generic_count > actual_count ? generic_count : actual_count;
     if (rendered_count == 0)
@@ -327,8 +367,11 @@ llvm_render_ast_ability_ref_vtable_tag(LLVMGenCtx *ctx, ASTNode *ability_ref)
             }
         }
         if (arg == NULL && i < generic_count) {
-            arg = llvm_render_ability_formal_fallback(
-                ctx, ast_generic_param_at(generics, i));
+            arg = ability_header != NULL
+                ? llvm_render_mir_ability_formal_fallback(
+                    ctx, mir_decl_header_generic_param(ability_header, i))
+                : llvm_render_ability_formal_fallback(
+                    ctx, ast_generic_param_at(generics, i));
         }
         free(owned_arg);
         if (arg == NULL)

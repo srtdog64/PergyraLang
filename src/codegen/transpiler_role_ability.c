@@ -7,6 +7,7 @@
 #include "../common/string_compat.h"
 #include "../compiler/mir_decl_headers.h"
 #include "transpiler_decl_lookup.h"
+#include "transpiler_inventory_view.h"
 #include "transpiler_role_ability_helpers.h"
 #include "transpiler_type_mapping.h"
 #include "transpiler_type_render.h"
@@ -198,12 +199,29 @@ transpiler_render_ability_formal_fallback(TranspilerCtx *ctx,
 }
 
 static char *
+transpiler_render_mir_ability_formal_fallback(
+    TranspilerCtx *ctx,
+    const MIRDeclGenericParam *formal)
+{
+    ASTNode *fallback;
+
+    if (formal == NULL)
+        return NULL;
+    fallback = mir_decl_generic_param_default_type(formal);
+    if (fallback == NULL)
+        fallback = mir_decl_generic_param_constraint(formal);
+    return fallback != NULL ? render_type_name_in_ctx(ctx, fallback) : NULL;
+}
+
+static char *
 render_ability_ref_parts_vtable_tag_in_ctx(TranspilerCtx *ctx,
                                            const char *base_name,
                                            const MIRAbilityRef *ability_ref)
 {
+    const MIRDeclHeader *ability_header = NULL;
     ASTNode *ability_decl;
     GenericParams *generics;
+    bool mir_active = ctx != NULL && transpiler_active_has_mir(ctx);
     size_t generic_count;
     size_t actual_count;
     size_t rendered_count;
@@ -215,10 +233,20 @@ render_ability_ref_parts_vtable_tag_in_ctx(TranspilerCtx *ctx,
     if (base_name == NULL)
         return NULL;
 
-    ability_decl = ctx != NULL ? find_ability_decl(ctx, base_name) : NULL;
+    if (mir_active) {
+        ability_header =
+            transpiler_active_decl_header_of_type(
+                ctx, AST_ABILITY_DECL, base_name);
+    }
+    ability_decl = !mir_active && ctx != NULL
+        ? find_ability_decl(ctx, base_name)
+        : NULL;
     generics = ability_decl != NULL && ability_decl->type == AST_ABILITY_DECL
-        ? ast_declaration_generic_params(ability_decl) : NULL;
-    generic_count = ast_generic_param_count(generics);
+        ? ast_declaration_generic_params(ability_decl)
+        : NULL;
+    generic_count = ability_header != NULL
+        ? mir_decl_header_generic_param_count(ability_header)
+        : ast_generic_param_count(generics);
     actual_count = ability_ref != NULL
         ? mir_ability_ref_actual_arg_count(ability_ref) : 0;
     rendered_count = generic_count > actual_count ? generic_count : actual_count;
@@ -236,8 +264,11 @@ render_ability_ref_parts_vtable_tag_in_ctx(TranspilerCtx *ctx,
                 ctx, mir_ability_ref_actual_arg_type_name(ability_ref, i));
         }
         if (rendered == NULL && i < generic_count) {
-            rendered = transpiler_render_ability_formal_fallback(
-                ctx, ast_generic_param_at(generics, i));
+            rendered = ability_header != NULL
+                ? transpiler_render_mir_ability_formal_fallback(
+                    ctx, mir_decl_header_generic_param(ability_header, i))
+                : transpiler_render_ability_formal_fallback(
+                    ctx, ast_generic_param_at(generics, i));
         }
         if (rendered == NULL) {
             codebuf_destroy(buf);
