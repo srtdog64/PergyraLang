@@ -1,8 +1,8 @@
 #ifdef PGY_LLVM_ENABLED
-
 #include "llvm_expr_call_dispatch.h"
 
 #include "llvm_expr_array_calls.h"
+#include "llvm_expr_allocator_calls.h"
 #include "llvm_expr_boundary_projection_helpers.h"
 #include "llvm_expr_call_inline_policy.h"
 #include "llvm_expr_call_intent_policy.h"
@@ -57,13 +57,11 @@ llvm_emit_call(ASTNode *node, LLVMGenCtx *ctx)
 
     LLVMCallInlineOp inline_op = llvm_call_inline_lookup(callee_name, argc);
 
-    if (inline_op == LLVM_CALL_INLINE_OP_CLONE) {
+    if (inline_op == LLVM_CALL_INLINE_OP_CLONE)
         return llvm_emit_expression(ast_call_argument(node, 0), ctx);
-    }
 
     {
-        LLVMValueRef constructor_value =
-            llvm_emit_constructor_call(node, ctx, callee_name);
+        LLVMValueRef constructor_value = llvm_emit_constructor_call(node, ctx, callee_name);
         if (ctx->has_error)
             return NULL;
         if (constructor_value != NULL)
@@ -128,6 +126,8 @@ llvm_emit_call(ASTNode *node, LLVMGenCtx *ctx)
     {
         LLVMValueRef array_call = NULL;
         if (llvm_emit_array_builtin_call(node, ctx, callee_name, &array_call))
+            return array_call;
+        if (llvm_emit_allocator_builtin_call(node, ctx, callee_name, &array_call))
             return array_call;
     }
 

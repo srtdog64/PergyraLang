@@ -72,6 +72,7 @@ pgy_classify_type(const char *type_name)
         if (strncmp(type_name, "Weak<", 5) == 0)        return PGY_TK_WEAK;
         break;
     case 'A':
+        if (strcmp(type_name, "Allocator") == 0)        return PGY_TK_ALLOCATOR;
         if (strncmp(type_name, "Array<", 6) == 0)       return PGY_TK_ARRAY;
         break;
     default:
@@ -93,6 +94,7 @@ pgy_kind_to_llvm(LLVMGenCtx *ctx, PgyTypeKind kind)
     case PGY_TK_QUBIT_SLOT:    return ctx->type_i32;
     case PGY_TK_REMOTE_FUTURE: return ctx->type_task_handle;
     case PGY_TK_FUTURE:        return ctx->type_task_handle;
+    case PGY_TK_ALLOCATOR:     return ctx->type_allocator;
     case PGY_TK_VOID:          return ctx->type_void;
     default:                   return NULL;
     }

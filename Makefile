@@ -992,6 +992,8 @@ ifneq ($(LLVM_ENABLED),0)
                         $(CODEGEN_DIR)/llvm_expr_boundary_projection_helpers.c \
                         $(CODEGEN_DIR)/llvm_expr_common.c \
                         $(CODEGEN_DIR)/llvm_expr_array_calls.c \
+                        $(CODEGEN_DIR)/llvm_expr_allocator_calls.c \
+                        $(CODEGEN_DIR)/llvm_expr_box_array_calls.c \
                         $(CODEGEN_DIR)/llvm_expr_call_args.c \
                         $(CODEGEN_DIR)/llvm_expr_call_collections_map_exports.c \
                         $(CODEGEN_DIR)/llvm_expr_call_collections_extended.c \

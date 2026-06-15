@@ -208,6 +208,12 @@ beyond the lexer:
   `MapKeys` and `Set<String|Int|Long|Bool>` `SetValues` through generated
   Pergyra programs on C and LLVM. Remaining collection lifts are
   symbol/record/handle keys.
+- **Allocator/arena ownership surface** -- `AllocatorSystem`,
+  `AllocatorPool`, `AllocatorDebug`, and `AllocatorTracing` now produce the
+  single stable `Allocator` value on C and LLVM. `BoxArray(capacity,
+  allocator)` consumes a named allocator local so fused array storage keeps an
+  owner with a valid lifetime. The remaining lift is ergonomic
+  scratch/result/persistent arena lanes for compiler passes.
 - **Filesystem directory walk** -- `DirWalk(String) -> Array<String>` has landed
   for generated binaries on C and LLVM. It returns a deterministic sorted
   regular-file snapshot with `/` separators and is gated by

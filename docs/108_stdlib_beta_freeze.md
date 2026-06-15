@@ -30,6 +30,12 @@ These are compiler/runtime builtins, not `use` modules:
 - Process/tooling helpers: `Args`, `Exit`. `Args() -> Array<String>` returns
   the user arguments passed to the generated binary, excluding the executable
   name, as an owned snapshot.
+- Allocation helpers: `AllocatorSystem`, `AllocatorPool`,
+  `AllocatorDebug`, `AllocatorTracing`. These produce the single stable
+  `Allocator` value used by allocation-aware runtime owners; LLVM lowers them
+  through pointer-initialized runtime exports to avoid platform-specific
+  struct-return ABI drift. `BoxArray(capacity, allocator)` accepts a named
+  `Allocator` local on C and LLVM so fused array storage keeps a stable owner.
 - Collections frozen for beta: `Array<T>`, `Slice<T>`, `List<T>`, `Set<T>`,
   `Queue<T>`, `HashMap<String, T>`, `HashMap<Int, T>`, `HashMap<Long, T>`,
   `HashMap<Bool, T>`. `SliceCopy(Slice<T>) -> Array<T>` is the stable

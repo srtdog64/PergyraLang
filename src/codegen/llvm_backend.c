@@ -49,6 +49,17 @@ llvm_ctx_create(const char *module_name)
     ctx->type_i1    = LLVMInt1TypeInContext(ctx->context);
     ctx->type_i8ptr = LLVMPointerTypeInContext(ctx->context, 0);
     ctx->type_void  = LLVMVoidTypeInContext(ctx->context);
+    {
+        LLVMTypeRef type_i8 = LLVMInt8TypeInContext(ctx->context);
+        LLVMTypeRef allocator_fields[] = {
+            ctx->type_i32, type_i8, type_i8,
+            ctx->type_i64, ctx->type_i64, ctx->type_i64, ctx->type_i64,
+            ctx->type_i8ptr
+        };
+        ctx->type_allocator = LLVMStructCreateNamed(ctx->context,
+            "PgyAllocator");
+        LLVMStructSetBody(ctx->type_allocator, allocator_fields, 8, 0);
+    }
 
     pgy_arena_init(&ctx->scratch, 0);
     pgy_arena_init(&ctx->persistent, 0);

@@ -52,6 +52,7 @@ static bool
 llvm_stmt_type_name_is_simple_builtin_return(const char *type_name)
 {
     static const char *const return_types[] = {
+        "Allocator",
         "Bool",
         "Float",
         "Int",

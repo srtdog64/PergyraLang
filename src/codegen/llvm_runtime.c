@@ -46,6 +46,32 @@ llvm_declare_runtime(LLVMGenCtx *ctx)
 
     llvm_declare_runtime_core_builtins(ctx);
 
+    {
+        LLVMTypeRef allocator_ptr_ty = LLVMPointerType(ctx->type_allocator, 0);
+        struct {
+            const char *name;
+            bool has_capacity;
+        } allocator_exports[] = {
+            { "pgy_allocator_debug_init", false },
+            { "pgy_allocator_pool_init", true },
+            { "pgy_allocator_system_init", false },
+            { "pgy_allocator_tracing_init", false },
+        };
+        for (size_t i = 0;
+             i < sizeof(allocator_exports) / sizeof(allocator_exports[0]);
+             i++) {
+            LLVMTypeRef params[2] = { allocator_ptr_ty, ctx->type_i64 };
+            unsigned param_count =
+                allocator_exports[i].has_capacity ? 2u : 1u;
+            LLVMTypeRef ft = LLVMFunctionType(ctx->type_void, params,
+                param_count, 0);
+            LLVMValueRef fn = LLVMAddFunction(ctx->module,
+                allocator_exports[i].name, ft);
+            llvm_register_function(ctx, allocator_exports[i].name, fn, ft,
+                ctx->type_void);
+        }
+    }
+
     struct {
         const char *suffix;
         LLVMTypeRef slot_ty;
@@ -257,6 +283,17 @@ llvm_declare_runtime(LLVMGenCtx *ctx)
           }
           LLVMValueRef fn = LLVMAddFunction(ctx->module, fn_name, ft);
           llvm_register_function(ctx, LLVMGetValueName(fn), fn, ft, arr_ty); }
+        { LLVMTypeRef params[] = {
+              ctx->type_i64, LLVMPointerType(ctx->type_allocator, 0) };
+          LLVMTypeRef ft = LLVMFunctionType(ctx->type_i8ptr, params, 2, 0);
+          if (!llvm_runtime_export_name(fn_name, sizeof(fn_name),
+                  "box_array_new_ptr", suffix)) {
+              llvm_set_error(ctx, "BoxArray new runtime name is too long");
+              return;
+          }
+          LLVMValueRef fn = LLVMAddFunction(ctx->module, fn_name, ft);
+          llvm_register_function(ctx, LLVMGetValueName(fn), fn, ft,
+              ctx->type_i8ptr); }
         { LLVMTypeRef params[] = { arr_ptr_ty, val_ty };
           LLVMTypeRef ft = LLVMFunctionType(ctx->type_void, params, 2, 0);
           if (!llvm_runtime_export_name(fn_name, sizeof(fn_name), "array_push", suffix)) {

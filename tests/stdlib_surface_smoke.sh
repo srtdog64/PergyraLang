@@ -137,6 +137,14 @@ func Main() -> Void {
         Log(137);
     }
 
+    let systemAlloc: Allocator = AllocatorSystem();
+    let poolAlloc: Allocator = AllocatorPool(256);
+    let debugAlloc: Allocator = AllocatorDebug();
+    let tracingAlloc: Allocator = AllocatorTracing();
+    Log(149);
+    let boxedInts: Box<Array<Int>> = BoxArray(2, poolAlloc);
+    Log(151);
+
     let walked: Array<String> = DirWalk("walk_root");
     Log(ArrayLength(walked));
     if ArrayLength(walked) == 3 {
@@ -237,7 +245,7 @@ run_backend() {
 
     output="$(cd "$WORK_DIR" && "$PGY" "$stable_arg" --backend="$backend" --run 2>&1)"
 
-    for expected in "42" "2" "3" "blue" "red" "8" "true" "false" "BYE there" "handle" "9" "113" "127" "131" "137" "walk_root/a/one.txt" "walk_root/b/two.txt" "walk_root/root.txt"; do
+    for expected in "42" "2" "3" "blue" "red" "8" "true" "false" "BYE there" "handle" "9" "113" "127" "131" "137" "149" "151" "walk_root/a/one.txt" "walk_root/b/two.txt" "walk_root/root.txt"; do
         if ! grep -Fq "$expected" <<<"$output"; then
             echo "[stdlib-smoke] backend=$backend missing '$expected'" >&2
             echo "--- output ---" >&2

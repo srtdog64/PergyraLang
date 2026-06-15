@@ -6,6 +6,7 @@
 #include <stdlib.h>
 #include <string.h>
 
+#include "llvm_expr_box_array_calls.h"
 #include "llvm_internal_api.h"
 #include "parser/ast_api.h"
 
@@ -393,6 +394,8 @@ llvm_emit_array_builtin_call(ASTNode *node, LLVMGenCtx *ctx,
 
     if (out == NULL)
         return false;
+    if (llvm_emit_box_array_builtin_call(node, ctx, callee_name, out))
+        return true;
 
     op = llvm_array_builtin_lookup(callee_name,
         (unsigned)ast_call_arg_count(node));

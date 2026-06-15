@@ -10,6 +10,7 @@
 #include "transpiler_decl_lookup.h"
 #include "transpiler_expr_type_infer.h"
 #include "transpiler_inventory_view.h"
+#include "transpiler_let_box_emit.h"
 #include "transpiler_mir_block_emit_helpers.h"
 #include "transpiler_mir_effective_type.h"
 #include "transpiler_mir_local_type_lookup.h"
@@ -73,13 +74,23 @@ transpiler_emit_mir_preserved_let_stmt(CodeBuf *buf,
         char *lhs = transpiler_render_ssa_name(ctx, versioned_local);
         ASTNode *saved_expected_callable_type = ctx->expected_callable_type;
         char *rhs;
+        TranspilerBoxArrayLetCtor box_array_ctor;
+        bool box_array_handled;
         char *rendered_type = NULL;
         const char *value_type = NULL;
 
         if (let_type != NULL && let_type->type == AST_EVENT_HANDLER_TYPE)
             ctx->expected_callable_type = let_type;
-        rhs = emit_expression_with_ssa_map(let_init, ctx, ssa_map_out);
+        box_array_handled = transpiler_try_render_box_array_let_ctor(
+            ctx, let_name, let_init, let_type, NULL, &box_array_ctor);
+        if (box_array_handled) {
+            rhs = box_array_ctor.rhs;
+            box_array_ctor.rhs = NULL;
+        } else {
+            rhs = emit_expression_with_ssa_map(let_init, ctx, ssa_map_out);
+        }
         ctx->expected_callable_type = saved_expected_callable_type;
+        transpiler_box_array_let_ctor_destroy(&box_array_ctor);
 
         if (let_type != NULL) {
             const char *source_type =
@@ -352,10 +363,23 @@ transpiler_emit_mir_source_local_let_def_inst(
     {
         const char *saved_expected_type = ctx->expected_type;
         ASTNode *saved_expected_callable_type = ctx->expected_callable_type;
+        TranspilerBoxArrayLetCtor box_array_ctor;
+        bool box_array_handled;
         ctx->expected_type = local_type_name_owned;
         if (let_type != NULL && let_type->type == AST_EVENT_HANDLER_TYPE)
             ctx->expected_callable_type = let_type;
-        rhs = emit_expression_with_ssa_map(let_init, ctx, ssa_map_out);
+        box_array_handled = transpiler_try_render_box_array_let_ctor(
+            ctx, let_name, let_init, let_type, local_type_name_owned,
+            &box_array_ctor);
+        if (box_array_handled) {
+            rhs = box_array_ctor.rhs;
+            box_array_ctor.rhs = NULL;
+        } else {
+            rhs = emit_expression_with_ssa_map(let_init, ctx, ssa_map_out);
+        }
+        if (local_type_name_owned == NULL && box_array_ctor.surface_type != NULL)
+            local_type_name_owned = pergyra_strdup(box_array_ctor.surface_type);
+        transpiler_box_array_let_ctor_destroy(&box_array_ctor);
         ctx->expected_callable_type = saved_expected_callable_type;
         ctx->expected_type = saved_expected_type;
     }

@@ -380,6 +380,7 @@ typedef struct LLVMGenCtx
     LLVMTypeRef     type_void;
 
     LLVMTypeRef     type_task_handle;
+    LLVMTypeRef     type_allocator;
     int             parallel_counter;
 
     LLVMTypeRef     slot_type_Int;
