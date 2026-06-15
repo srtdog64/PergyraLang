@@ -1,9 +1,9 @@
 # Production C Size Checker -- Intent / Contract
 
-**Status:** *rung-2 minimal* (2026-05-27). Sister tool to the production
+**Status:** *rung-2 DirWalk-owned* (2026-06-15). Sister tool to the production
 header size checker, but covering production `.c` translation units against
-the 699-LOC hard cap. This is the highest value in the 600s and is a
-mechanical failure threshold for coherent `.c` owners.
+the 699-LOC hard cap. It enumerates `DirWalk("src")` and filters the same
+production `.c` scope as `tests/test_inc_size_smoke.sh`.
 
 ## Intent
 
@@ -16,11 +16,9 @@ helper bucket.
 
 ## Input Contract
 
-- **manifest_owner**:
-  `src/self_hosted/tools/production_c_size_checker/fixture/c_files_manifest.txt`
-  (text, UTF-8, one repo-relative `.c` path per line; produced by
-  `find src/codegen src/runtime src/compiler src/semantic src/parser src/lsp
-  -name '*.c' -type f | sort`).
+- **dirwalk_owner**: `src`.
+- **filter**: `test_inc_size_production_c_scope`, meaning `src/**/*.c` files
+  excluding `src/tests/*` and files whose basename starts with `test_`.
 - Each `.c` file content is `ReadFile`d relative to repository root.
 
 ## Output Contract
@@ -33,7 +31,8 @@ JSON document on stdout, conforming to schema
   "schema": "pgy.selfhost.production-c-size.v1",
   "ok": true,
   "source": {
-    "manifest_owner": "src/self_hosted/tools/production_c_size_checker/fixture/c_files_manifest.txt",
+    "dirwalk_owner": "src",
+    "filter": "test_inc_size_production_c_scope",
     "cap_lines": 699
   },
   "counts": {
@@ -47,35 +46,32 @@ JSON document on stdout, conforming to schema
 
 - `ok = (counts.violations == 0)`.
 - `findings[]` carries one entry per over-cap file, capped at 8:
-  `{ "kind": "c_over_cap" | "input_error" | "missing_manifest",
+  `{ "kind": "c_over_cap",
      "path": "src/...", "lines": <int>, "location": "..." }`.
 
 Exit code: `0` on `ok:true`, `1` on `ok:false`.
 
 ## Oracle
 
-The shell drift detector is `wc -l` per manifest entry. There is no
-existing C-side smoke for the `.c` cap today (TODO Section 0 calls it a
-"split-review threshold" for `.c`); the Pergyra origin is the primary
-implementation and the shell `find + wc -l + awk` is the auxiliary parity
-backend.
+The shell drift detector is `find + wc -l + awk` over the same production `.c`
+filter. The broader C-side cap is also enforced by
+`tests/test_inc_size_smoke.sh`; the Pergyra origin emits the structured
+verdict and the shell path is the auxiliary parity backend.
 
 The parity rung (`src/self_hosted/parity/`) asserts:
 
 - The Pergyra origin exits `0` on the clean repo.
 - Emitted JSON byte-matches `expected/clean.json`.
 - `c_files / violations / max_lines` match shell ground truth.
-- A synthetic over-cap fixture (701-line generated `.c` appended to a tmp
-  manifest) yields `rc=1` with a `"kind":"c_over_cap"` finding.
+- A synthetic over-cap fixture (1001-line generated `.c` under `src/runtime`)
+  yields `rc=1` with a `"kind":"c_over_cap"` finding.
 
 ## Why Now
 
 This is the *ninth* soft self-host tool. It is the closest sibling to tool
 8 (`production_header_size_checker`) -- same shape, different file class.
-Shipping the pair together completes the "production file size gate" axis
-for soft self-host. The duplication overlap with tool 8 makes both tools
-candidate consumers for a shared `lib/text_scan.pgy::CountLines` helper
-once a *third* tool wants the `wc -l`-style line counter.
+The current form closes the stale manifest alias and makes the Pergyra tool
+own production C inventory through `DirWalk`.
 
 ## Not In Scope
 

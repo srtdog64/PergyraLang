@@ -114,19 +114,19 @@ keeps running fine with or without them.
 
 | Tool                              | LOC (Pergyra) | Function |
 |-----------------------------------|---------------|----------|
-| `diagnostic_catalog_checker`      | 266           | docs/72 vs diag_codes.h drift |
-| `stable_subset_section_checker`   | 122           | docs/107 canonical anchors |
-| `air_graph_json_validator`        | 165           | `pgy --air-json` shape gate |
-| `backend_output_comparator`       | 135           | paired text diff verdict |
-| `module_manifest_resolver`        | 121           | language_module_manifest.json |
-| `stdlib_dispatch_inventory_checker` | 105         | C/LLVM dispatch table count parity |
-| `doc_link_checker`                | 143           | docs/INDEX.md dead-link audit |
-| `production_header_size_checker`  | 121           | `.h` 600-LOC cap |
-| `production_c_size_checker`       | 120           | `.c` 699-LOC cap |
+| `diagnostic_catalog_checker`      | 282           | docs/72 vs diag_codes.h drift |
+| `stable_subset_section_checker`   | 133           | docs/107 canonical anchors |
+| `air_graph_json_validator`        | 180           | `pgy --air-json` shape gate |
+| `backend_output_comparator`       | 149           | paired text diff verdict |
+| `module_manifest_resolver`        | 134           | language_module_manifest.json |
+| `stdlib_dispatch_inventory_checker` | 116         | C/LLVM dispatch table count parity |
+| `doc_link_checker`                | 155           | docs/INDEX.md dead-link audit |
+| `production_header_size_checker`  | 119           | DirWalk-owned `.h` 600-LOC cap |
+| `production_c_size_checker`       | 139           | DirWalk-owned `.c` 699-LOC cap |
 | `examples_inventory_checker`      | 122           | DirWalk-owned examples/ count + non-empty |
-| `ast_read_surface_checker`        | 146           | CFG/MIR SoT ratchet parity |
-| `linter`                          | 179           | LSP-style diagnostic JSON parity |
-| **Total peripheral**              | **1745**      | |
+| `ast_read_surface_checker`        | 221           | CFG/MIR SoT ratchet parity |
+| `linter`                          | 193           | LSP-style diagnostic JSON parity |
+| **Total peripheral**              | **1943**      | |
 
 Plus `src/self_hosted/lib/text_scan.pgy` (~47 LOC) shared across scan-based
 tools.
@@ -219,9 +219,12 @@ beyond the lexer:
   regular-file snapshot with `/` separators and is gated by
   `filesystem_directory_walk_smoke`. `examples_inventory_checker` now consumes
   `DirWalk("examples")` directly, so the clean example inventory no longer has a
-  committed manifest alias. The remaining lift is repointing manifest-backed
-  source inventories such as ast-read-surface and production size checkers where
-  directory ownership is the real contract.
+  committed manifest alias. `production_header_size_checker` and
+  `production_c_size_checker` now consume `DirWalk("src")` directly, so their
+  clean inventories no longer depend on committed file-list fixtures. The
+  remaining manifest-owned surfaces are document contracts and the
+  ast-read-surface ratchet manifest, not top-level example or production size
+  file lists.
 - **Parser LLVM depth/type-inference parity** -- `parser_parity.sh` now
   compiles the self-host parser through both C and LLVM and includes a deep
   nested generic type fixture. Remaining parser work is grammar breadth and

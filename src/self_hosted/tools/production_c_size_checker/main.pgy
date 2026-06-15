@@ -1,13 +1,14 @@
 // src/self_hosted/tools/production_c_size_checker/main.pgy
 //
-// Status: rung-2 minimal (2026-05-27). Sister tool to tool 8 -- iterates
-// the committed `.c` manifest, reads each translation unit, counts
-// newlines, asserts the current production C size cap.
+// Status: rung-2 DirWalk-owned (2026-06-15). Sister tool to tool 8 --
+// enumerates production `.c` owners through DirWalk("src"), filters the same
+// production owner scope as tests/test_inc_size_smoke.sh, counts newlines,
+// and asserts the current production C size cap.
 //
 // Cwd contract: the parity harness cd's into the repo root before running.
 //
-// Pattern reused from tool 8 (`production_header_size_checker`): manifest
-// input + per-line file I/O loop. `CountLines` lifted to
+// Pattern reused from tool 8 (`production_header_size_checker`): DirWalk-owned
+// inventory + per-file I/O loop. `CountLines` lifted to
 // src/self_hosted/lib/text_scan.pgy (2026-05-27).
 //
 // Contract: see intent.md in the same directory.
@@ -27,46 +28,59 @@ func OverCapFinding(path: String, lines: Int) -> String {
     return StringJoin(parts, "");
 }
 
-func MissingFileFinding(path: String) -> String {
-    let parts: Array<String> = [
-        "{\"kind\":\"input_error\",\"path\":\"",
-        path,
-        "\",\"lines\":0,\"location\":\"",
-        path,
-        "\"}"
-    ];
-    return StringJoin(parts, "");
+func StartsWith(text: String, prefix: String) -> Bool {
+    let text_len: Int = StringLength(text);
+    let prefix_len: Int = StringLength(prefix);
+    if text_len < prefix_len {
+        return false;
+    }
+    return Substring(text, 0, prefix_len) == prefix;
 }
 
-func MissingManifestJson(path: String) -> String {
-    let parts: Array<String> = [
-        "{\"schema\":\"pgy.selfhost.production-c-size.v1\",\"ok\":false,",
-        "\"source\":{\"manifest_owner\":\"",
-        path,
-        "\",\"cap_lines\":699},",
-        "\"counts\":{\"c_files\":0,\"violations\":0,\"max_lines\":0},",
-        "\"findings\":[{\"kind\":\"missing_manifest\",\"path\":\"",
-        path,
-        "\",\"lines\":0,\"location\":\"",
-        path,
-        "\"}]}"
-    ];
-    return StringJoin(parts, "");
+func EndsWith(text: String, suffix: String) -> Bool {
+    let text_len: Int = StringLength(text);
+    let suffix_len: Int = StringLength(suffix);
+    if text_len < suffix_len {
+        return false;
+    }
+    return Substring(text, text_len - suffix_len, suffix_len) == suffix;
+}
+
+func BasenameStartsWith(path: String, prefix: String) -> Bool {
+    let last_slash: Int = -1;
+    let i: Int = 0;
+    let n: Int = StringLength(path);
+    while i < n {
+        if Substring(path, i, 1) == "/" {
+            last_slash = i;
+        }
+        i = i + 1;
+    }
+    let start: Int = last_slash + 1;
+    let remaining: Int = n - start;
+    let prefix_len: Int = StringLength(prefix);
+    if remaining < prefix_len {
+        return false;
+    }
+    return Substring(path, start, prefix_len) == prefix;
+}
+
+func IsProductionCSource(path: String) -> Bool {
+    if !StartsWith(path, "src/") || !EndsWith(path, ".c") {
+        return false;
+    }
+    if StartsWith(path, "src/tests/") {
+        return false;
+    }
+    return !BasenameStartsWith(path, "test_");
 }
 
 func Main() -> Void {
-    let manifest_path: String = "src/self_hosted/tools/production_c_size_checker/fixture/c_files_manifest.txt";
+    let dirwalk_owner: String = "src";
     // Production C owners use the highest 600s hard cap. The checker records
-    // current max_lines from the manifest so source-owner splits cannot drift silently.
+    // current max_lines from the directory snapshot so owner splits cannot drift silently.
     let cap: Int = 699;
-
-    if !FileExists(manifest_path) {
-        Log(MissingManifestJson(manifest_path));
-        Exit(1);
-    }
-
-    let manifest: String = ReadFile(manifest_path);
-    let entries: Array<String> = Split(manifest, "\n");
+    let entries: Array<String> = DirWalk(dirwalk_owner);
 
     let c_files: Int = 0;
     let violations: Int = 0;
@@ -78,24 +92,17 @@ func Main() -> Void {
     let n: Int = ArrayLength(entries);
     while i < n {
         let path: String = entries[i];
-        if StringLength(path) > 0 {
-            if !FileExists(path) {
-                if ArrayLength(findings) < findings_cap {
-                    ArrayPush(findings, MissingFileFinding(path));
-                }
+        if IsProductionCSource(path) {
+            c_files = c_files + 1;
+            let content: String = ReadFile(path);
+            let lines: Int = TextScan.CountLines(content);
+            if lines > max_lines {
+                max_lines = lines;
+            }
+            if lines > cap {
                 violations = violations + 1;
-            } else {
-                c_files = c_files + 1;
-                let content: String = ReadFile(path);
-                let lines: Int = TextScan.CountLines(content);
-                if lines > max_lines {
-                    max_lines = lines;
-                }
-                if lines > cap {
-                    violations = violations + 1;
-                    if ArrayLength(findings) < findings_cap {
-                        ArrayPush(findings, OverCapFinding(path, lines));
-                    }
+                if ArrayLength(findings) < findings_cap {
+                    ArrayPush(findings, OverCapFinding(path, lines));
                 }
             }
         }
@@ -110,9 +117,9 @@ func Main() -> Void {
     let json_parts: Array<String> = [
         "{\"schema\":\"pgy.selfhost.production-c-size.v1\",\"ok\":",
         ok_text,
-        ",\"source\":{\"manifest_owner\":\"",
-        manifest_path,
-        "\",\"cap_lines\":",
+        ",\"source\":{\"dirwalk_owner\":\"",
+        dirwalk_owner,
+        "\",\"filter\":\"test_inc_size_production_c_scope\",\"cap_lines\":",
         ToString(cap),
         "},\"counts\":{\"c_files\":",
         ToString(c_files),

@@ -80,9 +80,10 @@ burn-down:
   `filesystem_directory_walk_smoke`: `DirWalk(String) -> Array<String>`
   returns a sorted regular-file snapshot on C and LLVM. The
   `examples_inventory_checker` parity rung now consumes `DirWalk("examples")`
-  directly, removing the stale examples manifest alias; the next step is
-  repointing the remaining manifest-backed source inventories where directory
-  ownership is the actual contract.
+  directly, and the production header/C size checkers consume `DirWalk("src")`
+  directly. This removes the stale examples and production size file-list
+  aliases; remaining `manifest_owner` surfaces are document contracts or the
+  ast-read-surface ratchet manifest rather than clean directory inventories.
 
 These are the axis the gap analysis calls systems substrate, distinct from the
 domain-oriented surface the language is already strong on.

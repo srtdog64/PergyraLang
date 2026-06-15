@@ -6,7 +6,7 @@
 # Shell `find + wc -l + awk` is the parity backend. Asserts:
 #   - clean repo: rc=0, JSON byte-equal vs expected/clean.json
 #   - count parity vs shell on the live header tree
-#   - synthetic over-cap fixture (701-line .h appended to manifest): rc=1
+#   - synthetic over-cap fixture (701-line .h under src/runtime): rc=1
 # See src/self_hosted/parity/README.md.
 
 set -euo pipefail
@@ -35,10 +35,8 @@ PERGYRA_TOOL_SOURCE="$ROOT_DIR/src/self_hosted/tools/production_header_size_chec
 PERGYRA_TOOL_BUILD_DIR="${PGY_SELFHOST_BUILD_DIR:-$ROOT_DIR/.tmp/self_hosted/production_header_size_checker}"
 PERGYRA_TOOL="$PERGYRA_TOOL_BUILD_DIR/main.pgy"
 EXPECTED_JSON_FILE="$ROOT_DIR/src/self_hosted/tools/production_header_size_checker/expected/clean.json"
-MANIFEST_FILE="$ROOT_DIR/src/self_hosted/tools/production_header_size_checker/fixture/headers_manifest.txt"
-MANIFEST_REL="src/self_hosted/tools/production_header_size_checker/fixture/headers_manifest.txt"
 
-for path in "$PERGYRA_TOOL_SOURCE" "$EXPECTED_JSON_FILE" "$MANIFEST_FILE"; do
+for path in "$PERGYRA_TOOL_SOURCE" "$EXPECTED_JSON_FILE"; do
     if [[ ! -f "$path" ]]; then
         echo "[self-host-parity:production-header-size] missing input: $path" >&2
         exit 1
@@ -71,21 +69,19 @@ if ! grep -Fq 'pgy.selfhost.production-header-size.v1' <<<"$PERGYRA_OUT"; then
     exit 1
 fi
 
-# Shell drift detector: manifest line count + max wc -l + violations count.
-SHELL_HEADERS="$(wc -l < "$MANIFEST_FILE" | tr -d ' ')"
-SHELL_STATS="$(cd "$ROOT_DIR" && awk '
-    NF {
-        n = 0
-        while ((getline line < $0) > 0)
-            n++
-        close($0)
-        if (n > max)
-            max = n
-        if (n > 600)
+# Shell drift detector: same production header scope as the Pergyra filter.
+SHELL_HEADERS="$(cd "$ROOT_DIR" && find src/codegen src/runtime src/compiler src/semantic src/parser src/lsp \
+    -name '*.h' -type f | wc -l | tr -d ' ')"
+SHELL_STATS="$(cd "$ROOT_DIR" && find src/codegen src/runtime src/compiler src/semantic src/parser src/lsp \
+    -name '*.h' -type f -print0 \
+    | xargs -0 wc -l \
+    | awk '$2 != "total" {
+        if ($1 > max)
+            max = $1
+        if ($1 > 600)
             violations++
     }
-    END { printf "%d %d\n", violations, max }
-' "$MANIFEST_REL")"
+    END { printf "%d %d\n", violations, max }')"
 read -r SHELL_VIOLATIONS SHELL_MAX <<<"$SHELL_STATS"
 
 if ! grep -Fq "\"headers\":${SHELL_HEADERS}," <<<"$PERGYRA_OUT"; then
@@ -124,7 +120,7 @@ if [[ "$PERGYRA_JSON_NORM" != "$EXPECTED_JSON_NORM" ]]; then
     exit 1
 fi
 
-# Synthetic over-cap fixture - copy manifest + a 701-line synthetic header.
+# Synthetic over-cap fixture - a 701-line synthetic header under src/runtime.
 NEG_ROOT="$(mktemp -d "${TMPDIR:-/tmp}/pgy-selfhost-phs.XXXXXX")"
 cleanup_neg_root() {
     rm -rf "$NEG_ROOT"
@@ -138,9 +134,6 @@ mkdir -p "$NEG_ROOT/.tmp"
         echo "// synthetic line $k"
     done
 } > "$NEG_ROOT/src/runtime/pgy_runtime_synthetic_drift.h"
-# Manifest at the canonical relative path includes the synthetic header.
-mkdir -p "$NEG_ROOT/$(dirname "$MANIFEST_REL")"
-echo "src/runtime/pgy_runtime_synthetic_drift.h" > "$NEG_ROOT/$MANIFEST_REL"
 
 set +e
 NEG_OUT="$(cd "$NEG_ROOT" && "$PGY" "$PERGYRA_TOOL_ARG" --run 2>&1)"

@@ -1,14 +1,11 @@
 // src/self_hosted/tools/production_header_size_checker/main.pgy
 //
-// Status: rung-2 minimal (2026-05-27). Reads
-// fixture/headers_manifest.txt relative to cwd, iterates each line as a
-// repo-relative `.h` path, ReadFile's the content, counts newlines, asserts
-// <= 600 LOC. Reports any over-cap headers in findings[].
+// Status: rung-2 DirWalk-owned (2026-06-15). Enumerates production header
+// owners through DirWalk("src"), filters the same prefixes as
+// tests/production_header_size_smoke.sh, counts newlines, and asserts <= 600
+// LOC. Reports any over-cap headers in findings[].
 //
 // Cwd contract: the parity harness cd's into the repo root before running.
-//
-// New pattern: manifest input + per-line file I/O loop. The manifest
-// exercises Pergyra `for line in lines` plus `ReadFile` at scale.
 //
 // CountLines moved to src/self_hosted/lib/text_scan.pgy (2026-05-27, lifted
 // once a third consumer adopted it).
@@ -30,44 +27,40 @@ func OverCapFinding(path: String, lines: Int) -> String {
     return StringJoin(parts, "");
 }
 
-func MissingHeaderFinding(path: String) -> String {
-    let parts: Array<String> = [
-        "{\"kind\":\"input_error\",\"path\":\"",
-        path,
-        "\",\"lines\":0,\"location\":\"",
-        path,
-        "\"}"
-    ];
-    return StringJoin(parts, "");
+func StartsWith(text: String, prefix: String) -> Bool {
+    let text_len: Int = StringLength(text);
+    let prefix_len: Int = StringLength(prefix);
+    if text_len < prefix_len {
+        return false;
+    }
+    return Substring(text, 0, prefix_len) == prefix;
 }
 
-func MissingManifestJson(path: String) -> String {
-    let parts: Array<String> = [
-        "{\"schema\":\"pgy.selfhost.production-header-size.v1\",\"ok\":false,",
-        "\"source\":{\"manifest_owner\":\"",
-        path,
-        "\",\"cap_lines\":600},",
-        "\"counts\":{\"headers\":0,\"violations\":0,\"max_lines\":0},",
-        "\"findings\":[{\"kind\":\"missing_manifest\",\"path\":\"",
-        path,
-        "\",\"lines\":0,\"location\":\"",
-        path,
-        "\"}]}"
-    ];
-    return StringJoin(parts, "");
+func EndsWith(text: String, suffix: String) -> Bool {
+    let text_len: Int = StringLength(text);
+    let suffix_len: Int = StringLength(suffix);
+    if text_len < suffix_len {
+        return false;
+    }
+    return Substring(text, text_len - suffix_len, suffix_len) == suffix;
+}
+
+func IsProductionHeader(path: String) -> Bool {
+    if !EndsWith(path, ".h") {
+        return false;
+    }
+    return StartsWith(path, "src/codegen/") ||
+        StartsWith(path, "src/runtime/") ||
+        StartsWith(path, "src/compiler/") ||
+        StartsWith(path, "src/semantic/") ||
+        StartsWith(path, "src/parser/") ||
+        StartsWith(path, "src/lsp/");
 }
 
 func Main() -> Void {
-    let manifest_path: String = "src/self_hosted/tools/production_header_size_checker/fixture/headers_manifest.txt";
+    let dirwalk_owner: String = "src";
     let cap: Int = 600;
-
-    if !FileExists(manifest_path) {
-        Log(MissingManifestJson(manifest_path));
-        Exit(1);
-    }
-
-    let manifest: String = ReadFile(manifest_path);
-    let entries: Array<String> = Split(manifest, "\n");
+    let entries: Array<String> = DirWalk(dirwalk_owner);
 
     let headers: Int = 0;
     let violations: Int = 0;
@@ -79,24 +72,17 @@ func Main() -> Void {
     let n: Int = ArrayLength(entries);
     while i < n {
         let path: String = entries[i];
-        if StringLength(path) > 0 {
-            if !FileExists(path) {
-                if ArrayLength(findings) < findings_cap {
-                    ArrayPush(findings, MissingHeaderFinding(path));
-                }
+        if IsProductionHeader(path) {
+            headers = headers + 1;
+            let content: String = ReadFile(path);
+            let lines: Int = TextScan.CountLines(content);
+            if lines > max_lines {
+                max_lines = lines;
+            }
+            if lines > cap {
                 violations = violations + 1;
-            } else {
-                headers = headers + 1;
-                let content: String = ReadFile(path);
-                let lines: Int = TextScan.CountLines(content);
-                if lines > max_lines {
-                    max_lines = lines;
-                }
-                if lines > cap {
-                    violations = violations + 1;
-                    if ArrayLength(findings) < findings_cap {
-                        ArrayPush(findings, OverCapFinding(path, lines));
-                    }
+                if ArrayLength(findings) < findings_cap {
+                    ArrayPush(findings, OverCapFinding(path, lines));
                 }
             }
         }
@@ -111,9 +97,9 @@ func Main() -> Void {
     let json_parts: Array<String> = [
         "{\"schema\":\"pgy.selfhost.production-header-size.v1\",\"ok\":",
         ok_text,
-        ",\"source\":{\"manifest_owner\":\"",
-        manifest_path,
-        "\",\"cap_lines\":",
+        ",\"source\":{\"dirwalk_owner\":\"",
+        dirwalk_owner,
+        "\",\"filter\":\"production_header_smoke_scope\",\"cap_lines\":",
         ToString(cap),
         "},\"counts\":{\"headers\":",
         ToString(headers),

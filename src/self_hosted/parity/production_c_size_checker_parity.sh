@@ -3,7 +3,8 @@
 # Sister parity for tool 8. Asserts:
 #   - clean repo: rc=0, JSON byte-equal vs expected/clean.json
 #   - count parity vs shell `wc -l` ground truth
-#   - synthetic over-cap fixture (1001-line .c): rc=1, c_over_cap finding
+#   - synthetic over-cap fixture (1001-line .c under src/runtime): rc=1,
+#     c_over_cap finding
 # See src/self_hosted/parity/README.md.
 
 set -euo pipefail
@@ -32,10 +33,8 @@ PERGYRA_TOOL_SOURCE="$ROOT_DIR/src/self_hosted/tools/production_c_size_checker/m
 PERGYRA_TOOL_BUILD_DIR="${PGY_SELFHOST_BUILD_DIR:-$ROOT_DIR/.tmp/self_hosted/production_c_size_checker}"
 PERGYRA_TOOL="$PERGYRA_TOOL_BUILD_DIR/main.pgy"
 EXPECTED_JSON_FILE="$ROOT_DIR/src/self_hosted/tools/production_c_size_checker/expected/clean.json"
-MANIFEST_FILE="$ROOT_DIR/src/self_hosted/tools/production_c_size_checker/fixture/c_files_manifest.txt"
-MANIFEST_REL="src/self_hosted/tools/production_c_size_checker/fixture/c_files_manifest.txt"
 
-for path in "$PERGYRA_TOOL_SOURCE" "$EXPECTED_JSON_FILE" "$MANIFEST_FILE"; do
+for path in "$PERGYRA_TOOL_SOURCE" "$EXPECTED_JSON_FILE"; do
     if [[ ! -f "$path" ]]; then
         echo "[self-host-parity:production-c-size] missing input: $path" >&2
         exit 1
@@ -68,21 +67,23 @@ if ! grep -Fq 'pgy.selfhost.production-c-size.v1' <<<"$PERGYRA_OUT"; then
     exit 1
 fi
 
-# Shell ground truth.
-SHELL_C="$(wc -l < "$MANIFEST_FILE" | tr -d ' ')"
-SHELL_STATS="$(cd "$ROOT_DIR" && awk '
-    NF {
-        n = 0
-        while ((getline line < $0) > 0)
-            n++
-        close($0)
-        if (n > max)
-            max = n
-        if (n > 699)
+# Shell ground truth: same production C scope as test_inc_size_smoke.
+SHELL_C="$(cd "$ROOT_DIR" && find src -type f -name '*.c' \
+    ! -path 'src/tests/*' \
+    ! -name 'test_*.c' \
+    | wc -l | tr -d ' ')"
+SHELL_STATS="$(cd "$ROOT_DIR" && find src -type f -name '*.c' \
+    ! -path 'src/tests/*' \
+    ! -name 'test_*.c' \
+    -print0 \
+    | xargs -0 wc -l \
+    | awk '$2 != "total" {
+        if ($1 > max)
+            max = $1
+        if ($1 > 699)
             violations++
     }
-    END { printf "%d %d\n", violations, max }
-' "$MANIFEST_REL")"
+    END { printf "%d %d\n", violations, max }')"
 read -r SHELL_VIOLATIONS SHELL_MAX <<<"$SHELL_STATS"
 
 if ! grep -Fq "\"c_files\":${SHELL_C}," <<<"$PERGYRA_OUT"; then
@@ -123,7 +124,7 @@ if [[ "$PERGYRA_JSON_NORM" != "$EXPECTED_JSON_NORM" ]]; then
     exit 1
 fi
 
-# Synthetic over-cap fixture - 701-line .c appended to a tmp manifest.
+# Synthetic over-cap fixture - 1001-line .c under src/runtime.
 NEG_ROOT="$(mktemp -d "${TMPDIR:-/tmp}/pgy-selfhost-pcs.XXXXXX")"
 cleanup_neg_root() {
     rm -rf "$NEG_ROOT"
@@ -136,8 +137,6 @@ mkdir -p "$NEG_ROOT/.tmp"
         echo "/* synthetic line $k */"
     done
 } > "$NEG_ROOT/src/runtime/pgy_runtime_synthetic_c_drift.c"
-mkdir -p "$NEG_ROOT/$(dirname "$MANIFEST_REL")"
-echo "src/runtime/pgy_runtime_synthetic_c_drift.c" > "$NEG_ROOT/$MANIFEST_REL"
 
 set +e
 NEG_OUT="$(cd "$NEG_ROOT" && "$PGY" "$PERGYRA_TOOL_ARG" --run 2>&1)"
