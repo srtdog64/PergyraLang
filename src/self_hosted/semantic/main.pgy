@@ -2,12 +2,12 @@
 //
 // Status: rung-2 (2026-06-16). Pergyra-origin semantic substitution slice.
 // It checks a bounded function-body subset against the C compiler oracle:
-// typed params, typed `let`, return typing, branch conditions, assignment,
-// call arity/argument types, and simple undefined identifier use. Expression
-// typing now covers literals, identifiers, unary not, top-level binary
-// operators (arithmetic yields Int, comparison and logical yield Bool), and
-// function calls typed by a signature table seeded with built-ins and the
-// program's own functions.
+// typed params, typed `let`, return typing, scoped if/while bodies, branch
+// conditions, assignment, call arity/argument types, and undefined identifier
+// use. Expression typing now covers literals, identifiers, unary not,
+// top-level binary operators (arithmetic yields Int, comparison and logical
+// yield Bool), and function calls typed by a signature table seeded with
+// built-ins and the program's own functions.
 
 func CharAt(s: String, i: Int) -> String {
     let n: Int = StringLength(s);
@@ -728,6 +728,15 @@ func CheckCall(text: String, names: Array<String>, types: Array<String>, func_na
     return CompareCallArgs(callee, args_src, sig, names, types, func_names, func_rets);
 }
 
+func RestoreEnv(names: Array<String>, types: Array<String>, size: Int) -> Void {
+    while ArrayLength(names) > size {
+        ArrayPop(names);
+    }
+    while ArrayLength(types) > size {
+        ArrayPop(types);
+    }
+}
+
 func CheckBody(content: String, start: Int, end: Int, return_type: String, names: Array<String>, types: Array<String>, func_names: Array<String>, func_rets: Array<String>, func_params: Array<String>) -> String {
     let i: Int = start;
     let cursor: Array<Int> = [0];
@@ -809,6 +818,10 @@ func CheckBody(content: String, start: Int, end: Int, return_type: String, names
             let block_open: Int = FindBlockOpen(content, cond_start, end);
             let cond_text: String = Trim(Substring(content, cond_start, block_open - cond_start));
             if StringLength(cond_text) > 0 {
+                let cond_undefined_error: String = CheckUndefinedIdentifiers(cond_text, names);
+                if StringLength(cond_undefined_error) > 0 {
+                    return cond_undefined_error;
+                }
                 let cond_type: String = ExprType(cond_text, names, types, func_names, func_rets);
                 if cond_type != "Unknown" {
                     if cond_type != "Bool" {
@@ -816,7 +829,36 @@ func CheckBody(content: String, start: Int, end: Int, return_type: String, names
                     }
                 }
             }
-            i = block_open + 1;
+            if block_open < end && CharAt(content, block_open) == "{" {
+                let block_close: Int = FindMatchingBrace(content, block_open);
+                let env_size: Int = ArrayLength(names);
+                let block_error: String = CheckBody(content, block_open + 1, block_close, return_type, names, types, func_names, func_rets, func_params);
+                RestoreEnv(names, types, env_size);
+                if StringLength(block_error) > 0 {
+                    return block_error;
+                }
+                i = block_close + 1;
+                if MatchKeyword(content, i, "else") {
+                    let else_start: Int = SkipWhitespaceAndComments(content, i) + 4;
+                    if MatchKeyword(content, else_start, "if") {
+                        i = else_start;
+                        continue;
+                    }
+                    let else_open: Int = FindBlockOpen(content, else_start, end);
+                    if else_open < end && CharAt(content, else_open) == "{" {
+                        let else_close: Int = FindMatchingBrace(content, else_open);
+                        let else_env_size: Int = ArrayLength(names);
+                        let else_error: String = CheckBody(content, else_open + 1, else_close, return_type, names, types, func_names, func_rets, func_params);
+                        RestoreEnv(names, types, else_env_size);
+                        if StringLength(else_error) > 0 {
+                            return else_error;
+                        }
+                        i = else_close + 1;
+                    }
+                }
+            } else {
+                i = block_open + 1;
+            }
             continue;
         }
         let asn_name: String = ReadIdent(content, i, cursor);

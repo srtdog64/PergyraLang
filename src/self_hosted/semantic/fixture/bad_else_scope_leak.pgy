@@ -1,0 +1,8 @@
+func Main() -> Int {
+    if false {
+        return 0;
+    } else {
+        let x: Int = 1;
+    }
+    return x;
+}

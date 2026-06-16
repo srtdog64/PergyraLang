@@ -101,10 +101,10 @@ Substrate progress.
   call arity against the parameter count, emitting `call_arity_mismatch` when
   the number of arguments differs from the declaration.
   `src/self_hosted/parity/semantic_parity.sh` compares its verdicts with the C
-  compiler accept/reject oracle on C and LLVM across 25 committed fixtures
+  compiler accept/reject oracle on C and LLVM across 30 committed fixtures
   (typed let/return, arithmetic, comparison, call-return, call-argument,
-  call-arity, branch-condition, assignment, bare-call-statement, and simple
-  undefined-identifier cases), all
+  call-arity, branch-condition, scoped-block, assignment, bare-call-statement,
+  and undefined-identifier cases), all
   byte-equal on both backends. It checks that `if` / `while` conditions are
   `Bool` (`condition_not_bool`), that a simple local assignment `name = expr`
   matches the variable's declared type (`assign_type_mismatch`), and that
@@ -112,7 +112,9 @@ Substrate progress.
   argument types -- not only calls in `let` / `return` position. Simple
   identifier expressions, including identifiers nested inside compound
   arithmetic/call-argument expressions, now report `undefined_symbol` when
-  absent from the local environment. The checker is sound on the committed
+  absent from the local environment. It also checks scoped `if` / `while`
+  bodies without leaking block-local `let` bindings into the parent
+  environment. The checker is sound on the committed
   real sources: it returns `SEMANTIC OK` on the self-hosted lexer, parser,
   linter, and on its own source, with backslash-escape-aware string scanning so
   embedded quote literals do not desync operator detection.
@@ -147,14 +149,15 @@ constructors are present on C and LLVM, and pass authors pair them with
 now runs in that shape at rung-2: expression operators, function-call return
 typing, positional call-argument typing, call-arity checking (in `let`/`return`
 and bare expression statements), branch condition (`if`/`while` must be `Bool`)
-typing, simple local assignment typing, and simple/compound undefined-identifier
+typing, scoped `if`/`while` body typing, simple local assignment typing, and
+simple/compound undefined-identifier
 diagnostics are covered, and verdicts stay
-byte-equal beside the C type checker on 25 committed fixtures across both
+byte-equal beside the C type checker on 30 committed fixtures across both
 backends. The checker now covers the common statement forms (let, return,
-assignment, if/while condition, bare call). The next increments require deeper
-machinery: scoped block typing (block-local variable visibility), a broader
-symbol table of builtins/types, and a stable diagnostic-code catalog shared with
-the C oracle, before moving into declaration-heavy semantic owners.
+assignment, if/while body, if/while condition, bare call). The next increments
+require deeper machinery: a broader symbol table of builtins/types and a stable
+diagnostic-code catalog shared with the C oracle, before moving into
+declaration-heavy semantic owners.
 
 ## How to reproduce
 

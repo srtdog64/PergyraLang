@@ -1,0 +1,6 @@
+func Main() -> Int {
+    if true {
+        let x: Int = 1;
+    }
+    return x;
+}
