@@ -1,0 +1,1 @@
+SEMANTIC ERROR undefined_symbol name=nope

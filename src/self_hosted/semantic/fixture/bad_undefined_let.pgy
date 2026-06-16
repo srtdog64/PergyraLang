@@ -1,0 +1,3 @@
+func Main() -> Void {
+    let x: Int = nope;
+}

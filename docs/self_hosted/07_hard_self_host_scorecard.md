@@ -196,15 +196,14 @@ key shapes across forward and reverse insertion orders on C and LLVM. Raw
 aggregate keys remain out of beta rather than becoming a second collection
 truth.
 
-Capability 4 (arena ergonomics). Measurement: the lanes already exist inside the
-compiler. Pass-local scratch arenas are present in HIR (hir.h), MIR (mir.h, used
-for SSA rename), semantic (semantic.c), and LLVM lowering (llvm_internal.h), and
-a persistent arena exists in the registry. The mechanism and the
-scratch-versus-persistent split are both in place. The remaining gap is narrow:
-exposing the same lane discipline ergonomically to code written in the language,
-so a rewritten pass does not hand-roll allocation boilerplate. This is the least
-distant of the three. Build-gated.
+Capability 4 (arena ergonomics). Closed for the hard-self-host substrate:
+compiler-internal scratch/result/persistent lanes are mirrored by the
+language-level `Allocator` value surface on C and LLVM, lane constructors carry
+distinct runtime kinds, `BoxArray(capacity, allocator)` consumes named allocator
+locals, and `AllocatorDestroy(namedAllocator)` gives pass authors an explicit
+cleanup operation. Build-gated.
 
 The honest summary is that the SoT blocker and deterministic collection
-substrate are closed for hard-self-host planning. Capability 4 is the next
-critical path.
+substrate are closed for hard-self-host planning. The remaining critical path is
+actual staged compiler-pass substitution: semantic breadth first, then MIR/HIR
+and codegen parity slices against the C compiler oracle.

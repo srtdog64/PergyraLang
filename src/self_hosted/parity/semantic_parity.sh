@@ -49,6 +49,11 @@ SOURCE_PAIRS=(
     "bad_arity_too_few:error"
     "bad_arity_too_many:error"
     "bad_arity_builtin:error"
+    "bad_undefined_return:error"
+    "bad_undefined_let:error"
+    "bad_undefined_arg:error"
+    "bad_undefined_assign:error"
+    "bad_undefined_assign_lhs:error"
 )
 
 mkdir -p "$PERGYRA_TOOL_BUILD_DIR"

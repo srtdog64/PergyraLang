@@ -6,10 +6,12 @@ for soft and partial self-hosting.
 
 ## Current Reality
 
-Current judgement (2026-06-13): soft self-host dogfood and partial validators
-may continue, but hard compiler-core migration remains blocked. Passing
-`self-host-preparation-test-smoke` is required soft evidence, not permission to
-replace the parser, semantic checker, MIR lowering, codegen, or runtime.
+Current judgement (2026-06-16): the hard-self-host substrate checklist is READY
+in `07_hard_self_host_scorecard.md`, and staged compiler-pass substitution has
+started. This is still not a full hard-self-host claim. Passing
+`self-host-preparation-test-smoke` proves the side-by-side method and the
+C/LLVM/Pergyra parity harness, not permission to replace the semantic checker,
+MIR lowering, codegen, compiler driver, or runtime in one jump.
 
 The beta stable subset is intentionally narrow. It is designed to freeze the
 core language contract, not to rewrite a large compiler immediately.
@@ -57,7 +59,9 @@ pass into awkward workarounds.
 
 ## Non-Negotiable Pre-Hard-Self-Host Capabilities
 
-Hard self-host cannot start until these are available and smoked:
+Hard self-host cannot start until these are available and smoked. The current
+scorecard marks the substrate forms of all ten READY, so the remaining work is
+pass substitution breadth rather than substrate availability:
 
 - **Module/package resolver stability**: deterministic imports, manifest
   reading, path normalization, and cycle diagnostics.
