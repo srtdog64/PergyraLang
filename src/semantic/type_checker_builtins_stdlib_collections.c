@@ -562,12 +562,7 @@ type_check_stdlib_collection_call(ASTNode *expr,
                 PGY_FIX_MATCH_BUILTIN_SIGNATURE, arg0,
                 "%s requires Array<T> as first argument, got '%s'",
                 name, type_name_or_unknown(arr));
-        /* Effect polymorphism: the mapped/filtered function's effects flow
-         * into the caller's derived set, so passing an IO/authority-bearing
-         * function to ArrayMap/ArrayFilter carries that obligation outward. */
-        semantic_record_effect(ctx,
-            type_function_effects(stdlib_collection_normalize_type(
-                type_check_expression(arg1, ctx))));
+        semantic_record_effect(ctx, type_function_effects(stdlib_collection_normalize_type(type_check_expression(arg1, ctx))));
         return arr;
     }
     if (kind == STDLIB_COLLECTION_SLICE_COPY) {

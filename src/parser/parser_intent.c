@@ -1,4 +1,5 @@
 #include "parser_internal.h"
+#include "../common/numeric_parse.h"
 
 bool
 parser_intent_match_keyword(Parser *parser, const char *keyword)
@@ -72,10 +73,13 @@ parse_intent_declaration(Parser *parser)
                     "Expected '(' after 'retry'");
                 Token attempts = parser_consume(parser, TOKEN_NUMBER,
                     "Expected an attempt count in retry(n)");
-                int count = attempts.text != NULL ? atoi(attempts.text) : 0;
-                if (count < 1)
-                    parser_error(parser, "retry(n) requires n >= 1");
-                intent->data.intent_decl.retry_count = count;
+                int count = 0;
+                if (attempts.text == NULL
+                    || !pgy_parse_positive_int_strict(attempts.text, &count))
+                    parser_error(parser,
+                        "retry(n) requires a positive integer attempt count");
+                else
+                    intent->data.intent_decl.retry_count = count;
                 parser_consume(parser, TOKEN_RPAREN,
                     "Expected ')' after retry attempt count");
             } else if (strcmp(parser->current_token.text, "timeout") == 0

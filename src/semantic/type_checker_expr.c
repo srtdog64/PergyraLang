@@ -274,32 +274,21 @@ type_check_expression(ASTNode *expr, SemanticContext *ctx)
         bool source_numeric = type_equals(source, TYPE_INT)
             || type_equals(source, TYPE_LONG)
             || type_equals(source, TYPE_FLOAT);
-        if (target != NULL && strcmp(target, "Int") == 0) {
+        Type *numeric_target = NULL;
+        if (target != NULL && strcmp(target, "Int") == 0)
+            numeric_target = TYPE_INT;
+        else if (target != NULL && strcmp(target, "Long") == 0)
+            numeric_target = TYPE_LONG;
+        else if (target != NULL && strcmp(target, "Float") == 0)
+            numeric_target = TYPE_FLOAT;
+        if (numeric_target != NULL) {
             if (!source_numeric)
                 semantic_error_with_hints(ctx, PGY_CODE_SEM_TYPE_MISMATCH,
                     PGY_CAUSE_BUILTIN_SIGNATURE_MISMATCH,
                     PGY_FIX_MATCH_BUILTIN_SIGNATURE, expr,
-                    "Cast to Int requires a numeric operand, got '%s'",
-                    type_name_or_unknown(source));
-            return TYPE_INT;
-        }
-        if (target != NULL && strcmp(target, "Float") == 0) {
-            if (!source_numeric)
-                semantic_error_with_hints(ctx, PGY_CODE_SEM_TYPE_MISMATCH,
-                    PGY_CAUSE_BUILTIN_SIGNATURE_MISMATCH,
-                    PGY_FIX_MATCH_BUILTIN_SIGNATURE, expr,
-                    "Cast to Float requires a numeric operand, got '%s'",
-                    type_name_or_unknown(source));
-            return TYPE_FLOAT;
-        }
-        if (target != NULL && strcmp(target, "Long") == 0) {
-            if (!source_numeric)
-                semantic_error_with_hints(ctx, PGY_CODE_SEM_TYPE_MISMATCH,
-                    PGY_CAUSE_BUILTIN_SIGNATURE_MISMATCH,
-                    PGY_FIX_MATCH_BUILTIN_SIGNATURE, expr,
-                    "Cast to Long requires a numeric operand, got '%s'",
-                    type_name_or_unknown(source));
-            return TYPE_LONG;
+                    "Cast to %s requires a numeric operand, got '%s'",
+                    target, type_name_or_unknown(source));
+            return numeric_target;
         }
         if (target != NULL && strcmp(target, "String") == 0)
             return TYPE_STRING;
