@@ -9,7 +9,7 @@ Last updated: 2026-06-16
 
 ## Headline Number
 
-**Compiler-internal substitution: ~3.35% LOC-scale** (8,523 Pergyra LOC vs 254,742
+**Compiler-internal substitution: ~3.36% LOC-scale** (8,569 Pergyra LOC vs 254,742
 C LOC across `src/lexer/`, `src/parser/`, `src/semantic/`, `src/codegen/`,
 `src/runtime/`, `src/compiler/`, `src/lsp/`). The compiler-internal substitutes
 crossed **8,000 LOC**. This is not a hard self-host claim: the verified
@@ -87,12 +87,12 @@ only observe text artifacts the C compiler produces. Their LOC is
 |-----------------|---------|-------------|----------|-------------------|
 | `src/lexer/`    |    1003 |         584 | **~97%** | **191 of 195 sources byte-equal** (115 examples + 80 backend_compare). Remaining 4 use string interpolation (`$"...{var}..."`) or `/** doc */` comments. 6 representative sources committed as parity fixtures. |
 | `src/parser/`   |   21813 |        6856 | ~52%     | `src/self_hosted/parser/` parses 188 committed fixtures byte-equal `pgy --ast` on both C and LLVM parser binaries, and **105 of 117** `examples/*.pgy` byte-equal at scale (89.7%; 2026-05-31). Top-level: `[async]? [export]? func<T,U>`, `subject`/`class`/`vessel`/`struct`/`object`/`tobject` with `<T,U>` and `func`/`action` methods, `enum`, `namespace`, `event`, `ability`, `role`/`impl`, `zone` (subject/object/tobject slots), `intent ... with retry(n)` metadata, `import "PATH.pgy";` (reads file relative to source dir, recursively parses, force-exports its funcs). Stmt: `let IDENT/(IDENTS)`, assign, `+=`/`-=`/`<-`, `return`, `if`/`else if`/`else`, `while`, `for`, `break`, `continue`, `defer`, `match`, `parallel`, `with slot<TYPE> as VAR { stmts }`. `expr`: `! - <- spawn[blocking] await` > `*/% > +- > \|> > cmp > && > \|\|`. Primaries: STRING/NUMBER/IDENT/`( )`/`[ ]`/lambda, postfix `(args)` / `[idx]` / `.member` / `?` / turbofish. |
-| `src/semantic/` |   47541 |        1083 | rung-2 subset | Checks a bounded function-body subset against the C compiler oracle on C/LLVM-generated binaries: typed `let`, return typing, unary/binary expression typing, function-call return/arity/argument typing, branch conditions, assignment, bare call statements, and simple undefined identifier use across 22 fixtures. |
+| `src/semantic/` |   47541 |        1129 | rung-2 subset | Checks a bounded function-body subset against the C compiler oracle on C/LLVM-generated binaries: typed `let`, return typing, unary/binary expression typing, function-call return/arity/argument typing, branch conditions, assignment, bare call statements, and simple/compound undefined identifier use across 25 fixtures. |
 | `src/codegen/`  |  111465 |           0 | 0%       | not started       |
 | `src/runtime/`  |   31985 |           0 | 0%       | runtime stays C (target language hosts runtime) |
 | `src/compiler/` |   39863 |           0 | 0%       | not started       |
 | `src/lsp/`      |    1072 |           0 | 0%       | not started       |
-| **Total**       | **254742** |  **8523**  | **~3.35% LOC-scale** | lexer/parser/semantic only; no HIR/MIR/codegen/runtime/compiler/LSP substitution yet |
+| **Total**       | **254742** |  **8569**  | **~3.36% LOC-scale** | lexer/parser/semantic only; no HIR/MIR/codegen/runtime/compiler/LSP substitution yet |
 
 Notes:
 
@@ -157,11 +157,11 @@ The realistic incremental path toward genuine self-host:
 4. **Semantic subset** -- *rung-2 active* (2026-06-16). The current rung
    checks `func`, typed `let`, literal/identifier types, return typing, unary
    and binary expression operators, call return/arity/argument typing, branch
-   conditions, assignment, bare call statements, and simple undefined
+   conditions, assignment, bare call statements, and simple/compound undefined
    identifier use in Pergyra, then compares against the C compiler accept/reject
-   oracle on C and LLVM binaries across 22 fixtures. Next expansion should add
-   scoped block typing, compound-expression undefined-variable diagnostics, and
-   diagnostic-code parity before broadening into declarations.
+   oracle on C and LLVM binaries across 25 fixtures. Next expansion should add
+   scoped block typing and diagnostic-code parity before broadening into
+   declarations.
 5. **C-emit codegen subset** -- a Pergyra program that takes a tiny AST
    and emits valid C output. Round-trip: C-emit by Pergyra -> C-compile
    -> run -> stdout matches expected.

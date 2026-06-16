@@ -93,10 +93,11 @@ src/self_hosted/
   substitution without pretending the full type checker is replaced.
 - **2026-06-16** -- `make self-host-preparation-test-smoke` is green again on
   main after refreshing the doc-link checker expected counts for the current
-  `docs/INDEX.md`. The measured compiler-internal substitution is now 8,523
-  Pergyra LOC vs 254,742 C/header/inc LOC (~3.35% LOC-scale): lexer and parser
-  substitution are active, semantic is rung-2 with simple undefined-identifier
-  parity, and HIR/MIR/codegen/runtime/compiler/LSP remain 0%.
+  `docs/INDEX.md`. The measured compiler-internal substitution is now 8,569
+  Pergyra LOC vs 254,742 C/header/inc LOC (~3.36% LOC-scale): lexer and parser
+  substitution are active, semantic is rung-2 with simple/compound
+  undefined-identifier parity, and HIR/MIR/codegen/runtime/compiler/LSP remain
+  0%.
 
 ## Non-Negotiable Rules
 

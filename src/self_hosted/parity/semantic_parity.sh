@@ -54,6 +54,9 @@ SOURCE_PAIRS=(
     "bad_undefined_arg:error"
     "bad_undefined_assign:error"
     "bad_undefined_assign_lhs:error"
+    "bad_undefined_compound_return:error"
+    "bad_undefined_compound_arg:error"
+    "valid_compound_local:ok"
 )
 
 mkdir -p "$PERGYRA_TOOL_BUILD_DIR"

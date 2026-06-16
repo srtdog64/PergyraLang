@@ -506,13 +506,46 @@ func ExprType(expr: String, names: Array<String>, types: Array<String>, func_nam
     return "Unknown";
 }
 
-func CheckUndefinedIdentifier(expr: String, names: Array<String>) -> String {
+func CheckUndefinedIdentifiers(expr: String, names: Array<String>) -> String {
     let text: String = Trim(expr);
-    if text == "true" || text == "false" {
-        return "";
-    }
-    if IsIdentText(text) && !EnvContainsName(names, text) {
-        return Concat("SEMANTIC ERROR undefined_symbol name=", text);
+    let n: Int = StringLength(text);
+    let i: Int = 0;
+    while i < n {
+        let c: String = CharAt(text, i);
+        if c == "\"" {
+            i = i + 1;
+            while i < n && CharAt(text, i) != "\"" {
+                if CharAt(text, i) == "\\" {
+                    i = i + 1;
+                }
+                i = i + 1;
+            }
+            i = i + 1;
+            continue;
+        }
+        if IsAlpha(c) {
+            let start: Int = i;
+            i = i + 1;
+            while i < n && IsAlphaNum(CharAt(text, i)) {
+                i = i + 1;
+            }
+            let name: String = Substring(text, start, i - start);
+            if name == "true" || name == "false" {
+                continue;
+            }
+            if start > 0 && CharAt(text, start - 1) == "." {
+                continue;
+            }
+            let after: Int = SkipWhitespaceAndComments(text, i);
+            if after < n && CharAt(text, after) == "(" {
+                continue;
+            }
+            if !EnvContainsName(names, name) {
+                return Concat("SEMANTIC ERROR undefined_symbol name=", name);
+            }
+            continue;
+        }
+        i = i + 1;
     }
     return "";
 }
@@ -555,7 +588,7 @@ func CompareCallArgs(callee: String, args_src: String, sig: String, names: Array
         if at_end || (depth == 0 && c == ",") {
             let part: String = Trim(Substring(args_src, part_start, i - part_start));
             if StringLength(part) > 0 {
-                let undefined_error: String = CheckUndefinedIdentifier(part, names);
+                let undefined_error: String = CheckUndefinedIdentifiers(part, names);
                 if StringLength(undefined_error) > 0 {
                     return undefined_error;
                 }
@@ -724,7 +757,7 @@ func CheckBody(content: String, start: Int, end: Int, return_type: String, names
                 return let_call_error;
             }
             let let_expr: String = Substring(content, i, semi - i);
-            let let_undefined_error: String = CheckUndefinedIdentifier(let_expr, names);
+            let let_undefined_error: String = CheckUndefinedIdentifiers(let_expr, names);
             if StringLength(let_undefined_error) > 0 {
                 return let_undefined_error;
             }
@@ -753,7 +786,7 @@ func CheckBody(content: String, start: Int, end: Int, return_type: String, names
                 return return_call_error;
             }
             let return_expr: String = Substring(content, i, return_semi - i);
-            let return_undefined_error: String = CheckUndefinedIdentifier(return_expr, names);
+            let return_undefined_error: String = CheckUndefinedIdentifiers(return_expr, names);
             if StringLength(return_undefined_error) > 0 {
                 return return_undefined_error;
             }
@@ -796,7 +829,7 @@ func CheckBody(content: String, start: Int, end: Int, return_type: String, names
             if lhs_type != "Unknown" {
                 let asn_semi: Int = FindStatementEnd(content, asn_after + 1, end);
                 let rhs_expr: String = Substring(content, asn_after + 1, asn_semi - asn_after - 1);
-                let asn_undefined_error: String = CheckUndefinedIdentifier(rhs_expr, names);
+                let asn_undefined_error: String = CheckUndefinedIdentifiers(rhs_expr, names);
                 if StringLength(asn_undefined_error) > 0 {
                     return asn_undefined_error;
                 }

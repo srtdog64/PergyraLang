@@ -5,7 +5,7 @@
 Provide the first Pergyra-written semantic checker slice for compiler-internal
 substitution. The slice is deliberately bounded: function return types, typed
 `let` bindings, branch conditions, simple assignment, call arity and argument
-types, simple undefined identifier use, and literal/identifier expression
+types, simple/compound undefined identifier use, and literal/identifier expression
 typing for `Int`, `String`, `Bool`, and `Void`.
 
 ## Input Contract
@@ -24,8 +24,8 @@ The tool prints one deterministic verdict:
 
 Only the first semantic mismatch is reported. Unsupported expressions are
 classified as `Unknown` and do not fail the subset checker, except for simple
-identifier expressions where the name is absent from the current local
-environment; those report `undefined_symbol`.
+identifier tokens in expression position where the name is absent from the
+current local environment; those report `undefined_symbol`.
 
 ## Oracle
 
