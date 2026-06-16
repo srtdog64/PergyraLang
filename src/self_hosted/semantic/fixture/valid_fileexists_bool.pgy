@@ -1,0 +1,7 @@
+func Main() -> Void {
+    let b: Bool = FileExists("x");
+    if b {
+        return;
+    }
+    return;
+}

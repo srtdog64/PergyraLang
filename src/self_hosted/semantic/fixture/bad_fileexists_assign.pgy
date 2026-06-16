@@ -1,0 +1,4 @@
+func Main() -> Void {
+    let x: Int = FileExists("x");
+    return;
+}

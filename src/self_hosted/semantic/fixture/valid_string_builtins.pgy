@@ -1,0 +1,8 @@
+func Main() -> Void {
+    let a: String = ToLower("HELLO");
+    let b: Bool = StringContains(a, "h");
+    if b {
+        return;
+    }
+    return;
+}

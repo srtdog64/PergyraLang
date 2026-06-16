@@ -1,0 +1,5 @@
+func Main() -> Int {
+    let s: String = "42";
+    let n: Int = ToInt(s);
+    return n;
+}

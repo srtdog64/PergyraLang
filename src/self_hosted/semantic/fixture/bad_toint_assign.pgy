@@ -1,0 +1,4 @@
+func Main() -> Void {
+    let x: String = ToInt("5");
+    return;
+}

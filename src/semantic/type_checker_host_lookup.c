@@ -311,6 +311,14 @@ semantic_find_class_decl_by_name(SemanticContext *ctx, const char *name)
 }
 
 ASTNode *
+semantic_find_intent_decl_by_name(SemanticContext *ctx, const char *name)
+{
+    if (ctx == NULL || name == NULL)
+        return NULL;
+    return semantic_host_index_find_decl_by_name(ctx, AST_INTENT_DECL, name);
+}
+
+ASTNode *
 semantic_find_ability_decl_by_name(SemanticContext *ctx, const char *name)
 {
     ASTNode *decl;

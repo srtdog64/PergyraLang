@@ -713,7 +713,7 @@ func CheckCall(text: String, names: Array<String>, types: Array<String>, func_na
         idx = idx + 1;
     }
     if found < 0 {
-        return "";
+        return Concat("SEMANTIC ERROR undefined_function func=", callee);
     }
     let sig: String = func_params[found];
     let args_src: String = Substring(trimmed, paren + 1, tn - paren - 2);
@@ -978,6 +978,33 @@ func CheckProgram(content: String) -> String {
     ArrayPush(func_names, "ReadFile");
     ArrayPush(func_rets, "String");
     ArrayPush(func_params, "String");
+    ArrayPush(func_names, "ToInt");
+    ArrayPush(func_rets, "Int");
+    ArrayPush(func_params, "Unknown");
+    ArrayPush(func_names, "FileExists");
+    ArrayPush(func_rets, "Bool");
+    ArrayPush(func_params, "String");
+    ArrayPush(func_names, "ToString");
+    ArrayPush(func_rets, "String");
+    ArrayPush(func_params, "Unknown");
+    ArrayPush(func_names, "ToLower");
+    ArrayPush(func_rets, "String");
+    ArrayPush(func_params, "Unknown");
+    ArrayPush(func_names, "ToUpper");
+    ArrayPush(func_rets, "String");
+    ArrayPush(func_params, "Unknown");
+    ArrayPush(func_names, "Trim");
+    ArrayPush(func_rets, "String");
+    ArrayPush(func_params, "Unknown");
+    ArrayPush(func_names, "Upper");
+    ArrayPush(func_rets, "String");
+    ArrayPush(func_params, "Unknown");
+    ArrayPush(func_names, "StringReplace");
+    ArrayPush(func_rets, "String");
+    ArrayPush(func_params, "Unknown|Unknown|Unknown");
+    ArrayPush(func_names, "StringContains");
+    ArrayPush(func_rets, "Bool");
+    ArrayPush(func_params, "Unknown|Unknown");
     let n: Int = StringLength(content);
     let scan: Int = 0;
     while scan < n {

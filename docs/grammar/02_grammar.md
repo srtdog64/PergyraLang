@@ -134,7 +134,9 @@ let n: String = p.name;            // "Account"
   `"io,alloc"`; 함수/intent가 아니면 빈 문자열), `.fields`(클래스/구조체 필드의
   `"name:Type"` 쉼표 결합, 예 `"id:Int,owner:String"`), `.methods`(메서드 이름의
   쉼표 결합). 함수를 대상으로 하면 `.params`(파라미터 `"name:Type"` 결합)와
-  `.returns`(반환 타입 이름)도 폴딩된다.
+  `.returns`(반환 타입 이름)도 폴딩된다. intent를 대상으로 하면 `.steps`(step
+  이름 결합), `.retry`(선언된 retry 횟수), `.involves`(참여자 `"alias:Subject"`
+  결합)도 폴딩된다.
 - direct `(reflect T).field`와 `let p: projection = reflect T; p.field` 둘 다
   지원한다.
 - `projection`은 컴파일타임 전용 값 타입이며 런타임 흔적을 남기지 않는다.

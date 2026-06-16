@@ -109,7 +109,7 @@ Substrate progress.
   call arity against the parameter count, emitting `call_arity_mismatch` when
   the number of arguments differs from the declaration.
   `src/self_hosted/parity/semantic_parity.sh` compares its verdicts with the C
-  compiler accept/reject oracle on C and LLVM across 30 committed fixtures
+  compiler accept/reject oracle on C and LLVM across 39 committed fixtures
   (typed let/return, arithmetic, comparison, call-return, call-argument,
   call-arity, branch-condition, scoped-block, assignment, bare-call-statement,
   and undefined-identifier cases), all
@@ -160,7 +160,7 @@ and bare expression statements), branch condition (`if`/`while` must be `Bool`)
 typing, scoped `if`/`while` body typing, simple local assignment typing, and
 simple/compound undefined-identifier
 diagnostics are covered, and verdicts stay
-byte-equal beside the C type checker on 30 committed fixtures across both
+byte-equal beside the C type checker on 39 committed fixtures across both
 backends. The checker now covers the common statement forms (let, return,
 assignment, if/while body, if/while condition, bare call). The next increments
 require deeper machinery: real-source semantic stability over the self-hosted

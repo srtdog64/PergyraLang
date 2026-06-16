@@ -524,6 +524,63 @@ expr_ops_projection_member(ASTNode *expr, ASTNode *member_object,
         ast_morph_to_string(expr, ret != NULL ? ret : "Void");
         return TYPE_STRING;
     }
+
+    if (strcmp(member_name, "steps") == 0) {
+        ASTNode *decl = semantic_find_intent_decl_by_name(ctx, target_name);
+        char buf[512];
+        buf[0] = '\0';
+        if (decl != NULL) {
+            size_t step_count = 0;
+            ASTNode **steps = ast_intent_decl_steps(decl, &step_count);
+            for (size_t si = 0; si < step_count; si++) {
+                const char *sname = (steps != NULL && steps[si] != NULL)
+                    ? ast_intent_step_name(steps[si]) : NULL;
+                if (sname == NULL)
+                    continue;
+                if (buf[0] != '\0')
+                    pergyra_str_append(buf, sizeof(buf), ",");
+                pergyra_str_append(buf, sizeof(buf), sname);
+            }
+        }
+        ast_morph_to_string(expr, buf);
+        return TYPE_STRING;
+    }
+
+    if (strcmp(member_name, "retry") == 0) {
+        ASTNode *decl = semantic_find_intent_decl_by_name(ctx, target_name);
+        int retry = decl != NULL ? ast_intent_decl_retry_count(decl) : 0;
+        char buf[32];
+        snprintf(buf, sizeof(buf), "%d", retry);
+        ast_morph_to_string(expr, buf);
+        return TYPE_STRING;
+    }
+
+    if (strcmp(member_name, "involves") == 0) {
+        ASTNode *decl = semantic_find_intent_decl_by_name(ctx, target_name);
+        char buf[512];
+        buf[0] = '\0';
+        if (decl != NULL) {
+            size_t involve_count = 0;
+            ASTNode **involves = ast_intent_decl_involves(decl, &involve_count);
+            for (size_t ii = 0; ii < involve_count; ii++) {
+                const char *alias = (involves != NULL && involves[ii] != NULL)
+                    ? ast_intent_involves_alias(involves[ii]) : NULL;
+                if (alias == NULL)
+                    continue;
+                if (buf[0] != '\0')
+                    pergyra_str_append(buf, sizeof(buf), ",");
+                pergyra_str_append(buf, sizeof(buf), alias);
+                ASTNode *st = ast_intent_involves_subject_type(involves[ii]);
+                const char *stn = st != NULL ? ast_type_name(st) : NULL;
+                if (stn != NULL) {
+                    pergyra_str_append(buf, sizeof(buf), ":");
+                    pergyra_str_append(buf, sizeof(buf), stn);
+                }
+            }
+        }
+        ast_morph_to_string(expr, buf);
+        return TYPE_STRING;
+    }
     return NULL;
 }
 

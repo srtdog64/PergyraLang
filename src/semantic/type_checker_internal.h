@@ -223,6 +223,8 @@ ASTNode *semantic_find_roster_decl_by_name(SemanticContext *ctx,
                                            const char *name);
 ASTNode *semantic_find_class_decl_by_name(SemanticContext *ctx,
                                           const char *name);
+ASTNode *semantic_find_intent_decl_by_name(SemanticContext *ctx,
+                                           const char *name);
 ASTNode *semantic_find_ability_decl_by_name(SemanticContext *ctx,
                                             const char *name);
 ASTNode *semantic_find_enum_decl_by_name(SemanticContext *ctx,

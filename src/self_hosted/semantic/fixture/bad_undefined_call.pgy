@@ -1,0 +1,4 @@
+func Main() -> Void {
+    let x: Int = Frobnicate(5);
+    return;
+}
