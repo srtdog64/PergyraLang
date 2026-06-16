@@ -237,6 +237,7 @@ extern Type* TYPE_FLOAT;
 extern Type* TYPE_DOUBLE;
 extern Type* TYPE_BOOL;
 extern Type* TYPE_STRING;
+extern Type* TYPE_PROJECTION;
 extern Type* TYPE_QUBIT;
 extern Type* TYPE_VOID;
 extern Type* TYPE_UNKNOWN;

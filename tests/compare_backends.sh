@@ -550,6 +550,7 @@ main() {
         "tests/cases/backend_compare/basic"
         "tests/cases/backend_compare/inout_caller_mutation"
         "tests/cases/backend_compare/long_cast_roundtrip"
+        "tests/cases/backend_compare/reflect_type_name"
         "tests/cases/backend_compare/entry_lowercase_main"
         "tests/cases/backend_compare/extern_fn"
         "tests/cases/backend_compare/extern_spawn"

@@ -52,6 +52,7 @@ static const KeywordEntry kKeywords[] = {
     {"private", TOKEN_PRIVATE},
     {"public", TOKEN_PUBLIC},
     {"ref", TOKEN_REF},
+    {"reflect", TOKEN_REFLECT},
     {"relation", TOKEN_RELATION},
     {"remote", TOKEN_REMOTE},
     {"return", TOKEN_RETURN},

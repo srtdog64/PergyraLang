@@ -13,6 +13,7 @@
 #include "type_checker_ownership_consumers_internal.h"
 #include "type_checker_ownership_diag_internal.h"
 #include "diag_codes.h"
+#include "../common/string_compat.h"
 
 static const char *
 operator_overload_suffix(PgyTokenType op)
@@ -294,10 +295,33 @@ type_check_binary(ASTNode *expr, SemanticContext *ctx)
 Type *
 type_check_unary(ASTNode *expr, SemanticContext *ctx)
 {
+    PgyTokenType op = ast_unary_operator(expr).type;
+    if (op == TOKEN_REFLECT) {
+        ASTNode *reflect_target = ast_unary_operand(expr);
+        if (reflect_target == NULL
+            || reflect_target->type != AST_IDENTIFIER) {
+            semantic_error_with_hints(ctx, PGY_CODE_SEM_UNOP_TYPE_MISMATCH,
+                PGY_CAUSE_UNARY_OPERATOR_OPERAND,
+                PGY_FIX_CHECK_INTENT_STEP_LOWERING, expr,
+                "'reflect' currently supports only a type name; richer targets "
+                "are not lowered yet (docs/reflect_operator_design.md)");
+            return TYPE_UNKNOWN;
+        }
+
+        /*
+         * Compile-time fold: rewrite `reflect TypeName` in place into the type
+         * name as a String literal, so later lowering and both backends see a
+         * plain constant and reflect leaves no runtime trace.
+         */
+        const char *reflect_name = ast_identifier_name(reflect_target);
+        expr->type = AST_STRING;
+        expr->data.string.value = pergyra_strdup(reflect_name);
+        return TYPE_PROJECTION;
+    }
+
     Type *operand = expr_ops_normalize_type(
         type_check_expression(ast_unary_operand(expr), ctx));
 
-    PgyTokenType op = ast_unary_operator(expr).type;
     if (op == TOKEN_NOT) {
         if (!type_equals(operand, TYPE_BOOL)) {
             semantic_error_with_hints(ctx, PGY_CODE_SEM_UNOP_TYPE_MISMATCH,

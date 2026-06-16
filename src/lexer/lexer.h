@@ -81,6 +81,9 @@ typedef enum
     TOKEN_OWN,          /* own — take ownership */
     TOKEN_REF,          /* ref — borrow */
 
+    /* Compile-time reflection */
+    TOKEN_REFLECT,      /* reflect — compile-time reflection, yields projection */
+
     /* Role/Ability keywords */
     TOKEN_ABILITY,
     TOKEN_ROLE,

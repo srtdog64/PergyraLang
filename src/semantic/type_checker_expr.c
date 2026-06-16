@@ -455,6 +455,20 @@ type_check_member_access(ASTNode *expr, SemanticContext *ctx)
 
     Type *object_type = type_check_expression(member_object, ctx);
 
+    if (object_type != NULL && object_type->name != NULL
+        && strcmp(object_type->name, "projection") == 0
+        && member_name != NULL && strcmp(member_name, "name") == 0) {
+        /*
+         * Compile-time fold: a projection's `.name` is the projection value
+         * itself (projection carries its name as its String representation).
+         * Replace the member-access node with its object so codegen sees a
+         * plain String and the projection leaves no further trace.
+         */
+        ASTNode object_copy = *member_object;
+        *expr = object_copy;
+        return TYPE_STRING;
+    }
+
     if ((type_is_constructed_named(object_type, "Array")
          || type_is_constructed_named(object_type, "Slice"))
         && strcmp(member_name, "Length") == 0) {

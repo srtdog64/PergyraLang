@@ -264,6 +264,7 @@ semantic_type_resolution_metadata_builtin_singleton(const char *name)
         { "QubitSlot", &TYPE_QUBIT },
         { "String", &TYPE_STRING },
         { "Void", &TYPE_VOID },
+        { "projection", &TYPE_PROJECTION },
     };
     const size_t count = sizeof(builtins) / sizeof(builtins[0]);
     const TypeNameSlot *match;

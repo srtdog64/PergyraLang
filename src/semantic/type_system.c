@@ -22,6 +22,7 @@ Type *TYPE_FLOAT  = NULL;
 Type *TYPE_DOUBLE = NULL;
 Type *TYPE_BOOL   = NULL;
 Type *TYPE_STRING = NULL;
+Type *TYPE_PROJECTION = NULL; /* reflect result; compile-time, String runtime rep */
 Type *TYPE_QUBIT = NULL;
 Type *TYPE_VOID   = NULL;
 Type *TYPE_UNKNOWN = NULL; /* Sentinel for error recovery */
@@ -68,6 +69,7 @@ type_system_init(void)
     TYPE_DOUBLE = type_create_primitive("Double", 8, false);
     TYPE_BOOL   = type_create_primitive("Bool",   1, false);
     TYPE_STRING = type_create_primitive("String", 0, false);
+    TYPE_PROJECTION = type_create_primitive("projection", 0, false);
     TYPE_QUBIT  = type_create_primitive("QubitSlot", 4, false);
     TYPE_VOID   = type_create_primitive("Void",   0, false);
     TYPE_UNKNOWN = type_create_primitive("<unknown>", 0, false);

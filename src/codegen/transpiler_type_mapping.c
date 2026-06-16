@@ -74,6 +74,7 @@ pergyra_primitive_to_c(const char *name)
         {"QubitSlot", "int32_t"},
         {"String", "char*"},
         {"Void", "void"},
+        {"projection", "char*"},
     };
     const char *mapped;
 

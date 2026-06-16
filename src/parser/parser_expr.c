@@ -371,7 +371,8 @@ ASTNode* parse_multiplication(Parser* parser) {
 ASTNode* parse_unary(Parser* parser) {
     if (parser_match(parser, TOKEN_NOT) ||
         parser_match(parser, TOKEN_MINUS) ||
-        parser_match(parser, TOKEN_AMP)) {
+        parser_match(parser, TOKEN_AMP) ||
+        parser_match(parser, TOKEN_REFLECT)) {
         Token op = parser->previous_token;
         ASTNode* right = parse_unary(parser);
         return ast_create_unary(op, right);

@@ -87,6 +87,7 @@ let y = Validate(x)?;
 - 채널 송수신
 - 파이프 `|>`
 - postfix `?` (Result<T> unwrap + early return)
+- 컴파일타임 리플렉션 `reflect`
 - `${}` 문자열 보간: `"hello ${name}"`
 
 문자열 stable subset:
@@ -102,7 +103,7 @@ let y = Validate(x)?;
 대체로 다음 순서를 따른다.
 
 1. 호출, 멤버 접근, 배열 접근
-2. 단항 `!`, `-`
+2. 단항 `!`, `-`, `reflect`
 3. `*`, `/`, `%`
 4. `+`, `-`
 5. 비교 `< <= > >=`
@@ -111,6 +112,25 @@ let y = Validate(x)?;
 8. 논리 `||`
 9. 파이프 `|>`
 10. 할당 `=`
+
+### 2.4 컴파일타임 리플렉션 (`reflect`)
+
+`reflect`는 컴파일타임 prefix 연산자다. 대상을 받아 그 대상을 기술하는
+`projection`을 만든다. 전적으로 컴파일타임에 평가되며 런타임 코드를 내지
+않는다.
+
+```pergyra
+let p: projection = reflect Account;
+let n: String = p.name;            // "Account"
+```
+
+현재 구현 범위:
+
+- 대상이 타입 이름(식별자)일 때 `reflect TypeName`은 컴파일타임에 그 이름으로
+  낮아진다.
+- `projection`은 컴파일타임 전용 값 타입이다. 런타임에 도달하지 않는다.
+- 제네릭 인자나 도메인 엔티티 같은 더 풍부한 대상, 그리고 `.kind`/`.effects`
+  같은 추가 필드는 후속 단계다.
 
 ## 3. 선언
 
@@ -381,6 +401,7 @@ namespace Math
 - `Bool`
 - `String`
 - `Void`
+- `projection` (컴파일타임 전용, `reflect`의 결과 타입)
 
 ### 4.2 컬렉션/자원 타입
 

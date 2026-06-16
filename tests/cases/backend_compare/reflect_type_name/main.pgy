@@ -1,0 +1,12 @@
+// Regression: `reflect TypeName` yields a compile-time `projection`, and the
+// projection's `.name` is the type name as a String. C and LLVM must agree the
+// printed name is "Account".
+struct Account {
+    id: Int
+}
+
+func Main() -> Void {
+    let p: projection = reflect Account;
+    let n: String = p.name;
+    Log(n);
+}

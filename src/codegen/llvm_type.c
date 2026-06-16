@@ -75,6 +75,9 @@ pgy_classify_type(const char *type_name)
         if (strcmp(type_name, "Allocator") == 0)        return PGY_TK_ALLOCATOR;
         if (strncmp(type_name, "Array<", 6) == 0)       return PGY_TK_ARRAY;
         break;
+    case 'p':
+        if (strcmp(type_name, "projection") == 0)       return PGY_TK_STRING;
+        break;
     default:
         break;
     }
