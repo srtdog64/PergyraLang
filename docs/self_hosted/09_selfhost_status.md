@@ -2,7 +2,7 @@
 
 Branch main. This snapshot records what is verified to self-host right now,
 measured by building pgy and running
-`make self-host-preparation-test-smoke` on 2026-06-15. The gate runs the
+`make self-host-preparation-test-smoke` on 2026-06-16. The gate runs the
 self-hosted tools on C/LLVM where applicable and keeps the C compiler as the
 oracle.
 
@@ -96,7 +96,7 @@ Substrate progress.
   call arity against the parameter count, emitting `call_arity_mismatch` when
   the number of arguments differs from the declaration.
   `src/self_hosted/parity/semantic_parity.sh` compares its verdicts with the C
-  compiler accept/reject oracle on C and LLVM across 25 committed fixtures
+  compiler accept/reject oracle on C and LLVM across 17 committed fixtures
   (typed let/return, arithmetic, comparison, call-return, call-argument,
   call-arity, branch-condition, assignment, and bare-call-statement cases), all
   byte-equal on both backends. It checks that `if` / `while` conditions are
@@ -139,7 +139,7 @@ now runs in that shape at rung-2: expression operators, function-call return
 typing, positional call-argument typing, call-arity checking (in `let`/`return`
 and bare expression statements), branch condition (`if`/`while` must be `Bool`)
 typing, and simple local assignment typing are covered, and verdicts stay
-byte-equal beside the C type checker on 25 committed fixtures across both
+byte-equal beside the C type checker on 17 committed fixtures across both
 backends. The checker now covers the common statement forms (let, return,
 assignment, if/while condition, bare call). The next increments require deeper
 machinery: scoped block typing (block-local variable visibility) plus a symbol

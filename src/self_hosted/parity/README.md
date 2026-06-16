@@ -1,6 +1,7 @@
 # Soft Self-Host Parity Harness
 
-Status: eleven rung-2 parity harnesses plus three compiler-internal rung-1 harnesses active.
+Status: twelve rung-2 peripheral harnesses plus lexer/parser rung-1 and
+semantic rung-2 compiler-internal harnesses active.
 
 This folder holds oracle comparisons for soft self-host tools. The C compiler
 and existing shell/C smokes remain the source of truth until a tool can run in

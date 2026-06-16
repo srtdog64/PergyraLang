@@ -80,7 +80,7 @@ src/self_hosted/
   `compiler/parser/parse_minimal/` nesting was flattened to mirror
   C-side `src/<component>/` exactly. This is rung-1 only: it proves the
   side-by-side substitution loop, not full compiler parity.
-- **2026-06-15** -- soft self-host track now contains **11 rung-2 tools**.
+- **2026-06-15** -- soft self-host track now contains **12 rung-2 tools**.
   `tools/ast_read_surface_checker/` reads the shared
   `tests/ast_read_surface_ratchet.txt` ratchet and proves the same
   enum/source_ast/source_decl/routine-source-decl counts as the shell smoke,
@@ -91,6 +91,12 @@ src/self_hosted/
   compiles through C and LLVM where available, and compares the same fixtures
   against the C compiler accept/reject oracle. This starts semantic
   substitution without pretending the full type checker is replaced.
+- **2026-06-16** -- `make self-host-preparation-test-smoke` is green again on
+  main after refreshing the doc-link checker expected counts for the current
+  `docs/INDEX.md`. The measured compiler-internal substitution is now 8,392
+  Pergyra LOC vs 254,649 C/header/inc LOC (~3.30% LOC-scale): lexer and parser
+  substitution are active, semantic is rung-2, and HIR/MIR/codegen/runtime/
+  compiler/LSP remain 0%.
 
 ## Non-Negotiable Rules
 

@@ -38,6 +38,31 @@ These are the surface hygiene seams that must continue to close:
 - TODO files track open work only. Completed implementation evidence belongs in
   execution logs or focused status documents.
 
+## Compact Omission Status
+
+The clause-density pain point is real, but it is not an unimplemented idea.
+Compact intent is active partial surface: common steps may omit repeated clauses
+when declared action, zone, or authority evidence already owns the fact.
+
+Current allowed omission paths:
+
+- `on: actor.Action()` may derive `who` from the action receiver.
+- an action `within Zone` contract may derive the step `where`.
+- action `requires` and `causes` contracts may be reused by matching steps.
+- action-declared `authorized by` may be inherited by a matching step.
+- `using` may be derived when a matching zone value is unambiguous.
+
+Current hard boundary:
+
+- local `who` never creates approval; `authorized by` must be explicit or
+  inherited from an explicit action/zone authority contract.
+- derived facts must remain explainable in diagnostics and explicit in IR.
+- hidden policy inference from a goal sentence is not stable surface.
+
+So the remaining aesthetic work is not "add omission from scratch." It is to
+make compact authoring the documented default while preserving fail-closed
+diagnostics for conflicts, ambiguity, and missing authority evidence.
+
 ## MPaC Placement
 
 MPaC, Message-Passing and Contracted Concurrency, is a domain kit candidate, not
