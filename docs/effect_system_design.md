@@ -239,3 +239,19 @@ reason this is sequenced after the effect-family work rather than batched with
 it. The
 declaration surface today is `with effects ...`, not a separate `uses` keyword;
 that spelling is already the language's effect contract.
+
+## Authority: one concept, two representations (intentional)
+
+Authority appears in two places: the legacy `secure` capability flag and the
+`EFFECT_AUTHORITY` effect-family bit. This is layering, not duplication. The
+effect bit is the tracking surface -- it propagates through the declared-vs-
+derived closure so a function that transitively touches an authority-bearing
+leaf carries the obligation outward. The `secure` flag is the capability gate at
+the boundary. The two are unified at enforcement:
+`type_effect_mask_requires_authority` folds `EFFECT_SECURE | EFFECT_AUTHORITY`,
+so either representation trips the same authority requirement and there is no way
+for one to be satisfied while the other leaks. Keeping both lets existing
+`secure` code stand unchanged while new effect-tracked authority flows through
+the same closure machinery as `io` and `alloc`. Collapsing them into a single
+token would either drop the propagation surface or force a rewrite of every
+`secure` site for no behavioural gain.

@@ -245,6 +245,15 @@ llvm_emit_cast_expr(ASTNode *node, LLVMGenCtx *ctx)
                 llvm_tmp_name(ctx));
         return v;
     }
+    if (target != NULL && strcmp(target, "Long") == 0) {
+        if (src == ctx->type_f32 || src == ctx->type_f64)
+            return LLVMBuildFPToSI(ctx->builder, v, ctx->type_i64,
+                llvm_tmp_name(ctx));
+        if (src == ctx->type_i32)
+            return LLVMBuildSExt(ctx->builder, v, ctx->type_i64,
+                llvm_tmp_name(ctx));
+        return v;
+    }
     if (target != NULL && strcmp(target, "Float") == 0) {
         if (src == ctx->type_i32 || src == ctx->type_i64)
             return LLVMBuildSIToFP(ctx->builder, v, ctx->type_f32,
@@ -255,7 +264,7 @@ llvm_emit_cast_expr(ASTNode *node, LLVMGenCtx *ctx)
         return v;
     }
     return llvm_expression_error(ctx, node,
-        "LLVM backend: cast target is not lowered (numeric Int/Float only)");
+        "LLVM backend: cast target is not lowered (numeric Int/Long/Float only)");
 }
 
 /*

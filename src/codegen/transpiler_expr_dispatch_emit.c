@@ -327,6 +327,8 @@ emit_expression(ASTNode *node, TranspilerCtx *ctx)
             return NULL;
         if (target != NULL && strcmp(target, "Int") == 0)
             c_cast = "int32_t";
+        else if (target != NULL && strcmp(target, "Long") == 0)
+            c_cast = "int64_t";
         else if (target != NULL && strcmp(target, "Float") == 0)
             c_cast = "float";
         if (c_cast == NULL) {
@@ -334,7 +336,7 @@ emit_expression(ASTNode *node, TranspilerCtx *ctx)
             transpiler_set_backend_error_with_hints(ctx,
                 PGY_CODE_C_TYPE_UNSUPPORTED, PGY_CAUSE_C_TYPE_UNSUPPORTED,
                 PGY_FIX_ANNOTATE_CONCRETE_TYPE,
-                "C backend: cast to '%s' is not lowered (numeric Int/Float only)",
+                "C backend: cast to '%s' is not lowered (numeric Int/Long/Float only)",
                 target != NULL ? target : "<type>");
             return NULL;
         }

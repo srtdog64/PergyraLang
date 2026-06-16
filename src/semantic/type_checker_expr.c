@@ -272,6 +272,7 @@ type_check_expression(ASTNode *expr, SemanticContext *ctx)
         Type *source = expr_normalize_type(
             type_check_expression(ast_cast_operand(expr), ctx));
         bool source_numeric = type_equals(source, TYPE_INT)
+            || type_equals(source, TYPE_LONG)
             || type_equals(source, TYPE_FLOAT);
         if (target != NULL && strcmp(target, "Int") == 0) {
             if (!source_numeric)
@@ -291,12 +292,21 @@ type_check_expression(ASTNode *expr, SemanticContext *ctx)
                     type_name_or_unknown(source));
             return TYPE_FLOAT;
         }
+        if (target != NULL && strcmp(target, "Long") == 0) {
+            if (!source_numeric)
+                semantic_error_with_hints(ctx, PGY_CODE_SEM_TYPE_MISMATCH,
+                    PGY_CAUSE_BUILTIN_SIGNATURE_MISMATCH,
+                    PGY_FIX_MATCH_BUILTIN_SIGNATURE, expr,
+                    "Cast to Long requires a numeric operand, got '%s'",
+                    type_name_or_unknown(source));
+            return TYPE_LONG;
+        }
         if (target != NULL && strcmp(target, "String") == 0)
             return TYPE_STRING;
         semantic_error_with_hints(ctx, PGY_CODE_SEM_TYPE_MISMATCH,
             PGY_CAUSE_BUILTIN_SIGNATURE_MISMATCH,
             PGY_FIX_MATCH_BUILTIN_SIGNATURE, expr,
-            "Cast 'expr as %s' is supported only for Int, Float, and String targets",
+            "Cast 'expr as %s' is supported only for Int, Long, Float, and String targets",
             target != NULL ? target : "<type>");
         return TYPE_UNKNOWN;
     }

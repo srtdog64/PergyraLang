@@ -3,7 +3,7 @@
 // This file is a world/roster design sketch, not a stable syntax reference.
 // Do not treat it as "currently supported Pergyra" without checking smoke tests.
 // Uses aspirational surface that is intentionally ahead of the current implementation:
-// - Rust-like receiver syntax such as `&self` / `&mut self`
+// - value-result receiver syntax such as `&self` (read) / `inout self` (mutating)
 // - collection combinators such as `Filter`
 // - typed `context.GetRole<T>(...)` lookup and richer party-slot polymorphism
 // - broader world/roster/party orchestration than the current smoke-covered subset
@@ -23,15 +23,15 @@ ability Economic {
     fields _goldSlot: Slot<Int>
     
     func GetGold(&self) -> Int
-    func SpendGold(&mut self, amount: Int) -> Bool
-    func EarnGold(&mut self, amount: Int)
+    func SpendGold(inout self, amount: Int) -> Bool
+    func EarnGold(inout self, amount: Int)
 }
 
 ability Productive {
     fields _productionRate: Int
     fields _resourceType: ResourceType
     
-    func Produce(&mut self) -> Option<Resource>
+    func Produce(inout self) -> Option<Resource>
     func GetProductionRate(&self) -> Int
 }
 
@@ -60,7 +60,7 @@ role WorkingCitizen for Citizen {
     impl ability Economic {
         func GetGold(&self) -> Int { Read(self._goldSlot) }
         
-        func SpendGold(&mut self, amount: Int) -> Bool {
+        func SpendGold(inout self, amount: Int) -> Bool {
             let current = GetGold()
             if current >= amount {
                 Write(self._goldSlot, current - amount)
@@ -70,7 +70,7 @@ role WorkingCitizen for Citizen {
             }
         }
         
-        func EarnGold(&mut self, amount: Int) {
+        func EarnGold(inout self, amount: Int) {
             Write(self._goldSlot, GetGold() + amount)
         }
     }
@@ -97,7 +97,7 @@ struct Factory {
 
 role ProductionFacility for Factory {
     impl ability Productive {
-        func Produce(&mut self) -> Option<Resource> {
+        func Produce(inout self) -> Option<Resource> {
             if self._workerCount > 0 {
                 let resource = Resource {
                     type: self._resourceType,

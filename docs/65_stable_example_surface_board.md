@@ -132,7 +132,7 @@ module ecosystem tracks after beta closure.
 
 이 예제들은 다음 같은 미래 표면을 보여 줄 수 있다.
 
-- Rust-like receiver syntax (`&self`, `&mut self`)
+- value-result receiver syntax (`&self` read-only, `inout self` mutating)
 - richer collection combinator surface (`Map`, `Filter`, `MaxBy`, `MapValues`)
 - broader `party/world/roster/context` orchestration
 - scheduler-flavored `parallel on (...)`, `every (...)`

@@ -115,6 +115,8 @@ required_files=(
     "docs/129_tex_semantics_lessons.md"
     "docs/130_c_backend_owner_migration_map.md"
     "docs/131_ai_coding_atomic_units.md"
+    "docs/134_language_surface_hygiene.md"
+    "docs/135_backend_wasm_pointer_closure.md"
     "docs/37_compiler_contracts.md"
     "docs/42_keyword_orthogonality.md"
     "docs/self_hosted/05_compiler_core_gap_analysis.md"
@@ -185,9 +187,40 @@ index_terms=(
     "120_vision_and_capability_audit.md"
     "anti-hype triad"
     "self_hosted/05_compiler_core_gap_analysis.md"
+    "134_language_surface_hygiene.md"
+    "135_backend_wasm_pointer_closure.md"
 )
 for term in "${index_terms[@]}"; do
     require_text "docs/INDEX.md" "$term"
+done
+
+language_surface_terms=(
+    "not to reduce Pergyra's domain vocabulary."
+    "Keyword count is not the"
+    "debt; duplicated truth paths are the debt."
+    "only spelling for value-result mutable parameters"
+    "Authority has one approval source of truth."
+    "MPaC, Message-Passing and Contracted Concurrency"
+    "pgy.kit.mpac"
+    "Allowed debt must be named. Unnamed fallback is not allowed."
+)
+for term in "${language_surface_terms[@]}"; do
+    require_text "docs/134_language_surface_hygiene.md" "$term"
+done
+
+backend_wasm_pointer_terms=(
+    "Backend, WASM, And Pointer Closure"
+    "verified subset plus named remaining debt"
+    "The C-backend route to WebAssembly is verified end to end."
+    "LLVM-to-wasm route is a runtime-link debt."
+    "direct wasm backend is post-beta."
+    "runtime-abi-lifetime-test-smoke"
+    "static scratch pointers"
+    "cross-arena references use index or stable handle"
+    "not a universal pointer/lifetime proof"
+)
+for term in "${backend_wasm_pointer_terms[@]}"; do
+    require_text "docs/135_backend_wasm_pointer_closure.md" "$term"
 done
 
 self_host_gap_terms=(

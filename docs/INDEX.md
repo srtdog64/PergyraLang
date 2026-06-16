@@ -86,6 +86,7 @@ and follow-up debt over older design notes.
 | [`115_inc_cleanup_status.md`](115_inc_cleanup_status.md) | Current `.inc` cleanup ledger |
 | [`128_pointer_risk_register.md`](128_pointer_risk_register.md) | Pointer/lifetime risk register for ABI, containers, scratch buffers, and raw escape |
 | [`132_unsafe_capability_scope.md`](132_unsafe_capability_scope.md) | Unsafe capability scope contract |
+| [`135_backend_wasm_pointer_closure.md`](135_backend_wasm_pointer_closure.md) | Backend/WASM/pointer wording guard: verified subset, named debt, and non-overclaiming lifetime status |
 
 ## Language Surface
 
@@ -139,6 +140,7 @@ and follow-up debt over older design notes.
 | [`129_tex_semantics_lessons.md`](129_tex_semantics_lessons.md) | TeX-derived contract lessons for scanner boundaries, delayed effects, planner-only parameters, probe-order semantics, token identity, recovery artifacts, and reviewable semantic fixtures |
 | [`130_c_backend_owner_migration_map.md`](130_c_backend_owner_migration_map.md) | C backend owner migration map and guardrails for avoiding mechanical helper/header churn |
 | [`131_ai_coding_atomic_units.md`](131_ai_coding_atomic_units.md) | AI-coding thesis: verifiable intent atoms, pattern-context units, and specification gradients |
+| [`134_language_surface_hygiene.md`](134_language_surface_hygiene.md) | Language surface hygiene: keep orthogonal terms, close alias/fallback source-of-truth seams |
 
 ## Implementation Guides
 
@@ -156,7 +158,7 @@ and follow-up debt over older design notes.
 2. Read [`100_beta_readiness_checklist.md`](100_beta_readiness_checklist.md).
 3. Read [`125_source_of_truth_spine.md`](125_source_of_truth_spine.md) before changing compiler architecture.
 4. For async/parallel, read [`113_memory_concurrency_model.md`](113_memory_concurrency_model.md), then [`114_async_model_positioning.md`](114_async_model_positioning.md), then [`05_async_concurrency.md`](05_async_concurrency.md).
-5. For backend work, read [`115_inc_cleanup_status.md`](115_inc_cleanup_status.md), [`62_llvm_backend_debt_ledger.md`](62_llvm_backend_debt_ledger.md), and [`44_llvm_backend_coverage.md`](44_llvm_backend_coverage.md).
+5. For backend work, read [`135_backend_wasm_pointer_closure.md`](135_backend_wasm_pointer_closure.md), [`115_inc_cleanup_status.md`](115_inc_cleanup_status.md), [`62_llvm_backend_debt_ledger.md`](62_llvm_backend_debt_ledger.md), and [`44_llvm_backend_coverage.md`](44_llvm_backend_coverage.md).
 6. For formal closure, read [`102_formal_semantics_and_proof_obligations.md`](102_formal_semantics_and_proof_obligations.md), [`103_cfg_body_dataflow_need.md`](103_cfg_body_dataflow_need.md), and [`104_air_compiler_architecture.md`](104_air_compiler_architecture.md).
 7. For post-beta self-hosting preparation, read [`self_hosted/README.md`](self_hosted/README.md) after the beta source-of-truth documents, not before them.
 

@@ -58,7 +58,7 @@ func Diag(line: Int, col: Int, endCol: Int, sev: Int, msg: String) -> String {
     return StringJoin(parts, "");
 }
 
-func ScanStructure(content: String, diags: &mut Array<String>) -> Void {
+func ScanStructure(content: String, inout diags: Array<String>) -> Void {
     let n: Int = StringLength(content);
     // structural scan: bracket balance + empty block, skipping strings/comments
     let si: Int = 0;

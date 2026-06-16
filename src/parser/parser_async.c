@@ -97,14 +97,28 @@ ASTNode* parser_parse_async_function(Parser* parser)
         else if (parser_match(parser, TOKEN_REF))
             mode = PARAM_MODE_REF;
         else if (parser_match(parser, TOKEN_AMP)) {
-            /* &self / &mut self -- borrow receiver (Rust-style). */
+            /* '&' / '&self' -- immutable borrow receiver. Caller-visible
+             * mutation is spelled 'inout', never '&mut': the mutation is
+             * value-result (copy-in/copy-out), not a live Rust-style borrow. */
             mode = PARAM_MODE_REF;
             if (parser_check(parser, TOKEN_IDENTIFIER)
                 && parser->current_token.text != NULL
                 && strcmp(parser->current_token.text, "mut") == 0) {
-                mode = PARAM_MODE_MUT_REF;
-                parser_advance(parser);
+                parser_error(parser,
+                    "'&mut' is not a binding mode in this language.\n"
+                    "Reason: the mutation is value-result (copy-in/copy-out), "
+                    "not a live borrow, so the '&mut' sigil is misleading.\n"
+                    "Fix: use 'inout' (for example 'inout self' or 'inout xs').");
+                parser_advance(parser); /* consume 'mut' to resync at name */
             }
+        }
+        else if (parser_check(parser, TOKEN_IDENTIFIER)
+                 && parser->current_token.text != NULL
+                 && strcmp(parser->current_token.text, "inout") == 0) {
+            /* 'inout' -- the sole spelling for a value-result binding
+             * (copy-in/copy-out), for parameters and the mutable receiver. */
+            mode = PARAM_MODE_MUT_REF;
+            parser_advance(parser);
         }
 
         Token param_name = consume_binding_name_token(parser, "Expected parameter name");
@@ -376,4 +390,3 @@ ASTNode* parser_parse_select_statement(Parser* parser)
     
     return select_stmt;
 }
-

@@ -1,5 +1,11 @@
 # Pergyra Layered Stdlib and Domain Kits
 
+MPaC decision: `pgy.kit.mpac` is the planned domain-kit home for
+Message-Passing and Contracted Concurrency. It belongs beside `ledger`,
+`obligation`, and `device_adapter`, not in core syntax. The kit should compile
+coordination shape from existing `intent`, `world`, `zone`, `effect`,
+`authority`, `role`, `party`, and projection facts.
+
 마지막 업데이트: 2026-04-12
 
 이 문서는 앞으로의 확장 원칙을 고정한다.

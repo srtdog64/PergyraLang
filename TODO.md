@@ -53,20 +53,19 @@ English anchor for tooling/doc gates:
   LLVM agree on the frozen support matrix. The self-hosted implementation is
   the third value in a C/LLVM/Pergyra comparison, not a substitute for finishing
   the first two.
+- Backend/WASM/pointer closure ledger: beta-facing wording must treat LLVM as
+  verified subset plus named remaining debt, not as either complete or
+  generally unsound. WASM claims must separate the verified C-backend route from
+  LLVM-to-wasm runtime-link debt and the post-beta direct wasm backend. Pointer
+  and arena claims must cite stable ABI classes and
+  `runtime-abi-lifetime-test-smoke` without claiming a universal
+  pointer/lifetime proof. Gate: `backend-wasm-pointer-closure-test-smoke`.
 - Language semantics mismatch ledger: keep these as source-of-truth closure
-  targets, not cosmetic naming work. (1) `&mut` currently has value-result
-  copy-in/copy-out behavior, closer to Swift `inout` than Rust borrow. Decide
-  whether the surface is renamed to `inout`, or whether a real borrow-mut
-  surface is introduced separately; until then docs must say value-result and
-  normal-return copy-out explicitly. (2) `Long` must either become a first-class
+  targets, not cosmetic naming work. (1) `Long` must either become a first-class
   numeric tower member with explicit cast/arithmetic support, or every missing
-  widening/cast path must be an explicit reject with a diagnostic. (3)
-  Value-default collections make `ArrayPush(arr, x)` on a by-value parameter a
-  local mutation only; add a diagnostic or linter rule for bare mutation-looking
-  container calls whose result/copy-out cannot reach the caller. Prefer
-  `inout`/owned sink/return-rebind forms for caller-visible mutation. (4)
-  Authority must converge on one owner: effect bits may express that authority
-  is required, but `authorized_by` / zone authority / runtime authority evidence
+  widening/cast path must be an explicit reject with a diagnostic. (2) Authority
+  must converge on one owner: effect bits may express that authority is
+  required, but `authorized_by` / zone authority / runtime authority evidence
   must remain the approval source of truth instead of drifting into a second
   semantic channel.
 - Broad improvement ledger: active TODO must track open work, not completed

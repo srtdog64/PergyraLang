@@ -174,7 +174,7 @@ type_check_function_symbol_call(ASTNode *expr, Symbol *sym,
                             PGY_CAUSE_BORROW_ESCAPE,
                             PGY_FIX_BIND_TO_NAMED_VARIABLE_BEFORE_MOVE,
                             arg_expr,
-                            "'%s' is passed as '&mut' more than once in the same call; each '&mut' argument must be a distinct variable to avoid a lost update",
+                            "'%s' is passed to multiple inout parameters in the same call; each inout argument must be a distinct variable to avoid a lost update",
                             an);
                         break;
                     }

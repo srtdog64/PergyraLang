@@ -304,13 +304,21 @@ ASTNode* parse_type(Parser* parser) {
 }
 
 static ASTNode* parse_type_guarded(Parser* parser) {
-    /* Borrow type prefix `&T` / `&mut T`: the borrow is erased at the parse
-     * level; the underlying type carries through. */
+    /* Immutable borrow type prefix `&T`: the borrow is erased at the parse
+     * level; the underlying type carries through. There is no `&mut T` type:
+     * caller-visible mutation is value-result and spelled with the `inout`
+     * parameter mode, not a borrow type. */
     if (parser_check(parser, TOKEN_AMP)) {
         parser_advance(parser);  /* consume '&' */
         if (parser->current_token.text != NULL
-            && strcmp(parser->current_token.text, "mut") == 0)
-            parser_advance(parser);  /* consume 'mut' */
+            && strcmp(parser->current_token.text, "mut") == 0) {
+            parser_error(parser,
+                "'&mut' is not a type in this language.\n"
+                "Reason: caller-visible mutation is value-result "
+                "(copy-in/copy-out), not a live borrow type.\n"
+                "Fix: write the parameter as 'inout name: T'.");
+            parser_advance(parser);  /* consume 'mut' to resync */
+        }
         return parse_type(parser);
     }
 

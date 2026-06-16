@@ -109,8 +109,8 @@ Substrate progress.
   embedded quote literals do not desync operator detection.
 - Building the signature table reproduced the array value-semantics finding from
   the linter: a helper that `ArrayPush`es into an `Array<T>` parameter mutates a
-  copy, so the table is built inline in the owning function until `&mut Array<T>`
-  borrow parameters land. This is the second dogfooded motivation for that
+  copy, so the table is built inline in the owning function until `inout Array<T>`
+  value-result parameters land. This is the second dogfooded motivation for that
   feature.
 
 ## Not yet self-hosted

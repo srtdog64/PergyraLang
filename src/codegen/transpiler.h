@@ -203,8 +203,8 @@ typedef struct
     int         defer_body_counts[TRANSPILE_MAX_SCOPE_DEPTH];
     int         defer_scope_depth;
 
-    /* Active &mut (exclusive borrow) value-parameter names for the current
-     * function. Each &mut value parameter is lowered to a pointer parameter
+    /* Active inout value-parameter names for the current
+     * function. Each inout value parameter is lowered to a pointer parameter
      * `<name>__mutref` with a copy-in local `<name>`; write-backs
      * `*<name>__mutref = <name>;` are emitted at every return through the
      * pre-return hook so the caller observes the mutation. */

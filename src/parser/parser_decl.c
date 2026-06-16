@@ -131,14 +131,30 @@ static ASTNode* parse_function_like_declaration(Parser* parser, bool is_action) 
         else if (parser_match(parser, TOKEN_REF))
             mode = PARAM_MODE_REF;
         else if (parser_match(parser, TOKEN_AMP)) {
-            /* &self / &mut self -- borrow receiver (Rust-style). */
+            /* '&' / '&self' -- immutable borrow receiver. Caller-visible
+             * mutation is spelled 'inout', never '&mut': the mutation is
+             * value-result (copy-in/copy-out), not a live Rust-style borrow,
+             * so the '&mut' sigil would mislabel it. */
             mode = PARAM_MODE_REF;
             if (parser_check(parser, TOKEN_IDENTIFIER)
                 && parser->current_token.text != NULL
                 && strcmp(parser->current_token.text, "mut") == 0) {
-                mode = PARAM_MODE_MUT_REF;
-                parser_advance(parser);
+                parser_error(parser,
+                    "'&mut' is not a binding mode in this language.\n"
+                    "Reason: the mutation is value-result (copy-in/copy-out), "
+                    "not a live borrow, so the '&mut' sigil is misleading.\n"
+                    "Fix: use 'inout' (for example 'inout self' or 'inout xs').");
+                parser_advance(parser); /* consume 'mut' to resync at name */
             }
+        }
+        else if (parser_check(parser, TOKEN_IDENTIFIER)
+                 && parser->current_token.text != NULL
+                 && strcmp(parser->current_token.text, "inout") == 0) {
+            /* 'inout' -- the sole spelling for a value-result binding
+             * (Swift-style copy-in/copy-out). Used for parameters
+             * ('inout xs') and the mutable receiver ('inout self'). */
+            mode = PARAM_MODE_MUT_REF;
+            parser_advance(parser);
         }
 
         // 파라미터 이름

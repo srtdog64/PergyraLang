@@ -253,7 +253,7 @@ typedef enum {
     PARAM_MODE_DEFAULT,   /* no qualifier — value type: copy, slot type: move */
     PARAM_MODE_OWN,       /* own — take ownership (move) */
     PARAM_MODE_REF,       /* ref — borrow (ReadView, non-owning) */
-    PARAM_MODE_MUT_REF    /* &mut — exclusive mutable borrow */
+    PARAM_MODE_MUT_REF    /* inout value-result mutable parameter */
 } ParamMode;
 
 struct FuncParam {

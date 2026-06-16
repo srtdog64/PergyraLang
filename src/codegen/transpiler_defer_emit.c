@@ -102,7 +102,7 @@ transpiler_register_mut_ref_param(TranspilerCtx *ctx, const char *name,
             PGY_CODE_C_TYPE_UNSUPPORTED,
             PGY_CAUSE_C_TYPE_UNSUPPORTED,
             PGY_FIX_USE_LLVM_BACKEND_OR_EXTEND_TRANSPILER,
-            "C backend &mut parameter registry exceeded TRANSPILE_MAX_MUT_REF_PARAMS");
+            "C backend inout parameter registry exceeded TRANSPILE_MAX_MUT_REF_PARAMS");
         return;
     }
     pergyra_str_copy(ctx->mut_ref_param_names[ctx->mut_ref_param_count],

@@ -303,6 +303,7 @@ Decision addendum:
 - `pgy.kit.ledger`
 - `pgy.kit.obligation`
 - `pgy.kit.device_adapter`
+- `pgy.kit.mpac`
 
 규칙:
 
@@ -310,6 +311,14 @@ Decision addendum:
 - domain kit는 `intent/world/zone/subject/relation/effect/projection` 조합을 재사용한다.
 - business vocabulary는 새 키워드가 아니라 importable pattern/library로 올린다.
 - domain kit는 필요하면 `pgy.std.*`에 의존하지만, `pgy.core` 의미론을 직접 확장하지 않는다.
+
+MPaC note:
+
+- `pgy.kit.mpac` is the planned Message-Passing and Contracted Concurrency kit.
+- It compiles coordination shape from existing `intent`, `world`, `zone`,
+  `effect`, `authority`, `role`, `party`, and projection facts.
+- It must not add a parallel core syntax track or duplicate authority/effect
+  source-of-truth rules.
 
 ## 13. Implementation Rule: module boundary before module syntax
 
