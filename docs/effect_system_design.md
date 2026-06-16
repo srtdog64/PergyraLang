@@ -83,12 +83,18 @@ and the source_ast retirement, so codegen and the checker read it from MIR.
   the effects the boundary grants; otherwise emit a diagnostic. This is expressed
   as an AIR invariant so it is checked in the existing verifier discipline.
 
-### Effect polymorphism (later stage)
+### Effect polymorphism
 
 Higher-order functions (`ArrayMap(f)`) have an effect that depends on `f`. This
-is made explicit with an effect parameter on the higher-order signature rather
-than inferred, to avoid sliding into full inference. Deferred until the
-monomorphic core works.
+is made explicit at the collection builtin boundary rather than inferred
+globally. The monomorphic first slice is live: `ArrayMap` and `ArrayFilter`
+type-check the callback argument, read its function effect mask, and join it
+into the caller's derived effect set. A function contracted `with effects local`
+that maps with an `io` callback is rejected with the same missing-effect
+diagnostic as a direct `ReadFile`.
+
+General higher-order effect parameters remain a later stage; the collection
+slice is intentionally narrow so it does not slide into unbounded inference.
 
 ### Why this is feasible on Pergyra specifically
 
@@ -199,7 +205,8 @@ Corrected remaining work: a body-level derivation leaf for authority (calling an
 effect (today `authority` is a single coarse bit -- per-role precision still
 rides the separate `authorized_by` metadata); transitive cross-function effect
 propagation via the frontier graph if within-function derivation proves
-insufficient; and effect polymorphism for higher-order functions.
+insufficient; and general higher-order effect parameters beyond the live
+`ArrayMap` / `ArrayFilter` collection slice.
 
 ## io leaf coverage (complete)
 

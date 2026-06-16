@@ -330,6 +330,82 @@
         lexer_destroy(lexer);
     }
 
+    TEST("effect-flow: ArrayMap callback effects join into function contract");
+    {
+        const char *source =
+            "func Load(x: Int) -> Int with effects io {\n"
+            "    ReadFile(\"fixture.txt\");\n"
+            "    return x;\n"
+            "}\n"
+            "func UseMap(xs: Array<Int>) -> Array<Int> with effects local {\n"
+            "    return ArrayMap(xs, Load);\n"
+            "}\n";
+        Lexer *lexer = lexer_create(source);
+        Parser *parser = parser_create(lexer);
+        ASTNode *program = parser_parse_program(parser);
+        SemanticResult *result = semantic_analyze(program);
+
+        EXPECT(!parser_has_error(parser));
+        EXPECT(result != NULL && result->error_count > 0);
+        EXPECT(ctx_has_diagnostic_substring_from_result(result,
+            "missing declared effects: io"));
+
+        semantic_result_destroy(result);
+        ast_destroy(program);
+        parser_destroy(parser);
+        lexer_destroy(lexer);
+    }
+
+    TEST("effect-flow: ArrayFilter callback effects join into function contract");
+    {
+        const char *source =
+            "func Keep(x: Int) -> Bool with effects io {\n"
+            "    ReadFile(\"fixture.txt\");\n"
+            "    return true;\n"
+            "}\n"
+            "func UseFilter(xs: Array<Int>) -> Array<Int> with effects local {\n"
+            "    return ArrayFilter(xs, Keep);\n"
+            "}\n";
+        Lexer *lexer = lexer_create(source);
+        Parser *parser = parser_create(lexer);
+        ASTNode *program = parser_parse_program(parser);
+        SemanticResult *result = semantic_analyze(program);
+
+        EXPECT(!parser_has_error(parser));
+        EXPECT(result != NULL && result->error_count > 0);
+        EXPECT(ctx_has_diagnostic_substring_from_result(result,
+            "missing declared effects: io"));
+
+        semantic_result_destroy(result);
+        ast_destroy(program);
+        parser_destroy(parser);
+        lexer_destroy(lexer);
+    }
+
+    TEST("effect-flow: ArrayMap callback effects pass when declared");
+    {
+        const char *source =
+            "func Load(x: Int) -> Int with effects io {\n"
+            "    ReadFile(\"fixture.txt\");\n"
+            "    return x;\n"
+            "}\n"
+            "func UseMap(xs: Array<Int>) -> Array<Int> with effects io {\n"
+            "    return ArrayMap(xs, Load);\n"
+            "}\n";
+        Lexer *lexer = lexer_create(source);
+        Parser *parser = parser_create(lexer);
+        ASTNode *program = parser_parse_program(parser);
+        SemanticResult *result = semantic_analyze(program);
+
+        EXPECT(!parser_has_error(parser));
+        EXPECT(result != NULL && result->error_count == 0);
+
+        semantic_result_destroy(result);
+        ast_destroy(program);
+        parser_destroy(parser);
+        lexer_destroy(lexer);
+    }
+
     TEST("effect-partial-order: disjoint branch effects join into combined contract");
     {
         const char *source =
