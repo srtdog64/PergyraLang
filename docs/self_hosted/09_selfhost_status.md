@@ -114,10 +114,10 @@ Substrate progress.
   arithmetic/call-argument expressions, now report `undefined_symbol` when
   absent from the local environment. It also checks scoped `if` / `while`
   bodies without leaking block-local `let` bindings into the parent
-  environment. The checker is sound on the committed
-  real sources: it returns `SEMANTIC OK` on the self-hosted lexer, parser,
-  linter, and on its own source, with backslash-escape-aware string scanning so
-  embedded quote literals do not desync operator detection.
+  environment. The 30-fixture parity set is the current gate; direct runs over
+  full self-host sources are not yet claimed as a gate because the recursive
+  block scan still needs a real-source stability pass before it can cover the
+  lexer, parser, linter, and semantic checker sources themselves.
 - Building the signature table reproduced the array value-semantics finding from
   the linter: a helper that `ArrayPush`es into an `Array<T>` parameter mutates a
   copy, so the table is built inline in the owning function until `inout Array<T>`
@@ -155,9 +155,10 @@ diagnostics are covered, and verdicts stay
 byte-equal beside the C type checker on 30 committed fixtures across both
 backends. The checker now covers the common statement forms (let, return,
 assignment, if/while body, if/while condition, bare call). The next increments
-require deeper machinery: a broader symbol table of builtins/types and a stable
-diagnostic-code catalog shared with the C oracle, before moving into
-declaration-heavy semantic owners.
+require deeper machinery: real-source semantic stability over the self-hosted
+lexer/parser/linter/semantic sources, a broader symbol table of builtins/types,
+and a stable diagnostic-code catalog shared with the C oracle, before moving
+into declaration-heavy semantic owners.
 
 ## How to reproduce
 
