@@ -1,6 +1,7 @@
-// Regression: `reflect TypeName` yields a compile-time `projection`, and the
-// projection's `.name` is the type name as a String. C and LLVM must agree the
-// printed name is "Account".
+// Regression: `reflect TypeName` yields a compile-time `projection`. Its
+// `.name` is the type name, `.kind` its declared kind (struct/class both report
+// "class"), `.effects` the effect set (empty for a plain struct), and `.fields`
+// the comma-joined field names. C and LLVM must agree on every folded field.
 struct Account {
     id: Int
 }
@@ -8,5 +9,11 @@ struct Account {
 func Main() -> Void {
     let p: projection = reflect Account;
     let n: String = p.name;
+    let k: String = p.kind;
+    let e: String = p.effects;
+    let f: String = p.fields;
     Log(n);
+    Log(k);
+    Log(e);
+    Log(f);
 }

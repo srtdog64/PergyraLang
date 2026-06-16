@@ -150,8 +150,20 @@ the name String; `projection.name` member access folds to that String. The
 mint a dedicated diagnostic code `PGY_SEM_REFLECT_NOT_LOWERED` to replace the
 reused unary code, and add `.kind`.
 
-Rung 3: type structure reflection: `.kind`, `.fields` (name plus type), and
-`.methods`, read from MIR declaration headers.
+Rung 3 (done, pending build): type structure reflection for `.name` and
+`.kind`, in both the direct `(reflect T).name`/`.kind` and the
+`let p: projection = reflect T; p.name`/`p.kind` forms. `.kind` folds to the
+declared kind (`"class"`/`"enum"`/`"primitive"`; struct and class are both
+`"class"` since the type system does not distinguish them). The projection
+field logic lives in `expr_ops_projection_member` (`type_checker_expr_ops.c`),
+called from `type_check_member_access` (which also kept `type_checker_expr.c`
+under the 600-LOC semantic-core-shape cap). The `let`-bound form is supported by
+carrying the reflected type name on the binding: `Symbol.reflect_target_name`
+is set in `type_check_let_decl` (`type_checker_ownership_let.c`) when a
+projection let initializes from a folded `reflect`, and the member helper reads
+it via `lookup_identifier_symbol`. Covered by the `reflect_type_name`
+backend-compare case (`Account` / `class`). Still open: `.fields` and
+`.methods` from MIR declaration headers, then rung 4 (domain reflection).
 
 Rung 3 implementation plan (turnkey, do on a machine with a build loop). The
 String-representation shortcut from rung 2b cannot carry a second fact, so
@@ -182,9 +194,33 @@ compile time and never let a projection reach the backend:
 This is a representation change on top of rung 2b, so it should land only after
 rung 2b is built and green, to keep failures bisectable.
 
-Rung 4: domain reflection: `reflect someIntent` exposing `.effects`,
-`.authority`, and resilience policy, sourced from the effect/authority metadata
-and AIR graph. This is the differentiating rung and the MPaC hook.
+Rung 4 (partial, pending build): domain reflection. `.effects` is implemented:
+it resolves the reflected declaration's symbol and folds
+`type_function_effects` through the shared `effect_mask_to_string` renderer to a
+String like `"io,alloc,authority"` (empty for a non-function such as a plain
+struct), in both the direct and `let`-bound forms via the same
+`expr_ops_projection_member` helper. Because reflection folds in the semantic
+phase, `.effects` reads the live effect computation and does NOT depend on
+#126 (which captures effects into MIR for backend/runtime consumption, a
+separate axis).
+
+`.fields` is also implemented: it resolves the class declaration via
+`semantic_find_class_decl_by_name` and folds the comma-joined field names
+(`projection_source_field_count`/`_at`). The `reflect_type_name`
+backend-compare case now exercises `.name`/`.kind`/`.effects`/`.fields`.
+
+Still open, and each needs machinery beyond a simple accessor (so left for a
+build-loop session rather than a blind change):
+
+- `.authority` as the specific named authority. Today authority is only the
+  `EFFECT_AUTHORITY` flag (already surfaced inside `.effects`); a named
+  authority needs the authority model to expose the name on a decl.
+- `.methods`: needs method enumeration off the class/ability declaration,
+  analogous to `.fields` but over the method/action list.
+- Field types in `.fields` (currently names only) need a type-node renderer.
+- Resilience policy and AIR-graph-sourced intent reflection (effects/authority
+  per intent boundary) are the richer domain-reflection layer and the MPaC hook
+  proper.
 
 Rung 5: a splice or generation surface that consumes a compile-time
 `projection` to emit declarations, closing the language-that-emits-languages

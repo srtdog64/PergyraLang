@@ -40,6 +40,7 @@ const char* token_type_to_string(PgyTokenType type) {
         case TOKEN_FALSE: return "FALSE";
         case TOKEN_PUBLIC: return "PUBLIC";
         case TOKEN_PRIVATE: return "PRIVATE";
+        case TOKEN_REFLECT: return "REFLECT";
         case TOKEN_INNATE: return "INNATE";
         case TOKEN_WHERE: return "WHERE";
         case TOKEN_ASYNC: return "ASYNC";

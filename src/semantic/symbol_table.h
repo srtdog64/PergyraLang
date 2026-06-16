@@ -86,6 +86,7 @@ struct Symbol
     bool       is_consumed;
     bool       embedded_in_world;
     uint8_t    slot_flow_access_mask;
+    char*      reflect_target_name;  /* reflect(): type name for projection lets */
 
     /* Slot-specific metadata */
     struct

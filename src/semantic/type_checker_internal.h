@@ -107,6 +107,9 @@ ClassField *subject_host_field_at(ASTNode *decl, size_t index);
 size_t projection_source_field_count(ASTNode *decl);
 ClassField *projection_source_field_at(ASTNode *decl, size_t index);
 Type *projection_resolve_type_ref(ASTNode *type_ref, SemanticContext *ctx);
+Type *expr_ops_projection_member(ASTNode *expr, ASTNode *member_object,
+                                 const char *member_name, Type *object_type,
+                                 SemanticContext *ctx);
 char *format_generic_subject_signature(const char *name,
                                        GenericParams *params);
 const char *format_generic_subject_signature_scratch(SemanticContext *ctx,

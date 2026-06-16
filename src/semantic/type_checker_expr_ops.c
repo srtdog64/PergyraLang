@@ -362,6 +362,98 @@ type_check_unary(ASTNode *expr, SemanticContext *ctx)
     return operand;
 }
 
+static const char *
+projection_kind_label(const char *type_name, SemanticContext *ctx)
+{
+    Symbol *sym = (type_name != NULL && ctx != NULL)
+        ? scope_lookup(ctx->scope, type_name) : NULL;
+    if (sym == NULL || sym->type == NULL)
+        return "unknown";
+    if (sym->type->kind == TYPE_KIND_ENUM)
+        return "enum";
+    if (sym->type->kind == TYPE_KIND_CLASS)
+        return "class";
+    return "primitive";
+}
+
+/*
+ * Compile-time fold for a projection field access (the result of `reflect`).
+ * Returns the folded field type, or NULL when this is not a projection field
+ * so the caller keeps its normal member-access path. A projection carries its
+ * reflected type name as its String representation, so `.name` is the value
+ * itself, and `.kind` (direct `(reflect T).kind`) reads that name to report the
+ * declared kind. `.kind` on a projection bound through a `let` is not folded
+ * yet and falls through.
+ */
+Type *
+expr_ops_projection_member(ASTNode *expr, ASTNode *member_object,
+                           const char *member_name, Type *object_type,
+                           SemanticContext *ctx)
+{
+    if (object_type == NULL || object_type->name == NULL || member_name == NULL
+        || member_object == NULL
+        || strcmp(object_type->name, "projection") != 0)
+        return NULL;
+
+    if (strcmp(member_name, "name") == 0) {
+        ASTNode object_copy = *member_object;
+        *expr = object_copy;
+        return TYPE_STRING;
+    }
+
+    /* `.kind` and `.effects` fold from the reflected type/decl name. */
+    const char *target_name = NULL;
+    if (member_object->type == AST_STRING)
+        target_name = ast_string_value(member_object);
+    else if (member_object->type == AST_IDENTIFIER) {
+        Symbol *bound = lookup_identifier_symbol(member_object, ctx);
+        if (bound != NULL)
+            target_name = bound->reflect_target_name;
+    }
+    if (target_name == NULL)
+        return NULL;
+
+    if (strcmp(member_name, "kind") == 0) {
+        expr->type = AST_STRING;
+        expr->data.string.value =
+            pergyra_strdup(projection_kind_label(target_name, ctx));
+        return TYPE_STRING;
+    }
+
+    if (strcmp(member_name, "effects") == 0) {
+        Symbol *sym = scope_lookup(ctx->scope, target_name);
+        char buf[256];
+        effect_mask_to_string(
+            (sym != NULL && sym->type != NULL)
+                ? type_function_effects(sym->type) : EFFECT_NONE,
+            buf, sizeof(buf));
+        expr->type = AST_STRING;
+        expr->data.string.value = pergyra_strdup(buf);
+        return TYPE_STRING;
+    }
+
+    if (strcmp(member_name, "fields") == 0) {
+        ASTNode *decl = semantic_find_class_decl_by_name(ctx, target_name);
+        char buf[512];
+        buf[0] = '\0';
+        if (decl != NULL) {
+            size_t field_count = projection_source_field_count(decl);
+            for (size_t fi = 0; fi < field_count; fi++) {
+                ClassField *cf = projection_source_field_at(decl, fi);
+                if (cf == NULL || cf->name == NULL)
+                    continue;
+                if (buf[0] != '\0')
+                    strncat(buf, ",", sizeof(buf) - strlen(buf) - 1);
+                strncat(buf, cf->name, sizeof(buf) - strlen(buf) - 1);
+            }
+        }
+        expr->type = AST_STRING;
+        expr->data.string.value = pergyra_strdup(buf);
+        return TYPE_STRING;
+    }
+    return NULL;
+}
+
 Type *
 type_check_array_literal(ASTNode *expr, SemanticContext *ctx)
 {

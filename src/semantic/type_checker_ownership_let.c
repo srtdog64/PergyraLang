@@ -9,6 +9,7 @@
 #include <string.h>
 
 #include "diag_codes.h"
+#include "../common/string_compat.h"
 #include "type_checker_internal.h"
 #include "type_checker_ownership_internal.h"
 #include "type_checker_ownership_let_internal.h"
@@ -484,6 +485,14 @@ type_check_let_decl(ASTNode *node, SemanticContext *ctx)
             /* Transfer from orchestration boundary; precise state is unknown. */
             sym->qubit_info.semantic_state = QUBIT_STATE_NONE;
         }
+    }
+
+    if (decl_type != NULL && decl_type->name != NULL
+        && strcmp(decl_type->name, "projection") == 0
+        && init != NULL && init->type == AST_STRING) {
+        /* reflect() folded its type name into this projection let; carry it so
+         * `p.kind` can fold from the binding. */
+        sym->reflect_target_name = pergyra_strdup(ast_string_value(init));
     }
 
     scope_declare(ctx->scope, sym);

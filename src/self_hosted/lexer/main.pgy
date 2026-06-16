@@ -243,6 +243,9 @@ func KeywordType(text: String) -> String {
     if text == "own" {
         return "UNKNOWN";
     }
+    if text == "reflect" {
+        return "REFLECT";
+    }
     return "IDENTIFIER";
 }
 
