@@ -58,20 +58,28 @@ English anchor for tooling/doc gates:
   copy-in/copy-out behavior, closer to Swift `inout` than Rust borrow. Decide
   whether the surface is renamed to `inout`, or whether a real borrow-mut
   surface is introduced separately; until then docs must say value-result and
-  normal-return copy-out explicitly. (2) Logical `&&` / `||` must be `Bool`
-  operators in both inference and checking; C-style integer truthiness must not
-  leak into typed semantic results. Gate this with semantic tests and backend
-  parity fixtures before widening. (3) `Long` must either become a first-class
+  normal-return copy-out explicitly. (2) `Long` must either become a first-class
   numeric tower member with explicit cast/arithmetic support, or every missing
-  widening/cast path must be an explicit reject with a diagnostic. (4)
+  widening/cast path must be an explicit reject with a diagnostic. (3)
   Value-default collections make `ArrayPush(arr, x)` on a by-value parameter a
   local mutation only; add a diagnostic or linter rule for bare mutation-looking
   container calls whose result/copy-out cannot reach the caller. Prefer
-  `inout`/owned sink/return-rebind forms for caller-visible mutation. (5)
+  `inout`/owned sink/return-rebind forms for caller-visible mutation. (4)
   Authority must converge on one owner: effect bits may express that authority
   is required, but `authorized_by` / zone authority / runtime authority evidence
   must remain the approval source of truth instead of drifting into a second
   semantic channel.
+- Broad improvement ledger: active TODO must track open work, not completed
+  history. Move closed implementation evidence to `docs/100d_beta_execution_log.md`
+  or focused status docs, keep the active TODO clear of `[x]` backlog, and add a
+  hygiene gate if completed task lists reappear. The local build graph is also a
+  quality target: narrow semantic/object compile checks should not require a
+  full slow Make evaluation path before they can prove a small source-of-truth
+  closure. Owner-size wording must also stay precise: 600 LOC is the
+  split-review signal, while the current executable production-owner hard guard
+  still sits at 699 only because several `.c` owners remain in the 601-699 band.
+  Do not reintroduce 900-era cap language into the active TODO; drive the 600s
+  queue down before claiming a true 600 hard cap.
 - Runtime panic-contract tightening: async fiber internal invariants no longer
   use raw `assert()`; they route through `PGY_RUNTIME_PANIC` with
   `internal-invariant` reasons so release/debug builds share the same hard-fail
@@ -12593,11 +12601,6 @@ not marketing claims.
   Coq/Lean mechanization of anchored ownership, slot generation/token
   unforgeability, and AIR evidence preservation remains post-beta hardening
   until executable proof artifacts cover those statements.
-- [x] **Security audit docs follow-up.** Mirror this queue into
-  `docs/security/01_audit_targets.md` as concrete audit contracts:
-  panic-DoS boundary behavior, slot-id exhaustion availability, zone-bound
-  handle escape, and proof/marketing drift.
-
 ## UTF-8 Progress Note - 2026-04-26 - DAG Metadata Materialization Tightening
 
 - Non-generic nominal class type references now materialize through
@@ -13447,7 +13450,6 @@ Checklist source of truth:
 베타 완료 조건:
 
 - [ ] Function/action/intent body마다 `BasicBlock`, `Edge`, `Terminator`, reachability, exceptional cleanup edge가 semantic pass에서 직접 소비된다.
-- [x] 반환형이 있는 routine은 모든 reachable normal path에서 retun/value terminator를 가진다는 all-path retun 검사를 CFG body summary로 고정한다.
 - [~] definite assignment/use-before-init 검사를 CFG dataflow로 이동하고 branch/join/loop widening 진단을 고정한다. stable local `let` 표면은 parser `=` 요구와 `PGY_SEM_UNINIT_LOCAL` backstop으로 봉인됐고, wider delayed-assignment lattice는 아직 열려 있다.
 - [~] move/use-after-move, borrow/ref lifetime, boundary escape를 CFG join facts로 계산한다. `QubitSlot` loop break/continue join regression, anchored `Slot<T>` branch/join release-state regression, `own subject` branch/join consumed-state regression, parallel subject transfer join/conflict regression, parallel `ref`+`own` boundary conflict regression, parallel `ref`+`ref` shared-read acceptance regression, direct named-call `spawn ref` ownership-boundary rejection regression, anonymous async spawn explicit reject regression은 닫혔고, closure/lambda/general longer-lived borrow lifetime은 남아 있다. `mut ref`/`ref mut` surface가 없으므로 mutable-borrow overlap은 beta-out-of-scope로 봉인한다.
 - [~] owned resource drop/cleanup insertion point를 normal retun, early retun, break/continue, intent cancel/rollback/invalidation edge에서 같은 규칙으로 계산한다. `defer` cleanup terminator와 resource-state snapshot/restore 격리, direct `type_check_statement()` fallback convergence, anchored slot branch/join state tracking은 닫혔다. MIR validator now also rejects reachable pin-region blocks that lack the matching `pin-unpin-cleanup-edge` fact, so pin unpin cleanup is no longer just a generated convention. 남은 것은 full drop insertion/validation과 exceptional/cancellation all-exit proof expansion이다.
@@ -13993,53 +13995,6 @@ Source of truth:
   - C/LLVM 둘 다 declaration-side path에서 `Unknown` / surface-trust-breaking fallback type emission을 계속 제거
   - 문서에서 `MIR-led / HIR-assisted`라고 남겨둔 debt를 실제 구현 기준으로 더 축소하고, 베타 시점 표현과 구현을 일치시킨다
 
-- [x] **AST dispatch / backend fallback trust gate 고정**
-  - `docs/95_ast_dispatch_partition.md` 기준으로 AST 타입 partition을 문서화
-  - LLVM `stmt/expr` default path는 waning-only가 아니라 structured backend error로 고정
-  - Zone/World declaration verb가 expression fallback으로 조용히 `0/null`이 되는 경로를 explicit backend diagnostic으로 차단
-  - `tests/ast_dispatch_partition_smoke.sh`와 `make ast-dispatch-test-smoke`를 추가해 partition drift와 silent fallback 회귀를 CI에서 차단
-  - Linux `ci-linux` acceptance line에 AST dispatch smoke를 연결
-
-- [x] **type-resolution DAG를 beta blocker로 포함**
-  - import resolver와 별개로 semantic type dependency graph를 beta acceptance line에 포함
-  - generic default / multi-bound / role impl / action / intent step / party role slot / zone authority / module contract consumer를 같은 graph inventory로 추적
-  - alias depth limit / ad-hoc recursive failure보다 path-aware cycle diagnostic을 우선 기준으로 끌어올림
-  - 1단계 진행: `topo_order`를 버리지 않고 declaration staged worklist에 연결 시작
-  - 반영 문서:
-    - `docs/70_beta_closure_master_board.md`
-    - `docs/63_feature_depth_matrix.md`
-  - 1단계 진행: `world/zone` local contract와 `refresh` projection path를 synthetic graph node로 올리기 시작
-  - 1단계 진행: topo worklist가 `LOCAL_CONTRACT` / `PROJECTION_PATH` synthetic node도 다시 소비하기 시작
-  - 1단계 진행: synthetic node 소비를 host 전체 재실행이 아니라 label별 narrow handler로 축소
-  - 1단계 진행: role impl consumer까지 cycle provenance 회귀를 추가해 ability consumer family를 더 완성
-  - 남은 일: staged declaration prepass 범위를 넓히고 graph-backed evaluator를 semantic source-of-truth로 승격
-  - ecosystem 확장(`stdlib/pkg/tooling`)은 이 DAG closure 이후 단계로 미룸
-
-- [x] **own/ref 일반화 audit 마감**
-  - own/ref는 ownership classifier 기준 stable subset으로 닫힘
-  - borrowed value escape는 helper call / channel / retun / container store뿐 아니라 broader assignment/member/store path까지 provenance 기준으로 점검
-  - 진행: constructor field store(`Holder(packet)` 같은 boundary-visible store)를 borrowed escape 경로로 승격하고 semantic regression 추가
-  - 진행: constructor field store도 borrowed member/aggregate source path provenance(`holder.packet`, `items[0]`)를 직접 보고하도록 정렬
-  - 진행: array literal store(`[packet]`)도 borrowed escape 경로로 승격하고 semantic regression 추가
-  - 진행: member assignment / array overwrite 진단이 identifier-only가 아니라 `holder.packet`, `items[0]` 같은 target path provenance를 직접 보고하도록 정렬
-  - 진행: new-binding escape도 identifier-only가 아니라 borrowed member/aggregate source path provenance(`packet.view`, `items[0]`)까지 추적하도록 확장
-  - 진행: new-binding escape regression도 member source path(`packet.items`)와 array source path(`items[0]`)를 fixture로 고정
-  - 진행: container store(`ArrayPush`/`ListPush`/`SetAdd`/`QueuePush`/`MapSet`)도 borrowed member/aggregate source path provenance를 직접 보고하도록 정렬
-  - 진행: helper forwarding / builtin channel send(`Send`/`TrySend`/`SendTimeout`/status variants)도 unnamed borrowed member/aggregate source path provenance를 직접 보고하도록 정렬
-  - 진행: direct `retun` escape도 borrowed member/aggregate source path provenance(`holder.packet`, `items[0]`)를 직접 보고하도록 정렬
-  - 진행: slot/resource summary 기반 `retun/channel/helper` diagnostics도 `summary provenance root` vocabulary로 direct semantic wording에 더 가깝게 정렬
-  - 진행: summary-based helper escape는 direct callee wording 대신 `helper/function summary in '<fn>'` 경로로 분리해 drift를 줄임
-  - 진행: summary-based retun/channel escape도 direct consumer wording 대신 `retun summary in '<fn>'` / `channel summary in '<fn>'` 경로로 분리해 drift를 줄임
-  - 진행: anchored-handle summary escape도 direct `retun/channel/helper` wording 대신 summary wording으로 분리해 own/ref bridge 문구를 정렬
-  - 진행: helper-call / container-store / array-literal-store / semantic channel-send diagnostic family를 공용 helper로 통합
-  - 진행: nested projection + transitive helper + member rebind 조합도 semantic regression fixture로 추가
-  - 진행: movable-resource + nested member source + member rebind target 조합도 semantic regression fixture로 추가
-  - 진행: declaration-side MIR-only host truth는 `current_host_decl` / inventory 기준으로 더 좁혔고, `within_zone`를 따라가는 transpiler host recovery fallback과 role-owner direct AST lookup을 제거
-  - 진행: own/ref anchored-handle wording을 assignment / let-binding / retun / channel / helper family에 맞춰 `boundary-visible handle binding` / `anchored-handle provenance` 기준으로 정렬
-  - 완료 판정: direct/summary helper-chain, retun/channel/helper, destructure, assignment/member/container/constructor/array path가 current semantic regression으로 고정됨
-  - explicit reject: authority-bearing `Token<T>` escape/transport
-  - beta-out-of-scope: region/lifetime solver와 universal ownership lattice
-
 - [ ] **generic contract 전경로 audit 마감**
   - generic contract는 `default type arg`, `multi-bound where`, `ability<T> consumer`, `zone authority`, `party role slot`, `impl/reference`, cross-module consumer path를 마지막까지 audit
   - 진행: `party role slot` generic mismatch consumer도 actual/expected type arg + consumer path provenance regression으로 고정
@@ -14228,55 +14183,6 @@ Source of truth:
 
 ---
 
-## 완료 (P0 — Pain Point 수정, 2026-04-12)
-
-- [x] **P0-1: Array for-in `.count` → `.length`** — `transpiler.c`에서 Array는 `.length`, List는 `.count` 사용
-- [x] **P0-2: `StringSplit`/`StringJoin` 런타임 구현** — `pgy_runtime.h`에 실제 구현 추가, 시맨틱/C 백엔드 일치
-- [x] **P0-3: `None` 심볼 정의** — `type_checker.c`에서 AST_IDENTIFIER 처리, `type_system.c`에서 `Option<unknown>` → `Option<T>` 할당 허용, 코드젠에서 `expected_type` 기반 타입 해결
-- [x] **P0-6: defer 변수 스코프 버그 수정** — `type_checker_flow.c`에서 defer body 처리 전/후 resource-state snapshot/restore. cleanup body의 `retun`/`break`/`continue`와 QubitSlot release/move는 검사하지만 주변 CFG path와 outer loop flow를 소비하지 않는다. direct `type_check_statement()` fallback도 같은 helper를 사용한다.
-- [x] **P1-7: struct/subject Slot 매크로 waning 억제** — `transpiler.c`에서 `#pragma GCC diagnostic push/pop`으로 `-Wunused-function` 억제
-- [x] **P1-emit_call 갭 메우기** — `BUILTIN_BOX_ARRAY`, `BUILTIN_PARALLEL` 케이스 추가
-- [x] **P0-4: enum match OR 패턴 수정** — `type_checker_flow.c`에서 named variant OR 패턴 허용 + coverage 체크 수정
-- [x] **P2-13: match 기반 함수 default retun 자동 생성** — `transpiler_emitters_base_b.inc`에서 non-void 함수 끝 fallback retun 추가
-- [x] **Pain Point 보고서** — `docs/68_pain_point_report.md`에 수정 내역 기록
-
-## 완료 (최근)
-
-- [x] **Windows ABI/backend-compare precheck 실행 경로 정규화**
-  - `compiler_run_binary()`가 MSYS 스타일 `/tmp/...` 및 `/<drive>/...` 실행 파일 경로를 그대로 `_spawnvp()`에 넘기던 문제를 수정
-  - Windows에서 executable launch는 native Win32 경로로 정규화한 뒤 실행하도록 정렬
-- [x] **nested vessel-source projection ambiguity closure**
-  - zone `refresh/publish/bind` projection contract 경로에서 ambiguous source path가 `missing`으로 오진되던 분기 순서를 수정
-  - builtin `ToObject` / `ToTObject`도 동일한 structured `Reason/Fix` ambiguity diagnostic으로 정렬
-  - nested vessel ambiguity semantic regressions 추가
-- [x] **generic consumer provenance diagnostics 보강**
-  - `action requires` / `zone authority` / `party role slot` / `intent step requires`에서 generic ability mismatch가 `actual type argument` / `actual implementation` provenance를 함께 보고하도록 정렬
-  - 관련 semantic 회귀 추가
-- [x] **anchored own/ref provenance diagnostics 보강**
-  - closed-subset / local-only / missing `own/ref` / `ref` escape 진단에 `Reason/Fix`와 borrowed-here provenance를 추가
-  - 관련 semantic 회귀 추가
-- [x] **world embedding structured diagnostics 회귀 고정**
-  - embedded zone old-binding mutation이 assignment / hosted func-action call 모두에서 `Reason/Fix`와 world-owned-copy provenance를 남기도록 semantic 회귀 강화
-- [x] **Windows shell smoke portability 보강**
-  - `abi_pipeline_smoke.sh`, `compare_backends.sh`가 `cmp`/`diff` 부재 환경에서도 `git` 또는 Python fallback으로 비교/차이 출력을 수행하도록 정리
-- [x] **surface trust docs 정렬 — collection/result/struct baseline**
-  - `Array<T>`는 `[]`, `List<T>`는 `ListNew()`, `HashMap<K,V>`는 `MapNew()`를 canonical 생성 surface로 고정
-  - `Result<T>` 추출 API는 `Unwrap` / `UnwrapOr` / postfix `?`로 고정, `UnwrapResult()` 표면은 비채택
-  - `struct` field의 legacy `let`은 불변 표식이 아니라 declaration introducer임을 문서화하고, 읽기 전용 계약은 `object/tobject`에만 둔다
-- [x] **generic default-arg closure 1차 복구** — declaration acceptance만이 아니라 user-defined generic class omission, generic ability impl-reference omission, arity diagnostics range화, semantic/backend parity까지 다시 녹색으로 정렬
-- [x] **ABI Unification Infrastructure** — `pgy_abi_spec.h`, `test_abi_spec.c` (28 PASS), `MIRTypeLayout`, `mir_abi_lookup()`, `rir_dump_json()`, dumb emitter Visitor
-- [x] **Windows CI Fix** — `TOKEN_TYPE` → `PGY_TOKEN_TYPE`, `TokenType` → `PgyTokenType` (~20개 파일)
-- [x] **v2 Quantum Planning** — 양자 연산 미지원 명시, v2 계획 문서화
-- [x] **Documentation Index** — `docs/INDEX.md` 생성, 전체 문서 체계화
-- [x] **`HashMap<K, V>` stable key subset surface trust 정렬** — semantic annotation/builtins/runtime comment/test를 `String | Int | Long | Bool` key 지원으로 일치시킴
-- [x] **mixed `ability + zone` module export 충돌 수정** — default-export `ability`가 sibling zone visibility를 깨뜨리던 정규화 버그 제거, module smoke 회귀 추가
-- [x] **nominal host receiver type 오염 수정** — C backend member-call emit 중 static type-name overwrite를 제거해 `Int_Advance`류 오발행 복구
-- [x] **MIR cleanup exceptional topology 회귀 복구** — cleanup/rollback/invalidation block edge materialization과 test expectation 정렬
-- [x] **`order_analytics` example 실전화** — sketch 수준 surface를 정리하고 compile-smoke covered example로 승격
-- [x] **declaration name surface tightening** — declaration name을 일반 식별자로만 제한하고 reserved keyword 재사용 surface 제거
-- [x] **anchored-handle diagnostics/test 정렬** — `own/ref` closed-subset 진단 문구와 `DeviceSlot`/anchored-handle semantic test expectation을 현재 구현 기준으로 일치시킴
-- [x] **계층형 stdlib/domain kit v0 고정** — `money`, `datetime(Duration/Instant)`, `timer`, `versioning`, `ledger`, `obligation`, `device_adapter` 모듈과 probe 예제 추가, 코어 추가 금지 원칙 문서화
-
 ## 베타 클로저 보드
 
 베타 전 원칙:
@@ -14303,38 +14209,8 @@ Source of truth:
 - 남음: authority-resource partial order 통합, projection/layer/state를 넘어선 **authority/failure handoff와 더 넓은 world-zone propagation family까지의 full transitive frontier propagation policy**, helper-heavy edge path 감소, declaration/runtime/diagnostic/backend parity의 마지막 shrink
   - 이 축은 domain semantics 핵심이므로 partial 상태로 beta에 올리지 않는다
   - projection diagnostics는 `target/source/projection kind/field path/fix`를 포함하고 `Reason:` / `Fix:` 포맷으로 고정한다
-- [x] **generic contract 완전 closure**
-  - strict beta-quality 기준으로 stable subset closure에서 재개방
-  - `default type arg` actual resolution, `where T: A + B` 전경로 enforcement, `ability<T>` mismatch provenance, instantiation-path parity까지 닫는다
-  - 완료: default type arg declaration acceptance / omitted trailing default resolution / generic ability impl-reference omission / arity diagnostics provenance
-  - 이미 존재: `ability<T>` baseline, default type arg baseline, omitted trailing default resolution, generic mismatch provenance baseline
-  - 진행: `party role slot` generic mismatch도 `consumer path / expected type args / actual type args` vocabulary 회귀로 고정
-  - 남음: multi-bound 전경로 enforcement, module-contract propagation, instantiation-path parity, richer mismatch diagnostics, wider C/LLVM regression 확대
-  - generic mismatch는 `generic subject / expected type args / actual type args / broken bound / consumer path / fix`를 포함하고 `Reason:` / `Fix:` 포맷으로 고정한다
-  - generic은 partial acceptance를 beta에 올리지 않는다
-- [x] **own/ref 완전 closure**
-  - strict beta-quality 기준으로 anchored subset closure에서 재개방했고, classifier-backed stable subset으로 마감
-  - 일반 movable type ownership, move/borrow/escape/rebind/channel/retun provenance, diagnostics/test parity까지 닫음
-  - 이미 존재: anchored slot subset, anchored diagnostics baseline, anchored regression/docs alignment
-  - 완료: summary/direct path family audit와 classifier/docs 최종 정렬
-  - 진행: constructor field store escape 경로를 boundary-visible store로 고정하고 회귀 추가
-  - 진행: array literal store escape 경로를 boundary-visible store로 고정하고 회귀 추가
-  - 진행: assignment rebind escape diagnostic이 member/aggregate target path(`holder.packet`, `items[0]`) provenance를 직접 보고하도록 정렬
-  - 진행: nested projection provenance가 constructor field store / member rebind / list/set/queue/map store / array overwrite / helper retun summary / channel send / direct retun까지 회귀로 고정됨
-  - 진행: class/subject consumer matrix는 retun / channel / helper / list / set / queue / map / array push / array overwrite / member rebind / constructor field store까지 거의 동형으로 정렬
-  - 진행: tuple/object 경로는 기존 `test_semantic.c` 회귀 축에서 channel/new-binding/rebind/retun/helper forwarding/queue-map-array overwrite/projection provenance coverage 유지
-  - 진행: slot-handle/class helper-chain 회귀도 ownership-boundaries 계열에 추가돼 direct helper/function call family가 transitive chain까지 고정됨
-  - 진행: helper/retun/channel wording family를 `through ...` 기준으로 정렬
-  - ownership diagnostics는 `value / ownership mode / moved|borrowed here / escaped|rebound here / consumer path / fix`를 포함하고 `Reason:` / `Fix:` 포맷으로 고정한다
-  - explicit reject: authority-bearing `Token<T>` escape/transport
-  - beta-out-of-scope: region/lifetime solver와 universal ownership lattice
-
 ### B1 — 베타 신뢰도 필수
 
-- [x] **surface trust 문서 재분류**
-  - 완료: `docs/18_language_status.md`, `docs/63_feature_depth_matrix.md`, `README.md`에서 `stable subset / explicit reject / beta-out-of-scope` 기준으로 정렬
-  - 규칙: "컴파일은 되지만 partial"인 표면을 stable처럼 쓰지 않고, 어디까지를 닫힌 계약으로 약속하는지 먼저 명시
-  - 규칙: broader generalization, arbitrary key support, general ownership, richer observability query 같은 항목은 `beta-out-of-scope`로 분리
 - [ ] **stable example / smoke source of truth 확대**
   - canonical examples와 closure examples를 smoke에 직접 연결
   - explicit surface vs compressed surface를 같은 의미로 보여주는 pair example 최소 4쌍 고정
@@ -14415,24 +14291,8 @@ Source of truth:
   - `examples/transfer_move_typed_minimal.pgy`
   - `examples/zone_context_minimal.pgy`
 
-- [x] **contract provenance vocabulary 고정**
-  - 완료: beta closure 문서에 contract provenance 표준어를 `derived / inherited`로 고정
-  - 규칙: contract source 설명에서는 `inferred`를 쓰지 않고, action에서 재사용된 step clause는 `inherited`, `using/transfer` 등 현재 step에서 계산된 clause는 `derived`로 부른다
-  - 규칙: diagnostics / AST print / docs가 같은 용어를 쓰도록 맞추고, `inferred`는 일반 타입 계산이나 non-contract intenal analysis 문맥에만 남긴다
-  - 대상: contract provenance 잔여 표현, contract source wording, docs/example terminology
-  - 문제: compiler type/effect inference와 domain contract 상속/파생이 같은 단어로 섞이면 설명력이 무너짐
-  - 고정 기준:
-    - domain contract는 `상속 / 파생`과 `inherited / derived`로만 부른다
-    - 일반 compiler 의미는 type/effect `inference`에만 남긴다
-  - 회귀 기준:
-    - parser/semantic diagnostics 기대 문자열 고정
-
 ### P0.5 — recoverable failure 분류/고정
 
-- [x] **failure class inventory 정리**
-  - 완료: `docs/07_error_handling.md`, `docs/18_language_status.md`, `README.md` 기준으로 `recoverable failure / contract violation / intenal bug` inventory를 정리
-  - 완료: 현재 recoverable 유지 항목, hard-fail 유지 항목, 후속 downshift 대상(authority rejection 등)을 구분
-  - 규칙: runtime invariant guard와 real domain rejection을 같은 실패 층으로 섞지 않음
 - 현재 inventory baseline:
   - recoverable 유지:
     - `Result<T>` / `?`
@@ -14469,11 +14329,6 @@ Source of truth:
   - 이 guard 자체는 hard-fail 유지
   - 진행: C inline validator, LLVM runtime export, intent step-local `authorized by` validation 모두 마지막 authority validation 결과를 같은 vocabulary(`last_ok`, `zone`, `participant`, `code`, `reason`)로 남긴다
   - 별도 real authority rejection runtime path가 생기면 그쪽을 `recoverable authority failure` 경로로 설계
-- [x] **hard-fail boundary 명시**
-  - 완료: `README.md`와 `docs/07_error_handling.md`에 hard-fail boundary를 명시
-  - 고정 내용: released slot, invalid token, ownership invariant break, unwrap misuse, bounds violation, runtime invariant guard는 계속 panic / hard-fail territory로 둔다
-  - 고정 내용: recoverable authority rejection과 invariant guard를 같은 층으로 섞지 않는다는 점을 문서 wording으로 못박음
-
 - [ ] **projection contract diagnostics 고정**
   - 대상: `refresh/publish/bind` source/target/path/field-map 실패
   - 문제: projection은 언어 강점인데 실패 이유가 약하면 가장 먼저 피로를 줌
@@ -14491,19 +14346,6 @@ Source of truth:
 - semantic regression
   - `src/test_semantic.c:test_projection_contract_diagnostics`
   - `make projection-diagnostic-contract-test-smoke`
-
-- [x] **surface trust subset 분류 고정**
-  - 대상: generics, own/ref, collections, runtime observability
-  - 문제: 되는 것처럼 보이는데 실제로는 subset만 되는 surface가 가장 큰 신뢰 손상 지점
-  - 고정 기준:
-    - `stable subset / explicit reject / beta-out-of-scope`를 TODO/docs/diagnostic에서 같은 말로 쓴다
-  - 회귀 기준:
-    - semantic tests와 depth docs가 같은 subset을 가리킴
-  - 현재 기준 문서:
-    - `README.md`의 `Surface trust policy`
-    - `docs/18_language_status.md`
-    - `docs/63_feature_depth_matrix.md`
-    - `docs/64_depth_filling_roadmap.md`
 
 현재 고정하려는 baseline:
 - generics
@@ -14582,25 +14424,6 @@ Source of truth:
         `mir_find_decl_header(...)` cannot silently resolve an ambiguous
         declaration inventory row.
       - 남은 핵심 debt는 LLVM pipeline의 AST-carried declaration inventory bootstrap와 helper/restore layer 바깥의 raw host-name state 제거
-
-- [x] **ownership vocabulary / payload cleanup 1차 고정**
-  - 대상: semantic ownership diagnostics / payload helper family / wording drift
-  - 완료:
-    - `src/semantic/type_checker_ownership_boundaries.inc`의 ownership helper 9종이 `DiagPayload`/`semantic_emit_payload(...)` 패턴으로 정렬됨
-    - semantic direct `semantic_error_with_hints(...)` 호출은 ownership-boundary helper 내부에서 제거됨
-    - vocabulary 1차 정리:
-      - `anchored handle` → `slot handle (anchored)`
-      - `movable resource handle` / `movable resource` → `slot handle (movable)`
-      - `capability-bearing` → `authority-bearing` (ownership/domain wording 기준)
-    - semantic 회귀는 현재 wording 기준으로 다시 고정됨
-  - 검증:
-    - `make test-semantic` → `1872 passed, 0 failed`
-    - `make test-transpile` → `601 passed, 0 failed`
-  - 남은 것:
-    - P3 잔여 세분류(`boundary value (subject)` 등) 추가 압축
-    - payload/helper family를 ownership 바깥 semantic diagnostics로 더 확장
-    - own/ref call/consumer path에서 classifier 기반 trivial copy-only semantics를 더 넓게 적용
-    - destructure target binding / nested projection / helper-chain wording을 consumer kind 기준으로 더 세분화
 
 - [ ] **type-resolution DAG 엔진 도입**
   - 대상: semantic type resolution / generic consumer resolution / declaration dependency scheduling
@@ -14715,32 +14538,10 @@ Source of truth:
     - C/LLVM compile path가 동일한 resolved-type metadata를 재사용한다
     - `PGY_TYPE_RES_STATS=1`에서 stage graph-backed skip 수, compatibility fallback 호출량, family breakdown, suppressed diagnostic 수가 보인다. 이 값은 남은 DAG migration debt의 직접 지표이며 숨겨진 fallback을 추가하면 smoke에서 즉시 드러나야 한다
 
-- [x] **runtime observability baseline vs richer query 구분 고정**
-  - 대상: `IntentLast* / IntentHistory* / IntentActive* / IntentRecent*`, zone/world inspection
-  - 문제: baseline이 이미 있는데 문서가 thin이라고 쓰면 반대로 surface trust를 깎음
-  - 고정 기준:
-    - baseline observability는 complete로, richer timeline/provenance는 open debt로 분리
-  - 회귀 기준:
-    - docs/board/status 문구 일치
-    - observability regression이 baseline API를 계속 고정
-
-## 완료 (P0 — 즉시 수정)
-
-- [x] **`system()` 명령 주입 제거** — `_spawnvp`/`execvp`로 교체, 경로 검증 추가 (`pgy_path_is_safe`)
-- [x] **AES-256 실구현** — XOR 가짜 암호를 FIPS 197 AES-256-CTR + HMAC-SHA256 인증으로 교체 (외부 의존성 없음)
-- [x] **`auto __tmp` 제거** — `PGY_RESULT_TRY` 매크로에서 GCC 확장 `auto` 제거, C11 호환 (명시적 타입 파라미터)
-- [x] **REPL 고정 파일명** — `_pgy_repl_tmp.*` → `TMPDIR/pgy_repl_{pid}.*` (PID 기반 유니크 경로)
-- [x] **`type alias` vertical slice** — `type UserId = Int;` parser/semantic/C/LLVM lowering 연결, 실전 annotation/typedef 경로 확보
-
 ## P1 — 다음 단계
 
 - [ ] **CI 하드닝** — Ubuntu + Windows 빌드 매트릭스 유지, AddressSanitizer/UBSan, 더 촘촘한 smoke coverage
 - [ ] **CodeQL + secret scanning 활성화** — C/C++ 분석 모드, push protection
-- [x] **CHANGELOG.md + 버전 정책 수립** — SemVer, 릴리스 태깅 규칙
-  - 완료: `CHANGELOG.md` 존재, Keep a Changelog 포맷, SemVer 명시
-- [x] **SECURITY.md** — 보안 취약점 제보 채널, 책임 있는 공개 정책
-  - 완료: `SECURITY.md` 생성 (2026-04-18). 지원 버전, 보고 채널, in/out scope, 공격 표면별 mitigation, advisory format 포함
-
 ## P1.5 — 언어/컴파일러 보강
 
 - [ ] **MIR DCE statement-level 확장**
@@ -14748,36 +14549,10 @@ Source of truth:
   - 남은 단계: pure expression stmt / dead call / dead resource-op / carrier stmt를 더 세분화하고, side-effect lattice 기준으로 제거 정책을 정교화
   - 목표: MIR-only emitter가 기대하는 metadata carrier를 잃지 않으면서도 불필요한 stmt 제거 범위를 넓힘
 
-- [x] **IR 계층 설계 검토** — HIR/DIR/RIR/MIR 분리 타당성 평가
-  - **DIR 유지 결정**: intent domain structure 검증에 필수 (step dependency, zone binding, post-condition)
-  - **RIR 유지 결정**: resource state lattice (20-state)는 slot/projection/authority lifecycle 검증에 필요
-  - **MIR 유지 결정**: SSA/CFG/cleanup edge는 intent compensation execution path에 필수
-  - ~~남은 과제~~: Backend를 HIR 기반 → MIR 기반으로 전환해야 IR 투자 ROI 실현 → **완료**
-  - 참고: Rust도 AST→THIR→MIR→LLVM 4단계, Pergyra는 AST→HIR→DIR→RIR→MIR→Backend 6단계
-  - DIR은 domain graph로 HIR와 구조가 달라 별도 IR로 유지하는 것이 타당
-  - RIR 20-state lattice는 단순화 가능성 검토 (현재: Owned/Borrowed/Synced/Dirty/Stale/Published/Authorized 등)
 - [ ] **ability 기반 연산자 dispatch 고도화** — 현재는 `role/impl ability` 메서드에서 `operator_<suffix>_<Type>` alias를 합성해 C/LLVM이 정적으로 호출하는 방식. 장기적으로는 ability/vtable 기반의 직접 dispatch와 더 정교한 overload 우선순위 규칙이 필요
 - [ ] **LLVM 연산자 오버로드 회귀 테스트 확장** — 현재 스모크는 `role IntMath for Int` 1건 중심. 비교 연산, 포함된 role, enum/custom type, namespace 경로까지 자동 테스트 확대
 
 ## P1.58 — 표준 라이브러리 인프라
-
-- [x] **`use datetime;` 실제 stdlib module화**
-- [x] **`use http;` v0.1**
-  - `HttpRequest`, `HttpResponse`, `RouteSpec`
-  - `OkResponse`, `ErrorResponse`, `JsonResponse`
-  - intent adapter handler 예제와 연결
-- [x] **`use storage;` v0.1**
-  - `SnapshotMeta`, `SnapshotRecord`
-  - `StorageSave`, `StorageLoad`, `StorageAppendLog`
-  - world/session snapshot 예제와 연결
-- [x] **`use page;` v0.1**
-  - `PageRoute`, `PageAction`, `PageMessage`
-  - `MountPage`, `BindAction`, `RenderSection`
-  - projection surface / action binder 예제와 연결
-- [x] **쇼핑몰 예제를 stdlib 인프라 사용 버전으로 리프트**
-  - `pages/` -> `use page;`
-  - `api/` -> `use http;`
-  - `report/storage` -> `use storage;`
 
 - [ ] **`pgy scaffold project`에 app-infra starter 추가**
   - intent-first layout + `intents/ subjects/ zones/ world.pgy main.pgy`
@@ -14803,21 +14578,6 @@ Source of truth:
 
 ## IR 파이프라인
 
-- [x] **DIR code layer 시작**
-  - declaration graph
-  - intent participant/step edge
-  - role/ability completeness edge
-- [x] **RIR code layer 시작**
-  - explicit resource/projection/authority/capability/intent-policy fact
-  - explicit resource op
-  - scope-level normalized state summary
-  - HIR-enriched branch/join `flow-block[...]` lattice summary
-- [x] **MIR code layer 시작**
-  - block/instruction skeleton
-  - phi materialization
-  - block-local SSA rename
-  - instruction-level `def/use` 시작
-  - rollback/invalidation exceptional CFG 시작
 - [ ] **RIR lattice propagation 심화**
   - relation/effect/zone/world handle merge는 시작됨, conditional handle invalidation과 world-handoff lattice를 더 밀기
   - conditional authority/projection invalidation fact 확장
@@ -14833,106 +14593,16 @@ Source of truth:
   - user call purity는 아직 보수적으로 side-effect 있다고 간주
   - RESOURCE_OP/CLEANUP_EDGE/abort/IO 등 side-effect 보존 규칙 명시
   - RPO 기반 liveness와 결합해 제거 정확도 개선
-## P2.0 — Backend MIR 기반 전환 ✅ 완료
-
-- [x] **emit_program()을 HIR 기반 → MIR 기반으로 전환**
-  - **완료**: `emit_func_decl_from_mir_named()` 완전 구현
-  - **결과**: MIR routine → SSA locals + CFG → C 코드 생성
-  - **지원 기능**:
-    - Intent compensation (cleanup blocks)
-    - SSA versioned locals (`_pgy_ssa_name_N`)
-    - PHI 노드 복사 (join block 진입)
-    - BRANCH → if/else gotos
-    - RESOURCE_OP → 런타임 함수 호출
-  - **테스트**: 428 passed, 0 failed (기존 403 passed, 5 failed)
-  - **아키텍처**:
-    ```
-    Domain IR:   Intent Recover → policy exclusive → step Heal → zone main → participant unit
-    Resource IR: IntentBegin I1 → ConflictCheck exclusive → BindZone main → CallAction Recover
-    MIR:         bb0: conflict_check(unit) → br !r0, bb_fail, bb1
-                 bb1: call recover(unit) → call sync_projection(main, unit)
-                 bb_commit: intent_commit(I1) → ret true
-                 bb_fail: intent_abort(I1) → ret false
-    ```
-
-## P2.1 — LLVM 백엔드 MIR 기반 전환 ✅ 완료
-
-- [x] **LLVM 백엔드 MIR 기반 전환 완료**
-  - `src/codegen/llvm_pipeline.c`: MIR routine → LLVM IR 직접 생성
-  - `src/codegen/llvm_mir_emit.c`: `llvm_emit_func_from_mir()` 완전 구현
-  - SSA locals, PHI nodes, branch terminators, intent compensation 모두 지원
-  - 기대 효과 달성: LLVM 최적화 패스 완전 활용, C/LLVM 백엔드 아키텍처 통일
-  - C/LLVM 둘 다 MIR 기반으로 통일 → IR 투자 ROI 실현
-
 ## P1.55 — 언어 기능 확장
 
 ### 기반 타입 시스템
-- [x] **태그드 유니언 (enum with data)** — `enum Shape { Circle(Int), Rect(Int, Int) }` 데이터를 가진 enum
-  - 완료: variant payload 파싱, variant 생성자 타입 추론, C tagged union / LLVM discriminated struct, LLVM tagged-union regression 및 예제 실행
-- [x] **Option<T> / None** — "상자가 비어있을 수 있다"를 타입으로 표현. `-1` sentinel 제거
-  - 완료: `Option<T>` constructed type, `Some/None`, `IsSome/IsNone/UnwrapOption`, C/LLVM lowering
-  - 완료: `match opt { case Some(v): ... case None: ... }` destructuring
-- [x] **디스트럭처링 (SecureSlot)** — `let (slot, token) = ClaimSecureSlot<Int>(lvl)` 패턴 바인딩
-  - 완료 (2026-04-19): 파서 `ClaimSlot`/`ClaimSecureSlot` 뒤의 `<T>`를 더 이상 버리지 않고 `AST_CALL.generic_args`에 첨부 (일반 call-site 제네릭 인프라), 시맨틱이 destructuring에서 이 generic arg로 SYMBOL_SLOT + SYMBOL_TOKEN 쌍 등록, MIR emit이 `PgyToken_T token; PgySecureSlot_T slot = pgy_claim_secure_T(&token);` 출력, `transpiler_find_local_type_name_in_block`이 바인딩별 `SecureSlot<T>`/`Token<T>` 반환해 MIR header의 타입 예약 정리, SSA 맵에 self-mapping 등록으로 emission contract 통과
-  - 파일: `src/parser/ast.h`, `src/parser/ast.c`, `src/parser/parser.h`, `src/parser/parser_expr.c` (제네릭 인자 보존), `src/semantic/type_checker.c` (destructuring 시맨틱), `src/codegen/transpiler_emitters_base_a.inc` (MIR-level claim emit + ssa map 등록)
-  - 회귀: `src/test_transpile.c` "let (slot, token) = ClaimSecureSlot<T>(lvl) emits paired claim"
-  - SecureSlot MIR auto-Read + claim 토큰 emit 연관 버그 수정 (2026-04-19): (a) SSA-aware identifier 경로가 `suppress_slot_auto_read` 무시하던 버그로 `pgy_secure_write_Int(&pgy_read_Int(&slot),...)` 같은 잘못된 C 출력 — `!ctx->suppress_slot_auto_read` 가드 추가 + Secure 경로에서 `pgy_secure_read_*` 분기. (b) MIR DCE가 `AST_LET_DECL`을 부작용 없음으로 판정해 제거하던 버그 — `mir_stmt_has_side_effect`에 추가. (c) `transpiler_emit_mir_resource_op` Claim 룰이 SecureSlot에도 `pgy_claim_secure_T()`만 emit하고 토큰은 생략하던 버그 — `PgyToken_T anchor_token;` + `= pgy_claim_secure_T(&anchor_token)` 방식으로 수정. (d) `Token<T>`도 "claim shape"로 인식해 MIR header pre-decl 건너뛰도록 `transpiler_type_name_is_claim_shape` 도입 (slot-like와는 구별 — auto-Read는 여전히 Slot 전용). 결과: destructuring + 비-destructuring SecureSlot 모두 E2E 동작 (`Write/Read/Release` 포함)
-  - 파일: `src/compiler/mir.c` (DCE), `src/codegen/transpiler_expr_emitters.inc` (suppress 가드), `src/codegen/transpiler_emitters_base_a.inc` (claim_shape 분리), `src/codegen/transpiler_emitters_base_b.inc` (MIR header 체크), `src/codegen/transpiler_helpers.inc` (claim 토큰 emit), `src/parser/parser_decl.c` (class-body destructuring 에러 메시지)
-  - 미처리: LLVM 백엔드 SecureSlot destructuring (LLVM은 이미 "requires explicit annotation" 에러 — 별도 세션), class-body destructuring (`private let (slot, token) = ClaimSecureSlot()`는 명확한 에러 메시지로만 처리 — 별도 세션)
-- [x] **튜플 반환 타입 + 디스트럭처링** — `func f() -> (Int, String)` 및 `let (n, s) = f()` 지원
-  - 완료 (2026-04-19): Type 인프라에 `TYPE_KIND_TUPLE` 활성화 (union에 `tuple.elements/element_count` 필드 + `type_create_tuple`/`type_is_tuple`/`type_tuple_arity`/`type_tuple_get_element`), AST_TYPE에 `tuple_elements` 필드로 `(T, U, ...)` 표현, `AST_TUPLE_LITERAL` 신규 노드로 `(a, b, ...)` 표현식 지원
-  - 파서: `parse_type()`에 `LPAREN` 분기로 튜플 타입 구문 처리 (단일 `(T)`는 기존 `T`로 환원, 빈 `()`는 `Void`, 2개 이상일 때만 튜플), `parser_parse_primary`의 괄호 표현식 경로에 콤마 감지 시 튜플 리터럴로 분기
-  - 시맨틱: `resolve_type_node`에 tuple 분기 추가 → `type_create_tuple` 반환, `type_check_expression`에 `AST_TUPLE_LITERAL` 케이스로 요소 타입 수집, `AST_LET_DESTRUCTURE`에서 RHS가 tuple이면 arity 검증 + positional element 타입 할당
-  - C 백엔드: `append_type_name`이 튜플을 `(T, U)`로 렌더, `pergyra_type_to_c`가 `(Int, String)` → `PgyTuple_Int_String_t`로 매핑 (depth-tracking 파서), `ensure_tuple_specialization_to`가 `typedef struct { T0 f0; T1 f1; ... } PgyTuple_<suffix>_t;`를 ctx->out에 중복 없이 방출, `emit_expression(AST_TUPLE_LITERAL)`이 compound literal `((PgyTuple_T_U_t){.f0=..., .f1=...})` emit, AST_LET_DESTRUCTURE MIR 경로/기본 경로 둘 다 tuple 분기로 `.f0/.f1/...` 필드 추출
-  - LLVM 백엔드: `ast_type_to_llvm`이 tuple AST_TYPE → literal anonymous struct `{T0, T1, ...}`, `llvm_emit_expression(AST_TUPLE_LITERAL)`이 `LLVMGetUndef + InsertValue` 체인으로 집계값 구성, `llvm_emit_let_destructure`가 struct 필드 개수 + 첫 필드 비포인터 heuristic으로 tuple 판정 후 `ExtractValue` per-binding
-  - 회귀: `tests/cases/backend_compare/destructure_tuple_retun/main.pgy` (C/LLVM 동일: `42/hello/7/11/true`), `compare_backends.sh` case 등록, `test-semantic 1653 passed`, `test-transpile 584 passed`
-  - 파일: `src/semantic/type_system.{h,c}`, `src/parser/ast.{h,c}`, `src/parser/parser_decl.c`, `src/parser/parser_expr.c`, `src/semantic/type_checker.{c,_helpers.inc}`, `src/codegen/transpiler.h`, `src/codegen/transpiler_helpers_core_b.inc`, `src/codegen/transpiler_expr_emitters.inc`, `src/codegen/transpiler_emitters_base_{a,b}.inc`, `src/codegen/llvm_backend.c`, `src/codegen/llvm_expr.c`, `src/codegen/llvm_stmt.c`, `src/codegen/llvm_pipeline.c`
-  - 후속 수정 (destructure + if 지원): `transpiler_register_with_alias_bindings_in_block`의 Claim-only 제한 제거 — 모든 destructuring 바인딩(array/slice/tuple/일반 call)의 이름을 self-mapping으로 precheck ssa_map에 등록. 실제 emit 경로는 여전히 `<name>.1` 버전드 이름을 MIR emit 시점에 ssa_map에 넣어서 사용 (self-map은 verifier 통과용 가드일 뿐). 결과: `let (a, b, flag) = f(); if flag { ... } else { ... }` 같은 패턴이 array/tuple 둘 다 C/LLVM에서 동작. 파일: `src/codegen/transpiler_emitters_base_a.inc` (register_with_alias_bindings_in_block)
 - [ ] **sealed ability** — 구현 가능한 role을 제한 (`sealed ability Combatable` → 같은 모듈 내 role만 impl 가능)
-- [x] **문자열 보간** — `f"값은 {x}"` → `StringConcat(...)` series로 lowering
-  - 완료: lexer에서 `f"..."` → `TOKEN_INTERPOLATED_STRING`
-  - 완료: parser에서 `{expr}` 파싱, `ToString(expr)` + `+` concatenation으로 분해
-  - 완료: 기존 `"${expr}"` 레거시 문법도 호환 유지
-  - 완료: 베타 stable subset을 `"..."`, `"""..."""`, `"${expr}"`, `f"{expr}"`, escaped f-string brace로 문서화
-  - 완료: unmatched interpolation brace는 보간하지 않고 literal text로 보존하도록 parser 회귀 추가
-  - beta-out-of-scope: nested brace matching, format specifier, multiline interpolation, custom interpolation protocol
-
 ### 에러 처리
-- [x] **`?` 연산자** — `Result<T>` 에러 자동 전파. `let val = riskyFunc()?;` → 에러 시 즉시 반환
-  - 완료: 시맨틱 검증, C early-retun lowering, LLVM `Result<T>` 레이아웃/unwrap/early-retun lowering, `pipe_and_try.pgy` C/LLVM 실행 검증
-  - LLVM try.err 재구성 버그 수정 (2026-04-19): `let val = Validate(x)?;` 패턴에서 let_decl이 `current_ret_type`을 LHS var 타입(i32)으로 잠시 덮어쓰고 있어, `?`의 try.err 블록이 함수 retun 타입 struct 대신 i32로 판정 → `unreachable` emit → 런타임 crash. `ctx->current_func_decl`에서 AST 반환 타입을 재조회해 복구 + Err 값 재구성 (src_err → dst_err 정수/포인터 강제 변환 포함)
-  - 파일: `src/codegen/llvm_expr_core.inc`
-  - 회귀: `tests/cases/backend_compare/try_operator_result/main.pgy` (C/LLVM 동일), `examples/pipe_and_try.pgy`
-
 ### 편의 문법
-- [x] **파이프 연산자** — `data |> Transform |> Validate |> Persist` 단방향 데이터 흐름
-- [x] **defer** — `defer Release(s)` 스코프 종료 시 자동 실행
-- [x] **`let` 타입 추론** — initializer 기반 기본 추론은 현재 구현됨
-  - 완료: annotation이 없을 때 initializer 타입으로 추론
-  - 남음: 문서/표면 예시를 더 공격적으로 타입 추론 중심으로 정리할지 결정
-
 ### 제네릭 클래스
-- [x] **제네릭 클래스** — `class Pair<T>` 문법 + 시맨틱 + C 코드젠 (단형화). 예제: `examples/generic_class.pgy`
-
 ### Slot 소유권 모델
-- [x] **`own`/`ref` 소유권 모델 확정 및 구현** — move 기본, 함수 시그니처에 명시
-  - 완료: `own`/`ref` 키워드 (렉서/파서/AST), Slot 대입 시 move 시맨틱, Clone() 명시적 복사
-  - `func Upload(own tex: Slot<Texture>)` → 소유권 이전, 원본 무효
-  - `func Render(ref tex: Slot<Texture>)` → 빌림, 원본 유효
-  - 문서화: `docs/22_ownership_model.md`
-
 ### Slot 표면 문법 개선 (P0 우선순위)
-- [x] **암묵적 Read + 대입 기반 Write** — Slot의 기본 사용 표면을 일반 변수처럼
-  - 완료: 읽기 문맥에서 `Slot<T>` auto-read
-  - 완료: `slot = expr` → `Write(slot, expr)` lowering
-  - 유지: `Release(slot)`는 계속 명시적
-
 ### Slot 최적화 (P0 우선순위)
-- [x] **스택 할당 최적화** — 스코프를 벗어나지 않는 Slot은 malloc 대신 alloca
-  - 완료: `slot_analyze_escape_flags()` (slot_analyzer.c)
-  - 완료: LLVM 백엔드에서 `slot_escapes == false` 시 alloca 생성 (llvm_stmt.c:145-146)
-  - 완료: escape analysis로 non-escaping slot 자동 스택 할당
-
 ### View 범위 부여 (리뷰 필요 — 미결정)
 - [ ] **View에 바이트/인덱스 범위 부여** — 실제 사용 사례 만들어보고 결정
   - 안 A: Slice 기반 — `SliceOf(buf, 0, 1024)` → Slot의 "창문"
@@ -14940,81 +14610,22 @@ Source of truth:
   - **미결정 — 파일 I/O, 네트워크 버퍼, GPU 텍스처 사례를 만들어보고 결정**
 
 ### 병렬/채널
-- [x] **select 실체화** — 여러 채널 중 먼저 준비된 것을 처리
-
 ### 언어 완성도 Tier 1 — 범용 필수
-- [x] **for-in 컬렉션 루프** — `for item in array { }` 배열/컬렉션 순회
-  - 완료: Array<T>/Slice<T> 특수화 (index loop lowering), 시맨틱 element type 추론
-  - 남음: ability 기반 Iterable<T> 프로토콜 (Tier 2)
-- [x] **StringSplit / StringJoin** — 문자열 분리/결합 빌트인 실체화
-  - 완료: `Split(s, delim) → Array<String>`, `Join(arr, sep) → String`
-- [x] **ToInt / ToFloat** — 문자열→숫자 변환 빌트인
-- [x] **기본 Math 빌트인** — Sqrt, Pow, Floor, Ceil, Random 추가 (기존 Abs/Min/Max + 신규 5개)
-- [x] **ArraySort / ArrayMap / ArrayFilter / ArrayReverse** — 고차 함수 기반 컬렉션 연산
-  - 완료: ArraySort(arr) → qsort, ArrayMap(arr, fn) → 새 배열, ArrayFilter(arr, fn) → 조건 필터, ArrayReverse(arr) → 뒤집기
-  - fn은 함수 이름 또는 람다 (C 함수 포인터로 lowering)
-- [x] **디스트럭처링** — `let (a, b, c) = expr` 배열/컬렉션 positional 바인딩
-  - 완료: Array<T> → 인덱스 기반 추출 (`result.data[0]`, `result.data[1]`, ...)
-  - MIR 통합 (2026-04-19): MIR DCE가 `AST_LET_DESTRUCTURE` 문을 "부작용 없음"으로 판정해 제거하던 버그 수정 (`mir_stmt_has_side_effect`). 트랜스파일러 MIR emit 루프에서 destructuring을 SSA-renamed 타겟으로 emit, `transpiler_find_local_type_name_in_block`에 AST_LET_DESTRUCTURE 케이스 추가해 로컬 타입 해석 복구
-  - LLVM parity (2026-04-19): `llvm_emit_statement`의 AST_LET_DESTRUCTURE 케이스 추가 — 초기화식을 struct 값으로 평가, `ExtractValue(0)`으로 data pointer 추출, 각 바인딩마다 `GEP+Load`로 요소 추출 후 `alloca+store`+`llvm_scope_declare`로 로컬 등록. `llvm_lookup_array_var`로 elem_type 해석
-  - 파일: `src/compiler/mir.c`, `src/codegen/transpiler_emitters_base_a.inc` (C 백엔드), `src/codegen/llvm_stmt.c` (LLVM 백엔드)
-  - 회귀: `tests/cases/backend_compare/destructure_array/main.pgy` (C/LLVM 동일 출력), `examples/collection_ops.pgy` (hello/world/foo 출력)
-
 ### 메타프로그래밍 입장 (결정 완료)
-- [x] **TMP 비채택** — 제네릭 monomorphization + ability dispatch로 95% 커버. 문서: `docs/23_metaprogramming_position.md`
 - [ ] **향후 코드 생성 필요 시** — 컴파일 타임 플러그인 (proc_macro 모델) 또는 소스 생성기 검토
 
 ### 언어 완성도 Tier 2 — 실사용 편의
 - [ ] **innate ability** — 같은 모듈 내 role만 impl 허용 (sealed 대신 innate 채택. 문서: `docs/24_visibility_model.md`)
   - 파서 완료, 시맨틱에서 `innate` 키워드 인식 (type_checker_decls.inc 참조)
   - 남음: 모듈 경계 검증 로직 완성
-- [x] **제네릭 constraint 시맨틱** — `where T: Comparable` 시맨틱 검증
-  - 완료: 파서 + 시맨틱 검증 (type_checker_helpers.inc:1847)
-  - 완료: Generic function where-clause constraint validation
-- [x] **OR 패턴** — `case 1 | 2 | 3:` match에서
-  - 완료: lexer `TOKEN_PATTERN_OR`, parser 파싱, 시맨틱 검증
-  - 완료: 리터럴 OR 패턴 지원 (`case 1 | 2 | 3:`)
-  - 제한: variant destructuring OR 패턴은 아직 미지원 (`case .Some(v) | .None:`)
-- [x] **enum 메서드** — `enum Direction { ... func Name(self) -> String }`
-  - 완료: enum body에서 `func` 선언 + `self` 파라미터로 match self 본문 가능, C 컴파일 검증
-- [x] **labeled break/continue** — `outer: while { ... break outer; }`
-  - 완료: 파서 (`parser.c:1270`), AST (`break_stmt.label`), 시맨틱 (`test_semantic.c:680,714,739`), C 코드젠 (`loop_break_labels[]` + `loop_continue_labels[]`)
-  - 검증: outer label break, 알 수 없는 label 거부, continue outer 모두 회귀 테스트 통과
-- [x] **Custom error 타입** — `Result<T, E>` where E is user type (현재 String만)
-  - 완료 (2026-04-18): 타입명 렌더 `PgyResult_Int_NetError` sanitize, `PGY_RESULT_DEFINE(Int_NetError, int32_t, NetError)` 자동 instantiation (`ensure_result_specialization_to` 신설), 편의 매크로 (`Ok_T_E`, `Err_T_E`, `IsOk_T_E`, `Unwrap_T_E`, `UnwrapOr_T_E`) 자동 생성, Ok/Err builtin이 `ctx->current_retun_type`에서 suffix 추출, match patten Ok/Err 바인딩 `__typeof__` 기반 타입 추론
-  - 파일: `src/codegen/transpiler_helpers_core_b.inc` (generic_args_to_c_suffix + ensure_result_specialization_to), `src/codegen/transpiler_expr_emitters.inc` (Ok/Err/Unwrap suffix), `src/codegen/transpiler_emitters_base_b.inc` (match __typeof__), `src/codegen/transpiler.h` (result_specs_*)
-  - 회귀: `src/test_semantic.c` "Result<T, E> with enum error type accepts Ok/Err and match destructuring"
-
 ### ability 차별화
-- [x] **ability ≠ interface 문서화** — ability는 "협업 프로토콜의 자격 조건"이며 슬롯에 부착됨
-  - 완료: `docs/24_visibility_model.md`에 `ability ≠ interface` 섹션 추가
-  - 정리 내용: ability는 nominal object의 메서드 집합을 직접 모델링하는 interface가 아니라, `requires Ability`, `dyn role slot: Ability`, `zone authority requires Ability`처럼 협업 계약/자격 조건으로 소비되는 surface임을 고정
-  - 정리 내용: ability는 subject/role/slot/orchestration contract와 결합되며, 구현 담당은 role impl이고 ability 자체는 "무엇을 구현하라"보다 "어떤 자격으로 참여하라"를 표현한다는 점을 명시
-
 ## P1.6 — 자원/오케스트레이션 방향 고정
 
 ### 분산 설계 결정 (2026-04-03 확정)
-- [x] **RemoteFuture `await` → `Result<T>` 강제** — 원격 자원의 지연/실패를 타입 시스템에서 강제 노출
-  - `Future<T>` (로컬) → await → `T` (실패 없음)
-  - `RemoteFuture<T>` (원격) → await → `Result<T>` (실패 가능)
-  - 시맨틱 체커 + C 코드젠 + 런타임 매크로 구현 완료
-  - 테스트: 205 semantic + 141 transpile 통과
-- [x] **RemoteFuture에 Claim/Read/Write/Release 차단** — 원격 자원의 동사는 Submit/Await만
-  - Read/Write/Release 호출 시 친절한 에러 메시지 출력
-  - "RemoteFuture does not support Read(); use 'await' to obtain Result<T>"
 - [ ] **원격 Slot은 Claim 없이 Channel 기반 메시지 패싱만** — 분산 락 회피
   - 크로스 World 통신은 `Channel<T>`만 허용
   - 원격 자원에 Claim 동사를 사용하면 컴파일 에러
-- [x] **World 경계 = 실패 도메인 경계** — 크로스 World 통신은 Channel만
-  - 완료: World 시맨틱 체커 (`type_check_world_decl`, type_checker_decls.inc)
-  - 완료: World 코드젠 (C 백엔드, transpiler_helpers.inc)
-  - 완료: `HasZoneProjection`, `HasZoneLayer`, `HasZoneState` builtin
-
 ### Projection / Domain Query
-- [x] **Projection query surface** — `HasProjection(slotName)`으로 relation/effect/zone 문맥에서 object/tobject projection slot의 sync-ready 여부를 질의
-  - 완료: semantic + C/LLVM lowering
-  - World 내부의 Slot은 로컬 fast path, World 간은 Channel (명시적 비용)
-
 ### 스케일링 대응 (레드팀 피드백 기반)
 - [ ] **백엔드 역할 컷오프 고정** — C = reference/fallback, LLVM = optimization/mainline
   - 같은 의미론을 두 백엔드에 유지하되, 공격적 최적화와 type-erased fast path는 LLVM에만 집중
@@ -15043,11 +14654,8 @@ Source of truth:
   - 값 경로(struct), 객체 경로(class), 동적 경로(Rc + dyn ability)를 성능 계약으로 구분
 
 ### 기존 항목
-- [x] **Slot Protocol 고정** — Claim/Access/Mutate/Transfer/Release 불변 계약
-- [x] **Slot/View 계층 마감** — ReadView/WriteView/MoveToken 권한 축소/이전 계층
 - [ ] **슬롯을 추상 자원 핸들로 일반화** — 장기적으로 MemorySlot, DeviceSlot, SessionSlot 등 자원 클래스 확장
 - [ ] **채널 의미론 강화** — 비동기 제출/대기/수거/후처리 흐름 보강
-- [x] **`Future<T>`를 transfer boundary로 고정** — await/recv와 같은 ownership 경계
 - [ ] **effect/resource capability 표기 도입** — `local cpu`, `secure device`, `remote` 등 타입/효과 시스템
   - 현재: derived effect mask + spawn/await/channel에서 remote 추론
   - 현재: `/// @effects ...` 선언이 있으면 body derived effect와 mismatch 진단
@@ -15065,95 +14673,14 @@ Source of truth:
   - 남음: 더 정교한 effect lattice, call-site contract surface
 
 ### 상위 계층 모델
-- [x] **최종 문맥 계층 / 설계 순서 분리 고정**
-  - 조립 계층: `ability -> role -> party -> relation -> effect -> zone -> world`
-  - 사용자-facing 설계 순서: `intent -> world -> zone -> subject`
-  - 완료: `world`를 최상위 실행/신뢰/실패 경계라는 목표 정의로 문서화
-  - 완료: 상위 레이어로 갈수록 덜 구속적이라는 설계 원칙 문서화
-  - 완료: `relation`, `effect`, `zone` declaration keyword와 최소 `subject slot` / `object slot` surface를 parser/semantic 표면에 연결
-  - 완료: `zone -> relation/effect`, `world -> zone` 최소 조립 slot surface를 parser/semantic에 연결
-  - 완료: `relation`, `effect`의 optional `for ...` header로 subject endpoint/target 최소 surface를 연결
-  - 완료: `zone`의 `apply effectSlot to targetSlot` 최소 attachment surface를 parser/semantic에 연결
-  - 완료: `zone`의 `link relationSlot between left, right` 최소 relation wiring surface를 parser/semantic에 연결
-  - 완료: `zone`의 `detach effectSlot from targetSlot`, `unlink relationSlot between left, right` 최소 release surface를 parser/semantic에 연결
-  - 완료: `zone`의 `apply/detach`, `link/unlink`를 `effect/relation` declaration contract와 기본 타입/arity 수준으로 연결
-  - 완료: `zone` subject shape에 대한 권장 lint 추가
-  - 완료: `tobject` keyword를 `struct` 호환 projection alias로 추가
-  - 완료: `ToObject(TargetStruct, subjectBinding)` 최소 passive projection surface를 semantic/C backend에 연결
-  - 완료: `ToTObject(TargetDto, subjectBinding)` 최소 projection surface를 semantic/C backend에 연결
-  - 완료: `relation/effect/zone`에 `tobject slot` surface를 연결
-  - 완료: `relation/effect/zone`의 domain slot에 optional initializer를 연결해 `object slot view: View = ToObject(View, subject)` 같은 projection wiring을 직접 표현 가능하게 함
-  - 완료: `zone`의 `refresh objectSlot from subjectSlot` surface로 projection 갱신 흐름을 parser/semantic에 연결
-  - 완료: `zone`의 `publish dtoSlot from subjectSlot` surface로 tobject projection 갱신 흐름을 parser/semantic에 연결
-  - 완료: `zone`의 `maintain effectSlot on targetSlot`, `maintain relationSlot between left, right` surface로 지속 lifecycle rule을 parser/semantic에 연결
-  - 완료: `maintain` duplicate/conflict waning (`maintain` + `detach/unlink`) 추가
-  - 완료: `zone`의 `authority subjectSlot` surface와 optional `by subjectSlot` authority annotation을 parser/semantic에 연결
-  - 완료: `authority subjectSlot requires Ability[, Ability]` ability-gated authority surface를 parser/semantic에 연결
-  - 완료: `zone`의 `state name: effect ... on ...` / `state name: relation ... between ..., ...` lifecycle alias surface를 parser/semantic에 연결
-  - 완료: `zone`의 `apply/link/detach/unlink/maintain stateName` shorthand를 parser/semantic에 연결
-  - 완료: `HasState(stateName)` zone query builtin을 parser/semantic에 연결하고 C backend에서 zone state field query로 lowering
-  - 완료: `HasLayer(layerSlot)` zone query builtin을 parser/semantic에 연결하고 C/LLVM backend에서 zone layer field query로 lowering
-  - 완료: `HasState(effectState, targetSlot)` / `HasState(relationState, leftSlot, rightSlot)` slot-aware state query를 semantic에 연결
-  - 완료: `world`의 `state name: zone zoneSlot`, `activate/deactivate/maintain zoneOrState` lifecycle surface를 parser/semantic에 연결
-  - 완료: `HasZone(zoneOrState)` world query builtin을 parser/semantic에 연결하고 C backend에서 world zone-state/active field query로 lowering
-  - 완료: C backend가 zone/world마다 sync helper를 생성하고 method 전후에 `refresh`/`publish` projection과 lifecycle flag를 incremental하게 동기화
-  - 완료: `relation`, `effect` declaration이 C/LLVM backend에서 struct + method wrapper로 codegen되고 runtime instance constructor/method path가 연결됨
-  - 완료: `zone` layer slot이 C/LLVM에서 typed overlay runtime instance로 유지되고 sync가 subject slot을 layer endpoint/target에 바인딩한 뒤 projection sync까지 수행
-  - 완료: direct `apply/link/detach/unlink`와 `maintain effect/relation/state`가 C/LLVM zone sync에서 실제 layer/state propagation으로 연결됨
-  - 완료: zone embedded overlay projection read (`self.poison.view.hp`, `self.trust.packet.name`)가 LLVM runtime smoke로 검증됨
-  - 완료: `world`가 `HasZoneProjection(zoneSlot, projectionSlot)` / `HasZoneLayer(zoneSlot, layerSlot)` / `HasZoneState(zoneSlot, stateName)`로 embedded zone runtime flag를 직접 질의할 수 있음
-  - 완료: `ability/role/party/relation/effect/zone/roster/world` 전체 구현
-  - 완료: `world`가 `state name: all zoneOrState[, ...]` / `state name: any zoneOrState[, ...]`로 앞서 선언된 zone/state alias를 최소 조합 contract로 합성
-  - 남음: richer world-level runtime semantics, 더 깊은 cross-layer propagation policy
-
 ### 존재론 모델
-- [x] **intent-first 설계 축 / subject-core host 축 분리 고정**
-  - 완료: 사용자-facing 설계 순서는 `intent -> world -> zone -> subject`로 문서화
-  - 완료: `subject = 상태와 identity를 가진 주체 타입`은 host/naming/lowering 축으로 한정해 문서화
-  - 완료: `subject`와 `class`를 서로 다른 nominal flavor로 분리하고 의미론도 1차 분기
-  - 완료: legacy host-profile surface를 제거하고 `subject`/`object`/`intent` 중심으로 정리
-  - 완료: `entity`는 코어 언어 존재론에 넣지 않고 프레임워크/도메인 용어로 남긴다고 문서화
-  - 완료: `object`는 intent를 시작하지 않는 passive state target이라고 문서화
-  - 완료: `tobject`는 object의 외부 경계용 축약 투영이라고 문서화
-  - 완료: `subject`, `class`, `struct`, `object`, `tobject` declaration flavor를 parser AST에 분리 기록
-  - 완료: `subject slot`과 `ToObject` / `ToTObject` source가 `subject` host만 받도록 semantic 분기
-  - 완료: `object` keyword alias를 parser/LSP surface에 반영
-  - 완료: `object`를 passive state/value 형식으로, `tobject`를 더 좁은 projection/value 형식으로 정리하고 helper method를 허용
-  - 완료: `vessel` declaration과 `subject` 내부 `vessel` field surface 추가
-  - 완료: `subject` 전용 `action` declaration과 최소 clause (`requires/within/causes/authorized by`) parser/semantic 연결
-  - 완료: `subject` 안의 legacy `func` 제거, `action` only 정책으로 승격
-  - 완료: `role`/`party`/`authority`를 subject-core host 축으로 더 강하게 제한
-  - 완료: C/LLVM method lowering에서 `subject=self-cell`, `class=value self` 1차 분기
-  - 완료: legacy host-profile surface를 제거하고 관련 규칙을 `subject`에 통합
-  - 완료: `subject` 단일 host surface로 통일
-  - 완료: standalone host-profile surface 삭제
-  - 완료: object를 effect/relation target으로 semantic/C/LLVM에 연결
-  - 완료: domain-local `refresh` / `publish` source를 subject/object까지 확장하고 tobject source는 금지
-  - 완료: relation/projection 중심 surface 고정
-
 ### 문서 / 스타일 정렬
 - [ ] **BSD (Allman) canonical style 전면 고정**
   - 문서/예제/scaffold/formatter 출력은 BSD 기준으로 통일
   - K&R은 parser compatibility로만 남기고 canonical surface로는 취급하지 않음
-- [x] **문서 예제 제시 순서 강제**
-  - 완료: README entrypoint와 핵심 설계 문서에서 예제 독해 순서를 `intent -> world -> zone -> subject`로 명시
-  - 기준 문서: `README.md`, `docs/00_vision.md`, `docs/01_intent_first_design.md`, `docs/22_class_object_model.md`
-  - 규칙: `subject`는 core host로 설명하되, 설계의 첫 축으로 가르치지 않음
-  - 규칙: compile-order와 teaching-order를 분리해서 명시
-
 ### slot 권한 / 자원군 확장
 - [ ] **slot 권한 모델 고도화** — 공유 읽기 vs 독점 쓰기, capability narrowing
 - [ ] **실제 자원군 확장** — SessionSlot, ChannelSlot, RemoteJob 고도화
-- [x] **subject/class/object model 구현 정렬**
-  - 완료: subject direct copy/plain value parameter/retun 금지, positional constructor
-  - 완료: C/LLVM lowering 1차 분기 (`subject=self-cell`, `class=value self`)
-  - 완료: legacy host-profile을 `subject` 규칙으로 통합
-  - 완료: `subject` 단일 host surface로 통일
-  - 완료: plain/secure `Slot<subject>` local object-cell anchor 지원
-  - 완료: `own/ref Slot<subject-host>` / `SecureSlot<subject-host>` 함수 경계 전달을 semantic + C/LLVM backend에 반영
-  - 완료: `Box<class>` explicit handle surface (`Box`, `BoxGet`, `BoxSet`, `BoxDrop`, `BoxIsValid`)
-  - 완료: richer object-handle cell propagation
-
 ### orchestration 완성도
 - [ ] **오케스트레이션 모델 강화** — select 공정성, timeout, cancellation, backpressure
   - 부분 완료: `TryRecv/RecvTimeout -> Option<T>`, `TrySend/SendTimeout -> Bool`
@@ -15165,27 +14692,11 @@ Source of truth:
   - 현재 제한: movable resource channel의 non-blocking/timeout transfer는 미지원
   - 현재 제한: pressure observation은 가능하지만 bounded policy/backpressure protocol은 아직 미구현
   - 현재 제한: preemptive cancellation, blocked thread task interruption, structured cancellation scope/lattice는 미지원
-- [x] **async/await runtime 고도화** — POSIX ucontext + Windows Fiber 기반 coroutine
 - [ ] **Windows coroutine 검증/고정**
 
 ### 툴링 / 표준면
 - [ ] **stable stdlib surface 재고정**
 - [ ] **툴링 단계 진입** — formatter, LSP 진단 품질
-- [x] **ontology-first scaffold 정렬**
-  - 완료: `pgy scaffold` help를 `subject/class/object/tobject` 우선 분기로 정렬
-  - 완료: `class` scaffold kind 추가
-  - 완료: `project/simulator` scaffold가 `subject`가 `class`를 소유하고 `object/tobject`로 투영하는 starter shape를 생성
-  - 완료: `project` scaffold가 intent-first layout(`intents/`, `subjects/`, `zones/`, `world.pgy`, `main.pgy`)을 실제로 생성
-  - 완료: `pgy new`가 `intent-first` / `class-first` / `projection-first` starter를 선택하게 할지 검토
-  - 완료: `pgy new` / scaffold output에 ontology decision guide file 별도 생성 검토
-  - 완료: intent-first project guide 문서도 scaffold output에 같이 생성할지 검토
-    - `intents/`를 프로젝트 table-of-contents로 설명하는 guide 포함
-    - intent declaration이 필요한 subject/zone/ability/effect TODO를 역산하는 workflow 예시 포함
-  - 완료: intent runtime follow-up
-    - rollback policy를 current reverse-order `compensate` beyond v1로 확장하기
-    - intent의 cross-world transfer / identity handoff semantics 설계 및 구현
-    - current last-intent typed history를 trace id / stream / multi-instance observability로 확장하기
-
 ### 대표 프로그램
 - [ ] **대표 애플리케이션 3종** — 이종 자원 파이프라인, secure+device+channel, slot/orchestration 철학 증명
 
@@ -15270,12 +14781,6 @@ Source of truth:
   - 원칙: `zone` / `world` state와 projection dirty sync가 UI IR의 갱신 계약이 됨
   - 순서: UI IR 고정 → native backend 1개 → JS/web backend 1개 → 그 뒤 mobile shell / Kotlin 필요성 재평가
   - 비목표: 플랫폼별 UI 의미론(Qt widget tree, WPF object model, Android View/Compose semantics)을 코어 언어에 직접 들이지 않음
-- [x] **JavaScript 백엔드 직접 경로 거부** — `.pgy → JS` 변환은 베타/dogfood
-  경로가 아님
-  - 완료: GC + reference-only lowering이 Slot/Zone/Intent/Authority parity를
-    흐릴 수 있어 직접 JS backend를 거부하고 C→Emscripten bridge를 1차 경로로
-    고정
-  - 남음: 필요 시 beta+1에서 JS shim/host import surface만 별도 설계
 - [ ] **mobile shell 전략** — Android/iOS는 우선 공통 UI IR consumer로 접근
   - 원칙: 초기 mobile 대응은 JS/web-compatible UI backend 또는 native shell bridge를 우선 검토
   - 남음: Android 전용 Kotlin backend는 공통 UI IR + web/native backend 검증 뒤 필요성을 재평가
@@ -15402,8 +14907,6 @@ Source of truth:
 - [ ] **3rd-party NOTICE** — OpenSSL/LLVM/pthread 라이선스 정리
 
 ## IR 파이프라인 재구성
-
-- [x] **컴파일러 계약 고정** — `HIR/DIR/RIR/MIR`, resource lattice, intent compensation, projection sync, authority/capability를 `docs/37_compiler_contracts.md`에 고정
 
 - [~] **DIR (Domain IR)** — declaration graph / intent step graph 시작
   - 완료: `src/compiler/dir.h`, `src/compiler/dir.c`, `src/compiler/dir_collect.c`, `src/compiler/dir_collect_domain.c`, `src/compiler/dir_validate.c`, `pgy --dir`, `test-dir`
