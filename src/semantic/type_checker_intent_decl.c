@@ -23,6 +23,21 @@ type_check_intent_decl(ASTNode *node, SemanticContext *ctx)
     success_expr = ast_intent_decl_success_expr(node);
     failure_expr = ast_intent_decl_failure_expr(node);
 
+    if (ast_intent_decl_retry_count(node) > 0) {
+        semantic_error_with_hints(ctx,
+            PGY_CODE_SEM_INTENT_STEP_INVALID,
+            PGY_CAUSE_INTENT_STEP,
+            PGY_FIX_CHECK_INTENT_STEP_LOWERING,
+            node,
+            "Intent retry(%d) is parsed and carried by MIR, but execution lowering is not implemented.\n"
+            "Reason:\n"
+            "- C and LLVM must wrap the same MIR intent body before retry is executable\n"
+            "Fix:\n"
+            "- remove the retry modifier until backend retry lowering lands",
+            ast_intent_decl_retry_count(node));
+        return false;
+    }
+
     if (existing != NULL && existing->kind != SYMBOL_INTENT) {
         semantic_error_with_hints(ctx,
             PGY_CODE_SEM_REDECLARATION,

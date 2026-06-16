@@ -22,6 +22,14 @@ mir_decl_header_type_alias_target_type_name(const MIRDeclHeader *header)
         : NULL;
 }
 
+int
+mir_decl_header_intent_retry_count(const MIRDeclHeader *header)
+{
+    return header != NULL && header->ast_type == AST_INTENT_DECL
+        ? header->intent_retry_count
+        : 0;
+}
+
 const char *
 mir_decl_header_inventory_resolve_type_alias_target_type_name(
     const MIRDeclHeaderInventory *inventory,

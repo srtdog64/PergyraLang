@@ -121,6 +121,7 @@ ASTNode* ast_intent_decl_failure_expr(const ASTNode* node);
 char** ast_intent_decl_default_who_names(const ASTNode* node, size_t* count_out);
 size_t ast_intent_decl_default_who_count(const ASTNode* node);
 ASTNode* ast_intent_decl_default_where_type(const ASTNode* node);
+int ast_intent_decl_retry_count(const ASTNode* node);
 const char* ast_intent_involves_alias(const ASTNode* node);
 ASTNode* ast_intent_involves_subject_type(const ASTNode* node);
 const char* ast_intent_value_alias(const ASTNode* node);

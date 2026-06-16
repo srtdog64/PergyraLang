@@ -252,8 +252,12 @@ require_term "src/codegen/llvm_backend_type_map_generics.c" \
     "ast_declaration_generic_params(decl)"
 require_term "src/compiler/mir_decl.h" \
     "char        *type_alias_target_type_name"
+require_term "src/compiler/mir_decl.h" \
+    "int          intent_retry_count"
 require_term "src/compiler/mir_decl_headers.h" \
     "mir_decl_header_type_alias_target_type_name"
+require_term "src/compiler/mir_decl_headers.h" \
+    "mir_decl_header_intent_retry_count"
 require_term "src/compiler/mir_decl_headers.h" \
     "mir_decl_header_inventory_resolve_type_alias_target_type_name"
 require_term "src/compiler/mir_decl_headers.h" \
@@ -261,15 +265,33 @@ require_term "src/compiler/mir_decl_headers.h" \
 require_term "src/compiler/mir_decl_header_access.c" \
     "mir_decl_header_type_alias_target_type_name(const MIRDeclHeader *header)"
 require_term "src/compiler/mir_decl_header_access.c" \
+    "mir_decl_header_intent_retry_count(const MIRDeclHeader *header)"
+require_term "src/compiler/mir_decl_header_access.c" \
     "mir_decl_header_inventory_resolve_type_alias_target_type_name("
 require_term "src/compiler/mir_decl_header_access.c" \
     "mir_decl_header_resolve_type_alias_target_type_name(const MIRProgram *mir"
 require_term "src/compiler/mir_decl_headers.c" \
     "header.type_alias_target_type_name ="
+require_term "src/compiler/mir_decl_headers.c" \
+    "header.intent_retry_count = ast_intent_decl_retry_count(decl)"
 require_term "src/compiler/mir_decl_header_validate.c" \
     "type-alias target metadata drift"
+require_term "src/compiler/mir_decl_header_validate.c" \
+    "intent retry metadata drift"
 require_term "src/compiler/mir_lifecycle.c" \
     "free(mir->decl_headers[i].type_alias_target_type_name)"
+require_term "src/parser/ast_intent_constructors.c" \
+    "node->data.intent_decl.retry_count = 0"
+require_term "src/parser/ast_print_intent.c" \
+    "IntentRetry: %d"
+require_term "src/self_hosted/parser/main.pgy" \
+    "IntentRetry: "
+require_term "src/semantic/type_checker_intent_decl.c" \
+    "Intent retry(%d) is parsed and carried by MIR"
+if grep -RIn "ast_intent_decl_retry_count" \
+        "$ROOT_DIR/src/codegen" --include='*.c' --include='*.h'; then
+    fail "backend retry lowering must consume MIR declaration metadata, not reopen the AST retry accessor"
+fi
 require_term "src/codegen/llvm_backend_type_map.c" \
     "mir_decl_header_type_alias_target_type_name(alias_header)"
 require_term "src/codegen/llvm_backend_type_map.c" \

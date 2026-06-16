@@ -1,0 +1,21 @@
+subject Buyer {
+    let hp: Int;
+}
+
+zone CheckoutZone {
+    subject slot buyer: Buyer
+}
+
+intent RetryCheckout(zone: CheckoutZone, buyer: Buyer, price: Int) with retry(3) {
+    exclusive;
+    step Pay {
+        where: CheckoutZone;
+        using: zone;
+        who: buyer;
+        expect: true;
+    }
+    success: true;
+    failure: false;
+}
+
+func Main() -> Void { Log("ok"); }

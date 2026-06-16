@@ -2537,6 +2537,7 @@ func ParseDecls(content: String, start: Int, cursor_out: Array<Int>, name_prefix
         //   Intent: NAME
         //     IntentMode: exclusive|concurrent     (default exclusive)
         //     IntentRollback: full                 (always emitted)
+        //     IntentRetry: N                       (only with retry(N))
         //     IntentInvolves: PNAME: PTYPE         (non-primitive types)
         //     IntentValue:    PNAME: PTYPE         (primitive types)
         //     IntentStep: SNAME where ZONE using PARAM
@@ -2613,6 +2614,31 @@ func ParseDecls(content: String, start: Int, cursor_out: Array<Int>, name_prefix
             i = Expect(content, i, ")");
             if i < 0 {
                 Exit(1);
+            }
+            let intent_retry: String = "";
+            i = SkipWhitespaceAndComments(content, i);
+            if MatchKeyword(content, i, "with") {
+                i = i + 4;
+                i = SkipWhitespaceAndComments(content, i);
+                if !MatchKeyword(content, i, "retry") {
+                    Exit(1);
+                }
+                i = i + 5;
+                i = Expect(content, i, "(");
+                if i < 0 {
+                    Exit(1);
+                }
+                i = SkipWhitespaceAndComments(content, i);
+                ArraySet(cursor_out, 0, i);
+                intent_retry = ReadNumber(content, i, cursor_out);
+                i = cursor_out[0];
+                if StringLength(intent_retry) == 0 {
+                    Exit(1);
+                }
+                i = Expect(content, i, ")");
+                if i < 0 {
+                    Exit(1);
+                }
             }
             i = Expect(content, i, "{");
             if i < 0 {
@@ -2868,6 +2894,9 @@ func ParseDecls(content: String, start: Int, cursor_out: Array<Int>, name_prefix
             out = AppendLine(out, Concat("  Intent: ", Concat(decl_prefix, intent_name)));
             out = AppendLine(out, Concat("    IntentMode: ", intent_mode));
             out = AppendLine(out, "    IntentRollback: full");
+            if StringLength(intent_retry) > 0 {
+                out = AppendLine(out, Concat("    IntentRetry: ", intent_retry));
+            }
             let inv_len: Int = ArrayLength(involves_lines);
             let inv_i: Int = 0;
             while inv_i < inv_len {

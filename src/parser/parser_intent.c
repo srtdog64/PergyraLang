@@ -53,6 +53,49 @@ parse_intent_declaration(Parser *parser)
     if (parser_check(parser, TOKEN_LPAREN))
         parse_intent_param_list(parser, intent);
 
+    /* Optional resilience modifiers before the body:
+     *   intent X with retry(n) { ... }
+     * retry(n) is parsed and carried as declaration metadata. Backend
+     * execution lowering is fail-closed in semantic until C/LLVM wrappers land.
+     * timeout/backoff are reserved so they cannot become silent no-ops. */
+    if (parser_match(parser, TOKEN_WITH)) {
+        do {
+            if (!parser_check(parser, TOKEN_IDENTIFIER)
+                || parser->current_token.text == NULL) {
+                parser_error(parser,
+                    "Expected a resilience modifier after 'with' (retry)");
+                break;
+            }
+            if (strcmp(parser->current_token.text, "retry") == 0) {
+                parser_advance(parser);
+                parser_consume(parser, TOKEN_LPAREN,
+                    "Expected '(' after 'retry'");
+                Token attempts = parser_consume(parser, TOKEN_NUMBER,
+                    "Expected an attempt count in retry(n)");
+                int count = attempts.text != NULL ? atoi(attempts.text) : 0;
+                if (count < 1)
+                    parser_error(parser, "retry(n) requires n >= 1");
+                intent->data.intent_decl.retry_count = count;
+                parser_consume(parser, TOKEN_RPAREN,
+                    "Expected ')' after retry attempt count");
+            } else if (strcmp(parser->current_token.text, "timeout") == 0
+                       || strcmp(parser->current_token.text, "backoff") == 0) {
+                parser_error(parser,
+                    "'timeout'/'backoff' resilience modifiers are reserved "
+                    "but not implemented.\n"
+                    "Reason: per-attempt cancellation and delay shaping need "
+                    "runtime cancellation support.\n"
+                    "Fix: remove the modifier until backend lowering lands.");
+                break;
+            } else {
+                parser_error(parser,
+                    "Unknown resilience modifier '%s'; expected 'retry'",
+                    parser->current_token.text);
+                break;
+            }
+        } while (parser_match(parser, TOKEN_COMMA));
+    }
+
     parser_consume(parser, TOKEN_LBRACE, "Expected '{' after intent name");
     while (!parser_check(parser, TOKEN_RBRACE) && !parser_is_at_end(parser)) {
         if (parser_intent_match_keyword(parser, "exclusive")) {

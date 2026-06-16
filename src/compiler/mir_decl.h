@@ -109,6 +109,7 @@ typedef struct
     ASTNodeType  ast_type;
     const char  *name;
     char        *type_alias_target_type_name;
+    int          intent_retry_count;
     size_t       generic_param_count;
     MIRDeclGenericParam *generic_metadata;
     size_t       generic_metadata_count;

@@ -161,6 +161,7 @@ typedef struct {
     size_t default_who_count;
     size_t default_who_capacity;
     ASTNode* default_where_type;
+    int retry_count;            /* resilience: 0 = none, N = up to N attempts */
 } ASTIntentDeclData;
 
 typedef struct {

@@ -276,6 +276,7 @@ mir_record_decl_header(MIRProgram *mir, ASTNode *decl)
         break;
     case AST_INTENT_DECL:
         header.name = ast_intent_decl_name(decl);
+        header.intent_retry_count = ast_intent_decl_retry_count(decl);
         break;
     case AST_PARTY_DECL:
         header.name = ast_party_name(decl);

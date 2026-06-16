@@ -31,6 +31,7 @@ ASTNode* ast_create_intent_declaration(const char* name) {
     node->data.intent_decl.default_who_count = 0;
     node->data.intent_decl.default_who_capacity = 0;
     node->data.intent_decl.default_where_type = NULL;
+    node->data.intent_decl.retry_count = 0;
     return node;
 }
 

@@ -1,0 +1,25 @@
+Program:
+  Subject: Buyer
+    Fields:
+      hp: Int
+  Zone: CheckoutZone
+    SubjectSlot: buyer: Buyer
+  Intent: RetryCheckout
+    IntentMode: exclusive
+    IntentRollback: full
+    IntentRetry: 3
+    IntentInvolves: zone: CheckoutZone
+    IntentInvolves: buyer: Buyer
+    IntentValue: price: Int
+    IntentStep: Pay where CheckoutZone using zone
+      Who: buyer
+      Using: zone
+      Expect: true
+    IntentSuccess: true
+    IntentFailure: false
+  Function: Main
+    Parameters:
+    Returns: Void
+    Body:
+      Block:
+        Log("ok")

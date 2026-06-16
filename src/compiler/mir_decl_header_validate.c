@@ -100,6 +100,15 @@ mir_validate_decl_header_shape_metadata(const MIRDeclHeader *header,
         }
         return false;
     }
+    if (header->ast_type == AST_INTENT_DECL
+        && header->intent_retry_count < 0) {
+        if (error_message != NULL) {
+            *error_message = mir_strdup_fmt(
+                "MIR declaration header[%zu] '%s' intent retry metadata drift",
+                header_index, header->name);
+        }
+        return false;
+    }
     if (mir_decl_header_type_requires_pointer_self(header->ast_type)
         && !header->uses_pointer_self) {
         if (error_message != NULL) {

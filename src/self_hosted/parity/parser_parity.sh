@@ -132,6 +132,7 @@ SOURCE_PAIRS=(
     "src/self_hosted/parser/fixture/walrus_op.pgy:walrus_op"
     "src/self_hosted/parser/fixture/enum_data.pgy:enum_data"
     "src/self_hosted/parser/fixture/intent_basic.pgy:intent_basic"
+    "src/self_hosted/parser/fixture/intent_retry_metadata.pgy:intent_retry_metadata"
     "src/self_hosted/parser/fixture/option_test.pgy:option_test"
     "src/self_hosted/parser/fixture/array_literal.pgy:array_literal"
     "src/self_hosted/parser/fixture/slot_sugar.pgy:slot_sugar"

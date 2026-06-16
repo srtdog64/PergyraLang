@@ -110,6 +110,11 @@ ast_print_intent_node(ASTNode *node, int indent)
                 node->data.intent_decl.rollback_policy == INTENT_ROLLBACK_NONE ? "none" :
                 node->data.intent_decl.rollback_policy == INTENT_ROLLBACK_CURRENT ? "current" :
                 "full");
+            if (node->data.intent_decl.retry_count > 0) {
+                ast_print_indent(indent + 1);
+                printf("IntentRetry: %d\n",
+                    node->data.intent_decl.retry_count);
+            }
             if (node->data.intent_decl.priority_expr != NULL) {
                 ast_print_indent(indent + 1);
                 printf("IntentPriority: ");

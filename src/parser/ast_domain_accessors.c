@@ -176,6 +176,14 @@ ast_intent_decl_default_where_type(const ASTNode* node)
     return node->data.intent_decl.default_where_type;
 }
 
+int
+ast_intent_decl_retry_count(const ASTNode* node)
+{
+    if (node == NULL || node->type != AST_INTENT_DECL)
+        return 0;
+    return node->data.intent_decl.retry_count;
+}
+
 const char*
 ast_intent_involves_alias(const ASTNode* node)
 {

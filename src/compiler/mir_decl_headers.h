@@ -10,6 +10,7 @@ ASTNodeType mir_decl_header_ast_type_or(const MIRDeclHeader *header,
 const char *mir_decl_header_name(const MIRDeclHeader *header);
 const char *mir_decl_header_type_alias_target_type_name(
     const MIRDeclHeader *header);
+int mir_decl_header_intent_retry_count(const MIRDeclHeader *header);
 const char *mir_decl_header_inventory_resolve_type_alias_target_type_name(
     const MIRDeclHeaderInventory *inventory,
     const char *alias_name);

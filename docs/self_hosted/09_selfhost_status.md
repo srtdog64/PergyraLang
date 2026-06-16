@@ -13,11 +13,12 @@ Front-end self-hosts on both backends.
 - Lexer (src/self_hosted/lexer/main.pgy): compiles on C and LLVM. Token output
   is byte-identical to `pgy --tokens`.
 - Parser (src/self_hosted/parser/main.pgy): compiles on C and LLVM and compares
-  byte-identical against `pgy --ast` on 187 committed source fixtures. It parses
+  byte-identical against `pgy --ast` on 188 committed source fixtures. It parses
   the domain grammar, not just generic constructs: it dispatches on zone, world,
   party, role, and intent keywords, plus bind, if, within-zone, and intent
-  steps, with full expression precedence. The parity set includes a deep nested
-  generic type fixture so LLVM depth/type-name handling is covered.
+  steps, intent retry declaration metadata, with full expression precedence.
+  The parity set includes a deep nested generic type fixture so LLVM
+  depth/type-name handling is covered.
 - Backend parity: the parser compiled by the C backend and by the LLVM backend
   produce byte-identical output. This is the core self-host correctness signal,
   the language compiles its own pass to the same result on both backends.
@@ -38,6 +39,10 @@ source_ast/source_decl frontier.
   the same canonical source-local type fact for alias-backed collection
   contexts; `type_alias_array_context` proves empty `Array<T>` alias literals
   compile and run on both backends.
+- Intent retry counts are MIR declaration-header facts. `with retry(n)` is
+  parsed, printed, and captured as `MIRDeclHeader.intent_retry_count`; semantic
+  checking rejects non-zero retry until C and LLVM retry lowering share the same
+  MIR-owned intent body wrapper, so the feature cannot become a silent no-op.
 - LLVM generic class specialization type mapping consumes `MIRDeclField`
   type-name metadata before falling back to template AST compatibility.
 - LLVM class constructor field arguments consume `MIRDeclField` type-name

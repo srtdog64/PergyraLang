@@ -216,27 +216,26 @@ Effect families implemented and verified: `io`, `alloc`, `authority` (declarable
 and bridged to zone authority), on top of the pre-existing `secure`, `remote`,
 `nondeterministic`, `collapse`, `unsafe`.
 
-## Resilience intent modifiers: implementation path (scouted)
+## Resilience intent modifiers: implementation path (partially live)
 
-Unlike the effect system, resilience modifiers do not exist yet (no `retry` /
-`timeout` / `backoff` tokens or parsing). The intent declaration parser
-(`parser_intent.c`, `parse_intent_declaration`) already parses optional clauses
-in a clean `seen_*_clause` + token-dispatch loop (mode / priority / rollback /
-success / failure), and the intent AST node (`ASTIntentDeclData`) is the place
-to add modifier fields. The implementation path is therefore:
+Unlike the effect system, resilience modifiers are not executable yet. The
+first syntax slice is live only as parser/MIR-owned declaration metadata:
+`intent X(...) with retry(n) { ... }` parses, prints as `IntentRetry: n`, and is
+captured on `MIRDeclHeader.intent_retry_count`. `timeout(...)` and
+`backoff(...)` remain parser-reserved errors. Semantic checking rejects a
+non-zero retry count until both C and LLVM wrap the same MIR intent body, so the
+feature cannot silently degrade into a no-op.
 
-1. Parse `with retry(n)`, `timeout(d)`, `backoff(...)` as additional optional
-   clauses in that loop (no new lexer tokens needed -- `with` is `TOKEN_WITH`
-   and the modifier names can be identifiers), storing them on the intent AST.
-2. Lower them in the intent codegen by wrapping the intent body in a bounded
+The remaining implementation path is therefore:
+
+1. Lower retry in intent codegen by wrapping the MIR-owned intent body in a bounded
    retry loop with a per-attempt timeout guard and a backoff delay, on the C
    backend first, then mirrored byte-identical on LLVM.
-3. Gate so intents without the clause are byte-identical; verify on both
+2. Gate so intents without the clause are byte-identical; verify on both
    backends with dedicated retry/timeout behavior tests.
 
-The codegen wrapper (step 2) is the substantive, higher-risk part and is the
-reason this is sequenced after the effect-family work rather than batched with
-it. The
+The codegen wrapper is the substantive, higher-risk part and is the reason this
+is sequenced after the effect-family work rather than batched with it. The
 declaration surface today is `with effects ...`, not a separate `uses` keyword;
 that spelling is already the language's effect contract.
 
