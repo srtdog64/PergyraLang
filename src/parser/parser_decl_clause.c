@@ -73,6 +73,18 @@ parser_effect_mask_from_token(Token tok, uint32_t *mask_out)
         *mask_out = EFFECT_COLLAPSE;
         return true;
     }
+    if (strcmp(tok.text, "io") == 0) {
+        *mask_out = EFFECT_IO;
+        return true;
+    }
+    if (strcmp(tok.text, "alloc") == 0) {
+        *mask_out = EFFECT_ALLOC;
+        return true;
+    }
+    if (strcmp(tok.text, "authority") == 0) {
+        *mask_out = EFFECT_AUTHORITY;
+        return true;
+    }
     if (strcmp(tok.text, "local") == 0) {
         *mask_out = EFFECT_NONE;
         return true;

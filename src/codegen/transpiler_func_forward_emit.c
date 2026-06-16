@@ -121,7 +121,9 @@ emit_func_forward_decl_named(ASTNode *node, const char *emitted_name,
                 || strncmp(type_name, "SecureSlot<", 11) == 0)
             && (p->mode == PARAM_MODE_OWN || p->mode == PARAM_MODE_REF);
         secure_slot = type_name != NULL && strncmp(type_name, "SecureSlot<", 11) == 0;
-        if (boundary_slot) {
+        if (p->mode == PARAM_MODE_MUT_REF) {
+            codebuf_write(params_sig, "%s *%s__mutref", pt, p->name);
+        } else if (boundary_slot) {
             char inner_buf[128];
             const char *inner = inner_buf;
             if (!slot_inner_type_name_copy(type_name, inner_buf,

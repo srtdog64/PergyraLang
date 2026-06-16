@@ -156,6 +156,7 @@ type_check_builtin_call(ASTNode *call, BuiltinKind kind, SemanticContext *ctx)
             require_assignable(type_check_expression(ast_call_argument(call, 0), ctx),
                 TYPE_STRING, ast_call_argument(call, 0), ctx);
         }
+        semantic_record_effect(ctx, EFFECT_IO);
         return TYPE_STRING;
     case BUILTIN_WRITE_FILE:
         if (check_call_arity(call, 2, "WriteFile", ctx)) {
@@ -164,6 +165,7 @@ type_check_builtin_call(ASTNode *call, BuiltinKind kind, SemanticContext *ctx)
             require_assignable(type_check_expression(ast_call_argument(call, 1), ctx),
                 TYPE_STRING, ast_call_argument(call, 1), ctx);
         }
+        semantic_record_effect(ctx, EFFECT_IO);
         return TYPE_VOID;
     case BUILTIN_INPUT:
         semantic_record_effect(ctx, EFFECT_NONDETERMINISTIC);

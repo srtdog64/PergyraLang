@@ -55,7 +55,7 @@ bool
 type_effect_mask_requires_authority(uint32_t mask)
 {
     uint32_t closed = type_effect_mask_closure(mask);
-    return (closed & EFFECT_SECURE) != 0;
+    return (closed & (EFFECT_SECURE | EFFECT_AUTHORITY)) != 0;
 }
 
 bool

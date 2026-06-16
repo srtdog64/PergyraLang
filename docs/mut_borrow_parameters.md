@@ -205,3 +205,33 @@ and the role-self prologue is a working precedent to copy.
 Step 2 (semantic exclusivity / borrow check) is independent of step 3 and can
 follow it: one active `&mut` per value, no coexisting `&`, `&mut` required at the
 call site.
+
+## Implementation status (C backend done and verified)
+
+Step 3 is implemented and verified on the C backend. A `&mut T` value parameter
+lowers to a pointer parameter `T *<name>__mutref`; the function prologue copies
+in `T <name> = *<name>__mutref;` so the body is emitted unchanged, and a
+write-back `*<name>__mutref = <name>;` is emitted on every exit path. The
+write-back point is the MIR return terminator (the real exit for MIR-emitted
+functions), with the AST return path, MIR cleanup-block returns, and the
+function-close fall-through covered as well; copy-in/copy-out helpers live beside
+the defer machinery (`transpiler_emit_mut_ref_copyins` /
+`transpiler_emit_mut_ref_writebacks` in `transpiler_defer_emit.c`). Both the
+function definition (`transpiler_mir_func_emit.c`) and the forward declaration
+(`transpiler_func_forward_emit.c`) emit the pointer parameter so the prototype
+and body agree. The call site (`transpiler_expr_call_user_emit.c`) passes
+`&<arg>` when the callee parameter is `&mut`.
+
+Every new behavior is gated on `PARAM_MODE_MUT_REF`, so output for all programs
+without `&mut` is byte-identical to before; the full 16-gate self-host parity
+suite stays green on both backends. Verified end to end: a function that
+`ArrayPush`es into a `&mut Array<Int>` parameter is observed by the caller
+(length 1 then 4), and a multi-return function updates the caller array and
+returns the new length on every branch.
+
+Remaining: the LLVM backend lowering (the C backend is the verified reference;
+the same copy-in/copy-out shape applies), step 2 borrow-check (exclusivity and
+lvalue-argument enforcement — until then a non-lvalue `&mut` argument is a C
+compile error rather than a Pergyra diagnostic), and migrating the linter's
+`ScanStructure` to a `diags: &mut Array<String>` parameter once LLVM lands so the
+linter parity gate stays green on both backends.

@@ -248,6 +248,7 @@ emit_func_decl_from_mir_named(ASTNode *node, const MIRRoutine *mir_routine,
         }
     }
 
+    transpiler_mut_ref_params_reset(ctx);
     func_param_count = transpiler_mir_routine_param_count(mir_routine);
     for (size_t i = 0; i < func_param_count; i++) {
         FuncParam *p = transpiler_mir_routine_param(mir_routine, i);
@@ -323,7 +324,10 @@ emit_func_decl_from_mir_named(ASTNode *node, const MIRRoutine *mir_routine,
                 || strncmp(type_name, "SecureSlot<", 11) == 0)
             && (p->mode == PARAM_MODE_OWN || p->mode == PARAM_MODE_REF);
         secure_slot = type_name != NULL && strncmp(type_name, "SecureSlot<", 11) == 0;
-        if (boundary_slot) {
+        if (p->mode == PARAM_MODE_MUT_REF) {
+            codebuf_write(params_sig, "%s *%s__mutref", pt, p->name);
+            transpiler_register_mut_ref_param(ctx, p->name, pt);
+        } else if (boundary_slot) {
             char inner_buf[128];
             const char *inner = inner_buf;
             if (!slot_inner_type_name_copy(type_name, inner_buf,
@@ -406,6 +410,7 @@ emit_func_decl_from_mir_named(ASTNode *node, const MIRRoutine *mir_routine,
     params_sig = NULL;
 
     ctx->indent++;
+    transpiler_emit_mut_ref_copyins(ctx);
     if (owner_name != NULL) {
         if (owner_is_role) {
             if (owner_role_subject_name != NULL) {
@@ -666,10 +671,12 @@ emit_func_decl_from_mir_named(ASTNode *node, const MIRRoutine *mir_routine,
                                 ctx, &saved_emit_state);
                             return;
                         }
+                        transpiler_emit_mut_ref_writebacks(ctx);
                         write_indent(ctx);
                         codebuf_write(ctx->out, "return %s;\n", ret_expr);
                         free(ret_expr);
                     } else {
+                        transpiler_emit_mut_ref_writebacks(ctx);
                         write_indent(ctx);
                         codebuf_write(ctx->out, "return;\n");
 
@@ -681,6 +688,7 @@ emit_func_decl_from_mir_named(ASTNode *node, const MIRRoutine *mir_routine,
 
     transpiler_defer_scope_pop(ctx);
     ctx->match_binding_alias_map = saved_match_alias_map;
+    transpiler_emit_mut_ref_writebacks(ctx);
     ctx->indent--;
     codebuf_write(ctx->out, "}\n");
     transpiler_restore_mir_emit_state_from_snapshot_local(ctx, &saved_emit_state);

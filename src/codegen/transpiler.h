@@ -60,6 +60,7 @@ bool     codebuf_dump_file(const CodeBuf *buf, const char *path);
 #define TRANSPILE_MAX_LOOP_DEPTH 64
 #define TRANSPILE_MAX_SCOPE_DEPTH 128
 #define TRANSPILE_MAX_DEFER_PER_SCOPE 64
+#define TRANSPILE_MAX_MUT_REF_PARAMS 32
 
 typedef struct
 {
@@ -201,6 +202,15 @@ typedef struct
     ASTNode    *defer_bodies[TRANSPILE_MAX_SCOPE_DEPTH][TRANSPILE_MAX_DEFER_PER_SCOPE];
     int         defer_body_counts[TRANSPILE_MAX_SCOPE_DEPTH];
     int         defer_scope_depth;
+
+    /* Active &mut (exclusive borrow) value-parameter names for the current
+     * function. Each &mut value parameter is lowered to a pointer parameter
+     * `<name>__mutref` with a copy-in local `<name>`; write-backs
+     * `*<name>__mutref = <name>;` are emitted at every return through the
+     * pre-return hook so the caller observes the mutation. */
+    char        mut_ref_param_names[TRANSPILE_MAX_MUT_REF_PARAMS][64];
+    char        mut_ref_param_ctypes[TRANSPILE_MAX_MUT_REF_PARAMS][64];
+    int         mut_ref_param_count;
 
     /* Scratch arena for transpiler-local temporary strings.
      * Long-lived caches/metadata must not retain pointers from here. */

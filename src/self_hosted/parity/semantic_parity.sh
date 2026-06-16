@@ -46,6 +46,9 @@ SOURCE_PAIRS=(
     "bad_user_arg:error"
     "valid_user_call:ok"
     "valid_escaped_quote:ok"
+    "bad_arity_too_few:error"
+    "bad_arity_too_many:error"
+    "bad_arity_builtin:error"
 )
 
 mkdir -p "$PERGYRA_TOOL_BUILD_DIR"

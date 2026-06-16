@@ -11,7 +11,10 @@ typedef struct {
 } EffectWordSpec;
 
 static const EffectWordSpec kEffectWordSpecs[] = {
+    {"alloc", EFFECT_ALLOC},
+    {"authority", EFFECT_AUTHORITY},
     {"collapse", EFFECT_COLLAPSE},
+    {"io", EFFECT_IO},
     {"local", EFFECT_NONE},
     {"nondeterministic", EFFECT_NONDETERMINISTIC},
     {"remote", EFFECT_REMOTE},
@@ -88,6 +91,12 @@ effect_mask_to_string(uint32_t mask, char *buf, size_t buf_size)
         append_effect_name(buf, buf_size, "collapse", &first);
     if (type_effect_mask_has(mask, EFFECT_UNSAFE))
         append_effect_name(buf, buf_size, "unsafe", &first);
+    if (type_effect_mask_has(mask, EFFECT_IO))
+        append_effect_name(buf, buf_size, "io", &first);
+    if (type_effect_mask_has(mask, EFFECT_ALLOC))
+        append_effect_name(buf, buf_size, "alloc", &first);
+    if (type_effect_mask_has(mask, EFFECT_AUTHORITY))
+        append_effect_name(buf, buf_size, "authority", &first);
 }
 
 static uint32_t

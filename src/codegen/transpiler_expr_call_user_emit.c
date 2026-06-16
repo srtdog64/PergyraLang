@@ -385,7 +385,9 @@ emit_call_user_function(ASTNode *call, ASTNode *callee, TranspilerCtx *ctx)
         free(param_type_for_ctx);
         if (!handled && i > 0)
             codebuf_write(args_buf, ", ");
-        if (!handled) {
+        if (!handled && param != NULL && param->mode == PARAM_MODE_MUT_REF) {
+            codebuf_write(args_buf, "&%s", arg);
+        } else if (!handled) {
             if (transpiler_call_arg_needs_subject_address(ctx,
                     param, param_type_name,
                     intent_param_type, intent_param_type_name)) {

@@ -321,6 +321,7 @@ emit_return_stmt(ASTNode *node, TranspilerCtx *ctx)
     ASTNode *value = ast_return_value(node);
 
     transpiler_emit_defers_from(ctx, 0);
+    transpiler_emit_mut_ref_writebacks(ctx);
     write_indent(ctx);
     if (value != NULL) {
         if (ctx->current_return_type[0] != '\0'

@@ -180,6 +180,7 @@ type_check_allocator_builtin(ASTNode *call, SemanticContext *ctx,
         }
     }
 
+    semantic_record_effect(ctx, EFFECT_ALLOC);
     return TYPE_ALLOCATOR;
 }
 
