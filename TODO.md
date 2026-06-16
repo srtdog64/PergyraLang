@@ -53,6 +53,25 @@ English anchor for tooling/doc gates:
   LLVM agree on the frozen support matrix. The self-hosted implementation is
   the third value in a C/LLVM/Pergyra comparison, not a substitute for finishing
   the first two.
+- Language semantics mismatch ledger: keep these as source-of-truth closure
+  targets, not cosmetic naming work. (1) `&mut` currently has value-result
+  copy-in/copy-out behavior, closer to Swift `inout` than Rust borrow. Decide
+  whether the surface is renamed to `inout`, or whether a real borrow-mut
+  surface is introduced separately; until then docs must say value-result and
+  normal-return copy-out explicitly. (2) Logical `&&` / `||` must be `Bool`
+  operators in both inference and checking; C-style integer truthiness must not
+  leak into typed semantic results. Gate this with semantic tests and backend
+  parity fixtures before widening. (3) `Long` must either become a first-class
+  numeric tower member with explicit cast/arithmetic support, or every missing
+  widening/cast path must be an explicit reject with a diagnostic. (4)
+  Value-default collections make `ArrayPush(arr, x)` on a by-value parameter a
+  local mutation only; add a diagnostic or linter rule for bare mutation-looking
+  container calls whose result/copy-out cannot reach the caller. Prefer
+  `inout`/owned sink/return-rebind forms for caller-visible mutation. (5)
+  Authority must converge on one owner: effect bits may express that authority
+  is required, but `authorized_by` / zone authority / runtime authority evidence
+  must remain the approval source of truth instead of drifting into a second
+  semantic channel.
 - Runtime panic-contract tightening: async fiber internal invariants no longer
   use raw `assert()`; they route through `PGY_RUNTIME_PANIC` with
   `internal-invariant` reasons so release/debug builds share the same hard-fail

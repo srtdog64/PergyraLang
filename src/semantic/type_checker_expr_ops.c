@@ -216,7 +216,8 @@ type_check_binary(ASTNode *expr, SemanticContext *ctx)
         PgyTokenType op = ast_binary_operator(expr).type;
         if (op == TOKEN_EQUAL || op == TOKEN_NOT_EQUAL
             || op == TOKEN_LESS     || op == TOKEN_LESS_EQUAL
-            || op == TOKEN_GREATER  || op == TOKEN_GREATER_EQUAL)
+            || op == TOKEN_GREATER  || op == TOKEN_GREATER_EQUAL
+            || op == TOKEN_AND      || op == TOKEN_OR)
             return TYPE_BOOL;
         return (left != TYPE_UNKNOWN) ? left : right;
     }
@@ -258,6 +259,19 @@ type_check_binary(ASTNode *expr, SemanticContext *ctx)
                 PGY_FIX_ALIGN_OPERAND_TYPES_OR_OVERLOAD,
                 expr,
                 "Cannot compare '%s' and '%s'",
+                type_name_or_unknown(left), type_name_or_unknown(right));
+        }
+        return TYPE_BOOL;
+    }
+
+    if (op == TOKEN_AND || op == TOKEN_OR) {
+        if (!type_equals(left, TYPE_BOOL) || !type_equals(right, TYPE_BOOL)) {
+            semantic_error_with_hints(ctx,
+                PGY_CODE_SEM_BINOP_TYPE_MISMATCH,
+                PGY_CAUSE_BINOP_OPERAND_TYPES,
+                PGY_FIX_ALIGN_OPERAND_TYPES_OR_OVERLOAD,
+                expr,
+                "Logical operator requires Bool operands, got '%s' and '%s'",
                 type_name_or_unknown(left), type_name_or_unknown(right));
         }
         return TYPE_BOOL;

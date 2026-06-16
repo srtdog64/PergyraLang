@@ -87,6 +87,25 @@ test_type_system(void)
 
         EXPECT(type_infer_expression(&expr, NULL) == TYPE_BOOL);
     }
+
+    TEST("type_infer_expression: logical operators return Bool");
+    {
+        ASTNode left; memset(&left, 0, sizeof(left));
+        left.type = AST_BOOLEAN;
+        left.data.boolean.value = true;
+
+        ASTNode right; memset(&right, 0, sizeof(right));
+        right.type = AST_BOOLEAN;
+        right.data.boolean.value = false;
+
+        ASTNode expr; memset(&expr, 0, sizeof(expr));
+        expr.type = AST_BINARY;
+        expr.data.binary.left = &left;
+        expr.data.binary.right = &right;
+        expr.data.binary.op.type = TOKEN_AND;
+
+        EXPECT(type_infer_expression(&expr, NULL) == TYPE_BOOL);
+    }
 }
 
 static void
@@ -186,6 +205,27 @@ test_type_checker_slot_rules(void)
         type_check_write_slot(call, ctx);
         EXPECT(!ctx->has_error);
         semantic_context_destroy(ctx);
+    }
+
+    TEST("logical operators require Bool operands and return Bool");
+    {
+        SemanticContext *ctx = semantic_context_create();
+        ASTNode *ok_expr = ast_create_binary(make_boolean(true, 2),
+            (Token){ .type = TOKEN_AND }, make_boolean(false, 2));
+        Type *ok_type = type_check_expression(ok_expr, ctx);
+        EXPECT(!ctx->has_error && type_equals(ok_type, TYPE_BOOL));
+        semantic_context_destroy(ctx);
+        ast_destroy(ok_expr);
+
+        ctx = semantic_context_create();
+        ASTNode *bad_expr = ast_create_binary(make_number(1, 3),
+            (Token){ .type = TOKEN_AND }, make_number(2, 3));
+        Type *bad_type = type_check_expression(bad_expr, ctx);
+        EXPECT(ctx->has_error && type_equals(bad_type, TYPE_BOOL)
+            && ctx_has_diagnostic_substring(ctx,
+                "Logical operator requires Bool operands"));
+        semantic_context_destroy(ctx);
+        ast_destroy(bad_expr);
     }
 
     TEST("ClaimSlot<T> let inference preserves generic payload type");
