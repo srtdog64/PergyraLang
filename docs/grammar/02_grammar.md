@@ -128,15 +128,17 @@ let n: String = p.name;            // "Account"
 
 - 대상이 타입 이름(식별자)일 때 `reflect TypeName`은 컴파일타임에 `projection`이
   되고, 모든 필드 접근은 컴파일타임에 폴딩된다.
-- 필드: `.name`(타입/선언 이름), `.kind`(`"class"`/`"enum"`/`"primitive"`;
-  struct와 class는 둘 다 `"class"`), `.effects`(effect 집합 문자열, 예
-  `"io,alloc"`; 함수/intent가 아니면 빈 문자열), `.fields`(클래스/구조체 필드
-  이름의 쉼표 결합, 예 `"id,name"`).
+- 필드: `.name`(타입/선언 이름), `.kind`(선언 종류:
+  `"struct"`/`"class"`/`"subject"`/`"vessel"`/`"object"`/`"tobject"`/`"enum"`/`"primitive"`),
+  `.effects`(effect 집합 문자열, 예
+  `"io,alloc"`; 함수/intent가 아니면 빈 문자열), `.fields`(클래스/구조체 필드의
+  `"name:Type"` 쉼표 결합, 예 `"id:Int,owner:String"`), `.methods`(메서드 이름의
+  쉼표 결합).
 - direct `(reflect T).field`와 `let p: projection = reflect T; p.field` 둘 다
   지원한다.
 - `projection`은 컴파일타임 전용 값 타입이며 런타임 흔적을 남기지 않는다.
-- `.authority`(특정 authority 이름), `.methods`, resilience 정책, 그리고
-  제네릭/도메인 엔티티 대상은 후속 단계다.
+- `.authority`(특정 authority 이름), resilience 정책, 그리고 제네릭/도메인 엔티티
+  대상은 후속 단계다.
 
 ## 3. 선언
 

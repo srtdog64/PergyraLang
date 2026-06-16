@@ -365,6 +365,20 @@ type_check_unary(ASTNode *expr, SemanticContext *ctx)
 static const char *
 projection_kind_label(const char *type_name, SemanticContext *ctx)
 {
+    ASTNode *decl = (type_name != NULL && ctx != NULL)
+        ? semantic_find_class_decl_by_name(ctx, type_name) : NULL;
+    if (decl != NULL && decl->type == AST_CLASS_DECL) {
+        switch (ast_class_nominal_kind(decl)) {
+        case NOMINAL_DECL_STRUCT:  return "struct";
+        case NOMINAL_DECL_SUBJECT: return "subject";
+        case NOMINAL_DECL_VESSEL:  return "vessel";
+        case NOMINAL_DECL_OBJECT:  return "object";
+        case NOMINAL_DECL_TOBJECT: return "tobject";
+        case NOMINAL_DECL_CLASS:
+        default:                   return "class";
+        }
+    }
+
     Symbol *sym = (type_name != NULL && ctx != NULL)
         ? scope_lookup(ctx->scope, type_name) : NULL;
     if (sym == NULL || sym->type == NULL)
@@ -445,6 +459,34 @@ expr_ops_projection_member(ASTNode *expr, ASTNode *member_object,
                 if (buf[0] != '\0')
                     strncat(buf, ",", sizeof(buf) - strlen(buf) - 1);
                 strncat(buf, cf->name, sizeof(buf) - strlen(buf) - 1);
+                const char *ft = cf->type != NULL
+                    ? ast_type_name(cf->type) : NULL;
+                if (ft != NULL) {
+                    strncat(buf, ":", sizeof(buf) - strlen(buf) - 1);
+                    strncat(buf, ft, sizeof(buf) - strlen(buf) - 1);
+                }
+            }
+        }
+        expr->type = AST_STRING;
+        expr->data.string.value = pergyra_strdup(buf);
+        return TYPE_STRING;
+    }
+
+    if (strcmp(member_name, "methods") == 0) {
+        ASTNode *decl = semantic_find_class_decl_by_name(ctx, target_name);
+        char buf[512];
+        buf[0] = '\0';
+        if (decl != NULL) {
+            size_t method_count = 0;
+            ASTNode **methods = ast_class_methods(decl, &method_count);
+            for (size_t mi = 0; mi < method_count; mi++) {
+                const char *mname = (methods != NULL && methods[mi] != NULL)
+                    ? ast_declaration_name(methods[mi]) : NULL;
+                if (mname == NULL)
+                    continue;
+                if (buf[0] != '\0')
+                    strncat(buf, ",", sizeof(buf) - strlen(buf) - 1);
+                strncat(buf, mname, sizeof(buf) - strlen(buf) - 1);
             }
         }
         expr->type = AST_STRING;

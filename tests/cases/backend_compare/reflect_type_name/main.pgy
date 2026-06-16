@@ -1,7 +1,8 @@
 // Regression: `reflect TypeName` yields a compile-time `projection`. Its
-// `.name` is the type name, `.kind` its declared kind (struct/class both report
-// "class"), `.effects` the effect set (empty for a plain struct), and `.fields`
-// the comma-joined field names. C and LLVM must agree on every folded field.
+// `.name` is the type name, `.kind` its declared kind ("struct" here),
+// `.effects` the effect set (empty for a plain struct), `.fields` the
+// comma-joined "name:Type" fields, and `.methods` the method names (empty for a
+// plain struct). C and LLVM must agree on every folded field.
 struct Account {
     id: Int
 }
@@ -12,8 +13,10 @@ func Main() -> Void {
     let k: String = p.kind;
     let e: String = p.effects;
     let f: String = p.fields;
+    let m: String = p.methods;
     Log(n);
     Log(k);
     Log(e);
     Log(f);
+    Log(m);
 }

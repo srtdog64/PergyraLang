@@ -204,23 +204,31 @@ phase, `.effects` reads the live effect computation and does NOT depend on
 #126 (which captures effects into MIR for backend/runtime consumption, a
 separate axis).
 
-`.fields` is also implemented: it resolves the class declaration via
-`semantic_find_class_decl_by_name` and folds the comma-joined field names
-(`projection_source_field_count`/`_at`). The `reflect_type_name`
-backend-compare case now exercises `.name`/`.kind`/`.effects`/`.fields`.
+`.fields` and `.methods` are also implemented: both resolve the class
+declaration via `semantic_find_class_decl_by_name`. `.fields` folds the
+comma-joined `name:Type` list (`projection_source_field_count`/`_at` plus
+`ast_type_name` for the field type), and `.methods` folds the comma-joined
+method names (`ast_class_methods` plus `ast_declaration_name`). The
+`reflect_type_name` backend-compare case exercises
+`.name`/`.kind`/`.effects`/`.fields`/`.methods`.
 
 Still open, and each needs machinery beyond a simple accessor (so left for a
 build-loop session rather than a blind change):
 
 - `.authority` as the specific named authority. Today authority is only the
-  `EFFECT_AUTHORITY` flag (already surfaced inside `.effects`); a named
-  authority needs the authority model to expose the name on a decl.
-- `.methods`: needs method enumeration off the class/ability declaration,
-  analogous to `.fields` but over the method/action list.
-- Field types in `.fields` (currently names only) need a type-node renderer.
+  `EFFECT_AUTHORITY` flag (already surfaced inside `.effects`). There is no
+  per-declaration authority-name accessor: authority is modeled at the zone
+  level (`ASTZoneAuthorityData`), so a named `.authority` is not a simple field
+  fold -- it belongs to the same zone-authority + AIR-graph domain layer as
+  intent reflection below, and should be designed with it rather than bolted on.
 - Resilience policy and AIR-graph-sourced intent reflection (effects/authority
   per intent boundary) are the richer domain-reflection layer and the MPaC hook
   proper.
+
+`.kind` is now precise: `projection_kind_label` reads the declaration's
+`NominalDeclKind` via `ast_class_nominal_kind`, returning `"struct"`,
+`"class"`, `"subject"`, `"vessel"`, `"object"`, or `"tobject"`, and falls back
+to `"enum"`/`"primitive"`/`"unknown"` from the type kind.
 
 Rung 5: a splice or generation surface that consumes a compile-time
 `projection` to emit declarations, closing the language-that-emits-languages
