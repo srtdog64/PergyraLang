@@ -1,0 +1,89 @@
+// src/self_hosted/tools/runtime_boundary_checker/main.pgy
+//
+// Status: rung-2 (2026-06-16). Soft self-host runtime-boundary checker.
+// It keeps runtime self-host claims split between the C native kernel and
+// Pergyra-owned portable policy/checker work.
+
+func Finding(path: String, term: String) -> String {
+    let parts: Array<String> = [
+        "{\"kind\":\"missing_term\",\"path\":\"",
+        path,
+        "\",\"term\":\"",
+        term,
+        "\"}"
+    ];
+    return StringJoin(parts, "");
+}
+
+func InputError(path: String) -> String {
+    let parts: Array<String> = [
+        "{\"schema\":\"pgy.selfhost.runtime-boundary.v1\",\"ok\":false,",
+        "\"counts\":{\"documents\":0,\"required\":0,\"missing\":1},",
+        "\"findings\":[{\"kind\":\"input_error\",\"path\":\"",
+        path,
+        "\"}]}"
+    ];
+    return StringJoin(parts, "");
+}
+
+func Main() -> Void {
+    let paths: Array<String> = [];
+    let terms: Array<String> = [];
+
+    ArrayPush(paths, "src/self_hosted/runtime/README.md");
+    ArrayPush(terms, "The native runtime kernel remains C");
+    ArrayPush(paths, "src/self_hosted/runtime/README.md");
+    ArrayPush(terms, "Portable runtime policy can move to Pergyra");
+    ArrayPush(paths, "src/self_hosted/runtime/README.md");
+    ArrayPush(terms, "full runtime replacement");
+    ArrayPush(paths, "src/self_hosted/PROGRESS.md");
+    ArrayPush(terms, "native runtime kernel stays C");
+    ArrayPush(paths, "src/self_hosted/PROGRESS.md");
+    ArrayPush(terms, "Runtime-adjacent Pergyra tools count as soft self-host evidence");
+    ArrayPush(paths, "src/self_hosted/README.md");
+    ArrayPush(terms, "runtime/                        -- native runtime kernel stays C");
+    ArrayPush(paths, "docs/self_hosted/05_compiler_core_gap_analysis.md");
+    ArrayPush(terms, "runtime in one jump");
+    ArrayPush(paths, "docs/self_hosted/05_compiler_core_gap_analysis.md");
+    ArrayPush(terms, "runtime replacement");
+
+    let missing: Int = 0;
+    let findings: Array<String> = [];
+    let i: Int = 0;
+    let n: Int = ArrayLength(paths);
+    while i < n {
+        let path: String = paths[i];
+        let term: String = terms[i];
+        if !FileExists(path) {
+            Log(InputError(path));
+            Exit(1);
+        }
+        let content: String = ReadFile(path);
+        if !StringContains(content, term) {
+            missing = missing + 1;
+            ArrayPush(findings, Finding(path, term));
+        }
+        i = i + 1;
+    }
+
+    let ok_text: String = "true";
+    if missing > 0 {
+        ok_text = "false";
+    }
+
+    let parts: Array<String> = [
+        "{\"schema\":\"pgy.selfhost.runtime-boundary.v1\",\"ok\":",
+        ok_text,
+        ",\"counts\":{\"documents\":4,\"required\":",
+        ToString(n),
+        ",\"missing\":",
+        ToString(missing),
+        "},\"findings\":[",
+        StringJoin(findings, ","),
+        "]}"
+    ];
+    Log(StringJoin(parts, ""));
+    if missing > 0 {
+        Exit(1);
+    }
+}

@@ -147,7 +147,7 @@ Resilience: design (this doc) → parser `with` clause → AST modifiers → C c
 wrapper → LLVM mirror → both-backend verification.
 
 Every step is gated so programs without `uses` / `with` are byte-identical to
-before, and each lands behind the full 16-gate self-host parity suite on both
+before, and each lands behind the full 22-gate self-host parity suite on both
 backends, with dedicated tests for the new behavior.
 
 ## Reality check (discovered during implementation)
@@ -175,7 +175,7 @@ table (`parser_decl_clause.c`) and the semantic name/print table
 builtins `ReadFile` / `WriteFile`. Verified end to end: a function declaring
 `with effects io` that reads a file compiles; one declaring only `with effects
 secure` that reads a file fails with "missing declared effects: io (derived from
-body: io)"; a function with no effects clause is unaffected. The full 16-gate
+body: io)"; a function with no effects clause is unaffected. The full 22-gate
 self-host parity suite stays green on both backends.
 
 A second family, `alloc`, was then added the same way to prove the pattern
@@ -215,7 +215,7 @@ The `io` effect is now introduced by every filesystem builtin, not just
 `FileClose`, and `DirWalk` all call `semantic_record_effect(ctx, EFFECT_IO)`
 (`DirWalk` records `io` and `nondeterministic`). A function contracted
 `with effects local` that touches any of these is rejected with the derived set
-named in the diagnostic. All 16 self-host parity gates stay green on both
+named in the diagnostic. All 22 self-host parity gates stay green on both
 backends, and the three-family composition (`io`, `alloc`, `authority`) plus the
 MPaC `measurePartition` port and its P3 contract continue to pass.
 

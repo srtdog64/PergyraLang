@@ -1,0 +1,156 @@
+// src/self_hosted/tools/air_graph_ref_integrity/main.pgy
+//
+// Status: rung-1 minimal. Reads a stable AIR-graph-shaped JSON dump and checks
+// referential integrity: every edge endpoint ("from"/"to") must name a node id
+// that exists. A dangling endpoint is a real IR defect (an edge into a node that
+// was deleted or never numbered). Consumer/analysis pass, not a schema
+// validator. No JSON parser -- substring-anchored scan only.
+//
+// Cwd contract: the parity harness cd's into the repo root before running.
+// Contract: see intent.md in the same directory.
+
+// Extract the raw token after each `<key>` occurrence, up to the next ',' or '}'.
+func ExtractByKey(content: String, key: String) -> Array<String> {
+    let vals: Array<String> = [];
+    let rest: String = content;
+    let guard: Int = 0;
+    while guard < 1000000 {
+        guard = guard + 1;
+        let idx: Int = StringIndexOf(rest, key);
+        if idx < 0 {
+            break;
+        }
+        let value_start: Int = idx + StringLength(key);
+        let rest_len: Int = StringLength(rest) - value_start;
+        if rest_len <= 0 {
+            break;
+        }
+        let after: String = Substring(rest, value_start, rest_len);
+        let comma_idx: Int = StringIndexOf(after, ",");
+        let brace_idx: Int = StringIndexOf(after, "}");
+        let stop: Int = -1;
+        if comma_idx >= 0 {
+            stop = comma_idx;
+        }
+        if brace_idx >= 0 {
+            if stop < 0 || brace_idx < stop {
+                stop = brace_idx;
+            }
+        }
+        if stop <= 0 {
+            stop = StringLength(after);
+        }
+        let val: String = Substring(after, 0, stop);
+        ArrayPush(vals, val);
+        let tail_len: Int = StringLength(after) - stop;
+        rest = Substring(after, stop, tail_len);
+    }
+    return vals;
+}
+
+func ArrayContainsString(arr: Array<String>, target: String) -> Bool {
+    let i: Int = 0;
+    let n: Int = ArrayLength(arr);
+    while i < n {
+        if arr[i] == target {
+            return true;
+        }
+        i = i + 1;
+    }
+    return false;
+}
+
+func AppendAll(dest: Array<String>, src: Array<String>) -> Array<String> {
+    let out: Array<String> = dest;
+    let i: Int = 0;
+    let n: Int = ArrayLength(src);
+    while i < n {
+        ArrayPush(out, src[i]);
+        i = i + 1;
+    }
+    return out;
+}
+
+func DanglingFinding(id_val: String) -> String {
+    let parts: Array<String> = [
+        "{\"kind\":\"dangling_edge_endpoint\",\"id\":\"",
+        id_val,
+        "\"}"
+    ];
+    return StringJoin(parts, "");
+}
+
+func InputErrorJson(path: String) -> String {
+    let parts: Array<String> = [
+        "{\"schema\":\"pgy.selfhost.air-ref-integrity.v1\",\"ok\":false,",
+        "\"source\":{\"input_schema\":\"pgy.air.graph.v1\",\"fixture_owner\":\"",
+        path,
+        "\"},\"counts\":{\"nodes\":0,\"endpoints\":0,\"dangling\":0},",
+        "\"findings\":[{\"kind\":\"input_error\",\"key\":\"",
+        path,
+        "\",\"location\":\"",
+        path,
+        "\"}]}"
+    ];
+    return StringJoin(parts, "");
+}
+
+func Main() -> Void {
+    let fixture_path: String = "src/self_hosted/tools/air_graph_ref_integrity/fixture/graph_edges.json";
+    if !FileExists(fixture_path) {
+        Log(InputErrorJson(fixture_path));
+        Exit(1);
+    }
+
+    let content: String = ReadFile(fixture_path);
+    let node_ids: Array<String> = ExtractByKey(content, "\"id\":");
+    let froms: Array<String> = ExtractByKey(content, "\"from\":");
+    let tos: Array<String> = ExtractByKey(content, "\"to\":");
+
+    let endpoints: Array<String> = [];
+    endpoints = AppendAll(endpoints, froms);
+    endpoints = AppendAll(endpoints, tos);
+
+    let dangling: Int = 0;
+    let findings_list: Array<String> = [];
+    let i: Int = 0;
+    let m: Int = ArrayLength(endpoints);
+    while i < m {
+        let ep: String = endpoints[i];
+        if !ArrayContainsString(node_ids, ep) {
+            dangling = dangling + 1;
+            ArrayPush(findings_list, DanglingFinding(ep));
+        }
+        i = i + 1;
+    }
+
+    let nodes: Int = ArrayLength(node_ids);
+    let endpoint_count: Int = ArrayLength(endpoints);
+
+    let ok_text: String = "true";
+    if dangling > 0 {
+        ok_text = "false";
+    }
+    let findings: String = StringJoin(findings_list, ",");
+
+    let json_parts: Array<String> = [
+        "{\"schema\":\"pgy.selfhost.air-ref-integrity.v1\",\"ok\":",
+        ok_text,
+        ",\"source\":{\"input_schema\":\"pgy.air.graph.v1\",\"fixture_owner\":\"",
+        fixture_path,
+        "\"},\"counts\":{\"nodes\":",
+        ToString(nodes),
+        ",\"endpoints\":",
+        ToString(endpoint_count),
+        ",\"dangling\":",
+        ToString(dangling),
+        "},\"findings\":[",
+        findings,
+        "]}"
+    ];
+    Log(StringJoin(json_parts, ""));
+
+    if dangling > 0 {
+        Exit(1);
+    }
+}

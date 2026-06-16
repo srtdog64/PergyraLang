@@ -78,18 +78,26 @@ Substrate progress.
 - The Pergyra linter, backend output comparator, backend tri-compare,
   AST-read-surface checker, diagnostics catalog checker, doc/example inventory
   checkers, module manifest resolver, production size checkers, AIR graph JSON
-  validator, stable subset checker, and stdlib dispatch inventory checker all
-  pass their current self-host preparation parity gates.
-- Every one of the 16 self-host tool parity gates now exercises both backends.
+  validator, AIR graph consumer checkers, stable subset checker, stdlib
+  dispatch inventory checker, and runtime boundary checker all pass their
+  current self-host preparation parity gates.
+- Every one of the 22 self-host tool parity gates now exercises both backends.
   Previously 12 of them built and ran their Pergyra tool only with the default
   (C) backend, leaving each tool's LLVM compilation ungated. Each now compiles
   its tool with the C and the LLVM backend and asserts the two native binaries
   produce byte-identical output, via the shared
   `src/self_hosted/parity/llvm_leg_helpers.sh` (`assert_llvm_leg`) for the
   `--run` tools and inline legs for the lexer and backend-output comparator. At
-  the time of writing all 16 pass, so the gap was harness coverage, not an LLVM
+  the time of writing all 22 pass, so the gap was harness coverage, not an LLVM
   backend defect; the gates now hold the C/LLVM equality invariant for the whole
   tool corpus.
+- Five Pergyra-origin AIR graph consumers now run as soft self-host evidence:
+  node-id uniqueness, live-dump node-count integrity, live-dump back-reference
+  range checking, fixture-shaped edge referential integrity, and root
+  reachability via a push-only worklist. They are not compiler-core
+  substitution yet because they do not replace
+  `src/self_hosted/air/`, but they prove deterministic graph traversal and
+  invariant-checking substrate on both C and LLVM.
 - The semantic substitution rung has reached rung-2:
   `src/self_hosted/semantic/main.pgy` checks a bounded function-body subset and
   now types expressions through unary not, top-level binary operators

@@ -1,7 +1,8 @@
 # Soft Self-Host Parity Harness
 
-Status: twelve rung-2 peripheral harnesses plus lexer/parser rung-1 and
-semantic rung-2 compiler-internal harnesses active.
+Status: thirteen rung-2 peripheral harnesses, five rung-1 AIR graph consumer
+harnesses, plus lexer/parser rung-1 and semantic rung-2 compiler-internal
+harnesses active.
 
 This folder holds oracle comparisons for soft self-host tools. The C compiler
 and existing shell/C smokes remain the source of truth until a tool can run in
@@ -12,6 +13,11 @@ The parity set currently covers:
 - `diagnostic_catalog_checker`
 - `stable_subset_section_checker`
 - `air_graph_json_validator`
+- `air_graph_id_uniqueness`
+- `air_graph_node_count_integrity`
+- `air_graph_ref_live`
+- `air_graph_ref_integrity`
+- `air_graph_reachability`
 - `ast_read_surface_checker`
 - `backend_output_comparator`
 - `backend_output_tri_compare` (C/LLVM outputs checked by the Pergyra
@@ -23,9 +29,10 @@ The parity set currently covers:
 - `production_header_size_checker`
 - `production_c_size_checker`
 - `examples_inventory_checker`
+- `runtime_boundary_checker`
 - `lexer` (rung-1 compiler-internal lexer substitution)
 - `parser` (rung-1 compiler-internal parser substitution)
-- `semantic` (rung-1 compiler-internal semantic verdict substitution)
+- `semantic` (rung-2 compiler-internal semantic verdict substitution)
 
 `make self-host-preparation-test-smoke` runs the full set. Individual parity
 targets may still be used for focused work, but a tool is not considered

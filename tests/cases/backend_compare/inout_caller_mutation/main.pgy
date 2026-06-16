@@ -1,0 +1,11 @@
+// Regression: an `inout` parameter mutates the caller's value (copy-in/copy-out).
+// C and LLVM must agree that the caller's array grew to length 4.
+func Grow(inout xs: Array<Int>) -> Void {
+    ArrayPush(xs, 9);
+}
+
+func Main() -> Void {
+    let v: Array<Int> = [1, 2, 3];
+    Grow(v);
+    Log(ToString(ArrayLength(v)));
+}

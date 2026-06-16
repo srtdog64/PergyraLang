@@ -1,0 +1,153 @@
+// src/self_hosted/tools/air_graph_node_count_integrity/main.pgy
+//
+// Status: rung-1 minimal. The first AIR graph consumer that reads the *live*
+// `pgy --air-json` dump (via the committed, drift-guarded validator fixture)
+// rather than a hand-authored fixture. It checks a real cross-summary
+// invariant: the number of "id": fields across intents+boundaries+evidence must
+// equal intent_count + boundary_count + evidence_count from the summary the
+// compiler itself emits. A mismatch means a node was emitted without being
+// counted, or counted without being emitted. The summary counts are the C-owned
+// oracle. No JSON parser -- substring-anchored scan only.
+//
+// Cwd contract: the parity harness cd's into the repo root before running.
+// Contract: see intent.md in the same directory.
+
+func CountKey(content: String, key: String) -> Int {
+    let count: Int = 0;
+    let rest: String = content;
+    let guard: Int = 0;
+    while guard < 1000000 {
+        guard = guard + 1;
+        let idx: Int = StringIndexOf(rest, key);
+        if idx < 0 {
+            break;
+        }
+        count = count + 1;
+        let advance: Int = idx + StringLength(key);
+        let rest_len: Int = StringLength(rest) - advance;
+        if rest_len <= 0 {
+            break;
+        }
+        rest = Substring(rest, advance, rest_len);
+    }
+    return count;
+}
+
+func ExtractIntField(content: String, field: String) -> Int {
+    let key: String = Concat(Concat("\"", field), "\":");
+    let key_idx: Int = StringIndexOf(content, key);
+    if key_idx < 0 {
+        return -1;
+    }
+    let value_start: Int = key_idx + StringLength(key);
+    let rest_len: Int = StringLength(content) - value_start;
+    if rest_len <= 0 {
+        return -1;
+    }
+    let rest: String = Substring(content, value_start, rest_len);
+    let comma_idx: Int = StringIndexOf(rest, ",");
+    let brace_idx: Int = StringIndexOf(rest, "}");
+    let stop: Int = -1;
+    if comma_idx >= 0 {
+        stop = comma_idx;
+    }
+    if brace_idx >= 0 {
+        if stop < 0 || brace_idx < stop {
+            stop = brace_idx;
+        }
+    }
+    if stop <= 0 {
+        return -1;
+    }
+    let num_str: String = Substring(rest, 0, stop);
+    return ToInt(num_str);
+}
+
+func MismatchFinding(ids: Int, declared: Int) -> String {
+    let parts: Array<String> = [
+        "{\"kind\":\"node_count_mismatch\",\"ids\":",
+        ToString(ids),
+        ",\"declared\":",
+        ToString(declared),
+        "}"
+    ];
+    return StringJoin(parts, "");
+}
+
+func FindingsForNC(mismatch: Bool, ids: Int, declared: Int) -> String {
+    if mismatch {
+        return MismatchFinding(ids, declared);
+    }
+    return "";
+}
+
+func InputErrorJson(path: String) -> String {
+    let parts: Array<String> = [
+        "{\"schema\":\"pgy.selfhost.air-node-count.v1\",\"ok\":false,",
+        "\"source\":{\"input_schema\":\"pgy.air.graph.v1\",\"fixture_owner\":\"",
+        path,
+        "\"},\"counts\":{\"ids\":0,\"declared\":0,\"intents\":0,\"boundaries\":0,\"evidence\":0},",
+        "\"findings\":[{\"kind\":\"input_error\",\"key\":\"",
+        path,
+        "\",\"location\":\"",
+        path,
+        "\"}]}"
+    ];
+    return StringJoin(parts, "");
+}
+
+func Main() -> Void {
+    let fixture_path: String = "src/self_hosted/tools/air_graph_json_validator/fixture/sample.json";
+    if !FileExists(fixture_path) {
+        Log(InputErrorJson(fixture_path));
+        Exit(1);
+    }
+
+    let content: String = ReadFile(fixture_path);
+    let id_count: Int = CountKey(content, "\"id\":");
+    let intents: Int = ExtractIntField(content, "intent_count");
+    let boundaries: Int = ExtractIntField(content, "boundary_count");
+    let evidence: Int = ExtractIntField(content, "evidence_count");
+
+    let declared: Int = intents + boundaries + evidence;
+
+    let mismatch: Bool = false;
+    if intents < 0 || boundaries < 0 || evidence < 0 {
+        mismatch = true;
+    }
+    if id_count != declared {
+        mismatch = true;
+    }
+
+    let findings: String = FindingsForNC(mismatch, id_count, declared);
+
+    let ok_text: String = "true";
+    if mismatch {
+        ok_text = "false";
+    }
+
+    let json_parts: Array<String> = [
+        "{\"schema\":\"pgy.selfhost.air-node-count.v1\",\"ok\":",
+        ok_text,
+        ",\"source\":{\"input_schema\":\"pgy.air.graph.v1\",\"fixture_owner\":\"",
+        fixture_path,
+        "\"},\"counts\":{\"ids\":",
+        ToString(id_count),
+        ",\"declared\":",
+        ToString(declared),
+        ",\"intents\":",
+        ToString(intents),
+        ",\"boundaries\":",
+        ToString(boundaries),
+        ",\"evidence\":",
+        ToString(evidence),
+        "},\"findings\":[",
+        findings,
+        "]}"
+    ];
+    Log(StringJoin(json_parts, ""));
+
+    if mismatch {
+        Exit(1);
+    }
+}

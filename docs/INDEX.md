@@ -37,6 +37,7 @@ and follow-up debt over older design notes.
 | [`self_hosted/03_tool_candidates.md`](self_hosted/03_tool_candidates.md) | First self-hostable tool candidates and non-goals |
 | [`self_hosted/04_beta_exit_handoff.md`](self_hosted/04_beta_exit_handoff.md) | Exact beta-exit artifacts required before self-host migration starts |
 | [`self_hosted/05_compiler_core_gap_analysis.md`](self_hosted/05_compiler_core_gap_analysis.md) | Hard self-host gap analysis and substrate entry criteria |
+| [`self_hosted/06_self_host_groundwork_readiness.md`](self_hosted/06_self_host_groundwork_readiness.md) | Self-host substrate readiness and first AIR graph consumer slice |
 
 ## Historical Snapshots
 
@@ -84,6 +85,7 @@ and follow-up debt over older design notes.
 | [`62_llvm_backend_debt_ledger.md`](62_llvm_backend_debt_ledger.md) | LLVM backend remaining debt |
 | [`92_inc_split_roadmap.md`](92_inc_split_roadmap.md) | Include-split cleanup roadmap |
 | [`115_inc_cleanup_status.md`](115_inc_cleanup_status.md) | Current `.inc` cleanup ledger |
+| [`known_bug_if_call_assign_then_let_then_if.md`](known_bug_if_call_assign_then_let_then_if.md) | Open lowering bug: outer call assignment inside `if` can be dropped in a narrow CFG shape |
 | [`128_pointer_risk_register.md`](128_pointer_risk_register.md) | Pointer/lifetime risk register for ABI, containers, scratch buffers, and raw escape |
 | [`132_unsafe_capability_scope.md`](132_unsafe_capability_scope.md) | Unsafe capability scope contract |
 | [`135_backend_wasm_pointer_closure.md`](135_backend_wasm_pointer_closure.md) | Backend/WASM/pointer wording guard: verified subset, named debt, and non-overclaiming lifetime status |

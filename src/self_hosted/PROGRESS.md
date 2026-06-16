@@ -89,7 +89,7 @@ only observe text artifacts the C compiler produces. Their LOC is
 | `src/parser/`   |   21813 |        6856 | ~52%     | `src/self_hosted/parser/` parses 188 committed fixtures byte-equal `pgy --ast` on both C and LLVM parser binaries, and **105 of 117** `examples/*.pgy` byte-equal at scale (89.7%; 2026-05-31). Top-level: `[async]? [export]? func<T,U>`, `subject`/`class`/`vessel`/`struct`/`object`/`tobject` with `<T,U>` and `func`/`action` methods, `enum`, `namespace`, `event`, `ability`, `role`/`impl`, `zone` (subject/object/tobject slots), `intent ... with retry(n)` metadata, `import "PATH.pgy";` (reads file relative to source dir, recursively parses, force-exports its funcs). Stmt: `let IDENT/(IDENTS)`, assign, `+=`/`-=`/`<-`, `return`, `if`/`else if`/`else`, `while`, `for`, `break`, `continue`, `defer`, `match`, `parallel`, `with slot<TYPE> as VAR { stmts }`. `expr`: `! - <- spawn[blocking] await` > `*/% > +- > \|> > cmp > && > \|\|`. Primaries: STRING/NUMBER/IDENT/`( )`/`[ ]`/lambda, postfix `(args)` / `[idx]` / `.member` / `?` / turbofish. |
 | `src/semantic/` |   47541 |        1202 | rung-2 subset | Checks a bounded function-body subset against the C compiler oracle on C/LLVM-generated binaries: typed `let`, return typing, unary/binary expression typing, function-call return/arity/argument typing, scoped branch bodies, branch conditions, assignment, bare call statements, and simple/compound undefined identifier use across 30 fixtures. |
 | `src/codegen/`  |  111465 |           0 | 0%       | not started       |
-| `src/runtime/`  |   31985 |           0 | 0%       | runtime stays C (target language hosts runtime) |
+| `src/runtime/`  |   31985 |           0 | 0%       | native runtime kernel stays C; portable runtime policy libraries may move later |
 | `src/compiler/` |   39863 |           0 | 0%       | not started       |
 | `src/lsp/`      |    1072 |           0 | 0%       | not started       |
 | **Total**       | **254742** |  **8642**  | **~3.39% LOC-scale** | lexer/parser/semantic only; no HIR/MIR/codegen/runtime/compiler/LSP substitution yet |
@@ -99,34 +99,43 @@ Notes:
 - *Coverage %* is a rough functional estimate, not a LOC-equivalence
   number. The lexer is 584 LOC and is judged by byte-equal fixture coverage,
   not by line-count parity with the C lexer.
-- *Runtime stays C* by current design: the runtime is what the target
-  Pergyra program links against, so substituting it in Pergyra would
-  create a bootstrap cycle. Counted as 0% intentionally.
+- *Runtime kernel stays C* by current design: allocator/OS/thread/panic/slot
+  exports are what the target Pergyra program links against, so substituting
+  that native kernel in Pergyra would create a bootstrap cycle. Counted as 0%
+  intentionally. Runtime-adjacent Pergyra tools count as soft self-host evidence.
+  They remain outside compiler-internal substitution until a Pergyra-written
+  runtime component is linked into generated programs.
 - `src/lsp/` is the Language Server Protocol implementation. Lower
   priority than the core compiler.
 
 ## Peripheral Audit Tools (Not Counted In Coverage)
 
-These 12 tools live in `src/self_hosted/tools/` but do **not** count
+These 18 tools live in `src/self_hosted/tools/` but do **not** count
 toward compiler-internal substitution. They are dogfood validators
 that read text artifacts and emit drift verdicts; the C compiler
 keeps running fine with or without them.
 
 | Tool                              | LOC (Pergyra) | Function |
 |-----------------------------------|---------------|----------|
-| `diagnostic_catalog_checker`      | 282           | docs/72 vs diag_codes.h drift |
-| `stable_subset_section_checker`   | 133           | docs/107 canonical anchors |
-| `air_graph_json_validator`        | 180           | `pgy --air-json` shape gate |
-| `backend_output_comparator`       | 149           | paired text diff verdict |
-| `module_manifest_resolver`        | 134           | language_module_manifest.json |
-| `stdlib_dispatch_inventory_checker` | 116         | C/LLVM dispatch table count parity |
-| `doc_link_checker`                | 155           | docs/INDEX.md dead-link audit |
-| `production_header_size_checker`  | 119           | DirWalk-owned `.h` 600-LOC cap |
-| `production_c_size_checker`       | 139           | DirWalk-owned `.c` 699-LOC cap |
-| `examples_inventory_checker`      | 122           | DirWalk-owned examples/ count + non-empty |
-| `ast_read_surface_checker`        | 236           | CFG/MIR SoT ratchet parity |
-| `linter`                          | 196           | LSP-style diagnostic JSON parity |
-| **Total peripheral**              | **1961**      | |
+| `diagnostic_catalog_checker`      | 266           | docs/72 vs diag_codes.h drift |
+| `stable_subset_section_checker`   | 122           | docs/107 canonical anchors |
+| `air_graph_json_validator`        | 165           | `pgy --air-json` shape gate |
+| `air_graph_id_uniqueness`         | 132           | AIR graph duplicate node-id check |
+| `air_graph_node_count_integrity`  | 140           | live AIR graph id-count summary check |
+| `air_graph_ref_live`              | 138           | live AIR graph back-reference range check |
+| `air_graph_ref_integrity`         | 143           | AIR graph dangling endpoint check |
+| `air_graph_reachability`          | 166           | AIR graph root reachability/worklist check |
+| `backend_output_comparator`       | 135           | paired text diff verdict |
+| `module_manifest_resolver`        | 121           | language_module_manifest.json |
+| `stdlib_dispatch_inventory_checker` | 105         | C/LLVM dispatch table count parity |
+| `doc_link_checker`                | 143           | docs/INDEX.md dead-link audit |
+| `production_header_size_checker`  | 108           | DirWalk-owned `.h` 600-LOC cap |
+| `production_c_size_checker`       | 127           | DirWalk-owned `.c` 699-LOC cap |
+| `examples_inventory_checker`      | 112           | DirWalk-owned examples/ count + non-empty |
+| `ast_read_surface_checker`        | 219           | CFG/MIR SoT ratchet parity |
+| `linter`                          | 173           | LSP-style diagnostic JSON parity |
+| `runtime_boundary_checker`        | 82            | native-kernel vs portable-policy runtime boundary |
+| **Total peripheral**              | **2597**      | |
 
 Plus `src/self_hosted/lib/text_scan.pgy` (~47 LOC) shared across scan-based
 tools.
@@ -163,10 +172,17 @@ The realistic incremental path toward genuine self-host:
    oracle on C and LLVM binaries across 30 fixtures. Next expansion should add
    a broader builtin/type symbol table and diagnostic-code parity before
    broadening into declarations.
-5. **C-emit codegen subset** -- a Pergyra program that takes a tiny AST
+5. **AIR graph consumer passes** -- *rung-1 active* (2026-06-16). Five
+   Pergyra-origin graph consumers now run in the self-host preparation suite:
+   node-id uniqueness, live-dump node-count integrity, live-dump
+   back-reference range checking, fixture-shaped edge referential integrity,
+   and root reachability via a push-only worklist. These are still peripheral
+   because they do not replace `src/self_hosted/air/`, but they prove the
+   deterministic graph substrate the first middle-end pass needs.
+6. **C-emit codegen subset** -- a Pergyra program that takes a tiny AST
    and emits valid C output. Round-trip: C-emit by Pergyra -> C-compile
    -> run -> stdout matches expected.
-6. **Bootstrap loop** -- the Pergyra-written compiler subset compiles
+7. **Bootstrap loop** -- the Pergyra-written compiler subset compiles
    itself, output runs.
 
 Steps 1-4 are active staged substitution. Step 5+ remains post-beta.

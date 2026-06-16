@@ -38,7 +38,7 @@ src/self_hosted/
   codegen/                        -- mirrors C-side src/codegen/ (placeholder)
   air/  hir/  mir/                -- IR-stage placeholders
   compiler/                       -- driver placeholder, mirrors src/compiler/
-  runtime/                        -- stays C; placeholder for layout parity
+  runtime/                        -- native runtime kernel stays C; portable policy can move
   lsp/                            -- mirrors C-side src/lsp/ (placeholder)
   lib/                            -- shared Pergyra helpers (e.g. text_scan)
   tools/                          -- peripheral audit tools (NOT counted toward substitution)
@@ -98,6 +98,16 @@ src/self_hosted/
   substitution are active, semantic is rung-2 with scoped block and
   simple/compound undefined-identifier parity, and HIR/MIR/codegen/runtime/
   compiler/LSP remain 0%.
+- **2026-06-16** -- runtime self-hosting is split explicitly. The native runtime
+  kernel stays C, while portable runtime policy/checker work may move to
+  Pergyra and stay classified as soft self-host evidence until a generated
+  program links a Pergyra-written runtime component.
+- **2026-06-16** -- the first AIR graph consumer slice lands as soft self-host
+  evidence: node-id uniqueness, live-dump node-count integrity, live-dump
+  back-reference range checking, fixture-shaped edge referential integrity, and
+  root reachability/worklist checks are Pergyra-origin tools with C/LLVM parity
+  legs. They do not count as compiler-core substitution yet, but they prove the
+  deterministic graph traversal substrate needed by the first middle-end pass.
 
 ## Non-Negotiable Rules
 

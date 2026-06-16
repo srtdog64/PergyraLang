@@ -1,0 +1,12 @@
+// Regression: `as Long` widening and narrowing round-trip.
+// 5 (Int->Long), a 64-bit literal beyond int32, and the truncating Long->Int.
+// C and LLVM must produce identical output.
+func Main() -> Void {
+    let n: Int = 5;
+    let promoted: Long = n as Long;
+    let big: Long = 3000000000 as Long;
+    let back: Int = big as Int;
+    Log(ToString(promoted));
+    Log(ToString(big));
+    Log(ToString(back));
+}
