@@ -508,6 +508,7 @@ SEMANTIC_SOURCES = $(SEMANTIC_DIR)/type_system.c \
                    $(SEMANTIC_DIR)/type_checker_lambda_capture.c \
                    $(SEMANTIC_DIR)/type_checker_expr_names.c \
                    $(SEMANTIC_DIR)/type_checker_expr_ops.c \
+                   $(SEMANTIC_DIR)/type_checker_reflect.c \
                    $(SEMANTIC_DIR)/type_checker_builtins.c \
                    $(SEMANTIC_DIR)/type_checker_builtins_intent_observability.c \
                    $(SEMANTIC_DIR)/type_checker_builtins_nominal.c \

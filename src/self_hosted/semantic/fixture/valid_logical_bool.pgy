@@ -1,0 +1,7 @@
+func Main() -> Void {
+    let r: Bool = true && false;
+    if r {
+        return;
+    }
+    return;
+}

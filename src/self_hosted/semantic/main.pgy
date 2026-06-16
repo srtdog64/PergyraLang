@@ -550,6 +550,57 @@ func CheckUndefinedIdentifiers(expr: String, names: Array<String>) -> String {
     return "";
 }
 
+func CheckLogicalOperands(expr: String, names: Array<String>, types: Array<String>, func_names: Array<String>, func_rets: Array<String>) -> String {
+    let text: String = Trim(expr);
+    let n: Int = StringLength(text);
+    let i: Int = 0;
+    let depth: Int = 0;
+    while i < n {
+        let c: String = CharAt(text, i);
+        if c == "\"" {
+            i = i + 1;
+            while i < n && CharAt(text, i) != "\"" {
+                if CharAt(text, i) == "\\" {
+                    i = i + 1;
+                }
+                i = i + 1;
+            }
+            i = i + 1;
+            continue;
+        }
+        if c == "(" || c == "[" {
+            depth = depth + 1;
+            i = i + 1;
+            continue;
+        }
+        if c == ")" || c == "]" {
+            if depth > 0 {
+                depth = depth - 1;
+            }
+            i = i + 1;
+            continue;
+        }
+        if depth == 0 {
+            let c2: String = CharAt(text, i + 1);
+            if (c == "&" && c2 == "&") || (c == "|" && c2 == "|") {
+                let left: String = Substring(text, 0, i);
+                let right: String = Substring(text, i + 2, n - i - 2);
+                let lt: String = ExprType(left, names, types, func_names, func_rets);
+                let rt: String = ExprType(right, names, types, func_names, func_rets);
+                if lt != "Bool" && lt != "Unknown" {
+                    return Concat("SEMANTIC ERROR logical_operand_not_bool side=left actual=", lt);
+                }
+                if rt != "Bool" && rt != "Unknown" {
+                    return Concat("SEMANTIC ERROR logical_operand_not_bool side=right actual=", rt);
+                }
+                return "";
+            }
+        }
+        i = i + 1;
+    }
+    return "";
+}
+
 func CompareCallArgs(callee: String, args_src: String, sig: String, names: Array<String>, types: Array<String>, func_names: Array<String>, func_rets: Array<String>) -> String {
     let n: Int = StringLength(args_src);
     let i: Int = 0;
@@ -769,6 +820,10 @@ func CheckBody(content: String, start: Int, end: Int, return_type: String, names
             let let_undefined_error: String = CheckUndefinedIdentifiers(let_expr, names);
             if StringLength(let_undefined_error) > 0 {
                 return let_undefined_error;
+            }
+            let let_logical_error: String = CheckLogicalOperands(let_expr, names, types, func_names, func_rets);
+            if StringLength(let_logical_error) > 0 {
+                return let_logical_error;
             }
             let actual_type: String = ExprType(let_expr, names, types, func_names, func_rets);
             if declared_type != "Unknown" {

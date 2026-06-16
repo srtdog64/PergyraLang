@@ -66,6 +66,8 @@ SOURCE_PAIRS=(
     "valid_string_builtins:ok"
     "bad_tolower_assign:error"
     "bad_undefined_call:error"
+    "valid_logical_bool:ok"
+    "bad_logical_int:error"
     "bad_block_scope_leak:error"
     "bad_else_scope_leak:error"
     "valid_outer_block_assign:ok"

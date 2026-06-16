@@ -1,0 +1,1 @@
+SEMANTIC ERROR logical_operand_not_bool side=left actual=Int
