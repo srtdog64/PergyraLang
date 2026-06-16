@@ -141,6 +141,7 @@ double ast_number_value(const ASTNode* node);
 bool ast_number_is_long(const ASTNode* node);
 bool ast_number_is_float(const ASTNode* node);
 const char* ast_string_value(const ASTNode* node);
+void ast_morph_to_string(ASTNode* node, const char* value);
 bool ast_boolean_value(const ASTNode* node);
 ASTNode* ast_await_expression(const ASTNode* node);
 ASTNode* ast_channel_send_channel(const ASTNode* node);

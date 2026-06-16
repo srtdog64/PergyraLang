@@ -314,8 +314,7 @@ type_check_unary(ASTNode *expr, SemanticContext *ctx)
          * plain constant and reflect leaves no runtime trace.
          */
         const char *reflect_name = ast_identifier_name(reflect_target);
-        expr->type = AST_STRING;
-        expr->data.string.value = pergyra_strdup(reflect_name);
+        ast_morph_to_string(expr, reflect_name);
         return TYPE_PROJECTION;
     }
 
@@ -428,9 +427,7 @@ expr_ops_projection_member(ASTNode *expr, ASTNode *member_object,
         return NULL;
 
     if (strcmp(member_name, "kind") == 0) {
-        expr->type = AST_STRING;
-        expr->data.string.value =
-            pergyra_strdup(projection_kind_label(target_name, ctx));
+        ast_morph_to_string(expr, projection_kind_label(target_name, ctx));
         return TYPE_STRING;
     }
 
@@ -441,8 +438,7 @@ expr_ops_projection_member(ASTNode *expr, ASTNode *member_object,
             (sym != NULL && sym->type != NULL)
                 ? type_function_effects(sym->type) : EFFECT_NONE,
             buf, sizeof(buf));
-        expr->type = AST_STRING;
-        expr->data.string.value = pergyra_strdup(buf);
+        ast_morph_to_string(expr, buf);
         return TYPE_STRING;
     }
 
@@ -457,18 +453,17 @@ expr_ops_projection_member(ASTNode *expr, ASTNode *member_object,
                 if (cf == NULL || cf->name == NULL)
                     continue;
                 if (buf[0] != '\0')
-                    strncat(buf, ",", sizeof(buf) - strlen(buf) - 1);
-                strncat(buf, cf->name, sizeof(buf) - strlen(buf) - 1);
+                    pergyra_str_append(buf, sizeof(buf), ",");
+                pergyra_str_append(buf, sizeof(buf), cf->name);
                 const char *ft = cf->type != NULL
                     ? ast_type_name(cf->type) : NULL;
                 if (ft != NULL) {
-                    strncat(buf, ":", sizeof(buf) - strlen(buf) - 1);
-                    strncat(buf, ft, sizeof(buf) - strlen(buf) - 1);
+                    pergyra_str_append(buf, sizeof(buf), ":");
+                    pergyra_str_append(buf, sizeof(buf), ft);
                 }
             }
         }
-        expr->type = AST_STRING;
-        expr->data.string.value = pergyra_strdup(buf);
+        ast_morph_to_string(expr, buf);
         return TYPE_STRING;
     }
 
@@ -485,12 +480,48 @@ expr_ops_projection_member(ASTNode *expr, ASTNode *member_object,
                 if (mname == NULL)
                     continue;
                 if (buf[0] != '\0')
-                    strncat(buf, ",", sizeof(buf) - strlen(buf) - 1);
-                strncat(buf, mname, sizeof(buf) - strlen(buf) - 1);
+                    pergyra_str_append(buf, sizeof(buf), ",");
+                pergyra_str_append(buf, sizeof(buf), mname);
             }
         }
-        expr->type = AST_STRING;
-        expr->data.string.value = pergyra_strdup(buf);
+        ast_morph_to_string(expr, buf);
+        return TYPE_STRING;
+    }
+
+    if (strcmp(member_name, "params") == 0) {
+        ASTNode *decl = semantic_find_function_decl_by_name(ctx, target_name);
+        char buf[512];
+        buf[0] = '\0';
+        if (decl != NULL) {
+            size_t param_count = ast_func_param_count(decl);
+            for (size_t pi = 0; pi < param_count; pi++) {
+                FuncParam *fp = ast_func_param(decl, pi);
+                if (fp == NULL || fp->name == NULL)
+                    continue;
+                if (buf[0] != '\0')
+                    pergyra_str_append(buf, sizeof(buf), ",");
+                pergyra_str_append(buf, sizeof(buf), fp->name);
+                const char *pt = fp->type != NULL
+                    ? ast_type_name(fp->type) : NULL;
+                if (pt != NULL) {
+                    pergyra_str_append(buf, sizeof(buf), ":");
+                    pergyra_str_append(buf, sizeof(buf), pt);
+                }
+            }
+        }
+        ast_morph_to_string(expr, buf);
+        return TYPE_STRING;
+    }
+
+    if (strcmp(member_name, "returns") == 0) {
+        ASTNode *decl = semantic_find_function_decl_by_name(ctx, target_name);
+        const char *ret = NULL;
+        if (decl != NULL) {
+            ASTNode *rt = ast_func_return_type(decl);
+            if (rt != NULL)
+                ret = ast_type_name(rt);
+        }
+        ast_morph_to_string(expr, ret != NULL ? ret : "Void");
         return TYPE_STRING;
     }
     return NULL;

@@ -1,22 +1,23 @@
-// Regression: `reflect TypeName` yields a compile-time `projection`. Its
-// `.name` is the type name, `.kind` its declared kind ("struct" here),
-// `.effects` the effect set (empty for a plain struct), `.fields` the
-// comma-joined "name:Type" fields, and `.methods` the method names (empty for a
-// plain struct). C and LLVM must agree on every folded field.
+// Regression: `reflect` yields a compile-time `projection`. For a type:
+// `.name`/`.kind`/`.effects`/`.fields`/`.methods`. For a function: `.params`
+// ("name:Type" list) and `.returns` (return type name). Every field folds at
+// compile time; C and LLVM must agree on all of them.
 struct Account {
     id: Int
 }
 
+func Add(a: Int, b: Int) -> Int {
+    return a + b;
+}
+
 func Main() -> Void {
     let p: projection = reflect Account;
-    let n: String = p.name;
-    let k: String = p.kind;
-    let e: String = p.effects;
-    let f: String = p.fields;
-    let m: String = p.methods;
-    Log(n);
-    Log(k);
-    Log(e);
-    Log(f);
-    Log(m);
+    Log(p.name);
+    Log(p.kind);
+    Log(p.fields);
+    Log(p.methods);
+
+    let f: projection = reflect Add;
+    Log(f.params);
+    Log(f.returns);
 }

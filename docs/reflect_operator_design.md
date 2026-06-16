@@ -17,6 +17,13 @@ to the projection value itself. So a projection carries exactly its name today.
 This means projection is not yet a zero-runtime erased value; a fully erased
 compile-time-only representation is a later optimization, not a blocker.
 
+Invariant note: the semantic fold rewrites a node into a String through the
+parser-layer helper `ast_morph_to_string` (not raw `node->data.string` writes),
+because semantic-core-shape forbids `data.string.`/`data.number.`/`data.boolean.`
+access in `src/semantic`. String assembly for `.fields`/`.methods` uses the
+bounded `pergyra_str_append`, not `strncat` (forbidden by
+memory-string-safety).
+
 ## What it is
 
 `reflect` is a compile-time prefix operator. It takes a reflection target (a
@@ -229,6 +236,13 @@ build-loop session rather than a blind change):
 `NominalDeclKind` via `ast_class_nominal_kind`, returning `"struct"`,
 `"class"`, `"subject"`, `"vessel"`, `"object"`, or `"tobject"`, and falls back
 to `"enum"`/`"primitive"`/`"unknown"` from the type kind.
+
+Function reflection: when the reflected target is a function,
+`.params` folds the comma-joined `name:Type` parameter list
+(`semantic_find_function_decl_by_name` + `ast_func_param`) and `.returns` folds
+the return type name (`ast_func_return_type` + `ast_type_name`, defaulting to
+`"Void"`). Field accessors that do not apply to the target (e.g. `.fields` on a
+function, `.params` on a struct) fold to the empty string.
 
 Rung 5: a splice or generation surface that consumes a compile-time
 `projection` to emit declarations, closing the language-that-emits-languages

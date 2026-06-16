@@ -530,6 +530,13 @@ ASTNode* ast_create_string(const char* value) {
     return node;
 }
 
+void ast_morph_to_string(ASTNode* node, const char* value) {
+    if (node == NULL)
+        return;
+    node->type = AST_STRING;
+    node->data.string.value = pergyra_strdup(value != NULL ? value : "");
+}
+
 ASTNode* ast_create_boolean(bool value) {
     ASTNode* node = ast_create_node(AST_BOOLEAN);
     node->data.boolean.value = value;
