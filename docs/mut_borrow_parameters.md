@@ -235,3 +235,190 @@ lvalue-argument enforcement — until then a non-lvalue `&mut` argument is a C
 compile error rather than a Pergyra diagnostic), and migrating the linter's
 `ScanStructure` to a `diags: &mut Array<String>` parameter once LLVM lands so the
 linter parity gate stays green on both backends.
+
+## LLVM backend implementation spec (mapped, ready to implement)
+
+The LLVM backend uses the LLVM C API. The six emission points are located and
+the recipe mirrors the verified C lowering one-for-one. Everything is gated on
+`p->mode == PARAM_MODE_MUT_REF`, so programs without `&mut` produce identical IR
+and all 16 self-host gates stay green.
+
+1. Function signature type — `llvm_mir_emit.c`, the param-type loop (the
+   non-slot `else` branch, just after the pointer-self block near line 337).
+   After `param_types[i]` is set, add:
+   `if (p != NULL && p->mode == PARAM_MODE_MUT_REF) param_types[i] = LLVMPointerType(param_types[i], 0);`
+   so the `&mut T` parameter is lowered to `T*` in `LLVMFunctionType`.
+
+2. Forward declaration — the same pointer-ization must be applied wherever the
+   forward/prototype function type is built (`llvm_backend_forward_declare.c` /
+   `llvm_domain_forward.c`) so the declared and defined function types agree.
+
+3. ctx writeback state — `LLVMGenCtx` (`llvm_internal.h`) gains per-function
+   parallel arrays: `LLVMValueRef mut_ref_ptr[N]` (the incoming pointer param),
+   `LLVMValueRef mut_ref_alloca[N]` (the value-local copy), `LLVMTypeRef
+   mut_ref_pt[N]` (the value type), and `int mut_ref_count`. Reset
+   `mut_ref_count = 0` at function-param-emit entry
+   (`llvm_mir_param_emit.c`, the params entry around line 169).
+
+4. Parameter copy-in — `llvm_mir_param_emit.c`, the value-param block (lines
+   305-308). Today: `alloca = LLVMBuildAlloca(builder, pt, name);
+   LLVMBuildStore(builder, LLVMGetParam(fn, idx++), alloca); scope_declare`.
+   For `&mut`, the incoming param is a pointer, so copy-in the value:
+
+       LLVMValueRef ptr  = LLVMGetParam(fn, idx++);
+       alloca = LLVMBuildAlloca(ctx->builder, pt, p->name);
+       LLVMValueRef v = LLVMBuildLoad2(ctx->builder, pt, ptr, p->name);
+       LLVMBuildStore(ctx->builder, v, alloca);
+       llvm_scope_declare(ctx, p->name, alloca, pt);
+       /* record (ptr, alloca, pt) into ctx->mut_ref_* for writeback */
+
+   The body then references `p->name` -> the value alloca, unchanged, exactly
+   like the C copy-in `T name = *name__mutref;`.
+
+5. Copy-out write-back at returns — before every `ret`, for each recorded
+   `&mut` param emit `LLVMBuildStore(builder, LLVMBuildLoad2(builder, pt,
+   alloca, ""), ptr)`. The MIR return sites are `llvm_mir_block_emit.c` lines
+   562 (`LLVMBuildRet`), 584 and 671 (`LLVMBuildRetVoid`); also
+   `llvm_mir_emit.c:532` and `llvm_stmt.c` 93/110. This mirrors the C terminator
+   hook `*name__mutref = name;`. A small helper
+   `llvm_emit_mut_ref_writebacks(ctx)` called at each site keeps it one line,
+   matching `transpiler_emit_mut_ref_writebacks`.
+
+6. Call site — `llvm_expr_call_args.c` (the `LLVMBuildCall2` arg array around
+   lines 80-85). For an argument position whose callee parameter is
+   `PARAM_MODE_MUT_REF`, pass the argument's storage address (its scope alloca /
+   lvalue pointer) instead of the loaded value, mirroring the C `&arg`. This
+   needs the callee's `FuncParam` mode (already available via the routine /
+   decl lookup the call path uses) and the argument's addressable slot.
+
+Order of work: 3 (ctx state) -> 1+2 (pointer signature, inert until used) ->
+4 (copy-in) -> 5 (write-back) -> 6 (call site), then build and run the existing
+`/tmp/mut/t.pgy` and `t3.pgy` on `--backend=llvm` and confirm byte-identical
+behavior to the C backend, then the full 16-gate parity. Once green, migrate the
+linter's `ScanStructure` to `diags: &mut Array<String>` and confirm the linter
+parity gate stays byte-identical on both backends -- closing the original
+dogfooding loop.
+
+## LLVM implementation status (function-definition side done and IR-verified)
+
+Points 1-5 are implemented and verified: the `&mut` function-definition lowering
+is correct on LLVM. For the test `AddOne(&mut xs: Array<Int>)`, the emitted IR is
+`define void @AddOne(ptr ...)` with the copy-in load (`%v = load %PgyArray_Int,
+ptr %mr_ptr`) into a value local and the write-back store before `ret`; the LLVM
+verifier accepts the function body. Concretely landed:
+
+- `llvm_mir_emit.c` -- `&mut` param lowered to pointer in the defined function
+  type (signature).
+- `llvm_decl.c` -- same pointer lowering in the registered/forward function type
+  (this fixed the "registered function type drift" the signature change first
+  exposed).
+- `llvm_internal.h` -- `LLVMGenCtx` gains `mut_ref_ptr/alloca/pt[64]` +
+  `mut_ref_count`.
+- `llvm_mir_param_emit.c` -- copy-in (`LLVMBuildLoad2` from the pointer param
+  into the value alloca) + records the triple; resets `mut_ref_count` per
+  function; defines `llvm_emit_mut_ref_writebacks`.
+- `llvm_mir_block_emit.c` -- calls `llvm_emit_mut_ref_writebacks(ctx)` before the
+  three MIR return sites.
+
+All of the above is gated on `PARAM_MODE_MUT_REF`, so the corpus (no `&mut`)
+emits identical IR and the self-host gates stay green on both backends.
+
+Point 6 (call site) is now done, and `&mut` works end to end on LLVM. The plain
+user-function call does not go through the shared `llvm_emit_function_call_args`
+helper or the `llvm_expr_call_dispatch.c` argument loops -- those serve intent
+calls and the no-decl fallback. The real argument lowering for a function with a
+declaration is `llvm_build_boundary_call_args`
+(`llvm_expr_boundary_projection_helpers.c`), which already has the callee `decl`
+and its `FuncParam` modes. There, before the value path, a `&mut` parameter
+(`p->mode == PARAM_MODE_MUT_REF`) whose argument is an lvalue identifier passes
+the argument's scope storage (`llvm_scope_lookup_snapshot(ctx, name, &mr_var)`
+-> `mr_var.alloca`) instead of the loaded value -- mirroring the C `&arg`.
+
+`&mut` is therefore feature-complete on both backends. Verified end to end on C
+and LLVM: `AddOne(&mut xs: Array<Int>)` mutates the caller (`MUT OK len=4`), and
+a multi-return `Grow(&mut xs, n)` returns the new length and updates the caller
+on every branch (`MULTI-RET OK`). The full 16-gate self-host parity suite stays
+green on both backends. The only redundant exploratory edits (in
+`llvm_expr_call_args.c` and the `llvm_expr_call_dispatch.c` loop) were reverted
+once the boundary path was found, keeping the change to the one call site that
+matters.
+
+Dogfooding loop closed: the self-hosted linter's `ScanStructure` was migrated
+from the value-safe `ScanStructure(content) -> Array<String>` workaround back to
+`ScanStructure(content: String, diags: &mut Array<String>) -> Void`, pushing
+diagnostics directly into the caller's array. The linter compiles and runs on
+both backends with byte-identical output, the linter parity gate stays green,
+and the full `make self-host-preparation-test-smoke` passes -- so a real
+self-host corpus tool now exercises `&mut` on both backends. The feature that
+started from the linter's value-semantics workaround is now used by the linter
+itself.
+
+Step 2 borrow-check is now in place. Lvalue-argument enforcement already fell out
+of the existing boundary-argument rule: a non-lvalue `&mut` argument (e.g.
+`AddOne([1,2,3])`) is rejected at semantic time with "boundary arguments must use
+a named variable", identically on both backends. Exclusivity was the real gap and
+is now added in `type_checker_helpers_late.c`: passing the same variable to two
+`&mut` parameters of one call (`Two(v, v)`) was a silent lost update under
+copy-in/copy-out -- each `&mut` copies the value in independently and the last
+copy-out wins, dropping the first push. The call-argument checker now collects the
+identifier names bound to `&mut` parameters and rejects a repeat with "'v' is
+passed as '&mut' more than once in the same call; each '&mut' argument must be a
+distinct variable to avoid a lost update" (reusing the existing
+`PGY_SEM_BORROW_ESCAPE` code so the diagnostic catalog stays at 66/66, no drift).
+Verified: `Two(v, v)` is rejected on both backends, `AddOne(v)` and the working
+`&mut` tests still pass, all 16 self-host gates stay green.
+
+`&mut` is therefore complete: both backends, the dogfooding linter migration, and
+the borrow-check (lvalue + exclusivity). The only deferred item is the
+self-hosted reimplementation as a lowering layer (#134), for when the self-host
+middle end reaches lowering.
+
+## Self-hosted architecture: a lowering layer, not emission helpers
+
+Directive: in the self-hosted compiler (written in Pergyra), `&mut` must be a
+lowering layer, not the per-backend emission helpers the C and current LLVM
+backends use. The helper approach was a pragmatic compromise forced by the
+existing C codegen, which emits backend code directly; it is not the target
+architecture.
+
+Why the helper approach is wrong as an end state:
+
+- The copy-out write-back is scattered across every return site, in every
+  backend. The C backend needed the hook at the MIR terminator return, the AST
+  return statement, the cleanup-block returns, and the function-close
+  fall-through; the LLVM backend needs it at three more `ret` sites. Missing any
+  one is a silent miscompile -- exactly the bug where the first C write-backs
+  landed after the MIR terminator `return` and never executed.
+- The same logic is duplicated per backend (`transpiler_emit_mut_ref_writebacks`
+  in C, `llvm_emit_mut_ref_writebacks` in LLVM), so every backend re-derives the
+  same control-flow reasoning and can drift.
+- The signature pointer-ization, the copy-in, and the write-back are three
+  coupled facts spread across five files per backend, kept in sync by hand.
+
+The layer approach: lower `&mut` once as an IR-to-IR pass, before backend
+emission, so the IR a backend sees already contains the copy-in and copy-out as
+ordinary statements. A `func F(&mut x: T)` desugars to:
+
+    func F(x_ref: Ptr<T>) {        // signature: pointer parameter
+        var x: T = *x_ref;         // copy-in, inserted at entry
+        ... body unchanged ...
+        // before EVERY return (and the implicit tail return):
+        *x_ref = x;                // copy-out, inserted by the pass
+        return ...;
+    }
+
+The pass inserts the write-back the same way `defer` already runs at scope/return
+exits -- in fact `&mut` copy-out is a defer-shaped obligation and should reuse
+the same scope-exit machinery, so there is one place that knows "run these
+actions before every return," and both `defer` and `&mut` register into it. The
+backends then emit plain `load`/`store`; neither backend has any `&mut`-specific
+code, and adding a third backend (WASM) costs nothing.
+
+This generalizes. Effects, resilience (`retry` / `timeout`), `&mut`, and other
+cross-cutting concerns are each a small layer over the IR rather than emission
+hooks -- a nanopass-style middle end where each pass makes one transformation
+explicit. The self-hosted compiler should be built this way from the start: the
+semantic/HIR/MIR rungs already being grown in Pergyra are the place these layers
+live, and `&mut` is the first concrete case study for the pattern. When the
+self-hosted middle end reaches lowering, reimplement `&mut` as a desugaring layer
+and delete the per-backend write-back helpers.

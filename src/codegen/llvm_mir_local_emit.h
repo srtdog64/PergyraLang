@@ -19,5 +19,6 @@ void llvm_emit_mir_param_allocas(const MIRRoutine *routine,
                                  const char *owner_name,
                                  size_t param_count);
 void llvm_register_class_field_slots(LLVMGenCtx *ctx, const char *owner_name);
+void llvm_emit_mut_ref_writebacks(LLVMGenCtx *ctx);
 
 #endif

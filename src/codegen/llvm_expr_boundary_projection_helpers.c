@@ -216,6 +216,16 @@ llvm_build_boundary_call_args(LLVMGenCtx *ctx, ASTNode *decl,
         if (ctx->has_error)
             return NULL;
 
+        if (p != NULL && p->mode == PARAM_MODE_MUT_REF
+            && arg_node != NULL && arg_node->type == AST_IDENTIFIER) {
+            LLVMVarEntry mr_var;
+            if (llvm_scope_lookup_snapshot(ctx,
+                    ast_identifier_name(arg_node), &mr_var)) {
+                args[emitted_idx++] = mr_var.alloca;
+                continue;
+            }
+        }
+
         if (inner != NULL && arg_node != NULL && arg_node->type == AST_IDENTIFIER) {
             const char *source_name = ast_identifier_name(arg_node);
             LLVMVarEntry slot_var;

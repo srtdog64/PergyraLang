@@ -155,8 +155,34 @@ type_check_function_symbol_call(ASTNode *expr, Symbol *sym,
         }
     }
 
+    const char *mut_ref_arg_names[64];
+    int mut_ref_arg_count = 0;
     for (size_t i = 0; i < provided; i++) {
         ASTNode *arg_expr = ast_call_argument(expr, i);
+        if (callable_decl != NULL
+            && i < ast_func_param_count(callable_decl)
+            && arg_expr != NULL
+            && arg_expr->type == AST_IDENTIFIER) {
+            FuncParam *mp = ast_func_param(callable_decl, i);
+            if (mp != NULL && mp->mode == PARAM_MODE_MUT_REF) {
+                const char *an = ast_identifier_name(arg_expr);
+                for (int mj = 0; an != NULL && mj < mut_ref_arg_count; mj++) {
+                    if (mut_ref_arg_names[mj] != NULL
+                        && strcmp(mut_ref_arg_names[mj], an) == 0) {
+                        semantic_error_with_hints(ctx,
+                            PGY_CODE_SEM_BORROW_ESCAPE,
+                            PGY_CAUSE_BORROW_ESCAPE,
+                            PGY_FIX_BIND_TO_NAMED_VARIABLE_BEFORE_MOVE,
+                            arg_expr,
+                            "'%s' is passed as '&mut' more than once in the same call; each '&mut' argument must be a distinct variable to avoid a lost update",
+                            an);
+                        break;
+                    }
+                }
+                if (an != NULL && mut_ref_arg_count < 64)
+                    mut_ref_arg_names[mut_ref_arg_count++] = an;
+            }
+        }
         Type *param_type = type_function_param_type(sym->type, i);
         OwnershipTypeClass declared_param_ownership =
             semantic_classify_ownership_type(param_type, ctx);

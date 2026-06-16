@@ -163,12 +163,26 @@ llvm_register_class_field_slots(LLVMGenCtx *ctx, const char *owner_name)
 }
 
 void
+llvm_emit_mut_ref_writebacks(LLVMGenCtx *ctx)
+{
+    if (ctx == NULL)
+        return;
+    for (int i = 0; i < ctx->mut_ref_count; i++) {
+        LLVMValueRef v = LLVMBuildLoad2(ctx->builder, ctx->mut_ref_pt[i],
+            ctx->mut_ref_alloca[i], "");
+        LLVMBuildStore(ctx->builder, v, ctx->mut_ref_ptr[i]);
+    }
+}
+
+void
 llvm_emit_mir_param_allocas(const MIRRoutine *routine, ASTNode *func_decl,
                             LLVMValueRef fn, LLVMGenCtx *ctx, bool is_intent,
                             bool is_method, LLVMClassTypeEntry *owner_cls,
                             const char *owner_name, size_t param_count)
 {
     const char *routine_name = llvm_mir_routine_name(routine);
+    if (ctx != NULL)
+        ctx->mut_ref_count = 0;
     bool owner_is_role = is_method && routine != NULL
         && llvm_mir_routine_owner_ast_type(routine) == AST_ROLE_DECL;
     IntentBindingMetadataView binding_metadata = {0};
@@ -302,9 +316,23 @@ llvm_emit_mir_param_allocas(const MIRRoutine *routine, ASTNode *func_decl,
                 : (p->type != NULL
                     && llvm_mir_param_uses_pointer_self(ctx, p->type)))
                 pt = LLVMPointerType(pt, 0);
-            alloca = LLVMBuildAlloca(ctx->builder, pt, p->name);
-            LLVMBuildStore(ctx->builder,
-                LLVMGetParam(fn, (unsigned)emitted_index++), alloca);
+            if (p->mode == PARAM_MODE_MUT_REF) {
+                LLVMValueRef mr_ptr =
+                    LLVMGetParam(fn, (unsigned)emitted_index++);
+                alloca = LLVMBuildAlloca(ctx->builder, pt, p->name);
+                LLVMBuildStore(ctx->builder,
+                    LLVMBuildLoad2(ctx->builder, pt, mr_ptr, p->name), alloca);
+                if (ctx->mut_ref_count < 64) {
+                    ctx->mut_ref_ptr[ctx->mut_ref_count] = mr_ptr;
+                    ctx->mut_ref_alloca[ctx->mut_ref_count] = alloca;
+                    ctx->mut_ref_pt[ctx->mut_ref_count] = pt;
+                    ctx->mut_ref_count++;
+                }
+            } else {
+                alloca = LLVMBuildAlloca(ctx->builder, pt, p->name);
+                LLVMBuildStore(ctx->builder,
+                    LLVMGetParam(fn, (unsigned)emitted_index++), alloca);
+            }
             llvm_scope_declare(ctx, p->name, alloca, pt);
             if (param_type_name != NULL)
                 llvm_register_typed_var_abi_binding(ctx, p->name, alloca,

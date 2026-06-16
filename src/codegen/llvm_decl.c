@@ -212,6 +212,9 @@ llvm_forward_declare_func_with_signature(ASTNode *node,
                         ast_type_name(p->type)))) {
                 pt = LLVMPointerType(pt, 0);
             }
+            if (p != NULL && p->mode == PARAM_MODE_MUT_REF) {
+                pt = LLVMPointerType(pt, 0);
+            }
             slot_inner = param_type_name != NULL
                 ? llvm_boundary_slot_inner_name_from_type_name(ctx,
                     p,

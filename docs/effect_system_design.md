@@ -199,6 +199,43 @@ Corrected remaining work: a body-level derivation leaf for authority (calling an
 effect (today `authority` is a single coarse bit -- per-role precision still
 rides the separate `authorized_by` metadata); transitive cross-function effect
 propagation via the frontier graph if within-function derivation proves
-insufficient; and effect polymorphism for higher-order functions. The
+insufficient; and effect polymorphism for higher-order functions.
+
+## io leaf coverage (complete)
+
+The `io` effect is now introduced by every filesystem builtin, not just
+`ReadFile` / `WriteFile`: `FileExists`, `FileOpen`, `FileRead`, `FileWrite`,
+`FileClose`, and `DirWalk` all call `semantic_record_effect(ctx, EFFECT_IO)`
+(`DirWalk` records `io` and `nondeterministic`). A function contracted
+`with effects local` that touches any of these is rejected with the derived set
+named in the diagnostic. All 16 self-host parity gates stay green on both
+backends, and the three-family composition (`io`, `alloc`, `authority`) plus the
+MPaC `measurePartition` port and its P3 contract continue to pass.
+
+Effect families implemented and verified: `io`, `alloc`, `authority` (declarable
+and bridged to zone authority), on top of the pre-existing `secure`, `remote`,
+`nondeterministic`, `collapse`, `unsafe`.
+
+## Resilience intent modifiers: implementation path (scouted)
+
+Unlike the effect system, resilience modifiers do not exist yet (no `retry` /
+`timeout` / `backoff` tokens or parsing). The intent declaration parser
+(`parser_intent.c`, `parse_intent_declaration`) already parses optional clauses
+in a clean `seen_*_clause` + token-dispatch loop (mode / priority / rollback /
+success / failure), and the intent AST node (`ASTIntentDeclData`) is the place
+to add modifier fields. The implementation path is therefore:
+
+1. Parse `with retry(n)`, `timeout(d)`, `backoff(...)` as additional optional
+   clauses in that loop (no new lexer tokens needed -- `with` is `TOKEN_WITH`
+   and the modifier names can be identifiers), storing them on the intent AST.
+2. Lower them in the intent codegen by wrapping the intent body in a bounded
+   retry loop with a per-attempt timeout guard and a backoff delay, on the C
+   backend first, then mirrored byte-identical on LLVM.
+3. Gate so intents without the clause are byte-identical; verify on both
+   backends with dedicated retry/timeout behavior tests.
+
+The codegen wrapper (step 2) is the substantive, higher-risk part and is the
+reason this is sequenced after the effect-family work rather than batched with
+it. The
 declaration surface today is `with effects ...`, not a separate `uses` keyword;
 that spelling is already the language's effect contract.

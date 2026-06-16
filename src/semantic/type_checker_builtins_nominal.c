@@ -114,6 +114,7 @@ type_check_builtin_call(ASTNode *call, BuiltinKind kind, SemanticContext *ctx)
         }
         {
             Type *args[1] = { TYPE_STRING };
+            semantic_record_effect(ctx, EFFECT_IO);
             semantic_record_effect(ctx, EFFECT_NONDETERMINISTIC);
             return type_create_constructed(TYPE_ARRAY, args, 1);
         }
@@ -122,6 +123,7 @@ type_check_builtin_call(ASTNode *call, BuiltinKind kind, SemanticContext *ctx)
             require_assignable(type_check_expression(ast_call_argument(call, 0), ctx),
                 TYPE_STRING, ast_call_argument(call, 0), ctx);
         }
+        semantic_record_effect(ctx, EFFECT_IO);
         return TYPE_BOOL;
     case BUILTIN_FILE_OPEN:
         if (check_call_arity(call, 2, "FileOpen", ctx)) {
@@ -130,12 +132,14 @@ type_check_builtin_call(ASTNode *call, BuiltinKind kind, SemanticContext *ctx)
             require_assignable(type_check_expression(ast_call_argument(call, 1), ctx),
                 TYPE_STRING, ast_call_argument(call, 1), ctx);
         }
+        semantic_record_effect(ctx, EFFECT_IO);
         return TYPE_INT;
     case BUILTIN_FILE_READ:
         if (check_call_arity(call, 1, "FileRead", ctx)) {
             require_assignable(type_check_expression(ast_call_argument(call, 0), ctx),
                 TYPE_INT, ast_call_argument(call, 0), ctx);
         }
+        semantic_record_effect(ctx, EFFECT_IO);
         return TYPE_STRING;
     case BUILTIN_FILE_WRITE:
         if (check_call_arity(call, 2, "FileWrite", ctx)) {
@@ -144,12 +148,14 @@ type_check_builtin_call(ASTNode *call, BuiltinKind kind, SemanticContext *ctx)
             require_assignable(type_check_expression(ast_call_argument(call, 1), ctx),
                 TYPE_STRING, ast_call_argument(call, 1), ctx);
         }
+        semantic_record_effect(ctx, EFFECT_IO);
         return TYPE_VOID;
     case BUILTIN_FILE_CLOSE:
         if (check_call_arity(call, 1, "FileClose", ctx)) {
             require_assignable(type_check_expression(ast_call_argument(call, 0), ctx),
                 TYPE_INT, ast_call_argument(call, 0), ctx);
         }
+        semantic_record_effect(ctx, EFFECT_IO);
         return TYPE_VOID;
     case BUILTIN_READ_FILE:
         if (check_call_arity(call, 1, "ReadFile", ctx)) {

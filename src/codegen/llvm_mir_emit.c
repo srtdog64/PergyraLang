@@ -335,6 +335,9 @@ llvm_emit_func_from_mir(const MIRRoutine *routine, LLVMGenCtx *ctx)
                         && llvm_mir_param_uses_pointer_self(ctx, p->type))) {
                     param_types[i] = LLVMPointerType(param_types[i], 0);
                 }
+                if (p != NULL && p->mode == PARAM_MODE_MUT_REF) {
+                    param_types[i] = LLVMPointerType(param_types[i], 0);
+                }
             }
         }
     }

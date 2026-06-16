@@ -182,10 +182,10 @@ require_text "src/self_hosted/parity/diagnostic_catalog_checker_parity.sh" "miss
 require_text "src/self_hosted/parity/diagnostic_catalog_checker_parity.sh" "missing-input fixture"
 require_text "src/self_hosted/semantic/intent.md" "function return types"
 require_text "src/self_hosted/semantic/intent.md" "C compiler accept/reject oracle"
-require_text "src/self_hosted/semantic/main.pgy" "Status: rung-1 minimal"
+require_text "src/self_hosted/semantic/main.pgy" "Status: rung-2"
 require_text "src/self_hosted/semantic/main.pgy" "SEMANTIC ERROR let_type_mismatch"
 require_text "src/self_hosted/semantic/main.pgy" "SEMANTIC ERROR return_type_mismatch"
-require_text "src/self_hosted/parity/semantic_parity.sh" "Rung 1 parity"
+require_text "src/self_hosted/parity/semantic_parity.sh" "Rung 2 parity"
 require_text "src/self_hosted/parity/semantic_parity.sh" "C compiler"
 require_text "src/self_hosted/parity/semantic_parity.sh" "PGY_SELFHOST_SEMANTIC_BACKENDS"
 

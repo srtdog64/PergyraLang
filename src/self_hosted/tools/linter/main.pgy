@@ -58,9 +58,8 @@ func Diag(line: Int, col: Int, endCol: Int, sev: Int, msg: String) -> String {
     return StringJoin(parts, "");
 }
 
-func ScanStructure(content: String) -> Array<String> {
+func ScanStructure(content: String, diags: &mut Array<String>) -> Void {
     let n: Int = StringLength(content);
-    let out: Array<String> = [];
     // structural scan: bracket balance + empty block, skipping strings/comments
     let si: Int = 0;
     let sline: Int = 0;
@@ -108,11 +107,11 @@ func ScanStructure(content: String) -> Array<String> {
                             }
                             if sc == "}" || sc == ")" || sc == "]" {
                                 if sc == "}" && lastSig == "{" {
-                                    ArrayPush(out, Diag(lastSigLine, lastSigCol, lastSigCol + 1, 3, "empty block"));
+                                    ArrayPush(diags, Diag(lastSigLine, lastSigCol, lastSigCol + 1, 3, "empty block"));
                                 }
                                 depth = depth - 1;
                                 if depth < 0 {
-                                    ArrayPush(out, Diag(sline, scol, scol + 1, 1, "unmatched closing bracket"));
+                                    ArrayPush(diags, Diag(sline, scol, scol + 1, 1, "unmatched closing bracket"));
                                     depth = 0;
                                 }
                             }
@@ -130,10 +129,10 @@ func ScanStructure(content: String) -> Array<String> {
         }
     }
     if depth > 0 {
-        ArrayPush(out, Diag(sline, 0, 1, 1, "unbalanced brackets at end of file"));
+        ArrayPush(diags, Diag(sline, 0, 1, 1, "unbalanced brackets at end of file"));
     }
 
-    return out;
+    return;
 }
 
 func Main() -> Void {
@@ -183,11 +182,6 @@ func Main() -> Void {
     }
 
 
-    let structDiags: Array<String> = ScanStructure(content);
-    let mi: Int = 0;
-    while mi < ArrayLength(structDiags) {
-        ArrayPush(diags, structDiags[mi]);
-        mi = mi + 1;
-    }
+    ScanStructure(content, diags);
     Log(Concat("[", Concat(StringJoin(diags, ","), "]")));
 }

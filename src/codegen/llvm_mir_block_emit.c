@@ -6,6 +6,7 @@
 #ifdef PGY_LLVM_ENABLED
 
 #include "llvm_mir_block_emit.h"
+#include "llvm_mir_local_emit.h"
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -559,6 +560,7 @@ llvm_emit_mir_block_with_exprs(const MIRBasicBlock *mir_block,
                 if (val != NULL) {
                     if (!llvm_mir_emit_pin_exit(mir_block, ctx))
                         return;
+                    llvm_emit_mut_ref_writebacks(ctx);
                     LLVMBuildRet(ctx->builder, val);
                     emitted_terminator = true;
                 } else {
@@ -580,6 +582,7 @@ llvm_emit_mir_block_with_exprs(const MIRBasicBlock *mir_block,
             } else {
                 if (!llvm_mir_emit_pin_exit(mir_block, ctx))
                     return;
+                llvm_emit_mut_ref_writebacks(ctx);
                 if (function_ret_type == ctx->type_void) {
                     LLVMBuildRetVoid(ctx->builder);
                 } else {
@@ -667,6 +670,7 @@ llvm_emit_mir_block_with_exprs(const MIRBasicBlock *mir_block,
             llvm_mir_emit_owner_sync_exit(ctx, owner_cls, owner_sync, owner_name);
             if (!llvm_mir_emit_pin_exit(mir_block, ctx))
                 return;
+            llvm_emit_mut_ref_writebacks(ctx);
             if (function_ret_type == ctx->type_void) {
                 LLVMBuildRetVoid(ctx->builder);
             } else {

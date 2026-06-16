@@ -356,6 +356,16 @@ typedef struct LLVMGenCtx
     LLVMTypeRef     current_ret_type;
     LLVMTypeRef     current_function_ret_type;
     const char     *current_return_type_name;
+
+    /* Active &mut value-parameter copy-in/copy-out state for the current
+     * function. Mirrors the C backend's mut_ref_param tracking: the &mut
+     * parameter arrives as a pointer (mut_ref_ptr), is copied into a value
+     * local (mut_ref_alloca) of type mut_ref_pt, and is written back before
+     * every return. */
+    LLVMValueRef    mut_ref_ptr[64];
+    LLVMValueRef    mut_ref_alloca[64];
+    LLVMTypeRef     mut_ref_pt[64];
+    int             mut_ref_count;
     ASTNode        *current_return_callable_type;
     const char     *current_within_zone_name;
     ASTNode        *current_func_decl;
