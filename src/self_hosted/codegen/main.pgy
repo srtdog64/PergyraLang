@@ -1596,6 +1596,14 @@ func GenerateC(ast: String) -> String {
         if StartsWith(trimmed, "[export] ") {
             trimmed = Substring(trimmed, 9, StringLength(trimmed) - 9);
         }
+        // `event` declarations have no handler/dispatch model in this codegen.
+        // Reject them with an observable CODEGEN ERROR rather than silently
+        // dropping the declaration and emitting a call to an undefined symbol
+        // (which would be unobservable broken C -- a no-op fake would be worse,
+        // masking real event dispatch in programs that register handlers).
+        if StartsWith(trimmed, "Event:") {
+            Die(Concat("event declarations are not supported (no handler/dispatch model): ", trimmed));
+        }
         if StringLength(trimmed) > 0 {
             ArrayPush(indents, IndentOf(raw_line));
             ArrayPush(texts, trimmed);
