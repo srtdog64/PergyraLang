@@ -110,6 +110,7 @@ FIXTURES=(
     array_pop
     str_case_math
     string_concat_op
+    write_file
 )
 
 # Per-fixture runtime arguments. The same argv snapshot is passed to both the

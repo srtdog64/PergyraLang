@@ -1,0 +1,14 @@
+func Main() -> Void {
+    let path: String = ".tmp/wf_fixture_test.txt";
+    WriteFile(path, "alpha,beta,gamma");
+    let s: String = ReadFile(path);
+    Log(s);
+    Log(ToString(StringLength(s)));
+    WriteFile(path, "overwritten");
+    let s2: String = ReadFile(path);
+    Log(s2);
+    Log(ToString(StringLength(s2)));
+    if FileExists(path) {
+        Log("exists");
+    }
+}

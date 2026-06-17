@@ -729,7 +729,8 @@ func RewriteTokens(e: String, env: String) -> String {
     let f6: String = ReplaceAllOutsideStrings(f5, "Min(", "pgy_min(");
     let f7: String = ReplaceAllOutsideStrings(f6, "Max(", "pgy_max(");
     let g: String = ReplaceAllOutsideStrings(f7, "FileExists(", "pgy_fexists(");
-    let h0: String = ReplaceAllOutsideStrings(g, "ReadFile(", "pgy_readfile(");
+    let gw: String = ReplaceAllOutsideStrings(g, "WriteFile(", "pgy_writefile(");
+    let h0: String = ReplaceAllOutsideStrings(gw, "ReadFile(", "pgy_readfile(");
     let h: String = ReplaceAllOutsideStrings(h0, "DirWalk(", "pgy_dirwalk(");
     let k: String = ReplaceAllOutsideStrings(h, "Args(", "pgy_args(");
     let m: String = ReplaceAllOutsideStrings(k, "Substring(", "pgy_substr(");
@@ -1635,7 +1636,8 @@ func GenerateC(ast: String) -> String {
         || StringIndexOf(ast, "Args(") >= 0;
     let uses_args2: Bool = StringIndexOf(ast, "Args(") >= 0;
     let uses_io: Bool = StringIndexOf(ast, "ReadFile(") >= 0
-        || StringIndexOf(ast, "FileExists(") >= 0;
+        || StringIndexOf(ast, "FileExists(") >= 0
+        || StringIndexOf(ast, "WriteFile(") >= 0;
     let uses_join: Bool = StringIndexOf(ast, "StringJoin(") >= 0;
     let uses_split: Bool = StringIndexOf(ast, "Split(") >= 0;
     let uses_dirwalk: Bool = StringIndexOf(ast, "DirWalk(") >= 0;
@@ -1773,6 +1775,12 @@ func GenerateC(ast: String) -> String {
         header = Concat(header, "    char *buf = (char *)malloc((size_t)sz + 1);\n");
         header = Concat(header, "    size_t rd = fread(buf, 1, (size_t)sz, f);\n");
         header = Concat(header, "    buf[rd] = '\\0';\n    fclose(f);\n    return buf;\n}\n\n");
+        header = Concat(header, "static int pgy_writefile(const char *path, const char *content)\n{\n");
+        header = Concat(header, "    FILE *f = fopen(path, \"wb\");\n");
+        header = Concat(header, "    if (!f) { return 0; }\n");
+        header = Concat(header, "    size_t n = strlen(content);\n");
+        header = Concat(header, "    size_t wr = fwrite(content, 1, n, f);\n");
+        header = Concat(header, "    fclose(f);\n    return (int)wr;\n}\n\n");
     }
     if uses_dirwalk {
         // DirWalk: recursive regular-file walk, `/`-joined paths, flat lexical
