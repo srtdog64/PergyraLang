@@ -1,0 +1,4 @@
+func Main() -> Bool {
+    let b: Bool = 2 < "y";
+    return b;
+}

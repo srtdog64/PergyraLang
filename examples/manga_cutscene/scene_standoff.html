@@ -1,0 +1,70 @@
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>PGY cutscene — 대치 (standoff)</title>
+<style>
+  *{margin:0;padding:0;box-sizing:border-box}
+  html,body{height:100%}
+  body{background:#000;overflow:hidden;cursor:pointer;
+    font-family:"Arial Black","Apple SD Gothic Neo",system-ui,sans-serif;-webkit-user-select:none;user-select:none}
+  #stage{position:fixed;inset:0}
+  .cut{position:absolute;overflow:hidden;background:#f4f1ea;opacity:0;
+    transition:opacity .3s,transform .45s cubic-bezier(.16,.84,.3,1.2);box-shadow:0 0 0 3px #000}
+  .cut.show{opacity:1;transform:none!important}
+  .tone{position:absolute;inset:0;
+    background:repeating-linear-gradient(var(--ang,0deg),transparent 0 7px,rgba(0,0,0,.8) 7px 8px),
+      radial-gradient(circle,rgba(0,0,0,.18) 1px,transparent 1.4px);background-size:auto,7px 7px;
+    mix-blend-mode:multiply;opacity:.85}
+  /* manga eye close-up */
+  .eye{position:absolute;left:50%;top:46%;transform:translate(-50%,-50%);
+    width:42%;height:18%;background:#fff;border:5px solid #000;border-radius:50% 50% 48% 48%/70% 70% 40% 40%}
+  .eye::before{content:"";position:absolute;left:50%;top:54%;transform:translate(-50%,-50%);
+    width:34%;height:80%;background:#000;border-radius:50%}
+  .eye::after{content:"";position:absolute;left:60%;top:34%;width:14%;height:24%;background:#fff;border-radius:50%}
+  .brow{position:absolute;left:18%;top:24%;width:64%;height:7%;background:#000;
+    transform:rotate(var(--br,-8deg));border-radius:4px}
+  .vlabel{position:absolute;writing-mode:vertical-rl;font-weight:900;color:#000;font-size:clamp(16px,3vw,30px)}
+  .sweat{position:absolute;right:14%;top:18%;width:5%;height:8%;background:#9fd;opacity:0;
+    border-radius:50% 50% 50% 50%/60% 60% 40% 40%;box-shadow:inset 0 0 6px rgba(0,0,0,.2);
+    transition:opacity .2s,transform .4s}
+  .sweat.show{opacity:.9}
+  .sfx{position:absolute;left:50%;top:46%;transform:translate(-50%,-50%) scale(.3);
+    color:#fff;font-weight:900;font-size:clamp(54px,16vw,210px);-webkit-text-stroke:6px #000;
+    paint-order:stroke fill;text-shadow:8px 8px 0 #000;opacity:0;transition:opacity .15s,transform .25s cubic-bezier(.2,1.7,.3,1)}
+  .sfx.show{opacity:1;transform:translate(-50%,-50%) scale(1)!important}
+  #gz{position:absolute;inset:0;pointer-events:none}
+  .ga{stroke:#ff19a4;stroke-width:15;fill:none;stroke-linecap:round;stroke-dasharray:1200;stroke-dashoffset:1200;
+    filter:drop-shadow(0 0 5px rgba(0,0,0,.5));transition:stroke-dashoffset .9s ease}
+  .ga.show{stroke-dashoffset:0}
+  @keyframes shk{0%,100%{transform:translate(0,0)}25%{transform:translate(-10px,7px)}50%{transform:translate(9px,-8px)}75%{transform:translate(-7px,-6px)}}
+  #stage.shake{animation:shk .2s 2}
+  #hint{position:fixed;left:50%;bottom:14px;transform:translateX(-50%);color:#fff;font:600 13px system-ui;opacity:.6}
+</style>
+<div id="stage">
+  <div class="cut" id="L" data-beat="0" style="left:0;top:0;width:56%;height:100%;
+       clip-path:polygon(0 0,100% 0,78% 100%,0 100%);transform:translateX(-50px)">
+    <div class="tone" style="--ang:-18deg"></div><div class="brow" style="--br:-10deg"></div>
+    <div class="eye"></div><div class="vlabel" style="left:6%;top:6%">…来るか</div>
+  </div>
+  <div class="cut" id="R" data-beat="1" style="right:0;top:0;width:56%;height:100%;
+       clip-path:polygon(28% 0,100% 0,100% 100%,0 100%);transform:translateX(50px)">
+    <div class="tone" style="--ang:20deg"></div><div class="brow" style="--br:8deg;left:30%"></div>
+    <div class="eye" style="left:62%"></div><div class="sweat" id="sw" data-beat="3"></div>
+    <div class="vlabel" style="right:8%;top:6%">来い……！！</div>
+  </div>
+  <svg id="gz" data-beat="2" viewBox="0 0 1000 700" preserveAspectRatio="none">
+    <path class="ga" d="M 250 360 C 420 300, 580 300, 720 360"/>
+    <polygon class="ga" style="stroke:none;fill:#ff19a4" points="720,360 690,338 694,386"/>
+  </svg>
+  <div class="sfx" id="clash" data-beat="4">ガキィン<span style="font-size:.55em">!!</span></div>
+</div>
+<div id="hint">클릭 / Space → 다음 컷 · R → 리셋</div>
+<script>
+  const beats=[...document.querySelectorAll('[data-beat]')].sort((a,b)=>a.dataset.beat-b.dataset.beat);
+  let i=0;const stage=document.getElementById('stage');
+  function rev(el){el.classList.add('show');el.querySelectorAll('.ga').forEach(g=>g.classList.add('show'));
+    if(el.id==='clash'){stage.classList.add('shake');setTimeout(()=>stage.classList.remove('shake'),420);
+      document.body.animate([{filter:'invert(1)'},{filter:'invert(0)'}],{duration:120})}}
+  function next(){if(i<beats.length)rev(beats[i++])}
+  addEventListener('click',next);
+  addEventListener('keydown',e=>{if(['Space','Enter','ArrowRight'].includes(e.code)){e.preventDefault();next()}
+    if(e.key==='r'||e.key==='R'){beats.forEach(b=>{b.classList.remove('show');b.querySelectorAll('.ga').forEach(g=>g.classList.remove('show'))});i=0}});
+</script>

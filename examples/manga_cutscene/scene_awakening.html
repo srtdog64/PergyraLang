@@ -1,0 +1,60 @@
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>PGY cutscene — 각성 (awakening)</title>
+<style>
+  *{margin:0;padding:0;box-sizing:border-box}html,body{height:100%}
+  body{background:#000;overflow:hidden;cursor:pointer;
+    font-family:"Arial Black","Apple SD Gothic Neo",system-ui,sans-serif;-webkit-user-select:none;user-select:none}
+  #stage{position:fixed;inset:0;display:grid;place-items:center;background:#05060a}
+  .layer{position:absolute;inset:0;opacity:0;transition:opacity .4s}
+  .layer.show{opacity:1}
+  /* silhouette */
+  #sil{width:30%;height:62%;background:#000;border-radius:46% 46% 30% 30%/60% 60% 40% 40%;
+    box-shadow:0 0 60px 10px #000;position:relative;opacity:.96;transform:scale(.96);transition:transform .5s}
+  #sil.charge{transform:scale(1.02)}
+  #sil::after{content:"";position:absolute;left:50%;top:30%;transform:translate(-50%,-50%);
+    width:30%;height:14%;background:#0af;border-radius:50%;filter:blur(6px);opacity:0;transition:opacity .4s}
+  #sil.eye::after{opacity:1}
+  /* radial burst speedlines */
+  #burst{background:repeating-conic-gradient(from 0deg,#fff 0deg 1.4deg,transparent 1.4deg 4deg);
+    mix-blend-mode:screen;transform:scale(.2) rotate(0deg);transition:transform .5s cubic-bezier(.2,.9,.2,1.2);filter:contrast(1.4)}
+  #burst.show{transform:scale(1.6) rotate(8deg)}
+  #core{background:radial-gradient(circle at 50% 46%,#fff 0 8%,#9fe3ff 14%,rgba(10,180,255,.0) 42%);
+    mix-blend-mode:screen;transform:scale(.4);transition:transform .35s,opacity .3s}
+  #core.show{transform:scale(1.2)}
+  #ring{border-radius:50%;width:8%;height:8%;border:8px solid #cdefff;place-self:center;position:absolute;
+    opacity:0;transition:transform .55s cubic-bezier(.1,.7,.2,1),opacity .55s}
+  #ring.show{opacity:.0;transform:scale(22)}
+  .sfx{position:absolute;left:50%;top:48%;transform:translate(-50%,-50%) scale(.3) rotate(-4deg);
+    color:#fff;font-weight:900;font-size:clamp(56px,17vw,230px);-webkit-text-stroke:7px #000;paint-order:stroke fill;
+    text-shadow:9px 9px 0 #000;opacity:0;transition:opacity .12s,transform .25s cubic-bezier(.2,1.7,.3,1)}
+  .sfx.show{opacity:1;transform:translate(-50%,-50%) scale(1) rotate(-4deg)!important}
+  @keyframes shk{0%,100%{transform:translate(0,0)}25%{transform:translate(-12px,8px)}50%{transform:translate(10px,-9px)}75%{transform:translate(-8px,-7px)}}
+  #stage.shake{animation:shk .2s 3}
+  #hint{position:fixed;left:50%;bottom:14px;transform:translateX(-50%);color:#fff;font:600 13px system-ui;opacity:.6;z-index:9}
+</style>
+<div id="stage">
+  <div class="layer show"><div id="sil" style="margin:auto"></div></div>
+  <div class="layer" id="burst" data-beat="1"></div>
+  <div class="layer" id="core" data-beat="2"></div>
+  <div id="ring" data-beat="2"></div>
+  <div class="sfx" id="sfx" data-beat="3">覚醒<span style="font-size:.5em">!!</span></div>
+</div>
+<div id="hint">클릭 / Space → 다음 컷 · R → 리셋</div>
+<script>
+  const sil=document.getElementById('sil'),stage=document.getElementById('stage');
+  // beat 0 = charge the silhouette eye (handled specially), then revealable layers
+  const seq=[
+    ()=>{sil.classList.add('eye','charge')},
+    ()=>{document.querySelector('[data-beat="1"]').classList.add('show')},
+    ()=>{document.querySelectorAll('[data-beat="2"]').forEach(e=>e.classList.add('show'));
+         document.body.animate([{filter:'invert(1) brightness(2)'},{filter:'none'}],{duration:160})},
+    ()=>{document.querySelector('[data-beat="3"]').classList.add('show');
+         stage.classList.add('shake');setTimeout(()=>stage.classList.remove('shake'),620)}
+  ];
+  let i=0;
+  function next(){if(i<seq.length)seq[i++]()}
+  function reset(){location.reload()}
+  addEventListener('click',next);
+  addEventListener('keydown',e=>{if(['Space','Enter','ArrowRight'].includes(e.code)){e.preventDefault();next()}
+    if(e.key==='r'||e.key==='R')reset()});
+</script>

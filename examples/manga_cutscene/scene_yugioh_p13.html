@@ -1,0 +1,112 @@
+<!doctype html><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>PGY cutscene — page 13 (overlay / stack)</title>
+<!--
+  모델: 분할(tile)이 아니라 겹침(stack).
+  cut 1(Stage)이 화면 전체에 깔리고, 그 위에 패널이 한 장씩 덮여 올라간다.
+  각 오버레이는 흰 여백(matte) + 검은 테두리로 "위에 얹힌 컷"처럼 읽힌다.
+  최신 컷이 맨 위. 아래 PANELS 가 곧 PGY scene 의 stack 목록이다. ("PGY 보기")
+-->
+<style>
+  *{margin:0;padding:0;box-sizing:border-box}
+  body{background:#0a0a0c;color:#e8e8ec;font-family:"Apple SD Gothic Neo",system-ui,sans-serif;
+    height:100vh;display:flex;flex-direction:column;align-items:center;justify-content:center;overflow:hidden;user-select:none}
+  #top{position:fixed;top:0;left:0;right:0;display:flex;justify-content:space-between;align-items:center;
+    padding:12px 16px;font:700 13px system-ui;z-index:5}
+  #top .t span{color:#ff19a4}
+  #top .r{display:flex;gap:8px;align-items:center}
+  button{background:#1c1d24;color:#e8e8ec;border:1px solid #34353f;border-radius:7px;padding:7px 11px;
+    font:600 12px system-ui;cursor:pointer}
+  button:hover{border-color:#ff19a4}
+  #stage{height:88vh;aspect-ratio:566/864;background:#000;box-shadow:0 0 0 1px #2a2b34,0 20px 60px rgba(0,0,0,.6);cursor:pointer}
+  svg{width:100%;height:100%;display:block}
+  .base{opacity:0}
+  .base.on{animation:fade .3s ease forwards}
+  @keyframes fade{to{opacity:1}}
+  .lay{opacity:0;transform-box:fill-box;transform-origin:center}
+  .lay.on{animation:slap .28s cubic-bezier(.2,1.5,.45,1) forwards}
+  @keyframes slap{from{opacity:0;transform:scale(.74) rotate(-4deg)}to{opacity:1;transform:scale(1) rotate(0)}}
+  .num{fill:#9a978d;font:900 22px system-ui;pointer-events:none}
+  #hint{position:fixed;bottom:14px;font:600 12px system-ui;opacity:.5}
+  #code{position:fixed;inset:0;background:rgba(8,8,11,.96);display:none;padding:64px 20px 24px;overflow:auto;z-index:20}
+  #code pre{max-width:560px;margin:0 auto;font:13px/1.6 "SF Mono",ui-monospace,monospace;color:#cfe;white-space:pre;tab-size:2}
+  #code .k{color:#ff7fc4}#code .s{color:#9fe3ff}#code .n{color:#ffd27f}
+  #code .x{position:fixed;top:14px;right:16px}
+</style>
+<div id="top">
+  <div class="t"><span>PGY</span> · stack cuts — page 13</div>
+  <div class="r"><span id="count">1 / 7</span>
+    <button id="pgy">PGY 보기</button><button id="reset">↺ 다시</button></div>
+</div>
+<div id="stage">
+  <svg id="svg" viewBox="0 0 566 864" preserveAspectRatio="none"></svg>
+</div>
+<div id="hint">클릭 = 다음 컷이 위에 덮인다</div>
+<div id="code"><button class="x" onclick="document.getElementById('code').style.display='none'">닫기</button><pre id="src"></pre></div>
+<script>
+const W=566,H=864,SVGNS='http://www.w3.org/2000/svg';
+// [0]=화면 전체에 깔리는 베이스. 나머지는 그 위에 한 장씩 덮이는 오버레이 패널(겹침).
+const PANELS=[
+  {n:'Stage',     full:true},
+  {n:'KaibaTurn', pts:[[25,65],[250,35],[268,300],[42,335]]},
+  {n:'Marik',     pts:[[250,30],[432,52],[414,298],[233,282]]},
+  {n:'Ishizu',    pts:[[434,42],[550,58],[540,206],[424,193]]},
+  {n:'Banner',    pts:[[470,300],[558,322],[550,716],[462,696]]},
+  {n:'Beast',     pts:[[35,415],[408,462],[380,798],[18,756]]},
+  {n:'Impact',    pts:[[25,716],[206,750],[186,854],[8,842]]},
+];
+const svg=document.getElementById('svg'),count=document.getElementById('count');
+let idx=1; // 시작: Stage 한 장이 깔려 있음
+function centroid(p){let x=0,y=0;p.forEach(q=>{x+=q[0];y+=q[1]});return[x/p.length,y/p.length];}
+function build(){
+  svg.innerHTML='';
+  const defs=document.createElementNS(SVGNS,'defs');
+  defs.innerHTML='<pattern id="tone" width="11" height="11" patternTransform="rotate(34)" patternUnits="userSpaceOnUse">'
+    +'<rect width="11" height="11" fill="#e7e3d8"/><rect width="4" height="11" fill="#cbc6b6"/></pattern>';
+  svg.appendChild(defs);
+  PANELS.forEach((pl,i)=>{
+    const g=document.createElementNS(SVGNS,'g'); g.dataset.i=i;
+    if(pl.full){
+      const r=document.createElementNS(SVGNS,'polygon');
+      r.setAttribute('points','0,0 '+W+',0 '+W+','+H+' 0,'+H);
+      r.setAttribute('fill','url(#tone)'); g.setAttribute('class','base');
+      g.appendChild(r);
+    } else {
+      const pstr=pl.pts.map(p=>p.join(',')).join(' ');
+      const matte=document.createElementNS(SVGNS,'polygon');
+      matte.setAttribute('points',pstr); matte.setAttribute('fill','#f7f5ef');
+      matte.setAttribute('stroke','#f7f5ef'); matte.setAttribute('stroke-width','22'); matte.setAttribute('stroke-linejoin','round');
+      const panel=document.createElementNS(SVGNS,'polygon');
+      panel.setAttribute('points',pstr); panel.setAttribute('fill','#f4f1ea');
+      panel.setAttribute('stroke','#000'); panel.setAttribute('stroke-width','5'); panel.setAttribute('stroke-linejoin','round');
+      g.setAttribute('class','lay'); g.appendChild(matte); g.appendChild(panel);
+      const c=centroid(pl.pts);
+      const t=document.createElementNS(SVGNS,'text');
+      t.setAttribute('x',c[0]);t.setAttribute('y',c[1]+8);t.setAttribute('text-anchor','middle');
+      t.setAttribute('class','num');t.textContent=(i+1);
+      g.appendChild(t);
+    }
+    svg.appendChild(g);
+  });
+  show();
+}
+function show(){ count.textContent=idx+' / '+PANELS.length;
+  for(const g of svg.children){ if(g.tagName==='defs')continue;
+    if(+g.dataset.i<idx) g.classList.add('on'); } }
+document.getElementById('stage').onclick=()=>{ if(idx<PANELS.length){idx++;show();} };
+document.getElementById('reset').onclick=e=>{e.stopPropagation();idx=1;build();};
+// PGY scene 소스 (stack 모델)
+function pct(p){return(p[0]/W*100).toFixed(1)+'% '+(p[1]/H*100).toFixed(1)+'%';}
+function src(){
+  let s='<span class="k">scene</span> <span class="s">"page13"</span> {\n  <span class="k">advance</span>: click;\n  <span class="k">stack</span>;'
+    +'            <span class="s">// 분할 아님 — 위로 덮어쌓기</span>\n\n';
+  PANELS.forEach(pl=>{
+    if(pl.full){ s+='  <span class="k">cut</span> Stage {\n    <span class="k">shape</span>: <span class="k">full</span>;\n  }\n'; return; }
+    const pts=pl.pts.map(pct).join(', ').replace(/[-\d.]+%/g,m=>'<span class="n">'+m+'</span>');
+    s+='  <span class="k">cut</span> '+pl.n+' {\n    <span class="k">shape</span>: <span class="k">polygon</span>('+pts+');\n  }\n';
+  });
+  return s+'}';
+}
+document.getElementById('pgy').onclick=e=>{e.stopPropagation();
+  document.getElementById('src').innerHTML=src();document.getElementById('code').style.display='block';};
+build();
+</script>

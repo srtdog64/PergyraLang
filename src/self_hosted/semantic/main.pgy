@@ -7,7 +7,10 @@
 // use. Expression typing now covers literals, identifiers, unary not,
 // top-level binary operators (arithmetic yields Int, comparison and logical
 // yield Bool), and function calls typed by a signature table seeded with
-// built-ins and the program's own functions.
+// built-ins and the program's own functions. Binary operands are checked for
+// type agreement: comparison and arithmetic operators require equal left/right
+// operand types (skipped when either side is Unknown), mirroring the C oracle's
+// type_equals rule.
 
 func CharAt(s: String, i: Int) -> String {
     let n: Int = StringLength(s);
@@ -601,6 +604,148 @@ func CheckLogicalOperands(expr: String, names: Array<String>, types: Array<Strin
     return "";
 }
 
+func CheckBinaryOperands(expr: String, names: Array<String>, types: Array<String>, func_names: Array<String>, func_rets: Array<String>) -> String {
+    let text: String = Trim(expr);
+    let n: Int = StringLength(text);
+    let i: Int = 0;
+    let depth: Int = 0;
+    let has_logical: Bool = false;
+    let cmp_idx: Int = -1;
+    let cmp_len: Int = 0;
+    let add_idx: Int = -1;
+    let mul_idx: Int = -1;
+    while i < n {
+        let c: String = CharAt(text, i);
+        if c == "\"" {
+            i = i + 1;
+            while i < n && CharAt(text, i) != "\"" {
+                if CharAt(text, i) == "\\" {
+                    i = i + 1;
+                }
+                i = i + 1;
+            }
+            i = i + 1;
+            continue;
+        }
+        if c == "(" || c == "[" {
+            depth = depth + 1;
+            i = i + 1;
+            continue;
+        }
+        if c == ")" || c == "]" {
+            if depth > 0 {
+                depth = depth - 1;
+            }
+            i = i + 1;
+            continue;
+        }
+        if depth != 0 {
+            i = i + 1;
+            continue;
+        }
+        let c2: String = CharAt(text, i + 1);
+        if (c == "&" && c2 == "&") || (c == "|" && c2 == "|") {
+            has_logical = true;
+            i = i + 2;
+            continue;
+        }
+        if (c == "=" && c2 == "=") || (c == "!" && c2 == "=") {
+            if cmp_idx < 0 {
+                cmp_idx = i;
+                cmp_len = 2;
+            }
+            i = i + 2;
+            continue;
+        }
+        if (c == "<" || c == ">") && c2 == "=" {
+            if cmp_idx < 0 {
+                cmp_idx = i;
+                cmp_len = 2;
+            }
+            i = i + 2;
+            continue;
+        }
+        if c == "<" || c == ">" {
+            if cmp_idx < 0 {
+                cmp_idx = i;
+                cmp_len = 1;
+            }
+            i = i + 1;
+            continue;
+        }
+        if c == "+" || c == "*" || c == "/" {
+            if c == "+" {
+                if add_idx < 0 {
+                    add_idx = i;
+                }
+            } else {
+                if mul_idx < 0 {
+                    mul_idx = i;
+                }
+            }
+            i = i + 1;
+            continue;
+        }
+        if c == "-" && c2 != ">" {
+            let j: Int = i - 1;
+            while j >= 0 && (CharAt(text, j) == " " || CharAt(text, j) == "\t") {
+                j = j - 1;
+            }
+            let prevc: String = "";
+            if j >= 0 {
+                prevc = CharAt(text, j);
+            }
+            if j >= 0 && (prevc == ")" || prevc == "]" || prevc == "\"" || IsAlphaNum(prevc)) {
+                if add_idx < 0 {
+                    add_idx = i;
+                }
+            }
+            i = i + 1;
+            continue;
+        }
+        i = i + 1;
+    }
+    if has_logical {
+        return "";
+    }
+    let split_idx: Int = -1;
+    let split_len: Int = 1;
+    let kind: String = "";
+    if cmp_idx >= 0 {
+        split_idx = cmp_idx;
+        split_len = cmp_len;
+        kind = "compare";
+    } else if add_idx >= 0 {
+        split_idx = add_idx;
+        split_len = 1;
+        kind = "arith";
+    } else if mul_idx >= 0 {
+        split_idx = mul_idx;
+        split_len = 1;
+        kind = "arith";
+    }
+    if split_idx < 0 {
+        return "";
+    }
+    let left: String = Substring(text, 0, split_idx);
+    let right: String = Substring(text, split_idx + split_len, n - split_idx - split_len);
+    if StringLength(Trim(left)) == 0 || StringLength(Trim(right)) == 0 {
+        return "";
+    }
+    let lt: String = ExprType(left, names, types, func_names, func_rets);
+    let rt: String = ExprType(right, names, types, func_names, func_rets);
+    if lt == "Unknown" || rt == "Unknown" {
+        return "";
+    }
+    if lt == rt {
+        return "";
+    }
+    if kind == "compare" {
+        return Concat("SEMANTIC ERROR compare_type_mismatch left=", Concat(lt, Concat(" right=", rt)));
+    }
+    return Concat("SEMANTIC ERROR binop_type_mismatch left=", Concat(lt, Concat(" right=", rt)));
+}
+
 func CompareCallArgs(callee: String, args_src: String, sig: String, names: Array<String>, types: Array<String>, func_names: Array<String>, func_rets: Array<String>) -> String {
     let n: Int = StringLength(args_src);
     let i: Int = 0;
@@ -824,6 +969,10 @@ func CheckBody(content: String, start: Int, end: Int, return_type: String, names
             let let_logical_error: String = CheckLogicalOperands(let_expr, names, types, func_names, func_rets);
             if StringLength(let_logical_error) > 0 {
                 return let_logical_error;
+            }
+            let let_binop_error: String = CheckBinaryOperands(let_expr, names, types, func_names, func_rets);
+            if StringLength(let_binop_error) > 0 {
+                return let_binop_error;
             }
             let actual_type: String = ExprType(let_expr, names, types, func_names, func_rets);
             if declared_type != "Unknown" {

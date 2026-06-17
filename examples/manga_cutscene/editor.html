@@ -1,0 +1,137 @@
+<!doctype html><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>PGY manga cutscene — 캔버스 에디터</title>
+<style>
+  *{margin:0;padding:0;box-sizing:border-box}
+  body{background:#0d0e12;color:#e8e8ec;font-family:"Apple SD Gothic Neo",system-ui,sans-serif;height:100vh;display:flex;overflow:hidden}
+  #left{flex:1;display:flex;flex-direction:column;min-width:0}
+  #bar{display:flex;flex-wrap:wrap;gap:6px;padding:10px 12px;background:#15161b;border-bottom:1px solid #25262e}
+  button{background:#23242d;color:#e8e8ec;border:1px solid #34353f;border-radius:7px;padding:7px 11px;font:600 13px system-ui;cursor:pointer}
+  button:hover{border-color:#ff19a4}
+  button.go{background:#ff19a4;border-color:#ff19a4;color:#fff}
+  .sep{width:1px;background:#2c2d36;margin:0 4px}
+  #stagewrap{flex:1;display:grid;place-items:center;padding:18px;min-height:0}
+  #stage{position:relative;height:100%;aspect-ratio:460/620;background:#000;box-shadow:0 0 0 1px #2a2b34,0 18px 50px rgba(0,0,0,.5)}
+  svg{position:absolute;inset:0;width:100%;height:100%;touch-action:none}
+  .hud{fill:#ff19a4;stroke:#fff;stroke-width:2;cursor:grab}
+  .plabel{fill:#000;font:900 22px system-ui;pointer-events:none}
+  #right{width:340px;background:#101115;border-left:1px solid #25262e;display:flex;flex-direction:column}
+  #right h3{font:800 13px system-ui;padding:11px 14px;border-bottom:1px solid #25262e;letter-spacing:.04em}
+  #right h3 span{color:#ff19a4}
+  #code{flex:1;overflow:auto;padding:14px;font:13px/1.55 "SF Mono",ui-monospace,monospace;color:#cfe;white-space:pre;tab-size:2}
+  #code .k{color:#ff7fc4}#code .s{color:#9fe3ff}#code .n{color:#ffd27f}
+  #note{padding:9px 14px;font:12px/1.5 system-ui;opacity:.6;border-top:1px solid #25262e}
+  #hint{position:absolute;left:12px;bottom:10px;font:600 12px system-ui;opacity:.55;pointer-events:none}
+</style>
+<div id="left">
+  <div id="bar">
+    <button data-add="rect">+ 사각형</button>
+    <button data-add="trap">+ 사다리꼴</button>
+    <button data-add="wedge">+ 쐐기</button>
+    <button data-add="shard">+ 파편</button>
+    <div class="sep"></div>
+    <button id="del">삭제</button>
+    <button id="up">앞으로</button>
+    <button id="down">뒤로</button>
+    <div class="sep"></div>
+    <button id="run" class="go">▶ 실행</button>
+    <button id="edit" style="display:none">✎ 편집으로</button>
+  </div>
+  <div id="stagewrap">
+    <div id="stage">
+      <svg id="svg" viewBox="0 0 460 620" preserveAspectRatio="none"></svg>
+      <div id="hint">꼭짓점 드래그=모양 · 패널 클릭+드래그=이동 · 실행=클릭 연출</div>
+    </div>
+  </div>
+</div>
+<div id="right">
+  <h3><span>PGY</span> · scene 코드 (실시간)</h3>
+  <pre id="code"></pre>
+  <button id="copy" style="margin:10px 14px">PGY 복사</button>
+  <div id="note">캔버스에서 모양을 조절하면 좌표가 곧 <b>clip-path polygon</b>이 되어 코드로 나옵니다. 컷 순서 = 실행(클릭) 노출 순서.</div>
+</div>
+<script>
+const W=460,H=620,svg=document.getElementById('svg'),code=document.getElementById('code');
+const SVGNS='http://www.w3.org/2000/svg';
+let panels=[
+  {n:'Kaiba', pts:[[180,8],[300,8],[300,300],[150,330]]},
+  {n:'Yugi',  pts:[[315,260],[455,300],[420,560],[300,520]]},
+  {n:'Draw',  pts:[[10,140],[180,170],[150,420],[10,380]]},
+];
+let sel=0, mode='edit', drag=null;
+
+function presets(t){
+  if(t==='rect')  return [[40,40],[240,40],[240,240],[40,240]];
+  if(t==='trap')  return [[70,40],[210,40],[250,230],[30,230]];
+  if(t==='wedge') return [[40,60],[240,30],[250,210],[50,240]];
+  return [[40,30],[250,60],[210,250],[30,210]]; // shard
+}
+function add(t){ panels.push({n:'Cut'+(panels.length+1),pts:presets(t).map(p=>[...p])}); sel=panels.length-1; render(); }
+
+function ptStr(pts){ return pts.map(p=>(p[0]/W*100).toFixed(1)+'% '+(p[1]/H*100).toFixed(1)+'%').join(', '); }
+function render(){
+  svg.innerHTML='';
+  const speed=document.createElementNS(SVGNS,'defs');
+  speed.innerHTML='<pattern id="sl" width="14" height="14" patternTransform="rotate(20)" patternUnits="userSpaceOnUse"><rect width="14" height="14" fill="#f4f1ea"/><rect width="6" height="14" fill="#000"/></pattern>';
+  svg.appendChild(speed);
+  panels.forEach((pl,i)=>{
+    const poly=document.createElementNS(SVGNS,'polygon');
+    poly.setAttribute('points',pl.pts.map(p=>p.join(',')).join(' '));
+    poly.setAttribute('fill', i===sel?'url(#sl)':'#e9e6dd');
+    poly.setAttribute('stroke', i===sel?'#ff19a4':'#000');
+    poly.setAttribute('stroke-width', i===sel?'4':'3');
+    if(mode==='edit'){ poly.style.cursor='grab'; poly.addEventListener('pointerdown',e=>startMove(e,i)); }
+    poly.dataset.hidden = (mode==='run'&&!pl.shown)?'1':'';
+    if(poly.dataset.hidden){ poly.style.opacity=0; }
+    svg.appendChild(poly);
+    const c=centroid(pl.pts);
+    const lab=document.createElementNS(SVGNS,'text');
+    lab.setAttribute('x',c[0]); lab.setAttribute('y',c[1]); lab.setAttribute('text-anchor','middle');
+    lab.setAttribute('class','plabel'); lab.textContent=(i+1);
+    if(!(mode==='run'&&!pl.shown)) svg.appendChild(lab);
+    if(mode==='edit'&&i===sel){
+      pl.pts.forEach((p,vi)=>{ const h=document.createElementNS(SVGNS,'circle');
+        h.setAttribute('cx',p[0]);h.setAttribute('cy',p[1]);h.setAttribute('r',9);h.setAttribute('class','hud');
+        h.addEventListener('pointerdown',e=>startVert(e,i,vi)); svg.appendChild(h); });
+    }
+  });
+  emit();
+}
+function centroid(pts){let x=0,y=0;pts.forEach(p=>{x+=p[0];y+=p[1]});return [x/pts.length,y/pts.length];}
+function toLocal(e){const r=svg.getBoundingClientRect();return [(e.clientX-r.left)/r.width*W,(e.clientY-r.top)/r.height*H];}
+function startVert(e,i,vi){e.stopPropagation();sel=i;drag={type:'v',i,vi};svg.setPointerCapture(e.pointerId);}
+function startMove(e,i){sel=i;const l=toLocal(e);drag={type:'m',i,ox:l[0],oy:l[1],orig:panels[i].pts.map(p=>[...p])};svg.setPointerCapture(e.pointerId);render();}
+svg.addEventListener('pointermove',e=>{ if(!drag)return; const [x,y]=toLocal(e);
+  if(drag.type==='v'){ panels[drag.i].pts[drag.vi]=[clamp(x,0,W),clamp(y,0,H)]; }
+  else { const dx=x-drag.ox,dy=y-drag.oy; panels[drag.i].pts=drag.orig.map(p=>[clamp(p[0]+dx,0,W),clamp(p[1]+dy,0,H)]); }
+  render(); });
+addEventListener('pointerup',()=>drag=null);
+const clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
+
+function emit(){
+  let s='<span class="k">scene</span> <span class="s">"장면"</span> {\n  <span class="k">advance</span>: click;\n\n';
+  panels.forEach(pl=>{ s+='  <span class="k">cut</span> '+esc(pl.n)+' {\n    <span class="k">shape</span>: <span class="k">polygon</span>('+colorPts(ptStr(pl.pts))+');\n  }\n'; });
+  s+='}';
+  code.innerHTML=s;
+}
+function colorPts(t){return t.replace(/[-\d.]+%/g,m=>'<span class="n">'+m+'</span>');}
+function esc(t){return t.replace(/[&<>]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;'}[c]));}
+function plain(){let s='scene "장면" {\n  advance: click;\n\n';panels.forEach(p=>{s+='  cut '+p.n+' {\n    shape: polygon('+ptStr(p.pts)+');\n  }\n'});return s+'}';}
+
+document.querySelectorAll('[data-add]').forEach(b=>b.onclick=()=>add(b.dataset.add));
+document.getElementById('del').onclick=()=>{if(panels.length>1){panels.splice(sel,1);sel=Math.max(0,sel-1);render();}};
+document.getElementById('up').onclick=()=>{if(sel>0){[panels[sel-1],panels[sel]]=[panels[sel],panels[sel-1]];sel--;render();}};
+document.getElementById('down').onclick=()=>{if(sel<panels.length-1){[panels[sel+1],panels[sel]]=[panels[sel],panels[sel+1]];sel++;render();}};
+document.getElementById('copy').onclick=()=>{navigator.clipboard&&navigator.clipboard.writeText(plain());const b=event.target;b.textContent='복사됨!';setTimeout(()=>b.textContent='PGY 복사',1000);};
+
+let runIdx=0;
+document.getElementById('run').onclick=()=>{mode='run';runIdx=0;panels.forEach(p=>p.shown=false);
+  document.getElementById('run').style.display='none';document.getElementById('edit').style.display='';
+  document.getElementById('hint').textContent='클릭 = 다음 컷 등장';render();};
+document.getElementById('edit').onclick=()=>{mode='edit';panels.forEach(p=>delete p.shown);
+  document.getElementById('run').style.display='';document.getElementById('edit').style.display='none';
+  document.getElementById('hint').textContent='꼭짓점 드래그=모양 · 패널 드래그=이동 · 실행=클릭 연출';render();};
+document.getElementById('stage').addEventListener('click',e=>{ if(mode!=='run')return;
+  if(runIdx<panels.length){panels[runIdx].shown=true;runIdx++;render();} });
+
+render();
+</script>

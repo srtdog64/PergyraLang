@@ -1,0 +1,138 @@
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>PGY manga cutscene — target output prototype</title>
+<style>
+  :root { --ink:#111; --paper:#f4f1ea; }
+  * { margin:0; padding:0; box-sizing:border-box; }
+  html,body { height:100%; }
+  body {
+    background:#000; color:#fff; overflow:hidden;
+    font-family:"Arial Black","Apple SD Gothic Neo",system-ui,sans-serif;
+    -webkit-user-select:none; user-select:none; cursor:pointer;
+  }
+  #stage { position:fixed; inset:0; }
+
+  /* a manga "cut": diagonal/shard panel, hidden until its beat */
+  .cut {
+    position:absolute; overflow:hidden; background:var(--paper);
+    opacity:0; transition:opacity .35s ease, transform .45s cubic-bezier(.16,.84,.3,1.2);
+    box-shadow:0 0 0 3px #000, 0 0 28px rgba(0,0,0,.6);
+  }
+  .cut.show { opacity:1; transform:none !important; }
+
+  /* halftone + speedline texture inside a cut */
+  .tone { position:absolute; inset:0;
+    background:
+      repeating-linear-gradient(var(--ang,18deg), transparent 0 6px, rgba(0,0,0,.85) 6px 7px),
+      radial-gradient(circle, rgba(0,0,0,.18) 1px, transparent 1.4px);
+    background-size:auto, 7px 7px;
+    mix-blend-mode:multiply; opacity:.9;
+  }
+  .focus { position:absolute; inset:0;
+    background:radial-gradient(closest-side at var(--fx,50%) var(--fy,45%),
+      #fff 0 14%, rgba(255,255,255,.0) 60%);
+    mix-blend-mode:screen; }
+  .label { position:absolute; left:8%; bottom:8%; color:#000;
+    font-size:clamp(14px,2.4vw,26px); font-weight:900; letter-spacing:-.02em;
+    writing-mode:initial; }
+  .vlabel { position:absolute; right:6%; top:8%; color:#000;
+    writing-mode:vertical-rl; font-size:clamp(14px,2.2vw,24px); font-weight:900; }
+
+  /* SFX onomatopoeia */
+  .sfx {
+    position:absolute; color:#fff; font-weight:900; line-height:.85;
+    font-size:clamp(40px,11vw,150px); letter-spacing:-.03em;
+    -webkit-text-stroke:4px #000; paint-order:stroke fill;
+    text-shadow:6px 6px 0 #000; opacity:0;
+    transition:opacity .18s, transform .25s cubic-bezier(.2,1.6,.3,1);
+  }
+  .sfx.show { opacity:1; transform:none !important; }
+
+  /* 시선 유도 gaze arrow (SVG overlay) */
+  #gazeWrap { position:absolute; inset:0; pointer-events:none; }
+  #gaze { stroke:#ff19a4; stroke-width:16; fill:none; stroke-linecap:round;
+    filter:drop-shadow(0 0 6px rgba(0,0,0,.5));
+    stroke-dasharray:1400; stroke-dashoffset:1400;
+    transition:stroke-dashoffset 1.1s ease; }
+  #gaze.show { stroke-dashoffset:0; }
+  #gazeHead { fill:#ff19a4; opacity:0; transition:opacity .2s .9s; }
+  #gazeHead.show { opacity:1; }
+
+  /* shake */
+  @keyframes shk { 0%,100%{transform:translate(0,0)} 20%{transform:translate(-9px,6px)}
+    40%{transform:translate(8px,-7px)} 60%{transform:translate(-6px,-5px)} 80%{transform:translate(6px,6px)} }
+  #stage.shake { animation:shk .22s 2; }
+
+  #hint { position:fixed; left:50%; bottom:14px; transform:translateX(-50%);
+    color:#fff; font:600 13px system-ui; opacity:.65; letter-spacing:.04em; }
+  #counter { position:fixed; right:14px; top:12px; color:#fff; font:900 18px system-ui; opacity:.8; }
+</style>
+
+<div id="stage">
+  <!-- cut 1 : the draw -->
+  <div class="cut" id="c1" data-beat="0"
+       style="left:4%; top:8%; width:46%; height:54%;
+              clip-path:polygon(0 0, 100% 6%, 88% 100%, 0 86%);
+              transform:translateX(-60px) rotate(-3deg) scale(.9);">
+    <div class="tone" style="--ang:-22deg"></div>
+    <div class="focus" style="--fx:38%; --fy:40%"></div>
+    <div class="vlabel">ドロー！！</div>
+    <div class="label">神はオレの手の中に</div>
+  </div>
+
+  <!-- cut 2 : the summon (slam in) -->
+  <div class="cut" id="c2" data-beat="2"
+       style="right:2%; top:4%; width:54%; height:62%;
+              clip-path:polygon(14% 0, 100% 0, 100% 100%, 0 84%);
+              transform:translateY(-70px) rotate(4deg) scale(1.08);">
+    <div class="tone" style="--ang:30deg"></div>
+    <div class="focus" style="--fx:64%; --fy:50%"></div>
+  </div>
+
+  <!-- cut 3 : awe (flash) -->
+  <div class="cut" id="c3" data-beat="4"
+       style="left:6%; bottom:5%; width:50%; height:40%;
+              clip-path:polygon(0 18%, 92% 0, 100% 100%, 0 100%);
+              transform:translateX(-50px) translateY(40px);">
+    <div class="tone" style="--ang:8deg"></div>
+    <div class="label" style="left:6%; bottom:auto; top:10%;">モンスターではない</div>
+  </div>
+
+  <!-- SFX -->
+  <div class="sfx" id="sfx2" data-beat="3"
+       style="right:5%; top:30%; transform:rotate(-8deg) scale(.4);">召雷弾<span style="font-size:.6em">!!</span></div>
+  <div class="sfx" id="sfx3" data-beat="5"
+       style="left:4%; bottom:8%; font-size:clamp(48px,14vw,190px); transform:rotate(6deg) scale(.4);">神だ<span style="font-size:.55em">!!</span></div>
+
+  <!-- gaze arrow -->
+  <svg id="gazeWrap" data-beat="1" viewBox="0 0 1000 700" preserveAspectRatio="none">
+    <path id="gaze" d="M 360 520 C 320 360, 300 250, 470 210 C 640 175, 720 250, 760 150"/>
+    <polygon id="gazeHead" points="760,150 735,182 786,184"/>
+  </svg>
+</div>
+
+<div id="counter">28</div>
+<div id="hint">클릭 / Space → 다음 컷  ·  R → 처음부터</div>
+
+<script>
+  const beats = [...document.querySelectorAll('[data-beat]')]
+      .sort((a,b)=> (+a.dataset.beat) - (+b.dataset.beat));
+  let i = 0;
+  const stage = document.getElementById('stage');
+
+  function reveal(el){
+    el.classList.add('show');
+    if (el.id === 'c2'){ stage.classList.add('shake');
+      setTimeout(()=>stage.classList.remove('shake'), 500); }
+    if (el.id === 'sfx3'){ document.body.animate(
+      [{filter:'invert(1)'},{filter:'invert(0)'}], {duration:140}); }
+  }
+  function next(){ if(i < beats.length){ reveal(beats[i]); i++; } }
+  function reset(){ beats.forEach(b=>b.classList.remove('show')); i=0; }
+
+  addEventListener('click', next);
+  addEventListener('keydown', e=>{
+    if(e.code==='Space'||e.code==='Enter'||e.code==='ArrowRight'){ e.preventDefault(); next(); }
+    if(e.key==='r'||e.key==='R'){ reset(); }
+  });
+</script>

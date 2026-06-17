@@ -1,0 +1,57 @@
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>PGY — manga cutscene gallery</title>
+<style>
+  *{margin:0;padding:0;box-sizing:border-box}
+  body{background:#0b0b0d;color:#eee;font-family:"Apple SD Gothic Neo",system-ui,sans-serif;
+    padding:48px 20px;min-height:100vh}
+  .wrap{max-width:920px;margin:0 auto}
+  h1{font-size:clamp(28px,5vw,46px);font-weight:900;letter-spacing:-.02em}
+  h1 .pgy{color:#ff19a4}
+  p.sub{opacity:.7;margin:10px 0 4px;line-height:1.6}
+  .note{margin:18px 0 34px;padding:14px 16px;border-left:3px solid #ff19a4;background:#15161b;
+    border-radius:0 8px 8px 0;font-size:14px;line-height:1.7;opacity:.92}
+  .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:18px}
+  a.card{display:block;background:#15161b;border:1px solid #23242b;border-radius:12px;overflow:hidden;
+    text-decoration:none;color:#eee;transition:transform .15s,border-color .15s}
+  a.card:hover{transform:translateY(-3px);border-color:#ff19a4}
+  .thumb{aspect-ratio:16/10;background:#000;position:relative;overflow:hidden}
+  .t1{background:linear-gradient(135deg,#f4f1ea 40%,#000 40%);clip-path:polygon(0 0,100% 0,100% 70%,0 100%)}
+  .t2{background:#f4f1ea}.t2::before,.t2::after{content:"";position:absolute;top:0;bottom:0;width:50%;
+    background:repeating-linear-gradient(20deg,transparent 0 6px,rgba(0,0,0,.85) 6px 7px)}
+  .t2::before{left:0;clip-path:polygon(0 0,100% 0,75% 100%,0 100%)}
+  .t2::after{right:0;clip-path:polygon(28% 0,100% 0,100% 100%,0 100%)}
+  .t3{background:#05060a}.t3::before{content:"";position:absolute;inset:0;
+    background:repeating-conic-gradient(from 0deg,#fff 0 1.4deg,transparent 1.4deg 4deg);
+    mix-blend-mode:screen;transform:scale(.9);filter:contrast(1.4)}
+  .t4{background:repeating-linear-gradient(#f4f1ea 0 30%,#0b0b0d 30% 34%)}
+  .t5{background:#000}
+  .t5::before{content:"";position:absolute;left:6%;top:8%;width:40%;height:34%;background:#f4f1ea;
+    clip-path:polygon(0 0,100% 0,72% 100%,0 86%);box-shadow:0 0 0 2px #000}
+  .t5::after{content:"";position:absolute;right:6%;bottom:8%;width:62%;height:60%;background:#f4f1ea;
+    clip-path:polygon(22% 0,100% 12%,100% 100%,0 100%);box-shadow:0 0 0 2px #000}
+  .meta{padding:12px 14px}.meta b{font-size:16px;font-weight:900}.meta span{display:block;opacity:.6;font-size:12px;margin-top:3px}
+  .arrow{position:absolute;left:18%;top:62%;width:46%;height:3px;background:#ff19a4;transform:rotate(-30deg);transform-origin:left}
+  .arrow::after{content:"";position:absolute;right:-2px;top:-5px;border:7px solid transparent;border-left-color:#ff19a4}
+  code{background:#000;padding:1px 6px;border-radius:4px;color:#9fe3ff}
+</style>
+<div class="wrap">
+  <h1><span class="pgy">PGY</span> · 만화 컷씬</h1>
+  <p class="sub">클릭으로 컷이 한 장씩 터지는 연출 — 일본만화/웹툰. 아래는 <b>PGY가 생성할 목표 출력물</b>의 프로토타입.</p>
+  <div class="note">
+    설계: <code>scene { cut … gaze A->B … sfx … }</code> 가 <b>intent/step 상태머신</b>으로 컴파일되고,
+    <code>reflect</code> 가 컷들을 순회해 <b>HTML/CSS/JS(clip-path 패널 · SVG 시선 화살표 · beat 컨트롤러)</b> 를 생성한다.
+    여기 4개는 그 출력을 손으로 먼저 구현한 것. 다음 단계는 이걸 PGY 컴파일 결과로 뽑는 것.
+  </div>
+  <div class="grid">
+    <a class="card" href="prototype.html"><div class="thumb t1"><div class="arrow"></div></div>
+      <div class="meta"><b>액션 — 신의 카드</b><span>대각선 컷 · 시선 유도 · SFX</span></div></a>
+    <a class="card" href="scene_standoff.html"><div class="thumb t2"></div>
+      <div class="meta"><b>대치</b><span>분할 화면 · 시선 핑퐁 · ガキィン!!</span></div></a>
+    <a class="card" href="scene_awakening.html"><div class="thumb t3"></div>
+      <div class="meta"><b>각성</b><span>상승 연출 · 방사 스피드라인 · 플래시</span></div></a>
+    <a class="card" href="scene_webtoon.html"><div class="thumb t4"></div>
+      <div class="meta"><b>웹툰 (세로)</b><span>같은 엔진, 세로 스크롤 페이싱</span></div></a>
+    <a class="card" href="scene_yugioh_p13.html"><div class="thumb t5"></div>
+      <div class="meta"><b>페이지 13 — 컷 모양만</b><span>레퍼런스 패널 지오메트리 · 이미지 없음</span></div></a>
+  </div>
+</div>

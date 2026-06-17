@@ -1,0 +1,1 @@
+SEMANTIC ERROR compare_type_mismatch left=Int right=String

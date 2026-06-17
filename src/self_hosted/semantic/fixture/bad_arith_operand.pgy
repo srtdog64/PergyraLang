@@ -1,0 +1,4 @@
+func Main() -> Int {
+    let n: Int = 1 + "x";
+    return n;
+}

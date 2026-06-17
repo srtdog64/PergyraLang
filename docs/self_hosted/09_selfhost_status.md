@@ -111,12 +111,17 @@ Substrate progress.
   each callee's parameter signature, emitting `call_arg_type_mismatch` when a
   known argument type disagrees with the declared parameter type, and checks
   call arity against the parameter count, emitting `call_arity_mismatch` when
-  the number of arguments differs from the declaration.
+  the number of arguments differs from the declaration. It checks binary operand
+  agreement in `let` initializers: comparison and arithmetic operators require
+  equal left/right operand types, emitting `compare_type_mismatch` and
+  `binop_type_mismatch` when both operand types are known and disagree, mirroring
+  the C oracle's `type_equals` rule and skipping the check when either side is
+  Unknown.
   `src/self_hosted/parity/semantic_parity.sh` compares its verdicts with the C
-  compiler accept/reject oracle on C and LLVM across 41 committed fixtures
+  compiler accept/reject oracle on C and LLVM across 44 committed fixtures
   (typed let/return, arithmetic, comparison, call-return, call-argument,
   call-arity, branch-condition, scoped-block, assignment, bare-call-statement,
-  and undefined-identifier cases), all
+  binary-operand-agreement, and undefined-identifier cases), all
   byte-equal on both backends. It checks that `if` / `while` conditions are
   `Bool` (`condition_not_bool`), that a simple local assignment `name = expr`
   matches the variable's declared type (`assign_type_mismatch`), and that
@@ -161,10 +166,11 @@ constructors are present on C and LLVM, and pass authors pair them with
 now runs in that shape at rung-2: expression operators, function-call return
 typing, positional call-argument typing, call-arity checking (in `let`/`return`
 and bare expression statements), branch condition (`if`/`while` must be `Bool`)
-typing, scoped `if`/`while` body typing, simple local assignment typing, and
-simple/compound undefined-identifier
+typing, scoped `if`/`while` body typing, simple local assignment typing,
+binary-operand-agreement typing (comparison and arithmetic operands must share a
+type), and simple/compound undefined-identifier
 diagnostics are covered, and verdicts stay
-byte-equal beside the C type checker on 41 committed fixtures across both
+byte-equal beside the C type checker on 44 committed fixtures across both
 backends. The checker now covers the common statement forms (let, return,
 assignment, if/while body, if/while condition, bare call). The next increments
 require deeper machinery: real-source semantic stability over the self-hosted

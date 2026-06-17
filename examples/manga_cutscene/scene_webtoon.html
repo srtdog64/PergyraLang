@@ -1,0 +1,44 @@
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>PGY cutscene — 웹툰 세로 (webtoon)</title>
+<style>
+  *{margin:0;padding:0;box-sizing:border-box}
+  body{background:#0b0b0d;color:#eee;cursor:pointer;
+    font-family:"Apple SD Gothic Neo",system-ui,sans-serif;-webkit-user-select:none;user-select:none}
+  #reel{width:min(440px,92vw);margin:0 auto;padding:40vh 0}
+  .panel{position:relative;width:100%;margin:0 0 26px;background:#f4f1ea;color:#111;overflow:hidden;
+    border-radius:4px;box-shadow:0 0 0 2px #000,0 12px 40px rgba(0,0,0,.5);
+    opacity:0;transform:translateY(40px);transition:opacity .5s,transform .6s cubic-bezier(.16,.84,.3,1)}
+  .panel.show{opacity:1;transform:none}
+  .tall{aspect-ratio:3/4}.wide{aspect-ratio:3/2}.sq{aspect-ratio:1/1}
+  .tone{position:absolute;inset:0;background:
+    repeating-linear-gradient(var(--ang,12deg),transparent 0 8px,rgba(0,0,0,.08) 8px 9px),
+    radial-gradient(circle,rgba(0,0,0,.14) 1px,transparent 1.4px);background-size:auto,8px 8px}
+  .cap{position:absolute;left:7%;bottom:7%;font-weight:900;font-size:18px;color:#111}
+  .bubble{position:absolute;background:#fff;border:3px solid #000;border-radius:18px;padding:8px 14px;
+    font-weight:800;font-size:15px;color:#111;max-width:64%}
+  .bubble::after{content:"";position:absolute;left:24px;bottom:-14px;border:8px solid transparent;border-top-color:#000}
+  .dark{background:#15161b;color:#eee}.dark .cap{color:#fff}
+  .flash{position:absolute;inset:0;background:#fff;opacity:0}
+  #hint{position:fixed;left:50%;bottom:14px;transform:translateX(-50%);color:#fff;font:600 13px system-ui;opacity:.6;z-index:9}
+</style>
+<div id="reel">
+  <div class="panel wide" data-beat="0"><div class="tone" style="--ang:6deg"></div>
+    <div class="cap">…비가 그쳤다.</div></div>
+  <div class="panel sq" data-beat="1"><div class="tone" style="--ang:-10deg"></div>
+    <div class="bubble" style="left:8%;top:10%">…늦었네.</div></div>
+  <div class="panel tall dark" data-beat="2"><div class="tone" style="--ang:18deg"></div>
+    <div class="cap" style="font-size:22px">그 애가, 거기 서 있었다.</div></div>
+  <div class="panel wide" data-beat="3"><div class="flash"></div><div class="tone" style="--ang:-22deg"></div>
+    <div class="cap" style="font-size:26px;color:#c0153a">— 돌아왔구나.</div></div>
+</div>
+<div id="hint">클릭 / Space → 다음 컷(아래로) · R → 리셋</div>
+<script>
+  const beats=[...document.querySelectorAll('[data-beat]')].sort((a,b)=>a.dataset.beat-b.dataset.beat);
+  let i=0;
+  function next(){if(i>=beats.length)return;const el=beats[i++];el.classList.add('show');
+    el.scrollIntoView({behavior:'smooth',block:'center'});
+    const f=el.querySelector('.flash');if(f){f.animate([{opacity:.9},{opacity:0}],{duration:260})}}
+  addEventListener('click',next);
+  addEventListener('keydown',e=>{if(['Space','Enter','ArrowDown','ArrowRight'].includes(e.code)){e.preventDefault();next()}
+    if(e.key==='r'||e.key==='R'){beats.forEach(b=>b.classList.remove('show'));i=0;scrollTo(0,0)}});
+</script>
