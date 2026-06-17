@@ -1,0 +1,1 @@
+{"schema":"pgy.selfhost.semantic.v1","ok":false,"diagnostics":[{"stage":"semantic","severity":"error","code":"call_arg_type_mismatch","reason":"call argument type does not match the callee parameter type","fix":"change the argument expression or the callee parameter type","span":null,"facts":{"func":"Twice","expected":"Int","actual":"String"}}]}

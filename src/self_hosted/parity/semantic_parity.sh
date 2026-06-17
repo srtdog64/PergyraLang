@@ -71,6 +71,18 @@ SOURCE_PAIRS=(
     "valid_literal_compare:ok"
     "bad_arith_operand:error"
     "bad_compare_operand:error"
+    "bad_logical_return:error"
+    "bad_compare_condition:error"
+    "bad_binop_assign:error"
+    "valid_compare_condition:ok"
+    "bad_assign_type:error"
+    "bad_condition_not_bool:error"
+    "bad_logical_right:error"
+    "bad_logical_condition:error"
+    "bad_logical_assign:error"
+    "bad_binop_return:error"
+    "bad_compare_assign:error"
+    "bad_binop_condition:error"
     "bad_block_scope_leak:error"
     "bad_else_scope_leak:error"
     "valid_outer_block_assign:ok"
@@ -125,7 +137,7 @@ run_semantic_backend() {
     for pair in "${SOURCE_PAIRS[@]}"; do
         local base="${pair%%:*}"
         local source="$FIXTURE_DIR/${base}.pgy"
-        local expected_file="$EXPECTED_DIR/${base}.txt"
+        local expected_file="$EXPECTED_DIR/${base}.json"
         local pergyra_out
         local rc
 
@@ -147,6 +159,16 @@ run_semantic_backend() {
 
         if [[ "$rc" -ne 0 ]]; then
             echo "[self-host-parity:semantic] backend=$backend $base: exit-code FAIL ($rc)" >&2
+            printf '%s\n' "$pergyra_out" >&2
+            exit 1
+        fi
+        if [[ "$pergyra_out" == SEMANTIC\ * ]]; then
+            echo "[self-host-parity:semantic] backend=$backend $base: raw semantic text leaked" >&2
+            printf '%s\n' "$pergyra_out" >&2
+            exit 1
+        fi
+        if ! grep -Fq '"schema":"pgy.selfhost.semantic.v1"' <<<"$pergyra_out"; then
+            echo "[self-host-parity:semantic] backend=$backend $base: semantic JSON schema missing" >&2
             printf '%s\n' "$pergyra_out" >&2
             exit 1
         fi

@@ -1,0 +1,6 @@
+func Main() -> Void {
+    if 7 && true {
+        return;
+    }
+    return;
+}

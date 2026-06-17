@@ -18,15 +18,17 @@ direct calls to known functions.
 
 ## Output Contract
 
-The tool prints one deterministic verdict:
+The tool prints one deterministic JSON verdict:
 
-- `SEMANTIC OK`
-- `SEMANTIC ERROR <kind> expected=<type> actual=<type>`
+- `{"schema":"pgy.selfhost.semantic.v1","ok":true,"diagnostics":[]}`
+- `{"schema":"pgy.selfhost.semantic.v1","ok":false,"diagnostics":[...]}`
 
-Only the first semantic mismatch is reported. Unsupported expressions are
-classified as `Unknown` and do not fail the subset checker, except for simple
-identifier tokens in expression position where the name is absent from the
-current local environment; those report `undefined_symbol`.
+Only the first semantic mismatch is reported. Diagnostics carry `stage`,
+`severity`, stable `code`, human `reason`, human `fix`, `span` (currently null
+until source spans are captured), and structured `facts`. Unsupported
+expressions are classified as `Unknown` and do not fail the subset checker,
+except for simple identifier tokens in expression position where the name is
+absent from the current local environment; those report `undefined_symbol`.
 
 ## Oracle
 

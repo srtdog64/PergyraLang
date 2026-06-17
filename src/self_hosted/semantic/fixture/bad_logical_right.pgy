@@ -1,0 +1,4 @@
+func Main() -> Void {
+    let r: Bool = true && 3;
+    return;
+}

@@ -1,0 +1,1 @@
+{"schema":"pgy.selfhost.semantic.v1","ok":false,"diagnostics":[{"stage":"semantic","severity":"error","code":"return_type_mismatch","reason":"return expression type does not match the function return type","fix":"return the declared function result type","span":null,"facts":{"expected":"Int","actual":"String"}}]}

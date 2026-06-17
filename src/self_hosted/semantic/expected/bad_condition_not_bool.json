@@ -1,0 +1,1 @@
+{"schema":"pgy.selfhost.semantic.v1","ok":false,"diagnostics":[{"stage":"semantic","severity":"error","code":"condition_not_bool","reason":"branch condition must be Bool","fix":"use a Bool expression for the condition","span":null,"facts":{"expected":"Bool","actual":"Int"}}]}

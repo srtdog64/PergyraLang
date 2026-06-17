@@ -1,0 +1,6 @@
+func Main() -> Void {
+    if 5 {
+        return;
+    }
+    return;
+}

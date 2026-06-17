@@ -1,0 +1,3 @@
+func Main() -> Bool {
+    return 1 && 2;
+}

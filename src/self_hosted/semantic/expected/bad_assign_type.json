@@ -1,0 +1,1 @@
+{"schema":"pgy.selfhost.semantic.v1","ok":false,"diagnostics":[{"stage":"semantic","severity":"error","code":"assign_type_mismatch","reason":"assigned expression type does not match the local type","fix":"assign a value that matches the local type","span":null,"facts":{"expected":"Int","actual":"String"}}]}

@@ -111,18 +111,22 @@ Substrate progress.
   each callee's parameter signature, emitting `call_arg_type_mismatch` when a
   known argument type disagrees with the declared parameter type, and checks
   call arity against the parameter count, emitting `call_arity_mismatch` when
-  the number of arguments differs from the declaration. It checks binary operand
-  agreement in `let` initializers: comparison and arithmetic operators require
-  equal left/right operand types, emitting `compare_type_mismatch` and
-  `binop_type_mismatch` when both operand types are known and disagree, mirroring
-  the C oracle's `type_equals` rule and skipping the check when either side is
-  Unknown.
+  the number of arguments differs from the declaration. It checks binary and
+  logical operand agreement in `let` initializers, `return` expressions,
+  `if`/`while` conditions, and assignment right-hand sides: comparison and
+  arithmetic operators require equal left/right operand types (emitting
+  `compare_type_mismatch` / `binop_type_mismatch`) and `&&`/`||` require Bool
+  operands (`logical_operand_not_bool`), each emitted only when the operand types
+  are known and disagree, mirroring the C oracle's `type_equals` rule and
+  skipping when either side is Unknown.
   `src/self_hosted/parity/semantic_parity.sh` compares its verdicts with the C
-  compiler accept/reject oracle on C and LLVM across 44 committed fixtures
+  compiler accept/reject oracle on C and LLVM across 56 committed fixtures that
+  close the diagnostic matrix for every check across every statement position
   (typed let/return, arithmetic, comparison, call-return, call-argument,
-  call-arity, branch-condition, scoped-block, assignment, bare-call-statement,
-  binary-operand-agreement, and undefined-identifier cases), all
-  byte-equal on both backends. It checks that `if` / `while` conditions are
+  call-arity, branch-condition, scoped-block, assignment-type, bare-call-statement,
+  binary-and-logical-operand-agreement, and undefined-identifier cases), all
+  emitted as `pgy.selfhost.semantic.v1` JSON diagnostics and byte-equal on both
+  backends. It checks that `if` / `while` conditions are
   `Bool` (`condition_not_bool`), that a simple local assignment `name = expr`
   matches the variable's declared type (`assign_type_mismatch`), and that
   expression-statement calls (`Foo(args);`) satisfy the callee's arity and
@@ -131,7 +135,7 @@ Substrate progress.
   arithmetic/call-argument expressions, now report `undefined_symbol` when
   absent from the local environment. It also checks scoped `if` / `while`
   bodies without leaking block-local `let` bindings into the parent
-  environment. The 30-fixture parity set is the current gate; direct runs over
+  environment. The 56-fixture parity set is the current gate; direct runs over
   full self-host sources are not yet claimed as a gate because the recursive
   block scan still needs a real-source stability pass before it can cover the
   lexer, parser, linter, and semantic checker sources themselves.
@@ -167,12 +171,15 @@ now runs in that shape at rung-2: expression operators, function-call return
 typing, positional call-argument typing, call-arity checking (in `let`/`return`
 and bare expression statements), branch condition (`if`/`while` must be `Bool`)
 typing, scoped `if`/`while` body typing, simple local assignment typing,
-binary-operand-agreement typing (comparison and arithmetic operands must share a
-type), and simple/compound undefined-identifier
+binary- and logical-operand-agreement typing (comparison and arithmetic operands
+must share a type; `&&`/`||` operands must be Bool) in let, return, condition,
+and assignment positions, and simple/compound undefined-identifier
 diagnostics are covered, and verdicts stay
-byte-equal beside the C type checker on 44 committed fixtures across both
+byte-equal beside the C type checker on 56 committed fixtures across both
 backends. The checker now covers the common statement forms (let, return,
-assignment, if/while body, if/while condition, bare call). The next increments
+assignment, if/while body, if/while condition, bare call), and the fixture
+matrix exercises each diagnostic in every position where it can fire. The next
+increments
 require deeper machinery: real-source semantic stability over the self-hosted
 lexer/parser/linter/semantic sources, a broader symbol table of builtins/types,
 and a stable diagnostic-code catalog shared with the C oracle, before moving
