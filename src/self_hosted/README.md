@@ -35,7 +35,9 @@ src/self_hosted/
   parser/                         -- mirrors C-side src/parser/
     main.pgy + fixture/ + expected/ + intent.md
   semantic/                       -- mirrors C-side src/semantic/
-  codegen/                        -- mirrors C-side src/codegen/ (placeholder)
+    main.pgy + fixture/ + expected/ + intent.md
+  codegen/                        -- mirrors C-side src/codegen/
+    main.pgy + fixture/ + expected/ + intent.md
   air/  hir/  mir/                -- IR-stage placeholders
   compiler/                       -- driver placeholder, mirrors src/compiler/
   runtime/                        -- native runtime kernel stays C; portable policy can move
@@ -110,6 +112,11 @@ src/self_hosted/
   root reachability/worklist checks are Pergyra-origin tools with C/LLVM parity
   legs. They do not count as compiler-core substitution yet, but they prove the
   deterministic graph traversal substrate needed by the first middle-end pass.
+- **2026-06-17** -- the first hard compiler-core rung opens under `codegen/`.
+  The Pergyra emitter consumes `pgy --ast` text and emits standalone C for a
+  bounded `Int` / `Bool` / `String` / growable `Array<Int>` / `Array<String>`
+  function subset. The parity gate builds the emitter through C and LLVM,
+  compiles the emitted C, and compares run-stdout against the C-backend oracle.
 
 ## Non-Negotiable Rules
 

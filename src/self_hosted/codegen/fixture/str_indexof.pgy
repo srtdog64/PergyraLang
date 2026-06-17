@@ -1,0 +1,11 @@
+func Main() -> Void {
+    let s: String = "hello,world";
+    let p: Int = StringIndexOf(s, ",");
+    Log(ToString(p));
+    let q: Int = StringIndexOf(s, "z");
+    Log(ToString(q));
+    let left: String = Substring(s, 0, p);
+    let right: String = Substring(s, p + 1, StringLength(s) - p - 1);
+    Log(left);
+    Log(right);
+}

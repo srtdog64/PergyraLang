@@ -99,6 +99,49 @@ func IsIdentifier(e: String) -> Bool {
     return true;
 }
 
+func IsIdentStart(c: String) -> Bool {
+    if StringLength(c) != 1 {
+        return false;
+    }
+    let chars: String = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ_";
+    return StringIndexOf(chars, c) >= 0;
+}
+
+// Given the index of a '[' in `s`, return the index of its matching ']',
+// respecting nesting and string literals. Returns -1 if unmatched.
+func FindMatchingBracket(s: String, open_idx: Int) -> Int {
+    let n: Int = StringLength(s);
+    let i: Int = open_idx;
+    let depth: Int = 0;
+    let in_str: Bool = false;
+    while i < n {
+        let c: String = CharAt(s, i);
+        if in_str {
+            if c == "\\" {
+                i = i + 2;
+                continue;
+            }
+            if c == "\"" {
+                in_str = false;
+            }
+            i = i + 1;
+            continue;
+        }
+        if c == "\"" {
+            in_str = true;
+        } else if c == "[" {
+            depth = depth + 1;
+        } else if c == "]" {
+            depth = depth - 1;
+            if depth == 0 {
+                return i;
+            }
+        }
+        i = i + 1;
+    }
+    return -1;
+}
+
 // Given the index of a '(' in `s`, return the index of its matching ')',
 // respecting nested parens and string literals. Returns -1 if unmatched.
 func FindMatchingParen(s: String, open_idx: Int) -> Int {
@@ -230,8 +273,14 @@ func ExprKind(expr: String, env: String) -> String {
     if StartsWith(e, "Concat(") {
         return "String";
     }
+    if StartsWith(e, "Substring(") {
+        return "String";
+    }
     if StartsWith(e, "ToString(") {
         return "String";
+    }
+    if StartsWith(e, "StringLength(") {
+        return "Int";
     }
     if IsIdentifier(e) {
         let vt: String = LookupKindType(env, e, "v");
@@ -252,9 +301,135 @@ func ExprKind(expr: String, env: String) -> String {
     return "Int";
 }
 
+// Replace every occurrence of `from` with `to` in `s`.
+func ReplaceAll(s: String, from: String, to: String) -> String {
+    let fl: Int = StringLength(from);
+    if fl == 0 {
+        return s;
+    }
+    let n: Int = StringLength(s);
+    let out: String = "";
+    let i: Int = 0;
+    while i < n {
+        if i + fl <= n && Substring(s, i, fl) == from {
+            out = Concat(out, to);
+            i = i + fl;
+        } else {
+            out = Concat(out, CharAt(s, i));
+            i = i + 1;
+        }
+    }
+    return out;
+}
+
+// Rewrite `ArrayLength(<arr>)` to `pgy_ai_len(arr)` / `pgy_as_len(arr)` per the
+// array's element type (rung-10 growable-array representation).
+func RewriteArrayLengthEnv(e: String, env: String) -> String {
+    let out: String = e;
+    let guard: Int = 0;
+    while guard < 64 {
+        let idx: Int = StringIndexOf(out, "ArrayLength(");
+        if idx < 0 {
+            return out;
+        }
+        let open: Int = idx + 11;
+        let close: Int = FindMatchingParen(out, open);
+        if close < 0 {
+            Die(Concat("malformed ArrayLength(...): ", out));
+        }
+        let arg: String = StringTrim(Substring(out, open + 1, close - open - 1));
+        let kind: String = LookupKindType(env, arg, "v");
+        let fn: String = "pgy_ai_len";
+        if kind == "ArrayString" {
+            fn = "pgy_as_len";
+        }
+        let repl: String = Concat(fn, Concat("(", Concat(arg, ")")));
+        out = Concat(Substring(out, 0, idx), Concat(repl, Substring(out, close + 1, StringLength(out) - (close + 1))));
+        guard = guard + 1;
+    }
+    return out;
+}
+
+// Rewrite array index reads `IDENT[<expr>]` to `pgy_ai_get(IDENT, <expr>)` /
+// `pgy_as_get(IDENT, <expr>)` for array variables (rung-10). String literals
+// are copied verbatim so a `[` inside a string is never touched. Non-array
+// identifiers keep native `[...]` (defensive; should not occur in the subset).
+func RewriteIndexing(e: String, env: String) -> String {
+    let n: Int = StringLength(e);
+    let out: String = "";
+    let i: Int = 0;
+    while i < n {
+        let c: String = CharAt(e, i);
+        if c == "\"" {
+            out = Concat(out, c);
+            i = i + 1;
+            while i < n {
+                let d: String = CharAt(e, i);
+                out = Concat(out, d);
+                i = i + 1;
+                if d == "\\" {
+                    if i < n {
+                        out = Concat(out, CharAt(e, i));
+                        i = i + 1;
+                    }
+                } else if d == "\"" {
+                    i = i;
+                    break;
+                }
+            }
+        } else if IsIdentStart(c) {
+            let j: Int = i;
+            while j < n && IsIdentChar(CharAt(e, j)) {
+                j = j + 1;
+            }
+            let ident: String = Substring(e, i, j - i);
+            if j < n && CharAt(e, j) == "[" {
+                let close: Int = FindMatchingBracket(e, j);
+                if close < 0 {
+                    Die(Concat("unmatched index bracket: ", e));
+                }
+                let inner: String = Substring(e, j + 1, close - j - 1);
+                let inner_r: String = RewriteIndexing(inner, env);
+                let kind: String = LookupKindType(env, ident, "v");
+                if kind == "ArrayString" {
+                    out = Concat(out, Concat("pgy_as_get(", Concat(ident, Concat(", ", Concat(inner_r, ")")))));
+                } else if kind == "ArrayInt" {
+                    out = Concat(out, Concat("pgy_ai_get(", Concat(ident, Concat(", ", Concat(inner_r, ")")))));
+                } else {
+                    out = Concat(out, Concat(ident, Concat("[", Concat(inner_r, "]"))));
+                }
+                i = close + 1;
+            } else {
+                out = Concat(out, ident);
+                i = j;
+            }
+        } else {
+            out = Concat(out, c);
+            i = i + 1;
+        }
+    }
+    return out;
+}
+
+// Rewrite a C expression: array length, then array indexing, then string
+// builtin call-names to their runtime helpers. Environment-aware.
+func RewriteExpr(e: String, env: String) -> String {
+    let a: String = RewriteArrayLengthEnv(e, env);
+    let b: String = RewriteIndexing(a, env);
+    let c: String = ReplaceAll(b, "StringLength(", "pgy_strlen(");
+    let d: String = ReplaceAll(c, "StringIndexOf(", "pgy_strindexof(");
+    return ReplaceAll(d, "Substring(", "pgy_substr(");
+}
+
+// Emit a C integer-valued (or boolean) expression from the AST's parenthesized
+// infix, with array/builtin rewrites applied.
+func IntEval(expr: String, env: String) -> String {
+    return RewriteExpr(expr, env);
+}
+
 // Emit a C string-valued (char*) expression for a <strexpr>. `Concat` lowers
-// to a runtime `pgy_concat`; literals / identifiers / calls pass through as
-// valid C char* expressions.
+// to a runtime `pgy_concat`; `Substring` to `pgy_substr`; array element reads
+// to `pgy_as_get`; literals / identifiers / calls pass through.
 func StrEval(expr: String, env: String) -> String {
     let e: String = StringTrim(expr);
     if StartsWith(e, "Concat(") {
@@ -271,7 +446,19 @@ func StrEval(expr: String, env: String) -> String {
         let b: String = Substring(inner, comma + 1, StringLength(inner) - (comma + 1));
         return Concat("pgy_concat(", Concat(StrEval(a, env), Concat(", ", Concat(StrEval(b, env), ")"))));
     }
-    return e;
+    return RewriteExpr(e, env);
+}
+
+// Wrap a condition in C parens unless it is already a single parenthesized
+// group. `(a > b)` stays as-is; `flag` becomes `(flag)`; `(a) && (b)` is
+// wrapped to `((a) && (b))`.
+func WrapCond(cond: String, env: String) -> String {
+    let c: String = StringTrim(cond);
+    let n: Int = StringLength(c);
+    if n >= 2 && CharAt(c, 0) == "(" && CharAt(c, n - 1) == ")" && FindMatchingParen(c, 0) == n - 1 {
+        return RewriteExpr(c, env);
+    }
+    return Concat("(", Concat(RewriteExpr(c, env), ")"));
 }
 
 // ---- Statement emitters ------------------------------------------------
@@ -294,13 +481,68 @@ func EmitLet(line: String, env_box: Array<String>) -> String {
     let expr: String = Substring(after_name, ei + 3, StringLength(after_name) - (ei + 3));
     if type_name == "Int" {
         ArraySet(env_box, 0, Concat(env_box[0], Concat(name, "=v:Int|")));
-        return Concat("long long ", Concat(name, Concat(" = ", Concat(expr, ";"))));
+        return Concat("long long ", Concat(name, Concat(" = ", Concat(IntEval(expr, env_box[0]), ";"))));
+    }
+    if type_name == "Bool" {
+        ArraySet(env_box, 0, Concat(env_box[0], Concat(name, "=v:Bool|")));
+        return Concat("bool ", Concat(name, Concat(" = ", Concat(IntEval(expr, env_box[0]), ";"))));
     }
     if type_name == "String" {
         ArraySet(env_box, 0, Concat(env_box[0], Concat(name, "=v:String|")));
         return Concat("const char* ", Concat(name, Concat(" = ", Concat(StrEval(expr, env_box[0]), ";"))));
     }
-    Die(Concat("unsupported let type (only Int/String): ", type_name));
+    if StartsWith(type_name, "Array<") {
+        // rung-10: growable `Array<Int>` / `Array<String>` as a struct. A
+        // `[a, b, c]` literal lowers to `new()` plus one `push` per element;
+        // `[]` is just `new()`. `ArrayPush` later extends the same value.
+        let c_type: String = "";
+        let new_fn: String = "";
+        let push_fn: String = "";
+        let elem_kind: String = "";
+        let is_str: Bool = false;
+        if StringIndexOf(type_name, "Int") >= 0 {
+            c_type = "pgy_ai";
+            new_fn = "pgy_ai_new";
+            push_fn = "pgy_ai_push";
+            elem_kind = "ArrayInt";
+        } else if StringIndexOf(type_name, "String") >= 0 {
+            c_type = "pgy_as";
+            new_fn = "pgy_as_new";
+            push_fn = "pgy_as_push";
+            elem_kind = "ArrayString";
+            is_str = true;
+        } else {
+            Die(Concat("only Array<Int>/Array<String> supported, got: ", type_name));
+        }
+        let ex: String = StringTrim(expr);
+        let exn: Int = StringLength(ex);
+        if exn < 2 || CharAt(ex, 0) != "[" || CharAt(ex, exn - 1) != "]" {
+            Die(Concat("array let needs a `[...]` literal initializer: ", expr));
+        }
+        ArraySet(env_box, 0, Concat(env_box[0], Concat(name, Concat("=v:", Concat(elem_kind, "|")))));
+        let out: String = Concat(c_type, Concat(" ", Concat(name, Concat(" = ", Concat(new_fn, "();")))));
+        let rem: String = StringTrim(Substring(ex, 1, exn - 2));
+        while StringLength(rem) > 0 {
+            let comma: Int = FindTopLevelComma(rem);
+            let elem: String = "";
+            if comma < 0 {
+                elem = StringTrim(rem);
+                rem = "";
+            } else {
+                elem = StringTrim(Substring(rem, 0, comma));
+                rem = StringTrim(Substring(rem, comma + 1, StringLength(rem) - (comma + 1)));
+            }
+            if StringLength(elem) > 0 {
+                let ev: String = IntEval(elem, env_box[0]);
+                if is_str {
+                    ev = StrEval(elem, env_box[0]);
+                }
+                out = Concat(out, Concat(" ", Concat(push_fn, Concat("(&", Concat(name, Concat(", ", Concat(ev, ");")))))));
+            }
+        }
+        return out;
+    }
+    Die(Concat("unsupported let type (only Int/Bool/String/Array<Int>/Array<String>): ", type_name));
     return "";
 }
 
@@ -317,7 +559,7 @@ func EmitAssign(line: String, env_box: Array<String>) -> String {
     if vt == "String" {
         return Concat(name, Concat(" = ", Concat(StrEval(expr, env_box[0]), ";")));
     }
-    return Concat(name, Concat(" = ", Concat(expr, ";")));
+    return Concat(name, Concat(" = ", Concat(IntEval(expr, env_box[0]), ";")));
 }
 
 // `Log(<expr>)`. Integer via `Log(ToString(...))` -> printf %lld; otherwise the
@@ -329,7 +571,7 @@ func EmitLog(inner: String, env: String) -> String {
             Die(Concat("malformed ToString(...): ", inner));
         }
         let arg: String = Substring(inner, 9, n - 9 - 1);
-        return Concat("printf(\"%lld\\n\", (long long)(", Concat(arg, "));"));
+        return Concat("printf(\"%lld\\n\", (long long)(", Concat(IntEval(arg, env), "));"));
     }
     return Concat("printf(\"%s\\n\", ", Concat(StrEval(inner, env), ");"));
 }
@@ -342,7 +584,7 @@ func EmitReturn(rexpr: String, cur_fn_ret: String, env: String) -> String {
     if cur_fn_ret == "String" {
         return Concat("return ", Concat(StrEval(rexpr, env), ";"));
     }
-    return Concat("return ", Concat(rexpr, ";"));
+    return Concat("return ", Concat(IntEval(rexpr, env), ";"));
 }
 
 // Count the leading spaces of a raw (untrimmed) AST line.
@@ -402,6 +644,67 @@ func EmitStmtList(indents: Array<Int>, texts: Array<String>, count: Int,
             let rexpr: String = StringTrim(Substring(t, 7, StringLength(t) - 7));
             result = Concat(result, Concat(pad, Concat(EmitReturn(rexpr, cur_fn_ret, env_box[0]), "\n")));
             ArraySet(cur, 0, idx + 1);
+        } else if StartsWith(t, "ArraySet(") {
+            // `ArraySet(arr, idx, val)` -> `pgy_ai_set(&arr, idx, val);` (rung-10).
+            let an: Int = StringLength(t);
+            if CharAt(t, an - 1) != ")" {
+                Die(Concat("malformed ArraySet(...): ", t));
+            }
+            let a_inner: String = Substring(t, 9, an - 9 - 1);
+            let c1: Int = FindTopLevelComma(a_inner);
+            if c1 < 0 {
+                Die(Concat("ArraySet needs three arguments: ", t));
+            }
+            let a_arr: String = StringTrim(Substring(a_inner, 0, c1));
+            let a_rest: String = Substring(a_inner, c1 + 1, StringLength(a_inner) - (c1 + 1));
+            let c2: Int = FindTopLevelComma(a_rest);
+            if c2 < 0 {
+                Die(Concat("ArraySet needs three arguments: ", t));
+            }
+            let a_idx: String = StringTrim(Substring(a_rest, 0, c2));
+            let a_val: String = StringTrim(Substring(a_rest, c2 + 1, StringLength(a_rest) - (c2 + 1)));
+            let a_kind: String = LookupKindType(env_box[0], a_arr, "v");
+            let set_fn: String = "pgy_ai_set";
+            let a_rhs: String = IntEval(a_val, env_box[0]);
+            if a_kind == "ArrayString" {
+                set_fn = "pgy_as_set";
+                a_rhs = StrEval(a_val, env_box[0]);
+            }
+            let set_stmt: String = Concat(set_fn, Concat("(&", Concat(a_arr, Concat(", ", Concat(IntEval(a_idx, env_box[0]), Concat(", ", Concat(a_rhs, ");")))))));
+            result = Concat(result, Concat(pad, Concat(set_stmt, "\n")));
+            ArraySet(cur, 0, idx + 1);
+        } else if StartsWith(t, "ArrayPush(") {
+            // `ArrayPush(arr, val)` -> `pgy_ai_push(&arr, val);` (rung-10).
+            let pn2: Int = StringLength(t);
+            if CharAt(t, pn2 - 1) != ")" {
+                Die(Concat("malformed ArrayPush(...): ", t));
+            }
+            let p_inner: String = Substring(t, 10, pn2 - 10 - 1);
+            let pc: Int = FindTopLevelComma(p_inner);
+            if pc < 0 {
+                Die(Concat("ArrayPush needs two arguments: ", t));
+            }
+            let p_arr: String = StringTrim(Substring(p_inner, 0, pc));
+            let p_val: String = StringTrim(Substring(p_inner, pc + 1, StringLength(p_inner) - (pc + 1)));
+            let p_kind: String = LookupKindType(env_box[0], p_arr, "v");
+            let push_fn: String = "pgy_ai_push";
+            let p_rhs: String = IntEval(p_val, env_box[0]);
+            if p_kind == "ArrayString" {
+                push_fn = "pgy_as_push";
+                p_rhs = StrEval(p_val, env_box[0]);
+            }
+            let push_stmt: String = Concat(push_fn, Concat("(&", Concat(p_arr, Concat(", ", Concat(p_rhs, ");")))));
+            result = Concat(result, Concat(pad, Concat(push_stmt, "\n")));
+            ArraySet(cur, 0, idx + 1);
+        } else if StartsWith(t, "Exit(") {
+            // `Exit(N)` statement -> `exit(N);` (rung-9).
+            let en: Int = StringLength(t);
+            if CharAt(t, en - 1) != ")" {
+                Die(Concat("malformed Exit(...): ", t));
+            }
+            let e_arg: String = StringTrim(Substring(t, 5, en - 5 - 1));
+            result = Concat(result, Concat(pad, Concat("exit(", Concat(IntEval(e_arg, env_box[0]), ");\n"))));
+            ArraySet(cur, 0, idx + 1);
         } else if t == "Break" {
             result = Concat(result, Concat(pad, "break;\n"));
             ArraySet(cur, 0, idx + 1);
@@ -425,8 +728,8 @@ func EmitStmtList(indents: Array<Int>, texts: Array<String>, count: Int,
             let start_v: String = Substring(range, 0, dotpos);
             let end_v: String = Substring(range, dotpos + 2, StringLength(range) - (dotpos + 2));
             ArraySet(env_box, 0, Concat(env_box[0], Concat(loop_var, "=v:Int|")));
-            let for_hdr: String = Concat("for (long long ", Concat(loop_var, Concat(" = ", Concat(start_v,
-                Concat("; ", Concat(loop_var, Concat(" < ", Concat(end_v,
+            let for_hdr: String = Concat("for (long long ", Concat(loop_var, Concat(" = ", Concat(IntEval(start_v, env_box[0]),
+                Concat("; ", Concat(loop_var, Concat(" < ", Concat(IntEval(end_v, env_box[0]),
                 Concat("; ", Concat(loop_var, "++) {\n"))))))))));
             result = Concat(result, Concat(pad, for_hdr));
             ArraySet(cur, 0, idx + 1);
@@ -434,14 +737,14 @@ func EmitStmtList(indents: Array<Int>, texts: Array<String>, count: Int,
             result = Concat(result, EmitStmtList(indents, texts, count, stmt_indent + 4, cur, inner_pad, env_box, cur_fn_ret));
             result = Concat(result, Concat(pad, "}\n"));
         } else if StartsWith(t, "While: ") {
-            let cond: String = Substring(t, 7, StringLength(t) - 7);
+            let cond: String = WrapCond(Substring(t, 7, StringLength(t) - 7), env_box[0]);
             result = Concat(result, Concat(pad, Concat("while ", Concat(cond, " {\n"))));
             ArraySet(cur, 0, idx + 1);
             ExpectText(texts, count, cur, "Block:");
             result = Concat(result, EmitStmtList(indents, texts, count, stmt_indent + 4, cur, inner_pad, env_box, cur_fn_ret));
             result = Concat(result, Concat(pad, "}\n"));
         } else if StartsWith(t, "If: ") {
-            let cond2: String = Substring(t, 4, StringLength(t) - 4);
+            let cond2: String = WrapCond(Substring(t, 4, StringLength(t) - 4), env_box[0]);
             result = Concat(result, Concat(pad, Concat("if ", Concat(cond2, " {\n"))));
             ArraySet(cur, 0, idx + 1);
             ExpectText(texts, count, cur, "Then:");
@@ -468,10 +771,13 @@ func CParamType(type_name: String) -> String {
     if type_name == "Int" {
         return "long long";
     }
+    if type_name == "Bool" {
+        return "bool";
+    }
     if type_name == "String" {
         return "const char*";
     }
-    Die(Concat("unsupported parameter type (only Int/String): ", type_name));
+    Die(Concat("unsupported parameter type (only Int/Bool/String): ", type_name));
     return "";
 }
 
@@ -480,13 +786,16 @@ func CRetType(type_name: String) -> String {
     if type_name == "Int" {
         return "long long";
     }
+    if type_name == "Bool" {
+        return "bool";
+    }
     if type_name == "String" {
         return "char*";
     }
     if type_name == "Void" {
         return "void";
     }
-    Die(Concat("unsupported return type (only Int/String/Void): ", type_name));
+    Die(Concat("unsupported return type (only Int/Bool/String/Void): ", type_name));
     return "";
 }
 
@@ -643,18 +952,64 @@ func GenerateC(ast: String) -> String {
         proto_block = Concat(proto_block, "\n");
     }
 
-    // String programs need the runtime concat helper; int-only programs stay lean.
-    let uses_str: Bool = StringIndexOf(ast, "String") >= 0 || StringIndexOf(ast, "Concat(") >= 0;
+    // String programs need the runtime string helpers; bool programs need
+    // <stdbool.h>; array programs need the growable-array structs + stdlib;
+    // int-only programs stay lean.
+    let uses_str: Bool = StringIndexOf(ast, "String") >= 0
+        || StringIndexOf(ast, "Concat(") >= 0
+        || StringIndexOf(ast, "Substring(") >= 0;
+    let uses_bool: Bool = StringIndexOf(ast, "Bool") >= 0;
+    let uses_exit: Bool = StringIndexOf(ast, "Exit(") >= 0;
+    let uses_array: Bool = StringIndexOf(ast, "Array<") >= 0
+        || StringIndexOf(ast, "ArrayPush(") >= 0
+        || StringIndexOf(ast, "ArrayLength(") >= 0
+        || StringIndexOf(ast, "ArraySet(") >= 0;
+    let need_stdlib: Bool = uses_str || uses_exit || uses_array;
     let header: String = "#include <stdio.h>\n";
+    if uses_bool {
+        header = Concat(header, "#include <stdbool.h>\n");
+    }
+    if need_stdlib {
+        header = Concat(header, "#include <stdlib.h>\n");
+    }
     if uses_str {
-        header = Concat(header, "#include <stdlib.h>\n#include <string.h>\n\n");
+        header = Concat(header, "#include <string.h>\n");
+    }
+    header = Concat(header, "\n");
+    if uses_array {
+        header = Concat(header, "typedef struct { long long *data; long long len; long long cap; } pgy_ai;\n");
+        header = Concat(header, "typedef struct { const char **data; long long len; long long cap; } pgy_as;\n\n");
+        header = Concat(header, "static pgy_ai pgy_ai_new(void) { pgy_ai a; a.data = NULL; a.len = 0; a.cap = 0; return a; }\n");
+        header = Concat(header, "static void pgy_ai_push(pgy_ai *a, long long v) {\n");
+        header = Concat(header, "    if (a->len == a->cap) { a->cap = a->cap ? a->cap * 2 : 4; a->data = (long long *)realloc(a->data, (size_t)a->cap * sizeof(long long)); }\n");
+        header = Concat(header, "    a->data[a->len++] = v;\n}\n");
+        header = Concat(header, "static long long pgy_ai_get(pgy_ai a, long long i) { return a.data[i]; }\n");
+        header = Concat(header, "static void pgy_ai_set(pgy_ai *a, long long i, long long v) { a->data[i] = v; }\n");
+        header = Concat(header, "static long long pgy_ai_len(pgy_ai a) { return a.len; }\n\n");
+        header = Concat(header, "static pgy_as pgy_as_new(void) { pgy_as a; a.data = NULL; a.len = 0; a.cap = 0; return a; }\n");
+        header = Concat(header, "static void pgy_as_push(pgy_as *a, const char *v) {\n");
+        header = Concat(header, "    if (a->len == a->cap) { a->cap = a->cap ? a->cap * 2 : 4; a->data = (const char **)realloc(a->data, (size_t)a->cap * sizeof(const char *)); }\n");
+        header = Concat(header, "    a->data[a->len++] = v;\n}\n");
+        header = Concat(header, "static const char *pgy_as_get(pgy_as a, long long i) { return a.data[i]; }\n");
+        header = Concat(header, "static void pgy_as_set(pgy_as *a, long long i, const char *v) { a->data[i] = v; }\n");
+        header = Concat(header, "static long long pgy_as_len(pgy_as a) { return a.len; }\n\n");
+    }
+    if uses_str {
         header = Concat(header, "static char *pgy_concat(const char *a, const char *b)\n{\n");
         header = Concat(header, "    size_t la = strlen(a);\n    size_t lb = strlen(b);\n");
         header = Concat(header, "    char *r = (char *)malloc(la + lb + 1);\n");
         header = Concat(header, "    memcpy(r, a, la);\n    memcpy(r + la, b, lb);\n    r[la + lb] = '\\0';\n");
         header = Concat(header, "    return r;\n}\n\n");
-    } else {
-        header = Concat(header, "\n");
+        header = Concat(header, "static long long pgy_strlen(const char *s)\n{\n");
+        header = Concat(header, "    return (long long)strlen(s);\n}\n\n");
+        header = Concat(header, "static char *pgy_substr(const char *s, long long start, long long len)\n{\n");
+        header = Concat(header, "    char *r = (char *)malloc((size_t)len + 1);\n");
+        header = Concat(header, "    memcpy(r, s + start, (size_t)len);\n    r[len] = '\\0';\n");
+        header = Concat(header, "    return r;\n}\n\n");
+        header = Concat(header, "static long long pgy_strindexof(const char *hay, const char *needle)\n{\n");
+        header = Concat(header, "    const char *p = strstr(hay, needle);\n");
+        header = Concat(header, "    if (p == NULL) { return -1; }\n");
+        header = Concat(header, "    return (long long)(p - hay);\n}\n\n");
     }
     return Concat(header, Concat(proto_block, defs));
 }

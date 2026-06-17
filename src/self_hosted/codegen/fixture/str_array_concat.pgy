@@ -1,0 +1,8 @@
+func Main() -> Void {
+    let parts: Array<String> = ["x", "y", "z"];
+    let acc: String = "";
+    for i in 0..ArrayLength(parts) {
+        acc = Concat(acc, parts[i]);
+    }
+    Log(acc);
+}

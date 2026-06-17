@@ -84,6 +84,16 @@ FIXTURES=(
     for_sum
     for_continue
     while_break
+    bool_logic
+    str_builtins
+    array_sum
+    array_max
+    str_array
+    str_array_concat
+    str_indexof
+    exit_guard
+    array_push
+    str_array_push
 )
 
 # Re-derive the oracle stdout and assert the committed expected has not drifted.
@@ -201,4 +211,4 @@ for backend in $BACKENDS; do
     run_tool_backend "$backend" "$tool_bin"
 done
 
-echo "[self-host-parity:codegen] rung-0..5 parity ok (${#FIXTURES[@]} fixtures; backends=$BACKENDS)"
+echo "[self-host-parity:codegen] rung-0..10 parity ok (${#FIXTURES[@]} fixtures; backends=$BACKENDS)"

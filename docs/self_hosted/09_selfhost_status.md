@@ -127,7 +127,7 @@ Substrate progress.
   self-host source uses arithmetic on String or Bool operands (string building
   uses `Concat`); closing it would require operand-type-aware arithmetic typing.
   `src/self_hosted/parity/semantic_parity.sh` compares its verdicts with the C
-  compiler accept/reject oracle on C and LLVM across 58 committed fixtures that
+  compiler accept/reject oracle on C and LLVM across 61 committed fixtures that
   close the diagnostic matrix for every check across every statement position
   (typed let/return, arithmetic, comparison, call-return, call-argument,
   call-arity, branch-condition, scoped-block, assignment-type, bare-call-statement,
@@ -144,7 +144,7 @@ Substrate progress.
   arithmetic/call-argument expressions, now report `undefined_symbol` when
   absent from the local environment. It also checks scoped `if` / `while`
   bodies without leaking block-local `let` bindings into the parent
-  environment. The 58-fixture parity set is the current gate; direct runs over
+  environment. The 61-fixture parity set is the current gate; direct runs over
   full self-host sources are not yet claimed as a gate because the recursive
   block scan still needs a real-source stability pass before it can cover the
   lexer, parser, linter, and semantic checker sources themselves.
@@ -184,7 +184,7 @@ binary- and logical-operand-agreement typing (comparison and arithmetic operands
 must share a type; `&&`/`||` operands must be Bool) in let, return, condition,
 and assignment positions, and simple/compound undefined-identifier
 diagnostics are covered, and verdicts stay
-byte-equal beside the C type checker on 57 committed fixtures across both
+byte-equal beside the C type checker on 61 committed fixtures across both
 backends. The checker now covers the common statement forms (let, return,
 assignment, if/while body, if/while condition, bare call), and the fixture
 matrix exercises each diagnostic in every position where it can fire. The next

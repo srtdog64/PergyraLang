@@ -1,0 +1,9 @@
+func Main() -> Void {
+    let s: String = "pergyra";
+    let n: Int = StringLength(s);
+    Log(ToString(n));
+    let sub: String = Substring(s, 0, 4);
+    Log(sub);
+    let tail: String = Substring(s, 4, n - 4);
+    Log(Concat(sub, Concat("-", tail)));
+}

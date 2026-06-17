@@ -1,0 +1,14 @@
+func Main() -> Void {
+    let words: Array<String> = [];
+    ArrayPush(words, "a");
+    ArrayPush(words, "bb");
+    ArrayPush(words, "ccc");
+    let acc: String = "";
+    let i: Int = 0;
+    while i < ArrayLength(words) {
+        acc = Concat(acc, words[i]);
+        i = i + 1;
+    }
+    Log(acc);
+    Log(ToString(ArrayLength(words)));
+}

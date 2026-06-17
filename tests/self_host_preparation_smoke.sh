@@ -170,7 +170,7 @@ require_text "src/self_hosted/tools/diagnostic_catalog_checker/expected/missing_
 require_text "src/self_hosted/tools/diagnostic_catalog_checker/expected/missing_code.json" "PGY_FAKE_DRIFT_FOR_SELFHOST"
 require_text "src/self_hosted/tools/diagnostic_catalog_checker/expected/missing_input.json" "\"kind\":\"input_error\""
 require_text "src/self_hosted/tools/diagnostic_catalog_checker/expected/missing_input.json" "src/semantic/diag_codes.h"
-require_text "src/self_hosted/parity/README.md" "No compiler-core self-host migration is allowed"
+require_text "src/self_hosted/parity/README.md" "Compiler-core self-host migration from this folder is allowed only as a verified"
 require_text "src/self_hosted/parity/diagnostic_catalog_checker_parity.sh" "Rung 2 parity"
 require_text "src/self_hosted/parity/diagnostic_catalog_checker_parity.sh" "tests/diagnostic_registry_smoke.sh"
 require_text "src/self_hosted/parity/diagnostic_catalog_checker_parity.sh" "pgy.selfhost.diagnostic-catalog.v1"

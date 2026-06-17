@@ -1,0 +1,16 @@
+func Main() -> Void {
+    let xs: Array<Int> = [];
+    let i: Int = 0;
+    while i < 5 {
+        ArrayPush(xs, i * i);
+        i = i + 1;
+    }
+    let total: Int = 0;
+    let j: Int = 0;
+    while j < ArrayLength(xs) {
+        total = total + xs[j];
+        j = j + 1;
+    }
+    Log(ToString(total));
+    Log(ToString(ArrayLength(xs)));
+}

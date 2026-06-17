@@ -1,0 +1,13 @@
+func Main() -> Void {
+    let xs: Array<Int> = [10, 20, 30];
+    let total: Int = 0;
+    let i: Int = 0;
+    while i < ArrayLength(xs) {
+        total = total + xs[i];
+        i = i + 1;
+    }
+    Log(ToString(total));
+    ArraySet(xs, 1, 99);
+    Log(ToString(xs[1]));
+    Log(ToString(ArrayLength(xs)));
+}

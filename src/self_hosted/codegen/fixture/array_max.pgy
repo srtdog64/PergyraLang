@@ -1,0 +1,10 @@
+func Main() -> Void {
+    let xs: Array<Int> = [3, 7, 2, 9, 4];
+    let best: Int = xs[0];
+    for i in 1..ArrayLength(xs) {
+        if xs[i] > best {
+            best = xs[i];
+        }
+    }
+    Log(ToString(best));
+}

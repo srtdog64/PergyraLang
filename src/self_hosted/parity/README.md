@@ -1,12 +1,14 @@
 # Soft Self-Host Parity Harness
 
 Status: thirteen rung-2 peripheral harnesses, five rung-1 AIR graph consumer
-harnesses, plus lexer/parser rung-1 and semantic rung-2 compiler-internal
-harnesses active.
+harnesses, plus lexer/parser rung-1, semantic rung-2, and codegen rung-0..10
+compiler-internal harnesses active.
 
-This folder holds oracle comparisons for soft self-host tools. The C compiler
-and existing shell/C smokes remain the source of truth until a tool can run in
-Pergyra and produce deterministic JSON output that agrees with the C oracle.
+This folder holds oracle comparisons for self-hosted tools and compiler-stage
+substitutes. The C compiler and existing shell/C smokes remain the source of
+truth until a Pergyra-written component can run and produce deterministic output
+that agrees with the C oracle. JSON is used when the owned format is JSON;
+semantic verdicts use diagnostic blocks, and codegen rungs use run-stdout.
 
 The parity set currently covers:
 
@@ -33,6 +35,7 @@ The parity set currently covers:
 - `lexer` (rung-1 compiler-internal lexer substitution)
 - `parser` (rung-1 compiler-internal parser substitution)
 - `semantic` (rung-2 compiler-internal semantic verdict substitution)
+- `codegen` (rung-0..10 compiler-internal C-emitter substitution)
 
 `make self-host-preparation-test-smoke` runs the full set. Individual parity
 targets may still be used for focused work, but a tool is not considered
@@ -46,7 +49,7 @@ Minimum parity contract for each tool:
   compiler build includes LLVM; C-only builds must keep the C leg mandatory and
   emit an explicit LLVM-leg skip;
 - compare exit class first;
-- compare JSON schema and stable counters incrementally while the Pergyra tool
+- compare the owned stable output shape incrementally while the Pergyra tool
   remains a partial implementation.
 - compile/run copied Pergyra tool sources from an ignored build scratch
   directory such as `.tmp/self_hosted/...`; parity harnesses must not leave
@@ -55,4 +58,5 @@ Minimum parity contract for each tool:
   the scratch layout expected by relative `import "../../lib/..."` paths before
   running a copied tool.
 
-No compiler-core self-host migration is allowed from this folder.
+Compiler-core self-host migration from this folder is allowed only as a verified
+rung with its own intent contract and C/LLVM/Pergyra parity gate.

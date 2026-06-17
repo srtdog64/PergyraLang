@@ -1,0 +1,5 @@
+flag-on
+other-off
+0
+2
+4

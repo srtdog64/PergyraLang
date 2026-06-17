@@ -1,0 +1,10 @@
+func Main() -> Void {
+    let names: Array<String> = ["alice", "bob", "carol"];
+    let i: Int = 0;
+    while i < ArrayLength(names) {
+        Log(names[i]);
+        i = i + 1;
+    }
+    ArraySet(names, 1, "BOB");
+    Log(names[1]);
+}

@@ -1,0 +1,20 @@
+func IsEven(n: Int) -> Bool {
+    return n % 2 == 0;
+}
+func Main() -> Void {
+    let flag: Bool = true;
+    let other: Bool = false;
+    if flag {
+        Log("flag-on");
+    }
+    if !other {
+        Log("other-off");
+    }
+    let i: Int = 0;
+    while i < 5 {
+        if IsEven(i) {
+            Log(ToString(i));
+        }
+        i = i + 1;
+    }
+}
