@@ -130,7 +130,7 @@ done
 
 # Wider breadth: audit tools (including namespace-imported ones) that read fixed
 # files and take no args. The codegen-built binary must match the oracle-built.
-TOOLS="air_graph_id_uniqueness module_manifest_resolver doc_link_checker backend_output_comparator runtime_boundary_checker examples_inventory_checker"
+TOOLS="air_graph_id_uniqueness module_manifest_resolver doc_link_checker backend_output_comparator runtime_boundary_checker examples_inventory_checker diagnostic_catalog_checker linter stable_subset_section_checker production_header_size_checker stdlib_dispatch_inventory_checker ast_read_surface_checker production_c_size_checker"
 for name in $TOOLS; do
     tsrc="$ROOT_DIR/src/self_hosted/tools/$name/main.pgy"
     [[ -f "$tsrc" ]] || continue

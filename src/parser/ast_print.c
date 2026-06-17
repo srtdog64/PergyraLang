@@ -244,9 +244,15 @@ void ast_print(ASTNode* node, int indent) {
 
         case AST_FOR_LOOP:
             printf("For: %s in ", node->data.for_loop.variable);
-            ast_print_inline(node->data.for_loop.range_start);
-            printf("..");
-            ast_print_inline(node->data.for_loop.range_end);
+            if (node->data.for_loop.iterable != NULL) {
+                /* for-each over a collection: print the iterable expression. */
+                ast_print_inline(node->data.for_loop.iterable);
+            } else {
+                /* range loop `for i in a..b`. */
+                ast_print_inline(node->data.for_loop.range_start);
+                printf("..");
+                ast_print_inline(node->data.for_loop.range_end);
+            }
             printf("\n");
             ast_print(node->data.for_loop.body, indent + 1);
             break;

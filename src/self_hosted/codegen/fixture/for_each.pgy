@@ -1,0 +1,14 @@
+func Main() -> Void {
+    let nums: Array<Int> = [10, 20, 30];
+    let total: Int = 0;
+    for n in nums {
+        total = total + n;
+    }
+    Log(ToString(total));
+    let names: Array<String> = ["a", "bb", "ccc"];
+    let acc: String = "";
+    for name in names {
+        acc = Concat(acc, name);
+    }
+    Log(acc);
+}

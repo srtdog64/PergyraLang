@@ -5,7 +5,7 @@ Program:
     Body:
       Block:
         Let: parts : Array<String: String> = Split("apple,banana,cherry", ",")
-        For: fruit in (null)..(null)
+        For: fruit in parts
           Block:
             Log(fruit)
         Let: words : Array<String: String> = ["hello", "world", "pergyra"]

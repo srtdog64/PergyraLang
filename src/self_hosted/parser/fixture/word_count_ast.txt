@@ -16,7 +16,7 @@ Program:
         Let: count : Int = CountWords(text)
         Log(count)
         Let: words : Array<String: String> = Split(text, " ")
-        For: word in (null)..(null)
+        For: word in words
           Block:
             Log(word)
         AST node type 6

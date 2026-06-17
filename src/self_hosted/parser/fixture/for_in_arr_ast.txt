@@ -5,7 +5,7 @@ Program:
     Body:
       Block:
         Let: nums : Array<Int: Int> = [10, 20, 30]
-        For: n in (null)..(null)
+        For: n in nums
           Block:
             Log(n)
 

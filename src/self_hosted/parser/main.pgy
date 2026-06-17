@@ -1101,10 +1101,9 @@ func ParseOneStmt(content: String, start: Int, cursor_out: Array<Int>, stmt_inde
         i = cursor_out[0];
         // Two forms:
         //   range: `for i in 0..10 { ... }`        → `For: i in 0..10`
-        //   array: `for n in someArr { ... }`      → `For: n in (null)..(null)`
-        //     (the C printer drops the iterable expression and emits
-        //     the literal text `(null)..(null)` for the for-in-array
-        //     form — we mirror that quirk for byte-equality.)
+        //   array: `for n in someArr { ... }`      → `For: n in someArr`
+        //     (the C printer emits the iterable expression for the for-in-array
+        //     form; the lower-bound parse already captured it.)
         let range_text: String = "";
         let after_lower: Int = SkipWhitespaceAndComments(content, i);
         if CharAt(content, after_lower) == "." && CharAt(content, after_lower + 1) == "." {
@@ -1114,7 +1113,7 @@ func ParseOneStmt(content: String, start: Int, cursor_out: Array<Int>, stmt_inde
             i = cursor_out[0];
             range_text = Concat(lower, Concat("..", upper));
         } else {
-            range_text = "(null)..(null)";
+            range_text = lower;
             i = after_lower;
         }
         let header: String = Concat("For: ", Concat(var_name, Concat(" in ", range_text)));
