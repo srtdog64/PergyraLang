@@ -1,0 +1,3 @@
+func Main() -> Void {
+    Log(Concat("Hello, ", "World!"));
+}

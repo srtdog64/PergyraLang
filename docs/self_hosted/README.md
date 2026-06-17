@@ -21,16 +21,27 @@ will be judged by a three-way comparison: C oracle output, LLVM oracle output,
 and Pergyra-written tool/pass output. If C and LLVM still disagree, a
 self-hosted result cannot be trusted as the deciding value.
 
-## Current Judgement (2026-06-13)
+## Current Judgement (2026-06-17, supersedes 2026-06-13)
+
+**BDFL decision (2026-06-17): the hard compiler-core migration freeze is lifted.**
+The owner explicitly chose to open hard migration (codegen/runtime/compiler
+driver) after being shown the substitution numbers (self-host at ~3.39%
+LOC-scale; codegen/runtime/driver at 0%). Hard migration now proceeds
+*incrementally and verified*: each compiler-core substitute lands as a rung with
+a parity gate against the C/LLVM oracle before the next rung opens. This is not a
+license to fork a full unverified compiler — the No-Hidden-Flow / verified-rung
+discipline still governs. The first hard rung is `src/self_hosted/codegen/`
+(C-emit rung-0, 2026-06-17).
+
+C and LLVM remain the oracle pair. Self-host output is still the third comparison
+value after C and LLVM, never the source that decides which oracle is right.
+
+### Prior judgement (2026-06-13, retained for history)
 
 Soft/partial self-host preparation may continue. The active work should stay on
 compiler-adjacent tools, stable file/dump validators, lexer/parser parity
-expansion, and C/LLVM/Pergyra comparator evidence.
-
-Hard compiler-core migration is not open. The current substitution progress in
-`src/self_hosted/PROGRESS.md` is still early, and semantic/codegen/compiler-core
-substitutes have not started. Treat self-host output as the third comparison
-value after C and LLVM, never as the source that decides which oracle is right.
+expansion, and C/LLVM/Pergyra comparator evidence. Hard compiler-core migration
+is not open. *(Reversed 2026-06-17.)*
 
 The executable soft self-host scaffolds live in `src/self_hosted/`. This
 `docs/self_hosted/` folder is the contract and handoff documentation;

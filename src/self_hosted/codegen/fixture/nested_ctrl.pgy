@@ -1,0 +1,12 @@
+func Main() -> Void {
+    let i: Int = 0;
+    while i < 4 {
+        if i % 2 == 0 {
+            Log(ToString(i));
+        } else {
+            Log("odd");
+        }
+        i = i + 1;
+    }
+    Log("done");
+}

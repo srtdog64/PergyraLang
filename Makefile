@@ -1908,6 +1908,7 @@ self-host-preparation-test-smoke: $(PGY)
 	PGY_BIN="$(abspath $(PGY))" "$(BASH)" src/self_hosted/parity/parser_parity.sh
 	PGY_SELFHOST_SEMANTIC_BACKENDS="$${PGY_SELFHOST_SEMANTIC_BACKENDS:-$(SELFHOST_SEMANTIC_BACKENDS)}" \
 	PGY_BIN="$(abspath $(PGY))" "$(BASH)" src/self_hosted/parity/semantic_parity.sh
+	PGY_BIN="$(abspath $(PGY))" "$(BASH)" src/self_hosted/parity/codegen_parity.sh
 	PGY_BIN="$(abspath $(PGY))" "$(BASH)" src/self_hosted/parity/module_manifest_resolver_parity.sh
 	PGY_BIN="$(abspath $(PGY))" "$(BASH)" src/self_hosted/parity/production_c_size_checker_parity.sh
 	PGY_BIN="$(abspath $(PGY))" "$(BASH)" src/self_hosted/parity/production_header_size_checker_parity.sh
@@ -1952,6 +1953,10 @@ self-host-lex-minimal-parity-test-smoke: self-host-lexer-parity-test-smoke
 self-host-parser-parity-test-smoke: $(PGY)
 	PGY_SELFHOST_PARSER_BACKENDS="$${PGY_SELFHOST_PARSER_BACKENDS:-$(SELFHOST_PARSER_BACKENDS)}" \
 	"$(BASH)" src/self_hosted/parity/parser_parity.sh
+
+self-host-codegen-parity-test-smoke: $(PGY)
+	PGY_SELFHOST_CODEGEN_BACKENDS="$${PGY_SELFHOST_CODEGEN_BACKENDS:-c llvm}" \
+	PGY_BIN="$(abspath $(PGY))" "$(BASH)" src/self_hosted/parity/codegen_parity.sh
 
 debug-hygiene-test-smoke:
 	"$(BASH)" tests/debug_hygiene_smoke.sh

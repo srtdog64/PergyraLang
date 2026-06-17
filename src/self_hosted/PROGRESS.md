@@ -5,16 +5,24 @@ The number that matters is *how much of the C/LLVM compiler has been
 substituted by Pergyra-written equivalents* -- not how many peripheral
 audit tools exist.
 
-Last updated: 2026-06-16
+Last updated: 2026-06-17
 
 ## Headline Number
 
-**Compiler-internal substitution: ~3.39% LOC-scale** (8,642 Pergyra LOC vs 254,742
+**Compiler-internal substitution: ~3.55% LOC-scale** (9,053 Pergyra LOC vs 254,742
 C LOC across `src/lexer/`, `src/parser/`, `src/semantic/`, `src/codegen/`,
-`src/runtime/`, `src/compiler/`, `src/lsp/`). The compiler-internal substitutes
-crossed **8,000 LOC**. This is not a hard self-host claim: the verified
-substitutes are the lexer, parser, and a bounded semantic verdict rung; HIR/MIR,
-codegen, runtime, compiler driver, and LSP substitution are still 0%.
+`src/runtime/`, `src/compiler/`, `src/lsp/`). The verified substitutes are the
+lexer, parser, a bounded semantic verdict rung, and -- as of 2026-06-17 -- the
+**first codegen rungs** (`src/self_hosted/codegen/`, 411 LOC; rung-0 string Log,
+rung-1 integer let/arithmetic, rung-2 assign + `while`/`if`/`else` control flow).
+HIR/MIR, the rest of codegen, runtime, compiler driver, and LSP substitution are
+still 0%.
+
+**Hard migration opened (2026-06-17):** the codegen rung is the first *hard
+compiler-core* substitute, landed after the BDFL decision lifted the
+`docs/self_hosted/README.md` freeze. Hard migration proceeds rung-by-rung, each
+gated against the C/LLVM oracle before the next opens -- not as an unverified
+compiler fork. See `src/self_hosted/codegen/README.md`.
 
 **Parser at scale (2026-05-31):** the Pergyra-origin parser produces
 byte-equal output vs `pgy --ast` on **105 of 117** committed
@@ -88,11 +96,11 @@ only observe text artifacts the C compiler produces. Their LOC is
 | `src/lexer/`    |    1003 |         584 | **~97%** | **191 of 195 sources byte-equal** (115 examples + 80 backend_compare). Remaining 4 use string interpolation (`$"...{var}..."`) or `/** doc */` comments. 6 representative sources committed as parity fixtures. |
 | `src/parser/`   |   21813 |        6856 | ~52%     | `src/self_hosted/parser/` parses 188 committed fixtures byte-equal `pgy --ast` on both C and LLVM parser binaries, and **105 of 117** `examples/*.pgy` byte-equal at scale (89.7%; 2026-05-31). Top-level: `[async]? [export]? func<T,U>`, `subject`/`class`/`vessel`/`struct`/`object`/`tobject` with `<T,U>` and `func`/`action` methods, `enum`, `namespace`, `event`, `ability`, `role`/`impl`, `zone` (subject/object/tobject slots), `intent ... with retry(n)` metadata, `import "PATH.pgy";` (reads file relative to source dir, recursively parses, force-exports its funcs). Stmt: `let IDENT/(IDENTS)`, assign, `+=`/`-=`/`<-`, `return`, `if`/`else if`/`else`, `while`, `for`, `break`, `continue`, `defer`, `match`, `parallel`, `with slot<TYPE> as VAR { stmts }`. `expr`: `! - <- spawn[blocking] await` > `*/% > +- > \|> > cmp > && > \|\|`. Primaries: STRING/NUMBER/IDENT/`( )`/`[ ]`/lambda, postfix `(args)` / `[idx]` / `.member` / `?` / turbofish. |
 | `src/semantic/` |   47541 |        1202 | rung-2 subset | Checks a bounded function-body subset against the C compiler oracle on C/LLVM-generated binaries: typed `let`, return typing, unary/binary expression typing, function-call return/arity/argument typing, scoped branch bodies, branch conditions, assignment, bare call statements, and simple/compound undefined identifier use across 30 fixtures. |
-| `src/codegen/`  |  111465 |           0 | 0%       | not started       |
+| `src/codegen/`  |  111465 |         411 | rung-0/1/2 | **C-emit rung-0/1/2 (2026-06-17).** Pergyra emitter consumes `pgy --ast` text for `func Main()` with `Log(<strexpr>)` (string literal \| `Concat(...)`), `Log(ToString(<intexpr>))`, integer `Let:`/`Assign:` (`+ - * / %`, negatives match oracle), and `while`/`if`/`else` control flow lowered structurally from the AST's nested Block/Then/Else. Emits standalone C; **11 fixtures run-stdout equal** to the C/LLVM oracle on tools built through both backends. Gate: `parity/codegen_parity.sh` (`make self-host-codegen-parity-test-smoke`). Out-of-subset input is an observable `Exit(1)`. |
 | `src/runtime/`  |   31985 |           0 | 0%       | native runtime kernel stays C; portable runtime policy libraries may move later |
 | `src/compiler/` |   39863 |           0 | 0%       | not started       |
 | `src/lsp/`      |    1072 |           0 | 0%       | not started       |
-| **Total**       | **254742** |  **8642**  | **~3.39% LOC-scale** | lexer/parser/semantic only; no HIR/MIR/codegen/runtime/compiler/LSP substitution yet |
+| **Total**       | **254742** |  **9053**  | **~3.55% LOC-scale** | lexer/parser/semantic + codegen rung-0/1/2; no HIR/MIR/runtime/compiler/LSP substitution yet |
 
 Notes:
 
@@ -179,13 +187,21 @@ The realistic incremental path toward genuine self-host:
    and root reachability via a push-only worklist. These are still peripheral
    because they do not replace `src/self_hosted/air/`, but they prove the
    deterministic graph substrate the first middle-end pass needs.
-6. **C-emit codegen subset** -- a Pergyra program that takes a tiny AST
-   and emits valid C output. Round-trip: C-emit by Pergyra -> C-compile
-   -> run -> stdout matches expected.
+6. **C-emit codegen subset** -- *rung-0/1/2 active* (2026-06-17). A Pergyra program
+   (`src/self_hosted/codegen/main.pgy`) takes `pgy --ast` text for the `func Main()`
+   subset -- `Log(<strexpr>)`, `Log(ToString(<intexpr>))`, integer `Let:`/`Assign:`,
+   and `while`/`if`/`else` control flow lowered structurally from the AST's nested
+   Block/Then/Else nodes -- and emits standalone C; round-trip
+   C-emit-by-Pergyra -> gcc -> run -> stdout matches the C/LLVM oracle on 11
+   committed fixtures, with the emitter built through both backends. Next rungs:
+   multiple user functions/calls, then `String`-typed lets/assigns, then `for`
+   loops + `break`/`continue`.
 7. **Bootstrap loop** -- the Pergyra-written compiler subset compiles
    itself, output runs.
 
-Steps 1-4 are active staged substitution. Step 5+ remains post-beta.
+Steps 1-4 are active staged substitution. Step 6 (codegen) opened 2026-06-17
+after the hard-migration freeze was lifted; step 5 (AIR consumers) and step 7
+(bootstrap) remain ahead.
 
 ## Surface Lifts Required Before Substitution Can Continue
 

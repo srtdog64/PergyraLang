@@ -1,0 +1,4 @@
+func Main() -> Void {
+    Log("first line");
+    Log("second line");
+}

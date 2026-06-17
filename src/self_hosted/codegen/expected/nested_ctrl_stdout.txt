@@ -1,0 +1,5 @@
+0
+odd
+2
+odd
+done

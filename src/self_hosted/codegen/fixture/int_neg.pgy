@@ -1,0 +1,7 @@
+func Main() -> Void {
+    let x: Int = 0 - 10;
+    let q: Int = x / 3;
+    let r: Int = x % 3;
+    Log(ToString(q));
+    Log(ToString(r));
+}

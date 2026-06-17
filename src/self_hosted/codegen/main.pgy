@@ -1,0 +1,419 @@
+// src/self_hosted/codegen/main.pgy
+//
+// Status: rung-0/1/2 (2026-06-17). First Pergyra-origin C codegen substitute,
+// and the first hard compiler-core substitution opened after the
+// 2026-06-17 BDFL freeze lift (see docs/self_hosted/README.md).
+//
+// Input:  a text file containing `pgy --ast <src>` output (path via Args()[0]).
+// Output: a self-contained C program on stdout whose run-stdout matches the
+//         C/LLVM oracle for the supported subset.
+//
+// Supported subset (anything else is an observable Exit(1), never a silent
+// fallback -- CLAUDE.md s1.1):
+//   - exactly one function, named Main, returning Void
+//   - body statements:
+//       * `Log(<strexpr>)`                       (rung-0)
+//       * `Log(ToString(<intexpr>))`             (rung-1)
+//       * `Let: <name> : Int = <intexpr>`        (rung-1)
+//       * `Assign: <name> = <intexpr>`           (rung-2)
+//       * `While: (<cond>) { ... }`              (rung-2)
+//       * `If: (<cond>) Then { ... } [Else { ... }]` (rung-2)
+//   - <strexpr> = string-literal | Concat(<strexpr>, <strexpr>)
+//   - <intexpr>/<cond> = the C-compatible parenthesized infix the AST printer
+//     emits (identifiers, integer literals, + - * / %, comparisons, && ||);
+//     Pergyra `Int` = C `long long`. Control flow is lowered structurally from
+//     the AST's indentation-nested Block/Then/Else nodes.
+//
+// Parity: src/self_hosted/parity/codegen_parity.sh builds this tool through
+// both the C and LLVM backends, feeds each fixture's `pgy --ast` text, gcc-
+// compiles the emitted C, runs it, and compares run-stdout against the
+// committed expected (a live-drift guard re-derives that from the oracle exe).
+
+func CharAt(s: String, i: Int) -> String {
+    let n: Int = StringLength(s);
+    if i < 0 {
+        return "";
+    }
+    if i >= n {
+        return "";
+    }
+    return Substring(s, i, 1);
+}
+
+// Index of the next '\n' at or after `start`, or StringLength(s) if none.
+func NextNewline(s: String, start: Int) -> Int {
+    let n: Int = StringLength(s);
+    let i: Int = start;
+    while i < n {
+        if CharAt(s, i) == "\n" {
+            return i;
+        }
+        i = i + 1;
+    }
+    return n;
+}
+
+// True when `s` starts with `prefix`.
+func StartsWith(s: String, prefix: String) -> Bool {
+    let pn: Int = StringLength(prefix);
+    if StringLength(s) < pn {
+        return false;
+    }
+    return Substring(s, 0, pn) == prefix;
+}
+
+func Die(msg: String) -> Void {
+    Log(Concat("CODEGEN ERROR: ", msg));
+    Exit(1);
+}
+
+// Escape a raw string value into the body of a C string literal: backslash
+// and double-quote are escaped; everything else passes through. rung-0
+// fixtures are plain ASCII, but escaping defensively keeps the emit honest.
+func CEscape(raw: String) -> String {
+    let n: Int = StringLength(raw);
+    let out: String = "";
+    let i: Int = 0;
+    while i < n {
+        let c: String = CharAt(raw, i);
+        if c == "\\" {
+            out = Concat(out, "\\\\");
+        } else if c == "\"" {
+            out = Concat(out, "\\\"");
+        } else {
+            out = Concat(out, c);
+        }
+        i = i + 1;
+    }
+    return out;
+}
+
+// Within `s`, find the index of the top-level comma (depth 0, not inside a
+// string literal). Returns -1 if none. `s` is the argument list interior of
+// a Concat(...) call, e.g. `"a", "b"` or `"a", Concat("b", "c")`.
+func FindTopLevelComma(s: String) -> Int {
+    let n: Int = StringLength(s);
+    let i: Int = 0;
+    let depth: Int = 0;
+    let in_str: Bool = false;
+    while i < n {
+        let c: String = CharAt(s, i);
+        if in_str {
+            if c == "\\" {
+                i = i + 2;
+                continue;
+            }
+            if c == "\"" {
+                in_str = false;
+            }
+            i = i + 1;
+            continue;
+        }
+        if c == "\"" {
+            in_str = true;
+            i = i + 1;
+            continue;
+        }
+        if c == "(" {
+            depth = depth + 1;
+            i = i + 1;
+            continue;
+        }
+        if c == ")" {
+            depth = depth - 1;
+            i = i + 1;
+            continue;
+        }
+        if c == "," && depth == 0 {
+            return i;
+        }
+        i = i + 1;
+    }
+    return -1;
+}
+
+// Index of the closing quote of a string literal that starts at index 0
+// (CharAt(e, 0) == "\""). Handles `\"` escapes. Returns -1 if unterminated.
+func ClosingQuote(e: String) -> Int {
+    let n: Int = StringLength(e);
+    let i: Int = 1;
+    while i < n {
+        let c: String = CharAt(e, i);
+        if c == "\\" {
+            i = i + 2;
+            continue;
+        }
+        if c == "\"" {
+            return i;
+        }
+        i = i + 1;
+    }
+    return -1;
+}
+
+// Evaluate a <strexpr> text to its literal string value, folding Concat.
+// The returned value is the *raw* runtime string (Pergyra-source escapes are
+// preserved verbatim, which round-trips because the fixtures use plain ASCII).
+func EvalStrExpr(expr: String) -> String {
+    let e: String = StringTrim(expr);
+    let n: Int = StringLength(e);
+    if n == 0 {
+        Die("empty strexpr");
+        return "";
+    }
+    let head: String = CharAt(e, 0);
+    if head == "\"" {
+        let close: Int = ClosingQuote(e);
+        if close < 0 {
+            Die(Concat("unterminated string literal: ", e));
+            return "";
+        }
+        // Reject trailing junk after the literal (out of subset).
+        if close != n - 1 {
+            Die(Concat("unexpected trailing text after string literal: ", e));
+            return "";
+        }
+        return Substring(e, 1, close - 1);
+    }
+    if StartsWith(e, "Concat(") {
+        if CharAt(e, n - 1) != ")" {
+            Die(Concat("malformed Concat(...): ", e));
+            return "";
+        }
+        // interior = between `Concat(` (7 chars) and the final `)`
+        let inner: String = Substring(e, 7, n - 7 - 1);
+        let comma: Int = FindTopLevelComma(inner);
+        if comma < 0 {
+            Die(Concat("Concat needs two arguments: ", e));
+            return "";
+        }
+        let left: String = Substring(inner, 0, comma);
+        let right_len: Int = StringLength(inner) - (comma + 1);
+        let right: String = Substring(inner, comma + 1, right_len);
+        return Concat(EvalStrExpr(left), EvalStrExpr(right));
+    }
+    Die(Concat("unsupported strexpr (only string literal / Concat): ", e));
+    return "";
+}
+
+// Emit a string `Log(<strexpr>)` statement (rung-0). The leading C indentation
+// is supplied by the caller (EmitStmtList), so the leaf emitters return a bare
+// statement.
+func EmitStringLog(inner: String) -> String {
+    let value: String = EvalStrExpr(inner);
+    let escaped: String = CEscape(value);
+    return Concat("fputs(\"", Concat(escaped, "\\n\", stdout);"));
+}
+
+// Emit an integer `Log(ToString(<intexpr>))` statement (rung-1). The AST
+// already prints the expression in fully-parenthesized C-compatible infix
+// form (e.g. `((a * b) + 1)`), so the inner expression passes through.
+func EmitIntLog(inner: String) -> String {
+    let n: Int = StringLength(inner);
+    if CharAt(inner, n - 1) != ")" {
+        Die(Concat("malformed ToString(...): ", inner));
+    }
+    // inner == `ToString(` <expr> `)`; `ToString(` is 9 chars.
+    let arg: String = Substring(inner, 9, n - 9 - 1);
+    return Concat("printf(\"%lld\\n\", (long long)(", Concat(arg, "));"));
+}
+
+// Dispatch a `Log(...)` statement to the string or integer emitter.
+func EmitLogStatement(line: String) -> String {
+    let n: Int = StringLength(line);
+    // line == `Log(` ... `)`; interior is [4 .. n-1)
+    let inner: String = StringTrim(Substring(line, 4, n - 4 - 1));
+    if StartsWith(inner, "ToString(") {
+        return EmitIntLog(inner);
+    }
+    return EmitStringLog(inner);
+}
+
+// Emit an integer `Let: <name> : Int = <intexpr>` declaration (rung-1).
+// AST form: `Let: a : Int = ((a * b) + 1)`. Only `Int`-typed lets are in the
+// subset; the expression is the C-compatible parenthesized infix the AST
+// printer produced. Pergyra `Int` is modelled as C `long long`.
+func EmitLet(line: String) -> String {
+    let rest: String = Substring(line, 5, StringLength(line) - 5);
+    let ci: Int = StringIndexOf(rest, " : ");
+    if ci < 0 {
+        Die(Concat("malformed Let (no type separator): ", line));
+    }
+    let name: String = Substring(rest, 0, ci);
+    let after_name: String = Substring(rest, ci + 3, StringLength(rest) - (ci + 3));
+    let ei: Int = StringIndexOf(after_name, " = ");
+    if ei < 0 {
+        Die(Concat("malformed Let (no initializer): ", line));
+    }
+    let type_name: String = Substring(after_name, 0, ei);
+    if type_name != "Int" {
+        Die(Concat("rung-1 supports only `Int` let bindings, got type: ", type_name));
+    }
+    let expr: String = Substring(after_name, ei + 3, StringLength(after_name) - (ei + 3));
+    return Concat("long long ", Concat(name, Concat(" = ", Concat(expr, ";"))));
+}
+
+// Emit an `Assign: <name> = <intexpr>` statement (rung-2). AST form:
+// `Assign: sum = (sum + i)`. The right-hand side is already C-compatible
+// parenthesized infix; the whole thing is a valid C assignment plus `;`.
+func EmitAssign(line: String) -> String {
+    // `Assign: ` is 8 chars.
+    let rest: String = Substring(line, 8, StringLength(line) - 8);
+    return Concat(rest, ";");
+}
+
+// Count the leading spaces of a raw (untrimmed) AST line.
+func IndentOf(raw: String) -> Int {
+    let n: Int = StringLength(raw);
+    let i: Int = 0;
+    while i < n && CharAt(raw, i) == " " {
+        i = i + 1;
+    }
+    return i;
+}
+
+// Consume the line at cur[0], asserting its trimmed text equals `expected`.
+// Advances the cursor. Out-of-subset structure is an observable failure.
+func ExpectText(texts: Array<String>, count: Int, cur: Array<Int>, expected: String) -> Void {
+    if cur[0] >= count {
+        Die(Concat("expected `", Concat(expected, "` but reached end of AST")));
+    }
+    if texts[cur[0]] != expected {
+        Die(Concat("expected `", Concat(expected, Concat("` but got: ", texts[cur[0]]))));
+    }
+    ArraySet(cur, 0, cur[0] + 1);
+}
+
+// Emit the C for a sequence of statements whose AST indentation is exactly
+// `stmt_indent`, starting at line cur[0]. Stops (returns) at the first line
+// with indentation < stmt_indent, or at end of input. `pad` is the C
+// indentation string prepended to each emitted statement. Recurses for
+// `while` / `if` bodies. Advances cur[0].
+func EmitStmtList(indents: Array<Int>, texts: Array<String>, count: Int,
+                  stmt_indent: Int, cur: Array<Int>, pad: String) -> String {
+    let result: String = "";
+    let inner_pad: String = Concat(pad, "    ");
+    while cur[0] < count {
+        let idx: Int = cur[0];
+        let ind: Int = indents[idx];
+        if ind < stmt_indent {
+            return result;
+        }
+        if ind > stmt_indent {
+            Die(Concat("unexpected over-indented AST line: ", texts[idx]));
+        }
+        let t: String = texts[idx];
+        if StartsWith(t, "Let: ") {
+            result = Concat(result, Concat(pad, Concat(EmitLet(t), "\n")));
+            ArraySet(cur, 0, idx + 1);
+        } else if StartsWith(t, "Assign: ") {
+            result = Concat(result, Concat(pad, Concat(EmitAssign(t), "\n")));
+            ArraySet(cur, 0, idx + 1);
+        } else if StartsWith(t, "Log(") {
+            if CharAt(t, StringLength(t) - 1) != ")" {
+                Die(Concat("malformed Log statement: ", t));
+            }
+            result = Concat(result, Concat(pad, Concat(EmitLogStatement(t), "\n")));
+            ArraySet(cur, 0, idx + 1);
+        } else if StartsWith(t, "Return:") {
+            // `Return: (a + b)` -> `return (a + b);`; bare `Return:` -> `return;`.
+            let rexpr: String = StringTrim(Substring(t, 7, StringLength(t) - 7));
+            let rstmt: String = "return;";
+            if StringLength(rexpr) > 0 {
+                rstmt = Concat("return ", Concat(rexpr, ";"));
+            }
+            result = Concat(result, Concat(pad, Concat(rstmt, "\n")));
+            ArraySet(cur, 0, idx + 1);
+        } else if StartsWith(t, "While: ") {
+            let cond: String = Substring(t, 7, StringLength(t) - 7);
+            result = Concat(result, Concat(pad, Concat("while ", Concat(cond, " {\n"))));
+            ArraySet(cur, 0, idx + 1);
+            ExpectText(texts, count, cur, "Block:");
+            result = Concat(result, EmitStmtList(indents, texts, count, stmt_indent + 4, cur, inner_pad));
+            result = Concat(result, Concat(pad, "}\n"));
+        } else if StartsWith(t, "If: ") {
+            let cond2: String = Substring(t, 4, StringLength(t) - 4);
+            result = Concat(result, Concat(pad, Concat("if ", Concat(cond2, " {\n"))));
+            ArraySet(cur, 0, idx + 1);
+            ExpectText(texts, count, cur, "Then:");
+            ExpectText(texts, count, cur, "Block:");
+            result = Concat(result, EmitStmtList(indents, texts, count, stmt_indent + 6, cur, inner_pad));
+            if cur[0] < count && texts[cur[0]] == "Else:" && indents[cur[0]] == stmt_indent + 2 {
+                result = Concat(result, Concat(pad, "} else {\n"));
+                ArraySet(cur, 0, cur[0] + 1);
+                ExpectText(texts, count, cur, "Block:");
+                result = Concat(result, EmitStmtList(indents, texts, count, stmt_indent + 6, cur, inner_pad));
+                result = Concat(result, Concat(pad, "}\n"));
+            } else {
+                result = Concat(result, Concat(pad, "}\n"));
+            }
+        } else {
+            Die(Concat("unsupported AST line in supported subset: ", t));
+        }
+    }
+    return result;
+}
+
+// Map a Pergyra type name to its C type. rung-3 supports `Int` and `Void`.
+func CTypeOf(type_name: String) -> String {
+    if type_name == "Int" {
+        return "long long";
+    }
+    if type_name == "Void" {
+        return "void";
+    }
+    Die(Concat("unsupported type in rung-3 (only Int/Void): ", type_name));
+    return "";
+}
+
+// Emit one function definition starting at the `Function: <Name>` line at
+// cur[0] (indentation `f_indent`). Pushes the C prototype for non-Main
+// functions into `protos`. Returns the full C definition and advances cur.
+func EmitFunction(indents: Array<Int>, texts: Array<String>, count: Int,
+                  cur: Array<Int>, f_indent: Int, protos: Array<String>) -> String {
+    let head: String = texts[cur[0]];
+    // `Function: ` is 10 chars.
+    let name: String = Substring(head, 10, StringLength(head) - 10);
+    ArraySet(cur, 0, cur[0] + 1);
+
+    ExpectText(texts, count, cur, "Parameters:");
+    // Collect parameter lines at indent f_indent+4 (`name: Type`).
+    let params: String = "";
+    let param_n: Int = 0;
+    while cur[0] < count && indents[cur[0]] == f_indent + 4 {
+        let pline: String = texts[cur[0]];
+        let pc: Int = StringIndexOf(pline, ": ");
+        if pc < 0 {
+            Die(Concat("malformed parameter: ", pline));
+        }
+        let p_name: String = Substring(pline, 0, pc);
+        let p_type: String = Substring(pline, pc + 2, StringLength(pline) - (pc + 2));
+        let c_param: String = Concat(CTypeOf(p_type), Concat(" ", p_name));
+        if param_n == 0 {
+            params = c_param;
+        } else {
+            params = Concat(params, Concat(", ", c_param));
+        }
+        param_n = param_n + 1;
+        ArraySet(cur, 0, cur[0] + 1);
+    }
+
+    // Return type.
+    if cur[0] >= count || !StartsWith(texts[cur[0]], "Returns:") {
+        Die("expected Returns: line after parameters");
+    }
+    let ret_line: String = texts[cur[0]];
+    let ret_type: String = StringTrim(Substring(ret_line, 8, StringLength(ret_line) - 8));
+    ArraySet(cur, 0, cur[0] + 1);
+
+    ExpectText(texts, count, cur, "Body:");
+    ExpectText(texts, count, cur, "Block:");
+    let stmt_indent: Int = f_indent + 6;
+    let body: String = EmitStmtList(indents, texts, count, stmt_indent, cur, "    ");
+
+    let is_main: Bool = name == "Main";
+    let signature: String = "";
+    if is_main {
+        signature = "int main(void)";
+    } else {
+        let param_list: String = pa

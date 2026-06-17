@@ -1,0 +1,8 @@
+func Main() -> Void {
+    let x: Int = 7;
+    if x > 10 {
+        Log("big");
+    } else {
+        Log("small");
+    }
+}

@@ -1,0 +1,6 @@
+func Main() -> Void {
+    let n: Int = 3 + 4 * 5;
+    Log("result:");
+    Log(ToString(n));
+    Log(Concat("tag-", "end"));
+}

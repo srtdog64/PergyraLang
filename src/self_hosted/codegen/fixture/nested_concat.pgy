@@ -1,0 +1,4 @@
+func Main() -> Void {
+    Log(Concat("a", Concat("b", Concat("c", "d"))));
+    Log("done");
+}
