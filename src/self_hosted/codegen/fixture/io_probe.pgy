@@ -1,0 +1,18 @@
+func Main() -> Void {
+    if FileExists("src/self_hosted/codegen/fixture/hello.pgy") {
+        Log("exists");
+    } else {
+        Log("missing");
+    }
+    if FileExists("no/such/file.xyz") {
+        Log("exists");
+    } else {
+        Log("missing");
+    }
+    let content: String = ReadFile("src/self_hosted/codegen/fixture/hello.pgy");
+    if StringIndexOf(content, "func Main") >= 0 {
+        Log("has-main");
+    } else {
+        Log("no-main");
+    }
+}

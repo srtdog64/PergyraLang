@@ -82,6 +82,13 @@ and ast-read-surface self-host tools consume that surface directly; and
 `parser_parity.sh` compiles the self-host parser through both C and LLVM over
 the committed fixture set, including a deep nested generic type case.
 
+AST-like mixed data trees remain a compiler-core design item rather than a
+closed substitution claim. Backend/parser fixtures prove user classes, nested
+records, and deep generic containers, but the current self-hosted parser and
+codegen rungs still consume text AST artifacts. The hard self-host claim should
+not count AST replacement until a Pergyra pass owns explicit node
+records/classes and has oracle parity for traversal.
+
 These are the axis the gap analysis calls systems substrate, distinct from the
 domain-oriented surface the language is already strong on.
 

@@ -1,7 +1,7 @@
 # Soft Self-Host Parity Harness
 
 Status: thirteen rung-2 peripheral harnesses, five rung-1 AIR graph consumer
-harnesses, plus lexer/parser rung-1, semantic rung-2, and codegen rung-0..10
+harnesses, plus lexer/parser rung-1, semantic rung-2, and codegen rung-0..13
 compiler-internal harnesses active.
 
 This folder holds oracle comparisons for self-hosted tools and compiler-stage
@@ -35,7 +35,7 @@ The parity set currently covers:
 - `lexer` (rung-1 compiler-internal lexer substitution)
 - `parser` (rung-1 compiler-internal parser substitution)
 - `semantic` (rung-2 compiler-internal semantic verdict substitution)
-- `codegen` (rung-0..10 compiler-internal C-emitter substitution)
+- `codegen` (rung-0..13 compiler-internal C-emitter substitution)
 
 `make self-host-preparation-test-smoke` runs the full set. Individual parity
 targets may still be used for focused work, but a tool is not considered

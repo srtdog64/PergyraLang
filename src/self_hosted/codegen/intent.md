@@ -23,8 +23,9 @@ subset is:
 - `let`, assignment, `return`, `if` / `else`, `while`, `for`, `break`, and
   `continue`;
 - calls, integer arithmetic/comparison/logical expressions, `Log`, `Exit`,
-  `ToString`, `Concat`, `StringLength`, `Substring`, `StringIndexOf`, array
-  indexing, `ArrayLength`, and `ArraySet`.
+  `ToString`, `Concat`, `StringLength`, `Substring`, `StringIndexOf`,
+  `StringTrim`, `FileExists`, `ReadFile`, `Args`, array indexing,
+  `ArrayLength`, and `ArraySet`.
 
 ## Output Contract
 

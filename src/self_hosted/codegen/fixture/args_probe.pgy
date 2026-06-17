@@ -1,0 +1,9 @@
+func Main() -> Void {
+    let args: Array<String> = Args();
+    Log(ToString(ArrayLength(args)));
+    let i: Int = 0;
+    while i < ArrayLength(args) {
+        Log(args[i]);
+        i = i + 1;
+    }
+}

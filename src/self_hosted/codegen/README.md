@@ -5,15 +5,18 @@ track** opened after the 2026-06-17 BDFL decision that lifted the
 `docs/self_hosted/README.md` (2026-06-13) "hard compiler-core migration is not
 open" freeze. Before that date this folder was a reserved stub.
 
-## Rung-0..10 (2026-06-17) - active
+## Rung-0..13 (2026-06-17) - active
 
 `main.pgy` consumes `pgy --ast` text for an `Int` / `Bool` / `String` /
 `Array<Int>` / `Array<String>` / `Void` function subset and emits a
 self-contained C program whose **run-stdout** matches the C/LLVM oracle.
+String builtins: `Concat`, `ToString`, `StringLength`, `Substring`,
+`StringIndexOf`, `StringTrim`. Tool I/O: `FileExists`, `ReadFile`, `Args`.
 
 **Functions:** one or more functions, exactly one named `Main`. Each emits a C
 function; non-`Main` functions get forward declarations, so call order and
-recursion are free. `Main` lowers to `int main(void)`.
+recursion are free. `Main` lowers to `int main(void)`, or to
+`int main(int argc, char **argv)` when the fixture uses `Args()`.
 
 - `Int` param -> `long long`, return -> `long long`
 - `Bool` param/return -> `bool` (`<stdbool.h>`); `true` / `false` / `!` pass through
@@ -43,10 +46,11 @@ calls). `Int` is C `long long`, with `/` and `%` matching the oracle including
 negatives. Conditions are re-parenthesized so bare predicates (`if flag`) emit
 valid C. `<strexpr>` is a string literal, `Concat(<strexpr>, <strexpr>)`, a
 string-typed identifier, or a string-returning call. The builtins
-`StringLength(x)`, `Substring(s, start, len)`, and `StringIndexOf(hay, needle)`
-are rewritten to runtime helpers `pgy_strlen` / `pgy_substr` / `pgy_strindexof`
+`StringLength(x)`, `Substring(s, start, len)`, and `StringIndexOf(hay, needle)`, `StringTrim(s)`
+are rewritten to runtime helpers `pgy_strlen` / `pgy_substr` / `pgy_strindexof` / `pgy_strtrim`
 (`pgy_concat` for `Concat`; `pgy_strindexof` is `strstr`-based, returns -1 when
-absent). `Exit(n)` lowers to `exit(n);`.
+absent). `Exit(n)` lowers to `exit(n);`. `Args()` lowers to a stable user-argv
+snapshot (`argv[1..]`) stored in the same growable string-array representation.
 
 **Type routing:** `Assign` / `Log` / `Return` need to know whether an operand is
 a string or an integer. The emitter threads a per-function variable type
@@ -59,7 +63,7 @@ fallback. The intent contract is pinned in `intent.md`; this README is
 explanatory.
 
 Parity gate: `src/self_hosted/parity/codegen_parity.sh` builds `main.pgy` through
-**both C and LLVM backends**, runs it on each of the 28 committed fixtures'
+**both C and LLVM backends**, runs it on each of the 31 committed fixtures'
 `pgy --ast` output, gcc-compiles the emitted C, runs it, and compares run-stdout
 against the committed expected output. A live-drift guard re-derives that
 expected output from the C-backend oracle executable.
@@ -72,11 +76,9 @@ only by observable program behavior.
 
 ## Next Rungs
 
-1. file / `Args` I/O builtins (`ReadFile`, `FileExists`, `Args`) - the surface
-   the self-host tools need to run standalone
-2. string freeing / arena ownership and block scoping (memory correctness, not
+1. string freeing / arena ownership and block scoping (memory correctness, not
    just run-stdout parity)
-3. arbitrary user struct / record types
-4. round-trip self-compilation (the codegen tool compiling a Pergyra tool)
+2. arbitrary user struct / record types
+3. round-trip self-compilation (the codegen tool compiling a Pergyra tool)
 
 LLVM emission substitution is later than C emission.

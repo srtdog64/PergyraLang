@@ -1,0 +1,9 @@
+func Main() -> Void {
+    let raw: String = "   hello world   ";
+    let t: String = StringTrim(raw);
+    Log(t);
+    Log(ToString(StringLength(t)));
+    let empty: String = StringTrim("     ");
+    Log(ToString(StringLength(empty)));
+    Log(Concat("[", Concat(StringTrim("  x  "), "]")));
+}

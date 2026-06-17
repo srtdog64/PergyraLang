@@ -36,6 +36,10 @@ practical. It is not a request to add new syntax before beta.
 
 ## Required Before Hard Self-Host
 
+- Stable arbitrary data tree representation for compiler AST-like shapes:
+  user-defined records/classes, nested generic containers, and explicit tagged
+  child families must be enough to express mixed node trees without falling back
+  to untyped raw pointers.
 - Stable graph-heavy compiler data structures: deterministic maps, ordered
   traversal, symbol tables, worklists, and graph diagnostics.
 - Stable collection ergonomics for compiler-scale `List`, `Set`, and
@@ -43,11 +47,27 @@ practical. It is not a request to add new syntax before beta.
 - Arena-backed scratch/result/persistent allocation lanes that are pleasant
   enough for compiler passes without Rust-style lifetime annotations.
 - Debuggable generated C and LLVM output.
-- Stable FFI boundary.
+- Stable FFI boundary that is separate from normal domain code and does not
+  reopen raw pointer access by default.
 - Runtime-none/minimal-runtime policy for compiler tools.
-- Scoped unsafe/raw escape policy for system-level interop.
+- Stable scoped unsafe/raw escape policy for system-level interop.
 - Deterministic codegen and stable IR dump schema.
 - Adequate standard library for filesystem, paths, JSON, process execution, and tests.
+
+## Current Substrate Contract
+
+- Deterministic iteration is a READY substrate for compiler scalar keys:
+  `MapKeys` and `SetValues` are gated for `String`, `Int`, `Long`, and `Bool`,
+  and compiler-facing symbol, record, and handle identities are normalized to
+  canonical strings or stable integer/long IDs before insertion.
+- Raw/FFI is deliberately split. Scoped `unsafe` syntax exists, but raw pointer
+  helpers remain runtime-internal and normal code still receives structured
+  diagnostics instead of raw access. Self-hosted compiler passes must use file,
+  process, or stable ABI boundaries until a real FFI contract lands.
+- Arbitrary tree representation is partially proven by parser/backend fixtures
+  over user classes and nested generics. It is not yet a self-hosted compiler
+  AST model; hard self-host cannot claim AST replacement until a Pergyra pass
+  owns such a mixed tree and has oracle parity.
 
 ## Explicitly Not Required
 

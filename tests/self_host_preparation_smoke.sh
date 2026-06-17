@@ -51,6 +51,7 @@ required_files=(
     "src/self_hosted/semantic/intent.md"
     "src/self_hosted/semantic/main.pgy"
     "src/self_hosted/parity/semantic_parity.sh"
+    "tests/self_host_substrate_contract_smoke.sh"
 )
 
 for rel in "${required_files[@]}"; do
@@ -76,8 +77,9 @@ done
 substrate_terms=(
     "Stable graph-heavy compiler data structures"
     "Stable collection ergonomics"
+    "Stable arbitrary data tree representation"
     "Arena-backed scratch/result/persistent allocation lanes"
-    "Scoped unsafe/raw escape policy"
+    "Stable scoped unsafe/raw escape policy"
     "Runtime-none/minimal-runtime policy"
 )
 for term in "${substrate_terms[@]}"; do
@@ -144,6 +146,8 @@ require_text "src/self_hosted/README.md" "A tool that does not yet pass this con
 require_text "src/self_hosted/PROGRESS.md" "Compiler-internal substitution"
 require_text "src/self_hosted/PROGRESS.md" "Peripheral Audit Tools (Not Counted In Coverage)"
 require_text "src/self_hosted/PROGRESS.md" "Do **not** add peripheral audit tools to the substitution percentage."
+require_text "src/self_hosted/PROGRESS.md" "not yet a self-hosted compiler AST model"
+require_text "src/self_hosted/PROGRESS.md" "FFI remains intentionally absent from the compiler-pass path"
 require_text "src/self_hosted/tools/diagnostic_catalog_checker/intent.md" "pgy.selfhost.diagnostic-catalog.v1"
 require_text "src/self_hosted/tools/diagnostic_catalog_checker/intent.md" "tests/diagnostic_registry_smoke.sh"
 require_text "src/self_hosted/tools/diagnostic_catalog_checker/main.pgy" "Status: rung-2"

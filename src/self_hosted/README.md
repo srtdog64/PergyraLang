@@ -117,6 +117,8 @@ src/self_hosted/
   bounded `Int` / `Bool` / `String` / growable `Array<Int>` / `Array<String>`
   function subset. The parity gate builds the emitter through C and LLVM,
   compiles the emitted C, and compares run-stdout against the C-backend oracle.
+  It currently stands at rung-0..13 with 31 fixtures, including `StringTrim`,
+  `FileExists` / `ReadFile` file I/O, and `Args()` user-argument snapshots.
 
 ## Non-Negotiable Rules
 

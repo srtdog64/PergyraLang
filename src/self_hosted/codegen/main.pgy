@@ -1,6 +1,6 @@
 // src/self_hosted/codegen/main.pgy
 //
-// Status: rung-0/1/2/3/4 (2026-06-17). First Pergyra-origin C codegen
+// Status: rung-0..13 (2026-06-17). First Pergyra-origin C codegen
 // substitute, and the first hard compiler-core substitution opened after the
 // 2026-06-17 BDFL freeze lift (see docs/self_hosted/README.md).
 //
@@ -10,7 +10,8 @@
 //
 // Supported subset (anything else is an observable Exit(1), never a silent
 // fallback -- CLAUDE.md s1.1):
-//   - one or more `Int`/`String`/`Void` functions; exactly one is `Main`.
+//   - one or more `Int`/`Bool`/`String`/`Array<Int>`/`Array<String>`/`Void`
+//     functions; exactly one is `Main`.
 //     Each emits a C function; non-Main get forward declarations (call order
 //     and recursion are free); `Main` lowers to `int main(void)`.
 //       * `Int`    param -> `long long`,    return -> `long long`
@@ -27,11 +28,11 @@
 //     (identifiers, integer literals, + - * / %, comparisons, && ||, and
 //     `Name(args)` calls). `Int` = C `long long`.
 //   - <strexpr>: string-literal | `Concat(<strexpr>, <strexpr>)` | string-typed
-//     identifier | string-returning call. `Concat` lowers to a runtime
-//     `pgy_concat` (malloc + memcpy). String/Int routing for Assign/Log/Return
-//     uses a per-function variable type environment plus a global function
-//     return-type table. (No block scoping or string freeing yet -- run-stdout
-//     parity only.)
+//     identifier | string-returning call. `Concat`, string helpers, file I/O,
+//     arrays, and Args() lower to small standalone C helpers. String/Int/array
+//     routing for Assign/Log/Return uses a per-function variable type
+//     environment plus a global function return-type table. (No block scoping
+//     or string freeing yet -- run-stdout parity only.)
 
 func CharAt(s: String, i: Int) -> String {
     let n: Int = StringLength(s);
@@ -276,6 +277,18 @@ func ExprKind(expr: String, env: String) -> String {
     if StartsWith(e, "Substring(") {
         return "String";
     }
+    if StartsWith(e, "StringTrim(") {
+        return "String";
+    }
+    if StartsWith(e, "ReadFile(") {
+        return "String";
+    }
+    if StartsWith(e, "FileExists(") {
+        return "Int";
+    }
+    if StartsWith(e, "Args(") {
+        return "ArrayString";
+    }
     if StartsWith(e, "ToString(") {
         return "String";
     }
@@ -418,7 +431,11 @@ func RewriteExpr(e: String, env: String) -> String {
     let b: String = RewriteIndexing(a, env);
     let c: String = ReplaceAll(b, "StringLength(", "pgy_strlen(");
     let d: String = ReplaceAll(c, "StringIndexOf(", "pgy_strindexof(");
-    return ReplaceAll(d, "Substring(", "pgy_substr(");
+    let f: String = ReplaceAll(d, "StringTrim(", "pgy_strtrim(");
+    let g: String = ReplaceAll(f, "FileExists(", "pgy_fexists(");
+    let h: String = ReplaceAll(g, "ReadFile(", "pgy_readfile(");
+    let k: String = ReplaceAll(h, "Args(", "pgy_args(");
+    return ReplaceAll(k, "Substring(", "pgy_substr(");
 }
 
 // Emit a C integer-valued (or boolean) expression from the AST's parenthesized
@@ -516,10 +533,15 @@ func EmitLet(line: String, env_box: Array<String>) -> String {
         }
         let ex: String = StringTrim(expr);
         let exn: Int = StringLength(ex);
-        if exn < 2 || CharAt(ex, 0) != "[" || CharAt(ex, exn - 1) != "]" {
-            Die(Concat("array let needs a `[...]` literal initializer: ", expr));
-        }
         ArraySet(env_box, 0, Concat(env_box[0], Concat(name, Concat("=v:", Concat(elem_kind, "|")))));
+        // Non-literal initializer (e.g. `Args()` or an array-returning call):
+        // bind the array value directly.
+        if exn < 1 || CharAt(ex, 0) != "[" {
+            return Concat(c_type, Concat(" ", Concat(name, Concat(" = ", Concat(RewriteExpr(ex, env_box[0]), ";")))));
+        }
+        if CharAt(ex, exn - 1) != "]" {
+            Die(Concat("malformed array literal initializer: ", expr));
+        }
         let out: String = Concat(c_type, Concat(" ", Concat(name, Concat(" = ", Concat(new_fn, "();")))));
         let rem: String = StringTrim(Substring(ex, 1, exn - 2));
         while StringLength(rem) > 0 {
@@ -804,7 +826,7 @@ func CRetType(type_name: String) -> String {
 // `base_env` carries the global function return-type bindings.
 func EmitFunction(indents: Array<Int>, texts: Array<String>, count: Int,
                   cur: Array<Int>, f_indent: Int, protos: Array<String>,
-                  base_env: String) -> String {
+                  base_env: String, uses_args: Bool) -> String {
     let head: String = texts[cur[0]];
     let name: String = Substring(head, 10, StringLength(head) - 10);
     ArraySet(cur, 0, cur[0] + 1);
@@ -846,8 +868,15 @@ func EmitFunction(indents: Array<Int>, texts: Array<String>, count: Int,
 
     let is_main: Bool = name == "Main";
     let signature: String = "";
+    let body_full: String = body;
     if is_main {
-        signature = "int main(void)";
+        if uses_args {
+            // Capture argv into globals so `Args()` (-> pgy_args) can read them.
+            signature = "int main(int argc, char **argv)";
+            body_full = Concat("    pgy_argc = argc;\n    pgy_argv = argv;\n", body);
+        } else {
+            signature = "int main(void)";
+        }
     } else {
         let param_list: String = params;
         if param_n == 0 {
@@ -861,7 +890,7 @@ func EmitFunction(indents: Array<Int>, texts: Array<String>, count: Int,
     if is_main {
         tail = "    return 0;\n}\n";
     }
-    return Concat(signature, Concat("\n{\n", Concat(body, tail)));
+    return Concat(signature, Concat("\n{\n", Concat(body_full, tail)));
 }
 
 // Build the global environment: `|Name=f:RetType|...` for every function, by
@@ -928,13 +957,14 @@ func GenerateC(ast: String) -> String {
     }
     let f_indent: Int = indents[first_fn];
     let base_env: String = BuildFunctionEnv(indents, texts, count);
+    let uses_args: Bool = StringIndexOf(ast, "Args(") >= 0;
 
     let protos: Array<String> = [];
     let defs: String = "";
     let cur: Array<Int> = [first_fn];
     while cur[0] < count {
         if StartsWith(texts[cur[0]], "Function:") && indents[cur[0]] == f_indent {
-            let def: String = EmitFunction(indents, texts, count, cur, f_indent, protos, base_env);
+            let def: String = EmitFunction(indents, texts, count, cur, f_indent, protos, base_env, uses_args);
             defs = Concat(defs, Concat(def, "\n"));
         } else {
             ArraySet(cur, 0, cur[0] + 1);
@@ -963,8 +993,12 @@ func GenerateC(ast: String) -> String {
     let uses_array: Bool = StringIndexOf(ast, "Array<") >= 0
         || StringIndexOf(ast, "ArrayPush(") >= 0
         || StringIndexOf(ast, "ArrayLength(") >= 0
-        || StringIndexOf(ast, "ArraySet(") >= 0;
-    let need_stdlib: Bool = uses_str || uses_exit || uses_array;
+        || StringIndexOf(ast, "ArraySet(") >= 0
+        || StringIndexOf(ast, "Args(") >= 0;
+    let uses_args2: Bool = StringIndexOf(ast, "Args(") >= 0;
+    let uses_io: Bool = StringIndexOf(ast, "ReadFile(") >= 0
+        || StringIndexOf(ast, "FileExists(") >= 0;
+    let need_stdlib: Bool = uses_str || uses_exit || uses_array || uses_io;
     let header: String = "#include <stdio.h>\n";
     if uses_bool {
         header = Concat(header, "#include <stdbool.h>\n");
@@ -994,6 +1028,15 @@ func GenerateC(ast: String) -> String {
         header = Concat(header, "static void pgy_as_set(pgy_as *a, long long i, const char *v) { a->data[i] = v; }\n");
         header = Concat(header, "static long long pgy_as_len(pgy_as a) { return a.len; }\n\n");
     }
+    if uses_args2 {
+        // `Args()` -> pgy_args(): user args (argv[1..]) as a pgy_as. main() stashes
+        // argc/argv into these globals before any body statement runs.
+        header = Concat(header, "static int pgy_argc = 0;\nstatic char **pgy_argv = NULL;\n");
+        header = Concat(header, "static pgy_as pgy_args(void)\n{\n");
+        header = Concat(header, "    pgy_as a = pgy_as_new();\n");
+        header = Concat(header, "    for (int i = 1; i < pgy_argc; i++) { pgy_as_push(&a, pgy_argv[i]); }\n");
+        header = Concat(header, "    return a;\n}\n\n");
+    }
     if uses_str {
         header = Concat(header, "static char *pgy_concat(const char *a, const char *b)\n{\n");
         header = Concat(header, "    size_t la = strlen(a);\n    size_t lb = strlen(b);\n");
@@ -1010,6 +1053,26 @@ func GenerateC(ast: String) -> String {
         header = Concat(header, "    const char *p = strstr(hay, needle);\n");
         header = Concat(header, "    if (p == NULL) { return -1; }\n");
         header = Concat(header, "    return (long long)(p - hay);\n}\n\n");
+        header = Concat(header, "static char *pgy_strtrim(const char *s)\n{\n");
+        header = Concat(header, "    while (*s == ' ' || *s == '\\t' || *s == '\\n' || *s == '\\r') { s++; }\n");
+        header = Concat(header, "    size_t len = strlen(s);\n");
+        header = Concat(header, "    while (len > 0 && (s[len-1] == ' ' || s[len-1] == '\\t' || s[len-1] == '\\n' || s[len-1] == '\\r')) { len--; }\n");
+        header = Concat(header, "    char *r = (char *)malloc(len + 1);\n");
+        header = Concat(header, "    memcpy(r, s, len);\n    r[len] = '\\0';\n");
+        header = Concat(header, "    return r;\n}\n\n");
+    }
+    if uses_io {
+        header = Concat(header, "static int pgy_fexists(const char *path)\n{\n");
+        header = Concat(header, "    FILE *f = fopen(path, \"rb\");\n");
+        header = Concat(header, "    if (f) { fclose(f); return 1; }\n    return 0;\n}\n\n");
+        header = Concat(header, "static char *pgy_readfile(const char *path)\n{\n");
+        header = Concat(header, "    FILE *f = fopen(path, \"rb\");\n");
+        header = Concat(header, "    if (!f) { char *e = (char *)malloc(1); e[0] = '\\0'; return e; }\n");
+        header = Concat(header, "    fseek(f, 0, SEEK_END);\n    long sz = ftell(f);\n    fseek(f, 0, SEEK_SET);\n");
+        header = Concat(header, "    if (sz < 0) { sz = 0; }\n");
+        header = Concat(header, "    char *buf = (char *)malloc((size_t)sz + 1);\n");
+        header = Concat(header, "    size_t rd = fread(buf, 1, (size_t)sz, f);\n");
+        header = Concat(header, "    buf[rd] = '\\0';\n    fclose(f);\n    return buf;\n}\n\n");
     }
     return Concat(header, Concat(proto_block, defs));
 }

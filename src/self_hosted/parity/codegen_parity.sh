@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Rung-0 parity for the Pergyra-origin C codegen substitute (2026-06-17).
+# Rung-0..13 parity for the Pergyra-origin C codegen substitute (2026-06-17).
 #
 # This is the first *hard compiler-core* substitution gate, opened after the
 # 2026-06-17 BDFL decision lifted the hard-migration freeze
@@ -94,7 +94,21 @@ FIXTURES=(
     exit_guard
     array_push
     str_array_push
+    str_trim
+    io_probe
+    args_probe
 )
+
+# Per-fixture runtime arguments. The same argv snapshot is passed to both the
+# oracle and the self-host executable.
+fixture_run_args() {
+    local base="$1"
+    case "$base" in
+        args_probe)
+            printf '%s\n' alpha beta gamma
+            ;;
+    esac
+}
 
 # Re-derive the oracle stdout and assert the committed expected has not drifted.
 check_oracle_drift() {
@@ -117,8 +131,15 @@ check_oracle_drift() {
         --backend=c \
         -o "$(pgy_path_for_compiler "$PGY" "$oracle_exe")" >/dev/null 2>&1)
 
+    local run_args=()
+    while IFS= read -r arg; do
+        run_args+=("$arg")
+    done < <(fixture_run_args "$base")
+
     local oracle_out
-    oracle_out="$("$oracle_exe" 2>/dev/null | tr -d '\r')"
+    # Run from ROOT_DIR so file-reading fixtures (ReadFile/FileExists) resolve
+    # repo-relative paths deterministically.
+    oracle_out="$(cd "$ROOT_DIR" && "$oracle_exe" "${run_args[@]}" 2>/dev/null | tr -d '\r')"
     local expected_norm
     expected_norm="$(tr -d '\r' < "$expected_file")"
     if [[ "$oracle_out" != "$expected_norm" ]]; then
@@ -184,8 +205,13 @@ run_tool_backend() {
             cat "$c_file" >&2
             exit 1
         fi
+        local run_args=()
+        while IFS= read -r arg; do
+            run_args+=("$arg")
+        done < <(fixture_run_args "$base")
+
         local self_out
-        self_out="$("$self_exe" 2>/dev/null | tr -d '\r')"
+        self_out="$(cd "$ROOT_DIR" && "$self_exe" "${run_args[@]}" 2>/dev/null | tr -d '\r')"
 
         # 4. Compare against committed expected (== oracle, guarded above).
         local expected_norm
@@ -211,4 +237,4 @@ for backend in $BACKENDS; do
     run_tool_backend "$backend" "$tool_bin"
 done
 
-echo "[self-host-parity:codegen] rung-0..10 parity ok (${#FIXTURES[@]} fixtures; backends=$BACKENDS)"
+echo "[self-host-parity:codegen] rung-0..13 parity ok (${#FIXTURES[@]} fixtures; backends=$BACKENDS)"
