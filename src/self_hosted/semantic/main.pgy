@@ -130,6 +130,9 @@ func SemanticReason(code: String) -> String {
     if code == "logical_operand_not_bool" {
         return "logical operators require Bool operands";
     }
+    if code == "not_operand_not_bool" {
+        return "logical not requires a Bool operand";
+    }
     if code == "compare_type_mismatch" {
         return "comparison operands must have the same type";
     }
@@ -169,6 +172,9 @@ func SemanticFix(code: String) -> String {
     }
     if code == "logical_operand_not_bool" {
         return "convert the operand to Bool or compare it explicitly before using && or ||";
+    }
+    if code == "not_operand_not_bool" {
+        return "apply ! only to a Bool expression";
     }
     if code == "compare_type_mismatch" {
         return "compare values with matching types";
@@ -717,6 +723,18 @@ func CheckLogicalOperands(expr: String, names: Array<String>, types: Array<Strin
 func CheckBinaryOperands(expr: String, names: Array<String>, types: Array<String>, func_names: Array<String>, func_rets: Array<String>) -> String {
     let text: String = Trim(expr);
     let n: Int = StringLength(text);
+    // A leading unary `!` (not `!=`) requires a Bool operand; the C oracle
+    // rejects `!` on a non-Bool value. Checked only when the operand expression
+    // resolves to a known non-Bool type; Unknown operands are skipped.
+    if n >= 2 && CharAt(text, 0) == "!" && CharAt(text, 1) != "=" {
+        let not_operand: String = Trim(Substring(text, 1, n - 1));
+        if StringLength(not_operand) > 0 {
+            let not_type: String = ExprType(not_operand, names, types, func_names, func_rets);
+            if not_type != "Unknown" && not_type != "Bool" {
+                return SemanticError1("not_operand_not_bool", "actual", not_type);
+            }
+        }
+    }
     let i: Int = 0;
     let depth: Int = 0;
     let has_logical: Bool = false;

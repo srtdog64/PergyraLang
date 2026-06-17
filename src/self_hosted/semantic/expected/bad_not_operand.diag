@@ -1,0 +1,10 @@
+Diagnostic: pgy.selfhost.semantic.v1
+Status: error
+Stage: semantic
+Severity: error
+Code: not_operand_not_bool
+Reason: logical not requires a Bool operand
+Fix: apply ! only to a Bool expression
+Span: none
+Facts:
+- actual: Int

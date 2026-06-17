@@ -116,15 +116,23 @@ Substrate progress.
   `if`/`while` conditions, and assignment right-hand sides: comparison and
   arithmetic operators require equal left/right operand types (emitting
   `compare_type_mismatch` / `binop_type_mismatch`) and `&&`/`||` require Bool
-  operands (`logical_operand_not_bool`), each emitted only when the operand types
+  operands (`logical_operand_not_bool`), and a leading unary `!` requires a Bool
+  operand (`not_operand_not_bool`), each emitted only when the operand types
   are known and disagree, mirroring the C oracle's `type_equals` rule and
-  skipping when either side is Unknown.
+  skipping when either side is Unknown. Known limitation: arithmetic result
+  typing is simplified to Int, which diverges from the C rule (binary `+ - * /`
+  is `type_equals` and yields the left operand type, with a numeric guard only on
+  unary `-`), so `"a" + "b"` (String) and `true + false` (Bool) would be accepted
+  by C but mis-typed here. This stays latent because no fixture and no real
+  self-host source uses arithmetic on String or Bool operands (string building
+  uses `Concat`); closing it would require operand-type-aware arithmetic typing.
   `src/self_hosted/parity/semantic_parity.sh` compares its verdicts with the C
-  compiler accept/reject oracle on C and LLVM across 57 committed fixtures that
+  compiler accept/reject oracle on C and LLVM across 58 committed fixtures that
   close the diagnostic matrix for every check across every statement position
   (typed let/return, arithmetic, comparison, call-return, call-argument,
   call-arity, branch-condition, scoped-block, assignment-type, bare-call-statement,
-  binary-and-logical-operand-agreement, and undefined-identifier cases), all
+  binary-, logical-, and unary-not-operand-agreement, builtin-table calls, and
+  undefined-identifier cases), all
   emitted as `pgy.selfhost.semantic.v1` diagnostic blocks through
   `src/self_hosted/lib/diagnostic.pgy` and byte-equal on both backends. It
   checks that `if` / `while` conditions are
@@ -136,7 +144,7 @@ Substrate progress.
   arithmetic/call-argument expressions, now report `undefined_symbol` when
   absent from the local environment. It also checks scoped `if` / `while`
   bodies without leaking block-local `let` bindings into the parent
-  environment. The 57-fixture parity set is the current gate; direct runs over
+  environment. The 58-fixture parity set is the current gate; direct runs over
   full self-host sources are not yet claimed as a gate because the recursive
   block scan still needs a real-source stability pass before it can cover the
   lexer, parser, linter, and semantic checker sources themselves.
@@ -190,3 +198,10 @@ into declaration-heavy semantic owners.
 
     make pgy
     make self-host-preparation-test-smoke
+
+After changing diagnostic rendering, the `SemanticReason` / `SemanticFix`
+tables, or fixtures, regenerate the expected verdict blocks from the tool itself
+(the checker is the single source of truth for its own output) and review the
+diff before committing:
+
+    src/self_hosted/parity/regen_expected.sh

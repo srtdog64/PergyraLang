@@ -1,0 +1,187 @@
+<!doctype html><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>PGY manga cutscene — scene DSL 트랜스파일러</title>
+<!--
+  scene DSL  ->  실행 가능한 click-advance HTML.
+  editor.html이 뱉는 그 코드를 그대로 붙여넣고 실행/내보내기.
+  핵심: cut 의 shape: polygon(x% y%, ...) 가 곧 CSS/SVG 좌표라 변환이 1:1이다.
+-->
+<style>
+  *{margin:0;padding:0;box-sizing:border-box}
+  body{background:#0d0e12;color:#e8e8ec;font-family:"Apple SD Gothic Neo",system-ui,sans-serif;height:100vh;display:flex;overflow:hidden}
+  #left{width:42%;min-width:340px;display:flex;flex-direction:column;border-right:1px solid #25262e}
+  #bar{display:flex;flex-wrap:wrap;gap:6px;padding:10px 12px;background:#15161b;border-bottom:1px solid #25262e}
+  button{background:#23242d;color:#e8e8ec;border:1px solid #34353f;border-radius:7px;padding:7px 11px;font:600 13px system-ui;cursor:pointer}
+  button:hover{border-color:#ff19a4}
+  button.go{background:#ff19a4;border-color:#ff19a4;color:#fff}
+  #src{flex:1;background:#0b0c10;color:#cfe;border:0;outline:0;padding:14px;font:13px/1.55 "SF Mono",ui-monospace,monospace;resize:none;tab-size:2}
+  #err{padding:8px 14px;font:12px/1.5 ui-monospace,monospace;color:#ff8aa8;background:#1a1115;border-top:1px solid #3a2230;display:none;white-space:pre-wrap}
+  #right{flex:1;display:flex;flex-direction:column;min-width:0}
+  #rbar{display:flex;justify-content:space-between;align-items:center;padding:10px 14px;background:#15161b;border-bottom:1px solid #25262e;font:700 12px system-ui}
+  #rbar .pgy{color:#ff19a4}
+  #stagewrap{flex:1;display:grid;place-items:center;padding:18px;min-height:0}
+  #stage{height:100%;aspect-ratio:566/864;background:#000;box-shadow:0 0 0 1px #2a2b34,0 18px 50px rgba(0,0,0,.5);cursor:pointer}
+  svg{width:100%;height:100%;display:block}
+  .lay{opacity:0;transform-box:fill-box;transform-origin:center}
+  .lay.on{animation:slap .26s cubic-bezier(.2,1.5,.45,1) forwards}
+  @keyframes slap{from{opacity:0;transform:scale(.78) rotate(-3deg)}to{opacity:1;transform:scale(1) rotate(0)}}
+  .cap{fill:#111;font:800 4px system-ui;pointer-events:none}
+  .sfx{fill:#111;font:900 8px system-ui;pointer-events:none}
+  #hint{position:fixed;left:50%;bottom:12px;transform:translateX(-50%);font:600 12px system-ui;opacity:.5}
+</style>
+<div id="left">
+  <div id="bar">
+    <button id="run" class="go">▶ 컴파일 &amp; 실행</button>
+    <button id="sample">예제 불러오기</button>
+    <button id="export">HTML 내보내기</button>
+    <button id="copy">소스 복사</button>
+  </div>
+  <textarea id="src" spellcheck="false"></textarea>
+  <div id="err"></div>
+</div>
+<div id="right">
+  <div id="rbar"><span><span class="pgy">PGY</span> · scene → HTML</span><span id="count">0 / 0</span></div>
+  <div id="stagewrap"><div id="stage"><svg id="svg" viewBox="0 0 100 100" preserveAspectRatio="none"></svg></div></div>
+</div>
+<div id="hint">클릭 = 다음 컷</div>
+<script>
+const SAMPLE = `scene "page13" {
+  advance: click;
+  stack;
+
+  cut Stage {
+    shape: full;
+  }
+  cut KaibaTurn {
+    shape: polygon(4.4% 7.5%, 44.2% 4.1%, 47.3% 34.7%, 7.4% 38.8%);
+  }
+  cut Marik {
+    shape: polygon(44.2% 3.5%, 76.3% 6.0%, 73.1% 34.5%, 41.2% 32.6%);
+  }
+  cut Ishizu {
+    shape: polygon(76.7% 4.9%, 97.2% 6.7%, 95.4% 23.8%, 74.9% 22.3%);
+  }
+  cut Banner {
+    shape: polygon(83.0% 34.7%, 98.6% 37.3%, 97.2% 82.9%, 81.6% 80.6%);
+  }
+  cut Beast {
+    shape: polygon(6.2% 48.0%, 72.1% 53.5%, 67.1% 92.4%, 3.2% 87.5%);
+  }
+  cut Impact {
+    shape: polygon(4.4% 82.9%, 36.4% 86.8%, 32.9% 98.8%, 1.4% 97.5%);
+  }
+}`;
+
+const svg=document.getElementById('svg'), code=document.getElementById('src'),
+      errBox=document.getElementById('err'), count=document.getElementById('count');
+const SVGNS='http://www.w3.org/2000/svg';
+let scene=null, idx=0;
+
+function parseScene(text){
+  const s={name:'scene', advance:'click', stack:false, cuts:[]};
+  const nm=text.match(/scene\s+"([^"]*)"/); if(nm) s.name=nm[1];
+  if(/\bstack\s*;/.test(text)) s.stack=true;
+  const am=text.match(/advance\s*:\s*([A-Za-z]+)/); if(am) s.advance=am[1];
+  const cutRe=/cut\s+([A-Za-z_][A-Za-z0-9_]*)\s*\{([^}]*)\}/g;
+  let m;
+  while((m=cutRe.exec(text))){
+    const cut={name:m[1], shape:null, cap:null, sfx:null};
+    const body=m[2];
+    const sm=body.match(/shape\s*:\s*([^;]+);/);
+    if(sm){
+      const v=sm[1].trim();
+      if(/^full\b/.test(v)) cut.shape='full';
+      else { const pm=v.match(/polygon\(([^)]*)\)/); if(pm) cut.shape=pm[1].trim(); }
+    }
+    const cm=body.match(/(?:caption|say)\s+"([^"]*)"/); if(cm) cut.cap=cm[1];
+    const fm=body.match(/sfx\s+"([^"]*)"/); if(fm) cut.sfx=fm[1];
+    s.cuts.push(cut);
+  }
+  if(s.cuts.length===0) throw new Error('cut 을 찾지 못했습니다. scene { cut Name { shape: ... } } 형식인지 확인하세요.');
+  return s;
+}
+
+function pointsOf(shape){
+  if(shape==='full'||!shape) return '0,0 100,0 100,100 0,100';
+  return shape.split(',').map(p=>{
+    const xy=p.trim().split(/\s+/).map(v=>parseFloat(v));
+    return (xy[0]||0)+','+(xy[1]||0);
+  }).join(' ');
+}
+function centroid(pts){
+  const a=pts.split(' ').map(p=>p.split(',').map(Number));
+  let x=0,y=0; a.forEach(p=>{x+=p[0];y+=p[1]}); return [x/a.length,y/a.length];
+}
+
+function build(){
+  svg.innerHTML='';
+  const defs=document.createElementNS(SVGNS,'defs');
+  defs.innerHTML='<pattern id="tone" width="2.2" height="2.2" patternTransform="rotate(34)" patternUnits="userSpaceOnUse"><rect width="2.2" height="2.2" fill="#e7e3d8"/><rect width="0.8" height="2.2" fill="#cbc6b6"/></pattern>';
+  svg.appendChild(defs);
+  scene.cuts.forEach((cut,i)=>{
+    const g=document.createElementNS(SVGNS,'g'); g.dataset.i=i; g.setAttribute('class','lay');
+    const pts=pointsOf(cut.shape);
+    const isFull=(cut.shape==='full'||!cut.shape);
+    if(scene.stack && !isFull){
+      const matte=document.createElementNS(SVGNS,'polygon');
+      matte.setAttribute('points',pts); matte.setAttribute('fill','#f7f5ef');
+      matte.setAttribute('stroke','#f7f5ef'); matte.setAttribute('stroke-width','3.4');
+      matte.setAttribute('stroke-linejoin','round'); g.appendChild(matte);
+    }
+    const poly=document.createElementNS(SVGNS,'polygon');
+    poly.setAttribute('points',pts);
+    poly.setAttribute('fill', isFull?'url(#tone)':'#f4f1ea');
+    poly.setAttribute('stroke','#000'); poly.setAttribute('stroke-width', isFull?'0':'0.9');
+    poly.setAttribute('stroke-linejoin','round'); g.appendChild(poly);
+    const c=centroid(pts);
+    if(cut.cap){ const t=document.createElementNS(SVGNS,'text'); t.setAttribute('x',c[0]); t.setAttribute('y',c[1]); t.setAttribute('text-anchor','middle'); t.setAttribute('class','cap'); t.textContent=cut.cap; g.appendChild(t); }
+    if(cut.sfx){ const t=document.createElementNS(SVGNS,'text'); t.setAttribute('x',c[0]); t.setAttribute('y',c[1]); t.setAttribute('text-anchor','middle'); t.setAttribute('class','sfx'); t.setAttribute('transform','rotate(-8 '+c[0]+' '+c[1]+')'); t.textContent=cut.sfx; g.appendChild(t); }
+    svg.appendChild(g);
+  });
+  idx = scene.cuts.length && (scene.cuts[0].shape==='full') ? 1 : 0;
+  show();
+}
+function show(){ count.textContent=idx+' / '+scene.cuts.length;
+  for(const g of svg.children){ if(g.tagName==='defs') continue;
+    if(+g.dataset.i < idx) g.classList.add('on'); } }
+
+document.getElementById('stage').onclick=()=>{ if(scene && idx<scene.cuts.length){ idx++; show(); } };
+
+function run(){
+  errBox.style.display='none';
+  try{ scene=parseScene(code.value); build(); }
+  catch(e){ errBox.textContent='✗ '+e.message; errBox.style.display='block'; }
+}
+document.getElementById('run').onclick=run;
+document.getElementById('sample').onclick=()=>{ code.value=SAMPLE; run(); };
+document.getElementById('copy').onclick=e=>{ navigator.clipboard&&navigator.clipboard.writeText(code.value); const b=e.target; b.textContent='복사됨!'; setTimeout(()=>b.textContent='소스 복사',1000); };
+
+function exportHtml(){
+  if(!scene){ run(); if(!scene) return; }
+  const data=JSON.stringify({stack:scene.stack, cuts:scene.cuts.map(c=>({shape:pointsOf(c.shape), full:(c.shape==='full'||!c.shape), cap:c.cap, sfx:c.sfx}))});
+  const html=`<!doctype html><meta charset="utf-8"><title>${scene.name}</title>
+<style>*{margin:0;box-sizing:border-box}body{background:#0a0a0c;height:100vh;display:grid;place-items:center;font-family:system-ui;user-select:none}
+#s{height:92vh;aspect-ratio:566/864;background:#000;cursor:pointer}svg{width:100%;height:100%;display:block}
+.lay{opacity:0;transform-box:fill-box;transform-origin:center}.lay.on{animation:p .26s cubic-bezier(.2,1.5,.45,1) forwards}
+@keyframes p{from{opacity:0;transform:scale(.78) rotate(-3deg)}to{opacity:1;transform:scale(1)}}.cap{fill:#111;font:800 4px system-ui}.sfx{fill:#111;font:900 8px system-ui}</style>
+<div id="s"><svg viewBox="0 0 100 100" preserveAspectRatio="none" id="v"></svg></div>
+<script>
+var D=${data},V=document.getElementById('v'),N='http://www.w3.org/2000/svg',i=0;
+V.innerHTML='<defs><pattern id="t" width="2.2" height="2.2" patternTransform="rotate(34)" patternUnits="userSpaceOnUse"><rect width="2.2" height="2.2" fill="#e7e3d8"/><rect width=".8" height="2.2" fill="#cbc6b6"/></pattern></defs>';
+function ctr(p){var a=p.split(' ').map(function(q){return q.split(',').map(Number)}),x=0,y=0;a.forEach(function(q){x+=q[0];y+=q[1]});return[x/a.length,y/a.length]}
+D.cuts.forEach(function(c,k){var g=document.createElementNS(N,'g');g.setAttribute('class','lay');g.dataset.i=k;
+ if(D.stack&&!c.full){var m=document.createElementNS(N,'polygon');m.setAttribute('points',c.shape);m.setAttribute('fill','#f7f5ef');m.setAttribute('stroke','#f7f5ef');m.setAttribute('stroke-width','3.4');m.setAttribute('stroke-linejoin','round');g.appendChild(m)}
+ var p=document.createElementNS(N,'polygon');p.setAttribute('points',c.shape);p.setAttribute('fill',c.full?'url(#t)':'#f4f1ea');p.setAttribute('stroke','#000');p.setAttribute('stroke-width',c.full?'0':'0.9');p.setAttribute('stroke-linejoin','round');g.appendChild(p);
+ var ce=ctr(c.shape);if(c.cap){var t=document.createElementNS(N,'text');t.setAttribute('x',ce[0]);t.setAttribute('y',ce[1]);t.setAttribute('text-anchor','middle');t.setAttribute('class','cap');t.textContent=c.cap;g.appendChild(t)}
+ if(c.sfx){var s=document.createElementNS(N,'text');s.setAttribute('x',ce[0]);s.setAttribute('y',ce[1]);s.setAttribute('text-anchor','middle');s.setAttribute('class','sfx');s.setAttribute('transform','rotate(-8 '+ce[0]+' '+ce[1]+')');s.textContent=c.sfx;g.appendChild(s)}
+ V.appendChild(g)});
+i=D.cuts.length&&D.cuts[0].full?1:0;
+function sh(){for(var k=0;k<V.children.length;k++){var g=V.children[k];if(g.tagName!=='defs'&&+g.dataset.i<i)g.classList.add('on')}}
+document.getElementById('s').onclick=function(){if(i<D.cuts.length){i++;sh()}};sh();
+<\/script>`;
+  const blob=new Blob([html],{type:'text/html'});
+  const a=document.createElement('a'); a.href=URL.createObjectURL(blob); a.download=scene.name.replace(/\s+/g,'_')+'.html'; a.click();
+}
+document.getElementById('export').onclick=exportHtml;
+
+code.value=SAMPLE; run();
+</script>

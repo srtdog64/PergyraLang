@@ -83,6 +83,7 @@ SOURCE_PAIRS=(
     "bad_binop_return:error"
     "bad_compare_assign:error"
     "bad_binop_condition:error"
+    "bad_not_operand:error"
     "valid_array_builtins:ok"
     "bad_block_scope_leak:error"
     "bad_else_scope_leak:error"
