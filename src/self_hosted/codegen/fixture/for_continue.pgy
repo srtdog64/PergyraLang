@@ -1,0 +1,10 @@
+func Main() -> Void {
+    let total: Int = 0;
+    for i in 0..10 {
+        if i % 2 == 0 {
+            continue;
+        }
+        total = total + i;
+    }
+    Log(ToString(total));
+}

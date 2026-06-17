@@ -1,0 +1,10 @@
+func Greet(name: String) -> String {
+    return Concat("Hello, ", name);
+}
+func Main() -> Void {
+    let who: String = "Pergyra";
+    let msg: String = Greet(who);
+    Log(msg);
+    let combined: String = Concat(msg, "!");
+    Log(combined);
+}

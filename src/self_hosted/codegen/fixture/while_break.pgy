@@ -1,0 +1,10 @@
+func Main() -> Void {
+    let j: Int = 0;
+    while j < 100 {
+        if j == 4 {
+            break;
+        }
+        j = j + 1;
+    }
+    Log(ToString(j));
+}

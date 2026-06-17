@@ -1,7 +1,7 @@
 // src/self_hosted/codegen/main.pgy
 //
-// Status: rung-0/1/2 (2026-06-17). First Pergyra-origin C codegen substitute,
-// and the first hard compiler-core substitution opened after the
+// Status: rung-0/1/2/3/4 (2026-06-17). First Pergyra-origin C codegen
+// substitute, and the first hard compiler-core substitution opened after the
 // 2026-06-17 BDFL freeze lift (see docs/self_hosted/README.md).
 //
 // Input:  a text file containing `pgy --ast <src>` output (path via Args()[0]).
@@ -10,24 +10,28 @@
 //
 // Supported subset (anything else is an observable Exit(1), never a silent
 // fallback -- CLAUDE.md s1.1):
-//   - exactly one function, named Main, returning Void
+//   - one or more `Int`/`String`/`Void` functions; exactly one is `Main`.
+//     Each emits a C function; non-Main get forward declarations (call order
+//     and recursion are free); `Main` lowers to `int main(void)`.
+//       * `Int`    param -> `long long`,    return -> `long long`
+//       * `String` param -> `const char*`,  return -> `char*`
 //   - body statements:
-//       * `Log(<strexpr>)`                       (rung-0)
+//       * `Log(<strexpr>)`                       (rung-0/4)
 //       * `Log(ToString(<intexpr>))`             (rung-1)
-//       * `Let: <name> : Int = <intexpr>`        (rung-1)
-//       * `Assign: <name> = <intexpr>`           (rung-2)
+//       * `Let: <name> : Int|String = <expr>`    (rung-1/4)
+//       * `Assign: <name> = <expr>`              (rung-2/4, routed by var type)
 //       * `While: (<cond>) { ... }`              (rung-2)
 //       * `If: (<cond>) Then { ... } [Else { ... }]` (rung-2)
-//   - <strexpr> = string-literal | Concat(<strexpr>, <strexpr>)
-//   - <intexpr>/<cond> = the C-compatible parenthesized infix the AST printer
-//     emits (identifiers, integer literals, + - * / %, comparisons, && ||);
-//     Pergyra `Int` = C `long long`. Control flow is lowered structurally from
-//     the AST's indentation-nested Block/Then/Else nodes.
-//
-// Parity: src/self_hosted/parity/codegen_parity.sh builds this tool through
-// both the C and LLVM backends, feeds each fixture's `pgy --ast` text, gcc-
-// compiles the emitted C, runs it, and compares run-stdout against the
-// committed expected (a live-drift guard re-derives that from the oracle exe).
+//       * `Return: <expr>` / bare `Return:`      (rung-3/4, routed by ret type)
+//   - <intexpr>/<cond>: C-compatible parenthesized infix the AST printer emits
+//     (identifiers, integer literals, + - * / %, comparisons, && ||, and
+//     `Name(args)` calls). `Int` = C `long long`.
+//   - <strexpr>: string-literal | `Concat(<strexpr>, <strexpr>)` | string-typed
+//     identifier | string-returning call. `Concat` lowers to a runtime
+//     `pgy_concat` (malloc + memcpy). String/Int routing for Assign/Log/Return
+//     uses a per-function variable type environment plus a global function
+//     return-type table. (No block scoping or string freeing yet -- run-stdout
+//     parity only.)
 
 func CharAt(s: String, i: Int) -> String {
     let n: Int = StringLength(s);
@@ -67,25 +71,85 @@ func Die(msg: String) -> Void {
     Exit(1);
 }
 
-// Escape a raw string value into the body of a C string literal: backslash
-// and double-quote are escaped; everything else passes through. rung-0
-// fixtures are plain ASCII, but escaping defensively keeps the emit honest.
-func CEscape(raw: String) -> String {
-    let n: Int = StringLength(raw);
-    let out: String = "";
+func IsIdentChar(c: String) -> Bool {
+    if StringLength(c) != 1 {
+        return false;
+    }
+    let chars: String = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789_";
+    return StringIndexOf(chars, c) >= 0;
+}
+
+// True when `e` is a single bare identifier (alnum/underscore, first non-digit).
+func IsIdentifier(e: String) -> Bool {
+    let n: Int = StringLength(e);
+    if n == 0 {
+        return false;
+    }
+    let digits: String = "0123456789";
+    if StringIndexOf(digits, CharAt(e, 0)) >= 0 {
+        return false;
+    }
     let i: Int = 0;
     while i < n {
-        let c: String = CharAt(raw, i);
-        if c == "\\" {
-            out = Concat(out, "\\\\");
-        } else if c == "\"" {
-            out = Concat(out, "\\\"");
-        } else {
-            out = Concat(out, c);
+        if !IsIdentChar(CharAt(e, i)) {
+            return false;
         }
         i = i + 1;
     }
-    return out;
+    return true;
+}
+
+// Given the index of a '(' in `s`, return the index of its matching ')',
+// respecting nested parens and string literals. Returns -1 if unmatched.
+func FindMatchingParen(s: String, open_idx: Int) -> Int {
+    let n: Int = StringLength(s);
+    let i: Int = open_idx;
+    let depth: Int = 0;
+    let in_str: Bool = false;
+    while i < n {
+        let c: String = CharAt(s, i);
+        if in_str {
+            if c == "\\" {
+                i = i + 2;
+                continue;
+            }
+            if c == "\"" {
+                in_str = false;
+            }
+            i = i + 1;
+            continue;
+        }
+        if c == "\"" {
+            in_str = true;
+        } else if c == "(" {
+            depth = depth + 1;
+        } else if c == ")" {
+            depth = depth - 1;
+            if depth == 0 {
+                return i;
+            }
+        }
+        i = i + 1;
+    }
+    return -1;
+}
+
+// True when `e` is a single call `Name(args...)` whose closing paren is the
+// last character (so it is one call, not `f() + g()`).
+func IsSingleCall(e: String) -> Bool {
+    let n: Int = StringLength(e);
+    if n == 0 || CharAt(e, n - 1) != ")" {
+        return false;
+    }
+    let op: Int = StringIndexOf(e, "(");
+    if op <= 0 {
+        return false;
+    }
+    let prefix: String = Substring(e, 0, op);
+    if !IsIdentifier(prefix) {
+        return false;
+    }
+    return FindMatchingParen(e, op) == n - 1;
 }
 
 // Within `s`, find the index of the top-level comma (depth 0, not inside a
@@ -132,108 +196,89 @@ func FindTopLevelComma(s: String) -> Int {
     return -1;
 }
 
-// Index of the closing quote of a string literal that starts at index 0
-// (CharAt(e, 0) == "\""). Handles `\"` escapes. Returns -1 if unterminated.
-func ClosingQuote(e: String) -> Int {
-    let n: Int = StringLength(e);
-    let i: Int = 1;
-    while i < n {
-        let c: String = CharAt(e, i);
-        if c == "\\" {
-            i = i + 2;
-            continue;
-        }
-        if c == "\"" {
-            return i;
-        }
-        i = i + 1;
-    }
-    return -1;
-}
+// ---- Type environment --------------------------------------------------
+// The environment is a string of `name=kind:Type|` entries with a leading
+// `|`, e.g. `|Greet=f:String|who=v:String|`. kind is `v` (variable) or `f`
+// (function return). Lookups search for `|name=kind:` and read to the next
+// `|`. Variables are flat per function (no block scoping); functions are
+// global. This is enough for run-stdout parity on the supported subset.
 
-// Evaluate a <strexpr> text to its literal string value, folding Concat.
-// The returned value is the *raw* runtime string (Pergyra-source escapes are
-// preserved verbatim, which round-trips because the fixtures use plain ASCII).
-func EvalStrExpr(expr: String) -> String {
-    let e: String = StringTrim(expr);
-    let n: Int = StringLength(e);
-    if n == 0 {
-        Die("empty strexpr");
+func LookupKindType(env: String, name: String, kind: String) -> String {
+    let needle: String = Concat("|", Concat(name, Concat("=", Concat(kind, ":"))));
+    let idx: Int = StringIndexOf(env, needle);
+    if idx < 0 {
         return "";
     }
-    let head: String = CharAt(e, 0);
-    if head == "\"" {
-        let close: Int = ClosingQuote(e);
-        if close < 0 {
-            Die(Concat("unterminated string literal: ", e));
-            return "";
-        }
-        // Reject trailing junk after the literal (out of subset).
-        if close != n - 1 {
-            Die(Concat("unexpected trailing text after string literal: ", e));
-            return "";
-        }
-        return Substring(e, 1, close - 1);
+    let start: Int = idx + StringLength(needle);
+    let rest: String = Substring(env, start, StringLength(env) - start);
+    let bar: Int = StringIndexOf(rest, "|");
+    if bar < 0 {
+        return rest;
+    }
+    return Substring(rest, 0, bar);
+}
+
+// Classify an expression as "String" or "Int" using the environment.
+func ExprKind(expr: String, env: String) -> String {
+    let e: String = StringTrim(expr);
+    if StringLength(e) == 0 {
+        return "Int";
+    }
+    if CharAt(e, 0) == "\"" {
+        return "String";
     }
     if StartsWith(e, "Concat(") {
+        return "String";
+    }
+    if StartsWith(e, "ToString(") {
+        return "String";
+    }
+    if IsIdentifier(e) {
+        let vt: String = LookupKindType(env, e, "v");
+        if StringLength(vt) > 0 {
+            return vt;
+        }
+        return "Int";
+    }
+    if IsSingleCall(e) {
+        let op: Int = StringIndexOf(e, "(");
+        let fname: String = Substring(e, 0, op);
+        let ft: String = LookupKindType(env, fname, "f");
+        if StringLength(ft) > 0 {
+            return ft;
+        }
+        return "Int";
+    }
+    return "Int";
+}
+
+// Emit a C string-valued (char*) expression for a <strexpr>. `Concat` lowers
+// to a runtime `pgy_concat`; literals / identifiers / calls pass through as
+// valid C char* expressions.
+func StrEval(expr: String, env: String) -> String {
+    let e: String = StringTrim(expr);
+    if StartsWith(e, "Concat(") {
+        let n: Int = StringLength(e);
         if CharAt(e, n - 1) != ")" {
             Die(Concat("malformed Concat(...): ", e));
-            return "";
         }
-        // interior = between `Concat(` (7 chars) and the final `)`
         let inner: String = Substring(e, 7, n - 7 - 1);
         let comma: Int = FindTopLevelComma(inner);
         if comma < 0 {
             Die(Concat("Concat needs two arguments: ", e));
-            return "";
         }
-        let left: String = Substring(inner, 0, comma);
-        let right_len: Int = StringLength(inner) - (comma + 1);
-        let right: String = Substring(inner, comma + 1, right_len);
-        return Concat(EvalStrExpr(left), EvalStrExpr(right));
+        let a: String = Substring(inner, 0, comma);
+        let b: String = Substring(inner, comma + 1, StringLength(inner) - (comma + 1));
+        return Concat("pgy_concat(", Concat(StrEval(a, env), Concat(", ", Concat(StrEval(b, env), ")"))));
     }
-    Die(Concat("unsupported strexpr (only string literal / Concat): ", e));
-    return "";
+    return e;
 }
 
-// Emit a string `Log(<strexpr>)` statement (rung-0). The leading C indentation
-// is supplied by the caller (EmitStmtList), so the leaf emitters return a bare
-// statement.
-func EmitStringLog(inner: String) -> String {
-    let value: String = EvalStrExpr(inner);
-    let escaped: String = CEscape(value);
-    return Concat("fputs(\"", Concat(escaped, "\\n\", stdout);"));
-}
+// ---- Statement emitters ------------------------------------------------
 
-// Emit an integer `Log(ToString(<intexpr>))` statement (rung-1). The AST
-// already prints the expression in fully-parenthesized C-compatible infix
-// form (e.g. `((a * b) + 1)`), so the inner expression passes through.
-func EmitIntLog(inner: String) -> String {
-    let n: Int = StringLength(inner);
-    if CharAt(inner, n - 1) != ")" {
-        Die(Concat("malformed ToString(...): ", inner));
-    }
-    // inner == `ToString(` <expr> `)`; `ToString(` is 9 chars.
-    let arg: String = Substring(inner, 9, n - 9 - 1);
-    return Concat("printf(\"%lld\\n\", (long long)(", Concat(arg, "));"));
-}
-
-// Dispatch a `Log(...)` statement to the string or integer emitter.
-func EmitLogStatement(line: String) -> String {
-    let n: Int = StringLength(line);
-    // line == `Log(` ... `)`; interior is [4 .. n-1)
-    let inner: String = StringTrim(Substring(line, 4, n - 4 - 1));
-    if StartsWith(inner, "ToString(") {
-        return EmitIntLog(inner);
-    }
-    return EmitStringLog(inner);
-}
-
-// Emit an integer `Let: <name> : Int = <intexpr>` declaration (rung-1).
-// AST form: `Let: a : Int = ((a * b) + 1)`. Only `Int`-typed lets are in the
-// subset; the expression is the C-compatible parenthesized infix the AST
-// printer produced. Pergyra `Int` is modelled as C `long long`.
-func EmitLet(line: String) -> String {
+// `Let: <name> : Int|String = <expr>`. Registers the variable's type into the
+// environment box and emits a typed C declaration.
+func EmitLet(line: String, env_box: Array<String>) -> String {
     let rest: String = Substring(line, 5, StringLength(line) - 5);
     let ci: Int = StringIndexOf(rest, " : ");
     if ci < 0 {
@@ -246,20 +291,58 @@ func EmitLet(line: String) -> String {
         Die(Concat("malformed Let (no initializer): ", line));
     }
     let type_name: String = Substring(after_name, 0, ei);
-    if type_name != "Int" {
-        Die(Concat("rung-1 supports only `Int` let bindings, got type: ", type_name));
-    }
     let expr: String = Substring(after_name, ei + 3, StringLength(after_name) - (ei + 3));
-    return Concat("long long ", Concat(name, Concat(" = ", Concat(expr, ";"))));
+    if type_name == "Int" {
+        ArraySet(env_box, 0, Concat(env_box[0], Concat(name, "=v:Int|")));
+        return Concat("long long ", Concat(name, Concat(" = ", Concat(expr, ";"))));
+    }
+    if type_name == "String" {
+        ArraySet(env_box, 0, Concat(env_box[0], Concat(name, "=v:String|")));
+        return Concat("const char* ", Concat(name, Concat(" = ", Concat(StrEval(expr, env_box[0]), ";"))));
+    }
+    Die(Concat("unsupported let type (only Int/String): ", type_name));
+    return "";
 }
 
-// Emit an `Assign: <name> = <intexpr>` statement (rung-2). AST form:
-// `Assign: sum = (sum + i)`. The right-hand side is already C-compatible
-// parenthesized infix; the whole thing is a valid C assignment plus `;`.
-func EmitAssign(line: String) -> String {
-    // `Assign: ` is 8 chars.
+// `Assign: <name> = <expr>`. Routes by the variable's recorded type.
+func EmitAssign(line: String, env_box: Array<String>) -> String {
     let rest: String = Substring(line, 8, StringLength(line) - 8);
-    return Concat(rest, ";");
+    let eq: Int = StringIndexOf(rest, " = ");
+    if eq < 0 {
+        Die(Concat("malformed Assign: ", line));
+    }
+    let name: String = Substring(rest, 0, eq);
+    let expr: String = Substring(rest, eq + 3, StringLength(rest) - (eq + 3));
+    let vt: String = LookupKindType(env_box[0], name, "v");
+    if vt == "String" {
+        return Concat(name, Concat(" = ", Concat(StrEval(expr, env_box[0]), ";")));
+    }
+    return Concat(name, Concat(" = ", Concat(expr, ";")));
+}
+
+// `Log(<expr>)`. Integer via `Log(ToString(...))` -> printf %lld; otherwise the
+// argument is a string expression -> printf %s of its StrEval.
+func EmitLog(inner: String, env: String) -> String {
+    if StartsWith(inner, "ToString(") {
+        let n: Int = StringLength(inner);
+        if CharAt(inner, n - 1) != ")" {
+            Die(Concat("malformed ToString(...): ", inner));
+        }
+        let arg: String = Substring(inner, 9, n - 9 - 1);
+        return Concat("printf(\"%lld\\n\", (long long)(", Concat(arg, "));"));
+    }
+    return Concat("printf(\"%s\\n\", ", Concat(StrEval(inner, env), ");"));
+}
+
+// `Return: <expr>` / bare `Return:`. String returns route through StrEval.
+func EmitReturn(rexpr: String, cur_fn_ret: String, env: String) -> String {
+    if StringLength(rexpr) == 0 {
+        return "return;";
+    }
+    if cur_fn_ret == "String" {
+        return Concat("return ", Concat(StrEval(rexpr, env), ";"));
+    }
+    return Concat("return ", Concat(rexpr, ";"));
 }
 
 // Count the leading spaces of a raw (untrimmed) AST line.
@@ -273,7 +356,6 @@ func IndentOf(raw: String) -> Int {
 }
 
 // Consume the line at cur[0], asserting its trimmed text equals `expected`.
-// Advances the cursor. Out-of-subset structure is an observable failure.
 func ExpectText(texts: Array<String>, count: Int, cur: Array<Int>, expected: String) -> Void {
     if cur[0] >= count {
         Die(Concat("expected `", Concat(expected, "` but reached end of AST")));
@@ -284,13 +366,13 @@ func ExpectText(texts: Array<String>, count: Int, cur: Array<Int>, expected: Str
     ArraySet(cur, 0, cur[0] + 1);
 }
 
-// Emit the C for a sequence of statements whose AST indentation is exactly
-// `stmt_indent`, starting at line cur[0]. Stops (returns) at the first line
-// with indentation < stmt_indent, or at end of input. `pad` is the C
-// indentation string prepended to each emitted statement. Recurses for
-// `while` / `if` bodies. Advances cur[0].
+// Emit the C for a sequence of statements at AST indentation `stmt_indent`,
+// starting at line cur[0]. `pad` is the C indentation prefix. `env_box` carries
+// the mutable variable type environment; `cur_fn_ret` is the enclosing
+// function's return type. Recurses for `while` / `if` bodies. Advances cur[0].
 func EmitStmtList(indents: Array<Int>, texts: Array<String>, count: Int,
-                  stmt_indent: Int, cur: Array<Int>, pad: String) -> String {
+                  stmt_indent: Int, cur: Array<Int>, pad: String,
+                  env_box: Array<String>, cur_fn_ret: String) -> String {
     let result: String = "";
     let inner_pad: String = Concat(pad, "    ");
     while cur[0] < count {
@@ -304,32 +386,59 @@ func EmitStmtList(indents: Array<Int>, texts: Array<String>, count: Int,
         }
         let t: String = texts[idx];
         if StartsWith(t, "Let: ") {
-            result = Concat(result, Concat(pad, Concat(EmitLet(t), "\n")));
+            result = Concat(result, Concat(pad, Concat(EmitLet(t, env_box), "\n")));
             ArraySet(cur, 0, idx + 1);
         } else if StartsWith(t, "Assign: ") {
-            result = Concat(result, Concat(pad, Concat(EmitAssign(t), "\n")));
+            result = Concat(result, Concat(pad, Concat(EmitAssign(t, env_box), "\n")));
             ArraySet(cur, 0, idx + 1);
         } else if StartsWith(t, "Log(") {
             if CharAt(t, StringLength(t) - 1) != ")" {
                 Die(Concat("malformed Log statement: ", t));
             }
-            result = Concat(result, Concat(pad, Concat(EmitLogStatement(t), "\n")));
+            let log_inner: String = StringTrim(Substring(t, 4, StringLength(t) - 4 - 1));
+            result = Concat(result, Concat(pad, Concat(EmitLog(log_inner, env_box[0]), "\n")));
             ArraySet(cur, 0, idx + 1);
         } else if StartsWith(t, "Return:") {
-            // `Return: (a + b)` -> `return (a + b);`; bare `Return:` -> `return;`.
             let rexpr: String = StringTrim(Substring(t, 7, StringLength(t) - 7));
-            let rstmt: String = "return;";
-            if StringLength(rexpr) > 0 {
-                rstmt = Concat("return ", Concat(rexpr, ";"));
-            }
-            result = Concat(result, Concat(pad, Concat(rstmt, "\n")));
+            result = Concat(result, Concat(pad, Concat(EmitReturn(rexpr, cur_fn_ret, env_box[0]), "\n")));
             ArraySet(cur, 0, idx + 1);
+        } else if t == "Break" {
+            result = Concat(result, Concat(pad, "break;\n"));
+            ArraySet(cur, 0, idx + 1);
+        } else if t == "Continue" {
+            result = Concat(result, Concat(pad, "continue;\n"));
+            ArraySet(cur, 0, idx + 1);
+        } else if StartsWith(t, "For: ") {
+            // `For: i in 0..5` -> `for (long long i = 0; i < 5; i++) { ... }`.
+            // The `..` range is exclusive of the upper bound (matches the oracle).
+            let spec: String = Substring(t, 5, StringLength(t) - 5);
+            let inpos: Int = StringIndexOf(spec, " in ");
+            if inpos < 0 {
+                Die(Concat("malformed For (no `in`): ", t));
+            }
+            let loop_var: String = Substring(spec, 0, inpos);
+            let range: String = Substring(spec, inpos + 4, StringLength(spec) - (inpos + 4));
+            let dotpos: Int = StringIndexOf(range, "..");
+            if dotpos < 0 {
+                Die(Concat("For range needs `..`: ", t));
+            }
+            let start_v: String = Substring(range, 0, dotpos);
+            let end_v: String = Substring(range, dotpos + 2, StringLength(range) - (dotpos + 2));
+            ArraySet(env_box, 0, Concat(env_box[0], Concat(loop_var, "=v:Int|")));
+            let for_hdr: String = Concat("for (long long ", Concat(loop_var, Concat(" = ", Concat(start_v,
+                Concat("; ", Concat(loop_var, Concat(" < ", Concat(end_v,
+                Concat("; ", Concat(loop_var, "++) {\n"))))))))));
+            result = Concat(result, Concat(pad, for_hdr));
+            ArraySet(cur, 0, idx + 1);
+            ExpectText(texts, count, cur, "Block:");
+            result = Concat(result, EmitStmtList(indents, texts, count, stmt_indent + 4, cur, inner_pad, env_box, cur_fn_ret));
+            result = Concat(result, Concat(pad, "}\n"));
         } else if StartsWith(t, "While: ") {
             let cond: String = Substring(t, 7, StringLength(t) - 7);
             result = Concat(result, Concat(pad, Concat("while ", Concat(cond, " {\n"))));
             ArraySet(cur, 0, idx + 1);
             ExpectText(texts, count, cur, "Block:");
-            result = Concat(result, EmitStmtList(indents, texts, count, stmt_indent + 4, cur, inner_pad));
+            result = Concat(result, EmitStmtList(indents, texts, count, stmt_indent + 4, cur, inner_pad, env_box, cur_fn_ret));
             result = Concat(result, Concat(pad, "}\n"));
         } else if StartsWith(t, "If: ") {
             let cond2: String = Substring(t, 4, StringLength(t) - 4);
@@ -337,12 +446,12 @@ func EmitStmtList(indents: Array<Int>, texts: Array<String>, count: Int,
             ArraySet(cur, 0, idx + 1);
             ExpectText(texts, count, cur, "Then:");
             ExpectText(texts, count, cur, "Block:");
-            result = Concat(result, EmitStmtList(indents, texts, count, stmt_indent + 6, cur, inner_pad));
+            result = Concat(result, EmitStmtList(indents, texts, count, stmt_indent + 6, cur, inner_pad, env_box, cur_fn_ret));
             if cur[0] < count && texts[cur[0]] == "Else:" && indents[cur[0]] == stmt_indent + 2 {
                 result = Concat(result, Concat(pad, "} else {\n"));
                 ArraySet(cur, 0, cur[0] + 1);
                 ExpectText(texts, count, cur, "Block:");
-                result = Concat(result, EmitStmtList(indents, texts, count, stmt_indent + 6, cur, inner_pad));
+                result = Concat(result, EmitStmtList(indents, texts, count, stmt_indent + 6, cur, inner_pad, env_box, cur_fn_ret));
                 result = Concat(result, Concat(pad, "}\n"));
             } else {
                 result = Concat(result, Concat(pad, "}\n"));
@@ -354,32 +463,47 @@ func EmitStmtList(indents: Array<Int>, texts: Array<String>, count: Int,
     return result;
 }
 
-// Map a Pergyra type name to its C type. rung-3 supports `Int` and `Void`.
-func CTypeOf(type_name: String) -> String {
+// C parameter type for a Pergyra type. `String` params are read-only.
+func CParamType(type_name: String) -> String {
     if type_name == "Int" {
         return "long long";
+    }
+    if type_name == "String" {
+        return "const char*";
+    }
+    Die(Concat("unsupported parameter type (only Int/String): ", type_name));
+    return "";
+}
+
+// C return type for a Pergyra type. `String` returns may be malloc'd buffers.
+func CRetType(type_name: String) -> String {
+    if type_name == "Int" {
+        return "long long";
+    }
+    if type_name == "String" {
+        return "char*";
     }
     if type_name == "Void" {
         return "void";
     }
-    Die(Concat("unsupported type in rung-3 (only Int/Void): ", type_name));
+    Die(Concat("unsupported return type (only Int/String/Void): ", type_name));
     return "";
 }
 
 // Emit one function definition starting at the `Function: <Name>` line at
-// cur[0] (indentation `f_indent`). Pushes the C prototype for non-Main
-// functions into `protos`. Returns the full C definition and advances cur.
+// cur[0]. Pushes the C prototype for non-Main functions into `protos`.
+// `base_env` carries the global function return-type bindings.
 func EmitFunction(indents: Array<Int>, texts: Array<String>, count: Int,
-                  cur: Array<Int>, f_indent: Int, protos: Array<String>) -> String {
+                  cur: Array<Int>, f_indent: Int, protos: Array<String>,
+                  base_env: String) -> String {
     let head: String = texts[cur[0]];
-    // `Function: ` is 10 chars.
     let name: String = Substring(head, 10, StringLength(head) - 10);
     ArraySet(cur, 0, cur[0] + 1);
 
     ExpectText(texts, count, cur, "Parameters:");
-    // Collect parameter lines at indent f_indent+4 (`name: Type`).
     let params: String = "";
     let param_n: Int = 0;
+    let env_box: Array<String> = [base_env];
     while cur[0] < count && indents[cur[0]] == f_indent + 4 {
         let pline: String = texts[cur[0]];
         let pc: Int = StringIndexOf(pline, ": ");
@@ -388,17 +512,17 @@ func EmitFunction(indents: Array<Int>, texts: Array<String>, count: Int,
         }
         let p_name: String = Substring(pline, 0, pc);
         let p_type: String = Substring(pline, pc + 2, StringLength(pline) - (pc + 2));
-        let c_param: String = Concat(CTypeOf(p_type), Concat(" ", p_name));
+        let c_param: String = Concat(CParamType(p_type), Concat(" ", p_name));
         if param_n == 0 {
             params = c_param;
         } else {
             params = Concat(params, Concat(", ", c_param));
         }
+        ArraySet(env_box, 0, Concat(env_box[0], Concat(p_name, Concat("=v:", Concat(p_type, "|")))));
         param_n = param_n + 1;
         ArraySet(cur, 0, cur[0] + 1);
     }
 
-    // Return type.
     if cur[0] >= count || !StartsWith(texts[cur[0]], "Returns:") {
         Die("expected Returns: line after parameters");
     }
@@ -409,11 +533,143 @@ func EmitFunction(indents: Array<Int>, texts: Array<String>, count: Int,
     ExpectText(texts, count, cur, "Body:");
     ExpectText(texts, count, cur, "Block:");
     let stmt_indent: Int = f_indent + 6;
-    let body: String = EmitStmtList(indents, texts, count, stmt_indent, cur, "    ");
+    let body: String = EmitStmtList(indents, texts, count, stmt_indent, cur, "    ", env_box, ret_type);
 
     let is_main: Bool = name == "Main";
     let signature: String = "";
     if is_main {
         signature = "int main(void)";
     } else {
-        let param_list: String = pa
+        let param_list: String = params;
+        if param_n == 0 {
+            param_list = "void";
+        }
+        signature = Concat(CRetType(ret_type), Concat(" ", Concat(name, Concat("(", Concat(param_list, ")")))));
+        ArrayPush(protos, Concat(signature, ";"));
+    }
+
+    let tail: String = "}\n";
+    if is_main {
+        tail = "    return 0;\n}\n";
+    }
+    return Concat(signature, Concat("\n{\n", Concat(body, tail)));
+}
+
+// Build the global environment: `|Name=f:RetType|...` for every function, by
+// pairing each `Function: Name` line with the next `Returns:` line.
+func BuildFunctionEnv(indents: Array<Int>, texts: Array<String>, count: Int) -> String {
+    let env: String = "|";
+    let i: Int = 0;
+    while i < count {
+        if StartsWith(texts[i], "Function:") {
+            let fname: String = Substring(texts[i], 10, StringLength(texts[i]) - 10);
+            let j: Int = i + 1;
+            let rtype: String = "Void";
+            while j < count && !StartsWith(texts[j], "Function:") {
+                if StartsWith(texts[j], "Returns:") {
+                    rtype = StringTrim(Substring(texts[j], 8, StringLength(texts[j]) - 8));
+                    j = count;
+                } else {
+                    j = j + 1;
+                }
+            }
+            env = Concat(env, Concat(fname, Concat("=f:", Concat(rtype, "|"))));
+        }
+        i = i + 1;
+    }
+    return env;
+}
+
+func GenerateC(ast: String) -> String {
+    let indents: Array<Int> = [];
+    let texts: Array<String> = [];
+    let total: Int = StringLength(ast);
+    let pos: Int = 0;
+    let main_count: Int = 0;
+    while pos < total {
+        let nl: Int = NextNewline(ast, pos);
+        let raw_line: String = Substring(ast, pos, nl - pos);
+        let trimmed: String = StringTrim(raw_line);
+        if StringLength(trimmed) > 0 {
+            ArrayPush(indents, IndentOf(raw_line));
+            ArrayPush(texts, trimmed);
+            if trimmed == "Function: Main" {
+                main_count = main_count + 1;
+            }
+        }
+        pos = nl + 1;
+    }
+    if main_count != 1 {
+        Die(Concat("exactly one `Main` function is required; saw count=", ToString(main_count)));
+    }
+
+    let count: Int = ArrayLength(texts);
+    let first_fn: Int = -1;
+    let scan: Int = 0;
+    while scan < count {
+        if StartsWith(texts[scan], "Function:") {
+            first_fn = scan;
+            scan = count;
+        } else {
+            scan = scan + 1;
+        }
+    }
+    if first_fn < 0 {
+        Die("no function found in AST");
+    }
+    let f_indent: Int = indents[first_fn];
+    let base_env: String = BuildFunctionEnv(indents, texts, count);
+
+    let protos: Array<String> = [];
+    let defs: String = "";
+    let cur: Array<Int> = [first_fn];
+    while cur[0] < count {
+        if StartsWith(texts[cur[0]], "Function:") && indents[cur[0]] == f_indent {
+            let def: String = EmitFunction(indents, texts, count, cur, f_indent, protos, base_env);
+            defs = Concat(defs, Concat(def, "\n"));
+        } else {
+            ArraySet(cur, 0, cur[0] + 1);
+        }
+    }
+
+    let proto_block: String = "";
+    let pn: Int = ArrayLength(protos);
+    let pi: Int = 0;
+    while pi < pn {
+        proto_block = Concat(proto_block, Concat(protos[pi], "\n"));
+        pi = pi + 1;
+    }
+    if pn > 0 {
+        proto_block = Concat(proto_block, "\n");
+    }
+
+    // String programs need the runtime concat helper; int-only programs stay lean.
+    let uses_str: Bool = StringIndexOf(ast, "String") >= 0 || StringIndexOf(ast, "Concat(") >= 0;
+    let header: String = "#include <stdio.h>\n";
+    if uses_str {
+        header = Concat(header, "#include <stdlib.h>\n#include <string.h>\n\n");
+        header = Concat(header, "static char *pgy_concat(const char *a, const char *b)\n{\n");
+        header = Concat(header, "    size_t la = strlen(a);\n    size_t lb = strlen(b);\n");
+        header = Concat(header, "    char *r = (char *)malloc(la + lb + 1);\n");
+        header = Concat(header, "    memcpy(r, a, la);\n    memcpy(r + la, b, lb);\n    r[la + lb] = '\\0';\n");
+        header = Concat(header, "    return r;\n}\n\n");
+    } else {
+        header = Concat(header, "\n");
+    }
+    return Concat(header, Concat(proto_block, defs));
+}
+
+func Main() -> Void {
+    let run_args: Array<String> = Args();
+    let ast_path: String = "src/self_hosted/codegen/fixture/hello_ast.txt";
+    if ArrayLength(run_args) > 0 {
+        ast_path = run_args[0];
+    }
+    if !FileExists(ast_path) {
+        Log(Concat("CODEGEN ERROR: AST file not found: ", ast_path));
+        Exit(1);
+    }
+    let ast: String = ReadFile(ast_path);
+    let c_source: String = GenerateC(ast);
+    Log(c_source);
+}

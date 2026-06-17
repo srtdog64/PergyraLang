@@ -1,0 +1,11 @@
+func Add(a: Int, b: Int) -> Int {
+    return a + b;
+}
+func Square(n: Int) -> Int {
+    return n * n;
+}
+func Main() -> Void {
+    let s: Int = Add(3, 4);
+    let q: Int = Square(s);
+    Log(ToString(q));
+}
