@@ -321,6 +321,24 @@ func ExprKind(expr: String, env: String) -> String {
     if StartsWith(e, "StringLength(") {
         return "Int";
     }
+    if StartsWith(e, "ToUpper(") {
+        return "String";
+    }
+    if StartsWith(e, "ToLower(") {
+        return "String";
+    }
+    if StartsWith(e, "StringReplace(") {
+        return "String";
+    }
+    if StartsWith(e, "Abs(") {
+        return "Int";
+    }
+    if StartsWith(e, "Min(") {
+        return "Int";
+    }
+    if StartsWith(e, "Max(") {
+        return "Int";
+    }
     if IsIdentifier(e) {
         let vt: String = LookupKindType(env, e, "v");
         if StringLength(vt) > 0 {
@@ -695,7 +713,13 @@ func RewriteTokens(e: String, env: String) -> String {
     let f0: String = ReplaceAllOutsideStrings(d, "Split(", "pgy_split(");
     let f1: String = ReplaceAllOutsideStrings(f0, "ToInt(", "pgy_toint(");
     let f: String = ReplaceAllOutsideStrings(f1, "StringTrim(", "pgy_strtrim(");
-    let g: String = ReplaceAllOutsideStrings(f, "FileExists(", "pgy_fexists(");
+    let f2: String = ReplaceAllOutsideStrings(f, "StringReplace(", "pgy_strreplace(");
+    let f3: String = ReplaceAllOutsideStrings(f2, "ToUpper(", "pgy_toupper(");
+    let f4: String = ReplaceAllOutsideStrings(f3, "ToLower(", "pgy_tolower(");
+    let f5: String = ReplaceAllOutsideStrings(f4, "Abs(", "pgy_abs(");
+    let f6: String = ReplaceAllOutsideStrings(f5, "Min(", "pgy_min(");
+    let f7: String = ReplaceAllOutsideStrings(f6, "Max(", "pgy_max(");
+    let g: String = ReplaceAllOutsideStrings(f7, "FileExists(", "pgy_fexists(");
     let h0: String = ReplaceAllOutsideStrings(g, "ReadFile(", "pgy_readfile(");
     let h: String = ReplaceAllOutsideStrings(h0, "DirWalk(", "pgy_dirwalk(");
     let k: String = ReplaceAllOutsideStrings(h, "Args(", "pgy_args(");
@@ -1517,7 +1541,12 @@ func GenerateC(ast: String) -> String {
     // int-only programs stay lean.
     let uses_str: Bool = StringIndexOf(ast, "String") >= 0
         || StringIndexOf(ast, "Concat(") >= 0
-        || StringIndexOf(ast, "Substring(") >= 0;
+        || StringIndexOf(ast, "Substring(") >= 0
+        || StringIndexOf(ast, "ToUpper(") >= 0
+        || StringIndexOf(ast, "ToLower(") >= 0;
+    let uses_math: Bool = StringIndexOf(ast, "Abs(") >= 0
+        || StringIndexOf(ast, "Min(") >= 0
+        || StringIndexOf(ast, "Max(") >= 0;
     let uses_bool: Bool = StringIndexOf(ast, "Bool") >= 0;
     let uses_exit: Bool = StringIndexOf(ast, "Exit(") >= 0;
     let uses_array: Bool = StringIndexOf(ast, "Array<") >= 0
@@ -1608,6 +1637,27 @@ func GenerateC(ast: String) -> String {
         header = Concat(header, "static int pgy_strcontains(const char *h, const char *n)\n{\n");
         header = Concat(header, "    return strstr(h, n) != NULL ? 1 : 0;\n}\n\n");
         header = Concat(header, "static long long pgy_toint(const char *s)\n{\n    return atoll(s);\n}\n\n");
+        header = Concat(header, "static char *pgy_toupper(const char *s)\n{\n");
+        header = Concat(header, "    size_t n = strlen(s);\n    char *r = (char *)malloc(n + 1);\n");
+        header = Concat(header, "    for (size_t i = 0; i < n; i++) { char c = s[i]; r[i] = (c >= 'a' && c <= 'z') ? (char)(c - 32) : c; }\n");
+        header = Concat(header, "    r[n] = '\\0';\n    return r;\n}\n\n");
+        header = Concat(header, "static char *pgy_tolower(const char *s)\n{\n");
+        header = Concat(header, "    size_t n = strlen(s);\n    char *r = (char *)malloc(n + 1);\n");
+        header = Concat(header, "    for (size_t i = 0; i < n; i++) { char c = s[i]; r[i] = (c >= 'A' && c <= 'Z') ? (char)(c + 32) : c; }\n");
+        header = Concat(header, "    r[n] = '\\0';\n    return r;\n}\n\n");
+        header = Concat(header, "static char *pgy_strreplace(const char *s, const char *from, const char *to)\n{\n");
+        header = Concat(header, "    size_t fl = strlen(from);\n    if (fl == 0) { return pgy_concat(s, \"\"); }\n");
+        header = Concat(header, "    size_t tl = strlen(to);\n    size_t cnt = 0;\n    const char *p = s;\n");
+        header = Concat(header, "    while ((p = strstr(p, from)) != NULL) { cnt++; p += fl; }\n");
+        header = Concat(header, "    char *r = (char *)malloc(strlen(s) + cnt * (tl > fl ? tl - fl : 0) + 1);\n");
+        header = Concat(header, "    char *w = r;\n    const char *q = s;\n");
+        header = Concat(header, "    while (*q) {\n        if (strncmp(q, from, fl) == 0) { memcpy(w, to, tl); w += tl; q += fl; }\n");
+        header = Concat(header, "        else { *w++ = *q++; }\n    }\n    *w = '\\0';\n    return r;\n}\n\n");
+    }
+    if uses_math {
+        header = Concat(header, "static long long pgy_abs(long long v)\n{\n    return v < 0 ? -v : v;\n}\n\n");
+        header = Concat(header, "static long long pgy_min(long long a, long long b)\n{\n    return a < b ? a : b;\n}\n\n");
+        header = Concat(header, "static long long pgy_max(long long a, long long b)\n{\n    return a > b ? a : b;\n}\n\n");
     }
     // pgy_strjoin needs both the pgy_as struct (uses_array) and string.h
     // (uses_str); emit it only when StringJoin is actually used so string-only

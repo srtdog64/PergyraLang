@@ -1,0 +1,9 @@
+HELLO, WORLD!
+hello, world!
+Hello, Pergyra!
+a+b+a+b
+42
+3
+7
+50
+7

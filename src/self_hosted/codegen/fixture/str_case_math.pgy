@@ -1,0 +1,16 @@
+func ClampVal(v: Int, lo: Int, hi: Int) -> Int {
+    return Max(lo, Min(hi, v));
+}
+func Main() -> Void {
+    let s: String = "Hello, World!";
+    Log(ToUpper(s));
+    Log(ToLower(s));
+    Log(StringReplace(s, "World", "Pergyra"));
+    Log(StringReplace("a_b_a_b", "_", "+"));
+    Log(ToString(Abs(0 - 42)));
+    Log(ToString(Min(3, 7)));
+    Log(ToString(Max(3, 7)));
+    Log(ToString(ClampVal(99, 0, 50)));
+    let m: Int = Abs(-5) + Max(1, 2);
+    Log(ToString(m));
+}

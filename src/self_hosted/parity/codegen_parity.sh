@@ -108,6 +108,7 @@ FIXTURES=(
     dir_walk
     for_each
     array_pop
+    str_case_math
 )
 
 # Per-fixture runtime arguments. The same argv snapshot is passed to both the
