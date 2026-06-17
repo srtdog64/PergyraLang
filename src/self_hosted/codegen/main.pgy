@@ -1018,7 +1018,10 @@ func EmitLog(inner: String, env: String) -> String {
     if ExprKind(inner, env) == "Int" {
         return Concat("printf(\"%lld\\n\", (long long)(", Concat(IntEval(inner, env), "));"));
     }
-    return Concat("printf(\"%s\\n\", ", Concat(StrEval(inner, env), ");"));
+    // String Log: the oracle strips all trailing newlines from the value and
+    // then appends exactly one (`Log("c\n\n")` -> `c\n`), so route through the
+    // pgy_log helper rather than a raw `printf("%s\n", ...)`.
+    return Concat("pgy_log(", Concat(StrEval(inner, env), ");"));
 }
 
 // `Return: <expr>` / bare `Return:`. String returns route through StrEval.
@@ -1641,6 +1644,7 @@ func GenerateC(ast: String) -> String {
     let uses_join: Bool = StringIndexOf(ast, "StringJoin(") >= 0;
     let uses_split: Bool = StringIndexOf(ast, "Split(") >= 0;
     let uses_dirwalk: Bool = StringIndexOf(ast, "DirWalk(") >= 0;
+    let uses_log: Bool = StringIndexOf(ast, "Log") >= 0;
     let need_stdlib: Bool = uses_str || uses_exit || uses_array || uses_io;
     let header: String = "#include <stdio.h>\n";
     if uses_bool {
@@ -1656,6 +1660,14 @@ func GenerateC(ast: String) -> String {
         header = Concat(header, "#include <dirent.h>\n#include <sys/stat.h>\n");
     }
     header = Concat(header, "\n");
+    if uses_log {
+        // String Log: strip all trailing newlines, then emit exactly one (the
+        // oracle's `Log` semantics). Self-contained (no string.h dependency).
+        header = Concat(header, "static void pgy_log(const char *s)\n{\n");
+        header = Concat(header, "    long long n = 0;\n    while (s[n] != '\\0') { n++; }\n");
+        header = Concat(header, "    while (n > 0 && (s[n-1] == '\\n' || s[n-1] == '\\r')) { n--; }\n");
+        header = Concat(header, "    fwrite(s, 1, (size_t)n, stdout);\n    putchar('\\n');\n}\n\n");
+    }
     if uses_array {
         header = Concat(header, "typedef struct { long long *data; long long len; long long cap; } pgy_ai;\n");
         header = Concat(header, "typedef struct { const char **data; long long len; long long cap; } pgy_as;\n\n");

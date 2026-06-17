@@ -111,6 +111,7 @@ FIXTURES=(
     str_case_math
     string_concat_op
     write_file
+    log_trailing_newline
 )
 
 # Per-fixture runtime arguments. The same argv snapshot is passed to both the

@@ -1,0 +1,8 @@
+func Main() -> Void {
+    Log("a\n");
+    Log("b");
+    Log("c\n\n");
+    let s: String = "line1\nline2\n";
+    Log(s);
+    Log("end");
+}
