@@ -989,9 +989,17 @@ func EmitStmtList(indents: Array<Int>, texts: Array<String>, count: Int,
             result = Concat(result, Concat(pad, Concat(EmitLog(log_inner, env_box[0]), "\n")));
             ArraySet(cur, 0, idx + 1);
         } else if t == "Return" {
-            // Bare void return (the AST printer omits the colon when there is
-            // no value).
-            result = Concat(result, Concat(pad, "return;\n"));
+            // Bare return (the AST printer omits the colon when there is no
+            // value). The C form follows the *C* return type: void -> `return;`,
+            // otherwise a typed default (Main lowers to `int main`, so its
+            // cur_fn_ret is passed as "Int" -> `return 0;`).
+            let bare: String = "return;";
+            if cur_fn_ret == "String" {
+                bare = "return \"\";";
+            } else if cur_fn_ret != "Void" {
+                bare = "return 0;";
+            }
+            result = Concat(result, Concat(pad, Concat(bare, "\n")));
             ArraySet(cur, 0, idx + 1);
         } else if StartsWith(t, "Return:") {
             let rexpr: String = StringTrim(Substring(t, 7, StringLength(t) - 7));
@@ -1048,6 +1056,21 @@ func EmitStmtList(indents: Array<Int>, texts: Array<String>, count: Int,
             }
             let push_stmt: String = Concat(push_fn, Concat("(&", Concat(p_arr, Concat(", ", Concat(p_rhs, ");")))));
             result = Concat(result, Concat(pad, Concat(push_stmt, "\n")));
+            ArraySet(cur, 0, idx + 1);
+        } else if StartsWith(t, "ArrayPop(") {
+            // `ArrayPop(arr)` statement -> `pgy_ai_pop(&arr);` (drops the popped
+            // value; element type by array kind).
+            let qn: Int = StringLength(t);
+            if CharAt(t, qn - 1) != ")" {
+                Die(Concat("malformed ArrayPop(...): ", t));
+            }
+            let q_arr: String = StringTrim(Substring(t, 9, qn - 9 - 1));
+            let q_kind: String = LookupKindType(env_box[0], q_arr, "v");
+            let pop_fn: String = "pgy_ai_pop";
+            if q_kind == "ArrayString" {
+                pop_fn = "pgy_as_pop";
+            }
+            result = Concat(result, Concat(pad, Concat(pop_fn, Concat("(&", Concat(q_arr, ");\n")))));
             ArraySet(cur, 0, idx + 1);
         } else if StartsWith(t, "Exit(") {
             // `Exit(N)` statement -> `exit(N);` (rung-9).
@@ -1263,9 +1286,15 @@ func EmitFunction(indents: Array<Int>, texts: Array<String>, count: Int,
     ExpectText(texts, count, cur, "Body:");
     ExpectText(texts, count, cur, "Block:");
     let stmt_indent: Int = f_indent + 6;
-    let body: String = EmitStmtList(indents, texts, count, stmt_indent, cur, "    ", env_box, ret_type);
-
     let is_main: Bool = name == "Main";
+    // Main lowers to `int main`, so a bare `return` inside it must be `return 0;`
+    // -- emit its body with an Int return type.
+    let body_ret: String = ret_type;
+    if is_main {
+        body_ret = "Int";
+    }
+    let body: String = EmitStmtList(indents, texts, count, stmt_indent, cur, "    ", env_box, body_ret);
+
     let signature: String = "";
     let body_full: String = body;
     if is_main {
@@ -1495,6 +1524,7 @@ func GenerateC(ast: String) -> String {
         || StringIndexOf(ast, "ArrayPush(") >= 0
         || StringIndexOf(ast, "ArrayLength(") >= 0
         || StringIndexOf(ast, "ArraySet(") >= 0
+        || StringIndexOf(ast, "ArrayPop(") >= 0
         || StringIndexOf(ast, "StringJoin(") >= 0
         || StringIndexOf(ast, "Split(") >= 0
         || StringIndexOf(ast, "DirWalk(") >= 0
@@ -1529,14 +1559,16 @@ func GenerateC(ast: String) -> String {
         header = Concat(header, "    a->data[a->len++] = v;\n}\n");
         header = Concat(header, "static long long pgy_ai_get(pgy_ai a, long long i) { return a.data[i]; }\n");
         header = Concat(header, "static void pgy_ai_set(pgy_ai *a, long long i, long long v) { a->data[i] = v; }\n");
-        header = Concat(header, "static long long pgy_ai_len(pgy_ai a) { return a.len; }\n\n");
+        header = Concat(header, "static long long pgy_ai_len(pgy_ai a) { return a.len; }\n");
+        header = Concat(header, "static long long pgy_ai_pop(pgy_ai *a) { return a->len > 0 ? a->data[--a->len] : 0; }\n\n");
         header = Concat(header, "static pgy_as pgy_as_new(void) { pgy_as a; a.data = NULL; a.len = 0; a.cap = 0; return a; }\n");
         header = Concat(header, "static void pgy_as_push(pgy_as *a, const char *v) {\n");
         header = Concat(header, "    if (a->len == a->cap) { a->cap = a->cap ? a->cap * 2 : 4; a->data = (const char **)realloc(a->data, (size_t)a->cap * sizeof(const char *)); }\n");
         header = Concat(header, "    a->data[a->len++] = v;\n}\n");
         header = Concat(header, "static const char *pgy_as_get(pgy_as a, long long i) { return a.data[i]; }\n");
         header = Concat(header, "static void pgy_as_set(pgy_as *a, long long i, const char *v) { a->data[i] = v; }\n");
-        header = Concat(header, "static long long pgy_as_len(pgy_as a) { return a.len; }\n\n");
+        header = Concat(header, "static long long pgy_as_len(pgy_as a) { return a.len; }\n");
+        header = Concat(header, "static const char *pgy_as_pop(pgy_as *a) { return a->len > 0 ? a->data[--a->len] : \"\"; }\n\n");
     }
     if uses_args2 {
         // `Args()` -> pgy_args(): user args (argv[1..]) as a pgy_as. main() stashes

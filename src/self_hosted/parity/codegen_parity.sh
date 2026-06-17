@@ -107,6 +107,7 @@ FIXTURES=(
     str_builtins2
     dir_walk
     for_each
+    array_pop
 )
 
 # Per-fixture runtime arguments. The same argv snapshot is passed to both the

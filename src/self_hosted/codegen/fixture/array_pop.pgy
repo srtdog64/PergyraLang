@@ -1,0 +1,15 @@
+func Main() -> Void {
+    let xs: Array<Int> = [10, 20, 30, 40];
+    ArrayPop(xs);
+    ArrayPop(xs);
+    let total: Int = 0;
+    for v in xs {
+        total = total + v;
+    }
+    Log(ToString(total));
+    Log(ToString(ArrayLength(xs)));
+    let ws: Array<String> = ["a", "b", "c"];
+    ArrayPop(ws);
+    Log(ToString(ArrayLength(ws)));
+    Log(ws[0]);
+}

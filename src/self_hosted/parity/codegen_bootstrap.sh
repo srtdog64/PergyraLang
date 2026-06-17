@@ -101,7 +101,7 @@ echo "[self-host-bootstrap] Pergyra-built tool emits identical C to oracle-built
 # parser). Build each via the codegen, gcc it, and check it produces the same
 # output as the oracle-built component on a sample source.
 SAMPLE_SRC="examples/hello.pgy"
-for comp in lexer parser; do
+for comp in lexer parser semantic; do
     csrc="$ROOT_DIR/src/self_hosted/$comp/main.pgy"
     [[ -f "$csrc" ]] || continue
     crel=".tmp/self_hosted/codegen/bootstrap/${comp}_ast.txt"
