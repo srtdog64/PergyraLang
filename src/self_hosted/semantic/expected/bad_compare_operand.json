@@ -1,1 +1,0 @@
-{"schema":"pgy.selfhost.semantic.v1","ok":false,"diagnostics":[{"stage":"semantic","severity":"error","code":"compare_type_mismatch","reason":"comparison operands must have the same type","fix":"compare values with matching types","span":null,"facts":{"left":"Int","right":"String"}}]}

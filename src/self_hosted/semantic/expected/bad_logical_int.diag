@@ -1,0 +1,11 @@
+Diagnostic: pgy.selfhost.semantic.v1
+Status: error
+Stage: semantic
+Severity: error
+Code: logical_operand_not_bool
+Reason: logical operators require Bool operands
+Fix: convert the operand to Bool or compare it explicitly before using && or ||
+Span: none
+Facts:
+- side: left
+- actual: Int

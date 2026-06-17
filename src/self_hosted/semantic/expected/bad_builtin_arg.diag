@@ -1,0 +1,12 @@
+Diagnostic: pgy.selfhost.semantic.v1
+Status: error
+Stage: semantic
+Severity: error
+Code: call_arg_type_mismatch
+Reason: call argument type does not match the callee parameter type
+Fix: change the argument expression or the callee parameter type
+Span: none
+Facts:
+- func: StringLength
+- expected: String
+- actual: Int

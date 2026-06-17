@@ -12,7 +12,7 @@ the migration path.
 Pergyra should not attempt a full compiler rewrite first. The practical path is:
 
 1. **Soft self-host**: compiler-adjacent tools written in Pergyra.
-2. **Partial self-host**: isolated analysis/validation passes that consume stable JSON or IR dumps.
+2. **Partial self-host**: isolated analysis/validation passes that consume stable files or IR dumps.
 3. **Hard self-host**: frontend/backend migration only after the stable subset survives real dogfood.
 
 The current compiler remains C + LLVM/C backend until this track explicitly
@@ -24,7 +24,7 @@ self-hosted result cannot be trusted as the deciding value.
 ## Current Judgement (2026-06-13)
 
 Soft/partial self-host preparation may continue. The active work should stay on
-compiler-adjacent tools, stable JSON/dump validators, lexer/parser parity
+compiler-adjacent tools, stable file/dump validators, lexer/parser parity
 expansion, and C/LLVM/Pergyra comparator evidence.
 
 Hard compiler-core migration is not open. The current substitution progress in
@@ -34,7 +34,7 @@ value after C and LLVM, never as the source that decides which oracle is right.
 
 The executable soft self-host scaffolds live in `src/self_hosted/`. This
 `docs/self_hosted/` folder is the contract and handoff documentation;
-`src/self_hosted/` is where Pergyra-language tool stubs, expected JSON, and
+`src/self_hosted/` is where Pergyra-language tool stubs, expected outputs, and
 parity harnesses live.
 
 ## Architecture Migration Judgement
@@ -86,8 +86,9 @@ of starting self-host migration.
 ## First Self-Host Rule
 
 The first Pergyra-written programs must be tools around the compiler, not the
-compiler core. They should consume stable files (`JSON`, dumps, manifests,
-diagnostic tables) and compare their output against the existing C compiler.
+compiler core. They should consume stable files (JSON where the source format is
+already JSON, diagnostic blocks where the source is a diagnostic verdict, dumps,
+manifests, diagnostic tables) and compare their output against the existing C compiler.
 This keeps the C implementation as the oracle while making Pergyra useful for
 its own ecosystem.
 

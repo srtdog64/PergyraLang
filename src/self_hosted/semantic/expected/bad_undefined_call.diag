@@ -1,0 +1,10 @@
+Diagnostic: pgy.selfhost.semantic.v1
+Status: error
+Stage: semantic
+Severity: error
+Code: undefined_function
+Reason: called function is not declared in the checked subset
+Fix: declare the function before calling it
+Span: none
+Facts:
+- func: Frobnicate

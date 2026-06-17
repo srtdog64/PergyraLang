@@ -1,0 +1,11 @@
+Diagnostic: pgy.selfhost.semantic.v1
+Status: error
+Stage: semantic
+Severity: error
+Code: assign_type_mismatch
+Reason: assigned expression type does not match the local type
+Fix: assign a value that matches the local type
+Span: none
+Facts:
+- expected: Int
+- actual: String

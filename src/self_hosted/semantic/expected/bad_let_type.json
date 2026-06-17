@@ -1,1 +1,0 @@
-{"schema":"pgy.selfhost.semantic.v1","ok":false,"diagnostics":[{"stage":"semantic","severity":"error","code":"let_type_mismatch","reason":"let initializer type does not match the declared local type","fix":"change the initializer or the declared local type","span":null,"facts":{"expected":"Int","actual":"String"}}]}

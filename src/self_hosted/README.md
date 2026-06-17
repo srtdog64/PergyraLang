@@ -69,6 +69,8 @@ src/self_hosted/
   dispatch inventory checker, doc link checker, production header size checker,
   production C size checker, and examples inventory checker. The shared
   `lib/text_scan.pgy` owns reusable scan helpers used by multiple tools.
+  `lib/diagnostic.pgy` owns stable diagnostic-block rendering so compiler
+  slices do not hand-build raw error strings or JSON in their `main.pgy` files.
   `make self-host-preparation-test-smoke` now runs every parity script, not just
   the scaffold check. This is dogfood evidence only; the compiler core remains C.
 - **2026-05-28** -- first compiler-internal substitution candidates land as
@@ -113,7 +115,8 @@ src/self_hosted/
 
 1. Do not start a full compiler rewrite from this directory.
 2. The C compiler remains the oracle during soft/partial self-host.
-3. Prefer stable JSON/IR inputs over direct compiler internals.
+3. Prefer stable file/IR inputs over direct compiler internals. Use JSON when
+   the owner format is JSON; use diagnostic blocks for diagnostic verdicts.
 4. A tool ships only when its parity check passes the C oracle.
 5. Build artifacts belong under ignored scratch space such as `.tmp/`; do not
    leave compiler outputs beside `main.pgy` sources.

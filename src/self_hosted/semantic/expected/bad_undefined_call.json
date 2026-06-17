@@ -1,1 +1,0 @@
-{"schema":"pgy.selfhost.semantic.v1","ok":false,"diagnostics":[{"stage":"semantic","severity":"error","code":"undefined_function","reason":"called function is not declared in the checked subset","fix":"declare the function before calling it","span":null,"facts":{"func":"Frobnicate"}}]}

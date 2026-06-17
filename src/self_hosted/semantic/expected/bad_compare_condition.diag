@@ -1,0 +1,11 @@
+Diagnostic: pgy.selfhost.semantic.v1
+Status: error
+Stage: semantic
+Severity: error
+Code: compare_type_mismatch
+Reason: comparison operands must have the same type
+Fix: compare values with matching types
+Span: none
+Facts:
+- left: Int
+- right: String

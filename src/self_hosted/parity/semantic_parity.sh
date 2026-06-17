@@ -83,6 +83,7 @@ SOURCE_PAIRS=(
     "bad_binop_return:error"
     "bad_compare_assign:error"
     "bad_binop_condition:error"
+    "valid_array_builtins:ok"
     "bad_block_scope_leak:error"
     "bad_else_scope_leak:error"
     "valid_outer_block_assign:ok"
@@ -92,6 +93,9 @@ SOURCE_PAIRS=(
 
 mkdir -p "$PERGYRA_TOOL_BUILD_DIR"
 cp "$PERGYRA_TOOL_SOURCE" "$PERGYRA_TOOL"
+LIB_BUILD_DIR="$ROOT_DIR/.tmp/self_hosted/lib"
+mkdir -p "$LIB_BUILD_DIR"
+cp "$ROOT_DIR/src/self_hosted/lib/"*.pgy "$LIB_BUILD_DIR/"
 
 check_c_oracle() {
     local base="$1"
@@ -137,7 +141,7 @@ run_semantic_backend() {
     for pair in "${SOURCE_PAIRS[@]}"; do
         local base="${pair%%:*}"
         local source="$FIXTURE_DIR/${base}.pgy"
-        local expected_file="$EXPECTED_DIR/${base}.json"
+        local expected_file="$EXPECTED_DIR/${base}.diag"
         local pergyra_out
         local rc
 
@@ -167,10 +171,28 @@ run_semantic_backend() {
             printf '%s\n' "$pergyra_out" >&2
             exit 1
         fi
-        if ! grep -Fq '"schema":"pgy.selfhost.semantic.v1"' <<<"$pergyra_out"; then
-            echo "[self-host-parity:semantic] backend=$backend $base: semantic JSON schema missing" >&2
+        if [[ "$pergyra_out" == \{* ]]; then
+            echo "[self-host-parity:semantic] backend=$backend $base: JSON semantic output leaked" >&2
             printf '%s\n' "$pergyra_out" >&2
             exit 1
+        fi
+        if ! grep -Fq 'Diagnostic: pgy.selfhost.semantic.v1' <<<"$pergyra_out"; then
+            echo "[self-host-parity:semantic] backend=$backend $base: semantic diagnostic header missing" >&2
+            printf '%s\n' "$pergyra_out" >&2
+            exit 1
+        fi
+        if [[ "${pair##*:}" == "ok" ]]; then
+            if ! grep -Fq 'Status: ok' <<<"$pergyra_out"; then
+                echo "[self-host-parity:semantic] backend=$backend $base: ok status missing" >&2
+                printf '%s\n' "$pergyra_out" >&2
+                exit 1
+            fi
+        else
+            if ! grep -Fq 'Status: error' <<<"$pergyra_out" || ! grep -Fq 'Code: ' <<<"$pergyra_out"; then
+                echo "[self-host-parity:semantic] backend=$backend $base: error diagnostic shape missing" >&2
+                printf '%s\n' "$pergyra_out" >&2
+                exit 1
+            fi
         fi
 
         local expected

@@ -1,0 +1,11 @@
+Diagnostic: pgy.selfhost.semantic.v1
+Status: error
+Stage: semantic
+Severity: error
+Code: let_type_mismatch
+Reason: let initializer type does not match the declared local type
+Fix: change the initializer or the declared local type
+Span: none
+Facts:
+- expected: Int
+- actual: Bool

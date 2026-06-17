@@ -8,7 +8,9 @@ This document is for future agents working on self-hosting.
 2. Do not claim Pergyra is self-hosted until a released compiler is built by Pergyra code.
 3. Keep the C compiler as the oracle during soft and partial self-hosting.
 4. Every self-hosted component must have an intent-verification pair: a named intent plus tests/contracts that verify it.
-5. Prefer stable JSON/IR inputs over direct compiler internals for first-stage tools.
+5. Prefer stable file/IR inputs over direct compiler internals for first-stage
+   tools. Use JSON when the owner format is JSON; use diagnostic blocks for
+   diagnostic verdicts.
 6. Do not add unnecessary helper functions. A helper must name a real owner
    responsibility, isolate a repeated contract, or remove a source-of-truth
    seam; a one-off wrapper that only hides local logic is an anti-pattern.

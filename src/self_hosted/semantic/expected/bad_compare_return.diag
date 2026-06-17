@@ -1,0 +1,11 @@
+Diagnostic: pgy.selfhost.semantic.v1
+Status: error
+Stage: semantic
+Severity: error
+Code: return_type_mismatch
+Reason: return expression type does not match the function return type
+Fix: return the declared function result type
+Span: none
+Facts:
+- expected: Int
+- actual: Bool

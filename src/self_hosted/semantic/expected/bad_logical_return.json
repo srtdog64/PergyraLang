@@ -1,1 +1,0 @@
-{"schema":"pgy.selfhost.semantic.v1","ok":false,"diagnostics":[{"stage":"semantic","severity":"error","code":"logical_operand_not_bool","reason":"logical operators require Bool operands","fix":"convert the operand to Bool or compare it explicitly before using && or ||","span":null,"facts":{"side":"left","actual":"Int"}}]}

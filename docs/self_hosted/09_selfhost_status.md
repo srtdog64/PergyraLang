@@ -120,13 +120,14 @@ Substrate progress.
   are known and disagree, mirroring the C oracle's `type_equals` rule and
   skipping when either side is Unknown.
   `src/self_hosted/parity/semantic_parity.sh` compares its verdicts with the C
-  compiler accept/reject oracle on C and LLVM across 56 committed fixtures that
+  compiler accept/reject oracle on C and LLVM across 57 committed fixtures that
   close the diagnostic matrix for every check across every statement position
   (typed let/return, arithmetic, comparison, call-return, call-argument,
   call-arity, branch-condition, scoped-block, assignment-type, bare-call-statement,
   binary-and-logical-operand-agreement, and undefined-identifier cases), all
-  emitted as `pgy.selfhost.semantic.v1` JSON diagnostics and byte-equal on both
-  backends. It checks that `if` / `while` conditions are
+  emitted as `pgy.selfhost.semantic.v1` diagnostic blocks through
+  `src/self_hosted/lib/diagnostic.pgy` and byte-equal on both backends. It
+  checks that `if` / `while` conditions are
   `Bool` (`condition_not_bool`), that a simple local assignment `name = expr`
   matches the variable's declared type (`assign_type_mismatch`), and that
   expression-statement calls (`Foo(args);`) satisfy the callee's arity and
@@ -135,7 +136,7 @@ Substrate progress.
   arithmetic/call-argument expressions, now report `undefined_symbol` when
   absent from the local environment. It also checks scoped `if` / `while`
   bodies without leaking block-local `let` bindings into the parent
-  environment. The 56-fixture parity set is the current gate; direct runs over
+  environment. The 57-fixture parity set is the current gate; direct runs over
   full self-host sources are not yet claimed as a gate because the recursive
   block scan still needs a real-source stability pass before it can cover the
   lexer, parser, linter, and semantic checker sources themselves.
@@ -175,7 +176,7 @@ binary- and logical-operand-agreement typing (comparison and arithmetic operands
 must share a type; `&&`/`||` operands must be Bool) in let, return, condition,
 and assignment positions, and simple/compound undefined-identifier
 diagnostics are covered, and verdicts stay
-byte-equal beside the C type checker on 56 committed fixtures across both
+byte-equal beside the C type checker on 57 committed fixtures across both
 backends. The checker now covers the common statement forms (let, return,
 assignment, if/while body, if/while condition, bare call), and the fixture
 matrix exercises each diagnostic in every position where it can fire. The next

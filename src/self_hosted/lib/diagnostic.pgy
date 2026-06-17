@@ -1,0 +1,52 @@
+// src/self_hosted/lib/diagnostic.pgy
+//
+// Shared diagnostic rendering for self-host tools and compiler-internal
+// substitution slices. The diagnostic value is the source of truth: stage,
+// severity, stable code, reason, fix, optional span, and structured facts.
+// Renderers turn that value into a stable text block for parity fixtures.
+//
+// Do not hand-build diagnostic strings in each tool. A tool may own its
+// domain-specific code/reason/fix table, but the output shape belongs here.
+
+namespace SelfHostDiagnostic {
+    export func Fact1(k1: String, v1: String) -> String {
+        return Concat("- ", Concat(k1, Concat(": ", v1)));
+    }
+
+    export func Fact2(k1: String, v1: String, k2: String, v2: String) -> String {
+        return Concat(Fact1(k1, v1), Concat("\n", Fact1(k2, v2)));
+    }
+
+    export func Fact3(k1: String, v1: String, k2: String, v2: String, k3: String, v3: String) -> String {
+        return Concat(Fact2(k1, v1, k2, v2), Concat("\n", Fact1(k3, v3)));
+    }
+
+    export func RenderOk(schema: String) -> String {
+        let out: String = "Diagnostic: ";
+        out = Concat(out, schema);
+        out = Concat(out, "\nStatus: ok");
+        out = Concat(out, "\nDiagnostics: none");
+        return out;
+    }
+
+    export func RenderError(schema: String, stage: String, severity: String, code: String, reason: String, fix: String, span: String, facts: String) -> String {
+        let out: String = "Diagnostic: ";
+        out = Concat(out, schema);
+        out = Concat(out, "\nStatus: error");
+        out = Concat(out, "\nStage: ");
+        out = Concat(out, stage);
+        out = Concat(out, "\nSeverity: ");
+        out = Concat(out, severity);
+        out = Concat(out, "\nCode: ");
+        out = Concat(out, code);
+        out = Concat(out, "\nReason: ");
+        out = Concat(out, reason);
+        out = Concat(out, "\nFix: ");
+        out = Concat(out, fix);
+        out = Concat(out, "\nSpan: ");
+        out = Concat(out, span);
+        out = Concat(out, "\nFacts:\n");
+        out = Concat(out, facts);
+        return out;
+    }
+}

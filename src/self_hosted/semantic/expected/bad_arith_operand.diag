@@ -1,0 +1,11 @@
+Diagnostic: pgy.selfhost.semantic.v1
+Status: error
+Stage: semantic
+Severity: error
+Code: binop_type_mismatch
+Reason: arithmetic operands must have the same type
+Fix: use operands with matching arithmetic types
+Span: none
+Facts:
+- left: Int
+- right: String

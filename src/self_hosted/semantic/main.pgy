@@ -12,6 +12,8 @@
 // operand types (skipped when either side is Unknown), mirroring the C oracle's
 // type_equals rule.
 
+import "../lib/diagnostic.pgy";
+
 func CharAt(s: String, i: Int) -> String {
     let n: Int = StringLength(s);
     if i < 0 {
@@ -121,33 +123,6 @@ func Trim(content: String) -> String {
     return Substring(content, start, end - start);
 }
 
-func JsonEscape(value: String) -> String {
-    let out: String = "";
-    let i: Int = 0;
-    while i < StringLength(value) {
-        let c: String = CharAt(value, i);
-        if c == "\\" {
-            out = Concat(out, "\\\\");
-        } else if c == "\"" {
-            out = Concat(out, "\\\"");
-        } else if c == "\n" {
-            out = Concat(out, "\\n");
-        } else if c == "\r" {
-            out = Concat(out, "\\r");
-        } else if c == "\t" {
-            out = Concat(out, "\\t");
-        } else {
-            out = Concat(out, c);
-        }
-        i = i + 1;
-    }
-    return out;
-}
-
-func JsonString(value: String) -> String {
-    return Concat("\"", Concat(JsonEscape(value), "\""));
-}
-
 func SemanticReason(code: String) -> String {
     if code == "undefined_symbol" {
         return "identifier is used before a local binding is in scope";
@@ -228,73 +203,32 @@ func SemanticFix(code: String) -> String {
     return "fix the semantic mismatch reported by the diagnostic code";
 }
 
-func SemanticFact1(k1: String, v1: String) -> String {
-    let out: String = "{";
-    out = Concat(out, JsonString(k1));
-    out = Concat(out, ":");
-    out = Concat(out, JsonString(v1));
-    out = Concat(out, "}");
-    return out;
-}
-
-func SemanticFact2(k1: String, v1: String, k2: String, v2: String) -> String {
-    let out: String = "{";
-    out = Concat(out, JsonString(k1));
-    out = Concat(out, ":");
-    out = Concat(out, JsonString(v1));
-    out = Concat(out, ",");
-    out = Concat(out, JsonString(k2));
-    out = Concat(out, ":");
-    out = Concat(out, JsonString(v2));
-    out = Concat(out, "}");
-    return out;
-}
-
-func SemanticFact3(k1: String, v1: String, k2: String, v2: String, k3: String, v3: String) -> String {
-    let out: String = "{";
-    out = Concat(out, JsonString(k1));
-    out = Concat(out, ":");
-    out = Concat(out, JsonString(v1));
-    out = Concat(out, ",");
-    out = Concat(out, JsonString(k2));
-    out = Concat(out, ":");
-    out = Concat(out, JsonString(v2));
-    out = Concat(out, ",");
-    out = Concat(out, JsonString(k3));
-    out = Concat(out, ":");
-    out = Concat(out, JsonString(v3));
-    out = Concat(out, "}");
-    return out;
-}
-
 func SemanticOk() -> String {
-    return "{\"schema\":\"pgy.selfhost.semantic.v1\",\"ok\":true,\"diagnostics\":[]}";
+    return SelfHostDiagnostic_RenderOk("pgy.selfhost.semantic.v1");
 }
 
 func SemanticErrorWithFacts(code: String, facts: String) -> String {
-    let out: String = "{\"schema\":\"pgy.selfhost.semantic.v1\",\"ok\":false,\"diagnostics\":[";
-    out = Concat(out, "{\"stage\":\"semantic\",\"severity\":\"error\",\"code\":");
-    out = Concat(out, JsonString(code));
-    out = Concat(out, ",\"reason\":");
-    out = Concat(out, JsonString(SemanticReason(code)));
-    out = Concat(out, ",\"fix\":");
-    out = Concat(out, JsonString(SemanticFix(code)));
-    out = Concat(out, ",\"span\":null,\"facts\":");
-    out = Concat(out, facts);
-    out = Concat(out, "}]}");
-    return out;
+    return SelfHostDiagnostic_RenderError(
+        "pgy.selfhost.semantic.v1",
+        "semantic",
+        "error",
+        code,
+        SemanticReason(code),
+        SemanticFix(code),
+        "none",
+        facts);
 }
 
 func SemanticError1(code: String, k1: String, v1: String) -> String {
-    return SemanticErrorWithFacts(code, SemanticFact1(k1, v1));
+    return SemanticErrorWithFacts(code, SelfHostDiagnostic_Fact1(k1, v1));
 }
 
 func SemanticError2(code: String, k1: String, v1: String, k2: String, v2: String) -> String {
-    return SemanticErrorWithFacts(code, SemanticFact2(k1, v1, k2, v2));
+    return SemanticErrorWithFacts(code, SelfHostDiagnostic_Fact2(k1, v1, k2, v2));
 }
 
 func SemanticError3(code: String, k1: String, v1: String, k2: String, v2: String, k3: String, v3: String) -> String {
-    return SemanticErrorWithFacts(code, SemanticFact3(k1, v1, k2, v2, k3, v3));
+    return SemanticErrorWithFacts(code, SelfHostDiagnostic_Fact3(k1, v1, k2, v2, k3, v3));
 }
 
 func ReadTypeName(content: String, start: Int, cursor_out: Array<Int>) -> String {
@@ -1409,6 +1343,27 @@ func CheckProgram(content: String) -> String {
     ArrayPush(func_names, "StringContains");
     ArrayPush(func_rets, "Bool");
     ArrayPush(func_params, "Unknown|Unknown");
+    ArrayPush(func_names, "ArrayPush");
+    ArrayPush(func_rets, "Unknown");
+    ArrayPush(func_params, "Unknown|Unknown");
+    ArrayPush(func_names, "ArrayPop");
+    ArrayPush(func_rets, "Unknown");
+    ArrayPush(func_params, "Unknown");
+    ArrayPush(func_names, "ArraySet");
+    ArrayPush(func_rets, "Unknown");
+    ArrayPush(func_params, "Unknown|Unknown|Unknown");
+    ArrayPush(func_names, "ArrayGet");
+    ArrayPush(func_rets, "Unknown");
+    ArrayPush(func_params, "Unknown|Unknown");
+    ArrayPush(func_names, "Args");
+    ArrayPush(func_rets, "Unknown");
+    ArrayPush(func_params, "");
+    ArrayPush(func_names, "Log");
+    ArrayPush(func_rets, "Unknown");
+    ArrayPush(func_params, "Unknown");
+    ArrayPush(func_names, "Exit");
+    ArrayPush(func_rets, "Unknown");
+    ArrayPush(func_params, "Unknown");
     let n: Int = StringLength(content);
     let scan: Int = 0;
     while scan < n {

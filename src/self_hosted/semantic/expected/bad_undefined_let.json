@@ -1,1 +1,0 @@
-{"schema":"pgy.selfhost.semantic.v1","ok":false,"diagnostics":[{"stage":"semantic","severity":"error","code":"undefined_symbol","reason":"identifier is used before a local binding is in scope","fix":"declare the local before use or pass it as a parameter","span":null,"facts":{"name":"nope"}}]}

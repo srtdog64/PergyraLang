@@ -1,1 +1,0 @@
-{"schema":"pgy.selfhost.semantic.v1","ok":false,"diagnostics":[{"stage":"semantic","severity":"error","code":"call_arity_mismatch","reason":"call argument count does not match the callee parameter count","fix":"pass the declared number of arguments","span":null,"facts":{"func":"Twice","expected":"1","actual":"2"}}]}

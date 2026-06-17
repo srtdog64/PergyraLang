@@ -18,17 +18,23 @@ direct calls to known functions.
 
 ## Output Contract
 
-The tool prints one deterministic JSON verdict:
+The tool prints one deterministic diagnostic verdict:
 
-- `{"schema":"pgy.selfhost.semantic.v1","ok":true,"diagnostics":[]}`
-- `{"schema":"pgy.selfhost.semantic.v1","ok":false,"diagnostics":[...]}`
+- `Diagnostic: pgy.selfhost.semantic.v1`
+- `Status: ok` or `Status: error`
+- error diagnostics additionally include `Stage`, `Severity`, stable `Code`,
+  `Reason`, `Fix`, `Span`, and structured `Facts`.
 
 Only the first semantic mismatch is reported. Diagnostics carry `stage`,
-`severity`, stable `code`, human `reason`, human `fix`, `span` (currently null
-until source spans are captured), and structured `facts`. Unsupported
+`severity`, stable `code`, human `reason`, human `fix`, `span` (currently
+`none` until source spans are captured), and structured `facts`. Unsupported
 expressions are classified as `Unknown` and do not fail the subset checker,
 except for simple identifier tokens in expression position where the name is
 absent from the current local environment; those report `undefined_symbol`.
+
+The renderer lives in `src/self_hosted/lib/diagnostic.pgy`; the semantic checker
+only owns semantic codes, reasons, fixes, and facts. Do not rebuild the
+diagnostic output shape inside `semantic/main.pgy`.
 
 ## Oracle
 

@@ -1,0 +1,12 @@
+Diagnostic: pgy.selfhost.semantic.v1
+Status: error
+Stage: semantic
+Severity: error
+Code: call_arity_mismatch
+Reason: call argument count does not match the callee parameter count
+Fix: pass the declared number of arguments
+Span: none
+Facts:
+- func: Twice
+- expected: 1
+- actual: 2
