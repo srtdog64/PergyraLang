@@ -51,6 +51,16 @@ cp "$ROOT_DIR/src/self_hosted/lib/"*.pgy "$LIB_BUILD_DIR/"
 SELF_SOURCES=(
     "src/self_hosted/lib/text_scan.pgy"
     "src/self_hosted/lib/diagnostic.pgy"
+    # The checker dogfooding its own source: every call resolves once the
+    # imported SelfHostDiagnostic_* functions are seeded in the builtin table,
+    # and the source uses only the checked subset (no for/match/class/zone or
+    # method calls; its `for`/`match` text occurs only inside reason/fix strings).
+    "src/self_hosted/semantic/main.pgy"
+    # Front-end milestone: the lexer. No imports, no namespace dot-calls; its
+    # class/match/zone/etc. occurrences are keyword string literals in
+    # KeywordType, not statements. Uses for/if/while/let/return/assign + the
+    # seeded builtins (StringTrim seeded for it).
+    "src/self_hosted/lexer/main.pgy"
 )
 
 BACKENDS="${PGY_SELFHOST_SEMANTIC_BACKENDS:-c llvm}"

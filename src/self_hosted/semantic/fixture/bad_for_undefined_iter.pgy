@@ -1,0 +1,6 @@
+func Main() -> Void {
+    for x in nope {
+        return;
+    }
+    return;
+}

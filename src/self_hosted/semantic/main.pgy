@@ -659,6 +659,9 @@ func CheckUndefinedIdentifiers(expr: String, names: Array<String>) -> String {
             if after < n && CharAt(text, after) == "(" {
                 continue;
             }
+            if after < n && CharAt(text, after) == "." {
+                continue;
+            }
             if !EnvContainsName(names, name) {
                 return SemanticError1("undefined_symbol", "name", name);
             }
@@ -1209,6 +1212,38 @@ func CheckBody(content: String, start: Int, end: Int, return_type: String, names
             }
             continue;
         }
+        if MatchKeyword(content, i, "for") {
+            let loop_var: String = ReadIdent(content, i + 3, cursor);
+            let after_var: Int = cursor[0];
+            let for_in: Int = ExpectLiteral(content, after_var, "in");
+            let for_open: Int = FindBlockOpen(content, after_var, end);
+            if for_in >= 0 && for_in < for_open {
+                let iter_text: String = Trim(Substring(content, for_in, for_open - for_in));
+                if StringLength(iter_text) > 0 {
+                    let iter_undefined: String = CheckUndefinedIdentifiers(iter_text, names);
+                    if StringLength(iter_undefined) > 0 {
+                        return iter_undefined;
+                    }
+                }
+            }
+            if for_open < end && CharAt(content, for_open) == "{" {
+                let for_close: Int = FindMatchingBrace(content, for_open);
+                let for_env_size: Int = ArrayLength(names);
+                if StringLength(loop_var) > 0 {
+                    ArrayPush(names, loop_var);
+                    ArrayPush(types, "Unknown");
+                }
+                let for_error: String = CheckBody(content, for_open + 1, for_close, return_type, names, types, func_names, func_rets, func_params);
+                RestoreEnv(names, types, for_env_size);
+                if StringLength(for_error) > 0 {
+                    return for_error;
+                }
+                i = for_close + 1;
+            } else {
+                i = for_open + 1;
+            }
+            continue;
+        }
         let asn_name: String = ReadIdent(content, i, cursor);
         let asn_after: Int = SkipWhitespaceAndComments(content, cursor[0]);
         if StringLength(asn_name) > 0 && CharAt(content, asn_after) == "=" && CharAt(content, asn_after + 1) != "=" {
@@ -1381,6 +1416,33 @@ func CheckProgram(content: String) -> String {
     ArrayPush(func_params, "Unknown");
     ArrayPush(func_names, "Exit");
     ArrayPush(func_rets, "Unknown");
+    ArrayPush(func_params, "Unknown");
+    ArrayPush(func_names, "SelfHostDiagnostic_RenderOk");
+    ArrayPush(func_rets, "String");
+    ArrayPush(func_params, "Unknown");
+    ArrayPush(func_names, "SelfHostDiagnostic_RenderError");
+    ArrayPush(func_rets, "String");
+    ArrayPush(func_params, "Unknown|Unknown|Unknown|Unknown|Unknown|Unknown|Unknown|Unknown");
+    ArrayPush(func_names, "SelfHostDiagnostic_Fact1");
+    ArrayPush(func_rets, "String");
+    ArrayPush(func_params, "Unknown|Unknown");
+    ArrayPush(func_names, "SelfHostDiagnostic_Fact2");
+    ArrayPush(func_rets, "String");
+    ArrayPush(func_params, "Unknown|Unknown|Unknown|Unknown");
+    ArrayPush(func_names, "SelfHostDiagnostic_Fact3");
+    ArrayPush(func_rets, "String");
+    ArrayPush(func_params, "Unknown|Unknown|Unknown|Unknown|Unknown|Unknown");
+    ArrayPush(func_names, "StringJoin");
+    ArrayPush(func_rets, "String");
+    ArrayPush(func_params, "Unknown|Unknown");
+    ArrayPush(func_names, "Split");
+    ArrayPush(func_rets, "Unknown");
+    ArrayPush(func_params, "Unknown|Unknown");
+    ArrayPush(func_names, "DirWalk");
+    ArrayPush(func_rets, "Unknown");
+    ArrayPush(func_params, "Unknown");
+    ArrayPush(func_names, "StringTrim");
+    ArrayPush(func_rets, "String");
     ArrayPush(func_params, "Unknown");
     let n: Int = StringLength(content);
     let scan: Int = 0;

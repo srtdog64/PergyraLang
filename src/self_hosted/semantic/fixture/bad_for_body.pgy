@@ -1,0 +1,5 @@
+func Main() -> Void {
+    for i in 0..3 {
+        let b: Bool = 1;
+    }
+}
