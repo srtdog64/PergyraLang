@@ -1,0 +1,14 @@
+func Main() -> Void {
+    if StringContains("hello world", "wor") {
+        Log("yes");
+    } else {
+        Log("no");
+    }
+    let parts: Array<String> = Split("a,bb,c", ",");
+    Log(ToString(ArrayLength(parts)));
+    Log(parts[1]);
+    let n: Int = ToInt("42");
+    Log(ToString(n + 1));
+    let empty: Array<String> = Split("x", ",");
+    Log(ToString(ArrayLength(empty)));
+}

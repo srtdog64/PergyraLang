@@ -1,0 +1,4 @@
+neg
+zero
+small
+big

@@ -280,8 +280,23 @@ func ExprKind(expr: String, env: String) -> String {
     if StartsWith(e, "StringTrim(") {
         return "String";
     }
+    if StartsWith(e, "StringJoin(") {
+        return "String";
+    }
+    if StartsWith(e, "Split(") {
+        return "ArrayString";
+    }
+    if StartsWith(e, "StringContains(") {
+        return "Int";
+    }
+    if StartsWith(e, "ToInt(") {
+        return "Int";
+    }
     if StartsWith(e, "ReadFile(") {
         return "String";
+    }
+    if StartsWith(e, "DirWalk(") {
+        return "ArrayString";
     }
     if StartsWith(e, "FileExists(") {
         return "Int";
@@ -357,30 +372,97 @@ func ReplaceAll(s: String, from: String, to: String) -> String {
     return out;
 }
 
+// Like ReplaceAll, but never matches inside a C string literal -- so a builtin
+// name that appears as *data* (e.g. the literal "ArrayLength(") is left alone.
+// Needed once the emitter compiles code that manipulates builtin-name strings
+// (e.g. the codegen tool itself).
+func ReplaceAllOutsideStrings(s: String, from: String, to: String) -> String {
+    let fl: Int = StringLength(from);
+    if fl == 0 {
+        return s;
+    }
+    let n: Int = StringLength(s);
+    let out: String = "";
+    let i: Int = 0;
+    let in_str: Bool = false;
+    while i < n {
+        let c: String = CharAt(s, i);
+        if in_str {
+            out = Concat(out, c);
+            if c == "\\" && i + 1 < n {
+                out = Concat(out, CharAt(s, i + 1));
+                i = i + 2;
+                continue;
+            }
+            if c == "\"" {
+                in_str = false;
+            }
+            i = i + 1;
+            continue;
+        }
+        if c == "\"" {
+            in_str = true;
+            out = Concat(out, c);
+            i = i + 1;
+            continue;
+        }
+        if i + fl <= n && Substring(s, i, fl) == from {
+            out = Concat(out, to);
+            i = i + fl;
+            continue;
+        }
+        out = Concat(out, c);
+        i = i + 1;
+    }
+    return out;
+}
+
 // Rewrite `ArrayLength(<arr>)` to `pgy_ai_len(arr)` / `pgy_as_len(arr)` per the
 // array's element type (rung-10 growable-array representation).
 func RewriteArrayLengthEnv(e: String, env: String) -> String {
-    let out: String = e;
-    let guard: Int = 0;
-    while guard < 64 {
-        let idx: Int = StringIndexOf(out, "ArrayLength(");
-        if idx < 0 {
-            return out;
+    let n: Int = StringLength(e);
+    let out: String = "";
+    let i: Int = 0;
+    let in_str: Bool = false;
+    while i < n {
+        let c: String = CharAt(e, i);
+        if in_str {
+            out = Concat(out, c);
+            if c == "\\" && i + 1 < n {
+                out = Concat(out, CharAt(e, i + 1));
+                i = i + 2;
+                continue;
+            }
+            if c == "\"" {
+                in_str = false;
+            }
+            i = i + 1;
+            continue;
         }
-        let open: Int = idx + 11;
-        let close: Int = FindMatchingParen(out, open);
-        if close < 0 {
-            Die(Concat("malformed ArrayLength(...): ", out));
+        if c == "\"" {
+            in_str = true;
+            out = Concat(out, c);
+            i = i + 1;
+            continue;
         }
-        let arg: String = StringTrim(Substring(out, open + 1, close - open - 1));
-        let kind: String = LookupKindType(env, arg, "v");
-        let fn: String = "pgy_ai_len";
-        if kind == "ArrayString" {
-            fn = "pgy_as_len";
+        if i + 12 <= n && Substring(e, i, 12) == "ArrayLength(" {
+            let open: Int = i + 11;
+            let close: Int = FindMatchingParen(e, open);
+            if close < 0 {
+                Die(Concat("malformed ArrayLength(...): ", e));
+            }
+            let arg: String = StringTrim(Substring(e, open + 1, close - open - 1));
+            let kind: String = LookupKindType(env, arg, "v");
+            let fn: String = "pgy_ai_len";
+            if kind == "ArrayString" {
+                fn = "pgy_as_len";
+            }
+            out = Concat(out, Concat(fn, Concat("(", Concat(arg, ")"))));
+            i = close + 1;
+            continue;
         }
-        let repl: String = Concat(fn, Concat("(", Concat(arg, ")")));
-        out = Concat(Substring(out, 0, idx), Concat(repl, Substring(out, close + 1, StringLength(out) - (close + 1))));
-        guard = guard + 1;
+        out = Concat(out, c);
+        i = i + 1;
     }
     return out;
 }
@@ -448,16 +530,176 @@ func RewriteIndexing(e: String, env: String) -> String {
 
 // Rewrite a C expression: array length, then array indexing, then string
 // builtin call-names to their runtime helpers. Environment-aware.
+// Find the index of a top-level two-char operator `op` (depth 0, outside string
+// literals). Returns -1 if none.
+func FindTopLevelOp2(s: String, op: String) -> Int {
+    let n: Int = StringLength(s);
+    let i: Int = 0;
+    let depth: Int = 0;
+    let in_str: Bool = false;
+    while i < n {
+        let c: String = CharAt(s, i);
+        if in_str {
+            if c == "\\" {
+                i = i + 2;
+                continue;
+            }
+            if c == "\"" {
+                in_str = false;
+            }
+            i = i + 1;
+            continue;
+        }
+        if c == "\"" {
+            in_str = true;
+            i = i + 1;
+            continue;
+        }
+        if c == "(" || c == "[" {
+            depth = depth + 1;
+            i = i + 1;
+            continue;
+        }
+        if c == ")" || c == "]" {
+            depth = depth - 1;
+            i = i + 1;
+            continue;
+        }
+        if depth == 0 && i + 2 <= n && Substring(s, i, 2) == op {
+            return i;
+        }
+        i = i + 1;
+    }
+    return -1;
+}
+
+// Recursively lower a boolean/comparison expression. The key job: a string
+// `==` / `!=` must become `strcmp(a, b) == 0` / `!= 0` (C `==` on `char*`
+// compares pointers). Int comparisons keep `==`. Operand expressions still flow
+// through the token pipeline (RewriteTokens).
+func RewriteBool(e: String, env: String) -> String {
+    let s: String = StringTrim(e);
+    let n: Int = StringLength(s);
+    if n == 0 {
+        return s;
+    }
+    // Fully parenthesized group -> recurse inside, keep the parens.
+    if CharAt(s, 0) == "(" && FindMatchingParen(s, 0) == n - 1 {
+        return Concat("(", Concat(RewriteBool(Substring(s, 1, n - 2), env), ")"));
+    }
+    // Lowest precedence first: `||`, then `&&`.
+    let orp: Int = FindTopLevelOp2(s, "||");
+    if orp >= 0 {
+        let l: String = Substring(s, 0, orp);
+        let r: String = Substring(s, orp + 2, n - (orp + 2));
+        return Concat(RewriteBool(l, env), Concat(" || ", RewriteBool(r, env)));
+    }
+    let andp: Int = FindTopLevelOp2(s, "&&");
+    if andp >= 0 {
+        let l2: String = Substring(s, 0, andp);
+        let r2: String = Substring(s, andp + 2, n - (andp + 2));
+        return Concat(RewriteBool(l2, env), Concat(" && ", RewriteBool(r2, env)));
+    }
+    // Equality / inequality: rewrite to strcmp when an operand is a string.
+    let eqp: Int = FindTopLevelOp2(s, "==");
+    let nep: Int = FindTopLevelOp2(s, "!=");
+    let cmpp: Int = eqp;
+    let is_eq: Bool = true;
+    if eqp < 0 || (nep >= 0 && nep < eqp) {
+        cmpp = nep;
+        is_eq = false;
+    }
+    if cmpp >= 0 {
+        let lhs: String = StringTrim(Substring(s, 0, cmpp));
+        let rhs: String = StringTrim(Substring(s, cmpp + 2, n - (cmpp + 2)));
+        if ExprKind(lhs, env) == "String" || ExprKind(rhs, env) == "String" {
+            let tail: String = ") == 0)";
+            if !is_eq {
+                tail = ") != 0)";
+            }
+            return Concat("(strcmp(", Concat(RewriteTokens(lhs, env), Concat(", ", Concat(RewriteTokens(rhs, env), tail))));
+        }
+    }
+    return RewriteTokens(s, env);
+}
+
 func RewriteExpr(e: String, env: String) -> String {
-    let a: String = RewriteArrayLengthEnv(e, env);
+    return RewriteBool(e, env);
+}
+
+// Rewrite a namespace-qualified call `NS.Func(...)` to the flattened C name
+// `NS_Func(...)`. The parser flattens `namespace NS { func Func }` to a
+// top-level `NS_Func` definition but renders calls in dotted form. A `.` that
+// joins two identifiers and is followed (after the second identifier) by `(`
+// is a qualified call; a `.` in `obj.field` (not followed by `(`) is left alone.
+func RewriteQualifiedCalls(e: String) -> String {
+    let n: Int = StringLength(e);
+    let out: String = "";
+    let i: Int = 0;
+    let in_str: Bool = false;
+    while i < n {
+        let c: String = CharAt(e, i);
+        if in_str {
+            out = Concat(out, c);
+            if c == "\\" && i + 1 < n {
+                out = Concat(out, CharAt(e, i + 1));
+                i = i + 2;
+                continue;
+            }
+            if c == "\"" {
+                in_str = false;
+            }
+            i = i + 1;
+            continue;
+        }
+        if c == "\"" {
+            in_str = true;
+            out = Concat(out, c);
+            i = i + 1;
+            continue;
+        }
+        if c == "." {
+            let ol: Int = StringLength(out);
+            let prev_ok: Bool = ol > 0 && IsIdentChar(CharAt(out, ol - 1));
+            let next_ok: Bool = i + 1 < n && IsIdentStart(CharAt(e, i + 1));
+            if prev_ok && next_ok {
+                let j: Int = i + 1;
+                while j < n && IsIdentChar(CharAt(e, j)) {
+                    j = j + 1;
+                }
+                if j < n && CharAt(e, j) == "(" {
+                    out = Concat(out, "_");
+                    i = i + 1;
+                    continue;
+                }
+            }
+        }
+        out = Concat(out, c);
+        i = i + 1;
+    }
+    return out;
+}
+
+func RewriteTokens(e: String, env: String) -> String {
+    let q: String = RewriteQualifiedCalls(e);
+    let a: String = RewriteArrayLengthEnv(q, env);
     let b: String = RewriteIndexing(a, env);
-    let c: String = ReplaceAll(b, "StringLength(", "pgy_strlen(");
-    let d: String = ReplaceAll(c, "StringIndexOf(", "pgy_strindexof(");
-    let f: String = ReplaceAll(d, "StringTrim(", "pgy_strtrim(");
-    let g: String = ReplaceAll(f, "FileExists(", "pgy_fexists(");
-    let h: String = ReplaceAll(g, "ReadFile(", "pgy_readfile(");
-    let k: String = ReplaceAll(h, "Args(", "pgy_args(");
-    return ReplaceAll(k, "Substring(", "pgy_substr(");
+    let c: String = ReplaceAllOutsideStrings(b, "StringLength(", "pgy_strlen(");
+    let d0: String = ReplaceAllOutsideStrings(c, "StringContains(", "pgy_strcontains(");
+    let d: String = ReplaceAllOutsideStrings(d0, "StringIndexOf(", "pgy_strindexof(");
+    let f0: String = ReplaceAllOutsideStrings(d, "Split(", "pgy_split(");
+    let f1: String = ReplaceAllOutsideStrings(f0, "ToInt(", "pgy_toint(");
+    let f: String = ReplaceAllOutsideStrings(f1, "StringTrim(", "pgy_strtrim(");
+    let g: String = ReplaceAllOutsideStrings(f, "FileExists(", "pgy_fexists(");
+    let h0: String = ReplaceAllOutsideStrings(g, "ReadFile(", "pgy_readfile(");
+    let h: String = ReplaceAllOutsideStrings(h0, "DirWalk(", "pgy_dirwalk(");
+    let k: String = ReplaceAllOutsideStrings(h, "Args(", "pgy_args(");
+    let m: String = ReplaceAllOutsideStrings(k, "Substring(", "pgy_substr(");
+    let jn: String = ReplaceAllOutsideStrings(m, "StringJoin(", "pgy_strjoin(");
+    let p: String = ReplaceAllOutsideStrings(jn, "ToString(", "pgy_tostr(");
+    // `Concat(a, b)` -> `pgy_concat(a, b)` is a pure name rewrite (same args),
+    // so it lowers recursively and inside arbitrary call arguments.
+    return ReplaceAllOutsideStrings(p, "Concat(", "pgy_concat(");
 }
 
 // Emit a C integer-valued (or boolean) expression from the AST's parenthesized
@@ -469,23 +711,12 @@ func IntEval(expr: String, env: String) -> String {
 // Emit a C string-valued (char*) expression for a <strexpr>. `Concat` lowers
 // to a runtime `pgy_concat`; `Substring` to `pgy_substr`; array element reads
 // to `pgy_as_get`; literals / identifiers / calls pass through.
+// String-valued expressions now lower through the same `RewriteExpr` token
+// pipeline as everything else -- `Concat` is a name rewrite (see RewriteExpr),
+// so nested and call-argument occurrences lower correctly without special
+// top-level parsing here.
 func StrEval(expr: String, env: String) -> String {
-    let e: String = StringTrim(expr);
-    if StartsWith(e, "Concat(") {
-        let n: Int = StringLength(e);
-        if CharAt(e, n - 1) != ")" {
-            Die(Concat("malformed Concat(...): ", e));
-        }
-        let inner: String = Substring(e, 7, n - 7 - 1);
-        let comma: Int = FindTopLevelComma(inner);
-        if comma < 0 {
-            Die(Concat("Concat needs two arguments: ", e));
-        }
-        let a: String = Substring(inner, 0, comma);
-        let b: String = Substring(inner, comma + 1, StringLength(inner) - (comma + 1));
-        return Concat("pgy_concat(", Concat(StrEval(a, env), Concat(", ", Concat(StrEval(b, env), ")"))));
-    }
-    return RewriteExpr(e, env);
+    return RewriteExpr(StringTrim(expr), env);
 }
 
 // Wrap a condition in C parens unless it is already a single parenthesized
@@ -863,14 +1094,27 @@ func EmitStmtList(indents: Array<Int>, texts: Array<String>, count: Int,
             ExpectText(texts, count, cur, "Block:");
             result = Concat(result, EmitStmtList(indents, texts, count, stmt_indent + 6, cur, inner_pad, env_box, cur_fn_ret));
             if cur[0] < count && texts[cur[0]] == "Else:" && indents[cur[0]] == stmt_indent + 2 {
-                result = Concat(result, Concat(pad, "} else {\n"));
                 ArraySet(cur, 0, cur[0] + 1);
-                ExpectText(texts, count, cur, "Block:");
-                result = Concat(result, EmitStmtList(indents, texts, count, stmt_indent + 6, cur, inner_pad, env_box, cur_fn_ret));
-                result = Concat(result, Concat(pad, "}\n"));
+                if cur[0] < count && StartsWith(texts[cur[0]], "If: ") {
+                    // `else if`: the AST nests an `If:` directly under `Else:`
+                    // (no `Block:`). Emit `} else ` and recurse on that If at its
+                    // own indent; the nested if-chain closes itself.
+                    result = Concat(result, Concat(pad, "} else "));
+                    result = Concat(result, EmitStmtList(indents, texts, count, indents[cur[0]], cur, pad, env_box, cur_fn_ret));
+                } else {
+                    result = Concat(result, Concat(pad, "} else {\n"));
+                    ExpectText(texts, count, cur, "Block:");
+                    result = Concat(result, EmitStmtList(indents, texts, count, stmt_indent + 6, cur, inner_pad, env_box, cur_fn_ret));
+                    result = Concat(result, Concat(pad, "}\n"));
+                }
             } else {
                 result = Concat(result, Concat(pad, "}\n"));
             }
+        } else if IsSingleCall(t) {
+            // Bare function-call statement, e.g. `Die(Concat(...))` or a void
+            // user call. Arguments lower through the same RewriteExpr pipeline.
+            result = Concat(result, Concat(pad, Concat(RewriteExpr(t, env_box[0]), ";\n")));
+            ArraySet(cur, 0, idx + 1);
         } else {
             Die(Concat("unsupported AST line in supported subset: ", t));
         }
@@ -1076,6 +1320,62 @@ func CollectStructs(indents: Array<Int>, texts: Array<String>, count: Int, env_b
     return typedefs;
 }
 
+// Build the C forward-declaration block for every non-Main function, in
+// GenerateC's own scope. (A pre-pass is required because Pergyra arrays pass by
+// value with a shared element buffer: `ArraySet` mutations persist across calls
+// but `ArrayPush` growth does not -- so a callee cannot append to the caller's
+// `protos`. Emitting prototypes here makes forward references compile.)
+func CollectProtos(indents: Array<Int>, texts: Array<String>, count: Int, struct_env: String) -> String {
+    let block: String = "";
+    let i: Int = 0;
+    while i < count {
+        if StartsWith(texts[i], "Function:") {
+            let name: String = Substring(texts[i], 10, StringLength(texts[i]) - 10);
+            if name != "Main" {
+                let f_indent: Int = indents[i];
+                let j: Int = i + 1;
+                if j < count && texts[j] == "Parameters:" {
+                    j = j + 1;
+                }
+                let params: String = "";
+                let pn: Int = 0;
+                while j < count && indents[j] == f_indent + 4 {
+                    let pl: String = texts[j];
+                    let pc: Int = StringIndexOf(pl, ": ");
+                    if pc < 0 {
+                        Die(Concat("malformed parameter: ", pl));
+                    }
+                    let p_name: String = Substring(pl, 0, pc);
+                    let p_type: String = Substring(pl, pc + 2, StringLength(pl) - (pc + 2));
+                    let cp: String = Concat(CParamType(p_type, struct_env), Concat(" ", p_name));
+                    if pn == 0 {
+                        params = cp;
+                    } else {
+                        params = Concat(params, Concat(", ", cp));
+                    }
+                    pn = pn + 1;
+                    j = j + 1;
+                }
+                let rtype: String = "Void";
+                if j < count && StartsWith(texts[j], "Returns:") {
+                    rtype = StringTrim(Substring(texts[j], 8, StringLength(texts[j]) - 8));
+                }
+                let plist: String = params;
+                if pn == 0 {
+                    plist = "void";
+                }
+                let sig: String = Concat(CRetType(rtype, struct_env), Concat(" ", Concat(name, Concat("(", Concat(plist, ")")))));
+                block = Concat(block, Concat(sig, ";\n"));
+            }
+        }
+        i = i + 1;
+    }
+    if StringLength(block) > 0 {
+        block = Concat(block, "\n");
+    }
+    return block;
+}
+
 func GenerateC(ast: String) -> String {
     let indents: Array<Int> = [];
     let texts: Array<String> = [];
@@ -1086,6 +1386,12 @@ func GenerateC(ast: String) -> String {
         let nl: Int = NextNewline(ast, pos);
         let raw_line: String = Substring(ast, pos, nl - pos);
         let trimmed: String = StringTrim(raw_line);
+        // Strip an `[export] ` modifier (namespace/import functions are flattened
+        // to top-level `[export] Function: NS_Func`); the rest of the emitter
+        // then treats them as ordinary functions.
+        if StartsWith(trimmed, "[export] ") {
+            trimmed = Substring(trimmed, 9, StringLength(trimmed) - 9);
+        }
         if StringLength(trimmed) > 0 {
             ArrayPush(indents, IndentOf(raw_line));
             ArrayPush(texts, trimmed);
@@ -1131,8 +1437,10 @@ func GenerateC(ast: String) -> String {
         }
     }
 
-    let proto_block: String = "";
-    let pn: Int = ArrayLength(protos);
+    // Forward declarations come from a GenerateC-scope pre-pass (see
+    // CollectProtos); the per-EmitFunction `protos` push does not persist.
+    let proto_block: String = CollectProtos(indents, texts, count, base_env);
+    let pn: Int = 0;
     let pi: Int = 0;
     while pi < pn {
         proto_block = Concat(proto_block, Concat(protos[pi], "\n"));
@@ -1154,10 +1462,16 @@ func GenerateC(ast: String) -> String {
         || StringIndexOf(ast, "ArrayPush(") >= 0
         || StringIndexOf(ast, "ArrayLength(") >= 0
         || StringIndexOf(ast, "ArraySet(") >= 0
+        || StringIndexOf(ast, "StringJoin(") >= 0
+        || StringIndexOf(ast, "Split(") >= 0
+        || StringIndexOf(ast, "DirWalk(") >= 0
         || StringIndexOf(ast, "Args(") >= 0;
     let uses_args2: Bool = StringIndexOf(ast, "Args(") >= 0;
     let uses_io: Bool = StringIndexOf(ast, "ReadFile(") >= 0
         || StringIndexOf(ast, "FileExists(") >= 0;
+    let uses_join: Bool = StringIndexOf(ast, "StringJoin(") >= 0;
+    let uses_split: Bool = StringIndexOf(ast, "Split(") >= 0;
+    let uses_dirwalk: Bool = StringIndexOf(ast, "DirWalk(") >= 0;
     let need_stdlib: Bool = uses_str || uses_exit || uses_array || uses_io;
     let header: String = "#include <stdio.h>\n";
     if uses_bool {
@@ -1168,6 +1482,9 @@ func GenerateC(ast: String) -> String {
     }
     if uses_str {
         header = Concat(header, "#include <string.h>\n");
+    }
+    if uses_dirwalk {
+        header = Concat(header, "#include <dirent.h>\n#include <sys/stat.h>\n");
     }
     header = Concat(header, "\n");
     if uses_array {
@@ -1220,6 +1537,39 @@ func GenerateC(ast: String) -> String {
         header = Concat(header, "    char *r = (char *)malloc(len + 1);\n");
         header = Concat(header, "    memcpy(r, s, len);\n    r[len] = '\\0';\n");
         header = Concat(header, "    return r;\n}\n\n");
+        header = Concat(header, "static char *pgy_tostr(long long v)\n{\n");
+        header = Concat(header, "    char *r = (char *)malloc(24);\n");
+        header = Concat(header, "    sprintf(r, \"%lld\", v);\n    return r;\n}\n\n");
+        header = Concat(header, "static int pgy_strcontains(const char *h, const char *n)\n{\n");
+        header = Concat(header, "    return strstr(h, n) != NULL ? 1 : 0;\n}\n\n");
+        header = Concat(header, "static long long pgy_toint(const char *s)\n{\n    return atoll(s);\n}\n\n");
+    }
+    // pgy_strjoin needs both the pgy_as struct (uses_array) and string.h
+    // (uses_str); emit it only when StringJoin is actually used so string-only
+    // programs do not reference an undefined pgy_as.
+    if uses_split {
+        header = Concat(header, "static pgy_as pgy_split(const char *s, const char *sep)\n{\n");
+        header = Concat(header, "    pgy_as a = pgy_as_new();\n    size_t sl = strlen(sep);\n");
+        header = Concat(header, "    if (sl == 0) { pgy_as_push(&a, s); return a; }\n");
+        header = Concat(header, "    const char *start = s;\n    const char *p;\n");
+        header = Concat(header, "    while ((p = strstr(start, sep)) != NULL) {\n");
+        header = Concat(header, "        size_t len = (size_t)(p - start);\n");
+        header = Concat(header, "        char *part = (char *)malloc(len + 1);\n");
+        header = Concat(header, "        memcpy(part, start, len); part[len] = '\\0';\n");
+        header = Concat(header, "        pgy_as_push(&a, part);\n        start = p + sl;\n    }\n");
+        header = Concat(header, "    char *last = (char *)malloc(strlen(start) + 1);\n");
+        header = Concat(header, "    strcpy(last, start);\n    pgy_as_push(&a, last);\n    return a;\n}\n\n");
+    }
+    if uses_join {
+        header = Concat(header, "static char *pgy_strjoin(pgy_as a, const char *sep)\n{\n");
+        header = Concat(header, "    size_t sl = strlen(sep);\n    size_t total = 0;\n");
+        header = Concat(header, "    for (long long i = 0; i < a.len; i++) { total += strlen(a.data[i]); }\n");
+        header = Concat(header, "    if (a.len > 1) { total += sl * (size_t)(a.len - 1); }\n");
+        header = Concat(header, "    char *r = (char *)malloc(total + 1);\n    char *p = r;\n");
+        header = Concat(header, "    for (long long i = 0; i < a.len; i++) {\n");
+        header = Concat(header, "        if (i > 0) { memcpy(p, sep, sl); p += sl; }\n");
+        header = Concat(header, "        size_t el = strlen(a.data[i]);\n        memcpy(p, a.data[i], el); p += el;\n    }\n");
+        header = Concat(header, "    *p = '\\0';\n    return r;\n}\n\n");
     }
     if uses_io {
         header = Concat(header, "static int pgy_fexists(const char *path)\n{\n");
@@ -1233,6 +1583,27 @@ func GenerateC(ast: String) -> String {
         header = Concat(header, "    char *buf = (char *)malloc((size_t)sz + 1);\n");
         header = Concat(header, "    size_t rd = fread(buf, 1, (size_t)sz, f);\n");
         header = Concat(header, "    buf[rd] = '\\0';\n    fclose(f);\n    return buf;\n}\n\n");
+    }
+    if uses_dirwalk {
+        // DirWalk: recursive regular-file walk, `/`-joined paths, flat lexical
+        // sort -- matches the oracle's snapshot. Needs pgy_as (uses_array).
+        header = Concat(header, "static void pgy_dirwalk_rec(const char *dir, pgy_as *out)\n{\n");
+        header = Concat(header, "    DIR *d = opendir(dir);\n    if (!d) { return; }\n");
+        header = Concat(header, "    struct dirent *e;\n    while ((e = readdir(d)) != NULL) {\n");
+        header = Concat(header, "        if (strcmp(e->d_name, \".\") == 0 || strcmp(e->d_name, \"..\") == 0) { continue; }\n");
+        header = Concat(header, "        char *path = (char *)malloc(strlen(dir) + strlen(e->d_name) + 2);\n");
+        header = Concat(header, "        sprintf(path, \"%s/%s\", dir, e->d_name);\n");
+        header = Concat(header, "        struct stat st;\n");
+        header = Concat(header, "        if (stat(path, &st) == 0) {\n");
+        header = Concat(header, "            if (S_ISDIR(st.st_mode)) { pgy_dirwalk_rec(path, out); free(path); }\n");
+        header = Concat(header, "            else { pgy_as_push(out, path); }\n");
+        header = Concat(header, "        } else { free(path); }\n    }\n    closedir(d);\n}\n");
+        header = Concat(header, "static int pgy_str_cmp(const void *a, const void *b)\n{\n");
+        header = Concat(header, "    return strcmp(*(const char **)a, *(const char **)b);\n}\n");
+        header = Concat(header, "static pgy_as pgy_dirwalk(const char *dir)\n{\n");
+        header = Concat(header, "    pgy_as a = pgy_as_new();\n    pgy_dirwalk_rec(dir, &a);\n");
+        header = Concat(header, "    qsort(a.data, (size_t)a.len, sizeof(const char *), pgy_str_cmp);\n");
+        header = Concat(header, "    return a;\n}\n\n");
     }
     return Concat(header, Concat(typedef_block, Concat(proto_block, defs)));
 }

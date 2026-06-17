@@ -1,0 +1,21 @@
+func Main() -> Void {
+    let files: Array<String> = DirWalk("src/self_hosted/lexer");
+    let hasMain: Bool = false;
+    let i: Int = 0;
+    while i < ArrayLength(files) {
+        if StringContains(files[i], "lexer/main.pgy") {
+            hasMain = true;
+        }
+        i = i + 1;
+    }
+    if hasMain {
+        Log("found-main");
+    } else {
+        Log("no-main");
+    }
+    if ArrayLength(files) > 0 {
+        Log("nonempty");
+    } else {
+        Log("empty");
+    }
+}

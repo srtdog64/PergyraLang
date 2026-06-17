@@ -101,6 +101,11 @@ FIXTURES=(
     struct_param
     array_param
     log_int_direct
+    else_if_chain
+    builtin_name_literal
+    string_equality
+    str_builtins2
+    dir_walk
 )
 
 # Per-fixture runtime arguments. The same argv snapshot is passed to both the

@@ -1,0 +1,7 @@
+func Main() -> Void {
+    Log("StringLength( and Substring( and ArrayLength( are functions");
+    let marker: String = "Args(";
+    Log(Concat("marker=", marker));
+    let pos: Int = StringIndexOf("xArrayLength(y", "ArrayLength(");
+    Log(ToString(pos));
+}

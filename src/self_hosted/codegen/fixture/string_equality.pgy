@@ -1,0 +1,20 @@
+func Kind(s: String) -> String {
+    if s == "int" {
+        return "I";
+    } else if s == "str" || s == "string" {
+        return "S";
+    }
+    return "?";
+}
+func Main() -> Void {
+    Log(Kind("int"));
+    Log(Kind("str"));
+    Log(Kind("string"));
+    Log(Kind("bool"));
+    let a: String = "xy";
+    if a != "xy" {
+        Log("ne");
+    } else {
+        Log("eq");
+    }
+}
