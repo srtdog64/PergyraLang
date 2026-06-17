@@ -112,6 +112,7 @@ FIXTURES=(
     string_concat_op
     write_file
     log_trailing_newline
+    file_handle
 )
 
 # Per-fixture runtime arguments. The same argv snapshot is passed to both the

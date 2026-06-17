@@ -1,0 +1,14 @@
+func Main() -> Void {
+    let path: String = ".tmp/fh_fixture.txt";
+    let fd: Int = FileOpen(path, "w");
+    FileWrite(fd, "Line 1\n");
+    FileWrite(fd, "Line 2\n");
+    FileClose(fd);
+    let fd2: Int = FileOpen(path, "r");
+    Log(FileRead(fd2));
+    Log(FileRead(fd2));
+    FileClose(fd2);
+    Print("No newline");
+    Print(" here\n");
+    Print("done\n");
+}

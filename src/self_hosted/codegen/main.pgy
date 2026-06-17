@@ -310,6 +310,12 @@ func ExprKind(expr: String, env: String) -> String {
     if StartsWith(e, "FileExists(") {
         return "Int";
     }
+    if StartsWith(e, "FileOpen(") {
+        return "Int";
+    }
+    if StartsWith(e, "FileRead(") {
+        return "String";
+    }
     if StartsWith(e, "Args(") {
         return "ArrayString";
     }
@@ -730,7 +736,12 @@ func RewriteTokens(e: String, env: String) -> String {
     let f7: String = ReplaceAllOutsideStrings(f6, "Max(", "pgy_max(");
     let g: String = ReplaceAllOutsideStrings(f7, "FileExists(", "pgy_fexists(");
     let gw: String = ReplaceAllOutsideStrings(g, "WriteFile(", "pgy_writefile(");
-    let h0: String = ReplaceAllOutsideStrings(gw, "ReadFile(", "pgy_readfile(");
+    let go: String = ReplaceAllOutsideStrings(gw, "FileOpen(", "pgy_fopen(");
+    let gwr: String = ReplaceAllOutsideStrings(go, "FileWrite(", "pgy_fwrite(");
+    let gc: String = ReplaceAllOutsideStrings(gwr, "FileClose(", "pgy_fclose(");
+    let gr: String = ReplaceAllOutsideStrings(gc, "FileRead(", "pgy_fread(");
+    let gp: String = ReplaceAllOutsideStrings(gr, "Print(", "pgy_print(");
+    let h0: String = ReplaceAllOutsideStrings(gp, "ReadFile(", "pgy_readfile(");
     let h: String = ReplaceAllOutsideStrings(h0, "DirWalk(", "pgy_dirwalk(");
     let k: String = ReplaceAllOutsideStrings(h, "Args(", "pgy_args(");
     let m: String = ReplaceAllOutsideStrings(k, "Substring(", "pgy_substr(");
@@ -1645,7 +1656,12 @@ func GenerateC(ast: String) -> String {
     let uses_split: Bool = StringIndexOf(ast, "Split(") >= 0;
     let uses_dirwalk: Bool = StringIndexOf(ast, "DirWalk(") >= 0;
     let uses_log: Bool = StringIndexOf(ast, "Log") >= 0;
-    let need_stdlib: Bool = uses_str || uses_exit || uses_array || uses_io;
+    let uses_fhandle: Bool = StringIndexOf(ast, "FileOpen(") >= 0
+        || StringIndexOf(ast, "FileWrite(") >= 0
+        || StringIndexOf(ast, "FileClose(") >= 0
+        || StringIndexOf(ast, "FileRead(") >= 0;
+    let uses_print: Bool = StringIndexOf(ast, "Print(") >= 0;
+    let need_stdlib: Bool = uses_str || uses_exit || uses_array || uses_io || uses_fhandle;
     let header: String = "#include <stdio.h>\n";
     if uses_bool {
         header = Concat(header, "#include <stdbool.h>\n");
@@ -1667,6 +1683,32 @@ func GenerateC(ast: String) -> String {
         header = Concat(header, "    long long n = 0;\n    while (s[n] != '\\0') { n++; }\n");
         header = Concat(header, "    while (n > 0 && (s[n-1] == '\\n' || s[n-1] == '\\r')) { n--; }\n");
         header = Concat(header, "    fwrite(s, 1, (size_t)n, stdout);\n    putchar('\\n');\n}\n\n");
+    }
+    if uses_print {
+        // Print: write to stdout with no added newline.
+        header = Concat(header, "static void pgy_print(const char *s)\n{\n    fputs(s, stdout);\n}\n\n");
+    }
+    if uses_fhandle {
+        // File-handle API: an int handle indexes a small static FILE* table.
+        // FileOpen returns -1 on failure; FileRead returns one line (with its
+        // trailing newline) or "" at EOF. Self-contained (no string.h).
+        header = Concat(header, "static FILE *pgy_fh[256];\nstatic long long pgy_fh_n = 0;\n");
+        header = Concat(header, "static long long pgy_fopen(const char *path, const char *mode)\n{\n");
+        header = Concat(header, "    FILE *f = fopen(path, mode);\n    if (!f) { return -1; }\n");
+        header = Concat(header, "    if (pgy_fh_n >= 256) { fclose(f); return -1; }\n");
+        header = Concat(header, "    pgy_fh[pgy_fh_n] = f;\n    return pgy_fh_n++;\n}\n\n");
+        header = Concat(header, "static int pgy_fh_valid(long long fd)\n{\n");
+        header = Concat(header, "    return fd >= 0 && fd < pgy_fh_n && pgy_fh[fd] != NULL;\n}\n\n");
+        header = Concat(header, "static void pgy_fwrite(long long fd, const char *s)\n{\n");
+        header = Concat(header, "    if (!pgy_fh_valid(fd)) { return; }\n    fputs(s, pgy_fh[fd]);\n}\n\n");
+        header = Concat(header, "static void pgy_fclose(long long fd)\n{\n");
+        header = Concat(header, "    if (!pgy_fh_valid(fd)) { return; }\n    fclose(pgy_fh[fd]);\n    pgy_fh[fd] = NULL;\n}\n\n");
+        header = Concat(header, "static char *pgy_fread(long long fd)\n{\n");
+        header = Concat(header, "    if (!pgy_fh_valid(fd)) { char *e = (char *)malloc(1); e[0] = '\\0'; return e; }\n");
+        header = Concat(header, "    char buf[4096];\n    if (!fgets(buf, (int)sizeof(buf), pgy_fh[fd])) { char *e = (char *)malloc(1); e[0] = '\\0'; return e; }\n");
+        header = Concat(header, "    long long n = 0;\n    while (buf[n] != '\\0') { n++; }\n");
+        header = Concat(header, "    char *r = (char *)malloc((size_t)n + 1);\n");
+        header = Concat(header, "    long long i = 0;\n    while (i <= n) { r[i] = buf[i]; i++; }\n    return r;\n}\n\n");
     }
     if uses_array {
         header = Concat(header, "typedef struct { long long *data; long long len; long long cap; } pgy_ai;\n");
