@@ -1,0 +1,23 @@
+func SumAll(xs: Array<Int>) -> Int {
+    let total: Int = 0;
+    let i: Int = 0;
+    while i < ArrayLength(xs) {
+        total = total + xs[i];
+        i = i + 1;
+    }
+    return total;
+}
+func Build(n: Int) -> Array<Int> {
+    let r: Array<Int> = [];
+    let i: Int = 0;
+    while i < n {
+        ArrayPush(r, i * 2);
+        i = i + 1;
+    }
+    return r;
+}
+func Main() -> Void {
+    let xs: Array<Int> = Build(4);
+    Log(ToString(SumAll(xs)));
+    Log(ToString(ArrayLength(xs)));
+}

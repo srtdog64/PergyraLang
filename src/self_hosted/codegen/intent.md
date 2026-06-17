@@ -18,8 +18,10 @@ live compiler's `pgy --ast` output for committed codegen fixtures. The accepted
 subset is:
 
 - one or more `func` declarations with exactly one `Main`;
-- `Int`, `Bool`, `String`, `Void`, and growable `Array<Int>` / `Array<String>`
-  local surfaces;
+- `Int`, `Bool`, `String`, `Void`, growable `Array<Int>` / `Array<String>`
+  local surfaces, and `Array<Int>` parameter/return flow;
+- top-level `struct` declarations with `Int` fields, struct literals,
+  member reads, struct parameters, and struct returns;
 - `let`, assignment, `return`, `if` / `else`, `while`, `for`, `break`, and
   `continue`;
 - calls, integer arithmetic/comparison/logical expressions, `Log`, `Exit`,
@@ -35,7 +37,7 @@ and produce stdout byte-equal to the committed expected output for the fixture.
 
 Out-of-subset input exits non-zero. The current rung proves run-output parity
 only; it does not claim memory ownership parity, string freeing, block scoping,
-or arbitrary user struct layout.
+or arbitrary nested/mixed struct layout.
 
 ## Oracle
 

@@ -1,0 +1,9 @@
+struct Point {
+    x: Int,
+    y: Int
+}
+func Main() -> Void {
+    let p: Point = Point { x: 3, y: 4 };
+    Log(ToString(p.x + p.y));
+    Log(ToString(p.x));
+}

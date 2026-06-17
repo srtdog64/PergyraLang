@@ -1,0 +1,15 @@
+func Main() -> Void {
+    let sum: Int = 0;
+    for i in 0..10 {
+        if i == 3 {
+            continue;
+        }
+        if i == 8 {
+            break;
+        }
+        sum = sum + i;
+    }
+    Log(sum);
+    let names: Array<String> = ["x", "y"];
+    Log(names[0]);
+}

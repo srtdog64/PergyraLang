@@ -1,6 +1,6 @@
 // src/self_hosted/codegen/main.pgy
 //
-// Status: rung-0..13 (2026-06-17). First Pergyra-origin C codegen
+// Status: rung-0..15 (2026-06-17). First Pergyra-origin C codegen
 // substitute, and the first hard compiler-core substitution opened after the
 // 2026-06-17 BDFL freeze lift (see docs/self_hosted/README.md).
 //
@@ -29,10 +29,10 @@
 //     `Name(args)` calls). `Int` = C `long long`.
 //   - <strexpr>: string-literal | `Concat(<strexpr>, <strexpr>)` | string-typed
 //     identifier | string-returning call. `Concat`, string helpers, file I/O,
-//     arrays, and Args() lower to small standalone C helpers. String/Int/array
-//     routing for Assign/Log/Return uses a per-function variable type
-//     environment plus a global function return-type table. (No block scoping
-//     or string freeing yet -- run-stdout parity only.)
+//     arrays, Args(), and Int-field structs lower to small standalone C helpers.
+//     String/Int/array/struct routing for Assign/Log/Return uses a per-function
+//     variable type environment plus a global function return-type table. (No
+//     block scoping or string freeing yet -- run-stdout parity only.)
 
 func CharAt(s: String, i: Int) -> String {
     let n: Int = StringLength(s);
@@ -289,6 +289,17 @@ func ExprKind(expr: String, env: String) -> String {
     if StartsWith(e, "Args(") {
         return "ArrayString";
     }
+    let bracket: Int = StringIndexOf(e, "[");
+    if bracket > 0 && CharAt(e, StringLength(e) - 1) == "]" {
+        let arr_name: String = Substring(e, 0, bracket);
+        let arr_kind: String = LookupKindType(env, arr_name, "v");
+        if arr_kind == "ArrayString" {
+            return "String";
+        }
+        if arr_kind == "ArrayInt" {
+            return "Int";
+        }
+    }
     if StartsWith(e, "ToString(") {
         return "String";
     }
@@ -310,6 +321,17 @@ func ExprKind(expr: String, env: String) -> String {
             return ft;
         }
         return "Int";
+    }
+    // Array element access `IDENT[...]`: element type follows the array's kind.
+    let ob: Int = StringIndexOf(e, "[");
+    if ob > 0 {
+        let pfx: String = Substring(e, 0, ob);
+        if IsIdentifier(pfx) && FindMatchingBracket(e, ob) == StringLength(e) - 1 {
+            if LookupKindType(env, pfx, "v") == "ArrayString" {
+                return "String";
+            }
+            return "Int";
+        }
     }
     return "Int";
 }
@@ -564,8 +586,65 @@ func EmitLet(line: String, env_box: Array<String>) -> String {
         }
         return out;
     }
-    Die(Concat("unsupported let type (only Int/Bool/String/Array<Int>/Array<String>): ", type_name));
+    if LookupKindType(env_box[0], type_name, "s") == "struct" {
+        // rung-14: struct-typed local from a `Name(f: v, ...)` literal or a
+        // struct-returning call.
+        ArraySet(env_box, 0, Concat(env_box[0], Concat(name, Concat("=v:", Concat(type_name, "|")))));
+        return Concat(type_name, Concat(" ", Concat(name, Concat(" = ", Concat(EmitStructValue(expr, type_name, env_box[0]), ";")))));
+    }
+    Die(Concat("unsupported let type (only Int/Bool/String/Array/struct): ", type_name));
     return "";
+}
+
+// Emit a C struct-valued expression: a `Name(f: v, ...)` literal becomes a
+// compound literal; anything else (e.g. a struct-returning call) passes through.
+func EmitStructValue(expr: String, sname: String, env: String) -> String {
+    let e: String = StringTrim(expr);
+    if StartsWith(e, Concat(sname, "(")) {
+        return EmitStructLit(e, env);
+    }
+    return RewriteExpr(e, env);
+}
+
+// Emit a C compound literal for a `Name(f: v, ...)` struct construction:
+// `(Name){ .f = (v), ... }`. rung-14 struct fields are `Int`.
+func EmitStructLit(expr: String, env: String) -> String {
+    let e: String = StringTrim(expr);
+    let op: Int = StringIndexOf(e, "(");
+    if op <= 0 || CharAt(e, StringLength(e) - 1) != ")" {
+        Die(Concat("malformed struct literal: ", expr));
+    }
+    let sname: String = Substring(e, 0, op);
+    let close: Int = FindMatchingParen(e, op);
+    let inner: String = Substring(e, op + 1, close - op - 1);
+    let out: String = Concat("(", Concat(sname, "){ "));
+    let rem: String = StringTrim(inner);
+    let first: Bool = true;
+    while StringLength(rem) > 0 {
+        let comma: Int = FindTopLevelComma(rem);
+        let part: String = "";
+        if comma < 0 {
+            part = StringTrim(rem);
+            rem = "";
+        } else {
+            part = StringTrim(Substring(rem, 0, comma));
+            rem = StringTrim(Substring(rem, comma + 1, StringLength(rem) - (comma + 1)));
+        }
+        if StringLength(part) > 0 {
+            let cp: Int = StringIndexOf(part, ": ");
+            if cp < 0 {
+                Die(Concat("struct field needs `name: value`: ", part));
+            }
+            let fld: String = Substring(part, 0, cp);
+            let val: String = Substring(part, cp + 2, StringLength(part) - (cp + 2));
+            if !first {
+                out = Concat(out, ", ");
+            }
+            out = Concat(out, Concat(".", Concat(fld, Concat(" = (", Concat(IntEval(val, env), ")")))));
+            first = false;
+        }
+    }
+    return Concat(out, " }");
 }
 
 // `Assign: <name> = <expr>`. Routes by the variable's recorded type.
@@ -581,6 +660,9 @@ func EmitAssign(line: String, env_box: Array<String>) -> String {
     if vt == "String" {
         return Concat(name, Concat(" = ", Concat(StrEval(expr, env_box[0]), ";")));
     }
+    if LookupKindType(env_box[0], vt, "s") == "struct" {
+        return Concat(name, Concat(" = ", Concat(EmitStructValue(expr, vt, env_box[0]), ";")));
+    }
     return Concat(name, Concat(" = ", Concat(IntEval(expr, env_box[0]), ";")));
 }
 
@@ -595,6 +677,11 @@ func EmitLog(inner: String, env: String) -> String {
         let arg: String = Substring(inner, 9, n - 9 - 1);
         return Concat("printf(\"%lld\\n\", (long long)(", Concat(IntEval(arg, env), "));"));
     }
+    // `Log(x)` may log an Int/Bool value directly (not via ToString). Route by
+    // the argument's type so an integer never gets printed with `%s`.
+    if ExprKind(inner, env) == "Int" {
+        return Concat("printf(\"%lld\\n\", (long long)(", Concat(IntEval(inner, env), "));"));
+    }
     return Concat("printf(\"%s\\n\", ", Concat(StrEval(inner, env), ");"));
 }
 
@@ -605,6 +692,9 @@ func EmitReturn(rexpr: String, cur_fn_ret: String, env: String) -> String {
     }
     if cur_fn_ret == "String" {
         return Concat("return ", Concat(StrEval(rexpr, env), ";"));
+    }
+    if LookupKindType(env, cur_fn_ret, "s") == "struct" {
+        return Concat("return ", Concat(EmitStructValue(rexpr, cur_fn_ret, env), ";"));
     }
     return Concat("return ", Concat(IntEval(rexpr, env), ";"));
 }
@@ -789,7 +879,7 @@ func EmitStmtList(indents: Array<Int>, texts: Array<String>, count: Int,
 }
 
 // C parameter type for a Pergyra type. `String` params are read-only.
-func CParamType(type_name: String) -> String {
+func CParamType(type_name: String, struct_env: String) -> String {
     if type_name == "Int" {
         return "long long";
     }
@@ -799,12 +889,23 @@ func CParamType(type_name: String) -> String {
     if type_name == "String" {
         return "const char*";
     }
-    Die(Concat("unsupported parameter type (only Int/Bool/String): ", type_name));
+    if StartsWith(type_name, "Array<") {
+        if StringIndexOf(type_name, "Int") >= 0 {
+            return "pgy_ai";
+        }
+        if StringIndexOf(type_name, "String") >= 0 {
+            return "pgy_as";
+        }
+    }
+    if LookupKindType(struct_env, type_name, "s") == "struct" {
+        return type_name;
+    }
+    Die(Concat("unsupported parameter type (only Int/Bool/String/Array/struct): ", type_name));
     return "";
 }
 
 // C return type for a Pergyra type. `String` returns may be malloc'd buffers.
-func CRetType(type_name: String) -> String {
+func CRetType(type_name: String, struct_env: String) -> String {
     if type_name == "Int" {
         return "long long";
     }
@@ -817,7 +918,18 @@ func CRetType(type_name: String) -> String {
     if type_name == "Void" {
         return "void";
     }
-    Die(Concat("unsupported return type (only Int/Bool/String/Void): ", type_name));
+    if StartsWith(type_name, "Array<") {
+        if StringIndexOf(type_name, "Int") >= 0 {
+            return "pgy_ai";
+        }
+        if StringIndexOf(type_name, "String") >= 0 {
+            return "pgy_as";
+        }
+    }
+    if LookupKindType(struct_env, type_name, "s") == "struct" {
+        return type_name;
+    }
+    Die(Concat("unsupported return type (only Int/Bool/String/Void/Array/struct): ", type_name));
     return "";
 }
 
@@ -843,13 +955,23 @@ func EmitFunction(indents: Array<Int>, texts: Array<String>, count: Int,
         }
         let p_name: String = Substring(pline, 0, pc);
         let p_type: String = Substring(pline, pc + 2, StringLength(pline) - (pc + 2));
-        let c_param: String = Concat(CParamType(p_type), Concat(" ", p_name));
+        let c_param: String = Concat(CParamType(p_type, base_env), Concat(" ", p_name));
         if param_n == 0 {
             params = c_param;
         } else {
             params = Concat(params, Concat(", ", c_param));
         }
-        ArraySet(env_box, 0, Concat(env_box[0], Concat(p_name, Concat("=v:", Concat(p_type, "|")))));
+        // Register the param under a canonical kind so array indexing/length
+        // rewriting recognizes it (`Array<Int...>` -> ArrayInt, etc.).
+        let p_kind: String = p_type;
+        if StartsWith(p_type, "Array<") {
+            if StringIndexOf(p_type, "Int") >= 0 {
+                p_kind = "ArrayInt";
+            } else if StringIndexOf(p_type, "String") >= 0 {
+                p_kind = "ArrayString";
+            }
+        }
+        ArraySet(env_box, 0, Concat(env_box[0], Concat(p_name, Concat("=v:", Concat(p_kind, "|")))));
         param_n = param_n + 1;
         ArraySet(cur, 0, cur[0] + 1);
     }
@@ -882,7 +1004,7 @@ func EmitFunction(indents: Array<Int>, texts: Array<String>, count: Int,
         if param_n == 0 {
             param_list = "void";
         }
-        signature = Concat(CRetType(ret_type), Concat(" ", Concat(name, Concat("(", Concat(param_list, ")")))));
+        signature = Concat(CRetType(ret_type, base_env), Concat(" ", Concat(name, Concat("(", Concat(param_list, ")")))));
         ArrayPush(protos, Concat(signature, ";"));
     }
 
@@ -916,6 +1038,42 @@ func BuildFunctionEnv(indents: Array<Int>, texts: Array<String>, count: Int) -> 
         i = i + 1;
     }
     return env;
+}
+
+// Scan top-level `Struct: Name` declarations into C typedefs, and append a
+// `Name=s:struct|` entry to env_box[0] for each. rung-14 supports `Int` fields.
+func CollectStructs(indents: Array<Int>, texts: Array<String>, count: Int, env_box: Array<String>) -> String {
+    let typedefs: String = "";
+    let i: Int = 0;
+    while i < count {
+        if StartsWith(texts[i], "Struct: ") {
+            let sname: String = Substring(texts[i], 8, StringLength(texts[i]) - 8);
+            let s_indent: Int = indents[i];
+            let j: Int = i + 1;
+            if j < count && texts[j] == "Fields:" {
+                j = j + 1;
+            }
+            let fields_c: String = "";
+            while j < count && indents[j] == s_indent + 4 {
+                let fl: String = texts[j];
+                let cpos: Int = StringIndexOf(fl, ": ");
+                if cpos < 0 {
+                    Die(Concat("malformed struct field: ", fl));
+                }
+                let fname: String = Substring(fl, 0, cpos);
+                let ftype: String = Substring(fl, cpos + 2, StringLength(fl) - (cpos + 2));
+                if ftype != "Int" {
+                    Die(Concat("rung-14 struct fields must be Int, got: ", ftype));
+                }
+                fields_c = Concat(fields_c, Concat("    long long ", Concat(fname, ";\n")));
+                j = j + 1;
+            }
+            typedefs = Concat(typedefs, Concat("typedef struct {\n", Concat(fields_c, Concat("} ", Concat(sname, ";\n\n")))));
+            ArraySet(env_box, 0, Concat(env_box[0], Concat(sname, "=s:struct|")));
+        }
+        i = i + 1;
+    }
+    return typedefs;
 }
 
 func GenerateC(ast: String) -> String {
@@ -956,7 +1114,9 @@ func GenerateC(ast: String) -> String {
         Die("no function found in AST");
     }
     let f_indent: Int = indents[first_fn];
-    let base_env: String = BuildFunctionEnv(indents, texts, count);
+    let env_acc: Array<String> = [BuildFunctionEnv(indents, texts, count)];
+    let typedef_block: String = CollectStructs(indents, texts, count, env_acc);
+    let base_env: String = env_acc[0];
     let uses_args: Bool = StringIndexOf(ast, "Args(") >= 0;
 
     let protos: Array<String> = [];
@@ -1074,7 +1234,7 @@ func GenerateC(ast: String) -> String {
         header = Concat(header, "    size_t rd = fread(buf, 1, (size_t)sz, f);\n");
         header = Concat(header, "    buf[rd] = '\\0';\n    fclose(f);\n    return buf;\n}\n\n");
     }
-    return Concat(header, Concat(proto_block, defs));
+    return Concat(header, Concat(typedef_block, Concat(proto_block, defs)));
 }
 
 func Main() -> Void {

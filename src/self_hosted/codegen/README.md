@@ -5,13 +5,17 @@ track** opened after the 2026-06-17 BDFL decision that lifted the
 `docs/self_hosted/README.md` (2026-06-13) "hard compiler-core migration is not
 open" freeze. Before that date this folder was a reserved stub.
 
-## Rung-0..13 (2026-06-17) - active
+## Rung-0..15 (2026-06-17) - active
 
 `main.pgy` consumes `pgy --ast` text for an `Int` / `Bool` / `String` /
 `Array<Int>` / `Array<String>` / `Void` function subset and emits a
 self-contained C program whose **run-stdout** matches the C/LLVM oracle.
 String builtins: `Concat`, `ToString`, `StringLength`, `Substring`,
 `StringIndexOf`, `StringTrim`. Tool I/O: `FileExists`, `ReadFile`, `Args`.
+Arrays: growable `Array<Int>` / `Array<String>` locals plus `Array<Int>`
+parameters and returns.
+User structs: top-level `struct` declarations with `Int` fields, struct
+literals, member reads, struct parameters, and struct returns.
 
 **Functions:** one or more functions, exactly one named `Main`. Each emits a C
 function; non-`Main` functions get forward declarations, so call order and
@@ -21,6 +25,8 @@ recursion are free. `Main` lowers to `int main(void)`, or to
 - `Int` param -> `long long`, return -> `long long`
 - `Bool` param/return -> `bool` (`<stdbool.h>`); `true` / `false` / `!` pass through
 - `String` param -> `const char*`, return -> `char*`
+- `Array<Int>` param/return -> `pgy_ai`; `Array<String>` param/return -> `pgy_as`
+- struct param/return -> value-passed C typedef for the generated struct
 
 **Body statements:**
 
@@ -39,6 +45,9 @@ recursion are free. `Main` lowers to `int main(void)`, or to
   `pgy_*_push/set/len/get`. Index reads are rewritten env-aware in arbitrary
   expressions (`total + xs[j]` -> `total + pgy_ai_get(xs, j)`), with string
   literals copied verbatim so a `[` inside a string is never touched (rung-7/8/10).
+- `Let: <name> : StructName = StructName { field: value, ... }` -> an Int-field
+  C compound literal. Struct-returning calls can initialize struct locals, and
+  member reads (`p.x`) pass through as C field access.
 
 `<intexpr>` / `<cond>` is the C-compatible parenthesized infix the AST printer
 produces (`+ - * / %`, comparisons, `&& ||`, `!`, identifiers, `Name(args)`
@@ -63,7 +72,7 @@ fallback. The intent contract is pinned in `intent.md`; this README is
 explanatory.
 
 Parity gate: `src/self_hosted/parity/codegen_parity.sh` builds `main.pgy` through
-**both C and LLVM backends**, runs it on each of the 31 committed fixtures'
+**both C and LLVM backends**, runs it on each of the 35 committed fixtures'
 `pgy --ast` output, gcc-compiles the emitted C, runs it, and compares run-stdout
 against the committed expected output. A live-drift guard re-derives that
 expected output from the C-backend oracle executable.
@@ -78,7 +87,7 @@ only by observable program behavior.
 
 1. string freeing / arena ownership and block scoping (memory correctness, not
    just run-stdout parity)
-2. arbitrary user struct / record types
+2. richer struct fields / nested AST-node shapes
 3. round-trip self-compilation (the codegen tool compiling a Pergyra tool)
 
 LLVM emission substitution is later than C emission.

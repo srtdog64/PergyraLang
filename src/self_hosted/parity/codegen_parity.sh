@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Rung-0..13 parity for the Pergyra-origin C codegen substitute (2026-06-17).
+# Rung-0..15 parity for the Pergyra-origin C codegen substitute (2026-06-17).
 #
 # This is the first *hard compiler-core* substitution gate, opened after the
 # 2026-06-17 BDFL decision lifted the hard-migration freeze
@@ -97,6 +97,10 @@ FIXTURES=(
     str_trim
     io_probe
     args_probe
+    struct_point
+    struct_param
+    array_param
+    log_int_direct
 )
 
 # Per-fixture runtime arguments. The same argv snapshot is passed to both the
@@ -237,4 +241,4 @@ for backend in $BACKENDS; do
     run_tool_backend "$backend" "$tool_bin"
 done
 
-echo "[self-host-parity:codegen] rung-0..13 parity ok (${#FIXTURES[@]} fixtures; backends=$BACKENDS)"
+echo "[self-host-parity:codegen] rung-0..15 parity ok (${#FIXTURES[@]} fixtures; backends=$BACKENDS)"

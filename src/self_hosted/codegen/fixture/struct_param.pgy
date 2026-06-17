@@ -1,0 +1,15 @@
+struct Pair {
+    a: Int,
+    b: Int
+}
+func Sum(p: Pair) -> Int {
+    return p.a + p.b;
+}
+func Make(a: Int, b: Int) -> Pair {
+    return Pair { a: a, b: b };
+}
+func Main() -> Void {
+    let q: Pair = Make(10, 20);
+    Log(ToString(Sum(q)));
+    Log(ToString(q.a));
+}

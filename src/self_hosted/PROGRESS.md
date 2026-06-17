@@ -9,11 +9,11 @@ Last updated: 2026-06-17
 
 ## Headline Number
 
-**Compiler-internal substitution: ~3.81% LOC-scale** (9,706 Pergyra LOC vs 254,742
+**Compiler-internal substitution: ~3.88% LOC-scale** (9,895 Pergyra LOC vs 254,742
 C LOC across `src/lexer/`, `src/parser/`, `src/semantic/`, `src/codegen/`,
 `src/runtime/`, `src/compiler/`, `src/lsp/`). The verified substitutes are the
 lexer, parser, a bounded semantic verdict rung, and -- as of 2026-06-17 -- the
-**first codegen rungs** (`src/self_hosted/codegen/`, 1093 LOC; rung-0 string Log,
+**first codegen rungs** (`src/self_hosted/codegen/`, 1253 LOC; rung-0 string Log,
 rung-1 integer let/arithmetic, rung-2 assign + `while`/`if`/`else`, rung-3
 multi-function definitions + calls + `return`, rung-4 `String` types with a
 variable/function type environment + runtime `pgy_concat`, rung-5 `for` loops +
@@ -22,7 +22,8 @@ rung-7/8 fixed `Array<Int>`/`Array<String>` literals + indexing +
 `ArrayLength`/`ArraySet`, rung-9 `StringIndexOf` builtin + `Exit`, rung-10
 **growable arrays** (`ArrayPush`) via a `{data,len,cap}` struct rep with
 env-aware index-expression rewriting, rung-11 `StringTrim` builtin, rung-12
-`FileExists`/`ReadFile` file I/O, rung-13 `Args()` user-argument snapshots).
+`FileExists`/`ReadFile` file I/O, rung-13 `Args()` user-argument snapshots,
+rung-14 value-passed Int-field structs, rung-15 `Array<Int>` param/return flow).
 HIR/MIR, the rest of codegen, runtime,
 compiler driver, and LSP substitution are still 0%.
 
@@ -31,6 +32,20 @@ compiler-core* substitute, landed after the BDFL decision lifted the
 `docs/self_hosted/README.md` freeze. Hard migration proceeds rung-by-rung, each
 gated against the C/LLVM oracle before the next opens -- not as an unverified
 compiler fork. See `src/self_hosted/codegen/README.md`.
+
+**Real-example round-trip (2026-06-17):** beyond the 35 hand-written parity
+fixtures, the codegen tool was surveyed against all 118 `examples/*.pgy`. It
+compiles **20** to run-stdout-equal output vs the oracle (binary_search,
+hash_map, linked_list, queue, deque, graph_bfs, insertion_sort, union_find,
+break_continue, for_test, class_test, etl_workflow, hello, + 7 contract/
+projection/transfer minimals); 86 are correctly rejected as out-of-subset with an
+observable `Exit(1)`; 12 fail under the oracle itself (C-skip). Two bugs surfaced
+from the C/LLVM/Pergyra tri-compare: (1) a **codegen self-bug** -- `Log(<int>)`
+logged directly (not via `ToString`) was emitted with `%s`; fixed by routing
+`Log` / array-index element types through `ExprKind` (silent-failure examples
+11 -> 0). (2) an **oracle bug** -- the C and LLVM backends miscount arity for
+`Array<String>` parameters (the self-host emitter handles them correctly); filed
+separately.
 
 **Parser at scale (2026-05-31):** the Pergyra-origin parser produces
 byte-equal output vs `pgy --ast` on **105 of 117** committed
@@ -104,11 +119,11 @@ only observe text artifacts the C compiler produces. Their LOC is
 | `src/lexer/`    |    1003 |         584 | **~97%** | **191 of 195 sources byte-equal** (115 examples + 80 backend_compare). Remaining 4 use string interpolation (`$"...{var}..."`) or `/** doc */` comments. 6 representative sources committed as parity fixtures. |
 | `src/parser/`   |   21813 |        6856 | ~52%     | `src/self_hosted/parser/` parses 188 committed fixtures byte-equal `pgy --ast` on both C and LLVM parser binaries, and **105 of 117** `examples/*.pgy` byte-equal at scale (89.7%; 2026-05-31). Top-level: `[async]? [export]? func<T,U>`, `subject`/`class`/`vessel`/`struct`/`object`/`tobject` with `<T,U>` and `func`/`action` methods, `enum`, `namespace`, `event`, `ability`, `role`/`impl`, `zone` (subject/object/tobject slots), `intent ... with retry(n)` metadata, `import "PATH.pgy";` (reads file relative to source dir, recursively parses, force-exports its funcs). Stmt: `let IDENT/(IDENTS)`, assign, `+=`/`-=`/`<-`, `return`, `if`/`else if`/`else`, `while`, `for`, `break`, `continue`, `defer`, `match`, `parallel`, `with slot<TYPE> as VAR { stmts }`. `expr`: `! - <- spawn[blocking] await` > `*/% > +- > \|> > cmp > && > \|\|`. Primaries: STRING/NUMBER/IDENT/`( )`/`[ ]`/lambda, postfix `(args)` / `[idx]` / `.member` / `?` / turbofish. |
 | `src/semantic/` |   47541 |        1202 | rung-2 subset | Checks a bounded function-body subset against the C compiler oracle on C/LLVM-generated binaries: typed `let`, return typing, unary/binary expression typing, function-call return/arity/argument typing, scoped branch/for bodies, branch conditions, assignment, bare call statements, and simple/compound undefined identifier use across 61 fixtures. |
-| `src/codegen/`  |  111465 |        1093 | rung-0..13 | **C-emit rung-0..13 (2026-06-17).** Pergyra emitter consumes `pgy --ast` text and emits standalone C for: string `Log`/`Concat`, `Log(ToString(<intexpr>))`, integer `Let:`/`Assign:` (`+ - * / %`, negatives match oracle), `while`/`if`/`else` and `for i in a..b` + `break`/`continue` (structural lowering), multiple `Int`/`Bool`/`String`/`Void` functions with calls, recursion, `return`, `String` types (routed by a per-function variable + global function type environment; `Concat`/`Substring`/`StringLength`/`StringIndexOf`/`StringTrim` → runtime helpers), `Bool` (`<stdbool.h>`), **growable `Array<Int>`/`Array<String>`** as a `{data,len,cap}` struct (`[..]` literal → `new()`+`push`; `ArrayPush`/`ArrayLength`/`ArraySet`/`xs[i]` → struct helpers via env-aware index-expression rewriting), the `Exit(n)` statement, **`FileExists`/`ReadFile` file I/O**, and `Args()` user-argument snapshots. **31 fixtures run-stdout equal** to the C/LLVM oracle on tools built through both backends (incl. recursive Fibonacci, string index-of split, bool predicates, growable int + string array push/iterate, file read, argv snapshot). Gate: `parity/codegen_parity.sh` (`make self-host-codegen-parity-test-smoke`). Out-of-subset input is an observable `Exit(1)`. |
+| `src/codegen/`  |  111465 |        1253 | rung-0..15 | **C-emit rung-0..15 (2026-06-17).** Pergyra emitter consumes `pgy --ast` text and emits standalone C for: string `Log`/`Concat`, `Log(ToString(<intexpr>))`, integer `Let:`/`Assign:` (`+ - * / %`, negatives match oracle), `while`/`if`/`else` and `for i in a..b` + `break`/`continue` (structural lowering), multiple `Int`/`Bool`/`String`/`Void` functions with calls, recursion, `return`, `String` types (routed by a per-function variable + global function type environment; `Concat`/`Substring`/`StringLength`/`StringIndexOf`/`StringTrim` → runtime helpers), `Bool` (`<stdbool.h>`), **growable `Array<Int>`/`Array<String>`** as a `{data,len,cap}` struct (`[..]` literal → `new()`+`push`; `ArrayPush`/`ArrayLength`/`ArraySet`/`xs[i]` → struct helpers via env-aware index-expression rewriting), the `Exit(n)` statement, **`FileExists`/`ReadFile` file I/O**, `Args()` user-argument snapshots, value-passed Int-field structs with literals/member reads/params/returns, and `Array<Int>` parameter/return flow. **35 fixtures run-stdout equal** to the C/LLVM oracle on tools built through both backends (incl. recursive Fibonacci, string index-of split, bool predicates, growable int + string array push/iterate, file read, argv snapshot, struct value flow, array param/return). Gate: `parity/codegen_parity.sh` (`make self-host-codegen-parity-test-smoke`). Out-of-subset input is an observable `Exit(1)`. |
 | `src/runtime/`  |   31985 |           0 | 0%       | native runtime kernel stays C; portable runtime policy libraries may move later |
 | `src/compiler/` |   39863 |           0 | 0%       | not started       |
 | `src/lsp/`      |    1072 |           0 | 0%       | not started       |
-| **Total**       | **254742** |  **9735**  | **~3.82% LOC-scale** | lexer/parser/semantic + codegen rung-0..13; no HIR/MIR/runtime/compiler/LSP substitution yet |
+| **Total**       | **254742** |  **9895**  | **~3.88% LOC-scale** | lexer/parser/semantic + codegen rung-0..15; no HIR/MIR/runtime/compiler/LSP substitution yet |
 
 Notes:
 
@@ -195,7 +210,7 @@ The realistic incremental path toward genuine self-host:
    and root reachability via a push-only worklist. These are still peripheral
    because they do not replace `src/self_hosted/air/`, but they prove the
    deterministic graph substrate the first middle-end pass needs.
-6. **C-emit codegen subset** -- *rung-0..13 active* (2026-06-17). A Pergyra
+6. **C-emit codegen subset** -- *rung-0..15 active* (2026-06-17). A Pergyra
    program (`src/self_hosted/codegen/main.pgy`) takes `pgy --ast` text and emits
    standalone C for: string `Log`/`Concat`, `Log(ToString(<intexpr>))`, integer
    `Let:`/`Assign:`, `while`/`if`/`else` and `for i in a..b` + `break`/`continue`
@@ -205,10 +220,13 @@ The realistic incremental path toward genuine self-host:
    `StringTrim` -> runtime helpers), `Bool` (`<stdbool.h>`), growable
    `Array<Int>`/`Array<String>` as a `{data,len,cap}` struct
    (`ArrayPush`/`ArrayLength`/`ArraySet`/`xs[i]` via env-aware index rewriting),
-   `Exit(n)`, `FileExists`/`ReadFile` file I/O, and `Args()` snapshots.
+   `Exit(n)`, `FileExists`/`ReadFile` file I/O, `Args()` snapshots, and
+   value-passed Int-field structs with literals/member reads/params/returns,
+   and `Array<Int>` parameter/return flow.
    Round-trip C-emit-by-Pergyra -> gcc -> run -> stdout matches the C/LLVM oracle
-   on 31 committed fixtures, with the emitter built through both backends. Next
-   rungs: string freeing / block scoping, then user struct types, then round-trip
+   on 35 committed fixtures, with the emitter built through both backends. Next
+   rungs: string freeing / block scoping, richer struct fields / nested
+   AST-node shapes, then round-trip
    self-compilation.
 7. **Bootstrap loop** -- the Pergyra-written compiler subset compiles
    itself, output runs.
