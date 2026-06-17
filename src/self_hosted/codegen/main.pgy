@@ -271,6 +271,15 @@ func ExprKind(expr: String, env: String) -> String {
     if CharAt(e, 0) == "\"" {
         return "String";
     }
+    // A top-level `+` whose left operand is a string is string concatenation.
+    let stripped: String = StripOuterParens(e);
+    let plus: Int = FindTopLevelPlus(stripped);
+    if plus >= 0 {
+        let lhs: String = StringTrim(Substring(stripped, 0, plus));
+        if ExprKind(lhs, env) == "String" {
+            return "String";
+        }
+    }
     if StartsWith(e, "Concat(") {
         return "String";
     }
@@ -744,7 +753,73 @@ func IntEval(expr: String, env: String) -> String {
 // pipeline as everything else -- `Concat` is a name rewrite (see RewriteExpr),
 // so nested and call-argument occurrences lower correctly without special
 // top-level parsing here.
+// Strip redundant parentheses that wrap an entire expression. The AST printer
+// fully parenthesizes infix (`(("a" + b) + "c")`), which would hide top-level
+// operators behind depth > 0. Removes one wrapping layer at a time.
+func StripOuterParens(e: String) -> String {
+    let s: String = StringTrim(e);
+    while StringLength(s) >= 2 && CharAt(s, 0) == "(" && FindMatchingParen(s, 0) == StringLength(s) - 1 {
+        s = StringTrim(Substring(s, 1, StringLength(s) - 2));
+    }
+    return s;
+}
+
+// Find the first top-level single-char `+` (string-concatenation operator) in a
+// string-valued expression: depth 0 (outside any (), []) and outside string
+// literals. Returns -1 if none.
+func FindTopLevelPlus(s: String) -> Int {
+    let n: Int = StringLength(s);
+    let i: Int = 0;
+    let depth: Int = 0;
+    let in_str: Bool = false;
+    while i < n {
+        let c: String = CharAt(s, i);
+        if in_str {
+            if c == "\\" {
+                i = i + 2;
+                continue;
+            }
+            if c == "\"" {
+                in_str = false;
+            }
+            i = i + 1;
+            continue;
+        }
+        if c == "\"" {
+            in_str = true;
+            i = i + 1;
+            continue;
+        }
+        if c == "(" || c == "[" {
+            depth = depth + 1;
+            i = i + 1;
+            continue;
+        }
+        if c == ")" || c == "]" {
+            depth = depth - 1;
+            i = i + 1;
+            continue;
+        }
+        if depth == 0 && c == "+" {
+            return i;
+        }
+        i = i + 1;
+    }
+    return -1;
+}
+
+// Emit a C string-valued (char*) expression. In a confirmed string context a
+// top-level `+` is the concatenation operator (the operands are strings by
+// construction), so it lowers to nested `pgy_concat(...)`. Everything else
+// flows through the token pipeline.
 func StrEval(expr: String, env: String) -> String {
+    let e: String = StripOuterParens(expr);
+    let p: Int = FindTopLevelPlus(e);
+    if p >= 0 {
+        let lhs: String = StringTrim(Substring(e, 0, p));
+        let rhs: String = StringTrim(Substring(e, p + 1, StringLength(e) - (p + 1)));
+        return Concat("pgy_concat(", Concat(StrEval(lhs, env), Concat(", ", Concat(StrEval(rhs, env), ")"))));
+    }
     return RewriteExpr(StringTrim(expr), env);
 }
 

@@ -1,0 +1,14 @@
+func Greet(name: String) -> String {
+    return "Hello, " + name + "!";
+}
+func Main() -> Void {
+    let a: String = "foo";
+    let b: String = "bar";
+    Log(a + b);
+    Log("x" + "y" + "z");
+    Log(Greet("Pergyra"));
+    Log(a + "/" + b + "/end");
+    let n: Int = 7;
+    Log("n=" + ToString(n));
+    Log(ToUpper("ab") + ToLower("CD"));
+}

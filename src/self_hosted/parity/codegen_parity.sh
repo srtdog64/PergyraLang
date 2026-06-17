@@ -109,6 +109,7 @@ FIXTURES=(
     for_each
     array_pop
     str_case_math
+    string_concat_op
 )
 
 # Per-fixture runtime arguments. The same argv snapshot is passed to both the
