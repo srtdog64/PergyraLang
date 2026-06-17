@@ -354,6 +354,18 @@ func ExprKind(expr: String, env: String) -> String {
     if StartsWith(e, "Max(") {
         return "Int";
     }
+    if StartsWith(e, "Sqrt(") {
+        return "Float";
+    }
+    if StartsWith(e, "Pow(") {
+        return "Float";
+    }
+    if StartsWith(e, "Floor(") {
+        return "Float";
+    }
+    if StartsWith(e, "Ceil(") {
+        return "Float";
+    }
     if IsIdentifier(e) {
         let vt: String = LookupKindType(env, e, "v");
         if StringLength(vt) > 0 {
@@ -733,7 +745,12 @@ func RewriteTokens(e: String, env: String) -> String {
     let f4: String = ReplaceAllOutsideStrings(f3, "ToLower(", "pgy_tolower(");
     let f5: String = ReplaceAllOutsideStrings(f4, "Abs(", "pgy_abs(");
     let f6: String = ReplaceAllOutsideStrings(f5, "Min(", "pgy_min(");
-    let f7: String = ReplaceAllOutsideStrings(f6, "Max(", "pgy_max(");
+    let f7a: String = ReplaceAllOutsideStrings(f6, "Max(", "pgy_max(");
+    let f7b: String = ReplaceAllOutsideStrings(f7a, "Sqrt(", "sqrt(");
+    let f7c: String = ReplaceAllOutsideStrings(f7b, "Pow(", "pow(");
+    let f7d: String = ReplaceAllOutsideStrings(f7c, "Floor(", "floor(");
+    let f7e: String = ReplaceAllOutsideStrings(f7d, "Ceil(", "ceil(");
+    let f7: String = ReplaceAllOutsideStrings(f7e, "Random(", "pgy_random(");
     let g: String = ReplaceAllOutsideStrings(f7, "FileExists(", "pgy_fexists(");
     let gw: String = ReplaceAllOutsideStrings(g, "WriteFile(", "pgy_writefile(");
     let go: String = ReplaceAllOutsideStrings(gw, "FileOpen(", "pgy_fopen(");
@@ -872,6 +889,10 @@ func EmitLet(line: String, env_box: Array<String>) -> String {
     if type_name == "Bool" {
         ArraySet(env_box, 0, Concat(env_box[0], Concat(name, "=v:Bool|")));
         return Concat("bool ", Concat(name, Concat(" = ", Concat(IntEval(expr, env_box[0]), ";"))));
+    }
+    if type_name == "Float" {
+        ArraySet(env_box, 0, Concat(env_box[0], Concat(name, "=v:Float|")));
+        return Concat("double ", Concat(name, Concat(" = ", Concat(RewriteExpr(expr, env_box[0]), ";"))));
     }
     if type_name == "String" {
         ArraySet(env_box, 0, Concat(env_box[0], Concat(name, "=v:String|")));
@@ -1028,6 +1049,9 @@ func EmitLog(inner: String, env: String) -> String {
     // the argument's type so an integer never gets printed with `%s`.
     if ExprKind(inner, env) == "Int" {
         return Concat("printf(\"%lld\\n\", (long long)(", Concat(IntEval(inner, env), "));"));
+    }
+    if ExprKind(inner, env) == "Float" {
+        return Concat("printf(\"%f\\n\", (double)(", Concat(RewriteExpr(inner, env), "));"));
     }
     // String Log: the oracle strips all trailing newlines from the value and
     // then appends exactly one (`Log("c\n\n")` -> `c\n`), so route through the
@@ -1314,6 +1338,10 @@ func CParamType(type_name: String, struct_env: String) -> String {
     if LookupKindType(struct_env, type_name, "s") == "struct" {
         return type_name;
     }
+    // Float params/returns are intentionally NOT supported: the codegen's Float
+    // surface is locals + math builtins + Log only. Rejecting Float in
+    // signatures keeps complex Float programs (Array<Float>, Float struct
+    // fields) as a clean observable rejection rather than emitting broken C.
     Die(Concat("unsupported parameter type (only Int/Bool/String/Array/struct): ", type_name));
     return "";
 }
@@ -1661,7 +1689,13 @@ func GenerateC(ast: String) -> String {
         || StringIndexOf(ast, "FileClose(") >= 0
         || StringIndexOf(ast, "FileRead(") >= 0;
     let uses_print: Bool = StringIndexOf(ast, "Print(") >= 0;
-    let need_stdlib: Bool = uses_str || uses_exit || uses_array || uses_io || uses_fhandle;
+    let uses_float: Bool = StringIndexOf(ast, "Float") >= 0
+        || StringIndexOf(ast, "Sqrt(") >= 0
+        || StringIndexOf(ast, "Pow(") >= 0
+        || StringIndexOf(ast, "Floor(") >= 0
+        || StringIndexOf(ast, "Ceil(") >= 0;
+    let uses_random: Bool = StringIndexOf(ast, "Random(") >= 0;
+    let need_stdlib: Bool = uses_str || uses_exit || uses_array || uses_io || uses_fhandle || uses_random;
     let header: String = "#include <stdio.h>\n";
     if uses_bool {
         header = Concat(header, "#include <stdbool.h>\n");
@@ -1671,6 +1705,9 @@ func GenerateC(ast: String) -> String {
     }
     if uses_str {
         header = Concat(header, "#include <string.h>\n");
+    }
+    if uses_float {
+        header = Concat(header, "#include <math.h>\n");
     }
     if uses_dirwalk {
         header = Concat(header, "#include <dirent.h>\n#include <sys/stat.h>\n");
@@ -1687,6 +1724,12 @@ func GenerateC(ast: String) -> String {
     if uses_print {
         // Print: write to stdout with no added newline.
         header = Concat(header, "static void pgy_print(const char *s)\n{\n    fputs(s, stdout);\n}\n\n");
+    }
+    if uses_random {
+        // Random(n): rand() % n with the default (unseeded) sequence, matching
+        // the oracle's deterministic behavior.
+        header = Concat(header, "static long long pgy_random(long long n)\n{\n");
+        header = Concat(header, "    return n > 0 ? (long long)(rand() % n) : 0;\n}\n\n");
     }
     if uses_fhandle {
         // File-handle API: an int handle indexes a small static FILE* table.

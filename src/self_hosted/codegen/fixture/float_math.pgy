@@ -1,0 +1,13 @@
+func Main() -> Void {
+    Log(Sqrt(16.0));
+    Log(Pow(2.0, 10.0));
+    Log(Floor(3.7));
+    Log(Ceil(3.2));
+    let f: Float = 3.5;
+    Log(f);
+    let g: Float = Sqrt(81.0);
+    Log(g);
+    let h: Float = f + g;
+    Log(h);
+    Log(Abs(-9));
+}

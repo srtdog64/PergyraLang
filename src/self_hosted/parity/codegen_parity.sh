@@ -113,6 +113,7 @@ FIXTURES=(
     write_file
     log_trailing_newline
     file_handle
+    float_math
 )
 
 # Per-fixture runtime arguments. The same argv snapshot is passed to both the
