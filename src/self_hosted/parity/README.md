@@ -42,6 +42,9 @@ Minimum parity contract for each tool:
 
 - run the existing C or shell oracle against the same input;
 - run the Pergyra tool against the same input;
+- compile and run the Pergyra tool through both C and LLVM when the current
+  compiler build includes LLVM; C-only builds must keep the C leg mandatory and
+  emit an explicit LLVM-leg skip;
 - compare exit class first;
 - compare JSON schema and stable counters incrementally while the Pergyra tool
   remains a partial implementation.

@@ -3,12 +3,14 @@
 Branch main. This snapshot records what is verified to self-host right now,
 measured by building pgy and running
 `make self-host-preparation-test-smoke` on 2026-06-16. The gate runs the
-self-hosted tools on C/LLVM where applicable and keeps the C compiler as the
-oracle.
+self-hosted tools on C and, when the current `pgy` build includes the LLVM
+backend, LLVM. `LLVM_ENABLED=0` jobs still prove the C leg and require an
+explicit LLVM-leg skip instead of treating the build configuration as a tool
+failure. The C compiler remains the oracle.
 
 ## Verified
 
-Front-end self-hosts on both backends.
+Front-end self-hosts on both backends in LLVM-enabled builds.
 
 - Lexer (src/self_hosted/lexer/main.pgy): compiles on C and LLVM. Token output
   is byte-identical to `pgy --tokens`.
@@ -81,7 +83,8 @@ Substrate progress.
   validator, AIR graph consumer checkers, stable subset checker, stdlib
   dispatch inventory checker, and runtime boundary checker all pass their
   current self-host preparation parity gates.
-- Every one of the 22 self-host tool parity gates now exercises both backends.
+- Every one of the 22 self-host tool parity gates now exercises both backends
+  when the compiler build includes LLVM.
   Previously 12 of them built and ran their Pergyra tool only with the default
   (C) backend, leaving each tool's LLVM compilation ungated. Each now compiles
   its tool with the C and the LLVM backend and asserts the two native binaries
@@ -90,7 +93,8 @@ Substrate progress.
   `--run` tools and inline legs for the lexer and backend-output comparator. At
   the time of writing all 22 pass, so the gap was harness coverage, not an LLVM
   backend defect; the gates now hold the C/LLVM equality invariant for the whole
-  tool corpus.
+  tool corpus. C-only CI builds keep the C leg mandatory and report an explicit
+  LLVM-leg skip from the parity harness.
 - Five Pergyra-origin AIR graph consumers now run as soft self-host evidence:
   node-id uniqueness, live-dump node-count integrity, live-dump back-reference
   range checking, fixture-shaped edge referential integrity, and root
