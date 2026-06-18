@@ -1245,10 +1245,14 @@ require_term "src/codegen/llvm_mir_local_emit.c" \
     "MIR-only LLVM path missing local type metadata"
 require_term "src/codegen/llvm_mir_local_emit.c" \
     "llvm_mir_local_type_from_source_fact("
+require_term "src/codegen/llvm_mir_local_emit.c" \
+    "strcmp(base_name, name) != 0"
 require_each_following_term "src/codegen/llvm_mir_local_emit.c" \
     "inst->arg0 != NULL" \
     "llvm_mir_local_type_from_source_fact(" \
     6
+require_term "src/codegen/llvm_mir_local_emit.c" \
+    "routine, ctx, inst->result_name);"
 require_term "src/codegen/llvm_mir_local_emit.c" \
     "llvm_mir_find_result_instruction"
 require_term "src/codegen/llvm_mir_local_emit.c" \

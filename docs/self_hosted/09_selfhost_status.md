@@ -49,6 +49,10 @@ source_ast/source_decl frontier.
   the same canonical source-local type fact for alias-backed collection
   contexts; `type_alias_array_context` proves empty `Array<T>` alias literals
   compile and run on both backends.
+- MIR source-local type facts are source-name keyed. LLVM MIR alloca/type
+  consumers normalize SSA-versioned names such as `push_fn.1` back to
+  `push_fn` before consuming the fact, so branch/phi locals do not reopen AST
+  body scans on the self-hosted codegen LLVM leg.
 - Intent retry counts are MIR declaration-header facts. `with retry(n)` is
   parsed, printed, and captured as `MIRDeclHeader.intent_retry_count`; semantic
   checking rejects non-zero retry until C and LLVM retry lowering share the same

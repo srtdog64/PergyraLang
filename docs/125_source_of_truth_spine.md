@@ -49,6 +49,11 @@ Current beta closure snapshot:
   `transpiler_resolve_active_ssa_name(...)` for the emitted local name; it must
   not scan `ctx->typed_vars` locally or emit the source binding name when MIR
   SSA has already renamed it.
+- MIR source-local type facts are keyed by the source local name. LLVM MIR
+  alloca/type consumers may see SSA-versioned names such as `local.1`, but the
+  consumption owner must normalize those names to the source-local base before
+  reading `MIRRoutine::source_local_types`. The MIR fact remains the source of
+  truth; LLVM must not recover the local type by rescanning the AST body.
 - LLVM verifier diagnostics live at the LLVM C API boundary in
   `src/codegen/llvm_api.c`. `LLVMVerifyModule(...)` may leave the diagnostic
   message pointer null on success; backend code must only call
