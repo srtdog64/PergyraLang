@@ -99,7 +99,11 @@ llvm_stmt_declared_return_type_name(LLVMGenCtx *ctx, const char *name)
         return NULL;
     }
 
-    return_type = ast_func_return_type(decl);
+    if (!llvm_active_has_mir(ctx) || generic_func || extern_func) {
+        return_type = ast_func_return_type(decl);
+    } else {
+        return NULL;
+    }
     if (ast_type_name(return_type) == NULL) {
         return NULL;
     }
@@ -295,7 +299,10 @@ llvm_infer_spawn_future_inner(LLVMGenCtx *ctx, ASTNode *spawn_expr)
         ret_name = llvm_mir_routine_return_type_name(routine);
         return_type = llvm_mir_routine_return_type(routine);
     } else {
-        allow_ast_compat = true;
+        allow_ast_compat = !llvm_active_has_mir(ctx)
+            || generic_func || extern_func;
+        if (!allow_ast_compat)
+            return NULL;
         return_type = ast_func_return_type(decl);
         ret_name = ast_type_name(return_type);
     }

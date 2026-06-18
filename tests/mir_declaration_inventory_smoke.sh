@@ -905,7 +905,8 @@ for term in \
     "llvm_mir_routine_signature_metadata_complete_for(ctx" \
     "LLVM_MIR_SIGNATURE_REQUIRE_RETURN_TYPE_NAME" \
     "LLVM_MIR_SIGNATURE_REQUIRE_ALL_TYPE_NAMES" \
-    "llvm_mir_or_ast_function_is_generic(routine, decl)"; do
+    "llvm_mir_or_ast_function_is_generic(routine, decl)" \
+    "!llvm_active_has_mir(ctx) || generic_func || extern_func"; do
     require_term "src/codegen/llvm_stmt_let_helpers.c" "$term"
 done
 for term in \
