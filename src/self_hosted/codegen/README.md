@@ -72,16 +72,24 @@ fallback. The intent contract is pinned in `intent.md`; this README is
 explanatory.
 
 Parity gate: `src/self_hosted/parity/codegen_parity.sh` builds `main.pgy` through
-**both C and LLVM backends**, runs it on each of the 35 committed fixtures'
+the requested backend set, runs it on each of the 48 committed fixtures'
 `pgy --ast` output, gcc-compiles the emitted C, runs it, and compares run-stdout
 against the committed expected output. A live-drift guard re-derives that
-expected output from the C-backend oracle executable.
+expected output from the C-backend oracle executable. LLVM is mandatory when the
+compiler build supports LLVM and explicitly skipped for C-only platform CI.
 Run `make self-host-codegen-parity-test-smoke`.
 
 The run-output equivalence criterion, not byte-equal C, follows
 `src/self_hosted/PROGRESS.md` roadmap step 6: the oracle emits MIR-lowered C with
 runtime headers; the Pergyra emitter produces standalone C. They are judged equal
 only by observable program behavior.
+
+Golden/platform contract: `hello` is the no-argument fixture. It must remain in
+the active `FIXTURES` list and must pass when `PGY_SELFHOST_CODEGEN_BACKENDS=c`
+is the only requested backend. The parity runner therefore builds command arrays
+with the executable as element 0 instead of expanding a possibly empty argument
+array; this keeps macOS bash 3.2, Git Bash, and Linux bash behavior aligned under
+`set -u`.
 
 ## Next Rungs
 

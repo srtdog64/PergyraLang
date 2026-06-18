@@ -99,6 +99,12 @@ fi
 
 codegen_items="$(extract_shell_array_items "$PARITY_DIR/codegen_parity.sh" FIXTURES)"
 [[ -n "$codegen_items" ]] || fail "codegen parity FIXTURES is empty"
+contains_line "$codegen_items" "hello" ||
+    fail "codegen no-argument golden fixture must stay listed: hello"
+require_text "src/self_hosted/codegen/README.md" "Golden/platform contract"
+require_text "src/self_hosted/codegen/README.md" "PGY_SELFHOST_CODEGEN_BACKENDS=c"
+require_text "src/self_hosted/parity/codegen_parity.sh" 'local run_cmd=("$oracle_exe")'
+require_text "src/self_hosted/parity/codegen_parity.sh" 'local run_cmd=("$self_exe")'
 
 while IFS= read -r fixture; do
     base="$(basename "$fixture" .pgy)"

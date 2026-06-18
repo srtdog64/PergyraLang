@@ -18,6 +18,11 @@
 #
 # The codegen tool itself is compiled through the requested backends. LLVM is
 # mandatory in LLVM-enabled builds and explicitly skipped in C-only builds.
+#
+# Runner contract: every fixture, including no-argument fixtures such as
+# `hello`, must execute through the same command-array path in both oracle and
+# self-host legs. Keep the executable as element 0 of the array; this avoids
+# empty-argument expansion differences across bash versions under nounset.
 
 set -euo pipefail
 
@@ -150,15 +155,15 @@ check_oracle_drift() {
         --backend=c \
         -o "$(pgy_path_for_compiler "$PGY" "$oracle_exe")" >/dev/null 2>&1)
 
-    local run_args=()
+    local run_cmd=("$oracle_exe")
     while IFS= read -r arg; do
-        run_args+=("$arg")
+        run_cmd+=("$arg")
     done < <(fixture_run_args "$base")
 
     local oracle_out
     # Run from ROOT_DIR so file-reading fixtures (ReadFile/FileExists) resolve
     # repo-relative paths deterministically.
-    oracle_out="$(cd "$ROOT_DIR" && "$oracle_exe" "${run_args[@]}" 2>/dev/null | tr -d '\r')"
+    oracle_out="$(cd "$ROOT_DIR" && "${run_cmd[@]}" 2>/dev/null | tr -d '\r')"
     local expected_norm
     expected_norm="$(tr -d '\r' < "$expected_file")"
     if [[ "$oracle_out" != "$expected_norm" ]]; then
@@ -234,13 +239,13 @@ run_tool_backend() {
             cat "$c_file" >&2
             exit 1
         fi
-        local run_args=()
+        local run_cmd=("$self_exe")
         while IFS= read -r arg; do
-            run_args+=("$arg")
+            run_cmd+=("$arg")
         done < <(fixture_run_args "$base")
 
         local self_out
-        self_out="$(cd "$ROOT_DIR" && "$self_exe" "${run_args[@]}" 2>/dev/null | tr -d '\r')"
+        self_out="$(cd "$ROOT_DIR" && "${run_cmd[@]}" 2>/dev/null | tr -d '\r')"
 
         # 4. Compare against committed expected (== oracle, guarded above).
         local expected_norm
