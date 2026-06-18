@@ -233,11 +233,13 @@ done
 require_term "src/parser/ast_api.h" \
     "GenericParams* ast_declaration_generic_params"
 require_term "src/codegen/llvm_backend_type_map_generics.c" \
-    "llvm_generic_default_from_header"
+    "llvm_generic_default_name_from_header"
 require_term "src/codegen/llvm_backend_type_map_generics.c" \
     "mir_decl_header_generic_param_count(header)"
 require_term "src/codegen/llvm_backend_type_map_generics.c" \
-    "llvm_find_decl_header_in_context_of_type(ctx, decl->type, decl_name)"
+    "llvm_find_generic_default_name_in_mir_context"
+require_term "src/codegen/llvm_backend_type_map_generics.c" \
+    "llvm_find_decl_header_in_context_of_type("
 require_term "src/codegen/llvm_backend_type_map_generics.c" \
     "llvm_active_decl_header_inventory(ctx, &headers)"
 require_term "src/codegen/llvm_backend_type_map_generics.c" \
@@ -358,14 +360,14 @@ require_term "src/codegen/transpiler_host_self_policy.c" \
     "transpiler_generic_class_spec_base_decl("
 require_term "src/codegen/transpiler_host_self_policy.c" \
     "mir_decl_header_uses_pointer_self(base_header)"
-require_each_following_term "src/codegen/llvm_backend_type_map_generics.c" \
-    "if (llvm_active_has_mir(ctx))" \
-    "llvm_find_decl_header_in_context_of_type(" \
-    10
-require_each_following_term "src/codegen/llvm_backend_type_map_generics.c" \
-    "return llvm_find_generic_default_in_mir_inventory(ctx, type_name);" \
-    "llvm_generic_default_from_context_decl(" \
-    8
+require_term "src/codegen/llvm_backend_type_map_generics.c" \
+    "llvm_find_generic_default_name_in_mir_context"
+require_term "src/codegen/llvm_backend_type_map_generics.c" \
+    "llvm_find_generic_default_name_in_mir_inventory(ctx, type_name)"
+if grep -Fq "llvm_generic_default_from_context_decl(" \
+    "$ROOT_DIR/src/codegen/llvm_backend_type_map_generics.c"; then
+    fail "LLVM generic defaults must not route MIR headers through AST context-decl fallback"
+fi
 require_term "src/compiler/mir.c" \
     "mir_record_decl_header(mir, hir->functions[i])"
 require_term "src/compiler/mir_decl_headers.c" \
@@ -3228,6 +3230,8 @@ for term in \
     "ast_declaration_generic_params(decl)" \
     "meta->bound_type_name = mir_capture_type_name(constraint, NULL)" \
     "meta->default_arg_type_name =" \
+    "constraint != NULL && meta->bound_type_name == NULL" \
+    "default_type != NULL" \
     "header->generic_metadata_count = count" \
     "mir_decl_header_free_generics(&header)"; do
     require_term "src/compiler/mir_decl_headers.c" "$term"
@@ -3236,8 +3240,6 @@ for term in \
     "mir_decl_header_generic_param_count" \
     "mir_decl_header_generic_param(" \
     "mir_decl_generic_param_name" \
-    "mir_decl_generic_param_constraint" \
-    "mir_decl_generic_param_default_type" \
     "mir_decl_generic_param_constraint_type_name" \
     "mir_decl_generic_param_default_type_name"; do
     require_term "src/compiler/mir_decl_headers.h" "$term"
@@ -3245,9 +3247,21 @@ for term in \
 done
 for term in \
     "generic metadata count" \
-    "generic[%zu] has incomplete metadata" \
-    "generic[%zu] has incomplete type-name metadata"; do
+    "generic[%zu] has incomplete metadata"; do
     require_term "src/compiler/mir_decl_header_validate.c" "$term"
+done
+if grep -RInE 'mir_decl_generic_param_(default_type|constraint)\(' \
+    "$ROOT_DIR/src/compiler/mir_decl_headers.h" \
+    "$ROOT_DIR/src/compiler/mir_decl_header_access.c" \
+    "$ROOT_DIR/src/codegen" >/dev/null; then
+    fail "MIR generic metadata must expose type-name facts, not AST generic default/constraint accessors"
+fi
+for term in \
+    "llvm_generic_default_name_from_header" \
+    "mir_decl_generic_param_default_type_name(param)" \
+    "mir_decl_generic_param_constraint_type_name(param)" \
+    "pergyra_type_to_llvm(ctx, default_type_name)"; do
+    require_term "src/codegen/llvm_backend_type_map_generics.c" "$term"
 done
 for term in \
     "routine.has_signature = true" \

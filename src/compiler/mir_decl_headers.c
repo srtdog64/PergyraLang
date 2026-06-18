@@ -123,15 +123,27 @@ mir_decl_header_set_generics(MIRDeclHeader *header, ASTNode *decl)
     for (size_t i = 0; i < count; i++) {
         GenericParam *param = ast_generic_param_at(params, i);
         MIRDeclGenericParam *meta = &header->generic_metadata[i];
-        ASTNode *constraint = ast_generic_param_constraint(param);
-        ASTNode *default_type = ast_generic_param_default_type(param);
-        meta->source_param = param;
+        ASTNode *constraint;
+        ASTNode *default_type;
+
+        if (param == NULL) {
+            mir_decl_header_free_generics(header);
+            return false;
+        }
+
+        constraint = ast_generic_param_constraint(param);
+        default_type = ast_generic_param_default_type(param);
         meta->name = ast_generic_param_name(param);
-        meta->bound_ast = constraint;
-        meta->default_arg_ast = default_type;
         meta->bound_type_name = mir_capture_type_name(constraint, NULL);
         meta->default_arg_type_name =
             mir_capture_type_name(default_type, NULL);
+        if (meta->name == NULL
+            || (constraint != NULL && meta->bound_type_name == NULL)
+            || (default_type != NULL
+                && meta->default_arg_type_name == NULL)) {
+            mir_decl_header_free_generics(header);
+            return false;
+        }
     }
     header->generic_metadata_count = count;
     return true;

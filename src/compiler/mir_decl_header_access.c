@@ -116,18 +116,6 @@ mir_decl_generic_param_name(const MIRDeclGenericParam *param)
     return param != NULL ? param->name : NULL;
 }
 
-ASTNode *
-mir_decl_generic_param_constraint(const MIRDeclGenericParam *param)
-{
-    return param != NULL ? param->bound_ast : NULL;
-}
-
-ASTNode *
-mir_decl_generic_param_default_type(const MIRDeclGenericParam *param)
-{
-    return param != NULL ? param->default_arg_ast : NULL;
-}
-
 const char *
 mir_decl_generic_param_constraint_type_name(const MIRDeclGenericParam *param)
 {

@@ -89,11 +89,7 @@ typedef struct
 
 typedef struct
 {
-    /* Source compatibility/provenance only; generic inventory lives below. */
-    GenericParam *source_param;
     const char   *name;
-    ASTNode      *bound_ast;
-    ASTNode      *default_arg_ast;
     char         *bound_type_name;
     char         *default_arg_type_name;
 } MIRDeclGenericParam;

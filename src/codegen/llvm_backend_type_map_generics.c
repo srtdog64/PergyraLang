@@ -15,9 +15,9 @@
 
 #include <string.h>
 
-static ASTNode *
-llvm_generic_default_from_header(const MIRDeclHeader *header,
-                                 const char *type_name)
+static const char *
+llvm_generic_default_name_from_header(const MIRDeclHeader *header,
+                                      const char *type_name)
 {
     if (header == NULL || type_name == NULL)
         return NULL;
@@ -27,11 +27,13 @@ llvm_generic_default_from_header(const MIRDeclHeader *header,
         const char *param_name = mir_decl_generic_param_name(param);
         if (param_name == NULL || strcmp(param_name, type_name) != 0)
             continue;
-        if (mir_decl_generic_param_default_type(param) != NULL)
-            return mir_decl_generic_param_default_type(param);
-        if (mir_decl_generic_param_constraint(param) != NULL)
-            return mir_decl_generic_param_constraint(param);
-        return NULL;
+        {
+            const char *default_name =
+                mir_decl_generic_param_default_type_name(param);
+            if (default_name != NULL)
+                return default_name;
+        }
+        return mir_decl_generic_param_constraint_type_name(param);
     }
     return NULL;
 }
@@ -67,25 +69,6 @@ llvm_generic_default_from_decl(ASTNode *decl, const char *type_name)
         ast_declaration_generic_params(decl), type_name);
 }
 
-static ASTNode *
-llvm_generic_default_from_context_decl(LLVMGenCtx *ctx, ASTNode *decl,
-                                       const char *type_name)
-{
-    const char *decl_name;
-    const MIRDeclHeader *header;
-    ASTNode *resolved;
-
-    if (ctx == NULL || decl == NULL || type_name == NULL)
-        return NULL;
-
-    decl_name = llvm_decl_node_name(decl);
-    header = llvm_find_decl_header_in_context_of_type(ctx, decl->type, decl_name);
-    resolved = llvm_generic_default_from_header(header, type_name);
-    if (resolved != NULL || header != NULL)
-        return resolved;
-    return llvm_generic_default_from_decl(decl, type_name);
-}
-
 static bool
 llvm_generic_default_candidate_keep(LLVMGenCtx *ctx,
                                     ASTNode **candidate,
@@ -110,22 +93,35 @@ llvm_generic_default_candidate_keep(LLVMGenCtx *ctx,
         && strcmp(candidate_name, resolved_name) == 0;
 }
 
-static ASTNode *
-llvm_find_generic_default_in_mir_inventory(LLVMGenCtx *ctx,
-                                           const char *type_name)
+static bool
+llvm_generic_default_name_candidate_keep(const char **candidate,
+                                         const char *resolved)
+{
+    if (candidate == NULL || resolved == NULL)
+        return true;
+    if (*candidate == NULL) {
+        *candidate = resolved;
+        return true;
+    }
+    return strcmp(*candidate, resolved) == 0;
+}
+
+static const char *
+llvm_find_generic_default_name_in_mir_inventory(LLVMGenCtx *ctx,
+                                                const char *type_name)
 {
     LLVMMIRDeclHeaderInventory headers;
-    ASTNode *candidate = NULL;
+    const char *candidate = NULL;
 
     llvm_active_decl_header_inventory(ctx, &headers);
     for (size_t i = 0; i < headers.count; i++) {
         const MIRDeclHeader *header =
             llvm_decl_header_inventory_get(&headers, i);
-        ASTNode *resolved =
-            llvm_generic_default_from_header(header, type_name);
+        const char *resolved =
+            llvm_generic_default_name_from_header(header, type_name);
         if (resolved == NULL)
             continue;
-        if (!llvm_generic_default_candidate_keep(ctx, &candidate, resolved))
+        if (!llvm_generic_default_name_candidate_keep(&candidate, resolved))
             return NULL;
     }
 
@@ -152,8 +148,8 @@ llvm_find_generic_default_in_compat_inventory(LLVMGenCtx *ctx,
         size_t count = 0;
         llvm_active_inventory(ctx, direct_decl_types[kind], &nodes, &count);
         for (size_t i = 0; i < count; i++) {
-            resolved = llvm_generic_default_from_context_decl(
-                ctx, nodes != NULL ? nodes[i] : NULL, type_name);
+            resolved = llvm_generic_default_from_decl(
+                nodes != NULL ? nodes[i] : NULL, type_name);
             if (resolved == NULL)
                 continue;
             if (!llvm_generic_default_candidate_keep(ctx, &candidate, resolved))
@@ -168,8 +164,8 @@ llvm_find_generic_default_in_compat_inventory(LLVMGenCtx *ctx,
         size_t count = 0;
         llvm_active_inventory(ctx, host_decl_types[kind], &nodes, &count);
         for (size_t i = 0; i < count; i++) {
-            resolved = llvm_generic_default_from_context_decl(
-                ctx, nodes != NULL ? nodes[i] : NULL, type_name);
+            resolved = llvm_generic_default_from_decl(
+                nodes != NULL ? nodes[i] : NULL, type_name);
             if (resolved == NULL)
                 continue;
             if (!llvm_generic_default_candidate_keep(ctx, &candidate, resolved))
@@ -180,11 +176,10 @@ llvm_find_generic_default_in_compat_inventory(LLVMGenCtx *ctx,
     return candidate;
 }
 
-static ASTNode *
-llvm_find_generic_default_in_inventory(LLVMGenCtx *ctx, const char *type_name)
+static const char *
+llvm_find_generic_default_name_in_mir_context(LLVMGenCtx *ctx,
+                                              const char *type_name)
 {
-    ASTNode *resolved = NULL;
-
     if (ctx == NULL || type_name == NULL)
         return NULL;
 
@@ -195,15 +190,25 @@ llvm_find_generic_default_in_inventory(LLVMGenCtx *ctx, const char *type_name)
             const MIRDeclHeader *header =
                 llvm_find_decl_header_in_context_of_type(
                     ctx, ctx->current_host_decl->type, decl_name);
-            resolved = llvm_generic_default_from_header(header, type_name);
+            const char *resolved =
+                llvm_generic_default_name_from_header(header, type_name);
             if (resolved != NULL)
                 return resolved;
         }
-        return llvm_find_generic_default_in_mir_inventory(ctx, type_name);
     }
+    return llvm_find_generic_default_name_in_mir_inventory(ctx, type_name);
+}
 
-    resolved = llvm_generic_default_from_context_decl(
-        ctx, ctx->current_host_decl, type_name);
+static ASTNode *
+llvm_find_generic_default_in_compat_context(LLVMGenCtx *ctx,
+                                            const char *type_name)
+{
+    ASTNode *resolved = NULL;
+
+    if (ctx == NULL || type_name == NULL)
+        return NULL;
+
+    resolved = llvm_generic_default_from_decl(ctx->current_host_decl, type_name);
     if (resolved != NULL)
         return resolved;
 
@@ -214,11 +219,22 @@ LLVMTypeRef
 llvm_resolve_generic_formal_default(LLVMGenCtx *ctx, const char *type_name)
 {
     ASTNode *default_type;
+    const char *default_type_name;
 
     if (ctx == NULL || type_name == NULL)
         return NULL;
 
-    default_type = llvm_find_generic_default_in_inventory(ctx, type_name);
+    if (llvm_active_has_mir(ctx)) {
+        default_type_name =
+            llvm_find_generic_default_name_in_mir_context(ctx, type_name);
+        if (default_type_name == NULL
+            || strcmp(default_type_name, type_name) == 0) {
+            return NULL;
+        }
+        return pergyra_type_to_llvm(ctx, default_type_name);
+    }
+
+    default_type = llvm_find_generic_default_in_compat_context(ctx, type_name);
     if (default_type == NULL)
         return NULL;
 

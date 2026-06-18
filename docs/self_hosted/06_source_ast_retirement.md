@@ -118,6 +118,12 @@ back-pointers are gone; and header shape is no longer recomputed from
 `header->source_ast`. `MIRDeclHeader.source_ast` and
 `mir_decl_header_source_decl` have been removed; source-type/location scalar
 names remain outside the AST-read metric.
+Generic declaration metadata is also scalarized for the MIR-active consumer
+surface: `MIRDeclGenericParam` stores bound/default type-name facts, not
+bound/default ASTNode back-pointers. C/LLVM generic default consumers that need
+omitted actuals or formal defaults consume those names directly; AST generic
+parameter nodes are retained only as parser/lowering input and non-MIR
+compatibility data.
 
 One special case sat inside the fallback class. The role view accessors
 required_ability_count and required_ability originally called the source_ast

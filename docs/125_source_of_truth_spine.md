@@ -1,6 +1,6 @@
 # Pergyra Source-Of-Truth Spine
 
-Last updated: 2026-06-15
+Last updated: 2026-06-18
 
 This document freezes the compiler ownership spine for beta closure. It exists
 to stop A -> B -> A refactoring loops. When a future change is unclear, use this
@@ -163,7 +163,13 @@ Current beta closure snapshot:
   `MIRDeclHeader` generic metadata for MIR-active paths. C/LLVM consumers may
   use `ast_declaration_generic_params(...)` only in non-MIR compatibility paths;
   they must not restate a local function/class/ability/role/party/roster
-  generic-payload switch.
+  generic-payload switch. `MIRDeclGenericParam` exposes bound/default
+  type-name facts only; it does not carry ASTNode bound/default back-pointers.
+  MIR lowering must fail closed if a declared generic bound/default cannot be
+  rendered as a type-name fact. LLVM generic formal-default resolution consumes
+  those MIR type-name facts directly in MIR-active paths and routes AST generic
+  default/constraint nodes only through the explicit non-MIR compatibility
+  path.
 - LLVM class field index/type recovery is centralized in the LLVM registry.
   Consumers that already resolved a struct field index may ask
   `llvm_class_field_type_at_index(...)` for the field type, but they must not

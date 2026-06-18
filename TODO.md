@@ -35,12 +35,15 @@ English anchor for tooling/doc gates:
   terms so this does not regress into silent first-`gcc` failures.
 - MIR declaration generic metadata source-of-truth: `MIRDeclGenericParam`
   no longer reuses raw AST storage field names for bound/default metadata.
-  Bound/default type names are captured as MIR declaration-header facts,
-  validated, freed with the MIR lifecycle, and consumed by C/LLVM role-slot
-  ability tag rendering when omitted generic actuals are filled from an ability
-  declaration. Parser-owned `ast_generic_param_*` accessors remain the lowering
-  input and non-MIR compatibility path, while `mir-declaration-inventory-smoke`
-  blocks MIR-active ability fallback renderers from reopening AST generic
+  Bound/default type names are captured as MIR declaration-header facts at
+  lowering time, fail closed if a declared type cannot be rendered, and are
+  freed with the MIR lifecycle. The MIR metadata no longer stores generic
+  bound/default ASTNode back-pointers. C/LLVM role-slot ability tag rendering
+  and the LLVM generic formal-default type-map resolver consume the captured
+  type-name facts when omitted generic actuals are filled from a declaration.
+  Parser-owned `ast_generic_param_*` accessors remain the lowering input and
+  non-MIR compatibility path, while `mir-declaration-inventory-smoke` blocks
+  MIR-active generic fallback renderers/resolvers from reopening AST generic
   defaults/constraints.
 - Honest weakness ledger: beta messaging and work selection must keep five
   real costs visible instead of hiding them behind safety language. (1) Runtime
