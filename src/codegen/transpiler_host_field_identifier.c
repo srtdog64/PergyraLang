@@ -50,7 +50,7 @@ transpiler_host_field_current_mir_routine(const TranspilerCtx *ctx)
 }
 
 static bool
-transpiler_mir_routine_has_local_name(const MIRRoutine *routine,
+transpiler_mir_routine_has_param_name(const MIRRoutine *routine,
                                       const char *base_name)
 {
     if (routine == NULL || base_name == NULL)
@@ -83,6 +83,8 @@ transpiler_current_function_has_self_receiver(const TranspilerCtx *ctx)
     }
     if (ctx->current_host_decl != NULL)
         return true;
+    if (transpiler_active_has_mir(ctx))
+        return false;
     for (size_t i = 0; i < ast_func_param_count(ctx->current_func_decl); i++) {
         FuncParam *param = ast_func_param(ctx->current_func_decl, i);
         if (param != NULL
@@ -118,10 +120,14 @@ transpiler_identifier_is_current_true_local(TranspilerCtx *ctx,
                                             const char *id_name)
 {
     const MIRRoutine *routine = transpiler_host_field_current_mir_routine(ctx);
-    if (routine != NULL
-        && transpiler_mir_routine_has_local_name(routine, id_name)) {
-        return true;
+    if (routine != NULL) {
+        return transpiler_mir_routine_has_param_name(routine, id_name)
+            || transpiler_has_explicit_body_local_binding(
+                ctx != NULL ? ctx->current_func_decl : NULL, id_name);
     }
+    if (transpiler_active_has_mir(ctx))
+        return transpiler_has_explicit_body_local_binding(
+            ctx != NULL ? ctx->current_func_decl : NULL, id_name);
     return transpiler_identifier_is_true_local(ctx,
         ctx != NULL ? ctx->current_func_decl : NULL,
         id_name);

@@ -131,6 +131,18 @@ transpiler_has_explicit_local_binding(const ASTNode *func_decl,
         base_name);
 }
 
+bool
+transpiler_has_explicit_body_local_binding(const ASTNode *func_decl,
+                                           const char *base_name)
+{
+    if (func_decl == NULL || func_decl->type != AST_FUNC_DECL
+        || base_name == NULL) {
+        return false;
+    }
+    return transpiler_has_local_binding_in_block(ast_func_body(func_decl),
+        base_name);
+}
+
 void
 transpiler_register_with_alias_bindings_in_block(TranspilerSSANameMap *ssa_map,
                                                  ASTNode *body)

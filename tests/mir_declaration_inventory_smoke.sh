@@ -4961,6 +4961,16 @@ require_term "src/codegen/transpiler_host_field_identifier.c" \
     "transpiler_current_function_has_self_receiver"
 require_term "src/codegen/transpiler_host_field_identifier.c" \
     "transpiler_emit_current_host_field_identifier"
+for term in \
+    "transpiler_mir_routine_has_param_name" \
+    "transpiler_has_explicit_body_local_binding" \
+    "if (transpiler_active_has_mir(ctx))"; do
+    require_term "src/codegen/transpiler_host_field_identifier.c" "$term"
+done
+if grep -Fq "return transpiler_has_explicit_local_binding(ctx->current_func_decl" \
+    "$ROOT_DIR/src/codegen/transpiler_host_field_identifier.c"; then
+    fail "C host-field lexical shadowing must split MIR parameter facts from AST body-local compatibility"
+fi
 require_each_following_term "src/codegen/transpiler_host_field_identifier.c" \
     "transpiler_emit_current_host_field_identifier(TranspilerCtx *ctx" \
     "transpiler_current_world_has_field(ctx, id_name)" \
