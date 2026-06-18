@@ -63,11 +63,10 @@ llvm_expr_projection_join_path(LLVMGenCtx *ctx,
 
 static LLVMHostedFieldView
 llvm_projection_field_view_by_name(LLVMGenCtx *ctx,
-                                   const char *decl_name,
-                                   ASTNode *compat_decl)
+                                   const char *decl_name)
 {
     LLVMHostedFieldView view =
-        llvm_hosted_class_field_view_from_decl(ctx, decl_name, compat_decl);
+        llvm_hosted_class_field_view_from_decl(ctx, decl_name, NULL);
 
     if (llvm_active_has_mir(ctx) && !view.uses_mir_metadata) {
         llvm_set_mir_inventory_missing(ctx,
@@ -114,7 +113,7 @@ llvm_projection_field_count_by_name(LLVMGenCtx *ctx, const char *decl_name)
 
     if (decl_name == NULL)
         return 0;
-    view = llvm_projection_field_view_by_name(ctx, decl_name, NULL);
+    view = llvm_projection_field_view_by_name(ctx, decl_name);
     return view.count;
 }
 
@@ -127,7 +126,7 @@ llvm_projection_field_name_by_name(LLVMGenCtx *ctx,
 
     if (decl_name == NULL)
         return NULL;
-    view = llvm_projection_field_view_by_name(ctx, decl_name, NULL);
+    view = llvm_projection_field_view_by_name(ctx, decl_name);
     return llvm_hosted_field_view_name(&view, index);
 }
 
@@ -142,7 +141,7 @@ llvm_projection_field_type_name_by_name(LLVMGenCtx *ctx,
 
     if (decl_name == NULL)
         return NULL;
-    view = llvm_projection_field_view_by_name(ctx, decl_name, NULL);
+    view = llvm_projection_field_view_by_name(ctx, decl_name);
     field = llvm_hosted_field_view_metadata(&view, index);
     if (field != NULL) {
         const char *type_name = llvm_mir_decl_field_type_name(field);

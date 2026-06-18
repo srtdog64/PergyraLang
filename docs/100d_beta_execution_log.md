@@ -10,12 +10,20 @@
   wrappers only extracted a declaration name before delegating, so keeping them
   open allowed projection code to look source-declaration-shaped again without
   owning a semantic declaration decision.
+- The C/LLVM projection class-field view helpers no longer accept an AST
+  compatibility declaration parameter. They pass the already-resolved type name
+  to the hosted field view owner and fail closed in MIR-active paths when
+  declaration-field metadata is missing.
 - `mir-declaration-inventory-test-smoke` now rejects reintroducing
   `resolve_projection_source_path_rec`, `emit_projection_literal`, or
-  `llvm_load_projection_path_value`. Projection callers must consume the typed
-  owner that already resolved the source type and then call the by-name helper.
+  `llvm_load_projection_path_value`, and rejects projection-local
+  `compat_decl` parameters. Projection callers must consume the typed owner
+  that already resolved the source type and then call the by-name helper.
 - Gates used: `make mir-declaration-inventory-test-smoke`,
-  `make llvm-test-smoke`, and `git diff --check`.
+  `make test-transpile`, `make llvm-test-smoke`,
+  `make documentation-quality-test-smoke`,
+  `make backend-fail-closed-test-smoke`,
+  `make test-inc-size-test-smoke`, and `git diff --check`.
 
 ## Progress Log - 2026-06-19 LLVM Class-Field Slot Registration Cutover
 

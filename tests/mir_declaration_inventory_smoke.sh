@@ -4846,6 +4846,10 @@ require_term "src/codegen/transpiler_projection_emit.c" \
     "mir_decl_header_nominal_kind_or("
 require_term "src/codegen/transpiler_projection_emit.c" \
     "emit_projection_literal_by_name("
+if grep -RIn "compat_decl" \
+        "$ROOT_DIR/src/codegen/transpiler_projection_emit.c"; then
+    fail "C projection field views must not keep AST compatibility declaration parameters"
+fi
 if grep -RInE "resolve_projection_source_path_rec\\(|emit_projection_literal\\(TranspilerCtx \\*ctx" \
         "$ROOT_DIR/src/codegen/transpiler_projection_emit.c" \
         "$ROOT_DIR/src/codegen/transpiler_projection.h"; then
@@ -4861,6 +4865,10 @@ require_term "src/codegen/llvm_expr_projection_path_helpers.c" \
     "mir_decl_header_nominal_kind_or("
 require_term "src/codegen/llvm_expr_projection_path_helpers.c" \
     "llvm_load_projection_path_value_by_name("
+if grep -RIn "compat_decl" \
+        "$ROOT_DIR/src/codegen/llvm_expr_projection_path_helpers.c"; then
+    fail "LLVM projection field views must not keep AST compatibility declaration parameters"
+fi
 if grep -RIn "llvm_load_projection_path_value(LLVMGenCtx *ctx" \
         "$ROOT_DIR/src/codegen/llvm_expr_projection_path_helpers.c" \
         "$ROOT_DIR/src/codegen/llvm_expr_projection_path_helpers.h"; then

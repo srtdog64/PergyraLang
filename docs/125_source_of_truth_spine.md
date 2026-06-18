@@ -240,7 +240,10 @@ Current beta closure snapshot:
   (`resolve_projection_source_path_rec`, `emit_projection_literal`, and
   `llvm_load_projection_path_value`) may not be reintroduced; callers must
   pass the resolved type name from the typed owner that already made the
-  declaration decision.
+  declaration decision. The projection class-field view helpers likewise do
+  not accept AST compatibility declarations; in MIR-active paths they must use
+  declaration headers through the hosted field view and fail closed if the
+  field metadata is absent.
 - LLVM callable declaration lookup also lives in
   `src/codegen/llvm_domain_lookup.c` behind `llvm_find_function_decl(...)`,
   `llvm_find_intent_decl(...)`, and `llvm_find_callable_decl(...)`. Call

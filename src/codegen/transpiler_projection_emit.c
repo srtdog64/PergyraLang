@@ -22,7 +22,6 @@
 static bool
 projection_class_field_view_by_name(TranspilerCtx *ctx,
                                     const char *decl_name,
-                                    ASTNode *compat_decl,
                                     TranspilerHostedFieldView *view)
 {
     if (view == NULL)
@@ -36,11 +35,9 @@ projection_class_field_view_by_name(TranspilerCtx *ctx,
 
     if (ctx == NULL || decl_name == NULL)
         return false;
-    if (compat_decl != NULL && compat_decl->type != AST_CLASS_DECL)
-        return false;
 
     *view = transpiler_hosted_class_field_view_from_decl(
-        ctx, decl_name, compat_decl);
+        ctx, decl_name, NULL);
     if (transpiler_active_has_mir(ctx) && !view->uses_mir_metadata) {
         transpiler_set_mir_inventory_missing(ctx,
             "MIR-only C path missing projection class-field metadata for '%s'",
@@ -86,7 +83,7 @@ projection_class_field_count_by_name(TranspilerCtx *ctx,
 {
     TranspilerHostedFieldView view;
 
-    return projection_class_field_view_by_name(ctx, decl_name, NULL, &view)
+    return projection_class_field_view_by_name(ctx, decl_name, &view)
         ? view.count : 0;
 }
 
@@ -97,7 +94,7 @@ projection_class_field_name_by_name(TranspilerCtx *ctx,
 {
     TranspilerHostedFieldView view;
 
-    if (!projection_class_field_view_by_name(ctx, decl_name, NULL, &view))
+    if (!projection_class_field_view_by_name(ctx, decl_name, &view))
         return NULL;
     return transpiler_hosted_field_view_name(&view, index);
 }
@@ -111,7 +108,7 @@ projection_class_field_type_name_by_name(TranspilerCtx *ctx,
     const MIRDeclField *field;
     ASTNode *type_node;
 
-    if (!projection_class_field_view_by_name(ctx, decl_name, NULL, &view))
+    if (!projection_class_field_view_by_name(ctx, decl_name, &view))
         return NULL;
     field = transpiler_hosted_field_view_metadata(&view, index);
     if (field != NULL) {
