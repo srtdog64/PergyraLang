@@ -252,18 +252,20 @@ ast_type_generic_args and storing ast_type_name of each actual argument type.
 Default-argument filling stays at consumption, but the MIR-active consumer now
 resolves the ability declaration through `MIRDeclHeader` generic rows instead of
 opening the source declaration. For each formal param it uses the captured
-actual argument if present or the `MIRDeclGenericParam` default/constraint
-otherwise; AST declaration lookup is retained only for the non-MIR compatibility
-path. This keeps the cross-declaration resolution on the codegen side that owns
-it, and keeps the capture purely local to the ability reference node.
+actual argument if present or the `MIRDeclGenericParam`
+`default_arg_type_name` / `bound_type_name` fact otherwise; AST declaration
+lookup is retained only for the non-MIR compatibility path. This keeps the
+cross-declaration resolution on the codegen side that owns it, and keeps the
+capture purely local to the ability reference node.
 
 Consumption. The string-based tag renderer takes a `MIRAbilityRef` rather than
 `(ability_decl, ability_ref node)`: it concatenates `base_name` with the
 captured actual generic argument names, fills omitted arguments from
-`MIRDeclGenericParam`, and uses the same separator and sanitize rules. The
-remaining ability declaration body emitters still own method signatures/bodies;
-role-slot tag and dispatch consumers no longer recover the ability declaration
-just to compute generic tags in MIR-active paths.
+`MIRDeclGenericParam` type-name metadata, and uses the same separator and
+sanitize rules. The remaining ability declaration body emitters still own
+method signatures/bodies; role-slot tag and dispatch consumers no longer
+recover the ability declaration just to compute generic tags in MIR-active
+paths.
 
 Caveat to verify. render_type_name_in_ctx is ctx-aware, while lowering capture
 uses ast_type_name. These diverge only when an ability argument is an outer type

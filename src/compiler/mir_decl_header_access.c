@@ -128,6 +128,18 @@ mir_decl_generic_param_default_type(const MIRDeclGenericParam *param)
     return param != NULL ? param->default_arg_ast : NULL;
 }
 
+const char *
+mir_decl_generic_param_constraint_type_name(const MIRDeclGenericParam *param)
+{
+    return param != NULL ? param->bound_type_name : NULL;
+}
+
+const char *
+mir_decl_generic_param_default_type_name(const MIRDeclGenericParam *param)
+{
+    return param != NULL ? param->default_arg_type_name : NULL;
+}
+
 size_t
 mir_decl_header_method_count(const MIRDeclHeader *header)
 {

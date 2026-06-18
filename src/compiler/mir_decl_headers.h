@@ -28,6 +28,10 @@ const MIRDeclGenericParam *mir_decl_header_generic_param(
 const char *mir_decl_generic_param_name(const MIRDeclGenericParam *param);
 ASTNode *mir_decl_generic_param_constraint(const MIRDeclGenericParam *param);
 ASTNode *mir_decl_generic_param_default_type(const MIRDeclGenericParam *param);
+const char *mir_decl_generic_param_constraint_type_name(
+    const MIRDeclGenericParam *param);
+const char *mir_decl_generic_param_default_type_name(
+    const MIRDeclGenericParam *param);
 size_t mir_decl_header_method_count(const MIRDeclHeader *header);
 const MIRDeclMethod *mir_decl_header_method(const MIRDeclHeader *header,
                                             size_t index);

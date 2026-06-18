@@ -218,19 +218,14 @@ static const char *
 llvm_render_mir_ability_formal_fallback(LLVMGenCtx *ctx,
                                         const MIRDeclGenericParam *formal)
 {
-    ASTNode *fallback;
-    char *rendered;
+    const char *fallback;
 
     if (ctx == NULL || formal == NULL)
         return NULL;
-    fallback = mir_decl_generic_param_default_type(formal);
+    fallback = mir_decl_generic_param_default_type_name(formal);
     if (fallback == NULL)
-        fallback = mir_decl_generic_param_constraint(formal);
-    if (fallback == NULL)
-        return NULL;
-    rendered = llvm_render_type_name_in_ctx(ctx, fallback);
-    return llvm_keep_rendered_persistent(
-        ctx, rendered, "LLVM ability generic fallback copy failed");
+        fallback = mir_decl_generic_param_constraint_type_name(formal);
+    return llvm_render_ability_actual_name(ctx, fallback);
 }
 
 const char *

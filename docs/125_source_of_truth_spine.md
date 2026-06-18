@@ -274,7 +274,9 @@ Current beta closure snapshot:
   `src/codegen/transpiler_role_ability.c`. Bind emission and member-call
   emission may consume `transpiler_party_slot_first_ability_tag(...)` or
   `transpiler_party_slot_method_ability_tag(...)`, but they must not reopen
-  party role-slot scans locally.
+  party role-slot scans locally. MIR-active generic ability tags fill omitted
+  actuals from `MIRDeclGenericParam` type-name metadata, not from AST generic
+  default/constraint nodes.
 - Party / role / roster compiler facts live in the normal parser, semantic,
   declaration-inventory, and C/LLVM hosted-method path. Standalone compiler-only
   FiberMap extraction/generation APIs are not a beta source of truth; the old

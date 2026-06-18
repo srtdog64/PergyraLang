@@ -3216,6 +3216,8 @@ for term in \
 done
 for term in \
     "MIRDeclGenericParam" \
+    "char         *bound_type_name" \
+    "char         *default_arg_type_name" \
     "size_t       generic_param_count" \
     "MIRDeclGenericParam *generic_metadata" \
     "size_t       generic_metadata_count"; do
@@ -3224,8 +3226,10 @@ done
 for term in \
     "mir_decl_header_set_generics" \
     "ast_declaration_generic_params(decl)" \
+    "meta->bound_type_name = mir_capture_type_name(constraint, NULL)" \
+    "meta->default_arg_type_name =" \
     "header->generic_metadata_count = count" \
-    "free(header.generic_metadata)"; do
+    "mir_decl_header_free_generics(&header)"; do
     require_term "src/compiler/mir_decl_headers.c" "$term"
 done
 for term in \
@@ -3233,13 +3237,16 @@ for term in \
     "mir_decl_header_generic_param(" \
     "mir_decl_generic_param_name" \
     "mir_decl_generic_param_constraint" \
-    "mir_decl_generic_param_default_type"; do
+    "mir_decl_generic_param_default_type" \
+    "mir_decl_generic_param_constraint_type_name" \
+    "mir_decl_generic_param_default_type_name"; do
     require_term "src/compiler/mir_decl_headers.h" "$term"
     require_term "src/compiler/mir_decl_header_access.c" "$term"
 done
 for term in \
     "generic metadata count" \
-    "generic[%zu] has incomplete metadata"; do
+    "generic[%zu] has incomplete metadata" \
+    "generic[%zu] has incomplete type-name metadata"; do
     require_term "src/compiler/mir_decl_header_validate.c" "$term"
 done
 for term in \
@@ -5072,6 +5079,10 @@ require_term "src/codegen/transpiler_role_ability.c" \
 require_term "src/codegen/transpiler_role_ability.c" \
     "transpiler_render_mir_ability_formal_fallback"
 require_term "src/codegen/transpiler_role_ability.c" \
+    "mir_decl_generic_param_default_type_name(formal)"
+require_term "src/codegen/transpiler_role_ability.c" \
+    "mir_decl_generic_param_constraint_type_name(formal)"
+require_term "src/codegen/transpiler_role_ability.c" \
     "transpiler_active_decl_header_of_type("
 require_term "src/codegen/transpiler_role_ability.c" \
     "ctx, AST_ABILITY_DECL, base_name"
@@ -5081,6 +5092,10 @@ require_term "src/codegen/transpiler_role_ability.c" \
     "ability_decl = !mir_active"
 require_term "src/codegen/llvm_domain_role_lookup.c" \
     "llvm_render_mir_ability_formal_fallback"
+require_term "src/codegen/llvm_domain_role_lookup.c" \
+    "mir_decl_generic_param_default_type_name(formal)"
+require_term "src/codegen/llvm_domain_role_lookup.c" \
+    "mir_decl_generic_param_constraint_type_name(formal)"
 require_term "src/codegen/llvm_domain_role_lookup.c" \
     "llvm_find_decl_header_in_context_of_type("
 require_term "src/codegen/llvm_domain_role_lookup.c" \
@@ -5093,6 +5108,11 @@ if grep -RIn "transpiler_hosted_role_slot_view_required_ability_type_name(" \
     "$ROOT_DIR/src/codegen/transpiler_domain_nominal_emit.c" \
     "$ROOT_DIR/src/codegen/transpiler_role_ability.c" >/dev/null; then
     fail "C party role-slot ability consumers must read MIRAbilityRef, not compatibility type-name strings"
+fi
+if grep -RInE 'mir_decl_generic_param_(default_type|constraint)\(formal\)' \
+    "$ROOT_DIR/src/codegen/transpiler_role_ability.c" \
+    "$ROOT_DIR/src/codegen/llvm_domain_role_lookup.c" >/dev/null; then
+    fail "MIR ability generic fallbacks must consume MIR type-name metadata, not AST generic defaults/constraints"
 fi
 require_term "src/codegen/transpiler_statement_dispatch.c" \
     "transpiler_party_slot_first_ability_tag(ctx,"

@@ -247,6 +247,16 @@ mir_validate_decl_method_metadata(const MIRProgram *mir,
             }
             return false;
         }
+        if ((generic->bound_ast != NULL && generic->bound_type_name == NULL)
+            || (generic->default_arg_ast != NULL
+                && generic->default_arg_type_name == NULL)) {
+            if (error_message != NULL) {
+                *error_message = mir_strdup_fmt(
+                    "MIR declaration header[%zu] generic[%zu] has incomplete type-name metadata",
+                    header_index, i);
+            }
+            return false;
+        }
     }
 
     if (header->variant_metadata_count > 0

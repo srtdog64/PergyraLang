@@ -203,14 +203,14 @@ transpiler_render_mir_ability_formal_fallback(
     TranspilerCtx *ctx,
     const MIRDeclGenericParam *formal)
 {
-    ASTNode *fallback;
+    const char *fallback;
 
     if (formal == NULL)
         return NULL;
-    fallback = mir_decl_generic_param_default_type(formal);
+    fallback = mir_decl_generic_param_default_type_name(formal);
     if (fallback == NULL)
-        fallback = mir_decl_generic_param_constraint(formal);
-    return fallback != NULL ? render_type_name_in_ctx(ctx, fallback) : NULL;
+        fallback = mir_decl_generic_param_constraint_type_name(formal);
+    return transpiler_render_ability_actual_name(ctx, fallback);
 }
 
 static char *

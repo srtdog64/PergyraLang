@@ -94,6 +94,8 @@ typedef struct
     const char   *name;
     ASTNode      *bound_ast;
     ASTNode      *default_arg_ast;
+    char         *bound_type_name;
+    char         *default_arg_type_name;
 } MIRDeclGenericParam;
 
 typedef struct
