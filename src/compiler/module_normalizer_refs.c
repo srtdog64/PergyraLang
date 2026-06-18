@@ -417,6 +417,10 @@ module_normalizer_normalize_node_refs(ASTNode *node,
             module_normalizer_normalize_node_refs(ast_transaction_block_body(node), scope, shadow);
             return;
 
+        case AST_FAIL_STMT:
+            module_normalizer_normalize_node_refs(ast_fail_stmt_reason(node), scope, shadow);
+            return;
+
         case AST_DEFER_STMT:
             module_normalizer_normalize_node_refs(ast_defer_body(node), scope, shadow);
             return;

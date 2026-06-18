@@ -175,6 +175,7 @@ mir_source_node_type_name(ASTNodeType type)
     case AST_NAMESPACE_DECL: return "AST_NAMESPACE_DECL";
     case AST_UNSAFE_BLOCK: return "AST_UNSAFE_BLOCK";
     case AST_TRANSACTION_BLOCK: return "AST_TRANSACTION_BLOCK";
+    case AST_FAIL_STMT: return "AST_FAIL_STMT";
     case AST_DEFER_STMT: return "AST_DEFER_STMT";
     case AST_BIND_STMT: return "AST_BIND_STMT";
     }
@@ -454,6 +455,7 @@ mir_source_node_type_stmt_has_side_effect_hint(ASTNodeType type,
     case AST_BIND_STMT:
     case AST_UNSAFE_BLOCK:
     case AST_TRANSACTION_BLOCK:
+    case AST_FAIL_STMT:
     case AST_DEFER_STMT:
     case AST_INTENT_STEP:
     case AST_WITH_STMT:
@@ -463,21 +465,6 @@ mir_source_node_type_stmt_has_side_effect_hint(ASTNodeType type,
     default:
         return false;
     }
-}
-
-bool
-mir_source_node_stmt_has_side_effect_hint(const ASTNode *stmt)
-{
-    const char *callee = NULL;
-
-    if (stmt == NULL)
-        return false;
-    if (stmt->type == AST_CALL
-        && ast_call_callee(stmt) != NULL
-        && ast_call_callee(stmt)->type == AST_IDENTIFIER) {
-        callee = ast_identifier_name(ast_call_callee(stmt));
-    }
-    return mir_source_node_type_stmt_has_side_effect_hint(stmt->type, callee);
 }
 
 bool

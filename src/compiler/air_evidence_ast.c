@@ -124,6 +124,8 @@ air_ast_contains_node(const ASTNode *container, const ASTNode *needle)
         return air_ast_contains_node(ast_unsafe_block_body(container), needle);
     case AST_TRANSACTION_BLOCK:
         return air_ast_contains_node(ast_transaction_block_body(container), needle);
+    case AST_FAIL_STMT:
+        return air_ast_contains_node(ast_fail_stmt_reason(container), needle);
     case AST_DEFER_STMT:
         return air_ast_contains_node(ast_defer_body(container), needle);
     case AST_RETURN:

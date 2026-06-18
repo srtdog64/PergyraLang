@@ -415,7 +415,6 @@ bool        mir_instruction_resource_op_keeps_residual_statement_emit(
 bool        mir_source_node_type_stmt_has_side_effect_hint(
                 ASTNodeType type,
                 const char *callee_name);
-bool        mir_source_node_stmt_has_side_effect_hint(const ASTNode *stmt);
 bool        mir_instruction_source_matches_ast_type(
                 const MIRInstruction *inst,
                 ASTNodeType expected_type);

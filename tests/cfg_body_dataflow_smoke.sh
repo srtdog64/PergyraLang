@@ -298,6 +298,7 @@ run_literal_doc_contract_smoke() {
     require_literal "src/compiler/mir_source_shape.c" "mir_instruction_source_is_cfg_owned_control"
     require_literal "src/compiler/mir_source_shape.c" "mir_instruction_source_stmt_has_side_effect_hint"
     require_literal "src/compiler/mir_source_shape.c" "mir_instruction_source_stmt_fallback_is_allowed"
+    require_literal "src/compiler/mir_source_shape.c" "AST_FAIL_STMT"
     require_literal "src/compiler/mir_source_shape.c" "mir_instruction_resource_op_is_claim"
     require_literal "src/compiler/mir_source_shape.c" "mir_instruction_resource_op_is_read"
     require_literal "src/compiler/mir_source_shape.c" "mir_instruction_resource_op_is_write"
@@ -1146,7 +1147,6 @@ required_mir_owner_terms = {
         "mir_remove_instruction",
         "mir_reset_routine_analysis",
         "mir_instruction_source_stmt_has_side_effect_hint(inst)",
-        "mir_source_node_stmt_has_side_effect_hint",
     ],
     "src/compiler/mir_call_fact.h": [
         "PERGYRA_MIR_CALL_FACT_H",

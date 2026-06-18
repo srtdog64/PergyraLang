@@ -11,6 +11,9 @@ parser_intent_match_keyword(Parser *parser, const char *keyword)
     if (strcmp(keyword, "intent") == 0)
         return parser_match(parser, TOKEN_INTENT);
 
+    if (strcmp(keyword, "compensate") == 0)
+        return parser_match(parser, TOKEN_COMPENSATE);
+
     if (!parser_check(parser, TOKEN_IDENTIFIER)
         || parser->current_token.text == NULL
         || strcmp(parser->current_token.text, keyword) != 0) {

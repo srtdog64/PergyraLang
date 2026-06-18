@@ -134,12 +134,7 @@ mir_instruction_is_dead_stmt(const MIRInstruction *inst)
         return false;
     if (mir_stmt_is_semantic_carrier(inst))
         return false;
-    if (mir_instruction_has_source_location(inst))
-        return !mir_instruction_source_stmt_has_side_effect_hint(inst);
-    if (mir_instruction_source_payload(inst) == NULL)
-        return true;
-    return !mir_source_node_stmt_has_side_effect_hint(
-        mir_instruction_source_payload(inst));
+    return !mir_instruction_source_stmt_has_side_effect_hint(inst);
 }
 
 bool
