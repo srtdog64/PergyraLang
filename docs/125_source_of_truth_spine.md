@@ -166,6 +166,11 @@ Current beta closure snapshot:
   `llvm_hosted_method_view_compat_method(...)` only in non-MIR compatibility
   paths; MIR-active paths consume `MIRDeclMethod` metadata and linked routine
   indexes. Backend consumers must not index `ast_compat_methods` directly.
+- LLVM MIR parameter self-field slot registration consumes
+  `LLVMHostedFieldView` and `MIRDeclFieldClaim` rows. It may render a field
+  type from AST only in the explicit non-MIR compatibility path; MIR-active
+  code must use declaration-field type-name facts and must not index
+  `ast_compat_fields` directly.
 - Backend declaration name recovery is also centralized: LLVM consumes
   `llvm_decl_node_name(...)`, and C consumes `transpiler_decl_name_local(...)`.
   Lookup predicates must call those owners rather than restating per-declaration

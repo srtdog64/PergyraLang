@@ -3,6 +3,18 @@
 > Split from `docs/100_beta_readiness_checklist.md` on 2026-05-29.
 > Keep active blocker edits in the shard that owns the relevant closure track.
 
+## Progress Log - 2026-06-19 LLVM Class-Field Slot Registration Cutover
+
+- LLVM MIR parameter setup now registers `self.field` slot bindings through
+  `LLVMHostedFieldView` and `MIRDeclField` type-name facts instead of indexing
+  `fields_view.ast_compat_fields[...]` directly.
+- Secure slot paired-token lookup now checks `MIRDeclFieldClaim` rows first and
+  uses AST destructuring only as explicit non-MIR compatibility. MIR-active
+  missing field metadata fails closed through the backend MIR inventory
+  diagnostic.
+- Gates used: `make mir-declaration-inventory-test-smoke`,
+  `make llvm-test-smoke`, and `git diff --check`.
+
 ## Progress Log - 2026-06-19 Hosted Method Compatibility View Ownership
 
 - C and LLVM hosted method compatibility arrays are now private view state for

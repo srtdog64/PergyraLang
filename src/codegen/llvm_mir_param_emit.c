@@ -17,7 +17,11 @@
 #include "llvm_mir_type_helpers.h"
 #include "llvm_domain_role_helpers.h"
 #include "llvm_inventory_decl_lookup.h"
+#include "codegen_slot_type_policy.h"
+#include "llvm_backend_type_map_internal.h"
 #include "parser/ast_api.h"
+#include "transpiler_type_mapping.h"
+#include "../compiler/mir_decl_headers.h"
 #include "../common/string_compat.h"
 
 /* The var-class for `self` is the host class for plain methods, but for a role
@@ -52,9 +56,25 @@ llvm_register_callable_param_if_needed(LLVMGenCtx *ctx, FuncParam *param)
 }
 
 static const char *
-llvm_field_slot_paired_token(ASTNode *host, const char *slot_name)
+llvm_field_slot_paired_token(const LLVMHostedFieldView *field_view,
+                             ASTNode *host,
+                             const char *slot_name)
 {
+    const MIRDeclHeader *header;
     size_t group_count = ast_class_field_destructure_count(host);
+
+    header = field_view != NULL ? field_view->decl_header : NULL;
+    for (size_t i = 0; header != NULL
+         && i < mir_decl_header_field_claim_count(header); i++) {
+        const MIRDeclFieldClaim *claim = mir_decl_header_field_claim(header, i);
+        const char *claim_slot = mir_decl_field_claim_slot_name(claim);
+        if (claim_slot != NULL && slot_name != NULL
+            && strcmp(claim_slot, slot_name) == 0) {
+            return mir_decl_field_claim_token_name(claim);
+        }
+    }
+    if (field_view != NULL && field_view->requires_mir_metadata)
+        return NULL;
 
     for (size_t gi = 0; gi < group_count; gi++)
     {
@@ -72,9 +92,11 @@ llvm_field_slot_paired_token(ASTNode *host, const char *slot_name)
 static void
 llvm_register_field_token(LLVMGenCtx *ctx, ASTNode *host,
                           LLVMClassTypeEntry *cls, LLVMValueRef self_base,
+                          const LLVMHostedFieldView *field_view,
                           const char *slot_name, const char *inner)
 {
-    const char *token_field = llvm_field_slot_paired_token(host, slot_name);
+    const char *token_field =
+        llvm_field_slot_paired_token(field_view, host, slot_name);
     int tidx;
     LLVMValueRef tgep;
     char tname[256];
@@ -94,39 +116,61 @@ llvm_register_field_token(LLVMGenCtx *ctx, ASTNode *host,
 static void
 llvm_register_one_field_slot(LLVMGenCtx *ctx, ASTNode *host,
                              LLVMClassTypeEntry *cls, LLVMValueRef self_base,
-                             ClassField *field)
+                             const LLVMHostedFieldView *field_view,
+                             size_t field_index)
 {
-    const char *head;
-    GenericParams *args;
+    const MIRDeclField *field_meta =
+        llvm_hosted_field_view_metadata(field_view, field_index);
+    const char *field_name =
+        llvm_hosted_field_view_name(field_view, field_index);
+    const char *type_name = field_meta != NULL
+        ? llvm_mir_decl_field_type_name(field_meta) : NULL;
+    ASTNode *field_type = NULL;
+    char *owned_type_name = NULL;
     const char *inner;
+    char inner_buf[128];
     bool is_secure;
     int idx;
     LLVMValueRef gep;
     LLVMTypeRef slot_ty;
 
-    if (field == NULL || field->name == NULL || field->type == NULL)
+    if (field_name == NULL)
         return;
-    head = ast_type_name(field->type);
-    if (head == NULL
-        || (strcmp(head, "Slot") != 0 && strcmp(head, "SecureSlot") != 0))
+    if (type_name == NULL) {
+        field_type = llvm_hosted_field_view_type(field_view, field_index);
+        if (field_type != NULL) {
+            owned_type_name = llvm_render_type_name_in_ctx(ctx, field_type);
+            type_name = owned_type_name;
+        }
+    }
+    if (!pgy_codegen_type_name_is_slot(type_name)
+        && !pgy_codegen_type_name_is_secure_slot(type_name)) {
+        free(owned_type_name);
         return;
+    }
 
-    is_secure = strcmp(head, "SecureSlot") == 0;
-    args = ast_type_generic_args(field->type);
-    inner = ast_generic_param_count(args) > 0
-        ? ast_generic_param_name(ast_generic_param_at(args, 0)) : "Int";
-    idx = llvm_class_field_index(cls, field->name);
-    if (idx < 0)
+    is_secure = pgy_codegen_type_name_is_secure_slot(type_name);
+    if (!llvm_constructed_arg_name_copy(type_name, 0,
+            inner_buf, sizeof(inner_buf))) {
+        pergyra_str_copy(inner_buf, sizeof(inner_buf), "Int");
+    }
+    inner = inner_buf;
+    idx = llvm_class_field_index(cls, field_name);
+    if (idx < 0) {
+        free(owned_type_name);
         return;
+    }
 
     gep = LLVMBuildStructGEP2(ctx->builder, cls->struct_type, self_base,
-        (unsigned)idx, field->name);
+        (unsigned)idx, field_name);
     slot_ty = is_secure ? llvm_secure_slot_struct_type(ctx, inner)
                         : llvm_slot_struct_type(ctx, inner);
-    llvm_scope_declare(ctx, field->name, gep, slot_ty);
-    llvm_register_slot_var_binding(ctx, field->name, gep, inner, is_secure);
+    llvm_scope_declare(ctx, field_name, gep, slot_ty);
+    llvm_register_slot_var_binding(ctx, field_name, gep, inner, is_secure);
     if (is_secure)
-        llvm_register_field_token(ctx, host, cls, self_base, field->name, inner);
+        llvm_register_field_token(ctx, host, cls, self_base, field_view,
+            field_name, inner);
+    free(owned_type_name);
 }
 
 /* Mirror of the C backend register_class_field_slots: bind each owning slot
@@ -156,10 +200,15 @@ llvm_register_class_field_slots(LLVMGenCtx *ctx, const char *owner_name)
      * instead of reopening the field array directly (declaration
      * source-of-truth). */
     fields_view = llvm_hosted_class_field_view_from_decl(ctx, owner_name, host);
-    for (size_t i = 0; i < fields_view.ast_compat_count; i++)
+    if (llvm_hosted_field_view_missing_mir_metadata(&fields_view)) {
+        llvm_set_mir_inventory_missing(ctx,
+            "MIR-only LLVM path missing class-field slot registration metadata for '%s'",
+            owner_name != NULL ? owner_name : "<class>");
+        return;
+    }
+    for (size_t i = 0; i < fields_view.count; i++)
         llvm_register_one_field_slot(ctx, host, cls, self_base,
-            fields_view.ast_compat_fields != NULL
-                ? fields_view.ast_compat_fields[i] : NULL);
+            &fields_view, i);
 }
 
 void

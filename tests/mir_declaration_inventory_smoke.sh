@@ -3460,6 +3460,27 @@ if grep -Fq "fields_view.ast_compat_fields" \
     "$ROOT_DIR/src/codegen/transpiler_mir_self_field_slots.c"; then
     fail "C class-field slot registration must consume hosted field metadata accessors, not ast_compat_fields directly"
 fi
+for term in \
+    "llvm_hosted_field_view_missing_mir_metadata(&fields_view)" \
+    "llvm_hosted_field_view_metadata(field_view, field_index)" \
+    "llvm_mir_decl_field_type_name(field_meta)" \
+    "llvm_render_type_name_in_ctx(ctx, field_type)" \
+    "llvm_constructed_arg_name_copy(type_name, 0" \
+    "mir_decl_header_field_claim_count(header)" \
+    "mir_decl_field_claim_token_name(claim)" \
+    "MIR-only LLVM path missing class-field slot registration metadata"; do
+    require_term "src/codegen/llvm_mir_param_emit.c" "$term"
+done
+if grep -Fq "fields_view.ast_compat_fields" \
+    "$ROOT_DIR/src/codegen/llvm_mir_param_emit.c"; then
+    fail "LLVM class-field slot registration must consume hosted field metadata accessors, not ast_compat_fields directly"
+fi
+if grep -RInE '[A-Za-z_]*view(\.|->)ast_compat_fields\[[^]]+\]' \
+        "$ROOT_DIR/src/codegen"/llvm_*.c \
+        "$ROOT_DIR/src/codegen"/llvm_*.h \
+        | grep -v "src/codegen/llvm_inventory_field_view.c"; then
+    fail "LLVM consumers must not index hosted field compatibility arrays directly"
+fi
 for rel in \
     "src/codegen/transpiler_mir_func_emit.c" \
     "src/codegen/transpiler_mir_block_emit.c" \
@@ -7057,6 +7078,8 @@ for term in \
     "Hosted method routine link" \
     "routine link metadata drift" \
     "Host field compatibility view" \
+    "LLVM MIR parameter self-field slot registration consumes" \
+    "MIRDeclFieldClaim" \
     "Hosted method compatibility method arrays are internal state" \
     "transpiler_hosted_method_view_compat_method" \
     "llvm_hosted_method_view_compat_method" \
