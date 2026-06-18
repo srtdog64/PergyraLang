@@ -90,6 +90,7 @@ emit_spawn_expr(ASTNode *node, TranspilerCtx *ctx)
     bool callee_has_mir_signature = false;
     bool callee_is_generic_func = false;
     bool callee_is_extern_func = false;
+    bool allow_ast_compat = false;
 
     if (transpiler_require_type_name_c_type_copy(ctx, return_type_name,
             "spawn return metadata", return_c_type_buf,
@@ -166,6 +167,11 @@ emit_spawn_expr(ASTNode *node, TranspilerCtx *ctx)
         }
         callee_has_mir_signature = true;
     }
+    allow_ast_compat = decl != NULL
+        && decl->type == AST_FUNC_DECL
+        && (!transpiler_active_has_mir(ctx)
+            || callee_is_generic_func
+            || callee_is_extern_func);
     if (arg_count > 0)
         args_type_name = transpiler_scratch_fmt(ctx,
                                                 "PgySpawnArgs_%d",
@@ -185,9 +191,7 @@ emit_spawn_expr(ASTNode *node, TranspilerCtx *ctx)
                         transpiler_mir_routine_param_type_name(
                             callee_routine, i);
                 }
-            } else if (!transpiler_active_has_mir(ctx)
-                       || callee_is_generic_func
-                       || callee_is_extern_func) {
+            } else if (allow_ast_compat) {
                 param = ast_func_param(decl, i);
             }
             if (param != NULL && param->type != NULL) {

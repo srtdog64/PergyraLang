@@ -276,6 +276,7 @@ hir_classify_top_level(HIRProgram *hir, ASTNode *node, char **error_message)
             /* Already resolved by driver; skip. */
             break;
         case AST_UNSAFE_BLOCK:
+        case AST_TRANSACTION_BLOCK:
         case AST_DEFER_STMT:
         case AST_BIND_STMT:
             item.kind = HIR_TOPLEVEL_EXECUTABLE;

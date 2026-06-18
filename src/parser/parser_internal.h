@@ -98,6 +98,8 @@ ASTNode *parse_for_loop(Parser *parser);
 ASTNode *parse_match_statement(Parser *parser);
 ASTNode *parse_return_statement(Parser *parser);
 ASTNode *parse_unsafe_block(Parser *parser);
+ASTNode *parse_transaction_block(Parser *parser);
+ASTNode *parse_fail_statement(Parser *parser);
 ASTNode *parse_defer_statement(Parser *parser);
 
 /* --- Declarations (parser_decl.c) --- */

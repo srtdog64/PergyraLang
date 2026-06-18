@@ -408,6 +408,16 @@ ASTNode* parser_parse_statement(Parser* parser) {
         return parser_finalize_statement(parser, parse_unsafe_block(parser));
     }
 
+    // transaction 블록
+    if (parser_match(parser, TOKEN_TRANSACTION)) {
+        return parser_finalize_statement(parser, parse_transaction_block(parser));
+    }
+
+    // fail 문 (트랜잭션 롤백 트리거)
+    if (parser_match(parser, TOKEN_FAIL)) {
+        return parser_finalize_statement(parser, parse_fail_statement(parser));
+    }
+
     // defer 문
     if (parser_match(parser, TOKEN_DEFER)) {
         return parser_finalize_statement(parser, parse_defer_statement(parser));

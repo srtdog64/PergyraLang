@@ -920,6 +920,9 @@ for term in \
     "llvm_mir_routine_signature_metadata_complete_for(ctx" \
     "LLVM_MIR_SIGNATURE_REQUIRE_PARAM_TYPE_NAMES" \
     "llvm_mir_or_ast_function_is_generic(callee_routine, callee_decl)" \
+    "allow_ast_compat = callee_decl != NULL" \
+    "|| callee_is_generic_func" \
+    "|| callee_is_extern_func" \
     "MIR-only LLVM path missing spawn signature metadata"; do
     require_term "src/codegen/llvm_expr_spawn_call_helpers.c" "$term"
 done
@@ -3351,6 +3354,9 @@ for term in \
     "transpiler_mir_routine_signature_metadata_complete_for(ctx" \
     "TRANSPILER_MIR_SIGNATURE_REQUIRE_PARAM_TYPE_NAMES" \
     "transpiler_mir_or_ast_function_is_generic(callee_routine, decl)" \
+    "allow_ast_compat = decl != NULL" \
+    "|| callee_is_generic_func" \
+    "|| callee_is_extern_func" \
     "MIR-only C path missing spawn signature metadata"; do
     require_term "src/codegen/transpiler_spawn_channel_emit.c" "$term"
 done

@@ -1,0 +1,10 @@
+func Main() {
+    transaction {
+        Log("step 1")
+        compensate Log("undo step 1")
+        Log("step 2")
+        compensate Log("undo step 2")
+        fail
+    }
+    Log("after transaction")
+}

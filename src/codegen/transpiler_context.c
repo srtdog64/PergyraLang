@@ -316,6 +316,7 @@ transpiler_ctx_create(void)
         free(ctx);
         return NULL;
     }
+    ctx->current_txn_id = -1;       /* no transaction open at start */
     return ctx;
 }
 

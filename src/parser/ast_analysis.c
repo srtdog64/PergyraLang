@@ -477,6 +477,10 @@ ast_contains_identifier_call(const ASTNode *node,
             predicate, userdata);
     case AST_UNSAFE_BLOCK:
         return ast_contains_identifier_call(node->data.unsafe_block.body, predicate, userdata);
+    case AST_TRANSACTION_BLOCK:
+        return ast_contains_identifier_call(node->data.transaction_block.body, predicate, userdata);
+    case AST_FAIL_STMT:
+        return ast_contains_identifier_call(node->data.fail_stmt.reason, predicate, userdata);
     case AST_DEFER_STMT:
         return ast_contains_identifier_call(node->data.defer_stmt.body, predicate, userdata);
     default:

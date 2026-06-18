@@ -403,6 +403,16 @@ void ast_destroy(ASTNode* node) {
             free(node->data.unsafe_block.capability);
             break;
 
+        case AST_TRANSACTION_BLOCK:
+            ast_destroy(node->data.transaction_block.body);
+            for (size_t i = 0; i < node->data.transaction_block.compensation_count; i++)
+                ast_destroy(node->data.transaction_block.compensations[i]);
+            free(node->data.transaction_block.compensations);
+            break;
+        case AST_FAIL_STMT:
+            ast_destroy(node->data.fail_stmt.reason);
+            break;
+
         case AST_DEFER_STMT:
             ast_destroy(node->data.defer_stmt.body);
             break;

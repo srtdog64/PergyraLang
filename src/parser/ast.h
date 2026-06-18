@@ -549,6 +549,19 @@ struct ASTNode
             char*    capability;     /* optional capability label, else NULL */
         } unsafe_block;
 
+        /* transaction { ... } -- atomic/saga scope (saga CFG emitted in codegen) */
+        struct {
+            ASTNode*  body;                  /* Block */
+            ASTNode** compensations;         /* `compensate <expr>;` handlers */
+            size_t    compensation_count;    /* run in reverse order on `fail` */
+            size_t    compensation_capacity;
+        } transaction_block;
+
+        /* fail; or fail <expr>; -- triggers transaction rollback */
+        struct {
+            ASTNode* reason;         /* optional reason expression, may be NULL */
+        } fail_stmt;
+
         /* defer { ... }; or defer <expr>; */
         struct {
             ASTNode* body;           /* Block or expression */

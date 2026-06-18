@@ -361,6 +361,8 @@ runtime_none_scan_node(const ASTNode *node, RuntimeNoneScan *scan)
                 scan);
         case AST_UNSAFE_BLOCK:
             return runtime_none_scan_node(ast_unsafe_block_body(node), scan);
+        case AST_TRANSACTION_BLOCK:
+            return runtime_none_scan_node(ast_transaction_block_body(node), scan);
         case AST_DEFER_STMT:
             return runtime_none_scan_node(ast_defer_body(node), scan);
         default:

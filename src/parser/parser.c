@@ -325,6 +325,7 @@ static bool parser_is_top_level_executable(const ASTNode* stmt) {
     case AST_PARALLEL_BLOCK:
     case AST_ASYNC_BLOCK:
     case AST_UNSAFE_BLOCK:
+    case AST_TRANSACTION_BLOCK:
     case AST_SELECT_STMT:
     case AST_CALL:
     case AST_BINARY:

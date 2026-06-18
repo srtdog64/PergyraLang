@@ -209,6 +209,8 @@ typedef enum
 
     /* Safety */
     AST_UNSAFE_BLOCK,
+    AST_TRANSACTION_BLOCK,
+    AST_FAIL_STMT,
     AST_DEFER_STMT,
 
     /* Dynamic role binding */

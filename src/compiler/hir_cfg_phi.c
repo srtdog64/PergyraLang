@@ -62,8 +62,10 @@ hir_stmt_collect_local_defs(ASTNode *node,
             return true;
 
         case AST_UNSAFE_BLOCK:
-            if (ast_unsafe_block_body(node) != NULL) {
-                ASTNode *body = ast_unsafe_block_body(node);
+        case AST_TRANSACTION_BLOCK: {
+            ASTNode *body = (node->type == AST_UNSAFE_BLOCK)
+                ? ast_unsafe_block_body(node) : ast_transaction_block_body(node);
+            if (body != NULL) {
                 if (body->type == AST_BLOCK) {
                     size_t stmt_count = 0;
                     ASTNode **stmts = ast_block_statements(body, &stmt_count);
@@ -77,6 +79,7 @@ hir_stmt_collect_local_defs(ASTNode *node,
                 }
             }
             return true;
+        }
 
         default:
             return true;
@@ -121,8 +124,10 @@ hir_stmt_collect_phi_seed_names(ASTNode *node,
             return true;
 
         case AST_UNSAFE_BLOCK:
-            if (ast_unsafe_block_body(node) != NULL) {
-                ASTNode *body = ast_unsafe_block_body(node);
+        case AST_TRANSACTION_BLOCK: {
+            ASTNode *body = (node->type == AST_UNSAFE_BLOCK)
+                ? ast_unsafe_block_body(node) : ast_transaction_block_body(node);
+            if (body != NULL) {
                 if (body->type == AST_BLOCK) {
                     size_t stmt_count = 0;
                     ASTNode **stmts = ast_block_statements(body, &stmt_count);
@@ -136,6 +141,7 @@ hir_stmt_collect_phi_seed_names(ASTNode *node,
                 }
             }
             return true;
+        }
 
         default:
             return true;

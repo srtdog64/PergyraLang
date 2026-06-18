@@ -428,6 +428,16 @@ void ast_print(ASTNode* node, int indent) {
             ast_print(node->data.unsafe_block.body, indent + 1);
             break;
 
+        case AST_TRANSACTION_BLOCK:
+            printf("TransactionBlock:\n");
+            ast_print(node->data.transaction_block.body, indent + 1);
+            break;
+
+        case AST_FAIL_STMT:
+            printf("Fail:\n");
+            ast_print(node->data.fail_stmt.reason, indent + 1);
+            break;
+
         case AST_DEFER_STMT:
             printf("Defer:\n");
             ast_print(node->data.defer_stmt.body, indent + 1);

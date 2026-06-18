@@ -125,6 +125,9 @@ typedef enum
 
     /* Safety keywords */
     TOKEN_UNSAFE,
+    TOKEN_TRANSACTION,
+    TOKEN_COMPENSATE,
+    TOKEN_FAIL,
     TOKEN_DEFER,
     TOKEN_BIND,
 

@@ -95,6 +95,7 @@ llvm_emit_spawn_expr(ASTNode *node, LLVMGenCtx *ctx)
     bool callee_has_mir_signature = false;
     bool callee_is_generic_func = false;
     bool callee_is_extern_func = false;
+    bool allow_ast_compat = false;
     LLVMValueRef callee_fn = NULL;
     LLVMTypeRef callee_fn_type = NULL;
     LLVMTypeRef callee_ret_type = NULL;
@@ -159,6 +160,11 @@ llvm_emit_spawn_expr(ASTNode *node, LLVMGenCtx *ctx)
             callee_has_mir_signature = true;
         }
     }
+    allow_ast_compat = callee_decl != NULL
+        && callee_decl->type == AST_FUNC_DECL
+        && (!llvm_active_has_mir(ctx)
+            || callee_is_generic_func
+            || callee_is_extern_func);
 
     if (argc > 0) {
         if (argc > (size_t)UINT_MAX || argc > SIZE_MAX / sizeof(LLVMValueRef)) {
@@ -188,11 +194,7 @@ llvm_emit_spawn_expr(ASTNode *node, LLVMGenCtx *ctx)
                     param_type_name =
                         llvm_mir_routine_param_type_name(callee_routine, i);
                 }
-            } else if (callee_decl != NULL
-                       && callee_decl->type == AST_FUNC_DECL
-                       && (!llvm_active_has_mir(ctx)
-                           || callee_is_generic_func
-                           || callee_is_extern_func)) {
+            } else if (allow_ast_compat) {
                 param = ast_func_param(callee_decl, i);
             }
             if (llvm_spawn_reject_worker_storage_param(ctx, node, param,

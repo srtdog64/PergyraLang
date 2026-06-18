@@ -75,7 +75,8 @@ mir_stmt_is_inline_cfg_wrapper(const ASTNode *stmt)
 {
     return stmt != NULL
         && (stmt->type == AST_WITH_STMT
-            || stmt->type == AST_UNSAFE_BLOCK);
+            || stmt->type == AST_UNSAFE_BLOCK
+            || stmt->type == AST_TRANSACTION_BLOCK);
 }
 
 bool

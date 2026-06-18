@@ -54,6 +54,9 @@ const char* token_type_to_string(PgyTokenType type) {
         case TOKEN_IMPORT: return "IMPORT";
         case TOKEN_USE: return "USE";
         case TOKEN_UNSAFE: return "UNSAFE";
+        case TOKEN_TRANSACTION: return "TRANSACTION";
+        case TOKEN_COMPENSATE: return "COMPENSATE";
+        case TOKEN_FAIL: return "FAIL";
         case TOKEN_DEFER: return "DEFER";
         case TOKEN_BIND: return "BIND";
         case TOKEN_ABILITY: return "ABILITY";

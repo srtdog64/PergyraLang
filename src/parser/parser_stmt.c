@@ -288,11 +288,76 @@ ASTNode* parse_unsafe_block(Parser* parser) {
     return node;
 }
 
+static void transaction_add_compensation(ASTNode* node, ASTNode* handler) {
+    size_t count = node->data.transaction_block.compensation_count;
+    size_t cap = node->data.transaction_block.compensation_capacity;
+
+    if (count == cap) {
+        size_t grown_cap = (cap == 0) ? 4 : cap * 2;
+        ASTNode** grown = realloc(node->data.transaction_block.compensations,
+                                  grown_cap * sizeof(ASTNode*));
+        if (grown == NULL)
+            return;
+        node->data.transaction_block.compensations = grown;
+        node->data.transaction_block.compensation_capacity = grown_cap;
+    }
+    node->data.transaction_block.compensations[count] = handler;
+    node->data.transaction_block.compensation_count = count + 1;
+}
+
+ASTNode* parse_transaction_block(Parser* parser) {
+    ASTNode* body = ast_create_block();
+    ASTNode* node;
+
+    parser_consume(parser, TOKEN_LBRACE, "Expected '{' after transaction");
+    node = ast_create_transaction_block(body);
+    if (node == NULL) {
+        ast_destroy(body);
+        return NULL;
+    }
+
+    /* `compensate <expr>;` is registered (top-level only, in source order) and
+     * executed in reverse on `fail`; every other statement joins the body. */
+    while (!parser_check(parser, TOKEN_RBRACE) && !parser_is_at_end(parser)) {
+        if (parser_match(parser, TOKEN_COMPENSATE)) {
+            ASTNode* handler = parser_parse_expression(parser);
+            parser_consume_statement_terminator(parser,
+                "Expected ';' after compensate handler");
+            if (handler != NULL)
+                transaction_add_compensation(node, handler);
+            if (parser->has_error)
+                parser_synchronize(parser);
+            continue;
+        }
+        ASTNode* stmt = parser_parse_statement(parser);
+        if (stmt != NULL)
+            ast_add_statement(body, stmt);
+        if (parser->has_error)
+            parser_synchronize(parser);
+    }
+    parser_consume(parser, TOKEN_RBRACE, "Expected '}' to close transaction");
+    return node;
+}
+
 ASTNode* parse_defer_statement(Parser* parser) {
     parser_consume(parser, TOKEN_LBRACE, "Expected '{' after defer");
     ASTNode* body = parser_parse_block(parser);
     parser_consume_statement_terminator(parser, "Expected ';' after defer block");
     return ast_create_defer_statement(body);
+}
+
+ASTNode* parse_fail_statement(Parser* parser) {
+    ASTNode* reason = NULL;
+
+    /* `fail` rolls back the enclosing transaction; an optional reason follows on
+     * the same line, mirroring the bare-vs-valued shape of `return`. */
+    if (!parser_check(parser, TOKEN_SEMICOLON)
+        && !parser_check(parser, TOKEN_RBRACE)
+        && parser->current_token.line == parser->previous_token.line)
+        reason = parser_parse_expression(parser);
+
+    parser_consume_statement_terminator(parser, "Expected ';' after fail statement");
+    return ast_create_fail_statement(reason);
 }
 
 ASTNode* parse_return_statement(Parser* parser) {

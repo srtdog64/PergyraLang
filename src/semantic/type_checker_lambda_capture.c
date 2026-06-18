@@ -311,6 +311,8 @@ reject_lambda_captures(ASTNode *node, SemanticContext *ctx,
                 ast_event_invoke_arg_count(node), ctx, state);
     case AST_UNSAFE_BLOCK:
         return reject_lambda_captures(ast_unsafe_block_body(node), ctx, state);
+    case AST_TRANSACTION_BLOCK:
+        return reject_lambda_captures(ast_transaction_block_body(node), ctx, state);
     case AST_DEFER_STMT:
         return reject_lambda_captures(ast_defer_body(node), ctx, state);
     default:

@@ -349,6 +349,21 @@ ASTNode* ast_create_unsafe_block(ASTNode* body) {
     return node;
 }
 
+ASTNode* ast_create_transaction_block(ASTNode* body) {
+    ASTNode* node = ast_create_node(AST_TRANSACTION_BLOCK);
+    node->data.transaction_block.body = body;
+    node->data.transaction_block.compensations = NULL;
+    node->data.transaction_block.compensation_count = 0;
+    node->data.transaction_block.compensation_capacity = 0;
+    return node;
+}
+
+ASTNode* ast_create_fail_statement(ASTNode* reason) {
+    ASTNode* node = ast_create_node(AST_FAIL_STMT);
+    node->data.fail_stmt.reason = reason;
+    return node;
+}
+
 ASTNode* ast_create_cast(ASTNode* operand, const char* target_type) {
     ASTNode* node = ast_create_node(AST_CAST);
     if (node == NULL)

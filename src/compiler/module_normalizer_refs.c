@@ -413,6 +413,9 @@ module_normalizer_normalize_node_refs(ASTNode *node,
         case AST_UNSAFE_BLOCK:
             module_normalizer_normalize_node_refs(ast_unsafe_block_body(node), scope, shadow);
             return;
+        case AST_TRANSACTION_BLOCK:
+            module_normalizer_normalize_node_refs(ast_transaction_block_body(node), scope, shadow);
+            return;
 
         case AST_DEFER_STMT:
             module_normalizer_normalize_node_refs(ast_defer_body(node), scope, shadow);

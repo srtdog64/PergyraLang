@@ -283,6 +283,10 @@ ast_contains_identifier_ref(const ASTNode *node,
         return ast_contains_identifier_ref(node->data.lambda_expr.body, predicate, userdata);
     case AST_UNSAFE_BLOCK:
         return ast_contains_identifier_ref(node->data.unsafe_block.body, predicate, userdata);
+    case AST_TRANSACTION_BLOCK:
+        return ast_contains_identifier_ref(node->data.transaction_block.body, predicate, userdata);
+    case AST_FAIL_STMT:
+        return ast_contains_identifier_ref(node->data.fail_stmt.reason, predicate, userdata);
     case AST_DEFER_STMT:
         return ast_contains_identifier_ref(node->data.defer_stmt.body, predicate, userdata);
     default:
@@ -404,6 +408,10 @@ ast_contains_free_identifier_ref(const ASTNode *node, const char *name)
         return ast_contains_free_identifier_ref(node->data.lambda_expr.body, name);
     case AST_UNSAFE_BLOCK:
         return ast_contains_free_identifier_ref(node->data.unsafe_block.body, name);
+    case AST_TRANSACTION_BLOCK:
+        return ast_contains_free_identifier_ref(node->data.transaction_block.body, name);
+    case AST_FAIL_STMT:
+        return ast_contains_free_identifier_ref(node->data.fail_stmt.reason, name);
     case AST_DEFER_STMT:
         return ast_contains_free_identifier_ref(node->data.defer_stmt.body, name);
     default:

@@ -6,6 +6,7 @@ mir_stmt_ast_type_is_unconditional_cfg_owned_control(ASTNodeType type)
     switch (type) {
     case AST_WITH_STMT:
     case AST_UNSAFE_BLOCK:
+    case AST_TRANSACTION_BLOCK:
     case AST_RETURN:
         return true;
     default:

@@ -254,6 +254,8 @@ air_walk_expr_boundaries(AIRBoundaryWalkCtx *ctx, ASTNode *node)
         return air_walk_child(ctx, ast_lambda_body(node));
     case AST_UNSAFE_BLOCK:
         return air_walk_child(ctx, ast_unsafe_block_body(node));
+    case AST_TRANSACTION_BLOCK:
+        return air_walk_child(ctx, ast_transaction_block_body(node));
     case AST_DEFER_STMT:
         return air_walk_child(ctx, ast_defer_body(node));
     default:

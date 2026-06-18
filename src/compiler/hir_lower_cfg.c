@@ -467,6 +467,18 @@ hir_lower_stmt_node_to_cfg(ASTNode *node,
                                                pin,
                                                loop);
 
+        case AST_TRANSACTION_BLOCK:
+            if (!hir_cfg_append_block_stmt(&(*blocks)[(size_t)current_block], node)) {
+                return -1;
+            }
+            return hir_lower_block_body_to_cfg(ast_transaction_block_body(node),
+                                               blocks,
+                                               block_count,
+                                               block_capacity,
+                                               current_block,
+                                               pin,
+                                               loop);
+
         default:
             if (!hir_cfg_append_block_stmt(&(*blocks)[(size_t)current_block], node))
                 return -1;

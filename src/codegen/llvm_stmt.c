@@ -407,6 +407,78 @@ llvm_emit_statement(ASTNode *node, LLVMGenCtx *ctx)
             llvm_emit_block(ast_unsafe_block_body(node), ctx);
         break;
 
+    case AST_TRANSACTION_BLOCK: {
+        /* Saga CFG: run the body; a `fail` stores the failed flag and branches
+         * to the epilogue; the epilogue runs registered compensations in reverse
+         * when the flag is set; control then continues. Same run -> on-fail ->
+         * reverse-compensate -> exit shape as the intent saga. */
+        LLVMValueRef fn = ctx->current_function;
+        int txn_id = ctx->txn_counter++;
+        char end_name[32], comp_name[32], cont_name[32];
+        LLVMValueRef saved_flag = ctx->current_txn_failed_flag;
+        LLVMBasicBlockRef saved_end = ctx->current_txn_end_bb;
+        size_t comp_count = node->data.transaction_block.compensation_count;
+        size_t i;
+
+        snprintf(end_name, sizeof(end_name), "txn.end.%d", txn_id);
+        snprintf(comp_name, sizeof(comp_name), "txn.comp.%d", txn_id);
+        snprintf(cont_name, sizeof(cont_name), "txn.cont.%d", txn_id);
+
+        LLVMValueRef failed_flag =
+            LLVMBuildAlloca(ctx->builder, ctx->type_i1, "__txn_failed");
+        LLVMBuildStore(ctx->builder, LLVMConstInt(ctx->type_i1, 0, 0), failed_flag);
+
+        LLVMBasicBlockRef end_bb =
+            LLVMAppendBasicBlockInContext(ctx->context, fn, end_name);
+        LLVMBasicBlockRef comp_bb =
+            LLVMAppendBasicBlockInContext(ctx->context, fn, comp_name);
+        LLVMBasicBlockRef cont_bb =
+            LLVMAppendBasicBlockInContext(ctx->context, fn, cont_name);
+
+        ctx->current_txn_failed_flag = failed_flag;
+        ctx->current_txn_end_bb = end_bb;
+        if (ast_transaction_block_body(node) != NULL)
+            llvm_emit_block(ast_transaction_block_body(node), ctx);
+        ctx->current_txn_failed_flag = saved_flag;
+        ctx->current_txn_end_bb = saved_end;
+
+        if (LLVMGetBasicBlockTerminator(LLVMGetInsertBlock(ctx->builder)) == NULL)
+            LLVMBuildBr(ctx->builder, end_bb);
+
+        LLVMPositionBuilderAtEnd(ctx->builder, end_bb);
+        LLVMValueRef f =
+            LLVMBuildLoad2(ctx->builder, ctx->type_i1, failed_flag, "__txn_f");
+        LLVMBuildCondBr(ctx->builder, f, comp_bb, cont_bb);
+
+        LLVMPositionBuilderAtEnd(ctx->builder, comp_bb);
+        for (i = comp_count; i > 0; i--)
+            (void)llvm_emit_expression(
+                node->data.transaction_block.compensations[i - 1], ctx);
+        if (LLVMGetBasicBlockTerminator(LLVMGetInsertBlock(ctx->builder)) == NULL)
+            LLVMBuildBr(ctx->builder, cont_bb);
+
+        LLVMPositionBuilderAtEnd(ctx->builder, cont_bb);
+        break;
+    }
+
+    case AST_FAIL_STMT:
+        /* Roll back the innermost transaction: set its failed flag and branch to
+         * its epilogue, then park the builder on a fresh (dead) block so any
+         * trailing statements still have a valid insertion point. Outside a
+         * transaction this is a no-op (semantic scope validation is a later step). */
+        if (ctx->current_txn_failed_flag != NULL && ctx->current_txn_end_bb != NULL) {
+            ASTNode *fail_reason = ast_fail_stmt_reason(node);
+            if (fail_reason != NULL)
+                (void)llvm_emit_expression(fail_reason, ctx);
+            LLVMBuildStore(ctx->builder, LLVMConstInt(ctx->type_i1, 1, 0),
+                           ctx->current_txn_failed_flag);
+            LLVMBuildBr(ctx->builder, ctx->current_txn_end_bb);
+            LLVMPositionBuilderAtEnd(ctx->builder,
+                LLVMAppendBasicBlockInContext(ctx->context,
+                    ctx->current_function, "txn.afterfail"));
+        }
+        break;
+
     case AST_DEFER_STMT:
         if (ast_defer_body(node) != NULL)
             llvm_register_defer(ast_defer_body(node), ctx);

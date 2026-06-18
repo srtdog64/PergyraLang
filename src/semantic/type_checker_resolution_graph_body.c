@@ -325,6 +325,10 @@ semantic_type_resolution_precollect_body_type_refs(ASTNode *stmt,
         semantic_type_resolution_precollect_body_type_refs(
             ast_unsafe_block_body(stmt), ctx, owner, owner_name);
         return;
+    case AST_TRANSACTION_BLOCK:
+        semantic_type_resolution_precollect_body_type_refs(
+            ast_transaction_block_body(stmt), ctx, owner, owner_name);
+        return;
 
     case AST_DEFER_STMT:
         semantic_type_resolution_precollect_body_type_refs(

@@ -66,6 +66,74 @@ emit_statement(ASTNode *node, TranspilerCtx *ctx)
         if (ast_unsafe_block_body(node) != NULL)
             emit_block(ast_unsafe_block_body(node), ctx);
         break;
+    case AST_TRANSACTION_BLOCK: {
+        /* Saga lowering: run the body; a `fail` sets the failed flag and jumps
+         * to the epilogue; registered compensations then run in reverse; control
+         * continues past the transaction either way. This mirrors the intent
+         * saga shape (run -> on-fail -> reverse-compensate -> exit). */
+        int txn_id = ctx->txn_counter++;
+        int saved_txn = ctx->current_txn_id;
+        size_t comp_count = node->data.transaction_block.compensation_count;
+        size_t i;
+
+        write_indent(ctx);
+        codebuf_write(ctx->out, "{\n");
+        ctx->indent++;
+        write_indent(ctx);
+        codebuf_write(ctx->out, "int __txn_failed_%d = 0;\n", txn_id);
+
+        ctx->current_txn_id = txn_id;
+        if (ast_transaction_block_body(node) != NULL)
+            emit_block(ast_transaction_block_body(node), ctx);
+        ctx->current_txn_id = saved_txn;
+
+        write_indent(ctx);
+        codebuf_write(ctx->out, "goto __txn_end_%d;\n", txn_id);
+        write_indent(ctx);
+        codebuf_write(ctx->out, "__txn_end_%d:\n", txn_id);
+        write_indent(ctx);
+        codebuf_write(ctx->out, "if (__txn_failed_%d) {\n", txn_id);
+        ctx->indent++;
+        for (i = comp_count; i > 0; i--) {
+            char *comp = emit_expression(
+                node->data.transaction_block.compensations[i - 1], ctx);
+            if (comp != NULL && comp[0] != '\0') {
+                write_indent(ctx);
+                codebuf_write(ctx->out, "%s;\n", comp);
+            }
+            free(comp);
+        }
+        ctx->indent--;
+        write_indent(ctx);
+        codebuf_write(ctx->out, "}\n");
+        ctx->indent--;
+        write_indent(ctx);
+        codebuf_write(ctx->out, "}\n");
+        break;
+    }
+    case AST_FAIL_STMT:
+        /* Trigger the innermost transaction's rollback epilogue. Outside any
+         * transaction this is a no-op marker (semantic scope validation, which
+         * would reject it, is a later step). */
+        if (ctx->current_txn_id >= 0) {
+            ASTNode *fail_reason = ast_fail_stmt_reason(node);
+            if (fail_reason != NULL) {
+                char *reason = emit_expression(fail_reason, ctx);
+                if (reason != NULL && reason[0] != '\0') {
+                    write_indent(ctx);
+                    codebuf_write(ctx->out, "(void)(%s);\n", reason);
+                }
+                free(reason);
+            }
+            write_indent(ctx);
+            codebuf_write(ctx->out, "__txn_failed_%d = 1;\n", ctx->current_txn_id);
+            write_indent(ctx);
+            codebuf_write(ctx->out, "goto __txn_end_%d;\n", ctx->current_txn_id);
+        } else {
+            write_indent(ctx);
+            codebuf_write(ctx->out, "/* fail: no enclosing transaction */\n");
+        }
+        break;
     case AST_DEFER_STMT: {
         transpiler_register_defer(ast_defer_body(node), ctx);
         break;

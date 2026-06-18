@@ -540,6 +540,9 @@ ast_assign_node(ASTNode *node, uint32_t *next_id)
     case AST_UNSAFE_BLOCK:
         ast_assign_node(node->data.unsafe_block.body, next_id);
         break;
+    case AST_TRANSACTION_BLOCK:
+        ast_assign_node(node->data.transaction_block.body, next_id);
+        break;
     case AST_DEFER_STMT:
         ast_assign_node(node->data.defer_stmt.body, next_id);
         break;

@@ -90,6 +90,18 @@ type_check_statement(ASTNode *node, SemanticContext *ctx)
         return type_check_namespace_decl(node, ctx);
     case AST_UNSAFE_BLOCK:
         return type_check_unsafe_block(node, ctx);
+    case AST_TRANSACTION_BLOCK:
+        /* transaction is a block scope; type-check the body (no unsafe effect).
+         * BATCH 2 adds saga/compensate validation. */
+        if (ast_transaction_block_body(node) != NULL)
+            type_check_block(ast_transaction_block_body(node), ctx);
+        return ctx == NULL || !ctx->has_error;
+    case AST_FAIL_STMT:
+        /* `fail` rolls back the enclosing transaction; check the reason if any.
+         * BATCH 2 adds the "fail only inside transaction" scope validation. */
+        if (ast_fail_stmt_reason(node) != NULL)
+            type_check_expression(ast_fail_stmt_reason(node), ctx);
+        return ctx == NULL || !ctx->has_error;
     case AST_DEFER_STMT:
         return type_check_defer_stmt(node, ctx);
     case AST_BIND_STMT:

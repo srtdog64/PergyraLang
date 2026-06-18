@@ -299,6 +299,14 @@ typedef struct
      * Propagated to CompilerResult.error_cause_ir / error_fix_source. */
     const char *backend_error_cause_ir;
     const char *backend_error_fix_source;
+
+    /* transaction saga lowering: txn_counter mints a unique id per
+     * `transaction` block; current_txn_id is the innermost active transaction
+     * id (-1 when no transaction is open) so a `fail` statement can jump to the
+     * right compensation epilogue. Saved/restored across nesting on the C call
+     * stack by the transaction emitter. */
+    int txn_counter;
+    int current_txn_id;
 } TranspilerCtx;
 
 #include "transpiler_inventory_view.h"

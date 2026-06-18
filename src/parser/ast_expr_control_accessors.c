@@ -546,6 +546,22 @@ ast_unsafe_block_body(const ASTNode* node)
 }
 
 ASTNode*
+ast_transaction_block_body(const ASTNode* node)
+{
+    if (node == NULL || node->type != AST_TRANSACTION_BLOCK)
+        return NULL;
+    return node->data.transaction_block.body;
+}
+
+ASTNode*
+ast_fail_stmt_reason(const ASTNode* node)
+{
+    if (node == NULL || node->type != AST_FAIL_STMT)
+        return NULL;
+    return node->data.fail_stmt.reason;
+}
+
+ASTNode*
 ast_defer_body(const ASTNode* node)
 {
     if (node == NULL || node->type != AST_DEFER_STMT)

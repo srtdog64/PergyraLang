@@ -137,6 +137,18 @@ type_check_statement_flow(ASTNode *node, SemanticContext *ctx,
         return type_check_parallel_stmt_flow(node, ctx);
     case AST_UNSAFE_BLOCK:
         return type_check_unsafe_block_flow(node, ctx, loop_flow);
+    case AST_TRANSACTION_BLOCK: {
+        ASTNode *txn_body = ast_transaction_block_body(node);
+        return txn_body != NULL
+            ? type_check_block_flow(txn_body, ctx, loop_flow)
+            : FLOW_FALLTHROUGH;
+    }
+    case AST_FAIL_STMT: {
+        ASTNode *fail_reason = ast_fail_stmt_reason(node);
+        if (fail_reason != NULL)
+            type_check_expression(fail_reason, ctx);
+        return FLOW_FALLTHROUGH;
+    }
     case AST_DEFER_STMT:
         return type_check_defer_stmt_flow(node, ctx);
     case AST_ASYNC_BLOCK:

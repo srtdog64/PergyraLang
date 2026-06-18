@@ -357,6 +357,14 @@ typedef struct LLVMGenCtx
     LLVMTypeRef     current_function_ret_type;
     const char     *current_return_type_name;
 
+    /* Innermost active `transaction` saga: the i1 alloca holding the failed
+     * flag and the epilogue block a `fail` branches to. Both NULL when no
+     * transaction is open; saved/restored across nesting on the C call stack
+     * by the transaction emitter. txn_counter mints unique block-name ids. */
+    LLVMValueRef      current_txn_failed_flag;
+    LLVMBasicBlockRef current_txn_end_bb;
+    int               txn_counter;
+
     /* Active inout value-parameter copy-in/copy-out state for the current
      * function. Mirrors the C backend's mut_ref_param tracking: the inout
      * parameter arrives as a pointer (mut_ref_ptr), is copied into a value
