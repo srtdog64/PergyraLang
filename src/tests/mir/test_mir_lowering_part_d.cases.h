@@ -159,6 +159,66 @@ test_mir_lowering_part_d(void)
         hir_destroy(hir);
     }
 
+    TEST("MIR declaration headers preserve zone refresh field maps");
+    {
+        const char *src =
+            "subject Buyer { let hp: Int; let name: String; }\n"
+            "object BuyerCard {\n"
+            "    let totalHp: Int;\n"
+            "    let displayName: String;\n"
+            "}\n"
+            "zone Lobby {\n"
+            "    subject slot buyer: Buyer\n"
+            "    object slot card: BuyerCard\n"
+            "    refresh card from buyer map {\n"
+            "        totalHp <- hp;\n"
+            "        displayName <- name;\n"
+            "    }\n"
+            "}\n";
+        HIRProgram *hir = NULL;
+        RIRProgram *rir = NULL;
+        MIRProgram *mir = NULL;
+        const MIRDeclHeader *zone = NULL;
+        const MIRDeclZoneRefresh *refresh = NULL;
+        bool ok = lower_mir_from_source(src, &hir, &rir, &mir);
+        if (ok && mir != NULL)
+            zone = mir_find_decl_header(mir, "Lobby");
+        if (zone != NULL)
+            refresh = mir_decl_header_zone_refresh(zone, 0);
+        EXPECT(ok
+               && zone != NULL
+               && mir_decl_header_zone_refresh_count(zone) == 1
+               && refresh != NULL
+               && mir_decl_zone_refresh_owner_name(refresh) != NULL
+               && strcmp(mir_decl_zone_refresh_owner_name(refresh),
+                         "Lobby") == 0
+               && mir_decl_zone_refresh_object_slot_name(refresh) != NULL
+               && strcmp(mir_decl_zone_refresh_object_slot_name(refresh),
+                         "card") == 0
+               && mir_decl_zone_refresh_source_slot_name(refresh) != NULL
+               && strcmp(mir_decl_zone_refresh_source_slot_name(refresh),
+                         "buyer") == 0
+               && !mir_decl_zone_refresh_requires_dto(refresh)
+               && !mir_decl_zone_refresh_derives_target_kind(refresh)
+               && mir_decl_zone_refresh_field_map_count(refresh) == 2
+               && strcmp(mir_decl_zone_refresh_mapped_target_field(
+                             refresh, 0),
+                         "totalHp") == 0
+               && strcmp(mir_decl_zone_refresh_mapped_source_field(
+                             refresh, 0),
+                         "hp") == 0
+               && strcmp(mir_decl_zone_refresh_mapped_target_field(
+                             refresh, 1),
+                         "displayName") == 0
+               && strcmp(mir_decl_zone_refresh_mapped_source_field(
+                             refresh, 1),
+                         "name") == 0
+               && mir_validate(mir, NULL));
+        mir_destroy(mir);
+        rir_destroy(rir);
+        hir_destroy(hir);
+    }
+
     TEST("MIR declaration headers preserve domain slot classification metadata");
     {
         const char *src =

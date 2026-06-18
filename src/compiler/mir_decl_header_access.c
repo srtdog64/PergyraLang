@@ -193,6 +193,22 @@ mir_decl_header_zone_authority(const MIRDeclHeader *header, size_t index)
 }
 
 size_t
+mir_decl_header_zone_refresh_count(const MIRDeclHeader *header)
+{
+    return header != NULL ? header->zone_refresh_metadata_count : 0;
+}
+
+const MIRDeclZoneRefresh *
+mir_decl_header_zone_refresh(const MIRDeclHeader *header, size_t index)
+{
+    if (header == NULL || header->zone_refresh_metadata == NULL
+        || index >= header->zone_refresh_metadata_count) {
+        return NULL;
+    }
+    return &header->zone_refresh_metadata[index];
+}
+
+size_t
 mir_decl_header_enum_variant_count(const MIRDeclHeader *header)
 {
     return header != NULL ? header->variant_metadata_count : 0;
@@ -512,6 +528,70 @@ mir_decl_zone_authority_required_ability_ref(
         || index >= authority->required_ability_ref_count)
         return NULL;
     return &authority->required_ability_refs[index];
+}
+
+const char *
+mir_decl_zone_refresh_owner_name(const MIRDeclZoneRefresh *refresh)
+{
+    return refresh != NULL ? refresh->owner_name : NULL;
+}
+
+const char *
+mir_decl_zone_refresh_object_slot_name(const MIRDeclZoneRefresh *refresh)
+{
+    return refresh != NULL ? refresh->object_slot_name : NULL;
+}
+
+const char *
+mir_decl_zone_refresh_source_slot_name(const MIRDeclZoneRefresh *refresh)
+{
+    return refresh != NULL ? refresh->source_slot_name : NULL;
+}
+
+const char *
+mir_decl_zone_refresh_participant_slot_name(const MIRDeclZoneRefresh *refresh)
+{
+    return refresh != NULL ? refresh->participant_slot_name : NULL;
+}
+
+bool
+mir_decl_zone_refresh_requires_dto(const MIRDeclZoneRefresh *refresh)
+{
+    return refresh != NULL && refresh->requires_dto;
+}
+
+bool
+mir_decl_zone_refresh_derives_target_kind(const MIRDeclZoneRefresh *refresh)
+{
+    return refresh != NULL && refresh->derives_target_kind;
+}
+
+size_t
+mir_decl_zone_refresh_field_map_count(const MIRDeclZoneRefresh *refresh)
+{
+    return refresh != NULL ? refresh->field_map_count : 0;
+}
+
+const char *
+mir_decl_zone_refresh_mapped_target_field(const MIRDeclZoneRefresh *refresh,
+                                          size_t index)
+{
+    if (refresh == NULL || refresh->field_maps == NULL
+        || index >= refresh->field_map_count) {
+        return NULL;
+    }
+    return refresh->field_maps[index].target_field_name;
+}
+
+const char *
+mir_decl_zone_refresh_mapped_source_field(const MIRDeclZoneRefresh *refresh,
+                                          size_t index)
+{
+    if (refresh == NULL || refresh->field_maps == NULL
+        || index >= refresh->field_map_count) {
+        return NULL;
+    }
+    return refresh->field_maps[index].source_field_name;
 }
 
 const char *

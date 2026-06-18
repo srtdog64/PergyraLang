@@ -3,6 +3,25 @@
 > Split from `docs/100_beta_readiness_checklist.md` on 2026-05-29.
 > Keep active blocker edits in the shard that owns the relevant closure track.
 
+## Progress Log - 2026-06-19 Zone Refresh Metadata Capture
+
+- Added `MIRDeclZoneRefresh` declaration-header rows for zone refresh
+  object/source slots, optional participant slot, refresh mode bits, and
+  ordered target-to-source field maps. This closes the metadata gap before
+  C/LLVM projection lowering can stop reading `AST_ZONE_REFRESH` field maps.
+- `mir_decl_header_refresh.c` owns capture/freeing, `mir_decl_header_access.c`
+  exposes the compiler accessors, and `mir_decl_header_validate.c` rejects
+  refresh metadata count drift and incomplete field-map rows.
+- `test-mir` now preserves refresh field maps and rejects refresh metadata
+  drift. `mir-declaration-inventory-test-smoke` requires the new row,
+  accessors, validator strings, and fixtures so the row cannot disappear while
+  consumers are being cut over.
+- Gates used: `make test-mir`, `make mir-declaration-inventory-test-smoke`,
+  `make documentation-quality-test-smoke`, `make test-transpile`,
+  `make backend-fail-closed-test-smoke`, `make llvm-test-smoke`,
+  `make test-inc-size-test-smoke`, `make build-source-inventory-test-smoke`,
+  and `git diff --check`.
+
 ## Progress Log - 2026-06-19 Projection By-Name Owner Cutover
 
 - C projection literal/source-path lowering and LLVM projection-path loading

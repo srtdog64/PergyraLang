@@ -97,6 +97,24 @@ typedef struct
 
 typedef struct
 {
+    const char *target_field_name;
+    const char *source_field_name;
+} MIRDeclZoneRefreshFieldMap;
+
+typedef struct
+{
+    const char *owner_name;
+    const char *object_slot_name;
+    const char *source_slot_name;
+    const char *participant_slot_name;
+    bool        requires_dto;
+    bool        derives_target_kind;
+    MIRDeclZoneRefreshFieldMap *field_maps;
+    size_t      field_map_count;
+} MIRDeclZoneRefresh;
+
+typedef struct
+{
     const char   *name;
     char         *bound_type_name;
     char         *default_arg_type_name;
@@ -131,6 +149,9 @@ typedef struct
     size_t       zone_authority_count;
     MIRDeclZoneAuthority *zone_authority_metadata;
     size_t       zone_authority_metadata_count;
+    size_t       zone_refresh_count;
+    MIRDeclZoneRefresh *zone_refresh_metadata;
+    size_t       zone_refresh_metadata_count;
     size_t       variant_count;
     MIRDeclEnumVariant *variant_metadata;
     size_t       variant_metadata_count;

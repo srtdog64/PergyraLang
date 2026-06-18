@@ -7108,6 +7108,7 @@ for term in \
     "Host field compatibility view" \
     "LLVM MIR parameter self-field slot registration consumes" \
     "MIRDeclFieldClaim" \
+    "MIRDeclZoneRefresh" \
     "Hosted method compatibility method arrays are internal state" \
     "transpiler_hosted_method_view_compat_method" \
     "llvm_hosted_method_view_compat_method" \
@@ -7115,6 +7116,35 @@ for term in \
     "Open beta blocker row"; do
     require_term "docs/125_source_of_truth_spine.md" "$term"
 done
+for term in \
+    "MIRDeclZoneRefresh" \
+    "zone_refresh_metadata" \
+    "zone_refresh_metadata_count"; do
+    require_term "src/compiler/mir_decl.h" "$term"
+done
+for term in \
+    "mir_decl_header_set_refreshes" \
+    "ast_zone_refreshes(decl, &refresh_count)" \
+    "ast_zone_refresh_mapped_target_field" \
+    "ast_zone_refresh_mapped_source_field"; do
+    require_term "src/compiler/mir_decl_header_refresh.c" "$term"
+done
+for term in \
+    "mir_decl_header_zone_refresh_count" \
+    "mir_decl_zone_refresh_mapped_target_field" \
+    "mir_decl_zone_refresh_mapped_source_field"; do
+    require_term "src/compiler/mir_decl_header_access.c" "$term"
+    require_term "src/compiler/mir_decl_headers.h" "$term"
+done
+for term in \
+    "zone refresh metadata count" \
+    "zone refresh[%zu] field-map[%zu] has incomplete metadata"; do
+    require_term "src/compiler/mir_decl_header_validate.c" "$term"
+done
+require_term "src/tests/mir/test_mir_lowering_part_d.cases.h" \
+    "MIR declaration headers preserve zone refresh field maps"
+require_term "src/tests/mir/test_mir_lowering_part_h.cases.h" \
+    "MIR validator rejects zone refresh metadata drift"
 
 require_term "TODO.md" "declaration-side MIR-only debt"
 

@@ -495,6 +495,55 @@ test_mir_lowering_part_h(void)
         hir_destroy(hir);
     }
 
+    TEST("MIR validator rejects zone refresh metadata drift");
+    {
+        const char *src =
+            "subject Buyer { let hp: Int; }\n"
+            "object BuyerCard { totalHp: Int; }\n"
+            "zone Lobby {\n"
+            "    subject slot buyer: Buyer\n"
+            "    object slot card: BuyerCard\n"
+            "    refresh card from buyer map { totalHp <- hp; }\n"
+            "}\n";
+        HIRProgram *hir = NULL;
+        RIRProgram *rir = NULL;
+        MIRProgram *mir = NULL;
+        MIRDeclHeader *zone = NULL;
+        size_t saved_refresh_metadata_count = 0;
+        char *mir_error = NULL;
+        bool mutated = false;
+        bool rejected = false;
+        bool ok = lower_mir_from_source(src, &hir, &rir, &mir);
+        if (ok && mir != NULL) {
+            for (size_t i = 0; i < mir->decl_header_count; i++) {
+                MIRDeclHeader *header = &mir->decl_headers[i];
+                if (header->name != NULL
+                    && strcmp(header->name, "Lobby") == 0) {
+                    zone = header;
+                    saved_refresh_metadata_count =
+                        header->zone_refresh_metadata_count;
+                    header->zone_refresh_metadata_count = 0;
+                    mutated = true;
+                    break;
+                }
+            }
+        }
+        rejected = ok
+                   && mutated
+                   && !mir_validate(mir, &mir_error)
+                   && mir_error != NULL
+                   && strstr(mir_error,
+                             "zone refresh metadata count") != NULL;
+        if (zone != NULL)
+            zone->zone_refresh_metadata_count =
+                saved_refresh_metadata_count;
+        EXPECT(rejected);
+        free(mir_error);
+        mir_destroy(mir);
+        rir_destroy(rir);
+        hir_destroy(hir);
+    }
+
     TEST("MIR validator rejects hosted method routine link metadata drift");
     {
         const char *src =

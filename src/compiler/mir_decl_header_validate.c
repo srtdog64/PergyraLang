@@ -427,6 +427,79 @@ mir_validate_decl_method_metadata(const MIRProgram *mir,
         }
     }
 
+    if (header->zone_refresh_metadata_count > 0
+        && header->zone_refresh_metadata == NULL) {
+        if (error_message != NULL) {
+            *error_message = mir_strdup_fmt(
+                "MIR declaration header[%zu] '%s' has %zu zone refresh metadata row(s) but no storage",
+                header_index,
+                header->name != NULL ? header->name : "(anonymous)",
+                header->zone_refresh_metadata_count);
+        }
+        return false;
+    }
+
+    if (header->ast_type != AST_ZONE_DECL
+        && header->zone_refresh_metadata_count != 0) {
+        if (error_message != NULL) {
+            *error_message = mir_strdup_fmt(
+                "MIR declaration header[%zu] '%s' has zone refresh metadata on a non-zone declaration",
+                header_index,
+                header->name != NULL ? header->name : "(anonymous)");
+        }
+        return false;
+    }
+
+    if (header->zone_refresh_metadata_count != header->zone_refresh_count) {
+        if (error_message != NULL) {
+            *error_message = mir_strdup_fmt(
+                "MIR declaration header[%zu] '%s' zone refresh metadata count %zu does not match declaration refresh count %zu",
+                header_index,
+                header->name != NULL ? header->name : "(anonymous)",
+                header->zone_refresh_metadata_count,
+                header->zone_refresh_count);
+        }
+        return false;
+    }
+
+    for (size_t i = 0; i < header->zone_refresh_metadata_count; i++) {
+        const MIRDeclZoneRefresh *refresh =
+            &header->zone_refresh_metadata[i];
+        if (refresh->owner_name == NULL
+            || header->name == NULL
+            || strcmp(refresh->owner_name, header->name) != 0
+            || refresh->object_slot_name == NULL
+            || refresh->source_slot_name == NULL) {
+            if (error_message != NULL) {
+                *error_message = mir_strdup_fmt(
+                    "MIR declaration header[%zu] zone refresh[%zu] has incomplete refresh metadata",
+                    header_index, i);
+            }
+            return false;
+        }
+        if (refresh->field_map_count > 0 && refresh->field_maps == NULL) {
+            if (error_message != NULL) {
+                *error_message = mir_strdup_fmt(
+                    "MIR declaration header[%zu] zone refresh[%zu] has field-map metadata count but no storage",
+                    header_index, i);
+            }
+            return false;
+        }
+        for (size_t map_i = 0; map_i < refresh->field_map_count; map_i++) {
+            const MIRDeclZoneRefreshFieldMap *map =
+                &refresh->field_maps[map_i];
+            if (map->target_field_name == NULL
+                || map->source_field_name == NULL) {
+                if (error_message != NULL) {
+                    *error_message = mir_strdup_fmt(
+                        "MIR declaration header[%zu] zone refresh[%zu] field-map[%zu] has incomplete metadata",
+                        header_index, i, map_i);
+                }
+                return false;
+            }
+        }
+    }
+
     mir_routine_inventory_from_program(mir, &inventory);
 
     for (size_t i = 0; i < header->method_metadata_count; i++) {

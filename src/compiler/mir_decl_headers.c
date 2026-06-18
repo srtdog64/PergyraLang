@@ -1,6 +1,7 @@
 #include "mir_decl_headers.h"
 #include "mir_decl_header_authority.h"
 #include "mir_decl_header_fields.h"
+#include "mir_decl_header_refresh.h"
 #include "mir_decl_header_shape.h"
 #include "mir_decl_header_variants.h"
 #include "mir_decl_method_projection.h"
@@ -403,8 +404,16 @@ mir_record_decl_header(MIRProgram *mir, ASTNode *decl)
         mir_decl_header_free_fields(&header);
         return false;
     }
+    if (!mir_decl_header_set_refreshes(&header, decl)) {
+        free(header.type_alias_target_type_name);
+        mir_decl_header_free_generics(&header);
+        mir_decl_header_free_authorities(&header);
+        mir_decl_header_free_fields(&header);
+        return false;
+    }
     if (!mir_decl_header_set_methods(&header, methods, method_count)) {
         free(header.type_alias_target_type_name);
+        mir_decl_header_free_refreshes(&header);
         mir_decl_header_free_generics(&header);
         mir_decl_header_free_authorities(&header);
         mir_decl_header_free_fields(&header);
@@ -415,6 +424,7 @@ mir_record_decl_header(MIRProgram *mir, ASTNode *decl)
         for (size_t i = 0; i < header.method_metadata_count; i++)
             mir_decl_method_metadata_clear(&header.method_metadata[i]);
         free(header.method_metadata);
+        mir_decl_header_free_refreshes(&header);
         mir_decl_header_free_generics(&header);
         mir_decl_header_free_authorities(&header);
         mir_decl_header_free_fields(&header);
@@ -428,6 +438,7 @@ mir_record_decl_header(MIRProgram *mir, ASTNode *decl)
         mir_decl_header_free_fields(&header);
         mir_decl_header_free_generics(&header);
         mir_decl_header_free_authorities(&header);
+        mir_decl_header_free_refreshes(&header);
         mir_decl_header_free_variants(&header);
         return false;
     }

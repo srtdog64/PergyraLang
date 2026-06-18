@@ -44,6 +44,10 @@ size_t mir_decl_header_zone_authority_count(const MIRDeclHeader *header);
 const MIRDeclZoneAuthority *mir_decl_header_zone_authority(
     const MIRDeclHeader *header,
     size_t index);
+size_t mir_decl_header_zone_refresh_count(const MIRDeclHeader *header);
+const MIRDeclZoneRefresh *mir_decl_header_zone_refresh(
+    const MIRDeclHeader *header,
+    size_t index);
 size_t mir_decl_header_enum_variant_count(const MIRDeclHeader *header);
 const MIRDeclEnumVariant *mir_decl_header_enum_variant(
     const MIRDeclHeader *header,
@@ -105,6 +109,23 @@ size_t mir_decl_zone_authority_required_ability_count(
     const MIRDeclZoneAuthority *authority);
 const MIRAbilityRef *mir_decl_zone_authority_required_ability_ref(
     const MIRDeclZoneAuthority *authority, size_t index);
+const char *mir_decl_zone_refresh_owner_name(
+    const MIRDeclZoneRefresh *refresh);
+const char *mir_decl_zone_refresh_object_slot_name(
+    const MIRDeclZoneRefresh *refresh);
+const char *mir_decl_zone_refresh_source_slot_name(
+    const MIRDeclZoneRefresh *refresh);
+const char *mir_decl_zone_refresh_participant_slot_name(
+    const MIRDeclZoneRefresh *refresh);
+bool mir_decl_zone_refresh_requires_dto(const MIRDeclZoneRefresh *refresh);
+bool mir_decl_zone_refresh_derives_target_kind(
+    const MIRDeclZoneRefresh *refresh);
+size_t mir_decl_zone_refresh_field_map_count(
+    const MIRDeclZoneRefresh *refresh);
+const char *mir_decl_zone_refresh_mapped_target_field(
+    const MIRDeclZoneRefresh *refresh, size_t index);
+const char *mir_decl_zone_refresh_mapped_source_field(
+    const MIRDeclZoneRefresh *refresh, size_t index);
 const char *mir_ability_ref_base_name(const MIRAbilityRef *ref);
 size_t mir_ability_ref_actual_arg_count(const MIRAbilityRef *ref);
 const char *mir_ability_ref_actual_arg_type_name(
