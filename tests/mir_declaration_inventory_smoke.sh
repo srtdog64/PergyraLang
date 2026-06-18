@@ -3436,6 +3436,7 @@ for term in \
     "transpiler_mir_routine_signature_metadata_complete_for(ctx" \
     "TRANSPILER_MIR_SIGNATURE_REQUIRE_ALL_TYPE_NAMES" \
     "allow_ast_compat = mir_routine == NULL" \
+    "&& (!transpiler_active_has_mir(ctx) || generic_func || extern_func)" \
     "MIR-only C path missing function forward routine" \
     "MIR-only C path missing function forward signature metadata" \
     "transpiler_mir_routine_param_count(mir_routine)" \
@@ -3912,6 +3913,8 @@ for term in \
     "llvm_forward_declare_func_from_mir" \
     "llvm_forward_declare_func_with_signature" \
     "allow_ast_compat = routine == NULL" \
+    "&& (!llvm_active_has_mir(ctx) || generic_func || extern_func)" \
+    "llvm_function_emitted_param_count(ctx, node, routine," \
     "llvm_mir_routine_signature_metadata_complete(" \
     "MIR-only LLVM path missing function forward routine" \
     "MIR-only LLVM path missing function forward signature metadata" \

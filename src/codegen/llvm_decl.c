@@ -6,10 +6,10 @@
 
 static unsigned
 llvm_function_emitted_param_count(LLVMGenCtx *ctx, ASTNode *node,
-                                  const MIRRoutine *routine)
+                                  const MIRRoutine *routine,
+                                  bool allow_ast_compat)
 {
     unsigned count = 0;
-    bool allow_ast_compat = routine == NULL;
     size_t param_count;
 
     if (allow_ast_compat)
@@ -142,14 +142,16 @@ llvm_forward_declare_func_with_signature(ASTNode *node,
             "MIR-only LLVM path missing function declaration parameter type-name metadata for '%s'")) {
         return;
     }
-    allow_ast_compat = routine == NULL;
+    allow_ast_compat = routine == NULL
+        && (!llvm_active_has_mir(ctx) || generic_func || extern_func);
     size_t param_count;
     if (allow_ast_compat)
         param_count = ast_func_param_count(node);
     else
         param_count = llvm_mir_routine_param_count(routine);
     unsigned emitted_param_count =
-        llvm_function_emitted_param_count(ctx, node, routine);
+        llvm_function_emitted_param_count(ctx, node, routine,
+            allow_ast_compat);
 
     /* Return type */
     LLVMTypeRef ret_type = ctx->type_void;

@@ -6,6 +6,7 @@
 
 #include "../semantic/diag_codes.h"
 #include "transpiler_context.h"
+#include "transpiler_decl_lookup.h"
 #include "transpiler_host_self_policy.h"
 #include "transpiler_inventory_view.h"
 #include "transpiler_mir_signature.h"
@@ -25,8 +26,10 @@ emit_func_forward_decl_named(ASTNode *node, const char *emitted_name,
     bool allow_ast_compat = false;
     bool generic_func =
         transpiler_mir_or_ast_function_is_generic(mir_routine, node);
+    bool extern_func = mir_routine == NULL
+        && transpiler_decl_is_extern_function(ctx, node);
     if (transpiler_active_has_mir(ctx) && mir_routine == NULL
-        && !generic_func) {
+        && !generic_func && !extern_func) {
         transpiler_set_mir_inventory_missing(ctx,
             "MIR-only C path missing function forward routine for '%s'",
             name != NULL ? name : "(anonymous)");
@@ -45,7 +48,8 @@ emit_func_forward_decl_named(ASTNode *node, const char *emitted_name,
             codebuf_destroy(params_sig);
         return;
     }
-    allow_ast_compat = mir_routine == NULL;
+    allow_ast_compat = mir_routine == NULL
+        && (!transpiler_active_has_mir(ctx) || generic_func || extern_func);
     ASTNode *return_type;
     size_t param_count;
     if (allow_ast_compat) {
