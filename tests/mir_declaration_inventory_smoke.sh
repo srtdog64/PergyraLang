@@ -1774,13 +1774,18 @@ require_term "src/codegen/transpiler_mir_ssa_names.c" \
 for term in \
     "transpiler_current_function_has_local_binding" \
     "transpiler_find_current_mir_routine" \
-    "transpiler_mir_routine_has_local_name" \
+    "transpiler_mir_routine_has_param_name" \
     "mir_routine_param_count(routine)" \
     "transpiler_mir_routine_kind(routine) == MIR_SCOPE_METHOD" \
     "transpiler_mir_routine_owner_name(routine)" \
-    "return transpiler_has_explicit_local_binding(ctx->current_func_decl,"; do
+    "transpiler_has_explicit_body_local_binding(" \
+    "allow_ast_compat = !transpiler_active_has_mir(ctx)"; do
     require_term "src/codegen/transpiler_mir_ssa_names.c" "$term"
 done
+if grep -Fq "return transpiler_has_explicit_local_binding(ctx->current_func_decl" \
+        "$ROOT_DIR/src/codegen/transpiler_mir_ssa_names.c"; then
+    fail "C MIR SSA implicit-field local detection must split MIR parameter facts from AST body-local compatibility"
+fi
 if grep -Fq "block->source_local_defs" \
         "$ROOT_DIR/src/codegen/transpiler_mir_ssa_names.c"; then
     fail "C MIR SSA implicit-field local detection must not treat source-local defs as lexical locals"

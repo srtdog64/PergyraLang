@@ -47,7 +47,7 @@ transpiler_ssa_strdup_fmt(const char *fmt, ...)
 }
 
 static bool
-transpiler_mir_routine_has_local_name(const MIRRoutine *routine,
+transpiler_mir_routine_has_param_name(const MIRRoutine *routine,
                                       const char *base_name)
 {
     if (routine == NULL || base_name == NULL)
@@ -110,16 +110,23 @@ transpiler_current_function_has_local_binding(TranspilerCtx *ctx,
                                               const char *base_name)
 {
     const MIRRoutine *routine;
+    bool allow_ast_compat;
 
     if (ctx == NULL || ctx->current_func_decl == NULL || base_name == NULL)
         return false;
     routine = transpiler_find_current_mir_routine(ctx);
-    if (routine != NULL
-        && transpiler_mir_routine_has_local_name(routine, base_name)) {
-        return true;
+    if (routine != NULL) {
+        return transpiler_mir_routine_has_param_name(routine, base_name)
+            || transpiler_has_explicit_body_local_binding(
+                ctx->current_func_decl, base_name);
     }
-    return transpiler_has_explicit_local_binding(ctx->current_func_decl,
-        base_name);
+    if (transpiler_active_has_mir(ctx))
+        return transpiler_has_explicit_body_local_binding(
+            ctx->current_func_decl, base_name);
+    allow_ast_compat = !transpiler_active_has_mir(ctx);
+    return allow_ast_compat
+        && transpiler_has_explicit_local_binding(ctx->current_func_decl,
+            base_name);
 }
 
 static bool
