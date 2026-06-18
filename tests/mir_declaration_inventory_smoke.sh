@@ -2380,7 +2380,7 @@ if grep -Eq 'llvm_hosted_zone_layer_slot_view_source_ast\(&layer_view, i\)|ast_z
     fail "LLVM intent effect emission must consume LLVMHostedZoneLayerSlotView metadata, not source AST slots"
 fi
 require_term "src/codegen/llvm_decl_authority.c" \
-    "zone_name = llvm_decl_node_name(zone_decl)"
+    "zone_name = mir_decl_header_name(zone_header)"
 require_term "src/codegen/llvm_register.c" \
     "enum_name = llvm_decl_node_name(stmt)"
 require_term "src/codegen/llvm_register.c" \
@@ -4314,11 +4314,20 @@ require_term "src/codegen/llvm_decl.c" '#include "llvm_decl_authority.h"'
 for term in \
     "llvm_decl_emit_zone_authority_check(LLVMGenCtx *ctx)" \
     "pgy_zone_authority_check_export" \
-    "ast_zone_authorities(zone_decl" \
-    "ast_zone_authority_subject_slot_name(authority)" \
+    "llvm_mir_routine_owner_ast_type(ctx->current_mir_routine)" \
+    "llvm_find_decl_header_in_context_of_type(" \
+    "mir_decl_header_zone_authority_count(zone_header)" \
+    "mir_decl_zone_authority_subject_slot_name(authority)" \
     "llvm_scope_lookup_snapshot(ctx, \"self\", &self_var)" \
     "llvm_set_mir_inventory_missing(ctx"; do
     require_term "src/codegen/llvm_decl_authority.c" "$term"
+done
+for term in \
+    "transpiler_active_decl_header_of_type(" \
+    "mir_decl_header_zone_authority_count(" \
+    "mir_decl_zone_authority_subject_slot_name(authority)" \
+    "PGY_ZONE_AUTHORITY_CHECK(self"; do
+    require_term "src/codegen/transpiler_mir_func_emit.c" "$term"
 done
 if grep -Fq "llvm_scope_lookup(ctx, \"self\")" \
         "$ROOT_DIR/src/codegen/llvm_decl_authority.c"; then
@@ -4327,7 +4336,12 @@ fi
 if grep -R "data\.zone_decl\.\(authorities\|authority_count\)" \
     "$ROOT_DIR/src/codegen/llvm_decl.c" \
     "$ROOT_DIR/src/codegen/llvm_decl_authority.c" >/dev/null; then
-    fail "LLVM zone authority checks must use AST zone child accessors"
+    fail "LLVM zone authority checks must use MIR declaration authority metadata"
+fi
+if grep -R "ast_zone_authorities\|ast_zone_authority_subject_slot_name" \
+    "$ROOT_DIR/src/codegen/llvm_decl_authority.c" \
+    "$ROOT_DIR/src/codegen/transpiler_mir_func_emit.c" >/dev/null; then
+    fail "zone authority codegen must consume MIR declaration authority metadata instead of AST authority accessors"
 fi
 for rel in \
     "src/codegen/llvm_decl.c" \

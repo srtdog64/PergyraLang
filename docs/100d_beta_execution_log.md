@@ -21,6 +21,26 @@
   `make abi-ownership-shape-test-smoke`, `make documentation-quality-test-smoke`,
   and `git diff --check`.
 
+## Progress Log - 2026-06-19 Zone Authority MIR Metadata Cutover
+
+- Zone authority declaration facts now have a MIR owner:
+  `MIRDeclZoneAuthority` records the owning zone, authority subject slot, and
+  written required ability refs. Role slots and zone authorities share the same
+  `MIRAbilityRef` capture path so generic ability refs do not fork into two
+  string conventions.
+- C MIR-backed zone method entry checks now consume
+  `mir_decl_header_zone_authority_count(...)` /
+  `mir_decl_zone_authority_subject_slot_name(...)` instead of reopening
+  `ast_zone_authorities(...)`. Missing zone headers fail closed through the MIR
+  inventory diagnostic path.
+- The LLVM authority owner now finds the current zone through MIR routine owner
+  metadata and then consumes the zone declaration header. It no longer uses AST
+  zone authority child accessors for the subject-slot decision.
+- Gates used: `make test-mir`, `make mir-declaration-inventory-test-smoke`,
+  `make test-abi`, and `make self-host-preparation-test-smoke`. The self-host
+  production size/header clean fixtures were updated for the two new production
+  `.c` files and two new production `.h` files.
+
 ## Progress Log - 2026-06-10 Anchor Bump To 83% + Additional Backend Coverage
 
 - The live readiness anchor moves 82% -> 83% strict beta readiness

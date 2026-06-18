@@ -177,6 +177,22 @@ mir_decl_header_field_claim(const MIRDeclHeader *header, size_t index)
 }
 
 size_t
+mir_decl_header_zone_authority_count(const MIRDeclHeader *header)
+{
+    return header != NULL ? header->zone_authority_metadata_count : 0;
+}
+
+const MIRDeclZoneAuthority *
+mir_decl_header_zone_authority(const MIRDeclHeader *header, size_t index)
+{
+    if (header == NULL || header->zone_authority_metadata == NULL
+        || index >= header->zone_authority_metadata_count) {
+        return NULL;
+    }
+    return &header->zone_authority_metadata[index];
+}
+
+size_t
 mir_decl_header_enum_variant_count(const MIRDeclHeader *header)
 {
     return header != NULL ? header->variant_metadata_count : 0;
@@ -466,6 +482,36 @@ bool
 mir_decl_field_claim_is_secure(const MIRDeclFieldClaim *claim)
 {
     return claim != NULL && claim->is_secure;
+}
+
+const char *
+mir_decl_zone_authority_owner_name(const MIRDeclZoneAuthority *authority)
+{
+    return authority != NULL ? authority->owner_name : NULL;
+}
+
+const char *
+mir_decl_zone_authority_subject_slot_name(
+    const MIRDeclZoneAuthority *authority)
+{
+    return authority != NULL ? authority->subject_slot_name : NULL;
+}
+
+size_t
+mir_decl_zone_authority_required_ability_count(
+    const MIRDeclZoneAuthority *authority)
+{
+    return authority != NULL ? authority->required_ability_ref_count : 0;
+}
+
+const MIRAbilityRef *
+mir_decl_zone_authority_required_ability_ref(
+    const MIRDeclZoneAuthority *authority, size_t index)
+{
+    if (authority == NULL || authority->required_ability_refs == NULL
+        || index >= authority->required_ability_ref_count)
+        return NULL;
+    return &authority->required_ability_refs[index];
 }
 
 const char *

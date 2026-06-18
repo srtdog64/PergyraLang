@@ -342,6 +342,91 @@ mir_validate_decl_method_metadata(const MIRProgram *mir,
         }
     }
 
+    if (header->zone_authority_metadata_count > 0
+        && header->zone_authority_metadata == NULL) {
+        if (error_message != NULL) {
+            *error_message = mir_strdup_fmt(
+                "MIR declaration header[%zu] '%s' has %zu zone authority metadata row(s) but no storage",
+                header_index,
+                header->name != NULL ? header->name : "(anonymous)",
+                header->zone_authority_metadata_count);
+        }
+        return false;
+    }
+
+    if (header->ast_type != AST_ZONE_DECL
+        && header->zone_authority_metadata_count != 0) {
+        if (error_message != NULL) {
+            *error_message = mir_strdup_fmt(
+                "MIR declaration header[%zu] '%s' has zone authority metadata on a non-zone declaration",
+                header_index,
+                header->name != NULL ? header->name : "(anonymous)");
+        }
+        return false;
+    }
+
+    if (header->zone_authority_metadata_count
+        != header->zone_authority_count) {
+        if (error_message != NULL) {
+            *error_message = mir_strdup_fmt(
+                "MIR declaration header[%zu] '%s' zone authority metadata count %zu does not match declaration authority count %zu",
+                header_index,
+                header->name != NULL ? header->name : "(anonymous)",
+                header->zone_authority_metadata_count,
+                header->zone_authority_count);
+        }
+        return false;
+    }
+
+    for (size_t i = 0; i < header->zone_authority_metadata_count; i++) {
+        const MIRDeclZoneAuthority *authority =
+            &header->zone_authority_metadata[i];
+        if (authority->owner_name == NULL
+            || header->name == NULL
+            || strcmp(authority->owner_name, header->name) != 0
+            || authority->subject_slot_name == NULL) {
+            if (error_message != NULL) {
+                *error_message = mir_strdup_fmt(
+                    "MIR declaration header[%zu] zone authority[%zu] has incomplete authority metadata",
+                    header_index, i);
+            }
+            return false;
+        }
+        if (authority->required_ability_ref_count > 0
+            && authority->required_ability_refs == NULL) {
+            if (error_message != NULL) {
+                *error_message = mir_strdup_fmt(
+                    "MIR declaration header[%zu] zone authority[%zu] has ability metadata count but no storage",
+                    header_index, i);
+            }
+            return false;
+        }
+        for (size_t a = 0; a < authority->required_ability_ref_count; a++) {
+            const MIRAbilityRef *ref =
+                &authority->required_ability_refs[a];
+            if (ref->base_name == NULL
+                || (ref->actual_arg_count > 0
+                    && ref->actual_arg_type_names == NULL)) {
+                if (error_message != NULL) {
+                    *error_message = mir_strdup_fmt(
+                        "MIR declaration header[%zu] zone authority[%zu] ability[%zu] has incomplete ability-ref metadata",
+                        header_index, i, a);
+                }
+                return false;
+            }
+            for (size_t arg = 0; arg < ref->actual_arg_count; arg++) {
+                if (ref->actual_arg_type_names[arg] == NULL) {
+                    if (error_message != NULL) {
+                        *error_message = mir_strdup_fmt(
+                            "MIR declaration header[%zu] zone authority[%zu] ability[%zu] actual[%zu] has no type metadata",
+                            header_index, i, a, arg);
+                    }
+                    return false;
+                }
+            }
+        }
+    }
+
     mir_routine_inventory_from_program(mir, &inventory);
 
     for (size_t i = 0; i < header->method_metadata_count; i++) {

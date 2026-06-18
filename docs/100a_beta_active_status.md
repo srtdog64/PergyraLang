@@ -1805,9 +1805,13 @@ Operational mode:
   zone-authority declaration prelude emission now lives in
   `llvm_decl_authority.c`. Function routine inventory orchestration now lives
   in `llvm_decl_routines.c`. `llvm_decl.c` is 278 LOC and keeps function
-  declaration/body emission; the authority owner is 141 LOC and owns
-  current-zone lookup, `pgy_zone_authority_check_export` call emission, and
-  structured inventory-missing diagnostics. The routine owner is 106 LOC and
+  declaration/body emission; the authority owner is 152 LOC and now resolves
+  the current zone through MIR routine owner metadata plus
+  `MIRDeclZoneAuthority` declaration-header rows before emitting the
+  `pgy_zone_authority_check_export` call and structured inventory-missing
+  diagnostics. `mir_decl_header_authority.c` is the 121 LOC lowering owner for
+  authority subject slots and required ability refs; `mir_ability_ref.c` is the
+  shared 81 LOC ability-ref capture owner. The routine owner is 106 LOC and
   owns generic-template dispatch, non-generic MIR routine emission, and
   residual missing-routine diagnostics. Gates:
   `make mir-declaration-inventory-test-smoke`,

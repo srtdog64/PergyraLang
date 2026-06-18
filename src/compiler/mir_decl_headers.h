@@ -40,6 +40,10 @@ size_t mir_decl_header_field_claim_count(const MIRDeclHeader *header);
 const MIRDeclFieldClaim *mir_decl_header_field_claim(
     const MIRDeclHeader *header,
     size_t index);
+size_t mir_decl_header_zone_authority_count(const MIRDeclHeader *header);
+const MIRDeclZoneAuthority *mir_decl_header_zone_authority(
+    const MIRDeclHeader *header,
+    size_t index);
 size_t mir_decl_header_enum_variant_count(const MIRDeclHeader *header);
 const MIRDeclEnumVariant *mir_decl_header_enum_variant(
     const MIRDeclHeader *header,
@@ -93,6 +97,14 @@ const char *mir_decl_field_claim_token_name(const MIRDeclFieldClaim *claim);
 const char *mir_decl_field_claim_inner_type_name(
     const MIRDeclFieldClaim *claim);
 bool mir_decl_field_claim_is_secure(const MIRDeclFieldClaim *claim);
+const char *mir_decl_zone_authority_owner_name(
+    const MIRDeclZoneAuthority *authority);
+const char *mir_decl_zone_authority_subject_slot_name(
+    const MIRDeclZoneAuthority *authority);
+size_t mir_decl_zone_authority_required_ability_count(
+    const MIRDeclZoneAuthority *authority);
+const MIRAbilityRef *mir_decl_zone_authority_required_ability_ref(
+    const MIRDeclZoneAuthority *authority, size_t index);
 const char *mir_ability_ref_base_name(const MIRAbilityRef *ref);
 size_t mir_ability_ref_actual_arg_count(const MIRAbilityRef *ref);
 const char *mir_ability_ref_actual_arg_type_name(

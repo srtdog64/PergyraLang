@@ -108,6 +108,57 @@ test_mir_lowering_part_d(void)
         hir_destroy(hir);
     }
 
+    TEST("MIR declaration headers preserve zone authority ability refs");
+    {
+        const char *src =
+            "subject Buyer { let name: String; }\n"
+            "ability Payable<T = Int> {\n"
+            "    func Pay(self, value: T) -> Int;\n"
+            "}\n"
+            "role BuyerPay for Buyer {\n"
+            "    impl ability Payable<String> {\n"
+            "        func Pay(self, value: String) -> Int { return 1; }\n"
+            "    }\n"
+            "}\n"
+            "zone PaymentZone {\n"
+            "    subject slot buyer: Buyer\n"
+            "    authority buyer requires Payable<String>\n"
+            "}\n";
+        HIRProgram *hir = NULL;
+        RIRProgram *rir = NULL;
+        MIRProgram *mir = NULL;
+        const MIRDeclHeader *zone = NULL;
+        const MIRDeclZoneAuthority *authority = NULL;
+        const MIRAbilityRef *ability = NULL;
+        bool ok = lower_mir_from_source(src, &hir, &rir, &mir);
+        if (ok && mir != NULL)
+            zone = mir_find_decl_header(mir, "PaymentZone");
+        if (zone != NULL)
+            authority = mir_decl_header_zone_authority(zone, 0);
+        if (authority != NULL)
+            ability =
+                mir_decl_zone_authority_required_ability_ref(authority, 0);
+        EXPECT(ok
+               && zone != NULL
+               && mir_decl_header_zone_authority_count(zone) == 1
+               && authority != NULL
+               && mir_decl_zone_authority_subject_slot_name(authority) != NULL
+               && strcmp(mir_decl_zone_authority_subject_slot_name(authority),
+                         "buyer") == 0
+               && mir_decl_zone_authority_required_ability_count(authority) == 1
+               && ability != NULL
+               && mir_ability_ref_base_name(ability) != NULL
+               && strcmp(mir_ability_ref_base_name(ability), "Payable") == 0
+               && mir_ability_ref_actual_arg_count(ability) == 1
+               && mir_ability_ref_actual_arg_type_name(ability, 0) != NULL
+               && strcmp(mir_ability_ref_actual_arg_type_name(ability, 0),
+                         "String") == 0
+               && mir_validate(mir, NULL));
+        mir_destroy(mir);
+        rir_destroy(rir);
+        hir_destroy(hir);
+    }
+
     TEST("MIR declaration headers preserve domain slot classification metadata");
     {
         const char *src =

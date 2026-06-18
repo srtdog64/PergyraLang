@@ -384,18 +384,19 @@ emit_func_decl_from_mir_named(ASTNode *node, const MIRRoutine *mir_routine,
         if (!owner_is_role
             && (owner_is_zone || owner_is_relation || owner_is_effect || owner_is_world)) {
             if (owner_is_zone) {
-                ASTNode *zone_decl = (resolved_host_decl != NULL
-                    && resolved_host_decl->type == AST_ZONE_DECL)
-                    ? resolved_host_decl
-                    : NULL;
-                size_t authority_count = 0;
-                ASTNode **authorities = ast_zone_authorities(zone_decl,
-                    &authority_count);
-                if (authority_count > 0
-                    && authorities != NULL
-                    && authorities[0] != NULL) {
+                const MIRDeclHeader *zone_header =
+                    transpiler_active_decl_header_of_type(
+                        ctx, AST_ZONE_DECL, owner_name);
+                if (zone_header == NULL) {
+                    transpiler_set_mir_inventory_missing(ctx,
+                        "C zone authority check requires MIR declaration header for zone '%s'",
+                        owner_name != NULL ? owner_name : "(anonymous)");
+                } else if (mir_decl_header_zone_authority_count(
+                               zone_header) > 0) {
+                    const MIRDeclZoneAuthority *authority =
+                        mir_decl_header_zone_authority(zone_header, 0);
                     const char *auth_slot =
-                        ast_zone_authority_subject_slot_name(authorities[0]);
+                        mir_decl_zone_authority_subject_slot_name(authority);
                     if (auth_slot != NULL) {
                         char *participant_expr =
                             transpiler_scratch_fmt(ctx, "&self->%s", auth_slot);

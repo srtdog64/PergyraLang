@@ -89,6 +89,14 @@ typedef struct
 
 typedef struct
 {
+    const char    *owner_name;
+    const char    *subject_slot_name;
+    MIRAbilityRef *required_ability_refs;
+    size_t         required_ability_ref_count;
+} MIRDeclZoneAuthority;
+
+typedef struct
+{
     const char   *name;
     char         *bound_type_name;
     char         *default_arg_type_name;
@@ -120,6 +128,9 @@ typedef struct
     size_t       field_claim_count;
     MIRDeclFieldClaim *field_claim_metadata;
     size_t       field_claim_metadata_count;
+    size_t       zone_authority_count;
+    MIRDeclZoneAuthority *zone_authority_metadata;
+    size_t       zone_authority_metadata_count;
     size_t       variant_count;
     MIRDeclEnumVariant *variant_metadata;
     size_t       variant_metadata_count;

@@ -2,20 +2,31 @@
 #include "llvm_decl_authority.h"
 #include "llvm_internal.h"
 #include "llvm_inventory_decl_lookup.h"
+#include "llvm_inventory_internal.h"
 
-static ASTNode *
-llvm_decl_find_current_host_decl(LLVMGenCtx *ctx)
+#include "../compiler/mir_decl_headers.h"
+
+static const char *
+llvm_decl_current_zone_name(LLVMGenCtx *ctx)
 {
-    return llvm_current_host_decl(ctx);
+    if (ctx == NULL)
+        return NULL;
+    if (ctx->current_mir_routine != NULL
+        && llvm_mir_routine_owner_ast_type(ctx->current_mir_routine)
+            == AST_ZONE_DECL) {
+        return llvm_mir_routine_owner_name(ctx->current_mir_routine);
+    }
+    return ctx->current_within_zone_name;
 }
 
-static ASTNode *
-llvm_decl_find_current_zone_decl(LLVMGenCtx *ctx)
+static const MIRDeclHeader *
+llvm_decl_find_current_zone_header(LLVMGenCtx *ctx)
 {
-    ASTNode *decl = llvm_decl_find_current_host_decl(ctx);
-    if (decl != NULL && decl->type == AST_ZONE_DECL)
-        return decl;
-    return NULL;
+    const char *zone_name = llvm_decl_current_zone_name(ctx);
+    return zone_name != NULL
+        ? llvm_find_decl_header_in_context_of_type(
+            ctx, AST_ZONE_DECL, zone_name)
+        : NULL;
 }
 
 static void
@@ -40,8 +51,8 @@ llvm_decl_zone_authority_backend_error(LLVMGenCtx *ctx, ASTNode *node,
 void
 llvm_decl_emit_zone_authority_check(LLVMGenCtx *ctx)
 {
-    ASTNode *zone_decl;
-    ASTNode *authority;
+    const MIRDeclHeader *zone_header;
+    const MIRDeclZoneAuthority *authority;
     LLVMClassTypeEntry *zone_cls;
     LLVMVarEntry self_var;
     bool has_self_var;
@@ -53,34 +64,32 @@ llvm_decl_emit_zone_authority_check(LLVMGenCtx *ctx)
     LLVMValueRef args[4];
     int field_index;
     const char *zone_name;
+    const char *subject_slot;
 
     if (ctx == NULL)
         return;
 
-    zone_decl = llvm_decl_find_current_zone_decl(ctx);
-    if (zone_decl == NULL) {
-        if (ctx->current_within_zone_name != NULL) {
+    zone_header = llvm_decl_find_current_zone_header(ctx);
+    if (zone_header == NULL) {
+        zone_name = llvm_decl_current_zone_name(ctx);
+        if (zone_name != NULL) {
             llvm_decl_zone_authority_backend_error(ctx, ctx->current_func_decl,
-                ctx->current_within_zone_name, NULL,
-                "current function declares a zone boundary but the zone declaration is missing from LLVM inventory");
+                zone_name, NULL,
+                "current function declares a zone boundary but the zone declaration header is missing from LLVM MIR inventory");
         }
         return;
     }
 
-    size_t authority_count = 0;
-    ASTNode **authorities = ast_zone_authorities(zone_decl, &authority_count);
-    if (authority_count == 0 || authorities == NULL || authorities[0] == NULL) {
+    if (mir_decl_header_zone_authority_count(zone_header) == 0)
         return;
-    }
 
-    authority = authorities[0];
-    zone_name = llvm_decl_node_name(zone_decl);
-    const char *subject_slot =
-        ast_zone_authority_subject_slot_name(authority);
-    if (authority->type != AST_ZONE_AUTHORITY
-        || subject_slot == NULL) {
-        llvm_decl_zone_authority_backend_error(ctx, zone_decl, zone_name, NULL,
-            "authority declaration is malformed or lacks a subject slot");
+    authority = mir_decl_header_zone_authority(zone_header, 0);
+    zone_name = mir_decl_header_name(zone_header);
+    subject_slot = mir_decl_zone_authority_subject_slot_name(authority);
+    if (subject_slot == NULL) {
+        llvm_decl_zone_authority_backend_error(ctx, ctx->current_func_decl,
+            zone_name, NULL,
+            "authority metadata is malformed or lacks a subject slot");
         return;
     }
 
@@ -88,7 +97,8 @@ llvm_decl_emit_zone_authority_check(LLVMGenCtx *ctx)
     has_self_var = llvm_scope_lookup_snapshot(ctx, "self", &self_var);
     check_fn = llvm_lookup_function(ctx, "pgy_zone_authority_check_export");
     if (zone_cls == NULL) {
-        llvm_decl_zone_authority_backend_error(ctx, zone_decl, zone_name,
+        llvm_decl_zone_authority_backend_error(ctx, ctx->current_func_decl,
+            zone_name,
             subject_slot,
             "zone class layout is missing");
         return;
@@ -107,7 +117,8 @@ llvm_decl_emit_zone_authority_check(LLVMGenCtx *ctx)
 
     field_index = llvm_class_field_index(zone_cls, subject_slot);
     if (field_index < 0) {
-        llvm_decl_zone_authority_backend_error(ctx, zone_decl, zone_name,
+        llvm_decl_zone_authority_backend_error(ctx, ctx->current_func_decl,
+            zone_name,
             subject_slot,
             "authority subject slot is missing from the zone class layout");
         return;

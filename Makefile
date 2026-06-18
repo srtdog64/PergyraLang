@@ -857,6 +857,8 @@ COMPILER_SOURCES = $(COMPILER_DIR)/compiler.c \
                    $(COMPILER_DIR)/mir_fact_validate.c \
                    $(COMPILER_DIR)/mir_fact_surface_validate.c \
                    $(COMPILER_DIR)/mir_fact_terminator_validate.c \
+                   $(COMPILER_DIR)/mir_ability_ref.c \
+                   $(COMPILER_DIR)/mir_decl_header_authority.c \
                    $(COMPILER_DIR)/mir_decl_header_shape.c \
                    $(COMPILER_DIR)/mir_decl_header_fields.c \
                    $(COMPILER_DIR)/mir_decl_header_variants.c \
@@ -1351,6 +1353,8 @@ MIR_CORE_OBJECTS = $(BUILD_DIR)/compiler/mir.o \
                    $(BUILD_DIR)/compiler/mir_fact_validate.o \
                    $(BUILD_DIR)/compiler/mir_fact_surface_validate.o \
                    $(BUILD_DIR)/compiler/mir_fact_terminator_validate.o \
+                   $(BUILD_DIR)/compiler/mir_ability_ref.o \
+                   $(BUILD_DIR)/compiler/mir_decl_header_authority.o \
                    $(BUILD_DIR)/compiler/mir_decl_header_shape.o \
                    $(BUILD_DIR)/compiler/mir_decl_header_fields.o \
                    $(BUILD_DIR)/compiler/mir_decl_header_variants.o \
