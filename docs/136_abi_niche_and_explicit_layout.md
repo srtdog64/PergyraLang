@@ -26,6 +26,25 @@ Pergyra implementation must instead make the invariant part of the language
 and MIR ABI facts. `NonZero<T>`, `NonNull<T>`, and `NonEmpty<T>` are proof-type
 candidates, not aliases for existing primitives.
 
+## Frozen Beta Layout Facts
+
+The current beta ABI intentionally spends the tag word. This table is the
+source-level promise that the runtime ABI spec, MIR ABI facts, and both
+backends must preserve:
+
+| Source type | Representation | Size | Align | `Some` tag | `None` tag | Payload offset | Niche |
+| --- | --- | ---: | ---: | ---: | ---: | ---: | --- |
+| `Option<Int>` | explicit tag | 8 | 4 | 0 | 1 | 4 | none |
+| `Option<Long>` | explicit tag | 16 | 8 | 0 | 1 | 8 | none |
+| `Option<Float>` | explicit tag | 8 | 4 | 0 | 1 | 4 | none |
+| `Option<Double>` | explicit tag | 16 | 8 | 0 | 1 | 8 | none |
+| `Option<Bool>` | explicit tag | 8 | 4 | 0 | 1 | 4 | none |
+| `Option<String>` | explicit tag | 16 | 8 | 0 | 1 | pointer-size padding | none |
+
+The table is not an optimization target. It is the frozen representation until
+the language has proof-carrying value types and a MIR ABI fact that explicitly
+names a reserved niche pattern.
+
 ## Current Golden Gates
 
 The current contract is executable:
@@ -66,6 +85,14 @@ Value-invariant proof types are prerequisite. A backend may not infer a niche
 from a spelling convention, a pointer-looking payload, or a local C/LLVM layout
 choice. The MIR ABI fact must be the only backend input that authorizes
 `None`-as-zero, `None`-as-null, or any other reused bit pattern.
+
+The promotion ladder is deliberately ordered:
+
+1. introduce the proof type and semantic/DAG invariant;
+2. prove construction and flow preservation for the invariant;
+3. add the MIR ABI niche fact;
+4. lower C and LLVM from that fact;
+5. only then change the ABI table and golden tests.
 
 ## Explicit Layout Gate
 

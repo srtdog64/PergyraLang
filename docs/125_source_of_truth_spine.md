@@ -300,6 +300,16 @@ Current beta closure snapshot:
   ownership class for a stable surface. For example, `Channel<String>` is
   `container-owned` on both paths: send copies payloads, receive transfers
   ownership, and destroy frees pending messages.
+- ABI layout facts live in `src/runtime/pgy_abi_spec.h`, with compile-time
+  assertions in `src/runtime/pgy_abi_spec_asserts.h` and MIR consumer facts in
+  `src/compiler/mir_abi_layout.c`. `Option<T>` is currently an explicit tagged
+  layout (`MIR_ABI_REPR_EXPLICIT_TAG`) with `niche_none_pattern == NULL`.
+  Rust-style niche encoding may only appear after semantic/DAG proof types
+  such as `NonZero<T>`, `NonNull<T>`, or `NonEmpty<T>` authorize a reserved
+  bit pattern and MIR records it as an ABI fact. C and LLVM backends must not
+  infer `None` as zero/null locally. User-directed explicit layout, packed
+  structs, offsets, and union overlap are future `unsafe(ffi, layout)` /
+  raw-boundary capability work, not ordinary aggregate semantics.
 - Stable diagnostic literals live in `src/semantic/diag_codes.h` and are
   mirrored by `docs/72_diagnostic_codes.md`. Driver JSON, LSP diagnostics,
   parser/lexer routing, semantic diagnostics, and backend diagnostics consume

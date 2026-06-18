@@ -61,6 +61,7 @@ for rel in \
     "docs/74_slot_pinning_caching.md" \
     "docs/100_beta_readiness_checklist.md" \
     "docs/107_beta_stable_subset.md" \
+    "docs/125_source_of_truth_spine.md" \
     "docs/118_slot_model_rigor_audit.md" \
     "docs/136_abi_niche_and_explicit_layout.md"; do
     require_file "$rel"
@@ -202,10 +203,18 @@ require_term "docs/107_beta_stable_subset.md" "Non-pin handle expiration is not 
 require_term "docs/107_beta_stable_subset.md" "Rust-style niche optimization and user-directed explicit layout are not"
 require_term "docs/107_beta_stable_subset.md" 'Option<T>` uses the explicit tagged ABI'
 require_term "docs/118_slot_model_rigor_audit.md" "Zone-Bound Handle typing"
+require_term "docs/125_source_of_truth_spine.md" 'ABI layout facts live in `src/runtime/pgy_abi_spec.h`'
+require_term "docs/125_source_of_truth_spine.md" 'Option<T>` is currently an explicit tagged'
+require_term "docs/125_source_of_truth_spine.md" "semantic/DAG proof types"
+require_term "docs/125_source_of_truth_spine.md" "C and LLVM backends must not"
+require_term "docs/125_source_of_truth_spine.md" 'future `unsafe(ffi, layout)`'
 require_term "docs/136_abi_niche_and_explicit_layout.md" 'Option<T>` stays explicitly tagged'
+require_term "docs/136_abi_niche_and_explicit_layout.md" "Frozen Beta Layout Facts"
+require_term "docs/136_abi_niche_and_explicit_layout.md" '`Option<String>` | explicit tag | 16'
 require_term "docs/136_abi_niche_and_explicit_layout.md" "Beta-closure decision: do not add niche optimization before the proof surface"
 require_term "docs/136_abi_niche_and_explicit_layout.md" "Value-invariant proof types are prerequisite"
 require_term "docs/136_abi_niche_and_explicit_layout.md" "MIR ABI fact must be the only backend input"
+require_term "docs/136_abi_niche_and_explicit_layout.md" "The promotion ladder is deliberately ordered"
 require_term "docs/136_abi_niche_and_explicit_layout.md" "Semantic/DAG proves the value invariant"
 require_term "docs/136_abi_niche_and_explicit_layout.md" "MIR_ABI_REPR_EXPLICIT_TAG"
 require_term "docs/136_abi_niche_and_explicit_layout.md" "MIR_ABI_REPR_NICHE_RESERVED"

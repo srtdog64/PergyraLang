@@ -17,6 +17,9 @@
   gates and restricts explicit layout/field overlap to a future
   `unsafe(ffi, layout)` / raw-boundary capability surface. Ordinary
   structs/classes remain ownership-aware values, not user-packed ABI blobs.
+- `docs/125_source_of_truth_spine.md` now names the ABI layout owner chain
+  (`pgy_abi_spec.h` -> static asserts -> `MIRTypeLayout`) so niche encoding and
+  explicit layout cannot re-enter as backend-local shortcuts.
 - Gates used: `make test-mir`, `make test-abi`,
   `make abi-ownership-shape-test-smoke`, `make documentation-quality-test-smoke`,
   and `git diff --check`.
