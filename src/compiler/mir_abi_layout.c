@@ -26,7 +26,12 @@
     { (field_label), 0, sizeof(scalar_type), _Alignof(scalar_type) }
 
 #define ABI_TYPE(name, size, align, fn, inner, count, ...) \
-    { (name), (size), (align), (count), { __VA_ARGS__ }, (fn), (inner) }
+    { (name), (size), (align), (count), { __VA_ARGS__ }, (fn), (inner), \
+      MIR_ABI_REPR_UNTAGGED, NULL, 0, 0, NULL }
+
+#define ABI_TAGGED_TYPE(name, size, align, fn, inner, count, tag_field, primary_tag, secondary_tag, ...) \
+    { (name), (size), (align), (count), { __VA_ARGS__ }, (fn), (inner), \
+      MIR_ABI_REPR_EXPLICIT_TAG, (tag_field), (primary_tag), (secondary_tag), NULL }
 
 static const MIRTypeLayout k_abi_type_table[] = {
     /* Slot<T>: debug mode. */
@@ -99,29 +104,36 @@ static const MIRTypeLayout k_abi_type_table[] = {
              ABI_FIELD_STRUCT("claimed", pgy_abi_device_slot_string, claimed)),
 
     /* Option<T> */
-    ABI_TYPE("Option<Int>", 8, 4, "pgy_option_some_Int", "int32_t", 2,
+    ABI_TAGGED_TYPE("Option<Int>", 8, 4, "pgy_option_some_Int", "int32_t", 2,
+             "tag", PgyAbiOptionSome, PgyAbiOptionNone,
              ABI_FIELD_STRUCT("tag", pgy_abi_option_int, tag),
              ABI_FIELD_STRUCT("value", pgy_abi_option_int, value)),
-    ABI_TYPE("Option<Long>", 16, 8, "pgy_option_some_Long", "int64_t", 2,
+    ABI_TAGGED_TYPE("Option<Long>", 16, 8, "pgy_option_some_Long", "int64_t", 2,
+             "tag", PgyAbiOptionSome, PgyAbiOptionNone,
              ABI_FIELD_STRUCT("tag", pgy_abi_option_long, tag),
              ABI_FIELD_STRUCT("value", pgy_abi_option_long, value)),
-    ABI_TYPE("Option<Bool>", 8, 4, "pgy_option_some_Bool", "bool", 2,
+    ABI_TAGGED_TYPE("Option<Bool>", 8, 4, "pgy_option_some_Bool", "bool", 2,
+             "tag", PgyAbiOptionSome, PgyAbiOptionNone,
              ABI_FIELD_STRUCT("tag", pgy_abi_option_bool, tag),
              ABI_FIELD_STRUCT("value", pgy_abi_option_bool, value)),
-    ABI_TYPE("Option<String>", 16, 8, "pgy_option_some_String", "char*", 2,
+    ABI_TAGGED_TYPE("Option<String>", 16, 8, "pgy_option_some_String", "char*", 2,
+             "tag", PgyAbiOptionSome, PgyAbiOptionNone,
              ABI_FIELD_STRUCT("tag", pgy_abi_option_string, tag),
              ABI_FIELD_STRUCT("value", pgy_abi_option_string, value)),
 
     /* Result<T, E> */
-    ABI_TYPE("Result<Int>", 16, 8, "pgy_result_ok_Int", "int32_t", 3,
+    ABI_TAGGED_TYPE("Result<Int>", 16, 8, "pgy_result_ok_Int", "int32_t", 3,
+             "tag", PgyAbiResultOk, PgyAbiResultErr,
              ABI_FIELD_STRUCT("tag", pgy_abi_result_int, tag),
              ABI_FIELD_STRUCT("ok", pgy_abi_result_int, ok),
              ABI_FIELD_STRUCT("err", pgy_abi_result_int, err)),
-    ABI_TYPE("Result<Bool>", 16, 8, "pgy_result_ok_Bool", "bool", 3,
+    ABI_TAGGED_TYPE("Result<Bool>", 16, 8, "pgy_result_ok_Bool", "bool", 3,
+             "tag", PgyAbiResultOk, PgyAbiResultErr,
              ABI_FIELD_STRUCT("tag", pgy_abi_result_bool, tag),
              ABI_FIELD_STRUCT("ok", pgy_abi_result_bool, ok),
              ABI_FIELD_STRUCT("err", pgy_abi_result_bool, err)),
-    ABI_TYPE("Result<String>", 16, 8, "pgy_result_ok_String", "char*", 3,
+    ABI_TAGGED_TYPE("Result<String>", 16, 8, "pgy_result_ok_String", "char*", 3,
+             "tag", PgyAbiResultOk, PgyAbiResultErr,
              ABI_FIELD_STRUCT("tag", pgy_abi_result_string, tag),
              ABI_FIELD_STRUCT("ok", pgy_abi_result_string, ok),
              ABI_FIELD_STRUCT("err", pgy_abi_result_string, err)),

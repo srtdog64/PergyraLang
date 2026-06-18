@@ -34,6 +34,10 @@ Systems baseline:
   backend target yet.
 - Intent/zone/world evolution must not leak into or break C FFI ABI. ABI changes
   require explicit ABI-spec updates and parity gates.
+- Rust-style niche optimization and user-directed explicit layout are not
+  beta-stable source features. `Option<T>` uses the explicit tagged ABI
+  recorded in `src/runtime/pgy_abi_spec.h` and `MIRTypeLayout`; packed/offset/
+  overlapping layout remains future `unsafe(ffi, layout)` / raw-boundary work.
 - Codegen determinism is a beta blocker for the frozen subset; repeat builds
   must not depend on hash-map or pointer iteration order. Initial gate:
   `make codegen-determinism-test-smoke`.

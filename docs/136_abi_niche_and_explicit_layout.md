@@ -1,19 +1,44 @@
 # ABI Niche And Explicit Layout Policy
 
-Status: design contract, not an implemented optimization.
+Status: beta ABI contract. Niche optimization and user-directed explicit layout
+are intentionally not implemented as general source features.
 
 Pergyra currently uses an explicit tagged representation for `Option<T>`:
 `{ tag: int32_t, value: T }` plus target padding. The source of truth is
 `src/runtime/pgy_abi_spec.h`, and `src/runtime/pgy_abi_spec_asserts.h` freezes
-the current sizes and offsets. This means `Option<Int>` is 8 bytes today and
-`Option<Long>` / `Option<String>` are at least 16 bytes. Rust-style niche
-encoding such as `Option<NonZeroU32>` fitting in 32 bits is not implemented.
+the current sizes and offsets. `src/compiler/mir_abi_layout.c` mirrors that
+runtime ABI into `MIRTypeLayout` facts. This means:
+
+- `Option<Int>`, `Option<Float>`, and `Option<Bool>` are 8 bytes today.
+- `Option<Long>`, `Option<Double>`, and `Option<String>` are 16 bytes today on
+  the supported 64-bit targets.
+- The MIR representation fact is `MIR_ABI_REPR_EXPLICIT_TAG` with
+  `discriminant_field_name = "tag"`, `primary_tag_value = 0`, and
+  `secondary_tag_value = 1`.
+- `niche_none_pattern` is `NULL` for the current ABI.
+
+Rust-style niche encoding such as `Option<NonZeroU32>` fitting in 32 bits is
+not implemented.
 
 Beta-closure decision: do not add niche optimization before the proof surface
 exists. The cheap implementation would be a backend-local layout shortcut; the
 Pergyra implementation must instead make the invariant part of the language
 and MIR ABI facts. `NonZero<T>`, `NonNull<T>`, and `NonEmpty<T>` are proof-type
 candidates, not aliases for existing primitives.
+
+## Current Golden Gates
+
+The current contract is executable:
+
+- `make test-abi` compiles `src/test_abi_spec.c` and checks the exact
+  `Option<T>` tag/value offsets, tag values, and runtime shape for the active
+  runtime Option specializations.
+- `src/runtime/pgy_abi_spec_asserts.h` statically rejects an accidental
+  shrink from the explicit tagged layout to a backend-local niche layout.
+- `make test-mir` checks that `mir_abi_lookup("Option<Int>")` exposes an
+  explicit-tag MIR fact, not a niche fact.
+- `make abi-ownership-shape-test-smoke` keeps this document, the runtime ABI
+  header, and the MIR ABI fact wording tied together.
 
 ## Niche Optimization Gate
 
@@ -28,7 +53,8 @@ Required source-of-truth chain:
 1. Semantic/DAG proves the value invariant, for example "this `NonZero<Int>` can
    never be zero".
 2. MIR ABI facts record the representation policy, for example
-   `tag_strategy = niche`, `none_pattern = 0`, and the payload ABI type.
+   `MIR_ABI_REPR_NICHE_RESERVED`, `niche_none_pattern = "0"`, and the payload
+   ABI type.
 3. C and LLVM lower from the MIR ABI fact. They must not locally infer that
    `0`, `NULL`, or an empty length is available.
 4. Static ABI tests and backend-compare fixtures prove the optimized and
@@ -46,7 +72,8 @@ choice. The MIR ABI fact must be the only backend input that authorizes
 User-directed explicit layout, field offsets, packed structs, and union-style
 field overlap are not part of the general struct/class surface. They are valid
 future tools only at an interop or system boundary, such as an extern "C" ABI
-declaration, a scoped `unsafe(raw)` block, or a future ABI descriptor.
+declaration, a scoped `unsafe(ffi, layout)` / `unsafe(raw, layout)` block, or a
+future ABI descriptor.
 
 General Pergyra aggregates remain ownership-aware values. Allowing arbitrary
 field overlap inside ordinary structs would let users create aliasing that the
@@ -55,7 +82,13 @@ slot/capability model cannot prove. Therefore explicit layout must be:
 - boundary-scoped, never the default aggregate model;
 - source-gated through syntax that says it is ABI/raw interop;
 - rejected outside that scope with a structured diagnostic;
+- visible as AIR evidence for the capability that accepted it;
 - backed by static `sizeof`/`offsetof` assertions and C/LLVM parity fixtures.
 
 This keeps low-level layout power available without turning ordinary Pergyra
 data modeling into unchecked aliasing.
+
+Until scoped layout capability evidence exists, explicit layout is not a
+language feature. Runtime-internal C structs may use normal C layout techniques
+behind the ABI spec, but source-level Pergyra structs/classes may not request
+`packed`, field offsets, or union overlap.

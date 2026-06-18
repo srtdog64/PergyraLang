@@ -3,6 +3,24 @@
 > Split from `docs/100_beta_readiness_checklist.md` on 2026-05-29.
 > Keep active blocker edits in the shard that owns the relevant closure track.
 
+## Progress Log - 2026-06-19 ABI Niche / Explicit Layout Contract Gate
+
+- Rust-style niche optimization is now documented as intentionally not
+  implemented for the beta ABI. `Option<T>` remains an explicit tagged layout,
+  and the runtime ABI spec plus static asserts now freeze exact tag/value
+  offsets and sizes for the current primitive Option rows.
+- `MIRTypeLayout` now carries an ABI representation fact. Current `Option<T>`
+  and `Result<T,E>` rows are marked `MIR_ABI_REPR_EXPLICIT_TAG`; the future
+  niche path has a reserved representation value but no backend may infer or
+  emit a niche without a semantic/DAG proof type and MIR ABI fact.
+- `docs/136_abi_niche_and_explicit_layout.md` now names the current golden
+  gates and restricts explicit layout/field overlap to a future
+  `unsafe(ffi, layout)` / raw-boundary capability surface. Ordinary
+  structs/classes remain ownership-aware values, not user-packed ABI blobs.
+- Gates used: `make test-mir`, `make test-abi`,
+  `make abi-ownership-shape-test-smoke`, `make documentation-quality-test-smoke`,
+  and `git diff --check`.
+
 ## Progress Log - 2026-06-10 Anchor Bump To 83% + Additional Backend Coverage
 
 - The live readiness anchor moves 82% -> 83% strict beta readiness

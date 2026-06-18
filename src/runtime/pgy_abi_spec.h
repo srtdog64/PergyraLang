@@ -161,7 +161,9 @@ typedef struct { char   *value; bool claimed; } pgy_abi_device_slot_string;
  * Tag is ALWAYS int32_t (4 bytes). Value follows at the next
  * naturally aligned offset. The compiler inserts padding between
  * tag and value as needed for alignment. Rust-style niche encoding
- * is not part of this stable ABI; see docs/136_abi_niche_and_explicit_layout.md.
+ * is not part of this stable ABI; MIRTypeLayout records these rows as
+ * MIR_ABI_REPR_EXPLICIT_TAG, not as a backend-inferred niche. See
+ * docs/136_abi_niche_and_explicit_layout.md.
  * ================================================================ */
 
 typedef enum {

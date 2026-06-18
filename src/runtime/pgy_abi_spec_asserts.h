@@ -141,11 +141,38 @@ ABI_STATIC_ASSERT(sizeof(pgy_abi_option_int) == 8,
 
 ABI_STATIC_ASSERT(offsetof(pgy_abi_option_long, tag) == 0,
                   option_long_tag_at_0);
-ABI_STATIC_ASSERT(sizeof(pgy_abi_option_long) >= 16,
-                  option_long_min_size_16);
+ABI_STATIC_ASSERT(offsetof(pgy_abi_option_long, value) == 8,
+                  option_long_value_at_8);
+ABI_STATIC_ASSERT(sizeof(pgy_abi_option_long) == 16,
+                  option_long_size_16);
 
-ABI_STATIC_ASSERT(sizeof(pgy_abi_option_string) >= 16,
-                  option_string_min_size_16);
+ABI_STATIC_ASSERT(offsetof(pgy_abi_option_float, tag) == 0,
+                  option_float_tag_at_0);
+ABI_STATIC_ASSERT(offsetof(pgy_abi_option_float, value) == 4,
+                  option_float_value_at_4);
+ABI_STATIC_ASSERT(sizeof(pgy_abi_option_float) == 8,
+                  option_float_size_8);
+
+ABI_STATIC_ASSERT(offsetof(pgy_abi_option_double, tag) == 0,
+                  option_double_tag_at_0);
+ABI_STATIC_ASSERT(offsetof(pgy_abi_option_double, value) == 8,
+                  option_double_value_at_8);
+ABI_STATIC_ASSERT(sizeof(pgy_abi_option_double) == 16,
+                  option_double_size_16);
+
+ABI_STATIC_ASSERT(offsetof(pgy_abi_option_bool, tag) == 0,
+                  option_bool_tag_at_0);
+ABI_STATIC_ASSERT(offsetof(pgy_abi_option_bool, value) == 4,
+                  option_bool_value_at_4);
+ABI_STATIC_ASSERT(sizeof(pgy_abi_option_bool) == 8,
+                  option_bool_size_8);
+
+ABI_STATIC_ASSERT(offsetof(pgy_abi_option_string, tag) == 0,
+                  option_string_tag_at_0);
+ABI_STATIC_ASSERT(offsetof(pgy_abi_option_string, value) == sizeof(void*),
+                  option_string_value_after_pointer_sized_padding);
+ABI_STATIC_ASSERT(sizeof(pgy_abi_option_string) == sizeof(void*) * 2,
+                  option_string_size_two_words);
 
 /* =================================================================
  * STATIC ASSERTIONS — Result<T, E>

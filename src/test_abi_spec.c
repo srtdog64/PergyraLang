@@ -239,20 +239,44 @@ int main(void) {
 
     PRINT_LAYOUT(pgy_abi_option_int);
     PRINT_LAYOUT(pgy_abi_option_long);
+    PRINT_LAYOUT(pgy_abi_option_float);
+    PRINT_LAYOUT(pgy_abi_option_double);
     PRINT_LAYOUT(pgy_abi_option_bool);
     PRINT_LAYOUT(pgy_abi_option_string);
     printf("\n");
 
+    ABI_TEST("Option<T>: ABI tag values stay Some=0 / None=1",
+             PgyAbiOptionSome == 0 && PgyAbiOptionNone == 1);
     ABI_TEST("Option<Int>: tag at 0, value at 4, size 8",
              offsetof(pgy_abi_option_int, tag) == 0 &&
              offsetof(pgy_abi_option_int, value) == 4 &&
              sizeof(pgy_abi_option_int) == 8);
-    ABI_TEST("Option<Long>: size >= 16",
-             sizeof(pgy_abi_option_long) >= 16);
+    ABI_TEST("Option<Long>: explicit tag layout is 16 bytes",
+             offsetof(pgy_abi_option_long, tag) == 0 &&
+             offsetof(pgy_abi_option_long, value) == 8 &&
+             sizeof(pgy_abi_option_long) == 16);
+    ABI_TEST("Option<Float>: tag at 0, value at 4, size 8",
+             offsetof(pgy_abi_option_float, tag) == 0 &&
+             offsetof(pgy_abi_option_float, value) == 4 &&
+             sizeof(pgy_abi_option_float) == 8);
+    ABI_TEST("Option<Double>: explicit tag layout is 16 bytes",
+             offsetof(pgy_abi_option_double, tag) == 0 &&
+             offsetof(pgy_abi_option_double, value) == 8 &&
+             sizeof(pgy_abi_option_double) == 16);
+    ABI_TEST("Option<Bool>: explicit tag layout is 8 bytes",
+             offsetof(pgy_abi_option_bool, tag) == 0 &&
+             offsetof(pgy_abi_option_bool, value) == 4 &&
+             sizeof(pgy_abi_option_bool) == 8);
+    ABI_TEST("Option<String>: explicit tag layout is two words",
+             offsetof(pgy_abi_option_string, tag) == 0 &&
+             offsetof(pgy_abi_option_string, value) == sizeof(void*) &&
+             sizeof(pgy_abi_option_string) == sizeof(void*) * 2);
 
     /* Cross-check against runtime */
     ABI_TEST("Option<Int>: runtime size matches ABI spec",
              sizeof(PgyOption_Int) == sizeof(pgy_abi_option_int));
+    ABI_TEST("Option<Bool>: runtime size matches ABI spec",
+             sizeof(PgyOption_Bool) == sizeof(pgy_abi_option_bool));
     ABI_TEST("Option<String>: runtime size matches ABI spec",
              sizeof(PgyOption_String) == sizeof(pgy_abi_option_string));
 

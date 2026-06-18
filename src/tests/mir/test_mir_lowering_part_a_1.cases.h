@@ -95,6 +95,27 @@ test_mir_lowering_part_a(void)
         hir_destroy(hir);
     }
 
+    TEST("MIR ABI table records explicit Option tag representation");
+    {
+        const MIRTypeLayout *opt_int = mir_abi_lookup("Option<Int>");
+        const MIRTypeLayout *opt_string = mir_abi_lookup("Option<String>");
+        EXPECT(opt_int != NULL
+               && opt_string != NULL
+               && opt_int->representation == MIR_ABI_REPR_EXPLICIT_TAG
+               && opt_string->representation == MIR_ABI_REPR_EXPLICIT_TAG
+               && opt_int->discriminant_field_name != NULL
+               && strcmp(opt_int->discriminant_field_name, "tag") == 0
+               && opt_int->primary_tag_value == 0
+               && opt_int->secondary_tag_value == 1
+               && opt_int->niche_none_pattern == NULL
+               && opt_int->field_count == 2
+               && strcmp(opt_int->fields[0].field_name, "tag") == 0
+               && opt_int->fields[0].offset == 0
+               && strcmp(opt_int->fields[1].field_name, "value") == 0
+               && opt_int->fields[1].offset == 4
+               && opt_string->niche_none_pattern == NULL);
+    }
+
     TEST("MIR validator rejects view-backed resource owner metadata drift");
     {
         const char *src =

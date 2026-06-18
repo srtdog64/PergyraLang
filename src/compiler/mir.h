@@ -3,6 +3,7 @@
 
 #include <stdbool.h>
 #include <stddef.h>
+#include <stdint.h>
 #include <stdio.h>
 
 #include "hir.h"
@@ -30,6 +31,13 @@ typedef struct
     uint32_t    field_align;
 } MIRFieldLayout;
 
+typedef enum
+{
+    MIR_ABI_REPR_UNTAGGED,
+    MIR_ABI_REPR_EXPLICIT_TAG,
+    MIR_ABI_REPR_NICHE_RESERVED
+} MIRAbiRepresentation;
+
 typedef struct
 {
     const char *name;
@@ -46,6 +54,11 @@ typedef struct
     MIRFieldLayout   fields[MIR_MAX_TYPE_FIELDS];
     const char      *runtime_fn;       /* e.g. "pgy_claim_Int" */
     const char      *inner_c_type;     /* e.g. "int32_t" for Slot<Int> */
+    MIRAbiRepresentation representation;
+    const char      *discriminant_field_name;
+    int32_t          primary_tag_value;
+    int32_t          secondary_tag_value;
+    const char      *niche_none_pattern;
 } MIRTypeLayout;
 
 typedef enum
