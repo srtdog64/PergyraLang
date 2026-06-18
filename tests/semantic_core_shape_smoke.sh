@@ -1158,9 +1158,14 @@ if grep -q 'ctx == NULL || ctx->program_root == NULL || label == NULL' \
     fail "DAG graph host lookup must rely on context-bearing host lookup seams"
 fi
 
-grep -q 'semantic_find_class_decl_by_name(' \
+grep -q 'semantic_host_decl_for_type(ctx, decl_type)' \
     src/semantic/type_checker_ownership_let.c \
-    || fail "let ownership annotation where-check must consume semantic class lookup seam"
+    || fail "let ownership annotation where-check must consume resolved host declaration metadata"
+
+if grep -q 'semantic_find_class_decl_by_name(' \
+    src/semantic/type_checker_ownership_let.c; then
+    fail "let ownership annotation where-check must not reopen class declarations by annotation name"
+fi
 
 grep -q 'Void expression cannot initialize local binding' \
     src/semantic/type_checker_ownership_let.c \

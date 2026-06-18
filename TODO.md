@@ -1496,9 +1496,11 @@ English anchor for tooling/doc gates:
   the caller-facing wrappers. The root dependency remains inside the lookup
   owner rather than leaking into stage consumers.
 - Let-binding ownership annotation where-checks now recover class declarations
-  through `semantic_find_class_decl_by_name(...)` instead of reopening
-  `find_type_decl_by_name(ctx->program_root, ...)`. The generic class
-  instantiation where regressions remain the required guard for this seam.
+  through `semantic_host_decl_for_type(ctx, decl_type)`, so constructed generic
+  annotations consume the resolved type's constructor-origin metadata instead
+  of reopening `find_type_decl_by_name(ctx->program_root, ...)` or class lookup
+  by annotation spelling. The generic class instantiation where regressions
+  remain the required guard for this seam.
 - Constructed generic metadata materialization now uses the semantic class
   lookup seam without a raw program-root pre-gate and checks the class
   declaration before reading its generic parameters, closing a null-decl
@@ -17167,15 +17169,13 @@ Local verification for this debt refresh:
   truth spine instead of relying only on the broader semantic shape smoke.
   Local verification: `cfg-body-dataflow-test-smoke`,
   `semantic-core-shape-test-smoke`, and `test-semantic` (`2558/0`).
-- Do not mechanically replace `type_checker_ownership_let.c`'s annotated
-  generic-class declaration recovery with `semantic_host_decl_for_type(...)`.
-  A trial showed that constructed generic annotations can lose the original
-  generic class declaration needed for where-bound rejection. This seam should
-  move only after DAG metadata exposes an explicit "origin generic class
-  declaration" fact. Regression evidence: the unsafe replacement dropped the
-  `generic class instantiation rejects non matching where constraint` diagnostic
-  before being reverted; `test-semantic` and `type-resolution-dag-test-smoke`
-  pass after reverting.
+- Closed `type_checker_ownership_let.c`'s annotated generic-class declaration
+  recovery through `semantic_host_decl_for_type(ctx, decl_type)`. The earlier
+  unsafe replacement failed because it did not preserve the constructed type's
+  original generic class declaration for where-bound rejection; the accepted
+  closure consumes the resolved annotation type and follows its constructor
+  origin. Regression evidence remains the `generic class instantiation rejects
+  non matching where constraint` diagnostic.
 - Tightened world helper null-ordering: `resolve_world_zone_decl_local(...)`
   now checks the resolved world zone slot before reading its type accessor. The
   accessor itself is null-safe, but the helper now documents the intended owner
@@ -17203,9 +17203,10 @@ Local verification for this debt refresh:
   metadata materialization owners now consume
   `semantic_find_class_decl_by_name(...)` for context-bearing class lookup
   instead of reopening `find_type_decl_by_name(ctx->program_root, ...)`.
-  `type_checker_ownership_let.c` remains an explicit generic-origin exception
-  until DAG metadata exposes the original generic class declaration fact. The
-  resolver inventory smoke gates the metadata owner boundary.
+  `type_checker_ownership_let.c` now consumes the resolved annotation type's
+  constructor-origin metadata through `semantic_host_decl_for_type(ctx,
+  decl_type)`, so the former generic-origin exception is closed. The resolver
+  inventory and semantic core shape smokes gate the metadata owner boundary.
 - Reduced semantic host classification duplication: `semantic_host_decl_for_type(...)`
   now reuses the semantic class/domain owner lookup seams for class, party,
   roster, world, zone, relation, and effect recovery instead of duplicating raw
