@@ -53,6 +53,12 @@ char *emit_projection_literal_by_name(TranspilerCtx *ctx,
                                       const char *source_type_name,
                                       ASTNode *refresh,
                                       const char *source_expr);
+char *emit_projection_literal_by_zone_refresh_metadata(
+    TranspilerCtx *ctx,
+    const char *target_type_name,
+    const char *source_type_name,
+    const MIRDeclZoneRefresh *refresh,
+    const char *source_expr);
 bool transpiler_projection_type_is_struct_like(TranspilerCtx *ctx,
                                                const char *type_name);
 bool is_subject_type_name(TranspilerCtx *ctx, const char *type_name);

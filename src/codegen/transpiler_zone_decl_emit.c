@@ -52,10 +52,10 @@ emit_zone_decl(ASTNode *node, TranspilerCtx *ctx)
         transpiler_hosted_domain_slot_view_from_decl(ctx, name, node);
     TranspilerHostedZoneLayerSlotView layer_view =
         transpiler_hosted_zone_layer_slot_view_from_decl(ctx, name, node);
+    TranspilerHostedZoneRefreshView refresh_view =
+        transpiler_hosted_zone_refresh_view_from_decl(ctx, name, node);
     size_t state_count = 0;
     ASTNode **states = ast_zone_states(node, &state_count);
-    size_t refresh_count = 0;
-    ASTNode **refreshes = ast_zone_refreshes(node, &refresh_count);
     size_t apply_count = 0;
     ASTNode **applies = ast_zone_applies(node, &apply_count);
     size_t link_count = 0;
@@ -95,6 +95,14 @@ emit_zone_decl(ASTNode *node, TranspilerCtx *ctx)
         transpiler_set_mir_inventory_missing(
             ctx,
             "MIR-only C path missing zone layer-slot declaration metadata for '%s'",
+            name != NULL ? name : "(anonymous-zone)");
+        return;
+    }
+    if (transpiler_hosted_zone_refresh_view_missing_mir_metadata(
+            &refresh_view)) {
+        transpiler_set_mir_inventory_missing(
+            ctx,
+            "MIR-only C path missing zone refresh declaration metadata for '%s'",
             name != NULL ? name : "(anonymous-zone)");
         return;
     }
@@ -185,10 +193,9 @@ emit_zone_decl(ASTNode *node, TranspilerCtx *ctx)
             layer_name);
     }
 
-    emit_domain_projection_sync_loop_from_view(ctx,
+    emit_zone_projection_sync_loop_from_mir_refresh_view(ctx,
         &slot_view,
-        refreshes,
-        refresh_count,
+        &refresh_view,
         "zone_projection",
         false);
 

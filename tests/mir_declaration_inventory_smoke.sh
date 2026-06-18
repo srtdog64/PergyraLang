@@ -1480,7 +1480,7 @@ require_term "src/codegen/transpiler_zone_specialization_emit.c" \
 require_term "src/codegen/transpiler_zone_specialization_emit.c" \
     "transpiler_hosted_domain_slot_view_type(slot_view, i)"
 require_term "src/codegen/transpiler_zone_decl_emit.c" \
-    "emit_domain_projection_sync_loop_from_view(ctx"
+    "emit_zone_projection_sync_loop_from_mir_refresh_view(ctx"
 require_term "src/codegen/transpiler_zone_decl_emit.c" \
     "TranspilerHostedZoneLayerSlotView layer_view"
 require_term "src/codegen/transpiler_zone_decl_emit.c" \
@@ -7136,6 +7136,37 @@ for term in \
     require_term "src/compiler/mir_decl_header_access.c" "$term"
     require_term "src/compiler/mir_decl_headers.h" "$term"
 done
+for term in \
+    "TranspilerHostedZoneRefreshView" \
+    "transpiler_hosted_zone_refresh_view_from_decl" \
+    "transpiler_hosted_zone_refresh_view_metadata" \
+    "transpiler_hosted_zone_refresh_view_object_slot_name" \
+    "transpiler_hosted_zone_refresh_view_source_slot_name"; do
+    require_term "src/codegen/transpiler_decl_lookup.h" "$term"
+    require_term "src/codegen/transpiler_decl_slot_view.c" "$term"
+done
+for term in \
+    "emit_projection_literal_by_zone_refresh_metadata" \
+    "mir_decl_zone_refresh_mapped_target_field" \
+    "mir_decl_zone_refresh_mapped_source_field"; do
+    require_term "src/codegen/transpiler_projection_emit.c" "$term"
+done
+for term in \
+    "emit_zone_projection_sync_loop_from_mir_refresh_view" \
+    "transpiler_hosted_zone_refresh_view_metadata" \
+    "emit_projection_literal_by_zone_refresh_metadata"; do
+    require_term "src/codegen/transpiler_domain_provenance_emit.c" "$term"
+done
+for term in \
+    "TranspilerHostedZoneRefreshView refresh_view" \
+    "transpiler_hosted_zone_refresh_view_missing_mir_metadata" \
+    "emit_zone_projection_sync_loop_from_mir_refresh_view(ctx"; do
+    require_term "src/codegen/transpiler_zone_decl_emit.c" "$term"
+done
+if grep -Fq "ast_zone_refreshes(node, &refresh_count)" \
+    "$ROOT_DIR/src/codegen/transpiler_zone_decl_emit.c"; then
+    fail "C zone declaration emission must consume MIR zone refresh metadata, not reopen AST_ZONE_REFRESH inventory"
+fi
 for term in \
     "zone refresh metadata count" \
     "zone refresh[%zu] field-map[%zu] has incomplete metadata"; do

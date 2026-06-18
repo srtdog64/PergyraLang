@@ -237,6 +237,102 @@ transpiler_hosted_zone_layer_slot_view_pool_capacity(
     return 0;
 }
 
+TranspilerHostedZoneRefreshView
+transpiler_hosted_zone_refresh_view_from_decl(const TranspilerCtx *ctx,
+                                              const char *host_name,
+                                              ASTNode *decl)
+{
+    TranspilerHostedZoneRefreshView view;
+    ASTNode **compat_refreshes = NULL;
+    size_t compat_count = 0;
+    const MIRDeclHeader *header = NULL;
+
+    if (decl != NULL && decl->type == AST_ZONE_DECL)
+        compat_refreshes = ast_zone_refreshes(decl, &compat_count);
+
+    view.decl_header = NULL;
+    view.ast_compat_refreshes = compat_refreshes;
+    view.ast_compat_count = compat_count;
+    view.count = compat_count;
+    view.uses_mir_metadata = false;
+    view.requires_mir_metadata =
+        transpiler_active_has_mir(ctx) && compat_count > 0;
+
+    header = transpiler_active_host_decl_header(ctx, host_name);
+    if (header != NULL
+        && mir_decl_header_ast_type_or(header, AST_PROGRAM)
+            == AST_ZONE_DECL) {
+        view.decl_header = header;
+        view.count = mir_decl_header_zone_refresh_count(header);
+        view.uses_mir_metadata = true;
+    }
+
+    return view;
+}
+
+bool
+transpiler_hosted_zone_refresh_view_missing_mir_metadata(
+    const TranspilerHostedZoneRefreshView *view)
+{
+    return view != NULL
+        && view->requires_mir_metadata
+        && (!view->uses_mir_metadata
+            || view->count != view->ast_compat_count)
+        && view->ast_compat_count > 0;
+}
+
+const MIRDeclZoneRefresh *
+transpiler_hosted_zone_refresh_view_metadata(
+    const TranspilerHostedZoneRefreshView *view,
+    size_t index)
+{
+    if (view == NULL || !view->uses_mir_metadata
+        || view->decl_header == NULL || index >= view->count) {
+        return NULL;
+    }
+    return mir_decl_header_zone_refresh(view->decl_header, index);
+}
+
+const char *
+transpiler_hosted_zone_refresh_view_object_slot_name(
+    const TranspilerHostedZoneRefreshView *view,
+    size_t index)
+{
+    const MIRDeclZoneRefresh *refresh =
+        transpiler_hosted_zone_refresh_view_metadata(view, index);
+
+    if (view == NULL || index >= view->count)
+        return NULL;
+    if (refresh != NULL)
+        return mir_decl_zone_refresh_object_slot_name(refresh);
+    if (view->requires_mir_metadata)
+        return NULL;
+    if (view->ast_compat_refreshes != NULL)
+        return ast_zone_refresh_object_slot_name(
+            view->ast_compat_refreshes[index]);
+    return NULL;
+}
+
+const char *
+transpiler_hosted_zone_refresh_view_source_slot_name(
+    const TranspilerHostedZoneRefreshView *view,
+    size_t index)
+{
+    const MIRDeclZoneRefresh *refresh =
+        transpiler_hosted_zone_refresh_view_metadata(view, index);
+
+    if (view == NULL || index >= view->count)
+        return NULL;
+    if (refresh != NULL)
+        return mir_decl_zone_refresh_source_slot_name(refresh);
+    if (view->requires_mir_metadata)
+        return NULL;
+    if (view->ast_compat_refreshes != NULL)
+        return ast_zone_refresh_source_slot_name(
+            view->ast_compat_refreshes[index]);
+    return NULL;
+}
+
 TranspilerHostedDomainSlotView
 transpiler_hosted_domain_slot_view_from_decl(const TranspilerCtx *ctx,
                                              const char *host_name,

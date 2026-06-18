@@ -3,6 +3,22 @@
 > Split from `docs/100_beta_readiness_checklist.md` on 2026-05-29.
 > Keep active blocker edits in the shard that owns the relevant closure track.
 
+## Progress Log - 2026-06-19 Zone Refresh C Consumer Cutover
+
+- C zone declaration emission now builds a `TranspilerHostedZoneRefreshView`
+  from `MIRDeclZoneRefresh` rows instead of reopening
+  `ast_zone_refreshes(node, &refresh_count)`.
+- Zone projection sync lowering uses
+  `emit_zone_projection_sync_loop_from_mir_refresh_view(...)`, and projection
+  literal field-map lowering has a MIR refresh entry point,
+  `emit_projection_literal_by_zone_refresh_metadata(...)`.
+- `mir-declaration-inventory-test-smoke` now requires the C refresh view and
+  rejects reopening `AST_ZONE_REFRESH` inventory in `transpiler_zone_decl_emit.c`.
+  Relation/effect refreshes and LLVM projection refresh consumers still need
+  their own metadata/view cutover.
+- Gates used: `make test-transpile` and
+  `make mir-declaration-inventory-test-smoke`.
+
 ## Progress Log - 2026-06-19 Zone Refresh Metadata Capture
 
 - Added `MIRDeclZoneRefresh` declaration-header rows for zone refresh

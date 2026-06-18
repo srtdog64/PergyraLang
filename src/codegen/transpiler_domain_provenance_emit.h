@@ -39,5 +39,11 @@ void emit_domain_projection_sync_loop_from_view(
     size_t refresh_count,
     const char *loop_prefix,
     bool early_return_if_clean);
+void emit_zone_projection_sync_loop_from_mir_refresh_view(
+    TranspilerCtx *ctx,
+    const TranspilerHostedDomainSlotView *slot_view,
+    const TranspilerHostedZoneRefreshView *refresh_view,
+    const char *loop_prefix,
+    bool early_return_if_clean);
 
 #endif /* PGY_TRANSPILER_DOMAIN_PROVENANCE_EMIT_H */
