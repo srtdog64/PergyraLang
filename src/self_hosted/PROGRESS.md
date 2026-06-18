@@ -24,8 +24,22 @@ rung-7/8 fixed `Array<Int>`/`Array<String>` literals + indexing +
 env-aware index-expression rewriting, rung-11 `StringTrim` builtin, rung-12
 `FileExists`/`ReadFile` file I/O, rung-13 `Args()` user-argument snapshots,
 rung-14 value-passed Int-field structs, rung-15 `Array<Int>` param/return flow).
-HIR/MIR, the rest of codegen, runtime,
-compiler driver, and LSP substitution are still 0%.
+The rest of codegen, runtime, compiler driver, and LSP substitution are still
+0%; the MIR-lowering substitution has now *started* (see below).
+
+**MIR-lowering substitution started (2026-06-18, path (a) rung-0b):** the C
+compiler now emits a lossless JSON serialization of the production MIR
+(`pgy --mir-json`, schema `pgy.mir.v1`) -- CFG skeleton plus each instruction's
+source AST expression captured inline (via an fd-level stdout redirect that
+leaves the AST printer, and thus the 188-source parser parity, untouched). A new
+Pergyra tool `src/self_hosted/mir_lower/` consumes that JSON and reconstructs the
+`--ast` tree, which the existing codegen lowers to C. The whole MIR -> C path is
+now Pergyra and run-equivalent to the C backend on the tiny linear subset (single
+`Main`, one block, Int `let`/`Log`/arithmetic), gated by
+`parity/mir_json_parity.sh` (`make self-host-mir-json-parity-test-smoke`, 4
+fixtures). This is the first verified slice of the actual compiler-core (~96% of
+the LOC), not the codegen subset. Next (rung-0c): lower CFG control flow (BRANCH
+instructions, `succ_true`/`succ_false`) instead of assuming one block.
 
 **Hard migration opened (2026-06-17):** the codegen rung is the first *hard
 compiler-core* substitute, landed after the BDFL decision lifted the
