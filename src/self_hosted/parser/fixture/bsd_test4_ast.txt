@@ -1,7 +1,11 @@
 Program:
-  Let: turn = 8
-  If: (turn >= 8)
-    Then:
+  Function: Main
+    Parameters:
+    Body:
       Block:
-        Log("done")
+        Let: turn = 8
+        If: (turn >= 8)
+          Then:
+            Block:
+              Log("done")
 

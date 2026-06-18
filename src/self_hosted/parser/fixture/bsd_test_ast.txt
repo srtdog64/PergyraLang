@@ -1,7 +1,11 @@
 Program:
-  Let: x = 10
-  If: (x > 5)
-    Then:
+  Function: Main
+    Parameters:
+    Body:
       Block:
-        Log("big")
+        Let: x = 10
+        If: (x > 5)
+          Then:
+            Block:
+              Log("big")
 

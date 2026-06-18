@@ -27,7 +27,7 @@ Front-end self-hosts on both backends in LLVM-enabled builds.
   steps, intent retry declaration metadata, with full expression precedence.
   The parity set includes a deep nested generic type fixture so LLVM
   depth/type-name handling is covered. The current examples scale probe is
-  106 of 118 byte-equal against live `pgy --ast`, with 4 byte-drifts, 7
+  107 of 119 byte-equal against live `pgy --ast`, with 4 byte-drifts, 7
   self-host parser exits, and 1 C-oracle skip (`secure_slots`).
 - Backend parity: the parser compiled by the C backend and by the LLVM backend
   produce byte-identical output. This is the core self-host correctness signal,

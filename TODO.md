@@ -53,13 +53,28 @@ English anchor for tooling/doc gates:
   `HashMap<K,V>`, `Slot<T>`, `Channel<T>`, `Future<T>`, `Rc<T>`, or `Weak<T>`.
   `mir-declaration-inventory-smoke` and `perf-contract-smoke` lock that
   type-name owner path.
-- LLVM AwaitLocal CFG/MIR source-of-truth: source-local `let value = await task`
-  lowering now requires the matching MIR `AwaitLocal` resource operation and
-  recovers the `Future<T>` result from registered binding metadata or the MIR
-  routine source-local type-name fact. It no longer relies on AST payload
-  pointer identity to accept the resource fact, and no-value LLVM let
-  initializers fail closed before verifier time. `future_annotation` now runs
-  equal on C and LLVM in the targeted backend parity slice.
+- LLVM await CFG/MIR source-of-truth: source-local `let value = await task`,
+  inline `let value = await spawn Work(...)`, residual `Log(await task)`,
+  residual `Log(await spawn Work(...))`, and nested expressions such as
+  `Write(total, Read(total) + await task)` now require the matching RIR/MIR
+  `AwaitLocal`/`AwaitRemote` resource operation to be present as boundary
+  evidence. RIR walks binary/unary/member/array/literal/cast expression
+  containers so nested awaits are not hidden inside AST fallback emission.
+  LLVM recovers the `Future<T>` result from registered binding metadata or the
+  MIR routine source-local type-name fact; the resource-op name proves the
+  boundary, while value ABI still comes from the Future binding/type fact. It
+  no longer relies on AST payload pointer identity to accept the resource fact,
+  and no-value LLVM let initializers fail closed before verifier time.
+  `future_annotation`, generic future spawn cases, `spawn_future_await_slot`,
+  and `await_inline_spawn` now run equal on C and LLVM in the targeted backend
+  parity slice.
+- LLVM MIR async type-fact source-of-truth: channel receive and await local type
+  inference now identifies the operand from expression shape but recovers
+  `Channel<T>`, `Future<T>`, and `RemoteFuture<T>` inner types from
+  `mir_routine_source_local_type_name(...)` and constructed type-name parsing.
+  It no longer reopens defining let type annotations, AST generic args, source
+  payloads, or spawn initializer AST to recover those type facts. `perf-contract`
+  locks the owner.
 - Honest weakness ledger: beta messaging and work selection must keep five
   real costs visible instead of hiding them behind safety language. (1) Runtime
   Slot/authority validation can trade memory corruption for availability loss;
@@ -9319,7 +9334,7 @@ committed file list; the current contract is DirWalk-owned. The tool calls
 `tests/production_header_size_smoke.sh`, `ReadFile`s each header, counts
 newlines through `TextScan.CountLines`, and asserts each header is `<= 600`
 LOC. It emits `pgy.selfhost.production-header-size.v1` with
-`headers=540 violations=0 max_lines=596` on the clean repo. Parity rung 2
+`headers=543 violations=0 max_lines=599` on the clean repo. Parity rung 2
 asserts: clean exit, JSON byte-equal vs `expected/clean.json`,
 `headers/violations/max_lines` parity vs shell `find + wc -l` ground truth, and
 a synthetic 701-line `.h` under `src/runtime` yields `rc=1` with a
@@ -9330,7 +9345,7 @@ a synthetic 701-line `.h` under `src/runtime` yields `rc=1` with a
 but covering production `.c` translation units against the 699-LOC hard cap.
 The current contract is DirWalk-owned: it calls `DirWalk("src")`, filters the
 same production `.c` scope as `tests/test_inc_size_smoke.sh`, and emits
-`pgy.selfhost.production-c-size.v1` with `c_files=860 violations=0
+`pgy.selfhost.production-c-size.v1` with `c_files=864 violations=0
 max_lines=699` on the clean repo. Parity rung 2 asserts: clean exit,
 JSON byte-equal, `c_files/violations/max_lines` parity vs shell `find + wc -l`,
 and a synthetic 1001-line `.c` under `src/runtime` yields `rc=1` with a
@@ -9354,7 +9369,7 @@ version read a committed file list; the current 2026-06-15 contract is
 DirWalk-owned. It calls `DirWalk("examples")`, filters top-level `.pgy` files,
 and asserts the expected count plus `TextScan.CountLines(content) > 0`.
 Emits `pgy.selfhost.examples-inventory.v1` with
-`examples=118 missing=0 empty=0 max_lines=544` on the clean repo.
+`examples=119 missing=0 empty=0 max_lines=544` on the clean repo.
 **Third consumer of `TextScan.CountLines`**, which triggered the lift
 of `CountLines` from inline duplicates in tools 8 and 9 into
 `src/self_hosted/lib/text_scan.pgy`. Tools 8 and 9 now `import

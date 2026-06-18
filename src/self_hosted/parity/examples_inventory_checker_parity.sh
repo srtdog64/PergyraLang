@@ -111,4 +111,4 @@ if ! grep -Fq '"kind":"inventory_count_drift"' <<<"$NEG_OUT"; then
 fi
 
 assert_llvm_leg "self-host-parity:examples-inventory" "$PERGYRA_TOOL" "$PERGYRA_TOOL_BUILD_DIR"
-echo "[self-host-parity:examples-inventory] rung-2 parity ok (DirWalk examples=118 missing=0 empty=0 max=544; count-drift fixture rc=1)"
+echo "[self-host-parity:examples-inventory] rung-2 parity ok (DirWalk examples=119 missing=0 empty=0 max=544; count-drift fixture rc=1)"

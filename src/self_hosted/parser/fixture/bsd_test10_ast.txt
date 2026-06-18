@@ -1,11 +1,15 @@
 Program:
-  Let: x = 1
-  Let: y = 2
-  While: (x > 0)
-    Block:
-      Assign: y = (y + 1)
-      If: (y > 3)
-        Then:
+  Function: Main
+    Parameters:
+    Body:
+      Block:
+        Let: x = 1
+        Let: y = 2
+        While: (x > 0)
           Block:
-            Assign: x = 0
+            Assign: y = (y + 1)
+            If: (y > 3)
+              Then:
+                Block:
+                  Assign: x = 0
 

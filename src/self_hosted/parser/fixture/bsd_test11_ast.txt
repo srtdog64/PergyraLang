@@ -1,11 +1,15 @@
 Program:
-  Let: x = 1
-  While: (x > 0)
-    Block:
-      Let: event = Random(4)
-      If: (event == 0)
-        Then:
+  Function: Main
+    Parameters:
+    Body:
+      Block:
+        Let: x = 1
+        While: (x > 0)
           Block:
-            Log("zero")
-      Assign: x = 0
+            Let: event = Random(4)
+            If: (event == 0)
+              Then:
+                Block:
+                  Log("zero")
+            Assign: x = 0
 

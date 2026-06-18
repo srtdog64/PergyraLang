@@ -3977,20 +3977,28 @@ if grep -Fq "ast_type_generic_args(" \
 fi
 for term in \
     "llvm_mir_try_emit_await_local_def" \
-    "llvm_mir_find_await_local_resource_op" \
-    "llvm_mir_find_await_local_resource_op(mir_block, future_name)" \
+    "llvm_mir_find_await_resource_op" \
+    "llvm_mir_find_await_resource_op(mir_block, resource_name)" \
     "strcmp(candidate->name, \"AwaitLocal\")" \
-    "llvm_mir_await_future_inner_from_routine" \
-    "mir_routine_source_local_type_name(routine, future_name)" \
-    "llvm_constructed_arg_name_copy(type_name, 0, inner_out" \
+    "strcmp(candidate->name, \"AwaitRemote\")" \
+    "operand->type == AST_SPAWN_EXPR" \
+    "inner = llvm_infer_spawn_future_inner(ctx, operand)" \
+    "resource_name = operand->type == AST_SPAWN_EXPR ? \"spawn\" : future_name" \
+    "llvm_mir_async_fact_future_inner_from_source_local" \
     "llvm_await_task_handle(ctx, init, task, inner, is_remote)" \
-    "LLVM MIR AwaitLocal def requires matching AwaitLocal resource fact"; do
-    require_term "src/codegen/llvm_mir_block_emit.c" "$term"
+    "LLVM MIR await def requires matching AwaitLocal/AwaitRemote resource fact"; do
+    require_term "src/codegen/llvm_mir_await_emit.c" "$term"
 done
-grep -A40 -F "llvm_mir_find_await_local_resource_op" \
-    "$ROOT_DIR/src/codegen/llvm_mir_block_emit.c" | \
+for term in \
+    "llvm_mir_async_fact_future_inner_from_source_local" \
+    "mir_routine_source_local_type_name(routine, future_name)" \
+    "llvm_constructed_arg_name_copy(type_name, 0, inner_out"; do
+    require_term "src/codegen/llvm_mir_async_fact.c" "$term"
+done
+grep -A40 -F "llvm_mir_find_await_resource_op" \
+    "$ROOT_DIR/src/codegen/llvm_mir_await_emit.c" | \
     grep -Fq "mir_instruction_source_payload(candidate) != await_expr" && \
-    fail "LLVM AwaitLocal fact matching must use MIR resource name/use facts, not AST payload pointer identity"
+    fail "LLVM await fact matching must use MIR resource name/use facts, not AST payload pointer identity"
 grep -Fq "LLVM let binding '%s' initializer did not produce a value" \
     "$ROOT_DIR/src/codegen/llvm_stmt_let_with.c" || \
     fail "LLVM let lowering must fail closed when an initializer returns no value"

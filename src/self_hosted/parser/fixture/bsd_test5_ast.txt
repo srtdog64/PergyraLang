@@ -1,7 +1,11 @@
 Program:
-  Let: running = true
-  While: running
-    Block:
-      Log("tick")
-      Assign: running = false
+  Function: Main
+    Parameters:
+    Body:
+      Block:
+        Let: running = true
+        While: running
+          Block:
+            Log("tick")
+            Assign: running = false
 

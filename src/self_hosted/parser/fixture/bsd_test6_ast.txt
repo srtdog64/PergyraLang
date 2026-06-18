@@ -1,21 +1,25 @@
 Program:
-  Let: running = true
-  Let: turn = 1
-  While: running
-    Block:
-      Let: event = Random(4)
-      If: (event == 0)
-        Then:
+  Function: Main
+    Parameters:
+    Body:
+      Block:
+        Let: running = true
+        Let: turn = 1
+        While: running
           Block:
-            Log("zero")
-      If: (event == 1)
-        Then:
-          Block:
-            Log("one")
-      If: (turn >= 3)
-        Then:
-          Block:
-            Assign: running = false
-      Assign: turn = (turn + 1)
-  Log("done")
+            Let: event = Random(4)
+            If: (event == 0)
+              Then:
+                Block:
+                  Log("zero")
+            If: (event == 1)
+              Then:
+                Block:
+                  Log("one")
+            If: (turn >= 3)
+              Then:
+                Block:
+                  Assign: running = false
+            Assign: turn = (turn + 1)
+        Log("done")
 

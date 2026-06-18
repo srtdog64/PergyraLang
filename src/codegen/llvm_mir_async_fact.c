@@ -8,7 +8,6 @@
 
 #include <string.h>
 
-#include "llvm_internal_api.h"
 #include "parser/ast_api.h"
 
 static ASTNode *
@@ -44,53 +43,58 @@ llvm_mir_async_fact_await_expr(ASTNode *expr)
     return value != NULL && value->type == AST_AWAIT_EXPR ? value : NULL;
 }
 
-static const MIRInstruction *
-llvm_mir_async_fact_find_base_def(const MIRRoutine *routine,
-                                  const char *base_name)
+static LLVMTypeRef
+llvm_mir_async_fact_type_from_local_container(const MIRRoutine *routine,
+                                              LLVMGenCtx *ctx,
+                                              const char *local_name,
+                                              const char *prefix)
 {
-    char result_base[128];
+    const char *type_name;
+    char inner[256];
 
-    if (routine == NULL || base_name == NULL)
+    if (routine == NULL || ctx == NULL || local_name == NULL
+        || prefix == NULL)
         return NULL;
-    for (size_t b = 0; b < routine->block_count; b++) {
-        const MIRBasicBlock *block = &routine->blocks[b];
-        for (size_t i = 0; i < block->instruction_count; i++) {
-            const MIRInstruction *candidate = &block->instructions[i];
-            if (candidate->kind != MIR_INST_DEF)
-                continue;
-            if (candidate->arg0 != NULL
-                && strcmp(candidate->arg0, base_name) == 0)
-                return candidate;
-            if (candidate->result_name == NULL)
-                continue;
-            if (!llvm_mir_base_name_from_versioned(candidate->result_name,
-                    result_base, sizeof(result_base)))
-                continue;
-            if (strcmp(result_base, base_name) == 0)
-                return candidate;
-        }
-    }
-    return NULL;
+    type_name = mir_routine_source_local_type_name(routine, local_name);
+    if (type_name == NULL || strncmp(type_name, prefix, strlen(prefix)) != 0)
+        return NULL;
+    if (!llvm_constructed_arg_name_copy(type_name, 0, inner, sizeof(inner))
+        || inner[0] == '\0')
+        return NULL;
+    return pergyra_type_to_llvm(ctx, inner);
 }
 
-static const char *
-llvm_mir_async_fact_first_type_arg_scratch(LLVMGenCtx *ctx,
-                                           ASTNode *type_node,
-                                           const char *container_name)
+bool
+llvm_mir_async_fact_future_inner_from_source_local(
+    const MIRRoutine *routine,
+    const char *future_name,
+    char *inner_out,
+    size_t inner_out_size,
+    bool *is_remote_out)
 {
-    GenericParams *args;
-    GenericParam *arg0;
+    const char *type_name;
 
-    if (ctx == NULL || type_node == NULL || type_node->type != AST_TYPE)
-        return NULL;
-    if (ast_type_name(type_node) == NULL
-        || strcmp(ast_type_name(type_node), container_name) != 0)
-        return NULL;
-    args = ast_type_generic_args(type_node);
-    arg0 = ast_generic_param_at(args, 0);
-    if (arg0 == NULL)
-        return NULL;
-    return llvm_stmt_render_type_arg_scratch(arg0, &ctx->scratch);
+    if (inner_out == NULL || inner_out_size == 0)
+        return false;
+    inner_out[0] = '\0';
+    if (is_remote_out != NULL)
+        *is_remote_out = false;
+    if (routine == NULL || future_name == NULL)
+        return false;
+
+    type_name = mir_routine_source_local_type_name(routine, future_name);
+    if (type_name == NULL || type_name[0] == '\0')
+        return false;
+    if (strncmp(type_name, "RemoteFuture<", 13) == 0) {
+        if (is_remote_out != NULL)
+            *is_remote_out = true;
+        return llvm_constructed_arg_name_copy(type_name, 0, inner_out,
+            inner_out_size);
+    }
+    if (strncmp(type_name, "Future<", 7) == 0)
+        return llvm_constructed_arg_name_copy(type_name, 0, inner_out,
+            inner_out_size);
+    return false;
 }
 
 LLVMTypeRef
@@ -100,10 +104,6 @@ llvm_mir_async_fact_type_from_channel_recv(const MIRRoutine *routine,
 {
     ASTNode *recv;
     ASTNode *channel;
-    const MIRInstruction *channel_def;
-    ASTNode *source;
-    ASTNode *type_ann;
-    const char *inner;
 
     if (routine == NULL || ctx == NULL || inst == NULL)
         return NULL;
@@ -115,16 +115,8 @@ llvm_mir_async_fact_type_from_channel_recv(const MIRRoutine *routine,
         || ast_identifier_name(channel) == NULL)
         return NULL;
 
-    channel_def = llvm_mir_async_fact_find_base_def(routine,
-        ast_identifier_name(channel));
-    source = mir_instruction_source_payload(channel_def);
-    type_ann = source != NULL && source->type == AST_LET_DECL
-        ? ast_let_type(source) : NULL;
-    inner = llvm_mir_async_fact_first_type_arg_scratch(ctx, type_ann,
-        "Channel");
-    if (inner == NULL || inner[0] == '\0')
-        return NULL;
-    return pergyra_type_to_llvm(ctx, inner);
+    return llvm_mir_async_fact_type_from_local_container(routine, ctx,
+        ast_identifier_name(channel), "Channel<");
 }
 
 LLVMTypeRef
@@ -134,11 +126,7 @@ llvm_mir_async_fact_type_from_await(const MIRRoutine *routine,
 {
     ASTNode *await_expr;
     ASTNode *operand;
-    const MIRInstruction *future_def;
-    ASTNode *source;
-    ASTNode *type_ann;
-    ASTNode *init;
-    const char *inner;
+    LLVMTypeRef type;
 
     if (routine == NULL || ctx == NULL || inst == NULL)
         return NULL;
@@ -150,22 +138,12 @@ llvm_mir_async_fact_type_from_await(const MIRRoutine *routine,
         || ast_identifier_name(operand) == NULL)
         return NULL;
 
-    future_def = llvm_mir_async_fact_find_base_def(routine,
-        ast_identifier_name(operand));
-    source = mir_instruction_source_payload(future_def);
-    type_ann = source != NULL && source->type == AST_LET_DECL
-        ? ast_let_type(source) : NULL;
-    inner = llvm_mir_async_fact_first_type_arg_scratch(ctx, type_ann,
-        "Future");
-    if (inner == NULL || inner[0] == '\0') {
-        init = source != NULL && source->type == AST_LET_DECL
-            ? ast_let_initializer(source) : NULL;
-        if (init != NULL && init->type == AST_SPAWN_EXPR)
-            inner = llvm_infer_spawn_future_inner(ctx, init);
-    }
-    if (inner == NULL || inner[0] == '\0')
-        return NULL;
-    return pergyra_type_to_llvm(ctx, inner);
+    type = llvm_mir_async_fact_type_from_local_container(routine, ctx,
+        ast_identifier_name(operand), "Future<");
+    if (ctx->has_error || type != NULL)
+        return type;
+    return llvm_mir_async_fact_type_from_local_container(routine, ctx,
+        ast_identifier_name(operand), "RemoteFuture<");
 }
 
 #endif /* PGY_LLVM_ENABLED */

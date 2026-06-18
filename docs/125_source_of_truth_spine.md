@@ -520,13 +520,29 @@ then parses constructed arguments from that rendered string. It must not reopen
 registering collection, channel, slot, future, or reference metadata.
 
 LLVM MIR source-local `await` lowering follows the same rule. A local binding
-such as `let value: T = await task` must consume the matching MIR
-`AwaitLocal` resource operation before it emits `pgy_await_export(...)`, and it
-must recover the awaited `Future<T>` result type from the registered binding or
-from the MIR routine source-local type-name fact. It must not require
-AST-payload pointer identity to prove the resource fact, and a no-value
-initializer must fail closed instead of letting LLVM verification discover a
-missing terminator later.
+such as `let value: T = await task`, an inline spawn binding such as
+`let value: T = await spawn Work(...)`, residual statements such as
+`Log(await task)` and `Log(await spawn Work(...))`, and nested expression cases
+such as `Write(total, Read(total) + await task)` must have matching RIR/MIR
+`AwaitLocal` or `AwaitRemote` resource operations before backend lowering
+treats the await as a proved resource boundary. RIR expression walking must
+therefore traverse expression containers such as binary/unary/member/array/
+literal/cast nodes instead of only top-level statements and calls. LLVM must
+recover the awaited `Future<T>` result type from the registered binding or from
+the MIR routine source-local type-name fact. The resource-op name is boundary
+evidence, not the only owner of the value ABI: local-vs-remote result shape
+still comes from the Future binding/type fact. It must not require AST-payload
+pointer identity to prove the resource fact, and a no-value initializer must
+fail closed instead of letting LLVM verification discover a missing terminator
+later.
+
+LLVM MIR local type inference for `recv(channel)` and `await future` is also a
+source-local type-name consumer. `llvm_mir_async_fact.c` may inspect the
+expression shape to identify the channel/future operand, but `Channel<T>`,
+`Future<T>`, and `RemoteFuture<T>` inner type recovery must come from
+`mir_routine_source_local_type_name(...)` plus constructed-argument parsing,
+not from re-reading the defining let's AST type annotation or spawn
+initializer.
 
 Note: the declaration-field metadata row's counted zone frontier pass-limit
 consumer is now C/LLVM, not C-only; LLVM zone sync must consume

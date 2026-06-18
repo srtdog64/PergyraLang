@@ -119,13 +119,17 @@ Program:
             Assign: turn = (turn + 1)
         Log((("  Battle ended in " + ToString((turn - 1))) + " turns."))
         Log("========================================")
-  Log("=== Pergyra Battle Simulator ===")
-  Log("")
-  Let: hero = Fighter("Hero", 100, 100, 25, 10, 20)
-  Let: goblin = Fighter("Goblin", 80, 80, 18, 8, 15)
-  RunBattle(hero, goblin)
-  Log("")
-  Let: knight = Fighter("Knight", 120, 120, 22, 20, 25)
-  Let: dragon = Fighter("Dragon", 150, 150, 30, 15, 10)
-  RunBattle(knight, dragon)
+  Function: Main
+    Parameters:
+    Body:
+      Block:
+        Log("=== Pergyra Battle Simulator ===")
+        Log("")
+        Let: hero = Fighter("Hero", 100, 100, 25, 10, 20)
+        Let: goblin = Fighter("Goblin", 80, 80, 18, 8, 15)
+        RunBattle(hero, goblin)
+        Log("")
+        Let: knight = Fighter("Knight", 120, 120, 22, 20, 25)
+        Let: dragon = Fighter("Dragon", 150, 150, 30, 15, 10)
+        RunBattle(knight, dragon)
 

@@ -3,7 +3,7 @@
 // Status: rung-1 expanding (2026-06-18). Pergyra-origin parser substitute.
 // Emits the same compact text tree that `pgy --ast` produces, byte-equal, for
 // the committed parity fixture set. Current gate: 188 sources byte-equal on C
-// and LLVM parser binaries; scale probe: 106 of 118 examples byte-equal.
+// and LLVM parser binaries; scale probe: 107 of 119 examples byte-equal.
 //
 // Contract: see intent.md in the same directory.
 
@@ -1376,6 +1376,18 @@ func AppendLine(acc: String, line: String) -> String {
     return Concat(acc, Concat("\n", line));
 }
 
+func AppendImplicitMain(decls: String, body: String) -> String {
+    if StringLength(body) == 0 {
+        return decls;
+    }
+    let main_block: String = "  Function: Main";
+    main_block = AppendLine(main_block, "    Parameters:");
+    main_block = AppendLine(main_block, "    Body:");
+    main_block = AppendLine(main_block, "      Block:");
+    main_block = AppendLine(main_block, body);
+    return AppendLine(decls, main_block);
+}
+
 // Parse one `func IDENT(params) -> RET { body }` declaration starting
 // at the `func` keyword. Returns the formatted multi-line block.
 // `base_indent` is the column at which `Function:` appears; child rows
@@ -1659,7 +1671,9 @@ func ParseDecls(content: String, start: Int, cursor_out: Array<Int>, name_prefix
     let i: Int = start;
     let n: Int = StringLength(content);
     let out: String = "";
+    let script_body: String = "";
     let involve_types: Array<String> = [];
+    let collect_script: Bool = !until_brace && !force_export && StringLength(name_prefix) == 0 && StringLength(within_zone) == 0;
     
     let is_imported: Bool = StringIndexOf(content, "__imported__") >= 0;
     let has_exports: Bool = false;
@@ -1678,12 +1692,12 @@ func ParseDecls(content: String, start: Int, cursor_out: Array<Int>, name_prefix
             if CharAt(content, i) == "}" {
                 i = i + 1;
                 ArraySet(cursor_out, 0, i);
-                return out;
+                return AppendImplicitMain(out, script_body);
             }
         } else {
             if i >= n {
                 ArraySet(cursor_out, 0, i);
-                return out;
+                return AppendImplicitMain(out, script_body);
             }
         }
 
@@ -3273,16 +3287,23 @@ func ParseDecls(content: String, start: Int, cursor_out: Array<Int>, name_prefix
         }
 
         // Top-level statement (let/if/while/for/break/continue/match,
-        // bare call, or assignment). `export` doesn't apply to
-        // statements, so reject it; otherwise dispatch to ParseOneStmt
-        // with stmt_indent=2 so the line sits directly under `Program:`.
+        // bare call, or assignment). Root script statements are collected
+        // under the implicit Main function to match the C parser oracle.
         if is_export {
             Exit(1);
         }
         ArraySet(cursor_out, 0, i);
-        let stmt_block: String = ParseOneStmt(content, i, cursor_out, 2);
+        let stmt_indent: Int = 2;
+        if collect_script {
+            stmt_indent = 8;
+        }
+        let stmt_block: String = ParseOneStmt(content, i, cursor_out, stmt_indent);
         i = cursor_out[0];
-        out = AppendLine(out, stmt_block);
+        if collect_script {
+            script_body = AppendLine(script_body, stmt_block);
+        } else {
+            out = AppendLine(out, stmt_block);
+        }
     }
     return out;
 }

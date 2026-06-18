@@ -15,8 +15,4 @@ void llvm_emit_mir_block_with_exprs(const MIRBasicBlock *mir_block,
                                     LLVMFuncEntry *owner_sync,
                                     const char *owner_name);
 
-bool llvm_mir_copy_host_field_to_versioned_local(LLVMGenCtx *ctx,
-                                                 const char *field_name,
-                                                 LLVMMirVar *target);
-
 #endif

@@ -297,6 +297,114 @@ parser_reject_reserved_cast_after_expression(Parser *parser)
 
 // ============= 문장 파싱 =============
 
+/* Script register: a top-level statement is "executable" (belongs in the
+ * implicit Main body) when it is a statement or a bare expression, never a
+ * declaration. The list is a conservative allowlist of clearly-executable node
+ * kinds; anything else (every AST_*_DECL, namespace, import, extern, ...) stays
+ * a top-level declaration. Missing an executable kind only leaves it at top
+ * level (the pre-existing no-run behavior), never pulls a declaration into Main.
+ */
+static bool parser_is_top_level_executable(const ASTNode* stmt) {
+    if (stmt == NULL)
+        return false;
+    switch (stmt->type) {
+    case AST_IF_STMT:
+    case AST_WHILE_LOOP:
+    case AST_FOR_LOOP:
+    case AST_RETURN:
+    case AST_ASSIGNMENT:
+    case AST_LET_DECL:
+    case AST_LET_DESTRUCTURE:
+    case AST_BLOCK:
+    case AST_MATCH_STMT:
+    case AST_BREAK:
+    case AST_CONTINUE:
+    case AST_DEFER_STMT:
+    case AST_BIND_STMT:
+    case AST_WITH_STMT:
+    case AST_PARALLEL_BLOCK:
+    case AST_ASYNC_BLOCK:
+    case AST_UNSAFE_BLOCK:
+    case AST_SELECT_STMT:
+    case AST_CALL:
+    case AST_BINARY:
+    case AST_UNARY:
+    case AST_IDENTIFIER:
+    case AST_MEMBER_ACCESS:
+    case AST_AWAIT_EXPR:
+    case AST_SPAWN_EXPR:
+    case AST_CHANNEL_SEND:
+    case AST_CHANNEL_RECV:
+        return true;
+    default:
+        return false;
+    }
+}
+
+/* Collect top-level executable statements (in source order) into a synthesized
+ * `func Main() { ... }` so the rest of the compiler reuses the existing entry
+ * machinery. Declarations stay at top level. If the source ALSO declares an
+ * explicit `func Main`, two Mains result and the existing duplicate-definition
+ * check rejects it -- top-level statements and an explicit Main are mutually
+ * exclusive, with no silent dropped code. Top-level `let` is script-local
+ * because it lives inside this implicit Main. No-op when there are no top-level
+ * executable statements (a normal structured program is unchanged).
+ */
+static bool program_has_func_named(ASTNode* program, const char* name) {
+    size_t count = ast_program_statement_count(program);
+    for (size_t i = 0; i < count; i++) {
+        ASTNode* s = program->data.program.statements[i];
+        if (s != NULL && s->type == AST_FUNC_DECL
+            && s->data.func_decl.name != NULL
+            && strcmp(s->data.func_decl.name, name) == 0)
+            return true;
+    }
+    return false;
+}
+
+static void parser_synthesize_implicit_main(Parser* parser, ASTNode* program) {
+    if (program == NULL || program->type != AST_PROGRAM)
+        return;
+
+    ASTNode* implicit_body = NULL;
+    size_t count = ast_program_statement_count(program);
+    size_t write = 0;
+    for (size_t i = 0; i < count; i++) {
+        ASTNode* stmt = program->data.program.statements[i];
+        if (parser_is_top_level_executable(stmt)) {
+            if (implicit_body == NULL)
+                implicit_body = ast_create_block();
+            ast_add_statement(implicit_body, stmt);          /* ownership -> Main body */
+        } else if (stmt != NULL) {
+            program->data.program.statements[write++] = stmt; /* keep, compacted */
+        }
+    }
+    /* Drop moved/NULL slots. ast_destroy frees only [0, count), so the moved
+     * executables are owned solely by the Main body (no double free, no holes). */
+    program->data.program.count = write;
+
+    if (implicit_body == NULL)
+        return;
+
+    /* Top-level statements ARE the implicit Main body, so an explicit `func Main`
+     * alongside them is a duplicate Main. Reject loudly -- never silently drop
+     * the top-level code. */
+    if (program_has_func_named(program, "Main")) {
+        parser_error(parser,
+            "Top-level statements and an explicit 'func Main' are mutually "
+            "exclusive: the top-level statements already form the program's "
+            "Main.\n"
+            "Fix: move the statements into 'func Main', or remove 'func Main' "
+            "and keep them at top level.");
+        ast_destroy(implicit_body);
+        return;
+    }
+
+    ASTNode* implicit_main = ast_create_function("Main");
+    implicit_main->data.func_decl.body = implicit_body;
+    (void)ast_program_append_statement(program, implicit_main);
+}
+
 // 프로그램 파싱
 ASTNode* parser_parse_program(Parser* parser) {
     ASTNode* program = ast_create_program();
@@ -321,6 +429,8 @@ ASTNode* parser_parse_program(Parser* parser) {
             parser_synchronize(parser);
         }
     }
+
+    parser_synthesize_implicit_main(parser, program);
 
     ast_assign_stable_ids(program);
     return program;

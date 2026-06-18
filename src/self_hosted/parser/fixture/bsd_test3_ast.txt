@@ -1,7 +1,11 @@
 Program:
-  Let: ok : Bool = true
-  If: (!ok)
-    Then:
+  Function: Main
+    Parameters:
+    Body:
       Block:
-        Log("not ok")
+        Let: ok : Bool = true
+        If: (!ok)
+          Then:
+            Block:
+              Log("not ok")
 

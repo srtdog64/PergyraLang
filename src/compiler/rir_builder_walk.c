@@ -258,6 +258,50 @@ rir_walk_node(RIRScope *scope, ASTNode *node)
                 return false;
             return rir_walk_node(scope, ast_channel_recv_channel(node));
 
+        case AST_BINARY:
+            return rir_walk_node(scope, ast_binary_left(node))
+                && rir_walk_node(scope, ast_binary_right(node));
+
+        case AST_UNARY:
+            return rir_walk_node(scope, ast_unary_operand(node));
+
+        case AST_MEMBER_ACCESS:
+            return rir_walk_node(scope, ast_member_object(node));
+
+        case AST_ARRAY_ACCESS:
+            return rir_walk_node(scope, ast_array_access_array(node))
+                && rir_walk_node(scope, ast_array_access_index(node));
+
+        case AST_ARRAY_LITERAL:
+            for (size_t i = 0; i < ast_array_literal_count(node); i++) {
+                if (!rir_walk_node(scope, ast_array_literal_element(node, i)))
+                    return false;
+            }
+            return true;
+
+        case AST_TUPLE_LITERAL:
+            for (size_t i = 0; i < ast_tuple_literal_count(node); i++) {
+                if (!rir_walk_node(scope, ast_tuple_literal_element(node, i)))
+                    return false;
+            }
+            return true;
+
+        case AST_MAP_LITERAL:
+            for (size_t i = 0; i < ast_map_literal_count(node); i++) {
+                if (!rir_walk_node(scope, ast_map_literal_key(node, i))
+                    || !rir_walk_node(scope,
+                        ast_map_literal_value(node, i))) {
+                    return false;
+                }
+            }
+            return true;
+
+        case AST_CAST:
+            return rir_walk_node(scope, ast_cast_operand(node));
+
+        case AST_TYPE_TEST:
+            return rir_walk_node(scope, ast_type_test_operand(node));
+
         case AST_SELECT_STMT:
             if (!add_op(scope, RIR_OP_CHANNEL_SELECT, "select", NULL, NULL, node))
                 return false;

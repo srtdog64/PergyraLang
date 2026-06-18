@@ -24,6 +24,7 @@ LLVMValueRef llvm_emit_expression(ASTNode *node, LLVMGenCtx *ctx);
 #include "llvm_expr_call_projection_sync.h"
 #include "llvm_expr_call_methods_domain_slice.h"
 #include "llvm_expr_event_calls.h"
+#include "llvm_mir_async_fact.h"
 #include "llvm_member_call_emit.h"
 #include "llvm_expr_call_owners.h"
 
@@ -125,8 +126,10 @@ llvm_emit_expression(ASTNode *node, LLVMGenCtx *ctx)
             ASTNode *inner_expr = ast_await_expression(node);
             const char *future_name = NULL;
             const char *inner = NULL;
+            char inner_from_mir[256];
             bool is_remote = false;
 
+            inner_from_mir[0] = '\0';
             if (inner_expr->type == AST_SPAWN_EXPR) {
                 inner = llvm_infer_spawn_future_inner(ctx, inner_expr);
                 if (inner == NULL || inner[0] == '\0') {
@@ -151,6 +154,19 @@ llvm_emit_expression(ASTNode *node, LLVMGenCtx *ctx)
             }
             future_name = ast_identifier_name(inner_expr);
             inner = llvm_lookup_future_inner(ctx, future_name);
+            is_remote = llvm_lookup_future_is_remote(ctx, future_name);
+            if (inner == NULL || inner[0] == '\0') {
+                bool mir_is_remote = false;
+                if (llvm_mir_async_fact_future_inner_from_source_local(
+                        ctx->current_mir_routine,
+                        future_name,
+                        inner_from_mir,
+                        sizeof(inner_from_mir),
+                        &mir_is_remote)) {
+                    inner = inner_from_mir;
+                    is_remote = mir_is_remote;
+                }
+            }
             if (inner == NULL || inner[0] == '\0') {
                 llvm_set_error_at_with_hints(ctx, node,
                     PGY_CODE_LLVM_TYPE_UNSUPPORTED,
@@ -159,7 +175,6 @@ llvm_emit_expression(ASTNode *node, LLVMGenCtx *ctx)
                     "LLVM await expression requires registered Future<T> result metadata");
                 return NULL;
             }
-            is_remote = llvm_lookup_future_is_remote(ctx, future_name);
             {
                 LLVMValueRef task = llvm_emit_expression(inner_expr, ctx);
                 return llvm_await_task_handle(ctx, node, task, inner, is_remote);

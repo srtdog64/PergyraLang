@@ -3989,6 +3989,45 @@ grep -Fq "llvm_mir_local_type_from_value_fact" \
     "$ROOT_DIR/src/codegen/llvm_mir_local_emit.c"
 grep -Fq "llvm_mir_async_fact_type_from_channel_recv" \
     "$ROOT_DIR/src/codegen/llvm_mir_local_emit.c"
+grep -Fq "llvm_mir_async_fact_future_inner_from_source_local" \
+    "$ROOT_DIR/src/codegen/llvm_expr.c"
+grep -Fq "llvm_mir_try_emit_await_local_def" \
+    "$ROOT_DIR/src/codegen/llvm_mir_await_emit.c"
+grep -Fq "operand->type == AST_SPAWN_EXPR" \
+    "$ROOT_DIR/src/codegen/llvm_mir_await_emit.c"
+grep -Fq "inner = llvm_infer_spawn_future_inner(ctx, operand)" \
+    "$ROOT_DIR/src/codegen/llvm_mir_await_emit.c"
+grep -Fq "resource_name = operand->type == AST_SPAWN_EXPR ? \"spawn\" : future_name" \
+    "$ROOT_DIR/src/codegen/llvm_mir_await_emit.c"
+grep -Fq "llvm_mir_find_await_resource_op(mir_block, resource_name)" \
+    "$ROOT_DIR/src/codegen/llvm_mir_await_emit.c"
+grep -Fq "mir_routine_source_local_type_name(routine, local_name)" \
+    "$ROOT_DIR/src/codegen/llvm_mir_async_fact.c"
+grep -Fq "mir_routine_source_local_type_name(routine, future_name)" \
+    "$ROOT_DIR/src/codegen/llvm_mir_async_fact.c"
+grep -Fq "llvm_constructed_arg_name_copy(type_name, 0, inner" \
+    "$ROOT_DIR/src/codegen/llvm_mir_async_fact.c"
+if grep -Fq "ast_type_generic_args(" "$ROOT_DIR/src/codegen/llvm_mir_async_fact.c" \
+    || grep -Fq "ast_generic_param_constraint(" "$ROOT_DIR/src/codegen/llvm_mir_async_fact.c" \
+    || grep -Fq "ast_let_type(" "$ROOT_DIR/src/codegen/llvm_mir_async_fact.c" \
+    || grep -Fq "mir_instruction_source_payload(" "$ROOT_DIR/src/codegen/llvm_mir_async_fact.c" \
+    || grep -Fq "llvm_infer_spawn_future_inner" "$ROOT_DIR/src/codegen/llvm_mir_async_fact.c"; then
+    echo "[perf-contract] LLVM MIR async facts must consume MIR source-local type names, not AST type payloads" >&2
+    exit 1
+fi
+for term in \
+    "case AST_BINARY:" \
+    "ast_binary_left(node)" \
+    "ast_binary_right(node)" \
+    "case AST_UNARY:" \
+    "ast_unary_operand(node)" \
+    "case AST_ARRAY_LITERAL:" \
+    "ast_array_literal_element(node, i)" \
+    "case AST_MAP_LITERAL:" \
+    "ast_map_literal_key(node, i)" \
+    "ast_map_literal_value(node, i)"; do
+    grep -Fq "$term" "$ROOT_DIR/src/compiler/rir_builder_walk.c"
+done
 grep -Fq "llvm_mir_slice_fact_type_from_call" \
     "$ROOT_DIR/src/codegen/llvm_mir_local_emit.c"
 grep -Fq "llvm_mir_get_var_entry(vars, var_count, name)" \

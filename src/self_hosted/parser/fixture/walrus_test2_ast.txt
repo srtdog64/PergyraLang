@@ -1,5 +1,9 @@
 Program:
-  Let: y = 10
-  Let: x = 42
-  Log(ToString(x))
+  Function: Main
+    Parameters:
+    Body:
+      Block:
+        Let: y = 10
+        Let: x = 42
+        Log(ToString(x))
 

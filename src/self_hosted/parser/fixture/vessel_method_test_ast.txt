@@ -32,7 +32,11 @@ Program:
             Let: alive : Bool = hp.IsAlive()
             Let: rested : Bool = (!hp.IsExhausted())
             Return: (alive && rested)
-  Let: hero = Fighter("Hero", HP(100, 100))
-  Let: ok : Bool = hero.IsOperational()
-  Log(ToString(ok))
+  Function: Main
+    Parameters:
+    Body:
+      Block:
+        Let: hero = Fighter("Hero", HP(100, 100))
+        Let: ok : Bool = hero.IsOperational()
+        Log(ToString(ok))
 

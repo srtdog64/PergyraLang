@@ -19,16 +19,20 @@ Program:
         Body:
           Block:
             Assign: current = (current - dmg)
-  Let: a = HP(100, 100)
-  a.Hit(30)
-  Let: alive : Bool = a.IsAlive()
-  Log(ToString(a.current))
-  If: alive
-    Then:
+  Function: Main
+    Parameters:
+    Body:
       Block:
-        Log("still alive")
-  If: (!alive)
-    Then:
-      Block:
-        Log("dead")
+        Let: a = HP(100, 100)
+        a.Hit(30)
+        Let: alive : Bool = a.IsAlive()
+        Log(ToString(a.current))
+        If: alive
+          Then:
+            Block:
+              Log("still alive")
+        If: (!alive)
+          Then:
+            Block:
+              Log("dead")
 

@@ -5,7 +5,7 @@
 #ifdef PGY_LLVM_ENABLED
 
 #include "llvm_mir_local_emit.h"
-#include "llvm_mir_block_emit.h"
+#include "llvm_mir_host_field.h"
 
 #include <string.h>
 

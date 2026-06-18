@@ -1,15 +1,19 @@
 Program:
-  Let: x = 1
-  Let: running = true
-  While: running
-    Block:
-      If: (x == 0)
-        Then:
+  Function: Main
+    Parameters:
+    Body:
+      Block:
+        Let: x = 1
+        Let: running = true
+        While: running
           Block:
-            Log("zero")
-      If: (x == 1)
-        Then:
-          Block:
-            Log("one")
-      Assign: running = false
+            If: (x == 0)
+              Then:
+                Block:
+                  Log("zero")
+            If: (x == 1)
+              Then:
+                Block:
+                  Log("one")
+            Assign: running = false
 

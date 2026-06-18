@@ -50,7 +50,7 @@ Current measured coverage:
 
 - `parser_parity.sh`: 188 committed sources byte-equal on both generated C and
   LLVM parser binaries.
-- `parser_scale_probe.sh --failing`: 106 of 118 `examples/*.pgy` byte-equal
+- `parser_scale_probe.sh --failing`: 107 of 119 `examples/*.pgy` byte-equal
   against live `pgy --ast`; 4 byte-drift, 7 self-host parser exits, and 1
   C-oracle skip (`secure_slots`).
 

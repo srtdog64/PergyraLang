@@ -953,13 +953,16 @@ ifneq ($(LLVM_ENABLED),0)
                         $(CODEGEN_DIR)/llvm_mir_contract.c \
                         $(CODEGEN_DIR)/llvm_mir_signature.c \
                         $(CODEGEN_DIR)/llvm_mir_emit.c \
+                        $(CODEGEN_DIR)/llvm_mir_await_emit.c \
                         $(CODEGEN_DIR)/llvm_mir_block_emit.c \
+                        $(CODEGEN_DIR)/llvm_mir_host_field.c \
                         $(CODEGEN_DIR)/llvm_mir_pin_region.c \
                         $(CODEGEN_DIR)/llvm_mir_resource_claim.c \
                         $(CODEGEN_DIR)/llvm_mir_resource_view.c \
                         $(CODEGEN_DIR)/llvm_mir_async_fact.c \
                         $(CODEGEN_DIR)/llvm_mir_local_emit.c \
                         $(CODEGEN_DIR)/llvm_mir_local_element_type.c \
+                        $(CODEGEN_DIR)/llvm_mir_scope_bind.c \
                         $(CODEGEN_DIR)/llvm_mir_slice_fact.c \
                         $(CODEGEN_DIR)/llvm_mir_param_emit.c \
                         $(CODEGEN_DIR)/llvm_mir_type_helpers.c \

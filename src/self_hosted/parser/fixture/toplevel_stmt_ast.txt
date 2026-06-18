@@ -1,4 +1,7 @@
 Program:
-  Let: x = 10
-  Log(x)
-
+  Function: Main
+    Parameters:
+    Body:
+      Block:
+        Let: x = 10
+        Log(x)

@@ -1,11 +1,15 @@
 Program:
-  Let: x = 1
-  If: (x == 0)
-    Then:
+  Function: Main
+    Parameters:
+    Body:
       Block:
-        Log("zero")
-  If: (x == 1)
-    Then:
-      Block:
-        Log("one")
+        Let: x = 1
+        If: (x == 0)
+          Then:
+            Block:
+              Log("zero")
+        If: (x == 1)
+          Then:
+            Block:
+              Log("one")
 
