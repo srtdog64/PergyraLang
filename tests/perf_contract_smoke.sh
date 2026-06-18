@@ -3464,7 +3464,8 @@ grep -Fq "if (gp == NULL)" "$ROOT_DIR/src/codegen/llvm_backend_type_render.c"
 ! grep -A8 -F "LLVM type '%s' is not registered in the LLVM type map" \
     "$ROOT_DIR/src/codegen/llvm_backend_type_map.c" | \
     grep -Fq "return ctx->type_i32"
-grep -Fq "llvm_registry_render_required_type_name" "$ROOT_DIR/src/codegen/llvm_backend_type_registry.c"
+grep -Fq "llvm_registry_required_arg_name" "$ROOT_DIR/src/codegen/llvm_backend_type_registry.c"
+grep -Fq "llvm_constructed_arg_name_copy(type_name, arg_index" "$ROOT_DIR/src/codegen/llvm_backend_type_registry.c"
 grep -Fq "registry requires concrete type metadata" "$ROOT_DIR/src/codegen/llvm_backend_type_registry.c"
 grep -Fq "if (ctx->has_error || elem_type == NULL)" "$ROOT_DIR/src/codegen/llvm_backend_type_registry.c"
 grep -Fq "llvm_lookup_or_declare_function" "$ROOT_DIR/src/codegen/llvm_registry.c"

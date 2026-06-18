@@ -45,6 +45,21 @@ English anchor for tooling/doc gates:
   non-MIR compatibility path, while `mir-declaration-inventory-smoke` blocks
   MIR-active generic fallback renderers/resolvers from reopening AST generic
   defaults/constraints.
+- LLVM typed-variable registry source-of-truth: collection/channel/slot/future
+  metadata registration now derives constructed arguments from a single
+  rendered type-name string, matching the ABI registration path. The registry
+  owner no longer reopens `ast_type_generic_args(...)` or
+  `ast_generic_param_constraint(...)` while registering `Array<T>`, `List<T>`,
+  `HashMap<K,V>`, `Slot<T>`, `Channel<T>`, `Future<T>`, `Rc<T>`, or `Weak<T>`.
+  `mir-declaration-inventory-smoke` and `perf-contract-smoke` lock that
+  type-name owner path.
+- LLVM AwaitLocal CFG/MIR source-of-truth: source-local `let value = await task`
+  lowering now requires the matching MIR `AwaitLocal` resource operation and
+  recovers the `Future<T>` result from registered binding metadata or the MIR
+  routine source-local type-name fact. It no longer relies on AST payload
+  pointer identity to accept the resource fact, and no-value LLVM let
+  initializers fail closed before verifier time. `future_annotation` now runs
+  equal on C and LLVM in the targeted backend parity slice.
 - Honest weakness ledger: beta messaging and work selection must keep five
   real costs visible instead of hiding them behind safety language. (1) Runtime
   Slot/authority validation can trade memory corruption for availability loss;

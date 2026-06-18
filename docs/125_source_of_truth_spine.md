@@ -513,6 +513,20 @@ parameter and local alloca emission must therefore register collection
 metadata from `llvm_register_typed_var_abi_binding(...)` instead of requiring a
 retained AST type node. `HashMap<K, V>` must populate both key and value
 metadata from the ABI string before `MapHas` / `MapGet` / `MapSet` lowering.
+The same owner applies to LLVM annotated typed-variable registration: when it
+still receives an AST annotation, it first renders the concrete type name and
+then parses constructed arguments from that rendered string. It must not reopen
+`ast_type_generic_args(...)` or `ast_generic_param_constraint(...)` while
+registering collection, channel, slot, future, or reference metadata.
+
+LLVM MIR source-local `await` lowering follows the same rule. A local binding
+such as `let value: T = await task` must consume the matching MIR
+`AwaitLocal` resource operation before it emits `pgy_await_export(...)`, and it
+must recover the awaited `Future<T>` result type from the registered binding or
+from the MIR routine source-local type-name fact. It must not require
+AST-payload pointer identity to prove the resource fact, and a no-value
+initializer must fail closed instead of letting LLVM verification discover a
+missing terminator later.
 
 Note: the declaration-field metadata row's counted zone frontier pass-limit
 consumer is now C/LLVM, not C-only; LLVM zone sync must consume

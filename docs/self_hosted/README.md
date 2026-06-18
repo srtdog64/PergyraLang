@@ -25,8 +25,9 @@ self-hosted result cannot be trusted as the deciding value.
 
 **BDFL decision (2026-06-17): the hard compiler-core migration freeze is lifted.**
 The owner explicitly chose to open hard migration (codegen/runtime/compiler
-driver) after being shown the substitution numbers (self-host at ~3.39%
-LOC-scale; codegen/runtime/driver at 0%). Hard migration now proceeds
+driver) after being shown the substitution numbers; the canonical tracker now
+records self-host compiler-internal substitution at ~4.04% LOC-scale, with
+runtime/compiler driver/LSP still at 0%. Hard migration now proceeds
 *incrementally and verified*: each compiler-core substitute lands as a rung with
 a parity gate against the C/LLVM oracle before the next rung opens. This is not a
 license to fork a full unverified compiler — the No-Hidden-Flow / verified-rung

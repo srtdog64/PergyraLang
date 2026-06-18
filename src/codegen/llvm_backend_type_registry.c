@@ -101,38 +101,23 @@ llvm_registry_type_kind(const char *type_name)
     return spec != NULL ? spec->kind : LLVM_REGISTRY_TYPE_UNKNOWN;
 }
 
-static char *
-llvm_copy_first_constructed_arg_name(LLVMGenCtx *ctx, const char *type_name)
+static bool
+llvm_registry_required_arg_name(LLVMGenCtx *ctx,
+                                ASTNode *owner,
+                                const char *type_name,
+                                int arg_index,
+                                const char *container_name,
+                                char *out,
+                                size_t out_size)
 {
-    if (ctx == NULL || type_name == NULL)
-        return NULL;
+    if (out == NULL || out_size == 0)
+        return false;
+    out[0] = '\0';
 
-    const char *lt = strchr(type_name, '<');
-    const char *gt = strrchr(type_name, '>');
-    if (lt == NULL || gt == NULL || gt <= lt + 1)
-        return NULL;
+    if (llvm_constructed_arg_name_copy(type_name, arg_index, out, out_size)
+        && out[0] != '\0')
+        return true;
 
-    size_t len = (size_t)(gt - lt - 1);
-    char *copy = pgy_arena_alloc(&ctx->persistent, len + 1);
-    if (copy == NULL)
-        return NULL;
-    memcpy(copy, lt + 1, len);
-    copy[len] = '\0';
-    return copy;
-}
-
-static char *
-llvm_registry_render_required_type_name(LLVMGenCtx *ctx,
-                                        ASTNode *owner,
-                                        ASTNode *type_node,
-                                        const char *container_name)
-{
-    char *name = llvm_render_type_name_in_ctx(ctx, type_node);
-    if (name != NULL && name[0] != '\0'
-        && strcmp(name, "Unknown") != 0)
-        return name;
-
-    free(name);
     if (ctx != NULL && !ctx->has_error) {
         llvm_set_error_at_with_hints(ctx, owner,
             PGY_CODE_LLVM_TYPE_UNSUPPORTED,
@@ -141,14 +126,7 @@ llvm_registry_render_required_type_name(LLVMGenCtx *ctx,
             "LLVM %s registry requires concrete type metadata",
             container_name != NULL ? container_name : "typed variable");
     }
-    return NULL;
-}
-
-static ASTNode *
-llvm_registry_generic_arg_type(GenericParams *generic_args, size_t index)
-{
-    GenericParam *param = ast_generic_param_at(generic_args, index);
-    return ast_generic_param_constraint(param);
+    return false;
 }
 
 static LLVMValueRef
@@ -168,10 +146,11 @@ llvm_register_typed_var_binding(LLVMGenCtx *ctx, const char *var_name,
                                 ASTNode *type_node)
 {
     const char *type_name;
+    const char *base_type_name;
+    char *rendered_type_name;
     LLVMRegistryTypeKind type_kind;
-    GenericParams *generic_args;
-    ASTNode *arg0_type;
-    ASTNode *arg1_type;
+    char arg0_name[256];
+    char arg1_name[256];
 
     if (ctx == NULL || var_name == NULL || type_node == NULL)
         return;
@@ -184,188 +163,126 @@ llvm_register_typed_var_binding(LLVMGenCtx *ctx, const char *var_name,
     if (ast_type_name(type_node) == NULL)
         return;
 
-    type_name = ast_type_name(type_node);
+    base_type_name = ast_type_name(type_node);
+    rendered_type_name = llvm_render_type_name_scratch_in_ctx(ctx, type_node,
+        &ctx->scratch);
+    type_name = (rendered_type_name != NULL
+        && rendered_type_name[0] != '\0'
+        && strcmp(rendered_type_name, "Unknown") != 0)
+            ? rendered_type_name
+            : base_type_name;
     type_kind = llvm_registry_type_kind(type_name);
-    generic_args = ast_type_generic_args(type_node);
-    arg0_type = llvm_registry_generic_arg_type(generic_args, 0);
-    arg1_type = llvm_registry_generic_arg_type(generic_args, 1);
 
     if ((type_kind == LLVM_REGISTRY_TYPE_ARRAY
-         || type_kind == LLVM_REGISTRY_TYPE_SLICE)
-        && arg0_type != NULL) {
-        char *elem_name = llvm_render_type_name_scratch_in_ctx(
-            ctx, arg0_type, &ctx->scratch);
-        if (elem_name == NULL || elem_name[0] == '\0') {
-            llvm_set_error_at_with_hints(ctx, type_node,
-                PGY_CODE_LLVM_TYPE_UNSUPPORTED,
-                PGY_CAUSE_LLVM_TYPE_UNSUPPORTED,
-                PGY_FIX_ANNOTATE_CONCRETE_TYPE,
-                "LLVM Array/Slice registry requires concrete element metadata");
+         || type_kind == LLVM_REGISTRY_TYPE_SLICE)) {
+        LLVMTypeRef elem_type;
+        if (!llvm_registry_required_arg_name(ctx, type_node, type_name, 0,
+                "Array/Slice", arg0_name, sizeof(arg0_name)))
             return;
-        }
-        LLVMTypeRef elem_type = pergyra_type_to_llvm(ctx, elem_name);
+        elem_type = pergyra_type_to_llvm(ctx, arg0_name);
         if (ctx->has_error || elem_type == NULL)
             return;
         llvm_register_array_var_binding(ctx, var_name, binding, elem_type, -1);
+        return;
     }
 
-    if (type_kind == LLVM_REGISTRY_TYPE_LIST
-        && arg0_type != NULL) {
-        char *inner_name = llvm_registry_render_required_type_name(ctx,
-            type_node, arg0_type,
-            "List<T>");
-        if (inner_name == NULL)
+    if (type_kind == LLVM_REGISTRY_TYPE_LIST) {
+        if (!llvm_registry_required_arg_name(ctx, type_node, type_name, 0,
+                "List<T>", arg0_name, sizeof(arg0_name)))
             return;
-        llvm_register_list_var_binding(ctx, var_name, binding, inner_name);
-        free(inner_name);
+        llvm_register_list_var_binding(ctx, var_name, binding, arg0_name);
         return;
     }
 
     if ((type_kind == LLVM_REGISTRY_TYPE_SLOT
-         || type_kind == LLVM_REGISTRY_TYPE_SECURE_SLOT)
-        && arg0_type != NULL) {
-        char *inner_name = llvm_registry_render_required_type_name(ctx,
-            type_node, arg0_type,
-            type_kind == LLVM_REGISTRY_TYPE_SECURE_SLOT
-                ? "SecureSlot<T>" : "Slot<T>");
-        if (inner_name == NULL)
+         || type_kind == LLVM_REGISTRY_TYPE_SECURE_SLOT)) {
+        if (!llvm_registry_required_arg_name(ctx, type_node, type_name, 0,
+                type_kind == LLVM_REGISTRY_TYPE_SECURE_SLOT
+                    ? "SecureSlot<T>" : "Slot<T>",
+                arg0_name, sizeof(arg0_name)))
             return;
-        llvm_register_slot_var_binding(ctx, var_name, binding, inner_name,
+        llvm_register_slot_var_binding(ctx, var_name, binding, arg0_name,
             type_kind == LLVM_REGISTRY_TYPE_SECURE_SLOT);
-        free(inner_name);
         return;
     }
 
-    if (type_kind == LLVM_REGISTRY_TYPE_DEVICE_SLOT
-        && arg0_type != NULL) {
-        char *inner_name = llvm_registry_render_required_type_name(ctx,
-            type_node, arg0_type, "DeviceSlot<T>");
-        if (inner_name == NULL)
+    if (type_kind == LLVM_REGISTRY_TYPE_DEVICE_SLOT) {
+        if (!llvm_registry_required_arg_name(ctx, type_node, type_name, 0,
+                "DeviceSlot<T>", arg0_name, sizeof(arg0_name)))
             return;
         llvm_register_device_slot_var_binding(ctx, var_name, binding,
-            inner_name);
-        free(inner_name);
+            arg0_name);
         return;
     }
 
-    if (type_kind == LLVM_REGISTRY_TYPE_SET
-        && arg0_type != NULL) {
-        char *inner_name = llvm_registry_render_required_type_name(ctx,
-            type_node, arg0_type,
-            "Set<T>");
-        if (inner_name == NULL)
+    if (type_kind == LLVM_REGISTRY_TYPE_SET) {
+        if (!llvm_registry_required_arg_name(ctx, type_node, type_name, 0,
+                "Set<T>", arg0_name, sizeof(arg0_name)))
             return;
-        llvm_register_set_var_binding(ctx, var_name, binding, inner_name);
-        free(inner_name);
+        llvm_register_set_var_binding(ctx, var_name, binding, arg0_name);
         return;
     }
 
-    if (type_kind == LLVM_REGISTRY_TYPE_QUEUE
-        && arg0_type != NULL) {
-        char *inner_name = llvm_registry_render_required_type_name(ctx,
-            type_node, arg0_type,
-            "Queue<T>");
-        if (inner_name == NULL)
+    if (type_kind == LLVM_REGISTRY_TYPE_QUEUE) {
+        if (!llvm_registry_required_arg_name(ctx, type_node, type_name, 0,
+                "Queue<T>", arg0_name, sizeof(arg0_name)))
             return;
-        llvm_register_queue_var_binding(ctx, var_name, binding, inner_name);
-        free(inner_name);
+        llvm_register_queue_var_binding(ctx, var_name, binding, arg0_name);
         return;
     }
 
-    if (type_kind == LLVM_REGISTRY_TYPE_HASHMAP
-        && arg0_type != NULL
-        && arg1_type != NULL) {
-        char *key_name = llvm_registry_render_required_type_name(ctx,
-            type_node, arg0_type,
-            "HashMap<K, V> key");
-        char *value_name = llvm_registry_render_required_type_name(ctx,
-            type_node, arg1_type,
-            "HashMap<K, V> value");
-        if (key_name == NULL || value_name == NULL) {
-            free(key_name);
-            free(value_name);
+    if (type_kind == LLVM_REGISTRY_TYPE_HASHMAP) {
+        if (!llvm_registry_required_arg_name(ctx, type_node, type_name, 0,
+                "HashMap<K, V> key", arg0_name, sizeof(arg0_name))
+            || !llvm_registry_required_arg_name(ctx, type_node, type_name, 1,
+                "HashMap<K, V> value", arg1_name, sizeof(arg1_name)))
             return;
-        }
-        llvm_register_map_var_binding(ctx, var_name, binding, key_name,
-            value_name);
-        free(key_name);
-        free(value_name);
+        llvm_register_map_var_binding(ctx, var_name, binding, arg0_name,
+            arg1_name);
         return;
     }
 
     if ((type_kind == LLVM_REGISTRY_TYPE_FUTURE
-         || type_kind == LLVM_REGISTRY_TYPE_REMOTE_FUTURE)
-        && arg0_type != NULL) {
-        char *inner_name = llvm_registry_render_required_type_name(ctx,
-            type_node, arg0_type,
-            "Future<T>");
-        if (inner_name == NULL)
+         || type_kind == LLVM_REGISTRY_TYPE_REMOTE_FUTURE)) {
+        if (!llvm_registry_required_arg_name(ctx, type_node, type_name, 0,
+                "Future<T>", arg0_name, sizeof(arg0_name)))
             return;
-        llvm_register_future_var_binding(ctx, var_name, binding, inner_name,
+        llvm_register_future_var_binding(ctx, var_name, binding, arg0_name,
             type_kind == LLVM_REGISTRY_TYPE_REMOTE_FUTURE);
-        free(inner_name);
         return;
     }
 
-    if (type_kind == LLVM_REGISTRY_TYPE_CHANNEL
-        && arg0_type != NULL) {
-        char *inner_name = llvm_registry_render_required_type_name(ctx,
-            type_node, arg0_type,
-            "Channel<T>");
-        if (inner_name == NULL)
+    if (type_kind == LLVM_REGISTRY_TYPE_CHANNEL) {
+        if (!llvm_registry_required_arg_name(ctx, type_node, type_name, 0,
+                "Channel<T>", arg0_name, sizeof(arg0_name)))
             return;
-        llvm_register_channel_var_binding(ctx, var_name, binding, inner_name);
-        free(inner_name);
+        llvm_register_channel_var_binding(ctx, var_name, binding, arg0_name);
         return;
     }
 
     if (type_kind == LLVM_REGISTRY_TYPE_RC
         || type_kind == LLVM_REGISTRY_TYPE_WEAK) {
-        char *inner_name = NULL;
-        bool free_inner_name = false;
-        if (arg0_type != NULL) {
-            inner_name = llvm_registry_render_required_type_name(ctx,
-                type_node, arg0_type, type_name);
-            free_inner_name = true;
-        } else {
-            inner_name = llvm_copy_first_constructed_arg_name(ctx, type_name);
-        }
-        if (inner_name == NULL) {
-            if (ctx != NULL && !ctx->has_error) {
-                llvm_set_error_at_with_hints(ctx, type_node,
-                    PGY_CODE_LLVM_TYPE_UNSUPPORTED,
-                    PGY_CAUSE_LLVM_TYPE_UNSUPPORTED,
-                    PGY_FIX_ANNOTATE_CONCRETE_TYPE,
-                    "LLVM %s registry requires concrete type metadata",
-                    type_name);
-            }
+        if (!llvm_registry_required_arg_name(ctx, type_node, type_name, 0,
+                type_name, arg0_name, sizeof(arg0_name)))
             return;
-        }
         if (type_kind == LLVM_REGISTRY_TYPE_RC)
-            llvm_register_rc_var_binding(ctx, var_name, binding, inner_name);
+            llvm_register_rc_var_binding(ctx, var_name, binding, arg0_name);
         else
-            llvm_register_weak_var_binding(ctx, var_name, binding, inner_name);
-        if (free_inner_name)
-            free(inner_name);
+            llvm_register_weak_var_binding(ctx, var_name, binding, arg0_name);
         return;
     }
 
-    {
-        /* Prefer the specialized generic instantiation name (Pair<Int>) over
-         * the type-erased base (Pair), so member calls resolve to the
-         * monomorphized method (Pair<Int>_GetFirst) rather than the base. */
-        char *rendered = llvm_render_type_name_scratch_in_ctx(ctx, type_node,
-            &ctx->scratch);
-        if (rendered != NULL && rendered[0] != '\0'
-            && strchr(rendered, '<') != NULL
-            && llvm_lookup_class(ctx, rendered) != NULL) {
-            llvm_register_var_class(ctx, var_name, rendered);
-            return;
-        }
-    }
-    if (llvm_lookup_class(ctx, type_name) != NULL
-        || llvm_decl_exists_in_context(ctx, AST_ENUM_DECL, type_name))
+    /* Prefer the specialized generic instantiation name (Pair<Int>) over
+     * the type-erased base (Pair), so member calls resolve to the
+     * monomorphized method (Pair<Int>_GetFirst) rather than the base. */
+    if (type_name != NULL && strchr(type_name, '<') != NULL
+        && llvm_lookup_class(ctx, type_name) != NULL) {
         llvm_register_var_class(ctx, var_name, type_name);
+        return;
+    }
+    if (llvm_lookup_class(ctx, base_type_name) != NULL
+        || llvm_decl_exists_in_context(ctx, AST_ENUM_DECL, base_type_name))
+        llvm_register_var_class(ctx, var_name, base_type_name);
 }
 
 void

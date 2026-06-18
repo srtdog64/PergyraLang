@@ -3964,6 +3964,36 @@ for term in \
     "llvm_register_var_class(ctx, p->name, param_type_name)"; do
     require_term "src/codegen/llvm_mir_param_emit.c" "$term"
 done
+for term in \
+    "llvm_registry_required_arg_name" \
+    "llvm_constructed_arg_name_copy(type_name, arg_index"; do
+    require_term "src/codegen/llvm_backend_type_registry.c" "$term"
+done
+if grep -Fq "ast_type_generic_args(" \
+    "$ROOT_DIR/src/codegen/llvm_backend_type_registry.c" \
+    || grep -Fq "ast_generic_param_constraint(" \
+        "$ROOT_DIR/src/codegen/llvm_backend_type_registry.c"; then
+    fail "LLVM typed-var registry must consume rendered type-name args, not AST generic args"
+fi
+for term in \
+    "llvm_mir_try_emit_await_local_def" \
+    "llvm_mir_find_await_local_resource_op" \
+    "llvm_mir_find_await_local_resource_op(mir_block, future_name)" \
+    "strcmp(candidate->name, \"AwaitLocal\")" \
+    "llvm_mir_await_future_inner_from_routine" \
+    "mir_routine_source_local_type_name(routine, future_name)" \
+    "llvm_constructed_arg_name_copy(type_name, 0, inner_out" \
+    "llvm_await_task_handle(ctx, init, task, inner, is_remote)" \
+    "LLVM MIR AwaitLocal def requires matching AwaitLocal resource fact"; do
+    require_term "src/codegen/llvm_mir_block_emit.c" "$term"
+done
+grep -A40 -F "llvm_mir_find_await_local_resource_op" \
+    "$ROOT_DIR/src/codegen/llvm_mir_block_emit.c" | \
+    grep -Fq "mir_instruction_source_payload(candidate) != await_expr" && \
+    fail "LLVM AwaitLocal fact matching must use MIR resource name/use facts, not AST payload pointer identity"
+grep -Fq "LLVM let binding '%s' initializer did not produce a value" \
+    "$ROOT_DIR/src/codegen/llvm_stmt_let_with.c" || \
+    fail "LLVM let lowering must fail closed when an initializer returns no value"
 for rel in \
     "src/codegen/llvm_intent_flow.c" \
     "src/codegen/llvm_mir_contract.c"; do

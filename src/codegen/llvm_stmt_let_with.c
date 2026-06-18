@@ -167,6 +167,14 @@ llvm_emit_let_decl(ASTNode *node, LLVMGenCtx *ctx)
             if (llvm_debug_detail_enabled())
                 fprintf(stderr, "[llvm let] name=%s phase=after-store\n",
                     name != NULL ? name : "-");
+        } else if (!ctx->has_error) {
+            llvm_set_error_at_with_hints(ctx, init,
+                PGY_CODE_LLVM_TYPE_UNSUPPORTED,
+                PGY_CAUSE_LLVM_TYPE_UNSUPPORTED,
+                PGY_FIX_INSPECT_MIR_INVENTORY,
+                "LLVM let binding '%s' initializer did not produce a value",
+                name != NULL ? name : "<binding>");
+            return;
         }
     }
 

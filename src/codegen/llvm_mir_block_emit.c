@@ -6,6 +6,7 @@
 #ifdef PGY_LLVM_ENABLED
 
 #include "llvm_mir_block_emit.h"
+#include "llvm_expr_spawn_call_helpers.h"
 #include "llvm_mir_local_emit.h"
 
 #include <stdio.h>
@@ -297,6 +298,192 @@ llvm_mir_copy_source_def_to_versioned_local(const MIRInstruction *inst,
     return !ctx->has_error;
 }
 
+static const MIRInstruction *
+llvm_mir_find_await_local_resource_op(const MIRBasicBlock *mir_block,
+                                      const char *future_name)
+{
+    if (mir_block == NULL || future_name == NULL)
+        return NULL;
+
+    for (size_t i = 0; i < mir_block->instruction_count; i++) {
+        const MIRInstruction *candidate = &mir_block->instructions[i];
+        if (candidate->kind != MIR_INST_RESOURCE_OP
+            || candidate->name == NULL
+            || strcmp(candidate->name, "AwaitLocal") != 0) {
+            continue;
+        }
+        if (candidate->arg0 != NULL && strcmp(candidate->arg0, future_name) == 0)
+            return candidate;
+        for (size_t u = 0; u < candidate->use_count; u++) {
+            char base_name[128];
+            if (llvm_mir_base_name_from_versioned(candidate->uses[u],
+                    base_name, sizeof(base_name))
+                && strcmp(base_name, future_name) == 0) {
+                return candidate;
+            }
+        }
+    }
+    return NULL;
+}
+
+static bool
+llvm_mir_await_future_inner_from_routine(const MIRRoutine *routine,
+                                         const char *future_name,
+                                         char *inner_out,
+                                         size_t inner_out_size,
+                                         bool *is_remote_out)
+{
+    const char *type_name;
+
+    if (inner_out == NULL || inner_out_size == 0)
+        return false;
+    inner_out[0] = '\0';
+    if (is_remote_out != NULL)
+        *is_remote_out = false;
+    if (routine == NULL || future_name == NULL)
+        return false;
+
+    type_name = mir_routine_source_local_type_name(routine, future_name);
+    if (type_name == NULL || type_name[0] == '\0')
+        return false;
+    if (strncmp(type_name, "RemoteFuture<", 13) == 0) {
+        if (is_remote_out != NULL)
+            *is_remote_out = true;
+        return llvm_constructed_arg_name_copy(type_name, 0, inner_out,
+            inner_out_size);
+    }
+    if (strncmp(type_name, "Future<", 7) == 0)
+        return llvm_constructed_arg_name_copy(type_name, 0, inner_out,
+            inner_out_size);
+    return false;
+}
+
+static bool
+llvm_mir_try_emit_await_local_def(const MIRInstruction *inst,
+                                  const MIRBasicBlock *mir_block,
+                                  const MIRRoutine *routine,
+                                  LLVMGenCtx *ctx,
+                                  LLVMMirVar *vars,
+                                  size_t var_count,
+                                  bool *handled)
+{
+    char base_name[128];
+    ASTNode *stmt;
+    ASTNode *init;
+    ASTNode *operand;
+    const char *future_name;
+    const char *inner;
+    char inner_from_mir[256];
+    bool is_remote;
+    LLVMMirVar *target;
+    LLVMValueRef task;
+    LLVMValueRef value;
+    ASTNode *type_ann;
+
+    if (handled != NULL)
+        *handled = false;
+    if (inst == NULL || ctx == NULL || handled == NULL
+        || !llvm_mir_def_uses_source_local_decl_emit(inst)
+        || !llvm_mir_base_name_from_versioned(inst->result_name, base_name,
+            sizeof(base_name))) {
+        return true;
+    }
+
+    stmt = mir_instruction_source_payload(inst);
+    if (stmt == NULL || stmt->type != AST_LET_DECL)
+        return true;
+    init = ast_let_initializer(stmt);
+    if (init == NULL || init->type != AST_AWAIT_EXPR)
+        return true;
+    operand = ast_await_expression(init);
+    if (operand == NULL || operand->type != AST_IDENTIFIER) {
+        llvm_set_error_at_with_hints(ctx, init,
+            PGY_CODE_LLVM_TYPE_UNSUPPORTED,
+            PGY_CAUSE_LLVM_TYPE_UNSUPPORTED,
+            PGY_FIX_INSPECT_MIR_INVENTORY,
+            "LLVM MIR AwaitLocal def requires a named Future<T> operand");
+        return false;
+    }
+    future_name = ast_identifier_name(operand);
+    if (future_name == NULL || future_name[0] == '\0') {
+        llvm_set_error_at_with_hints(ctx, init,
+            PGY_CODE_LLVM_TYPE_UNSUPPORTED,
+            PGY_CAUSE_LLVM_TYPE_UNSUPPORTED,
+            PGY_FIX_INSPECT_MIR_INVENTORY,
+            "LLVM MIR AwaitLocal def has unnamed Future<T> operand");
+        return false;
+    }
+    if (llvm_mir_find_await_local_resource_op(mir_block, future_name)
+        == NULL) {
+        llvm_set_error_at_with_hints(ctx, init,
+            PGY_CODE_MIR_TOPOLOGY_INVALID,
+            PGY_CAUSE_MIR_TOPOLOGY_INVALID,
+            PGY_FIX_INSPECT_HIR_TO_MIR_LOWERING,
+            "LLVM MIR AwaitLocal def requires matching AwaitLocal resource fact");
+        return false;
+    }
+
+    target = llvm_mir_get_var_entry(vars, var_count, inst->result_name);
+    if (target == NULL || target->alloca == NULL || target->type == NULL) {
+        llvm_set_error_at_with_hints(ctx, init,
+            PGY_CODE_MIR_TOPOLOGY_INVALID,
+            PGY_CAUSE_MIR_TOPOLOGY_INVALID,
+            PGY_FIX_INSPECT_HIR_TO_MIR_LOWERING,
+            "LLVM MIR AwaitLocal def target is missing SSA storage");
+        return false;
+    }
+
+    inner = llvm_lookup_future_inner(ctx, future_name);
+    is_remote = llvm_lookup_future_is_remote(ctx, future_name);
+    if ((inner == NULL || inner[0] == '\0')
+        && llvm_mir_await_future_inner_from_routine(routine, future_name,
+            inner_from_mir, sizeof(inner_from_mir), &is_remote)) {
+        inner = inner_from_mir;
+    }
+    if (inner == NULL || inner[0] == '\0') {
+        llvm_set_error_at_with_hints(ctx, init,
+            PGY_CODE_LLVM_TYPE_UNSUPPORTED,
+            PGY_CAUSE_LLVM_TYPE_UNSUPPORTED,
+            PGY_FIX_INSPECT_MIR_INVENTORY,
+            "LLVM MIR AwaitLocal def requires registered Future<T> metadata");
+        return false;
+    }
+    task = llvm_emit_expression(operand, ctx);
+    if (task == NULL) {
+        if (!ctx->has_error) {
+            llvm_set_error_at_with_hints(ctx, operand,
+                PGY_CODE_LLVM_TYPE_UNSUPPORTED,
+                PGY_CAUSE_LLVM_TYPE_UNSUPPORTED,
+                PGY_FIX_INSPECT_MIR_INVENTORY,
+                "LLVM MIR AwaitLocal def could not lower its Future<T> operand");
+        }
+        return false;
+    }
+    value = llvm_await_task_handle(ctx, init, task, inner, is_remote);
+    if (value == NULL) {
+        if (!ctx->has_error) {
+            llvm_set_error_at_with_hints(ctx, init,
+                PGY_CODE_LLVM_TYPE_UNSUPPORTED,
+                PGY_CAUSE_LLVM_TYPE_UNSUPPORTED,
+                PGY_FIX_INSPECT_MIR_INVENTORY,
+                "LLVM MIR AwaitLocal def did not produce a value");
+        }
+        return false;
+    }
+    LLVMBuildStore(ctx->builder, value, target->alloca);
+    llvm_mir_bind_base_local_scope(ctx, base_name, target->alloca,
+        target->type, inst->arg1);
+    type_ann = ast_let_type(stmt);
+    if (type_ann != NULL)
+        llvm_register_typed_var_binding(ctx, base_name, target->alloca,
+            type_ann);
+    else if (inst->abi_type_name != NULL)
+        llvm_register_typed_var_abi_binding(ctx, base_name, target->alloca,
+            inst->abi_type_name);
+    *handled = true;
+    return !ctx->has_error;
+}
+
 bool
 llvm_mir_copy_host_field_to_versioned_local(LLVMGenCtx *ctx,
                                             const char *field_name,
@@ -436,6 +623,14 @@ llvm_emit_mir_block_with_exprs(const MIRBasicBlock *mir_block,
                     break;
                 }
                 if (llvm_mir_def_uses_source_statement_emit(inst)) {
+                    bool await_def_handled = false;
+                    if (!llvm_mir_try_emit_await_local_def(inst, mir_block,
+                            routine, ctx, vars, var_count,
+                            &await_def_handled)) {
+                        return;
+                    }
+                    if (await_def_handled)
+                        break;
                     if (llvm_debug_detail_enabled())
                         fprintf(stderr, llvm_mir_def_uses_source_local_decl_emit(inst)
                             ? "[llvm inst] emit_source_local_decl\n"
