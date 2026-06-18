@@ -1148,7 +1148,10 @@ English anchor for tooling/doc gates:
   repeating class-only checks in each constructor emitter. LLVM channel send/receive/select lowering now
   consumes a shared `LLVMChannelTarget` owner, so registered local channels and
   current-host `Channel<T>` fields resolve through the same pointer + inner-type
-  fact instead of the old local-only lookup. The same seam now covers
+  fact instead of the old local-only lookup. Current-host field channel target
+  resolution now consumes `LLVMHostedFieldView` type-name metadata and parses
+  the `Channel<T>` payload from that MIR-owned type-name fact instead of
+  reopening AST generic args in MIR-active paths. The same seam now covers
   task/channel builtins (`TrySend`, `TryRecv`, `ChannelReady`,
   `ChannelLength`, `ChannelClose`, and related queries), so builtin lowering no
   longer reopens a local-only path after send/receive/select parity. Field

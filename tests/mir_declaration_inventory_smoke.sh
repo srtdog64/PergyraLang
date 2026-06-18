@@ -1577,14 +1577,32 @@ for term in \
     require_term "src/codegen/llvm_inventory_decl_lookup.h" "$term"
     require_term "src/codegen/llvm_inventory_field_view.c" "$term"
 done
-for rel in \
-    "src/codegen/llvm_channel_target.c" \
-    "src/codegen/llvm_domain_lookup.c"; do
-    require_term "$rel" "llvm_hosted_class_field_view_from_decl("
-    require_term "$rel" "llvm_hosted_field_view_missing_mir_metadata("
-    require_term "$rel" "llvm_hosted_field_view_find_index("
-    require_term "$rel" "llvm_hosted_field_view_type("
-done
+require_term "src/codegen/llvm_channel_target.c" \
+    "llvm_channel_current_host_field_type_name"
+require_term "src/codegen/llvm_channel_target.c" \
+    "llvm_hosted_class_field_view_from_decl("
+require_term "src/codegen/llvm_channel_target.c" \
+    "llvm_hosted_field_view_missing_mir_metadata("
+require_term "src/codegen/llvm_channel_target.c" \
+    "llvm_hosted_field_view_find_index("
+require_term "src/codegen/llvm_channel_target.c" \
+    "llvm_hosted_field_view_type_name("
+require_term "src/codegen/llvm_channel_target.c" \
+    "llvm_channel_field_inner_type_from_name"
+require_term "src/codegen/llvm_channel_target.c" \
+    "llvm_constructed_arg_name_copy(field_type_name, 0"
+if grep -Fq "ast_generic_param_constraint(" \
+    "$ROOT_DIR/src/codegen/llvm_channel_target.c"; then
+    fail "LLVM channel current-host field target resolution must consume MIR field type-name metadata, not AST generic args"
+fi
+require_term "src/codegen/llvm_domain_lookup.c" \
+    "llvm_hosted_class_field_view_from_decl("
+require_term "src/codegen/llvm_domain_lookup.c" \
+    "llvm_hosted_field_view_missing_mir_metadata("
+require_term "src/codegen/llvm_domain_lookup.c" \
+    "llvm_hosted_field_view_find_index("
+require_term "src/codegen/llvm_domain_lookup.c" \
+    "llvm_hosted_field_view_type("
 for rel in \
     "src/codegen/transpiler_nominal.c" \
     "src/codegen/transpiler_overlay_host_fields.c" \
