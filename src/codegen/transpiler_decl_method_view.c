@@ -65,6 +65,19 @@ transpiler_hosted_method_view_metadata(const TranspilerHostedMethodView *view,
     return mir_decl_header_method(view->decl_header, index);
 }
 
+ASTNode *
+transpiler_hosted_method_view_compat_method(
+    const TranspilerHostedMethodView *view,
+    size_t index)
+{
+    if (view == NULL || view->uses_mir_metadata
+        || view->ast_compat_methods == NULL
+        || index >= view->ast_compat_count) {
+        return NULL;
+    }
+    return view->ast_compat_methods[index];
+}
+
 const MIRDeclMethod *
 transpiler_find_host_method_metadata_in_context(
     const TranspilerCtx *ctx,

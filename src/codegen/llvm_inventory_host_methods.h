@@ -48,6 +48,9 @@ LLVMHostedMethodView llvm_hosted_method_view_from_decl(
 const MIRDeclMethod *llvm_hosted_method_view_metadata(
     const LLVMHostedMethodView *view,
     size_t index);
+ASTNode *llvm_hosted_method_view_compat_method(
+    const LLVMHostedMethodView *view,
+    size_t index);
 bool llvm_mir_decl_method_metadata_complete_for(
     LLVMGenCtx *ctx,
     const MIRDeclMethod *method,

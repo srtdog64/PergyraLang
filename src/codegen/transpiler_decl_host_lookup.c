@@ -214,9 +214,8 @@ current_host_method_decl(TranspilerCtx *ctx, const char *method_name)
             }
             continue;
         }
-        method = method_view.ast_compat_methods != NULL
-            ? method_view.ast_compat_methods[i]
-            : NULL;
+        method = transpiler_hosted_method_view_compat_method(
+            &method_view, i);
         candidate_name = ast_declaration_name(method);
         if (method != NULL && method->type == AST_FUNC_DECL
             && candidate_name != NULL
@@ -263,9 +262,8 @@ find_nominal_host_method_decl(TranspilerCtx *ctx, const char *host_type_name,
             }
             continue;
         }
-        method = method_view.ast_compat_methods != NULL
-            ? method_view.ast_compat_methods[i]
-            : NULL;
+        method = transpiler_hosted_method_view_compat_method(
+            &method_view, i);
         candidate_name = ast_declaration_name(method);
         if (method != NULL && method->type == AST_FUNC_DECL
             && candidate_name != NULL

@@ -3081,11 +3081,19 @@ require_term "src/codegen/llvm_inventory_host_methods.c" \
 require_term "src/codegen/llvm_inventory_host_methods.c" \
     "ctx->current_host_decl"
 require_term "src/codegen/llvm_inventory_host_methods.c" \
-    "method_view.ast_compat_methods[i]"
+    "llvm_hosted_method_view_compat_method(&method_view, i)"
+require_term "src/codegen/llvm_inventory_host_methods.h" \
+    "llvm_hosted_method_view_compat_method("
 if awk '/llvm_find_host_method_decl_in_context\(/{in_fn=1} in_fn {print} /^}/{if (in_fn) exit}' \
         "$ROOT_DIR/src/codegen/llvm_inventory_host_methods.c" \
         | grep -Fq "llvm_hosted_method_view_source_ast(&method_view, i)"; then
-    fail "LLVM host-method lookup fallback must read compatibility methods directly after MIR metadata lookup"
+    fail "LLVM host-method lookup fallback must read compatibility methods through the hosted method view owner"
+fi
+if grep -RInE 'method_view(\.|->)ast_compat_methods\[[^]]+\]' \
+        "$ROOT_DIR/src/codegen"/llvm_*.c \
+        "$ROOT_DIR/src/codegen"/llvm_*.h \
+        | grep -v "src/codegen/llvm_inventory_host_methods.c"; then
+    fail "LLVM consumers must not index hosted method compatibility arrays directly"
 fi
 for term in \
     "view.decl_header = decl_header" \
@@ -5724,6 +5732,7 @@ for term in \
     "ast_compat_fields" \
     "transpiler_hosted_method_view(" \
     "transpiler_hosted_method_view_metadata(" \
+    "transpiler_hosted_method_view_compat_method(" \
     "transpiler_find_host_method_metadata_in_context(" \
     "transpiler_mir_decl_method_name(" \
     "transpiler_mir_decl_method_is_async(" \
@@ -5740,6 +5749,18 @@ for term in \
     "transpiler_hosted_field_view_missing_mir_metadata("; do
     require_term "src/codegen/transpiler_decl_lookup.h" "$term"
 done
+for rel in \
+    "src/codegen/transpiler_class_decl_emit.c" \
+    "src/codegen/transpiler_decl_host_lookup.c" \
+    "src/codegen/transpiler_zone_specialization_emit.c"; do
+    require_term "$rel" "transpiler_hosted_method_view_compat_method("
+done
+if grep -RInE 'method_view(\.|->)ast_compat_methods\[[^]]+\]' \
+        "$ROOT_DIR/src/codegen"/transpiler_*.c \
+        "$ROOT_DIR/src/codegen"/transpiler_*.h \
+        | grep -v "src/codegen/transpiler_decl_method_view.c"; then
+    fail "C consumers must not index hosted method compatibility arrays directly"
+fi
 if grep -Fq "transpiler_hosted_method_view_routine" \
     "$ROOT_DIR/src/codegen/transpiler_decl_lookup.h" \
     "$ROOT_DIR/src/codegen/transpiler_decl_method_view.c"; then
@@ -7036,6 +7057,9 @@ for term in \
     "Hosted method routine link" \
     "routine link metadata drift" \
     "Host field compatibility view" \
+    "Hosted method compatibility method arrays are internal state" \
+    "transpiler_hosted_method_view_compat_method" \
+    "llvm_hosted_method_view_compat_method" \
     "Dedicated declaration IR" \
     "Open beta blocker row"; do
     require_term "docs/125_source_of_truth_spine.md" "$term"

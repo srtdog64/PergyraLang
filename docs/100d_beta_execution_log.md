@@ -3,6 +3,23 @@
 > Split from `docs/100_beta_readiness_checklist.md` on 2026-05-29.
 > Keep active blocker edits in the shard that owns the relevant closure track.
 
+## Progress Log - 2026-06-19 Hosted Method Compatibility View Ownership
+
+- C and LLVM hosted method compatibility arrays are now private view state for
+  consumers. Non-MIR compatibility lookup and specialization scanning must ask
+  `transpiler_hosted_method_view_compat_method(...)` or
+  `llvm_hosted_method_view_compat_method(...)`; direct indexing of
+  `method_view.ast_compat_methods[...]` / `method_view->ast_compat_methods[...]`
+  is confined to the view owners.
+- MIR-active method body and specialization paths are unchanged: they consume
+  linked `MIRDeclMethod` routine indexes and fail closed when method metadata or
+  routine links are missing. The compatibility accessor only owns the explicit
+  non-MIR path.
+- Gates used: `make mir-declaration-inventory-test-smoke`,
+  `make test-transpile`, `make llvm-test-smoke`,
+  `make backend-fail-closed-test-smoke`, `make test-inc-size-test-smoke`, and
+  `git diff --check`.
+
 ## Progress Log - 2026-06-19 ABI Niche / Explicit Layout Contract Gate
 
 - Rust-style niche optimization is now documented as intentionally not

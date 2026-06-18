@@ -277,10 +277,14 @@ emit_class_decl(ASTNode *node, TranspilerCtx *ctx)
                     name != NULL ? name : "(anonymous-class)");
                 return;
             }
-            if (method_view.ast_compat_methods != NULL
-                && i < method_view.ast_compat_count) {
+            {
+                ASTNode *compat_method =
+                    transpiler_hosted_method_view_compat_method(
+                        &method_view, i);
+                if (compat_method == NULL)
+                    continue;
                 ensure_collection_specializations_from_stmt_to(ctx, ctx->out,
-                    method_view.ast_compat_methods[i]);
+                    compat_method);
             }
             continue;
         }

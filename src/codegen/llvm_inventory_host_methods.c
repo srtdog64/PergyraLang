@@ -111,6 +111,18 @@ llvm_hosted_method_view_metadata(const LLVMHostedMethodView *view,
     return mir_decl_header_method(view->decl_header, index);
 }
 
+ASTNode *
+llvm_hosted_method_view_compat_method(const LLVMHostedMethodView *view,
+                                      size_t index)
+{
+    if (view == NULL || view->uses_mir_metadata
+        || view->ast_compat_methods == NULL
+        || index >= view->ast_compat_count) {
+        return NULL;
+    }
+    return view->ast_compat_methods[index];
+}
+
 bool
 llvm_hosted_method_view_missing_mir_method_row(
     const LLVMHostedMethodView *view,
@@ -306,9 +318,8 @@ llvm_find_host_method_decl_in_context(const LLVMGenCtx *ctx,
 
     method_view = llvm_hosted_method_view_from_decl(ctx, host_type_name, decl);
     for (size_t i = 0; i < method_view.count; i++) {
-        ASTNode *candidate = method_view.ast_compat_methods != NULL
-            ? method_view.ast_compat_methods[i]
-            : NULL;
+        ASTNode *candidate =
+            llvm_hosted_method_view_compat_method(&method_view, i);
         const char *candidate_name = llvm_decl_node_name(candidate);
         if (candidate != NULL && candidate->type == AST_FUNC_DECL
             && candidate_name != NULL
