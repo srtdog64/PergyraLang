@@ -1,17 +1,9 @@
 // src/self_hosted/lexer/main.pgy
 //
-// Status: rung-1 expanding (2026-05-28). Pergyra-written lexer that
-// substitutes a subset of src/lexer/lexer.c. Currently handles:
-//   - identifiers + the keyword set:
-//       func, let, if, else, while, for, return, break, continue,
-//       true, false, import, export, namespace
-//   - NUMBER literals (digit run; no decimal/hex)
-//   - STRING literals "..." (no escapes)
-//   - Punctuation: ( ) { } [ ] ; , : .
-//   - Operators: -> = == != < > <= >= + - * / ! && ||
-//   - // line comments
-//   - whitespace (space/tab/CR/LF)
-//   - EOF
+// Status: rung-1 parity (2026-06-18). Pergyra-written lexer that substitutes
+// a bounded subset of src/lexer/lexer.c. Current gate: 6 committed source
+// fixtures byte-equal to `pgy --tokens` on both C and LLVM-generated binaries,
+// with a live oracle drift guard.
 //
 // Outputs the same text `pgy --tokens` does, byte-for-byte (with LF line
 // endings; the parity script normalizes CRLF on Windows).

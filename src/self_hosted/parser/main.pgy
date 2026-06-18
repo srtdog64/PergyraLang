@@ -1,12 +1,9 @@
 // src/self_hosted/parser/main.pgy
 //
-// Status: rung-1 minimal (2026-05-28). First Pergyra-origin parser.
-// Lexes + parses examples/hello.pgy and emits the same text-tree that
-// `pgy --ast examples/hello.pgy` produces, byte-equal.
-//
-// Scope: only the single-`func`-with-single-`IDENT(STRING)`-call shape
-// of hello.pgy is handled. Anything else falls through silently. Future
-// expansion will cover let/if/while/for statements and more.
+// Status: rung-1 expanding (2026-06-18). Pergyra-origin parser substitute.
+// Emits the same compact text tree that `pgy --ast` produces, byte-equal, for
+// the committed parity fixture set. Current gate: 188 sources byte-equal on C
+// and LLVM parser binaries; scale probe: 106 of 118 examples byte-equal.
 //
 // Contract: see intent.md in the same directory.
 
