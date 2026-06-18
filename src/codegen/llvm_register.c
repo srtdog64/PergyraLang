@@ -82,36 +82,25 @@ llvm_register_enum_decl(LLVMGenCtx *ctx, ASTNode *stmt)
 
     const char *enum_name = llvm_decl_node_name(stmt);
     size_t variant_count = 0;
-    char **variants = NULL;
     const MIRDeclHeader *enum_header = NULL;
-    bool use_mir_variants = false;
     if (enum_name == NULL)
         return;
     enum_header = llvm_find_decl_header_in_context_of_type(
         ctx, AST_ENUM_DECL, enum_name);
-    if (llvm_active_has_mir(ctx) && enum_header == NULL) {
+    if (enum_header == NULL) {
         llvm_set_mir_inventory_missing(ctx,
             "MIR-only LLVM path missing enum variant metadata for '%s'",
             enum_name);
         return;
     }
-    use_mir_variants = enum_header != NULL;
-    if (use_mir_variants) {
-        variant_count = mir_decl_header_enum_variant_count(enum_header);
-    } else {
-        variants = ast_enum_variants(stmt, &variant_count);
-    }
+    variant_count = mir_decl_header_enum_variant_count(enum_header);
 
     bool has_data = false;
     for (size_t j = 0; j < variant_count; j++) {
-        const MIRDeclEnumVariant *variant_meta = use_mir_variants
-            ? mir_decl_header_enum_variant(enum_header, j) : NULL;
-        const char *variant_name = use_mir_variants
-            ? mir_decl_enum_variant_name(variant_meta)
-            : (variants != NULL ? variants[j] : NULL);
-        size_t param_count = use_mir_variants
-            ? mir_decl_enum_variant_param_count(variant_meta)
-            : ast_enum_variant_param_count(stmt, j);
+        const MIRDeclEnumVariant *variant_meta =
+            mir_decl_header_enum_variant(enum_header, j);
+        const char *variant_name = mir_decl_enum_variant_name(variant_meta);
+        size_t param_count = mir_decl_enum_variant_param_count(variant_meta);
         if (param_count > 0) {
             has_data = true;
         }
@@ -151,14 +140,10 @@ llvm_register_enum_decl(LLVMGenCtx *ctx, ASTNode *stmt)
             llvm_class_add_field(enum_entry, "tag", ctx->type_i32, 0);
 
         for (size_t j = 0; j < variant_count; j++) {
-            const MIRDeclEnumVariant *variant_meta = use_mir_variants
-                ? mir_decl_header_enum_variant(enum_header, j) : NULL;
-            const char *variant_name = use_mir_variants
-                ? mir_decl_enum_variant_name(variant_meta)
-                : (variants != NULL ? variants[j] : NULL);
-            size_t param_count = use_mir_variants
-                ? mir_decl_enum_variant_param_count(variant_meta)
-                : ast_enum_variant_param_count(stmt, j);
+            const MIRDeclEnumVariant *variant_meta =
+                mir_decl_header_enum_variant(enum_header, j);
+            const char *variant_name = mir_decl_enum_variant_name(variant_meta);
+            size_t param_count = mir_decl_enum_variant_param_count(variant_meta);
 
             if (param_count == 0) {
                 enum_fields[j + 1] = LLVMStructTypeInContext(ctx->context, NULL, 0, 0);
@@ -182,23 +167,16 @@ llvm_register_enum_decl(LLVMGenCtx *ctx, ASTNode *stmt)
                 return;
             }
             for (size_t p = 0; p < param_count; p++) {
-                if (use_mir_variants) {
-                    const char *ptn =
-                        mir_decl_enum_variant_param_type_name(
-                            variant_meta, p);
-                    payload_fields[p] = ptn != NULL
-                        ? pergyra_type_to_llvm(ctx, ptn)
-                        : NULL;
-                    if (payload_fields[p] == NULL && !ctx->has_error) {
-                        llvm_set_mir_inventory_missing(ctx,
-                            "MIR-only LLVM path missing enum variant payload type-name metadata for '%s.%s'",
-                            enum_name,
-                            variant_name != NULL ? variant_name : "<anonymous>");
-                    }
-                } else {
-                    ASTNode *pt = ast_enum_variant_param(stmt, j, p);
-                    payload_fields[p] = llvm_register_required_ast_type(
-                        ctx, stmt, pt, "enum variant payload");
+                const char *ptn =
+                    mir_decl_enum_variant_param_type_name(variant_meta, p);
+                payload_fields[p] = ptn != NULL
+                    ? pergyra_type_to_llvm(ctx, ptn)
+                    : NULL;
+                if (payload_fields[p] == NULL && !ctx->has_error) {
+                    llvm_set_mir_inventory_missing(ctx,
+                        "MIR-only LLVM path missing enum variant payload type-name metadata for '%s.%s'",
+                        enum_name,
+                        variant_name != NULL ? variant_name : "<anonymous>");
                 }
                 if (ctx->has_error || payload_fields[p] == NULL)
                     return;

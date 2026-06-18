@@ -5283,7 +5283,7 @@ for rel in \
     require_term "$rel" "transpiler_active_decl_header_of_type("
     require_term "$rel" "mir_decl_header_enum_variant_count("
     require_term "$rel" "mir_decl_enum_variant_param_count("
-    require_term "$rel" "transpiler_active_has_mir(ctx) && enum_header == NULL"
+    require_term "$rel" "if (enum_header == NULL)"
 done
 for rel in \
     "src/codegen/transpiler_enum_decl_emit.c" \
@@ -5301,7 +5301,7 @@ for rel in \
     require_term "$rel" "llvm_find_decl_header_in_context_of_type("
     require_term "$rel" "mir_decl_header_enum_variant_count("
     require_term "$rel" "mir_decl_enum_variant_param_count("
-    require_term "$rel" "llvm_active_has_mir(ctx) && enum_header == NULL"
+    require_term "$rel" "if (enum_header == NULL)"
 done
 require_term "src/codegen/llvm_expr_constructor_calls.c" \
     "llvm_find_decl_header_in_context_of_type("
@@ -5310,7 +5310,7 @@ require_term "src/codegen/llvm_expr_constructor_calls.c" \
 require_term "src/codegen/llvm_expr_constructor_calls.c" \
     "mir_decl_enum_variant_param_count("
 require_term "src/codegen/llvm_expr_constructor_calls.c" \
-    "llvm_active_has_mir(ctx) && enum_header == NULL"
+    "if (enum_header == NULL)"
 require_term "src/codegen/llvm_register.c" \
     "mir_decl_enum_variant_param_type_name("
 if grep -Fq "ast_enum_name(stmt)" "$ROOT_DIR/src/codegen/llvm_expr_common.c"; then
@@ -5320,8 +5320,10 @@ if grep -Fq "llvm_active_inventory(ctx, AST_ENUM_DECL" \
         "$ROOT_DIR/src/codegen/llvm_expr_common.c"; then
     fail "LLVM enum lookup must not rescan active inventory after owner lookup"
 fi
-require_term "src/codegen/llvm_expr_common.c" \
-    "return llvm_find_decl_in_active_inventory(ctx, AST_ENUM_DECL, enum_name)"
+if grep -RInF "llvm_find_enum_decl(" "$ROOT_DIR/src/codegen" >/dev/null 2>&1; then
+    grep -RInF "llvm_find_enum_decl(" "$ROOT_DIR/src/codegen" >&2 || true
+    fail "LLVM enum constructors must consume MIR enum headers instead of recovering enum source declarations"
+fi
 require_term "src/codegen/llvm_intent_effect.c" "llvm_decl_node_name(zone_decl)"
 if grep -Fq "ast_zone_name(zone)" "$ROOT_DIR/src/codegen/llvm_intent_effect.c"; then
     fail "LLVM intent effect zone lookup must consume llvm_decl_node_name"

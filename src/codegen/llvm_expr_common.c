@@ -247,14 +247,6 @@ llvm_lookup_class_by_type(LLVMGenCtx *ctx, LLVMTypeRef ty)
     return llvm_lookup_class_by_struct_type(ctx, ty);
 }
 
-ASTNode *
-llvm_find_enum_decl(LLVMGenCtx *ctx, const char *enum_name)
-{
-    if (ctx == NULL || enum_name == NULL)
-        return NULL;
-    return llvm_find_decl_in_active_inventory(ctx, AST_ENUM_DECL, enum_name);
-}
-
 LLVMValueRef
 llvm_emit_number(ASTNode *node, LLVMGenCtx *ctx)
 {

@@ -163,32 +163,29 @@ llvm_emit_enum_variant_constructor(ASTNode *node, LLVMGenCtx *ctx,
     if (variant == NULL)
         return NULL;
 
-    ASTNode *enum_decl = llvm_find_enum_decl(ctx, variant->enum_name);
     LLVMClassTypeEntry *enum_cls = llvm_lookup_class(ctx, variant->enum_name);
-    if (enum_decl == NULL || enum_cls == NULL)
+    if (enum_cls == NULL)
         return llvm_constructor_error(node, ctx,
-            "LLVM enum variant constructor requires enum declaration and class metadata");
+            "LLVM enum variant constructor requires class metadata");
 
     size_t variant_index = (size_t)variant->value;
     const MIRDeclHeader *enum_header = llvm_find_decl_header_in_context_of_type(
         ctx, AST_ENUM_DECL, variant->enum_name);
-    if (llvm_active_has_mir(ctx) && enum_header == NULL) {
+    if (enum_header == NULL) {
         llvm_set_mir_inventory_missing(ctx,
             "MIR-only LLVM path missing enum constructor variant metadata for '%s'",
             variant->enum_name != NULL ? variant->enum_name : "<anonymous-enum>");
         return NULL;
     }
-    const MIRDeclEnumVariant *variant_meta = enum_header != NULL
-        ? mir_decl_header_enum_variant(enum_header, variant_index) : NULL;
-    if (enum_header != NULL && variant_meta == NULL) {
+    const MIRDeclEnumVariant *variant_meta =
+        mir_decl_header_enum_variant(enum_header, variant_index);
+    if (variant_meta == NULL) {
         llvm_set_mir_inventory_missing(ctx,
             "MIR-only LLVM path has invalid enum constructor variant metadata for '%s'",
             variant->enum_name != NULL ? variant->enum_name : "<anonymous-enum>");
         return NULL;
     }
-    size_t param_count = enum_header != NULL
-        ? mir_decl_enum_variant_param_count(variant_meta)
-        : ast_enum_variant_param_count(enum_decl, variant_index);
+    size_t param_count = mir_decl_enum_variant_param_count(variant_meta);
     LLVMValueRef enum_val = LLVMGetUndef(enum_cls->struct_type);
     enum_val = LLVMBuildInsertValue(ctx->builder, enum_val,
         LLVMConstInt(ctx->type_i32, (unsigned long long)variant->value, 0),

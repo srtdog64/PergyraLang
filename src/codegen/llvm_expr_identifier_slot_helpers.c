@@ -229,33 +229,19 @@ llvm_emit_identifier(ASTNode *node, LLVMGenCtx *ctx)
                 llvm_find_decl_header_in_context_of_type(
                     ctx, AST_ENUM_DECL, variant->enum_name);
             bool has_data = false;
-            if (llvm_active_has_mir(ctx) && enum_header == NULL) {
+            if (enum_header == NULL) {
                 llvm_set_mir_inventory_missing(ctx,
                     "MIR-only LLVM path missing enum variant metadata for identifier '%s'",
                     name != NULL ? name : "<anonymous-variant>");
                 return NULL;
             }
-            if (enum_header != NULL) {
-                size_t vc = mir_decl_header_enum_variant_count(enum_header);
-                for (size_t i = 0; i < vc; i++) {
-                    const MIRDeclEnumVariant *variant_meta =
-                        mir_decl_header_enum_variant(enum_header, i);
-                    if (mir_decl_enum_variant_param_count(variant_meta) > 0) {
-                        has_data = true;
-                        break;
-                    }
-                }
-            } else {
-                const MIRDeclHeader *enum_header =
-                    llvm_find_decl_header_in_context_of_type(
-                        ctx, AST_ENUM_DECL, variant->enum_name);
-                size_t vc = mir_decl_header_enum_variant_count(enum_header);
-                for (size_t i = 0; i < vc; i++) {
-                    if (mir_decl_enum_variant_param_count(
-                            mir_decl_header_enum_variant(enum_header, i)) > 0) {
-                        has_data = true;
-                        break;
-                    }
+            size_t vc = mir_decl_header_enum_variant_count(enum_header);
+            for (size_t i = 0; i < vc; i++) {
+                const MIRDeclEnumVariant *variant_meta =
+                    mir_decl_header_enum_variant(enum_header, i);
+                if (mir_decl_enum_variant_param_count(variant_meta) > 0) {
+                    has_data = true;
+                    break;
                 }
             }
             if (has_data) {

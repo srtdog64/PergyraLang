@@ -1037,8 +1037,10 @@ Operational mode:
   stage replay, module normalization, C specialization, and LLVM generic
   default lookup. The same smoke blocks direct class metadata payload reads
   from semantic/compiler/codegen owners. Enum payload parameter consumers now
-  use `ast_enum_variant_param_count(...)` and `ast_enum_variant_param(...)` in
-  semantic projection and LLVM constructor lowering.
+  use `ast_enum_variant_param_count(...)` and `ast_enum_variant_param(...)` only
+  on parser/semantic/MIR-header construction paths; backend constructor and
+  enum emission consume MIR declaration metadata, and codegen enum variant AST
+  access is ratcheted at zero.
 - 2026-05-14 ability/role metadata source-of-truth tightening:
   ability generic params, where clauses, required fields, and method lists now
   flow through AST accessors, and role generic params, where clauses, and

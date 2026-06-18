@@ -37,9 +37,7 @@ lookup_enum_variant_qualified_name_copy(TranspilerCtx *ctx,
         ASTNode *stmt = types[i];
         const char *enum_name = NULL;
         const MIRDeclHeader *enum_header = NULL;
-        bool use_mir_variants = false;
         size_t variant_count = 0;
-        char **variants = NULL;
         if (stmt == NULL || stmt->type != AST_ENUM_DECL)
             continue;
         enum_name = transpiler_decl_name_local(stmt);
@@ -47,37 +45,29 @@ lookup_enum_variant_qualified_name_copy(TranspilerCtx *ctx,
             return false;
         enum_header = transpiler_active_decl_header_of_type(
             ctx, AST_ENUM_DECL, enum_name);
-        if (transpiler_active_has_mir(ctx) && enum_header == NULL) {
+        if (enum_header == NULL) {
             transpiler_set_mir_inventory_missing(
                 ctx,
                 "MIR-only C path missing enum variant metadata for '%s'",
                 enum_name);
             return false;
         }
-        use_mir_variants = enum_header != NULL;
-        if (use_mir_variants) {
-            variant_count = mir_decl_header_enum_variant_count(enum_header);
-        } else {
-            variants = ast_enum_variants(stmt, &variant_count);
-        }
+        variant_count = mir_decl_header_enum_variant_count(enum_header);
         bool enum_has_data = false;
         for (size_t k = 0; k < variant_count; k++) {
-            const MIRDeclEnumVariant *variant_meta = use_mir_variants
-                ? mir_decl_header_enum_variant(enum_header, k) : NULL;
-            size_t param_count = use_mir_variants
-                ? mir_decl_enum_variant_param_count(variant_meta)
-                : ast_enum_variant_param_count(stmt, k);
+            const MIRDeclEnumVariant *variant_meta =
+                mir_decl_header_enum_variant(enum_header, k);
+            size_t param_count =
+                mir_decl_enum_variant_param_count(variant_meta);
             if (param_count > 0) {
                 enum_has_data = true;
                 break;
             }
         }
         for (size_t j = 0; j < variant_count; j++) {
-            const MIRDeclEnumVariant *variant_meta = use_mir_variants
-                ? mir_decl_header_enum_variant(enum_header, j) : NULL;
-            const char *candidate = use_mir_variants
-                ? mir_decl_enum_variant_name(variant_meta)
-                : (variants != NULL ? variants[j] : NULL);
+            const MIRDeclEnumVariant *variant_meta =
+                mir_decl_header_enum_variant(enum_header, j);
+            const char *candidate = mir_decl_enum_variant_name(variant_meta);
             if (candidate != NULL && strcmp(candidate, variant_name) == 0) {
                 int written;
                 (void)enum_has_data;

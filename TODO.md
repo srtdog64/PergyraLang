@@ -3507,10 +3507,11 @@ English anchor for tooling/doc gates:
   class validation, constructor checks, generic contract helpers, DAG metadata
   materialization/dead-end accounting, stage replay, module normalization, C
   generic specialization, and LLVM generic-default lookup no longer reopen the
-  class declaration payload directly. Enum payload parameter consumers now use
-  `ast_enum_variant_param_count(...)` and `ast_enum_variant_param(...)` in
-  semantic projection and LLVM constructor lowering, so nominal payload readers
-  are smoke-gated through parser-owned accessors.
+  class declaration payload directly. Enum payload parameter consumers use
+  `ast_enum_variant_param_count(...)` and `ast_enum_variant_param(...)` only on
+  parser/semantic/MIR-header construction paths; backend constructor and enum
+  emission now consume MIR declaration metadata, so codegen enum variant AST
+  access is ratcheted at zero.
 - Ability/role metadata now follows the same accessor boundary for stable
   generic/where and implementation evidence: semantic ability/role validation,
   role-field checks, module contracts, DAG precollect/stage replay, module

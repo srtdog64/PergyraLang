@@ -163,10 +163,8 @@ transpiler_match_is_enum_variant_destructor(
     for (size_t i = 0; i < type_count; i++) {
         ASTNode *stmt = types[i];
         const MIRDeclHeader *enum_header = NULL;
-        bool use_mir_variants = false;
         const char *enum_name = NULL;
         size_t variant_count = 0;
-        char **variants = NULL;
         if (stmt == NULL || stmt->type != AST_ENUM_DECL)
             continue;
         enum_name = transpiler_decl_name_local(stmt);
@@ -174,26 +172,20 @@ transpiler_match_is_enum_variant_destructor(
             return false;
         enum_header = transpiler_active_decl_header_of_type(
             ctx, AST_ENUM_DECL, enum_name);
-        if (transpiler_active_has_mir(ctx) && enum_header == NULL) {
+        if (enum_header == NULL) {
             transpiler_set_mir_inventory_missing(
                 ctx,
                 "MIR-only C path missing enum match variant metadata for '%s'",
                 enum_name);
             return false;
         }
-        use_mir_variants = enum_header != NULL;
         bool has_data = false;
-        if (use_mir_variants) {
-            variant_count = mir_decl_header_enum_variant_count(enum_header);
-        } else {
-            variants = ast_enum_variants(stmt, &variant_count);
-        }
+        variant_count = mir_decl_header_enum_variant_count(enum_header);
         for (size_t j = 0; j < variant_count; j++) {
-            const MIRDeclEnumVariant *variant_meta = use_mir_variants
-                ? mir_decl_header_enum_variant(enum_header, j) : NULL;
-            size_t param_count = use_mir_variants
-                ? mir_decl_enum_variant_param_count(variant_meta)
-                : ast_enum_variant_param_count(stmt, j);
+            const MIRDeclEnumVariant *variant_meta =
+                mir_decl_header_enum_variant(enum_header, j);
+            size_t param_count =
+                mir_decl_enum_variant_param_count(variant_meta);
             if (param_count > 0) {
                 has_data = true;
                 break;
@@ -203,15 +195,12 @@ transpiler_match_is_enum_variant_destructor(
             continue;
 
         for (size_t j = 0; j < variant_count; j++) {
-            const MIRDeclEnumVariant *variant_meta = use_mir_variants
-                ? mir_decl_header_enum_variant(enum_header, j) : NULL;
-            const char *variant = use_mir_variants
-                ? mir_decl_enum_variant_name(variant_meta)
-                : (variants != NULL ? variants[j] : NULL);
+            const MIRDeclEnumVariant *variant_meta =
+                mir_decl_header_enum_variant(enum_header, j);
+            const char *variant = mir_decl_enum_variant_name(variant_meta);
             if (variant != NULL && strcmp(variant, name) == 0) {
-                size_t param_count = use_mir_variants
-                    ? mir_decl_enum_variant_param_count(variant_meta)
-                    : ast_enum_variant_param_count(stmt, j);
+                size_t param_count =
+                    mir_decl_enum_variant_param_count(variant_meta);
                 *variant_name_out = name;
                 *enum_name_out = enum_name;
                 *binding_count_out = 0;
@@ -222,21 +211,15 @@ transpiler_match_is_enum_variant_destructor(
                         ? ast_identifier_name(arg)
                         : NULL;
                     if (k < param_count) {
-                        if (use_mir_variants) {
-                            binding_type_names_buf[k] =
-                                mir_decl_enum_variant_param_type_name(
-                                    variant_meta, k);
-                            if (binding_type_names_buf[k] == NULL) {
-                                transpiler_set_mir_inventory_missing(
-                                    ctx,
-                                    "MIR-only C path missing enum match payload type-name metadata for '%s.%s'",
-                                    enum_name, variant);
-                                return false;
-                            }
-                        } else {
-                            binding_type_names_buf[k] =
-                                transpiler_render_type_name_local(ctx,
-                                    ast_enum_variant_param(stmt, j, k));
+                        binding_type_names_buf[k] =
+                            mir_decl_enum_variant_param_type_name(
+                                variant_meta, k);
+                        if (binding_type_names_buf[k] == NULL) {
+                            transpiler_set_mir_inventory_missing(
+                                ctx,
+                                "MIR-only C path missing enum match payload type-name metadata for '%s.%s'",
+                                enum_name, variant);
+                            return false;
                         }
                     } else {
                         binding_type_names_buf[k] = NULL;

@@ -18,11 +18,9 @@
 # Broad emission reads (zone/world body lowering off the AST) are deliberately
 # not counted: those are legitimate lowering, not declaration-metadata debt.
 #
-# Runtime evidence (recorded 2026, 40 enum programs x C+LLVM backends): the
-# enum AST reads are MIR-first fallback arms that fired 0 times -- the MIR
-# variant metadata is always present in MIR-active builds. The structural
-# counts below bound how much AST surface remains so the fallbacks can be
-# retired kind by kind.
+# The enum variant accessor metric has reached zero in codegen. Enum payload
+# shape is now consumed from MIR declaration metadata in backend paths; this
+# gate keeps that closed while other declaration kinds continue to ratchet.
 set -euo pipefail
 
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"

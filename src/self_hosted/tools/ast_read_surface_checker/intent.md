@@ -33,7 +33,7 @@ JSON document on stdout, conforming to schema
     "inventory_owner": "DirWalk(scope)"
   },
   "counts": {
-    "enum": 17,
+    "enum": 0,
     "source_ast_codegen": 0,
     "source_ast_compiler": 0,
     "source_decl_codegen": 0,
