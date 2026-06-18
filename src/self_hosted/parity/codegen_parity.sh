@@ -16,12 +16,14 @@
 #      ast.txt -> out.c; gcc out.c -> exe; run it, capture stdout.
 #   3. assert self stdout == committed expected (== oracle), tr -d '\r'.
 #
-# The codegen tool itself is compiled through BOTH the C and LLVM backends.
+# The codegen tool itself is compiled through the requested backends. LLVM is
+# mandatory in LLVM-enabled builds and explicitly skipped in C-only builds.
 
 set -euo pipefail
 
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/../../.." && pwd)"
 source "$ROOT_DIR/tests/pgy_binary_path_helpers.sh"
+source "$ROOT_DIR/src/self_hosted/parity/llvm_leg_helpers.sh"
 pgy_prepend_windows_runtime_paths
 
 PGY="${PGY_BIN:-$ROOT_DIR/bin/pgy}"
@@ -170,12 +172,22 @@ check_oracle_drift() {
 compile_tool_backend() {
     local backend="$1"
     local tool_bin="$2"
+    local compile_log="$ABS_BUILD/tool_${backend}.compile.log"
 
     echo "[self-host-parity:codegen] compiling codegen tool backend=$backend..."
-    (cd "$ROOT_DIR" && "$PGY" \
+    if ! (cd "$ROOT_DIR" && "$PGY" \
         "$(pgy_path_for_compiler "$PGY" "$TOOL_SOURCE")" \
         --backend="$backend" \
-        -o "$(pgy_path_for_compiler "$PGY" "$tool_bin")" >/dev/null)
+        -o "$(pgy_path_for_compiler "$PGY" "$tool_bin")" >"$compile_log" 2>&1); then
+        if [[ "$backend" == "llvm" ]] && pgy_selfhost_log_reports_no_llvm "$compile_log"; then
+            echo "[self-host-parity:codegen] LLVM backend unavailable; skipping llvm-compiled codegen tool"
+            return 2
+        fi
+        echo "[self-host-parity:codegen] backend=$backend codegen tool failed to build" >&2
+        cat "$compile_log" >&2
+        exit 1
+    fi
+    return 0
 }
 
 run_tool_backend() {
@@ -248,10 +260,33 @@ for base in "${FIXTURES[@]}"; do
 done
 
 BACKENDS="${PGY_SELFHOST_CODEGEN_BACKENDS:-c llvm}"
+RAN_BACKENDS=()
+SKIPPED_BACKENDS=()
 for backend in $BACKENDS; do
     tool_bin="$ABS_BUILD/tool_${backend}.exe"
+    set +e
     compile_tool_backend "$backend" "$tool_bin"
+    compile_rc="$?"
+    set -e
+    if [[ "$compile_rc" -eq 2 ]]; then
+        SKIPPED_BACKENDS+=("$backend")
+        continue
+    fi
+    if [[ "$compile_rc" -ne 0 ]]; then
+        exit "$compile_rc"
+    fi
     run_tool_backend "$backend" "$tool_bin"
+    RAN_BACKENDS+=("$backend")
 done
 
-echo "[self-host-parity:codegen] rung-0..15 parity ok (${#FIXTURES[@]} fixtures; backends=$BACKENDS)"
+if [[ "${#RAN_BACKENDS[@]}" -eq 0 ]]; then
+    echo "[self-host-parity:codegen] no requested backend ran" >&2
+    exit 1
+fi
+
+BACKENDS_LABEL="${RAN_BACKENDS[*]}"
+if [[ "${#SKIPPED_BACKENDS[@]}" -gt 0 ]]; then
+    BACKENDS_LABEL="$BACKENDS_LABEL; ${SKIPPED_BACKENDS[*]} skipped"
+fi
+
+echo "[self-host-parity:codegen] rung-0..15 parity ok (${#FIXTURES[@]} fixtures; backends=$BACKENDS_LABEL)"
