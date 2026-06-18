@@ -461,3 +461,56 @@
         parser_destroy(parser);
         lexer_destroy(lexer);
     }
+
+    TEST("Return type inference rejects incompatible return paths");
+    {
+        const char *source =
+            "func Pick(flag: Bool) {\n"
+            "    if flag {\n"
+            "        return 1;\n"
+            "    }\n"
+            "    return \"one\";\n"
+            "}\n";
+        Lexer *lexer = lexer_create(source);
+        Parser *parser = parser_create(lexer);
+        ASTNode *program = parser_parse_program(parser);
+        SemanticResult *result = semantic_analyze(program);
+
+        EXPECT(!parser_has_error(parser));
+        EXPECT(result != NULL && result->error_count > 0);
+        EXPECT(ctx_has_diagnostic_substring_from_result(result,
+            "Return types disagree across paths and cannot be inferred"));
+        EXPECT(ctx_has_diagnostic_code_from_result(result,
+            PGY_CODE_SEM_INFER_REQUIRED));
+
+        semantic_result_destroy(result);
+        ast_destroy(program);
+        parser_destroy(parser);
+        lexer_destroy(lexer);
+    }
+
+    TEST("Return type inference rejects unresolved recursion");
+    {
+        const char *source =
+            "func Loop(n: Int) {\n"
+            "    return Loop(n);\n"
+            "}\n";
+        Lexer *lexer = lexer_create(source);
+        Parser *parser = parser_create(lexer);
+        ASTNode *program = parser_parse_program(parser);
+        SemanticResult *result = semantic_analyze(program);
+
+        EXPECT(!parser_has_error(parser));
+        EXPECT(result != NULL && result->error_count > 0);
+        EXPECT(ctx_has_diagnostic_substring_from_result(result,
+            "Cannot infer the return type of function 'Loop'"));
+        EXPECT(ctx_has_diagnostic_substring_from_result(result,
+            "return-type inference is local"));
+        EXPECT(ctx_has_diagnostic_code_from_result(result,
+            PGY_CODE_SEM_INFER_REQUIRED));
+
+        semantic_result_destroy(result);
+        ast_destroy(program);
+        parser_destroy(parser);
+        lexer_destroy(lexer);
+    }

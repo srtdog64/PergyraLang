@@ -187,6 +187,9 @@ require_term "docs/100_beta_readiness_checklist.md" "Slot/Pin/Zone-bound handle/
 require_term "docs/107_beta_stable_subset.md" "Non-pin handle expiration is not claimed as a single-mechanism proof"
 require_term "docs/118_slot_model_rigor_audit.md" "Zone-Bound Handle typing"
 require_term "docs/136_abi_niche_and_explicit_layout.md" 'Option<T>` stays explicitly tagged'
+require_term "docs/136_abi_niche_and_explicit_layout.md" "Beta-closure decision: do not add niche optimization before the proof surface"
+require_term "docs/136_abi_niche_and_explicit_layout.md" "Value-invariant proof types are prerequisite"
+require_term "docs/136_abi_niche_and_explicit_layout.md" "MIR ABI fact must be the only backend input"
 require_term "docs/136_abi_niche_and_explicit_layout.md" "Semantic/DAG proves the value invariant"
 require_term "docs/136_abi_niche_and_explicit_layout.md" 'extern "C" ABI'
 require_term "docs/136_abi_niche_and_explicit_layout.md" "boundary-scoped, never the default aggregate model"

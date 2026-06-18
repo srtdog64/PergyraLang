@@ -67,6 +67,12 @@ type_check_func_decl(ASTNode *node, SemanticContext *ctx)
     }
 
     Type *return_type = type_check_func_resolve_return_type(node, ctx);
+    /* No `-> Type` annotation: infer from the body. Use UNKNOWN as the working
+     * return type during body checking (the missing-return and Void-return
+     * checks both skip UNKNOWN), then finalize after the body. */
+    bool infer_return = (ast_func_return_type(node) == NULL);
+    if (infer_return)
+        return_type = TYPE_UNKNOWN;
     if (type_is_class_object_type(return_type, ctx)) {
         semantic_error_with_hints(ctx, PGY_CODE_SEM_ANCHORED_HANDLE_COPY,
             PGY_CAUSE_ANCHORED_HANDLE_RETURN_BOUNDARY,
@@ -193,8 +199,14 @@ type_check_func_decl(ASTNode *node, SemanticContext *ctx)
     }
 
     Type *prev_return  = ctx->current_return;
+    bool  prev_inferring = ctx->inferring_return;
+    Type *prev_inferred  = ctx->inferred_return;
+    bool  prev_infer_conflict = ctx->inferred_return_conflict;
     ctx->current_function_decl = node;
     ctx->current_return = return_type;
+    ctx->inferring_return = infer_return;
+    ctx->inferred_return = NULL;
+    ctx->inferred_return_conflict = false;
     ctx->current_function_effects = EFFECT_NONE;
     ctx->current_function_body_summary = BODY_SUMMARY_NONE;
     ctx->tracking_function_effects = true;
@@ -399,6 +411,49 @@ type_check_func_decl(ASTNode *node, SemanticContext *ctx)
 
     type_function_set_body_summary(func_type,
         ctx->current_function_body_summary);
+
+    /* Finalize inferred return type: no value-returns -> Void; otherwise the
+     * unified type accumulated from the body. Update the function symbol's type
+     * so later callers see the inferred return. Conflicts already reported a
+     * loud diagnostic at the disagreeing return. */
+    if (infer_return) {
+        Type *final_ret = TYPE_VOID;
+        if (ctx->inferred_return_conflict) {
+            final_ret = TYPE_UNKNOWN;        /* already reported at the return */
+        } else if (ctx->inferred_return != NULL) {
+            if (ctx->inferred_return == TYPE_UNKNOWN) {
+                /* Returns are present but a return type stayed unresolved -
+                 * typically an unannotated recursive call before any concrete
+                 * return. Require an explicit annotation (C++ auto rule). */
+                semantic_error_with_hints(ctx,
+                    PGY_CODE_SEM_INFER_REQUIRED,
+                    PGY_CAUSE_INFER_NO_SOURCE,
+                    PGY_FIX_ALIGN_OPERAND_TYPE,
+                    node,
+                    "Cannot infer the return type of function '%s'; add an explicit '-> Type'.\n"
+                    "Reason:\n"
+                    "- a return expression's type is not resolvable here (often a recursive call before a concrete return)\n"
+                    "- return-type inference is local; it does not solve recursive fixpoints\n"
+                    "Fix:\n"
+                    "- annotate the return type so recursion and forward references resolve",
+                    name != NULL ? name : "<anonymous>");
+                final_ret = TYPE_UNKNOWN;
+            } else {
+                final_ret = ctx->inferred_return;
+            }
+        }
+        type_function_set_return_type(func_type, final_ret);
+        if (final_ret != NULL && final_ret != TYPE_UNKNOWN
+            && final_ret->name != NULL
+            && !ast_func_set_semantic_return_type_name_copy(node,
+                   final_ret->name)) {
+            semantic_error(ctx, node,
+                "Out of memory while recording inferred function return type");
+        }
+    }
+    ctx->inferring_return = prev_inferring;
+    ctx->inferred_return = prev_inferred;
+    ctx->inferred_return_conflict = prev_infer_conflict;
 
     ctx->current_return = prev_return;
     ctx->current_function_decl = prev_function_decl;

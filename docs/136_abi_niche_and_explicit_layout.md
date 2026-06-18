@@ -9,6 +9,12 @@ the current sizes and offsets. This means `Option<Int>` is 8 bytes today and
 `Option<Long>` / `Option<String>` are at least 16 bytes. Rust-style niche
 encoding such as `Option<NonZeroU32>` fitting in 32 bits is not implemented.
 
+Beta-closure decision: do not add niche optimization before the proof surface
+exists. The cheap implementation would be a backend-local layout shortcut; the
+Pergyra implementation must instead make the invariant part of the language
+and MIR ABI facts. `NonZero<T>`, `NonNull<T>`, and `NonEmpty<T>` are proof-type
+candidates, not aliases for existing primitives.
+
 ## Niche Optimization Gate
 
 Niche optimization may be added only after the language has proof-carrying value
@@ -29,6 +35,11 @@ Required source-of-truth chain:
    non-optimized representations behave the same at the source level.
 
 Until that chain exists, `Option<T>` stays explicitly tagged.
+
+Value-invariant proof types are prerequisite. A backend may not infer a niche
+from a spelling convention, a pointer-looking payload, or a local C/LLVM layout
+choice. The MIR ABI fact must be the only backend input that authorizes
+`None`-as-zero, `None`-as-null, or any other reused bit pattern.
 
 ## Explicit Layout Gate
 

@@ -31,6 +31,7 @@ ASTNode* ast_create_async_function(const char* name, bool is_async) {
     node->data.async_func_decl.param_count = 0;
     node->data.async_func_decl.param_capacity = 0;
     node->data.async_func_decl.return_type = NULL;
+    node->data.async_func_decl.semantic_return_type_name = NULL;
     node->data.async_func_decl.body = NULL;
     node->data.async_func_decl.generic_params = NULL;
     node->data.async_func_decl.where_clause = NULL;

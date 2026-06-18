@@ -335,6 +335,43 @@ test_mir_lowering_part_c(void)
         hir_destroy(hir);
     }
 
+    TEST("MIR captures inferred function return type names");
+    {
+        const char *src =
+            "func add(a: Int, b: Int) {\n"
+            "    return a + b;\n"
+            "}\n"
+            "func Main() {\n"
+            "    let s = add(2, 3);\n"
+            "    Log(s);\n"
+            "}\n";
+        HIRProgram *hir = NULL;
+        RIRProgram *rir = NULL;
+        MIRProgram *mir = NULL;
+        const MIRRoutine *add = NULL;
+        const MIRRoutine *main_routine = NULL;
+        const char *add_return = NULL;
+        const char *main_return = NULL;
+        bool ok = lower_mir_from_source(src, &hir, &rir, &mir);
+        if (ok) {
+            add = find_mir_routine(mir, "add", MIR_SCOPE_FUNCTION);
+            main_routine = find_mir_routine(mir, "Main", MIR_SCOPE_FUNCTION);
+        }
+        if (add != NULL)
+            add_return = mir_routine_return_type_name(add);
+        if (main_routine != NULL)
+            main_return = mir_routine_return_type_name(main_routine);
+        EXPECT(ok
+               && mir_validate(mir, NULL)
+               && add != NULL
+               && main_routine != NULL
+               && add_return != NULL && strcmp(add_return, "Int") == 0
+               && main_return != NULL && strcmp(main_return, "Void") == 0);
+        mir_destroy(mir);
+        rir_destroy(rir);
+        hir_destroy(hir);
+    }
+
     TEST("MIR captures owner method call return types for source locals");
     {
         const char *src =

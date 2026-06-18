@@ -42,6 +42,7 @@ struct ASTNode
             size_t         param_count;
             size_t         param_capacity;
             ASTNode*       return_type;
+            char*          semantic_return_type_name;
             ASTNode*       body;
             GenericParams* generic_params;
             WhereClause*   where_clause;
@@ -302,6 +303,7 @@ struct ASTNode
             size_t         param_count;
             size_t         param_capacity;
             ASTNode*       return_type;
+            char*          semantic_return_type_name;
             ASTNode*       body;
             GenericParams* generic_params;
             WhereClause*   where_clause;

@@ -187,6 +187,7 @@ Type* type_slot_inner_type(const Type* type);
 bool type_slot_is_secure(const Type* type);
 SlotAccessMode type_slot_access_mode(const Type* type);
 Type* type_function_return_type(const Type* type);
+void type_function_set_return_type(Type* type, Type* return_type);
 size_t type_function_param_count(const Type* type);
 Type* type_function_param_type(const Type* type, size_t index);
 void type_function_set_effects(Type* type, uint32_t effect_mask);

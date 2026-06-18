@@ -80,6 +80,37 @@ ast_func_return_type(const ASTNode *node)
     return node->data.func_decl.return_type;
 }
 
+const char *
+ast_func_semantic_return_type_name(const ASTNode *node)
+{
+    if (node == NULL || node->type != AST_FUNC_DECL)
+        return NULL;
+    if (node->is_async_decl)
+        return node->data.async_func_decl.semantic_return_type_name;
+    return node->data.func_decl.semantic_return_type_name;
+}
+
+bool
+ast_func_set_semantic_return_type_name_copy(ASTNode *node,
+                                            const char *type_name)
+{
+    char *copy = NULL;
+
+    if (node == NULL || node->type != AST_FUNC_DECL || type_name == NULL)
+        return false;
+    copy = pergyra_strdup(type_name);
+    if (copy == NULL)
+        return false;
+    if (node->is_async_decl) {
+        free(node->data.async_func_decl.semantic_return_type_name);
+        node->data.async_func_decl.semantic_return_type_name = copy;
+        return true;
+    }
+    free(node->data.func_decl.semantic_return_type_name);
+    node->data.func_decl.semantic_return_type_name = copy;
+    return true;
+}
+
 ASTNode *
 ast_func_body(const ASTNode *node)
 {

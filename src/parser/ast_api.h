@@ -33,6 +33,9 @@ GenericParams* ast_func_generic_params(const ASTNode* node);
 WhereClause* ast_func_where_clause(const ASTNode* node);
 ASTNode* ast_func_return_type(const ASTNode* node);
 bool ast_func_set_return_type(ASTNode* node, ASTNode* return_type);
+const char* ast_func_semantic_return_type_name(const ASTNode* node);
+bool ast_func_set_semantic_return_type_name_copy(ASTNode* node,
+                                                 const char* type_name);
 ASTNode* ast_func_body(const ASTNode* node);
 bool ast_func_attach_body(ASTNode* node, ASTNode* body);
 ASTNode* ast_func_detach_body(ASTNode* node);

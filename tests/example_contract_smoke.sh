@@ -257,6 +257,8 @@ run_stable_examples() {
         "$ROOT_DIR/examples/beta_modules_generics.pgy" "7"
     run_expect_lines "script_register" "$backend" \
         "$ROOT_DIR/examples/script_register.pgy" "SCRIPT REGISTER sum=5"
+    run_expect_lines "infer_return" "$backend" \
+        "$ROOT_DIR/examples/infer_return.pgy" "INFER RETURN sum=5"
     run_expect_lines "battle_simulator" "$backend" \
         "$ROOT_DIR/examples/battle_simulator" "BATTLE" "Hero" "Slime" "TOURNAMENT" "14" "true"
     run_expect_lines "biome_simulator" "$backend" \

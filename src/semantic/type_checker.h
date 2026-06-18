@@ -87,6 +87,11 @@ struct SemanticContext
     ASTNode*     current_world;  /* Enclosing world decl when any  */
     ASTNode*     current_function_decl; /* Enclosing function/action decl */
     Type*        current_return; /* Expected return type of func   */
+    /* Return-type inference: when a func has no `-> Type`, the body's returns
+     * are accumulated here and unified into the function's return type. */
+    bool         inferring_return;        /* current func has no annotation  */
+    Type*        inferred_return;         /* unified return type, NULL = none */
+    bool         inferred_return_conflict;/* returns disagree -> loud error  */
     Type*        expected_lambda_type; /* Contextual func type for lambda */
     uint32_t     current_function_effects; /* Inferred effect mask    */
     uint32_t     current_function_body_summary; /* Interprocedural body facts */

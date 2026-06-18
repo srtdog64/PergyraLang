@@ -29,6 +29,42 @@ ownership_return_apply_context(ASTNode *value, Type *value_type,
     return value_type;
 }
 
+/* Accumulate one return's type into the inferred return for a function with no
+ * `-> Type`. The first record sets the type; later records must unify or a loud
+ * conflict is raised (mirrors the "loud, never silent" stance elsewhere). */
+static void
+ownership_return_record_inferred(SemanticContext *ctx, Type *ret_type,
+                                 ASTNode *node)
+{
+    Type *rt = ownership_return_normalize_type(ret_type);
+
+    if (ctx->inferred_return == NULL) {
+        ctx->inferred_return = rt;
+        return;
+    }
+    if (ctx->inferred_return_conflict)
+        return;
+    if (rt == TYPE_UNKNOWN || ctx->inferred_return == TYPE_UNKNOWN)
+        return;
+    if (!type_equals(ctx->inferred_return, rt)) {
+        ctx->inferred_return_conflict = true;
+        semantic_error_with_hints(ctx,
+            PGY_CODE_SEM_INFER_REQUIRED,
+            PGY_CAUSE_INFER_NO_SOURCE,
+            PGY_FIX_ALIGN_OPERAND_TYPE,
+            node,
+            "Return types disagree across paths and cannot be inferred ('%s' vs '%s').\n"
+            "Reason:\n"
+            "- a function without an explicit '-> Type' infers its return from the body\n"
+            "- two reachable returns produce incompatible types\n"
+            "Fix:\n"
+            "- add an explicit '-> Type' annotation\n"
+            "- or make all returns produce the same type",
+            type_name_or_unknown(ctx->inferred_return),
+            type_name_or_unknown(rt));
+    }
+}
+
 bool
 type_check_return_stmt(ASTNode *node, SemanticContext *ctx)
 {
@@ -70,7 +106,9 @@ type_check_return_stmt(ASTNode *node, SemanticContext *ctx)
         ret_type = TYPE_UNKNOWN;
     }
 
-    if (ctx->current_return != NULL)
+    if (ctx->inferring_return)
+        ownership_return_record_inferred(ctx, ret_type, node);
+    else if (ctx->current_return != NULL)
         require_assignable(ret_type, ctx->current_return, node, ctx);
 
     if (value != NULL) {

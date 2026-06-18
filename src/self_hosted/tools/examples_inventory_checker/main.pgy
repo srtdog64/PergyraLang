@@ -51,7 +51,7 @@ func IsTopLevelExample(path: String) -> Bool {
 
 func Main() -> Void {
     let dirwalk_owner: String = "examples";
-    let expected_examples: Int = 120;
+    let expected_examples: Int = 121;
     let entries: Array<String> = DirWalk(dirwalk_owner);
 
     let examples: Int = 0;

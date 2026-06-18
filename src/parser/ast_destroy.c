@@ -77,6 +77,7 @@ void ast_destroy(ASTNode* node) {
             
         case AST_FUNC_DECL:
             free(node->data.func_decl.name);
+            free(node->data.func_decl.semantic_return_type_name);
             for (size_t i = 0; i < node->data.func_decl.param_count; i++) {
                 free(node->data.func_decl.params[i]->name);
                 ast_destroy(node->data.func_decl.params[i]->type);

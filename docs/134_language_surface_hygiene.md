@@ -63,6 +63,27 @@ So the remaining aesthetic work is not "add omission from scratch." It is to
 make compact authoring the documented default while preserving fail-closed
 diagnostics for conflicts, ambiguity, and missing authority evidence.
 
+## Return Type Omission Status
+
+Return type omission is implemented for ordinary `func` declarations. The
+source of truth is semantic analysis: a function with no `-> Type` infers one
+local return type from its body, records that fact as
+`semantic_return_type_name` on the annotated AST, and MIR captures it as the
+routine `return_type_name`. C and LLVM consume the MIR fact instead of treating
+the missing AST annotation as `Void`.
+
+Current rules:
+
+- no value-bearing `return` in the body infers `Void`;
+- all value-bearing returns must unify to one type;
+- incompatible return paths fail with `PGY_SEM_INFER_REQUIRED`;
+- unresolved recursive or forward-only inference requires an explicit
+  `-> Type`; return inference is local and does not solve global fixpoints.
+
+The gate is `examples/infer_return.pgy` through `example_contract_smoke.sh`
+for backend output, plus the MIR lowering test that requires inferred returns
+to appear in routine `return_type_name`.
+
 ## MPaC Placement
 
 MPaC, Message-Passing and Contracted Concurrency, is a domain kit candidate, not

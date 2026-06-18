@@ -247,3 +247,21 @@ ctx_has_diagnostic_substring_from_result(const SemanticResult *result,
 
     return false;
 }
+
+static bool
+ctx_has_diagnostic_code_from_result(const SemanticResult *result,
+                                    const char *code)
+{
+    if (result == NULL || code == NULL)
+        return false;
+
+    for (size_t i = 0; i < result->diagnostic_count; i++) {
+        Diagnostic *diag = result->diagnostics[i];
+        if (diag != NULL && diag->code != NULL
+            && strcmp(diag->code, code) == 0) {
+            return true;
+        }
+    }
+
+    return false;
+}

@@ -401,6 +401,14 @@ type_function_return_type(const Type *type)
     return type->data.function.return_type;
 }
 
+void
+type_function_set_return_type(Type *type, Type *return_type)
+{
+    if (type == NULL || type->kind != TYPE_KIND_FUNCTION)
+        return;
+    type->data.function.return_type = return_type;
+}
+
 size_t
 type_function_param_count(const Type *type)
 {

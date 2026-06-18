@@ -4,6 +4,7 @@
 #include <stdlib.h>
 #include <string.h>
 
+#include "../common/string_compat.h"
 #include "../semantic/diag_codes.h"
 #include "transpiler_context.h"
 #include "transpiler_decl_lookup.h"
@@ -51,12 +52,14 @@ emit_func_forward_decl_named(ASTNode *node, const char *emitted_name,
     allow_ast_compat = mir_routine == NULL
         && (!transpiler_active_has_mir(ctx) || generic_func || extern_func);
     ASTNode *return_type;
+    const char *return_type_name = NULL;
     size_t param_count;
     if (allow_ast_compat) {
         return_type = ast_func_return_type(node);
         param_count = ast_func_param_count(node);
     } else {
         return_type = transpiler_mir_routine_return_type(mir_routine);
+        return_type_name = transpiler_mir_routine_return_type_name(mir_routine);
         param_count = transpiler_mir_routine_param_count(mir_routine);
     }
     ensure_type_specializations_from_ast(ctx, return_type);
@@ -168,8 +171,32 @@ emit_func_forward_decl_named(ASTNode *node, const char *emitted_name,
         free(decl);
         free(owned_type_name);
     }
-    header_decl = pergyra_func_signature_declarator_in_ctx(ctx, return_type,
-        name, params_sig != NULL ? params_sig->data : "void");
+    const char *params_text =
+        params_sig != NULL && params_sig->data != NULL
+            && params_sig->data[0] != '\0'
+        ? params_sig->data
+        : "void";
+    if (return_type_name != NULL) {
+        char return_c_type[256];
+        if (!transpiler_require_type_name_c_type_copy(ctx,
+                return_type_name,
+                "function forward return",
+                return_c_type,
+                sizeof(return_c_type))) {
+            if (params_sig != NULL)
+                codebuf_destroy(params_sig);
+            return;
+        }
+        header_decl = pergyra_strdup_printf("%s %s(%s)",
+            return_c_type,
+            name != NULL ? name : "value",
+            params_text);
+    } else {
+        header_decl = pergyra_func_signature_declarator_in_ctx(ctx,
+            return_type,
+            name,
+            params_text);
+    }
     if (header_decl == NULL) {
         if (params_sig != NULL)
             codebuf_destroy(params_sig);

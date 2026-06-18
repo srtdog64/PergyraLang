@@ -4,6 +4,7 @@
 #include <stdlib.h>
 
 #include "mir_type_helpers.h"
+#include "../parser/ast_api.h"
 
 void
 mir_routine_signature_type_names_clear(MIRRoutine *routine)
@@ -41,8 +42,14 @@ mir_routine_signature_type_names_capture(MIRRoutine *routine)
                     mir_capture_type_name(param->type, NULL);
         }
     }
-    if (routine->return_type != NULL)
+    if (routine->return_type != NULL) {
         routine->return_type_name =
             mir_capture_type_name(routine->return_type, NULL);
+    } else if (routine->ast != NULL && routine->ast->type == AST_FUNC_DECL
+               && ast_func_semantic_return_type_name(routine->ast) != NULL) {
+        routine->return_type_name =
+            mir_capture_type_name(NULL,
+                ast_func_semantic_return_type_name(routine->ast));
+    }
     return true;
 }

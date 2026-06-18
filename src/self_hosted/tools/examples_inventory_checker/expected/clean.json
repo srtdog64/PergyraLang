@@ -1,1 +1,1 @@
-{"schema":"pgy.selfhost.examples-inventory.v1","ok":true,"source":{"dirwalk_owner":"examples","expected_examples":120},"counts":{"examples":120,"missing":0,"empty":0,"max_lines":544},"findings":[]}
+{"schema":"pgy.selfhost.examples-inventory.v1","ok":true,"source":{"dirwalk_owner":"examples","expected_examples":121},"counts":{"examples":121,"missing":0,"empty":0,"max_lines":544},"findings":[]}
