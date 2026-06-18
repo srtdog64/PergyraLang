@@ -366,6 +366,39 @@ test_mir_lowering_part_c(void)
         hir_destroy(hir);
     }
 
+    TEST("MIR captures underscore source-local types in branch blocks");
+    {
+        const char *src =
+            "func BranchLocalFact(flag: Bool) -> Int {\n"
+            "    if flag {\n"
+            "        let push_fn: String = \"\";\n"
+            "        push_fn = \"pgy_ai_push\";\n"
+            "        return StringLength(push_fn);\n"
+            "    }\n"
+            "    return 0;\n"
+            "}\n";
+        HIRProgram *hir = NULL;
+        RIRProgram *rir = NULL;
+        MIRProgram *mir = NULL;
+        const MIRRoutine *routine = NULL;
+        const char *push_fn_type = NULL;
+        bool ok = lower_mir_from_source(src, &hir, &rir, &mir);
+        if (ok)
+            routine = find_mir_routine(mir, "BranchLocalFact",
+                                       MIR_SCOPE_FUNCTION);
+        if (routine != NULL)
+            push_fn_type = mir_routine_source_local_type_name(routine,
+                "push_fn");
+        EXPECT(ok
+               && mir_validate(mir, NULL)
+               && routine != NULL
+               && push_fn_type != NULL
+               && strcmp(push_fn_type, "String") == 0);
+        mir_destroy(mir);
+        rir_destroy(rir);
+        hir_destroy(hir);
+    }
+
     TEST("MIR validator rejects invalid source-statement emit fact");
     {
         const char *src =

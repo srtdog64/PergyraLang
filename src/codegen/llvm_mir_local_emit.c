@@ -452,7 +452,13 @@ llvm_emit_mir_local_allocas(const MIRRoutine *routine, LLVMGenCtx *ctx,
                                                         type_expr);
                     }
                 } else if (value_expr != NULL) {
-                    if (has_base_name) {
+                    if (inst->arg0 != NULL) {
+                        alloca_type = llvm_mir_local_type_from_source_fact(
+                            routine, ctx, inst->arg0);
+                        if (ctx->has_error)
+                            return;
+                    }
+                    if (alloca_type == NULL && has_base_name) {
                         alloca_type = llvm_mir_local_type_from_source_fact(
                             routine, ctx, base_name);
                         if (ctx->has_error)
