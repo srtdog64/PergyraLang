@@ -696,6 +696,7 @@ CODEGEN_SOURCES  = $(CODEGEN_DIR)/transpiler_allocator_builtin_emit.c \
                    $(CODEGEN_DIR)/transpiler_mir_block_schedule_emit.c \
                    $(CODEGEN_DIR)/transpiler_mir_resource_hook_emit.c \
                    $(CODEGEN_DIR)/transpiler_mir_resource_op_emit.c \
+                   $(CODEGEN_DIR)/transpiler_mir_self_field_slots.c \
                    $(CODEGEN_DIR)/transpiler_mir_stmt_emit.c \
                    $(CODEGEN_DIR)/transpiler_mir_ssa_contract.c \
                    $(CODEGEN_DIR)/transpiler_mir_effective_type.c \

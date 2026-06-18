@@ -3414,13 +3414,6 @@ for term in \
     "TRANSPILER_MIR_SIGNATURE_REQUIRE_ALL_TYPE_NAMES" \
     "MIR-only C path missing function body routine" \
     "MIR-only C path missing function body signature metadata" \
-    "MIR-only C path missing class-field slot registration metadata" \
-    "transpiler_hosted_field_view_missing_mir_metadata(&fields_view)" \
-    "transpiler_hosted_field_view_metadata(&fields_view, i)" \
-    "transpiler_hosted_field_view_name(&fields_view, i)" \
-    "transpiler_mir_decl_field_type_name(field_meta)" \
-    "mir_decl_header_field_claim_count(header)" \
-    "mir_decl_field_claim_token_name(claim)" \
     "transpiler_mir_routine_param_count(mir_routine)" \
     "transpiler_mir_routine_param(mir_routine" \
     "transpiler_mir_routine_param_type_name(mir_routine" \
@@ -3429,12 +3422,24 @@ for term in \
     "transpiler_register_ast_compat_local_bindings_in_block(ctx, node"; do
     require_term "src/codegen/transpiler_mir_func_emit.c" "$term"
 done
+for term in \
+    "MIR-only C path missing class-field slot registration metadata" \
+    "transpiler_hosted_field_view_missing_mir_metadata(&fields_view)" \
+    "transpiler_hosted_field_view_metadata(&fields_view, i)" \
+    "transpiler_hosted_field_view_name(&fields_view, i)" \
+    "transpiler_mir_decl_field_type_name(field_meta)" \
+    "mir_decl_header_field_claim_count(header)" \
+    "mir_decl_field_claim_token_name(claim)"; do
+    require_term "src/codegen/transpiler_mir_self_field_slots.c" "$term"
+done
+require_term "src/codegen/transpiler_mir_func_emit.c" \
+    "transpiler_mir_register_class_field_slots(ctx, resolved_host_decl)"
 if grep -Fq "if (!transpiler_mir_routine_has_signature" \
     "$ROOT_DIR/src/codegen/transpiler_mir_func_emit.c"; then
     fail "C MIR function body emission must consume transpiler_mir_signature owner"
 fi
 if grep -Fq "fields_view.ast_compat_fields" \
-    "$ROOT_DIR/src/codegen/transpiler_mir_func_emit.c"; then
+    "$ROOT_DIR/src/codegen/transpiler_mir_self_field_slots.c"; then
     fail "C class-field slot registration must consume hosted field metadata accessors, not ast_compat_fields directly"
 fi
 for rel in \

@@ -6,7 +6,21 @@
 #include "ast_print_internal.h"
 #include <stdio.h>
 #include <stdlib.h>
+
+#ifdef _WIN32
 #include <io.h>
+#define PGY_DUP _dup
+#define PGY_DUP2 _dup2
+#define PGY_CLOSE _close
+#define PGY_FILENO _fileno
+#else
+#include <unistd.h>
+#define PGY_DUP dup
+#define PGY_DUP2 dup2
+#define PGY_CLOSE close
+#define PGY_FILENO fileno
+#endif
+
 static void
 print_escaped_string(const char *value)
 {
@@ -424,21 +438,21 @@ char *
 ast_capture_inline(ASTNode* node)
 {
     fflush(stdout);
-    int saved = dup(fileno(stdout));
+    int saved = PGY_DUP(PGY_FILENO(stdout));
     if (saved < 0) {
         return NULL;
     }
     FILE *tmp = tmpfile();
     if (tmp == NULL) {
-        close(saved);
+        PGY_CLOSE(saved);
         return NULL;
     }
     fflush(stdout);
-    dup2(fileno(tmp), fileno(stdout));
+    PGY_DUP2(PGY_FILENO(tmp), PGY_FILENO(stdout));
     ast_print_inline(node);
     fflush(stdout);
-    dup2(saved, fileno(stdout));
-    close(saved);
+    PGY_DUP2(saved, PGY_FILENO(stdout));
+    PGY_CLOSE(saved);
 
     long n = ftell(tmp);
     if (n < 0) {
