@@ -89,6 +89,7 @@ and follow-up debt over older design notes.
 | [`128_pointer_risk_register.md`](128_pointer_risk_register.md) | Pointer/lifetime risk register for ABI, containers, scratch buffers, and raw escape |
 | [`132_unsafe_capability_scope.md`](132_unsafe_capability_scope.md) | Unsafe capability scope contract |
 | [`135_backend_wasm_pointer_closure.md`](135_backend_wasm_pointer_closure.md) | Backend/WASM/pointer wording guard: verified subset, named debt, and non-overclaiming lifetime status |
+| [`136_abi_niche_and_explicit_layout.md`](136_abi_niche_and_explicit_layout.md) | ABI niche optimization and explicit layout policy: current tagged Option ABI, future proof gates, and raw/extern-only layout scope |
 
 ## Language Surface
 

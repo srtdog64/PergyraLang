@@ -49,6 +49,45 @@ emit() {  # emit <tool-exe> <out.c>
     (cd "$ROOT_DIR" && "$1" "$AST_REL" 2>/dev/null | tr -d '\r' > "$2")
 }
 
+files_equal_text() {
+    local left="$1"
+    local right="$2"
+    local left_text
+    local right_text
+
+    if command -v git >/dev/null 2>&1; then
+        git diff --no-index --quiet -- "$left" "$right"
+        return $?
+    fi
+    if command -v cmp >/dev/null 2>&1; then
+        cmp -s "$left" "$right"
+        return $?
+    fi
+
+    left_text="$(<"$left")"
+    right_text="$(<"$right")"
+    [[ "$left_text" == "$right_text" ]]
+}
+
+show_file_delta() {
+    local left="$1"
+    local right="$2"
+
+    if command -v git >/dev/null 2>&1; then
+        git --no-pager diff --no-index --no-prefix -- "$left" "$right" || true
+        return 0
+    fi
+    if command -v diff >/dev/null 2>&1; then
+        diff -u "$left" "$right" || true
+        return 0
+    fi
+
+    echo "--- $left ---"
+    head -20 "$left" || true
+    echo "--- $right ---"
+    head -20 "$right" || true
+}
+
 # gen0: oracle-built tool
 echo "[self-host-bootstrap] building oracle tool (gen0)..."
 (cd "$ROOT_DIR" && "$PGY" "$(pgy_path_for_compiler "$PGY" "$TOOL_SOURCE")" \
@@ -74,9 +113,9 @@ emit "$B/gen1.exe" "$B/gen2.c"
 
 emit "$B/gen2.exe" "$B/gen3.c"
 
-if ! diff -q "$B/gen2.c" "$B/gen3.c" >/dev/null; then
+if ! files_equal_text "$B/gen2.c" "$B/gen3.c"; then
     echo "[self-host-bootstrap] FIXPOINT BROKEN: gen2 != gen3" >&2
-    diff "$B/gen2.c" "$B/gen3.c" | head -20 >&2
+    show_file_delta "$B/gen2.c" "$B/gen3.c" >&2
     exit 1
 fi
 echo "[self-host-bootstrap] fixpoint ok: gen2 == gen3 ($(wc -l < "$B/gen2.c") lines)"

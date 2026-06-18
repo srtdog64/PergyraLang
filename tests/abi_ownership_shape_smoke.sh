@@ -61,12 +61,14 @@ for rel in \
     "docs/74_slot_pinning_caching.md" \
     "docs/100_beta_readiness_checklist.md" \
     "docs/107_beta_stable_subset.md" \
-    "docs/118_slot_model_rigor_audit.md"; do
+    "docs/118_slot_model_rigor_audit.md" \
+    "docs/136_abi_niche_and_explicit_layout.md"; do
     require_file "$rel"
 done
 
 require_term "src/runtime/pgy_abi_spec.h" "typedef struct { uint64_t id; bool can_write; bool can_read; } pgy_abi_token_int_rel;"
 require_term "src/runtime/pgy_abi_spec.h" "typedef struct { int32_t value; bool occupied; uint64_t token; } pgy_abi_secure_slot_int_rel;"
+require_term "src/runtime/pgy_abi_spec.h" "Rust-style niche encoding"
 require_term "src/runtime/pgy_abi_spec.h" "pgy_abi_pinned_slot_view_int"
 require_term "src/runtime/pgy_abi_spec.h" "pgy_abi_pinned_secure_slot_view_int"
 require_term "src/test_abi_spec.c" "sizeof(PgyPinnedSlotView_Int) == sizeof(pgy_abi_pinned_slot_view_int)"
@@ -184,5 +186,9 @@ require_term "docs/74_slot_pinning_caching.md" "Pin/Lease is a typed lexical lea
 require_term "docs/100_beta_readiness_checklist.md" "Slot/Pin/Zone-bound handle/runtime-none/raw escape"
 require_term "docs/107_beta_stable_subset.md" "Non-pin handle expiration is not claimed as a single-mechanism proof"
 require_term "docs/118_slot_model_rigor_audit.md" "Zone-Bound Handle typing"
+require_term "docs/136_abi_niche_and_explicit_layout.md" 'Option<T>` stays explicitly tagged'
+require_term "docs/136_abi_niche_and_explicit_layout.md" "Semantic/DAG proves the value invariant"
+require_term "docs/136_abi_niche_and_explicit_layout.md" 'extern "C" ABI'
+require_term "docs/136_abi_niche_and_explicit_layout.md" "boundary-scoped, never the default aggregate model"
 
 echo "[abi-ownership-shape] Slot/Pin ABI shape, cleanup, and docs contract are gated"
