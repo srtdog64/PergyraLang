@@ -515,6 +515,10 @@ bool        mir_validate_emission_contract(const MIRRoutine *routine,
                                           char **error_message);
 void        mir_destroy(MIRProgram *mir);
 void        mir_dump(const MIRProgram *mir, FILE *out);
+/* Lossless JSON serialization of the MIR (schema pgy.mir.v1): CFG skeleton plus
+ * each instruction's source AST expression captured inline. Consumed by the
+ * Pergyra-origin MIR->C lowering (self-host path (a)). */
+void        mir_dump_json(const MIRProgram *mir, FILE *out);
 
 const char *mir_scope_kind_name(MIRScopeKind kind);
 const char *mir_inst_kind_name(MIRInstKind kind);

@@ -5,6 +5,8 @@
 
 #include "ast_print_internal.h"
 #include <stdio.h>
+#include <stdlib.h>
+#include <io.h>
 static void
 print_escaped_string(const char *value)
 {
@@ -408,4 +410,49 @@ void
 ast_print_inline(ASTNode* node)
 {
     ast_print_compact(node);
+}
+
+/*
+ * Capture the inline/compact rendering of `node` into a malloc'd string,
+ * without modifying the printer: temporarily redirect stdout (fd level) to a
+ * tmpfile, run the existing printf-based printer, then restore stdout and read
+ * the buffer back. This keeps `--ast`/`--tokens` output byte-identical (the
+ * printer is untouched) while letting the MIR JSON serializer embed lossless
+ * expression text. Caller frees the result.
+ */
+char *
+ast_capture_inline(ASTNode* node)
+{
+    fflush(stdout);
+    int saved = dup(fileno(stdout));
+    if (saved < 0) {
+        return NULL;
+    }
+    FILE *tmp = tmpfile();
+    if (tmp == NULL) {
+        close(saved);
+        return NULL;
+    }
+    fflush(stdout);
+    dup2(fileno(tmp), fileno(stdout));
+    ast_print_inline(node);
+    fflush(stdout);
+    dup2(saved, fileno(stdout));
+    close(saved);
+
+    long n = ftell(tmp);
+    if (n < 0) {
+        fclose(tmp);
+        return NULL;
+    }
+    rewind(tmp);
+    char *buf = (char *)malloc((size_t)n + 1);
+    if (buf == NULL) {
+        fclose(tmp);
+        return NULL;
+    }
+    size_t rd = fread(buf, 1, (size_t)n, tmp);
+    buf[rd] = '\0';
+    fclose(tmp);
+    return buf;
 }

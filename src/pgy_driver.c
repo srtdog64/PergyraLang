@@ -51,6 +51,7 @@ static const DriverOptionSpec k_driver_options[] = {
     { "--hir-dom", DRIVER_OPTION_HIR_DUMP, 0, HIR_DUMP_DOM },
     { "--hir-ssa", DRIVER_OPTION_HIR_DUMP, 0, HIR_DUMP_SSA },
     { "--mir", DRIVER_OPTION_BOOL, offsetof(DriverFlags, dump_mir), true },
+    { "--mir-json", DRIVER_OPTION_BOOL, offsetof(DriverFlags, dump_mir_json), true },
     { "--opt=dev", DRIVER_OPTION_OPT_PROFILE, 0, PGY_OPT_DEV },
     { "--opt=release", DRIVER_OPTION_OPT_PROFILE, 0, PGY_OPT_RELEASE },
     { "--repl", DRIVER_OPTION_BOOL, offsetof(DriverFlags, repl), true },

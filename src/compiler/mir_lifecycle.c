@@ -9,6 +9,7 @@
 #include <stdlib.h>
 
 #include "../common/arena.h"
+#include "../parser/ast_api.h"
 
 void
 mir_destroy(MIRProgram *mir)
@@ -392,4 +393,99 @@ mir_dump(const MIRProgram *mir, FILE *out)
             free(label);
         }
     }
+}
+
+/* --- Lossless MIR JSON serialization (schema pgy.mir.v1) ------------------- */
+
+static void
+mir_json_emit_str(FILE *out, const char *s)
+{
+    fputc('"', out);
+    if (s != NULL) {
+        for (const unsigned char *p = (const unsigned char *)s; *p != '\0'; p++) {
+            switch (*p) {
+            case '"':  fputs("\\\"", out); break;
+            case '\\': fputs("\\\\", out); break;
+            case '\n': fputs("\\n", out); break;
+            case '\r': fputs("\\r", out); break;
+            case '\t': fputs("\\t", out); break;
+            default:
+                if (*p < 0x20)
+                    fprintf(out, "\\u%04x", (unsigned)*p);
+                else
+                    fputc((int)*p, out);
+                break;
+            }
+        }
+    }
+    fputc('"', out);
+}
+
+static void
+mir_json_emit_str_or_null(FILE *out, const char *s)
+{
+    if (s == NULL)
+        fputs("null", out);
+    else
+        mir_json_emit_str(out, s);
+}
+
+void
+mir_dump_json(const MIRProgram *mir, FILE *out)
+{
+    if (out == NULL)
+        out = stdout;
+    fputs("{\"schema\":\"pgy.mir.v1\",\"routines\":[", out);
+    if (mir != NULL && mir->routines != NULL) {
+        for (size_t i = 0; i < mir->routine_count; i++) {
+            const MIRRoutine *routine = &mir->routines[i];
+            if (i > 0)
+                fputc(',', out);
+            fputs("{\"name\":", out);
+            mir_json_emit_str_or_null(out, routine->name);
+            fputs(",\"kind\":", out);
+            mir_json_emit_str(out, mir_scope_kind_name(routine->kind));
+            fputs(",\"blocks\":[", out);
+            for (size_t j = 0; j < routine->block_count && routine->blocks != NULL; j++) {
+                const MIRBasicBlock *block = &routine->blocks[j];
+                if (j > 0)
+                    fputc(',', out);
+                fprintf(out, "{\"id\":%zu,\"reachable\":%s,\"instructions\":[",
+                        j, block->is_reachable ? "true" : "false");
+                for (size_t k = 0; k < block->instruction_count && block->instructions != NULL; k++) {
+                    const MIRInstruction *inst = &block->instructions[k];
+                    if (k > 0)
+                        fputc(',', out);
+                    fprintf(out, "{\"id\":%zu,\"kind\":", inst->id);
+                    mir_json_emit_str(out, mir_inst_kind_name(inst->kind));
+                    fputs(",\"name\":", out);
+                    mir_json_emit_str_or_null(out, inst->name);
+                    fputs(",\"result\":", out);
+                    mir_json_emit_str_or_null(out, inst->result_name);
+                    fputs(",\"arg0\":", out);
+                    mir_json_emit_str_or_null(out, inst->arg0);
+                    fputs(",\"arg1\":", out);
+                    mir_json_emit_str_or_null(out, inst->arg1);
+                    fputs(",\"uses\":[", out);
+                    for (size_t m = 0; m < inst->use_count; m++) {
+                        if (m > 0)
+                            fputc(',', out);
+                        mir_json_emit_str(out, inst->uses[m]);
+                    }
+                    fputs("],\"ast\":", out);
+                    if (inst->ast != NULL) {
+                        char *expr = ast_capture_inline(inst->ast);
+                        mir_json_emit_str_or_null(out, expr);
+                        free(expr);
+                    } else {
+                        fputs("null", out);
+                    }
+                    fputc('}', out);
+                }
+                fputs("]}", out);
+            }
+            fputs("]}", out);
+        }
+    }
+    fputs("]}\n", out);
 }

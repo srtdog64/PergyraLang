@@ -62,6 +62,7 @@ typedef struct
     bool        dump_air;
     bool        dump_air_json;
     bool        dump_mir;
+    bool        dump_mir_json;
     bool        dump_hir;
     HIRDumpMode hir_dump_mode;
     bool        verbose;

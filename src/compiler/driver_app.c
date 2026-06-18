@@ -393,6 +393,12 @@ driver_run_pipeline_timed(const DriverFlags *flags, DriverPhaseTimings *timings)
         goto cleanup;
     }
 
+    if (flags->dump_mir_json) {
+        mir_dump_json(mir, stdout);
+        exit_code = 0;
+        goto cleanup;
+    }
+
     if (flags->dump_hir) {
         hir_dump_mode(hir, stdout, flags->hir_dump_mode);
         exit_code = 0;
