@@ -236,18 +236,6 @@ llvm_resolve_projection_source_path_by_name(LLVMGenCtx *ctx,
 }
 
 LLVMValueRef
-llvm_load_projection_path_value(LLVMGenCtx *ctx,
-                                ASTNode *source_decl,
-                                LLVMClassTypeEntry *source_cls,
-                                LLVMValueRef source_ptr,
-                                const char *field_name)
-{
-    return llvm_load_projection_path_value_by_name(
-        ctx, llvm_decl_node_name(source_decl), source_cls, source_ptr,
-        field_name, source_decl);
-}
-
-LLVMValueRef
 llvm_load_projection_path_value_by_name(LLVMGenCtx *ctx,
                                 const char *source_type_name,
                                 LLVMClassTypeEntry *source_cls,

@@ -2447,10 +2447,12 @@ Observed results:
   `semantic_assignment_target_path(...)` so the old allocate/free lifetime seam
   cannot spread back into ownership diagnostics.
 - C backend projection source-path rendering also moved to the owner scratch
-  lane. `resolve_projection_source_path_rec(...)` now returns `TranspilerCtx`
-  scratch-owned paths, and the projection emitter / expression dispatcher no
-  longer carry local `free(source_path)` cleanup. The perf contract rejects the
-  old heap formatter so this returned-string seam stays closed.
+  lane and then to the by-name projection owner. The retired
+  `resolve_projection_source_path_rec(...)` AST-declaration wrapper may not be
+  reintroduced; `resolve_projection_source_path_by_name(...)` returns
+  `TranspilerCtx` scratch-owned paths, and projection callers pass the source
+  type name resolved by their typed owner. The perf contract rejects the old
+  heap formatter so this returned-string seam stays closed.
 - Semantic projection source-field path resolution now mirrors that policy:
   `resolve_projection_source_field_path(...)` returns `SemanticContext`
   scratch-owned path text, and both projection diagnostics and DAG projection

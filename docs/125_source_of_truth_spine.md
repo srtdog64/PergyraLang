@@ -235,6 +235,12 @@ Current beta closure snapshot:
   source-field paths must prefer by-name MIR declaration-header metadata and
   must not reopen a local class-inventory search or keep projection-specific
   compatibility wrappers.
+- C and LLVM projection path/literal helpers expose only by-name lowering
+  seams once a source type is known. The retired AST-declaration wrappers
+  (`resolve_projection_source_path_rec`, `emit_projection_literal`, and
+  `llvm_load_projection_path_value`) may not be reintroduced; callers must
+  pass the resolved type name from the typed owner that already made the
+  declaration decision.
 - LLVM callable declaration lookup also lives in
   `src/codegen/llvm_domain_lookup.c` behind `llvm_find_function_decl(...)`,
   `llvm_find_intent_decl(...)`, and `llvm_find_callable_decl(...)`. Call

@@ -4836,6 +4836,21 @@ if grep -Eq 'ast_domain_slot_(name|type)\(|ASTNode \*\*slots|size_t slot_count' 
         "$ROOT_DIR/src/codegen/llvm_domain_projection_sync_body_helpers.c"; then
     fail "LLVM projection sync body must consume hosted domain-slot view for slot metadata"
 fi
+require_term "src/codegen/transpiler_projection.h" \
+    "emit_projection_literal_by_name("
+require_term "src/codegen/transpiler_projection_emit.c" \
+    "resolve_projection_source_path_by_name(TranspilerCtx *ctx"
+require_term "src/codegen/transpiler_projection_emit.c" \
+    "projection_class_field_view_by_name("
+require_term "src/codegen/transpiler_projection_emit.c" \
+    "mir_decl_header_nominal_kind_or("
+require_term "src/codegen/transpiler_projection_emit.c" \
+    "emit_projection_literal_by_name("
+if grep -RInE "resolve_projection_source_path_rec\\(|emit_projection_literal\\(TranspilerCtx \\*ctx" \
+        "$ROOT_DIR/src/codegen/transpiler_projection_emit.c" \
+        "$ROOT_DIR/src/codegen/transpiler_projection.h"; then
+    fail "C projection literal/path loading must expose by-name owners, not AST source-decl wrappers"
+fi
 require_term "src/codegen/llvm_expr_projection_path_helpers.h" \
     "llvm_load_projection_path_value_by_name("
 require_term "src/codegen/llvm_expr_projection_path_helpers.c" \
@@ -4846,6 +4861,11 @@ require_term "src/codegen/llvm_expr_projection_path_helpers.c" \
     "mir_decl_header_nominal_kind_or("
 require_term "src/codegen/llvm_expr_projection_path_helpers.c" \
     "llvm_load_projection_path_value_by_name("
+if grep -RIn "llvm_load_projection_path_value(LLVMGenCtx *ctx" \
+        "$ROOT_DIR/src/codegen/llvm_expr_projection_path_helpers.c" \
+        "$ROOT_DIR/src/codegen/llvm_expr_projection_path_helpers.h"; then
+    fail "LLVM projection path loading must expose the by-name owner, not the AST source-decl wrapper"
+fi
 require_term "src/codegen/llvm_domain_projection_value_helpers.h" \
     "llvm_load_domain_projection_path_value_by_name("
 require_term "src/codegen/llvm_domain_projection_value_helpers.c" \

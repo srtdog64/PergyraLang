@@ -43,23 +43,11 @@ bool transpiler_world_has_zone_slot(TranspilerCtx *ctx,
 ASTNode *transpiler_resolve_world_zone_decl(TranspilerCtx *ctx,
                                             ASTNode *world_decl,
                                             const char *slot_name);
-/* path_out is TranspilerCtx scratch-owned when present. */
-int resolve_projection_source_path_rec(TranspilerCtx *ctx,
-                                       ASTNode *source_decl,
-                                       const char *field_name,
-                                       unsigned depth,
-                                       char **path_out);
 int resolve_projection_source_path_by_name(TranspilerCtx *ctx,
                                            const char *source_type_name,
                                            const char *field_name,
                                            unsigned depth,
                                            char **path_out);
-char *emit_projection_literal(TranspilerCtx *ctx,
-                              ASTNode *target_decl,
-                              ASTNode *source_decl,
-                              ASTNode *refresh,
-                              const char *target_type_name,
-                              const char *source_expr);
 char *emit_projection_literal_by_name(TranspilerCtx *ctx,
                                       const char *target_type_name,
                                       const char *source_type_name,

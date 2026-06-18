@@ -160,16 +160,6 @@ transpiler_projection_type_is_struct_like(TranspilerCtx *ctx,
 }
 
 int
-resolve_projection_source_path_rec(TranspilerCtx *ctx, ASTNode *source_decl,
-                                   const char *field_name, unsigned depth,
-                                   char **path_out)
-{
-    return resolve_projection_source_path_by_name(
-        ctx, transpiler_decl_name_local(source_decl), field_name, depth,
-        path_out);
-}
-
-int
 resolve_projection_source_path_by_name(TranspilerCtx *ctx,
                                        const char *source_type_name,
                                        const char *field_name,
@@ -247,19 +237,6 @@ resolve_projection_source_path_by_name(TranspilerCtx *ctx,
     }
 
     return match_count > 1 ? 2 : 0;
-}
-
-char *
-emit_projection_literal(TranspilerCtx *ctx, ASTNode *target_decl, ASTNode *source_decl,
-                        ASTNode *refresh, const char *target_type_name,
-                        const char *source_expr)
-{
-    const char *source_type_name = transpiler_decl_name_local(source_decl);
-
-    if (target_type_name == NULL)
-        target_type_name = transpiler_decl_name_local(target_decl);
-    return emit_projection_literal_by_name(
-        ctx, target_type_name, source_type_name, refresh, source_expr);
 }
 
 char *

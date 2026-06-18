@@ -3,6 +3,20 @@
 > Split from `docs/100_beta_readiness_checklist.md` on 2026-05-29.
 > Keep active blocker edits in the shard that owns the relevant closure track.
 
+## Progress Log - 2026-06-19 Projection By-Name Owner Cutover
+
+- C projection literal/source-path lowering and LLVM projection-path loading
+  now expose only by-name/type-name entry points. The retired AST-declaration
+  wrappers only extracted a declaration name before delegating, so keeping them
+  open allowed projection code to look source-declaration-shaped again without
+  owning a semantic declaration decision.
+- `mir-declaration-inventory-test-smoke` now rejects reintroducing
+  `resolve_projection_source_path_rec`, `emit_projection_literal`, or
+  `llvm_load_projection_path_value`. Projection callers must consume the typed
+  owner that already resolved the source type and then call the by-name helper.
+- Gates used: `make mir-declaration-inventory-test-smoke`,
+  `make llvm-test-smoke`, and `git diff --check`.
+
 ## Progress Log - 2026-06-19 LLVM Class-Field Slot Registration Cutover
 
 - LLVM MIR parameter setup now registers `self.field` slot bindings through
