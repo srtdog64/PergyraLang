@@ -875,6 +875,7 @@ for term in \
     "LLVM_MIR_SIGNATURE_REQUIRE_PARAM_TYPE_NAMES" \
     "llvm_mir_or_ast_function_is_generic(routine, decl)" \
     "allow_ast_compat = routine == NULL" \
+    "&& (!llvm_active_has_mir(ctx) || decl_is_generic || decl_is_extern)" \
     "MIR-only LLVM path missing boundary call signature metadata"; do
     require_term "src/codegen/llvm_expr_boundary_projection_helpers.c" "$term"
 done
