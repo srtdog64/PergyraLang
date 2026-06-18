@@ -1,0 +1,157 @@
+// mir_lower -- Pergyra-origin MIR-JSON -> AST-tree reconstructor (self-host
+// path (a), rung-0b-part2). Consumes the lossless `pgy --mir-json` output
+// (schema pgy.mir.v1) and reconstructs the `pgy --ast` tree text, which the
+// existing self-host codegen then lowers to C. Together they form a Pergyra
+// MIR -> C lowering: the C backend's MIR consumption is substituted.
+//
+// rung-0 scope: a single routine `Main`, a single linear block, and the
+// statement forms the codegen already supports (Int `let`, `Log(...)`). Each
+// instruction's `ast` field carries the lossless source expression captured by
+// the C compiler's ast_capture_inline. Out-of-scope input is an observable
+// MIR-LOWER ERROR (no silent fallback, per the no-hidden-flow rule).
+
+func Die(msg: String) -> Void {
+    Log(Concat("MIR-LOWER ERROR: ", msg));
+    Exit(1);
+}
+
+// Single-character substring at index `i` (the codegen subset has no native
+// indexing builtin for strings).
+func CharAt(s: String, i: Int) -> String {
+    return Substring(s, i, 1);
+}
+
+// First index of `needle` in `hay` at or after offset `start`, or -1.
+func FindFrom(hay: String, needle: String, start: Int) -> Int {
+    let n: Int = StringLength(hay);
+    if start < 0 {
+        return -1;
+    }
+    if start > n {
+        return -1;
+    }
+    let rest: String = Substring(hay, start, n - start);
+    let k: Int = StringIndexOf(rest, needle);
+    if k < 0 {
+        return -1;
+    }
+    return start + k;
+}
+
+// Read a JSON string literal whose opening quote is at index `open`. Returns the
+// decoded value and sets end[0] to the index just past the closing quote.
+// Handles \" \\ \n \r \t escapes.
+func ReadJsonString(json: String, open: Int, end: Array<Int>) -> String {
+    let n: Int = StringLength(json);
+    let i: Int = open + 1;
+    let out: String = "";
+    while i < n {
+        let c: String = CharAt(json, i);
+        if c == "\"" {
+            ArraySet(end, 0, i + 1);
+            return out;
+        }
+        if c == "\\" {
+            if i + 1 >= n {
+                Die("truncated escape in JSON string");
+            }
+            let e: String = CharAt(json, i + 1);
+            if e == "n" {
+                out = Concat(out, "\n");
+            } else if e == "r" {
+                out = Concat(out, "\r");
+            } else if e == "t" {
+                out = Concat(out, "\t");
+            } else if e == "\"" {
+                out = Concat(out, "\"");
+            } else if e == "\\" {
+                out = Concat(out, "\\");
+            } else {
+                out = Concat(out, e);
+            }
+            i = i + 2;
+        } else {
+            out = Concat(out, c);
+            i = i + 1;
+        }
+    }
+    Die("unterminated JSON string");
+    return "";
+}
+
+// Convert one MIR instruction `ast` statement (compact form) to its AST-tree
+// line. `Log(...)` and bare calls pass through unchanged; `let NAME: T = V`
+// becomes `Let: NAME : T = V`.
+func StmtToTreeLine(stmt: String) -> String {
+    let s: String = StringTrim(stmt);
+    if StringLength(s) >= 4 && Substring(s, 0, 4) == "let " {
+        let rest: String = Substring(s, 4, StringLength(s) - 4);
+        let colon: Int = StringIndexOf(rest, ":");
+        if colon < 0 {
+            Die(Concat("let without type annotation: ", s));
+        }
+        let name: String = StringTrim(Substring(rest, 0, colon));
+        let after: String = StringTrim(Substring(rest, colon + 1, StringLength(rest) - (colon + 1)));
+        return Concat("Let: ", Concat(name, Concat(" : ", after)));
+    }
+    return s;
+}
+
+func Main() -> Void {
+    let args: Array<String> = Args();
+    if ArrayLength(args) < 1 {
+        Die("usage: mir_lower <mir-json-file>");
+    }
+    let path: String = args[0];
+    let json: String = ReadFile(path);
+    if StringLength(json) == 0 {
+        Die(Concat("empty or unreadable MIR-JSON file: ", path));
+    }
+    if StringIndexOf(json, "\"schema\":\"pgy.mir.v1\"") < 0 {
+        Die("input is not a pgy.mir.v1 MIR-JSON document");
+    }
+
+    // Routine name (rung-0: exactly one routine, expected to be Main).
+    let name_key: Int = StringIndexOf(json, "\"name\":");
+    if name_key < 0 {
+        Die("no routine name in MIR-JSON");
+    }
+    let nq: Int = FindFrom(json, "\"", name_key + 7);
+    if nq < 0 {
+        Die("malformed routine name");
+    }
+    let nend: Array<Int> = [0];
+    let routine: String = ReadJsonString(json, nq, nend);
+
+    let out: String = "Program:\n";
+    out = Concat(out, Concat("  Function: ", Concat(routine, "\n")));
+    out = Concat(out, "    Parameters:\n");
+    out = Concat(out, "    Returns: Void\n");
+    out = Concat(out, "    Body:\n");
+    out = Concat(out, "      Block:\n");
+
+    // Walk every instruction `ast` field in document order. Non-null values are
+    // emitted as statement lines at the Block's 8-space indentation.
+    let count: Int = 0;
+    let k: Int = FindFrom(json, "\"ast\":", 0);
+    while k >= 0 {
+        let vstart: Int = k + 6;
+        let vc: String = CharAt(json, vstart);
+        if vc == "n" {
+            k = FindFrom(json, "\"ast\":", vstart + 4);
+        } else if vc == "\"" {
+            let send: Array<Int> = [0];
+            let stmt: String = ReadJsonString(json, vstart, send);
+            out = Concat(out, Concat("        ", Concat(StmtToTreeLine(stmt), "\n")));
+            count = count + 1;
+            k = FindFrom(json, "\"ast\":", send[0]);
+        } else {
+            Die(Concat("unexpected ast value at offset: ", ToString(vstart)));
+        }
+    }
+
+    if count == 0 {
+        Die("no source statements found in MIR-JSON routine");
+    }
+    Print(out);
+}

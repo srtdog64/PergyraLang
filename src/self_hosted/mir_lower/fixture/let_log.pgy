@@ -1,0 +1,4 @@
+func Main() -> Void {
+    let x: Int = 21;
+    Log(ToString(x + x));
+}

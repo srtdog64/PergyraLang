@@ -1,0 +1,6 @@
+func Main() -> Void {
+    let a: Int = 5;
+    let b: Int = 7;
+    Log(ToString(a * b));
+    Log(ToString(a + b));
+}

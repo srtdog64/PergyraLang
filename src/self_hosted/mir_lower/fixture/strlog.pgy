@@ -1,0 +1,5 @@
+func Main() -> Void {
+    Log("hello world");
+    let n: Int = 3;
+    Log(ToString(n));
+}

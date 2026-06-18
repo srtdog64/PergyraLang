@@ -1912,6 +1912,7 @@ self-host-preparation-test-smoke: $(PGY)
 	PGY_BIN="$(abspath $(PGY))" "$(BASH)" src/self_hosted/parity/semantic_parity.sh
 	PGY_BIN="$(abspath $(PGY))" "$(BASH)" src/self_hosted/parity/codegen_parity.sh
 	PGY_BIN="$(abspath $(PGY))" "$(BASH)" src/self_hosted/parity/codegen_bootstrap.sh
+	PGY_BIN="$(abspath $(PGY))" "$(BASH)" src/self_hosted/parity/mir_json_parity.sh
 	PGY_BIN="$(abspath $(PGY))" "$(BASH)" src/self_hosted/parity/module_manifest_resolver_parity.sh
 	PGY_BIN="$(abspath $(PGY))" "$(BASH)" src/self_hosted/parity/production_c_size_checker_parity.sh
 	PGY_BIN="$(abspath $(PGY))" "$(BASH)" src/self_hosted/parity/production_header_size_checker_parity.sh
@@ -1963,6 +1964,9 @@ self-host-codegen-parity-test-smoke: $(PGY)
 
 self-host-codegen-bootstrap-test-smoke: $(PGY)
 	PGY_BIN="$(abspath $(PGY))" "$(BASH)" src/self_hosted/parity/codegen_bootstrap.sh
+
+self-host-mir-json-parity-test-smoke: $(PGY)
+	PGY_BIN="$(abspath $(PGY))" "$(BASH)" src/self_hosted/parity/mir_json_parity.sh
 
 self-host-component-contract-test-smoke:
 	"$(BASH)" tests/self_hosted_component_contract_smoke.sh
