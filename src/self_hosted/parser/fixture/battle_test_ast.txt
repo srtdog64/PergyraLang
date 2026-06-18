@@ -21,6 +21,7 @@ Program:
             Assign: current = (current - dmg)
   Function: Main
     Parameters:
+    Returns: Void
     Body:
       Block:
         Let: a = HP(100, 100)

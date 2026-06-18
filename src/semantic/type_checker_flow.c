@@ -139,12 +139,24 @@ type_check_statement_flow(ASTNode *node, SemanticContext *ctx,
         return type_check_unsafe_block_flow(node, ctx, loop_flow);
     case AST_TRANSACTION_BLOCK: {
         ASTNode *txn_body = ast_transaction_block_body(node);
-        return txn_body != NULL
-            ? type_check_block_flow(txn_body, ctx, loop_flow)
-            : FLOW_FALLTHROUGH;
+        FlowFlags txn_flags;
+
+        if (txn_body == NULL)
+            return FLOW_FALLTHROUGH;
+        ctx->transaction_depth++;
+        txn_flags = type_check_block_flow(txn_body, ctx, loop_flow);
+        ctx->transaction_depth--;
+        return txn_flags;
     }
     case AST_FAIL_STMT: {
         ASTNode *fail_reason = ast_fail_stmt_reason(node);
+
+        if (ctx != NULL && ctx->transaction_depth <= 0 && !ctx->has_error)
+            semantic_error_with_hints(ctx,
+                PGY_CODE_SEM_TRANSACTION_CONTROL_INVALID,
+                PGY_CAUSE_TRANSACTION_CONTROL,
+                PGY_FIX_MOVE_INTO_TRANSACTION, node,
+                "'fail' used outside of transaction");
         if (fail_reason != NULL)
             type_check_expression(fail_reason, ctx);
         return FLOW_FALLTHROUGH;

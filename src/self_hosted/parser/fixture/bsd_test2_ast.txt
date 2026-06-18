@@ -8,6 +8,7 @@ Program:
         Log(("Hello " + name))
   Function: Main
     Parameters:
+    Returns: Void
     Body:
       Block:
         Let: x = 10

@@ -1382,6 +1382,7 @@ func AppendImplicitMain(decls: String, body: String) -> String {
     }
     let main_block: String = "  Function: Main";
     main_block = AppendLine(main_block, "    Parameters:");
+    main_block = AppendLine(main_block, "    Returns: Void");
     main_block = AppendLine(main_block, "    Body:");
     main_block = AppendLine(main_block, "      Block:");
     main_block = AppendLine(main_block, body);

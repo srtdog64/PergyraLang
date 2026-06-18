@@ -1,6 +1,7 @@
 Program:
   Function: Main
     Parameters:
+    Returns: Void
     Body:
       Block:
         Let: running = true

@@ -34,6 +34,7 @@ Program:
             Return: (alive && rested)
   Function: Main
     Parameters:
+    Returns: Void
     Body:
       Block:
         Let: hero = Fighter("Hero", HP(100, 100))

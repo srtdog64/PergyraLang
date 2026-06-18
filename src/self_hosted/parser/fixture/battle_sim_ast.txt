@@ -121,6 +121,7 @@ Program:
         Log("========================================")
   Function: Main
     Parameters:
+    Returns: Void
     Body:
       Block:
         Log("=== Pergyra Battle Simulator ===")

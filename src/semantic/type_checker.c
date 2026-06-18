@@ -93,8 +93,13 @@ type_check_statement(ASTNode *node, SemanticContext *ctx)
     case AST_TRANSACTION_BLOCK:
         /* transaction is a block scope; type-check the body (no unsafe effect).
          * BATCH 2 adds saga/compensate validation. */
-        if (ast_transaction_block_body(node) != NULL)
+        if (ast_transaction_block_body(node) != NULL) {
+            if (ctx == NULL)
+                return true;
+            ctx->transaction_depth++;
             type_check_block(ast_transaction_block_body(node), ctx);
+            ctx->transaction_depth--;
+        }
         return ctx == NULL || !ctx->has_error;
     case AST_FAIL_STMT:
         /* `fail` rolls back the enclosing transaction; check the reason if any.

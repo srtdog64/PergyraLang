@@ -32,6 +32,7 @@
 #include "llvm_limits_internal.h"
 #include "llvm_debug_flags.h"
 #include "llvm_type_kind.h"
+#include "llvm_result_spec.h"
 
 LLVMTypeRef llvm_array_struct_type(LLVMGenCtx *ctx, const char *inner);
 LLVMTypeRef llvm_slice_struct_type(LLVMGenCtx *ctx, const char *inner);
@@ -295,43 +296,6 @@ typedef struct
     int map_var_count;
     int callable_var_count;
 } LLVMLexicalRegistrySnapshot;
-
-/* Result<T, E> specialization cache: parity with C backend's
- * ensure_result_specialization (transpiler_helpers_core_b.h).
- * LLVM has no preprocessor, so each unique (T, E) gets a named struct
- * {i32 tag, ok_ty value, err_ty err} created once and reused. */
-#define MAX_LLVM_RESULT_SPECS 32
-typedef struct
-{
-    char         suffix[128];   /* "Int_NetError" */
-    char         ok_name[64];   /* "Int" */
-    char         err_name[64];  /* "NetError" */
-    LLVMTypeRef  struct_ty;     /* named struct */
-    LLVMTypeRef  ok_ty;
-    LLVMTypeRef  err_ty;
-} LLVMResultSpecEntry;
-
-/* Result<T, E> context-aware suffix extractor.
- * Inspects ctx->expected_type_name then the enclosing function's return
- * type. On success fills suffix_out ("Int_NetError"), ok_out ("Int"),
- * err_out ("NetError"). Returns false if no enclosing Result<T,E> type
- * is visible from context. */
-bool llvm_result_suffix_from_context(LLVMGenCtx *ctx,
-                                     char *suffix_out, size_t suffix_n,
-                                     char *ok_out, size_t ok_n,
-                                     char *err_out, size_t err_n);
-
-/* Best-effort resolution of a source-level type name to an LLVM type.
- * Handles primitives, classes/subjects, and enums (i32). Returns NULL
- * on miss. */
-LLVMTypeRef llvm_resolve_source_type(LLVMGenCtx *ctx, const char *type_name);
-
-/* Fetch or create the cached {i32 tag, ok_ty, err_ty} named struct for
- * Result<ok_name, err_name>. Calls llvm_set_error and returns NULL on
- * cache overflow or type-resolution failure. */
-LLVMResultSpecEntry *llvm_ensure_result_type(LLVMGenCtx *ctx,
-                                             const char *ok_name,
-                                             const char *err_name);
 
 typedef struct LLVMGenCtx
 {

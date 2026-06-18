@@ -81,6 +81,8 @@
 #define PGY_CODE_SEM_ZONE_CONTRACT_INVALID      "PGY_SEM_ZONE_CONTRACT_INVALID"
 #define PGY_CODE_SEM_WORLD_CONTRACT_INVALID     "PGY_SEM_WORLD_CONTRACT_INVALID"
 #define PGY_CODE_SEM_LOOP_CONTROL_INVALID       "PGY_SEM_LOOP_CONTROL_INVALID"
+#define PGY_CODE_SEM_TRANSACTION_CONTROL_INVALID \
+    "PGY_SEM_TRANSACTION_CONTROL_INVALID"
 #define PGY_CODE_SEM_BUILTIN_ARGS_INVALID       "PGY_SEM_BUILTIN_ARGS_INVALID"
 #define PGY_CODE_SEM_PREDICATE_ARGS_INVALID     "PGY_SEM_PREDICATE_ARGS_INVALID"
 #define PGY_CODE_SEM_EVENT_CONTRACT_INVALID     "PGY_SEM_EVENT_CONTRACT_INVALID"
@@ -214,6 +216,7 @@
 #define PGY_CAUSE_CFG_UNREACHABLE_STATEMENT     "semantic:cfg:unreachable_statement"
 #define PGY_CAUSE_CONDITION_NON_BOOL            "semantic:condition:non_bool"
 #define PGY_CAUSE_LOOP_CONTROL                  "semantic:loop_control"
+#define PGY_CAUSE_TRANSACTION_CONTROL           "semantic:transaction_control"
 #define PGY_CAUSE_FOR_IN_NON_ITERABLE           "semantic:for_in:non_iterable"
 #define PGY_CAUSE_MATCH_PATTERN_SHAPE           "semantic:match:pattern_shape"
 #define PGY_CAUSE_SELECT_CASE_SHAPE             "semantic:select:case_shape"
@@ -392,6 +395,7 @@
 #define PGY_FIX_MOVE_DEFAULTS_TO_TRAILING       "move-defaults-to-trailing"
 #define PGY_FIX_MOVE_INTO_ASYNC_FUNCTION        "move-into-async-function"
 #define PGY_FIX_MOVE_INTO_LOOP_OR_FIX_LABEL     "move-into-loop-or-fix-label"
+#define PGY_FIX_MOVE_INTO_TRANSACTION           "move-into-transaction"
 #define PGY_FIX_MOVE_DEFER_OUTSIDE_DYNAMIC_CONTROL \
                                                     "move-defer-outside-dynamic-control"
 #define PGY_FIX_MUTATE_FIELD_OR_USE_METHOD      "mutate-field-or-use-method"

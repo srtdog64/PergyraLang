@@ -20,7 +20,7 @@ non-emptiness per file.
 - **dirwalk_owner**: `examples`. The tool calls `DirWalk("examples")`, filters
   top-level `.pgy` files, and treats that sorted snapshot as the inventory
   source of truth.
-- **expected_examples**: `119`. Count changes are intentional surface changes
+- **expected_examples**: `120`. Count changes are intentional surface changes
   and must update the tool expectation and clean fixture together.
 - Each example content is `ReadFile`d relative to repository root.
 
@@ -35,7 +35,7 @@ JSON document on stdout, conforming to schema
   "ok": true,
   "source": {
     "dirwalk_owner": "examples",
-    "expected_examples": 119
+    "expected_examples": 120
   },
   "counts": {
     "examples": 0,

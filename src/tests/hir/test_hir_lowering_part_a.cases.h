@@ -3,22 +3,21 @@ test_hir_lowering_part_a(void)
 {
     printf("\n[hir]\n");
 
-    TEST("mixed top-level program is bucketed correctly");
+    TEST("parser-normalized top-level program is bucketed correctly");
     {
         const char *src =
             "event OnHit(damage: Int);\n"
             "extern \"C\" { func SDL_Quit(); }\n"
-            "func Main() -> Int { return 0; }\n"
-            "let boot = 1;\n";
+            "func Helper() -> Int { return 0; }\n"
+            "let boot = Helper();\n";
         HIRProgram *hir = lower_from_source(src);
         EXPECT(hir != NULL
                && hir->event_count == 1
                && hir->extern_count == 1
                && hir->function_count == 2
-               && hir->executable_count == 1
-               && hir->synthetic_executable_func != NULL
-               && hir_find_routine(hir, "__pgy_top_level_exec",
-                                   HIR_TOPLEVEL_EXECUTABLE) != NULL
+               && hir->executable_count == 0
+               && hir->synthetic_executable_func == NULL
+               && hir_find_routine(hir, "Main", HIR_TOPLEVEL_FUNCTION) != NULL
                && hir->has_main_function);
         hir_destroy(hir);
     }

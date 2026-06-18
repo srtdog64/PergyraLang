@@ -475,6 +475,18 @@ the required layered provenance.
 - **Reason**: loop control needs an enclosing loop for scope; unknown labels cannot be resolved.
 - **Fix**: move the statement inside a loop, or fix the label to match an enclosing labeled loop.
 
+#### `PGY_SEM_TRANSACTION_CONTROL_INVALID`
+
+`fail` used outside a `transaction { ... }` block. A `fail` statement is the
+transaction rollback/control edge; outside that lexical owner there is no
+rollback target.
+
+- **Reason**: transaction control needs an enclosing transaction scope.
+- **Fix**: move the statement into a transaction block, or replace it with a
+  normal error/return path.
+- **cause_ir**: `semantic:transaction_control`
+- **fix_source**: `move-into-transaction`
+
 ### Builtins
 
 #### `PGY_SEM_BUILTIN_ARGS_INVALID`

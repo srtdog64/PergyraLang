@@ -25,6 +25,7 @@ Program:
             Log(("Hello, I am " + name))
   Function: Main
     Parameters:
+    Returns: Void
     Body:
       Block:
         Let: hp = HealthState(100, 100)

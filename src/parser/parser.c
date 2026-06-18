@@ -402,8 +402,28 @@ static void parser_synthesize_implicit_main(Parser* parser, ASTNode* program) {
     }
 
     ASTNode* implicit_main = ast_create_function("Main");
-    implicit_main->data.func_decl.body = implicit_body;
-    (void)ast_program_append_statement(program, implicit_main);
+    ASTNode* void_type = implicit_main != NULL ? ast_create_type("Void") : NULL;
+    if (implicit_main == NULL || void_type == NULL)
+        goto implicit_main_oom;
+    if (!ast_func_set_return_type(implicit_main, void_type))
+        goto implicit_main_oom;
+    void_type = NULL;
+    if (!ast_func_attach_body(implicit_main, implicit_body))
+        goto implicit_main_oom;
+    implicit_body = NULL;
+    if (!ast_program_append_statement(program, implicit_main))
+        goto implicit_main_oom;
+    implicit_main = NULL;
+    return;
+
+implicit_main_oom:
+    {
+        parser_error(parser, "Out of memory while synthesizing implicit Main.");
+        ast_destroy(void_type);
+        ast_destroy(implicit_main);
+        ast_destroy(implicit_body);
+        return;
+    }
 }
 
 // 프로그램 파싱
