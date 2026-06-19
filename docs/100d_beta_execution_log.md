@@ -3,6 +3,21 @@
 > Split from `docs/100_beta_readiness_checklist.md` on 2026-05-29.
 > Keep active blocker edits in the shard that owns the relevant closure track.
 
+## Progress Log - 2026-06-19 MIR Match Subject Fact Lookup
+
+- `pgy_codegen_match_subject_for_branch(...)` now returns the match subject
+  directly from the MIR branch `expr0` fact after checking only
+  `MIR_BRANCH_MATCH_CASE`. It no longer reopens source payload shape before
+  consuming the subject fact.
+- The MIR terminator validator remains the fail-closed owner for missing
+  match-case subject facts, and `build-source-inventory-test-smoke` /
+  `perf-contract-test-smoke` now reject reintroducing source-payload reads in
+  the match-subject owner.
+- Verified locally with `build/codegen/codegen_match_subject_lookup.o`,
+  `build-source-inventory-test-smoke`, `perf-contract-test-smoke`,
+  `cfg-body-dataflow-test-smoke`, `test-mir`, `llvm-test-smoke`, and targeted
+  C/LLVM backend compare for match fixtures.
+
 ## Progress Log - 2026-06-19 LLVM Refresh Helper Retirement
 
 - C/LLVM zone refresh compatibility arrays are now private to the hosted

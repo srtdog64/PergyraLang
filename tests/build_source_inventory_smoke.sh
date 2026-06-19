@@ -711,6 +711,11 @@ if grep -Fq 'ast_find_match_subject_for_case(ast_func_body(func_decl)' \
     echo "[build-source-inventory] match-subject owner must consume MIR branch facts only" >&2
     missing=1
 fi
+if grep -Fq 'mir_instruction_source_payload(' \
+    "$ROOT_DIR/src/codegen/codegen_match_subject_lookup.c"; then
+    echo "[build-source-inventory] match-subject owner must not reopen source payload shape" >&2
+    missing=1
+fi
 if ! grep -Fq '$(CODEGEN_DIR)/codegen_match_subject_lookup.c' \
     "$ROOT_DIR/Makefile"; then
     echo "[build-source-inventory] match-subject owner missing from Makefile source inventory" >&2
