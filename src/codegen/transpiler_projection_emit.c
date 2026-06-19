@@ -26,12 +26,7 @@ projection_class_field_view_by_name(TranspilerCtx *ctx,
 {
     if (view == NULL)
         return false;
-    view->decl_header = NULL;
-    view->ast_compat_fields = NULL;
-    view->ast_compat_count = 0;
-    view->count = 0;
-    view->uses_mir_metadata = false;
-    view->requires_mir_metadata = false;
+    memset(view, 0, sizeof(*view));
 
     if (ctx == NULL || decl_name == NULL)
         return false;

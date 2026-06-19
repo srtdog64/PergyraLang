@@ -64,12 +64,7 @@ overlay_projection_field_view(TranspilerCtx *ctx,
 
     if (view == NULL)
         return false;
-    view->decl_header = NULL;
-    view->ast_compat_fields = NULL;
-    view->ast_compat_count = 0;
-    view->count = 0;
-    view->uses_mir_metadata = false;
-    view->requires_mir_metadata = false;
+    memset(view, 0, sizeof(*view));
 
     if (ctx == NULL || target_decl == NULL || target_decl->type != AST_CLASS_DECL)
         return false;

@@ -2959,12 +2959,14 @@ for term in \
     "transpiler_decl_header_shared_field" \
     "pgy_host_shared_fields_compat_view_from_decl(decl)" \
     "transpiler_active_host_decl_header(ctx, host_name)" \
+    "view.ast_compat_decl = decl" \
     "mir_decl_header_field_count(header)" \
     "mir_decl_header_field(header, i)" \
     "MIR_DECL_FIELD_SHARED" \
     "return transpiler_decl_header_shared_field(view->decl_header, index)" \
-    "ast_party_shared_name(view->ast_compat_fields[index])" \
-    "ast_party_shared_type(view->ast_compat_fields[index])" \
+    "pgy_host_shared_fields_compat_view_from_decl(" \
+    "ast_party_shared_name(compat.fields[index])" \
+    "ast_party_shared_type(compat.fields[index])" \
     "mir_decl_field_name(field)" \
     "mir_decl_field_type(field)" \
     "mir_decl_field_initializer(field)"; do
@@ -3021,6 +3023,7 @@ for term in \
     "llvm_hosted_field_view_name" \
     "llvm_hosted_field_view_type" \
     "pgy_host_class_fields_compat_view_from_decl(decl)" \
+    "view.ast_compat_decl = decl" \
     "return mir_decl_header_field(view->decl_header, index)" \
     "LLVMHostedSharedFieldView" \
     "llvm_decl_header_shared_field_count" \
@@ -3489,6 +3492,11 @@ if grep -RInE '[A-Za-z_]*view(\.|->)ast_compat_fields\[[^]]+\]' \
         "$ROOT_DIR/src/codegen"/llvm_*.h \
         | grep -v "src/codegen/llvm_inventory_field_view.c"; then
     fail "LLVM consumers must not index hosted field compatibility arrays directly"
+fi
+if grep -RIn "ast_compat_fields" \
+        "$ROOT_DIR/src/codegen" \
+        --include='*.c' --include='*.h'; then
+    fail "hosted field views must not expose AST compatibility field arrays; keep fallback behind ast_compat_decl and host_decl_compat.c"
 fi
 for rel in \
     "src/codegen/transpiler_mir_func_emit.c" \
@@ -5787,7 +5795,7 @@ for term in \
     "TranspilerHostedFieldView" \
     "ast_compat_methods" \
     "ast_compat_count" \
-    "ast_compat_fields" \
+    "ast_compat_decl" \
     "transpiler_hosted_method_view(" \
     "transpiler_hosted_method_view_metadata(" \
     "transpiler_hosted_method_view_compat_method(" \
