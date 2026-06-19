@@ -5,6 +5,19 @@
 
 ## Progress Log - 2026-06-19 LLVM Refresh Helper Retirement
 
+- C/LLVM zone refresh compatibility arrays are now private to the hosted
+  refresh view owners. Projection sync, projection value construction, and
+  assignment/overlay invalidation consumers use view-owned mapped-source and
+  source-field relevance APIs instead of indexing `ast_compat_refreshes`
+  directly.
+- C refresh view lowering is split into
+  `transpiler_decl_zone_refresh_view.c`, keeping the slot-view owner under the
+  600 LOC cap while matching the existing LLVM refresh-view responsibility
+  split.
+- `mir-declaration-inventory-test-smoke` now rejects `ast_compat_refreshes`
+  outside the C/LLVM refresh view owners and requires the mapped-source /
+  source-field view APIs.
+
 - LLVM projection sync body and relation/effect struct registration now consume
   refresh inventory through `LLVMHostedZoneRefreshView`; the old AST-array
   declaration-parts/projection-target helper owners are removed from the source

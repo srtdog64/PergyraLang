@@ -192,6 +192,9 @@ C/LLVM declaration payload compatibility now validates MIR declaration-header
 rows before active-inventory lookup instead of opening declaration-header
 source_decl provenance. Method and field back-pointers are already removed, and
 the old header-shape AST recomputation arm is gone. Build-gated.
+C/LLVM zone refresh compatibility arrays are also confined to the hosted refresh
+view owners; projection sync/value and invalidation consumers use view-owned
+mapped-source/source-field APIs instead of indexing compatibility arrays.
 
 Capability 2 (collections). Closed for the hard-self-host substrate: integer keys are implemented
 (pgy_runtime_map_int_key_inline.h covers i32 and i64), and `MapKeys` /
