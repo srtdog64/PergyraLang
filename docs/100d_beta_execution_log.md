@@ -3,6 +3,21 @@
 > Split from `docs/100_beta_readiness_checklist.md` on 2026-05-29.
 > Keep active blocker edits in the shard that owns the relevant closure track.
 
+## Progress Log - 2026-06-19 Zone Refresh C Overlay Invalidation Cutover
+
+- C overlay/assignment projection invalidation now builds a
+  `CurrentOverlayRefreshView` that consumes `TranspilerHostedZoneRefreshView`
+  for zone declarations instead of reopening
+  `ast_zone_refreshes(decl, refresh_count_out)`.
+- MIR-backed zone invalidation uses `MIRDeclZoneRefresh` field-map accessors for
+  source-field relevance. Relation/effect invalidation and explicit non-MIR
+  compatibility still use the retained AST refresh shape.
+- `mir-declaration-inventory-test-smoke` now requires the C overlay refresh view
+  consumer and rejects reopened zone refresh inventory in
+  `transpiler_overlay_projection.c`.
+- Gates used: `make test-transpile` and
+  `make mir-declaration-inventory-test-smoke`.
+
 ## Progress Log - 2026-06-19 Zone Refresh LLVM Assignment Invalidation Cutover
 
 - LLVM host assignment projection invalidation now consumes

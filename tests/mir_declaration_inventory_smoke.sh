@@ -7185,6 +7185,18 @@ if grep -Fq "ast_zone_refreshes(zone_decl, &refresh_count)" \
     fail "C zone constructor projection-dirty initialization must consume MIR zone refresh metadata"
 fi
 for term in \
+    "CurrentOverlayRefreshView" \
+    "TranspilerHostedZoneRefreshView zone_refresh_view" \
+    "transpiler_hosted_zone_refresh_view_missing_mir_metadata" \
+    "transpiler_hosted_zone_refresh_view_metadata" \
+    "mir_decl_zone_refresh_mapped_source_field"; do
+    require_term "src/codegen/transpiler_overlay_projection.c" "$term"
+done
+if grep -Fq "ast_zone_refreshes(decl, refresh_count_out)" \
+    "$ROOT_DIR/src/codegen/transpiler_overlay_projection.c"; then
+    fail "C overlay projection invalidation must consume MIR zone refresh metadata"
+fi
+for term in \
     "LLVMHostedZoneRefreshView" \
     "llvm_hosted_zone_refresh_view_from_decl" \
     "llvm_hosted_zone_refresh_view_metadata" \

@@ -9,6 +9,7 @@
 #include <string.h>
 
 #include "../common/string_compat.h"
+#include "../compiler/mir_decl_headers.h"
 #include "../parser/ast_api.h"
 #include "transpiler_context.h"
 #include "transpiler_decl_lookup.h"
@@ -18,25 +19,44 @@
 #include "transpiler_projection.h"
 #include "transpiler_projection_field_path.h"
 
-static ASTNode **
-current_overlay_refresh_list(TranspilerCtx *ctx, size_t *refresh_count_out)
+typedef struct CurrentOverlayRefreshView
 {
+    ASTNode **ast_refreshes;
+    size_t count;
+    TranspilerHostedZoneRefreshView zone_refresh_view;
+    bool use_zone_refresh_view;
+} CurrentOverlayRefreshView;
+
+static CurrentOverlayRefreshView
+current_overlay_refresh_view(TranspilerCtx *ctx)
+{
+    CurrentOverlayRefreshView view = {0};
     ASTNode *decl;
 
-    if (refresh_count_out != NULL)
-        *refresh_count_out = 0;
     if (ctx == NULL)
-        return NULL;
+        return view;
 
     decl = transpiler_current_host_decl_local(ctx);
-    if (decl != NULL && decl->type == AST_RELATION_DECL)
-        return ast_relation_refreshes(decl, refresh_count_out);
-    if (decl != NULL && decl->type == AST_EFFECT_DECL)
-        return ast_effect_refreshes(decl, refresh_count_out);
-    if (decl != NULL && decl->type == AST_ZONE_DECL)
-        return ast_zone_refreshes(decl, refresh_count_out);
+    if (decl != NULL && decl->type == AST_RELATION_DECL) {
+        view.ast_refreshes = ast_relation_refreshes(decl, &view.count);
+    } else if (decl != NULL && decl->type == AST_EFFECT_DECL) {
+        view.ast_refreshes = ast_effect_refreshes(decl, &view.count);
+    } else if (decl != NULL && decl->type == AST_ZONE_DECL) {
+        const char *decl_name = transpiler_decl_name_local(decl);
+        view.zone_refresh_view =
+            transpiler_hosted_zone_refresh_view_from_decl(ctx, decl_name, decl);
+        view.count = view.zone_refresh_view.count;
+        view.use_zone_refresh_view = true;
+        if (transpiler_hosted_zone_refresh_view_missing_mir_metadata(
+                &view.zone_refresh_view)) {
+            transpiler_set_mir_inventory_missing(ctx,
+                "MIR-only C path missing overlay zone refresh metadata for '%s'",
+                decl_name != NULL ? decl_name : "(anonymous-zone)");
+            view.count = 0;
+        }
+    }
 
-    return NULL;
+    return view;
 }
 
 static bool
@@ -94,6 +114,7 @@ overlay_projection_field_name(TranspilerCtx *ctx, ASTNode *target_decl,
 static bool
 projection_target_mentions_source_field(TranspilerCtx *ctx,
                                         ASTNode *refresh,
+                                        const MIRDeclZoneRefresh *mir_refresh,
                                         const char *target_slot_name,
                                         const char *source_field_name)
 {
@@ -121,8 +142,22 @@ projection_target_mentions_source_field(TranspilerCtx *ctx,
         const char *target_field_name =
             overlay_projection_field_name(ctx, target_decl, i);
         const char *mapped_source_name = target_field_name;
-        if (refresh != NULL && refresh->type == AST_ZONE_REFRESH
-            && target_field_name != NULL) {
+        if (mir_refresh != NULL && target_field_name != NULL) {
+            for (size_t j = 0;
+                 j < mir_decl_zone_refresh_field_map_count(mir_refresh);
+                 j++) {
+                const char *mapped_target =
+                    mir_decl_zone_refresh_mapped_target_field(mir_refresh, j);
+                const char *mapped_source =
+                    mir_decl_zone_refresh_mapped_source_field(mir_refresh, j);
+                if (mapped_target != NULL && mapped_source != NULL
+                    && strcmp(mapped_target, target_field_name) == 0) {
+                    mapped_source_name = mapped_source;
+                    break;
+                }
+            }
+        } else if (refresh != NULL && refresh->type == AST_ZONE_REFRESH
+                   && target_field_name != NULL) {
             for (size_t j = 0; j < ast_zone_refresh_field_map_count(refresh); j++) {
                 const char *mapped_target =
                     ast_zone_refresh_mapped_target_field(refresh, j);
@@ -149,8 +184,7 @@ emit_current_overlay_projection_invalidation(TranspilerCtx *ctx,
                                             const char *source_slot_name,
                                             const char *source_field_name)
 {
-    ASTNode **refreshes;
-    size_t refresh_count = 0;
+    CurrentOverlayRefreshView refresh_view;
     CodeBuf *buf;
     const char *receiver_expr;
 
@@ -161,26 +195,44 @@ emit_current_overlay_projection_invalidation(TranspilerCtx *ctx,
         ? ctx->current_overlay_receiver_expr
         : "self";
 
-    refreshes = current_overlay_refresh_list(ctx, &refresh_count);
-    if (refreshes == NULL || refresh_count == 0)
+    refresh_view = current_overlay_refresh_view(ctx);
+    if (refresh_view.count == 0)
         return NULL;
 
     buf = codebuf_create();
-    for (size_t i = 0; i < refresh_count; i++) {
-        ASTNode *refresh = refreshes[i];
+    for (size_t i = 0; i < refresh_view.count; i++) {
+        ASTNode *refresh = NULL;
+        const MIRDeclZoneRefresh *mir_refresh = NULL;
         const char *target_name;
         const char *refresh_source_name;
 
-        if (refresh == NULL)
-            continue;
-        target_name = ast_zone_refresh_object_slot_name(refresh);
-        refresh_source_name = ast_zone_refresh_source_slot_name(refresh);
+        if (refresh_view.use_zone_refresh_view) {
+            mir_refresh = transpiler_hosted_zone_refresh_view_metadata(
+                &refresh_view.zone_refresh_view, i);
+            if (mir_refresh == NULL
+                && refresh_view.zone_refresh_view.ast_compat_refreshes != NULL) {
+                refresh = refresh_view.zone_refresh_view.ast_compat_refreshes[i];
+            }
+            target_name =
+                transpiler_hosted_zone_refresh_view_object_slot_name(
+                    &refresh_view.zone_refresh_view, i);
+            refresh_source_name =
+                transpiler_hosted_zone_refresh_view_source_slot_name(
+                    &refresh_view.zone_refresh_view, i);
+        } else {
+            refresh = refresh_view.ast_refreshes != NULL
+                ? refresh_view.ast_refreshes[i] : NULL;
+            if (refresh == NULL)
+                continue;
+            target_name = ast_zone_refresh_object_slot_name(refresh);
+            refresh_source_name = ast_zone_refresh_source_slot_name(refresh);
+        }
         if (target_name == NULL || refresh_source_name == NULL
             || strcmp(refresh_source_name, source_slot_name) != 0) {
             continue;
         }
         if (!projection_target_mentions_source_field(ctx, refresh,
-                target_name, source_field_name))
+                mir_refresh, target_name, source_field_name))
             continue;
         codebuf_write(buf,
             "%s->__projection_dirty_%s = true; "
