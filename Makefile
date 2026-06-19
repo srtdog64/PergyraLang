@@ -2205,6 +2205,9 @@ example-test-smoke:
 	$(MAKE) $(PGY)
 	PGY_BIN="$(abspath $(PGY))" PGY_CC="$(CC)" "$(BASH)" tests/example_contract_smoke.sh
 
+string-window-builtins-test-smoke: $(PGY)
+	PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/string_window_builtins_smoke.sh
+
 llvm-test-all:
 	$(MAKE) LLVM_ENABLED=1 test
 	$(MAKE) LLVM_ENABLED=1 test-parser

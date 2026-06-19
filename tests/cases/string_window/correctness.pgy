@@ -1,0 +1,38 @@
+// Self-checking: every fused/window op must equal its allocating equivalent.
+// Prints "ALL OK" iff no mismatch; any FAIL line means a regression.
+import "../../../stdlib/strview.pgy";
+
+func Main() -> Void {
+    let s: String = "the quick brown fox jumps over the lazy dog";
+    let n: Int = StringLength(s);
+    let fails: Int = 0;
+    let i: Int = 0;
+    while i < 40 {
+        // SubIndexOf == StringIndexOf(Substring(...))
+        if SubIndexOf(s, i, 8, "o") != StringIndexOf(Substring(s, i, 8), "o") { fails = fails + 1; }
+        // SubEquals == (Substring(...) == x)
+        let se: Bool = SubEquals(s, i, 5, "quick");
+        let seref: Bool = Substring(s, i, 5) == "quick";
+        if se != seref { fails = fails + 1; }
+        // SubContains == (SubIndexOf >= 0)
+        if SubContains(s, i, 10, "o") != (SubIndexOf(s, i, 10, "o") >= 0) { fails = fails + 1; }
+        // SubStartsWith == (Substring(s,i,len(p)) == p)
+        if SubStartsWith(s, i, "fox") != (Substring(s, i, 3) == "fox") { fails = fails + 1; }
+        // CharAtN == CharAt-equivalent (Substring(s,i,1), bounded)
+        if i < n {
+            if CharAtN(s, n, i) != Substring(s, i, 1) { fails = fails + 1; }
+        }
+        // StrView ops mirror the windowed builtins
+        let v: StrView = SubView(s, i, 8);
+        if ViewIndexOf(v, "o") != SubIndexOf(s, i, 8, "o") { fails = fails + 1; }
+        if ViewToString(v) != Substring(s, i, 8) { fails = fails + 1; }
+        i = i + 1;
+    }
+    // edge cases
+    if SubEquals(s, 1000, 4, "x") { fails = fails + 1; }
+    if SubStartsWith(s, 0, "") != true { fails = fails + 1; }
+    if CharAtN(s, n, 0 - 1) != "" { fails = fails + 1; }
+    if CharAtN(s, n, 9999) != "" { fails = fails + 1; }
+    if ViewLength(SubView(s, 4, 5)) != 5 { fails = fails + 1; }
+    if fails == 0 { Log("ALL OK"); } else { Log("FAILS=" + ToString(fails)); }
+}
