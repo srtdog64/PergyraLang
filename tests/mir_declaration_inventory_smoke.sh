@@ -6675,16 +6675,30 @@ for body_name in ability_vtable_body role_operator_body; do
     fi
 done
 for term in \
-    "llvm_domain_method_name_metadata_first(NULL, method, true)" \
-    "llvm_domain_method_return_type_metadata_first(" \
-    "NULL, method, true)" \
-    "llvm_domain_method_param_count_metadata_first(" \
-    "NULL, method, true)" \
-    "llvm_domain_method_param_metadata_first(" \
-    "NULL, method, k, true)"; do
+    "LLVMAbilityMethodView methods" \
+    "llvm_ability_method_view_from_decl(ctx, ab_name, stmt)" \
+    "llvm_require_ability_method_view_rows(ctx, &methods, ab_name)" \
+    "llvm_ability_method_view_metadata(&methods, j)" \
+    "llvm_ability_method_view_compat_method(&methods, j)" \
+    "method_meta, method, method_meta == NULL" \
+    "llvm_mir_decl_method_metadata_complete_for(ctx" \
+    "LLVM_MIR_DECL_METHOD_REQUIRE_ALL_TYPE_NAMES" \
+    "llvm_domain_method_param_type_name_metadata_first" \
+    "llvm_domain_method_return_type_name_metadata_first" \
+    "pergyra_type_to_llvm(ctx, param_type_name)" \
+    "pergyra_type_to_llvm(ctx, return_type_name)"; do
     grep -Fq "$term" <<<"$ability_vtable_body" ||
-        fail "LLVM ability vtable AST compatibility must be explicit: missing $term"
+        fail "LLVM ability vtable must consume ability MIRDeclMethod metadata: missing $term"
 done
+if grep -Eq 'ast_ability_method_(count|method)\(' <<<"$ability_vtable_body"; then
+    fail "LLVM ability vtable emission must not reopen AST ability method arrays"
+fi
+require_term "src/codegen/llvm_domain_forward_ability.c" \
+    "llvm_find_decl_header_in_context_of_type("
+require_term "src/codegen/llvm_domain_forward_ability.c" \
+    "ctx, AST_ABILITY_DECL, ability_name"
+require_term "src/codegen/llvm_domain_forward_ability.c" \
+    "mir_decl_header_method_count(view.decl_header)"
 for term in \
     "method_meta, method, false" \
     "method_meta, method, pj, false"; do

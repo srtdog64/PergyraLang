@@ -8,6 +8,106 @@
 #ifdef PGY_LLVM_ENABLED
 
 #include "llvm_domain_forward_internal.h"
+#include "llvm_inventory_decl_lookup.h"
+#include "llvm_inventory_internal.h"
+#include "../compiler/mir_decl_headers.h"
+
+typedef struct LLVMAbilityMethodView
+{
+    const MIRDeclHeader *decl_header;
+    ASTNode            *ast_compat_ability;
+    size_t              ast_compat_count;
+    size_t              count;
+    bool                uses_mir_metadata;
+    bool                requires_mir_metadata;
+} LLVMAbilityMethodView;
+
+static LLVMAbilityMethodView
+llvm_ability_method_view_from_decl(const LLVMGenCtx *ctx,
+                                   const char *ability_name,
+                                   ASTNode *ability_decl)
+{
+    LLVMAbilityMethodView view;
+
+    view.decl_header = NULL;
+    view.ast_compat_ability = ability_decl;
+    view.ast_compat_count = 0;
+    view.count = 0;
+    view.uses_mir_metadata = false;
+    view.requires_mir_metadata = llvm_active_has_mir(ctx);
+
+    if (llvm_active_has_mir(ctx)) {
+        view.decl_header = llvm_find_decl_header_in_context_of_type(
+            ctx, AST_ABILITY_DECL, ability_name);
+        if (view.decl_header != NULL) {
+            view.count = mir_decl_header_method_count(view.decl_header);
+            view.uses_mir_metadata = true;
+        }
+        return view;
+    }
+
+    if (ability_decl != NULL && ability_decl->type == AST_ABILITY_DECL) {
+        view.ast_compat_count = ast_ability_method_count(ability_decl);
+        view.count = view.ast_compat_count;
+    }
+    return view;
+}
+
+static bool
+llvm_ability_method_view_missing_mir_metadata(
+    const LLVMAbilityMethodView *view)
+{
+    return view != NULL
+        && view->requires_mir_metadata
+        && !view->uses_mir_metadata;
+}
+
+static const MIRDeclMethod *
+llvm_ability_method_view_metadata(const LLVMAbilityMethodView *view,
+                                  size_t index)
+{
+    if (view == NULL || !view->uses_mir_metadata
+        || view->decl_header == NULL || index >= view->count) {
+        return NULL;
+    }
+    return mir_decl_header_method(view->decl_header, index);
+}
+
+static ASTNode *
+llvm_ability_method_view_compat_method(const LLVMAbilityMethodView *view,
+                                       size_t index)
+{
+    if (view == NULL || view->uses_mir_metadata
+        || view->ast_compat_ability == NULL
+        || view->ast_compat_ability->type != AST_ABILITY_DECL
+        || index >= view->ast_compat_count) {
+        return NULL;
+    }
+    return ast_ability_method(view->ast_compat_ability, index);
+}
+
+static bool
+llvm_require_ability_method_view_rows(LLVMGenCtx *ctx,
+                                      const LLVMAbilityMethodView *view,
+                                      const char *ability_name)
+{
+    if (llvm_ability_method_view_missing_mir_metadata(view)) {
+        llvm_set_mir_inventory_missing(ctx,
+            "MIR-only LLVM path missing ability vtable method metadata for '%s'",
+            ability_name != NULL ? ability_name : "(anonymous-ability)");
+        return false;
+    }
+    for (size_t i = 0; view != NULL && i < view->count; i++) {
+        if (view->uses_mir_metadata
+            && llvm_ability_method_view_metadata(view, i) == NULL) {
+            llvm_set_mir_inventory_missing(ctx,
+                "MIR-only LLVM path has invalid ability vtable method metadata row for '%s'",
+                ability_name != NULL ? ability_name : "(anonymous-ability)");
+            return false;
+        }
+    }
+    return true;
+}
 
 void
 llvm_emit_domain_ability_vtables(LLVMGenCtx *ctx,
@@ -20,7 +120,7 @@ llvm_emit_domain_ability_vtables(LLVMGenCtx *ctx,
     for (size_t i = 0; i < ability_count; i++) {
         ASTNode *stmt = abilities[i];
         const char *ab_name;
-        size_t mc;
+        LLVMAbilityMethodView methods;
         LLVMTypeRef *vt_fields;
         char vt_name[256];
         LLVMTypeRef vt_struct;
@@ -30,17 +130,26 @@ llvm_emit_domain_ability_vtables(LLVMGenCtx *ctx,
             continue;
 
         ab_name = ast_ability_name(stmt);
-        mc = ast_ability_method_count(stmt);
+        methods = llvm_ability_method_view_from_decl(ctx, ab_name, stmt);
+        if (!llvm_require_ability_method_view_rows(ctx, &methods, ab_name))
+            return;
+        if (methods.uses_mir_metadata
+            && mir_decl_header_name(methods.decl_header) != NULL) {
+            ab_name = mir_decl_header_name(methods.decl_header);
+        }
         vt_fields = pgy_arena_calloc(&ctx->scratch,
-            (mc > 0 ? mc : 1) * sizeof(LLVMTypeRef));
+            (methods.count > 0 ? methods.count : 1) * sizeof(LLVMTypeRef));
         if (vt_fields == NULL) {
             llvm_set_error(ctx,
                 "LLVM ability vtable field allocation failed for '%s'",
                 ab_name != NULL ? ab_name : "(anonymous)");
             return;
         }
-        for (size_t j = 0; j < mc; j++) {
-            ASTNode *method = ast_ability_method(stmt, j);
+        for (size_t j = 0; j < methods.count; j++) {
+            const MIRDeclMethod *method_meta =
+                llvm_ability_method_view_metadata(&methods, j);
+            ASTNode *method =
+                llvm_ability_method_view_compat_method(&methods, j);
             LLVMTypeRef ret;
             size_t pc;
             size_t user_pc = 0;
@@ -49,30 +158,55 @@ llvm_emit_domain_ability_vtables(LLVMGenCtx *ctx,
             LLVMTypeRef fn_type;
 
             if (method == NULL || method->type != AST_FUNC_DECL) {
-                vt_fields[j] = ctx->type_i8ptr;
-                continue;
+                if (method_meta == NULL) {
+                    vt_fields[j] = ctx->type_i8ptr;
+                    continue;
+                }
             }
 
             {
                 const char *mname =
-                    llvm_domain_method_name_metadata_first(NULL, method, true);
+                    llvm_domain_method_name_metadata_first(
+                        method_meta, method, method_meta == NULL);
                 ASTNode *return_type =
                     llvm_domain_method_return_type_metadata_first(
-                        NULL, method, true);
+                        method_meta, method, method_meta == NULL);
+                const char *return_type_name =
+                    llvm_domain_method_return_type_name_metadata_first(
+                        method_meta, method, method_meta == NULL);
 
+                if (method_meta != NULL && mname == NULL) {
+                    llvm_set_mir_inventory_missing(ctx,
+                        "MIR-only LLVM path missing ability vtable method name metadata for '%s'",
+                        ab_name != NULL ? ab_name : "(anonymous-ability)");
+                    return;
+                }
+                if (!llvm_mir_decl_method_metadata_complete_for(ctx,
+                        method_meta,
+                        ab_name,
+                        mname,
+                        LLVM_MIR_DECL_METHOD_REQUIRE_ALL_TYPE_NAMES,
+                        "MIR-only LLVM path missing ability vtable return type-name metadata for '%s.%s'",
+                        "MIR-only LLVM path missing ability vtable parameter type-name metadata for '%s.%s'")) {
+                    return;
+                }
                 ret = ctx->type_void;
-                if (return_type != NULL) {
+                if (return_type_name != NULL) {
+                    ret = pergyra_type_to_llvm(ctx, return_type_name);
+                    if (ctx->has_error || ret == NULL)
+                        return;
+                } else if (return_type != NULL) {
                     ret = ast_type_to_llvm(ctx, return_type);
                     if (ctx->has_error || ret == NULL)
                         return;
                 }
 
                 pc = llvm_domain_method_param_count_metadata_first(
-                    NULL, method, true);
+                    method_meta, method, method_meta == NULL);
                 for (size_t k = 0; k < pc; k++) {
                     FuncParam *p =
                         llvm_domain_method_param_metadata_first(
-                            NULL, method, k, true);
+                            method_meta, method, k, method_meta == NULL);
                     if (!llvm_param_is_implicit_self_local(p))
                         user_pc++;
                 }
@@ -89,11 +223,19 @@ llvm_emit_domain_ability_vtables(LLVMGenCtx *ctx,
                 for (size_t k = 0; k < pc; k++) {
                     FuncParam *p =
                         llvm_domain_method_param_metadata_first(
-                            NULL, method, k, true);
+                            method_meta, method, k, method_meta == NULL);
+                    const char *param_type_name =
+                        llvm_domain_method_param_type_name_metadata_first(
+                            method_meta, method, k, method_meta == NULL);
                     if (llvm_param_is_implicit_self_local(p))
                         continue;
-                    LLVMTypeRef pt = llvm_domain_forward_required_param_type(
-                        ctx, method, p, "ability method", mname);
+                    LLVMTypeRef pt = NULL;
+                    if (param_type_name != NULL) {
+                        pt = pergyra_type_to_llvm(ctx, param_type_name);
+                    } else {
+                        pt = llvm_domain_forward_required_param_type(
+                            ctx, method, p, "ability method", mname);
+                    }
                     if (ctx->has_error || pt == NULL)
                         return;
                     ptypes[pidx++] = pt;
@@ -111,16 +253,21 @@ llvm_emit_domain_ability_vtables(LLVMGenCtx *ctx,
             return;
         }
         vt_struct = LLVMStructCreateNamed(ctx->context, vt_name);
-        LLVMStructSetBody(vt_struct, vt_fields, (unsigned)mc, 0);
+        LLVMStructSetBody(vt_struct, vt_fields, (unsigned)methods.count, 0);
         entry = llvm_register_class(ctx, pergyra_strdup(vt_name),
                                     vt_struct, false, false);
         if (entry != NULL) {
-            for (size_t j = 0; j < mc; j++) {
-                ASTNode *method = ast_ability_method(stmt, j);
-                if (method != NULL && method->type == AST_FUNC_DECL)
+            for (size_t j = 0; j < methods.count; j++) {
+                const MIRDeclMethod *method_meta =
+                    llvm_ability_method_view_metadata(&methods, j);
+                ASTNode *method =
+                    llvm_ability_method_view_compat_method(&methods, j);
+                const char *mname =
+                    llvm_domain_method_name_metadata_first(
+                        method_meta, method, method_meta == NULL);
+                if (mname != NULL)
                     llvm_class_add_field(entry,
-                        llvm_domain_method_name_metadata_first(
-                            NULL, method, true),
+                        mname,
                         LLVMStructGetTypeAtIndex(vt_struct, (unsigned)j),
                         (int)j);
             }

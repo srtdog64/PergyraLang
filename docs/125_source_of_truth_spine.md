@@ -1177,6 +1177,12 @@ typedefs before ability vtables. The ABI source of truth remains the host
 self-cell classification policy; ability emission must not fall back to raw
 type strings that bypass that policy.
 
+LLVM ability vtable forward signatures consume the ability declaration header's
+`MIRDeclMethod` rows when MIR is active. The AST ability method array remains
+only as the explicit non-MIR compatibility payload; MIR-active vtable field
+count, method names, return type-names, and parameter type-names fail closed
+through the declaration inventory if the method rows are absent or incomplete.
+
 Role vtable binding is also a named owner seam. LLVM bind lowering must ask
 `llvm_party_slot_first_ability_name(...)` for the party-slot ability and
 `llvm_lookup_role_vtable_global(...)` for the vtable global. It must not scan
