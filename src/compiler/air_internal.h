@@ -7,6 +7,13 @@
 
 #include "air.h"
 
+typedef enum
+{
+    AIR_EVIDENCE_SCOPE_UNKNOWN,
+    AIR_EVIDENCE_SCOPE_BOUNDARY,
+    AIR_EVIDENCE_SCOPE_GLOBAL
+} AIREvidenceKindScope;
+
 char       *air_vformat_owned(const char *fmt, va_list args);
 char       *air_format_owned(const char *fmt, ...);
 void        air_set_error(char **error_message, const char *fmt, ...);
@@ -164,6 +171,7 @@ bool        air_boundary_requires_mir_pin_cleanup_evidence(
 bool        air_evidence_inventory_is_authoritative(const AIRProgram *air);
 bool        air_evidence_kind_is_known(AIREvidenceKind kind);
 bool        air_evidence_kind_is_boundary_scoped(AIREvidenceKind kind);
+AIREvidenceKindScope air_evidence_kind_scope(AIREvidenceKind kind);
 bool        air_evidence_kind_is_global(AIREvidenceKind kind);
 bool        air_evidence_kind_has_global_validator(AIREvidenceKind kind);
 bool        air_evidence_inventory_storage_valid(const AIRProgram *air);

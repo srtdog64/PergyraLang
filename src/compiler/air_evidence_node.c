@@ -12,26 +12,41 @@
 typedef struct
 {
     bool present;
-    bool boundary_scoped;
+    AIREvidenceKindScope scope;
     bool has_global_validator;
 } AIREvidenceKindMeta;
 
 static const AIREvidenceKindMeta kEvidenceKindMeta[AIR_EVIDENCE_KIND_COUNT] = {
-    [AIR_EVIDENCE_HIR_ROUTINE] = { true, true, false },
-    [AIR_EVIDENCE_HIR_CFG] = { true, true, false },
-    [AIR_EVIDENCE_RIR_BOUNDARY] = { true, true, false },
-    [AIR_EVIDENCE_RIR_AUTHORITY] = { true, true, false },
-    [AIR_EVIDENCE_MIR_CLEANUP] = { true, false, true },
-    [AIR_EVIDENCE_MIR_PIN_CLEANUP] = { true, true, false },
-    [AIR_EVIDENCE_MIR_TERMINATOR] = { true, false, true },
-    [AIR_EVIDENCE_MIR_SELECT_RECEIVE] = { true, false, true },
-    [AIR_EVIDENCE_DAG_METADATA] = { true, false, true },
-    [AIR_EVIDENCE_DAG_GENERIC] = { true, false, true },
-    [AIR_EVIDENCE_DAG_ABILITY] = { true, false, true },
-    [AIR_EVIDENCE_RIR_EFFECT_PROPAGATION] = { true, false, true },
-    [AIR_EVIDENCE_RIR_RELATION_PROPAGATION] = { true, false, true },
-    [AIR_EVIDENCE_OBSERVABILITY_SCHEMA] = { true, false, true },
-    [AIR_EVIDENCE_RUNTIME_FRONTIER_POLICY] = { true, false, true },
+    [AIR_EVIDENCE_HIR_ROUTINE] = {
+        true, AIR_EVIDENCE_SCOPE_BOUNDARY, false },
+    [AIR_EVIDENCE_HIR_CFG] = {
+        true, AIR_EVIDENCE_SCOPE_BOUNDARY, false },
+    [AIR_EVIDENCE_RIR_BOUNDARY] = {
+        true, AIR_EVIDENCE_SCOPE_BOUNDARY, false },
+    [AIR_EVIDENCE_RIR_AUTHORITY] = {
+        true, AIR_EVIDENCE_SCOPE_BOUNDARY, false },
+    [AIR_EVIDENCE_MIR_CLEANUP] = {
+        true, AIR_EVIDENCE_SCOPE_GLOBAL, true },
+    [AIR_EVIDENCE_MIR_PIN_CLEANUP] = {
+        true, AIR_EVIDENCE_SCOPE_BOUNDARY, false },
+    [AIR_EVIDENCE_MIR_TERMINATOR] = {
+        true, AIR_EVIDENCE_SCOPE_GLOBAL, true },
+    [AIR_EVIDENCE_MIR_SELECT_RECEIVE] = {
+        true, AIR_EVIDENCE_SCOPE_GLOBAL, true },
+    [AIR_EVIDENCE_DAG_METADATA] = {
+        true, AIR_EVIDENCE_SCOPE_GLOBAL, true },
+    [AIR_EVIDENCE_DAG_GENERIC] = {
+        true, AIR_EVIDENCE_SCOPE_GLOBAL, true },
+    [AIR_EVIDENCE_DAG_ABILITY] = {
+        true, AIR_EVIDENCE_SCOPE_GLOBAL, true },
+    [AIR_EVIDENCE_RIR_EFFECT_PROPAGATION] = {
+        true, AIR_EVIDENCE_SCOPE_GLOBAL, true },
+    [AIR_EVIDENCE_RIR_RELATION_PROPAGATION] = {
+        true, AIR_EVIDENCE_SCOPE_GLOBAL, true },
+    [AIR_EVIDENCE_OBSERVABILITY_SCHEMA] = {
+        true, AIR_EVIDENCE_SCOPE_GLOBAL, true },
+    [AIR_EVIDENCE_RUNTIME_FRONTIER_POLICY] = {
+        true, AIR_EVIDENCE_SCOPE_GLOBAL, true },
 };
 
 static const AIREvidenceKindMeta *
@@ -48,7 +63,14 @@ bool
 air_evidence_kind_is_boundary_scoped(AIREvidenceKind kind)
 {
     const AIREvidenceKindMeta *meta = air_evidence_kind_meta(kind);
-    return meta != NULL && meta->boundary_scoped;
+    return meta != NULL && meta->scope == AIR_EVIDENCE_SCOPE_BOUNDARY;
+}
+
+AIREvidenceKindScope
+air_evidence_kind_scope(AIREvidenceKind kind)
+{
+    const AIREvidenceKindMeta *meta = air_evidence_kind_meta(kind);
+    return meta != NULL ? meta->scope : AIR_EVIDENCE_SCOPE_UNKNOWN;
 }
 
 bool
@@ -62,6 +84,33 @@ air_evidence_kind_has_global_validator(AIREvidenceKind kind)
 {
     const AIREvidenceKindMeta *meta = air_evidence_kind_meta(kind);
     return meta != NULL && meta->has_global_validator;
+}
+
+static bool
+air_evidence_kind_scope_matches_boundary_index(AIREvidenceKind kind,
+                                               size_t boundary_index,
+                                               char **error_message)
+{
+    switch (air_evidence_kind_scope(kind)) {
+    case AIR_EVIDENCE_SCOPE_BOUNDARY:
+        if (boundary_index == SIZE_MAX) {
+            air_set_error(error_message,
+                          "AIR boundary evidence append requires boundary evidence kind to carry a boundary index");
+            return false;
+        }
+        return true;
+    case AIR_EVIDENCE_SCOPE_GLOBAL:
+        if (boundary_index != SIZE_MAX) {
+            air_set_error(error_message,
+                          "AIR global evidence append must not carry a boundary index");
+            return false;
+        }
+        return true;
+    case AIR_EVIDENCE_SCOPE_UNKNOWN:
+        break;
+    }
+    air_set_error(error_message, "AIR evidence append requires a known evidence kind scope");
+    return false;
 }
 
 bool
@@ -194,6 +243,11 @@ air_append_evidence_node_ex(AIRProgram *air,
     }
     if (!air_evidence_kind_is_known(kind)) {
         air_set_error(error_message, "AIR evidence append requires a known evidence kind");
+        return false;
+    }
+    if (!air_evidence_kind_scope_matches_boundary_index(kind,
+                                                       boundary_index,
+                                                       error_message)) {
         return false;
     }
     if (air_name_is_empty(provider_name) || air_name_is_empty(subject_name)) {

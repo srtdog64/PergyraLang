@@ -17,6 +17,7 @@ The mathematical proof source of truth has moved into the proof pack folder:
 - [docs/semantics/07_air_abstraction_safety.md](semantics/07_air_abstraction_safety.md)
 - [docs/semantics/08_slot_capability_calculus.md](semantics/08_slot_capability_calculus.md)
 - [docs/semantics/09_abstraction_loss_contracts.md](semantics/09_abstraction_loss_contracts.md)
+- [docs/semantics/10_behavior_contract_closure_gaps.md](semantics/10_behavior_contract_closure_gaps.md)
 - [docs/semantics/proofs/SlotCalculus.v](semantics/proofs/SlotCalculus.v)
 
 Related rigor audits:

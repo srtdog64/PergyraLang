@@ -105,6 +105,39 @@ English anchor for tooling/doc gates:
   required, but `authorized_by` / zone authority / runtime authority evidence
   must remain the approval source of truth instead of drifting into a second
   semantic channel.
+- Imported compiler-maturity obligations ledger: do not copy Rust, Swift, C++,
+  or C# surface features as decoration. Import the proof obligations that made
+  their compilers production-grade, and gate each one before claiming parity.
+  (1) Rust-style niche/layout optimization must start from semantic proof
+  types such as `NonZero<T>`, `NonNull<T>`, and `NonEmpty<T>`, flow through DAG
+  and MIR ABI facts, and lower `Option<T>` only when the unused bit-pattern is
+  proven by the type/layout owner. No ad-hoc backend-only niche packing.
+  (2) C# / C++ explicit layout, packed structs, unions, and field offsets must
+  stay behind `extern` / raw / ABI-boundary declarations until ownership,
+  alignment, aliasing, and slot/capability effects are specified; general
+  Pergyra structs must not silently become unchecked memory overlays.
+  (3) Swift SIL / Rust MIR pass maturity means each lowering and optimization
+  pass declares required facts, preserved facts, invalidated facts, and stable
+  diagnostics. Add a pass-contract manifest and a smoke that rejects unowned
+  AST rescans, backend-local layout guesses, and optimization passes that do
+  not state their evidence inputs.
+  (4) Rust/Swift-level ABI maturity requires a golden corpus for layout,
+  calling convention, ownership transfer, panic/failure ABI, generics,
+  enum/option/result payloads, and FFI/raw boundaries across C and LLVM.
+  Extend backend compare so ABI shape drift is caught by named fixture classes,
+  not only by whole-program output diffs.
+  (5) Incremental-compiler maturity requires a deterministic query/dependency
+  graph: stable node keys, stable iteration order, invalidation edges, and
+  cacheable diagnostics. Do not claim incremental or self-host compiler-scale
+  determinism until the graph is dumped, sorted, and golden-tested.
+  (6) Diagnostics maturity requires stable diagnostic codes, reason/fix fields,
+  source spans, and recovery classes across parser, semantic, MIR, AIR, C,
+  LLVM, and self-hosted tools. New checks must add negative fixtures before
+  surfacing as user-facing language policy.
+  (7) Optimizer maturity requires miscompile-oriented tests: preserve AIR/MIR
+  behavior contracts through each transform, compare C/LLVM for optimized and
+  unoptimized paths, and add a reduced-regression corpus for every optimizer
+  bug before broadening optimization scope.
 - Broad improvement ledger: active TODO must track open work, not completed
   history. Move closed implementation evidence to `docs/100d_beta_execution_log.md`
   or focused status docs, keep the active TODO clear of `[x]` backlog, and add a

@@ -188,6 +188,12 @@ main(void)
     TEST("AIR append rejects empty evidence counts");
     EXPECT(test_air_append_rejects_empty_evidence_counts());
 
+    TEST("AIR append rejects boundary evidence without boundary index");
+    EXPECT(test_air_append_rejects_boundary_evidence_without_boundary_index());
+
+    TEST("AIR append rejects global evidence with boundary index");
+    EXPECT(test_air_append_rejects_global_evidence_with_boundary_index());
+
     TEST("AIR verify rejects evidence boundary shape mismatch");
     EXPECT(test_air_verify_rejects_evidence_boundary_shape_mismatch());
 

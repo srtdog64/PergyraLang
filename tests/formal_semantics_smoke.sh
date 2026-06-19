@@ -66,6 +66,7 @@ TODO_PATH="$ROOT_DIR/TODO.md"
 CI_PATH="$ROOT_DIR/.github/workflows/ci.yml"
 README_PATH="$ROOT_DIR/README.md"
 SLOT_COQ="$PROOF_DIR/proofs/SlotCalculus.v"
+AXIS_COQ="$PROOF_DIR/proofs/AxisOwnership.v"
 LOSS_CONTRACT_PATH="$PROOF_DIR/09_abstraction_loss_contracts.md"
 EFFECT_SOURCE_PATH="$ROOT_DIR/src/semantic/type_effects.c"
 EFFECT_FLOW_PATH="$ROOT_DIR/src/semantic/type_checker_flow_effects.c"
@@ -86,6 +87,7 @@ require_file "$TODO_PATH" "TODO.md"
 require_file "$CI_PATH" ".github/workflows/ci.yml"
 require_file "$README_PATH" "README.md"
 require_file "$SLOT_COQ" "docs/semantics/proofs/SlotCalculus.v"
+require_file "$AXIS_COQ" "docs/semantics/proofs/AxisOwnership.v"
 require_file "$LOSS_CONTRACT_PATH" "docs/semantics/09_abstraction_loss_contracts.md"
 require_file "$EFFECT_SOURCE_PATH" "src/semantic/type_effects.c"
 require_file "$EFFECT_FLOW_PATH" "src/semantic/type_checker_flow_effects.c"
@@ -338,6 +340,18 @@ Lemma tampered_view_unpin_impossible
 Lemma double_unpin_impossible
 Lemma pin_non_eviction
 Qed.
+TERMS
+
+require_terms "$AXIS_COQ" "docs/semantics/proofs/AxisOwnership.v" <<'TERMS'
+Target: docs/42 Keyword Orthogonality -- Axis Fact-Ownership
+Theorem ownership_unique
+Lemma owner_of
+Definition AxisUpdate
+Theorem axis_updates_commute
+Definition keyword_axis
+Definition keyword_fact
+Theorem keyword_axis_sound
+Remaining obligations
 TERMS
 
 for stale_doc in \
