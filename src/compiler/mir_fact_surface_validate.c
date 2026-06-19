@@ -151,6 +151,17 @@ mir_validate_instruction_surface_usage(const MIRRoutine *routine,
         const MIRInstruction *inst = &block->instructions[i];
         if (!mir_instruction_has_surface_payload_or_shape(inst))
             continue;
+        if (mir_instruction_source_payload(inst) != NULL
+            && !mir_instruction_has_source_location(inst)) {
+            if (error_message != NULL) {
+                *error_message = mir_strdup_fmt(
+                    "MIR routine '%s' block[%zu] instruction[%zu] has source payload without source-location fact",
+                    routine->name != NULL ? routine->name : "(anonymous)",
+                    block_index,
+                    i);
+            }
+            return false;
+        }
         if (inst->kind == MIR_INST_DEF
             && mir_def_source_requires_initializer_fact(inst)
             && !inst->requires_source_statement_emit) {

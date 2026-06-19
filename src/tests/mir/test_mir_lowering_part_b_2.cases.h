@@ -158,6 +158,11 @@
                 block->instructions[block->instruction_count].kind = MIR_INST_STMT;
                 block->instructions[block->instruction_count].name = "stmt";
                 block->instructions[block->instruction_count].ast = stmt;
+                block->instructions[block->instruction_count].has_source_location = true;
+                block->instructions[block->instruction_count].source_node_type = stmt->type;
+                block->instructions[block->instruction_count].has_surface_usage_facts = true;
+                block->instructions[block->instruction_count].has_source_statement_index = true;
+                block->instructions[block->instruction_count].source_statement_index = 0;
                 block->instruction_count++;
                 injected = true;
             }

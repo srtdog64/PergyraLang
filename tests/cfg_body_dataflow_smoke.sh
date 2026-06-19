@@ -330,6 +330,13 @@ run_literal_doc_contract_smoke() {
     require_literal "src/compiler/mir_source_shape.c" "inst->branch_shape == MIR_BRANCH_MATCH_CASE"
     require_literal "src/compiler/mir_source_shape.c" "&& inst->expr0 == NULL"
     require_literal "src/tests/mir/test_mir_lowering_part_h.cases.h" "rejected_predicate_without_subject_fact"
+    require_literal "src/compiler/mir_fact_surface_validate.c" "source payload without source-location fact"
+    require_literal "src/tests/mir/test_mir_lowering_part_b_1.cases.h" "rejected_source_location"
+    if grep -Fq "mir_stmt_ast_is_cfg_owned_control(inst->ast)" \
+        "$ROOT_DIR/src/compiler/mir_source_shape.c"; then
+        echo "MIR CFG-owned control source-shape predicate must consume source_node_type facts, not AST payload fallback" >&2
+        exit 1
+    fi
     require_literal "src/tests/mir/test_mir_lowering_part_h.cases.h" "MIR validator rejects source-compatible branch without payload"
     require_literal "src/compiler/mir_lifecycle.c" "source-branch-emit"
     require_literal "src/codegen/llvm_mir_block_emit.c" "mir_instruction_has_required_branch_condition_fact(inst)"

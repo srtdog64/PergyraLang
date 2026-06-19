@@ -392,7 +392,7 @@ mir_instruction_source_is_cfg_owned_control(const MIRInstruction *inst)
     if (source_type >= 0)
         return mir_stmt_ast_type_is_cfg_owned_control(
             (ASTNodeType)source_type);
-    return mir_stmt_ast_is_cfg_owned_control(inst->ast);
+    return false;
 }
 
 static int

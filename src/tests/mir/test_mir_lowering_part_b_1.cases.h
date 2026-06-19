@@ -196,10 +196,12 @@ test_mir_lowering_part_b(void)
         bool saved_has_index = false;
         size_t saved_index = 0;
         bool saved_has_surface_usage = false;
+        bool saved_has_source_location = false;
         char *mir_error = NULL;
         bool rejected_storage = false;
         bool rejected_index = false;
         bool rejected_surface = false;
+        bool rejected_source_location = false;
         bool ok = lower_mir_from_source(src, &hir, &rir, &mir);
         if (ok)
             routine = find_mir_routine_mut(mir, "InventoryShape", MIR_SCOPE_FUNCTION);
@@ -237,6 +239,17 @@ test_mir_lowering_part_b(void)
                     continue;
                 }
                 saved_has_surface_usage = inst->has_surface_usage_facts;
+                if (inst->ast != NULL) {
+                    saved_has_source_location = inst->has_source_location;
+                    inst->has_source_location = false;
+                    rejected_source_location =
+                        !mir_validate(mir, &mir_error)
+                        && mir_error != NULL
+                        && strstr(mir_error, "source payload without source-location fact") != NULL;
+                    inst->has_source_location = saved_has_source_location;
+                    free(mir_error);
+                    mir_error = NULL;
+                }
                 inst->has_surface_usage_facts = false;
                 rejected_surface = !mir_validate(mir, &mir_error)
                                    && mir_error != NULL
@@ -250,6 +263,7 @@ test_mir_lowering_part_b(void)
                && block != NULL
                && rejected_storage
                && rejected_index
+               && rejected_source_location
                && rejected_surface);
         free(mir_error);
         mir_destroy(mir);

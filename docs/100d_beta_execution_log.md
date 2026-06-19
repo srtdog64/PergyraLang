@@ -3,6 +3,22 @@
 > Split from `docs/100_beta_readiness_checklist.md` on 2026-05-29.
 > Keep active blocker edits in the shard that owns the relevant closure track.
 
+## Progress Log - 2026-06-19 MIR CFG-Owned Source-Shape Fact Closure
+
+- `mir_instruction_source_is_cfg_owned_control(...)` now consumes only the
+  recorded MIR `source_node_type` fact. It no longer falls back to
+  `mir_stmt_ast_is_cfg_owned_control(inst->ast)` when source-shape metadata is
+  missing.
+- The MIR surface validator now rejects source payloads without a
+  source-location/type fact, so CFG/body consumers cannot silently recover
+  semantic source shape from AST payloads.
+- `test-mir`, `cfg-body-dataflow-test-smoke`, and `perf-contract-test-smoke`
+  now ratchet this by checking the validator error and rejecting reintroduced
+  CFG-owned AST fallback.
+- Verified locally with `test-mir`, `cfg-body-dataflow-test-smoke`,
+  `build-source-inventory-test-smoke`, `perf-contract-test-smoke`, and
+  `backend-fail-closed-test-smoke`.
+
 ## Progress Log - 2026-06-19 MIR Match Branch Predicate Closure
 
 - `mir_instruction_has_required_branch_condition_fact(...)` now fails closed
