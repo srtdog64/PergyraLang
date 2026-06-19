@@ -7368,6 +7368,17 @@ for term in \
     "llvm_hosted_zone_refresh_view_missing_mir_metadata" \
     "llvm_hosted_zone_refresh_view_object_slot_name" \
     "llvm_hosted_zone_refresh_view_source_slot_name"; do
+    require_term "src/codegen/llvm_expr_call_methods_world_effect_sync.c" "$term"
+done
+if grep -Fq "ast_effect_refreshes(effect_decl, &refresh_count)" \
+    "$ROOT_DIR/src/codegen/llvm_expr_call_methods_world_effect_sync.c"; then
+    fail "LLVM world effect sync invalidation must consume MIR refresh metadata"
+fi
+for term in \
+    "LLVMHostedZoneRefreshView refresh_view" \
+    "llvm_hosted_zone_refresh_view_missing_mir_metadata" \
+    "llvm_hosted_zone_refresh_view_object_slot_name" \
+    "llvm_hosted_zone_refresh_view_source_slot_name"; do
     require_term "src/codegen/llvm_expr_call_projection_sync.c" "$term"
 done
 if grep -Fq "ast_zone_refreshes(host_decl, &refresh_count)" \
