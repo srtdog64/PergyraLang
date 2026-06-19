@@ -443,11 +443,15 @@ echo "formal semantics smoke: ok"
 
 if command -v coqc >/dev/null 2>&1; then
     coq_timeout="${PGY_COQ_SMOKE_TIMEOUT_SECONDS:-60}"
-    if command -v timeout >/dev/null 2>&1; then
-        (cd "$ROOT_DIR" && timeout "$coq_timeout" coqc docs/semantics/proofs/SlotCalculus.v)
-    else
-        (cd "$ROOT_DIR" && coqc docs/semantics/proofs/SlotCalculus.v)
-    fi
+    for coq_proof in \
+        docs/semantics/proofs/SlotCalculus.v \
+        docs/semantics/proofs/AxisOwnership.v; do
+        if command -v timeout >/dev/null 2>&1; then
+            (cd "$ROOT_DIR" && timeout "$coq_timeout" coqc "$coq_proof")
+        else
+            (cd "$ROOT_DIR" && coqc "$coq_proof")
+        fi
+    done
     echo "formal semantics Coq smoke: ok"
 else
     echo "formal semantics Coq smoke: skipped (coqc not found)"
