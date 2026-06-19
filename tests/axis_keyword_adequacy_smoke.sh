@@ -60,31 +60,63 @@ doc_axis_keywords() {
 }
 
 # docs/42 axis label -> canonical short name used below.
-declare -A AXIS_OF        # keyword -> docs/42 axis short name
+AXIS_OF_ROWS=()        # rows are "keyword:axis"; keep bash 3.2 compatibility.
 for pair in "Resource:Resource" "Execution:Execution" "Domain:Domain" "Type/Contract:TypeContract"; do
     label="${pair%%:*}"
     short="${pair##*:}"
     while IFS= read -r kw; do
         [[ -z "$kw" ]] && continue
-        AXIS_OF["$kw"]="$short"
+        AXIS_OF_ROWS+=("$kw:$short")
     done < <(doc_axis_keywords "$label")
 done
 
-echo "docs/42 axis keywords parsed: ${#AXIS_OF[@]}"
+axis_of_keyword() {
+    local needle="$1"
+    local row
+    local kw
+    for row in "${AXIS_OF_ROWS[@]}"; do
+        kw="${row%%:*}"
+        if [[ "$kw" == "$needle" ]]; then
+            printf '%s\n' "${row#*:}"
+            return 0
+        fi
+    done
+    return 1
+}
+
+axis_keywords() {
+    local row
+    for row in "${AXIS_OF_ROWS[@]}"; do
+        printf '%s\n' "${row%%:*}"
+    done | sort -u
+}
+
+coq_axis_name() {
+    case "$1" in
+        Resource) printf '%s\n' "AxResource" ;;
+        Execution) printf '%s\n' "AxExecution" ;;
+        Domain) printf '%s\n' "AxDomain" ;;
+        TypeContract) printf '%s\n' "AxTypeContract" ;;
+        *) return 1 ;;
+    esac
+}
+
+echo "docs/42 axis keywords parsed: ${#AXIS_OF_ROWS[@]}"
 
 # --- check A: every docs/42 axis keyword is recognized by the compiler -------
 echo "== A. design (docs/42) keywords subset compiler recognition =="
-for kw in $(printf '%s\n' "${!AXIS_OF[@]}" | sort); do
+for kw in $(axis_keywords); do
+    axis="$(axis_of_keyword "$kw")"
     if reserved_has "$kw"; then
         kind="reserved"
     elif contextual_has "$kw"; then
         kind="contextual"
     else
-        echo "  FAIL: docs/42 lists '$kw' (${AXIS_OF[$kw]}) but the compiler does not recognize it"
+        echo "  FAIL: docs/42 lists '$kw' ($axis) but the compiler does not recognize it"
         fail=1
         continue
     fi
-    printf '  ok   %-12s %-12s %s\n' "$kw" "${AXIS_OF[$kw]}" "$kind"
+    printf '  ok   %-12s %-12s %s\n' "$kw" "$axis" "$kind"
 done
 
 # --- check B: Coq keyword_axis mirror agrees with docs/42 --------------------
@@ -111,7 +143,7 @@ for row in "${COQ_MIRROR[@]}"; do
         fail=1
         continue
     fi
-    doc_axis="${AXIS_OF[$kw]:-<unclassified>}"
+    doc_axis="$(axis_of_keyword "$kw" || printf '%s\n' "<unclassified>")"
     if [[ "$doc_axis" != "$axis" ]]; then
         echo "  FAIL: Coq puts '$kw' on $axis but docs/42 puts it on $doc_axis"
         fail=1
@@ -135,7 +167,6 @@ done
 # Coq Owns axis no longer matches, this fails.
 #
 #   "<clause> <coq fact> <axis> <owner checker file> <owner token>"
-declare -A AXNAME=( [Resource]=AxResource [Execution]=AxExecution [Domain]=AxDomain [TypeContract]=AxTypeContract )
 CLAUSE_MAP=(
     "who        FWho          Domain       type_checker_intent_participants.c     participant"
     "within     FWhere        Domain       type_checker_intent_binding_context.c  zone"
@@ -148,14 +179,15 @@ echo "== C. intent clause -> Coq fact/axis -> owner checker (write attribution) 
 for row in "${CLAUSE_MAP[@]}"; do
     read -r clause fact axis ofile otok <<<"$row"
     checker="$ROOT_DIR/src/semantic/$ofile"
+    axis_ctor="$(coq_axis_name "$axis")"
     if ! grep -rqE "\"$clause\"" "$PARSER_DIR" 2>/dev/null; then
         echo "  FAIL: intent clause '$clause' not recognized by the parser"; fail=1; continue
     fi
     if ! grep -qE "\b$fact\b" "$AXIS_COQ"; then
         echo "  FAIL: clause '$clause' has no Coq fact '$fact' in AxisOwnership.v"; fail=1; continue
     fi
-    if ! grep -qE "Owns ${AXNAME[$axis]}[[:space:]]+$fact\b" "$AXIS_COQ"; then
-        echo "  FAIL: Coq Owns does not put '$fact' on ${AXNAME[$axis]} (clause '$clause')"; fail=1; continue
+    if ! grep -qE "Owns ${axis_ctor}[[:space:]]+$fact\b" "$AXIS_COQ"; then
+        echo "  FAIL: Coq Owns does not put '$fact' on ${axis_ctor} (clause '$clause')"; fail=1; continue
     fi
     if [[ ! -e "$checker" ]] || ! grep -qiE "$otok" "$checker"; then
         echo "  FAIL: clause '$clause' owner checker $ofile missing or lacks '$otok'"; fail=1; continue
@@ -189,11 +221,12 @@ else
 fi
 for row in "${EVIDENCE_MAP[@]}"; do
     read -r kind fact axis vocab <<<"$row"
+    axis_ctor="$(coq_axis_name "$axis")"
     if ! grep -qE "\b$kind\b" "$AIR_H"; then
         echo "  FAIL: AIR evidence kind '$kind' not declared in air.h"; fail=1; continue
     fi
-    if ! grep -qE "Owns ${AXNAME[$axis]}[[:space:]]+$fact\b" "$AXIS_COQ"; then
-        echo "  FAIL: Coq Owns does not put '$fact' on ${AXNAME[$axis]} (kind '$kind')"; fail=1; continue
+    if ! grep -qE "Owns ${axis_ctor}[[:space:]]+$fact\b" "$AXIS_COQ"; then
+        echo "  FAIL: Coq Owns does not put '$fact' on ${axis_ctor} (kind '$kind')"; fail=1; continue
     fi
     if ! grep -qF -- "\"$vocab\"" "$AIR_VOCAB"; then
         echo "  FAIL: AIR vocabulary name '$vocab' missing for '$kind'"; fail=1; continue
