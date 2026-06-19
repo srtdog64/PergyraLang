@@ -394,6 +394,29 @@ Substring(const char *s, int32_t start, int32_t len)
     return buf;
 }
 
+/* Allocation-free StringIndexOf(Substring(s, start, len), needle). */
+static inline int32_t
+SubIndexOf(const char *s, int32_t start, int32_t len, const char *needle)
+{
+    size_t raw_len, needle_len;
+    int32_t slen, limit, i;
+
+    if (s == NULL || needle == NULL) return -1;
+    raw_len = strlen(s);
+    if (raw_len > (size_t)INT32_MAX) return -1;
+    slen = (int32_t)raw_len;
+    if (start < 0 || start >= slen || len <= 0) return -1;
+    if (len > slen - start) len = slen - start;
+    needle_len = strlen(needle);
+    if (needle_len == 0) return 0;
+    if ((size_t)len < needle_len) return -1;
+    limit = len - (int32_t)needle_len;
+    for (i = 0; i <= limit; i++) {
+        if (memcmp(s + start + i, needle, needle_len) == 0) return i;
+    }
+    return -1;
+}
+
 static inline char *
 StringReplace(const char *s, const char *old_str, const char *new_str)
 {

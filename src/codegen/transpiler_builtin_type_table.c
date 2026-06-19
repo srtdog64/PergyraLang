@@ -170,6 +170,7 @@ pgy_builtin_entries(size_t *count)
         { "StringReplace", "String", PGY_BUILTIN_FLAG_NONE },
         { "StringSplit", "Array<String>", PGY_BUILTIN_FLAG_NONE },
         { "StringTrim", "String", PGY_BUILTIN_FLAG_NONE },
+        { "SubIndexOf", "Int", PGY_BUILTIN_FLAG_NONE },
         { "Substring", "String", PGY_BUILTIN_FLAG_NONE },
         { "Tan", "Float", PGY_BUILTIN_FLAG_NONE },
         { "TimerNew", "Timer", PGY_BUILTIN_FLAG_NONE },

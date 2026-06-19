@@ -145,6 +145,23 @@ stdlib_scalar_check_string_substring(ASTNode *expr, const char *name,
     return TYPE_STRING;
 }
 
+/* SubIndexOf(s: String, start: Int, len: Int, needle: String) -> Int --
+ * allocation-free StringIndexOf(Substring(s, start, len), needle). */
+static Type *
+stdlib_scalar_check_string_sub_index_of(ASTNode *expr, const char *name,
+                                        SemanticContext *ctx)
+{
+    if (!check_call_arity(expr, 4, name, ctx))
+        return TYPE_UNKNOWN;
+    stdlib_scalar_require_string_arg(expr, 0, ctx);
+    require_assignable(type_check_expression(ast_call_argument(expr, 1), ctx),
+        TYPE_INT, ast_call_argument(expr, 1), ctx);
+    require_assignable(type_check_expression(ast_call_argument(expr, 2), ctx),
+        TYPE_INT, ast_call_argument(expr, 2), ctx);
+    stdlib_scalar_require_string_arg(expr, 3, ctx);
+    return TYPE_INT;
+}
+
 static Type *
 stdlib_scalar_check_string_unary(ASTNode *expr, const char *name,
                                  SemanticContext *ctx)
@@ -323,6 +340,7 @@ static const StdlibScalarSpec stdlib_scalar_specs[] = {
     { "StringReplace", stdlib_scalar_check_string_replace },
     { "StringSplit", stdlib_scalar_check_string_split },
     { "StringTrim", stdlib_scalar_check_string_unary },
+    { "SubIndexOf", stdlib_scalar_check_string_sub_index_of },
     { "Substring", stdlib_scalar_check_string_substring },
     { "Tan", stdlib_scalar_check_math_unary_float },
     { "ToFloat", stdlib_scalar_check_to_float },
