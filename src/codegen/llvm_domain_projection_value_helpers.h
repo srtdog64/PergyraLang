@@ -16,5 +16,12 @@ LLVMValueRef llvm_build_domain_projection_value(LLVMGenCtx *ctx,
                                                 const char *source_type_name,
                                                 ASTNode *refresh,
                                                 LLVMValueRef source_ptr);
+LLVMValueRef llvm_build_domain_projection_value_from_zone_refresh_metadata(
+    LLVMGenCtx *ctx,
+    LLVMClassTypeEntry *target_cls,
+    LLVMClassTypeEntry *source_cls,
+    const char *source_type_name,
+    const MIRDeclZoneRefresh *refresh,
+    LLVMValueRef source_ptr);
 
 #endif

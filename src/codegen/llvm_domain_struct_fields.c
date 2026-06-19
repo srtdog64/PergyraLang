@@ -181,4 +181,56 @@ llvm_domain_add_projection_state_fields(LLVMGenCtx *ctx,
     return true;
 }
 
+bool
+llvm_domain_add_projection_state_fields_from_zone_refresh_view(
+    LLVMGenCtx *ctx,
+    LLVMClassTypeEntry *entry,
+    LLVMTypeRef *ftypes,
+    int *field_index,
+    const LLVMHostedDomainSlotView *slot_view,
+    const LLVMHostedZoneRefreshView *refresh_view)
+{
+    if (ctx == NULL || entry == NULL || ftypes == NULL || field_index == NULL)
+        return false;
+
+    if (slot_view == NULL)
+        return false;
+
+    for (size_t j = 0; j < slot_view->count; j++) {
+        const char *slot_name =
+            llvm_hosted_domain_slot_view_name(slot_view, j);
+        if (!llvm_domain_slot_view_is_projection_slot_in_zone_refresh_view(
+                slot_view, j, refresh_view)) {
+            continue;
+        }
+        if (slot_name == NULL) {
+            llvm_set_error(ctx,
+                "LLVM projection field slot[%zu] is missing metadata name",
+                j);
+            return false;
+        }
+        if (!llvm_domain_struct_add_projection_field(ctx, entry,
+                ftypes[*field_index], *field_index, "ready",
+                slot_name))
+            return false;
+        (*field_index)++;
+        if (!llvm_domain_struct_add_projection_field(ctx, entry,
+                ftypes[*field_index], *field_index, "dirty",
+                slot_name))
+            return false;
+        (*field_index)++;
+        if (!llvm_domain_struct_add_projection_field(ctx, entry,
+                ftypes[*field_index], *field_index, "epoch",
+                slot_name))
+            return false;
+        (*field_index)++;
+        if (!llvm_domain_struct_add_projection_field(ctx, entry,
+                ftypes[*field_index], *field_index, "cause",
+                slot_name))
+            return false;
+        (*field_index)++;
+    }
+    return true;
+}
+
 #endif

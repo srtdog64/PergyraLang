@@ -7168,6 +7168,61 @@ if grep -Fq "ast_zone_refreshes(node, &refresh_count)" \
     fail "C zone declaration emission must consume MIR zone refresh metadata, not reopen AST_ZONE_REFRESH inventory"
 fi
 for term in \
+    "LLVMHostedZoneRefreshView" \
+    "llvm_hosted_zone_refresh_view_from_decl" \
+    "llvm_hosted_zone_refresh_view_metadata" \
+    "llvm_hosted_zone_refresh_view_object_slot_name" \
+    "llvm_hosted_zone_refresh_view_source_slot_name"; do
+    require_term "src/codegen/llvm_inventory_decl_lookup.h" "$term"
+    require_term "src/codegen/llvm_inventory_zone_refresh_view.c" "$term"
+done
+for term in \
+    "llvm_count_domain_projection_slots_in_zone_refresh_view" \
+    "llvm_domain_slot_view_is_projection_slot_in_zone_refresh_view"; do
+    require_term "src/codegen/llvm_domain_projection_count.c" "$term"
+    require_term "src/codegen/llvm_domain_projection_count_helpers.h" "$term"
+done
+for term in \
+    "llvm_build_domain_projection_value_from_zone_refresh_metadata" \
+    "mir_decl_zone_refresh_mapped_target_field" \
+    "mir_decl_zone_refresh_mapped_source_field"; do
+    require_term "src/codegen/llvm_domain_projection_value_helpers.c" "$term"
+done
+require_term "src/codegen/llvm_domain_projection_value_helpers.h" \
+    "llvm_build_domain_projection_value_from_zone_refresh_metadata"
+for term in \
+    "LLVMHostedZoneRefreshView zone_refresh_view" \
+    "llvm_hosted_zone_refresh_view_missing_mir_metadata" \
+    "llvm_build_domain_projection_value_from_zone_refresh_metadata"; do
+    require_term "src/codegen/llvm_domain_projection_sync_body_helpers.c" "$term"
+done
+for term in \
+    "llvm_domain_add_projection_state_fields_from_zone_refresh_view" \
+    "llvm_domain_slot_view_is_projection_slot_in_zone_refresh_view"; do
+    require_term "src/codegen/llvm_domain_struct_fields.c" "$term"
+done
+require_term "src/codegen/llvm_domain_struct_fields.h" \
+    "llvm_domain_add_projection_state_fields_from_zone_refresh_view"
+for term in \
+    "LLVMHostedZoneRefreshView refresh_view" \
+    "llvm_hosted_zone_refresh_view_missing_mir_metadata" \
+    "llvm_domain_add_projection_state_fields_from_zone_refresh_view"; do
+    require_term "src/codegen/llvm_domain_struct_register_fields.c" "$term"
+done
+for term in \
+    "llvm_count_domain_projection_slots_in_zone_refresh_view" \
+    "llvm_domain_slot_view_is_projection_slot_in_zone_refresh_view"; do
+    require_term "src/codegen/llvm_domain_struct_register.c" "$term"
+done
+if grep -Fq "ast_zone_refreshes(stmt, refresh_count)" \
+    "$ROOT_DIR/src/codegen/llvm_domain_decl_parts_helpers.c"; then
+    fail "LLVM domain declaration parts must not reopen zone refresh inventory"
+fi
+if grep -Fq "ast_zone_refreshes(stmt, &refresh_count)" \
+    "$ROOT_DIR/src/codegen/llvm_domain_struct_register_fields.c"; then
+    fail "LLVM zone struct field registration must consume MIR zone refresh metadata"
+fi
+for term in \
     "zone refresh metadata count" \
     "zone refresh[%zu] field-map[%zu] has incomplete metadata"; do
     require_term "src/compiler/mir_decl_header_validate.c" "$term"

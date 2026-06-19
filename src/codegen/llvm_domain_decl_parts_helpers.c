@@ -39,8 +39,6 @@ llvm_domain_decl_refreshes(ASTNode *stmt,
             *refreshes = ast_effect_refreshes(stmt, refresh_count);
         break;
     case AST_ZONE_DECL:
-        if (refreshes != NULL)
-            *refreshes = ast_zone_refreshes(stmt, refresh_count);
         break;
     default:
         break;

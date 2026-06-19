@@ -54,13 +54,32 @@ llvm_emit_domain_projection_sync_body(ASTNode *stmt,
     size_t refresh_count = 0;
     const char *decl_name = NULL;
     LLVMHostedDomainSlotView slot_view;
+    LLVMHostedZoneRefreshView zone_refresh_view = {0};
+    bool use_zone_refresh_view = false;
 
-    llvm_domain_decl_refreshes(stmt, &decl_name, &refreshes, &refresh_count);
-
-    if (stmt == NULL || decl_cls == NULL || sync_fn == NULL || ctx == NULL
-        || refresh_count == 0) {
+    if (stmt == NULL || decl_cls == NULL || sync_fn == NULL || ctx == NULL)
         return;
+
+    decl_name = llvm_decl_node_name(stmt);
+    if (stmt->type == AST_ZONE_DECL) {
+        zone_refresh_view = llvm_hosted_zone_refresh_view_from_decl(
+            ctx, decl_name, stmt);
+        if (llvm_hosted_zone_refresh_view_missing_mir_metadata(
+                &zone_refresh_view)) {
+            llvm_set_mir_inventory_missing(ctx,
+                "MIR-only LLVM path missing zone refresh declaration metadata for '%s'",
+                decl_name != NULL ? decl_name : "(anonymous-zone)");
+            return;
+        }
+        refresh_count = zone_refresh_view.count;
+        use_zone_refresh_view = true;
+    } else {
+        llvm_domain_decl_refreshes(stmt, &decl_name, &refreshes,
+            &refresh_count);
     }
+    if (refresh_count == 0)
+        return;
+
     slot_view = llvm_hosted_domain_slot_view_from_decl(ctx, decl_name, stmt);
     if (llvm_hosted_domain_slot_view_missing_mir_metadata(&slot_view)) {
         llvm_set_mir_inventory_missing(ctx,
@@ -89,8 +108,7 @@ llvm_emit_domain_projection_sync_body(ASTNode *stmt,
         LLVMBuildStore(ctx->builder, LLVMConstInt(ctx->type_i1, 0, 0), continue_addr);
 
         for (size_t i = 0; i < refresh_count; i++) {
-            ASTNode *refresh = refreshes[i];
-            const char *target_slot_name;
+            const char *target_slot_name = NULL;
             char field_name[256];
             int dirty_index;
             LLVMValueRef self_ptr;
@@ -98,9 +116,16 @@ llvm_emit_domain_projection_sync_body(ASTNode *stmt,
             LLVMValueRef dirty_val;
             LLVMValueRef continue_val;
 
-            if (refresh == NULL || refresh->type != AST_ZONE_REFRESH)
-                continue;
-            target_slot_name = ast_zone_refresh_object_slot_name(refresh);
+            if (use_zone_refresh_view) {
+                target_slot_name =
+                    llvm_hosted_zone_refresh_view_object_slot_name(
+                        &zone_refresh_view, i);
+            } else {
+                ASTNode *refresh = refreshes[i];
+                if (refresh == NULL || refresh->type != AST_ZONE_REFRESH)
+                    continue;
+                target_slot_name = ast_zone_refresh_object_slot_name(refresh);
+            }
             if (target_slot_name == NULL)
                 continue;
             if (!llvm_projection_sync_field_name(field_name,
@@ -148,7 +173,8 @@ llvm_emit_domain_projection_sync_body(ASTNode *stmt,
             pass_addr);
 
         for (size_t i = 0; i < refresh_count; i++) {
-            ASTNode *refresh = refreshes[i];
+            ASTNode *refresh = NULL;
+            const MIRDeclZoneRefresh *zone_refresh = NULL;
             LLVMClassTypeEntry *target_cls;
             LLVMClassTypeEntry *source_cls;
             int target_index;
@@ -161,11 +187,24 @@ llvm_emit_domain_projection_sync_body(ASTNode *stmt,
             const char *target_type_name;
             const char *source_type_name;
 
-            if (refresh == NULL || refresh->type != AST_ZONE_REFRESH)
-                continue;
-
-            target_slot_name = ast_zone_refresh_object_slot_name(refresh);
-            source_slot_name = ast_zone_refresh_source_slot_name(refresh);
+            if (use_zone_refresh_view) {
+                zone_refresh = llvm_hosted_zone_refresh_view_metadata(
+                    &zone_refresh_view, i);
+                if (zone_refresh == NULL)
+                    continue;
+                target_slot_name =
+                    llvm_hosted_zone_refresh_view_object_slot_name(
+                        &zone_refresh_view, i);
+                source_slot_name =
+                    llvm_hosted_zone_refresh_view_source_slot_name(
+                        &zone_refresh_view, i);
+            } else {
+                refresh = refreshes[i];
+                if (refresh == NULL || refresh->type != AST_ZONE_REFRESH)
+                    continue;
+                target_slot_name = ast_zone_refresh_object_slot_name(refresh);
+                source_slot_name = ast_zone_refresh_source_slot_name(refresh);
+            }
             if (target_slot_name == NULL || source_slot_name == NULL)
                 continue;
 
@@ -227,8 +266,12 @@ llvm_emit_domain_projection_sync_body(ASTNode *stmt,
                             ready_ptr);
                     }
 
-                    projected = llvm_build_domain_projection_value(ctx, target_cls,
-                        source_cls, source_type_name, refresh, source_ptr);
+                    projected = use_zone_refresh_view
+                        ? llvm_build_domain_projection_value_from_zone_refresh_metadata(
+                            ctx, target_cls, source_cls, source_type_name,
+                            zone_refresh, source_ptr)
+                        : llvm_build_domain_projection_value(ctx, target_cls,
+                            source_cls, source_type_name, refresh, source_ptr);
                     if (projected == NULL || ctx->has_error)
                         return;
                     LLVMBuildStore(ctx->builder, projected, target_ptr);
@@ -246,17 +289,30 @@ llvm_emit_domain_projection_sync_body(ASTNode *stmt,
                         "projection", target_slot_name, PGY_PROP_CAUSE_REFRESH);
 
                     for (size_t dep_i = 0; dep_i < refresh_count; dep_i++) {
-                        ASTNode *dependent = refreshes[dep_i];
-                        const char *dependent_target_name;
-                        const char *dependent_source_name;
+                        const char *dependent_target_name = NULL;
+                        const char *dependent_source_name = NULL;
                         char dep_field_name[256];
                         int dep_dirty_index;
                         int dep_ready_index;
 
-                        if (dependent == NULL || dependent->type != AST_ZONE_REFRESH)
-                            continue;
-                        dependent_target_name = ast_zone_refresh_object_slot_name(dependent);
-                        dependent_source_name = ast_zone_refresh_source_slot_name(dependent);
+                        if (use_zone_refresh_view) {
+                            dependent_target_name =
+                                llvm_hosted_zone_refresh_view_object_slot_name(
+                                    &zone_refresh_view, dep_i);
+                            dependent_source_name =
+                                llvm_hosted_zone_refresh_view_source_slot_name(
+                                    &zone_refresh_view, dep_i);
+                        } else {
+                            ASTNode *dependent = refreshes[dep_i];
+                            if (dependent == NULL
+                                || dependent->type != AST_ZONE_REFRESH) {
+                                continue;
+                            }
+                            dependent_target_name =
+                                ast_zone_refresh_object_slot_name(dependent);
+                            dependent_source_name =
+                                ast_zone_refresh_source_slot_name(dependent);
+                        }
                         if (dependent_target_name == NULL || dependent_source_name == NULL
                             || strcmp(dependent_source_name, target_slot_name) != 0) {
                             continue;

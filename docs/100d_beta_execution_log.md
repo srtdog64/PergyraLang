@@ -3,6 +3,26 @@
 > Split from `docs/100_beta_readiness_checklist.md` on 2026-05-29.
 > Keep active blocker edits in the shard that owns the relevant closure track.
 
+## Progress Log - 2026-06-19 Zone Refresh LLVM Consumer Cutover
+
+- LLVM zone projection sync lowering now builds an
+  `LLVMHostedZoneRefreshView` from `MIRDeclZoneRefresh` rows before it reads
+  refresh object/source slot names or explicit target-to-source field maps.
+  Relation/effect refreshes remain on the compatibility path until they have
+  equivalent metadata rows.
+- LLVM zone struct registration and projection-state field registration now
+  count projection slots through the same refresh view instead of reopening
+  `ast_zone_refreshes(stmt, &refresh_count)` in the struct/layout path.
+- LLVM domain projection value lowering has a MIR refresh entry point,
+  `llvm_build_domain_projection_value_from_zone_refresh_metadata(...)`, so
+  zone field-map lowering consumes `mir_decl_zone_refresh_mapped_*` accessors.
+- `mir-declaration-inventory-test-smoke` now requires the LLVM refresh view,
+  projection-count/value consumers, and zone struct-field registration cutover,
+  and rejects reopened zone refresh inventory in the LLVM declaration-parts and
+  struct-field registration paths.
+- Gates used: `make llvm-test-smoke` and
+  `make mir-declaration-inventory-test-smoke`.
+
 ## Progress Log - 2026-06-19 Zone Refresh C Consumer Cutover
 
 - C zone declaration emission now builds a `TranspilerHostedZoneRefreshView`
@@ -14,8 +34,7 @@
   `emit_projection_literal_by_zone_refresh_metadata(...)`.
 - `mir-declaration-inventory-test-smoke` now requires the C refresh view and
   rejects reopening `AST_ZONE_REFRESH` inventory in `transpiler_zone_decl_emit.c`.
-  Relation/effect refreshes and LLVM projection refresh consumers still need
-  their own metadata/view cutover.
+  Relation/effect refreshes still need their own metadata/view cutover.
 - Gates used: `make test-transpile` and
   `make mir-declaration-inventory-test-smoke`.
 

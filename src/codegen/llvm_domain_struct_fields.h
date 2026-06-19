@@ -22,5 +22,12 @@ bool        llvm_domain_add_projection_state_fields(LLVMGenCtx *ctx,
                                                     const LLVMHostedDomainSlotView *slot_view,
                                                     ASTNode **refreshes,
                                                     size_t refresh_count);
+bool        llvm_domain_add_projection_state_fields_from_zone_refresh_view(
+                                                    LLVMGenCtx *ctx,
+                                                    LLVMClassTypeEntry *entry,
+                                                    LLVMTypeRef *ftypes,
+                                                    int *field_index,
+                                                    const LLVMHostedDomainSlotView *slot_view,
+                                                    const LLVMHostedZoneRefreshView *refresh_view);
 
 #endif

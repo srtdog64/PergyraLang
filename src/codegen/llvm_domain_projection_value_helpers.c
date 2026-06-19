@@ -333,13 +333,59 @@ llvm_load_domain_projection_path_value_by_name(LLVMGenCtx *ctx,
         "LLVM domain projection path did not produce a value");
 }
 
-LLVMValueRef
-llvm_build_domain_projection_value(LLVMGenCtx *ctx,
-                                   LLVMClassTypeEntry *target_cls,
-                                   LLVMClassTypeEntry *source_cls,
-                                   const char *source_type_name,
-                                   ASTNode *refresh,
-                                   LLVMValueRef source_ptr)
+static const char *
+llvm_domain_projection_ast_refresh_mapped_source(
+    ASTNode *refresh,
+    const char *target_field_name)
+{
+    if (refresh == NULL || refresh->type != AST_ZONE_REFRESH
+        || target_field_name == NULL) {
+        return NULL;
+    }
+
+    for (size_t j = 0; j < ast_zone_refresh_field_map_count(refresh); j++) {
+        const char *mapped_target =
+            ast_zone_refresh_mapped_target_field(refresh, j);
+        const char *mapped_source =
+            ast_zone_refresh_mapped_source_field(refresh, j);
+        if (mapped_target != NULL && mapped_source != NULL
+            && strcmp(mapped_target, target_field_name) == 0) {
+            return mapped_source;
+        }
+    }
+    return NULL;
+}
+
+static const char *
+llvm_domain_projection_mir_refresh_mapped_source(
+    const MIRDeclZoneRefresh *refresh,
+    const char *target_field_name)
+{
+    if (refresh == NULL || target_field_name == NULL)
+        return NULL;
+
+    for (size_t j = 0; j < mir_decl_zone_refresh_field_map_count(refresh); j++) {
+        const char *mapped_target =
+            mir_decl_zone_refresh_mapped_target_field(refresh, j);
+        const char *mapped_source =
+            mir_decl_zone_refresh_mapped_source_field(refresh, j);
+        if (mapped_target != NULL && mapped_source != NULL
+            && strcmp(mapped_target, target_field_name) == 0) {
+            return mapped_source;
+        }
+    }
+    return NULL;
+}
+
+static LLVMValueRef
+llvm_build_domain_projection_value_internal(
+    LLVMGenCtx *ctx,
+    LLVMClassTypeEntry *target_cls,
+    LLVMClassTypeEntry *source_cls,
+    const char *source_type_name,
+    ASTNode *ast_refresh,
+    const MIRDeclZoneRefresh *mir_refresh,
+    LLVMValueRef source_ptr)
 {
     LLVMValueRef projected;
 
@@ -360,19 +406,16 @@ llvm_build_domain_projection_value(LLVMGenCtx *ctx,
         if (target_field_name == NULL || target_field_index < 0)
             continue;
 
-        if (refresh != NULL && refresh->type == AST_ZONE_REFRESH) {
-            for (size_t j = 0; j < ast_zone_refresh_field_map_count(refresh); j++) {
-                const char *mapped_target =
-                    ast_zone_refresh_mapped_target_field(refresh, j);
-                const char *mapped_source =
-                    ast_zone_refresh_mapped_source_field(refresh, j);
-                if (mapped_target != NULL && mapped_source != NULL
-                    && strcmp(mapped_target, target_field_name) == 0) {
-                    source_field_name = mapped_source;
-                    break;
-                }
-            }
+        source_field_name =
+            llvm_domain_projection_mir_refresh_mapped_source(mir_refresh,
+                target_field_name);
+        if (source_field_name == NULL) {
+            source_field_name =
+                llvm_domain_projection_ast_refresh_mapped_source(ast_refresh,
+                    target_field_name);
         }
+        if (source_field_name == NULL)
+            source_field_name = target_field_name;
 
         field_value = llvm_load_domain_projection_path_value_by_name(
             ctx, source_type_name, source_cls, source_ptr, source_field_name);
@@ -383,6 +426,41 @@ llvm_build_domain_projection_value(LLVMGenCtx *ctx,
     }
 
     return projected;
+}
+
+LLVMValueRef
+llvm_build_domain_projection_value(LLVMGenCtx *ctx,
+                                   LLVMClassTypeEntry *target_cls,
+                                   LLVMClassTypeEntry *source_cls,
+                                   const char *source_type_name,
+                                   ASTNode *refresh,
+                                   LLVMValueRef source_ptr)
+{
+    return llvm_build_domain_projection_value_internal(ctx,
+        target_cls,
+        source_cls,
+        source_type_name,
+        refresh,
+        NULL,
+        source_ptr);
+}
+
+LLVMValueRef
+llvm_build_domain_projection_value_from_zone_refresh_metadata(
+    LLVMGenCtx *ctx,
+    LLVMClassTypeEntry *target_cls,
+    LLVMClassTypeEntry *source_cls,
+    const char *source_type_name,
+    const MIRDeclZoneRefresh *refresh,
+    LLVMValueRef source_ptr)
+{
+    return llvm_build_domain_projection_value_internal(ctx,
+        target_cls,
+        source_cls,
+        source_type_name,
+        NULL,
+        refresh,
+        source_ptr);
 }
 
 #endif

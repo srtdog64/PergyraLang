@@ -130,10 +130,10 @@ llvm_domain_struct_register_zone_fields(LLVMGenCtx *ctx,
         llvm_hosted_shared_field_view_from_decl(ctx, decl_name, stmt);
     LLVMHostedZoneLayerSlotView layer_view =
         llvm_hosted_zone_layer_slot_view_from_decl(ctx, decl_name, stmt);
+    LLVMHostedZoneRefreshView refresh_view =
+        llvm_hosted_zone_refresh_view_from_decl(ctx, decl_name, stmt);
     size_t state_count = 0;
     ASTNode **states = ast_zone_states(stmt, &state_count);
-    size_t refresh_count = 0;
-    ASTNode **refreshes = ast_zone_refreshes(stmt, &refresh_count);
 
     entry->domain_kind = LLVM_DOMAIN_ZONE;
     if (llvm_hosted_domain_slot_view_missing_mir_metadata(&slot_view)) {
@@ -151,6 +151,12 @@ llvm_domain_struct_register_zone_fields(LLVMGenCtx *ctx,
     if (llvm_hosted_zone_layer_slot_view_missing_mir_metadata(&layer_view)) {
         llvm_set_mir_inventory_missing(ctx,
             "MIR-only LLVM path missing zone layer-slot metadata for '%s'",
+            decl_name != NULL ? decl_name : "<anonymous>");
+        return false;
+    }
+    if (llvm_hosted_zone_refresh_view_missing_mir_metadata(&refresh_view)) {
+        llvm_set_mir_inventory_missing(ctx,
+            "MIR-only LLVM path missing zone refresh metadata for '%s'",
             decl_name != NULL ? decl_name : "<anonymous>");
         return false;
     }
@@ -244,8 +250,8 @@ llvm_domain_struct_register_zone_fields(LLVMGenCtx *ctx,
                 ast_zone_state_name(state)))
             return false;
     }
-    if (!llvm_domain_add_projection_state_fields(ctx, entry, ftypes,
-            &field_index, &slot_view, refreshes, refresh_count)) {
+    if (!llvm_domain_add_projection_state_fields_from_zone_refresh_view(ctx,
+            entry, ftypes, &field_index, &slot_view, &refresh_view)) {
         return false;
     }
     llvm_class_add_field(entry, pergyra_strdup("__sync_generation"),

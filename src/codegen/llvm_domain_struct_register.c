@@ -32,12 +32,15 @@ llvm_register_domain_structs(LLVMGenCtx *ctx,
             if (stmt == NULL)
                 continue;
 
-            const char *decl_name = NULL;
+            const char *decl_name = llvm_decl_node_name(stmt);
             ASTNode **refreshes = NULL;
             size_t refresh_count = 0;
 
-            llvm_domain_decl_refreshes(stmt, &decl_name, &refreshes,
-                &refresh_count);
+            if (stmt->type == AST_RELATION_DECL
+                || stmt->type == AST_EFFECT_DECL) {
+                llvm_domain_decl_refreshes(stmt, &decl_name, &refreshes,
+                    &refresh_count);
+            }
             if (decl_name == NULL)
                 continue;
             LLVMHostedSharedFieldView shared_view =
@@ -73,13 +76,15 @@ llvm_register_domain_structs(LLVMGenCtx *ctx,
                 LLVMHostedZoneLayerSlotView layer_view =
                     llvm_hosted_zone_layer_slot_view_from_decl(
                         ctx, decl_name, stmt);
+                LLVMHostedZoneRefreshView refresh_view =
+                    llvm_hosted_zone_refresh_view_from_decl(
+                        ctx, decl_name, stmt);
                 size_t state_count = 0;
                 (void) ast_zone_states(stmt, &state_count);
                 size_t projection_count =
-                    llvm_count_domain_projection_slots_in_view(
+                    llvm_count_domain_projection_slots_in_zone_refresh_view(
                         &domain_slot_view,
-                        refreshes,
-                        refresh_count);
+                        &refresh_view);
                 if (llvm_hosted_domain_slot_view_missing_mir_metadata(
                         &domain_slot_view)) {
                     llvm_set_mir_inventory_missing(ctx,
@@ -91,6 +96,13 @@ llvm_register_domain_structs(LLVMGenCtx *ctx,
                         &layer_view)) {
                     llvm_set_mir_inventory_missing(ctx,
                         "MIR-only LLVM path missing zone layer-slot metadata for '%s'",
+                        decl_name);
+                    return;
+                }
+                if (llvm_hosted_zone_refresh_view_missing_mir_metadata(
+                        &refresh_view)) {
+                    llvm_set_mir_inventory_missing(ctx,
+                        "MIR-only LLVM path missing zone refresh metadata for '%s'",
                         decl_name);
                     return;
                 }
@@ -155,9 +167,8 @@ llvm_register_domain_structs(LLVMGenCtx *ctx,
                 for (size_t j = 0; j < state_count * 2; j++, idx++)
                     ftypes[idx] = ctx->type_i32;
                 for (size_t j = 0; j < domain_slot_count; j++) {
-                    if (!llvm_domain_slot_view_is_projection_slot(
-                            &domain_slot_view, j, refreshes,
-                            refresh_count)) {
+                    if (!llvm_domain_slot_view_is_projection_slot_in_zone_refresh_view(
+                            &domain_slot_view, j, &refresh_view)) {
                         continue;
                     }
                     ftypes[idx++] = ctx->type_i1;
