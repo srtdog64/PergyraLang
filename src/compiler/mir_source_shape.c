@@ -310,6 +310,9 @@ mir_instruction_has_required_branch_condition_fact(const MIRInstruction *inst)
 {
     if (inst == NULL || inst->kind != MIR_INST_BRANCH)
         return false;
+    if (inst->branch_shape == MIR_BRANCH_MATCH_CASE
+        && inst->expr0 == NULL)
+        return false;
     if (mir_instruction_branch_requires_source_emit(inst))
         return mir_instruction_source_payload(inst) != NULL
             && mir_instruction_source_branch_payload_matches_shape(inst);

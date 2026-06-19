@@ -322,6 +322,7 @@ test_mir_lowering_part_h(void)
         bool rejected_missing_fact = false;
         bool rejected_mismatched_source_type = false;
         bool rejected_missing_payload = false;
+        bool rejected_predicate_without_subject_fact = false;
         bool ok = lower_mir_from_source(src, &hir, &rir, &mir);
         if (ok)
             routine = find_mir_routine_mut(mir, "BranchSourcePayload",
@@ -345,6 +346,8 @@ test_mir_lowering_part_h(void)
             saved_has_source_location = branch_inst->has_source_location;
             branch_inst->branch_shape = MIR_BRANCH_MATCH_CASE;
             branch_inst->expr0 = NULL;
+            rejected_predicate_without_subject_fact =
+                !mir_instruction_has_required_branch_condition_fact(branch_inst);
             rejected_missing_match_subject_fact =
                 !mir_validate(mir, &mir_error)
                 && mir_error != NULL
@@ -388,6 +391,7 @@ test_mir_lowering_part_h(void)
                && routine != NULL
                && branch_inst != NULL
                && saved_ast != NULL
+               && rejected_predicate_without_subject_fact
                && rejected_missing_match_subject_fact
                && rejected_missing_fact
                && rejected_mismatched_source_type

@@ -3,6 +3,19 @@
 > Split from `docs/100_beta_readiness_checklist.md` on 2026-05-29.
 > Keep active blocker edits in the shard that owns the relevant closure track.
 
+## Progress Log - 2026-06-19 MIR Match Branch Predicate Closure
+
+- `mir_instruction_has_required_branch_condition_fact(...)` now fails closed
+  for `MIR_BRANCH_MATCH_CASE` when the MIR subject fact `expr0` is missing.
+  Source payload shape alone is no longer enough to satisfy the shared
+  branch-condition predicate consumed by C/LLVM codegen.
+- `test-mir`, `cfg-body-dataflow-test-smoke`, and `perf-contract-test-smoke`
+  ratchet this behavior through the existing source-compatible branch drift
+  test and literal smoke gates.
+- Verified locally with `test-mir`, `cfg-body-dataflow-test-smoke`,
+  `build-source-inventory-test-smoke`, `perf-contract-test-smoke`, and
+  targeted C/LLVM backend compare for match fixtures.
+
 ## Progress Log - 2026-06-19 MIR Match Subject Fact Lookup
 
 - `pgy_codegen_match_subject_for_branch(...)` now returns the match subject
